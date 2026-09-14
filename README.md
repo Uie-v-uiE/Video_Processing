@@ -115,6 +115,7 @@ PC 网卡：`192.168.1.100/24`，网线接 **PS ETH**。
 | [docs/ISSUES.md](docs/ISSUES.md) | 开发中遇到的问题与修复 |
 | [docs/COMPETITION.md](docs/COMPETITION.md) | 2026 AMD 自主选题提交清单 |
 | [docs/PROJECT_LAYOUT.md](docs/PROJECT_LAYOUT.md) | 工程路径与复现步骤 |
+| [docs/TCL_BUILD_GUIDE.md](docs/TCL_BUILD_GUIDE.md) | **TCL 构建工程详细教程** |
 | [docs/ETH_BRINGUP.md](docs/ETH_BRINGUP.md) | 以太网上板 |
 | [docs/SYSTEM_BRINGUP.md](docs/SYSTEM_BRINGUP.md) | 系统工程上板 |
 | [docs/ROTATION_AND_EFFECTS.md](docs/ROTATION_AND_EFFECTS.md) | 旋转与效果关系 |
