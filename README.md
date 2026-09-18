@@ -23,8 +23,8 @@
 | 分支 | 说明 |
 |------|------|
 | **`main`（当前）** | 第三版：PL 以太网视频流水线 + 效果 / 旋转 / 右屏无极缩放 |
-| `v1-ps-ethernet` | 初版：PS 以太网方案（来自 [Video_Pipeline](https://github.com/Uie-v-uiE/Video_Pipeline)） |
-| `v2-pl-ethernet` | 第二版：PL 以太网方案（来自 [Zynq_Video_Pipeline](https://github.com/Uie-v-uiE/Zynq_Video_Pipeline)） |
+| `v1-ps-ethernet` | 初版：**PS 以太网**（UDP → PS → DDR，PL 经 HP0 读出；来自 [Zynq_Video_Pipeline](https://github.com/Uie-v-uiE/Zynq_Video_Pipeline)） |
+| `v2-pl-ethernet` | 第二版：**PL 以太网**（PL 硬件 RGMII/UDP 协议栈；来自 [Video_Pipeline](https://github.com/Uie-v-uiE/Video_Pipeline)） |
 
 ```bash
 git fetch origin
