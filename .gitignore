@@ -1,0 +1,41 @@
+# ===== Vivado / Vitis / 仿真 生成物（勿提交） =====
+vivado_system/
+vivado_sim/
+vit/
+VITIS/
+.Xil/
+*.jou
+*.log
+*.str
+*.pb
+*.wdb
+*.wcfg
+*.dcp
+*.rpx
+*.hwdef
+*.hwh
+*.ltx
+
+# 工程内重复的生成目录
+build/vivado_system/
+build/build/
+build/reports/
+build/scripts/
+
+# ===== Python =====
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+
+# ===== 编辑器 / 系统 =====
+.vs/
+.vscode/
+.idea/
+*.swp
+Thumbs.db
+.DS_Store
+
+# ===== 可选：本地产物过大时可取消注释 =====
+# build/system.bit
+# build/system.xsa

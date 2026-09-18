@@ -1,0 +1,6 @@
+# Host PC dependencies
+numpy>=1.24
+Pillow>=10.0
+pyserial>=3.5
+# optional webcam:
+# opencv-python>=4.8
