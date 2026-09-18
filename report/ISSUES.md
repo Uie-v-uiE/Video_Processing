@@ -1,182 +1,119 @@
-# 问题与修复记录
+# 问题与修复记录（含第三版）
 
-按时间顺序记录调试过程中的问题、定位方法与最终修复。
-
----
-
-## 1. EMIO GPIO 读回恒 0
-
-**现象：** 通过 PS EMIO 控制 PL 效果位，读回一直 0。  
-**修复：** 改用 GP0 上的 **AXI GPIO**，基址 `0x41200000`。  
-**教训：** 部分 Zynq 板 EMIO 异常，外设控制优先走 AXI GPIO。
+按主题整理；新增条目标注 **[v3]**。
 
 ---
 
-## 2. PHY 自协商失败 `link_speed invalid`
+## 网络 / 协议
 
-**现象：** RTL8211 在 AUTODETECT 下报 link_speed invalid。  
-**修复：** BSP `lwipopts.h` 设 `CONFIG_LINKSPEED1000`。  
-**现状：** PS 不再用 lwIP 收视频；若仍用 PS 网口需保留此配置。
+### 1. EMIO GPIO 读回恒 0
+改用 AXI GPIO `@0x41200000`。
 
----
+### 2. ping 通但 UDP 不到
+PC 双网卡默认路由走 WLAN → `socket.bind(("192.168.1.100",0))`。
 
-## 3. ping 通但 UDP 不到
+### 3. PL 网口 ARP 不通
+参考 `13_UDP_STACK` 的 RGMII/ARP；前导码 FSM 7+1；修复 arp_tx 多驱动。
 
-**现象：** ping 正常，`rxcnt=0`。  
-**原因：** PC 双网卡，默认路由走 WLAN。  
-**修复：** `socket.bind(("192.168.1.100", 0))` 强制以太网源地址。
+### 4. ICMP ping 不通
+载荷 FIFO 接错 + 启动过早 → 专用 `sync_fifo` + 延迟 20 拍。
 
----
+### 5. UDP 乱序错位
+包头加 `[u32 LE offset]`，按 offset 写 BRAM。
 
-## 4. HDMI 只有窄条
-
-**现象：** 彩条满屏，视频只有左侧窄带。  
-**原因：** 64-bit beat 含 4 个 RGB565，旧逻辑每 rvalid 只写 1 像素。  
-**修复：** `axi_frame_writer` 锁存整拍再拆 4 拍写 BRAM。
+### 6. **[v3] CDC FIFO 地址切片错误**（历史）
+`dout[35:17]` 应为 `dout[34:16]`；打包加 `1'b0` 对齐 36-bit。
 
 ---
 
-## 5. 行地址 12 位左移溢出
+## 显示 / 图像
 
-**现象：** 修复拆包后画面仍异常。  
-**原因：** `(row+1) << 10` 在 12 位下回绕。  
-**修复：** 全部改为 32 位运算。
+### 7. HDMI 窄条 / 4 幅画面
+AXI 64-bit 拆包；CDC 地址切片（见上）。
 
----
+### 8. 行地址左移溢出
+`(row+1)<<10` 位宽不足 → 全 32-bit 运算。
 
-## 6. 0° 旁路 mapper 导致流水线错位
+### 9. 0° 旁路导致流水线错位
+angle=0 时 cx/cy 同样延迟 3 拍。
 
-**现象：** angle=0 时延迟从 3 拍变 1 拍，与 sideband 不对齐。  
-**修复：** angle=0 时对 cx/cy 做同样 **3 拍寄存器延迟**。
+### 10. 旋转时窗滤花屏（旧）
+目标域 3×3 重构后任意角可用 blur/sobel。
 
----
+### 11. OSD 缺 F / 尾部多 0
+补 A–F 字模；空格用空白字模，不用「0」。
 
-## 7. UDP 乱序导致帧错位
-
-**现象：** 流式视频块状错位。  
-**原因：** UDP 不保证顺序；按到达顺序 memcpy 打乱布局。  
-**修复：** 包头增加 **u32 小端 offset**，写到 `BASE+offset`。  
-**协议：** `[offset:4][rgb565 payload]`，payload ≤1396 B。
+### 12. 拖影
+ETH 边收边写 BRAM；双缓冲资源不够 → 接受或后续消隐期写。
 
 ---
 
-## 8. 旋转时旁路 blur/sobel（旧架构）
+## **[v3] 缩放 / 数据通路**
 
-**现象：** angle≠0 时窗口滤波花屏。  
-**原因：** 3×3 依赖源图扫描邻域；逆映射后屏幕邻域 ≠ 源图邻域。  
-**旧修复：** `bypass = ~en | rotate_active`。  
-**新方案：** 目标域重构，任意角可用窗滤。见 `ROTATION_AND_EFFECTS.md`。
+### 13. 流式 bicubic 无法直接并入本工程
+Algorithm 工程依赖 divider/行推流，与本工程 FB 随机读模型不同 → 采用 **逆映射 + 连续 inv_scale**。
 
----
+### 14. 缩放方向
+需求：**原始尺寸为最大** → `inv_scale` 256→512 循环（缩小再回原始），OOB 黑边。
 
-## 9. PL 网口 ARP 不通
+### 15. **[v3] inv_scale=256 在 9-bit 有符号下为 −256**
+映射全错 → `zoom_mapper` 内 `inv` 改为 **10-bit 有符号**。
 
-**现象：** 网线插对、灯亮，但 PC ARP 表无条目。  
-**排查：** 灯亮只说明 PHY 链路；FPGA 侧 RGMII/ARP 路径需单独验证。  
-**修复：**  
-1. 采用板卡已验证 `13_UDP_STACK` 的 RGMII（BUFIO+IDDR+IDELAY）与 ARP 状态机  
-2. 前导码 FSM：IDLE 消费 1 个 `0x55` 后 PRE 再数 6 个再验 `0xD5`（共 7+1）  
-3. 修复 arp_tx 多驱动 `st` 寄存器  
+### 16. **[v3] 效果挂载位置**
+原 line_cache（左扫右读）废弃；效果改挂 **右窗缩放后光栅**，左窗保持原图。
 
-**结果：** ARP 表出现 `00-11-22-33-44-55`，ping 通。
+### 17. **[v3] FB 单口左右冲突**
+左右窗时分复用同一读口：`left_d[2]` 选择 rotate/zoom 地址。
 
 ---
 
-## 10. ICMP ping 不通（ARP 已通）
+## **[v3] 时序 / 约束 / FIFO**
 
-**现象：** ARP 有条目，ping 超时。  
-**根因：**  
-1. **ICMP 载荷 FIFO 接错**：载荷写在专用 FIFO，发送却从 `eth_ctrl` 共享 FIFO 读（空）  
-2. icmp_tx 启动过早，FIFO 未写完  
+### 18. eth_rxc→clk_pix 假违例（WNS≈−6.7）
+XDC `set_clock_groups` 未含 MMCM 生成钟 →  
+`-group [get_clocks -include_generated_clocks sys_clk]`。
 
-**修复：**  
-- `icmp_tx` 直接读专用 `sync_fifo`  
-- `icmp_tx_start_en` 延迟 20 拍再启动  
-- ICMP 回包目的 MAC/IP 取自请求源（`icmp_rx` 导出 `src_mac/src_ip`）  
+### 19. **[v3] icmp FIFO 寄存器堆导致 125M 域违例**
+存储带异步复位无法推断 BRAM → `sync_fifo`/`dc_fifo` **写阵列去掉复位** + `ram_style=block`。
 
-**结果：** `Reply from 192.168.1.10` 4/4 成功。
+### 20. **[v3] rd_addr 组合路径**
+`sy*W+x` → `{sy[8:0],9'b0}+sx` 后 **打一拍** 再进 BRAM，sideband 同步加长。
 
----
+### 21. 增量综合忽略新约束
+删 `utils_1/imports/synth_1/*.dcp` 或 `reset_run synth_1`。
 
-## 11. OSD 显示错误
-
-**现象：**  
-- `F` 消失，显示 `PS=59...`  
-- 行尾大量 `0`（`PS=59000000`、`ANG=35900000`、`EN=000000000`）  
-
-**根因：**  
-1. 字母 **F 无字模**（索引 15 未定义）  
-2. **空格被映射到字模「0」**（`glyph_idx` 默认返回 0）  
-
-**修复：**  
-- 补全 A–F 字模  
-- 空格 → 空白字模（索引 31，全 0）  
-- OSD 只保留三行：`FPS=xx` / `ANG=xxx` / `EN=xxxxx`  
+### 22. TCL root 少一级 `..`
+脚本在 `build/tcl` 时应用 `join dirname .. ..`。
 
 ---
 
-## 12. 显示 4 幅画面 / 只占上半屏
+## PS / 上位机 / 工程
 
-**现象：** 红蓝测试图显示为每窗 4 段（红蓝红蓝），且只在上半屏。  
-**根因：** **CDC FIFO 地址切片错误**
+### 23. 串口无效
+bit 后 PS 复位 → 必须再 Run ELF。
 
-| | 错误 | 正确 |
-|--|------|------|
-| 写 | `{addr, data}` 35 位 | `{1'b0, addr, data}` 36 位 |
-| 读 | `dout[35:17]` = `addr>>1` | `dout[34:16]` |
+### 24. **[v3] bat 路径 `sw\host`**
+实际为 `src\host`；Python 优先 PATH。
 
-地址右移 1 位 → 512 宽画面压进 256 再绕回。  
+### 25. 构建脚本覆盖 system_top.v
+TCL 只 `add_files`，不生成顶层。
 
-**修复：** `pl_video_top` 与 `eth_udp_video_top` 两处改为正确切片。  
-**结果：** 左右各「红|蓝」，竖直 2× 占满。
-
----
-
-## 13. 拖影（人物移动留残影）
-
-**现象：** 人走后原位置仍有颜色拖影。  
-**原因：** UDP 边收边写显示 BRAM，旧像素未被覆盖。  
-**尝试：** 双缓冲 `frame_buffer_db` — **7020 BRAM/LUT 爆资源**，实现失败。  
-**尝试：** ETH 只写 DDR，显示整帧从 DDR 刷新 — 误关 `axi_frame_writer` 启动导致**全黑**；且 DDR 写路径未通时显示旧 FILL 图案。  
-**现状：** 恢复 ETH 直写 BRAM（画面正确）；拖影可接受。  
-**后续方案：** 收满帧后在消隐期写、降分辨率、或换更大 FPGA 做双缓冲。
+### 26. **[v3] CMD 中 git 未知**
+Git 在 `D:\Git\Git\bin`，未进 PATH → 用全路径或改环境变量。
 
 ---
 
-## 14. 串口命令无效
-
-**现象：** 发 `10000` 无反应。  
-**原因：** 下载 bit 后 **PS 复位**，未重新下载 ELF。  
-**修复：** 每次 program bit 后必须 **Vitis Run** PS 应用。  
-**改进：** ETH 有包时自动 `src_use=1`，不依赖串口 `SRC1`。
-
----
-
-## 15. 构建脚本覆盖 system_top.v
-
-**现象：** 综合后 ETH 端口全部消失，约束报 No ports matched。  
-**原因：** `build_system_axigpio.tcl` 用 Tcl 写入旧版 `system_top.v`。  
-**修复：** TCL 只 `add_files`，不再生成/覆盖 `system_top.v`。
-
----
-
-## 16. Vivado 2025.2 空语句语法错误
-
-**现象：** 参考工程的 `else begin end` / 孤立 `;` 导致 xvlog 报错。  
-**修复：** 迁入前用脚本只删「空 begin/end」，避免误删正常 `end;`。
-
----
-
-## 快速对照表
+## 快速对照
 
 | 症状 | 优先检查 |
 |------|----------|
-| 无 HDMI | 时钟、bitstream、显示器 1024×600 |
-| 彩条正常、视频窄条 | AXI 拆包、行地址位宽 |
-| 4 幅画面/上半屏 | CDC 地址切片 `dout[34:16]` |
-| 拖影 | 边收边写 BRAM；双缓冲资源不够 |
-| ping 不通 | ARP 表、网线是否 PL 口、arp_tx |
-| ARP 通 ping 不通 | ICMP FIFO 接线、icmp_tx 启动延迟 |
-| OSD 多 0 / 缺 F | 字模与空格映射 |
-| 串口无响应 | bit 后是否 Vitis Run |
-| PHY link_speed | CONFIG_LINKSPEED1000 |
+| 无 HDMI | bit、线、1024×600 |
+| ping 不通 | 是否 **PL 口**、ARP 表 |
+| ping 通无视频 | 端口 5001、offset 协议、src 绑定 |
+| 4 幅/窄条 | CDC 切片、AXI 拆包 |
+| 右屏不缩放 | `zoom_en`、`zoom_ctrl` 参数、inv 范围 |
+| 缩放坐标乱 | inv 位宽是否 10-bit 有符号 |
+| 效果只在错误窗 | 效果是否挂在右窗 de |
+| 时序 WNS 为负 | 时钟组是否含 clkout*；FIFO 是否 BRAM |
+| 串口无效 | bit 后是否 Run ELF |
+| git push 失败 | 网络/代理；git 是否在 PATH |

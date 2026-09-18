@@ -1,99 +1,126 @@
-# 性能对比报告（优化前 / 优化后）
+# 性能与资源报告（第三版）
 
-> 版本：v1（PL UDP offload + 目标域窗滤 + OSD）
-> 依据：本仓库 RTL/仿真/设计文档；上板实测项标注「待上板填数」。
+> 版本：v3 · PL UDP offload + 右屏无极缩放 + 目标域效果 + 时序收敛  
+> 板卡：RK-ZYNQ7020-F（XC7Z020-CLG484-2）· Vivado 2025.2.1  
+> 数据来源：`build/timing_summary.rpt`、`utilization.rpt`、`power.rpt`；功能项已上板验证。
+
+---
 
 ## 1. 测量条件
 
 | 项 | 条件 |
 |----|------|
-| 板卡 | RK-ZYNQ7020-F，XC7Z020-CLG484-2 |
-| 源分辨率 | **512×300 RGB565**（维持原分辨率） |
-| 显示 | HDMI 1024×600 @ 50 MHz，左右双窗 |
-| 网络 | 千兆，UDP 5001，包约 1400 B，协议 `[u32 LE offset][payload]` |
-| 优化前 | PS lwIP 收包 + memcpy 写 DDR |
-| 优化后 | PL RGMII→MAC→UDP→重组→BRAM/HP0 写 DDR；PS 仅控制面 |
+| 源 | 512×300 RGB565 |
+| 显示 | HDMI 1024×600 @50 MHz 双窗 |
+| 网络 | 千兆 UDP 5001，`[u32 offset][payload]`，payload≤1396 |
+| 数据面 | PL 硬件协议栈（PS 不参与逐包） |
+| 右屏 | 无极缩放 1.0×↔0.5× 循环 + 效果链 |
 
-## 2. 帧率对比
+---
 
-| 指标 | 优化前（PS lwIP） | 优化后（PL UDP） | 证据 |
-|------|-------------------|------------------|------|
-| 目标推流帧率 | 30 fps（上位机） | 30 fps（协议不变） | `sw/host/video_sender.py` |
-| 可持续帧率 | 受 CPU 中断/协议栈限制，实测常见 20–30 fps（待填实测） | 线速可达，重组无 CPU 参与 | 设计：1G 链路余量充足 |
-| 显示刷新 | 60 Hz 回读 DDR→BRAM | 同左；或 eth 直写 BRAM | `axi_frame_writer` / `frame_reasm` |
+## 2. 版本对比（架构）
 
-**测量方法：** 上位机统计发送 fps；板端 OSD `FPS=` 或 `STAT`；ILA 抓 `frame_done` 周期。
+| 项 | v1 PS 网口 | v2 PL 网口 | **v3 当前** |
+|----|------------|------------|-------------|
+| UDP 数据面 | PS lwIP → DDR | PL RGMII→BRAM | 同 v2 + 优化 |
+| 右屏 | 效果（line_cache） | 效果 | **缩放循环 + 效果** |
+| 旋转 | 有 | 有 | 有，可与缩放叠加 |
+| OSD | 无/简 | 有 | FPS / ANG / EN |
+| FIFO | IP/软件 | 部分自写 | **全自写 + BRAM 化** |
+| 时序 | — | 有跨钟假违例 | **全局 MET** |
 
-## 3. 端到端延迟（估算 + 测点）
+---
 
-| 阶段 | 优化前 | 优化后 |
-|------|--------|--------|
-| 网卡→协议栈 | lwIP 中断+拷贝，百微秒–毫秒级 | RGMII DDR 采样，约 8 ns/字节流水 |
-| 帧重组 | PS memcpy 按 offset | PL BRAM 写，同拍级 |
-| 可见 | 收满帧 flush 后下一显示帧 | eth 直写后下一 vsync；或 DDR 写完后显示回读 |
+## 3. 时序（优化后）
 
-**建议 ILA 测点：** `rgmii_rx_ctl` 首字节 → `frame_done` → 下一 `vs` 上升沿。
+**结论：`All user specified timing constraints are met`**
 
-## 4. PS CPU 占用
+| 时钟 | 周期 | WNS | 状态 |
+|------|------|-----|------|
+| clk_fpga_0 | 10 ns | +0.865 | MET |
+| eth_rxc | 8 ns | +0.111 | MET |
+| sys_clk | 20 ns | +14.445 | MET |
+| clkout0_1 (clk_pix) | 20 ns | +1.882 | MET |
 
-| 模式 | 说明 |
+- 跨钟 eth_rxc ↔ clk_pix：已异步约束，报告中无违例  
+- Hold / Pulse：MET  
+- 优化前全局 WNS 约 −6.7 ns（假跨钟 + FIFO 寄存器堆）→ 详见 `OPTIMIZATION_LOG.md`
+
+---
+
+## 4. 资源占用（实现后）
+
+| 资源 | 使用 | 占比（7020） |
+|------|------|----------------|
+| Slice LUT | 10621 | **19.96%** |
+| Slice Registers | 20253 | **19.03%** |
+| Block RAM Tile | 83 | 59.29% |
+| DSP | 13 | 5.91% |
+
+对比优化前：LUT 23.3%→20.0%，FF 23.2%→19.0%（FIFO 推断 BRAM、逻辑整理）。
+
+BRAM 主要占用：frame_buffer 512×300×16b + 协议栈/行缓等。
+
+---
+
+## 5. 功耗（report_power）
+
+| 项 | 数值 |
+|----|------|
+| Total On-Chip | **2.240 W** |
+| Dynamic | 2.071 W |
+| Device Static | 0.169 W |
+| Junction Temp | 50.8 °C |
+
+说明：vector-less 估算，置信度 Low（复位翻转假设）；适合相对比较。
+
+Bitstream：`COMPRESS TRUE`，bit 约 2.1 MB（未压缩约 4 MB）。
+
+---
+
+## 6. 吞吐与带宽
+
+| 路径 | 计算 | 结论 |
+|------|------|------|
+| UDP 入口 | 307200 B × 30 fps | ≈9.2 MB/s ≈74 Mbps，千兆余量大 |
+| 显示读 | 307200 B × 60 Hz | ≈18.4 MB/s |
+| HP0 理论 | 64-bit @100 MHz | 800 MB/s，占用极低 |
+| BRAM | 单缓冲 2.34 Mb | 双缓冲放不下 |
+
+PS CPU：主循环仅 `uart_poll`，不参与视频搬移。
+
+---
+
+## 7. 功能验证
+
+| 项 | 结果 |
+|----|------|
+| `tb_zoom_mapper` | PASS（恒等、0.5× 中心映射、三角波） |
+| 其余 sim（gray/timing/rotate/udp…） | PASS（`tb_eth_video` 参数历史问题，与本功能无关） |
+| 上板右屏缩放 | 用户确认 OK（1.0× 最大→缩小循环） |
+| 效果/旋转/选源/推流 | 与缩放并存可用 |
+| 优化后 bit | 已生成；建议再完整回归一次 |
+
+---
+
+## 8. 证据索引
+
+| 类型 | 路径 |
 |------|------|
-| 优化前 | 每 UDP 包进中断/回调 + memcpy + 帧满 flush；30 fps×约 220 包/帧 ≈ 6600 包/s，CPU 高占用 |
-| 优化后 | 主循环仅 `uart_poll`；**不再参与逐包搬运** | 
+| 时序 | `build/timing_summary.rpt` |
+| 资源 | `build/utilization.rpt` |
+| 功耗 | `build/power.rpt` |
+| 架构 | `report/ARCHITECTURE.md` |
+| 优化过程 | `report/OPTIMIZATION_LOG.md` |
+| 上位机 | `src/host/HOST_GUIDE.md` |
+| 构建 | `build/tcl/build_system_axigpio.tcl` |
 
-**测量方法：** 空闲循环计数或 `ps7_init` 侧全局计数器前后差；对比两版 ELF。
-
-## 5. DDR 带宽
-
-| 方向 | 计算 | 优化前 | 优化后 |
-|------|------|--------|--------|
-| 写入帧 | 307200 B × fps | PS 写 30 fps → **9.2 MB/s** | PL HP 写 30 fps → **9.2 MB/s**（同量） |
-| 显示回读 | 307200 B × 60 Hz | **18.4 MB/s** HP0 读 | 相同；若 eth 直写 BRAM 可省本轮询 |
-| 合计 | | ~28 MB/s | ~28 MB/s 或更低（直写 BRAM） |
-| HP0 理论 | 64-bit @ 50 MHz → 400 MB/s | 占用 <10% | 同量级 |
-
-> 优化收益主要在 **CPU 卸载与延迟**，不是 DDR 峰值带宽。
-
-## 6. 资源占用（LUT/FF/BRAM/DSP）
-
-| 资源 | 视频流水线（已有） | 新增 PL UDP（估算） | 说明 |
-|------|-------------------|---------------------|------|
-| LUT | 见 Vivado `report_utilization` | MAC+UDP+reasm 约 1–2k LUT | 待综合填实测 |
-| FF | 同上 | 数百 | |
-| BRAM | frame_buffer ~2.34 Mbit + line | FIFO 64×36b 可忽略 | 7020 共 4.9 Mbit |
-| DSP | 旋转/滤波少量 | UDP 无 DSP | |
-
-**导出命令：**
-
-```tcl
-report_utilization -file output/utilization.rpt
-report_timing_summary -file output/timing_summary.rpt
-```
-
-## 7. 功能优化对比（架构）
-
-| 项 | 优化前 | 优化后 |
-|----|--------|--------|
-| UDP 数据面 | PS lwIP | **PL RGMII 全硬件** |
-| 旋转+窗滤 | angle≠0 强制旁路 blur/sobel | **目标域 3×3，任意角可组合** |
-| OSD | 无（模块未接入） | 左上角 FPS/ANG/EN/NET/RUN |
-| 坏帧策略 | 丢弃不重传，下一帧恢复 | **保持不变** |
-| 协议 | offset 拼帧 | **上位机无需修改** |
-
-## 8. 验证证据索引
-
-| 类型 | 位置 |
-|------|------|
-| 仿真 UDP 重组 | `sim/tb_udp_reasm.v`（正常/OOS/丢包/重复/跳变） |
-| 仿真 UDP 解析 | `sim/tb_udp_parser.v` |
-| 仿真旋转+窗滤 | `sim/tb_rotate_window.v` |
-| 约束/管脚 | `constraints/rk_zynq7020.xdc`（PHY2） |
-| 设计说明 | `docs/ARCHITECTURE.md`、`docs/ROTATION_AND_EFFECTS.md` |
-| 上板 | 接 **PL ETH** 口推流；串口 `00111`/`STAT`；HDMI OSD |
+---
 
 ## 9. 结论
 
-1. **CPU 卸载**：优化后 PS 不再收 UDP 视频包，控制面独立。
-2. **兼容**：上位机协议与端口约定不变（请接板卡 **PL 网口**）。
-3. **画质组合**：任意旋转角下 blur/sobel 可用（目标域窗口）。
-4. 待上板补充：实测 fps、CPU 占用百分比、ILA 延迟截图、综合资源表。
+1. 数据面 PL 卸载后延迟确定，PS 仅控制。  
+2. 右屏无极缩放与效果/旋转/选源可同时工作。  
+3. 时序全局收敛；资源与功耗处于 XC7Z020 合理区间。  
+4. 自写 FIFO + OSD 为可复用基础模块。  
+5. 可后续升级：双线性插值、消隐期写帧缓减拖影。

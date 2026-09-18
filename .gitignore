@@ -22,12 +22,15 @@ build/build/
 build/reports/
 build/scripts/
 
-# ===== 本地个人笔记（不上传） =====
+# ===== 本地个人笔记 / 辅助脚本 / 构建日志（不上传） =====
 docs/LEARNING.md
 docs/TCL_GUIDE.md
 docs/PROJECT_LOG.md
+docs/build_logs/
+docs/fix_branches.bat
 report/ZOOM_PORT.md
 report/COMPETITION.md
+fix_branches.bat
 
 # ===== Python =====
 __pycache__/

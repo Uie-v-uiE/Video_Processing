@@ -1,119 +1,118 @@
-# 模块详解
+# 模块详解（第三版）
 
-## 1. rtl/top/system_top.v
+对应路径均在 `src/rtl/` 下。
 
-**职责：** 顶层连接 PS BD、PL 视频、PL 以太网。
+---
 
-**端口：**
-- DDR / FIXED_IO：PS 外设
-- sys_clk / key / led / HDMI TMDS
-- eth_rxc / eth_rx_ctl / eth_rxd[3:0]：PHY2 RGMII 收
-- eth_tx_* / eth_mdc / eth_mdio / eth_rst_n：PHY2 发与管理
+## 1. top/system_top.v
 
-**内部：**
+**职责：** PS Block Design + PL 视频 + PL 以太网顶层连线。
+
+**要点：**
 - `design_1_wrapper`：PS7 + AXI GPIO + HP0
-- `clk_gen`：生成 200 MHz 给 IDELAYCTRL
-- `eth_udp_video_top`：完整协议栈
-- `pl_video_top`：显示流水线
+- `eth_udp_video_top`：协议栈
+- `pl_video_top`：显示/效果/缩放
+- `.zoom_en(1'b1)`：右屏无极缩放上电常开
+- `clk_gen`：另供 200 MHz 给 IDELAYCTRL
 
 ---
 
-## 2. rtl/eth/ — 以太网协议栈
+## 2. top/pl_video_top.v（显示主通路）
 
-### 2.1 rgmii_rx.v / rgmii_tx.v
+**职责：** 双窗扫描、坐标映射、FB 时分读、右窗效果、OSD、HDMI。
 
-- RX：`BUFG`（逻辑钟）+ `BUFIO`（IO 钟）+ `IDELAYE2` + `IDDR`（SAME_EDGE_PIPELINED）
-- TX：`ODDR` 双沿输出
-- IDELAY_VALUE=15（约 1.2 ns，78 ps/tap）
+| 子块 | 说明 |
+|------|------|
+| `zoom_ctrl` / `zoom_mapper` | 右屏自动缩放；INV_LO=256，INV_HI=512，STEP=2 |
+| `rotate_mapper` | 左窗旋转；右窗缩放后可再旋转 |
+| FB 读地址 | `left_d[2]` 选择 rotate 或 zoom 坐标；`rd_addr` 移位加法后打拍 |
+| `proc_pipeline` | 仅在右窗 `de` 上运行；输入为缩放后像素 |
+| `split_display` | 左右独立 oob；中间蓝线 |
+| `osd_overlay` | 状态叠加 |
+| CDC | `ze*`/`ef*`/`fs*` 标 `ASYNC_REG` |
 
-### 2.2 arp_rx.v / arp_tx.v
-
-- 解析 who-has，目标 IP = BOARD_IP 时置 `arp_rx_done`
-- `eth_ctrl` 在非忙时发起 `arp_tx` 应答
-- 应答含 FCS（`crc32_d8`）
-
-### 2.3 icmp_rx.v / icmp_tx.v
-
-- 解析 echo request (type 8)，导出 `src_mac/src_ip`
-- 回显 reply (type 0)，载荷经 `sync_fifo` 回传
-- TX 启动延迟 20 拍，确保 FIFO 写完
-
-### 2.4 udp_rx.v / udp_tx.v
-
-- 解析 Eth+IPv4+UDP，输出 `rec_en/rec_data/rec_pkt_done`
-- 视频路径只用 RX；TX 保留（可回传状态）
-
-### 2.5 frame_reasm.v
-
-**协议：** `[u32 LE offset][RGB565 data]`
-
-```
-收到 4 字节 offset
-之后每 2 字节组装一个像素
-wr_addr = offset/2
-wr_data = {high, low}
-```
-
-- 累计载荷字节，达到 307200 时 `frame_done`
-- 坏包计入 `stat_bad`，不重传，下一帧自动恢复
-
-### 2.6 dc_fifo.v / sync_fifo.v
-
-- `sync_fifo`：同钟，gray 指针，分布式/块 RAM
-- `dc_fifo`：跨钟，gray 同步
-- **打包：** `{1'b0, addr[18:0], data[15:0]}` → 读 `dout[34:16]`/`dout[15:0]`
-
-### 2.7 axi_frame_saver.v
-
-- 将像素经 HP0 写 DDR（1 像素/拍，2 字节 strobe）
-- 可选路径；显示主路径为 BRAM 直写
+**延迟：** mapper3 + addr1 + BRAM1 + proc7，sideband 与此对齐。
 
 ---
 
-## 3. rtl/video/
+## 3. eth/ — 协议栈
 
-### 3.1 video_timing_1024x600.v
+### 3.1 rgmii_rx / rgmii_tx
+BUFIO + IDDR（SAME_EDGE_PIPELINED）/ ODDR；IDELAY_VALUE=15。
 
-1024×600@50MHz，H=1344，V=625。
+### 3.2 arp / icmp / udp
+- ARP：who-has → 板卡 MAC `00:11:22:33:44:55`
+- ICMP：echo reply；载荷 **自写 `sync_fifo`**；tx 启动延迟 20 拍
+- UDP：解析后交 `frame_reasm`
 
-### 3.2 frame_buffer.v
+### 3.3 frame_reasm
+协议 `[u32 LE offset][RGB565]`；`wr_addr=offset/2`；满 307200 B 帧完成；坏帧计数不重传。
 
-512×300×16b 双口 BRAM，`addr = y*W+x`。
+### 3.4 自写 FIFO
 
-### 3.3 osd_overlay.v
+**sync_fifo.v（同钟）**
+- 深度 `2^ADDR_W`，读出寄存一拍
+- `empty`/`full` 用指针最高位比较
+- **存储阵列无复位** + `ram_style="block"` → 推断 BRAM  
+  （避免异步复位导致落到寄存器堆，拖垮 eth_rxc@125M 时序）
 
-- 3× 字号，玫红色 `FF0090`
-- 三行：`FPS=xx`、`ANG=xxx`、`EN=xxxxx`
-- 空格用空白字模（索引 31），避免显示成「0」
+**dc_fifo.v（跨钟）**
+- 写 `wr_clk` / 读 `rd_clk` 独立
+- 指针转 Gray，两级同步到对侧
+- 打包 36-bit：`{1'b0, addr[18:0], data[15:0]}`，读 `dout[34:16]` / `[15:0]`
+- 写口无复位，便于 BRAM
 
-### 3.4 split_display.v
-
-左原图 / 右处理结果，中间蓝线，OOB 黑。
+### 3.5 axi_frame_writer / axi_frame_saver
+PS `FILL` 或 DDR 诊断路径；ETH 主路径为 BRAM 直写。
 
 ---
 
-## 4. rtl/process/
+## 4. video/
 
-### 4.1 proc_pipeline.v
+| 模块 | 说明 |
+|------|------|
+| video_timing_1024x600 | H=1344 V=625 @50M |
+| frame_buffer | 512×300×16b 双口 BRAM |
+| split_display | 左右像素选择 + oob_l/oob_r + 蓝线 |
+| osd_overlay | 三行状态；3× 放大；空格空白字模 |
+| color_bar | 彩条源；右路用 zoom 后坐标采样 |
+| line_cache | 历史模块，**top 中已不再例化** |
 
+---
+
+## 5. process/
+
+### 5.1 proc_pipeline
 ```
 gray → binary → box_blur → sobel → invert
 ```
+每级 `bypass`；固定约 7 拍延迟。窗滤行缓地址用**右窗屏幕坐标**（目标域）。
 
-各模块 `bypass` 直通。窗滤不再因旋转强制关闭。
+### 5.2 rotate/*
+`rotate_mapper` 逆映射 + sin/cos ROM；`angle_ctrl` 按键 ±1°。
 
-### 4.2 rotate_mapper.v
+### 5.3 zoom/*
 
-逆映射 + Q8 sin/cos ROM，3 级流水。
+**zoom_ctrl.v**
+- 输出 `inv_scale[9:0]` Q8
+- 默认 INV_LO=256（1.0× 最大），INV_HI=512（0.5×），STEP=2
+- `enable=0` 时锁定 256
+- `dir`：0 向缩小，1 回原始
 
-### 4.3 proc_box_blur / proc_sobel
-
-行缓 3×3，地址用**屏幕坐标**（目标域）。
+**zoom_mapper.v**
+```
+// 无旋转
+sx = W/2 + ((x-W/2)*inv)>>8
+sy = H/2 + ((y-H/2)*inv)>>8
+// 有旋转：先 Q8 旋转再 *inv，inv=256 时与 rotate_mapper 一致
+```
+- `inv` 用 **10-bit 有符号**（避免 256 被当成 −256）
+- 3 级流水；OOB 黑；`frac_x/frac_y` 预留双线性
 
 ---
 
-## 5. 时钟与复位
+## 6. 时钟与复位
 
-- `clk_gen`：MMCM 50/250/200
-- PHY 复位：`eth_rst_n` 由 `sys_clk` 计数约 168 ms
-- ETH 逻辑复位：`eth_rst_n & mmcm_locked`
+- `clk_gen`：MMCM 50 / 250 / 200
+- `eth_rst_n`：sys_clk 计数约 168 ms
+- ETH 逻辑：`eth_rst_n & mmcm_locked`
