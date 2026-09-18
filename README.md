@@ -1,83 +1,108 @@
-# Zynq7020 Ethernet Video Pipeline
+# Zynq7020 以太网视频处理流水线
 
-UDP video sink and real-time image pipeline on Zynq-7000 (XC7Z020).
+基于 Zynq-7000（XC7Z020）的 UDP 视频接收与实时图像处理工程。
 
-A host PC streams **512×300 RGB565** frames over UDP. The **PL** implements RGMII, ARP/ICMP/UDP, offset-based frame reassembly, image effects, rotation, seamless zoom, and HDMI dual-pane output. The **PS** is control-only (UART + AXI GPIO).
+上位机通过 **UDP** 推送 **512×300 RGB565** 视频；**PL** 完成 RGMII 收包、ARP/ICMP/UDP、offset 拼帧、图像效果、旋转、无极缩放与 HDMI 双窗输出；**PS** 仅负责控制面（串口 + AXI GPIO）。
 
-| Item | Value |
-|------|--------|
-| Board | RK-ZYNQ7020-F (XC7Z020-CLG484-2) |
-| Tools | Vivado / Vitis 2025.2.1 |
-| Source | 512×300 RGB565 |
-| Display | HDMI 1024×600 @ 50 MHz (left original / right processed + zoom) |
-| Network | Board PL `192.168.1.10:5001`, PC `192.168.1.100` |
-| Control | AXI GPIO `@0x41200000`, UART 115200 |
-| License | MIT |
+| 项目 | 说明 |
+|------|------|
+| 板卡 | RK-ZYNQ7020-F（XC7Z020-CLG484-2） |
+| 工具 | Vivado / Vitis 2025.2.1 |
+| 源分辨率 | 512×300 RGB565 |
+| 显示 | HDMI 1024×600 @ 50 MHz（左原图 / 右处理+缩放） |
+| 网络 | 板卡 PL 口 `192.168.1.10:5001`，PC `192.168.1.100` |
+| 控制 | AXI GPIO `@0x41200000`，UART 115200 |
+| 开源协议 | MIT |
 
-## Features
+---
 
-- PL hardware network stack: RGMII → ARP/ICMP/UDP → frame buffer
-- Offset UDP protocol: out-of-order packets reassemble; bad frames dropped
-- Effects: gray / binary / box blur / Sobel / invert (serial-controlled)
-- Arbitrary-angle rotation (Q8 sin/cos inverse mapping)
-- Right-pane seamless zoom loop (original size as maximum → shrink → restore)
-- Source select: colorbar or ETH/DDR video
-- Host tools: UDP sender + serial console
+## 版本说明
 
-## Repository layout
+本仓库为 **第三版**，将历史工程以分支形式保留：
+
+| 分支 | 说明 |
+|------|------|
+| **`main`（当前）** | 第三版：PL 以太网视频流水线 + 效果 / 旋转 / 右屏无极缩放 |
+| `v1-ps-ethernet` | 初版：PS 以太网方案（来自 [Video_Pipeline](https://github.com/Uie-v-uiE/Video_Pipeline)） |
+| `v2-pl-ethernet` | 第二版：PL 以太网方案（来自 [Zynq_Video_Pipeline](https://github.com/Uie-v-uiE/Zynq_Video_Pipeline)） |
+
+```bash
+git fetch origin
+git checkout main            # 第三版（默认）
+git checkout v1-ps-ethernet  # 初版
+git checkout v2-pl-ethernet  # 第二版
+```
+
+---
+
+## 功能
+
+- PL 硬件网络栈：RGMII → ARP/ICMP/UDP → 帧缓
+- UDP offset 协议：乱序可拼帧，坏帧丢弃
+- 效果链：灰度 / 二值化 / 模糊 / Sobel / 反色（串口控制）
+- 任意角旋转（Q8 sin/cos 逆映射）
+- 右屏无极缩放循环（原始尺寸为最大 → 缩小 → 回到原始）
+- 源选择：彩条或 ETH/DDR 视频
+- 上位机：UDP 推流 + 串口控制台
+
+---
+
+## 目录结构
 
 ```
 ├── src/
-│   ├── rtl/           Verilog (top, eth, video, process, axi, hdmi)
-│   ├── ps/            Bare-metal UART + GPIO control
-│   ├── host/          UDP sender and serial tools
-│   └── constraints/   Pin and timing constraints
-├── sim/               Testbenches and simulation TCL
+│   ├── rtl/           Verilog（top / eth / video / process / axi / hdmi）
+│   ├── ps/            裸机 UART + GPIO 控制
+│   ├── host/          上位机推流与串口工具
+│   └── constraints/   管脚与时序约束
+├── sim/               仿真 testbench 与 TCL
 ├── build/
-│   ├── tcl/           Reproducible Vivado build / program scripts
-│   ├── system.bit     Bitstream
-│   ├── system.xsa     Hardware platform for Vitis
-│   └── *.rpt          Timing / utilization / power reports
-├── board/             Board bring-up notes
-├── data/golden/       Reference images
-├── skill/             Reusable engineering notes
-└── report/            Architecture and implementation reports
+│   ├── tcl/           Vivado 可复现构建 / 下载脚本
+│   ├── system.bit     比特流
+│   ├── system.xsa     Vitis 硬件平台
+│   └── *.rpt          时序 / 资源 / 功耗报告
+├── board/             上板说明
+├── data/golden/       金标参考图
+├── skill/             可复用工程笔记
+└── report/            架构与实现报告
 ```
 
-## Quick start
+---
 
-### 1. Build bitstream and XSA
+## 快速开始
+
+### 1. 生成比特流与 XSA
 
 ```bat
-cd /d <repo_root>
+cd /d <仓库根目录>
 set VIVADO=D:\Software\Vivado\2025.2.1\Vivado\bin\vivado.bat
 %VIVADO% -mode batch -source build\tcl\build_system_axigpio.tcl
 ```
 
-Outputs: `build/system.bit`, `build/system.xsa`
+产物：`build/system.bit`、`build/system.xsa`（仓库内若已有可跳过）。
 
-### 2. Program bitstream
+### 2. 下载比特流
 
 ```bat
 %VIVADO% -mode batch -source build\tcl\program_system.tcl
 ```
 
-### 3. (Optional) Program PS ELF for serial commands
+### 3. （可选）下载 PS ELF — 串口命令需要
 
-1. Open workspace in Vitis, platform = `build/system.xsa`
-2. Application source: `src/ps/main.c`
+1. Vitis 打开工作区，Platform 指向 `build/system.xsa`
+2. 应用源码：`src/ps/main.c`
 3. Build → Run
 
-> Programming the bitstream resets the PS; run the ELF again for UART.
-> Right-pane auto-zoom works after bit download alone.
+> 下载 bit 后 PS 会复位，需再次 Run ELF，串口才有效。  
+> 仅观察右屏自动缩放时，下载 bit 即可。
 
-### 4. Simulation
+### 4. 仿真
 
 ```bat
 %VIVADO% -mode batch -source sim\run_sim.tcl
 ```
 
-### 5. Host streaming
+### 5. 上位机推流
 
 ```bat
 pip install -r src\host\requirements.txt
@@ -86,51 +111,61 @@ run_sender.bat
 run_video.bat D:\path\to\video.mp4
 ```
 
-PC NIC: `192.168.1.100/24`, cable to the **PL** Ethernet port.
-See `src/host/HOST_GUIDE.md` for details.
+PC 网卡：`192.168.1.100/24`，网线接 **板卡 PL 网口**。  
+详见 `src/host/HOST_GUIDE.md`。
 
-## Serial commands (115200 8N1, CR+LF)
+---
 
-| Command | Action |
-|---------|--------|
-| `00000` | All effects off |
-| `10000` | Grayscale |
-| `01000` | Binarize |
-| `00111` | Blur + Sobel + invert |
-| `SRC0` / `SRC1` | Colorbar / video source |
-| `TH80` | Binarize threshold |
-| `ZOOM0` / `ZOOM1` | Zoom off/on (PL defaults on) |
-| `FILL` / `STAT` | Diagnostics |
+## 串口命令（115200 8N1，CR+LF）
 
-Effect bits: **gray / binary / blur / sobel / invert** (bit0 = leftmost).
-ETH auto-switches to video after a complete frame.
+| 命令 | 作用 |
+|------|------|
+| `00000` | 关闭全部效果 |
+| `10000` | 灰度 |
+| `01000` | 二值化 |
+| `00111` | 模糊 + Sobel + 反色 |
+| `SRC0` / `SRC1` | 彩条 / 视频源 |
+| `TH80` | 二值化阈值 |
+| `ZOOM0` / `ZOOM1` | 右屏缩放 关/开（PL 默认常开） |
+| `FILL` / `STAT` | 诊断 / 状态 |
 
-## UDP protocol
+效果位顺序：**gray / binary / blur / sobel / invert**（bit0 在左）。  
+ETH 收到完整帧后自动切到视频源。
+
+---
+
+## UDP 协议
 
 ```
-[u32 LE byte_offset][RGB565 payload]
-Frame: 512×300×2 = 307200 bytes
-Payload per datagram: ≤1396 bytes
+[u32 小端 byte_offset][RGB565 载荷]
+一帧：512×300×2 = 307200 字节
+单包载荷：≤1396 字节
 ```
 
-Board writes by offset into the frame buffer; out-of-order is OK; lost packets are dropped.
+板端按 offset 写帧缓；乱序可拼对；丢包丢弃，下一帧恢复。
 
-## Documentation
+---
 
-| Path | Content |
-|------|---------|
-| [src/host/HOST_GUIDE.md](src/host/HOST_GUIDE.md) | Host software guide |
-| [report/ARCHITECTURE.md](report/ARCHITECTURE.md) | Datapath, clocks, bandwidth |
-| [report/MODULES.md](report/MODULES.md) | Module overview |
-| [report/OPTIMIZATION_LOG.md](report/OPTIMIZATION_LOG.md) | Timing / power optimization notes |
+## 文档
 
-## Design notes
+| 路径 | 内容 |
+|------|------|
+| [src/host/HOST_GUIDE.md](src/host/HOST_GUIDE.md) | 上位机使用说明 |
+| [report/ARCHITECTURE.md](report/ARCHITECTURE.md) | 数据通路、时钟、带宽 |
+| [report/MODULES.md](report/MODULES.md) | 模块说明 |
+| [report/OPTIMIZATION_LOG.md](report/OPTIMIZATION_LOG.md) | 时序 / 功耗优化记录 |
 
-- **PL UDP offload**: deterministic latency; PS stays free for control
-- **Single BRAM frame buffer**: ~2.34 Mb; dual buffer does not fit XC7Z020
-- **Zoom**: inverse mapping with continuous `inv_scale` (Q8); effects run on the right-pane zoomed stream
-- **Timing**: async clock groups + FIFO mapped to BRAM; see optimization log
+---
 
-## License
+## 设计要点
 
-MIT — see [LICENSE](LICENSE).
+- **PL UDP 卸载**：延迟确定，PS 只做控制
+- **单口 BRAM 帧缓**：约 2.34 Mb，XC7Z020 放不下双缓冲
+- **缩放**：连续 `inv_scale`（Q8）逆映射；效果挂在右窗缩放后的数据流
+- **时序**：异步时钟组 + FIFO 映射 BRAM，见优化日志
+
+---
+
+## 许可
+
+MIT License，详见 [LICENSE](LICENSE)。
