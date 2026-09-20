@@ -16,28 +16,41 @@
 
 ### 项目简介
 
-本工程在 Zynq-7020 上实现完整的以太网视频处理流水线：上位机以 UDP 推送 512×300 RGB565 画面，PL 侧自研 RGMII/ARP/ICMP/UDP 协议栈与 offset 拼帧写入 BRAM 帧缓，HDMI 1024×600 双窗输出——左窗原图，右窗经灰度/二值/模糊/Sobel/反色等效果链，并做以原始尺寸为最大的无极缩放循环；按键支持 0–359° 任意角旋转。网络跨钟数据经手写 Gray 码 `dc_fifo`，同钟缓存用自建 `sync_fifo`；画面左上角由自写 `osd_overlay` 叠加 FPS、旋转角与效果使能状态。PS 仅通过串口 + AXI GPIO 做控制，延迟确定、便于演示与二次开发。历史版本以 Git 分支保留（PS 网口初版 / PL 网口第二版 / 当前第三版）。
+本工程在 Zynq-7020 上实现完整的以太网视频处理流水线：上位机以 UDP 推送 512×300 RGB565 画面，PL 侧自研 RGMII/ARP/ICMP/UDP 协议栈与 offset 拼帧，经 CDC 与 AXI 打包写入 **DDR 乒乓 bank**，再由提交锁在显示**消隐窗口**内把整帧原子拷进显示 BRAM；HDMI 1024×600 双窗输出——左窗原图，右窗经灰度/二值/模糊/Sobel/反色等效果链，并做以原始尺寸为最大的无极缩放循环；按键支持 0–359° 任意角旋转。网络跨钟数据经手写 Gray 码 `dc_fifo`，同钟缓存用自建 `sync_fifo`；画面左上角由自写 `osd_overlay` 叠加 FPS、旋转角与效果使能状态。PS 仅通过串口 + AXI GPIO 做控制，延迟确定、便于演示与二次开发。历史版本以 Git 分支保留（PS 网口初版 / PL 网口第二版 / 当前第四版）。
 
 ---
 
-## 版本说明
+## 参赛信息
 
-本仓库为 **第四版**（V6.x：入包链零丢字 + V-blank 原子换帧），历史工程以分支形式保留：
+| 项目 | 内容 |
+|------|------|
+| 赛道 / 组别 | **自主选题赛道 · 初级组**（选题指南 §3.3） |
+| 器件合规 | 初级组器件范围允许 AMD 7 Series / **Zynq-7000** / UltraScale(+)；本作品为 `xc7z020clg484-2` ✓ |
+| 提交结构 | 按 §3.3.5.4 推荐目录：`README.md src/ sim/ build/ board/ data/ skill/ report/`（路径全英文） |
+| 板级验证 | 已在板上跑通并给出实测判据（`report/V6_BOARD_MEASUREMENT.md`、`data/measured/`） |
+
+> 考察侧重（初级组）= 逻辑设计、状态机、时序约束、接口协议等基本 FPGA 设计能力：
+> 见 `src/rtl/eth/`（自写 RGMII/ARP/ICMP/UDP 协议栈与 FIFO）、
+> `src/rtl/video/frame_commit_lock.v`（状态机 + 消隐窗口时序约束）、
+> `build/timing_summary.rpt`（WNS +0.675 ns、0 违例）。
+
+## 版本说明
 
 | 分支 | 说明 |
 |------|------|
-| **`main`（当前）** | 第四版：与 `v4-pl-lossless` 同一提交；V6 修复 + 竞赛目录结构 |
-| `v4-pl-lossless` | 第四版快照（V6.1–V6.3：CDC 读侧节流、分包 8 字节对齐、写通道流水化、原子换帧） |
-| `v3-pl-dual-pane-zoom` | 第三版：PL 以太网视频流水线 + 效果 / 旋转 / 右屏无极缩放（有拖影/黑横纹，见 `report/V6_ROOT_CAUSE.md`） |
+| **`main`（当前）** | **第四版**：PL 以太网视频流水线 + 效果 / 旋转 / 右屏无极缩放，并修复入包链丢字（V6.1–V6.3） |
 | `v1-ps-ethernet` | 初版：**PS 以太网**（UDP → PS → DDR，PL 经 HP0 读出；来自 [Zynq_Video_Pipeline](https://github.com/Uie-v-uiE/Zynq_Video_Pipeline)） |
 | `v2-pl-ethernet` | 第二版：**PL 以太网**（PL 硬件 RGMII/UDP 协议栈；来自 [Video_Pipeline](https://github.com/Uie-v-uiE/Video_Pipeline)） |
 
+第三版（V6 修复之前、含拖影问题的状态）没有单独留分支，它就是 `main` 的父提交链，
+用 `git log --first-parent` 或 `git checkout 7cde28d` 即可回到该状态；
+第四版相对第三版的改动全部记录在 `report/V6_ROOT_CAUSE.md` 与 `report/OPTIMIZATION_LOG.md`。
+
 ```bash
 git fetch origin
-git checkout main                 # 第四版（默认）
-git checkout v3-pl-dual-pane-zoom # 第三版
-git checkout v1-ps-ethernet       # 初版
-git checkout v2-pl-ethernet       # 第二版
+git checkout main            # 第四版（默认分支）
+git checkout v1-ps-ethernet  # 初版
+git checkout v2-pl-ethernet  # 第二版
 ```
 
 ### 第四版相对第三版改了什么（一句话版）
