@@ -1,6 +1,5 @@
 `timescale 1ns/1ps
-
-// system_top: PS BD + PL video + PL UDP ethernet RX (PHY2)
+// system_top — ghosting-fix v5 (same pins as src)
 module system_top (
     inout  wire        DDR_cas_n,
     inout  wire        DDR_cke,
@@ -31,8 +30,6 @@ module system_top (
     output wire        tmds_clk_n,
     output wire [2:0]  tmds_data_p,
     output wire [2:0]  tmds_data_n,
-
-    // PL ETH PHY2 RGMII (RX used for video sink; TX for ARP/ICMP)
     input  wire        eth_rxc,
     input  wire        eth_rx_ctl,
     input  wire [3:0]  eth_rxd,
@@ -57,13 +54,11 @@ module system_top (
     wire        m_rlast, m_rvalid, m_rready;
     wire [7:0]  m_arlen8;
 
-    // AXI write from PL UDP saver
     wire [31:0] m_awaddr;
     wire [7:0]  m_awlen;
     wire [2:0]  m_awsize;
     wire [1:0]  m_awburst;
-    wire        m_awvalid;
-    wire        m_awready;
+    wire        m_awvalid, m_awready;
     wire [63:0] m_wdata;
     wire [7:0]  m_wstrb;
     wire        m_wlast, m_wvalid, m_wready;
@@ -89,8 +84,8 @@ module system_top (
         .M_AXI_HP0_awaddr(m_awaddr), .M_AXI_HP0_awburst(m_awburst), .M_AXI_HP0_awcache(4'b0011),
         .M_AXI_HP0_awid(6'd0), .M_AXI_HP0_awlen(m_awlen_axi3), .M_AXI_HP0_awlock(2'b00),
         .M_AXI_HP0_awprot(3'b000), .M_AXI_HP0_awqos(4'b0000),
-        .M_AXI_HP0_awready(m_awready),
-        .M_AXI_HP0_awsize(m_awsize), .M_AXI_HP0_awvalid(m_awvalid),
+        .M_AXI_HP0_awready(m_awready), .M_AXI_HP0_awsize(m_awsize),
+        .M_AXI_HP0_awvalid(m_awvalid),
         .M_AXI_HP0_bid(), .M_AXI_HP0_bready(m_bready), .M_AXI_HP0_bresp(), .M_AXI_HP0_bvalid(m_bvalid),
         .M_AXI_HP0_rdata(m_rdata), .M_AXI_HP0_rid(m_rid), .M_AXI_HP0_rlast(m_rlast),
         .M_AXI_HP0_rready(m_rready), .M_AXI_HP0_rresp(m_rresp), .M_AXI_HP0_rvalid(m_rvalid),
@@ -100,7 +95,6 @@ module system_top (
 
     assign m_arlen_axi3 = m_arlen8[3:0];
 
-    // PHY2 reset
     reg [23:0] phy_rst_cnt = 24'd0;
     always @(posedge sys_clk) begin
         if (!(&phy_rst_cnt)) phy_rst_cnt <= phy_rst_cnt + 1'b1;
@@ -109,7 +103,6 @@ module system_top (
     assign eth_mdio  = 1'bz;
     assign eth_mdc   = 1'b0;
 
-    // 200 MHz IDELAY ref
     wire clk_pix_unused, clk_pix5x_unused, mmcm_locked;
     wire clk_200m;
     clk_gen u_idelay_clkgen (
@@ -123,8 +116,10 @@ module system_top (
     wire [15:0] eth_wr_data;
     wire [31:0] eth_frames, eth_pkts, eth_bytes, eth_bad;
     wire        eth_gmii_clk;
+    wire [31:0] eth_ddr_base;
+    wire        eth_commit;
+    wire        pl_copy_hold;
 
-    // RAW eth_rxc into rgmii_rx (BUFIO needs pin clock)
     eth_udp_video_top #(
         .IMG_W(512), .IMG_H(300),
         .BASE_ADDR(32'h1000_0000),
@@ -138,6 +133,7 @@ module system_top (
         .axi_clk(fclk0),
         .axi_rst_n(fclk0_rst_n),
         .idelay_clk(clk_200m),
+        .copy_hold(pl_copy_hold),
         .rgmii_rx_ctl(eth_rx_ctl),
         .rgmii_rxd(eth_rxd),
         .rgmii_tx_clk(eth_tx_clk),
@@ -149,6 +145,8 @@ module system_top (
         .frame_done(eth_frame_done),
         .link_active(eth_link),
         .eth_gmii_clk(eth_gmii_clk),
+        .ddr_commit_base(eth_ddr_base),
+        .ddr_commit_pulse(eth_commit),
         .m_axi_awaddr(m_awaddr), .m_axi_awlen(m_awlen),
         .m_axi_awsize(m_awsize), .m_axi_awburst(m_awburst),
         .m_axi_awvalid(m_awvalid), .m_axi_awready(m_awready),
@@ -164,7 +162,6 @@ module system_top (
         .sys_clk(sys_clk), .sys_rst_n(1'b1),
         .axi_clk(fclk0), .axi_rst_n(fclk0_rst_n),
         .effect_en(gpio_o[4:0]), .threshold(gpio_o[15:8]), .src_sel(gpio_o[16]),
-        // 右屏无极缩放：常开（用户需求）。若要串口控制可改为 gpio_o[17]，PS 默认写 1。
         .zoom_en(1'b1),
         .key1_n(key1_n), .key2_n(key2_n), .led(led),
         .tmds_clk_p(tmds_clk_p), .tmds_clk_n(tmds_clk_n),
@@ -180,8 +177,11 @@ module system_top (
         .eth_wr_data(eth_wr_data),
         .eth_link(eth_link),
         .eth_frame(eth_frame_done),
+        .eth_ddr_base(eth_ddr_base),
+        .eth_commit(eth_commit),
         .eth_pkts(eth_pkts[15:0]),
         .eth_bad(eth_bad[15:0]),
-        .status(status)
+        .status(status),
+        .copy_hold(pl_copy_hold)
     );
 endmodule
