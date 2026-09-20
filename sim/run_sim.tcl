@@ -1,64 +1,105 @@
-# Behavioral simulation via xsim CLI
-# Usage: vivado -mode batch -source sim/run_sim.tcl
+# sim/run_sim.tcl — self-contained xsim runner for the competition repo layout.
+#
+# Compiles every RTL module under src/rtl plus every sim/tb_*.v, then runs each
+# testbench and prints one RESULT line per TB.  Repo-relative: run it from anywhere.
+#
+#   vivado -mode batch -nojournal -log sim/xsim.log -source sim/run_sim.tcl
+#
+# Env overrides:
+#   SIM_TB    comma/space list of TB module names to run (default: all)
+#   SIM_ONLY  set to 1 to compile only
+#   SIM_VERBOSE  set to 1 to echo the whole simulation transcript
+#   SIM_ARGS  plusargs for xsim, e.g. "+FULL" or "+W_LAT=0 +COPY_CYC=67200"
+#
+# History: this is the V6 runner.  The V5 tree used to live in rtl_base/ +
+# rtl_fix/ with an `overridden` filter that kept the fixed copy of
+# eth_udp_video_top.v / frame_reasm.v; in this layout those files are simply the
+# fixed ones, so the filter is gone.  Superseded modules (axi_frame_saver.v,
+# axi_frame_writer.v) stay in the tree and still have their own testbenches.
 
-set root [file normalize [file join [file dirname [info script]] ..]]
-set work [file join $root vivado_sim]
+set ws [file normalize [file join [file dirname [info script]] ..]]
+set rtl_dir [file join $ws src rtl]
+set simdir  [file join $ws sim]
+set work    [file join $ws sim_work]
+
+puts "WS: $ws"
+foreach d [list $rtl_dir $simdir] {
+    if {![file isdirectory $d]} { puts "FATAL missing $d"; exit 1 }
+}
+
 file mkdir $work
 cd $work
+catch {exec cmd /c rmdir /s /q xsim.dir}
 
-set rtl_files {}
-foreach d {util clocks video process process/rotate process/zoom axi hdmi eth} {
-  foreach f [glob -nocomplain [file join $root src rtl $d *.v]] { lappend rtl_files $f }
+set rtl {}
+foreach f [glob -nocomplain [file join $rtl_dir *.v]] { lappend rtl $f }
+foreach d [glob -nocomplain -directory $rtl_dir *] {
+    if {![file isdirectory $d]} { continue }
+    foreach f [glob -nocomplain [file join $d *.v]] { lappend rtl $f }
+    foreach s [glob -nocomplain [file join $d * *.v]] { lappend rtl $s }
 }
+set rtl [lsort -unique $rtl]
 
-set tb_list {
-  tb_proc_gray
-  tb_timing
-  tb_uart_decode_bits
-  tb_rotate_mapper
-  tb_rotate_window
-  tb_zoom_mapper
-  tb_crc32
-  tb_sync_fifo
-  tb_udp_reasm
-  tb_udp_parser
-  tb_eth_video
-}
-set tb_files {}
-foreach tb $tb_list {
-  lappend tb_files [file join $root sim ${tb}.v]
-}
+set tbs [lsort [glob -nocomplain [file join $simdir tb_*.v]]]
+puts "xvlog rtl=[llength $rtl] tb=[llength $tbs]"
 
-puts "INFO: xvlog ..."
-if {[catch {exec xvlog {*}$rtl_files {*}$tb_files} msg]} {
-  puts $msg
-}
-
-set pass 0
-set fail 0
-foreach tb $tb_list {
-  puts "INFO: xelab $tb"
-  if {[catch {exec xelab -debug typical $tb -s ${tb}_snap} msg]} {
-    puts "ELAB-FAIL $tb"
+set sources {}
+foreach f [concat $rtl $tbs] { lappend sources [file normalize $f] }
+if {[catch {eval exec xvlog $sources} msg]} {
+    puts "XVLOG FAILED"
     puts $msg
-    incr fail
-    continue
-  }
-  puts "INFO: xsim $tb"
-  catch {exec xsim ${tb}_snap -R} msg
-  puts $msg
-  if {[string match "*FAIL*" $msg]} {
-    puts "RESULT FAIL $tb"
-    incr fail
-  } elseif {[string match "*PASS*" $msg]} {
-    puts "RESULT PASS $tb"
-    incr pass
-  } else {
-    puts "RESULT UNKNOWN $tb"
-    incr fail
-  }
+    exit 1
 }
+puts "XVLOG OK"
 
-puts "SIM-SUMMARY pass=$pass fail=$fail"
-puts "SIM-FINISHED"
+if {[info exists ::env(SIM_ONLY)]} { exit 0 }
 
+set want {}
+if {[info exists ::env(SIM_TB)]} {
+    foreach t [split [string map {, " "} $::env(SIM_TB)] " "] {
+        if {$t ne ""} { lappend want $t }
+    }
+}
+# xsim only accepts plusargs as --testplusarg key=value (a bare +key=value is rejected)
+set simargs {}
+if {[info exists ::env(SIM_ARGS)]} {
+    foreach a [split [string map {, " "} $::env(SIM_ARGS)] " "] {
+        if {$a eq ""} { continue }
+        lappend simargs --testplusarg [string map {+ ""} $a]
+    }
+}
+puts "SIM_ARGS: $simargs"
+
+set npass 0
+set nfail 0
+foreach tf $tbs {
+    set tb [file rootname [file tail $tf]]
+    if {[llength $want] > 0 && [lsearch -exact $want $tb] < 0} { continue }
+    puts "==== $tb ===="
+    if {[catch {eval exec xelab {-debug typical} $tb -s $tb} msg]} {
+        puts "RESULT $tb ELAB_FAIL"
+        puts [lindex [split [string trim $msg] \n] end]
+        incr nfail
+        continue
+    }
+    if {[catch {eval exec xsim $tb -R $simargs} msg]} { puts $msg }
+    if {[info exists ::env(SIM_VERBOSE)]} {
+        foreach line [split $msg \n] { puts "  | [string trim $line]" }
+    }
+    set hits {}
+    foreach line [split $msg \n] {
+        if {[string match *PASS* $line] || [string match *FAIL* $line]} {
+            lappend hits [string trim $line]
+        }
+    }
+    foreach h [lrange $hits end-9 end] { puts "  $h" }
+    set verdict NO_ASSERT
+    if {[llength $hits] > 0} {
+        set verdict PASS
+        foreach h $hits { if {[string match *FAIL* $h]} { set verdict FAIL; break } }
+    }
+    puts "RESULT $tb $verdict"
+    if {$verdict eq "FAIL" || $verdict eq "ELAB_FAIL"} { incr nfail } else { incr npass }
+}
+puts "SIM DONE pass=$npass fail=$nfail"
+exit 0

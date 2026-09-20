@@ -1,0 +1,192 @@
+V6.x 回归结果（在打包后的仓库目录里跑出来，不是开发工作区）
+命令 : vivado -mode batch -nojournal -log sim/xsim_repo_full2.log -source sim/run_sim.tcl
+工具 : Vivado 2025.2.1 (xvlog/xelab/xsim)，Windows
+器件 : xc7z020clg484-2
+日期 : 2026-09-21
+说明 : 每个 TB 的通过判据是它自己 $display 的 PASS/FAIL 行；RESULT 行由 runner 汇总。
+       tb_v6_* 为本版新增（覆盖门限 / V-blank 拷贝窗口 / 入包完整性 / 乒乓换 bank）。
+       tb_eth_video 在第三版即已无法 elaborate（向 udp_tx/udp_rx 传了不存在的
+       BOARD_PORT/DES_PORT 参数），本版一并修好。
+总结 : 28 个 testbench 全部 PASS，0 失败
+================================================================================
+  WS: D:/temp/vp_inspect
+  xvlog rtl=58 tb=28
+  XVLOG OK
+  SIM_ARGS:
+
+==== tb_crc32 ====
+      PASS init
+      PASS crc updates
+      PASS clr
+      PASS determinism
+      PASS tb_crc32 ALL
+  RESULT tb_crc32 PASS
+
+==== tb_eth_video ====
+      PASS udp payload len
+      PASS frame complete sf=1 n_wr=64
+      PASS tb_eth_video ALL
+  RESULT tb_eth_video PASS
+
+==== tb_proc_gray ====
+      PASS tb_proc_gray
+  RESULT tb_proc_gray PASS
+
+==== tb_rotate_mapper ====
+      PASS id (0,0)
+      PASS id (32,18)
+      PASS id (63,35)
+      PASS tb_rotate_mapper
+  RESULT tb_rotate_mapper PASS
+
+==== tb_rotate_window ====
+      PASS blur active with rotate_active=1
+      PASS blur active with rotate_active=0
+      PASS tb_rotate_window ALL
+  RESULT tb_rotate_window PASS
+
+==== tb_sync_fifo ====
+      PASS level
+      PASS empty end
+      PASS tb_sync_fifo ALL
+  RESULT tb_sync_fifo PASS
+
+==== tb_timing ====
+      PASS tb_timing
+  RESULT tb_timing PASS
+
+==== tb_uart_decode_bits ====
+      PASS tb_uart_decode_bits
+  RESULT tb_uart_decode_bits PASS
+
+==== tb_udp_parser ====
+      PASS payload extracted
+      PASS wrong port dropped
+      PASS tb_udp_parser ALL
+  RESULT tb_udp_parser PASS
+
+==== tb_udp_reasm ====
+      PASS normal full frame
+      PASS pixel0
+      PASS pixel1
+      PASS OOS later-first
+      PASS OOS later-second
+      PASS bad counted
+      PASS duplicate overwrite
+      PASS second frame after jump
+      PASS tb_udp_reasm ALL
+  RESULT tb_udp_reasm PASS
+
+==== tb_v50_rowmath ====
+      PASS basic correct formula
+      PASS 16-bit truncation is a real production bug (172 rows wrong)
+      PASS correct formula covers all 300 rows
+      PASS tb_v50_rowmath
+  RESULT tb_v50_rowmath PASS
+
+==== tb_v50_rows ====
+      PASS no commit on 2/4 rows
+      PASS commit after all rows done_cnt=1
+      PASS tb_v50_rows
+  RESULT tb_v50_rows PASS
+
+==== tb_v50_rows_prod ====
+      PASS no commit when only 10/300 rows
+      PASS no commit when rows are touched but bytes are short
+      PASS commit after 300 full production rows done=1
+      PASS tb_v50_rows_prod
+  RESULT tb_v50_rows_prod PASS
+
+==== tb_v571_allow_lead ====
+      PASS allow high in stable blanking
+      PASS allow low before/at de after lead
+      PASS tb_v571_allow_lead
+  RESULT tb_v571_allow_lead PASS
+
+==== tb_v57_first_ar ====
+      PASS no write while de=1
+      PASS copy completed after allow rose wr=64/64
+      PASS tb_v57_first_ar
+  RESULT tb_v57_first_ar PASS
+
+==== tb_v57_rdw_copy ====
+      PASS full frame, no lost beats
+      PASS writes only when allow
+      PASS tb_v57_rdw_copy
+  RESULT tb_v57_rdw_copy PASS
+
+==== tb_v58_full_done ====
+      PASS clean full copy done wr=64
+      PASS no done after abort (wr=16)
+      PASS tb_v58_full_done
+  RESULT tb_v58_full_done PASS
+
+==== tb_v5_bank ====
+      PASS completed_base locked to bank0
+      PASS write bank flipped to bank1 on frame_done
+      PASS idle after drain
+      PASS tb_v5_bank
+  RESULT tb_v5_bank PASS
+
+==== tb_v5_copy ====
+      PASS full frame written
+      PASS tb_v5_copy
+  RESULT tb_v5_copy PASS
+
+==== tb_v5_gated ====
+      PASS BRAM writes occurred
+      PASS writer only writes when allow
+      PASS allow not stuck on during active (residue=4158)
+      PASS tb_v5_gated
+  RESULT tb_v5_gated PASS
+
+==== tb_v5_lock ====
+      PASS copy_base locked (10000000)
+      PASS latest pending after done
+      PASS tb_v5_lock
+  RESULT tb_v5_lock PASS
+
+==== tb_v5_saver ====
+      PASS all words written
+      PASS idle
+      PASS tb_v5_saver
+  RESULT tb_v5_saver PASS
+
+==== tb_v5_vblast ====
+      PASS full frame written
+      PASS copy throughput acceptable for V-blast
+      PASS tb_v5_vblast
+  RESULT tb_v5_vblast PASS
+
+==== tb_v6_cover_gate ====
+      PASS complete 512x300 frame commits
+      PASS clean frame not counted as bad
+      PASS frame with a lost packet is refused
+      PASS holey frame counted on the wire (OSD net_bad)
+      PASS next complete frame commits again
+      PASS tb_v6_cover_gate
+  RESULT tb_v6_cover_gate PASS
+
+==== tb_v6_ingress_integrity ====
+      PASS ingress lossless
+      PASS partial frame not committed
+      PASS tb_v6_ingress_integrity
+  RESULT tb_v6_ingress_integrity PASS
+
+==== tb_v6_pingpong ====
+      PASS last frame fully landed
+      PASS tb_v6_pingpong
+  RESULT tb_v6_pingpong PASS
+
+==== tb_v6_vblank_copy ====
+      PASS rate=10/10 swap inside one V-blank done=1 cycles=38441 words=38400
+      PASS rate=7/10 swap inside one V-blank done=1 cycles=54894 words=38400
+      PASS rate=6/10 swap inside one V-blank done=1 cycles=64036 words=38400
+      PASS rate=4/10 swap     after spilling done=0 cycles=1708873 words=38400
+      PASS tb_v6_vblank_copy
+  RESULT tb_v6_vblank_copy PASS
+
+==== tb_zoom_mapper ====
+      PASS tb_zoom_mapper
+  RESULT tb_zoom_mapper PASS
+  SIM DONE pass=28 fail=0

@@ -17,8 +17,7 @@ module tb_eth_video;
     wire crc_en, crc_clr;
 
     udp_tx #(.BOARD_MAC(MAC), .BOARD_IP(IP),
-             .DES_MAC(48'hFF_FF_FF_FF_FF_FF), .DES_IP(IP),
-             .BOARD_PORT(PORT), .DES_PORT(PORT)) u_tx (
+             .DES_MAC(48'hFF_FF_FF_FF_FF_FF), .DES_IP(IP)) u_tx (
         .clk(clk), .rst_n(rst_n),
         .tx_start_en(tx_start), .tx_data(tx_data), .tx_byte_num(tx_len),
         .des_mac(48'hFF_FF_FF_FF_FF_FF), .des_ip(IP),
@@ -35,7 +34,7 @@ module tb_eth_video;
     wire [7:0] rec_data;
     wire [15:0] rec_nbytes;
 
-    udp_rx #(.BOARD_MAC(MAC), .BOARD_IP(IP), .BOARD_PORT(PORT)) u_rx (
+    udp_rx #(.BOARD_MAC(MAC), .BOARD_IP(IP)) u_rx (
         .clk(clk), .rst_n(rst_n),
         .gmii_rx_dv(tx_en), .gmii_rxd(txd),
         .rec_pkt_done(rec_done), .rec_en(rec_en), .rec_data(rec_data),
