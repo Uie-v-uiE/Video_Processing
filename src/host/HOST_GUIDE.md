@@ -205,3 +205,31 @@ src/host/
 ├── run_serial.bat       串口
 └── requirements.txt     Python 依赖
 ```
+
+---
+
+## 6. Node.js 工具集（第四版新增，无需 python/ffmpeg）
+
+判据类工具用 Node 写，是因为验收 PC 上不一定有 python，而这些脚本要能直接跑在
+`report/V6_BOARD_MEASUREMENT.md` 描述的复测流程里。全部走同一 UDP 协议。
+
+| 脚本 | 作用 |
+|------|------|
+| `video_sender.mjs` | 推流。`--test bars\|grad\|edge\|blocks\|hold\|move\|wordid\|frameid`；`--fps` `--count` `--pace-mpbps` `--no-pace` `--dump <file>` |
+| `measure_v63.mjs` | 一条命令复验：推 `frameid` → **发完** → JTAG 回读两个 bank → 打印相位判据 |
+| `ddr_verify.mjs` | 只做回读与分析：`--frameid` / `--ref` / `--bank-only 0\|1`；落盘 `data/measured/ddr_dump.out` |
+| `ddr_stale.mjs` | 判据核心：反解每个 16bit 字来自第几帧，输出「包内字节偏移→丢字率」「游程长度分布」「16bit 粒度错帧计数」 |
+| `ddr_holemap.mjs` | 把回读结果按行段画空洞分布（早期定位用） |
+| `ingress_probe.mjs` | 只灌 K 个包 + 回读，做定点注入实验 |
+| `udp_sink_check.mjs` | 本机环回自检（确认协议/限速实现，不依赖板子） |
+
+```bat
+node src\host\measure_v63.mjs --fps 15 --count 200
+node src\host\ddr_stale.mjs            :: 单独分析上一次落盘的 data/measured/ddr_dump.out
+```
+
+要点（都是踩过的）：
+1. `--test frameid` 才能发现「逐帧丢字」；`wordid`/纯色等恒定图案只能验地址映射。
+2. **发完再回读**：回读要几秒，边推边读会让每个地址段读到不同时刻的帧。
+3. 回读脚本会 `rst -processor` 停住 A9（否则 `mrd` 读到 D-Cache），且**不会 `con`**；
+   因此每轮复测前要重跑 `ps_jtag_boot → program_pl → set_src`。

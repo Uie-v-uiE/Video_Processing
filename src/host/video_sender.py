@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Zynq 以太网视频上位机 — UDP RGB565 推流.
 
-协议: 每包 [u32 LE byte_offset][RGB565 载荷], 载荷 ≤1396B, 板端按 offset 写帧缓.
+协议: 每包 [u32 LE byte_offset][RGB565 载荷], 载荷 ≤1392B(8 的倍数), 板端按 offset 写帧缓.
 
 示例:
   python video_sender.py                          # 内置动画
@@ -26,7 +26,11 @@ import numpy as np
 W, H = 512, 300
 FRAME_BYTES = W * H * 2
 HDR = 4
-MTU_PAYLOAD = 1400 - HDR  # 1396
+# 载荷必须是 8 的倍数（=4 个 RGB565 像素 = 板端一个 64bit DDR 字）：
+# 板端打包器在每包结束都会 flush 当前 64bit 字，下一包再从头起字会把这字里
+# 已写好的半字清零覆盖 → 每包坏一个字，画面上就是均匀分布的黑点/黑纹。
+# 1396 不满足（1396 % 8 == 4），1392 满足且 1392+4+20+8+14 = 1438 < 1500。
+MTU_PAYLOAD = 1392
 
 # 常见 FFmpeg 安装位置（Windows）
 _FFMPEG_CANDIDATES = [
@@ -253,12 +257,41 @@ def frame_iter(args):
                 break
 
 
-def send_frame(sock: socket.socket, dest: tuple[str, int], payload: bytes) -> int:
+class Pacer:
+    """板端入包限流。
+
+    板上 CDC(1KB)+打包 FIFO(4KB) 之后是 AWLEN=0 的串行 AXI 写，实测排空约
+    25~50 MB/s；一次性倾泻 221 包（≈125 MB/s 线速）必然溢出 → 随机黑横纹。
+    按绝对时间匀速发出即可，平均带宽仍远高于 15fps 所需的 4.6 MB/s。
+    """
+
+    def __init__(self, mbps: float):
+        self.bps = max(mbps, 0.1) * 1e6
+        self.t_next = time.perf_counter()
+
+    def spend(self, nbytes: int) -> None:
+        self.t_next += nbytes / self.bps
+        now = time.perf_counter()
+        if self.t_next < now:
+            self.t_next = now
+            return
+        delay = self.t_next - now
+        if delay > 0.002:
+            time.sleep(delay - 0.001)
+        while time.perf_counter() < self.t_next:
+            pass
+
+
+def send_frame(
+    sock: socket.socket, dest: tuple[str, int], payload: bytes, pacer: Pacer | None = None
+) -> int:
     """按 offset 协议发送一帧，返回包数."""
     pkts = 0
     for off in range(0, len(payload), MTU_PAYLOAD):
         chunk = payload[off : off + MTU_PAYLOAD]
         sock.sendto(struct.pack("<I", off) + chunk, dest)
+        if pacer:
+            pacer.spend(len(chunk) + HDR)
         pkts += 1
     return pkts
 
@@ -288,6 +321,17 @@ def main():
         help="generator limit for --anim/image (0=unlimited)",
     )
     ap.add_argument("--quiet", action="store_true", help="less log")
+    ap.add_argument(
+        "--pace-mpbps",
+        type=float,
+        default=15.0,
+        help="帧内逐包限速 MB/s，避免打爆板端入包 FIFO（0=不限速）",
+    )
+    ap.add_argument(
+        "--no-pace",
+        action="store_true",
+        help="关闭帧内限速（复现旧行为 / 排查用）",
+    )
     args = ap.parse_args()
 
     if args.image is None and args.video is None and args.webcam is None:
@@ -314,11 +358,16 @@ def main():
         mode = "anim"
     else:
         mode = "image"
-    print(f"[TX] {args.ip}:{args.port} {W}x{H} RGB565 @ {args.fps:.1f} fps mode={mode}")
+    pace = 0.0 if args.no_pace else args.pace_mpbps
+    print(
+        f"[TX] {args.ip}:{args.port} {W}x{H} RGB565 @ {args.fps:.1f} fps"
+        f" mode={mode} pace={pace:.1f} MB/s"
+    )
 
     n = 0
     t0 = time.perf_counter()
     next_t = t0
+    pacer = Pacer(pace) if pace > 0 else None
     try:
         for frame in frame_iter(args):
             if frame.shape[0] != H or frame.shape[1] != W:
@@ -327,7 +376,7 @@ def main():
             if len(payload) != FRAME_BYTES:
                 print(f"[ERR] bad frame size {len(payload)}")
                 continue
-            send_frame(sock, dest, payload)
+            send_frame(sock, dest, payload, pacer)
             n += 1
             if n == 1 and not args.quiet:
                 pkts = (len(payload) + MTU_PAYLOAD - 1) // MTU_PAYLOAD
