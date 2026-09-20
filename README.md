@@ -1,4 +1,4 @@
-# Zynq7020 以太网视频处理流水线
+# Zynq7020 以太网视频处理流水线（第四版：入包链零丢字）
 
 基于 Zynq-7000（XC7Z020）的 UDP 视频接收与实时图像处理工程。
 
@@ -22,20 +22,33 @@
 
 ## 版本说明
 
-本仓库为 **第三版**，将历史工程以分支形式保留：
+本仓库为 **第四版**（V6.x：入包链零丢字 + V-blank 原子换帧），历史工程以分支形式保留：
 
 | 分支 | 说明 |
 |------|------|
-| **`main`（当前）** | 第三版：PL 以太网视频流水线 + 效果 / 旋转 / 右屏无极缩放 |
+| **`main`（当前）** | 第四版：与 `v4-pl-lossless` 同一提交；V6 修复 + 竞赛目录结构 |
+| `v4-pl-lossless` | 第四版快照（V6.1–V6.3：CDC 读侧节流、分包 8 字节对齐、写通道流水化、原子换帧） |
+| `v3-pl-dual-pane-zoom` | 第三版：PL 以太网视频流水线 + 效果 / 旋转 / 右屏无极缩放（有拖影/黑横纹，见 `report/V6_ROOT_CAUSE.md`） |
 | `v1-ps-ethernet` | 初版：**PS 以太网**（UDP → PS → DDR，PL 经 HP0 读出；来自 [Zynq_Video_Pipeline](https://github.com/Uie-v-uiE/Zynq_Video_Pipeline)） |
 | `v2-pl-ethernet` | 第二版：**PL 以太网**（PL 硬件 RGMII/UDP 协议栈；来自 [Video_Pipeline](https://github.com/Uie-v-uiE/Video_Pipeline)） |
 
 ```bash
 git fetch origin
-git checkout main            # 第三版（默认）
-git checkout v1-ps-ethernet  # 初版
-git checkout v2-pl-ethernet  # 第二版
+git checkout main                 # 第四版（默认）
+git checkout v3-pl-dual-pane-zoom # 第三版
+git checkout v1-ps-ethernet       # 初版
+git checkout v2-pl-ethernet       # 第二版
 ```
+
+### 第四版相对第三版改了什么（一句话版）
+
+屏幕上的「红块撕裂 + 拖影 + 黑横纹」不是显示侧问题，而是 **UDP→DDR 入包链在按固定相位丢字**：
+打包器 `axi_frame_saver64` 每写一个 64 bit 字都要等 AXI 写响应 B，在途深度恒为 1，
+吞吐被 HP0 往返延迟钉死在 ≈20 MB/s（主机给 15 MB/s，只有 1.3× 余量），显示拷贝一抢端口
+就掉到 15 以下 ⇒ 每个 1392 B 包从第 48 字节起按 16 bit 粒度被丢弃。
+V6.3 把写通道改成流水化（AW/W 同拍挂出、`OST=8` 在途、B 只回收计数），
+板级回读从「最新帧占 42~52%」变成 **100.0%（15/30/60 fps 三档，包内各字节带丢字率 0.0%）**。
+完整根因、判据方法与复测数据：`report/V6_ROOT_CAUSE.md`、`report/V6_BOARD_MEASUREMENT.md`。
 
 ---
 
@@ -62,15 +75,18 @@ git checkout v2-pl-ethernet  # 第二版
 │   ├── host/          上位机推流与串口工具
 │   └── constraints/   管脚与时序约束
 ├── sim/               仿真 testbench 与 TCL
+│   └── results/regression_v6.txt   第四版回归结果（28/28 PASS）
 ├── build/
 │   ├── tcl/           Vivado 可复现构建 / 下载脚本
-│   ├── system.bit     比特流
+│   ├── system.bit     比特流（V6.3）
 │   ├── system.xsa     Vitis 硬件平台
-│   └── *.rpt          时序 / 资源 / 功耗报告
-├── board/             上板说明
-├── data/golden/       金标参考图
-├── skill/             可复用工程笔记
-└── report/            架构与实现报告
+│   └── *.rpt          时序 / 资源 / CDC / 方法学报告
+├── board/             上板说明与不看屏幕的复验方法
+├── data/
+│   ├── golden/        金标参考图
+│   └── measured/      JTAG 回读实测输出与判据文本
+├── skill/             可复用技能包（含 zynq-video-rtl-debug/）
+└── report/            架构、优化、性能、根因与协作记录
 ```
 
 ---
@@ -82,15 +98,26 @@ git checkout v2-pl-ethernet  # 第二版
 ```bat
 cd /d <仓库根目录>
 set VIVADO=D:\Software\Vivado\2025.2.1\Vivado\bin\vivado.bat
-%VIVADO% -mode batch -source build\tcl\build_system_axigpio.tcl
+:: 从零建工程（PS7 + AXI GPIO + HP0 + src\rtl）并出 bit / XSA / 四份报告
+%VIVADO% -mode batch -nojournal -log build\build_v6.log -source build\tcl\build_v6.tcl
 ```
 
-产物：`build/system.bit`、`build/system.xsa`（仓库内若已有可跳过）。
+产物：`build/system.bit`、`build/system.xsa`、`build/timing_summary.rpt`、
+`build/utilization.rpt`、`build/cdc.rpt`、`build/methodology.rpt`（仓库内若已有可跳过）。
+V6.3 实测：WNS **+0.675 ns**、WHS +0.053 ns、111287 端点 0 违例；
+Slice Registers 52687（49.52%）、Block RAM 138.5/140（98.93%）。
+
+> 也可分两步：`build/tcl/build_system_axigpio.tcl` 建工程，`build/tcl/build_bitstream.tcl` 出流。
+> 已有 `.xpr` 时：`... build\tcl\build_v6.tcl -tclargs D:\path\to\xxx.xpr`。
 
 ### 2. 下载比特流
 
 ```bat
-%VIVADO% -mode batch -source build\tcl\program_system.tcl
+:: 先起 PS（DDR + FCLK_CLK0=100MHz），再配 PL，最后写 AXI GPIO
+set XSDBAT=D:\Software\Vivado\2025.2.1\Vitis\bin\xsdb.bat
+%XSDBAT% build\tcl\ps_jtag_boot.tcl   :: 需要 Vitis 平台生成的 ps7_init.tcl，见脚本头
+%VIVADO% -mode batch -source build\tcl\program_pl.tcl
+%XSDBAT% build\tcl\set_src.tcl         :: 0x41200000 = 0x00010000（SRC1=视频、特效关闭）
 ```
 
 ### 3. （可选）下载 PS ELF — 串口命令需要
@@ -102,23 +129,30 @@ set VIVADO=D:\Software\Vivado\2025.2.1\Vivado\bin\vivado.bat
 > 下载 bit 后 PS 会复位，需再次 Run ELF，串口才有效。  
 > 仅观察右屏自动缩放时，下载 bit 即可。
 
-### 4. 仿真
+### 4. 仿真（28 个 testbench）
 
 ```bat
-%VIVADO% -mode batch -source sim\run_sim.tcl
+%VIVADO% -mode batch -nojournal -log sim\xsim.log -source sim\run_sim.tcl
+:: 只跑某几个 / 带 plusargs：
+::   set SIM_TB=tb_v6_ingress_integrity & set SIM_ARGS=+FULL
+:: 结果留档见 sim/results/regression_v6.txt（第四版 28/28 PASS）
 ```
 
 ### 5. 上位机推流
 
 ```bat
+:: A. Node.js 版（无需任何依赖，含验收用的自描述图案）
+node src\host\video_sender.mjs --fps 15 --test move          :: 四象限+红块（看拖影）
+node src\host\video_sender.mjs --fps 15 --count 200 --test frameid
+node src\host\measure_v63.mjs --fps 15 --count 200           :: 推流→停→JTAG 回读→相位判据
+
+:: B. Python 版（推 mp4 / 摄像头，需要 ffmpeg）
 pip install -r src\host\requirements.txt
-cd src\host
-run_sender.bat
-run_video.bat D:\path\to\video.mp4
+cd src\host && run_sender.bat && run_video.bat D:\path\to\video.mp4
 ```
 
-PC 网卡：`192.168.1.100/24`，网线接 **板卡 PL 网口**。  
-详见 `src/host/HOST_GUIDE.md`。
+PC 网卡：`192.168.1.100/24`，网线接 **板卡 PL 网口**。默认已开 15 MB/s 帧内限速。
+详见 `src/host/HOST_GUIDE.md` 与 `board/README.md`。
 
 ---
 
@@ -145,7 +179,8 @@ ETH 收到完整帧后自动切到视频源。
 ```
 [u32 小端 byte_offset][RGB565 载荷]
 一帧：512×300×2 = 307200 字节
-单包载荷：≤1396 字节
+单包载荷：**1392 字节**（必须是 8 的倍数：打包器按 64 bit 写字，1396 会让每个字的
+低 16 bit 来自上一包 ⇒ 确定性半字错位）。
 ```
 
 板端按 offset 写帧缓；乱序可拼对；丢包丢弃，下一帧恢复。
@@ -159,12 +194,24 @@ ETH 收到完整帧后自动切到视频源。
 | [src/host/HOST_GUIDE.md](src/host/HOST_GUIDE.md) | 上位机使用说明 |
 | [report/ARCHITECTURE.md](report/ARCHITECTURE.md) | 数据通路、时钟、带宽 |
 | [report/MODULES.md](report/MODULES.md) | 模块说明 |
-| [report/OPTIMIZATION_LOG.md](report/OPTIMIZATION_LOG.md) | 时序 / 功耗优化记录 |
+| [report/OPTIMIZATION_LOG.md](report/OPTIMIZATION_LOG.md) | 时序 / 功耗优化记录（含第四版 V6.x 逐条措施） |
+| [report/PERF_REPORT.md](report/PERF_REPORT.md) | 性能与资源报告（含 §10 第四版对比表） |
+| [report/ISSUES.md](report/ISSUES.md) | 问题清单（含 [v4] 入包链丢字组 + 症状速查表） |
+| [report/V6_ROOT_CAUSE.md](report/V6_ROOT_CAUSE.md) | **第四版根因分析**：判据方法、三次方向纠正、V6.3 修复 |
+| [report/V6_BOARD_MEASUREMENT.md](report/V6_BOARD_MEASUREMENT.md) | **第四版板级复测单**：15/30/60 fps 数据、观察项、已知残留 |
+| [report/AI_COLLABORATION.md](report/AI_COLLABORATION.md) | 大模型协作记录：提示—判断—被数据推翻的过程与技能包提炼 |
+| [skill/README.md](skill/README.md) | 技能包索引（S1–S9） |
 
 ---
 
 ## 设计要点
 
+- **DDR 乒乓 + V-blank 原子换帧**：入包写 `0x1000_0000 / 0x1008_0000` 两个 bank，
+  `frame_commit_lock` 把「新帧就绪」锁到显示消隐窗口上升沿才启动整帧拷贝，
+  拷贝未完不换 bank ⇒ 屏幕上不可能出现两帧逐字混合（撕裂）。
+  预算：一帧 38400 拍 ÷ 67200 个 axi 周期 = 0.571 拍/周期 ≈ 457 MB/s，实测未越窗。
+- **入包写吞吐 = 在途深度 × 64bit ÷ 往返延迟**：`axi_frame_saver64` 一旦逐字等 B 响应，
+  在途深度恒为 1 ⇒ 20 MB/s 封顶（这就是第四版之前的拖影根因）。V6.3 流水化后由握手决定。
 - **PL UDP 卸载**：延迟确定，PS 只做控制
 - **单口 BRAM 帧缓**：约 2.34 Mb，XC7Z020 放不下双缓冲
 - **缩放**：连续 `inv_scale`（Q8）逆映射；效果挂在右窗缩放后的数据流

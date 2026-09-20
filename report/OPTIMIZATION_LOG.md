@@ -106,3 +106,43 @@ set_clock_groups -asynchronous \
 | `src/rtl/eth/sync_fifo.v` `dc_fifo.v` | 自写 FIFO、BRAM 友好 |
 | `src/host/*` | 上位机 |
 | `report/*` | 全量按 v3 重写 |
+
+---
+
+## 2026-09-21 · 第四版 V6.x：入包链零丢字（数据通路优化，非时序优化）
+
+### 症状
+右屏红块移动处**拖影**、黄块一直呈撕裂态、有固定黑横纹；静止画面也撕裂；
+与上位机限速（0.2 / 2 / 8 / 15 MB/s）几乎无关 ⇒ 不是流量问题。
+
+### 措施（单变量，逐个被测量证伪或证实）
+| # | 变更 | 判据 | 结论 |
+|---|------|------|------|
+| V6.0 | `frame_reasm`：commit 需 `rows_hit==IMG_H` **且** 累计 `FRAME_BYTES`；修 `p_valid&&p_eof` 同拍 off-by-one；`stat_bad` 每帧只加一次 | `sim/tb_v6_cover_gate.v` | 空洞帧不再被 commit（停流后冻结帧干净） |
+| V6.0 | 拷贝窗口收紧到「仅 V-blank + 64 像素尾部保护」+ 提交锁在窗口一开即启动拷贝 | `sim/tb_v6_vblank_copy.v`、`tb_v5_lock.v` | 拷贝预算从 0.31 提到 0.571 拍/周期可用 |
+| V6.0 | `axi_frame_writer_gated` 在途 `MAX_OUT` 2→4、`SK=6` | `sim/tb_v5_gated.v`、`tb_v5_copy.v` | 一帧拷贝能收进一个消隐窗口 |
+| V6.1 | 入包 CDC 读侧「每 3 拍 1 条」→ **每拍 1 条**；flush 给数据让路 | 板级回读空洞比例 | 黑横纹主因之一（66 MB/s < 线速 125 MB/s 的确定性丢字） |
+| V6.1 | 分包 1396 → **1392 B**（8 的倍数） | 半字掩码 `1010/0101` 消失 | 确定性错位消除 |
+| V6.2 | CDC 512→8192（BRAM）+ 打包器满时反压；**打包器 FIFO 不可加深**（`FW=11` 触发 DRC UTLZ-1） | 板级 frameid 命中率 | 仿真 100%，**板上无改善** ⇒ 方向错（深度 ≠ 速率） |
+| **V6.3** | `axi_frame_saver64` 写通道流水化：AW/W 同拍挂出、各保持到被接收，`OST=8` 在途，B 只回收计数且不回绕 | 包内相位丢字率 + 16bit 粒度 + 命中率 | **15/30/60 fps 全部 100.0%**，各带 0.0%，半字错帧 0/76800 |
+
+### 结果
+- 时序不降反升：WNS +0.373 → **+0.675 ns**（0 违例）；Registers 49.52%、BRAM 138.5/140。
+- 入包写吞吐上限：≈20 MB/s → ≈400 MB/s（握手决定），对 15 MB/s 有 26× 余量。
+- 回归：28/28 PASS（`sim/results/regression_v6.txt`）。
+
+### 判据方法（本版新增，可复用）
+`src/host/video_sender.mjs --test frameid` + `src/host/ddr_verify.mjs --frameid`
++ `src/host/ddr_stale.mjs`（包内相位 / 游程长度 / 粒度三维展开），一条命令
+`node src/host/measure_v63.mjs --fps N`。**必须发完再回读**。详见 `skill/frameid_loss_signature.md`。
+
+### 本版变更文件
+`src/rtl/eth/{frame_reasm,eth_udp_video_top,axi_frame_saver64}.v`
+`src/rtl/axi/{axi_frame_writer_gated,axi_frame_writer64}.v`
+`src/rtl/video/{frame_buffer_w64,frame_commit_lock}.v`
+`src/rtl/top/{pl_video_top,system_top}.v`
+`src/host/*`（Node 工具集）、`sim/tb_v5*.v`、`sim/tb_v6*.v`、`sim/run_sim.tcl`、
+`sim/tb_eth_video.v`（修好第三版就失效的参数引用）、
+`build/tcl/{build_v6,program_pl,ps_jtag_boot,set_src}.tcl`、`build/*.{bit,xsa,rpt}`、
+`report/V6_ROOT_CAUSE.md`、`report/V6_BOARD_MEASUREMENT.md`、`report/AI_COLLABORATION.md`、
+`skill/zynq-video-rtl-debug/*`、`skill/frameid_loss_signature.md`

@@ -45,3 +45,11 @@ venv/
 *.swp
 Thumbs.db
 .DS_Store
+
+# 仿真 / 工具运行产物（第四版）
+sim_work/
+sim/xsim.dir/
+sim/*.log
+data/measured/ddr_dump.out
+data/measured/ddr_dump.tcl
+src/host/_xsdb_*.tcl
