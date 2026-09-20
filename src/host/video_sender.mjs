@@ -19,7 +19,9 @@ import { writeFileSync } from 'node:fs';
 
 const W = 512, H = 300, FRAME_BYTES = W * H * 2, HDR = 4;
 // 载荷必须是 8 的倍数：见 video_sender.py 里 MTU_PAYLOAD 的注释（否则每包边界会毁掉一个 64bit DDR 字）
-const MTU = 1392;
+// --mtu-payload 1396 是用来**复现**这个错误的（A/B 对照实验用），不是让你日常这么发。
+const MTU = Number(get('mtu-payload', 1392));
+if (MTU % 8) console.log(`[TX] 警告：MTU_PAYLOAD=${MTU} 不是 8 的倍数，包边界会毁掉 64bit 字（规律黑点）`);
 
 function get(name, def) {
   const i = process.argv.indexOf('--' + name);
