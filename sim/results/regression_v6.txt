@@ -1,12 +1,16 @@
 V6.x 回归结果（在打包后的仓库目录里跑出来，不是开发工作区）
-命令 : vivado -mode batch -nojournal -log sim/xsim_repo_full2.log -source sim/run_sim.tcl
+命令 : vivado -mode batch -nojournal -log sim/xsim_repo_v64.log -source sim/run_sim.tcl
 工具 : Vivado 2025.2.1 (xvlog/xelab/xsim)，Windows
 器件 : xc7z020clg484-2
-日期 : 2026-09-21
+日期 : 2026-09-21（v6.4：入包写通道流水化 + 按 16bit lane 的 WSTRB）
 说明 : 每个 TB 的通过判据是它自己 $display 的 PASS/FAIL 行；RESULT 行由 runner 汇总。
        tb_v6_* 为本版新增（覆盖门限 / V-blank 拷贝窗口 / 入包完整性 / 乒乓换 bank）。
        tb_eth_video 在第三版即已无法 elaborate（向 udp_tx/udp_rx 传了不存在的
        BOARD_PORT/DES_PORT 参数），本版一并修好。
+       tb_v6_ingress_integrity 另有两种手工模式（本文件是默认 PART 模式）：
+         +FULL            221 包灌满整帧（最后一包 960 B）      → 38400/38400 PASS
+         +FULL +MISALIGN  分包改 1396 B（非 8 倍数，复现黑点）  → 38400/38400 PASS
+                          同一用例在 v6.4 之前是 38290/38400、first bad word=174
 总结 : 28 个 testbench 全部 PASS，0 失败
 ================================================================================
   WS: D:/temp/vp_inspect

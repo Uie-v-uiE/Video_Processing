@@ -45,17 +45,19 @@ module axi_frame_saver64 #(
     assign m_axi_awlen   = 8'd0;
     assign m_axi_awsize  = 3'b011;
     assign m_axi_awburst = 2'b01;
-    assign m_axi_wstrb   = 8'hFF;
+    // v6.4：写选通按 16bit lane 生成（见下面 keep_r 处的说明），不再恒为 8'hFF。
     assign m_axi_wlast   = 1'b1;
 
     reg [31:0] q_addr [0:(1<<FW)-1];
     reg [63:0] q_data [0:(1<<FW)-1];
+    reg [3:0]  q_keep [0:(1<<FW)-1];
     reg [FW:0] wptr, rptr;
     assign fifo_full = (wptr[FW] != rptr[FW]) && (wptr[FW-1:0] == rptr[FW-1:0]);
     wire fifo_empty = (wptr == rptr);
 
     reg [18:0] cur_widx;
     reg [63:0] cur_data;
+    reg [3:0]  cur_keep;                 // 正在拼的字里哪些 16bit lane 已有数据
     reg        cur_dirty;
 
     // ---- v6.3 写通道流水化：AW/W 并行挂出，B 只回收计数 ----
@@ -64,6 +66,7 @@ module axi_frame_saver64 #(
     reg [3:0]  outst;                     // 已发出、B 未回的 beat 数
     reg [31:0] a_r;
     reg [63:0] d_r;
+    reg [3:0]  keep_r;
     wire       beat   = aw_wait || w_wait;
     wire       b_ok   = m_axi_bvalid && m_axi_bready;
     wire       have   = (rptr != wptr) && !beat && (outst < OST);
@@ -72,6 +75,12 @@ module axi_frame_saver64 #(
     assign m_axi_wvalid  = w_wait;
     assign m_axi_awaddr  = a_r;
     assign m_axi_wdata   = d_r;
+    // 旧实现恒为 8'hFF，于是「同一个 64bit 字被相邻两包分两次写」时，后一次会把前一次
+    // 刚写好的半字覆盖成 0：上位机分包长度不是 8 的倍数（如 1396）就会约每两包留一个
+    // 4 字节黑洞（实测每帧 111 处 = 222 个 16bit 字，屏上是均匀散布的黑点）。
+    // 现在每个 beat 只写自己有效的字节，剩下的留给另一次推送 ⇒ 分包长度不再敏感。
+    assign m_axi_wstrb   = { {2{keep_r[3]}}, {2{keep_r[2]}},
+                             {2{keep_r[1]}}, {2{keep_r[0]}} };
 
     assign idle = enable && !cur_dirty && fifo_empty && !beat && (outst == 4'd0);
 
@@ -88,10 +97,12 @@ module axi_frame_saver64 #(
         input [18:0] widx;
         input [63:0] data;
         input [31:0] base;
+        input [3:0]  keep;
         begin
             if (!fifo_full) begin
                 q_addr[wptr[FW-1:0]] <= base + {10'd0, widx, 3'b000};
                 q_data[wptr[FW-1:0]] <= data;
+                q_keep[wptr[FW-1:0]] <= keep;
                 wptr <= wptr + 1'b1;
             end
         end
@@ -99,31 +110,32 @@ module axi_frame_saver64 #(
 
     always @(posedge clk or negedge rst_n) begin
         if (!rst_n) begin
-            wptr <= 0; cur_widx <= 0; cur_data <= 0; cur_dirty <= 0;
+            wptr <= 0; cur_widx <= 0; cur_data <= 0; cur_dirty <= 0; cur_keep <= 0;
         end else if (enable) begin
             if (wr_en) begin
                 if (idx_chg || !cur_dirty) begin
                     if (idx_chg)
-                        push_word(cur_widx, cur_data, pack_base);
+                        push_word(cur_widx, cur_data, pack_base, cur_keep);
                     cur_widx  <= in_widx;
                     case (wr_addr[1:0])
-                        2'd0: cur_data <= {48'd0, wr_data};
-                        2'd1: cur_data <= {32'd0, wr_data, 16'd0};
-                        2'd2: cur_data <= {16'd0, wr_data, 32'd0};
-                        default: cur_data <= {wr_data, 48'd0};
+                        2'd0: begin cur_data <= {48'd0, wr_data}; cur_keep <= 4'b0001; end
+                        2'd1: begin cur_data <= {32'd0, wr_data, 16'd0}; cur_keep <= 4'b0010; end
+                        2'd2: begin cur_data <= {16'd0, wr_data, 32'd0}; cur_keep <= 4'b0100; end
+                        default: begin cur_data <= {wr_data, 48'd0}; cur_keep <= 4'b1000; end
                     endcase
                     cur_dirty <= 1'b1;
                 end else begin
                     case (wr_addr[1:0])
-                        2'd0: cur_data[15:0]  <= wr_data;
-                        2'd1: cur_data[31:16] <= wr_data;
-                        2'd2: cur_data[47:32] <= wr_data;
-                        default: cur_data[63:48] <= wr_data;
+                        2'd0: begin cur_data[15:0]  <= wr_data; cur_keep[0] <= 1'b1; end
+                        2'd1: begin cur_data[31:16] <= wr_data; cur_keep[1] <= 1'b1; end
+                        2'd2: begin cur_data[47:32] <= wr_data; cur_keep[2] <= 1'b1; end
+                        default: begin cur_data[63:48] <= wr_data; cur_keep[3] <= 1'b1; end
                     endcase
                 end
             end else if (flush && cur_dirty) begin
-                push_word(cur_widx, cur_data, pack_base);
+                push_word(cur_widx, cur_data, pack_base, cur_keep);
                 cur_dirty <= 1'b0;
+                cur_keep  <= 4'b0;
             end
         end
     end
@@ -133,7 +145,7 @@ module axi_frame_saver64 #(
     always @(posedge clk or negedge rst_n) begin
         if (!rst_n) begin
             rptr <= 0; outst <= 0; busy <= 0;
-            aw_wait <= 0; w_wait <= 0; a_r <= 0; d_r <= 0;
+            aw_wait <= 0; w_wait <= 0; a_r <= 0; d_r <= 0; keep_r <= 0;
             m_axi_bready <= 0;
         end else begin
             m_axi_bready <= 1'b1;                 // B 通道永不反压，只回收计数
@@ -145,6 +157,7 @@ module axi_frame_saver64 #(
             if (have) begin
                 a_r     <= q_addr[rptr[FW-1:0]];
                 d_r     <= q_data[rptr[FW-1:0]];
+                keep_r  <= q_keep[rptr[FW-1:0]];
                 rptr    <= rptr + 1'b1;
                 aw_wait <= 1'b1;
                 w_wait  <= 1'b1;

@@ -20,6 +20,11 @@ module tb_v6_ingress_integrity;
     // 用来查**帧尾那半个 u32**（板上 frameid 回读发现每帧最后 4 字节是 0）
     integer PKTS, TB_WORDS;
     integer FULL;
+    // +MISALIGN：把分包长度改成 1396 B（不是 8 的倍数），复现板上的「规律黑点」：
+    // 包边界落在 64bit 字中间 ⇒ 同一个字被相邻两包各推一次。v6.4 之前 WSTRB 恒 0xFF，
+    // 后一次把前一次覆盖成 0；有了按 lane 的写选通之后两种分包都必须整帧全对。
+    integer MIS;
+    integer PL_B;                 // 实际分包载荷字节数
 
     reg gmii_rx_clk = 0, axi_clk = 0, rst_n = 0;
     wire axi_rst_n = rst_n;
@@ -150,6 +155,7 @@ module tb_v6_ingress_integrity;
     // 用标准握手接收、并按序回 B（B 管道深度 4，够 2 拍/beat 的稳态）。
     localparam RDDR_BEATS = 20;  // 每个 beat 占用端口 ≈20 拍(真实 HP0+DDR 量级)
     integer rd_hold;
+    integer si;                       // WSTRB 合并循环
     wire svc      = (rd_hold == 0);
     wire new_beat = m_awvalid && m_wvalid && m_awready && m_wready;
     always @(posedge axi_clk or negedge rst_n) begin
@@ -166,8 +172,11 @@ module tb_v6_ingress_integrity;
                 aw_addr_r <= m_awaddr;
                 rd_hold   = RDDR_BEATS;
                 bsh       <= (bsh >> 1) | 32'h0000_0008;   // 4 拍后回 B
+                // 真实从机要按 WSTRB 合并，否则测不出「同一字被两包分两次写」的覆盖问题
                 if ((m_awaddr - BASE) < (WORDS * 8)) begin
-                    mem[(m_awaddr - BASE) >> 3] <= m_wdata;
+                    for (si = 0; si < 8; si = si + 1)
+                        if (m_wstrb[si])
+                            mem[(m_awaddr - BASE) >> 3][si*8 +: 8] = m_wdata[si*8 +: 8];
                     axi_wr = axi_wr + 1;
                 end
             end else begin
@@ -209,9 +218,9 @@ module tb_v6_ingress_integrity;
     task send_pkt;
         input integer n;
         begin
-            off0 = n * PAYLOAD;
-            pkt_bytes = ((FRAME_BYTES - off0) < PAYLOAD) ? (FRAME_BYTES - off0)
-                                                         : PAYLOAD;
+            off0 = n * PL_B;
+            pkt_bytes = ((FRAME_BYTES - off0) < PL_B) ? (FRAME_BYTES - off0)
+                                                       : PL_B;
             send_byte(off0[7:0],   1'b1, 1'b0);
             send_byte(off0[15:8],  1'b0, 1'b0);
             send_byte(off0[23:16], 1'b0, 1'b0);
@@ -230,9 +239,13 @@ module tb_v6_ingress_integrity;
         errors = 0; first_bad = -1;
         FULL = 0;
         if ($test$plusargs("FULL")) FULL = 1;
-        PKTS     = FULL ? (FRAME_BYTES + PAYLOAD - 1) / PAYLOAD : TB_PKTS;  // 221 / 60
-        TB_WORDS = FULL ? WORDS : TB_PKTS * (PAYLOAD/8);                    // 38400 / 10440
-        $display("mode=%0s pkts=%0d words=%0d", FULL ? "FULL" : "PART", PKTS, TB_WORDS);
+        MIS = 0;
+        if ($test$plusargs("MISALIGN")) MIS = 1;
+        PL_B = MIS ? 1396 : PAYLOAD;
+        PKTS     = FULL ? (FRAME_BYTES + PL_B - 1) / PL_B : TB_PKTS;   // 221 / 60
+        TB_WORDS = FULL ? WORDS : (TB_PKTS * PL_B) / 8;                // 38400 / 10440|10470
+        $display("mode=%0s payload=%0d pkts=%0d words=%0d",
+                 FULL ? "FULL" : "PART", PL_B, PKTS, TB_WORDS);
         for (pi = 0; pi < WORDS; pi = pi + 1) mem[pi] = 64'h0;
         rst_n = 0; repeat (10) @(negedge gmii_rx_clk); rst_n = 1;
         repeat (10) @(negedge gmii_rx_clk);
