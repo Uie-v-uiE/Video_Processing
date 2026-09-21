@@ -108,8 +108,8 @@ logical nets 92829 / routable 64604 / fully routed 64604 / nets with routing err
 | P01 | 打包 FIFO 被综合成 ~5.1 万 FDRE（占整机寄存器 94%），Slice 99.92%、FW 无法加深 | `axi_frame_saver64.v:16-18` 原注释、`utilization.rpt` | **已修（R02：Reg 51.30%→9.02%，Slice 99.92%→34.99%）** | R02 |
 | P01b | `axi_frame_writer_gated.v:115-116` 的 `sk_addr_reg/sk_data_reg` 同样掉进触发器（综合报 Synth 8-4767「Block RAM or DRAM implementation is not possible」），约 5.3k FDRE = 现存的 6 成 | build#2 综合日志、`utilization.rpt` Reg 9593 | 待评估（寄存器已无压力，优先级低；若做可再降到 ~4k） | 候选 |
 
-| P02 | BRAM 98.93%，无余量做任何新缓冲/插值 | `utilization.rpt` | 依赖 P01 缓解 | R02+ |
-| P03 | 帧尾最后 64bit 字高半 32bit（2 像素）偶发丢（板上 4/8 次），TB +FULL 复现不出 | `report/ISSUES.md`、`report/V6_BOARD_MEASUREMENT.md:70-73` | 分析中 | R03 |
+| P02 | BRAM 98.93%，无余量做任何新缓冲/插值 | `utilization.rpt`、`util_hier.rpt`（u_fb 独占 128 tile） | **已修（R04：90.5/140 = 64.64%，剩 49.5 tile）** | R04 |
+| P03 | 帧尾最后 64bit 字高半 32bit（2 像素）偶发丢（板上 4/8 次），TB +FULL 复现不出 | `report/ISSUES.md`、`report/V6_BOARD_MEASUREMENT.md:70-73` | **已定位并修复（R03：换页未等 CDC 交付完）；仿真双向判据通过，待 L4 板上复验** | R03 |
 | P04 | `--no-pace` 时 CDC 灌满、整包被丢，画面冻结（已接受但可改善） | `report/CHANGELOG_V6.md:202` | 待处理（依赖 P01 释放资源） | R04 |
 | P05 | zoom/rotate 最近邻取整，图像有 1px 栅格闪烁，`frac_x/frac_y` 算了却没用 | `CHANGELOG_V6.md:201`、`V6_ROOT_CAUSE.md:278` | 未开始 | R05+ |
 | P06 | `power.rpt` 无切换活动文件，置信度 Low | `build/power.rpt` | 未开始 | 待排 |
@@ -186,7 +186,7 @@ logical nets 92829 / routable 64604 / fully routed 64604 / nets with routing err
 - **过程：第一次尝试失败并定位到综合器规则**
   1. 只加 `(* ram_style="distributed" *)` + 异步读口 → `synth_1` 报
      `WARNING [Synth 8-7186] Applying attribute ram_style = "distributed" is ignored, object 'q_addr[N]' is not inferred as ram due to incorrect usage`，即属性被忽略，仍是触发器。
-  2. 为免瞎猜，建最小对照实验 `D:\Xilinx\Prj\pro\tmp_ramtest\`（`ramtest.v` + `probe.tcl`，5 个变体，逐个 `synth_design -mode out_of_context` 后统计单元类型）：
+  2. 为免瞎猜，建最小对照实验 `sim/probes/ramtest.v` + `sim/probes/probe.tcl`（5 个变体，逐个 `synth_design -mode out_of_context` 后统计单元类型）：
 
      | 变体 | 写法 | FF | LUTRAM | BRAM |
      |------|------|----|--------|------|
@@ -267,6 +267,83 @@ logical nets 92829 / routable 64604 / fully routed 64604 / nets with routing err
 
 
 
+### R04 · 2026-09-22 00:05– · 门禁项：BRAM 98.93% → 定位到「一个模块吃掉 128/140 个 tile」
+
+- **动机与证据**：BRAM 98.93% 是基线就存在、本夜唯一仍未合格的大门禁项。
+  新写的 `build/tcl/report_mem_hier.tcl` 给出层次化归属（`build/util_hier.rpt`）：
+
+  | 实例 | 模块 | RAMB36 | LUT | FF |
+  |------|------|--------|-----|----|
+  | `u_fb` | frame_buffer_w64 | **128.03** | 266 | 2 |
+  | `u_cdc` | dc_fifo | 9.03 | 51 | 126 |
+  | `u_pipe` | proc_pipeline（blur/sobel 行缓存） | 2×RAMB18 | 732 | 288 |
+  | 其余 | — | ≈0 | — | — |
+
+  也就是说 **92% 的 BRAM 被一个显示帧缓存占掉**，而 512×300×16bit = 2.4576 Mb 的理论下限只要 67 个 tile —— 1.9 倍浪费。
+- **外部检索**：UG901/UG473 关于 BRAM 深度级联与非 2 的幂深度的处理，但结论没有靠文档，直接用最小实验判定（见下）。
+- **对照实验 `sim/probes/fbtest.v` + `probe2/probe3`（同一 512×300 数据量，只改写法）**：
+
+  | 变体 | 写法 | RAMB36 |
+  |------|------|--------|
+  | v0 | 现状：`reg [63:0] mem [0:38400-1]` | **128** |
+  | v1 | 声明深度改成 65536（真 2 的幂） | 128 |
+  | v2 | 深度取 1024 的整数倍 38912 | 128 |
+  | v3 | 4 个 16bit 宽 bank 交织（仍是单块 38400 深） | 128 |
+  | v4 | 32bit 宽、38400 深 | 64 |
+  | **v5** | **按 2 的幂拆两块：32768 + 8192** | **80** |
+
+  判读：v0/v1/v2/v3 全部 128 ⇒ 浪费与「数组声明深度」「宽度」「位宽」都无关，
+  是**地址空间被向上取到 2^16 个字**这一条决定的（38400 → 65536，填充率 58.6%）；
+  v4（32bit 宽）同样填充但总位数减半所以是 64；
+  真正能解的是 v5 —— 把地址空间拆成两个 2 的幂块，让每块都不需要填充。
+  38400 = 32768 + 5632，第二块再填充到 8192，总利用率 93.75%。
+- **改动清单**
+  1. `src/rtl/video/frame_buffer_w64.v`：单阵列 → `lo[0:32767]` + `hi[0:8191]` 两块；
+     写侧 1bit 块选择，读侧两块同拍都读、用打一拍后的 `sel_hi` 做 2:1 选择，
+     **读延迟仍是 1 拍**（v6.4 契约，`pl_video_top` 的读出走数依赖它）；
+     越界读仍回黑、越界写仍忽略（行为保持）。分块大小由常量函数 `bitsof()` 从 W/H 推导，
+     不硬编码 512×300。
+  2. 新增 `sim/tb_fb_roundtrip.v`：此前**没有任何 TB 覆盖这个帧缓存**，改地址映射属于「报告看不出来、
+     上屏立刻错位」一类改动，必须先有逐像素回读。实测 153600 像素全比对 + 块边界 ±2 字 +
+     帧尾最后一个字 + 越界读黑 + 越界写不污染 ⇒ PASS。
+- **过程踩的坑（值得记）**：TB 第一版「超时且一行输出都没有」。原因是**未标位宽的延时常量被截成 32 位**：
+  `#20_000_000_000` 实际只有 2.82 ms、`#400_000_000_000` 只有 ~3.4 ms，`initial` 看门狗提前放枪。
+  大延时必须写 `#(64'd400_000_000_000)`。第二版还顺手把回读改成**流水式一拍一像素**，
+  反而把「延迟=1 拍」的契约变成了可判据（延迟变 2 拍会整体错位立刻全红）。
+- **仿真（L1）**：`sim/r04_full_regression.log` → **30 PASS / 0 FAIL**（29 旧 + 新增 `tb_fb_roundtrip`）。
+  `tb_fb_roundtrip` 单独跑：`写入完成 38400 字 + 2 次越界写` → 流水回读 153672 次 + 块边界/帧尾定点 16 次 →
+  `比对 153688 次，错 0 次` → **PASS**。这同时钉住了「读延迟仍是 1 拍」这条 v6.4 契约。
+- **报告门禁（L3 build #4，00:29–07:47）**：
+
+  | 门禁项 | 要求 | R03 | **R04** | 判定 |
+  |--------|------|-----|---------|------|
+  | WNS | ≥0 且全约束 met | +0.596 | **+0.819** | PASS（比 v6.4 基线 +0.708 还好） |
+  | WHS | ≥0 | +0.078 | **+0.066** | PASS |
+  | 失败端点 | 0 | 0/32798 | 0/30846 | PASS |
+  | **Block RAM Tile** | **≤97%（目标≤95%）** | 138.5 / 98.93% | **90.5 / 64.64%（RAMB36 89）** | **FAIL → PASS，本夜大门禁项解除** |
+  | Slice LUTs | — | 7850 / 14.76% | 7755 / 14.58% | 略降 |
+  | Slice Registers | — | 9594 / 9.02% | 9560 / 8.98% | 略降 |
+  | Slice | ≤98% | 4679 / 35.18% | 4795 / 36.05% | PASS |
+  | LUT as Memory | — | 1233 / 7.09% | 1233 / 7.09% | 不变 |
+  | Total Power | 不明显恶化 | 2.411 W（Dyn 2.229） | **2.362 W（Dyn 2.188）** | PASS |
+  | Tj | — | 52.8 °C | 52.2 °C | 改善 |
+  | route | Failed Nets = 0 | 0/16368 | **0/16139** | PASS |
+  | methodology | 无新增 Critical | 170 | **186** | 见下论证 |
+  | cdc | 无新增 Critical | 同基线 4 行 | 同基线 4 行 | PASS |
+
+  **methodology +16 的处理（论证而非忽略）**：全部落在 SYNTH-6（76 → 92），逐条查看新增实例名
+  均为 `u_pl/u_fb/hi_reg_*`——就是帧缓存新第二块的 16 个 RAMB36 **被逐个报告**，
+  内容是「no output register was merged into the block」这一类**提示级 Warning，不是 Critical**。
+  代价确实是多了一级 bank 选择 mux（在读出寄存器之后），但实测 WNS 反而从 +0.596 升到 +0.819、
+  显示时钟域 50 MHz 余量充足，故接受；若日后要把这级 mux 拿掉，办法是把 `sel_hi` 并进
+   lane mux 的选择端（同一个 8:1 mux 出 16bit），留作待办。
+- **L3 产物**：`build/system.bit` md5 `ff18beb7`（1994722 B）、`build/system.xsa`。
+- **结论**：BRAM 门禁解除，器件剩 49.5 个 BRAM tile 余量 —— 这才让 R05（缩放插值需要行缓存）
+  和 P04（加深 CDC）第一次变成「有资源可做」的选项。
+
+
+
+
 ## 4. 验证矩阵
 
 | 层 | 手段 | 覆盖 | 最近结果 |
@@ -284,13 +361,17 @@ logical nets 92829 / routable 64604 / fully routed 64604 / nets with routing err
 | 基线 v6.4（仓库提交版报告） | +0.708 | +0.064 | 0/115065 | 98.93% | 99.92% | 37.27% | 51.30% | 2.240 W(旧) | 未存档 | 0 | 部分 FAIL（BRAM/Slice） |
 | build#1 = v6.4 网表复现 | +0.708 | +0.064 | 0/115065 | 98.93% | 99.92% | 37.27% | 51.30% | **2.525 W** | **0** | 0 | 复现成功；功耗/布线基线改为此值 |
 | **R02** build#2（打包 FIFO→LUTRAM） | +0.677 | +0.048 | 0/32796 | 98.93% | **34.99%** | **14.77%** | **9.02%** | **2.412 W** | 0 | 0 | **PASS**（BRAM 项沿用基线未解 → R04） |
+| R03 build#3（换页等 CDC 排空） | +0.596 | +0.078 | 0/32798 | 98.93% | 35.18% | 14.76% | 9.02% | 2.411 W | 0 | 0 | PASS（BRAM 仍未解） |
+| **R04** build#4（帧缓存按 2 的幂分块） | **+0.819** | +0.066 | 0/30846 | **64.64%** | 36.05% | 14.58% | 8.98% | **2.362 W** | 0 | 0（+16 条 SYNTH-6 Warning 已论证） | **PASS，全部大门禁项首次合格** |
 
 ## 6. bit / xsa 版本表
 
 | 版本 | commit | bit md5(8) | 大小 | WNS | 说明 |
 |------|--------|-----------|------|-----|------|
 | v6.4 基线 | `647160e` | `155d73bc` | 2523678 B | +0.708 | 仓库自带，可上板 |
-| **R02** | 本夜提交 | `2dd5d1fc` | 2120470 B | +0.677 | 打包 FIFO 改分布式 RAM；功能与 v6.4 等价，可上板 |
+| **R02** | `8c30d9c` | `2dd5d1fc` | 2120470 B | +0.677 | 打包 FIFO 改分布式 RAM；功能与 v6.4 等价，可上板 |
+| R03 | `242f6e7` | `faab6ab3` | 2310718 B | +0.596 | 换页等 CDC 排空；帧尾丢 4 字节修复 |
+| **R04** | 本夜提交 | `ff18beb7` | 1994722 B | **+0.819** | 帧缓存分块省 48 个 BRAM tile；**当前金样候选** |
 
 
 ## 7. 工具与子代理记录

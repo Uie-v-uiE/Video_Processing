@@ -56,3 +56,10 @@ sim/*.log
 data/measured/ddr_dump.out
 data/measured/ddr_dump.tcl
 src/host/_xsdb_*.tcl
+
+# 综合探针脚本跑出来的 Vivado 工程产物不入库
+sim/probes/*.xpr
+sim/probes/*.log
+sim/probes/.Xil/
+sim/probes/*.runs/
+sim/probes/*.dcp
