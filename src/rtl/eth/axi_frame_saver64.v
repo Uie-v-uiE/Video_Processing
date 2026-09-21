@@ -13,8 +13,9 @@
 // B 响应只在 outst 计数里回收，永不阻塞数据通路。
 module axi_frame_saver64 #(
     parameter BASE_ADDR = 32'h1000_0000,
-    parameter FW = 9   // 512-entry packer FIFO。不可加深：q_addr/q_data 被综合成
-                       // **触发器**（512×96bit ≈ 4.9 万 FDRE），FW=11 直接 DRC UTLZ-1。
+    parameter FW = 9   // 512-entry packer FIFO。存储必须是**分布式 RAM**（见下面 ram_style）：
+                       // 早先版本让它被综合成触发器（512×100bit ≈ 5.1 万 FDRE），
+                       // 占整机 Slice Register 的 94%，FW=11 直接 DRC UTLZ-1。
                        // 深缓冲在 eth_udp_video_top 里 BRAM 实现的 CDC（8192 条）。
 )(
     input  wire        clk,
@@ -48,12 +49,19 @@ module axi_frame_saver64 #(
     // v6.4：写选通按 16bit lane 生成（见下面 keep_r 处的说明），不再恒为 8'hFF。
     assign m_axi_wlast   = 1'b1;
 
-    reg [31:0] q_addr [0:(1<<FW)-1];
-    reg [63:0] q_data [0:(1<<FW)-1];
-    reg [3:0]  q_keep [0:(1<<FW)-1];
+    // 打包 FIFO 存储：显式要求**分布式 RAM**。读口是异步的（下面 ridx/rd_*），
+    // 512×100bit 只要 ~800 个 LUT-RAM，换掉原先 5.1 万个 FDRE。
+    (* ram_style = "distributed" *) reg [31:0] q_addr [0:(1<<FW)-1];
+    (* ram_style = "distributed" *) reg [63:0] q_data [0:(1<<FW)-1];
+    (* ram_style = "distributed" *) reg [3:0]  q_keep [0:(1<<FW)-1];
     reg [FW:0] wptr, rptr;
     assign fifo_full = (wptr[FW] != rptr[FW]) && (wptr[FW-1:0] == rptr[FW-1:0]);
     wire fifo_empty = (wptr == rptr);
+
+    wire [FW-1:0] ridx    = rptr[FW-1:0];
+    wire [31:0]   rd_addr = q_addr[ridx];
+    wire [63:0]   rd_data = q_data[ridx];
+    wire [3:0]    rd_keep = q_keep[ridx];
 
     reg [18:0] cur_widx;
     reg [63:0] cur_data;
@@ -93,49 +101,53 @@ module axi_frame_saver64 #(
         else if (!cur_dirty) pack_base <= base_addr;
     end
 
-    task automatic push_word;
-        input [18:0] widx;
-        input [63:0] data;
-        input [31:0] base;
-        input [3:0]  keep;
-        begin
-            if (!fifo_full) begin
-                q_addr[wptr[FW-1:0]] <= base + {10'd0, widx, 3'b000};
-                q_data[wptr[FW-1:0]] <= data;
-                q_keep[wptr[FW-1:0]] <= keep;
-                wptr <= wptr + 1'b1;
-            end
+    // 打包器把「凑满一个 64bit 字的片段」推入 FIFO 的两个时机：
+    //   1) 来了新的字索引 ⇒ 先把正在拼的旧字推走；2) flush ⇒ 把半截字推走。
+    // 两处推的内容完全相同（都是 cur_*），所以合并成一个写脉冲。
+    // 原样保留 v6.4 语义：FIFO 满时该字被丢弃（第二处还会清 cur_dirty）。
+    wire push_now = enable && ((wr_en && idx_chg) || (flush && cur_dirty && !wr_en));
+    wire pack_we  = push_now && !fifo_full;
+
+    // 存储写必须**独占一个不带异步复位的 always 块**。这不是风格问题：
+    // 写成 task + 和指针同在异步复位块里时，Vivado 报 Synth 8-7186 拒绝把数组
+    // 推断成 RAM，512×64bit 直接退化成 3.29 万个 FDRE（实测对比见 OVERNIGHT_LOG
+    // R02 探针表：task 写法 FF=32904/LUTRAM=0，本写法 FF=85/LUTRAM=864）。
+    always @(posedge clk) begin
+        if (pack_we) begin
+            q_addr[wptr[FW-1:0]] <= pack_base + {10'd0, cur_widx, 3'b000};
+            q_data[wptr[FW-1:0]] <= cur_data;
+            q_keep[wptr[FW-1:0]] <= cur_keep;
         end
-    endtask
+    end
 
     always @(posedge clk or negedge rst_n) begin
         if (!rst_n) begin
             wptr <= 0; cur_widx <= 0; cur_data <= 0; cur_dirty <= 0; cur_keep <= 0;
-        end else if (enable) begin
-            if (wr_en) begin
-                if (idx_chg || !cur_dirty) begin
-                    if (idx_chg)
-                        push_word(cur_widx, cur_data, pack_base, cur_keep);
-                    cur_widx  <= in_widx;
-                    case (wr_addr[1:0])
-                        2'd0: begin cur_data <= {48'd0, wr_data}; cur_keep <= 4'b0001; end
-                        2'd1: begin cur_data <= {32'd0, wr_data, 16'd0}; cur_keep <= 4'b0010; end
-                        2'd2: begin cur_data <= {16'd0, wr_data, 32'd0}; cur_keep <= 4'b0100; end
-                        default: begin cur_data <= {wr_data, 48'd0}; cur_keep <= 4'b1000; end
-                    endcase
-                    cur_dirty <= 1'b1;
-                end else begin
-                    case (wr_addr[1:0])
-                        2'd0: begin cur_data[15:0]  <= wr_data; cur_keep[0] <= 1'b1; end
-                        2'd1: begin cur_data[31:16] <= wr_data; cur_keep[1] <= 1'b1; end
-                        2'd2: begin cur_data[47:32] <= wr_data; cur_keep[2] <= 1'b1; end
-                        default: begin cur_data[63:48] <= wr_data; cur_keep[3] <= 1'b1; end
-                    endcase
+        end else begin
+            if (pack_we) wptr <= wptr + 1'b1;
+            if (enable) begin
+                if (wr_en) begin
+                    if (idx_chg || !cur_dirty) begin
+                        cur_widx  <= in_widx;
+                        case (wr_addr[1:0])
+                            2'd0: begin cur_data <= {48'd0, wr_data}; cur_keep <= 4'b0001; end
+                            2'd1: begin cur_data <= {32'd0, wr_data, 16'd0}; cur_keep <= 4'b0010; end
+                            2'd2: begin cur_data <= {16'd0, wr_data, 32'd0}; cur_keep <= 4'b0100; end
+                            default: begin cur_data <= {wr_data, 48'd0}; cur_keep <= 4'b1000; end
+                        endcase
+                        cur_dirty <= 1'b1;
+                    end else begin
+                        case (wr_addr[1:0])
+                            2'd0: begin cur_data[15:0]  <= wr_data; cur_keep[0] <= 1'b1; end
+                            2'd1: begin cur_data[31:16] <= wr_data; cur_keep[1] <= 1'b1; end
+                            2'd2: begin cur_data[47:32] <= wr_data; cur_keep[2] <= 1'b1; end
+                            default: begin cur_data[63:48] <= wr_data; cur_keep[3] <= 1'b1; end
+                        endcase
+                    end
+                end else if (flush && cur_dirty) begin
+                    cur_dirty <= 1'b0;
+                    cur_keep  <= 4'b0;
                 end
-            end else if (flush && cur_dirty) begin
-                push_word(cur_widx, cur_data, pack_base, cur_keep);
-                cur_dirty <= 1'b0;
-                cur_keep  <= 4'b0;
             end
         end
     end
@@ -155,9 +167,9 @@ module axi_frame_saver64 #(
             else if (!have && b_ok) outst <= (outst == 4'd0) ? 4'd0 : outst - 4'd1;
 
             if (have) begin
-                a_r     <= q_addr[rptr[FW-1:0]];
-                d_r     <= q_data[rptr[FW-1:0]];
-                keep_r  <= q_keep[rptr[FW-1:0]];
+                a_r     <= rd_addr;
+                d_r     <= rd_data;
+                keep_r  <= rd_keep;
                 rptr    <= rptr + 1'b1;
                 aw_wait <= 1'b1;
                 w_wait  <= 1'b1;

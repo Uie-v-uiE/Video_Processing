@@ -137,7 +137,12 @@ report_utilization -file [file join $outdir utilization.rpt]
 # V7：一并产出 CDC / 方法学报告，让仓库脚本的输出与库里提交的文件一致
 catch {report_cdc -file [file join $outdir cdc.rpt]}
 catch {report_methodology -file [file join $outdir methodology.rpt]}
+# 门禁还要求功耗与布线状态，缺了就只能靠人工补跑 —— 一并产出
+catch {report_power -file [file join $outdir power.rpt]}
+catch {report_route_status -file [file join $outdir route_status.rpt]}
+catch {report_clock_utilization -file [file join $outdir clock_util.rpt]}
 write_hw_platform -fixed -include_bit -force -file [file join $outdir system.xsa]
+catch {close_project}
 puts "BIT: [file join $outdir system.bit]"
 puts "XSA: [file join $outdir system.xsa]"
 puts "SYSTEM BUILD DONE"
