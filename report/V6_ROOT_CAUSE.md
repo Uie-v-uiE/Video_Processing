@@ -1,5 +1,8 @@
 # v6 根因分析与改动（单变量清单见文末）
 
+> 本文是**方法与机理**。逐版本的完整修改记录见 `report/CHANGELOG_V6.md`，板级验收数字见 `report/V6_BOARD_MEASUREMENT.md`。
+
+
 ## 1. 症状 → 机理对照
 
 | 症状 | v5.8 观察 | v6 判定 |

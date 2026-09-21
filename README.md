@@ -219,6 +219,7 @@ ETH 收到完整帧后自动切到视频源。
 | [report/V6_ROOT_CAUSE.md](report/V6_ROOT_CAUSE.md) | **第四版根因分析**：判据方法、三次方向纠正、V6.3 修复 |
 | [report/V6_BOARD_MEASUREMENT.md](report/V6_BOARD_MEASUREMENT.md) | **第四版板级复测单**：15/30/60 fps 数据、观察项、已知残留 |
 | [report/AI_COLLABORATION.md](report/AI_COLLABORATION.md) | 大模型协作记录：提示—判断—被数据推翻的过程与技能包提炼 |
+| [report/CHANGELOG_V6.md](report/CHANGELOG_V6.md) | **逐版本完整变更记录**：V6.0→V6.4 每一版改了什么、判据、仿真与板级数字、回退与未解决项 |
 | [skill/README.md](skill/README.md) | 技能包索引（S1–S9） |
 
 ---

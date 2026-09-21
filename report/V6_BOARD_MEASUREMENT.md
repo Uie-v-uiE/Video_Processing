@@ -1,5 +1,9 @@
 # v6 上板验证单（结果由板测填写）
 
+> 本文是**验收数据表**。逐版本的完整修改记录（改了什么/为什么/判据/是否回退）见 `report/CHANGELOG_V6.md`；
+> 机理推导与测量方法学见 `report/V6_ROOT_CAUSE.md`。
+
+
 产物：`build_v6/system.bit`、`build_v6/system.xsa`（同目录含
 `timing_summary.rpt` / `utilization.rpt` / `rebuild.log`）。
 
