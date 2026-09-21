@@ -112,42 +112,35 @@ module tb_v6_pingpong;
         end
     end
 
-    // ---- 提交 + 乒乓 bank（照搬 eth_udp_video_top）----
-    reg frame_done_tog = 1'b0;
-    always @(posedge gmii_rx_clk or negedge rst_n) begin
-        if (!rst_n) frame_done_tog <= 1'b0;
-        else if (frame_done) frame_done_tog <= ~frame_done_tog;
-    end
-    (* ASYNC_REG = "TRUE" *) reg fd0, fd1, fd2;
-    always @(posedge axi_clk or negedge axi_rst_n) begin
-        if (!axi_rst_n) {fd2,fd1,fd0} <= 3'b0;
-        else {fd2,fd1,fd0} <= {fd1,fd0,frame_done_tog};
-    end
-    wire fd_axi = fd1 ^ fd2;
+    // ---- 提交 + 乒乓 bank ----
+    // 这里例化**上板的实现** ddr_bank_commit，不再手抄 eth_udp_video_top 的 glue。
+    // 手抄副本的代价是「真代码改错、TB 照样绿」；原副本见 git 历史 v6.4。
+    wire        saver_idle;
+    wire [31:0] sav_base;
+    wire        pack_flush;
+    wire [31:0] completed_base;
+    wire        commit_pulse, switch_req, force_flush;
 
-    reg bank = 1'b0;
-    reg [31:0] completed_base = BANK0;
-    reg commit_pulse = 1'b0, switch_req = 1'b0, force_flush = 1'b0;
-    wire saver_idle;
-    wire [31:0] sav_base = bank ? BANK1 : BANK0;
-
-    always @(posedge axi_clk or negedge axi_rst_n) begin
-        if (!axi_rst_n) begin
-            bank <= 0; completed_base <= BANK0;
-            commit_pulse <= 0; switch_req <= 0; force_flush <= 0;
-        end else begin
-            commit_pulse <= 1'b0;
-            if (fd_axi) begin switch_req <= 1; force_flush <= 1; end
-            if (switch_req && saver_idle) begin
-                completed_base <= sav_base;
-                bank           <= ~bank;
-                commit_pulse   <= 1;
-                switch_req     <= 0;
-                force_flush    <= 0;
-            end
-            if (saver_idle && !switch_req) force_flush <= 1'b0;
-        end
-    end
+    ddr_bank_commit #(.BANK0(BANK0), .BANK1(BANK1), .TAIL_GUARD(1'b1)) u_commit (
+        .gmii_clk       (gmii_rx_clk),
+        .axi_clk        (axi_clk),
+        .rst_n          (rst_n),
+        .axi_rst_n      (axi_rst_n),
+        .frame_done     (frame_done),
+        .saver_idle     (saver_idle),
+        .sav_base       (sav_base),
+        .pack_flush     (pack_flush),
+        .cdc_empty      (fifo_empty),
+        .cdc_rd         (fifo_rd),
+        .cdc_d1_v       (cdc_d1_v),
+        .sav_en         (sav_en),
+        .sav_flush      (sav_flush),
+        .completed_base (completed_base),
+        .commit_pulse   (commit_pulse),
+        .switch_req     (switch_req),
+        .force_flush    (force_flush)
+    );
+    wire fd_axi = u_commit.fd_axi;   // 诊断用
 
     integer commit_cnt = 0;
     // 诊断：force_flush 每次拉高持续多少 axi 拍（连续推流下若远大于排空所需，
@@ -173,7 +166,7 @@ module tb_v6_pingpong;
             commit_idx = commit_idx + 1;
         end
         $display("COMMIT %0d completed_base=%h (bank was %b)",
-                 commit_cnt, completed_base, bank);
+                 commit_cnt, completed_base, u_commit.bank);
     end
 
     wire [31:0] m_awaddr;
@@ -192,7 +185,7 @@ module tb_v6_pingpong;
         .clk(axi_clk), .rst_n(axi_rst_n), .enable(1'b1),
         .base_addr(sav_base),
         .wr_en(sav_en), .wr_addr(sav_a), .wr_data(sav_d),
-        .flush(sav_flush | force_flush),
+        .flush(pack_flush),
         .fifo_full(sv_full), .idle(saver_idle), .busy(),
         .m_axi_awaddr(m_awaddr), .m_axi_awlen(m_awlen), .m_axi_awsize(m_awsize),
         .m_axi_awburst(m_awburst), .m_axi_awvalid(m_awvalid), .m_axi_awready(m_awready),

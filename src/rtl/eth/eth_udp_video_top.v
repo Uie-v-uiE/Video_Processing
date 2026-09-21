@@ -248,54 +248,34 @@ module eth_udp_video_top #(
         end
     end
 
-    reg frame_done_tog = 1'b0;
-    always @(posedge gmii_rx_clk or negedge rst_n) begin
-        if (!rst_n) frame_done_tog <= 1'b0;
-        else if (frame_done) frame_done_tog <= ~frame_done_tog;
-    end
-    (* ASYNC_REG = "TRUE" *) reg fd0, fd1, fd2;
-    always @(posedge axi_clk or negedge axi_rst_n) begin
-        if (!axi_rst_n) {fd2,fd1,fd0} <= 3'b0;
-        else {fd2,fd1,fd0} <= {fd1,fd0,frame_done_tog};
-    end
-    wire fd_axi = fd1 ^ fd2;
-
-    reg        bank = 1'b0;
-    reg [31:0] completed_base = BANK0;
-    reg        commit_pulse = 1'b0;
-    reg        switch_req = 1'b0;
-    reg        force_flush = 1'b0;
     wire       saver_idle;
-    wire [31:0] sav_base = bank ? BANK1 : BANK0;
+    wire [31:0] sav_base;
+    wire       pack_flush;
 
-    // v5.6: same bank policy as the ghosting-free v5 —
-    // switch only after saver idle (in-flight words finish on the old bank).
-    always @(posedge axi_clk or negedge axi_rst_n) begin
-        if (!axi_rst_n) begin
-            bank <= 1'b0;
-            completed_base <= BANK0;
-            commit_pulse <= 1'b0;
-            switch_req <= 1'b0;
-            force_flush <= 1'b0;
-        end else begin
-            commit_pulse <= 1'b0;
-            if (fd_axi) begin
-                switch_req  <= 1'b1;
-                force_flush <= 1'b1;
-            end
-            if (switch_req && saver_idle) begin
-                completed_base <= sav_base;
-                bank           <= ~bank;
-                commit_pulse   <= 1'b1;
-                switch_req     <= 1'b0;
-                force_flush    <= 1'b0;
-            end
-            if (saver_idle && !switch_req)
-                force_flush <= 1'b0;
-        end
-    end
-    assign ddr_commit_base  = completed_base;
-    assign ddr_commit_pulse = commit_pulse;
+    // v6.4 的「帧尾 4 字节偶发丢失」修在这里：换页必须等本帧数据全部穿过 CDC。
+    // 这段 glue 从本文件抽成独立模块，是为了让 tb_v6_pingpong / tb_v6_tail_bank
+    // 例化**上板的实现**而不是 TB 里的手抄副本。
+    ddr_bank_commit #(
+        .BANK0(BANK0), .BANK1(BANK1), .TAIL_GUARD(1'b1)
+    ) u_commit (
+        .gmii_clk      (gmii_rx_clk),
+        .axi_clk       (axi_clk),
+        .rst_n         (rst_n),
+        .axi_rst_n     (axi_rst_n),
+        .frame_done    (frame_done),
+        .saver_idle    (saver_idle),
+        .sav_base      (sav_base),
+        .pack_flush    (pack_flush),
+        .cdc_empty     (fifo_empty),
+        .cdc_rd        (fifo_rd),
+        .cdc_d1_v      (cdc_d1_v),
+        .sav_en        (sav_en),
+        .sav_flush     (sav_flush),
+        .completed_base(ddr_commit_base),
+        .commit_pulse  (ddr_commit_pulse),
+        .switch_req    (),
+        .force_flush   ()
+    );
 
     // v5.0: use saver64 so idle/commit/frame_ready can complete (burst hung → red).
     // v6.2: 打包器满时停止从 CDC 取数（反压），否则取出来就丢，等于白读。
@@ -303,7 +283,7 @@ module eth_udp_video_top #(
         .clk(axi_clk), .rst_n(axi_rst_n), .enable(1'b1),
         .base_addr(sav_base),
         .wr_en(sav_en), .wr_addr(sav_a), .wr_data(sav_d),
-        .flush(sav_flush | force_flush),
+        .flush(pack_flush),
         .fifo_full(sv_full), .idle(saver_idle), .busy(),
         .m_axi_awaddr(m_axi_awaddr), .m_axi_awlen(m_axi_awlen),
         .m_axi_awsize(m_axi_awsize), .m_axi_awburst(m_axi_awburst),

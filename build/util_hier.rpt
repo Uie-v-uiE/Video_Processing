@@ -1,0 +1,69 @@
+Copyright 1986-2022 Xilinx, Inc. All Rights Reserved. Copyright 2022-2026 Advanced Micro Devices, Inc. All Rights Reserved.
+---------------------------------------------------------------------------------------------------------------------------------------------
+| Tool Version : Vivado v.2025.2.1 (win64) Build 6403652 Thu Mar 19 19:48:24 GMT 2026
+| Date         : Mon Sep 21 23:56:54 2026
+| Host         : Uie-laptop running 64-bit major release  (build 9200)
+| Command      : report_utilization -hierarchical -hierarchical_depth 4 -file D:/Xilinx/Prj/pro/Video_Processing/build/util_hier.rpt
+| Design       : system_top
+| Device       : xc7z020clg484-2
+| Speed File   : -2
+| Design State : Routed
+---------------------------------------------------------------------------------------------------------------------------------------------
+
+Utilization Design Information
+
+Table of Contents
+-----------------
+1. Utilization by Hierarchy
+
+1. Utilization by Hierarchy
+---------------------------
+
++----------------------+--------------------------------+------------+------------+---------+------+------+--------+--------+------------+
+|       Instance       |             Module             | Total LUTs | Logic LUTs | LUTRAMs | SRLs |  FFs | RAMB36 | RAMB18 | DSP Blocks |
++----------------------+--------------------------------+------------+------------+---------+------+------+--------+--------+------------+
+| system_top           |                          (top) |       7850 |       6617 |    1120 |  113 | 9594 |    137 |      3 |         13 |
+|   (system_top)       |                          (top) |          7 |          7 |       0 |    0 |   24 |      0 |      0 |          0 |
+|   u_bd               |               design_1_wrapper |        434 |        375 |       0 |   59 |  624 |      0 |      0 |          0 |
+|     design_1_i       |                       design_1 |        433 |        374 |       0 |   59 |  624 |      0 |      0 |          0 |
+|       axi_gpio_0     |          design_1_axi_gpio_0_0 |         63 |         63 |       0 |    0 |  158 |      0 |      0 |          0 |
+|         U0           | design_1_axi_gpio_0_0_axi_gpio |         63 |         63 |       0 |    0 |  158 |      0 |      0 |          0 |
+|       axi_gp0_ic     |          design_1_axi_gp0_ic_0 |        370 |        311 |       0 |   59 |  466 |      0 |      0 |          0 |
+|         s00_couplers |       s00_couplers_imp_1KZGM77 |        370 |        311 |       0 |   59 |  466 |      0 |      0 |          0 |
+|   u_eth              |              eth_udp_video_top |       3309 |       2381 |     928 |    0 | 2206 |      9 |      1 |          0 |
+|     (u_eth)          |              eth_udp_video_top |          3 |          3 |       0 |    0 |  100 |      0 |      0 |          0 |
+|     u_arp            |                            arp |        401 |        401 |       0 |    0 |  424 |      0 |      0 |          0 |
+|       u_arp_rx       |                         arp_rx |        236 |        236 |       0 |    0 |  278 |      0 |      0 |          0 |
+|       u_arp_tx       |                         arp_tx |        144 |        144 |       0 |    0 |  114 |      0 |      0 |          0 |
+|     u_cdc            |                        dc_fifo |         51 |         51 |       0 |    0 |  126 |      9 |      0 |          0 |
+|     u_icmp           |                           icmp |        796 |        796 |       0 |    0 |  626 |      0 |      0 |          0 |
+|       u_icmp_rx      |                        icmp_rx |        210 |        210 |       0 |    0 |  280 |      0 |      0 |          0 |
+|       u_icmp_tx      |                        icmp_tx |        555 |        555 |       0 |    0 |  314 |      0 |      0 |          0 |
+|     u_reasm          |                    frame_reasm |        600 |        600 |       0 |    0 |  478 |      0 |      0 |          0 |
+|     u_rgmii          |                  gmii_to_rgmii |         50 |         50 |       0 |    0 |    0 |      0 |      0 |          0 |
+|       u_rgmii_rx     |                       rgmii_rx |         50 |         50 |       0 |    0 |    0 |      0 |      0 |          0 |
+|     u_saver          |              axi_frame_saver64 |       1244 |        316 |     928 |    0 |  243 |      0 |      0 |          0 |
+|     u_udp            |                            udp |        148 |        148 |       0 |    0 |  152 |      0 |      0 |          0 |
+|       u_udp_rx       |                         udp_rx |        148 |        148 |       0 |    0 |  152 |      0 |      0 |          0 |
+|   u_pl               |                   pl_video_top |       4100 |       3854 |     192 |   54 | 6740 |    128 |      2 |         13 |
+|     (u_pl)           |                   pl_video_top |        125 |         71 |       0 |   54 |  428 |      0 |      0 |          0 |
+|     u_ang            |                     angle_ctrl |        317 |        317 |       0 |    0 |   12 |      0 |      0 |          0 |
+|     u_aw             |             axi_frame_writer64 |        113 |        113 |       0 |    0 |  191 |      0 |      0 |          0 |
+|     u_cmt            |              frame_commit_lock |         62 |         62 |       0 |    0 |   38 |      0 |      0 |          0 |
+|     u_fb             |               frame_buffer_w64 |        266 |        266 |       0 |    0 |    2 |    128 |      0 |          0 |
+|     u_osd            |                    osd_overlay |        313 |        313 |       0 |    0 |   22 |      0 |      0 |          0 |
+|     u_pipe           |                  proc_pipeline |        732 |        540 |     192 |    0 |  288 |      0 |      2 |          1 |
+|       u_blur         |                  proc_box_blur |        352 |        224 |     128 |    0 |  157 |      0 |      1 |          1 |
+|       u_gray         |                      proc_gray |         91 |         91 |       0 |    0 |   17 |      0 |      0 |          0 |
+|       u_sobel        |                     proc_sobel |        228 |        164 |      64 |    0 |   81 |      0 |      1 |          0 |
+|     u_rmap           |                  rotate_mapper |        139 |        139 |       0 |    0 |   22 |      0 |      0 |          4 |
+|       (u_rmap)       |                  rotate_mapper |        123 |        123 |       0 |    0 |   22 |      0 |      0 |          4 |
+|     u_row            |         axi_frame_writer_gated |       1704 |       1704 |       0 |    0 | 5455 |      0 |      0 |          0 |
+|     u_t              |          video_timing_1024x600 |        112 |        112 |       0 |    0 |   51 |      0 |      0 |          0 |
+|       u_t            |                   video_timing |        112 |        112 |       0 |    0 |   51 |      0 |      0 |          0 |
+|     u_zmap           |                    zoom_mapper |        145 |        145 |       0 |    0 |   44 |      0 |      0 |          8 |
+|       (u_zmap)       |                    zoom_mapper |        129 |        129 |       0 |    0 |   44 |      0 |      0 |          8 |
++----------------------+--------------------------------+------------+------------+---------+------+------+--------+--------+------------+
+* Note: The sum of lower-level cells may be larger than their parent cells total, due to cross-hierarchy LUT combining
+
+

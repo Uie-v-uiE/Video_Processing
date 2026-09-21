@@ -213,12 +213,66 @@ logical nets 92829 / routable 64604 / fully routed 64604 / nets with routing err
 
 ---
 
+### R03 · 2026-09-21 22:46–23:52 · 正确性：帧尾 4 字节偶发丢失（P03）定位并修复
+
+- **动机与证据**：`report/ISSUES.md` 与 `report/V6_BOARD_MEASUREMENT.md:70-73` 记录：板上 512×300 帧
+  的最后一个 64bit 字（DDR 偏移 `+0x4AFF8`，即第 38399 字）高半 32bit 读回为 0，8 次里见 4 次，
+  与速率无关；既有 `tb_v6_ingress_integrity +FULL` 复现不出来。**根因夜之前未被定位**。
+- **工具与子代理**：派 `general-purpose` 子代理做只读根因分析（禁止改文件、禁止跑仿真，避免和
+  正在跑的构建抢 `sim_work`）。它给出候选机理并指名 `pack_base`/`saver_idle` 是关键。
+  **主代理逐条核实**后采纳，未照单全收：
+  - 核实为真：`frame_reasm.v:113-123` 里 `flush` 与 `frame_done` **同拍**产生 ⇒ 帧的 flush 标记
+    一定排在 CDC 队列里、晚于本帧最后一个数据 lane；
+  - 核实为真：`axi_frame_saver64.v:85` 的 `idle` 只含打包器自身 ⇒ 对 8192 深的 CDC 与两级读流水不可见；
+  - 核实为真：`eth_udp_video_top.v:239` `fifo_rd <= !fifo_empty && !sv_full` ⇒ 打包器满会**在帧中间**截断读出；
+  - **否决**子代理建议的 `saver64: else if (idle) pack_base <= base_addr;` 一行：
+    现有条件 `if (!cur_dirty)` 在 idle 时必然已成立，加这行是死代码 ⇒ 不加；
+  - **否决**「加超时兜底」：改用 CDC 排空本身作为兜底条件，不引入计数器与新状态。
+- **根因（一句话）**：换页判据 `switch_req && saver_idle` **看不见 CDC 里还剩多少本帧数据**。
+  打包器满过一次之后如果在帧的最后一个字中间放开，本帧最后 2 个 lane 仍在 CDC 里；
+  此时 `frame_done` 已同步到 axi 域并拉起 `force_flush`，把已到的一半字推走 ⇒ 打包器排空 ⇒
+  `saver_idle` ⇒ 翻 bank ⇒ 那 2 个 lane 随后进到**已经换过 bank 的 pack_base**，
+  被写进下一帧的缓冲区 ⇒ 刚提交的 bank 帧尾 4 字节停在旧值/0。相位相关 ⇒ 板上 4/8 次、与速率无关。
+- **工程化前置（这一步比补丁本身更重要）**：这段 glue 原本内联在 `eth_udp_video_top.v:251-298`，
+  `tb_v6_pingpong` / `tb_v5_bank` 都是**手抄一份**来测——手抄的副本不会因为真代码改错而变红。
+  故先把它抽成独立模块 `src/rtl/eth/ddr_bank_commit.v`（逐行搬移，逻辑不变），
+  让 TB 例化**上板的实现**。参数 `TAIL_GUARD` 保留 v6.4 行为，只用于 A/B 对照复现。
+- **改动清单**
+  1. 新增 `src/rtl/eth/ddr_bank_commit.v`：`commit_ok = saver_idle && tail_drained`，
+     `tail_drained = cdc_empty && !cdc_rd && !cdc_d1_v && !sav_en && !sav_flush`；
+     `pack_flush = sav_flush | (force_flush && tail_drained)`。
+  2. `eth_udp_video_top.v`：内联 glue → `u_commit` 例化；saver 的 `.flush()` 改接 `pack_flush`。
+  3. `sim/tb_v6_pingpong.v`：删除手抄副本，改例化 `ddr_bank_commit`（诊断量走层次引用）。
+  4. 新增 `sim/tb_v6_tail_bank.v`：两条完整入包链（各自 dc_fifo + axi_frame_saver64 + commit + AXI 从机）
+     喂同一激励，`TAIL_GUARD` 一个 0 一个 1，做**双向判据**。
+- **仿真（L1）**
+  ```
+  SIM_TB=tb_v6_tail_bank → sim/r03_tailbank_v3.log
+     frame0: 完整 old=8/8 new=8/8                     （基线自洽）
+     frame1: 完整 old=7/8 (first_bad_word=7)  new=8/8 （旧链复现帧尾丢 1 字=4 字节，新链完整）
+     commits old=2 new=2                              （换页没有被过度延迟）
+     RESULT tb_v6_tail_bank PASS
+  全量回归 → sim/r03_full_regression.log：SIM DONE pass=29 fail=0（28 旧 + 1 新）
+  ```
+  TB 自身的两次踩坑也记录在这里，因为它们正是这个仓库反复强调的判据：
+  ① AXI 从机用**寄存器版**地址会把 W 数据配到上一拍的地址上，症状「只有 word0 正确」；
+  ② `wr_addr` 的单位是 **16bit 字索引**（`frame_reasm` 输出 `off[18:1]`），按字节地址激励会让
+  每帧字数翻倍、编址整体错位。
+- **报告门禁（L3 build #3）**：见 §5/§6（构建完成后填）。
+- **风险与回滚**：改动落在 ETH 入包链（硬约束 4）。回滚 = `git revert` R03 提交；
+  行为差异只在「打包器曾满 + 帧末半截字」这一窄窗口，正常限速流下 `tail_drained` 落在帧间隙，
+  提交时刻与 v6.4 相同（回归 29/29 与 pingpong 提交次数=2 佐证）。
+- **结论**：机理定位 + 双向判据的复现/回归 + 修复生效。待 L4 上板用
+  `node src/host/ddr_holemap.mjs` / `ddr_stale.mjs` 的 frameid 判据看板上是否还剩帧尾那一处异常。
+
+
+
 ## 4. 验证矩阵
 
 | 层 | 手段 | 覆盖 | 最近结果 |
 |----|------|------|----------|
-| L0 | 直读 RTL + diff 审查 | 入包链 184-315 行、saver 全文 | 接口未变，读写口无同拍冲突（`have` 要求 rptr≠wptr） |
-| L1 | `sim/run_sim.tcl` 28 个 TB | 入包完整性/乒乓/覆盖门/V-blank 拷贝/rotate/zoom/udp/arp/crc | 基线 28/28 PASS |
+| L0 | 直读 RTL + diff 审查 + `git diff --stat` | 入包链、saver 全文、glue 抽取的逐行搬迁 | R03 抽取后人工核对端口/信号一一对应 |
+| L1 | `sim/run_sim.tcl` **29** 个 TB（R03 起含 `tb_v6_tail_bank`） | 入包完整性/乒乓/覆盖门/V-blank 拷贝/**帧尾换页 A/B**/rotate/zoom/udp/arp/crc | R03 后 **29/29 PASS**（`sim/r03_full_regression.log`） |
 | L2 | `build_system_axigpio.tcl` 的 synth+impl 报告 | 时序/资源/功耗/方法学/CDC/布线 | 见 R02 |
 | L3 | bit + xsa | 上板前置 | 见 R02 |
 | L4 | UART/ping/JTAG 回读 + `src/host/*.mjs` | 丢包签名、DDR 空洞图 | 未开始 |

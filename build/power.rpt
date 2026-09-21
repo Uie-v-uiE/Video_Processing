@@ -1,7 +1,7 @@
 Copyright 1986-2022 Xilinx, Inc. All Rights Reserved. Copyright 2022-2026 Advanced Micro Devices, Inc. All Rights Reserved.
 -------------------------------------------------------------------------------------------------------------------------------------------------
 | Tool Version     : Vivado v.2025.2.1 (win64) Build 6403652 Thu Mar 19 19:48:24 GMT 2026
-| Date             : Mon Sep 21 23:28:35 2026
+| Date             : Mon Sep 21 23:54:46 2026
 | Host             : Uie-laptop running 64-bit major release  (build 9200)
 | Command          : report_power -file D:/Xilinx/Prj/pro/Video_Processing/build/power.rpt
 | Design           : system_top
@@ -33,7 +33,7 @@ Table of Contents
 | Total On-Chip Power (W)  | 2.412        |
 | Design Power Budget (W)  | Unspecified* |
 | Power Budget Margin (W)  | NA           |
-| Dynamic (W)              | 2.230        |
+| Dynamic (W)              | 2.229        |
 | Device Static (W)        | 0.182        |
 | Effective TJA (C/W)      | 11.5         |
 | Max Ambient (C)          | 57.2         |
@@ -53,15 +53,15 @@ Table of Contents
 | On-Chip                  | Power (W) | Used     | Available | Utilization (%) |
 +--------------------------+-----------+----------+-----------+-----------------+
 | Clocks                   |     0.039 |       10 |       --- |             --- |
-| Slice Logic              |     0.014 |    20853 |       --- |             --- |
-|   LUT as Logic           |     0.011 |     6625 |     53200 |           12.45 |
+| Slice Logic              |     0.014 |    20854 |       --- |             --- |
+|   LUT as Logic           |     0.012 |     6617 |     53200 |           12.44 |
 |   CARRY4                 |    <0.001 |      573 |     13300 |            4.31 |
 |   LUT as Distributed RAM |    <0.001 |     1120 |     17400 |            6.44 |
-|   Register               |    <0.001 |     9593 |    106400 |            9.02 |
+|   Register               |    <0.001 |     9594 |    106400 |            9.02 |
 |   F7/F8 Muxes            |    <0.001 |     1290 |     53200 |            2.42 |
 |   LUT as Shift Register  |    <0.001 |      113 |     17400 |            0.65 |
-|   Others                 |     0.000 |      272 |       --- |             --- |
-| Signals                  |     0.029 |    16213 |       --- |             --- |
+|   Others                 |     0.000 |      273 |       --- |             --- |
+| Signals                  |     0.029 |    16219 |       --- |             --- |
 | Block RAM                |     0.239 |    138.5 |       140 |           98.93 |
 | MMCM                     |     0.212 |        2 |         4 |           50.00 |
 | DSPs                     |     0.006 |       13 |       220 |            5.91 |
@@ -161,9 +161,9 @@ Table of Contents
 +----------------------------+-----------+
 | Name                       | Power (W) |
 +----------------------------+-----------+
-| system_top                 |     2.230 |
-|   u_bd                     |     1.542 |
-|     design_1_i             |     1.542 |
+| system_top                 |     2.229 |
+|   u_bd                     |     1.541 |
+|     design_1_i             |     1.541 |
 |       axi_gp0_ic           |     0.003 |
 |       processing_system7_0 |     1.537 |
 |   u_eth                    |     0.047 |
@@ -182,7 +182,7 @@ Table of Contents
 |       u_udp_rx             |     0.001 |
 |   u_idelay_clkgen          |     0.106 |
 |   u_pl                     |     0.515 |
-|     u_ang                  |     0.004 |
+|     u_ang                  |     0.003 |
 |     u_clk                  |     0.107 |
 |     u_dvi                  |     0.134 |
 |       u_ser0               |     0.034 |
@@ -195,7 +195,7 @@ Table of Contents
 |       u_blur               |     0.003 |
 |       u_sobel              |     0.002 |
 |     u_rmap                 |     0.003 |
-|     u_row                  |     0.016 |
+|     u_row                  |     0.015 |
 |     u_zmap                 |     0.006 |
 +----------------------------+-----------+
 
