@@ -115,17 +115,21 @@ V6.3 把写通道改成流水化（AW/W 同拍挂出、`OST=8` 在途、B 只回
 ```bat
 cd /d <仓库根目录>
 set VIVADO=D:\Software\Vivado\2025.2.1\Vivado\bin\vivado.bat
-:: 从零建工程（PS7 + AXI GPIO + HP0 + src\rtl）并出 bit / XSA / 四份报告
-%VIVADO% -mode batch -nojournal -log build\build_v6.log -source build\tcl\build_v6.tcl
+:: 从零建工程（PS7 + M_AXI_GP0 + AXI GPIO + 对外 HP0 + src\rtl）**并**出 bit / XSA / 报告
+%VIVADO% -mode batch -nojournal -log build\build.log -source build\tcl\build_system_axigpio.tcl
 ```
 
 产物：`build/system.bit`、`build/system.xsa`、`build/timing_summary.rpt`、
-`build/utilization.rpt`、`build/cdc.rpt`、`build/methodology.rpt`（仓库内若已有可跳过）。
-V6.3 实测：WNS **+0.675 ns**、WHS +0.053 ns、111287 端点 0 违例；
-Slice Registers 52687（49.52%）、Block RAM 138.5/140（98.93%）。
+`build/utilization.rpt`、`build/cdc.rpt`、`build/methodology.rpt`（库里已带本次重建的产物）。
 
-> 也可分两步：`build/tcl/build_system_axigpio.tcl` 建工程，`build/tcl/build_bitstream.tcl` 出流。
-> 已有 `.xpr` 时：`... build\tcl\build_v6.tcl -tclargs D:\path\to\xxx.xpr`。
+> **可复现性已实测**（2026-09-21）：在一份干净克隆上直接跑上面这条命令（连 `vivado_system/`
+> 工程目录都是它现建的），得到的资源与时序和开发工作位**一致**：
+> Slice Registers 54588（51.30%）、Block RAM 138.5/140（98.93%）、
+> WNS **+0.708 ns** / WHS +0.064 / WPWS +0.264、115065 端点 0 违例、
+> `All user specified timing constraints are met.`；0 Critical Warning
+> （方法学报告里是 SYNTH-6×76「BRAM 无输出寄存器、时序非最优」、SYNTH-5×48「分布式 RAM」、
+> TIMING-18×7「缺 input/output delay」这类 Warning）。
+> bit 文件因布线种子与时间戳不同而不逐字节相同。完整记录见 `report/CHANGELOG_V6.md` §3。
 
 ### 2. 下载比特流
 

@@ -1,5 +1,8 @@
 # ===== Vivado / Vitis / 仿真 生成物（勿提交） =====
 vivado_system/
+vivado/
+dfx_runtime.txt
+build/_repro*
 vivado_sim/
 vit/
 VITIS/

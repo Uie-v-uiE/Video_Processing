@@ -216,3 +216,36 @@ Slice Registers 54588（51.30%）、BRAM 138.5/140（98.93%）、DSP48E1 用 13�
 | `a91e83b` | `fix(eth)` **V6.4** 按 lane 的 `WSTRB` |
 | `cd18974` | `build(v6.4)` bit 与报告 |
 | `e4bbf92` | `docs(v6.4)` 文档同步 |
+
+---
+
+## 3. 可复现性验证（2026-09-21）
+
+不是"理论上可复现"，是**在一份干净克隆上跑通**：
+
+```
+git clone https://github.com/Uie-v-uiE/Video_Processing.git      # 只有仓库内容
+vivado -mode batch -source build/tcl/build_system_axigpio.tcl     # 现建 vivado_system/ 工程 + BD
+```
+
+| 指标 | 开发工作位（v6.4） | 干净克隆跑出来 |
+|---|---|---|
+| Slice Registers | 54588（51.30%） | 54588（51.30%） |
+| Block RAM Tile | 138.5/140（98.93%） | 138.5/140（98.93%） |
+| WNS / WHS / WPWS | +0.708 / +0.064 / +0.264 ns | **+0.708 / +0.064 / +0.264 ns** |
+| 违例端点 | 0 / 115065 | 0 / 115065 |
+| 结论 | `All user specified timing constraints are met.` | 同 |
+
+要点与如实说明：
+
+- 工程（PS7 + M_AXI_GP0 + AXI GPIO + 对外 HP0 + `src/rtl/**`）由脚本现建，不依赖任何手工 GUI 步骤；
+  因此仓库里不需要（也没有）提交 `.xpr`/BD JSON。
+- `build/system.bit` 与 `build/system.xsa` 已由这条命令重新生成并提交；bit **不逐字节相同**
+  （布局布线种子与时间戳参与编码），逐字节一致的是资源与时序数字。
+- 方法学报告 0 Critical Warning；Warning 主要是 `SYNTH-6`×76（BRAM 无输出寄存器 ⇒ 时序非最优，
+  来自 `frame_buffer_w64` 的 16bit 读复用）、`SYNTH-5`×48（因约束映射成分布式 RAM）、
+  `TIMING-18`×7（对外接口缺 input/output delay）。列入后续待办，不影响当前收敛。
+- CDC 报告里成对时钟列为 `Asynch Clock Groups` 的是**显式声明的异步组**（`eth_rxc`/`sys_clk`/
+  `clk_fpga_0`/`clkout0_1` 之间），不是遗漏约束；跨钟只允许经过 Gray 码 `dc_fifo` 或 3 级同步器。
+- 仿真可复现性同理：`vivado -mode batch -source sim/run_sim.tcl` 在克隆目录内跑出 28/28 PASS
+  （`sim/results/regression_v6.txt` 就是那份输出，不是开发工作区的）。

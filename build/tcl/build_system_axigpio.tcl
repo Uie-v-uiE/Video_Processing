@@ -134,6 +134,9 @@ file copy -force $bit [file join $outdir system.bit]
 open_run impl_1
 report_timing_summary -file [file join $outdir timing_summary.rpt]
 report_utilization -file [file join $outdir utilization.rpt]
+# V7：一并产出 CDC / 方法学报告，让仓库脚本的输出与库里提交的文件一致
+catch {report_cdc -file [file join $outdir cdc.rpt]}
+catch {report_methodology -file [file join $outdir methodology.rpt]}
 write_hw_platform -fixed -include_bit -force -file [file join $outdir system.xsa]
 puts "BIT: [file join $outdir system.bit]"
 puts "XSA: [file join $outdir system.xsa]"
