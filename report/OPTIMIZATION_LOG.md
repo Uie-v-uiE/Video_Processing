@@ -126,10 +126,13 @@ set_clock_groups -asynchronous \
 | V6.2 | CDC 512→8192（BRAM）+ 打包器满时反压；**打包器 FIFO 不可加深**（`FW=11` 触发 DRC UTLZ-1） | 板级 frameid 命中率 | 仿真 100%，**板上无改善** ⇒ 方向错（深度 ≠ 速率） |
 | **V6.3** | `axi_frame_saver64` 写通道流水化：AW/W 同拍挂出、各保持到被接收，`OST=8` 在途，B 只回收计数且不回绕 | 包内相位丢字率 + 16bit 粒度 + 命中率 | **15/30/60 fps 全部 100.0%**，各带 0.0%，半字错帧 0/76800 |
 
+| V6.4 | `axi_frame_saver64`：`WSTRB` 由恒 `0xFF` 改成**按 16bit lane 的掩码**（`cur_keep→q_keep→keep_r`） | 1396 分包的板级回读 + `tb_v6_ingress_integrity +FULL +MISALIGN` | 修掉「同一字被相邻两包推送时后一次覆盖前一次」⇒ 屏上均匀散布的黑点（1396 实测每帧 111 处 4 字节洞）；之后入包链对分包长度免疫 |
+
 ### 结果
 - 时序不降反升：WNS +0.373 → **+0.675 ns**（0 违例）；Registers 49.52%、BRAM 138.5/140。
 - 入包写吞吐上限：≈20 MB/s → ≈400 MB/s（握手决定），对 15 MB/s 有 26× 余量。
-- 回归：28/28 PASS（`sim/results/regression_v6.txt`）。
+- 回归：28/28 PASS（v6.4 在同一份仓库目录里重跑，`sim/results/regression_v6.txt`）。
+- V6.4 板级验收：1396 B 分包下两个 bank 命中率 **100.0%**、每帧空洞 **0**（v6.3 同条件下是 99.9% / 222 个 16bit 字）。
 
 ### 判据方法（本版新增，可复用）
 `src/host/video_sender.mjs --test frameid` + `src/host/ddr_verify.mjs --frameid`

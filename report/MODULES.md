@@ -129,7 +129,7 @@ sy = H/2 + ((y-H/2)*inv)>>8
 |------|------|------|--------|
 | `eth_udp_video_top` | `src/rtl/eth/` | RGMII→ARP/ICMP/UDP→reasm→CDC→打包器 的容器 | V6.1 起 CDC 读侧每拍一条；V6.2 起 `dc_fifo ADDR_W=13` + `sv_full` 反压 |
 | `frame_reasm` | `src/rtl/eth/` | offset 拼帧 + 提交门限 | `rows_hit==IMG_H` **且** 累计 `FRAME_BYTES`；`stat_bad` 每帧一次 |
-| `axi_frame_saver64` | `src/rtl/eth/` | 16bit→64bit 打包 + AXI3 写 | **V6.3：AW/W 同拍挂出、`OST=8` 在途、B 只回收计数**；`AWLEN=0`；`FW=9` 不可加深（DRC UTLZ-1） |
+| `axi_frame_saver64` | `src/rtl/eth/` | 16bit→64bit 打包 + AXI3 写 | **V6.3：AW/W 同拍挂出、`OST=8` 在途、B 只回收计数**；**V6.4：`WSTRB` 按 16bit lane 生成**（部分字不再互相覆盖）；`AWLEN=0`；`FW=9` 不可加深（DRC UTLZ-1） |
 | `frame_buffer_w64` | `src/rtl/video/` | 64bit 宽显示帧 BRAM，双窗时分读 | — |
 | `axi_frame_writer_gated` | `src/rtl/axi/` | 提交后整帧 DDR→显示 BRAM，只在 `allow_wr` 窗口内发 AR/写 BRAM | `MAX_OUT=4`、`BEATS=16`、`SK=6` |
 | `frame_commit_lock` | `src/rtl/video/` | 新帧就绪锁到 V-blank 上升沿才启动拷贝；拷贝未完不换 bank | `allow_rise` 边沿触发 |
