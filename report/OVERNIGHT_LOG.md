@@ -1532,14 +1532,49 @@ measurement 把它否掉了。
 "仿真通过、硅片靠运气"，所以门禁不能只看仿真绿。
 axi 域那侧 `abort(eth_mode ? copy_abort : 1'b0)` 不动（同域不算 CDC）。
 
-### R23-D · 工具事实：ModelSim 只能当第二个编译器用
-
-`vlog.exe`（2020.1 AE）能用、并且**当场抓到一处 Vivado 侧不会报的写法**：
+### R23-D · 工具事实：ModelSim 只能当第二个编译器用`vlog.exe`（2020.1 AE）能用、并且**当场抓到一处 Vivado 侧不会报的写法**：
 `tlm_data` 先出现在端口连接里 ⇒ Verilog 把它建成**隐式 1 bit 网**，后面的
 `wire [7:0] tlm_data` 就成重复声明（Vivado 的 xvlog 也会报，但 ModelSim 的报错更好读）。
 `vsim.exe` **不能用**：`Unable to checkout a license`（本机没有 `LM_LICENSE_FILE`/`MGLS_LICENSE_FILE`，
 `keyring/*.active` 是 vencrypt 的东西，不是授权）。⇒ 今晚的定位：ModelSim 做**交叉编译检查**，
 仿真仍然走 xsim。试过两次，按停损规则不再折腾。
 另外：全量 `run_sim.tcl` 不能整目录 glob `ku5p/src/rtl` —— 那里的 `gmii_to_rgmii/rgmii_rx/rgmii_tx`
-与 `src/rtl/eth/` 下的**同名但是两种器件写法**，一次编译里出现两份同名模块会互相覆盖
+与 `src/rtl/eth/` 下的**同名但是两种器件写法**，一次 xvlog 里出现两份同名模块会互相覆盖
 （"看起来绿、其实验的不是同一份代码"），所以只显式加自研的两个文件。
+
+**还有一条被综合抓出来的**：`ku5p_eth_top` 把仲裁器端口 `.udp_txd` 写成 `.udp_gmii_txd` ——
+40 个台架全绿、ModelSim vlog 也过（端口存在性只在 elaboration 检查），
+是 `synth_design` 第 7 秒报的。⇒ **没有被任何台架例化的顶层，"跑一次综合冒烟"是必需的一步**，
+不是可选项（`KU5P_SYNTH_ONLY=1` 那两分钟就是留给它的）。
+
+### R23-E · KU5P 成套门禁（05:43 那次构建，报告 + md5 冻结在 `ku5p/build/frozen_r23/`）
+
+| 门禁 | 结果 | 对照上一版（00:57，只有入口） |
+|------|------|------------------------------|
+| WNS / WHS | **+1.916 / +0.010 ns**，`All user specified timing constraints are met` | +2.081 / +0.013 |
+| 失败端点 / 总端点 | 0 / 11668 | 0 / 9600（遥测 + 仲裁器多 ~2000 端点） |
+| CLB LUT / FF | 3021（1.39%）/ 2799（0.65%） | 2415 / 2087 |
+| BRAM / URAM / DSP | **72 tile（15.00%）** / 0 / 0 | 72 / 0 / 0 ⇒ **发包逻辑一块 RAM 都没多要** |
+| 布线 | 7179 根全布通，**0 条布线错误** | 5954 / 0 |
+| methodology | **0 条 Critical Warning** | 同 |
+| `report_cdc` | 1 行 Critical：`input port clock → eth_rxc`（无公共主时钟），16 端点、**Unsafe=0**、已被 False Path 豁免 | 结构性提示，不是没处理的跨域 |
+
+WHS 从 +0.013 掉到 +0.010 这一条我没有去"修"：最坏路径一直是 CRC XOR 树自己贴着自己，
+那是**布局紧**；随电压/温度恶化的是 setup（本文 §14 R21 补记 2 与 `ku5p/README.md` §10
+已经把这条概念摆正过：**电压降低/温度升高时单元与布线一起变慢，数据路径延迟变长 ⇒ hold 反而更稳；
+会变差的是 setup**。所以 "WHS 小" 不是明早的风险点，"WNS 小" 才是。
+
+### R23-F · 一个新登记的诚实性问题（ISSUES #29）：**遥测里的 `bad` 是构造性为 0**
+
+写这份包的时候顺手去查"错包数从哪来"，结果发现两个板的顶层都是 `frame_reasm.p_good(1'b1)`
+（厂商 `udp_rx` 不看 GMII 的 ER、也不判帧长）⇒ `stat_bad` 那条累加**永远不会走**。
+主线 `eth_udp_video_top.v:235` 的注释其实早就写了这句话，但它没有传播到用它的地方：
+一个字段叫"错包数"、发到一个显示"健康自诊断"的窗口里，读的人一定会把 `bad=0` 理解成"没有错包"。
+
+处理方式：**今晚不动硬件**（换收包链会碰到已经上板验过的入口通路，明早要演示），
+先让数字诚实 —— RTL 文件头写明、PC 工具打印成 `bad≈7(未接FCS判定)`、修法登记进 ISSUES #29：
+自研的 `gmii_rx_mac`（已有 `m_good/m_bad`）+ `udp_rx_parser`（已有 `p_good` 与三个 drop 统计，
+**并且本来就带目的端口过滤**）就在仓库里、`tb_udp_parser` 有判据，缺的只是把顶层换过去。
+⇒ 这条排进 KU5P 下一步的第 1 位（在"让 PC 下命令"之前），顺带把主线 P0-C 最后一条债
+（目的端口过滤）一起解掉。
+**同时写清楚不要说过头**：`m_good` 是"无 ER + 长度合理"，不是真的 CRC-32 校验。
