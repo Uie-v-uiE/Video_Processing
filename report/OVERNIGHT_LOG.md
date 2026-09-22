@@ -1610,16 +1610,23 @@ methodology 0 CRITICAL / 日志 CRITICAL WARNING 9 条（与基线同）/ L1 40-
 
 ### R23-H · 收尾：全量回归对最终源码重跑，以及一次"仓库搬家留下的钉子"
 
-- 最终源码上全量台架：**SIM DONE pass=40 fail=0**（`sim/results/regression_v79_r23.txt` 已刷新，
-  含本轮三个新台架）。构建 #18 是在 `abort_tgl` 那版源码上跑的，之后仓库只加了注释
-  ⇒ "源码与 bit 一致"这句一律写成"**除注释外一致**"（`frozen_r18_abort/MANIFEST.txt` 里也这么写）。
-- `report/BUILD.md` 里还写着旧仓库根 `D:\Xilinx\Prj\ADD\Video_Pipeline-main`，而这个目录**今天已经不存在**
-  （`ls` 直接 No such file）；顺着查下去，5 个 tcl 帮助脚本也硬编码着同一个旧根 ⇒ 今天一跑就会失败。
-  已全部处理：文档里的路径改成 `D:\Xilinx\Prj\pro\Video_Processing`，
-  tcl 改成 `[file dirname [info script]]` 自适应（下次搬家不用再修）。
-- 同一批复查又抓到两处过期事实：ISSUES #26 记的 `D:\Git\Gitin`（Git 现在在
-  `D:\Software\Git\Gitin`），以及 skill 里"本机无 python"那句（现在有 3.12，只是交付件仍不依赖它）。
+- 最终源码上全量台架：**SIM DONE pass=40 fail=0**（`sim/results/regression_v79_r23.txt` 已刷新，含本轮三个新台架）。
+  构建 #18 是在 `abort_tgl` 那版源码上跑的，之后仓库只加了注释 ⇒ "源码与 bit 一致"这句一律写成
+  "**除注释外一致**"（`frozen_r18_abort/MANIFEST.txt` 里也这么写）。
+- `report/BUILD.md` 与 5 个一次性 tcl 脚本里还写着旧根 `D:\Xilinx\Prj\ADD\Video_Pipeline-main`。**这一段我先前写错过**：上一版这里写的是
+  "那个目录今天已经不存在（`ls` 报 No such file）"——**没查就下的结论**。实测那棵树今天还在，
+  是 v3 时代的另一份工作副本（它自己的 git HEAD 是 `7cde28d`）。
+  ⇒ 真问题因此比"路径失效"**更坏不是更好**：脚本指过去不报错，只会**静默改到另一棵树上**
+  （改 A 树、读 B 树的报告，是最难查的一类）。5 个 tcl 已全部改成 `[file dirname [info script]]` 自适应，
+  文档里的根改成 `D:\Xilinx\Prj\pro\Video_Processing`。
+- 同一批复查抓到两处过期事实：ISSUES #26 记的 `D:\Git\Git\bin`（现在 Git 在 `D:\Software\Git\Git\bin`，旧目录确实不存在，
+  这条是 `ls` 过的）；以及 skill 里"本机无 python"那句（本机有 3.12，只是交付件仍要求零依赖）。
   另把 `ARCHITECTURE.md` 的标题从"（第三版）"改成中性版本说明并加了范围声明（本文只讲 Z7；
-  第二块板的工程文档是 `ku5p/README.md`）——评委只看 `report/` 时不该看不见第二块板。
-- 通用教训：**"以前验证过的事实"有保质期**，尤其路径、版本号、"这台机器没有 X"这类；
-  本轮的做法是把它们当假设重新 `ls`/`which` 一次，成本几秒，收益是明早不会有人按死路径敲命令。
+  第二块板的工程文档是 `ku5p/README.md`）——评委只翻 `report/` 时不该看不见第二块板。
+- **两条教训，本条自己就是活例子**：
+  ① "以前验证过的事实"有保质期，路径、版本号、"这台机器没有 X"尤其如此。写之前 `ls`/`which` 一次只要几秒，
+     而这次我省了那几秒，就把一个错事实写进了交付文档（发现后当场订正，并把"下了结论没验"这件事本身记下来）。
+  ② **用脚本批量改含反斜杠的文本会被吃掉转义**：本轮 `sed -i` 的替换串把三处 Windows 路径的反斜杠整个吞掉
+     （变成 `D:XilinxPrj...` 这种），python 源码里的一处"反斜杠 + bin"直接变成了退格控制符。
+     ⇒ 改这类文本要么用编辑工具，要么用 `chr(92)` 把反斜杠拼出来并**当场读回校验**；
+     校验方式是全文搜索控制字符（退格/响铃/ESC）个数必须为 0——这条断言在写完上一版时就拦下过一次。

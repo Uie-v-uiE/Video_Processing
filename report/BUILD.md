@@ -7,7 +7,7 @@
 
 | 用途 | 路径 |
 |------|------|
-| 仓库根 | `D:\Xilinx\Prj\pro\Video_Processing\`（旧文档里的 `D:XilinxPrjproVideo_Processing\` 已不存在，2026-09-23 全仓改过一遍） |
+| 仓库根 | `D:\Xilinx\Prj\pro\Video_Processing\`（旧文档与一次性脚本里曾是**另一份工作副本**根 `D:\Xilinx\Prj\ADD\Video_Pipeline-main`；那棵树今天还在、停在 v3 时代（git HEAD `7cde28d`）⇒ 脚本指过去**不会报错，只会静默改错树**，比失败更坏；2026-09-23 已全部改成自适应路径） |
 | Vivado | `D:\Software\Vivado\2025.2.1\Vivado\bin\vivado.bat` |
 | Vitis | `D:\Software\Vivado\2025.2.1\Vitis\bin\xsdb.bat`（批处理式跑法；无后缀的 `xsdb` 是 Linux 包装脚本，Git Bash 下会报 rlwrap 缺失） |
 | Vivado 工程 | `vivado_system\zynq_video_sys.xpr`（已 gitignore，可用 TCL 重建） |

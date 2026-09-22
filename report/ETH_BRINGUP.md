@@ -28,7 +28,7 @@ PS 网口可闲置。应用固件仅控制面。
 ## 上位机
 
 ```bat
-cd /d D:XilinxPrjproVideo_Processing\src\host
+cd /d D:\Xilinx\Prj\pro\Video_Processing\src\host
 pip install -r requirements.txt
 run_sender.bat
 run_video.bat D:\Videos\demo.mp4
