@@ -1,7 +1,7 @@
 # S6 · PL RGMII UDP 硬件卸载最小闭环
 
 ## 适用场景
-Zynq PL 侧第二网口收 UDP 视频，PS 只做控制；竞赛展示完整 MAC/ARP/ICMP/UDP 逻辑能力。
+Zynq PL 侧第二网口收 UDP 视频，PS 只做控制；完整实现 MAC/ARP/ICMP/UDP 逻辑，便于逐层定位与扩展。
 
 ## 使用方法
 1. 原理图定位 PHY2 RGMII 封装脚（本板 BANK33，见 `constraints/rk_zynq7020.xdc`）

@@ -211,7 +211,7 @@ Slice Registers 54588（51.30%）、BRAM 138.5/140（98.93%）、DSP48E1 用 13�
 | `8c0fad3` | `test(sim)` V6 数据通路 TB + 仓库相对 runner + 修 `tb_eth_video` |
 | `97af3f8` | `feat(host)` `frameid` 相位判据工具集 |
 | `8472e36` | `build(v6.3)` bit/XSA/报告 |
-| `bbfbc4e`…`3db709a` | `docs(v4)` 竞赛目录、根因/复测/协作记录/技能包、初级组申报 |
+| `bbfbc4e`…`3db709a` | `docs(v4)` 目录结构整理、根因/复测/协作记录/技能包入库 |
 | `4b75873`…`8bc59cf` | 1396 黑点 A/B 的记录 |
 | `a91e83b` | `fix(eth)` **V6.4** 按 lane 的 `WSTRB` |
 | `cd18974` | `build(v6.4)` bit 与报告 |
