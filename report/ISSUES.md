@@ -282,6 +282,14 @@ ARP 状态机 —— 改前改后都一样（`arp_rx_flag` 直接触发），PC 
 **顺带记一条**：任何"两个独立 busy 标志 + OR"的仲裁条件都值得当 bug 读一遍 ——
 它的语义通常是"任一空闲"，而想要的是"全部空闲"。
 
+**状态（R24）**：**已结案**。L1 40/40 + Z7 build#19 门禁全绿
+（WNS +0.598 / WHS +0.043 / 0 失败端点 / BRAM 64.64% / Dynamic 2.184 W 与 #18 相同 / 0 路由错误 /
+methodology 0 CRITICAL），成套工件（含 bit）冻结在 `build/frozen_r19_arb/`，md5 `545a27a1`。
+WNS 比 #18 低 0.4 ns **不是这笔改动**：两次的最差路径是同一条 `x_d_reg → u_osd/b_reg`
+（OSD，50 MHz 域，27 级、66% 走线），`eth_ctrl` 在 125 MHz 域且只多一级寄存 —— 差值是布局布线轮次差异。
+⇒ 这条同时也给出"**全设计的时序瓶颈在 OSD 字符行取字**"这个结论，深度优化该从它开始。
+**上板复验项**（明早）：`ping -t` 期间同时推流，看回包是否还会被截半（改前的现象是 UDP 帧只剩 7/12 字节）。
+
 ---
 
 ### 38. `frame_reasm.p_good` 在两个板的顶层都硬接 1 ⇒ `stat_bad` 是**死的统计**（发现未修，口径已收紧）
@@ -296,15 +304,28 @@ ARP 状态机 —— 改前改后都一样（`arp_rx_flag` 直接触发），PC 
 **为什么先不修**：换收包链会动到**已经在板上验过的入口通路**，而今晚主线要保持与 build#17/18 一致，
 明早要演示；这不是"顺手加个约束"级的改动。
 
-**修法（代码已经在仓库里，只是没接）**：自研 `gmii_rx_mac` 已经输出
+**修法（代码已经在仓库里，但**不止"接上去"一步**）**：自研 `gmii_rx_mac` 已经输出
 `m_good`（帧尾、无 ER、len≥64）与 `m_bad`（`gmii_rx_mac.v:14-15`），
 自研 `udp_rx_parser` 已经吃 `s_good/s_bad` 并产出 `p_good` + `stat_drop_bad/stat_drop_filt/stat_udp_ok`
 （`udp_rx_parser.v:13-21`），`sim/tb_udp_parser.v` 有判据。
 ⇒ 接法是把顶层的"厂商 `udp_rx`"换成"`gmii_rx_mac` + `udp_rx_parser`"这一对，
 `p_good` 就有了真值，顺带把 **目的端口过滤**（P0-C 最后一条）也一起解决 —— 那个过滤器在
 `udp_rx_parser` 里本来就有（`UDP_PORT` 参数 + `stat_drop_filt`）。
-**注意别过度声明**：`m_good` 是"无 ER + 长度合理"，**不是真的 CRC-32 校验**；
-真要做 FCS 校验要再走一步（把 CRC 检查接在 `m_data` 上，成本约 40 行 + 一个台架）。
+
+**R24 复查出来的真正阻塞点（比原计划多一步）**：`gmii_rx_mac` 的 `m_good` 依赖
+`gmii_rx_er`，而**两个板的 RGMII 收侧根本没有 ER 这根线** ——
+`src/rtl/eth/rgmii_rx.v:43` 是 `assign gmii_rx_dv = gmii_rxdv_t[0] & gmii_rxdv_t[1];`，
+RX_CTL 经 IDDR + 两拍一致后**只当 DV 用**，`gmii_to_rgmii` 的端口表里没有 `gmii_rx_er`
+（KU5P 侧 `ku5p/src/rtl/rgmii_rx.v` 同样只出 rxd/rxdv）。
+RGMII 本身就是 4 数据 + 1 控制，**没有 GMII 的 RX_ER 通道** —— 这才是当初 `p_good` 被硬接 1 的
+真实原因：不是偷懒，是**没有错误源可接**。
+⇒ 所以 #38 的完整修法是两步，缺一不可：
+1. **在 `gmii_rx_mac` 里自己算 FCS**：帧字节流已经在手上，复用 `crc32_d8`（和发送侧同一个模块、
+   台架里刚用 `crc32("123456789")=0xCBF43926` 自校过），残值等于 `0x2144DF1C` 才算好帧 ——
+   这正是 `sim/tb_ku5p_telem.v` 今晚已经在做的判定，搬到 RTL 约 40~60 行 + 一个台架；
+2. 再把顶层换成 `gmii_rx_mac + udp_rx_parser`，`p_good` 从此有真值，端口过滤一起到位。
+**注意别过度声明**：只做第 2 步不做第 1 步，`m_good` 仍是"长度合理 + 没有那个不存在的 ER"，
+它抓不到任何**位错** —— 那种"接上了但仍在误报平安"的收包链不如不接。
 
 **今晚先做的三件事（口径层面，不动硬件）**：
 1. `ku5p_telem.v` 文件头把"这个字段是构造性为 0"写清楚，并指出该看哪三个字段；

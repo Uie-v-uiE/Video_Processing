@@ -2,6 +2,9 @@
 # WNS +1.916 / WHS +0.010 / 0 失败端点(11668) / BRAM 72(15.00%) / LUT 3021 / 0 布线错误 / methodology 0 CRIT WARN
 # bit 与 xsa 不入库（.gitignore 口径同主线），这一行的 md5 就是磁盘上那块 bit 的身份
 cd7c705b1e28ef34eea11c7992f2e7b2 *../ku5p_eth.bit（磁盘上，不入库）
+# 2026-09-23 07:1x 更新：已把这块 bit **实体拷贝**进本目录（ku5p_eth.bit，md5 同上），
+#   原因见主线 `report/BUILD.md` §7 与 `report/OVERNIGHT_LOG.md` §15 R24-D：
+#   只记校验和、工件留在活路径上，一旦下一次构建覆盖就再也取不回来（build#18 就是这么丢的）。
 78549c8cc5ae92022322d22b2e56ecf5 *ku5p_cdc.rpt
 27ddf9f117f546bb954d35e3c7d5f663 *ku5p_hold.rpt
 82bd85a4b8c576a6218d60a320eed4fc *ku5p_methodology.rpt

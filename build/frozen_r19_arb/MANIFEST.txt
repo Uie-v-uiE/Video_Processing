@@ -1,0 +1,22 @@
+# build#19 (R24: build#18 + 厂商 eth_ctrl 发送仲裁修复 = ISSUES #37) —— 明早默认这一块
+# 门禁：WNS +0.598 / WHS +0.043 / WPWS +0.264 / 0 失败端点(23424) / Slice LUT 7185(13.50%) /
+#       Reg 5802(5.45%) / BRAM 90.5 tile(64.64%) / Dynamic 2.184 W / 12503 根可布线网全布通、0 路由错误 /
+#       methodology 0 CRITICAL
+# 与 #18 的差异（逐条对齐过）：LUT as Logic 5841→5842（+1 个 LUT = `arp_pend` 那一笔）、
+#       Slice Reg 5800→5802、LUT as Memory 1343 不变、BRAM 89×RAMB36+3×RAMB18 不变、
+#       功耗 Dynamic 2.184 W **完全相同**、ps_app.elf md5 3837c7fc **固件本轮未动**。
+# WNS 从 +1.002 掉到 +0.598 —— **不是这次改动造成的**：两次的最差路径是同一条结构路径
+#       `u_pl/x_d_reg[11][x] → u_pl/u_osd/b_reg[y]`（clkout0_1 50 MHz，27 级逻辑、route 占 66%），
+#       而 eth_ctrl 在 125 MHz GMII 域、只多了一级寄存 ⇒ 这 0.4 ns 是布局布线的轮次差异。
+#       ⇒ 顺带把"下一个该优化的对象"钉住了：**OSD 字符行→b_reg 这条链是全设计的 WNS 瓶颈**，
+#         与以太网无关（要做"时序深度优化"就从它下手）。
+# cdc.rpt 与 #18 的差别：行数、分类、时钟对**都没变**，只有 sys_clk↔eth_rxc 那一行的端点数
+#       1859→1861（+2）—— 与"多一级寄存"一致；`report_cdc` 不点名信号，所以它不能当"修好了"的凭据，
+#       #37 的凭据仍然是台架四变体表（ISSUES.md #37 / skill/arbiter_pending_pulse.md）。
+# 判据：L1 全量 40/40（sim/results/regression_v79_r25.txt；r24 那次 39/1 暴露了脉宽晚一拍）
+#
+# ⚠ 一条流程教训（本次才发现，已改进做法）：**这一套是把 bit/xsa/elf 实体拷进冻结目录的**，
+#   而 build#18 的 MANIFEST 写的是 `../system.bit`（引用活路径）⇒ #19 构建原地覆盖
+#   `build/system.bit` 之后，**#18 那块 bit 已经不存在了**（报告还在，bit 没了）。
+#   规矩改成：冻结 = 拷贝工件 + 校验和；MANIFEST 里只准出现"本目录内的文件名"。
+#   回退链因此是：#19（本目录，545a27a1）→ #17（frozen_r17_cdc，11998af8）→ #13（frozen_r13，0f46ec91）。

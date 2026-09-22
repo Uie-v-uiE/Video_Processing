@@ -14,3 +14,11 @@ e5565e0fca02a0d6ca5a2b13942fa86d *route_status.rpt
 ff36a857e4f883380a8d136f8ea59dd0 *util_hier.rpt
 84f42de55e1833b011326786c523f90a *utilization.rpt
 3837c7fc34a77a58815a8afd15fab5e4 *ps_app.elf
+
+⚠ 2026-09-23 07:0x 之后的状态：**本目录里没有 .bit**（当时 MANIFEST 引用的是 `../system.bit`，
+   也就是活路径 `build/system.bit`）。build#19（R24，仲裁修复）构建完把那个文件原地覆盖了，
+   ⇒ 这一块 bit 的工件**已经取不回来**（报告、xsa 校验和都还在，bit 不在）。
+   要下板子请下 `build/frozen_r19_arb/system.bit`（md5 `545a27a1`，门禁全绿、功能等价 + #37 修复），
+   或回退到 `frozen_r17_cdc/system.bit`（`11998af8`）/ `frozen_r13/system.bit`（`0f46ec91`）。
+   教训已写进 `report/BUILD.md` 与 `frozen_r19_arb/MANIFEST.txt`：**冻结=拷贝工件**，
+   MANIFEST 里出现 `../` 就等于没冻结。

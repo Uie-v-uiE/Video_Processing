@@ -106,3 +106,28 @@ report_power -file build/power.rpt
 ```
 
 约束与脚本说明见仓库根 `README.md` 与 `docs/`（本地）。
+
+## 7. 冻结与回退（每一次改 RTL 之后都要做）
+
+构建脚本会**原地覆盖** `build/system.bit` / `system.xsa` / 那六份报告 —— 文件名不变、内容变。
+所以"某一版构建的证据"必须成套存档：
+
+```bash
+D=build/frozen_rNN_<短名>; mkdir -p $D
+cp build/system.bit build/system.xsa build/ps_app.elf \
+   build/{cdc,clock_util,methodology,power,route_status,timing_summary,util_hier,utilization}.rpt $D/
+(cd $D && md5sum system.bit system.xsa ps_app.elf *.rpt > MANIFEST_BODY.txt)
+# 再手写 MANIFEST.txt：门禁数字 + 这一版相对上一版改了什么 + 什么证据支持这个结论
+```
+
+**三条规矩（2026-09-23 凌晨用一次真实的丢失换来的）**：
+1. **冻结 = 拷贝工件**。MANIFEST 里出现 `../system.bit` 这种"引用活路径"的写法 = 没冻结。
+   反面教材：`frozen_r18_abort/` 只留了报告和 `../system.bit` 的校验和，
+   build#19 一跑，那一块 bit 就再也取不回来了（`frozen_r18_abort/MANIFEST.txt` 末尾有说明）。
+2. **下板之前先 `md5sum build/system.bit` 和 MANIFEST 对前缀**；对不上就去 `build/frozen_*/` 取，
+   别硬下——同名不同内容今晚发生过两次。
+3. 门禁**任何一条红**都不采纳：保留上一版当明早默认，把这一版挪去 `build/failed_rNN/`
+   （里面留着 `system_r24_WNS-0.327.bit` 这种带 WNS 命名的失败件，是用来对照的，不是用来下的）。
+
+当前回退链（2026-09-23 07:0x）：`frozen_r19_arb`（`545a27a1`，明早默认）
+→ `frozen_r17_cdc`（`11998af8`）→ `frozen_r13`（`0f46ec91`，最后一次上过板验证的功能集）。
