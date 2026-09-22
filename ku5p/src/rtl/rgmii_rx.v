@@ -1,5 +1,5 @@
 // [KU5P 移植说明] 本文件逐字取自板卡厂商 RIGUKE 的 KU5P 例程
-//   D:\Xilinx\Resource\KU5P\KU5P_DEMO\KU5P_DEMO_UDP_STACK\Source\gmii_to_rgmii\rgmii_rx.v
+//   D:\Xilinx\Resource\KU5P\KU5P_DEMO\KU5P_DEMO\07_UDP_STACK\Source\gmii_to_rgmii\rgmii_rx.v
 // 它给出 UltraScale+ 上 RGMII IO 的正确原语组合（BUFG+BUFIO+IDDRE1 / ODDRE1，无 IDELAY）。
 // 本工程自研的 Zynq 版同一层用 IDELAYE2+IDDR，二者差别见 ku5p/README.md。
 // 除本段注释外未做任何修改；再分发请保留厂商原始文件头。
