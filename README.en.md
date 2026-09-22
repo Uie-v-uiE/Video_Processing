@@ -106,7 +106,8 @@ Full record, criteria and rejected options: [`report/CHANGELOG_V7.md`](report/CH
 - PL hardware network stack: RGMII → ARP/ICMP/UDP → frame buffer
 - UDP offset protocol: out-of-order packets reassemble; bad frames are dropped
 - Effect chain: gray / binary / box blur / Sobel / invert (UART controlled, valid at any rotation angle)
-- Arbitrary-angle rotation (Q8 sin/cos inverse mapping, 0–359°)
+- Arbitrary-angle rotation (Q8 sin/cos inverse mapping, 0–359°) — **right window only**; the left window always shows the unrotated picture
+- Local playback from the PS SD socket: raw 512×300 RGB565 frames read by a bare-metal read-only FAT32 (no FatFs, no vendor IP)
 - Continuous right-window zoom (Q8 `inv_scale`, 256 = 1.0× ↔ 512 = 0.5×, composable with rotation)
 - Hand-written OSD overlay: FPS / angle / effect bits, 3× bitmap glyphs
 - Self-built FIFOs: `sync_fifo` (single clock) + `dc_fifo` (Gray-code CDC), no vendor IP
@@ -167,6 +168,7 @@ serial console (re-run the ELF after programming the bitstream). Details in
 | `01000` | binary |
 | `00111` | blur + Sobel + invert |
 | `SRC0` / `SRC1` | colour bars / video source |
+| `SD` / `PLAY` / `STOP` / `FRAME<n>` | mount & print the SD frame library / loop-play / stop / show one frame |
 | `TH80` | binary threshold |
 | `ZOOM0` / `ZOOM1` | right-window zoom off / on (on by default) |
 | `FILL` / `STAT` | diagnostics / status |

@@ -19,7 +19,7 @@
 
 ### 项目简介
 
-本工程在 Zynq-7020 上实现一条完整的以太网视频处理流水线：上位机以 UDP 推送 512×300 RGB565 画面，PL 侧自研 RGMII/ARP/ICMP/UDP 协议栈与 offset 拼帧，经跨钟 FIFO 与 AXI 打包写入 **DDR 乒乓 bank**，再由提交锁在显示**消隐窗口**内把整帧原子拷进显示 BRAM；HDMI 1024×600 双窗输出——左窗原图，右窗经灰度/二值/模糊/Sobel/反色效果链并做连续缩放，按键支持 0–359° 任意角旋转。
+本工程在 Zynq-7020 上实现一条完整的以太网视频处理流水线：上位机以 UDP 推送 512×300 RGB565 画面，PL 侧自研 RGMII/ARP/ICMP/UDP 协议栈与 offset 拼帧，经跨钟 FIFO 与 AXI 打包写入 **DDR 乒乓 bank**，再由提交锁在显示**消隐窗口**内把整帧原子拷进显示 BRAM；HDMI 1024×600 双窗输出——左窗原图，右窗经灰度/二值/模糊/Sobel/反色效果链、做连续缩放并可叠加 0–359° 任意角旋转（旋转只作用于右窗，左窗始终是未旋转原画面）。
 
 网络跨钟数据经手写 Gray 码 `dc_fifo`，同钟缓存用自建 `sync_fifo`（均非厂商 IP）；画面左上角由自写 `osd_overlay` 叠加 FPS、旋转角与效果使能状态；PS 只经串口 + AXI GPIO 做控制，延迟确定、便于二次开发。
 
@@ -89,7 +89,7 @@ Slice 99.92%、BRAM 98.93%——三处都贴着上限，任何新功能都塞不
 - PL 硬件网络栈：RGMII → ARP/ICMP/UDP → 帧缓
 - UDP offset 协议：乱序可拼帧，坏帧丢弃
 - 效果链：灰度 / 二值化 / 模糊 / Sobel / 反色（串口控制，任意旋转角下均可用）
-- 任意角旋转（Q8 sin/cos 逆映射，0–359°）
+- 任意角旋转（Q8 sin/cos 逆映射，0–359°）——**只作用于右窗**，左窗保持未旋转原画面
 - 右屏连续缩放（Q8 `inv_scale`，256=1.0× ↔ 512=0.5×，可与旋转叠加）
 - **自写 OSD 叠加**：左上角实时显示 FPS / 旋转角 ANG / 效果位 EN（3 倍点阵字模）
 - **自建 FIFO**：同钟 `sync_fifo` + 跨钟 Gray 码 `dc_fifo`（非 IP 核，RTL 手写）
@@ -160,7 +160,7 @@ set XSDBAT=D:\Software\Vivado\2025.2.1\Vitis\bin\xsdb.bat
 :: 先起 PS（DDR + FCLK_CLK0=100 MHz），再配 PL，最后写 AXI GPIO
 %XSDBAT% build\tcl\ps_jtag_boot.tcl   :: 需要 ps7_init.tcl（构建会生成，也可从 system.xsa 解出）
 %VIVADO% -mode batch -nojournal -source build\tcl\program_pl.tcl
-%XSDBAT% build\tcl\set_src.tcl         :: 0x41200000 = 0x00010000（SRC1=视频、特效关闭）
+%XSDBAT% build\tcl\set_src.tcl         :: 0x41200000 = 0x00030000（SRC1=视频、zoom 开、特效关闭）
 ```
 
 ### 3. （可选）下载 PS ELF —— 串口命令需要
@@ -206,7 +206,8 @@ PC 网卡 `192.168.1.100/24`，网线接 **板卡 PL 网口**。默认 15 MB/s �
 | `00111` | 模糊 + Sobel + 反色 |
 | `SRC0` / `SRC1` | 彩条 / 视频源 |
 | `TH80` | 二值化阈值 |
-| `ZOOM0` / `ZOOM1` | 右屏缩放 关/开（默认常开） |
+| `ZOOM0` / `ZOOM1` | 右屏缩放 关/开（V7.7 起真正生效；`set_src.tcl` 写 1 保持旧观感） |
+| `SD` / `PLAY` / `STOP` / `FRAME<n>` | 挂载并打印 SD 卡帧库 / 循环回放 / 停止 / 跳到第 n 帧 |
 | `FILL` / `STAT` | 诊断 / 状态 |
 
 效果位顺序：**gray / binary / blur / sobel / invert**（bit0 在左）。ETH 收到完整帧后自动切到视频源。
