@@ -1,5 +1,26 @@
 # Zynq7020 以太网视频处理流水线
 
+
+> ## 本分支 = 第二版（以太网搬进 PL）
+>
+> 相对第一版的三件事：
+> 1. **网络栈进 PL**：RGMII（IDELAYE2）→ ARP / ICMP / UDP → CRC → offset 拼帧，全部手写 RTL；
+>    PS 退化为纯控制面（`src/ps/main.c`：UDP 视频路径完全在 PL）。
+> 2. **修掉「旋转 × 窗口滤波」不兼容**：滤波窗口改建在**目标域**（右窗光栅顺序）上，
+>    `rotate_active` 降级为状态指示，不再强制旁路 —— 见 `report/ROTATION_AND_EFFECTS.md`
+>    与 `report/PS_VS_PL.md` 的两种方案对比（多路 BRAM 口方案因 7020 资源不足被放弃）。
+> 3. **自建 FIFO**：`src/rtl/eth/sync_fifo.v`（同钟）+ `dc_fifo.v`（跨钟 Gray 码双级同步），不用厂商 FIFO IP。
+>
+> **本版本遗留问题（原话见 `report/ISSUES.md` #13）**：拖影。当时结论是
+> 「UDP 边收边写显示 BRAM，旧像素未被覆盖；BRAM 双缓冲在 7020 上爆资源实现失败；
+> 恢复 ETH 直写 BRAM，**拖影可接受**」。**这个结论后来被证明是错的**——
+> 真正的原因是入包写通道逐字等 AXI 写响应 B，在途深度恒为 1，吞吐被 HP0 往返延迟钉死，
+> 导致每个包从固定字节偏移起按 16bit 粒度丢弃（板级量化：最新帧只占 42~52%）。
+> 修复在第四版 V6.3/V6.4（`main` 分支，见 `report/CHANGELOG_V6.md`）；
+> 期间的三次失败尝试存档在 `v3-ghosting-attempts` 分支。
+>
+> 本仓库是 `Video_Processing` 的历史分支；同一份代码也曾以 `Video_Pipeline` 为名单独发布。
+
 上位机经 **UDP** 推送 RGB565 视频；**PL 硬件**完成 RGMII 收包、ARP/ICMP/UDP 协议、帧重组、图像处理与 HDMI 双窗输出；**PS 仅做控制面**（串口命令、效果使能）。
 
 | 项 | 值 |
