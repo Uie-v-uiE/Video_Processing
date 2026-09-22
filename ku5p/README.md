@@ -10,13 +10,14 @@ GMII MAC / ARP / ICMP / UDP / offset 拼帧 / 帧计数与健康计数，
 **只替换 RGMII 物理层那三个文件**就能在 UltraScale+ 上综合通过并生成实现结果。
 做法是把同一批 `.v` 直接 `add_files`（不复制、不改写），所以"可移植"不是文字承诺。
 
-**已跑出来的构建结果**（`ku5p/build/ku5p_*.rpt`，2026-09-23 00:27）：
+**已跑出来的构建结果**（`ku5p/build/ku5p_*.rpt`；下表是 2026-09-23 00:57 那一次，
+即把打包逻辑抽成 `fb_pack` 并由 `sim/tb_fb_pack.v` 的 12 条判据验过之后的版本）：
 
 | 项 | 值 | 说明 |
 |----|----|------|
-| WNS / WHS | **+1.840 / +0.012 ns** | 时钟只有一根：`create_clock -period 8.000`（125 MHz，PHY 恢复时钟） |
-| 失败端点 / 总端点 | 0 / 9343 | `All user specified timing constraints are met` |
-| CLB LUT / FF | 2268（1.05%）/ 2002（0.46%） | 只装了入口那一半，没有显示通路 |
+| WNS / WHS | **+2.081 / +0.013 ns** | 时钟只有一根：`create_clock -period 8.000`（125 MHz，PHY 恢复时钟） |
+| 失败端点 / 总端点 | 0 / 9600 | `All user specified timing constraints are met` |
+| CLB LUT / FF | 2415（1.11%）/ 2087（0.48%） | 只装了入口那一半，没有显示通路 |
 | Block RAM | **72 tile（15.0% of 480）** | 见 §5：这个数字既是证据也是待查项 |
 | DSP | **0** | 本设计不含乘加；也说明入口侧零 DSP 依赖 |
 | 布线 | 5954 / 5954 全布通，0 错误 | `write_bitstream` 出 15.4 MB 的 `ku5p_eth.bit` |
@@ -34,6 +35,7 @@ GMII MAC / ARP / ICMP / UDP / offset 拼帧 / 帧计数与健康计数，
 ku5p/
 ├── src/rtl/
 │   ├── ku5p_eth_top.v      ← 本工程的顶层（自研）
+│   （打包器在共用目录：../src/rtl/video/fb_pack.v，判据 ../sim/tb_fb_pack.v 12 条）
 │   ├── gmii_to_rgmii.v ┐
 │   ├── rgmii_rx.v      ├ 厂商 KU5P 例程原文，文件头标注了出处，未改一行（见 §6 授权）
 │   └── rgmii_tx.v      ┘
@@ -141,3 +143,17 @@ vivado -mode batch -nojournal -log ku5p/build/ku5p_impl.log \
 2. DDR4（MIG，厂商 IP）或 UltraRAM 版帧缓存，比较 tile 数与功耗。
 3. 显示半边：FH1159 FMC 子卡（要 GTY + 时钟芯片），或者把 KU5P 收到的流经第二块以太网口
    转给 Zynq 显示 —— 后者不需要任何新硬件。
+
+## 10. 时序侧的下一个具体目标：那条 +13 ps 的保持余量
+
+WHS 两次构建都是 **+0.012 / +0.013 ns**，而且 `ku5p/build/ku5p_hold.rpt` 指出最坏路径是
+`u_icmp/u_crc32_d8/crc_data_reg[11] → crc_data_reg[19]` —— **CRC 的 XOR 树自己贴着自己**。
+它现在是"满足"，但 13 ps 在电压/温度漂移面前不算余量，换 `-1` 速度等级或加逻辑就可能翻。
+可选的收敛办法（按代价从小到大，都要实测再说效果）：
+1. 让 `crc32_d8` 的输出多打一拍（CRC 是逐字节累加，加一级寄存器等价于整条链慢一拍，
+   只要发送侧等得到就行 —— 需要连 `icmp_tx`/`udp_tx` 的时序一起看）；
+2. `phys_opt_design` 换 directive / 对 CRC 单元格加 `MAX_FANOUT`/`PULDOWN` 类提示；
+3. 把 CRC 拆成两级流水（改动最大，但最彻底）。
+
+**这条是明天之后第一件事的候选，不是今晚的**：现在设计是干净的（0 违例），
+动它要重跑一次实现（~15 min）才能报数，不适合放在板上演示前的最后时刻。

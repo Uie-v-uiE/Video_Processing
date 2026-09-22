@@ -8,6 +8,7 @@
  *                             [--pace-mpbps 15] [--no-pace] [--count N]
  *                             [--test bars|grad|edge]
  *
+ *                             [--drop-every N]  每 N 个包确定性丢一个
  * --test 图案：
  *   bars   8px 横向条纹整体滚动（黑横纹一眼可见）+ 每帧右移的黄色方块（拖影判据）
  *          + 左边缘 8 列奇偶行洋红/黑标记（行序错乱判据）
@@ -151,6 +152,7 @@ function build(n) {
   return buf;
 }
 
+const DROP_EVERY = Number(arg('drop-every', 0));   // 0 = 不丢包
 const sock = dgram.createSocket('udp4');
 if (SRC) {
   try { sock.bind({ address: SRC, port: 0 }); }
@@ -174,6 +176,11 @@ function paceSpend(bytes) {
   paceNext = target;
 }
 
+// 确定性丢包：每 DROP_EVERY 个包跳过其中一个。故意不用随机 ——
+// 演示与对账都要“同样命令 → 同样丢包位置”，硬件的 frames_bad / rows_missed
+// 才对得上；随机丢的话每次读数都不一样，等于没有判据。
+let sentPkts = 0, droppedPkts = 0;
+
 function sendFrame(payload) {
   let pkts = 0;
   for (let off = 0; off < payload.length; off += MTU) {
@@ -181,6 +188,11 @@ function sendFrame(payload) {
     const p = Buffer.allocUnsafe(chunk.length + HDR);
     p.writeUInt32LE(off, 0);
     chunk.copy(p, HDR);
+    sentPkts++;
+    if (DROP_EVERY > 0 && (sentPkts % DROP_EVERY) === 0) {
+      droppedPkts++;                  // 制造一个 1392B 的洞（= 一行的一部分）
+      continue;
+    }
     sock.send(p, 0, p.length, PORT, IP);
     paceSpend(p.length);
     pkts++;

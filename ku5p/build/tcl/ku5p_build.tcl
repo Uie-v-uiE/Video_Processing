@@ -23,6 +23,7 @@ foreach f $eth_keep {
   if {[file exists $p]} { add_files -norecurse $p } else { puts "WARN missing $p" }
 }
 add_files -norecurse [file join $root src rtl video frame_buffer_w64.v]
+add_files -norecurse [file join $root src rtl video fb_pack.v]
 foreach f [glob -nocomplain [file join $root ku5p src rtl *.v]] { add_files -norecurse $f }
 add_files -fileset constrs_1 -norecurse [file join $root ku5p src constraints ku5p_rk_xcku5p_f.xdc]
 set_property top ku5p_eth_top [current_fileset]

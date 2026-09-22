@@ -174,57 +174,28 @@ module ku5p_eth_top #(
     );
 
     // ---- 16→64 打包后写 BRAM：没有像素域消费者，所以这一级不再需要 dc_fifo ----
-    reg [18:0] rd_ptr;        // 必须在实例化之前声明：Verilog 不允许先用后声明
+    //    打包本身单独成模块（src/rtl/video/fb_pack.v），因为它的错法很隐蔽：
+    //    末尾 1~3 个像素不落盘 = 每行尾部黑一块；判据见 sim/tb_fb_pack.v。
+    wire        pkr_we;
+    wire [18:0] pkr_waddr;
+    wire [63:0] pkr_wdata;
+    fb_pack u_pack (
+        .clk(g_clk), .rst_n(rst_n),
+        .px_en(fb_wr_en), .px_addr(fb_wr_addr), .px_data(fb_wr_data),
+        .flush(reasm_flush),
+        .wr_en(pkr_we), .wr_addr(pkr_waddr), .wr_data(pkr_wdata)
+    );
+
+    // 读回侧的状态（声明必须在使用之前 —— 这次重构就差点把它们弄丢了）
+    reg [18:0] rd_ptr;
     reg [31:0] rd_sum;
     reg [15:0] rd_xor, xor_at_frame;
     reg        data_alive;
-    reg [63:0] pack_q;
-    reg        pack_part;     // 当前 64bit 字里还有没落盘的 16bit（帧/包尾会剩 1~3 个）
-    reg        pack_we;
-    reg [18:0] pack_waddr;
-
-    always @(posedge g_clk or negedge rst_n) begin
-        if (!rst_n) begin
-            pack_q <= 64'd0; pack_part <= 1'b0; pack_we <= 1'b0; pack_waddr <= 19'd0;
-        end else begin
-            pack_we <= 1'b0;
-            if (fb_wr_en) begin
-                case (fb_wr_addr[1:0])
-                    2'd0: pack_q[15:0]  <= fb_wr_data;
-                    2'd1: pack_q[31:16] <= fb_wr_data;
-                    2'd2: pack_q[47:32] <= fb_wr_data;
-                    default: begin
-                        pack_q[63:48] <= fb_wr_data;
-                        pack_we       <= 1'b1;
-                        pack_waddr    <= fb_wr_addr[18:2];
-                    end
-                endcase
-                pack_part <= (fb_wr_addr[1:0] != 2'd3);
-            end
-        end
-    end
-
-    // 帧末把没凑满 4 个的那一格也落进去：否则每行尾部最多丢 3 个像素
-    reg        flush_we;
-    reg [18:0] flush_waddr;
-    always @(posedge g_clk or negedge rst_n) begin
-        if (!rst_n) begin
-            flush_we <= 1'b0; flush_waddr <= 19'd0;
-        end else begin
-            flush_we <= 1'b0;
-            if (reasm_flush && pack_part) begin
-                flush_we    <= 1'b1;
-                flush_waddr <= pack_waddr;
-            end
-        end
-    end
 
     wire [15:0] fb_rd_data;
     frame_buffer_w64 #(.W(IMG_W), .H(IMG_H)) u_fb (
         .wr_clk(g_clk),
-        .wr_en(pack_we | flush_we),
-        .wr_addr(flush_we ? flush_waddr : pack_waddr),
-        .wr_data(pack_q),
+        .wr_en(pkr_we), .wr_addr(pkr_waddr), .wr_data(pkr_wdata),
         .rd_clk(g_clk), .rd_addr(rd_ptr[18:0]), .rd_data(fb_rd_data)
     );
 
