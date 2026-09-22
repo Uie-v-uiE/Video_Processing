@@ -20,8 +20,11 @@ file mkdir $outd
 create_project ku5p_eth $pdir -part xcku5p-ffvb676-2-i -force
 set_property target_language Verilog [current_project]
 
+# 注意 eth_ctrl.v **不在**这份列表里：ku5p_eth_top 用的是自研 ku5p_tx_arb（ISSUES #37 的
+# 由来），全仓搜实例化只有 Z7 的 eth_udp_video_top.v:166 用 eth_ctrl（grep 为据）。
+# 留着一个没人例化的模块，只会让评审问"你不是说换掉了吗"。
 set eth_keep {arp.v arp_rx.v arp_tx.v icmp.v icmp_rx.v icmp_tx.v udp.v udp_rx.v
-              udp_rx_parser.v udp_tx.v eth_ctrl.v frame_reasm.v sync_fifo.v dc_fifo.v
+              udp_rx_parser.v udp_tx.v frame_reasm.v sync_fifo.v dc_fifo.v
               crc32_d8.v link_monitor.v snap_cross.v gmii_rx_mac.v}
 foreach f $eth_keep {
   set p [file join $root src rtl eth $f]

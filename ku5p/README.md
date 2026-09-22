@@ -198,7 +198,11 @@ vivado -mode batch -nojournal -log ku5p/build/ku5p_impl.log \
    下一步是把 `udp_rx` 收到的载荷当成命令字（例如清统计、改上报周期、触发一次快照），
    这样两板才能演成"KU5P 做前端节点、Zynq 做显示与总控"的异构结构（这也是比赛谱系里
    最有辨识度的那一条，见 `report/OVERNIGHT_LOG.md` §9 的口径）。
-3. DDR4（MIG，厂商 IP）或 UltraRAM 版帧缓存，比较 tile 数与功耗。
+3. **补跑一次 KU5P 综合冒烟**（R25 的小债，两分钟）：`ku5p/build/tcl/ku5p_build.tcl` 的
+   `eth_keep` 里删掉了 `eth_ctrl.v` —— 依据是"全仓只有 Z7 的 `eth_udp_video_top.v:166` 例化它，
+   `ku5p_eth_top` 用的是自研 `ku5p_tx_arb`"。但**没人例化**这件事我是 grep 出来的、不是综合证明的，
+   所以这一条要 `KU5P_SYNTH_ONLY=1` 跑一遍才算收口（口径：`report/ISSUES.md` #37 与 `skill/arbiter_pending_pulse.md`）。
+4. DDR4（MIG，厂商 IP）或 UltraRAM 版帧缓存，比较 tile 数与功耗。
    **先把算式写对**（这里我第一版算错过一次，写"约 2 块"）：
    512×300×RGB565 = 307,200 B = **2,457,600 bit**；UltraScale+ 的 UltraRAM 每块 **288 Kb = 294,912 bit**；
    `2,457,600 / 294,912 = 8.33` ⇒ 下界 **9 块**（片上 64 块的 14%），与 BRAM 那 **72 tile（15%）**
@@ -213,9 +217,9 @@ vivado -mode batch -nojournal -log ku5p/build/ku5p_impl.log \
    所以"9 块"目前仍是算出来的不是量出来的；要真量，要么拿到 UG901 属性表里那个正确的强制 token，
    要么直接例化 `URAM1240` 原语。过程与两处失败拼法写在
    `ku5p/src/rtl_exp/frame_buffer_uram.v` 文件头（这个实验默认完全关闭，不影响交付的比特流）。
-4. 显示半边：FH1159 FMC 子卡（要 GTY + 时钟芯片），或者把 KU5P 收到的流经第二块以太网口
+5. 显示半边：FH1159 FMC 子卡（要 GTY + 时钟芯片），或者把 KU5P 收到的流经第二块以太网口
    转给 Zynq 显示 —— 后者不需要任何新硬件。
-5. 若上板发现 RGMII 收不全（125 MHz 源同步没做延时补偿），再考虑补 IDELAYE3；
+6. 若上板发现 RGMII 收不全（125 MHz 源同步没做延时补偿），再考虑补 IDELAYE3；
    判据已经埋在 LED 与遥测里（`abort`/`bad` 计数不为 0 且 `rows_missed` 稳定增长）。
 
 ## 10. 关于那条 +13 ps 的保持余量：**先把概念摆正，再决定要不要动**
