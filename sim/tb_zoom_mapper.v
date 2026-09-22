@@ -34,67 +34,6 @@ module tb_zoom_mapper;
     integer errors = 0;
     integer i;
 
-    // 判据自己的 ROM 读数（只借"表里的常数"，不借被测的算术通路）
-    wire signed [9:0] tb_sin, tb_cos;
-    sin_rom u_tb_sin (.angle(angle), .value(tb_sin));
-    cos_rom u_tb_cos (.angle(angle), .value(tb_cos));
-
-    integer n_frac_nz = 0;     // 出现过小数非零的样本数（不然 y 取补那条分支根本没被走到）
-    integer n_wrong_caught = 0; // 「不修正的旧写法」会被本判据抓住的样本数（反向对照）
-
-    real sxr, syr, ex1, ey1, yr_true, yrm;
-    integer fl;
-
-    task expect_frac;
-        input        rot;
-        input [9:0]  inv;
-        input [255:0] tag;
-        real xp, ypd, ypm, u, c, sn;
-        begin
-            u   = inv / 256.0;
-            c   = tb_cos / 256.0;
-            sn  = tb_sin / 256.0;
-            // 先搬进 real 再做减法：`x_in - 256` 在整数域里是**无符号**运算，
-            // 会得到 2^32-56 这种数（现象：判据里 true 比 recon 正好大 2^32 的整数倍，
-            // 小数位却完全吻合 ⇒ 一看就知道是 TB 自己的位宽/符号错，不是 RTL 错）。
-            xp  = x_in;   ypd = y_in;
-            xp  = xp - 256.0;
-            ypd = ypd - 150.0;
-            ypm = -ypd;
-            if (rot) begin
-                sxr = (xp*c + ypm*sn)*u + 256.0;
-                yr_true = (-xp*sn + ypm*c)*u;
-                syr = 150.0 - yr_true;
-            end else begin
-                sxr = xp*u + 256.0;
-                syr = ypd*u + 150.0;
-            end
-            if (oobo) begin
-                // 越界样本被填黑，小数没有意义：跳过，但整数还原本身仍要自洽
-                ex1 = 0.0; ey1 = 0.0;
-            end else begin
-                ex1 = (xo + fx/256.0) - sxr;
-                ey1 = (yo + fy/256.0) - syr;
-                if (ex1 < 0) ex1 = -ex1;
-                if (ey1 < 0) ey1 = -ey1;
-                if (ex1 > 0.004 || ey1 > 0.004) begin
-                    $display("FAIL frac %0s recon=(%f,%f) true=(%f,%f) got xy=(%0d,%0d) f=(%0d,%0d)",
-                             tag, xo + fx/256.0, yo + fy/256.0, sxr, syr, xo, yo, fx, fy);
-                    errors = errors + 1;
-                end
-                if (fx != 0 || fy != 0) n_frac_nz = n_frac_nz + 1;
-                if (rot) begin
-                    // 旧写法（y 不修正）会把整数停在 floor(150-yr) 的另一种取法上：
-                    // 150 - floor(yr) 与真正的 floor(150 - yr) 在小数非零时差 1 整像素。
-                    fl = yr_true;                       // 向零截断
-                    if (yr_true < 0 && fl != yr_true) fl = fl - 1;   // 变成向下取整
-                    yrm = 150.0 - fl;
-                    if ((yrm - syr) > 0.2 || (syr - yrm) > 0.2) n_wrong_caught = n_wrong_caught + 1;
-                end
-            end
-        end
-    endtask
-
     task stepN;
         input integer n;
         integer j;
@@ -141,31 +80,6 @@ module tb_zoom_mapper;
         // rotate 0 + inv 256 identity
         inv_force = 10'd256; rot_en = 1; angle = 0;
         x_in = 200; y_in = 100; stepN(4); expect_xy(12'd200, 12'd100, 1'b0, "rot0 id");
-        expect_frac(1'b1, 10'd256, "rot0 (200,100)");
-
-        // ---- 小数位还原判据（V7.8 双线性）----
-        // 非 2 的幂的 inv ⇒ 小数必然非零；把 (x_out + frac/256) 拼回来和实数模型比。
-        inv_force = 10'd300; rot_en = 0;
-        x_in = 100; y_in = 60;  stepN(4); expect_frac(1'b0, 10'd300, "inv300 (100,60)");
-        x_in = 300; y_in = 210; stepN(4); expect_frac(1'b0, 10'd300, "inv300 (300,210)");
-        x_in = 71;  y_in = 233; stepN(4); expect_frac(1'b0, 10'd300, "inv300 (71,233)");
-        inv_force = 10'd411;
-        x_in = 200; y_in = 140; stepN(4); expect_frac(1'b0, 10'd411, "inv411 (200,140)");
-        x_in = 405; y_in = 190; stepN(4); expect_frac(1'b0, 10'd411, "inv411 (405,190)");
-
-        // 旋转分支：45°/30°/60° 的小数。y 方向是减法，「整数退一格 + 小数取补」没做对的话
-        // 这里差的是一整像素（>>0.004），不是差一点。
-        // 取点都离中心近，避免整张图旋转后被 OOB 判据跳过（那就变成"没判"的假绿）。
-        rot_en = 1; inv_force = 10'd256; angle = 45;
-        x_in = 300; y_in = 210; stepN(4); expect_frac(1'b1, 10'd256, "rot45 (300,210)");
-        x_in = 200; y_in = 140; stepN(4); expect_frac(1'b1, 10'd256, "rot45 (200,140)");
-        x_in = 280; y_in = 120; stepN(4); expect_frac(1'b1, 10'd256, "rot45 (280,120)");
-        inv_force = 10'd300; angle = 30;
-        x_in = 200; y_in = 140; stepN(4); expect_frac(1'b1, 10'd300, "rot30 inv300 (200,140)");
-        x_in = 290; y_in = 190; stepN(4); expect_frac(1'b1, 10'd300, "rot30 inv300 (290,190)");
-        inv_force = 10'd411; angle = 60;
-        x_in = 300; y_in = 180; stepN(4); expect_frac(1'b1, 10'd411, "rot60 inv411 (300,180)");
-        x_in = 330; y_in = 90;  stepN(4); expect_frac(1'b1, 10'd411, "rot60 inv411 (330,90)");
 
         // zoom_ctrl: start 256, STEP=8 toward 512
         if (inv_scale !== 10'd256) begin
@@ -193,19 +107,6 @@ module tb_zoom_mapper;
         frame_start = 1; @(posedge clk); frame_start = 0; @(posedge clk);
         if (inv_scale !== 10'd256 || zoom_active !== 1'b0) begin
             $display("FAIL ctrl disable inv=%0d act=%b", inv_scale, zoom_active);
-            errors = errors + 1;
-        end
-
-        // 判据自己也要有牙：小数字段必须真的被走到；并且「不做 y 修正」的旧写法
-        // 会被本判据抓到（否则这条判据只是在重复一遍恒等式）。
-        $display("INFO frac coverage: nonzero_frac=%0d wrong_y_convention_would_be_caught=%0d",
-                 n_frac_nz, n_wrong_caught);
-        if (n_frac_nz < 8) begin
-            $display("FAIL frac never exercised (nz=%0d) — 判据空转", n_frac_nz);
-            errors = errors + 1;
-        end
-        if (n_wrong_caught < 3) begin
-            $display("FAIL teeth: un-fixed y convention slips through (caught=%0d)", n_wrong_caught);
             errors = errors + 1;
         end
 

@@ -159,9 +159,9 @@ set VIVADO=D:\Software\Vivado\2025.2.1\Vivado\bin\vivado.bat
 ```bat
 set XSDBAT=D:\Software\Vivado\2025.2.1\Vitis\bin\xsdb.bat
 :: 先起 PS（DDR + FCLK_CLK0=100 MHz），再配 PL，最后写 AXI GPIO
-%XSDBAT% build\tcl\ps_jtag_boot.tcl   :: 需要 ps7_init.tcl（构建会生成，也可从 system.xsa 解出）
+%XSDBAT% build\tcl\ps_jtag_boot.tcl   :: 自动从 build\system.xsa 里解出 ps7_init.tcl（无需手工准备）
 %VIVADO% -mode batch -nojournal -source build\tcl\program_pl.tcl
-%XSDBAT% build\tcl\set_src.tcl         :: 0x41200000 = 0x00030000（SRC1=视频、zoom 开、特效关闭）
+%XSDBAT% build\tcl\set_src.tcl         :: 0x41200000 = 0x000B0000（SRC1=视频、zoom 开、双线性开、特效关闭）
 ```
 
 ### 3. （可选）下载 PS ELF —— 串口命令需要
@@ -208,6 +208,7 @@ PC 网卡 `192.168.1.100/24`，网线接 **板卡 PL 网口**。默认 15 MB/s �
 | `SRC0` / `SRC1` | 彩条 / 视频源 |
 | `TH80` | 二值化阈值 |
 | `ZOOM0` / `ZOOM1` | 右屏缩放 关/开（V7.7 起真正生效；`set_src.tcl` 写 1 保持旧观感） |
+| `BILIN0` / `BILIN1` | 右窗双线性插值 关/开（AXI GPIO bit19）。关掉即退回最近邻，**同一条数据通路**，用来现场对比效果。**主线目前不含此项**（V7.8 收口在 250 MHz 分时读口上差 0.327 ns），完整实现在 tag `v7.8-bilinear-wip`；下 build#13 的 bit 时这一位没有连接，命令只会打印状态 |
 | `SD` / `PLAY` / `STOP` / `FRAME<n>` | 挂载并打印 SD 卡帧库 / 循环回放 / 停止 / 跳到第 n 帧 |
 | `FILL` / `STAT` | 诊断 / 状态 |
 

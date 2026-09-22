@@ -21,12 +21,12 @@ Xilinx 官方 Ethernet MAC/UDP IP 的用法；非 Zynq/UltraScale 器件。
 |------------|--------|
 | 建工程 + BD + 综合 + 实现 + bit + xsa | `vivado -mode batch -source build/tcl/build_system_axigpio.tcl` |
 | 只要 PL 综合冒烟 | `build/tcl/build_pl_full.tcl` / `build/tcl/create_project.tcl` |
-| 一次性跑完全部台架 | `vivado -mode batch -source sim/run_sim.tcl`（34 个 tb，约 7 min） |
+| 一次性跑完全部台架 | `vivado -mode batch -source sim/run_sim.tcl`（37 个 tb，约 9 min） |
 | 只跑某个台架 | `SIM_TB=tb_ps_publish vivado -mode batch -source sim/run_sim.tcl`（可加 `SIM_VERBOSE=1`） |
 | 下 bit（PL-only 演示） | `build/tcl/program_pl.tcl` |
 | 下整套 system.bit | `build/tcl/program_system.tcl` |
-| 不写 flash 把 PS 拉起来 | `xsdb.bat build/tcl/ps_jtag_boot.tcl <ps7_init.tcl>` |
-| 选显示源（写 GPIO） | `xsdb.bat build/tcl/set_src.tcl`（现为 `0x00030000`） |
+| 不写 flash 把 PS 拉起来 | `xsdb.bat build/tcl/ps_jtag_boot.tcl`（**ps7_init.tcl 会自动从 `build/system.xsa` 里解出来**；也可显式传路径或用 `PS7_INIT` 环境变量） |
+| 选显示源（写 GPIO） | `xsdb.bat build/tcl/set_src.tcl`（现为 `0x000B0000`：src + zoom + bilin） |
 | 上位机推流 | `node src/host/video_sender.mjs --ip 192.168.1.10 --port 5001` |
 | 读硬件链路健康计数 | `node src/host/health_read.mjs`（`--gapclr` 先清帧间隔统计） |
 | 生成 SD 卡帧库 | `node src/host/make_sd_video.mjs <mp4> <outdir>` |
@@ -69,6 +69,14 @@ Xilinx 官方 Ethernet MAC/UDP IP 的用法；非 Zynq/UltraScale 器件。
    任何一处不同步都会表现为"连上了但画面错位/收不到"。
 6. **台架没有输出 `RESULT tb_xxx PASS`**：`sim/run_sim.tcl` 现在把"什么都没断言"判为 **FAIL**
    （以前会计 pass），所以一个绿色的 `SIM DONE pass=N fail=0` 才代表真的验过。
+7. **改了像素时钟或 5 倍时钟的比例**（`src/rtl/clocks/clk_gen.v` 的 `CLKOUT0_DIVIDE_F` /
+   `CLKOUT1_DIVIDE`）：显示读口"每像素周期 5 个快槽、右窗 4 + 左窗 1 恰好占满"是**按 5:1 算的**，
+   比例一变，`tap_sched` 的整张槽位表与 `fb_rd5x` 的 `LAT` 全作废 ⇒
+   必须重跑 `tb_tap_sched`/`tb_fb_rd5x`（后者用唯一平移量搜索**重新量** LAT），
+   不能沿用顶层那几个由它推导的抽位常数。推导过程见 `skill/derived_clock_port_mux.md`。
+8. **`build/system.bit` 没核对 md5 就下板**：同名文件会被每次构建原地覆盖
+   （今晚就发生过"恢复成已验证版、22 分钟后又被失败构建盖掉"）⇒
+   §9.5 明早清单第 1 步现在带 md5 断言，不一致就去 `build/frozen_*/` 取。
 
 ## 五、篇目
 
@@ -83,3 +91,4 @@ Xilinx 官方 Ethernet MAC/UDP IP 的用法；非 Zynq/UltraScale 器件。
 | `board_eth_uart.md` | 点对点直连、静态 IP、COM 口每次重扫 |
 | `axi_stream_verify.md` | 无厂商 IP 时怎么自证 AXI 通路正确 |
 | `llm_fpga_debug_workflow.md` | 与 LLM 协作的边界：判断必须能追溯到文件与数字 |
+| `derived_clock_port_mux.md` | 用同相 N 倍时钟把单口 BRAM 分时成 N 次读：4 ns 预算、成对采集、延迟要量出来钉住 |

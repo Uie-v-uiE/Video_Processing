@@ -171,6 +171,7 @@ serial console (re-run the ELF after programming the bitstream). Details in
 | `SD` / `PLAY` / `STOP` / `FRAME<n>` | mount & print the SD frame library / loop-play / stop / show one frame |
 | `TH80` | binary threshold |
 | `ZOOM0` / `ZOOM1` | right-window zoom off / on (on by default) |
+| `BILIN0` / `BILIN1` | right-window bilinear interpolation off / on (AXI GPIO bit 19). Off falls back to nearest neighbour on the **same datapath**. **Not in the mainline right now** — V7.8 closed all but 0.327 ns on the 250 MHz time-multiplexed read port; the full implementation lives on tag `v7.8-bilinear-wip`. With the build#13 bit the pin is unconnected and the command only echoes state |
 | `FILL` / `STAT` | diagnostics / status |
 
 Effect bit order: **gray / binary / blur / sobel / invert** (bit 0 leftmost). A complete Ethernet
