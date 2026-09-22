@@ -1,7 +1,13 @@
-# 系统架构与数据通路（第三版）
+# 系统架构与数据通路（Zynq-7020 主线）
 
-工程：`Video_Pipeline-main` · Zynq-7020 · PL 以太网视频 + 右屏无极缩放  
-工具：Vivado / Vitis 2025.2.1
+工程：`Video_Processing` · Zynq-7020 · PL 以太网视频 + 右半窗旋转/无极缩放  
+工具：Vivado / Vitis 2025.2.1  
+版本：本文描述的是**当前主线结构**（V7.7 的功能面 + V7.9 的三笔 CDC 收紧）；
+逐轮改动与门禁数字在 `report/CHANGELOG_V7.md`、`report/VERSION_LINEAGE.md`、`report/OVERNIGHT_LOG.md`。  
+**范围声明**：本文只讲 Z7 这块板。第二块板（RK-XCKU5P-F / UltraScale+，同一套自研以太网栈 +
+每秒一包 UDP 遥测 + 自研发送仲裁器）的工程文档是 `ku5p/README.md`，学习文档是
+`study/02_架构/04_跨器件移植_Zynq到UltraScale.md`；两板共用哪些文件、不能共用哪些，
+写在后者的 §1/§7 与 `report/VERSION_LINEAGE.md` §6。
 
 ---
 

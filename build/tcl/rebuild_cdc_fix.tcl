@@ -1,5 +1,5 @@
 # Re-impl with refreshed XDC (disable incremental synth reference)
-set root "D:/Xilinx/Prj/ADD/Video_Pipeline-main"
+set root [file normalize [file join [file dirname [info script]] .. ..]]   ;# 仓库根自适应（原来硬编码 D:/Xilinx/Prj/ADD/... 那个路径已不存在）
 set proj_dir [file join $root vivado_system]
 set proj_name zynq_video_sys
 set outdir [file join $root build]

@@ -58,9 +58,12 @@ description: Layered (L0–L4) RTL debug and single-variable fix protocol for th
    它的「把 `rtl_fix` 覆盖 base 同名模块」规则也随布局消失了
    （`sim/run_sim.tcl` 头部注释：这一版没有 filter，那些文件本身就是修好的）。
 2. 因此本 skill 原文里的这些路径**在本仓库不存在**，不要照抄：`rtl/top/…`、`rtl_fix/`、
-   `build_tcl/`、`docs/LEARNINGS.md`、`sim/run_sim_v5.tcl`、`.qoder/skills/…`、
-   `D:/Xilinx/Prj/ADD/Video_Pipeline-main`。真实路径是 `src/rtl/…`、`build/tcl/…`、`report/…`。
-   同理 `python video_sender.py …` 要换成 `node src/host/video_sender.mjs …`（本机无 python）。
+   `build_tcl/`、`docs/LEARNINGS.md`、`sim/run_sim_v5.tcl`、`.qoder/skills/…`，以及旧的仓库根
+   `D:/Xilinx/Prj/ADD/Video_Pipeline-main`（**真实仓库根是 `D:/Xilinx/Prj/pro/Video_Processing`**；
+   2026-09-23 已把 5 个还硬编码旧根的 tcl 改成 `[file dirname [info script]]` 自适应）。
+   真实路径是 `src/rtl/…`、`build/tcl/…`、`report/…`。
+   命令侧：推流用 `node src/host/video_sender.mjs …`（本机也有 python 3.12，但**交付件不依赖它**，
+   判据工具一律零依赖，见 `src/host/HOST_GUIDE.md`）。
 3. **换工具版本 ⇒ 全部门禁数字作废**：BD、`ps7_init.tcl`、xsa、实现策略都是 2025.2.1 验的；
    已记录的两个版本事实就够说明脆弱度——`report_timing_summary -check_summary_only`
    在 2025.2.1 不是合法选项，`Flow_PerfOptimized_high` 等策略名不被支持（R06）。

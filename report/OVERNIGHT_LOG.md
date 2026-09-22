@@ -1420,10 +1420,12 @@ u_pl/u_rd/u_sched/lo_reg_0_0_i_45_n_0. Replicated 1...`）⇒ 方向对，但**�
 | 那三块红的呢？ | `build/failed_r19b/`（−1.277）与 `build/failed_r24/`（−0.327，功能上就是 V7.8 双线性）。想**亲眼看插值效果**可以临时下 `failed_r24` 那块；它时序未收口，可能偶发抖动或不显示，看完记得换回去并重新校验 md5 |
 | SD 卡回放？ | 卡已在 Z7 上。固件 `build/ps_app.elf` 已重编（含 `SD/PLAY/STOP/FRAME<n>/BILIN0/BILIN1/STAT`）。上电顺序照 §9.5 第 1–4 步 |
 | 双线性插值到底做完了没？ | **组件与集成全做完、台架全过（L1 37/37）**，只差 250 MHz 分时读口最后 0.327 ns 没收口 ⇒ 没进主线，整套在 tag **`v7.8-bilinear-wip`**。下一步最对症的一刀是 Pblock（`report/OVERNIGHT_LOG.md` R21 末有三条候选） |
-| KU5P 那块板？ | 自研以太网栈已在 `xcku5p` 上综合+实现收敛（WNS +1.840 / WHS +0.012 / 0 失败端点 / 0 CRIT WARN），bit 在 `ku5p/build/`。**只 JTAG 配置，绝不写它的 QSPI**（厂商 bat 锁 2023.1，高版本写会变砖）。ping/收流要人在线看 |
-| 有哪些"必须你眼睛看"的？ | §9.5 清单第 1–8、10–11 步（OSD 好不好读、SD 回放观感与撕裂、彩条对齐、拔线表现、KU5P 的 LED 与 ping） |
+| KU5P 那块板？ | 自研以太网栈已在 `xcku5p` 上综合+实现收敛，而且**这一轮开始会说话了**：每秒一包 UDP 遥测（`ku5p_telem`）+ 自研发送仲裁器（`ku5p_tx_arb`，替掉厂商 mux 那处会在帧中间换源的 `||`）。05:43 那次构建全绿：WNS **+1.916** / WHS +0.010 / 11668 端点 0 违例 / BRAM 72(15.0%) / 0 布线错误 / 0 CRITICAL，报告与 md5 冻结在 `ku5p/build/frozen_r23/`（bit `cd7c705b`）。**只 JTAG 配置，绝不写它的 QSPI**（厂商 bat 锁 2023.1，高版本写会变砖）。上板判据是 §9.5 第 8 与 8b 步 |
+| 有哪些"必须你眼睛看"的？ | §9.5 清单第 1–8、**8b（KU5P 遥测一行行的数字）**、10–11 步（OSD 好不好读、SD 回放观感与撕裂、彩条对齐、拔线表现、KU5P 的 LED/ping/遥测） |
 | 今晚我自己搞坏过什么吗？ | 两次都当场发现并修好：① 恢复 `build/system.bit` 后被 build#15 跑完又覆盖（同名不同内容）⇒ 清单项现在带 md5 断言；② `mv` 用错顺序把刚恢复的好 bit 挪进了"失败"目录并留下错标签 ⇒ 已删除错标签副本、重新恢复并二次校验。两处都写进 R21 |
 
+| 遥测里的 `bad` 为什么是 0？ | 它是**构造性为 0**：两个板的顶层都 `frame_reasm.p_good(1'b1)`（厂商 `udp_rx` 不看 ER/帧长）⇒ `stat_bad` 那条分支永远不走。今晚没有改硬件（会碰到已上板验过的入口链、明早要演示），而是把显示改成 `bad≈N(未接FCS判定)` 并登记 **ISSUES #29**（修法是换上仓库里已有的自研 `gmii_rx_mac` + `udp_rx_parser`，顺带解决目的端口过滤）。**能当健康证据的是 `oob`、`rows_miss`、flags 里的 `abort_seen`** |
+| 明天之后第一件该做什么？ | 三选一，都不需要新硬件：① **ISSUES #28 一行** `||`→`&&`（厂商发送仲裁，改完跑一次 L1+L3 就能进主线）；② **ISSUES #29** 换上自研收包链（`bad` 变真、端口过滤一起解决）；③ 双线性从 tag `v7.8-bilinear-wip` 起做 **5 槽读口降到 3 槽**那一版（R21 补记 2 写了方案与代价）。另外 UltraRAM 那条实验**没收口**（工具拒绝强制样式，见 R23-G），别再当"已量过"引用 |
 **报告的配套性（同一层小心的东西）**：`build/*.rpt` 是跟踪进仓库的门禁证据，构建会原地覆盖它们。
 04:0x 的状态是：`build/*.rpt` = **build#13 那一套**（与 `build/system.bit` 的 md5 相配 ✓ 报告头写
 `All user specified timing constraints are met`）；build#16 的成套报告 + bit 归档在
@@ -1604,3 +1606,20 @@ methodology 0 CRITICAL / 日志 CRITICAL WARNING 9 条（与基线同）/ L1 40-
 另一条方法论收获：这个实验如果只看"SYNTH OK + 数字正常"就会被当成成功——
 它给出的 72/0 与基线**一模一样**，唯一露馅的是那条 WARNING。⇒ **警告级输出也要进门禁清单**，
 "构建成功"和"实验证明了东西"是两回事（和 §5 那次 0.5 块 BRAM 是同一类错误）。
+
+
+### R23-H · 收尾：全量回归对最终源码重跑，以及一次"仓库搬家留下的钉子"
+
+- 最终源码上全量台架：**SIM DONE pass=40 fail=0**（`sim/results/regression_v79_r23.txt` 已刷新，
+  含本轮三个新台架）。构建 #18 是在 `abort_tgl` 那版源码上跑的，之后仓库只加了注释
+  ⇒ "源码与 bit 一致"这句一律写成"**除注释外一致**"（`frozen_r18_abort/MANIFEST.txt` 里也这么写）。
+- `report/BUILD.md` 里还写着旧仓库根 `D:\Xilinx\Prj\ADD\Video_Pipeline-main`，而这个目录**今天已经不存在**
+  （`ls` 直接 No such file）；顺着查下去，5 个 tcl 帮助脚本也硬编码着同一个旧根 ⇒ 今天一跑就会失败。
+  已全部处理：文档里的路径改成 `D:\Xilinx\Prj\pro\Video_Processing`，
+  tcl 改成 `[file dirname [info script]]` 自适应（下次搬家不用再修）。
+- 同一批复查又抓到两处过期事实：ISSUES #26 记的 `D:\Git\Gitin`（Git 现在在
+  `D:\Software\Git\Gitin`），以及 skill 里"本机无 python"那句（现在有 3.12，只是交付件仍不依赖它）。
+  另把 `ARCHITECTURE.md` 的标题从"（第三版）"改成中性版本说明并加了范围声明（本文只讲 Z7；
+  第二块板的工程文档是 `ku5p/README.md`）——评委只看 `report/` 时不该看不见第二块板。
+- 通用教训：**"以前验证过的事实"有保质期**，尤其路径、版本号、"这台机器没有 X"这类；
+  本轮的做法是把它们当假设重新 `ls`/`which` 一次，成本几秒，收益是明早不会有人按死路径敲命令。

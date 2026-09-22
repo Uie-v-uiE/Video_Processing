@@ -50,7 +50,7 @@ ping 192.168.1.10
 | `run_serial.bat COMx` | 打开串口控制台 |
 
 ```bat
-cd /d D:\Xilinx\Prj\ADD\Video_Pipeline-main\src\host
+cd /d D:XilinxPrjproVideo_Processing\src\host
 run_sender.bat
 run_video.bat D:\Videos\demo.mp4
 run_serial.bat COM5

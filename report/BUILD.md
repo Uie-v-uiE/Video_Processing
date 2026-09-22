@@ -1,25 +1,29 @@
-# 构建与上板（第三版）
+# 构建与上板
+
+> 版本注记：本文最早写于第三版，命令与脚本路径至今仍适用；**版本相关的数字**（哪块 bit、
+> 门禁多少）不在这里，看 `report/DEMO_SCRIPT.md` §0 与 `report/OVERNIGHT_LOG.md` §9.5。
 
 ## 1. 本机路径
 
 | 用途 | 路径 |
 |------|------|
-| 仓库根 | `D:\Xilinx\Prj\ADD\Video_Pipeline-main\` |
+| 仓库根 | `D:\Xilinx\Prj\pro\Video_Processing\`（旧文档里的 `D:XilinxPrjproVideo_Processing\` 已不存在，2026-09-23 全仓改过一遍） |
 | Vivado | `D:\Software\Vivado\2025.2.1\Vivado\bin\vivado.bat` |
-| Vitis | `D:\Software\Vivado\2025.2.1\Vitis\bin\vitis.bat` |
+| Vitis | `D:\Software\Vivado\2025.2.1\Vitis\bin\xsdb.bat`（批处理式跑法；无后缀的 `xsdb` 是 Linux 包装脚本，Git Bash 下会报 rlwrap 缺失） |
 | Vivado 工程 | `vivado_system\zynq_video_sys.xpr`（已 gitignore，可用 TCL 重建） |
 | 构建脚本 | `build\tcl\build_system_axigpio.tcl` |
-| 下载脚本 | `build\tcl\program_system.tcl` |
-| 上位机 | `src\host\` |
-| PS 源码 | `src\ps\main.c` |
-| Git | `D:\Git\Git\bin\git.exe`（若 PATH 无 git 用全路径） |
+| 下载脚本 | `build\tcl\program_system.tcl`；PS 起来用 `build\tcl\ps_jtag_boot.tcl`（会自动从 xsa 解出 `ps7_init.tcl`） |
+| 第二块板 | `ku5p\build\tcl\ku5p_build.tcl`（`KU5P_SYNTH_ONLY=1` 只综合；正式产物在 `ku5p\build\`，实验跑法加 `KU5P_TAG=<名>` 落到 `ku5p\build\exp_<名>\` 不盖正式报告） |
+| 上位机 | `src\host\`（推流 `video_sender.mjs`、健康读回 `health_read.mjs`、KU5P 遥测 `ku5p_stats.mjs`） |
+| PS 源码 | `src\ps\main.c`（编译：`node build\ps_app.mjs`，需要 `PS_BSP`） |
+| Git | `D:\Software\Git\Git\bin\git.exe`（**旧的 `D:\Git\Git\bin` 在这台机器上已不存在**；PATH 里也有 `git`） |
 
 ---
 
 ## 2. 常用命令
 
 ```bat
-cd /d D:\Xilinx\Prj\ADD\Video_Pipeline-main
+cd /d D:\Xilinx\Prj\pro\Video_Processing
 set VIVADO=D:\Software\Vivado\2025.2.1\Vivado\bin\vivado.bat
 
 :: 从零生成 bit + xsa

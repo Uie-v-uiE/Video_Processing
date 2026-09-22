@@ -1,4 +1,5 @@
-set root "D:/Xilinx/Prj/ADD/Video_Pipeline-main"
+# 仓库根自适应（原来硬编码 D:/Xilinx/Prj/ADD/... 已不存在）
+set root [file normalize [file join [file dirname [info script]] ..]]
 set work "$root/vivado_sim"
 file mkdir $work
 cd $work

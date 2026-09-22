@@ -165,7 +165,11 @@ bit 后 PS 复位 → 必须再 Run ELF。
 TCL 只 `add_files`，不生成顶层。
 
 ### 26. **[v3] CMD 中 git 未知**
-Git 在 `D:\Git\Git\bin`，未进 PATH → 用全路径或改环境变量。
+Git 未进 PATH 时用全路径。**2026-09-23 复查：本机 Git 在 `D:\Software\Git\Git\bin\git.exe`，
+当年记的 `D:\Git\Git\bin` 这个目录已经不存在**（`ls` 直接 No such file）。
+⇒ 登记在案的老事实也要定期重验；写脚本前先 `which git` 一次，别信记忆里的路径。
+同类：5 个 tcl 里硬编码的旧仓库根 `D:/Xilinx/Prj/ADD/Video_Pipeline-main` 已全部改成
+`[file dirname [info script]]` 自适应（仓库搬家时它们会一起跟着走，这类"路径写死"的坑不该修两次）。
 
 ---
 

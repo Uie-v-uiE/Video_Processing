@@ -2,7 +2,7 @@
 
 工程：Video_Processing（v3）· Zynq7020 以太网视频 + 右屏无极缩放  
 工具：Vivado / Vitis 2025.2.1  
-仓库：`D:\Xilinx\Prj\ADD\Video_Pipeline-main`
+仓库：`D:XilinxPrjproVideo_Processing`
 
 ---
 
