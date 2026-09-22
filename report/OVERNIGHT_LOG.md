@@ -786,6 +786,56 @@ ping 192.168.1.10                 → 发送=3 接收=3 丢失=0，RTT 1-2 ms   
 但**帧尾那个缺陷在 v6.4 基线 bit 上也一次都没复现**（6 轮 + 两轮洪水），
 所以 R03 的证据等级只到「机理 + 仿真双向判据」，我没有板级战果可以吹。
 
+### R14 · 2026-09-23 00:0x–00:3x · KU5P：同一套自研以太网栈在 UltraScale+ 上综合 + 实现收敛
+
+**做了什么**：新增 `ku5p/`（顶层 `ku5p_eth_top.v` / 约束 / 构建脚本 / README）。
+构建脚本用 `add_files` 直接引主工程 `src/rtl/eth/` 里那 19 个文件（**不复制、不改写**），
+只有 RGMII 物理层换成厂商 UltraScale+ 版本并注明出处：7 系列的 `IDELAYE2/IDELAYCTRL`
+在 UltraScale+ 上不存在，`IDDR` 也没有 `SAME_EDGE_PIPELINED` 档，正确组合是
+`BUFG + BUFIO + IDDRE1`（发送侧 `ODDRE1`）。没有 PS、没有 BD、**没有任何厂商 IP**，
+也因此没有 DDR、没有 MMCM：`eth_rxc` 一根 125 MHz 从头喂到尾
+（没有像素域消费者 ⇒ 单时钟域；当初最难对的那整套 CDC 在这里不需要）。
+
+**结果（构建口径，不是上板口径）**：WNS **+1.840** / WHS +0.012，0 失败端点 / 9343，
+约束全满足；LUT 2268、FF 2002、BRAM **72 tile**、DSP 0；5954 根线全布通 0 错误；
+methodology 0 条 Critical Warning；`ku5p_eth.bit` 15.4 MB 已生成。
+
+**BRAM 那个数字我算错过一次**（值得留在记录里）：先写"72 tile 远高于信息量下界 7~8"，
+实为把 RAMB36 记成 368,640 bit（真值 **36,864 bit** = 32 Kb 数据 + 4 Kb 校验）。
+按 `40960 字 × 64 bit = 2,621,440 bit` 重除：`2,621,440 / 36,864 = 71.1` ⇒ 下界就是 72 块，
+实测 71×RAMB36E2 + 2×RAMB18E2 **正好等于下界**；Zynq 的 80 块同样是它自己的下界
+（64 bit 宽度时每块只有 32,768 bit 可用）。⇒ 80 vs 72 的差来自器件 RAM 组织方式（E2 为
+72 bit 宽），既不是浪费、也不能说成"UltraScale 更省"。教训：资源结论必须"块数 × 每块 bit"实算。
+
+**两次"绿色但无意义"的抓取**：
+① 第一版综合通过但 `Block RAM Tile = 0.5` —— 读回累加器只喂给 `_unused_ok`，没有可观测终点，
+   于是整块帧缓存连同写路径被剪；② 修它时把 `rd_xor/data_alive` 声明了两次，而重复声明在
+   Vivado 里只是 **CRITICAL WARNING 不是 error** ⇒ 标志位成了无驱动隐式网 ⇒ 又被剪。
+   最终把 led[1] 定义成"帧完成 **且** 缓存内容 XOR 变过"，缓存才真留在设计里（72 tile）。
+
+**还抓到一处流程缺陷**：`ku5p_build.tcl` 把综合与实现放在同一个批处理进程里跑完就退出，
+**没有 `write_checkpoint`** ⇒ 想回头看那条 WHS = +0.012 的路径时 `open_run impl_1` 直接失败，
+只能整轮重跑。已补 `write_checkpoint` + 最坏 4 条 min/max 路径明细报告。
+
+**仍未证明**：ping 通、ARP、收流统计、要不要补 IDELAY —— 全部要白天人在线（清单见 §9.5 第 8 步）。
+另：`WHS = +0.012 ns` 是"刚好为正"，换个温度/电压就可能翻，**不能当通过用**。
+
+## 9.5 明早的板上清单（按顺序做，每条都写了"判据"与"看到什么算过"）
+
+| 步 | 做什么 | 判据 / 期望 |
+|----|--------|-------------|
+| 1 | 只连 Z7，重启 `hw_server`，下 `build/system.bit`（R13，md5 前缀 `0f46ec91`） | `program_system.tcl` 成功；LED0 心跳 |
+| 2 | `xsdb build/tcl/ps_jtag_boot.tcl` → 下 `build/ps_app.elf` → `con` | 串口出现 `[BOOT] ... SD PLAY STOP FRAME0 STAT` |
+| 3 | 敲 `SD` | 打印 `FAT32 part_lba=... frames=4398 fps=15.000 files=9`；若报 `card absent` 说明 SD 不在 BSP 的 SDIO0 上，先查 PS 配置 |
+| 4 | 网线**拔掉**，敲 `SRC1` 再 `PLAY` | 右半窗动、左半窗不动；每 100 帧打印 `avg x.xxx fps`；**无撕裂**（这是发布协议的目的） |
+| 5 | 插回网线，按 key1/key2 | **左窗不转、右窗转**（R12 判据）；OSD 角度行跟着变 |
+| 6 | `ZOOM0` / `ZOOM1` | 右窗呼吸缩放停/起（V7.7 前是死命令，这条就是它的回归判据） |
+| 7 | `node src/host/health_read.mjs --gapclr` → 推流 30 s → 再读 | `DROP` 为 0 或极小；`STALL` 合理；lane31 两个标志为 0 |
+| 8 | 换 KU5P（**只插一块板**，两板 FT2232 同序列号会抢）：下 `ku5p/build/ku5p_eth.bit` → `ping 192.168.1.11` | 通 = 移植成立；不通先看 LED0（有没有 GMII RX_DV），再决定要不要补 `IDELAYE3` |
+
+**先别在板上等的**：UDP 状态回包（KU5P 下一步里最值钱的一件）、Z7 的 `PROC_LAT` 列配准、
+`FRAME_BYTES` 参数化、双线性插值的 `clk_pix5x` 分时读口（判据已定，见 §R11 追加 2）。
+
 ## 10. 未竟项
 
 按「下一位（或下一夜）可以直接接手」的粒度写：

@@ -39,7 +39,13 @@ opt_design
 place_design
 phys_opt_design
 route_design
+# 存一份已布线的 checkpoint：不存的话批处理进程一退出，第二天的任何
+# "再看一眼那条保持余量很小的路径"都得从综合重跑（这次就吃了这个亏）。
+write_checkpoint -force [file join $outd ku5p_routed.dcp]
 report_timing_summary -file [file join $outd ku5p_timing.rpt]
+# 汇总里只有 WHS 的数字，看不出是哪条路径 ⇒ 最坏 min/max 各出 4 条明细
+report_timing -delay_type min -max_paths 4 -nworst 2 -sort_by group   -file [file join $outd ku5p_hold.rpt]
+report_timing -delay_type max -max_paths 4 -nworst 2 -sort_by group   -file [file join $outd ku5p_setup.rpt]
 report_utilization    -file [file join $outd ku5p_util.rpt]
 report_methodology    -file [file join $outd ku5p_methodology.rpt]
 report_cdc            -file [file join $outd ku5p_cdc.rpt]
