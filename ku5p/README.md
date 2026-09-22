@@ -198,10 +198,10 @@ vivado -mode batch -nojournal -log ku5p/build/ku5p_impl.log \
    下一步是把 `udp_rx` 收到的载荷当成命令字（例如清统计、改上报周期、触发一次快照），
    这样两板才能演成"KU5P 做前端节点、Zynq 做显示与总控"的异构结构（这也是比赛谱系里
    最有辨识度的那一条，见 `report/OVERNIGHT_LOG.md` §9 的口径）。
-3. **补跑一次 KU5P 综合冒烟**（R25 的小债，两分钟）：`ku5p/build/tcl/ku5p_build.tcl` 的
+3. ~~补跑一次 KU5P 综合冒烟~~ **已复验（R25，07:40）**：`ku5p/build/tcl/ku5p_build.tcl` 的
    `eth_keep` 里删掉了 `eth_ctrl.v` —— 依据是"全仓只有 Z7 的 `eth_udp_video_top.v:166` 例化它，
    `ku5p_eth_top` 用的是自研 `ku5p_tx_arb`"。但**没人例化**这件事我是 grep 出来的、不是综合证明的，
-   所以这一条要 `KU5P_SYNTH_ONLY=1` 跑一遍才算收口（口径：`report/ISSUES.md` #37 与 `skill/arbiter_pending_pulse.md`）。
+   ⇒ `KU5P_SYNTH_ONLY=1` 跑过：**SYNTH OK，且综合后资源与 r23 冻结件逐项相同**（BRAM 72 tile / FDCE 2383 / FDPE 247，日志 `ku5p/build/ku5p_synth_r25.log`）—— 证明这一删确实不动网表。（口径出处：`report/ISSUES.md` #37 与 `skill/arbiter_pending_pulse.md`。）
 4. DDR4（MIG，厂商 IP）或 UltraRAM 版帧缓存，比较 tile 数与功耗。
    **先把算式写对**（这里我第一版算错过一次，写"约 2 块"）：
    512×300×RGB565 = 307,200 B = **2,457,600 bit**；UltraScale+ 的 UltraRAM 每块 **288 Kb = 294,912 bit**；
