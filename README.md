@@ -1,5 +1,21 @@
 # Zynq7020 以太网视频处理与 HDMI 双窗显示
 
+
+> ## 本分支 = 第一版（PS 以太网）
+>
+> 数据通路：上位机 UDP → **PS（lwIP）** → PS DDR → PL 经 HP0 读出 → PL 做效果/旋转 → HDMI 双窗。
+> PS 既跑协议栈又搬运画面，PL 不碰网络。
+>
+> **本版本的已知限制（不是 bug，是当时的取舍）**：`angle ≠ 0` 时模糊与 Sobel 被**强制旁路**，
+> 只保留点运算类效果（灰度/二值/反色）。原因与实现分别记录在
+> `docs/ROTATION_AND_EFFECTS.md`（含角度×效果对照表）与 `rtl/process/proc_pipeline.v:24-25`
+> （`wire by2 = ~effect_en[2] | rotate_active;`）。
+> 机理：窗口滤波需要**源图扫描顺序上的 3×3 邻域**，而旋转是逆映射，屏幕网格上取到的邻域
+> 在源图中不连续。真正让「任意角度 + 窗滤同时可用」的修复在第二版（目标域窗滤）。
+>
+> 对照其它版本：`main`（第五版）、`v4-zero-loss`、`v3-seamless-zoom`、`v3-ghosting-attempts`、
+> `v2-pl-ethernet`。逐版问题与证据见 `main` 分支的 `report/VERSION_LINEAGE.md`。
+
 上位机经 **UDP** 推送 RGB565 视频到 Zynq PS，写入 DDR；PL 侧经 AXI HP0 读出，完成 **5 种图像处理** 与 **0–359° 任意角旋转**，以 **左原图 / 右处理结果** 双窗输出 **HDMI 1024×600**。
 
 | 项 | 值 |
