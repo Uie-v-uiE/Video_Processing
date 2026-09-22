@@ -24,6 +24,15 @@
 //   [26:29] 越界偏移字节数  [30:31] 本帧缺行数  [32:35] 上电秒数(低 32 位)
 // 计数器都是 32 位只增（15 fps 下 stat_bytes 约 930 s 回绕一次），不做饱和。
 // 载荷 36 ≥ 厂商 MIN_DATA_NUM(18) ⇒ 不会走它的"末尾重复补位"路径。
+//
+// **字段诚实性（重要，别把它当成"错误为 0"）**：[22:25] 那个 `bad` 目前是
+// **构造性为 0** —— `frame_reasm.p_good` 在两个板的顶层都硬接 1'b1（顶层 udp 收包用的是
+// 厂商 `udp_rx`，它不看 ER/帧长），所以 `stat_bad` 那条累加永远不会走。
+// 现场能当"健康证据"用的是 `oob`（越界偏移）、`rows_missed`、以及 flags 里的 `abort_seen`。
+// 修法已经想清楚且**代码已在仓库里**：自研 `gmii_rx_mac` 出 `m_good/m_bad`
+// （无 ER 且 len≥64；注意这不是真 CRC-32 校验），`udp_rx_parser` 吃它并产出 `p_good`
+// 与三个 drop 统计，`sim/tb_udp_parser.v` 有判据 —— 只是两个顶层都还没换上去。
+// 登记在 report/ISSUES.md #29。
 module ku5p_telem #(
     parameter [15:0] IMG_W    = 16'd512,
     parameter [15:0] IMG_H    = 16'd300,

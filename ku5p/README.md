@@ -7,21 +7,26 @@
 
 **证明**（可复跑、有数字）：主工程 `src/rtl/eth/` 里那套**不含任何厂商 IP** 的
 GMII MAC / ARP / ICMP / UDP / offset 拼帧 / 帧计数与健康计数，
-**只替换 RGMII 物理层那三个文件**就能在 UltraScale+ 上综合通过并生成实现结果。
+**换掉 RGMII 物理层那三个文件 + 把厂商的 GMII 发送 mux 换成自研仲裁器**，
+就能在 UltraScale+ 上综合通过、实现收敛并出 bit（§4 第 4 条写了为什么要换 mux）。
 做法是把同一批 `.v` 直接 `add_files`（不复制、不改写），所以"可移植"不是文字承诺。
+R23 之后还多证明了一件事：**这块板能主动把健康统计发回 PC**（每秒一包，
+判据在 `sim/tb_ku5p_telem.v`，PC 侧解析器 `src/host/ku5p_stats.mjs --selftest` 双向对齐）。
 
-**已跑出来的构建结果**（`ku5p/build/ku5p_*.rpt`；下表是 2026-09-23 00:57 那一次，
-即把打包逻辑抽成 `fb_pack` 并由 `sim/tb_fb_pack.v` 的 12 条判据验过之后的版本）：
+**已跑出来的构建结果**（`ku5p/build/ku5p_*.rpt`；下表是 2026-09-23 05:43 那一次，
+即加上"每秒一包 UDP 遥测 + 自研发送仲裁器"之后的版本；上一版（只有入口 + `fb_pack`）是
+00:57 那次，WNS +2.081 / LUT 2415 / 端点 9600）：
 
 | 项 | 值 | 说明 |
 |----|----|------|
-| WNS / WHS | **+2.081 / +0.013 ns** | 时钟只有一根：`create_clock -period 8.000`（125 MHz，PHY 恢复时钟） |
-| 失败端点 / 总端点 | 0 / 9600 | `All user specified timing constraints are met` |
-| CLB LUT / FF | 2415（1.11%）/ 2087（0.48%） | 只装了入口那一半，没有显示通路 |
-| Block RAM | **72 tile（15.0% of 480）** | 见 §5：这个数字既是证据也是待查项 |
-| DSP | **0** | 本设计不含乘加；也说明入口侧零 DSP 依赖 |
-| 布线 | 5954 / 5954 全布通，0 错误 | `write_bitstream` 出 15.4 MB 的 `ku5p_eth.bit` |
+| WNS / WHS | **+1.916 / +0.010 ns** | 时钟只有一根：`create_clock -period 8.000`（125 MHz，PHY 恢复时钟）；`All user specified timing constraints are met` |
+| 失败端点 / 总端点 | 0 / **11668** | 上一版是 9600 ⇒ 遥测 + 仲裁器多了 ~2000 个端点 |
+| CLB LUT / FF | 3021（1.39%）/ 2799（0.65%） | 只装了入口 + 发包那一半，没有显示通路 |
+| Block RAM | **72 tile（15.0% of 480）** | 与上一版**一模一样** ⇒ 新增逻辑没有要 RAM；推导见 §5 |
+| URAM / DSP | 0 / 0 | 这块板有 64 块 UltraRAM，本设计一块没用（那是 §9 第 2 条的题） |
+| 布线 | 7179 根全布通，**0 条布线错误** | `write_bitstream` 出 15.4 MB 的 `ku5p_eth.bit` |
 | methodology | **0 条 Critical Warning** | 与 Zynq 侧同一口径的门禁 |
+| `report_cdc` | 1 行 Critical：`input port clock → eth_rxc`，**16 端点全部 Unsafe=0**、异常已豁免（False Path） | 这一行是"没有公共主时钟"的结构性提示，不是没处理的跨域 |
 
 **不证明**：
 - 这块板**没有 HDMI 输出**（原理图 21 页里 `HDMI/TMDS/LCD` 零命中；显示要另配 FH1159 子卡），
@@ -156,7 +161,8 @@ vivado -mode batch -nojournal -log ku5p/build/ku5p_impl.log \
 ```
 产物：`ku5p/build/ku5p_{util_synth,util,timing,methodology,cdc,route_status}.rpt`、`ku5p_eth.bit`。
 
-## 8. 明天上板要做的事（按顺序）
+## 8. 明天上板要做的事（按顺序做；**结果写到 `data/measured/ku5p_*.md`**，与主线的
+`data/measured/board_measure_*.md` 同一套"每条都有判据与出处"的写法，不要只写在本 README 里）
 
 1. 单独接 KU5P 的 JTAG（两块板的 FT2232 序列号同为 `0ABC01`，同时插只有一块可见；
    换板后必须重启 `hw_server`）。**只 JTAG 配置，绝不写 QSPI**（厂商自己的
@@ -179,20 +185,27 @@ vivado -mode batch -nojournal -log ku5p/build/ku5p_impl.log \
 **已经做完的（2026-09-23 R23）**：状态回包 —— `ku5p_telem` + `ku5p_tx_arb` +
 `src/host/ku5p_stats.mjs`，三个台架判据 + 一次成套构建；上板那一步排在白天（§8）。
 
-1. **让 PC 能对这块板下命令**（现在它只会上报）。有了可用的 TX 通道，"回一个 ack"已经通了，
+1. **让上报的每个数字都名副其实**（`report/ISSUES.md` #29）：遥测包里的 `bad`（错包数）现在是
+   **构造性为 0** —— 顶层收包用厂商 `udp_rx`，它不看 ER / 帧长，`frame_reasm.p_good` 只能硬接 1。
+   仓库里已经有自研的那一对：`gmii_rx_mac`（出 `m_good/m_bad`）+ `udp_rx_parser`
+   （出 `p_good` 与三个 drop 统计，并且**本来就带目的端口过滤**），`sim/tb_udp_parser.v` 有判据。
+   把顶层换成这一对，`bad` 就有真值、端口过滤顺带解决（那是主线 P0-C 最后一条债）。
+   注意别说过头：`m_good` 是"无 ER + 长度合理"，**不是真 CRC-32 校验**。
+2. **让 PC 能对这块板下命令**（现在它只会上报）。有了可用的 TX 通道，"回一个 ack"已经通了，
    下一步是把 `udp_rx` 收到的载荷当成命令字（例如清统计、改上报周期、触发一次快照），
    这样两板才能演成"KU5P 做前端节点、Zynq 做显示与总控"的异构结构（这也是比赛谱系里
    最有辨识度的那一条，见 `report/OVERNIGHT_LOG.md` §9 的口径）。
-2. DDR4（MIG，厂商 IP）或 UltraRAM 版帧缓存，比较 tile 数与功耗。
+3. DDR4（MIG，厂商 IP）或 UltraRAM 版帧缓存，比较 tile 数与功耗。
    UltraScale+ 有 64 块 UltraRAM（每块 288 Kb），同一份 512×300×2 只要约 2 块 —— 值得量一次。
-3. 显示半边：FH1159 FMC 子卡（要 GTY + 时钟芯片），或者把 KU5P 收到的流经第二块以太网口
+4. 显示半边：FH1159 FMC 子卡（要 GTY + 时钟芯片），或者把 KU5P 收到的流经第二块以太网口
    转给 Zynq 显示 —— 后者不需要任何新硬件。
-4. 若上板发现 RGMII 收不全（125 MHz 源同步没做延时补偿），再考虑补 IDELAYE3；
+5. 若上板发现 RGMII 收不全（125 MHz 源同步没做延时补偿），再考虑补 IDELAYE3；
    判据已经埋在 LED 与遥测里（`abort`/`bad` 计数不为 0 且 `rows_missed` 稳定增长）。
 
 ## 10. 关于那条 +13 ps 的保持余量：**先把概念摆正，再决定要不要动**
 
-WHS 两次构建都是 **+0.012 / +0.013 ns**，最坏路径是
+WHS 三次构建分别是 **+0.012 / +0.013 / +0.010 ns**（加了遥测与仲裁器之后那一次是 +0.010），
+最坏路径一直是
 `u_icmp/u_crc32_d8/crc_data_reg[11] → crc_data_reg[19]` —— CRC 的 XOR 树自己贴着自己。
 
 **我先前把它写成"13 ps 在电压/温度漂移面前不算余量"，这句是概念错误，现在改正**：

@@ -233,6 +233,36 @@ T1–T4 验自研仲裁器，**V 组把同一套激励喂给厂商 `eth_ctrl` �
 **顺带记一条**：任何"两个独立 busy 标志 + OR"的仲裁条件都值得当 bug 读一遍 ——
 它的语义通常是"任一空闲"，而想要的是"全部空闲"。
 
+---
+
+### 29. `frame_reasm.p_good` 在两个板的顶层都硬接 1 ⇒ `stat_bad` 是**死的统计**（发现未修，口径已收紧）
+
+**证据**：`src/rtl/eth/eth_udp_video_top.v:199` 与 `ku5p/src/rtl/ku5p_eth_top.v` 都是
+`.p_good(1'b1)`；`frame_reasm.v:171` 的 `if (p_good)` 分支于是永远走"好包"那条，
+`stat_bad` 恒 0。根因是收包用的是厂商 `udp_rx` —— 它不看 GMII 的 ER、也不判帧长。
+`eth_udp_video_top.v:235` 的注释其实早就写了这件事（"p_good 硬接 1 ⇒ 坏包统计是死的"），
+但**这句话没有传播到用它的人**：R23 的 KU5P 遥测包里有一个字段就叫"错包数"，
+如果就这么发出去，PC 上看到的 `bad=0` 会被读成"没有错包"—— 那正是我们最怕的那种数字。
+
+**为什么先不修**：换收包链会动到**已经在板上验过的入口通路**，而今晚主线要保持与 build#17/18 一致，
+明早要演示；这不是"顺手加个约束"级的改动。
+
+**修法（代码已经在仓库里，只是没接）**：自研 `gmii_rx_mac` 已经输出
+`m_good`（帧尾、无 ER、len≥64）与 `m_bad`（`gmii_rx_mac.v:14-15`），
+自研 `udp_rx_parser` 已经吃 `s_good/s_bad` 并产出 `p_good` + `stat_drop_bad/stat_drop_filt/stat_udp_ok`
+（`udp_rx_parser.v:13-21`），`sim/tb_udp_parser.v` 有判据。
+⇒ 接法是把顶层的"厂商 `udp_rx`"换成"`gmii_rx_mac` + `udp_rx_parser`"这一对，
+`p_good` 就有了真值，顺带把 **目的端口过滤**（P0-C 最后一条）也一起解决 —— 那个过滤器在
+`udp_rx_parser` 里本来就有（`UDP_PORT` 参数 + `stat_drop_filt`）。
+**注意别过度声明**：`m_good` 是"无 ER + 长度合理"，**不是真的 CRC-32 校验**；
+真要做 FCS 校验要再走一步（把 CRC 检查接在 `m_data` 上，成本约 40 行 + 一个台架）。
+
+**今晚先做的三件事（口径层面，不动硬件）**：
+1. `ku5p_telem.v` 文件头把"这个字段是构造性为 0"写清楚，并指出该看哪三个字段；
+2. `src/host/ku5p_stats.mjs` 把它打印成 `bad≈7(未接FCS判定)` 而不是 `bad=7`；
+3. 登记本条 + 排进 KU5P 下一步（`ku5p/README.md` §9 第 1 条：让 PC 能下命令之前，
+   先让板子报的每个数字都名副其实）。
+
 ## 快速对照
 
 | 症状 | 优先检查 |

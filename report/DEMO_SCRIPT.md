@@ -55,12 +55,26 @@ set XSDBAT=D:\Software\Vivado\2025.2.1\Vitis\bin\xsdb.bat
    讲法：*"PS 只负责把一帧的 DMA 目标地址准备好并翻转一根发布线，PL 只在帧尾取用一次。"*
 3. 若 `SD` 报 `card absent`：说明卡不在 BSP 的那个 SDIO 控制器上，先查 PS 配置，不要改固件。
 
+### 第四幕（**只有 KU5P 板级验证通过之后才讲**）：第二块板自己说话
+1. 另开一个窗口：`node src/host/ku5p_stats.mjs` → 应该看到每秒一行
+   `frames=… pkts=… bytes=… bad=0 oob=0 rows_miss=0 …`。
+   讲法：*"同一套自研以太网栈，在 UltraScale+ 上只换了 RGMII 那三个文件；
+   它现在不光会应答，还会每秒主动上报自己收到了什么、有没有错。"*
+2. 追问"错是怎么量的"：`bad`/`oob`/`rows_missed` 全部来自 `frame_reasm` 的硬件计数，
+   不是软件统计；这包数据的**线上格式**由 `sim/tb_ku5p_telem.v` 逐字节钉住
+   （Ethernet/IP/UDP 头字段 + 载荷 36 字节 + 用网卡同样的方法验 CRC）。
+3. **板级没过之前**，这一幕的口径只能是："移植已综合/实现收敛（WNS +2.081 ns、0 违例），
+   遥测与发送仲裁**有台架判据**，板级验证在路上" —— 不要说"板上已经在发包"。
+
 ---
 
 ## 2. 资源与时序（一句话 + 出处）
 
 *"xc7z020 上，140 个 BRAM 用到 90.5（64.64%），Slice LUT 13.5%、寄存器 5.45%，
-总功耗 2.36 W 量级，时序 WNS +0.426 / WHS +0.025，约束全部满足、12500 根线全布通。"*
+动态功耗 2.183 W，时序 WNS +0.447 / WHS +0.066，约束全部满足、12497 根线全布通。"*
+（出处：`build/utilization.rpt`、`build/timing_summary.rpt`、`build/power.rpt`、
+`build/route_status.rpt` —— 与 `build/system.bit`（md5 前缀 `11998af8`）**同一次构建**；
+每次重跑之后这一句要跟着换，别沿用旧数字。）
 
 | 说什么 | 数字 | 出处（现场可打开） |
 |--------|------|--------------------|

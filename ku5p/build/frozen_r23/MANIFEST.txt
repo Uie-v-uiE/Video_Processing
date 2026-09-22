@@ -1,0 +1,12 @@
+# KU5P R23 成套产物（遥测 + 自研发送仲裁器）—— 2026-09-23 05:43
+# WNS +1.916 / WHS +0.010 / 0 失败端点(11668) / BRAM 72(15.00%) / LUT 3021 / 0 布线错误 / methodology 0 CRIT WARN
+# bit 与 xsa 不入库（.gitignore 口径同主线），这一行的 md5 就是磁盘上那块 bit 的身份
+cd7c705b1e28ef34eea11c7992f2e7b2 *../ku5p_eth.bit（磁盘上，不入库）
+78549c8cc5ae92022322d22b2e56ecf5 *ku5p_cdc.rpt
+27ddf9f117f546bb954d35e3c7d5f663 *ku5p_hold.rpt
+82bd85a4b8c576a6218d60a320eed4fc *ku5p_methodology.rpt
+12c85ee20de88da181b6b090f32bd251 *ku5p_route_status.rpt
+0277a29c0629d049256049e2e2d79e0a *ku5p_setup.rpt
+05f5d380536cf9748520d229336fa5b0 *ku5p_timing.rpt
+9b13d3ddf9b763692218a13dcb7a4c69 *ku5p_util.rpt
+900915e4b5f3764a48be724ae1768821 *ku5p_util_synth.rpt

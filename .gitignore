@@ -92,3 +92,4 @@ build/_extract_ps7_init.ps1
 # ModelSim 只当交叉编译器用（vsim 无授权），它的 work 库不入库
 sim/msim/
 sim/*.run/
+ku5p/build/frozen_*/*.bit

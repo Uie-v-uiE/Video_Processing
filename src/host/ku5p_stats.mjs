@@ -50,9 +50,12 @@ function decode(b, rinfo) {
     extra = dS > 0 ? `  Δframes=${dF} (${(dF / dS).toFixed(2)} fps)` : `  Δframes=${dF}`;
     if (dF < 0) extra += ' [计数回绕]';
   }
+  // bad 目前是"构造性为 0"（板级 frame_reasm.p_good 硬接 1，见 ku5p_telem.v 头部说明）：
+  // 显示成 bad≈ 而不是 bad=0，避免被读成"没有错包"。真正的健康证据是 oob / rows_miss / abort 标志。
+  const badTxt = `bad≈${bad}(未接FCS判定)`;
   last = { frames, secs };
   return `${rinfo.address}:${rinfo.port} v${b[4]} ${b.readUInt16BE(6)}x${b.readUInt16BE(8)}`
-       + ` frames=${frames} pkts=${pkts} bytes=${bytes} bad=${bad} oob=${oob}`
+       + ` frames=${frames} pkts=${pkts} bytes=${bytes} ${badTxt} oob=${oob}`
        + ` rows_miss=${rows} up=${secs}s flags=[${on.join(',') || '-'}]${extra}`;
 }
 
@@ -71,7 +74,7 @@ if (get('selftest', false) === true) {
   const line = decode(b, { address: '127.0.0.1', port: 1234 });
   console.log('[SELFTEST] ' + line);
   const want = ['v1', '512x300', 'frames=4321', 'pkts=65535', 'bytes=2000000000',
-                'bad=7', 'oob=9', 'rows_miss=3', 'up=120s', 'frames_seen,data_alive'];
+                'bad≈7', 'oob=9', 'rows_miss=3', 'up=120s', 'frames_seen,data_alive'];
   const miss = want.filter((w) => !line.includes(w));
   console.log(miss.length ? `FAIL selftest missing ${miss.join(',')}` : 'PASS ku5p_stats selftest');
   process.exit(miss.length ? 1 : 0);
