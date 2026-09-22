@@ -44,8 +44,8 @@ Four parts of the design are worth reading:
 | Branch | Rev | Content |
 |--------|-----|---------|
 | **`main` (current)** | 5 | Three synthesis-behaviour fixes (ingress packer FIFO and display skid buffer moved to distributed RAM; frame buffer address space split on power-of-two boundaries) plus an ingress-page-switch guard that waits for the CDC to drain. BRAM 98.93%→64.64%, registers 51.30%→4.08%, slices 99.92%→18.03% |
-| `v4-zero-loss` | 4 | Zero-loss ingress: pipelined write channel (V6.3) + per-16-bit-lane `WSTRB` (V6.4) |
 | `dev/night-2026-09-22` (**local only, pending review**) | V7.7→V7.9 | Night-time work on top of Rev 5: link-health self-diagnosis, PS publish handshake, rotation confined to the right pane, three CDC items (`eth_link` synchroniser, `ASYNC_REG` annotations, `copy_abort` toggle synchroniser), and the second board (KU5P) including a one-packet-per-second UDP telemetry report plus a self-written transmit arbiter. Bilinear interpolation is *not* merged — it lives on tag `v7.8-bilinear-wip`. Per-round evidence: `report/OVERNIGHT_LOG.md`; version mapping: `report/VERSION_LINEAGE.md` §6. || `v3-seamless-zoom` | 3 | Continuous right-window zoom. **Ghosting was still unfixed here** (only 42–52% of words belonged to the newest frame) |
+| `v4-zero-loss` | 4 | Zero-loss ingress: pipelined write channel (V6.3) + per-16-bit-lane `WSTRB` (V6.4) |
 | `v3-ghosting-attempts` | 3 (work in progress) | Three unconverged anti-ghosting attempts: BRAM double buffer → 3-slot DDR frame manager → 2-bank DDR ping-pong (includes the consultation brief and the testbenches of the time) |
 | `v2-pl-ethernet` | 2 | Ethernet moved into the PL; rotation × window-filter incompatibility fixed; self-built FIFOs. Ghosting recorded as a known issue |
 | `v1-ps-ethernet` | 1 | **PS Ethernet** (lwIP UDP → PS → DDR, PL reads out over HP0); PL effects and rotation |
