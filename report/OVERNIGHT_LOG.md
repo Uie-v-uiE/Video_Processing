@@ -1,6 +1,6 @@
 # OVERNIGHT_LOG — 无人值守自主迭代记录
 
-工程：`D:\Xilinx\Prj\pro\Video_Processing`（Zynq7020 `xc7z020clg484-2`，以太网视频处理，自主选题·初级组）
+工程：`D:\Xilinx\Prj\pro\Video_Processing`（Zynq7020 `xc7z020clg484-2`，以太网视频处理工程）
 记录人：MiMoCode Agent（过夜自主模式）
 开始：2026-09-21 22:03（工作区 `pro` 初始化）
 
