@@ -176,26 +176,114 @@ in registers. Block RAM or DRAM implementation is not possible` —— `axi_fram
 域多了一级读选择。仍 `All user specified timing constraints are met`、0 失败端点，故接受。
 要拿回这点余量，路子是把 skid 读口改成提前一拍预取（地址在 `sk_drain` 前一拍就确定），列为可选项。
 
+## V7.4（R06）—— `eth_rxc` 域那条 24 位进位链（时序专项）
+
+V7.3 之后资源全部宽松（Slice 18%、Reg 4%、BRAM 65%），但 WNS 反而从 +0.819 掉到 **+0.499**，
+而且 `report_timing` 显示 **`eth_rxc`（125 MHz）最差的 10 条路径全部同构**：
+
+```
+Source      u_eth/u_udp/u_udp_rx/rec_en_reg/C
+Destination u_eth/u_reasm/rows_hit_reg[0]/CE
+Data Path   7.159 ns（logic 2.314 / route 4.845）    Logic Levels 11（CARRY4=6 LUT2=1 LUT3=2 LUT6=2）
+其中单根网线 u_eth/u_reasm/udp_rec_en（fo=50）就占 1.947 ns；发起切片 X79Y41 → 终点 X20Y22
+```
+
+即 `frame_reasm.v` 里每包末尾要现算 `cover + pkt_pay + 1 >= FRAME_BYTES` 的**三操作数 32 位加法**，
+它的进位链挂在那条 1.95 ns 的跨模块网线之后。
+
+**先量策略，再动 RTL**：新增 `build/tcl/sweep_impl_strategy.tcl` 扫 5 个实现策略，
+实测把 `impl_1` 显式设成 `Performance_Explore` 后得到 **WNS 0.499 / WHS 0.060，与基线（未指定策略）逐位相同**
+⇒ 余量不在策略上。（该脚本本身两次自爆：① `Flow_PerfOptimized_high` 等名字不被本流程支持；
+② `report_timing_summary -check_summary_only` 在 2025.2.1 不是合法选项。
+脚本与**已跑到的部分结果**一并入库（`build/tcl/sweep_impl_strategy.tcl`、
+`build/sweep_summary.txt`），并在文件里写明扫描只完成 1/5 个策略就中断 ⇒
+"策略无收益"这个结论只建立在「默认策略 = 基线逐位相同」这一个事实上。）
+
+**改法**：把「现场求和 + 与常量比大小」换成「**饱和累加 + 等值比较**」——
+`cov`（本帧字节，含在途包）与 `pend`（在途包的末尾偏移）各自 19 bit、数到 `FRAME_BYTES` 就停，
+于是判据变成一次常量等值比较 + 一个与门：
+
+```verilog
+wire bytes_ok = cov_sat  | (cov_end  & p_valid);   // 「+1 之后是否够一帧」
+wire last_pkt = pend_sat | (pend_end & p_valid);   // 「这是本帧最后一个包吗」
+```
+
+等价性依据三条：`cov` 的新值域就是旧代码每拍现算的 `cover+pkt_pay`；计数单调递增使
+`>= FRAME_BYTES` 与 `== FRAME_BYTES` 同问；帧起点与提交两处都清零，饱和值不会跨帧继承。
+收益：`p_valid` 现在只需到达**一个 LUT 的一个输入脚**，它后面的 6 级 CARRY4 与比较器整条消失。
+
+**一处有意的语义变化**：旧实现靠"坏包字节不计入 cover"来废帧，饱和累加无法退账，
+因此新增粘滞位 `bad_frame`，提交判据由两条件与门变三条件。
+两版判决只在「零载荷坏包」这一退化情形不同，且新实现只会**更严格**
+（不可能出现"以前不提交、现在提交"的危险方向）。
+
+| 项 | V7.3 | **V7.4** |
+|----|------|----------|
+| WNS（`eth_rxc`） | +0.499 | **+0.974** |
+| WHS | +0.060 | +0.066 |
+| 失败端点 | 0/21253 | 0/21166 |
+| Dynamic Power | 2.338 W | **2.176 W** |
+| 像素域 `clkout0_1` WNS | +3.084 | +1.729（布局随网表变化，仍远高于 0） |
+| L1 回归 | 30/30 | **30/30**（留档 `sim/results/regression_v7.txt`） |
+| L4 板级 | 22 轮全绿 | **新 bit 再跑 3 轮**（15/30 fps + 不限速 60 fps）100.0%、六带 0.0%、丢字带 0 字 |
+
+**顺带一条通用教训**：`cover` 是 SystemVerilog 保留字，文件一旦以 `-sv` 编译即报
+`VRFC 10-8549` ⇒ 改名 `cov`。改名前先 `grep` 确认没有 TB 用层次名引用它，否则重写会静默让 TB 测错对象。
+
+---
+
+## V7.5（R07）—— 约束质量：把时钟组挪到只在实现阶段生效
+
+构建日志长期挂着 3 类 CRITICAL WARNING：
+
+| 条数 | 内容 | 处置 |
+|------|------|------|
+| 1 | `[Constraints 18-513] set_false_path -from ... contains no valid startpoints` | **删除**：`eth_rst_n` 是输出（`system_top.v:41`），这条 `-from` 永远是空集合 |
+| 2 | `[Vivado 12-4739] set_clock_groups: No valid object(s) found for '-group [get_clocks -quiet clk_fpga_0]'` | `clk_fpga_0` 由 PS7 IP 的 XDC 创建，综合阶段不存在；**`-quiet` 只压住 `get_clocks`，压不住命令本身 ⇒ 整条 `set_clock_groups` 失效**（连 `eth_rxc`/`sys_clk` 两组一起废） |
+| 6~7 | `[BD 41-1348] … connected to asynchronous reset source FCLK_RESET0_N` | **保留**：BD 结构的既有事实，不是本轮引入 |
+
+**为什么拆文件而不是加保护**：第一次尝试在 XDC 里写 `if {[llength [get_clocks -quiet clk_fpga_0]]}`，
+立刻得到 `[Designutils 20-1307] Command 'if' is not supported in the xdc constraint file`，
+并且**因为整段解析失败，连实现阶段都拿不到时钟组**了 ⇒ XDC 不是普通 Tcl 脚本。
+正规解法是按时机分文件：新增 `src/constraints/clock_groups_impl.xdc`，
+在 `build/tcl/build_system_axigpio.tcl` 里对它设 `used_in_synthesis false` / `used_in_implementation true`。
+
+**风险预判与证伪**：综合阶段这条约束本来就因命令失败而不存在，所以拆分预期**不改变任何时序数字**；
+判据是"若 WNS/端点数/资源与 V7.4 不同就停下重查"。
+结果：**门禁数字与 V7.4 逐项一致**（WNS +0.974 / WHS +0.066 / 0 失败端点 / BRAM 64.64% /
+`All user specified timing constraints are met.` / Failed Nets 0 / methodology Critical 0），
+并且 **`build/system.bit` 与 V7.4 逐字节相同（md5 `7d2cf8ee`）** —— 改动中性被直接证明。
+构建日志剩余 CRITICAL WARNING 从 9 条降到 7 条，且这 7 条全是既有的 `BD 41-1348`。
+
+**仍未解决、如实记录的约束缺口**（写清楚比藏着更符合"时序约束"这一考察点）：
+`set_input_delay` / `set_output_delay` 各 **0 条**，RGMII TX 由 4 条 `-to` 假路径整条豁免，
+RX 侧靠固定 tap 的 `IDELAYE2`（`IDELAY_VALUE=15`）而没有将这段延迟写进约束。
+所以「All constraints met」覆盖的是片内路径；**片外接口时序由板级证据支撑**
+（ping 0% 丢失 + 逐字命中率 100.0%），而不是由约束证明。
+补上真正的 RGMII I/O 约束（DDR 双沿 `-add_delay -clock_fall` + TX 相位）列为未竟项。
+
 ---
 
 ## 五版累计（第四版 → 第五版）
 
-| 项 | V6.4 | **V7.3（当前 main）** | 变化 |
+| 项 | V6.4 | **V7.5（当前 main）** | 变化 |
 |----|------|------------------------|------|
-| Slice Registers | 54588 / 51.30% | **4345 / 4.08%** | −92.0% |
-| Slice LUTs | 19825 / 37.27% | **6313 / 11.87%** | −68.2% |
-| Slice | 13290 / 99.92% | **2398 / 18.03%** | −82.0% |
-| Block RAM Tile | 138.5 / 98.93% | **90.5 / 64.64%** | −34.7 个百分点 |
+| Slice Registers | 54588 / 51.30% | **4303 / 4.04%** | −92.1% |
+| Slice LUTs | 19825 / 37.27% | **6262 / 11.77%** | −68.4% |
+| Slice | 13290 / 99.92% | **2406 / 18.09%** | −81.9% |
+| Block RAM Tile | 138.5 / 98.93% | **90.5 / 64.64%** | −34.3 个百分点 |
 | LUT as Memory | 305 / 1.75% | 1341 / 7.71% | 换用位置（余量仍 92%） |
-| Total Power | 2.525 W | **2.350 W** | −6.9% |
-| WNS / WHS | +0.708 / +0.064 | **+0.499 / +0.060** | 全约束始终满足 |
-| 失败端点 / route errors | 0 / 0 | 0 / 0 | — |
+| Total / Dynamic Power | 2.525 W | **2.350 / 2.176 W** | −6.9% / −6.3% |
+| WNS / WHS | +0.708 / +0.064 | **+0.974 / +0.066** | 全约束始终满足；WNS 反而高于第四版 |
+| 失败端点 / route errors | 0 / 0 | 0/21166 / 0 | — |
 | methodology / cdc | 170 / 4 条既有 Critical | 186 / 同样 4 行 | 无新增 Critical |
-| 回归仿真 | 28/28 | **30/30** | 新增帧尾 A/B 与帧缓存逐像素回读 |
-| bit / xsa | `155d73bc` | **`f5c69ca7`** | 1994722 → 1887418 B（V7.3 为 1887418 B） |
+| 构建日志 CRITICAL WARNING | 9（含 1 空约束 + 2 时钟组） | **7（全部为既有 BD 41-1348）** | −2 类噪声 |
+| 回归仿真 | 28/28 | **30/30**（`sim/results/regression_v7.txt`） | 新增帧尾 A/B 与帧缓存逐像素回读 |
+| bit / xsa | `155d73bc` | **`7d2cf8ee`**（1777758 B） | V7.4 与 V7.5 的 bit 逐字节相同 |
 
-**关键性质**：全程功能不变（除 V7.2 的修复），四道门禁（时序 / 资源 / 功耗 / 布线）从两项不合格变为全部合格，
-且时序始终满足全部约束。
+**关键性质**：V7.0/7.1/7.3 是纯资源改造（除 V7.2 的修复外功能不变），V7.4 是**纯时序改造**
+（提交判决只可能更严格），V7.5 是**纯约束整理**（bit 不变）。
+四道门禁（时序 / 资源 / 功耗 / 布线）从两项不合格变为全部合格，且时序始终满足全部约束。
 
 ---
 
@@ -211,6 +299,13 @@ in registers. Block RAM or DRAM implementation is not possible` —— `axi_fram
 | 不限速 60 fps（400 帧） | 恰好一帧 | 0/76800 | 100.0% | 0.0% | 0 |
 | 不限速 120 fps（实测 116 fps ≈36 MB/s，900 帧） | 恰好一帧 | 0/76800 | 100.0% | 0.0% | 0 |
 | 1396 B 载荷（非 8 倍数，3 轮 180 帧） | 恰好一帧 | 0/76800 | 100.0% | 0.0% | 0 |
+| **V7.4/V7.5 新 bit：15 fps × 200 帧** | 恰好一帧（198 / 199） | 0/76800 | 100.0% | 六带全 0.0% | **0 个 16bit 字** |
+| **V7.4/V7.5：30 fps × 300 帧** | 恰好一帧（299 / 298） | 0/76800 | 100.0% | 全 0.0% | 0 |
+| **V7.4/V7.5：不限速 60 fps × 400 帧** | 恰好一帧（399 / 398） | 0/76800 | 100.0% | 全 0.0% | 0 |
+
+后三行是在 **V7.4 的 `frame_reasm` 改写 + V7.5 的约束拆分之后** 的同一块板、同一会话重测
+（V7.4 与 V7.5 的 bit 逐字节相同，故合记），明细与复算命令见
+`data/measured/board_measure_r06_r07.md`。⇒ **V7.4 的时序改写对入包链零回归**。
 
 ⇒ **三次综合行为改造对入包链零回归**；1396 那几轮另外覆盖了 V7.0 重写的"半截字/keep 掩码"路径
 （180 帧 × 220 包 ≈ 3.96 万次半截字推送）。

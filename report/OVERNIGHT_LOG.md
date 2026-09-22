@@ -509,15 +509,94 @@ ping 192.168.1.10                 → 发送=3 接收=3 丢失=0，RTT 1-2 ms   
 
 
 
+### R06 · 2026-09-22 12:40–13:20 · 时序专项：`eth_rxc` 域那条 24 位进位链
+
+- **取证先于改动**。`report_timing` 的逐网线段显示：最差 10 条 `eth_rxc` 路径**全部同构**，
+  都是 `u_udp/u_udp_rx/rec_en_reg/Q → u_reasm/rows_hit_reg[*]/CE`，
+  `Data Path Delay 7.159 ns（logic 2.314 / route 4.845）、Logic Levels 11（CARRY4=6）`，
+  其中**单根网线 `u_eth/u_reasm/udp_rec_en`（fo=50）就占 1.947 ns**，
+  发起切片 X79Y41、终点切片 X20Y22（横向 59 列）。
+  ⇒ 结论：瓶颈是 `frame_reasm` 的 `cover + pkt_pay + 1 >= FRAME_BYTES`
+  这个三操作数加法的进位链，而且它挂在一条很长的跨模块网线之后。
+- **先量策略，再改 RTL（结论：策略不是出路）**。
+  新增 `build/tcl/sweep_impl_strategy.tcl` 扫 5 个实现策略。两次自爆后重写：
+  ① `Flow_PerfOptimized_high` / `Performance_RetimingTDM` 等名字**不被本流程支持**；
+  ② `report_timing_summary -check_summary_only` 在 2025.2.1 **不是合法选项**（未捕获即中断）。
+  实测把 `impl_1` 显式设成 `Performance_Explore` 得到 **WNS 0.499 / WHS 0.060，与基线（未指定策略）逐位相同**
+  ⇒ 这一档策略不是出路，必须动 RTL。脚本与**部分结果**一并入库
+  （`build/tcl/sweep_impl_strategy.tcl`、`build/sweep_summary.txt`），
+  文件里写明扫描只完成 1/5 个策略就中断 ⇒ 结论只建立在「这一档 = 基线」+「最差 10 条同构」两条事实上。
+- **改法**（`src/rtl/eth/frame_reasm.v` → v5.1）：
+  把「现场求和 + 与常量比大小」换成「**饱和累加 + 等值比较**」。
+  ```verilog
+  localparam integer CW = $clog2(FRAME_BYTES + 1);           // 19
+  reg [CW-1:0] cov, pend;                                    // 到 SAT 就停
+  wire bytes_ok = cov_sat  | (cov_end  & p_valid);
+  wire last_pkt = pend_sat | (pend_end & p_valid);
+  ```
+  等价性三条依据：① `cov` 的新语义就是旧代码每拍现算的 `cover+pkt_pay`；
+  ② 计数单调递增 ⇒ `>= FRAME_BYTES` 与 `== FRAME_BYTES` 同问；
+  ③ 帧起点（`hdr<4`）与提交两处都清零，饱和值不会跨帧继承。
+  EOF 那一拍的最后一个字节仍单独记一笔，且靠 Verilog「后赋值生效」不与 S_DATA 自增重复。
+- **一处有意的语义差异（必须写清）**：旧实现靠"坏包字节不计入 cover"来废帧，
+  饱和累加无法退账 ⇒ 新增粘滞位 `bad_frame`，提交判据改三条件与门。
+  两版判决集合仅在「零载荷坏包」这一退化情形不同，且新实现**只会更严格**
+  （不可能出现"以前不提交、现在提交"的危险方向）。
+- **踩到**：`cover` 是 SystemVerilog 保留字，任何文件以 `-sv` 编译即报 `VRFC 10-8549`
+  ⇒ 寄存器改名 `cov`。改前先 `grep` 确认没有 TB 用层次名引用 `cover/bytes_all/last_pkt`
+  （只有 `stat_*` 端口被引用），否则重写会静默让 TB 测错对象。
+- **验证**：L1 `tb_v6_cover_gate` 6/6 PASS；**全量回归 30/30 PASS**（`sim/r06_regression.log`）；
+  L3 全新构建 `build/r06_build.log`。
+- **结果（vs R05）**：WNS **+0.499 → +0.974**（`eth_rxc`）、失败端点 0/21166、
+  WHS +0.066、BRAM 64.64%、Reg 4.04%、LUT(逻辑) 9.24%、
+  Dynamic **2.338 → 2.176 W**、Failed Nets 0、methodology Critical 0。
+- **未预料但无害**：像素域 `clkout0_1` 的 WNS 由 +3.084 落到 +1.729（布局随网表变化，
+  仍远高于 0）；全设计 WNS 改由 `eth_rxc` 决定。记录以免下次被当成"退化"。
+
+### R07 · 2026-09-22 13:25– · 约束质量：时钟组挪到只在实现阶段生效
+
+- **动机**：构建日志长期有 2 条 `CRITICAL WARNING [Vivado 12-4739] set_clock_groups:
+  No valid object(s) found for '-group [get_clocks -quiet clk_fpga_0]'`。
+  `clk_fpga_0` 由 PS7 IP 自己的 XDC 创建，综合阶段还不存在；
+  **`-quiet` 只压住 `get_clocks` 的报错、压不住命令本身** ⇒ 整条命令失效
+  （连 `eth_rxc`/`sys_clk` 两组一起废掉）。
+- **第一次尝试失败并留下一条重要事实**：在 XDC 里写 `if {[llength [get_clocks ...]]}` 保护，
+  立刻得到 `CRITICAL WARNING [Designutils 20-1307] Command 'if' is not supported
+  in the xdc constraint file`，并且**因为整段解析失败，实现阶段也拿不到时钟组**了。
+  ⇒ XDC 文件不是普通 Tcl 脚本，控制流不受支持。该构建被中止。
+- **采用**：拆出 `src/constraints/clock_groups_impl.xdc`，在
+  `build/tcl/build_system_axigpio.tcl` 里 `used_in_synthesis false` /
+  `used_in_implementation true`（"按时机分约束文件"）。
+- **为什么这是零风险**：综合阶段这条约束**本来就因命令失败而不存在**，
+  拆分只是把"静默失败"变成"明确不施加"。若拆分后实现阶段时序数字发生变化，
+  就说明原先假定的"synth 阶段无约束"是错的 ⇒ 停下重查（判据写明，便于证伪）。
+- **同轮附带**：R06 之前已删除空约束 `set_false_path -from [get_ports eth_rst_n]`
+  （`eth_rst_n` 是输出，`system_top.v:41`），它每轮综合制造 1 条 `Constraints 18-513`。
+- **一次误操作，如实记录**：中止 R07 第一次构建后，其子进程 `vivado.exe`（PID 19832，
+  `-mode batch -source system_top.tcl`，13:25:35 启动）仍在运行并占住
+  `vivado_system/zynq_video_sys.runs`，导致重跑报 `ERROR: [Project 1-161] Failed to remove
+  the directory ... might be in use by some other process`。
+  处置：先按 `CommandLine/CreationDate` 确认它确属本轮被我停掉的批处理 worker，
+  再 `taskkill /PID 19832 /F`；随后把 R06 的 7 份报告与 bit 快照到
+  `build/r06_snapshot/`，避免被下一轮覆盖后才想起取证。
+- **结果（回填，含预设的证伪判据）**：构建 `build/r07_build.log` 通过，综合/实现/各报告阶段小结行
+  均为 `0 Critical Warnings and 0 Errors`；**构建日志里的 CRITICAL WARNING 从 9 条降到 7 条，
+  剩下 7 条全是既有的 `BD 41-1348`**（异步复位接到 intercon/GPIO 的 ARESETN，属 BD 结构既有事实）。
+  门禁数字与 R06 **逐项相同**（WNS +0.974 / WHS +0.066 / 0 失败端点 / BRAM 64.64% /
+  `All user specified timing constraints are met.` / Failed Nets 0 / methodology Critical 0），
+  并且 **`build/system.bit` 的 md5 与 R06 完全一致（`7d2cf8ee`）** ——
+  bit 逐字节相同 ⇒ 拆分没有改变任何被实际施加的约束效果，风险为零（若不同就会停下重查）。
+  `build/cdc.rpt` 的跨域统计与 R06 一致（9 行、同样 3 行 Critical 级条目）。
+
 ## 4. 验证矩阵
 
 | 层 | 手段 | 覆盖 | 最近结果 |
 |----|------|------|----------|
 | L0 | 直读 RTL + diff 审查 + `git diff --stat` | 入包链、saver 全文、glue 抽取的逐行搬迁 | R03 抽取后人工核对端口/信号一一对应 |
-| L1 | `sim/run_sim.tcl` **30** 个 TB（R03 加 `tb_v6_tail_bank`，R04 加 `tb_fb_roundtrip`） | 入包完整性/乒乓/覆盖门/V-blank 拷贝/**帧尾换页 A/B**/**帧缓存逐像素回读**/rotate/zoom/udp/arp/crc | R05 后 **30/30 PASS**（`sim/r05_full_regression.log`） |
-| L2 | `build_system_axigpio.tcl` 的 synth+impl 报告 | 时序/资源/功耗/方法学/CDC/布线 | R05 全项合格（见 §5） |
-| L3 | bit + xsa | 上板前置 | `f5c69ca7`（R05）已出，可上板 |
-| L4 | `ps_jtag_boot` → `program_pl` → `set_src` → `video_sender --test frameid` → 停流 → `ddr_verify`/`ddr_stale` | 丢包签名、换帧原子性、帧尾落位、洪水与限速多档 | **已执行**：15→36 MB/s、60/120 fps 不限速共 19 轮，每 bank 恰好一帧、命中率 100.0%、无丢字带；R03 的板上 A/B **无区分力**（详见「L4 执行」） |
+| L1 | `sim/run_sim.tcl` **30** 个 TB（R03 加 `tb_v6_tail_bank`，R04 加 `tb_fb_roundtrip`） | 入包完整性/乒乓/覆盖门/V-blank 拷贝/**帧尾换页 A/B**/**帧缓存逐像素回读**/rotate/zoom/udp/arp/crc | R05 后 30/30；**R06（`frame_reasm` v5.1）后仍 30/30**，留档 `sim/results/regression_v7.txt` |
+| L2 | `build_system_axigpio.tcl` 的 synth+impl 报告 | 时序/资源/功耗/方法学/CDC/布线 | **R07 全项合格，WNS 由 +0.499 提到 +0.974**（见 §5） |
+| L3 | bit + xsa | 上板前置 | **`7d2cf8ee`（R06=R07，1777758 B）**已出并已上板 |
+| L4 | `ps_jtag_boot` → `program_pl` → `set_src` → `video_sender --test frameid` → 停流 → `ddr_verify`/`ddr_stale` | 丢包签名、换帧原子性、帧尾落位、洪水与限速多档 | 已执行 19+3 轮（R05 金样）；**R06/R07 新 bit 上再跑 3 轮**：15 fps×200 / 30 fps×300 / 不限速 60 fps×400，每 bank 恰好一帧、命中率 100.0%、六带 0.0%、丢字带 0 字（`data/measured/board_measure_r06_r07.md`） |
 
 ## 5. 报告门禁历史表
 
@@ -529,6 +608,11 @@ ping 192.168.1.10                 → 发送=3 接收=3 丢失=0，RTT 1-2 ms   
 | R03 build#3（换页等 CDC 排空） | +0.596 | +0.078 | 0/32798 | 98.93% | 35.18% | 14.76% | 9.02% | 2.411 W | 0 | 0 | PASS（BRAM 仍未解） |
 | **R04** build#4（帧缓存按 2 的幂分块） | **+0.819** | +0.066 | 0/30846 | **64.64%** | 36.05% | 14.58% | 8.98% | **2.362 W** | 0 | 0（+16 条 SYNTH-6 Warning 已论证） | **PASS，全部大门禁项首次合格** |
 | **R05** build#5（显示侧 skid → LUTRAM） | +0.499 | +0.060 | 0/21253 | 64.64% | **18.03%** | **11.87%** | **4.08%** | **2.350 W** | 0 | 0（186 条与 R04 完全相同） | **PASS** |
+| **R06** build#6（`frame_reasm` v5.1 饱和累加） | **+0.974** | +0.066 | 0/21166 | 64.64% | 18.09% | 11.77% | 4.04% | 2.350 W（Dynamic **2.176**） | 0 | 0 | **PASS**（`eth_rxc` 0.499→0.974；像素域 +3.084→+1.729，仍宽裕） |
+| **R07** build#7（时钟组挪到 impl-only XDC） | +0.974 | +0.066 | 0/21166 | 64.64% | 18.09% | 11.77% | 4.04% | 2.350 W | 0 | 0 | **PASS**，且 **bit 与 R06 逐字节相同**（`7d2cf8ee`）⇒ 改动中性被证明；构建日志 CRITICAL WARNING 从 9 条（6×BD+2×12-4739+1×18-513）降到 **7 条（全部为既有 BD 41-1348）** |
+
+口径说明：`Slice` 取 `report_utilization` §2「Slice Logic Distribution」的 `Slice` 行（2406/13300），
+`LUT` 取 §1 的 `Slice LUTs` 行（6262/53200），`Reg` 取 `Slice Registers`（4303/106400）。
 
 ## 6. bit / xsa 版本表
 
@@ -538,7 +622,9 @@ ping 192.168.1.10                 → 发送=3 接收=3 丢失=0，RTT 1-2 ms   
 | **R02** | `8c30d9c` | `2dd5d1fc` | 2120470 B | +0.677 | 打包 FIFO 改分布式 RAM；功能与 v6.4 等价，可上板 |
 | R03 | `242f6e7` | `faab6ab3` | 2310718 B | +0.596 | 换页等 CDC 排空；帧尾丢 4 字节修复 |
 | **R04** | `ff7c890` | `ff18beb7` | 1994722 B | **+0.819** | 帧缓存分块省 48 个 BRAM tile；金样（被 R05 取代） |
-| **R05** | `a22a054` | `f5c69ca7` | 1887418 B | +0.499 | 显示拷贝 skid 缓冲改分布式 RAM；**当前金样，已上板复验（19 轮全绿）** |
+| **R05** | `a22a054` | `f5c69ca7` | 1887418 B | +0.499 | 显示拷贝 skid 缓冲改分布式 RAM；**R06 之前的金样，已上板复验（19+3 轮全绿）** |
+| **R06** | 本轮提交 | `7d2cf8ee` | 1777758 B | **+0.974** | `frame_reasm` v5.1（饱和累加 + `bad_frame`）；L1 30/30、L4 三档全绿 |
+| **R07** | 本轮提交 | **`7d2cf8ee`（与 R06 逐字节相同）** | 1777758 B | +0.974 | 时钟组挪进 impl-only XDC + 删空约束；**bit 不变即证明改动中性**。**当前金样** |
 
 
 ## 7. 工具与子代理记录
@@ -608,13 +694,16 @@ ping 192.168.1.10                 → 发送=3 接收=3 丢失=0，RTT 1-2 ms   
 
 | # | 事项 | 已有什么 | 缺什么 | 备注 |
 |---|------|----------|--------|------|
-| U1 | ~~L4 板级复验~~ **已完成 19 轮**（金样 `f5c69ca7`） | 数据表见「L4 执行」 | —— | 结论：零回归 + 换帧原子；R03 无板级区分力 |
+| U1 | ~~L4 板级复验~~ **19 轮（R05 金样）+ 3 轮（R06/R07 新 bit）已完成** | 数据表见「L4 执行」与 `data/measured/board_measure_r06_r07.md` | —— | 结论：V7.0~V7.5 全程入包链零回归、换帧原子；R03 的板级 A/B 仍无区分力 |
 | U2 | **R06 缩放双线性插值**（P05，`frac_x/frac_y` 现在算了不用） | 器件剩 ~49 个 BRAM tile、~1.6 万 LUT；一行的行缓存 = 512×16bit = **1 个 tile** | 读侧要 4 抽头，而帧缓存是 1 读口 1 拍延迟 | 可行路子：水平邻点**大概率在同一个 64bit 字内**（现在读完 64bit 再 mux 一个 lane，另外 3 个 lane 本来就在那里）⇒ 横向插值几乎免费；纵向用 1~2 个行缓存 + 第二读流对齐。判据建议：TB 里建一个 Node/软件黄金模型算 PSNR，别只看"报告绿" |
 | U3 | P04 `--no-pace` 冻结 | 已知机理 | —— | **本夜明确否决"加深 CDC"这条路**：V-blank 拷贝窗口 67200 axi 拍 ≈ 672 µs，线速 125 MHz×2B = 250 MB/s ⇒ 要吸收它需 ~168 KB 即 ~84000 条 ×36bit ≈ **84 个 BRAM tile**，全片才 140 个，不可能；与 `CHANGELOG_V6.md` v6.3 的结论（瓶颈是平均排空速率不是深度）一致。真要改善只能改**拷贝调度**（把整帧拷贝摊到整个帧周期而不是 V-blank 窗口） |
 | U4 | P06 功耗置信度 Low | 有 `report_power` 基线 2.350 W | 需要 SAIF/开关活动文件 | 要做就是 `xsim` 导 SAIF → Vivado `read_saif`，代价是又一轮全流程；收益只是把"相对比较"变成"绝对估计"，优先级排最后 |
 | U5 | P07 36 条 DPIR-1（异步复位寄存器喂 DSP 输入，挡住 DSP 输出寄存器合并） | 定位在 `u_pl/u_zmap/raw_xs` 等 | 改同步复位要重跑入包/显示两侧回归 | 中等收益，低-中风险 |
 | U6 | P09 树内 10 个未综合的死模块 | 名单在 R01 摘要里 | 删除前要确认没有 TB 还引用它们 | 纯清洁工作，建议单独一轮，别和功能改动混在一起 |
-| U7 | WNS 余量回收（+0.819 → +0.499 是 R05 的代价） | 已知多了一级读 mux | 把 skid 读口改成提前一拍预取 | 可选；现在仍是全约束满足 |
+| U7 | ~~WNS 余量回收（+0.819→+0.499 是 R05 的代价）~~ **已由 R06 解决并超过：WNS +0.974** | R05 的代价来自 skid 多一级读 mux；R06 砍掉的是 `eth_rxc` 域 11 级进位链 | 若要再挖：skid 读口提前一拍预取（未做） | 瓶颈已从「逻辑深度」变成「布线距离 / 高扇出」（`clk_fpga_0` 最差路径 route 占 92.6%、`fo=330` 网线 2.751 ns）⇒ 下一步是 Pblock / 高扇出处理，不是再砍级数 |
 | U8 | 一次性诊断脚本已删除；`build/v64_baseline.bit`、`build/r05_golden.bit` 是 A/B 期间的临时副本（未跟踪），收尾删除 | —— | —— | v6.4 bit 随时可用 `git show 647160e:build/system.bit` 取出 |
+| U10 | **片外接口时序未被约束**：全仓库 XDC 只有 2 条 `create_clock`，`set_input_delay` / `set_output_delay` **各 0 条**，RGMII TX 由 3 条 `-to`（`rk_zynq7020.xdc:42-44` 的 tx_clk / tx_ctl / txd[*]）整条豁免输出时序检查，RX 侧靠固定抽头的 `IDELAYE2`（`system_top.v:129` 传 `IDELAY_VALUE(15)`，`rgmii_rx.v:29` 默认为 0）而没有把这段延迟写进约束 | `check_timing` 在 `build/timing_summary.rpt` 里自己列出无输入/输出延迟约束的端口；`methodology.rpt` 的 TIMING-18 逐条点名 | 补 RGMII DDR 输入约束（`-add_delay -clock_fall`）+ TX 相位（或 ODELAY / BUFIO 移相） | 预期是**暴露**出真实违例而不是消灭它们 ⇒ 要先决定收不收这笔债：收了报告就不再全绿，但结论更硬。至少口径必须区分「片内满足」与「片外靠板级证据」
+| U11 | **三处低成本 CDC 清洁**：`effect_ctrl` 的 3 级捕获链漏标 `ASYNC_REG`、`copy_abort` 被像素域裸采样（同文件里 `allow_copy` 却走了 2FF）、`eth_link` 在像素域裸用 4 处 | 位置 `effect_ctrl.v:12-13`、`pl_video_top.v:283` vs `:294-301`、`pl_video_top.v:282,288,307,486`；`eth_mode`（`:225-230`）已是一份正确的 3FF 版本可直接改用 | 加属性 / 换信号后重跑 L3，看 `cdc.rpt` 与 `methodology.rpt`（TIMING-10）条目变化 | 现况实测：`cdc.rpt` 有 **4 行 Critical**（类型均为 `Asynch Clock Groups`，即时钟组豁免掉的跨域），其中 `eth_rxc→clkout0_1` 33 端点里 **16 unsafe / 17 unknown**、`clk_fpga_0→clkout0_1` 16 端点里 **13 无 ASYNC_REG** ⇒ 这两行正好对应上面两个问题点。三处都不动功能逻辑，风险极低，是下一夜最划算的一笔
+| U12 | `frame_reasm` 的 `FRAME_BYTES` 未被例化覆盖（`eth_udp_video_top.v:185` 只传 IMG_W/IMG_H） | 默认值恰好 = 512×300×2，所以现在是对的 | 例化时传 `.FRAME_BYTES(IMG_W*IMG_H*2)`，并同步检查 `pl_video_top.v:363` 写死的行距 `{sy[8:0],9b0}` | 不改就是「改分辨率会静默失配」的地雷；本夜不动（要连带重跑入包链全回归）
 | U9 | **重建 R03/P04 的板上触发条件**：给 `src/host/video_sender.mjs` 加 `--mtu-payload`（非 8 倍数，如 1396），使包边界落在帧最后一个字内；或拉长 `axi_frame_writer_gated` 的 HP0 占用窗口以逼出 `sv_full` | `tb_v6_tail_bank` 已给出等效激励形状（读到最后一字 lane1 后停读） | 需要一次上位机小改 + 重测 | 这是把 R03 从「仿真级证据」提升到「板级证据」的唯一路子 |
 
