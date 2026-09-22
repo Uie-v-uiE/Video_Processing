@@ -622,8 +622,24 @@ ping 192.168.1.10                 → 发送=3 接收=3 丢失=0，RTT 1-2 ms   
   Slice 22.13% / LUT 13.68% / Reg 5.44% / Total 2.361 W / Failed Nets 0 /
   `All user specified timing constraints are met.` / methodology Critical 0 / cdc Critical 行 4→4。
   构建日志 CRITICAL WARNING 7→9：新增两条都是 `BD 41-1348`，即两个新 BD 单元继承既有结构。
-- **不谎报**：L4 没做（板子不可访问）。`drop_words` 与黑纹同时出现、OSD 两行肉眼可读、
-  十个 lane 两遍一致这三件事目前只有仿真级证据。
+- **L4 补做（20:15–20:55，板子已可访问）**：只连 Z7 ⇒ 链路 `arm_dap_0 + xc7z020_1` 出现，
+  这也把 §11 的"同一 URL 在两块板之间漂移"钉死了。`ps_jtag_boot`（DDR_ECHO 正确）→
+  `program_pl`（`d7e385b6`）→ `set_src`（0x00010000）→ `ping 192.168.1.10` 0% 丢失 →
+  `node src/host/health_read.mjs` 读回十个 lane。完整数据表在
+  **`data/measured/board_measure_r08.md`**，三条值得单独说的：
+  1. **`stall_ms` 空闲时能涨到 0xFFFF、停流后 4946→12142 ms 线性增长** —— 这一条同时是
+     CHANGELOG V7.6 里那个"分频器装不下 125000"缺陷已修好的**板级**证据（它只会由 `ms_tick` 推进）；
+  2. **两遍读回 22 次采样里没有任何单调 lane 变小** ⇒ 320bit 快照跨域在板上不撕烈；
+  3. **反例在板上够不到**：`--no-pace` 洪水后 `drop_words`/`cdc_episodes` 仍然为 0，
+     因为排空侧 ~200 MB/s 高于入包上限 125 MB/s，上位机压不满 CDC。
+     所以"drop_words 与黑纹同时出现"**没有板级战果**，只有 L1 的强制判据 —— 已如实写进记录。
+- **本轮又修了一个自己工具的 bug**：`health_read.mjs` 用 Tcl `split` 解析 `mrd` 的
+  `41200000:   00010000` 形式取不到值，而**解析失败后它继续写 GPIO_0**，把 `src_sel`、
+  `effect_en`、`threshold` 全清零了 —— 诊断工具自己改掉了被诊断的工况。
+  改成 Node 侧解析 + 读不到原值就直接退出。（现场用 `set_src.tcl` 恢复了显示源。）
+- **还欠两件人工的**：肉眼确认 OSD 的 `DROP=`/`STALL=` 两行；拔网线验证 `hb_gone`（lane31 bit0）。
+  另欠一项小改：`video_sender --drop-packet` 才能定向丢中间包，从而在板上验
+  `frames_bad`/`rows_miss_max`（同一改动也能把 R03 的帧尾缺陷推到板级，见 U9）。
 - **余量被吃掉这件事**：WNS 从 +0.974 降到 +0.527（−0.447 ns）。仍 ≥0 所以门禁通过，
   但这是本轮的代价，记进 §5 而不是删掉；下一轮若要再动 `eth_rxc` 域要先看这个数。
 
@@ -635,7 +651,7 @@ ping 192.168.1.10                 → 发送=3 接收=3 丢失=0，RTT 1-2 ms   
 | L1 | `sim/run_sim.tcl` **32** 个 TB（R08 加 `tb_link_monitor`、`tb_osd_lines`） | 入包完整性/乒乓/覆盖门/V-blank 拷贝/帧尾换页 A/B/帧缓存逐像素回读/**CDC 丢字反例判据**/**生产时基守门**/**跨域不撕烈**/**OSD 字形与饱和** | **R08 后 32/32**，留档 `sim/results/regression_v76.txt`（一次进程跑不完 32 个，记录由两段拼成，每段都是逐字 RESULT 行） |
 | L2 | `build_system_axigpio.tcl` 的 synth+impl 报告 | 时序/资源/功耗/方法学/CDC/布线 | **R07 全项合格，WNS 由 +0.499 提到 +0.974**（见 §5） |
 | L3 | bit + xsa | 上板前置 | **`7d2cf8ee`（R06=R07，1777758 B）**已出并已上板 |
-| L4 | `ps_jtag_boot` → `program_pl` → `set_src` → `video_sender --test frameid` → 停流 → `ddr_verify`/`ddr_stale` | 丢包签名、换帧原子性、帧尾落位、洪水与限速多档 | 已执行 19+3 轮（R05 金样）；**R06/R07 新 bit 上再跑 3 轮**：15 fps×200 / 30 fps×300 / 不限速 60 fps×400，每 bank 恰好一帧、命中率 100.0%、六带 0.0%、丢字带 0 字（`data/measured/board_measure_r06_r07.md`） |
+| L4 | `ps_jtag_boot` → `program_pl` → `set_src` → `video_sender` → 停流 → `ddr_verify`/`ddr_stale`/**`health_read`** | 丢包签名、换帧原子性、帧尾落位、洪水与限速多档、**链路健康数字的板级一致性** | 已执行 19+3 轮（R05 金样）；**R06/R07 新 bit 上再跑 3 轮**：15 fps×200 / 30 fps×300 / 不限速 60 fps×400，每 bank 恰好一帧、命中率 100.0%、六带 0.0%、丢字带 0 字（`data/measured/board_measure_r06_r07.md`）；**R08 新 bit：JTAG 读回十个健康 lane，空闲/推流/停流三态全部符合设计，22 次两遍读零撕烈，`stall_ms` 线性到 12142 ms（`data/measured/board_measure_r08.md`）** |
 
 ## 5. 报告门禁历史表
 
@@ -666,7 +682,8 @@ ping 192.168.1.10                 → 发送=3 接收=3 丢失=0，RTT 1-2 ms   
 | **R05** | `a22a054` | `f5c69ca7` | 1887418 B | +0.499 | 显示拷贝 skid 缓冲改分布式 RAM；**R06 之前的金样，已上板复验（19+3 轮全绿）** |
 | **R06** | 本轮提交 | `7d2cf8ee` | 1777758 B | **+0.974** | `frame_reasm` v5.1（饱和累加 + `bad_frame`）；L1 30/30、L4 三档全绿 |
 | **R07** | 本轮提交 | **`7d2cf8ee`（与 R06 逐字节相同）** | 1777758 B | +0.974 | 时钟组挪进 impl-only XDC + 删空约束；**bit 不变即证明改动中性**。R08 之前的金样 |
-| **R08** | 本轮提交 | **`d7e385b6`** | 2042730 B | +0.527 | P0-A 链路健康自诊断（link_monitor + snap_cross + OSD 两行 + GPIO_1 读回）。L1 32/32、L3 全门禁 PASS，**L4 未做（板子不可访问）⇒ 暂不当金样**，R07 仍是最后一块"上板验证过"的 bit |
+| **R08** | 本轮提交 | **`d7e385b6`** | 2042730 B | +0.527 | P0-A 链路健康自诊断（link_monitor + snap_cross + OSD 两行 + GPIO_1 读回）。L1 32/32、L3 全门禁 PASS。**L4 已跑**（三态读回 + 22 次两遍零撕烈），但它只覆盖“仪表读数”，
+`drop_words` 的真值判据与 `hb_gone` 仍未在板上触发 ⇒ **暂不当金样**，R07 仍是最后一块全流程验证过的 bit |
 
 
 ## 7. 工具与子代理记录

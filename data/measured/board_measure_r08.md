@@ -1,0 +1,93 @@
+# 板级实测 R08 · 链路健康自诊断引擎（2026-09-22 20:15–20:55）
+
+板子：RK-ZYNQ7020-F，`xc7z020clg484-2`。bit：`build/system.bit`，md5 **`d7e385b6`**，2042730 B。
+链路：PC 网卡 `192.168.1.100` ↔ 板子 **PL 侧** RJ45 `192.168.1.10`（直连千兆）。
+JTAG：板载 FT2232，`0ABC01A`，链路 = `arm_dap_0 + xc7z020_1`。
+
+## 复现命令
+
+```bat
+:: 0) 只连一块板的 Type-C（两块板的 FT2232 共用序列号 0ABC01，同时插只认一个）
+"D:\Software\Vivado\2025.2.1\Vivado\bin\hw_server"          :: 另开一个窗口
+:: 1) 起 PS（DDR + FCLK_CLK0）
+set PS7_INIT=vivado_system\zynq_video_sys.gen\sources_1\bd\design_1\ip\design_1_processing_system7_0_0\ps7_init.tcl
+"D:\Software\Vivado\2025.2.1\Vitis\bin\xsdb.bat" build\tcl\ps_jtag_boot.tcl
+::    → RST_SYSTEM ok / PS7_INIT ok / PS7_POST_CONFIG ok / DDR_ECHO 5A5AA5A5
+:: 2) 下 PL
+"D:\Software\Vivado\2025.2.1\Vivado\bin\vivado.bat" -mode batch -source build\tcl\program_pl.tcl
+:: 3) 选显示源 SRC1=视频
+"D:\Software\Vivado\2025.2.1\Vitis\bin\xsdb.bat" build\tcl\set_src.tcl
+::    → GPIO 0x41200000 = 00010000
+:: 4) 确认 PL 以太网栈活着（ARP/ICMP 是 RTL 应答的，不需要 PS 参与）
+ping 192.168.1.10        → 0%% 丢失，平均 1 ms
+:: 5) 读健康快照（GPIO_1 基地址来自 build 日志 ADDR GPIO1）
+cd src\host && node health_read.mjs
+:: 6) 推流
+node video_sender.mjs --fps 15 --count 900
+node video_sender.mjs --no-pace --count 400
+```
+
+## 主实验：空闲 → 推流 → 停流（15 fps × 15 s 后 kill）
+
+`node health_read.mjs`；A/C/D 用 `--once`，B 用默认两遍比对。单位 ms / 十六进制原值。
+
+| lane | A 空闲（上次洪水之后） | B 推流中 | C 停流 +2 s | D 停流 +6 s |
+|---|---|---|---|---|
+| 0 `drop_words` | `00000000` | `00000000` | `00000000` | `00000000` |
+| 1 `frames_bad\|pkt_err` | `00000000` | `00000000` | `00000000` | `00000000` |
+| 2 `stall_ms\|rows_max` | **`0000FFFF`**（饱和） | **`00000000`** | **`00001352`** = 4946 | **`00002F6E`** = 12142 |
+| 3 `gap_last` | `00000045` = 69 | `00000034` = 52 | `0000004A` = 74 | `0000004A` = 74 |
+| 4 `gap_max\|min` | `5A1E0027`（max 23070 = 上电后的空档，min 39） | 同 | 同 | 同 |
+| 5 `gap_sum` | `00026772` | `0002B627` | `0002BCA7` | `0002BCA7` |
+| 6 `cdc_episodes` | `00000000` | `00000000` | `00000000` | `00000000` |
+| 7 `flags` | `00000010`（流活着=0，间隔已校准=1） | **`00000018`**（流活着=1） | `00000010` | `00000010` |
+| 8 `pkts` | `00067375` = 422773 | `00076A5B` = 486491 | `00077E36` = 491062 | `00077E36`（冻结） |
+| 9 `bytes` | `23073000` = 587.6 MB | `2843D000` = 675.6 MB | `28AFA000` = 682.3 MB | `28AFA000`（冻结） |
+| 31 心跳 | `0`（正常） | `0` | `0` | `0` |
+
+B 列两遍比对的实际标注：`drop/bad/stall/ep/min-max = ok`，`gap_sum/pkts/bytes = 增长中 ok`，
+`gap_last/flags = 实时值，两遍不同属正常`，**没有任何一条单调 lane 出现"变小"**
+⇒ 320 bit 快照跨 eth_rxc→fclk0 域在板上 22 次采样里一次都没撕烈。
+
+### 从这张表能读出什么
+
+1. **`stall_ms` 是定量可信的**：kill 之后 2 s 读到 4946 ms、再过 4 s 读到 12142 ms，
+   斜率 7196 ms / 实际经过 ≈ 7 s（读一次本身要 1.5–2 s）⇒ 每 ms 加 1，没有跳变也没有卡住。
+2. **`stall_ms` 能涨到 0xFFFF 本身就是生产时钟的板级证明。** 它只会由 `ms_tick` 推进，
+   而 `ms_tick` 要求 `ms_div` 数到 124999。R08 之前的写法是 `reg [15:0] ms_div`
+   （装不下 125000 ⇒ 比较恒假），TB 因为把 `CLK_HZ` 改成 1000 而恰好看不见这个问题。
+   **板上真能数满 ⇒ `$clog2(TC+1)` 的宽度修正在 125 MHz 下成立。**
+3. **帧间隔量出来了**：标称 15 fps = 66.7 ms，实测 `gap_last` 在 52–74 ms 之间、
+   `gap_min` 39 ms。落在两侧是合理的 —— 一帧的"完成时刻"是它最后一个包落地的时刻，
+   而 221 个包是成串进来的，所以完成相位会围绕名义值抖 ±20 ms。
+4. **`flags` 的位语义逐条对上**：`bit3 流活着` 只在 B 列为 1；`bit4 间隔已校准` 一旦置起就保持；
+   `bit0/1/2`（丢过字/作废过帧/灌满过）全程 0，与 lane0/1/6 的计数值一致 —— 标志位不是独立写的谎。
+5. **读回通道是安全的**：`health_read.mjs` 对 GPIO_0 做读-改-写并在结束时归还，
+   四次读回都显示 `GPIO_0 读回 0x10000（已还原）`，特效开关与阈值没被诊断动作改掉。
+
+## 反例复现：够不到的部分，如实写"没做到"
+
+* **L1（仿真）**已经证明计数器不会因为"没接"而静默：拉住 `fifo_full` 一整帧 ⇒
+  `drop_words=32`、`cdc_episodes=1`、`drop_seen` 置位；反向（没有 full）必须恒 0。
+* **L4（板上）没能制造出 CDC 灌满**：`--no-pace` 洪水 400 帧（实测收包数继续涨、
+  帧仍在提交，`gap_sum` 15 s 内 +44980 ms ≈ 737 帧）之后 `drop_words` 与 `cdc_episodes`
+  **仍然是 0**。原因与 v6.3 的结论一致：排空侧 `axi_frame_saver64` 平均能力 ~200 MB/s，
+  而入包上限是千兆线速 125 MB/s，PC 侧无论怎么压都超不过排空速率
+  ⇒ **从上位机够不到"填满 CDC"这个工况**。
+  所以"drop_words 与黑纹同时出现"这条板级战果**没有**，本轮只有仿真级判据。
+  （顺带这也是一个正面结论：仪表没有狼来了。）
+* **`hb_gone`（lane31 bit0）未在板上验证**：需要拔掉网线让 RTL8211 停供 RXC，
+  这是人工动作，留到下一次（同时肉眼确认 OSD 的 `DROP=`/`STALL=` 两行）。
+* **`frames_bad` / `rows_miss_max` 未在板上验证**：需要"丢掉一帧的中间某个包、
+  但最后一个包仍到达"的定向丢包，`video_sender.mjs` 目前没有 `--drop-packet` 选项。
+  列为下一轮的小改（同时能把 R03 的帧尾缺陷推到板级）。
+
+## 一处工具 bug（本轮修的，值得记）
+
+`health_read.mjs` 第一版在 Tcl 里用 `lindex [split [mrd ...]] 1` 取数据 —— xsdb 的
+`mrd` 返回是 `41200000:   00010000` 这种"地址冒号"形式，那样取到的第二段是空的。
+后果不只是读不到数：**解析失败时脚本继续往下写 GPIO_0，把 `src_sel`（bit16）、
+`effect_en`、`threshold` 全写成了 0**，等于诊断工具自己改掉了被诊断的工况。
+两处修正：① 改成把整串打出来、由 Node 侧按 `地址: 数据` 解析；
+② 读不到 GPIO_0 原值就**直接退出，一个字节都不写**。
+③ 顺带把"两遍不一致"的判据改对：单调 lane 只有**变小**才是撕烈，推流时变大是正常。

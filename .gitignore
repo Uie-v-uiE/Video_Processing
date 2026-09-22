@@ -63,3 +63,4 @@ sim/probes/*.log
 sim/probes/.Xil/
 sim/probes/*.runs/
 sim/probes/*.dcp
+data/measured/health_*.out

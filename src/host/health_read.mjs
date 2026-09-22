@@ -14,8 +14,9 @@
  *   前置：板子上电、bit 已下载、hw_server 在跑（见 HOST_GUIDE.md）。
  *   两个基地址在 build/v76_build.log 的 `ADDR GPIO0 = …` / `ADDR GPIO1 = …` 行里。
  *
- * 默认把 10 条 lane 读两遍并比对：AXI GPIO 的输入同步器有百万分之一的概率正好
- * 采样到快照刷新的一拍，两遍不一致就标出来，免得把撕烈的数字当成实测值记进报告。
+ * 默认把 10 条 lane 读两遍：单调计数器的第二遍只允许 >= 第一遍，变小就意味着
+ * 采到了快照刷新的那一拍（撕烈），会单独报出来。非单调 lane（stall/gap/flags）
+ * 两遍不同是正常的，只标注不报错。
  */
 import { execSync } from 'node:child_process';
 import { writeFileSync, readFileSync, unlinkSync } from 'node:fs';
@@ -33,7 +34,12 @@ const GPIO0 = '0x' + String(get('gpio0', '41200000'));
 const GPIO1 = '0x' + String(get('gpio1', '41210000'));
 const PASSES = get('once') ? 1 : 2;
 
-// 必须与 src/rtl/eth/link_monitor.v 尾部 lane0..lane9 的顺序一致
+// 两遍比对的判据必须按"这个 lane 是不是单调"来分：
+//   · 单调 lane（累计计数）只有在**第二次比第一次小**时才是撕烈 —— 推流过程中
+//     它两遍本来就该不等（板级实测：15 fps 下 pkts 两遍差了几千，这是正常）。
+//   · 非单调 lane（gap/flags/stall 会回卷或被清零）两遍不等没有意义，只标注不报错。
+const MONO = new Set([0, 1, 5, 6, 8, 9]);
+const LIVE = new Set([2, 3, 4, 7]);
 const LANES = [
   ['drop_words',   '被 fifo_full 挡住而永久消失的 16bit 字数（板上唯一真实丢数据通道）'],
   ['bad|err',      '低16=被作废的帧数，高16=坏包数（上板 p_good 恒 1 ⇒ 坏包应为 0）'],
@@ -58,9 +64,11 @@ const HEAD = [
   `after 100`,
 ];
 
-// mrd 的返回形如 "0x41200000\tdeadbeef"，取第二段
-const READ = (addr) =>
-  `set v [mrd -force ${addr} 1]; puts "VAL [lindex [split $v] 1]"`;
+// xsdb 的 mrd 返回形如 "41200000:   00010000"。**不要**在 Tcl 里 lindex/split 它
+// （实测 [split $v] 拿不到第二段，会把整条链读成 0）；直接把整串打出来，
+// 由 Node 侧按 "地址: 数据" 解析。
+const VAL_RE = /VAL\s*[0-9a-fA-F]{1,8}:\s*([0-9a-fA-F]{1,8})/;
+const READ = (addr) => `puts "VAL [mrd -force ${addr} 1]"`;
 
 function passScript(lanes, restoreTo, keep) {
   const L = [...HEAD];
@@ -96,24 +104,30 @@ function runXsdb(body, tag) {
   return text;
 }
 
-// 第 0 步：把 GPIO_0 当前值读回来，后面原样还回去
-const cur = parseInt(
-  (runXsdb([...HEAD, READ(GPIO0)].join('\n') + '\n', 'cur').match(/VAL ([0-9a-f]{1,8})/) || [])[1] || '0',
-  16
-);
+// 第 0 步：把 GPIO_0 当前值读回来，后面原样还回去。
+// 读不到就必须**直接退出**：第一版在这里失败后继续往下写，结果 keep=0，
+// 把 src_sel / effect_en / threshold 全清零了 —— 读诊断的脚本自己改掉了工况。
+const curRaw = runXsdb([...HEAD, READ(GPIO0)].join('\n') + '\n', 'cur').match(VAL_RE);
+if (!curRaw) {
+  console.log('[HEALTH] 读不到 GPIO_0 的当前值，拒绝继续（否则会踩掉 src_sel/特效/阈值）。');
+  console.log('[HEALTH] 先确认 JTAG 与 hw_server 可用：xsdb 里 mrd ' + GPIO0);
+  process.exit(1);
+}
+const cur = parseInt(curRaw[1], 16) >>> 0;
 const keep = cur & 0x07ffffff;                       // 清掉 bit[31:27]，保留控制位
 const want = [...Array(10).keys(), 31];
 const vals = new Map();
 for (let p = 0; p < PASSES; p++) {
-  const txt = runXsdb(passScript(want, p === PASSES - 1 ? keep : undefined, keep), `p${p}`);
+  const txt = runXsdb(passScript(want, p === PASSES - 1 ? cur : undefined, keep), `p${p}`);
   let lane = -1;
   for (const line of txt.split('\n')) {
     const m = line.match(/^LANE (\d+)$/);
     if (m) { lane = Number(m[1]); continue; }
-    const v = line.match(/^VAL ([0-9a-f]{1,8})$/);
+    const v = line.match(VAL_RE);
     if (v && lane >= 0) {
       if (!vals.has(lane)) vals.set(lane, []);
       vals.get(lane).push(parseInt(v[1], 16) >>> 0);
+      lane = -1;
     }
   }
 }
@@ -125,14 +139,24 @@ const bit = (v, i) => v === undefined ? '?' : ((v >>> i) & 1) ? '1' : '0';
 console.log(`GPIO_0=${GPIO0} 读回 0x${(cur >>> 0).toString(16)}（已还原），GPIO_1=${GPIO1}`);
 console.log('lane  value       含义');
 console.log('----  ----------  ----------------------------------------');
+let torn = 0;
 for (let n = 0; n < 10; n++) {
   const vs = vals.get(n);
   if (!vs || !vs.length) { console.log(`${String(n).padStart(4)}  (读不到)`); continue; }
-  const torn = vs.some((x) => x !== vs[0]);
+  let tag = '';
+  if (PASSES > 1) {
+    const moved = vs.some((x) => x !== vs[0]);
+    if (MONO.has(n)) {
+      // 单调 lane 只在"变小"时是撕烈；变大说明计数器还在走，正是链路活着的证据
+      const back = vs.some((x, i) => i > 0 && x < vs[i - 1]);
+      if (back) { tag = '   <== 撕烈：单调计数器变小了'; torn++; }
+      else tag = moved ? '   增长中 ok' : '   ok';
+    } else {
+      tag = moved ? '   实时值，两遍不同属正常' : '   ok';
+    }
+  }
   console.log(
-    `${String(n).padStart(4)}  0x${vs[0].toString(16).padStart(8, '0')}  ${LANES[n][0]}` +
-    (PASSES > 1 ? (torn ? '   <== 两遍不一致' : '   ok') : '')
-  );
+    `${String(n).padStart(4)}  0x${vs[0].toString(16).padStart(8, '0')}  ${LANES[n][0]}${tag}`);
   console.log(`      ${''.padEnd(10)}${LANES[n][1]}`);
 }
 const clk = g(31);
@@ -153,3 +177,4 @@ if (drop === 0 && gone === 0) {
 } else {
   console.log(`结论：丢了 ${drop} 个字。上游太快或 HP0 被长时间占用，对照 video_sender 的限速与拷贝窗口。`);
 }
+if (torn) console.log(`警告：${torn} 条单调 lane 出现「变小」，那是跨域采到刷新瞬间 —— 重读确认，别记进报告。`);
