@@ -237,21 +237,35 @@ module osd_overlay #(
         // 31 stays blank
     end
 
+    // 字码 → 字形号。**故意写成 case 而不是 if/else 区间比较**（V7.9.4 / 时序深度优化）：
+    // 原来那串 `c >= 0x30 && c <= 0x39` 之类是**串行优先级链**，每个区间比较还要一次减法，
+    // 它们和同一拍里的 `line*MAX_CHARS+cidx`、`font[gi][fy]` 串成一条 27 级、CARRY4=10 的链，
+    // 就是 L3 报告里 `x_d_reg[11]→b_reg` 这条全设计最差路径的主体。
+    // case 的 256 个码点是**并行**译码（真值表与原来逐项一致，`sim/tb_v794_osd_glyph.v` 做差分验证），
+    // 表里没有的码点仍然落到 31=空格 —— 语义一字未改，只是不再串行。
     function [4:0] glyph_idx;
         input [7:0] c;
         begin
-            if (c >= 8'h30 && c <= 8'h39)      glyph_idx = c - 8'h30;          // 0-9
-            else if (c >= 8'h41 && c <= 8'h46) glyph_idx = 5'd10 + (c - 8'h41); // A-F
-            else if (c == 8'h47) glyph_idx = 5'd16; // G
-            else if (c == 8'h4C) glyph_idx = 5'd21; // L
-            else if (c == 8'h4E) glyph_idx = 5'd20; // N
-            else if (c == 8'h4F) glyph_idx = 5'd18; // O
-            else if (c == 8'h50) glyph_idx = 5'd22; // P
-            else if (c == 8'h52) glyph_idx = 5'd17; // R
-            else if (c == 8'h53) glyph_idx = 5'd24; // S
-            else if (c == 8'h54) glyph_idx = 5'd19; // T
-            else if (c == 8'h3D) glyph_idx = 5'd27; // =
-            else                 glyph_idx = 5'd31; // BLANK (space etc.)
+            case (c)
+                8'h30: glyph_idx = 5'd0;   8'h31: glyph_idx = 5'd1;
+                8'h32: glyph_idx = 5'd2;   8'h33: glyph_idx = 5'd3;
+                8'h34: glyph_idx = 5'd4;   8'h35: glyph_idx = 5'd5;
+                8'h36: glyph_idx = 5'd6;   8'h37: glyph_idx = 5'd7;
+                8'h38: glyph_idx = 5'd8;   8'h39: glyph_idx = 5'd9;
+                8'h41: glyph_idx = 5'd10;  8'h42: glyph_idx = 5'd11;
+                8'h43: glyph_idx = 5'd12;  8'h44: glyph_idx = 5'd13;
+                8'h45: glyph_idx = 5'd14;  8'h46: glyph_idx = 5'd15;
+                8'h47: glyph_idx = 5'd16;  // G
+                8'h4C: glyph_idx = 5'd21;  // L
+                8'h4E: glyph_idx = 5'd20;  // N
+                8'h4F: glyph_idx = 5'd18;  // O
+                8'h50: glyph_idx = 5'd22;  // P
+                8'h52: glyph_idx = 5'd17;  // R
+                8'h53: glyph_idx = 5'd24;  // S
+                8'h54: glyph_idx = 5'd19;  // T
+                8'h3D: glyph_idx = 5'd27;  // =
+                default: glyph_idx = 5'd31; // BLANK（空格以及一切不在表里的码点）
+            endcase
         end
     endfunction
 
