@@ -1,0 +1,32 @@
+# 实现策略扫描结果 —— 2026-09-22（R06 取证）
+#
+# 命令：
+#   set SWEEP_STRATS=Performance_Explore
+#   vivado -mode batch -nojournal -log build/sweep3.log -source build/tcl/sweep_impl_strategy.tcl
+#   （复用 vivado_system/zynq_video_sys.xpr，只 reset+重跑 impl_1，不重建 BD、不重跑综合）
+#
+# 目的：V7.0/7.1/7.3 把资源从 99.92% Slice 压到 18% 之后，"时序还剩多少"到底由
+#       实现策略决定还是由 RTL 决定？先量清楚再决定要不要改代码。
+#
+# 结论（一句话）：**这一档策略没有收益** —— 把 impl_1 显式设成 Performance_Explore 之后，
+#       结果与 R05 基线（构建脚本未指定任何策略）**逐位相同**：WNS 0.499 / WHS 0.060 / 0-21253。
+#       同时最差的 10 条 eth_rxc 路径同构（都是 frame_reasm 的三操作数加法进位链），
+#       于是转向 RTL 改写（V7.4，见 report/CHANGELOG_V7.md）。
+#       注意：这里只证明「Performance_Explore 这一档 = 未指定策略的结果」，
+#       不对 Vivado 的默认策略名做任何断言（工程里没留下该字符串，且报告未记录）。
+#
+# 扫描只完成一个策略就中断：report_timing_summary 的 -check_summary_only
+# 在 Vivado 2025.2.1 不是合法选项，命令报错且未被 catch ⇒ 脚本退出。
+# 其余 4 个策略未跑，故本文件是**部分结果**，不足以支撑"所有策略都无收益"。
+# 支撑 V7.4 决策的实际证据只有两条：① 这一档 = 基线；② 最差 10 条路径同构且逻辑深度 11 级。
+#
+# 数据来源：build/sweep3.log 中实现自身的时序小结行
+#   [Route 35-20] Post Routing Timing Summary | WNS=0.499 | TNS=0.000 | WHS=0.060 | THS=0.000 |
+#   以及 build/timing_summary.rpt（R05 基线、同一网表）：WNS 0.499 / WHS 0.060 / 0 of 21253
+
+strategy	WNS	WHS	fail_endpoints	all_constraints_met	total_power_W	note
+Performance_Explore	0.499	0.060	0/21253	YES	-	与"未指定策略"的 R05 基线逐位相同 ⇒ 该档无收益
+Performance_ExplorePostRoutePhysOpt	NOT_RUN	-	-	-	-	脚本在该轮之前因非法选项退出
+Performance_ExploreWithRemap	NOT_RUN	-	-	-	-
+Performance_ExtraTimingOpt	NOT_RUN	-	-	-	-
+Performance_BalanceSLRs	NOT_RUN	-	-	-	-	（xc7z020 无 SLR，此项本就意义有限）

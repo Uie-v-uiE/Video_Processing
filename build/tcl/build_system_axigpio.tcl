@@ -17,6 +17,13 @@ lappend rtl_files [file join $root src rtl top pl_video_top.v]
 lappend rtl_files [file join $root src rtl top system_top.v]
 add_files -norecurse $rtl_files
 add_files -fileset constrs_1 -norecurse [file join $root src constraints rk_zynq7020.xdc]
+# 异步时钟组单独一个文件，并且**只在实现阶段生效**：clk_fpga_0 由 PS7 IP 的 XDC
+# 创建，综合阶段还不存在，而 XDC 里不能用 if/catch（[Designutils 20-1307]）。
+# 不拆的话每个 run 都吃 2 条 CRITICAL WARNING [Vivado 12-4739]，且整条
+# set_clock_groups 不生效（综合阶段本来就不生效 ⇒ 拆分不改时序数字，只是去掉噪声）。
+set cgxdc [add_files -fileset constrs_1 -norecurse [file join $root src constraints clock_groups_impl.xdc]]
+set_property used_in_synthesis false $cgxdc
+set_property used_in_implementation true $cgxdc
 
 create_bd_design design_1
 create_bd_cell -type ip -vlnv xilinx.com:ip:processing_system7:5.5 processing_system7_0
