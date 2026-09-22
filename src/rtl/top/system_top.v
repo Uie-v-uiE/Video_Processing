@@ -166,19 +166,20 @@ module system_top (
     // ---- v7.6 (P0-A)：把健康快照再跨一份到 fclk0（100 MHz）给 PS 读 ----
     // 读法：先用**已经存在**的 GPIO_0（输出）把 lane 号写到 gpio_o[31:27]，
     // 再从新加的 GPIO_1（输入）读那一条 32bit。lane 定义见 link_monitor 尾部。
-    //   lane 31 → {30'd0, 2'd0, lm_clk_gone}，用来回答"eth_rxc 还在不在"，
+    //   lane 31 → {30'd0, hb_slow, hb_gone}：bit0=源时钟没有，bit1=源时钟被拉慢
+    //   （板级实测拔线时 RXC≈2.5 MHz ⇒ 只有 bit1 会亮），
     //   其它越界的 lane → 32'hDEAD_BEEF，好让脚本一眼看出自己写错了号。
     wire [319:0] lm_axi;
-    wire         lm_clk_gone;
+    wire         lm_clk_gone, lm_clk_slow;
     snap_cross #(.W(320), .DST_HZ(100_000_000), .HB_TO_MS(200)) u_lm_axi (
         .dst_clk(fclk0), .dst_rst_n(fclk0_rst_n),
         .bus(eth_lm_bus), .bus_tog(eth_lm_tog), .hb_tog(eth_lm_hb),
-        .bus_q(lm_axi), .hb_gone(lm_clk_gone)
+        .bus_q(lm_axi), .hb_gone(lm_clk_gone), .hb_slow(lm_clk_slow)
     );
     wire [4:0] lm_lane = gpio_o[31:27];
     reg  [31:0] lm_rd;
     always @(*) begin
-        if      (lm_lane == 5'd31)     lm_rd = {30'd0, 2'd0, lm_clk_gone};
+        if      (lm_lane == 5'd31)     lm_rd = {30'd0, lm_clk_slow, lm_clk_gone};
         else if (lm_lane > 5'd9)       lm_rd = 32'hDEAD_BEEF;
         else                           lm_rd = lm_axi[lm_lane*32 +: 32];
     end

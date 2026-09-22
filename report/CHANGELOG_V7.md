@@ -342,6 +342,49 @@ L1 的 100/100 不撕烈断言就是它的证据。这一点在 `study/03_模块
 
 ---
 
+## V7.6b（R09）—— 拔线实验推翻了自己的假设，于是加了 `hb_slow`
+
+用户肉眼确认 OSD 五行（含新的 `DROP=`/`STALL=`）显示正确之后，做了拔线实验：
+`--test move` 15 fps 推流，一条 xsdb 会话每秒采一次 lane2/lane8/lane31，共 110 次。
+
+**先看它对的部分**（这份数据同时是 R08 的第二次独立验证）：
+
+* 推流时 `Δpkts/s = 3315 = 15 fps × 221 包/帧`，与上位机标称**逐位吻合**
+  （个别秒读到 3536 = 16 帧，是 1 秒采样边界，不是速率漂移）；
+* 拔线瞬间 `pkts` 冻结、`stall_ms` 开始爬；插回后 `stall_ms` 立刻归零、`pkts` 恢复增长，
+  **全程不重启板子也不重下 bit** ⇒ 自动恢复成立。
+
+**再看被推翻的部分**：`hb_gone` 一次都没有触发。设计假设是"拔线后 RTL8211 停供 RXC"，
+板子给的却是**另一种行为**。硬证据不是"lane31 一直是 0"，而是一条定量观察：
+断流那 13 秒 `stall_ms` 只从 831 走到 1117，即 **+20.5 计数/秒**而非 1000/秒，
+而它的唯一时基是 `ms_tick = (ms_div == 124999)` ⇒ **eth_rxc 当时只有约 2.5 MHz**。
+也就是 PHY 没关时钟，而是把它拉慢约 48 倍 —— "有没有沿"检不到，能检的是"沿够不够快"。
+
+**修法**：`snap_cross` 增加 `hb_slow`（心跳间隔 > `SLOW_MS`，默认 5 ms ⇒ 正常 1 ms、
+退化 ~50 ms，两侧余量 5× 与 10×）；`osd_stall = (hb_gone | hb_slow) ? 9999 : stall_ms`；
+lane31 变成 `{30'd0, hb_slow, hb_gone}`，`health_read.mjs` 分开报两个位。
+方向差点写反：第一版比较是 `to_cnt > LIM − SLOW_LIM`，代入真实数字
+（`LIM=10_000_000`、1 ms 心跳 ⇒ `to_cnt=9_950_000`）会把**健康**的 1 ms 判成退化；
+源时钟变慢 ⇒ 目的域量到的间隔**变长** ⇒ 正确判据是 `to_cnt < LIM − SLOW_CYCLES`。
+
+**口径因此收紧**（这是对外表述必须改的地方）：`stall_ms` 只在链路正常时是真实毫秒；
+断链期间它是"越来越久"的序指标。说"没流了"要用 `flags.bit3 流活着` 和 `pkts` 停增，
+不要引用那个爬得很慢的毫秒数。
+
+**新工具经验**：`build/tcl/ooc_newmods.tcl` 加了 `OOC_ONLY=<模块>` 入口 —— 同一进程里
+连跑三次 `synth_design` 会撞上 Windows 的 `.Xil` 目录锁
+（`[Designutils 20-411] ... could not be deleted`）并**静默跳过后面的模块**；
+同时明确写进脚本头：**这个 OOC 的数字不是门禁**（它对输入一律加 3 ns 延迟，
+`osd_overlay` 因此报 −0.256，而真实 L3 是 +0.527 / All constraints met），
+它的用途是抓结构性大链，不是打分。
+
+L1 仍是 **32/32**（一次进程跑完，`SIM DONE pass=32 fail=0`），新增断言：
+`hb_slow clear while the heartbeat is at nominal rate`、
+`hb_slow asserts when the source clock is degraded (拔线工况)`、
+`hb_gone correctly stays clear (它看不见这件事，正是加 hb_slow 的理由)`。
+
+---
+
 ## 五版累计（第四版 → 第五版）
 
 | 项 | V6.4 | **V7.5（当前 main）** | 变化 |

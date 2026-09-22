@@ -7,17 +7,34 @@
 # 50 MHz 像素时钟。跑法：
 #   vivado -mode batch -nojournal -log build/ooc_newmods.log -source build/tcl/ooc_newmods.tcl
 # 判据：log 里每条 `Slack (...)` 都必须 ≥ 0（grep "Slack" build/ooc_newmods.log）。
+#
+# **但这里的数字不是门禁。** 它只能测近似模型：给所有输入硬加 3 ns 延迟，比真实设计
+# 更悲观 —— 实测 osd_overlay 在这里报 -0.256 ns（x -> 行/列除法 -> 字模 那条 27 级链），
+# 而全构建里 x 由同域的 x_d11 寄存器驱动、共用一棵时钟树，真实 L3 是 WNS +0.527、
+# All constraints met。所以它的用途是**抓结构性的大链**（V7.6 靠它抓到那条 45 级 /
+# 26.6 ns 的十进制除法链，以及 ms_div 被优化掉的 [Synth 8-6014]），不是拿分数当门槛。
+#
+# 同一进程里连跑三次 synth_design 会撞上 Windows 的 .Xil 目录锁
+#   [Designutils 20-411] ... could not be deleted and may be locked
+# 于是后面的模块被静默跳过。一个进程只测一个模块：
+#   for m in link_monitor snap_cross osd_overlay; do OOC_ONLY=$m vivado -mode batch \
+#        -nojournal -log build/ooc_$m.log -source build/tcl/ooc_newmods.tcl; done
 set root [file normalize [file join [file dirname [info script]] .. ..]]
 create_project ooc_check [file join $root vivado_ooc] -part xc7z020clg484-2 -force
 read_verilog [file join $root src rtl eth link_monitor.v]
 read_verilog [file join $root src rtl eth snap_cross.v]
 read_verilog [file join $root src rtl video osd_overlay.v]
 
+if {[info exists ::env(OOC_ONLY)]} {
+  set want $::env(OOC_ONLY)
+} else { set want {}
+}
 foreach {m port period} {
   link_monitor  clk     8.0
   snap_cross    dst_clk 20.0
   osd_overlay   clk     20.0
 } {
+  if {[llength $want] > 0 && [lsearch -exact $want $m] < 0} { continue }
   puts "==== OOC $m  (clock port $port, period ${period} ns) ===="
   if {[catch {synth_design -top $m -mode out_of_context -part xc7z020clg484-2} e]} {
     puts "SYNTH_FAIL $m : $e"

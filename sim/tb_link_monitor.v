@@ -150,11 +150,11 @@ module tb_link_monitor;
     reg  [SW-1:0] s_bus = 0;
     reg           s_tog = 0, s_hb = 0;
     wire [SW-1:0] d_bus;
-    wire          d_gone;
+    wire          d_gone, d_slow;
     snap_cross #(.W(SW), .DST_HZ(8_000_000), .HB_TO_MS(50)) u_sc (
         .dst_clk(pclk), .dst_rst_n(prst_n),
         .bus(s_bus), .bus_tog(s_tog), .hb_tog(s_hb),
-        .bus_q(d_bus), .hb_gone(d_gone)
+        .bus_q(d_bus), .hb_gone(d_gone), .hb_slow(d_slow)
     );
 
     initial begin
@@ -298,6 +298,30 @@ module tb_link_monitor;
                 $display("FAIL snapshot tore %0d/100 times across the clock domain", tears);
                 errors = errors + 1;
             end else $display("PASS snap_cross captured 100/100 intact snapshots");
+            // 心跳间隔 1.5 us（远小于 SLOW_MS=5ms）⇒ 判“时基正常”，不许误报
+            if (d_slow !== 1'b0) begin
+                $display("FAIL hb_slow asserted although the heartbeat is faster than SLOW_MS");
+                errors = errors + 1;
+            end else $display("PASS hb_slow clear while the heartbeat is at nominal rate");
+        end
+
+        // 板级实测到的那件事：拔线后 RTL8211F 不停 RXC，而是把它拉到约 1/48，
+        // 于是心跳“还在，但间隔变成 ~50 ms”。这里用 8 ms 的间隔复现它，
+        // 判 hb_slow 必须亮 —— 这是 hb_gone 永远看不见的那个工况。
+        begin : slow_case
+            integer j;
+            for (j = 0; j < 3; j = j + 1) begin
+                repeat (64_000) @(posedge pclk);   // 8 ms @8 MHz，落在 5..50 ms 之间
+                s_hb = ~s_hb;
+            end
+            repeat (20) @(posedge pclk);
+            if (d_slow !== 1'b1) begin
+                $display("FAIL hb_slow stayed low although the heartbeat period was 8x SLOW_MS");
+                errors = errors + 1;
+            end else $display("PASS hb_slow asserts when the source clock is degraded (拔线工况)");
+            if (d_gone !== 1'b0) begin
+                $display("FAIL hb_gone fired while heartbeats were still arriving"); errors = errors + 1;
+            end else $display("PASS hb_gone correctly stays clear (它看不见这件事，正是加 hb_slow 的理由)");
         end
 
         s_hb = 0;                                // 源时钟停了

@@ -496,14 +496,17 @@ module pl_video_top #(
     // VCO 1000 MHz）；HB_TO_MS=200 ⇒ eth_rxc 停供 200 ms 后 OSD 的 STALL 直接钉 9999，
     // 这样"拔了线"和"还在只是慢"在屏上是两个长相。
     wire [319:0] lm_pix;
-    wire         lm_clk_gone;
+    wire         lm_clk_gone, lm_clk_slow;
     snap_cross #(.W(320), .DST_HZ(50_000_000), .HB_TO_MS(200)) u_lm_x (
         .dst_clk(clk_pix), .dst_rst_n(rst_pix_n),
         .bus(lm_bus), .bus_tog(lm_bus_tog), .hb_tog(lm_hb),
-        .bus_q(lm_pix), .hb_gone(lm_clk_gone)
+        .bus_q(lm_pix), .hb_gone(lm_clk_gone), .hb_slow(lm_clk_slow)
     );
     wire [31:0] osd_drop  = lm_pix[0*32 +: 32];
-    wire [15:0] osd_stall = lm_clk_gone ? 16'd9999 : lm_pix[2*32 +: 16];
+    // gone = 源时钟没有；slow = 源时钟被 PHY 拉慢（板级实测拔线后 RXC≈2.5 MHz，
+    // 只有 slow 会亮）—— 两种都意味着链路已断，STALL 就没有“毫秒”的含义了，
+    // 于是钉成 9999，让屏上一眼看出“没流”，而不是一个爬得很慢的数字。
+    wire [15:0] osd_stall = (lm_clk_gone | lm_clk_slow) ? 16'd9999 : lm_pix[2*32 +: 16];
 
     wire [7:0] r_osd, g_osd, b_osd;
     wire de_osd, hs_osd, vs_osd;

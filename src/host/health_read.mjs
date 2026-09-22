@@ -6,7 +6,7 @@
  *   · Lane 号写在**已存在**的 GPIO_0 的 bit[31:27]；脚本先读回 GPIO_0 的原值，
  *     只改这 5 位，最后再把原值写回去 —— effect_en/threshold/src_sel 不受影响。
  *   · 数据从新加的 GPIO_1（只读 32bit）读。
- *   · lane 0..9 = link_monitor 的快照；lane 31 = eth_rxc 心跳是否还在；
+ *   · lane 0..9 = link_monitor 的快照；lane 31 bit0=源时钟消失，bit1=源时钟被拉慢（拔线）；
  *     其它 lane 号硬件返回 0xDEADBEEF，一眼能看出号写错了。
  *
  * 用法：
@@ -162,15 +162,18 @@ for (let n = 0; n < 10; n++) {
 const clk = g(31);
 const stall = g(2), drop = g(0), flags = g(7);
 const gone = (clk === undefined) ? -1 : (clk & 1);
+const slow = (clk === undefined) ? -1 : ((clk >>> 1) & 1);
 console.log(`  31  ${clk === undefined ? '(读不到)' : '0x' + clk.toString(16).padStart(8, '0')}  ` +
-            `eth_rxc 心跳：${gone === -1 ? '(读不到)' : gone ? '已停 —— 先看网线/PHY' : '正常'}`);
+            `eth_rxc 心跳：${gone === -1 ? '(读不到)' : gone ? '已停 —— 源时钟没有' : slow ? '被拉慢 ~50× ⇒ 网线已拔/PHY 断链' : '正常'}`);
 console.log('');
 const fl = [
   '丢过字=' + bit(flags, 0), '作废过帧=' + bit(flags, 1), 'CDC灌满过=' + bit(flags, 2),
   '流活着=' + bit(flags, 3), '间隔已校准=' + bit(flags, 4),
 ].join('  ');
 console.log(`判读：drop_words=${drop}  stall_ms=${f16(stall, false)}  缺行峰值=${f16(stall, true)}  ${fl}`);
-if (drop === 0 && gone === 0) {
+if (slow === 1) {
+  console.log("结论：链路已断 —— RXC 被 PHY 拉到约 1/48，stall_ms 此刻只是序指标，不是毫秒。");
+} else if (drop === 0 && gone === 0 && slow === 0) {
   console.log('结论：入包链一个字都没丢 —— 这正是屏幕上看不出来的那部分证据。');
 } else if (gone === 1) {
   console.log('结论：eth_rxc 没有时钟，此刻 stall/frames 全不可信，先查物理链路。');

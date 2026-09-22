@@ -1,11 +1,49 @@
-V7.6 (R08) L1 xsim regression — 2026-09-22
-runner : vivado -mode batch -source sim/run_sim.tcl   (xvlog rtl=62 tb=32)
-note   : the batch session dies at tb_v6_tail_bank when the whole suite runs in one
-         process (same place as the V7 run; no error is printed — memory pressure),
-         so the record below is part 1 (28 TB) + part 2 (4 TB, SIM_TB=...).
-         Both parts are in this file; every RESULT line is verbatim.
+V7.6 / V7.6b (R08-R09) L1 xsim regression
+runner : vivado -mode batch -source sim/run_sim.tcl   (xvlog rtl=61 tb=32)
 
---- part 1 ---
+R09 run (2026-09-22 20:5x, after snap_cross gained hb_slow) completed all 32 testbenches
+in a single process:  SIM DONE pass=32 fail=0     [sim/xsim_v76b.log]
+
+The earlier R08 run could not finish in one process — the batch session dies at
+tb_v6_tail_bank (no error printed; memory pressure on this PC), so it was recorded as
+28 TB + a 4 TB second part. Both are kept below for the audit trail.
+
+--- R09 (single process, 32/32) ---
+RESULT tb_crc32 PASS
+RESULT tb_eth_video PASS
+RESULT tb_fb_roundtrip PASS
+RESULT tb_link_monitor PASS
+RESULT tb_osd_lines PASS
+RESULT tb_proc_gray PASS
+RESULT tb_rotate_mapper PASS
+RESULT tb_rotate_window PASS
+RESULT tb_sync_fifo PASS
+RESULT tb_timing PASS
+RESULT tb_uart_decode_bits PASS
+RESULT tb_udp_parser PASS
+RESULT tb_udp_reasm PASS
+RESULT tb_v50_rowmath PASS
+RESULT tb_v50_rows PASS
+RESULT tb_v50_rows_prod PASS
+RESULT tb_v571_allow_lead PASS
+RESULT tb_v57_first_ar PASS
+RESULT tb_v57_rdw_copy PASS
+RESULT tb_v58_full_done PASS
+RESULT tb_v5_bank PASS
+RESULT tb_v5_copy PASS
+RESULT tb_v5_gated PASS
+RESULT tb_v5_lock PASS
+RESULT tb_v5_saver PASS
+RESULT tb_v5_vblast PASS
+RESULT tb_v6_cover_gate PASS
+RESULT tb_v6_ingress_integrity PASS
+RESULT tb_v6_pingpong PASS
+RESULT tb_v6_tail_bank PASS
+RESULT tb_v6_vblank_copy PASS
+RESULT tb_zoom_mapper PASS
+pass=32 fail=0
+
+--- R08 part 1 (28 of 32) ---
 RESULT tb_crc32 PASS
 RESULT tb_eth_video PASS
 RESULT tb_fb_roundtrip PASS
@@ -34,13 +72,13 @@ RESULT tb_v5_vblast PASS
 RESULT tb_v6_cover_gate PASS
 RESULT tb_v6_ingress_integrity PASS
 RESULT tb_v6_pingpong PASS
---- part 2 (SIM_TB=tb_osd_lines,tb_v6_tail_bank,tb_v6_vblank_copy,tb_zoom_mapper) ---
+--- R08 part 2 (remaining 4) ---
 RESULT tb_osd_lines PASS
 RESULT tb_v6_tail_bank PASS
 RESULT tb_v6_vblank_copy PASS
 RESULT tb_zoom_mapper PASS
----
-TOTAL: 32 testbenches, pass=32 fail=0
-new in V7.6: tb_link_monitor (26 assertions, incl. the CDC-drop falsifier and the
-             production-timebase guard), tb_osd_lines (hex/dec formatting, saturation,
-             per-pixel glyph scan of D R O P S T A L)
+
+new assertions in V7.6b (tb_link_monitor):
+  PASS hb_slow clear while the heartbeat is at nominal rate
+  PASS hb_slow asserts when the source clock is degraded (拔线工况)
+  PASS hb_gone correctly stays clear (它看不见这件事，正是加 hb_slow 的理由)
