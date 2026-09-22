@@ -10,6 +10,11 @@
 set root [file normalize [file join [file dirname [info script]] .. .. ..]]
 set pdir [file join $root ku5p vivado_ku5p]
 set outd [file join $root ku5p build]
+# 实验跑法不要把正式报告盖掉：KU5P_TAG=uram ⇒ 产物改写到 ku5p/build/exp_uram/
+if {[info exists ::env(KU5P_TAG)] && $::env(KU5P_TAG) ne ""} {
+  set tag $::env(KU5P_TAG)
+  set outd [file join $root ku5p build exp_$tag]
+}
 file mkdir $outd
 
 create_project ku5p_eth $pdir -part xcku5p-ffvb676-2-i -force
@@ -25,6 +30,14 @@ foreach f $eth_keep {
 add_files -norecurse [file join $root src rtl video frame_buffer_w64.v]
 add_files -norecurse [file join $root src rtl video fb_pack.v]
 foreach f [glob -nocomplain [file join $root ku5p src rtl *.v]] { add_files -norecurse $f }
+# 资源实验开关（默认完全关闭 ⇒ 正式产物与冻结的 r23 同形）：
+#   KU5P_FB=uram KU5P_TAG=uram  ⇒ 同一套入口，只把帧缓存换成 UltraRAM 版，产物进 ku5p/build/exp_uram/
+# 目的不是"用这个比特流"，而是**把 tile 数与功耗量出来**（口径见 ku5p/README.md §9 第 3 条）。
+if {[info exists ::env(KU5P_FB)] && $::env(KU5P_FB) eq "uram"} {
+  add_files -norecurse [file join $root ku5p src rtl_exp frame_buffer_uram.v]
+  set_property verilog_define {FB_URAM_STYLE} [current_fileset]
+  puts "KU5P_FB=uram —— 实验构建（UltraRAM 帧缓存）"
+}
 add_files -fileset constrs_1 -norecurse [file join $root ku5p src constraints ku5p_rk_xcku5p_f.xdc]
 set_property top ku5p_eth_top [current_fileset]
 update_compile_order -fileset sources_1

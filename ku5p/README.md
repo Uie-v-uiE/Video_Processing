@@ -199,8 +199,17 @@ vivado -mode batch -nojournal -log ku5p/build/ku5p_impl.log \
    **先把算式写对**（这里我第一版算错过一次，写"约 2 块"）：
    512×300×RGB565 = 307,200 B = **2,457,600 bit**；UltraScale+ 的 UltraRAM 每块 **288 Kb = 294,912 bit**；
    `2,457,600 / 294,912 = 8.33` ⇒ 下界 **9 块**（片上 64 块的 14%），与 BRAM 那 **72 tile（15%）**
-   是同一数量级占比（按缓冲的**实际**容量 40960 字 × 64 = 2,621,440 bit 算是 `8.89` → 同样是 9 块）； ⇒ **换 UltraRAM 的收益不在"省几块"，在功耗与释放 BRAM 给别的用途**，
-   所以这一条必须实测（`report_power` + `report_utilization -hierarchical`）才好写进提交物。
+   是同一数量级占比（按缓冲的**实际**容量 40960 字 × 64 = 2,621,440 bit 算是 `8.89` → 同样是 9 块）。
+   ⇒ **换 UltraRAM 的收益不在"省几块"，在功耗与释放 BRAM 给别的用途**，所以这一条必须实测
+   （`report_power` + `report_utilization -hierarchical`）才好写进提交物。
+   **今晚量了一半**（06:1x，`KU5P_FB=uram KU5P_TAG=uram` ⇒ 产物在 `ku5p/build/exp_uram/`）：
+   开关确实生效（日志里能看到 `frame_buffer_uram` 被综合），但 Vivado 2025.2.1 **拒绝**
+   `ram_style` 的 `ultramark` 与 `ultraram` 两种拼法（`WARNING [Synth 8-11376] ... not a valid value`），
+   样式退回 `auto` 之后 **BRAM 仍 72、URAM 仍 0** ⇒ 量到的有用事实是：
+   **这个形状（40960×64、1 写 1 读、输出带寄存器）工具不会自己选 UltraRAM**。
+   所以"9 块"目前仍是算出来的不是量出来的；要真量，要么拿到 UG901 属性表里那个正确的强制 token，
+   要么直接例化 `URAM1240` 原语。过程与两处失败拼法写在
+   `ku5p/src/rtl_exp/frame_buffer_uram.v` 文件头（这个实验默认完全关闭，不影响交付的比特流）。
 4. 显示半边：FH1159 FMC 子卡（要 GTY + 时钟芯片），或者把 KU5P 收到的流经第二块以太网口
    转给 Zynq 显示 —— 后者不需要任何新硬件。
 5. 若上板发现 RGMII 收不全（125 MHz 源同步没做延时补偿），再考虑补 IDELAYE3；

@@ -194,11 +194,21 @@ module ku5p_eth_top #(
     reg        data_alive;
 
     wire [15:0] fb_rd_data;
+`ifdef FB_URAM_STYLE
+    // 实验开关（`KU5P_FB=uram` 时才定义）：端口同形的 UltraRAM 版，用来**量**而不是用来猜。
+    // 默认不定义 ⇒ 下面的实例与冻结的 r23 那一版完全同形。
+    frame_buffer_uram #(.W(IMG_W), .H(IMG_H)) u_fb (
+        .wr_clk(g_clk),
+        .wr_en(pkr_we), .wr_addr(pkr_waddr), .wr_data(pkr_wdata),
+        .rd_clk(g_clk), .rd_addr(rd_ptr[18:0]), .rd_data(fb_rd_data)
+    );
+`else
     frame_buffer_w64 #(.W(IMG_W), .H(IMG_H)) u_fb (
         .wr_clk(g_clk),
         .wr_en(pkr_we), .wr_addr(pkr_waddr), .wr_data(pkr_wdata),
         .rd_clk(g_clk), .rd_addr(rd_ptr[18:0]), .rd_data(fb_rd_data)
     );
+`endif
 
     // ---- 读回校验：这一步不是装饰，是"BRAM 必须留在设计里"的唯一理由 ----
     // 第一版这里累加 rd_sum，而 rd_sum 又只喂给下面的 _unused_ok ⇒ 没有任何可观测终点，

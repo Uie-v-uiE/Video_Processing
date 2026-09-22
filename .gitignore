@@ -93,3 +93,5 @@ build/_extract_ps7_init.ps1
 sim/msim/
 sim/*.run/
 ku5p/build/frozen_*/*.bit
+ku5p/build/exp_*/*.bit
+ku5p/build/exp_*/*.dcp
