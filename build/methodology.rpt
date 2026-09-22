@@ -1,7 +1,7 @@
 Copyright 1986-2022 Xilinx, Inc. All Rights Reserved. Copyright 2022-2026 Advanced Micro Devices, Inc. All Rights Reserved.
 ---------------------------------------------------------------------------------------------------------------------------------------------
 | Tool Version : Vivado v.2025.2.1 (win64) Build 6403652 Thu Mar 19 19:48:24 GMT 2026
-| Date         : Tue Sep 22 07:47:32 2026
+| Date         : Tue Sep 22 08:13:17 2026
 | Host         : Uie-laptop running 64-bit major release  (build 9200)
 | Command      : report_methodology -file D:/Xilinx/Prj/pro/Video_Processing/build/methodology.rpt
 | Design       : system_top
@@ -220,7 +220,7 @@ Related violations: <none>
 
 LUTAR-1#1 Warning
 LUT drives async reset alert  
-LUT cell u_eth/pkt_active_i_2, with 2 or more inputs, drives asynchronous preset/clear pin(s) u_eth/icmp_tx_byte_num_reg[12]/CLR, u_eth/icmp_tx_byte_num_reg[13]/CLR,
+LUT cell u_idelay_clkgen/mem_reg_i_2, with 2 or more inputs, drives asynchronous preset/clear pin(s) u_eth/icmp_tx_byte_num_reg[12]/CLR, u_eth/icmp_tx_byte_num_reg[13]/CLR,
 u_eth/icmp_tx_byte_num_reg[14]/CLR, u_eth/icmp_tx_byte_num_reg[15]/CLR,
 u_eth/icmp_tx_byte_num_reg[1]/CLR, u_eth/icmp_tx_byte_num_reg[2]/CLR,
 u_eth/icmp_tx_byte_num_reg[3]/CLR, u_eth/icmp_tx_byte_num_reg[4]/CLR,

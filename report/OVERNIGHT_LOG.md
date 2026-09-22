@@ -106,12 +106,12 @@ logical nets 92829 / routable 64604 / fully routed 64604 / nets with routing err
 | ID | 问题 | 证据 | 状态 | 处理轮次 |
 |----|------|------|------|----------|
 | P01 | 打包 FIFO 被综合成 ~5.1 万 FDRE（占整机寄存器 94%），Slice 99.92%、FW 无法加深 | `axi_frame_saver64.v:16-18` 原注释、`utilization.rpt` | **已修（R02：Reg 51.30%→9.02%，Slice 99.92%→34.99%）** | R02 |
-| P01b | `axi_frame_writer_gated.v:115-116` 的 `sk_addr_reg/sk_data_reg` 同样掉进触发器（综合报 Synth 8-4767「Block RAM or DRAM implementation is not possible」），约 5.3k FDRE = 现存的 6 成 | build#2 综合日志、`utilization.rpt` Reg 9593 | 待评估（寄存器已无压力，优先级低；若做可再降到 ~4k） | 候选 |
+| P01b | `axi_frame_writer_gated.v` 的 `sk_addr_reg/sk_data_reg` 同样掉进触发器（综合报 Synth 8-4767「Block RAM or DRAM implementation is not possible」），约 5.3k FDRE = 剩余寄存器的 55% | build#4 综合日志、`utilization.rpt` Reg 9560 | **已修（R05：Reg 9.02%→4.08%，Slice 36.05%→18.03%）** | R05 |
 
 | P02 | BRAM 98.93%，无余量做任何新缓冲/插值 | `utilization.rpt`、`util_hier.rpt`（u_fb 独占 128 tile） | **已修（R04：90.5/140 = 64.64%，剩 49.5 tile）** | R04 |
 | P03 | 帧尾最后 64bit 字高半 32bit（2 像素）偶发丢（板上 4/8 次），TB +FULL 复现不出 | `report/ISSUES.md`、`report/V6_BOARD_MEASUREMENT.md:70-73` | **已定位并修复（R03：换页未等 CDC 交付完）；仿真双向判据通过，待 L4 板上复验** | R03 |
 | P04 | `--no-pace` 时 CDC 灌满、整包被丢，画面冻结（已接受但可改善） | `report/CHANGELOG_V6.md:202` | 待处理（依赖 P01 释放资源） | R04 |
-| P05 | zoom/rotate 最近邻取整，图像有 1px 栅格闪烁，`frac_x/frac_y` 算了却没用 | `CHANGELOG_V6.md:201`、`V6_ROOT_CAUSE.md:278` | 未开始 | R05+ |
+| P05 | zoom/rotate 最近邻取整，图像有 1px 栅格闪烁，`frac_x/frac_y` 算了却没用 | `CHANGELOG_V6.md:201`、`V6_ROOT_CAUSE.md:278` | 未开始 | R06 |
 | P06 | `power.rpt` 无切换活动文件，置信度 Low | `build/power.rpt` | 未开始 | 待排 |
 | P07 | 36 条 DPIR-1（异步复位寄存器驱动 DSP）+ 76 条 SYNTH-6 | `methodology.rpt` | 未开始 | 待排 |
 | P08 | 门禁文件 `power.rpt` / `route_status.rpt` 不在构建脚本产出清单里 | `build/tcl/build_system_axigpio.tcl` | 已修 | R02 |
@@ -179,7 +179,7 @@ logical nets 92829 / routable 64604 / fully routed 64604 / nets with routing err
 - **L3 产物**：`build/system.bit` md5 `2dd5d1fc`（2120470 B，比基线小 403 KB）、`build/system.xsa`。
 - **结论**：入包链行为等价（28/28 回归）+ 全约束仍 met 的前提下，
   **寄存器 −82%、LUT −60%、Slice 从 99.92% 崩到 35%、功耗 −4.5%、布线资源需求 −75%**。
-  原注释里「FW 不可加深」的禁令现在解除（深度不再受 FDRE 上限约束），这是 R04/R05 的前提。
+  原注释里「FW 不可加深」的禁令现在解除（深度不再受 FDRE 上限约束），这是 R04（BRAM 那一步）的前提。
   唯一仍不合格项是 BRAM 98.93%（本夜未触碰）→ 立为 R04 主题。
 - **下一步**：R03 帧尾 4 字节；R04 BRAM 门禁。
 
@@ -338,9 +338,95 @@ logical nets 92829 / routable 64604 / fully routed 64604 / nets with routing err
   显示时钟域 50 MHz 余量充足，故接受；若日后要把这级 mux 拿掉，办法是把 `sel_hi` 并进
    lane mux 的选择端（同一个 8:1 mux 出 16bit），留作待办。
 - **L3 产物**：`build/system.bit` md5 `ff18beb7`（1994722 B）、`build/system.xsa`。
-- **结论**：BRAM 门禁解除，器件剩 49.5 个 BRAM tile 余量 —— 这才让 R05（缩放插值需要行缓存）
+- **结论**：BRAM 门禁解除，器件剩 49.5 个 BRAM tile 余量 —— 这才让 R06（缩放插值需要行缓存）
   和 P04（加深 CDC）第一次变成「有资源可做」的选项。
 
+
+
+
+### L4 尝试 · 2026-09-22 07:55 · **板卡当前不可访问，L4 未执行（如实记录）**
+
+按 `report/V6_BOARD_MEASUREMENT.md` §7 的规程先做在位检查，结论是**硬件拿不到**，不是脚本问题：
+
+| 检查 | 命令 | 结果 |
+|------|------|------|
+| JTAG 链 | `vivado -source build/tcl/scan_jtag.tcl` → `build/scan_l4.log` | `ERROR: [Labtools 27-2269] No devices detected on target localhost:3121/xilinx_tcf/Xilinx/0ABC01A`，`open_hw_target` 失败 |
+| hw_server | `tasklist` | 进程在跑（PID 24120），目标能枚举出来 ⇒ 适配器（FT4232 通道 A，序列号 0ABC01A）本身是好的 |
+| USB 侧 | `Get-PnpDevice` | `USB Serial Converter A/B` OK、`USB Serial Port (COM6)` 存在 ⇒ 线缆/驱动正常 |
+| PL 网口 | `ping -n 2 192.168.1.10` | `已发送=2 已接收=0`（PL 未加载 bit 时本就不应答，不能作为判据） |
+
+判读：**USB 适配器在位、JTAG 链上无器件** ⇒ 最可能是**板卡 12V 未上电**（或 JTAG 排线被拔开）。
+无人值守下没有可控手段给板子上电，因此不强行尝试（重启 hw_server、反复 program 都可能把
+状态弄得更糟，且对一条不通的链没有意义）。
+
+**因此本轮的完成定义按「实现类以报告门禁为准」执行**：R02/R03/R04 都有 L1 仿真 + L2/L3 报告门禁证据；
+R03 的帧尾修复额外有双向判据仿真（旧逻辑必须复现、新逻辑必须完整）。
+L4 待有人给板子上电后按下面这条已验证过的命令序列补做（脚本已在本仓库内）：
+
+```bat
+:: 1) 起 PS（ps7_init.tcl 由构建生成在 vivado_system 里）
+"D:\Software\Vivado\2025.2.1\Vitis\bin\xsdb.bat" build\tcl\ps_jtag_boot.tcl ^
+  vivado_system\zynq_video_sys.gen\sources_1\bd\design_1\ip\design_1_processing_system7_0_0\ps7_init.tcl
+:: 2) 配 PL，再选源
+"D:\Software\Vivado\2025.2.1\Vivado\bin\vivado.bat" -mode batch -nojournal -source build\tcl\program_pl.tcl
+"D:\Software\Vivado\2025.2.1\Vitis\bin\xsdb.bat" build\tcl\set_src.tcl
+:: 3) 自描述图案推流，再停流回读（先看屏不动，读 DDR 时不要在推流）
+node src\host\video_sender.mjs --fps 15 --count 60 --test frameid --pace-mpbps 15
+node src\host\ddr_verify.mjs --frameid
+node src\host\ddr_stale.mjs
+node src\host\ddr_holemap.mjs
+```
+补做时要看的两个数：① `ddr_stale` 的分带丢字率应每带≈0 且最新帧 100%；
+② **帧尾那一处**（`+0x4AFF8` 的字高半 32bit）应当不再出现 v6.4 的 4/8 次异常 —— 这是 R03 的板级判据。
+
+---
+
+### R05 · 2026-09-22 07:58– · 资源：把 R02 的结论复用到显示侧 skid 缓冲（P01b）
+
+- **动机与证据**：R02 之后整机寄存器从 54588 降到 9594，但 build#4 的综合日志里仍有
+  `WARNING [Synth 8-4767] Trying to implement RAM 'sk_addr_reg' / 'sk_data_reg' in registers.
+  Block RAM or DRAM implementation is not possible` —— 即 `axi_frame_writer_gated` 的
+  显示拷贝 skid 缓冲（64 × (19+64)bit = 5312bit）**至今仍然是触发器**，
+  占剩余 9594 个寄存器的约 55%。原因与 R02 完全同型：数组写和带异步复位的控制逻辑在同一个 always 块里。
+- **改动清单**（`src/rtl/axi/axi_frame_writer_gated.v`）
+  1. 两个数组加 `(* ram_style = "distributed" *)`，读口改成异步 `sk_rid/sk_addr_q/sk_data_q`；
+  2. 原来两处数组写（`sk_drain` 分支内嵌套的 `if (do_skid)`，和 `else if (do_skid)` 分支）
+     条件并集恒等于 `do_skid`（`A&&do_skid | !A&&do_skid`），合并成一个独立写块；
+  3. 指针 `sk_w/sk_r` 留在原来的异步复位块里，由同一个 `do_skid` 驱动。
+- **等价性论证（L0）**：合并前后写条件恒等；读写同地址时分布式 RAM 读出**旧值**，
+  与原来「同一个非阻塞块里 RHS 先取旧值」语义一致；复位期间 `m_axi_rready = active && !sk_full`
+  且 `active=0` ⇒ `r_hit=0` ⇒ `do_skid=0`，所以新写块不带复位不改变行为。
+- **踩的坑**：新写块第一次放在 `wire do_skid` 声明**之前**，xvlog 直接报
+  `VRFC 10-3380 identifier 'do_skid' is used before its declaration` —— 数组写块必须在 `do_skid/sk_drain` 声明之后。
+- **仿真（L1）**：`sim/r05_full_regression.log` → **30 PASS / 0 FAIL**（含显示拷贝侧的
+  `tb_v5_gated` / `tb_v5_copy` / `tb_v57_rdw_copy` / `tb_v5_vblast` / `tb_v6_vblank_copy`）。
+- **报告门禁（L3 build #5，08:00–08:12）**：
+
+  | 门禁项 | 要求 | R04 | **R05** | 判定 |
+  |--------|------|-----|---------|------|
+  | WNS | ≥0 且全约束 met | +0.819 | **+0.499** | PASS（**代价：余量 −0.320 ns**） |
+  | WHS | ≥0 | +0.066 | +0.060 | PASS |
+  | 失败端点 | 0 | 0/30846 | 0/**21253** | PASS（端点数再降 31%） |
+  | Slice Registers | — | 9560 / 8.98% | **4345 / 4.08%** | −54.5% |
+  | Slice LUTs | — | 7755 / 14.58% | **6313 / 11.87%** | −18.6% |
+  | Slice | ≤98% | 4795 / 36.05% | **2398 / 18.03%** | PASS |
+  | LUT as Memory | — | 1233 / 7.09% | 1341 / 7.71% | 换用位置 |
+  | Block RAM Tile | ≤97% | 90.5 / 64.64% | 90.5 / 64.64% | PASS（不变） |
+  | Total Power | 不明显恶化 | 2.362 W | **2.350 W**（Dyn 2.176 / Stat 0.174，Tj 52.1 °C） | PASS |
+  | route | Failed Nets = 0 | 0/16139 | **0/10462** | PASS（可布线网表再降 35%） |
+  | methodology | 无新增 Critical | 186 | **186（逐条规则计数完全相同）** | PASS |
+  | cdc | 无新增 Critical | 同基线 4 行 | 同基线 4 行 | PASS |
+
+  **这一轮的取舍写明白**：省掉 5215 个寄存器的代价是 WNS 从 +0.819 掉到 +0.499 ——
+  分布式 RAM 的异步读口在 100 MHz 的 axi_clk 域里多了一级读选择逻辑。仍然
+  `All user specified timing constraints are met`、0 失败端点，故接受。
+  若要把这点余量拿回来，路子是把 skid 读口改成「提前一拍预取」（地址在 sk_drain
+  之前一拍就确定），属可选项，不在本夜顺手改。
+- **L3 产物**：`build/system.bit` md5 `f5c69ca7`（1887418 B）、`build/system.xsa`。
+- **累计效果（R02+R04+R05 三轮资源改造）**：
+  Slice Register 51.30% → **4.08%**；Slice 99.92% → **18.03%**；BRAM 98.93% → **64.64%**；
+  Total Power 2.525 W → **2.350 W**；WNS 始终 ≥0 且全约束满足。
+  器件现在同时剩约 49 个 BRAM tile、约 1.6 万个 LUT 与 92% 的分布式 RAM 余量。
 
 
 
@@ -349,7 +435,7 @@ logical nets 92829 / routable 64604 / fully routed 64604 / nets with routing err
 | 层 | 手段 | 覆盖 | 最近结果 |
 |----|------|------|----------|
 | L0 | 直读 RTL + diff 审查 + `git diff --stat` | 入包链、saver 全文、glue 抽取的逐行搬迁 | R03 抽取后人工核对端口/信号一一对应 |
-| L1 | `sim/run_sim.tcl` **29** 个 TB（R03 起含 `tb_v6_tail_bank`） | 入包完整性/乒乓/覆盖门/V-blank 拷贝/**帧尾换页 A/B**/rotate/zoom/udp/arp/crc | R03 后 **29/29 PASS**（`sim/r03_full_regression.log`） |
+| L1 | `sim/run_sim.tcl` **30** 个 TB（R03 加 `tb_v6_tail_bank`，R04 加 `tb_fb_roundtrip`） | 入包完整性/乒乓/覆盖门/V-blank 拷贝/**帧尾换页 A/B**/**帧缓存逐像素回读**/rotate/zoom/udp/arp/crc | R05 后 **30/30 PASS**（`sim/r05_full_regression.log`） |
 | L2 | `build_system_axigpio.tcl` 的 synth+impl 报告 | 时序/资源/功耗/方法学/CDC/布线 | 见 R02 |
 | L3 | bit + xsa | 上板前置 | 见 R02 |
 | L4 | UART/ping/JTAG 回读 + `src/host/*.mjs` | 丢包签名、DDR 空洞图 | 未开始 |
@@ -363,6 +449,7 @@ logical nets 92829 / routable 64604 / fully routed 64604 / nets with routing err
 | **R02** build#2（打包 FIFO→LUTRAM） | +0.677 | +0.048 | 0/32796 | 98.93% | **34.99%** | **14.77%** | **9.02%** | **2.412 W** | 0 | 0 | **PASS**（BRAM 项沿用基线未解 → R04） |
 | R03 build#3（换页等 CDC 排空） | +0.596 | +0.078 | 0/32798 | 98.93% | 35.18% | 14.76% | 9.02% | 2.411 W | 0 | 0 | PASS（BRAM 仍未解） |
 | **R04** build#4（帧缓存按 2 的幂分块） | **+0.819** | +0.066 | 0/30846 | **64.64%** | 36.05% | 14.58% | 8.98% | **2.362 W** | 0 | 0（+16 条 SYNTH-6 Warning 已论证） | **PASS，全部大门禁项首次合格** |
+| **R05** build#5（显示侧 skid → LUTRAM） | +0.499 | +0.060 | 0/21253 | 64.64% | **18.03%** | **11.87%** | **4.08%** | **2.350 W** | 0 | 0（186 条与 R04 完全相同） | **PASS** |
 
 ## 6. bit / xsa 版本表
 
@@ -371,7 +458,8 @@ logical nets 92829 / routable 64604 / fully routed 64604 / nets with routing err
 | v6.4 基线 | `647160e` | `155d73bc` | 2523678 B | +0.708 | 仓库自带，可上板 |
 | **R02** | `8c30d9c` | `2dd5d1fc` | 2120470 B | +0.677 | 打包 FIFO 改分布式 RAM；功能与 v6.4 等价，可上板 |
 | R03 | `242f6e7` | `faab6ab3` | 2310718 B | +0.596 | 换页等 CDC 排空；帧尾丢 4 字节修复 |
-| **R04** | 本夜提交 | `ff18beb7` | 1994722 B | **+0.819** | 帧缓存分块省 48 个 BRAM tile；**当前金样候选** |
+| **R04** | 本夜提交 | `ff18beb7` | 1994722 B | **+0.819** | 帧缓存分块省 48 个 BRAM tile；金样（被 R05 取代） |
+| **R05** | 本夜提交 | `f5c69ca7` | 1887418 B | +0.499 | 显示拷贝 skid 缓冲改分布式 RAM；**当前最新合格金样** |
 
 
 ## 7. 工具与子代理记录

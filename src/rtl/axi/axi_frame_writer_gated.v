@@ -46,12 +46,21 @@ module axi_frame_writer_gated #(
     localparam [2:0]   MAX_OUT      = 3'd4;
     localparam SK = 6;
 
-    reg [18:0] sk_addr [0:(1<<SK)-1];
-    reg [63:0] sk_data [0:(1<<SK)-1];
+    // skid 缓冲：与 R02 同一类问题——原先写和指针同在带异步复位的控制块里，
+    // 综合报 Synth 8-4767「Block RAM or DRAM implementation is not possible」，
+    // 64×83bit 全掉进触发器（约占整机剩余寄存器的一半）。改用已验证的分布式 RAM 写法。
+    (* ram_style = "distributed" *) reg [18:0] sk_addr [0:(1<<SK)-1];
+    (* ram_style = "distributed" *) reg [63:0] sk_data [0:(1<<SK)-1];
     reg [SK:0] sk_w, sk_r;
     wire [SK:0] sk_level = sk_w - sk_r;
     wire sk_empty = (sk_w == sk_r);
     wire sk_full  = (sk_level >= ((1<<SK)-1));
+
+    // 异步读口（分布式 RAM 只有异步读）；同一地址被读写时读出旧值，
+    // 与原来「数组在非阻塞块里读」的语义一致。
+    wire [SK-1:0] sk_rid     = sk_r[SK-1:0];
+    wire [18:0]   sk_addr_q  = sk_addr[sk_rid];
+    wire [63:0]   sk_data_q  = sk_data[sk_rid];
 
     reg active;
     reg [31:0] base_r, burst_idx, r_pix, cyc, wr_words;
@@ -68,6 +77,16 @@ module axi_frame_writer_gated #(
     wire do_direct = r_hit && allow_wr && sk_empty;
     wire do_skid   = r_hit && !do_direct;
     wire sk_drain  = active && allow_wr && !sk_empty && !do_direct;
+
+    // 两个写入点（sk_drain 内与 do_skid 分支）的条件本来就完全相同（A&&do_skid | 
+    // !A&&do_skid = do_skid），合并成一个写脉冲，并让这个数组写独占一个不带复位的
+    // always 块 —— 这是 R02 探针实测出的唯一能被推断成 RAM 的形状。
+    always @(posedge clk) begin
+        if (do_skid) begin
+            sk_addr[sk_w[SK-1:0]] <= r_pix[18:0];
+            sk_data[sk_w[SK-1:0]] <= m_axi_rdata;
+        end
+    end
 
     always @(posedge clk or negedge rst_n) begin
         if (!rst_n) begin
@@ -112,12 +131,10 @@ module axi_frame_writer_gated #(
 
                 if (sk_drain) begin
                     fb_wr_en   <= 1;
-                    fb_wr_addr <= sk_addr[sk_r[SK-1:0]][18:2];
-                    fb_wr_data <= sk_data[sk_r[SK-1:0]];
+                    fb_wr_addr <= sk_addr_q[18:2];
+                    fb_wr_data <= sk_data_q;
                     sk_r <= sk_r + 1;
                     if (do_skid) begin
-                        sk_addr[sk_w[SK-1:0]] <= r_pix[18:0];
-                        sk_data[sk_w[SK-1:0]] <= m_axi_rdata;
                         sk_w  <= sk_w + 1;
                         r_pix <= r_pix + PIX_PER_BEAT;
                         if (m_axi_rlast && outstanding!=0)
@@ -131,8 +148,6 @@ module axi_frame_writer_gated #(
                     if (m_axi_rlast && outstanding!=0)
                         outstanding <= outstanding - 1;
                 end else if (do_skid) begin
-                    sk_addr[sk_w[SK-1:0]] <= r_pix[18:0];
-                    sk_data[sk_w[SK-1:0]] <= m_axi_rdata;
                     sk_w  <= sk_w + 1;
                     r_pix <= r_pix + PIX_PER_BEAT;
                     if (m_axi_rlast && outstanding!=0)
