@@ -19,7 +19,8 @@ module frame_buffer_w64 #(
 
     input  wire        rd_clk,
     input  wire [18:0] rd_addr,   // 像素号
-    output wire [15:0] rd_data
+    output wire [15:0] rd_data,
+    output wire [63:0] rd_data64  // 同一个物理读口的原始字（不占第二个端口，只是少一层 mux）
 );
     // 不超过 n 的最大 2 的幂的位宽
     function integer bitsof;
@@ -80,4 +81,5 @@ module frame_buffer_w64 #(
         endcase
     end
     assign rd_data = blank ? 16'd0 : lane;
+    assign rd_data64 = rd_q;
 endmodule
