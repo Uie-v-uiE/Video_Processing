@@ -651,7 +651,7 @@ ping 192.168.1.10                 → 发送=3 接收=3 丢失=0，RTT 1-2 ms   
 | L1 | `sim/run_sim.tcl` **32** 个 TB（R08 加 `tb_link_monitor`、`tb_osd_lines`） | 入包完整性/乒乓/覆盖门/V-blank 拷贝/帧尾换页 A/B/帧缓存逐像素回读/**CDC 丢字反例判据**/**生产时基守门**/**跨域不撕烈**/**OSD 字形与饱和** | **R08 后 32/32**，留档 `sim/results/regression_v76.txt`（一次进程跑不完 32 个，记录由两段拼成，每段都是逐字 RESULT 行） |
 | L2 | `build_system_axigpio.tcl` 的 synth+impl 报告 | 时序/资源/功耗/方法学/CDC/布线 | **R07 全项合格，WNS 由 +0.499 提到 +0.974**（见 §5） |
 | L3 | bit + xsa | 上板前置 | **`7d2cf8ee`（R06=R07，1777758 B）**已出并已上板 |
-| L4 | `ps_jtag_boot` → `program_pl` → `set_src` → `video_sender` → 停流 → `ddr_verify`/`ddr_stale`/**`health_read`** | 丢包签名、换帧原子性、帧尾落位、洪水与限速多档、**链路健康数字的板级一致性** | 已执行 19+3 轮（R05 金样）；**R06/R07 新 bit 上再跑 3 轮**：15 fps×200 / 30 fps×300 / 不限速 60 fps×400，每 bank 恰好一帧、命中率 100.0%、六带 0.0%、丢字带 0 字（`data/measured/board_measure_r06_r07.md`）；**R08 新 bit：JTAG 读回十个健康 lane，空闲/推流/停流三态全部符合设计，22 次两遍读零撕烈，`stall_ms` 线性到 12142 ms（`data/measured/board_measure_r08.md`）** |
+| L4 | `ps_jtag_boot` → `program_pl` → `set_src` → `video_sender` → 停流 → `ddr_verify`/`ddr_stale`/**`health_read`** | 丢包签名、换帧原子性、帧尾落位、洪水与限速多档、**链路健康数字的板级一致性** | 已执行 19+3 轮（R05 金样）；**R06/R07 新 bit 上再跑 3 轮**：15 fps×200 / 30 fps×300 / 不限速 60 fps×400，每 bank 恰好一帧、命中率 100.0%、六带 0.0%、丢字带 0 字（`data/measured/board_measure_r06_r07.md`）；**R08 新 bit：① 入包链 `--test frameid` 15 fps×200 与 R05 金样逐项同级（每 bank 恰好一帧、命中率 100.0%、六带 0.0%、丢字带 0 字）⇒ 本轮三处 RTL 改动零回归；② JTAG 读回十个健康 lane，空闲/推流/停流三态全部符合设计，22 次两遍读零撕烈，`stall_ms` 线性到 12142 ms（`data/measured/board_measure_r08.md`）** |
 
 ## 5. 报告门禁历史表
 
