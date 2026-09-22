@@ -1,5 +1,11 @@
 # 性能与资源报告（第三版 + 第四版 V6.x 增补）
 
+> **时效声明（2026-09-23 加）**：本文里的数字是 **v3 / V6.x 当时**的测量值，保留是为了能对比
+> "同一指标在不同版本上的走势"，**不要当成当前值引用**。当前值只有一处权威来源：
+> `report/CHANGELOG_V7.md` 的「五版累计」表与 V7.9 门禁表，逐轮原始数字在 `report/OVERNIGHT_LOG.md` §5，
+> 演示口径在 `report/DEMO_SCRIPT.md` §2（那一句一定与 `build/system.bit` 的 md5 成套）。
+> 同一份数字抄在第二个地方就会漂移，所以这里只给指路、不复制数值。
+
 > 版本：v3 · PL UDP offload + 右屏无极缩放 + 目标域效果 + 时序收敛  
 > 板卡：RK-ZYNQ7020-F（XC7Z020-CLG484-2）· Vivado 2025.2.1  
 > 数据来源：`build/timing_summary.rpt`、`utilization.rpt`、`power.rpt`；功能项已上板验证。

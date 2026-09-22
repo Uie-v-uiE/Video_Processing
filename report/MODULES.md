@@ -1,6 +1,11 @@
 # 模块详解（第三版 + 第四版 V6 数据通路见 §7）
 
 对应路径均在 `src/rtl/` 下。
+**时效声明（2026-09-23 加）**：本文按"模块职责"写，不随版本作废；但里面提到的
+`axi_frame_saver` / `axi_frame_writer` / `frame_buffer` 这一组**已被 V6/V7 的
+`axi_frame_saver64` + `frame_buffer_w64` + `frame_commit_lock` 取代**（保留在树里只为可追溯），
+当前模块清单与文件地图看 `report/ARCHITECTURE.md`（本地学习版另有
+`study/02_架构/03_模块与文件地图.md`，随仓库不发布）。
 
 ---
 
