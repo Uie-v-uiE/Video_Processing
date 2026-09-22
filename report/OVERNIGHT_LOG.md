@@ -1441,3 +1441,8 @@ FF→FF 与慢→快跨域（`a1_q/fx_q/lane_w` 的 D 端都在 4 ns 预算里�
   而"每 4 列有一列横向不平滑"是否看得出来，是**明早眼睛能判的事**，不是我今晚能判的事。
 ⇒ 下一夜从 tag `v7.8-bilinear-wip` 起做这一版；`tb_tap_sched`/`tb_fb_rd5x` 的判据都不用改结构，
 只要把槽位表与"lane==3 时 fx=0"的期望加进去（台架已经证明它能抓住这个位置上的错）。
+
+**tag 的边界（一句话，免得明天从 tag 起做时踩空）**：`v7.8-bilinear-wip` = `0d02c2e`，
+里面有 V7.8 的全部 RTL、4 个台架与配准常数；但**起板脚本 `ps_jtag_boot.tcl` 的"自动从 xsa 解出
+ps7_init"修复在之后的提交 `c5ae5b5`** ⇒ 从 tag 起做实验前，要么先 cherry-pick 那一个文件，
+要么手工传 `ps7_init.tcl` 路径，否则会看到 `NO ps7_init.tcl … exit 1`（那不是板子的问题）。
