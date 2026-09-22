@@ -128,7 +128,8 @@ src/rtl/          Verilog: top / eth / axi / video / process (rotate, zoom) / hd
 src/ps/          Bare-metal UART + GPIO control (control plane only)
 src/host/        Host sender, serial tooling and JTAG read-back analysis (Node.js first)
 src/constraints/ Pin and timing constraints (rk_zynq7020.xdc)
-sim/             30 testbenches, repo-relative runner, probes/ (synthesis-behaviour experiments)
+sim/             41 testbenches, repo-relative runner (run_sim.tcl) + single-TB runner (run_one.sh),
+                 probes/ (synthesis-behaviour experiments)
 build/           tcl/ build+program+report scripts, system.bit, system.xsa, *.rpt
 board/           Bring-up notes and screen-free verification method
 data/            golden/ reference images, measured/ JTAG dumps and criteria text
@@ -150,7 +151,7 @@ set XSDBAT=D:\Software\Vivado\2025.2.1\Vitis\bin\xsdb.bat
 %VIVADO% -mode batch -nojournal -source build\tcl\program_pl.tcl
 %XSDBAT% build\tcl\set_src.tcl
 
-:: 3. simulation (30 testbenches)
+:: 3. simulation (41 testbenches)
 %VIVADO% -mode batch -nojournal -log sim\xsim.log -source sim\run_sim.tcl
 
 :: 4. stream and measure

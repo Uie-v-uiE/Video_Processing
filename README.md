@@ -120,11 +120,13 @@ Slice 99.92%、BRAM 98.93%——三处都贴着上限，任何新功能都塞不
 │   ├── host/          上位机推流、串口工具与 JTAG 回读判据脚本（Node 为主）
 │   └── constraints/   管脚与时序约束（rk_zynq7020.xdc）
 ├── sim/
-│   ├── tb_*.v         30 个 testbench
+│   ├── tb_*.v         41 个 testbench
 │   ├── run_sim.tcl    仓库相对的 xsim 一键回归
+│   ├── run_one.sh     只跑一个台架（改完 RTL 的第一道关，几十秒）
 │   ├── probes/        综合行为对照实验（不是 TB：回答"这段写法会被综合成什么"）
 │   └── results/       回归结果留档
 ├── build/
+│   ├── gates.sh       一条命令读回七项门禁（可指向任一组成套冻结件复核）
 │   ├── tcl/           可复现构建 / 下载 / 报告脚本
 │   ├── system.bit     比特流（第五版）
 │   ├── system.xsa     Vitis 硬件平台（内含 ps7_init.tcl）
@@ -177,7 +179,7 @@ set XSDBAT=D:\Software\Vivado\2025.2.1\Vitis\bin\xsdb.bat
 
 > 下载 bit 后 PS 会复位，需再次 Run ELF 串口才有效。仅看右屏缩放时，只下 bit 即可。
 
-### 4. 仿真（30 个 testbench）
+### 4. 仿真（41 个 testbench）
 
 ```bat
 %VIVADO% -mode batch -nojournal -log sim\xsim.log -source sim\run_sim.tcl

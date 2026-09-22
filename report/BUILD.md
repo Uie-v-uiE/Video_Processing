@@ -39,6 +39,13 @@ set VIVADO=D:\Software\Vivado\2025.2.1\Vivado\bin\vivado.bat
 :: 增量重跑（改 RTL/约束后）
 %VIVADO% -mode batch -source build\tcl\rebuild_cdc_fix.tcl
 
+:: 读回七项门禁（也可复核任一组成套冻结件）
+bash build/gates.sh
+bash build/gates.sh build/frozen_r19_arb
+
+:: 只跑一个台架（比全量回归快得多，改完 RTL 的第一道关）
+bash sim/run_one.sh tb_ku5p_tx_arb
+
 :: 推流
 cd src\host
 run_sender.bat
