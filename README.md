@@ -258,6 +258,7 @@ PC 网卡 `192.168.1.100/24`，网线接 **板卡 PL 网口**。默认 15 MB/s �
 |------|------|
 | [report/VERSION_LINEAGE.md](report/VERSION_LINEAGE.md) | **版本谱系与问题处置记录**：分支/提交/本地快照的对应关系，每版的问题-定位-方案-证据 |
 | [report/CHANGELOG_V7.md](report/CHANGELOG_V7.md) | **第五版完整变更记录与优化对比**：逐条措施、数字、否决项 |
+| [report/DEMO_SCRIPT.md](report/DEMO_SCRIPT.md) | **演示与答问脚本**：起板命令、三幕流程、每句可核对的数字与出处、被追问时的弹药、千万别说哪三句 |
 | [report/CHANGELOG_V6.md](report/CHANGELOG_V6.md) | 第四版完整变更记录（V6.0→V6.4，含被证伪的方向） |
 | [report/V6_ROOT_CAUSE.md](report/V6_ROOT_CAUSE.md) | 第四版根因分析：判据方法、方向纠正、修复 |
 | [report/V6_BOARD_MEASUREMENT.md](report/V6_BOARD_MEASUREMENT.md) | 板级复测单：速率分档数据、观察项、已知残留 |
