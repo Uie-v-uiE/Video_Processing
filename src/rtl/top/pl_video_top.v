@@ -280,15 +280,29 @@ module pl_video_top #(
     end
     wire src_sel_pix = ss2;
 
+    // U11（R22）：`eth_link` 是 eth_rxc 域的电平，原来在像素域被**裸采样** 4 处，
+    // 而同一个文件里 `src_sel` 早就走了 3 级同步 —— 一处对一处错，`cdc.rpt` 把它记在
+    // `eth_rxc→clkout0_1` 的 unsafe/unknown 里。现在统一成 3 级（多 60 ns，对"链路断"
+    // 这种毫秒级事件不可见）。
+    // 注意：`copy_abort` **不能**照这个模板同步 —— 它是 axi_clk 上只有 1 拍（10 ns）的脉冲，
+    // 电平型 3 级同步会整拍漏掉它（比现在的裸采样更糟）。它需要的是翻转/脉冲同步器，
+    // 已作为独立问题记进 report/ISSUES.md，不在这一轮顺手改。
+    (* ASYNC_REG = "TRUE" *) reg el0, el1, el2;
+    always @(posedge clk_pix or negedge rst_pix_n) begin
+        if (!rst_pix_n) {el2,el1,el0} <= 3'b0;
+        else {el2,el1,el0} <= {el1, el0, eth_link};
+    end
+    wire eth_link_pix = el2;
+
     always @(posedge clk_pix or negedge rst_pix_n) begin
         if (!rst_pix_n) eth_has_frame <= 1'b0;
-        else if (frame_ready && eth_link) eth_has_frame <= 1'b1;
+        else if (frame_ready && eth_link_pix) eth_has_frame <= 1'b1;
         else if (copy_abort) eth_has_frame <= 1'b0;
     end
 
     // SRC0=colorbar, SRC1=video (v5 SRC bug was |eth_ready locking SRC0)
     wire [15:0] fb_rd;
-    wire eth_ready   = eth_link & eth_has_frame;
+    wire eth_ready   = eth_link_pix & eth_has_frame;
     wire src_use     = src_sel_pix;
     assign copy_hold = 1'b0;
 
@@ -307,12 +321,12 @@ module pl_video_top #(
     end
     wire [15:0] fb_out = (ac1 && !de_d[11]) ? fb_pix_hold : fb_rd;
     // red only if no link; if link but not yet ready show BRAM (black/last)
-    wire [15:0] bram_or_hold = eth_link ? fb_out : 16'hF800;
+    wire [15:0] bram_or_hold = eth_link_pix ? fb_out : 16'hF800;
 
     // 发布握手单独成模块（内含 3 级同步），这样它能被 sim/tb_ps_publish.v 逐相位验。
     // 顺带修掉一处真错：这里原来用 `src_sel`（axi_clk 域的**未同步**电平），
     // 而同文件里 src_sel_pix/src_use 早就存在 —— 帧起始那拍采它会采到亚稳态。
-    wire pub_consume = frame_start && src_use && !eth_link;
+    wire pub_consume = frame_start && src_use && !eth_link_pix;
     wire pub_pend;
     ps_publish u_pub (
         .clk(clk_pix), .rst_n(rst_pix_n),
@@ -491,11 +505,10 @@ module pl_video_top #(
         end
     end
 
-    reg [15:0] pkts_s0, pkts_s1, bad_s0, bad_s1, link_s0, link_s1;
+    reg [15:0] pkts_s0, pkts_s1, bad_s0, bad_s1;
     always @(posedge clk_pix) begin
         {pkts_s1, pkts_s0} <= {pkts_s0, eth_pkts};
         {bad_s1, bad_s0}   <= {bad_s0, eth_bad};
-        {link_s1, link_s0} <= {link_s0, eth_link};
     end
 
     // v7.6: 健康快照跨到像素域。像素时钟是 50 MHz（clk_gen CLKOUT0_DIVIDE=20，
@@ -520,7 +533,7 @@ module pl_video_top #(
         .clk(clk_pix), .rst_n(rst_pix_n),
         .x(x_d11), .y(y_d11), .de(de_o),
         .angle(angle), .effect_en(en_sync), .fps(fps_q),
-        .src_sel(src_use), .eth_link(link_s1),
+        .src_sel(src_use), .eth_link(eth_link_pix),
         .net_pkts(pkts_s1), .net_bad(bad_s1),
         .net_drop(osd_drop), .net_stall(osd_stall),
         .bg_pix(16'h0),

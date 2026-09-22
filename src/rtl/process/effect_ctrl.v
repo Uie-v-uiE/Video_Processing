@@ -9,8 +9,10 @@ module effect_ctrl (
     output reg  [4:0] effect_en,
     output reg  [7:0] threshold
 );
-    reg [4:0] en_meta, en_sync;
-    reg [7:0] th_meta, th_sync;
+    // 这两对是 AXI(GP0,100 MHz) → 像素(50 MHz) 的同步链，必须标 ASYNC_REG，
+    // 否则工具会把它们当普通寄存器优化掉（同文件里 src_sel / eth_link 的正确写法可对照）。
+    (* ASYNC_REG = "TRUE" *) reg [4:0] en_meta, en_sync;
+    (* ASYNC_REG = "TRUE" *) reg [7:0] th_meta, th_sync;
 
     always @(posedge clk or negedge rst_n) begin
         if (!rst_n) begin
