@@ -21,8 +21,9 @@ set XSDBAT=D:\Software\Vivado\2025.2.1\Vitis\bin\xsdb.bat
 ```
 （`ps_jtag_boot.tcl` 里没有 `download`：仓库没有 Vitis 平台工程，elf 是在同一个 xsdb 会话里手动下的。）
 
-下 bit 前 **先 `md5sum build/system.bit`，必须以 `11998af8` 开头**（= build#17：V7.7 同一功能 + 两笔 CDC 修复，
-`cdc.rpt` 的 `eth_rxc→clkout0_1` 端点 84→51、WHS +0.025→+0.066；**回退版** build#13 `0f46ec91` 在 `build/frozen_r13/`；
+下 bit 前 **先 `md5sum build/system.bit`，必须以 `534f7760` 开头**（= build#18：V7.7 同一功能 +
+R22 两笔 CDC + R23 的 `copy_abort` 翻转同步，WNS +1.002 / WHS +0.050 / 0 违例；
+**回退链**：build#17 `11998af8` 在 `build/frozen_r17_cdc/`，build#13 `0f46ec91` 在 `build/frozen_r13/`；
 同名文件会被构建原地覆盖，今晚真发生过 —— 判据见 `report/OVERNIGHT_LOG.md` §9.5 第 1 步）。
 
 推流：`node src/host/video_sender.mjs --ip 192.168.1.10 --port 5001 --test move --fps 15`
@@ -70,10 +71,10 @@ set XSDBAT=D:\Software\Vivado\2025.2.1\Vitis\bin\xsdb.bat
 
 ## 2. 资源与时序（一句话 + 出处）
 
-*"xc7z020 上，140 个 BRAM 用到 90.5（64.64%），Slice LUT 13.5%、寄存器 5.45%，
-动态功耗 2.183 W，时序 WNS +0.447 / WHS +0.066，约束全部满足、12497 根线全布通。"*
+*"xc7z020 上，140 个 BRAM 用到 90.5（64.64%），Slice LUT 13.50%、寄存器 5.45%，
+动态功耗 2.184 W，时序 WNS +1.002 / WHS +0.050，约束全部满足、12496 根线全布通 0 错误。"*
 （出处：`build/utilization.rpt`、`build/timing_summary.rpt`、`build/power.rpt`、
-`build/route_status.rpt` —— 与 `build/system.bit`（md5 前缀 `11998af8`）**同一次构建**；
+`build/route_status.rpt` —— 与 `build/system.bit`（md5 前缀 `534f7760`，build#18）**同一次构建**；
 每次重跑之后这一句要跟着换，别沿用旧数字。）
 
 | 说什么 | 数字 | 出处（现场可打开） |
@@ -95,7 +96,7 @@ set XSDBAT=D:\Software\Vivado\2025.2.1\Vitis\bin\xsdb.bat
 - **"为什么不用 PS 跑协议栈？"** PS 只做控制面（GPIO + SD 回放），视频数据全程在 PL：
   `report/PS_VS_PL.md`；RGMII 收流在 125 MHz 域做解析、50 MHz 域拼帧，跨域只有显式 CDC。
 - **"旋转时画质为什么不掉？"** 诚实答案：**目前右窗是最近邻**，斜向有栅格闪烁；
-  双线性已经写完（组件 + 集成 + 台架全过，L1 **37/37**），但 250 MHz 分时读口差最后
+  双线性已经写完（组件 + 集成 + 台架全过；当时 L1 **37/37**，主线现在 **40/40** 里仍包含这两个 bilin 台架），但 250 MHz 分时读口差最后
   **0.327 ns** 没收口 ⇒ 没进主线，实现打在 tag `v7.8-bilinear-wip`。
   要现场给评委看一眼"插值长什么样"：临时下 `build/failed_r24/system_r24_WNS-0.327.bit`，
   串口 `BILIN0/BILIN1` 现场对比；**看完必须换回 `build/system.bit` 并重新校验 md5**
@@ -111,13 +112,19 @@ set XSDBAT=D:\Software\Vivado\2025.2.1\Vitis\bin\xsdb.bat
 
 ---
 
-## 4. 千万别说的三句
+## 4. 千万别说的五句
 
 1. 不要说"板上已有双线性插值" ⇒ 主线 bit 没有；说"组件与集成已完成并通过台架，正在收最后一笔时序"。
 2. 不要说"拔线能立刻看出" ⇒ 拔线后 PHY **不停发 RXC**，只是慢到约 **1/49**；
    所以判据是"沿够不够快"（`hb_slow`），这句本身就是我们的加分点，讲出来比吹"实时检测"更有说服力。
-3. 不要说"时序余量很大" ⇒ build#13 的 **WHS 只有 +0.025 ns**（历史最低），
-   口径是"全部约束满足、零违例端点，但保持余量是本轮最低值，已登记为观察项"。
+3. 不要说"时序余量很大"也不要说"WHS 快翻了" ⇒ build#18 是 **WNS +1.002 / WHS +0.050 / 0 违例**；
+   口径是"全部约束满足、零失败端点；setup 余量约一个周期的 12%，hold 余量小属于布局紧"。
+   **hold 不是 PVT 风险点**：低压高温时单元与布线一起变慢，数据延迟变大 ⇒ hold 反而更稳，
+   会恶化的是 setup（`ku5p/README.md` §10 把这条讲清楚了，被问"PVT 怎么办"就用它）。
+4. 不要说"KU5P 已经在板上发包了" ⇒ 今晚只有**台架级**证据（逐字节 + CRC 判据 + 门禁全绿的构建）；
+   口径是"移植与遥测已完成并通过仿真与实现门禁，板级验证在路上"。
+5. 不要把 KU5P 遥测里的 `bad≈0` 说成"没有错包" ⇒ 它目前是**构造性为 0**（顶层没接 FCS/ER 判定，
+   ISSUES #29）；能当健康证据的是 `oob`、`rows_miss` 与 flags 里的 `abort_seen`。
 
 ---
 

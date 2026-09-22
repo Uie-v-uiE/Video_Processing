@@ -1,0 +1,16 @@
+# build#18 (R23: build#17 + copy_abort 翻转式脉冲同步器) —— 明早默认这一块
+# WNS +1.002 / WHS +0.050 / 0 失败端点(23422) / Slice LUT 7184(13.50%) / Reg 5800(5.45%) / BRAM 90.5(64.64%) / Dynamic 2.184 W
+# methodology 0 CRITICAL；构建日志 CRITICAL WARNING 9（与基线同）；布线 0 错误
+# cdc.rpt 与 build#17 逐行相同（只有时间戳差异）—— 这一改不在 report_cdc 的统计粒度里，判据是 sim/tb_v79_abort_toggle 的相位扫描 30/30
+# 注：本次综合之后仓库里又只加了注释（frame_commit_lock/pl_video_top 的说明），网表与之一致
+534f7760fccda7fc89722e7d38beb8fb *../system.bit
+9dd8d2364531b823084734e7634a1345 *../system.xsa
+dcc8e223ab128679f5375dbe665ec896 *cdc.rpt
+a3ec4fd39e5274ff4e346efd7199166b *clock_util.rpt
+a87d7160999df57040f5fcc9175f7408 *methodology.rpt
+29cf22a8c4ec1ce6ab7149047257163a *power.rpt
+e5565e0fca02a0d6ca5a2b13942fa86d *route_status.rpt
+3a8d9f5c3fbc98ab48c5c64c87502914 *timing_summary.rpt
+ff36a857e4f883380a8d136f8ea59dd0 *util_hier.rpt
+84f42de55e1833b011326786c523f90a *utilization.rpt
+3837c7fc34a77a58815a8afd15fab5e4 *ps_app.elf
