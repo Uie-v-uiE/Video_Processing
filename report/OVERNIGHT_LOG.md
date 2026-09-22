@@ -893,7 +893,7 @@ methodology 0 条 Critical Warning；`ku5p_eth.bit` 15.4 MB 已生成。
 
 | 步 | 做什么 | 判据 / 期望 |
 |----|--------|-------------|
-| 1 | 只连 Z7，重启 `hw_server`，下 `build/system.bit`（R13，md5 前缀 `0f46ec91`） | **先校验再下**：`md5sum build/system.bit` 必须以 `0f46ec91` 开头（或等于本轮冻结进 `build/frozen_*` 的那一版）。对不上就是被后续构建原地覆盖过 —— 去 `build/frozen_*/` 取，别硬下。**今晚真的发生过**：02:32 我把 r13 恢复回 `build/system.bit`，02:54 build#15 跑完又把它覆盖了；文件名一样、内容不一样，只有 md5 能分辨。校验通过后再下：`program_system.tcl` 成功、LED0 心跳 |
+| 1 | 只连 Z7，重启 `hw_server`，下 `build/system.bit`（**R22/build#17，md5 前缀 `11998af8`** = R13 同一功能 + 两笔 CDC 修复，门禁更好；回退版在 `build/frozen_r13/`，前缀 `0f46ec91`） | **先校验再下**：`md5sum build/system.bit` 必须以 `0f46ec91` 开头（或等于本轮冻结进 `build/frozen_*` 的那一版）。对不上就是被后续构建原地覆盖过 —— 去 `build/frozen_*/` 取，别硬下。**今晚真的发生过**：02:32 我把 r13 恢复回 `build/system.bit`，02:54 build#15 跑完又把它覆盖了；文件名一样、内容不一样，只有 md5 能分辨。校验通过后再下：`program_system.tcl` 成功、LED0 心跳 |
 | 2 | `xsdb build/tcl/ps_jtag_boot.tcl` → 下 `build/ps_app.elf` → `con` | 串口出现 `[BOOT] ... SD PLAY STOP FRAME0 STAT` |
 | 3 | 敲 `SD` | 打印 `FAT32 part_lba=... frames=4398 fps=15.000 files=9`；若报 `card absent` 说明 SD 不在 BSP 的 SDIO0 上，先查 PS 配置 |
 | 4 | 网线**拔掉**，敲 `SRC1` 再 `PLAY` | 右半窗动、左半窗不动；每 100 帧打印 `avg x.xxx fps`；**无撕裂**（这是发布协议的目的） |
@@ -1446,3 +1446,23 @@ FF→FF 与慢→快跨域（`a1_q/fx_q/lane_w` 的 D 端都在 4 ns 预算里�
 里面有 V7.8 的全部 RTL、4 个台架与配准常数；但**起板脚本 `ps_jtag_boot.tcl` 的"自动从 xsa 解出
 ps7_init"修复在之后的提交 `c5ae5b5`** ⇒ 从 tag 起做实验前，要么先 cherry-pick 那一个文件，
 要么手工传 `ps7_init.tcl` 路径，否则会看到 `NO ps7_init.tcl … exit 1`（那不是板子的问题）。
+
+---
+
+### R22 · 2026-09-23 04:1x–04:3x · U11 的三笔 CDC 账：两笔记了功，一笔**故意不做**
+
+主线（V7.7 结构）上做了一次"深度优化"里最便宜也最实在的一类：把跨域采样写成它该有的样子。
+
+| 项 | 改法 | 门禁证据（build#13 → build#17） |
+|----|------|-----------------------------------|
+| `eth_link` 被像素域裸采 4 处（同文件里 `src_sel` 却是 3 级同步） | 统一成 3 级 `el0/el1/el2`，4 处改用 `eth_link_pix`；顺带删掉重复的 `link_s0/link_s1` 二级链 | `cdc.rpt` 的 `eth_rxc→clkout0_1`：**端点 84 → 51、被标记 16 → 1** |
+| `effect_ctrl` 的 en/th 两级同步链没标 `ASYNC_REG` | 补属性（工具会因此把它们当同步器，不再计入"无同步器"那类） | `clk_fpga_0→clkout0_1` 那行的未归类计数 **13 → 0** |
+| `copy_abort` 像素域裸采 | **不做。** 读代码发现它是 `axi_clk` 上只有 1 拍（10 ns）的脉冲，电平型 3 级同步会比裸采样**更容易整串漏掉** —— 那不是修 bug 是换个更隐蔽的 bug | 已登记 `report/ISSUES.md` #27，含正确修法（本仓库已有的 `util/ps_publish.v` 翻转式模板）与台架思路（`tb_v6_vblank_copy` 的激励 + 调短 `WD_CYC`） |
+
+**其余门禁（build#17）**：WNS **+0.447** / WHS **+0.066**（r13 是 +0.426 / +0.025 ⇒ 保持余量这个观察项也顺带好转）、
+0 失败端点 / 23422、路由 12497 根全布通 0 错误、BRAM 90.5（64.64%）、LUT 7181、Reg 5800、
+Dynamic 2.183 W、`methodology` Critical 0（与基线同）、构建日志 CRITICAL WARNING 9（与基线同）。
+L1 全量 **37/37**。⇒ **明早默认下 build#17**（md5 `11998af8…`）：功能与 r13 完全相同（只动同步器），
+门禁更好，而且**与仓库源码一致**（"clone→build→同一块 bit"这件事本身是可核对的）；
+`build/frozen_r13/` 留作 30 秒回退。两块 bit 都还没上过板（R13 的板检本来就排在明早），
+所以这里没有"退回已验证版"这个选项，只有"选门禁更好的 + 带现场回退预案"✓
