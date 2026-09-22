@@ -126,3 +126,26 @@
 | 主线 `dev/night-2026-09-22` 的 HEAD | 顶层与几何 = **c9ab9a3（V7.7 / build#13）**，残留差异三条且均为惰性 | `git diff --name-status c9ab9a3 -- src/rtl` |
 
 口径：**远程 `main` 与 GitHub 上没有 V7.8 的任何东西**（按用户要求今晚不推）；对外也不能写"板上已有双线性"。
+
+---
+
+## 6. V7.9（两笔 CDC 账 + KU5P 会说话）在谱系里的位置 —— 2026-09-23 05:5x
+
+**它是一个真发布版本，但功能面零变化**：主线只多了三类正确性收紧（`eth_link` 同步、
+`effect_ctrl` 的 `ASYNC_REG`、`copy_abort` 翻转式同步），KU5P 那半边多了一个新能力。
+
+| 位置 | 内容 | 证据 |
+|---|---|---|
+| 分支 `dev/night-2026-09-22`（本地，**未推**） | V7.7 功能 + V7.9 的三笔正确性收紧 + KU5P 遥测/仲裁器 | `git log`；门禁数字唯一出处是 `report/CHANGELOG_V7.md` 的 V7.9 表（本文件**不重复抄数字**，避免两处漂移） |
+| tag `v7.8-bilinear-wip` | V7.8 全套（未合入的开发） | 见 §5 |
+| 主线默认 bit | 由本次夜间构建的**门禁结果**决定：全绿用最新一次（build#18），任何一条红就退回 `build/frozen_r17_cdc/`（md5 `11998af8`），再不行退回 `build/frozen_r13/`（`0f46ec91`） | `md5sum build/system.bit` 对 `build/frozen_*/MANIFEST.txt` |
+| KU5P 子工程 | `ku5p/build/ku5p_eth.bit` + 报告成套冻结在 `ku5p/build/frozen_r23/`（含 bit 的 md5，二进制不入库） | `ku5p/README.md` §1 表 + `ku5p/build/frozen_r23/MANIFEST.txt` |
+
+**"两套代码、一个顶层家族"这件事要说清**：`ku5p/src/rtl/` 下的 `gmii_to_rgmii/rgmii_rx/rgmii_tx`
+与 `src/rtl/eth/` 下的同名文件是**同一层的两种器件写法**（7 系列 `IDELAYE2+IDDR` vs
+UltraScale+ `IDDRE1+BUFIO`），不是副本也不是分叉 —— 所以它们不能出现在同一次 xvlog/综合里，
+全量回归脚本只显式加入 KU5P 自研的那两个模块（理由写在 `sim/run_sim.tcl` 的注释里）。
+
+**下一步（明天之后）在谱系里的落点**：`ISSUES.md` #28（厂商 mux 的 `||`→`&&`，一行）与
+#29（把自研 `gmii_rx_mac + udp_rx_parser` 换上顶层，顺带解决目的端口过滤）都要走
+"改 RTL → L1 全量 → L3 门禁 → 冻结一套 frozen_*"这条完整链，不能借今晚的构建顺手带进去。

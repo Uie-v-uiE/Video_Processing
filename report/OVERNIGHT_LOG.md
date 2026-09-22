@@ -900,13 +900,17 @@ methodology 0 条 Critical Warning；`ku5p_eth.bit` 15.4 MB 已生成。
 | 5 | 插回网线，按 key1/key2 | **左窗不转、右窗转**（R12 判据）；OSD 角度行跟着变 |
 | 6 | `ZOOM0` / `ZOOM1` | 右窗呼吸缩放停/起（V7.7 前是死命令，这条就是它的回归判据） |
 | 7 | `node src/host/health_read.mjs --gapclr` → 推流 30 s → 再读 | `DROP` 为 0 或极小；`STALL` 合理；lane31 两个标志为 0 |
-| 8 | 换 KU5P（**只插一块板**，两板 FT2232 同序列号会抢）：下 `ku5p/build/ku5p_eth.bit` → `ping 192.168.1.11` | 通 = 移植成立；不通先看 LED0（有没有 GMII RX_DV），再决定要不要补 `IDELAYE3` |
+| 8 | 换 KU5P（**只插一块板**，两板 FT2232 同序列号会抢）：下 `ku5p/build/ku5p_eth.bit`（**先 `md5sum` 应等于 `ku5p/build/frozen_r23/MANIFEST.txt` 里那一行 `cd7c705b…`**）→ `ping 192.168.1.11` | 通 = 移植成立；不通先看 LED0（有没有 GMII RX_DV），再决定要不要补 `IDELAYE3` |
+| 8b | 另开一个窗口 `node src/host/ku5p_stats.mjs`（ping 过之后才会有包 —— 板子按设计不往没学到 ARP 的对端发） | 每秒一行 `frames=… pkts=… oob=0 rows_miss=0 up=Ns`。三件事一次回答：TX 通道通不通、FCS 网卡认不认、收流统计准不准。`bad≈N(未接FCS判定)` **不要**读成"没有错包"（见 ISSUES #29）；一直不出现包 → 先 `ping` 再查 1234 端口被占 |
 | 9 | **（主线 bit 没有这一位，用 build#13 时跳过本步；它是 V7.8 从 tag `v7.8-bilinear-wip` 收口时的验收判据 —— 见 R21）** 双线性 A/B（R18 的主判据）：Z7 上 `BILIN1` → 让右窗停在 1.5x~2x 的缩放或 30°/60°，盯斜向边缘；再 `BILIN0`（同一块 bit、同一个画面，只切一个 GPIO 位） | 有：斜边从"锯齿台阶"变成"两级过渡的斜坡"，动态时闪动明显变小；无：立刻回到今天的最近邻样子。**如果两档看起来一模一样 ⇒ 说明小数没接到读口上**（不是"效果不明显"），先查 `[STAT] bilin=` 和 `fb_rd5x` 的 `fx_r/fy_r` |
 | 10 | **配准回归（主线 build#13 没有 R18 的 +3 拍，这一步就是普通的彩条/旋转对齐回归；含 V7.8 的 bit 才需要按 `BAR_*_TAP` 核）**：`SRC0` 彩条 → 左/右两窗边缘对齐；再 `SRC1` 推流后按 key1/key2 转 90° | 彩条的 8 条竖带在左右两窗的**分界处必须严丝合缝**（错 1 列 = 顶层抽位公式配错，见 `BAR_*_TAP`）；90° 时画面不整体上下偏移（偏 1 行 = `zoom_mapper` 的 y 减法修正没生效） |
 | 11 | 跑 `node src/host/health_read.mjs` 记一组数，与 R13 那组对比 | 帧率/丢包/STALL 不应因显示侧改动变化（显示读口不碰入包链）；变了就说明读口抢了 AXI 或电源 |
 
-**先别在板上等的**：UDP 状态回包（KU5P 下一步里最值钱的一件）、Z7 的 `PROC_LAT` 列配准、
-`FRAME_BYTES` 参数化、双线性插值的 `clk_pix5x` 分时读口（判据已定，见 §R11 追加 2）。
+**状态更新（R23）**："UDP 状态回包"**代码与判据已经做完**（`ku5p_telem` + `ku5p_tx_arb` +
+`ku5p_stats.mjs`，门禁 05:43 那一次全绿），现在它变成**板上项**（上面第 8b 步），不再属于"先别在板上等"。
+仍然属于"先别在板上等的"：Z7 的 `PROC_LAT` 列配准、`FRAME_BYTES` 参数化、
+双线性插值的 `clk_pix5x` 分时读口（判据已定，见 §R11 追加 2 与 R21 补记 2 的 3/5 槽方案）、
+以及 ISSUES #28/#29 那两笔（一行改 `&&`、把自研 `gmii_rx_mac + udp_rx_parser` 换上顶层）。
 
 ## 10. 未竟项
 
