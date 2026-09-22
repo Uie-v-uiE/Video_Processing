@@ -3,6 +3,10 @@
 //   L0 FPS=xx      (decimal 2)
 //   L1 ANG=xxx     (decimal 3)
 //   L2 EN=xxxxx    (binary 5)
+//   L3 DROP=xxxxx  (hex 5) —— CDC 写口被挡住而永久消失的 16bit 字数。
+//      故意用十六进制：32bit 的十进制除法在 50 MHz 像素域会拉出 45 级组合链
+//      （V7.6 首次 L3：WNS −6.765）。饱和在 FFFFF，**不回卷**。
+//   L4 STALL=xxxx  (decimal 4, 饱和在 9999) —— 距上一个完整帧过了多少 ms；9999 = 早就断了
 // 3x rose. Space = blank glyph (NOT digit 0).
 module osd_overlay #(
     parameter X0 = 16,
@@ -12,7 +16,7 @@ module osd_overlay #(
     parameter CHAR_H = 21,          // 7*3
     parameter LINE_GAP = 10,
     parameter MAX_CHARS = 10,
-    parameter N_LINES = 3
+    parameter N_LINES = 5
 )(
     input  wire        clk,
     input  wire        rst_n,
@@ -26,6 +30,8 @@ module osd_overlay #(
     input  wire        eth_link,
     input  wire [15:0] net_pkts,
     input  wire [15:0] net_bad,
+    input  wire [31:0] net_drop,
+    input  wire [15:0] net_stall,
     input  wire [15:0] bg_pix,
     output reg  [7:0]  r,
     output reg  [7:0]  g,
@@ -47,7 +53,8 @@ module osd_overlay #(
                   (y >= Y0) && (y < Y0 + BOX_H);
     wire [11:0] lx = x - X0;
     wire [11:0] ly = y - Y0;
-    wire [1:0]  line = (ly / LINE_H);
+    // 行号必须能表示 N_LINES-1：原来写死 [1:0]，加到 5 行后第 3/4 行永远取不到。
+    wire [2:0]  line = (ly / LINE_H);
     wire [7:0]  pix_y = ly - line * LINE_H;
     wire [4:0]  cidx = lx / CHAR_W;
     wire [7:0]  pix_x = lx % CHAR_W;
@@ -61,6 +68,15 @@ module osd_overlay #(
         end
     endfunction
 
+    // DROP 用十六进制：字模表里 A-F 本来就有（10..15），glyph_idx 也已经认它们
+    function [7:0] hexdig;
+        input [3:0] v;
+        begin
+            if (v <= 4'd9) hexdig = 8'h30 + v;   // '0'..'9'
+            else           hexdig = 8'h37 + v;   // 'A'(=65) .. 'F'
+        end
+    endfunction
+
     wire [7:0]  fps_v = (fps > 8'd99) ? 8'd99 : fps;
     wire [7:0]  fps_t = (fps_v / 8'd10) % 8'd10;
     wire [7:0]  fps_o = fps_v % 8'd10;
@@ -70,6 +86,32 @@ module osd_overlay #(
     wire [3:0]  ang_h = (ang16 / 16'd100) % 16'd10;
     wire [3:0]  ang_t = (ang16 / 16'd10)  % 16'd10;
     wire [3:0]  ang_o = ang16 % 16'd10;
+
+    // DROP=xxxxx：显示成**十六进制**，不是懒得做除法，而是 32bit 的 /10000、/1000、
+    // /100、/10 四个常系数除法在像素时钟（50 MHz）下合成了一条 45 级、26.6 ns 的
+    // 组合链（V7.6 第一次 L3 就死在这里：WNS −6.765，19 个违例端点）。
+    // 取 nibble 只要一层 16:1 mux。"00000 = 一个字都没丢"在任何进制下同样成立，
+    // 而溢出侧仍然要**饱和**：回卷到 0 会被读成"没问题"，那是这块屏最不该撒的谎。
+    wire [19:0] dr_v  = (net_drop > 32'h000F_FFFF) ? 20'hFFFFF : net_drop[19:0];
+    // STALL=xxxx：十进制，先把操作数压到 14 bit（9999 以内），再**分两拍算**。
+    // 一次算完四个十进制位在 50 MHz 像素域是 28 级 / 16.9 ns 的组合链
+    // （V7.6 第一次 L3 的 −6.765 就是这么来的），拆成「/1000 与其余三位」两拍后
+    // 每段都只剩十来级。数字每帧才变一次，晚两拍到人眼没有任何影响。
+    wire [13:0] st_v  = (net_stall > 16'd9999) ? 14'd9999 : net_stall[13:0];
+    reg  [3:0]  st_k;                              // 千位
+    reg  [9:0]  st_rem;                            // 去掉千位后的余数 0..999
+    always @(posedge clk or negedge rst_n) begin
+        if (!rst_n) begin st_k <= 0; st_rem <= 0; end
+        else begin
+            st_k   <= st_v / 14'd1000;
+            st_rem <= st_v % 14'd1000;
+        end
+    end
+    wire [9:0]  s9 = st_rem;
+    wire [3:0]  st_d3 = st_k;
+    wire [3:0]  st_d2 = (s9 / 10'd100) % 10'd10;
+    wire [3:0]  st_d1 = (s9 / 10'd10)  % 10'd10;
+    wire [3:0]  st_d0 =  s9            % 10'd10;
 
     // Fixed strings — no trailing junk
     reg [7:0] chars [0:N_LINES*MAX_CHARS-1];
@@ -104,6 +146,30 @@ module osd_overlay #(
         chars[2*MAX_CHARS+5] = effect_en[2] ? "1" : "0";
         chars[2*MAX_CHARS+6] = effect_en[3] ? "1" : "0";
         chars[2*MAX_CHARS+7] = effect_en[4] ? "1" : "0";
+
+        // L3: DROP=xxxxx  （CDC 写口被挡住而永久消失的字数）
+        chars[3*MAX_CHARS+0] = "D";
+        chars[3*MAX_CHARS+1] = "R";
+        chars[3*MAX_CHARS+2] = "O";
+        chars[3*MAX_CHARS+3] = "P";
+        chars[3*MAX_CHARS+4] = "=";
+        chars[3*MAX_CHARS+5] = hexdig(dr_v[19:16]);
+        chars[3*MAX_CHARS+6] = hexdig(dr_v[15:12]);
+        chars[3*MAX_CHARS+7] = hexdig(dr_v[11:8]);
+        chars[3*MAX_CHARS+8] = hexdig(dr_v[7:4]);
+        chars[3*MAX_CHARS+9] = hexdig(dr_v[3:0]);
+
+        // L4: STALL=xxxx  （距上一个完整帧过了多少 ms）
+        chars[4*MAX_CHARS+0] = "S";
+        chars[4*MAX_CHARS+1] = "T";
+        chars[4*MAX_CHARS+2] = "A";
+        chars[4*MAX_CHARS+3] = "L";
+        chars[4*MAX_CHARS+4] = "L";
+        chars[4*MAX_CHARS+5] = "=";
+        chars[4*MAX_CHARS+6] = dig(st_d3[3:0]);
+        chars[4*MAX_CHARS+7] = dig(st_d2[3:0]);
+        chars[4*MAX_CHARS+8] = dig(st_d1[3:0]);
+        chars[4*MAX_CHARS+9] = dig(st_d0[3:0]);
     end
 
     // 5x7 font. Index 31 = blank (spaces).
@@ -151,6 +217,15 @@ module osd_overlay #(
         // G=16 N=20 P=22 S=24 = = 27
         font[16][0]=5'b01110; font[16][1]=5'b10001; font[16][2]=5'b10000;
         font[16][3]=5'b10111; font[16][4]=5'b10001; font[16][5]=5'b10001; font[16][6]=5'b01110;
+        // v7.6 新增：R=17 O=18 T=19 L=21（给 DROP / STALL 两行用）
+        font[17][0]=5'b11110; font[17][1]=5'b10001; font[17][2]=5'b10001;
+        font[17][3]=5'b11110; font[17][4]=5'b10100; font[17][5]=5'b10010; font[17][6]=5'b10001;
+        font[18][0]=5'b01110; font[18][1]=5'b10001; font[18][2]=5'b10001;
+        font[18][3]=5'b10001; font[18][4]=5'b10001; font[18][5]=5'b10001; font[18][6]=5'b01110;
+        font[19][0]=5'b11111; font[19][1]=5'b00100; font[19][2]=5'b00100;
+        font[19][3]=5'b00100; font[19][4]=5'b00100; font[19][5]=5'b00100; font[19][6]=5'b00100;
+        font[21][0]=5'b10000; font[21][1]=5'b10000; font[21][2]=5'b10000;
+        font[21][3]=5'b10000; font[21][4]=5'b10000; font[21][5]=5'b10000; font[21][6]=5'b11111;
         font[20][0]=5'b10001; font[20][1]=5'b11001; font[20][2]=5'b10101;
         font[20][3]=5'b10101; font[20][4]=5'b10011; font[20][5]=5'b10001; font[20][6]=5'b10001;
         font[22][0]=5'b11110; font[22][1]=5'b10001; font[22][2]=5'b10001;
@@ -168,9 +243,13 @@ module osd_overlay #(
             if (c >= 8'h30 && c <= 8'h39)      glyph_idx = c - 8'h30;          // 0-9
             else if (c >= 8'h41 && c <= 8'h46) glyph_idx = 5'd10 + (c - 8'h41); // A-F
             else if (c == 8'h47) glyph_idx = 5'd16; // G
+            else if (c == 8'h4C) glyph_idx = 5'd21; // L
             else if (c == 8'h4E) glyph_idx = 5'd20; // N
+            else if (c == 8'h4F) glyph_idx = 5'd18; // O
             else if (c == 8'h50) glyph_idx = 5'd22; // P
+            else if (c == 8'h52) glyph_idx = 5'd17; // R
             else if (c == 8'h53) glyph_idx = 5'd24; // S
+            else if (c == 8'h54) glyph_idx = 5'd19; // T
             else if (c == 8'h3D) glyph_idx = 5'd27; // =
             else                 glyph_idx = 5'd31; // BLANK (space etc.)
         end

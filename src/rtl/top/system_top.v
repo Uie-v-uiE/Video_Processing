@@ -42,6 +42,7 @@ module system_top (
 );
     wire fclk0, fclk0_rst_n;
     wire [31:0] gpio_o, status;
+    wire [31:0] gpio1_i;   // v7.6：PL→PS 的健康 lane 窗口（BD 的 GPIO_1 输入）
     wire [31:0] m_araddr;
     wire [5:0]  m_arid;
     wire [3:0]  m_arlen_axi3;
@@ -75,6 +76,7 @@ module system_top (
         .FIXED_IO_ps_porb(FIXED_IO_ps_porb), .FIXED_IO_ps_srstb(FIXED_IO_ps_srstb),
         .FCLK_CLK0(fclk0), .FCLK_RESET0_N(fclk0_rst_n),
         .GPIO_0_tri_o(gpio_o),
+        .GPIO_1_tri_i(gpio1_i),
         .M_AXI_HP0_araddr(m_araddr), .M_AXI_HP0_arburst(m_arburst),
         .M_AXI_HP0_arcache(4'b0011), .M_AXI_HP0_arid(m_arid),
         .M_AXI_HP0_arlen(m_arlen_axi3), .M_AXI_HP0_arlock(2'b00),
@@ -119,6 +121,8 @@ module system_top (
     wire [31:0] eth_ddr_base;
     wire        eth_commit;
     wire        pl_copy_hold;
+    wire [319:0] eth_lm_bus;
+    wire        eth_lm_tog, eth_lm_hb;
 
     eth_udp_video_top #(
         .IMG_W(512), .IMG_H(300),
@@ -155,11 +159,32 @@ module system_top (
         .m_axi_wready(m_wready),
         .m_axi_bvalid(m_bvalid), .m_axi_bready(m_bready),
         .stat_frames(eth_frames), .stat_pkts(eth_pkts),
-        .stat_bytes(eth_bytes), .stat_bad(eth_bad)
+        .stat_bytes(eth_bytes), .stat_bad(eth_bad),
+        .lm_bus(eth_lm_bus), .lm_bus_tog(eth_lm_tog), .lm_hb(eth_lm_hb)
     );
 
-    pl_video_top #(.IMG_W(512), .IMG_H(300), .PANE_W(512), .BASE_ADDR(32'h1000_0000)) u_pl (
-        .sys_clk(sys_clk), .sys_rst_n(1'b1),
+    // ---- v7.6 (P0-A)：把健康快照再跨一份到 fclk0（100 MHz）给 PS 读 ----
+    // 读法：先用**已经存在**的 GPIO_0（输出）把 lane 号写到 gpio_o[31:27]，
+    // 再从新加的 GPIO_1（输入）读那一条 32bit。lane 定义见 link_monitor 尾部。
+    //   lane 31 → {30'd0, 2'd0, lm_clk_gone}，用来回答"eth_rxc 还在不在"，
+    //   其它越界的 lane → 32'hDEAD_BEEF，好让脚本一眼看出自己写错了号。
+    wire [319:0] lm_axi;
+    wire         lm_clk_gone;
+    snap_cross #(.W(320), .DST_HZ(100_000_000), .HB_TO_MS(200)) u_lm_axi (
+        .dst_clk(fclk0), .dst_rst_n(fclk0_rst_n),
+        .bus(eth_lm_bus), .bus_tog(eth_lm_tog), .hb_tog(eth_lm_hb),
+        .bus_q(lm_axi), .hb_gone(lm_clk_gone)
+    );
+    wire [4:0] lm_lane = gpio_o[31:27];
+    reg  [31:0] lm_rd;
+    always @(*) begin
+        if      (lm_lane == 5'd31)     lm_rd = {30'd0, 2'd0, lm_clk_gone};
+        else if (lm_lane > 5'd9)       lm_rd = 32'hDEAD_BEEF;
+        else                           lm_rd = lm_axi[lm_lane*32 +: 32];
+    end
+    assign gpio1_i = lm_rd;
+
+    pl_video_top #(.IMG_W(512), .IMG_H(300), .PANE_W(512), .BASE_ADDR(32'h1000_0000)) u_pl (        .sys_clk(sys_clk), .sys_rst_n(1'b1),
         .axi_clk(fclk0), .axi_rst_n(fclk0_rst_n),
         .effect_en(gpio_o[4:0]), .threshold(gpio_o[15:8]), .src_sel(gpio_o[16]),
         .zoom_en(1'b1),
@@ -181,6 +206,7 @@ module system_top (
         .eth_commit(eth_commit),
         .eth_pkts(eth_pkts[15:0]),
         .eth_bad(eth_bad[15:0]),
+        .lm_bus(eth_lm_bus), .lm_bus_tog(eth_lm_tog), .lm_hb(eth_lm_hb),
         .status(status),
         .copy_hold(pl_copy_hold)
     );

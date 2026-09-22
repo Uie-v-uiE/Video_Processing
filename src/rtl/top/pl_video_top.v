@@ -53,6 +53,12 @@ module pl_video_top #(
     input  wire [15:0] eth_pkts,
     input  wire [15:0] eth_bad,
 
+    // v7.6 (P0-A)：link_monitor 的快照总线 + 两个跳变信号（eth_rxc 域）。
+    // 本模块只负责在像素域把它们安全取过来给 OSD。
+    input  wire [319:0] lm_bus,
+    input  wire         lm_bus_tog,
+    input  wire         lm_hb,
+
     output wire [31:0] status,
     output wire        copy_hold
 );
@@ -486,6 +492,19 @@ module pl_video_top #(
         {link_s1, link_s0} <= {link_s0, eth_link};
     end
 
+    // v7.6: 健康快照跨到像素域。像素时钟是 50 MHz（clk_gen CLKOUT0_DIVIDE=20，
+    // VCO 1000 MHz）；HB_TO_MS=200 ⇒ eth_rxc 停供 200 ms 后 OSD 的 STALL 直接钉 9999，
+    // 这样"拔了线"和"还在只是慢"在屏上是两个长相。
+    wire [319:0] lm_pix;
+    wire         lm_clk_gone;
+    snap_cross #(.W(320), .DST_HZ(50_000_000), .HB_TO_MS(200)) u_lm_x (
+        .dst_clk(clk_pix), .dst_rst_n(rst_pix_n),
+        .bus(lm_bus), .bus_tog(lm_bus_tog), .hb_tog(lm_hb),
+        .bus_q(lm_pix), .hb_gone(lm_clk_gone)
+    );
+    wire [31:0] osd_drop  = lm_pix[0*32 +: 32];
+    wire [15:0] osd_stall = lm_clk_gone ? 16'd9999 : lm_pix[2*32 +: 16];
+
     wire [7:0] r_osd, g_osd, b_osd;
     wire de_osd, hs_osd, vs_osd;
     osd_overlay u_osd (
@@ -494,6 +513,7 @@ module pl_video_top #(
         .angle(angle), .effect_en(en_sync), .fps(fps_q),
         .src_sel(src_use), .eth_link(link_s1),
         .net_pkts(pkts_s1), .net_bad(bad_s1),
+        .net_drop(osd_drop), .net_stall(osd_stall),
         .bg_pix(16'h0),
         .r_in(r), .g_in(g), .b_in(b),
         .hs_in(hs_o), .vs_in(vs_o),

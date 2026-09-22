@@ -58,8 +58,18 @@ set_property -dict [list \
   CONFIG.C_INTERRUPT_PRESENT {0} \
 ] [get_bd_cells axi_gpio_0]
 
+# v7.6 (P0-A)：第二条 GPIO，**只读 32bit**，给 PS 读 PL 侧的链路健康快照。
+# 不新增 AXI 从地址之外的任何东西：lane 号走已有的 GPIO_0（gpio_o[31:27]），
+# 数据走这条 —— BD 里只多一个 ip、多一条 M01_AXI。
+create_bd_cell -type ip -vlnv xilinx.com:ip:axi_gpio:2.0 axi_gpio_1
+set_property -dict [list \
+  CONFIG.C_GPIO_WIDTH {32} \
+  CONFIG.C_ALL_INPUTS {1} \
+  CONFIG.C_INTERRUPT_PRESENT {0} \
+] [get_bd_cells axi_gpio_1]
+
 create_bd_cell -type ip -vlnv xilinx.com:ip:axi_interconnect:2.1 axi_gp0_ic
-set_property -dict [list CONFIG.NUM_MI {1} CONFIG.NUM_SI {1}] [get_bd_cells axi_gp0_ic]
+set_property -dict [list CONFIG.NUM_MI {2} CONFIG.NUM_SI {1}] [get_bd_cells axi_gp0_ic]
 create_bd_cell -type ip -vlnv xilinx.com:ip:axi_interconnect:2.1 axi_mem_intercon
 set_property -dict [list CONFIG.NUM_MI {1} CONFIG.NUM_SI {1}] [get_bd_cells axi_mem_intercon]
 
@@ -68,6 +78,8 @@ connect_bd_net [get_bd_pins processing_system7_0/FCLK_CLK0] \
   [get_bd_pins axi_gp0_ic/S00_ACLK] \
   [get_bd_pins axi_gp0_ic/M00_ACLK] \
   [get_bd_pins axi_gpio_0/s_axi_aclk] \
+  [get_bd_pins axi_gpio_1/s_axi_aclk] \
+  [get_bd_pins axi_gp0_ic/M01_ACLK] \
   [get_bd_pins axi_mem_intercon/ACLK] \
   [get_bd_pins axi_mem_intercon/S00_ACLK] \
   [get_bd_pins axi_mem_intercon/M00_ACLK] \
@@ -79,6 +91,8 @@ connect_bd_net [get_bd_pins processing_system7_0/FCLK_RESET0_N] \
   [get_bd_pins axi_gp0_ic/S00_ARESETN] \
   [get_bd_pins axi_gp0_ic/M00_ARESETN] \
   [get_bd_pins axi_gpio_0/s_axi_aresetn] \
+  [get_bd_pins axi_gpio_1/s_axi_aresetn] \
+  [get_bd_pins axi_gp0_ic/M01_ARESETN] \
   [get_bd_pins axi_mem_intercon/ARESETN] \
   [get_bd_pins axi_mem_intercon/S00_ARESETN] \
   [get_bd_pins axi_mem_intercon/M00_ARESETN]
@@ -87,6 +101,8 @@ connect_bd_intf_net [get_bd_intf_pins processing_system7_0/M_AXI_GP0] \
   [get_bd_intf_pins axi_gp0_ic/S00_AXI]
 connect_bd_intf_net [get_bd_intf_pins axi_gp0_ic/M00_AXI] \
   [get_bd_intf_pins axi_gpio_0/S_AXI]
+connect_bd_intf_net [get_bd_intf_pins axi_gp0_ic/M01_AXI] \
+  [get_bd_intf_pins axi_gpio_1/S_AXI]
 connect_bd_intf_net [get_bd_intf_pins axi_mem_intercon/M00_AXI] \
   [get_bd_intf_pins processing_system7_0/S_AXI_HP0]
 
@@ -102,14 +118,21 @@ set_property CONFIG.POLARITY ACTIVE_LOW [get_bd_ports FCLK_RESET0_N]
 connect_bd_net [get_bd_pins processing_system7_0/FCLK_RESET0_N] [get_bd_ports FCLK_RESET0_N]
 
 make_bd_pins_external [get_bd_pins axi_gpio_0/gpio_io_o]
+make_bd_pins_external [get_bd_pins axi_gpio_1/gpio_io_i]
+# 按实际生成的名字改，避免依赖 make_bd_pins_external 的命名细节。
+# 注意：Tcl 没有独立的 elseif 命令（写成分行形式会 invalid command name "elseif"），
+# 而且 gpio_1 的外部端口实际叫 gpio_io_i_0_1，不含 axi_gpio_1 前缀。
 foreach p [get_bd_ports] {
-  if {[string match *gpio_io_o* $p] || [string match *GPIO* $p]} {
-    catch {set_property name GPIO_0_tri_o $p}
-  }
+  if {[string match "*gpio_io_o*" $p]} { catch {set_property name GPIO_0_tri_o $p} }
+  if {[string match "*gpio_io_i*" $p]} { catch {set_property name GPIO_1_tri_i $p} }
 }
+puts "BD PORTS: [get_bd_ports]"
 
 catch {set_property CONFIG.ASSOCIATED_BUSIF {M_AXI_HP0} [get_bd_ports FCLK_CLK0]}
 assign_bd_address
+# 地址要在 assign_bd_address 之后才有效：上位机脚本要用它做 mwr/mrd。
+catch {puts "ADDR GPIO0 = [get_property OFFSET [get_bd_addr_segs axi_gpio_0/S_AXI/Reg]]"}
+catch {puts "ADDR GPIO1 = [get_property OFFSET [get_bd_addr_segs axi_gpio_1/S_AXI/Reg]]"}
 validate_bd_design
 save_bd_design
 make_wrapper -files [get_files design_1.bd] -top

@@ -264,6 +264,79 @@ RX 侧靠固定 tap 的 `IDELAYE2`（`IDELAY_VALUE=15`）而没有将这段延�
 
 ---
 
+## V7.6（R08）—— 链路健康自诊断：把"屏上有黑纹"变成运行期可读数
+
+### 动机：现有统计在上板时有一条是死的
+
+`eth_udp_video_top.v:188` 把 `frame_reasm` 的 `p_good` 硬接成 `1'b1`（本设计不查 UDP 校验和），
+所以 `stat_bad` 在板上**恒 0**；而真正会吃掉数据的只有一处 ——
+`cdc_wr = (fb_wr_en || reasm_flush || flush_pend) && !fifo_full` 里被 `fifo_full` 挡住的那一拍。
+在此之前，这条通路唯一的证据是"屏幕出现黑纹"，事后、靠眼、且分不清丢在 CDC 还是 HP0。
+
+### 交付
+
+| 文件 | 作用 |
+|------|------|
+| `src/rtl/eth/link_monitor.v`（新） | eth_rxc 域统计：`drop_words`、作废帧/坏包、缺行峰值、帧间隔 last/min/max/Σ、`stall_ms` 看门狗、CDC 灌满次数、5 个标志位 |
+| `src/rtl/eth/snap_cross.v`（新） | 「准静态总线 + 跳变沿捕获」跨域器，带独立心跳超时 ⇒ 能区分"没数据"和"源时钟没了" |
+| `frame_reasm.v` | **只加两个观测口** `frame_abort` / `rows_missed`，验收判据一字未改（diff 里两条被删行都只是被超集替换） |
+| `osd_overlay.v` | 新增 L3 `DROP=`（hex 5 位）、L4 `STALL=`（dec 4 位），字模表补 R/O/T/L，`line` 由 `[1:0]` 修成 `[2:0]` |
+| `system_top.v` + BD | 第二路 `snap_cross`(100 MHz) + 10 选 1 lane 窗口 + 一条 32bit 只读 AXI GPIO；lane 号走**已有**的 `gpio_o[31:27]` |
+| `src/host/health_read.mjs`（新） | JTAG 读回十个 lane + 心跳位；先读回 GPIO_0 原值再读-改-写，最后原样归还（否则会踩掉特效/阈值） |
+| `build/tcl/ooc_newmods.tcl`（新） | 三个新模块的 out-of-context 综合 + 带 I/O 延迟的时序预检（1~2 分钟 vs 全流程 15 分钟） |
+
+### 三个只有综合/板级才暴露的 bug（本轮真正的价值）
+
+1. **`ms_last16` 被两个 always 块驱动**。仿真全绿，综合报
+   `[Synth 8-6858] multi-driven net Q is connected to at least one constant driver which has
+   been preserved, other driver is ignored` ⇒ 板上它只剩 GND 常量驱动，间隔与 stall 基准全废。
+2. **1 ms 分频器位宽写死 `[15:0]`**，而 `TC = 125_000_000/1000 = 125000 > 65535` ⇒
+   比较恒假、`ms_tick` 在真实参数下永远不来。取证是一句不起眼的
+   `WARNING [Synth 8-6014] Unused sequential element ms_div_reg was removed.`
+   **为什么 26 条断言没抓到它**：TB 为了让"等 200 ms 断流"跑得动，把 `CLK_HZ` 改成 1000
+   （TC=1）—— 恰好把这个问题改没了。修法是 `DW = $clog2(TC+1)`，
+   并且**再用生产参数例化一份守门**：`PASS production timebase: 62 ms_ticks in 7832805 cycles`。
+3. **OSD 的 32bit 十进制除法把第一次 L3 直接打挂**：`WNS −6.765`、19 个违例端点，
+   最差路径 `u_pl/u_lm_x/bus_q_reg[31] → u_pl/u_osd/g_reg[3]`，**45 级 / 26.647 ns**。
+   修法不是放宽约束，而是把除法从链上摘掉：DROP 改十六进制（取 nibble），
+   STALL 先饱和到 14 bit 再**分两拍**算（数字每帧才变一次，晚两拍人眼无感）。
+   改完 OSD 最差路径 27 级，且那 27 级是 `x → 行/列除法 → 字模` 的既有形状。
+
+测试台自己也修了两处：`cdc_full` 在**正沿**用阻塞赋值会和 DUT 抢时刻（上升沿检测丢），
+以及给 16bit 的 `net_stall` 传 70000 想测饱和、结果先被截成 4464。
+
+### 门禁（V7.5 → V7.6）
+
+| 指标 | V7.5 | V7.6 | 门禁 | 结论 |
+|------|------|------|------|------|
+| WNS | +0.974 ns | **+0.527 ns** | ≥0 | 过（新逻辑吃掉 0.45 ns 余量） |
+| WHS | +0.066 ns | **+0.048 ns** | ≥0 | 过 |
+| 失败端点 | 0 | **0** / 23635 | =0 | 过；`All user specified timing constraints are met.` |
+| BRAM | 90.5 = 64.64% | **90.5 = 64.64%** | ≤97% | 过（本轮一个 tile 都没加） |
+| Slice LUT | 6313 = 11.77% | **7279 = 13.68%** | ≤98% | 过 |
+| Slice 站点 | 18.09% | **2943 = 22.13%** | ≤98% | 过 |
+| 寄存器 | 4345 = 4.08% | **5783 = 5.44%** | —— | 两路 320bit 快照 + 计数器 |
+| DSP | 13 | **13 = 5.91%** | —— | 未增 |
+| 功耗 | 2.350 W | **2.361 W**（+0.5%） | 不明显变差 | 过 |
+| Failed Nets | 0 | **0**，`Router Completed Successfully` | =0 | 过 |
+| methodology Critical | 0 | **0** | 无新增 | 过 |
+| cdc Critical 行 | 4 | **4** | 无新增 | 过（详见下） |
+| 构建日志 CRITICAL WARNING | 7 | **9** | —— | 新增 2 条都是 `BD 41-1348`，即两个新 BD 单元继承同一既有"异步复位接 FCLK_RESET0_N"结构，非新问题 |
+| L1 回归 | 30/30 | **32/32** | 全过 | `sim/results/regression_v76.txt` |
+
+`report_cdc` 的行数没变，但**端点构成变了**，如实记下：`eth_rxc → clkout0_1` 从 33 端点涨到 83，
+新增的 50 个全部落在 `Safe` 列（unsafe 仍 16、unknown 仍 17，即本轮没有新增不安全端点）；
+`eth_rxc → clk_fpga_0` 这一行有 **1 个 unsafe / 14 个无 ASYNC_REG**，是本轮新加的
+100 MHz 那一路 `snap_cross` 里 `bus_q` 的捕获总线 —— 它**故意**不打 `ASYNC_REG`
+（那是数据总线不是同步链），安全性由 `SETTLE` 节流 + 边沿后捕获保证，
+L1 的 100/100 不撕烈断言就是它的证据。这一点在 `study/03_模块详解/08_链路健康自诊断.md` §4 有完整推导。
+
+**L4 未做**：本轮结束时两块板的板载 FT2232 共用同一个序列号 `0ABC01`，一台电脑一次只能烧一块
+（见 OVERNIGHT_LOG §11），且 Z7 侧需要重新上电确认。所以 `drop_words` 与黑纹同时出现、
+OSD 两行可读、十个 lane 两遍一致这三件事**目前只有仿真级证据**，不写成板级战果。
+
+---
+
 ## 五版累计（第四版 → 第五版）
 
 | 项 | V6.4 | **V7.5（当前 main）** | 变化 |

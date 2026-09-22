@@ -50,7 +50,13 @@ module eth_udp_video_top #(
     output wire [31:0] stat_frames,
     output wire [31:0] stat_pkts,
     output wire [31:0] stat_bytes,
-    output wire [31:0] stat_bad
+    output wire [31:0] stat_bad,
+
+    // v7.6 (P0-A)：链路健康快照总线 + 两个跳变信号，全部在 eth_rxc 域。
+    // 跨域（像素域 OSD / PS 侧 GPIO）由消费方用 snap_cross 完成。
+    output wire [319:0] lm_bus,
+    output wire         lm_bus_tog,
+    output wire         lm_hb
 );
     localparam [31:0] BANK0 = BASE_ADDR;
     localparam [31:0] BANK1 = BASE_ADDR + 32'h0008_0000;
@@ -182,13 +188,16 @@ module eth_udp_video_top #(
     wire udp_sof = udp_rec_en && !in_udp_pkt;
 
     wire reasm_flush;
+    wire reasm_ferr, reasm_fabort;
+    wire [15:0] reasm_rows_miss;
     frame_reasm #(.IMG_W(IMG_W), .IMG_H(IMG_H)) u_reasm (
         .clk(gmii_rx_clk), .rst_n(rst_n),
         .p_data(udp_rec_data), .p_valid(udp_rec_en),
         .p_sof(udp_sof), .p_eof(udp_rec_pkt_done), .p_good(1'b1),
         .wr_en(fb_wr_en), .wr_addr(fb_wr_addr), .wr_data(fb_wr_data),
         .flush(reasm_flush),
-        .frame_done(frame_done), .frame_err(),
+        .frame_done(frame_done), .frame_err(reasm_ferr),
+        .frame_abort(reasm_fabort), .rows_missed(reasm_rows_miss),
         .stat_frames(s_frames), .stat_pkts(s_pkts),
         .stat_bytes(s_bytes), .stat_bad(s_badc), .stat_oob_off(s_oob)
     );
@@ -218,6 +227,20 @@ module eth_udp_video_top #(
         else if (reasm_flush && fb_wr_en && !fifo_full) flush_pend <= 1'b1;
         else if (flush_pend && !fb_wr_en && !fifo_full) flush_pend <= 1'b0;
     end
+
+    // v7.6 (P0-A)：把「这一拍的 CDC 写被 fifo_full 挡住了」变成可读数——这是上板
+    // 唯一真实的丢数据通道（p_good 硬接 1 ⇒ frame_reasm 的坏包统计是死的）。
+    wire cdc_wr_req = fb_wr_en || reasm_flush || flush_pend;
+    link_monitor #(
+        .CLK_HZ(125_000_000), .LIVE_MS(16'd200)
+    ) u_lm (
+        .clk(gmii_rx_clk), .rst_n(rst_n),
+        .cdc_wr_req(cdc_wr_req), .cdc_full(fifo_full),
+        .frame_done(frame_done), .frame_abort(reasm_fabort),
+        .frame_err(reasm_ferr), .rows_missed(reasm_rows_miss),
+        .in_pkts(s_pkts), .in_bytes(s_bytes),
+        .lm_bus(lm_bus), .lm_bus_tog(lm_bus_tog), .lm_hb(lm_hb)
+    );
 
     // v6.2: 缓冲主力——BRAM 实现的 CDC（dc_fifo 带 ram_style="block"）。
     // 8192 条 = 4096 个 64bit 字 = 16 KB，足以吸收「显示拷贝独占 HP0 一整个

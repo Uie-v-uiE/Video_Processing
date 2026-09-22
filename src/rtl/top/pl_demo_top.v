@@ -55,6 +55,9 @@ module pl_demo_top (
         .eth_frame(1'b0),
         .eth_pkts(16'd0),
         .eth_bad(16'd0),
+        // 这个 top 没有 ETH 链路：心跳恒 0 ⇒ snap_cross 判定时钟消失 ⇒
+        // OSD 的 STALL 显示 9999（"没有流"），这正是它该说的话。
+        .lm_bus(320'd0), .lm_bus_tog(1'b0), .lm_hb(1'b0),
         .status()
     );
 endmodule

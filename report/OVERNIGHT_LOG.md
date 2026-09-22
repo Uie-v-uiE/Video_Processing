@@ -588,12 +588,51 @@ ping 192.168.1.10                 → 发送=3 接收=3 丢失=0，RTT 1-2 ms   
   bit 逐字节相同 ⇒ 拆分没有改变任何被实际施加的约束效果，风险为零（若不同就会停下重查）。
   `build/cdc.rpt` 的跨域统计与 R06 一致（9 行、同样 3 行 Critical 级条目）。
 
+### R08 · 2026-09-22 17:55–19:55 · P0-A 链路健康自诊断引擎（新子系统）
+
+- **起点**：台架排查（§11）确认两块板的板载 FT2232 共用序列号 `0ABC01`，一台电脑一次只能烧一块
+  ⇒ 板级验证此刻做不了。按"禁止空等用户指示"转入不需要板子的 P0-A。
+- **动机（一句话）**：`p_good` 在 `eth_udp_video_top.v:188` 被硬接 `1'b1` ⇒ `stat_bad` 上板恒 0，
+  而唯一真实的丢数据通道是 `cdc_wr` 被 `fifo_full` 挡住的那一拍。此前它的唯一证据是"屏幕有黑纹"。
+- **交付**：`link_monitor.v`（eth_rxc 域统计，10 个 32bit lane）、`snap_cross.v`
+  （准静态总线 + 跳变沿 + 心跳超时的跨域器）、`frame_reasm` 只加 `frame_abort`/`rows_missed`
+  两个观测口（验收判据一字未改）、OSD 增 `DROP=`/`STALL=` 两行、
+  `system_top` 第二路跨域 + 10 选 1 lane 窗口 + BD 加一条 32bit 只读 AXI GPIO、
+  `src/host/health_read.mjs`（JTAG 读回，读-改-写并归还 GPIO_0）。
+- **本轮真正的产出是三个"仿真全绿、只有综合才暴露"的缺陷**（详见 CHANGELOG V7.6）：
+  1. `ms_last16` 被两个 always 块驱动 → `[Synth 8-6858] ... other driver is ignored`，板上会变常量；
+  2. 1 ms 分频器写死 `[15:0]` 装不下 `TC=125000` → `ms_tick` 恒假，取证是
+     `[Synth 8-6014] Unused sequential element ms_div_reg was removed`；
+     **TB 为了跑得动把 `CLK_HZ` 改成 1000，恰好把它掩盖了** ⇒ 新增"生产参数守门"例化；
+  3. OSD 里 32bit 十进制除法在 50 MHz 像素域拉出 **45 级 / 26.647 ns** 的链，
+     第一次 L3 直接 `WNS −6.765 / 19 个违例端点` → DROP 改十六进制、STALL 饱和到 14bit 并分两拍。
+- **新增工具**：`build/tcl/ooc_newmods.tcl` —— 新模块 OOC 综合 + 带 I/O 延迟的时序预检，
+  1~2 分钟抓到的问题等于一次 15 分钟全流程。它自己踩的坑也记下来：本流程没有
+  `remove_from_collection` 也没有 `get_object_name`；不给 `set_input_delay` 则 OOC 全是
+  IN2REG、slack 恒 `inf` 等于没测。
+- **判据**（写代码前先定，逐条实现）：
+  ① **反例判据**——拉住 `fifo_full` ⇒ `drop_words` 必须非 0；反向：没有 full 必须恒 0；
+  ② 缺一个中间包 ⇒ `frame_abort` 恰好一次且 `rows_missed=1` 并进入快照；
+  ③ 断流后快照必须继续刷新（否则 stall 冻在好看的值上）；
+  ④ 第一个 frame_done 不得把"上电到现在"当帧间隔（TB 里节奏恒定 ⇒ `max-min≤2` 才算对）；
+  ⑤ `snap_cross` 100 次捕获必须 100 次不撕烈；⑥ 心跳停 50 ms 内必须报 `hb_gone`。
+- **结果**：L1 **32/32 PASS**（`sim/results/regression_v76.txt`，含新增 `tb_link_monitor`
+  26 条断言与 `tb_osd_lines`）；L3 门禁全项 PASS ——
+  WNS **+0.527** / WHS **+0.048** / 失败端点 0/23635 / BRAM 64.64%（一个 tile 没加）/
+  Slice 22.13% / LUT 13.68% / Reg 5.44% / Total 2.361 W / Failed Nets 0 /
+  `All user specified timing constraints are met.` / methodology Critical 0 / cdc Critical 行 4→4。
+  构建日志 CRITICAL WARNING 7→9：新增两条都是 `BD 41-1348`，即两个新 BD 单元继承既有结构。
+- **不谎报**：L4 没做（板子不可访问）。`drop_words` 与黑纹同时出现、OSD 两行肉眼可读、
+  十个 lane 两遍一致这三件事目前只有仿真级证据。
+- **余量被吃掉这件事**：WNS 从 +0.974 降到 +0.527（−0.447 ns）。仍 ≥0 所以门禁通过，
+  但这是本轮的代价，记进 §5 而不是删掉；下一轮若要再动 `eth_rxc` 域要先看这个数。
+
 ## 4. 验证矩阵
 
 | 层 | 手段 | 覆盖 | 最近结果 |
 |----|------|------|----------|
 | L0 | 直读 RTL + diff 审查 + `git diff --stat` | 入包链、saver 全文、glue 抽取的逐行搬迁 | R03 抽取后人工核对端口/信号一一对应 |
-| L1 | `sim/run_sim.tcl` **30** 个 TB（R03 加 `tb_v6_tail_bank`，R04 加 `tb_fb_roundtrip`） | 入包完整性/乒乓/覆盖门/V-blank 拷贝/**帧尾换页 A/B**/**帧缓存逐像素回读**/rotate/zoom/udp/arp/crc | R05 后 30/30；**R06（`frame_reasm` v5.1）后仍 30/30**，留档 `sim/results/regression_v7.txt` |
+| L1 | `sim/run_sim.tcl` **32** 个 TB（R08 加 `tb_link_monitor`、`tb_osd_lines`） | 入包完整性/乒乓/覆盖门/V-blank 拷贝/帧尾换页 A/B/帧缓存逐像素回读/**CDC 丢字反例判据**/**生产时基守门**/**跨域不撕烈**/**OSD 字形与饱和** | **R08 后 32/32**，留档 `sim/results/regression_v76.txt`（一次进程跑不完 32 个，记录由两段拼成，每段都是逐字 RESULT 行） |
 | L2 | `build_system_axigpio.tcl` 的 synth+impl 报告 | 时序/资源/功耗/方法学/CDC/布线 | **R07 全项合格，WNS 由 +0.499 提到 +0.974**（见 §5） |
 | L3 | bit + xsa | 上板前置 | **`7d2cf8ee`（R06=R07，1777758 B）**已出并已上板 |
 | L4 | `ps_jtag_boot` → `program_pl` → `set_src` → `video_sender --test frameid` → 停流 → `ddr_verify`/`ddr_stale` | 丢包签名、换帧原子性、帧尾落位、洪水与限速多档 | 已执行 19+3 轮（R05 金样）；**R06/R07 新 bit 上再跑 3 轮**：15 fps×200 / 30 fps×300 / 不限速 60 fps×400，每 bank 恰好一帧、命中率 100.0%、六带 0.0%、丢字带 0 字（`data/measured/board_measure_r06_r07.md`） |
@@ -611,6 +650,8 @@ ping 192.168.1.10                 → 发送=3 接收=3 丢失=0，RTT 1-2 ms   
 | **R06** build#6（`frame_reasm` v5.1 饱和累加） | **+0.974** | +0.066 | 0/21166 | 64.64% | 18.09% | 11.77% | 4.04% | 2.350 W（Dynamic **2.176**） | 0 | 0 | **PASS**（`eth_rxc` 0.499→0.974；像素域 +3.084→+1.729，仍宽裕） |
 | **R07** build#7（时钟组挪到 impl-only XDC） | +0.974 | +0.066 | 0/21166 | 64.64% | 18.09% | 11.77% | 4.04% | 2.350 W | 0 | 0 | **PASS**，且 **bit 与 R06 逐字节相同**（`7d2cf8ee`）⇒ 改动中性被证明；构建日志 CRITICAL WARNING 从 9 条（6×BD+2×12-4739+1×18-513）降到 **7 条（全部为既有 BD 41-1348）** |
 
+| **R08** build#8（P0-A 链路健康自诊断） | **+0.527** | **+0.048** | 0/23635 | **64.64%**（未增） | **22.13%** | **13.68%** | **5.44%** | **2.361 W**（Dynamic 2.187） | **0** | 0 行（cdc 仍 4 行 Critical；新增 50 个跨域端点全部落在 Safe 列） | **PASS**。代价是 `eth_rxc` 域余量 −0.447 ns。构建日志 CRITICAL WARNING 7→9（两条新 `BD 41-1348` 属既有结构继承）。第一次 L3 曾 **FAIL（WNS −6.765/19 端点）**，根因是 OSD 的 32bit 十进制除法 45 级链，见 CHANGELOG V7.6 |
+
 口径说明：`Slice` 取 `report_utilization` §2「Slice Logic Distribution」的 `Slice` 行（2406/13300），
 `LUT` 取 §1 的 `Slice LUTs` 行（6262/53200），`Reg` 取 `Slice Registers`（4303/106400）。
 
@@ -624,7 +665,8 @@ ping 192.168.1.10                 → 发送=3 接收=3 丢失=0，RTT 1-2 ms   
 | **R04** | `ff7c890` | `ff18beb7` | 1994722 B | **+0.819** | 帧缓存分块省 48 个 BRAM tile；金样（被 R05 取代） |
 | **R05** | `a22a054` | `f5c69ca7` | 1887418 B | +0.499 | 显示拷贝 skid 缓冲改分布式 RAM；**R06 之前的金样，已上板复验（19+3 轮全绿）** |
 | **R06** | 本轮提交 | `7d2cf8ee` | 1777758 B | **+0.974** | `frame_reasm` v5.1（饱和累加 + `bad_frame`）；L1 30/30、L4 三档全绿 |
-| **R07** | 本轮提交 | **`7d2cf8ee`（与 R06 逐字节相同）** | 1777758 B | +0.974 | 时钟组挪进 impl-only XDC + 删空约束；**bit 不变即证明改动中性**。**当前金样** |
+| **R07** | 本轮提交 | **`7d2cf8ee`（与 R06 逐字节相同）** | 1777758 B | +0.974 | 时钟组挪进 impl-only XDC + 删空约束；**bit 不变即证明改动中性**。R08 之前的金样 |
+| **R08** | 本轮提交 | **`d7e385b6`** | 2042730 B | +0.527 | P0-A 链路健康自诊断（link_monitor + snap_cross + OSD 两行 + GPIO_1 读回）。L1 32/32、L3 全门禁 PASS，**L4 未做（板子不可访问）⇒ 暂不当金样**，R07 仍是最后一块"上板验证过"的 bit |
 
 
 ## 7. 工具与子代理记录
@@ -707,3 +749,32 @@ ping 192.168.1.10                 → 发送=3 接收=3 丢失=0，RTT 1-2 ms   
 | U12 | `frame_reasm` 的 `FRAME_BYTES` 未被例化覆盖（`eth_udp_video_top.v:185` 只传 IMG_W/IMG_H） | 默认值恰好 = 512×300×2，所以现在是对的 | 例化时传 `.FRAME_BYTES(IMG_W*IMG_H*2)`，并同步检查 `pl_video_top.v:363` 写死的行距 `{sy[8:0],9b0}` | 不改就是「改分辨率会静默失配」的地雷；本夜不动（要连带重跑入包链全回归）
 | U9 | **重建 R03/P04 的板上触发条件**：给 `src/host/video_sender.mjs` 加 `--mtu-payload`（非 8 倍数，如 1396），使包边界落在帧最后一个字内；或拉长 `axi_frame_writer_gated` 的 HP0 占用窗口以逼出 `sv_full` | `tb_v6_tail_bank` 已给出等效激励形状（读到最后一字 lane1 后停读） | 需要一次上位机小改 + 重测 | 这是把 R03 从「仿真级证据」提升到「板级证据」的唯一路子 |
 
+
+## 11. 台架：两块板抢同一个 JTAG 名字（2026-09-22 17:5x 实测）
+
+**现象**：Z7 与 KU5P 的 Type-C 同时插电脑时，`hw_server` 只给出**一个** target
+`localhost:3121/xilinx_tcf/Xilinx/0ABC01A`；`TARGET_COUNT=1` 恒定，与拔插顺序有关。
+
+**证据（全部本机可复现）**：
+
+| 探针 | 结果 |
+|------|------|
+| `Get-PnpDevice -PresentOnly`，`USB\VID_0403&PID_6010\*` | **两个** FT2232 复合设备都在总线上：`\0ABC01`（Port_#0003.Hub_#0004）与 `\6&9358AC4&0&2`（Port_#0002.Hub_#0004），同一个父 hub `USB\VID_35D6&PID_2510\5&2ec48346&0&1` |
+| 两者的 `BusReportedDeviceDesc` | 都是 **`my product desc`** —— FTDI 出厂模板串，说明 EEPROM 只用同一份模板写过 |
+| 两者的 `DEVPKEY_Device_SerialNumber` | 都为空（Windows 只在 instance id 里体现）|
+| COM 口归属 | `COM6` ← `FTDIBUS\VID_0403+PID_6010+0ABC01B`（通道 B，即 `\0ABC01` 那个 instance）；`COM4` ← `...+6&9358AC4&0&2&2`（另一个 instance）|
+| 重启 `hw_server`（杀进程→等 8 s→重扫）后 | 仍然只有 `0ABC01A` 一个 target；`open_hw_target` 报 `[Labtools 27-2269] No devices detected` |
+
+**判读**：这不是驱动问题、不是线不好、也不需要动 EEPROM。机制是**两颗 FT2232 的序列号被
+写成了同一个值**：Windows 只能给序列号冲突的设备中的一个保留 `0ABC01` 实例名、另一个退回
+总线位置名；`hw_server` 用串口号拼 cable URL，于是同名的第二根线**根本不产生第二个 target**。
+谁先枚举谁拿到名字 ⇒ 表现为「两块板互相抢端口」。今天早些时候同一个 URL `0ABC01A` 里出现过
+`arm_dap_0 + xc7z020_1`，17:4x 出现的是 `xcku5p_0` —— 名字在两块板之间漂移，是这条结论的正证据。
+
+**DONE 灯**：本机设计只支持 JTAG 下载，没有 `BOOT.BIN`，所以**断电重上电后 DONE 常暗是预期行为**
+（`DONE = FCFG_*_0 = H 1`）。之前上电即亮，最可能是那张被清掉的卡是 **PYNQ 启动卡**，SD 自启动把
+FPGA 配置了。不是故障；要把这个行为拿回来，就是我们自己写 SD/QSPI 自启动（见未竟项与 P1）。
+
+**待用户做的 10 秒判别实验**（软件侧无法区分两块板谁拿到了名字）：一次只拔一根 Type-C，
+看消失的是 `\0ABC01` 还是 `\6&9358AC4&0&2`，即可确定当前 `0ABC01` 属于哪块板。
+另外请确认 Z7 的 **PWR** 灯是否亮（`27-2269 No devices detected` 的第一嫌疑是板子没电）。

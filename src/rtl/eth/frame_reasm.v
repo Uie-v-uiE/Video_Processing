@@ -28,6 +28,13 @@ module frame_reasm #(
     output reg         flush,
     output reg         frame_done,
     output reg         frame_err,
+    // v7.6: 两个**只增不改行为**的观测口，给 link_monitor 用。
+    // frame_abort 只在「本帧字节预算已用完、但验收门没过」的那一拍脉冲一次；
+    // rows_missed 与它同拍有效 = 还差多少源行没被写过（黑纹的行数）。
+    // 注意：一个连 FRAME_BYTES 都没凑够的短帧不会脉冲 frame_abort（它没有
+    // "结束"这件事可报），那种情况由 link_monitor 的 stall_ms 抓到。
+    output reg         frame_abort,
+    output reg  [15:0] rows_missed,
     output reg  [31:0] stat_frames,
     output reg  [31:0] stat_pkts,
     output reg  [31:0] stat_bytes,
@@ -105,11 +112,12 @@ module frame_reasm #(
             pkt_pay<=0; pkt_active<=0; cov<=0; pend<=0; bad_frame<=0;
             wr_en<=0; wr_addr<=0; wr_data<=0; flush<=0;
             frame_done<=0; frame_err<=0;
+            frame_abort<=0; rows_missed<=0;
             stat_frames<=0; stat_pkts<=0; stat_bytes<=0;
             stat_bad<=0; stat_oob_off<=0;
             row_ok<=0; rows_hit<=0;
         end else begin
-            wr_en<=0; flush<=0; frame_done<=0; frame_err<=0;
+            wr_en<=0; flush<=0; frame_done<=0; frame_err<=0; frame_abort<=0;
 
             if (p_valid) begin
                 if (p_sof) begin
@@ -182,7 +190,14 @@ module frame_reasm #(
                             if (!cov_sat)  cov  <= cov  + 1'b1;
                             if (!pend_sat) pend <= pend + 1'b1;
                         end
-                        if (last_pkt) stat_bad <= stat_bad + 1;
+                        if (last_pkt) begin
+                            stat_bad    <= stat_bad + 1;
+                            frame_abort <= 1'b1;
+                            // 行数够但字节不够的作废，rows_missed 会是 0 —— 这不是
+                            // bug，是在说"缺的不是行，是最后一包的字节"。
+                            rows_missed <= (rows_hit >= IMG_H[15:0]) ? 16'd0
+                                              : (IMG_H[15:0] - rows_hit);
+                        end
                     end
                     stat_bytes <= stat_bytes + pkt_pay + (p_valid ? 32'd1 : 32'd0);
                 end else begin
