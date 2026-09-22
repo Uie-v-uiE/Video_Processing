@@ -2,29 +2,31 @@
 // tap_sched —— 帧缓存读口的"每像素周期 5 槽"调度器：
 //   右窗 1 个请求 → 4 个 RGB565 抽头 + Q8 小数位；左窗 1 个字号 → 1 个 64bit 字。
 //
-// 为什么必须这么排（实测结论，见 report/OVERNIGHT_LOG.md R11 追加 2、R18）：
-//   * 旋转态的插值增益横向、纵向各约 20% ⇒ 必须读源图两行 ⇒ 一个输出像素要 4 个抽头；
+// 为什么需要它（实测结论，见 report/OVERNIGHT_LOG.md R11 追加 2、R18、R19）：
+//   * 旋转态的插值增益横向、纵向各约 20% ⇒ 必须读源图两行；
 //   * 原来的帧缓存读口每个像素周期恰好一次 16bit 读、零余量 ⇒ 连"只补横向"都不免费；
-//   * 解法是复用**已经在片上跑的** 5 倍像素时钟（同一个 MMCM、同相、整数 5:1 关系）：
+//   * 解法是复用**已经在片上跑的** 5 倍像素时钟（同一个 MMCM、同相、整数 5:1）：
 //     每像素周期 5 个快槽，右窗 4 + 左窗 1 = 恰好占满，**不新增任何 BRAM**。
 //     （试过"在同一组阵列上再加一个逻辑读口"：80 → 160 个 RAMB36，实测见 R11。）
 //
-// 为什么地址输入是"字号 + 车道"而不是 (sx,sy)：
-//   clk_pix 和 clk_pix5x 同相 ⇒ Vivado 对 clk_pix→clk_pix5x 路径按**最早的那个快沿**判，
-//   Setup 预算只有 2 ns。所以凡是"从 clk_pix 触发器出发、在快域被用掉"的路径都必须是一根
-//   直线（不能有乘法/加法/mux）。字号与车道由上层在 clk_pix 域算好（那里 20 ns 预算）送进来，
-//   本模块内部的加法一律从快域触发器出发（4 ns 预算）。
+// 快域里一律不做算术（build#14 用 −1.277 ns / 1400 个失败端点换来的教训）：
+//   clk_pix5x 周期 4 ns，而慢域触发器的输出最早只能在**下一个快沿**被采走 ⇒
+//   跨到快域的那一拍只有 4 ns 预算，不是 20 ns。build#14 里"快域做 base+ROWW 加法再进 5:1 mux"
+//   实测需要约 5.3 ns ⇒ 整条读口判红。所以：
+//     - 四个抽头字号 + 左窗字号 **全部在慢域算好并各自打一拍**（慢域有 20 ns）；
+//     - 进快域的是直线（无逻辑）；
+//     - 快域只做一次 5 选 1 地址 mux（输入都是快域触发器）。
+//   这条纪律比"看起来省了几级寄存器"重要：它是有门的，门就是 timing_summary。
 //
-// 槽位（interval 记号：slot=v 表示 t∈[20p+2v, 20p+2v+2)；always 块里的条件在"该 interval
-// 结束的那个沿"执行，采到的是该 interval 内的值 —— 这就是为什么下面 s1 采的是 s0 发的读）：
-//   s0 发左窗字（直线 aux_word）｜ 沿 s0：采右窗请求 word/lane/fx/fy
-//   s1 发 A=base                ｜ 沿 s1：落 aux_q/aux_lane（左窗字）
-//   s2 发 A+1                   ｜ 沿 s2：落 w_a
-//   s3 发 B=base+ROW            ｜ 沿 s3：落 w_a1
-//   s4 发 B+1                   ｜ 沿 s4：落 w_b
-//   s0'（下一周期）             ｜ 沿 s0'：落 w_b1 + 把上一请求的 lane/fx/fy 推进工作区
-//   s1'                         ｜ 沿 s1'：一次拍出 p00/p10/p01/p11 + ofx/ofy + vld（vld 只跟真请求）
-// ⇒ 固定延迟 = 1 个像素周期 + 3 个快槽；输出保持一整个周期，上层用慢域触发器收。
+// 槽位（interval 记号：slot=v 表示第 v 个快周期；always 块里的条件在"该 interval 结束的沿"
+// 执行，采到的是该 interval 内的值 —— 这就是为什么 s1 采到的是 s0 发出的读）：
+//   s0 发左窗字（wL_x）           ｜ 沿 s0：采右窗的 4 个字号 + lane + fx/fy
+//   s1 发 A                       ｜ 沿 s1：落 aux_q/aux_lane_q（左窗字到达）
+//   s2 发 A+1                     ｜ 沿 s2：落 w_a
+//   s3 发 B                       ｜ 沿 s3：落 w_a1
+//   s4 发 B+1                     ｜ 沿 s4：落 w_b
+//   s0'（下一周期）               ｜ 沿 s0'：落 w_b1 + 把上一请求的属性推进工作区
+//   s1'                           ｜ 沿 s1'：一次拍出 p00/p10/p01/p11 + ofx/ofy + vld（vld 只跟真请求）
 module tap_sched #(
     parameter IMG_W = 512,
     parameter SLOTS = 5
@@ -33,13 +35,16 @@ module tap_sched #(
     input  wire        rst_n,
 
     input  wire        req,               // 自由节拍：每个 s0 都为 1
-    input  wire [16:0] word,              // 右窗左上抽头所在字号（= 像素号 >> 2）
+    input  wire [16:0] word,              // A   = 左上抽头所在字号
+    input  wire [16:0] word_p1,           // A+1（lane==3 时才真用得上，但每拍都发，节拍固定）
+    input  wire [16:0] word_row,          // B   = 下一行同列
+    input  wire [16:0] word_row_p1,       // B+1
     input  wire [1:0]  lane,              // 左上抽头在字内的车道
     input  wire [7:0]  fx,
     input  wire [7:0]  fy,
 
-    input  wire [16:0] aux_word,          // 左窗字号（clk_pix 域直线送进来）
-    input  wire [1:0]  aux_lane,          // 左窗车道（字号里被丢掉的那两位，必须一起送）
+    input  wire [16:0] aux_word,          // 左窗字号（慢域直线）
+    input  wire [1:0]  aux_lane,          // 左窗车道（字号里被丢掉的低 2 位，必须一起送）
     output reg  [63:0] aux_q,             // 左窗字
     output reg  [1:0]  aux_lane_q,        // 与 aux_q 同拍对齐的车道
 
@@ -54,18 +59,18 @@ module tap_sched #(
     output reg  [7:0]  ofy,
     output reg         vld
 );
-    localparam [16:0] ROWW = IMG_W / 4;   // 一行的字数（IMG_W 是 4 的倍数 ⇒ 常数，无乘法器）
-    localparam [2:0]  LAST = SLOTS - 1;
+    localparam [2:0] LAST = SLOTS - 1;
 
-    reg [2:0]  slot;
-    reg [16:0] base;
-    reg [1:0]  lane_q, lane_w;             // _q = 本请求刚采到的；_w = 正在出抽头的那个请求的
-    reg [7:0]  fx_q, fy_q, fx_w, fy_w;
-    reg [63:0] w_a, w_a1, w_b, w_b1;
+    reg [2:0]   slot;
+    reg [16:0]  a_q, a1_q, b_q, b1_q, aux_q_addr;   // 快域地址池：mux 的输入全是本域触发器
+    reg [1:0]   aux_lane_x;                        // 与 aux_q_addr **同一个沿**采，保证字/车道成对
+    reg [1:0]   lane_q, lane_w;
+    reg [7:0]   fx_q, fy_q, fx_w, fy_w;
+    reg [63:0]  w_a, w_a1, w_b, w_b1;
     // vld 必须跟着"真被采纳过的请求"走：抽头每拍都会照原样寄存器一次，灌水的头两拍里
-    // 装的是复位值 —— 不加这级跟随，tb 的第一次 vld 就会把期望队列整体挪一格（今晚真踩过，
-    // 现象是"错 123 条、每条的 got 都等于上一条的 exp"，一眼可辨）。
-    reg        acc1, acc2;
+    // 装的是复位值 —— 不加这级跟随，台架第一次 vld 就会把期望队列整体挪一格
+    //（现象是"错 123 条、每条的 got 都等于上一条的 exp"）。
+    reg         acc1, acc2;
 
     wire s0 = (slot == 3'd0);
     wire s1 = (slot == 3'd1);
@@ -73,19 +78,14 @@ module tap_sched #(
     wire s3 = (slot == 3'd3);
     wire s4 = (slot == 3'd4);
 
-    // 发地址：s0 给左窗，s1..s4 给右窗的 4 个字。
-    // 注意 base+ROWW+1 在这里是"从快域触发器出发的两个常数加"，4 ns 预算够（不是 2 ns 跨域路径）。
-    wire [16:0] a1   = base + 17'd1;
-    wire [16:0] bw   = base + ROWW;
-    wire [16:0] bw1  = bw + 17'd1;
-    assign rd_word_addr = s1 ? base
-                        :  s2 ? a1
-                        :  s3 ? bw
-                        :  s4 ? bw1
-                        :  aux_word;                    // s0
+    // 5 选 1：输入全是快域触发器（含 aux_q_addr，它在 s0 沿由慢域直线送入）
+    assign rd_word_addr = s1 ? a_q
+                        :  s2 ? a1_q
+                        :  s3 ? b_q
+                        :  s4 ? b1_q
+                        :  aux_q_addr;                  // s0
 
-    // 字内取车道：lane+1 只在 lane<3 时被用到（lane==3 走下一个字），
-    // 所以 {lane,2'b1} 的回绕不会真的被选中。
+    // 字内取车道：lane+1 只在 lane<3 时被用到（lane==3 走下一个字），回绕不会被选中
     function [15:0] pick;
         input [63:0] w;
         input [1:0]  l;
@@ -102,7 +102,8 @@ module tap_sched #(
     always @(posedge clk or negedge rst_n) begin
         if (!rst_n) begin
             slot <= 3'd0;
-            base <= 17'd0;
+            a_q <= 17'd0; a1_q <= 17'd0; b_q <= 17'd0; b1_q <= 17'd0; aux_q_addr <= 17'd0;
+            aux_lane_x <= 2'd0;
             lane_q <= 2'd0; lane_w <= 2'd0;
             fx_q <= 8'd0; fy_q <= 8'd0; fx_w <= 8'd0; fy_w <= 8'd0;
             w_a <= 64'd0; w_a1 <= 64'd0; w_b <= 64'd0; w_b1 <= 64'd0;
@@ -114,10 +115,20 @@ module tap_sched #(
             slot <= (slot == LAST) ? 3'd0 : slot + 3'd1;
             vld  <= 1'b0;
 
-            // ---- 沿 s0：采新请求；同时把上一请求的属性推进工作区（它的抽头还要两拍后才出）----
+            // 左窗地址与车道在**每个 s0 起始沿**一起被采进快域（慢域那一整拍都稳定，
+            // 这里只是把直线落一拍，好让 s0 的 mux 输入全是本域触发器）。
+            // 必须成对：地址是"上一拍的字号"，车道也必须是同一拍的 —— 分开采就会
+            // 字对车道错，板上的现象正是"整列颜色对、左右偏一格"（台架抓到过一次）。
+            aux_q_addr <= aux_word;
+            aux_lane_x <= aux_lane;
+
+            // ---- 沿 s0：采本请求的 4 个字号与属性；把上一请求的属性推进工作区 ----
             if (s0) begin
                 if (req) begin
-                    base   <= word;
+                    a_q  <= word;
+                    a1_q <= word_p1;
+                    b_q  <= word_row;
+                    b1_q <= word_row_p1;
                     lane_q <= lane;
                     fx_q   <= fx;
                     fy_q   <= fy;
@@ -132,7 +143,7 @@ module tap_sched #(
 
             if (s1) begin                           // 左窗字（s0 发）到
                 aux_q     <= rd_word;
-                aux_lane_q<= aux_lane;
+                aux_lane_q<= aux_lane_x;            // 与这个字同一次采集的车道，不是本拍的输入
             end
             if (s2) w_a  <= rd_word;                // A
             if (s3) w_a1 <= rd_word;                // A+1
@@ -141,12 +152,12 @@ module tap_sched #(
             // ---- 沿 s1'：四个抽头齐了，一次拍出 ----
             if (s1) begin
                 p00 <= pick(w_a,  lane_w);
-                p10 <= (lane_w == 2'd3) ? w_a1[15:0] : pick(w_a,  lane_w + 2'd1);
+                p10 <= (lane_w == 2'd3) ? w_a1[15:0]  : pick(w_a,  lane_w + 2'd1);
                 p01 <= pick(w_b,  lane_w);
-                p11 <= (lane_w == 2'd3) ? w_b1[15:0] : pick(w_b,  lane_w + 2'd1);
+                p11 <= (lane_w == 2'd3) ? w_b1[15:0]  : pick(w_b,  lane_w + 2'd1);
                 ofx <= fx_w;
                 ofy <= fy_w;
-                vld <= acc2;                          // 只有真请求采纳过才算一次输出
+                vld <= acc2;
             end
         end
     end

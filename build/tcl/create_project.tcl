@@ -18,7 +18,7 @@ set_property default_lib xil_defaultlib [current_project]
 
 # ---- RTL ----
 set rtl_files {}
-foreach d {util clocks video process process/rotate process/zoom axi hdmi top} {
+foreach d {util clocks video process process/rotate process/zoom process/bilin axi hdmi top} {
   foreach f [glob -nocomplain [file join $root src rtl $d *.v]] {
     lappend rtl_files $f
   }

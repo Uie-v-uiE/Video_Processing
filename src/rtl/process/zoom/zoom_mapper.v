@@ -65,13 +65,23 @@ module zoom_mapper #(
     wire signed [31:0] xs_pix = raw_xs >>> 8;
     wire signed [31:0] ys_pix = raw_ys >>> 8;
 
+    // 小数位（V7.8 双线性）。rot_* 是 Q16（xr_m 为 Q8，再乘 inv 的 Q8），整数部分已经被
+    // >>>16 拿走，[15:8] 就是 Q8 小数。两条分支的符号不一样，这里必须分开处理：
+    //   x 方向是加法（+IMAGE_W/2 是整数，不改变小数）⇒ 直接取 rot_xs[15:8]；
+    //   y 方向是减法（sy = H/2 - yr）⇒ floor(sy) 比 (H/2 - yr_pix) 小 1（小数非零时），
+    //     所以整数抽头退一格、小数取 256-f。漏掉这一步的现象是「旋转时上下各错一行」，
+    //     而且它不会报任何错 —— 只有屏上看得出，所以判据放在 tb_zoom_mapper 里。
+    wire [7:0] frx_r = rot_xs[15:8];
+    wire [7:0] fry_r = rot_ys[15:8];
+    wire       ysub  = (fry_r != 8'd0);
+
     wire signed [31:0] sx_c = rot_s1 ? (xr_pix + (IMAGE_W / 2))
                                       : (xs_pix + (IMAGE_W / 2));
-    wire signed [31:0] sy_c = rot_s1 ? ((IMAGE_H / 2) - yr_pix)
+    wire signed [31:0] sy_c = rot_s1 ? ((IMAGE_H / 2) - yr_pix - $signed({31'd0, ysub}))
                                       : (ys_pix + (IMAGE_H / 2));
 
-    wire [7:0] fx = rot_s1 ? 8'h00 : raw_xs[7:0];
-    wire [7:0] fy = rot_s1 ? 8'h00 : raw_ys[7:0];
+    wire [7:0] fx = rot_s1 ? frx_r : raw_xs[7:0];
+    wire [7:0] fy = rot_s1 ? (ysub ? (8'd0 - fry_r) : 8'd0) : raw_ys[7:0];
 
     always @(posedge clk or negedge rst_n) begin
         if (!rst_n) begin

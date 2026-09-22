@@ -9,7 +9,7 @@ set_property target_language Verilog [current_project]
 set_property simulator_language Mixed [current_project]
 
 set rtl_files {}
-foreach d {util clocks video process process/rotate process/zoom axi hdmi top} {
+foreach d {util clocks video process process/rotate process/zoom process/bilin axi hdmi top} {
   foreach f [glob -nocomplain [file join $root src rtl $d *.v]] {
     lappend rtl_files $f
   }

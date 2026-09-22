@@ -191,8 +191,10 @@ module system_top (
         .effect_en(gpio_o[4:0]), .threshold(gpio_o[15:8]), .src_sel(gpio_o[16]),
         // V7.7：ZOOM0/ZOOM1 不再是死命令。之前这里硬绑 1'b1，串口命令与 GPIO bit17 全无效
         // （main.c 自己就注明"当前 RTL 常开，bit17 仅预留"）。
-        // 注意默认值：set_src.tcl 现在写 0x0003_0000（bit16+bit17），保持"上电即呼吸缩放"的旧观感。
+        // 注意默认值：set_src.tcl 现在写 0x000B_0000（bit16 src + bit17 zoom + bit19 bilin），
+        // 保持"上电即呼吸缩放 + 开插值"的旧观感。
         .zoom_en(gpio_o[17]),
+        .bilin_en(gpio_o[19]),         // V7.8：右窗双线性插值使能（串口 BILIN0/BILIN1 现场对照）
         .ps_publish(gpio_o[18]),        // 每翻转一次 = PS 请求把 DDR 里那一帧搬上屏一次
         .key1_n(key1_n), .key2_n(key2_n), .led(led),
         .tmds_clk_p(tmds_clk_p), .tmds_clk_n(tmds_clk_n),

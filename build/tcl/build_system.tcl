@@ -11,7 +11,7 @@ create_project $proj_name $proj_dir -part $part -force
 set_property target_language Verilog [current_project]
 
 set rtl_files {}
-foreach d {util clocks video process process/rotate process/zoom axi hdmi} {
+foreach d {util clocks video process process/rotate process/zoom process/bilin axi hdmi} {
   foreach f [glob -nocomplain [file join $root src rtl $d *.v]] { lappend rtl_files $f }
 }
 lappend rtl_files [file join $root src rtl top pl_video_top.v]

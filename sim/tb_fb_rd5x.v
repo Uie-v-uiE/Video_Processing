@@ -32,14 +32,16 @@ module tb_fb_rd5x;
     reg  [11:0] sx_l = 0, sy_l = 0, sx_r = 0, sy_r = 0;
     reg  [7:0]  fx_r = 0, fy_r = 0;
     reg         sel_right = 0;
+    reg         bilin_en = 1;
     reg         oob_l = 0, oob_r = 0;
     wire [15:0] pix;
     wire        oob_out, right_out;
 
-    fb_rd5x #(.IMG_W(IW), .IMG_H(IH), .BILIN_EN(1)) u_dut (
+    fb_rd5x #(.IMG_W(IW), .IMG_H(IH)) u_dut (
         .clk(clk), .clk5x(clk5), .rst_n(rst_n),
         .wr_clk(clk5), .wr_en(wr_en), .wr_addr(wr_addr), .wr_data(wr_data),
         .sx_l(sx_l), .sy_l(sy_l), .sx_r(sx_r), .sy_r(sy_r), .fx_r(fx_r), .fy_r(fy_r),
+        .bilin_en(bilin_en),
         .sel_right(sel_right), .oob_l(oob_l), .oob_r(oob_r),
         .pix(pix), .oob_out(oob_out), .right_out(right_out)
     );
@@ -111,6 +113,7 @@ module tb_fb_rd5x;
     reg [11:0] r_x [0:NREQ-1], r_y [0:NREQ-1], l_x [0:NREQ-1], l_y [0:NREQ-1];
     reg [7:0]  r_fx [0:NREQ-1], r_fy [0:NREQ-1];
     reg        r_sel [0:NREQ-1], r_oob [0:NREQ-1], r_oobL [0:NREQ-1];
+    reg        r_bilin [0:NREQ-1];
     reg [15:0] e_bil [0:NREQ-1], e_nn [0:NREQ-1], e_left [0:NREQ-1];
 
     // ---------------- 观测表：每拍收一次输出（与请求同节拍计数） ----------------
@@ -139,6 +142,7 @@ module tb_fb_rd5x;
                 sx_r <= r_x[rk];  sy_r <= r_y[rk];
                 fx_r <= r_fx[rk]; fy_r <= r_fy[rk];
                 sel_right <= r_sel[rk];
+                bilin_en <= r_bilin[rk];
                 oob_l  <= r_oobL[rk];
                 oob_r  <= r_oob[rk];
             end
@@ -155,7 +159,7 @@ module tb_fb_rd5x;
         end
     endtask
 
-    integer found, cand, nzero, i, j, nbad, nbil, nnear, nleft, nflag, ncmp, far;
+    integer found, cand, nzero, i, j, nbad, nbil, nnear, nleft, nflag, ncmp, far, nnoff, noffbad;
     reg [15:0] got;
 
     initial begin
@@ -167,6 +171,7 @@ module tb_fb_rd5x;
             l_x[q]  = (q * 91) % IW;
             l_y[q]  = (q * 7)  % IH;
             r_sel[q] = (q % 4 != 0);                  // 3/4 右窗、1/4 左窗
+            r_bilin[q] = (q % 5 != 4);                // 每 5 个请求关掉一次 ⇒ 同一条通路的退化档也被判
             r_oob[q] = (q % 17 == 0);
             r_oobL[q]= (q % 3 == 0);
             e_bil[q]  = bilin_exp(r_x[q], r_y[q], r_fx[q], r_fy[q]);
@@ -205,7 +210,7 @@ module tb_fb_rd5x;
         chk("measured LAT equals pinned value", found == LAT_PIN);
 
         // ---- 逐样本比对 ----
-        nbil = 0; nnear = 0; nleft = 0; nflag = 0; ncmp = 0; far = 0;
+        nbil = 0; nnear = 0; nleft = 0; nflag = 0; ncmp = 0; far = 0; nnoff = 0; noffbad = 0;
         for (i = 6; i < NREQ - 2; i = i + 1) begin
             if (i + found >= nobs) begin nflag = nflag + 1; i = NREQ; end
             else begin
@@ -213,14 +218,25 @@ module tb_fb_rd5x;
                 if (o_sel[i+found] !== r_sel[i]) nflag = nflag + 1;
                 if (r_sel[i]) begin
                     got = o_pix[i+found];
-                    if (chan_diff(got, e_bil[i]) > 16'd1) begin
-                        if (nbil < 6)
-                            $display("[DIAG] bil mismatch i=%0d got=%h exp=%h nn=%h",
-                                     i, got, e_bil[i], e_nn[i]);
-                        nbil = nbil + 1;
+                    if (r_bilin[i]) begin
+                        if (chan_diff(got, e_bil[i]) > 16'd1) begin
+                            if (nbil < 6)
+                                $display("[DIAG] bil mismatch i=%0d got=%h exp=%h nn=%h",
+                                         i, got, e_bil[i], e_nn[i]);
+                            nbil = nbil + 1;
+                        end
+                        if (chan_diff(e_bil[i], e_nn[i]) > 16'd1) far = far + 1;
+                        if (chan_diff(got, e_nn[i]) <= 16'd1) nnear = nnear + 1;
+                    end else begin
+                        // bilin_en=0：同一条通路必须**逐位**等于最近邻（fx=fy=0 时 lerp 恒等 p00）
+                        nnoff = nnoff + 1;
+                        if (got !== e_nn[i]) begin
+                            if (noffbad < 6)
+                                $display("[DIAG] bilin_off mismatch i=%0d got=%h exp(nn)=%h",
+                                         i, got, e_nn[i]);
+                            noffbad = noffbad + 1;
+                        end
                     end
-                    if (chan_diff(e_bil[i], e_nn[i]) > 16'd1) far = far + 1;
-                    if (chan_diff(got, e_nn[i]) <= 16'd1) nnear = nnear + 1;
                 end else if (o_pix[i+found] !== e_left[i]) begin
                     if (nleft < 6)
                         $display("[DIAG] left mismatch i=%0d got=%h exp=%h",
@@ -229,9 +245,11 @@ module tb_fb_rd5x;
                 end
             end
         end
-        $display("[INFO] ncmp=%0d err_bil=%0d err_left=%0d err_flag=%0d near_miss=%0d far=%0d",
-                 ncmp, nbil, nleft, nflag, nnear, far);
+        $display("[INFO] ncmp=%0d err_bil=%0d err_left=%0d err_flag=%0d near_miss=%0d far=%0d bilinoff=%0d err_off=%0d",
+                 ncmp, nbil, nleft, nflag, nnear, far, nnoff, noffbad);
         chk("samples compared", ncmp > 100);
+        chk("BILIN=0 degenerate path exercised", nnoff > 15);
+        chk("BILIN=0 output is bit-exact nearest", noffbad == 0);
         chk("right pane == bilinear model (+/-1 LSB)", nbil == 0);
         chk("left pane  == nearest model (bit exact)", nleft == 0);
         chk("right_out/oob_out aligned with pix", nflag == 0);

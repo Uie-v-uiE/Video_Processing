@@ -20,11 +20,13 @@ module tb_tap_sched;
     always #2 clk = ~clk;                 // 4 ns 快时钟（对应 20 ns 像素周期 = 5 槽）
 
     reg         req;
-    reg  [16:0] word;
+    reg  [16:0] word, word_p1, word_row, word_row_p1;
     reg  [1:0]  lane;
     reg  [7:0]  fx, fy;
     reg  [16:0] aux_word;
     reg  [1:0]  aux_lane;
+    reg  [16:0] aux_prev_word;
+    reg  [1:0]  aux_prev_lane;
     wire [63:0] aux_q;
     wire [1:0]  aux_lane_q;
     wire [16:0] rd_word_addr;
@@ -35,7 +37,8 @@ module tb_tap_sched;
 
     tap_sched #(.IMG_W(IW), .SLOTS(SL)) u_dut (
         .clk(clk), .rst_n(rst_n), .req(req),
-        .word(word), .lane(lane), .fx(fx), .fy(fy),
+        .word(word), .word_p1(word_p1), .word_row(word_row), .word_row_p1(word_row_p1),
+        .lane(lane), .fx(fx), .fy(fy),
         .aux_word(aux_word), .aux_lane(aux_lane),
         .aux_q(aux_q), .aux_lane_q(aux_lane_q),
         .rd_word_addr(rd_word_addr), .rd_word(rd_word),
@@ -117,19 +120,29 @@ module tb_tap_sched;
     wire in_s0 = (u_dut.slot == 3'd0);
     always @(negedge clk) begin
         if (!rst_n) begin
-            req <= 1'b0; word <= 0; lane <= 0; fx <= 0; fy <= 0; aux_word <= 0;
+            req <= 1'b0; word <= 0; word_p1 <= 0; word_row <= 0; word_row_p1 <= 0;
+            lane <= 0; fx <= 0; fy <= 0;
+            aux_word <= 0; aux_lane <= 0; aux_prev_word <= 0; aux_prev_lane <= 0;
         end else if (in_s0) begin
             req <= (i < nreq);                      // 发完就停：否则尾部会多出没有期望的 vld
             if (i < nreq) begin
                 word <= {(q_sy[i]*IW + q_sx[i]) >> 2};
+                // 另外三个字号：台架按"慢域算好再送进快域"的接口约定自己算一遍。
+                // 期望值仍然只走 pix(n) 那条独立路径 ⇒ 地址算错照样会露（抽头会对不上）。
+                word_p1     <= {((q_sy[i]*IW + q_sx[i]) >> 2) + 17'd1};
+                word_row    <= {((q_sy[i]*IW + q_sx[i]) >> 2) + (IW/4)};
+                word_row_p1 <= {((q_sy[i]*IW + q_sx[i]) >> 2) + (IW/4) + 17'd1};
                 lane <= {(q_sy[i]*IW + q_sx[i]) & 2'h3};
                 fx   <= q_fx[i];
                 fy   <= q_fy[i];
                 expect_for(q_sx[i], q_sy[i], q_fx[i], q_fy[i]);
                 i = i + 1;
             end else begin
-                word <= 17'd0; lane <= 2'd0; fx <= 8'd0; fy <= 8'd0;
+                word <= 17'd0; word_p1 <= 17'd0; word_row <= 17'd0; word_row_p1 <= 17'd0;
+                lane <= 2'd0; fx <= 8'd0; fy <= 8'd0;
             end
+            aux_prev_word <= aux_word;               // 左窗地址是在 s0 **起始沿**被采走的 ⇒
+            aux_prev_lane <= aux_lane;               // 本拍 s2 里的字对应上一拍的输入（契约见 tap_sched）
             aux_word <= (i < nreq + 1) ? q_aux[i > 0 ? i-1 : 0] : 17'd0;
             aux_lane <= i[1:0] ^ 2'd1;              // 与字号无关的独立车道图案：错了就会露出来
         end
@@ -172,11 +185,11 @@ module tb_tap_sched;
     always @(negedge clk) begin
         if (rst_n && in_s2 && cyc >= 2) begin
             naux = naux + 1;
-            if (pick(aux_q, aux_lane_q) !== pix(aux_word*4 + {15'd0, aux_lane})) begin
+            if (pick(aux_q, aux_lane_q) !== pix(aux_prev_word*4 + {15'd0, aux_prev_lane})) begin
                 if (nauxbad < 5)
                     $display("[DIAG] aux mismatch #%0d: word=%0d lane=%0d got %h exp %h",
-                             naux, aux_word, aux_lane, pick(aux_q, aux_lane_q),
-                             pix(aux_word*4 + {15'd0, aux_lane}));
+                             naux, aux_prev_word, aux_prev_lane, pick(aux_q, aux_lane_q),
+                             pix(aux_prev_word*4 + {15'd0, aux_prev_lane}));
                 nauxbad = nauxbad + 1;
             end
         end

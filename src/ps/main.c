@@ -27,20 +27,24 @@
 #define GPIO_DATA     (AXI_GPIO_BASE + 0x00u)
 #define GPIO_TRI      (AXI_GPIO_BASE + 0x04u)
 #define PUBLISH_BIT   18u
+#define BILIN_BIT     19u     /* 右窗双线性插值开关：0 = 最近邻（同一条通路，小数钉 0） */
 
 static u32 cur_en = 0;
 static u8  cur_thr = 80;
 static u8  cur_src = 0;
 static u8  cur_zoom = 1;   /* GPIO bit17: 右屏无极缩放。当前 RTL 常开，此位预留给控制 */
+static u8  cur_bilin = 1;  /* GPIO bit19: 双线性/最近邻 A-B 对照，演示时现场切换用 */
 static u32 pub_lvl = 0;
 
 static void ctrl_apply(void)
 {
     u32 v = (cur_en & 0x1F) | ((u32)cur_thr << 8) | ((u32)cur_src << 16)
-          | ((u32)(cur_zoom ? 1 : 0) << 17) | (pub_lvl << PUBLISH_BIT);
+          | ((u32)(cur_zoom ? 1 : 0) << 17) | (pub_lvl << PUBLISH_BIT)
+          | ((u32)(cur_bilin ? 1 : 0) << BILIN_BIT);
     Xil_Out32(GPIO_DATA, v);
-    xil_printf("[CTRL] AXI_GPIO=0x%08x en=%02x thr=%d src=%d zoom=%d pub=%d\r\n",
-               v, cur_en & 0x1F, cur_thr, cur_src, cur_zoom ? 1 : 0, (int)pub_lvl);
+    xil_printf("[CTRL] AXI_GPIO=0x%08x en=%02x thr=%d src=%d zoom=%d pub=%d bilin=%d\r\n",
+               v, cur_en & 0x1F, cur_thr, cur_src, cur_zoom ? 1 : 0, (int)pub_lvl,
+               cur_bilin ? 1 : 0);
 }
 
 /* sd_play.c 只被允许请求"发布"，不碰别人的控制字 */
@@ -71,6 +75,12 @@ static void ctrl_set_src(u8 src)
 static void ctrl_set_zoom(u8 on)
 {
     cur_zoom = on ? 1 : 0;
+    ctrl_apply();
+}
+
+static void ctrl_set_bilin(u8 on)
+{
+    cur_bilin = on ? 1 : 0;
     ctrl_apply();
 }
 
@@ -110,6 +120,10 @@ static void uart_poll(void)
                     ctrl_set_zoom(0);
                 } else if (!strncmp(buf, "ZOOM1", 5)) {
                     ctrl_set_zoom(1);
+                } else if (!strncmp(buf, "BILIN0", 6)) {
+                    ctrl_set_bilin(0);
+                } else if (!strncmp(buf, "BILIN1", 6)) {
+                    ctrl_set_bilin(1);
                 } else if (!strncmp(buf, "TH", 2) && idx > 2) {
                     int th = atoi(buf + 2);
                     if (th < 0) th = 0;
@@ -153,12 +167,13 @@ static void uart_poll(void)
                         xil_printf("[SD] frame %s failed: %s\r\n", buf + 5, sd_err());
                     else ctrl_set_src(1);
                 } else if (!strncmp(buf, "STAT", 4)) {
-                    xil_printf("[STAT] ctrl en=%02x thr=%d src=%d zoom=%d pub=%d"
+                    xil_printf("[STAT] ctrl en=%02x thr=%d src=%d zoom=%d bilin=%d pub=%d"
                                " sd=%d frames=%d playing=%d (PL owns UDP datapath)\r\n",
-                               cur_en & 0x1F, cur_thr, cur_src, cur_zoom ? 1 : 0, (int)pub_lvl,
+                               cur_en & 0x1F, cur_thr, cur_src, cur_zoom ? 1 : 0,
+                               cur_bilin ? 1 : 0, (int)pub_lvl,
                                sd_frame_total() ? 1 : 0, (int)sd_frame_total(), sd_is_playing());
                 } else {
-                    xil_printf("[CMD] %s\r\n  00111 SRC0 SRC1 TH80 ZOOM0 ZOOM1 FILL SD PLAY STOP FRAME0 STAT\r\n", buf);
+                    xil_printf("[CMD] %s\r\n  00111 SRC0 SRC1 TH80 ZOOM0 ZOOM1 BILIN0 BILIN1 FILL SD PLAY STOP FRAME0 STAT\r\n", buf);
                 }
             }
             idx = 0;
@@ -180,7 +195,7 @@ int main(void)
     ctrl_apply();
 
     xil_printf("[BOOT] UDP RX is in PL (RGMII PHY2). PS is control + SD playback.\r\n");
-    xil_printf("[BOOT] uart115200: 00111 SRC0 SRC1 TH80 ZOOM0 ZOOM1 FILL SD PLAY STOP FRAME0 STAT\r\n");
+    xil_printf("[BOOT] uart115200: 00111 SRC0 SRC1 TH80 ZOOM0 ZOOM1 BILIN0 BILIN1 FILL SD PLAY STOP FRAME0 STAT\r\n");
 
     while (1) {
         uart_poll();

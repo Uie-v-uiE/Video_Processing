@@ -18,6 +18,7 @@ module pl_video_top #(
     input  wire [7:0]  threshold,
     input  wire        src_sel,
     input  wire        zoom_en,
+    input  wire        bilin_en,      // 右窗双线性插值使能（0 = 最近邻）；板上 BILIN0/1 现场对照
     // PS 侧"这一帧 DDR 写完了"的发布脉冲：每翻转一次 = 请求 PL 在下一个 frame_start
     // 把 DDR 搬进显示帧缓存一次。SD 回放靠它避免撕裂（见 src/ps/sd_play.c 头部协议说明）。
     input  wire        ps_publish,
@@ -108,6 +109,17 @@ module pl_video_top #(
         end
     end
     wire zoom_run = ze2;
+
+    // 与 zoom_en 同样处理：AXI GPIO 电平相对像素时钟是异步的，必须走 3 级同步
+    (* ASYNC_REG = "TRUE" *) reg be0, be1, be2;
+    always @(posedge clk_pix or negedge rst_pix_n) begin
+        if (!rst_pix_n) begin
+            be0 <= 1'b1; be1 <= 1'b1; be2 <= 1'b1;    // 复位默认开插值（与上电观感一致）
+        end else begin
+            be0 <= bilin_en; be1 <= be0; be2 <= be1;
+        end
+    end
+    wire bilin_run = be2;
 
     wire [11:0] x, y;
     wire hs, vs, de, frame_start, frame_done;
@@ -287,7 +299,28 @@ module pl_video_top #(
     end
 
     // SRC0=colorbar, SRC1=video (v5 SRC bug was |eth_ready locking SRC0)
+    // ---------------------------------------------------------------------------
+    // 显示读口的配准常数（V7.8 双线性之后，全部**由 RD_LAT 推导**，不要再写魔法数字）：
+    //   MAP_LAT  cx → sx_l/sx_r 的流水级数（左路 cx_q3、右路 zoom_mapper 三级，实测都是 3）
+    //   RD_LAT   坐标有效 → 像素总线有效。fb_rd5x 内部是「左窗 1 次读 + 右窗 4 次读 + 2 级插值」，
+    //            这个数**由 sim/tb_fb_rd5x.v 用唯一平移量搜索量出来**，不是纸上推的。
+    //   BUS_LAT  光栅像素 r 真正出现在像素总线上的周期 = r + BUS_LAT
+    // 今天 (= V7.7 之前) MAP_LAT=3、读口 2 拍 ⇒ BUS_LAT=5，与代码里原先写死的
+    // bar_l_d4 / de_d[3] / de_d[11] 三组抽位完全对得上（下面每条都用等式重述了一遍），
+    // 所以这次替换是可核对的，而不是"看着差不多"。
+    // bilin_en 现在是**运行时**端口（AXI GPIO bit19，串口 BILIN0/BILIN1），不是编译期参数：
+    localparam MAP_LAT   = 3;
+    localparam RD_LAT    = 5;
+    localparam BUS_LAT   = MAP_LAT + RD_LAT;          // 5 拍读口：坐标 → 像素
+    localparam PROC_LAT  = 7;                         // u_pipe 的内部级数（见 proc_pipeline.v）
+    localparam LEFT_TAIL = PROC_LAT;                  // 左路跟右路等长
+    localparam BAR_L_TAP = BUS_LAT - 1;               // color_bar 内部有 1 级寄存：r+1+n = r+BUS_LAT
+    localparam BAR_R_TAP = BUS_LAT - 1 - MAP_LAT;     // 右路彩条吃的是 sx_r（已经晚 MAP_LAT 拍）
+    localparam PIPE_TAP  = BUS_LAT - 1;               // 进 u_pipe 的 de/x/y/left 抽位
+    localparam SPLIT_TAP = BUS_LAT + LEFT_TAIL - 1;   // split_display 那一侧的抽位
+
     wire [15:0] fb_rd;
+    wire        oob_bus, right_bus;
     wire eth_ready   = eth_link & eth_has_frame;
     wire src_use     = src_sel_pix;
     assign copy_hold = 1'b0;
@@ -305,7 +338,7 @@ module pl_video_top #(
             if (!ac1) fb_pix_hold <= fb_rd;
         end
     end
-    wire [15:0] fb_out = (ac1 && !de_d[11]) ? fb_pix_hold : fb_rd;
+    wire [15:0] fb_out = (ac1 && !de_d[SPLIT_TAP]) ? fb_pix_hold : fb_rd;
     // red only if no link; if link but not yet ready show BRAM (black/last)
     wire [15:0] bram_or_hold = eth_link ? fb_out : 16'hF800;
 
@@ -360,32 +393,28 @@ module pl_video_top #(
     wire [18:0] aw_wr_addr = eth_mode ? row_wr_addr : fill_wr_addr;
     wire [63:0] aw_wr_data = eth_mode ? row_wr_data : fill_wr_data;
 
-    wire        fb_sel_right = ~left_d[2];
-    wire [11:0] sx_fb = fb_sel_right ? sx_r : sx_l;
-    wire [11:0] sy_fb = fb_sel_right ? sy_r : sy_l;
-    wire        oob_fb = fb_sel_right ? oob_r : oob_l;
+    wire        rd_sel_right = ~left_d[MAP_LAT-1];   // 与 sx_*/sy_* 同拍（left_d[k] 延迟 k+1 拍）
 
-    reg [18:0] rd_addr_q;
-    reg        oob_fb_d0;
-    reg        left_sel_q;
-    always @(posedge clk_pix or negedge rst_pix_n) begin
-        if (!rst_pix_n) begin
-            rd_addr_q <= 0; oob_fb_d0 <= 1; left_sel_q <= 1;
-        end else begin
-            rd_addr_q  <= {sy_fb[8:0], 9'b0} + {7'b0, sx_fb};
-            oob_fb_d0  <= oob_fb;
-            left_sel_q <= left_d[2];
-        end
-    end
+    // 原来的 rd_addr_q / oob_fb_d0 / left_sel_q 三级流水已经搬进 fb_rd5x：
+    // 地址在慢域算完、跨域只走直线（见该模块头部的「跨域纪律」）。
 
-    frame_buffer_w64 #(.W(IMG_W), .H(IMG_H)) u_fb (
-        .wr_clk(axi_clk), .wr_en(aw_wr_en),
-        .wr_addr(aw_wr_addr), .wr_data(aw_wr_data),
-        .rd_clk(clk_pix), .rd_addr(rd_addr_q), .rd_data(fb_rd)
+    // 每像素周期 5 次读（左窗 1 次最近邻 + 右窗 4 次抽头）：见 fb_rd5x / tap_sched 头部。
+    // bilin_en=0 时小数被强制 0 ⇒ 同一条通路原样退化成最近邻（A/B 对照与回退都只用这一个
+    // 开关，不留两套数据通路 —— 两套通路才是「改一处忘一处」的温床）。
+    fb_rd5x #(.IMG_W(IMG_W), .IMG_H(IMG_H)) u_rd (
+        .clk(clk_pix), .clk5x(clk_pix5x), .rst_n(rst_pix_n),
+        .wr_clk(axi_clk), .wr_en(aw_wr_en), .wr_addr(aw_wr_addr), .wr_data(aw_wr_data),
+        .sx_l(sx_l), .sy_l(sy_l),
+        .sx_r(sx_r), .sy_r(sy_r), .fx_r(zfrac_x), .fy_r(zfrac_y),
+        .bilin_en(bilin_run),
+        .sel_right(rd_sel_right), .oob_l(oob_l), .oob_r(oob_r),
+        .pix(fb_rd), .oob_out(oob_bus), .right_out(right_bus)
     );
 
     wire [15:0] bar_l0, bar_r0;
-    reg  [15:0] bar_l_d1, bar_l_d2, bar_l_d3, bar_l_d4, bar_r_d1, bar_r_d2;
+    reg  [15:0] bar_l_d [0:BAR_L_TAP];
+    reg  [15:0] bar_r_d [0:BAR_R_TAP];
+    integer bs;
     color_bar #(.H_ACTIVE(IMG_W), .V_ACTIVE(IMG_H)) u_bar_l (
         .clk(clk_pix), .rst_n(rst_pix_n),
         .x(cx), .y(cy), .de(de), .rgb565(bar_l0)
@@ -395,27 +424,26 @@ module pl_video_top #(
         .x(sx_r), .y(sy_r), .de(de_d[2]), .rgb565(bar_r0)
     );
     always @(posedge clk_pix) begin
-        bar_l_d1 <= bar_l0; bar_l_d2 <= bar_l_d1;
-        bar_l_d3 <= bar_l_d2; bar_l_d4 <= bar_l_d3;
-        bar_r_d1 <= bar_r0;  bar_r_d2 <= bar_r_d1;
+        bar_l_d[0] <= bar_l0;
+        for (bs = 1; bs <= BAR_L_TAP; bs = bs + 1) bar_l_d[bs] <= bar_l_d[bs-1];
+        bar_r_d[0] <= bar_r0;
+        for (bs = 1; bs <= BAR_R_TAP; bs = bs + 1) bar_r_d[bs] <= bar_r_d[bs-1];
     end
 
-    reg oob_fb_d1, left_sel_d1;
-    always @(posedge clk_pix) begin
-        oob_fb_d1 <= oob_fb_d0;
-        left_sel_d1 <= left_sel_q;
-    end
-    wire left_pix = left_sel_d1;
+    // 窗口标志与越界标志由读口自己按同一套配准延迟送出来，顶层不再各摆各的移位链
+    // （以前两边各数各的拍数，正是「错一列也不会报错」的来源）。
+    wire left_pix  = ~right_bus;
+    wire oob_fb_d1 =  oob_bus;
 
-    wire [15:0] pix_left  = left_pix ? (oob_fb_d1 ? 16'h0000 : (src_use ? bram_or_hold : bar_l_d4))
+    wire [15:0] pix_left  = left_pix ? (oob_fb_d1 ? 16'h0000 : (src_use ? bram_or_hold : bar_l_d[BAR_L_TAP]))
                                       : 16'h0000;
     wire [15:0] pix_right = left_pix ? 16'h0000
-                                      : (oob_fb_d1 ? 16'h0000 : (src_use ? bram_or_hold : bar_r_d2));
+                                      : (oob_fb_d1 ? 16'h0000 : (src_use ? bram_or_hold : bar_r_d[BAR_R_TAP]));
     wire oob_l_pix = left_pix & oob_fb_d1;
     wire oob_r_pix = (~left_pix) & oob_fb_d1;
 
-    localparam PROC_LAT = 7;
-    localparam LEFT_TAIL = PROC_LAT;
+    // PROC_LAT / LEFT_TAIL 已在上面的配准常数块里声明（这里曾留了一份重复声明，
+    // 综合直接报 Synth 8-8891 'PROC_LAT' is already declared —— 记一笔免得再犯）。
 
     wire [15:0] pipe_dout;
     wire        pipe_de;
@@ -424,8 +452,8 @@ module pl_video_top #(
         .effect_en(en_sync), .threshold(th_sync),
         .rotate_active(rot_on),
         .hs_in(hs_d[3]), .vs_in(vs_d[3]),
-        .de_in(de_d[3] && !left_d[3]),
-        .x_in(cx_d[3]), .y_in(cy_d[3]),
+        .de_in(de_d[PIPE_TAP] && !left_d[PIPE_TAP]),
+        .x_in(cx_d[PIPE_TAP]), .y_in(cy_d[PIPE_TAP]),
         .din(pix_right),
         .de_out(pipe_de), .dout(pipe_dout)
     );
@@ -454,8 +482,8 @@ module pl_video_top #(
     wire        oob_lo = oob_l_skid[LEFT_TAIL-1];
     wire        oob_ro = oob_r_skid[LEFT_TAIL-1];
 
-    wire de_d11 = de_d[11], hs_d11 = hs_d[11], vs_d11 = vs_d[11];
-    wire [11:0] x_d11 = x_d[11], y_d11 = y_d[11];
+    wire de_d11 = de_d[SPLIT_TAP], hs_d11 = hs_d[SPLIT_TAP], vs_d11 = vs_d[SPLIT_TAP];
+    wire [11:0] x_d11 = x_d[SPLIT_TAP], y_d11 = y_d[SPLIT_TAP];
 
     wire [7:0] r, g, b;
     wire de_o, hs_o, vs_o;
