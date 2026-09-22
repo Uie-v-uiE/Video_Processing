@@ -1,4 +1,4 @@
-V7.6 / V7.6b / V7.6c (R08-R10) L1 xsim regression
+V7.6 .. V7.6c + P0-B 算术核 (R08-R11) L1 xsim regression
 runner : vivado -mode batch -source sim/run_sim.tcl   (xvlog rtl=61 tb=32)
 
 R09 run (2026-09-22 20:5x, after snap_cross gained hb_slow) completed all 32 testbenches
@@ -123,3 +123,7 @@ new assertions in V7.6b (tb_link_monitor):
   PASS hb_slow clear while the heartbeat is at nominal rate
   PASS hb_slow asserts when the source clock is degraded (拔线工况)
   PASS hb_gone correctly stays clear (它看不见这件事，正是加 hb_slow 的理由)
+
+=== R11 run (V7.6c + bilin_lerp 算术核, tb_bilin_lerp) ===
+xvlog rtl=62 tb=33 ; SIM DONE pass=33 fail=0   [sim/xsim_bil_full.log]
+新增 tb_bilin_lerp：6 条判据，其中随机 400 组对黄金模型（先纵后横）最差偏差 = 0 个输出码
