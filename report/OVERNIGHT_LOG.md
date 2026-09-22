@@ -1415,3 +1415,10 @@ u_pl/u_rd/u_sched/lo_reg_0_0_i_45_n_0. Replicated 1...`）⇒ 方向对，但**�
 | KU5P 那块板？ | 自研以太网栈已在 `xcku5p` 上综合+实现收敛（WNS +1.840 / WHS +0.012 / 0 失败端点 / 0 CRIT WARN），bit 在 `ku5p/build/`。**只 JTAG 配置，绝不写它的 QSPI**（厂商 bat 锁 2023.1，高版本写会变砖）。ping/收流要人在线看 |
 | 有哪些"必须你眼睛看"的？ | §9.5 清单第 1–8、10–11 步（OSD 好不好读、SD 回放观感与撕裂、彩条对齐、拔线表现、KU5P 的 LED 与 ping） |
 | 今晚我自己搞坏过什么吗？ | 两次都当场发现并修好：① 恢复 `build/system.bit` 后被 build#15 跑完又覆盖（同名不同内容）⇒ 清单项现在带 md5 断言；② `mv` 用错顺序把刚恢复的好 bit 挪进了"失败"目录并留下错标签 ⇒ 已删除错标签副本、重新恢复并二次校验。两处都写进 R21 |
+
+**报告的配套性（同一层小心的东西）**：`build/*.rpt` 是跟踪进仓库的门禁证据，构建会原地覆盖它们。
+04:0x 的状态是：`build/*.rpt` = **build#13 那一套**（与 `build/system.bit` 的 md5 相配 ✓ 报告头写
+`All user specified timing constraints are met`）；build#16 的成套报告 + bit 归档在
+`build/failed_r24/`（含 `MANIFEST.txt` 的 md5 清单），因为它是"下一次收口的起点"，数字不该只散在正文里。
+build#14 的在 `build/failed_r19b/`；build#15 的被 #16 覆盖，只留本文表格里的数字（−0.485 / 349 端点）。
+⇒ 规则一句话：**bit、xsa、门禁报告必须成套**；任何一样单独漂移，早晚会在某次"看起来是绿的"的判断里骗人。
