@@ -18,6 +18,9 @@ module pl_video_top #(
     input  wire [7:0]  threshold,
     input  wire        src_sel,
     input  wire        zoom_en,
+    // PS 侧"这一帧 DDR 写完了"的发布脉冲：每翻转一次 = 请求 PL 在下一个 frame_start
+    // 把 DDR 搬进显示帧缓存一次。SD 回放靠它避免撕裂（见 src/ps/sd_play.c 头部协议说明）。
+    input  wire        ps_publish,
 
     input  wire        key1_n,
     input  wire        key2_n,
@@ -306,10 +309,19 @@ module pl_video_top #(
     // red only if no link; if link but not yet ready show BRAM (black/last)
     wire [15:0] bram_or_hold = eth_link ? fb_out : 16'hF800;
 
+    // 发布握手单独成模块（内含 3 级同步），这样它能被 sim/tb_ps_publish.v 逐相位验。
+    // 顺带修掉一处真错：这里原来用 `src_sel`（axi_clk 域的**未同步**电平），
+    // 而同文件里 src_sel_pix/src_use 早就存在 —— 帧起始那拍采它会采到亚稳态。
+    wire pub_consume = frame_start && src_use && !eth_link;
+    wire pub_pend;
+    ps_publish u_pub (
+        .clk(clk_pix), .rst_n(rst_pix_n),
+        .tog(ps_publish), .consume(pub_consume), .pend(pub_pend), .new_tog());
+
     reg fs_tog;
     always @(posedge clk_pix or negedge rst_pix_n) begin
         if (!rst_pix_n) fs_tog <= 1'b0;
-        else if (frame_start && src_sel && !eth_link) fs_tog <= ~fs_tog;
+        else if (pub_consume && pub_pend) fs_tog <= ~fs_tog;
     end
     (* ASYNC_REG = "TRUE" *) reg fs0, fs1, fs2;
     always @(posedge axi_clk or negedge axi_rst_n) begin

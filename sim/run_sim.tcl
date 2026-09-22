@@ -93,10 +93,14 @@ foreach tf $tbs {
         }
     }
     foreach h [lrange $hits end-9 end] { puts "  $h" }
-    set verdict NO_ASSERT
+    # NO_ASSERT 过去被计入 pass：一个"什么都没断言"的测试台不该算过。
+    # 现在 NO_ASSERT 与 FAIL 同等对待（跑不到最后断言的台架以前会悄悄绿）。
+    set verdict FAIL
     if {[llength $hits] > 0} {
         set verdict PASS
         foreach h $hits { if {[string match *FAIL* $h]} { set verdict FAIL; break } }
+    } else {
+        puts "  (没有 PASS/FAIL 断言行 —— 判为失败)"
     }
     puts "RESULT $tb $verdict"
     if {$verdict eq "FAIL" || $verdict eq "ELAB_FAIL"} { incr nfail } else { incr npass }
