@@ -1,9 +1,10 @@
 /**
- * PS control plane only: UART commands + AXI GPIO.
- * UDP video data path is handled entirely in PL (rtl/eth/*).
+ * PS control plane + SD 卡本地回放。UDP 视频数据通路仍然整个在 PL（rtl/eth 目录）。
  *
  * AXI GPIO @ 0x41200000
- * DDR frame @ 0x10000000 (optional PS diagnostic FILL)
+ *   [4:0]   effect_en    [15:8] threshold   [16] src_sel   [17] zoom_en
+ *   [18]    ps_publish   —— 翻转一次 = "DDR 里这一帧写完了，请在下一个 frame_start 搬走"
+ * DDR frame @ 0x10000000（FILL 诊断帧 / SD 回放帧都落在这里）
  */
 #include <stdio.h>
 #include <string.h>
@@ -15,6 +16,7 @@
 #include "xil_exception.h"
 #include "xuartps.h"
 #include "sleep.h"
+#include "sd_play.h"
 
 #define FRAME_W     512
 #define FRAME_H     300
@@ -24,19 +26,28 @@
 #define AXI_GPIO_BASE 0x41200000u
 #define GPIO_DATA     (AXI_GPIO_BASE + 0x00u)
 #define GPIO_TRI      (AXI_GPIO_BASE + 0x04u)
+#define PUBLISH_BIT   18u
 
 static u32 cur_en = 0;
 static u8  cur_thr = 80;
 static u8  cur_src = 0;
 static u8  cur_zoom = 1;   /* GPIO bit17: 右屏无极缩放。当前 RTL 常开，此位预留给控制 */
+static u32 pub_lvl = 0;
 
 static void ctrl_apply(void)
 {
     u32 v = (cur_en & 0x1F) | ((u32)cur_thr << 8) | ((u32)cur_src << 16)
-          | ((u32)(cur_zoom ? 1 : 0) << 17);
+          | ((u32)(cur_zoom ? 1 : 0) << 17) | (pub_lvl << PUBLISH_BIT);
     Xil_Out32(GPIO_DATA, v);
-    xil_printf("[CTRL] AXI_GPIO=0x%08x en=%02x thr=%d src=%d zoom=%d\r\n",
-               v, cur_en & 0x1F, cur_thr, cur_src, cur_zoom ? 1 : 0);
+    xil_printf("[CTRL] AXI_GPIO=0x%08x en=%02x thr=%d src=%d zoom=%d pub=%d\r\n",
+               v, cur_en & 0x1F, cur_thr, cur_src, cur_zoom ? 1 : 0, (int)pub_lvl);
+}
+
+/* sd_play.c 只被允许请求"发布"，不碰别人的控制字 */
+void ps_publish(void)
+{
+    pub_lvl ^= 1u;
+    ctrl_apply();
 }
 
 static void ctrl_set_en(u32 en)
@@ -124,12 +135,30 @@ static void uart_poll(void)
                     }
                     Xil_DCacheFlushRange(FRAME_ADDR, FRAME_BYTES);
                     ctrl_set_src(1);
+                    ps_publish();       /* 新协议：PL 只在收到发布脉冲后才搬一次 */
                     xil_printf("[CMD] FILL diagnostic via PS DDR\r\n");
+                } else if (!strncmp(buf, "SD", 2)) {
+                    if (sd_mount() == 0) sd_status();
+                    else xil_printf("[SD] mount failed: %s\r\n", sd_err());
+                } else if (!strncmp(buf, "PLAY", 4)) {
+                    ctrl_set_src(1);
+                    if (!sd_play(1)) xil_printf("[SD] play refused: %s\r\n", sd_err());
+                    else xil_printf("[SD] playing (STOP to end; cable must stay out)\r\n");
+                } else if (!strncmp(buf, "STOP", 4)) {
+                    (void)sd_play(0);
+                    xil_printf("[SD] stopped at frame %d\r\n", (int)sd_frame_now());
+                } else if (!strncmp(buf, "FRAME", 5) && idx > 5) {
+                    int n = atoi(buf + 5);
+                    if (n < 0 || sd_show((u32)n) != 0)
+                        xil_printf("[SD] frame %s failed: %s\r\n", buf + 5, sd_err());
+                    else ctrl_set_src(1);
                 } else if (!strncmp(buf, "STAT", 4)) {
-                    xil_printf("[STAT] ctrl en=%02x thr=%d src=%d zoom=%d (PL owns UDP datapath)\r\n",
-                               cur_en & 0x1F, cur_thr, cur_src, cur_zoom ? 1 : 0);
+                    xil_printf("[STAT] ctrl en=%02x thr=%d src=%d zoom=%d pub=%d"
+                               " sd=%d frames=%d playing=%d (PL owns UDP datapath)\r\n",
+                               cur_en & 0x1F, cur_thr, cur_src, cur_zoom ? 1 : 0, (int)pub_lvl,
+                               sd_frame_total() ? 1 : 0, (int)sd_frame_total(), sd_is_playing());
                 } else {
-                    xil_printf("[CMD] %s\r\n  00111 SRC0 SRC1 TH80 ZOOM0 ZOOM1 FILL STAT\r\n", buf);
+                    xil_printf("[CMD] %s\r\n  00111 SRC0 SRC1 TH80 ZOOM0 ZOOM1 FILL SD PLAY STOP FRAME0 STAT\r\n", buf);
                 }
             }
             idx = 0;
@@ -150,12 +179,12 @@ int main(void)
     Xil_Out32(GPIO_TRI, 0x00000000u);
     ctrl_apply();
 
-    xil_printf("[BOOT] UDP RX is in PL (RGMII PHY2). PS is control-only.\r\n");
-    xil_printf("[BOOT] uart115200: 00111 SRC0 SRC1 TH80 ZOOM0 ZOOM1 FILL STAT\r\n");
-    xil_printf("[BOOT] right-pane auto zoom is hardwired ON in PL (zoom_en=1).\r\n");
+    xil_printf("[BOOT] UDP RX is in PL (RGMII PHY2). PS is control + SD playback.\r\n");
+    xil_printf("[BOOT] uart115200: 00111 SRC0 SRC1 TH80 ZOOM0 ZOOM1 FILL SD PLAY STOP FRAME0 STAT\r\n");
 
     while (1) {
         uart_poll();
+        sd_tick();
     }
     return 0;
 }
