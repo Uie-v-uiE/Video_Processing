@@ -32,6 +32,7 @@
 | 分支 | 版本 | 内容 |
 |------|------|------|
 | **`main`（当前）** | **第五版** | 三次综合行为改造（打包 FIFO / 显示 skid 改分布式 RAM、帧缓存地址空间按 2 的幂分块）+ 换页判据补「等本帧数据穿过 CDC」；BRAM 98.93%→64.64%、寄存器 51.30%→4.08%、Slice 99.92%→18.03% |
+| `dev/night-2026-09-22`（**仅本地，待复核**） | V7.7 → V7.9 的夜间工作 | 链路健康自诊断、PS 发布握手、旋转限制到右窗、三笔 CDC 账（`eth_link`/`ASYNC_REG`/`copy_abort` 翻转同步）、KU5P 第二块板（含每秒一包 UDP 遥测 + 自研发送仲裁）；双线性插值未合入，打在 tag `v7.8-bilinear-wip`。逐轮判据见 `report/OVERNIGHT_LOG.md`，版本对应见 `report/VERSION_LINEAGE.md` §6 |
 | `v4-zero-loss` | 第四版 | 入包链零丢字：写通道流水化（V6.3）+ 按 16bit lane 生成 `WSTRB`（V6.4） |
 | `v3-seamless-zoom` | 第三版 | 右屏连续（无极）缩放；**拖影此时仍未解决**（量化：最新帧仅占 42~52%） |
 | `v3-ghosting-attempts` | 第三版攻关过程 | 去拖影的三次未收敛尝试：BRAM 双缓冲 → DDR 三槽位管理 → DDR 双 bank 乒乓（含咨询简报与当时的 TB） |

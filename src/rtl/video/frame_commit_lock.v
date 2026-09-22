@@ -99,8 +99,11 @@ module frame_commit_lock #(
     // `pl_video_top` 的 `eth_has_frame` 在 50 MHz 像素域 —— 两路时钟同源同相
     // （MMCM 出来的 100 MHz 与 50 MHz），于是脉冲的翻转沿**正好压在**像素域的采样沿上：
     // 收不收得到取决于建立/保持窗口里的亚稳，`report_cdc` 一直把它记成 unsafe。
-    // 电平型 3 级同步在这里只会更糟（更容易整串漏掉）；正确形式是翻转式脉冲同步器，
-    // 与本文件里像素域→axi 域那一侧的 `blank_tog` 完全对称（同一个文件已有模板）。
+    // 电平型 3 级同步在这里并不能修好它（实测与裸采逐相位一模一样，见 tb_v79_abort_toggle）；
+    // 正确形式是翻转式脉冲同步器，与本文件里像素域→axi 域那一侧的 `blank_tog` 完全对称（已有模板）。
+    // 翻转式是"电平语义"：两次翻转若落在同一个像素周期内会被合并成 0 次。这里不会发生 ——
+    // 两次 abort 之间至少隔 WD_CYC（默认 20 ms = 100 万个 axi 拍），因为 abort 会把 copy_active
+    // 清掉、必须再来一次 commit_req 才可能重新走到看门狗。
     always @(posedge axi_clk or negedge axi_rst_n) begin
         if (!axi_rst_n) abort_tgl <= 1'b0;
         else if (copy_abort) abort_tgl <= ~abort_tgl;
