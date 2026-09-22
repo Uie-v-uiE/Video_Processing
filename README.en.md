@@ -115,6 +115,11 @@ Full record, criteria and rejected options: [`report/CHANGELOG_V7.md`](report/CH
 - Source select: colour bars or Ethernet/DDR video
 - Host tools: UDP sender, serial console, and a JTAG read-back measurement suite that decides
   link integrity without looking at the screen
+- **Second board (RK-XCKU5P-F, UltraScale+)**: the same self-written Ethernet stack, only the RGMII
+  physical layer swapped, meets timing on its own — and it now **reports its own receive statistics
+  back to the PC as one UDP packet per second** (`node src/host/ku5p_stats.mjs`). The GMII send
+  arbiter is also self-written (it fixes a mid-frame source-switch defect in the vendor multiplexer).
+  Bench evidence and numbers: `ku5p/README.md`; board checks are scheduled for daytime.
 
 ## Directory layout
 

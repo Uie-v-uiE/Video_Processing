@@ -21,14 +21,16 @@ Xilinx 官方 Ethernet MAC/UDP IP 的用法；非 Zynq/UltraScale 器件。
 |------------|--------|
 | 建工程 + BD + 综合 + 实现 + bit + xsa | `vivado -mode batch -source build/tcl/build_system_axigpio.tcl` |
 | 只要 PL 综合冒烟 | `build/tcl/build_pl_full.tcl` / `build/tcl/create_project.tcl` |
-| 一次性跑完全部台架 | `vivado -mode batch -source sim/run_sim.tcl`（37 个 tb，约 9 min） |
+| 一次性跑完全部台架 | `vivado -mode batch -source sim/run_sim.tcl`（40 个 tb，约 9 min） |
 | 只跑某个台架 | `SIM_TB=tb_ps_publish vivado -mode batch -source sim/run_sim.tcl`（可加 `SIM_VERBOSE=1`） |
+| **改 RTL 时快速迭代单个台架** | `bash sim/run_one.sh tb_ku5p_telem`（只编需要的那几个文件，约 40 s；日志在 `/tmp/kx/<tb>.run/`） |
 | 下 bit（PL-only 演示） | `build/tcl/program_pl.tcl` |
 | 下整套 system.bit | `build/tcl/program_system.tcl` |
 | 不写 flash 把 PS 拉起来 | `xsdb.bat build/tcl/ps_jtag_boot.tcl`（**ps7_init.tcl 会自动从 `build/system.xsa` 里解出来**；也可显式传路径或用 `PS7_INIT` 环境变量） |
 | 选显示源（写 GPIO） | `xsdb.bat build/tcl/set_src.tcl`（现为 `0x000B0000`：src + zoom + bilin） |
 | 上位机推流 | `node src/host/video_sender.mjs --ip 192.168.1.10 --port 5001` |
 | 读硬件链路健康计数 | `node src/host/health_read.mjs`（`--gapclr` 先清帧间隔统计） |
+| 收 KU5P 的每秒遥测 | `node src/host/ku5p_stats.mjs`（监听 udp/1234；`--selftest` 不打板子也能验解析器） |
 | 生成 SD 卡帧库 | `node src/host/make_sd_video.mjs <mp4> <outdir>` |
 | 编 PS 应用 | `node build/ps_app.mjs`（需 `PS_BSP` 指向一个已 generate 的 zynq BSP） |
 | 门禁复核 | `build/timing_summary.rpt` `utilization.rpt` `cdc.rpt` `methodology.rpt` `power.rpt` `route_status.rpt` |
@@ -92,3 +94,4 @@ Xilinx 官方 Ethernet MAC/UDP IP 的用法；非 Zynq/UltraScale 器件。
 | `axi_stream_verify.md` | 无厂商 IP 时怎么自证 AXI 通路正确 |
 | `llm_fpga_debug_workflow.md` | 与 LLM 协作的边界：判断必须能追溯到文件与数字 |
 | `derived_clock_port_mux.md` | 用同相 N 倍时钟把单口 BRAM 分时成 N 次读：4 ns 预算、成对采集、延迟要量出来钉住 |
+| `pulse_toggle_cdc.md` | 跨域**脉冲**只能走翻转式同步器；电平型 3 级不能修它（附相位扫描判据与实测三行表） |

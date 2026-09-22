@@ -267,7 +267,7 @@ module ku5p_eth_top #(
         .arp_done(arp_tx_done), .icmp_done(icmp_tx_done), .udp_done(udp_tx_done),
         .arp_tx_en(arp_gmii_tx_en),  .arp_txd(arp_gmii_txd),
         .icmp_tx_en(icmp_gmii_tx_en), .icmp_txd(icmp_gmii_txd),
-        .udp_tx_en(udp_gmii_tx_en),  .udp_gmii_txd(udp_gmii_txd),
+        .udp_tx_en(udp_gmii_tx_en),  .udp_txd(udp_gmii_txd),
         .gmii_tx_en(g_tx_en), .gmii_txd(g_txd)
     );
 
