@@ -23,11 +23,13 @@ set XSDBAT=D:\Software\Vivado\2025.2.1\Vitis\bin\xsdb.bat
 
 下 bit 前 **先 `md5sum build/system.bit`，必须以 `545a27a1` 开头**（= build#19：V7.7 同一功能 +
 R22 两笔 CDC + R23 的 `copy_abort` 翻转同步 + R24 的厂商发送仲裁修复（ISSUES #37），
-WNS +0.598 / WHS +0.043 / 0 失败端点(23424)；**回退链**：build#17 `11998af8` 在 `build/frozen_r17_cdc/`，
-build#13 `0f46ec91` 在 `build/frozen_r13/`；同名文件会被构建原地覆盖，今晚真发生过两次 ——
+WNS +0.598 / WHS +0.043 / 0 失败端点(23424)；**回退链**：build#18 `534f7760`、build#17 `11998af8` 在 `build/frozen_r17_cdc/`，
+build#13 `0f46ec91` 在 `build/frozen_r13/`（三块都在各自的 `build/frozen_*/` 目录里有实体）；同名文件会被构建原地覆盖，今晚真发生过两次 ——
 判据与"冻结必须拷工件"的规矩见 `report/BUILD.md` §7 与 `report/OVERNIGHT_LOG.md` §9.5 第 1 步。
-**注**：build#18 的 bit 当时只在校验和里引用了活路径 `../system.bit`，已被 #19 覆盖 ⇒ 那一块取不回来了，
-所以回退链里没有 #18（它的报告还在 `frozen_r18_abort/`，数字仍然可查）。
+**注**：build#18 那一版冻结时只把校验和写进 MANIFEST、bit 留在活路径 `build/system.bit` 上，
+被 #19 覆盖过 ⇒ 后来靠 `git show 7578217:build/system.bit`（md5 核对 = `534f7760`）复原进
+`frozen_r18_abort/system.bit`。**这次救回来了是因为仓库恰好把 bit 入库，不是流程的功劳** ——
+从 #19 起冻结一律实体拷贝，见 `report/BUILD.md` §7。
 
 推流：`node src/host/video_sender.mjs --ip 192.168.1.10 --port 5001 --test move --fps 15`
 

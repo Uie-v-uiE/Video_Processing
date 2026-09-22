@@ -16,7 +16,10 @@
 # 判据：L1 全量 40/40（sim/results/regression_v79_r25.txt；r24 那次 39/1 暴露了脉宽晚一拍）
 #
 # ⚠ 一条流程教训（本次才发现，已改进做法）：**这一套是把 bit/xsa/elf 实体拷进冻结目录的**，
-#   而 build#18 的 MANIFEST 写的是 `../system.bit`（引用活路径）⇒ #19 构建原地覆盖
-#   `build/system.bit` 之后，**#18 那块 bit 已经不存在了**（报告还在，bit 没了）。
+#   而 build#18 的 MANIFEST 写的是 `../system.bit`（引用活路径）⇒ #19 构建原地覆盖了
+#   `build/system.bit`，那一版当刻在冻结目录里取不到 bit 实体。
+#   07:1x 复查：因为本仓库把 `build/system.bit` 也入库，`git show 7578217:build/system.bit`
+#   的 md5 = `534f7760`（字节数也对）⇒ **#18 的 bit 已复原进 `frozen_r18_abort/system.bit`**。
+#   这次没丢是运气（bit 恰好入库），不是流程保证 —— 所以从 #19 起按上面的规矩实体拷贝。
 #   规矩改成：冻结 = 拷贝工件 + 校验和；MANIFEST 里只准出现"本目录内的文件名"。
 #   回退链因此是：#19（本目录，545a27a1）→ #17（frozen_r17_cdc，11998af8）→ #13（frozen_r13，0f46ec91）。

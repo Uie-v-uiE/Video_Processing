@@ -122,12 +122,16 @@ cp build/system.bit build/system.xsa build/ps_app.elf \
 
 **三条规矩（2026-09-23 凌晨用一次真实的丢失换来的）**：
 1. **冻结 = 拷贝工件**。MANIFEST 里出现 `../system.bit` 这种"引用活路径"的写法 = 没冻结。
-   反面教材：`frozen_r18_abort/` 只留了报告和 `../system.bit` 的校验和，
-   build#19 一跑，那一块 bit 就再也取不回来了（`frozen_r18_abort/MANIFEST.txt` 末尾有说明）。
+   反面教材：`frozen_r18_abort/` 当时只留了报告和 `../system.bit` 的校验和，build#19 一跑，
+   冻结目录里就没有那一版的 bit 了。**它后来被救回来了** —— 因为本仓库恰好把
+   `build/system.bit` 也入库，`git show 7578217:build/system.bit | md5sum` 正是 `534f7760…`，
+   已复原成 `frozen_r18_abort/system.bit`。**这次没丢是运气，不是流程**：换个不入库 bit 的
+   布局（`.gitignore` 里 `frozen_*/*.bit` 就是排除的）它就真没了 ⇒ 规矩仍然是实体拷贝。
 2. **下板之前先 `md5sum build/system.bit` 和 MANIFEST 对前缀**；对不上就去 `build/frozen_*/` 取，
    别硬下——同名不同内容今晚发生过两次。
 3. 门禁**任何一条红**都不采纳：保留上一版当明早默认，把这一版挪去 `build/failed_rNN/`
    （里面留着 `system_r24_WNS-0.327.bit` 这种带 WNS 命名的失败件，是用来对照的，不是用来下的）。
 
-当前回退链（2026-09-23 07:0x）：`frozen_r19_arb`（`545a27a1`，明早默认）
+当前回退链（2026-09-23 07:1x，四块 bit 实体都在各自目录里）：
+`frozen_r19_arb`（`545a27a1`，**明早默认**）→ `frozen_r18_abort`（`534f7760`，从 git 历史复原）
 → `frozen_r17_cdc`（`11998af8`）→ `frozen_r13`（`0f46ec91`，最后一次上过板验证的功能集）。

@@ -17,7 +17,13 @@ ff36a857e4f883380a8d136f8ea59dd0 *util_hier.rpt
 
 ⚠ 2026-09-23 07:0x 之后的状态：**本目录里没有 .bit**（当时 MANIFEST 引用的是 `../system.bit`，
    也就是活路径 `build/system.bit`）。build#19（R24，仲裁修复）构建完把那个文件原地覆盖了，
-   ⇒ 这一块 bit 的工件**已经取不回来**（报告、xsa 校验和都还在，bit 不在）。
+   ⇒ `build/system.bit` 被覆盖，本目录当时**没有**这份 bit 的实体。
+   **但 07:1x 复查发现它其实能复原**：本仓库把 `build/system.bit` 也入库了，
+   `git show 7578217:build/system.bit` 的 md5 正是 `534f7760…`（字节数 1855990 也对）
+   ⇒ 已把复原件写回本目录 `system.bit`。**别把这次复原当流程的功劳** ——
+   它靠的是"仓库恰好把 1.8 MB 的 bit 提交进 git"这条既有实践（而且 `.gitignore` 明确把
+   `frozen_*/*.bit` 排除在库外），换个不入库的布局这块 bit 就真没了。
+   规矩照旧：**冻结 = 实体拷贝工件**，MANIFEST 里只准出现本目录内的文件名。
    要下板子请下 `build/frozen_r19_arb/system.bit`（md5 `545a27a1`，门禁全绿、功能等价 + #37 修复），
    或回退到 `frozen_r17_cdc/system.bit`（`11998af8`）/ `frozen_r13/system.bit`（`0f46ec91`）。
    教训已写进 `report/BUILD.md` 与 `frozen_r19_arb/MANIFEST.txt`：**冻结=拷贝工件**，

@@ -1418,7 +1418,7 @@ u_pl/u_rd/u_sched/lo_reg_0_0_i_45_n_0. Replicated 1...`）⇒ 方向对，但**�
 
 | 问题 | 答案 |
 |------|------|
-| 明早下哪块 bit？ | `build/system.bit`，**先 `md5sum` 必须是 `545a27a1…` 开头**（= build#19：V7.7 那套功能一个不变，多了三笔同步器修复 + 一笔发送仲裁修复；门禁 WNS **+0.598** / WHS +0.043 / 0 失败端点 / BRAM 64.64% / Dynamic 2.184 W / 0 布线错误 / methodology 0 Critical）。**回退链**：`build/frozen_r17_cdc/`（md5 `11998af8`，少 `copy_abort` 翻转同步与仲裁修复）→ `build/frozen_r13/`（`0f46ec91`，今晚之前最后一次上过板验证的功能集）。对不上就取冻结目录，别硬下。**build#18（`534f7760`）不在回退链里** —— 它当时只把校验和写进 MANIFEST、没拷 bit，已被 #19 原地覆盖；教训与正确做法见 `report/BUILD.md` §7 |
+| 明早下哪块 bit？ | `build/system.bit`，**先 `md5sum` 必须是 `545a27a1…` 开头**（= build#19：V7.7 那套功能一个不变，多了三笔同步器修复 + 一笔发送仲裁修复；门禁 WNS **+0.598** / WHS +0.043 / 0 失败端点 / BRAM 64.64% / Dynamic 2.184 W / 0 布线错误 / methodology 0 Critical）。**回退链**：`build/frozen_r17_cdc/`（md5 `11998af8`，少 `copy_abort` 翻转同步与仲裁修复）→ `build/frozen_r13/`（`0f46ec91`，今晚之前最后一次上过板验证的功能集）。对不上就取冻结目录，别硬下。**build#18（`534f7760`）也在链上**：它冻结时只记校验和、bit 留在活路径上被 #19 覆盖过，07:1x 已从 `git show 7578217:build/system.bit` 复原进 `frozen_r18_abort/system.bit`（md5 与字节数都核对过）⇒ 四块 bit 现在都是实体 |
 | 那三块红的呢？ | `build/failed_r19b/`（−1.277）与 `build/failed_r24/`（−0.327，功能上就是 V7.8 双线性）。想**亲眼看插值效果**可以临时下 `failed_r24` 那块；它时序未收口，可能偶发抖动或不显示，看完记得换回去并重新校验 md5 |
 | SD 卡回放？ | 卡已在 Z7 上。固件 `build/ps_app.elf` 已重编（含 `SD/PLAY/STOP/FRAME<n>/BILIN0/BILIN1/STAT`）。上电顺序照 §9.5 第 1–4 步 |
 | 双线性插值到底做完了没？ | **组件与集成全做完、台架全过（L1 37/37）**，只差 250 MHz 分时读口最后 0.327 ns 没收口 ⇒ 没进主线，整套在 tag **`v7.8-bilinear-wip`**。下一步最对症的一刀是 Pblock（`report/OVERNIGHT_LOG.md` R21 末有三条候选） |
@@ -1686,16 +1686,22 @@ methodology 0 CRITICAL / `cdc.rpt` 结构与 #18 相同（`sys_clk↔eth_rxc` �
 下一次优化该动它（27 级里 10 个是 CARRY4 ⇒ 先查那条链上是不是在做逐位比较/移位），
 而不是继续动以太网侧。**没有为了消灭红色去改约束** —— 本来也没有红色。
 
-### R24-D · 一次真实的数据丢失：build#18 的 bit 取不回来了
+### R24-D · 一次"以为丢了"的数据丢失：build#18 的 bit，以及我把推论写成事实的那一次
 
 `frozen_r18_abort/MANIFEST.txt` 写的是 `534f7760… *../system.bit` —— **引用活路径，不是拷贝工件**。
-build#19 构建时 `write_bitstream` 原地覆盖了 `build/system.bit` ⇒ #18 那块 bit 从此在磁盘上不存在
-（它的报告/xsa 校验和还在，数字仍可用；bit 不可用）。
+build#19 构建时 `write_bitstream` 原地覆盖了 `build/system.bit` ⇒ 冻结目录里当时没有那一版的 bit。
+
+**但我 07:1x 复查后发现自己写"取不回来了"是写早了**：本仓库把 `build/system.bit` 也入库，
+`git show 7578217:build/system.bit | md5sum` = `534f7760fccda7fc89722e7d38beb8fb`、字节数 1855990
+—— 与 MANIFEST 记的身份完全一致 ⇒ **已复原**成 `frozen_r18_abort/system.bit`，
+回退链恢复成 #19 → #18 → #17 → #13（四块 bit 实体现在都在盘上）。
 处置：#19 起改为**实体拷贝**（`frozen_r19_arb/` 含 bit/xsa/elf + 8 份报告），
-在 #18 的 MANIFEST 末尾写明这件事，并把规矩写进 `report/BUILD.md` §7。
-回退链：#19(`545a27a1`) → #17(`11998af8`) → #13(`0f46ec91`)。
-⇒ 通用教训：**存档的判据是"能不能重新拿到那份工件"，不是"有没有记下校验和"**；
-   MANIFEST 里出现 `../` 就等于没冻结。
+顺手把 KU5P 的 `frozen_r23/ku5p_eth.bit`（md5 `cd7c705b`，与库上记录一致）也补拷了一份。
+⇒ 两条教训叠在一起：
+① **存档的判据是"能不能重新拿到那份工件"，不是"有没有记下校验和"**；MANIFEST 里出现 `../` 就等于没冻结；
+② **下结论之前先穷举一遍可逆的来源**（这里只差 30 秒：`git log -- build/system.bit`）。
+   我把"冻结目录里没有"说成了"这块 bit 没了"——前者是事实、后者是推论，
+   而交付文档里推论混进事实栏，就是今晚 #36 那条"report_cdc 记成 unsafe"的同一类错。
 
 ### R24-E · 现在手上有什么（明早 30 秒版）
 
