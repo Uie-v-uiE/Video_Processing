@@ -77,3 +77,4 @@ build/snap_*/
 # KU5P 工程的 Vivado 生成目录（与 vivado_system/ 同理）
 ku5p/vivado_ku5p/
 ku5p/build/*.bit
+clockInfo.txt

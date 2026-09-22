@@ -10,6 +10,18 @@ GMII MAC / ARP / ICMP / UDP / offset 拼帧 / 帧计数与健康计数，
 **只替换 RGMII 物理层那三个文件**就能在 UltraScale+ 上综合通过并生成实现结果。
 做法是把同一批 `.v` 直接 `add_files`（不复制、不改写），所以"可移植"不是文字承诺。
 
+**已跑出来的构建结果**（`ku5p/build/ku5p_*.rpt`，2026-09-23 00:27）：
+
+| 项 | 值 | 说明 |
+|----|----|------|
+| WNS / WHS | **+1.840 / +0.012 ns** | 时钟只有一根：`create_clock -period 8.000`（125 MHz，PHY 恢复时钟） |
+| 失败端点 / 总端点 | 0 / 9343 | `All user specified timing constraints are met` |
+| CLB LUT / FF | 2268（1.05%）/ 2002（0.46%） | 只装了入口那一半，没有显示通路 |
+| Block RAM | **72 tile（15.0% of 480）** | 见 §5：这个数字既是证据也是待查项 |
+| DSP | **0** | 本设计不含乘加；也说明入口侧零 DSP 依赖 |
+| 布线 | 5954 / 5954 全布通，0 错误 | `write_bitstream` 出 15.4 MB 的 `ku5p_eth.bit` |
+| methodology | **0 条 Critical Warning** | 与 Zynq 侧同一口径的门禁 |
+
 **不证明**：
 - 这块板**没有 HDMI 输出**（原理图 21 页里 `HDMI/TMDS/LCD` 零命中；显示要另配 FH1159 子卡），
   所以这里没有像素输出，也就没有效果链 / OSD / 缩放旋转那半边。

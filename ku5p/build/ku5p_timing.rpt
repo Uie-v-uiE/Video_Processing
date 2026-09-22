@@ -1,0 +1,547 @@
+Copyright 1986-2022 Xilinx, Inc. All Rights Reserved. Copyright 2022-2026 Advanced Micro Devices, Inc. All Rights Reserved.
+--------------------------------------------------------------------------------------------------------------------------------------------------
+| Tool Version      : Vivado v.2025.2.1 (win64) Build 6403652 Thu Mar 19 19:48:24 GMT 2026
+| Date              : Wed Sep 23 00:27:13 2026
+| Host              : Uie-laptop running 64-bit major release  (build 9200)
+| Command           : report_timing_summary -file D:/Xilinx/Prj/pro/Video_Processing/ku5p/build/ku5p_timing.rpt
+| Design            : ku5p_eth_top
+| Device            : xcku5p-ffvb676
+| Speed File        : -2  PRODUCTION 1.29 05-01-2022
+| Design State      : Routed
+| Temperature Grade : I
+--------------------------------------------------------------------------------------------------------------------------------------------------
+
+Timing Summary Report
+
+------------------------------------------------------------------------------------------------
+| Timer Settings
+| --------------
+------------------------------------------------------------------------------------------------
+
+  Enable Multi Corner Analysis               :  Yes
+  Enable Pessimism Removal                   :  Yes
+  Pessimism Removal Resolution               :  Nearest Common Node
+  Enable Input Delay Default Clock           :  No
+  Enable Preset / Clear Arcs                 :  No
+  Disable Flight Delays                      :  No
+  Ignore I/O Paths                           :  No
+  Timing Early Launch at Borrowing Latches   :  No
+  Borrow Time for Max Delay Exceptions       :  Yes
+  Merge Timing Exceptions                    :  Yes
+  Inter-SLR Compensation                     :  Conservative
+
+  Corner  Analyze    Analyze    
+  Name    Max Paths  Min Paths  
+  ------  ---------  ---------  
+  Slow    Yes        Yes        
+  Fast    Yes        Yes        
+
+
+------------------------------------------------------------------------------------------------
+| Report Methodology
+| ------------------
+------------------------------------------------------------------------------------------------
+
+No report available as report_methodology has not been run prior. Run report_methodology on the current design for the summary of methodology violations.
+
+
+
+check_timing report
+
+Table of Contents
+-----------------
+1. checking no_clock (0)
+2. checking constant_clock (0)
+3. checking pulse_width_clock (0)
+4. checking unconstrained_internal_endpoints (0)
+5. checking no_input_delay (6)
+6. checking no_output_delay (10)
+7. checking multiple_clock (0)
+8. checking generated_clocks (0)
+9. checking loops (0)
+10. checking partial_input_delay (0)
+11. checking partial_output_delay (0)
+12. checking latch_loops (0)
+
+1. checking no_clock (0)
+------------------------
+ There are 0 register/latch pins with no clock.
+
+
+2. checking constant_clock (0)
+------------------------------
+ There are 0 register/latch pins with constant_clock.
+
+
+3. checking pulse_width_clock (0)
+---------------------------------
+ There are 0 register/latch pins which need pulse_width check
+
+
+4. checking unconstrained_internal_endpoints (0)
+------------------------------------------------
+ There are 0 pins that are not constrained for maximum delay.
+
+ There are 0 pins that are not constrained for maximum delay due to constant clock.
+
+
+5. checking no_input_delay (6)
+------------------------------
+ There are 5 input ports with no input delay specified. (HIGH)
+
+ There is 1 input port with no input delay but user has a false path constraint. (MEDIUM)
+
+
+6. checking no_output_delay (10)
+--------------------------------
+ There are 9 ports with no output delay specified. (HIGH)
+
+ There are 0 ports with no output delay but user has a false path constraint
+
+ There is 1 port with no output delay but with a timing clock defined on it or propagating through it (LOW)
+
+
+7. checking multiple_clock (0)
+------------------------------
+ There are 0 register/latch pins with multiple clocks.
+
+
+8. checking generated_clocks (0)
+--------------------------------
+ There are 0 generated clocks that are not connected to a clock source.
+
+
+9. checking loops (0)
+---------------------
+ There are 0 combinational loops in the design.
+
+
+10. checking partial_input_delay (0)
+------------------------------------
+ There are 0 input ports with partial input delay specified.
+
+
+11. checking partial_output_delay (0)
+-------------------------------------
+ There are 0 ports with partial output delay specified.
+
+
+12. checking latch_loops (0)
+----------------------------
+ There are 0 combinational latch loops in the design through latch input
+
+
+
+------------------------------------------------------------------------------------------------
+| Design Timing Summary
+| ---------------------
+------------------------------------------------------------------------------------------------
+
+    WNS(ns)      TNS(ns)  TNS Failing Endpoints  TNS Total Endpoints      WHS(ns)      THS(ns)  THS Failing Endpoints  THS Total Endpoints     WPWS(ns)     TPWS(ns)  TPWS Failing Endpoints  TPWS Total Endpoints  
+    -------      -------  ---------------------  -------------------      -------      -------  ---------------------  -------------------     --------     --------  ----------------------  --------------------  
+      1.840        0.000                      0                 9343        0.012        0.000                      0                 9343        2.722        0.000                       0                  2164  
+
+
+All user specified timing constraints are met.
+
+
+------------------------------------------------------------------------------------------------
+| Clock Summary
+| -------------
+------------------------------------------------------------------------------------------------
+
+Clock    Waveform(ns)         Period(ns)      Frequency(MHz)
+-----    ------------         ----------      --------------
+eth_rxc  {0.000 4.000}        8.000           125.000         
+
+
+------------------------------------------------------------------------------------------------
+| Intra Clock Table
+| -----------------
+------------------------------------------------------------------------------------------------
+
+Clock             WNS(ns)      TNS(ns)  TNS Failing Endpoints  TNS Total Endpoints      WHS(ns)      THS(ns)  THS Failing Endpoints  THS Total Endpoints     WPWS(ns)     TPWS(ns)  TPWS Failing Endpoints  TPWS Total Endpoints  
+-----             -------      -------  ---------------------  -------------------      -------      -------  ---------------------  -------------------     --------     --------  ----------------------  --------------------  
+eth_rxc             1.840        0.000                      0                 7476        0.012        0.000                      0                 7476        2.722        0.000                       0                  2164  
+
+
+------------------------------------------------------------------------------------------------
+| Inter Clock Table
+| -----------------
+------------------------------------------------------------------------------------------------
+
+From Clock    To Clock          WNS(ns)      TNS(ns)  TNS Failing Endpoints  TNS Total Endpoints      WHS(ns)      THS(ns)  THS Failing Endpoints  THS Total Endpoints  
+----------    --------          -------      -------  ---------------------  -------------------      -------      -------  ---------------------  -------------------  
+
+
+------------------------------------------------------------------------------------------------
+| Other Path Groups Table
+| -----------------------
+------------------------------------------------------------------------------------------------
+
+Path Group         From Clock         To Clock               WNS(ns)      TNS(ns)  TNS Failing Endpoints  TNS Total Endpoints      WHS(ns)      THS(ns)  THS Failing Endpoints  THS Total Endpoints  
+----------         ----------         --------               -------      -------  ---------------------  -------------------      -------      -------  ---------------------  -------------------  
+**async_default**  eth_rxc            eth_rxc                  2.882        0.000                      0                 1867        1.067        0.000                      0                 1867  
+
+
+------------------------------------------------------------------------------------------------
+| Timing Details
+| --------------
+------------------------------------------------------------------------------------------------
+
+
+---------------------------------------------------------------------------------------------------
+From Clock:  eth_rxc
+  To Clock:  eth_rxc
+
+Setup :            0  Failing Endpoints,  Worst Slack        1.840ns,  Total Violation        0.000ns
+Hold  :            0  Failing Endpoints,  Worst Slack        0.012ns,  Total Violation        0.000ns
+PW    :            0  Failing Endpoints,  Worst Slack        2.722ns,  Total Violation        0.000ns
+---------------------------------------------------------------------------------------------------
+
+
+Max Delay Paths
+--------------------------------------------------------------------------------------
+Slack (MET) :             1.840ns  (required time - arrival time)
+  Source:                 flush_we_reg/C
+                            (rising edge-triggered cell FDCE clocked by eth_rxc  {rise@0.000ns fall@4.000ns period=8.000ns})
+  Destination:            u_fb/lo_reg_bram_13/WEA[2]
+                            (rising edge-triggered cell RAMB36E2 clocked by eth_rxc  {rise@0.000ns fall@4.000ns period=8.000ns})
+  Path Group:             eth_rxc
+  Path Type:              Setup (Max at Slow Process Corner)
+  Requirement:            8.000ns  (eth_rxc rise@8.000ns - eth_rxc rise@0.000ns)
+  Data Path Delay:        5.265ns  (logic 0.278ns (5.280%)  route 4.987ns (94.720%))
+  Logic Levels:           2  (LUT3=1 LUT6=1)
+  Clock Path Skew:        0.034ns (DCD - SCD + CPR)
+    Destination Clock Delay (DCD):    1.790ns = ( 9.790 - 8.000 ) 
+    Source Clock Delay      (SCD):    2.064ns
+    Clock Pessimism Removal (CPR):    0.308ns
+  Clock Uncertainty:      0.535ns  ((TSJ^2 + TIJ^2)^1/2 + DJ) / 2 + PE + UU
+    Total System Jitter     (TSJ):    0.071ns
+    Total Input Jitter      (TIJ):    0.000ns
+    Discrete Jitter          (DJ):    0.000ns
+    Phase Error              (PE):    0.000ns
+    User Uncertainty         (UU):    0.500ns
+  Clock Net Delay (Source):      1.207ns (routing 0.171ns, distribution 1.036ns)
+  Clock Net Delay (Destination): 1.225ns (routing 0.155ns, distribution 1.070ns)
+
+    Location             Delay type                Incr(ns)  Path(ns)    Netlist Resource(s)
+  -------------------------------------------------------------------    -------------------
+                         (clock eth_rxc rise edge)    0.000     0.000 r  
+    K22                                               0.000     0.000 r  eth_rxc (IN)
+                         net (fo=0)                   0.000     0.000    eth_rxc_IBUF_inst/I
+    K22                  INBUF (Prop_INBUF_HPIOB_M_PAD_O)
+                                                      0.493     0.493 r  eth_rxc_IBUF_inst/INBUF_INST/O
+                         net (fo=1, routed)           0.000     0.493    eth_rxc_IBUF_inst/OUT
+    K22                  IBUFCTRL (Prop_IBUFCTRL_HPIOB_M_I_O)
+                                                      0.000     0.493 r  eth_rxc_IBUF_inst/IBUFCTRL_INST/O
+                         net (fo=2, routed)           0.336     0.829    eth_rxc_IBUF
+    BUFGCE_X0Y56         BUFGCE (Prop_BUFCE_BUFGCE_I_O)
+                                                      0.028     0.857 r  eth_rxc_IBUF_BUFGCE_collapsed_inst/O
+    X0Y2 (CLOCK_ROOT)    net (fo=2164, routed)        1.207     2.064    eth_txc_OBUF
+    SLICE_X14Y159        FDCE                                         r  flush_we_reg/C
+  -------------------------------------------------------------------    -------------------
+    SLICE_X14Y159        FDCE (Prop_DFF2_SLICEL_C_Q)
+                                                      0.081     2.145 r  flush_we_reg/Q
+                         net (fo=101, routed)         1.970     4.116    u_fb/flush_we
+    SLICE_X27Y114        LUT3 (Prop_F6LUT_SLICEL_I1_O)
+                                                      0.049     4.165 f  u_fb/lo_reg_bram_48_i_3/O
+                         net (fo=100, routed)         2.314     6.479    u_fb/lo_reg_bram_48_i_3_n_0
+    SLICE_X39Y191        LUT6 (Prop_F6LUT_SLICEL_I5_O)
+                                                      0.148     6.627 r  u_fb/lo_reg_bram_13_i_3/O
+                         net (fo=4, routed)           0.702     7.329    u_fb/lo_reg_bram_13_i_3_n_0
+    RAMB36_X3Y40         RAMB36E2                                     r  u_fb/lo_reg_bram_13/WEA[2]
+  -------------------------------------------------------------------    -------------------
+
+                         (clock eth_rxc rise edge)    8.000     8.000 r  
+    K22                                               0.000     8.000 r  eth_rxc (IN)
+                         net (fo=0)                   0.000     8.000    eth_rxc_IBUF_inst/I
+    K22                  INBUF (Prop_INBUF_HPIOB_M_PAD_O)
+                                                      0.244     8.244 r  eth_rxc_IBUF_inst/INBUF_INST/O
+                         net (fo=1, routed)           0.000     8.244    eth_rxc_IBUF_inst/OUT
+    K22                  IBUFCTRL (Prop_IBUFCTRL_HPIOB_M_I_O)
+                                                      0.000     8.244 r  eth_rxc_IBUF_inst/IBUFCTRL_INST/O
+                         net (fo=2, routed)           0.298     8.542    eth_rxc_IBUF
+    BUFGCE_X0Y56         BUFGCE (Prop_BUFCE_BUFGCE_I_O)
+                                                      0.024     8.566 r  eth_rxc_IBUF_BUFGCE_collapsed_inst/O
+    X0Y2 (CLOCK_ROOT)    net (fo=2164, routed)        1.225     9.790    u_fb/eth_txc_OBUF
+    RAMB36_X3Y40         RAMB36E2                                     r  u_fb/lo_reg_bram_13/CLKARDCLK
+                         clock pessimism              0.308    10.098    
+                         clock uncertainty           -0.535     9.563    
+    RAMB36_X3Y40         RAMB36E2 (Setup_RAMB36E2_RAMB36_CLKARDCLK_WEA[2])
+                                                     -0.394     9.169    u_fb/lo_reg_bram_13
+  -------------------------------------------------------------------
+                         required time                          9.169    
+                         arrival time                          -7.329    
+  -------------------------------------------------------------------
+                         slack                                  1.840    
+
+
+
+
+
+Min Delay Paths
+--------------------------------------------------------------------------------------
+Slack (MET) :             0.012ns  (arrival time - required time)
+  Source:                 u_icmp/u_crc32_d8/crc_data_reg[11]/C
+                            (rising edge-triggered cell FDPE clocked by eth_rxc  {rise@0.000ns fall@4.000ns period=8.000ns})
+  Destination:            u_icmp/u_crc32_d8/crc_data_reg[19]/D
+                            (rising edge-triggered cell FDPE clocked by eth_rxc  {rise@0.000ns fall@4.000ns period=8.000ns})
+  Path Group:             eth_rxc
+  Path Type:              Hold (Min at Fast Process Corner)
+  Requirement:            0.000ns  (eth_rxc rise@0.000ns - eth_rxc rise@0.000ns)
+  Data Path Delay:        0.607ns  (logic 0.080ns (13.183%)  route 0.527ns (86.817%))
+  Logic Levels:           1  (LUT6=1)
+  Clock Path Skew:        0.049ns (DCD - SCD - CPR)
+    Destination Clock Delay (DCD):    1.297ns
+    Source Clock Delay      (SCD):    0.977ns
+    Clock Pessimism Removal (CPR):    0.271ns
+  Clock Uncertainty:      0.500ns  ((TSJ^2 + TIJ^2)^1/2 + DJ) / 2 + PE + UU
+    Total System Jitter     (TSJ):    0.000ns
+    Total Input Jitter      (TIJ):    0.000ns
+    Discrete Jitter          (DJ):    0.000ns
+    Phase Error              (PE):    0.000ns
+    User Uncertainty         (UU):    0.500ns
+  Clock Net Delay (Source):      0.680ns (routing 0.096ns, distribution 0.584ns)
+  Clock Net Delay (Destination): 0.776ns (routing 0.108ns, distribution 0.668ns)
+
+    Location             Delay type                Incr(ns)  Path(ns)    Netlist Resource(s)
+  -------------------------------------------------------------------    -------------------
+                         (clock eth_rxc rise edge)    0.000     0.000 r  
+    K22                                               0.000     0.000 r  eth_rxc (IN)
+                         net (fo=0)                   0.000     0.000    eth_rxc_IBUF_inst/I
+    K22                  INBUF (Prop_INBUF_HPIOB_M_PAD_O)
+                                                      0.129     0.129 r  eth_rxc_IBUF_inst/INBUF_INST/O
+                         net (fo=1, routed)           0.000     0.129    eth_rxc_IBUF_inst/OUT
+    K22                  IBUFCTRL (Prop_IBUFCTRL_HPIOB_M_I_O)
+                                                      0.000     0.129 r  eth_rxc_IBUF_inst/IBUFCTRL_INST/O
+                         net (fo=2, routed)           0.151     0.280    eth_rxc_IBUF
+    BUFGCE_X0Y56         BUFGCE (Prop_BUFCE_BUFGCE_I_O)
+                                                      0.017     0.297 r  eth_rxc_IBUF_BUFGCE_collapsed_inst/O
+    X0Y2 (CLOCK_ROOT)    net (fo=2164, routed)        0.680     0.977    u_icmp/u_crc32_d8/eth_txc_OBUF
+    SLICE_X14Y88         FDPE                                         r  u_icmp/u_crc32_d8/crc_data_reg[11]/C
+  -------------------------------------------------------------------    -------------------
+    SLICE_X14Y88         FDPE (Prop_DFF_SLICEL_C_Q)
+                                                      0.039     1.016 r  u_icmp/u_crc32_d8/crc_data_reg[11]/Q
+                         net (fo=2, routed)           0.501     1.516    u_icmp/u_crc32_d8/crc_data[11]
+    SLICE_X15Y88         LUT6 (Prop_D6LUT_SLICEM_I0_O)
+                                                      0.041     1.557 r  u_icmp/u_crc32_d8/crc_data[19]_i_1/O
+                         net (fo=1, routed)           0.026     1.583    u_icmp/u_crc32_d8/p_1_in[19]
+    SLICE_X15Y88         FDPE                                         r  u_icmp/u_crc32_d8/crc_data_reg[19]/D
+  -------------------------------------------------------------------    -------------------
+
+                         (clock eth_rxc rise edge)    0.000     0.000 r  
+    K22                                               0.000     0.000 r  eth_rxc (IN)
+                         net (fo=0)                   0.000     0.000    eth_rxc_IBUF_inst/I
+    K22                  INBUF (Prop_INBUF_HPIOB_M_PAD_O)
+                                                      0.313     0.313 r  eth_rxc_IBUF_inst/INBUF_INST/O
+                         net (fo=1, routed)           0.000     0.313    eth_rxc_IBUF_inst/OUT
+    K22                  IBUFCTRL (Prop_IBUFCTRL_HPIOB_M_I_O)
+                                                      0.000     0.313 r  eth_rxc_IBUF_inst/IBUFCTRL_INST/O
+                         net (fo=2, routed)           0.189     0.502    eth_rxc_IBUF
+    BUFGCE_X0Y56         BUFGCE (Prop_BUFCE_BUFGCE_I_O)
+                                                      0.019     0.521 r  eth_rxc_IBUF_BUFGCE_collapsed_inst/O
+    X0Y2 (CLOCK_ROOT)    net (fo=2164, routed)        0.776     1.297    u_icmp/u_crc32_d8/eth_txc_OBUF
+    SLICE_X15Y88         FDPE                                         r  u_icmp/u_crc32_d8/crc_data_reg[19]/C
+                         clock pessimism             -0.271     1.026    
+                         clock uncertainty            0.500     1.526    
+    SLICE_X15Y88         FDPE (Hold_DFF_SLICEM_C_D)
+                                                      0.046     1.572    u_icmp/u_crc32_d8/crc_data_reg[19]
+  -------------------------------------------------------------------
+                         required time                         -1.572    
+                         arrival time                           1.583    
+  -------------------------------------------------------------------
+                         slack                                  0.012    
+
+
+
+
+
+Pulse Width Checks
+--------------------------------------------------------------------------------------
+Clock Name:         eth_rxc
+Waveform(ns):       { 0.000 4.000 }
+Period(ns):         8.000
+Sources:            { eth_rxc }
+
+Check Type        Corner  Lib Pin   Reference Pin  Required(ns)  Actual(ns)  Slack(ns)  Location               Pin
+Min Period        n/a     IDDRE1/C  n/a            1.600         8.000       6.400      BITSLICE_RX_TX_X0Y126  u_phy/u_rgmii_rx/IDDRE1_inst/C
+Low Pulse Width   Slow    IDDRE1/C  n/a            0.720         4.000       3.280      BITSLICE_RX_TX_X0Y126  u_phy/u_rgmii_rx/IDDRE1_inst/C
+High Pulse Width  Slow    IDDRE1/C  n/a            0.720         4.000       3.280      BITSLICE_RX_TX_X0Y126  u_phy/u_rgmii_rx/IDDRE1_inst/C
+Max Skew          Slow    IDDRE1/C  IDDRE1/CB      3.514         0.792       2.722      BITSLICE_RX_TX_X0Y124  u_phy/u_rgmii_rx/rxdata_bus[1].IDDRE1_inst/C
+
+
+
+---------------------------------------------------------------------------------------------------
+Path Group:  **async_default**
+From Clock:  eth_rxc
+  To Clock:  eth_rxc
+
+Setup :            0  Failing Endpoints,  Worst Slack        2.882ns,  Total Violation        0.000ns
+Hold  :            0  Failing Endpoints,  Worst Slack        1.067ns,  Total Violation        0.000ns
+---------------------------------------------------------------------------------------------------
+
+
+Max Delay Paths
+--------------------------------------------------------------------------------------
+Slack (MET) :             2.882ns  (required time - arrival time)
+  Source:                 por_reg[2]/C
+                            (rising edge-triggered cell FDCE clocked by eth_rxc  {rise@0.000ns fall@4.000ns period=8.000ns})
+  Destination:            u_icmp/u_icmp_rx/eth_type_reg[11]/CLR
+                            (recovery check against rising-edge clock eth_rxc  {rise@0.000ns fall@4.000ns period=8.000ns})
+  Path Group:             **async_default**
+  Path Type:              Recovery (Max at Slow Process Corner)
+  Requirement:            8.000ns  (eth_rxc rise@8.000ns - eth_rxc rise@0.000ns)
+  Data Path Delay:        4.261ns  (logic 0.158ns (3.708%)  route 4.103ns (96.292%))
+  Logic Levels:           2  (BUFGCE=1 LUT6=1)
+  Clock Path Skew:        -0.256ns (DCD - SCD + CPR)
+    Destination Clock Delay (DCD):    1.640ns = ( 9.640 - 8.000 ) 
+    Source Clock Delay      (SCD):    2.204ns
+    Clock Pessimism Removal (CPR):    0.308ns
+  Clock Uncertainty:      0.535ns  ((TSJ^2 + TIJ^2)^1/2 + DJ) / 2 + PE + UU
+    Total System Jitter     (TSJ):    0.071ns
+    Total Input Jitter      (TIJ):    0.000ns
+    Discrete Jitter          (DJ):    0.000ns
+    Phase Error              (PE):    0.000ns
+    User Uncertainty         (UU):    0.500ns
+  Clock Net Delay (Source):      1.347ns (routing 0.171ns, distribution 1.176ns)
+  Clock Net Delay (Destination): 1.075ns (routing 0.155ns, distribution 0.920ns)
+
+    Location             Delay type                Incr(ns)  Path(ns)    Netlist Resource(s)
+  -------------------------------------------------------------------    -------------------
+                         (clock eth_rxc rise edge)    0.000     0.000 r  
+    K22                                               0.000     0.000 r  eth_rxc (IN)
+                         net (fo=0)                   0.000     0.000    eth_rxc_IBUF_inst/I
+    K22                  INBUF (Prop_INBUF_HPIOB_M_PAD_O)
+                                                      0.493     0.493 r  eth_rxc_IBUF_inst/INBUF_INST/O
+                         net (fo=1, routed)           0.000     0.493    eth_rxc_IBUF_inst/OUT
+    K22                  IBUFCTRL (Prop_IBUFCTRL_HPIOB_M_I_O)
+                                                      0.000     0.493 r  eth_rxc_IBUF_inst/IBUFCTRL_INST/O
+                         net (fo=2, routed)           0.336     0.829    eth_rxc_IBUF
+    BUFGCE_X0Y56         BUFGCE (Prop_BUFCE_BUFGCE_I_O)
+                                                      0.028     0.857 r  eth_rxc_IBUF_BUFGCE_collapsed_inst/O
+    X0Y2 (CLOCK_ROOT)    net (fo=2164, routed)        1.347     2.204    xlnx_opt_
+    SLICE_X40Y122        FDCE                                         r  por_reg[2]/C
+  -------------------------------------------------------------------    -------------------
+    SLICE_X40Y122        FDCE (Prop_BFF_SLICEL_C_Q)
+                                                      0.079     2.283 r  por_reg[2]/Q
+                         net (fo=2, routed)           1.416     3.699    u_icmp/u_icmp_tx/por_reg[2]
+    SLICE_X41Y122        LUT6 (Prop_H6LUT_SLICEL_I3_O)
+                                                      0.051     3.750 f  u_icmp/u_icmp_tx/mem_reg_bram_0_i_5/O
+                         net (fo=7, routed)           1.447     5.197    u_icmp/u_icmp_tx/por_reg_1_sn_1_bufg_place
+    BUFGCE_X0Y50         BUFGCE (Prop_BUFCE_BUFGCE_I_O)
+                                                      0.028     5.225 f  u_icmp/u_icmp_tx/mem_reg_bram_0_i_5_bufg_place/O
+                         net (fo=1883, routed)        1.240     6.465    u_icmp/u_icmp_rx/por_reg[1]
+    SLICE_X10Y110        FDCE                                         f  u_icmp/u_icmp_rx/eth_type_reg[11]/CLR
+  -------------------------------------------------------------------    -------------------
+
+                         (clock eth_rxc rise edge)    8.000     8.000 r  
+    K22                                               0.000     8.000 r  eth_rxc (IN)
+                         net (fo=0)                   0.000     8.000    eth_rxc_IBUF_inst/I
+    K22                  INBUF (Prop_INBUF_HPIOB_M_PAD_O)
+                                                      0.244     8.244 r  eth_rxc_IBUF_inst/INBUF_INST/O
+                         net (fo=1, routed)           0.000     8.244    eth_rxc_IBUF_inst/OUT
+    K22                  IBUFCTRL (Prop_IBUFCTRL_HPIOB_M_I_O)
+                                                      0.000     8.244 r  eth_rxc_IBUF_inst/IBUFCTRL_INST/O
+                         net (fo=2, routed)           0.298     8.542    eth_rxc_IBUF
+    BUFGCE_X0Y56         BUFGCE (Prop_BUFCE_BUFGCE_I_O)
+                                                      0.024     8.566 r  eth_rxc_IBUF_BUFGCE_collapsed_inst/O
+    X0Y2 (CLOCK_ROOT)    net (fo=2164, routed)        1.075     9.640    u_icmp/u_icmp_rx/eth_txc_OBUF
+    SLICE_X10Y110        FDCE                                         r  u_icmp/u_icmp_rx/eth_type_reg[11]/C
+                         clock pessimism              0.308     9.948    
+                         clock uncertainty           -0.535     9.413    
+    SLICE_X10Y110        FDCE (Recov_AFF_SLICEM_C_CLR)
+                                                     -0.066     9.347    u_icmp/u_icmp_rx/eth_type_reg[11]
+  -------------------------------------------------------------------
+                         required time                          9.347    
+                         arrival time                          -6.465    
+  -------------------------------------------------------------------
+                         slack                                  2.882    
+
+
+
+
+
+Min Delay Paths
+--------------------------------------------------------------------------------------
+Slack (MET) :             1.067ns  (arrival time - required time)
+  Source:                 por_reg[6]/C
+                            (rising edge-triggered cell FDCE clocked by eth_rxc  {rise@0.000ns fall@4.000ns period=8.000ns})
+  Destination:            u_reasm/row_ok_reg[179]/CLR
+                            (removal check against rising-edge clock eth_rxc  {rise@0.000ns fall@4.000ns period=8.000ns})
+  Path Group:             **async_default**
+  Path Type:              Removal (Min at Fast Process Corner)
+  Requirement:            0.000ns  (eth_rxc rise@0.000ns - eth_rxc rise@0.000ns)
+  Data Path Delay:        1.596ns  (logic 0.141ns (8.836%)  route 1.455ns (91.164%))
+  Logic Levels:           3  (BUFGCE=1 LUT5=1 LUT6=1)
+  Clock Path Skew:        0.049ns (DCD - SCD - CPR)
+    Destination Clock Delay (DCD):    1.342ns
+    Source Clock Delay      (SCD):    1.057ns
+    Clock Pessimism Removal (CPR):    0.237ns
+  Clock Uncertainty:      0.500ns  ((TSJ^2 + TIJ^2)^1/2 + DJ) / 2 + PE + UU
+    Total System Jitter     (TSJ):    0.000ns
+    Total Input Jitter      (TIJ):    0.000ns
+    Discrete Jitter          (DJ):    0.000ns
+    Phase Error              (PE):    0.000ns
+    User Uncertainty         (UU):    0.500ns
+  Clock Net Delay (Source):      0.760ns (routing 0.096ns, distribution 0.664ns)
+  Clock Net Delay (Destination): 0.821ns (routing 0.108ns, distribution 0.713ns)
+
+    Location             Delay type                Incr(ns)  Path(ns)    Netlist Resource(s)
+  -------------------------------------------------------------------    -------------------
+                         (clock eth_rxc rise edge)    0.000     0.000 r  
+    K22                                               0.000     0.000 r  eth_rxc (IN)
+                         net (fo=0)                   0.000     0.000    eth_rxc_IBUF_inst/I
+    K22                  INBUF (Prop_INBUF_HPIOB_M_PAD_O)
+                                                      0.129     0.129 r  eth_rxc_IBUF_inst/INBUF_INST/O
+                         net (fo=1, routed)           0.000     0.129    eth_rxc_IBUF_inst/OUT
+    K22                  IBUFCTRL (Prop_IBUFCTRL_HPIOB_M_I_O)
+                                                      0.000     0.129 r  eth_rxc_IBUF_inst/IBUFCTRL_INST/O
+                         net (fo=2, routed)           0.151     0.280    eth_rxc_IBUF
+    BUFGCE_X0Y56         BUFGCE (Prop_BUFCE_BUFGCE_I_O)
+                                                      0.017     0.297 r  eth_rxc_IBUF_BUFGCE_collapsed_inst/O
+    X0Y2 (CLOCK_ROOT)    net (fo=2164, routed)        0.760     1.057    xlnx_opt_
+    SLICE_X40Y122        FDCE                                         r  por_reg[6]/C
+  -------------------------------------------------------------------    -------------------
+    SLICE_X40Y122        FDCE (Prop_FFF_SLICEL_C_Q)
+                                                      0.039     1.096 r  por_reg[6]/Q
+                         net (fo=2, routed)           0.051     1.146    u_icmp/u_icmp_tx/por_reg[6]
+    SLICE_X41Y122        LUT5 (Prop_G6LUT_SLICEL_I3_O)
+                                                      0.035     1.181 f  u_icmp/u_icmp_tx/mem_reg_bram_0_i_11/O
+                         net (fo=1, routed)           0.045     1.226    u_icmp/u_icmp_tx/mem_reg_bram_0_i_11_n_0
+    SLICE_X41Y122        LUT6 (Prop_H6LUT_SLICEL_I5_O)
+                                                      0.050     1.276 f  u_icmp/u_icmp_tx/mem_reg_bram_0_i_5/O
+                         net (fo=7, routed)           0.729     2.005    u_icmp/u_icmp_tx/por_reg_1_sn_1_bufg_place
+    BUFGCE_X0Y50         BUFGCE (Prop_BUFCE_BUFGCE_I_O)
+                                                      0.017     2.022 f  u_icmp/u_icmp_tx/mem_reg_bram_0_i_5_bufg_place/O
+                         net (fo=1883, routed)        0.631     2.652    u_reasm/sel
+    SLICE_X14Y186        FDCE                                         f  u_reasm/row_ok_reg[179]/CLR
+  -------------------------------------------------------------------    -------------------
+
+                         (clock eth_rxc rise edge)    0.000     0.000 r  
+    K22                                               0.000     0.000 r  eth_rxc (IN)
+                         net (fo=0)                   0.000     0.000    eth_rxc_IBUF_inst/I
+    K22                  INBUF (Prop_INBUF_HPIOB_M_PAD_O)
+                                                      0.313     0.313 r  eth_rxc_IBUF_inst/INBUF_INST/O
+                         net (fo=1, routed)           0.000     0.313    eth_rxc_IBUF_inst/OUT
+    K22                  IBUFCTRL (Prop_IBUFCTRL_HPIOB_M_I_O)
+                                                      0.000     0.313 r  eth_rxc_IBUF_inst/IBUFCTRL_INST/O
+                         net (fo=2, routed)           0.189     0.502    eth_rxc_IBUF
+    BUFGCE_X0Y56         BUFGCE (Prop_BUFCE_BUFGCE_I_O)
+                                                      0.019     0.521 r  eth_rxc_IBUF_BUFGCE_collapsed_inst/O
+    X0Y2 (CLOCK_ROOT)    net (fo=2164, routed)        0.821     1.342    u_reasm/eth_txc_OBUF
+    SLICE_X14Y186        FDCE                                         r  u_reasm/row_ok_reg[179]/C
+                         clock pessimism             -0.237     1.105    
+                         clock uncertainty            0.500     1.605    
+    SLICE_X14Y186        FDCE (Remov_HFF_SLICEL_C_CLR)
+                                                     -0.020     1.585    u_reasm/row_ok_reg[179]
+  -------------------------------------------------------------------
+                         required time                         -1.585    
+                         arrival time                           2.652    
+  -------------------------------------------------------------------
+                         slack                                  1.067    
+
+
+
+
+
