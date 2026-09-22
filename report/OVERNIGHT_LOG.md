@@ -364,7 +364,11 @@ logical nets 92829 / routable 64604 / fully routed 64604 / nets with routing err
 无人值守下没有可控手段给板子上电，因此不强行尝试（重启 hw_server、反复 program 都可能把
 状态弄得更糟，且对一条不通的链没有意义）。
 
-**因此本轮的完成定义按「实现类以报告门禁为准」执行**：R02/R03/R04 都有 L1 仿真 + L2/L3 报告门禁证据；
+**产物完整性已核**：`build/system.xsa` 解包内含 `system.bit`（1887418 B，与 `build/system.bit` 同尺寸）
+以及 `ps7_init.tcl`（31277 B）——也就是说补做 L4 时，ps7_init 既可以取
+`vivado_system/.../design_1_processing_system7_0_0/ps7_init.tcl`，也可以直接从 xsa 里解出来用。
+
+**因此本夜的完成定义按「实现类以报告门禁为准」执行**：R02/R03/R04/R05 都有 L1 仿真 + L2/L3 报告门禁证据；
 R03 的帧尾修复额外有双向判据仿真（旧逻辑必须复现、新逻辑必须完整）。
 L4 待有人给板子上电后按下面这条已验证过的命令序列补做（脚本已在本仓库内）：
 
