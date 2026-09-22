@@ -147,6 +147,19 @@ puts "TOP: system_top.v (maintained, includes PL ETH)"
 set_property top system_top [current_fileset]
 update_compile_order -fileset sources_1
 
+# ---- build#16：只换一个旋钮，测"实现策略"能不能收掉 250 MHz 域最后那 0.485 ns ----
+# 证据：build#15 唯一剩下的违例是 u_rd/u_sched 的 5 选 1 地址 mux → RAMB36 地址脚，
+#       数据延迟 3.844 ns 里**布线 3.255 ns（84.7%）**、逻辑只有 2 级 LUT 0.589 ns
+#       ⇒ 是布局距离/高扇出（一根地址线要打到 80 个 tile），不是逻辑深度。
+# 已排除的选项：R07 实测 `Performance_Explore` 与默认策略**逐位相同** ⇒ 换它没有意义。
+# RTL 与约束都不动（尤其不用 set_multicycle_path：那会连带豁免 rgb2dvi 里真实的跨域检查）。
+# 失败就照 §9.5 的口径回落到冻结的 build#13 bit，不拿红色版本上板。
+if {[catch {set_property STRATEGY {Performance_ExtraTimingOpt} [get_runs impl_1]} e1]} {
+  puts "STRATEGY ExtraTimingOpt FAILED: $e1"
+  catch {set_property STRATEGY {Performance_Explore} [get_runs impl_1]}
+}
+puts "IMPL STRATEGY = [get_property STRATEGY [get_runs impl_1]]"
+
 launch_runs synth_1 -jobs 4
 wait_on_run synth_1
 if {[get_property PROGRESS [get_runs synth_1]] != "100%"} {
