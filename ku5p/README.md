@@ -196,7 +196,11 @@ vivado -mode batch -nojournal -log ku5p/build/ku5p_impl.log \
    这样两板才能演成"KU5P 做前端节点、Zynq 做显示与总控"的异构结构（这也是比赛谱系里
    最有辨识度的那一条，见 `report/OVERNIGHT_LOG.md` §9 的口径）。
 3. DDR4（MIG，厂商 IP）或 UltraRAM 版帧缓存，比较 tile 数与功耗。
-   UltraScale+ 有 64 块 UltraRAM（每块 288 Kb），同一份 512×300×2 只要约 2 块 —— 值得量一次。
+   **先把算式写对**（这里我第一版算错过一次，写"约 2 块"）：
+   512×300×RGB565 = 307,200 B = **2,457,600 bit**；UltraScale+ 的 UltraRAM 每块 **288 Kb = 294,912 bit**；
+   `2,457,600 / 294,912 = 8.33` ⇒ 下界 **9 块**（片上 64 块的 14%），与 BRAM 那 **72 tile（15%）**
+   是同一数量级占比（按缓冲的**实际**容量 40960 字 × 64 = 2,621,440 bit 算是 `8.89` → 同样是 9 块）； ⇒ **换 UltraRAM 的收益不在"省几块"，在功耗与释放 BRAM 给别的用途**，
+   所以这一条必须实测（`report_power` + `report_utilization -hierarchical`）才好写进提交物。
 4. 显示半边：FH1159 FMC 子卡（要 GTY + 时钟芯片），或者把 KU5P 收到的流经第二块以太网口
    转给 Zynq 显示 —— 后者不需要任何新硬件。
 5. 若上板发现 RGMII 收不全（125 MHz 源同步没做延时补偿），再考虑补 IDELAYE3；
