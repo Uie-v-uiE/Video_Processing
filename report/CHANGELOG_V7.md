@@ -673,7 +673,7 @@ ARP 还在解析时帧头包已发出 —— 与拔线重连同一种形状。�
 | **#18** | 再加 R23 的 `abort_tgl` 翻转同步 | **WNS +1.002 / WHS +0.050 / 0 失败端点(23422) / Slice LUT 7184(13.50%) / Reg 5800(5.45%) / BRAM 90.5(64.64%) / Dynamic 2.184 W / 布线 0 错误 / methodology 0 CRITICAL / 日志 CRITICAL WARNING 9（与基线同）**，L1 **40/40** ⇒ **采纳**（md5 `534f7760…`，报告与校验和冻结在 `build/frozen_r18_abort/`；⚠ 那一版**没拷 bit**、MANIFEST 引用的是活路径 `../system.bit`，被 #19 覆盖过 ⇒
 07:1x 靠 `git show 7578217:build/system.bit`（md5 核对 = `534f7760`、1855990 B）**复原**进
 `frozen_r18_abort/system.bit`；没丢成是因为仓库恰好把 bit 入库，不是流程保证 ⇒ 规矩见 `report/BUILD.md` §7） |
-| **#19** | 再加 R24 的厂商发送仲裁修复（ISSUES #37：`||`→`&&` + `arp_pend` 记账位） | **WNS +0.598 / WHS +0.043 / WPWS +0.264 / 0 失败端点(23424) / Slice LUT 7185(13.50%) / Reg 5802(5.45%) / BRAM 90.5(64.64%) / Dynamic 2.184 W（与 #18 完全相同）/ 12503 根可布线网全布通、0 路由错误 / methodology 0 CRITICAL**，L1 **40/40** ⇒ **采纳，明早默认下这一块**（md5 `545a27a1…`，**bit/xsa/elf + 8 份报告成套拷进** `build/frozen_r19_arb/`；回退链 `frozen_r17_cdc/11998af8` → `frozen_r13/0f46ec91`） |
+| **#19** | 再加 R24 的厂商发送仲裁修复（ISSUES #37：`||`→`&&` + `arp_pend` 记账位） | **WNS +0.598 / WHS +0.043 / WPWS +0.264 / 0 失败端点(23424) / Slice LUT 7185(13.51%) / Reg 5802(5.45%) / BRAM 90.5(64.64%) / Dynamic 2.184 W（与 #18 完全相同）/ 12503 根可布线网全布通、0 路由错误 / methodology 0 CRITICAL**，L1 **40/40** ⇒ **采纳，明早默认下这一块**（md5 `545a27a1…`，**bit/xsa/elf + 8 份报告成套拷进** `build/frozen_r19_arb/`；回退链 `frozen_r17_cdc/11998af8` → `frozen_r13/0f46ec91`） |
 
 `cdc.rpt` 在 #17 与 #18 之间**逐行相同（只有时间戳差异）**，而且整份报告里搜不到 `abort`、
 也搜不到 `eth_link`/`src_sel` 这类信号名 ⇒ 它的粒度是"时钟对 + 端点数"，**不能当逐信号的凭据**。

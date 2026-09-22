@@ -1,5 +1,5 @@
 # build#19 (R24: build#18 + 厂商 eth_ctrl 发送仲裁修复 = ISSUES #37) —— 明早默认这一块
-# 门禁：WNS +0.598 / WHS +0.043 / WPWS +0.264 / 0 失败端点(23424) / Slice LUT 7185(13.50%) /
+# 门禁：WNS +0.598 / WHS +0.043 / WPWS +0.264 / 0 失败端点(23424) / Slice LUT 7185(13.51%) /
 #       Reg 5802(5.45%) / BRAM 90.5 tile(64.64%) / Dynamic 2.184 W / 12503 根可布线网全布通、0 路由错误 /
 #       methodology 0 CRITICAL
 # 与 #18 的差异（逐条对齐过）：LUT as Logic 5841→5842（+1 个 LUT = `arp_pend` 那一笔）、
