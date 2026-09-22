@@ -109,8 +109,8 @@ logical nets 92829 / routable 64604 / fully routed 64604 / nets with routing err
 | P01b | `axi_frame_writer_gated.v` 的 `sk_addr_reg/sk_data_reg` 同样掉进触发器（综合报 Synth 8-4767「Block RAM or DRAM implementation is not possible」），约 5.3k FDRE = 剩余寄存器的 55% | build#4 综合日志、`utilization.rpt` Reg 9560 | **已修（R05：Reg 9.02%→4.08%，Slice 36.05%→18.03%）** | R05 |
 
 | P02 | BRAM 98.93%，无余量做任何新缓冲/插值 | `utilization.rpt`、`util_hier.rpt`（u_fb 独占 128 tile） | **已修（R04：90.5/140 = 64.64%，剩 49.5 tile）** | R04 |
-| P03 | 帧尾最后 64bit 字高半 32bit（2 像素）偶发丢（板上 4/8 次），TB +FULL 复现不出 | `report/ISSUES.md`、`report/V6_BOARD_MEASUREMENT.md:70-73` | **已定位并修复（R03：换页未等 CDC 交付完）；仿真双向判据通过，待 L4 板上复验** | R03 |
-| P04 | `--no-pace` 时 CDC 灌满、整包被丢，画面冻结（已接受但可改善） | `report/CHANGELOG_V6.md:202` | 待处理（依赖 P01 释放资源） | R04 |
+| P03 | 帧尾最后 64bit 字高半 32bit（2 像素）偶发丢（板上 4/8 次），TB +FULL 复现不出 | `report/ISSUES.md`、`report/V6_BOARD_MEASUREMENT.md:70-73` | **已定位并修复（R03：换页未等 CDC 交付完）；证据等级=机理三段论+仿真双向判据。板上 8 轮 A/B 未能复现原现象 ⇒ 无区分力，不宣称板级证实** | R03 / U9 |
+| P04 | `--no-pace` 时 CDC 灌满、整包被丢，画面冻结（文档记为已接受） | `report/CHANGELOG_V6.md:202` | **板上未复现**：v6.4 与 R05 两份 bit 在 60/120 fps 不限速下都是 100% 命中；原触发条件需重建（很可能是非 8 倍数载荷） | U9 |
 | P05 | zoom/rotate 最近邻取整，图像有 1px 栅格闪烁，`frac_x/frac_y` 算了却没用 | `CHANGELOG_V6.md:201`、`V6_ROOT_CAUSE.md:278` | 未开始 | R06 |
 | P06 | `power.rpt` 无切换活动文件，置信度 Low | `build/power.rpt` | 未开始 | 待排 |
 | P07 | 36 条 DPIR-1（异步复位寄存器驱动 DSP）+ 76 条 SYNTH-6 | `methodology.rpt` | 未开始 | 待排 |
@@ -390,6 +390,57 @@ node src\host\ddr_holemap.mjs
 
 ---
 
+### L4 执行 · 2026-09-22 09:05–09:45 · 板级复验（板卡接好后补做）
+
+板卡接好后 JTAG 链出现 `xc7z020_1 PART=xc7z020`，按 §「L4 尝试」的命令序列执行：
+
+```
+xsdb build/tcl/ps_jtag_boot.tcl   → PS7_INIT: ok / PS7_POST_CONFIG: ok / DDR_ECHO: 10000000: 5A5AA5A5
+vivado  -source build/tcl/program_pl.tcl → PROGRAMMED xc7z020_1 <- build/system.bit
+xsdb build/tcl/set_src.tcl        → GPIO 0x41200000 = 00010000   (SRC1=视频，特效关)
+ping 192.168.1.10                 → 发送=3 接收=3 丢失=0，RTT 1-2 ms   ← PL 内 ARP/ICMP 栈活着
+```
+
+**判据数据（`--test frameid`，图案 = 64bit 字号 + 帧号；回读前一定停流）**：
+
+| 轮次 | bit | 速率 | 每 bank 帧号跨度 | u32 内两 lane 异帧数 | 最新帧 16bit 命中率 | 包内分带丢字率 | 最长连续丢字带 | 帧尾分带 w90-99 |
+|------|-----|------|------------------|----------------------|----------------------|----------------|----------------|------------------|
+| 1 | R05 `f5c69ca7` | 15 MB/s @15fps | 28..28 / 29..29（各恰好一帧） | 0/76800 | **100.0%** | 六带全 0.0% | 0 | 100 |
+| 2-5 | R05 | 15 MB/s @30fps | 单一帧（43/44 交替） | 0 | 100.0% | 0.0% | 0 | 100 |
+| 6-7 | R05 | **30 MB/s** @30fps | 单一帧 | 0 | 100.0% | 0.0% | 0 | 100 |
+| 8 | R05 | **不限速 60fps**（400 帧） | 单一帧（398/399） | 0 | 100.0% | 0.0% | 0 | 100 |
+| 9 | R05 | **不限速 120fps→实测 116fps（≈36 MB/s，900 帧）** | 单一帧（898/899） | 0 | 100.0% | 0.0% | 0 | 100 |
+| A1-A6 | **v6.4 基线 `155d73bc`** | 15 MB/s @30fps ×6 轮 | 单一帧 | 0 | 100.0% | 0.0% | 0 | 100 |
+| A7 | v6.4 | 不限速 60fps | 单一帧（398/399） | 0 | 100.0% | 0.0% | 0 | 100 |
+| A8 | v6.4 | 不限速 120→**106.6fps（≈33 MB/s）** | 单一帧（898/899） | 0 | 100.0% | 0.0% | 0 | 100 |
+
+**能下的结论**：
+1. **零回归**：R02（打包 FIFO→LUTRAM）、R04（帧缓存分块）、R05（skid→LUTRAM）三次综合行为改造
+   之后，整条 UDP→reasm→CDC→AXI→DDR 链在 15 MB/s 到 ≈36 MB/s（900 帧连发）范围内
+   仍然做到「每 bank 恰好一帧、逐 lane 100% 命中、无任何连续丢字带」——
+   这是本夜最重要的板级事实，因为这三处改动的风险面正是入包链。
+2. **换帧原子性成立**（技能包 S9 的判据：每个 bank 的帧号跨度=1）。
+3. 上板 bit 与仓库 `build/system.bit`（md5 `f5c69ca7`）逐字节同一份，报告门禁与板级数据指向同一实现。
+
+**不能下的结论（写清楚，别让它长成战果）**：
+- **R03 的板级 A/B 没有区分力**：在 15 MB/s、30 MB/s、60 fps 不限速、120 fps 不限速
+  四档激励下，v6.4 基线 bit **6 轮 + 洪水 2 轮全部干净**，没有出现当年记录的
+  「帧尾 +0x4aff8 高半个 u32 读 0、8 次见 4 次」。所以**我无法用板上数据证明 R03 修好了那个现象**。
+  仓库自身其实早有同样记录：`report/V6_BOARD_MEASUREMENT.md:99` 写明某次复测
+  「连 §4.1 的帧尾残留都没出现」⇒ 该现象条件极窄/极稀有，当年的触发条件（载荷是否 8 的倍数、
+  上位机分片对齐、网卡 offload 状态）在本机已不可照搬。
+- 因此 R03 的证据等级保持为：**机理三段论（flush 与 frame_done 同拍、idle 看不见 CDC、sv_full 会在帧中间截断读出）
+  + `tb_v6_tail_bank` 的双向判据仿真**。板上数据只能说明「新版没有把它变坏」。
+- 顺带纠正我自己中途的一个过度推论：曾在 R05 洪水轮后写下「文档里已接受的 P04 洪水丢包消失了」——
+  随后对 v6.4 基线做同样洪水（60fps、120fps 不限速）也是 100% 干净，
+  说明 **P04 在手头激励下根本没被触发**，不存在"消失"。该条已按实测改回未复现状态。
+
+**留下的可执行线索**（要真做板上 A/B，得先造出 `sv_full` 落在帧尾的条件）：
+`tb_v6_tail_bank` 里触发机理用的是「读到最后一个字的 lane1 之后停读」；板上等效手段是
+把显示拷贝对 HP0 的占用窗口拉长（`axi_frame_writer_gated` 的 `SK/BEATS/MAX_OUT`）或让
+上位机按 **非 8 的倍数载荷**（如 1396 B）分包，使包边界落在帧最后一个字内部 ——
+`src/host/video_sender.mjs` 目前把载荷固定为 1392（8 的倍数），要加 `--mtu-payload` 才能试。
+
 ### R05 · 2026-09-22 07:58– · 资源：把 R02 的结论复用到显示侧 skid 缓冲（P01b）
 
 - **动机与证据**：R02 之后整机寄存器从 54588 降到 9594，但 build#4 的综合日志里仍有
@@ -447,7 +498,7 @@ node src\host\ddr_holemap.mjs
 | L1 | `sim/run_sim.tcl` **30** 个 TB（R03 加 `tb_v6_tail_bank`，R04 加 `tb_fb_roundtrip`） | 入包完整性/乒乓/覆盖门/V-blank 拷贝/**帧尾换页 A/B**/**帧缓存逐像素回读**/rotate/zoom/udp/arp/crc | R05 后 **30/30 PASS**（`sim/r05_full_regression.log`） |
 | L2 | `build_system_axigpio.tcl` 的 synth+impl 报告 | 时序/资源/功耗/方法学/CDC/布线 | R05 全项合格（见 §5） |
 | L3 | bit + xsa | 上板前置 | `f5c69ca7`（R05）已出，可上板 |
-| L4 | UART/ping/JTAG 回读 + `src/host/*.mjs` | 丢包签名、DDR 空洞图、帧尾落位 | **未执行**：JTAG 链无器件（板卡未上电），证据与补做命令见「L4 尝试」 |
+| L4 | `ps_jtag_boot` → `program_pl` → `set_src` → `video_sender --test frameid` → 停流 → `ddr_verify`/`ddr_stale` | 丢包签名、换帧原子性、帧尾落位、洪水与限速多档 | **已执行**：15→36 MB/s、60/120 fps 不限速共 19 轮，每 bank 恰好一帧、命中率 100.0%、无丢字带；R03 的板上 A/B **无区分力**（详见「L4 执行」） |
 
 ## 5. 报告门禁历史表
 
@@ -468,7 +519,7 @@ node src\host\ddr_holemap.mjs
 | **R02** | `8c30d9c` | `2dd5d1fc` | 2120470 B | +0.677 | 打包 FIFO 改分布式 RAM；功能与 v6.4 等价，可上板 |
 | R03 | `242f6e7` | `faab6ab3` | 2310718 B | +0.596 | 换页等 CDC 排空；帧尾丢 4 字节修复 |
 | **R04** | `ff7c890` | `ff18beb7` | 1994722 B | **+0.819** | 帧缓存分块省 48 个 BRAM tile；金样（被 R05 取代） |
-| **R05** | `a22a054` | `f5c69ca7` | 1887418 B | +0.499 | 显示拷贝 skid 缓冲改分布式 RAM；**当前最新合格金样** |
+| **R05** | `a22a054` | `f5c69ca7` | 1887418 B | +0.499 | 显示拷贝 skid 缓冲改分布式 RAM；**当前金样，已上板复验（19 轮全绿）** |
 
 
 ## 7. 工具与子代理记录
@@ -482,7 +533,7 @@ node src\host\ddr_holemap.mjs
 | R03/R04 | `build/tcl/report_mem_hier.tcl`（自建） | 「BRAM 被谁吃掉」需要层次化归属 | `build/util_hier.rpt`：`u_fb` 独占 128.03 tile |
 | 全程 | `sim/run_sim.tcl`（xsim） | L1 门禁 | 基线 28 → R03 29 → R04/R05 30，每轮回归全绿 |
 | 全程 | L3 构建脚本报告段（自建） | 门禁要求 power/route 有对应文件 | 现在自动出 `power.rpt`/`route_status.rpt`/`clock_util.rpt` |
-| L4 | `build/tcl/scan_jtag.tcl` + `Get-PnpDevice` + ping | 上板前先确认硬件在位，别对着不通的链反复 program | 判定板卡未上电，L4 未执行并如实记录 |
+| L4 | `build/tcl/scan_jtag.tcl` + `Get-PnpDevice` + ping | 上板前先确认硬件在位，别对着不通的链反复 program | 第一次判定板卡未上电（如实记录在「L4 尝试」）；板卡接好后同一套检查通过，改判为可执行，19 轮测量见「L4 执行」 |
 | 未用 | 其它可用 MCP（browser-use / node-repl / qmind / sites） | 本夜的瓶颈是综合器行为与周期级时序，浏览器检索不是关键路径 | —— |
 
 ## 8. 参考与来源
@@ -527,8 +578,10 @@ node src\host\ddr_holemap.mjs
 
 答辩时最值得讲的三张图：`utilization.rpt` 的前后对照表（§5）、
 `tb_v6_tail_bank` 的 old=7/8 与 new=8/8（R03）、`sim/probes` 的 6 变体 BRAM 计数表（R04）。
-诚实边界：L4 板级复验因板卡未上电未做（证据与补做命令在「L4 尝试」一节），
-所以「帧尾修复」目前的证据是**仿真级 + 机理推导**，不是板上实测。
+诚实边界（板卡接好后已补做 L4，共 19 轮）：入包链在 15→36 MB/s、60/120 fps 不限速下
+做到每 bank 恰好一帧、逐 lane 100% 命中、零连续丢字带 —— 这是"三次综合改造没有把入包链改坏"的板级证明。
+但**帧尾那个缺陷在 v6.4 基线 bit 上也一次都没复现**（6 轮 + 两轮洪水），
+所以 R03 的证据等级只到「机理 + 仿真双向判据」，我没有板级战果可以吹。
 
 ## 10. 未竟项
 
@@ -536,12 +589,13 @@ node src\host\ddr_holemap.mjs
 
 | # | 事项 | 已有什么 | 缺什么 | 备注 |
 |---|------|----------|--------|------|
-| U1 | **L4 板级复验**（R02/R03/R04/R05 的 bit md5 `f5c69ca7`） | 完整命令序列 + 判据（分带丢字率、帧尾 `+0x4AFF8`）| 板卡上电 + JTAG 链上有器件 | 见「L4 尝试」一节 |
+| U1 | ~~L4 板级复验~~ **已完成 19 轮**（金样 `f5c69ca7`） | 数据表见「L4 执行」 | —— | 结论：零回归 + 换帧原子；R03 无板级区分力 |
 | U2 | **R06 缩放双线性插值**（P05，`frac_x/frac_y` 现在算了不用） | 器件剩 ~49 个 BRAM tile、~1.6 万 LUT；一行的行缓存 = 512×16bit = **1 个 tile** | 读侧要 4 抽头，而帧缓存是 1 读口 1 拍延迟 | 可行路子：水平邻点**大概率在同一个 64bit 字内**（现在读完 64bit 再 mux 一个 lane，另外 3 个 lane 本来就在那里）⇒ 横向插值几乎免费；纵向用 1~2 个行缓存 + 第二读流对齐。判据建议：TB 里建一个 Node/软件黄金模型算 PSNR，别只看"报告绿" |
 | U3 | P04 `--no-pace` 冻结 | 已知机理 | —— | **本夜明确否决"加深 CDC"这条路**：V-blank 拷贝窗口 67200 axi 拍 ≈ 672 µs，线速 125 MHz×2B = 250 MB/s ⇒ 要吸收它需 ~168 KB 即 ~84000 条 ×36bit ≈ **84 个 BRAM tile**，全片才 140 个，不可能；与 `CHANGELOG_V6.md` v6.3 的结论（瓶颈是平均排空速率不是深度）一致。真要改善只能改**拷贝调度**（把整帧拷贝摊到整个帧周期而不是 V-blank 窗口） |
 | U4 | P06 功耗置信度 Low | 有 `report_power` 基线 2.350 W | 需要 SAIF/开关活动文件 | 要做就是 `xsim` 导 SAIF → Vivado `read_saif`，代价是又一轮全流程；收益只是把"相对比较"变成"绝对估计"，优先级排最后 |
 | U5 | P07 36 条 DPIR-1（异步复位寄存器喂 DSP 输入，挡住 DSP 输出寄存器合并） | 定位在 `u_pl/u_zmap/raw_xs` 等 | 改同步复位要重跑入包/显示两侧回归 | 中等收益，低-中风险 |
 | U6 | P09 树内 10 个未综合的死模块 | 名单在 R01 摘要里 | 删除前要确认没有 TB 还引用它们 | 纯清洁工作，建议单独一轮，别和功能改动混在一起 |
 | U7 | WNS 余量回收（+0.819 → +0.499 是 R05 的代价） | 已知多了一级读 mux | 把 skid 读口改成提前一拍预取 | 可选；现在仍是全约束满足 |
-| U8 | 仓库里 `build/tryjtag.tcl` 是本夜一次性诊断脚本 | —— | 收尾提交时删除 | 已记在最终清理里 |
+| U8 | 一次性诊断脚本已删除；`build/v64_baseline.bit`、`build/r05_golden.bit` 是 A/B 期间的临时副本（未跟踪），收尾删除 | —— | —— | v6.4 bit 随时可用 `git show 647160e:build/system.bit` 取出 |
+| U9 | **重建 R03/P04 的板上触发条件**：给 `src/host/video_sender.mjs` 加 `--mtu-payload`（非 8 倍数，如 1396），使包边界落在帧最后一个字内；或拉长 `axi_frame_writer_gated` 的 HP0 占用窗口以逼出 `sv_full` | `tb_v6_tail_bank` 已给出等效激励形状（读到最后一字 lane1 后停读） | 需要一次上位机小改 + 重测 | 这是把 R03 从「仿真级证据」提升到「板级证据」的唯一路子 |
 
