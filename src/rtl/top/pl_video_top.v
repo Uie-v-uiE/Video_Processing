@@ -197,6 +197,7 @@ module pl_video_top #(
     wire        allow_copy;
     wire        frame_ready;
     wire        copy_abort;
+    wire        abort_tgl;          // copy_abort 的翻转位（axi 域产生，像素域同步后消费）
 
     // v6 ATOMIC SWAP: the whole frame is copied inside V-blank only.
     // V_TOTAL 625 lines, active 600 → 25 blank lines = 33.5k pix cycles =
@@ -241,7 +242,7 @@ module pl_video_top #(
         .start_copy(row_start), .copy_base(row_base),
         .frame_ready_pix(frame_ready),
         .allow_copy_axi(allow_copy),
-        .copy_abort(copy_abort)
+        .copy_abort(copy_abort), .abort_tgl(abort_tgl)
     );
 
     // 板载诊断：拷贝是否超出一个 V-blank 窗口（25 行 × 1344 像素 × 2 axi 拍）。
@@ -285,8 +286,16 @@ module pl_video_top #(
     // `eth_rxc→clkout0_1` 的 unsafe/unknown 里。现在统一成 3 级（多 60 ns，对"链路断"
     // 这种毫秒级事件不可见）。
     // 注意：`copy_abort` **不能**照这个模板同步 —— 它是 axi_clk 上只有 1 拍（10 ns）的脉冲，
-    // 电平型 3 级同步会整拍漏掉它（比现在的裸采样更糟）。它需要的是翻转/脉冲同步器，
-    // 已作为独立问题记进 report/ISSUES.md，不在这一轮顺手改。
+    // 电平型 3 级同步会整拍漏掉它（比原来的裸采样更糟）。它要的是翻转式脉冲同步器：
+    // R23 已在 `frame_commit_lock` 里补出 `abort_tgl`（与本文件 `blank_tog` 那一侧对称），
+    // 下面这条链就是"3 级 + 异拍出沿"，判据在 sim/tb_v79_abort_toggle（含相位扫描）。
+    (* ASYNC_REG = "TRUE" *) reg ab0, ab1, ab2;
+    always @(posedge clk_pix or negedge rst_pix_n) begin
+        if (!rst_pix_n) {ab2,ab1,ab0} <= 3'b0;
+        else            {ab2,ab1,ab0} <= {ab1, ab0, abort_tgl};
+    end
+    wire copy_abort_pix = ab1 ^ ab2;   // 每次 abort 恰好一拍
+
     (* ASYNC_REG = "TRUE" *) reg el0, el1, el2;
     always @(posedge clk_pix or negedge rst_pix_n) begin
         if (!rst_pix_n) {el2,el1,el0} <= 3'b0;
@@ -297,7 +306,7 @@ module pl_video_top #(
     always @(posedge clk_pix or negedge rst_pix_n) begin
         if (!rst_pix_n) eth_has_frame <= 1'b0;
         else if (frame_ready && eth_link_pix) eth_has_frame <= 1'b1;
-        else if (copy_abort) eth_has_frame <= 1'b0;
+        else if (copy_abort_pix) eth_has_frame <= 1'b0;
     end
 
     // SRC0=colorbar, SRC1=video (v5 SRC bug was |eth_ready locking SRC0)

@@ -88,3 +88,7 @@ clockInfo.txt
 # 从 build/system.xsa 里解出来的 PS 初始化脚本（派生物，ps_jtag_boot.tcl 会自动重建）
 build/ps7_init.tcl
 build/_extract_ps7_init.ps1
+
+# ModelSim 只当交叉编译器用（vsim 无授权），它的 work 库不入库
+sim/msim/
+sim/*.run/

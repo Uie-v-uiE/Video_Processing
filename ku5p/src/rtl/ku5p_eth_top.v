@@ -16,8 +16,8 @@
 //      拼帧结果直接打进 BRAM。少掉的正是当初最难对的那部分逻辑。
 //   3) 没有 PS，也就没有 AXI GPIO / HP0：状态改由 LED 表示（见文件末尾的 LED 表）。
 module ku5p_eth_top #(
-    parameter IMG_W      = 512,
-    parameter IMG_H      = 300,
+    parameter [15:0] IMG_W     = 16'd512,
+    parameter [15:0] IMG_H     = 16'd300,
     parameter [15:0] UDP_PORT  = 16'd5001,
     parameter [47:0] BOARD_MAC = 48'h00_11_22_33_44_66,   // 与 Zynq 板必须不同（同网段）
     parameter [31:0] BOARD_IP  = {8'd192,8'd168,8'd1,8'd11}
@@ -52,29 +52,39 @@ module ku5p_eth_top #(
         .rgmii_txc(eth_txc), .rgmii_tx_ctl(eth_tx_ctl), .rgmii_txd(eth_txd)
     );
 
-    // ---- ARP / ICMP / UDP：这一段与 Zynq 版逐行同构（含 ICMP 回包的那个 20 拍延时） ----
-    wire        arp_rx_done, arp_rx_type, arp_tx_en, arp_tx_done, arp_gmii_tx_en;
+    // ---- ARP / ICMP / UDP：这一段与 Zynq 版逐行同构（含 ICMP 回包的那个 20 拍延时），
+    //      差别只在"谁有权把字节送上 GMII"改由自研的 ku5p_tx_arb 决定（理由见该文件头）。
+    wire        arp_rx_done, arp_rx_type, arp_tx_done, arp_gmii_tx_en;
     wire [47:0] src_mac;
     wire [31:0] src_ip;
     wire [7:0]  arp_gmii_txd;
+    wire        arp_grant, icmp_grant, udp_grant;
+
+    // 收到 ARP **请求**（type 0）= 想发 ARP 应答。打一拍再送仲裁器，避免把
+    // arp_rx_done/arp_rx_type 的组合逻辑塞进请求路径。
+    reg arp_rqs;
+    always @(posedge g_clk or negedge rst_n) begin
+        if (!rst_n) arp_rqs <= 1'b0;
+        else        arp_rqs <= arp_rx_done && (arp_rx_type == 1'b0);
+    end
 
     wire        icmp_rec_pkt_done, icmp_rec_en, icmp_tx_done, icmp_tx_req, icmp_gmii_tx_en;
     wire [7:0]  icmp_rec_data, icmp_gmii_txd, icmp_fifo_q;
     wire [15:0] icmp_rec_byte_num;
     reg  [15:0] icmp_tx_byte_num;
     reg  [5:0]  icmp_dly;
-    reg         icmp_tx_start_en;
+    reg         icmp_rqs;            // 向仲裁器"请求"回 ICMP 包（不是直接 start）
     always @(posedge g_clk or negedge rst_n) begin
         if (!rst_n) begin
-            icmp_dly <= 0; icmp_tx_start_en <= 0; icmp_tx_byte_num <= 0;
+            icmp_dly <= 0; icmp_rqs <= 0; icmp_tx_byte_num <= 0;
         end else begin
-            icmp_tx_start_en <= 0;
+            icmp_rqs <= 0;
             if (icmp_rec_pkt_done) begin
                 icmp_dly <= 6'd20;
                 icmp_tx_byte_num <= icmp_rec_byte_num;
             end else if (icmp_dly != 0) begin
                 icmp_dly <= icmp_dly - 1'b1;
-                if (icmp_dly == 6'd1) icmp_tx_start_en <= 1'b1;
+                if (icmp_dly == 6'd1) icmp_rqs <= 1'b1;
             end
         end
     end
@@ -82,9 +92,15 @@ module ku5p_eth_top #(
     wire        udp_rec_pkt_done, udp_rec_en, udp_gmii_tx_en, udp_tx_done, udp_tx_req;
     wire [7:0]  udp_rec_data, udp_gmii_txd;
     wire [15:0] udp_rec_byte_num;
-    wire        fifo_rec_en;
-    wire [7:0]  fifo_tx_data, fifo_rec_data;
-    wire        fifo_tx_req;
+
+    // 遥测的取数口必须在使用之前声明 —— 否则 Verilog 会先按"隐式网"（1 bit）把
+    // u_udp 的 .tx_data/.tx_byte_num 接上，后面的显式声明就成了重复声明。
+    wire [7:0]  tlm_data;
+    wire [15:0] tlm_len;
+    wire        tlm_rqs;
+    // 门 = ARP 学到过对端：厂商 udp_tx 在 des_mac==0 时会拿上一次的 eth_head 继续发，
+    // 那等于往一个随机 MAC 发包，所以这一位不是"省电"而是"必须"。
+    wire        peer_known = (src_ip != 32'd0) && (src_mac != 48'd0);
 
     sync_fifo #(.DATA_W(8), .ADDR_W(11)) u_icmp_fifo (
         .clk(g_clk), .rst_n(rst_n),
@@ -100,7 +116,7 @@ module ku5p_eth_top #(
         .gmii_tx_clk(g_tx_clk), .gmii_tx_en(arp_gmii_tx_en), .gmii_txd(arp_gmii_txd),
         .arp_rx_done(arp_rx_done), .arp_rx_type(arp_rx_type),
         .src_mac(src_mac), .src_ip(src_ip),
-        .arp_tx_en(arp_tx_en), .arp_tx_type(1'b1),
+        .arp_tx_en(arp_grant), .arp_tx_type(1'b1),
         .des_mac(src_mac), .des_ip(src_ip), .tx_done(arp_tx_done)
     );
 
@@ -110,7 +126,7 @@ module ku5p_eth_top #(
         .gmii_tx_clk(g_tx_clk), .gmii_tx_en(icmp_gmii_tx_en), .gmii_txd(icmp_gmii_txd),
         .rec_pkt_done(icmp_rec_pkt_done), .rec_en(icmp_rec_en), .rec_data(icmp_rec_data),
         .rec_byte_num(icmp_rec_byte_num),
-        .tx_start_en(icmp_tx_start_en), .tx_data(icmp_fifo_q),
+        .tx_start_en(icmp_grant), .tx_data(icmp_fifo_q),
         .tx_byte_num(icmp_tx_byte_num),
         .des_mac(src_mac), .des_ip(src_ip),
         .tx_done(icmp_tx_done), .tx_req(icmp_tx_req)
@@ -122,28 +138,13 @@ module ku5p_eth_top #(
         .gmii_tx_clk(g_tx_clk), .gmii_tx_en(udp_gmii_tx_en), .gmii_txd(udp_gmii_txd),
         .rec_pkt_done(udp_rec_pkt_done), .rec_en(udp_rec_en), .rec_data(udp_rec_data),
         .rec_byte_num(udp_rec_byte_num),
-        .tx_start_en(1'b0), .tx_data(8'd0), .tx_byte_num(16'd0),
+        .tx_start_en(udp_grant), .tx_data(tlm_data), .tx_byte_num(tlm_len),
         .des_mac(src_mac), .des_ip(src_ip),
         .tx_done(udp_tx_done), .tx_req(udp_tx_req)
     );
 
-    eth_ctrl u_ctrl (
-        .clk(g_clk), .rst_n(rst_n),
-        .arp_rx_done(arp_rx_done), .arp_rx_type(arp_rx_type),
-        .arp_tx_en(arp_tx_en), .arp_tx_type(), .arp_tx_done(arp_tx_done),
-        .arp_gmii_tx_en(arp_gmii_tx_en), .arp_gmii_txd(arp_gmii_txd),
-        .icmp_tx_start_en(icmp_tx_start_en), .icmp_tx_done(icmp_tx_done),
-        .icmp_gmii_tx_en(icmp_gmii_tx_en), .icmp_gmii_txd(icmp_gmii_txd),
-        .icmp_rec_en(icmp_rec_en), .icmp_rec_data(icmp_rec_data),
-        .icmp_tx_req(icmp_tx_req), .icmp_tx_data(),
-        .udp_tx_start_en(1'b0), .udp_tx_done(udp_tx_done),
-        .udp_gmii_tx_en(udp_gmii_tx_en), .udp_gmii_txd(udp_gmii_txd),
-        .udp_rec_data(udp_rec_data), .udp_rec_en(udp_rec_en),
-        .udp_tx_req(udp_tx_req), .udp_tx_data(),
-        .tx_data(fifo_tx_data), .tx_req(fifo_tx_req),
-        .rec_en(fifo_rec_en), .rec_data(fifo_rec_data),
-        .gmii_tx_en(g_tx_en), .gmii_txd(g_txd)
-    );
+    // 厂商的 eth_ctrl 在这里被换成自研的 ku5p_tx_arb（见该文件头的理由），
+    // 它同时管 ARP/ICMP/UDP 三路的 start 与 mux，例化放在统计寄存器之后。
 
     // ---- offset 拼帧（与 Zynq 版同一模块、同一判据） ----
     wire        fb_wr_en;
@@ -246,14 +247,39 @@ module ku5p_eth_top #(
         end
     end
 
+    // ---- 遥测：每秒把上面的计数打包成一包 UDP 发给 PC（自研 ku5p_telem）----
+    ku5p_telem #(.IMG_W(IMG_W), .IMG_H(IMG_H)) u_tlm (
+        .clk(g_clk), .rst_n(rst_n),
+        .stat_frames(s_frames), .stat_pkts(s_pkts), .stat_bytes(s_bytes),
+        .stat_bad(s_badc), .stat_oob(s_oob), .rows_missed(reasm_rows_miss),
+        .link_up(link_up), .frames_seen(frames_seen), .abort_seen(err_seen),
+        .data_alive(data_alive), .peer_known(peer_known),
+        .udp_rqs(tlm_rqs),
+        .tx_start_en(udp_grant), .tx_req(udp_tx_req),
+        .tx_data(tlm_data), .tx_byte_num(tlm_len)
+    );
+
+    // ---- GMII 发送仲裁（自研，替掉厂商 eth_ctrl 的那半段 mux）----
+    ku5p_tx_arb u_arb (
+        .clk(g_clk), .rst_n(rst_n),
+        .arp_rqs(arp_rqs), .icmp_rqs(icmp_rqs), .udp_rqs(tlm_rqs),
+        .arp_grant(arp_grant), .icmp_grant(icmp_grant), .udp_grant(udp_grant),
+        .arp_done(arp_tx_done), .icmp_done(icmp_tx_done), .udp_done(udp_tx_done),
+        .arp_tx_en(arp_gmii_tx_en),  .arp_txd(arp_gmii_txd),
+        .icmp_tx_en(icmp_gmii_tx_en), .icmp_txd(icmp_gmii_txd),
+        .udp_tx_en(udp_gmii_tx_en),  .udp_gmii_txd(udp_gmii_txd),
+        .gmii_tx_en(g_tx_en), .gmii_txd(g_txd)
+    );
+
     // LED：本板只有 4 个（原理图 p5/p16：LED1..4 = H9 J9 G11 H11，bank86 VCCO 3.3 V，
     // 高电平点亮）。低有效写法是为了"没接好时全亮"，一眼能看出配置没跑起来。
     //   led[0] 链路有流量     led[1] 收到过完整帧     led[2] 出现过拼帧失败     led[3] 心跳 ≈3.7 Hz
+    // 遥测不在 LED 上表达：它能不能发出去，PC 侧 `ku5p_stats.mjs` 收到包就是判据，
+    // 比"灯闪了一下"强得多。
     assign led[0] = ~link_up;
     assign led[1] = ~(frames_seen & data_alive);   // 帧完成 **且** 缓存内容变过
     assign led[2] = ~err_seen;
     assign led[3] = ~hb_div[23];
-    wire _unused_ok = &{1'b0, s_pkts, s_bytes, s_oob, rd_sum, data_alive, fifo_rec_en, fifo_rec_data,
-                        fifo_tx_data, fifo_tx_req, udp_tx_req, udp_tx_done, arp_tx_done,
-                        icmp_tx_done, g_tx_en, 1'b0};
+    wire _unused_ok = &{1'b0, s_pkts, s_bytes, s_oob, rd_sum, data_alive,
+                        udp_tx_req, arp_tx_done, icmp_tx_done, g_tx_en, 1'b0};
 endmodule
