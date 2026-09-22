@@ -100,9 +100,12 @@ PHY 的 25 MHz 是它**自己的晶振**（Y501 的 XI/XTAL），不是给 FPGA 
      `arp_rx_flag && (udp_tx_busy==0 || icmp_tx_busy==0)` —— 那个 `||` 让"任一空闲"就能在
      **帧中间**把 mux 切给 ARP。今天只有 ARP/ICMP 交替时窗口很窄没暴露；有了周期性遥测就是常态。
      自研 `ku5p_tx_arb` 的规则只有一条：**拿到介质的那帧发完之前谁都不许换**，并且只认
-     当前 owner 的 `done`。同一套激励下实测：**厂商 mux 换源 1 次（帧作废），仲裁器 0 次**
-     （`sim/tb_ku5p_tx_arb.v` 的 T1–T4 是正向判据，V 组是拿厂商代码做对照的负向判据）。
-     主线那侧同一行改成 `&&` 就修好了，登记在 `report/ISSUES.md` #28，等能重跑门禁的窗口。
+     当前 owner 的 `done`。同一套激励下实测（改厂商代码**之前**）：**mux 在帧中间换源 1 次
+     （那帧剩下的字节作废），自研仲裁器 0 次**（`sim/tb_ku5p_tx_arb.v` 的 T1–T4 是正向判据，
+     V 组是拿厂商代码做对照的判据；厂商改好之后 V 组要求 `midbad=0 / arp=12 / udp=12`，实测已到）。
+     主线那侧 v7.9 已经改掉了，但**不是一行**：`||`→`&&` 之后还要补一个 `arp_pend` 记账位，
+     否则那一拍宽的 `arp_rx_flag` 会在"另一路还忙"时被吃掉（PC 要等 ARP 超时）。
+     机理、两处改动和台架抓到的"脉冲高两拍 ⇒ ARP 发了 13 个字节"都登记在 `report/ISSUES.md` #37。
 
 ## 5. 一次必须记下来的误判：`SYNTH OK` 但 BRAM 只有 0.5 个
 
@@ -185,7 +188,7 @@ vivado -mode batch -nojournal -log ku5p/build/ku5p_impl.log \
 **已经做完的（2026-09-23 R23）**：状态回包 —— `ku5p_telem` + `ku5p_tx_arb` +
 `src/host/ku5p_stats.mjs`，三个台架判据 + 一次成套构建；上板那一步排在白天（§8）。
 
-1. **让上报的每个数字都名副其实**（`report/ISSUES.md` #29）：遥测包里的 `bad`（错包数）现在是
+1. **让上报的每个数字都名副其实**（`report/ISSUES.md` #38）：遥测包里的 `bad`（错包数）现在是
    **构造性为 0** —— 顶层收包用厂商 `udp_rx`，它不看 ER / 帧长，`frame_reasm.p_good` 只能硬接 1。
    仓库里已经有自研的那一对：`gmii_rx_mac`（出 `m_good/m_bad`）+ `udp_rx_parser`
    （出 `p_good` 与三个 drop 统计，并且**本来就带目的端口过滤**），`sim/tb_udp_parser.v` 有判据。

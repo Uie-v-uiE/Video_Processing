@@ -124,7 +124,7 @@ R22 两笔 CDC + R23 的 `copy_abort` 翻转同步，WNS +1.002 / WHS +0.050 / 0
 4. 不要说"KU5P 已经在板上发包了" ⇒ 今晚只有**台架级**证据（逐字节 + CRC 判据 + 门禁全绿的构建）；
    口径是"移植与遥测已完成并通过仿真与实现门禁，板级验证在路上"。
 5. 不要把 KU5P 遥测里的 `bad≈0` 说成"没有错包" ⇒ 它目前是**构造性为 0**（顶层没接 FCS/ER 判定，
-   ISSUES #29）；能当健康证据的是 `oob`、`rows_miss` 与 flags 里的 `abort_seen`。
+   ISSUES #38）；能当健康证据的是 `oob`、`rows_miss` 与 flags 里的 `abort_seen`。
 
 ---
 

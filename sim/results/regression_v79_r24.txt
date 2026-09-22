@@ -1,0 +1,54 @@
+#     puts "XVLOG FAILED"
+# puts "XVLOG OK"
+XVLOG OK
+#         puts "RESULT $tb ELAB_FAIL"
+#     puts "RESULT $tb $verdict"
+  RESULT tb_bilin_lerp PASS
+RESULT tb_bilin_lerp PASS
+RESULT tb_crc32 PASS
+RESULT tb_eth_video PASS
+  RESULT tb_fb_pack PASS
+RESULT tb_fb_pack PASS
+  RESULT tb_fb_rd5x PASS
+RESULT tb_fb_rd5x PASS
+RESULT tb_fb_roundtrip PASS
+RESULT tb_ku5p_telem PASS
+RESULT tb_ku5p_tx_arb FAIL
+  RESULT tb_link_monitor PASS
+RESULT tb_link_monitor PASS
+  RESULT tb_osd_lines PASS
+RESULT tb_osd_lines PASS
+RESULT tb_proc_gray PASS
+  RESULT tb_ps_publish PASS
+RESULT tb_ps_publish PASS
+RESULT tb_rotate_mapper PASS
+RESULT tb_rotate_window PASS
+RESULT tb_sync_fifo PASS
+  RESULT tb_tap_sched PASS
+RESULT tb_tap_sched PASS
+RESULT tb_timing PASS
+RESULT tb_uart_decode_bits PASS
+RESULT tb_udp_parser PASS
+RESULT tb_udp_reasm PASS
+RESULT tb_v50_rowmath PASS
+RESULT tb_v50_rows PASS
+RESULT tb_v50_rows_prod PASS
+RESULT tb_v571_allow_lead PASS
+RESULT tb_v57_first_ar PASS
+RESULT tb_v57_rdw_copy PASS
+RESULT tb_v58_full_done PASS
+RESULT tb_v5_bank PASS
+RESULT tb_v5_copy PASS
+RESULT tb_v5_gated PASS
+RESULT tb_v5_lock PASS
+RESULT tb_v5_saver PASS
+RESULT tb_v5_vblast PASS
+RESULT tb_v6_cover_gate PASS
+RESULT tb_v6_ingress_integrity PASS
+RESULT tb_v6_pingpong PASS
+RESULT tb_v6_tail_bank PASS
+RESULT tb_v6_vblank_copy PASS
+RESULT tb_v79_abort_toggle PASS
+RESULT tb_zoom_mapper PASS
+# puts "SIM DONE pass=$npass fail=$nfail"
+SIM DONE pass=39 fail=1

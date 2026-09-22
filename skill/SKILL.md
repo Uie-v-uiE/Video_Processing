@@ -95,3 +95,4 @@ Xilinx 官方 Ethernet MAC/UDP IP 的用法；非 Zynq/UltraScale 器件。
 | `llm_fpga_debug_workflow.md` | 与 LLM 协作的边界：判断必须能追溯到文件与数字 |
 | `derived_clock_port_mux.md` | 用同相 N 倍时钟把单口 BRAM 分时成 N 次读：4 ns 预算、成对采集、延迟要量出来钉住 |
 | `pulse_toggle_cdc.md` | 跨域**脉冲**只能走翻转式同步器；电平型 3 级不能修它（附相位扫描判据与实测三行表） |
+| `arbiter_pending_pulse.md` | 共享介质的发送仲裁："全部空闲"≠"任一空闲"、一拍宽请求要记账、**跨 always 清标志晚一拍**；判据含脉宽 |

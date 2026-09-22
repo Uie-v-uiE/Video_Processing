@@ -4,7 +4,8 @@
 //   T2 不抢占  ：帧发到一半来了 ARP 请求，介质不许换源（用字节"来源标签"直接量）
 //   T3 同拍三请求：只有最高优先级拿到介质，另两个排队
 //   T4 只认 owner 的 done：别人的 done 不能把介质提前放掉
-//   V  对照：同一套激励喂厂商 eth_ctrl，它**会**在 UDP 帧中间换源 ⇒ 上面那条不是空谈
+//   V  对照：同一套激励喂厂商 eth_ctrl ⇒ 它**必须**既不在帧中间放别人的字节、又不丢 ARP 请求。
+//      （改之前它两个都失败：换源 1 次、UDP 帧被截断。这一组现在是 ISSUES #28 的回归判据。）
 // 标签约定：ARP 字节 8'hA0+i、ICMP 8'hC0+i、UDP 8'hD0+i，高 4 位就是来源。
 module tb_ku5p_tx_arb;
     reg clk = 0, rst_n = 0;
@@ -40,7 +41,7 @@ module tb_ku5p_tx_arb;
     wire       v_gmii_tx_en;
     wire [7:0] v_gmii_txd;
     reg        v_udp_start = 0;
-    integer    v_flips = 0, v_seen = 0;
+    integer    v_flips = 0, v_seen = 0, v_arp_seen = 0, v_udp_seen = 0, v_midbad = 0;
     reg [3:0]  v_prev = 4'h0;
 
     // ---- 三个"协议模块"模型：grant 之后连发 LEN 拍，最后一拍后报 done ----
@@ -131,7 +132,12 @@ module tb_ku5p_tx_arb;
             if (v_prev !== 4'h0 && v_gmii_txd[7:4] !== v_prev) v_flips = v_flips + 1;
             v_prev = v_gmii_txd[7:4];
             v_seen = v_seen + 1;
+            if (v_gmii_txd[7:4] === 4'hA) v_arp_seen = v_arp_seen + 1;
+            else if (v_gmii_txd[7:4] === 4'hD) v_udp_seen = v_udp_seen + 1;
         end
+        // 真正的 bug 签名不是"换源"本身（帧边界必然换源），而是**我们这帧还在发、
+        // 它却把别人的字节放出去**：拿 udp_tx_en 当"帧在飞"的参考。
+        if (udp_tx_en && v_gmii_tx_en && v_gmii_txd[7:4] !== 4'hD) v_midbad = v_midbad + 1;
     end
 
     task chk(input [255:0] name, input integer got, input integer exp);
@@ -147,7 +153,8 @@ module tb_ku5p_tx_arb;
     task snap; begin s_arp=seen_arp; s_icmp=seen_icmp; s_udp=seen_udp; s_flip=arb_flips; end endtask
     task clear_snap;
         begin seen_arp=0; seen_icmp=0; seen_udp=0; arb_flips=0; prev_src=4'h0;
-              v_flips=0; v_seen=0; v_prev=4'h0; end
+              v_flips=0; v_seen=0; v_prev=4'h0;
+              v_arp_seen=0; v_udp_seen=0; v_midbad=0; end
     endtask
 
     // 每个测试都从"三条模型流全 idle + 观测清零"出发 —— 否则上一拍的尾巴会算进下一笔账，
@@ -191,9 +198,10 @@ module tb_ku5p_tx_arb;
         chk("T2 arp bytes", seen_arp, LEN);
         chk("T2 flips-at-boundary-only", arb_flips, 1);
 
-        // ---- V：同一场景喂厂商 mux ⇒ 它必须换源（这条是在证明"要修的确实存在"）----
-        // UDP 帧由仲裁器放行（模型才有字节可发），但厂商那侧只认自己的 protocol_sw：
-        // 帧中间来一个 ARP 请求 ⇒ 它把 mux 切到 ARP，UDP 剩下的字节就地作废。
+        // ---- V：同一场景喂厂商 mux ⇒ 修好之后它**不许**换源，而且 ARP 不能丢 ----
+        // 这段就是 ISSUES #28 的回归判据。改之前（`||`）实测它会在这帧中间换源 1 次；
+        // 改成 `&&` 之后如果只把"换源"修掉、不补 pending，ARP 请求会被整拍丢掉
+        // —— 所以下面两条要一起看：v_flips 必须 0，ARP 那 12 个字节必须出现在厂商输出口上。
         quiesce();
         fork
             begin req(2'd2); end
@@ -202,15 +210,16 @@ module tb_ku5p_tx_arb;
         join
         repeat (6) @(posedge clk);
         @(posedge clk);
-        arp_rx_done <= 1'b1; arp_rx_type <= 1'b0;      // ARP **请求**
+        arp_rx_done <= 1'b1; arp_rx_type <= 1'b0;      // ARP **请求**（正好落在 UDP 帧中间）
         @(posedge clk); arp_rx_done <= 1'b0;
-        // 这里的等待是**故意给足**的：要观察的是厂商 mux 的输出，
-        // 而我们自己的仲裁器不会把 ARP 字节放出去，所以不能拿 seen_arp 当结束条件。
-        repeat (LEN * 4) @(posedge clk);
-        if (v_flips == 0) begin
-            $display("FAIL V 厂商 eth_ctrl 没有换源 —— 说明这条问题记录（ISSUES #28）的机理判错了");
-            errors = errors + 1;
-        end else $display("INFO vendor eth_ctrl flips mid-frame %0d times; our arbiter %0d", v_flips, arb_flips);
+        // 等 ARP 真的被厂商 mux 发出去（有界）：等不到 = 请求被丢了
+        for (w = 0; w < 200 && v_arp_seen < LEN; w = w + 1) @(posedge clk);
+        repeat (4) @(posedge clk);
+        chk("V 帧在飞时厂商 mux 没放别人的字节", v_midbad, 0);
+        chk("V ARP 请求没被丢掉（应答字节数）", v_arp_seen, LEN);
+        chk("V UDP 帧完整（修好前会被截断）", v_udp_seen, LEN);
+        $display("INFO vendor-after-fix: midbad=%0d arp=%0d udp=%0d flips=%0d(含帧边界)",
+                 v_midbad, v_arp_seen, v_udp_seen, v_flips);
 
         // ---- T3：同拍三个请求 ⇒ 只有 ARP 立刻拿到，其余排队 ----
         quiesce();

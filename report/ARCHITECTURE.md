@@ -108,10 +108,14 @@ RGMII (IDDR/IDELAY, IDELAY=15)
     → arp_rx / arp_tx
     → icmp_rx / icmp_tx   ← 载荷走自写 sync_fifo
     → udp_rx / udp_tx
-    → eth_ctrl            ← 发送仲裁
+    → eth_ctrl            ← 发送仲裁（v7.9 起：要求"两路都空闲"+ `arp_pend` 记账，见 ISSUES #37）
     → frame_reasm         ← [u32 LE offset][RGB565]
     → dc_fifo (eth_rxc→axi_clk) → BRAM 写
 ```
+
+`eth_ctrl` 这条仲裁规则的原文是 `arp_rx_flag && (udp_tx_busy==0 || icmp_tx_busy==0)`，
+语义是"**任一**空闲"⇒ 会在别人帧中间切 mux；v7.9 改成"全部空闲"并给一拍宽的请求补了记账位。
+KU5P 侧同一位置换成了自研 `ku5p_tx_arb`（只认当前 owner 的 `done`）。判据：`sim/tb_ku5p_tx_arb.v`。
 
 跨钟：`dc_fifo` Gray 码指针 + 双级同步；同钟：`sync_fifo`。均为 **RTL 手写**，非厂商 FIFO IP。
 

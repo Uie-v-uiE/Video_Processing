@@ -95,3 +95,6 @@ sim/*.run/
 ku5p/build/frozen_*/*.bit
 ku5p/build/exp_*/*.bit
 ku5p/build/exp_*/*.dcp
+
+# 构建的 stdout 镜像（log 已由 vivado -log 生成，两份都是本机产物）
+build/*.stdout

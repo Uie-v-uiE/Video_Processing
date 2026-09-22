@@ -147,22 +147,35 @@ module eth_ctrl (
         else arp_rx_flag <= 1'b0;
     end
 
+    // 收到 ARP 请求后先"记账"，等介质真空闲才发应答（V7.9 / ISSUES #28）。
+    // 原来这里只有一拍宽的 arp_rx_flag，把下面那条 OR 改成 && 之后，请求会在
+    // "另一路正在发"的那一拍被**丢掉**（PC 要等 ARP 超时重发），所以修 bug 不能只改符号。
+    //
+    // 记账和兑现必须放在**同一个 always**里：第一版我把 arp_pend 写在单独的块里、
+    // 用 `else if (arp_tx_en)` 清账，结果读到的是上一拍的 arp_tx_en（非阻塞赋值），
+    // 于是 arp_tx_en 连高两拍、ARP 帧第 0 字节被重发一次（台架数到 13 个字节而不是 12）。
+    reg arp_pend;
     //控制protocol_sw和arp_tx_en信号
     always @(posedge clk or negedge rst_n) begin
         if (!rst_n) begin
             protocol_sw <= 2'b0;
             arp_tx_en   <= 1'b0;
+            arp_pend    <= 1'b0;
         end else begin
             arp_tx_en <= 1'b0;
             if (udp_tx_start_en) begin
                 protocol_sw <= 2'b01;
             end else if (icmp_tx_start_en) begin
                 protocol_sw <= 2'b10;
-            end else if ((arp_rx_flag && (udp_tx_busy == 1'b0)) ||
-                         (arp_rx_flag && (icmp_tx_busy == 1'b0))) begin
+            end else if (arp_pend && (udp_tx_busy == 1'b0) && (icmp_tx_busy == 1'b0)) begin
+                // 原文是两个独立 busy 用 `||` 连起来（"任一空闲"）⇒ 会在**帧中间**把 mux
+                // 切给 ARP，正在发的那帧剩下的字节就地作废。要的是"全部空闲"。
                 protocol_sw <= 2'b0;
                 arp_tx_en   <= 1'b1;
-            end 
+                arp_pend    <= 1'b0;   // 与授权同拍清账 ⇒ arp_tx_en 恰好一拍宽
+            end
+            // 记账放在最后：同拍"兑现旧账 + 又来新请求"时，新请求不会被这次授权吃掉。
+            if (arp_rx_flag) arp_pend <= 1'b1;
         end
     end
 

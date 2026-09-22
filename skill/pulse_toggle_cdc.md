@@ -1,7 +1,7 @@
 # Skill：跨域脉冲怎么过 —— 翻转式同步器 + 相位扫描判据
 
 > 四段式：适用场景 / 使用方法 / 已验证效果 / 失效条件。
-> 来源：`report/ISSUES.md` #27（登记于 R22，修于 R23），判据 `sim/tb_v79_abort_toggle.v`。
+> 来源：`report/ISSUES.md` #36（登记于 R22，修于 R23），判据 `sim/tb_v79_abort_toggle.v`。
 
 ## 一、适用场景
 
