@@ -1,0 +1,14 @@
+# build#16 (V7.8 attempt) 成套产物与门禁报告：WNS -0.327（intra 250MHz 域）未收口 => 未采纳
+# 主线 build/system.bit = build#17 (md5 11998af8...)；本目录是下一次收口的起点
+# Pblock 那条路已被判死（xc7z020 全片只有 2x3=6 个时钟区，u_sched/u_fb/u_pl 已同片），
+# 下一刀改成"每像素 5 次读口 → 3 次"（横向抽头复用同一个 64bit 字，lane==3 的列 fx 钉 0）
+# 详见 report/OVERNIGHT_LOG.md 的 R21 补记 2
+27afff1e665079170863f39f52d676d7 *system_r24_WNS-0.327.bit
+a9afd9ed20b17db8775221f7ea812120 *cdc.rpt
+8f2696b7f4d10c3f56805451ec5102e0 *clock_util.rpt
+73679172e2c35ff6c1815af9861cc716 *methodology.rpt
+611c494111803638db98f6003745be6d *power.rpt
+72970096822f812d186c84c65522e9ad *route_status.rpt
+380f30e6ce51391d06b3acede66d43bb *timing_summary.rpt
+ff36a857e4f883380a8d136f8ea59dd0 *util_hier.rpt
+9e6daa0209db2f99c216836d3f9cb435 *utilization.rpt

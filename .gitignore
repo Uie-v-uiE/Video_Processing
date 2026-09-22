@@ -73,6 +73,12 @@ sim/probes/*_lastrun.log
 
 # 构建产物快照（本地对照用，不入库：每个 .bit 约 10MB）
 build/snap_*/
+# 成套归档：只入库报告与 MANIFEST（md5 清单），二进制留在本地——与 ku5p/build/*.bit 同一条口径
+build/frozen_*/*.bit
+build/frozen_*/*.xsa
+build/frozen_*/*.elf
+build/failed_*/*.bit
+build/failed_*/*.xsa
 
 # KU5P 工程的 Vivado 生成目录（与 vivado_system/ 同理）
 ku5p/vivado_ku5p/

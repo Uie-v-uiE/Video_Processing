@@ -21,7 +21,8 @@ set XSDBAT=D:\Software\Vivado\2025.2.1\Vitis\bin\xsdb.bat
 ```
 （`ps_jtag_boot.tcl` 里没有 `download`：仓库没有 Vitis 平台工程，elf 是在同一个 xsdb 会话里手动下的。）
 
-下 bit 前 **先 `md5sum build/system.bit`，必须以 `0f46ec91` 开头**（= build#13 / V7.7；
+下 bit 前 **先 `md5sum build/system.bit`，必须以 `11998af8` 开头**（= build#17：V7.7 同一功能 + 两笔 CDC 修复，
+`cdc.rpt` 的 `eth_rxc→clkout0_1` 端点 84→51、WHS +0.025→+0.066；**回退版** build#13 `0f46ec91` 在 `build/frozen_r13/`；
 同名文件会被构建原地覆盖，今晚真发生过 —— 判据见 `report/OVERNIGHT_LOG.md` §9.5 第 1 步）。
 
 推流：`node src/host/video_sender.mjs --ip 192.168.1.10 --port 5001 --test move --fps 15`

@@ -893,7 +893,7 @@ methodology 0 条 Critical Warning；`ku5p_eth.bit` 15.4 MB 已生成。
 
 | 步 | 做什么 | 判据 / 期望 |
 |----|--------|-------------|
-| 1 | 只连 Z7，重启 `hw_server`，下 `build/system.bit`（**R22/build#17，md5 前缀 `11998af8`** = R13 同一功能 + 两笔 CDC 修复，门禁更好；回退版在 `build/frozen_r13/`，前缀 `0f46ec91`） | **先校验再下**：`md5sum build/system.bit` 必须以 `0f46ec91` 开头（或等于本轮冻结进 `build/frozen_*` 的那一版）。对不上就是被后续构建原地覆盖过 —— 去 `build/frozen_*/` 取，别硬下。**今晚真的发生过**：02:32 我把 r13 恢复回 `build/system.bit`，02:54 build#15 跑完又把它覆盖了；文件名一样、内容不一样，只有 md5 能分辨。校验通过后再下：`program_system.tcl` 成功、LED0 心跳 |
+| 1 | 只连 Z7，重启 `hw_server`，下 `build/system.bit`（**R22/build#17，md5 前缀 `11998af8`** = R13 同一功能 + 两笔 CDC 修复，门禁更好；回退版在 `build/frozen_r13/`，前缀 `0f46ec91`） | **先校验再下**：`md5sum build/system.bit` 必须以 `11998af8` 开头（回退版 `0f46ec91` 在 `build/frozen_r13/`；build#17 本体也冻结了一份在 `build/frozen_r17_cdc/`）。对不上就是被后续构建原地覆盖过 —— 去 `build/frozen_*/` 取，别硬下。**今晚真的发生过**：02:32 我把 r13 恢复回 `build/system.bit`，02:54 build#15 跑完又把它覆盖了；文件名一样、内容不一样，只有 md5 能分辨。校验通过后再下：`program_system.tcl` 成功、LED0 心跳 |
 | 2 | `xsdb build/tcl/ps_jtag_boot.tcl` → 下 `build/ps_app.elf` → `con` | 串口出现 `[BOOT] ... SD PLAY STOP FRAME0 STAT` |
 | 3 | 敲 `SD` | 打印 `FAT32 part_lba=... frames=4398 fps=15.000 files=9`；若报 `card absent` 说明 SD 不在 BSP 的 SDIO0 上，先查 PS 配置 |
 | 4 | 网线**拔掉**，敲 `SRC1` 再 `PLAY` | 右半窗动、左半窗不动；每 100 帧打印 `avg x.xxx fps`；**无撕裂**（这是发布协议的目的） |
@@ -1402,13 +1402,13 @@ u_pl/u_rd/u_sched/lo_reg_0_0_i_45_n_0. Replicated 1...`）⇒ 方向对，但**�
 
 ---
 
-## 12. 收尾状态（2026-09-23 04:0x，写给你醒来 30 秒看完）
+## 13. 收尾状态（2026-09-23 04:0x，写给你醒来 30 秒看完）
 
 **能直接用的一切，都在 `dev/night-2026-09-22` 分支上，本地提交，未推 GitHub**（按你的要求）。
 
 | 问题 | 答案 |
 |------|------|
-| 明早下哪块 bit？ | `build/system.bit`，**先 `md5sum` 必须是 `0f46ec91…` 开头**（= build#13 / V7.7，已上板验证过的功能集：旋转只右窗、呼吸缩放、链路健康 OSD、PS 发布握手）。对不上就去 `build/frozen_r13/` 取 |
+| 明早下哪块 bit？ | `build/system.bit`，**先 `md5sum` 必须是 `11998af8…` 开头**（= build#17：与 build#13 功能完全相同，只多两笔同步器修复，门禁更好）。对不上就去 `build/frozen_r17_cdc/` 取；要退回"今晚之前最后一次上板过的那块"就用 `build/frozen_r13/`（md5 `0f46ec91…`，功能集同样是旋转只右窗、呼吸缩放、链路健康 OSD、PS 发布握手） |
 | 那三块红的呢？ | `build/failed_r19b/`（−1.277）与 `build/failed_r24/`（−0.327，功能上就是 V7.8 双线性）。想**亲眼看插值效果**可以临时下 `failed_r24` 那块；它时序未收口，可能偶发抖动或不显示，看完记得换回去并重新校验 md5 |
 | SD 卡回放？ | 卡已在 Z7 上。固件 `build/ps_app.elf` 已重编（含 `SD/PLAY/STOP/FRAME<n>/BILIN0/BILIN1/STAT`）。上电顺序照 §9.5 第 1–4 步 |
 | 双线性插值到底做完了没？ | **组件与集成全做完、台架全过（L1 37/37）**，只差 250 MHz 分时读口最后 0.327 ns 没收口 ⇒ 没进主线，整套在 tag **`v7.8-bilinear-wip`**。下一步最对症的一刀是 Pblock（`report/OVERNIGHT_LOG.md` R21 末有三条候选） |
