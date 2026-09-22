@@ -126,15 +126,9 @@ module pl_video_top #(
         .inv_scale(inv_scale), .zoom_active(zoom_active), .dir(zoom_dir)
     );
 
-    wire [11:0] sx_map, sy_map;
-    wire        oob_map;
-    rotate_mapper #(.IMAGE_W(IMG_W), .IMAGE_H(IMG_H)) u_rmap (
-        .clk(clk_pix), .rst_n(rst_pix_n),
-        .angle(angle), .enable(1'b1),
-        .x_in(cx), .y_in(cy),
-        .x_out(sx_map), .y_out(sy_map), .oob(oob_map)
-    );
-
+    // 左半窗**不旋转**：旋转只属于右半窗（由 zoom_mapper 内部的 rotate_en 分支承担）。
+    // 于是这里不再例化 rotate_mapper —— 保持左路用 cx_q3/cy_q3（= 今天 angle=0 时的同一条路径），
+    // 流水深度不动，免得把已经验过的列配准重新搅一遍。
     reg [11:0] cx_q1, cx_q2, cx_q3, cy_q1, cy_q2, cy_q3;
     reg        oob_q1, oob_q2, oob_q3;
     always @(posedge clk_pix or negedge rst_pix_n) begin
@@ -149,10 +143,10 @@ module pl_video_top #(
             oob_q2 <= oob_q1; oob_q3 <= oob_q2;
         end
     end
-    wire        rot_on = rotate_active;
-    wire [11:0] sx_l = rot_on ? sx_map : cx_q3;
-    wire [11:0] sy_l = rot_on ? sy_map : cy_q3;
-    wire        oob_l = rot_on ? oob_map : oob_q3;
+    wire        rot_on = rotate_active;   // 只驱动右窗
+    wire [11:0] sx_l = cx_q3;             // 左窗 = 未旋转原画面
+    wire [11:0] sy_l = cy_q3;
+    wire        oob_l = oob_q3;
 
     wire [11:0] sx_r, sy_r;
     wire        oob_r;
