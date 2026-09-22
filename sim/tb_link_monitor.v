@@ -47,6 +47,9 @@ module tb_link_monitor;
 
     // CDC 写口模型：与 eth_udp_video_top 里 cdc_wr 的同一式子
     reg  cdc_full = 0;
+// v7.6c：帧间隔统计清零入口。板级实测到 gap_max 停在 34066 ms —— 那是 16bit
+// 毫秒计数回卷出来的假数（真实间隔 > 65.5 s）。修法是时基加宽 + 饱和 + 可清零。
+reg        lm_gapclr = 0;
     wire cdc_wr_req = wr_en | flush;
 
     wire [LMW-1:0] lm_bus;
@@ -56,7 +59,7 @@ module tb_link_monitor;
         .cdc_wr_req(cdc_wr_req), .cdc_full(cdc_full),
         .frame_done(frame_done), .frame_abort(frame_abort),
         .frame_err(frame_err), .rows_missed(rows_missed),
-        .in_pkts(s_pkts), .in_bytes(s_bytes),
+        .in_pkts(s_pkts), .in_bytes(s_bytes), .gapclr(lm_gapclr),
         .lm_bus(lm_bus), .lm_bus_tog(lm_bus_tog), .lm_hb(lm_hb)
     );
 
@@ -121,7 +124,7 @@ module tb_link_monitor;
         .clk(clk), .rst_n(rst_n),
         .cdc_wr_req(1'b0), .cdc_full(1'b0),
         .frame_done(1'b0), .frame_abort(1'b0), .frame_err(1'b0),
-        .rows_missed(16'd0), .in_pkts(32'd0), .in_bytes(32'd0),
+        .rows_missed(16'd0), .in_pkts(32'd0), .in_bytes(32'd0), .gapclr(1'b0),
         .lm_bus(p_lm_bus), .lm_bus_tog(p_lm_tog), .lm_hb(p_lm_hb)
     );
     integer prod_ticks = 0;
@@ -275,6 +278,39 @@ module tb_link_monitor;
             $display("FAIL stall did not reset on the next frame (%0d)", P_STALL);
             errors = errors + 1;
         end else $display("PASS a new frame clears stall_ms");
+
+        // ============ E 长间隔必须饱和，不许回卷（板级抓到过 34066 的假数） ============
+        // TB 里 1 拍 = 1 ms（CLK_HZ=1000），所以空转 70000 拍就是一个 70 s 的间隔。
+        repeat (70_000) @(posedge clk);
+        send_frame(-1, GAP);
+        if (P_GAP_MAX !== 16'hFFFF) begin
+            $display("FAIL gap_max=%0d after a 70 s gap, expected to saturate at 0xFFFF", P_GAP_MAX);
+            errors = errors + 1;
+        end else $display("PASS a >65.5 s gap saturates at 0xFFFF instead of wrapping");
+
+        // ============ F gapclr 只清帧间隔统计，别的计数不动 ============
+        begin : clr_case
+            integer bad_before; bad_before = P_FRAMES_BAD;
+            @(negedge clk); lm_gapclr = 1;
+            repeat (4) @(posedge clk);
+            @(negedge clk); lm_gapclr = 0;
+            repeat (GAP) @(posedge clk);
+            send_frame(-1, GAP);              // 第一帧只重建基准
+            if (P_GAP_MAX !== 16'd0 || P_FLAGS[4] !== 1'b0) begin
+                $display("FAIL gap stats survived gapclr (max=%0d gap_valid=%0b)",
+                         P_GAP_MAX, P_FLAGS[4]);
+                errors = errors + 1;
+            end else $display("PASS gapclr zeroes the interval stats and re-baselines cleanly");
+            if (P_FRAMES_BAD !== bad_before) begin
+                $display("FAIL gapclr touched other counters (%0d -> %0d)",
+                         bad_before, P_FRAMES_BAD);
+                errors = errors + 1;
+            end else $display("PASS gapclr leaves drop/bad/pkts/bytes alone");
+            send_frame(-1, GAP);              // 第二帧起重新能量出间隔
+            if (P_GAP_MAX === 16'd0) begin
+                $display("FAIL gap stats never re-calibrated after gapclr"); errors = errors + 1;
+            end else $display("PASS interval stats re-calibrate after the clear");
+        end
 
         // ============ D snap_cross：不撕烈 + 心跳超时 ============
         if (d_gone !== 1'b1) begin

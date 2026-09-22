@@ -160,7 +160,8 @@ module system_top (
         .m_axi_bvalid(m_bvalid), .m_axi_bready(m_bready),
         .stat_frames(eth_frames), .stat_pkts(eth_pkts),
         .stat_bytes(eth_bytes), .stat_bad(eth_bad),
-        .lm_bus(eth_lm_bus), .lm_bus_tog(eth_lm_tog), .lm_hb(eth_lm_hb)
+        .lm_bus(eth_lm_bus), .lm_bus_tog(eth_lm_tog), .lm_hb(eth_lm_hb),
+        .gapclr_sel(gpio_o[26])          // 测量前把帧间隔统计归零（见 link_monitor 尾部）
     );
 
     // ---- v7.6 (P0-A)：把健康快照再跨一份到 fclk0（100 MHz）给 PS 读 ----

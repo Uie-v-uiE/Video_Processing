@@ -1,4 +1,4 @@
-V7.6 / V7.6b (R08-R09) L1 xsim regression
+V7.6 / V7.6b / V7.6c (R08-R10) L1 xsim regression
 runner : vivado -mode batch -source sim/run_sim.tcl   (xvlog rtl=61 tb=32)
 
 R09 run (2026-09-22 20:5x, after snap_cross gained hb_slow) completed all 32 testbenches
@@ -77,6 +77,47 @@ RESULT tb_osd_lines PASS
 RESULT tb_v6_tail_bank PASS
 RESULT tb_v6_vblank_copy PASS
 RESULT tb_zoom_mapper PASS
+
+=== R10 run (2026-09-22 21:4x, V7.6c: ms32 + gap saturation + gapclr) ===
+xvlog rtl=61 tb=32 ; SIM DONE pass=32 fail=0   [sim/xsim_v76c.log]
+RESULT tb_crc32 PASS
+RESULT tb_eth_video PASS
+RESULT tb_fb_roundtrip PASS
+RESULT tb_link_monitor PASS
+RESULT tb_osd_lines PASS
+RESULT tb_proc_gray PASS
+RESULT tb_rotate_mapper PASS
+RESULT tb_rotate_window PASS
+RESULT tb_sync_fifo PASS
+RESULT tb_timing PASS
+RESULT tb_uart_decode_bits PASS
+RESULT tb_udp_parser PASS
+RESULT tb_udp_reasm PASS
+RESULT tb_v50_rowmath PASS
+RESULT tb_v50_rows PASS
+RESULT tb_v50_rows_prod PASS
+RESULT tb_v571_allow_lead PASS
+RESULT tb_v57_first_ar PASS
+RESULT tb_v57_rdw_copy PASS
+RESULT tb_v58_full_done PASS
+RESULT tb_v5_bank PASS
+RESULT tb_v5_copy PASS
+RESULT tb_v5_gated PASS
+RESULT tb_v5_lock PASS
+RESULT tb_v5_saver PASS
+RESULT tb_v5_vblast PASS
+RESULT tb_v6_cover_gate PASS
+RESULT tb_v6_ingress_integrity PASS
+RESULT tb_v6_pingpong PASS
+RESULT tb_v6_tail_bank PASS
+RESULT tb_v6_vblank_copy PASS
+RESULT tb_zoom_mapper PASS
+
+new assertions in V7.6c (tb_link_monitor):
+  PASS a >65.5 s gap saturates at 0xFFFF instead of wrapping
+  PASS gapclr zeroes the interval stats and re-baselines cleanly
+  PASS gapclr leaves drop/bad/pkts/bytes alone
+  PASS interval stats re-calibrate after the clear
 
 new assertions in V7.6b (tb_link_monitor):
   PASS hb_slow clear while the heartbeat is at nominal rate

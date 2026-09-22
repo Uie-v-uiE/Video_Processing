@@ -56,7 +56,10 @@ module eth_udp_video_top #(
     // 跨域（像素域 OSD / PS 侧 GPIO）由消费方用 snap_cross 完成。
     output wire [319:0] lm_bus,
     output wire         lm_bus_tog,
-    output wire         lm_hb
+    output wire         lm_hb,
+    // v7.6c：帧间隔统计清零的选择位（来自 PS 侧 GPIO，fclk0 域的电平）。gap_max 是
+    // 终身保持的，一次长空闲就会污染它（还会因回卷读小），所以测量前要有归零入口。
+    input  wire         gapclr_sel
 );
     localparam [31:0] BANK0 = BASE_ADDR;
     localparam [31:0] BANK1 = BASE_ADDR + 32'h0008_0000;
@@ -230,6 +233,14 @@ module eth_udp_video_top #(
 
     // v7.6 (P0-A)：把「这一拍的 CDC 写被 fifo_full 挡住了」变成可读数——这是上板
     // 唯一真实的丢数据通道（p_good 硬接 1 ⇒ frame_reasm 的坏包统计是死的）。
+    // gapclr_sel 是 fclk0 域的电平，进本域必须先 3FF（工程里 src_sel/allow_copy 同一套路）。
+    // 它是准静态控制位、不是脉冲，所以同步后直接当电平用，不需要握手。
+    (* ASYNC_REG = "TRUE" *) reg gc0, gc1, gc2;
+    always @(posedge gmii_rx_clk or negedge rst_n) begin
+        if (!rst_n) {gc2, gc1, gc0} <= 3'b0;
+        else        {gc2, gc1, gc0} <= {gc1, gc0, gapclr_sel};
+    end
+
     wire cdc_wr_req = fb_wr_en || reasm_flush || flush_pend;
     link_monitor #(
         .CLK_HZ(125_000_000), .LIVE_MS(16'd200)
@@ -238,7 +249,7 @@ module eth_udp_video_top #(
         .cdc_wr_req(cdc_wr_req), .cdc_full(fifo_full),
         .frame_done(frame_done), .frame_abort(reasm_fabort),
         .frame_err(reasm_ferr), .rows_missed(reasm_rows_miss),
-        .in_pkts(s_pkts), .in_bytes(s_bytes),
+        .in_pkts(s_pkts), .in_bytes(s_bytes), .gapclr(gc2),
         .lm_bus(lm_bus), .lm_bus_tog(lm_bus_tog), .lm_hb(lm_hb)
     );
 

@@ -10,7 +10,8 @@
  *     其它 lane 号硬件返回 0xDEADBEEF，一眼能看出号写错了。
  *
  * 用法：
- *   node health_read.mjs [--gpio0 41200000] [--gpio1 41210000] [--once]
+ *   node health_read.mjs [--gpio0 41200000] [--gpio1 41210000] [--once] [--gapclr]
+ *   --gapclr 读之前把「帧间隔统计」归零（lane3/4/5）；其余 lane 仍是自启动以来。
  *   前置：板子上电、bit 已下载、hw_server 在跑（见 HOST_GUIDE.md）。
  *   两个基地址在 build/v76_build.log 的 `ADDR GPIO0 = …` / `ADDR GPIO1 = …` 行里。
  *
@@ -33,6 +34,11 @@ const PORT  = Number(get('port', 3121));
 const GPIO0 = '0x' + String(get('gpio0', '41200000'));
 const GPIO1 = '0x' + String(get('gpio1', '41210000'));
 const PASSES = get('once') ? 1 : 2;
+// v7.6c：--gapclr 会在读之前把 gpio_o[26] 拉高一下，把**帧间隔统计**归零。
+// 为什么需要：gap_max 是终身保持的，而两件事会污染它 —— ① 上一次实验留下的长空闲；
+// ② 修好之前 16bit 毫秒计数还会回卷。没有归零入口，lane3/4/5 就只能当“自启动以来”看。
+const CLR = get('gapclr', false) === true;
+const CLR_BIT = 26;
 
 // 两遍比对的判据必须按"这个 lane 是不是单调"来分：
 //   · 单调 lane（累计计数）只有在**第二次比第一次小**时才是撕烈 —— 推流过程中
@@ -44,9 +50,9 @@ const LANES = [
   ['drop_words',   '被 fifo_full 挡住而永久消失的 16bit 字数（板上唯一真实丢数据通道）'],
   ['bad|err',      '低16=被作废的帧数，高16=坏包数（上板 p_good 恒 1 ⇒ 坏包应为 0）'],
   ['stall|rows',   '低16=距上一个完整帧过了多少 ms，高16=作废帧最多缺几行'],
-  ['gap_last',     '最近一帧间隔 ms（≈1000/fps）'],
-  ['gap_min|max',  '低16=最小间隔，高16=最大间隔 ms'],
-  ['gap_sum',      'Σ间隔 ms；平均 = gap_sum / (frames_ok - 1)'],
+  ['gap_last',     '最近一帧间隔 ms（≈1000/fps）；只统计自上次 --gapclr 以来'],
+  ['gap_min|max',  '低16=最小间隔，高16=最大间隔 ms（终身保持，测量前用 --gapclr 归零）'],
+  ['gap_sum',      'Σ间隔 ms；平均 = gap_sum / (frames_ok - 1)（>65.5 s 的间隔饱和在 0xFFFF）'],
   ['cdc_episodes', 'CDC 从"没满"跳到"满"的次数'],
   ['flags',        'bit0 丢过字 / bit1 作废过帧 / bit2 灌满过 / bit3 流活着 / bit4 间隔已校准'],
   ['pkts',         '收到的 UDP 包数'],
@@ -69,6 +75,15 @@ const HEAD = [
 // 由 Node 侧按 "地址: 数据" 解析。
 const VAL_RE = /VAL\s*[0-9a-fA-F]{1,8}:\s*([0-9a-fA-F]{1,8})/;
 const READ = (addr) => `puts "VAL [mrd -force ${addr} 1]"`;
+
+function clrScript(keepVal) {
+  // 拉高 250 ms 再落下：gapclr 是电平，链路里已经 3FF 同步，短脉冲会被拉长到安全宽度
+  return [...HEAD,
+    `mwr -force ${GPIO0} 0x${(((keepVal | (1 << CLR_BIT)) >>> 0)).toString(16)} 32`,
+    'after 250',
+    `mwr -force ${GPIO0} 0x${(keepVal >>> 0).toString(16)} 32`,
+    'after 50'].join('\n') + '\n';
+}
 
 function passScript(lanes, restoreTo, keep) {
   const L = [...HEAD];
@@ -115,6 +130,7 @@ if (!curRaw) {
 }
 const cur = parseInt(curRaw[1], 16) >>> 0;
 const keep = cur & 0x07ffffff;                       // 清掉 bit[31:27]，保留控制位
+if (CLR) { runXsdb(clrScript(keep), 'clr'); console.log('[HEALTH] 已把帧间隔统计归零（gpio_o[26] 拉高 250 ms）'); }
 const want = [...Array(10).keys(), 31];
 const vals = new Map();
 for (let p = 0; p < PASSES; p++) {

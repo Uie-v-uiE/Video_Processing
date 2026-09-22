@@ -37,6 +37,9 @@ module link_monitor #(
     input  wire        frame_done,     // 有一帧被完整接收并通过验收门
     input  wire        frame_abort,    // 有一帧字节数已到但验收失败（被作废）
     input  wire        frame_err,      // 收到一个坏包（上板时恒 0，见文件头）
+    // 清零帧间隔统计。**同源域的电平**（由 eth_udp_video_top 里 3FF 同步好再送进来）。
+    // 只清 gap_*：lane0/1/2/6/8/9 保持「自启动以来」的语义不变。
+    input  wire        gapclr,
     input  wire [15:0] rows_missed,    // 与 frame_abort 同拍有效：本帧缺多少行
     input  wire [31:0] in_pkts,        // frame_reasm.stat_pkts
     input  wire [31:0] in_bytes,       // frame_reasm.stat_bytes
@@ -49,7 +52,7 @@ module link_monitor #(
     localparam integer TC = CLK_HZ / 1000;   // 每毫秒的周期数 = 125000
     localparam [7:0] SETTLE_V = SETTLE;
     // 分频器宽度必须由 TC 算出来。原来写死 [15:0]：125000 装不进 16 bit，
-    // `ms_div == TC-1` 恒假 ⇒ ms_tick 永远不来 ⇒ ms16 / stall / gap / 心跳在板上
+    // `ms_div == TC-1` 恒假 ⇒ ms_tick 永远不来 ⇒ ms32 / stall / gap / 心跳在板上
     // 全死。仿真里把 CLK_HZ 改成 1000（TC=1）完全看不出这个问题。
     // 取证：WARNING [Synth 8-6014] Unused sequential element ms_div_reg was removed.
     localparam integer DW = $clog2(TC + 1);
@@ -57,17 +60,21 @@ module link_monitor #(
     // ---------------------------------------------------------------- 时基
     reg [DW-1:0] ms_div;
     reg        ms_tick;
-    reg [15:0] ms16;                          // 自由运行的毫秒计（16bit ⇒ 65.5 s 回卷）
-    reg [15:0] ms_last16;
+    // 毫秒计数必须 32bit。原来 16bit 让 gap = ms_now − ms_last 在超过 65.5 s 的间隔上
+    // 回卷：2026-09-22 拔线实验实测到 gap_max 停在 34066 ms，那是「真实计数 mod 65536」的
+    // 假数；而 gap_max 是终身保持的，一次长空闲就把它永久污染，之后更大的间隔还会因为
+    // 回卷而读起来更小 —— 两个方向都会说谎。仪表的数字宁可饱和也不许绕回去。
+    reg [31:0] ms32;                          // 自由运行的毫秒计（32bit ⇒ 49 天不回卷）
+    reg [31:0] ms_last32;
     always @(posedge clk or negedge rst_n) begin
         if (!rst_n) begin
-            ms_div <= 0; ms_tick <= 0; ms16 <= 0; lm_hb <= 0;
+            ms_div <= 0; ms_tick <= 0; ms32 <= 0; lm_hb <= 0;
         end else begin
             ms_tick <= 1'b0;
             if (ms_div == TC-1) begin
                 ms_div <= 0;
                 ms_tick <= 1'b1;
-                ms16    <= ms16 + 1'b1;
+                ms32    <= ms32 + 1'b1;
                 lm_hb   <= ~lm_hb;
             end else begin
                 ms_div <= ms_div + 1'b1;
@@ -84,12 +91,14 @@ module link_monitor #(
     reg [15:0] stall_ms;      // 距上一个 frame_done 过了多少 ms（活看门狗）
     reg [15:0] gap_last, gap_min, gap_max;
     reg [31:0] gap_sum;
-    reg        have_base;     // 至少收到过 1 帧（ms_last16 基准已建立）
+    reg        have_base;     // 至少收到过 1 帧（ms_last32 基准已建立）
     reg        gap_valid;     // gap_min/gap_max 已被至少 2 帧校准
     reg        full_d;
 
     wire cdc_rise = cdc_full & ~full_d;
-    wire [15:0] gap_new = ms16 - ms_last16;
+    wire [31:0] gap_raw = ms32 - ms_last32;
+    // 超过 65535 ms 一律饱和：读数 0xFFFF 的含义是「至少 65.5 s」
+    wire [15:0] gap_new = (gap_raw > 32'h0000FFFF) ? 16'hFFFF : gap_raw[15:0];
     // 16bit 字段一旦越过 65535 就饱和而不是回卷：健康数字回卷到 0 会被读成"没问题"，
     // 这是比少报更坏的错。
     wire [15:0] bad16 = (frames_bad > 32'h0000FFFF) ? 16'hFFFF : frames_bad[15:0];
@@ -101,9 +110,16 @@ module link_monitor #(
             drop_words<=0; frames_bad<=0; pkt_err<=0; cdc_ep<=0;
             rows_miss_max<=0; stall_ms<=0;
             gap_last<=0; gap_min<=0; gap_max<=0; gap_sum<=0;
-            have_base<=0; gap_valid<=0; full_d<=0; ms_last16<=0;
+            have_base<=0; gap_valid<=0; full_d<=0; ms_last32<=0;
         end else begin
             full_d <= cdc_full;
+
+            // 帧间隔统计清零。撤销 have_base 基准，于是下一个 frame_done 只重建基准、
+            // 不会把「空闲到现在」折进间隔（与判据 D 同一套道理）。
+            if (gapclr) begin
+                gap_last<=0; gap_min<=0; gap_max<=0; gap_sum<=0; gap_valid<=0;
+                have_base<=0;
+            end
 
             // 每拍都可能：丢字
             if (cdc_wr_req && cdc_full) drop_words <= drop_words + 1'b1;
@@ -118,8 +134,8 @@ module link_monitor #(
 
             if (frame_done) begin
                 stall_ms  <= 0;
-                ms_last16 <= ms16;
-                // 第一个 frame_done 只建立基准（ms_last16），量不出间隔；
+                ms_last32 <= ms32;
+                // 第一个 frame_done 只建立基准（ms_last32），量不出间隔；
                 // 从第二个起才有 gap_last/min/max，否则 min 会被"上电到现在"污染。
                 if (have_base) begin
                     gap_last <= gap_new;
