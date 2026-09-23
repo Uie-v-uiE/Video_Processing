@@ -110,6 +110,14 @@ static int parse_bits(const char *s, u32 *out)
     return n;
 }
 
+/* 上电自动挂载 + 自动播放（用户要的"上电就有画面"）。
+ * 为什么默认开：PL 侧的片源仲裁（ISSUES #49）已经保证"ETH 有流时 PS 让位、停流后自动接回"，
+ * 所以自动播放不会和推流抢屏幕 —— 两路可以同时插着。
+ * 代价说清楚：`XSdPs_CfgInitialize` 每个上电周期只成功一次（ISSUES #45），把挂载提前到上电，
+ * 就等于把"那一次"用在上电时刻；卡没插好时，后面手敲 `SD` 也会失败。今天不自动挂载、
+ * 第一次 `SD` 失败之后再敲同样会失败（同一个 #45），所以这不是新引入的失效模式。 */
+static int autoplay = 1;
+
 static void uart_poll(void)
 {
     static char buf[32];
@@ -161,13 +169,21 @@ static void uart_poll(void)
                     ctrl_set_src(1);
                     ps_publish();       /* 新协议：PL 只在收到发布脉冲后才搬一次 */
                     xil_printf("[CMD] FILL diagnostic via PS DDR\r\n");
+                } else if (!strncmp(buf, "AUTOPLAY0", 9)) {
+                    autoplay = 0;
+                    xil_printf("[SD] autoplay off (only affects the next boot)\r\n");
+                } else if (!strncmp(buf, "AUTOPLAY1", 9)) {
+                    autoplay = 1;
+                    xil_printf("[SD] autoplay on (only affects the next boot)\r\n");
                 } else if (!strncmp(buf, "SD", 2)) {
                     if (sd_mount() == 0) sd_status();
                     else xil_printf("[SD] mount failed: %s\r\n", sd_err());
                 } else if (!strncmp(buf, "PLAY", 4)) {
                     ctrl_set_src(1);
                     if (!sd_play(1)) xil_printf("[SD] play refused: %s\r\n", sd_err());
-                    else xil_printf("[SD] playing (STOP to end; cable must stay out)\r\n");
+                    /* 旧文案写的是"cable must stay out"——那是 #49 之前没有仲裁时的规矩，
+                     * 现在停流会自动交回，留着这句话只会误导下一个操作的人。 */
+                    else xil_printf("[SD] playing (STOP to end; ETH 有流时会自动让位)\r\n");
                 } else if (!strncmp(buf, "STOP", 4)) {
                     (void)sd_play(0);
                     xil_printf("[SD] stopped at frame %d\r\n", (int)sd_frame_now());
@@ -205,7 +221,20 @@ int main(void)
     ctrl_apply();
 
     xil_printf("[BOOT] UDP RX is in PL (RGMII PHY2). PS is control + SD playback.\r\n");
-    xil_printf("[BOOT] uart115200: 00111 SRC0 SRC1 TH80 ZOOM0 ZOOM1 BILIN0 BILIN1 FILL SD PLAY STOP FRAME0 STAT\r\n");
+    xil_printf("[BOOT] uart115200: 00111 SRC0 SRC1 TH80 ZOOM0 ZOOM1 BILIN0 BILIN1 FILL SD PLAY STOP FRAME0 AUTOPLAY0 STAT\r\n");
+
+    /* 上电自动挂载 + 起播：不需要任何人敲命令，屏幕就有画面。
+     * 与仲裁的分工要写清：自动播放只让 PS 这一路"有货"；屏幕归谁仍是 PL 的 src_arb 决定，
+     * 所以插着网线同时推流不会被打扰（ETH 活着时 PS 的发布只是挂起，停流后自动接回）。 */
+    if (autoplay) {
+        if (sd_mount() == 0) {
+            sd_status();
+            ctrl_set_src(1);
+            if (sd_play(1)) xil_printf("[SD] autoplay: playing\r\n");
+        } else {
+            xil_printf("[SD] autoplay: mount failed: %s\r\n", sd_err());
+        }
+    }
 
     while (1) {
         uart_poll();

@@ -83,13 +83,52 @@ module pl_video_top #(
     );
     wire rst_pix_n = sys_rst_n & locked;
 
-    wire p1, p2;
+    wire p1, p2, k1_up;
     key_debounce #(.CNT_MAX(1_000_000)) u_k1 (
-        .clk(sys_clk), .rst_n(sys_rst_n), .key_n(key1_n), .pulse(p1), .key_stable()
+        .clk(sys_clk), .rst_n(sys_rst_n), .key_n(key1_n), .pulse(p1), .key_stable(k1_up)
     );
     key_debounce #(.CNT_MAX(1_000_000)) u_k2 (
         .clk(sys_clk), .rst_n(sys_rst_n), .key_n(key2_n), .pulse(p2), .key_stable()
     );
+
+    // ---- 同一个按键的两种语义：短按 = 旋转 ±1°（R12/R13 板级验过，不动它），
+    //      长按 ≈1.2 s = 切换片源模式。长按事件用**翻转位**跨域（脉冲跨域会被吃掉，
+    //      与 `ps_publish` / ISSUES #36 是同一课）。
+    //      已知代价：长按的那一拍也会先发一个短按脉冲 ⇒ 切模式时顺带 +1°。
+    //      不去改旋转的触发时机，是为了保住已经验过的行为。
+    wire ltog;
+    key_long #(.HOLD_CYC(60_000_000)) u_k1l (     // sys_clk 50 MHz ⇒ 1.2 s
+        .clk(sys_clk), .rst_n(sys_rst_n), .pressed(~k1_up), .tog(ltog));
+
+    localparam [1:0] M_AUTO = 2'd0, M_ETH = 2'd1, M_PS = 2'd3, M_CARD = 2'd2;
+    // 用**格雷码**排四个模式：00→01→11→10→00，每次只动一位 ⇒ 同步到别的域时
+    // 不可能采到"两位同时变"的中间态（二进制 01→10 会先经过 00 或 11，那是另一个模式）。
+    (* ASYNC_REG = "TRUE" *) reg [2:0] lsync;
+    always @(posedge clk_pix or negedge rst_pix_n) begin
+        if (!rst_pix_n) lsync <= 3'b111;
+        else            lsync <= {lsync[1:0], ltog};
+    end
+    wire long_pix = lsync[1] ^ lsync[2];
+
+    reg [1:0] mode;
+    always @(posedge clk_pix or negedge rst_pix_n) begin
+        if (!rst_pix_n) mode <= M_AUTO;
+        else if (long_pix)
+            mode <= (mode == M_AUTO) ? M_ETH  :
+                    (mode == M_ETH)  ? M_PS   :
+                    (mode == M_PS)   ? M_CARD : M_AUTO;
+    end
+    wire mode_eth  = (mode == M_ETH);
+    wire mode_ps   = (mode == M_PS);
+    wire mode_card = (mode == M_CARD);
+
+    (* ASYNC_REG = "TRUE" *) reg [1:0] ms0, ms1, ms2;
+    always @(posedge axi_clk or negedge axi_rst_n) begin
+        if (!axi_rst_n) begin ms0 <= M_AUTO; ms1 <= M_AUTO; ms2 <= M_AUTO; end
+        else begin ms0 <= mode; ms1 <= ms0; ms2 <= ms1; end
+    end
+    // 图卡模式不参与仲裁（保持 AUTO）：它只是"显示什么"，不是"谁在搬"
+    wire [1:0] arb_sel = (ms2 == M_ETH) ? 2'd1 : (ms2 == M_PS) ? 2'd2 : 2'd0;
     wire [8:0] angle;
     wire rotate_active;
     angle_ctrl u_ang (
@@ -244,6 +283,7 @@ module pl_video_top #(
     wire owner_eth;
     src_arb #(.T_OFF_CYC(2_000_000)) u_arb (   // AXI 域 100 MHz ⇒ 20 ms 静默才让给 PS
         .clk(axi_clk), .rst_n(axi_rst_n), .eth_live(eth_live), .eth_tb_ok(eth_tb_ok),
+        .sel(arb_sel),
         .row_busy(row_busy), .fill_busy(fill_busy), .owner_eth(owner_eth));
     // 名字留着：下面每一处 `eth_mode ? row_* : fill_*` 都是"这一拍搬运机归谁"的意思，
     // 只是判据从"收过包"换成了"仲裁过的 owner"。保持同一个名字 ⇒ 这次改动不需要动那 14 处 mux。
@@ -395,7 +435,13 @@ module pl_video_top #(
         if (!rst_pix_n) ps_src_seen <= 1'b0;
         else if (pub_consume) ps_src_seen <= 1'b1;
     end
-    wire [15:0] bram_or_hold = (eth_link_pix | ps_src_seen) ? fb_out : 16'hF800;
+    // 片源存在性判据（#47 加的那一项）现在**只用来决定"看不看 fb"**，不再决定"涂不涂红"：
+    // 没有片源时显示的是会动的图卡（见下面 pix_left/pix_right），屏幕从此不会是红的或黑的。
+    // 这也是图卡存在的理由之一：#47 之前"看不见 PS 片源"和"没搬片源"在屏幕上长得一模一样。
+    wire have_src = eth_link_pix | ps_src_seen;
+    // 模式决定"看哪一路"：锁 ETH / 锁 PS 时强制看 fb；锁图卡时强制看图卡；AUTO 交回给
+    // PS 的 SRC0/SRC1 命令（src_use），行为与 #23/#25 一致。
+    wire fb_vis   = (mode_card ? 1'b0 : (mode_eth | mode_ps) ? 1'b1 : src_use) && have_src;
 
     assign m_axi_arid = 6'd0;
 
@@ -451,14 +497,17 @@ module pl_video_top #(
         .rd_clk(clk_pix), .rd_addr(rd_addr_q), .rd_data(fb_rd)
     );
 
+    // SRC0 位置原来是静止彩条（`color_bar`）。换成**会动的测试图卡**：静止图案分不清
+    // "通路在刷新"和"卡在最后一帧"，而这张卡自带移动块 + 帧号二值格（见 test_card.v 文件头）。
+    // 端口与 color_bar 同形、输出同样只打一拍 ⇒ PROC_LAT 与 bar_l_d4/bar_r_d2 那些抽头不用动。
     wire [15:0] bar_l0, bar_r0;
     reg  [15:0] bar_l_d1, bar_l_d2, bar_l_d3, bar_l_d4, bar_r_d1, bar_r_d2;
-    color_bar #(.H_ACTIVE(IMG_W), .V_ACTIVE(IMG_H)) u_bar_l (
-        .clk(clk_pix), .rst_n(rst_pix_n),
+    test_card #(.H_ACTIVE(IMG_W), .V_ACTIVE(IMG_H)) u_bar_l (
+        .clk(clk_pix), .rst_n(rst_pix_n), .vs(vs),
         .x(cx), .y(cy), .de(de), .rgb565(bar_l0)
     );
-    color_bar #(.H_ACTIVE(IMG_W), .V_ACTIVE(IMG_H)) u_bar_r (
-        .clk(clk_pix), .rst_n(rst_pix_n),
+    test_card #(.H_ACTIVE(IMG_W), .V_ACTIVE(IMG_H)) u_bar_r (
+        .clk(clk_pix), .rst_n(rst_pix_n), .vs(vs),
         .x(sx_r), .y(sy_r), .de(de_d[2]), .rgb565(bar_r0)
     );
     always @(posedge clk_pix) begin
@@ -474,10 +523,10 @@ module pl_video_top #(
     end
     wire left_pix = left_sel_d1;
 
-    wire [15:0] pix_left  = left_pix ? (oob_fb_d1 ? 16'h0000 : (src_use ? bram_or_hold : bar_l_d4))
+    wire [15:0] pix_left  = left_pix ? (oob_fb_d1 ? 16'h0000 : (fb_vis ? fb_out : bar_l_d4))
                                       : 16'h0000;
     wire [15:0] pix_right = left_pix ? 16'h0000
-                                      : (oob_fb_d1 ? 16'h0000 : (src_use ? bram_or_hold : bar_r_d2));
+                                      : (oob_fb_d1 ? 16'h0000 : (fb_vis ? fb_out : bar_r_d2));
     wire oob_l_pix = left_pix & oob_fb_d1;
     wire oob_r_pix = (~left_pix) & oob_fb_d1;
 

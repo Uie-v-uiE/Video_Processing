@@ -24,15 +24,22 @@ module src_arb #(
     input  wire rst_n,
     input  wire eth_live,     // 已在本域同步好的电平（慢变量，ms 级）
     input  wire eth_tb_ok,    // 量 eth_live 的那个源时基仍然准（0=被拉慢或停掉 ⇒ 不信 eth_live）
+    input  wire [1:0] sel,    // 00=AUTO 01=锁ETH 10=锁PS 11=按 AUTO 处理（图卡模式不改仲裁）
     input  wire row_busy,     // ETH 引擎（axi_frame_writer_gated）正在拷贝
     input  wire fill_busy,    // PS 引擎（axi_frame_writer64）正在拷贝
     output reg  owner_eth     // 1 = AXI 读口与帧缓存写口归 ETH 引擎
 );
+    // 手动锁**只改"谁想要总线"，不改"什么时候能换手"**：换手仍然只在两个引擎都空闲时发生。
+    // 直接在输出上加一个 mux 是最容易想到的写法，也是错的 —— 那会在一次拷贝中途把选择位翻掉，
+    // 留下半开的 AXI 读突发（这正是本模块要消灭的那个老毛病）。
+    wire force_eth = (sel == 2'd01);
+    wire force_ps  = (sel == 2'd10);
+
     reg [31:0] quiet;
     wire       both_idle = ~row_busy & ~fill_busy;
     // 时基不准时一律当作"没有流"：宁可让 PS 接管（它至少能立刻出画面），
     // 也不要在一个无法证实的电平上锁死显示端。
-    wire       eth_wanted = eth_live & eth_tb_ok;
+    wire       eth_wanted = force_eth ? 1'b1 : force_ps ? 1'b0 : (eth_live & eth_tb_ok);
 
     always @(posedge clk or negedge rst_n) begin
         if (!rst_n) begin

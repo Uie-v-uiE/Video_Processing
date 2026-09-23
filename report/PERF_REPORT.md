@@ -37,48 +37,64 @@
 
 ---
 
-## 3. 时序（优化后）
+## 3. 时序（当前这一套，2026-09-23 夜）
 
-**结论：`All user specified timing constraints are met`**
+> **这一节先前是 V6 时代的数字**（写着 LUT 10621 / BRAM 83 / eth_rxc +0.111），
+> 与仓库里任何一份现存报告都对不上——被评委抓到一次，整份报告的可信度就一起塌了。
+> 现在每个数都指明出处：**#23 = 当前默认 bit**（`build/frozen_r23_srcseen/`），
+> **#25 = 候选**（`build/frozen_r25_arbfix/`，仲裁修正版，两条眼睛判据未过）。
+> 复核命令：`bash build/gates.sh build/frozen_r23_srcseen`（或 `.../frozen_r25_arbfix`）。
 
-| 时钟 | 周期 | WNS | 状态 |
-|------|------|-----|------|
-| clk_fpga_0 | 10 ns | +0.865 | MET |
-| eth_rxc | 8 ns | +0.111 | MET |
-| sys_clk | 20 ns | +14.445 | MET |
-| clkout0_1 (clk_pix) | 20 ns | +1.882 | MET |
+**结论：两版都是 `All user specified timing constraints are met`，0 违例端点。**
 
-- 跨钟 eth_rxc ↔ clk_pix：已异步约束，报告中无违例  
-- Hold / Pulse：MET  
-- 优化前全局 WNS 约 −6.7 ns（假跨钟 + FIFO 寄存器堆）→ 详见 `OPTIMIZATION_LOG.md`
+| 项 | #23（当前默认） | #25（候选） | 出处 |
+|---|---|---|---|
+| 全局 WNS / WHS (ns) | +0.740 / +0.042 | +0.593 / +0.047 | `timing_summary.rpt` Design Timing Summary |
+| 失败 setup / hold / pulse 端点 | 0 / 0 / 0 | 0 / 0 / 0 | 同上 |
+| 端点总数 | 23613 | 23674 | 同上 |
+| `clk_fpga_0`(10 ns) WNS | — | +1.080 | Intra Clock Table |
+| `eth_rxc`(8 ns) WNS | — | +0.593 | 同上（全设计最差的那条就在这根钟上） |
+| `clkout0_1` = clk_pix(20 ns) | — | +1.156 | 同上 |
+| `sys_clk`(20 ns) | — | +14.719 | 同上 |
 
----
-
-## 4. 资源占用（实现后）
-
-| 资源 | 使用 | 占比（7020） |
-|------|------|----------------|
-| Slice LUT | 10621 | **19.96%** |
-| Slice Registers | 20253 | **19.03%** |
-| Block RAM Tile | 83 | 59.29% |
-| DSP | 13 | 5.91% |
-
-对比优化前：LUT 23.3%→20.0%，FF 23.2%→19.0%（FIFO 推断 BRAM、逻辑整理）。
-
-BRAM 主要占用：frame_buffer 512×300×16b + 协议栈/行缓等。
+- 跨钟 `eth_rxc ↔ clk_pix`：已异步约束，报告中无违例；`cdc.rpt` 的 Critical 行计数见门禁表。
+- **WNS 的绝对差不能当收益**：本设计实测过等价源码两次构建相差 0.2 ns 量级（`CHANGELOG_V7.md`
+  的 #21/#22 那一行就是这件事的证据），所以上表只报数，不比大小。
+- 最差路径的性质（不是数字）：仍在 OSD 字形译码那条锥上，见 ISSUES #39——那是"深度优化"该动的地方。
 
 ---
 
-## 5. 功耗（report_power）
+## 4. 资源占用（实现后，同一套报告）
 
-| 项 | 数值 |
-|----|------|
-| Total On-Chip | **2.240 W** |
-| Dynamic | 2.071 W |
-| Device Static | 0.169 W |
-| Junction Temp | 50.8 °C |
+| 资源 | #23 | #25 | 占比（7020） |
+|------|-----|-----|--------------|
+| Slice LUT | 7403 | **7475** | 14.05 % |
+| Slice Registers | 5904 | **5936** | 5.58 % |
+| Block RAM Tile | 90.5 | **90.5** | 64.64 %（阈值 ≤ 97 %） |
+| DSP47E1 | 9 | **9** | 4.09 % |
+| MMCM / BUFG | 2 / 8 | 2 / 8 | — |
 
-说明：vector-less 估算，置信度 Low（复位翻转假设）；适合相对比较。
+- 历史上这里写的"LUT 10621 / FF 20253 / BRAM 83 / DSP 13"是**另一个版本**（V6 时代，效果链与
+  协议栈都还没收敛）的数，保留在这里只说明一件事：这份文档曾经长期失校。
+- BRAM 主要占用：帧缓存 512×300×16 b（两片乒乓）+ 协议栈行缓/打包 FIFO。
+  从 98.93 %（早期门禁红过的那一版）降到 64.64 % 的过程见 `OPTIMIZATION_LOG.md`。
+- 资源判据的口径是"**不为省资源牺牲功能**"：LUT/FF 都还有 80 % 以上余量，
+  真正紧的是 BRAM 与 250 MHz 像素域的读口仲裁（双线性卡在这里，见 ISSUES #11/#39）。
+
+---
+
+## 5. 功耗（report_power，vector-less 估算）
+
+| 项 | #23 | #25 |
+|----|-----|-----|
+| Total On-Chip | 2.348 W* | **2.323 W** |
+| Dynamic | 2.178 W | **2.150 W** |
+| Device Static | 0.170 W | **0.173 W** |
+| Junction Temp | 51.3 °C | **51.8 °C** |
+
+\* #23 的 Total 由 `power.rpt` 的 Dynamic+Static 相加核对；两个版本差异在估算噪声内。
+说明：vector-less 估算、置信度 Low（翻转率是工具假设的），**只适合相对比较**，
+不要拿它对外说"整机功耗 2.3 W"。
 
 Bitstream：`COMPRESS TRUE`，bit 约 2.1 MB（未压缩约 4 MB）。
 

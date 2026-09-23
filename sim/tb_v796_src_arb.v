@@ -19,20 +19,21 @@ module tb_v796_src_arb;
 
     reg  eth_live = 1'b0;
     reg  tb_ok    = 1'b1;             // 量 eth_live 的那个源时基是否还准
+    reg  [1:0] sel = 2'd0;            // 0=AUTO 1=锁ETH 2=锁PS（长按按键切来的）
     reg  row_busy = 1'b0, fill_busy = 1'b0;
     wire owner_a, owner_b, owner_d;
 
     // 被测：机制用小常数，跑得快
     src_arb #(.T_OFF_CYC(200)) u_a (
-        .clk(clk), .rst_n(rst_n), .eth_live(eth_live), .eth_tb_ok(tb_ok),
+        .clk(clk), .rst_n(rst_n), .eth_live(eth_live), .eth_tb_ok(tb_ok), .sel(sel),
         .row_busy(row_busy), .fill_busy(fill_busy), .owner_eth(owner_a));
     // 对照 1：滞回长度设成 0 ⇒ 除了 busy 互锁以外没有任何东西推迟让位
     src_arb #(.T_OFF_CYC(0)) u_b (
-        .clk(clk), .rst_n(rst_n), .eth_live(eth_live), .eth_tb_ok(tb_ok),
+        .clk(clk), .rst_n(rst_n), .eth_live(eth_live), .eth_tb_ok(tb_ok), .sel(sel),
         .row_busy(row_busy), .fill_busy(fill_busy), .owner_eth(owner_b));
     // 对照 2：**默认参数**（硬件用的就是它）⇒ 用来证明 20 ms 这件事真的在 RTL 里
     src_arb u_d (
-        .clk(clk), .rst_n(rst_n), .eth_live(eth_live), .eth_tb_ok(tb_ok),
+        .clk(clk), .rst_n(rst_n), .eth_live(eth_live), .eth_tb_ok(tb_ok), .sel(sel),
         .row_busy(row_busy), .fill_busy(fill_busy), .owner_eth(owner_d));
 
     integer errors = 0, flips = 0, i;
@@ -143,6 +144,27 @@ module tb_v796_src_arb;
         tb_ok = 1'b1;                               // 时钟恢复（重新推流/链路回来）
         repeat (6) @(posedge clk);
         expect("E6 recovery: ETH takes the bus back at once",     owner_a === 1'b1);
+
+        // ---- F 手动锁（长按按键切来的 sel）：只改"谁想要总线"，不改"什么时候能换手" ----
+        eth_live = 1'b0; tb_ok = 1'b1; sel = 2'd0;
+        repeat (600) @(posedge clk);
+        expect("F0 AUTO with no stream: PS owns", owner_a === 1'b0);
+        sel = 2'd1;                                // 锁 ETH —— 明知没有流，就是要占住总线
+        repeat (6) @(posedge clk);
+        expect("F1 force-ETH takes the bus although eth_live=0", owner_a === 1'b1);
+        fill_busy = 1'b1;
+        sel = 2'd2;                                // 当场改锁 PS：PS 引擎正在拷贝，不许切
+        repeat (600) @(posedge clk);
+        expect("F2 force-PS still waits for fill_busy (互锁没被绕开)", owner_a === 1'b1);
+        fill_busy = 1'b0;
+        repeat (300) @(posedge clk);
+        expect("F3 force-PS hands over once idle", owner_a === 1'b0);
+        sel = 2'd0; eth_live = 1'b1;
+        repeat (6) @(posedge clk);
+        expect("F4 AUTO resumes following eth_live", owner_a === 1'b1);
+        sel = 2'd3; eth_live = 1'b0;               // 11 是保留值：必须按 AUTO 处理，不能当"锁 PS"
+        repeat (600) @(posedge clk);
+        expect("F5 sel=11 behaves as AUTO", owner_a === 1'b0);
 
         if (errors == 0) $display("PASS tb_v796_src_arb");
         else             $display("FAIL tb_v796_src_arb errors=%0d", errors);

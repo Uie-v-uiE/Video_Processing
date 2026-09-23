@@ -49,7 +49,7 @@ module tb_v80_ku5p_cmd;
     wire [7:0]  period_s;
     wire [15:0] cmds_ok, cmds_bad;
 
-    ku5p_cmd #(.DEF_PERIOD(8'd1), .MAX_LEN(4'd8)) dut (
+    ku5p_cmd #(.DEF_PERIOD(8'd1)) dut (
         .clk(clk), .rst_n(rst_n),
         .p_data(p_data), .p_valid(p_valid), .p_sof(p_sof), .p_eof(p_eof), .p_good(p_good),
         .cmd_clr(cmd_clr), .cmd_snap(cmd_snap), .period_s(period_s),
@@ -105,12 +105,11 @@ module tb_v80_ku5p_cmd;
         end
     endtask
 
-    // 临时探针：包尾那一拍把 DUT 的判定中间量打出来（定位 SPD 不匹配用）
-    // （留着：这三行只多打 12 行 INFO，下次谁改匹配逻辑，红的时候第一眼就能看到 n_e/head/val）
+    // 探针跟着实现走（它是观测，不是判据）：逐字节状态机版本看 st/acc 就够
     always @(posedge clk) if (p_eof)
-        $display("MON t=%0t n_e=%0d sh_e=%h head=%h w0=%h clr=%b snp=%b spd=%b val=%0d ok=%b bad=%b",
-                 $time, dut.n_e, dut.sh_e, dut.head, dut.w0,
-                 dut.c_clr, dut.c_snap, dut.c_spd, dut.spd_val, dut.any_ok, dut.bad_cmd);
+        $display("MON t=%0t st=%0d st_nxt=%0d acc=%0d clr=%b snp=%b ok=%b bad=%b",
+                 $time, dut.st, dut.st_nxt, dut.acc_nxt, dut.cmd_clr, dut.cmd_snap,
+                 dut.cmds_ok, dut.cmds_bad);
 
     initial begin
         $dumpfile("tb_v80_ku5p_cmd.vcd");
