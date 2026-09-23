@@ -2404,3 +2404,8 @@ MANIFEST 里也这么写着。
 `屏幕归 PS，eth_live=0 时基可信=1 模式=自动 搬运中: PS=0 ETH=0`，同一时刻 `STAT` = `sd=1 playing=1`
 （`board/uart_final_state.txt`）⇒ **停流之后仲裁自己交回给 PS、而且是 AUTO 模式下交回的**。
 明早三条眼睛判据的第一条因此缩小成"画面是不是真的在动"这一件 —— 归属这一步已经有机器读数了。
+
+06:1x 再把"这一版没重跑仲裁"这句欠账也还掉：`arb_handover_test.mjs` 在 #32 的 elf 上跑了一遍，
+**七条判据全绿**（接管 283 ms、交回 **297 ms**、再推 220 ms 可逆、稳占段 27/27 不抖、
+交回后 0/36 不回跳），跑完 `STAT` = `sd=1 playing=1 pub=1`（测前 STOP、测后 PLAY 的括号生效）。
+凭据与原始样本一起冻进 `build/frozen_r32_sdfix/`（`arb_handover_r32.json`，BODY 共 10 个文件）。
