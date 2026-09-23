@@ -2386,3 +2386,12 @@ PL = `#31` bit `efc89779`（与冻结集 md5 相同，没动过）；固件 = �
 （比 `frozen_r31_srcmode/ps_app.elf` 多这几处改动，已冻进 `build/frozen_r32_sdfix/`）；
 串口 `dir map ok` + autoplay 在放，`STAT` = `sd=1 frames=4398 playing=1`。
 网线插着、SD 卡插着、板子通电 —— 明早直接看屏就行。
+
+### 06:0x 追加：并发那一档也顺手复验了（不需要眼睛）
+
+同一份 elf，`video_sender --fps 30 --count 4200` 在跑的同时监听串口 165 s
+（`board/uart_sd_with_eth.txt`）：SD 帧窗 `1804→4304→（整卡放完回绕）→2306`，
+全程 29.2–30.0 fps，**跨 3584 零失败**；旧固件正是在这条工况下必停。
+⇒ #50 那句"演示口径：一幕只按一个片源"的**技术**理由消失了，只剩观感与"显示哪一路待眼看"两条，
+已按这个口径改进 ISSUES。**这条不是**仲裁复验（`arb_handover_test.mjs` 这一版没重跑），
+MANIFEST 里也这么写着。
