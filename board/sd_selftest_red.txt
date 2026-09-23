@@ -1,0 +1,9 @@
+[SD] frame 3100: last 100 frames 29.312 fps (since play 29.819)
+[SD] frame 3200: last 100 frames 29.999 fps (since play 29.824)
+
+[BOOT] video_pipeline PL-UDP control plane
+[CTRL] AXI_GPIO=0x000A5000 en=00 thr=80 src=0 zoom=1 pub=0 bilin=1
+[BOOT] UDP RX is in PL (RGMII PHY2). PS is control + SD playback.
+[BOOT] uart115200: 00111 SRC0 SRC1 TH80 ZOOM0 ZOOM1 BILIN0 BILIN1 FILL SD PLAY STOP FRAME0 AUTOPLAY0 STAT
+[SD] autoplay: mount failed: cluster decode SELF-TEST failed (firmware bug, not the card)
+

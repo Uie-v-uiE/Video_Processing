@@ -102,7 +102,9 @@ static int read_secs(u32 lba, u32 cnt, u8 *dst)
          * 所以这是**定点坏点**而不是竞态：重试对定点坏点没用（它只是让偶发的单点抖动
          * 不掐断演示，这个作用保留）。之后那串 "frame file not found" 是次生的：
          * 一次读失败会把控制器留在未完成的传输里，后面每次读（含目录扫描）都失败。
-         * 定位与下一步（拿到 PC 上逐文件比 md5、看首簇/FAT 项）见 ISSUES #50。 */
+         * 根因（09-24 05:4x 结案）：`dir_lookup` 把 FAT32 目录项的高簇字按大端拼 ⇒
+         * 首簇 ≥65536 的文件（= 起点在数据区 1 GiB 之后）簇号翻错、LBA 冲出分区。
+         * 判据与凭据见 clus_of()/dir_selftest() 与 ISSUES #50。 */
         for (try = 0; try < 2; try++) {
             if (XSdPs_ReadPolled(&Sd, lba, n, dst) == XST_SUCCESS) break;
             err = "SD read failed";
@@ -225,6 +227,11 @@ static int parse_bpb(void)
     return 0;
 }
 
+/* FAT32 目录项里的首簇：偏移 26 是低 16 位、偏移 20 是**高 16 位小端字**。
+ * 这两个字节原来按大端拼（d[20]<<24|d[21]<<16），于是"首簇 ≥ 65536"（= 文件起点在
+ * 数据区 1 GiB 之后）的文件簇号被翻成天文数字 ⇒ ISSUES #50 的那个"定点坏点"。 */
+static u32 clus_of(const u8 *d) { return ((u32)ld16(&d[20]) << 16) | (u32)ld16(&d[26]); }
+
 /* 在根目录里找 8.3 名字，返回首簇；找不到返回 0 */
 static u32 dir_lookup(const char *dotted)
 {
@@ -245,17 +252,40 @@ static u32 dir_lookup(const char *dotted)
                 if (d[11] & 0x08u) continue;             /* 卷标 */
                 if (memcmp(d, key, 11) != 0) continue;
                 found_size = ld32(&d[28]);       /* DIR_Entry.FileSize（小端 4 字节） */
-                /* DIR_FirstClusterHi 在偏移 20，是个 **16 位小端**字：整个字左移 16。
-                 * 原来写成 d[20]<<24 | d[21]<<16 —— 把高字节的两个字节按大端拼了，
-                 * 于是"首簇 ≥ 65536"的文件（= 数据落在 1 GiB 之后）簇号被翻成天文数字，
-                 * LBA 冲出分区 ⇒ `SD read failed`。首簇 < 65536 的文件恰好看不出问题，
-                 * 所以这个 bug 只在第 8 个文件（VIDEO007.BIN，首簇 67206）上发作 ⇒ ISSUES #50。 */
-                return ((u32)ld16(&d[20]) << 16) | (u32)ld16(&d[26]);
+                return clus_of(d);
             }
         }
         c = fat_next(c);
     }
     return 0;
+}
+
+/* 目录项首簇解码的自我判据。用例就是 #50 的现场：真实卡上 VIDEO007.BIN 的高字是
+ * 0x0001、低字是 0x0686 ⇒ 必须解出 67206。最后那条反例断言才是要害 ——
+ * 它要求"旧写法（两个字节按大端拼）"确实给出 16778886，也就是**这条判据分得出对错**；
+ * 否则它只是把实现照抄一遍。 */
+static int dir_selftest(void)
+{
+    /* 小端：d[20] 是高字的**低**字节 */
+    static const u8 v[3][4] = { { 0x00u, 0x00u, 0x05u, 0x00u },
+                                { 0x01u, 0x00u, 0x86u, 0x06u },
+                                { 0x00u, 0x01u, 0x86u, 0x06u } };
+    static const u32 exp[3] = { 5u, 67206u, 16778886u };
+    u8 d[32];
+    u32 i, k, old_style;
+    int ok = 1;
+
+    for (i = 0; i < 3u; i++) {
+        for (k = 0; k < 32u; k++) d[k] = 0u;
+        d[20] = v[i][0]; d[21] = v[i][1]; d[26] = v[i][2]; d[27] = v[i][3];
+        if (clus_of(d) != exp[i]) ok = 0;
+    }
+    old_style = ((u32)v[1][0] << 24) | ((u32)v[1][1] << 16)
+              | (u32)(v[1][2] | ((u16)v[1][3] << 8));
+    if (old_style != 16778886u) ok = 0;      /* 旧写法必须真的错，不然测了个空的 */
+    d[20] = v[1][0]; d[21] = v[1][1]; d[26] = v[1][2]; d[27] = v[1][3];
+    if (clus_of(d) == old_style) ok = 0;     /* 新旧必须给出不同答案 */
+    return ok;
 }
 
 /* 按行扫 META.TXT：行首匹配 KEY= 才认，避免把 FILE 行里的 FRAMES= 当成全局帧数 */
@@ -447,6 +477,10 @@ int sd_mount(void)
         err = "META parser SELF-TEST failed (firmware bug, not the card)";
         return -1;
     }
+    if (!dir_selftest()) {
+        err = "cluster decode SELF-TEST failed (firmware bug, not the card)";
+        return -1;
+    }
     cfg = XSdPs_LookupConfig(SD_BASE);
     if (!cfg) { err = "XSdPs_LookupConfig NULL (SD0 not in the hardware)"; return -1; }
     if (XSdPs_CfgInitialize(&Sd, cfg, cfg->BaseAddress) != XST_SUCCESS) {
@@ -479,6 +513,28 @@ int sd_mount(void)
         if (!meta_trunc) Meta[found_size] = 0u;   /* 清单到此为止，簇尾垃圾不参与解析 */
     }
     if (parse_meta() != 0) return -1;
+
+    /* 挂载时就把**每个**片源文件的首簇量一遍（#50 的教训：簇号翻错的时候挂载、META、
+     * 前 7 个文件全都正常，直到播到第 8 个才在屏幕上冻住 —— 代价是整整两分钟的演示）。
+     * 分区装不下的簇号一定是坏的，不需要等到读到 OUT-OF-RANGE 才知道。 */
+    {
+        u32 i, max_clus, bad = 0u, first_bad = 0u;
+        max_clus = (part_lba + part_sect > data_lba)
+                 ? (part_lba + part_sect - data_lba) / spc + 2u : 0u;
+        for (i = 0; i < nfiles; i++) {
+            u32 c = dir_lookup(fname[i]);
+            if (!c || c >= max_clus) { if (!bad) first_bad = i; bad++; }
+        }
+        if (bad) {
+            meta_warn = "a frame file has an out-of-range first cluster";
+            xil_printf("[SD] WARN %u/%u file(s) have cluster >= %u (first: %s)\r\n",
+                       (unsigned)bad, (unsigned)nfiles, (unsigned)max_clus, fname[first_bad]);
+        } else {
+            xil_printf("[SD] dir map ok: %u files, first clusters within %u\r\n",
+                       (unsigned)nfiles, (unsigned)max_clus);
+        }
+        FatLba = 0xFFFFFFFFu;                 /* 探针读过的 FAT 扇区不算数（缓存要作废） */
+    }
 
     mounted  = 1;
     open_idx = 0xFFFFFFFFu;

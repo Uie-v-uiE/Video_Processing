@@ -706,7 +706,7 @@ L1 当前状态：**41/41**（`sim/results/regression_v79_r26.txt`，新增 `tb_
 | 修掉 #49 的 CDC 账 | `fsm_encoding="none"` + 按位下一状态：那条从 Critical（8 端点 / 4 unsafe）降到 Warning（5 / **0 unsafe**） | `build/cdc.rpt` + `build/cdc_details.rpt`（`report_cdc -details` 点名） |
 | **门禁第一次拦住我自己** | `gates.sh` 第 6 项原来写死"4 行以内算过"，#26/#27 各自新增一条 Critical 配对却打印 ALL PASS；改成与 `build/CDC_BASELINE.txt` 比**配对集合** | 反例自查：#26/#27 判红、#25 判绿；`skill/cdc_pair_baseline_gate.md` |
 | 指标工具的第二课 | 分母的**总体**也要对：交付字节数包含被作废的帧，而 `gap_sum` 只数被接收的帧 ⇒ 曾报出"平均 22.4 ms 而最小 6667 ms"；现在分母 = 交付 − 作废 − 1，并加自相矛盾自曝 | `src/host/metrics.mjs --selftest` 8 → 14 条 |
-| #50 改定性 | SD 回放在**第 3584 帧 = 第 8 个文件 VIDEO007.BIN 的第一帧**必然读失败（两次独立长跑 + 定点跳帧探测同指一处）⇒ 不是"并发挤到超时"；次生的"file not found"是控制器被留在未完成传输里 | `board/uart_50_conc3min.txt`、`board/sd_frame_boundary2.txt` |
+| #50 先定性、后**结案** | 定性：SD 回放在**第 3584 帧 = 第 8 个文件 VIDEO007.BIN 的第一帧**必然读失败（两次独立长跑 + 定点跳帧探测同指一处）⇒ 不是"并发挤到超时"；次生的"file not found"是控制器被留在未完成传输里。<br>结案（05:4x）：给失败行加几何量后一枪定位 —— `dir_lookup` 把 FAT32 目录项偏移 20 的 **16 位小端**高簇字按大端拼了，首簇 ≥65536（= 文件起点在数据区 1 GiB 之后）才发作；修完**整卡 4398 帧第一次播完并自动回绕**，卡不用重拷 | `board/sd_hotspot_diag.txt`（`OUT-OF-RANGE` 现场）、`board/sd_hotspot_fixed.txt`（跨点 + 回绕）、`board/sd_selftest_red.txt`（判据的反例）、`build/frozen_r32_sdfix/` |
 
 **门禁数字（#31 = `build/frozen_r31_srcmode/`，bit `efc89779`）**：WNS +0.764 / WHS +0.062 /
 0 失败端点（23840）/ LUT 7577（14.24 %）/ Reg 6026 / BRAM 90.5 tile（64.64 %）/ Dynamic 2.159 W /

@@ -181,7 +181,8 @@ UltraScale+ `IDDRE1+BUFIO`），不是副本也不是分叉 —— 所以它们�
 | `a6108921`（#27） | 撤掉那两位（`dbg_src` 缩到三位） | **仍红**（同一配对，5 端点 / 2 unsafe）—— 说明元凶不是观测口 | 未跑 |
 | `c65b547d`（#28） | 再加 `(* fsm_encoding = "none" *)` | **绿**（该配对降为 Warning、0 unsafe；Critical 回到 3 行）WNS +1.001 | **跑了：V1/V4/V5 红** ⇒ 定位到 ISSUES #52 |
 | `bec90dd1`（00:54 写盘） | 再把格雷环下一状态写成按位式 `{mode[0], ~mode[1]}` | 绿（同上，端点 23836） | 未跑（被下一版取代） |
-| `efc89779`（01:19 写盘，**= `build/frozen_r31_srcmode/`**） | 长按→模式搬进 `src/rtl/util/src_mode.v`（链复位 0 + 复位后 8 拍灌满期）+ 新台架 `tb_v82_src_mode`（11 条）+ `lane30` 从 3 位扩到 8 位（仲裁看到的模式与两个 busy，全在 axi 域 ⇒ 不交跨域税） | **绿**：WNS +0.764 / WHS +0.062 / 23840 端点 / LUT 7577 / Reg 6026 / 2.159 W / cdc Critical 3 行无新增配对 | **七条交接判据全绿**：接管 150 ms、**停流 285 ms 交回**、0 抖动、再推 180 ms 可逆（`arb_handover_green_r31.json`） |
+| `efc89779`（01:19 写盘，**= `build/frozen_r31_srcmode/`**） | 长按→模式搬进 `src/rtl/util/src_mode.v`（链复位 0 + 复位后 8 拍灌满期）+ 新台架 `tb_v82_src_mode`（12 条）+ `lane30` 从 3 位扩到 8 位（仲裁看到的模式与两个 busy，全在 axi 域 ⇒ 不交跨域税） | **绿**：WNS +0.764 / WHS +0.062 / 23840 端点 / LUT 7577 / Reg 6026 / 2.159 W / cdc Critical 3 行无新增配对 | **七条交接判据全绿**：接管 150 ms、**停流 285 ms 交回**、0 抖动、再推 180 ms 可逆（`arb_handover_green_r31.json`） |
+| **bit 仍是 `efc89779`**，elf `c00b6553`（06:0x，**= `build/frozen_r32_sdfix/`**） | **只改 PS 固件**：`sd_play.c` 的 `dir_lookup` 高簇字改回小端（`clus_of()`）+ 失败行打印几何量 + `dir_selftest()` 与挂载时逐文件簇界核对 | 位流没动 ⇒ 门禁数字**全部继承上一行**，不重报一遍（免得同一份报告以两个 md5 存在两处） | ISSUES #50 结案：`FRAME3584` 由 `OUT-OF-RANGE` 变可播，**整卡 4398 帧第一次播完并回绕**；判据反例（把字节序改回去 → 挂载被拒）见本目录凭据 |
 
 **为什么必须这样记账**：01:0x 那一段时间里有**两个构建在抢同一个工程目录**
 （`create_project -force` 会删掉 `*.runs`，先起的会被后起的顶掉并报 `SYNTH FAILED Scripts Generated`），

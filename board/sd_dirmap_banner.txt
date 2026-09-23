@@ -1,0 +1,27 @@
+[SD] frame 1400: last 100 frames 29.999 fps (since play 29.857)
+[SD] frame 1500: last 100 frames 29.716 fps (since play 29.846)
+
+[BOOT] video_pipeline PL-UDP control plane
+[CTRL] AXI_GPIO=0x000A5000 en=00 thr=80 src=0 zoom=1 pub=0 bilin=1
+[BOOT] UDP RX is in PL (RGMII PHY2). PS is control + SD playback.
+[BOOT] uart115200: 00111 SRC0 SRC1 TH80 ZOOM0 ZOOM1 BILIN0 BILIN1 FILL SD PLAY STOP FRAME0 AUTOPLAY0 STAT
+[SD] dir map ok: 9 files, first clusters within 1946818
+[SD] FAT32 part_lba=2048 spc=32 rootclus=2 data_lba=34816
+[SD] frames=4398 fps=30.000 files=9 frame=307200B
+[SD]   VIDEO000.BIN frames=512
+[SD]   VIDEO001.BIN frames=512
+[SD]   VIDEO002.BIN frames=512
+[SD]   VIDEO003.BIN frames=512
+[SD]   VIDEO004.BIN frames=512
+[SD]   VIDEO005.BIN frames=512
+[SD]   VIDEO006.BIN frames=512
+[SD]   VIDEO007.BIN frames=512
+[SD]   VIDEO008.BIN frames=302
+[CTRL] AXI_GPIO=0x000B5000 en=00 thr=80 src=1 zoom=1 pub=0 bilin=1
+[SD] autoplay: playing
+[SD] frame 100: last 100 frames 29.416 fps (since play 29.227)
+[SD] frame 200: last 100 frames 29.999 fps (since play 29.593)
+[SD] frame 300: last 100 frames 29.999 fps (since play 29.719)
+[SD] frame 400: last 100 frames 29.999 fps (since play 29.781)
+[SD] frame 500: last 100 frames 29.537 fps (since play 29.726)
+

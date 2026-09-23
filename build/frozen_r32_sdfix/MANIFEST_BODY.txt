@@ -1,0 +1,7 @@
+c00b6553877a1a2cf4f937f41d463c16 *ps_app.elf
+efc897790d0e4c2f7955707f2e694349 *system.bit
+e8c2788354d71c5c8368160a7ec2d41e *system.xsa
+6aabb55e0a22a8a1df34aa7b69f2b57f *sd_hotspot_diag.txt
+12f0266ff855b5122352bd44a1ec54d4 *sd_hotspot_fixed.txt
+868b2f48540c699177b63cd625b479b5 *sd_selftest_red.txt
+64bf92662c2a1eb2c8f479e583c5592c *sd_selftest_green.txt
