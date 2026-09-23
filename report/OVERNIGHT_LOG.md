@@ -2298,7 +2298,9 @@ V0 采样密度       245 点 / 期望 350（实测中位周期 142 ms）
 · `hw_server` 在 02:5x 左右自己退了（ xsdb 报 `Invalid target. Use "connect"` ）；
   重启它就行（`Vivado/bin/unwrapped/win64.o/hw_server.exe`），之后链条照旧能扫到 APU + xc7z020。
 · `build/ps_app.elf` 现在比 `build/frozen_r31_srcmode/ps_app.elf` 多一个 `dir_diag` 诊断
-  （以及"探针不许改 err"的修正）。**板级判据是拿冻结件那一份跑的**；换 elf 要重新核对 md5。
+  （以及"探针不许改 err"的修正）。**当时那批板级判据是拿 #31 冻结件那一份 elf 跑的**；换 elf 要重新核对 md5。
+  ⇒ 05:5x 之后这句已过时：elf 的最新一份（含 #50 根因修复 + 两个判据）已冻成
+  `build/frozen_r32_sdfix/`（`c00b6553`，bit 仍是 `efc89779` 没动），以 §24 为准。
 
 ### 明早清单（覆盖 §22；2026-09-24 05:5x 更新 —— **第 0 条已经做完了，见 §24**）
 
@@ -2306,16 +2308,18 @@ V0 采样密度       245 点 / 期望 350（实测中位周期 142 ms）
    `dir_lookup` 把 FAT32 目录项的高簇字按大端拼了，卡与 FAT 都是好的；两条老出路
    （重拷卡 / 删第 8 个文件）**作废**，不用拔卡、不用断电。
    现在 SD 侧只剩一件事：**如果**你要重新拷卡，拷完直接播就行（整卡 4398 帧已能放完并回绕）。
-1. **（5 分钟，需要你眼睛）#31 上屏确认 —— 机器那一半全过了，只欠这三条**
+1. **（5 分钟，需要你眼睛）#31 的位流 + #32 的固件上屏确认 —— 机器那一半全过了，只欠这三条**
    ```bat
    cd D:\Xilinx\Prj\pro\Video_Processing
-   cd build\frozen_r31_srcmode && md5sum -c MANIFEST_BODY.txt && cd ..   :: 11 个 OK
-   copy frozen_r31_srcmode\system.bit system.bit
-   copy frozen_r31_srcmode\ps_app.elf ps_app.elf
-   %XSDBAT% build\tcl\ps_jtag_boot.tcl                                  :: 先起 PS
-   %VIVADO% -mode batch -source build\tcl\program_pl.tcl                 :: 再配 PL（顺序不能反）
-   %XSDBAT% build\tcl\ps_app_reload.tcl                                  :: 固件（SD 会自动开播）
+   cd build\frozen_r32_sdfix && md5sum -c MANIFEST_BODY.txt && cd ..  :: 8 个 OK（bit 与 #31 同一份 efc89779）
+   copy frozen_r32_sdfix\system.bit system.bit                      :: 其实与 #31 逐字节相同
+   copy frozen_r32_sdfix\ps_app.elf ps_app.elf                      :: **elf 必须取 #32 这份**：
+                                                                    :: #31 的 elf 播到第 3584 帧会停
+   %XSDBAT% build\tcl\ps_jtag_boot.tcl                              :: 先起 PS
+   %VIVADO% -mode batch -source build\tcl\program_pl.tcl             :: 再配 PL（顺序不能反）
+   %XSDBAT% build\tcl\ps_app_reload.tcl                              :: 固件（SD 会自动开播）
    ```
+   上电后串口该看到 `[SD] dir map ok: 9 files, first clusters within 1946818`；没有这行 = elf 不对。
    看三件事：① 停流之后屏幕上**真的是 SD 在继续放**（不是冻住的最后一帧）—— 机器侧量到
    `owner_eth` 在 0.2–0.5 s 内交回（五次独立跑，含采样分辨率），但"画面活了"仍然只能看；
    ② 推流与 SD 同时插着时不闪、不抢；③ `KEY1` 长按 1.2 s 能在 自动→锁ETH→锁PS→锁图卡 之间轮转，
