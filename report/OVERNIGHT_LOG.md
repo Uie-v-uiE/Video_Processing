@@ -2463,3 +2463,23 @@ L1 台架用**当前这棵树**重跑：**47/47 全过**，存档 `sim/results/r
 （06:3x 的新鲜记录，不再只是引用 #31 那次的 r39）。`bash build/gates.sh` 七项仍 ALL PASS。
 ⇒ 交给你的状态是：**门禁绿 + 台架绿 + 板上整卡能播完 + 仲裁判据在最新 elf 上两遍全绿**。
 `build/CDC_BASELINE.txt` 的注释同步改写成这个口径（那个文件不在任何 BODY 校验清单里，改它不动 md5）。
+
+
+## 25. 07:00 停手点的目标审计（谁欠什么，写死在这页）
+
+原始目标拆开逐项对照现状，只写**有文件能证明**的部分：
+
+| 目标项 | 现在的凭据 | 状态 |
+|---|---|---|
+| Z7 内容做完（三源 + 仲裁 + SD 回放 + 指标包） | `build/frozen_r32_sdfix/`（12 文件 `md5sum -c` OK：bit `efc89779` + elf `c00b6553` + 9 份凭据）；`bash build/gates.sh` 七项 ALL PASS；L1 `sim/results/regression_v79_r42.txt` **47/47**；整卡 4398 帧播完回绕 `sd_hotspot_fixed.txt`；并发 165 s 零失败 `uart_sd_with_eth.txt`；仲裁七条 ×2 遍 `arb_handover_r32{,b}.json` | **机器那一半全部完成**；欠三条眼睛判据（下表末行） |
+| 旋转只在右窗 | 台架 `tb_rotate_window` 在 47/47 里；用户 09-23 已在屏上确认（ISSUES 记录原话"有的和你说的一样"） | 完成 |
+| 深度时序 / 资源优化 | 已完成的收益在 `report/PERF_REPORT.md` §4/§4b/§7（含 R02 LUTRAM、R04 BRAM 64.64 %、R25 OSD 字形并行）；**下一轮的三条候选**按证据写在 `study/04_版本演进/03_优化的方法论.md` §7b，并写明哪条抬不动对外 WNS、真正最小余量是 WHS +0.062 | 停在"候选已列、未动构建"——**剩 <5 分钟，开构建只会给你一个没验完的产物** |
+| 工程文档 + 学习文档 | 工程侧：ISSUES #49/#50/#52 结案段、§23/§24/§25、CHANGELOG V7.10、VERSION_LINEAGE、PERF §4b/§6b/§7、AI_COLLABORATION §11/§12、CONTEST_CHECKLIST（技能包 17 项、ModelSim 口径纠偏）、board/README（SD 串口判读表 + 第 9 条眼睛项）、HOST_GUIDE；学习侧：`study/` 四篇更新（SD 篇数值链、判据篇 §5.0b、问题全记录三行 + 两题、优化方法论 §7b） | 完成 |
+| 保持在分支上、不推 GitHub | `git rev-parse --abbrev-ref HEAD` = `dev/night-2026-09-22`；无 upstream；`git status --short` 空；172 次提交 | 按指示保留在本地 |
+| KU5P / MIPI / 双线性合入 | 用户 09-23 夜明确暂停（"ku5p我实在没看明白有啥用""mipi其实我不是很想走"）；双线性停在 tag `v7.8-bilinear-wip` | **按决定不动**，等用户重开 |
+
+**还欠的三条只能看屏幕的判据（明早 5 分钟，命令块在 §24 明早清单第 1 条）**：
+① 停流交回后屏幕上确实是 SD 在动（机器侧 lane30 已读到"屏幕归 PS / AUTO / 两引擎空闲"）；
+② 推流与 SD 并发时不闪不抢（机器侧并发 165 s 读路径零失败）；
+③ `KEY1` 长按四态轮转且锁图卡时卡片在动。
+三条全过 ⇒ 我把 #31/#32 转成演示默认并一次改完 MANIFEST / DEMO_SCRIPT / README；任何一条不过 ⇒ 退回 #23 演示，我不含混过去。
