@@ -8,6 +8,14 @@ A host PC pushes **512×300 RGB565** frames over **UDP**. The **PL** performs RG
 ARP/ICMP/UDP, offset-based frame reassembly, image effects, rotation, continuous zoom and
 dual-window HDMI output. The **PS** is control-plane only (UART + AXI GPIO).
 
+The displayed picture has **three sources**, chosen automatically by an arbiter in the PL:
+**network stream > SD-card playback > a moving test card**. The board mounts and plays the SD card
+by itself at power-on (`AUTOPLAY0/1` to disable), yields to a live stream and takes the screen back
+within a few hundred ms after the stream stops — no cable pulling, no re-programming. `KEY1` short
+press still steps rotation by ±1°; a **1.2 s long press** cycles auto / lock-ETH / lock-PS / lock-card,
+and the current arbitration state is readable from AXI GPIO lane 30 (so the claim does not depend
+on anyone watching the screen).
+
 | Item | Value |
 |------|-------|
 | Board | RK-ZYNQ7020-F (`xc7z020clg484-2`) |
@@ -16,7 +24,7 @@ dual-window HDMI output. The **PS** is control-plane only (UART + AXI GPIO).
 | Display | HDMI 1024×600 @ 50 MHz (left = original, right = processed + zoomed) |
 | Network | board PL port `192.168.1.10:5001`, PC `192.168.1.100` |
 | Control | AXI GPIO `@0x41200000`, UART 115200 |
-| Implementation | WNS **+0.499 ns**, all constraints met; BRAM 64.64%, registers 4.08%, slices 18.03%, 2.350 W total |
+| Implementation | current default bit (build#23): **WNS +0.740 ns, 0 failing endpoints**, BRAM 64.64 %, Slice LUT 13.92 %, 5904 registers, 2.178 W dynamic. Full table and sources: `report/PERF_REPORT.md`; re-check with `bash build/gates.sh build/frozen_r23_srcseen` |
 | Licence | MIT |
 
 ## Overview
