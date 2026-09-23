@@ -1,0 +1,26 @@
+[SD] FAT32 part_lba=2048 spc=32 rootclus=2 data_lba=34816
+[SD] frames=2099 fps=30.000 files=5 frame=307200B
+[SD]   VIDEO000.BIN frames=512
+[SD]   VIDEO001.BIN frames=512
+[SD]   VIDEO002.BIN frames=512
+[SD]   VIDEO003.BIN frames=512
+[SD]   VIDEO004.BIN frames=51
+[SD] WARN FRAMES != sum of FILEn (card copied only partly): playing 2099 frames only
+[SD] frame 614: last 100 frames 29.898 fps (since play 29.843)
+[SD] frame 714: last 100 frames 29.999 fps (since play 29.843)
+[CTRL] AXI_GPIO=0x000B5000 en=00 thr=80 src=1 zoom=1 pub=0 bilin=1
+[SD] playing (STOP to end; cable must stay out)
+[SD] frame 37: last 37 frames 29.999 fps (since play 29.843)
+[SD] frame 137: last 100 frames 29.999 fps (since play 29.843)
+[SD] frame 237: last 100 frames 29.999 fps (since play 29.843)
+[CTRL] AXI_GPIO=0x00095000 en=00 thr=80 src=1 zoom=0 pub=0 bilin=1
+[SD] frame 337: last 100 frames 29.999 fps (since play 29.844)
+[SD] frame 437: last 100 frames 29.999 fps (since play 29.844)
+[CTRL] AXI_GPIO=0x000B5000 en=00 thr=80 src=1 zoom=1 pub=0 bilin=1
+[SD] frame 537: last 100 frames 29.279 fps (since play 29.843)
+[SD] frame 637: last 100 frames 29.999 fps (since play 29.843)
+[SD] frame 737: last 100 frames 29.999 fps (since play 29.844)
+[SD] frame 837: last 100 frames 29.999 fps (since play 29.844)
+[SD] frame 937: last 100 frames 29.999 fps (since play 29.844)
+[SD] frame 1037: last 100 frames 29.273 fps (since play 29.843)
+

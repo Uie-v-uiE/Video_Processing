@@ -561,6 +561,34 @@ helper 叫 `get()` ⇒ **不管有没有带 `--drop-every`，模块加载阶段�
 
 ---
 
+### 48. 固件只读 META.TXT 的第一个扇区 ⇒ 清单被从中间切断，"卡少了 4 个文件"是**假缺口**（已修，待板上复验）
+
+- 本文件与演示脚本、§19 里都写过"卡只拷进 5/9 个文件 = 2099/4398 帧"。**那条判断是错的**：
+  今晚把卡插回 PC 逐字节比对后翻案 —— 卡上 `VIDEO000..008.BIN` + `META.TXT` **全在**，
+  且与 PC 用 `make_sd_video.mjs` 重新生成的一份 **md5 逐字节相同**（9 个 BIN + META `404d3ba1`）；
+  META 自己 `FRAMES=4398` 与 `8×512+FILE8(302)=4398` 自洽。
+- 真因在固件：`sd_mount()` 只 `read_secs(..., 1u, Meta)` 而 `Meta[512]`，注释还写着
+  "META.TXT 只有一百多字节，读一个扇区就够"。文件实际 712 B ⇒ **第 5 个 FILE 行的数字被切成一半**
+  （`FRAMES=512` 读成 `FRAMES=51`）⇒ `Σ FILEn = 4×512+51 = 2099`，于是串口上同时出现
+  `files=5 / frames=4398 / Σ=2099`，看起来完全像"拷贝中断"。
+- 为什么当时没看穿：刚加的 `Σ vs FRAMES` 校验与 `WARN` 都在**如实报告不一致**，我按字面读了它
+  （"卡不全"），却没怀疑**读进来的字节数本身**。⇒ 一条判据只能否定，不能指认凶手；
+  "谁生成的这个数"要一路追到读几字节为止。
+- 修法（两步，第二步是被自己的判据逼出来的）：
+  ① `Meta` 扩到 4096 B，按**目录项里的文件长度**（`DIR_Entry[28..31]`，`dir_lookup` 顺带记进
+  `found_size`）算要读几个扇区，读满"首簇内、至多 缓冲区/512 个"，并在 `Meta[found_size]` 补 NUL
+  —— 簇尾是上一个文件的垃圾，不给它划终点就会当成清单继续解析。
+  ② `meta_trunc` 也按**长度**判（`found_size > sizeof(Meta)`）。当时我先写的是"缓冲尾字节非 0"，
+  结果第一版修完 `files=9 / frames=4398` 全对却照样打 `WARN META.TXT longer than the buffer read`
+  ——**新判据自己假阳性**（`board/evidence_r29/mount_fixed.txt` 留着这一版）。
+  解析器自检同时加两条：`long_ok`（12 个 FILE 行，并把"样本长度 >512"写进断言，样本退化了要看得见）；
+  每段样本都在 NUL 之后塞一行假 `FILE99=BOGUS.BIN FRAMES=7` ⇒ "读满簇之后靠 NUL 收口"这件事被每条用例覆盖。
+- 验证状态：**板上复验通过** —— 同一张卡 `SD` 打印 `files=9 / frames=4398 / FILE8=302`、`WARN` 消失
+  （`board/evidence_r29/mount_fixed2.txt`）。位流与 #23 相同、只有 elf 换版 ⇒ 冻结件里 `ps_app.elf`
+  与 md5 随之更新（两版都记在 MANIFEST，最终以仲裁版那一套为准）。
+
+---
+
 ## 快速对照
 
 | 症状 | 优先检查 |
@@ -576,6 +604,7 @@ helper 叫 `get()` ⇒ **不管有没有带 `--drop-every`，模块加载阶段�
 | 串口无效 | PS app 有没有真在跑：`xsdb build/tcl/ps_app_reload.tcl` 看 `pc`/`cpsr`（模式 0x1b=Undefined ⇒ #44 那类没修上；pc 停在 0x4/0x0 ⇒ 异常落进向量区） |
 | 串口发多条只有第一条应 | 是夹具不是板子：`powershell -File` 不绑数组、循环会在两条命令之间提前收工（`board/uart_cap_once.ps1` 已修并自检 `SENT n/n`） |
 | 第二次 `SD` 必 mount failed | `XSdPs_CfgInitialize` 每个上电周期只成功一次（#45）；已用 `mounted` 短路规避，真机换卡要重下 app |
+| 报"卡少了文件 / Σ 帧数对不上" | **先怀疑读进来的字节数**（缓冲区多大、读几个扇区），再怀疑卡 —— #48 就是这个顺序反了：清单 712 B 而固件只读 512 B，尾行数字被切一半，卡其实 md5 全对 |
 | 板子"像自己重启了一遍" | 没人设 VBAR ⇒ 异常去执行 0x0 那里恰好摆着的代码（#44）；读 `DataAbortAddr`/`PrefetchAbortAddr`/`UndefinedExceptionAddr` 三个全局看是谁 |
 | PS 写了 DDR 却全红 / `FILL` 看不见 | 显示前最后一级 mux `bram_or_hold`（#47）；DDR 侧先自证：`board/rdddr.tcl` 读 `0x10000000` 两次，内容在变就说明卡在 PL |
 | git push 失败 | 网络/代理；git 是否在 PATH |

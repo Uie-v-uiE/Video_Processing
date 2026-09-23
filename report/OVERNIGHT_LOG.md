@@ -954,7 +954,7 @@ methodology 0 条 Critical Warning；`ku5p_eth.bit` 15.4 MB 已生成。
 | U8 | 一次性诊断脚本已删除；`build/v64_baseline.bit`、`build/r05_golden.bit` 是 A/B 期间的临时副本（未跟踪），收尾删除 | —— | —— | v6.4 bit 随时可用 `git show 647160e:build/system.bit` 取出 |
 | U10 | **片外接口时序未被约束**：全仓库 XDC 只有 2 条 `create_clock`，`set_input_delay` / `set_output_delay` **各 0 条**，RGMII TX 由 3 条 `-to`（`rk_zynq7020.xdc:42-44` 的 tx_clk / tx_ctl / txd[*]）整条豁免输出时序检查，RX 侧靠固定抽头的 `IDELAYE2`（`system_top.v:129` 传 `IDELAY_VALUE(15)`，`rgmii_rx.v:29` 默认为 0）而没有把这段延迟写进约束 | `check_timing` 在 `build/timing_summary.rpt` 里自己列出无输入/输出延迟约束的端口；`methodology.rpt` 的 TIMING-18 逐条点名 | 补 RGMII DDR 输入约束（`-add_delay -clock_fall`）+ TX 相位（或 ODELAY / BUFIO 移相） | 预期是**暴露**出真实违例而不是消灭它们 ⇒ 要先决定收不收这笔债：收了报告就不再全绿，但结论更硬。至少口径必须区分「片内满足」与「片外靠板级证据」
 | U11 | **`link_active = \|s_pkts\|` 是粘性的 ⇒ ETH 与 PS 两片源只能靠"重配 bit"切换**（#47 的兄弟账） | 已有：`ps_src_seen` 让红色占位不再挡 PS 片源（构建 #23）；`pub_consume` 仍要求 `!eth_link_pix` | 若要"软件一键切片源、不拔线不重配"：把 `link_active` 从"曾经收过包"改成"最近有包"（现成的 stall 计时就在那儿），代价是它同时是 OSD 链路健康显示与 R08–R10 板级结论的依据 ⇒ **动了要重跑那三条** | 需要点头的改动，不在"顺手优化"范围；现场用"拔线→重配（约 1 分钟）"已可演示 |
-| U12 | **SD 卡只拷进去 5/9 个文件**（META 声明 4398 帧，卡上 2099 帧） | 固件已改成"取小值 + WARN"，播放不会停在半路 | 把卡插回 PC 跑一次 `node src/host/make_sd_video.mjs`（或只拷缺的 `VIDEO005..008.BIN`）⇒ 演示素材从 70 s 变 146 s | 与固件无关的搬运事故；那行 `WARN` 反而能当"固件不信任元数据"的证据讲 |
+| U12 | ~~SD 卡只拷进去 5/9 个文件~~ **翻案：卡是完整的**，那是固件把 712 B 清单只读了 512 B（ISSUES #48） | 卡的 md5 已与 PC 重生成的一份逐字节对上；固件改成读满首簇内 8 个扇区 + `meta_trunc` 两条 WARN 分开 | **剩一步**：把卡插回板子，`SD` 应报 `files=9 / frames=4398` 且无 `WARN`，播放整圈 ≈146 s | 教训保留：`Σ≠FRAMES` 这类判据只能否定，不能指认凶手；先怀疑读进来的字节数，再怀疑介质 |
 | U13 | `XSdPs_CfgInitialize` 每个上电周期只成功一次（#45） | 已规避（`mounted` 短路）+ 复现步骤与判据写在 ISSUES | 真因未查（怀疑卡在 `XSdPs_Reset` 的软件复位位，或上一次会话遗留的多块读忙状态） | 不阻塞交付：换卡/重启是常态，`ps_app_reload.tcl` 约 20 秒 |
 | U11 | **三处低成本 CDC 清洁**：`effect_ctrl` 的 3 级捕获链漏标 `ASYNC_REG`、`copy_abort` 被像素域裸采样（同文件里 `allow_copy` 却走了 2FF）、`eth_link` 在像素域裸用 4 处 | 位置 `effect_ctrl.v:12-13`、`pl_video_top.v:283` vs `:294-301`、`pl_video_top.v:282,288,307,486`；`eth_mode`（`:225-230`）已是一份正确的 3FF 版本可直接改用 | 加属性 / 换信号后重跑 L3，看 `cdc.rpt` 与 `methodology.rpt`（TIMING-10）条目变化 | 现况实测：`cdc.rpt` 有 **4 行 Critical**（类型均为 `Asynch Clock Groups`，即时钟组豁免掉的跨域），其中 `eth_rxc→clkout0_1` 33 端点里 **16 unsafe / 17 unknown**、`clk_fpga_0→clkout0_1` 16 端点里 **13 无 ASYNC_REG** ⇒ 这两行正好对应上面两个问题点。三处都不动功能逻辑，风险极低，是下一夜最划算的一笔
 | U12 | `frame_reasm` 的 `FRAME_BYTES` 未被例化覆盖（`eth_udp_video_top.v:185` 只传 IMG_W/IMG_H） | 默认值恰好 = 512×300×2，所以现在是对的 | 例化时传 `.FRAME_BYTES(IMG_W*IMG_H*2)`，并同步检查 `pl_video_top.v:363` 写死的行距 `{sy[8:0],9b0}`（**R18 已了结这半笔**：该地址算术已移进 `fb_rd5x` 并写成 `sy*IMG_W` 参数式） | 不改就是「改分辨率会静默失配」的地雷；本夜不动（要连带重跑入包链全回归）
@@ -1941,10 +1941,14 @@ CPACR 本该由 **FSBL** 打开 —— 而 `board/README.md` 与 `ps_jtag_boot.t
    同一时刻屏上写 `1.449 fps` 而板子在 30 fps 跑（#46）。
 3. **上屏**：卡在这一步，且不是 SD 的问题 —— 见 R29-C。
 
-顺带两个板级事实：卡的 META 声明 4398 帧但只有 5 个文件 = **2099 帧**（拷贝不全），播到 2099
-就"frame index out of range"停在半路 ⇒ 可播长度改成取 `min(声明, Σ FILEn)` 并打 WARN（#47 之前
-它看起来像"没在播放"）；以及 `XSdPs_CfgInitialize` **每个上电周期只成功一次**（#45，连发三条
-`SD` 全失败、核复位后第一条又成功）⇒ `sd_mount()` 开头 `if (mounted) return 0;`。
+顺带两个板级事实，其中一个**当晚就翻案**，照原样留着比删掉有用：我看到串口
+`files=5 / Σ=2099`（声明 4398）就判"卡只拷进去 5/9 个文件、播到 2099 停在半路"，
+顺手把可播长度改成 `min(声明, Σ FILEn)` + 打 `WARN`；把卡插回 PC 逐字节比对之后发现
+**卡是完整的**（9 个 BIN + META 与 PC 重生成的一份 md5 全等），真因是**固件只读了清单的第一个扇区**
+（`Meta[512]` + `read_secs(...,1u,...)`，而 `META.TXT` 有 712 B ⇒ 第 5 行 `FRAMES=512` 被切成 `51`）
+⇒ ISSUES #48。`Σ vs FRAMES` 那条校验本身没说错，错在**我按它的字面意思去指认卡，而没怀疑读进来的字节数**。
+另一条：`XSdPs_CfgInitialize` **每个上电周期只成功一次**（#45，连发三条 `SD` 全失败、核复位后第一条又成功）
+⇒ `sd_mount()` 开头 `if (mounted) return 0;`。
 
 ### R29-C · 真正的最后一跳：`pl_video_top.v:335` 的红色占位把 PS 片源挡死（ISSUES #47）
 

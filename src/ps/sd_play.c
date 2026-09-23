@@ -41,11 +41,13 @@
 static XSdPs Sd;
 static u8  Sec[512] __attribute__((aligned(64)));    /* 扇区缓冲（MBR/BPB/目录/FAT 复用） */
 static u8  Fat[512] __attribute__((aligned(64)));    /* FAT 扇区缓存 */
-static u8  Meta[512] __attribute__((aligned(64)));   /* META.TXT 的第一扇区 */
+static u8  Meta[4096] __attribute__((aligned(64)));   /* META.TXT 的头几个扇区（见 sd_mount 里的读法） */
 static u32 FatLba = 0xFFFFFFFFu;
 
 static const char *err = "ok";
-static const char *meta_warn;       /* 挂载成功但卡与 META 不一致时的提示，见 parse_meta 末尾 */
+static const char *meta_warn;       /* 挂载成功但清单与读到的内容不一致时的提示 */
+static u8 meta_trunc;               /* 1 = META.TXT 比缓冲区还长（清单真的放不下） */
+static u32 found_size;              /* dir_lookup 顺带记下的文件大小（字节） */
 static int mounted;
 
 /* FAT32 卷参数 */
@@ -214,6 +216,7 @@ static u32 dir_lookup(const char *dotted)
                 if (d[11] == 0x0Fu) continue;            /* LFN：本项目不产生 */
                 if (d[11] & 0x08u) continue;             /* 卷标 */
                 if (memcmp(d, key, 11) != 0) continue;
+                found_size = ld32(&d[28]);       /* DIR_Entry.FileSize（小端 4 字节） */
                 return ((u32)d[20] << 24) | ((u32)d[21] << 16) | (u32)ld16(&d[26]);
             }
         }
@@ -298,8 +301,13 @@ static int parse_meta(void)
     {
         u32 i, sum = 0u;
         for (i = 0; i < nfiles; i++) sum += fframes[i];
-        if (sum != total_frames) {
-            meta_warn = "FRAMES != sum of FILEn (card copied only partly)";
+        if (meta_trunc) {
+            /* 清单尾部被切断：最后一个 FILE 行的数字可能只读到一半（今晚实测：
+             * "FRAMES=512" 被切成 "FRAMES=51"）⇒ 少算的帧数是**假缺口**，卡本身没坏。 */
+            meta_warn = "META.TXT longer than the buffer read - file list truncated";
+            if (sum < total_frames) total_frames = sum;
+        } else if (sum != total_frames) {
+            meta_warn = "FRAMES != sum of FILEn (card content and manifest disagree)";
             if (sum < total_frames) total_frames = sum;
         } else {
             meta_warn = 0;
@@ -335,6 +343,15 @@ static int meta_try(const char *txt, u32 exp_frames, u32 exp_files)
 
     while (txt[n] && n < sizeof(Meta) - 1u) { Meta[n] = (u8)txt[n]; n++; }
     Meta[n] = 0u;
+    /* 每一段样本都在 NUL 之后塞一行假的 FILE 记录：真去读一个簇时，文件后面就是上一个
+     * 文件留下的垃圾（今晚正是这个让我把"尾字节非 0"当成了截断信号）。解析必须在 NUL 处
+     * 停住 —— 所以这不是多一个用例，而是所有用例的共同前提。 */
+    {
+        static const char junk[] = "FILE99=BOGUS.BIN FRAMES=7\n";
+        u32 k = 0u;
+        while (junk[k] && (n + 1u + k) < (sizeof(Meta) - 1u)) { Meta[n + 1u + k] = (u8)junk[k]; k++; }
+        Meta[n + 1u + k] = 0u;
+    }
     rc = parse_meta();
     err = saved;
     return (rc == 0) && (total_frames == exp_frames) && (nfiles == exp_files);
@@ -342,9 +359,11 @@ static int meta_try(const char *txt, u32 exp_frames, u32 exp_files)
 
 static int meta_selftest(void)
 {
-    char fb[12], ok[256], b1[256], b2[256], b3[256];
+    char fb[12], ok[256], b1[256], b2[256], b3[256], lg[900], nb[4];
+    u32 i;
     int pass;
 
+    meta_trunc = 0u;
     put_dec(fb, FRAME_BYTES);
     /* ok：FRAMES 与 FILEn 之和一致（900+450=1350），且 FILE1 那行先放一个 XFRAMES=7 ——
      * 这条专门执行"关键字必须是独立词"那条判据（今晚它写错成指针比较，见 ISSUES #43）。 */
@@ -358,12 +377,26 @@ static int meta_selftest(void)
     /* b3：声明 900 帧但文件里只有 450 ⇒ 必须**按 450 收**（可播长度取小值）。
      * 这条就是今晚板上撞到的那一幕：卡在 2099/4398 帧处停住，现场以为没在播放。 */
     strcpy(b3, "# selftest\nFRAMES=900\nFILES=1\nFILE0=VIDEO000.BIN FRAMES=450\n");
+    /* long_ok：一份**超过一个扇区**的清单（12 个 FILE 行）。今晚真实踩的那刀就在这儿 ——
+     * 固件只读 1 个扇区且 Meta 只有 512 B，于是尾行的数字被从中间切成 "FRAMES=51"，
+     * 卡明明是完整的（PC 重生成后 md5 逐字节相同）。这条样本长度也是判据的一部分：
+     * 不 >512 就等于没测到那件事，所以连 strlen 一起断言。 */
+    strcpy(lg, "# selftest\nFRAMES=1200\nFILES=12\n");
+    for (i = 0; i < 12u; i++) {
+        strcat(lg, "FILE");
+        put_dec(nb, i);
+        strcat(lg, nb);
+        strcat(lg, "=VIDEO000.BIN FRAMES=100 BYTES=");
+        strcat(lg, fb);
+        strcat(lg, "\n");
+    }
 
     pass = meta_try(ok, 1350u, 2u) &&
            (fframes[0] == 900u) && (fframes[1] == 450u) && (strcmp(fname[1], "A.BIN") == 0) &&
            (meta_warn == 0) &&
            !meta_try(b1, 900u, 1u) && !meta_try(b2, 900u, 1u) &&
-           meta_try(b3, 450u, 1u) && (meta_warn != 0);
+           meta_try(b3, 450u, 1u) && (meta_warn != 0) &&
+           (strlen(lg) > 512u) && meta_try(lg, 1200u, 12u) && (meta_warn == 0);
     total_frames = 0u;              /* 别让样本留下的半截状态冒充"卡里有 900 帧" */
     nfiles = 0u;
     meta_warn = 0;
@@ -392,10 +425,26 @@ int sd_mount(void)
     if (read_secs(0u, 1u, Sec) != 0) return -1;
     if (parse_bpb() != 0) return -1;
 
-    /* META.TXT 只有一百多字节，读它首簇的第一个扇区就够 */
     clus = dir_lookup("META.TXT");
     if (!clus) { err = "META.TXT not found in root dir"; return -1; }
-    if (read_secs(clus_lba(clus, 0u), 1u, Meta) != 0) return -1;
+    /* META.TXT 现在是 712 B（9 个 FILE 行），**不能再假定它装得进一个扇区**：
+     * 原来这里读 1 个扇区、Meta 也只有 512 B，于是第 5 个 FILE 行的数字被从中间切断
+     * （"FRAMES=512" 读成 "FRAMES=51"），板上就看到 files=5 / Σ=2099，而卡本身逐字节是好的
+     * （PC 上重生成后 md5 与卡上完全一致，包括 META）。⇒ 改成"读满首簇、上限 = 缓冲区/512"，
+     * 并且尾字节非 0 就明确报"清单比能读的还大"，不再靠"应该够吧"。 */
+    {
+        u32 cap = (u32)(sizeof(Meta) / 512u);
+        u32 nsec = (found_size + 511u) / 512u;
+        if (nsec == 0u) nsec = 1u;
+        /* "放不下"要按**文件长度**判，不能按缓冲区尾字节是否非 0 判：
+         * 簇里文件后面是上一个文件留下的垃圾，拿尾字节当信号会把完整的清单报成截断
+         * （今晚第一版修完就是这么假阳的：files=9 全对，却照样打了 WARN）。 */
+        meta_trunc = (found_size > (u32)sizeof(Meta)) ? 1u : 0u;
+        if (nsec > cap) nsec = cap;
+        if (nsec > spc) nsec = spc;               /* 不越过首簇边界（只有簇内是连续的） */
+        if (read_secs(clus_lba(clus, 0u), nsec, Meta) != 0) return -1;
+        if (!meta_trunc) Meta[found_size] = 0u;   /* 清单到此为止，簇尾垃圾不参与解析 */
+    }
     if (parse_meta() != 0) return -1;
 
     mounted  = 1;

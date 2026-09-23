@@ -1,0 +1,12 @@
+[SD] FAT32 part_lba=2048 spc=32 rootclus=2 data_lba=34816
+[SD] frames=4398 fps=30.000 files=9 frame=307200B
+[SD]   VIDEO000.BIN frames=512
+[SD]   VIDEO001.BIN frames=512
+[SD]   VIDEO002.BIN frames=512
+[SD]   VIDEO003.BIN frames=512
+[SD]   VIDEO004.BIN frames=512
+[SD]   VIDEO005.BIN frames=512
+[SD]   VIDEO006.BIN frames=512
+[SD]   VIDEO007.BIN frames=512
+[SD]   VIDEO008.BIN frames=302
+

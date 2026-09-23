@@ -25,3 +25,7 @@
 #   收进来只会让人拿它当本次的结构依据。
 # 回退链：#22 build/frozen_r22_param/43b76e15 → #21 frozen_r21_rx/f39e2e78 →
 #         #19 frozen_r19_arb/545a27a1 → #18 frozen_r18_abort/534f7760 → #17 frozen_r17_cdc → #13 frozen_r13
+#
+# 后续更正（同日 R29 晚）：本目录里的 ps_app.elf (ec08e164) 已被取代 ——
+#   它带的固件只读清单的第一个扇区（712 B 的 META 被切成 512 B），ISSUES #48；位流不受影响、
+#   md5 仍是 18443ffd。当前 elf 见 build/ps_app.elf，下一次仲裁版构建会连同 bit 一起成套冻结。
