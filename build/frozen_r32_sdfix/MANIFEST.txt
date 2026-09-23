@@ -51,3 +51,6 @@
 # 回退链：#32(本目录, elf c00b6553 / bit efc89779) → #31 frozen_r31_srcmode/（同一块 bit，elf 播到 3584 会停）
 #         → #23 frozen_r23_srcseen/18443ffd（当前演示默认，SD 已上屏但没有仲裁）
 # 校验：本目录内 `md5sum -c MANIFEST_BODY.txt`（10 个文件：3 个产物 + 7 份凭据）。
+# 板上跑的**就是这一份 elf**（不是"同一次编译的另一份"）：`ps_app_reload.tcl` 默认下的是
+#   `build/ps_app.elf`，而 `md5sum build/ps_app.elf build/frozen_r32_sdfix/ps_app.elf` 两者同为
+#   `c00b6553…`（06:1x 核对）。同理 `build/system.bit` = `efc89779…` = 本目录那份 = #31 那份。
