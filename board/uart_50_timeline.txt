@@ -1,0 +1,7 @@
+[STAT] ctrl en=00 thr=80 src=0 zoom=1 bilin=1 pub=0 sd=0 frames=0 playing=0 (PL owns UDP datapath)
+[STAT] ctrl en=00 thr=80 src=0 zoom=1 bilin=1 pub=0 sd=0 frames=0 playing=0 (PL owns UDP datapath)
+[STAT] ctrl en=00 thr=80 src=0 zoom=1 bilin=1 pub=0 sd=0 frames=0 playing=0 (PL owns UDP datapath)
+[STAT] ctrl en=00 thr=80 src=0 zoom=1 bilin=1 pub=0 sd=0 frames=0 playing=0 (PL owns UDP datapath)
+[STAT] ctrl en=00 thr=80 src=0 zoom=1 bilin=1 pub=0 sd=0 frames=0 playing=0 (PL owns UDP datapath)
+[STAT] ctrl en=00 thr=80 src=0 zoom=1 bilin=1 pub=0 sd=0 frames=0 playing=0 (PL owns UDP datapath)
+

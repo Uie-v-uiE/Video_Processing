@@ -180,8 +180,16 @@ UltraScale+ `IDDRE1+BUFIO`），不是副本也不是分叉 —— 所以它们�
 | `dd9384b2`（#26） | lane30 六位（含像素域 mode/ps_src_seen 的第二对同步器）+ 图卡 + 长按 + 自动播固件 | 旧脚本判"ALL PASS"，**新脚本判红**（新增配对 `clkout0_1>clk_fpga_0`） | 交接判据未跑 |
 | `a6108921`（#27） | 撤掉那两位（`dbg_src` 缩到三位） | **仍红**（同一配对，5 端点 / 2 unsafe）—— 说明元凶不是观测口 | 未跑 |
 | `c65b547d`（#28） | 再加 `(* fsm_encoding = "none" *)` | **绿**（该配对降为 Warning、0 unsafe；Critical 回到 3 行）WNS +1.001 | **跑了：V1/V4/V5 红** ⇒ 定位到 ISSUES #52 |
-| `bec90dd1`（#29/#30 混称） | 再把格雷环下一状态写成按位式 | 绿（同上，端点 23836） | 未跑（被 #31 取代） |
-| #31 | 长按→模式这段搬进 `src/rtl/util/src_mode.v`（新增台架 `tb_v82_src_mode`）+ 复位后 8 拍灌满期 + `lane30` 扩到 8 位（模式/两个 busy，全在 axi 域） | 见 `report/OVERNIGHT_LOG.md` §23 | `arb_handover_test.mjs` 七条 + 交回毫秒数 |
+| `bec90dd1`（00:54 写盘） | 再把格雷环下一状态写成按位式 `{mode[0], ~mode[1]}` | 绿（同上，端点 23836） | 未跑（被下一版取代） |
+| `efc89779`（01:19 写盘，**= `build/frozen_r31_srcmode/`**） | 长按→模式搬进 `src/rtl/util/src_mode.v`（链复位 0 + 复位后 8 拍灌满期）+ 新台架 `tb_v82_src_mode`（11 条）+ `lane30` 从 3 位扩到 8 位（仲裁看到的模式与两个 busy，全在 axi 域 ⇒ 不交跨域税） | **绿**：WNS +0.764 / WHS +0.062 / 23840 端点 / LUT 7577 / Reg 6026 / 2.159 W / cdc Critical 3 行无新增配对 | **七条交接判据全绿**：接管 150 ms、**停流 285 ms 交回**、0 抖动、再推 180 ms 可逆（`arb_handover_green_r31.json`） |
+
+**为什么必须这样记账**：01:0x 那一段时间里有**两个构建在抢同一个工程目录**
+（`create_project -force` 会删掉 `*.runs`，先起的会被后起的顶掉并报 `SYNTH FAILED Scripts Generated`），
+于是"build#30/#31"这类口头编号和磁盘产物对不上了。
+从这一版起的规矩：**报数字先报 md5**，编号只用来称呼 RTL 的修订；
+并且 MANIFEST 里留一个"这块 bit 里确实是新逻辑"的可核对指纹
+（`cdc_details.rpt` 里的实例名 `u_pl/u_mode/mode_reg` —— 旧写法是 `FSM_onehot_mode_reg`）。
+
 
 **规矩补一条**（`build/gates.sh` 已实现，不用靠自觉）：门禁现在会额外检查
 "**有没有 RTL 源文件比 `system.bit` 新**"，有就 WARN —— 专治"改完没重跑就念上一版产物"。

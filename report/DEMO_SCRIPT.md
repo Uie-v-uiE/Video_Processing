@@ -72,16 +72,24 @@ WNS +0.740 / WHS +0.042 / 0 失败端点(23613) / LUT 7403(13.92%) / BRAM 64.64%
    `frame NNNN: last 100 frames 29.999 fps` —— 现场就有人问"多少帧"的话，指着这行念。
    两条独立核对（同一张卡、同一次会话）：12 秒窗口里 `STOP` 回报 360 帧 ⇒ **30.0 fps**；
    150 秒连续跑 46 个窗口全 29.999。⇒ 卡片读带宽 ≈ 9.0 MB/s（300 KB/帧）。
-3. **网线：不再要求"配 bit 之前拔掉"，但演示顺序仍按一幕一个片源走**。
-   PL 里现在有一个片源仲裁 `src_arb`（ISSUES #49）：`eth_mode` 不再是那根粘性命
-   `link_active = |s_pkts`（ARP 就触发、拔线不回 0、只有重配才清），
-   而是"最近真有帧 **且** 量它的时基还准"，并且只在两个搬运机都空闲时换手。
-   板级已确认的部分（build#24，`board/evidence_r29/arb_sd_with_cable_in.txt`）：
-   **插着线、没有推流时 PS 片源就能上屏**（FILL 色块 + SD 回放），这是 #23 做不到的。
-   还没确认的部分：**"停流 → ~0.2 s 后画面自动交回 SD"**在 #24 上是红的（那位"活着"在说谎，
-   因为断链时 PHY 把 RXC 拉到 ≈2.5 MHz 而不是停掉），修好的是 build#25，判据是眼睛。
-   ⇒ 在 #25 板级过判据之前，顺序照旧：`program_pl.tcl`（线已拔）→ 下 elf → `SD` → `PLAY`；
-   讲法可以提前用："**仲裁的难点不是谁优先，而是'对面还活着吗'这句话的时基是谁的时钟。**"
+3. **网线：不再要求"配 bit 之前拔掉"**——PL 里的片源仲裁已经过板级机器判据（#31，bit `efc89779`）。
+   演进过程本身就是最好的一段讲法（三步，每步都有凭据）：
+   · 第一版 `eth_mode = 3FF(|s_pkts)`：ARP 就触发、拔线不回 0 ⇒ PS 片源被永久锁死（ISSUES #47）；
+   · 第二版改成"最近真有帧"（`stall_ms < 200`）**并且**"量它的时基还准"（`eth_tb_ok`），
+     因为板级发现断链时 RTL8211 不停 RXC 而是把它拉到 ≈2.5 MHz，那位"活着"能连着十几秒说谎（#49）；
+   · 第三版（#31）修的是另一条**同症状不同根**的原因：长按事件的同步链复位值与源头不一致，
+     上电白送一次"长按"，模式自己走到"锁 ETH" ⇒ 仲裁长占不放（#52）。
+     它藏了一天的原因是**这段逻辑写在顶层、没有任何台架碰得到**。
+   现在的可核对数字（`node src/host/arb_handover_test.mjs` 一条命令现场跑，约 40 秒）：
+   推流→接管 **150–253 ms**，停流→交回 PS **210–434 ms**（四次独立测量），
+   交回后 0 次回跳，再推流 180 ms 内可逆。设计预算 200 ms（判"没流"）+ 20 ms（让位静默）≈ 220 ms。
+   **报数要说区间并报分辨率**：判据的时间分辨率就是采样周期（100 或 300 ms），
+   所以"285 ms"不能念成硬件精度。
+   还剩三条只能靠眼睛（已登记在 `board/README.md`）：交回之后画面确实活着、两路同时不闪、
+   长按四态轮转与图卡会动。
+   一句提醒：**回放跑着的时候别让调试器按住内核**（`arb_handover_test.mjs` 现在测前自动 `STOP`、
+   测完 `PLAY`），否则会踩到 #45/#50 那一族——控制器被停在传输中间，本上电周期再也挂载不上。
+
 4. **屏幕这一跳已经打通（build#23，`18443ffd`）**：板上眼睛确认屏幕出现 SD 卡视频画面
    （左窗原图、右窗同一帧的旋转+缩放）。在此之前 `pl_video_top.v` 显示前最后一级 mux 用
    粘性的 `eth_link_pix` 当"有没有片源"，网线一拔就把整块显存涂成红色，PS 片源在屏幕上不可达
@@ -109,21 +117,27 @@ WNS +0.740 / WHS +0.042 / 0 失败端点(23613) / LUT 7403(13.92%) / BRAM 64.64%
 
 ## 2. 资源与时序（一句话 + 出处）
 
-*"xc7z020 上，140 个 BRAM 用到 90.5（64.64%），Slice LUT 13.50%、寄存器 5.45%，
-动态功耗 2.180 W，时序 WNS +0.566 / WHS +0.044，约束全部满足、12863 根可布线网全布通 0 错误。"*
-（出处：`build/utilization.rpt`、`build/timing_summary.rpt`、`build/power.rpt`、
-`build/route_status.rpt` —— 与 `build/system.bit`（md5 前缀 `43b76e15`，build#22）**同一次构建**；
-每次重跑之后这一句要跟着换，别沿用旧数字。）
+*"xc7z020 上，140 个 BRAM 用到 90.5（64.64 %），Slice LUT 7577（14.24 %）、寄存器 6026（5.67 %），
+动态功耗 2.159 W，时序 WNS +0.764 / WHS +0.062、23840 个端点 0 个违例，
+方法学 0 条 CRITICAL WARNING、0 根布线错误网线，约束全部满足。"*
+
+出处：`build/timing_summary.rpt`、`build/utilization.rpt`、`build/power.rpt`、
+`build/methodology.rpt`、`build/route_status.rpt`、`build/cdc.rpt`，
+与 `build/system.bit`（md5 前缀 `efc89779`，成套冻在 `build/frozen_r31_srcmode/`）**同一次构建**。
+每次重跑之后这一句要跟着换，别沿用旧数字（`bash build/gates.sh` 会先打印 bit 与报告的 mtime）。
 
 | 说什么 | 数字 | 出处（现场可打开） |
 |--------|------|--------------------|
-| 帧缓存不是瓶颈了 | BRAM **98.93% → 64.64%**（按 2 的幂拆两块，省 48 个 tile） | `report/CHANGELOG_V7.md` V7.1(R04)；对照实验 `sim/probes/` |
-| 打包缓冲不再吃触发器 | Slice Registers **51.30% → 9.02%**（打包 FIFO 改分布式 RAM） | 同上 V7.0(R02) |
-| 入包链丢帧 | 15 fps × 200 帧：**198/198 帧完整落地，缺失 0/76800 个 16bit 字** | `data/measured/README.md`、`board_measure_15fps.txt` |
-| 拖影 | 从 **42~52%** 最新帧占比 → **0**（offset 拼帧 + DDR 乒乓 + 消隐期原子提交） | `report/CHANGELOG_V6.md` §0、V7 前言 |
-| 时序 | build#13：WNS +0.426 / WHS +0.025 → **build#22：WNS +0.566 / WHS +0.044 / 0 失败端点(23612)** | `build/timing_summary.rpt`（与 `build/system.bit` 成套） |
-| 时序瓶颈在哪 | 最差路径是 **OSD 字符行 `x_d_reg[11][x]` → `u_osd/b_reg[y]`**：26 级逻辑、66% 是走线延迟 ⇒ 下一笔优化该动它，不是以太网 | `build/frozen_r19_arb/timing_summary.rpt` |
-| 功耗 | Total ≈ **2.36 W**（Dynamic 2.18 W） | `build/power.rpt` |
+| BRAM 都花在哪 | 90.5 tile 里 **80 片是显示帧缓存**、9 片是收包 CDC FIFO、2 片是模糊/Sobel 行缓 ⇒ 再省只能改架构 | `build/util_hier.rpt`、`report/PERF_REPORT.md` §4b |
+| 帧缓存怎么从红变绿 | BRAM **98.93 % → 64.64 %**（按 2 的幂拆两块，省 48 个 tile） | `report/CHANGELOG_V7.md` V7.1(R04)；对照实验 `sim/probes/` |
+| 打包缓冲不再吃触发器 | Slice Registers **51.30 % → 9.02 %**（打包 FIFO 改分布式 RAM） | 同上 V7.0(R02) |
+| 入包链一个字不丢 | 30 fps × **9000 帧 / 1,989,000 包 / 302 s**，两次独立长跑：`drop_words=0`、CDC 灌满 0、验收门作废 0、平均帧间隔 33.34 ms（29.99 fps） | `board/evidence_r41/metrics_r41_soak300*.json` |
+| 过载余量 | 上位机不限速时实测交付 **116.7 fps**（512×300，≈36 MB/s）仍 0 丢字 ⇒ **上限在上位机与网线**，所以不报"PL 能扛多少 fps" | 同上 `metrics_r41_nopause120.json` |
+| 丢包记账对得上算术 | 每 2000 包丢 1 ⇒ 一帧 221 包 ⇒ 预测命中 11.05 %，实测作废 **66/597 = 11.06 %**；每 200 包丢 1（221 > 200）⇒ 597/597 全作废 | `report/PERF_REPORT.md` §6b |
+| 仲裁交接时序 | 接管 150–253 ms、**停流后 210–434 ms 交回**、0 次回跳、可逆（预算 220 ms；分辨率=采样周期） | `build/frozen_r31_srcmode/arb_handover_green_r31.json` |
+| SD 回放速率 | 4398 帧 / 9 文件，**29.999 fps** 连续 46 个 100 帧窗口（≈9.0 MB/s 卡读带宽）；上电自动开播，串口自己报速率 | `board/uart_r28_autoplay.txt`、`board/uart_50_probe.txt` |
+| 时序瓶颈在哪 | 最差路径是 **OSD 字符行 → `u_osd/b_reg`**：26 级逻辑、66 % 是走线延迟 ⇒ 下一笔优化该动它，不是以太网 | `build/timing_summary.rpt`；`report/OPTIMIZATION_LOG.md` |
+| 功耗 | Total ≈ **2.32 W**（Dynamic 2.159 W），vector-less 估算、置信度低 ⇒ 只做同口径相对比较 | `build/power.rpt` |
 
 ---
 

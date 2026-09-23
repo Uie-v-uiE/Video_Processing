@@ -500,9 +500,16 @@ static int frame_map(u32 idx, u32 *fi, u32 *off)
 static void dir_diag(const char *name)
 {
     char key[11];
-    int k;
-    u32 meta = dir_lookup("META.TXT");          /* 对照组：同一次调用里能否找到 META */
-    u32 nxtc = fat_next(root_clus);             /* 根目录第二簇： VIDEO000.BIN 依赖这一跳 */
+    const char *saved = err;    /* 见下面的注释：探针自己也会改 err */
+    u32 meta, nxtc;
+
+    /* 观察者效应（2026-09-24 自己踩的）：dir_lookup / fat_next 内部读失败会把 err 改成
+     * "SD read failed"，于是这行诊断**把要报的错覆盖掉了**——第一次跑就打印出
+     * "playback stopped ... : SD read failed" 而不是真正的 "frame file not found"。
+     * 诊断必须先存后还：报出来的错才是调用者那一路的错。 */
+    meta = dir_lookup("META.TXT");              /* 对照组：同一次调用里能否找到 META */
+    nxtc = fat_next(root_clus);                 /* 根目录第二簇：VIDEO000.BIN 依赖这一跳 */
+    err  = saved;
 
     name83(name, key);
     xil_printf("[SDDBG] name='%s' k83=%02x%02x%02x%02x%02x%02x%02x%02x_%02x%02x%02x\r\n"
@@ -512,7 +519,6 @@ static void dir_diag(const char *name)
                (unsigned)key[4], (unsigned)key[5], (unsigned)key[6], (unsigned)key[7],
                (unsigned)key[8], (unsigned)key[9], (unsigned)key[10],
                (int)root_clus, (int)nxtc, (int)meta, (int)spc, (int)fat_lba, (int)data_lba);
-    (void)k;
 }
 
 /* 打开第 i 个文件，并把簇游标推到第 off 帧的开头 */

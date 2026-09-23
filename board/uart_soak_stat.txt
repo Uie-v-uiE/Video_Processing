@@ -1,0 +1,2 @@
+[STAT] ctrl en=00 thr=80 src=1 zoom=1 bilin=1 pub=0 sd=1 frames=4398 playing=0 (PL owns UDP datapath)
+
