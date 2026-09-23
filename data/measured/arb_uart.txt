@@ -1,2 +1,6 @@
-[STAT] ctrl en=00 thr=80 src=0 zoom=1 bilin=1 pub=0 sd=0 frames=0 playing=0 (PL owns UDP datapath)
+[CTRL] AXI_GPIO=0x000F5000 en=00 thr=80 src=1 zoom=1 pub=1 bilin=1
+[SD] playing (STOP to end; ETH ????????????????????????)
+[SD] frame 89: last 89 frames 29.999 fps (since play 15.308)
+[SD] frame 189: last 100 frames 29.999 fps (since play 15.712)
+[SD] frame 289: last 100 frames 29.999 fps (since play 16.095)
 

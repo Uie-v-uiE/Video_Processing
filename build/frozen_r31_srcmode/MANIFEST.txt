@@ -18,7 +18,9 @@
 #      + `(* fsm_encoding = "none" *)`（否则综合重编 one-hot ⇒ CDC-10 Critical，见 #49）；
 #   3) `dbg_src` 从 3 位扩到 8 位：{0, 仲裁看到的模式(2), row_busy, fill_busy, owner, live, tb_ok}
 #      —— 八位全在 axi 域 ⇒ 零新增跨域，`cdc.rpt` 一行没多；红的时候能自己指出是谁占着；
-#   4) 台架 `sim/tb_v82_src_mode.v`（11 条，含"旧写法必须自己动"的反面对照）。
+#   4) 台架 `sim/tb_v82_src_mode.v`（12 条，含"旧写法必须自己动"的反面对照）。
+#      （冻结后更正：本行原写"11 条"，按 `grep -c expect(` 实为 12；位流与报告未动，
+#        MANIFEST.txt 不在 MANIFEST_BODY.txt 的校验清单内，所以改这一行不影响 md5sum -c。）
 #
 # 门禁（bash build/gates.sh，七项全绿；CDC 按 build/CDC_BASELINE.txt 的**配对集合**判）：
 #   WNS +0.764 / WHS +0.062 / 0 失败 setup 端点 / 0 失败 hold 端点（23840 端点）/

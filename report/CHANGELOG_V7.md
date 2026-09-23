@@ -690,3 +690,29 @@ L1 当前状态：**41/41**（`sim/results/regression_v79_r26.txt`，新增 `tb_
 
 `cdc.rpt` 在 #18 与 #19 之间**结构不变**：行、分类、时钟对都一样，只有 `sys_clk↔eth_rxc` 那一行
 的端点数 1859→1861（+2，与"仲裁多一级寄存"一致）⇒ 又一次说明它只能看趋势、不能当逐信号的凭据。
+
+
+## V7.10（R32 → R41，2026-09-23 深夜 → 09-24 05:3x）—— 第三源、可机器判定的交接，以及一条判据把自己人判红两次
+
+**这一版的主线不是"多了功能"，是"把判断从眼睛搬到机器"，然后把搬完之后立刻抓到的两个 bug 修掉。**
+
+| 项 | 内容 | 凭据 |
+|---|---|---|
+| 第三源换成会动的图卡 | `src/rtl/video/test_card.v`（移动块 + 帧号 + 按 H/V 比例的分区）；静止彩条分不清"通路在刷新"和"卡在最后一帧" | `sim/tb_v81_test_card.v`（21 条，含"同一像素跨帧必须变 / 彩条跨帧必须不变"的对照） |
+| `KEY1` 长按 1.2 s 切模式 | 自动 → 锁 ETH → 锁 PS → 锁图卡；四态用格雷码，下一状态按位写 `{mode[0], ~mode[1]}` | `sim/tb_v81_test_card.v` T16 三条；`src_mode.v` 文件头 |
+| 上电自动挂载 + 播放 SD | `AUTOPLAY0/1` 可关；串口自己报速率 ⇒ 演示不依赖任何人敲命令 | `board/uart_r28_autoplay.txt`（4398 帧 / 9 文件 / STAT 报 30.000 fps） |
+| 交接判据可机器判定 | lane30 从 3 位扩到 8 位（仲裁看到的模式 + 两个引擎的 busy），**八位全在 axi 域 ⇒ 不交跨域税**；一条命令出七条判据 + 毫秒数 | `src/host/arb_handover_test.mjs`（判据自身 10 条反例台架） |
+| 修掉 #52（上电白送一次长按） | 长按同步链复位值与源头不一致 ⇒ 模式自己走到"锁 ETH"、`force_eth` 长占、停流永不交回；搬进 `src_mode.v` + 8 拍灌满期 | `sim/tb_v82_src_mode.v`（12 条，含"旧写法必须自己动"的反面对照） |
+| 修掉 #49 的 CDC 账 | `fsm_encoding="none"` + 按位下一状态：那条从 Critical（8 端点 / 4 unsafe）降到 Warning（5 / **0 unsafe**） | `build/cdc.rpt` + `build/cdc_details.rpt`（`report_cdc -details` 点名） |
+| **门禁第一次拦住我自己** | `gates.sh` 第 6 项原来写死"4 行以内算过"，#26/#27 各自新增一条 Critical 配对却打印 ALL PASS；改成与 `build/CDC_BASELINE.txt` 比**配对集合** | 反例自查：#26/#27 判红、#25 判绿；`skill/cdc_pair_baseline_gate.md` |
+| 指标工具的第二课 | 分母的**总体**也要对：交付字节数包含被作废的帧，而 `gap_sum` 只数被接收的帧 ⇒ 曾报出"平均 22.4 ms 而最小 6667 ms"；现在分母 = 交付 − 作废 − 1，并加自相矛盾自曝 | `src/host/metrics.mjs --selftest` 8 → 14 条 |
+| #50 改定性 | SD 回放在**第 3584 帧 = 第 8 个文件 VIDEO007.BIN 的第一帧**必然读失败（两次独立长跑 + 定点跳帧探测同指一处）⇒ 不是"并发挤到超时"；次生的"file not found"是控制器被留在未完成传输里 | `board/uart_50_conc3min.txt`、`board/sd_frame_boundary2.txt` |
+
+**门禁数字（#31 = `build/frozen_r31_srcmode/`，bit `efc89779`）**：WNS +0.764 / WHS +0.062 /
+0 失败端点（23840）/ LUT 7577（14.24 %）/ Reg 6026 / BRAM 90.5 tile（64.64 %）/ Dynamic 2.159 W /
+methodology 0 CRIT / 0 布线错误 / `cdc.rpt` Critical 3 行 = 基线配对无新增。
+L1 全量 **47/47**（`sim/results/regression_v79_r39.txt`）。
+中间版 #29 曾到 WNS +1.001，最终版为可观测口付了 0.24 ns —— 两个数都记，不挑好看的念。
+
+**没做/没解的**：SD 定点坏点未治根因（下一步：PC 侧比 md5 + 看簇链）；链路内时延**未测**
+（协议无时间戳、PL 无打点，不写没有凭据的数字）；三条眼睛判据待用户确认；KU5P 仍按用户决定停着。
