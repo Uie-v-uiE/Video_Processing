@@ -442,7 +442,7 @@ helper 叫 `get()` ⇒ **不管有没有带 `--drop-every`，模块加载阶段�
 
 ---
 
-### 42. JTAG 回退路径跑不了 PS 应用：CPACR=0 ⇒ 浮点指令陷成 Undefined Instruction（未修，有明确出路）
+### 42. JTAG 回退路径跑不了 PS 应用：CPACR=0 ⇒ 浮点指令陷成 Undefined Instruction（已修，根因见 #44）
 
 **证据链（不是猜的）**：`dow build/ps_app.elf` + `con` 之后 4 秒，`rrd pc` = **0x00000004**，
 `cpsr = 0x200001df` ⇒ 处理器处于 **Undefined Instruction 模式**；
@@ -464,6 +464,72 @@ helper 叫 `get()` ⇒ **不管有没有带 `--drop-every`，模块加载阶段�
 `putregs …` 等 5 种写法）都报 `bad level` / `no register match`；按"三次不停手就换策略"的规矩停手，
 不改主线任何东西。**受影响的验证**：SD 播放、`SRC/ZOOM/TH` 串口命令这类要 PS 应用出马的检查项
 （§9.5 第 2–6 步）今天没法由我一个人做完 —— 需要你用 Vitis 走一遍。
+
+**2026-09-23 已修（不需要 Vitis，也不需要 FSBL）**：出路②的方向对了，但落点不是"补一条 MCR"。
+真因是这个手工链接的镜像**根本没有标准启动**（见 #44），CPACR 只是它暴露出来的第一个症状。
+补上标准启动之后：`[BOOT]` 横幅在 COM6 出现、`STAT` 应答、SD 卡挂载成功、回放实测 30.0 fps
+（判据与数据见 §19 与 #45 那条的记录方式）。当时的取证顺序值得记下来，因为它决定了我一度走偏：
+先看到"发 `SD` 回来的是整条开机横幅"⇒ 以为板子在自己重启 ⇒ 其实是异常落到了 0x0 上
+**恰好摆着的代码**（那时 0x0 是我自己加的 FPU 使能桩，末尾 `b _start` ⇒ 看起来就是一次干净重启）。
+
+---
+
+### 43. `kv_u32` 的"关键字必须在词首"判据写成指针比较，永远不成立 ⇒ 好的 META.TXT 被判成不合格（已修 + 判据自带自检）
+
+- 症状：`[SD] mount failed: META: FILE line without FRAMES`。卡是好的（同一张卡后来读出
+  5 个文件 4398 帧），因为 `sd_play.c` 里是
+  `if (s[kl] == '=' && (s == key ? 1 : (s[-1]==' ' || ...)))` —— `key` 是 `.rodata` 里
+  `"FRAMES"` 这个**字面量的地址**，`s` 是串内位置，两者永远不等；于是唯一没被覆盖的情形恰恰是
+  "关键字出现在串首"，而调用方为了切分文件名/参数已经把那个空格改写成了 `'\0'`，`s[-1]` 读到
+  `0` ⇒ 三个字符都不匹配 ⇒ 每行都判失败。
+- 为什么难查：**判据错**和**被判的对象**只能通过同一块板子观察，所以前三次上板我都以为是卡的错。
+- 落法：① 判据改成和**被扫描串的起点**比（`s == s0`）；② 给判据自己加测试 ——
+  `sd_play.c` 里新增 `meta_selftest()`，三段内置样本（一段必须过、两段必须被拒：
+  FILE 行缺 `FRAMES=`、把 `FRAMES=` 写成 `SFRAMES=` 证明行首锚定），跑在真正读卡之前，
+  失败时报 `META parser SELF-TEST failed (firmware bug, not the card)`。
+  从此 "mount failed" 这句话分得清是固件坏了还是卡不对，**不用把卡拔回 PC 才能判断**。
+
+### 44. 手工链接的 standalone 镜像丢了标准启动（boot.S / asm_vectors.S / translation_table.S）⇒ 四件事一起坏（已修）
+
+`src/ps/lscript_ocm.ld` 当年为了躲开"--gc-sections 把 main 裁光"把 `ENTRY(_vector_table)` 改成了
+`ENTRY(_start)`，代价是这三个对象再没人引用、整条启动链被裁掉。一个根因、四个症状（都是今晚撞到的）：
+
+| 缺的东西 | 症状 | 实测证据 |
+|---|---|---|
+| CPACR/FPEXC（boot.S 负责） | JTAG 起 app：第一条 VFP 指令陷 Undefined | `pc=0x4`、`cpsr` 模式 0x1b、`cpacr=0`（#42） |
+| VBAR + 异常向量表 | 异常去执行 0x0 那里恰好摆着的代码，**看起来像一次干净重启** | 发 `SD` 回来的却是整条 `[BOOT]` 横幅（两次，可重复） |
+| 各模式栈（ABT/UND/IRQ…） | 想在 handler 里压栈就是"异常里再异常一次" | `boot.S` 里那六段 `ldr r13,=..._stack` 从没跑过 |
+| MMU（按 BSP 的恒等映射开） | MMU 关着 ⇒ 非对齐访问必 fault ⇒ newlib `memcpy` 半字快路径炸 | `dfsr=0x801`、出错指令在 `memcpy` 里 |
+
+修法：`build/ps_app.mjs` 显式把三个 `.S` 编进来（`-DSDT` 与 BSP 自己的编译条件一致），
+`ENTRY(_boot)` 写在脚本里（试过命令行 `-Wl,-e,_boot`：**被脚本里的 ENTRY 顶掉，readelf 入口悄悄
+变成 0x0，一声不响**），并给链接结果加两道哨兵：ELF 入口 == `_boot`、`_vector_table` 必须在 0x0。
+`-mno-unaligned-access` 保留：它治的是另一处真实问题（`-O2` 把 `ld32()` 的四个字节读合并成
+`ldr r6,[r4,#454]`，objdump 里看得见）。
+
+**一条通用教训**：绕开 IDE 手工搭工具链时，**别只替换入口符号，要把标准启动整条链请回来**；
+判据是 `nm` 里必须同时有 `_boot`/`_vector_table`/`MMUTable`，而 `readelf -h` 的入口等于 `_boot`。
+
+### 45. `XSdPs_CfgInitialize` 每个核上电周期只能成功一次；第二次必失败（未修根因，已规避）
+
+- 复现（今晚，同一张卡、同一份 elf）：`rst -processor` + `dow` + `con` 之后第一条 `SD` ⇒
+  `FAT32 part_lba=2048 … frames=4398` 全对；随后再发 `SD`（连发三条，间隔 6 s）⇒ 三条都是
+  `XSdPs_CfgInitialize failed`。再 `rst -processor` + 重新 `dow` ⇒ 第一条又成功。
+  ⇒ 卡没坏、供电没问题，**坏在 PS 侧控制器/驱动状态**，且核复位能恢复。
+- 影响：现场演示里"按一下 SD 两次"就会看到 mount failed，而实际帧库还在（`STAT` 仍报 sd=1）。
+- 现在做的规避：`sd_mount()` 开头 `if (mounted) return 0;` ⇒ 重复 `SD` 变成幂等（main.c 会再打一次
+  挂载表），不再走那条会卡死的重初始化路径。**换卡仍需重启 app**（重新 `dow` 即可，见 `build/tcl/ps_app_reload.tcl`）。
+- 留给以后（想修真因才需要）：抓 `XSdPs_CfgInitialize` 内部哪一步超时（它先做 `XSdPs_Reset`
+  轮询软件复位位）；怀疑与"上一次会话遗留的多块读/CARD_BUSY 状态 + 4-bit/时钟切换"有关。
+  不修不影响交付：正式流程用 FSBL/SD 起，重启是常态。
+
+### 46. 把"自首次播放起的累计平均"当帧率报，读数会离谱 20 倍（已修：窗口速率 + 标签）
+
+`sd_tick()` 每 100 帧打一行统计。原来只有 `avg_fps_milli()` = 累计喂帧数 / **自第一次 PLAY 起**的时间，
+分子跨会话累加、分母含停顿 ⇒ 同一时刻板子在 30 fps 跑，屏幕上写 `avg 1.449 fps`。
+现在两条分开报并写清含义：`last 100 frames 29.999 fps (since play 29.886)`。
+**规则**：任何"平均"数字都要说清分母是什么；能同时给窗口值和累计值时都给，现场不会被人问倒。
+帧率本身另有一路独立核对：`STOP` 回报的帧号 / 时长（360 帧 ÷ 12 s = 30.0 fps，见 §19）。
 
 ---
 

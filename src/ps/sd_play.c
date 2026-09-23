@@ -45,6 +45,7 @@ static u8  Meta[512] __attribute__((aligned(64)));   /* META.TXT 的第一扇区
 static u32 FatLba = 0xFFFFFFFFu;
 
 static const char *err = "ok";
+static const char *meta_warn;       /* 挂载成功但卡与 META 不一致时的提示，见 parse_meta 末尾 */
 static int mounted;
 
 /* FAT32 卷参数 */
@@ -62,7 +63,8 @@ static u32  nxt;                    /* 下一帧索引 */
 static u32  open_idx = 0xFFFFFFFFu; /* 当前打开的文件号 */
 static u32  ff_clus, ff_blk;        /* 当前簇 / 簇内已用的扇区数 */
 static u32  fed_cnt;
-static XTime last_t, fed_t0;
+static XTime last_t, fed_t0, rpt_t;
+static u32 rpt_cnt;               /* 上一次报速率时的 fed_cnt，用于"这 100 帧"的窗口 */
 
 /* ============================ 基础工具 ============================ */
 
@@ -288,6 +290,21 @@ static int parse_meta(void)
         nfiles++;
     }
     if (nfiles == 0u) { err = "META: no FILEn lines parsed"; return -1; }
+
+    /* 卡上的帧数 = 各 FILEn 之和；FRAMES= 是生成时声明的总数。两者不等通常意味着
+     * **卡是拷贝中断/被删过的**（板上实测：一张声明 4398 帧的卡只有 5 个文件 = 2099 帧，
+     * 播到 2099 就 "frame index out of range" 停在半路，现场看起来就是"没有画面在播放"）。
+     * 所以取两者的小值当可播长度，并把差异说清楚 —— 宁可少播，不要演到一半停住。 */
+    {
+        u32 i, sum = 0u;
+        for (i = 0; i < nfiles; i++) sum += fframes[i];
+        if (sum != total_frames) {
+            meta_warn = "FRAMES != sum of FILEn (card copied only partly)";
+            if (sum < total_frames) total_frames = sum;
+        } else {
+            meta_warn = 0;
+        }
+    }
     return 0;
 }
 
@@ -325,23 +342,31 @@ static int meta_try(const char *txt, u32 exp_frames, u32 exp_files)
 
 static int meta_selftest(void)
 {
-    char fb[12], ok[256], b1[256], b2[256];
+    char fb[12], ok[256], b1[256], b2[256], b3[256];
     int pass;
 
     put_dec(fb, FRAME_BYTES);
-    strcpy(ok, "# selftest\nFRAMES=900\nFILES=2\nFILE0=VIDEO000.BIN FRAMES=900 BYTES=");
+    /* ok：FRAMES 与 FILEn 之和一致（900+450=1350），且 FILE1 那行先放一个 XFRAMES=7 ——
+     * 这条专门执行"关键字必须是独立词"那条判据（今晚它写错成指针比较，见 ISSUES #43）。 */
+    strcpy(ok, "# selftest\nFRAMES=1350\nFILES=2\nFILE0=VIDEO000.BIN FRAMES=900 BYTES=");
     strcat(ok, fb);
     strcat(ok, "\nFILE1=A.BIN XFRAMES=7 FRAMES=450\n");
     strcpy(b1, "# selftest\nFRAMES=900\nFILES=1\nFILE0=VIDEO000.BIN 900 BYTES=");
     strcat(b1, fb);
     strcat(b1, "\n");
     strcpy(b2, "# selftest\nSFRAMES=900\nFILES=1\nFILE0=VIDEO000.BIN FRAMES=900\n");
+    /* b3：声明 900 帧但文件里只有 450 ⇒ 必须**按 450 收**（可播长度取小值）。
+     * 这条就是今晚板上撞到的那一幕：卡在 2099/4398 帧处停住，现场以为没在播放。 */
+    strcpy(b3, "# selftest\nFRAMES=900\nFILES=1\nFILE0=VIDEO000.BIN FRAMES=450\n");
 
-    pass = meta_try(ok, 900u, 2u) &&
+    pass = meta_try(ok, 1350u, 2u) &&
            (fframes[0] == 900u) && (fframes[1] == 450u) && (strcmp(fname[1], "A.BIN") == 0) &&
-           !meta_try(b1, 900u, 1u) && !meta_try(b2, 900u, 1u);
+           (meta_warn == 0) &&
+           !meta_try(b1, 900u, 1u) && !meta_try(b2, 900u, 1u) &&
+           meta_try(b3, 450u, 1u) && (meta_warn != 0);
     total_frames = 0u;              /* 别让样本留下的半截状态冒充"卡里有 900 帧" */
     nfiles = 0u;
+    meta_warn = 0;
     return pass;
 }
 
@@ -351,6 +376,7 @@ int sd_mount(void)
     u32 clus;
 
     err = "ok";
+    if (mounted) { return 0; }   /* 见 ISSUES #45 */
     if (!meta_selftest()) {
         err = "META parser SELF-TEST failed (firmware bug, not the card)";
         return -1;
@@ -390,6 +416,8 @@ void sd_status(void)
                (int)(((fps_num % fps_den) * 1000u) / fps_den), (int)nfiles, (int)FRAME_BYTES);
     for (i = 0; i < nfiles; i++)
         xil_printf("[SD]   %s frames=%d\r\n", fname[i], (int)fframes[i]);
+    if (meta_warn)
+        xil_printf("[SD] WARN %s: playing %d frames only\r\n", meta_warn, (int)total_frames);
 }
 
 /* ============================ 取帧 ============================ */
@@ -479,6 +507,8 @@ int sd_play(int on)
     if (playing) {
         nxt = 0;
         XTime_GetTime(&last_t);
+        XTime_GetTime(&rpt_t);          /* 速率窗口从本次播放开始算，别把上一次会话的空闲算进来 */
+        rpt_cnt = fed_cnt;
         if (!fed_t0) XTime_GetTime(&fed_t0);
     }
     return playing;
@@ -523,8 +553,19 @@ void sd_tick(void)
     fed_cnt++;
     last_t = now;
     if ((fed_cnt % 100u) == 0u) {
+        /* 两个数都要报，但含义必须分清：
+         *   last N frames = 这 100 帧自己的耗时 ⇒ 板子当下的真实速率（受 SD 读带宽限制）；
+         *   since play    = 自"上一次开始播放"起的平均 ⇒ 含停顿/换卡的时间，只能当占空比看。
+         * 原来只报后者却写作 "avg fps"，读的人会当成帧率（今晚实测：同一时刻一个报 1.449、
+         * 一个是 30，因为前者把两次播放会话之间的空闲也算进了分母）。 */
+        u64 span = (u64)(now - rpt_t);
+        u32 win = fed_cnt - rpt_cnt;
+        u64 w = span ? (u64)win * 1000u * (u64)COUNTS_PER_SECOND / span : 0u;
         u64 f = avg_fps_milli();
-        xil_printf("[SD] %d frames fed, avg %d.%03d fps\r\n",
-                   (int)fed_cnt, (int)(f / 1000u), (int)(f % 1000u));
+        xil_printf("[SD] frame %d: last %u frames %d.%03d fps (since play %d.%03d)\r\n",
+                   (int)nxt, win, (int)(w / 1000u), (int)(w % 1000u),
+                   (int)(f / 1000u), (int)(f % 1000u));
+        rpt_t = now;
+        rpt_cnt = fed_cnt;
     }
 }

@@ -36,22 +36,32 @@ static u8  cur_zoom = 1;   /* GPIO bit17: 右屏无极缩放。当前 RTL 常开
 static u8  cur_bilin = 1;  /* GPIO bit19: 双线性/最近邻 A-B 对照，演示时现场切换用 */
 static u32 pub_lvl = 0;
 
-static void ctrl_apply(void)
+/* 只写寄存器、不打字，返回写进去的值。
+ * 每帧一次的"发布"脉冲必须走这条：原来 ps_publish() 直接调 ctrl_apply()，于是 30 fps 的
+ * 回放每秒往串口推约 2 KB（115200 只有 11.5 KB/s，而 xil_printf 是轮询等 TX 的阻塞实现），
+ * 板上实测 PLAY 10 s 收回 28549 B 全是 [CTRL] 行 —— 刷屏之外还把发布时序压在打印上。 */
+static u32 ctrl_write(void)
 {
     u32 v = (cur_en & 0x1F) | ((u32)cur_thr << 8) | ((u32)cur_src << 16)
           | ((u32)(cur_zoom ? 1 : 0) << 17) | (pub_lvl << PUBLISH_BIT)
           | ((u32)(cur_bilin ? 1 : 0) << BILIN_BIT);
     Xil_Out32(GPIO_DATA, v);
+    return v;
+}
+
+static void ctrl_apply(void)
+{
+    u32 v = ctrl_write();
     xil_printf("[CTRL] AXI_GPIO=0x%08x en=%02x thr=%d src=%d zoom=%d pub=%d bilin=%d\r\n",
                v, cur_en & 0x1F, cur_thr, cur_src, cur_zoom ? 1 : 0, (int)pub_lvl,
                cur_bilin ? 1 : 0);
 }
 
-/* sd_play.c 只被允许请求"发布"，不碰别人的控制字 */
+/* sd_play.c 只被允许请求"发布"，不碰别人的控制字；每帧都调，所以不出声 */
 void ps_publish(void)
 {
     pub_lvl ^= 1u;
-    ctrl_apply();
+    (void)ctrl_write();
 }
 
 static void ctrl_set_en(u32 en)
