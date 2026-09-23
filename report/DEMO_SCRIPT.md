@@ -24,7 +24,16 @@ set XSDBAT=D:\Software\Vivado\2025.2.1\Vitis\bin\xsdb.bat
 （elf 里没有 FSBL 也能跑：入口是标准启动 `_boot`，它开 CPACR/FPEXC、各模式栈、VBAR 与 MMU，
  见 ISSUES #42/#44；启动后寄存器状态可用 `board/pswhy.tcl` 一次采出来。）
 
-下 bit 前 **先 `md5sum build/system.bit`，必须以 `18443ffd` 开头**（= build#23：V7.7 同一功能 +
+**2026-09-24 06:4x 起本脚本用的是 #31 的位流 + #32 的固件**（`build/frozen_r32_sdfix/`，
+12 个文件的 `md5sum -c` 全 OK）：`system.bit` 前缀 **`efc89779`**（与 `frozen_r31_srcmode/` 逐字节同一份），
+`ps_app.elf` 前缀 **`c00b6553`**。下 bit / 下 elf 前各自 `md5sum` 一次再决定要不要重跑。
+为什么 elf 必须取 #32 那份：**#31 的 elf 播 SD 会在第 3584 帧停住**（ISSUES #50，根因是 PS 固件把
+FAT32 目录项的高簇字按大端拼 ⇒ 首簇 ≥65536 的文件才发作；卡与 FAT 都是好的，**不用重拷卡**）。
+换了 #32 之后可以当场讲的新事实：**整卡 4398 帧播完并自动回绕**，串口 155 s 抓取零失败
+（凭据 `build/frozen_r32_sdfix/sd_hotspot_fixed.txt`），且挂载时会自报
+`[SD] dir map ok: 9 files, first clusters within 1946818` —— 没有这一行就是 elf 不对。
+
+（历史口径，保留以免和旧报告对不上）下 bit 前 **先 `md5sum build/system.bit`，必须以 `18443ffd` 开头**（= build#23：V7.7 同一功能 +
 R22 两笔 CDC + R23 `copy_abort` 翻转同步 + R24 厂商发送仲裁（#37）+ R26 自研收包链（#38）+
 R27 参数集中化 + **R29 去掉挡在 PS 片源前面的那块红色占位（#47）** ⇒ 这一版起 **SD 卡回放在屏幕上看得见**，
 WNS +0.740 / WHS +0.042 / 0 失败端点(23613) / LUT 7403(13.92%) / BRAM 64.64% / 2.178 W / L1 43/43；
