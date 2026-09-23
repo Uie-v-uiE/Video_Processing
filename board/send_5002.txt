@@ -1,0 +1,16 @@
+[TX] 192.168.1.10:5002 512x300 RGB565 @15fps test=move pace=15 MB/s src=192.168.1.100
+[TX] first frame 307200 B = 221 pkts
+[TX] frames=30 ~15.3 fps
+[TX] frames=60 ~15.1 fps
+[TX] frames=90 ~15.1 fps
+[TX] frames=120 ~15.1 fps
+[TX] frames=150 ~15.1 fps
+[TX] frames=180 ~15.0 fps
+[TX] frames=210 ~15.0 fps
+[TX] frames=240 ~15.0 fps
+[TX] frames=270 ~15.0 fps
+[TX] frames=300 ~15.0 fps
+[TX] frames=330 ~15.0 fps
+[TX] frames=360 ~15.0 fps
+[TX] frames=390 ~15.0 fps
+[TX] waiting for the tx queue to drain ...

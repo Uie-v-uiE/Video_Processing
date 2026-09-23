@@ -152,7 +152,7 @@ function build(n) {
   return buf;
 }
 
-const DROP_EVERY = Number(arg('drop-every', 0));   // 0 = 不丢包
+const DROP_EVERY = Number(get('drop-every', 0));   // 0 = 不丢包
 const sock = dgram.createSocket('udp4');
 if (SRC) {
   try { sock.bind({ address: SRC, port: 0 }); }
