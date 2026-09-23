@@ -45,10 +45,25 @@
 ### 3.1 rgmii_rx / rgmii_tx
 BUFIO + IDDR（SAME_EDGE_PIPELINED）/ ODDR；IDELAY_VALUE=15。
 
-### 3.2 arp / icmp / udp
-- ARP：who-has → 板卡 MAC `00:11:22:33:44:55`
-- ICMP：echo reply；载荷 **自写 `sync_fifo`**；tx 启动延迟 20 拍
-- UDP：解析后交 `frame_reasm`
+### 3.2 arp / icmp / udp（V7.9.6 起，收侧换成自研那一对）
+- ARP：who-has → 板卡 MAC `00:11:22:33:44:55`；ICMP：echo reply；载荷 **自写 `sync_fifo`**；tx 启动延迟 20 拍
+  —— 这两个仍是厂商实现。
+- **发**：`udp_tx` + `crc32_d8`（IP/UDP/Ethernet 头与 FCS 都在 `udp_tx` 里）。厂商的 `udp` 包装层
+  已不再被任何顶层例化 —— 它会把 `udp_rx` 一起拖进来。
+- **收（自研一对）**：
+  - `gmii_rx_mac`：去前导码/SFD，按字节数与**自己算的 FCS-32** 判好坏。为什么要自算：
+    RGMII 只有 4 数据 + 1 控制，`rgmii_rx.v` 把 RX_CTL 只当 `gmii_rx_dv` 用，
+    **两块板上都没有 RX_ER 这根线**（`gmii_rx_er` 恒接 0）—— 不自算就一个错误源都没有。
+    判据常数 `0xC704DD7B` = 标准余数 `0xDEBB20E3` 经 `crc32_d8` 的位反序，Node 独立核过。
+  - `udp_rx_parser`：按下标解 IPv4/UDP，带**目的端口过滤**（`UDP_PORT` 参数），
+    吐 `p_data/p_valid/p_sof/p_eof/p_good` + 三个统计脉冲 `stat_drop_bad/stat_drop_filt/stat_udp_ok`。
+  - 判据：`sim/tb_v795_rx_fcs.v`（FCS 那一级）+ `sim/tb_v795_rx_chain.v`（成对，C1–C5）。
+- `frame_reasm.p_good` 从此接**真值**（原来是 `1'b1`）⇒ `stat_bad` 活了：Z7 的 health 读回与
+  KU5P 遥测里的 `bad` 字段都不再是构造性为 0 的死数字。
+- **还接了但没人消费的口（别当 bug 也别当特性）**：`eth_ctrl` 的 `rec_en/rec_data`（及其内部
+  `fifo_tx_*`）在两块板上都没有下游，V7.9.6 只把它的 `udp_rec_data/udp_rec_en` 改喂 parser 的
+  `p_data/p_valid`（宁可传真字节，不硬接 0）；parser 那三个统计脉冲同样还没接到任何可读寄存器上 ——
+  **"被端口过滤掉的包数"要不要变成可读数字是个独立小决定**，登记在 `report/ISSUES.md` #38 末尾。
 
 ### 3.3 frame_reasm
 协议 `[u32 LE offset][RGB565]`；`wr_addr=offset/2`；满 307200 B 帧完成；坏帧计数不重传。

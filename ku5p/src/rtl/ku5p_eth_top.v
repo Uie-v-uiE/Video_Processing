@@ -89,9 +89,8 @@ module ku5p_eth_top #(
         end
     end
 
-    wire        udp_rec_pkt_done, udp_rec_en, udp_gmii_tx_en, udp_tx_done, udp_tx_req;
-    wire [7:0]  udp_rec_data, udp_gmii_txd;
-    wire [15:0] udp_rec_byte_num;
+    wire        udp_gmii_tx_en, udp_tx_done, udp_tx_req;
+    wire [7:0]  udp_gmii_txd;
 
     // 遥测的取数口必须在使用之前声明 —— 否则 Verilog 会先按"隐式网"（1 bit）把
     // u_udp 的 .tx_data/.tx_byte_num 接上，后面的显式声明就成了重复声明。
@@ -132,15 +131,61 @@ module ku5p_eth_top #(
         .tx_done(icmp_tx_done), .tx_req(icmp_tx_req)
     );
 
-    udp #(.BOARD_MAC(BOARD_MAC), .BOARD_IP(BOARD_IP)) u_udp (
-        .rst_n(rst_n),
-        .gmii_rx_clk(g_clk), .gmii_rx_dv(g_rx_dv), .gmii_rxd(g_rxd),
-        .gmii_tx_clk(g_tx_clk), .gmii_tx_en(udp_gmii_tx_en), .gmii_txd(udp_gmii_txd),
-        .rec_pkt_done(udp_rec_pkt_done), .rec_en(udp_rec_en), .rec_data(udp_rec_data),
-        .rec_byte_num(udp_rec_byte_num),
-        .tx_start_en(udp_grant), .tx_data(tlm_data), .tx_byte_num(tlm_len),
-        .des_mac(src_mac), .des_ip(src_ip),
-        .tx_done(udp_tx_done), .tx_req(udp_tx_req)
+    // ---- V7.9.6（ISSUES #38）：收侧换成自研那一对，发侧只留厂商 udp_tx ----
+    // 原来这里例化的是厂商 `udp`，它把 udp_rx 和 udp_tx 一起拉进来：
+    //   · udp_rx 不看帧长、也没有错误标志可看 ⇒ 顶层只能把 frame_reasm.p_good 硬接 1
+    //     ⇒ 遥测包里的 `bad` 是**构造性为 0** 的死数字（#38 的原始症状）；
+    //   · 而且 RGMII 收侧**根本没有 ER 这根线**（RX_CTL 只当 dv 用），所以"看 ER"这条路
+    //     在这两块板上都不成立 —— 错误源必须自己造。现在由 gmii_rx_mac 逐字节算 FCS-32。
+    // 发侧的 udp_tx 保留（IP/UDP/Ethernet 头与 FCS 都在它里面），但不再连带把 udp_rx 拉进来。
+    wire        crc_en, crc_clr;
+    wire [31:0] crc_data, crc_next;
+    wire [7:0]  crc_d8;
+    assign crc_d8 = udp_gmii_txd;
+
+    udp_tx #(.BOARD_MAC(BOARD_MAC), .BOARD_IP(BOARD_IP)) u_udp_tx (
+        .clk        (g_tx_clk),
+        .rst_n      (rst_n),
+        .tx_start_en(udp_grant),
+        .tx_data    (tlm_data),
+        .tx_byte_num(tlm_len),
+        .des_mac    (src_mac),
+        .des_ip     (src_ip),
+        .crc_data   (crc_data),
+        .crc_next   (crc_next[31:24]),
+        .tx_done    (udp_tx_done),
+        .tx_req     (udp_tx_req),
+        .gmii_tx_en (udp_gmii_tx_en),
+        .gmii_txd   (udp_gmii_txd),
+        .crc_en     (crc_en),
+        .crc_clr    (crc_clr)
+    );
+    crc32_d8 u_crc_tx (
+        .clk(g_tx_clk), .rst_n(rst_n), .data(crc_d8),
+        .crc_en(crc_en), .crc_clr(crc_clr), .crc_data(crc_data), .crc_next(crc_next));
+
+    // 收：GMII 字节流 → 去前导码 + FCS 判定 → IPv4/UDP 过滤 + 抽载荷
+    wire [7:0] rx_m_data;
+    wire       rx_m_valid, rx_m_sof, rx_m_eof, rx_m_good, rx_m_bad;
+    gmii_rx_mac u_rx_mac (
+        .clk(g_clk), .rst_n(rst_n),
+        .gmii_rxd(g_rxd), .gmii_rx_dv(g_rx_dv),
+        .gmii_rx_er(1'b0),          // RGMII 没有 RX_ER 通道，恒 0 是有意的（见 #38）；
+                                    // 真正的错误判定在上面的 FCS 里
+        .m_data(rx_m_data), .m_valid(rx_m_valid), .m_sof(rx_m_sof),
+        .m_eof(rx_m_eof), .m_good(rx_m_good), .m_bad(rx_m_bad)
+    );
+    wire [7:0]  p_data;
+    wire        p_valid, p_sof, p_eof, p_good;
+    wire [15:0] p_pay_len;
+    wire        st_drop_bad, st_drop_filt, st_udp_ok;
+    udp_rx_parser #(.UDP_PORT(UDP_PORT)) u_rx_par (        // UDP_PORT=5001，与 Z7 同一口径
+        .clk(g_clk), .rst_n(rst_n),
+        .s_data(rx_m_data), .s_valid(rx_m_valid), .s_sof(rx_m_sof),
+        .s_eof(rx_m_eof), .s_good(rx_m_good), .s_bad(rx_m_bad),
+        .p_data(p_data), .p_valid(p_valid), .p_sof(p_sof), .p_eof(p_eof), .p_good(p_good),
+        .pay_len(p_pay_len),
+        .stat_drop_bad(st_drop_bad), .stat_drop_filt(st_drop_filt), .stat_udp_ok(st_udp_ok)
     );
 
     // 厂商的 eth_ctrl 在这里被换成自研的 ku5p_tx_arb（见该文件头的理由），
@@ -154,18 +199,13 @@ module ku5p_eth_top #(
     wire [15:0] reasm_rows_miss;
     wire [31:0] s_frames, s_pkts, s_bytes, s_badc, s_oob;
 
-    reg in_udp_pkt;
-    always @(posedge g_clk or negedge rst_n) begin
-        if (!rst_n) in_udp_pkt <= 1'b0;
-        else if (udp_rec_pkt_done) in_udp_pkt <= 1'b0;
-        else if (udp_rec_en) in_udp_pkt <= 1'b1;
-    end
-    wire udp_sof = udp_rec_en && !in_udp_pkt;
-
+    // p_good 现在是**真值**（gmii_rx_mac 的 FCS 判定经 udp_rx_parser 传下来），
+    // 不再是原来那个 `.p_good(1'b1)` —— 于是 frame_reasm 的 stat_bad 活了，
+    // 遥测包里的 `bad` 字段也从"构造性为 0"变成可当证据的数字（#38 结案的那一半）。
     frame_reasm #(.IMG_W(IMG_W), .IMG_H(IMG_H)) u_reasm (
         .clk(g_clk), .rst_n(rst_n),
-        .p_data(udp_rec_data), .p_valid(udp_rec_en),
-        .p_sof(udp_sof), .p_eof(udp_rec_pkt_done), .p_good(1'b1),
+        .p_data(p_data), .p_valid(p_valid),
+        .p_sof(p_sof), .p_eof(p_eof), .p_good(p_good),
         .wr_en(fb_wr_en), .wr_addr(fb_wr_addr), .wr_data(fb_wr_data),
         .flush(reasm_flush),
         .frame_done(frame_done), .frame_err(reasm_ferr),

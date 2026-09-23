@@ -105,11 +105,9 @@ module eth_udp_video_top #(
         end
     end
 
-    wire        udp_rec_pkt_done, udp_rec_en;
-    wire [7:0]  udp_rec_data;
-    wire [15:0] udp_rec_byte_num;
     wire        udp_gmii_tx_en, udp_tx_done, udp_tx_req;
     wire [7:0]  udp_gmii_txd, udp_tx_data;
+    wire [7:0]  crc_d8;   // V7.9.6：crc32_d8 的输入 = 发送线上正在出的字节（原来在 udp.v 内部）
     wire [7:0]  fifo_tx_data;
     wire        fifo_tx_req, fifo_rec_en;
     wire [7:0]  fifo_rec_data;
@@ -150,17 +148,58 @@ module eth_udp_video_top #(
         .tx_done(icmp_tx_done), .tx_req(icmp_tx_req)
     );
 
-    udp #(
-        .BOARD_MAC(BOARD_MAC), .BOARD_IP(BOARD_IP)
-    ) u_udp (
-        .rst_n(rst_n),
-        .gmii_rx_clk(gmii_rx_clk), .gmii_rx_dv(gmii_rx_dv), .gmii_rxd(gmii_rxd),
-        .gmii_tx_clk(gmii_tx_clk), .gmii_tx_en(udp_gmii_tx_en), .gmii_txd(udp_gmii_txd),
-        .rec_pkt_done(udp_rec_pkt_done), .rec_en(udp_rec_en), .rec_data(udp_rec_data),
-        .rec_byte_num(udp_rec_byte_num),
-        .tx_start_en(1'b0), .tx_data(8'd0), .tx_byte_num(16'd0),
-        .des_mac(src_mac), .des_ip(src_ip),
-        .tx_done(udp_tx_done), .tx_req(udp_tx_req)
+    // ---- V7.9.6（ISSUES #38）：收侧换成自研那一对，发侧只留厂商 udp_tx ----
+    // 原来例化的是厂商 `udp` 包装层（udp_rx + udp_tx 一起进来）。udp_rx 不看帧长、也没有错误
+    // 标志可看（RGMII 只有 4 数据 + 1 控制，RX_CTL 在 rgmii_rx.v 里只当 gmii_rx_dv 用，
+    // **板上根本没有 RX_ER 这根线**）⇒ 下面 frame_reasm 的 p_good 只能硬接 1 ⇒ 遥测/OSD 里的
+    // "坏包"是构造性为 0 的死数字。现在错误源由 gmii_rx_mac 逐字节算 FCS-32 自己造出来。
+    // 发侧维持今天的状态（`tx_start_en` 恒 0，UDP 发送在 Z7 上是接着但没人启动），
+    // 只是不再连带把 udp_rx 拉回来。判据：sim/tb_v795_rx_chain.v（C1..C5）。
+    wire        crc_en, crc_clr;
+    wire [31:0] crc_data, crc_next;
+    assign crc_d8 = udp_gmii_txd;
+
+    udp_tx #(.BOARD_MAC(BOARD_MAC), .BOARD_IP(BOARD_IP)) u_udp_tx (
+        .clk        (gmii_tx_clk),
+        .rst_n      (rst_n),
+        .tx_start_en(1'b0),                       // 与今天一致：Z7 不发 UDP
+        .tx_data    (8'd0),
+        .tx_byte_num(16'd0),
+        .des_mac    (src_mac),
+        .des_ip     (src_ip),
+        .crc_data   (crc_data),
+        .crc_next   (crc_next[31:24]),
+        .tx_done    (udp_tx_done),
+        .tx_req     (udp_tx_req),
+        .gmii_tx_en (udp_gmii_tx_en),
+        .gmii_txd   (udp_gmii_txd),
+        .crc_en     (crc_en),
+        .crc_clr    (crc_clr)
+    );
+    crc32_d8 u_crc_tx (
+        .clk(gmii_tx_clk), .rst_n(rst_n), .data(crc_d8),
+        .crc_en(crc_en), .crc_clr(crc_clr), .crc_data(crc_data), .crc_next(crc_next));
+
+    wire [7:0] rx_m_data;
+    wire       rx_m_valid, rx_m_sof, rx_m_eof, rx_m_good, rx_m_bad;
+    gmii_rx_mac u_rx_mac (
+        .clk(gmii_rx_clk), .rst_n(rst_n),
+        .gmii_rxd(gmii_rxd), .gmii_rx_dv(gmii_rx_dv),
+        .gmii_rx_er(1'b0),          // RGMII 没有 RX_ER 通道；真正的判定在 FCS 那一级
+        .m_data(rx_m_data), .m_valid(rx_m_valid), .m_sof(rx_m_sof),
+        .m_eof(rx_m_eof), .m_good(rx_m_good), .m_bad(rx_m_bad)
+    );
+    wire [7:0]  p_data;
+    wire        p_valid, p_sof, p_eof, p_good;
+    wire [15:0] p_pay_len;
+    wire        st_drop_bad, st_drop_filt, st_udp_ok;
+    udp_rx_parser #(.UDP_PORT(UDP_PORT)) u_rx_par (        // 目的端口过滤：P0-C 最后那条债
+        .clk(gmii_rx_clk), .rst_n(rst_n),
+        .s_data(rx_m_data), .s_valid(rx_m_valid), .s_sof(rx_m_sof),
+        .s_eof(rx_m_eof), .s_good(rx_m_good), .s_bad(rx_m_bad),
+        .p_data(p_data), .p_valid(p_valid), .p_sof(p_sof), .p_eof(p_eof), .p_good(p_good),
+        .pay_len(p_pay_len),
+        .stat_drop_bad(st_drop_bad), .stat_drop_filt(st_drop_filt), .stat_udp_ok(st_udp_ok)
     );
 
     eth_ctrl u_ctrl (
@@ -174,7 +213,7 @@ module eth_udp_video_top #(
         .icmp_tx_req(icmp_tx_req), .icmp_tx_data(),
         .udp_tx_start_en(1'b0), .udp_tx_done(udp_tx_done),
         .udp_gmii_tx_en(udp_gmii_tx_en), .udp_gmii_txd(udp_gmii_txd),
-        .udp_rec_data(udp_rec_data), .udp_rec_en(udp_rec_en),
+        .udp_rec_data(p_data), .udp_rec_en(p_valid),   // 这条 rec 转发路径本设计无人消费；接真字节而不是硬 0
         .udp_tx_req(udp_tx_req), .udp_tx_data(),
         .tx_data(fifo_tx_data), .tx_req(fifo_tx_req),
         .rec_en(fifo_rec_en), .rec_data(fifo_rec_data),
@@ -182,21 +221,16 @@ module eth_udp_video_top #(
     );
 
     wire [31:0] s_frames, s_pkts, s_bytes, s_badc, s_oob;
-    reg in_udp_pkt;
-    always @(posedge gmii_rx_clk or negedge rst_n) begin
-        if (!rst_n) in_udp_pkt <= 1'b0;
-        else if (udp_rec_pkt_done) in_udp_pkt <= 1'b0;
-        else if (udp_rec_en) in_udp_pkt <= 1'b1;
-    end
-    wire udp_sof = udp_rec_en && !in_udp_pkt;
+    // V7.9.6：原来这里要用"上一个字节没到、这一字节到了"自己凑一个 sof，
+    // 因为厂商 udp_rx 不给边界；parser 直接给 p_sof/p_eof，那段推导随之删掉。
 
     wire reasm_flush;
     wire reasm_ferr, reasm_fabort;
     wire [15:0] reasm_rows_miss;
     frame_reasm #(.IMG_W(IMG_W), .IMG_H(IMG_H)) u_reasm (
         .clk(gmii_rx_clk), .rst_n(rst_n),
-        .p_data(udp_rec_data), .p_valid(udp_rec_en),
-        .p_sof(udp_sof), .p_eof(udp_rec_pkt_done), .p_good(1'b1),
+        .p_data(p_data), .p_valid(p_valid),
+        .p_sof(p_sof), .p_eof(p_eof), .p_good(p_good),   // ← 这一位从此是**真值**（原来是 1'b1）
         .wr_en(fb_wr_en), .wr_addr(fb_wr_addr), .wr_data(fb_wr_data),
         .flush(reasm_flush),
         .frame_done(frame_done), .frame_err(reasm_ferr),
