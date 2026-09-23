@@ -2482,4 +2482,5 @@ L1 台架用**当前这棵树**重跑：**47/47 全过**，存档 `sim/results/r
 ① 停流交回后屏幕上确实是 SD 在动（机器侧 lane30 已读到"屏幕归 PS / AUTO / 两引擎空闲"）；
 ② 推流与 SD 并发时不闪不抢（机器侧并发 165 s 读路径零失败）；
 ③ `KEY1` 长按四态轮转且锁图卡时卡片在动。
+   （"1.2 s"这个数刚从约束核过，不是照抄注释：`src/constraints/rk_zynq7020.xdc:6` 是 `create_clock -period 20.000 -name sys_clk` ⇒ 50 MHz，`pl_video_top.v:108` 的 `HOLD_CYC=60_000_000` ⇒ 正好 1.200 s；`build/timing_summary.rpt` 里 sys_clk 也确实是 20.000 ns。）
 三条全过 ⇒ 我把 #31/#32 转成演示默认并一次改完 MANIFEST / DEMO_SCRIPT / README；任何一条不过 ⇒ 退回 #23 演示，我不含混过去。
