@@ -21,9 +21,9 @@ set XSDBAT=D:\Software\Vivado\2025.2.1\Vitis\bin\xsdb.bat
 ```
 （`ps_jtag_boot.tcl` 里没有 `download`：仓库没有 Vitis 平台工程，elf 是在同一个 xsdb 会话里手动下的。）
 
-下 bit 前 **先 `md5sum build/system.bit`，必须以 `545a27a1` 开头**（= build#19：V7.7 同一功能 +
-R22 两笔 CDC + R23 的 `copy_abort` 翻转同步 + R24 的厂商发送仲裁修复（ISSUES #37），
-WNS +0.598 / WHS +0.043 / 0 失败端点(23424)；**回退链**：build#18 `534f7760`、build#17 `11998af8` 在 `build/frozen_r17_cdc/`，
+下 bit 前 **先 `md5sum build/system.bit`，必须以 `f39e2e78` 开头**（= build#21：V7.7 同一功能 +
+R22 两笔 CDC + R23 的 `copy_abort` 翻转同步 + R24 的厂商发送仲裁修复（ISSUES #37）
++ R26 的收包链换成自研那一对（ISSUES #38），WNS +0.770 / WHS +0.027 / 0 失败端点(23615)；**回退链**：build#18 `534f7760`、build#17 `11998af8` 在 `build/frozen_r17_cdc/`，
 build#13 `0f46ec91` 在 `build/frozen_r13/`（三块都在各自的 `build/frozen_*/` 目录里有实体）；同名文件会被构建原地覆盖，今晚真发生过两次 ——
 判据与"冻结必须拷工件"的规矩见 `report/BUILD.md` §7 与 `report/OVERNIGHT_LOG.md` §9.5 第 1 步。
 **注**：build#18 那一版冻结时只把校验和写进 MANIFEST、bit 留在活路径 `build/system.bit` 上，
@@ -77,9 +77,9 @@ build#13 `0f46ec91` 在 `build/frozen_r13/`（三块都在各自的 `build/froze
 ## 2. 资源与时序（一句话 + 出处）
 
 *"xc7z020 上，140 个 BRAM 用到 90.5（64.64%），Slice LUT 13.50%、寄存器 5.45%，
-动态功耗 2.184 W，时序 WNS +0.598 / WHS +0.043，约束全部满足、12503 根可布线网全布通 0 错误。"*
+动态功耗 2.183 W，时序 WNS +0.770 / WHS +0.027，约束全部满足、12861 根可布线网全布通 0 错误。"*
 （出处：`build/utilization.rpt`、`build/timing_summary.rpt`、`build/power.rpt`、
-`build/route_status.rpt` —— 与 `build/system.bit`（md5 前缀 `545a27a1`，build#19）**同一次构建**；
+`build/route_status.rpt` —— 与 `build/system.bit`（md5 前缀 `f39e2e78`，build#21）**同一次构建**；
 每次重跑之后这一句要跟着换，别沿用旧数字。）
 
 | 说什么 | 数字 | 出处（现场可打开） |
@@ -88,8 +88,8 @@ build#13 `0f46ec91` 在 `build/frozen_r13/`（三块都在各自的 `build/froze
 | 打包缓冲不再吃触发器 | Slice Registers **51.30% → 9.02%**（打包 FIFO 改分布式 RAM） | 同上 V7.0(R02) |
 | 入包链丢帧 | 15 fps × 200 帧：**198/198 帧完整落地，缺失 0/76800 个 16bit 字** | `data/measured/README.md`、`board_measure_15fps.txt` |
 | 拖影 | 从 **42~52%** 最新帧占比 → **0**（offset 拼帧 + DDR 乒乓 + 消隐期原子提交） | `report/CHANGELOG_V6.md` §0、V7 前言 |
-| 时序 | build#13：WNS +0.426 / WHS +0.025 → **build#19：WNS +0.598 / WHS +0.043 / 0 失败端点(23424)** | `build/timing_summary.rpt`（与 `build/system.bit` 成套） |
-| 时序瓶颈在哪 | 最差路径是 **OSD 字符行 `x_d_reg[11][x]` → `u_osd/b_reg[y]`**：27 级逻辑、66% 是走线延迟 ⇒ 下一笔优化该动它，不是以太网 | `build/frozen_r19_arb/timing_summary.rpt` |
+| 时序 | build#13：WNS +0.426 / WHS +0.025 → **build#21：WNS +0.770 / WHS +0.027 / 0 失败端点(23615)** | `build/timing_summary.rpt`（与 `build/system.bit` 成套） |
+| 时序瓶颈在哪 | 最差路径是 **OSD 字符行 `x_d_reg[11][x]` → `u_osd/b_reg[y]`**：26 级逻辑、66% 是走线延迟 ⇒ 下一笔优化该动它，不是以太网 | `build/frozen_r19_arb/timing_summary.rpt` |
 | 功耗 | Total ≈ **2.36 W**（Dynamic 2.18 W） | `build/power.rpt` |
 
 ---
@@ -123,7 +123,7 @@ build#13 `0f46ec91` 在 `build/frozen_r13/`（三块都在各自的 `build/froze
 1. 不要说"板上已有双线性插值" ⇒ 主线 bit 没有；说"组件与集成已完成并通过台架，正在收最后一笔时序"。
 2. 不要说"拔线能立刻看出" ⇒ 拔线后 PHY **不停发 RXC**，只是慢到约 **1/49**；
    所以判据是"沿够不够快"（`hb_slow`），这句本身就是我们的加分点，讲出来比吹"实时检测"更有说服力。
-3. 不要说"时序余量很大"也不要说"WHS 快翻了" ⇒ build#19 是 **WNS +0.598 / WHS +0.043 / 0 失败端点**；
+3. 不要说"时序余量很大"也不要说"WHS 快翻了" ⇒ build#21 是 **WNS +0.770 / WHS +0.027 / 0 失败端点**；
    口径是"全部约束满足、零失败端点；setup 余量 +0.598 ns（那条链所在时钟周期 20 ns 的约 3%），
    hold 余量小属于布局紧"。**别沿用 #18 的 +1.002** —— 两次的最差路径是**同一条结构路径**
    （OSD `x_d_reg→b_reg`），差的那 0.4 ns 是布局布线轮次差异，不是逻辑退步（`eth_ctrl` 在另一个

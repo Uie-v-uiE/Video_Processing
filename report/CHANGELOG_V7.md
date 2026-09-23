@@ -681,6 +681,7 @@ ARP 还在解析时帧头包已发出 —— 与拔线重连同一种形状。�
 
 L1 当前状态：**41/41**（`sim/results/regression_v79_r26.txt`，新增 `tb_v794_osd_glyph` 的 256 码点差分；
 上一版 r25 是 40/40，r24 那次是 **39/1**，红的正是 `tb_ku5p_tx_arb` 的 V 组 —— 它抓到 `arp_tx_en` 高了两拍，见 ISSUES #37）。
+| **#21** | #19 + **ISSUES #38 收包链上顶层**（`gmii_rx_mac` 自算 FCS-32 + `udp_rx_parser` 端口过滤，`p_good` 接真值） | **WNS +0.770 / WHS +0.027 / 0 失败端点(23615) / Slice LUT 7452(14.01%) / Reg 5906 / BRAM 90.5(64.64%，没涨) / Dynamic 2.183 W / 12861 根全布通 0 错误 / methodology 0 CRITICAL / cdc Critical 行 4（同基线，不新增）**，L1 **43/43** ⇒ **采纳，现在是默认下这一块**（md5 `f39e2e78`，bit/xsa/elf + 8 份报告成套在 `build/frozen_r21_rx/`）。**结构性观测**：最差路径仍是同一条 OSD 链，级数 27→**26**、CARRY4 10→**9**（R25 那次并行 `case` 的账面效果，在 #20 单次构建里证明不了的东西，这次由报告格式相同的两份量出来了）；WNS 的绝对值依旧落在轮次噪声里，不当收益报。 |
 | **#20**（实验，**不采纳**） | #19 + `osd_overlay.glyph_idx` 串行区间比较 → 并行 `case` | **WNS +0.462 / WHS +0.066 / 0 失败端点(23424) / Slice LUT 7100(13.35%，省 85) / Reg 5802 / BRAM 90.5(64.64%) / Dynamic 2.182 W / 0 布线错误 / methodology 0 CRITICAL**，L1 41/41 ⇒ 门禁全绿但**最差路径仍是同一条 OSD 链、还是 27 级（CARRY4 10→9）** ⇒ WNS 那 0.136 ns 落在本设计实测过的轮次噪声里，**不能据一次构建说时序变好或变坏** ⇒ 明早默认保持 #19；RTL 改动保留（等价 + 省 LUT + hold 更好），产物与完整推理成套存档 `build/exp_r20_glyph/` |
 
 `cdc.rpt` 在 #18 与 #19 之间**结构不变**：行、分类、时钟对都一样，只有 `sys_clk↔eth_rxc` 那一行

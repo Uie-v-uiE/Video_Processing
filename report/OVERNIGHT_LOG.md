@@ -898,7 +898,7 @@ methodology 0 条 Critical Warning；`ku5p_eth.bit` 15.4 MB 已生成。
 
 | 步 | 做什么 | 判据 / 期望 |
 |----|--------|-------------|
-| 1 | 只连 Z7，重启 `hw_server`，下 `build/system.bit`（**R24/build#19，md5 前缀 `545a27a1`** = R13 同一功能 + 三笔同步器修复（`eth_link`、`ASYNC_REG`、`copy_abort` 翻转式）+ 一笔发送仲裁修复（`eth_ctrl`，ISSUES #37），门禁 WNS +0.598/WHS +0.043；回退版 `build/frozen_r17_cdc/`（`11998af8`）与 `build/frozen_r13/`（`0f46ec91`）） | **先校验再下**：`md5sum build/system.bit` 必须以 `545a27a1` 开头（两级回退：build#17 在 `build/frozen_r17_cdc/`=`11998af8`，build#13 在 `build/frozen_r13/`=`0f46ec91`）。对不上就是被后续构建原地覆盖过 —— 去 `build/frozen_*/` 取，别硬下。**今晚真的发生过**：02:32 我把 r13 恢复回 `build/system.bit`，02:54 build#15 跑完又把它覆盖了；文件名一样、内容不一样，只有 md5 能分辨。校验通过后再下：`program_system.tcl` 成功、LED0 心跳 |
+| 1 | 只连 Z7，重启 `hw_server`，下 `build/system.bit`（**R26/build#21，md5 前缀 `f39e2e78`** = R13 同一功能 + 三笔同步器修复（`eth_link`、`ASYNC_REG`、`copy_abort` 翻转式）+ 一笔发送仲裁修复（`eth_ctrl`，ISSUES #37）+ 收包链换成自研那一对（ISSUES #38），门禁 WNS +0.770/WHS +0.027；回退版 `build/frozen_r17_cdc/`（`11998af8`）与 `build/frozen_r13/`（`0f46ec91`）） | **先校验再下**：`md5sum build/system.bit` 必须以 `f39e2e78` 开头（回退：build#17 在 `build/frozen_r17_cdc/`=`11998af8`，build#13 在 `build/frozen_r13/`=`0f46ec91`）。对不上就是被后续构建原地覆盖过 —— 去 `build/frozen_*/` 取，别硬下。**今晚真的发生过**：02:32 我把 r13 恢复回 `build/system.bit`，02:54 build#15 跑完又把它覆盖了；文件名一样、内容不一样，只有 md5 能分辨。校验通过后再下：`program_system.tcl` 成功、LED0 心跳 |
 | 2 | `xsdb build/tcl/ps_jtag_boot.tcl` → 下 `build/ps_app.elf` → `con` | 串口出现 `[BOOT] ... SD PLAY STOP FRAME0 STAT` |
 | 3 | 敲 `SD` | 打印 `FAT32 part_lba=... frames=4398 fps=15.000 files=9`；若报 `card absent` 说明 SD 不在 BSP 的 SDIO0 上，先查 PS 配置 |
 | 4 | 网线**拔掉**，敲 `SRC1` 再 `PLAY` | 右半窗动、左半窗不动；每 100 帧打印 `avg x.xxx fps`；**无撕裂**（这是发布协议的目的） |
@@ -1420,7 +1420,7 @@ u_pl/u_rd/u_sched/lo_reg_0_0_i_45_n_0. Replicated 1...`）⇒ 方向对，但**�
 
 | 问题 | 答案 |
 |------|------|
-| 明早下哪块 bit？ | `build/system.bit`，**先 `md5sum` 必须是 `545a27a1…` 开头**（= build#19：V7.7 那套功能一个不变，多了三笔同步器修复 + 一笔发送仲裁修复；门禁 WNS **+0.598** / WHS +0.043 / 0 失败端点 / BRAM 64.64% / Dynamic 2.184 W / 0 布线错误 / methodology 0 Critical）。**回退链**：`build/frozen_r17_cdc/`（md5 `11998af8`，少 `copy_abort` 翻转同步与仲裁修复）→ `build/frozen_r13/`（`0f46ec91`，今晚之前最后一次上过板验证的功能集）。对不上就取冻结目录，别硬下。**build#18（`534f7760`）也在链上**：它冻结时只记校验和、bit 留在活路径上被 #19 覆盖过，07:1x 已从 `git show 7578217:build/system.bit` 复原进 `frozen_r18_abort/system.bit`（md5 与字节数都核对过）⇒ 四块 bit 现在都是实体 |
+| 现在下哪块 bit？ | `build/system.bit`，**先 `md5sum` 必须是 `f39e2e78…` 开头**（= build#21：V7.7 那套功能一个不变，多了三笔同步器修复 + 发送仲裁修复 + 收包链换成自研那一对；门禁 WNS **+0.770** / WHS +0.027 / 0 失败端点(23615) / BRAM 64.64%（**没涨**）/ Dynamic 2.183 W / 12861 根全布通 0 错误 / methodology 0 Critical）。**回退链**：`build/frozen_r17_cdc/`（md5 `11998af8`，少 `copy_abort` 翻转同步与仲裁修复）→ `build/frozen_r13/`（`0f46ec91`，今晚之前最后一次上过板验证的功能集）。对不上就取冻结目录，别硬下。**build#18（`534f7760`）也在链上**：它冻结时只记校验和、bit 留在活路径上被 #19 覆盖过，07:1x 已从 `git show 7578217:build/system.bit` 复原进 `frozen_r18_abort/system.bit`（md5 与字节数都核对过）⇒ 四块 bit 现在都是实体 |
 | 那三块红的呢？ | `build/failed_r19b/`（−1.277）与 `build/failed_r24/`（−0.327，功能上就是 V7.8 双线性）。想**亲眼看插值效果**可以临时下 `failed_r24` 那块；它时序未收口，可能偶发抖动或不显示，看完记得换回去并重新校验 md5 |
 | SD 卡回放？ | 卡已在 Z7 上。固件 `build/ps_app.elf` 已重编（含 `SD/PLAY/STOP/FRAME<n>/BILIN0/BILIN1/STAT`）。上电顺序照 §9.5 第 1–4 步 |
 | 双线性插值到底做完了没？ | **组件与集成全做完、台架全过（L1 37/37）**，只差 250 MHz 分时读口最后 0.327 ns 没收口 ⇒ 没进主线，整套在 tag **`v7.8-bilinear-wip`**。下一步最对症的一刀是 Pblock（`report/OVERNIGHT_LOG.md` R21 末有三条候选） |
@@ -1765,3 +1765,69 @@ hold 好了一点点也是真的。而 WNS 那 0.136 ns 的差别**不能读成"
 要动它就必须改延迟（真 RAM + 寄存地址 / 列距换成 2 的幂），
 连带 `PROC_LAT` 与配准判据（`tb_osd_lines`、`tb_v5_vblast`），**最后要上板看文字位置**。
 ⇒ 白天的活；判据与代价已经写进 `report/ISSUES.md` #39 与 `study/03_模块详解/04_OSD与HDMI输出.md` §1.5。
+
+## 17. R26 · 2026-09-23 12:0x–13:0x · 收包链上顶层：`bad` 从死数字变成活数字（ISSUES #38 结案）
+
+### R26-A · 为什么这一笔值得做：错误源不是"没接"，是"不存在"
+
+#38 原来写的是"仓库里已经有现成的那一对，接上就行"。真去接的时候才发现前提是错的：
+`gmii_rx_mac` 的 `m_good` 要看 `gmii_rx_er`，而**两块板的 RGMII 收侧根本没有 ER 这根线**
+（`rgmii_rx.v:43` 把 RX_CTL 经 IDDR + 两拍一致后**只当 `gmii_rx_dv` 用**；RGMII 本身就是 4 数据 + 1 控制，
+没有 GMII 的 RX_ER 通道）。⇒ 当年 `p_good` 被硬接 1 不是偷懒，是**没有错误源可接**。
+所以真正的修法是先自造错误源：让 `gmii_rx_mac` 逐字节算 FCS-32（复用发送侧那个 `crc32_d8`）。
+
+### R26-B · 残值常数：错两次才被自己的判据拦住
+
+| 尝试 | 值 | 怎么来的 | 结局 |
+|---|---|---|---|
+| ① | `0xC921091D` | 我凭印象写的 | 被台架 T5（"RTL 常数必须等于实测残值"）当场拦下 |
+| ② | `0x4223AD77` | 拿台架造帧量出来的 | **帧是假的**：FCS 只盖住了载荷，没盖 DA..载荷 |
+| ③ | `0xC704DD7B` | 真帧量出 + Node 独立算 `bitrev(0xDEBB20E3)` 对上 | 采纳，三方一致 |
+
+⇒ 学习文档 §十二（"检查器要自校、判据常数要有独立出处"）第三次生效，这次的形态是
+**"量具自己造的样品不合格，于是量出来的常数也不合格"**。所以新台架里加了 T0：先用独立实现
+证明"我造的帧确实是合法以太网帧"，再拿它去量 DUT。
+
+### R26-C · 第一次把 `udp_rx_parser` 跑起来，就掉出三个真缺陷
+
+这模块从来没被任何顶层例化过（所以它的真实行为没被人看过一眼）：
+1. 载荷一路发到帧尾 ⇒ **把 4 个 FCS 字节也当载荷吐出去**（32 变 36）。接上 `frame_reasm`
+   就是每包多 4 字节的确定性错位。改成按 `udp_len` 收尾。
+2. `stat_drop_bad` / `stat_drop_filt` 只有复位时的 0、运行中没默认值 ⇒ 是**粘连电平**不是脉冲
+   （同类型的 `stat_udp_ok` 却是脉冲）；拿去 ++ 计数就是每拍加一。
+3. 判定式 `bcnt == 14 + ihl*4` 在 `bcnt==14` 那一拍也成立（`ihl` 同拍才存进去，此刻还是 0）
+   ⇒ **每帧误发一次 `drop_filt`**，而载荷在真正的 `bcnt==34` 又被正确接受 ⇒ 画面看不出问题、
+   统计全是假的。加 `ihl != 0` 的门。
+
+另外我自己造了一个契约冲突：新的 `m_eof` 与 `m_good/m_bad` 同拍、那一拍 `m_valid=0`，
+而厂商风格的 `s_eof` 与最后一个字节**同拍**。第一版只认前者，`tb_udp_parser` 立刻
+`pay_bytes=9 exp 10`。⇒ 改成两种都认（`last_pay_now` 组合判定）。
+**教训：改一个模块的时序契约，要把所有既有例化方式当作判据，不能只验新那条路。**
+
+### R26-D · 门禁与一个结构性收获
+
+两块板都换成 `udp_tx` + `gmii_rx_mac` + `udp_rx_parser`，`frame_reasm.p_good` 从此接真值：
+
+| | Z7 build#21 | KU5P r26 |
+|---|---|---|
+| WNS / WHS | **+0.770 / +0.027** | +1.497 / +0.014 |
+| 失败端点 | 0 / 23615 | 0 / 11770 |
+| BRAM | 90.5 tile（64.64%，**没涨**：厂商 FIFO 省下的抵掉新逻辑） | 72 tile（15.00%） |
+| LUT / Reg | 7452(+267) / 5906 | 3154(+133) / 2833 |
+| 功耗 | Dynamic 2.183 W | —— |
+| 布线 / methodology / cdc | 12861 根全布通 0 错 / 0 CRIT / Critical 行 4（同基线） | 0 错 / 0 CRIT / cdc 行数不变 |
+
+**结构性收获**：最差路径还是同一条 OSD 链，但**级数 27 → 26、CARRY4 10 → 9**。
+这正是 R25 那次"字形译码改并行 `case`"的账面效果 —— 我当时拒绝用一次构建把它说成时序收益，
+现在两份格式相同的报告量到了结构变化本身（而 WNS 的绝对值依旧在轮次噪声里，**还是不当收益报**）。
+⇒ 一个方法论收获：**能被单次测量证明的只有结构量（级数、资源数、端点数），
+噪声量（slack 绝对值）要多个样本；把结论写在能被证明的那一类上。**
+
+### R26-E · 现在的状态与还要人看的
+
+* 默认下：Z7 `build/system.bit`（md5 `f39e2e78`）+ KU5P `ku5p/build/frozen_r26/ku5p_eth.bit`（`14bd5752`）。
+  两块都是**实体拷贝冻结**，回退链见 `report/BUILD.md` §7。
+* **要人看（仿真替代不了）**：① 正常推流画面应与 #19 无差别、health 的 `bad` 稳定为 0；
+  ② `bad` 会动的证据目前只有台架 C2（现场没有可靠注错手段）⇒ 只能报"改前是死的、改后有判据"；
+  ③ 端口过滤进了顶层，但 `stat_drop_filt` 还没接可读寄存器 —— 要不要接是**独立小决定，没顺手塞**。
+* 没推 GitHub。分支 `dev/night-2026-09-22`。
