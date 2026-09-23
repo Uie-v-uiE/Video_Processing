@@ -229,7 +229,7 @@ src/host/
 | `ddr_verify.mjs` | 只做回读与分析：`--frameid` / `--ref` / `--bank-only 0\|1`；落盘 `data/measured/ddr_dump.out` |
 | `ddr_stale.mjs` | 判据核心：反解每个 16bit 字来自第几帧，输出「包内字节偏移→丢字率」「游程长度分布」「16bit 粒度错帧计数」 |
 | `ddr_holemap.mjs` | 把回读结果按行段画空洞分布（早期定位用） |
-| `ingress_probe.mjs` | 只灌 K 个包 + 回读，做定点注入实验 |
+| `ingress_probe.mjs` | 只灌 K 个包 + 回读，做定点注入实验（`--packets/--pace/--tag/--dry`）。`--dry` 只算不发不碰 JTAG。**注意**：真跑时会 `rst -processor`，回放跑着之前先 `STOP`（见 ISSUES #50 的次生现象）。09-24 修好：这脚本此前一加载就 `ReferenceError`（用了没 import 的 `MEASURED`），所以 §5.4 那套方法一直没自动化 |
 | `udp_sink_check.mjs` | 本机环回自检（确认协议/限速实现，不依赖板子） |
 | `health_read.mjs` | JTAG 读健康快照 12 条 lane；`--json` 出机器可读对象；`--gapclr` 归零帧间隔统计 |
 | `metrics.mjs` | 把两次 `health_read --json` 的差值算成抖动/丢包指标；`--selftest` 验算数本身 |
