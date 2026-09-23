@@ -13,9 +13,13 @@ The displayed picture has **three sources**, chosen automatically by an arbiter 
 by itself at power-on (`AUTOPLAY0/1` to disable), yields to a live stream and takes the screen back
 within a few hundred ms after the stream stops — no cable pulling, no re-programming. `KEY1` short
 press still steps rotation by ±1°; a **1.2 s long press** cycles auto / lock-ETH / lock-PS / lock-card.
-The *outcome* of the arbitration — who owns the display right now, whether ETH is live, whether
-that timer's timebase can be trusted — is readable from AXI GPIO lane 30, so that claim does not
-depend on anyone watching the screen (which mode the long press selected still does).
+The hand-over timing is **measured, not observed-by-eye**: ETH takes the bus **150 ms** after a stream
+starts, hands the screen back **285 ms** after it stops, re-takes it **180 ms** later, with zero
+flapping in between — one command reproduces it (`node src/host/arb_handover_test.mjs`, evidence in
+`build/frozen_r31_srcmode/arb_handover_green_r31.json`). Everything the arbiter itself sees (current
+owner, whether ETH is live, whether its timebase can be trusted, the mode it is honouring, both
+engines' busy flags) is mapped onto **AXI GPIO lane 30**, so the verdict needs no one looking at a
+screen. What still needs eyes is narrower: that the picture is really alive after the hand-back.
 
 | Item | Value |
 |------|-------|

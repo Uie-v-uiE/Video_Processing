@@ -488,6 +488,33 @@ static int frame_map(u32 idx, u32 *fi, u32 *off)
     return -1;
 }
 
+/*
+ * 失败时打一行现场（只花一条串口命令行，平时不响）。
+ * 为什么需要：板级实测过一次"#50 的读超时之后，`SD` 重新挂载一切正常、
+ * 但 `PLAY` 立刻报 frame file not found" —— 而"挂载正常"其实是**假象**：
+ * 挂载阶段打印的文件列表来自 META.TXT 的内容，不是目录扫描；META.TXT 又恰好
+ * 落在根目录第一个簇里，所以挂载从来不需要走 FAT 链。真正失败的那一步
+ * 是找 VIDEO000.BIN，它在根目录的**第二个簇**，必须先 `fat_next(root_clus)`。
+ * 这一行现场就是用来把"名字被踩坏 / FAT 那一跳读不出来 / 卷参数变了"三种可能分开的。
+ */
+static void dir_diag(const char *name)
+{
+    char key[11];
+    int k;
+    u32 meta = dir_lookup("META.TXT");          /* 对照组：同一次调用里能否找到 META */
+    u32 nxtc = fat_next(root_clus);             /* 根目录第二簇： VIDEO000.BIN 依赖这一跳 */
+
+    name83(name, key);
+    xil_printf("[SDDBG] name='%s' k83=%02x%02x%02x%02x%02x%02x%02x%02x_%02x%02x%02x\r\n"
+               "        root_clus=%d fat_next=%d meta_clus=%d spc=%d fat_lba=%d data_lba=%d\r\n",
+               name,
+               (unsigned)key[0], (unsigned)key[1], (unsigned)key[2], (unsigned)key[3],
+               (unsigned)key[4], (unsigned)key[5], (unsigned)key[6], (unsigned)key[7],
+               (unsigned)key[8], (unsigned)key[9], (unsigned)key[10],
+               (int)root_clus, (int)nxtc, (int)meta, (int)spc, (int)fat_lba, (int)data_lba);
+    (void)k;
+}
+
 /* 打开第 i 个文件，并把簇游标推到第 off 帧的开头 */
 static int open_at(u32 i, u32 off)
 {
@@ -495,7 +522,11 @@ static int open_at(u32 i, u32 off)
 
     if (i >= nfiles) { err = "file index out of range"; return -1; }
     clus = dir_lookup(fname[i]);
-    if (!clus) { err = "frame file not found on card"; return -1; }
+    if (!clus) {
+        err = "frame file not found on card";
+        dir_diag(fname[i]);
+        return -1;
+    }
     skip = (off * FRAME_BYTES) / bpc;                   /* 整簇跳过：只走 FAT，不读数据 */
     while (skip--) {
         clus = fat_next(clus);

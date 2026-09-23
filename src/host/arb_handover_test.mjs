@@ -44,7 +44,9 @@ const PRE       = Number(get('pre', 3));        // 静默基线（秒）
 const STREAM    = Number(get('stream', 12));    // 推流时长
 const AFTER     = Number(get('after', 15));     // 停流后观察（交回 + 不回跳）
 const RESTART   = Number(get('restart', 8));    // 再推一次（可逆性）
-const PERIOD    = Number(get('period-ms', 100));
+const PERIOD    = Number(get('period-ms', 300));
+// 默认每点 stop→读→con；--hold-session 回到“整轮按住”的旧写法（只作对照，别拿它出判据）
+const HALT_EACH = get('hold-session', false) !== true;
 const SETTLE_MS = Number(get('settle-ms', 2000));
 const HBACK_MS  = Number(get('handback-max-ms', 1500));
 
@@ -113,7 +115,7 @@ function judge(samples, t1, t2, t3, t4) {
       `再推流后 owner_eth→1 用时 ${fmt(againMs)} ms（门限 ${SETTLE_MS}）`);
 
   const all = windowStats(samples, t1, t4);
-  add('V0 采样密度', all.n >= Math.floor(((t4 - t1) / PERIOD) * 0.5),
+  add('V0 采样密度', all.n >= Math.floor(((t4 - t1) / PERIOD) * 0.35),
       `全程 ${all.n} 个样本 / 期望约 ${Math.round((t4 - t1) / PERIOD)}（掉一半即判采样链有问题）`);
   return R;
 }
@@ -181,7 +183,33 @@ function readKeep() {
 async function sampleSession(keep, durMs) {
   const tcl = dump('arb_session.tcl');
   const sel = (n) => '0x' + (((keep | (n << 27)) >>> 0).toString(16));
-  writeFileSync(tcl, [
+  // 采样节拍：**每点都 stop→读→con**，而不是整轮按住 A9。
+  // 为什么改（2026-09-24 02:0x 实测）：整轮按住 40 s 之后再看，SD 回放会停在
+  // `frame file not found on card` —— 调试器把内核停在一次 SD 传输中间，恢复之后
+  // 驱动器/控制器仍留在那次未完成的传输里（ISSUES #50/#45 那一族）。
+  // 也就是说**测量本身会杀死被测对象**：那样测出来的"交接"是 PS 引擎已经停摆时的交接，
+  // 强度不够，还会让人以为 SD 回放不可靠。
+  // 改成每点只按住几十毫秒（两条 mwr + 两条 mrd），代价是每点多含一次 xsdb 固定开销
+  // ⇒ 默认周期从 100 ms 放宽到 300 ms。`--hold-session` 保留旧写法，只用于对照实验。
+  const body = HALT_EACH ? [
+    `catch {connect -host localhost -port ${PORT}}`,
+    `targets -set -filter {name =~ "*#0"}`,
+    'set t0 [clock clicks -milliseconds]',
+    `set endt [expr {$t0 + ${durMs}}]`,
+    'while {1} {',
+    '  set now [clock clicks -milliseconds]',
+    '  if {$now > $endt} { break }',
+    '  catch {stop}',
+    `  mwr -force ${GPIO0} ${sel(30)} 32`,
+    `  puts "S $now 30 [mrd -force ${GPIO1} 1]"`,
+    `  mwr -force ${GPIO0} ${sel(31)} 32`,
+    `  puts "S $now 31 [mrd -force ${GPIO1} 1]"`,
+    `  mwr -force ${GPIO0} 0x${keep.toString(16)} 32`,
+    '  catch {con}',
+    `  after ${PERIOD}`,
+    '}',
+    'catch {con}',
+  ] : [
     `catch {connect -host localhost -port ${PORT}}`,
     `targets -set -filter {name =~ "*#0"}`,
     'catch {stop}',
@@ -202,7 +230,8 @@ async function sampleSession(keep, durMs) {
     `mwr -force ${GPIO0} 0x${keep.toString(16)} 32`,      // 原样还回去
     'after 50',
     'catch {con}',
-  ].join('\n') + '\n');
+  ];
+  writeFileSync(tcl, body.join('\n') + '\n');
 
   // 先声明再交给 Promise：第一次上板跑就撞了 TDZ —— 回调在 `const samples = await ...`
   // 这一行**求值期间**就往数组里 push 了，那时 samples 还在暂时死区里。

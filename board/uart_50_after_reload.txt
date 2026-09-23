@@ -1,0 +1,9 @@
+[SD] frame 200: last 100 frames 29.999 fps (since play 29.743)
+[SD] frame 300: last 100 frames 29.999 fps (since play 29.819)
+[SD] frame 400: last 100 frames 29.999 fps (since play 29.856)
+[SD] frame 500: last 100 frames 29.548 fps (since play 29.788)
+[SD] frame 600: last 100 frames 29.648 fps (since play 29.785)
+[SD] frame 700: last 100 frames 29.999 fps (since play 29.811)
+[SD] frame 800: last 100 frames 29.999 fps (since play 29.831)
+[SD] frame 900: last 100 frames 29.999 fps (since play 29.846)
+
