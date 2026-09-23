@@ -8,3 +8,4 @@ e8c2788354d71c5c8368160a7ec2d41e *system.xsa
 318f5b840796f97064f77f26442881c7 *uart_sd_with_eth.txt
 5850a186ce17bf1c9db8218173c542d5 *arb_handover_r32.json
 87d8f5f030385524ace9a358a98ad07e *arb_r32_run1.txt
+9d0c025f2d369621808c5aa63e798b64 *arb_handover_r32b.json
