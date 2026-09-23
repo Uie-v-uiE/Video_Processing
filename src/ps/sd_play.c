@@ -51,7 +51,10 @@ static u32 found_size;              /* dir_lookup 顺带记下的文件大小（
 static int mounted;
 
 /* FAT32 卷参数 */
-static u32 part_lba, spc, fat_lba, data_lba, root_clus;
+static u32 part_lba, part_sect, spc, fat_lba, data_lba, root_clus;
+/* 最近一次失败读的参数（ISSUES #50 的定点坏点：只报 "SD read failed" 分不出
+ * "簇号越界（FAT 坏）" 与 "LBA 合法但卡拒绝（物理坏点 / 控制器半途）"） */
+static u32 last_lba, last_cnt, last_clus;
 
 /* 帧库（来自 META.TXT） */
 static char fname[MAX_FILES][13];
@@ -104,7 +107,19 @@ static int read_secs(u32 lba, u32 cnt, u8 *dst)
             if (XSdPs_ReadPolled(&Sd, lba, n, dst) == XST_SUCCESS) break;
             err = "SD read failed";
         }
-        if (try >= 2) return -1;
+        if (try >= 2) {
+            /* 一次失败就报全部几何量：判"簇号越界"还是"合法 LBA 被拒"只看这一个数就够 */
+            last_lba = lba; last_cnt = n;
+            xil_printf("[SDRD!] lba=%u n=%u clus=%u part_end=%u %s"
+                       " (data_lba=%u spc=%u fat_lba=%u dst=0x%08x)\r\n",
+                       (unsigned)lba, (unsigned)n, (unsigned)last_clus,
+                       (unsigned)(part_lba + part_sect),
+                       (part_sect && lba + n <= part_lba + part_sect) ? "IN-RANGE"
+                                                                      : "OUT-OF-RANGE",
+                       (unsigned)data_lba, (unsigned)spc, (unsigned)fat_lba,
+                       (unsigned)(UINTPTR)dst);
+            return -1;
+        }
         lba += n;
         dst += n * 512u;
         cnt -= n;
@@ -192,7 +207,8 @@ static int parse_bpb(void)
         err = "partition 1 is not FAT32 (use the card made by make_sd_video.mjs)";
         return -1;
     }
-    part_lba = ld32(&Sec[446 + 8]);
+    part_lba  = ld32(&Sec[446 + 8]);
+    part_sect = ld32(&Sec[446 + 12]);
     if (read_secs(part_lba, 1u, Sec) != 0) return -1;
     if (Sec[510] != 0x55u || Sec[511] != 0xAAu) { err = "boot sector signature missing"; return -1; }
     if (ld16(&Sec[11]) != 512u) { err = "bytes/sector != 512 not supported"; return -1; }
@@ -229,7 +245,12 @@ static u32 dir_lookup(const char *dotted)
                 if (d[11] & 0x08u) continue;             /* 卷标 */
                 if (memcmp(d, key, 11) != 0) continue;
                 found_size = ld32(&d[28]);       /* DIR_Entry.FileSize（小端 4 字节） */
-                return ((u32)d[20] << 24) | ((u32)d[21] << 16) | (u32)ld16(&d[26]);
+                /* DIR_FirstClusterHi 在偏移 20，是个 **16 位小端**字：整个字左移 16。
+                 * 原来写成 d[20]<<24 | d[21]<<16 —— 把高字节的两个字节按大端拼了，
+                 * 于是"首簇 ≥ 65536"的文件（= 数据落在 1 GiB 之后）簇号被翻成天文数字，
+                 * LBA 冲出分区 ⇒ `SD read failed`。首簇 < 65536 的文件恰好看不出问题，
+                 * 所以这个 bug 只在第 8 个文件（VIDEO007.BIN，首簇 67206）上发作 ⇒ ISSUES #50。 */
+                return ((u32)ld16(&d[20]) << 16) | (u32)ld16(&d[26]);
             }
         }
         c = fat_next(c);
@@ -567,6 +588,7 @@ static int feed_cur(void)
             err = "cluster chain ended early";
             return -1;
         }
+        last_clus = ff_clus;            /* 供 read_secs 失败时打印（见 #50） */
         if (read_secs(clus_lba(ff_clus, ff_blk), nsec, (u8 *)dst) != 0) return -1;
         left    -= bytes;
         dst     += bytes;
