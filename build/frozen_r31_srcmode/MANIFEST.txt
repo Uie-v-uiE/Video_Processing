@@ -1,0 +1,52 @@
+# build#31（R39+R41：长按模式搬进 src_mode + 复位灌满期 + lane30 扩到 8 位）
+#   = **片源仲裁第一次在板上被判据全绿的一版**，也是当前"机器那一半已验"的候选默认。
+#
+# 与 #23（当前演示默认）的关系：#23 是"PS 片源能上屏"但**没有仲裁**（网线插着时 PS 会被
+# eth_link 锁死，见 ISSUES #47/#49）；#31 有仲裁、且交接已被机器证明 ⇒ 演示时两者都能用，
+# 差别在"网线与 SD 同时插着"这一种工况：#23 需要拔线，#31 不需要。
+#
+# 这一版修的是 ISSUES #52：长按事件的三级同步链复位成 3'b111，而源头 key_long.tog 复位是 0
+#   ⇒ 上电白送一次"长按"，模式 AUTO→锁ETH ⇒ src_arb 的 force_eth 长占 ⇒ 停流永不交回。
+#   #28 那块 bit 在板上的实测签名（data/measured/arb_handover_r28_red.json）：
+#     owner_eth=1 的样本 304/304（41 s，翻转 0 次），而 eth_live=1 只有 138/304、eth_tb_ok 恒 1
+#   —— 判据两位都在正确工作，仲裁却不放手。
+#
+# 内容（相对 #28/#29/#30 这一段，编号会漂，只认 md5）：
+#   1) `src/rtl/util/src_mode.v`（新）：长按翻转位 → 四态格雷码模式；链复位改 3'b000，
+#      并加复位后 8 拍"灌满期"（像素复位在换分辨率/掉锁时还会再来，那时 tog 可能停在 1）；
+#   2) `pl_video_top` 的内联 lsync/mode 整体搬走，`mode` 下一状态按位写 `{mode[0],~mode[1]}`
+#      + `(* fsm_encoding = "none" *)`（否则综合重编 one-hot ⇒ CDC-10 Critical，见 #49）；
+#   3) `dbg_src` 从 3 位扩到 8 位：{0, 仲裁看到的模式(2), row_busy, fill_busy, owner, live, tb_ok}
+#      —— 八位全在 axi 域 ⇒ 零新增跨域，`cdc.rpt` 一行没多；红的时候能自己指出是谁占着；
+#   4) 台架 `sim/tb_v82_src_mode.v`（11 条，含"旧写法必须自己动"的反面对照）。
+#
+# 门禁（bash build/gates.sh，七项全绿；CDC 按 build/CDC_BASELINE.txt 的**配对集合**判）：
+#   WNS +0.764 / WHS +0.062 / 0 失败 setup 端点 / 0 失败 hold 端点（23840 端点）/
+#   Slice LUT 7577(14.24%) / Slice 寄存器 6026 / BRAM 90.5 tile(64.64%) / Dynamic 2.159 W /
+#   methodology 0 CRIT / 0 布线错误 / cdc Critical 3 行 = 基线配对无新增
+#   （基线里 `eth_rxc>clk_fpga_0` 本版只在 Warning 出现：原因未查证，不算改进，§10 U14）
+#   WNS 比 #28 的 +1.001 低 0.24 —— 那是多出来的 8 位可观测 + 灌满期计数器的代价，
+#   换来的是"板级红能自己定位"。两个数都在报告里，不做挑选。
+#
+# L1 回归 47/47 PASS：sim/results/regression_v79_r39.txt（含新台架）
+#
+# 板级判据（**机器那一七条全过**，`node src/host/arb_handover_test.mjs`，
+#   原始样本与判据 = 本目录 arb_handover_green_r31.json）：
+#   V1 基线归 PS：静默段 owner_eth=1 的样本 0/8
+#   V2 接管时限：推流后 owner_eth→1 用时 **150 ms**（门限 2000）
+#   V3 推流期不抖：稳占段 70/70 为 1，翻转 0 次
+#   V4 停流交回：owner_eth→0 用时 **285 ms**（门限 1500）  ← 这条就是 #24 欠的那一条
+#   V5 交回后不回跳：交回之后 owner_eth=1 的样本 0/94，翻转 0 次
+#   V6 可逆：再推流 owner_eth→1 用时 **180 ms**
+#   V0 采样密度：245 点 / 期望 350（100 ms 名义周期 + JTAG 开销 ⇒ 实测中位 142 ms）
+#
+# 仍然欠眼睛的三条（board/README.md 需肉眼确认 7/8 + 图卡那一条）：
+#   · 停流 285 ms 之后屏幕上**确实是 SD 在放**（不是冻住的最后一帧）；
+#   · 推流与 SD 同时跑时不闪、不抢；
+#   · KEY1 长按 1.2 s 四态轮转、图卡会动。
+#   ⇒ 这三条确认之前，演示默认仍可按 #23 走；#31 是"机器已验、眼睛待补"的候选。
+#
+# 校验：在本目录内 md5sum -c MANIFEST_BODY.txt（11 个文件，含判据 json）。
+# 回退链：#31(本目录, efc89779) → #23 frozen_r23_srcseen/18443ffd（当前演示默认，SD 已上屏）
+#         → #25 frozen_r25_arbfix/ad4aa31c（仲裁修正第一版，交接机器判据当时还没有）
+#         → #24 frozen_r24_srcarb/696a5271（板级红，留作反例）

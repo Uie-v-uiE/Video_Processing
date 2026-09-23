@@ -57,6 +57,39 @@ node src\host\measure_v63.mjs --fps 15 --count 200
 下一帧同地址即被覆盖 ⇒ 肉眼不可见；`sim/tb_v6_ingress_integrity.v +FULL` 不复现，
 分析与复现思路见 `report/V6_BOARD_MEASUREMENT.md` §4.1。
 
+## 无人值守的交接判据（#24 的机器那一半，2026-09-24 起）
+
+`src/host/arb_handover_test.mjs` 自己开关推流、同时按 100 ms 采健康 GPIO 的 **lane30**
+（`{仲裁看到的模式, row_busy, fill_busy, owner_eth, eth_live, eth_tb_ok}`，八位全在 axi 域），
+于是"停流之后多久把屏幕交回 PS"变成一个**毫秒数**，而不是一个人的眼睛。
+
+```bat
+%XSDBAT% build	cl\ps_jtag_boot.tcl                                  :: 先起 PS
+%VIVADO% -mode batch -source build	cl\program_pl.tcl                :: 再配 PL（顺序不能反，见上面 §顺序）
+%XSDBAT% build	cl\ps_app_reload.tcl                                 :: 只复位 A9、跑固件（SD 会自动开播）
+node src\hostrb_handover_test.mjs --selftest                       :: 先验判据本身（10 条，不打板子）
+node src\hostrb_handover_test.mjs                                  :: 完整一轮：静默→推流→停→再推
+```
+
+七条判据与它们各自挡住的失败模式：
+
+| 号 | 判据 | 红了意味着 |
+|---|---|---|
+| V1 | 静默基线归 PS | 上一轮就没交回（或模式被钉住） |
+| V2 | 接管时限（默认 ≤2000 ms） | 链路活了但仲裁不抢总线 |
+| V3 | 推流期不抖（稳占段 0 次翻转） | 滞回太短 / 判据在阈值上抖 |
+| V4 | **停流后交回，报出实测毫秒** | 就是 #24 那两条眼睛判据的机器版本 |
+| V5 | 交回之后不回跳 | 两路抢画面 |
+| V6 | 再推流又能接管（可逆） | 必须重配 FPGA / 拔线才能恢复 |
+| V0 | 采样密度 | JTAG 会话或板子没在跑（**空样本不许判绿**） |
+
+红了之后脚本会**自己摆证据**（不判红，只定位）：停流段的模式读数、`eth_live` 为 1 的点数、
+`eth_tb_ok` 为 0 的点数、两个 busy 的占空比 —— #28 那次就是靠这一步看到
+"模式=锁 ETH、判据两位都正常"，从而定位到 ISSUES #52（同步链复位值与源头不一致，上电白送一次长按）。
+原始样本与判据一起落 `data/measured/arb_handover_last.json`。
+
+**它证明的是 owner 位的时序，不证明屏幕上有没有画面** —— 下面那几条眼睛判据仍然欠着。
+
 ## 需要肉眼确认的项
 
 | # | 检查 | 期望 |

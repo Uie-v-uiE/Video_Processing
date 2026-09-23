@@ -2163,3 +2163,121 @@ KU5P 产物：bit `5ce3578c`（**未上板**，用户决定：这块板暂停，
 
 夜里剩下的时间我做了：仲裁修正 + 冻结 + 全套文档口径（#24 留作反例）、KU5P 命令通道，
 以及 `build/gates.sh` 的一条新鲜度告警（构建没跑完就念门禁会念到上一版，昨晚差一步就中招）。
+---
+
+## 23. R32–R39 · 2026-09-24 00:0x–00:5x · 一条门禁项把自己人判红了两次，以及"是谁跨域"终于能点名
+
+**这段的收获不在功能，在判据**：#26 与 #27 都打印过 `GATES: ALL PASS`，而它们各自都比上一版
+多了一条 CDC Critical。门禁脚本当时那句是写死的"4 行以内算过"，所以它看不见"从 3 行长到 4 行"。
+现在第 6 项改成**与 `build/CDC_BASELINE.txt` 的配对集合比**（谁→谁、端点数），
+新增配对即红、端点数增长只提示不判红、比基线少的部分明确标注"原因未查证，不算改进"。
+它第一次跑就把 #26、#27 双双判红——**这是这套门禁今晚第一次拦住我自己**。
+
+### 发生了什么（按时间）
+
+1. **撤掉 lane30 的像素域两位（#27）**。`dbg_src` 从 `{模式, ps_src_seen, owner_eth, eth_live, eth_tb_ok}`
+   缩成 `{owner_eth, eth_live, eth_tb_ok}`，删掉 `ps0/ps1/ps2`、`md0/md1/md2` 两对同步器。
+   理由：那两位是"看图卡有没有上屏"的眼睛活，而机器判据只要三位 axi 域本来就有的电平。
+   ⇒ `clkout0_1 → clk_fpga_0` 那行从 8 端点掉到 5 端点，**但仍然是 Critical**。
+   我先前"多出来的行是观测口加的"这个推断只对了 3/8。
+2. **`report_cdc -details` 点名**（新脚本 `build/tcl/cdc_who.tcl`，读已布线 dcp）。剩下的两条是
+   `u_pl/FSM_onehot_mode_reg[2]/C → u_pl/ms0_reg[0..1]/D`，ID **CDC-10 "Combinational logic detected
+   before a synchronizer"** —— 长按切模式送给仲裁器的那对 `ms0/ms1/ms2`（这个跨域砍不得，
+   仲裁器在 axi 域、必须知道此刻锁的是哪一路）。根因在实现层：综合把四状态 `mode`
+   重编成了 one-hot，于是 RTL 里"格雷码打两拍"在网表里变成"3 个 one-hot 触发器经组合译码
+   进 2 个目的触发器"，格雷码唯一的价值（每位只依赖一个源触发器）被抹掉了。
+3. **两步修法**：`(* fsm_encoding = "none" *)`（#28）+ 下一状态按位写 `mode <= {mode[0], ~mode[1]}`（#29）。
+   格雷码 00→01→11→10→00 恰好满足这条式子，台架 `tb_v81_test_card` 的 T16/T16b/T16c 逐位验过
+   （四步落在四个模式、每步只动一位、四状态互不相同）。
+   **#28 实测**：该行 **Critical → Warning（5 端点 / 0 unsafe）**，Critical 行数回到 3（与 #25 一致），
+   而且全局 **WNS 从 +0.733 涨到 +1.001**（clk_fpga_0 +1.463 / eth_rxc +1.001）、
+   端点 23836、LUT 7576、Reg 6022、BRAM 90.5 tile(64.64 %)、Dynamic 2.157 W、
+   methodology 0 CRIT、0 布线错误 ⇒ `bash build/gates.sh` **七项全绿**（bit `c65b547d`）。
+4. **一次自己差点写进文档的错**（记下来，因为它比错代码更难发现）：#28 的门禁 00:39 跑完、
+   数字就在屏幕上；几分钟后我单独 `awk` 了一次 `build/cdc.rpt`——那时 #29 还没写回来，
+   读到的是 **#27 的旧文件**，于是我得出"`fsm_encoding` 没用"的结论并差点照它改设计。
+   **规则其实立着且就为解决这个**（`gates.sh` 会先打印 bit 与报告的 mtime），
+   我执行时绕过了它。⇒ 以后"比数字"只认 `gates.sh` 或报告开头的 `Date` 行。
+5. **交接判据从眼睛搬到机器**：新工具 `src/host/arb_handover_test.mjs`。
+   它按 100 ms 密度采 lane30（一个 xsdb 会话内 `stop`…`con`，与 `health_read` 同套路），
+   同时自己开关推流，输出七条判据：V1 基线归 PS / V2 接管时限 / V3 推流期不抖 /
+   V4 停流交回（**给出实测毫秒**）/ V5 交回后不回跳 / V6 可逆 / V0 采样密度。
+   判据本身有 10 项台架（`--selftest`），其中三条专门防我自己会犯的错：
+   "正常交接翻一次位不能被算成抖动"、"永不交回必须同时红 V4 和 V5"、"一个样本都没有不许判绿"。
+   **它证明的是 owner 位的时序，不证明屏幕上有没有画面** —— 那两条仍然欠眼睛。
+6. **板上踩到的两个 JTAG 顺序坑**（写进 `board/README.md` §顺序，含报错原文）：
+   `ps_jtag_boot.tcl` 的第一步 `rst -system` 会**把已配好的 PL 冲掉**；而用 xsdb 的
+   `fpga -file` 配 PL 之后 PS 侧 DAP 报 `APB AP transaction error, DAP status 0xF0000021`，
+   救它又要 `rst -system` ⇒ 死循环。**结论：配 PL 只用 `build/tcl/program_pl.tcl`（Vivado 流程），
+   且永远排在 `ps_jtag_boot` 之后。** 症状对照也值得记：
+   fabric 是空的 ⇒ `mrd 0x41200000` 报 `Timeout waiting for the Instruction Complete bit`；
+   应用已经卡在未完成的 AXI 访问上 ⇒ `stop` 报 `Cannot halt processor core, timeout`。
+7. L1 回归：`r37` 46/46（撤 lane30 两位之后）、`r38` 46/46（含 T16 与按位下一状态）、
+   `r39` **47/47**（新增 `tb_v82_src_mode`，11 条），存档 `sim/results/regression_v79_r37..r39.txt`。
+8. **交接判据第一次上板就红了，而且红得有价值**（md5 `c65b547d`，00:57，
+   `data/measured/arb_handover_r28_red.json`）：
+   | 量 | 实测 |
+   |---|---|
+   | `owner_eth=1` 的样本 | **304/304**（41 s 全程，**翻转 0 次**） |
+   | `eth_live=1` 的样本 | 138/304（停流后确实落到 0） |
+   | `eth_tb_ok` | 恒 1（线还插着，时基没退化） |
+   ⇒ 判据两位都在正确工作，仲裁却不放手 —— **与 #49 不是同一件事**。
+   于是把 `dbg_src` 从 3 位扩到 8 位（加上仲裁看到的模式与两个引擎的 busy，
+   八位全在 axi 域 ⇒ `cdc.rpt` 一行没多），红的时候才**能自己指出是谁占着**。
+9. **根因（ISSUES #52）**：长按事件的三级同步链复位成 `3'b111`，而源头 `key_long.tog` 复位是 0 ⇒
+   `111→110→100→000` 中间有一拍 `lsync[1]^lsync[2]` 为真 ⇒ **上电白送一次"长按"**，
+   模式 AUTO→锁 ETH ⇒ `src_arb` 的 `force_eth=1` ⇒ owner 永不落下。
+   这段逻辑以前直接写在 `pl_video_top` 里，**顶层台架碰不到它**，所以藏了一整天。
+   修法：搬进 `src/rtl/util/src_mode.v`（链复位 0 + 复位后 8 拍"灌满期"再开始数事件，
+   因为像素复位在换分辨率/掉锁时还会再来一次，那时 `tog` 可能停在 1）+
+   新台架 `sim/tb_v82_src_mode.v`（11 条，含一条**反面对照**：同一份激励下把旧写法一起例化，
+   断言它确实会自己走到锁 ETH —— 否则 T1 的"通过"可能只是激励没推进链）。
+   台架实测输出：`复位后 mode=0 … / 旧写法=1` ✓ 红得对。
+
+### 板级结果（01:2x–01:3x，#31 = bit `efc89779`）：**七条判据全过**
+
+```
+V1 基线归 PS      静默段 owner_eth=1 的样本 0/8
+V2 接管时限       推流后 owner_eth→1 用时 150 ms（门限 2000）
+V3 推流期不抖     稳占段 70/70 为 1，翻转 0 次
+V4 停流交回       owner_eth→0 用时 285 ms（门限 1500）  ← #24 欠的就是这一条
+V5 交回后不回跳   交回之后 owner_eth=1 的样本 0/94，翻转 0 次
+V6 可逆           再推流 owner_eth→1 用时 180 ms
+V0 采样密度       245 点 / 期望 350（实测中位周期 142 ms）
+```
+模式位全程 = 0（AUTO）⇒ #52 那条上电白送的长按确实没了。
+285 ms 与设计的两级滞回吻合：`LIVE_MS=200`（stall 判"没流"）+ `T_OFF_CYC=20 ms`（让位静默等待），
+再加一个采样周期粒度的观测余量。**原始样本 + 判据成套冻在 `build/frozen_r31_srcmode/`**
+（`arb_handover_green_r31.json` + 7 份报告 + bit/xsa/elf，`md5sum -c MANIFEST_BODY.txt` 11 项全 OK）。
+
+顺带一句不要夸大：这一版 **WNS 从 #29 的 +1.001 降到 +0.764**（多出来的 8 位可观测口与灌满期计数器的代价），
+门禁仍全绿；两个数都记在报告里，不挑好看的念。
+
+### 明早清单（覆盖 §22 的第 1、2 条；2026-09-24 01:3x 更新）
+
+1. **（5 分钟，需要你眼睛）#31 上屏确认 —— 只欠这三条，机器那一半已经过了**
+   ```bat
+   cd D:\Xilinx\Prj\pro\Video_Processing
+   cd build\frozen_r31_srcmode && md5sum -c MANIFEST_BODY.txt && cd ..   :: 11 个 OK
+   copy frozen_r31_srcmode\system.bit system.bit
+   copy frozen_r31_srcmode\ps_app.elf ps_app.elf
+   %XSDBAT% build\tcl\ps_jtag_boot.tcl                                  :: 先起 PS
+   %VIVADO% -mode batch -source build\tcl\program_pl.tcl                 :: 再配 PL（顺序不能反）
+   %XSDBAT% build\tcl\ps_app_reload.tcl                                  :: 固件（SD 会自动开播）
+   ```
+   看三件事：① 停流之后屏幕上**真的是 SD 在继续放**（不是冻住的最后一帧）—— 机器侧已量到
+   `owner_eth` 在 **285 ms** 内交回，但"交回之后画面活了"仍然只能看；
+   ② 推流与 SD 同时插着时不闪、不抢；③ `KEY1` 长按 1.2 s 能在 自动→锁ETH→锁PS→锁图卡 之间轮转，
+   且锁图卡时那张卡**在动**（会动的图卡是"通路在刷新"的可视证据，静止彩条给不了）。
+   三条都过 ⇒ 我把 #31 转成演示默认（MANIFEST/README/DEMO 口径一次改完）；
+   任何一条不过 ⇒ 退回 #23 演示，#52/#49 继续挂着，**不会含混过去**。
+2. **（30 秒，顺带的眼睛）** `ZOOM0`/`ZOOM1` 打在 SD 画面上：右窗停住 / 恢复呼吸缩放
+   （现在只有寄存器级证据，文档一直按"待确认"写）。
+3. **（等你点头）一笔没对上的账**：`cdc.rpt` 里 `eth_rxc → clk_fpga_0` 从 #23 的 Critical（272 端点）
+   变成 #24 之后的 Warning（271 端点），没人解释过。新门禁每次都提醒一句"基线里有而本版没有"，
+   不记成改进。要不要花一轮去查？（§10 U14）
+4. **（板上顺手的一条，可选）** 长按切模式时顺带 +1° 旋转（`key_long` 与短按共用同一个键，
+   已知代价，写在 `pl_video_top` 注释里）。要不要我把旋转改成"只在短按释放时触发"，
+   是个 10 分钟的小改 + 一次回归。
+5. KU5P 仍然按你说的停着（不新功能、不上板）。Z7 的"时序与资源深度优化"仍然等 #24 结掉再动，
+   理由不变：一次叠两个候选，坏了说不清是谁的锅。

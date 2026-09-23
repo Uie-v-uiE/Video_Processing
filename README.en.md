@@ -12,9 +12,10 @@ The displayed picture has **three sources**, chosen automatically by an arbiter 
 **network stream > SD-card playback > a moving test card**. The board mounts and plays the SD card
 by itself at power-on (`AUTOPLAY0/1` to disable), yields to a live stream and takes the screen back
 within a few hundred ms after the stream stops — no cable pulling, no re-programming. `KEY1` short
-press still steps rotation by ±1°; a **1.2 s long press** cycles auto / lock-ETH / lock-PS / lock-card,
-and the current arbitration state is readable from AXI GPIO lane 30 (so the claim does not depend
-on anyone watching the screen).
+press still steps rotation by ±1°; a **1.2 s long press** cycles auto / lock-ETH / lock-PS / lock-card.
+The *outcome* of the arbitration — who owns the display right now, whether ETH is live, whether
+that timer's timebase can be trusted — is readable from AXI GPIO lane 30, so that claim does not
+depend on anyone watching the screen (which mode the long press selected still does).
 
 | Item | Value |
 |------|-------|

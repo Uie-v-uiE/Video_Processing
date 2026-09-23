@@ -27,10 +27,12 @@ module pl_video_top #(
     output wire [1:0]  led,
     // 仲裁状态的可观测口（axi_clk 域电平）：给 system_top 映到健康 GPIO 的 lane30。
     // 为什么要它：`owner_eth` 决定"此刻屏幕归谁"，但它以前**只能靠眼睛看屏幕**才知道是什么值
-    // —— 于是"停流后自动交回"这条判据夜里根本没法自己跑。有了这一位，JTAG 读一次就判红绿。
-    // 位序（见 system_top 的 lane30）：bit0=eth_tb_ok bit1=eth_live bit2=owner_eth
-    //                                    bit3=ps_src_seen bit[5:4]=模式(0自动 1锁ETH 2锁PS 3锁图卡)
-    output wire [5:0]  dbg_src,
+    // —— 于是"停流不交回"这类板级红，夜里既看不见也没法记账。有了这一口，JTAG 读一次就判红绿，
+    // 而且**红的时候能直接读出是谁占着**（见下面位序里的 mode / 两个 busy）。
+    // 位序（与 system_top 的 lane30 一致，全部是 axi 域本来就有的电平 ⇒ 零新增跨域）：
+    //   bit0=eth_tb_ok bit1=eth_live bit2=owner_eth bit3=fill_busy(PS 搬运中)
+    //   bit4=row_busy(ETH 搬运中) bit[6:5]=仲裁看到的模式(格雷码，同 src_arb 的 sel) bit7=0
+    output wire [7:0]  dbg_src,
 
     output wire        tmds_clk_p,
     output wire        tmds_clk_n,
@@ -107,23 +109,15 @@ module pl_video_top #(
         .clk(sys_clk), .rst_n(sys_rst_n), .pressed(~k1_up), .tog(ltog));
 
     localparam [1:0] M_AUTO = 2'd0, M_ETH = 2'd1, M_PS = 2'd3, M_CARD = 2'd2;
-    // 用**格雷码**排四个模式：00→01→11→10→00，每次只动一位 ⇒ 同步到别的域时
-    // 不可能采到"两位同时变"的中间态（二进制 01→10 会先经过 00 或 11，那是另一个模式）。
-    (* ASYNC_REG = "TRUE" *) reg [2:0] lsync;
-    always @(posedge clk_pix or negedge rst_pix_n) begin
-        if (!rst_pix_n) lsync <= 3'b111;
-        else            lsync <= {lsync[1:0], ltog};
-    end
-    wire long_pix = lsync[1] ^ lsync[2];
-
-    reg [1:0] mode;
-    always @(posedge clk_pix or negedge rst_pix_n) begin
-        if (!rst_pix_n) mode <= M_AUTO;
-        else if (long_pix)
-            mode <= (mode == M_AUTO) ? M_ETH  :
-                    (mode == M_ETH)  ? M_PS   :
-                    (mode == M_PS)   ? M_CARD : M_AUTO;
-    end
+    // 模式寄存器搬到了 `src/rtl/util/src_mode.v`，原因是"这段逻辑有没有台架"：
+    // 以前它就写在这里（一个 3 级链 + 一个四态寄存器），顶层没有任何台架碰得到它，
+    // 于是链的复位值写成 3'b111（源头 `tog` 复位是 0）这件事一直没人查 —— 上电白送一次
+    // "长按"，模式自己走到"锁 ETH"，`src_arb` 的 `force_eth` 就此长占，"停流交回"永不发生。
+    // 这就是 #28 板级交接判据红的那条根（详见 src_mode.v 文件头与 ISSUES #49）。
+    wire [1:0] mode;
+    src_mode u_mode (
+        .clk(clk_pix), .rst_n(rst_pix_n), .ltog(ltog), .mode(mode)
+    );
     wire mode_eth  = (mode == M_ETH);
     wire mode_ps   = (mode == M_PS);
     wire mode_card = (mode == M_CARD);
@@ -450,24 +444,17 @@ module pl_video_top #(
     wire fb_vis   = (mode_card ? 1'b0 : (mode_eth | mode_ps) ? 1'b1 : src_use) && have_src;
 
     // ---- 仲裁状态可观测口（dbg_src）----
-    // 为什么值得加：`owner_eth` 决定"此刻屏幕归谁"，但它以前**只能靠看屏幕**知道是什么值，
-    // 于是"停流后自动交回"这条判据在没人看屏的时候根本没法跑。有了这一位，JTAG 读一次
-    // 健康 GPIO 的 lane30 就能判红绿（这是本仓库的规矩：判据要能指出一份机器可读的凭据）。
-    // 像素域那两位（模式、ps_src_seen）先同步进 axi 域再交出去 ⇒ 交出去的是**同一个域**的电平，
-    // system_top 直接采样，不新增跨域配对（cdc.rpt 的行数因此不该变）。
-    (* ASYNC_REG = "TRUE" *) reg [2:0] ps0, ps1, ps2;
-    (* ASYNC_REG = "TRUE" *) reg [3:0] md0, md1, md2;      // 模式是格雷码 ⇒ 逐位打拍即可
-    always @(posedge axi_clk or negedge axi_rst_n) begin
-        if (!axi_rst_n) begin
-            ps0 <= 3'b0; ps1 <= 3'b0; ps2 <= 3'b0;
-            md0 <= 4'd0; md1 <= 4'd0; md2 <= 4'd0;
-        end else begin
-            ps0 <= ps_src_seen; ps1 <= ps0; ps2 <= ps1;
-            md0 <= {mode, 2'd0}; md1 <= md0; md2 <= md1;
-        end
-    end
-    // bit0=eth_tb_ok bit1=eth_live bit2=owner_eth bit3=ps_src_seen bit[5:4]=模式
-    assign dbg_src = {md2[3:2], ps2[0], owner_eth, eth_live, eth_tb_ok};
+    // 为什么值得加：`owner_eth` 决定"此刻屏幕归谁"，以前只有眼睛能知道。第一次上板跑
+    // `src/host/arb_handover_test.mjs`（#28 那块 bit）就撞上"停流之后 owner 一直是 1"，
+    // 但**只凭那一位回答不了"是谁占着"**：时基判错？判据算错？换手条件 `both_idle`
+    // 从来没成立？还是长按把模式钉在了"锁 ETH"？所以这一口把仲裁**看得见的所有输入**
+    // 都摆出来：判据三位 + 两个引擎的 busy + 它以为的模式。
+    // 关键是这七位**全部本来就在 axi 域**（`ms2` 是模式打到 axi 侧的副本、`row_busy`/`fill_busy`
+    // 是 axi 域引擎的握手位）⇒ 一个新增跨域都不引入。#26 那版我为此新加了一对"像素域 mode
+    // 的同步器"，那是白交税（`cdc.rpt` 从 3 端点/0 unsafe 涨到 8/4）；要看模式，取现成的 ms2。
+    // 位序：bit0=eth_tb_ok bit1=eth_live bit2=owner_eth bit3=fill_busy(PS 搬运中)
+    //       bit4=row_busy(ETH 搬运中) bit[6:5]=仲裁看到的模式(格雷码，同 src_arb 的 sel) bit7=0
+    assign dbg_src = {1'd0, ms2, row_busy, fill_busy, owner_eth, eth_live, eth_tb_ok};
 
     assign m_axi_arid = 6'd0;
 

@@ -191,14 +191,15 @@ module system_top (
     wire [4:0] lm_lane = gpio_o[31:27];
     reg  [31:0] lm_rd;
     // 片源仲裁的可观测状态（来自 pl_video_top，axi_clk=fclk0 域电平）：
-    //   bit0=eth_tb_ok bit1=eth_live bit2=owner_eth bit3=ps_src_seen bit[5:4]=模式
-    //   模式：00 自动 / 01 锁 ETH / 11 锁 PS / 10 锁图卡（格雷码，见 pl_video_top）
+    //   bit0=eth_tb_ok bit1=eth_live bit2=owner_eth，bit[5:3] 恒 0
+    //   （#26 一度把像素域的 mode / ps_src_seen 也打拍放进来，代价是 cdc.rpt 多一条 Critical，
+    //    已撤；那两位属于"看图卡有没有上屏"的眼睛判据，不需要机器读回）
     // 有了 lane30，"停流后 owner_eth 是否在几十毫秒内从 1 变 0"就是**可机器判定**的，
     // 不必等任何人看屏幕（判据：`src/host/health_read.mjs` 的 --json 输出）。
     wire [5:0] dbg_src;
     always @(*) begin
         if      (lm_lane == 5'd31)     lm_rd = {30'd0, lm_clk_slow, lm_clk_gone};
-        else if (lm_lane == 5'd30)     lm_rd = {26'd0, dbg_src};
+        else if (lm_lane == 5'd30)     lm_rd = {24'd0, dbg_src};
         else if (lm_lane > 5'd9)       lm_rd = 32'hDEAD_BEEF;
         else                           lm_rd = lm_axi[lm_lane*32 +: 32];
     end
