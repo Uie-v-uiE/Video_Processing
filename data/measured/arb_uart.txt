@@ -1,6 +1,7 @@
 [CTRL] AXI_GPIO=0x000F5000 en=00 thr=80 src=1 zoom=1 pub=1 bilin=1
 [SD] playing (STOP to end; ETH ????????????????????????)
-[SD] frame 89: last 89 frames 29.999 fps (since play 15.308)
-[SD] frame 189: last 100 frames 29.999 fps (since play 15.712)
-[SD] frame 289: last 100 frames 29.999 fps (since play 16.095)
+[SD] frame 15: last 15 frames 29.999 fps (since play 27.769)
+[SD] frame 115: last 100 frames 29.999 fps (since play 27.777)
+[SD] frame 215: last 100 frames 29.999 fps (since play 27.785)
+[SD] frame 315: last 100 frames 29.999 fps (since play 27.793)
 
