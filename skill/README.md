@@ -6,7 +6,7 @@ Reusable engineering notes from this project. Each item lists scope, usage, veri
 按比赛指南 3.3.5.2 的四类归纳见下表"类别"列。评价标准是**可复用性**：另一支队伍拿到本目录，
 能不能不读本工程源码就用在自己的题目上 —— 所以每一项都写了"从哪次失败里总结出来的"。
 
-## Index（12 项，与目录内容逐项对齐）
+## Index（13 项，与目录内容逐项对齐）
 
 | ID | Topic | File | 类别 |
 |----|-------|------|------|
@@ -22,6 +22,7 @@ Reusable engineering notes from this project. Each item lists scope, usage, veri
 | S10 | 同相 N 倍时钟把单口 BRAM 分时成 N 次读（4 ns 预算、成对采集、延迟要量出来钉住） | `derived_clock_port_mux.md` | 案例模板 |
 | S11 | 跨域**脉冲**只能走翻转式同步器；电平型 3 级不能修它（附相位扫描判据与实测三行表） | `pulse_toggle_cdc.md` | 踩坑清单 + 校验脚本 |
 | S12 | 共享介质的发送仲裁："全部空闲"≠"任一空闲"、一拍宽请求要记账、跨 always 清标志晚一拍 | `arbiter_pending_pulse.md` | 踩坑清单 + 校验脚本 |
+| S13 | 绕开 IDE 手工链接裸机 ARM 应用：改了 ENTRY 就是把标准启动整条链删掉了（四症状一因 + 两道等值哨兵） | `baremetal_standard_startup.md` | 踩坑清单 + 校验脚本 |
 
 ## 配套的可执行脚本（判据不是文档，是跑得出数的东西）
 
@@ -31,6 +32,9 @@ Reusable engineering notes from this project. Each item lists scope, usage, veri
 | `sim/run_one.sh` | 只跑一个台架（几十秒），改完 RTL 的第一道关 | `SRC` 文件清单 |
 | `src/host/ddr_stale.mjs` | S9 的实现：包内字节偏移→丢字率、连续丢字带分布、16bit 粒度错帧计数 | `WORDS / PAYLOAD` 两个常数 |
 | `src/host/ku5p_stats.mjs` | 收 KU5P 遥测 UDP 包并打印硬件计数器（含 `--selftest` 用合成包自校解析器） | 目标 IP/端口 |
+| `build/_scan_align.mjs` | 扫整份 ELF 的反汇编，把 `[rN,#imm]` 里非对齐的字访问揪出来（MMU 关着时这类指令必发对齐异常）；当前 482 条、非对齐 0 条 | 镜像路径 |
+| `board/uart_cap_once.ps1` | 只用 Windows 自带 SerialPort 的串口收发夹具（多命令 + 命令间隔 ⇒ 帧率这类判据能自己计时）；自带 `SENT n/n` 自证与三条 PowerShell 陷阱注释 | 串口号、命令表 |
+| `board/pswhy.tcl` / `board/rdddr.tcl` | "板子没反应"时一次采出 pc/cpsr/lr/sp + `DataAbortAddr` 三个全局；以及 GPIO 回读 + `0x10000000` 头几字（判断 PS 有没有真写进 DDR） | 全局地址来自 `nm`，重建 elf 后要改 |
 
 ## 交付形态说明
 

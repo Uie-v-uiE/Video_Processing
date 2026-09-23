@@ -1897,3 +1897,76 @@ CPACR 本该由 **FSBL** 打开 —— 而 `board/README.md` 与 `ps_jtag_boot.t
 登记成 ISSUES #42，两条出路写在里面（① 走 Vitis FSBL 正式流程 —— 就是评委/我们自己该用的；
 ② 在 app 的启动汇编里自己开 CPACR/SCTLR，这样任何加载方式都能跑）。
 **因此串口那部分（SD 播放、SRC/ZOOM 命令）今天验不了**，需要你用 Vitis Run ELF 走一遍。
+
+---
+
+## 19. R29 · 2026-09-23 16:0x–18:0x · PS 应用从"跑不起来"到 SD 回放上量，顺手挖出显示级的一个真锁
+
+> 先更正 §18-R28-C 的结论：**不需要 Vitis/FSBL**。那条"JTAG 跑不了 PS 应用"的判断方向对
+> （CPACR 没开），但根因更深一层，而且它连带解释了另外三个只在这条路径上出现的怪现象。
+
+### R29-A · 一个根因四个症状：手工链接的镜像里根本没有标准启动（ISSUES #42 → #44）
+
+`src/ps/lscript_ocm.ld` 当年为了躲 "--gc-sections 把 main 裁光" 把 `ENTRY(_vector_table)` 改成
+`ENTRY(_start)`，于是 `boot.S` / `asm_vectors.S` / `translation_table.S` 三个对象没人引用、整条
+标准启动链被裁掉。今晚按撞到的顺序兑现了四个症状：
+
+| 缺的东西 | 症状 | 判据（都是实测，不是推断） |
+|---|---|---|
+| CPACR + FPEXC | 第一条 VFP 指令陷 Undefined | `pc=0x4`、`cpsr` 模式 0x1b、`cpacr=0` |
+| VBAR + 向量表 | 异常落到 0x0 恰好摆着的代码 ⇒ **看起来像一次干净重启** | 发 `SD` 回来的是整条 `[BOOT]` 横幅，可重复 |
+| 各模式栈 | handler 里压栈＝异常里再异常 | `boot.S` 那六段 `ldr r13,=..._stack` 从没执行 |
+| MMU（BSP 恒等映射） | MMU 关着 ⇒ 非对齐访问必 fault ⇒ newlib `memcpy` 半字路径炸 | `dfsr=0x801`、出错指令在 `memcpy` 内 |
+
+修法与哨兵：`build/ps_app.mjs` 显式编进那三个 `.S`（`-DSDT` 与 BSP 自身编译条件一致），
+入口写回 `ENTRY(_boot)`（命令行 `-Wl,-e,_boot` **会被脚本里的 ENTRY 顶掉并且 readelf 悄悄变成
+0x0**，这条也记进 ISSUES），并在链接后硬性校验：`ELF 入口 == _boot`、`_vector_table == 0x0`、
+`_boot`/`_start`/`main`/`MMUTable` 都在。另外 `-mno-unaligned-access` 保留 —— 它治的是另一处：
+`-O2` 把 `ld32()` 的四个字节读合并成 `ldr r6,[r4,#454]`（objdump 可见），MMU 关着时这是必炸的。
+配套一个 `build/_scan_align.mjs`：扫整份镜像的 `[rN,#imm]` 字访问，当前 482 条、非对齐 0 条。
+
+### R29-B · 串口活着之后的三段路：挂载 → 帧率 → 上屏
+
+1. **挂载**：`[SD] FAT32 part_lba=2048 spc=32 rootclus=2 data_lba=34816 / frames=4398 fps=30.000
+   files=5 frame=307200B`。中间被我的解析判据挡了一次（#43：`kv_u32` 拿 `.rodata` 字面量的指针
+   和串内位置比 ⇒ "关键字在串首"这一种永远不成立 ⇒ 好卡被判 "FILE line without FRAMES"）。
+   落法除了改判据，还给判据自己加了测试：`meta_selftest()` 三段内置样本（一段必须过、两段必须被拒），
+   跑在读卡之前，失败时报 `SELF-TEST failed (firmware bug, not the card)`。
+2. **帧率**：`sd_tick()` 现在每 100 帧报 **窗口** 速率：连续 46 个窗口全 `29.999 fps`；
+   另一路独立核对 —— 一次干净会话里 `SD,PLAY,STOP` 间隔 12 s，`STOP` 回报 360 帧 ⇒ **30.0 fps**
+   （512×300 RGB565 = 300 KB/帧 ⇒ 卡上读带宽 ≈ 9.0 MB/s）。原来那条只报"自首次 PLAY 的累计平均"，
+   同一时刻屏上写 `1.449 fps` 而板子在 30 fps 跑（#46）。
+3. **上屏**：卡在这一步，且不是 SD 的问题 —— 见 R29-C。
+
+顺带两个板级事实：卡的 META 声明 4398 帧但只有 5 个文件 = **2099 帧**（拷贝不全），播到 2099
+就"frame index out of range"停在半路 ⇒ 可播长度改成取 `min(声明, Σ FILEn)` 并打 WARN（#47 之前
+它看起来像"没在播放"）；以及 `XSdPs_CfgInitialize` **每个上电周期只成功一次**（#45，连发三条
+`SD` 全失败、核复位后第一条又成功）⇒ `sd_mount()` 开头 `if (mounted) return 0;`。
+
+### R29-C · 真正的最后一跳：`pl_video_top.v:335` 的红色占位把 PS 片源挡死（ISSUES #47）
+
+DDR 侧自证是活的：`0x10000000` 每秒读回都不同（`44184C37`→`047D0C7D`），`FILL` 也落进去了
+（同一地址读到 `07E007E0` = 顶部黑条那两个像素）。可屏幕是**一片红**。原因在显示前最后一级 mux：
+
+```verilog
+wire [15:0] bram_or_hold = eth_link_pix ? fb_out : 16'hF800;
+```
+
+`eth_link_pix` = `link_active` = `|s_pkts[15:0]` —— **"自配置以来收到过任何一个包"**，粘性的，
+ARP 就够触发，拔网线也不回 0（只有重配 PL 才清）。所以这行的实际语义是"没跑过 ETH 就把整块
+显存涂红"，把 `ps_publish` / `axi_frame_writer64` 那条 PS 片源永久挡在屏外 —— 也就是说
+**P1 的"SD 本地回放"以前从来没有可能在屏幕上出现过**，之前所有"FILL 看不见"的账也该记到它头上。
+
+改法最小化：`eth_link_pix | ps_src_seen`，`ps_src_seen` 由像素域已有的 `pub_consume` 置位
+（不用 axi_clk 域的 `ps_frame_start`，避免新增跨域），PS 从未发布时与原行为逐位相同。
+状态：vlog 0 error / 0 warning；构建 #23 与门禁见下表（跑完回填）；最终判据是眼睛看见 SD 画面在动。
+
+| 门禁 | 阈值 | #22（现网，`bash build/gates.sh build/frozen_r22_param`） | #23（本次） |
+|---|---|---|---|
+| WNS / 失败 setup 端点 | ≥ 0 且 "All user specified timing constraints are met" | **+0.566 ns** / 0 | 待回填 |
+| WHS / 失败 hold 端点 | ≥ 0 | +0.044 ns / 0 | 待回填 |
+| BRAM | ≤ 97 % | 90.5 tile = **64.64 %** | 待回填 |
+| Slice LUT / Slice 寄存器 | ≤ 98 % / 记录用 | 7396 = **13.90 %** / 5903 | 待回填 |
+| 功耗 Dynamic | 与前次同量级 | **2.180 W** | 待回填 |
+| methodology Critical / 布线失败网线 | 0 / 0 | 0 / 0 | 待回填 |
+| cdc.rpt Critical 行 | 不新增（上一版为 4） | 4 | 待回填 |

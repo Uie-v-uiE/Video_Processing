@@ -60,13 +60,48 @@ run_serial.bat COM5
 ## 3. 上板顺序
 
 1. 12V 电源、HDMI 1024×600、USB（JTAG+UART）
-2. 网线接 **PL 网口**（非 PS 口）
-3. 下载 bit
-4. （串口需要）Vitis Run PS ELF——bit 会复位 PS
+2. 网线接 **PL 网口**（非 PS 口）—— 但**要先决定这一轮演哪一幕**：演 SD 回放就得在
+   下 bit 之前把网线拔掉（PL 里 `link_active = |s_pkts` 是"自配置以来收过任何一个包"，ARP 就够触发，
+   拔线不清零、只有重配清零；判据与改法见 ISSUES #47）
+3. 下载 bit：`vivado -mode batch -source build/tcl/program_pl.tcl`（下 bit 前先 `md5sum` 对 MANIFEST）
+4. PS 应用（**不需要 Vitis、不需要 FSBL**）：`xsdb build/tcl/ps_app_reload.tcl`
+   —— 串口应出现 `[BOOT] video_pipeline PL-UDP control plane`；它只做 `rst -processor`，
+   所以位流与 GPIO 控制字都不受牵连。反过来 `ps_jtag_boot.tcl` 含 `rst -system`，跑过它就必须重下 bit。
 5. PC：`192.168.1.100/24`
 6. `ping 192.168.1.10`
 7. `run_sender.bat` 推流
 8. HDMI：左原图 / 右缩放+效果；OSD 见 FPS/ANG/EN；右屏自动缩放循环
+
+### 3.1 PS 应用怎么重建、怎么自检（`node build/ps_app.mjs`）
+
+```bat
+set PS_CC=D:\Software\Vivado\2025.2.1\Vitis\gnu\aarch32\nt\gcc-arm-none-eabi\bin\arm-none-eabi-gcc.exe
+set PS_BSP=<一个已经 generate 过的 zynq 平台>\ps7_cortexa9_0\standalone_ps7_cortexa9_0\bsp
+node build\ps_app.mjs --clean        :: 产出 build\ps_app.elf
+```
+
+链接时必须**同时**喂进 BSP 自己的三个启动文件（脚本已经做了，改脚本前先读这段）：
+`asm_vectors.S`（向量表 + 各 handler 把出错指令地址写进 `DataAbortAddr` 等全局）、
+`boot.S`（`_boot`：设 VBAR、六个模式的栈、CPACR+FPEXC、L2/SCU、开 MMU，然后 `b _start`）、
+`translation_table.S`（`MMUTable`）。少了它们的后果不是报错而是四件怪事，逐条实测记录在
+ISSUES #44；入口只能写在链接脚本里（`ENTRY(_boot)`）—— 命令行 `-Wl,-e,_boot` 会被脚本里的
+`ENTRY` 顶掉，`readelf` 的入口悄悄变 0x0，一声不响。
+
+脚本链接后有四道自检，任何一道不过就非零退出（"链接成功"不等于可执行，历史上产出过 .text 只有
+80 字节的空 ELF）：`_boot`/`_vector_table`/`_start`/`main`/`MMUTable` 都在；
+**ELF 入口 == `_boot`**；**`_vector_table` == 0x0**；`.text` ≥ 20 KB。
+另有一个 `build/_scan_align.mjs`：扫整份镜像的 `[rN,#imm]` 字访问有没有非对齐
+（MMU 关着时这类指令必发对齐异常；当前 482 条、非对齐 0 条）。
+
+串口侧工具（验收机不保证有 pyserial，所以走 Windows 自带 API）：
+
+| 用途 | 命令 |
+|---|---|
+| 抓开机横幅 | `powershell -File board\uart_cap_once.ps1 -Seconds 20` |
+| 发命令收回应 | `... -Cmd STAT` |
+| 多条 + 间隔（量帧率） | `... -Cmds "SD,PLAY,STOP" -CmdDelay 12 -Seconds 8` |
+| 板子没反应时看核 | `xsdb board\pswhy.tcl`（pc/cpsr/lr/sp + 三个 abort 地址全局） |
+| 看 PS 有没有真写进 DDR | `xsdb board\rdddr.tcl`（GPIO 回读 + `0x10000000` 头几字） |
 
 ---
 

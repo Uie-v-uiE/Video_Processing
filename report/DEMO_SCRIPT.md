@@ -11,15 +11,18 @@
 ```bat
 set VIVADO=D:\Software\Vivado\2025.2.1\Vivado\bin\vivado.bat
 set XSDBAT=D:\Software\Vivado\2025.2.1\Vitis\bin\xsdb.bat
-%VIVADO% -mode batch -nojournal -source build\tcl\program_pl.tcl   :: 只配 PL
-%XSDBAT%                                                          :: 进交互会话，下面四行在里面敲
-    source  build/tcl/ps_jtag_boot.tcl                            :: 拉 PS（ps7_init 自动从 xsa 解出）
-    targets -set -filter {name =~ "ps7_cortexa9_0*"}
-    download build/ps_app.elf
-    con                                                           :: 串口应出现 [BOOT] ... SD PLAY STOP FRAME0 BILIN0 STAT
-%XSDBAT% build\tcl\set_src.tcl                                    :: 另开一次：0x41200000 = 0x000B0000
+%XSDBAT% build\tcl\ps_jtag_boot.tcl                               :: 拉 PS（ps7_init 自动从 xsa 解出）
+%VIVADO% -mode batch -nojournal -source build\tcl\program_pl.tcl  :: 只配 PL（必须在上面那步之后）
+%XSDBAT% build\tcl\ps_app_reload.tcl                              :: 只复位 A9 + 下 elf + con，串口出 [BOOT]
 ```
-（`ps_jtag_boot.tcl` 里没有 `download`：仓库没有 Vitis 平台工程，elf 是在同一个 xsdb 会话里手动下的。）
+两条顺序上的硬规矩（都是板上撞过的，见 `OVERNIGHT_LOG.md` §18-R28-B、§19）：
+`ps_jtag_boot.tcl` 里有 `rst -system`，它会**清掉 PL 配置** ⇒ 之后必须重下 bit；
+反过来，换/重下 PS 应用只用 `ps_app_reload.tcl`（`rst -processor` 复位 Cortex-A9），
+**位流、AXI GPIO 控制字、正在跑的视频流都不受影响**。
+应用现在自己在开机时写 `0x41200000`（`[CTRL] AXI_GPIO=0x000A5000 …` 那行就是回显），
+所以 `set_src.tcl` 只在"不跑 PS 应用、纯拿 JTAG 演 PL"时才需要；串口里 `SRC1` 是同一件事。
+（elf 里没有 FSBL 也能跑：入口是标准启动 `_boot`，它开 CPACR/FPEXC、各模式栈、VBAR 与 MMU，
+ 见 ISSUES #42/#44；启动后寄存器状态可用 `board/pswhy.tcl` 一次采出来。）
 
 下 bit 前 **先 `md5sum build/system.bit`，必须以 `43b76e15` 开头**（= build#22：V7.7 同一功能 +
 R22 两笔 CDC + R23 的 `copy_abort` 翻转同步 + R24 的厂商发送仲裁修复（ISSUES #37）
@@ -55,11 +58,28 @@ build#13 `0f46ec91` 在 `build/frozen_r13/`（三块都在各自的 `build/froze
    不写浮点、不查表插值，因此每像素周期一次取数就够。"*
 
 ### 第三幕：SD 卡本地回放（证明不依赖 PC 也能出图）
-1. `SD` → 打印 `FAT32 part_lba=… frames=4398 fps=15.000 files=9`（只读 FAT32 解析，裸 SPI/SDIO，无文件系统库）。
-2. `FRAME123` 单帧跳、`PLAY` 循环播、`STOP` 停；**先拔网线**再播，画面**不撕裂**
-   （撕裂的判据不是眼睛：`ps_publish` 的发布握手 + 每场只在 V-blank 内原子提交）。
+1. `SD` → 实测打印
+   `FAT32 part_lba=2048 spc=32 rootclus=2 data_lba=34816` / `frames=4398 fps=30.000 files=5 frame=307200B`
+   + 五个 `VIDEO00n.BIN frames=512`（只读 FAT32 解析，无文件系统库）。
+   这张卡的 META 声明 4398 帧但**只有 5 个文件 = 2099 帧**（拷贝不全），固件会多打一行
+   `WARN FRAMES != sum of FILEn … playing 2099 frames only` 并把可播长度收到 2099 —— 这句要主动讲，
+   它正好证明"固件不信任元数据、以卡上实际内容为准"。
+2. `PLAY` 循环播、`STOP` 停、`FRAME123` 单帧跳。**每 100 帧自己报一次速率**：
+   `frame NNNN: last 100 frames 29.999 fps` —— 现场就有人问"多少帧"的话，指着这行念。
+   两条独立核对（同一张卡、同一次会话）：12 秒窗口里 `STOP` 回报 360 帧 ⇒ **30.0 fps**；
+   150 秒连续跑 46 个窗口全 29.999。⇒ 卡片读带宽 ≈ 9.0 MB/s（300 KB/帧）。
+3. **播放期间网线要在配 bit 之前就是拔着的**：PL 里 ETH 与 PS 共用同一台搬运机，
+   判据 `link_active = |s_pkts` 是"自配置以来收过任何一个包"（ARP 就算），**拔线不会清零，只有重配才清**。
+   顺序：`program_pl.tcl`（线已拔）→ 下 elf → `SD` → `PLAY`。反过来先推过流再想播 SD，就得重配一次（约 1 分钟）。
+4. **屏幕这一跳的状态（读这段时先看这里）**：`pl_video_top.v:335` 原来把"没跑过 ETH"整块显存涂成红色
+   （ISSUES #47），所以 SD 画面能否上屏取决于修复版 bit；**构建 #23 门禁 + 板级确认结果回填在
+   `report/OVERNIGHT_LOG.md` §19 表里**。在那之前，这一幕的可验证判据是串口那两行 + JTAG 读回
+   `0x10000000` 的内容每秒都在变（`bash`：`xsdb board/rdddr.tcl`，实测 `44184C37`→`047D0C7D`）。
+   撕裂的判据不是眼睛：`ps_publish` 的发布握手 + 每场只在 V-blank 内原子提交（`sim/tb_ps_publish.v` 逐相位）。
+5. 若 `SD` 报 `card absent or CMD sequence failed`：卡不在 BSP 那个 SDIO 控制器上，先查 PS 配置；
+   若报 `XSdPs_CfgInitialize failed` 且此前挂载成功过：那是 ISSUES #45（每个上电周期只成功一次），
+   重下一次 elf（`build/tcl/ps_app_reload.tcl`）即可，不用碰卡。
    讲法：*"PS 只负责把一帧的 DMA 目标地址准备好并翻转一根发布线，PL 只在帧尾取用一次。"*
-3. 若 `SD` 报 `card absent`：说明卡不在 BSP 的那个 SDIO 控制器上，先查 PS 配置，不要改固件。
 
 ### 第四幕（**只有 KU5P 板级验证通过之后才讲**）：第二块板自己说话
 1. 另开一个窗口：`node src/host/ku5p_stats.mjs` → 应该看到每秒一行

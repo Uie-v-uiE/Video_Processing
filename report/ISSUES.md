@@ -531,6 +531,29 @@ helper 叫 `get()` ⇒ **不管有没有带 `--drop-every`，模块加载阶段�
 **规则**：任何"平均"数字都要说清分母是什么；能同时给窗口值和累计值时都给，现场不会被人问倒。
 帧率本身另有一路独立核对：`STOP` 回报的帧号 / 时长（360 帧 ÷ 12 s = 30.0 fps，见 §19）。
 
+### 47. `pl_video_top.v:335` 的红色占位把 PS 片源整个挡住：SD 回放在屏幕上从不可达（已改 RTL，待构建 #23 门禁 + 上屏）
+
+- 现象：SD 侧一切正常 —— 挂载出表、`0x10000000` 每秒都在换内容（JTAG 读回 `44184C37`→`047D0C7D`）、
+  150 s 里 46 个"100 帧窗口"全报 29.999 fps；**屏幕却是一片红**，连 `FILL` 四色块也看不见
+  （FILL 确实落到了 DDR：同一地址读回 `07E007E0` = 顶部黑条的两个像素）。
+- 根因就在显示前的最后一个 mux：
+
+  ```verilog
+  wire [15:0] bram_or_hold = eth_link_pix ? fb_out : 16'hF800;   // 335 行
+  ```
+
+  `eth_link_pix` 来自 `link_active = |s_pkts[15:0]`（eth_udp_video_top.v:369）——
+  **"自从配置以来收到过任何一个包"**，是粘性的：PC 的 ARP 就足以让它为真，拔掉网线也不会回 0，
+  只有重配 PL 才清。于是这行的实际含义是"没跑过 ETH 就把整块显存涂红"，
+  而 `ps_publish` / `pub_consume` / `axi_frame_writer64` 三条 PS 通路明明都在 ⇒ PS 片源被挡在屏外。
+  这也解释了为什么 #42/#44 修完、片源真的搬进显存之后，症状反而从"定格最后一帧"变成"全红"
+  ——网线拔了 ⇒ `eth_link_pix=0` ⇒ 走到那支红色常量。
+- 改法（最小、且不动已验过的 ETH 行为）：判据加一项 `ps_src_seen`，由**像素域**已有的
+  `pub_consume` 置位（不用 `ps_frame_start`，那是 axi_clk 域的脉冲 ⇒ 不引入新的跨域）。
+  `eth_link_pix | ps_src_seen` 在 PS 从没发布时与原来逐位相同。
+- **验证状态**：vlog 0 error/0 warning；构建 #23 的门禁六道数字与 `sim/tb_v6_vblank_copy`（唯一
+  直接例化 `pl_video_top` 的台架）跑完再回填；最终判据是板上看见 SD 画面动起来（要看眼睛）。
+
 ---
 
 ## 快速对照
@@ -545,7 +568,11 @@ helper 叫 `get()` ⇒ **不管有没有带 `--drop-every`，模块加载阶段�
 | 缩放坐标乱 | inv 位宽是否 10-bit 有符号 |
 | 效果只在错误窗 | 效果是否挂在右窗 de |
 | 时序 WNS 为负 | 时钟组是否含 clkout*；FIFO 是否 BRAM |
-| 串口无效 | bit 后是否 Run ELF |
+| 串口无效 | PS app 有没有真在跑：`xsdb build/tcl/ps_app_reload.tcl` 看 `pc`/`cpsr`（模式 0x1b=Undefined ⇒ #44 那类没修上；pc 停在 0x4/0x0 ⇒ 异常落进向量区） |
+| 串口发多条只有第一条应 | 是夹具不是板子：`powershell -File` 不绑数组、循环会在两条命令之间提前收工（`board/uart_cap_once.ps1` 已修并自检 `SENT n/n`） |
+| 第二次 `SD` 必 mount failed | `XSdPs_CfgInitialize` 每个上电周期只成功一次（#45）；已用 `mounted` 短路规避，真机换卡要重下 app |
+| 板子"像自己重启了一遍" | 没人设 VBAR ⇒ 异常去执行 0x0 那里恰好摆着的代码（#44）；读 `DataAbortAddr`/`PrefetchAbortAddr`/`UndefinedExceptionAddr` 三个全局看是谁 |
+| PS 写了 DDR 却全红 / `FILL` 看不见 | 显示前最后一级 mux `bram_or_hold`（#47）；DDR 侧先自证：`board/rdddr.tcl` 读 `0x10000000` 两次，内容在变就说明卡在 PL |
 | git push 失败 | 网络/代理；git 是否在 PATH |
 | 动画拖影 / 每隔一个 16bit 黑纹 | `node src/host/ddr_stale.mjs` 看**包内相位**：台阶=排空速率（在途深度、往返延迟）；长带=端口被占死；整包带=前端丢包 |
 | 静止图也撕裂 | 覆盖门限是否生效（`stat_frames`/`stat_bad` 比例）；bank 内帧号跨度应为 1 |
