@@ -131,7 +131,7 @@ if (!curRaw) {
 const cur = parseInt(curRaw[1], 16) >>> 0;
 const keep = cur & 0x07ffffff;                       // 清掉 bit[31:27]，保留控制位
 if (CLR) { runXsdb(clrScript(keep), 'clr'); console.log('[HEALTH] 已把帧间隔统计归零（gpio_o[26] 拉高 250 ms）'); }
-const want = [...Array(10).keys(), 31];
+const want = [...Array(10).keys(), 30, 31];
 const vals = new Map();
 for (let p = 0; p < PASSES; p++) {
   const txt = runXsdb(passScript(want, p === PASSES - 1 ? cur : undefined, keep), `p${p}`);
@@ -151,6 +151,43 @@ for (let p = 0; p < PASSES; p++) {
 const g = (n) => (vals.get(n) || [])[0];
 const f16 = (v, hi) => v === undefined ? NaN : ((v >>> (hi ? 16 : 0)) & 0xffff);
 const bit = (v, i) => v === undefined ? '?' : ((v >>> i) & 1) ? '1' : '0';
+
+// --json：只吐一个机器可读的对象就退出。加这个模式不是为了好看 ——
+// `src/host/metrics.mjs` 要把"推流 N 秒 → 读回计数器 → 算抖动/丢包"做成一条可复跑的命令，
+// 而去解析上面那些中文判读行会把两个工具焊死在一起（改一句文案就崩）。
+if (get('json', false) === true) {
+  const l = {}; for (let n = 0; n < 10; n++) l['lane' + n] = g(n);
+  const clk = g(31), src = g(30);
+  const flags = l.lane7;
+  const MODE = { 0: 'AUTO', 1: 'LOCK_ETH', 3: 'LOCK_PS', 2: 'LOCK_CARD' };
+  console.log(JSON.stringify({
+    gpio0: cur, clk, dbg_src: src,
+    // lane30：仲裁的可观测状态（bit0 时基可信 / bit1 eth 活着 / bit2 屏幕归 ETH /
+    //          bit3 见过 PS 片源 / bit[5:4] 模式，格雷码）
+    src_state: src === undefined ? null : {
+      eth_tb_ok: src & 1, eth_live: (src >> 1) & 1, owner_eth: (src >> 2) & 1,
+      ps_src_seen: (src >> 3) & 1, mode: MODE[((src >> 4) & 3)] ?? String((src >> 4) & 3),
+    },
+    drop_words: l.lane0,
+    frames_bad: l.lane1 === undefined ? NaN : f16(l.lane1, false),
+    pkt_err:    l.lane1 === undefined ? NaN : f16(l.lane1, true),
+    stall_ms:   l.lane2 === undefined ? NaN : f16(l.lane2, false),
+    rows_miss_max: l.lane2 === undefined ? NaN : f16(l.lane2, true),
+    gap_last:   l.lane3,
+    gap_min:    l.lane4 === undefined ? NaN : f16(l.lane4, false),
+    gap_max:    l.lane4 === undefined ? NaN : f16(l.lane4, true),
+    gap_sum:    l.lane5, cdc_episodes: l.lane6, flags,
+    pkts: l.lane8, bytes: l.lane9,
+    hb_slow: clk === undefined ? '?' : (clk >> 1) & 1,
+    hb_gone: clk === undefined ? '?' : clk & 1,
+    flags_bits: { drop_seen: bit(flags, 0), abort_seen: bit(flags, 1), cdc_full_seen: bit(flags, 2),
+                  stream_live: bit(flags, 3), gap_valid: bit(flags, 4) },
+    passes: [...vals.entries()].map(([n, v]) => [n, v.length]),
+  }));
+  // GPIO_0 在最后一遍读取的脚本里已经还原成进入时的值（见上面 passScript 的 restoreTo），
+  // 所以这里不需要再补一次写回。
+  process.exit(0);
+}
 
 console.log(`GPIO_0=${GPIO0} 读回 0x${(cur >>> 0).toString(16)}（已还原），GPIO_1=${GPIO1}`);
 console.log('lane  value       含义');
@@ -176,9 +213,15 @@ for (let n = 0; n < 10; n++) {
   console.log(`      ${''.padEnd(10)}${LANES[n][1]}`);
 }
 const clk = g(31);
+const src = g(30);
 const stall = g(2), drop = g(0), flags = g(7);
 const gone = (clk === undefined) ? -1 : (clk & 1);
 const slow = (clk === undefined) ? -1 : ((clk >>> 1) & 1);
+const MODE = { 0: '自动仲裁', 1: '锁 ETH', 3: '锁 PS', 2: '锁图卡' };
+if (src !== undefined)
+  console.log(`  30  0x${src.toString(16).padStart(8, '0')}  片源仲裁：屏幕归` +
+    ` ${(src >>> 2) & 1 ? 'ETH' : 'PS'}，eth_live=${(src >>> 1) & 1} 时基可信=${src & 1}` +
+    ` 见过PS片源=${(src >>> 3) & 1} 模式=${MODE[(src >>> 4) & 3] ?? ((src >>> 4) & 3)}`);
 console.log(`  31  ${clk === undefined ? '(读不到)' : '0x' + clk.toString(16).padStart(8, '0')}  ` +
             `eth_rxc 心跳：${gone === -1 ? '(读不到)' : gone ? '已停 —— 源时钟没有' : slow ? '被拉慢 ~50× ⇒ 网线已拔/PHY 断链' : '正常'}`);
 console.log('');

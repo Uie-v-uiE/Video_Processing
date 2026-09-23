@@ -190,8 +190,15 @@ module system_top (
     );
     wire [4:0] lm_lane = gpio_o[31:27];
     reg  [31:0] lm_rd;
+    // 片源仲裁的可观测状态（来自 pl_video_top，axi_clk=fclk0 域电平）：
+    //   bit0=eth_tb_ok bit1=eth_live bit2=owner_eth bit3=ps_src_seen bit[5:4]=模式
+    //   模式：00 自动 / 01 锁 ETH / 11 锁 PS / 10 锁图卡（格雷码，见 pl_video_top）
+    // 有了 lane30，"停流后 owner_eth 是否在几十毫秒内从 1 变 0"就是**可机器判定**的，
+    // 不必等任何人看屏幕（判据：`src/host/health_read.mjs` 的 --json 输出）。
+    wire [5:0] dbg_src;
     always @(*) begin
         if      (lm_lane == 5'd31)     lm_rd = {30'd0, lm_clk_slow, lm_clk_gone};
+        else if (lm_lane == 5'd30)     lm_rd = {26'd0, dbg_src};
         else if (lm_lane > 5'd9)       lm_rd = 32'hDEAD_BEEF;
         else                           lm_rd = lm_axi[lm_lane*32 +: 32];
     end
@@ -217,6 +224,7 @@ module system_top (
         .zoom_en(gpio_o[17]),
         .ps_publish(gpio_o[18]),        // 每翻转一次 = PS 请求把 DDR 里那一帧搬上屏一次
         .key1_n(key1_n), .key2_n(key2_n), .led(led),
+        .dbg_src(dbg_src),
         .tmds_clk_p(tmds_clk_p), .tmds_clk_n(tmds_clk_n),
         .tmds_data_p(tmds_data_p), .tmds_data_n(tmds_data_n),
         .m_axi_araddr(m_araddr), .m_axi_arid(m_arid), .m_axi_arlen(m_arlen8),

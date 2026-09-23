@@ -6,7 +6,7 @@ Reusable engineering notes from this project. Each item lists scope, usage, veri
 按比赛指南 3.3.5.2 的四类归纳见下表"类别"列。评价标准是**可复用性**：另一支队伍拿到本目录，
 能不能不读本工程源码就用在自己的题目上 —— 所以每一项都写了"从哪次失败里总结出来的"。
 
-## Index（13 项，与目录内容逐项对齐）
+## Index（15 项，与目录内容逐项对齐）
 
 | ID | Topic | File | 类别 |
 |----|-------|------|------|
@@ -23,11 +23,15 @@ Reusable engineering notes from this project. Each item lists scope, usage, veri
 | S11 | 跨域**脉冲**只能走翻转式同步器；电平型 3 级不能修它（附相位扫描判据与实测三行表） | `pulse_toggle_cdc.md` | 踩坑清单 + 校验脚本 |
 | S12 | 共享介质的发送仲裁："全部空闲"≠"任一空闲"、一拍宽请求要记账、跨 always 清标志晚一拍 | `arbiter_pending_pulse.md` | 踩坑清单 + 校验脚本 |
 | S13 | 绕开 IDE 手工链接裸机 ARM 应用：改了 ENTRY 就是把标准启动整条链删掉了（四症状一因 + 两道等值哨兵） | `baremetal_standard_startup.md` | 踩坑清单 + 校验脚本 |
+| S14 | 性能指标采集：`gap_sum` 的分母是**段数 N−1**、累计量取差值 / 峰值取 max、采集与算式分离并自带反面对照（`src/host/metrics.mjs` 即其实现） | `metrics_gap_sum.md` | 校验脚本 + 案例模板 |
+| S15 | 产物成套与门禁新鲜度：构建没跑完就念门禁，念到的是**上一版**的全绿；bit/xsa/elf/报告按 md5 一起冻结，MANIFEST 必须写"验到哪一条、哪几条没验" | `artifact_freeze_and_freshness.md` | 校验脚本 + 踩坑清单 |
 
 ## 配套的可执行脚本（判据不是文档，是跑得出数的东西）
 
 | 脚本 | 干什么 | 换题目时要改什么 |
 |------|--------|------------------|
+| `src/host/metrics.mjs` | S14 的实现：基线(gapclr) → 推流 N 秒 → 读回 → 出表并把**原始读数**一起存档；`--selftest` 8 条含"错用分母必须给出不同 fps"的反面对照 | `FRAME_BYTES`（分辨率）与 lane 名 |
+| `sim/top_check_ku5p.sh` | 20 秒把**没有任何台架例化**的顶层 elaborate 一遍（端口对不对只有综合会查）；三个不显然的开关（unisim 库 / `glbl` 当第二顶层 / `-timescale`）都注在文件头 | 顶层名、器件库、文件清单 |
 | `build/gates.sh` | 一条命令把七项门禁（WNS/WHS/失败端点/BRAM/Slice/功耗/methodology/布线/CDC）读成 PASS-FAIL，可指向任一**成套冻结件**复核；解析不到值就 FATAL 退出，**绝不拿空值当 0 判绿** | 报告路径与阈值（阈值口径见 `report/BUILD.md` §7） |
 | `sim/run_one.sh` | 只跑一个台架（几十秒），改完 RTL 的第一道关 | `SRC` 文件清单 |
 | `src/host/ddr_stale.mjs` | S9 的实现：包内字节偏移→丢字率、连续丢字带分布、16bit 粒度错帧计数 | `WORDS / PAYLOAD` 两个常数 |

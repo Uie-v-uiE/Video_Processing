@@ -25,6 +25,12 @@ module pl_video_top #(
     input  wire        key1_n,
     input  wire        key2_n,
     output wire [1:0]  led,
+    // 仲裁状态的可观测口（axi_clk 域电平）：给 system_top 映到健康 GPIO 的 lane30。
+    // 为什么要它：`owner_eth` 决定"此刻屏幕归谁"，但它以前**只能靠眼睛看屏幕**才知道是什么值
+    // —— 于是"停流后自动交回"这条判据夜里根本没法自己跑。有了这一位，JTAG 读一次就判红绿。
+    // 位序（见 system_top 的 lane30）：bit0=eth_tb_ok bit1=eth_live bit2=owner_eth
+    //                                    bit3=ps_src_seen bit[5:4]=模式(0自动 1锁ETH 2锁PS 3锁图卡)
+    output wire [5:0]  dbg_src,
 
     output wire        tmds_clk_p,
     output wire        tmds_clk_n,
@@ -442,6 +448,26 @@ module pl_video_top #(
     // 模式决定"看哪一路"：锁 ETH / 锁 PS 时强制看 fb；锁图卡时强制看图卡；AUTO 交回给
     // PS 的 SRC0/SRC1 命令（src_use），行为与 #23/#25 一致。
     wire fb_vis   = (mode_card ? 1'b0 : (mode_eth | mode_ps) ? 1'b1 : src_use) && have_src;
+
+    // ---- 仲裁状态可观测口（dbg_src）----
+    // 为什么值得加：`owner_eth` 决定"此刻屏幕归谁"，但它以前**只能靠看屏幕**知道是什么值，
+    // 于是"停流后自动交回"这条判据在没人看屏的时候根本没法跑。有了这一位，JTAG 读一次
+    // 健康 GPIO 的 lane30 就能判红绿（这是本仓库的规矩：判据要能指出一份机器可读的凭据）。
+    // 像素域那两位（模式、ps_src_seen）先同步进 axi 域再交出去 ⇒ 交出去的是**同一个域**的电平，
+    // system_top 直接采样，不新增跨域配对（cdc.rpt 的行数因此不该变）。
+    (* ASYNC_REG = "TRUE" *) reg [2:0] ps0, ps1, ps2;
+    (* ASYNC_REG = "TRUE" *) reg [3:0] md0, md1, md2;      // 模式是格雷码 ⇒ 逐位打拍即可
+    always @(posedge axi_clk or negedge axi_rst_n) begin
+        if (!axi_rst_n) begin
+            ps0 <= 3'b0; ps1 <= 3'b0; ps2 <= 3'b0;
+            md0 <= 4'd0; md1 <= 4'd0; md2 <= 4'd0;
+        end else begin
+            ps0 <= ps_src_seen; ps1 <= ps0; ps2 <= ps1;
+            md0 <= {mode, 2'd0}; md1 <= md0; md2 <= md1;
+        end
+    end
+    // bit0=eth_tb_ok bit1=eth_live bit2=owner_eth bit3=ps_src_seen bit[5:4]=模式
+    assign dbg_src = {md2[3:2], ps2[0], owner_eth, eth_live, eth_tb_ok};
 
     assign m_axi_arid = 6'd0;
 
