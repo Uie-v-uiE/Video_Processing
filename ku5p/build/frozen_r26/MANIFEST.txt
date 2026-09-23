@@ -1,0 +1,17 @@
+# KU5P R26 成套产物（ISSUES #38：收侧换成自研 gmii_rx_mac(FCS-32) + udp_rx_parser，p_good 接真值）
+# bit 是**实体拷贝**（规矩见 report/BUILD.md §7：只记校验和 = 没冻结）
+# 门禁（与 frozen_r23 对比，全部通过）：
+#   WNS +1.497（r23 +1.916；仍是很宽的余量，掉 0.42 ns 与这条 27 级 OSD 链无关——KU5P 没有 OSD，
+#              掉的是新加的那一级 FCS 判定链：crc32_d8 的 32 位下一态是几十级 XOR 树）
+#   WHS +0.014（r23 +0.010，略好）/ 0 失败端点（11770）/ BRAM 72 tile(15.00%) 不变 / URAM 0
+#   CLB LUT 3154（+133 = 收包那一对）/ 寄存器 2833（+34）/ 7319 根可布线网全布通、0 路由错误
+#   methodology 0 CRITICAL / cdc Critical 行数 1（与 r23 同，没有新增跨钟违规）
+# 判据：sim/tb_v795_rx_fcs.v（FCS 那一级，5 条含"量具自校"）
+#        sim/tb_v795_rx_chain.v（成对，C1–C5：好帧/翻位/错端口/短帧/两帧连发）
+#        L1 43/43（sim/results/regression_v79_r30.txt）
+# 与 r23 的功能差别：遥测包里的 bad 字段从此是**真值**（frame_reasm.p_good 不再硬接 1），
+#   并且收侧第一次有了目的端口过滤（UDP_PORT=5001）。
+# 上板复验（需要人看，仿真替代不了）：正常推流时 bad 应稳定为 0、frames/pkts 与改前同量级；
+#   "bad 能动"的证据只有台架 C2，现场没有可靠的注错手段 —— 所以这一条只能报"改前是死的、改后有判据"。
+# 这块是 KU5P 现在的**默认要下的 bit**（取代 frozen_r23）：
+#   node src/host/ku5p_stats.mjs 之前先确认 md5 前缀 14bd5752。

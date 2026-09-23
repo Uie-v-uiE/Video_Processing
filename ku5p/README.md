@@ -185,15 +185,19 @@ vivado -mode batch -nojournal -log ku5p/build/ku5p_impl.log \
 
 ## 9. 下一步（按价值排序）
 
+**R26 新做完的（ISSUES #38 结案）**：收侧不再是厂商 `udp_rx` —— 现在是 `gmii_rx_mac`（自己算
+FCS-32，因为 RGMII 根本没有 RX_ER 这根线）+ `udp_rx_parser`（带目的端口过滤），
+`frame_reasm.p_good` 接真值 ⇒ 遥测里的 `bad` 活了。bit 在 `build/frozen_r26/`（md5 前缀 `14bd5752`，
+实体拷贝），门禁 WNS +1.497 / WHS +0.014 / 0 失败端点 / 0 布线错误 / cdc 不新增。判据：
+`sim/tb_v795_rx_fcs.v`、`sim/tb_v795_rx_chain.v`。过程中挖出 `udp_rx_parser` 三个真缺陷（见 ISSUES #38）。
+
+
 **已经做完的（2026-09-23 R23）**：状态回包 —— `ku5p_telem` + `ku5p_tx_arb` +
 `src/host/ku5p_stats.mjs`，三个台架判据 + 一次成套构建；上板那一步排在白天（§8）。
 
-1. **让上报的每个数字都名副其实**（`report/ISSUES.md` #38）：遥测包里的 `bad`（错包数）现在是
-   **构造性为 0** —— 顶层收包用厂商 `udp_rx`，它不看 ER / 帧长，`frame_reasm.p_good` 只能硬接 1。
-   仓库里已经有自研的那一对：`gmii_rx_mac`（出 `m_good/m_bad`）+ `udp_rx_parser`
-   （出 `p_good` 与三个 drop 统计，并且**本来就带目的端口过滤**），`sim/tb_udp_parser.v` 有判据。
-   把顶层换成这一对，`bad` 就有真值、端口过滤顺带解决（那是主线 P0-C 最后一条债）。
-   注意别说过头：`m_good` 是"无 ER + 长度合理"，**不是真 CRC-32 校验**。
+1. ~~让上报的每个数字都名副其实~~ **已做（R26）**，见上面那段。剩下的口径工作：
+   `udp_rx_parser` 的 `stat_drop_filt`（被端口过滤掉的包数）目前还没接到任何可读寄存器/遥测字段上 ——
+   接不接是个独立小决定，没顺手塞进这一笔（`report/ISSUES.md` #38 末尾）。
 2. **让 PC 能对这块板下命令**（现在它只会上报）。有了可用的 TX 通道，"回一个 ack"已经通了，
    下一步是把 `udp_rx` 收到的载荷当成命令字（例如清统计、改上报周期、触发一次快照），
    这样两板才能演成"KU5P 做前端节点、Zynq 做显示与总控"的异构结构（这也是比赛谱系里

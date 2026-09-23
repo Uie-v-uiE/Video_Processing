@@ -349,7 +349,8 @@ RGMII 本身就是 4 数据 + 1 控制，**没有 GMII 的 RX_ER 通道** ——
 * 第 3 步：两个板的顶层都把厂商 `udp`（连带 `udp_rx`）换成 `udp_tx` + `gmii_rx_mac` + `udp_rx_parser`，
   `frame_reasm.p_good` 从此接真值 ⇒ **`stat_bad` 活了**，Z7 的 health 读回与 KU5P 的遥测 `bad`
   字段都不再是死数字；`udp_rx_parser` 的目的端口过滤（`UDP_PORT` 参数）同时把 P0-C 最后一条债结掉。
-  L1 43/43；构建门禁见 `report/CHANGELOG_V7.md` V7.9 的构建表（#21 / KU5P r26）。
+  L1 43/43。**构建门禁数字：尚未回填**（KU5P r26 与 Z7 #21 的实现还在跑，
+  数字出来后填进 `report/CHANGELOG_V7.md` 的构建表；在那之前这一句不算通过 —— 见 `report/BUILD.md` §7）。
 
 **板上还要看一眼的**（仿真替代不了）：正常推流时 `bad` 应稳定为 0、画面与改之前无差别；
 `bad` **能**动的证据在台架 C2（翻一位 ⇒ p_good=0 ⇒ stat_bad++），
