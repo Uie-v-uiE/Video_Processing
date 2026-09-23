@@ -2213,7 +2213,7 @@ KU5P 产物：bit `5ce3578c`（**未上板**，用户决定：这块板暂停，
    fabric 是空的 ⇒ `mrd 0x41200000` 报 `Timeout waiting for the Instruction Complete bit`；
    应用已经卡在未完成的 AXI 访问上 ⇒ `stop` 报 `Cannot halt processor core, timeout`。
 7. L1 回归：`r37` 46/46（撤 lane30 两位之后）、`r38` 46/46（含 T16 与按位下一状态）、
-   `r39` **47/47**（新增 `tb_v82_src_mode`，11 条），存档 `sim/results/regression_v79_r37..r39.txt`。
+   `r39` **47/47**（新增 `tb_v82_src_mode`，12 条 —— 冻结时误记 11，已按 `grep -c expect(` 更正），存档 `sim/results/regression_v79_r37..r39.txt`。
 8. **交接判据第一次上板就红了，而且红得有价值**（md5 `c65b547d`，00:57，
    `data/measured/arb_handover_r28_red.json`）：
    | 量 | 实测 |
