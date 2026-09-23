@@ -42,7 +42,7 @@
 > **这一节先前是 V6 时代的数字**（写着 LUT 10621 / BRAM 83 / eth_rxc +0.111），
 > 与仓库里任何一份现存报告都对不上——被评委抓到一次，整份报告的可信度就一起塌了。
 > 现在每个数都指明出处：**#23 = 当前默认 bit**（`build/frozen_r23_srcseen/`），
-> **#25 = 候选**（`build/frozen_r25_arbfix/`，仲裁修正版，两条眼睛判据未过）。
+> **#25 = 候选**（`build/frozen_r25_arbfix/`，仲裁修正版，两条眼睛判据未过）。<br>**09-24 06:4x 更新**：当前候选已是 **#32**（`build/frozen_r32_sdfix/`，bit 与 #31 同一份 `efc89779`，elf `c00b6553`）；仲裁判据在它上面连跑两遍七条全绿，欠的仍是那三条眼睛。
 > 复核命令：`bash build/gates.sh build/frozen_r23_srcseen`（或 `.../frozen_r25_arbfix`）。
 
 **结论：两版都是 `All user specified timing constraints are met`，0 违例端点。**

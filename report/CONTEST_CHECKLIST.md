@@ -38,7 +38,7 @@
 | 综合与实现报告（资源、频率、关键指标） | `build/*.rpt` 与每组成套 `build/frozen_*/`、`ku5p/build/frozen_*/` | 报告与 bit 是**同一轮**的（md5 清单钉住） |
 | 上板工程、运行脚本、实测输出与参考结果比对 | `board/README.md`、`build/tcl/program_*.tcl`、`data/measured/`、`data/golden/` | |
 | 可复现的构建脚本 | `build/tcl/build_system_axigpio.tcl`、`ku5p/build/tcl/ku5p_build.tcl` | 全部仓库相对路径 |
-| 技能包 `skill/README.md` | ✅ 15 项 + 四类归纳 + 配套脚本表 | |
+| 技能包 `skill/README.md` | ✅ 17 项 + 四类归纳 + 配套脚本表 | |
 | 设计报告：**背景与创新点要含"前人做过什么"** / 原理与框图 / 软硬件划分 / 优化过程含前后对比表 / 协作记录 / 技能包提炼过程 / 复现说明 | `report/BACKGROUND_AND_NOVELTY.md`（新增：三条确切参照 + 明确声明"未做系统文献检索" + 五条创新点逐条挂证据）、`ARCHITECTURE.md`、`PS_VS_PL.md`、`PERF_REPORT.md`、`OPTIMIZATION_LOG.md`、`AI_COLLABORATION.md`、`BUILD.md`、`ISSUES.md`、`CHANGELOG_V6/V7.md` | ⚠ 前人工作一节只敢列确切参照过的三条，正式检索待补（写在该文 §5） |
 | 推荐目录结构（非强制，但采用其他组织须在 README 给出**目录对照**） | `README.md` 的目录树 + `report/MODULES.md` 模块地图 | 我们多了 `ku5p/`（第二块板）与 `report/` 细分 |
 
@@ -51,7 +51,7 @@
    **只走 JTAG，绝不写 QSPI**）。上板窗口由用户安排，验收步骤在 `ku5p/README.md` §8。
 2. ~~SD 卡本地播放尚未收口~~ **已上屏**（build#23，用户眼睛确认；串口 30.0 fps 两条独立判据）。
    剩下的不是"能不能放"，而是**切换体验的自动化**：片源仲裁（ISSUES #49）在 #25/#26 上
-   门禁全绿，还欠两条眼睛判据（停流自动交回、交接不闪屏）；`#50` 那次并发读超时只缓解未治根因。
+   门禁全绿，还欠三条眼睛判据（停流交回后画面真的在动 / 并发不闪不抢 / 长按四态轮转且图卡会动）；`#50` 那条读超时**已结案**（09-24 06:4x 前）：根因是 PS 固件把 FAT32 目录项高簇字按大端拼，修完整卡 4398 帧播完并回绕，卡与 FAT 都是好的（凭据 `build/frozen_r32_sdfix/`）。
 3. **UltraRAM 帧缓存实验没收口**：2025.2.1 拒绝 `ultramark`/`ultraram` 两种 `ram_style` 拼法并静默退回
    `auto`，量到的 BRAM 仍是 72 tile、URAM 0 ⇒ 结论"工具不会自己为该形状选 UltraRAM"是实测的，
    但"9 块 UltraRAM"目前只是算出来的。要真量需 UG901 的属性名或直接例化 `URAM1240`。

@@ -158,7 +158,7 @@ UltraScale+ `IDDRE1+BUFIO`），不是副本也不是分叉 —— 所以它们�
 |---|---|---|
 | 主线默认 bit **仍是 build#23**（`build/frozen_r23_srcseen/`，md5 `18443ffd`） | SD 卡本地回放**已经上屏**（用户眼睛确认）⇒ P1 板级完整；这一版是"能演示"的那一版 | `report/OVERNIGHT_LOG.md` §19；`board/evidence_r29/` |
 | `build/frozen_r24_srcarb/`（`696a5271`）**留作反例**，不是候选 | 片源仲裁第一版：七项门禁全绿、L1 44/44，**板级判据红**（停流不交回画面） | 它的 `MANIFEST.txt` 里写清了哪一条红、为什么红 |
-| `build/frozen_r25_arbfix/`（`ad4aa31c`）= **候选默认** | 仲裁修正版（判据要与时基健康相与，见 `ISSUES.md` #49）；**两条眼睛判据未过之前不改默认** | `board/README.md` "需要肉眼确认的项" 第 7/8 行 |
+| `build/frozen_r25_arbfix/`（`ad4aa31c`）= 当时的候选默认（06:4x 起被 #31/#32 取代，见本表末行） | 仲裁修正版（判据要与时基健康相与，见 `ISSUES.md` #49）；**两条眼睛判据未过之前不改默认** | `board/README.md` "需要肉眼确认的项" 第 7/8 行 |
 | KU5P 子工程（R31 命令通道） | 从"只会上报"变成**双向**：`ku5p_cmd.v`(端口 5002, `CLR/SNAP/SPD<n>`) + 遥测载荷 v0x01→**v0x02**（36→42 字节）。台架级，未上板 | `ku5p/README.md` §1/§8/§9；`sim/tb_v80_ku5p_cmd.v`；`src/host/ku5p_cmd.mjs --selftest` |
 
 **版本声明里必须一起说的三件事**（避免"v7.9"被读成"全做完了"）：
