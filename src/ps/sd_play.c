@@ -144,12 +144,19 @@ static void mkkey(char *dst, const char *pre, u32 n)
 }
 
 /* 从"KEY=v1 KEY=v2 ..."里取某个 KEY 的整数值 */
-static int kv_u32(const char *s, const char *key, u32 *out)
+static int kv_u32(const char *s0, const char *key, u32 *out)
 {
+    const char *s = s0;
     int kl = (int)strlen(key);
 
     while ((s = strstr(s, key)) != 0) {
-        if (s[kl] == '=' && (s == key ? 1 : (s[-1] == ' ' || s[-1] == '\r' || s[-1] == '\n'))) {
+        /* 命中处必须在串首或空格/换行之后，否则 "XFRAMES=" 也算数。
+         * 原来这里写的是 `s == key` —— key 是被查找的**字面量**（"FRAMES" 在 .rodata 里），
+         * 和指进 s0 里的指针永远不相等，于是"关键字出现在串首"这一种恰恰不成立；
+         * 再巧的是调用方把空格换成了 '\0' 才传进来，s[-1] 读到的是那个 '\0'，
+         * 三个字符一个都不匹配 ⇒ 板上实测 "FILE0=VIDEO000.BIN FRAMES=100 BYTES=…" 一律报
+         * "META: FILE line without FRAMES"（ISSUES #43：判据要能被独立测试，见 report/ISSUES.md）。 */
+        if (s[kl] == '=' && (s == s0 || s[-1] == ' ' || s[-1] == '\r' || s[-1] == '\n')) {
             *out = (u32)strtoul(s + kl + 1, 0, 10);
             return 1;
         }
@@ -284,12 +291,70 @@ static int parse_meta(void)
     return 0;
 }
 
+/* ============================ 解析器自检（ISSUES #43） ============================
+ * 今晚的真实代价：kv_u32 的"关键字必须在词首"判据写错了（拿 .rodata 里 key 字面量的指针
+ * 和串内位置比，永远不等 ⇒ 恰恰漏掉"关键字在串首"这一种），症状却是"这张卡的 META.TXT
+ * 不合格" —— 判据错和被判的对象都只能通过同一块板子观察，所以连着三次上板才定位到。
+ * 规则「判据本身要有自己的测试」在这里的落法：三段内置样本，一段必须过、两段必须被拒，
+ * 不碰卡、微秒级；从此 "mount failed" 这句话分得清是固件坏了还是卡不对。
+ *   ok  ：FILE1 那行故意放一个 XFRAMES=7 在前 —— 防误匹配那条判据被真正执行到。
+ *   b1  ：FILE0 行没有 FRAMES= ⇒ 必须被拒（否则自检本身是摆设）。
+ *   b2  ：把 FRAMES= 写成 SFRAMES= ⇒ 必须被拒（证明 meta_line 是行首锚定，不是子串搜索）。 */
+static u32 put_dec(char *b, u32 v)
+{
+    char t[12];
+    int n = 0, k = 0;
+    do { t[n++] = (char)('0' + (v % 10u)); v /= 10u; } while (v);
+    while (n) b[k++] = t[--n];
+    b[k] = 0;
+    return (u32)k;
+}
+
+static int meta_try(const char *txt, u32 exp_frames, u32 exp_files)
+{
+    const char *saved = err;
+    u32 n = 0u;
+    int rc;
+
+    while (txt[n] && n < sizeof(Meta) - 1u) { Meta[n] = (u8)txt[n]; n++; }
+    Meta[n] = 0u;
+    rc = parse_meta();
+    err = saved;
+    return (rc == 0) && (total_frames == exp_frames) && (nfiles == exp_files);
+}
+
+static int meta_selftest(void)
+{
+    char fb[12], ok[256], b1[256], b2[256];
+    int pass;
+
+    put_dec(fb, FRAME_BYTES);
+    strcpy(ok, "# selftest\nFRAMES=900\nFILES=2\nFILE0=VIDEO000.BIN FRAMES=900 BYTES=");
+    strcat(ok, fb);
+    strcat(ok, "\nFILE1=A.BIN XFRAMES=7 FRAMES=450\n");
+    strcpy(b1, "# selftest\nFRAMES=900\nFILES=1\nFILE0=VIDEO000.BIN 900 BYTES=");
+    strcat(b1, fb);
+    strcat(b1, "\n");
+    strcpy(b2, "# selftest\nSFRAMES=900\nFILES=1\nFILE0=VIDEO000.BIN FRAMES=900\n");
+
+    pass = meta_try(ok, 900u, 2u) &&
+           (fframes[0] == 900u) && (fframes[1] == 450u) && (strcmp(fname[1], "A.BIN") == 0) &&
+           !meta_try(b1, 900u, 1u) && !meta_try(b2, 900u, 1u);
+    total_frames = 0u;              /* 别让样本留下的半截状态冒充"卡里有 900 帧" */
+    nfiles = 0u;
+    return pass;
+}
+
 int sd_mount(void)
 {
     XSdPs_Config *cfg;
     u32 clus;
 
     err = "ok";
+    if (!meta_selftest()) {
+        err = "META parser SELF-TEST failed (firmware bug, not the card)";
+        return -1;
+    }
     cfg = XSdPs_LookupConfig(SD_BASE);
     if (!cfg) { err = "XSdPs_LookupConfig NULL (SD0 not in the hardware)"; return -1; }
     if (XSdPs_CfgInitialize(&Sd, cfg, cfg->BaseAddress) != XST_SUCCESS) {

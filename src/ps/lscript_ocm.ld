@@ -24,13 +24,19 @@ MEMORY
 
 /* Specify the default entry point to the program
  *
- * 抄自 Vitis 2025.2.1 平台里 zynq_fsbl/lscript.ld（MIT），只改了这一行：
- * FSBL 版写 ENTRY(_vector_table)，但 `_vector_table` 在 standalone 库里是个**绝对调试符号**，
- * 和任何输入段都没有绑定关系 —— 配上 --gc-sections 之后链接器认为"没有东西可达"，
- * 于是把 main / XSdPs 全裁掉，产出一个 .text 只有 80 字节的**看起来成功了**的 ELF。
- * app 的入口应该是 _start（在 xil-crt0.S 里），它才会去调 main。
+ * 抄自 Vitis 2025.2.1 平台里 zynq_fsbl/lscript.ld（MIT），这一行改过两次：
+ *   ① FSBL 版写 ENTRY(_vector_table)。实测症状：配上 --gc-sections 之后 main / XSdPs 全被裁掉，
+ *      产出一个 .text 只有 80 字节、**看起来成功了**的 ELF（2026-09 记在这里，机制当时归因于
+ *      "_vector_table 是没有绑定到任何输入段的绝对符号"，今晚没有复现那条判据，先按症状保留）。
+ *      当时改成 _start，代价是把整条标准启动链（boot.S 的 VBAR/各模式栈/CPACR/MMU +
+ *      asm_vectors.S 的向量表 + translation_table.S 的 MMUTable）一起丢了：
+ *      ISSUES #42 的"JTAG 起不来"、异常落到 0x0 恰好摆着的代码上（看着像自己重启了一遍）、
+ *      以及 newlib memcpy 在 MMU 关闭时发对齐异常，三个症状都是这一个根因。
+ *   ② 现在 build/ps_app.mjs 显式把那三个 .S 编进来，入口改成 _boot：它设完 VBAR/栈/MMU
+ *      之后自己 b _start，所以 main/XSdPs 依然可达，①的问题不会回来。
+ *      （试过命令行 -Wl,-e,_boot：被脚本里的 ENTRY 顶掉了，readelf 入口变成 0x0 —— 别再用 -e。）
  */
-ENTRY(_start)
+ENTRY(_boot)
 
 
 SECTIONS
