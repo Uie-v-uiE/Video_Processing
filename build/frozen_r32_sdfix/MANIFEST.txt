@@ -9,7 +9,8 @@
 # 位流没动 ⇒ 报告不再复制一份（避免同一份报告以两个 md5 存在两处的老毛病）：
 # 门禁与 CDC 数字请看 `frozen_r31_srcmode/MANIFEST.txt`（WNS +0.764 / WHS +0.062 /
 # 0 失败端点(23840) / LUT 7577(14.24%) / Reg 6026 / BRAM 90.5(64.64%) / Dynamic 2.159 W /
-# methodology 0 CRIT / cdc Critical 3 行 = 基线配对无新增；L1 47/47）。
+# methodology 0 CRIT / cdc Critical 3 行 = 基线配对无新增）。L1 台架在 06:3x 用**当前这棵树**重跑过：
+#   47/47 全过，存档 `sim/results/regression_v79_r42.txt`（#31 那份 r39 记录也还在）。
 #
 # ---------------------------------------------------------------- 改了什么（src/ps/sd_play.c）
 # 1) 根因修复：`dir_lookup` 返回首簇时把 FAT32 目录项偏移 20 的 **16 位小端字**按大端拼
