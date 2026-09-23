@@ -412,6 +412,61 @@ RGMII 本身就是 4 数据 + 1 控制，**没有 GMII 的 RX_ER 通道** ——
 
 ---
 
+### 40. `video_sender.mjs` 一启动就 `ReferenceError`：`--drop-every` 那笔从没被执行过（R28 板前抓到，已修）
+
+**症状**：按 §9.5 推流，板子所有计数器全 0，`eth_rxc 心跳` 却正常 —— 第一反应是"收包链坏了"。
+真相在发送端：`video_sender.mjs:155` 写的是 `Number(arg('drop-every', 0))`，而这个文件的取参
+helper 叫 `get()` ⇒ **不管有没有带 `--drop-every`，模块加载阶段就抛 ReferenceError 退出**。
+`node --check` 当时也没做（它只查语法不查符号，所以真凶是"从没运行过"）。
+
+**为什么重要**：这不是一个函数坏了，是**一整条演示路径**坏了；而我今晚写的 DEMO/§9.5 里
+就挂着这条命令。⇒ **"我把命令写进文档了"和"这条命令能跑"之间的距离，只有一次真正的运行。**
+修：`arg(` → `get(`，`node --check` + 实跑推流（pkts 从 0 涨到 37570/8 s）才算收口。
+⇒ 通用做法：**主机侧脚本纳入"第一次运行"检查**，和"顶层要过综合冒烟"是同一个道理
+（没有台架例化的顶层，端口连错只有综合知道；没有跑过的脚本，符号写错谁也不知道）。
+
+---
+
+### 41. 板前才暴露的两个"文件级"缺陷：9 个 tcl 带 UTF-8 BOM、3 个下板脚本 root 少一级（已修）
+
+- **BOM**：`vivado -mode batch -source build/tcl/program_system.tcl` 在第一行报
+  `invalid command name "？#"` —— 那三个字节是 `EF BB BF`。BOM 从 `main` 就在（逐 ref 查过），
+  一直没被发现只因为常用入口（构建/回归/KU5P）恰好都不带 BOM，**只有下板这一条路全中带**。
+- **root 少一级**：`build/tcl/..` = `build/`，于是它去找 `build/build/system.bit`。
+  这跟今早修的 **#22 是同一个 bug 家族**，但我当时的扫描签名是"旧绝对路径字符串"，
+  所以这三个逃过一劫。⇒ **修 bug 要按缺陷类别扫**（这里应该是
+  `grep -n "file dirname \[info script\]\]) \.\.\]" build/tcl/*.tcl` 这种"只回退一级"的形状），
+  不能按"我今天看到的那串字符"扫。
+- 顺带：`program_and_check.tcl` 里 `vivado/zynq_video_pipeline.xpr` 这个工程路径早就不存在，
+  改成 `vivado_system/zynq_video_sys.xpr`，并把 bit 名从 `video_pipeline.bit` 跟上现在产物名。
+
+---
+
+### 42. JTAG 回退路径跑不了 PS 应用：CPACR=0 ⇒ 浮点指令陷成 Undefined Instruction（未修，有明确出路）
+
+**证据链（不是猜的）**：`dow build/ps_app.elf` + `con` 之后 4 秒，`rrd pc` = **0x00000004**，
+`cpsr = 0x200001df` ⇒ 处理器处于 **Undefined Instruction 模式**；
+`rrd cp15 1` 里 **`cpacr: 00000000`**（cp10/cp11 访问全关），`sctlr` 的 VFP 使能位（bit10）也没置。
+⇒ 任何浮点指令立刻陷；app 里算 fps/平均间隔的那段就是浮点。
+
+**为什么"以前能串口"不矛盾**：`ps_jtag_boot.tcl` 与 `board/README.md` 自己写着
+"交付态请用 Vitis 里 Run ELF（FSBL）启动 PS；本脚本只是没有 Vitis 时的回退"。
+**FSBL 会开 CPACR**，走正式流程时这个问题不存在 —— 所以这不是新引入的回归，
+而是**回退路径的能力边界被写得太乐观**（它连"跑不了带浮点的 app"这件事都没记过）。
+
+**两条出路**（都需要人做一次决定，我没顺手改）：
+1. 正式流程：Vitis `Run As → Debug`（FSBL + app）。评委复现时也应当走这条，
+   `build/gates.sh` 之类的读数不受影响（PL 侧计数器走 JTAG `mrd`，不依赖 PS 应用）。
+2. 让 app 自己在启动汇编里开：`MCR p15,0,r0,c1,c0,2` 写 0x00300000 并把 `sctlr` bit10 置上
+   ⇒ 从此**任何加载方式**（JTAG dow / FSBL / SD 起）都能跑。代价：要重建 elf（Vitis 平台工程不在本仓库里）。
+
+**我试过并放弃的**：用 xsdb 直接写 CP15（`rwr cp15 cpacr …`、`rwr cp15 1 cpacr …`、
+`putregs …` 等 5 种写法）都报 `bad level` / `no register match`；按"三次不停手就换策略"的规矩停手，
+不改主线任何东西。**受影响的验证**：SD 播放、`SRC/ZOOM/TH` 串口命令这类要 PS 应用出马的检查项
+（§9.5 第 2–6 步）今天没法由我一个人做完 —— 需要你用 Vitis 走一遍。
+
+---
+
 ## 快速对照
 
 | 症状 | 优先检查 |
