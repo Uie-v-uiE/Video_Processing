@@ -898,7 +898,7 @@ methodology 0 条 Critical Warning；`ku5p_eth.bit` 15.4 MB 已生成。
 
 | 步 | 做什么 | 判据 / 期望 |
 |----|--------|-------------|
-| 1 | 只连 Z7，重启 `hw_server`，下 `build/system.bit`（**R26/build#21，md5 前缀 `f39e2e78`** = R13 同一功能 + 三笔同步器修复（`eth_link`、`ASYNC_REG`、`copy_abort` 翻转式）+ 一笔发送仲裁修复（`eth_ctrl`，ISSUES #37）+ 收包链换成自研那一对（ISSUES #38），门禁 WNS +0.770/WHS +0.027；回退版 `build/frozen_r17_cdc/`（`11998af8`）与 `build/frozen_r13/`（`0f46ec91`）） | **先校验再下**：`md5sum build/system.bit` 必须以 `f39e2e78` 开头（回退：build#17 在 `build/frozen_r17_cdc/`=`11998af8`，build#13 在 `build/frozen_r13/`=`0f46ec91`）。对不上就是被后续构建原地覆盖过 —— 去 `build/frozen_*/` 取，别硬下。**今晚真的发生过**：02:32 我把 r13 恢复回 `build/system.bit`，02:54 build#15 跑完又把它覆盖了；文件名一样、内容不一样，只有 md5 能分辨。校验通过后再下：`program_system.tcl` 成功、LED0 心跳 |
+| 1 | 只连 Z7，重启 `hw_server`，下 `build/system.bit`（**R27/build#22，md5 前缀 `43b76e15`** = R13 同一功能 + 三笔同步器修复（`eth_link`、`ASYNC_REG`、`copy_abort` 翻转式）+ 一笔发送仲裁修复（`eth_ctrl`，ISSUES #37）+ 收包链换成自研那一对（ISSUES #38）+ 参数集中化（P0-C ③），门禁 WNS +0.566/WHS +0.044；回退版 `build/frozen_r17_cdc/`（`11998af8`）与 `build/frozen_r13/`（`0f46ec91`）） | **先校验再下**：`md5sum build/system.bit` 必须以 `43b76e15` 开头（回退：build#17 在 `build/frozen_r17_cdc/`=`11998af8`，build#13 在 `build/frozen_r13/`=`0f46ec91`）。对不上就是被后续构建原地覆盖过 —— 去 `build/frozen_*/` 取，别硬下。**今晚真的发生过**：02:32 我把 r13 恢复回 `build/system.bit`，02:54 build#15 跑完又把它覆盖了；文件名一样、内容不一样，只有 md5 能分辨。校验通过后再下：`program_system.tcl` 成功、LED0 心跳 |
 | 2 | `xsdb build/tcl/ps_jtag_boot.tcl` → 下 `build/ps_app.elf` → `con` | 串口出现 `[BOOT] ... SD PLAY STOP FRAME0 STAT` |
 | 3 | 敲 `SD` | 打印 `FAT32 part_lba=... frames=4398 fps=15.000 files=9`；若报 `card absent` 说明 SD 不在 BSP 的 SDIO0 上，先查 PS 配置 |
 | 4 | 网线**拔掉**，敲 `SRC1` 再 `PLAY` | 右半窗动、左半窗不动；每 100 帧打印 `avg x.xxx fps`；**无撕裂**（这是发布协议的目的） |
@@ -1420,7 +1420,7 @@ u_pl/u_rd/u_sched/lo_reg_0_0_i_45_n_0. Replicated 1...`）⇒ 方向对，但**�
 
 | 问题 | 答案 |
 |------|------|
-| 现在下哪块 bit？ | `build/system.bit`，**先 `md5sum` 必须是 `f39e2e78…` 开头**（= build#21：V7.7 那套功能一个不变，多了三笔同步器修复 + 发送仲裁修复 + 收包链换成自研那一对；门禁 WNS **+0.770** / WHS +0.027 / 0 失败端点(23615) / BRAM 64.64%（**没涨**）/ Dynamic 2.183 W / 12861 根全布通 0 错误 / methodology 0 Critical）。**回退链**：`build/frozen_r17_cdc/`（md5 `11998af8`，少 `copy_abort` 翻转同步与仲裁修复）→ `build/frozen_r13/`（`0f46ec91`，今晚之前最后一次上过板验证的功能集）。对不上就取冻结目录，别硬下。**build#18（`534f7760`）也在链上**：它冻结时只记校验和、bit 留在活路径上被 #19 覆盖过，07:1x 已从 `git show 7578217:build/system.bit` 复原进 `frozen_r18_abort/system.bit`（md5 与字节数都核对过）⇒ 四块 bit 现在都是实体 |
+| 现在下哪块 bit？ | `build/system.bit`，**先 `md5sum` 必须是 `43b76e15…` 开头**（= build#22 = build#21 的全部内容 + 一次**纯别名**的参数集中化重构；七项门禁全绿：WNS **+0.566** / WHS +0.044 / 0 失败端点(23612) / BRAM 64.64% / Dynamic 2.180 W / 0 布线错误 / methodology 0 Critical）。**回退链**（实体都在盘上）：#21(`f39e2e78`) → #19(`545a27a1`) → #18(`534f7760`) → #17(`11998af8`) → #13(`0f46ec91`)。⚠ 一个方法论收获：#21→#22 的逻辑**完全等价**（只改了常数写在哪），bit 哈希却不同、LUT 差 56、WNS 差 0.204 ns ⇒ **单次构建的 slack 差值不能当时序结论**，这条现在有干净的样本了（详见 `build/frozen_r22_param/MANIFEST.txt`）。对不上就取冻结目录，别硬下 |
 | 那三块红的呢？ | `build/failed_r19b/`（−1.277）与 `build/failed_r24/`（−0.327，功能上就是 V7.8 双线性）。想**亲眼看插值效果**可以临时下 `failed_r24` 那块；它时序未收口，可能偶发抖动或不显示，看完记得换回去并重新校验 md5 |
 | SD 卡回放？ | 卡已在 Z7 上。固件 `build/ps_app.elf` 已重编（含 `SD/PLAY/STOP/FRAME<n>/BILIN0/BILIN1/STAT`）。上电顺序照 §9.5 第 1–4 步 |
 | 双线性插值到底做完了没？ | **组件与集成全做完、台架全过（L1 37/37）**，只差 250 MHz 分时读口最后 0.327 ns 没收口 ⇒ 没进主线，整套在 tag **`v7.8-bilinear-wip`**。下一步最对症的一刀是 Pblock（`report/OVERNIGHT_LOG.md` R21 末有三条候选） |
