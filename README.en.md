@@ -128,7 +128,7 @@ src/rtl/          Verilog: top / eth / axi / video / process (rotate, zoom) / hd
 src/ps/          Bare-metal UART + GPIO control (control plane only)
 src/host/        Host sender, serial tooling and JTAG read-back analysis (Node.js first)
 src/constraints/ Pin and timing constraints (rk_zynq7020.xdc)
-sim/             43 testbenches, repo-relative runner (run_sim.tcl) + single-TB runner (run_one.sh),
+sim/             44 testbenches, repo-relative runner (run_sim.tcl) + single-TB runner (run_one.sh),
                  probes/ (synthesis-behaviour experiments)
 build/           tcl/ build+program+report scripts, system.bit, system.xsa, *.rpt
 board/           Bring-up notes and screen-free verification method
@@ -155,7 +155,7 @@ set XSDBAT=D:\Software\Vivado\2025.2.1\Vitis\bin\xsdb.bat
 node build\ps_app.mjs
 %XSDBAT% build\tcl\ps_app_reload.tcl   :: rst -processor + download + con; leaves bitstream and GPIO alone
 
-:: 3. simulation (43 testbenches)
+:: 3. simulation (44 testbenches)
 %VIVADO% -mode batch -nojournal -log sim\xsim.log -source sim\run_sim.tcl
 
 :: 4. stream and measure
@@ -169,8 +169,11 @@ The PS application (`src/ps/main.c`) is built by `node build/ps_app.mjs` straigh
 generated BSP - the ELF links the standard startup (`boot.S`: CPACR/FPEXC, VBAR, per-mode stacks,
 MMU), so it runs over plain JTAG with **no FSBL and no Vitis project**. Measured: SD-card frame
 library mounts and plays back at 30.0 fps on screen (`report/OVERNIGHT_LOG.md` sec. 19).
-For that act the Ethernet cable must already be unplugged *before* programming the bitstream
-(the two frame sources are arbitrated in the PL, ISSUES #47). Details in
+Since V7.9#24 the PS frame source reaches the screen **with the cable still plugged in**
+(the PL now arbitrates the two sources, ISSUES #49); the remaining hop - "stream stops,
+picture hands itself back to SD within ~0.2 s" - failed the board check on #24 and is
+re-tested on #25. Until that is confirmed by eye, the conservative order still applies:
+unplug the Ethernet *before* programming the bitstream for this act. Details in
 `src/host/HOST_GUIDE.md` and `board/README.md`.
 
 ## UART commands (115200 8N1, terminate with CR+LF)

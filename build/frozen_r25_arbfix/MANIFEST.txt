@@ -1,0 +1,38 @@
+# build#25（R30 第二版：让仲裁"先确认判据可不可信"，ISSUES #49）—— **候选默认，板级最后一跳待眼睛**
+#
+# 与 #24 的差别只有一个思路：#24 的门禁七项全绿，但板级判据红
+#   （"停流之后画面不交回 SD、STALL 钉 9999"）。根因不在仲裁的换手规则，
+#   而在喂给它的那一位"最近真有帧"是用 eth_rxc 分出来的 stall_ms 量的，
+#   而 RTL8211 断链时**不停 RXC，只是把它拉到 ≈2.5 MHz** ⇒ `stall_ms<200` 能连着十几秒为真。
+#
+# 内容（相对 #24）：
+#   1) `src_arb` 多一个输入 `eth_tb_ok`，模块内 `eth_wanted = eth_live & eth_tb_ok`；
+#   2) `system_top` 只做取数：`eth_live = 快照 lane7.bit3`、`eth_tb_ok = !(hb_slow||hb_gone)`
+#      （都用既有的 `u_lm_axi` 输出 ⇒ 顶层不新增跨域配对）；
+#   3) `pl_video_top`：删掉 `eth_live` 的 axi 域 3FF（输入本来就在 fclk0），像素域改成同步
+#      **仲裁结果** `owner_eth` 供 `pub_consume` 用 —— 判据只有一份，消费时机=搬运机归 PS；
+#   4) `link_monitor` 的 `lm_live` 输出与 `eth_udp_video_top.link_live` **整体撤销**
+#      （第一版为它加的端口和 tb_link_monitor 的第二段激励一起撤）；快照那一位没动 ⇒ PS 读回来的语义不变；
+#   5) 固件带 ISSUES #50 的两条缓解（读失败清游标 + 分块重试一次）⇒ 本目录 elf 与 #24 那份不同。
+#
+# 门禁（bash build/gates.sh build/frozen_r25_arbfix，七项全绿）：
+#   WNS +0.593 / WHS +0.047 / 0 失败 setup 端点 / 0 失败 hold 端点(23674) /
+#   Slice LUT 7475(14.05%) / Slice 寄存器 5936 / BRAM 90.5 tile(64.64%) /
+#   Dynamic 2.150 W / 0 布线错误 / methodology 0 CRITICAL / cdc Critical 行 3（同 #24，不新增）
+#   与 #24 比：端点 23682→23674（−8：撤掉两处 3FF、加了 owner 那一级）；WNS/WHS 的绝对差当噪声看。
+# L1 回归：44/44 PASS，日志 `sim/results/regression_v79_r33.txt`（构建与冻结之后重跑，源码与冻结件同一份）。
+# 台架：`sim/tb_v796_src_arb.v` 23 条，其中 E 段 7 条就是本板级错的复现与回归
+#   （eth_live 恒 1、只落 eth_tb_ok ⇒ 必须让位；恢复后立刻抢回）。
+#
+# 板级判据（**这两条还没过，早上要眼睛**，见 board/README.md 需肉眼确认 7/8 两行）：
+#   · 插着线推流 → 停流 ⇒ 画面在零点几秒内自动交回 SD 播放（#24 红在这里）；
+#   · 推流过程中 SD 同时在放 ⇒ 不出现两路抢画面 / 闪屏。
+#   已确认的部分沿用 #24：插着线、没推流时 PS 片源能上屏（FILL 色块 + SD 回放）。
+#   ⇒ 在眼睛确认之前，**当前默认仍是 #23（build/frozen_r23_srcseen，bit 18443ffd）**。
+#
+# 校验：md5sum -c MANIFEST_BODY.txt（在本目录内执行）。
+#   system.bit ad4aa31c42125a2376b9103fc1068f6e / system.xsa d1b12407… / ps_app.elf 0381f05c…
+# 刻意**没有**收 util_hier.rpt：构建脚本不产它，仓库里那份是 09-22 的旧件。
+# 回退链：#24 frozen_r24_srcarb/696a5271（板级红，留作反例）→ #23 frozen_r23_srcseen/18443ffd（当前默认）
+#         → #22 frozen_r22_param/43b76e15 → #21 frozen_r21_rx/f39e2e78 → #19 frozen_r19_arb/545a27a1
+#         → #18 frozen_r18_abort/534f7760 → #17 frozen_r17_cdc → #13 frozen_r13

@@ -1,0 +1,17 @@
+[SD] FAT32 part_lba=2048 spc=32 rootclus=2 data_lba=34816
+[SD] frames=4398 fps=30.000 files=9 frame=307200B
+[SD]   VIDEO000.BIN frames=512
+[SD]   VIDEO001.BIN frames=512
+[SD]   VIDEO002.BIN frames=512
+[SD]   VIDEO003.BIN frames=512
+[SD]   VIDEO004.BIN frames=512
+[SD]   VIDEO005.BIN frames=512
+[SD]   VIDEO006.BIN frames=512
+[SD]   VIDEO007.BIN frames=512
+[SD]   VIDEO008.BIN frames=302
+[CTRL] AXI_GPIO=0x000B5000 en=00 thr=80 src=1 zoom=1 pub=0 bilin=1
+[SD] playing (STOP to end; cable must stay out)
+[SD] frame 100: last 100 frames 29.999 fps (since play 29.803)
+[SD] frame 200: last 100 frames 29.999 fps (since play 29.886)
+[SD] frame 300: last 100 frames 29.999 fps (since play 29.915)
+

@@ -17,9 +17,11 @@
 // frame_err，或被 SETTLE 节流合并后的那一拍）整拍更新，平时纹丝不动。跨域方（像素域 OSD、PS 侧 GPIO）
 // 用 `lm_bus_tog` 的跳变沿去**捕获**它——边沿要经过 3 级同步才到达目的域，
 // 那时源总线早已稳定，所以取到的必然是一个完整的快照，不会撕烈。
-// `lm_hb` 每毫秒翻转一次，只用来回答"eth_rxc 还在不在"：拔线后 PHY 会停供
-// RXC，那时 eth 域整个冻住，若没有这个心跳，OSD 上的 stall 数字会停在最后一帧
-// 的值，看起来像"链路正常只是慢"。
+// `lm_hb` 每毫秒翻转一次，只用来回答"eth_rxc 还在不在跑、跑得多快"。
+// 板上实测（2026-09-23 的教训）：RTL8211 断链时**并不停供 RXC**，而是把它拉到
+// ≈2.5 MHz（≈1/48）。所以本模块里所有"ms"在异常时其实是**周期数**，不是秒表读数：
+// stall_ms 会以约 48 倍慢的速度往上爬，最终饱和在 0xFFFF。凡是要拿这些数字做
+// **实时**判断的下游（片源仲裁），都必须先与"源时钟健康"相与 —— 见 system_top 的 eth_live。
 module link_monitor #(
     parameter CLK_HZ  = 125_000_000,
     // 发布节流周期（源时钟计数）
@@ -47,11 +49,7 @@ module link_monitor #(
     // ---- 发布 ----
     output reg  [319:0] lm_bus,
     output reg          lm_bus_tog,
-    output reg          lm_hb,
-    // "这一路最近真的有帧"：stall_ms 还在 LIVE_MS 以内。
-    // 为什么放在这里出：判"活着"本来就是这台看门狗的活，下游（片源仲裁）只消费一个电平，
-    // 不再各自去猜 |s_pkts 非零（那是"曾经收过包"，ARP 就够触发，拔线也不回 0）。
-    output reg          lm_live
+    output reg          lm_hb
 );
     localparam integer TC = CLK_HZ / 1000;   // 每毫秒的周期数 = 125000
     localparam [7:0] SETTLE_V = SETTLE;
@@ -115,7 +113,6 @@ module link_monitor #(
             rows_miss_max<=0; stall_ms<=0;
             gap_last<=0; gap_min<=0; gap_max<=0; gap_sum<=0;
             have_base<=0; gap_valid<=0; full_d<=0; ms_last32<=0;
-            lm_live<=1'b0;      // 一帧都没收到过之前不算"活着"（否则复位后 stall_ms=0 会骗人）
         end else begin
             full_d <= cdc_full;
 
@@ -139,7 +136,6 @@ module link_monitor #(
 
             if (frame_done) begin
                 stall_ms  <= 0;
-                lm_live   <= 1'b1;      // 立刻算"活着"，不等下一个 ms_tick（否则 30 fps 下会闪断）
                 ms_last32 <= ms32;
                 // 第一个 frame_done 只建立基准（ms_last32），量不出间隔；
                 // 从第二个起才有 gap_last/min/max，否则 min 会被"上电到现在"污染。
@@ -159,10 +155,6 @@ module link_monitor #(
             end else if (ms_tick && stall_ms != 16'hFFFF) begin
                 stall_ms <= stall_ms + 1'b1;
             end
-            // lm_live 与快照里 flag5.bit3（"流还活着"）同一个判据，只多一条 have_base：
-            // 复位后 stall_ms 从 0 起算，不加上限就分不清"刚到还没收帧"和"一直在流"。
-            // 快照那一位保持原样不动 —— PS 读回来的语义不能因为仲裁需要而改。
-            if (ms_tick) lm_live <= have_base && (stall_ms < LIVE_MS);
         end
     end
 

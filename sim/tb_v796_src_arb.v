@@ -8,25 +8,31 @@
 // 另外 D 检查"硬件里真正用的那个常数"：用**默认参数**例化第三个实例，断言它在 100k 拍内
 // 还没有让位（源码里写的是 2_000_000 拍 = AXI 100 MHz 下 20 ms）—— 这样"参数被谁改小了"
 // 这种错会被这个台架抓到，而不是只在文档里被发现。
+// E 是 2026-09-23 板级撞到的那一条：**eth_live 说"活着"但量它的时钟已经不准** ⇒ 必须让位。
+//   现场是推流停下后画面钉在最后一帧、STALL=9999、SD 接不回来。根因不在 stall_ms 算错，
+//   而在 RTL8211 断链时把 RXC 拉到 ~2.5 MHz（不停），于是 stall_ms 这个"ms"慢了约 48 倍，
+//   那一位能连着十几秒一直为 1。当时把 `&& 时基健康` 写在 system_top 的裸与门里，
+//   台架碰不到 ⇒ 判据等于没验；所以现在把这条限定搬进 src_arb，由 E 段钉住。
 module tb_v796_src_arb;
     reg clk = 1'b0, rst_n = 1'b0;
     always #5 clk = ~clk;             // 10 ns ⇒ 100 MHz，与 AXI 域同名同频
 
     reg  eth_live = 1'b0;
+    reg  tb_ok    = 1'b1;             // 量 eth_live 的那个源时基是否还准
     reg  row_busy = 1'b0, fill_busy = 1'b0;
     wire owner_a, owner_b, owner_d;
 
     // 被测：机制用小常数，跑得快
     src_arb #(.T_OFF_CYC(200)) u_a (
-        .clk(clk), .rst_n(rst_n), .eth_live(eth_live),
+        .clk(clk), .rst_n(rst_n), .eth_live(eth_live), .eth_tb_ok(tb_ok),
         .row_busy(row_busy), .fill_busy(fill_busy), .owner_eth(owner_a));
     // 对照 1：滞回长度设成 0 ⇒ 除了 busy 互锁以外没有任何东西推迟让位
     src_arb #(.T_OFF_CYC(0)) u_b (
-        .clk(clk), .rst_n(rst_n), .eth_live(eth_live),
+        .clk(clk), .rst_n(rst_n), .eth_live(eth_live), .eth_tb_ok(tb_ok),
         .row_busy(row_busy), .fill_busy(fill_busy), .owner_eth(owner_b));
     // 对照 2：**默认参数**（硬件用的就是它）⇒ 用来证明 20 ms 这件事真的在 RTL 里
     src_arb u_d (
-        .clk(clk), .rst_n(rst_n), .eth_live(eth_live),
+        .clk(clk), .rst_n(rst_n), .eth_live(eth_live), .eth_tb_ok(tb_ok),
         .row_busy(row_busy), .fill_busy(fill_busy), .owner_eth(owner_d));
 
     integer errors = 0, flips = 0, i;
@@ -118,6 +124,25 @@ module tb_v796_src_arb;
         repeat (100_000) @(posedge clk);
         expect("D1 default T_OFF > 100k cycles (20 ms)", owner_d === 1'b1);
         expect("D2 small-T_OFF DUT already yielded",    owner_a === 1'b0);
+
+        // ---- E 时基不准 ⇒ "活着"那一位不许信（板级：推流停止后 SD 接不回画面）
+        eth_live = 1'b1; tb_ok = 1'b1;              // 先让三路都归 ETH
+        repeat (6) @(posedge clk);
+        expect("E0 preflight: all three owned by ETH",
+               owner_a === 1'b1 && owner_b === 1'b1 && owner_d === 1'b1);
+        tb_ok = 1'b0;                               // 位仍是 1，只是量它的时钟被拉到 ~1/48
+        repeat (3) @(posedge clk);
+        expect("E1 control (T_OFF=0) yields on a bad timebase", owner_b === 1'b0);
+        expect("E2 DUT is still inside its quiet window",       owner_a === 1'b1);
+        repeat (600) @(posedge clk);
+        expect("E3 bad timebase hands the screen back to PS",   owner_a === 1'b0);
+        // 反面对照：同一段激励里小常数实例已经放手，默认参数实例还在等它的 20 ms
+        expect("E4 default-param instance still holds at 606 cyc", owner_d === 1'b1);
+        repeat (2_100_000) @(posedge clk);           // > T_OFF(2e6) ⇒ 硬件配置也必须放手
+        expect("E5 default T_OFF: ETH releases after ~20 ms",     owner_d === 1'b0);
+        tb_ok = 1'b1;                               // 时钟恢复（重新推流/链路回来）
+        repeat (6) @(posedge clk);
+        expect("E6 recovery: ETH takes the bus back at once",     owner_a === 1'b1);
 
         if (errors == 0) $display("PASS tb_v796_src_arb");
         else             $display("FAIL tb_v796_src_arb errors=%0d", errors);

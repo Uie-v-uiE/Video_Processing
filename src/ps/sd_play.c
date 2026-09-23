@@ -88,11 +88,17 @@ static int read_secs(u32 lba, u32 cnt, u8 *dst)
 {
     while (cnt) {
         u32 n = (cnt > 64u) ? 64u : cnt;
+        int try;
         Xil_DCacheFlushRange((INTPTR)dst, (s32)(n * 512u));
-        if (XSdPs_ReadPolled(&Sd, lba, n, dst) != XST_SUCCESS) {
+        /* 一次重试的由来（板上实测，ISSUES #50）：一边 30 fps 推流（PL 每个 V-blank 用 HP0
+         * 抢一整帧 DDR）一边回放，第 3584 帧出现一次 `XSdPs_ReadPolled` 超时 —— 之后重放
+         * 同一个位置又是好的。所以这是"被挤到超时"而不是卡坏了；重试一次能把这种单点抖动
+         * 挡在演示之外，但**不改变**"并发工况下回放会偶发超时"这个事实，别拿它当已治好。 */
+        for (try = 0; try < 2; try++) {
+            if (XSdPs_ReadPolled(&Sd, lba, n, dst) == XST_SUCCESS) break;
             err = "SD read failed";
-            return -1;
         }
+        if (try >= 2) return -1;
         lba += n;
         dst += n * 512u;
         cnt -= n;
@@ -595,7 +601,14 @@ void sd_tick(void)
     if (nxt >= total_frames) nxt = 0;                   /* 循环播放 */
     if (show_frame(nxt) != 0) {
         playing = 0;
-        xil_printf("[SD] playback stopped at frame %d: %s\r\n", (int)nxt, err);
+        /* 一次读失败之后卡/控制器多半还停在半途传输里（今晚实测：第 3584 帧超时，紧接着
+         * 重放时 `dir_lookup` 找不到文件 —— 因为后续每一个读都会失败）。所以这里把游标
+         * 清干净再报，操作者按一次 PLAY 就会从簇链头重新走；仍不行就是控制器要重初始化，
+         * 见 ISSUES #45/#50（重下 elf 约 20 秒）。 */
+        open_idx = 0xFFFFFFFFu;
+        FatLba   = 0xFFFFFFFFu;
+        xil_printf("[SD] playback stopped at frame %d: %s (PLAY retries; if it keeps failing, re-download the elf)\r\n",
+                   (int)nxt, err);
         return;
     }
     nxt++;

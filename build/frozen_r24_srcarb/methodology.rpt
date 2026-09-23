@@ -1,7 +1,7 @@
 Copyright 1986-2022 Xilinx, Inc. All Rights Reserved. Copyright 2022-2026 Advanced Micro Devices, Inc. All Rights Reserved.
 ---------------------------------------------------------------------------------------------------------------------------------------------
 | Tool Version : Vivado v.2025.2.1 (win64) Build 6403652 Thu Mar 19 19:48:24 GMT 2026
-| Date         : Wed Sep 23 21:06:21 2026
+| Date         : Wed Sep 23 19:50:46 2026
 | Host         : Uie-laptop running 64-bit major release  (build 9200)
 | Command      : report_methodology -file D:/Xilinx/Prj/pro/Video_Processing/build/methodology.rpt
 | Design       : system_top
@@ -227,7 +227,7 @@ u_eth/icmp_tx_byte_num_reg[2]/CLR, u_eth/icmp_tx_byte_num_reg[3]/CLR,
 u_eth/icmp_tx_byte_num_reg[4]/CLR, u_eth/icmp_tx_byte_num_reg[5]/CLR,
 u_eth/icmp_tx_byte_num_reg[6]/CLR, u_eth/icmp_tx_byte_num_reg[7]/CLR,
 u_eth/icmp_tx_byte_num_reg[8]/CLR, u_eth/icmp_tx_byte_num_reg[9]/CLR,
-u_eth/icmp_tx_start_en_reg/CLR (the first 15 of 2392 listed). The LUT may glitch and trigger an unexpected reset, even if it is a properly timed path.
+u_eth/icmp_tx_start_en_reg/CLR (the first 15 of 2393 listed). The LUT may glitch and trigger an unexpected reset, even if it is a properly timed path.
 Related violations: <none>
 
 SYNTH-5#1 Warning

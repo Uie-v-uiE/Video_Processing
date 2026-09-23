@@ -131,7 +131,7 @@ Slice 99.92%、BRAM 98.93%——三处都贴着上限，任何新功能都塞不
 │   ├── host/          上位机推流、串口工具与 JTAG 回读判据脚本（Node 为主）
 │   └── constraints/   管脚与时序约束（rk_zynq7020.xdc）
 ├── sim/
-│   ├── tb_*.v         41 个 testbench
+│   ├── tb_*.v         44 个 testbench
 │   ├── run_sim.tcl    仓库相对的 xsim 一键回归
 │   ├── run_one.sh     只跑一个台架（改完 RTL 的第一道关，几十秒）
 │   ├── probes/        综合行为对照实验（不是 TB：回答"这段写法会被综合成什么"）
@@ -199,9 +199,11 @@ node build\ps_app.mjs                       :: 直接用 arm-none-eabi-gcc + 已
 
 > 下载 bit 后 PS 会复位，需再次下 ELF 串口才有效。仅看右屏缩放时，只下 bit 即可；
 > 反过来，只换/重下 PS 应用不会动位流与 GPIO 控制字（`ps_app_reload.tcl` 只做 `rst -processor`）。
-> 演 SD 回放这一幕要在**配 bit 之前**就拔掉网线（PL 里两片源的仲裁，ISSUES #47 / U11）。
+> 演 SD 回放这一幕：V7.9#24 起**插着网线也能看到 PS 片源**（PL 里有片源仲裁，ISSUES #49），
+> 但"停流后画面自动交回 SD"这一跳的板级判据还要眼睛确认（#25）—— 在确认之前，
+> 保守顺序仍是"配 bit 之前就把网线拔掉"（旧的仲裁判据是粘性命，重配才清）。
 
-### 4. 仿真（43 个 testbench）
+### 4. 仿真（44 个 testbench）
 
 ```bat
 %VIVADO% -mode batch -nojournal -log sim\xsim.log -source sim\run_sim.tcl

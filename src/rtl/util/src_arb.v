@@ -9,6 +9,10 @@
 //      一次拷贝**中途**翻转会留下半开的读突发：老代码里唯一的"互锁"就是那一个选择位本身。
 // 所以这里把两件事分开：
 //   · "活着"由 link_monitor 用 stall_ms 判（eth_rxc 域，本来就是它的活）；
+//   · 但这个"活着"必须**先确认量它的时钟还算准**才可以用：板级实测（2026-09-23）断链时
+//     RTL8211 不停 RXC 而是把它拉到 ≈2.5 MHz，stall_ms 于是以约 1/48 的速度爬，
+//     `stall_ms < 200` 会连着骗人十几秒 ⇒ 仲裁死占 ETH、SD 接不回画面。
+//     这一条判据就落在本模块（原来在 system_top 里是一个裸与门，没有任何台架能验到它）。
 //   · "换手"只在两个引擎都空闲时发生，且往 PS 方向带一段静默等待（滞回），
 //     免得帧间隔刚好卡在阈值上时来回抢总线。
 module src_arb #(
@@ -19,12 +23,16 @@ module src_arb #(
     input  wire clk,          // axi_clk：两个引擎都在这个域
     input  wire rst_n,
     input  wire eth_live,     // 已在本域同步好的电平（慢变量，ms 级）
+    input  wire eth_tb_ok,    // 量 eth_live 的那个源时基仍然准（0=被拉慢或停掉 ⇒ 不信 eth_live）
     input  wire row_busy,     // ETH 引擎（axi_frame_writer_gated）正在拷贝
     input  wire fill_busy,    // PS 引擎（axi_frame_writer64）正在拷贝
     output reg  owner_eth     // 1 = AXI 读口与帧缓存写口归 ETH 引擎
 );
     reg [31:0] quiet;
     wire       both_idle = ~row_busy & ~fill_busy;
+    // 时基不准时一律当作"没有流"：宁可让 PS 接管（它至少能立刻出画面），
+    // 也不要在一个无法证实的电平上锁死显示端。
+    wire       eth_wanted = eth_live & eth_tb_ok;
 
     always @(posedge clk or negedge rst_n) begin
         if (!rst_n) begin
@@ -32,13 +40,13 @@ module src_arb #(
             quiet     <= 32'd0;
         end else begin
             // 计数器只服务"往 PS 让位"这一个方向；ETH 一活就清零（回抢不等）
-            if (!eth_live) begin
+            if (!eth_wanted) begin
                 if (quiet != 32'hFFFF_FFFF) quiet <= quiet + 32'd1;
             end else quiet <= 32'd0;
 
             // 唯一的赋值点：只有两边都空闲才换主人 ⇒ 不会切断任何一次拷贝
             if (both_idle) begin
-                if (eth_live)               owner_eth <= 1'b1;
+                if (eth_wanted)             owner_eth <= 1'b1;
                 else if (quiet >= T_OFF_CYC) owner_eth <= 1'b0;
             end
         end

@@ -50,12 +50,16 @@ module pl_video_top #(
     input  wire [18:0] eth_wr_addr,
     input  wire [15:0] eth_wr_data,
     input  wire        eth_link,
-    // "最近真的有帧"（eth_rxc 域电平，来自 link_monitor 的 stall_ms 判据）。
+    // "最近真的有帧"（axi_clk(fclk0) 域电平，取自健康快照 lane7.bit3 = stall_ms < 200）。
+    // eth_tb_ok：量这位的**源时基**（eth_rxc）还准不准 —— 板级实测断链时 RTL8211 不停 RXC
+    // 而是把它拉到 ≈2.5 MHz，于是 stall_ms 慢约 48 倍地爬，"活着"这一位会连着十几秒说谎。
+    // 两位的相与放在 src_arb 里（那里才是判据的主人，也才台架验得到），不在本文件外面做。
     // 与 eth_link 的分工：eth_link 继续只喂 OSD/状态与"有没有见过片源"（R08~R10 三条板级结论
-    // 依赖它的语义，不动）；而**谁拥有 AXI 读口 + 帧缓存写口**改由它经过 src_arb 决定 ——
+    // 依赖它的语义，不动）；而**谁拥有 AXI 读口 + 帧缓存写口**改由 src_arb 决定 ——
     // 老的 `eth_mode = 3FF(eth_link)` 里 eth_link 是"自配置以来收过任何一个包"（ARP 就触发、
     // 拔线不回 0），那是 PS 片源被永久锁死的根（ISSUES #47 修的是它在显示端的表现）。
     input  wire        eth_live,
+    input  wire        eth_tb_ok,
     input  wire        eth_frame,
     input  wire [31:0] eth_ddr_base,
     input  wire        eth_commit,
@@ -232,19 +236,14 @@ module pl_video_top #(
 
     reg  eth_has_frame;
 
-    // 仲裁见 src/rtl/util/src_arb.v：eth_live 同步进 AXI 域后，只在"两个引擎都空闲"时换手，
-    // 往 PS 方向再多等 T_OFF（帧间隔卡在阈值上时不会来回抢总线）。
-    (* ASYNC_REG = "TRUE" *) reg lv0, lv1, lv2;
-    always @(posedge axi_clk or negedge axi_rst_n) begin
-        if (!axi_rst_n) {lv2,lv1,lv0} <= 0;
-        else {lv2,lv1,lv0} <= {lv1,lv0,eth_live};
-    end
-    wire eth_live_mode = lv2;
-
+    // 仲裁见 src/rtl/util/src_arb.v。两个输入都是 system_top 在 **axi_clk(fclk0) 域**里
+    // 取好的（健康快照的一位 + snap_cross 的两个时基标志），所以这里直接采样，不再跨域；
+    // 需要跨到像素域的是**仲裁结果** owner_eth（下面的 op0/1/2），不再复制一份判据。
+    // 换手只在"两个引擎都空闲"时发生，往 PS 方向再多等 T_OFF（帧间隔卡在阈值上时不会来回抢总线）。
     wire fill_busy;                       // u_aw 的 frame_busy 以前是悬空的，现在是互锁输入
     wire owner_eth;
     src_arb #(.T_OFF_CYC(2_000_000)) u_arb (   // AXI 域 100 MHz ⇒ 20 ms 静默才让给 PS
-        .clk(axi_clk), .rst_n(axi_rst_n), .eth_live(eth_live_mode),
+        .clk(axi_clk), .rst_n(axi_rst_n), .eth_live(eth_live), .eth_tb_ok(eth_tb_ok),
         .row_busy(row_busy), .fill_busy(fill_busy), .owner_eth(owner_eth));
     // 名字留着：下面每一处 `eth_mode ? row_* : fill_*` 都是"这一拍搬运机归谁"的意思，
     // 只是判据从"收过包"换成了"仲裁过的 owner"。保持同一个名字 ⇒ 这次改动不需要动那 14 处 mux。
@@ -322,14 +321,19 @@ module pl_video_top #(
     end
     wire eth_link_pix = el2;
 
-    // 像素域也要一份 eth_live：`pub_consume` 用它决定"这一拍 PS 的发布要不要消费"。
-    // 慢变量（ms 级）+ 同样的 3 级，跨域写法与上面 eth_link_pix 那一条同构。
-    (* ASYNC_REG = "TRUE" *) reg vl0, vl1, vl2;
+    // 像素域要的是**仲裁结果**而不是第二份判据。判据（eth_live AND 时基健康）留在 src_arb 里，
+    // 这里只把它问一遍再拿答案用：
+    //   · ETH 拥有搬运机时，PS 的发布不被消费（pend 留着，等轮到 PS 那一帧再消费），
+    //     否则 pend 会在没人搬运的时候被清掉；
+    //   · 反过来若这里再复制一份"活着"的判据，就会出现"ETH 那一位还在说谎、
+    //     SD 帧却永远不被消费"的死锁 —— 今晚的板上现象正是它（STALL 钉在 9999）。
+    // owner_eth 是 ms 级的慢变量，3 级同步的写法与上面 eth_link_pix 同构。
+    (* ASYNC_REG = "TRUE" *) reg op0, op1, op2;
     always @(posedge clk_pix or negedge rst_pix_n) begin
-        if (!rst_pix_n) {vl2,vl1,vl0} <= 3'b0;
-        else {vl2,vl1,vl0} <= {vl1,vl0,eth_live};
+        if (!rst_pix_n) {op2,op1,op0} <= 3'b0;
+        else {op2,op1,op0} <= {op1,op0,owner_eth};
     end
-    wire eth_live_pix = vl2;
+    wire owner_eth_pix = op2;
 
     always @(posedge clk_pix or negedge rst_pix_n) begin
         if (!rst_pix_n) eth_has_frame <= 1'b0;
@@ -362,7 +366,7 @@ module pl_video_top #(
     // 发布握手单独成模块（内含 3 级同步），这样它能被 sim/tb_ps_publish.v 逐相位验。
     // 顺带修掉一处真错：这里原来用 `src_sel`（axi_clk 域的**未同步**电平），
     // 而同文件里 src_sel_pix/src_use 早就存在 —— 帧起始那拍采它会采到亚稳态。
-    wire pub_consume = frame_start && src_use && !eth_live_pix;
+    wire pub_consume = frame_start && src_use && !owner_eth_pix;
     wire pub_pend;
     ps_publish u_pub (
         .clk(clk_pix), .rst_n(rst_pix_n),

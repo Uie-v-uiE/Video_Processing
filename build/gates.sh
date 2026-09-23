@@ -17,6 +17,15 @@ for f in "$T" "$U" "$P" "$R"; do
     [ -f "$f" ] || { echo "FATAL 缺报告：$f"; exit 2; }
 done
 echo "报告目录：$D"
+# 新鲜度提醒（2026-09-23 差点踩的坑：构建还在跑就念门禁，念到的是**上一版**的数字，七项照样全绿）。
+# 一次构建里 bit 与报告只差几十秒（bit 先写），所以判据是"相差超过 10 分钟就当它不是一套"。
+bit="$D/system.bit"; [ -f "$bit" ] || bit=build/system.bit
+if [ -f "$bit" ]; then
+    age=$(( $(stat -c %Y "$T") - $(stat -c %Y "$bit") ))
+    [ "$age" -lt 0 ] && age=$(( -age ))
+    echo "新鲜度：system.bit $(stat -c %y "$bit" | cut -c1-19) / timing $(stat -c %y "$T" | cut -c1-19)"
+    [ "$age" -le 600 ] || echo "        WARN 两者相差 $((age/60)) 分钟 ⇒ 可能不是同一套产物（等构建结束，或按 md5 核对冻结目录）"
+fi
 
 # 1) WNS / WHS / 失败端点：Design Timing Summary 的第一行数据
 #    （直接认那一行的形状：0.598 0.000 0 23424 0.043 0.000 0 23424 …，比按标题数段落稳）

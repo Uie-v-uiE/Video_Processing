@@ -1,0 +1,4 @@
+[CTRL] AXI_GPIO=0x000F5000 en=00 thr=80 src=1 zoom=1 pub=1 bilin=1
+[SD] playing (STOP to end; cable must stay out)
+[SD] playback stopped at frame 0: frame file not found on card
+

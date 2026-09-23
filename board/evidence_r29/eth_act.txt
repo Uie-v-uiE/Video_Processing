@@ -1,0 +1,3 @@
+[CTRL] AXI_GPIO=0x000B5000 en=00 thr=80 src=1 zoom=1 pub=0 bilin=1
+[STAT] ctrl en=00 thr=80 src=1 zoom=1 bilin=1 pub=0 sd=0 frames=0 playing=0 (PL owns UDP datapath)
+

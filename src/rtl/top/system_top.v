@@ -113,7 +113,7 @@ module system_top (
         .clk_200m(clk_200m), .locked(mmcm_locked)
     );
 
-    wire        eth_wr_en, eth_frame_done, eth_link, eth_live;
+    wire        eth_wr_en, eth_frame_done, eth_link;
     wire [18:0] eth_wr_addr;
     wire [15:0] eth_wr_data;
     wire [31:0] eth_frames, eth_pkts, eth_bytes, eth_bad;
@@ -159,7 +159,6 @@ module system_top (
         .fb_wr_data(eth_wr_data),
         .frame_done(eth_frame_done),
         .link_active(eth_link),
-        .link_live(eth_live),
         .eth_gmii_clk(eth_gmii_clk),
         .ddr_commit_base(eth_ddr_base),
         .ddr_commit_pulse(eth_commit),
@@ -198,7 +197,18 @@ module system_top (
     end
     assign gpio1_i = lm_rd;
 
-    pl_video_top #(.IMG_W(VIDEO_W), .IMG_H(VIDEO_H), .PANE_W(PANE_W), .BASE_ADDR(DDR_BASE)) u_pl (        .sys_clk(sys_clk), .sys_rst_n(1'b1),
+    // 片源仲裁的两个输入，都取自已经 u_lm_axi 同步进 fclk0 的现成信号 ⇒ 顶层不新增跨域，
+    // 也**不在这里做相与**：判据的组合归 src_arb 管（那里才台架验得到，见 tb_v796_src_arb 的 E 段）。
+    //   · eth_live = 快照 lane7.bit3 = (stall_ms < 200)，"最近真的收到过完整帧"；
+    //   · eth_tb_ok  = 量它的源时基仍准。板级实测（今晚就撞了）：断链时 RTL8211 不停 RXC
+    //     而是拉到 ~2.5 MHz ⇒ stall_ms 慢约 48 倍地爬，单看那一位会永远判"活着"，
+    //     于是仲裁死死占住 ETH、SD 再也接不回画面（屏幕上同时表现为 STALL=9999 ——
+    //     那是 OSD 钉住的显示值，不是 9999 ms）。hb_slow 专门看的就是这种"心跳还在但变慢"。
+    wire eth_live   = lm_axi[7*32 + 3];
+    wire eth_tb_ok  = !(lm_clk_slow || lm_clk_gone);
+
+    pl_video_top #(.IMG_W(VIDEO_W), .IMG_H(VIDEO_H), .PANE_W(PANE_W), .BASE_ADDR(DDR_BASE)) u_pl (
+        .sys_clk(sys_clk), .sys_rst_n(1'b1),
         .axi_clk(fclk0), .axi_rst_n(fclk0_rst_n),
         .effect_en(gpio_o[4:0]), .threshold(gpio_o[15:8]), .src_sel(gpio_o[16]),
         // V7.7：ZOOM0/ZOOM1 不再是死命令。之前这里硬绑 1'b1，串口命令与 GPIO bit17 全无效
@@ -220,6 +230,7 @@ module system_top (
         .eth_wr_data(eth_wr_data),
         .eth_link(eth_link),
         .eth_live(eth_live),
+        .eth_tb_ok(eth_tb_ok),
         .eth_frame(eth_frame_done),
         .eth_ddr_base(eth_ddr_base),
         .eth_commit(eth_commit),

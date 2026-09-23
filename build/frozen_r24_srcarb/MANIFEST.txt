@@ -1,0 +1,35 @@
+# build#24（R30 第一版：ETH 与 PS 的片源仲裁，ISSUES #49）—— **已被 #25 取代，不要拿去演示**
+# 门禁（bash build/gates.sh build/frozen_r24_srcarb，七项全绿）：
+#   WNS +0.572 / WHS +0.033 / 0 失败端点(23682) / BRAM 90.5 tile(64.64%) /
+#   Slice LUT 7454(14.01%) / Reg 5942 / Dynamic 2.164 W / 0 布线错误 /
+#   methodology 0 CRITICAL / cdc Critical 行 3（比 #17~#23 的 4 少一条，**原因未查证**，
+#   门禁口径是"不新增"，所以这里只记账不当收益）
+# L1 回归：44/44 PASS（新台架 tb_v796_src_arb 是第 44 个）
+#
+# 内容（相对 #23）：新增 src/rtl/util/src_arb.v，pl_video_top 里
+#   eth_mode = 3FF(eth_link)      （原：粘性命，ARP 就触发、拔线不回 0）
+#   eth_mode = owner_eth          （今：只在两个搬运机都空闲时换手 + 20 ms 滞回）
+#   u_aw.frame_busy 从悬空改成仲裁互锁输入；红色占位那一路（#47）保持不动。
+#
+# 板级（2026-09-23 R30，网线**插着** + 这份 bit + 同目录 elf）：
+#   · 达成：插着线、没有推流时 PS 片源上屏了（FILL 色块 + SD 回放，原始件 ../board/evidence_r29/
+#     arb_sd_with_cable_in.txt；挂载打印 files=9 / frames=4398 / 无 WARN，即 #48 已修）；
+#   · **判据红**：用户眼睛确认"推流停止之后就停在那一帧画面了，不会自动切到 SD，stall 也是 9999"，
+#     并且推流过程中出现过一次 SD 与推流抢画面 + 闪屏。
+#     根因不在仲裁的换手规则，而在喂它的那个"活着"位**在说谎**：RTL8211 断链时不停 RXC
+#     而是拉到 ≈2.5 MHz ⇒ stall_ms 慢约 48 倍地爬 ⇒ bit3 一直为 1 ⇒ owner_eth 永不交回。
+#     （这条板级事实 09-22 就写进了 snap_cross 的文件头，我当晚写仲裁时没先去读它。）
+#   · 同一轮还抓到 #50（并发下 SD 读超时一次 + 固件失败路径没清游标 ⇒ 误导人去怀疑卡）。
+#   ⇒ 本目录**不作为默认**：当前默认仍是 #23（build/frozen_r23_srcseen，bit 18443ffd）。
+#     修法与验证见 ../frozen_r25_arbfix/MANIFEST.txt 与 report/ISSUES.md #49。
+#
+# 校验：md5sum -c MANIFEST_BODY.txt（先在本目录内执行）。
+#   system.bit 696a5271ae5787bd064cbe656b9a40b2 / system.xsa f6239b64… / ps_app.elf adf38c67…
+# 刻意**没有**收 util_hier.rpt：构建脚本不产它，仓库里那份是 09-22 的旧件。
+# 回退链：#23 frozen_r23_srcseen/18443ffd → #22 frozen_r22_param/43b76e15 → #21 frozen_r21_rx/f39e2e78
+#         → #19 frozen_r19_arb/545a27a1 → #18 frozen_r18_abort/534f7760 → #17 frozen_r17_cdc → #13 frozen_r13
+#
+# 后续更正（同日 R30 晚）：本目录里的 ps_app.elf (adf38c67) 是**冻结那一刻**的构建产物，
+#   而板上最后那次交接测试跑的是 20:18 重建的 elf —— 中间那笔改动就是 ISSUES #50 的缓解
+#   （读失败清游标 + 分块重试一次）。位流本身不受影响，md5 仍是 696a5271。
+#   当前 elf 见 build/ps_app.elf，随 #25 成套冻结。
