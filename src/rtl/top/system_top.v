@@ -117,6 +117,17 @@ module system_top (
     wire [18:0] eth_wr_addr;
     wire [15:0] eth_wr_data;
     wire [31:0] eth_frames, eth_pkts, eth_bytes, eth_bad;
+    // ---- V7.9.6（P0-C ③）：几何与 DDR 基址只在这里出现一次 ----
+    // 原来 512/300/0x1000_0000 在下面两个例化上各写一遍字面量。两个模块自己都有 parameter，
+    // 但**没有任何东西阻止两边不一致** —— 而一旦不一致，现象是"写进去的帧几何与读出来的
+    // 显示几何对不上"（整幅画面错位/撕裂），既不是综合错误也不是仿真必红。
+    // 换分辨率因此从"全文搜字面量"变成"改这四行"。
+    localparam [15:0] VIDEO_W    = 16'd512;      // 帧缓冲宽（像素）
+    localparam [15:0] VIDEO_H    = 16'd300;      // 帧缓冲高（行）
+    localparam [15:0] PANE_W     = 16'd512;      // 右半窗宽（当前与 VIDEO_W 同值，语义不同）
+    localparam [31:0] DDR_BASE   = 32'h1000_0000;
+    localparam [15:0] UDP_VIDEO_PORT = 16'd5001; // PC 推流的目的端口（收侧过滤用同一个常数）
+
     wire        eth_gmii_clk;
     wire [31:0] eth_ddr_base;
     wire        eth_commit;
@@ -125,9 +136,9 @@ module system_top (
     wire        eth_lm_tog, eth_lm_hb;
 
     eth_udp_video_top #(
-        .IMG_W(512), .IMG_H(300),
-        .BASE_ADDR(32'h1000_0000),
-        .UDP_PORT(16'd5001),
+        .IMG_W(VIDEO_W), .IMG_H(VIDEO_H),
+        .BASE_ADDR(DDR_BASE),
+        .UDP_PORT(UDP_VIDEO_PORT),
         .BOARD_MAC(48'h00_11_22_33_44_55),
         .BOARD_IP({8'd192,8'd168,8'd1,8'd10}),
         .IDELAY_VALUE(15)
@@ -186,7 +197,7 @@ module system_top (
     end
     assign gpio1_i = lm_rd;
 
-    pl_video_top #(.IMG_W(512), .IMG_H(300), .PANE_W(512), .BASE_ADDR(32'h1000_0000)) u_pl (        .sys_clk(sys_clk), .sys_rst_n(1'b1),
+    pl_video_top #(.IMG_W(VIDEO_W), .IMG_H(VIDEO_H), .PANE_W(PANE_W), .BASE_ADDR(DDR_BASE)) u_pl (        .sys_clk(sys_clk), .sys_rst_n(1'b1),
         .axi_clk(fclk0), .axi_rst_n(fclk0_rst_n),
         .effect_en(gpio_o[4:0]), .threshold(gpio_o[15:8]), .src_sel(gpio_o[16]),
         // V7.7：ZOOM0/ZOOM1 不再是死命令。之前这里硬绑 1'b1，串口命令与 GPIO bit17 全无效
