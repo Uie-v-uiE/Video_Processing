@@ -159,14 +159,18 @@ if (get('json', false) === true) {
   const l = {}; for (let n = 0; n < 10; n++) l['lane' + n] = g(n);
   const clk = g(31), src = g(30);
   const flags = l.lane7;
-  const MODE = { 0: 'AUTO', 1: 'LOCK_ETH', 3: 'LOCK_PS', 2: 'LOCK_CARD' };
   console.log(JSON.stringify({
     gpio0: cur, clk, dbg_src: src,
-    // lane30：仲裁的可观测状态（bit0 时基可信 / bit1 eth 活着 / bit2 屏幕归 ETH /
-    //          bit3 见过 PS 片源 / bit[5:4] 模式，格雷码）
+    // lane30：仲裁**看得见的全部输入**（八位都在 axi 域 ⇒ 读回不交跨域的税）：
+    //   bit0 时基可信 / bit1 eth 活着 / bit2 屏幕归 ETH / bit3 PS 引擎搬运中
+    //   bit4 ETH 引擎搬运中 / bit[6:5] 仲裁看到的模式（格雷码）
+    // 为什么要给到七位：#28 第一次板级跑交接判据就红，而三位版本分不开
+    // "模式被钉住 / 时基不可信 / both_idle 从不成立 / 判据说谎"四种解释（见 ISSUES #49）。
     src_state: src === undefined ? null : {
       eth_tb_ok: src & 1, eth_live: (src >> 1) & 1, owner_eth: (src >> 2) & 1,
-      ps_src_seen: (src >> 3) & 1, mode: MODE[((src >> 4) & 3)] ?? String((src >> 4) & 3),
+      fill_busy: (src >> 3) & 1, row_busy: (src >> 4) & 1,
+      mode_gray: (src >> 5) & 3,
+      mode: ({ 0: 'AUTO', 1: 'LOCK_ETH', 3: 'LOCK_PS', 2: 'LOCK_CARD' })[((src >> 5) & 3)] ?? 'BAD',
     },
     drop_words: l.lane0,
     frames_bad: l.lane1 === undefined ? NaN : f16(l.lane1, false),
@@ -217,11 +221,11 @@ const src = g(30);
 const stall = g(2), drop = g(0), flags = g(7);
 const gone = (clk === undefined) ? -1 : (clk & 1);
 const slow = (clk === undefined) ? -1 : ((clk >>> 1) & 1);
-const MODE = { 0: '自动仲裁', 1: '锁 ETH', 3: '锁 PS', 2: '锁图卡' };
 if (src !== undefined)
   console.log(`  30  0x${src.toString(16).padStart(8, '0')}  片源仲裁：屏幕归` +
     ` ${(src >>> 2) & 1 ? 'ETH' : 'PS'}，eth_live=${(src >>> 1) & 1} 时基可信=${src & 1}` +
-    ` 见过PS片源=${(src >>> 3) & 1} 模式=${MODE[(src >>> 4) & 3] ?? ((src >>> 4) & 3)}`);
+    ` 模式=${({ 0: '自动', 1: '锁ETH', 3: '锁PS', 2: '锁图卡' })[((src >>> 5) & 3)]}` +
+    ` 搬运中: PS=${(src >>> 3) & 1} ETH=${(src >>> 4) & 1}`);
 console.log(`  31  ${clk === undefined ? '(读不到)' : '0x' + clk.toString(16).padStart(8, '0')}  ` +
             `eth_rxc 心跳：${gone === -1 ? '(读不到)' : gone ? '已停 —— 源时钟没有' : slow ? '被拉慢 ~50× ⇒ 网线已拔/PHY 断链' : '正常'}`);
 console.log('');

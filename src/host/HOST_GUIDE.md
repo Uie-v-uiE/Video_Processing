@@ -139,14 +139,23 @@ python video_sender.py --video test.mjpeg
 | `10000` | 灰度 |
 | `01000` | 二值化 |
 | `00111` | 模糊 + Sobel + 反色 |
-| `SRC0` / `SRC1` | 彩条 / 视频源 |
+| `SRC0` / `SRC1` | **PS 这一路片源**开/关（只在仲裁处于 AUTO 时生效；网线有流时仍会自动让位给 ETH） |
 | `TH80` | 二值化阈值（0–255） |
 | `ZOOM0` / `ZOOM1` | 右屏无极缩放 关/开（PL 侧默认常开） |
-| `FILL` | PS 写 DDR 诊断色块 |
-| `STAT` | 查询当前控制字 |
+| `BILIN0` / `BILIN1` | 右屏双线性插值 关/开 |
+| `FILL` | PS 写 DDR 诊断色块（并自动 `SRC1` + 发布一次搬运） |
+| `SD` | 挂载 SD 卡（`XSdPs_CfgInitialize` 每个上电周期只成功一次，见 ISSUES #45） |
+| `PLAY` / `STOP` | SD 回放 开始/停止（`PLAY` 会顺带 `SRC1`） |
+| `FRAME<n>` | 只显示第 n 帧（成功后自动 `SRC1`） |
+| `AUTOPLAY0` / `AUTOPLAY1` | 关/开**上电自动挂载+播放**（只影响下一次上电，默认开） |
+| `STAT` | 查询当前控制字与 SD 状态 |
 | `help` / `quit` | 帮助 / 退出 |
 
 **效果位顺序（左起 bit0）：** `gray / binary / blur / sobel / invert`
+
+**三个片源与"谁在屏幕上"**（#25 起的仲裁口径，别再用"拔网线"的老规矩）：
+ETH 推流 > PS（SD 回放 / FILL）> 会动的测试图卡。停流后 PL 会在几百毫秒内自动把屏幕交回 PS，
+不必拔网线、不必重配 FPGA；`KEY1` **长按 1.2 s** 在 自动 → 锁 ETH → 锁 PS → 锁图卡 之间轮转。
 
 ### 4.2 示例
 
@@ -222,6 +231,9 @@ src/host/
 | `ddr_holemap.mjs` | 把回读结果按行段画空洞分布（早期定位用） |
 | `ingress_probe.mjs` | 只灌 K 个包 + 回读，做定点注入实验 |
 | `udp_sink_check.mjs` | 本机环回自检（确认协议/限速实现，不依赖板子） |
+| `health_read.mjs` | JTAG 读健康快照 12 条 lane；`--json` 出机器可读对象；`--gapclr` 归零帧间隔统计 |
+| `metrics.mjs` | 把两次 `health_read --json` 的差值算成抖动/丢包指标；`--selftest` 验算数本身 |
+| `arb_handover_test.mjs` | **无人值守的仲裁交接判据**：静默→推流→停→再推，期间按 100 ms 密度采 lane30，输出七条 PASS/FAIL + 交回用时（毫秒）。`--selftest` 只验判据，不打板子 |
 
 ```bat
 node src\host\measure_v63.mjs --fps 15 --count 200
