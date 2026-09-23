@@ -12,12 +12,12 @@
  */
 import { execSync } from 'node:child_process';
 import { writeFileSync, readFileSync, unlinkSync } from 'node:fs';
+import { dump } from './repo_path.mjs';
 
 const W = 512, H = 300, FRAME_BYTES = W * H * 2, HDR = 4, MTU = 1392;
 const WORDS64 = FRAME_BYTES / 8;                 // 38400
 const BANK = 0x10000000;
-const XSDB = 'D:\\Software\\Vivado\\2025.2.1\\Vitis\\bin\\xsdb.bat';
-const WS = MEASURED;                                    // <repo>/data/measured
+const XSDB = String(get('xsdb', 'D:\\Software\\Vivado\\2025.2.1\\Vitis\\bin\\xsdb.bat'));
 
 function get(n, d) {
   const i = process.argv.indexOf('--' + n);
@@ -36,6 +36,15 @@ for (let w = 0; w < WORDS64; w++) {
   buf.writeUInt16LE(v, o + 4); buf.writeUInt16LE(v, o + 6);
 }
 
+// --dry：只算不发不读。这台探针真跑时会 `rst -processor`（把 PS 应用复位），
+// 而在一次 SD 传输中间复位会把 SDio 控制器留在未完成传输里（ISSUES #50 的次生现象）。
+if (get('dry', false) === true) {
+  const nU32 = K * (MTU / 4);
+  console.log(`[PROBE] dry：将发 ${K} 包 = ${K * MTU} B @${PACE} MB/s，tag=${TAG}；`
+            + `读回 0x10000000 / 0x10080000 各 ${nU32} 个 u32`);
+  console.log('[PROBE] dry：不发包、不碰 JTAG');
+  process.exit(0);
+}
 const dgram = (await import('node:dgram')).default;
 const sleep = (ms) => new Promise(r => setTimeout(r, ms));
 const sock = dgram.createSocket('udp4');
@@ -71,8 +80,7 @@ for (const BANKX of [0x10000000, 0x10080000]) {
     lines.push(`puts [mrd -force 0x${(BANKX + o * 4).toString(16)} ${Math.min(1000, nU32 - o)}]`);
   }
   lines.push('', '');
-  const tmp = WS + '\\build_v6\\_probe.tcl';
-  const out = WS + '\\build_v6\\_probe.out';
+  const tmp = dump('_probe.tcl'), out = dump('_probe.out');
   writeFileSync(tmp, lines.join('\n'));
   try {
     execSync(`"${XSDB}" ${tmp} > "${out}" 2>&1`, { windowsVerbatimArguments: true, timeout: 300000 });
