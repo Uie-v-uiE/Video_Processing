@@ -98,3 +98,8 @@ ku5p/build/exp_*/*.dcp
 
 # 构建的 stdout 镜像（log 已由 vivado -log 生成，两份都是本机产物）
 build/*.stdout
+
+# 作者自用学习文档（中文文件名）。比赛指南 §3.3.3.4 要求仓库内文件名纯 ASCII，
+# 所以它**不入库**；写在 .gitignore 而不是 .git/info/exclude，是为了这条排除规则本身可被审查看见、
+# 换机器也不会失效（原来只在 .git/info/exclude 里 = 只存在于这台机器）。
+study/
