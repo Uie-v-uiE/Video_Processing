@@ -22,9 +22,11 @@
  * 所以整轮测试期间 PS 不喂帧、串口不打字。这不影响本判据（交接只看 PL 里两个 busy 位
  * 和 eth 侧两位），但**别把这段时间当成"PS 活着时的观感"**。
  */
-import { spawn, execSync } from 'node:child_process';
+import { spawn, execSync, execFileSync } from 'node:child_process';
 import { writeFileSync, readFileSync, appendFileSync, unlinkSync } from 'node:fs';
 import { dump, host } from './repo_path.mjs';
+import { join } from 'node:path';
+import { ROOT } from './repo_path.mjs';
 
 function get(name, def) {
   const i = process.argv.indexOf('--' + name);
@@ -47,6 +49,13 @@ const RESTART   = Number(get('restart', 8));    // 再推一次（可逆性）
 const PERIOD    = Number(get('period-ms', 300));
 // 默认每点 stop→读→con；--hold-session 回到“整轮按住”的旧写法（只作对照，别拿它出判据）
 const HALT_EACH = get('hold-session', false) !== true;
+// 串口：本脚本要**按住 A9**，而按住正在传 SD 的内核会把控制器留在未完成的传输里
+// （2026-09-24 实测：几次之后 `sd_mount()` 直接失败，只能断电重插 —— ISSUES #50/#45）。
+// 所以默认先问一次 STAT：如果在放，就先 STOP、测完再 PLAY 回原状；端口不能共享，占着就跳过。
+const COM       = String(get('com', 'COM6'));
+const PS_APP    = get('no-serial', false) !== true;
+const POWERSH   = 'powershell';
+const UART_PS1  = join(ROOT, 'board', 'uart_cap_once.ps1');
 const SETTLE_MS = Number(get('settle-ms', 2000));
 const HBACK_MS  = Number(get('handback-max-ms', 1500));
 
@@ -60,6 +69,37 @@ const MODEG = (v) => (v >>> 5) & 3;     // 仲裁"看到"的模式（格雷码�
 const MODE = { 0: 'AUTO', 1: '锁ETH', 3: '锁PS', 2: '锁图卡' };
 const fmt = (x) => Number.isFinite(x) ? Math.round(x) : '—';
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
+
+/* ---------------------- 串口：把 PS 的状态保住，别拿它当牺牲品 ---------------------- */
+/**
+ * 跑一次 uart_cap_once.ps1，返回抓到的文本（失败就返回空串，不影响判据）。
+ * 注意 PowerShell 的坑（见 board/uart_cap_once.ps1 头部）：多命令走 -Cmds 逗号分隔，
+ * 脚本本体保持 ASCII。
+ */
+function uart(cmds, seconds) {
+  if (!PS_APP) return '';
+  const out = dump('arb_uart.txt');
+  const args = ['-NoProfile', '-ExecutionPolicy', 'Bypass', '-File', UART_PS1,
+                '-Port', COM, '-Seconds', String(seconds), '-Out', out];
+  if (cmds) args.push('-Cmds', cmds.join(','), '-CmdDelay', '2');
+  try {
+    execFileSync(POWERSH, args, { stdio: 'ignore', windowsVerbatimArguments: false });
+  } catch (e) {
+    console.log(`[ARB] 串口 ${COM} 不可用（被占用？），跳过 STOP/PLAY 保护：${String(e.message).slice(0, 70)}`);
+    return '';
+  }
+  try { return readFileSync(out, 'utf8'); } catch { return ''; }
+}
+
+/** 问一次 STAT；返回 true 表示"测之前 SD 正在放"，测完要还回去。 */
+function sdWasPlaying() {
+  const t = uart(['STAT'], 6);
+  const m = t.match(/\[STAT\].*?playing=(\d)/);
+  if (!m) { console.log('[ARB] 没读到 STAT 回包（固件没跑？），按"没在放"处理'); return false; }
+  const on = m[1] === '1';
+  console.log(`[ARB] 测前 SD playing=${m[1]}${on ? ' ⇒ 先 STOP，测完再 PLAY 回去' : ''}`);
+  return on;
+}
 
 /* ------------------------- 判据（纯函数，可台架验） ------------------------- */
 /**
@@ -265,6 +305,9 @@ function spawnSender() {
 async function runBoard() {
   const keep = readKeep();
   console.log(`[ARB] GPIO_0 控制位保留 0x${keep.toString(16)}，采样周期 ${PERIOD} ms`);
+  // 按住 A9 之前先把 SD 回放停下来：控制器不在传输中间，就不会被调试器留在半途（ISSUES #50）。
+  const wasPlaying = sdWasPlaying();
+  if (wasPlaying) uart(['STOP'], 6);
   const total = (PRE + STREAM + AFTER + RESTART) * 1000 + 6000;
   const sess = sampleSession(keep, total);       // 先起会话，再掐推流的时间点
 
@@ -287,6 +330,7 @@ async function runBoard() {
   console.log(`[ARB] +${t4 - t0} ms 结束，等采样会话收尾`);
 
   const samples = await sess;
+  if (wasPlaying) { uart(['PLAY'], 8); console.log('[ARB] 已把 SD 回放恢复到测前状态（PLAY）'); }
   const lane30 = samples.filter((s) => s.lane === 30).map((s) => ({ ms: s.ms, v: s.v }));
   const lane31 = samples.filter((s) => s.lane === 31);
   if (!lane30.length) {
