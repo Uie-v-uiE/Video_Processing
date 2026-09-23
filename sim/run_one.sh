@@ -12,7 +12,7 @@ R=/tmp/kx/$TB.run
 mkdir -p $R && cd $R || exit 1
 rm -rf xsim.dir
 SRC="$(find $ROOT/src/rtl -name '*.v' | tr '\n' ' ') \
-$ROOT/ku5p/src/rtl/ku5p_telem.v $ROOT/ku5p/src/rtl/ku5p_tx_arb.v \
+$ROOT/ku5p/src/rtl/ku5p_telem.v $ROOT/ku5p/src/rtl/ku5p_tx_arb.v $ROOT/ku5p/src/rtl/ku5p_cmd.v \
 $(find $ROOT/sim -maxdepth 1 -name 'tb_*.v' | tr '\n' ' ')"
 $V/xvlog $SRC > xv.log 2>&1
 if grep -q "^ERROR" xv.log; then echo "XVLOG FAILED"; grep "^ERROR" xv.log | head -8; exit 1; fi

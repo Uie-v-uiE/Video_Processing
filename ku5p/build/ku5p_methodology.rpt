@@ -1,7 +1,7 @@
 Copyright 1986-2022 Xilinx, Inc. All Rights Reserved. Copyright 2022-2026 Advanced Micro Devices, Inc. All Rights Reserved.
 ---------------------------------------------------------------------------------------------------------------------------------------------
 | Tool Version : Vivado v.2025.2.1 (win64) Build 6403652 Thu Mar 19 19:48:24 GMT 2026
-| Date         : Wed Sep 23 05:42:58 2026
+| Date         : Wed Sep 23 22:15:02 2026
 | Host         : Uie-laptop running 64-bit major release  (build 9200)
 | Command      : report_methodology -file D:/Xilinx/Prj/pro/Video_Processing/ku5p/build/ku5p_methodology.rpt
 | Design       : ku5p_eth_top
@@ -39,7 +39,7 @@ LUT drives async reset alert
 LUT cell por[15]_i_1, with 2 or more inputs, drives asynchronous preset/clear pin(s) rd_ptr_reg[10]_rep/CLR, rd_ptr_reg[10]_rep__0/CLR,
 rd_ptr_reg[10]_rep__1/CLR, rd_ptr_reg[11]_rep/CLR,
 rd_ptr_reg[11]_rep__0/CLR, rd_ptr_reg[11]_rep__1/CLR,
-rd_ptr_reg[2]_rep/CLR, rd_ptr_reg[2]_rep__0/CLR, rd_ptr_reg[2]_rep__1/CLR,
+rd_ptr_reg[7]_rep/CLR, rd_ptr_reg[7]_rep__0/CLR, rd_ptr_reg[7]_rep__1/CLR,
 rd_ptr_reg[8]_rep/CLR, rd_ptr_reg[8]_rep__0/CLR, rd_ptr_reg[8]_rep__1/CLR,
 rd_ptr_reg[9]_rep/CLR, rd_ptr_reg[9]_rep__0/CLR, rd_ptr_reg[9]_rep__1/CLR
  (the first 15 of 79 listed). The LUT may glitch and trigger an unexpected reset, even if it is a properly timed path.

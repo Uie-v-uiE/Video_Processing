@@ -109,8 +109,10 @@ Slice 99.92%、BRAM 98.93%——三处都贴着上限，任何新功能都塞不
 - 源选择：彩条或 ETH/DDR 视频
 - 上位机：UDP 推流 + 串口控制台 + 一套「不看屏幕」的 DDR 回读判据工具
 - **第二块板（RK-XCKU5P-F / UltraScale+）**：同一套自研以太网栈只换 RGMII 物理层就综合/实现收敛，
-  并且现在会**每秒主动发一包 UDP 遥测**（帧数/包数/字节/错包/越界/缺行/上电秒数），
-  PC 侧 `node src/host/ku5p_stats.mjs` 一行显示；发送仲裁为自研（替掉厂商 mux 的一处帧内换源缺陷）。
+  并且现在会**主动发 UDP 遥测**（帧数/包数/字节/错包/越界/缺行/上电秒数），
+  PC 侧 `node src/host/ku5p_stats.mjs` 一行显示；反向也通了 ——
+  `node src/host/ku5p_cmd.mjs CLR|SNAP|SPD5`（UDP 端口 5002）能把命令打进去，
+  回执在下一包遥测的 `cmds_ok/period` 字段里。发送仲裁为自研（替掉厂商 mux 的一处帧内换源缺陷）。
   板级判据排在白天，台架判据与数字见 `ku5p/README.md`
 
 ---
@@ -131,7 +133,7 @@ Slice 99.92%、BRAM 98.93%——三处都贴着上限，任何新功能都塞不
 │   ├── host/          上位机推流、串口工具与 JTAG 回读判据脚本（Node 为主）
 │   └── constraints/   管脚与时序约束（rk_zynq7020.xdc）
 ├── sim/
-│   ├── tb_*.v         44 个 testbench
+│   ├── tb_*.v         45 个 testbench
 │   ├── run_sim.tcl    仓库相对的 xsim 一键回归
 │   ├── run_one.sh     只跑一个台架（改完 RTL 的第一道关，几十秒）
 │   ├── probes/        综合行为对照实验（不是 TB：回答"这段写法会被综合成什么"）
@@ -203,7 +205,7 @@ node build\ps_app.mjs                       :: 直接用 arm-none-eabi-gcc + 已
 > 但"停流后画面自动交回 SD"这一跳的板级判据还要眼睛确认（#25）—— 在确认之前，
 > 保守顺序仍是"配 bit 之前就把网线拔掉"（旧的仲裁判据是粘性命，重配才清）。
 
-### 4. 仿真（44 个 testbench）
+### 4. 仿真（45 个 testbench）
 
 ```bat
 %VIVADO% -mode batch -nojournal -log sim\xsim.log -source sim\run_sim.tcl

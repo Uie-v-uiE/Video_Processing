@@ -8,13 +8,16 @@
 //   先自校：同一函数对 "123456789" 必须给出 0xCBF43926；常数 0x2144DF1C 本身由
 //   **另一份独立实现（node 里跑的同一算法）**算出，不是从被测对象回抄的。
 //
-// 六条判据：
+// 八条判据：
 //   C1 peer_known=0 时一个字节都不发（ARP 没学到对端 ⇒ 发往随机 MAC 是有害的）
 //   C2 头部字段逐字节正确（dstMAC/srcMAC/ethertype/TTL/proto/源目IP/端口/UDP长度/IP总长）
-//   C3 载荷 36 字节的线上格式与文档一致（含大端）
+//   C3 载荷 42 字节的线上格式与文档一致（含大端；v0x02 起的 6 个命令字段也在这一条里逐字节钉）
 //   C4 **快照原子性**：发送途中继续改计数器，包里必须是发起前的值
 //   C5 FCS 让整帧 CRC 余数 = 0x2144DF1C
 //   C6 周期：两帧起点相差 TICK_CYC（±仲裁的几拍），且第二包的计数确实前进了
+//   C7 命令改周期：period_s=3 ⇒ 间隔变成约 3 个 tick（证明周期不是摆设）
+//   C8 CLR 只推基线（包里是差值，不是绝对值，也不是 0）+ SNAP 立刻出一包（不用等下一个 tick）
+//      ⇒ 这两条合起来就是"PC 能命令这块板，而且回执看得见"
 module tb_ku5p_telem;
     localparam [47:0] BOARD_MAC = 48'h00_11_22_33_44_66;
     localparam [31:0] BOARD_IP  = {8'd192, 8'd168, 8'd1, 8'd11};
@@ -29,6 +32,10 @@ module tb_ku5p_telem;
     reg [31:0] x_frames = 0, x_pkts = 0, x_bytes = 0, x_bad = 0, x_oob = 0;
     reg [15:0] x_rows = 0;
     reg link_up = 0, frames_seen = 0, abort_seen = 0, data_alive = 0, peer_known = 0;
+    // ---- 命令通道（ku5p_cmd）那一侧的输入，本台架直接驱动 ----
+    reg [7:0]  x_period = 8'd1;
+    reg        x_clr = 0, x_snap = 0, x_seen = 0;
+    reg [15:0] x_cok = 0, x_cbad = 0;
 
     wire        tlm_rqs;
     wire        udp_grant, udp_done, udp_tx_req;
@@ -44,6 +51,8 @@ module tb_ku5p_telem;
         .stat_bad(x_bad), .stat_oob(x_oob), .rows_missed(x_rows),
         .link_up(link_up), .frames_seen(frames_seen), .abort_seen(abort_seen),
         .data_alive(data_alive), .peer_known(peer_known),
+        .period_s(x_period), .cmd_clr(x_clr), .cmd_snap(x_snap),
+        .cmds_ok(x_cok), .cmds_bad(x_cbad), .cmd_seen(x_seen),
         .udp_rqs(tlm_rqs),
         .tx_start_en(udp_grant), .tx_req(udp_tx_req),
         .tx_data(tlm_data), .tx_byte_num(tlm_len)
@@ -155,8 +164,8 @@ module tb_ku5p_telem;
 
     integer i0;
     reg [31:0] e_frames, e_pkts, e_bytes, e_bad, e_oob, e_secs;
-    reg [15:0] e_rows;
-    reg [7:0]  e_flags;
+    reg [15:0] e_rows, e_cok, e_cbad;
+    reg [7:0]  e_flags, e_flags2, e_period;
 
     task check_frame;
         input integer fi;
@@ -187,7 +196,7 @@ module tb_ku5p_telem;
             chk32("ethertype",   {8'd0, cap[i0-30], cap[i0-29]}, 32'h0800);
             chk32("ip ver/ihl",  {24'd0, cap[i0-28]}, 32'h45);
             chk32("ip tos",      {24'd0, cap[i0-27]}, 32'h00);
-            chk32("ip total len",{16'd0, cap[i0-26], cap[i0-25]}, 32'd64);  // 20+8+36
+            chk32("ip total len",{16'd0, cap[i0-26], cap[i0-25]}, 32'd70);  // 20+8+42
             chk32("ip ttl",      {24'd0, cap[i0-20]}, 32'h40);
             chk32("ip proto",    {24'd0, cap[i0-19]}, 32'd17);
             begin : ip_csum                       // 一补数和：合法 IP 头（含自身校验和）应等于 FFFF
@@ -201,7 +210,7 @@ module tb_ku5p_telem;
             chk32("ip src", {cap[i0-16], cap[i0-15], cap[i0-14], cap[i0-13]}, BOARD_IP);
             chk32("ip dst", {cap[i0-12], cap[i0-11], cap[i0-10], cap[i0-9]},  PC_IP);
             chk32("udp ports", {cap[i0-8], cap[i0-7], cap[i0-6], cap[i0-5]}, 32'h04D2_04D2);
-            chk32("udp len",   {16'd0, cap[i0-4], cap[i0-3]}, 32'd44);       // 8+36
+            chk32("udp len",   {16'd0, cap[i0-4], cap[i0-3]}, 32'd50);       // 8+42
             chk32("magic",  {cap[i0], cap[i0+1], cap[i0+2], cap[i0+3]}, 32'h4B55_3550);
             chk32("version",   {24'd0, cap[i0+4]}, 32'h07);
             chk32("flags",     {24'd0, cap[i0+5]}, {24'd0, e_flags});
@@ -213,20 +222,26 @@ module tb_ku5p_telem;
             chk32("oob",     {cap[i0+26], cap[i0+27], cap[i0+28], cap[i0+29]}, e_oob);
             chk32("rows",    {16'd0, cap[i0+30], cap[i0+31]}, {16'd0, e_rows});
             chk32("uptime",  {cap[i0+32], cap[i0+33], cap[i0+34], cap[i0+35]}, e_secs);
-            crc_over(i0-42, i0+39, crc_res);
+            // ---- v0x02 的 6 个命令字段（逐字节钉，PC 解析器按同一张表读）----
+            chk32("cmds_ok",   {16'd0, cap[i0+36], cap[i0+37]}, {16'd0, e_cok});
+            chk32("cmds_bad",  {16'd0, cap[i0+38], cap[i0+39]}, {16'd0, e_cbad});
+            chk32("period",    {24'd0, cap[i0+40]}, {24'd0, e_period});
+            chk32("flags2",    {24'd0, cap[i0+41]}, {24'd0, e_flags2});
+            crc_over(i0-42, i0+45, crc_res);
             // 常数 0x2144DF1C = "init FFFFFFFF + 末异或 FFFFFFFF 的 CRC-32 跑完 帧+FCS" 的余数，
             // 与帧内容无关 ⇒ 只要 FCS 是自算的、且字节序/异或约定与标准一致就会命中。
             // 这个数是**用另一份独立实现（node）算出来的**，不是从被验对象那里抄回来的。
             chk32("crc residue = PC 收帧判据", crc_res, 32'h2144_DF1C);
-            chki("frame length", flen[fi], (i0 + 40) - base);
+            chki("frame length", flen[fi], (i0 + 46) - base);   // 42 载荷 + 4 FCS
         end
     endtask
 
-    integer t0, t1, sp;
+    integer t0, t1, sp, t2, sp2, nf, tn0;
     // 全局看门狗：跑不到断言就等于失败，不能让 xsim 永远等下去
+    // （C7 要等 3 个 tick、C8 还要再看一帧 ⇒ 60 µs 不够，扩到 120 µs ≈ 15000 拍）
     initial begin : watchdog
-        #60_000;
-        $display("FAIL watchdog: 60us 内没跑到结尾（发了 %0d 帧、%0d 字节）", nframe, cap_n);
+        #120_000;
+        $display("FAIL watchdog: 120us 内没跑到结尾（发了 %0d 帧、%0d 字节）", nframe, cap_n);
         errors = errors + 1;
         $display("FAIL tb_ku5p_telem");
         $finish;
@@ -259,6 +274,7 @@ module tb_ku5p_telem;
         e_secs = 3;        // 心跳计数每个 tick 都涨（与 peer 无关）：C1 那 2.5 个 tick 已经涨到 2，
                            // 第一个真正发包的时刻落在第 3 个 tick 上
         e_flags = {4'd0, data_alive, abort_seen, frames_seen, link_up};
+        e_cok = 0; e_cbad = 0; e_period = 1; e_flags2 = 8'h00;   // 还没下过任何命令
         peer_known = 1;
         wait (gmii_tx_en === 1'b1);
         // C4：帧已经开始发了才把计数器改大 —— 包里必须还是上面钉住的值
@@ -282,6 +298,53 @@ module tb_ku5p_telem;
             $display("FAIL C6 tick spacing=%0d cycles expect around %0d", sp, TICK);
             errors = errors + 1;
         end else $display("INFO two frames %0d cycles apart (TICK=%0d)", sp, TICK);
+
+        // ---- C7：命令把上报周期改成 3 tick ⇒ 间隔必须跟着变（证明 period 不是摆设）----
+        x_period = 8'd3;
+        e_secs = 7;                      // 第 4 拍发过之后数满 3 秒才再发
+        e_period = 8'd3;                 // 包里的 [40] 必须回显**当前**周期（PC 靠它确认命令生效）
+        wait (nframe >= 3);
+        check_frame(2);
+        t2  = ftime[2];
+        sp2 = (t2 - t1) / 8;
+        if (sp2 < 3*TICK - 8 || sp2 > 3*TICK + 16) begin
+            errors = errors + 1;
+            $display("FAIL C7 spacing after SPD3 = %0d cycles, expect ~%0d", sp2, 3*TICK);
+        end else $display("PASS C7 period_s=3 -> %0d cycles apart (3*%0d)", sp2, TICK);
+        // 反面对照：如果 period 根本没参与判断，这里就会是 ~1 个 tick —— 上面的区间挡得住它。
+        if (sp2 < TICK + 8) begin
+            errors = errors + 1;
+            $display("FAIL C7b spacing still looks like a 1 s period (%0d)", sp2);
+        end
+
+        // ---- C8：CLR 只推基线（包里是差值）+ SNAP 不等 tick 立刻出一包 ----
+        x_frames = 32'd2000; x_pkts = 32'd8000; x_bytes = 32'd500000;
+        x_bad    = 32'd11;   x_oob  = 32'd22;    x_rows = 16'd5;
+        @(posedge clk); x_clr = 1'b1;
+        @(posedge clk); x_clr = 1'b0;
+        x_frames = 32'd2100; x_pkts = 32'd8250; x_bytes = 32'd530700;
+        x_bad    = 32'd13;   x_oob  = 32'd25;    x_rows = 16'd7;
+        x_seen = 1'b1; x_cok = 16'd3; x_cbad = 16'd1;
+        e_frames = 32'd100; e_pkts = 32'd250; e_bytes = 32'd30700;
+        e_bad = 32'd2; e_oob = 32'd3; e_rows = 16'd7;
+        e_secs = 7;                              // 就在上一包的同一秒内
+        e_cok = 16'd3; e_cbad = 16'd1; e_period = 8'd3;
+        e_flags2 = {6'd0, 1'b1, 1'b1};           // bit1=基线已推过，bit0=执行过命令
+        nf  = nframe;
+        tn0 = $time;
+        @(posedge clk); x_snap = 1'b1;
+        @(posedge clk); x_snap = 1'b0;
+        wait (nframe > nf);
+        check_frame(nf);
+        // SNAP 的判据是"这包是命令换来的，不是等来的"：从脉冲到这一包的起点必须远小于一个 tick
+        // （仲裁放行要几拍，给 100 拍的余量；而 period_s 现在是 3 tick = 1200 拍）。
+        if ((ftime[nf] - tn0) / 8 > 100) begin
+            errors = errors + 1;
+            $display("FAIL C8b SNAP acked %0d cycles after the pulse - that looks like a tick wait",
+                     (ftime[nf] - tn0) / 8);
+        end else $display("PASS C8b SNAP acked %0d cycles after the pulse (period is %0d)",
+                         (ftime[nf] - tn0) / 8, 3*TICK);
+        $display("PASS C8 CLR reported deltas (%0d/%0d), not absolute counters", e_frames, e_pkts);
 
         repeat (20) @(posedge clk);
         if (errors == 0) $display("PASS tb_ku5p_telem");

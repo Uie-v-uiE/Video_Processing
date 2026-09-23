@@ -17,27 +17,31 @@
 //    厂商原本不踩这个坑，是因为它的数据源是 `eth_ctrl` 后面那个同步 FIFO —— 读出一拍延迟
 //    正好抵掉这个提前量。这里等价地打一拍，把自己变成"和 FIFO 同一个契约"。
 //
-// 线上格式（大端，36 字节 UDP 载荷；PC 侧解析器在 src/host/ku5p_stats.mjs，两处必须一起改）：
+// 线上格式（大端，**42** 字节 UDP 载荷；PC 侧解析器在 src/host/ku5p_stats.mjs，两处必须一起改）：
 //   [0:3] 'K''U''5''P'   [4] 版本   [5] 标志位
 //   [6:7] 图像宽  [8:9] 图像高
 //   [10:13] 完整帧数  [14:17] 包数  [18:21] 载荷字节数  [22:25] 校验/长度错包数
 //   [26:29] 越界偏移字节数  [30:31] 本帧缺行数  [32:35] 上电秒数(低 32 位)
+//   v0x02 新增：[36:37] 执行成功的命令数  [38:39] 被拒的命令数  [40] 当前上报周期(秒)
+//              [41] 标志位 2：bit0=执行过命令，bit1=**基线已推过**（即下面四个计数是"自上次 CLR 以来"）
 // 计数器都是 32 位只增（15 fps 下 stat_bytes 约 930 s 回绕一次），不做饱和。
-// 载荷 36 ≥ 厂商 MIN_DATA_NUM(18) ⇒ 不会走它的"末尾重复补位"路径。
+// 载荷 42 ≥ 厂商 MIN_DATA_NUM(18) ⇒ 不会走它的"末尾重复补位"路径。
 //
-// **字段诚实性（重要，别把它当成"错误为 0"）**：[22:25] 那个 `bad` 目前是
-// **构造性为 0** —— `frame_reasm.p_good` 在两个板的顶层都硬接 1'b1（顶层 udp 收包用的是
-// 厂商 `udp_rx`，它不看 ER/帧长），所以 `stat_bad` 那条累加永远不会走。
-// 现场能当"健康证据"用的是 `oob`（越界偏移）、`rows_missed`、以及 flags 里的 `abort_seen`。
-// 修法已经想清楚且**代码已在仓库里**：自研 `gmii_rx_mac` 出 `m_good/m_bad`
-// （无 ER 且 len≥64；注意这不是真 CRC-32 校验），`udp_rx_parser` 吃它并产出 `p_good`
-// 与三个 drop 统计，`sim/tb_udp_parser.v` 有判据 —— 只是两个顶层都还没换上去。
-// 登记在 report/ISSUES.md #29。
+// **`CLR` 改的是这里的基线，不是计数器**（理由见 ku5p_cmd.v 文件头第 2 条）：
+// 上报值 = 观测值 − 基线，基线在 `cmd_clr` 那一拍锁存当前观测值。
+// 所以"上电到现在"与"自上次 CLR 以来"是同一个字段，靠 flags2.bit1 区分；
+// `uptime_s` 不参与相减（它是"上电秒数"，语义必须唯一）。
+//
+// **字段诚实性（口径，别把 `bad` 读成"没有错包"）**：这块板的收侧在 R26 已经换成
+// 自研那一对（`gmii_rx_mac` 逐字节算 FCS-32 + `udp_rx_parser` 目的端口过滤），
+// `frame_reasm.p_good` 接的是**真值** ⇒ 这里的 `bad` 从"构造性为 0"变成可当证据的数字
+// （ISSUES #38 结案的那一半）。仍然要留一句：FCS 判的是"这一帧在介质上没被打坏"，
+// 不等于"内容合规"，内容级的验收是 `frame_reasm` 的行数/偏移门（`rows_missed` / `oob`）。
 module ku5p_telem #(
     parameter [15:0] IMG_W    = 16'd512,
     parameter [15:0] IMG_H    = 16'd300,
     parameter [31:0] TICK_CYC = 32'd125_000_000,   // GMII 域 125 MHz ⇒ 1 秒
-    parameter [7:0]  VERSION  = 8'h01
+    parameter [7:0]  VERSION  = 8'h02
 )(
     input  wire        clk,
     input  wire        rst_n,
@@ -55,6 +59,14 @@ module ku5p_telem #(
     input  wire        data_alive,
     input  wire        peer_known,     // ARP 已学到 PC 的 MAC/IP
 
+    // ---- 命令通道（ku5p_cmd）带来的三个效果 ----
+    input  wire [7:0]  period_s,       // 上报周期（秒）；0 按 1 处理，绝不允许"从此不发"
+    input  wire        cmd_clr,        // 1 拍：把基线推到现在
+    input  wire        cmd_snap,       // 1 拍：立刻要一包（兼作命令的 ACK）
+    input  wire [15:0] cmds_ok,
+    input  wire [15:0] cmds_bad,
+    input  wire        cmd_seen,
+
     // ---- 与 ku5p_tx_arb 的握手：want 是电平，被 grant（= tx_start_en 回显）清掉 ----
     output wire        udp_rqs,
 
@@ -66,49 +78,82 @@ module ku5p_telem #(
 );
     // 36 > 31：写成 `localparam [4:0] NBYTES = 5'd36` 会被**静默截断成 4**。
     // 现象（台架抓到过）：包发得出去、IP 总长 32、载荷是厂商补位规则重复的最后一个字节。
-    localparam [5:0] NBYTES = 6'd36;
+    // v0x02 是 42 字节 —— 宽度跟着长到 [6:0]，`idx <= NBYTES` 的比较才不会绕。
+    localparam [6:0] NBYTES = 7'd42;
 
-    // ---- 心跳：到点置 want，等仲裁放行 ----
+    // ---- 心跳：先分"秒"，再数到 period_s ----
+    // 周期不做成 `div == period_s*125e6-1`：那会在 125 MHz 的每拍都挂一条 32×8 乘法路径，
+    // 而秒分频器本来就有 ⇒ 改成"秒 × 计数"，代价是一个 8 位比较器。
+    // `period_s == 0` 按 1 处理：顶层没接、或命令把 0 传进来时，最坏的后果必须是"发得更勤"，
+    // 不能是"这块板从此不再上报"——那是把这块板上**唯一**的可观测通道弄丢。
+    wire [7:0] pdiv = (period_s == 8'd0) ? 8'd1 : period_s;
+
     reg [31:0] div;
+    reg [7:0]  sec_cnt;
     reg [31:0] uptime_s;
     reg        want;
     always @(posedge clk or negedge rst_n) begin
         if (!rst_n) begin
-            div <= 32'd0; uptime_s <= 32'd0; want <= 1'b0;
+            div <= 32'd0; uptime_s <= 32'd0; want <= 1'b0; sec_cnt <= 8'd0;
         end else begin
             if (div == TICK_CYC - 32'd1) begin
                 div <= 32'd0;
-                if (peer_known) want <= 1'b1;      // 没学到对端就别占介质
+                if (sec_cnt + 8'd1 >= pdiv) begin
+                    sec_cnt <= 8'd0;
+                    if (peer_known) want <= 1'b1;      // 没学到对端就别占介质
+                end else sec_cnt <= sec_cnt + 8'd1;
                 if (~&uptime_s) uptime_s <= uptime_s + 32'd1;
             end else div <= div + 32'd1;
+            if (cmd_snap && peer_known) want <= 1'b1;  // SNAP：命令的 ACK 也走同一包
             if (tx_start_en) want <= 1'b0;
         end
     end
     assign udp_rqs = want;
 
-    // ---- 发起那一拍的快照 ----
+    // ---- CLR 的基线：动的不是计数器，而是"从哪儿减"（理由见 ku5p_cmd.v 第 2 条）----
+    reg [31:0] b_frames, b_pkts, b_bytes, b_bad, b_oob;
+    reg        base_active;
+    always @(posedge clk or negedge rst_n) begin
+        if (!rst_n) begin
+            b_frames <= 32'd0; b_pkts <= 32'd0; b_bytes <= 32'd0;
+            b_bad <= 32'd0; b_oob <= 32'd0; base_active <= 1'b0;
+        end else if (cmd_clr) begin
+            b_frames <= stat_frames; b_pkts <= stat_pkts; b_bytes <= stat_bytes;
+            b_bad    <= stat_bad;    b_oob  <= stat_oob;
+            base_active <= 1'b1;
+        end
+    end
+
+    // ---- 发起那一拍的快照（先相减再锁，保证一包里前后字节同一时刻）----
     reg [31:0] s_frames, s_pkts, s_bytes, s_bad, s_oob, s_secs;
-    reg [15:0] s_rows;
-    reg [7:0]  s_flags;
+    reg [15:0] s_rows, s_cok, s_cbad;
+    reg [7:0]  s_flags, s_flags2, s_period;
     always @(posedge clk or negedge rst_n) begin
         if (!rst_n) begin
             {s_frames, s_pkts, s_bytes, s_bad, s_oob, s_secs} <= 192'd0;
-            {s_rows, s_flags} <= 24'd0;
+            {s_rows, s_cok, s_cbad} <= 48'd0;
+            {s_flags, s_flags2, s_period} <= 24'd0;
         end else if (tx_start_en) begin
-            s_frames <= stat_frames; s_pkts   <= stat_pkts;
-            s_bytes  <= stat_bytes;  s_bad    <= stat_bad;
-            s_oob    <= stat_oob;    s_secs   <= uptime_s;
+            s_frames <= stat_frames - b_frames;
+            s_pkts   <= stat_pkts   - b_pkts;
+            s_bytes  <= stat_bytes  - b_bytes;
+            s_bad    <= stat_bad    - b_bad;
+            s_oob    <= stat_oob    - b_oob;
+            s_secs   <= uptime_s;                  // 上电秒数**不相减**：语义必须唯一
             s_rows   <= rows_missed;
+            s_cok    <= cmds_ok;   s_cbad <= cmds_bad;
+            s_period <= pdiv;
             s_flags  <= {4'd0, data_alive, abort_seen, frames_seen, link_up};
+            s_flags2 <= {6'd0, base_active, cmd_seen};
         end
     end
 
     // ---- 读指针：复位在 start，递增在 req（tx_req 是一整段电平，等价 FIFO 的 rd_en）----
-    reg [5:0] idx;
+    reg [6:0] idx;
     always @(posedge clk or negedge rst_n) begin
-        if (!rst_n)           idx <= 6'd0;
-        else if (tx_start_en) idx <= 6'd0;
-        else if (tx_req && idx <= NBYTES) idx <= idx + 6'd1;
+        if (!rst_n)           idx <= 7'd0;
+        else if (tx_start_en) idx <= 7'd0;
+        else if (tx_req && idx <= NBYTES) idx <= idx + 7'd1;
     end
 
     // case 项一律用**无位宽十进制**：写成 5'd32 会先被截成 0（同一个位宽陷阱）。
@@ -150,7 +195,14 @@ module ku5p_telem #(
             32: b = s_secs[31:24];
             33: b = s_secs[23:16];
             34: b = s_secs[15:8];
-            default: b = s_secs[7:0];   // 35
+            35: b = s_secs[7:0];
+            // ---- v0x02：命令通道带来的 6 个字节 ----
+            36: b = s_cok[15:8];
+            37: b = s_cok[7:0];
+            38: b = s_cbad[15:8];
+            39: b = s_cbad[7:0];
+            40: b = s_period;
+            default: b = s_flags2;   // 41；再往后（厂商的提前 req）仍重复最后一字节
         endcase
     end
 
@@ -162,5 +214,5 @@ module ku5p_telem #(
     end
 
     assign tx_data     = b_q;
-    assign tx_byte_num = {10'd0, NBYTES};
+    assign tx_byte_num = {9'd0, NBYTES};      // NBYTES 现在 7 位：拼成 16 位的补零位数跟着变
 endmodule

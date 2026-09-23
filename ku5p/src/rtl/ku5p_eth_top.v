@@ -19,6 +19,7 @@ module ku5p_eth_top #(
     parameter [15:0] IMG_W     = 16'd512,
     parameter [15:0] IMG_H     = 16'd300,
     parameter [15:0] UDP_PORT  = 16'd5001,
+    parameter [15:0] CMD_PORT  = 16'd5002,   // PC → 本板的文本命令（CLR/SNAP/SPD），与流分开
     parameter [47:0] BOARD_MAC = 48'h00_11_22_33_44_66,   // 与 Zynq 板必须不同（同网段）
     parameter [31:0] BOARD_IP  = {8'd192,8'd168,8'd1,8'd11}
 )(
@@ -188,6 +189,35 @@ module ku5p_eth_top #(
         .stat_drop_bad(st_drop_bad), .stat_drop_filt(st_drop_filt), .stat_udp_ok(st_udp_ok)
     );
 
+    // ---- 命令通道：同一条 GMII 字节流上再挂一个过滤器，只认目的端口 CMD_PORT ----
+    // 为什么复用 `udp_rx_parser` 而不是在 cmd 里自己解 IP/UDP 头：这条过滤链的三种 eof/坏包
+    // 时序（厂商风格同拍 eof、本板"eof 晚一拍"、以及 FCS 判坏要闭合半包）都已经在
+    // `tb_udp_parser.v` / `tb_v795_rx_chain.v` 里钉住了，重写一份等于把那三笔账重欠一遍。
+    // 代价是 ~150 LUT 的重复过滤器 —— 这块板 LUT 用 1.4 %，这笔买卖划算。
+    // 视频流(5001)与命令(5002)因此天然互斥：任何一路都不会把对方的字节当自己的载荷。
+    wire [7:0]  c_data;
+    wire        c_valid, c_sof, c_eof, c_good;
+    wire [15:0] c_pay_len;
+    wire        cst_drop_bad, cst_drop_filt, cst_udp_ok;
+    udp_rx_parser #(.UDP_PORT(CMD_PORT)) u_rx_cmd (
+        .clk(g_clk), .rst_n(rst_n),
+        .s_data(rx_m_data), .s_valid(rx_m_valid), .s_sof(rx_m_sof),
+        .s_eof(rx_m_eof), .s_good(rx_m_good), .s_bad(rx_m_bad),
+        .p_data(c_data), .p_valid(c_valid), .p_sof(c_sof), .p_eof(c_eof), .p_good(c_good),
+        .pay_len(c_pay_len),
+        .stat_drop_bad(cst_drop_bad), .stat_drop_filt(cst_drop_filt), .stat_udp_ok(cst_udp_ok)
+    );
+
+    wire        cmd_clr, cmd_snap, cmd_seen;
+    wire [7:0]  period_s;
+    wire [15:0] cmds_ok, cmds_bad;
+    ku5p_cmd #(.DEF_PERIOD(8'd1)) u_cmd (
+        .clk(g_clk), .rst_n(rst_n),
+        .p_data(c_data), .p_valid(c_valid), .p_sof(c_sof), .p_eof(c_eof), .p_good(c_good),
+        .cmd_clr(cmd_clr), .cmd_snap(cmd_snap), .period_s(period_s),
+        .cmds_ok(cmds_ok), .cmds_bad(cmds_bad), .cmd_seen(cmd_seen)
+    );
+
     // 厂商的 eth_ctrl 在这里被换成自研的 ku5p_tx_arb（见该文件头的理由），
     // 它同时管 ARP/ICMP/UDP 三路的 start 与 mux，例化放在统计寄存器之后。
 
@@ -304,6 +334,8 @@ module ku5p_eth_top #(
         .stat_bad(s_badc), .stat_oob(s_oob), .rows_missed(reasm_rows_miss),
         .link_up(link_up), .frames_seen(frames_seen), .abort_seen(err_seen),
         .data_alive(data_alive), .peer_known(peer_known),
+        .period_s(period_s), .cmd_clr(cmd_clr), .cmd_snap(cmd_snap),
+        .cmds_ok(cmds_ok), .cmds_bad(cmds_bad), .cmd_seen(cmd_seen),
         .udp_rqs(tlm_rqs),
         .tx_start_en(udp_grant), .tx_req(udp_tx_req),
         .tx_data(tlm_data), .tx_byte_num(tlm_len)
@@ -330,6 +362,11 @@ module ku5p_eth_top #(
     assign led[1] = ~(frames_seen & data_alive);   // 帧完成 **且** 缓存内容变过
     assign led[2] = ~err_seen;
     assign led[3] = ~hb_div[23];
+    // `c_pay_len` / 两路过滤器的三个 drop 统计目前没有终点：命令通道的"哪一条被端口过滤掉了"
+    // 是下一个独立小决定（ku5p/README.md §9 第 1 条后半），不顺手塞进这一笔。
+    // 但**必须**留在这里当占位：这条链一旦被综合优化掉，"命令收不到"就会变成一个查不出原因的板级现象。
     wire _unused_ok = &{1'b0, s_pkts, s_bytes, s_oob, rd_sum, data_alive,
-                        udp_tx_req, arp_tx_done, icmp_tx_done, g_tx_en, 1'b0};
+                        udp_tx_req, arp_tx_done, icmp_tx_done, g_tx_en,
+                        c_pay_len[0], st_drop_bad, st_drop_filt, st_udp_ok,
+                        cst_drop_bad, cst_drop_filt, cst_udp_ok, 1'b0};
 endmodule

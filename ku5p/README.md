@@ -12,6 +12,9 @@ GMII MAC / ARP / ICMP / UDP / offset 拼帧 / 帧计数与健康计数，
 做法是把同一批 `.v` 直接 `add_files`（不复制、不改写），所以"可移植"不是文字承诺。
 R23 之后还多证明了一件事：**这块板能主动把健康统计发回 PC**（每秒一包，
 判据在 `sim/tb_ku5p_telem.v`，PC 侧解析器 `src/host/ku5p_stats.mjs --selftest` 双向对齐）。
+R31 起这条路是**双向**的：PC 也能给这块板下命令（`CLR`/`SNAP`/`SPD<n>`，UDP 端口 5002），
+回执就在下一包遥测里 ⇒ "异构分工"不再是一句 PPT 话，而是两条能当场演示的报文往来
+（判据 `sim/tb_v80_ku5p_cmd.v` + `src/host/ku5p_cmd.mjs --selftest`）。
 
 **已跑出来的构建结果**（`ku5p/build/ku5p_*.rpt`；下表是 2026-09-23 05:43 那一次，
 即加上"每秒一包 UDP 遥测 + 自研发送仲裁器"之后的版本；上一版（只有入口 + `fb_pack`）是
@@ -42,7 +45,8 @@ R23 之后还多证明了一件事：**这块板能主动把健康统计发回 P
 ku5p/
 ├── src/rtl/
 │   ├── ku5p_eth_top.v      ← 本工程的顶层（自研）
-│   ├── ku5p_telem.v        ← 每秒一包的 UDP 遥测（自研，判据 sim/tb_ku5p_telem.v）
+│   ├── ku5p_telem.v        ← 周期性 UDP 遥测（自研，v0x02 起 42 字节；判据 sim/tb_ku5p_telem.v）
+│   ├── ku5p_cmd.v          ← PC → 板的文本命令通道 CLR/SNAP/SPD（自研；判据 sim/tb_v80_ku5p_cmd.v）
 │   ├── ku5p_tx_arb.v       ← GMII 发送仲裁（自研，替掉厂商 eth_ctrl 的 mux；判据 sim/tb_ku5p_tx_arb.v）
 │   （打包器在共用目录：../src/rtl/video/fb_pack.v，判据 ../sim/tb_fb_pack.v 12 条）
 │   ├── gmii_to_rgmii.v ┐
@@ -93,9 +97,17 @@ PHY 的 25 MHz 是它**自己的晶振**（Y501 的 XI/XTAL），不是给 FPGA 
 | led[3] | 心跳 ≈3.7 Hz（125 MHz ÷ 2²⁴） | 证明"有时钟、复位已释放" |
 
 4. **发送侧从"只会应答"升级成"会主动说话"，并把厂商的 GMII mux 换成自研仲裁器**：
-   - `ku5p_telem` 每秒打一包 36 字节 UDP（帧数/包数/字节/错包/越界/缺行/上电秒数/标志位），
+   - `ku5p_telem` 打一包 UDP 遥测（帧数/包数/字节/错包/越界/缺行/上电秒数/标志位），
      PC 侧 `node src/host/ku5p_stats.mjs` 一行显示 ⇒ 这块板不再只能靠 4 个 LED 表达自己。
      **只有 ARP 学到对端才发**（`des_mac==0` 时厂商代码会往随机 MAC 发，那不是"发不出去"而是"发错地方"）。
+   - R31 起它是**双向**的：`ku5p_cmd` 在**目的端口 5002**（视频流是 5001，靠同一个
+     `udp_rx_parser` 的端口过滤分开）听几条 ASCII 命令 —— `CLR` 推统计基线、`SPD<n>` 改上报周期、
+     `SNAP` 立刻回一包（这一包就是命令的 ack）。载荷升到 **v0x02 / 42 字节**，
+     多出来的 6 个字节是 `cmds_ok / cmds_bad / period / flags2` ⇒ "命令生效没有"是**读回来的**。
+     PC 侧 `node src/host/ku5p_cmd.mjs SPD5`（带 `--selftest`，与 RTL 用同一批用例）。
+     两个不是凑数的设计决定：① `CLR` **不动** `frame_reasm` 的计数器，只在遥测侧推基线
+     （改别人的端口输出要连带重跑那三块板的板级结论）；② 命令的**规则表写在 RTL、台架、PC 工具三处**，
+     所以 `tb_v80_ku5p_cmd.v` 与 `ku5p_cmd.mjs --selftest` 用同一批用例（SPD0/SPD1X/SNA 必须两边都拒）。
    - 厂商 `eth_ctrl` 的三选一 mux 有一条真 bug：
      `arp_rx_flag && (udp_tx_busy==0 || icmp_tx_busy==0)` —— 那个 `||` 让"任一空闲"就能在
      **帧中间**把 mux 切给 ARP。今天只有 ARP/ICMP 交替时窗口很窄没暴露；有了周期性遥测就是常态。
@@ -179,7 +191,18 @@ vivado -mode batch -nojournal -log ku5p/build/ku5p_impl.log \
    - 没有包但 ping 通 ⇒ 板子还没学到对端（`ku5p_telem` 的 `peer_known` 门），先 `ping` 一次；
    - 端口被占 ⇒ `--port` 只能改**监听**侧，板上源/目的端口写死 1234（厂商 `udp_tx` 里 `ip_head[5]`）；
    - `bad`/`oob` 持续增长 ⇒ 就是第 3 步说的 RGMII 采样问题，回来补 IDELAYE3。
-5. 厂商授权这件事**今晚已经查过**（§6：整份资料里没有任何 LICENSE/授权文件），
+5. **命令通道（R31 新增，这条做完才算"双向"）**：
+   `node src/host/ku5p_cmd.mjs SNAP` → 期望**立刻**多一包遥测（不用等周期），且那包里
+   `cmds_ok` 比上一包 +1。再来两条：
+   - `node src/host/ku5p_cmd.mjs SPD5` → `ku5p_stats.mjs` 那扇窗的 `period=5s`，两包间隔变成 5 秒；
+   - `node src/host/ku5p_cmd.mjs CLR` → 下一包的 `frames/pkts/...` 变成"自本次 CLR 以来"的差值
+     （解析器会打 `[自上次 CLR]`），推流不停的话数值会重新从小往上涨。
+   - 反面对照（必须**不**生效）：`node src/host/ku5p_cmd.mjs SPD0` 会被 PC 侧直接拒发；
+     绕过去硬发（`node -e` 一句 dgram）则要看到板上 `cmds_bad` +1 而 `period` 不变 ——
+     这一条测的是"板子的规则表和 PC 的是同一份"。
+   - 收不到 ack 的三种原因按顺序查：没学到 ARP（先 `ping`）、`CMD_PORT` 不是 5002、
+     以及 1234 被 `ku5p_stats.mjs` 占着（那时加 `--no-ack`，去那扇窗看 `cmds/period` 两栏）。
+6. 厂商授权这件事**今晚已经查过**（§6：整份资料里没有任何 LICENSE/授权文件），
    所以口径固定为"三份 RGMII 文件是第三方样例、不计入自研清单"。如果评审另有要求，
    §6 里写了两条退路（挪出仓库按需 add_files / 自己重写 IDDRE1 桥）。
 
@@ -198,10 +221,15 @@ FCS-32，因为 RGMII 根本没有 RX_ER 这根线）+ `udp_rx_parser`（带目�
 1. ~~让上报的每个数字都名副其实~~ **已做（R26）**，见上面那段。剩下的口径工作：
    `udp_rx_parser` 的 `stat_drop_filt`（被端口过滤掉的包数）目前还没接到任何可读寄存器/遥测字段上 ——
    接不接是个独立小决定，没顺手塞进这一笔（`report/ISSUES.md` #38 末尾）。
-2. **让 PC 能对这块板下命令**（现在它只会上报）。有了可用的 TX 通道，"回一个 ack"已经通了，
-   下一步是把 `udp_rx` 收到的载荷当成命令字（例如清统计、改上报周期、触发一次快照），
-   这样两板才能演成"KU5P 做前端节点、Zynq 做显示与总控"的异构结构（这也是比赛谱系里
-   最有辨识度的那一条，见 `report/OVERNIGHT_LOG.md` §9 的口径）。
+2. ~~让 PC 能对这块板下命令~~ **R31 已做（RTL + 台架 + PC 工具），剩上板那一步（§8 第 5 条）**：
+   `ku5p_cmd` 在目的端口 5002 听 `CLR` / `SNAP` / `SPD<n>`，遥测载荷升到 v0x02（42 字节，
+   多出的 6 字节就是命令通道的回执）。判据：`sim/tb_v80_ku5p_cmd.v` 35 条（含两种 `p_eof` 时序、
+   三条必须被拒的近似命令、以及 ok/bad 总账）+ `tb_ku5p_telem.v` 的 C7/C8（周期真变了、
+   CLR 交的是差值、SNAP 不等 tick）+ `ku5p_cmd.mjs --selftest` 16 条（与 RTL 同一批用例）。
+   这样两板才演得成"KU5P 做前端节点、Zynq 做显示与总控"的异构结构
+   （比赛谱系里最有辨识度的那一条，见 `report/OVERNIGHT_LOG.md` §9 的口径）。
+   **下一小步**（还没做）：把 `udp_rx_parser` 的 `stat_drop_filt` 接到遥测里，
+   让"有别的端口在敲这块板"也变成一个读数 —— 现在它只连到 `_unused_ok` 占位。
 3. ~~补跑一次 KU5P 综合冒烟~~ **已复验（R25，07:40）**：`ku5p/build/tcl/ku5p_build.tcl` 的
    `eth_keep` 里删掉了 `eth_ctrl.v` —— 依据是"全仓只有 Z7 的 `eth_udp_video_top.v:166` 例化它，
    `ku5p_eth_top` 用的是自研 `ku5p_tx_arb`"。但**没人例化**这件事我是 grep 出来的、不是综合证明的，
@@ -223,7 +251,7 @@ FCS-32，因为 RGMII 根本没有 RX_ER 这根线）+ `udp_rx_parser`（带目�
    `ku5p/src/rtl_exp/frame_buffer_uram.v` 文件头（这个实验默认完全关闭，不影响交付的比特流）。
 5. 显示半边：FH1159 FMC 子卡（要 GTY + 时钟芯片），或者把 KU5P 收到的流经第二块以太网口
    转给 Zynq 显示 —— 后者不需要任何新硬件。
-6. 若上板发现 RGMII 收不全（125 MHz 源同步没做延时补偿），再考虑补 IDELAYE3；
+7. 若上板发现 RGMII 收不全（125 MHz 源同步没做延时补偿），再考虑补 IDELAYE3；
    判据已经埋在 LED 与遥测里（`abort`/`bad` 计数不为 0 且 `rows_missed` 稳定增长）。
 
 ## 10. 关于那条 +13 ps 的保持余量：**先把概念摆正，再决定要不要动**

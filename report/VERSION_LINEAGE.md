@@ -144,9 +144,25 @@
 **"两套代码、一个顶层家族"这件事要说清**：`ku5p/src/rtl/` 下的 `gmii_to_rgmii/rgmii_rx/rgmii_tx`
 与 `src/rtl/eth/` 下的同名文件是**同一层的两种器件写法**（7 系列 `IDELAYE2+IDDR` vs
 UltraScale+ `IDDRE1+BUFIO`），不是副本也不是分叉 —— 所以它们不能出现在同一次 xvlog/综合里，
-全量回归脚本只显式加入 KU5P 自研的那两个模块（理由写在 `sim/run_sim.tcl` 的注释里）。
+全量回归脚本只显式加入 KU5P 自研的那几个模块（R31 起是三个：`ku5p_telem` / `ku5p_tx_arb` /
+`ku5p_cmd`；理由与"加新模块要两处清单一起改"的坑都写在 `sim/run_sim.tcl` 的注释里）。
 
 **下一步（明天之后）在谱系里的落点**：`ISSUES.md` #37（厂商 mux 的 `||`→`&&` + `arp_pend` 记账位）
 **已在 v7.9 走完整条链**（改 RTL → L1 全量 40/40 → L3 门禁 → 冻结 `frozen_r19_*`）；
 #38（把自研 `gmii_rx_mac + udp_rx_parser` 换上顶层，顺带解决目的端口过滤）仍未做，
 它要走的是同一条完整链 —— 不能借一次顺手改就带进主线。
+
+## 7. V7.9 之后那三夜（R29–R31）在谱系里的位置 —— 2026-09-23 深夜
+
+| 位置 | 内容 | 证据（数字的唯一出处仍是 `report/CHANGELOG_V7.md`） |
+|---|---|---|
+| 主线默认 bit **仍是 build#23**（`build/frozen_r23_srcseen/`，md5 `18443ffd`） | SD 卡本地回放**已经上屏**（用户眼睛确认）⇒ P1 板级完整；这一版是"能演示"的那一版 | `report/OVERNIGHT_LOG.md` §19；`board/evidence_r29/` |
+| `build/frozen_r24_srcarb/`（`696a5271`）**留作反例**，不是候选 | 片源仲裁第一版：七项门禁全绿、L1 44/44，**板级判据红**（停流不交回画面） | 它的 `MANIFEST.txt` 里写清了哪一条红、为什么红 |
+| `build/frozen_r25_arbfix/`（`ad4aa31c`）= **候选默认** | 仲裁修正版（判据要与时基健康相与，见 `ISSUES.md` #49）；**两条眼睛判据未过之前不改默认** | `board/README.md` "需要肉眼确认的项" 第 7/8 行 |
+| KU5P 子工程（R31 命令通道） | 从"只会上报"变成**双向**：`ku5p_cmd.v`(端口 5002, `CLR/SNAP/SPD<n>`) + 遥测载荷 v0x01→**v0x02**（36→42 字节）。台架级，未上板 | `ku5p/README.md` §1/§8/§9；`sim/tb_v80_ku5p_cmd.v`；`src/host/ku5p_cmd.mjs --selftest` |
+
+**版本声明里必须一起说的三件事**（避免"v7.9"被读成"全做完了"）：
+① 主线双线性插值仍是 tag `v7.8-bilinear-wip`，**没有**进任何默认位流；
+② KU5P 全部能力都还是台架级（这块板从没通过 JTAG 跑过一次）；
+③ `build#24` 那一类"门禁全绿但板上不工作"的教训说明：**绿只覆盖它能覆盖的性质**，
+   所以每一版都在 MANIFEST 里写清"这一版的判据是谁、还没验的是哪一条"。
