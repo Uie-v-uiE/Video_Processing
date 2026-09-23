@@ -57,12 +57,11 @@ module tb_v795_rx_fcs;
             fr[14] = 8'hc0; fr[15] = 8'ha8; fr[16] = 8'h00;      // SA
             fr[17] = 8'h01; fr[18] = 8'h12; fr[19] = 8'h34;
             fr[20] = 8'h08; fr[21] = 8'h00;                      // type = IPv4
+            // 先摆好载荷，再对 **DA[0]..载荷末** 整段算 CRC —— FCS 盖住载荷是不够的，
+            // 第一版就是这么错的（量出来一个自洽但不是以太网的常数 0x4223AD77）。
+            for (k = HDR; k < HDR + PAY; k = k + 1) fr[k] = k[7:0] ^ seed[7:0];
             c = 32'hFFFF_FFFF;
-            for (k = HDR; k < HDR + PAY; k = k + 1) begin
-                b = k[7:0] ^ seed[7:0];
-                fr[k] = b;
-                c = crc32_step(b, c);
-            end
+            for (k = 8; k < HDR + PAY; k = k + 1) c = crc32_step(fr[k], c);
             c = c ^ 32'hFFFF_FFFF;                    // 标准末异或
             // FCS 在线上是 LSB 先出
             fr[HDR+PAY+0] = c[ 7: 0];
@@ -123,7 +122,7 @@ module tb_v795_rx_fcs;
             integer q; reg [31:0] c0;
             build_frame(8'h00);
             c0 = 32'hFFFF_FFFF;
-            for (q = HDR; q < FLEN; q = q + 1) c0 = crc32_step(fr[q], c0);
+            for (q = 8; q < FLEN; q = q + 1) c0 = crc32_step(fr[q], c0);   // 从 DA[0] 起算
             if (c0 !== 32'hDEBB_20E3) begin
                 $display("FAIL T0 台架自校：造出来的帧不是标准 FCS（校验值=%h，应为 debb20e3）", c0);
                 errors = errors + 1;

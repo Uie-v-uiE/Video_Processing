@@ -25,7 +25,7 @@ module gmii_rx_mac (
     output reg        m_bad
 );
     // 整帧（含 4 字节 FCS）过完 crc32_d8 之后的残值。由台架实测得到，不要凭记忆改。
-    localparam [31:0] FCS_RESIDUE = 32'h42_23_AD_77;
+    localparam [31:0] FCS_RESIDUE = 32'hC7_04_DD_7B;
     // ↑ 实测值，不是推算值：`sim/tb_v795_rx_fcs.v` 用两套独立实现造帧再量出来的
     //   （第一版我凭印象写了一个数，被那条 T5 判据当场拦下）。
 
@@ -75,7 +75,12 @@ module gmii_rx_mac (
 
             if (!gmii_rx_dv) begin
                 if (state == S_DATA) begin
-                    // 帧尾判定：长度、ER、FCS 三个条件都要过才算好帧
+                    // 帧尾脉冲。约定：**m_eof 与 m_good/m_bad 同拍**，表示"上一个 m_valid 的字节
+                    // 就是帧的最后一个字节"（最后一个字节本身在上一拍已经随 m_valid 出去了）。
+                    // V7.9.5 补：`m_eof` 从这一版之前**从来没有被拉高过**（端口声明了、复位清 0 了、
+                    // 但没有任何一处写 1），所以例化它的下游永远等不到包边界 —— 这条是
+                    // `sim/tb_v795_rx_chain.v` 的 C1 抓到的（这个模块此前没有任何顶层例化过它）。
+                    m_eof <= 1'b1;
                     if (!er_seen && !gmii_rx_er && (cnt >= 16'd64) && fcs_ok) begin
                         m_good <= 1'b1;
                     end else begin

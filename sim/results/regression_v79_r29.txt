@@ -1,0 +1,107 @@
+
+****** Vivado v2025.2.1 (64-bit)
+  **** SW Build 6403652 on Thu Mar 19 19:48:24 GMT 2026
+  **** IP Build 6403511 on Thu Mar 19 12:41:45 MDT 2026
+  **** SharedData Build 6403650 on Thu Mar 19 14:02:13 MDT 2026
+  **** Start of session at: Wed Sep 23 12:28:32 2026
+    ** Copyright 1986-2022 Xilinx, Inc. All Rights Reserved.
+    ** Copyright 2022-2026 Advanced Micro Devices, Inc. All Rights Reserved.
+
+source sim/run_sim.tcl
+# set ws [file normalize [file join [file dirname [info script]] ..]]
+# set rtl_dir [file join $ws src rtl]
+# set simdir  [file join $ws sim]
+# set work    [file join $ws sim_work]
+# puts "WS: $ws"
+WS: D:/Xilinx/Prj/pro/Video_Processing
+# foreach d [list $rtl_dir $simdir] {
+#     if {![file isdirectory $d]} { puts "FATAL missing $d"; exit 1 }
+# }
+# file mkdir $work
+# cd $work
+# catch {exec cmd /c rmdir /s /q xsim.dir}
+# set rtl {}
+# foreach f [glob -nocomplain [file join $rtl_dir *.v]] { lappend rtl $f }
+# foreach d [glob -nocomplain -directory $rtl_dir *] {
+#     if {![file isdirectory $d]} { continue }
+#     foreach f [glob -nocomplain [file join $d *.v]] { lappend rtl $f }
+#     foreach s [glob -nocomplain [file join $d * *.v]] { lappend rtl $s }
+# }
+# set rtl [lsort -unique $rtl]
+# set tbs [lsort [glob -nocomplain [file join $simdir tb_*.v]]]
+# foreach f [list [file join $ws ku5p src rtl ku5p_telem.v] \
+#                [file join $ws ku5p src rtl ku5p_tx_arb.v]] {
+#     if {[file exists $f]} { lappend rtl $f }
+# }
+# puts "xvlog rtl=[llength $rtl] tb=[llength $tbs]"
+xvlog rtl=68 tb=43
+# set sources {}
+# foreach f [concat $rtl $tbs] { lappend sources [file normalize $f] }
+# if {[catch {eval exec xvlog $sources} msg]} {
+#     puts "XVLOG FAILED"
+#     puts $msg
+#     exit 1
+# }
+XVLOG FAILED
+INFO: [VRFC 10-2263] Analyzing Verilog file "D:/Xilinx/Prj/pro/Video_Processing/src/rtl/axi/axi_frame_writer.v" into library work
+INFO: [VRFC 10-311] analyzing module axi_frame_writer
+INFO: [VRFC 10-2263] Analyzing Verilog file "D:/Xilinx/Prj/pro/Video_Processing/src/rtl/axi/axi_frame_writer64.v" into library work
+INFO: [VRFC 10-311] analyzing module axi_frame_writer64
+INFO: [VRFC 10-2263] Analyzing Verilog file "D:/Xilinx/Prj/pro/Video_Processing/src/rtl/axi/axi_frame_writer_gated.v" into library work
+INFO: [VRFC 10-311] analyzing module axi_frame_writer_gated
+INFO: [VRFC 10-2263] Analyzing Verilog file "D:/Xilinx/Prj/pro/Video_Processing/src/rtl/clocks/clk_gen.v" into library work
+INFO: [VRFC 10-311] analyzing module clk_gen
+INFO: [VRFC 10-2263] Analyzing Verilog file "D:/Xilinx/Prj/pro/Video_Processing/src/rtl/eth/arp.v" into library work
+INFO: [VRFC 10-311] analyzing module arp
+INFO: [VRFC 10-2263] Analyzing Verilog file "D:/Xilinx/Prj/pro/Video_Processing/src/rtl/eth/arp_rx.v" into library work
+INFO: [VRFC 10-311] analyzing module arp_rx
+INFO: [VRFC 10-2263] Analyzing Verilog file "D:/Xilinx/Prj/pro/Video_Processing/src/rtl/eth/arp_tx.v" into library work
+INFO: [VRFC 10-311] analyzing module arp_tx
+INFO: [VRFC 10-2263] Analyzing Verilog file "D:/Xilinx/Prj/pro/Video_Processing/src/rtl/eth/axi_frame_saver.v" into library work
+INFO: [VRFC 10-311] analyzing module axi_frame_saver
+INFO: [VRFC 10-2263] Analyzing Verilog file "D:/Xilinx/Prj/pro/Video_Processing/src/rtl/eth/axi_frame_saver64.v" into library work
+INFO: [VRFC 10-311] analyzing module axi_frame_saver64
+INFO: [VRFC 10-2263] Analyzing Verilog file "D:/Xilinx/Prj/pro/Video_Processing/src/rtl/eth/axi_frame_saver_burst.v" into library work
+INFO: [VRFC 10-311] analyzing module axi_frame_saver_burst
+INFO: [VRFC 10-2263] Analyzing Verilog file "D:/Xilinx/Prj/pro/Video_Processing/src/rtl/eth/crc32_d8.v" into library work
+INFO: [VRFC 10-311] analyzing module crc32_d8
+INFO: [VRFC 10-2263] Analyzing Verilog file "D:/Xilinx/Prj/pro/Video_Processing/src/rtl/eth/dc_fifo.v" into library work
+INFO: [VRFC 10-311] analyzing module dc_fifo
+INFO: [VRFC 10-2263] Analyzing Verilog file "D:/Xilinx/Prj/pro/Video_Processing/src/rtl/eth/ddr_bank_commit.v" into library work
+INFO: [VRFC 10-311] analyzing module ddr_bank_commit
+INFO: [VRFC 10-2263] Analyzing Verilog file "D:/Xilinx/Prj/pro/Video_Processing/src/rtl/eth/eth_ctrl.v" into library work
+INFO: [VRFC 10-311] analyzing module eth_ctrl
+INFO: [VRFC 10-2263] Analyzing Verilog file "D:/Xilinx/Prj/pro/Video_Processing/src/rtl/eth/eth_udp_video_top.v" into library work
+INFO: [VRFC 10-311] analyzing module eth_udp_video_top
+INFO: [VRFC 10-2263] Analyzing Verilog file "D:/Xilinx/Prj/pro/Video_Processing/src/rtl/eth/frame_reasm.v" into library work
+INFO: [VRFC 10-311] analyzing module frame_reasm
+INFO: [VRFC 10-2263] Analyzing Verilog file "D:/Xilinx/Prj/pro/Video_Processing/src/rtl/eth/gmii_rx_mac.v" into library work
+INFO: [VRFC 10-311] analyzing module gmii_rx_mac
+INFO: [VRFC 10-2263] Analyzing Verilog file "D:/Xilinx/Prj/pro/Video_Processing/src/rtl/eth/gmii_to_rgmii.v" into library work
+INFO: [VRFC 10-311] analyzing module gmii_to_rgmii
+INFO: [VRFC 10-2263] Analyzing Verilog file "D:/Xilinx/Prj/pro/Video_Processing/src/rtl/eth/icmp.v" into library work
+INFO: [VRFC 10-311] analyzing module icmp
+INFO: [VRFC 10-2263] Analyzing Verilog file "D:/Xilinx/Prj/pro/Video_Processing/src/rtl/eth/icmp_rx.v" into library work
+INFO: [VRFC 10-311] analyzing module icmp_rx
+INFO: [VRFC 10-2263] Analyzing Verilog file "D:/Xilinx/Prj/pro/Video_Processing/src/rtl/eth/icmp_tx.v" into library work
+INFO: [VRFC 10-311] analyzing module icmp_tx
+INFO: [VRFC 10-2263] Analyzing Verilog file "D:/Xilinx/Prj/pro/Video_Processing/src/rtl/eth/link_monitor.v" into library work
+INFO: [VRFC 10-311] analyzing module link_monitor
+INFO: [VRFC 10-2263] Analyzing Verilog file "D:/Xilinx/Prj/pro/Video_Processing/src/rtl/eth/rgmii_rx.v" into library work
+INFO: [VRFC 10-311] analyzing module rgmii_rx
+INFO: [VRFC 10-2263] Analyzing Verilog file "D:/Xilinx/Prj/pro/Video_Processing/src/rtl/eth/rgmii_tx.v" into library work
+INFO: [VRFC 10-311] analyzing module rgmii_tx
+INFO: [VRFC 10-2263] Analyzing Verilog file "D:/Xilinx/Prj/pro/Video_Processing/src/rtl/eth/snap_cross.v" into library work
+INFO: [VRFC 10-311] analyzing module snap_cross
+INFO: [VRFC 10-2263] Analyzing Verilog file "D:/Xilinx/Prj/pro/Video_Processing/src/rtl/eth/sync_fifo.v" into library work
+INFO: [VRFC 10-311] analyzing module sync_fifo
+INFO: [VRFC 10-2263] Analyzing Verilog file "D:/Xilinx/Prj/pro/Video_Processing/src/rtl/eth/udp.v" into library work
+INFO: [VRFC 10-311] analyzing module udp
+INFO: [VRFC 10-2263] Analyzing Verilog file "D:/Xilinx/Prj/pro/Video_Processing/src/rtl/eth/udp_rx.v" into library work
+INFO: [VRFC 10-311] analyzing module udp_rx
+INFO: [VRFC 10-2263] Analyzing Verilog file "D:/Xilinx/Prj/pro/Video_Processing/src/rtl/eth/udp_rx_parser.v" into library work
+INFO: [VRFC 10-311] analyzing module udp_rx_parser
+ERROR: [VRFC 10-3380] identifier 'accept' is used before its declaration [D:/Xilinx/Prj/pro/Video_Processing/src/rtl/eth/udp_rx_parser.v:32]
+ERROR: [VRFC 10-8530] module 'udp_rx_parser' is ignored due to previous errors [D:/Xilinx/Prj/pro/Video_Processing/src/rtl/eth/udp_rx_parser.v:4]
+child process exited abnormally
+INFO: [Common 17-206] Exiting Vivado at Wed Sep 23 12:28:34 2026...
