@@ -93,7 +93,9 @@ node src\hostrb_handover_test.mjs                                  :: 完整一�
 **一条用坏过一整张卡换来的规矩（ISSUES #50/#45）**：*回放跑着的时候，别让调试器按住 A9。*
 内核停在一次 SD 传输中间，恢复之后控制器仍留在那次未完成的传输里；连着几次之后
 `XSdPs_CfgInitialize` 就再也不能成功（它每个上电周期只成功一次），表现是
-`PLAY` 报 `SD read failed`、`STAT` 报 `sd=0`，**只能断电重插**。今晚就是这么把卡弄僵的。
+`PLAY` 报 `SD read failed`、`STAT` 报 `sd=0`，**要重跑一遍完整 bring-up 才救得回来**
+（`ps_jtag_boot → program_pl → ps_app_reload`；**不需要断电** —— 这一句在 09-24 之前写的是"只能断电重插"，
+那是我在 #50 里判错的话，已改）。今晚就是这么把卡弄僵的。
 所以：
 - `arb_handover_test.mjs` 现在测前问一次 `STAT`，在放就先 `STOP`、测完再 `PLAY` 回去
   （串口被别的程序占着就跳过这层保护，并打印为什么跳过）；
@@ -101,6 +103,20 @@ node src\hostrb_handover_test.mjs                                  :: 完整一�
   读完再 `PLAY`；
 - 反过来，`rst -processor`（`ps_app_reload.tcl` 的第一步）打在传输中间，会让**这一次启动**的挂载失败：
   看到"救不回来"先怀疑是自己救的方式不对，别急着怪卡（我在 #50 里就写错过一次这条）。
+
+## SD 回放在串口上该看到什么（#50 结案后的口径，elf `c00b6553` 起）
+
+| 串口行 | 含义 | 不该看到什么 |
+|---|---|---|
+| `[SD] dir map ok: 9 files, first clusters within 1946818` | 挂载时把**每个**片源文件的首簇都与分区上界核对过一遍（#50 的判据） | `WARN n/9 file(s) have cluster >= ...` ⇒ 目录项/簇号不对，别再往下播 |
+| `[SD] autoplay: playing` + 每 100 帧一条 `[SD] frame N: ... 29.x fps` | 自动开播，速率自报（不用任何人敲命令） | 停在 `frame 3584` ⇒ 用的是 #31 或更早的 elf（那条 elf 已标注作废） |
+| 播到 4398 后出现 `frame 6 / 106 / 206 …` | **整卡播完并自动回绕**（这是 #50 修复的端到端凭据） | — |
+| `[SD] autoplay: mount failed: cluster decode SELF-TEST failed (firmware bug, not the card)` | 固件的 FAT 解码自检没过 ⇒ **拒绝挂载**，与卡无关 | 看到这句不要怀疑卡，怀疑 elf |
+| `[SDRD!] lba=… clus=… part_end=… OUT-OF-RANGE` | 读失败时自己报出"想去哪儿、这地址怎么来的、边界在哪" —— 就是它把 #50 从"并发挤的"翻案成"字节序拼错" | 正常回放里不该出现；出现就把这一行整行贴进 issue |
+
+判据的完整推法（三个数字怎么锁死因果链）在 `report/ISSUES.md` #50 结案段，
+凭据在 `build/frozen_r32_sdfix/`（`sd_hotspot_diag.txt` 是修复前、`sd_hotspot_fixed.txt` 是修复后、
+`sd_selftest_red.txt` 是把字节序改回去后判据确实翻红的反例）。
 
 ## 需要肉眼确认的项
 
