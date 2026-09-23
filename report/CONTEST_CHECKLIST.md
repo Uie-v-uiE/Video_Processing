@@ -38,7 +38,7 @@
 | 上板工程、运行脚本、实测输出与参考结果比对 | `board/README.md`、`build/tcl/program_*.tcl`、`data/measured/`、`data/golden/` | |
 | 可复现的构建脚本 | `build/tcl/build_system_axigpio.tcl`、`ku5p/build/tcl/ku5p_build.tcl` | 全部仓库相对路径 |
 | 技能包 `skill/README.md` | ✅ 12 项 + 四类归纳 + 配套脚本表 | |
-| 设计报告：背景与创新点 / 原理与框图 / 软硬件划分 / 优化过程含前后对比表 / 协作记录 / 技能包提炼过程 / 复现说明 | `report/ARCHITECTURE.md`、`PS_VS_PL.md`、`PERF_REPORT.md`、`OPTIMIZATION_LOG.md`、`AI_COLLABORATION.md`、`BUILD.md`、`ISSUES.md`、`CHANGELOG_V6/V7.md` | |
+| 设计报告：**背景与创新点要含"前人做过什么"** / 原理与框图 / 软硬件划分 / 优化过程含前后对比表 / 协作记录 / 技能包提炼过程 / 复现说明 | `report/BACKGROUND_AND_NOVELTY.md`（新增：三条确切参照 + 明确声明"未做系统文献检索" + 五条创新点逐条挂证据）、`ARCHITECTURE.md`、`PS_VS_PL.md`、`PERF_REPORT.md`、`OPTIMIZATION_LOG.md`、`AI_COLLABORATION.md`、`BUILD.md`、`ISSUES.md`、`CHANGELOG_V6/V7.md` | ⚠ 前人工作一节只敢列确切参照过的三条，正式检索待补（写在该文 §5） |
 | 推荐目录结构（非强制，但采用其他组织须在 README 给出**目录对照**） | `README.md` 的目录树 + `report/MODULES.md` 模块地图 | 我们多了 `ku5p/`（第二块板）与 `report/` 细分 |
 
 ## 4. 还没做到 / 待办（诚实清单）
