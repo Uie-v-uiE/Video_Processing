@@ -90,10 +90,16 @@ static int read_secs(u32 lba, u32 cnt, u8 *dst)
         u32 n = (cnt > 64u) ? 64u : cnt;
         int try;
         Xil_DCacheFlushRange((INTPTR)dst, (s32)(n * 512u));
-        /* 一次重试的由来（板上实测，ISSUES #50）：一边 30 fps 推流（PL 每个 V-blank 用 HP0
-         * 抢一整帧 DDR）一边回放，第 3584 帧出现一次 `XSdPs_ReadPolled` 超时 —— 之后重放
-         * 同一个位置又是好的。所以这是"被挤到超时"而不是卡坏了；重试一次能把这种单点抖动
-         * 挡在演示之外，但**不改变**"并发工况下回放会偶发超时"这个事实，别拿它当已治好。 */
+        /* 一次重试的由来（板上实测，ISSUES #50）：一边 30 fps 推流一边回放，第 3584 帧
+         * 报 `XSdPs_ReadPolled` 超时。当时这里写的是"之后重放同一个位置又是好的"，
+         * 于是归成"被挤到超时"—— 2026-09-24 把这个解释**推翻**了：
+         *   · 两次独立长跑（一次并发、一次完全不碰 JTAG）都停在**同一帧号 3584**；
+         *   · 定点跳帧：FRAME3583 好、FRAME3584 = SD read failed（3584 = 7×512，
+         *     正好是第 8 个文件 VIDEO007.BIN 的**第一帧**）。
+         * 所以这是**定点坏点**而不是竞态：重试对定点坏点没用（它只是让偶发的单点抖动
+         * 不掐断演示，这个作用保留）。之后那串 "frame file not found" 是次生的：
+         * 一次读失败会把控制器留在未完成的传输里，后面每次读（含目录扫描）都失败。
+         * 定位与下一步（拿到 PC 上逐文件比 md5、看首簇/FAT 项）见 ISSUES #50。 */
         for (try = 0; try < 2; try++) {
             if (XSdPs_ReadPolled(&Sd, lba, n, dst) == XST_SUCCESS) break;
             err = "SD read failed";

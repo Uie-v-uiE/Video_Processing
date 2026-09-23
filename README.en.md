@@ -13,12 +13,13 @@ The displayed picture has **three sources**, chosen automatically by an arbiter 
 by itself at power-on (`AUTOPLAY0/1` to disable), yields to a live stream and takes the screen back
 within a few hundred ms after the stream stops — no cable pulling, no re-programming. `KEY1` short
 press still steps rotation by ±1°; a **1.2 s long press** cycles auto / lock-ETH / lock-PS / lock-card.
-The hand-over timing is **measured, not observed-by-eye**: four independent runs on the same bit put
-the stop-to-hand-back time at **210 / 285 / 406 / 434 ms**, stream-start-to-take-over at 150-253 ms,
-with zero unintended flips. A *range* is quoted deliberately: the resolution of that number is the
+The hand-over timing is **measured, not observed-by-eye**: five independent runs on the same bit put
+the stop-to-hand-back time at **210 / 285 / 406 / 434 / 481 ms**, stream-start-to-take-over at
+150-377 ms, with zero unintended flips in all five. A *range* is quoted deliberately: the resolution of that number is the
 sampling period (100 or 300 ms depending on how the probe halts the CPU), and the design budget is
 200 ms (declare the stream dead) + 20 ms (quiet before yielding) = ~220 ms, which the measurements are
-consistent with. Reproduce with `node src/host/arb_handover_test.mjs`; evidence in
+consistent with. Reproduce with `node src/host/arb_handover_test.mjs` (it sends `STOP` before and `PLAY` after the
+probe, because the probe halts the CPU); evidence in
 `build/frozen_r31_srcmode/arb_handover_green_r31.json`. Everything the arbiter itself sees (current
 owner, whether ETH is live, whether its timebase can be trusted, the mode it is honouring, both
 engines' busy flags) is mapped onto **AXI GPIO lane 30**, so the verdict needs no one looking at a

@@ -1,0 +1,18 @@
+[SD] stopped at frame 1062
+[CTRL] AXI_GPIO=0x000F5000 en=00 thr=80 src=1 zoom=1 pub=1 bilin=1
+[SD] frame 3584 failed: SD read failed
+[SDDBG] name='VIDEO007.BIN' k83=564944454F303037_42494E
+        root_clus=2 fat_next=268435455 meta_clus=0 spc=32 fat_lba=4396 data_lba=34816
+[SD] frame 4095 failed: frame file not found on card
+[SDDBG] name='VIDEO008.BIN' k83=564944454F303038_42494E
+        root_clus=2 fat_next=268435455 meta_clus=0 spc=32 fat_lba=4396 data_lba=34816
+[SD] frame 4096 failed: frame file not found on card
+[SDDBG] name='VIDEO008.BIN' k83=564944454F303038_42494E
+        root_clus=2 fat_next=268435455 meta_clus=0 spc=32 fat_lba=4396 data_lba=34816
+[SD] frame 4397 failed: frame file not found on card
+[CTRL] AXI_GPIO=0x000F5000 en=00 thr=80 src=1 zoom=1 pub=1 bilin=1
+[SD] playing (STOP to end; ETH ????????????????????????)
+[SDDBG] name='VIDEO000.BIN' k83=564944454F303030_42494E
+        root_clus=2 fat_next=268435455 meta_clus=0 spc=32 fat_lba=4396 data_lba=34816
+[SD] playback stopped at frame 0: frame file not found on card (PLAY retries; if it keeps failing, re-download the elf)
+
