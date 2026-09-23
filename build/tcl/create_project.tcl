@@ -1,4 +1,4 @@
-﻿# Create Vivado project for Zynq7020 video pipeline (Vivado 2025.2.x)
+# Create Vivado project for Zynq7020 video pipeline (Vivado 2025.2.x)
 # Usage:
 #   vivado -mode batch -source tcl/create_project.tcl -tclargs pl
 #   vivado -mode batch -source tcl/create_project.tcl -tclargs system

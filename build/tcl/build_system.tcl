@@ -1,4 +1,4 @@
-﻿# Rebuild system BD with FCLK export + address assign + matching system_top
+# Rebuild system BD with FCLK export + address assign + matching system_top
 set root [file normalize [file join [file dirname [info script]] ..]]
 set proj_dir [file join $root vivado_system]
 set proj_name zynq_video_sys

@@ -1,4 +1,4 @@
-﻿# Full flow: create PL project + synth + impl + bitstream
+# Full flow: create PL project + synth + impl + bitstream
 set root [file normalize [file join [file dirname [info script]] ..]]
 set proj_dir [file join $root vivado]
 set proj_name zynq_video_pipeline

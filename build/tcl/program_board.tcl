@@ -1,4 +1,4 @@
-﻿# Program FPGA with JTAG (select xc7z020, not arm_dap)
+# Program FPGA with JTAG (select xc7z020, not arm_dap)
 set root [file normalize [file join [file dirname [info script]] ..]]
 set bit [file join $root build video_pipeline.bit]
 

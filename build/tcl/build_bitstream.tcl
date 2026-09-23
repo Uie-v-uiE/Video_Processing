@@ -1,4 +1,4 @@
-﻿# Synthesize + implement + bitstream
+# Synthesize + implement + bitstream
 # Usage: vivado -mode batch -source tcl/build_bitstream.tcl
 # Optional arg: pl|system (default pl)
 

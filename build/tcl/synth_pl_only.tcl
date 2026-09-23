@@ -1,4 +1,4 @@
-﻿# Quick synth smoke for pl_demo_top (catches RTL issues without full impl)
+# Quick synth smoke for pl_demo_top (catches RTL issues without full impl)
 # Usage: vivado -mode batch -source tcl/synth_pl_only.tcl
 set root [file normalize [file join [file dirname [info script]] ..]]
 set proj_dir [file join $root vivado]

@@ -1,4 +1,4 @@
-﻿# Fix BD: export FCLK/RESET, assign HP0 address, then rebuild
+# Fix BD: export FCLK/RESET, assign HP0 address, then rebuild
 set root [file normalize [file join [file dirname [info script]] ..]]
 set proj_dir [file join $root vivado_system]
 set proj_name zynq_video_sys

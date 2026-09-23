@@ -1,4 +1,4 @@
-﻿# Program system.bit (PL+PS netlist)
+# Program system.bit (PL+PS netlist)
 set root [file normalize [file join [file dirname [info script]] ..]]
 set bit [file join $root build system.bit]
 if {![file exists $bit]} {

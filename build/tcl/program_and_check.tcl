@@ -1,4 +1,4 @@
-﻿# Program FPGA and report timing path
+# Program FPGA and report timing path
 set root [file normalize [file join [file dirname [info script]] ..]]
 set bit [file join $root build video_pipeline.bit]
 set rpt [file join $root build timing_summary.rpt]
