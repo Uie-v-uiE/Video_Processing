@@ -28,6 +28,10 @@ module eth_udp_video_top #(
     output wire [15:0] fb_wr_data,
     output wire        frame_done,
     output wire        link_active,
+    // "最近真的有帧"（stall_ms < LIVE_MS，eth_rxc 域电平）。
+    // 与 link_active 的区别就是片源仲裁需要的那一点：link_active 是"自配置以来收过任何一个包"
+    // （ARP 就够触发、拔线也不回 0），link_live 会在断流 ~200 ms 后自己落回去。
+    output wire        link_live,
     output wire        eth_gmii_clk,
 
     output wire [31:0] ddr_commit_base,
@@ -284,7 +288,7 @@ module eth_udp_video_top #(
         .frame_done(frame_done), .frame_abort(reasm_fabort),
         .frame_err(reasm_ferr), .rows_missed(reasm_rows_miss),
         .in_pkts(s_pkts), .in_bytes(s_bytes), .gapclr(gc2),
-        .lm_bus(lm_bus), .lm_bus_tog(lm_bus_tog), .lm_hb(lm_hb)
+        .lm_bus(lm_bus), .lm_bus_tog(lm_bus_tog), .lm_hb(lm_hb), .lm_live(link_live)
     );
 
     // v6.2: 缓冲主力——BRAM 实现的 CDC（dc_fifo 带 ram_style="block"）。

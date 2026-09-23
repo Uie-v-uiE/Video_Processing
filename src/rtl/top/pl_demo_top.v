@@ -53,6 +53,7 @@ module pl_demo_top (
         .eth_wr_addr(19'd0),
         .eth_wr_data(16'd0),
         .eth_link(1'b0),
+        .eth_live(1'b0),          // 这个 top 没有 ETH 通路：仲裁从复位起就归 PS 侧
         .eth_frame(1'b0),
         .eth_pkts(16'd0),
         .eth_bad(16'd0),

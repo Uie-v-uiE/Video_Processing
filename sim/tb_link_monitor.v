@@ -53,15 +53,67 @@ reg        lm_gapclr = 0;
     wire cdc_wr_req = wr_en | flush;
 
     wire [LMW-1:0] lm_bus;
-    wire           lm_bus_tog, lm_hb;
+    wire           lm_bus_tog, lm_hb, lm_live;
     link_monitor #(.CLK_HZ(1000), .SETTLE(32), .LIVE_MS(16'd200)) u_lm (
         .clk(clk), .rst_n(rst_n),
         .cdc_wr_req(cdc_wr_req), .cdc_full(cdc_full),
         .frame_done(frame_done), .frame_abort(frame_abort),
         .frame_err(frame_err), .rows_missed(rows_missed),
         .in_pkts(s_pkts), .in_bytes(s_bytes), .gapclr(lm_gapclr),
-        .lm_bus(lm_bus), .lm_bus_tog(lm_bus_tog), .lm_hb(lm_hb)
+        .lm_bus(lm_bus), .lm_bus_tog(lm_bus_tog), .lm_hb(lm_hb), .lm_live(lm_live)
     );
+
+    // ============ R30：lm_live（片源仲裁的输入）单独一个实例 + 自己的激励 ============
+    // 为什么不塞进上面那条时间线：那套场景的 frame_done 时机一旦被检查需要而改动，
+    // "旧场景坏了"和"新检查错了"就分不开了。这里另开一路，输入只由本段驱动。
+    // 时间尺度沿用 CLK_HZ=1000 ⇒ 一个时钟 = 1 ms ⇒ LIVE_MS=200 = 200 拍。
+    reg  lv_done = 1'b0;
+    wire [LMW-1:0] lv_bus;
+    wire           lv_tog, lv_hb, lv_live;
+    link_monitor #(.CLK_HZ(1000), .SETTLE(32), .LIVE_MS(16'd200)) u_lm_live (
+        .clk(clk), .rst_n(rst_n),
+        .cdc_wr_req(1'b0), .cdc_full(1'b0),
+        .frame_done(lv_done), .frame_abort(1'b0),
+        .frame_err(1'b0), .rows_missed(16'd0),
+        .in_pkts(32'd0), .in_bytes(32'd0), .gapclr(1'b0),
+        .lm_bus(lv_bus), .lm_bus_tog(lv_tog), .lm_hb(lv_hb), .lm_live(lv_live)
+    );
+
+    initial begin : lv_chk
+        integer lve;                       // 命名块里的变量不能带初值（VRFC 10-3593）
+        lve = 0;
+        wait (rst_n === 1'b1);
+        repeat (5) @(posedge clk);
+        // 复位后 stall_ms 从 0 起算，(0 < LIVE_MS) 会**假装**"流还活着" ——
+        // have_base 那条限定就是为它加的，所以这条是本次改动真正的反面对照。
+        if (lv_live !== 1'b0) begin
+            lve = lve + 1; $display("FAIL L1 one frame ever -> live must be 0 (have_base guard)");
+        end else $display("PASS L1 live=0 before any frame");
+        @(posedge clk); lv_done <= 1'b1;
+        @(posedge clk); lv_done <= 1'b0;
+        @(posedge clk); @(posedge clk);
+        if (lv_live !== 1'b1) begin
+            lve = lve + 1; $display("FAIL L2 frame_done must light live immediately");
+        end else $display("PASS L2 live=1 right after frame_done");
+        repeat (190) @(posedge clk);
+        if (lv_live !== 1'b1) begin
+            lve = lve + 1; $display("FAIL L3 must stay live inside LIVE_MS");
+        end else $display("PASS L3 still live at ~192 ms");
+        repeat (20) @(posedge clk);
+        if (lv_live !== 1'b0) begin
+            lve = lve + 1; $display("FAIL L4 live must fall after LIVE_MS with no frames");
+        end else $display("PASS L4 live=0 after the 200 ms threshold");
+        @(posedge clk); lv_done <= 1'b1;
+        @(posedge clk); lv_done <= 1'b0;
+        @(posedge clk); @(posedge clk);
+        if (lv_live !== 1'b1) begin
+            lve = lve + 1; $display("FAIL L5 a new frame must bring live back");
+        end else $display("PASS L5 live=1 again on a new frame");
+        if (lve == 0) $display("PASS lm_live section (5 checks)");
+        else          $display("FAIL lm_live section (%0d errors)", lve);
+        // 注：这一段自己记账，不并进下面主场景的 `errors`（那个变量在文件更后面声明，
+        // 而且主场景的 RESULT 只该代表它自己的时间线）—— 回归脚本按行抓 PASS/FAIL，两段都会看到。
+    end
 
     // 快照解码（lane 定义与 link_monitor 里的注释一一对应）
     wire [31:0] P_DROP       = lm_bus[0*32 +: 32];

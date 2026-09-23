@@ -113,7 +113,7 @@ module system_top (
         .clk_200m(clk_200m), .locked(mmcm_locked)
     );
 
-    wire        eth_wr_en, eth_frame_done, eth_link;
+    wire        eth_wr_en, eth_frame_done, eth_link, eth_live;
     wire [18:0] eth_wr_addr;
     wire [15:0] eth_wr_data;
     wire [31:0] eth_frames, eth_pkts, eth_bytes, eth_bad;
@@ -159,6 +159,7 @@ module system_top (
         .fb_wr_data(eth_wr_data),
         .frame_done(eth_frame_done),
         .link_active(eth_link),
+        .link_live(eth_live),
         .eth_gmii_clk(eth_gmii_clk),
         .ddr_commit_base(eth_ddr_base),
         .ddr_commit_pulse(eth_commit),
@@ -218,6 +219,7 @@ module system_top (
         .eth_wr_addr(eth_wr_addr),
         .eth_wr_data(eth_wr_data),
         .eth_link(eth_link),
+        .eth_live(eth_live),
         .eth_frame(eth_frame_done),
         .eth_ddr_base(eth_ddr_base),
         .eth_commit(eth_commit),
