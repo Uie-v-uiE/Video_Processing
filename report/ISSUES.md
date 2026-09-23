@@ -673,6 +673,15 @@ BRAM 64.64 % / 2.150 W / 0 CRIT / cdc 3 行）、L1 44/44，成套在 `build/fro
 > 于是我一度得出"`fsm_encoding` 没用"的结论并差点据此改设计。规则其实早就立着（#25 那次
 > 之后 `gates.sh` 会先打印 bit 与报告的 mtime），**执行时却绕过了它**：要比数字就重跑 `gates.sh`
 > 或直接看报告开头的 `Date` 行，不要凭记忆 grep 一份单文件。
+> 最终状态（#31，`report/cdc_details.rpt` 里点名）：那条跨域现在是
+> `CDC-6 Warning「Multi-bit synchronized with ASYNC_REG property」`，源脚已经从
+> `FSM_onehot_mode_reg` 变回 `u_pl/u_mode/mode_reg[1:0]`（one-hot 重编码消失了），
+> 汇总表里 `clkout0_1→clk_fpga_0` = Warning / 5 端点 / **0 unsafe**。
+> **剩下的这条 Warning 不再往下压**，因为工具看见"两位总线进一组同步器"就报 CDC-6，
+> 而它没有办法知道这两位是格雷码（每步只动一位）—— 那个性质由台架钉着：
+> `tb_v81_test_card` 的 T16/T16b 与 `tb_v82_src_mode` 的 T3。
+> 要消掉它只剩"写例外"或"把位拆开再拼起来"这类哄工具的写法，不值得：
+> **判定能力到此为止的性质，就交给台架去证明。**
 > 三条通用教训：**① 可观测性不是免费的**，每加一根跨域探针都要先问 `cdc.rpt` 收多少税；
 > **② 门禁要写"与上一版的哪一行比"，不要写"与一个定死的数字比"** —— `build/gates.sh` 第 6 项
 > 因此重写成比对 `build/CDC_BASELINE.txt` 的**配对集合**，它当场把 #26、#27 都判红
@@ -763,6 +772,16 @@ BRAM 64.64 % / 2.150 W / 0 CRIT / cdc 3 行）、L1 44/44，成套在 `build/fro
   链里灌进第一个 0 的时候：`111 → 110 → 100 → 000`，边沿检测 `lsync[1]^lsync[2]` 在 `100` 那一拍为真
   ⇒ **上电白送一次"长按"**，模式 AUTO→锁 ETH；而 `sel=锁 ETH` 在 `src_arb` 里是 `force_eth=1`
   ⇒ `owner_eth` 一置就没机会落。板子上电后没人碰过按键，屏幕却永久锁在 ETH —— 与实测一字不差。
+- 这条跨域**留在 `cdc.rpt` 的 Warning 里，不再往下压**，理由是具体的：
+  `report_cdc -details` 现在给的是 `CDC-6 Warning「Multi-bit synchronized with ASYNC_REG property」`，
+  源脚已经是 `u_pl/u_mode/mode_reg[1:0]`（不再是 one-hot）。工具报这条是因为它看见
+  "两位总线进一组同步器"，而它**没有办法知道这两位是格雷码**（每次只动一位）。
+  也就是说这不是"还没修好"，是"工具的判定能力到此为止"—— 那个性质由台架钉住：
+  `tb_v81_test_card` 的 T16/T16b（四步环、每步只动一位）与 `tb_v82_src_mode` 的 T3。
+  真要消掉这条 Warning，只有两种假办法（写死例外、或把两位拆成两次单独打拍再合并 —— 后者
+  等于把译码搬到目的域外面去绕工具），都不如把性质写进台架。**门禁只判"有没有新增 Critical 配对"，
+  Warning 不动它**（见 `build/gates.sh` 第 6 项与 `skill/cdc_pair_baseline_gate.md`）。
+
 - 通用形态：**跨域同步链的复位值必须等于源信号复位之后的值**，否则"复位释放"本身就是一次数据跳变。
   而这条规矩在复位**只释放一次**的设计里不出错，所以它藏了一整天；真正暴露它的是"事件型"信号
   （脉冲/翻转位）而不是"电平型"信号 —— 电平型顶多采到一个无关电平，事件型会**造出一个不存在的动作**。

@@ -41,10 +41,25 @@ const FRAME_BYTES = 307200;          // 512×300 RGB565，与 system_top 的分�
 export function compute(b, a, wall_s, frames_sent) {
   const d = (k) => (a[k] - b[k]);
   const frames_recv = d('bytes') / FRAME_BYTES;              // 交付的完整载荷字节 → 帧
+  // 分母不能是 frames_recv：**被验收门作废的帧照样交付字节**，但硬件的 gap_sum 只累加
+  // 真正被接收的那些帧的间隔。干净推流时两者相等（frames_bad=0），一旦有丢包就会算出
+  // 一个"平均间隔小于最小间隔"的荒谬数（2026-09-24 用 --drop-every 200 实测撞上：
+  // 597 帧全部作废，工具却报 avg=22.4 ms / 44.7 fps，而 gap_min 是 6667 ms）。
+  // 所以先扣掉作废的：接收帧数 = 交付帧数 − 作废帧数。
+  const frames_ok = frames_recv - d('frames_bad');
   // gap_sum 是 **N−1 段** 间隔之和（第一帧只建立基准，量不出间隔）—— 分母必须是段数
-  const segs = Math.max(0, Math.round(frames_recv) - 1);
+  const segs = Math.max(0, Math.round(frames_ok) - 1);
   const avg_gap_ms = segs > 0 ? d('gap_sum') / segs : NaN;
   const fps_from_gap = avg_gap_ms > 0 ? 1000 / avg_gap_ms : NaN;
+  // 自相矛盾检查（这条是救过我的）：平均间隔必然落在 [min, max] 里。
+  // 第一次跑 --drop-every 200 时打出来 avg=22.39 ms 而 gap_min=6667 ms —— 平均值小于最小值
+  // 在算术上不可能 ⇒ 分母/分子口径错了（当时分母用了"交付帧数"，而硬件只记被接收的帧）。
+  // 现在直接把矛盾印出来，而不是等人肉眼发现。
+  const impossible = segs > 0 && Number.isFinite(avg_gap_ms) &&
+    ((a.gap_min > 0 && avg_gap_ms < a.gap_min - 1) || (a.gap_max > 0 && avg_gap_ms > a.gap_max + 1));
+  if (impossible)
+    console.log(`[M][自相矛盾] 平均间隔 ${avg_gap_ms.toFixed(2)} ms 不在 [${a.gap_min}, ${a.gap_max}] 之内 ⇒ `
+      + `分母（段数 ${segs}）与 gap_sum 不是同一总体，这张表不能用`);
   return {
     drop_words: d('drop_words'),
     frames_bad: d('frames_bad'),
@@ -56,6 +71,7 @@ export function compute(b, a, wall_s, frames_sent) {
     bytes_delta: d('bytes'),
     frames_sent,
     frames_recv,
+    frames_ok,                 // 真正被接收的帧（作废的已扣掉）= gap_sum 的分母来源
     gap_min_ms: a.gap_min,
     gap_max_ms: a.gap_max,
     gap_sum_ms: d('gap_sum'),
@@ -63,6 +79,7 @@ export function compute(b, a, wall_s, frames_sent) {
     avg_gap_ms,
     fps_from_gap,
     fps_wall: frames_recv / wall_s,
+    gap_avg_impossible: impossible,   // true ⇒ 这张表的时延指标作废
     hb_slow_a: a.hb_slow, hb_gone_a: a.hb_gone,
     stream_live_a: a.flags_bits.stream_live,
     // 判据：一个字都没丢 = drop_words 增量为 0 且 CDC 从未灌满
@@ -110,6 +127,27 @@ if (get('selftest', false) === true) {
   // 只有一帧时没有间隔可算：必须是 NaN 而不是"0 ms ⇒ Infinity fps"
   const one = compute(b, mk({ bytes: FRAME_BYTES, gap_sum: 0 }), 0.1, 1);
   t('单帧时段数为 0 ⇒ 平均间隔是 NaN 而不是 0', Number.isNaN(one.avg_gap_ms) && Number.isNaN(one.fps_from_gap));
+  // ---- 下面三条钉住 2026-09-24 撞到的那个"分母用错总体"的错 ----
+  // 场景：400 帧的字节全部交付，但验收门作废了 3 帧 ⇒ 真正被接收的是 397 帧、396 段。
+  // 旧写法会用 399 段去除，算出偏小的平均间隔与偏高的 fps。
+  const lost3 = compute(b, mk({ bytes: 400 * FRAME_BYTES, frames_bad: 3,
+                                gap_sum: 396 * 33, gap_min: 32, gap_max: 35 }), 14, 400);
+  t('有作废帧时分母用"接收帧数−1"（=396）', lost3.gap_segments === 396, `segs=${lost3.gap_segments}`);
+  t('有作废帧时平均间隔仍是 33 ms（不是被摊薄的 32.7）',
+    Math.abs(lost3.avg_gap_ms - 33) < 1e-9, `avg=${lost3.avg_gap_ms}`);
+  // 极端：每一帧都被作废 ⇒ 没有一段间隔被硬件记下来，必须给 NaN 而不是"看起来像 44 fps"
+  const allbad = compute(b, mk({ bytes: 597 * FRAME_BYTES, frames_bad: 597,
+                                 gap_sum: 13334, gap_min: 6667, gap_max: 6675 }), 22, 600);
+  t('整轮都被作废 ⇒ 平均间隔/fps 必须是 NaN（不许报出 44.7 fps）',
+    Number.isNaN(allbad.avg_gap_ms) && Number.isNaN(allbad.fps_from_gap) && allbad.frames_ok === 0,
+    `avg=${allbad.avg_gap_ms} fps=${allbad.fps_from_gap} ok=${allbad.frames_ok}`);
+  // frames_ok 也要能进 JSON（结论回查时要能对上分母是谁）
+  t('frames_ok 进了指标表', typeof lost3.frames_ok === 'number');
+  // 自相矛盾检查本身也要有测试：给一个"平均小于最小值"的输入，必须标出来
+  const self_contra = compute(b, mk({ bytes: 30 * FRAME_BYTES, gap_sum: 100,
+                                      gap_min: 32, gap_max: 35 }), 1, 30);
+  t('avg 落在 [min,max] 之外时必须自曝', self_contra.gap_avg_impossible === true);
+  t('正常输入不许误报自相矛盾', r.gap_avg_impossible === false && lost3.gap_avg_impossible === false);
   console.log(bad ? `FAIL metrics selftest (${bad})` : 'PASS metrics selftest');
   process.exit(bad ? 1 : 0);
 }
@@ -121,6 +159,7 @@ const DROP    = Number(get('drop-every', 0));
 const TAG     = String(get('tag', 'run'));
 const OUT     = String(get('out', 'board/evidence_metrics'));
 const IP      = String(get('ip', '192.168.1.10'));
+const NO_PACE = get('no-pace', false) === true;
 const COUNT   = Math.max(1, Math.round(FPS * SECONDS));
 
 mkdirSync(OUT, { recursive: true });
@@ -131,6 +170,9 @@ const t0 = Date.now();
 const args = [join(HERE, 'video_sender.mjs'), '--ip', IP, '--fps', String(FPS),
               '--count', String(COUNT)];
 if (DROP > 0) args.push('--drop-every', String(DROP));
+// --no-pace：让上位机**尽最大能力发**，用来量"链路+入包链在过载下怎么样"。
+// 这跟"限速 15 MB/s 的正常演示"是两个不同的问题，别把两者的数字混着念。
+if (get('no-pace', false) === true) args.push('--no-pace');
 const s = spawnSync('node', args, { encoding: 'utf8', maxBuffer: 1 << 24 });
 const wall = (Date.now() - t0) / 1000;
 if (s.status !== 0) console.log('[M] 发送器退出码 ' + s.status + '：' + (s.stderr || '').slice(0, 200));
@@ -141,7 +183,7 @@ const m = compute(base, after, wall, COUNT);
 const md = [
   `# 指标采集 ${TAG}（${new Date().toISOString()}）`,
   ``,
-  `命令：\`node src/host/metrics.mjs --fps ${FPS} --seconds ${SECONDS}${DROP ? ` --drop-every ${DROP}` : ''} --tag ${TAG}\``,
+  `命令：\`node src/host/metrics.mjs --fps ${FPS} --seconds ${SECONDS}${DROP ? ` --drop-every ${DROP}` : ''}${NO_PACE ? ' --no-pace' : ''} --tag ${TAG}\``,
   `bit：见同目录 \`MANIFEST.txt\` 或 \`build/gates.sh\` 当时的报告；板子为 Zynq7020。`,
   ``,
   `| 项 | 值 |`,

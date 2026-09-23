@@ -1,7 +1,7 @@
 Copyright 1986-2022 Xilinx, Inc. All Rights Reserved. Copyright 2022-2026 Advanced Micro Devices, Inc. All Rights Reserved.
 ---------------------------------------------------------------------------------------------------------------------------------------------
 | Tool Version : Vivado v.2025.2.1 (win64) Build 6403652 Thu Mar 19 19:48:24 GMT 2026
-| Date         : Thu Sep 24 00:22:25 2026
+| Date         : Thu Sep 24 01:40:24 2026
 | Host         : Uie-laptop running 64-bit major release  (build 9200)
 | Command      : report_cdc -details -file D:/Xilinx/Prj/pro/Video_Processing/build/cdc_details.rpt
 | Design       : system_top
@@ -18,8 +18,9 @@ CDC-1   Critical    113  1-bit unknown CDC circuitry
 CDC-2   Warning       2  1-bit synchronized with missing ASYNC_REG property
 CDC-3   Info         26  1-bit synchronized with ASYNC_REG property
 CDC-5   Warning       2  Multi-bit synchronized with missing ASYNC_REG property
+CDC-6   Warning       1  Multi-bit synchronized with ASYNC_REG property
 CDC-7   Critical    411  Asynchronous reset unknown CDC circuitry
-CDC-10  Critical      4  Combinational logic detected before a synchronizer
+CDC-10  Critical      2  Combinational logic detected before a synchronizer
 CDC-13  Critical      2  1-bit CDC path on a non-FD primitive
 CDC-15  Warning    1685  Clock enable controlled CDC structure detected
 
@@ -27,13 +28,12 @@ Source Clock: clkout0_1
 Destination Clock: clk_fpga_0
 CDC Type: No Common Primary Clock
 
-Row  ID      Severity  Description                                         Depth  Exception            Source (From)                  Destination (To)
----  ------  --------  --------------------------------------------------  -----  -------------------  -----------------------------  -------------------
-  1  CDC-3   Info      1-bit synchronized with ASYNC_REG property              2  Asynch Clock Groups  u_pl/fs_tog_reg/C              u_pl/fs0_reg/D
-  2  CDC-10  Critical  Combinational logic detected before a synchronizer      3  Asynch Clock Groups  u_pl/FSM_onehot_mode_reg[2]/C  u_pl/ms0_reg[0]/D
-  3  CDC-10  Critical  Combinational logic detected before a synchronizer      3  Asynch Clock Groups  u_pl/FSM_onehot_mode_reg[2]/C  u_pl/ms0_reg[1]/D
-  4  CDC-3   Info      1-bit synchronized with ASYNC_REG property              2  Asynch Clock Groups  u_pl/u_cmt/blank_tog_reg/C     u_pl/u_cmt/b0_reg/D
-  5  CDC-3   Info      1-bit synchronized with ASYNC_REG property              2  Asynch Clock Groups  u_pl/u_cmt/bs_d2_reg/C         u_pl/u_cmt/d0_reg/D
+Row  ID     Severity  Description                                     Depth  Exception            Source (From)                Destination (To)
+---  -----  --------  ----------------------------------------------  -----  -------------------  ---------------------------  -------------------
+  1  CDC-3  Info      1-bit synchronized with ASYNC_REG property          2  Asynch Clock Groups  u_pl/fs_tog_reg/C            u_pl/fs0_reg/D
+  2  CDC-6  Warning   Multi-bit synchronized with ASYNC_REG property      3  Asynch Clock Groups  u_pl/u_mode/mode_reg[1:0]/C  u_pl/ms0_reg[1:0]/D
+  3  CDC-3  Info      1-bit synchronized with ASYNC_REG property          2  Asynch Clock Groups  u_pl/u_cmt/blank_tog_reg/C   u_pl/u_cmt/b0_reg/D
+  4  CDC-3  Info      1-bit synchronized with ASYNC_REG property          2  Asynch Clock Groups  u_pl/u_cmt/bs_d2_reg/C       u_pl/u_cmt/d0_reg/D
 
 Source Clock: eth_rxc
 Destination Clock: clk_fpga_0
@@ -331,7 +331,7 @@ CDC Type: No Common Primary Clock
 
 Row  ID      Severity  Description                                         Depth  Exception            Source (From)                      Destination (To)
 ---  ------  --------  --------------------------------------------------  -----  -------------------  ---------------------------------  ---------------------------
-  1  CDC-10  Critical  Combinational logic detected before a synchronizer      3  Asynch Clock Groups  u_eth/u_reasm/stat_pkts_reg[15]/C  u_pl/el0_reg/D
+  1  CDC-10  Critical  Combinational logic detected before a synchronizer      3  Asynch Clock Groups  u_eth/u_reasm/stat_pkts_reg[12]/C  u_pl/el0_reg/D
   2  CDC-15  Warning   Clock enable controlled CDC structure detected          0  Asynch Clock Groups  u_eth/u_lm/lm_bus_reg[0]/C         u_pl/u_lm_x/bus_q_reg[0]/D
   3  CDC-15  Warning   Clock enable controlled CDC structure detected          0  Asynch Clock Groups  u_eth/u_lm/lm_bus_reg[1]/C         u_pl/u_lm_x/bus_q_reg[1]/D
   4  CDC-15  Warning   Clock enable controlled CDC structure detected          0  Asynch Clock Groups  u_eth/u_lm/lm_bus_reg[2]/C         u_pl/u_lm_x/bus_q_reg[2]/D
