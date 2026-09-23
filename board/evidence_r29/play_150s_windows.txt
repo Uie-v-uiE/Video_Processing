@@ -1,0 +1,57 @@
+[SD] FAT32 part_lba=2048 spc=32 rootclus=2 data_lba=34816
+[SD] frames=2099 fps=30.000 files=5 frame=307200B
+[SD]   VIDEO000.BIN frames=512
+[SD]   VIDEO001.BIN frames=512
+[SD]   VIDEO002.BIN frames=512
+[SD]   VIDEO003.BIN frames=512
+[SD]   VIDEO004.BIN frames=51
+[SD] WARN FRAMES != sum of FILEn (card copied only partly): playing 2099 frames only
+[CTRL] AXI_GPIO=0x000B5000 en=00 thr=80 src=1 zoom=1 pub=0 bilin=1
+[SD] playing (STOP to end; cable must stay out)
+[SD] frame 100: last 100 frames 29.999 fps (since play 29.803)
+[SD] frame 200: last 100 frames 29.999 fps (since play 29.886)
+[SD] frame 300: last 100 frames 29.999 fps (since play 29.915)
+[SD] frame 400: last 100 frames 29.999 fps (since play 29.928)
+[SD] frame 500: last 100 frames 29.537 fps (since play 29.843)
+[SD] frame 600: last 100 frames 29.647 fps (since play 29.830)
+[SD] frame 700: last 100 frames 29.999 fps (since play 29.850)
+[SD] frame 800: last 100 frames 29.999 fps (since play 29.865)
+[SD] frame 900: last 100 frames 29.999 fps (since play 29.877)
+[SD] frame 1000: last 100 frames 29.622 fps (since play 29.847)
+[SD] frame 1100: last 100 frames 29.553 fps (since play 29.832)
+[SD] frame 1200: last 100 frames 29.999 fps (since play 29.843)
+[SD] frame 1300: last 100 frames 29.999 fps (since play 29.853)
+[SD] frame 1400: last 100 frames 29.999 fps (since play 29.861)
+[SD] frame 1500: last 100 frames 29.719 fps (since play 29.850)
+[SD] frame 1600: last 100 frames 29.454 fps (since play 29.832)
+[SD] frame 1700: last 100 frames 29.999 fps (since play 29.840)
+[SD] frame 1800: last 100 frames 29.999 fps (since play 29.848)
+[SD] frame 1900: last 100 frames 29.999 fps (since play 29.854)
+[SD] frame 2000: last 100 frames 29.811 fps (since play 29.850)
+[SD] frame 1: last 100 frames 29.354 fps (since play 29.832)
+[SD] frame 101: last 100 frames 29.999 fps (since play 29.839)
+[SD] frame 201: last 100 frames 29.999 fps (since play 29.845)
+[SD] frame 301: last 100 frames 29.999 fps (since play 29.850)
+[SD] frame 401: last 100 frames 29.999 fps (since play 29.855)
+[SD] frame 501: last 100 frames 29.518 fps (since play 29.840)
+[SD] frame 601: last 100 frames 29.660 fps (since play 29.838)
+[SD] frame 701: last 100 frames 29.999 fps (since play 29.843)
+[SD] frame 801: last 100 frames 29.999 fps (since play 29.847)
+[SD] frame 901: last 100 frames 29.999 fps (since play 29.851)
+[SD] frame 1001: last 100 frames 29.600 fps (since play 29.842)
+[SD] frame 1101: last 100 frames 29.569 fps (since play 29.837)
+[SD] frame 1201: last 100 frames 29.999 fps (since play 29.841)
+[SD] frame 1301: last 100 frames 29.999 fps (since play 29.845)
+[SD] frame 1401: last 100 frames 29.999 fps (since play 29.849)
+[SD] frame 1501: last 100 frames 29.708 fps (since play 29.844)
+[SD] frame 1601: last 100 frames 29.459 fps (since play 29.837)
+[SD] frame 1701: last 100 frames 29.999 fps (since play 29.840)
+[SD] frame 1801: last 100 frames 29.999 fps (since play 29.843)
+[SD] frame 1901: last 100 frames 29.999 fps (since play 29.847)
+[SD] frame 2001: last 100 frames 29.805 fps (since play 29.845)
+[SD] frame 2: last 100 frames 29.359 fps (since play 29.836)
+[SD] frame 102: last 100 frames 29.999 fps (since play 29.839)
+[SD] frame 202: last 100 frames 29.999 fps (since play 29.842)
+[SD] frame 302: last 100 frames 29.999 fps (since play 29.845)
+[SD] frame 402: last 100 frames 29.999 fps (since play 29.848)
+

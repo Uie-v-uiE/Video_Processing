@@ -180,17 +180,28 @@ set XSDBAT=D:\Software\Vivado\2025.2.1\Vitis\bin\xsdb.bat
 %XSDBAT% build\tcl\ps_jtag_boot.tcl   :: 自动从 build\system.xsa 里解出 ps7_init.tcl（无需手工准备）
 %VIVADO% -mode batch -nojournal -source build\tcl\program_pl.tcl
 %XSDBAT% build\tcl\set_src.tcl         :: 0x41200000 = 0x000B0000（SRC1=视频、zoom 开、双线性开、特效关闭）
+:: 注：这一步只在"不跑 PS 应用、纯用 JTAG 演 PL"时才需要；跑了指令 3 的应用后，它开机自己写控制字
 ```
 
-### 3. （可选）下载 PS ELF —— 串口命令需要
+### 3. 下载 PS ELF —— 串口命令与 SD 卡回放需要（只看右屏缩放可跳过）
 
-1. Vitis 打开工作区，Platform 指向 `build/system.xsa`
-2. 应用源码：`src/ps/main.c`
-3. Build → Run
+1. **脚本化（本仓库默认，不需要 Vitis 工程）**：
 
-> 下载 bit 后 PS 会复位，需再次 Run ELF 串口才有效。仅看右屏缩放时，只下 bit 即可。
+```bat
+node build\ps_app.mjs                       :: 直接用 arm-none-eabi-gcc + 已生成好的 BSP 编出 elf
+%XSDBAT% build\tcl\ps_app_reload.tcl        :: 只复位 Cortex-A9 + 下 elf + con（不动位流）
+```
 
-### 4. 仿真（41 个 testbench）
+   串口应出现 `[BOOT] video_pipeline PL-UDP control plane`；实测能挂载 SD 卡帧库并以 30.0 fps 回放
+   （判据见 `report/OVERNIGHT_LOG.md` §19）。elf 里链了标准启动（`boot.S` 开 CPACR/VBAR/各模式栈/MMU），
+   所以**没有 FSBL 也能跑** —— 这一段以前是"必须 Vitis"，那是缺标准启动造成的假象（ISSUES #42/#44）。
+2. 或者 Vitis：Platform 指向 `build/system.xsa`、应用源码 `src/ps/main.c`、Build → Run（走 FSBL）。
+
+> 下载 bit 后 PS 会复位，需再次下 ELF 串口才有效。仅看右屏缩放时，只下 bit 即可；
+> 反过来，只换/重下 PS 应用不会动位流与 GPIO 控制字（`ps_app_reload.tcl` 只做 `rst -processor`）。
+> 演 SD 回放这一幕要在**配 bit 之前**就拔掉网线（PL 里两片源的仲裁，ISSUES #47 / U11）。
+
+### 4. 仿真（43 个 testbench）
 
 ```bat
 %VIVADO% -mode batch -nojournal -log sim\xsim.log -source sim\run_sim.tcl

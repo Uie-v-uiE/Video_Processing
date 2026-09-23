@@ -24,9 +24,16 @@ ping -n 2 192.168.1.10                                                          
 node src\host\video_sender.mjs --fps 15 --test move                                       :: 推流
 ```
 
-> 交付态请用 Vitis 里 Run ELF（FSBL）启动 PS；`ps_jtag_boot.tcl` 只是没有 Vitis 工程时的兜底，
+> 交付态可以用 Vitis 里 Run ELF（FSBL）启动 PS；`ps_jtag_boot.tcl` 只是没有 Vitis 工程时的兜底，
 > 它不会写 SLCR 里 `FPGA_FCM*` 一类寄存器。两者对本文的判定结论没有影响（判据只依赖 PL 通路），
 > 但**性能类结论应以 FSBL 启动为准**。
+>
+> **2026-09-23 更新（R29）**：跑 PS 应用**不再需要 Vitis/FSBL** —— `build/ps_app.elf` 现在链上了
+> 标准启动（`boot.S` 开 CPACR/FPEXC、设 VBAR 与各模式栈、按 BSP 恒等映射打开 MMU），
+> 所以纯 JTAG 就能跑：`xsdb build/tcl/ps_app_reload.tcl`（只复位 A9、不动位流），
+> 串口应出 `[BOOT]`，实测 `SD` 挂载 + 回放 30.0 fps（判据与坑见 `report/OVERNIGHT_LOG.md` §19、
+> ISSUES #42/#44）。上面那条 `set_src.tcl` 在 PS 应用跑起来之后是多余的：应用开机自己写控制字，
+> 串口里 `SRC1` / `SRC0` 就是同一件事。`FPGA_FCM*` 那句提醒仍然有效（它只影响性能口径，不影响能不能跑）。
 
 ## 不看屏幕的复验（本项目的主要验收手段）
 

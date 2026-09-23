@@ -923,7 +923,7 @@ methodology 0 条 Critical Warning；`ku5p_eth.bit` 15.4 MB 已生成。
 | 7b（#37 复验） | ✅ **但结论是"这条板测没有鉴别力"** | 120×64 KB ping + 推流 + 清 4 次 ARP：#22 与**带缺陷的 #17** 都是 **0% 丢包** ⇒ #37 的证据只有台架四变体表 |
 | 端口过滤（#38 新增能力） | ✅ | 打 `--port 5002` 时 `pkts` 增量 **0**；切回 5001 增量 **37570/8 s** |
 | 新旧链对照 | ✅ | #17（厂商 `udp_rx`）与 #22 都是 `drop_words=0` ⇒ 新链无回归 |
-| 2–6（串口横幅、`SD`、`SRC0/1`、`ZOOM0/1`、画面观察） | ❌ **要你做** | 两个原因：① **PS 应用起不来**（JTAG 回退路径没开 FPU，见 ISSUES #42 ⇒ 请用 Vitis `Run As → Debug`（FSBL）走）；② HDMI 画面/OSD 文字只能人眼判 |
+| 2–6（串口横幅、`SD`、`SRC0/1`、`ZOOM0/1`、画面观察） | ✅ **R29 全部跑完，除了画面那一跳** | R28 当时写"要你做（要用 Vitis）"**已被推翻**：`[BOOT]` 横幅、`STAT` 应答、`SRC1`、`SD` 挂载、`PLAY/STOP` 速率全在纯 JTAG 下拿到（#42/#44 修好即可，见 §19）。剩两格：① **画面里看不到** —— 显示前 mux 把 PS 片源涂成红色（#47，构建 #23）；② `ZOOM0/1` 这类"看屏幕"的判据仍要你眼睛 |
 
 ⚠ 两条今天新记的板前规矩（写进 §9.5 的步骤顺序里）：
 - **做过 `rst -system` 就要重新下 bit**：我按 PS 引导流程跑完后板子不回 ARP，重下立即恢复（R28-B④）。
@@ -953,6 +953,9 @@ methodology 0 条 Critical Warning；`ku5p_eth.bit` 15.4 MB 已生成。
 | U7 | ~~WNS 余量回收（+0.819→+0.499 是 R05 的代价）~~ **已由 R06 解决并超过：WNS +0.974** | R05 的代价来自 skid 多一级读 mux；R06 砍掉的是 `eth_rxc` 域 11 级进位链 | 若要再挖：skid 读口提前一拍预取（未做） | 瓶颈已从「逻辑深度」变成「布线距离 / 高扇出」（`clk_fpga_0` 最差路径 route 占 92.6%、`fo=330` 网线 2.751 ns）⇒ 下一步是 Pblock / 高扇出处理，不是再砍级数 |
 | U8 | 一次性诊断脚本已删除；`build/v64_baseline.bit`、`build/r05_golden.bit` 是 A/B 期间的临时副本（未跟踪），收尾删除 | —— | —— | v6.4 bit 随时可用 `git show 647160e:build/system.bit` 取出 |
 | U10 | **片外接口时序未被约束**：全仓库 XDC 只有 2 条 `create_clock`，`set_input_delay` / `set_output_delay` **各 0 条**，RGMII TX 由 3 条 `-to`（`rk_zynq7020.xdc:42-44` 的 tx_clk / tx_ctl / txd[*]）整条豁免输出时序检查，RX 侧靠固定抽头的 `IDELAYE2`（`system_top.v:129` 传 `IDELAY_VALUE(15)`，`rgmii_rx.v:29` 默认为 0）而没有把这段延迟写进约束 | `check_timing` 在 `build/timing_summary.rpt` 里自己列出无输入/输出延迟约束的端口；`methodology.rpt` 的 TIMING-18 逐条点名 | 补 RGMII DDR 输入约束（`-add_delay -clock_fall`）+ TX 相位（或 ODELAY / BUFIO 移相） | 预期是**暴露**出真实违例而不是消灭它们 ⇒ 要先决定收不收这笔债：收了报告就不再全绿，但结论更硬。至少口径必须区分「片内满足」与「片外靠板级证据」
+| U11 | **`link_active = \|s_pkts\|` 是粘性的 ⇒ ETH 与 PS 两片源只能靠"重配 bit"切换**（#47 的兄弟账） | 已有：`ps_src_seen` 让红色占位不再挡 PS 片源（构建 #23）；`pub_consume` 仍要求 `!eth_link_pix` | 若要"软件一键切片源、不拔线不重配"：把 `link_active` 从"曾经收过包"改成"最近有包"（现成的 stall 计时就在那儿），代价是它同时是 OSD 链路健康显示与 R08–R10 板级结论的依据 ⇒ **动了要重跑那三条** | 需要点头的改动，不在"顺手优化"范围；现场用"拔线→重配（约 1 分钟）"已可演示 |
+| U12 | **SD 卡只拷进去 5/9 个文件**（META 声明 4398 帧，卡上 2099 帧） | 固件已改成"取小值 + WARN"，播放不会停在半路 | 把卡插回 PC 跑一次 `node src/host/make_sd_video.mjs`（或只拷缺的 `VIDEO005..008.BIN`）⇒ 演示素材从 70 s 变 146 s | 与固件无关的搬运事故；那行 `WARN` 反而能当"固件不信任元数据"的证据讲 |
+| U13 | `XSdPs_CfgInitialize` 每个上电周期只成功一次（#45） | 已规避（`mounted` 短路）+ 复现步骤与判据写在 ISSUES | 真因未查（怀疑卡在 `XSdPs_Reset` 的软件复位位，或上一次会话遗留的多块读忙状态） | 不阻塞交付：换卡/重启是常态，`ps_app_reload.tcl` 约 20 秒 |
 | U11 | **三处低成本 CDC 清洁**：`effect_ctrl` 的 3 级捕获链漏标 `ASYNC_REG`、`copy_abort` 被像素域裸采样（同文件里 `allow_copy` 却走了 2FF）、`eth_link` 在像素域裸用 4 处 | 位置 `effect_ctrl.v:12-13`、`pl_video_top.v:283` vs `:294-301`、`pl_video_top.v:282,288,307,486`；`eth_mode`（`:225-230`）已是一份正确的 3FF 版本可直接改用 | 加属性 / 换信号后重跑 L3，看 `cdc.rpt` 与 `methodology.rpt`（TIMING-10）条目变化 | 现况实测：`cdc.rpt` 有 **4 行 Critical**（类型均为 `Asynch Clock Groups`，即时钟组豁免掉的跨域），其中 `eth_rxc→clkout0_1` 33 端点里 **16 unsafe / 17 unknown**、`clk_fpga_0→clkout0_1` 16 端点里 **13 无 ASYNC_REG** ⇒ 这两行正好对应上面两个问题点。三处都不动功能逻辑，风险极低，是下一夜最划算的一笔
 | U12 | `frame_reasm` 的 `FRAME_BYTES` 未被例化覆盖（`eth_udp_video_top.v:185` 只传 IMG_W/IMG_H） | 默认值恰好 = 512×300×2，所以现在是对的 | 例化时传 `.FRAME_BYTES(IMG_W*IMG_H*2)`，并同步检查 `pl_video_top.v:363` 写死的行距 `{sy[8:0],9b0}`（**R18 已了结这半笔**：该地址算术已移进 `fb_rd5x` 并写成 `sy*IMG_W` 参数式） | 不改就是「改分辨率会静默失配」的地雷；本夜不动（要连带重跑入包链全回归）
 | U9 | **重建 R03/P04 的板上触发条件**：给 `src/host/video_sender.mjs` 加 `--mtu-payload`（非 8 倍数，如 1396），使包边界落在帧最后一个字内；或拉长 `axi_frame_writer_gated` 的 HP0 占用窗口以逼出 `sv_full` | `tb_v6_tail_bank` 已给出等效激励形状（读到最后一字 lane1 后停读） | 需要一次上位机小改 + 重测 | 这是把 R03 从「仿真级证据」提升到「板级证据」的唯一路子 |
@@ -1959,14 +1962,20 @@ ARP 就够触发，拔网线也不回 0（只有重配 PL 才清）。所以这�
 
 改法最小化：`eth_link_pix | ps_src_seen`，`ps_src_seen` 由像素域已有的 `pub_consume` 置位
 （不用 axi_clk 域的 `ps_frame_start`，避免新增跨域），PS 从未发布时与原行为逐位相同。
-状态：vlog 0 error / 0 warning；构建 #23 与门禁见下表（跑完回填）；最终判据是眼睛看见 SD 画面在动。
+状态：**已采纳**。vlog 0 error / 0 warning；构建 #23 七项门禁全绿（下表）；L1 43/43；
+最终判据已达成 —— **用户眼睛确认屏幕上看到 SD 卡的视频画面**（同一轮 PS 侧 19 个窗口全 29.999 fps，原始件 board/evidence_r29/play_on_build23.txt）。
+成套冻结在 `build/frozen_r23_srcseen/`（bit `18443ffd` / xsa `6e954e5d` / elf `ec08e164` + 7 份报告，
+MANIFEST 里写明"演 SD 这一幕前网线必须已经拔着"与为什么不收 `util_hier.rpt`）。
 
-| 门禁 | 阈值 | #22（现网，`bash build/gates.sh build/frozen_r22_param`） | #23（本次） |
+| 门禁 | 阈值 | #22（`build/frozen_r22_param`） | **#23（`build/frozen_r23_srcseen`，已采纳）** |
 |---|---|---|---|
-| WNS / 失败 setup 端点 | ≥ 0 且 "All user specified timing constraints are met" | **+0.566 ns** / 0 | 待回填 |
-| WHS / 失败 hold 端点 | ≥ 0 | +0.044 ns / 0 | 待回填 |
-| BRAM | ≤ 97 % | 90.5 tile = **64.64 %** | 待回填 |
-| Slice LUT / Slice 寄存器 | ≤ 98 % / 记录用 | 7396 = **13.90 %** / 5903 | 待回填 |
-| 功耗 Dynamic | 与前次同量级 | **2.180 W** | 待回填 |
-| methodology Critical / 布线失败网线 | 0 / 0 | 0 / 0 | 待回填 |
-| cdc.rpt Critical 行 | 不新增（上一版为 4） | 4 | 待回填 |
+| WNS / 失败 setup 端点 | ≥ 0 且 "All user specified timing constraints are met" | +0.566 ns / 0 | **+0.740 ns / 0**（绝对差不当收益报，在轮次噪声里） |
+| WHS / 失败 hold 端点 | ≥ 0 | +0.044 ns / 0 | +0.042 ns / 0 |
+| BRAM | ≤ 97 % | 90.5 tile = 64.64 % | **90.5 tile = 64.64 %（没涨）** |
+| Slice LUT / Slice 寄存器 | ≤ 98 % / 记录用 | 7396 = 13.90 % / 5903 | 7403 = 13.92 % / **5904**（+1 = 新那个触发器） |
+| 端点总数 | 记录用 | 23612 | **23613（+1，与改动意图一致）** |
+| 功耗 Dynamic | 与前次同量级 | 2.180 W | 2.178 W |
+| methodology Critical / 布线失败网线 | 0 / 0 | 0 / 0 | 0 / 0 |
+| cdc.rpt Critical 行 | 不新增（基线 4） | 4 | 4 |
+| L1 回归 | 全 PASS | 43/43 | **43/43**（`sim/r29_regression.log`，含顶层台架 `tb_v6_vblank_copy`） |
+| 板级 | 眼睛 | — | **屏幕上看到 SD 卡视频画面**（用户确认）⇒ P1 板级完整通过；同一轮 62 s 抓包 19 个窗口全 29.999 fps（原始件 board/evidence_r29/） |

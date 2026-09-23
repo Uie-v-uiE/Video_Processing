@@ -128,7 +128,7 @@ src/rtl/          Verilog: top / eth / axi / video / process (rotate, zoom) / hd
 src/ps/          Bare-metal UART + GPIO control (control plane only)
 src/host/        Host sender, serial tooling and JTAG read-back analysis (Node.js first)
 src/constraints/ Pin and timing constraints (rk_zynq7020.xdc)
-sim/             41 testbenches, repo-relative runner (run_sim.tcl) + single-TB runner (run_one.sh),
+sim/             43 testbenches, repo-relative runner (run_sim.tcl) + single-TB runner (run_one.sh),
                  probes/ (synthesis-behaviour experiments)
 build/           tcl/ build+program+report scripts, system.bit, system.xsa, *.rpt
 board/           Bring-up notes and screen-free verification method
@@ -149,9 +149,13 @@ set XSDBAT=D:\Software\Vivado\2025.2.1\Vitis\bin\xsdb.bat
 :: 2. bring up PS, program PL, select the video source
 %XSDBAT% build\tcl\ps_jtag_boot.tcl
 %VIVADO% -mode batch -nojournal -source build\tcl\program_pl.tcl
-%XSDBAT% build\tcl\set_src.tcl
+%XSDBAT% build\tcl\set_src.tcl        :: only if you skip step 2b: the app writes this register itself
 
-:: 3. simulation (41 testbenches)
+:: 2b. PS application (no Vitis project needed) - serial console + SD playback
+node build\ps_app.mjs
+%XSDBAT% build\tcl\ps_app_reload.tcl   :: rst -processor + download + con; leaves bitstream and GPIO alone
+
+:: 3. simulation (43 testbenches)
 %VIVADO% -mode batch -nojournal -log sim\xsim.log -source sim\run_sim.tcl
 
 :: 4. stream and measure
@@ -161,8 +165,12 @@ node src\host\ddr_stale.mjs
 ```
 
 Set the PC NIC to `192.168.1.100/24` and plug the cable into the **board's PL Ethernet port**.
-Optional: build `src/ps/main.c` as a PS application against `build/system.xsa` if you want the
-serial console (re-run the ELF after programming the bitstream). Details in
+The PS application (`src/ps/main.c`) is built by `node build/ps_app.mjs` straight against a
+generated BSP - the ELF links the standard startup (`boot.S`: CPACR/FPEXC, VBAR, per-mode stacks,
+MMU), so it runs over plain JTAG with **no FSBL and no Vitis project**. Measured: SD-card frame
+library mounts and plays back at 30.0 fps on screen (`report/OVERNIGHT_LOG.md` sec. 19).
+For that act the Ethernet cable must already be unplugged *before* programming the bitstream
+(the two frame sources are arbitrated in the PL, ISSUES #47). Details in
 `src/host/HOST_GUIDE.md` and `board/README.md`.
 
 ## UART commands (115200 8N1, terminate with CR+LF)

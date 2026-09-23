@@ -1,0 +1,27 @@
+# build#23（R29：去掉挡在 PS 片源前面的那块红色占位，ISSUES #47）—— 当前默认下这一块
+# 门禁（bash build/gates.sh build/frozen_r23_srcseen，七项全绿）：
+#   WNS +0.740 / WHS +0.042 / 0 失败端点(23613) / BRAM 90.5 tile(64.64%) /
+#   Slice LUT 7403(13.92%) / Reg 5904 / Dynamic 2.178 W / 0 布线错误 /
+#   methodology 0 CRITICAL / cdc Critical 行 4（与 #17~#22 同一组，不新增）
+# L1 回归：43/43 PASS（含顶层台架 tb_v6_vblank_copy；日志 sim/r29_regression.log，SIM DONE pass=43 fail=0）
+#
+# 内容（相对 #22）：只改 src/rtl/top/pl_video_top.v 的片源存在性判据
+#   bram_or_hold = eth_link_pix ? fb_out : 16'hF800          （原）
+#   bram_or_hold = (eth_link_pix | ps_src_seen) ? fb_out : 16'hF800   （今）
+#   ps_src_seen 由**像素域已有的** pub_consume 置位 ⇒ 不新增跨域；PS 从未发布时与原行为逐位相同。
+# 结构增量与意图一致：端点 23612→23613（+1 个触发器）、Slice LUT 7396→7403、Reg 5903→5904、
+# BRAM 与功耗不变。WNS 的绝对差（+0.566→+0.740）落在本设计实测过的轮次噪声里，不当收益报。
+#
+# 板级（2026-09-23 R29，网线拔着 + 这份 bit + ps_app.elf 同一套）：
+#   · 屏幕上看到 SD 卡视频画面（用户眼睛确认）⇒ ISSUES #47 结案、P1 SD 本地回放板级完整通过；
+#   · PS 侧同一轮：62 s 抓包里 19 个"100 帧窗口"全 29.999 fps（最低 29.495；原始件在 ../board/evidence_r29/），
+#     挂载打印 WARN "FRAMES != sum of FILEn … playing 2099 frames only"。
+#   · 演 SD 前网线必须在**配 bit 之前**就是拔的：link_active=|s_pkts 是粘性的（ARP 就触发，
+#     只有重配清零）；这条账单列在 OVERNIGHT_LOG §10 U11，没在本次改动里动它。
+#
+# 校验：见同目录 MANIFEST_BODY.txt（md5sum -c MANIFEST_BODY.txt 可整体复核）。
+#   system.bit 18443ffdc65f992155d92c665370cfc6 / system.xsa 6e954e5d… / ps_app.elf ec08e164…
+# 刻意**没有**收 util_hier.rpt：构建脚本不产它，仓库里那份日期是 09-22（旧的），
+#   收进来只会让人拿它当本次的结构依据。
+# 回退链：#22 build/frozen_r22_param/43b76e15 → #21 frozen_r21_rx/f39e2e78 →
+#         #19 frozen_r19_arb/545a27a1 → #18 frozen_r18_abort/534f7760 → #17 frozen_r17_cdc → #13 frozen_r13

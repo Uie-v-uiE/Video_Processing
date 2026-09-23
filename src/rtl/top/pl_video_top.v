@@ -331,8 +331,7 @@ module pl_video_top #(
         end
     end
     wire [15:0] fb_out = (ac1 && !de_d[11]) ? fb_pix_hold : fb_rd;
-    // red only if no link; if link but not yet ready show BRAM (black/last)
-    wire [15:0] bram_or_hold = eth_link_pix ? fb_out : 16'hF800;
+    // 这块红"没有片源"的判据往下挪三行 —— 它要用 ps_frame_start，而那是下面才声明的线。
 
     // 发布握手单独成模块（内含 3 级同步），这样它能被 sim/tb_ps_publish.v 逐相位验。
     // 顺带修掉一处真错：这里原来用 `src_sel`（axi_clk 域的**未同步**电平），
@@ -354,6 +353,19 @@ module pl_video_top #(
         else {fs2,fs1,fs0} <= {fs1,fs0,fs_tog};
     end
     wire ps_frame_start = fs1 ^ fs2;
+
+    // 片源存在性判据（原来只有 eth_link_pix 一项，见上面那行注释被挪下来的原因）：
+    //   ETH 侧：链路在 ⇒ 显示 fb（和以前**逐位一致**，不动已验过的行为）
+    //   PS  侧：至少发布过一次搬运 ⇒ 也显示 fb
+    // 少了后一项，网线一拔这块红就永久挡在 fb 前面 —— FILL / SD 回放在屏幕上不可达，
+    // 而 pub_consume / ps_publish / axi_frame_writer64 明明都在，说明设计上要两条片源。
+    // 用像素域的 pub_consume 置位，不引入新的跨域（ps_frame_start 是 axi_clk 域的脉冲）。
+    reg ps_src_seen;
+    always @(posedge clk_pix or negedge rst_pix_n) begin
+        if (!rst_pix_n) ps_src_seen <= 1'b0;
+        else if (pub_consume) ps_src_seen <= 1'b1;
+    end
+    wire [15:0] bram_or_hold = (eth_link_pix | ps_src_seen) ? fb_out : 16'hF800;
 
     assign m_axi_arid = 6'd0;
 

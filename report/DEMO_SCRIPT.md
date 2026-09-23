@@ -24,10 +24,12 @@ set XSDBAT=D:\Software\Vivado\2025.2.1\Vitis\bin\xsdb.bat
 （elf 里没有 FSBL 也能跑：入口是标准启动 `_boot`，它开 CPACR/FPEXC、各模式栈、VBAR 与 MMU，
  见 ISSUES #42/#44；启动后寄存器状态可用 `board/pswhy.tcl` 一次采出来。）
 
-下 bit 前 **先 `md5sum build/system.bit`，必须以 `43b76e15` 开头**（= build#22：V7.7 同一功能 +
-R22 两笔 CDC + R23 的 `copy_abort` 翻转同步 + R24 的厂商发送仲裁修复（ISSUES #37）
-+ R26 的收包链换成自研那一对（ISSUES #38）+ R27 参数集中化（纯别名重构），WNS +0.566 / WHS +0.044 / 0 失败端点(23612)；**回退链**：build#18 `534f7760`、build#17 `11998af8` 在 `build/frozen_r17_cdc/`，
-build#13 `0f46ec91` 在 `build/frozen_r13/`（三块都在各自的 `build/frozen_*/` 目录里有实体）；同名文件会被构建原地覆盖，今晚真发生过两次 ——
+下 bit 前 **先 `md5sum build/system.bit`，必须以 `18443ffd` 开头**（= build#23：V7.7 同一功能 +
+R22 两笔 CDC + R23 `copy_abort` 翻转同步 + R24 厂商发送仲裁（#37）+ R26 自研收包链（#38）+
+R27 参数集中化 + **R29 去掉挡在 PS 片源前面的那块红色占位（#47）** ⇒ 这一版起 **SD 卡回放在屏幕上看得见**，
+WNS +0.740 / WHS +0.042 / 0 失败端点(23613) / LUT 7403(13.92%) / BRAM 64.64% / 2.178 W / L1 43/43；
+**回退链**：build#22 `43b76e15`（`build/frozen_r22_param/`，功能与 #23 同、只是看不到 PS 片源）、
+#21 `f39e2e78`、#19 `545a27a1`、#18 `534f7760`、#17 `11998af8`、#13 `0f46ec91`（都在各自 `build/frozen_*/` 里有实体）；同名文件会被构建原地覆盖，今晚真发生过两次 ——
 判据与"冻结必须拷工件"的规矩见 `report/BUILD.md` §7 与 `report/OVERNIGHT_LOG.md` §9.5 第 1 步。
 **注**：build#18 那一版冻结时只把校验和写进 MANIFEST、bit 留在活路径 `build/system.bit` 上，
 被 #19 覆盖过 ⇒ 后来靠 `git show 7578217:build/system.bit`（md5 核对 = `534f7760`）复原进
@@ -71,11 +73,13 @@ build#13 `0f46ec91` 在 `build/frozen_r13/`（三块都在各自的 `build/froze
 3. **播放期间网线要在配 bit 之前就是拔着的**：PL 里 ETH 与 PS 共用同一台搬运机，
    判据 `link_active = |s_pkts` 是"自配置以来收过任何一个包"（ARP 就算），**拔线不会清零，只有重配才清**。
    顺序：`program_pl.tcl`（线已拔）→ 下 elf → `SD` → `PLAY`。反过来先推过流再想播 SD，就得重配一次（约 1 分钟）。
-4. **屏幕这一跳的状态（读这段时先看这里）**：`pl_video_top.v:335` 原来把"没跑过 ETH"整块显存涂成红色
-   （ISSUES #47），所以 SD 画面能否上屏取决于修复版 bit；**构建 #23 门禁 + 板级确认结果回填在
-   `report/OVERNIGHT_LOG.md` §19 表里**。在那之前，这一幕的可验证判据是串口那两行 + JTAG 读回
-   `0x10000000` 的内容每秒都在变（`bash`：`xsdb board/rdddr.tcl`，实测 `44184C37`→`047D0C7D`）。
+4. **屏幕这一跳已经打通（build#23，`18443ffd`）**：板上眼睛确认屏幕出现 SD 卡视频画面
+   （左窗原图、右窗同一帧的旋转+缩放）。在此之前 `pl_video_top.v` 显示前最后一级 mux 用
+   粘性的 `eth_link_pix` 当"有没有片源"，网线一拔就把整块显存涂成红色，PS 片源在屏幕上不可达
+   （ISSUES #47；判据与门禁见 `OVERNIGHT_LOG.md` §19）。
    撕裂的判据不是眼睛：`ps_publish` 的发布握手 + 每场只在 V-blank 内原子提交（`sim/tb_ps_publish.v` 逐相位）。
+   讲法：*"片源选择是 PL 里一个 bit，PS 只翻转一根发布线；这块红让我发现'看不见的片源'和'没搬的片源'
+   在两版 bit 上长得一模一样 —— 所以我先让 DDR 自己说话（JTAG 读回内容在变），再修显示。"*
 5. 若 `SD` 报 `card absent or CMD sequence failed`：卡不在 BSP 那个 SDIO 控制器上，先查 PS 配置；
    若报 `XSdPs_CfgInitialize failed` 且此前挂载成功过：那是 ISSUES #45（每个上电周期只成功一次），
    重下一次 elf（`build/tcl/ps_app_reload.tcl`）即可，不用碰卡。
