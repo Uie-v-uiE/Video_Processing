@@ -3533,5 +3533,79 @@ r56 的修法（已写进 `src/rtl/top/pl_video_top.v`）：在 axi 域单独起
 - 眼睛清单仍然只有用户能关：`board/README.md` 行 12~20（其中 12、18 就是他报的 #56 那两条）。
 - 步 7 还欠一条没人为造过的异常：**SD 播放中途拔卡**（拔线、非法命令都造过了）。
 
+## §39 步骤②开场（2026-09-25 06:2x）：先把 WHS 那 0.019 ns **归因**，再决定动不动它
+
+深度优化那一轮（任务 #46）用户排的顺序是"资源/功耗/时序"，而这一版开工前只有一个数字：
+`WHS = +0.019 ns`（r56）。**只对着数字换策略 = 碰运气**，所以第一件事是问"这 0.019 压在哪几条路径上"。
+新工具 `build/tcl/hold_paths.tcl`（只读已布线 dcp，出 `build/hold_paths.rpt` 最差 20 条 hold +
+`build/setup_paths.rpt` 最差 6 条 setup，**不动任何产物**）。
+
+**结论：这一族不是"逻辑太慢"，而是"0 级逻辑的同域 FF→FF + BRAM 写口"，靠布线与时钟偏斜决定。**
+最差 20 条里有 19 条 `Logic Levels = 0`（唯一一条 =1），route 占 42~74 %：
+
+| slack (ns) | 路径 | 域 | 是什么 |
+|---|---|---|---|
+| **0.019** | `u_eth/u_arp/u_arp_rx/src_ip_t_reg[28] → src_ip_reg[28]` | eth_rxc | **0 级**，同域纯拷贝；`Clock Path Skew +0.271 ns` 就是它的全部故事 |
+| 0.033 / 0.041 / 0.075 | 同上 [12]、[20]、以及 IDR→`src_ip_t_reg[2]` | eth_rxc | ARP 收包里那条 32 位"暂存→提交"的拷贝（0 级 ×4 位） |
+| 0.039 / 0.068 | `axi_gpio_2` 内部 / `u_pl/u_lat/tot_cyc_reg[28] → q_tot_reg[28]` | clk_fpga_0 | 后者正是 #59 那一级快照寄存器（**同域拷贝，不是跨域**） |
+| 0.074 ×4、0.083、0.086、0.091、0.093 ×2 | `u_eth/u_saver/wptr_reg / cur_data_reg → RAMx/WADR5 / I` | clk_fpga_0 | **LUTRAM 写地址/写数据口**（`q_data_reg_320_383_…` 那些阵列），共 9 条 |
+| 0.087 / 0.091 | `axi_gp0_ic` 寄存器切片 → `auto_pc` 里 `rd_data_fifo_0/memory_reg…_srl32` | clk_fpga_0 | **厂商互连 IP 内部**，不是我们的 RTL |
+
+三条要写进决策的判断（都是"别动手"方向的）：
+1. **hold 是 met 的**（WHS>0、失败端点 0），所以 0.019 是"修完之后的残余裕量"，不是待修的违例。
+   想把它抬上去，工具唯一的办法是**多插延迟**（`phys_opt` 的 hold fix 就是干这个）⇒ 属策略扫描能给的，
+   **改 RTL 换不来**：这一族 19/20 条是 0 级逻辑，没有逻辑可减。
+2. **一半以上根本不是我们的代码**：9 条挂在 LUTRAM 写口、2 条挂在 AXI 互连 IP 内部。
+   ⇒ 任何"我把 WHS 从 0.019 修到 0.05"的表述都必须同时说清是**哪一版策略**给的，否则就是运气记账。
+3. 唯一一条值得单独盯的自家路径是 `u_lat/tot_cyc_reg → q_tot_reg`（快照那一拍，#59 的产物）：
+   它是**同域**拷贝、0 级，所以不是 CDC 问题；要动它就是动快照的时序形状，**没有判据支持**，先记着别碰。
+
+⇒ **下一格该做的事已经具体了**：跑 `build/tcl/sweep_impl_strategy.tcl`（现在带时间戳输出、跑完恢复原策略），
+候选 `Performance_ExplorePostRoutePhysOpt` / `Performance_ExploreWithRemap` / `Performance_ExtraTimingOpt`
+（历史那份 `build/sweep_summary.txt` 只跑完过 `Performance_Explore`）。
+**采纳判据不变**：14/14（含 r56 新加的"unsafe 端点不增长"）+ `board_verify.sh` 全绿 + 两次独立构建同方向，
+且**功耗不许悄悄涨**（现值 2.182 W）。用户把 ② 排进过目标，所以这一格不需要再等发话 —— 需要等的只是"采纳哪一版"。
+
+⚠ 开扫之前先办一件事：**扫描脚本会 `reset_run impl_1`，那一版布线的 dcp 就没了**，
+而 `hold_paths.tcl` / `cdc_who.tcl` 都是从 dcp 出件的 ⇒ 上面这三份凭据（`hold_paths.rpt`、
+`setup_paths.rpt`、出件时的 console）必须**先进冻结目录**。已经放进
+`build/frozen_r56_cdcfanout/`（32 个文件）。这是一条通用规矩：
+**凡"从可复现产物派生"的凭据，都要在该产物被下一次构建覆盖之前归档。**
+
+### 第一个数据点（06:26–06:44）：`Performance_ExplorePostRoutePhysOpt` **买不到东西**
+
+- 它**确实重跑了实现**（`.runs` 里那份 bit 的 md5 `23a656d5` ≠ r56 交付的 `c15454ae`，
+  `runme.log` 里 `phys_opt_design` 出现 8 次），
+  但 `system_top_timing_summary_routed.rpt` 的数是 **WNS 0.540 / WHS 0.019 / 失败端点 0 / 约束全满足**
+  —— **与 r56 默认策略逐位相同**。
+- 这和上面的归因是自洽的：`phys_opt` 修的是**违例**，而这张设计两端都 met；
+  hold 那一族是"0 级逻辑 + 偏斜/布线"决定的（改不了），setup 那条是 OSD 算术（它不碰）。
+  ⇒ **别再指望"换个带 phys_opt 的策略把 WHS 抬起来"**；要抬 WHS 只剩两条：换**布局/时钟偏斜**类的策略
+  （`Performance_ExploreWithRemap`、`RefinePlacement` 那一族），或者接受"≥0 就是 met、这个数字不是成绩"。
+- 还剩两个候选没扫（`Performance_ExploreWithRemap` / `Performance_ExtraTimingOpt`）；
+  功耗这一列**没拿到数**：batch 里 `[get_power]` 不给 ⇒ 功耗对照只能走构建脚本那条 `report_power`
+  （现值 2.182 W 就是那么来的）。
+
+### 过程账：一次"实现已经跑完、报告参数写错"的白烧（值得记，因为它烧的是 5~8 分钟）
+
+`sweep_impl_strategy.tcl` 里我写了 `report_timing_summary -check_summary_only` ——
+**2025.2.1 没有这个选项**（`ERROR [Common 17-170] Unknown option`），而这一行在
+`reset_run → set_property → launch_runs → wait_on_run` **之后**：实现跑完了，脚本在取数那一步当场挂掉，
+第二个策略也没跑到，`STRATEGY_RESTORED_TO` 那行也没执行。
+三处修法都落地了：
+1. **扫描改成先读构建自己那份** `.runs/impl_1/*_timing_summary_routed.rpt`（磁盘上就有，不需要再开设计），
+   只有找不到才退回现跑 `report_timing_summary` ⇒ 报告参数写错**再也烧不掉一次实现**。
+2. 新增 `build/tcl/read_run_result.tcl`：只读地把 `.runs` **当前**这份实现的 WNS/WHS/失败端点/是否全满足抄出来，
+   可选 `READ_STRAT_RESTORE=<策略>` 顺手把属性改回去 —— 这次就是靠它把挂掉那一跑的数捞回来的。
+3. 状态收尾：`impl_1` 的 strategy 已改回 **`Vivado Implementation Defaults`**（默认名是带空格的三个词，
+   我连着试错四次才确认 —— 顺带证明 `set_property strategy $s` 这种"裸展开"形式对多词值是**能用的**，
+   我原本怀疑它不行，测了才知道是我猜错）。
+   ⚠ 但 `.runs` 里现在这份实现是 PostRoutePhysOpt 的（`23a656d5`），**不是**板上/交付的那份（`c15454ae`）
+   ⇒ 从现在到下一次完整构建之间，**不要拿 `.runs` 的 dcp/报告当交付件**（脚本注释早就警告过这件事，
+   这次它是真的发生了）。下一次 `build_system_axigpio.tcl` 会 `create_project -force` 全部重建。
+
+
+
+
 
 

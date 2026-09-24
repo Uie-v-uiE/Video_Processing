@@ -29,7 +29,7 @@ Reusable engineering notes from this project. Each item lists scope, usage, veri
 | S17 | 定点失败要让失败行**自己报出几何量**（访问的位置＋位置的来历＋合法边界＋当场分类）：本项目靠一行 `[SDRD!]` 把"并发挤出来的读超时"翻案成 FAT32 高簇字的字节序 bug，两次误判都是往**时间**方向猜 | `failing_read_prints_geometry.md` | 踩坑清单 + 判据自查（反例必须真能红） |
 | S18 | 多字读回的原子快照（寄存器窗口撕裂） | `atomic_register_window_readback.md` | 踩坑清单 / 校验脚本 |
 | S19 | `always @(*)` **看不见只在 task/function 里读的信号** ⇒ 组合块拿着旧值不放（仿真少算一次更新、综合照建方程 ⇒ 屏上是真错标签）；三条避法 + "必须差分改激励才判得住"的判据写法；同族还包括**顶层没有台架例化** ⇒ 端口接线要变成门禁项（`build/check_ports.py`，第 14 项，自带两份反例） | `combinational_block_misses_task_reads.md` | 踩坑清单 + 校验脚本 |
-| S20 | **台架自己造的红**，四种签名各自一眼可认：① 期望值整整齐齐差一个常数倍 = 算式错（期望值必须从定义算、不许从被测代码抄）；② 极值在变而"变化计数=0" = 采样步长与被测节拍**混叠**（改成逐拍跟踪）；③ 断"停在 X"红而 X 其实还没生效 = 等待窗口短于被测节拍（等事件、等不到必须判红）；④ 半数组合红且全错在同一个位 = **激励自己的位序**写反（多比特期望要按编码手抄成表）；附"第一跑就全绿 ⇒ 必须做一次变异测试"与"末态判据抓不到时序错 ⇒ 含先后的机制要有一条按拍/ns 的断言"，8 条首跑前自查 | `bench_self_inflicted_reds.md` | 踩坑清单 |
+| S20 | **台架自己造的红**，四种签名各自一眼可认：① 期望值整整齐齐差一个常数倍 = 算式错（期望值必须从定义算、不许从被测代码抄）；② 极值在变而"变化计数=0" = 采样步长与被测节拍**混叠**（改成逐拍跟踪）；③ 断"停在 X"红而 X 其实还没生效 = 等待窗口短于被测节拍（等事件、等不到必须判红）；④ 半数组合红且全错在同一个位 = **激励自己的位序**写反（多比特期望要按编码手抄成表）；附"第一跑就全绿 ⇒ 必须做一次变异测试"与"末态判据抓不到时序错 ⇒ 含先后的机制要有一条按拍/ns 的断言"，8 条首跑前自查；**⑤（同一族的"门禁侧"版本）判据覆盖面太窄会放过真退化**：第 6 项只比"Critical 配对集合"⇒ 落在**已有配对**上的 CDC-11（unsafe 1→3）藏了十几版，只有一条"记录用、不判红"的提示碰到边 ⇒ 凡打印"记录用"的行都要能回答"它一直涨谁会知道"，而新加的判红必须自带**能红也能绿**的反例（`build/gates_cdc_test.sh`） | `bench_self_inflicted_reds.md` | 踩坑清单 |
 
 ## 配套的可执行脚本（判据不是文档，是跑得出数的东西）
 
@@ -40,6 +40,10 @@ Reusable engineering notes from this project. Each item lists scope, usage, veri
 | `build/gates.sh` | 一条命令把七项门禁（WNS/WHS/失败端点/BRAM/Slice/功耗/methodology/布线/CDC）读成 PASS-FAIL，可指向任一**成套冻结件**复核；解析不到值就 FATAL 退出，**绝不拿空值当 0 判绿** | 报告路径与阈值（阈值口径见 `report/BUILD.md` §7） |
 | `src/host/arb_handover_test.mjs` | 无人值守的仲裁交接判据：自己开关推流、按 100 ms 采 lane30，输出 V1–V6 + V0 七条 PASS/FAIL 与**停流后交回用时的毫秒数**；`--selftest` 10 条含"正常交接不该算抖动""空样本不许判绿"两条反例 | lane 号与 GPIO 基址；两个门限 `--settle-ms` / `--handback-max-ms` |
 | `build/tcl/cdc_who.tcl` | 读**已布线** dcp 出 `report_cdc -details`，把"哪对寄存器跨了域、同步器前面有没有组合逻辑"点到名字 | dcp 路径是 glob 的，换器件不用改；只能在两次构建之间跑 |
+| `build/tcl/hold_paths.tcl` | 同一份 dcp 出**最差 20 条 hold + 6 条 setup** 的路径级报告（`hold_paths.rpt` / `setup_paths.rpt`）——"深度优化时序"不能对着一个 WHS 数字换策略，先问裕量压在谁身上 | 只读，不动产物；但 **`sweep_impl_strategy.tcl` 会 `reset_run`，扫之前必须先把 dcp 派生的件归档** |
+| `build/gates_cdc_test.sh` | **门禁第 6 项自己的判据**：5 个 case，含"拿真实冻结件证明它会红"与"把 unsafe 改回去证明它会绿"（没有后者就分不清真判据和永远红的假判据） | 它跑在 `build/gates.sh` 之上 ⇒ 改第 6 项的解析必须同时跑它 |
+| `build/board_verify.sh` | 一条命令做完"板上那一半"的机器复验：三件套 md5 → 串口活着/在播/没报错 → `health_read`（含同源判据）→ 仲裁八条（自己开关推流）→ 命令电池；**不刷板**（刷板留给人确认） | 三件套文件名、COM 口号、电池命令表 |
+
 | `sim/run_one.sh` | 只跑一个台架（几十秒），改完 RTL 的第一道关 | `SRC` 文件清单 |
 | `src/host/ddr_stale.mjs` | S9 的实现：包内字节偏移→丢字率、连续丢字带分布、16bit 粒度错帧计数 | `WORDS / PAYLOAD` 两个常数 |
 | `src/host/ku5p_stats.mjs` | 收 KU5P 遥测 UDP 包并打印硬件计数器（含 `--selftest` 用合成包自校解析器） | 目标 IP/端口 |

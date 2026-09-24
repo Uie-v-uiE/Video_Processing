@@ -53,10 +53,23 @@ foreach s $strats {
         puts $fh "$s\tINCOMPLETE\t-\t-\t-\t-"
         continue
     }
-    open_run impl_1
-    # 只从报告文本取数：属性名跨版本不稳，文本解析最可靠
+    # **不自己调 report_timing_summary**：实现跑完时 `.runs/impl_1/*_timing_summary_routed.rpt`
+    # 已经在磁盘上了，直接读那份最省也最不容易翻车 —— 2026-09-25 就是栽在自作主张的报告参数上
+    # （`-check_summary_only` 在 2025.2.1 不存在），当场把已经跑完的 5~8 分钟那一跑的数弄丢了。
+    set impl_dir [file join $root vivado_system zynq_video_sys.runs impl_1]
+    set src_rpt ""
+    catch {set src_rpt [lindex [glob -nocomplain [file join $impl_dir *_timing_summary_routed.rpt]] 0]}
     set trpt [file join $root build "sweep_${s}_timing.rpt"]
-    report_timing_summary -file $trpt -max_paths 3 -check_summary_only
+    if {$src_rpt ne "" && [file exists $src_rpt]} {
+        file copy -force $src_rpt $trpt
+        puts "SWEEP $s 读的是构建自己那份 [file tail $src_rpt]"
+    } else {
+        puts "SWEEP $s 没找到 *_timing_summary_routed.rpt，退回现跑 report_timing_summary"
+        open_run impl_1
+        report_timing_summary -file $trpt -max_paths 3
+        close_design
+    }
+    # 只从报告文本取数：属性名跨版本不稳，文本解析最可靠
     set fd [open $trpt r]; set txt [read $fd]; close $fd
     # Design Timing Summary 表头之后的第一行数字：WNS TNS 失败端点 总端点 WHS ...
     set wns "-" ; set whs "-" ; set fem "-"

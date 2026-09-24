@@ -1,0 +1,5 @@
+# 实现策略�?描（同一份网衡�，逐策略重�? impl_1）—�? Fri Sep 25 06:26:49 +0800 2026
+# 用法：SWEEP_STRATS="A B C" vivado -mode batch -source build/tcl/sweep_impl_strategy.tcl
+# 注意：跑完后 vivado_system �? impl_1 �? strategy 属性会停在**最后一�?�?�?的策�?**�?
+#       下一次完整构建会重写它；但在那之前不要拿 .runs 里的 dcp 当交付件�?
+strategy	WNS	WHS	fail_endpoints	all_constraints_met	total_power_W
