@@ -1,0 +1,13 @@
+PASS S1 exactly two marker columns and no stray marker colour anywhere else
+PASS S2 non-marker columns match their own side (L=orig R=proc)
+PASS S3 de survives the seam logic on all 1024 columns
+PASS S4 out-of-range is black and the marker currently wins over OOB (documented)
+FAIL S5 with de=0 the seam does not paint a fresh marker (keeps prior pixel) (t=20651000)
+PASS S6a PANE_W=1 marks exactly two columns (0 and 1)
+PASS S6b PANE_W=0 must not paint the whole line (x==PANE_W-1 must never match)
+PASS S6c PANE_W=1024 puts the marker on the last column only
+PASS S6d PANE_W=1024 keeps the whole screen on the original side
+FAIL tb_v97_seam_scan errors=1
+INFO: [Common 17-206] Exiting xsim at Fri Sep 25 05:59:16 2026...
+exit
+INFO: [Common 17-206] Exiting xsim at Fri Sep 25 05:59:16 2026...

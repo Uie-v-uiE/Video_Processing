@@ -1,0 +1,66 @@
+== board_verify 2026-09-25 05:49:44 ==
+工作目录：/d/Xilinx/Prj/pro/Video_Processing
+-- 三件套（请与 build/frozen_*/MANIFEST.md 对账）--
+  build/system.bit  md5=1b5eff62  2026-09-25 05:46
+  build/system.xsa  md5=6d9cc73d  2026-09-25 05:47
+  build/ps_app.elf  md5=812790ec  2026-09-25 04:17
+-- 1) 串口现在在说什么（活着、在播、没报错）--
+  \[SD\] frame → [SD] frame 500: last 100 frames 29.552 fps (since play 29.810)
+  \[SD\] play refused → （没有这行）
+  \[SD\] mount failed → （没有这行）
+  \[TEMP!\] → （没有这行）
+  !! → （没有这行）
+-- 2) 读回口：health_read（lane0..9 + 23..31）--
+  lane30 src_state → {"eth_tb_ok":1,"eth_live":0,"owner_eth":0,"fill_busy":0,"row_busy":0,"mode_gray":0,"why_gray":2,"why_tb_untrusted":0,"why_no_stream":1,"why_force_ps":0,"mode":"AUTO","why":"没有流"}
+  lane23 zoom → {"raw":2147629356,"alive":1,"zman":0,"zsel":4,"zcode":3,"zoom_active":1,"zoom_dir":0,"inv_scale":300,"x100_actual":85.3,"inv_expected":null,"inv_ok":true,"code_ok":true,"verdict":"OK"}
+  lat.osd_ms_matches_tot → true
+  drop_words → 0
+-- 3) 仲裁交接八条（脚本内部会自己开关推流；含新的 V7 原因位自洽）--
+[ARB] GPIO_0 控制位保留 0xf5000，采样周期 300 ms
+[ARB] 测前 SD playing=1 ⇒ 先 STOP，测完再 PLAY 回去
+[ARB] +3011 ms 开始推流（--test move --fps 15）
+[ARB] +15021 ms 停流（"交回"用时从这一毫秒起算）
+[ARB] +30024 ms 再推流（测可逆）
+[ARB] +38029 ms 结束，等采样会话收尾
+[ARB] 已把 SD 回放恢复到测前状态（PLAY）
+[ARB] 采到 lane30 126 点、lane31 126 点
+[ARB] 每约 2 s 的上下文：-1.7s:own0:live0:tb1 5.3s:own1:live1:tb1 12.2s:own0:live0:tb1 19.2s:own0:live0:tb1 26.2s:own0:live0:tb1 33.3s:own1:live1:tb1 40.2s:own0:live0:tb1
+
+  PASS  V1 基线归 PS  静默 3s 内 owner_eth=1 的样本 0/5（应为 0）
+  PASS  V2 接管时限  推流后 owner_eth→1 用时 357 ms（门限 2000）
+  PASS  V3 推流期不抖  稳占段 owner_eth=1 的样本 29/29，翻转 0 次
+  PASS  V4 停流交回  停流后 owner_eth→0 用时 227 ms（门限 1500）
+  PASS  V5 交回后不回跳  交回之后 owner_eth=1 的样本 0/39，翻转 0 次（都应为 0）
+  PASS  V6 可逆（再推又接管）  再推流后 owner_eth→1 用时 238 ms（门限 2000）
+  PASS  V0 采样密度  全程 101 个样本 / 期望约 117（掉一半即判采样链有问题）
+  PASS  V7 交回后原因位自洽  交回段 39 个样本里原因位不可用的 0 个（要 没流/时基 至少亮一位、且不亮锁PS；全 0 = 板上的 bit 早于 r54）
+
+[ARB] 结论：八条全过 ⇒ "自动交回 + 不抖 + 可逆"有凭据了（屏幕观感仍欠眼睛）
+[ARB] 判据与原始样本落盘：data/measured/arb_handover_last.json
+-- 4) 串口命令电池（51 条 + 初末态必须相同）--
+ok   30 zoom auto
+ok   31 zoom 9
+ok   32 help
+ok   33 BOGUS
+ok   34 pipe 000001010
+ok   35 pipe 000000001
+ok   36 pipe 000100000
+ok   37 pipe 00000
+ok   38 AUTOPLAY0
+ok   39 autoplay 1
+ok   40 SRC2
+ok   41 bilin 2
+ok   42 TH80
+ok   43 temp
+ok   44 temp th 0
+ok   45 temp
+ok   46 temp th 200
+ok   47 temp
+ok   48 temp th
+ok   49 temp th 999
+ok   50 TEMP
+ok   51 STAT
+ok   跑完回到初态：en=00 thr=80 src=1 zoom=1 bilin=1 zsel=4 zman=0 gm=0.00
+
+RESULT PASS uart_cmd_check  (51 条命令, 49.7 s, 捕获 board/uart_script_capture.txt)
+== 日志留在 build/evidence/verify_0925_0549.txt ==

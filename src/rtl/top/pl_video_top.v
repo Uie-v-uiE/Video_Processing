@@ -811,7 +811,7 @@ module pl_video_top #(
     // 而"链路断了"这件事在屏上有三个长相：Src 那一格退回 CARD、FPS 掉到 0、Latency 变 `--`。
 
     // ---- V8-5：把 axi 域算好的 ms 跨到像素域（#36/#52 那一课：翻转位 + 3 级同步 + 整拍锁存）----
-    // hb_tog 故意与 bus_tog 是同一根：**没有新测量**就等于"心跳停了" ⇒ hb_gone 亮 ⇒ OSD 画 `--`。
+    // hb_tog 与 bus_tog 是**同一件事**：**没有新测量**就等于"心跳停了" ⇒ hb_gone 亮 ⇒ OSD 画 `--`。
     // 于是"ETH 停了、屏上还挂着最后一轮的 12 ms"这种过期读数不可能出现
     //（门限取 1000 ms：一轮测量正常是一帧 = 16~33 ms，留 30 倍以上余量，
     //  而 SLOW_MS 放到 200 ⇒ 只有时基真的废了才判 slow，不会把正常的帧间抖动当成断）。
@@ -819,10 +819,21 @@ module pl_video_top #(
     // 少了后一位，一次"倒挂/超长"的轮次就会把一个假 ms 画上屏 —— 那正是 #59 要防的那类谎。
     wire [17:0] lat_bus_q;
     wire        lat_gone;
+    // 心跳**另起一个触发器**：语义仍然是"和发沿同一件事"（同域打一拍，10 ns，
+    // 对 1000 ms 的门限什么都不意味着），但 `lat_tog_reg` 不再同时扇出到
+    // bus_tog 与 hb_tog 两组目的域同步器 —— r55 的 cdc.rpt 里这一对
+    // `clk_fpga_0 → clkout0_1` 有 3 个 unsafe 端点，其中 2 个就是这里（CDC-11
+    // "Fan-out from launch flop to destination clock"），与 r54 构建 #34 判红那次
+    // 同一个签名、同一个修法（见本文件 603 行 z_hb_tog 那段）。
+    reg lat_hb_tog;
+    always @(posedge axi_clk or negedge axi_rst_n) begin
+        if (!axi_rst_n) lat_hb_tog <= 1'b0;
+        else            lat_hb_tog <= lat_tog_axi;
+    end
     snap_cross #(.W(18), .DST_HZ(50_000_000), .HB_TO_MS(1000), .SLOW_MS(200)) u_lat_x (
         .dst_clk(clk_pix), .dst_rst_n(rst_pix_n),
         .bus({lat_ok_axi, ~lat_sticky_axi, lat_ms_axi}),
-        .bus_tog(lat_tog_axi), .hb_tog(lat_tog_axi),
+        .bus_tog(lat_tog_axi), .hb_tog(lat_hb_tog),
         .bus_q(lat_bus_q), .hb_gone(lat_gone), .hb_slow()
     );
     wire        lat_ok_pix = lat_bus_q[17] & lat_bus_q[16] & ~lat_gone;

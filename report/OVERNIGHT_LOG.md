@@ -3335,7 +3335,7 @@ L1 全量 `SIM DONE pass=59 fail=0`（新增 tb_v95 一条），`check_ports` �
 多 1 个 FF）⇒ 发射触发器回到一对一，配对集合应该回到基线的三条（build #35 复查，见下一小节）。
 这条已经写成 skill：`pulse_toggle_cdc.md` §五（含"CDC-15 Warning 是准静态总线的**期望**形状，别去消"）。
 
-### 6b）build #35 复查：**红的那一项消失了，而且没动基线**（05:17）
+### 6）build #35 复查：**红的那一项消失了，而且没动基线**（05:17）
 
 `gates.sh` → **ALL PASS**（凭据 `build/gates_r54b.txt`）。`cdc.rpt` 里 `clkout0_1 → clk_fpga_0`
 从 Critical 掉回 **Warning**，Critical 行集合 = 基线的 3 条（`clk_fpga_0→clkout0_1`、
@@ -3345,7 +3345,7 @@ BRAM 92/65.71 %、Dynamic 2.182 W、端点 29526。
 **WHS 这条不许当绿灯念**：r51→r54 四版是 +0.048 / +0.019 / +0.054 / +0.012，上下跳 ⇒ 是布局布线的运气；
 §14 R21 补记早就把 +0.012 这个量级判为"换温度/电压就可能翻"，所以它是**深度优化那一轮的第一个数字**。
 
-### 6c）板级实测（build #35，05:19–05:27，三件套 bit `e049c2b5` / xsa `662c0d5f` / elf `812790ec`）
+### 7）板级实测（build #35，05:19–05:27，三件套 bit `e049c2b5` / xsa `662c0d5f` / elf `812790ec`）
 
 第一次用 `build/board_verify.sh` 一条命令跑完（这也是它的第一次真实使用，日志
 `build/evidence/verify_0925_0521.txt`）：
@@ -3365,11 +3365,36 @@ BRAM 92/65.71 %、Dynamic 2.182 W、端点 29526。
 `arb_handover_test` 也顺手证明它会测前 `STOP`、测后 `PLAY` 复原（日志里有那两行）。
 
 
-### 6）状态与遗留
+### 8）现在板上跑的是什么，以及怎么重刷（05:35 更新，命令是可以照抄的绝对路径）
+
+板上：**r54 = build #35** 三件套 —— bit `e049c2b5` / xsa `662c0d5f` / elf `812790ec`
+（冻结在 `build/frozen_r54_readback/`）。网线插着、当前**没有**推流、SD 自动播在放（屏幕应是电影），
+`build/board_verify.sh` 与串口电池都是绿的。
+
+```bat
+cd D:\Xilinx\Prj\pro\Video_Processing
+:: 三件套对账（与 build/frozen_r54_readback/MANIFEST.md 比 md5 前 8 位）
+md5sum build\system.bit build\system.xsa build\ps_app.elf
+:: 重刷顺序不能反：先起 PS，再配 PL，最后下固件（固件只复位 A9，位流与控制字都不动）
+D:\Software\Vivado\2025.2.1\Vitis\bin\xsdb.bat build\tcl\ps_jtag_boot.tcl
+D:\Software\Vivado\2025.2.1\Vivado\bin\vivado.bat -mode batch -nojournal -log build\prog_pl.log -source build\tcl\program_pl.tcl
+D:\Software\Vivado\2025.2.1\Vitis\bin\xsdb.bat build\tcl\ps_app_reload.tcl
+:: 想同时抓开机横幅（横幅只在下载那一刻打一次，所以先起捕获再重下固件）
+start powershell -NoProfile -ExecutionPolicy Bypass -File board\uart_cap_once.ps1 -Port COM6 -Seconds 14 -Out build\uart_boot.txt
+:: 机器那一半一条搞定（读回口 / lane23 / lane30 / 时延同源；加 --stream 跑仲裁八条，加 --battery 跑 51 条）
+bash build\board_verify.sh
+```
+
+> 为什么这里写绝对路径而不是 `%VIVADO%`/`%XSDBAT%`：那两个变量只在 `README.md` 的 `set` 行里定义，
+> 早上直接照 §24 那种块跑会先卡五分钟（这条账 07:00 报过、当时没动）；这一份是新写的、可整段照抄。
+> §24 那份历史块保持原样，因为它记的是 #31/#32 那天的决定，改它会毁掉当时的上下文。
+
+
+### 9）状态与遗留
 
 **r55 候选（今晚审计出来的，都是不需要用户拍板的小账，按性价比排）**：
 
-1. **删掉一段"坏跨域 + 死逻辑"**：`pl_video_top.v:793-796` 把 eth 域的 16 位计数器
+1. **删掉一段"坏跨域 + 死逻辑"—— 正在做（build #36）**：`pl_video_top.v:793-796` 把 eth 域的 16 位计数器
    `eth_pkts` / `eth_bad`（来自 `system_top.v:184` 的 `stat_pkts/stat_bad`，eth_rxc 域）
    用**两级触发器当总线同步器**搬进像素域 —— 两级同步只对**单 bit** 成立，多 bit 计数值这样过域
    会读到"一半新一半旧"的值（#52/#59 的同一个坑）。而 `pkts_s1`/`bad_s1` **没有任何读者**
@@ -3389,4 +3414,124 @@ BRAM 92/65.71 %、Dynamic 2.182 W、端点 29526。
   要靠温热的指腹/吹风机看数字爬升 ⇒ 记进 `board/README.md` 的眼睛清单（第 19 行）。
 - V8-7 剩下的"异常原因**上屏**"（`Src:` 后面那个后缀）没有做：它是这一版里唯一还需要
   **再跨一次域**到像素侧的东西，宁可单独一步做完配套台架，也不在这个钟点省那一级同步器。
+
+## §38 r55 收口 + r56（2026-09-25 05:45–06:2x）：一笔"数字全没动"的删除，和它顺手牵出的一条真问题
+
+### 1）r55 = build #36：**只有删除**，而且删完之后数字一位没动
+
+内容就一件：把 ISSUES #64 审计出来的那段死代码删掉（16 位 eth 计数器被按单 bit 的规矩做"两级触发器当总线"）。
+`pl_video_top` 少两个入口、少 4 个寄存器，`system_top` 与 `pl_demo_top` 的连线跟着删。
+
+门禁十四项 **ALL PASS**（`build/gates_r55.txt`，冻结在 `build/frozen_r55_deadcdc/`）：
+WNS **0.235** / WHS **0.012** / 失败 setup 0 / 失败 hold 0 / BRAM 92 tile 65.71% /
+LUT 11116（20.89%）/ Slice 寄存器 8430 / Dynamic **2.182 W** / methodology CRIT 0 /
+布线错误 0 / Critical 配对 3 条不新增 / 宽度警告 0 / 多驱动 0 / 逐实例接线 violations=0。
+
+**十四项里只有一行变了**：第 14 项的 `width_compared` 从 546 → **544**（少掉的正是被删的那两个连接）。
+资源与两端裕量**完全没动**，这不是"白删"，而是**它确实是死代码的证据** —— 综合器早就把无消费者的
+那 4 个寄存器剪掉了，所以网表里本来就没有它们，这次改的是**源码**和**顶层面板**。
+⇒ 结论要反过来用才成立：以后若某一版"删了逻辑而资源一位没动"，那是正常的；
+   而"删了逻辑资源却涨了"，那才是删错了东西。
+
+三件套 md5：bit **1b5eff62** / xsa **6d9cc73d**（RTL 动过 ⇒ 与 r54 的 662c0d5f 不同，符合预期）/
+elf **812790ec**（与 r54 **逐字节相同**：这一版 PS 零改动，故意沿用，好把差异全部归到 PL）。
+
+⚠ 又一次撞上"退出码不可信"：后台通知把 build #36 报成 `exit code 1`，而日志末行是
+`SYSTEM BUILD DONE`、`grep -c "^ERROR"` = 0。判据在日志里，不在 `$?` 里。
+
+### 2）板级复验（05:49–05:53，`build/board_verify.sh --stream --battery`）
+
+- 读回口：`lane30` = `{mode:AUTO, eth_live:0, why_no_stream:1, why:"没有流"}`、
+  `lane23` = `{alive:1, zman:0, zsel:4, zcode:3, inv_scale:300 → 实测 0.853×, verdict:OK}`、
+  `lat.osd_ms_matches_tot=true`、`drop_words=0`。
+- **仲裁八条全绿**（`arb_handover_r55.json`）：接管 **357 ms**、稳占段 29/29 零翻转、
+  停流交回 **227 ms**、交回后 0/39 不回跳、再推 **238 ms** 可逆、采样 101/117、
+  交回段 39 个样本里原因位不可用 **0** 个（V7）。
+- **命令电池 51/51 PASS**，末态与初态逐字段相同（`en=00 thr=80 src=1 zoom=1 bilin=1 zsel=4 zman=0 gm=0.00`）。
+- 测完 SD 已恢复到测前状态（PLAY）⇒ 板上现在 = 无推流 + SD 在放，与演示默认一致。
+
+### 3）去查门禁那两行"提示"，其中一行查出了真问题（ISSUES #65）
+
+门禁打印里有两行不是 PASS 而是提醒，一行是旧账（`eth_rxc>clk_fpga_0`，基线文件里 U14 已结案，
+r55 后仍是 271 端点），另一行 `clk_fpga_0>clkout0_1` 端点 **17→71** 从没查过。
+跑 `build/tcl/cdc_who.tcl` 出 `-details`（`build/cdc_details.rpt`）后定性清楚了：
+这一对的 unsafe 从 **1** 长到 **3**，新增的两个是 **CDC-11「一个发射触发器扇出到两组目的域同步器」**：
+`u_pl/u_lat/lat_tog_reg/C` 同时接给了 `u_lat_x` 的 `hs_reg[0]` 与 `ts_reg[0]` ——
+因为 V8-5 那条时延快照把 `bus_tog` 和 `hb_tog` **接了同一根线**（当时的理由是对的：
+"没有新测量就等于心跳停了"，所以屏上不会出现过期的 ms）。
+**这就是 r54 构建 #34 判红过的那个形状**，只是那次多了一条配对、门禁第 6 项看得见，
+这次落在已有配对上 ⇒ 配对集合不变 ⇒ **门禁看不见**。
+
+r56 的修法（已写进 `src/rtl/top/pl_video_top.v`）：在 axi 域单独起一个 `lat_hb_tog` 触发器打
+`lat_tog_axi` 的电平（同域、同步、合法），`hb_tog` 改接它。语义一模一样（同一轮、晚 1 个 axi 拍 = 10 ns，
+对 1000 ms 的门限是零），但发射扇出恢复成"一个触发器对一组同步器"。
+判据 = 重跑 `cdc_who` 后这一对只剩 r23 就有的那 1 个 unsafe（CDC-10 `u_cmt/d1_reg → ac0_reg`），
+且第 6 项仍是 3 条 Critical 配对不新增。
+
+**顺带一笔门禁的账**（也记在 #65 末尾）：第 6 项现在只比"配对集合"，"同配对端点数增长"是提示不判红 ——
+理由仍然成立（加一级仲裁寄存就会 +1，判红会让人去绕开门禁），但它漏的是 **Unsafe 列**：
+端点数长是中性事件，unsafe 数长不是。深度优化那一轮（任务 #46）把基线从"配对 端点数"扩成
+"配对 端点数 unsafe 数"，并加"unsafe 增长即判红"—— **先想好反例怎么写再动手**，
+否则又造一条永远不会红的判据。
+
+### 4）r56 的三件配套（都在同一版做掉，不留"下次再说"）
+
+- **RTL**：`lat_hb_tog` 单独一级（上面 #65 的修法），`pl_video_top.v` 一处改动。
+- **L1 全量**：**61 个台架 61 过 0 红**（`build/l1_r56_console.txt`，`SIM DONE pass=61 fail=0`）。
+- **§37 欠的变异测试还上了**：把 `split_display.v` 的 `if (sep && de)` 故意改成 `if (sep)` 跑 `tb_v97`，
+  结果正是希望的样子 —— **只有 S5 红**（`FAIL S5 … (t=20651000)`），S1/S2/S3/S4/S6a~d 全绿，
+  说明这条判据只钉它宣称要钉的那件事、没有连带误伤。凭据 `build/mutation_seam_v97_r56.txt`；
+  改完把源文件对回原 md5 `0a874464`（同一条命令里做的，防止"忘了还原"这种自伤）。
+- **门禁自身补强**（#65 的第二半）：`build/CDC_BASELINE.txt` 扩成三列 `配对 端点数 unsafe`，
+  第 6 项对第三列判红；反例见下面第 5 节。
+
+### 5）检查器的检查：`build/gates_cdc_test.sh`（五个 case 全过）
+
+新加的"unsafe 增长即判红"本身是一条**能被改一个数字糊过去**的判据，所以它必须自带反例：
+
+| case | 造的形状 | 期望 | 实测 |
+|---|---|---|---|
+| T1 | **真实的 r55 冻结件**（`clk_fpga_0>clkout0_1` unsafe=3，基线 1） | 红 | 红，并打印 `Unsafe 端点增长：clk_fpga_0>clkout0_1(unsafe 1→3)` |
+| T2 | 同一份报告，把 3 改成 1（= r56 修好后的形状） | 绿 | 绿 —— **没有这一条，"永远红"与"真判据"无法区分** |
+| T3 | 凭空多一条 Critical 配对 | 红 | 红（第 6 项最初的目的仍然在） |
+| T4 | 基线某行少一列 | 红 | 红（不许"少一列就当 0"） |
+| T5 | 基线文件不存在 | 红 | 红（原来只 WARN ⇒ 没门禁却打印 PASS 形状的行） |
+
+两点副作用要说清楚：① 为了让测试喂自己那份坏基线，`gates.sh` 的 `CDCBASE` 改成环境变量可覆盖，
+**测试不许动仓库里真那份**；② 这条判据**追溯性地**把 r54、r55 的冻结件判红
+（`bash build/gates.sh build/frozen_r54_readback` 第 6 项现在 FAIL）—— 这是对的，那两版确实带着
+2 个 unsafe 端点；它们各自的 MANIFEST 当时写的"ALL PASS"也不作废（门禁定义不同），
+这段话写在 #65 末尾，免得以后翻记录的人以为哪份造假。
+
+### 6）build #37 的结果：三件事都对上了（06:14–06:19）
+
+上面"完成后要看的三件事"逐条落地（凭据 `build/frozen_r56_cdcfanout/`）：
+
+1. **第 6 项在新判据下 PASS**：`clk_fpga_0 → clkout0_1` 的端点/unsafe = 71/**1**（r55 是 71/3，r23 基线 17/1）
+   ⇒ 这一对回到基线水平，**没改基线数值、没加豁免**。
+2. **全设计 CDC-11 行数 = 0**（`cdc_details.rpt`；r55 那份是 2 行，都挂在 `u_lat/lat_tog_reg/C` 上）。
+   剩下的 Critical 是 2 条 CDC-10，其中一条 `u_eth/u_reasm/stat_pkts_reg[9] → u_pl/el0_reg/D` **基线里本来就记着**。
+3. **Slice 寄存器 8430 → 8431**（就是 `lat_hb_tog` 那一个），BRAM/功耗一位没动，LUT 反而 −8；
+   端点总数 29526 → 29527。
+
+⚠ **WNS 0.235→0.540、WHS 0.012→0.019 这两笔"变好"不许记账**：1 个 FF 的改动碰不到全设计关键路径
+（OSD 算术那条 24 级 + 9 CARRY4），这是布局扰动；WHS 的历史 r51→r56 是
++0.048/+0.019/+0.054/+0.012/+0.012/+0.019 —— 在 0.01~0.05 之间来回跳，
+所以**任务 #46 的第一个数字仍然是 WHS**，而且它要靠策略扫描 + 两次独立构建同方向才算修好。
+
+板级（`r56_board_verify_console.txt`）：串口活着、SD 在放（29.999 fps）、lane23 `verdict=OK`、
+`lat.osd_ms_matches_tot=true`、`drop_words=0`、仲裁八条全绿（接管 119 ms、稳占段 28/28、
+**交回 468 ms**、再推 176 ms、原因位不可用 0）、电池 51/51 且末态=初态。
+交回 468 ms 比 r55 的 227 ms 慢，但在**这条链已知的散布内**（r32 一次 9 个 run 量到 208~481 ms，
+采样周期本身 300 ms）⇒ 对外口径不动：**0.2~0.5 s + 采样分辨率 300 ms**，不挑最好看的那个数念。
+
+### 7）状态与遗留
+
+- **板上现在跑的是 r56**（bit `c15454ae` / xsa `6d69823c` / elf `812790ec`）。演示默认**仍是 #23**，
+  换默认是用户的决定（三条眼睛判据还没收口）。
+- 两笔本地提交：`3328461`（r55）与下一笔（r56）—— **都没有 push**，等用户发话（D8 的 ④）。
+- 眼睛清单仍然只有用户能关：`board/README.md` 行 12~20（其中 12、18 就是他报的 #56 那两条）。
+- 步 7 还欠一条没人为造过的异常：**SD 播放中途拔卡**（拔线、非法命令都造过了）。
+
+
 

@@ -58,32 +58,54 @@ rerr=$(grep -a "nets with routing errors" "$R" | grep -oE '[0-9]+' | tail -1); r
 #    像素域→axi 的同步器，Critical 从上一版的 3 行变成 4 行，脚本照样打印 PASS ——
 #    **门禁把自己要挡的东西漏掉了**。现在认"新增了哪几条 src→dst 配对"，
 #    条数变少也不算改进（少了的原因没查清之前，只报出来不记账，见 §10 U14）。
-CDCBASE=build/CDC_BASELINE.txt
-# 端点数取"倒数第 5 个字段"而不是固定第 11 列：CDC Type 的 token 数会变
+# 环境变量 CDCBASE 可覆盖：为了让"这条判据本身能不能红"有一份可跑的测试
+# （`build/gates_cdc_test.sh` 要喂它一份故意改坏的基线，而不许去动仓库里那份真的）。
+CDCBASE=${CDCBASE:-build/CDC_BASELINE.txt}
+# 端点数取"倒数第 5 个字段"、unsafe 取"倒数第 3 个"，而不是固定列号：CDC Type 的 token 数会变
 # （"No Common Primary Clock" 4 个、"Safely Timed" 2 个），写死列号会读成 0 或读成别的列。
-rows() { awk '/^Critical/{print $2">"$3, $(NF-4)}' "$1" 2>/dev/null | sort; }   # "配对 端点数"
+# 末五列永远是 Endpoints / Safe / Unsafe / Unknown / No-ASYNC_REG ⇒ 从尾巴数才稳。
+rows() { awk '/^Critical/{print $2">"$3, $(NF-4), $(NF-2)}' "$1" 2>/dev/null | sort; }   # "配对 端点数 unsafe"
 cur=$(rows "$C")
 base=''
 cdcc=$(printf '%s\n' "$cur" | grep -c '[^ ]'); cdcc=${cdcc:-0}
-newrows='' gone='' epgrow='' nbase=0
+newrows='' gone='' epgrow='' ugrow='' nbase=0
 if [ -f "$CDCBASE" ]; then
-    base=$(grep -v '^#' "$CDCBASE" | awk '{print $1, $2}' | sort)
+    # 基线必须是整齐的三列。坏一行就当这一项**没门禁**，直接判红 ——
+    # 静默把缺的第三列当 0，等于"谁都能靠删一个数字让 CDC 变绿"。
+    base=$(grep -v '^#' "$CDCBASE" | awk 'NF>0{if (NF!=3) {print "  BADLINE"; exit} } NF==3{print $1,$2,$3}' | sort)
+    if printf '%s\n' "$base" | grep -q BADLINE; then
+        echo "        FATAL $CDCBASE 有行不是『配对 端点数 unsafe』三列 ⇒ 这一项不敢判绿"
+        base=$(printf '%s\n' "$base" | grep -v BADLINE)
+        cdc_base_broken=1
+    else
+        cdc_base_broken=0
+    fi
+    base=$(printf '%s\n' "$base" | grep -v BADLINE)
     nbase=$(printf '%s\n' "$base" | grep -c '[^ ]'); nbase=${nbase:-0}
     newrows=$(comm -13 <(printf '%s\n' "$base" | awk '{print $1}') <(printf '%s\n' "$cur" | awk '{print $1}'))
     gone=$(comm -23 <(printf '%s\n' "$base" | awk '{print $1}') <(printf '%s\n' "$cur" | awk '{print $1}'))
-    # 同一条配对的端点数变大 = 这条跨域上又挂了寄存器，也算退化
+    # 同一条配对的端点数变大 = 这条跨域上又挂了寄存器 —— 只提示（加一级仲裁寄存就会 +1，
+    # 判红会让人去绕开门禁）。但 **unsafe 数变大不是中性事件**，那是"这条跨域上又多了一处
+    # 没被 ASYNC_REG/握手保护住的采样点"，判红（ISSUES #65：V8-5 的 CDC-11 就是这么躲过第 6 项的）。
+    # join 出来的字段序：$1=配对 $2=基线端点 $3=基线unsafe $4=本版端点 $5=本版unsafe
     epgrow=$(join <(printf '%s\n' "$base") <(printf '%s\n' "$cur") 2>/dev/null \
-             | awk '$2+0 != $3+0 && $3+0 > $2+0 {printf "%s(%s→%s) ", $1, $2, $3}')
+             | awk '$2+0 != $4+0 && $4+0 > $2+0 {printf "%s(%s→%s) ", $1, $2, $4}')
+    ugrow=$(join <(printf '%s\n' "$base") <(printf '%s\n' "$cur") 2>/dev/null \
+             | awk '$5+0 > $3+0 {printf "%s(unsafe %s→%s) ", $1, $3, $5}')
 else
     echo "        WARN 没有 $CDCBASE —— CDC 这项退化成"只把数字摆出来"，不比等于没门禁"
+    cdc_base_broken=1
 fi
 cdc_ok=1
 [ -n "$newrows" ] && cdc_ok=0
 [ -n "$newrows" ] && echo "        新增 Critical 配对：$(printf '%s ' $newrows)  ⇒ 这一项判红"
+[ "$cdc_base_broken" = 1 ] && cdc_ok=0
 [ -n "$gone" ]    && echo "        基线里有而本版没有：$(printf '%s ' $gone)（原因未查证，不算改进）"
-# 端点数增长只提示不判红：加一级仲裁寄存就会 +1，把它判红会让人去绕开门禁；
-# 真正的新危险是"多一条跨域配对"，那条上面已经判了。
+# 端点数增长只提示不判红：真正的新危险是"多一条跨域配对"和"某条配对的 unsafe 变多"，
+# 前者一直是判红项，后者从 r56 起也是（见上面 #65 的理由）。
 [ -n "$epgrow" ]  && echo "        同配对端点数增长：$epgrow（记录用，不判红）"
+[ -n "$ugrow" ]   && cdc_ok=0
+[ -n "$ugrow" ]   && echo "        Unsafe 端点增长：$ugrow  ⇒ 这一项判红（#65）"
 
 # 自检：解析不出来的项一律当失败（"检查器自己也要有判据"，见学习文档 §十二）
 for v in wns whs tnsfail whsfail eps bram bramp lut lutp reg dyn crit rerr cdcc; do
@@ -107,7 +129,7 @@ say "Slice 寄存器"     "$reg"  "记录用（无阈值）"   1
 say "Dynamic (W)"     "$dyn"  "与前次同量级"      1
 say "methodology CRIT" "$crit" "== 0"            $([ "$crit" -eq 0 ] && echo 1 || echo 0)
 say "布线错误网线"      "$rerr" "== 0"            $([ "$rerr" -eq 0 ] && echo 1 || echo 0)
-say "cdc.rpt Critical 行" "$cdcc" "基线 $nbase 行，配对不新增" "$cdc_ok"
+say "cdc.rpt Critical 行" "$cdcc" "基线 $nbase 行，配对不新增、unsafe 不增长" "$cdc_ok"
 # 8) 端口宽度不匹配的**端口连接**警告（Synth 8-689）—— #57 的教训：
 #    system_top 里 `wire [5:0] dbg_src` 接在 8 bit 的端口上，综合只给这么一条警告，
 #    lane30 的模式高位就被静默吞掉（读出来永远 0/1），而七项门禁当时全绿。

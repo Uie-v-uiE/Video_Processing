@@ -1,0 +1,7 @@
+  PASS T1（判据=FAIL，期望=FAIL）r55 的 cdc.rpt 必须被新判据抓住
+        证据:         Unsafe 端点增长：clk_fpga_0>clkout0_1(unsafe 1→3)   ⇒ 这一项判红（#65）
+  PASS T2（判据=PASS，期望=PASS）改回 1 之后必须绿 —— 否则这是一条永远红的判据
+  PASS T3（判据=FAIL，期望=FAIL）新增配对必须红（第 6 项最初的目的）
+  PASS T4（判据=FAIL，期望=FAIL）基线坏了必须红，不是静默按 0 算
+  PASS T5（判据=FAIL，期望=FAIL）没有基线 = 没有门禁 ⇒ 判红（原来只 WARN）
+GATES-CDC-TEST: pass=5 fail=0
