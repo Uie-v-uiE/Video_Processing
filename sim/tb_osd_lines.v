@@ -27,6 +27,10 @@ module tb_osd_lines;
     // 两边都是空白也算不一致——scan_glyph 比的是亮像素数，字模漏画就少一大截。
     localparam [5*7-1:0] GL_U = {5'b10001,5'b10001,5'b10001,5'b10001,5'b10001,5'b10011,5'b01110};
     localparam [5*7-1:0] GL_H = {5'b10001,5'b10001,5'b10001,5'b11111,5'b10001,5'b10001,5'b10001};
+    localparam [5*7-1:0] GL_C = {5'b01110,5'b10001,5'b10000,5'b10000,5'b10000,5'b10001,5'b01110};
+    // '*'（索引 26）= 片源被手动锁住的标记。这份位图是**台架自己写一遍**的，
+    // 与 RTL 里那份互为对照 —— 谁改了另一处就红（同 GL_U/GL_H 的做法）。
+    localparam [5*7-1:0] GL_STAR = {5'b00000,5'b00100,5'b10101,5'b01110,5'b10101,5'b00100,5'b00000};
 
     reg clk = 0, rst_n = 0;
     always #10 clk = ~clk;
@@ -35,6 +39,7 @@ module tb_osd_lines;
     reg [15:0] stall = 0;
     reg [11:0] tx = 0, ty = 0;
     reg [1:0] tb_mode = 2'b11;
+    reg [1:0] tb_src_eff = 2'b11;         // {fb_vis, owner_eth}：屏幕上真的这一路
     reg        tde = 0;
     wire [7:0] ro, go, bo;
     wire de_o2, hs_o, vs_o;
@@ -42,7 +47,8 @@ module tb_osd_lines;
     osd_overlay #(.X0(X0), .Y0(Y0), .SCALE(SC), .CHAR_W(CW), .CHAR_H(CH),
                   .LINE_GAP(LG), .MAX_CHARS(MC), .N_LINES(6)) u_osd (
         .clk(clk), .rst_n(rst_n), .x(tx), .y(ty), .de(tde),
-        .mode(tb_mode),        // L5 片源模式行的内容随它变（原来 OSD 上根本没有片源信息）
+        .src_eff(tb_src_eff),  // L5 画的是"屏幕上真的这一路"
+        .mode(tb_mode),        // L5 末尾的 `*`：模式≠自动 就是手动锁着
         .angle(9'd0), .effect_en(5'd0), .fps(8'd0),
         .src_sel(1'b0), .eth_link(1'b1),
         .net_pkts(16'd0), .net_bad(16'd0),
@@ -136,16 +142,26 @@ module tb_osd_lines;
         scan_glyph(2, 0, GL_E);
         $display("PASS glyph scan: D R O P S T A L (+ 老行 F/E 没移位)");
 
-        // ---- L5：片源模式行（ISSUES #55：长按到底生效没有，第一次在屏幕上有字可读）----
-        tb_mode = 2'b00; settle; expect_line(5, "SRC=AUTO  ");
-        scan_glyph(5, 4, GL_A); scan_glyph(5, 5, GL_U);
-        scan_glyph(5, 6, GL_T); scan_glyph(5, 7, GL_O);
-        tb_mode = 2'b01; settle; expect_line(5, "SRC=ETH   ");
-        scan_glyph(5, 6, GL_H);          // H 也是这次新加的字，漏画就少一竖
-        tb_mode = 2'b11; settle; expect_line(5, "SRC=PS    ");
-        tb_mode = 2'b10; settle; expect_line(5, "SRC=CARD  ");
-        tb_mode = 2'b11; settle;         // 收尾回到本文件改动前的固定激励
-        if (errors == 0) $display("PASS L5 片源模式行：四态文字内容对，新字模 U/H 不是空白");
+        // ---- L5：片源行（ISSUES #55 + 2026-09-24 用户报"标签与屏幕不符"）----
+        // 标签画的是**屏幕上真的这一路**（src_eff = {fb_vis, owner_eth}），
+        // 末尾一个 `*` 表示"此刻是手动锁住的"（mode≠自动）。
+        // 每条期望串都写满 10 个字符：Verilog 把短串右对齐补 0，少写一位就会整体错位一格。
+        tb_mode = 2'b00; tb_src_eff = 2'b00; settle; expect_line(5, "SRC=CARD  ");
+        tb_src_eff = 2'b11;                          settle; expect_line(5, "SRC=ETH   ");
+        tb_src_eff = 2'b10; tb_mode = 2'b11; settle;         expect_line(5, "SRC=PS  * ");
+        tb_src_eff = 2'b01; tb_mode = 2'b10; settle;
+        // ↑ 仲裁以为自己占着屏（owner=1），但 mux 选的是图卡：**标签必须跟着屏幕走**。
+        //   这正是用户报的那类不一致（"CARD/PS 反了、显示 ETH 时写着 AUTO"）的机器版判据。
+                                                            expect_line(5, "SRC=CARD* ");
+        // 新字模逐个扫一遍：C/A/R/D 与 E/T/H、`*`（漏画一个就是屏上少一笔）
+        scan_glyph(5, 4, GL_C); scan_glyph(5, 5, GL_A);
+        scan_glyph(5, 6, GL_R); scan_glyph(5, 7, GL_D);
+        tb_src_eff = 2'b11; tb_mode = 2'b01; settle;        expect_line(5, "SRC=ETH * ");
+        scan_glyph(5, 4, GL_E); scan_glyph(5, 5, GL_T); scan_glyph(5, 6, GL_H);
+        scan_glyph(5, 8, GL_STAR);        // H 与 * 都是新加的：H 少一竖、* 没画 → 这里就红
+        // 收尾：把两个激励恢复成本文件改动前那套（其它行都按 mode=11/src=ETH 扫过）
+        tb_src_eff = 2'b11; tb_mode = 2'b11; settle;
+        if (errors == 0) $display("PASS L5 片源行：标签跟着屏幕走，锁住时有 *，新字模 C/A/R/D/E/T/H/* 都画了");
 
         if (errors == 0) $display("RESULT tb_osd_lines PASS");
         else             $display("RESULT tb_osd_lines FAIL (%0d errors)", errors);

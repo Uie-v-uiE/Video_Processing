@@ -31,6 +31,14 @@ module osd_overlay #(
     // 所以片源/模式这件事第一次真正上屏 = 下面新增的 L5，输入口留着是给以后的行用。
     input  wire        src_sel,
     input  wire        eth_link,
+    // 屏幕上**真正在显示的那一路**，由顶层的片源 mux 给（不是模式环）：
+    //   {fb_vis, owner_eth} ⇒ 0x=CARD（图卡）/ 10=PS（DDR 里 PS 那一帧）/ 11=ETH（网络帧）
+    // 为什么不用 mode：mode 是"要哪一路"的意愿，实际给不给还要看 `have_src` 与仲裁。
+    // 用户 2026-09-24 报的"CARD 和 PS 写反了、显示 ETH 时写着 AUTO"就是这个差别：
+    // 照着意愿画标签，屏幕与标签会在"意愿没生效"的那些状态下对不上。
+    input  wire [1:0]  src_eff,
+    // 模式环仍然要看得见（长按有没有生效的唯一屏上凭据，ISSUES #55），但只以一个 `*` 表示
+    // "此刻是手动锁住的"，不再占一整格标签。
     input  wire [1:0]  mode,        // 00 自动 01 锁ETH 11 锁PS 10 锁图卡（与 src_mode 同序）
     input  wire [15:0] net_pkts,
     input  wire [15:0] net_bad,
@@ -183,16 +191,19 @@ module osd_overlay #(
         chars[5*MAX_CHARS+1] = "R";
         chars[5*MAX_CHARS+2] = "C";
         chars[5*MAX_CHARS+3] = "=";
-        case (mode)
-            2'b00: begin chars[5*MAX_CHARS+4] = "A"; chars[5*MAX_CHARS+5] = "U";
-                        chars[5*MAX_CHARS+6] = "T"; chars[5*MAX_CHARS+7] = "O"; end   // AUTO
-            2'b01: begin chars[5*MAX_CHARS+4] = "E"; chars[5*MAX_CHARS+5] = "T";
-                        chars[5*MAX_CHARS+6] = "H"; chars[5*MAX_CHARS+7] = " "; end     // ETH
-            2'b11: begin chars[5*MAX_CHARS+4] = "P"; chars[5*MAX_CHARS+5] = "S";
-                        chars[5*MAX_CHARS+6] = " "; chars[5*MAX_CHARS+7] = " "; end    // PS
+        // 标签画的是**屏幕上真的在显示的那一路**（src_eff），不是模式环（见端口注释：
+        // 用户报的"CARD/PS 反了、显示 ETH 时写 AUTO"就是拿意愿当事实画的后果）。
+        // 第 8 格放一个 `*` 表示"此刻是手动锁住的"——长按有没有生效仍然看得见（ISSUES #55），
+        // 但不再靠一整格标签。
+        case (src_eff)
+            2'b11:   begin chars[5*MAX_CHARS+4] = "E"; chars[5*MAX_CHARS+5] = "T";
+                          chars[5*MAX_CHARS+6] = "H"; chars[5*MAX_CHARS+7] = " "; end
+            2'b10:   begin chars[5*MAX_CHARS+4] = "P"; chars[5*MAX_CHARS+5] = "S";
+                          chars[5*MAX_CHARS+6] = " "; chars[5*MAX_CHARS+7] = " "; end
             default: begin chars[5*MAX_CHARS+4] = "C"; chars[5*MAX_CHARS+5] = "A";
-                        chars[5*MAX_CHARS+6] = "R"; chars[5*MAX_CHARS+7] = "D"; end   // CARD
+                          chars[5*MAX_CHARS+6] = "R"; chars[5*MAX_CHARS+7] = "D"; end   // CARD
         endcase
+        chars[5*MAX_CHARS+8] = (mode == 2'b00) ? " " : "*";
         end
     end
 
@@ -264,6 +275,9 @@ module osd_overlay #(
         font[24][3]=5'b01110; font[24][4]=5'b00001; font[24][5]=5'b00001; font[24][6]=5'b11110;
         font[27][0]=5'b00000; font[27][1]=5'b00000; font[27][2]=5'b11111;
         font[27][3]=5'b00000; font[27][4]=5'b11111; font[27][5]=5'b00000; font[27][6]=5'b00000;
+        // 26 = '*'：片源行用它标"这是手动锁住的"（模式≠自动）
+        font[26][0]=5'b00000; font[26][1]=5'b00100; font[26][2]=5'b10101;
+        font[26][3]=5'b01110; font[26][4]=5'b10101; font[26][5]=5'b00100; font[26][6]=5'b00000;
         // 31 stays blank
     end
 
@@ -295,6 +309,7 @@ module osd_overlay #(
                 8'h54: glyph_idx = 5'd19;  // T
                 8'h55: glyph_idx = 5'd23;  // U（AUTO 要用；以前字库里没有 U）
                 8'h48: glyph_idx = 5'd25;  // H（ETH 要用；以前字库里也没有）
+                8'h2A: glyph_idx = 5'd26;  // *（手动锁片源的标记）
                 8'h3D: glyph_idx = 5'd27;  // =
                 default: glyph_idx = 5'd31; // BLANK（空格以及一切不在表里的码点）
             endcase

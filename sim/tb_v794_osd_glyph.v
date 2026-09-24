@@ -44,7 +44,8 @@ module tb_v794_osd_glyph;
             else if (c == 8'h52) gold_glyph = 5'd17;
             else if (c == 8'h53) gold_glyph = 5'd24;
             else if (c == 8'h54) gold_glyph = 5'd19;
-            else if (c == 8'h55) gold_glyph = 5'd23;   // U（r46：SRC=AUTO 要用）
+            else if (c == 8'h55) gold_glyph = 5'd23;   // U（字库里留着：以后 OSD 改四行要用）
+            else if (c == 8'h2A) gold_glyph = 5'd26;   // *（r48：片源行"手动锁住"的标记）
             else if (c == 8'h3D) gold_glyph = 5'd27;
             else                 gold_glyph = 5'd31;
         end

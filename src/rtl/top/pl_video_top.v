@@ -675,7 +675,9 @@ module pl_video_top #(
         .clk(clk_pix), .rst_n(rst_pix_n),
         .x(x_d11), .y(y_d11), .de(de_o),
         .angle(angle), .effect_en(en_sync), .fps(fps_q),
-        .src_sel(src_use), .eth_link(eth_link_pix), .mode(mode),
+        .src_sel(src_use), .eth_link(eth_link_pix),
+        .src_eff({fb_vis, owner_eth_pix}),   // 屏幕上真的这一路：CARD / PS / ETH
+        .mode(mode),
         .net_pkts(pkts_s1), .net_bad(bad_s1),
         .net_drop(osd_drop), .net_stall(osd_stall),
         .bg_pix(16'h0),
