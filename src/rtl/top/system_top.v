@@ -123,7 +123,11 @@ module system_top (
     wire        eth_wr_en, eth_frame_done, eth_link;
     wire [18:0] eth_wr_addr;
     wire [15:0] eth_wr_data;
-    wire [31:0] eth_frames, eth_pkts, eth_bytes, eth_bad;
+    // （r55）u_eth 的四个统计口在本层**故意不接**：eth_pkts/eth_bytes/eth_bad 原来送进 pl_video_top
+    // 用两级触发器跨 16 位总线，而那个同步值没有读者；eth_frames 同样没人用（OSD 的 FPS 是
+    // 像素域数 vsync 得来的，不依赖它）。计数的正路是 link_monitor → snap_cross → lane1/8/9。
+    // 端口本身留着是对的：一批台架（tb_v50_rows / tb_v6_* / tb_udp_reasm / tb_link_monitor）直接读它们。
+    // 账记在 ISSUES #64。
     // ---- V7.9.6（P0-C ③）：几何与 DDR 基址只在这里出现一次 ----
     // 原来 512/300/0x1000_0000 在下面两个例化上各写一遍字面量。两个模块自己都有 parameter，
     // 但**没有任何东西阻止两边不一致** —— 而一旦不一致，现象是"写进去的帧几何与读出来的
@@ -181,8 +185,8 @@ module system_top (
         .m_axi_wlast(m_wlast), .m_axi_wvalid(m_wvalid),
         .m_axi_wready(m_wready),
         .m_axi_bvalid(m_bvalid), .m_axi_bready(m_bready),
-        .stat_frames(eth_frames), .stat_pkts(eth_pkts),
-        .stat_bytes(eth_bytes), .stat_bad(eth_bad),
+        .stat_frames(), .stat_pkts(),                     // r55：这四个统计口在本层不接，理由见
+        .stat_bytes(), .stat_bad(),                      // 上面那段注释（数走 link_monitor 的 lane）
         .lm_bus(eth_lm_bus), .lm_bus_tog(eth_lm_tog), .lm_hb(eth_lm_hb),
         .gapclr_sel(gpio_o[26])          // 测量前把帧间隔统计归零（见 link_monitor 尾部）
     );
@@ -281,8 +285,8 @@ module system_top (
         .eth_frame(eth_frame_done),
         .eth_ddr_base(eth_ddr_base),
         .eth_commit(eth_commit),
-        .eth_pkts(eth_pkts[15:0]),
-        .eth_bad(eth_bad[15:0]),
+        // （r55）这里不再有 .eth_pkts / .eth_bad：那两个口在 pl_video_top 里只喂一段没人读的
+        // 两级"当总线用"的同步器，删掉的理由与数的正路都写在 ISSUES #64 / pl_video_top 端口处。
         // lm_bus / lm_bus_tog / lm_hb 三个口跟着 V8-5 的 OSD 改版一起撤掉了：
         // 像素域那一路快照从此没有消费者（DROP/STALL 两格撤下屏）。
         // 这三个数仍然从 axi 域那条 snap_cross（上面 lane 读回口用的那一条）出去，

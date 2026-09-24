@@ -1,0 +1,26 @@
+Copyright 1986-2022 Xilinx, Inc. All Rights Reserved. Copyright 2022-2026 Advanced Micro Devices, Inc. All Rights Reserved.
+---------------------------------------------------------------------------------------------------------------------------------------------
+| Tool Version : Vivado v.2025.2.1 (win64) Build 6403652 Thu Mar 19 19:48:24 GMT 2026
+| Date         : Fri Sep 25 05:47:15 2026
+| Host         : Uie-laptop running 64-bit major release  (build 9200)
+| Command      : report_cdc -file D:/Xilinx/Prj/pro/Video_Processing/build/cdc.rpt
+| Design       : system_top
+| Device       : 7z020-clg484
+| Speed File   : -2  PRODUCTION 1.12 2019-11-22
+| Design State : Routed
+---------------------------------------------------------------------------------------------------------------------------------------------
+
+CDC Report
+
+Severity  Source Clock      Destination Clock  CDC Type                 Exceptions           Endpoints  Safe  Unsafe  Unknown  No ASYNC_REG  
+--------  ----------------  -----------------  -----------------------  -------------------  ---------  ----  ------  -------  ------------  
+Critical  clk_fpga_0        clkout0_1          No Common Primary Clock  Asynch Clock Groups         71    68       3        0             0  
+Critical  eth_rxc           clkout0_1          No Common Primary Clock  Asynch Clock Groups          1     0       1        0             0  
+Critical  sys_clk           eth_rxc            No Common Primary Clock  Asynch Clock Groups       1907  1381       2      524             0  
+Warning   clkout0_1         clk_fpga_0         No Common Primary Clock  Asynch Clock Groups         27    27       0        0             0  
+Warning   eth_rxc           clk_fpga_0         No Common Primary Clock  Asynch Clock Groups        271   271       0        0            14  
+Warning   clk_fpga_0        eth_rxc            No Common Primary Clock  Asynch Clock Groups         15    15       0        0            14  
+Warning   input port clock  sys_clk            No Common Primary Clock  False Path                   2     2       0        0             2  
+Info      sys_clk           clkout0_1          Safely Timed             None                       153   153       0        0             0  
+Info      clkout0_1         sys_clk            Safely Timed             None                         1     1       0        0             0  
+

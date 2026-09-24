@@ -19,11 +19,16 @@ mkdir -p build/evidence
 LOG=$OUT.txt
 XSDB='"D:/Software/Vivado/2025.2.1/Vitis/bin/xsdb.bat"'
 
-DO_STREAM=0; DO_BATT=0
-[ "${1:-}" = "--stream" ] && DO_STREAM=1
-[ "${2:-}" = "--stream" ] && DO_STREAM=1
-[ "${1:-}" = "--battery" ] && DO_BATT=1
-[ "${2:-}" = "--battery" ] && DO_BATT=1
+DO_STREAM=0; DO_BATT=0        # `set -u` 在下面，未初始化就直接引用会退出
+# 两个开关可以任意顺序、任意组合（原来是"只认前两个参数"，写 --stream --battery 会把 battery 吃掉）
+for a in "$@"; do
+  case "$a" in
+    --stream)  DO_STREAM=1 ;;
+    --battery) DO_BATT=1 ;;
+    -h|--help) grep '^# ' "$0" | sed 's/^# \{0,1\}//'; exit 0 ;;
+    *) echo "忽略未知参数：$a（可用：--stream --battery --help）" >&2 ;;
+  esac
+done
 
 echo "== board_verify $(date '+%F %T') ==" | tee "$LOG"
 echo "工作目录：$ROOT" | tee -a "$LOG"

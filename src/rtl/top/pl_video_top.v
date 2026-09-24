@@ -113,8 +113,10 @@ module pl_video_top #(
     input  wire        eth_frame,
     input  wire [31:0] eth_ddr_base,
     input  wire        eth_commit,
-    input  wire [15:0] eth_pkts,
-    input  wire [15:0] eth_bad,
+    // （r55 起这里不再有 eth_pkts / eth_bad 两个入口：那两级触发器是**拿单 bit 的规矩跨 16 位总线**，
+    //   而且同步完的值没有任何读者 —— 老六行 OSD 的 PKTS=/ERR= 在 V8-5 撤下屏之后就没人读了。
+    //   这两个数今天由 link_monitor 经 snap_cross 正确跨到 axi 域，走 lane1（bad|err）/lane8（pkts）
+    //   /lane9（bytes）给 health_read.mjs。整段账记在 ISSUES #64。）
     // v7.6 到这里为止的三个口（lm_bus / lm_bus_tog / lm_hb）在 V8-5 删了，
     // 原因与"数并没有丢"的去向写在文件下面那段注释里（搜"没有消费者"）。
 
@@ -790,11 +792,10 @@ module pl_video_top #(
         end
     end
 
-    reg [15:0] pkts_s0, pkts_s1, bad_s0, bad_s1;
-    always @(posedge clk_pix) begin
-        {pkts_s1, pkts_s0} <= {pkts_s0, eth_pkts};
-        {bad_s1, bad_s0}   <= {bad_s0, eth_bad};
-    end
+    // （r55）这里原来有一段 `{pkts_s1,pkts_s0} <= {pkts_s0, eth_pkts}` 之类的两级同步：
+    // 两级触发器只能跨**单 bit**，跨 16 位计数值会读到"每一位各自新旧不一"的中间态；
+    // 而它同步出来的东西在 V8-5 撤掉 PKTS=/ERR= 两行之后已经没有读者了 ⇒ 整段删除。
+    // 数没有丢：pkts/bytes/bad 由 link_monitor 经 snap_cross 正确跨域，走 lane1/8/9。见 ISSUES #64。
 
     // v7.6: 健康快照跨到像素域。像素时钟是 50 MHz（clk_gen CLKOUT0_DIVIDE=20，
     // VCO 1000 MHz）；HB_TO_MS=200 ⇒ eth_rxc 停供 200 ms 后 OSD 的 STALL 直接钉 9999，

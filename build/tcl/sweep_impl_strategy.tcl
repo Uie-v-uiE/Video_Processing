@@ -25,9 +25,16 @@ set strats {Performance_Explore Performance_ExplorePostRoutePhysOpt \
 if {[info exists ::env(SWEEP_STRATS)] && $::env(SWEEP_STRATS) ne ""} {
     set strats [split [string map {, " "} $::env(SWEEP_STRATS)] " "]
 }
-set out [file join $root build sweep_summary.txt]
+set out [file join $root build "sweep_summary_[clock format [clock seconds] -format %Y%m%d_%H%M].txt"]
+# ⚠ 输出文件名带时间戳，**不再覆盖** build/sweep_summary.txt —— 那份是 V7.4 的历史凭据，
+#   `report/CHANGELOG_V7.md:199` 与 `OVERNIGHT_LOG.md:527` 都按名字引它（引的就是"只完成 1/5 策略就中断"这件事）。
 set fh [open $out w]
+puts $fh "# 实现策略扫描（同一份网表，逐策略重跑 impl_1）—— [clock format [clock seconds]]"
+puts $fh "# 用法：SWEEP_STRATS=\"A B C\" vivado -mode batch -source build/tcl/sweep_impl_strategy.tcl"
+puts $fh "# 注意：跑完后 vivado_system 里 impl_1 的 strategy 属性会停在**最后一个被扫的策略**，"
+puts $fh "#       下一次完整构建会重写它；但在那之前不要拿 .runs 里的 dcp 当交付件。"
 puts $fh "strategy\tWNS\tWHS\tfail_endpoints\tall_constraints_met\ttotal_power_W"
+set orig_strat [get_property STRATEGY [get_runs impl_1]]
 
 foreach s $strats {
     puts "########## SWEEP $s ##########"
@@ -64,5 +71,9 @@ foreach s $strats {
     puts $fh "$s\t$wns\t$whs\t$fem\t$met\t$pwr"
 }
 close $fh
+# 把 strategy 属性放回扫描前的值：.runs 里最后一次实现的结果还在，但**下一次构建**不会再
+# 悄悄继承最后一个被扫的策略 —— "数字变了但没人改代码"是最难查的那一类。
+catch {set_property strategy $orig_strat [get_runs impl_1]}
 puts "SWEEP DONE -> $out"
+puts "STRATEGY_RESTORED_TO $orig_strat"
 exit 0
