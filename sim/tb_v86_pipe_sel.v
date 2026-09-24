@@ -24,10 +24,17 @@ module tb_v86_pipe_sel;
     wire [8:0] sel_q;
     wire [4:0] en_q;
     wire [7:0] th_q;
+    // 声明必须在 u_eff 之前：端口连接里先出现的标识符会被当成**隐式 1 bit 线网**，
+    // 后面再写 `reg [31:0] gm_a` 就成了重复声明（ModelSim 抓过一次，规矩记在学习文档里）。
+    reg  [31:0] gm_a = 32'd0;
+    wire        gm_en_q, gm_wr_q;
+    wire [7:0]  gm_idx_q, gm_data_q;
     effect_ctrl u_eff (
         .clk(clk), .rst_n(rst_n),
         .effect_en_async(en_a), .stage_sel_async(cfg_a), .threshold_async(th_a),
-        .stage_sel(sel_q), .effect_en(en_q), .threshold(th_q)
+        .gamma_async(gm_a),             // gamma 表本身由 tb_v88_gamma 测；这里加 T15/T16 钉"位序与同步"
+        .stage_sel(sel_q), .effect_en(en_q), .threshold(th_q),
+        .gamma_en(gm_en_q), .gamma_wr(gm_wr_q), .gamma_idx(gm_idx_q), .gamma_data(gm_data_q)
     );
 
     // ---------------- proc_pipeline ----------------
@@ -39,6 +46,10 @@ module tb_v86_pipe_sel;
     wire [15:0] d_o;
     proc_pipeline #(.H_ACTIVE(W)) up (
         .clk(clk), .rst_n(rst_n), .stage_sel(sel), .threshold(8'd80),
+        // gamma 关掉：本台架测的是"上面那五级 + 老五位映射"，gamma 自己有 tb_v88_gamma。
+        // 留一条副作用判据：gamma_en=0 时它必须逐位透明，所以这里的 T1（sel=0 只含输入里
+        // 出现过的颜色）同时也是"gamma 旁路不偷改像素"的证据。
+        .gamma_en(1'b0), .gamma_wr(1'b0), .gamma_idx(8'd0), .gamma_data(8'd0),
         .rotate_active(1'b0), .hs_in(1'b0), .vs_in(1'b0),
         .de_in(de), .x_in(xs), .y_in(ys), .din(src), .de_out(de_o), .dout(d_o)
     );
@@ -214,6 +225,21 @@ module tb_v86_pipe_sel;
                 if (got[j][i] !== refbyp[j][i]) bad = bad + 1;
         chk("T14 腐蚀|膨胀 同时要 = 旁路（开/闭运算要两遍窗口，不许偷偷只做一半）", bad == 0);
 
+        // ================= ④ gamma 窗口的位序与同步（表的内容由 tb_v88_gamma 测） =================
+        // 字：[31] en、[30] wr（翻转位）、[29:22] data、[21:14] idx。
+        // 这四个值**互不相同**是故意的：任何一处对调（idx/data、en/wr）都会红。
+        gm_a = {1'b1, 1'b1, 8'hA5, 8'h3C, 14'd0};
+        repeat (6) @(negedge clk);
+        chk("T15 gamma 位序：en[31]/wr[30]/data[29:22]/idx[21:14] 各就各位",
+            gm_en_q === 1'b1 && gm_wr_q === 1'b1 && gm_data_q === 8'hA5 && gm_idx_q === 8'h3C);
+
+        // en 落到 0、wr 落到 0，而 idx/data 同时换值 ⇒ 四个字段各自跟随（en 不是"整字关断"）
+        gm_a = {1'b0, 1'b0, 8'h5A, 8'hC3, 14'd0};
+        repeat (6) @(negedge clk);
+        chk("T16 en/wr 归 0 时 idx/data 仍照实同步（旁路与表内容互不牵连）",
+            gm_en_q === 1'b0 && gm_wr_q === 1'b0 && gm_data_q === 8'h5A && gm_idx_q === 8'hC3);
+
+        gm_a = 32'd0;
         cfg_a = 9'h000; en_a = 5'b00000;
         repeat (4) @(negedge clk);
         $display("");

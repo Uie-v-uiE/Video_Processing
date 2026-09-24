@@ -50,8 +50,8 @@ hand-written PL protocol stack (RGMII RX with IDELAYE2, ARP, ICMP, UDP, CRC32). 
 cross the 125 MHz → 100 MHz clock domain through a hand-written Gray-code FIFO, are packed into
 64-bit AXI beats and written into one of two **DDR ping-pong banks**. A commit lock starts an atomic
 whole-frame copy into the display BRAM inside the VGA blanking window, so two frames can never be
-interleaved on screen. The right window runs the effect chain (gray / binary / box blur / Sobel /
-invert) and continuous zoom; rotation is a Q8 sin/cos inverse mapping over 0–359°. An on-screen
+interleaved on screen. The right window runs the five-stage reconfigurable effect chain (gamma LUT / gray /
+box blur / sharpen / Sobel / threshold / erode / dilate) and continuous zoom; rotation is a Q8 sin/cos inverse mapping over 0–359°. An on-screen
 overlay (`osd_overlay.v`) reports FPS, angle and enabled effects.
 
 Four parts of the design are worth reading:
@@ -128,7 +128,9 @@ Full record, criteria and rejected options: [`report/CHANGELOG_V7.md`](report/CH
 
 - PL hardware network stack: RGMII → ARP/ICMP/UDP → frame buffer
 - UDP offset protocol: out-of-order packets reassemble; bad frames are dropped
-- Effect chain: gray / binary / box blur / Sobel / invert (UART controlled, valid at any rotation angle)
+- Effect chain: **five reconfigurable stages** (stage 0 gamma LUT → colour: gray / invert → filter: box blur /
+  sharpen → Sobel → threshold (+polarity) → morphology: erode / dilate), one bit per algorithm, every
+  stage bypassable (UART controlled, valid at any rotation angle)
 - Arbitrary-angle rotation (Q8 sin/cos inverse mapping, 0–359°) — **right window only**; the left window always shows the unrotated picture
 - Local playback from the PS SD socket: raw 512×300 RGB565 frames read by a bare-metal read-only FAT32 (no FatFs, no vendor IP)
 - Continuous right-window zoom (Q8 `inv_scale`, 256 = 1.0× ↔ 512 = 0.5×, composable with rotation)

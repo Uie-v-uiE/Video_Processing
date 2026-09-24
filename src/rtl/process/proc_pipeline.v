@@ -1,6 +1,7 @@
 `timescale 1ns/1ps
-// 五级可重构效果链（spec §5.1 的"每级两种算法 + 每级可旁路"）：
+// 级 0 + 五级可重构效果链（spec §5.1 的"每级两种算法 + 每级可旁路"）：
 //
+//   级0 明暗   gamma_lut（256 项表，PS 通过第二个控制字的通道 2 逐项写；en=0 逐位旁路）
 //   级1 颜色   proc_gray ─┬─ proc_invert
 //   级2 滤波   proc_box_blur ─┬─ proc_sharpen      （同一级的两个选项，允许串起来）
 //   级3 边缘   proc_sobel
@@ -24,6 +25,9 @@
 // 延迟：**固定 15 拍**，与任何一级开没开、同级选哪个算法都无关（每一级的 de 链都不受 bypass 影响，
 // 同级两个算法是**串联**，所以两个都占自己的拍数）。逐拍账（tb_v86 实测就是它）：
 //   灰度 1 + 反色 1 + 模糊 3 + 锐化 3 + Sobel 3 + 阈值 1 + 形态学 3 = 15
+// 级 0 的 gamma **不在这一串里加拍**：分布式 RAM 是非同步读出，`de` 原样透传。
+//   ⇒ 谁哪天把它改成寄存读出（BRAM 风格），LATENCY 必须同时改成 16 ——
+//     改忘了不会静悄悄：tb_v86 的 T2 是**实测** de_in→de_out，与声明值不符就红。
 // ⚠ 窗口级是**三拍**不是两拍：`de_in → de_d1 → de_d2 → de_out` 三级寄存器。
 //   以前顶层把 V7 那条链写成 7 拍，而它真实是 1+1+3+3+1 = 9 ⇒ 左右窗一直错 2 个像素。
 //   这件事与它的影响记在 ISSUES #54；顶层现在只能取 `u_pipe.LATENCY`，写不出第二个数。
@@ -37,6 +41,10 @@ module proc_pipeline #(
     input  wire        rst_n,
     input  wire [8:0]  stage_sel,
     input  wire [7:0]  threshold,
+    input  wire        gamma_en,        // 级 0：0 = 逐位旁路（tb_v88 的 T1 钉"关着就必须一动不动"）
+    input  wire        gamma_wr,        // 翻转位：与 idx/data 同源同深度地过同步器（effect_ctrl）
+    input  wire [7:0]  gamma_idx,
+    input  wire [7:0]  gamma_data,
     input  wire        rotate_active,     // 状态用；窗口滤波本来就在目标域里做
     input  wire        hs_in,
     input  wire        vs_in,
@@ -65,10 +73,18 @@ module proc_pipeline #(
     wire        de3;  wire [15:0] d3;
     wire        de4;  wire [15:0] d4;
 
+    // 级 0 明暗：gamma。**组合读出，不占拍数**，所以它不在上面那串逐拍账里。
+    wire [15:0] d0;
+    gamma_lut u_gamma (
+        .clk(clk), .rst_n(rst_n),
+        .en(gamma_en), .wr(gamma_wr), .idx(gamma_idx), .data(gamma_data),
+        .din(din), .dout(d0)
+    );
+
     // 级 1 颜色
     proc_gray u_gray (
         .clk(clk), .rst_n(rst_n), .bypass(~w_gray),
-        .de_in(de_in), .din(din), .de_out(de1a), .dout(d1a)
+        .de_in(de_in), .din(d0), .de_out(de1a), .dout(d1a)
     );
     proc_invert u_inv (
         .clk(clk), .rst_n(rst_n), .bypass(~w_inv),

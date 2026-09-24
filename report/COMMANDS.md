@@ -2,7 +2,7 @@
 
 > 波特率 **115200 8N1**，COM 号自己认（`board/uart_cap_once.ps1 -Port COM6` 或任意串口终端）。
 > 每条命令以回车结束；大小写不敏感。这里是**当下这块 bit（r46，`build/frozen_r46_keys/`，bit `36568c71`）真能用的**，不是计划里的。
-> 待接的（`rot` / `split` / `gamma` / `osd`）也列在最后，敲了会回一行"缺什么"，不会静默吞掉。
+> 待接的（`rot` / `split` / `osd`）也列在最后，敲了会回一行"缺什么"，不会静默吞掉。
 
 ---
 
@@ -75,8 +75,14 @@ play / stop             SD 播放 开始 / 停止
 sd                      重新挂载 SD（`XSdPs_CfgInitialize` 每个上电周期只成功一次，见 ISSUES #45）
 fill                    PS 直接写一张四色诊断帧（查通路用）
 autoplay 0 / 1          关/开上电自动播放（只影响下一次上电；老写法 AUTOPLAY0/1）
+gamma 1.8               明暗校正：PS 算 256 项曲线并逐项写进 PL（约 2.6 ms），只作用于**右窗**
+gamma off               关掉（表保留，所以现场来回切很快）；也收 `gamma 180`（= γ×100）
 help                    打印三套语法
 ```
+> `gamma` 为什么"只改右窗"就够用：本设计的语义一直是"左窗原图 / 右窗处理"，
+> 所以 `gamma 1.8` 一开就是左右明暗直接对比 —— 不需要额外做"整屏 A/B 键"。
+> 曲线本身（幂函数、端点 0/255、单调不降）由固件自检打印：`[GAMMA] g=1.80 mono_bad=0 first=0 last=255`；
+> PL 侧"写进去什么就查什么"由台架 `sim/tb_v88_gamma`（八条，含"关着必须一动不动"的反例）钉。
 
 ## 4. 老写法（现有工具在用，都还有效）
 
@@ -103,7 +109,6 @@ SRC0 SRC1 TH80 ZOOM0 ZOOM1 BILIN0 BILIN1 FRAME12 AUTOPLAY0 AUTOPLAY1 SD PLAY STO
 rot 45 / rot +15 / rot auto / rot speed 1     缺 PL 的角度写入口
 split 50 / split auto / split range 20 80 / split speed 2 / split swap
                                               缺整个 split_ctrl（分割线参数化 + 自动扫描）
-gamma 1.8 / gamma off                         缺 gamma_lut 与它的 LUT 写窗口
 osd on / osd off                              OSD 现在常显，缺行开关位
 zoom 1.5 / zoom auto                          缺缩放因子寄存器（现在只有 on/off 一位）
 ```
@@ -113,5 +118,8 @@ zoom 1.5 / zoom auto                          缺缩放因子寄存器（现在�
 1. **`pipe` 生效在右窗**（左窗是原图，这是半屏对比的语义）。
 2. `src`/`th`/`pipe` 之后**不必**重下发 bit；但换 **bit** 必须重下 elf（`bit/xsa/elf` 是一套，md5 说话）。
 3. 想手工直接写寄存器（不发串口）：控制字在 `0x41200000`（老 32 位），
-   九位算法字在 **`0x41220000`**（通道 2 在 `+0x08`，现在还没接）——
-   `xsdb` 里 `mwr -force 0x41220000 0x00000021` 就是"灰度+二值化"。
+   九位算法字在 **`0x41220000`**（通道 2 在 **`+0x08`** = gamma 窗口，r47 起接上）——
+   `xsdb` 里 `mwr -force 0x41220000 0x00000021` 就是"灰度+二值化"；
+   gamma 窗口是 `{en[31], wr[30], data[29:22], idx[21:14]}`，
+   手工写一项要**两次写**（先摆 idx/data、再把 wr 翻转），只写一次 PL 不会动 ——
+   这不是坑，是协议（电平与边沿的区别），`gamma_lut.v` 头部写了为什么选翻转。

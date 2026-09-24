@@ -13,6 +13,7 @@
 #include <stdio.h>
 #include <string.h>
 #include <stdlib.h>
+#include <math.h>                 /* V8-3 的 gamma 曲线；链接要 -lm（build/ps_app.mjs） */
 #include "xparameters.h"
 #include "xil_printf.h"
 #include "xil_io.h"
@@ -47,6 +48,13 @@
  *    读不回 0 就大声报"位流/elf 不配套"（配套关系由 build/frozen_* 的 md5 清单管）。 */
 #define AXI_GPIO_CFG_BASE 0x41220000u
 #define CFG_DATA0         (AXI_GPIO_CFG_BASE + 0x00u)
+/* 通道 2（+0x08）= V8-3 的 Gamma 窗口。位序与 `src/rtl/video/gamma_lut.v` / spec §6b 一致：
+ * [31] en、[30] wr（**翻转位**，不是电平）、[29:22] data、[21:14] idx。 */
+#define CFG_DATA1         (AXI_GPIO_CFG_BASE + 0x08u)
+#define GM_EN             (1u << 31)
+#define GM_WR             (1u << 30)
+#define GM_DATA(v)        ((((u32)(v)) & 0xFFu) << 22)
+#define GM_IDX(i)         ((((u32)(i)) & 0xFFu) << 14)
 
 /* 九位算法选择字：位定义的唯一出处是 `src/rtl/process/proc_pipeline.v` 文件头，这里只是抄一份。 */
 #define SEL_GRAY    (1u << 0)
@@ -108,6 +116,95 @@ void ps_publish(void)
 {
     pub_lvl ^= 1u;
     (void)ctrl_write();
+}
+
+/* ---- V8-3：Gamma 表 ----
+ * 曲线**在 PS 这边算**，PL 只负责"写进去什么就查什么" ⇒ "算错曲线"与"接错线"是两件事，
+ * 各自的凭据也分开：算错的凭据是本函数自带的端点 + 单调自检（打 [GAMMA] 那行，板子上直接读），
+ * 接错的凭据是 `sim/tb_v88_gamma`（八条，含"关着就必须一动不动"那条反例）。
+ *
+ * 两项之间必须 usleep：PL 看的是 `wr` 的**边沿**，而 AXI 连发的间隔可以短到一个像素拍都不到
+ * （协议前提写在 gamma_lut.v 头部）。5 µs ⇒ 256 项约 2.6 ms，人看不出来，
+ * 但它把"丢几项"从"看运气"变成"永远有余量"。这条约束是真实的，别删。 */
+static u32 gm_w = 0;           /* 通道 2 当前电平：wr 位的唯一真相在这里（PL 那边只看边沿） */
+static u32 cur_gamma = 0;      /* γ×100；0 = 关（en=0，PL 逐位旁路） */
+
+static void gamma_put(u32 i, u32 v)
+{
+    Xil_Out32(CFG_DATA1, gm_w | GM_DATA(v) | GM_IDX(i));   /* 先摆地址与数据，wr 不动 */
+    usleep(5);
+    gm_w ^= GM_WR;                                         /* 翻 wr = 写这一项 */
+    Xil_Out32(CFG_DATA1, gm_w | GM_DATA(v) | GM_IDX(i));
+    usleep(5);
+}
+
+/* out = 255·(in/255)^(1/γ)，四舍五入。γ=1.00 ⇒ 表恒等 ⇒ 开了也逐位不动（台架 T2 的固件侧对照）。 */
+static u8 gamma_curve(u32 g100, u32 i)
+{
+    float e = 100.0f / (float)g100;
+    float y = pow((float)i / 255.0f, e) * 255.0f + 0.5f;
+    if (y < 0.0f)   y = 0.0f;
+    if (y > 255.0f) y = 255.0f;
+    return (u8)y;
+}
+
+static void gamma_off(void)
+{
+    cur_gamma = 0;
+    gm_w &= ~GM_EN;                       /* 只关使能，表留着：现场要在"开/关"之间来回切 */
+    Xil_Out32(CFG_DATA1, gm_w);
+    xil_printf("[GAMMA] off（PL 逐位旁路，表保留）\r\n");
+}
+
+static void gamma_set(u32 g100)
+{
+    u32 i, v, prev = 0, bad = 0;
+    u8 first, last;
+
+    if (g100 < 100u || g100 > 300u) {
+        xil_printf("[GAMMA] 只认 1.00..3.00（或写成 100..300），收到 %d.%02d\r\n",
+                   (int)(g100 / 100u), (int)(g100 % 100u));
+        return;
+    }
+    for (i = 0; i < 256u; i++) {
+        v = gamma_curve(g100, i);
+        if (v < prev) bad++;              /* 幂曲线对 in 单调不降，反过来就是算错了 */
+        prev = v;
+        if (i == 0u)   first = (u8)v;
+        if (i == 255u) last  = (u8)v;
+        gamma_put(i, v);
+    }
+    gm_w |= GM_EN;
+    Xil_Out32(CFG_DATA1, gm_w);
+    cur_gamma = g100;
+    xil_printf("[GAMMA] g=%d.%02d mono_bad=%d first=%d last=%d\r\n",
+               (int)(g100 / 100u), (int)(g100 % 100u), (int)bad, (int)first, (int)last);
+    if (bad != 0u || first != 0u || last != 255u)
+        xil_printf("[GAMMA!] 曲线自检没过（表已写入但**不要**用它演示）\r\n");
+}
+
+/* "1.8" → 180；"180" → 180；其余写法一律不猜。 */
+static int parse_gamma(const char *s, u32 *g100)
+{
+    const char *p = s;
+    u32 ip = 0, fp = 0, nd = 0;
+
+    if (p == 0 || *p == 0) return 0;
+    while (*p >= '0' && *p <= '9') { ip = ip * 10u + (u32)(*p - '0'); p++; }
+    if (*p != '.') {
+        if (*p) return 0;
+        *g100 = ip;                       /* 不带小数点：按 γ×100 收 */
+        return 1;
+    }
+    p++;
+    while (*p >= '0' && *p <= '9') {
+        if (nd < 2u) { fp = fp * 10u + (u32)(*p - '0'); nd++; }   /* 第三位小数只舍不进 */
+        p++;
+    }
+    if (*p) return 0;
+    while (nd < 2u) { fp *= 10u; nd++; }   /* "1.8" = 1.80 */
+    *g100 = ip * 100u + fp;
+    return 1;
 }
 
 static void ctrl_set_sel(u32 sel)
@@ -355,7 +452,19 @@ static int dispatch(char **tk, int nt)
     /* —— 以下四个是 spec §14 里还没落地的动词：先把语法收住，出口只有一条 —— */
     if (ci_eq(tk[0], "ROT"))     { not_wired("rot", "PL 的角度写入口（angle_ctrl 现在只吃按键）", "V8-2/V8-8"); return 0; }
     if (ci_eq(tk[0], "SPLIT"))   { not_wired("split", "整个 split_ctrl（位置/自动扫描/range/speed/swap）", "V8-4"); return 0; }
-    if (ci_eq(tk[0], "GAMMA"))   { not_wired("gamma", "gamma_lut 与它的 LUT 写窗口", "V8-3"); return 0; }
+    if (ci_pre(tk[0], "GAMMA")) {
+        /* `gamma off` / `gamma 1.8` / `gamma 180`（γ×100）三种写法；参数粘着或分开都吃。 */
+        const char *arg = (nt >= 2) ? tk[1] : tk[0] + 5;
+        u32 g = 0;
+        if (ci_eq(arg, "OFF") || ci_eq(arg, "0")) { gamma_off(); return 0; }
+        if (ci_eq(arg, "ON"))  { gamma_set(cur_gamma ? cur_gamma : 220u); return 0; }
+        if (!parse_gamma(arg, &g)) {
+            xil_printf("[GAMMA] 要 off / 1.00..3.00（或 100..300），收到的是 \"%s\"\r\n", arg);
+            return 0;
+        }
+        gamma_set(g);
+        return 0;
+    }
     if (ci_eq(tk[0], "OSD"))     { not_wired("osd", "OSD 行开关位（现在是常显）", "V8-5"); return 0; }
 
     if (ci_pre(tk[0], "FRAME")) {
@@ -389,13 +498,15 @@ static int dispatch(char **tk, int nt)
     }
     if (ci_eq(tk[0], "STAT") || ci_eq(tk[0], "STATUS")) {
         /* 字段顺序不许动：串口电池与 arb_handover_test.mjs 都按 "ctrl en=… thr=…" 的前缀解析，
-         * 新加的 sel 只能往后放。en 是老五位的投影，sel 才是效果链的真相。 */
+         * 新加的 sel / gm 只能往后放。en 是老五位的投影，sel 才是效果链的真相，
+         * gm=0.00 表示 gamma 关（PL 那一侧逐位旁路）。 */
         xil_printf("[STAT] ctrl en=%02x thr=%d src=%d zoom=%d bilin=%d pub=%d"
-                   " sd=%d frames=%d playing=%d sel=%03x (PL owns UDP datapath)\r\n",
+                   " sd=%d frames=%d playing=%d sel=%03x gm=%d.%02d (PL owns UDP datapath)\r\n",
                    cur_en & 0x1F, cur_thr, cur_src, cur_zoom ? 1 : 0,
                    cur_bilin ? 1 : 0, (int)pub_lvl,
                    sd_frame_total() ? 1 : 0, (int)sd_frame_total(), sd_is_playing(),
-                   cur_sel & 0x1FF);
+                   cur_sel & 0x1FF,
+                   (int)(cur_gamma / 100u), (int)(cur_gamma % 100u));
         return 0;
     }
     if (ci_eq(tk[0], "HELP") || ci_eq(tk[0], "?")) { cmd_help(); return 0; }
@@ -405,10 +516,10 @@ static int dispatch(char **tk, int nt)
 static void cmd_help(void)
 {
     xil_printf("  V8 语法: src 0|1|2 | pipe <5 或 9 位> | th 80 | zoom on|off | bilin on|off |"
-               " frame N | sd | play | stop | fill | autoplay 0|1 | stat | help\r\n");
+               " gamma off|1.8 | frame N | sd | play | stop | fill | autoplay 0|1 | stat | help\r\n");
     xil_printf("  pipe 五位=老位序(gray/binary/blur/sobel/invert)，九位=新位序"
                "(gray/invert/blur/sharpen/sobel/binary/bin_pol/erode/dilate)\r\n");
-    xil_printf("  语法已收/硬件待接: rot ... | split ... | gamma ... | osd on|off\r\n");
+    xil_printf("  语法已收/硬件待接: rot ... | split ... | osd on|off\r\n");
     xil_printf("  旧写法仍可用: SRC0 SRC1 TH80 ZOOM0 ZOOM1 BILIN0 BILIN1 FRAME12 00111\r\n");
 }
 
@@ -464,6 +575,20 @@ int main(void)
                    "（配套关系见 build/frozen_*）\r\n", CFG_DATA0, rb);
     else
         xil_printf("[CFG] axi_gpio_2 @%08x ok\r\n", CFG_DATA0);
+
+    /* 通道 2（gamma 窗口）也要单独验一次：它是**另一个寄存器**，ch1 活着不代表 ch2 在。
+     * 图案故意让 en=0、wr=0 —— 自检不许顺手把 gamma 打开或往表里灌垃圾。 */
+    {
+        u32 pat = GM_DATA(0x5A) | GM_IDX(0x3C);
+        Xil_Out32(CFG_DATA1, pat);
+        rb = Xil_In32(CFG_DATA1);
+        Xil_Out32(CFG_DATA1, 0u);
+        if (rb != pat)
+            xil_printf("[CFG!] %08x 写 %08x 读回 %08x —— gamma 窗口不在位流上（elf/bit 不配套）\r\n",
+                       CFG_DATA1, pat, rb);
+        else
+            xil_printf("[CFG] gamma window @%08x ok\r\n", CFG_DATA1);
+    }
 
     xil_printf("[BOOT] UDP RX is in PL (RGMII PHY2). PS is control + SD playback.\r\n");
     xil_printf("[BOOT] uart115200，V8 语法见 help；旧写法仍可用（SRC0/TH80/ZOOM1/00111…）\r\n");

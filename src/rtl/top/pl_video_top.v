@@ -25,6 +25,9 @@ module pl_video_top #(
     // effect_en 翻出来的等价形式 —— 老工具（set_src.tcl / health_read.mjs）因此一字不改还能用。
     input  wire [8:0]  stage_sel,
     input  wire [7:0]  threshold,
+    // 第二个控制字的**通道 2**（axi_gpio_2 的 GPIO2，偏移 +0x08）：gamma 表的
+    // {en[31], wr[30], data[29:22], idx[21:14]}。位序与理由写在 gamma_lut.v / spec §6b。
+    input  wire [31:0] gamma_ctl,
     input  wire        src_sel,
     input  wire        zoom_en,
     // PS 侧"这一帧 DDR 写完了"的发布脉冲：每翻转一次 = 请求 PL 在下一个 frame_start
@@ -152,13 +155,17 @@ module pl_video_top #(
     wire [4:0] en_sync;
     wire [7:0] th_sync;
     wire [8:0] sel_sync;
+    wire       gm_en, gm_wr;
+    wire [7:0] gm_idx, gm_data;
     effect_ctrl u_eff (
         .clk(clk_pix), .rst_n(rst_pix_n),
         .effect_en_async(effect_en),
         .stage_sel_async(stage_sel),
         .threshold_async(threshold),
+        .gamma_async(gamma_ctl),
         .stage_sel(sel_sync),
-        .effect_en(en_sync), .threshold(th_sync)
+        .effect_en(en_sync), .threshold(th_sync),
+        .gamma_en(gm_en), .gamma_wr(gm_wr), .gamma_idx(gm_idx), .gamma_data(gm_data)
     );
 
     (* ASYNC_REG = "TRUE" *) reg ze0, ze1, ze2;
@@ -563,6 +570,7 @@ module pl_video_top #(
     proc_pipeline #(.H_ACTIVE(IMG_W)) u_pipe (
         .clk(clk_pix), .rst_n(rst_pix_n),
         .stage_sel(sel_sync), .threshold(th_sync),
+        .gamma_en(gm_en), .gamma_wr(gm_wr), .gamma_idx(gm_idx), .gamma_data(gm_data),
         .rotate_active(rot_on),
         .hs_in(hs_d[3]), .vs_in(vs_d[3]),
         .de_in(de_d[3] && !left_d[3]),
@@ -574,7 +582,7 @@ module pl_video_top #(
     // 处理链的延迟**只有一处定义**：proc_pipeline 自己的 LATENCY。
     // 以前这里是字面量 7，于是"链上加一级"必须同时记得改这里 —— 忘了不是编译错，
     // 而是左窗（原始画面）与右窗（处理后）错开 N 个像素。左窗的 skid 长度直接取 u_pipe 的值，
-    // 而 tb_v88 实测 de_in→de_out 与 LATENCY 对账 ⇒ 三处任一处漂移就有测试可红。
+    // 而 tb_v86 的 T2 实测 de_in→de_out 与 LATENCY 对账 ⇒ 两处任一处漂移就有测试可红。
     localparam PROC_LAT = u_pipe.LATENCY;
     localparam LEFT_TAIL = PROC_LAT;
 

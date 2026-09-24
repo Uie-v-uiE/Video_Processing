@@ -52,7 +52,10 @@ const EXPECT = [
   [/语法已收，硬件未接/, /angle_ctrl/],                     // rot speed 1 同一个出口
   [/语法已收，硬件未接/, /split_ctrl/],
   [/语法已收，硬件未接/, /split_ctrl/],                     // split range 20 80（四个 token）
-  [/语法已收，硬件未接/, /gamma_lut/],
+  // V8-3：gamma 不再是"待接"。这条判据同时钉三件事：回声里的 γ 值、曲线单调、端点 0/255 ——
+  // 这三样都是 PS 侧算的（PL 只查表），所以它是 `[GAMMA]` 自检的**外部对照**。
+  [/\[GAMMA\] g=1\.80 mono_bad=0 first=0 last=255/],
+  [/\[GAMMA\] off/],                                        // 收尾必须关掉：电池不许留下状态改变
   [/语法已收，硬件未接/, /OSD/],
   [/语法已收，硬件未接/, /缩放因子/],                        // zoom 1.5：on/off 之外都要因子寄存器
   [/V8 语法/, /旧写法仍可用/],
@@ -108,10 +111,11 @@ for (let i = 0; i < lines.length; i++) {
   else console.log(`ok   ${String(i + 1).padStart(2)} ${lines[i]}`);
 }
 
-/* 收尾判据：最后一条 STAT 必须等于第一条（pub 位不在比较范围内，它每帧翻） */
+/* 收尾判据：最后一条 STAT 必须等于第一条（pub 位不在比较范围内，它每帧翻）
+ * gm= 也在元组里：V8-3 之后"电池不许改变板上状态"必须能抓住"gamma 被留在开着"。 */
 const cap2 = cap.split(/\r?\n/);
 const stats = cap2.filter(l => l.startsWith('[STAT]'))
-  .map(l => { const m = l.match(/ctrl (en=\w\w) (thr=\d+) (src=\d) (zoom=\d) (bilin=\d)/); return m ? m.slice(1).join(' ') : 'NO_MATCH'; });
+  .map(l => { const m = l.match(/ctrl (en=\w\w) (thr=\d+) (src=\d) (zoom=\d) (bilin=\d).*?(gm=\d+\.\d\d)/); return m ? m.slice(1).join(' ') : 'NO_MATCH'; });
 if (stats.length < 2) { console.log('FAIL 没有两条 STAT，初/末态无从比较'); fail++; }
 else if (stats[0] !== stats[stats.length - 1]) {
   console.log(`FAIL 电池改变了板上状态：初 ${stats[0]} ≠ 末 ${stats[stats.length - 1]}`); fail++;

@@ -117,7 +117,8 @@ run([...CFLAGS, ...objs, '-Wl,--gc-sections', '-Wl,-n', '-Wl,--no-warn-mismatch'
       * 试过命令行 -Wl,-e,_boot —— 被脚本里的 ENTRY 顶掉，readelf 的入口悄悄变成 0x0，
       * 一声不响；所以入口只从脚本走，这里不传 -e（下面的 ENTRY 等值校验就是它的哨兵）。 */
      `-T${lds}`, `-L${path.join(BSP, 'lib')}`, '-Wl,--start-group',
-     '-lxil', '-lxilstandalone', '-lxiltimer', '-lgcc', '-lc',
+     // -lm 是 V8-3 的 gamma 曲线（pow）要的；放在 group 里是因为 newlib 的 libm 反过来依赖 libc。
+     '-lxil', '-lxilstandalone', '-lxiltimer', '-lgcc', '-lc', '-lm',
      '-Wl,--end-group', '-o', OUT]);
 
 const sz = execFileSync(CC.replace(/gcc\.exe$/, 'size.exe'), ['-A', OUT], { encoding: 'utf8' });

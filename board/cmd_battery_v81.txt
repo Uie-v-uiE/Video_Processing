@@ -23,6 +23,7 @@ rot speed 1
 split auto
 split range 20 80
 gamma 1.8
+gamma off
 osd off
 zoom 1.5
 help

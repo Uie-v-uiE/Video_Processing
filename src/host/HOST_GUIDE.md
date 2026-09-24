@@ -150,12 +150,14 @@ python video_sender.py --video test.mjpeg
 | `help` | — | 打印三套语法 |
 | `rot 45` `rot +15` `rot auto` `rot speed 1` | — | **语法已收、硬件未接**：`angle_ctrl` 现在只吃按键，PS 侧没有角度写入口（V8-2/V8-8） |
 | `split 50` `split auto` `split range 20 80` `split speed 2` `split swap` | — | **语法已收、硬件未接**：整个 `split_ctrl` 是 V8-4 |
-| `gamma 1.8` `gamma off` | — | **语法已收、硬件未接**：`gamma_lut` 与 LUT 写窗口是 V8-3 |
+| `gamma 1.8` / `gamma off` | — | **V8-3 已接**：PS 算曲线并逐项写进 PL 的 256 项表（只改右窗，与左窗原图直接对比）；`gamma 180` 是同义写法，1.00..3.00 之外一律拒收 |
 | `osd on` `osd off` | — | **语法已收、硬件未接**：OSD 现在是常显，行开关位是 V8-5 |
 
 "语法已收、硬件未接"不是客套话：这几条命令敲下去会**明确打印缺哪个模块、规划在哪一步**，
-不会静默收下。判据本身也有测试：`node src/host/uart_cmd_check.mjs`（28 条命令逐条对回声，
-含 `THE`、`src 9` 这类**必须被拒**的反例，跑完还要求控制字回到初态；见 `board/uart_cmd_check_r44.txt`）。
+不会静默收下。判据本身也有测试：`node src/host/uart_cmd_check.mjs`（37 条命令逐条对回声，
+含 `THE`、`src 9` 这类**必须被拒**的反例、`gamma` 的曲线自检，
+跑完还要求控制字回到初态（含 `gm=`）；凭据 `build/frozen_r46_keys/uart_battery_r46_capture.txt`（r46 那份 36 条）、
+`build/frozen_r47_gamma/uart_battery_r47.txt`（r47 起 37 条，含 gamma）。
 
 **三个片源与"谁在屏幕上"**（#25 起的仲裁口径，别再用"拔网线"的老规矩）：
 ETH 推流 > PS（SD 帧序列，PC 预转换 / FILL）> 会动的测试图卡。停流后 PL 会在几百毫秒内自动把屏幕交回 PS，

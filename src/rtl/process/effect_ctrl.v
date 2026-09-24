@@ -8,26 +8,37 @@
 //     规则是"新字非 0 就用新字，否则用老位翻出来的等价形式"。
 //     为什么是这个方向而不是"两个 OR 起来"：两个都能开的话就再也关不掉了（老位为 0 时新字想关也关不掉），
 //     而"老工具还能用"与"新命令能精确控"这两条要同时成立。
-//     老位 → 新字的翻译表是**组合逻辑**，因此可台架验证（tb_v88 的第 10/11 条）。
+//     老位 → 新字的翻译表是**组合逻辑**，因此可台架验证（`tb_v86_pipe_sel` 的 T9 钉映射、
+//     T13 钉"新字非 0 时老五位完全不起作用"）。
 module effect_ctrl (
     input  wire       clk,
     input  wire       rst_n,
     input  wire [4:0] effect_en_async,      // V7：0=图卡/灰度…按位（gpio_o[4:0]）
     input  wire [8:0] stage_sel_async,      // V8：新控制字 gpio_cfg[8:0]，0 = "PS 没意见"
     input  wire [7:0] threshold_async,
+    input  wire [31:0] gamma_async,         // 第二个控制字的**通道 2**：{en, wr, data[7:0], idx[7:0], 其余留}
     output wire [8:0] stage_sel,
     output reg  [4:0] effect_en,            // 给 OSD 显示用的"实际生效"五位（从 stage_sel 反翻）
-    output reg  [7:0] threshold
+    output reg  [7:0] threshold,
+    output reg         gamma_en,
+    output reg         gamma_wr,            // 已同步的**翻转位**（边沿检测在 gamma_lut 里做）
+    output reg  [7:0]  gamma_idx,
+    output reg  [7:0]  gamma_data
 );
     (* ASYNC_REG = "TRUE" *) reg [4:0] en_meta, en_sync;
     (* ASYNC_REG = "TRUE" *) reg [8:0] sel_meta, sel_sync;
     (* ASYNC_REG = "TRUE" *) reg [7:0] th_meta, th_sync;
+    // gamma 那四个字段一起过同一对同步器：`wr` 是边沿标志，协议要求"idx/data 在 wr 翻转之前
+    // 已经稳定至少一次 AXI 写"，所以它们必须与 wr **同源同深度** —— 分两组同步就会出现在
+    // 本域里"边沿到了、数据还是上一次的"那种错拍（spec §6b D4 方案②的前提条件）。
+    (* ASYNC_REG = "TRUE" *) reg [17:0] gm_meta, gm_sync;   // {en, wr, data, idx}
 
     always @(posedge clk or negedge rst_n) begin
         if (!rst_n) begin
             en_meta <= 5'd0;  en_sync  <= 5'd0;
             sel_meta <= 9'd0; sel_sync <= 9'd0;
             th_meta <= 8'd80; th_sync  <= 8'd80;
+            gm_meta <= 18'd0; gm_sync  <= 18'd0;
         end else begin
             en_meta  <= effect_en_async;
             en_sync  <= en_meta;
@@ -35,7 +46,14 @@ module effect_ctrl (
             sel_sync <= sel_meta;
             th_meta  <= threshold_async;
             th_sync  <= th_meta;
+            gm_meta  <= {gamma_async[31], gamma_async[30], gamma_async[29:22], gamma_async[21:14]};
+            gm_sync  <= gm_meta;
         end
+    end
+
+    // 位序照 `PLAN_V8_SPEC.md` §6b 的字：[31] en、[30] wr（翻转=写一项）、[29:22] data、[21:14] idx。
+    always @(*) begin
+        {gamma_en, gamma_wr, gamma_data, gamma_idx} = gm_sync;
     end
 
     // 老五位 → 新九位（invert 从 bit4 挪到 bit1、binary 从 bit1 挪到 bit5，其余原位）
