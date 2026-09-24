@@ -22,7 +22,7 @@
 | 五级流水线（颜色/滤波/边缘/阈值/形态学）+ 每级 bypass | **四级有、第五级没有**：现链是 `en[4:0] = gray, binary, blur, sobel, invert`，**无锐化、无腐蚀/膨胀** | `src/rtl/process/proc_pipeline.v:3`（位定义就写在这一行） |
 | Gamma 查找表（PS 写 LUT、按键循环） | **完全没有**（无 `gamma_lut.v`、无 LUT 写入通路、无按键） | 全仓 grep 无 gamma |
 | OSD 四行（FPS/源/分辨率/pipe/th/gamma/rot/zoom/split/**Latency**） | **有 5 行 OSD**，内容不同；**端到端时延从未测过** | `src/rtl/video/osd_overlay.v:19`（`N_LINES = 5`）；`report/PERF_REPORT.md` §6b 明写"链路内时延未测" |
-| 4 个按键 KEY0~KEY3（短按+长按） | **板上只有 2 个按键 + 2 个 LED** | `src/constraints/rk_zynq7020.xdc:8-11`：`key1_n=W18`、`key2_n=V14` |
+| 4 个按键 KEY0~KEY3（短按+长按） | **成立，但要分开**：PL 那两个已经在用（W18/V14），**PS 那两个电气上存在、固件读不到** | 手册 §1.21"2 PS 2 PL"；原理图 `PS_MIO0_KEY1`/`PS_MIO12_KEY2`/`PL_KEY1`/`PL_KEY2`；读不到的两条原因见 **§6a** |
 | PS 命令双通道 | **有**：串口命令 + AXI GPIO 控制字；但语法是 `SRC0/TH80/ZOOM1`（无空格），与 spec 的 `src 0/th 80` 不同 | `src/ps/main.c`、`src/host/HOST_GUIDE.md` |
 | 异常：DDR 读写错误 / VDMA 中断 | **无 VDMA**（自研通路），对应物是硬件计数器 `drop_words / frames_bad / copy_overrun / rows_miss_max` | `link_monitor` + `frame_commit_lock`；读回见 `health_read.mjs` |
 | 异常：温度过高（XADC>85°C） | **无**（PL/PS 都没接 XADC） | — |
@@ -41,7 +41,7 @@ methodology 0 CRIT / `cdc.rpt` Critical 3 行 = 基线配对无新增。
 | # | 决策 | 选项 | 我的建议与代价 |
 |---|---|---|---|
 | **D1** | SD 到底是 **MJPEG** 还是**预转换裸帧**？ | ① 改口径为"SD 卡帧序列（PC 预转换 RGB565）"；② 真做 MJPEG 解码 | **选 ①**。②要在 PL 做 Huffman+IDCT+色度上采样（零厂商 IP 前提下是一个独立大项目），或在 PS 软解（standalone 无 libjpeg，512×300@30 也未必够）。现在这条路已经"整卡播完 + 30 fps 实测"，改成 MJPEG 等于推翻已交付的东西 |
-| **D2** | 4 按键 → 2 按键怎么映射？ | ① 双键 + 短按/长按组合（0 硬件改动）；② 加编码器/矩阵键盘（要动硬件） | **选 ①**。现状：KEY1 短按 = 旋转 +1°、长按 1.2 s = 切模式（AUTO/锁ETH/锁PS/锁图卡），KEY2 = 反向旋转。**已知代价**：长按会顺带多转 1°（ISSUES #52 记过）。spec 里 KEY0/KEY2/KEY3 的功能（切源/OSD/Gamma 循环）要挤进这两个键或交给串口 |
+| **D2** | 4 按键 → 2 按键怎么映射？ | ① 双键 + 短按/长按组合（0 硬件改动）；② 加编码器/矩阵键盘（要动硬件） | **用户 16:0x 答：板子上本来就是 4 个键（2 PS + 2 PL），都不用选**。PL 那两位（W18/V14）已在用；PS 那两位（MIO0/MIO12）要开 `PCW_GPIO_MIO_GPIO_ENABLE` 才读得到 ⇒ 并入 V8-2 那次重建，细节与已核事实见 §6a。**已知代价保留**：长按 KEY1 会顺带多转 1°（ISSUES #52 记过） |
 | **D3** | 双线性：合入主线还是改口径？ | ① 3/5-slot 方案重试（横向 4 抽头从同一 64bit 字的 4 lane 白拿，只下一行需要读）；② 文档写"最邻近已实现，双线性组件完成、时序在收" | **先 ② 保交付，另开一晚做 ①**。①的代价是又一轮 250 MHz 时序对赌（已经红过三次），而且它**不改演示里任何一件事**，只改画质细节 |
 | **D4** | Gamma LUT 怎么写进去？ | ① 新增 AXI-Lite 从设备（要重跑 BD + 全套门禁）；② 复用现有 32-bit AXI GPIO 做"地址+数据"两寄存器窗口（不动 BD） | **选 ②**。GPIO 32 bit 里 `en[4:0]`、`thr[15:8]`、`[19:16]` 已用，还有 `gpio_o[26:20]` + 高位可拼"索引+写通"；不动 BD 就不动地址约束，风险小一个量级。代价：写 256 项要 256 次 GPIO 写（PS 侧循环，微秒级，无所谓） |
 | **D5** | **分割线在旋转之前还是之后做？**（架构级，影响最大） | ① 输入域混合（旋转**前**）；② 输出域混合（旋转**后**） | **选 ①**。spec 要求"分割线跟着画面一起转、变成斜线" ⇒ 混合必须发生在被旋转的那幅图上；若选 ② 就只能画竖直/固定线，与 §5.2 的 `split_follow` 直接矛盾。这一步定错，第 4 步整块要重写 |
@@ -53,8 +53,8 @@ methodology 0 CRIT / `cdc.rpt` Critical 3 行 = 基线配对无新增。
 
 | 步 | 目标 | 动哪些文件 | 怎么算"过" | 预估 | 回退点 |
 |---|---|---|---|---|---|
-| **0** | **收尾今天这一版**（#53 并发抢画面 + 图卡 v2） | 已完成：`pl_video_top.v`/`system_top.v`/`sd_play.c`/`main.c`/`test_card.v` | 门禁七项全绿（已达成，bit `c7f90cc`）+ L1 全量 + **上板眼睛**：并发不闪、图卡观感、长按切源 | 20 min（含下板） | `build/frozen_r32_sdfix/`（bit `efc89779`） |
-| **1** | **命令层统一**（spec §14 语法），零 RTL 风险 | `src/ps/main.c`（解析器 + 别名表）、`src/host/HOST_GUIDE.md` | 每条命令串口回显 + `STAT` 回读一致；旧命令 `SRC0/TH80/...` 仍可用（回归） | 30–40 min | 纯固件，重下 elf 即可 |
+| **0** | **收尾今天这一版**（#53 并发抢画面 + 图卡 v2） | 已完成：`pl_video_top.v`/`system_top.v`/`sd_play.c`/`main.c`/`test_card.v` | ✅ 16:0x 上板（bit `c7f90cc` + elf）；机器侧红绿对照已闭环 `board/ddr_churn_r33_pair.md`；L1 全量 48/48 `sim/results/regression_v79_r44.txt`。**只剩眼睛**：并发不闪、图卡观感、长按切源 | 20 min（含下板） | `build/frozen_r32_sdfix/`（bit `efc89779`） |
+| **1** | **命令层统一**（spec §14 语法），零 RTL 风险 | `src/ps/main.c`（解析器 + 别名表）、`src/host/HOST_GUIDE.md` | ✅ 2026-09-24 17:0x：`node src/host/uart_cmd_check.mjs` **32 条逐条对回声 + 反例 + 收尾回初态**，`RESULT PASS`（`board/uart_cmd_check_r44.txt`）。elf `1be21dee` | 30–40 min | 纯固件，重下 elf 即可 |
 | **2** | **补齐第 5 级形态学 + 锐化**，并把"每级 2 算法"的控制字设计出来 | 新 `process/proc_morph.v`、`process/proc_sharpen.v`；改 `proc_pipeline.v`、`effect_ctrl.v`（`en[4:0]` 要扩成"每级 2 bit 选择"）、`system_top.v` 的 GPIO 位分配 | 新台架：同一张合成图，erode/dilate 与锐化的**已知期望结果**逐像素对；再跑全量 L1；板级看效果 | 2–3 h | 新模块不接进链就不影响主线 |
 | **3** | **Gamma 查找表**（D4 方案②） | 新 `video/gamma_lut.v`、`pl_video_top.v` 插入位置、`main.c`（生成表 + `gamma` 命令）、按键循环（D2） | 台架：LUT 边界值/单调性 + "gamma off 必须逐位等于输入"（反例）；板级看明暗；**盯 WHS 余量**（像素域又多一级） | 1.5–2 h | 插入点用参数旁路（`GAMMA_BYPASS`） |
 | **4** | **分割线参数化 + 自动扫描 + swap**（D5 方案①：输入域混合） | 改 `split_display.v` → 输入域 mixer + 新 `video/split_ctrl.v`（位置/三角扫描/range/speed/swap），`pl_video_top.v` 接线，`main.c` 命令 | 台架：扫描三角波端点、range 夹紧、swap 后左右必须互换、**0%/100% 边界不许越界读**；板级：旋转 45° 时分割线成斜线（这是 spec 的硬要求） | 3–4 h（本表最大一块） | 保留旧"固定双窗"行为作为 `split 50 auto off` 的退化态 |
@@ -82,8 +82,86 @@ methodology 0 CRIT / `cdc.rpt` Critical 3 行 = 基线配对无新增。
 
 ---
 
-## 5. 今晚开工前的三句话检查
+## 5. 开工检查（下午已答的部分就地更新）
 
-1. 板子先跑第 0 步的眼睛判据：**并发还闪不闪**（#53 的结论只能看屏幕）。
-2. D1/D2/D5 三个决定先答，其余可以边做边定（D5 不定，第 4 步不能开工）。
+1. 板子第 0 步的眼睛判据：**并发还闪不闪**（#53 机器侧已闭环，这条只能看屏幕）——16:0x 已上板待判。
+2. D1/D2/D5 用户已答（见 §2 表 + §6a）：口径改"SD 帧序列（预转换）"、四键=2 PS+2 PL、
+   **分割线在旋转之前混合**。剩下的 D3（双线性另开一晚）、D4→**D7**（见 §6b）、D6（PL 打点）按建议走。
 3. 每步做完立刻：门禁 + L1 + 冻结集（bit/xsa/elf/报告成套，md5 说话），别攒着。
+
+## 6. 开工之后才确定的事实（2026-09-24 下午，全部有出处，别凭记忆改）
+
+### 6a. 四个按键是真的，但 PS 那两个现在读不到
+
+| 键 | 板上网络名 | 引脚 | 现状 |
+|---|---|---|---|
+| PL KEY1 | `PL_KEY1` | **W18**（`rk_zynq7020.xdc:8-9` 已在用） | ✅ 短按=旋转 +1°，长按 1.2 s=片源模式四态轮转 |
+| PL KEY2 | `PL_KEY2` | **V14**（同上） | ✅ 反向旋转 |
+| PS KEY1 | `PS_MIO0_KEY1` | **MIO 0** | ❌ 读不到 |
+| PS KEY2 | `PS_MIO12_KEY2` | **MIO 12** | ❌ 读不到 |
+
+出处：板卡手册 §1.21 KEY 明写"2 PS 2 PL"（§1.22 LED 是"2 PS LED2 PL LED"），原理图里四个网络名都在。
+**为什么读不到**（两条都核过，不是猜）：
+1. `build/system.xsa` 的 `ps7_parameters.xml`：`PCW_GPIO_MIO_GPIO_ENABLE=0`、`PCW_GPIO_PERIPHERAL_ENABLE=0`
+   ⇒ MIO 根本没接到 GPIO 控制器；`build/tcl/build_system_axigpio.tcl:46` 只设了 `PCW_GPIO_EMIO_GPIO_ENABLE {0}`。
+2. 手工链接用的那个 BSP（`D:/Xilinx/Prj/project_handoff/vitis/platform/.../bsp`）里
+   `libsrc/` 只有 `gpio`（AXI GPIO），**没有 `xgpiops`**，`include/` 连 `xgpiops.h` 都没有。
+
+好消息一：**MIO 0 与 12 都没被占用**（QSPI=`MIO 1..6`、UART0=`MIO 10..11`、ENET0=`MIO 16..27` +
+MDIO `52..53`、SD0=`MIO 40..45` + CD `MIO 9`），所以开 GPIO MIO 不会跟现有外设抢脚。
+好消息二：同一个 BSP **有 `xadcps`** ⇒ 第 7 步的温度读 PS-XADC 走 PS 侧，不引入 PL 厂商 IP，
+"零厂商视频 IP"这条主张一个字都不用改。
+⇒ 结论：PS 按键要改 PS7 配置 = 要重跑整套构建 ⇒ **并进 V8-2**，不单独烧一次构建。
+
+### 6b. D4 的预算要改：一个 32-bit GPIO 装不下 V8 的控制字
+
+现有控制字（`0x41200000`，`gpio_o`）已经用到：`[4:0]` 效果、`[15:8]` 阈值、`[16]` 片源、`[17]` 缩放、
+`[18]` 发布脉冲、`[19]` 双线性、`[26]` gapclr、`[31:27]` lane 读回 —— **只剩 `[7:5]` 与 `[25:20]` 共 9 位**。
+而 V8 要新增：模式覆盖 3 位 + OSD 1 位 + 角度 10 位（±360 需要带符号 10 位）+ 自动旋转 4 位 +
+分割位置 7 位 + 扫描 4 位 + range 两个 7 位 + Gamma 索引/数据/写通 17 位 ≈ **60 位**。
+⇒ 9 位不够，硬塞就只能塞成"分时复用一套索引/数据窗口"，那是把 `split` 与 `gamma` 互相绊住的开始。
+
+**建议（D7）**：V8-2 那次重建顺手加**一个 2 通道 32-bit AXI GPIO**（同一地址段，数据寄存器在 +0x0 与 +0x8）
+= 64 位新控制字，命名为 `gpio_cfg_o`；老的那 32 位**一位都不动**（`health_read.mjs`、`set_src.tcl`、
+`arb_handover_test.mjs` 都在按位读它，动了就是把已有工具判红）。布局：
+
+| 新字 | 位 | 含义 |
+|---|---|---|
+| B(+0x0) | `[1:0]` | `mode_req`：00 自动 / 01 锁ETH / 11 锁PS / 10 锁图卡 —— **必须与 `src_mode` 的格雷码同序**，否则跨域同步器丢掉"每一位只依赖一个触发器"那条（#49 的教训） |
+| | `[2]` | `mode_en`：0=按键说了算，1=PS 覆盖 |
+| | `[3]` | `osd_en` |
+| | `[13:4]` | `rot_deg` 带符号 10 位 |
+| | `[14]` | `rot_auto` |
+| | `[17:15]` | `rot_speed` |
+| | `[24:18]` | `split_pos`（0–100 %，7 位） |
+| | `[25]` | `split_auto` |
+| | `[28:26]` | `split_speed` |
+| | `[29]` | `split_swap` |
+| | `[31:30]` | 预留 |
+| C(+0x8) | `[6:0]` / `[13:7]` | `split_lo` / `split_hi`（range 两端） |
+| | `[21:14]` / `[29:22]` | `gamma_idx` / `gamma_data` |
+| | `[30]` | `gamma_wr`（翻转=写一项，跟 `[18]` 发布脉冲同一套路子，避免"地址+数据"两根线要同时对） |
+| | `[31]` | 预留 |
+
+**spec 要求的"手动命令自动退出自动模式"就落在这里**：PS 收到 `rot 45` 就把 `rot_auto` 清 0 再写角度，
+不需要 PL 里做"谁先谁后"的判断。
+⚠ 两条要核的代价（动手时先验再写文档）：① 新从设备的 AXI 地址要在 BD 里钉死并 `mrd` 读回确认
+（app 是硬编码基址的，BSP 的 `xparameters.h` 不会自动更新）；② 多一个 GPIO 会多一片 LUT/触发器，
+现在 **WHS 只有 +0.050**，像素域之外的这点开销可以接受，但每次构建都要点名它。
+
+### 6c. 判据层的一个真教训（已经写进 ISSUES #53，这里只留一句）
+
+`ddr_verify.mjs` 读之前 `rst -processor`，把要观察的写入者停掉了 ⇒ **它对"共用 bank"这类竞态天生不敏感**。
+边跑边采的替代品是 `board/ddr_churn_probe.mjs`。以后凡是"两个主设备抢同一块内存"的判据，
+先问一句：**我的检查器是不是把现场清干净了？**
+
+### 6d. 命令层的验收方式（V8-1 已经这么做，后面几步沿用）
+
+串口电池：`board/cmd_battery_v81.txt`（32 条）+ 判据器 `src/host/uart_cmd_check.mjs`
+（逐条对回声、含 `THE`/`src 9`/`bilin 2` 三条**必须被拒**的反例、结尾要求控制字回到初态）。
+发送器是 `board/uart_cmd_script.ps1` —— 它存在的理由：老工具 `-Cmds "A,B"` 按空白切分，
+**带空格的命令（`th 80`）根本发不出去**，用它验新语法就是自欺。
+这条电池第一次跑就抓出一个真 bug：把 `strncmp(buf,"BILIN1",6)` 重构成"取尾字符 `tk[0][6]`"时数错一位
+（BILIN 是 5 个字母），老命令 `BILIN1` 静默变成"关双线性"。 ⇒ 凡是"按下标取字符"的解析都要改成
+"整串交给一个严格解析函数"，这一条已经写进 `main.c` 的注释。
+

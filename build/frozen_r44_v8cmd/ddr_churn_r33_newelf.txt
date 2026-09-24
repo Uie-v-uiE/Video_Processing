@@ -1,0 +1,3 @@
+0x10000040  n=60  distinct=  1  wordid_clean=60/60  STATIC  top=[80008x60]
+0x10080040  n=60  distinct=  1  wordid_clean=60/60  STATIC  top=[80008x60]
+0x10100040  n=60  distinct= 32  wordid_clean=0/60  CHURNING(有写入)  top=[4fe051ex10 4fe0d1dx5 49d049dx4]

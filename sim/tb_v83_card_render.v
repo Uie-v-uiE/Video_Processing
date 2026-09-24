@@ -15,6 +15,13 @@ module tb_v83_card_render;
     reg [11:0] xs = 0, ys = 0;
     wire [15:0] out;
     integer fd, f, yy, xx, px, py, have;
+    // 取景器也要表态：runner 的规矩是"没有 PASS/FAIL 就判失败"，所以这里做四条真断言
+    // （它不是判据台架，但它骗人的话，"我看着好看"这个结论就建立在一张坏图上）
+    integer written[0:FRAMES-1];      // 每帧写出的像素数
+    integer nx, white_cnt[0:FRAMES-1];// X 态计数 / 每帧纯白像素数（球心）
+    integer diff_prev, last_white;    // 跨帧变化像素数（≥1 帧之后才有意义）
+    reg [15:0] prev_img [0:H*V-1];
+    integer idx, bad, gi;
 
     test_card #(.H_ACTIVE(H), .V_ACTIVE(V)) dut (
         .clk(clk), .rst_n(rst_n), .vs(vs), .x(xs), .y(ys), .de(de), .rgb565(out));
@@ -31,10 +38,23 @@ module tb_v83_card_render;
             g8 = {out[10:5],  out[6:5]};
             b8 = {out[4:0],   out[2:0]};
             $fwrite(fd, "%0d %0d %0d %0d %0d %0d\n", fr, x, y, r8, g8, b8);
+            written[fr] = written[fr] + 1;
+            if (^out === 1'bx) nx = nx + 1;                 // 有 X 态就说明图卡算不出来
+            if (out === 16'hFFFF) white_cnt[fr] = white_cnt[fr] + 1;
+            if (fr > 0) begin
+                idx = y * H + x;
+                if (prev_img[idx] !== out) diff_prev = diff_prev + 1;
+                prev_img[idx] = out;                        // 同序扫描 ⇒ 存的正是上一帧
+            end
         end
     endtask
 
     initial begin
+        // 计数器必须先清零：Verilog 的 integer 数组初值是 x，`x+1` 还是 x，判据会静默失效
+        for (gi = 0; gi < FRAMES; gi = gi + 1) begin
+            written[gi] = 0; white_cnt[gi] = 0;
+        end
+        nx = 0; diff_prev = 0; bad = 0;
         fd = $fopen("card_dump.txt");
         if (fd == 0) begin $display("OPEN_FAIL card_dump.txt"); $finish; end
         repeat (4) @(negedge clk);
@@ -56,7 +76,26 @@ module tb_v83_card_render;
             @(negedge clk); de = 0;
         end
         $fclose(fd);
-        $display("RENDER DONE frames=%0d %0dx%0d", FRAMES, H, V);
+        // ---- 取景器自己的四条断言（不表态的台架按失败算，这是 sim/run_sim.tcl 的规矩）----
+        for (gi = 0; gi < FRAMES; gi = gi + 1)
+            if (written[gi] != H*V) begin
+                $display("FAIL 帧 %0d 只写了 %0d 像素（应 %0d）", gi, written[gi], H*V);
+                bad = bad + 1;
+            end
+        if (nx != 0) begin $display("FAIL 输出含 X 态 %0d 处", nx); bad = bad + 1; end
+        for (gi = 0; gi < FRAMES; gi = gi + 1)
+            if (white_cnt[gi] == 0) begin
+                $display("FAIL 帧 %0d 没有纯白像素 ⇒ 球没画出来，这张预览不可信", gi);
+                bad = bad + 1;
+            end
+        if (diff_prev == 0) begin
+            $display("FAIL 跨帧一个像素都没变 ⇒ 拍到的是静止图，用它判'好看'无效");
+            bad = bad + 1;
+        end
+        $display("INFO 每帧像素=%0d 白点=%0d/%0d/%0d 跨帧变化=%0d X态=%0d",
+                 written[0], white_cnt[0], white_cnt[1], white_cnt[2], diff_prev, nx);
+        if (bad == 0) $display("PASS tb_v83_card_render");
+        else          $display("FAIL tb_v83_card_render errors=%0d", bad);
         $finish;
     end
 endmodule

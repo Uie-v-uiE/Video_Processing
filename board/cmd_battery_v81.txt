@@ -1,0 +1,35 @@
+# board/cmd_battery_v81.txt —— V8-1 命令层的串口电池（一行一条，# 开头是注释）
+# 发送器：board/uart_cmd_script.ps1；判据与"必须回到初态"的核对：src/host/uart_cmd_check.mjs
+# 顺序是有讲究的：改过的一律在结尾改回来，最后一条 STAT 必须等于第一条 STAT。
+STAT
+th 80
+TH120
+THE
+th
+pipe 11000
+01010
+pipe 00000
+src 0
+src 2
+src 1
+src 9
+zoom off
+ZOOM1
+bilin off
+BILIN1
+frame 12
+rot 45
+rot speed 1
+split auto
+split range 20 80
+gamma 1.8
+osd off
+zoom 1.5
+help
+BOGUS
+AUTOPLAY0
+autoplay 1
+SRC2
+bilin 2
+TH80
+STAT

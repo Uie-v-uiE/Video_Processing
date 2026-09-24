@@ -1,0 +1,6 @@
+[STAT] ctrl en=00 thr=80 src=1 zoom=1 bilin=1 pub=0 sd=1 frames=4398 playing=1 (PL owns UDP datapath)
+[SD] frame 1200: last 100 frames 29.988 fps (since play 29.817)
+[SD] frame 1300: last 100 frames 29.999 fps (since play 29.829)
+[SD] frame 1400: last 100 frames 29.999 fps (since play 29.839)
+[SD] frame 1500: last 100 frames 29.733 fps (since play 29.830)
+

@@ -131,27 +131,31 @@ python video_sender.py --video test.mjpeg
 | 结尾 | 命令后自动补 **CR+LF** |
 | 查看端口 | 运行脚本不带 `--port`，或设备管理器 |
 
-### 4.1 命令表
+### 4.1 命令表（V8 语法：动词 + 空格 + 参数，大小写不敏感）
 
-| 命令 | 作用 |
-|------|------|
-| `00000` | 关闭全部效果 |
-| `10000` | 灰度 |
-| `01000` | 二值化 |
-| `00111` | 模糊 + Sobel + 反色 |
-| `SRC0` / `SRC1` | **PS 这一路片源**开/关（只在仲裁处于 AUTO 时生效；网线有流时仍会自动让位给 ETH） |
-| `TH80` | 二值化阈值（0–255） |
-| `ZOOM0` / `ZOOM1` | 右屏无极缩放 关/开（PL 侧默认常开） |
-| `BILIN0` / `BILIN1` | 右屏双线性插值 关/开 |
-| `FILL` | PS 写 DDR 诊断色块（并自动 `SRC1` + 发布一次搬运） |
-| `SD` | 挂载 SD 卡（`XSdPs_CfgInitialize` 每个上电周期只成功一次，见 ISSUES #45） |
-| `PLAY` / `STOP` | SD 回放 开始/停止（`PLAY` 会顺带 `SRC1`） |
-| `FRAME<n>` | 只显示第 n 帧（成功后自动 `SRC1`） |
-| `AUTOPLAY0` / `AUTOPLAY1` | 关/开**上电自动挂载+播放**（只影响下一次上电，默认开） |
-| `STAT` | 查询当前控制字与 SD 状态 |
-| `help` / `quit` | 帮助 / 退出 |
+固件里两套语法都收：新的是 spec §14 的写法，老写法是 `SRC0/TH80/ZOOM1/BILIN1/FRAME12/裸位串`，
+`src/host/arb_handover_test.mjs` 与 `board/uart_cap_once.ps1` 这些既有工具在用它们，所以不能断。
 
-**效果位顺序（左起 bit0）：** `gray / binary / blur / sobel / invert`
+| V8 写法 | 老写法 | 作用 |
+|------|------|------|
+| `pipe 11000` | `00111`（裸位串） | 效果链开关，**位序左起 bit0** = `gray / binary / blur / sobel / invert` |
+| `th 80` | `TH80` | 二值化阈值（0–255） |
+| `src 0` / `src 1` / `src 2` | `SRC0` / `SRC1` | 0=图卡 1=DDR(网络) 2=DDR 并起播 SD。**注意**：PS 写得动的只有 1 bit `src_sel`，"独占哪一路"仍由 PL 的 `src_mode` 四态 + 仲裁决定，模式覆盖位要到 V8-2 的控制字才有 |
+| `zoom on` / `zoom off` | `ZOOM1` / `ZOOM0` | 右屏缩放开关（PL 侧默认常开）。`zoom 1.5` / `zoom auto` **语法已收、硬件未接**（缺缩放因子寄存器，V8-8） |
+| `bilin on` / `bilin off` | `BILIN1` / `BILIN0` | 右屏双线性/最近邻 A-B 对照 |
+| `frame 12` | `FRAME12` | 只显示第 n 帧（成功后自动切到 DDR 片源） |
+| `sd` `play` `stop` `fill` | 同（大写） | 挂载 / 回放 / 停 / 写诊断色块 |
+| `autoplay 0|1` | `AUTOPLAY0/1` | 关/开**上电自动挂载+播放**（只影响下一次上电，默认开） |
+| `stat`（或 `status`） | `STAT` | 读回控制字与 SD 状态 |
+| `help` | — | 打印三套语法 |
+| `rot 45` `rot +15` `rot auto` `rot speed 1` | — | **语法已收、硬件未接**：`angle_ctrl` 现在只吃按键，PS 侧没有角度写入口（V8-2/V8-8） |
+| `split 50` `split auto` `split range 20 80` `split speed 2` `split swap` | — | **语法已收、硬件未接**：整个 `split_ctrl` 是 V8-4 |
+| `gamma 1.8` `gamma off` | — | **语法已收、硬件未接**：`gamma_lut` 与 LUT 写窗口是 V8-3 |
+| `osd on` `osd off` | — | **语法已收、硬件未接**：OSD 现在是常显，行开关位是 V8-5 |
+
+"语法已收、硬件未接"不是客套话：这几条命令敲下去会**明确打印缺哪个模块、规划在哪一步**，
+不会静默收下。判据本身也有测试：`node src/host/uart_cmd_check.mjs`（28 条命令逐条对回声，
+含 `THE`、`src 9` 这类**必须被拒**的反例，跑完还要求控制字回到初态；见 `board/uart_cmd_check_r44.txt`）。
 
 **三个片源与"谁在屏幕上"**（#25 起的仲裁口径，别再用"拔网线"的老规矩）：
 ETH 推流 > PS（SD 回放 / FILL）> 会动的测试图卡。停流后 PL 会在几百毫秒内自动把屏幕交回 PS，
@@ -161,11 +165,11 @@ ETH 推流 > PS（SD 回放 / FILL）> 会动的测试图卡。停流后 PL 会�
 
 ```bat
 run_serial.bat COM5
-> 10000
-> TH120
+> pipe 10000
+> th 120
 > 00111
-> SRC0
-> STAT
+> src 0
+> stat
 > quit
 ```
 

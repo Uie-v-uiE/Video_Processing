@@ -1,0 +1,33 @@
+r44 冻结集 —— 2026-09-24 17:2x（下午，V8 第 0/1 步收尾）
+===========================================================
+
+这一套是"板上正在跑的那一套"，三件必须同进同出（换任何一件都要重新校验另外两件）：
+
+| 文件 | md5（前 8 位） | 说明 |
+|---|---|---|
+| `system.bit` | c7f90cce | 含 #53（PS 片源搬第三个 DDR bank）+ 图卡 v2；门禁七项 ALL PASS，WNS +0.756 / **WHS +0.050** / LUT 8270 / BRAM 64.64 % / 2.159 W |
+| `system.xsa` | 726f9804 | 与 bit 同一次构建产物（`ps7_init.tcl` 与 `build/ps7_init.tcl` md5 已核对一致） |
+| `ps_app.elf` | 1be21dee | **V8-1 命令层**（spec §14 语法 + 老写法别名）；前序：`dcdce9b9`=FRAME_ADDR 搬家、`21feaaa7`=解析器第一版（有 BILIN1 越位 bug） |
+
+随包的凭据（每一份都被上面的文件"产生"，不是事后补的）：
+
+- `ddr_churn_r33_pair.md` —— #53 的红绿对照：同一块 bit 只换 elf，修复前 ETH bank0 **60 次采样 48 次不是
+  推流内容**，修复后两 bank 60/60 干净、SD 帧改在 `0x1010_0040` 翻动。探针 `board/ddr_churn_probe.mjs`。
+- `ddr_churn_r33_newelf.txt` —— 绿那一边的原始 stdout。
+- `ddr_verify_r33_oldelf.txt` —— **反面教材**：`ddr_verify.mjs` 对修复前的 elf 也报 100 % 全绿，
+  因为它读之前 `rst -processor` 把写入者停掉了。留这一份是为了记住"检查器把现场清干净了"这种错法。
+- `uart_cmd_check_r44.txt` —— V8-1 验收：32 条命令逐条对回声全 `ok`，含 `THE`/`src 9`/`bilin 2`
+  三条**必须被拒**的反例，结尾要求控制字回到初态（`en=00 thr=80 src=1 zoom=1 bilin=1`）。
+- `uart_script_capture.txt` —— 上面那次跑的串口原始捕获（分段带 `>> 命令` 标记）。
+- `uart_r33_both.txt` —— 并发时的 `STAT`：`sd=1 frames=4398 playing=1` 且 SD 稳在 29.5–30.0 fps，
+  同时 PC 端 15 fps 推流（这就是眼睛早上看到打架的那个条件）。
+- `regression_v79_r44.txt` —— L1 全量 **`SIM DONE pass=48 fail=0`**。上午 r43/r43b 那两次
+  `tb_v57_rdw_copy` 报 `child killed: segmentation violation`（单跑却 PASS）确认是 xsim 偶发。
+
+还欠的（不许在这一版里被说成"已验证"）：
+1. **并发不闪 / 图卡真机观感 / 长按四态轮转** —— 只能看屏幕，见 `board/README.md` 肉眼确认表。
+2. PS 那两个按键（MIO0/MIO12）读不到，要开 `PCW_GPIO_MIO_GPIO_ENABLE` ⇒ 下一次重建顺带做（`report/PLAN_V8_SPEC.md` §6a）。
+3. `rot/split/gamma/osd` 四类命令只有语法没有硬件（固件会明说缺什么），控制字布局见 §6b。
+
+回退：上一套完整可演示的是 `build/frozen_r32_sdfix/`（bit `efc89779` + elf `c00b6553`）；
+再往前演示默认仍是 `#23` 那一套。**校验**：`cd build/frozen_r44_v8cmd && md5sum -c MANIFEST_BODY.txt`。

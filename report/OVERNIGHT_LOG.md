@@ -2484,3 +2484,47 @@ L1 台架用**当前这棵树**重跑：**47/47 全过**，存档 `sim/results/r
 ③ `KEY1` 长按四态轮转且锁图卡时卡片在动。
    （"1.2 s"这个数刚从约束核过，不是照抄注释：`src/constraints/rk_zynq7020.xdc:6` 是 `create_clock -period 20.000 -name sys_clk` ⇒ 50 MHz，`pl_video_top.v:108` 的 `HOLD_CYC=60_000_000` ⇒ 正好 1.200 s；`build/timing_summary.rpt` 里 sys_clk 也确实是 20.000 ns。）
 三条全过 ⇒ 我把 #31/#32 转成演示默认并一次改完 MANIFEST / DEMO_SCRIPT / README；任何一条不过 ⇒ 退回 #23 演示，我不含混过去。
+
+---
+
+## 26. R44 · 2026-09-24 16:0x– · 用户醒了，V8 开工；先把 #53 从"只能看屏幕"里抢回一半
+
+上午留下的三件事（并发闪 / 图卡观感 / 长按切源）都要眼睛，所以 16:0x 板子一接上就先把它推到能看的
+状态：**bit `c7f90cc`（门禁七项全绿那一版）+ 新 elf `dcdce9b9`**。下板顺序仍是
+`ps_jtag_boot → program_pl → ps_app_reload`（`rst -system` 会冲掉 JTAG 下的 bit，这条规矩救过我一次）。
+顺手核了一件事：`build/ps7_init.tcl` 与 `build/system.xsa` 里的 `ps7_init.tcl` **md5 相同**
+（`b4591066…`）—— 自动解包的那条路径不会悄悄用上周的老配置。
+
+### #53 的机器凭据：现成的检查器看不见这个竞态，因为它先把凶手停了
+
+SD 与推流同时跑（STAT：`sd=1 frames=4398 playing=1`，串口报 29.5–30.0 fps；PC 端 15 fps 推流）时，
+先跑 `src/host/ddr_verify.mjs`：**两个 ETH bank 各 76800/76800 全对**。我当时把这条当成了"重叠已消除"的证据，
+换回修复前的 elf（`build/frozen_r32_sdfix/ps_app.elf`，`c00b6553`）再跑，**还是全绿** —— 这才看出问题：
+`ddr_verify` 为了躲 Vitis 应用的 D-Cache 旧数据，在读之前 `catch {rst -processor}`，**那一下正好把要观察的
+写入者停掉**，而 PL 每 66 ms 又把 bank 刷回干净图案。停止推流后重跑仍然全绿（那次采样时写入者已经是死的）。
+⇒ 一句话记进判据篇：**会先把被测者停下来的检查器，看不见只有被测者活着才存在的竞态。**
+
+新探针 `board/ddr_churn_probe.mjs`：不停核、边跑边采 60 轮，采 `0x1000_0040 / 0x1008_0040 / 0x1010_0040`
+三个点，用 `--test wordid` 的自描述图案判"这个值是不是推流内容"。同一块 bit 上只换 elf：
+
+| | ETH bank0 | ETH bank1 | PS bank |
+|---|---|---|---|
+| 修复前 `c00b6553` | **22 个不同值，只有 12/60 是推流内容** | 60/60 干净、静止 | 静止（旧版不写它） |
+| 修复后 `dcdce9b9` | 60/60 干净、静止 | 60/60 干净、静止 | **32 个不同值 = SD 帧在翻动** |
+
+"60 次里 48 次 ETH 的 bank0 装的不是 ETH 的画面"就是屏幕上那一下闪的机理，而"只有 bank0 被抢、bank1 没事"
+正好是根因的预言（PS 只有一个 `FRAME_ADDR`）。凭据 `board/ddr_churn_r33_pair.md` + `board/ddr_churn_r33_newelf.txt`。
+剩下的只有"并发时眼睛看到不闪"这一条。
+
+### 另外两件收尾
+
+- **L1 全量重跑：`SIM DONE pass=48 fail=0`**（`sim/results/regression_v79_r44.txt`）。上午那次
+  `tb_v57_rdw_copy` 报 `child killed: segmentation violation`、单跑却 PASS，确认是 xsim 的偶发，不是树的问题。
+- **V8 的三个决定用户下午给了**：口径改成"**SD 帧序列（预转换）**"（D1=①，不做 MJPEG）；
+  **板上确实有 4 个按键**（D2 改判：2 个 PS + 2 个 PL，见下）；**分割线在旋转之前混合**（D5=①，
+  所以 `split_follow` 能让分割线跟着画面一起转）。硬件事实核过：原理图网络名 `PS_MIO0_KEY1`/`PS_MIO12_KEY2`
+  与 `PL_KEY1`/`PL_KEY2`，手册 §1.21 "2 PS 2 PL"；PL 那两个就是 XDC 里的 W18/V14。
+  **但 PS 那两个现在读不到**：`build/system.xsa` 里 `PCW_GPIO_MIO_GPIO_ENABLE=0`，而且 BSP 的
+  `libsrc/` 只有 `gpio`（AXI GPIO）**没有 `xgpiops`**（`include/` 里连 `xgpiops.h` 都没有，`xadcps` 倒是有）。
+  MIO 0/12 本身是空的（QSPI=MIO1..6、UART0=MIO10..11、ENET0=MIO16..27、SD0=MIO40..45+CD MIO9）
+  ⇒ 开这两个键要改 PS7 配置并重跑整套构建，属于"要构建"的那一批，和 V8 第 2 步合并做。
