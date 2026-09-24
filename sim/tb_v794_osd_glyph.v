@@ -36,6 +36,7 @@ module tb_v794_osd_glyph;
             if (c >= 8'h30 && c <= 8'h39)       gold_glyph = c - 8'h30;
             else if (c >= 8'h41 && c <= 8'h46)  gold_glyph = 5'd10 + (c - 8'h41);
             else if (c == 8'h47) gold_glyph = 5'd16;
+            else if (c == 8'h48) gold_glyph = 5'd25;   // H（r46：SRC=ETH 要用；金表与 RTL 各写一遍）
             else if (c == 8'h4C) gold_glyph = 5'd21;
             else if (c == 8'h4E) gold_glyph = 5'd20;
             else if (c == 8'h4F) gold_glyph = 5'd18;
@@ -43,6 +44,7 @@ module tb_v794_osd_glyph;
             else if (c == 8'h52) gold_glyph = 5'd17;
             else if (c == 8'h53) gold_glyph = 5'd24;
             else if (c == 8'h54) gold_glyph = 5'd19;
+            else if (c == 8'h55) gold_glyph = 5'd23;   // U（r46：SRC=AUTO 要用）
             else if (c == 8'h3D) gold_glyph = 5'd27;
             else                 gold_glyph = 5'd31;
         end

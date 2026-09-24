@@ -95,7 +95,7 @@ methodology 0 CRIT / `cdc.rpt` Critical 3 行 = 基线配对无新增。
 
 | 键 | 板上网络名 | 引脚 | 现状 |
 |---|---|---|---|
-| PL KEY1 | `PL_KEY1` | **W18**（`rk_zynq7020.xdc:8-9` 已在用） | ✅ 短按=旋转 +1°，长按 1.2 s=片源模式四态轮转 |
+| PL KEY1 | `PL_KEY1` | **W18**（`rk_zynq7020.xdc:8-9` 已在用） | ✅ 短按=旋转 +1°（r46 起**松手才发**），长按 **0.6 s**=片源模式四态轮转（r46 前是 1.2 s，ISSUES #55） |
 | PL KEY2 | `PL_KEY2` | **V14**（同上） | ✅ 反向旋转 |
 | PS KEY1 | `PS_MIO0_KEY1` | **MIO 0** | ❌ 读不到 |
 | PS KEY2 | `PS_MIO12_KEY2` | **MIO 12** | ❌ 读不到 |

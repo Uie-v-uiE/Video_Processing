@@ -101,21 +101,23 @@ module pl_video_top #(
     wire rst_pix_n = sys_rst_n & locked;
 
     wire p1, p2, k1_up;
+    wire k1_short, k1_hold, ltog;
     key_debounce #(.CNT_MAX(1_000_000)) u_k1 (
         .clk(sys_clk), .rst_n(sys_rst_n), .key_n(key1_n), .pulse(p1), .key_stable(k1_up)
     );
     key_debounce #(.CNT_MAX(1_000_000)) u_k2 (
         .clk(sys_clk), .rst_n(sys_rst_n), .key_n(key2_n), .pulse(p2), .key_stable()
     );
+    wire owner_eth_pix;          // 前面声明、下面赋值：u_mode 要拿它挑 AUTO 的下一态
 
-    // ---- 同一个按键的两种语义：短按 = 旋转 ±1°（R12/R13 板级验过，不动它），
-    //      长按 ≈1.2 s = 切换片源模式。长按事件用**翻转位**跨域（脉冲跨域会被吃掉，
-    //      与 `ps_publish` / ISSUES #36 是同一课）。
-    //      已知代价：长按的那一拍也会先发一个短按脉冲 ⇒ 切模式时顺带 +1°。
-    //      不去改旋转的触发时机，是为了保住已经验过的行为。
-    wire ltog;
-    key_long #(.HOLD_CYC(60_000_000)) u_k1l (     // sys_clk 50 MHz ⇒ 1.2 s
-        .clk(sys_clk), .rst_n(sys_rst_n), .pressed(~k1_up), .tog(ltog));
+    // ---- 同一个按键的两种语义：短按 = 旋转 ±1°，长按 0.6 s = 切换片源模式。
+    //      长按事件用**翻转位**跨域（脉冲跨域会被吃掉，与 `ps_publish` / ISSUES #36 是同一课）。
+    //      短按改到**松手时**发（ISSUES #55）：以前它由 u_k1 在按下沿发，于是每次长按
+    //      都必然先转 1° —— 用户报的原话就是"长按总会先触发一次短按"。
+    //      p1 现在不再驱动旋转（留着只因为它就是 u_k1 的输出端口，删它要动 key_debounce 的接口）。
+    key_long #(.HOLD_CYC(30_000_000), .ARM_CYC(10_000_000)) u_k1l (   // 50 MHz ⇒ 0.6 s / 0.2 s
+        .clk(sys_clk), .rst_n(sys_rst_n), .pressed(~k1_up),
+        .tog(ltog), .short_pulse(k1_short), .holding(k1_hold));
 
     localparam [1:0] M_AUTO = 2'd0, M_ETH = 2'd1, M_PS = 2'd3, M_CARD = 2'd2;
     // 模式寄存器搬到了 `src/rtl/util/src_mode.v`，原因是"这段逻辑有没有台架"：
@@ -125,7 +127,8 @@ module pl_video_top #(
     // 这就是 #28 板级交接判据红的那条根（详见 src_mode.v 文件头与 ISSUES #49）。
     wire [1:0] mode;
     src_mode u_mode (
-        .clk(clk_pix), .rst_n(rst_pix_n), .ltog(ltog), .mode(mode)
+        .clk(clk_pix), .rst_n(rst_pix_n), .ltog(ltog),
+        .eth_now(owner_eth_pix), .mode(mode)
     );
     wire mode_eth  = (mode == M_ETH);
     wire mode_ps   = (mode == M_PS);
@@ -142,7 +145,7 @@ module pl_video_top #(
     wire rotate_active;
     angle_ctrl u_ang (
         .clk(sys_clk), .rst_n(sys_rst_n),
-        .key_inc(p1), .key_dec(p2),
+        .key_inc(k1_short), .key_dec(p2),   // 短按改松手发（ISSUES #55）
         .angle(angle), .rotate_active(rotate_active)
     );
 
@@ -385,7 +388,7 @@ module pl_video_top #(
         if (!rst_pix_n) {op2,op1,op0} <= 3'b0;
         else {op2,op1,op0} <= {op1,op0,owner_eth};
     end
-    wire owner_eth_pix = op2;
+    assign owner_eth_pix = op2;
 
     always @(posedge clk_pix or negedge rst_pix_n) begin
         if (!rst_pix_n) eth_has_frame <= 1'b0;
@@ -664,7 +667,7 @@ module pl_video_top #(
         .clk(clk_pix), .rst_n(rst_pix_n),
         .x(x_d11), .y(y_d11), .de(de_o),
         .angle(angle), .effect_en(en_sync), .fps(fps_q),
-        .src_sel(src_use), .eth_link(eth_link_pix),
+        .src_sel(src_use), .eth_link(eth_link_pix), .mode(mode),
         .net_pkts(pkts_s1), .net_bad(bad_s1),
         .net_drop(osd_drop), .net_stall(osd_stall),
         .bg_pix(16'h0),
@@ -688,7 +691,9 @@ module pl_video_top #(
     end
     // led[0]: 正常 = 1.5Hz 心跳；一旦发生过「拷贝超出一个 V-blank 窗口」= 6Hz 快闪
     assign led[0] = copy_overrun ? hb[22] : hb[24];
-    assign led[1] = src_use;
+    // led[1]：按下的过程里亮（0.2 s 后 = '我在计时'），松开后停在 ltog 上 —— 每成功一次长按它必翻转一次。
+    // 原来这里挂的是 src_use，但屏幕 OSD 已经有片源行，LED 挂一个"看得见有没有生效"的东西更有用。
+    assign led[1] = k1_hold ? 1'b1 : ltog;
 
     assign status = {zoom_dir, zoom_active, inv_scale, eth_ready, locked, rotate_active,
                      angle, en_sync, src_use, 2'b00};

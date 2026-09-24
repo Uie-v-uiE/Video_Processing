@@ -1,0 +1,55 @@
+r46 冻结集 —— 2026-09-24 19:3x（ISSUES #55：长按"没反应"这一组症状的根修）
+==================================================================
+
+成套三件（换任何一件都要重新校验另外两件）：
+
+| 文件 | md5 | 说明 |
+|---|---|---|
+| `system.bit` | 36568c71 | `src_mode` 离开 AUTO 时按当前画面挑目标（**一次长按真的换一格**）；`key_long` 短按改松手发 + 阈值 1.2 s→0.6 s + 新增 `holding`；OSD 第一次画上片源行 `SRC=`（并补字库里从来没有的 **U / H**）；`led[1]` 改挂"按住计时/长按已生效" |
+| `system.xsa` | b02175dd | 与 bit 同一次构建（19:28 / 19:29）；`ADDR_LOG` 三行数值比对通过（0x41200000 / 0x41210000 / 0x41220000，见 `../log_r46_system.txt`） |
+| `ps_app.elf` | f64ab316 | **与 r45 完全同一份**（md5 相同）：本版改动全在 PL，`src/ps/main.c` 一个字没动 —— 这条写出来是为了让"成套三件"不含糊：elf 没变不等于没校验 |
+
+门禁（`gates_r46.txt`，报告与 bit 相差 42 s）：
+WNS **+1.111** / WHS **+0.058** / 0 失败 setup、0 失败 hold（端点 27369）/
+LUT 10159 (19.10 %) / Reg 7623 / BRAM 91.5 tile (65.36 %) / Dynamic 2.174 W /
+methodology 0 CRIT / 布线错误网线 0 / cdc.rpt Critical 3 行 = 基线配对集合不新增。
+⚠ **WNS 从 r45 的 +0.716 涨到 +1.111，原因未查证，不记作改进**（本版确实动了 OSD —— 它就是最差路径所在，
+但"动了"不等于"变好的原因就是它"；布局布线本身有版本间波动）。
+⚠ WHS 从 +0.048 回到 +0.058，仍是全设计最小余量，像素域再加东西时要点名。
+
+凭据：
+- `regression_v79_r46.txt` —— L1 全量 **`SIM DONE pass=52 fail=0`**（第一次跑是 51/1，
+  红的是 `tb_v794_osd_glyph` 的**独立金表没跟上**新加的 U/H，不是 RTL；原件保留在
+  `sim/results/regression_v79_r46_attempt1_51pass_1fail.txt`）。
+  本版新增/加严的台架：`tb_v87_key_long`（15 条，含两条反例）、`tb_v82_src_mode`（T7a–T7d 每格必须换态）、
+  `tb_osd_lines`（六行 + 新字模逐像素比对）、`tb_v794_osd_glyph`（码点→字形金表）。
+- `timing_summary.rpt` / `utilization.rpt` / `methodology.rpt` / `cdc.rpt` / `power.rpt` / `route_status.rpt`
+  —— 与 bit 同一次构建，`md5sum -c MANIFEST_BODY.txt` 一次校验全部。
+- `lane30_r46_concurrent.txt` —— **在 ETH 推流 + SD 自动播放同时跑的条件下**采的 400 口原始 lane30
+  （`node src/host/lane30_watch.mjs 60 150`）：**175 口有效 / 225 口丢弃**（丢弃原因见下），
+  有效样本里 `mode` 全 175 口 = `00 自动`，`eth_live` 一次没掉，`owner_eth` 恒 1 ⇒
+  **没人按键时模式不自己走格**（#55 的成因 (A) 在 r46 上机器侧排除）。
+  ⚠ 那 225 口不是"板子坏了"：PS 每发布一帧整字重写 `gpio_o`，会把我刚写进去的 lane 选择 `[31:27]` 抹掉，
+  于是读到的是 lane0（全 0）。**第一版工具把这种样本当成真实读数，产出过"eth_live 掉了 80 次"的假结论** ——
+  与 #53 记的"检查器把现场清干净了"是同一类错；现在采完立刻回读控制字，lane 不是 30 就丢。
+  所以这一条同时是**判据的判据**：跑法本身要先能分辨"没信号"和"信号被自己抹掉"。
+- `uart_battery_r46_capture.txt` —— 换 bit 之后重跑 V8 串口电池：**36 条全 ok**（判据器
+  `node src/host/uart_cmd_check.mjs` 打 `RESULT PASS`，36.5 s），含三条**必须被拒**的反例
+  （`THE80` 不许被当成 `TH80`、`src 9`、`bilin 2` —— 判据在 `uart_cmd_check.mjs:32/45/67`）
+  与"跑完回到初态 `en=00 thr=80 src=1 zoom=1 bilin=1`"。
+  发送条数按捕获里的 `>> ` 前缀数出来的 = **36**（不数打印条数是因为夹具要自己承认发了几条）。
+  开机自检 `[CFG] axi_gpio_2 @41220000 ok` 在同一时段的 `board/uart_r46_boot.txt` 里。
+
+这一版改变观感的三处（**都只能靠眼睛**，登记在 `board/README.md` 肉眼确认表 13/14/15 行）：
+1. 推流中长按 KEY1 一次 ⇒ OSD 第 6 行 `SRC=` 当场从 `AUTO` 变 `PS`（以前第一格是空动作）。
+2. 按住 0.2 s 后 LED1 亮、0.6 s 生效时翻转；松手后 LED1 不再随短按动。
+3. `SRC=AUTO` / `SRC=ETH` 的 U 与 H 必须是完整字母（缺字模的老表现是"静默变空格"）。
+
+还欠的（不许在这版里算"已验证"）：
+- 上面三条眼睛判据；以及 #53 的"ETH 与 SD 并发不闪"、图卡 v2 观感、缝连续性（第 10~12 行）。
+- ISSUES #54 的**另一半**：窗口级取"中心抽头"导致的数据比标签旧一行 —— **V8-4 逐像素分割混合之前必须修完**。
+- PS 那两个按键（MIO 0 / 12）电气上可达（PS7 已开 `PCW_GPIO_MIO_GPIO_ENABLE`），
+  但固件仍然没读它们 —— 走 xgpiops 或直接寄存器 0xF800_0000，是后面一步的事。
+
+校验：`cd build/frozen_r46_keys && md5sum -c MANIFEST_BODY.txt`（MANIFEST_BODY.txt 故意不含本文件，
+所以叙述改了也不会让校验变红）。

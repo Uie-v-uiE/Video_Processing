@@ -9,18 +9,24 @@ ARP/ICMP/UDP, offset-based frame reassembly, image effects, rotation, continuous
 dual-window HDMI output. The **PS** is control-plane only (UART + AXI GPIO).
 
 The displayed picture has **three sources**, chosen automatically by an arbiter in the PL:
-**network stream > SD-card playback > a moving test card**. The board mounts and plays the SD card
-by itself at power-on (`AUTOPLAY0/1` to disable), yields to a live stream and takes the screen back
-within a few hundred ms after the stream stops — no cable pulling, no re-programming. `KEY1` short
-press still steps rotation by ±1°; a **1.2 s long press** cycles auto / lock-ETH / lock-PS / lock-card.
-The hand-over timing is **measured, not observed-by-eye**: five independent runs on the same bit put
-the stop-to-hand-back time at **210 / 285 / 406 / 434 / 481 ms**, stream-start-to-take-over at
-150-377 ms, with zero unintended flips in all five. A *range* is quoted deliberately: the resolution of that number is the
+**network stream > SD frame sequence (pre-converted on the PC) > a moving test card**. The board mounts
+and replays the 512×300 RGB565 raw-frame sequence on the card by itself at power-on (`AUTOPLAY0/1` to
+disable — nothing is decoded, so this path's "real-time" figure is the frame library's rate, not a codec
+throughput), yields to a live stream and takes the screen back within a few hundred ms after the stream
+stops — no cable pulling, no re-programming. `KEY1` short press still steps rotation by ±1° (it now
+fires **on release**); a **0.6 s long press** cycles auto / lock-ETH / lock-PS / lock-card, and LED1 comes
+on after 0.2 s to say "I am still counting".
+The hand-over timing is **measured, not observed-by-eye**: the probe has run 11 times, **nine of them
+green on all seven criteria**, putting the stop-to-hand-back time at
+**208 / 210 / 285 / 297 / 357 / 394 / 406 / 434 / 481 ms**, take-over at 43-351 ms and the reversibility
+re-stream at 43-377 ms, with zero unintended flips in all nine. A *range* is quoted deliberately: the resolution of that number is the
 sampling period (100 or 300 ms depending on how the probe halts the CPU), and the design budget is
 200 ms (declare the stream dead) + 20 ms (quiet before yielding) = ~220 ms, which the measurements are
-consistent with. Reproduce with `node src/host/arb_handover_test.mjs` (it sends `STOP` before and `PLAY` after the
+consistent with. The two red runs are kept in the same file rather than deleted: the 16:54 one predates
+the r32 fix (V4 never handed back) and the 18:11 one used an intermediate `PRE=2` configuration (V6 did
+not re-take-over) — they are evidence of the repair, not data that was cherry-picked away. Reproduce with `node src/host/arb_handover_test.mjs` (it sends `STOP` before and `PLAY` after the
 probe, because the probe halts the CPU); evidence in
-`build/frozen_r31_srcmode/arb_handover_green_r31.json`. Everything the arbiter itself sees (current
+`build/frozen_r32_sdfix/arb_handover_r32b.json` (11 records, each with its own verdict and raw samples). Everything the arbiter itself sees (current
 owner, whether ETH is live, whether its timebase can be trusted, the mode it is honouring, both
 engines' busy flags) is mapped onto **AXI GPIO lane 30**, so the verdict needs no one looking at a
 screen. What still needs eyes is narrower: that the picture is really alive after the hand-back.
@@ -168,7 +174,7 @@ set XSDBAT=D:\Software\Vivado\2025.2.1\Vitis\bin\xsdb.bat
 %VIVADO% -mode batch -nojournal -source build\tcl\program_pl.tcl
 %XSDBAT% build\tcl\set_src.tcl        :: only if you skip step 2b: the app writes this register itself
 
-:: 2b. PS application (no Vitis project needed) - serial console + SD playback
+:: 2b. PS application (no Vitis project needed) - serial console + SD frame-sequence replay
 node build\ps_app.mjs
 %XSDBAT% build\tcl\ps_app_reload.tcl   :: rst -processor + download + con; leaves bitstream and GPIO alone
 

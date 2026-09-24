@@ -19,11 +19,13 @@ module tb_v82_src_mode;
 
     reg clk = 0, rst_n = 0;
     reg  ltog = 0;
+    reg  eth_now = 0;   // 此刻屏上是不是 ETH：AUTO 那一格按它挑目标（ISSUES #55）
+    reg  [1:0] prev_m;  // T7 比较相邻两格用
     wire [1:0] mode;
     reg  [1:0] mode_old = M_AUTO;      // 旧写法（复位灌 1）的对照
     (* ASYNC_REG = "TRUE" *) reg [2:0] lsync_old = 3'b111;
 
-    src_mode u_dut (.clk(clk), .rst_n(rst_n), .ltog(ltog), .mode(mode));
+    src_mode u_dut (.clk(clk), .rst_n(rst_n), .ltog(ltog), .eth_now(eth_now), .mode(mode));
 
     always #10 clk = ~clk;             // 50 ns = 20 MHz，像素钟的量级够用
 
@@ -118,6 +120,28 @@ module tb_v82_src_mode;
             $display("INFO T6 结束位置 mode=%0d（期望 %0d=锁图卡）", mode, M_CARD);
         end
 
+        // ---- T7 AUTO 那一格不许是空动作（用户实测：ETH 画面下第一次长按百分百没反应）----
+        // 上一条测试结束时 mode 在锁图卡；复位回 AUTO，再把 eth_now 置 1 模拟“屏上就是 ETH”。
+        @(negedge clk); rst_n = 0; repeat (3) @(negedge clk); @(negedge clk); rst_n = 1;
+        eth_now = 1'b1;
+        repeat (12) @(posedge clk);
+        expect("T7a 起点是 AUTO 且 eth_now=1", mode === M_AUTO);
+        one_press;
+        expect("T7b 正在显示 ETH ⇒ 一次长按直接到锁PS（不许走成看不出变化的锁ETH）", mode === M_PS);
+        begin : gray2
+            integer k2, bad2, same;
+            bad2 = 0; same = 0;
+            for (k2 = 0; k2 < 2; k2 = k2 + 1) begin
+                prev_m = mode;
+                one_press;
+                if ((prev_m ^ mode) === 2'b11) bad2 = bad2 + 1;   // 两位同时翻 = 格雷码被破坏
+                if (prev_m === mode)           same = same + 1;   // 原地不动 = 空动作（就是用户报的那条）
+                $display("INFO T7c 一步 %0d -> %0d（翻转位 %02b）", prev_m, mode, prev_m ^ mode);
+            end
+            expect("T7c 之后两格仍每格只翻 1 位（格雷码没破）", bad2 == 0);
+            expect("T7d 每一格都必须真的换态（不许有空动作）", same == 0);
+        end
+        eth_now = 1'b0;
         if (errors == 0) $display("PASS tb_v82_src_mode");
         else             $display("FAIL tb_v82_src_mode errors=%0d", errors);
         $finish;

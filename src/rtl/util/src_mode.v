@@ -22,10 +22,16 @@
 // pl_video_top 里 `ms0 <= mode` 那对同步器要靠"每一位只依赖一个源触发器"才安全，
 // 写成 if/(mode==…) 的比较式会被综合认成 FSM 并重编为 one-hot，实现层就把格雷码的意义抹掉了
 // （实测见 ISSUES #49 与 `skill/cdc_pair_baseline_gate.md`）。
+// 2026-09-24（ISSUES #55）第二条规则：**离开 AUTO 时不许走成一格"看不出变化"的模式**。
+// 用户实测"ETH 画面切到 SD 总要按第二次，第一次百分百没反应"—— 老环是 AUTO→锁ETH→锁PS→…，
+// 而 AUTO 下屏幕上本来就是 ETH ⇒ 第一格是**空动作**。现在 AUTO 那一格按当前画面挑目标：
+// 正在显示 ETH 就直接进 锁PS，否则进 锁ETH。仍然"一次事件 = 恰好一步"，只是每步都看得见。
+// 格雷码性质不破坏：AUTO(00)→PS(11) 与 AUTO(00)→ETH(01) 都只翻 1 位。
 module src_mode (
     input  wire       clk,        // 像素钟 clk_pix：模式的消费者（看哪一路）在这一域
     input  wire       rst_n,
     input  wire       ltog,       // 来自 sys_clk 域的长按翻转位（`key_long` 的 tog）
+    input  wire       eth_now,    // 此刻屏幕上是不是 ETH（AUTO 下 = owner_eth），只用来挑下一态
     output reg  [1:0] mode        // 00 自动 / 01 锁 ETH / 11 锁 PS / 10 锁图卡
 );
     localparam [1:0] M_AUTO = 2'd0, M_ETH = 2'd1, M_PS = 2'd3, M_CARD = 2'd2;
@@ -47,7 +53,8 @@ module src_mode (
                 prev   <= lsync[2];        // 灌满期里让 prev 跟住链尾，别把历史当事件
             end else if (lsync[2] !== prev) begin
                 prev <= lsync[2];
-                mode <= {mode[0], ~mode[1]};   // 一次翻转 = 恰好一步
+                // 一次翻转 = 恰好一步；AUTO 那一步按当前画面挑目标（见文件头第 2 条规则）
+                mode <= (mode == M_AUTO) ? (eth_now ? M_PS : M_ETH) : {mode[0], ~mode[1]};
             end
         end
     end

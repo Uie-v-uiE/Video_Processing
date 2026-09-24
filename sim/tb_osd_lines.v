@@ -23,6 +23,10 @@ module tb_osd_lines;
     localparam [5*7-1:0] GL_R = {5'b11110,5'b10001,5'b10001,5'b11110,5'b10100,5'b10010,5'b10001};
     localparam [5*7-1:0] GL_S = {5'b01111,5'b10000,5'b10000,5'b01110,5'b00001,5'b00001,5'b11110};
     localparam [5*7-1:0] GL_T = {5'b11111,5'b00100,5'b00100,5'b00100,5'b00100,5'b00100,5'b00100};
+    // U / H：ISSUES #55 那条 SRC 行新加的两个字模。TB 这里**另写一遍**（不是抄 RTL），
+    // 两边都是空白也算不一致——scan_glyph 比的是亮像素数，字模漏画就少一大截。
+    localparam [5*7-1:0] GL_U = {5'b10001,5'b10001,5'b10001,5'b10001,5'b10001,5'b10011,5'b01110};
+    localparam [5*7-1:0] GL_H = {5'b10001,5'b10001,5'b10001,5'b11111,5'b10001,5'b10001,5'b10001};
 
     reg clk = 0, rst_n = 0;
     always #10 clk = ~clk;
@@ -30,13 +34,15 @@ module tb_osd_lines;
     reg [31:0] drop = 0;
     reg [15:0] stall = 0;
     reg [11:0] tx = 0, ty = 0;
+    reg [1:0] tb_mode = 2'b11;
     reg        tde = 0;
     wire [7:0] ro, go, bo;
     wire de_o2, hs_o, vs_o;
 
     osd_overlay #(.X0(X0), .Y0(Y0), .SCALE(SC), .CHAR_W(CW), .CHAR_H(CH),
-                  .LINE_GAP(LG), .MAX_CHARS(MC), .N_LINES(5)) u_osd (
+                  .LINE_GAP(LG), .MAX_CHARS(MC), .N_LINES(6)) u_osd (
         .clk(clk), .rst_n(rst_n), .x(tx), .y(ty), .de(tde),
+        .mode(tb_mode),        // L5 片源模式行的内容随它变（原来 OSD 上根本没有片源信息）
         .angle(9'd0), .effect_en(5'd0), .fps(8'd0),
         .src_sel(1'b0), .eth_link(1'b1),
         .net_pkts(16'd0), .net_bad(16'd0),
@@ -129,6 +135,17 @@ module tb_osd_lines;
         scan_glyph(0, 0, GL_F);
         scan_glyph(2, 0, GL_E);
         $display("PASS glyph scan: D R O P S T A L (+ 老行 F/E 没移位)");
+
+        // ---- L5：片源模式行（ISSUES #55：长按到底生效没有，第一次在屏幕上有字可读）----
+        tb_mode = 2'b00; settle; expect_line(5, "SRC=AUTO  ");
+        scan_glyph(5, 4, GL_A); scan_glyph(5, 5, GL_U);
+        scan_glyph(5, 6, GL_T); scan_glyph(5, 7, GL_O);
+        tb_mode = 2'b01; settle; expect_line(5, "SRC=ETH   ");
+        scan_glyph(5, 6, GL_H);          // H 也是这次新加的字，漏画就少一竖
+        tb_mode = 2'b11; settle; expect_line(5, "SRC=PS    ");
+        tb_mode = 2'b10; settle; expect_line(5, "SRC=CARD  ");
+        tb_mode = 2'b11; settle;         // 收尾回到本文件改动前的固定激励
+        if (errors == 0) $display("PASS L5 片源模式行：四态文字内容对，新字模 U/H 不是空白");
 
         if (errors == 0) $display("RESULT tb_osd_lines PASS");
         else             $display("RESULT tb_osd_lines FAIL (%0d errors)", errors);

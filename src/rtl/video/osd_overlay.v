@@ -16,7 +16,7 @@ module osd_overlay #(
     parameter CHAR_H = 21,          // 7*3
     parameter LINE_GAP = 10,
     parameter MAX_CHARS = 10,
-    parameter N_LINES = 5
+    parameter N_LINES = 6
 )(
     input  wire        clk,
     input  wire        rst_n,
@@ -26,8 +26,12 @@ module osd_overlay #(
     input  wire [8:0]  angle,
     input  wire [4:0]  effect_en,
     input  wire [7:0]  fps,
+    // src_sel / eth_link 这两个输入**从来没有被用过**（2026-09-24 查 ISSUES #55 时才发现：
+    // 文档与我自己都以为屏上有“SRC:0/1”那一行，其实 OSD 五条线里没有片源）。
+    // 所以片源/模式这件事第一次真正上屏 = 下面新增的 L5，输入口留着是给以后的行用。
     input  wire        src_sel,
     input  wire        eth_link,
+    input  wire [1:0]  mode,        // 00 自动 01 锁ETH 11 锁PS 10 锁图卡（与 src_mode 同序）
     input  wire [15:0] net_pkts,
     input  wire [15:0] net_bad,
     input  wire [31:0] net_drop,
@@ -170,6 +174,26 @@ module osd_overlay #(
         chars[4*MAX_CHARS+7] = dig(st_d2[3:0]);
         chars[4*MAX_CHARS+8] = dig(st_d1[3:0]);
         chars[4*MAX_CHARS+9] = dig(st_d0[3:0]);
+
+        // L5: 片源模式。这一行存在的唯一理由是“长按有没有生效”以前只能靠猜（ISSUES #55）。
+        // 整个块用 N_LINES 门控：老台架仍按 5 行例化，写第 6 行就是数组越界（综合器不报错、仿真只给个 warning）。
+        if (N_LINES > 5) begin
+
+        chars[5*MAX_CHARS+0] = "S";
+        chars[5*MAX_CHARS+1] = "R";
+        chars[5*MAX_CHARS+2] = "C";
+        chars[5*MAX_CHARS+3] = "=";
+        case (mode)
+            2'b00: begin chars[5*MAX_CHARS+4] = "A"; chars[5*MAX_CHARS+5] = "U";
+                        chars[5*MAX_CHARS+6] = "T"; chars[5*MAX_CHARS+7] = "O"; end   // AUTO
+            2'b01: begin chars[5*MAX_CHARS+4] = "E"; chars[5*MAX_CHARS+5] = "T";
+                        chars[5*MAX_CHARS+6] = "H"; chars[5*MAX_CHARS+7] = " "; end     // ETH
+            2'b11: begin chars[5*MAX_CHARS+4] = "P"; chars[5*MAX_CHARS+5] = "S";
+                        chars[5*MAX_CHARS+6] = " "; chars[5*MAX_CHARS+7] = " "; end    // PS
+            default: begin chars[5*MAX_CHARS+4] = "C"; chars[5*MAX_CHARS+5] = "A";
+                        chars[5*MAX_CHARS+6] = "R"; chars[5*MAX_CHARS+7] = "D"; end   // CARD
+        endcase
+        end
     end
 
     // 5x7 font. Index 31 = blank (spaces).
@@ -181,6 +205,12 @@ module osd_overlay #(
                 font[fi][fj] = 5'b00000;
 
         // 0-9
+        // U / H：ISSUES #55 那行新 OSD 文字要用的两个字，老字库里没有（不是简写掉了，是真的没画）
+        font[23][0]=5'b10001; font[23][1]=5'b10001; font[23][2]=5'b10001;
+        font[23][3]=5'b10001; font[23][4]=5'b10001; font[23][5]=5'b10011; font[23][6]=5'b01110;  // U
+        font[25][0]=5'b10001; font[25][1]=5'b10001; font[25][2]=5'b10001;
+        font[25][3]=5'b11111; font[25][4]=5'b10001; font[25][5]=5'b10001; font[25][6]=5'b10001;  // H
+
         font[0][0]=5'b01110; font[0][1]=5'b10001; font[0][2]=5'b10011;
         font[0][3]=5'b10101; font[0][4]=5'b11001; font[0][5]=5'b10001; font[0][6]=5'b01110;
         font[1][0]=5'b00100; font[1][1]=5'b01100; font[1][2]=5'b00100;
@@ -263,6 +293,8 @@ module osd_overlay #(
                 8'h52: glyph_idx = 5'd17;  // R
                 8'h53: glyph_idx = 5'd24;  // S
                 8'h54: glyph_idx = 5'd19;  // T
+                8'h55: glyph_idx = 5'd23;  // U（AUTO 要用；以前字库里没有 U）
+                8'h48: glyph_idx = 5'd25;  // H（ETH 要用；以前字库里也没有）
                 8'h3D: glyph_idx = 5'd27;  // =
                 default: glyph_idx = 5'd31; // BLANK（空格以及一切不在表里的码点）
             endcase

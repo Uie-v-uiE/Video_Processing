@@ -37,7 +37,13 @@ const TCL = [
   '  set sv ""',
   '  regexp {:\\s*([0-9a-fA-F]{1,8})} [mrd -force 0x41210000] -> sv',
   '  if {$sv eq ""} { puts "BADS $i"; after ' + GAP + '; continue }',
-  '  puts "S $i $sv $gv"',
+  // 采完立刻把控制字再读一次：lane 字段还在 30 才说明这一口的 lane30 真的是 lane30。
+  // PS 每发布一帧就整字重写 gpio_o（autoplay 下约 20 ms 一次），会把我们刚写进去的 [31:27] 抹掉，
+  // 于是读到的是 lane0（全 0）。第一版没有这道回读，把"字段被抹掉"数成了"eth_live 掉了 80 次" ——
+  // 检查器把现场清干净了，正是 #53 记过的同一类错。
+  '  set v2 ""',
+  '  regexp {:\\s*([0-9a-fA-F]{1,8})} [mrd -force 0x41200000] -> v2',
+  '  puts "S $i $sv $gv $v2"',
   '  after ' + GAP,
   '}',
   'puts WATCH_DONE',
@@ -51,12 +57,18 @@ catch (e) { /* 输出全在文件里，判据也从文件读 */ }
 const txt = readFileSync(dump('lane30_watch.out'), 'utf8');
 
 const rows = [];
+let dropped = 0;
 for (const line of txt.split('\n')) {
-  const k = /^S (\d+) ([0-9a-fA-F]{1,8}) ([0-9a-fA-F]{1,8})/.exec(line.trim());
-  if (k) rows.push({ t: +k[1], lane30: parseInt(k[2], 16), gpio0: parseInt(k[3], 16) });
+  const k = /^S (\d+) ([0-9a-fA-F]{1,8}) ([0-9a-fA-F]{1,8}) ([0-9a-fA-F]{1,8})/.exec(line.trim());
+  if (!k) continue;
+  const v2 = parseInt(k[4], 16);
+  // 只有"读完 lane30 之后控制字的 [31:27] 仍然是 30"的这一拍才算数：
+  // 中途被 PS 整字重写的那些样本读到的是 lane0（全 0），把它们当真实样本会造出假的"eth_live 掉"。
+  if (((v2 >>> 27) & 0x1f) !== 30) { dropped++; continue; }
+  rows.push({ t: +k[1], lane30: parseInt(k[2], 16), gpio0: parseInt(k[3], 16), after: v2 });
 }
 if (rows.length === 0) {
-  console.log('PARSE_FAIL —— 一条都没采到。xsdb 输出前 10 行：');
+  console.log('PARSE_FAIL —— 一条有效样本都没有（丢弃 ' + dropped + ' 条）。xsdb 输出前 10 行：');
   console.log(txt.split('\n').slice(0, 10).join('\n'));
   process.exit(1);
 }
@@ -77,7 +89,7 @@ for (const r of rows) {
 }
 const hist = {};
 for (const r of rows) { const m = (r.lane30 >> 5) & 3; hist[m] = (hist[m] || 0) + 1; }
-console.log('\n采样 ' + rows.length + ' 次，间隔 ' + GAP + ' ms（约 ' +
+console.log('\n采样 ' + rows.length + ' 条**有效**（另有 ' + dropped + ' 条因 lane 被 PS 抹掉而丢弃），间隔 ' + GAP + ' ms（约 ' +
   (rows.length * GAP / 1000).toFixed(0) + ' s）');
 console.log('mode 直方图 ' + JSON.stringify(hist) + ' —— 没人按键时应当只有 {"0":N}');
 console.log('lane30 共变 ' + changes + ' 次；其中 mode 变 ' + modeSteps + ' 次、eth_live 掉 ' + liveDrops + ' 次');
