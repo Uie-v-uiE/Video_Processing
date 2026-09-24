@@ -268,5 +268,27 @@ write_hw_platform -fixed -include_bit -force -file [file join $outdir system.xsa
 catch {close_project}
 puts "BIT: [file join $outdir system.bit]"
 puts "XSA: [file join $outdir system.xsa]"
+# ---- 端口宽度警告计数（ISSUES #57/#58 之后新增的门禁第 8 项的凭据）----
+# 为什么要单独落一个文件：`gates.sh` 以前只能去 grep "最新的构建日志"，于是出现过
+# 报告是 A 版、日志是 B 版的错配（那一刻这一项绿得没有意义）。凭据与报告同一次生成、
+# 一起进冻结目录，才是"这一套 bit 没有宽度问题"的证明。
+# 扫的是综合的 runme.log（顶层 + 各 OOC IP），8-689 就报在那里，带 file:line。
+set wcount 0
+set wseen {}
+foreach lg [glob -nocomplain [file join $proj_dir [file tail $proj_name].runs * runme.log]] {
+  if {![file exists $lg]} { continue }
+  if {[catch {open $lg r} fh]} { continue }
+  while {[gets $fh line] >= 0} {
+    if {[string match "*Synth 8-689*" $line]} { incr wcount; lappend wseen [string trim $line] }
+  }
+  close $fh
+}
+set wf [open [file join $outdir width_warnings.txt] w]
+puts $wf $wcount
+foreach s $wseen { puts $wf "  $s" }
+close $wf
+puts "WIDTH_WARNINGS count=$wcount -> [file join $outdir width_warnings.txt]"
+foreach s [lrange $wseen 0 5] { puts "  WIDTH: $s" }
+
 puts "SYSTEM BUILD DONE"
 

@@ -131,8 +131,8 @@ if (!curRaw) {
 const cur = parseInt(curRaw[1], 16) >>> 0;
 const keep = cur & 0x07ffffff;                       // 清掉 bit[31:27]，保留控制位
 if (CLR) { runXsdb(clrScript(keep), 'clr'); console.log('[HEALTH] 已把帧间隔统计归零（gpio_o[26] 拉高 250 ms）'); }
-// V8-6 之后 lane26/27/28 也是真的读数（时延三段 + 最大/次数/饱和位），不再是 0xDEADBEEF。
-const want = [...Array(10).keys(), 26, 27, 28, 30, 31];
+// V8-6 之后 lane25..29 也是真的读数（时延三段 + 最大/次数/钳位），不再是 0xDEADBEEF。
+const want = [...Array(10).keys(), 25, 26, 27, 28, 29, 30, 31];
 const vals = new Map();
 for (let p = 0; p < PASSES; p++) {
   const txt = runXsdb(passScript(want, p === PASSES - 1 ? cur : undefined, keep), `p${p}`);
@@ -174,22 +174,29 @@ if (get('json', false) === true) {
       mode: ({ 0: 'AUTO', 1: 'LOCK_ETH', 3: 'LOCK_PS', 2: 'LOCK_CARD' })[((src >> 5) & 3)] ?? 'BAD',
     },
     drop_words: l.lane0,
-    // V8-6 链路内时延（PL 侧，单位 µs；口径：commit → 该帧开始被扫描，**±1 显示帧**）：
-    //   lane26 = {l1_us, l2_us}  lane27 = {l3_us, tot_us}  lane28 = {max_us, n_meas[13:0], 0, saturated}
-    //   L1 等消隐窗口 / L2 整帧搬运 / L3 等扫描轮到它 —— 三段成因不同，别只念总数。
-    // 上位机编码与网线传输**不在内**，所以对外只能叫"链路内时延（PL 侧）"，不许叫端到端。
+    // V8-6 链路内时延。PL 只报**拍数**（不在硬件里做除法，理由见 frame_latency.v 文件头与 ISSUES #58），
+    // 换算集中在这一个常量：fclk0 = 100 MHz ⇒ 1 拍 = 10 ns。换 fclk 频率只改这里，并同步改
+    // build/tcl/build_system_axigpio.tcl 的 PCW_FPGA0_PERIPHERAL_FREQMHZ（两处不一致就会报偏心数）。
+    //   lane29 c1（等消隐窗口） lane28 c2（整帧搬运） lane27 tot（提交→开始扫描）
+    //   lane26 max（历轮最大） lane25 = {n_meas[15:0], 15'd0, clamped}
+    // 口径：只有 PL 内部，且 tot 的第三段（等扫描）分辨率 = 一个显示帧 ⇒ 报数带 ±1 帧。
     lat: (() => {
-      const a = g(26), b = g(27), c = g(28);
-      if (a === undefined || b === undefined || c === undefined) return null;
-      if (((a | b | c) >>> 0) === 0xDEADBEEF) return null;      // 老位流没有这几个 lane
-      const u16 = (v, hi) => ((v >>> (hi ? 16 : 0)) & 0xFFFF);
+      const NS_PER_CYC = 10;               // ← 唯一的换算点（100 MHz）
+      const w29 = g(29), w28 = g(28), w27 = g(27), w26 = g(26), w25 = g(25);
+      if ([w29, w28, w27, w26, w25].some(v => v === undefined)) return null;
+      if ((w27 >>> 0) === 0xDEADBEEF) return null;      // 老位流没有这些 lane
+      const CLAMP = 0xFFFFFFFF;
+      const ms = c => (c === CLAMP ? null : +(c * NS_PER_CYC / 1e6).toFixed(3));
+      const nmeas = (w25 >>> 16) & 0xFFFF, clamped = w25 & 1;
       return {
-        l1_us: u16(a, true), l2_us: u16(a, false),
-        l3_us: u16(b, true), tot_us: u16(b, false),
-        max_us: u16(c, true), n_meas: (c >>> 1) & 0x3FFF,
-        saturated: c & 1,
-        // 只有 n_meas>0 才是量到过的数；saturated=1 时任何读数只能当下界用
-        valid: ((c >>> 1) & 0x3FFF) > 0 && !(c & 1),
+        unit: 'cycles', ns_per_cycle: NS_PER_CYC,
+        c1_cyc: w29, c2_cyc: w28, tot_cyc: w27, max_cyc: w26,
+        c1_ms: ms(w29), c2_ms: ms(w28), tot_ms: ms(w27), max_ms: ms(w26),
+        // 第三段（搬完→开始扫描）由恒等式给出，不单独占一口
+        c3_ms: (w27 > w29 + w28) ? +(((w27 - w29 - w28) * NS_PER_CYC) / 1e6).toFixed(3) : null,
+        n_meas: nmeas, clamped: !!clamped,
+        // 没量到 / 钳位过 ⇒ 只能当下界用，不许当"实测时延"念
+        valid: nmeas > 0 && !clamped && w27 !== CLAMP,
       };
     })(),
     frames_bad: l.lane1 === undefined ? NaN : f16(l.lane1, false),

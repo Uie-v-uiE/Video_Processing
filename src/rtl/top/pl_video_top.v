@@ -45,11 +45,11 @@ module pl_video_top #(
     //   bit0=eth_tb_ok bit1=eth_live bit2=owner_eth bit3=fill_busy(PS 搬运中)
     //   bit4=row_busy(ETH 搬运中) bit[6:5]=仲裁看到的模式(格雷码，同 src_arb 的 sel) bit7=0
     output wire [7:0]  dbg_src,
-    // V8-6 链路内时延的可观测口（axi_clk 域电平，位段见下面 u_lat 那里的注释）：
-    //   lane26 = {l1_us, l2_us}  lane27 = {l3_us, tot_us}  lane28 = {max_us, n_meas[13:0], 0, saturated}
-    // 与 dbg_src 同一套做法（全部是 axi 域本来就有的电平 ⇒ 零新增跨域；唯一的跨域在
-    // frame_latency 内部，那一颗翻转位是像素域→axi 的既有形态）。
-    output wire [95:0] dbg_lat,
+    // V8-6 链路内时延的可观测口（axi 域电平，**单位是 axi 拍数不是时间**，见 frame_latency 文件头）：
+    //   lane29=c1（等消隐）lane28=c2（搬运）lane27=tot（提交→上屏）lane26=max lane25={n_meas,clamped}
+    // 换算成时间戳在 `src/host/health_read.mjs` 里做（一个常量：fclk0=100 MHz ⇒ 1 拍 = 10 ns）。
+    // 与 dbg_src 同一套做法：全部是 axi 域本来就有的电平 ⇒ 零新增跨域。
+    output wire [5*32-1:0] dbg_lat,
 
     output wire        tmds_clk_p,
     output wire        tmds_clk_n,
@@ -491,20 +491,26 @@ module pl_video_top #(
         else if (frame_start) sof_tgl <= ~sof_tgl;
     end
 
-    wire [15:0] lat_l1, lat_l2, lat_l3, lat_tot, lat_max, lat_n;
-    wire        lat_sat;
-    // AXI_CYC_PER_US=100 是 fclk0=100 MHz 的**真实口径**（与 build 里 PCW_FPGA0_PERIPHERAL_FREQMHZ 一致）；
-    // 换频率要同时改这里 —— 台架 tb_v90 的 T2b 钉的就是"读数只跟这个参数走"。
-    frame_latency #(.AXI_CYC_PER_US(100), .SAT_US(16'hFFFF)) u_lat (
+    wire [31:0] lat_c1, lat_c2, lat_tot, lat_max;
+    wire [15:0] lat_n;
+    wire        lat_clamp;
+    // **PL 里不做除法**：r49 在这里把拍数除以 100 换 µs，除数不是 2 的幂 ⇒ 综合架出组合除法器，
+    // 100 MHz 域直接 WNS −5.014 / 96 个失败端点（被门禁拦下，见 ISSUES #58）。
+    // 现在只报拍数，换算在 src/host/health_read.mjs 的一个常量里做（1 拍 = 10 ns）。
+    frame_latency u_lat (
         .axi_clk(axi_clk), .axi_rst_n(axi_rst_n),
         .commit(eth_commit), .copy_start(row_start), .copy_done(row_done),
         .disp_sof_tgl(sof_tgl),
-        .l1_us(lat_l1), .l2_us(lat_l2), .l3_us(lat_l3), .tot_us(lat_tot),
-        .max_us(lat_max), .n_meas(lat_n), .saturated(lat_sat)
+        .c1_cyc(lat_c1), .c2_cyc(lat_c2), .tot_cyc(lat_tot), .max_cyc(lat_max),
+        .n_meas(lat_n), .clamped(lat_clamp)
     );
-    assign dbg_lat = { {lat_max, lat_n[13:0], 1'b0, lat_sat},
-                       {lat_l3, lat_tot},
-                       {lat_l1, lat_l2} };
+    // 五个字，lane 号 = 25 + 序号（system_top 的 mux 按这个式子取）：
+    //   lane29 = c1（commit→start_copy，等消隐窗口）
+    //   lane28 = c2（start_copy→copy_done，整帧搬运）
+    //   lane27 = tot（commit→显示帧起始；c3 = tot − c1 − c2，不单独占一口）
+    //   lane26 = max（历轮 tot 的最大值，演示念这个）
+    //   lane25 = { n_meas[15:0], 15'd0, clamped }
+    assign dbg_lat = { lat_c1, lat_c2, lat_tot, lat_max, {lat_n, 15'd0, lat_clamp} };
 
     assign m_axi_arid = 6'd0;
 

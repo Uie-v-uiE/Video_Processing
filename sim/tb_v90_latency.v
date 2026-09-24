@@ -2,16 +2,19 @@
 // 台架：src/rtl/video/frame_latency.v（V8-6 链路内时延打点）
 //
 // 这个模块产出的数字**会上文档、会被念给评委听**，所以判据的重点不是"有没有数"，而是
-// "数会不会骗人"。三件事必须钉住：
-//   ① 配对：只有 commit→start→done→显示帧起始 这条链走齐了才许出一次读数；
-//      任何一步缺了或乱了序，宁可**不出数**（n_meas 不动），也不许报一个看起来合理的数。
-//   ② 单位：µs 换算的除数只有一个来源（AXI_CYC_PER_US）⇒ 同一段激励喂两台不同参数的 DUT，
-//      读数必须差恰好 10 倍（这一条是"改了 fclk 只改一处"那句注释的凭据）。
-//   ③ 溢出：到顶必须钳位并置 saturated，**不许回绕** —— 回绕会把一次很大的等待报成很小的时延。
+// "数会不会骗人"。四件事必须钉住：
+//   ① 单位是**拍数**，PL 里不做除法 —— r49 就是因为在这里除了一个 100（不是 2 的幂）
+//      而架出组合除法器，WNS −5.014（门禁拦下，ISSUES #58）。所以读数必须精确等于
+//      台架自己数出来的拍差，一个 tick 都不能差。
+//   ② 配对：commit→start→done→显示帧起始 走齐了才许出一次读数；顺序错、缺步、
+//      上一轮的晚到事件，统统不许凑成一次"看起来合理"的测量（宁可 n_meas 不动）。
+//   ③ 不回绕：差值为负/绕了半圈时报 32'hFFFF_FFFF 并置 clamped（钳位），
+//      绝不报成一个很小的时延。
+//   ④ max 只增不减，n_meas 如实数轮次。
 //
-// 两台 DUT：
-//   u_norm : AXI_CYC_PER_US=100（fclk0=100 MHz 的真实口径）、SAT_US=65535
-//   u_small: AXI_CYC_PER_US=10、SAT_US=200（让"溢出"这一件事在几微秒的仿真里就能造出来）
+// 台架自己也红过两次才修对，原因都写在下面 ev()/ev_sof() 旁边：
+// `task ev; input which;` 默认**只有 1 bit** ⇒ ev(2) 被截成 0，copy_done 永不发生、所有读数停在 0；
+// 加了 3 级同步之后收尾晚几拍，不等这几拍就会把"其实量到了"读成 0。**量具错了会把发现报成故障。**
 module tb_v90_latency;
     reg clk = 0, rst_n = 0;
     always #5 clk = ~clk;                 // 100 MHz：一拍 10 ns，与 fclk0 同口径
@@ -19,30 +22,20 @@ module tb_v90_latency;
     reg commit = 0, copy_start = 0, copy_done = 0;
     reg sof_tgl = 0;                       // 显示帧起始的**翻转位**（像素域转过来的样子）
 
-    wire [15:0] n_l1, n_l2, n_l3, n_tot, n_max, n_cnt;
-    wire        n_sat;
-    wire [15:0] s_l1, s_l2, s_l3, s_tot, s_max, s_cnt;
-    wire        s_sat;
+    wire [31:0] c1, c2, tot, mx;
+    wire [15:0] ncyc;
+    wire        clamp;
 
-    frame_latency #(.AXI_CYC_PER_US(100), .SAT_US(16'hFFFF)) u_norm (
+    frame_latency dut (
         .axi_clk(clk), .axi_rst_n(rst_n),
         .commit(commit), .copy_start(copy_start), .copy_done(copy_done),
         .disp_sof_tgl(sof_tgl),
-        .l1_us(n_l1), .l2_us(n_l2), .l3_us(n_l3), .tot_us(n_tot),
-        .max_us(n_max), .n_meas(n_cnt), .saturated(n_sat)
-    );
-    // u_small 的口径故意只把"除数"改成 10（不是同时把上限缩小）：
-    // 这样 T2b 的"读数恰好 10 倍"才是在测除数本身，而不是撞在钳位上；
-    // 钳位由 T5 用一段 5000 µs 的间隔单独造出来。
-    frame_latency #(.AXI_CYC_PER_US(10), .SAT_US(16'd4000)) u_small (
-        .axi_clk(clk), .axi_rst_n(rst_n),
-        .commit(commit), .copy_start(copy_start), .copy_done(copy_done),
-        .disp_sof_tgl(sof_tgl),
-        .l1_us(s_l1), .l2_us(s_l2), .l3_us(s_l3), .tot_us(s_tot),
-        .max_us(s_max), .n_meas(s_cnt), .saturated(s_sat)
+        .c1_cyc(c1), .c2_cyc(c2), .tot_cyc(tot), .max_cyc(mx),
+        .n_meas(ncyc), .clamped(clamp)
     );
 
-    integer errors = 0, i;
+    integer errors = 0, t1, t2, t3, i, j, mx_keep;
+
     task chk;
         input [100*8:1] name;
         input cond;
@@ -51,10 +44,8 @@ module tb_v90_latency;
         end
     endtask
 
-    // 单拍脉冲事件（下一拍自动撤掉，免得两个事件粘在同一拍）
-    // ⚠ `which` 必须显式给位宽：task 的 input 默认**只有 1 bit**，
-    //   写成 `input which` 时 ev(2) 会被截成 0 ⇒ copy_done 永远不发，
-    //   整个模块一次数都收不齐、所有读数停在 0 —— 台架自己坏得毫不起眼（2026-09-24 撞到）。
+    // 单拍脉冲事件。⚠ `which` 必须显式给位宽：task 的 input 默认 1 bit，
+    // 写 `input which` 时 ev(2) 会被截成 0 ⇒ copy_done 永远不发（本文件 2026-09-24 就是这么全红过）。
     task ev;
         input [1:0] which;                 // 0 commit / 1 start / 2 done
         begin
@@ -65,21 +56,17 @@ module tb_v90_latency;
         end
     endtask
 
+    // 翻转一次"显示帧起始"，然后等同步链灌满（3 级 + 收尾判定 ⇒ 数拍）再看读数
     task ev_sof;
         begin
             @(negedge clk); sof_tgl = ~sof_tgl;
-            // 收尾要等同步链灌满：DUT 里 `disp_sof_tgl` 先过 3 级（ASYNC_REG 链）再做边沿检测，
-            // 所以翻转之后要 4~5 拍才看得到读数。以前只有一级 prev，第 2 拍就有结果 ——
-            // 台架若不等这几拍，会把"其实量到了"读成 0（本文件 2026-09-24 就是这么红过一次）。
-            repeat (6) @(negedge clk);
+            repeat (8) @(negedge clk);
         end
     endtask
 
     task wait_cyc;
         input integer n;
-        begin
-            repeat (n) @(negedge clk);
-        end
+        begin repeat (n) @(negedge clk); end
     endtask
 
     initial begin
@@ -88,80 +75,77 @@ module tb_v90_latency;
         rst_n = 1;
         @(negedge clk);
 
-        // ---- T1 复位后没有读数、也没有假的最大值 ----
-        chk("T1 复位：三段与总和为 0，n_meas=0，saturated=0",
-            n_l1 === 0 && n_l2 === 0 && n_l3 === 0 && n_tot === 0 &&
-            n_max === 0 && n_cnt === 0 && n_sat === 0);
+        // ---- T1 复位后没有读数、没有假的最大值 ----
+        chk("T1 复位：三段/总和/max/n_meas 全 0，clamped=0",
+            c1 === 0 && c2 === 0 && tot === 0 && mx === 0 && ncyc === 0 && clamp === 0);
 
-        // ---- T2 一轮干净的时序：500 / 1500 / 8000 拍 ----
-        // 100 MHz ⇒ 500 拍 = 5 µs；1500 拍 = 15 µs；8000 拍 = 80 µs；总 10000 拍 = 100 µs
-        ev(0); wait_cyc(500);
-        ev(1); wait_cyc(1500);
-        ev(2); wait_cyc(8000);
+        // ---- T2 一轮干净的时序：读数必须**恰好等于拍差**（单位=拍，不做除法）----
+        @(negedge clk); t1 = dut.cyc;  ev(0);
+        wait_cyc(500);
+        @(negedge clk); t2 = dut.cyc;  ev(1);
+        wait_cyc(1500);
+        @(negedge clk); t3 = dut.cyc;  ev(2);
+        wait_cyc(8000);
         ev_sof();
-        $display("DBG norm  l1=%0d l2=%0d l3=%0d tot=%0d max=%0d cnt=%0d sat=%0b",
-                 n_l1, n_l2, n_l3, n_tot, n_max, n_cnt, n_sat);
-        $display("DBG small l1=%0d l2=%0d l3=%0d tot=%0d max=%0d cnt=%0d sat=%0b",
-                 s_l1, s_l2, s_l3, s_tot, s_max, s_cnt, s_sat);
-        chk("T2 一轮量完：l1=5 l2=15 l3=80 tot=100 µs（u_norm，100 拍/µs）",
-            n_l1 == 5 && n_l2 == 15 && n_l3 == 80 && n_tot == 100 && n_cnt == 1);
-        // ②单位：同一串激励在 10 拍/µs 的那台上必须大 10 倍，允许 ±1 µs 的**舍入口径差**：
-        //   总和是"先加拍数、一次舍入"，三段是"各自舍入" ⇒ parts 相加可能与 tot 差 1 µs。
-        //   这是刻意的（模块头部写了），别改成"逐段相加得总数"——那样一次钳位就会把总和撑成假数。
-        chk("T2b 单位来自参数：u_small（10 拍/µs）读数是 u_norm 的 10 倍（±10 µs）",
-            s_l1 == n_l1*10 && s_l2 == n_l2*10 &&
-            s_tot >= n_tot*10 - 10 && s_tot <= n_tot*10 + 10);
-        chk("T2c 除数不同不会改变 n_meas（两台各量一轮）", n_cnt == 1 && s_cnt == 1);
+        chk("T2 c1 恰好等于 commit→start 的拍差（±事件脉冲自身的 1 拍）",
+            (c1 >= t2 - t1 - 1) && (c1 <= t2 - t1 + 1));
+        chk("T2b c2 恰好等于 start→done 的拍差",
+            (c2 >= t3 - t2 - 1) && (c2 <= t3 - t2 + 1));
+        chk("T2c tot 覆盖整段（≥ c1+c2+8000 且 < c1+c2+8200：同步链那几拍算在内）",
+            tot >= c1 + c2 + 8000 && tot <= c1 + c2 + 8200);
+        chk("T2d 第一轮 max == tot，n_meas == 1，没钳位",
+            mx == tot && ncyc == 1 && clamp == 0);
 
-        // ---- T3 时序乱了序：先 start 后 commit ⇒ 不许出数 ----
-        ev(1); wait_cyc(100);              // copy_start，但没有配对的 commit
-        ev(2); wait_cyc(100);              // copy_done，同样没有起点
+        // ---- T3 时序乱了序：先 start / 先 done 都不许出数 ----
+        ev(1); wait_cyc(100);              // 没有 commit 配对的 start
+        ev(2); wait_cyc(100);              // 没有起点的 done
         ev_sof();
-        chk("T3 缺 commit 的一串事件不产生读数（n_meas 仍是 1）",
-            n_cnt == 1 && s_cnt == 1);
+        chk("T3 缺 commit 的一串事件不产生读数（n_meas 仍是 1）", ncyc == 1);
 
-        // ---- T4 第二轮更小：max 不许被小值覆盖，n_meas 递增 ----
-        ev(0); wait_cyc(100);              // 1 µs
-        ev(1); wait_cyc(100);              // 1 µs
-        ev(2); wait_cyc(200);              // 2 µs
+        // ---- T4 第二轮更小：tot 跟着变小，但 max 保留历史最大 ----
+        @(negedge clk); t1 = dut.cyc; ev(0);
+        wait_cyc(100);  ev(1);
+        wait_cyc(100);  ev(2);
+        wait_cyc(200);  ev_sof();
+        chk("T4 第二轮读数被记下（n_meas=2）且 tot 明显小于第一轮",
+            ncyc == 2 && tot < 4000 && tot > 300);
+        chk("T4b max 不被小值覆盖（演示时要念的就是这个数）", mx == (tot < mx ? mx : tot) && mx >= 4000);
+
+        // ---- T5 commit 一刷新就清配对标记：旧轮晚到的 done 不许凑数 ----
+        ev(0); wait_cyc(100);
+        ev(1); wait_cyc(50);               // 这一轮走到 start
+        ev(0); wait_cyc(50);               // 新 commit 来了 ⇒ 上一轮作废
+        ev(2); wait_cyc(50);               // 这个 done 属于被作废的那一轮
         ev_sof();
-        chk("T4 第二轮 tot=4 µs 被记下，但 max 仍是第一轮的 100 µs",
-            n_tot == 4 && n_max == 100 && n_cnt == 2);
-        chk("T4b u_small 同样是 10 倍口径，且小值不会覆盖 max",
-            s_tot >= n_tot*10 - 10 && s_tot <= n_tot*10 + 10 &&
-            s_max >= 1000 && s_cnt == 2);
+        chk("T5 作废轮次不会被晚到的 done 凑成一次读数（n_meas 仍是 2）", ncyc == 2);
 
-        // ---- T5 溢出：u_small 口径 10 拍/µs、SAT=4000 µs ⇒ 造一轮 5000 µs 必须钳位 ----
-        ev(0); wait_cyc(20000);            // 2000 µs（u_norm 口径 200 µs）
-        ev(1); wait_cyc(10000);            // 1000 µs
-        ev(2); wait_cyc(20000);            // 2000 µs ⇒ 总 5000 µs > 4000
-        ev_sof();
-        chk("T5 超上限：u_small 的总和钳在 4000 且 saturated=1（不许回绕成小数）",
-            s_tot == 4000 && s_sat == 1 && s_cnt == 3);
-        chk("T5b 同一串事件在正常参数那台上是 500 µs 且不饱和（钳位只跟口径有关）",
-            n_tot == 500 && n_sat == 0 && n_cnt == 3);
-        chk("T5c 钳位后各段读数都不许大于总和（否则三段无法解释总数）",
-            s_l1 <= s_tot && s_l2 <= s_tot && s_l3 <= s_tot);
-
-        // ---- T6 一轮没走完就来新 commit：旧轮的晚到事件不许凑成一轮 ----
-        ev(0); wait_cyc(100);              // 新轮开始
-        ev(1); wait_cyc(100);              // 走完 start
-        ev(0); wait_cyc(50);               // 又来个 commit（上一轮作废）
-        ev(2); wait_cyc(50);               // 这个 done 属于被作废的那轮
-        ev_sof();
-        chk("T6 commit 一刷新就清配对标记 ⇒ 晚到的 done 凑不出数（n_meas 仍是 3）",
-            n_cnt == 3);                   // 已完成的是 T2 / T4 / T5 三轮
-
-        // ---- T7 没有 done 就没有收尾：只 commit+start+sof 不出数 ----
+        // ---- T6 没搬完的一帧不出读数 ----
         ev(0); wait_cyc(100);
         ev(1); wait_cyc(100);
         ev_sof();
-        chk("T7 没搬完的一帧不出读数（n_meas 仍是 3）", n_cnt == 3);
+        chk("T6 缺 copy_done 的一帧不产生读数（n_meas 仍是 2）", ncyc == 2);
+
+        // ---- T7 钳位：把 t_commit 强行设到"未来"，让差值变负 ⇒ 必须报 0xFFFFFFFF 且置标志 ----
+        @(negedge clk);
+        mx_keep = mx;
+        dut.t_commit = dut.cyc + 32'd100_000;     // 人为制造一次倒挂（时序异常/绕圈的等价形状）
+        dut.have_commit = 1'b1; dut.have_start = 1'b1; dut.have_done = 1'b1;
+        dut.t_start  = dut.cyc;
+        dut.t_done   = dut.cyc;
+        ev_sof();
+        chk("T7 差值为负 ⇒ 三项报 32'hFFFF_FFFF 并置 clamped（**绝不回绕成小数**）",
+            clamp == 1 && (c1 === 32'hFFFF_FFFF || c2 === 32'hFFFF_FFFF || tot === 32'hFFFF_FFFF));
+        chk("T7b 钳位轮次仍如实计数（读数是否可用由 clamped 说，不由 n_meas 说）", ncyc == 3);
+        // 这一条是台架逼出来的设计缺陷：钳位值 0xFFFFFFFF 一旦进过 max，
+        // "最大时延"就永远读不出真数了 ⇒ RTL 里 max 只认真读数。
+        chk("T7c 钳位的那一轮不污染 max（一次倒挂不许把最大时延永远钉在 0xFFFFFFFF）",
+            mx === mx_keep);
 
         $display("");
-        $display("口径提醒：本模块量的是 PL 内部（commit 之后到该帧开始扫描），");
-        $display("           上位机编码与网线传输不在内 ⇒ 对外只能说「链路内时延（PL 侧）」，");
-        $display("           并且 L3 的分辨率是一个显示帧 ⇒ 报数带 ±1 帧。");
+        $display("口径提醒：本模块量的是 PL 内部（commit 之后到该帧开始扫描），单位是 axi 拍数；");
+        $display("   上位机编码与网线传输不在内 ⇒ 对外只能说「链路内时延（PL 侧）」，");
+        $display("   且第三段（等扫描）的分辨率是一个显示帧 ⇒ 报数必须带 ±1 帧。");
+        $display("   换算成时间戳在 src/host/health_read.mjs 里做（1 拍 = 10 ns，一个常量）。");
         $display("");
         if (errors == 0) $display("PASS tb_v90_latency");
         else             $display("FAIL tb_v90_latency errors=%0d", errors);

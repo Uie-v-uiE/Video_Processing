@@ -113,18 +113,23 @@ say "cdc.rpt Critical 行" "$cdcc" "基线 $nbase 行，配对不新增" "$cdc_o
 #    lane30 的模式高位就被静默吞掉（读出来永远 0/1），而七项门禁当时全绿。
 #    工具早就把 file:line 报出来了，没人读警告 ⇒ 把它变成门禁项。
 BLOG=$(ls -t "$D"/log_*system*.txt 2>/dev/null | head -1)
-if [ -z "$BLOG" ]; then
-    say "端口宽度警告 8-689" "NOLOG" "找不到构建日志=未验" 0
+# 先认"与这套报告同一次构建"的凭据文件（构建脚本自己写的 width_warnings.txt）；
+# 找不到才回落到最新日志 —— 回落时必须**点名它是回落**：2026-09-24 就出现过
+# 报告是 r48 的、日志却是红掉的 r49 的，那一刻这一项"绿"得毫无意义。
+if [ -f "$D/width_warnings.txt" ] || [ -f "$D/../width_warnings.txt" ]; then
+    WF=$(pick width_warnings.txt)
+    W689=$(awk '{print $1}' "$WF")
+    say "端口宽度警告 8-689" "$W689" "== 0（凭据 $(basename "$WF")，同一次构建）" \
+        $([ "$W689" = "0" ] && echo 1 || echo 0)
+elif [ -z "$BLOG" ]; then
+    say "端口宽度警告 8-689" "NOLOG" "无凭据=未验" 0
 else
     W689=$(grep -ac "Synth 8-689" "$BLOG" || true)
     [ -z "$W689" ] && W689=NA
-    if [ "$W689" = "0" ]; then
-        say "端口宽度警告 8-689" "0" "== 0（$(basename "$BLOG")）" 1
-    else
-        say "端口宽度警告 8-689" "$W689" "== 0（$(basename "$BLOG")）" 0
-        grep -a "Synth 8-689" "$BLOG" | sed 's/^/        /' | head -6
-    fi
+    say "端口宽度警告 8-689" "$W689" "== 0（⚠ 回落：$(basename "$BLOG")，未与报告绑定）" \
+        $([ "$W689" = "0" ] && echo 1 || echo 0)
 fi
+[ "$W689" != "0" ] && grep -a "Synth 8-689" "$BLOG" 2>/dev/null | sed 's/^/        /' | head -6
 echo
 echo "端点总数 $eps；CDC 现在按 build/CDC_BASELINE.txt 的**配对集合**判，功耗仍要人比有没有变差。"
 if [ "$pass" = 1 ]; then echo "GATES: ALL PASS"; exit 0; else echo "GATES: 有红项 —— 不采纳，保留上一版"; exit 1; fi

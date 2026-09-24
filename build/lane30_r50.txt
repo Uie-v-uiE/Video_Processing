@@ -1,0 +1,12 @@
+t=16.20s  11100|0 -> 11101|0  (lane30=0x17 gpio0=0xf5000)
+t=16.50s  11101|0 -> 11100|0  (lane30=0x7 gpio0=0xf5000)
+t=22.35s  11100|0 -> 11101|0  (lane30=0x17 gpio0=0xf5000)
+t=22.65s  11101|0 -> 11100|0  (lane30=0x7 gpio0=0xb5000)
+t=39.30s  11100|0 -> 11101|0  (lane30=0x17 gpio0=0xf5000)
+t=39.60s  11101|0 -> 11100|0  (lane30=0x7 gpio0=0xf5000)
+
+采样 147 条**有效**（另有 153 条因 lane 被 PS 抹掉而丢弃），间隔 150 ms（约 22 s）
+mode 直方图 {"0":147} —— 没人按键时应当只有 {"0":N}
+lane30 共变 6 次；其中 mode 变 0 次、eth_live 掉 0 次
+(位序 bit0=eth_tb_ok bit1=eth_live bit2=owner_eth bit3=fill_busy bit4=row_busy bit[6:5]=mode)
+=> 没走格、也没见 live 掉 ⇒ 需要症状出现的那一刻再采一次（人在场）

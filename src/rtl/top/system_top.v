@@ -213,13 +213,12 @@ module system_top (
     //   lane30 的 mode 于是永远只能是 0/1：锁图卡(10)读起来像自动(00)、锁PS(11)读起来像锁ETH(01)。
     //   2026-09-24 因为 V8-6 要新加观测口才发现它 —— 详见 ISSUES #57（也纠正了当晚一条凭据说法）。
     wire [7:0]  dbg_src;
-    wire [95:0] dbg_lat;                  // V8-6：lane26/27/28 三个 32 bit 窗口（见 pl_video_top 端口注释）
+    wire [5*32-1:0] dbg_lat;             // V8-6：lane25..29（lane N = dbg_lat[(N-25)*32 +: 32]）
     always @(*) begin
         if      (lm_lane == 5'd31)     lm_rd = {30'd0, lm_clk_slow, lm_clk_gone};
         else if (lm_lane == 5'd30)     lm_rd = {24'd0, dbg_src};
-        else if (lm_lane == 5'd28)     lm_rd = dbg_lat[95:64];     // max_us / n_meas / saturated
-        else if (lm_lane == 5'd27)     lm_rd = dbg_lat[63:32];     // l3_us / tot_us
-        else if (lm_lane == 5'd26)     lm_rd = dbg_lat[31:0];      // l1_us / l2_us
+        else if (lm_lane >= 5'd25 && lm_lane <= 5'd29)
+                                       lm_rd = dbg_lat[(lm_lane-25)*32 +: 32];
         else if (lm_lane > 5'd9)       lm_rd = 32'hDEAD_BEEF;
         else                           lm_rd = lm_axi[lm_lane*32 +: 32];
     end
