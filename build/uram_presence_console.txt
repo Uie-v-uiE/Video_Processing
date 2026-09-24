@@ -1,0 +1,662 @@
+
+****** Vivado v2025.2.1 (64-bit)
+  **** SW Build 6403652 on Thu Mar 19 19:48:24 GMT 2026
+  **** IP Build 6403511 on Thu Mar 19 12:41:45 MDT 2026
+  **** SharedData Build 6403650 on Thu Mar 19 14:02:13 MDT 2026
+  **** Start of session at: Fri Sep 25 07:21:20 2026
+    ** Copyright 1986-2022 Xilinx, Inc. All Rights Reserved.
+    ** Copyright 2022-2026 Advanced Micro Devices, Inc. All Rights Reserved.
+
+source build/tcl/uram_presence.tcl
+# set root [file normalize [file join [file dirname [info script]] .. ..]]
+# set part xc7z020clg484-1
+# set dir [file join $root build uram_probe prj_presence]
+# file mkdir [file join $root build uram_probe]
+# create_project -force presence $dir -part $part
+create_project: Time (s): cpu = 00:00:16 ; elapsed = 00:00:10 . Memory (MB): peak = 538.820 ; gain = 222.148
+# set vf [file join $root build uram_probe presence_top.v]
+# set f [open $vf w]
+# puts $f {module presence_top(input clk); wire w; reg r; always @(posedge clk) r <= ~r; endmodule}
+# close $f
+# read_verilog $vf
+# synth_design -top presence_top -part $part
+Command: synth_design -top presence_top -part xc7z020clg484-1
+Starting synth_design
+Attempting to get a license for feature 'Synthesis' and/or device 'xc7z020'
+INFO: [Common 17-349] Got license for feature 'Synthesis' and/or device 'xc7z020'
+INFO: [Synth 8-7079] Multithreading enabled for synth_design using a maximum of 2 processes.
+INFO: [Synth 8-7078] Launching helper process for spawning children vivado processes
+INFO: [Synth 8-7075] Helper process launched with PID 21420
+---------------------------------------------------------------------------------
+Starting Synthesize : Time (s): cpu = 00:00:06 ; elapsed = 00:00:07 . Memory (MB): peak = 1079.918 ; gain = 534.176
+---------------------------------------------------------------------------------
+INFO: [Synth 8-6157] synthesizing module 'presence_top' [D:/Xilinx/Prj/pro/Video_Processing/build/uram_probe/presence_top.v:1]
+INFO: [Synth 8-6155] done synthesizing module 'presence_top' (0#1) [D:/Xilinx/Prj/pro/Video_Processing/build/uram_probe/presence_top.v:1]
+WARNING: [Synth 8-3330] design presence_top has an empty top module
+WARNING: [Synth 8-7129] Port clk in module presence_top is either unconnected or has no load
+---------------------------------------------------------------------------------
+Finished Synthesize : Time (s): cpu = 00:00:08 ; elapsed = 00:00:08 . Memory (MB): peak = 1197.891 ; gain = 652.148
+---------------------------------------------------------------------------------
+---------------------------------------------------------------------------------
+Finished Constraint Validation : Time (s): cpu = 00:00:09 ; elapsed = 00:00:09 . Memory (MB): peak = 1197.891 ; gain = 652.148
+---------------------------------------------------------------------------------
+---------------------------------------------------------------------------------
+Start Loading Part and Timing Information
+---------------------------------------------------------------------------------
+Loading part: xc7z020clg484-1
+---------------------------------------------------------------------------------
+INFO: [Device 21-403] Loading part xc7z020clg484-1
+Finished Loading Part and Timing Information : Time (s): cpu = 00:00:09 ; elapsed = 00:00:09 . Memory (MB): peak = 1197.891 ; gain = 652.148
+---------------------------------------------------------------------------------
+---------------------------------------------------------------------------------
+Finished RTL Optimization Phase 2 : Time (s): cpu = 00:00:09 ; elapsed = 00:00:09 . Memory (MB): peak = 1197.891 ; gain = 652.148
+---------------------------------------------------------------------------------
+No constraint files found.
+---------------------------------------------------------------------------------
+Start RTL Component Statistics 
+---------------------------------------------------------------------------------
+Detailed RTL Component Info : 
+---------------------------------------------------------------------------------
+Finished RTL Component Statistics 
+---------------------------------------------------------------------------------
+---------------------------------------------------------------------------------
+Start Part Resource Summary
+---------------------------------------------------------------------------------
+Part Resources:
+DSPs: 220 (col length:60)
+BRAMs: 280 (col length: RAMB18 60 RAMB36 30)
+---------------------------------------------------------------------------------
+Finished Part Resource Summary
+---------------------------------------------------------------------------------
+No constraint files found.
+---------------------------------------------------------------------------------
+Start Cross Boundary and Area Optimization
+---------------------------------------------------------------------------------
+WARNING: [Synth 8-3330] design presence_top has an empty top module
+WARNING: [Synth 8-7129] Port clk in module presence_top is either unconnected or has no load
+---------------------------------------------------------------------------------
+Finished Cross Boundary and Area Optimization : Time (s): cpu = 00:00:12 ; elapsed = 00:00:14 . Memory (MB): peak = 1385.047 ; gain = 839.305
+---------------------------------------------------------------------------------
+No constraint files found.
+---------------------------------------------------------------------------------
+Start Timing Optimization
+---------------------------------------------------------------------------------
+---------------------------------------------------------------------------------
+Finished Timing Optimization : Time (s): cpu = 00:00:12 ; elapsed = 00:00:14 . Memory (MB): peak = 1410.039 ; gain = 864.297
+---------------------------------------------------------------------------------
+---------------------------------------------------------------------------------
+Start Technology Mapping
+---------------------------------------------------------------------------------
+---------------------------------------------------------------------------------
+Finished Technology Mapping : Time (s): cpu = 00:00:13 ; elapsed = 00:00:14 . Memory (MB): peak = 1410.039 ; gain = 864.297
+---------------------------------------------------------------------------------
+---------------------------------------------------------------------------------
+Start IO Insertion
+---------------------------------------------------------------------------------
+---------------------------------------------------------------------------------
+Start Flattening Before IO Insertion
+---------------------------------------------------------------------------------
+---------------------------------------------------------------------------------
+Finished Flattening Before IO Insertion
+---------------------------------------------------------------------------------
+---------------------------------------------------------------------------------
+Start Final Netlist Cleanup
+---------------------------------------------------------------------------------
+---------------------------------------------------------------------------------
+Finished Final Netlist Cleanup
+---------------------------------------------------------------------------------
+---------------------------------------------------------------------------------
+Finished IO Insertion : Time (s): cpu = 00:00:17 ; elapsed = 00:00:19 . Memory (MB): peak = 1646.082 ; gain = 1100.340
+---------------------------------------------------------------------------------
+---------------------------------------------------------------------------------
+Start Renaming Generated Instances
+---------------------------------------------------------------------------------
+---------------------------------------------------------------------------------
+Finished Renaming Generated Instances : Time (s): cpu = 00:00:17 ; elapsed = 00:00:19 . Memory (MB): peak = 1646.082 ; gain = 1100.340
+---------------------------------------------------------------------------------
+---------------------------------------------------------------------------------
+Start Rebuilding User Hierarchy
+---------------------------------------------------------------------------------
+---------------------------------------------------------------------------------
+Finished Rebuilding User Hierarchy : Time (s): cpu = 00:00:17 ; elapsed = 00:00:19 . Memory (MB): peak = 1646.082 ; gain = 1100.340
+---------------------------------------------------------------------------------
+---------------------------------------------------------------------------------
+Start Renaming Generated Ports
+---------------------------------------------------------------------------------
+---------------------------------------------------------------------------------
+Finished Renaming Generated Ports : Time (s): cpu = 00:00:17 ; elapsed = 00:00:19 . Memory (MB): peak = 1646.082 ; gain = 1100.340
+---------------------------------------------------------------------------------
+---------------------------------------------------------------------------------
+Start Handling Custom Attributes
+---------------------------------------------------------------------------------
+---------------------------------------------------------------------------------
+Finished Handling Custom Attributes : Time (s): cpu = 00:00:17 ; elapsed = 00:00:19 . Memory (MB): peak = 1646.082 ; gain = 1100.340
+---------------------------------------------------------------------------------
+---------------------------------------------------------------------------------
+Start Renaming Generated Nets
+---------------------------------------------------------------------------------
+---------------------------------------------------------------------------------
+Finished Renaming Generated Nets : Time (s): cpu = 00:00:17 ; elapsed = 00:00:19 . Memory (MB): peak = 1646.082 ; gain = 1100.340
+---------------------------------------------------------------------------------
+---------------------------------------------------------------------------------
+Start Writing Synthesis Report
+---------------------------------------------------------------------------------
+
+Report BlackBoxes: 
++-+--------------+----------+
+| |BlackBox name |Instances |
++-+--------------+----------+
++-+--------------+----------+
+
+Report Cell Usage: 
++-+-----+------+
+| |Cell |Count |
++-+-----+------+
++-+-----+------+
+
+Report Instance Areas: 
++------+---------+-------+------+
+|      |Instance |Module |Cells |
++------+---------+-------+------+
+|1     |top      |       |     0|
++------+---------+-------+------+
+---------------------------------------------------------------------------------
+Finished Writing Synthesis Report : Time (s): cpu = 00:00:17 ; elapsed = 00:00:19 . Memory (MB): peak = 1646.082 ; gain = 1100.340
+---------------------------------------------------------------------------------
+Synthesis finished with 0 errors, 0 critical warnings and 4 warnings.
+Synthesis Optimization Runtime : Time (s): cpu = 00:00:17 ; elapsed = 00:00:19 . Memory (MB): peak = 1646.082 ; gain = 1100.340
+Synthesis Optimization Complete : Time (s): cpu = 00:00:17 ; elapsed = 00:00:19 . Memory (MB): peak = 1646.082 ; gain = 1100.340
+INFO: [Project 1-571] Translating synthesized netlist
+Netlist sorting complete. Time (s): cpu = 00:00:00 ; elapsed = 00:00:00 . Memory (MB): peak = 1647.117 ; gain = 0.000
+INFO: [Project 1-570] Preparing netlist for logic optimization
+INFO: [Opt 31-138] Pushed 0 inverter(s) to 0 load pin(s).
+Netlist sorting complete. Time (s): cpu = 00:00:00 ; elapsed = 00:00:00 . Memory (MB): peak = 1779.188 ; gain = 0.000
+INFO: [Project 1-111] Unisim Transformation Summary:
+No Unisim elements were transformed.
+
+Synth Design complete | Checksum: 3a4cab52
+INFO: [Common 17-83] Releasing license: Synthesis
+12 Infos, 4 Warnings, 0 Critical Warnings and 0 Errors encountered.
+synth_design completed successfully
+synth_design: Time (s): cpu = 00:00:20 ; elapsed = 00:00:23 . Memory (MB): peak = 1779.188 ; gain = 1240.367
+# set pc_ramb [get_lib_cells -quiet -regexp {(^|/)RAMB36E1$}]
+# set pc_fdre [get_lib_cells -quiet -regexp {(^|/)FDRE$}]
+# puts "Q0_positive_control RAMB36E1=[llength $pc_ramb] FDRE=[llength $pc_fdre]（都�? >0，否则下面的 0 不算数）"
+Q0_positive_control RAMB36E1=0 FDRE=0（都�? >0，否则下面的 0 不算数）
+# puts "Q1_URAM288  [llength [get_lib_cells -quiet -regexp {(^|/)URAM288$}]]"
+Q1_URAM288  0
+# puts "Q1_URAM288E [llength [get_lib_cells -quiet -regexp {(^|/)URAM288E$}]]"
+Q1_URAM288E 0
+# puts "Q1_URAM1240 [llength [get_lib_cells -quiet -regexp {(^|/)URAM1240$}]]  ;# 已知�? UltraScale+ 的原�?，这�? 0 �?**方法�?�?**：�?�明�?法�?�任何族都不会瞎�?"
+Q1_URAM1240 0  ;# 已知�? UltraScale+ 的原�?，这�? 0 �?**方法�?�?**：�?�明�?法�?�任何族都不会瞎�?
+# set any [get_lib_cells -quiet -regexp {.*URAM.*}]
+# puts "Q1_any_URAM_count [llength $any]"
+Q1_any_URAM_count 0
+# if {[llength $any] > 0} { puts "Q1_any_URAM_first4 $any" } else { puts "Q1_any_URAM_first4 NONE" }
+Q1_any_URAM_first4 NONE
+# set ur [file join $root build uram_probe presence_util.rpt]
+# report_utilization -file $ur
+# set fd [open $ur r]
+# set txt [read $fd]
+# close $fd
+# set hits [regexp -all -inline {URAM[^|\r\n]*} $txt]
+# puts "Q2_util_rows [llength $hits]"
+Q2_util_rows 0
+# foreach h $hits { puts "Q2_row  $h" }
+# foreach cell {RAMB36E1 URAM288 URAM288E URAM1240} {
+#     set vf2 [file join $root build uram_probe inst_$cell.v]
+#     set f2 [open $vf2 w]
+#     puts $f2 "module inst_[string tolower $cell](); $cell u(); endmodule"
+#     close $f2
+#     if {[catch {
+#         read_verilog $vf2
+#         synth_design -top inst_[string tolower $cell] -part $part
+#     } e]} {
+#         puts "Q3_$cell ERROR [string map {\n " " \r ""} $e]"
+#     } else {
+#         puts "Q3_$cell 例化通过（这颗器件有这个原�??�?"
+#     }
+# }
+Command: synth_design -top inst_ramb36e1 -part xc7z020clg484-1
+Starting synth_design
+Attempting to get a license for feature 'Synthesis' and/or device 'xc7z020'
+INFO: [Common 17-349] Got license for feature 'Synthesis' and/or device 'xc7z020'
+INFO: [Synth 8-7079] Multithreading enabled for synth_design using a maximum of 2 processes.
+---------------------------------------------------------------------------------
+Starting Synthesize : Time (s): cpu = 00:00:08 ; elapsed = 00:00:08 . Memory (MB): peak = 1779.188 ; gain = 0.000
+---------------------------------------------------------------------------------
+INFO: [Synth 8-6157] synthesizing module 'inst_ramb36e1' [D:/Xilinx/Prj/pro/Video_Processing/build/uram_probe/inst_RAMB36E1.v:1]
+WARNING: [Synth 8-4446] all outputs are unconnected for this instance and logic may be removed [D:/Xilinx/Prj/pro/Video_Processing/build/uram_probe/inst_RAMB36E1.v:1]
+INFO: [Synth 8-6157] synthesizing module 'RAMB36E1' [D:/Software/Vivado/2025.2.1/Vivado/scripts/rt/data/unisim_comp.v:159785]
+INFO: [Synth 8-6155] done synthesizing module 'RAMB36E1' (0#1) [D:/Software/Vivado/2025.2.1/Vivado/scripts/rt/data/unisim_comp.v:159785]
+WARNING: [Synth 8-7071] port 'CASCADEOUTA' of module 'RAMB36E1' is unconnected for instance 'u' [D:/Xilinx/Prj/pro/Video_Processing/build/uram_probe/inst_RAMB36E1.v:1]
+WARNING: [Synth 8-7071] port 'CASCADEOUTB' of module 'RAMB36E1' is unconnected for instance 'u' [D:/Xilinx/Prj/pro/Video_Processing/build/uram_probe/inst_RAMB36E1.v:1]
+WARNING: [Synth 8-7071] port 'DBITERR' of module 'RAMB36E1' is unconnected for instance 'u' [D:/Xilinx/Prj/pro/Video_Processing/build/uram_probe/inst_RAMB36E1.v:1]
+WARNING: [Synth 8-7071] port 'DOADO' of module 'RAMB36E1' is unconnected for instance 'u' [D:/Xilinx/Prj/pro/Video_Processing/build/uram_probe/inst_RAMB36E1.v:1]
+WARNING: [Synth 8-7071] port 'DOBDO' of module 'RAMB36E1' is unconnected for instance 'u' [D:/Xilinx/Prj/pro/Video_Processing/build/uram_probe/inst_RAMB36E1.v:1]
+WARNING: [Synth 8-7071] port 'DOPADOP' of module 'RAMB36E1' is unconnected for instance 'u' [D:/Xilinx/Prj/pro/Video_Processing/build/uram_probe/inst_RAMB36E1.v:1]
+WARNING: [Synth 8-7071] port 'DOPBDOP' of module 'RAMB36E1' is unconnected for instance 'u' [D:/Xilinx/Prj/pro/Video_Processing/build/uram_probe/inst_RAMB36E1.v:1]
+WARNING: [Synth 8-7071] port 'ECCPARITY' of module 'RAMB36E1' is unconnected for instance 'u' [D:/Xilinx/Prj/pro/Video_Processing/build/uram_probe/inst_RAMB36E1.v:1]
+WARNING: [Synth 8-7071] port 'RDADDRECC' of module 'RAMB36E1' is unconnected for instance 'u' [D:/Xilinx/Prj/pro/Video_Processing/build/uram_probe/inst_RAMB36E1.v:1]
+WARNING: [Synth 8-7071] port 'SBITERR' of module 'RAMB36E1' is unconnected for instance 'u' [D:/Xilinx/Prj/pro/Video_Processing/build/uram_probe/inst_RAMB36E1.v:1]
+WARNING: [Synth 8-7071] port 'ADDRARDADDR' of module 'RAMB36E1' is unconnected for instance 'u' [D:/Xilinx/Prj/pro/Video_Processing/build/uram_probe/inst_RAMB36E1.v:1]
+WARNING: [Synth 8-7071] port 'ADDRBWRADDR' of module 'RAMB36E1' is unconnected for instance 'u' [D:/Xilinx/Prj/pro/Video_Processing/build/uram_probe/inst_RAMB36E1.v:1]
+WARNING: [Synth 8-7071] port 'CASCADEINA' of module 'RAMB36E1' is unconnected for instance 'u' [D:/Xilinx/Prj/pro/Video_Processing/build/uram_probe/inst_RAMB36E1.v:1]
+WARNING: [Synth 8-7071] port 'CASCADEINB' of module 'RAMB36E1' is unconnected for instance 'u' [D:/Xilinx/Prj/pro/Video_Processing/build/uram_probe/inst_RAMB36E1.v:1]
+WARNING: [Synth 8-7071] port 'CLKARDCLK' of module 'RAMB36E1' is unconnected for instance 'u' [D:/Xilinx/Prj/pro/Video_Processing/build/uram_probe/inst_RAMB36E1.v:1]
+WARNING: [Synth 8-7071] port 'CLKBWRCLK' of module 'RAMB36E1' is unconnected for instance 'u' [D:/Xilinx/Prj/pro/Video_Processing/build/uram_probe/inst_RAMB36E1.v:1]
+WARNING: [Synth 8-7071] port 'DIADI' of module 'RAMB36E1' is unconnected for instance 'u' [D:/Xilinx/Prj/pro/Video_Processing/build/uram_probe/inst_RAMB36E1.v:1]
+WARNING: [Synth 8-7071] port 'DIBDI' of module 'RAMB36E1' is unconnected for instance 'u' [D:/Xilinx/Prj/pro/Video_Processing/build/uram_probe/inst_RAMB36E1.v:1]
+WARNING: [Synth 8-7071] port 'DIPADIP' of module 'RAMB36E1' is unconnected for instance 'u' [D:/Xilinx/Prj/pro/Video_Processing/build/uram_probe/inst_RAMB36E1.v:1]
+WARNING: [Synth 8-7071] port 'DIPBDIP' of module 'RAMB36E1' is unconnected for instance 'u' [D:/Xilinx/Prj/pro/Video_Processing/build/uram_probe/inst_RAMB36E1.v:1]
+WARNING: [Synth 8-7071] port 'ENARDEN' of module 'RAMB36E1' is unconnected for instance 'u' [D:/Xilinx/Prj/pro/Video_Processing/build/uram_probe/inst_RAMB36E1.v:1]
+WARNING: [Synth 8-7071] port 'ENBWREN' of module 'RAMB36E1' is unconnected for instance 'u' [D:/Xilinx/Prj/pro/Video_Processing/build/uram_probe/inst_RAMB36E1.v:1]
+WARNING: [Synth 8-7071] port 'INJECTDBITERR' of module 'RAMB36E1' is unconnected for instance 'u' [D:/Xilinx/Prj/pro/Video_Processing/build/uram_probe/inst_RAMB36E1.v:1]
+WARNING: [Synth 8-7071] port 'INJECTSBITERR' of module 'RAMB36E1' is unconnected for instance 'u' [D:/Xilinx/Prj/pro/Video_Processing/build/uram_probe/inst_RAMB36E1.v:1]
+WARNING: [Synth 8-7071] port 'REGCEAREGCE' of module 'RAMB36E1' is unconnected for instance 'u' [D:/Xilinx/Prj/pro/Video_Processing/build/uram_probe/inst_RAMB36E1.v:1]
+WARNING: [Synth 8-7071] port 'REGCEB' of module 'RAMB36E1' is unconnected for instance 'u' [D:/Xilinx/Prj/pro/Video_Processing/build/uram_probe/inst_RAMB36E1.v:1]
+WARNING: [Synth 8-7071] port 'RSTRAMARSTRAM' of module 'RAMB36E1' is unconnected for instance 'u' [D:/Xilinx/Prj/pro/Video_Processing/build/uram_probe/inst_RAMB36E1.v:1]
+WARNING: [Synth 8-7071] port 'RSTRAMB' of module 'RAMB36E1' is unconnected for instance 'u' [D:/Xilinx/Prj/pro/Video_Processing/build/uram_probe/inst_RAMB36E1.v:1]
+WARNING: [Synth 8-7071] port 'RSTREGARSTREG' of module 'RAMB36E1' is unconnected for instance 'u' [D:/Xilinx/Prj/pro/Video_Processing/build/uram_probe/inst_RAMB36E1.v:1]
+WARNING: [Synth 8-7071] port 'RSTREGB' of module 'RAMB36E1' is unconnected for instance 'u' [D:/Xilinx/Prj/pro/Video_Processing/build/uram_probe/inst_RAMB36E1.v:1]
+WARNING: [Synth 8-7071] port 'WEA' of module 'RAMB36E1' is unconnected for instance 'u' [D:/Xilinx/Prj/pro/Video_Processing/build/uram_probe/inst_RAMB36E1.v:1]
+WARNING: [Synth 8-7071] port 'WEBWE' of module 'RAMB36E1' is unconnected for instance 'u' [D:/Xilinx/Prj/pro/Video_Processing/build/uram_probe/inst_RAMB36E1.v:1]
+WARNING: [Synth 8-7023] instance 'u' of module 'RAMB36E1' has 32 connections declared, but only 0 given [D:/Xilinx/Prj/pro/Video_Processing/build/uram_probe/inst_RAMB36E1.v:1]
+INFO: [Synth 8-6155] done synthesizing module 'inst_ramb36e1' (0#1) [D:/Xilinx/Prj/pro/Video_Processing/build/uram_probe/inst_RAMB36E1.v:1]
+---------------------------------------------------------------------------------
+Finished Synthesize : Time (s): cpu = 00:00:10 ; elapsed = 00:00:11 . Memory (MB): peak = 1889.312 ; gain = 110.125
+---------------------------------------------------------------------------------
+---------------------------------------------------------------------------------
+Finished Constraint Validation : Time (s): cpu = 00:00:10 ; elapsed = 00:00:11 . Memory (MB): peak = 1889.312 ; gain = 110.125
+---------------------------------------------------------------------------------
+---------------------------------------------------------------------------------
+Start Loading Part and Timing Information
+---------------------------------------------------------------------------------
+Loading part: xc7z020clg484-1
+---------------------------------------------------------------------------------
+Finished Loading Part and Timing Information : Time (s): cpu = 00:00:10 ; elapsed = 00:00:11 . Memory (MB): peak = 1889.312 ; gain = 110.125
+---------------------------------------------------------------------------------
+---------------------------------------------------------------------------------
+Finished RTL Optimization Phase 2 : Time (s): cpu = 00:00:11 ; elapsed = 00:00:11 . Memory (MB): peak = 1889.312 ; gain = 110.125
+---------------------------------------------------------------------------------
+No constraint files found.
+---------------------------------------------------------------------------------
+Start RTL Component Statistics 
+---------------------------------------------------------------------------------
+Detailed RTL Component Info : 
+---------------------------------------------------------------------------------
+Finished RTL Component Statistics 
+---------------------------------------------------------------------------------
+---------------------------------------------------------------------------------
+Start Part Resource Summary
+---------------------------------------------------------------------------------
+Part Resources:
+DSPs: 220 (col length:60)
+BRAMs: 280 (col length: RAMB18 60 RAMB36 30)
+---------------------------------------------------------------------------------
+Finished Part Resource Summary
+---------------------------------------------------------------------------------
+No constraint files found.
+---------------------------------------------------------------------------------
+Start Cross Boundary and Area Optimization
+---------------------------------------------------------------------------------
+---------------------------------------------------------------------------------
+Finished Cross Boundary and Area Optimization : Time (s): cpu = 00:00:13 ; elapsed = 00:00:14 . Memory (MB): peak = 1889.312 ; gain = 110.125
+---------------------------------------------------------------------------------
+No constraint files found.
+---------------------------------------------------------------------------------
+Start Timing Optimization
+---------------------------------------------------------------------------------
+---------------------------------------------------------------------------------
+Finished Timing Optimization : Time (s): cpu = 00:00:13 ; elapsed = 00:00:14 . Memory (MB): peak = 1889.312 ; gain = 110.125
+---------------------------------------------------------------------------------
+---------------------------------------------------------------------------------
+Start Technology Mapping
+---------------------------------------------------------------------------------
+---------------------------------------------------------------------------------
+Finished Technology Mapping : Time (s): cpu = 00:00:13 ; elapsed = 00:00:14 . Memory (MB): peak = 1889.312 ; gain = 110.125
+---------------------------------------------------------------------------------
+---------------------------------------------------------------------------------
+Start IO Insertion
+---------------------------------------------------------------------------------
+---------------------------------------------------------------------------------
+Start Flattening Before IO Insertion
+---------------------------------------------------------------------------------
+---------------------------------------------------------------------------------
+Finished Flattening Before IO Insertion
+---------------------------------------------------------------------------------
+---------------------------------------------------------------------------------
+Start Final Netlist Cleanup
+---------------------------------------------------------------------------------
+---------------------------------------------------------------------------------
+Finished Final Netlist Cleanup
+---------------------------------------------------------------------------------
+---------------------------------------------------------------------------------
+Finished IO Insertion : Time (s): cpu = 00:00:18 ; elapsed = 00:00:19 . Memory (MB): peak = 2123.523 ; gain = 344.336
+---------------------------------------------------------------------------------
+---------------------------------------------------------------------------------
+Start Renaming Generated Instances
+---------------------------------------------------------------------------------
+---------------------------------------------------------------------------------
+Finished Renaming Generated Instances : Time (s): cpu = 00:00:18 ; elapsed = 00:00:19 . Memory (MB): peak = 2123.523 ; gain = 344.336
+---------------------------------------------------------------------------------
+---------------------------------------------------------------------------------
+Start Rebuilding User Hierarchy
+---------------------------------------------------------------------------------
+---------------------------------------------------------------------------------
+Finished Rebuilding User Hierarchy : Time (s): cpu = 00:00:18 ; elapsed = 00:00:19 . Memory (MB): peak = 2123.523 ; gain = 344.336
+---------------------------------------------------------------------------------
+---------------------------------------------------------------------------------
+Start Renaming Generated Ports
+---------------------------------------------------------------------------------
+---------------------------------------------------------------------------------
+Finished Renaming Generated Ports : Time (s): cpu = 00:00:18 ; elapsed = 00:00:19 . Memory (MB): peak = 2123.523 ; gain = 344.336
+---------------------------------------------------------------------------------
+---------------------------------------------------------------------------------
+Start Handling Custom Attributes
+---------------------------------------------------------------------------------
+---------------------------------------------------------------------------------
+Finished Handling Custom Attributes : Time (s): cpu = 00:00:18 ; elapsed = 00:00:19 . Memory (MB): peak = 2123.523 ; gain = 344.336
+---------------------------------------------------------------------------------
+---------------------------------------------------------------------------------
+Start Renaming Generated Nets
+---------------------------------------------------------------------------------
+---------------------------------------------------------------------------------
+Finished Renaming Generated Nets : Time (s): cpu = 00:00:18 ; elapsed = 00:00:19 . Memory (MB): peak = 2123.523 ; gain = 344.336
+---------------------------------------------------------------------------------
+---------------------------------------------------------------------------------
+Start Writing Synthesis Report
+---------------------------------------------------------------------------------
+
+Report BlackBoxes: 
++-+--------------+----------+
+| |BlackBox name |Instances |
++-+--------------+----------+
++-+--------------+----------+
+
+Report Cell Usage: 
++-+-----+------+
+| |Cell |Count |
++-+-----+------+
++-+-----+------+
+---------------------------------------------------------------------------------
+Finished Writing Synthesis Report : Time (s): cpu = 00:00:18 ; elapsed = 00:00:19 . Memory (MB): peak = 2123.523 ; gain = 344.336
+---------------------------------------------------------------------------------
+Synthesis finished with 0 errors, 0 critical warnings and 34 warnings.
+Synthesis Optimization Runtime : Time (s): cpu = 00:00:18 ; elapsed = 00:00:19 . Memory (MB): peak = 2123.523 ; gain = 344.336
+Synthesis Optimization Complete : Time (s): cpu = 00:00:18 ; elapsed = 00:00:19 . Memory (MB): peak = 2123.523 ; gain = 344.336
+INFO: [Project 1-571] Translating synthesized netlist
+Netlist sorting complete. Time (s): cpu = 00:00:00 ; elapsed = 00:00:00.001 . Memory (MB): peak = 2123.957 ; gain = 0.000
+INFO: [Project 1-570] Preparing netlist for logic optimization
+INFO: [Opt 31-138] Pushed 0 inverter(s) to 0 load pin(s).
+Netlist sorting complete. Time (s): cpu = 00:00:00 ; elapsed = 00:00:00 . Memory (MB): peak = 2123.957 ; gain = 0.000
+INFO: [Project 1-111] Unisim Transformation Summary:
+No Unisim elements were transformed.
+
+Synth Design complete | Checksum: 3498cd5
+INFO: [Common 17-83] Releasing license: Synthesis
+11 Infos, 34 Warnings, 0 Critical Warnings and 0 Errors encountered.
+synth_design completed successfully
+synth_design: Time (s): cpu = 00:00:21 ; elapsed = 00:00:23 . Memory (MB): peak = 2123.957 ; gain = 344.770
+Q3_RAMB36E1 例化通过（这颗器件有这个原�??�?
+Command: synth_design -top inst_uram288 -part xc7z020clg484-1
+Starting synth_design
+Attempting to get a license for feature 'Synthesis' and/or device 'xc7z020'
+INFO: [Common 17-349] Got license for feature 'Synthesis' and/or device 'xc7z020'
+INFO: [Synth 8-7079] Multithreading enabled for synth_design using a maximum of 2 processes.
+---------------------------------------------------------------------------------
+Starting Synthesize : Time (s): cpu = 00:00:07 ; elapsed = 00:00:07 . Memory (MB): peak = 2123.957 ; gain = 0.000
+---------------------------------------------------------------------------------
+INFO: [Synth 8-6157] synthesizing module 'inst_uram288' [D:/Xilinx/Prj/pro/Video_Processing/build/uram_probe/inst_URAM288.v:1]
+WARNING: [Synth 8-4446] all outputs are unconnected for this instance and logic may be removed [D:/Xilinx/Prj/pro/Video_Processing/build/uram_probe/inst_URAM288.v:1]
+INFO: [Synth 8-6157] synthesizing module 'URAM288' [D:/Software/Vivado/2025.2.1/Vivado/scripts/rt/data/unisim_comp.v:166226]
+INFO: [Synth 8-6155] done synthesizing module 'URAM288' (0#1) [D:/Software/Vivado/2025.2.1/Vivado/scripts/rt/data/unisim_comp.v:166226]
+WARNING: [Synth 8-7071] port 'CAS_OUT_ADDR_A' of module 'URAM288' is unconnected for instance 'u' [D:/Xilinx/Prj/pro/Video_Processing/build/uram_probe/inst_URAM288.v:1]
+WARNING: [Synth 8-7071] port 'CAS_OUT_ADDR_B' of module 'URAM288' is unconnected for instance 'u' [D:/Xilinx/Prj/pro/Video_Processing/build/uram_probe/inst_URAM288.v:1]
+WARNING: [Synth 8-7071] port 'CAS_OUT_BWE_A' of module 'URAM288' is unconnected for instance 'u' [D:/Xilinx/Prj/pro/Video_Processing/build/uram_probe/inst_URAM288.v:1]
+WARNING: [Synth 8-7071] port 'CAS_OUT_BWE_B' of module 'URAM288' is unconnected for instance 'u' [D:/Xilinx/Prj/pro/Video_Processing/build/uram_probe/inst_URAM288.v:1]
+WARNING: [Synth 8-7071] port 'CAS_OUT_DBITERR_A' of module 'URAM288' is unconnected for instance 'u' [D:/Xilinx/Prj/pro/Video_Processing/build/uram_probe/inst_URAM288.v:1]
+WARNING: [Synth 8-7071] port 'CAS_OUT_DBITERR_B' of module 'URAM288' is unconnected for instance 'u' [D:/Xilinx/Prj/pro/Video_Processing/build/uram_probe/inst_URAM288.v:1]
+WARNING: [Synth 8-7071] port 'CAS_OUT_DIN_A' of module 'URAM288' is unconnected for instance 'u' [D:/Xilinx/Prj/pro/Video_Processing/build/uram_probe/inst_URAM288.v:1]
+WARNING: [Synth 8-7071] port 'CAS_OUT_DIN_B' of module 'URAM288' is unconnected for instance 'u' [D:/Xilinx/Prj/pro/Video_Processing/build/uram_probe/inst_URAM288.v:1]
+WARNING: [Synth 8-7071] port 'CAS_OUT_DOUT_A' of module 'URAM288' is unconnected for instance 'u' [D:/Xilinx/Prj/pro/Video_Processing/build/uram_probe/inst_URAM288.v:1]
+WARNING: [Synth 8-7071] port 'CAS_OUT_DOUT_B' of module 'URAM288' is unconnected for instance 'u' [D:/Xilinx/Prj/pro/Video_Processing/build/uram_probe/inst_URAM288.v:1]
+WARNING: [Synth 8-7071] port 'CAS_OUT_EN_A' of module 'URAM288' is unconnected for instance 'u' [D:/Xilinx/Prj/pro/Video_Processing/build/uram_probe/inst_URAM288.v:1]
+WARNING: [Synth 8-7071] port 'CAS_OUT_EN_B' of module 'URAM288' is unconnected for instance 'u' [D:/Xilinx/Prj/pro/Video_Processing/build/uram_probe/inst_URAM288.v:1]
+WARNING: [Synth 8-7071] port 'CAS_OUT_RDACCESS_A' of module 'URAM288' is unconnected for instance 'u' [D:/Xilinx/Prj/pro/Video_Processing/build/uram_probe/inst_URAM288.v:1]
+WARNING: [Synth 8-7071] port 'CAS_OUT_RDACCESS_B' of module 'URAM288' is unconnected for instance 'u' [D:/Xilinx/Prj/pro/Video_Processing/build/uram_probe/inst_URAM288.v:1]
+WARNING: [Synth 8-7071] port 'CAS_OUT_RDB_WR_A' of module 'URAM288' is unconnected for instance 'u' [D:/Xilinx/Prj/pro/Video_Processing/build/uram_probe/inst_URAM288.v:1]
+WARNING: [Synth 8-7071] port 'CAS_OUT_RDB_WR_B' of module 'URAM288' is unconnected for instance 'u' [D:/Xilinx/Prj/pro/Video_Processing/build/uram_probe/inst_URAM288.v:1]
+WARNING: [Synth 8-7071] port 'CAS_OUT_SBITERR_A' of module 'URAM288' is unconnected for instance 'u' [D:/Xilinx/Prj/pro/Video_Processing/build/uram_probe/inst_URAM288.v:1]
+WARNING: [Synth 8-7071] port 'CAS_OUT_SBITERR_B' of module 'URAM288' is unconnected for instance 'u' [D:/Xilinx/Prj/pro/Video_Processing/build/uram_probe/inst_URAM288.v:1]
+WARNING: [Synth 8-7071] port 'DBITERR_A' of module 'URAM288' is unconnected for instance 'u' [D:/Xilinx/Prj/pro/Video_Processing/build/uram_probe/inst_URAM288.v:1]
+WARNING: [Synth 8-7071] port 'DBITERR_B' of module 'URAM288' is unconnected for instance 'u' [D:/Xilinx/Prj/pro/Video_Processing/build/uram_probe/inst_URAM288.v:1]
+WARNING: [Synth 8-7071] port 'DOUT_A' of module 'URAM288' is unconnected for instance 'u' [D:/Xilinx/Prj/pro/Video_Processing/build/uram_probe/inst_URAM288.v:1]
+WARNING: [Synth 8-7071] port 'DOUT_B' of module 'URAM288' is unconnected for instance 'u' [D:/Xilinx/Prj/pro/Video_Processing/build/uram_probe/inst_URAM288.v:1]
+WARNING: [Synth 8-7071] port 'RDACCESS_A' of module 'URAM288' is unconnected for instance 'u' [D:/Xilinx/Prj/pro/Video_Processing/build/uram_probe/inst_URAM288.v:1]
+WARNING: [Synth 8-7071] port 'RDACCESS_B' of module 'URAM288' is unconnected for instance 'u' [D:/Xilinx/Prj/pro/Video_Processing/build/uram_probe/inst_URAM288.v:1]
+WARNING: [Synth 8-7071] port 'SBITERR_A' of module 'URAM288' is unconnected for instance 'u' [D:/Xilinx/Prj/pro/Video_Processing/build/uram_probe/inst_URAM288.v:1]
+WARNING: [Synth 8-7071] port 'SBITERR_B' of module 'URAM288' is unconnected for instance 'u' [D:/Xilinx/Prj/pro/Video_Processing/build/uram_probe/inst_URAM288.v:1]
+WARNING: [Synth 8-7071] port 'ADDR_A' of module 'URAM288' is unconnected for instance 'u' [D:/Xilinx/Prj/pro/Video_Processing/build/uram_probe/inst_URAM288.v:1]
+WARNING: [Synth 8-7071] port 'ADDR_B' of module 'URAM288' is unconnected for instance 'u' [D:/Xilinx/Prj/pro/Video_Processing/build/uram_probe/inst_URAM288.v:1]
+WARNING: [Synth 8-7071] port 'BWE_A' of module 'URAM288' is unconnected for instance 'u' [D:/Xilinx/Prj/pro/Video_Processing/build/uram_probe/inst_URAM288.v:1]
+WARNING: [Synth 8-7071] port 'BWE_B' of module 'URAM288' is unconnected for instance 'u' [D:/Xilinx/Prj/pro/Video_Processing/build/uram_probe/inst_URAM288.v:1]
+WARNING: [Synth 8-7071] port 'CAS_IN_ADDR_A' of module 'URAM288' is unconnected for instance 'u' [D:/Xilinx/Prj/pro/Video_Processing/build/uram_probe/inst_URAM288.v:1]
+WARNING: [Synth 8-7071] port 'CAS_IN_ADDR_B' of module 'URAM288' is unconnected for instance 'u' [D:/Xilinx/Prj/pro/Video_Processing/build/uram_probe/inst_URAM288.v:1]
+WARNING: [Synth 8-7071] port 'CAS_IN_BWE_A' of module 'URAM288' is unconnected for instance 'u' [D:/Xilinx/Prj/pro/Video_Processing/build/uram_probe/inst_URAM288.v:1]
+WARNING: [Synth 8-7071] port 'CAS_IN_BWE_B' of module 'URAM288' is unconnected for instance 'u' [D:/Xilinx/Prj/pro/Video_Processing/build/uram_probe/inst_URAM288.v:1]
+WARNING: [Synth 8-7071] port 'CAS_IN_DBITERR_A' of module 'URAM288' is unconnected for instance 'u' [D:/Xilinx/Prj/pro/Video_Processing/build/uram_probe/inst_URAM288.v:1]
+WARNING: [Synth 8-7071] port 'CAS_IN_DBITERR_B' of module 'URAM288' is unconnected for instance 'u' [D:/Xilinx/Prj/pro/Video_Processing/build/uram_probe/inst_URAM288.v:1]
+WARNING: [Synth 8-7071] port 'CAS_IN_DIN_A' of module 'URAM288' is unconnected for instance 'u' [D:/Xilinx/Prj/pro/Video_Processing/build/uram_probe/inst_URAM288.v:1]
+WARNING: [Synth 8-7071] port 'CAS_IN_DIN_B' of module 'URAM288' is unconnected for instance 'u' [D:/Xilinx/Prj/pro/Video_Processing/build/uram_probe/inst_URAM288.v:1]
+WARNING: [Synth 8-7071] port 'CAS_IN_DOUT_A' of module 'URAM288' is unconnected for instance 'u' [D:/Xilinx/Prj/pro/Video_Processing/build/uram_probe/inst_URAM288.v:1]
+WARNING: [Synth 8-7071] port 'CAS_IN_DOUT_B' of module 'URAM288' is unconnected for instance 'u' [D:/Xilinx/Prj/pro/Video_Processing/build/uram_probe/inst_URAM288.v:1]
+WARNING: [Synth 8-7071] port 'CAS_IN_EN_A' of module 'URAM288' is unconnected for instance 'u' [D:/Xilinx/Prj/pro/Video_Processing/build/uram_probe/inst_URAM288.v:1]
+WARNING: [Synth 8-7071] port 'CAS_IN_EN_B' of module 'URAM288' is unconnected for instance 'u' [D:/Xilinx/Prj/pro/Video_Processing/build/uram_probe/inst_URAM288.v:1]
+WARNING: [Synth 8-7071] port 'CAS_IN_RDACCESS_A' of module 'URAM288' is unconnected for instance 'u' [D:/Xilinx/Prj/pro/Video_Processing/build/uram_probe/inst_URAM288.v:1]
+WARNING: [Synth 8-7071] port 'CAS_IN_RDACCESS_B' of module 'URAM288' is unconnected for instance 'u' [D:/Xilinx/Prj/pro/Video_Processing/build/uram_probe/inst_URAM288.v:1]
+WARNING: [Synth 8-7071] port 'CAS_IN_RDB_WR_A' of module 'URAM288' is unconnected for instance 'u' [D:/Xilinx/Prj/pro/Video_Processing/build/uram_probe/inst_URAM288.v:1]
+WARNING: [Synth 8-7071] port 'CAS_IN_RDB_WR_B' of module 'URAM288' is unconnected for instance 'u' [D:/Xilinx/Prj/pro/Video_Processing/build/uram_probe/inst_URAM288.v:1]
+WARNING: [Synth 8-7071] port 'CAS_IN_SBITERR_A' of module 'URAM288' is unconnected for instance 'u' [D:/Xilinx/Prj/pro/Video_Processing/build/uram_probe/inst_URAM288.v:1]
+WARNING: [Synth 8-7071] port 'CAS_IN_SBITERR_B' of module 'URAM288' is unconnected for instance 'u' [D:/Xilinx/Prj/pro/Video_Processing/build/uram_probe/inst_URAM288.v:1]
+WARNING: [Synth 8-7071] port 'CLK' of module 'URAM288' is unconnected for instance 'u' [D:/Xilinx/Prj/pro/Video_Processing/build/uram_probe/inst_URAM288.v:1]
+WARNING: [Synth 8-7071] port 'DIN_A' of module 'URAM288' is unconnected for instance 'u' [D:/Xilinx/Prj/pro/Video_Processing/build/uram_probe/inst_URAM288.v:1]
+WARNING: [Synth 8-7071] port 'DIN_B' of module 'URAM288' is unconnected for instance 'u' [D:/Xilinx/Prj/pro/Video_Processing/build/uram_probe/inst_URAM288.v:1]
+WARNING: [Synth 8-7071] port 'EN_A' of module 'URAM288' is unconnected for instance 'u' [D:/Xilinx/Prj/pro/Video_Processing/build/uram_probe/inst_URAM288.v:1]
+WARNING: [Synth 8-7071] port 'EN_B' of module 'URAM288' is unconnected for instance 'u' [D:/Xilinx/Prj/pro/Video_Processing/build/uram_probe/inst_URAM288.v:1]
+WARNING: [Synth 8-7071] port 'INJECT_DBITERR_A' of module 'URAM288' is unconnected for instance 'u' [D:/Xilinx/Prj/pro/Video_Processing/build/uram_probe/inst_URAM288.v:1]
+WARNING: [Synth 8-7071] port 'INJECT_DBITERR_B' of module 'URAM288' is unconnected for instance 'u' [D:/Xilinx/Prj/pro/Video_Processing/build/uram_probe/inst_URAM288.v:1]
+WARNING: [Synth 8-7071] port 'INJECT_SBITERR_A' of module 'URAM288' is unconnected for instance 'u' [D:/Xilinx/Prj/pro/Video_Processing/build/uram_probe/inst_URAM288.v:1]
+WARNING: [Synth 8-7071] port 'INJECT_SBITERR_B' of module 'URAM288' is unconnected for instance 'u' [D:/Xilinx/Prj/pro/Video_Processing/build/uram_probe/inst_URAM288.v:1]
+WARNING: [Synth 8-7071] port 'OREG_CE_A' of module 'URAM288' is unconnected for instance 'u' [D:/Xilinx/Prj/pro/Video_Processing/build/uram_probe/inst_URAM288.v:1]
+WARNING: [Synth 8-7071] port 'OREG_CE_B' of module 'URAM288' is unconnected for instance 'u' [D:/Xilinx/Prj/pro/Video_Processing/build/uram_probe/inst_URAM288.v:1]
+WARNING: [Synth 8-7071] port 'OREG_ECC_CE_A' of module 'URAM288' is unconnected for instance 'u' [D:/Xilinx/Prj/pro/Video_Processing/build/uram_probe/inst_URAM288.v:1]
+WARNING: [Synth 8-7071] port 'OREG_ECC_CE_B' of module 'URAM288' is unconnected for instance 'u' [D:/Xilinx/Prj/pro/Video_Processing/build/uram_probe/inst_URAM288.v:1]
+WARNING: [Synth 8-7071] port 'RDB_WR_A' of module 'URAM288' is unconnected for instance 'u' [D:/Xilinx/Prj/pro/Video_Processing/build/uram_probe/inst_URAM288.v:1]
+WARNING: [Synth 8-7071] port 'RDB_WR_B' of module 'URAM288' is unconnected for instance 'u' [D:/Xilinx/Prj/pro/Video_Processing/build/uram_probe/inst_URAM288.v:1]
+WARNING: [Synth 8-7071] port 'RST_A' of module 'URAM288' is unconnected for instance 'u' [D:/Xilinx/Prj/pro/Video_Processing/build/uram_probe/inst_URAM288.v:1]
+WARNING: [Synth 8-7071] port 'RST_B' of module 'URAM288' is unconnected for instance 'u' [D:/Xilinx/Prj/pro/Video_Processing/build/uram_probe/inst_URAM288.v:1]
+WARNING: [Synth 8-7071] port 'SLEEP' of module 'URAM288' is unconnected for instance 'u' [D:/Xilinx/Prj/pro/Video_Processing/build/uram_probe/inst_URAM288.v:1]
+WARNING: [Synth 8-7023] instance 'u' of module 'URAM288' has 66 connections declared, but only 0 given [D:/Xilinx/Prj/pro/Video_Processing/build/uram_probe/inst_URAM288.v:1]
+INFO: [Synth 8-6155] done synthesizing module 'inst_uram288' (0#1) [D:/Xilinx/Prj/pro/Video_Processing/build/uram_probe/inst_URAM288.v:1]
+---------------------------------------------------------------------------------
+Finished Synthesize : Time (s): cpu = 00:00:09 ; elapsed = 00:00:09 . Memory (MB): peak = 2123.957 ; gain = 0.000
+---------------------------------------------------------------------------------
+---------------------------------------------------------------------------------
+Finished Constraint Validation : Time (s): cpu = 00:00:09 ; elapsed = 00:00:09 . Memory (MB): peak = 2123.957 ; gain = 0.000
+---------------------------------------------------------------------------------
+---------------------------------------------------------------------------------
+Start Loading Part and Timing Information
+---------------------------------------------------------------------------------
+Loading part: xc7z020clg484-1
+---------------------------------------------------------------------------------
+Finished Loading Part and Timing Information : Time (s): cpu = 00:00:09 ; elapsed = 00:00:09 . Memory (MB): peak = 2123.957 ; gain = 0.000
+---------------------------------------------------------------------------------
+---------------------------------------------------------------------------------
+Finished RTL Optimization Phase 2 : Time (s): cpu = 00:00:09 ; elapsed = 00:00:09 . Memory (MB): peak = 2123.957 ; gain = 0.000
+---------------------------------------------------------------------------------
+No constraint files found.
+---------------------------------------------------------------------------------
+Start RTL Component Statistics 
+---------------------------------------------------------------------------------
+Detailed RTL Component Info : 
+---------------------------------------------------------------------------------
+Finished RTL Component Statistics 
+---------------------------------------------------------------------------------
+---------------------------------------------------------------------------------
+Start Part Resource Summary
+---------------------------------------------------------------------------------
+Part Resources:
+DSPs: 220 (col length:60)
+BRAMs: 280 (col length: RAMB18 60 RAMB36 30)
+---------------------------------------------------------------------------------
+Finished Part Resource Summary
+---------------------------------------------------------------------------------
+No constraint files found.
+---------------------------------------------------------------------------------
+Start Cross Boundary and Area Optimization
+---------------------------------------------------------------------------------
+---------------------------------------------------------------------------------
+Finished Cross Boundary and Area Optimization : Time (s): cpu = 00:00:11 ; elapsed = 00:00:12 . Memory (MB): peak = 2123.957 ; gain = 0.000
+---------------------------------------------------------------------------------
+No constraint files found.
+---------------------------------------------------------------------------------
+Start Timing Optimization
+---------------------------------------------------------------------------------
+---------------------------------------------------------------------------------
+Finished Timing Optimization : Time (s): cpu = 00:00:11 ; elapsed = 00:00:12 . Memory (MB): peak = 2123.957 ; gain = 0.000
+---------------------------------------------------------------------------------
+---------------------------------------------------------------------------------
+Start Technology Mapping
+---------------------------------------------------------------------------------
+---------------------------------------------------------------------------------
+Finished Technology Mapping : Time (s): cpu = 00:00:11 ; elapsed = 00:00:12 . Memory (MB): peak = 2123.957 ; gain = 0.000
+---------------------------------------------------------------------------------
+---------------------------------------------------------------------------------
+Start IO Insertion
+---------------------------------------------------------------------------------
+---------------------------------------------------------------------------------
+Start Flattening Before IO Insertion
+---------------------------------------------------------------------------------
+---------------------------------------------------------------------------------
+Finished Flattening Before IO Insertion
+---------------------------------------------------------------------------------
+---------------------------------------------------------------------------------
+Start Final Netlist Cleanup
+---------------------------------------------------------------------------------
+---------------------------------------------------------------------------------
+Finished Final Netlist Cleanup
+---------------------------------------------------------------------------------
+---------------------------------------------------------------------------------
+Finished IO Insertion : Time (s): cpu = 00:00:17 ; elapsed = 00:00:18 . Memory (MB): peak = 2133.125 ; gain = 9.168
+---------------------------------------------------------------------------------
+---------------------------------------------------------------------------------
+Start Renaming Generated Instances
+---------------------------------------------------------------------------------
+---------------------------------------------------------------------------------
+Finished Renaming Generated Instances : Time (s): cpu = 00:00:17 ; elapsed = 00:00:18 . Memory (MB): peak = 2133.125 ; gain = 9.168
+---------------------------------------------------------------------------------
+---------------------------------------------------------------------------------
+Start Rebuilding User Hierarchy
+---------------------------------------------------------------------------------
+---------------------------------------------------------------------------------
+Finished Rebuilding User Hierarchy : Time (s): cpu = 00:00:17 ; elapsed = 00:00:18 . Memory (MB): peak = 2133.125 ; gain = 9.168
+---------------------------------------------------------------------------------
+---------------------------------------------------------------------------------
+Start Renaming Generated Ports
+---------------------------------------------------------------------------------
+---------------------------------------------------------------------------------
+Finished Renaming Generated Ports : Time (s): cpu = 00:00:17 ; elapsed = 00:00:18 . Memory (MB): peak = 2133.125 ; gain = 9.168
+---------------------------------------------------------------------------------
+---------------------------------------------------------------------------------
+Start Handling Custom Attributes
+---------------------------------------------------------------------------------
+---------------------------------------------------------------------------------
+Finished Handling Custom Attributes : Time (s): cpu = 00:00:17 ; elapsed = 00:00:18 . Memory (MB): peak = 2133.125 ; gain = 9.168
+---------------------------------------------------------------------------------
+---------------------------------------------------------------------------------
+Start Renaming Generated Nets
+---------------------------------------------------------------------------------
+---------------------------------------------------------------------------------
+Finished Renaming Generated Nets : Time (s): cpu = 00:00:17 ; elapsed = 00:00:18 . Memory (MB): peak = 2133.125 ; gain = 9.168
+---------------------------------------------------------------------------------
+---------------------------------------------------------------------------------
+Start Writing Synthesis Report
+---------------------------------------------------------------------------------
+
+Report BlackBoxes: 
++-+--------------+----------+
+| |BlackBox name |Instances |
++-+--------------+----------+
++-+--------------+----------+
+
+Report Cell Usage: 
++-+-----+------+
+| |Cell |Count |
++-+-----+------+
++-+-----+------+
+---------------------------------------------------------------------------------
+Finished Writing Synthesis Report : Time (s): cpu = 00:00:17 ; elapsed = 00:00:18 . Memory (MB): peak = 2133.125 ; gain = 9.168
+---------------------------------------------------------------------------------
+Synthesis finished with 0 errors, 0 critical warnings and 68 warnings.
+Synthesis Optimization Runtime : Time (s): cpu = 00:00:17 ; elapsed = 00:00:18 . Memory (MB): peak = 2133.125 ; gain = 9.168
+Synthesis Optimization Complete : Time (s): cpu = 00:00:17 ; elapsed = 00:00:18 . Memory (MB): peak = 2133.125 ; gain = 9.168
+INFO: [Project 1-571] Translating synthesized netlist
+Netlist sorting complete. Time (s): cpu = 00:00:00 ; elapsed = 00:00:00 . Memory (MB): peak = 2133.977 ; gain = 0.000
+INFO: [Project 1-570] Preparing netlist for logic optimization
+INFO: [Opt 31-138] Pushed 0 inverter(s) to 0 load pin(s).
+Netlist sorting complete. Time (s): cpu = 00:00:00 ; elapsed = 00:00:00 . Memory (MB): peak = 2133.977 ; gain = 0.000
+INFO: [Project 1-111] Unisim Transformation Summary:
+No Unisim elements were transformed.
+
+Synth Design complete | Checksum: 3edb990e
+INFO: [Common 17-83] Releasing license: Synthesis
+22 Infos, 102 Warnings, 0 Critical Warnings and 0 Errors encountered.
+synth_design completed successfully
+synth_design: Time (s): cpu = 00:00:22 ; elapsed = 00:00:24 . Memory (MB): peak = 2133.977 ; gain = 10.020
+Q3_URAM288 例化通过（这颗器件有这个原�??�?
+Command: synth_design -top inst_uram288e -part xc7z020clg484-1
+Starting synth_design
+Attempting to get a license for feature 'Synthesis' and/or device 'xc7z020'
+INFO: [Common 17-349] Got license for feature 'Synthesis' and/or device 'xc7z020'
+INFO: [Synth 8-7079] Multithreading enabled for synth_design using a maximum of 2 processes.
+---------------------------------------------------------------------------------
+Starting Synthesize : Time (s): cpu = 00:00:08 ; elapsed = 00:00:09 . Memory (MB): peak = 2133.977 ; gain = 0.000
+---------------------------------------------------------------------------------
+INFO: [Synth 8-6157] synthesizing module 'inst_uram288e' [D:/Xilinx/Prj/pro/Video_Processing/build/uram_probe/inst_URAM288E.v:1]
+ERROR: [Synth 8-439] module 'URAM288E' not found [D:/Xilinx/Prj/pro/Video_Processing/build/uram_probe/inst_URAM288E.v:1]
+ERROR: [Synth 8-6156] failed synthesizing module 'inst_uram288e' [D:/Xilinx/Prj/pro/Video_Processing/build/uram_probe/inst_URAM288E.v:1]
+---------------------------------------------------------------------------------
+Finished Synthesize : Time (s): cpu = 00:00:09 ; elapsed = 00:00:10 . Memory (MB): peak = 2133.977 ; gain = 0.000
+---------------------------------------------------------------------------------
+synthesize failed
+INFO: [Common 17-83] Releasing license: Synthesis
+26 Infos, 102 Warnings, 0 Critical Warnings and 3 Errors encountered.
+synth_design failed
+synth_design: Time (s): cpu = 00:00:10 ; elapsed = 00:00:11 . Memory (MB): peak = 2133.977 ; gain = 0.000
+Q3_URAM288E ERROR ERROR: [Common 17-69] Command failed: Vivado Synthesis failed 
+Command: synth_design -top inst_uram1240 -part xc7z020clg484-1
+Starting synth_design
+Attempting to get a license for feature 'Synthesis' and/or device 'xc7z020'
+INFO: [Common 17-349] Got license for feature 'Synthesis' and/or device 'xc7z020'
+INFO: [Synth 8-7079] Multithreading enabled for synth_design using a maximum of 2 processes.
+---------------------------------------------------------------------------------
+Starting Synthesize : Time (s): cpu = 00:00:06 ; elapsed = 00:00:07 . Memory (MB): peak = 2133.977 ; gain = 0.000
+---------------------------------------------------------------------------------
+INFO: [Synth 8-6157] synthesizing module 'inst_uram1240' [D:/Xilinx/Prj/pro/Video_Processing/build/uram_probe/inst_URAM1240.v:1]
+ERROR: [Synth 8-439] module 'URAM1240' not found [D:/Xilinx/Prj/pro/Video_Processing/build/uram_probe/inst_URAM1240.v:1]
+ERROR: [Synth 8-6156] failed synthesizing module 'inst_uram1240' [D:/Xilinx/Prj/pro/Video_Processing/build/uram_probe/inst_URAM1240.v:1]
+---------------------------------------------------------------------------------
+Finished Synthesize : Time (s): cpu = 00:00:08 ; elapsed = 00:00:08 . Memory (MB): peak = 2133.977 ; gain = 0.000
+---------------------------------------------------------------------------------
+synthesize failed
+INFO: [Common 17-83] Releasing license: Synthesis
+30 Infos, 102 Warnings, 0 Critical Warnings and 5 Errors encountered.
+synth_design failed
+synth_design: Time (s): cpu = 00:00:08 ; elapsed = 00:00:10 . Memory (MB): peak = 2133.977 ; gain = 0.000
+Q3_URAM1240 ERROR ERROR: [Common 17-69] Command failed: Vivado Synthesis failed 
+# close_project
+# puts "URAM PRESENCE DONE"
+URAM PRESENCE DONE
+# exit 0
+INFO: [Common 17-206] Exiting Vivado at Fri Sep 25 07:23:13 2026...

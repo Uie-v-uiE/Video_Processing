@@ -63,13 +63,21 @@
    并发不闪不抢 / 长按四态轮转且图卡会动）—— 见 `board/README.md` 眼睛表。
    `#50` 那条读超时**已结案**（09-24 06:4x 前）：根因是 PS 固件把 FAT32 目录项高簇字按大端拼，
    修完整卡 4398 帧播完并回绕，卡与 FAT 都是好的（凭据 `build/frozen_r32_sdfix/`）。
-3. **UltraRAM 帧缓存实验没收口**：2025.2.1 拒绝 `ultramark`/`ultraram` 两种 `ram_style` 拼法并静默退回
-   `auto`，量到的 BRAM 仍是 72 tile、URAM 0 ⇒ 结论"工具不会自己为该形状选 UltraRAM"是实测的，
-   但"9 块 UltraRAM"目前只是算出来的。**并且这一条里有一处当时写错的名字要更正**：
-   原来写"要真量需直接例化 `URAM1240`" —— 那是 **UltraScale+** 的原语，**Zynq-7020 的 UltraRAM 是
-   `URAM288`/`URAM288E`** ⇒ 那次失败究竟证明了多少"工具不为这形状选 UltraRAM"、多少是"我拿错器件族的名字"，
-   **目前不知道**，重开实验前先查 7 系 UG901 的 `ram_style` 合法值与 URAM288 的端口形状（`OVERNIGHT_LOG` §40）。
-   **对外口径不变**：本期不宣称 UltraRAM，只说"帧缓存在 BRAM，占用 65.71 %（r56 `utilization.rpt`）"。
+3. **UltraRAM 帧缓存实验：方向可能根本不成立，本期不宣称**（2026-09-25 重写这条，全过程见 `OVERNIGHT_LOG` §41）：
+   现在拿得出的**事实**只有两条 ——
+   ① `ram_style="ultramark"` 被 2025.2.1 的综合**明确判为无效值**
+   （`WARNING [Synth 8-11376] … 'ultramark' is an not a valid value. The default value 'auto' will be used`，
+   凭据 `build/uram_probe_console.txt`；历史那次的另一种拼法 `ultraram` 结果相同），
+   且 300 KB（= 帧缓存容量）的**简单双口** RAM 综合出来是 96 个 RAMB36、0 个 URAM；
+   ② **读口数量直接乘 BRAM**：同容量改成 1 写 4 读 ⇒ **384** 个 RAMB36（正好 4 倍），
+   与当年给双线性加第二个读口量到的 80→160 是同一规律的两次独立测量。
+   **没答上来的**：这颗 xc7z020 到底有没有 UltraRAM 站点 —— 三次 TCL 问法（`get_lib_cells` 查库 /
+   直接例化原语 / `get_sites -filter` 数站点）里，凡是返回 0 的那两种
+   **连明知存在的 `RAMB36E1`、`FDRE`、`IOB` 都查不到** ⇒ **阳性对照不过，那个 0 不算结论**；
+   唯一有对照意义的是"例化 `URAM288` 能通过、`URAM1240` 会被拒"，而那只说明库里有这个原语、不等于器件有站点。
+   ⇒ 原来那句"9 块 UltraRAM 换掉 48 块 BRAM"**降级为未证实**；下一步该做的是**查器件手册**
+   （DS187 / PG091 的 7020 资源表），不是继续猜命令语法。
+   **对外口径**：帧缓存在 BRAM，占用 92/140 tile = 65.71 %（`build/frozen_r57_remap/utilization.rpt`），不提 UltraRAM。
 4. **`udp_rx_parser` 的三个统计脉冲没接可读寄存器**（`stat_drop_filt` 等）：端口过滤已进顶层，
    但"被过滤掉的包数"还不是可读数。接不接是独立小决定，没有顺手塞进 #38 那一笔。
 5. **`bad` 会动这件事只有台架证据**（`tb_v795_rx_chain` 的 C2）。现场没有可靠的注错手段，

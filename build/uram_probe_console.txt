@@ -1,0 +1,1068 @@
+
+****** Vivado v2025.2.1 (64-bit)
+  **** SW Build 6403652 on Thu Mar 19 19:48:24 GMT 2026
+  **** IP Build 6403511 on Thu Mar 19 12:41:45 MDT 2026
+  **** SharedData Build 6403650 on Thu Mar 19 14:02:13 MDT 2026
+  **** Start of session at: Fri Sep 25 07:15:22 2026
+    ** Copyright 1986-2022 Xilinx, Inc. All Rights Reserved.
+    ** Copyright 2022-2026 Advanced Micro Devices, Inc. All Rights Reserved.
+
+source build/tcl/uram_probe.tcl
+# set root [file normalize [file join [file dirname [info script]] .. ..]]
+# set dir [file join $root build uram_probe]
+# file mkdir $dir
+# set part xc7z020clg484-1
+# set f [open [file join $dir uram_probe.v] w]
+# puts $f {
+# // 1 �? 1 读：UltraRAM �?一能自然吃下的形状（简单双口）
+# (* ram_style = "ultramark" *) module ram_1w1r #(
+#     parameter DEPTH = 76800
+# )(
+#     input  wire        clk,
+#     input  wire        we,
+#     input  wire [16:0] waddr,
+#     input  wire [31:0] din,
+#     input  wire [16:0] raddr,
+#     output reg  [31:0] dout
+# );
+#     reg [31:0] mem [0:DEPTH-1];
+#     always @(posedge clk) begin
+#         if (we) mem[waddr] <= din;
+#         dout <= mem[raddr];
+#     end
+# endmodule
+# 
+# // 同样的属性，�?**读口翻�?**（真实帧缓存要同时喂�?/右窗�? 4 �?字节道）
+# (* ram_style = "ultramark" *) module ram_1w4r #(
+#     parameter DEPTH = 76800
+# )(
+#     input  wire        clk,
+#     input  wire        we,
+#     input  wire [16:0] waddr,
+#     input  wire [31:0] din,
+#     input  wire [16:0] r0, input  wire [16:0] r1, input  wire [16:0] r2, input  wire [16:0] r3,
+#     output reg  [31:0] d0, output reg  [31:0] d1, output reg  [31:0] d2, output reg  [31:0] d3
+# );
+#     reg [31:0] mem [0:DEPTH-1];
+#     always @(posedge clk) begin
+#         if (we) mem[waddr] <= din;
+#         d0 <= mem[r0]; d1 <= mem[r1]; d2 <= mem[r2]; d3 <= mem[r3];
+#     end
+# endmodule
+# 
+# // 对照组：完全不加属性，看工具自己怎么�?
+# module ram_plain #(
+#     parameter DEPTH = 76800
+# )(
+#     input  wire        clk,
+#     input  wire        we,
+#     input  wire [16:0] waddr,
+#     input  wire [31:0] din,
+#     input  wire [16:0] raddr,
+#     output reg  [31:0] dout
+# );
+#     reg [31:0] mem [0:DEPTH-1];
+#     always @(posedge clk) begin
+#         if (we) mem[waddr] <= din;
+#         dout <= mem[raddr];
+#     end
+# endmodule
+# }
+# close $f
+# foreach top {ram_1w1r ram_1w4r ram_plain} {
+#     puts "########## URAM_PROBE $top ##########"
+#     if {[catch {
+#         create_project -force probe_$top [file join $root build uram_probe prj_$top] -part $part
+#         read_verilog [file join $dir uram_probe.v]
+#         synth_design -top $top -part $part
+#     } e]} {
+#         puts "PROBE $top SYNTH_FAILED $e"
+#         continue
+#     }
+#     set uram  [llength [get_cells -quiet -hier -filter {NAME =~ *URAM* || REF_NAME =~ URAM*}]]
+#     set ramb36 [llength [get_cells -quiet -hier -filter {REF_NAME == RAMB36E1}]]
+#     set ramb18 [llength [get_cells -quiet -hier -filter {REF_NAME == RAMB18E1}]]
+#     set lutram [llength [get_cells -quiet -hier -filter {REF_NAME =~ RAMD* || REF_NAME =~ RAMS*}]]
+#     set ff     [llength [get_cells -quiet -hier -filter {REF_NAME =~ FD*}]]
+#     puts "PROBE $top URAM=$uram RAMB36=$ramb36 RAMB18=$ramb18 LUTRAM_cells=$lutram FFs=$ff"
+#     # 工具�?己怎么说（�?忽略的属性会�? WARNING，抓出来贴日志）
+#     close_project
+# }
+########## URAM_PROBE ram_1w1r ##########
+create_project: Time (s): cpu = 00:00:11 ; elapsed = 00:00:07 . Memory (MB): peak = 541.113 ; gain = 221.992
+Command: synth_design -top ram_1w1r -part xc7z020clg484-1
+Starting synth_design
+Attempting to get a license for feature 'Synthesis' and/or device 'xc7z020'
+INFO: [Common 17-349] Got license for feature 'Synthesis' and/or device 'xc7z020'
+INFO: [Synth 8-7079] Multithreading enabled for synth_design using a maximum of 2 processes.
+INFO: [Synth 8-7078] Launching helper process for spawning children vivado processes
+INFO: [Synth 8-7075] Helper process launched with PID 20896
+---------------------------------------------------------------------------------
+Starting Synthesize : Time (s): cpu = 00:00:06 ; elapsed = 00:00:07 . Memory (MB): peak = 1081.090 ; gain = 536.004
+---------------------------------------------------------------------------------
+INFO: [Synth 8-6157] synthesizing module 'ram_1w1r' [D:/Xilinx/Prj/pro/Video_Processing/build/uram_probe/uram_probe.v:3]
+WARNING: [Synth 8-11376] The 'ram_style' set on 'ram_1w1r' is ignored because 'ultramark' is an not a valid value. The default value 'auto' will be used. [D:/Xilinx/Prj/pro/Video_Processing/build/uram_probe/uram_probe.v:3]
+INFO: [Synth 8-6155] done synthesizing module 'ram_1w1r' (0#1) [D:/Xilinx/Prj/pro/Video_Processing/build/uram_probe/uram_probe.v:3]
+---------------------------------------------------------------------------------
+Finished Synthesize : Time (s): cpu = 00:00:09 ; elapsed = 00:00:10 . Memory (MB): peak = 1217.074 ; gain = 671.988
+---------------------------------------------------------------------------------
+---------------------------------------------------------------------------------
+Finished Constraint Validation : Time (s): cpu = 00:00:10 ; elapsed = 00:00:11 . Memory (MB): peak = 1217.074 ; gain = 671.988
+---------------------------------------------------------------------------------
+---------------------------------------------------------------------------------
+Start Loading Part and Timing Information
+---------------------------------------------------------------------------------
+Loading part: xc7z020clg484-1
+INFO: [Device 21-403] Loading part xc7z020clg484-1
+---------------------------------------------------------------------------------
+Finished Loading Part and Timing Information : Time (s): cpu = 00:00:10 ; elapsed = 00:00:11 . Memory (MB): peak = 1217.074 ; gain = 671.988
+---------------------------------------------------------------------------------
+---------------------------------------------------------------------------------
+Finished RTL Optimization Phase 2 : Time (s): cpu = 00:00:10 ; elapsed = 00:00:11 . Memory (MB): peak = 1217.074 ; gain = 671.988
+---------------------------------------------------------------------------------
+No constraint files found.
+---------------------------------------------------------------------------------
+Start RTL Component Statistics 
+---------------------------------------------------------------------------------
+Detailed RTL Component Info : 
++---Registers : 
+	               32 Bit    Registers := 1     
++---RAMs : 
+	            2400K Bit	(76800 X 32 bit)          RAMs := 1     
+---------------------------------------------------------------------------------
+Finished RTL Component Statistics 
+---------------------------------------------------------------------------------
+---------------------------------------------------------------------------------
+Start Part Resource Summary
+---------------------------------------------------------------------------------
+Part Resources:
+DSPs: 220 (col length:60)
+BRAMs: 280 (col length: RAMB18 60 RAMB36 30)
+---------------------------------------------------------------------------------
+Finished Part Resource Summary
+---------------------------------------------------------------------------------
+No constraint files found.
+---------------------------------------------------------------------------------
+Start Cross Boundary and Area Optimization
+---------------------------------------------------------------------------------
+WARNING: [Synth 8-3332] Sequential element (mem_reg_mux_sel_a_pos_1) is unused and will be removed from module ram_1w1r.
+WARNING: [Synth 8-3332] Sequential element (mem_reg_mux_sel_a_pos_1__0) is unused and will be removed from module ram_1w1r.
+WARNING: [Synth 8-3332] Sequential element (mem_reg_mux_sel_a_pos_1__1) is unused and will be removed from module ram_1w1r.
+WARNING: [Synth 8-3332] Sequential element (mem_reg_mux_sel_a_pos_1__2) is unused and will be removed from module ram_1w1r.
+WARNING: [Synth 8-3332] Sequential element (mem_reg_mux_sel_a_pos_1__3) is unused and will be removed from module ram_1w1r.
+WARNING: [Synth 8-3332] Sequential element (mem_reg_mux_sel_a_pos_1__4) is unused and will be removed from module ram_1w1r.
+WARNING: [Synth 8-3332] Sequential element (mem_reg_mux_sel_a_pos_1__5) is unused and will be removed from module ram_1w1r.
+WARNING: [Synth 8-3332] Sequential element (mem_reg_mux_sel_a_pos_1__6) is unused and will be removed from module ram_1w1r.
+WARNING: [Synth 8-3332] Sequential element (mem_reg_mux_sel_a_pos_1__7) is unused and will be removed from module ram_1w1r.
+WARNING: [Synth 8-3332] Sequential element (mem_reg_mux_sel_a_pos_1__8) is unused and will be removed from module ram_1w1r.
+WARNING: [Synth 8-3332] Sequential element (mem_reg_mux_sel_a_pos_1__9) is unused and will be removed from module ram_1w1r.
+WARNING: [Synth 8-3332] Sequential element (mem_reg_mux_sel_a_pos_1__10) is unused and will be removed from module ram_1w1r.
+WARNING: [Synth 8-3332] Sequential element (mem_reg_mux_sel_a_pos_1__11) is unused and will be removed from module ram_1w1r.
+WARNING: [Synth 8-3332] Sequential element (mem_reg_mux_sel_a_pos_1__12) is unused and will be removed from module ram_1w1r.
+WARNING: [Synth 8-3332] Sequential element (mem_reg_mux_sel_a_pos_1__13) is unused and will be removed from module ram_1w1r.
+WARNING: [Synth 8-3332] Sequential element (mem_reg_mux_sel_a_pos_1__14) is unused and will be removed from module ram_1w1r.
+WARNING: [Synth 8-3332] Sequential element (mem_reg_mux_sel_a_pos_1__15) is unused and will be removed from module ram_1w1r.
+WARNING: [Synth 8-3332] Sequential element (mem_reg_mux_sel_a_pos_1__16) is unused and will be removed from module ram_1w1r.
+WARNING: [Synth 8-3332] Sequential element (mem_reg_mux_sel_a_pos_1__17) is unused and will be removed from module ram_1w1r.
+WARNING: [Synth 8-3332] Sequential element (mem_reg_mux_sel_a_pos_1__18) is unused and will be removed from module ram_1w1r.
+WARNING: [Synth 8-3332] Sequential element (mem_reg_mux_sel_a_pos_1__19) is unused and will be removed from module ram_1w1r.
+WARNING: [Synth 8-3332] Sequential element (mem_reg_mux_sel_a_pos_1__20) is unused and will be removed from module ram_1w1r.
+WARNING: [Synth 8-3332] Sequential element (mem_reg_mux_sel_a_pos_1__21) is unused and will be removed from module ram_1w1r.
+WARNING: [Synth 8-3332] Sequential element (mem_reg_mux_sel_a_pos_1__22) is unused and will be removed from module ram_1w1r.
+WARNING: [Synth 8-3332] Sequential element (mem_reg_mux_sel_a_pos_1__23) is unused and will be removed from module ram_1w1r.
+WARNING: [Synth 8-3332] Sequential element (mem_reg_mux_sel_a_pos_1__24) is unused and will be removed from module ram_1w1r.
+WARNING: [Synth 8-3332] Sequential element (mem_reg_mux_sel_a_pos_1__25) is unused and will be removed from module ram_1w1r.
+WARNING: [Synth 8-3332] Sequential element (mem_reg_mux_sel_a_pos_1__26) is unused and will be removed from module ram_1w1r.
+WARNING: [Synth 8-3332] Sequential element (mem_reg_mux_sel_a_pos_1__27) is unused and will be removed from module ram_1w1r.
+WARNING: [Synth 8-3332] Sequential element (mem_reg_mux_sel_a_pos_1__28) is unused and will be removed from module ram_1w1r.
+WARNING: [Synth 8-3332] Sequential element (mem_reg_mux_sel_a_pos_1__29) is unused and will be removed from module ram_1w1r.
+WARNING: [Synth 8-3332] Sequential element (mem_reg_mux_sel_a_pos_1__30) is unused and will be removed from module ram_1w1r.
+---------------------------------------------------------------------------------
+Finished Cross Boundary and Area Optimization : Time (s): cpu = 00:00:15 ; elapsed = 00:00:17 . Memory (MB): peak = 1421.477 ; gain = 876.391
+---------------------------------------------------------------------------------
+---------------------------------------------------------------------------------
+Start ROM, RAM, DSP, Shift Register and Retiming Reporting
+---------------------------------------------------------------------------------
+
+Block RAM: Preliminary Mapping Report (see note below)
++------------+------------+------------------------+---+---+------------------------+---+---+------------------+--------+--------+
+|Module Name | RTL Object | PORT A (Depth x Width) | W | R | PORT B (Depth x Width) | W | R | Ports driving FF | RAMB18 | RAMB36 | 
++------------+------------+------------------------+---+---+------------------------+---+---+------------------+--------+--------+
+|ram_1w1r    | mem_reg    | 75 K x 32(READ_FIRST)  | W |   | 75 K x 32(WRITE_FIRST) |   | R | Port A and B     | 0      | 96     | 
++------------+------------+------------------------+---+---+------------------------+---+---+------------------+--------+--------+
+
+Note: The table above is a preliminary report that shows the Block RAMs at the current stage of the synthesis flow. Some Block RAMs may be reimplemented as non Block RAM primitives later in the synthesis flow. Multiple instantiated Block RAMs are reported only once. 
+---------------------------------------------------------------------------------
+Finished ROM, RAM, DSP, Shift Register and Retiming Reporting
+---------------------------------------------------------------------------------
+No constraint files found.
+---------------------------------------------------------------------------------
+Start Timing Optimization
+---------------------------------------------------------------------------------
+---------------------------------------------------------------------------------
+Finished Timing Optimization : Time (s): cpu = 00:00:15 ; elapsed = 00:00:17 . Memory (MB): peak = 1437.316 ; gain = 892.230
+---------------------------------------------------------------------------------
+---------------------------------------------------------------------------------
+Start ROM, RAM, DSP, Shift Register and Retiming Reporting
+---------------------------------------------------------------------------------
+
+Block RAM: Final Mapping Report
++------------+------------+------------------------+---+---+------------------------+---+---+------------------+--------+--------+
+|Module Name | RTL Object | PORT A (Depth x Width) | W | R | PORT B (Depth x Width) | W | R | Ports driving FF | RAMB18 | RAMB36 | 
++------------+------------+------------------------+---+---+------------------------+---+---+------------------+--------+--------+
+|ram_1w1r    | mem_reg    | 75 K x 32(READ_FIRST)  | W |   | 75 K x 32(WRITE_FIRST) |   | R | Port A and B     | 0      | 96     | 
++------------+------------+------------------------+---+---+------------------------+---+---+------------------+--------+--------+
+
+---------------------------------------------------------------------------------
+Finished ROM, RAM, DSP, Shift Register and Retiming Reporting
+---------------------------------------------------------------------------------
+---------------------------------------------------------------------------------
+Start Technology Mapping
+---------------------------------------------------------------------------------
+INFO: [Synth 8-7052] The timing for the instance mem_reg_1_0 (implemented as a Block RAM) might be sub-optimal as no optional output register could be merged into the ram block. Providing additional output register may help in improving timing.
+INFO: [Synth 8-7052] The timing for the instance mem_reg_1_1 (implemented as a Block RAM) might be sub-optimal as no optional output register could be merged into the ram block. Providing additional output register may help in improving timing.
+INFO: [Synth 8-7052] The timing for the instance mem_reg_1_2 (implemented as a Block RAM) might be sub-optimal as no optional output register could be merged into the ram block. Providing additional output register may help in improving timing.
+INFO: [Synth 8-7052] The timing for the instance mem_reg_1_3 (implemented as a Block RAM) might be sub-optimal as no optional output register could be merged into the ram block. Providing additional output register may help in improving timing.
+INFO: [Synth 8-7052] The timing for the instance mem_reg_1_4 (implemented as a Block RAM) might be sub-optimal as no optional output register could be merged into the ram block. Providing additional output register may help in improving timing.
+INFO: [Synth 8-7052] The timing for the instance mem_reg_1_5 (implemented as a Block RAM) might be sub-optimal as no optional output register could be merged into the ram block. Providing additional output register may help in improving timing.
+INFO: [Synth 8-7052] The timing for the instance mem_reg_1_6 (implemented as a Block RAM) might be sub-optimal as no optional output register could be merged into the ram block. Providing additional output register may help in improving timing.
+INFO: [Synth 8-7052] The timing for the instance mem_reg_1_7 (implemented as a Block RAM) might be sub-optimal as no optional output register could be merged into the ram block. Providing additional output register may help in improving timing.
+INFO: [Synth 8-7052] The timing for the instance mem_reg_1_8 (implemented as a Block RAM) might be sub-optimal as no optional output register could be merged into the ram block. Providing additional output register may help in improving timing.
+INFO: [Synth 8-7052] The timing for the instance mem_reg_1_9 (implemented as a Block RAM) might be sub-optimal as no optional output register could be merged into the ram block. Providing additional output register may help in improving timing.
+INFO: [Synth 8-7052] The timing for the instance mem_reg_1_10 (implemented as a Block RAM) might be sub-optimal as no optional output register could be merged into the ram block. Providing additional output register may help in improving timing.
+INFO: [Synth 8-7052] The timing for the instance mem_reg_1_11 (implemented as a Block RAM) might be sub-optimal as no optional output register could be merged into the ram block. Providing additional output register may help in improving timing.
+INFO: [Synth 8-7052] The timing for the instance mem_reg_1_12 (implemented as a Block RAM) might be sub-optimal as no optional output register could be merged into the ram block. Providing additional output register may help in improving timing.
+INFO: [Synth 8-7052] The timing for the instance mem_reg_1_13 (implemented as a Block RAM) might be sub-optimal as no optional output register could be merged into the ram block. Providing additional output register may help in improving timing.
+INFO: [Synth 8-7052] The timing for the instance mem_reg_1_14 (implemented as a Block RAM) might be sub-optimal as no optional output register could be merged into the ram block. Providing additional output register may help in improving timing.
+INFO: [Synth 8-7052] The timing for the instance mem_reg_1_15 (implemented as a Block RAM) might be sub-optimal as no optional output register could be merged into the ram block. Providing additional output register may help in improving timing.
+INFO: [Synth 8-7052] The timing for the instance mem_reg_1_16 (implemented as a Block RAM) might be sub-optimal as no optional output register could be merged into the ram block. Providing additional output register may help in improving timing.
+INFO: [Synth 8-7052] The timing for the instance mem_reg_1_17 (implemented as a Block RAM) might be sub-optimal as no optional output register could be merged into the ram block. Providing additional output register may help in improving timing.
+INFO: [Synth 8-7052] The timing for the instance mem_reg_1_18 (implemented as a Block RAM) might be sub-optimal as no optional output register could be merged into the ram block. Providing additional output register may help in improving timing.
+INFO: [Synth 8-7052] The timing for the instance mem_reg_1_19 (implemented as a Block RAM) might be sub-optimal as no optional output register could be merged into the ram block. Providing additional output register may help in improving timing.
+INFO: [Synth 8-7052] The timing for the instance mem_reg_1_20 (implemented as a Block RAM) might be sub-optimal as no optional output register could be merged into the ram block. Providing additional output register may help in improving timing.
+INFO: [Synth 8-7052] The timing for the instance mem_reg_1_21 (implemented as a Block RAM) might be sub-optimal as no optional output register could be merged into the ram block. Providing additional output register may help in improving timing.
+INFO: [Synth 8-7052] The timing for the instance mem_reg_1_22 (implemented as a Block RAM) might be sub-optimal as no optional output register could be merged into the ram block. Providing additional output register may help in improving timing.
+INFO: [Synth 8-7052] The timing for the instance mem_reg_1_23 (implemented as a Block RAM) might be sub-optimal as no optional output register could be merged into the ram block. Providing additional output register may help in improving timing.
+INFO: [Synth 8-7052] The timing for the instance mem_reg_1_24 (implemented as a Block RAM) might be sub-optimal as no optional output register could be merged into the ram block. Providing additional output register may help in improving timing.
+INFO: [Synth 8-7052] The timing for the instance mem_reg_1_25 (implemented as a Block RAM) might be sub-optimal as no optional output register could be merged into the ram block. Providing additional output register may help in improving timing.
+INFO: [Synth 8-7052] The timing for the instance mem_reg_1_26 (implemented as a Block RAM) might be sub-optimal as no optional output register could be merged into the ram block. Providing additional output register may help in improving timing.
+INFO: [Synth 8-7052] The timing for the instance mem_reg_1_27 (implemented as a Block RAM) might be sub-optimal as no optional output register could be merged into the ram block. Providing additional output register may help in improving timing.
+INFO: [Synth 8-7052] The timing for the instance mem_reg_1_28 (implemented as a Block RAM) might be sub-optimal as no optional output register could be merged into the ram block. Providing additional output register may help in improving timing.
+INFO: [Synth 8-7052] The timing for the instance mem_reg_1_29 (implemented as a Block RAM) might be sub-optimal as no optional output register could be merged into the ram block. Providing additional output register may help in improving timing.
+INFO: [Synth 8-7052] The timing for the instance mem_reg_1_30 (implemented as a Block RAM) might be sub-optimal as no optional output register could be merged into the ram block. Providing additional output register may help in improving timing.
+INFO: [Synth 8-7052] The timing for the instance mem_reg_1_31 (implemented as a Block RAM) might be sub-optimal as no optional output register could be merged into the ram block. Providing additional output register may help in improving timing.
+INFO: [Synth 8-7052] The timing for the instance mem_reg_1_0__0 (implemented as a Block RAM) might be sub-optimal as no optional output register could be merged into the ram block. Providing additional output register may help in improving timing.
+INFO: [Synth 8-7052] The timing for the instance mem_reg_1_1__0 (implemented as a Block RAM) might be sub-optimal as no optional output register could be merged into the ram block. Providing additional output register may help in improving timing.
+INFO: [Synth 8-7052] The timing for the instance mem_reg_1_2__0 (implemented as a Block RAM) might be sub-optimal as no optional output register could be merged into the ram block. Providing additional output register may help in improving timing.
+INFO: [Synth 8-7052] The timing for the instance mem_reg_1_3__0 (implemented as a Block RAM) might be sub-optimal as no optional output register could be merged into the ram block. Providing additional output register may help in improving timing.
+INFO: [Synth 8-7052] The timing for the instance mem_reg_1_4__0 (implemented as a Block RAM) might be sub-optimal as no optional output register could be merged into the ram block. Providing additional output register may help in improving timing.
+INFO: [Synth 8-7052] The timing for the instance mem_reg_1_5__0 (implemented as a Block RAM) might be sub-optimal as no optional output register could be merged into the ram block. Providing additional output register may help in improving timing.
+INFO: [Synth 8-7052] The timing for the instance mem_reg_1_6__0 (implemented as a Block RAM) might be sub-optimal as no optional output register could be merged into the ram block. Providing additional output register may help in improving timing.
+INFO: [Synth 8-7052] The timing for the instance mem_reg_1_7__0 (implemented as a Block RAM) might be sub-optimal as no optional output register could be merged into the ram block. Providing additional output register may help in improving timing.
+INFO: [Synth 8-7052] The timing for the instance mem_reg_1_8__0 (implemented as a Block RAM) might be sub-optimal as no optional output register could be merged into the ram block. Providing additional output register may help in improving timing.
+INFO: [Synth 8-7052] The timing for the instance mem_reg_1_9__0 (implemented as a Block RAM) might be sub-optimal as no optional output register could be merged into the ram block. Providing additional output register may help in improving timing.
+INFO: [Synth 8-7052] The timing for the instance mem_reg_1_10__0 (implemented as a Block RAM) might be sub-optimal as no optional output register could be merged into the ram block. Providing additional output register may help in improving timing.
+INFO: [Synth 8-7052] The timing for the instance mem_reg_1_11__0 (implemented as a Block RAM) might be sub-optimal as no optional output register could be merged into the ram block. Providing additional output register may help in improving timing.
+INFO: [Synth 8-7052] The timing for the instance mem_reg_1_12__0 (implemented as a Block RAM) might be sub-optimal as no optional output register could be merged into the ram block. Providing additional output register may help in improving timing.
+INFO: [Synth 8-7052] The timing for the instance mem_reg_1_13__0 (implemented as a Block RAM) might be sub-optimal as no optional output register could be merged into the ram block. Providing additional output register may help in improving timing.
+INFO: [Synth 8-7052] The timing for the instance mem_reg_1_14__0 (implemented as a Block RAM) might be sub-optimal as no optional output register could be merged into the ram block. Providing additional output register may help in improving timing.
+INFO: [Synth 8-7052] The timing for the instance mem_reg_1_15__0 (implemented as a Block RAM) might be sub-optimal as no optional output register could be merged into the ram block. Providing additional output register may help in improving timing.
+INFO: [Synth 8-7052] The timing for the instance mem_reg_1_16__0 (implemented as a Block RAM) might be sub-optimal as no optional output register could be merged into the ram block. Providing additional output register may help in improving timing.
+INFO: [Synth 8-7052] The timing for the instance mem_reg_1_17__0 (implemented as a Block RAM) might be sub-optimal as no optional output register could be merged into the ram block. Providing additional output register may help in improving timing.
+INFO: [Synth 8-7052] The timing for the instance mem_reg_1_18__0 (implemented as a Block RAM) might be sub-optimal as no optional output register could be merged into the ram block. Providing additional output register may help in improving timing.
+INFO: [Synth 8-7052] The timing for the instance mem_reg_1_19__0 (implemented as a Block RAM) might be sub-optimal as no optional output register could be merged into the ram block. Providing additional output register may help in improving timing.
+INFO: [Synth 8-7052] The timing for the instance mem_reg_1_20__0 (implemented as a Block RAM) might be sub-optimal as no optional output register could be merged into the ram block. Providing additional output register may help in improving timing.
+INFO: [Synth 8-7052] The timing for the instance mem_reg_1_21__0 (implemented as a Block RAM) might be sub-optimal as no optional output register could be merged into the ram block. Providing additional output register may help in improving timing.
+INFO: [Synth 8-7052] The timing for the instance mem_reg_1_22__0 (implemented as a Block RAM) might be sub-optimal as no optional output register could be merged into the ram block. Providing additional output register may help in improving timing.
+INFO: [Synth 8-7052] The timing for the instance mem_reg_1_23__0 (implemented as a Block RAM) might be sub-optimal as no optional output register could be merged into the ram block. Providing additional output register may help in improving timing.
+INFO: [Synth 8-7052] The timing for the instance mem_reg_1_24__0 (implemented as a Block RAM) might be sub-optimal as no optional output register could be merged into the ram block. Providing additional output register may help in improving timing.
+INFO: [Synth 8-7052] The timing for the instance mem_reg_1_25__0 (implemented as a Block RAM) might be sub-optimal as no optional output register could be merged into the ram block. Providing additional output register may help in improving timing.
+INFO: [Synth 8-7052] The timing for the instance mem_reg_1_26__0 (implemented as a Block RAM) might be sub-optimal as no optional output register could be merged into the ram block. Providing additional output register may help in improving timing.
+INFO: [Synth 8-7052] The timing for the instance mem_reg_1_27__0 (implemented as a Block RAM) might be sub-optimal as no optional output register could be merged into the ram block. Providing additional output register may help in improving timing.
+INFO: [Synth 8-7052] The timing for the instance mem_reg_1_28__0 (implemented as a Block RAM) might be sub-optimal as no optional output register could be merged into the ram block. Providing additional output register may help in improving timing.
+INFO: [Synth 8-7052] The timing for the instance mem_reg_1_29__0 (implemented as a Block RAM) might be sub-optimal as no optional output register could be merged into the ram block. Providing additional output register may help in improving timing.
+INFO: [Synth 8-7052] The timing for the instance mem_reg_1_30__0 (implemented as a Block RAM) might be sub-optimal as no optional output register could be merged into the ram block. Providing additional output register may help in improving timing.
+INFO: [Synth 8-7052] The timing for the instance mem_reg_1_31__0 (implemented as a Block RAM) might be sub-optimal as no optional output register could be merged into the ram block. Providing additional output register may help in improving timing.
+---------------------------------------------------------------------------------
+Finished Technology Mapping : Time (s): cpu = 00:00:15 ; elapsed = 00:00:17 . Memory (MB): peak = 1437.316 ; gain = 892.230
+---------------------------------------------------------------------------------
+---------------------------------------------------------------------------------
+Start IO Insertion
+---------------------------------------------------------------------------------
+---------------------------------------------------------------------------------
+Start Flattening Before IO Insertion
+---------------------------------------------------------------------------------
+---------------------------------------------------------------------------------
+Finished Flattening Before IO Insertion
+---------------------------------------------------------------------------------
+---------------------------------------------------------------------------------
+Start Final Netlist Cleanup
+---------------------------------------------------------------------------------
+---------------------------------------------------------------------------------
+Finished Final Netlist Cleanup
+---------------------------------------------------------------------------------
+---------------------------------------------------------------------------------
+Finished IO Insertion : Time (s): cpu = 00:00:20 ; elapsed = 00:00:22 . Memory (MB): peak = 1668.180 ; gain = 1123.094
+---------------------------------------------------------------------------------
+---------------------------------------------------------------------------------
+Start Renaming Generated Instances
+---------------------------------------------------------------------------------
+---------------------------------------------------------------------------------
+Finished Renaming Generated Instances : Time (s): cpu = 00:00:20 ; elapsed = 00:00:22 . Memory (MB): peak = 1668.180 ; gain = 1123.094
+---------------------------------------------------------------------------------
+---------------------------------------------------------------------------------
+Start Rebuilding User Hierarchy
+---------------------------------------------------------------------------------
+---------------------------------------------------------------------------------
+Finished Rebuilding User Hierarchy : Time (s): cpu = 00:00:20 ; elapsed = 00:00:22 . Memory (MB): peak = 1668.180 ; gain = 1123.094
+---------------------------------------------------------------------------------
+---------------------------------------------------------------------------------
+Start Renaming Generated Ports
+---------------------------------------------------------------------------------
+---------------------------------------------------------------------------------
+Finished Renaming Generated Ports : Time (s): cpu = 00:00:20 ; elapsed = 00:00:22 . Memory (MB): peak = 1668.180 ; gain = 1123.094
+---------------------------------------------------------------------------------
+---------------------------------------------------------------------------------
+Start Handling Custom Attributes
+---------------------------------------------------------------------------------
+---------------------------------------------------------------------------------
+Finished Handling Custom Attributes : Time (s): cpu = 00:00:20 ; elapsed = 00:00:22 . Memory (MB): peak = 1670.199 ; gain = 1125.113
+---------------------------------------------------------------------------------
+---------------------------------------------------------------------------------
+Start Renaming Generated Nets
+---------------------------------------------------------------------------------
+---------------------------------------------------------------------------------
+Finished Renaming Generated Nets : Time (s): cpu = 00:00:20 ; elapsed = 00:00:22 . Memory (MB): peak = 1670.199 ; gain = 1125.113
+---------------------------------------------------------------------------------
+---------------------------------------------------------------------------------
+Start Writing Synthesis Report
+---------------------------------------------------------------------------------
+
+Report BlackBoxes: 
++-+--------------+----------+
+| |BlackBox name |Instances |
++-+--------------+----------+
++-+--------------+----------+
+
+Report Cell Usage: 
++------+---------+------+
+|      |Cell     |Count |
++------+---------+------+
+|1     |BUFG     |     1|
+|2     |LUT1     |     6|
+|3     |LUT2     |    36|
+|4     |LUT3     |    13|
+|5     |LUT4     |    32|
+|6     |RAMB36E1 |    96|
+|7     |FDRE     |     2|
+|8     |IBUF     |    68|
+|9     |OBUF     |    32|
++------+---------+------+
+
+Report Instance Areas: 
++------+---------+-------+------+
+|      |Instance |Module |Cells |
++------+---------+-------+------+
+|1     |top      |       |   286|
++------+---------+-------+------+
+---------------------------------------------------------------------------------
+Finished Writing Synthesis Report : Time (s): cpu = 00:00:20 ; elapsed = 00:00:22 . Memory (MB): peak = 1670.199 ; gain = 1125.113
+---------------------------------------------------------------------------------
+Synthesis finished with 0 errors, 0 critical warnings and 33 warnings.
+Synthesis Optimization Runtime : Time (s): cpu = 00:00:20 ; elapsed = 00:00:22 . Memory (MB): peak = 1670.199 ; gain = 1125.113
+Synthesis Optimization Complete : Time (s): cpu = 00:00:20 ; elapsed = 00:00:22 . Memory (MB): peak = 1670.199 ; gain = 1125.113
+INFO: [Project 1-571] Translating synthesized netlist
+Netlist sorting complete. Time (s): cpu = 00:00:00 ; elapsed = 00:00:00.020 . Memory (MB): peak = 1683.273 ; gain = 0.000
+INFO: [Netlist 29-17] Analyzing 96 Unisim elements for replacement
+INFO: [Netlist 29-28] Unisim Transformation completed in 0 CPU seconds
+INFO: [Project 1-570] Preparing netlist for logic optimization
+INFO: [Opt 31-138] Pushed 0 inverter(s) to 0 load pin(s).
+Netlist sorting complete. Time (s): cpu = 00:00:00 ; elapsed = 00:00:00 . Memory (MB): peak = 1810.168 ; gain = 0.000
+INFO: [Project 1-111] Unisim Transformation Summary:
+No Unisim elements were transformed.
+
+Synth Design complete | Checksum: dff56357
+INFO: [Common 17-83] Releasing license: Synthesis
+78 Infos, 33 Warnings, 0 Critical Warnings and 0 Errors encountered.
+synth_design completed successfully
+synth_design: Time (s): cpu = 00:00:23 ; elapsed = 00:00:27 . Memory (MB): peak = 1810.168 ; gain = 1269.055
+PROBE ram_1w1r URAM=0 RAMB36=96 RAMB18=0 LUTRAM_cells=0 FFs=2
+########## URAM_PROBE ram_1w4r ##########
+Command: synth_design -top ram_1w4r -part xc7z020clg484-1
+Starting synth_design
+Attempting to get a license for feature 'Synthesis' and/or device 'xc7z020'
+INFO: [Common 17-349] Got license for feature 'Synthesis' and/or device 'xc7z020'
+INFO: [Synth 8-7079] Multithreading enabled for synth_design using a maximum of 2 processes.
+---------------------------------------------------------------------------------
+Starting Synthesize : Time (s): cpu = 00:00:07 ; elapsed = 00:00:08 . Memory (MB): peak = 1810.168 ; gain = 0.000
+---------------------------------------------------------------------------------
+INFO: [Synth 8-6157] synthesizing module 'ram_1w4r' [D:/Xilinx/Prj/pro/Video_Processing/build/uram_probe/uram_probe.v:21]
+WARNING: [Synth 8-11376] The 'ram_style' set on 'ram_1w4r' is ignored because 'ultramark' is an not a valid value. The default value 'auto' will be used. [D:/Xilinx/Prj/pro/Video_Processing/build/uram_probe/uram_probe.v:21]
+INFO: [Synth 8-6155] done synthesizing module 'ram_1w4r' (0#1) [D:/Xilinx/Prj/pro/Video_Processing/build/uram_probe/uram_probe.v:21]
+---------------------------------------------------------------------------------
+Finished Synthesize : Time (s): cpu = 00:00:10 ; elapsed = 00:00:10 . Memory (MB): peak = 1810.168 ; gain = 0.000
+---------------------------------------------------------------------------------
+---------------------------------------------------------------------------------
+Finished Constraint Validation : Time (s): cpu = 00:00:10 ; elapsed = 00:00:10 . Memory (MB): peak = 1810.168 ; gain = 0.000
+---------------------------------------------------------------------------------
+---------------------------------------------------------------------------------
+Start Loading Part and Timing Information
+---------------------------------------------------------------------------------
+Loading part: xc7z020clg484-1
+---------------------------------------------------------------------------------
+Finished Loading Part and Timing Information : Time (s): cpu = 00:00:10 ; elapsed = 00:00:10 . Memory (MB): peak = 1810.168 ; gain = 0.000
+---------------------------------------------------------------------------------
+INFO: [Synth 8-3971] The signal "ram_1w4r/mem_reg" was recognized as a true dual port RAM template.
+---------------------------------------------------------------------------------
+Finished RTL Optimization Phase 2 : Time (s): cpu = 00:00:10 ; elapsed = 00:00:11 . Memory (MB): peak = 1810.168 ; gain = 0.000
+---------------------------------------------------------------------------------
+No constraint files found.
+---------------------------------------------------------------------------------
+Start RTL Component Statistics 
+---------------------------------------------------------------------------------
+Detailed RTL Component Info : 
++---Registers : 
+	               32 Bit    Registers := 4     
++---RAMs : 
+	            2400K Bit	(76800 X 32 bit)          RAMs := 1     
+---------------------------------------------------------------------------------
+Finished RTL Component Statistics 
+---------------------------------------------------------------------------------
+---------------------------------------------------------------------------------
+Start Part Resource Summary
+---------------------------------------------------------------------------------
+Part Resources:
+DSPs: 220 (col length:60)
+BRAMs: 280 (col length: RAMB18 60 RAMB36 30)
+---------------------------------------------------------------------------------
+Finished Part Resource Summary
+---------------------------------------------------------------------------------
+No constraint files found.
+---------------------------------------------------------------------------------
+Start Cross Boundary and Area Optimization
+---------------------------------------------------------------------------------
+INFO: [Synth 8-3971] The signal "ram_1w4r/mem_reg" was recognized as a true dual port RAM template.
+WARNING: [Synth 8-3332] Sequential element (mem_reg_1_mux_sel_a_pos_1) is unused and will be removed from module ram_1w4r.
+WARNING: [Synth 8-3332] Sequential element (mem_reg_1_mux_sel_a_pos_1__0) is unused and will be removed from module ram_1w4r.
+WARNING: [Synth 8-3332] Sequential element (mem_reg_1_mux_sel_a_pos_1__1) is unused and will be removed from module ram_1w4r.
+WARNING: [Synth 8-3332] Sequential element (mem_reg_1_mux_sel_a_pos_1__2) is unused and will be removed from module ram_1w4r.
+WARNING: [Synth 8-3332] Sequential element (mem_reg_1_mux_sel_a_pos_1__3) is unused and will be removed from module ram_1w4r.
+WARNING: [Synth 8-3332] Sequential element (mem_reg_1_mux_sel_a_pos_1__4) is unused and will be removed from module ram_1w4r.
+WARNING: [Synth 8-3332] Sequential element (mem_reg_1_mux_sel_a_pos_1__5) is unused and will be removed from module ram_1w4r.
+WARNING: [Synth 8-3332] Sequential element (mem_reg_1_mux_sel_a_pos_1__6) is unused and will be removed from module ram_1w4r.
+WARNING: [Synth 8-3332] Sequential element (mem_reg_1_mux_sel_a_pos_1__7) is unused and will be removed from module ram_1w4r.
+WARNING: [Synth 8-3332] Sequential element (mem_reg_1_mux_sel_a_pos_1__8) is unused and will be removed from module ram_1w4r.
+WARNING: [Synth 8-3332] Sequential element (mem_reg_1_mux_sel_a_pos_1__9) is unused and will be removed from module ram_1w4r.
+WARNING: [Synth 8-3332] Sequential element (mem_reg_1_mux_sel_a_pos_1__10) is unused and will be removed from module ram_1w4r.
+WARNING: [Synth 8-3332] Sequential element (mem_reg_1_mux_sel_a_pos_1__11) is unused and will be removed from module ram_1w4r.
+WARNING: [Synth 8-3332] Sequential element (mem_reg_1_mux_sel_a_pos_1__12) is unused and will be removed from module ram_1w4r.
+WARNING: [Synth 8-3332] Sequential element (mem_reg_1_mux_sel_a_pos_1__13) is unused and will be removed from module ram_1w4r.
+WARNING: [Synth 8-3332] Sequential element (mem_reg_1_mux_sel_a_pos_1__14) is unused and will be removed from module ram_1w4r.
+WARNING: [Synth 8-3332] Sequential element (mem_reg_1_mux_sel_a_pos_1__15) is unused and will be removed from module ram_1w4r.
+WARNING: [Synth 8-3332] Sequential element (mem_reg_1_mux_sel_a_pos_1__16) is unused and will be removed from module ram_1w4r.
+WARNING: [Synth 8-3332] Sequential element (mem_reg_1_mux_sel_a_pos_1__17) is unused and will be removed from module ram_1w4r.
+WARNING: [Synth 8-3332] Sequential element (mem_reg_1_mux_sel_a_pos_1__18) is unused and will be removed from module ram_1w4r.
+WARNING: [Synth 8-3332] Sequential element (mem_reg_1_mux_sel_a_pos_1__19) is unused and will be removed from module ram_1w4r.
+WARNING: [Synth 8-3332] Sequential element (mem_reg_1_mux_sel_a_pos_1__20) is unused and will be removed from module ram_1w4r.
+WARNING: [Synth 8-3332] Sequential element (mem_reg_1_mux_sel_a_pos_1__21) is unused and will be removed from module ram_1w4r.
+WARNING: [Synth 8-3332] Sequential element (mem_reg_1_mux_sel_a_pos_1__22) is unused and will be removed from module ram_1w4r.
+WARNING: [Synth 8-3332] Sequential element (mem_reg_1_mux_sel_a_pos_1__23) is unused and will be removed from module ram_1w4r.
+WARNING: [Synth 8-3332] Sequential element (mem_reg_1_mux_sel_a_pos_1__24) is unused and will be removed from module ram_1w4r.
+WARNING: [Synth 8-3332] Sequential element (mem_reg_1_mux_sel_a_pos_1__25) is unused and will be removed from module ram_1w4r.
+WARNING: [Synth 8-3332] Sequential element (mem_reg_1_mux_sel_a_pos_1__26) is unused and will be removed from module ram_1w4r.
+WARNING: [Synth 8-3332] Sequential element (mem_reg_1_mux_sel_a_pos_1__27) is unused and will be removed from module ram_1w4r.
+WARNING: [Synth 8-3332] Sequential element (mem_reg_1_mux_sel_a_pos_1__28) is unused and will be removed from module ram_1w4r.
+WARNING: [Synth 8-3332] Sequential element (mem_reg_1_mux_sel_a_pos_1__29) is unused and will be removed from module ram_1w4r.
+WARNING: [Synth 8-3332] Sequential element (mem_reg_1_mux_sel_a_pos_1__30) is unused and will be removed from module ram_1w4r.
+WARNING: [Synth 8-3332] Sequential element (mem_reg_2_mux_sel_a_pos_1) is unused and will be removed from module ram_1w4r.
+WARNING: [Synth 8-3332] Sequential element (mem_reg_2_mux_sel_a_pos_1__0) is unused and will be removed from module ram_1w4r.
+WARNING: [Synth 8-3332] Sequential element (mem_reg_2_mux_sel_a_pos_1__1) is unused and will be removed from module ram_1w4r.
+WARNING: [Synth 8-3332] Sequential element (mem_reg_2_mux_sel_a_pos_1__2) is unused and will be removed from module ram_1w4r.
+WARNING: [Synth 8-3332] Sequential element (mem_reg_2_mux_sel_a_pos_1__3) is unused and will be removed from module ram_1w4r.
+WARNING: [Synth 8-3332] Sequential element (mem_reg_2_mux_sel_a_pos_1__4) is unused and will be removed from module ram_1w4r.
+WARNING: [Synth 8-3332] Sequential element (mem_reg_2_mux_sel_a_pos_1__5) is unused and will be removed from module ram_1w4r.
+WARNING: [Synth 8-3332] Sequential element (mem_reg_2_mux_sel_a_pos_1__6) is unused and will be removed from module ram_1w4r.
+WARNING: [Synth 8-3332] Sequential element (mem_reg_2_mux_sel_a_pos_1__7) is unused and will be removed from module ram_1w4r.
+WARNING: [Synth 8-3332] Sequential element (mem_reg_2_mux_sel_a_pos_1__8) is unused and will be removed from module ram_1w4r.
+WARNING: [Synth 8-3332] Sequential element (mem_reg_2_mux_sel_a_pos_1__9) is unused and will be removed from module ram_1w4r.
+WARNING: [Synth 8-3332] Sequential element (mem_reg_2_mux_sel_a_pos_1__10) is unused and will be removed from module ram_1w4r.
+WARNING: [Synth 8-3332] Sequential element (mem_reg_2_mux_sel_a_pos_1__11) is unused and will be removed from module ram_1w4r.
+WARNING: [Synth 8-3332] Sequential element (mem_reg_2_mux_sel_a_pos_1__12) is unused and will be removed from module ram_1w4r.
+WARNING: [Synth 8-3332] Sequential element (mem_reg_2_mux_sel_a_pos_1__13) is unused and will be removed from module ram_1w4r.
+WARNING: [Synth 8-3332] Sequential element (mem_reg_2_mux_sel_a_pos_1__14) is unused and will be removed from module ram_1w4r.
+WARNING: [Synth 8-3332] Sequential element (mem_reg_2_mux_sel_a_pos_1__15) is unused and will be removed from module ram_1w4r.
+WARNING: [Synth 8-3332] Sequential element (mem_reg_2_mux_sel_a_pos_1__16) is unused and will be removed from module ram_1w4r.
+WARNING: [Synth 8-3332] Sequential element (mem_reg_2_mux_sel_a_pos_1__17) is unused and will be removed from module ram_1w4r.
+WARNING: [Synth 8-3332] Sequential element (mem_reg_2_mux_sel_a_pos_1__18) is unused and will be removed from module ram_1w4r.
+WARNING: [Synth 8-3332] Sequential element (mem_reg_2_mux_sel_a_pos_1__19) is unused and will be removed from module ram_1w4r.
+WARNING: [Synth 8-3332] Sequential element (mem_reg_2_mux_sel_a_pos_1__20) is unused and will be removed from module ram_1w4r.
+WARNING: [Synth 8-3332] Sequential element (mem_reg_2_mux_sel_a_pos_1__21) is unused and will be removed from module ram_1w4r.
+WARNING: [Synth 8-3332] Sequential element (mem_reg_2_mux_sel_a_pos_1__22) is unused and will be removed from module ram_1w4r.
+WARNING: [Synth 8-3332] Sequential element (mem_reg_2_mux_sel_a_pos_1__23) is unused and will be removed from module ram_1w4r.
+WARNING: [Synth 8-3332] Sequential element (mem_reg_2_mux_sel_a_pos_1__24) is unused and will be removed from module ram_1w4r.
+WARNING: [Synth 8-3332] Sequential element (mem_reg_2_mux_sel_a_pos_1__25) is unused and will be removed from module ram_1w4r.
+WARNING: [Synth 8-3332] Sequential element (mem_reg_2_mux_sel_a_pos_1__26) is unused and will be removed from module ram_1w4r.
+WARNING: [Synth 8-3332] Sequential element (mem_reg_2_mux_sel_a_pos_1__27) is unused and will be removed from module ram_1w4r.
+WARNING: [Synth 8-3332] Sequential element (mem_reg_2_mux_sel_a_pos_1__28) is unused and will be removed from module ram_1w4r.
+WARNING: [Synth 8-3332] Sequential element (mem_reg_2_mux_sel_a_pos_1__29) is unused and will be removed from module ram_1w4r.
+WARNING: [Synth 8-3332] Sequential element (mem_reg_2_mux_sel_a_pos_1__30) is unused and will be removed from module ram_1w4r.
+WARNING: [Synth 8-3332] Sequential element (mem_reg_3_mux_sel_a_pos_1) is unused and will be removed from module ram_1w4r.
+WARNING: [Synth 8-3332] Sequential element (mem_reg_3_mux_sel_a_pos_1__0) is unused and will be removed from module ram_1w4r.
+WARNING: [Synth 8-3332] Sequential element (mem_reg_3_mux_sel_a_pos_1__1) is unused and will be removed from module ram_1w4r.
+WARNING: [Synth 8-3332] Sequential element (mem_reg_3_mux_sel_a_pos_1__2) is unused and will be removed from module ram_1w4r.
+WARNING: [Synth 8-3332] Sequential element (mem_reg_3_mux_sel_a_pos_1__3) is unused and will be removed from module ram_1w4r.
+WARNING: [Synth 8-3332] Sequential element (mem_reg_3_mux_sel_a_pos_1__4) is unused and will be removed from module ram_1w4r.
+WARNING: [Synth 8-3332] Sequential element (mem_reg_3_mux_sel_a_pos_1__5) is unused and will be removed from module ram_1w4r.
+WARNING: [Synth 8-3332] Sequential element (mem_reg_3_mux_sel_a_pos_1__6) is unused and will be removed from module ram_1w4r.
+WARNING: [Synth 8-3332] Sequential element (mem_reg_3_mux_sel_a_pos_1__7) is unused and will be removed from module ram_1w4r.
+WARNING: [Synth 8-3332] Sequential element (mem_reg_3_mux_sel_a_pos_1__8) is unused and will be removed from module ram_1w4r.
+WARNING: [Synth 8-3332] Sequential element (mem_reg_3_mux_sel_a_pos_1__9) is unused and will be removed from module ram_1w4r.
+WARNING: [Synth 8-3332] Sequential element (mem_reg_3_mux_sel_a_pos_1__10) is unused and will be removed from module ram_1w4r.
+WARNING: [Synth 8-3332] Sequential element (mem_reg_3_mux_sel_a_pos_1__11) is unused and will be removed from module ram_1w4r.
+WARNING: [Synth 8-3332] Sequential element (mem_reg_3_mux_sel_a_pos_1__12) is unused and will be removed from module ram_1w4r.
+WARNING: [Synth 8-3332] Sequential element (mem_reg_3_mux_sel_a_pos_1__13) is unused and will be removed from module ram_1w4r.
+WARNING: [Synth 8-3332] Sequential element (mem_reg_3_mux_sel_a_pos_1__14) is unused and will be removed from module ram_1w4r.
+WARNING: [Synth 8-3332] Sequential element (mem_reg_3_mux_sel_a_pos_1__15) is unused and will be removed from module ram_1w4r.
+WARNING: [Synth 8-3332] Sequential element (mem_reg_3_mux_sel_a_pos_1__16) is unused and will be removed from module ram_1w4r.
+WARNING: [Synth 8-3332] Sequential element (mem_reg_3_mux_sel_a_pos_1__17) is unused and will be removed from module ram_1w4r.
+WARNING: [Synth 8-3332] Sequential element (mem_reg_3_mux_sel_a_pos_1__18) is unused and will be removed from module ram_1w4r.
+WARNING: [Synth 8-3332] Sequential element (mem_reg_3_mux_sel_a_pos_1__19) is unused and will be removed from module ram_1w4r.
+WARNING: [Synth 8-3332] Sequential element (mem_reg_3_mux_sel_a_pos_1__20) is unused and will be removed from module ram_1w4r.
+WARNING: [Synth 8-3332] Sequential element (mem_reg_3_mux_sel_a_pos_1__21) is unused and will be removed from module ram_1w4r.
+WARNING: [Synth 8-3332] Sequential element (mem_reg_3_mux_sel_a_pos_1__22) is unused and will be removed from module ram_1w4r.
+WARNING: [Synth 8-3332] Sequential element (mem_reg_3_mux_sel_a_pos_1__23) is unused and will be removed from module ram_1w4r.
+WARNING: [Synth 8-3332] Sequential element (mem_reg_3_mux_sel_a_pos_1__24) is unused and will be removed from module ram_1w4r.
+WARNING: [Synth 8-3332] Sequential element (mem_reg_3_mux_sel_a_pos_1__25) is unused and will be removed from module ram_1w4r.
+WARNING: [Synth 8-3332] Sequential element (mem_reg_3_mux_sel_a_pos_1__26) is unused and will be removed from module ram_1w4r.
+WARNING: [Synth 8-3332] Sequential element (mem_reg_3_mux_sel_a_pos_1__27) is unused and will be removed from module ram_1w4r.
+WARNING: [Synth 8-3332] Sequential element (mem_reg_3_mux_sel_a_pos_1__28) is unused and will be removed from module ram_1w4r.
+WARNING: [Synth 8-3332] Sequential element (mem_reg_3_mux_sel_a_pos_1__29) is unused and will be removed from module ram_1w4r.
+WARNING: [Synth 8-3332] Sequential element (mem_reg_3_mux_sel_a_pos_1__30) is unused and will be removed from module ram_1w4r.
+WARNING: [Synth 8-3332] Sequential element (mem_reg_4_mux_sel_a_pos_1) is unused and will be removed from module ram_1w4r.
+WARNING: [Synth 8-3332] Sequential element (mem_reg_4_mux_sel_a_pos_1__0) is unused and will be removed from module ram_1w4r.
+WARNING: [Synth 8-3332] Sequential element (mem_reg_4_mux_sel_a_pos_1__1) is unused and will be removed from module ram_1w4r.
+WARNING: [Synth 8-3332] Sequential element (mem_reg_4_mux_sel_a_pos_1__2) is unused and will be removed from module ram_1w4r.
+INFO: [Common 17-14] Message 'Synth 8-3332' appears 100 times and further instances of the messages will be disabled. Use the Tcl command set_msg_config to change the current settings.
+---------------------------------------------------------------------------------
+Finished Cross Boundary and Area Optimization : Time (s): cpu = 00:00:12 ; elapsed = 00:00:13 . Memory (MB): peak = 1810.168 ; gain = 0.000
+---------------------------------------------------------------------------------
+WARNING: [Synth 8-5835] Resources of type BRAM have been overutilized. Used = 768, Available = 280. Will try to implement using LUT-RAM. 
+CRITICAL WARNING: [Synth 8-7048] Resources of type BRAM have been overutilized even after performing resource management. Used = 768, Available = 280. 
+---------------------------------------------------------------------------------
+Start ROM, RAM, DSP, Shift Register and Retiming Reporting
+---------------------------------------------------------------------------------
+
+Block RAM: Preliminary Mapping Report (see note below)
+-------NONE-------
+Note: The table above is a preliminary report that shows the Block RAMs at the current stage of the synthesis flow. Some Block RAMs may be reimplemented as non Block RAM primitives later in the synthesis flow. Multiple instantiated Block RAMs are reported only once. 
+---------------------------------------------------------------------------------
+Finished ROM, RAM, DSP, Shift Register and Retiming Reporting
+---------------------------------------------------------------------------------
+No constraint files found.
+---------------------------------------------------------------------------------
+Start Timing Optimization
+---------------------------------------------------------------------------------
+---------------------------------------------------------------------------------
+Finished Timing Optimization : Time (s): cpu = 00:00:12 ; elapsed = 00:00:13 . Memory (MB): peak = 1810.168 ; gain = 0.000
+---------------------------------------------------------------------------------
+---------------------------------------------------------------------------------
+Start ROM, RAM, DSP, Shift Register and Retiming Reporting
+---------------------------------------------------------------------------------
+
+Block RAM: Final Mapping Report
+-------NONE-------
+---------------------------------------------------------------------------------
+Finished ROM, RAM, DSP, Shift Register and Retiming Reporting
+---------------------------------------------------------------------------------
+---------------------------------------------------------------------------------
+Start Technology Mapping
+---------------------------------------------------------------------------------
+INFO: [Synth 8-7052] The timing for the instance mem_reg_1_1_0 (implemented as a Block RAM) might be sub-optimal as no optional output register could be merged into the ram block. Providing additional output register may help in improving timing.
+INFO: [Synth 8-7052] The timing for the instance mem_reg_1_1_1 (implemented as a Block RAM) might be sub-optimal as no optional output register could be merged into the ram block. Providing additional output register may help in improving timing.
+INFO: [Synth 8-7052] The timing for the instance mem_reg_1_1_2 (implemented as a Block RAM) might be sub-optimal as no optional output register could be merged into the ram block. Providing additional output register may help in improving timing.
+INFO: [Synth 8-7052] The timing for the instance mem_reg_1_1_3 (implemented as a Block RAM) might be sub-optimal as no optional output register could be merged into the ram block. Providing additional output register may help in improving timing.
+INFO: [Synth 8-7052] The timing for the instance mem_reg_1_1_4 (implemented as a Block RAM) might be sub-optimal as no optional output register could be merged into the ram block. Providing additional output register may help in improving timing.
+INFO: [Synth 8-7052] The timing for the instance mem_reg_1_1_5 (implemented as a Block RAM) might be sub-optimal as no optional output register could be merged into the ram block. Providing additional output register may help in improving timing.
+INFO: [Synth 8-7052] The timing for the instance mem_reg_1_1_6 (implemented as a Block RAM) might be sub-optimal as no optional output register could be merged into the ram block. Providing additional output register may help in improving timing.
+INFO: [Synth 8-7052] The timing for the instance mem_reg_1_1_7 (implemented as a Block RAM) might be sub-optimal as no optional output register could be merged into the ram block. Providing additional output register may help in improving timing.
+INFO: [Synth 8-7052] The timing for the instance mem_reg_1_1_8 (implemented as a Block RAM) might be sub-optimal as no optional output register could be merged into the ram block. Providing additional output register may help in improving timing.
+INFO: [Synth 8-7052] The timing for the instance mem_reg_1_1_9 (implemented as a Block RAM) might be sub-optimal as no optional output register could be merged into the ram block. Providing additional output register may help in improving timing.
+INFO: [Synth 8-7052] The timing for the instance mem_reg_1_1_10 (implemented as a Block RAM) might be sub-optimal as no optional output register could be merged into the ram block. Providing additional output register may help in improving timing.
+INFO: [Synth 8-7052] The timing for the instance mem_reg_1_1_11 (implemented as a Block RAM) might be sub-optimal as no optional output register could be merged into the ram block. Providing additional output register may help in improving timing.
+INFO: [Synth 8-7052] The timing for the instance mem_reg_1_1_12 (implemented as a Block RAM) might be sub-optimal as no optional output register could be merged into the ram block. Providing additional output register may help in improving timing.
+INFO: [Synth 8-7052] The timing for the instance mem_reg_1_1_13 (implemented as a Block RAM) might be sub-optimal as no optional output register could be merged into the ram block. Providing additional output register may help in improving timing.
+INFO: [Synth 8-7052] The timing for the instance mem_reg_1_1_14 (implemented as a Block RAM) might be sub-optimal as no optional output register could be merged into the ram block. Providing additional output register may help in improving timing.
+INFO: [Synth 8-7052] The timing for the instance mem_reg_1_1_15 (implemented as a Block RAM) might be sub-optimal as no optional output register could be merged into the ram block. Providing additional output register may help in improving timing.
+INFO: [Synth 8-7052] The timing for the instance mem_reg_1_1_16 (implemented as a Block RAM) might be sub-optimal as no optional output register could be merged into the ram block. Providing additional output register may help in improving timing.
+INFO: [Synth 8-7052] The timing for the instance mem_reg_1_1_17 (implemented as a Block RAM) might be sub-optimal as no optional output register could be merged into the ram block. Providing additional output register may help in improving timing.
+INFO: [Synth 8-7052] The timing for the instance mem_reg_1_1_18 (implemented as a Block RAM) might be sub-optimal as no optional output register could be merged into the ram block. Providing additional output register may help in improving timing.
+INFO: [Synth 8-7052] The timing for the instance mem_reg_1_1_19 (implemented as a Block RAM) might be sub-optimal as no optional output register could be merged into the ram block. Providing additional output register may help in improving timing.
+INFO: [Synth 8-7052] The timing for the instance mem_reg_1_1_20 (implemented as a Block RAM) might be sub-optimal as no optional output register could be merged into the ram block. Providing additional output register may help in improving timing.
+INFO: [Synth 8-7052] The timing for the instance mem_reg_1_1_21 (implemented as a Block RAM) might be sub-optimal as no optional output register could be merged into the ram block. Providing additional output register may help in improving timing.
+INFO: [Synth 8-7052] The timing for the instance mem_reg_1_1_22 (implemented as a Block RAM) might be sub-optimal as no optional output register could be merged into the ram block. Providing additional output register may help in improving timing.
+INFO: [Synth 8-7052] The timing for the instance mem_reg_1_1_23 (implemented as a Block RAM) might be sub-optimal as no optional output register could be merged into the ram block. Providing additional output register may help in improving timing.
+INFO: [Synth 8-7052] The timing for the instance mem_reg_1_1_24 (implemented as a Block RAM) might be sub-optimal as no optional output register could be merged into the ram block. Providing additional output register may help in improving timing.
+INFO: [Synth 8-7052] The timing for the instance mem_reg_1_1_25 (implemented as a Block RAM) might be sub-optimal as no optional output register could be merged into the ram block. Providing additional output register may help in improving timing.
+INFO: [Synth 8-7052] The timing for the instance mem_reg_1_1_26 (implemented as a Block RAM) might be sub-optimal as no optional output register could be merged into the ram block. Providing additional output register may help in improving timing.
+INFO: [Synth 8-7052] The timing for the instance mem_reg_1_1_27 (implemented as a Block RAM) might be sub-optimal as no optional output register could be merged into the ram block. Providing additional output register may help in improving timing.
+INFO: [Synth 8-7052] The timing for the instance mem_reg_1_1_28 (implemented as a Block RAM) might be sub-optimal as no optional output register could be merged into the ram block. Providing additional output register may help in improving timing.
+INFO: [Synth 8-7052] The timing for the instance mem_reg_1_1_29 (implemented as a Block RAM) might be sub-optimal as no optional output register could be merged into the ram block. Providing additional output register may help in improving timing.
+INFO: [Synth 8-7052] The timing for the instance mem_reg_1_1_30 (implemented as a Block RAM) might be sub-optimal as no optional output register could be merged into the ram block. Providing additional output register may help in improving timing.
+INFO: [Synth 8-7052] The timing for the instance mem_reg_1_1_31 (implemented as a Block RAM) might be sub-optimal as no optional output register could be merged into the ram block. Providing additional output register may help in improving timing.
+INFO: [Synth 8-7052] The timing for the instance mem_reg_1_1_0__0 (implemented as a Block RAM) might be sub-optimal as no optional output register could be merged into the ram block. Providing additional output register may help in improving timing.
+INFO: [Synth 8-7052] The timing for the instance mem_reg_1_1_1__0 (implemented as a Block RAM) might be sub-optimal as no optional output register could be merged into the ram block. Providing additional output register may help in improving timing.
+INFO: [Synth 8-7052] The timing for the instance mem_reg_1_1_2__0 (implemented as a Block RAM) might be sub-optimal as no optional output register could be merged into the ram block. Providing additional output register may help in improving timing.
+INFO: [Synth 8-7052] The timing for the instance mem_reg_1_1_3__0 (implemented as a Block RAM) might be sub-optimal as no optional output register could be merged into the ram block. Providing additional output register may help in improving timing.
+INFO: [Synth 8-7052] The timing for the instance mem_reg_1_1_4__0 (implemented as a Block RAM) might be sub-optimal as no optional output register could be merged into the ram block. Providing additional output register may help in improving timing.
+INFO: [Synth 8-7052] The timing for the instance mem_reg_1_1_5__0 (implemented as a Block RAM) might be sub-optimal as no optional output register could be merged into the ram block. Providing additional output register may help in improving timing.
+INFO: [Synth 8-7052] The timing for the instance mem_reg_1_1_6__0 (implemented as a Block RAM) might be sub-optimal as no optional output register could be merged into the ram block. Providing additional output register may help in improving timing.
+INFO: [Synth 8-7052] The timing for the instance mem_reg_1_1_7__0 (implemented as a Block RAM) might be sub-optimal as no optional output register could be merged into the ram block. Providing additional output register may help in improving timing.
+INFO: [Synth 8-7052] The timing for the instance mem_reg_1_1_8__0 (implemented as a Block RAM) might be sub-optimal as no optional output register could be merged into the ram block. Providing additional output register may help in improving timing.
+INFO: [Synth 8-7052] The timing for the instance mem_reg_1_1_9__0 (implemented as a Block RAM) might be sub-optimal as no optional output register could be merged into the ram block. Providing additional output register may help in improving timing.
+INFO: [Synth 8-7052] The timing for the instance mem_reg_1_1_10__0 (implemented as a Block RAM) might be sub-optimal as no optional output register could be merged into the ram block. Providing additional output register may help in improving timing.
+INFO: [Synth 8-7052] The timing for the instance mem_reg_1_1_11__0 (implemented as a Block RAM) might be sub-optimal as no optional output register could be merged into the ram block. Providing additional output register may help in improving timing.
+INFO: [Synth 8-7052] The timing for the instance mem_reg_1_1_12__0 (implemented as a Block RAM) might be sub-optimal as no optional output register could be merged into the ram block. Providing additional output register may help in improving timing.
+INFO: [Synth 8-7052] The timing for the instance mem_reg_1_1_13__0 (implemented as a Block RAM) might be sub-optimal as no optional output register could be merged into the ram block. Providing additional output register may help in improving timing.
+INFO: [Synth 8-7052] The timing for the instance mem_reg_1_1_14__0 (implemented as a Block RAM) might be sub-optimal as no optional output register could be merged into the ram block. Providing additional output register may help in improving timing.
+INFO: [Synth 8-7052] The timing for the instance mem_reg_1_1_15__0 (implemented as a Block RAM) might be sub-optimal as no optional output register could be merged into the ram block. Providing additional output register may help in improving timing.
+INFO: [Synth 8-7052] The timing for the instance mem_reg_1_1_16__0 (implemented as a Block RAM) might be sub-optimal as no optional output register could be merged into the ram block. Providing additional output register may help in improving timing.
+INFO: [Synth 8-7052] The timing for the instance mem_reg_1_1_17__0 (implemented as a Block RAM) might be sub-optimal as no optional output register could be merged into the ram block. Providing additional output register may help in improving timing.
+INFO: [Synth 8-7052] The timing for the instance mem_reg_1_1_18__0 (implemented as a Block RAM) might be sub-optimal as no optional output register could be merged into the ram block. Providing additional output register may help in improving timing.
+INFO: [Synth 8-7052] The timing for the instance mem_reg_1_1_19__0 (implemented as a Block RAM) might be sub-optimal as no optional output register could be merged into the ram block. Providing additional output register may help in improving timing.
+INFO: [Synth 8-7052] The timing for the instance mem_reg_1_1_20__0 (implemented as a Block RAM) might be sub-optimal as no optional output register could be merged into the ram block. Providing additional output register may help in improving timing.
+INFO: [Synth 8-7052] The timing for the instance mem_reg_1_1_21__0 (implemented as a Block RAM) might be sub-optimal as no optional output register could be merged into the ram block. Providing additional output register may help in improving timing.
+INFO: [Synth 8-7052] The timing for the instance mem_reg_1_1_22__0 (implemented as a Block RAM) might be sub-optimal as no optional output register could be merged into the ram block. Providing additional output register may help in improving timing.
+INFO: [Synth 8-7052] The timing for the instance mem_reg_1_1_23__0 (implemented as a Block RAM) might be sub-optimal as no optional output register could be merged into the ram block. Providing additional output register may help in improving timing.
+INFO: [Synth 8-7052] The timing for the instance mem_reg_1_1_24__0 (implemented as a Block RAM) might be sub-optimal as no optional output register could be merged into the ram block. Providing additional output register may help in improving timing.
+INFO: [Synth 8-7052] The timing for the instance mem_reg_1_1_25__0 (implemented as a Block RAM) might be sub-optimal as no optional output register could be merged into the ram block. Providing additional output register may help in improving timing.
+INFO: [Synth 8-7052] The timing for the instance mem_reg_1_1_26__0 (implemented as a Block RAM) might be sub-optimal as no optional output register could be merged into the ram block. Providing additional output register may help in improving timing.
+INFO: [Synth 8-7052] The timing for the instance mem_reg_1_1_27__0 (implemented as a Block RAM) might be sub-optimal as no optional output register could be merged into the ram block. Providing additional output register may help in improving timing.
+INFO: [Synth 8-7052] The timing for the instance mem_reg_1_1_28__0 (implemented as a Block RAM) might be sub-optimal as no optional output register could be merged into the ram block. Providing additional output register may help in improving timing.
+INFO: [Synth 8-7052] The timing for the instance mem_reg_1_1_29__0 (implemented as a Block RAM) might be sub-optimal as no optional output register could be merged into the ram block. Providing additional output register may help in improving timing.
+INFO: [Synth 8-7052] The timing for the instance mem_reg_1_1_30__0 (implemented as a Block RAM) might be sub-optimal as no optional output register could be merged into the ram block. Providing additional output register may help in improving timing.
+INFO: [Synth 8-7052] The timing for the instance mem_reg_1_1_31__0 (implemented as a Block RAM) might be sub-optimal as no optional output register could be merged into the ram block. Providing additional output register may help in improving timing.
+INFO: [Synth 8-7052] The timing for the instance mem_reg_2_1_0 (implemented as a Block RAM) might be sub-optimal as no optional output register could be merged into the ram block. Providing additional output register may help in improving timing.
+INFO: [Synth 8-7052] The timing for the instance mem_reg_2_1_1 (implemented as a Block RAM) might be sub-optimal as no optional output register could be merged into the ram block. Providing additional output register may help in improving timing.
+INFO: [Synth 8-7052] The timing for the instance mem_reg_2_1_2 (implemented as a Block RAM) might be sub-optimal as no optional output register could be merged into the ram block. Providing additional output register may help in improving timing.
+INFO: [Synth 8-7052] The timing for the instance mem_reg_2_1_3 (implemented as a Block RAM) might be sub-optimal as no optional output register could be merged into the ram block. Providing additional output register may help in improving timing.
+INFO: [Synth 8-7052] The timing for the instance mem_reg_2_1_4 (implemented as a Block RAM) might be sub-optimal as no optional output register could be merged into the ram block. Providing additional output register may help in improving timing.
+INFO: [Synth 8-7052] The timing for the instance mem_reg_2_1_5 (implemented as a Block RAM) might be sub-optimal as no optional output register could be merged into the ram block. Providing additional output register may help in improving timing.
+INFO: [Synth 8-7052] The timing for the instance mem_reg_2_1_6 (implemented as a Block RAM) might be sub-optimal as no optional output register could be merged into the ram block. Providing additional output register may help in improving timing.
+INFO: [Synth 8-7052] The timing for the instance mem_reg_2_1_7 (implemented as a Block RAM) might be sub-optimal as no optional output register could be merged into the ram block. Providing additional output register may help in improving timing.
+INFO: [Synth 8-7052] The timing for the instance mem_reg_2_1_8 (implemented as a Block RAM) might be sub-optimal as no optional output register could be merged into the ram block. Providing additional output register may help in improving timing.
+INFO: [Synth 8-7052] The timing for the instance mem_reg_2_1_9 (implemented as a Block RAM) might be sub-optimal as no optional output register could be merged into the ram block. Providing additional output register may help in improving timing.
+INFO: [Synth 8-7052] The timing for the instance mem_reg_2_1_10 (implemented as a Block RAM) might be sub-optimal as no optional output register could be merged into the ram block. Providing additional output register may help in improving timing.
+INFO: [Synth 8-7052] The timing for the instance mem_reg_2_1_11 (implemented as a Block RAM) might be sub-optimal as no optional output register could be merged into the ram block. Providing additional output register may help in improving timing.
+INFO: [Synth 8-7052] The timing for the instance mem_reg_2_1_12 (implemented as a Block RAM) might be sub-optimal as no optional output register could be merged into the ram block. Providing additional output register may help in improving timing.
+INFO: [Synth 8-7052] The timing for the instance mem_reg_2_1_13 (implemented as a Block RAM) might be sub-optimal as no optional output register could be merged into the ram block. Providing additional output register may help in improving timing.
+INFO: [Synth 8-7052] The timing for the instance mem_reg_2_1_14 (implemented as a Block RAM) might be sub-optimal as no optional output register could be merged into the ram block. Providing additional output register may help in improving timing.
+INFO: [Synth 8-7052] The timing for the instance mem_reg_2_1_15 (implemented as a Block RAM) might be sub-optimal as no optional output register could be merged into the ram block. Providing additional output register may help in improving timing.
+INFO: [Synth 8-7052] The timing for the instance mem_reg_2_1_16 (implemented as a Block RAM) might be sub-optimal as no optional output register could be merged into the ram block. Providing additional output register may help in improving timing.
+INFO: [Synth 8-7052] The timing for the instance mem_reg_2_1_17 (implemented as a Block RAM) might be sub-optimal as no optional output register could be merged into the ram block. Providing additional output register may help in improving timing.
+INFO: [Synth 8-7052] The timing for the instance mem_reg_2_1_18 (implemented as a Block RAM) might be sub-optimal as no optional output register could be merged into the ram block. Providing additional output register may help in improving timing.
+INFO: [Synth 8-7052] The timing for the instance mem_reg_2_1_19 (implemented as a Block RAM) might be sub-optimal as no optional output register could be merged into the ram block. Providing additional output register may help in improving timing.
+INFO: [Synth 8-7052] The timing for the instance mem_reg_2_1_20 (implemented as a Block RAM) might be sub-optimal as no optional output register could be merged into the ram block. Providing additional output register may help in improving timing.
+INFO: [Synth 8-7052] The timing for the instance mem_reg_2_1_21 (implemented as a Block RAM) might be sub-optimal as no optional output register could be merged into the ram block. Providing additional output register may help in improving timing.
+INFO: [Synth 8-7052] The timing for the instance mem_reg_2_1_22 (implemented as a Block RAM) might be sub-optimal as no optional output register could be merged into the ram block. Providing additional output register may help in improving timing.
+INFO: [Synth 8-7052] The timing for the instance mem_reg_2_1_23 (implemented as a Block RAM) might be sub-optimal as no optional output register could be merged into the ram block. Providing additional output register may help in improving timing.
+INFO: [Synth 8-7052] The timing for the instance mem_reg_2_1_24 (implemented as a Block RAM) might be sub-optimal as no optional output register could be merged into the ram block. Providing additional output register may help in improving timing.
+INFO: [Synth 8-7052] The timing for the instance mem_reg_2_1_25 (implemented as a Block RAM) might be sub-optimal as no optional output register could be merged into the ram block. Providing additional output register may help in improving timing.
+INFO: [Synth 8-7052] The timing for the instance mem_reg_2_1_26 (implemented as a Block RAM) might be sub-optimal as no optional output register could be merged into the ram block. Providing additional output register may help in improving timing.
+INFO: [Synth 8-7052] The timing for the instance mem_reg_2_1_27 (implemented as a Block RAM) might be sub-optimal as no optional output register could be merged into the ram block. Providing additional output register may help in improving timing.
+INFO: [Synth 8-7052] The timing for the instance mem_reg_2_1_28 (implemented as a Block RAM) might be sub-optimal as no optional output register could be merged into the ram block. Providing additional output register may help in improving timing.
+INFO: [Synth 8-7052] The timing for the instance mem_reg_2_1_29 (implemented as a Block RAM) might be sub-optimal as no optional output register could be merged into the ram block. Providing additional output register may help in improving timing.
+INFO: [Synth 8-7052] The timing for the instance mem_reg_2_1_30 (implemented as a Block RAM) might be sub-optimal as no optional output register could be merged into the ram block. Providing additional output register may help in improving timing.
+INFO: [Synth 8-7052] The timing for the instance mem_reg_2_1_31 (implemented as a Block RAM) might be sub-optimal as no optional output register could be merged into the ram block. Providing additional output register may help in improving timing.
+INFO: [Synth 8-7052] The timing for the instance mem_reg_2_1_0__0 (implemented as a Block RAM) might be sub-optimal as no optional output register could be merged into the ram block. Providing additional output register may help in improving timing.
+INFO: [Synth 8-7052] The timing for the instance mem_reg_2_1_1__0 (implemented as a Block RAM) might be sub-optimal as no optional output register could be merged into the ram block. Providing additional output register may help in improving timing.
+INFO: [Synth 8-7052] The timing for the instance mem_reg_2_1_2__0 (implemented as a Block RAM) might be sub-optimal as no optional output register could be merged into the ram block. Providing additional output register may help in improving timing.
+INFO: [Synth 8-7052] The timing for the instance mem_reg_2_1_3__0 (implemented as a Block RAM) might be sub-optimal as no optional output register could be merged into the ram block. Providing additional output register may help in improving timing.
+INFO: [Common 17-14] Message 'Synth 8-7052' appears 100 times and further instances of the messages will be disabled. Use the Tcl command set_msg_config to change the current settings.
+---------------------------------------------------------------------------------
+Finished Technology Mapping : Time (s): cpu = 00:00:12 ; elapsed = 00:00:13 . Memory (MB): peak = 1810.168 ; gain = 0.000
+---------------------------------------------------------------------------------
+---------------------------------------------------------------------------------
+Start IO Insertion
+---------------------------------------------------------------------------------
+---------------------------------------------------------------------------------
+Start Flattening Before IO Insertion
+---------------------------------------------------------------------------------
+---------------------------------------------------------------------------------
+Finished Flattening Before IO Insertion
+---------------------------------------------------------------------------------
+---------------------------------------------------------------------------------
+Start Final Netlist Cleanup
+---------------------------------------------------------------------------------
+---------------------------------------------------------------------------------
+Finished Final Netlist Cleanup
+---------------------------------------------------------------------------------
+---------------------------------------------------------------------------------
+Finished IO Insertion : Time (s): cpu = 00:00:16 ; elapsed = 00:00:17 . Memory (MB): peak = 1810.168 ; gain = 0.000
+---------------------------------------------------------------------------------
+---------------------------------------------------------------------------------
+Start Renaming Generated Instances
+---------------------------------------------------------------------------------
+---------------------------------------------------------------------------------
+Finished Renaming Generated Instances : Time (s): cpu = 00:00:16 ; elapsed = 00:00:17 . Memory (MB): peak = 1810.168 ; gain = 0.000
+---------------------------------------------------------------------------------
+---------------------------------------------------------------------------------
+Start Rebuilding User Hierarchy
+---------------------------------------------------------------------------------
+---------------------------------------------------------------------------------
+Finished Rebuilding User Hierarchy : Time (s): cpu = 00:00:16 ; elapsed = 00:00:17 . Memory (MB): peak = 1810.168 ; gain = 0.000
+---------------------------------------------------------------------------------
+---------------------------------------------------------------------------------
+Start Renaming Generated Ports
+---------------------------------------------------------------------------------
+---------------------------------------------------------------------------------
+Finished Renaming Generated Ports : Time (s): cpu = 00:00:16 ; elapsed = 00:00:17 . Memory (MB): peak = 1810.168 ; gain = 0.000
+---------------------------------------------------------------------------------
+---------------------------------------------------------------------------------
+Start Handling Custom Attributes
+---------------------------------------------------------------------------------
+---------------------------------------------------------------------------------
+Finished Handling Custom Attributes : Time (s): cpu = 00:00:16 ; elapsed = 00:00:17 . Memory (MB): peak = 1810.168 ; gain = 0.000
+---------------------------------------------------------------------------------
+---------------------------------------------------------------------------------
+Start Renaming Generated Nets
+---------------------------------------------------------------------------------
+---------------------------------------------------------------------------------
+Finished Renaming Generated Nets : Time (s): cpu = 00:00:16 ; elapsed = 00:00:17 . Memory (MB): peak = 1810.168 ; gain = 0.000
+---------------------------------------------------------------------------------
+---------------------------------------------------------------------------------
+Start Writing Synthesis Report
+---------------------------------------------------------------------------------
+
+Report BlackBoxes: 
++-+--------------+----------+
+| |BlackBox name |Instances |
++-+--------------+----------+
++-+--------------+----------+
+
+Report Cell Usage: 
++------+---------+------+
+|      |Cell     |Count |
++------+---------+------+
+|1     |BUFG     |     1|
+|2     |LUT1     |    24|
+|3     |LUT2     |    30|
+|4     |LUT3     |    52|
+|5     |LUT4     |   128|
+|6     |RAMB36E1 |   384|
+|7     |FDRE     |     8|
+|8     |IBUF     |   119|
+|9     |OBUF     |   128|
++------+---------+------+
+---------------------------------------------------------------------------------
+Finished Writing Synthesis Report : Time (s): cpu = 00:00:16 ; elapsed = 00:00:17 . Memory (MB): peak = 1810.168 ; gain = 0.000
+---------------------------------------------------------------------------------
+Synthesis finished with 0 errors, 1 critical warnings and 130 warnings.
+Synthesis Optimization Runtime : Time (s): cpu = 00:00:16 ; elapsed = 00:00:17 . Memory (MB): peak = 1810.168 ; gain = 0.000
+Synthesis Optimization Complete : Time (s): cpu = 00:00:16 ; elapsed = 00:00:17 . Memory (MB): peak = 1810.168 ; gain = 0.000
+INFO: [Project 1-571] Translating synthesized netlist
+Netlist sorting complete. Time (s): cpu = 00:00:00 ; elapsed = 00:00:00.070 . Memory (MB): peak = 1810.168 ; gain = 0.000
+INFO: [Netlist 29-17] Analyzing 384 Unisim elements for replacement
+INFO: [Netlist 29-28] Unisim Transformation completed in 1 CPU seconds
+INFO: [Project 1-570] Preparing netlist for logic optimization
+INFO: [Opt 31-138] Pushed 0 inverter(s) to 0 load pin(s).
+Netlist sorting complete. Time (s): cpu = 00:00:00 ; elapsed = 00:00:00 . Memory (MB): peak = 1835.289 ; gain = 0.000
+INFO: [Project 1-111] Unisim Transformation Summary:
+No Unisim elements were transformed.
+
+Synth Design complete | Checksum: 9c7ad38b
+INFO: [Common 17-83] Releasing license: Synthesis
+115 Infos, 102 Warnings, 1 Critical Warnings and 0 Errors encountered.
+synth_design completed successfully
+synth_design: Time (s): cpu = 00:00:20 ; elapsed = 00:00:23 . Memory (MB): peak = 1835.551 ; gain = 25.383
+PROBE ram_1w4r URAM=0 RAMB36=384 RAMB18=0 LUTRAM_cells=0 FFs=8
+########## URAM_PROBE ram_plain ##########
+Command: synth_design -top ram_plain -part xc7z020clg484-1
+Starting synth_design
+Attempting to get a license for feature 'Synthesis' and/or device 'xc7z020'
+INFO: [Common 17-349] Got license for feature 'Synthesis' and/or device 'xc7z020'
+INFO: [Synth 8-7079] Multithreading enabled for synth_design using a maximum of 2 processes.
+---------------------------------------------------------------------------------
+Starting Synthesize : Time (s): cpu = 00:00:06 ; elapsed = 00:00:06 . Memory (MB): peak = 1835.551 ; gain = 0.000
+---------------------------------------------------------------------------------
+INFO: [Synth 8-6157] synthesizing module 'ram_plain' [D:/Xilinx/Prj/pro/Video_Processing/build/uram_probe/uram_probe.v:39]
+INFO: [Synth 8-6155] done synthesizing module 'ram_plain' (0#1) [D:/Xilinx/Prj/pro/Video_Processing/build/uram_probe/uram_probe.v:39]
+---------------------------------------------------------------------------------
+Finished Synthesize : Time (s): cpu = 00:00:08 ; elapsed = 00:00:08 . Memory (MB): peak = 1835.551 ; gain = 0.000
+---------------------------------------------------------------------------------
+---------------------------------------------------------------------------------
+Finished Constraint Validation : Time (s): cpu = 00:00:08 ; elapsed = 00:00:08 . Memory (MB): peak = 1835.551 ; gain = 0.000
+---------------------------------------------------------------------------------
+---------------------------------------------------------------------------------
+Start Loading Part and Timing Information
+---------------------------------------------------------------------------------
+Loading part: xc7z020clg484-1
+---------------------------------------------------------------------------------
+Finished Loading Part and Timing Information : Time (s): cpu = 00:00:08 ; elapsed = 00:00:08 . Memory (MB): peak = 1835.551 ; gain = 0.000
+---------------------------------------------------------------------------------
+---------------------------------------------------------------------------------
+Finished RTL Optimization Phase 2 : Time (s): cpu = 00:00:08 ; elapsed = 00:00:09 . Memory (MB): peak = 1835.551 ; gain = 0.000
+---------------------------------------------------------------------------------
+No constraint files found.
+---------------------------------------------------------------------------------
+Start RTL Component Statistics 
+---------------------------------------------------------------------------------
+Detailed RTL Component Info : 
++---Registers : 
+	               32 Bit    Registers := 1     
++---RAMs : 
+	            2400K Bit	(76800 X 32 bit)          RAMs := 1     
+---------------------------------------------------------------------------------
+Finished RTL Component Statistics 
+---------------------------------------------------------------------------------
+---------------------------------------------------------------------------------
+Start Part Resource Summary
+---------------------------------------------------------------------------------
+Part Resources:
+DSPs: 220 (col length:60)
+BRAMs: 280 (col length: RAMB18 60 RAMB36 30)
+---------------------------------------------------------------------------------
+Finished Part Resource Summary
+---------------------------------------------------------------------------------
+No constraint files found.
+---------------------------------------------------------------------------------
+Start Cross Boundary and Area Optimization
+---------------------------------------------------------------------------------
+WARNING: [Synth 8-3332] Sequential element (mem_reg_mux_sel_a_pos_1) is unused and will be removed from module ram_plain.
+WARNING: [Synth 8-3332] Sequential element (mem_reg_mux_sel_a_pos_1__0) is unused and will be removed from module ram_plain.
+WARNING: [Synth 8-3332] Sequential element (mem_reg_mux_sel_a_pos_1__1) is unused and will be removed from module ram_plain.
+WARNING: [Synth 8-3332] Sequential element (mem_reg_mux_sel_a_pos_1__2) is unused and will be removed from module ram_plain.
+WARNING: [Synth 8-3332] Sequential element (mem_reg_mux_sel_a_pos_1__3) is unused and will be removed from module ram_plain.
+WARNING: [Synth 8-3332] Sequential element (mem_reg_mux_sel_a_pos_1__4) is unused and will be removed from module ram_plain.
+WARNING: [Synth 8-3332] Sequential element (mem_reg_mux_sel_a_pos_1__5) is unused and will be removed from module ram_plain.
+WARNING: [Synth 8-3332] Sequential element (mem_reg_mux_sel_a_pos_1__6) is unused and will be removed from module ram_plain.
+WARNING: [Synth 8-3332] Sequential element (mem_reg_mux_sel_a_pos_1__7) is unused and will be removed from module ram_plain.
+WARNING: [Synth 8-3332] Sequential element (mem_reg_mux_sel_a_pos_1__8) is unused and will be removed from module ram_plain.
+WARNING: [Synth 8-3332] Sequential element (mem_reg_mux_sel_a_pos_1__9) is unused and will be removed from module ram_plain.
+WARNING: [Synth 8-3332] Sequential element (mem_reg_mux_sel_a_pos_1__10) is unused and will be removed from module ram_plain.
+WARNING: [Synth 8-3332] Sequential element (mem_reg_mux_sel_a_pos_1__11) is unused and will be removed from module ram_plain.
+WARNING: [Synth 8-3332] Sequential element (mem_reg_mux_sel_a_pos_1__12) is unused and will be removed from module ram_plain.
+WARNING: [Synth 8-3332] Sequential element (mem_reg_mux_sel_a_pos_1__13) is unused and will be removed from module ram_plain.
+WARNING: [Synth 8-3332] Sequential element (mem_reg_mux_sel_a_pos_1__14) is unused and will be removed from module ram_plain.
+WARNING: [Synth 8-3332] Sequential element (mem_reg_mux_sel_a_pos_1__15) is unused and will be removed from module ram_plain.
+WARNING: [Synth 8-3332] Sequential element (mem_reg_mux_sel_a_pos_1__16) is unused and will be removed from module ram_plain.
+WARNING: [Synth 8-3332] Sequential element (mem_reg_mux_sel_a_pos_1__17) is unused and will be removed from module ram_plain.
+WARNING: [Synth 8-3332] Sequential element (mem_reg_mux_sel_a_pos_1__18) is unused and will be removed from module ram_plain.
+WARNING: [Synth 8-3332] Sequential element (mem_reg_mux_sel_a_pos_1__19) is unused and will be removed from module ram_plain.
+WARNING: [Synth 8-3332] Sequential element (mem_reg_mux_sel_a_pos_1__20) is unused and will be removed from module ram_plain.
+WARNING: [Synth 8-3332] Sequential element (mem_reg_mux_sel_a_pos_1__21) is unused and will be removed from module ram_plain.
+WARNING: [Synth 8-3332] Sequential element (mem_reg_mux_sel_a_pos_1__22) is unused and will be removed from module ram_plain.
+WARNING: [Synth 8-3332] Sequential element (mem_reg_mux_sel_a_pos_1__23) is unused and will be removed from module ram_plain.
+WARNING: [Synth 8-3332] Sequential element (mem_reg_mux_sel_a_pos_1__24) is unused and will be removed from module ram_plain.
+WARNING: [Synth 8-3332] Sequential element (mem_reg_mux_sel_a_pos_1__25) is unused and will be removed from module ram_plain.
+WARNING: [Synth 8-3332] Sequential element (mem_reg_mux_sel_a_pos_1__26) is unused and will be removed from module ram_plain.
+WARNING: [Synth 8-3332] Sequential element (mem_reg_mux_sel_a_pos_1__27) is unused and will be removed from module ram_plain.
+WARNING: [Synth 8-3332] Sequential element (mem_reg_mux_sel_a_pos_1__28) is unused and will be removed from module ram_plain.
+WARNING: [Synth 8-3332] Sequential element (mem_reg_mux_sel_a_pos_1__29) is unused and will be removed from module ram_plain.
+WARNING: [Synth 8-3332] Sequential element (mem_reg_mux_sel_a_pos_1__30) is unused and will be removed from module ram_plain.
+---------------------------------------------------------------------------------
+Finished Cross Boundary and Area Optimization : Time (s): cpu = 00:00:10 ; elapsed = 00:00:10 . Memory (MB): peak = 1835.551 ; gain = 0.000
+---------------------------------------------------------------------------------
+---------------------------------------------------------------------------------
+Start ROM, RAM, DSP, Shift Register and Retiming Reporting
+---------------------------------------------------------------------------------
+
+Block RAM: Preliminary Mapping Report (see note below)
++------------+------------+------------------------+---+---+------------------------+---+---+------------------+--------+--------+
+|Module Name | RTL Object | PORT A (Depth x Width) | W | R | PORT B (Depth x Width) | W | R | Ports driving FF | RAMB18 | RAMB36 | 
++------------+------------+------------------------+---+---+------------------------+---+---+------------------+--------+--------+
+|ram_plain   | mem_reg    | 75 K x 32(READ_FIRST)  | W |   | 75 K x 32(WRITE_FIRST) |   | R | Port A and B     | 0      | 96     | 
++------------+------------+------------------------+---+---+------------------------+---+---+------------------+--------+--------+
+
+Note: The table above is a preliminary report that shows the Block RAMs at the current stage of the synthesis flow. Some Block RAMs may be reimplemented as non Block RAM primitives later in the synthesis flow. Multiple instantiated Block RAMs are reported only once. 
+---------------------------------------------------------------------------------
+Finished ROM, RAM, DSP, Shift Register and Retiming Reporting
+---------------------------------------------------------------------------------
+No constraint files found.
+---------------------------------------------------------------------------------
+Start Timing Optimization
+---------------------------------------------------------------------------------
+---------------------------------------------------------------------------------
+Finished Timing Optimization : Time (s): cpu = 00:00:10 ; elapsed = 00:00:10 . Memory (MB): peak = 1835.551 ; gain = 0.000
+---------------------------------------------------------------------------------
+---------------------------------------------------------------------------------
+Start ROM, RAM, DSP, Shift Register and Retiming Reporting
+---------------------------------------------------------------------------------
+
+Block RAM: Final Mapping Report
++------------+------------+------------------------+---+---+------------------------+---+---+------------------+--------+--------+
+|Module Name | RTL Object | PORT A (Depth x Width) | W | R | PORT B (Depth x Width) | W | R | Ports driving FF | RAMB18 | RAMB36 | 
++------------+------------+------------------------+---+---+------------------------+---+---+------------------+--------+--------+
+|ram_plain   | mem_reg    | 75 K x 32(READ_FIRST)  | W |   | 75 K x 32(WRITE_FIRST) |   | R | Port A and B     | 0      | 96     | 
++------------+------------+------------------------+---+---+------------------------+---+---+------------------+--------+--------+
+
+---------------------------------------------------------------------------------
+Finished ROM, RAM, DSP, Shift Register and Retiming Reporting
+---------------------------------------------------------------------------------
+---------------------------------------------------------------------------------
+Start Technology Mapping
+---------------------------------------------------------------------------------
+INFO: [Synth 8-7052] The timing for the instance mem_reg_1_0 (implemented as a Block RAM) might be sub-optimal as no optional output register could be merged into the ram block. Providing additional output register may help in improving timing.
+INFO: [Synth 8-7052] The timing for the instance mem_reg_1_1 (implemented as a Block RAM) might be sub-optimal as no optional output register could be merged into the ram block. Providing additional output register may help in improving timing.
+INFO: [Synth 8-7052] The timing for the instance mem_reg_1_2 (implemented as a Block RAM) might be sub-optimal as no optional output register could be merged into the ram block. Providing additional output register may help in improving timing.
+INFO: [Synth 8-7052] The timing for the instance mem_reg_1_3 (implemented as a Block RAM) might be sub-optimal as no optional output register could be merged into the ram block. Providing additional output register may help in improving timing.
+INFO: [Synth 8-7052] The timing for the instance mem_reg_1_4 (implemented as a Block RAM) might be sub-optimal as no optional output register could be merged into the ram block. Providing additional output register may help in improving timing.
+INFO: [Synth 8-7052] The timing for the instance mem_reg_1_5 (implemented as a Block RAM) might be sub-optimal as no optional output register could be merged into the ram block. Providing additional output register may help in improving timing.
+INFO: [Synth 8-7052] The timing for the instance mem_reg_1_6 (implemented as a Block RAM) might be sub-optimal as no optional output register could be merged into the ram block. Providing additional output register may help in improving timing.
+INFO: [Synth 8-7052] The timing for the instance mem_reg_1_7 (implemented as a Block RAM) might be sub-optimal as no optional output register could be merged into the ram block. Providing additional output register may help in improving timing.
+INFO: [Synth 8-7052] The timing for the instance mem_reg_1_8 (implemented as a Block RAM) might be sub-optimal as no optional output register could be merged into the ram block. Providing additional output register may help in improving timing.
+INFO: [Synth 8-7052] The timing for the instance mem_reg_1_9 (implemented as a Block RAM) might be sub-optimal as no optional output register could be merged into the ram block. Providing additional output register may help in improving timing.
+INFO: [Synth 8-7052] The timing for the instance mem_reg_1_10 (implemented as a Block RAM) might be sub-optimal as no optional output register could be merged into the ram block. Providing additional output register may help in improving timing.
+INFO: [Synth 8-7052] The timing for the instance mem_reg_1_11 (implemented as a Block RAM) might be sub-optimal as no optional output register could be merged into the ram block. Providing additional output register may help in improving timing.
+INFO: [Synth 8-7052] The timing for the instance mem_reg_1_12 (implemented as a Block RAM) might be sub-optimal as no optional output register could be merged into the ram block. Providing additional output register may help in improving timing.
+INFO: [Synth 8-7052] The timing for the instance mem_reg_1_13 (implemented as a Block RAM) might be sub-optimal as no optional output register could be merged into the ram block. Providing additional output register may help in improving timing.
+INFO: [Synth 8-7052] The timing for the instance mem_reg_1_14 (implemented as a Block RAM) might be sub-optimal as no optional output register could be merged into the ram block. Providing additional output register may help in improving timing.
+INFO: [Synth 8-7052] The timing for the instance mem_reg_1_15 (implemented as a Block RAM) might be sub-optimal as no optional output register could be merged into the ram block. Providing additional output register may help in improving timing.
+INFO: [Synth 8-7052] The timing for the instance mem_reg_1_16 (implemented as a Block RAM) might be sub-optimal as no optional output register could be merged into the ram block. Providing additional output register may help in improving timing.
+INFO: [Synth 8-7052] The timing for the instance mem_reg_1_17 (implemented as a Block RAM) might be sub-optimal as no optional output register could be merged into the ram block. Providing additional output register may help in improving timing.
+INFO: [Synth 8-7052] The timing for the instance mem_reg_1_18 (implemented as a Block RAM) might be sub-optimal as no optional output register could be merged into the ram block. Providing additional output register may help in improving timing.
+INFO: [Synth 8-7052] The timing for the instance mem_reg_1_19 (implemented as a Block RAM) might be sub-optimal as no optional output register could be merged into the ram block. Providing additional output register may help in improving timing.
+INFO: [Synth 8-7052] The timing for the instance mem_reg_1_20 (implemented as a Block RAM) might be sub-optimal as no optional output register could be merged into the ram block. Providing additional output register may help in improving timing.
+INFO: [Synth 8-7052] The timing for the instance mem_reg_1_21 (implemented as a Block RAM) might be sub-optimal as no optional output register could be merged into the ram block. Providing additional output register may help in improving timing.
+INFO: [Synth 8-7052] The timing for the instance mem_reg_1_22 (implemented as a Block RAM) might be sub-optimal as no optional output register could be merged into the ram block. Providing additional output register may help in improving timing.
+INFO: [Synth 8-7052] The timing for the instance mem_reg_1_23 (implemented as a Block RAM) might be sub-optimal as no optional output register could be merged into the ram block. Providing additional output register may help in improving timing.
+INFO: [Synth 8-7052] The timing for the instance mem_reg_1_24 (implemented as a Block RAM) might be sub-optimal as no optional output register could be merged into the ram block. Providing additional output register may help in improving timing.
+INFO: [Synth 8-7052] The timing for the instance mem_reg_1_25 (implemented as a Block RAM) might be sub-optimal as no optional output register could be merged into the ram block. Providing additional output register may help in improving timing.
+INFO: [Synth 8-7052] The timing for the instance mem_reg_1_26 (implemented as a Block RAM) might be sub-optimal as no optional output register could be merged into the ram block. Providing additional output register may help in improving timing.
+INFO: [Synth 8-7052] The timing for the instance mem_reg_1_27 (implemented as a Block RAM) might be sub-optimal as no optional output register could be merged into the ram block. Providing additional output register may help in improving timing.
+INFO: [Synth 8-7052] The timing for the instance mem_reg_1_28 (implemented as a Block RAM) might be sub-optimal as no optional output register could be merged into the ram block. Providing additional output register may help in improving timing.
+INFO: [Synth 8-7052] The timing for the instance mem_reg_1_29 (implemented as a Block RAM) might be sub-optimal as no optional output register could be merged into the ram block. Providing additional output register may help in improving timing.
+INFO: [Synth 8-7052] The timing for the instance mem_reg_1_30 (implemented as a Block RAM) might be sub-optimal as no optional output register could be merged into the ram block. Providing additional output register may help in improving timing.
+INFO: [Synth 8-7052] The timing for the instance mem_reg_1_31 (implemented as a Block RAM) might be sub-optimal as no optional output register could be merged into the ram block. Providing additional output register may help in improving timing.
+INFO: [Synth 8-7052] The timing for the instance mem_reg_1_0__0 (implemented as a Block RAM) might be sub-optimal as no optional output register could be merged into the ram block. Providing additional output register may help in improving timing.
+INFO: [Synth 8-7052] The timing for the instance mem_reg_1_1__0 (implemented as a Block RAM) might be sub-optimal as no optional output register could be merged into the ram block. Providing additional output register may help in improving timing.
+INFO: [Synth 8-7052] The timing for the instance mem_reg_1_2__0 (implemented as a Block RAM) might be sub-optimal as no optional output register could be merged into the ram block. Providing additional output register may help in improving timing.
+INFO: [Synth 8-7052] The timing for the instance mem_reg_1_3__0 (implemented as a Block RAM) might be sub-optimal as no optional output register could be merged into the ram block. Providing additional output register may help in improving timing.
+INFO: [Synth 8-7052] The timing for the instance mem_reg_1_4__0 (implemented as a Block RAM) might be sub-optimal as no optional output register could be merged into the ram block. Providing additional output register may help in improving timing.
+INFO: [Synth 8-7052] The timing for the instance mem_reg_1_5__0 (implemented as a Block RAM) might be sub-optimal as no optional output register could be merged into the ram block. Providing additional output register may help in improving timing.
+INFO: [Synth 8-7052] The timing for the instance mem_reg_1_6__0 (implemented as a Block RAM) might be sub-optimal as no optional output register could be merged into the ram block. Providing additional output register may help in improving timing.
+INFO: [Synth 8-7052] The timing for the instance mem_reg_1_7__0 (implemented as a Block RAM) might be sub-optimal as no optional output register could be merged into the ram block. Providing additional output register may help in improving timing.
+INFO: [Synth 8-7052] The timing for the instance mem_reg_1_8__0 (implemented as a Block RAM) might be sub-optimal as no optional output register could be merged into the ram block. Providing additional output register may help in improving timing.
+INFO: [Synth 8-7052] The timing for the instance mem_reg_1_9__0 (implemented as a Block RAM) might be sub-optimal as no optional output register could be merged into the ram block. Providing additional output register may help in improving timing.
+INFO: [Synth 8-7052] The timing for the instance mem_reg_1_10__0 (implemented as a Block RAM) might be sub-optimal as no optional output register could be merged into the ram block. Providing additional output register may help in improving timing.
+INFO: [Synth 8-7052] The timing for the instance mem_reg_1_11__0 (implemented as a Block RAM) might be sub-optimal as no optional output register could be merged into the ram block. Providing additional output register may help in improving timing.
+INFO: [Synth 8-7052] The timing for the instance mem_reg_1_12__0 (implemented as a Block RAM) might be sub-optimal as no optional output register could be merged into the ram block. Providing additional output register may help in improving timing.
+INFO: [Synth 8-7052] The timing for the instance mem_reg_1_13__0 (implemented as a Block RAM) might be sub-optimal as no optional output register could be merged into the ram block. Providing additional output register may help in improving timing.
+INFO: [Synth 8-7052] The timing for the instance mem_reg_1_14__0 (implemented as a Block RAM) might be sub-optimal as no optional output register could be merged into the ram block. Providing additional output register may help in improving timing.
+INFO: [Synth 8-7052] The timing for the instance mem_reg_1_15__0 (implemented as a Block RAM) might be sub-optimal as no optional output register could be merged into the ram block. Providing additional output register may help in improving timing.
+INFO: [Synth 8-7052] The timing for the instance mem_reg_1_16__0 (implemented as a Block RAM) might be sub-optimal as no optional output register could be merged into the ram block. Providing additional output register may help in improving timing.
+INFO: [Synth 8-7052] The timing for the instance mem_reg_1_17__0 (implemented as a Block RAM) might be sub-optimal as no optional output register could be merged into the ram block. Providing additional output register may help in improving timing.
+INFO: [Synth 8-7052] The timing for the instance mem_reg_1_18__0 (implemented as a Block RAM) might be sub-optimal as no optional output register could be merged into the ram block. Providing additional output register may help in improving timing.
+INFO: [Synth 8-7052] The timing for the instance mem_reg_1_19__0 (implemented as a Block RAM) might be sub-optimal as no optional output register could be merged into the ram block. Providing additional output register may help in improving timing.
+INFO: [Synth 8-7052] The timing for the instance mem_reg_1_20__0 (implemented as a Block RAM) might be sub-optimal as no optional output register could be merged into the ram block. Providing additional output register may help in improving timing.
+INFO: [Synth 8-7052] The timing for the instance mem_reg_1_21__0 (implemented as a Block RAM) might be sub-optimal as no optional output register could be merged into the ram block. Providing additional output register may help in improving timing.
+INFO: [Synth 8-7052] The timing for the instance mem_reg_1_22__0 (implemented as a Block RAM) might be sub-optimal as no optional output register could be merged into the ram block. Providing additional output register may help in improving timing.
+INFO: [Synth 8-7052] The timing for the instance mem_reg_1_23__0 (implemented as a Block RAM) might be sub-optimal as no optional output register could be merged into the ram block. Providing additional output register may help in improving timing.
+INFO: [Synth 8-7052] The timing for the instance mem_reg_1_24__0 (implemented as a Block RAM) might be sub-optimal as no optional output register could be merged into the ram block. Providing additional output register may help in improving timing.
+INFO: [Synth 8-7052] The timing for the instance mem_reg_1_25__0 (implemented as a Block RAM) might be sub-optimal as no optional output register could be merged into the ram block. Providing additional output register may help in improving timing.
+INFO: [Synth 8-7052] The timing for the instance mem_reg_1_26__0 (implemented as a Block RAM) might be sub-optimal as no optional output register could be merged into the ram block. Providing additional output register may help in improving timing.
+INFO: [Synth 8-7052] The timing for the instance mem_reg_1_27__0 (implemented as a Block RAM) might be sub-optimal as no optional output register could be merged into the ram block. Providing additional output register may help in improving timing.
+INFO: [Synth 8-7052] The timing for the instance mem_reg_1_28__0 (implemented as a Block RAM) might be sub-optimal as no optional output register could be merged into the ram block. Providing additional output register may help in improving timing.
+INFO: [Synth 8-7052] The timing for the instance mem_reg_1_29__0 (implemented as a Block RAM) might be sub-optimal as no optional output register could be merged into the ram block. Providing additional output register may help in improving timing.
+INFO: [Synth 8-7052] The timing for the instance mem_reg_1_30__0 (implemented as a Block RAM) might be sub-optimal as no optional output register could be merged into the ram block. Providing additional output register may help in improving timing.
+INFO: [Synth 8-7052] The timing for the instance mem_reg_1_31__0 (implemented as a Block RAM) might be sub-optimal as no optional output register could be merged into the ram block. Providing additional output register may help in improving timing.
+---------------------------------------------------------------------------------
+Finished Technology Mapping : Time (s): cpu = 00:00:10 ; elapsed = 00:00:11 . Memory (MB): peak = 1835.551 ; gain = 0.000
+---------------------------------------------------------------------------------
+---------------------------------------------------------------------------------
+Start IO Insertion
+---------------------------------------------------------------------------------
+---------------------------------------------------------------------------------
+Start Flattening Before IO Insertion
+---------------------------------------------------------------------------------
+---------------------------------------------------------------------------------
+Finished Flattening Before IO Insertion
+---------------------------------------------------------------------------------
+---------------------------------------------------------------------------------
+Start Final Netlist Cleanup
+---------------------------------------------------------------------------------
+---------------------------------------------------------------------------------
+Finished Final Netlist Cleanup
+---------------------------------------------------------------------------------
+---------------------------------------------------------------------------------
+Finished IO Insertion : Time (s): cpu = 00:00:15 ; elapsed = 00:00:16 . Memory (MB): peak = 1835.551 ; gain = 0.000
+---------------------------------------------------------------------------------
+---------------------------------------------------------------------------------
+Start Renaming Generated Instances
+---------------------------------------------------------------------------------
+---------------------------------------------------------------------------------
+Finished Renaming Generated Instances : Time (s): cpu = 00:00:15 ; elapsed = 00:00:16 . Memory (MB): peak = 1835.551 ; gain = 0.000
+---------------------------------------------------------------------------------
+---------------------------------------------------------------------------------
+Start Rebuilding User Hierarchy
+---------------------------------------------------------------------------------
+---------------------------------------------------------------------------------
+Finished Rebuilding User Hierarchy : Time (s): cpu = 00:00:15 ; elapsed = 00:00:16 . Memory (MB): peak = 1835.551 ; gain = 0.000
+---------------------------------------------------------------------------------
+---------------------------------------------------------------------------------
+Start Renaming Generated Ports
+---------------------------------------------------------------------------------
+---------------------------------------------------------------------------------
+Finished Renaming Generated Ports : Time (s): cpu = 00:00:15 ; elapsed = 00:00:16 . Memory (MB): peak = 1835.551 ; gain = 0.000
+---------------------------------------------------------------------------------
+---------------------------------------------------------------------------------
+Start Handling Custom Attributes
+---------------------------------------------------------------------------------
+---------------------------------------------------------------------------------
+Finished Handling Custom Attributes : Time (s): cpu = 00:00:15 ; elapsed = 00:00:16 . Memory (MB): peak = 1835.551 ; gain = 0.000
+---------------------------------------------------------------------------------
+---------------------------------------------------------------------------------
+Start Renaming Generated Nets
+---------------------------------------------------------------------------------
+---------------------------------------------------------------------------------
+Finished Renaming Generated Nets : Time (s): cpu = 00:00:15 ; elapsed = 00:00:16 . Memory (MB): peak = 1835.551 ; gain = 0.000
+---------------------------------------------------------------------------------
+---------------------------------------------------------------------------------
+Start Writing Synthesis Report
+---------------------------------------------------------------------------------
+
+Report BlackBoxes: 
++-+--------------+----------+
+| |BlackBox name |Instances |
++-+--------------+----------+
++-+--------------+----------+
+
+Report Cell Usage: 
++------+---------+------+
+|      |Cell     |Count |
++------+---------+------+
+|1     |BUFG     |     1|
+|2     |LUT1     |     6|
+|3     |LUT2     |    36|
+|4     |LUT3     |    13|
+|5     |LUT4     |    32|
+|6     |RAMB36E1 |    96|
+|7     |FDRE     |     2|
+|8     |IBUF     |    68|
+|9     |OBUF     |    32|
++------+---------+------+
+---------------------------------------------------------------------------------
+Finished Writing Synthesis Report : Time (s): cpu = 00:00:15 ; elapsed = 00:00:16 . Memory (MB): peak = 1835.551 ; gain = 0.000
+---------------------------------------------------------------------------------
+Synthesis finished with 0 errors, 0 critical warnings and 32 warnings.
+Synthesis Optimization Runtime : Time (s): cpu = 00:00:15 ; elapsed = 00:00:16 . Memory (MB): peak = 1835.551 ; gain = 0.000
+Synthesis Optimization Complete : Time (s): cpu = 00:00:15 ; elapsed = 00:00:16 . Memory (MB): peak = 1835.551 ; gain = 0.000
+INFO: [Project 1-571] Translating synthesized netlist
+Netlist sorting complete. Time (s): cpu = 00:00:00 ; elapsed = 00:00:00.021 . Memory (MB): peak = 1835.551 ; gain = 0.000
+INFO: [Netlist 29-17] Analyzing 96 Unisim elements for replacement
+INFO: [Netlist 29-28] Unisim Transformation completed in 0 CPU seconds
+INFO: [Project 1-570] Preparing netlist for logic optimization
+INFO: [Opt 31-138] Pushed 0 inverter(s) to 0 load pin(s).
+Netlist sorting complete. Time (s): cpu = 00:00:00 ; elapsed = 00:00:00.001 . Memory (MB): peak = 1847.461 ; gain = 0.000
+INFO: [Project 1-111] Unisim Transformation Summary:
+No Unisim elements were transformed.
+
+Synth Design complete | Checksum: 53b4be1e
+INFO: [Common 17-83] Releasing license: Synthesis
+75 Infos, 32 Warnings, 0 Critical Warnings and 0 Errors encountered.
+synth_design completed successfully
+synth_design: Time (s): cpu = 00:00:18 ; elapsed = 00:00:21 . Memory (MB): peak = 1847.461 ; gain = 11.910
+PROBE ram_plain URAM=0 RAMB36=96 RAMB18=0 LUTRAM_cells=0 FFs=2
+# puts "URAM PROBE DONE（�?�量 76800x32 = 300 KB = 帧缓存大小）"
+URAM PROBE DONE（�?�量 76800x32 = 300 KB = 帧缓存大小）
+# exit 0
+INFO: [Common 17-206] Exiting Vivado at Fri Sep 25 07:16:42 2026...
