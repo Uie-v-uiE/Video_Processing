@@ -108,6 +108,23 @@ say "Dynamic (W)"     "$dyn"  "与前次同量级"      1
 say "methodology CRIT" "$crit" "== 0"            $([ "$crit" -eq 0 ] && echo 1 || echo 0)
 say "布线错误网线"      "$rerr" "== 0"            $([ "$rerr" -eq 0 ] && echo 1 || echo 0)
 say "cdc.rpt Critical 行" "$cdcc" "基线 $nbase 行，配对不新增" "$cdc_ok"
+# 8) 端口宽度不匹配的**端口连接**警告（Synth 8-689）—— #57 的教训：
+#    system_top 里 `wire [5:0] dbg_src` 接在 8 bit 的端口上，综合只给这么一条警告，
+#    lane30 的模式高位就被静默吞掉（读出来永远 0/1），而七项门禁当时全绿。
+#    工具早就把 file:line 报出来了，没人读警告 ⇒ 把它变成门禁项。
+BLOG=$(ls -t "$D"/log_*system*.txt 2>/dev/null | head -1)
+if [ -z "$BLOG" ]; then
+    say "端口宽度警告 8-689" "NOLOG" "找不到构建日志=未验" 0
+else
+    W689=$(grep -ac "Synth 8-689" "$BLOG" || true)
+    [ -z "$W689" ] && W689=NA
+    if [ "$W689" = "0" ]; then
+        say "端口宽度警告 8-689" "0" "== 0（$(basename "$BLOG")）" 1
+    else
+        say "端口宽度警告 8-689" "$W689" "== 0（$(basename "$BLOG")）" 0
+        grep -a "Synth 8-689" "$BLOG" | sed 's/^/        /' | head -6
+    fi
+fi
 echo
 echo "端点总数 $eps；CDC 现在按 build/CDC_BASELINE.txt 的**配对集合**判，功耗仍要人比有没有变差。"
 if [ "$pass" = 1 ]; then echo "GATES: ALL PASS"; exit 0; else echo "GATES: 有红项 —— 不采纳，保留上一版"; exit 1; fi

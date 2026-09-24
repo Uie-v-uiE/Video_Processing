@@ -131,7 +131,8 @@ if (!curRaw) {
 const cur = parseInt(curRaw[1], 16) >>> 0;
 const keep = cur & 0x07ffffff;                       // 清掉 bit[31:27]，保留控制位
 if (CLR) { runXsdb(clrScript(keep), 'clr'); console.log('[HEALTH] 已把帧间隔统计归零（gpio_o[26] 拉高 250 ms）'); }
-const want = [...Array(10).keys(), 30, 31];
+// V8-6 之后 lane26/27/28 也是真的读数（时延三段 + 最大/次数/饱和位），不再是 0xDEADBEEF。
+const want = [...Array(10).keys(), 26, 27, 28, 30, 31];
 const vals = new Map();
 for (let p = 0; p < PASSES; p++) {
   const txt = runXsdb(passScript(want, p === PASSES - 1 ? cur : undefined, keep), `p${p}`);
@@ -173,6 +174,24 @@ if (get('json', false) === true) {
       mode: ({ 0: 'AUTO', 1: 'LOCK_ETH', 3: 'LOCK_PS', 2: 'LOCK_CARD' })[((src >> 5) & 3)] ?? 'BAD',
     },
     drop_words: l.lane0,
+    // V8-6 链路内时延（PL 侧，单位 µs；口径：commit → 该帧开始被扫描，**±1 显示帧**）：
+    //   lane26 = {l1_us, l2_us}  lane27 = {l3_us, tot_us}  lane28 = {max_us, n_meas[13:0], 0, saturated}
+    //   L1 等消隐窗口 / L2 整帧搬运 / L3 等扫描轮到它 —— 三段成因不同，别只念总数。
+    // 上位机编码与网线传输**不在内**，所以对外只能叫"链路内时延（PL 侧）"，不许叫端到端。
+    lat: (() => {
+      const a = g(26), b = g(27), c = g(28);
+      if (a === undefined || b === undefined || c === undefined) return null;
+      if (((a | b | c) >>> 0) === 0xDEADBEEF) return null;      // 老位流没有这几个 lane
+      const u16 = (v, hi) => ((v >>> (hi ? 16 : 0)) & 0xFFFF);
+      return {
+        l1_us: u16(a, true), l2_us: u16(a, false),
+        l3_us: u16(b, true), tot_us: u16(b, false),
+        max_us: u16(c, true), n_meas: (c >>> 1) & 0x3FFF,
+        saturated: c & 1,
+        // 只有 n_meas>0 才是量到过的数；saturated=1 时任何读数只能当下界用
+        valid: ((c >>> 1) & 0x3FFF) > 0 && !(c & 1),
+      };
+    })(),
     frames_bad: l.lane1 === undefined ? NaN : f16(l.lane1, false),
     pkt_err:    l.lane1 === undefined ? NaN : f16(l.lane1, true),
     stall_ms:   l.lane2 === undefined ? NaN : f16(l.lane2, false),

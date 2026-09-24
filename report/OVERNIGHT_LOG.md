@@ -2661,8 +2661,11 @@ methodology 0 CRIT / cdc Critical 3 行 = 基线不新增。⚠ **WNS 从 +0.716
 上板走的是老三步（顺序不能换）：`ps_jtag_boot` → `program_pl` → `ps_app_reload`；
 串口回来 `[CFG] axi_gpio_2 @41220000 ok`、SD 自动播放 29.999 fps、`stat` 正常。
 **采到一条新的机器凭据**：ETH 推流与 SD 播放同时跑时连采 400 口 lane30，
-**有效的 175 口里 mode 恒为"自动"、`eth_live` 一次没掉** ⇒ "没人按键模式自己走格"这条成因排除
-（`build/frozen_r46_keys/lane30_r46_concurrent.txt`）。
+**有效的 175 口里 `eth_live` 一次没掉**（`build/frozen_r46_keys/lane30_r46_concurrent.txt`）。
+⚠ 当时同一批数据我还写了"mode 恒为自动 ⇒ '没人按键模式自己走格'这条成因排除"——**那句作废**，
+2026-09-24 21:4x 发现 lane30 的模式高位被 `system_top` 一根 6 bit 线宽静默吃掉
+（Vivado 一直有 `Synth 8-689` 的 file:line 警告，只是门禁不读警告）⇒ 读到的 0 只等于"ms2[0]=0"，
+分不清 自动(00) 与 锁图卡(10)。详见 **ISSUES #57**；(A) 这条要等 r49 重采才能下结论。
 
 判据 itself 也被修了一次：第一版 `lane30_watch.mjs` 把"lane 选择被 PS 整字重写抹掉"的样本当真实读数，
 报了个根本不存在的"eth_live 掉 80 次"。现在每口采完立刻回读控制字，`[31:27]≠30` 就丢弃并单独计数。
