@@ -77,9 +77,17 @@ foreach s $strats {
         set wns $w1; set fem $f1; set whs $h1
     }
     set met "NO"; if {[string match "*All user specified timing constraints are met*" $txt]} { set met "YES" }
+    # 功耗要"设计开着"才量得到：走了"读磁盘报告"那条路就没有开设计 ——
+    # 原来这里有一句裸 `close_design`，r56 扫第二个策略时就是它把已经跑完 5.5 分钟的那一跑
+    # 在收尾处炸掉的（`ERROR [Vivado 12-398] No designs are open`，未捕获 ⇒ 批处理当场退出，
+    # 汇总表那一行也没写进去）。数最后是从磁盘上那份 routed 报告手动捞的。
     set pwr "-"
-    catch {set pwr [format %.3f [get_property TOTAL_POWER [get_power]]]}
-    close_design
+    if {[catch {open_run impl_1} e2]} {
+        puts "SWEEP $s 功耗读不到（open_run 失败：$e2）—— 记 -，不编数字"
+    } else {
+        catch {set pwr [format %.3f [get_property TOTAL_POWER [get_power]]]}
+        catch {close_design}
+    }
     puts "SWEEP $s WNS=$wns WHS=$whs fail_endpoints=$fem all_met=$met power=$pwr"
     puts $fh "$s\t$wns\t$whs\t$fem\t$met\t$pwr"
 }
