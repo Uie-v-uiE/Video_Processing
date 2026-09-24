@@ -27,6 +27,8 @@ module pl_demo_top (
         .threshold(threshold),
         .src_sel(src_sel),
         .zoom_en(1'b1),
+        .zoom_sel_async(3'd0),       // 纯 PL 演示没有 PS：缩放留在自动呼吸
+        .zoom_manual_async(1'b0),
         .ps_publish(1'b0),          // 纯 PL 演示没有 PS：不发布，DDR 回放路径保持静默
         .key1_n(key1_n),
         .key2_n(key2_n),

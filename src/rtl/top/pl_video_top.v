@@ -30,6 +30,12 @@ module pl_video_top #(
     input  wire [31:0] gamma_ctl,
     input  wire        src_sel,
     input  wire        zoom_en,
+    // V8-8 手动缩放：`zoom_sel_async[2:0]` = 档号、`zoom_manual_async` = 1 停在手动档。
+    // 两者与 `stage_sel` 来自**同一个 32 位控制字**（gpio_cfg1 = PS 侧 CFG_DATA0 的
+    // [28:26] 与 [29]），都是 axi 域异步电平 ⇒ 一律交给 effect_ctrl 那条 sel 链同步，
+    // 这一层**不许自己采样**（#24/#49 那一课）。
+    input  wire [2:0]  zoom_sel_async,
+    input  wire        zoom_manual_async,
     // PS 侧"这一帧 DDR 写完了"的发布脉冲：每翻转一次 = 请求 PL 在下一个 frame_start
     // 把 DDR 搬进显示帧缓存一次。SD 回放靠它避免撕裂（见 src/ps/sd_play.c 头部协议说明）。
     input  wire        ps_publish,
@@ -163,13 +169,18 @@ module pl_video_top #(
     wire       gm_en, gm_wr;
     wire [7:0] gm_idx, gm_data;
     wire [5:0] gm_disp;          // V8-5：只给 OSD 的 gamma×10（同一对同步器带过来的 6 位）
+    wire [2:0] zsel_pix;         // V8-8：手动档号（与 sel_sync 同源同深度）
+    wire       zman_pix;         // V8-8：手动旗标
     effect_ctrl u_eff (
         .clk(clk_pix), .rst_n(rst_pix_n),
         .effect_en_async(effect_en),
         .stage_sel_async(stage_sel),
+        .zoom_sel_async(zoom_sel_async),
+        .zoom_manual_async(zoom_manual_async),
         .threshold_async(threshold),
         .gamma_async(gamma_ctl),
         .stage_sel(sel_sync),
+        .zoom_sel(zsel_pix), .zoom_manual(zman_pix),
         .effect_en(en_sync), .threshold(th_sync),
         .gamma_en(gm_en), .gamma_wr(gm_wr), .gamma_idx(gm_idx), .gamma_data(gm_data),
         .gamma_disp(gm_disp)
@@ -218,6 +229,7 @@ module pl_video_top #(
     zoom_ctrl #(.INV_LO(10'd256), .INV_HI(10'd512), .STEP(10'd2)) u_zctrl (
         .clk(clk_pix), .rst_n(rst_pix_n),
         .enable(zoom_run), .frame_start(frame_start),
+        .zsel(zsel_pix), .manual(zman_pix),        // V8-8：手动档（同一对同步器带来的两个位）
         .inv_scale(inv_scale), .zoom_active(zoom_active), .zoom_code(zoom_code),
         .dir(zoom_dir)
     );
@@ -767,7 +779,7 @@ module pl_video_top #(
         .stage_sel(sel_sync),                 // 五级链实际生效的九位
         .threshold(th_sync),
         .gamma_disp(gm_disp),
-        .zoom_code(zoom_code), .zoom_auto(zoom_run),
+        .zoom_code(zoom_code), .zoom_auto(zoom_run && !zman_pix),   // V8-8：手动档不许再标 (Auto)
         .split_pct(SPLIT_PCT_FIX), .split_auto(1'b0),
         .lat_ms(lat_ms_pix), .lat_ok(lat_ok_pix),
         .src_eff({fb_vis, owner_eth_pix}),   // 屏幕上真的这一路：CARD / PS / ETH

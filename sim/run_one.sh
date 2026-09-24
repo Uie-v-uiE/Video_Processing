@@ -14,8 +14,15 @@ rm -rf xsim.dir
 SRC="$(find $ROOT/src/rtl -name '*.v' | tr '\n' ' ') \
 $ROOT/ku5p/src/rtl/ku5p_telem.v $ROOT/ku5p/src/rtl/ku5p_tx_arb.v $ROOT/ku5p/src/rtl/ku5p_cmd.v \
 $(find $ROOT/sim -maxdepth 1 -name 'tb_*.v' | tr '\n' ' ')"
-$V/xvlog $SRC > xv.log 2>&1
+# ⚠ 清单**必须走 -f 文件**，不能拼在命令行上：台架加多之后 xvlog 会被 Windows 命令行长度上限
+#   截成一句"参数太多"，而 xv.log 里连 ERROR 都没有 ⇒ 本脚本只看 "^ERROR" 就往下走，
+#   最后报成一句看不懂的 "Cannot find design unit"（2026-09-25 加 tb_v94 时撞到）。
+# ⚠ 文件里写的必须是 **Windows 正斜杠路径**（`cygpath -m`）：命令行参数会被 MSYS 自动换算，
+#   但 -f 文件的内容不会 —— 直接写 /d/... 会让 xvlog 报 "Can not find file"（同一天撞到第二次）。
+printf '%s\n' $SRC | cygpath -m -f - > files.f
+$V/xvlog -f files.f > xv.log 2>&1
 if grep -q "^ERROR" xv.log; then echo "XVLOG FAILED"; grep "^ERROR" xv.log | head -8; exit 1; fi
+if [ ! -d xsim.dir/work ]; then echo "XVLOG 没建出 work 库，xv.log 尾部："; tail -3 xv.log; exit 1; fi
 $V/xelab $TB -s snap > el.log 2>&1
 if grep -q "^ERROR" el.log; then echo "XELAB FAILED"; grep -A3 "^ERROR" el.log | head -20; exit 1; fi
 $V/xsim snap -R > run.log 2>&1

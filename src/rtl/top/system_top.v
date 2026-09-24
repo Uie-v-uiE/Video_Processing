@@ -248,6 +248,10 @@ module system_top (
         .sys_clk(sys_clk), .sys_rst_n(1'b1),
         .axi_clk(fclk0), .axi_rst_n(fclk0_rst_n),
         .effect_en(gpio_o[4:0]), .stage_sel(gpio_cfg1_o[8:0]), .threshold(gpio_o[15:8]), .src_sel(gpio_o[16]),
+        // V8-8 手动缩放：**同一个字**的高位（PS 侧 CFG_DATA0 = 0x41220000）：
+        //   [28:26] 档号、[29] 手动旗标。异步性一致 ⇒ 一并交给 effect_ctrl 那条 sel 链。
+        //   ⚠ 别写成 gpio_cfg2_o：那是 PS 侧 +0x08 的 gamma 窗口（命名差一位是这里的坑）。
+        .zoom_sel_async(gpio_cfg1_o[28:26]), .zoom_manual_async(gpio_cfg1_o[29]),
         .gamma_ctl(gpio_cfg2_o),        // axi_gpio_2 通道 2（+0x08）：gamma 表的 idx/data/wr/en
         // V7.7：ZOOM0/ZOOM1 不再是死命令。之前这里硬绑 1'b1，串口命令与 GPIO bit17 全无效
         // （main.c 自己就注明"当前 RTL 常开，bit17 仅预留"）。

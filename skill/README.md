@@ -6,7 +6,7 @@ Reusable engineering notes from this project. Each item lists scope, usage, veri
 按比赛指南 3.3.5.2 的四类归纳见下表"类别"列。评价标准是**可复用性**：另一支队伍拿到本目录，
 能不能不读本工程源码就用在自己的题目上 —— 所以每一项都写了"从哪次失败里总结出来的"。
 
-## Index（19 项，与目录内容逐项对齐）
+## Index（20 项，与目录内容逐项对齐）
 
 | ID | Topic | File | 类别 |
 |----|-------|------|------|
@@ -29,6 +29,7 @@ Reusable engineering notes from this project. Each item lists scope, usage, veri
 | S17 | 定点失败要让失败行**自己报出几何量**（访问的位置＋位置的来历＋合法边界＋当场分类）：本项目靠一行 `[SDRD!]` 把"并发挤出来的读超时"翻案成 FAT32 高簇字的字节序 bug，两次误判都是往**时间**方向猜 | `failing_read_prints_geometry.md` | 踩坑清单 + 判据自查（反例必须真能红） |
 | S18 | 多字读回的原子快照（寄存器窗口撕裂） | `atomic_register_window_readback.md` | 踩坑清单 / 校验脚本 |
 | S19 | `always @(*)` **看不见只在 task/function 里读的信号** ⇒ 组合块拿着旧值不放（仿真少算一次更新、综合照建方程 ⇒ 屏上是真错标签）；三条避法 + "必须差分改激励才判得住"的判据写法；同族还包括**顶层没有台架例化** ⇒ 端口接线要变成门禁项（`build/check_ports.py`，第 14 项，自带两份反例） | `combinational_block_misses_task_reads.md` | 踩坑清单 + 校验脚本 |
+| S20 | **台架自己造的红**，三种签名各自一眼可认：① 期望值整整齐齐差一个常数倍 = 算式错（期望值必须从定义算、不许从被测代码抄）；② 极值在变而"变化计数=0" = 采样步长与被测节拍**混叠**（改成逐拍跟踪）；③ 断"停在 X"红而 X 其实还没生效 = 等待窗口短于被测节拍（等事件、等不到必须判红）；附 6 条新台架首跑前自查 | `bench_self_inflicted_reds.md` | 踩坑清单 |
 
 ## 配套的可执行脚本（判据不是文档，是跑得出数的东西）
 

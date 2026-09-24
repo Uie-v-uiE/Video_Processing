@@ -77,7 +77,15 @@ static u32 cur_sel = 0;        /* 效果选择的唯一真相（九位） */
 static u32 cur_en = 0;         /* gpio_o[4:0] 上的老五位镜像，由 cur_sel 反推，不独立存在 */
 static u8  cur_thr = 80;
 static u8  cur_src = 0;
-static u8  cur_zoom = 1;   /* GPIO bit17: 右屏无极缩放。当前 RTL 常开，此位预留给控制 */
+static u8  cur_zoom = 1;   /* GPIO bit17: 右屏无极缩放的"要不要呼吸" */
+/* V8-8 手动缩放：档号 0..7 对应 0.25/0.33/0.50/0.75/1.00/1.33/1.50/2.00 倍，走 cfg1
+ * （= CFG_DATA0 = 0x41220000，与 stage_sel **同一个字**）的 [28:26]，手动旗标在 [29]。
+ * 位序的理由写在 PLAN_V8_SPEC §7a/§7c。 */
+static u8  cur_zsel = 4;         /* 默认 1.00x —— 与 reset 时 RTL 的 INV_LO 同一档 */
+static u8  cur_zman = 0;         /* 0 = 自动呼吸（上电默认，保持老观感） */
+static const u8   ZOOM_X100[8] = { 25, 33, 50, 75, 100, 133, 150, 200 };
+static const char *ZOOM_NAME[8] = { "0.25x", "0.33x", "0.50x", "0.75x",
+                                    "1.00x", "1.33x", "1.50x", "2.00x" };
 static u8  cur_bilin = 1;  /* GPIO bit19: 双线性/最近邻 A-B 对照，演示时现场切换用 */
 static u32 pub_lvl = 0;
 
@@ -105,7 +113,11 @@ static u32 ctrl_write(void)
       | ((u32)(cur_zoom ? 1 : 0) << 17) | (pub_lvl << PUBLISH_BIT)
       | ((u32)(cur_bilin ? 1 : 0) << BILIN_BIT);
     Xil_Out32(GPIO_DATA, v);
-    Xil_Out32(CFG_DATA0, cur_sel & 0x1FFu);
+    /* cfg1 一次写整个字：低 9 位是效果选择，[28:26] 是缩放档，[29] 是手动旗标。
+     * ⚠ 这里的 CFG_DATA0 就是 RTL 的 gpio_cfg1_o；gamma 那个窗口是 CFG_DATA1(+0x08)。
+     *   两个名字差一位，写错字的症状恰恰是"设了没反应"，最容易误判成 PL 坏了。 */
+    Xil_Out32(CFG_DATA0, (cur_sel & 0x1FFu)
+               | ((u32)(cur_zsel & 7u) << 26) | ((u32)(cur_zman ? 1u : 0u) << 29));
     return v;
 }
 
@@ -115,6 +127,10 @@ static void ctrl_apply(void)
     xil_printf("[CTRL] AXI_GPIO=0x%08x sel=%03x thr=%d src=%d zoom=%d pub=%d bilin=%d\r\n",
                v, cur_sel & 0x1FF, cur_thr, cur_src, cur_zoom ? 1 : 0, (int)pub_lvl,
                cur_bilin ? 1 : 0);
+    /* 缩放这一格把"设进去的档"和"现在是手动还是呼吸"分开报：自动时屏上那一格是活的，
+     * 这里报的 step 只是"切回手动就会用哪一档"，别让它看起来像当前倍率。 */
+    xil_printf("[CTRL]   zoom_step=%d %s (%s)\r\n", cur_zsel,
+               ZOOM_NAME[cur_zsel & 7u], cur_zman ? "手动" : "自动呼吸");
 }
 
 /* sd_play.c 只被允许请求"发布"，不碰别人的控制字；每帧都调，所以不出声 */
@@ -257,6 +273,39 @@ static void ctrl_set_zoom(u8 on)
 {
     cur_zoom = on ? 1 : 0;
     ctrl_apply();
+}
+
+/* "0.75" / "1.5" / "2" → 倍率×100（纯整数：不为一条串口命令拖进 libm，
+ * 而且浮点比较在八档这种粗粒度上没有任何好处）。返回 -1 = 这个 token 不是倍率。 */
+static int zoom_parse_x100(const char *t, int *out)
+{
+    int ip = 0, fp = 0, dig = 0, dot = 0;
+    const char *c;
+    if (!t || !*t || *t == '.') return -1;
+    for (c = t; *c; c++) {
+        if (*c == '.') { if (dot) return -1; dot = 1; continue; }
+        if (*c < '0' || *c > '9') return -1;
+        if (!dot) { if (ip > 999) return -1; ip = ip * 10 + (*c - '0'); }
+        else      { if (dig >= 2)  return -1; fp = fp * 10 + (*c - '0'); dig++; }
+    }
+    while (dig < 2) { fp *= 10; dig++; }              /* "1.5" 的小数补齐成 50 */
+    *out = ip * 100 + fp;
+    return (*out > 0 && *out <= 400) ? 0 : -1;        /* 0.01x…4.00x 之外一律不认 */
+}
+
+/* 取最近一档：直接拿 ZOOM_X100 比距离，不再抄一份"中点表"。
+ * 两个理由：① 少一张表就少一处会过期的地方；② 平局往哪边靠是**这张表**决定的，
+ * 台架里改档值时判据跟着走，不会出现"命令侧与 RTL 侧各说一遍中点"。 */
+static u8 zoom_step_near(int x100)
+{
+    u8 i, best = 0;
+    int d, bd = -1;
+    for (i = 0; i < 8; i++) {
+        d = x100 - (int)ZOOM_X100[i];
+        if (d < 0) d = -d;
+        if (bd < 0 || d < bd) { bd = d; best = i; }
+    }
+    return best;
 }
 
 static void ctrl_set_bilin(u8 on)
@@ -438,15 +487,36 @@ static int dispatch(char **tk, int nt)
         return 0;
     }
     if (ci_pre(tk[0], "ZOOM")) {
-        /* `zoom on|off` 与老写法 `ZOOM1/ZOOM0`（粘着）共用一条出口；剩下的
-         * `zoom 1.5` / `zoom auto` 要有 PL 的因子寄存器才行（V8-8），不能当 on/off 偷偷吃掉。 */
+        /* `zoom on|off` 与老写法 `ZOOM1/ZOOM0`（粘着）共用一条出口；倍率走 `zoom <数>`。
+         * ⚠ 有一处**语义重叠**：`zoom 1` / `zoom 0` 沿用 V7 的开关（ZOOM1=开呼吸），
+         *   所以"1.00 倍"必须写 `zoom 1.0`（带小数点才是倍率）。这条在拒绝消息里也印出来了，
+         *   因为 r53 第一次跑电池就是拿 `zoom 1` 当"回到 1.0x"用，结果把呼吸又打开了。 */
         const char *arg = (nt >= 2) ? tk[1] : tk[0] + 4;
         int b = -1;
         if (strict_int(arg, &v) && (v == 0 || v == 1)) b = v;
         if (ci_eq(arg, "ON")) b = 1;
         if (ci_eq(arg, "OFF")) b = 0;
-        if (b < 0) not_wired("zoom <因子>/auto", "PL 的缩放因子寄存器（现在只有 on/off 一个位）", "V8-8");
-        else ctrl_set_zoom((u8)b);
+        if (b >= 0) { ctrl_set_zoom((u8)b); return 0; }
+        if (ci_eq(arg, "AUTO")) { cur_zman = 0; ctrl_apply(); return 0; }
+        {
+            int x100 = 0;
+            if (zoom_parse_x100(arg, &x100) == 0) {
+                u8 st = zoom_step_near(x100);
+                /* 取最近档，并把"你写的"与"我用的"一起报出来：`zoom 0.9` 会被写成 1.00x，
+                 * 沉默地换成别的数比拒绝更难查（gamma 那一处踩过同一类）。 */
+                cur_zsel = st; cur_zman = 1;
+                ctrl_apply();
+                xil_printf("[ZOOM] %s → 最近档 %s（八档：%s %s %s %s %s %s %s %s；"
+                           "回自动用 zoom auto）\r\n", arg, ZOOM_NAME[st],
+                           ZOOM_NAME[0], ZOOM_NAME[1], ZOOM_NAME[2], ZOOM_NAME[3], ZOOM_NAME[4],
+                           ZOOM_NAME[5], ZOOM_NAME[6], ZOOM_NAME[7]);
+                return 0;
+            }
+        }
+        xil_printf("[ZOOM] 不认的参数 `%s`：`zoom on|off`（呼吸开关）、`zoom auto`（回自动）"
+                   "或 `zoom <倍率>`，如 0.75 / 1.5 / 2\r\n"
+                   "       （注意：`zoom 1` / `zoom 0` 沿用 V7 的 `ZOOM1/ZOOM0`，是**开关**；"
+                   "要 1.00 倍请写 `zoom 1.0`）\r\n", arg);
         return 0;
     }
     if (ci_pre(tk[0], "BILIN")) {
@@ -511,10 +581,10 @@ static int dispatch(char **tk, int nt)
         /* 字段顺序不许动：串口电池与 arb_handover_test.mjs 都按 "ctrl en=… thr=…" 的前缀解析，
          * 新加的 sel / gm 只能往后放。en 是老五位的投影，sel 才是效果链的真相，
          * gm=0.00 表示 gamma 关（PL 那一侧逐位旁路）。 */
-        xil_printf("[STAT] ctrl en=%02x thr=%d src=%d zoom=%d bilin=%d pub=%d"
+        xil_printf("[STAT] ctrl en=%02x thr=%d src=%d zoom=%d bilin=%d zsel=%d zman=%d pub=%d"
                    " sd=%d frames=%d playing=%d sel=%03x gm=%d.%02d (PL owns UDP datapath)\r\n",
                    cur_en & 0x1F, cur_thr, cur_src, cur_zoom ? 1 : 0,
-                   cur_bilin ? 1 : 0, (int)pub_lvl,
+                   cur_bilin ? 1 : 0, cur_zsel, cur_zman, (int)pub_lvl,
                    sd_frame_total() ? 1 : 0, (int)sd_frame_total(), sd_is_playing(),
                    cur_sel & 0x1FF,
                    (int)(cur_gamma / 100u), (int)(cur_gamma % 100u));
@@ -526,7 +596,7 @@ static int dispatch(char **tk, int nt)
 
 static void cmd_help(void)
 {
-    xil_printf("  V8 语法: src 0|1|2 | pipe <5 或 9 位> | th 80 | zoom on|off | bilin on|off |"
+    xil_printf("  V8 语法: src 0|1|2 | pipe <5 或 9 位> | th 80 | zoom on|off|auto|<倍率> | bilin on|off |"
                " gamma off|1.8 | frame N | sd | play | stop | fill | autoplay 0|1 | stat | help\r\n");
     xil_printf("  pipe 五位=老位序(gray/binary/blur/sobel/invert)，九位=新位序"
                "(gray/invert/blur/sharpen/sobel/binary/bin_pol/erode/dilate)\r\n");
@@ -563,7 +633,7 @@ static void uart_poll(void)
 
 int main(void)
 {
-    u32 rb;
+    u32 rb, rb2;
 
     Xil_ExceptionInit();
     Xil_DCacheEnable();
@@ -580,10 +650,17 @@ int main(void)
      * 现象只是"效果命令全都没反应"，最容易被人当成 RTL 改坏了去查一晚上。 */
     Xil_Out32(CFG_DATA0, 0x1FFu);
     rb = Xil_In32(CFG_DATA0) & 0x1FFu;
-    Xil_Out32(CFG_DATA0, cur_sel & 0x1FFu);
-    if (rb != 0x1FFu)
-        xil_printf("[CFG!] %08x 写 1ff 读回 %03x —— 位流里没有新的 axi_gpio_2，elf/bit 不配套"
-                   "（配套关系见 build/frozen_*）\r\n", CFG_DATA0, rb);
+    /* V8-8 之后这个字的高半段有人用了（[28:26] 档号、[29] 手动旗标），所以顺手再验一次
+     * "这个通道真的是 32 位"。图案故意放在**保留段 [23:9]** 里：探针不许命令硬件 ——
+     * 写 [29]=1 会让缩放真的跳一次档（gamma 那条自检同一规矩：图案只验地址，不动功能）。
+     * 验到 [22:19] 就等价于验到 [29:26] 在，因为是同一个 GPIO 端口的位。 */
+    Xil_Out32(CFG_DATA0, 0x00780000u);
+    rb2 = Xil_In32(CFG_DATA0) & 0x00780000u;
+    ctrl_write();                        /* 还原走**同一个合成式**：PS 与硬件不许有两套真相 */
+    if (rb != 0x1FFu || rb2 != 0x00780000u)
+        xil_printf("[CFG!] %08x 写 1ff/780000 读回 %03x/%06x —— 位流里没有新的 axi_gpio_2，"
+                   "或它不是 32 位（缩放/分割那些高位会被吞），elf/bit 不配套"
+                   "（配套关系见 build/frozen_*）\r\n", CFG_DATA0, rb, rb2 >> 12);
     else
         xil_printf("[CFG] axi_gpio_2 @%08x ok\r\n", CFG_DATA0);
 

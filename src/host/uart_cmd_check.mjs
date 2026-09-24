@@ -22,6 +22,11 @@ const FILE = String(get('file', 'board/cmd_battery_v81.txt'));
 const PORT = String(get('port', 'COM6'));
 const OUT = String(get('out', 'board/uart_script_capture.txt'));
 const DRY = process.argv.includes('--dry');
+/* `--replay <捕获文件>`：不发送、直接判一份**已经存在的**捕获。
+ * 存在的理由有两条：① 判据自己要能离线复验（不必每次上板、不占串口）；
+ * ② 让"判据过期"与"固件坏了"分得开 —— 拿旧固件的捕获去跑新判据，必须**红**，
+ *    红了才说明这条判据真的在看那个字段。 */
+const REPLAY = String(get('replay', ''));
 
 /* 每条命令的判据。`!` 前缀 = 这一段里不许出现。
  * 表必须与 battery 文件同序 —— 数量不一致直接红，避免"加了命令忘了加判据"。 */
@@ -57,7 +62,22 @@ const EXPECT = [
   [/\[GAMMA\] g=1\.80 mono_bad=0 first=0 last=255/],
   [/\[GAMMA\] off/],                                        // 收尾必须关掉：电池不许留下状态改变
   [/语法已收，硬件未接/, /OSD/],
-  [/语法已收，硬件未接/, /缩放因子/],                        // zoom 1.5：on/off 之外都要因子寄存器
+  // V8-8：`zoom <倍率>` 不再是"待接"。判据一条管一头，六条连起来把"解析 → 取最近档 → 写进硬件的三位
+  //   → 收尾还原"整条链钉住：
+  //   1.5  精确命中一档；0.25/2 两个**端点**（越界方向各一个）；0.9 证明取的是"最近"而不是"向下取整"；
+  //   auto 交还呼吸（回声必须写"自动呼吸"，否则电池不知道硬件被留在手动档）；
+  //   9    解析上限外，必须被拒并提示写法 —— 电池不许改变板上状态，所以 auto 排在 9 之前。
+  [/\[ZOOM\].*最近档 1\.50x/, /zoom_step=6 1\.50x \(手动\)/],
+  [/\[ZOOM\].*最近档 0\.25x/, /zoom_step=0 0\.25x \(手动\)/],
+  [/\[ZOOM\].*最近档 1\.00x/, /zoom_step=4 1\.00x \(手动\)/],              // 0.9 → 1.00x，不是 0.75x
+  [/\[ZOOM\].*最近档 2\.00x/, /zoom_step=7 2\.00x \(手动\)/],
+  // `zoom 1.0` 是**收尾还原档**：`zoom auto` 只交还呼吸、不改存好的档号，所以要把 zsel 也放回默认的 4。
+  // 两条凭据叠在一起才值钱：① r53 第一次跑电池就靠"末态必须等于初态"抓到 zsel=7 ≠ 4；
+  // ② 那一版我写的是 `zoom 1`，结果它沿用 V7 的 `ZOOM1` = **开呼吸**（不是 1.0 倍）⇒ 必须写 `1.0`。
+  //   这个语义重叠现在由固件的拒绝消息自己说出来（`zoom 0|1` 是开关），别再靠猜。
+  [/zoom_step=4 1\.00x \(手动\)/],
+  [/zoom_step=\d+ .*\(自动呼吸\)/],
+  [/不认的参数/, /0\.75/],
   [/V8 语法/, /旧写法仍可用/],
   [/不认: BOGUS/],
   [/sel=0A0/i],                                              // pipe 000001010 = 二值化 + 腐蚀 ⇒ 0x0A0
@@ -69,8 +89,26 @@ const EXPECT = [
   [/src=1/],                                                // SRC2：粘着写法也要认（数下标那种写法就是从这里翻车的）
   [/\[BILIN\] 只认/, /!bilin=/],                             // bilin 2：第三态不存在，必须拒
   [/thr=80/],                                              // TH80：把阈值恢复成 80
-  [/^\[STAT\] ctrl en=(\w\w) thr=(\d+) src=(\d) zoom=(\d) bilin=(\d)/m],  // 与第一条逐项比，见下
+  [/^\[STAT\] ctrl en=(\w\w) thr=(\d+) src=(\d) zoom=(\d) bilin=(\d) zsel=(\d) zman=(\d)/m],
+
 ];
+
+/* `--align`：只做"判据表与命令表逐行对位"这一件事就退出（不碰串口、不需要板子）。
+ * 为什么值得单独立一个模式：EXPECT 是**按下标**取的，电池里插一条命令就会让后面每一条错一位 ——
+ * 症状是"一大片 FAIL"，最容易被误诊成固件坏了，真正的原因只是判据表没跟着插。
+ * 每次动过 board/cmd_battery_*.txt 或这张表，先跑这个（几秒钟）。 */
+if (process.argv.includes('--align')) {
+  const bat = readFileSync(FILE, 'utf8').replace(/^﻿/, '').split(/\r?\n/)
+    .filter((l) => l.trim() && !l.trim().startsWith('#'));
+  for (let k = 0; k < bat.length; k++) {
+    console.log(`${String(k + 1).padStart(2)} ${bat[k].padEnd(18)} | ` +
+                (EXPECT[k] ? EXPECT[k].map(String).join(' + ').slice(0, 88) : '*** 缺判据 ***'));
+  }
+  const ok = bat.length === EXPECT.length;
+  console.log(`ALIGN expect=${EXPECT.length} battery=${bat.length} ` +
+              `${ok ? 'PASS' : 'FAIL —— 表与命令错位，整轮判据都不可信'}`);
+  process.exit(ok ? 0 : 1);
+}
 
 function seg(capture, line, i) {
   const mark = `>> ${line}`;
@@ -89,13 +127,17 @@ if (DRY) {
 }
 
 const t0 = Date.now();
+if (!REPLAY) {
 const out = execFileSync('powershell', ['-NoProfile', '-ExecutionPolicy', 'Bypass', '-File', PS1,
   '-Port', PORT, '-File', FILE.replace(/\//g, '\\'), '-DelayMs', '900', '-Out', OUT.replace(/\//g, '\\')],
   { encoding: 'utf8' });
 console.log(`[TX] ${out.trim()}`);
 if (!existsSync(OUT)) { console.log('FAIL 捕获文件不存在（发送器没跑成）'); process.exit(1); }
+} else {
+  console.log('[REPLAY] 不碰串口，直接判 ' + REPLAY);
+}
 // PowerShell 的 -Encoding UTF8 会写 BOM，留下它第一条正则永远对不上
-const cap = readFileSync(OUT, 'utf8').replace(/^﻿/, '');
+const cap = readFileSync(REPLAY || OUT, 'utf8').replace(/^﻿/, '');
 
 const lines = cap.split(/\r?\n/).filter(l => l.startsWith('>> ')).map(l => l.slice(3));
 let fail = 0, cursor = 0;
@@ -112,11 +154,18 @@ for (let i = 0; i < lines.length; i++) {
 }
 
 /* 收尾判据：最后一条 STAT 必须等于第一条（pub 位不在比较范围内，它每帧翻）
- * gm= 也在元组里：V8-3 之后"电池不许改变板上状态"必须能抓住"gamma 被留在开着"。 */
+ * gm= 也在元组里：V8-3 之后"电池不许改变板上状态"必须能抓住"gamma 被留在开着"。
+ * V8-8 起 zsel/zman 也进元组：手动档留在板上就是改了状态，与 gamma 同一类，不许靠"看着像 auto"放过。 */
 const cap2 = cap.split(/\r?\n/);
 const stats = cap2.filter(l => l.startsWith('[STAT]'))
-  .map(l => { const m = l.match(/ctrl (en=\w\w) (thr=\d+) (src=\d) (zoom=\d) (bilin=\d).*?(gm=\d+\.\d\d)/); return m ? m.slice(1).join(' ') : 'NO_MATCH'; });
+  .map(l => { const m = l.match(/ctrl (en=\w\w) (thr=\d+) (src=\d) (zoom=\d) (bilin=\d) (zsel=\d) (zman=\d).*?(gm=\d+\.\d\d)/); return m ? m.slice(1).join(' ') : 'NO_MATCH'; });
 if (stats.length < 2) { console.log('FAIL 没有两条 STAT，初/末态无从比较'); fail++; }
+/* ⚠ 先验"元组真的被抓到了"再比相等：正则一旦不匹配，两条都变成同一个 'NO_MATCH' 字符串，
+ *   `stats[0] !== stats[last]` 就**永远相等** ⇒ 这条判据永远不会红（V8-8 给 STAT 加 zsel/zman 时，
+ *   如果我改正则却忘了改固件，就是这个形状）。"两个都读不到"必须判红，不许判绿。 */
+else if (stats.some((s) => s === 'NO_MATCH')) {
+  console.log('FAIL [STAT] 元组正则没抓到东西 —— 判据本身过期了（固件行变了，正则没跟着变）'); fail++;
+}
 else if (stats[0] !== stats[stats.length - 1]) {
   console.log(`FAIL 电池改变了板上状态：初 ${stats[0]} ≠ 末 ${stats[stats.length - 1]}`); fail++;
 } else console.log(`ok   跑完回到初态：${stats[0]}`);

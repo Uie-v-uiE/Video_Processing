@@ -26,6 +26,12 @@ gamma 1.8
 gamma off
 osd off
 zoom 1.5
+zoom 0.25
+zoom 0.9
+zoom 2
+zoom 1.0
+zoom auto
+zoom 9
 help
 BOGUS
 pipe 000001010

@@ -1,0 +1,86 @@
+#-----------------------------------------------------------
+# Vivado v2025.2.1 (64-bit)
+# SW Build 6403652 on Thu Mar 19 19:48:24 GMT 2026
+# IP Build 6403511 on Thu Mar 19 12:41:45 MDT 2026
+# SharedData Build 6403650 on Thu Mar 19 14:02:13 MDT 2026
+# Start of session at: Fri Sep 25 03:51:50 2026
+# Process ID         : 9476
+# Current directory  : D:/Xilinx/Prj/pro/Video_Processing
+# Command line       : vivado.exe -mode batch -nojournal -log build/cdc_who_r53_log.txt -source build/tcl/cdc_who.tcl
+# Log file           : D:/Xilinx/Prj/pro/Video_Processing/build/cdc_who_r53_log.txt
+# Journal file       : 
+# Running On         : Uie-laptop
+# Platform           : Windows Server 2016 or Windows 10
+# Operating System   : 26200
+# Processor Detail   : 12th Gen Intel(R) Core(TM) i5-12450H
+# CPU Frequency      : 2496 MHz
+# CPU Physical cores : 8
+# CPU Logical cores  : 12
+# Host memory        : 16873 MB
+# Swap memory        : 21474 MB
+# Total Virtual      : 38348 MB
+# Available Virtual  : 26250 MB
+#-----------------------------------------------------------
+source build/tcl/cdc_who.tcl
+# set root [file normalize [file join [file dirname [info script]] .. ..]]
+# set impl_dir [file join $root vivado_system zynq_video_sys.runs impl_1]
+# set dcp ""
+# foreach p [list [file join $impl_dir system_top_routed.dcp] \
+#                [file join $impl_dir system_top_demaged_routed.dcp]] {
+#     if {[file exists $p]} { set dcp $p; break }
+# }
+# if {$dcp eq ""} {
+#     set c [catch {exec find $impl_dir -maxdepth 1 -name "*routed*.dcp"} r]
+#     if {!$c} { set dcp [lindex [split [string trim $r] \n] end] }
+# }
+# if {$dcp eq "" || ![file exists $dcp]} { puts "NO_DCP（在 $impl_dir �? *routed*.dcp 没有；构建还在跑？）"; exit 1 }
+# puts "DCP: $dcp"
+DCP: D:/Xilinx/Prj/pro/Video_Processing/vivado_system/zynq_video_sys.runs/impl_1/system_top_routed.dcp
+# open_checkpoint $dcp
+Command: open_checkpoint D:/Xilinx/Prj/pro/Video_Processing/vivado_system/zynq_video_sys.runs/impl_1/system_top_routed.dcp
+
+Starting open_checkpoint Task
+
+Time (s): cpu = 00:00:00 ; elapsed = 00:00:00.044 . Memory (MB): peak = 330.969 ; gain = 3.711
+INFO: [Device 21-403] Loading part xc7z020clg484-2
+Netlist sorting complete. Time (s): cpu = 00:00:01 ; elapsed = 00:00:00.323 . Memory (MB): peak = 821.285 ; gain = 0.000
+INFO: [Netlist 29-17] Analyzing 1713 Unisim elements for replacement
+INFO: [Netlist 29-28] Unisim Transformation completed in 0 CPU seconds
+INFO: [Project 1-479] Netlist was created with Vivado 2025.2.1
+INFO: [Project 1-570] Preparing netlist for logic optimization
+Read ShapeDB Complete: Time (s): cpu = 00:00:00 ; elapsed = 00:00:00.101 . Memory (MB): peak = 947.434 ; gain = 5.852
+INFO: [Timing 38-478] Restoring timing data from binary archive.
+INFO: [Timing 38-479] Binary timing data restore complete.
+INFO: [Project 1-856] Restoring constraints from binary archive.
+INFO: [Project 1-853] Binary constraint restore complete.
+INFO: [Designutils 20-5722] Start Reading Physical Databases.
+Reading placement.
+Read Netlist Cache: Time (s): cpu = 00:00:00 ; elapsed = 00:00:00.035 . Memory (MB): peak = 1572.605 ; gain = 0.000
+Reading placer database...
+Read Device Cache: Time (s): cpu = 00:00:01 ; elapsed = 00:00:00.023 . Memory (MB): peak = 1572.605 ; gain = 0.000
+Read PlaceDB: Time (s): cpu = 00:00:00 ; elapsed = 00:00:00 . Memory (MB): peak = 1572.605 ; gain = 0.000
+Read placeStorage: Time (s): cpu = 00:00:00 ; elapsed = 00:00:00.991 . Memory (MB): peak = 1574.781 ; gain = 2.176
+Read PulsedLatchDB: Time (s): cpu = 00:00:00 ; elapsed = 00:00:00 . Memory (MB): peak = 1574.781 ; gain = 0.000
+Reading routing.
+Read RouteStorage: Time (s): cpu = 00:00:01 ; elapsed = 00:00:00.377 . Memory (MB): peak = 1588.375 ; gain = 13.594
+Read Physdb Files: Time (s): cpu = 00:00:02 ; elapsed = 00:00:01 . Memory (MB): peak = 1588.375 ; gain = 15.770
+Restored from archive | CPU: 2.000000 secs | Memory: 0.000000 MB |
+Finished XDEF File Restore: Time (s): cpu = 00:00:02 ; elapsed = 00:00:02 . Memory (MB): peak = 1588.375 ; gain = 16.754
+Netlist sorting complete. Time (s): cpu = 00:00:00 ; elapsed = 00:00:00.012 . Memory (MB): peak = 1604.645 ; gain = 0.000
+INFO: [Project 1-111] Unisim Transformation Summary:
+  A total of 363 instances were transformed.
+  RAM256X1S => RAM256X1S (MUXF7(x2), MUXF8, RAMS64E(x4)): 80 instances
+  RAM64M => RAM64M (RAMD64E(x4)): 283 instances
+
+INFO: [Project 1-604] Checkpoint was created with Vivado v2025.2.1 (64-bit) build 6403652
+open_checkpoint: Time (s): cpu = 00:00:32 ; elapsed = 00:00:30 . Memory (MB): peak = 1612.727 ; gain = 1293.543
+# set out [file join $root build cdc_details.rpt]
+# report_cdc -details -file $out
+INFO: [Timing 38-91] UpdateTimingParams: Speed grade: -2, Delay Type: min_max.
+INFO: [Timing 38-191] Multithreading enabled for timing update using a maximum of 2 CPUs
+INFO: [Timing 38-433] Consider using Xilinx recommended XPM_CDC modules to avoid Critical severities
+INFO: [Timing 38-314] The report_cdc command only analyzes and reports clock domain crossing paths where clocks have been defined on both source and destination sides. Ports with no input delay constraint are skipped. Please run check_timing to verify there are no missing clock definitions in your design, nor any unconstrained input port.
+report_cdc: Time (s): cpu = 00:00:18 ; elapsed = 00:00:10 . Memory (MB): peak = 1673.172 ; gain = 60.445
+# puts "WROTE: $out"
+WROTE: D:/Xilinx/Prj/pro/Video_Processing/build/cdc_details.rpt
+INFO: [Common 17-206] Exiting Vivado at Fri Sep 25 03:52:32 2026...

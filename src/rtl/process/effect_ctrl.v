@@ -15,9 +15,13 @@ module effect_ctrl (
     input  wire       rst_n,
     input  wire [4:0] effect_en_async,      // V7：0=图卡/灰度…按位（gpio_o[4:0]）
     input  wire [8:0] stage_sel_async,      // V8：新控制字 gpio_cfg[8:0]，0 = "PS 没意见"
+    input  wire [2:0] zoom_sel_async,       // V8-8：手动缩放档号 —— **同一个字的 [28:26]**
+    input  wire       zoom_manual_async,    // V8-8：[29] 1=停在手动档，0=呼吸（自动）
     input  wire [7:0] threshold_async,
     input  wire [31:0] gamma_async,         // 第二个控制字的**通道 2**：{en, wr, data[7:0], idx[7:0], 其余留}
     output wire [8:0] stage_sel,
+    output wire [2:0] zoom_sel,             // 已同步到本域（与 stage_sel **同源同深度**）
+    output wire       zoom_manual,          // 同上
     output reg  [4:0] effect_en,            // 给 OSD 显示用的"实际生效"五位（从 stage_sel 反翻）
     output reg  [7:0] threshold,
     output reg         gamma_en,
@@ -30,7 +34,11 @@ module effect_ctrl (
     // 所以这里不再另开一个口 —— 开两个口迟早会出现两个口给两个不同答案的那天。
 );
     (* ASYNC_REG = "TRUE" *) reg [4:0] en_meta, en_sync;
-    (* ASYNC_REG = "TRUE" *) reg [8:0] sel_meta, sel_sync;
+    // V8-8：缩放的两个位**并进这一条**，不另开一组 —— 理由与 gamma 那四位一样：
+    // PS 用**一次整字写**改 `stage_sel`/`zsel`/`manual`，而 `zoom_ctrl` 把 `manual` 与 `zsel`
+    // 当一对用（manual=1 时必须看见对应档号）。分两组同步就会出现"旗标到了、档号还是上一次的"，
+    // 那正好是 #58/#59 一路在防的那类错拍。同一条链 ⇒ 同源同深度。
+    (* ASYNC_REG = "TRUE" *) reg [12:0] sel_meta, sel_sync;   // {manual, zsel[2:0], stage[8:0]}
     (* ASYNC_REG = "TRUE" *) reg [7:0] th_meta, th_sync;
     // gamma 那四个字段一起过同一对同步器：`wr` 是边沿标志，协议要求"idx/data 在 wr 翻转之前
     // 已经稳定至少一次 AXI 写"，所以它们必须与 wr **同源同深度** —— 分两组同步就会出现在
@@ -40,13 +48,13 @@ module effect_ctrl (
     always @(posedge clk or negedge rst_n) begin
         if (!rst_n) begin
             en_meta <= 5'd0;  en_sync  <= 5'd0;
-            sel_meta <= 9'd0; sel_sync <= 9'd0;
+            sel_meta <= 13'd0; sel_sync <= 13'd0;
             th_meta <= 8'd80; th_sync  <= 8'd80;
             gm_meta <= 24'd0; gm_sync  <= 24'd0;
         end else begin
             en_meta  <= effect_en_async;
             en_sync  <= en_meta;
-            sel_meta <= stage_sel_async;
+            sel_meta <= {zoom_manual_async, zoom_sel_async, stage_sel_async};
             sel_sync <= sel_meta;
             th_meta  <= threshold_async;
             th_sync  <= th_meta;
@@ -76,7 +84,11 @@ module effect_ctrl (
         legacy_sel[5]   = en_sync[1];   // binary
     end
 
-    assign stage_sel = (sel_sync != 9'd0) ? sel_sync : legacy_sel;
+    wire [8:0] sel_pix = sel_sync[8:0];
+    assign stage_sel   = (sel_pix != 9'd0) ? sel_pix : legacy_sel;
+    // V8-8 的两个新出口：与 `stage_sel` **同一条链、同一深度**（见上面 sel_meta 的注释）
+    assign zoom_sel    = sel_sync[11:9];
+    assign zoom_manual = sel_sync[12];
 
     // 反翻给 OSD：新字里的锐化([3])与形态学([7]/[8])在这一行放不下，等 V8-5 换四行 OSD 时补
     wire [8:0] s = stage_sel;
