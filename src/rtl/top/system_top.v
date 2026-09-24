@@ -126,6 +126,11 @@ module system_top (
     localparam [15:0] VIDEO_H    = 16'd300;      // 帧缓冲高（行）
     localparam [15:0] PANE_W     = 16'd512;      // 右半窗宽（当前与 VIDEO_W 同值，语义不同）
     localparam [31:0] DDR_BASE   = 32'h1000_0000;
+    // PS 片源（SD 回放 / FILL）专用的第三个 DDR bank。ETH 占 0x1000_0000 与 0x1008_0000
+    // 乒乓两 bank（每帧 300 KB，间隔 512 KB 够用），所以第三个 bank 从 +1 MB 起。
+    // 这个数**必须与固件里的 FRAME_ADDR 一致**：`src/ps/sd_play.c` 与 `src/ps/main.c`
+    // 各有一处，改这里不改那边 ⇒ 现象是"PS 片源在屏上不动"（搬运机读的是另一块内存）。
+    localparam [31:0] PS_DDR_BASE = 32'h1010_0000;
     localparam [15:0] UDP_VIDEO_PORT = 16'd5001; // PC 推流的目的端口（收侧过滤用同一个常数）
 
     wire        eth_gmii_clk;
@@ -215,7 +220,8 @@ module system_top (
     wire eth_live   = lm_axi[7*32 + 3];
     wire eth_tb_ok  = !(lm_clk_slow || lm_clk_gone);
 
-    pl_video_top #(.IMG_W(VIDEO_W), .IMG_H(VIDEO_H), .PANE_W(PANE_W), .BASE_ADDR(DDR_BASE)) u_pl (
+    pl_video_top #(.IMG_W(VIDEO_W), .IMG_H(VIDEO_H), .PANE_W(PANE_W), .BASE_ADDR(DDR_BASE),
+                   .PS_BASE_ADDR(PS_DDR_BASE)) u_pl (
         .sys_clk(sys_clk), .sys_rst_n(1'b1),
         .axi_clk(fclk0), .axi_rst_n(fclk0_rst_n),
         .effect_en(gpio_o[4:0]), .threshold(gpio_o[15:8]), .src_sel(gpio_o[16]),

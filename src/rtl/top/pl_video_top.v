@@ -7,6 +7,12 @@ module pl_video_top #(
     parameter IMG_H     = 300,
     parameter PANE_W    = 512,
     parameter BASE_ADDR = 32'h1000_0000,
+    // PS 片源（SD 回放 / FILL 诊断帧）专用 DDR bank。ETH 用 BASE_ADDR 起的乒乓双 bank
+    // （0x1000_0000 / 0x1008_0000），以前 PS 也写 0x1000_0000 ⇒ 两路同时跑时 SD 的 DMA
+    // 会刷掉 ETH 正在填/正在读的那块 DDR，屏幕上就是"两个片源打架、闪"。
+    // 仲裁只管"谁用 DDR→帧缓存这台搬运机"，**管不到谁写 DDR**（SD 的 DMA 走 PS 的 HP0，
+    // 根本不经过 PL），所以这个重叠只能靠地址分开来治。
+    parameter PS_BASE_ADDR = 32'h1010_0000,
     parameter ZOOM_DEFAULT_ON = 1
 )(
     input  wire        sys_clk,
@@ -459,12 +465,12 @@ module pl_video_top #(
     assign m_axi_arid = 6'd0;
 
     axi_frame_writer64 #(
-        .IMG_W(IMG_W), .IMG_H(IMG_H), .BASE_ADDR(BASE_ADDR)
+        .IMG_W(IMG_W), .IMG_H(IMG_H), .BASE_ADDR(PS_BASE_ADDR)
     ) u_aw (
         .clk(axi_clk), .rst_n(axi_rst_n),
         .enable(eth_mode ? 1'b0 : src_sel),
         .frame_start(eth_mode ? 1'b0 : ps_frame_start),
-        .base_addr(BASE_ADDR),
+        .base_addr(PS_BASE_ADDR),
         .frame_busy(fill_busy), .frame_done(fill_done),
         .fb_wr_en(fill_wr_en), .fb_wr_addr(fill_wr_addr), .fb_wr_data(fill_wr_data),
         .m_axi_araddr(fill_araddr), .m_axi_arlen(fill_arlen),
