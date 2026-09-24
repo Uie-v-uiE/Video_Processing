@@ -27,6 +27,10 @@ osd off
 zoom 1.5
 help
 BOGUS
+pipe 000001010
+pipe 000000001
+pipe 000100000
+pipe 00000
 AUTOPLAY0
 autoplay 1
 SRC2

@@ -43,6 +43,11 @@ module system_top (
     wire fclk0, fclk0_rst_n;
     wire [31:0] gpio_o, status;
     wire [31:0] gpio1_i;   // v7.6：PL→PS 的健康 lane 窗口（BD 的 GPIO_1 输入）
+    // V8-2：新的效果/几何控制字（BD 里第二个 AXI GPIO，2 通道 × 32 bit，纯输出）。
+    //   ch1[8:0] = stage_sel（九位算法选择，见 proc_pipeline.v 文件头）
+    //   ch1[31:9] 与 ch2 全留给 V8-3/Gamma 与 V8-4/分割线 —— 现在**故意不接**：
+    //   地址与通道布局一次定好，后面两步就不用再动 BD（动一次 BD = 全套门禁重来）。
+    wire [31:0] gpio_cfg1_o, gpio_cfg2_o;
     wire [31:0] m_araddr;
     wire [5:0]  m_arid;
     wire [3:0]  m_arlen_axi3;
@@ -77,6 +82,8 @@ module system_top (
         .FCLK_CLK0(fclk0), .FCLK_RESET0_N(fclk0_rst_n),
         .GPIO_0_tri_o(gpio_o),
         .GPIO_1_tri_i(gpio1_i),
+        .GPIO_2_tri_o(gpio_cfg1_o),
+        .GPIO_3_tri_o(gpio_cfg2_o),
         .M_AXI_HP0_araddr(m_araddr), .M_AXI_HP0_arburst(m_arburst),
         .M_AXI_HP0_arcache(4'b0011), .M_AXI_HP0_arid(m_arid),
         .M_AXI_HP0_arlen(m_arlen_axi3), .M_AXI_HP0_arlock(2'b00),
@@ -224,7 +231,7 @@ module system_top (
                    .PS_BASE_ADDR(PS_DDR_BASE)) u_pl (
         .sys_clk(sys_clk), .sys_rst_n(1'b1),
         .axi_clk(fclk0), .axi_rst_n(fclk0_rst_n),
-        .effect_en(gpio_o[4:0]), .threshold(gpio_o[15:8]), .src_sel(gpio_o[16]),
+        .effect_en(gpio_o[4:0]), .stage_sel(gpio_cfg1_o[8:0]), .threshold(gpio_o[15:8]), .src_sel(gpio_o[16]),
         // V7.7：ZOOM0/ZOOM1 不再是死命令。之前这里硬绑 1'b1，串口命令与 GPIO bit17 全无效
         // （main.c 自己就注明"当前 RTL 常开，bit17 仅预留"）。
         // 注意默认值：set_src.tcl 现在写 0x0003_0000（bit16+bit17），保持"上电即呼吸缩放"的旧观感。

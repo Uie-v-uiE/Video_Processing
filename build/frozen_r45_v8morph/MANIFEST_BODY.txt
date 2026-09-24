@@ -1,0 +1,8 @@
+003a599b693174eafbdea61430cc41e6 *ddr_churn_r33_newelf.txt
+ef75ba750075622d55c9ad2715677b42 *gates_r45.txt
+f64ab31672c8d98cbe7270426b3bda43 *ps_app.elf
+c439bdda69050b81ecf21fe2f88738b4 *regression_v79_r45b.txt
+bb301595ce5c618660f3bf26c5db6438 *system.bit
+80d9c316853eb549fd4d52181480ab9c *system.xsa
+165c30543a96d9354d559e4e6bb20b79 *uart_cmd_check_r45.txt
+81576c3c73796ddcae504bea1ec49d3e *uart_r45_banner.txt

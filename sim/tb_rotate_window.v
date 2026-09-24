@@ -14,9 +14,16 @@ module tb_rotate_window;
     wire [15:0] dout;
 
     // Use a tiny H_ACTIVE
+    // V8-2 起 proc_pipeline 吃的是**九位算法字**（每一位一个算法）。台架仍然用"老五位"表达
+    // 意图（这条测试问的是"转不转都该模糊"，与位序无关），映射在这里做一遍 ——
+    // 故意不引用 effect_ctrl 里的那张表：两处独立写同一个映射，改一边忘了另一边就会红。
+    //   sel: [0]gray [1]invert [2]blur [3]sharp [4]sobel [5]binary [6]pol [7]erode [8]dilate
+    //   老:       en[0]  en[4]   en[2]          en[3]   en[1]
+    wire [8:0] sel = {3'b000, en[1], en[3], 1'b0, en[2], en[4], en[0]};
+
     proc_pipeline #(.H_ACTIVE(8)) uut (
         .clk(clk), .rst_n(rst_n),
-        .effect_en(en), .threshold(8'd80),
+        .stage_sel(sel), .threshold(8'd80),
         .rotate_active(rot),
         .hs_in(1'b0), .vs_in(1'b0),
         .de_in(de), .x_in(x), .y_in(y), .din(din),

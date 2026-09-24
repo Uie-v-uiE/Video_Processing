@@ -1,0 +1,19 @@
+报告目录：build
+新鲜度：system.bit 2026-09-24 18:24:13 / timing 2026-09-24 18:24:32
+        基线里有而本版没有：eth_rxc>clk_fpga_0 （原因未查证，不算改进）
+        同配对端点数增长：clk_fpga_0>clkout0_1(17→27) （记录用，不判红）
+门禁七项：
+  WNS (ns)               0.716        >= 0                         PASS
+  失败 setup 端点    0            == 0                         PASS
+  WHS (ns)               0.048        >= 0                         PASS
+  失败 hold 端点     0            == 0                         PASS
+  BRAM (tile/%)          91.5/65.36%  <= 97%                       PASS
+  Slice LUT / 占比     10150/19.08% <= 98%                       PASS
+  Slice 寄存器        7624         记录用（无阈值）     PASS
+  Dynamic (W)            2.175        与前次同量级           PASS
+  methodology CRIT       0            == 0                         PASS
+  布线错误网线     0            == 0                         PASS
+  cdc.rpt Critical 行   3            基线 4 行，配对不新增 PASS
+
+端点总数 27371；CDC 现在按 build/CDC_BASELINE.txt 的**配对集合**判，功耗仍要人比有没有变差。
+GATES: ALL PASS

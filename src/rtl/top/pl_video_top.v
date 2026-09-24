@@ -21,6 +21,9 @@ module pl_video_top #(
     input  wire        axi_rst_n,
 
     input  wire [4:0]  effect_en,
+    // V8 的九位算法选择字（新控制字 gpio_cfg[8:0]）。0 = "PS 没意见"，此时 effect_ctrl 用
+    // effect_en 翻出来的等价形式 —— 老工具（set_src.tcl / health_read.mjs）因此一字不改还能用。
+    input  wire [8:0]  stage_sel,
     input  wire [7:0]  threshold,
     input  wire        src_sel,
     input  wire        zoom_en,
@@ -145,10 +148,13 @@ module pl_video_top #(
 
     wire [4:0] en_sync;
     wire [7:0] th_sync;
+    wire [8:0] sel_sync;
     effect_ctrl u_eff (
         .clk(clk_pix), .rst_n(rst_pix_n),
         .effect_en_async(effect_en),
+        .stage_sel_async(stage_sel),
         .threshold_async(threshold),
+        .stage_sel(sel_sync),
         .effect_en(en_sync), .threshold(th_sync)
     );
 
@@ -549,14 +555,11 @@ module pl_video_top #(
     wire oob_l_pix = left_pix & oob_fb_d1;
     wire oob_r_pix = (~left_pix) & oob_fb_d1;
 
-    localparam PROC_LAT = 7;
-    localparam LEFT_TAIL = PROC_LAT;
-
     wire [15:0] pipe_dout;
     wire        pipe_de;
     proc_pipeline #(.H_ACTIVE(IMG_W)) u_pipe (
         .clk(clk_pix), .rst_n(rst_pix_n),
-        .effect_en(en_sync), .threshold(th_sync),
+        .stage_sel(sel_sync), .threshold(th_sync),
         .rotate_active(rot_on),
         .hs_in(hs_d[3]), .vs_in(vs_d[3]),
         .de_in(de_d[3] && !left_d[3]),
@@ -564,6 +567,13 @@ module pl_video_top #(
         .din(pix_right),
         .de_out(pipe_de), .dout(pipe_dout)
     );
+
+    // 处理链的延迟**只有一处定义**：proc_pipeline 自己的 LATENCY。
+    // 以前这里是字面量 7，于是"链上加一级"必须同时记得改这里 —— 忘了不是编译错，
+    // 而是左窗（原始画面）与右窗（处理后）错开 N 个像素。左窗的 skid 长度直接取 u_pipe 的值，
+    // 而 tb_v88 实测 de_in→de_out 与 LATENCY 对账 ⇒ 三处任一处漂移就有测试可红。
+    localparam PROC_LAT = u_pipe.LATENCY;
+    localparam LEFT_TAIL = PROC_LAT;
 
     reg [15:0] orig_skid [0:LEFT_TAIL-1];
     reg        oob_l_skid [0:LEFT_TAIL-1];

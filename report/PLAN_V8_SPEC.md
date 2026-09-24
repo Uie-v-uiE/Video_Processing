@@ -125,6 +125,22 @@ MDIO `52..53`、SD0=`MIO 40..45` + CD `MIO 9`），所以开 GPIO MIO 不会跟�
 = 64 位新控制字，命名为 `gpio_cfg_o`；老的那 32 位**一位都不动**（`health_read.mjs`、`set_src.tcl`、
 `arb_handover_test.mjs` 都在按位读它，动了就是把已有工具判红）。布局：
 
+**已执行（r45，18:0x）**：BD 里加了 `axi_gpio_2`（`C_IS_DUAL=1`，双通道 ×32bit 纯输出），
+地址**钉死并回读校验**在 `0x41220000`（通道 2 在 +0x08）。两处教训记在这里：
+① 第一次以为是 `0x41210000` —— 那个地址一直是 `axi_gpio_1`（健康 lane 只读口，
+   `health_read.mjs --gpio1 41210000` 用的就是它），新的是 **0x41220000**；固件里的
+   `AXI_GPIO_CFG_BASE` 必须等于它。
+② 判据从"读回 0 就算过"改成了"**写一个非零图案再读回来比对**"——不存在的从设备常常也返回 0，
+   前者永远不会红（`build_system_axigpio.tcl` 的 `ADDR_LOG` 三行现在做数值比对，不等就 `exit 1`）。
+③ 还留了个只建 BD 就退出的后门：`vivado -mode batch -source build/tcl/build_system_axigpio.tcl -tclargs bd_only`，
+   IP 参数名/引脚名/MIO 认领这类错 3 分钟就能抓出来，不用等 20 分钟的综合（第一次就抓到
+   `C_ALL_OUTPUTS2` 应为 `C_ALL_OUTPUTS_2`、以及 `make_bd_pins_external` 的返回值不能直接当对象用）。
+
+**已实测的一个意外收获**：效果链每个**窗口级是 3 拍**（`de_in→d1→d2→de_out`）不是 2 拍，
+所以 V7 那条链真实延迟是 9 拍，而顶层 `PROC_LAT` 写的是 7 ⇒ 左右窗长期错 2 个像素。
+r45 起顶层只能取 `u_pipe.LATENCY`（新链实测 15 == 声明 15，`tb_v86` 钉住），
+剩下的"数据比标签旧一行"没修，记在 **ISSUES #54**，V8-4 做逐像素分割混合之前必须修完。
+
 | 新字 | 位 | 含义 |
 |---|---|---|
 | B(+0x0) | `[1:0]` | `mode_req`：00 自动 / 01 锁ETH / 11 锁PS / 10 锁图卡 —— **必须与 `src_mode` 的格雷码同序**，否则跨域同步器丢掉"每一位只依赖一个触发器"那条（#49 的教训） |

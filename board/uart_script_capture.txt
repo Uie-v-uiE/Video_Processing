@@ -1,86 +1,97 @@
-﻿=== CAPTURE START 32 commands ===
+﻿=== CAPTURE START 36 commands ===
+[SD] frame 1524: last 100 frames 29.419 fps (since play 29.839)
 >> STAT
-[STAT] ctrl en=00 thr=80 src=1 zoom=1 bilin=1 pub=0 sd=1 frames=4398 playing=1 (PL owns UDP datapath)
+[STAT] ctrl en=00 thr=80 src=1 zoom=1 bilin=1 pub=0 sd=1 frames=4398 playing=1 sel=000 (PL owns UDP datapath)
 >> th 80
-[CTRL] AXI_GPIO=0x000F5000 en=00 thr=80 src=1 zoom=1 pub=1 bilin=1
-[SD] frame 300: last 100 frames 29.999 fps (since play 29.781)
+[CTRL] AXI_GPIO=0x000B5000 sel=000 thr=80 src=1 zoom=1 pub=0 bilin=1
 >> TH120
-[CTRL] AXI_GPIO=0x000F7800 en=00 thr=120 src=1 zoom=1 pub=1 bilin=1
+[CTRL] AXI_GPIO=0x000F7800 sel=000 thr=120 src=1 zoom=1 pub=1 bilin=1
+[SD] frame 1624: last 100 frames 29.761 fps (since play 29.841)
 >> THE
 [TH] 要跟十进制 0..255
 >> th
 [TH] 要跟十进制 0..255
-[SD] frame 400: last 100 frames 29.999 fps (since play 29.828)
 >> pipe 11000
-[CTRL] AXI_GPIO=0x000F7803 en=03 thr=120 src=1 zoom=1 pub=1 bilin=1
+[CTRL] AXI_GPIO=0x000B7803 sel=021 thr=120 src=1 zoom=1 pub=0 bilin=1
 >> 01010
-[CTRL] AXI_GPIO=0x000F780A en=0A thr=120 src=1 zoom=1 pub=1 bilin=1
+[CTRL] AXI_GPIO=0x000B780A sel=030 thr=120 src=1 zoom=1 pub=0 bilin=1
+[SD] frame 1724: last 100 frames 29.999 fps (since play 29.844)
 >> pipe 00000
-[CTRL] AXI_GPIO=0x000B7800 en=00 thr=120 src=1 zoom=1 pub=0 bilin=1
+[CTRL] AXI_GPIO=0x000F7800 sel=000 thr=120 src=1 zoom=1 pub=1 bilin=1
 >> src 0
-[CTRL] AXI_GPIO=0x000A7800 en=00 thr=120 src=0 zoom=1 pub=0 bilin=1
+[CTRL] AXI_GPIO=0x000E7800 sel=000 thr=120 src=0 zoom=1 pub=1 bilin=1
 [SRC] 已切 src_sel=0；**独占**还要 mode 覆盖位（V8-2）——现在 AUTO 下仍由仲裁定屏幕
-[SD] frame 500: last 100 frames 29.457 fps (since play 29.747)
 >> src 2
-[CTRL] AXI_GPIO=0x000B7800 en=00 thr=120 src=1 zoom=1 pub=0 bilin=1
+[CTRL] AXI_GPIO=0x000B7800 sel=000 thr=120 src=1 zoom=1 pub=0 bilin=1
 [SRC] 已切 src_sel=1；**独占**还要 mode 覆盖位（V8-2）——现在 AUTO 下仍由仲裁定屏幕
+[SD] frame 25: last 25 frames 29.999 fps (since play 29.842)
 >> src 1
-[CTRL] AXI_GPIO=0x000F7800 en=00 thr=120 src=1 zoom=1 pub=1 bilin=1
+[CTRL] AXI_GPIO=0x000B7800 sel=000 thr=120 src=1 zoom=1 pub=0 bilin=1
 [SRC] 已切 src_sel=1；**独占**还要 mode 覆盖位（V8-2）——现在 AUTO 下仍由仲裁定屏幕
 >> src 9
 [SRC] 只认 0=图卡 1=网络 2=SD
-[SD] fra
 >> zoom off
-me 82: last 82 frames 29.999 fps (since play 29.722)
-[CTRL] AXI_GPIO=0x00097800 en=00 thr=120 src=1 zoom=0 pub=0 bilin=1
+[CTRL] AXI_GPIO=0x000D7800 sel=000 thr=120 src=1 zoom=0 pub=1 bilin=1
 >> ZOOM1
-[CTRL] AXI_GPIO=0x000F7800 en=00 thr=120 src=1 zoom=1 pub=1 bilin=1
+[CTRL] AXI_GPIO=0x000F7800 sel=000 thr=120 src=1 zoom=1 pub=1 bilin=1
+[SD] frame 125: last 100 frames 29.998 fps (since play 29.845)
 >> bilin off
-[CTRL] AXI_GPIO=0x00077800 en=00 thr=120 src=1 zoom=1 pub=1 bilin=0
+[CTRL] AXI_GPIO=0x00037800 sel=000 thr=120 src=1 zoom=1 pub=0 bilin=0
 >> BILIN1
-[CTRL] AXI_GPIO=0x000B7800 en=00 thr=120 src=1 zoom=1 pub=0 bilin=1
-[SD] frame 182: last 100 frames 29.999 fps (since play 29.758)
+[CTRL] AXI_GPIO=0x000B7800 sel=000 thr=120 src=1 zoom=1 pub=0 bilin=1
 >> frame 12
-[CTRL] AXI_GPIO=0x000B7800 en=00 thr=120 src=1 zoom=1 pub=0 bilin=1
+[CTRL] AXI_GPIO=0x000B7800 sel=000 thr=120 src=1 zoom=1 pub=0 bilin=1
 >> rot 45
 [CMD] rot 语法已收，硬件未接：缺 PL 的角度写入口（angle_ctrl 现在只吃按键）（规划 V8-2/V8-8，见 report/PLAN_V8_SPEC.md 第 3 节）
+[SD] frame 46: last 100 frames 29.881 fps (since play 29.847)
 >> rot speed 1
 [CMD] rot 语法已收，硬件未接：缺 PL 的角度写入口（angle_ctrl 现在只吃按键）（规划 V8-2/V8-8，见 report/PLAN_V8_SPEC.md 第 3 节）
 >> split auto
 [CMD] split 语法已收，硬件未接：缺 整个 split_ctrl（位置/自动扫描/range/speed/swap）（规划 V8-4，见 report/PLAN_V8_SPEC.md 第 3 节）
-[SD] frame 103: last 100 frames 29.837 fps (since play 29.770)
 >> split range 20 80
 [CMD] split 语法已收，硬件未接：缺 整个 split_ctrl（位置/自动扫描/range/speed/swap）（规划 V8-4，见 report/PLAN_V8_SPEC.md 第 3 节）
+[SD] frame 146: last 100 frames 29.983 fps (since play 29.849)
 >> gamma 1.8
 [CMD] gamma 语法已收，硬件未接：缺 gamma_lut 与它的 LUT 写窗口（规划 V8-3，见 report/PLAN_V8_SPEC.md 第 3 节）
 >> osd off
 [CMD] osd 语法已收，硬件未接：缺 OSD 行开关位（现在是常显）（规划 V8-5，见 report/PLAN_V8_SPEC.md 第 3 节）
-[SD] frame 203: last 100 frames 29.983 fps (since play 29.791)
 >> zoom 1.5
 [CMD] zoom <因子>/auto 语法已收，硬件未接：缺 PL 的缩放因子寄存器（现在只有 on/off 一个位）（规划 V8-8，见 report/PLAN_V8_SPEC.md 第 3 节）
 >> help
-  V8 语法: src 0|1|2 | pipe 11000 | th 80 | zoom on|off | bilin on|off | frame N | sd | play | stop | fill | autoplay0|1 | stat | help
+  V8 语法: src 0|1|2 | pipe <5 或 9 位> | th 80 | zoom on|off | bilin on|off | frame N | sd | play | stop | fill | autoplay 0|1 | stat | help
+  pipe 五位=老位序(gray/binary/blur/sobel/invert)，九位=新位序(gray/invert/blur/sharpen/sobel/binary/bin_pol/erode/dilate)
   语法已收/硬件待接: rot ... | split ... | gamma ... | osd on|off
   旧写法仍可用: SRC0 SRC1 TH80 ZOOM0 ZOOM1 BILIN0 BILIN1 FRAME12 00111
+[SD] frame 246: last 100 frames 29.757 fps (since play 29.847)
 >> BOGUS
 [CMD] 不认: BOGUS
-  V8 语法: src 0|1|2 | pipe 11000 | th 80 | zoom on|off | bilin on|off | frame N | sd | play | stop | fill | autoplay0|1 | stat | help
+  V8 语法: src 0|1|2 | pipe <5 或 9 位> | th 80 | zoom on|off | bilin on|off | frame N | sd | play | stop | fill | autoplay 0|1 | stat | help
+  pipe 五位=老位序(gray/binary/blur/sobel/invert)，九位=新位序(gray/invert/blur/sharpen/sobel/binary/bin_pol/erode/dilate)
   语法已收/硬件待接: rot ... | split ... | gamma ... | osd on|off
   旧写法仍可用: SRC0 SRC1 TH80 ZOOM0 ZOOM1 BILIN0 BILIN1 FRAME12 00111
+>> pipe 000001010
+[CTRL] AXI_GPIO=0x000B7802 sel=0A0 thr=120 src=1 zoom=1 pub=0 bilin=1
+>> pipe 000000001
+[CTRL] AXI_GPIO=0x000B7800 sel=100 thr=120 src=1 zoom=1 pub=0 bilin=1
+>> pipe 000100000
+[CTRL] AXI_GPIO=0x000F7800 sel=008 thr=120 src=1 zoom=1 pub=1 bilin=1
+[SD] frame 346: last 100 frames 29.728 fps (since play 29.843)
+>> pipe 00000
+[CTRL] AXI_GPIO=0x000F7800 sel=000 thr=120 src=1 zoom=1 pub=1 bilin=1
 >> AUTOPLAY0
 [SD] autoplay off (only affects the next boot)
-[SD] frame 303: last 100 frames 29.715 fps (since play 29.780)
 >> autoplay 1
 [SD] autoplay on (only affects the next boot)
+[SD] frame 446: last 100 frames 29.999 fps (since play 29.846)
 >> SRC2
-[CTRL] AXI_GPIO=0x000F7800 en=00 thr=120 src=1 zoom=1 pub=1 bilin=1
+[CTRL] AXI_GPIO=0x000F7800 sel=000 thr=120 src=1 zoom=1 pub=1 bilin=1
 [SRC] 已切 src_sel=1；**独占**还要 mode 覆盖位（V8-2）——现在 AUTO 下仍由仲裁定屏幕
 >> bilin 2
 [BILIN] 只认 on/off（0/1）
 >> TH80
-[CTRL] AXI_GPIO=0x000F5000 en=00 thr=80 src=1 zoom=1 pub=1 bilin=1
-[SD] frame 62: last 62 frames 29.999 fps (since play 29.782)
+[CTRL] AXI_GPIO=0x000F5000 sel=000 thr=80 src=1 zoom=1 pub=1 bilin=1
 >> STAT
-[STAT] ctrl en=00 thr=80 src=1 zoom=1 bilin=1 pub=1 sd=1 frames=4398 playing=1 (PL owns UDP datapath)
+[STAT] ctrl en=00 thr=80 src=1 zoom=1 bilin=1 pub=1 sd=1 frames=4398 playing=1 sel=000 (PL owns UDP datapath)
+[SD] frame 97: last 97 frames 29.999 fps (since play 29.845)
 === CAPTURE END ===
 

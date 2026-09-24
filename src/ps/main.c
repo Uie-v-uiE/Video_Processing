@@ -1,9 +1,13 @@
 /**
  * PS control plane + SD 卡本地回放。UDP 视频数据通路仍然整个在 PL（rtl/eth 目录）。
  *
- * AXI GPIO @ 0x41200000
- *   [4:0]   effect_en    [15:8] threshold   [16] src_sel   [17] zoom_en
- *   [18]    ps_publish   —— 翻转一次 = "DDR 里这一帧写完了，请在下一个 frame_start 搬走"
+ * AXI GPIO @ 0x41200000（V7 的那条，位序不许动 —— 老工具按位读写它）
+ *   [4:0]   effect_en（= 下面九位的一个投影）[15:8] threshold  [16] src_sel  [17] zoom_en
+ *   [18]    ps_publish —— 翻转一次 = "DDR 里这一帧写完了，请在下一个 frame_start 搬走"
+ *   [19]    bilin_en   [26] gapclr_sel   [31:27] 健康 lane 号
+ * AXI GPIO @ 0x41220000（V8-2 新增，BD 里的 axi_gpio_2，双通道×32bit）
+ *   ch1[8:0] stage_sel —— 效果链的真相，位定义的唯一出处是 src/rtl/process/proc_pipeline.v
+ *   ch1[31:9] 与 ch2 留给 V8-3/Gamma、V8-4/分割线（现在一个字节都不写）
  * DDR frame @ 0x10100000（FILL 诊断帧 / SD 回放帧都落在这里；ETH 用 0x10000000/0x10080000）
  */
 #include <stdio.h>
@@ -34,12 +38,46 @@
 #define PUBLISH_BIT   18u
 #define BILIN_BIT     19u     /* 右窗双线性插值开关：0 = 最近邻（同一条通路，小数钉 0） */
 
-static u32 cur_en = 0;
+/* ---- V8-2：第二条控制字（BD 里的 axi_gpio_2，双通道 ×32bit 纯输出） ----
+ * 基址 0x41220000 是 build/tcl/build_system_axigpio.tcl 里**钉死并回读校验过**的
+ * （ADDR_LOG 三行 want/got 数值相等才让构建继续）。为什么硬编码：手工链接的 BSP 不会
+ * 重新生成 xparameters.h，地址变了不会编译失败，只会"写了没反应"。
+ * 通道 2（+0x08）留给 V8-3 的 Gamma 窗口与 V8-4 的分割线参数，现在一个字都不写。
+ * ⚠ 这一条把 elf 与 bit 绑死了：**旧位流上没有这个从设备**。开机自检会写 0 再读回来，
+ *    读不回 0 就大声报"位流/elf 不配套"（配套关系由 build/frozen_* 的 md5 清单管）。 */
+#define AXI_GPIO_CFG_BASE 0x41220000u
+#define CFG_DATA0         (AXI_GPIO_CFG_BASE + 0x00u)
+
+/* 九位算法选择字：位定义的唯一出处是 `src/rtl/process/proc_pipeline.v` 文件头，这里只是抄一份。 */
+#define SEL_GRAY    (1u << 0)
+#define SEL_INVERT  (1u << 1)
+#define SEL_BLUR    (1u << 2)
+#define SEL_SHARP   (1u << 3)
+#define SEL_SOBEL   (1u << 4)
+#define SEL_BIN     (1u << 5)
+#define SEL_BIN_POL (1u << 6)
+#define SEL_ERODE   (1u << 7)
+#define SEL_DILATE  (1u << 8)
+
+static u32 cur_sel = 0;        /* 效果选择的唯一真相（九位） */
+static u32 cur_en = 0;         /* gpio_o[4:0] 上的老五位镜像，由 cur_sel 反推，不独立存在 */
 static u8  cur_thr = 80;
 static u8  cur_src = 0;
 static u8  cur_zoom = 1;   /* GPIO bit17: 右屏无极缩放。当前 RTL 常开，此位预留给控制 */
 static u8  cur_bilin = 1;  /* GPIO bit19: 双线性/最近邻 A-B 对照，演示时现场切换用 */
 static u32 pub_lvl = 0;
+
+/* 老五位是"新九位的一个投影"，不是第二个控制源 —— 这样 RTL 的旁路优先级
+ * （cfg != 0 用 cfg，否则用老位）在固件这边永远自洽：两边永远说同一件事。 */
+static void sel_sync_legacy(void)
+{
+    cur_en = ((cur_sel & SEL_GRAY)   ? 1u  : 0u)
+           | ((cur_sel & SEL_BIN)    ? 2u  : 0u)
+           | ((cur_sel & SEL_BLUR)   ? 4u  : 0u)
+           | ((cur_sel & SEL_SOBEL)  ? 8u  : 0u)
+           | ((cur_sel & SEL_INVERT) ? 16u : 0u);
+}
+
 
 /* 只写寄存器、不打字，返回写进去的值。
  * 每帧一次的"发布"脉冲必须走这条：原来 ps_publish() 直接调 ctrl_apply()，于是 30 fps 的
@@ -47,18 +85,21 @@ static u32 pub_lvl = 0;
  * 板上实测 PLAY 10 s 收回 28549 B 全是 [CTRL] 行 —— 刷屏之外还把发布时序压在打印上。 */
 static u32 ctrl_write(void)
 {
-    u32 v = (cur_en & 0x1F) | ((u32)cur_thr << 8) | ((u32)cur_src << 16)
-          | ((u32)(cur_zoom ? 1 : 0) << 17) | (pub_lvl << PUBLISH_BIT)
-          | ((u32)(cur_bilin ? 1 : 0) << BILIN_BIT);
+    u32 v;
+    sel_sync_legacy();
+    v = (cur_en & 0x1F) | ((u32)cur_thr << 8) | ((u32)cur_src << 16)
+      | ((u32)(cur_zoom ? 1 : 0) << 17) | (pub_lvl << PUBLISH_BIT)
+      | ((u32)(cur_bilin ? 1 : 0) << BILIN_BIT);
     Xil_Out32(GPIO_DATA, v);
+    Xil_Out32(CFG_DATA0, cur_sel & 0x1FFu);
     return v;
 }
 
 static void ctrl_apply(void)
 {
     u32 v = ctrl_write();
-    xil_printf("[CTRL] AXI_GPIO=0x%08x en=%02x thr=%d src=%d zoom=%d pub=%d bilin=%d\r\n",
-               v, cur_en & 0x1F, cur_thr, cur_src, cur_zoom ? 1 : 0, (int)pub_lvl,
+    xil_printf("[CTRL] AXI_GPIO=0x%08x sel=%03x thr=%d src=%d zoom=%d pub=%d bilin=%d\r\n",
+               v, cur_sel & 0x1FF, cur_thr, cur_src, cur_zoom ? 1 : 0, (int)pub_lvl,
                cur_bilin ? 1 : 0);
 }
 
@@ -69,10 +110,28 @@ void ps_publish(void)
     (void)ctrl_write();
 }
 
-static void ctrl_set_en(u32 en)
+static void ctrl_set_sel(u32 sel)
 {
-    cur_en = en & 0x1F;
+    cur_sel = sel & 0x1FFu;
     ctrl_apply();
+}
+
+/* 老五位 → 新九位：bit0 gray / bit1 binary / bit2 blur / bit3 sobel / bit4 invert */
+static u32 legacy_to_sel(u32 e)
+{
+    return ((e & 1u)  ? SEL_GRAY   : 0u)
+         | ((e & 2u)  ? SEL_BIN    : 0u)
+         | ((e & 4u)  ? SEL_BLUR   : 0u)
+         | ((e & 8u)  ? SEL_SOBEL  : 0u)
+         | ((e & 16u) ? SEL_INVERT : 0u);
+}
+
+/* `pipe` 与裸位串：5 位是**老写法**（老位序），9 位是**新写法**（新位序）。
+ * 两种都收是为了不断掉 HOST_GUIDE / DEMO_SCRIPT / set_src.tcl 里已经写好的例子，
+ * 但它们的意思不同 —— 这条差异写在 HOST_GUIDE 的命令表里，串口电池的 6/7 两条各钉一边。 */
+static void apply_pipe_bits(u32 b, int n)
+{
+    ctrl_set_sel(n == 5 ? legacy_to_sel(b) : (b & 0x1FFu));
 }
 
 static void ctrl_set_thr(u8 thr)
@@ -106,7 +165,7 @@ static int parse_bits(const char *s, u32 *out)
     for (; *s; ++s) {
         if (*s == '\r' || *s == '\n' || *s == ' ') break;
         if (*s != '0' && *s != '1') return -1;
-        if (n >= 5) return -1;
+        if (n >= 9) return -1;            /* 新写法最长 9 位（老写法 5 位，见 apply_pipe_bits） */
         en |= ((u32)(*s - '0')) << n;
         ++n;
     }
@@ -241,12 +300,15 @@ static int dispatch(char **tk, int nt)
 {
     u32 en;
     int v;
+    int nb;
 
-    if (nt == 1 && parse_bits(tk[0], &en) > 0) { ctrl_set_en(en); return 0; }
+    nb = parse_bits(tk[0], &en);
+    if (nt == 1 && nb > 0) { apply_pipe_bits(en, nb); return 0; }
 
     if (ci_eq(tk[0], "PIPE")) {
-        if (nt < 2 || parse_bits(tk[1], &en) <= 0) { xil_printf("[PIPE] 要跟 5 位 0/1，例：pipe 11000\r\n"); return 0; }
-        ctrl_set_en(en);
+        nb = (nt >= 2) ? parse_bits(tk[1], &en) : -1;
+        if (nb <= 0) { xil_printf("[PIPE] 要跟 5 位（老写法）或 9 位（新写法）0/1，例：pipe 11000\r\n"); return 0; }
+        apply_pipe_bits(en, nb);
         return 0;
     }
     if (ci_pre(tk[0], "TH")) {
@@ -326,11 +388,14 @@ static int dispatch(char **tk, int nt)
         return 0;
     }
     if (ci_eq(tk[0], "STAT") || ci_eq(tk[0], "STATUS")) {
+        /* 字段顺序不许动：串口电池与 arb_handover_test.mjs 都按 "ctrl en=… thr=…" 的前缀解析，
+         * 新加的 sel 只能往后放。en 是老五位的投影，sel 才是效果链的真相。 */
         xil_printf("[STAT] ctrl en=%02x thr=%d src=%d zoom=%d bilin=%d pub=%d"
-                   " sd=%d frames=%d playing=%d (PL owns UDP datapath)\r\n",
+                   " sd=%d frames=%d playing=%d sel=%03x (PL owns UDP datapath)\r\n",
                    cur_en & 0x1F, cur_thr, cur_src, cur_zoom ? 1 : 0,
                    cur_bilin ? 1 : 0, (int)pub_lvl,
-                   sd_frame_total() ? 1 : 0, (int)sd_frame_total(), sd_is_playing());
+                   sd_frame_total() ? 1 : 0, (int)sd_frame_total(), sd_is_playing(),
+                   cur_sel & 0x1FF);
         return 0;
     }
     if (ci_eq(tk[0], "HELP") || ci_eq(tk[0], "?")) { cmd_help(); return 0; }
@@ -339,8 +404,10 @@ static int dispatch(char **tk, int nt)
 
 static void cmd_help(void)
 {
-    xil_printf("  V8 语法: src 0|1|2 | pipe 11000 | th 80 | zoom on|off | bilin on|off |"
-               " frame N | sd | play | stop | fill | autoplay0|1 | stat | help\r\n");
+    xil_printf("  V8 语法: src 0|1|2 | pipe <5 或 9 位> | th 80 | zoom on|off | bilin on|off |"
+               " frame N | sd | play | stop | fill | autoplay 0|1 | stat | help\r\n");
+    xil_printf("  pipe 五位=老位序(gray/binary/blur/sobel/invert)，九位=新位序"
+               "(gray/invert/blur/sharpen/sobel/binary/bin_pol/erode/dilate)\r\n");
     xil_printf("  语法已收/硬件待接: rot ... | split ... | gamma ... | osd on|off\r\n");
     xil_printf("  旧写法仍可用: SRC0 SRC1 TH80 ZOOM0 ZOOM1 BILIN0 BILIN1 FRAME12 00111\r\n");
 }
@@ -374,6 +441,8 @@ static void uart_poll(void)
 
 int main(void)
 {
+    u32 rb;
+
     Xil_ExceptionInit();
     Xil_DCacheEnable();
     Xil_ICacheEnable();
@@ -382,6 +451,19 @@ int main(void)
     xil_printf("\r\n[BOOT] video_pipeline PL-UDP control plane\r\n");
     Xil_Out32(GPIO_TRI, 0x00000000u);
     ctrl_apply();
+
+    /* elf 与 bit 配不配套，第一次碰新控制字就能验出来（写一个非零图案再读回来比对，
+     * 而不是"读回 0 就算对"——不存在的从设备常常也返回 0，那种判据不会红）。
+     * 为什么值得在开机做：地址是硬编码的，位流里没有 axi_gpio_2 时**不会**有编译错误，
+     * 现象只是"效果命令全都没反应"，最容易被人当成 RTL 改坏了去查一晚上。 */
+    Xil_Out32(CFG_DATA0, 0x1FFu);
+    rb = Xil_In32(CFG_DATA0) & 0x1FFu;
+    Xil_Out32(CFG_DATA0, cur_sel & 0x1FFu);
+    if (rb != 0x1FFu)
+        xil_printf("[CFG!] %08x 写 1ff 读回 %03x —— 位流里没有新的 axi_gpio_2，elf/bit 不配套"
+                   "（配套关系见 build/frozen_*）\r\n", CFG_DATA0, rb);
+    else
+        xil_printf("[CFG] axi_gpio_2 @%08x ok\r\n", CFG_DATA0);
 
     xil_printf("[BOOT] UDP RX is in PL (RGMII PHY2). PS is control + SD playback.\r\n");
     xil_printf("[BOOT] uart115200，V8 语法见 help；旧写法仍可用（SRC0/TH80/ZOOM1/00111…）\r\n");

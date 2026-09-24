@@ -27,17 +27,22 @@ const DRY = process.argv.includes('--dry');
  * 表必须与 battery 文件同序 —— 数量不一致直接红，避免"加了命令忘了加判据"。 */
 const EXPECT = [
   [/^\[STAT\] ctrl en=\w\w thr=\d+ src=\d zoom=\d bilin=\d/m],
-  [/en=\w\w thr=80/],                                       // th 80（spec 写法）
-  [/en=\w\w thr=120/],                                     // TH120（老写法，参数粘着）
+  [/thr=80/],                                              // th 80（spec 写法）
+  [/thr=120/],                                             // TH120（老写法，参数粘着）
   [/\[TH\]/, /!thr=/],                                     // THE：必须拒，且不许写寄存器
   [/\[TH\]/, /!thr=/],                                     // th 光杆：同上
-  [/en=03/],                                               // pipe 11000：bit0=第一个字符 ⇒ 0b00011
-  [/en=0a/i],                                              // 01010（裸位串，老写法）；xil_printf 的 %x 打大写
-  [/en=00/],                                               // pipe 00000：恢复
+  // V8-2 起 [CTRL] 回声打的是 **sel=%03x**（九位算法字），老五位只剩成它的投影；
+  // 所以这三条同时是"老五位 → 新九位"映射的判据：
+  //   11000 = gray+binary            ⇒ sel 位 0 与 5 = 0x021
+  //   01010 = binary+sobel           ⇒ 位 4,5       = 0x030
+  //   00000 = 全关                   ⇒ 0x000
+  [/sel=021/i],
+  [/sel=030/i],
+  [/sel=000/],
   [/src=0/, /\[SRC\]/],                                    // src 0 = 图卡
   [/src=1/],                                               // src 2 = DDR + 起播 SD
   [/src=1/],                                               // src 1 = DDR
-  [/\[SRC\] 只认/, /!en=\w\w thr=\d+ src=9/],              // src 9 必须被拒
+  [/\[SRC\] 只认/, /!src=9/],                              // src 9 必须被拒
   [/zoom=0/],
   [/zoom=1/],
   [/bilin=0/],
@@ -52,6 +57,10 @@ const EXPECT = [
   [/语法已收，硬件未接/, /缩放因子/],                        // zoom 1.5：on/off 之外都要因子寄存器
   [/V8 语法/, /旧写法仍可用/],
   [/不认: BOGUS/],
+  [/sel=0A0/i],                                              // pipe 000001010 = 二值化 + 腐蚀 ⇒ 0x0A0
+  [/sel=100/i],                                              // pipe 000000001 = 膨胀           ⇒ 0x100
+  [/sel=008/i],                                              // pipe 001000000 = 锐化            ⇒ 0x008
+  [/sel=000/i],                                           // pipe 00000：收尾恢复全旁路（电池不许改变板上状态）
   [/\[SD\] autoplay off/],                                  // AUTOPLAY0（老写法，参数粘着）
   [/\[SD\] autoplay on/],                                   // autoplay 1（V8 写法；顺序保证电池结束时仍是默认的开）
   [/src=1/],                                                // SRC2：粘着写法也要认（数下标那种写法就是从这里翻车的）
