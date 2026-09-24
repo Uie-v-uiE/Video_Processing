@@ -1,0 +1,16 @@
+=== bit to program ===
+9f2469579e4439f1df0d7da7e6b3f417 *build/frozen_r51_align/system.bit
+=== live build/system.bit must match ===
+9f2469579e4439f1df0d7da7e6b3f417 *build/system.bit
+=== STEP1 ===
+DDR_ECHO: 10000000:   5A5AA5A5
+PS BOOT STEP DONE â€? ä¸‹ä¸€æ­? build/tcl/program_pl.tcl é…? PL
+=== STEP2 ===
+# puts "PROGRAMMED $dev <- $bit"
+PROGRAMMED xc7z020_1 <- D:/Xilinx/Prj/pro/Video_Processing/build/system.bit
+=== STEP3 ===
+RST_PROC: ok
+DOW: ok
+PC_BEFORE_CON: pc: 000000cc
+RESUME: ok
+FLOW_DONE
