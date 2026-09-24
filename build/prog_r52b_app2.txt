@@ -1,0 +1,21 @@
+ELF: D:/Xilinx/Prj/pro/Video_Processing/build/ps_app.elf
+RST_PROC: ok
+DOW: ok
+PC_BEFORE_CON: pc: 000000cc
+
+CON: ok
+pc: pc: 00005e64
+
+cpsr: cpsr: 800f007f
+       n (Bits [31]):  1      z (Bits [30]):  0      c (Bits [29]):  0
+       v (Bits [28]):  0      q (Bits [27]):  0  it (Bits [15:25]):  0
+       j (Bits [24]):  0  ge (Bits [19:16]):  f       e (Bits [9]):  0
+        a (Bits [8]):  0       i (Bits [7]):  0       f (Bits [6]):  1
+        t (Bits [5]):  1     m (Bits [4:0]): 1f
+
+lr: lr: 00000008
+
+sp: sp: ffff5edc
+
+RESUME: ok
+FLOW_DONE

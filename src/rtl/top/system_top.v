@@ -213,7 +213,9 @@ module system_top (
     //   lane30 的 mode 于是永远只能是 0/1：锁图卡(10)读起来像自动(00)、锁PS(11)读起来像锁ETH(01)。
     //   2026-09-24 因为 V8-6 要新加观测口才发现它 —— 详见 ISSUES #57（也纠正了当晚一条凭据说法）。
     wire [7:0]  dbg_src;
-    wire [5*32-1:0] dbg_lat;             // V8-6：lane25..29（lane N = dbg_lat[(N-25)*32 +: 32]）
+    wire [6*32-1:0] dbg_lat;             // V8-6/V8-5：lane25..29 与 lane24
+    //   lane N(25..29) = dbg_lat[(N-25)*32 +: 32]；lane24 = dbg_lat[5*32 +: 32] = q_ms
+    //   lane24 的位序 {14'd0, pair_ok, 本轮 sticky, ms[15:0]} —— 屏上 Latency 那一格的机器对照
     // 指到 lane25 就把这一组五个字**同时**抄进快照（#59：逐 lane 各读各的会读到不同轮，
     // 于是板级 11 组读数里 4 组破坏了恒等式 tot ≥ c1 + c2）。
     // 读这一组的顺序必须是 25→26→27→28→29，因为 25 既是"轮次/钳位位"也是武装位；
@@ -223,6 +225,7 @@ module system_top (
     always @(*) begin
         if      (lm_lane == 5'd31)     lm_rd = {30'd0, lm_clk_slow, lm_clk_gone};
         else if (lm_lane == 5'd30)     lm_rd = {24'd0, dbg_src};
+        else if (lm_lane == 5'd24)     lm_rd = dbg_lat[5*32 +: 32];   // 与 q_tot 同一轮的 ms
         else if (lm_lane >= 5'd25 && lm_lane <= 5'd29)
                                        lm_rd = dbg_lat[(lm_lane-25)*32 +: 32];
         else if (lm_lane > 5'd9)       lm_rd = 32'hDEAD_BEEF;
@@ -272,7 +275,10 @@ module system_top (
         .eth_commit(eth_commit),
         .eth_pkts(eth_pkts[15:0]),
         .eth_bad(eth_bad[15:0]),
-        .lm_bus(eth_lm_bus), .lm_bus_tog(eth_lm_tog), .lm_hb(eth_lm_hb),
+        // lm_bus / lm_bus_tog / lm_hb 三个口跟着 V8-5 的 OSD 改版一起撤掉了：
+        // 像素域那一路快照从此没有消费者（DROP/STALL 两格撤下屏）。
+        // 这三个数仍然从 axi 域那条 snap_cross（上面 lane 读回口用的那一条）出去，
+        // `health_read.mjs` 一字未改照样读得到。
         .status(status),
         .copy_hold(pl_copy_hold)
     );

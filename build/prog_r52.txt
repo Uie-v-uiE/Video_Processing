@@ -1,0 +1,27 @@
+=== bit to program ===
+53fbd56d34bd2fd4cfa56a8ec2d2a485 *build/system.bit
+=== STEP1 ps_jtag_boot ===
+PS7_INIT_FILE: D:/Xilinx/Prj/pro/Video_Processing/build/ps7_init.tcl
+CONNECT: tcfchan#0
+RST_SYSTEM: ok
+PS7_INIT: ok
+PS7_POST_CONFIG: ok
+DDR_ECHO: 10000000:   5A5AA5A5
+
+PS BOOT STEP DONE â€? ä¸‹ä¸€æ­? build/tcl/program_pl.tcl é…? PL
+=== STEP2 program_pl ===
+# puts "PROGRAMMED $dev <- $bit"
+PROGRAMMED xc7z020_1 <- D:/Xilinx/Prj/pro/Video_Processing/build/system.bit
+=== STEP3 ps_app_reload ===
+       n (Bits [31]):  0      z (Bits [30]):  0      c (Bits [29]):  1
+       v (Bits [28]):  0      q (Bits [27]):  0  it (Bits [15:25]):  0
+       j (Bits [24]):  0  ge (Bits [19:16]):  f       e (Bits [9]):  0
+        a (Bits [8]):  0       i (Bits [7]):  0       f (Bits [6]):  1
+        t (Bits [5]):  0     m (Bits [4:0]): 1f
+
+lr: lr: 000058ec
+
+sp: sp: ffff5dfc
+
+RESUME: ok
+FLOW_DONE

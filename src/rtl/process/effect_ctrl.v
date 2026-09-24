@@ -23,7 +23,11 @@ module effect_ctrl (
     output reg         gamma_en,
     output reg         gamma_wr,            // 已同步的**翻转位**（边沿检测在 gamma_lut 里做）
     output reg  [7:0]  gamma_idx,
-    output reg  [7:0]  gamma_data
+    output reg  [7:0]  gamma_data,
+    output reg  [5:0]  gamma_disp           // V8-5：只给 OSD 看的"当前 gamma ×10"（不参与运算）
+    // 说明：OSD 要的"五级实际生效的九位"**已经在 `stage_sel` 这个输出口上**
+    //（它就是"新字非 0 用新字、否则用老五位翻出来的等价形式"那道合流之后的值），
+    // 所以这里不再另开一个口 —— 开两个口迟早会出现两个口给两个不同答案的那天。
 );
     (* ASYNC_REG = "TRUE" *) reg [4:0] en_meta, en_sync;
     (* ASYNC_REG = "TRUE" *) reg [8:0] sel_meta, sel_sync;
@@ -31,14 +35,14 @@ module effect_ctrl (
     // gamma 那四个字段一起过同一对同步器：`wr` 是边沿标志，协议要求"idx/data 在 wr 翻转之前
     // 已经稳定至少一次 AXI 写"，所以它们必须与 wr **同源同深度** —— 分两组同步就会出现在
     // 本域里"边沿到了、数据还是上一次的"那种错拍（spec §6b D4 方案②的前提条件）。
-    (* ASYNC_REG = "TRUE" *) reg [17:0] gm_meta, gm_sync;   // {en, wr, data, idx}
+    (* ASYNC_REG = "TRUE" *) reg [23:0] gm_meta, gm_sync;   // {en, wr, data, idx, disp[5:0]}
 
     always @(posedge clk or negedge rst_n) begin
         if (!rst_n) begin
             en_meta <= 5'd0;  en_sync  <= 5'd0;
             sel_meta <= 9'd0; sel_sync <= 9'd0;
             th_meta <= 8'd80; th_sync  <= 8'd80;
-            gm_meta <= 18'd0; gm_sync  <= 18'd0;
+            gm_meta <= 24'd0; gm_sync  <= 24'd0;
         end else begin
             en_meta  <= effect_en_async;
             en_sync  <= en_meta;
@@ -46,14 +50,19 @@ module effect_ctrl (
             sel_sync <= sel_meta;
             th_meta  <= threshold_async;
             th_sync  <= th_meta;
-            gm_meta  <= {gamma_async[31], gamma_async[30], gamma_async[29:22], gamma_async[21:14]};
+            gm_meta  <= {gamma_async[31], gamma_async[30], gamma_async[29:22],
+                         gamma_async[21:14], gamma_async[13:8]};
             gm_sync  <= gm_meta;
         end
     end
 
-    // 位序照 `PLAN_V8_SPEC.md` §6b 的字：[31] en、[30] wr（翻转=写一项）、[29:22] data、[21:14] idx。
+    // 位序照 `PLAN_V8_SPEC.md` §6b 的字：[31] en、[30] wr（翻转=写一项）、[29:22] data、
+    // [21:14] idx、[13:8] **gamma_disp**（V8-5 新加的 6 位，只给 OSD 看，不参与任何运算）。
+    // 为什么并进这一条链而不是另开一组：§7a 的第三条规矩"新增的位一律走 effect_ctrl 已有的
+    // 那条 ASYNC_REG 链" —— 新开一组就多一对跨域配对，`cdc.rpt` 的基线就要重画，
+    // 而那 3 行 Critical 是唯一能挡住"新代码悄悄裸采样"的门禁。
     always @(*) begin
-        {gamma_en, gamma_wr, gamma_data, gamma_idx} = gm_sync;
+        {gamma_en, gamma_wr, gamma_data, gamma_idx, gamma_disp} = gm_sync;
     end
 
     // 老五位 → 新九位（invert 从 bit4 挪到 bit1、binary 从 bit1 挪到 bit5，其余原位）

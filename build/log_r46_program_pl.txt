@@ -1,0 +1,68 @@
+#-----------------------------------------------------------
+# Vivado v2025.2.1 (64-bit)
+# SW Build 6403652 on Thu Mar 19 19:48:24 GMT 2026
+# IP Build 6403511 on Thu Mar 19 12:41:45 MDT 2026
+# SharedData Build 6403650 on Thu Mar 19 14:02:13 MDT 2026
+# Start of session at: Thu Sep 24 19:33:14 2026
+# Process ID         : 16544
+# Current directory  : D:/Xilinx/Prj/pro/Video_Processing
+# Command line       : vivado.exe -mode batch -nojournal -log build/log_r46_program_pl.txt -source build/tcl/program_pl.tcl
+# Log file           : D:/Xilinx/Prj/pro/Video_Processing/build/log_r46_program_pl.txt
+# Journal file       : 
+# Running On         : Uie-laptop
+# Platform           : Windows Server 2016 or Windows 10
+# Operating System   : 26200
+# Processor Detail   : 12th Gen Intel(R) Core(TM) i5-12450H
+# CPU Frequency      : 2496 MHz
+# CPU Physical cores : 8
+# CPU Logical cores  : 12
+# Host memory        : 16873 MB
+# Swap memory        : 21474 MB
+# Total Virtual      : 38348 MB
+# Available Virtual  : 23243 MB
+#-----------------------------------------------------------
+source build/tcl/program_pl.tcl
+# set root [file normalize [file join [file dirname [info script]] .. ..]]
+# set bit  [file join $root build system.bit]
+# if {![file exists $bit]} { puts "NO BIT $bit"; exit 1 }
+# open_hw_manager
+open_hw_manager: Time (s): cpu = 00:00:18 ; elapsed = 00:00:11 . Memory (MB): peak = 545.812 ; gain = 226.910
+# connect_hw_server -allow_non_jtag
+INFO: [Labtools 27-2285] Connecting to hw_server url TCP:localhost:3121
+INFO: [Labtools 27-3415] Connecting to cs_server url TCP:localhost:0
+INFO: [Labtools 27-3417] Launching cs_server...
+INFO: [Labtools 27-2221] Launch Output:
+
+
+******** Xilinx cs_server v2025.2.0
+  ****** Build date   : Nov 14 2025-07:16:52
+    **** Build number : 2025.2.1763075812
+      ** Copyright 2017-2022 Xilinx, Inc. All Rights Reserved.
+      ** Copyright 2022-2026 Advanced Micro Devices, Inc. All Rights Reserved.
+
+
+
+# puts "URL=[current_hw_server]"
+URL=localhost:3121
+# open_hw_target
+INFO: [Labtoolstcl 44-466] Opening hw_target localhost:3121/xilinx_tcf/Xilinx/0ABC01A
+# puts "=== DEVICES ==="
+=== DEVICES ===
+# foreach d [get_hw_devices] { puts "  [get_property NAME $d] PART=[get_property PART $d]" }
+  arm_dap_0 PART=arm_dap
+  xc7z020_1 PART=xc7z020
+# set dev [lindex [get_hw_devices -filter {PART =~ "xc7z020*"}] 0]
+# if {$dev eq ""} { puts "NO xc7z020 IN CHAIN"; close_hw_target; exit 1 }
+# current_hw_device $dev
+# refresh_hw_device -update_hw_probes false $dev
+INFO: [Labtools 27-1435] Device xc7z020 (JTAG device index = 1) is not programmed (DONE status = 0).
+# set_property PROGRAM.FILE $bit $dev
+# program_hw_devices $dev
+INFO: [Labtools 27-3164] End of startup status: HIGH
+# puts "PROGRAMMED $dev <- $bit"
+PROGRAMMED xc7z020_1 <- D:/Xilinx/Prj/pro/Video_Processing/build/system.bit
+# close_hw_target
+INFO: [Labtoolstcl 44-464] Closing hw_target localhost:3121/xilinx_tcf/Xilinx/0ABC01A
+# close_hw_manager
+# exit 0
+INFO: [Common 17-206] Exiting Vivado at Thu Sep 24 19:33:37 2026...

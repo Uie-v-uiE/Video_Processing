@@ -111,18 +111,29 @@ SRC0 SRC1 TH80 ZOOM0 ZOOM1 BILIN0 BILIN1 FRAME12 AUTOPLAY0 AUTOPLAY1 SD PLAY STO
 ## 5. 语法已经收、硬件还没接（敲了会告诉你缺什么）
 
 ```
-rot 45 / rot +15 / rot auto / rot speed 1     缺 PL 的角度写入口
+rot 45 / rot +15 / rot auto / rot speed 1     缺 PL 的角度写入口（现在只有按键 +1°）
 split 50 / split auto / split range 20 80 / split speed 2 / split swap
-                                              缺整个 split_ctrl（分割线参数化 + 自动扫描）
-osd on / osd off                              OSD 现在常显（V8-5 会加行开关位）
-zoom 1.5 / zoom auto                          缺缩放因子寄存器（现在只有 on/off 一位）
+                                              缺"缝的执行者"：split_ctrl 已写好并单独验完
+                                              （tb_v93 30 条），但**还没接线** ——
+                                              可动的缝与当前"左右各 512、每半屏各画一整幅"
+                                              的几何不相容，先要统一几何：**ISSUES #62**
+osd on / osd off                              OSD 现在常显（V8-5 已把行内容改成四行，开关位仍缺）
+zoom 1.5 / zoom auto                          缺缩放因子寄存器（现在只有 on/off 一位 + 呼吸缩放）
 ```
 
-**好消息：这一段的解析器已经写好了**（V8-1 就把语法统一掉了，敲了会得到"缺什么"而不是静默吞），
-所以接下去只差**PL 侧 + 一个寄存器写**。位预算已经分好在 `report/PLAN_V8_SPEC.md` §7a：
-`split_x[11:0]` = 第二个 GPIO 通道 1 的 `[20:9]`、`split_auto` = bit21、`sep_mode[1:0]` = `[23:22]`、
-`zsel[3:0]` = `[27:24]` —— **不动 BD**（用的就是 r45 已经建好的那个 32 位宽通道）。
-`sep_mode` 是给用户报的"缝周围颜色条"留的开关：`=0` 时 `split_display` 那根硬编码蓝线**完全不画**。
+**好消息：这一段的解析器已经写好了**（V1 就把语法统一掉了，敲了会得到"缺什么"而不是静默吞），
+所以接下去只差**PL 侧 + 一个寄存器写**。位预算在 `report/PLAN_V8_SPEC.md` §7a，r52 之后实况是这样：
+
+| 位 | 现在有没有被用 | 说明 |
+|---|---|---|
+| `gpio_cfg1[8:0]` | **在用** | 九位算法选择字（`pipe ...` 命令） |
+| `gpio_cfg1[20:9]` `split_x`、`[21]` `split_auto`、`[23:22]` `sep_mode` | **没人吃** | 留给 V8-4b。写进去不会有害，但也**不会有任何效果**，所以命令仍然明说"待接" |
+| `gpio_cfg2 ch2 [13:8]` `gamma_disp` | **r52 起在用** | γ×10，只给 OSD 第一行 `Gamma:1.8` 那一格；PS 写 gamma 表时整字带过去（`main.c` 的 `gm_w` 是这个字唯一的真相） |
+| `gpio_cfg2 ch2 [7:0]` | 空闲 | 计划放 `split` 的 `range` 两个端点（1/16 宽度单位，各 4 位） |
+| `gpio_o[22:19]` | 空闲 | 计划放 `split speed`（4 位） |
+
+`sep_mode` 是给用户报的"缝周围颜色条"留的开关：`=0` 时 `split_display` 那根硬编码蓝线**完全不画**
+（那根线是**特性不是 bug**，但它现在与真正的对齐问题混在一起，看得见才好分开判）。
 
 ## 6. 三条最容易踩的坑
 

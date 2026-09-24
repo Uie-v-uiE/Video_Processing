@@ -27,7 +27,10 @@ module tb_v90_latency;
     wire        clamp;
     // #59：读回口用的那一组快照
     reg         arm = 0;
-    wire [31:0] qc1, qc2, qtot, qmax, qstat;
+    wire [31:0] qc1, qc2, qtot, qmax, qstat, qms;
+    // V8-5：拍数→ms 的逐次除法那一组（OSD 的 Latency 一格就吃这四个口）
+    wire [15:0] lms;
+    wire        lvalid, lsticky, ltog;
 
     frame_latency dut (
         .axi_clk(clk), .axi_rst_n(rst_n),
@@ -35,11 +38,29 @@ module tb_v90_latency;
         .disp_sof_tgl(sof_tgl), .arm(arm),
         .c1_cyc(c1), .c2_cyc(c2), .tot_cyc(tot), .max_cyc(mx),
         .n_meas(ncyc), .clamped(clamp),
-        .q_c1(qc1), .q_c2(qc2), .q_tot(qtot), .q_max(qmax), .q_stat(qstat)
+        .q_c1(qc1), .q_c2(qc2), .q_tot(qtot), .q_max(qmax), .q_stat(qstat),
+        .q_ms(qms),                      // lane24：与 q_tot 同一轮的 ms（T16 判它）
+        // V8-5：OSD 那一口的四个观测对象
+        .lat_ms(lms), .lat_valid(lvalid), .lat_sticky(lsticky), .lat_tog(ltog)
     );
+
+    // ---- ms 换算这一组的监视器（T12/T13 用）----
+    reg  lt_prev = 0;                      // lat_tog 的上一次电平
+    integer lt_edges = 0;                  // 翻转了几次 = 完成了几次换算
+    reg     torn = 0;                      // 除法没跑完期间 lat_ms 被动过 ⇒ 半截数被写过
+    reg  [15:0] lms_hold;
+    always @(posedge clk) begin
+        if (rst_n) begin
+            if (ltog !== lt_prev) begin lt_edges = lt_edges + 1; lt_prev = ltog; end
+            if (dut.drun && (lms !== lms_hold)) torn = 1;
+        end
+        lms_hold = lms;
+    end
 
     integer errors = 0, t1, t2, t3, i, j, mx_keep;
     integer a1, a2, a3, bad, nchk;
+    integer n_edge0, npair, nbadpair, nskip;                       // V8-5：T14 用的"翻转次数基线"
+    reg [31:0] big;                        // V8-5：force 拍号时用的临时值
 
     // 0 = 这组含钳位值、判不了；1 = 可信且恒等式成立；2 = 可信但恒等式破了
     function [1:0] id_ok;
@@ -202,6 +223,107 @@ module tb_v90_latency;
         $display("T10b phases=600 trusted=%0d violated=%0d snapshot_n=%0d",
                  nchk, bad, qstat[31:16]);
 
+        // ================= V8-5：拍数→ms 的逐次除法（OSD 的 Latency 一格吃这四个口）=================
+        // 判的到底是什么：
+        //  T11 商必须**恰好**等于 tot/100000 —— 拿台架自己的整数除法独立算一遍，不抄 RTL 的余数；
+        //      这条同时钉住"收尾那一位"（RTL 里 quo 是非阻塞的，最后一位在本拍还没进去，
+        //      写错一个字符屏上就永远差 1 ms，而且差在"看起来对"的那一位上）。
+        //  T12/T15 越界必须**饱和在 9999 ms**，不许回卷成小数（回卷 = 把"慢得离谱"报成
+        //      "几乎没延迟"）；屏上只有三位，osd_overlay 自己再夹 999（那边有独立判据 T2h）。
+        //  T13 除法跑一半时 lat_ms 不许动 ⇒ 跨域那一级拿到的永远是完整数（#59 同一类谎）。
+        //  T14 一轮一次翻转：少翻 = OSD 停在旧值，多翻 = 撕开两组测量。
+        //  T15 本轮配对被钳位 ⇒ lat_sticky=1（顶层再与一下，屏上画 `--`）；
+        //      下一轮干净就必须回 0 —— 它**不是**会话粘滞位 `clamped`，两者故意不一样。
+        // 相位扫描最后一轮的除法还没跑完 ⇒ 先等它翻完，再取基线
+        //（第一版没等：基线少算一次 ⇒ T14 把"两轮翻两次"判成翻了三下，红的是台架不是 RTL）
+        wait_cyc(50);
+        n_edge0 = lt_edges;
+        ev(0);
+        wait_cyc(1000);   ev(1);
+        wait_cyc(118000); ev(2);
+        wait_cyc(200);    ev_sof();
+        wait_cyc(60);                          // 除法 32 拍 + 收尾
+        $display("DBG_T11 tot=%0d exp=%0d lms=%0d valid=%0d sticky=%0d edges=%0d",
+                 tot, (tot / 100000), lms, lvalid, lsticky, lt_edges);
+        chk("T11 商恰好等于 tot/100000（台架独立整数除法）", lms === (tot / 100000));
+        chk("T11b 这一轮真的除出了非零毫秒（否则 T11 可能一直在比 0）", lms >= 1);
+        chk("T11c 测量有效位亮、本轮没钳位", lvalid === 1'b1 && lsticky === 1'b0);
+
+        // T12 造一个 2000 ms 的轮次：把拍号强行推到 2 亿拍之后再去打显示帧起始
+        ev(0);
+        wait_cyc(50);     ev(1);
+        wait_cyc(50);     ev(2);
+        big = dut.cyc + 32'd200_000_000;
+        force dut.cyc = big;
+        @(negedge clk); sof_tgl = ~sof_tgl;
+        repeat (8) @(negedge clk);
+        release dut.cyc;
+        wait_cyc(60);
+        $display("DBG_T12 tot=%0d lms=%0d sticky=%0d edges=%0d base=%0d", tot, lms, lsticky, lt_edges, n_edge0);
+        // 本模块的饱和点是 **9999 ms**（四位数，读回口也用得上）；屏上那一格只有三位，
+        // 由 osd_overlay 自己再夹到 999 —— 两件事各有判据：这里钉 9999，
+        // tb_osd_lines 的 T2h 钉"5000 ms 上屏画 999"。
+        chk("T12 两千毫秒的轮次原样报出（未越本模块的 9999 饱和点）",
+            lms === 16'd2000 && lvalid === 1'b1);
+
+        chk("T13 除法没跑完期间 lat_ms 从没被动过（跨域拿到的是完整数）", torn === 1'b0);
+        chk("T14 两轮各翻一次：翻转次数 = 完成的换算次数", lt_edges === n_edge0 + 2);
+
+        // T15 倒挂的一轮：拍号往回走 ⇒ diff 判为钳位 ⇒ 本轮不可信（sticky=1）
+        ev(0);
+        wait_cyc(50);     ev(1);
+        wait_cyc(50);     ev(2);
+        big = dut.cyc - 32'd1000;
+        force dut.cyc = big;
+        @(negedge clk); sof_tgl = ~sof_tgl;
+        repeat (8) @(negedge clk);
+        release dut.cyc;
+        wait_cyc(60);
+        $display("DBG_T15 tot=%0d lms=%0d valid=%0d sticky=%0d torn=%0d edges=%0d", tot, lms, lvalid, lsticky, torn, lt_edges);
+        chk("T15 配对被钳位的那一轮：lat_sticky 亮（屏上那一格因此画 --）", lsticky === 1'b1);
+        // tot 被钳成满量程 ⇒ 商是 4 万多的 ms ⇒ 必须停在 9999。这条是**真造出来的越界**，
+        // 不是拿常数 1'b1 糊出来的空判据（#60 那一课：不许有条判据永远不会红）。
+        chk("T15b 越界的一轮饱和在 9999，不回卷成小数", lms === 16'd9999);
+        ev(0);
+        wait_cyc(200);    ev(1);
+        wait_cyc(200);    ev(2);
+        wait_cyc(200);    ev_sof();
+        wait_cyc(60);
+        chk("T15c 下一轮干净就必须回 0（sticky 只是本轮的账，不是会话的账）",
+            lsticky === 1'b0 && lvalid === 1'b1);
+        chk("T15d 会话粘滞位仍然是 1（两件事故意分开，别让 OSD 拿它当筛子）", clamp === 1'b1);
+        $display("T11_15 lms=%0d edges=%0d torn=%0d clamp=%0d", lms, lt_edges, torn, clamp);
+
+        // ---- T16 lane24 那一口：与 q_tot **同一轮**的毫秒数必须等于整数除法 ----
+        // 这一条是给板上的 OSD 用的：屏上 `Latency:` 画的 ms 与上位机 lane24 读的是同一个数，
+        // 而 lane27 的 q_tot 是同一轮武装抄走的拍数 ⇒ 两者必须互相推得出来。
+        // pair_ok（qms[17]）为 0 的那一次（正好撞进除法那 32 拍）不下结论，
+        // 但必须**至少有一次**能下结论，否则这条判据就是空判据（#60 那一课）。
+        @(negedge clk); arm = 1; @(negedge clk); arm = 0;
+        npair = 0; nbadpair = 0; nskip = 0;
+        for (i = 0; i < 40; i = i + 1) begin
+            ev(0); ev(1); ev(2); ev_sof();
+            // 除法要 32 拍 ⇒ 每 7 次里留一次**故意不等**（撞进除法窗口，pair_ok 必须给 0），
+            // 其余等满 40 拍再武装（配对可用）。两种都要发生，否则"pair_ok 会保护"这句话
+            // 本身就是一条从没走过分支的判据。
+            if ((i % 7) != 3) wait_cyc(40);
+            @(negedge clk); arm = 1; @(negedge clk); arm = 0;
+            if (qtot !== 32'hFFFF_FFFF && qms[17]) begin
+                npair = npair + 1;
+                if (qms[15:0] !== (qtot / 32'd100000)) nbadpair = nbadpair + 1;
+            end
+            if (!qms[17]) nskip = nskip + 1;
+            if (1'b0) begin
+                $display("T16 pair qtot=%0d qms=%0d exp=%0d sticky=%0d",
+                         qtot, qms[15:0], (qtot / 32'd100000), qms[16]);
+            end
+        end
+        chk("T16 lane24 的 ms 与同一轮 q_tot 的整数除法一致（屏上那格的机器对照）",
+            nbadpair == 0);
+        chk("T16b 这条判据真的判到了配对（npair>0，否则是空判据）", npair > 0);
+        chk("T16c 也真的撞到过除法窗口（nskip>0 ⇒ pair_ok 那一位不是装饰）", nskip > 0);
+        $display("T16 npair=%0d nskip=%0d nbad=%0d", npair, nskip, nbadpair);
+
         $display("");
         $display("口径提醒：本模块量的是 PL 内部（commit 之后到该帧开始扫描），单位是 axi 拍数；");
         $display("   上位机编码与网线传输不在内 ⇒ 对外只能说「链路内时延（PL 侧）」，");
@@ -214,7 +336,7 @@ module tb_v90_latency;
     end
 
     initial begin
-        #20_000_000;
+        #60_000_000;                         // V8-5 加了 12 万拍那一轮 ⇒ 看门狗跟着放宽
         $display("FAIL tb_v90_latency timeout");
         $finish;
     end

@@ -49,12 +49,18 @@
 #define AXI_GPIO_CFG_BASE 0x41220000u
 #define CFG_DATA0         (AXI_GPIO_CFG_BASE + 0x00u)
 /* 通道 2（+0x08）= V8-3 的 Gamma 窗口。位序与 `src/rtl/video/gamma_lut.v` / spec §6b 一致：
- * [31] en、[30] wr（**翻转位**，不是电平）、[29:22] data、[21:14] idx。 */
+ * [31] en、[30] wr（**翻转位**，不是电平）、[29:22] data、[21:14] idx、
+ * [13:8] gamma_disp = γ×10（V8-5 新加：只给 OSD 显示"1.8"这一格用，PL 不参与运算；
+ *                     0 表示"gamma 关着"，屏上会看到 Gamma:0.0）。
+ * ⚠ 这一组位与 gamma 协议在**同一个寄存器**里 ⇒ 所有写通道 2 的地方都必须从 `gm_w`
+ *   这个影子出发整字写回（读-改-写会踩 #55 那个"PS 每帧重写把别的位抹掉"的同一个坑）。 */
 #define CFG_DATA1         (AXI_GPIO_CFG_BASE + 0x08u)
 #define GM_EN             (1u << 31)
 #define GM_WR             (1u << 30)
 #define GM_DATA(v)        ((((u32)(v)) & 0xFFu) << 22)
 #define GM_IDX(i)         ((((u32)(i)) & 0xFFu) << 14)
+#define GM_DISP_MASK      (0x3Fu << 8)
+#define GM_DISP(v)        ((((u32)(v)) & 0x3Fu) << 8)
 
 /* 九位算法选择字：位定义的唯一出处是 `src/rtl/process/proc_pipeline.v` 文件头，这里只是抄一份。 */
 #define SEL_GRAY    (1u << 0)
@@ -152,6 +158,7 @@ static void gamma_off(void)
 {
     cur_gamma = 0;
     gm_w &= ~GM_EN;                       /* 只关使能，表留着：现场要在"开/关"之间来回切 */
+    gm_w &= ~GM_DISP_MASK;                /* 屏上那一格跟着变成 0.0 = "没开"，不许留着旧值说谎 */
     Xil_Out32(CFG_DATA1, gm_w);
     xil_printf("[GAMMA] off（PL 逐位旁路，表保留）\r\n");
 }
@@ -175,6 +182,9 @@ static void gamma_set(u32 g100)
         gamma_put(i, v);
     }
     gm_w |= GM_EN;
+    /* OSD 那一格与表**同一次提交**：γ×10 四舍五入（180→18 ⇒ 屏上 1.8）。
+     * 分开两处写会出现"表已经换成 2.2、屏上还写着 1.8"，而这一格是观众唯一能看见的证据。 */
+    gm_w = (gm_w & ~GM_DISP_MASK) | GM_DISP((g100 + 5u) / 10u);
     Xil_Out32(CFG_DATA1, gm_w);
     cur_gamma = g100;
     xil_printf("[GAMMA] g=%d.%02d mono_bad=%d first=%d last=%d\r\n",
@@ -451,7 +461,8 @@ static int dispatch(char **tk, int nt)
     }
     /* —— 以下四个是 spec §14 里还没落地的动词：先把语法收住，出口只有一条 —— */
     if (ci_eq(tk[0], "ROT"))     { not_wired("rot", "PL 的角度写入口（angle_ctrl 现在只吃按键）", "V8-2/V8-8"); return 0; }
-    if (ci_eq(tk[0], "SPLIT"))   { not_wired("split", "整个 split_ctrl（位置/自动扫描/range/speed/swap）", "V8-4"); return 0; }
+    if (ci_eq(tk[0], "SPLIT"))   { not_wired("split", "缝位的执行者（split_ctrl 已单独验完、尚未接线；"
+                                                     "先要统一几何，见 ISSUES #62）", "V8-4"); return 0; }
     if (ci_pre(tk[0], "GAMMA")) {
         /* `gamma off` / `gamma 1.8` / `gamma 180`（γ×100）三种写法；参数粘着或分开都吃。 */
         const char *arg = (nt >= 2) ? tk[1] : tk[0] + 5;
@@ -582,7 +593,8 @@ int main(void)
         u32 pat = GM_DATA(0x5A) | GM_IDX(0x3C);
         Xil_Out32(CFG_DATA1, pat);
         rb = Xil_In32(CFG_DATA1);
-        Xil_Out32(CFG_DATA1, 0u);
+        Xil_Out32(CFG_DATA1, gm_w);       /* 收尾回影子值而不是回 0：这段以后若被挪到 gamma_set
+                                             之后跑，回 0 会把 γ×10 那一格抹掉（屏上变 0.0）。 */
         if (rb != pat)
             xil_printf("[CFG!] %08x 写 %08x 读回 %08x —— gamma 窗口不在位流上（elf/bit 不配套）\r\n",
                        CFG_DATA1, pat, rb);

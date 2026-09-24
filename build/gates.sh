@@ -150,6 +150,33 @@ else
         $([ "$MD" = "0" ] && echo 1 || echo 0)
 fi
 [ "${MD:-0}" != "0" ] && grep -a "multi-driven net" "$BLOG" 2>/dev/null | sed 's/^/        /' | head -6
+
+# 14) 顶层接线（端口名对得上、输入都没悬空）—— V8-5 的教训（2026-09-25 凌晨）。
+#     为什么单独一项：`pl_video_top` / `system_top` **没有任何台架例化**（今晚 grep 确认），
+#     所以"改了子模块端口、顶层忘了连"这类错 L1 全量 57 条一条都不会红，
+#     只能等 25 分钟的构建 —— 今晚 osd_overlay 换端口就踩在这个空档上。
+#     判据脚本自己有反例：拿两份故意改坏的拷贝跑，必须分别报"连了不存在的端口"和"输入没连"
+#     （见 report/OVERNIGHT_LOG.md §33 与 skill/ 那条"判据要有自己的测试"）。
+#     r52 加宽到第三条**位宽**（`dbg_lat` 从 5 口变 6 口时想到的：#57 那类"高位被一根窄线吞掉"
+#     名字对得上、仿真与综合都不报，只有把两头量出来才看得见）。反例两份 + 一份负对照，
+#     凭据 `build/ports_check_width_ce.txt`。
+#     历史冻结件里没有 ports_check.txt ⇒ 这一项对它们**跳过而不是判红**：
+#     这一项是拿"当前源码树"跑的，历史包没有对应的树，红一个没有意义的红只会让人去关门禁。
+if [ "$D" = "build" ]; then
+    python build/check_ports.py > build/ports_check.txt 2>&1; PCEXIT=$?
+    PCTXT=$(tail -1 build/ports_check.txt)
+    say "顶层接线（端口名/悬空输入/位宽）" "$PCTXT" "violations=0（凭据 build/ports_check.txt，当场跑）" \
+        $([ "$PCEXIT" = 0 ] && echo 1 || echo 0)
+    grep -v "^CHECK PORTS\|^  skipped" build/ports_check.txt 2>/dev/null | sed 's/^/        /' | head -8
+else
+    PCF=$(pick ports_check.txt)
+    if [ -f "$PCF" ]; then
+        grep -q "violations=0" "$PCF" && say "顶层接线（端口名/悬空输入/位宽）" "$(cat "$PCF")" "violations=0" 1 \
+            || say "顶层接线（端口名/悬空输入/位宽）" "$(cat "$PCF")" "violations=0" 0
+    else
+        echo "  n/a  顶层接线 —— 该冻结件早于第 14 项，没有对应的 ports_check 凭据（不判红，见上面注释）"
+    fi
+fi
 echo
 echo "端点总数 $eps；CDC 现在按 build/CDC_BASELINE.txt 的**配对集合**判，功耗仍要人比有没有变差。"
 if [ "$pass" = 1 ]; then echo "GATES: ALL PASS"; exit 0; else echo "GATES: 有红项 —— 不采纳，保留上一版"; exit 1; fi

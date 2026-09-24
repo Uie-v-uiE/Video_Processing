@@ -49,7 +49,7 @@ module pl_video_top #(
     //   lane29=c1（等消隐）lane28=c2（搬运）lane27=tot（提交→上屏）lane26=max lane25={n_meas,clamped}
     // 换算成时间戳在 `src/host/health_read.mjs` 里做（一个常量：fclk0=100 MHz ⇒ 1 拍 = 10 ns）。
     // 与 dbg_src 同一套做法：全部是 axi 域本来就有的电平 ⇒ 零新增跨域。
-    output wire [5*32-1:0] dbg_lat,
+    output wire [6*32-1:0] dbg_lat,
     // 抄快照的触发：system_top 在"lane 选择指到 25"时给一拍（读这一组的第一个字天然就是它）。
     // 为什么需要它：五个字之间有恒等式 tot ≥ c1+c2，而 live 寄存器每轮都在换，
     // 上位机逐 lane 读会读到不同轮 ⇒ ISSUES #59（板级 11 组读数里 4 组破坏恒等式）。
@@ -94,12 +94,8 @@ module pl_video_top #(
     input  wire        eth_commit,
     input  wire [15:0] eth_pkts,
     input  wire [15:0] eth_bad,
-
-    // v7.6 (P0-A)：link_monitor 的快照总线 + 两个跳变信号（eth_rxc 域）。
-    // 本模块只负责在像素域把它们安全取过来给 OSD。
-    input  wire [319:0] lm_bus,
-    input  wire         lm_bus_tog,
-    input  wire         lm_hb,
+    // v7.6 到这里为止的三个口（lm_bus / lm_bus_tog / lm_hb）在 V8-5 删了，
+    // 原因与"数并没有丢"的去向写在文件下面那段注释里（搜"没有消费者"）。
 
     output wire [31:0] status,
     output wire        copy_hold
@@ -166,6 +162,7 @@ module pl_video_top #(
     wire [8:0] sel_sync;
     wire       gm_en, gm_wr;
     wire [7:0] gm_idx, gm_data;
+    wire [5:0] gm_disp;          // V8-5：只给 OSD 的 gamma×10（同一对同步器带过来的 6 位）
     effect_ctrl u_eff (
         .clk(clk_pix), .rst_n(rst_pix_n),
         .effect_en_async(effect_en),
@@ -174,7 +171,8 @@ module pl_video_top #(
         .gamma_async(gamma_ctl),
         .stage_sel(sel_sync),
         .effect_en(en_sync), .threshold(th_sync),
-        .gamma_en(gm_en), .gamma_wr(gm_wr), .gamma_idx(gm_idx), .gamma_data(gm_data)
+        .gamma_en(gm_en), .gamma_wr(gm_wr), .gamma_idx(gm_idx), .gamma_data(gm_data),
+        .gamma_disp(gm_disp)
     );
 
     (* ASYNC_REG = "TRUE" *) reg ze0, ze1, ze2;
@@ -216,10 +214,12 @@ module pl_video_top #(
 
     wire [9:0] inv_scale;
     wire       zoom_active, zoom_dir;
+    wire [2:0] zoom_code;        // V8-5：OSD 的"最近一档"（八档表在 zoom_ctrl 里，不除）
     zoom_ctrl #(.INV_LO(10'd256), .INV_HI(10'd512), .STEP(10'd2)) u_zctrl (
         .clk(clk_pix), .rst_n(rst_pix_n),
         .enable(zoom_run), .frame_start(frame_start),
-        .inv_scale(inv_scale), .zoom_active(zoom_active), .dir(zoom_dir)
+        .inv_scale(inv_scale), .zoom_active(zoom_active), .zoom_code(zoom_code),
+        .dir(zoom_dir)
     );
 
     // 左半窗**不旋转**：旋转只属于右半窗（由 zoom_mapper 内部的 rotate_en 分支承担）。
@@ -510,9 +510,13 @@ module pl_video_top #(
 
     wire [31:0] lat_c1, lat_c2, lat_tot, lat_max;
     wire [15:0] lat_n;
-    // 快照那一组（读回口给出去的就是这五个，见下面的 dbg_lat）
-    wire [31:0] lq_c1, lq_c2, lq_tot, lq_max, lq_stat;
+    // 快照那一组（读回口给出去的就是这六个，见下面的 dbg_lat）
+    wire [31:0] lq_c1, lq_c2, lq_tot, lq_max, lq_stat, lq_ms;
     wire        lat_clamp;
+    // V8-5：axi 域那一口的四个声明（必须在例化之前声明，否则端口先造出隐式 net，
+    // 后面再显式声明就是重定义错误）
+    wire [15:0] lat_ms_axi;
+    wire        lat_ok_axi, lat_sticky_axi, lat_tog_axi;
     // **PL 里不做除法**：r49 在这里把拍数除以 100 换 µs，除数不是 2 的幂 ⇒ 综合架出组合除法器，
     // 100 MHz 域直接 WNS −5.014 / 96 个失败端点（被门禁拦下，见 ISSUES #58）。
     // 现在只报拍数，换算在 src/host/health_read.mjs 的一个常量里做（1 拍 = 10 ns）。
@@ -522,7 +526,11 @@ module pl_video_top #(
         .disp_sof_tgl(sof_tgl), .arm(lat_arm),
         .c1_cyc(lat_c1), .c2_cyc(lat_c2), .tot_cyc(lat_tot), .max_cyc(lat_max),
         .n_meas(lat_n), .clamped(lat_clamp),
-        .q_c1(lq_c1), .q_c2(lq_c2), .q_tot(lq_tot), .q_max(lq_max), .q_stat(lq_stat)
+        .q_c1(lq_c1), .q_c2(lq_c2), .q_tot(lq_tot), .q_max(lq_max), .q_stat(lq_stat),
+        // V8-5：axi 域换算好的 ms（逐次除法，见 frame_latency 里那段注释）
+        .lat_ms(lat_ms_axi), .lat_valid(lat_ok_axi),
+        .lat_sticky(lat_sticky_axi), .lat_tog(lat_tog_axi),
+        .q_ms(lq_ms)
     );
     // 五个字，lane 号 = 25 + 序号（system_top 的 mux 按这个式子取）：
     //   lane29 = c1（commit→start_copy，等消隐窗口）
@@ -533,7 +541,11 @@ module pl_video_top #(
     // ⚠ 这一行给出去的是 **q_*（快照）**，不是 live 的 lat_*：读回口要的是"一组自洽的数"，
     //    而 live 值每轮都在换（#59）。live 的 lat_* 仍然接在台架上（tb_v90 逐周期对账用它们），
     //    板级读回来的这五个字则是"指到 lane25 那一刻的同时抄走的那一轮"。
-    assign dbg_lat = { lq_c1, lq_c2, lq_tot, lq_max, lq_stat };
+    // 六个字：lane29..25 = c1/c2/tot/max/stat（word0..4），lane24 = q_ms（word5）。
+    // 为什么把 ms 塞进同一次武装的快照里：屏上 `Latency:` 那一格画的就是这个 ms，
+    // 而 PLAN 步 5 要求"屏上数字与 health_read 回读必须同源"⇒ 只有**同一轮**的
+    // (q_tot, q_ms) 能互相验；除法那 32 拍里武装的话 pair_ok 给 0，脚本就不下结论。
+    assign dbg_lat = { lq_ms, lq_c1, lq_c2, lq_tot, lq_max, lq_stat };
 
     assign m_axi_arid = 6'd0;
 
@@ -713,30 +725,53 @@ module pl_video_top #(
     // v7.6: 健康快照跨到像素域。像素时钟是 50 MHz（clk_gen CLKOUT0_DIVIDE=20，
     // VCO 1000 MHz）；HB_TO_MS=200 ⇒ eth_rxc 停供 200 ms 后 OSD 的 STALL 直接钉 9999，
     // 这样"拔了线"和"还在只是慢"在屏上是两个长相。
-    wire [319:0] lm_pix;
-    wire         lm_clk_gone, lm_clk_slow;
-    snap_cross #(.W(320), .DST_HZ(50_000_000), .HB_TO_MS(200)) u_lm_x (
+    // V8-5：老 OSD 的 DROP / STALL 两格撤掉之后，这一路 320 bit 健康快照在像素域**没有消费者**了，
+    // 于是原来那条 snap_cross（u_lm_x）连同 lm_bus / lm_bus_tog / lm_hb 三个输入口一起删掉：
+    // 留着它就是一根"没人读的线"（本项目为这类线付过两次学费：#57 的位宽、#61 的多驱动）。
+    // 数没有丢：lane0~lane9 在 axi 域由 `src/host/health_read.mjs` 机器可读（system_top 里那条
+    // snap_cross 是给读回口用的，与本段无关，仍然存在）。
+    // "链路断了"在屏上有三个长相：Src 那一格退回 CARD、FPS 掉到 0、Latency 变 `--`。
+    // 老的 osd_drop / osd_stall 两格在 V8-5 撤掉了（屏上要让给 spec 的四个字段）。
+    // **功能没有删**：drop 与 stall 仍然在 lane0/lane2 里由 `health_read.mjs` 机器可读，
+    // 而"链路断了"这件事在屏上有三个长相：Src 那一格退回 CARD、FPS 掉到 0、Latency 变 `--`。
+
+    // ---- V8-5：把 axi 域算好的 ms 跨到像素域（#36/#52 那一课：翻转位 + 3 级同步 + 整拍锁存）----
+    // hb_tog 故意与 bus_tog 是同一根：**没有新测量**就等于"心跳停了" ⇒ hb_gone 亮 ⇒ OSD 画 `--`。
+    // 于是"ETH 停了、屏上还挂着最后一轮的 12 ms"这种过期读数不可能出现
+    //（门限取 1000 ms：一轮测量正常是一帧 = 16~33 ms，留 30 倍以上余量，
+    //  而 SLOW_MS 放到 200 ⇒ 只有时基真的废了才判 slow，不会把正常的帧间抖动当成断）。
+    // 总线里带两位状态：lat_valid（这一轮算完了）与 ~lat_sticky（这一轮配对干净）。
+    // 少了后一位，一次"倒挂/超长"的轮次就会把一个假 ms 画上屏 —— 那正是 #59 要防的那类谎。
+    wire [17:0] lat_bus_q;
+    wire        lat_gone;
+    snap_cross #(.W(18), .DST_HZ(50_000_000), .HB_TO_MS(1000), .SLOW_MS(200)) u_lat_x (
         .dst_clk(clk_pix), .dst_rst_n(rst_pix_n),
-        .bus(lm_bus), .bus_tog(lm_bus_tog), .hb_tog(lm_hb),
-        .bus_q(lm_pix), .hb_gone(lm_clk_gone), .hb_slow(lm_clk_slow)
+        .bus({lat_ok_axi, ~lat_sticky_axi, lat_ms_axi}),
+        .bus_tog(lat_tog_axi), .hb_tog(lat_tog_axi),
+        .bus_q(lat_bus_q), .hb_gone(lat_gone), .hb_slow()
     );
-    wire [31:0] osd_drop  = lm_pix[0*32 +: 32];
-    // gone = 源时钟没有；slow = 源时钟被 PHY 拉慢（板级实测拔线后 RXC≈2.5 MHz，
-    // 只有 slow 会亮）—— 两种都意味着链路已断，STALL 就没有“毫秒”的含义了，
-    // 于是钉成 9999，让屏上一眼看出“没流”，而不是一个爬得很慢的数字。
-    wire [15:0] osd_stall = (lm_clk_gone | lm_clk_slow) ? 16'd9999 : lm_pix[2*32 +: 16];
+    wire        lat_ok_pix = lat_bus_q[17] & lat_bus_q[16] & ~lat_gone;
+    wire [15:0] lat_ms_pix = lat_bus_q[15:0];
+
+    // ---- Split 那一格现在来自几何参数（缝还没有执行者，见 ISSUES #62 / split_ctrl 的文件头）----
+    // 除法是 elaboration 常数（PANE_W、DISP_W_H 都是参数），综合折成一个数，不留硬件。
+    localparam [11:0] DISP_W_H      = 12'd1024;
+    localparam [7:0]  SPLIT_PCT_FIX = ((PANE_W * 100) / DISP_W_H);
 
     wire [7:0] r_osd, g_osd, b_osd;
     wire de_osd, hs_osd, vs_osd;
-    osd_overlay u_osd (
+    osd_overlay #(.IMG_W(IMG_W), .IMG_H(IMG_H)) u_osd (
         .clk(clk_pix), .rst_n(rst_pix_n),
         .x(x_d11), .y(y_d11), .de(de_o),
-        .angle(angle), .effect_en(en_sync), .fps(fps_q),
-        .src_sel(src_use), .eth_link(eth_link_pix),
+        .angle(angle), .fps(fps_q),
+        .stage_sel(sel_sync),                 // 五级链实际生效的九位
+        .threshold(th_sync),
+        .gamma_disp(gm_disp),
+        .zoom_code(zoom_code), .zoom_auto(zoom_run),
+        .split_pct(SPLIT_PCT_FIX), .split_auto(1'b0),
+        .lat_ms(lat_ms_pix), .lat_ok(lat_ok_pix),
         .src_eff({fb_vis, owner_eth_pix}),   // 屏幕上真的这一路：CARD / PS / ETH
         .mode(mode),
-        .net_pkts(pkts_s1), .net_bad(bad_s1),
-        .net_drop(osd_drop), .net_stall(osd_stall),
         .bg_pix(16'h0),
         .r_in(r), .g_in(g), .b_in(b),
         .hs_in(hs_o), .vs_in(vs_o),

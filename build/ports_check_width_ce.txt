@@ -1,0 +1,15 @@
+check_ports.py 第③条（位宽）的反例凭据 —— 2026-09-25 r52
+
+== A. 把 system_top 的 dbg_lat 声明从 [6*32-1:0] 改成 [5*32-1:0]（#57 的形状：高位被静默吞掉）
+src/rtl/top/system_top.v:246  pl_video_top u_pl .dbg_lat(…) 位宽不符：端口 192 位，接的是 160 位（Verilog 静默补零/截断 ⇒ 高位会被吃掉，见 #57）
+  skipped(端口表看不懂/非 ANSI): fb_rd5x
+CHECK PORTS: instances=79 modules=74 skipped=1 width_compared=526 violations=1 FAIL
+
+== B. 把 pl_demo_top 的 .eth_wr_addr(19'd0) 改成 18'd0（字面量比端口窄一位）
+src/rtl/top/pl_demo_top.v:19  pl_video_top u_pl .eth_wr_addr(…) 位宽不符：端口 19 位，接的是 18 位（Verilog 静默补零/截断 ⇒ 高位会被吃掉，见 #57）
+  skipped(端口表看不懂/非 ANSI): fb_rd5x
+CHECK PORTS: instances=79 modules=74 skipped=1 width_compared=526 violations=1 FAIL
+
+== C. 未改动的整棵树（负对照：必须 violations=0）
+  skipped(端口表看不懂/非 ANSI): fb_rd5x
+CHECK PORTS: instances=79 modules=74 skipped=1 width_compared=526 violations=0 PASS

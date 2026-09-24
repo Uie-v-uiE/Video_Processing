@@ -132,7 +132,11 @@ const cur = parseInt(curRaw[1], 16) >>> 0;
 const keep = cur & 0x07ffffff;                       // 清掉 bit[31:27]，保留控制位
 if (CLR) { runXsdb(clrScript(keep), 'clr'); console.log('[HEALTH] 已把帧间隔统计归零（gpio_o[26] 拉高 250 ms）'); }
 // V8-6 之后 lane25..29 也是真的读数（时延三段 + 最大/次数/钳位），不再是 0xDEADBEEF。
-const want = [...Array(10).keys(), 25, 26, 27, 28, 29, 30, 31];
+// lane24 = 屏上 Latency 那一格画的毫秒数，与 q_tot **同一轮**。
+// ⚠ 顺序有意义，必须排在 25 之后：`system_top` 里 `lat_arm = (lane==25)` —— 指到 lane25 这件事
+//   本身就是抄快照的触发。先读 24 会拿到**上一遍**武装的那一轮，与这一遍的 27 对不上，
+//   于是下面那条同源判据恒红（假红，而且是脚本自己造成的）。
+const want = [...Array(10).keys(), 25, 26, 27, 28, 29, 24, 30, 31];
 const vals = new Map();
 for (let p = 0; p < PASSES; p++) {
   const txt = runXsdb(passScript(want, p === PASSES - 1 ? cur : undefined, keep), `p${p}`);
@@ -179,6 +183,7 @@ if (get('json', false) === true) {
     // build/tcl/build_system_axigpio.tcl 的 PCW_FPGA0_PERIPHERAL_FREQMHZ（两处不一致就会报偏心数）。
     //   lane29 c1（等消隐窗口） lane28 c2（整帧搬运） lane27 tot（提交→开始扫描）
     //   lane26 max（历轮最大） lane25 = {n_meas[15:0], 15'd0, clamped}
+    //   lane24 = {14'd0, pair_ok, 本轮sticky, ms[15:0]} ← 屏上 Latency 那一格画的**就是**这个 ms
     // 口径：只有 PL 内部，且 tot 的第三段（等扫描）分辨率 = 一个显示帧 ⇒ 报数带 ±1 帧。
     lat: (() => {
       const NS_PER_CYC = 10;               // ← 唯一的换算点（100 MHz）
@@ -188,10 +193,42 @@ if (get('json', false) === true) {
       const CLAMP = 0xFFFFFFFF;
       const ms = c => (c === CLAMP ? null : +(c * NS_PER_CYC / 1e6).toFixed(3));
       const nmeas = (w25 >>> 16) & 0xFFFF, clamped = w25 & 1;
+      // ---- V8-5 步 5 的同源判据：屏上那个数必须能由回读的拍数算出来 ----
+      // 逐遍配对（第 i 遍的 lane24 配第 i 遍的 lane27 —— 同一遍、同一次武装抄的那一组）。
+      // 只在这些条件下才判：pair_ok=1（武装那一拍 32 步除法已经收工，否则商还是上一轮的）、
+      // 本轮 sticky=0（钳位轮的 ms 是饱和值不是测量值）、q_tot 不是钳位值。
+      // 期望值里那个 `min(...,9999)` 是 RTL 饱和的镜像：tot > 999.9 ms 时屏上就该是 9999，
+      // 不是"算错了"—— 所以判据照这个口径写，否则超长等待会报成假红。
+      const pairs = [];
+      // ⚠ 只有**六口都在**（每口都读到 PASSES 个值）才敢按下标配对：某一漏读时数组会错位，
+      //   把第 0 遍的 ms 配上第 1 遍的 tot ⇒ 报出一个假红，而假红比不判更糟（它会让人去关这个判据）。
+      const six = [24, 25, 26, 27, 28, 29];
+      const aligned = six.every((n) => ((vals.get(n) || []).length) === PASSES);
+      if (aligned) for (let i = 0; i < PASSES; i++) {
+        const a = vals.get(24)[i], t = vals.get(27)[i];
+        const usable = ((a >>> 17) & 1) === 1 && ((a >>> 16) & 1) === 0 && t !== CLAMP;
+        const exp = Math.min(Math.floor(t / 100000), 9999);
+        pairs.push({ usable, ok: usable && (a & 0xffff) === exp, ms: a & 0xffff, exp });
+      }
+
+      const usable = pairs.filter((x) => x.usable);
+      const bad = usable.filter((x) => !x.ok);
       return {
         unit: 'cycles', ns_per_cycle: NS_PER_CYC,
         c1_cyc: w29, c2_cyc: w28, tot_cyc: w27, max_cyc: w26,
         c1_ms: ms(w29), c2_ms: ms(w28), tot_ms: ms(w27), max_ms: ms(w26),
+        // 屏上 Latency 那一格（lane24）与 tot 是否同源。
+        // ⚠ osd_ms_matches 在 usable=0 时是 null：**没判过就不算绿**（一条永远红不了的判据是假判据）。
+        //   板级正常几乎总能配对（除法只有 32 拍，撞上的概率 ~1e-6），所以拿到 null 说明
+        //   要么位流太老（没有 lane24），要么武装顺序被改坏了 —— 两种都得查，不是"跳过"。
+        osd_ms: g(24) === undefined ? undefined : (g(24) & 0xffff),
+        osd_ms_pair_ok: g(24) === undefined ? undefined : (g(24) >>> 17) & 1,
+        osd_ms_sticky: g(24) === undefined ? undefined : (g(24) >>> 16) & 1,
+        osd_ms_lanes_aligned: aligned,
+        osd_ms_pairs_checked: pairs.length,
+        osd_ms_pairs_usable: usable.length,
+        osd_ms_mismatch: bad.length,
+        osd_ms_matches_tot: usable.length === 0 ? null : bad.length === 0,
         // 第三段（搬完→开始扫描）由恒等式给出，不单独占一口。
         // ⚠ 恒等式 `tot = c1 + c2 + c3` 只有在**同一轮**的数上才成立：r51 之前读回口给的是 live 值，
         //    五个 lane 分五次读 ⇒ 会读到不同轮的碎片（板级 8 组里 4 组破功，见 ISSUES #59）。
@@ -264,6 +301,30 @@ if (src !== undefined)
     ` 搬运中: PS=${(src >>> 3) & 1} ETH=${(src >>> 4) & 1}`);
 console.log(`  31  ${clk === undefined ? '(读不到)' : '0x' + clk.toString(16).padStart(8, '0')}  ` +
             `eth_rxc 心跳：${gone === -1 ? '(读不到)' : gone ? '已停 —— 源时钟没有' : slow ? '被拉慢 ~50× ⇒ 网线已拔/PHY 断链' : '正常'}`);
+console.log('');
+// V8-6/V8-5：链路内时延这一段单独判，因为**屏上画的数**也在这一组里 —— 两者不同源就说明
+// 读回口又变回"各读各的"了（#59），或 OSD 那一格接错了轮次。
+{
+  const c1 = g(29), c2 = g(28), tt = g(27), cx = g(26);
+  const st = g(25), qm = g(24);
+  if ([c1, c2, cx, tt, st, qm].some((v) => v === undefined) || (tt >>> 0) === 0xDEADBEEF) {
+    console.log('时延：这个位流没有 lane24..29（V8-6 之前的位流）—— 屏上 Latency 也必然是 `--`。');
+  } else {
+    const CL = 0xFFFFFFFF, n = (st >>> 16) & 0xFFFF;
+    const pairOk = (qm >>> 17) & 1, sticky = (qm >>> 16) & 1, omd = qm & 0xffff;
+    const exp = Math.min(Math.floor(tt / 100000), 9999);
+    console.log(`时延：c1=${c1} c2=${c2} tot=${tt} max=${cx} 拍（${(tt / 1e5).toFixed(2)} ms）` +
+                ` 轮数=${n === 0xFFFF ? '≥65535' : n}${st & 1 ? ' 会话内钳位过(当下界)' : ''}`);
+    console.log(`  屏上 Latency=${pairOk ? (sticky ? '--(本轮钳位)' : omd + 'ms') : '--(武装撞上除法那 32 拍)'}` +
+      `  回读 tot/100000=${exp}  ⇒ ` +
+      (!pairOk ? '这一组不可判（重读一次）'
+               : sticky ? '本轮不可判（钳位）'
+               : omd === exp ? '同源一致 ok'
+               : `不一致 ← 屏上数字与回读不是同一轮，别把屏上那个数写进报告`));
+    if (c1 !== CL && c2 !== CL && tt !== CL && tt < c1 + c2)
+      console.log('  ⚠ 恒等式 tot>=c1+c2 破了 ⇒ 读回口不是同一组（ISSUES #59 的形状）');
+  }
+}
 console.log('');
 const fl = [
   '丢过字=' + bit(flags, 0), '作废过帧=' + bit(flags, 1), 'CDC灌满过=' + bit(flags, 2),

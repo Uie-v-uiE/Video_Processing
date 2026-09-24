@@ -1,0 +1,39 @@
+### r52 上板凭据（bit 53fbd56d / elf 223f8d1a）###
+--- boot banner（uart_cap_once -Seconds 22，抓在 ps_app_reload 前后）---
+SENT 0/0  CAPTURED_LEN 1335
+[SD] frame 1500: last 100 frames 29.723 fps (since play 29.846)
+
+[BOOT] video_pipeline PL-UDP control plane
+[CTRL] AXI_GPIO=0x000A5000 sel=000 thr=80 src=0 zoom=1 pub=0 bilin=1
+[CFG] axi_gpio_2 @41220000 ok
+[CFG] gamma window @41220008 ok
+[BOOT] UDP RX is in PL (RGMII PHY2). PS is control + SD playback.
+[BOOT] uart115200???V8 ????????? help????????????????????????SRC0/TH80/ZOOM1/00111??????
+[SD] dir map ok: 9 files, first clusters within 1946818
+[SD] FAT32 part_lba=2048 spc=32 rootclus=2 data_lba=34816
+[SD] frames=4398 fps=30.000 files=9 frame=307200B
+[SD]   VIDEO000.BIN frames=512
+[SD]   VIDEO001.BIN frames=512
+[SD]   VIDEO002.BIN frames=512
+[SD]   VIDEO003.BIN frames=512
+[SD]   VIDEO004.BIN frames=512
+[SD]   VIDEO005.BIN frames=512
+[SD]   VIDEO006.BIN frames=512
+[SD]   VIDEO007.BIN frames=512
+[SD]   VIDEO008.BIN frames=302
+[CTRL] AXI_GPIO=0x000B5000 sel=000 thr=80 src=1 zoom=1 pub=0 bilin=1
+[SD] autoplay: playing
+[SD] frame 100: last 100 frames 29.916 fps (since play 29.720)
+
+--- 37 条串口电池（node src/host/uart_cmd_check.mjs）---
+ok   29 pipe 000000001
+ok   30 pipe 000100000
+ok   31 pipe 00000
+ok   32 AUTOPLAY0
+ok   33 autoplay 1
+ok   34 SRC2
+ok   35 bilin 2
+ok   36 TH80
+ok   37 STAT
+ok   跑完回到初态：en=00 thr=80 src=1 zoom=1 bilin=1 gm=0.00
+RESULT PASS uart_cmd_check  (37 条命令, 36.4 s, 捕获 board/uart_script_capture.txt)
