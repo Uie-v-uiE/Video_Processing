@@ -32,7 +32,7 @@
 
 /* ---- 与 RTL 必须一致的数：改这里要同时改 pl_video_top.v 的 BASE_ADDR / IMG_W / IMG_H ---- */
 #define FRAME_BYTES    (512u * 300u * 2u)        /* RGB565 = 307200 B = 600 扇区 */
-#define FRAME_ADDR     0x10000000u               /* = pl_video_top 的 BASE_ADDR */
+#define FRAME_ADDR     0x10100000u               /* = pl_video_top 的 PS_BASE_ADDR（PS 专用第三个 bank） */
 
 #define SD_BASE        XPAR_XSDPS_0_BASEADDR
 #define MAX_FILES      16u

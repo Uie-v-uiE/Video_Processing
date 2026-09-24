@@ -5,7 +5,7 @@
 # 2. Vitis: File > New > Platform from XSA
 #    - BSP: lwip, xuartps, xgpio
 # 3. New Application "video_ps", add main.c (this folder)
-# 4. Linker: ensure DDR has space; frame at 0x10000000 is application-usable
+# 4. Linker: ensure DDR has space; PS frame at 0x10100000 (ETH owns 0x10000000/0x10080000)
 # 5. UART0 115200 8N1 on FT2232
 #
 # EMIO GPIO map (PL):

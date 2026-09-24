@@ -4,7 +4,7 @@
  * AXI GPIO @ 0x41200000
  *   [4:0]   effect_en    [15:8] threshold   [16] src_sel   [17] zoom_en
  *   [18]    ps_publish   —— 翻转一次 = "DDR 里这一帧写完了，请在下一个 frame_start 搬走"
- * DDR frame @ 0x10000000（FILL 诊断帧 / SD 回放帧都落在这里）
+ * DDR frame @ 0x10100000（FILL 诊断帧 / SD 回放帧都落在这里；ETH 用 0x10000000/0x10080000）
  */
 #include <stdio.h>
 #include <string.h>
@@ -21,7 +21,12 @@
 #define FRAME_W     512
 #define FRAME_H     300
 #define FRAME_BYTES (FRAME_W * FRAME_H * 2)
-#define FRAME_ADDR  0x10000000u
+/* PS 片源的帧落在 DDR 的**第三个 bank**：0x1010_0000。
+ * 以前是 0x1000_0000，与 ETH 乒乓双 bank 的第 0 块重叠 ⇒ SD/FILL 一边写、ETH 一边读写同一块内存，
+ * 屏幕上就是"两个片源打架、闪"（板级实测 2026-09-24）。仲裁只管谁用 DDR→帧缓存那台搬运机，
+ * 管不到谁写 DDR（SD 的 DMA 走 PS 自己的 HP0，不经过 PL），所以只能靠地址分开。
+ * 这个数必须等于 `system_top.v` 的 PS_DDR_BASE / `pl_video_top.v` 的 PS_BASE_ADDR。 */
+#define FRAME_ADDR  0x10100000u
 
 #define AXI_GPIO_BASE 0x41200000u
 #define GPIO_DATA     (AXI_GPIO_BASE + 0x00u)
