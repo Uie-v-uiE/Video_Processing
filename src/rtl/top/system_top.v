@@ -208,11 +208,14 @@ module system_top (
     //    已撤；那两位属于"看图卡有没有上屏"的眼睛判据，不需要机器读回）
     // 有了 lane30，"停流后 owner_eth 是否在几十毫秒内从 1 变 0"就是**可机器判定**的，
     // 不必等任何人看屏幕（判据：`src/host/health_read.mjs` 的 --json 输出）。
-    // ⚠ 位宽必须是 8：`pl_video_top.dbg_src` 是 8 bit（bit[6:5] = 仲裁看到的模式）。
-    //   这里以前写成 [5:0] ⇒ 综合只给一条 `Synth 8-689` 警告就把模式的高位**静默丢掉**，
-    //   lane30 的 mode 于是永远只能是 0/1：锁图卡(10)读起来像自动(00)、锁PS(11)读起来像锁ETH(01)。
-    //   2026-09-24 因为 V8-6 要新加观测口才发现它 —— 详见 ISSUES #57（也纠正了当晚一条凭据说法）。
-    wire [7:0]  dbg_src;
+    // ⚠ 位宽必须与 `pl_video_top.dbg_src` **一模一样**（r54 起是 16 bit：bit[6:5] = 模式，
+    //   bit[10:8] = V8-7 的 why_ps）。这里以前写过 [5:0] ⇒ 综合只给一条 `Synth 8-689` 警告
+    //   就把模式的高位**静默丢掉**，lane30 的 mode 于是永远只能读成 0/1：
+    //   锁图卡(10) 读起来像自动(00)、锁PS(11) 读起来像锁ETH(01)。2026-09-24 才发现 —— ISSUES #57。
+    //   这一类"名字连对、宽度被吞"现在由门禁第 14 项的**位宽判据**当场拦（`build/check_ports.py`，
+    //   它的反例之一改的就是这一根线）。
+    wire [15:0] dbg_src;
+    wire [31:0] dbg_zoom;              // V8-8 lane23：像素域在用的缩放状态（pl_video_top 里已跨好）
     wire [6*32-1:0] dbg_lat;             // V8-6/V8-5：lane25..29 与 lane24
     //   lane N(25..29) = dbg_lat[(N-25)*32 +: 32]；lane24 = dbg_lat[5*32 +: 32] = q_ms
     //   lane24 的位序 {14'd0, pair_ok, 本轮 sticky, ms[15:0]} —— 屏上 Latency 那一格的机器对照
@@ -224,8 +227,9 @@ module system_top (
     wire          lat_arm = (lm_lane == 5'd25);
     always @(*) begin
         if      (lm_lane == 5'd31)     lm_rd = {30'd0, lm_clk_slow, lm_clk_gone};
-        else if (lm_lane == 5'd30)     lm_rd = {24'd0, dbg_src};
+        else if (lm_lane == 5'd30)     lm_rd = {16'd0, dbg_src};   // [10:8]=why_ps（V8-7）
         else if (lm_lane == 5'd24)     lm_rd = dbg_lat[5*32 +: 32];   // 与 q_tot 同一轮的 ms
+        else if (lm_lane == 5'd23)     lm_rd = dbg_zoom;              // V8-8：像素域在用的缩放状态
         else if (lm_lane >= 5'd25 && lm_lane <= 5'd29)
                                        lm_rd = dbg_lat[(lm_lane-25)*32 +: 32];
         else if (lm_lane > 5'd9)       lm_rd = 32'hDEAD_BEEF;
@@ -259,7 +263,7 @@ module system_top (
         .zoom_en(gpio_o[17]),
         .ps_publish(gpio_o[18]),        // 每翻转一次 = PS 请求把 DDR 里那一帧搬上屏一次
         .key1_n(key1_n), .key2_n(key2_n), .led(led),
-        .dbg_src(dbg_src), .dbg_lat(dbg_lat), .lat_arm(lat_arm),
+        .dbg_src(dbg_src), .dbg_lat(dbg_lat), .dbg_zoom(dbg_zoom), .lat_arm(lat_arm),
         .tmds_clk_p(tmds_clk_p), .tmds_clk_n(tmds_clk_n),
         .tmds_data_p(tmds_data_p), .tmds_data_n(tmds_data_n),
         .m_axi_araddr(m_araddr), .m_axi_arid(m_arid), .m_axi_arlen(m_arlen8),

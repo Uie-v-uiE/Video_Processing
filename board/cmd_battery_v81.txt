@@ -43,4 +43,16 @@ autoplay 1
 SRC2
 bilin 2
 TH80
+# V8-7 温度八条（放在收尾 STAT 之前，因为阈值是全局态）：
+#   sane=1 = "这像一个真实的转换结果"（raw 全 0 会译成 -273.15 °C、全 F 会译成 230 °C，都进不了 sane）；
+#   over 两档是**人为造出来的异常**：室温永远到不了 85 °C，所以把阈值压到 0 必须亮、抬到 200 必须灭，
+#   否则"接了 XADC 但从没亮过"和"根本没接"在串口上完全同形。最后两条把阈值收回 85 并验大写别名。
+temp
+temp th 0
+temp
+temp th 200
+temp
+temp th
+temp th 999
+TEMP
 STAT

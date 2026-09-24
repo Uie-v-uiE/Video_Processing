@@ -1,0 +1,29 @@
+PASS S1 bit0 只改 [eth_tb_ok] 实际改了 [eth_tb_ok]
+PASS S1 bit1 只改 [eth_live] 实际改了 [eth_live]
+PASS S1 bit2 只改 [owner_eth] 实际改了 [owner_eth]
+PASS S1 bit3 只改 [fill_busy] 实际改了 [fill_busy]
+PASS S1 bit4 只改 [row_busy] 实际改了 [row_busy]
+PASS S1 bit5 只改 [mode_gray,mode] 实际改了 [mode,mode_gray]
+PASS S1 bit6 只改 [mode_gray,mode] 实际改了 [mode,mode_gray]
+PASS S1 bit7 只改 [] 实际改了 []
+PASS S1 bit8 只改 [why_gray,why_tb_untrusted,why] 实际改了 [why,why_gray,why_tb_untrusted]
+PASS S1 bit9 只改 [why_gray,why_no_stream,why] 实际改了 [why,why_gray,why_no_stream]
+PASS S1 bit10 只改 [why_gray,why_force_ps,why] 实际改了 [why,why_force_ps,why_gray]
+PASS S1 bit11 只改 [] 实际改了 []
+PASS S1 bit12 只改 [] 实际改了 []
+PASS S1 bit13 只改 [] 实际改了 []
+PASS S1 bit14 只改 [] 实际改了 []
+PASS S1 bit15 只改 [] 实际改了 []
+PASS S2 why=0b000 → 「无（ETH 想要总线）」 实际「无（ETH 想要总线）」
+PASS S2 why=0b001 → 「源时基不可信」 实际「源时基不可信」
+PASS S2 why=0b010 → 「没有流」 实际「没有流」
+PASS S2 why=0b011 → 「没有流+源时基不可信」 实际「没有流+源时基不可信」
+PASS S2 why=0b100 → 「手动锁 PS」 实际「手动锁 PS」
+PASS S2 why=0b101 → 「手动锁 PS+源时基不可信」 实际「手动锁 PS+源时基不可信」
+PASS S2 why=0b110 → 「手动锁 PS+没有流」 实际「手动锁 PS+没有流」
+PASS S2 why=0b111 → 「手动锁 PS+没有流+源时基不可信」 实际「手动锁 PS+没有流+源时基不可信」
+PASS S3 变异对照：10 个真实位全部至少被一个错移方向抓到
+PASS S4 lane23 逐位独热走查 32/32（19..30 是保留位，译码器不许被它们动） 32/32
+PASS S5 八档 inv 期望都在 10bit 区间内且"最近档"回到自己（8/8） 8/8
+PASS S5b 0.25x 的期望被 10 bit 天花板夹住（=1023，不是 1024）
+PASS health_read --selfcheck pass=28 fail=0

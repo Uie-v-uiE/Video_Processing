@@ -22,22 +22,31 @@ module tb_v796_src_arb;
     reg  [1:0] sel = 2'd0;            // 0=AUTO 1=锁ETH 2=锁PS（长按按键切来的）
     reg  row_busy = 1'b0, fill_busy = 1'b0;
     wire owner_a, owner_b, owner_d;
+    // V8-7：三个实例都接上 why_ps —— 不接就等于这条出口没人判（#55 那一类"设了没人看"）。
+    wire [2:0] why_a, why_b, why_d;
 
     // 被测：机制用小常数，跑得快
     src_arb #(.T_OFF_CYC(200)) u_a (
         .clk(clk), .rst_n(rst_n), .eth_live(eth_live), .eth_tb_ok(tb_ok), .sel(sel),
-        .row_busy(row_busy), .fill_busy(fill_busy), .owner_eth(owner_a));
+        .row_busy(row_busy), .fill_busy(fill_busy), .owner_eth(owner_a),
+        .why_ps(why_a));
     // 对照 1：滞回长度设成 0 ⇒ 除了 busy 互锁以外没有任何东西推迟让位
     src_arb #(.T_OFF_CYC(0)) u_b (
         .clk(clk), .rst_n(rst_n), .eth_live(eth_live), .eth_tb_ok(tb_ok), .sel(sel),
-        .row_busy(row_busy), .fill_busy(fill_busy), .owner_eth(owner_b));
+        .row_busy(row_busy), .fill_busy(fill_busy), .owner_eth(owner_b),
+        .why_ps(why_b));
     // 对照 2：**默认参数**（硬件用的就是它）⇒ 用来证明 20 ms 这件事真的在 RTL 里
     src_arb u_d (
         .clk(clk), .rst_n(rst_n), .eth_live(eth_live), .eth_tb_ok(tb_ok), .sel(sel),
-        .row_busy(row_busy), .fill_busy(fill_busy), .owner_eth(owner_d));
+        .row_busy(row_busy), .fill_busy(fill_busy), .owner_eth(owner_d),
+        .why_ps(why_d));
 
     integer errors = 0, flips = 0, i;
     reg prev_a, pb;
+    // V8-7（G 段用）：期望值在**台架这边**按激励手算，声明放在模块级
+    //（xvlog 不允许 initial 块里"先语句后声明"，这条踩过一次）
+    reg  [2:0] exp_why;
+    integer    gi, ngood, ndis;
 
     task expect(input [639:0] name, input cond);   // 90 个 ASCII 字符：32 位宽的 name 会把标签的头几个字节挤掉
         begin
@@ -165,6 +174,56 @@ module tb_v796_src_arb;
         sel = 2'd3; eth_live = 1'b0;               // 11 是保留值：必须按 AUTO 处理，不能当"锁 PS"
         repeat (600) @(posedge clk);
         expect("F5 sel=11 behaves as AUTO", owner_a === 1'b0);
+
+        // ---- G（V8-7）why_ps：PS 拿着屏幕"是因为什么"拿着 ----
+        // 期望值在这里**按激励手算**（{锁PS, 没流, 时基不可信}），不引用 RTL 里任何式子 ——
+        // 抄过来就等于"用被测代码验被测代码"，改了 bug 一起改判据就永远绿。
+        rst_n = 1'b0;
+        repeat (3) @(posedge clk);
+        expect("G0 复位值必须是 011（没有流 + 时基未验），不是 000（那等于宣称一切正常）",
+               why_a === 3'b011 && why_b === 3'b011 && why_d === 3'b011 && owner_a === 1'b0);
+        rst_n = 1'b1;
+        // G1 十六种激励逐条对表（sel 的四种编码全走一遍）。两个 busy 拉高 ⇒ 只看"原因"，
+        // 不会被换手时序混进来。
+        // bit2 的解码表写死在这里（只有 2'b10 = 「锁 PS」点亮），**不抄 RTL 的 (sel==2'd10)**：
+        // 上一版把激励拼成 sel={1'b0,gi[2]} ⇒ 01 是「锁 ETH」而不是「锁 PS」，红的是台架自己。
+        row_busy = 1'b1; fill_busy = 1'b1; ngood = 0;
+        for (gi = 0; gi < 16; gi = gi + 1) begin
+            sel      = gi[3:2];                       // 00=AUTO 01=锁ETH 10=锁PS 11=保留(按 AUTO)
+            eth_live = gi[1];
+            tb_ok    = gi[0];
+            case (sel)
+                2'd10:   exp_why = {1'b1, ~eth_live, ~tb_ok};
+                default: exp_why = {1'b0, ~eth_live, ~tb_ok};
+            endcase
+            repeat (3) @(posedge clk);
+            if (why_a === exp_why && why_d === exp_why && why_b === exp_why) ngood = ngood + 1;
+            else $display("  DBG G1 gi=%0d sel=%b live=%b tb=%b -> why_a=%b why_b=%b why_d=%b exp=%b",
+                          gi, sel, eth_live, tb_ok, why_a, why_b, why_d, exp_why);
+        end
+        // 三条实例（含硬件用的默认参数那一条）都要对，且必须**判满 16 组**才算这条跑过
+        expect("G1 十六组激励 x 三个实例，why_ps 全部等于手算期望（16/16）", ngood == 16);
+
+        // G2 关键反例：**原因必须比换手先出现**。
+        //      如果有人图省事把 why_ps 写成"从 owner_eth 反推"，G1 也会过（owner 与输入本来相关），
+        //      但这一条会红 —— 它才是"这不是第二份判决"的证据。
+        sel = 2'd0; eth_live = 1'b1; tb_ok = 1'b1; row_busy = 1'b0; fill_busy = 1'b0;
+        repeat (6) @(posedge clk);
+        expect("G2a 先回到「一切正常、ETH 拿着屏幕、why=000」",
+               owner_a === 1'b1 && why_a === 3'b000);
+        fill_busy = 1'b1;                            // PS 引擎正在拷贝 ⇒ 此刻绝对不许换手
+        eth_live  = 1'b0;                            // 流停了
+        repeat (30) @(posedge clk);                  // 远小于 T_OFF=200
+        expect("G2b owner 还压在 ETH（互锁 + 滞回），但原因已经报「没有流」⇒ 原因来自输入不是来自结果",
+               owner_a === 1'b1 && why_a === 3'b010);
+        fill_busy = 1'b0;
+        repeat (600) @(posedge clk);
+        expect("G2c 真让位之后：owner=PS 且原因仍是「没有流」（同一个原因，两种 owner 都成立）",
+               owner_a === 1'b0 && why_a === 3'b010);
+        // G3 时基坏掉要单独报出来（板级那条 ≈2.5 MHz 的坑，见 E 段），不能与「没有流」混成一个码
+        eth_live = 1'b1; tb_ok = 1'b0;              // 位还是 1，只是量它的时钟被拉慢
+        repeat (3) @(posedge clk);
+        expect("G3 时基不可信 → why bit0=1（与 bit1「没有流」分开编码）", why_a === 3'b001);
 
         if (errors == 0) $display("PASS tb_v796_src_arb");
         else             $display("FAIL tb_v796_src_arb errors=%0d", errors);

@@ -75,3 +75,28 @@ wire copy_abort_pix = ab1 ^ ab2;      // 每次事件恰好一拍
    判定的；同样的写法在别的版本上数字可能不同，但"该写还是要写"。
 5. 如果脉冲产生侧本身是**组合毛刺**产生的（不是寄存器输出），翻转位会被毛刺多翻一次 ⇒
    先确认翻转源是触发器（本工程 `copy_abort` 是寄存器 ✓）。
+
+## 五、硬规矩：一个发射触发器只服务一组同步器（2026-09-25 r54 撞到）
+
+"翻转位跨域"这件事，**发射触发器必须一对一**：同一个源域触发器的输出，不许同时接到
+两组目的域寄存器的 D。原因不是亚稳态，而是工具判定：
+
+- `report_cdc` 看到"一个 launch flop 扇出到多个目的时钟域寄存器"会报 **CDC-11 Critical
+  "Fan-out from launch flop to destination clock"**，并把**整对**时钟从 Info/Warning 提成 Critical；
+- 于是门禁第 6 项（`build/CDC_BASELINE.txt` 的**配对集合**不新增 Critical）当场红。
+
+r54 实例（`build/gates_r54_build34_CDC_RED.txt` + `build/cdc_details.rpt`）：lane23 的心跳图省事
+借用了 `sof_tgl`，而它已经喂着 `frame_latency` 的 `sof_sync_reg[0]` ⇒ details 里同一个
+`u_pl/sof_tgl_reg/C` 出现在两条 CDC-11 行上（row 5 与 row 25），`clkout0_1→clk_fpga_0`
+从"这一对项目里根本没有"变成 **27 端点 / 2 unsafe 的 Critical 行**。
+
+- 正解：**给每条跨域一个自己的翻转触发器**（哪怕它与被借用的那个同源同拍，多 1 个 FF）：
+  `z_hb_tog` 与 `sof_tgl` 都是"帧首翻转"，但各自只扇出一组 ⇒ 这一对退回
+  19× CDC-15 Warning（准静态总线被 `bus_edge` 使能采样，是 `snap_cross` 的固有写法）
+  + 2× CDC-3 Info，配对不再 Critical。
+- 顺手记一条**别误读**：CDC-15「Clock enable controlled CDC structure」在本工程里是
+  **期望中的 Warning**（它正是"总线只在边沿那拍被采"的证据），不要为了让它消失去改结构；
+  真正要盯的是 CDC-10（同步器前有组合逻辑）与 CDC-11（本条）。
+- 判据在哪：门禁第 6 项按配对集合判；`build/tcl/cdc_who.tcl` 回答"这一行是谁"。
+  两者合起来才让"多加一条跨域"这件事有代价、有解释、不会被静默接受。
+

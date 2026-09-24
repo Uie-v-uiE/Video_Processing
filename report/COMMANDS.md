@@ -73,6 +73,9 @@ stat         回读：en / thr / src / zoom / bilin / sd / frames / playing / se
 
 ```
 zoom on / zoom off      右窗缩放开关（老写法 ZOOM1 / ZOOM0）
+zoom 0.75               手动定档（r53 起）：八档里取最近的一档，收 `0.25/0.33/0.5/0.75/1.0/1.33/1.5/2`
+                        与 `zoom auto` 交还呼吸。⚠ `zoom 1` 仍是 V7 的"开呼吸"（开关语义），
+                        要 1.0 倍必须写 `zoom 1.0` —— 重叠已记 ISSUES #63，固件的拒绝消息自己会说
 bilin on / bilin off    右窗双线性 ↔ 最近邻，现场对比用（老写法 BILIN1 / BILIN0）
 th 120                  二值化阈值（老写法 TH120）
 frame 1200              只显示 SD 的第 1200 帧（老写法 FRAME1200）
@@ -80,10 +83,18 @@ play / stop             SD 播放 开始 / 停止
 sd                      重新挂载 SD（`XSdPs_CfgInitialize` 每个上电周期只成功一次，见 ISSUES #45）
 fill                    PS 直接写一张四色诊断帧（查通路用）
 autoplay 0 / 1          关/开上电自动播放（只影响下一次上电；老写法 AUTOPLAY0/1）
+temp                    读一次片上温度（r54 起，读 PS 侧 XADC，PL 零改动）
+temp th 60              改告警阈值（0..200 °C，默认 85）；`temp` 那行的 `over=` 跟着它走
 gamma 1.8               明暗校正：PS 算 256 项曲线并逐项写进 PL（约 2.6 ms），只作用于**右窗**
 gamma off               关掉（表保留，所以现场来回切很快）；也收 `gamma 180`（= γ×100）
 help                    打印三套语法
 ```
+> `temp` 那一行长这样：`[TEMP] degC=34.85 raw=0x9776 vccint=1003mv th=85C over=0 sane=1`。
+> 两个不显眼但要紧的设计：**全程不用 float**（`xil_printf` 不认 `%f`），换算式与容差由
+> `src/host/temp_formula_check.mjs` 独立核对（从 `main.c` 抠常数，与 BSP 浮点宏在全码段上比）；
+> `sane=1` 是防"读回一个常数但看着很像数"（raw 全 0 会译成 −273.15 °C、全 F 译成 230.8 °C，
+> 且 VCCINT 必须落在 0.8..1.3 V）。阈值可改是为了**能人为造出告警** —— 室温到不了 85 °C，
+> 否则"接了但没亮过"与"根本没接"同形（八条判据在串口电池里，`--align` 先验对位）。
 > `gamma` 为什么"只改右窗"就够用：本设计的语义一直是"左窗原图 / 右窗处理"，
 > 所以 `gamma 1.8` 一开就是左右明暗直接对比 —— 不需要额外做"整屏 A/B 键"。
 > 曲线本身（幂函数、端点 0/255、单调不降）由固件自检打印：`[GAMMA] g=1.80 mono_bad=0 first=0 last=255`；

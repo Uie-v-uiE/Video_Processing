@@ -59,6 +59,135 @@ const LANES = [
   ['bytes',        '收到的有效字节数'],
 ];
 
+// ============================ lane30 译码（一份实现，两处用）============================
+// 位序来自 RTL：pl_video_top.v 的 `assign dbg_src = {...}`，与台架 tb_v796_src_arb.v 的
+// G1 表逐位对齐。台架证明的是**硬件里那 16 位的内容**；这一份 JS 是第二个独立实现，
+// 它自己也要有判据（--selfcheck）——否则"读回 0x310"被译成"没有流"而其实位挪了一格，
+// 板级报告就会把一句译码错误写成结论。（#59 的教训：屏上/读回两边各译各的。）
+function decodeSrc(src) {
+  if (src === undefined) return null;
+  const b = (n) => (src >>> n) & 1;
+  const why = (src >>> 8) & 7;
+  return {
+    eth_tb_ok: b(0), eth_live: b(1), owner_eth: b(2),
+    fill_busy: b(3), row_busy: b(4), mode_gray: (src >>> 5) & 3,
+    why_gray: why,
+    why_tb_untrusted: b(8), why_no_stream: b(9), why_force_ps: b(10),
+    mode: ({ 0: 'AUTO', 1: 'LOCK_ETH', 3: 'LOCK_PS', 2: 'LOCK_CARD' })[((src >>> 5) & 3)] ?? 'BAD',
+    why: (['手动锁 PS', '没有流', '源时基不可信'].filter((_, i) => (why >>> (2 - i)) & 1)).join('+')
+         || '无（ETH 想要总线）',
+  };
+}
+
+// ============================ lane23 译码（V8-8 最后一跳）============================
+// 位序唯一出处：pl_video_top.v 的 `assign dbg_zoom = {...}`；台架 tb_v95_zoom_snap.v 的 Z2 段
+// 逐字段钉住同一张表。这一份 JS 是**第三个读者**（RTL / 台架 / 这里），所以它也要有判据（S4 段）。
+function decodeZoom(v) {
+  if (v === undefined) return null;
+  const b = (n) => (v >>> n) & 1;
+  return {
+    alive: b(31),
+    zman: b(18), zsel: (v >>> 15) & 7, zcode: (v >>> 12) & 7,
+    zoom_active: b(11), zoom_dir: b(10), inv_scale: v & 0x3FF,
+  };
+}
+// 八档的**倍率**（与 src/ps/main.c 的 ZOOM_X100、zoom_ctrl.v 的档位表同序，但这里的期望
+// 不是抄它们的整数表 —— 而是从"倍率"这个定义算出来的，见 inv_exp_of）。
+const ZOOM_X100 = [25, 33, 50, 75, 100, 133, 150, 200];
+// inv_scale 是 Q8 的**倒数**：期望值 = 256 ÷ 倍率 = 25600 ÷ x100，四舍五入，
+// 再夹到 10 bit 的天花板 1023（0.25x 本该是 1024，但 inv_scale 只有 10 位 ⇒ 1024 会回绕成 0，
+// 见 zoom_ctrl.v 里 tbl(0) 的那段注释）。这样"表被谁改了一个数"是**推导出来的红**，
+// 而不是"两边一起改"的假绿 —— tb_v94 用的是同一个式子。
+const inv_exp_of = (i) => Math.min(1023, Math.round(25600 / ZOOM_X100[i]));
+// 最近一档：拿 Q8 倍率(256×256/inv... )与八档的期望 inv 比距离 —— 与 zoom_ctrl 的 zoom_code 同定义。
+const near_of = (inv) => ZOOM_X100.map((_, i) => i)
+  .reduce((best, i) => (Math.abs(inv - inv_exp_of(i)) < Math.abs(inv - inv_exp_of(best)) ? i : best), 0);
+
+// ---- --selfcheck：译码器自己的判据，不碰板子 ----// 三条：① 逐位独热走查（每个 bit 只许动它该动的字段，硬件里恒 0 的 bit7/bit11..15 一个都不许动）；
+// ② 八个 why 组合对**手抄的语义表**（不从 decode 反推，抄过来就等于自证）；
+// ③ 反向对照：把 why 整体错移一位后必须被 ① 抓到 —— 抓不到就说明这条判据是假的。
+if (get('selfcheck', false) === true) {
+  const KEYS = Object.keys(decodeSrc(0));
+  const OWN = {   // bit → 允许变化的字段；空数组 = 这一位在硬件里恒 0，译码器必须无视它
+    0: ['eth_tb_ok'], 1: ['eth_live'], 2: ['owner_eth'], 3: ['fill_busy'], 4: ['row_busy'],
+    5: ['mode_gray', 'mode'], 6: ['mode_gray', 'mode'], 7: [],
+    8: ['why_gray', 'why_tb_untrusted', 'why'], 9: ['why_gray', 'why_no_stream', 'why'],
+    10: ['why_gray', 'why_force_ps', 'why'], 11: [], 12: [], 13: [], 14: [], 15: [],
+  };
+  let n_ok = 0, n_bad = 0;
+  const say = (tag, pass, txt) => {
+    console.log(`${pass ? 'PASS' : 'FAIL'} ${tag}${txt ? ' ' + txt : ''}`);
+    pass ? n_ok++ : n_bad++;
+  };
+  const base = decodeSrc(0);
+  const norm = (a) => JSON.stringify([...a].sort());
+  const OWN_S = Object.fromEntries(Object.entries(OWN).map(([k, v]) => [k, norm(v)]));
+  for (let bit = 0; bit < 16; bit++) {
+    const d = decodeSrc(1 << bit);
+    const moved = norm(KEYS.filter((k) => String(d[k]) !== String(base[k])));
+    say(`S1 bit${bit} 只改 [${OWN[bit].join(',')}]`,
+        moved === OWN_S[bit], `实际改了 [${JSON.parse(moved).join(',')}]`);
+  }
+  // ② 手抄语义表：{锁PS, 没流, 时基不可信} 三位的 8 种组合各自该印成什么
+  const WHY_TXT = ['无（ETH 想要总线）', '源时基不可信', '没有流', '没有流+源时基不可信',
+                   '手动锁 PS', '手动锁 PS+源时基不可信', '手动锁 PS+没有流',
+                   '手动锁 PS+没有流+源时基不可信'];
+  for (let w = 0; w < 8; w++)
+    say(`S2 why=0b${w.toString(2).padStart(3, '0')} → 「${WHY_TXT[w]}」`,
+        decodeSrc(w << 8).why === WHY_TXT[w] && decodeSrc(w << 8).why_gray === w,
+        `实际「${decodeSrc(w << 8).why}」`);
+  // ③ 反向对照（变异测试）：造两个"整体错移一位"的坏译码器（右移、左移各一个），
+  //    同一张表必须能看出它们不对。为什么按位判、又不写"抓到 15/16"这种总数：
+  //      · 恒 0 的位（bit7、bit11..15）怎么移都"什么都没改"⇒ 天生抓不到，写总数就是抄数字；
+  //      · bit5/bit6 同属 mode_gray，右移后落进同一个字段集合 ⇒ 单向移位会漏；
+  //    所以判据写成"**十个真实位里的每一个，至少被一个方向的移位抓到**"——这条会随
+  //    位表变化自动收紧或放松，而不是一个可以随手改小的常数。
+  const LIVE_BITS = [0, 1, 2, 3, 4, 5, 6, 8, 9, 10];
+  const moves = (v) => { const d = decodeSrc(v); return norm(KEYS.filter((k) => String(d[k]) !== String(base[k]))); };
+  let blind = [];
+  for (const bit of LIVE_BITS) {
+    const r = moves((1 << bit) >>> 1), l = moves(((1 << bit) << 1) & 0xffff);
+    if (r === OWN_S[bit] && l === OWN_S[bit]) blind.push(bit);
+  }
+  say(`S3 变异对照：${LIVE_BITS.length} 个真实位全部至少被一个错移方向抓到`,
+      blind.length === 0, blind.length ? `漏网 bit${blind.join(',bit')}` : '');
+
+  // ---- S4/S5：lane23 的译码与档位期望表（同一套手法：独热走查 + 从定义推导的期望）----
+  const ZKEYS = Object.keys(decodeZoom(0));
+  const zbase = decodeZoom(0);
+  const ZOWN = {
+    31: ['alive'], 18: ['zman'], 15: ['zsel'], 16: ['zsel'], 17: ['zsel'],
+    12: ['zcode'], 13: ['zcode'], 14: ['zcode'], 11: ['zoom_active'], 10: ['zoom_dir'],
+  };
+  for (let bit = 0; bit < 10; bit++) ZOWN[bit] = ['inv_scale'];
+  let z_ok = 0;
+  for (let bit = 0; bit < 32; bit++) {
+    const d = decodeZoom(1 << bit);
+    const moved = norm(ZKEYS.filter((k) => String(d[k]) !== String(zbase[k])));
+    const want = norm(ZOWN[bit] || []);        // 19..30 恒 0 ⇒ 译码器必须无视
+    if (moved === want) z_ok++;
+    else console.log(`  DBG S4 bit${bit}: 改了 ${moved} 期望 ${want}`);
+  }
+  say('S4 lane23 逐位独热走查 32/32（19..30 是保留位，译码器不许被它们动）', z_ok === 32, `${z_ok}/32`);
+  // S5 八档期望：全部由"倍率"推导（25600/x100 四舍五入，夹到 10 bit 天花板 1023），
+  //   并顺手验最近一档函数在**每一档的期望值**上必须回到自己（不然 lane23 的 zcode 判据是空的）。
+  let s5 = 0;
+  for (let i = 0; i < 8; i++) {
+    const e = inv_exp_of(i);
+    const okRange = e >= 128 && e <= 1023 && Number.isInteger(e);
+    const okNear = near_of(e) === i;
+    if (okRange && okNear) s5++;
+    else console.log(`  DBG S5 档${i} x100=${ZOOM_X100[i]} → inv=${e}（区间 ${okRange}）最近档=${near_of(e)}`);
+  }
+  say('S5 八档 inv 期望都在 10bit 区间内且"最近档"回到自己（8/8）', s5 === 8, `${s5}/8`);
+  // S5b 反向对照：0.25x 这一档必须被夹到 1023 而不是 1024 —— 这是板级"缩到最小反而变成无限大"的根，
+  //     也是 lane23 判据里唯一一条**不能靠放松解决**的：式子给 1024，硬件只能到 1023。
+  say('S5b 0.25x 的期望被 10 bit 天花板夹住（=1023，不是 1024）',
+      inv_exp_of(0) === 1023 && Math.round(25600 / ZOOM_X100[0]) === 1024);
+  console.log(`${n_bad === 0 ? 'PASS' : 'FAIL'} health_read --selfcheck pass=${n_ok} fail=${n_bad}`);
+  process.exit(n_bad === 0 ? 0 : 1);
+}
+
 const HEAD = [
   `catch {connect -host localhost -port ${PORT}}`,
   `targets -set -filter {name =~ "*#0"}`,
@@ -136,7 +265,10 @@ if (CLR) { runXsdb(clrScript(keep), 'clr'); console.log('[HEALTH] 已把帧间�
 // ⚠ 顺序有意义，必须排在 25 之后：`system_top` 里 `lat_arm = (lane==25)` —— 指到 lane25 这件事
 //   本身就是抄快照的触发。先读 24 会拿到**上一遍**武装的那一轮，与这一遍的 27 对不上，
 //   于是下面那条同源判据恒红（假红，而且是脚本自己造成的）。
-const want = [...Array(10).keys(), 25, 26, 27, 28, 29, 24, 30, 31];
+// 顺序是判据的一部分（见上面 lat 段的配对说明）：25 既是"轮次/钳位位"也是**武装位**，
+// 所以 25 必须排在 26..29、24 之前。lane23 不参与武装（它是自己一路的快照总线），
+// 放在 24 之后读只是让"缩放/时延"两组挨在一起 —— 插在 25 与 24 之间也不会错，但没必要。
+const want = [...Array(10).keys(), 25, 26, 27, 28, 29, 24, 23, 30, 31];
 const vals = new Map();
 for (let p = 0; p < PASSES; p++) {
   const txt = runXsdb(passScript(want, p === PASSES - 1 ? cur : undefined, keep), `p${p}`);
@@ -166,17 +298,40 @@ if (get('json', false) === true) {
   const flags = l.lane7;
   console.log(JSON.stringify({
     gpio0: cur, clk, dbg_src: src,
-    // lane30：仲裁**看得见的全部输入**（八位都在 axi 域 ⇒ 读回不交跨域的税）：
+    // lane30：仲裁**看得见的全部输入**（十六位都在 axi 域 ⇒ 读回不交跨域的税）：
     //   bit0 时基可信 / bit1 eth 活着 / bit2 屏幕归 ETH / bit3 PS 引擎搬运中
-    //   bit4 ETH 引擎搬运中 / bit[6:5] 仲裁看到的模式（格雷码）
+    //   bit4 ETH 引擎搬运中 / bit[6:5] 仲裁看到的模式（格雷码）/ bit[10:8] V8-7「为什么归 PS」
     // 为什么要给到七位：#28 第一次板级跑交接判据就红，而三位版本分不开
     // "模式被钉住 / 时基不可信 / both_idle 从不成立 / 判据说谎"四种解释（见 ISSUES #49）。
-    src_state: src === undefined ? null : {
-      eth_tb_ok: src & 1, eth_live: (src >> 1) & 1, owner_eth: (src >> 2) & 1,
-      fill_busy: (src >> 3) & 1, row_busy: (src >> 4) & 1,
-      mode_gray: (src >> 5) & 3,
-      mode: ({ 0: 'AUTO', 1: 'LOCK_ETH', 3: 'LOCK_PS', 2: 'LOCK_CARD' })[((src >> 5) & 3)] ?? 'BAD',
-    },
+    // 再加 why_ps 三位把最后一格也填上：前三位说的是"输入现在长什么样"，
+    // 后三位说的是"**做判决那一拍**看到了什么"（寄存器，见 src_arb.v）——两者不一致就说明
+    // 换手被 busy 挡住了，而不是判据说谎。位序与台架 G1 表逐位对齐（tb_v796_src_arb.v）。
+    src_state: decodeSrc(src),
+    // lane23（V8-8 最后一跳）：像素域**正在用**的缩放状态 + 两条同源判据：
+    //   ① 手动档（zman=1）：inv_scale 必须等于"256 ÷ 该档倍率"（由倍率定义推导，不查表）；
+    //   ② 屏上 `Zoom:` 那一格画的 zcode 必须是 inv_scale 的最近档。
+    // 两条合起来才叫"屏上写的倍率 = 取数器在用的倍率"；单独任何一条都不够（① 只证链路、
+    // ② 只证显示，都抓不到"档号送错了但两边一致"这种错）。
+    // alive=0 ⇒ 200 ms 没等到像素帧心跳 ⇒ 这 19 位是旧的：只报 STALE，不下结论。
+    //（"不下结论"不等于通过 —— 命令行会在结尾把 STALE 单独列出来。）
+    zoom: (() => {
+      const w = g(23), z = decodeZoom(w);
+      if (!z) return null;
+      if (w === 0xDEADBEEF) return { raw: w, verdict: 'NO_LANE' };   // 老位流上没有这一口
+      const out = { raw: w, ...z, x100_actual: z.alive ? +(25600 / z.inv_scale).toFixed(1) : null };
+      if (!z.alive) { out.verdict = 'STALE'; return out; }
+      if (z.zman) {
+        out.inv_expected = inv_exp_of(z.zsel);
+        out.inv_ok = (z.inv_scale === out.inv_expected);
+        out.code_ok = (z.zcode === z.zsel);
+      } else {
+        out.inv_expected = null;          // 呼吸中：期望值每帧都在变，只对量程负责
+        out.inv_ok = (z.inv_scale >= 128 && z.inv_scale <= 1023);
+        out.code_ok = (z.zcode === near_of(z.inv_scale));
+      }
+      out.verdict = (out.inv_ok && out.code_ok) ? 'OK' : 'MISMATCH';
+      return out;
+    })(),
     drop_words: l.lane0,
     // V8-6 链路内时延。PL 只报**拍数**（不在硬件里做除法，理由见 frame_latency.v 文件头与 ISSUES #58），
     // 换算集中在这一个常量：fclk0 = 100 MHz ⇒ 1 拍 = 10 ns。换 fclk 频率只改这里，并同步改
@@ -294,11 +449,15 @@ const src = g(30);
 const stall = g(2), drop = g(0), flags = g(7);
 const gone = (clk === undefined) ? -1 : (clk & 1);
 const slow = (clk === undefined) ? -1 : ((clk >>> 1) & 1);
-if (src !== undefined)
+if (src !== undefined) {
+  const s = decodeSrc(src);   // 与 --json 走同一个函数：两处各写一遍移位就会各说一套话
   console.log(`  30  0x${src.toString(16).padStart(8, '0')}  片源仲裁：屏幕归` +
-    ` ${(src >>> 2) & 1 ? 'ETH' : 'PS'}，eth_live=${(src >>> 1) & 1} 时基可信=${src & 1}` +
-    ` 模式=${({ 0: '自动', 1: '锁ETH', 3: '锁PS', 2: '锁图卡' })[((src >>> 5) & 3)]}` +
-    ` 搬运中: PS=${(src >>> 3) & 1} ETH=${(src >>> 4) & 1}`);
+    ` ${s.owner_eth ? 'ETH' : 'PS'}，eth_live=${s.eth_live} 时基可信=${s.eth_tb_ok}` +
+    ` 模式=${({ AUTO: '自动', LOCK_ETH: '锁ETH', LOCK_PS: '锁PS', LOCK_CARD: '锁图卡' })[s.mode] ?? s.mode}` +
+    ` 搬运中: PS=${s.fill_busy} ETH=${s.row_busy}` +
+    // V8-7：判决那一拍看到的三个原因位。PS 拿着屏幕却读不出原因 ⇒ 才是真的"判据说谎"
+    ` 原因(判决拍)=0b${s.why_gray.toString(2).padStart(3, '0')}：${s.why}`);
+}
 console.log(`  31  ${clk === undefined ? '(读不到)' : '0x' + clk.toString(16).padStart(8, '0')}  ` +
             `eth_rxc 心跳：${gone === -1 ? '(读不到)' : gone ? '已停 —— 源时钟没有' : slow ? '被拉慢 ~50× ⇒ 网线已拔/PHY 断链' : '正常'}`);
 console.log('');
@@ -323,6 +482,26 @@ console.log('');
                : `不一致 ← 屏上数字与回读不是同一轮，别把屏上那个数写进报告`));
     if (c1 !== CL && c2 !== CL && tt !== CL && tt < c1 + c2)
       console.log('  ⚠ 恒等式 tot>=c1+c2 破了 ⇒ 读回口不是同一组（ISSUES #59 的形状）');
+  }
+}
+// V8-8（lane23）：缩放这一组单独判"**屏上写的倍率 = 取数器在用的倍率**"。
+// 两条判据缺一不可：只判 inv 对不上档 ⇒ 抓不到"送错档但算得自洽"；只判屏上档 ⇒ 抓不到
+// "屏上与寄存器一致但取数器还在用旧值"（那正是 r53 之前唯一缺的那一跳）。
+{
+  const w = g(23), z = decodeZoom(w);
+  if (!z || (w >>> 0) === 0xDEADBEEF)
+    console.log('缩放：这个位流没有 lane23（r54 之前的位流）—— 手动缩放只剩"寄存器写了"那一半证据。');
+  else if (!z.alive)
+    console.log(`缩放：lane23=0x${(w >>> 0).toString(16).padStart(8, '0')} 像素时基 200 ms 没心跳 ⇒ 这一组是旧值，不下结论（不是通过）`);
+  else {
+    const e = z.zman ? inv_exp_of(z.zsel) : null;
+    const invOk = z.zman ? (z.inv_scale === e) : (z.inv_scale >= 128 && z.inv_scale <= 1023);
+    const codeOk = z.zman ? (z.zcode === z.zsel) : (z.zcode === near_of(z.inv_scale));
+    console.log(`  23  0x${(w >>> 0).toString(16).padStart(8, '0')}  缩放：实际 ${(256 / z.inv_scale).toFixed(3)}x` +
+      `（inv=${z.inv_scale}${z.zman ? ` 期望 ${e}` : ' 呼吸中，只卡量程'}）屏上画 ${(ZOOM_X100[z.zcode] / 100).toFixed(2)}x` +
+      ` 档${z.zsel}${z.zsel === z.zcode ? '=' : '≠'}屏${z.zcode} zman=${z.zman} active=${z.zoom_active} dir=${z.zoom_dir}`);
+    console.log('  ⇒ ' + (invOk && codeOk ? '链路末端与屏上同一档 ok'
+      : `不一致（inv ${invOk ? 'ok' : '红'} / 屏上档 ${codeOk ? 'ok' : '红'}）—— 屏上那个倍率不许写进报告`));
   }
 }
 console.log('');

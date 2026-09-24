@@ -1,0 +1,57 @@
+CC  main.c
+D:\Xilinx\Prj\pro\Video_Processing\src\ps\main.c: In function 'gamma_set':
+D:\Xilinx\Prj\pro\Video_Processing\src\ps\main.c:207:5: warning: 'last' may be used uninitialized [-Wmaybe-uninitialized]
+  207 |     xil_printf("[GAMMA] g=%d.%02d mono_bad=%d first=%d last=%d\r\n",
+      |     ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+  208 |                (int)(g100 / 100u), (int)(g100 % 100u), (int)bad, (int)first, (int)last);
+      |                ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+D:\Xilinx\Prj\pro\Video_Processing\src\ps\main.c:186:15: note: 'last' was declared here
+  186 |     u8 first, last;
+      |               ^~~~
+D:\Xilinx\Prj\pro\Video_Processing\src\ps\main.c:209:28: warning: 'first' may be used uninitialized [-Wmaybe-uninitialized]
+  209 |     if (bad != 0u || first != 0u || last != 255u)
+      |                      ~~~~~~^~~~~
+D:\Xilinx\Prj\pro\Video_Processing\src\ps\main.c:186:8: note: 'first' was declared here
+  186 |     u8 first, last;
+      |        ^~~~~
+CC  sd_play.c
+CC  BSP/asm_vectors.S
+CC  BSP/boot.S
+CC  BSP/translation_table.S
+LD  ps_app.elf
+    D:\Xilinx\Prj\pro\Video_Processing\build\ps_app.elf  :    
+    section                size         addr    
+    .text                 54156            0    
+    .note.gnu.build-id       36        54156    
+    .init                    12        54192    
+    .fini                    12        54204    
+    .rodata               13095        54216    
+    .data                   388        67312    
+    .mmu_tbl              16384        81920    
+    .ARM.exidx                8        98304    
+    .init_array               8        98312    
+    .fini_array               4        98320    
+    .rsa_ac                4140        98324    
+    .ARM.attributes          51       102464    
+    .bss                   7936       102464    
+    .drvcfg_sec             156       110400    
+    .heap                  8196       110556    
+    .stack                54272   4294901760    
+    .comment                 18            0    
+    .debug_info           79825            0    
+    .debug_abbrev         11463            0    
+    .debug_loclists       47517            0    
+    .debug_aranges          688            0    
+    .debug_rnglists        3951            0    
+    .debug_line           56284            0    
+    .debug_str            10725            0    
+    .debug_frame           5968            0    
+    .debug_line_str         270            0    
+    Total                375563    
+        
+        
+    
+ENTRY _boot@0x000000cc  (_vector_table@0x00000000 -> 0x0 是 b _boot)  _start@0x00006734  ✓
+OK  D:\Xilinx\Prj\pro\Video_Processing\build\ps_app.elf
+板上跑法（JTAG，不写 flash）：xsdb> source build/tcl/ps_jtag_boot.tcl（含 ps7_init）
+                             xsdb> targets -set -filter {name =~ "ps7_cortexa9_0*"} ; download <elf> ; con

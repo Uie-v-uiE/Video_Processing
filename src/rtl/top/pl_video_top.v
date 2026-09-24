@@ -50,12 +50,27 @@ module pl_video_top #(
     // 位序（与 system_top 的 lane30 一致，全部是 axi 域本来就有的电平 ⇒ 零新增跨域）：
     //   bit0=eth_tb_ok bit1=eth_live bit2=owner_eth bit3=fill_busy(PS 搬运中)
     //   bit4=row_busy(ETH 搬运中) bit[6:5]=仲裁看到的模式(格雷码，同 src_arb 的 sel) bit7=0
-    output wire [7:0]  dbg_src,
+    //   V8-7 起往上加：**bit[10:8]=why_ps** = 判决那一拍看到的 `{force_ps, ~eth_live, ~eth_tb_ok}`
+    //   （只在 bit2=0 即"屏幕归 PS"时才有"为什么"的意思），bit[15:11]=0。
+    //   往上加而不是改低 8 位：lane30 的老读者（`arb_handover_test.mjs`、`lane30_watch.mjs`）
+    //   都按位 0..6 解析，扩高半段是**向后兼容**的；改低 8 位会让它们的判据静默失效。
+    output wire [15:0] dbg_src,
     // V8-6 链路内时延的可观测口（axi 域电平，**单位是 axi 拍数不是时间**，见 frame_latency 文件头）：
     //   lane29=c1（等消隐）lane28=c2（搬运）lane27=tot（提交→上屏）lane26=max lane25={n_meas,clamped}
     // 换算成时间戳在 `src/host/health_read.mjs` 里做（一个常量：fclk0=100 MHz ⇒ 1 拍 = 10 ns）。
     // 与 dbg_src 同一套做法：全部是 axi 域本来就有的电平 ⇒ 零新增跨域。
     output wire [6*32-1:0] dbg_lat,
+    // V8-8 最后一跳（lane23）：像素域**正在用**的缩放状态，已跨到 axi 域。
+    //   bit31=像素时基活着（0 ⇒ 下面 19 位是上一次的值）bit[30:19]=0
+    //   bit[18]=zman [17:15]=zsel [14:12]=zoom_code [11]=zoom_active [10]=zoom_dir [9:0]=inv_scale
+    // ⚠ 与上面两口的区别：dbg_src/dbg_lat 全部取自 axi 域现成的电平 ⇒ 零新增跨域；
+    //   这一口的 19 位**本来在像素域**，所以必须真跨一次（snap_cross + 帧首准静态总线，见文件尾）。
+    //   代价实测过一次：r54 第一次构建里心跳借用了 `sof_tgl`，那一个发射触发器就同时扇出到
+    //   两组目的域同步器 ⇒ `clkout0_1→clk_fpga_0` 整对被判 **CDC-11 Critical**（27 端点 / 2 unsafe），
+    //   门禁第 6 项"配对集合不新增 Critical"当场红。现在心跳是独立的 `z_hb_tog` ⇒ 这一对只剩
+    //   19 条 CDC-15 Warning（准静态总线被 bus_edge 使能采样，正是这个工具对这个-pattern 的说法）
+    //   + 两条带 ASYNC_REG 的 Info，配对不再 Critical。账写在 build/gates_r54*.txt 与 OVERNIGHT §37。
+    output wire [31:0] dbg_zoom,
     // 抄快照的触发：system_top 在"lane 选择指到 25"时给一拍（读这一组的第一个字天然就是它）。
     // 为什么需要它：五个字之间有恒等式 tot ≥ c1+c2，而 live 寄存器每轮都在换，
     // 上位机逐 lane 读会读到不同轮 ⇒ ISSUES #59（板级 11 组读数里 4 组破坏恒等式）。
@@ -337,10 +352,12 @@ module pl_video_top #(
     // 换手只在"两个引擎都空闲"时发生，往 PS 方向再多等 T_OFF（帧间隔卡在阈值上时不会来回抢总线）。
     wire fill_busy;                       // u_aw 的 frame_busy 以前是悬空的，现在是互锁输入
     wire owner_eth;
+    wire [2:0] why_ps;                    // V8-7：仲裁判决那一拍看到的三个输入（见 src_arb 端口注释）
     src_arb #(.T_OFF_CYC(2_000_000)) u_arb (   // AXI 域 100 MHz ⇒ 20 ms 静默才让给 PS
         .clk(axi_clk), .rst_n(axi_rst_n), .eth_live(eth_live), .eth_tb_ok(eth_tb_ok),
         .sel(arb_sel),
-        .row_busy(row_busy), .fill_busy(fill_busy), .owner_eth(owner_eth));
+        .row_busy(row_busy), .fill_busy(fill_busy), .owner_eth(owner_eth),
+        .why_ps(why_ps));
     // 名字留着：下面每一处 `eth_mode ? row_* : fill_*` 都是"这一拍搬运机归谁"的意思，
     // 只是判据从"收过包"换成了"仲裁过的 owner"。保持同一个名字 ⇒ 这次改动不需要动那 14 处 mux。
     wire eth_mode = owner_eth;
@@ -510,7 +527,7 @@ module pl_video_top #(
     // 的同步器"，那是白交税（`cdc.rpt` 从 3 端点/0 unsafe 涨到 8/4）；要看模式，取现成的 ms2。
     // 位序：bit0=eth_tb_ok bit1=eth_live bit2=owner_eth bit3=fill_busy(PS 搬运中)
     //       bit4=row_busy(ETH 搬运中) bit[6:5]=仲裁看到的模式(格雷码，同 src_arb 的 sel) bit7=0
-    assign dbg_src = {1'd0, ms2, row_busy, fill_busy, owner_eth, eth_live, eth_tb_ok};
+    assign dbg_src = {5'd0, why_ps, 1'd0, ms2, row_busy, fill_busy, owner_eth, eth_live, eth_tb_ok};
 
     // ---- V8-6：链路内时延（commit → 该帧开始被扫描），分三段量 ----
     // 显示帧起始在像素域 ⇒ 按仓库规矩先转成**翻转位**再进 axi 域（脉冲跨域会被吃掉，#36 那一课）。
@@ -558,6 +575,51 @@ module pl_video_top #(
     // 而 PLAN 步 5 要求"屏上数字与 health_read 回读必须同源"⇒ 只有**同一轮**的
     // (q_tot, q_ms) 能互相验；除法那 32 拍里武装的话 pair_ok 给 0，脚本就不下结论。
     assign dbg_lat = { lq_ms, lq_c1, lq_c2, lq_tot, lq_max, lq_stat };
+
+    // ================= V8-8 最后一跳（lane23）：像素域真正在用的缩放状态 =================
+    // 为什么寄存器回读不算数：GPIO 读回来的 zsel/zman 只能证明**PS 写了这一位**，
+    // 证明不了"像素域收到了它"（sel 链有 13 级同步）更证明不了"用它算出的 inv_scale 是对的"。
+    // 这一口把因果链的**末端**摆出来：收到的档号（zsel/zman）与据此算出的量（inv_scale/zoom_code），
+    // 于是两条判据变成机器可判：
+    //   ① PS 写 zsel=i ⇒ 像素域 inv_scale == TBL[i]（`zoom_mapper` 之外的整条链）；
+    //   ② 屏上 `Zoom:` 那一格画的 zoom_code 与同一帧在用的 inv_scale 必须落在同一档
+    //      （与 lane24 对照屏上 `Latency:` 是同一手法，PLAN 步 5 的"同源"要求）。
+    // 跨法按仓库规矩：总线只在**帧首**变 ⇒ 准静态；沿在捕获之后再推迟 8 个像素周期
+    // （≈318 ns @25.175 MHz）才发，目的域同步 + 采样至少再晚 2 个 axi 周期 ⇒ 采到的必是完整值。
+    // 打包与发沿的规矩单独成模块 `zoom_snap.v`（台架 tb_v95 逐周期验它的两条不变量），
+    // 不这么做的对照：19 位各自打两拍会读到"半新一半旧"的档位（#52/#59 两次都是它）。
+    wire [18:0] z_bus;
+    wire        z_bus_tog;
+    zoom_snap u_zsnap (
+        .pix_clk(clk_pix), .pix_rst_n(rst_pix_n), .frame_start(frame_start),
+        .zman(zman_pix), .zsel(zsel_pix), .zoom_code(zoom_code),
+        .zoom_active(zoom_active), .zoom_dir(zoom_dir), .inv_scale(inv_scale),
+        .bus(z_bus), .bus_tog(z_bus_tog));
+    wire [18:0] z_bus_axi;
+    wire        z_pix_gone;
+    // 心跳**单独一个触发器**，不共用现成的 sof_tgl —— 这不是洁癖：r54 第一次构建里就是共用了它，
+    // 于是 `sof_tgl` 这个发射触发器同时扇出到两组目的域同步器（u_lat 与 u_zoom_axi），
+    // cdc.rpt 立刻把整对 `clkout0_1 → clk_fpga_0` 从 Info 提成 **CDC-11 Critical**
+    // （"Fan-out from launch flop to destination clock"），门禁第 6 项因此判红。
+    // 一个 FF 换回"配对集合不新增 Critical 行"，并且语义一模一样（每个显示帧翻一次）。
+    reg z_hb_tog;
+    always @(posedge clk_pix or negedge rst_pix_n) begin
+        if (!rst_pix_n) z_hb_tog <= 1'b0;
+        else if (frame_start) z_hb_tog <= ~z_hb_tog;
+    end
+    // 心跳 = 每帧一次 ⇒ hb_gone 的含义是"200 ms 没等到帧起始"
+    // = 像素时基停了，这时 bus_q 里的数还是上一个的，必须让脚本知道它旧。
+    // SLOW_MS 这一档**不接出去**：模块里那个 5 ms 的门限是给 1 ms 心跳（eth_rxc）定的，
+    // 帧心跳本来就是 16.7 ms，硬接只会常亮一位没意义的慢标志。
+    snap_cross #(.W(19), .DST_HZ(100_000_000), .HB_TO_MS(200)) u_zoom_axi (
+        .dst_clk(axi_clk), .dst_rst_n(axi_rst_n),
+        .bus(z_bus), .bus_tog(z_bus_tog), .hb_tog(z_hb_tog),
+        .bus_q(z_bus_axi), .hb_gone(z_pix_gone), .hb_slow()
+    );
+    // 位序（唯一出处，改这里要同步改 health_read.mjs 的 decodeZoom 与门禁反例）：
+    //   bit31 = 像素时基活着（0 ⇒ 下面 19 位是旧的）  bit[30:19] = 0（留扩展）
+    //   bit[18]=zman [17:15]=zsel [14:12]=zoom_code [11]=zoom_active [10]=zoom_dir [9:0]=inv_scale
+    assign dbg_zoom = {~z_pix_gone, 12'd0, z_bus_axi};
 
     assign m_axi_arid = 6'd0;
 

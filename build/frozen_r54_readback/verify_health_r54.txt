@@ -1,0 +1,19 @@
+== board_verify 2026-09-25 05:21:19 ==
+工作目录：/d/Xilinx/Prj/pro/Video_Processing
+-- 三件套（请与 build/frozen_*/MANIFEST.md 对账）--
+  build/system.bit  md5=e049c2b5  2026-09-25 05:17
+  build/system.xsa  md5=662c0d5f  2026-09-25 05:17
+  build/ps_app.elf  md5=812790ec  2026-09-25 04:17
+-- 1) 串口开机自检（elf 与 bit 配不配套，全在这几行）--
+  \[BOOT\] → （没有这行）
+  \[CFG\] axi_gpio_2 → （没有这行）
+  \[CFG\] gamma window → （没有这行）
+  \[TEMP\] PS-XADC → （没有这行）
+  \[CFG!\] → （没有这行）
+  \[TEMP\] BSP → （没有这行）
+-- 2) 读回口：health_read（lane0..9 + 23..31）--
+  lane30 src_state → {"eth_tb_ok":1,"eth_live":1,"owner_eth":1,"fill_busy":0,"row_busy":0,"mode_gray":0,"why_gray":0,"why_tb_untrusted":0,"why_no_stream":0,"why_force_ps":0,"mode":"AUTO","why":"无（ETH 想要总线）"}
+  lane23 zoom → {"raw":2147625414,"alive":1,"zman":0,"zsel":4,"zcode":2,"zoom_active":1,"zoom_dir":0,"inv_scale":454,"x100_actual":56.4,"inv_expected":null,"inv_ok":true,"code_ok":true,"verdict":"OK"}
+  lat.osd_ms_matches_tot → true
+  drop_words → 0
+== 日志留在 build/evidence/verify_0925_0521.txt ==

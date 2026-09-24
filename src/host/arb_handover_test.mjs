@@ -66,6 +66,9 @@ const TBK = (v) => v & 1;
 const FILL = (v) => (v >>> 3) & 1;      // PS 引擎搬运中
 const ROW = (v) => (v >>> 4) & 1;       // ETH 引擎搬运中
 const MODEG = (v) => (v >>> 5) & 3;     // 仲裁"看到"的模式（格雷码）
+// V8-7（r54 起的 bit 才有）：判决那一拍看到的三个原因位 = {锁PS, 没流, 时基不可信}
+const WHY = (v) => (v >>> 8) & 7;
+const WHY_PS = (v) => (v >>> 10) & 1;
 const MODE = { 0: 'AUTO', 1: '锁ETH', 3: '锁PS', 2: '锁图卡' };
 const fmt = (x) => Number.isFinite(x) ? Math.round(x) : '—';
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
@@ -120,7 +123,7 @@ function windowStats(samples, a, b) {
 }
 
 /**
- * 一轮时间线 → 七条判据。t1=推流起、t2=停流、t3=再推、t4=结束。
+ * 一轮时间线 → 八条判据（r54 起；#32 那版是七条，历史记录里的"七条全绿"指它）。t1=推流起、t2=停流、t3=再推、t4=结束。
  * 编号会写进报告，别在文案里改名。
  * "不抖"这条**必须在交接完成之后**才开始算：交接过程本身就要翻一次位，
  * 从停流那一刻起算会把正确的行为判成抖动（判据台架的第 ③ 项就是盯这个）。
@@ -157,6 +160,18 @@ function judge(samples, t1, t2, t3, t4) {
   const all = windowStats(samples, t1, t4);
   add('V0 采样密度', all.n >= Math.floor(((t4 - t1) / PERIOD) * 0.35),
       `全程 ${all.n} 个样本 / 期望约 ${Math.round((t4 - t1) / PERIOD)}（掉一半即判采样链有问题）`);
+
+  // V7（V8-7 / r54 的 bit 才有）：**交回之后那一段必须说得出为什么归 PS**。
+  // AUTO 模式下 PS 占着屏只有两种正当理由：没流（bit1）或时基不可信（bit0）；
+  // 而"锁 PS"（bit2）本测试从不设置 ⇒ 出现即说明有人把模式钉住了，交接其实是假的。
+  // ⚠ 板上若是 r54 之前的 bit，这一条必然红（三位还没出生，恒 0）—— 那是**正确的红**：
+  //    先按 md5 核对 bit，别去改判据。（凭据 `build/frozen_*/MANIFEST.md`。）
+  const whyBad = samples.filter((x) => x.ms >= t2 && x.ms < t3 &&
+      x.ms > t2 + Math.max(HBACK_MS, (backMs || 0) + 1000) &&
+      ((WHY(x.v) & 0b011) === 0 || WHY_PS(x.v) === 1));
+  add('V7 交回后原因位自洽', stay.n > 0 && whyBad.length === 0,
+      `交回段 ${stay.n} 个样本里原因位不可用的 ${whyBad.length} 个` +
+      `（要 没流/时基 至少亮一位、且不亮锁PS；全 0 = 板上的 bit 早于 r54）`);
   return R;
 }
 
@@ -359,7 +374,7 @@ async function runBoard() {
   console.log('');
   console.log(bad.length
     ? `[ARB] 结论：${bad.length} 条不通过 ⇒ 判红，这一版不能采纳`
-    : '[ARB] 结论：七条全过 ⇒ "自动交回 + 不抖 + 可逆"有凭据了（屏幕观感仍欠眼睛）');
+    : '[ARB] 结论：八条全过 ⇒ "自动交回 + 不抖 + 可逆"有凭据了（屏幕观感仍欠眼睛）');
 
   appendFileSync(dump('arb_handover_last.json'), JSON.stringify({
     at: new Date().toISOString(), t1, t2, t3, t4, keep,
@@ -374,18 +389,26 @@ async function runBoard() {
 
 /* --------------------- 判据自己的台架（不打板子，必须能跑） --------------------- */
 function selftest() {
-  const mk = (arr) => arr.map(([ms, o, live = 1, tb = 1]) => ({ ms, v: (o << 2) | (live << 1) | tb }));
+  // 合成一条 lane30：[ms, owner, live, tb, why]。后两列有默认值，why 缺省时**由 live/tb 推**
+  // （与 src_arb 的 `why_ps <= {force_ps, ~eth_live, ~eth_tb_ok}` 同义）——
+  // 注意这是"让激励自洽"，不是"用被测式子当判据"：判据（V7）只看采样到的位。
+  const mk = (arr) => arr.map(([ms, o, live = 1, tb = 1, why]) => ({
+    ms,
+    v: (((why ?? (((~live & 1) << 1) | (~tb & 1))) & 7) << 8) | (o << 2) | (live << 1) | tb,
+  }));
   const T1 = 10000, T2 = 30000, T3 = 50000, T4 = 60000;
   const ok = [];
   const chk = (name, cond) => { ok.push([name, !!cond]); console.log(`  ${cond ? 'PASS' : 'FAIL'}  ${name}`); };
   const red = (list, id) => !list.find((r) => r.id === id).ok;
 
-  // ① 理想序列（接管 400 ms、交回 300 ms、之后一路平）：除"采样太稀"外不该有红
+  // ① 理想序列（接管 400 ms、交回 300 ms、之后一路平）：除"采样太稀"外不该有红。
+  //    live 这一列现在**跟着时间线走**（停流段=0）：不然这条合成序列自己就不自洽，
+  //    V7 会红在一个"激励本来就说谎"的样本上 —— 那是台架的错，不是判据的错。
   const good = mk([
-    [T1 - 2000, 0], [T1 - 1000, 0],
-    [T1 + 100, 0], [T1 + 400, 1], [T1 + 5000, 1], [T2 - 100, 1],
-    [T2 + 300, 0], [T2 + 5000, 0], [T3 - 100, 0],
-    [T3 + 200, 0], [T3 + 400, 1], [T4 - 100, 1],
+    [T1 - 2000, 0, 0], [T1 - 1000, 0, 0],
+    [T1 + 100, 0, 1], [T1 + 400, 1, 1], [T1 + 5000, 1, 1], [T2 - 100, 1, 1],
+    [T2 + 300, 0, 0], [T2 + 5000, 0, 0], [T3 - 100, 0, 0],
+    [T3 + 200, 0, 1], [T3 + 400, 1, 1], [T4 - 100, 1, 1],
   ]);
   const g = judge(good, T1, T2, T3, T4);
   chk('理想序列只该红在采样密度一条', g.filter((r) => !r.ok).map((r) => r.id).join() === 'V0 采样密度');
@@ -399,10 +422,10 @@ function selftest() {
 
   // ③ 交接过程本身翻一次位，不该被算成"抖"（这条是判据最容易出错的地方）
   const flap = mk([
-    [T1 - 1000, 0], [T1 + 400, 1], [T1 + 5000, 1],
-    [T2 + 100, 1], [T2 + 400, 0],            // 正常交接：这 400 ms 里翻一次
-    [T2 + 5000, 0], [T2 + 10000, 0], [T3 - 100, 0],
-    [T3 + 400, 1], [T4 - 100, 1],
+    [T1 - 1000, 0, 0], [T1 + 400, 1, 1], [T1 + 5000, 1, 1],
+    [T2 + 100, 1, 0], [T2 + 400, 0, 0],       // 正常交接：这 400 ms 里翻一次
+    [T2 + 5000, 0, 0], [T2 + 10000, 0, 0], [T3 - 100, 0, 0],
+    [T3 + 400, 1, 1], [T4 - 100, 1, 1],
   ]);
   const r3 = judge(flap, T1, T2, T3, T4);
   chk('正常交接（含 100 ms 滞后）⇒ V3/V5 都不该红',
@@ -427,6 +450,20 @@ function selftest() {
   // ⑧ 位序：解码错一位，全部判据都会"看起来正常"
   chk('位序解码 owner/live/tb = bit2/1/0',
       OWN(0b100) === 1 && LIV(0b010) === 1 && TBK(0b001) === 1 && OWN(0b011) === 0);
+
+  // ⑨⑩⑪（V8-7 的 V7）：新加的这条必须**能红**，而且只在原因位说谎时红。
+  //    不做这三条就等于"加了一条永远不会红的判据"——那比不加更糟（它会让人以为有人看着）。
+  chk('理想序列 ⇒ V7 绿（原因位与时间线自洽）', !red(g, 'V7 交回后原因位自洽'));
+  const lie = mk([
+    [T1 - 1000, 0, 0], [T1 + 400, 1, 1], [T2 - 100, 1, 1],
+    [T2 + 400, 0, 0, 1, 0b000],       // 停流了、也交回了，原因位却说"一切正常" ⇒ 判据说谎的形状
+    [T2 + 5000, 0, 0, 1, 0b000], [T3 - 100, 0, 0, 1, 0b000],
+    [T3 + 400, 1, 1], [T4 - 100, 1, 1],
+  ]);
+  chk('交回后原因位全 0 ⇒ V7 红（这条不是装饰）', red(judge(lie, T1, T2, T3, T4), 'V7 交回后原因位自洽'));
+  const lock = mk([[T2 + 400, 0, 0, 1, 0b110], [T2 + 5000, 0, 0, 1, 0b110], [T3 - 100, 0, 0, 1, 0b110]]);
+  chk('亮着「锁PS」也不自洽 ⇒ V7 红（本测试从不锁模式）',
+      red(judge(lock, T1, T2, T3, T4), 'V7 交回后原因位自洽'));
 
   const bad = ok.filter(([, c]) => !c).length;
   console.log(bad ? `\n[ARB] 判据台架：${ok.length - bad}/${ok.length} 通过 ⇒ 判据本身有问题，别信它的红绿`

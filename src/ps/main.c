@@ -20,6 +20,7 @@
 #include "xil_cache.h"
 #include "xil_exception.h"
 #include "xuartps.h"
+#include "xadcps.h"               /* V8-7 片上温度：PS 侧 XADC，PL 零改动 */
 #include "sleep.h"
 #include "sd_play.h"
 
@@ -452,6 +453,85 @@ static void cmd_src(int n)
                n ? 1 : 0);
 }
 
+/* ============================ V8-7：片上温度（PS 侧 XADC）============================
+ * 为什么读 PS 的 XADC 而不是在 PL 里例化一个 XADC IP：后者会破掉本项目"零厂商 IP"这条
+ * 主张（spec §91 把那笔账单独留给 D7 决定），而 PS 侧只是几个寄存器 + BSP 里已有的
+ * xadcps 驱动 ⇒ PL 一个 LUT 都不加、CDC 一个触发器都不加。
+ * 上电后 XADC 停在 safe mode，TEMP/VCCINT/VCCAUX 本来就在转换 ⇒ 这里只做
+ * XAdcPs_CfgInitialize（它干三件事：解锁、置 PS 访问使能位、释放复位），
+ * 故意不去改序列器/掉电位：那两位都得走命令/读数据 FIFO 的读-改-写握手，
+ * 多一次握手就多一次把 FIFO 弄失步的机会，而这一条只需要"读得出、读得对"。 */
+static XAdcPs xadc_inst;
+static int    xadc_ok = 0;
+static int    temp_th_deg = 85;      /* 告警阈值，°C —— spec 第 3 节 V8-7 写的就是 85 */
+
+/* 不许用 float：xil_printf 不是 libc 的 printf，**不认 %f**（会把 "%f" 原样吐出来）。
+ * 所以全程 °C×1000 定点。常数取自驱动宏 XAdcPs_RawToTemperature 的等价式
+ *   °C = raw16 × 503.975 / 65536 − 273.15        （raw16 = 内部温度寄存器那个 16 位左对齐字）
+ * 65536 = 2^16 ⇒ 乘完只需右移，没有除法；u64 装得下最大乘积 65535×503975 = 3.30e10。 */
+static s32 temp_mc_of(u16 raw) { return (s32)((((u64)raw) * 503975ULL) >> 16) - 273150; }
+static s32 volt_mv_of(u16 raw) { return (s32)((((u64)raw) * 3000ULL) >> 16); }  /* 满量程 3.0 V */
+
+static void xadc_init(void)
+{
+#ifdef XPAR_XXADCPS_0_BASEADDR
+    XAdcPs_Config *cfg = XAdcPs_LookupConfig(XPAR_XXADCPS_0_BASEADDR);
+    if (cfg == NULL) {
+        xil_printf("[TEMP] LookupConfig(0x%x) 返回空 ⇒ BSP 的 xadcps 配置表里没有这颗"
+                   "（elf 与 BSP 不配套）\r\n", (u32)XPAR_XXADCPS_0_BASEADDR);
+        return;
+    }
+    (void)XAdcPs_CfgInitialize(&xadc_inst, cfg, cfg->BaseAddress);
+    xadc_ok = 1;
+    xil_printf("[TEMP] PS-XADC @%08x ok\r\n", cfg->BaseAddress);
+#else
+    xil_printf("[TEMP] BSP 的 xparameters.h 里没有 PS-XADC ⇒ 这颗平台的 PS 配置没开 ADC，"
+               "`temp` 只能报读不到\r\n");
+#endif
+}
+
+/* temp [th <°C>] —— 读一次片上温度；`temp th <n>` 改告警阈值。
+ * 阈值为什么可改、而不是钉死 85：判据必须能**人为造红**。室温下的板子永远到不了 85 °C，
+ * 于是"接了 XADC 但告警从没亮过"和"根本没接"在串口上长得一模一样。把阈值压到环境以下
+ * ⇒ over 必须=1；抬到 200 ⇒ 必须=0 —— 这两条都进了串口电池。
+ * sane 是防"看着对其实是常数"的那一条：raw 全 0 会译成 −273.15 °C（永远不会告警、
+ * 也不会告第二次），全 F 会译成 230 °C；两个都被 sane 挡下。同时要求 VCCINT 落在
+ * 0.8..1.3 V（PS 核标称 1.0 V）—— 读数错位一般先体现在这一路，而不是温度那一格。 */
+static void cmd_temp(int n, char **tk)
+{
+    u16 rt, rv;
+    s32 mc, mv, th, a;
+    int over, sane;
+
+    if (n >= 2 && ci_eq(tk[1], "TH")) {
+        const char *arg = (n >= 3) ? tk[2] : tk[1] + 2;    /* `temp th 60` 与 `temp th60` */
+        if (!strict_int(arg, &temp_th_deg) || temp_th_deg < 0 || temp_th_deg > 200) {
+            temp_th_deg = 85;
+            xil_printf("[TEMP] th 要跟十进制 0..200（°C），已退回 85\r\n");
+            return;
+        }
+        xil_printf("[TEMP] th=%dC\r\n", temp_th_deg);
+        return;
+    }
+    if (n >= 2) { xil_printf("[TEMP] 只认 `temp` 或 `temp th <0..200>`\r\n"); return; }
+    if (!xadc_ok) { xil_printf("[TEMP] 读不到（开机那行 [TEMP] 说了为什么）raw=NA\r\n"); return; }
+
+    rt = XAdcPs_GetAdcData(&xadc_inst, XADCPS_CH_TEMP);
+    rv = XAdcPs_GetAdcData(&xadc_inst, XADCPS_CH_VCCINT);
+    mc = temp_mc_of(rt);
+    mv = volt_mv_of(rv);
+    th = (s32)temp_th_deg * 1000;
+    over = (mc >= th) ? 1 : 0;
+    sane = (mc > 0 && mc < 80000 && mv > 800 && mv < 1300) ? 1 : 0;
+    a = (mc < 0) ? -mc : mc;
+    xil_printf("[TEMP] degC=%d.%02d raw=0x%04x vccint=%dmv th=%dC over=%d sane=%d\r\n",
+               (int)(mc / 1000), (int)((a / 10) % 100), rt, mv, temp_th_deg, over, sane);
+    if (!sane)
+        xil_printf("[TEMP!] raw=%04x 译出来 %d.%02d °C 不像一次真实转换 ⇒ "
+                   "FIFO 握手或 XADC 复位有问题，这一格的数不许写进报告\r\n", rt, (int)(mc / 1000),
+                   (int)((a / 10) % 100));
+}
+
 static int dispatch(char **tk, int nt)
 {
     u32 en;
@@ -577,6 +657,7 @@ static int dispatch(char **tk, int nt)
         xil_printf("[SD] autoplay %s (only affects the next boot)\r\n", v ? "on" : "off");
         return 0;
     }
+    if (ci_pre(tk[0], "TEMP")) { cmd_temp(nt, tk); return 0; }
     if (ci_eq(tk[0], "STAT") || ci_eq(tk[0], "STATUS")) {
         /* 字段顺序不许动：串口电池与 arb_handover_test.mjs 都按 "ctrl en=… thr=…" 的前缀解析，
          * 新加的 sel / gm 只能往后放。en 是老五位的投影，sel 才是效果链的真相，
@@ -597,7 +678,8 @@ static int dispatch(char **tk, int nt)
 static void cmd_help(void)
 {
     xil_printf("  V8 语法: src 0|1|2 | pipe <5 或 9 位> | th 80 | zoom on|off|auto|<倍率> | bilin on|off |"
-               " gamma off|1.8 | frame N | sd | play | stop | fill | autoplay 0|1 | stat | help\r\n");
+               " gamma off|1.8 | frame N | sd | play | stop | fill | autoplay 0|1 | temp [th <°C>] |"
+               " stat | help\r\n");
     xil_printf("  pipe 五位=老位序(gray/binary/blur/sobel/invert)，九位=新位序"
                "(gray/invert/blur/sharpen/sobel/binary/bin_pol/erode/dilate)\r\n");
     xil_printf("  语法已收/硬件待接: rot ... | split ... | osd on|off\r\n");
@@ -678,6 +760,10 @@ int main(void)
         else
             xil_printf("[CFG] gamma window @%08x ok\r\n", CFG_DATA1);
     }
+
+    /* V8-7：把 PS-XADC 拉起来放在自动播片之前 —— 它只做解锁+使能+释放复位，
+     * 不碰 DDR 也不碰 SD；失败一定要在开机就看得见，而不是等谁敲 `temp` 才发现"读不到"。 */
+    xadc_init();
 
     xil_printf("[BOOT] UDP RX is in PL (RGMII PHY2). PS is control + SD playback.\r\n");
     xil_printf("[BOOT] uart115200，V8 语法见 help；旧写法仍可用（SRC0/TH80/ZOOM1/00111…）\r\n");
