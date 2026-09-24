@@ -6,7 +6,7 @@ Reusable engineering notes from this project. Each item lists scope, usage, veri
 按比赛指南 3.3.5.2 的四类归纳见下表"类别"列。评价标准是**可复用性**：另一支队伍拿到本目录，
 能不能不读本工程源码就用在自己的题目上 —— 所以每一项都写了"从哪次失败里总结出来的"。
 
-## Index（17 项，与目录内容逐项对齐）
+## Index（18 项，与目录内容逐项对齐）
 
 | ID | Topic | File | 类别 |
 |----|-------|------|------|
@@ -27,6 +27,7 @@ Reusable engineering notes from this project. Each item lists scope, usage, veri
 | S15 | 产物成套与门禁新鲜度：构建没跑完就念门禁，念到的是**上一版**的全绿；bit/xsa/elf/报告按 md5 一起冻结，MANIFEST 必须写"验到哪一条、哪几条没验" | `artifact_freeze_and_freshness.md` | 校验脚本 + 踩坑清单 |
 | S16 | CDC 门禁要比**配对集合**而不是行数：写死的"4 行以内算过"吞掉了我两次真实的退化；`report_cdc -details` 才点得出是哪对寄存器（`build/gates.sh` 第 6 项 + `build/CDC_BASELINE.txt` + `build/tcl/cdc_who.tcl`） | `cdc_pair_baseline_gate.md` | 校验脚本 + 踩坑清单 |
 | S17 | 定点失败要让失败行**自己报出几何量**（访问的位置＋位置的来历＋合法边界＋当场分类）：本项目靠一行 `[SDRD!]` 把"并发挤出来的读超时"翻案成 FAT32 高簇字的字节序 bug，两次误判都是往**时间**方向猜 | `failing_read_prints_geometry.md` | 踩坑清单 + 判据自查（反例必须真能红） |
+| S18 | 多字读回的原子快照（寄存器窗口撕裂） | `atomic_register_window_readback.md` | 踩坑清单 / 校验脚本 |
 
 ## 配套的可执行脚本（判据不是文档，是跑得出数的东西）
 

@@ -1,0 +1,1201 @@
+#-----------------------------------------------------------
+# Vivado v2025.2.1 (64-bit)
+# SW Build 6403652 on Thu Mar 19 19:48:24 GMT 2026
+# IP Build 6403511 on Thu Mar 19 12:41:45 MDT 2026
+# SharedData Build 6403650 on Thu Mar 19 14:02:13 MDT 2026
+# Start of session at: Fri Sep 25 00:09:19 2026
+# Process ID         : 10216
+# Current directory  : D:/Xilinx/Prj/pro/Video_Processing
+# Command line       : vivado.exe -mode batch -nojournal -log build/log_r51_system.txt -source build/tcl/build_system_axigpio.tcl
+# Log file           : D:/Xilinx/Prj/pro/Video_Processing/build/log_r51_system.txt
+# Journal file       : 
+# Running On         : Uie-laptop
+# Platform           : Windows Server 2016 or Windows 10
+# Operating System   : 26200
+# Processor Detail   : 12th Gen Intel(R) Core(TM) i5-12450H
+# CPU Frequency      : 2496 MHz
+# CPU Physical cores : 8
+# CPU Logical cores  : 12
+# Host memory        : 16873 MB
+# Swap memory        : 21474 MB
+# Total Virtual      : 38348 MB
+# Available Virtual  : 26770 MB
+#-----------------------------------------------------------
+source build/tcl/build_system_axigpio.tcl
+# set root [file normalize [file join [file dirname [info script]] .. ..]]
+# set proj_dir [file join $root vivado_system]
+# set proj_name zynq_video_sys
+# set part xc7z020clg484-2
+# set outdir [file join $root build]
+# file mkdir $outdir
+# create_project $proj_name $proj_dir -part $part -force
+create_project: Time (s): cpu = 00:00:11 ; elapsed = 00:00:07 . Memory (MB): peak = 540.906 ; gain = 223.125
+# set_property target_language Verilog [current_project]
+# set rtl_files {}
+# foreach d {util clocks video process process/rotate process/zoom process/bilin axi hdmi eth} {
+#   foreach f [glob -nocomplain [file join $root src rtl $d *.v]] { lappend rtl_files $f }
+# }
+# lappend rtl_files [file join $root src rtl top pl_video_top.v]
+# lappend rtl_files [file join $root src rtl top system_top.v]
+# add_files -norecurse $rtl_files
+# add_files -fileset constrs_1 -norecurse [file join $root src constraints rk_zynq7020.xdc]
+# set cgxdc [add_files -fileset constrs_1 -norecurse [file join $root src constraints clock_groups_impl.xdc]]
+# set_property used_in_synthesis false $cgxdc
+# set_property used_in_implementation true $cgxdc
+# create_bd_design design_1
+Wrote  : <D:\Xilinx\Prj\pro\Video_Processing\vivado_system\zynq_video_sys.srcs\sources_1\bd\design_1\design_1.bd> 
+# create_bd_cell -type ip -vlnv xilinx.com:ip:processing_system7:5.5 processing_system7_0
+# set ps [get_bd_cells processing_system7_0]
+# apply_bd_automation -rule xilinx.com:bd_rule:processing_system7 \
+#   -config {make_external "FIXED_IO, DDR" Master "Disable" Slave "Disable" apply_board_preset "0"} $ps
+WARNING: [Boardtcl 53-1] No current board_part set.
+# set_property -dict [list \
+#   CONFIG.PCW_FPGA0_PERIPHERAL_FREQMHZ {100} \
+#   CONFIG.PCW_EN_CLK0_PORT {1} CONFIG.PCW_EN_RST0_PORT {1} \
+#   CONFIG.PCW_USE_M_AXI_GP0 {1} \
+#   CONFIG.PCW_USE_S_AXI_HP0 {1} CONFIG.PCW_S_AXI_HP0_DATA_WIDTH {64} \
+#   CONFIG.PCW_ENET0_PERIPHERAL_ENABLE {1} \
+#   CONFIG.PCW_ENET0_ENET0_IO {MIO 16 .. 27} \
+#   CONFIG.PCW_ENET0_GRP_MDIO_ENABLE {1} CONFIG.PCW_ENET0_GRP_MDIO_IO {MIO 52 .. 53} \
+#   CONFIG.PCW_UART0_PERIPHERAL_ENABLE {1} CONFIG.PCW_UART0_UART0_IO {MIO 10 .. 11} \
+#   CONFIG.PCW_QSPI_PERIPHERAL_ENABLE {1} CONFIG.PCW_QSPI_GRP_SINGLE_SS_ENABLE {1} \
+#   CONFIG.PCW_SD0_PERIPHERAL_ENABLE {1} CONFIG.PCW_SD0_SD0_IO {MIO 40 .. 45} \
+#   CONFIG.PCW_SD0_GRP_CD_ENABLE {1} CONFIG.PCW_SD0_GRP_CD_IO {MIO 9} \
+#   CONFIG.PCW_GPIO_EMIO_GPIO_ENABLE {0} \
+#   CONFIG.PCW_GPIO_MIO_GPIO_ENABLE {1} CONFIG.PCW_GPIO_MIO_GPIO_IO {MIO} \
+#   CONFIG.PCW_MIO_0_PULLUP {enabled} CONFIG.PCW_MIO_0_IOTYPE {LVCMOS 3.3V} \
+#   CONFIG.PCW_MIO_0_DIRECTION {inout} CONFIG.PCW_MIO_0_SLEW {slow} \
+#   CONFIG.PCW_MIO_12_PULLUP {enabled} CONFIG.PCW_MIO_12_IOTYPE {LVCMOS 3.3V} \
+#   CONFIG.PCW_MIO_12_DIRECTION {inout} CONFIG.PCW_MIO_12_SLEW {slow} \
+#   CONFIG.PCW_PRESET_BANK0_VOLTAGE {LVCMOS 3.3V} \
+#   CONFIG.PCW_PRESET_BANK1_VOLTAGE {LVCMOS 1.8V} \
+#   CONFIG.PCW_UIPARAM_DDR_PARTNO {MT41K256M16 RE-125} \
+#   CONFIG.PCW_UIPARAM_DDR_BUS_WIDTH {32 Bit} \
+#   CONFIG.PCW_UIPARAM_DDR_DRAM_WIDTH {16 Bits} \
+# ] $ps
+# create_bd_cell -type ip -vlnv xilinx.com:ip:axi_gpio:2.0 axi_gpio_0
+# set_property -dict [list \
+#   CONFIG.C_GPIO_WIDTH {32} \
+#   CONFIG.C_ALL_OUTPUTS {1} \
+#   CONFIG.C_INTERRUPT_PRESENT {0} \
+# ] [get_bd_cells axi_gpio_0]
+# create_bd_cell -type ip -vlnv xilinx.com:ip:axi_gpio:2.0 axi_gpio_1
+# set_property -dict [list \
+#   CONFIG.C_GPIO_WIDTH {32} \
+#   CONFIG.C_ALL_INPUTS {1} \
+#   CONFIG.C_INTERRUPT_PRESENT {0} \
+# ] [get_bd_cells axi_gpio_1]
+# create_bd_cell -type ip -vlnv xilinx.com:ip:axi_gpio:2.0 axi_gpio_2
+# set_property -dict [list \
+#   CONFIG.C_IS_DUAL {1} \
+#   CONFIG.C_GPIO_WIDTH {32} \
+#   CONFIG.C_GPIO2_WIDTH {32} \
+#   CONFIG.C_ALL_OUTPUTS {1} \
+#   CONFIG.C_ALL_OUTPUTS_2 {1} \
+#   CONFIG.C_INTERRUPT_PRESENT {0} \
+# ] [get_bd_cells axi_gpio_2]
+# create_bd_cell -type ip -vlnv xilinx.com:ip:axi_interconnect:2.1 axi_gp0_ic
+# set_property -dict [list CONFIG.NUM_MI {3} CONFIG.NUM_SI {1}] [get_bd_cells axi_gp0_ic]
+# create_bd_cell -type ip -vlnv xilinx.com:ip:axi_interconnect:2.1 axi_mem_intercon
+# set_property -dict [list CONFIG.NUM_MI {1} CONFIG.NUM_SI {1}] [get_bd_cells axi_mem_intercon]
+# connect_bd_net [get_bd_pins processing_system7_0/FCLK_CLK0] \
+#   [get_bd_pins axi_gp0_ic/ACLK] \
+#   [get_bd_pins axi_gp0_ic/S00_ACLK] \
+#   [get_bd_pins axi_gp0_ic/M00_ACLK] \
+#   [get_bd_pins axi_gpio_0/s_axi_aclk] \
+#   [get_bd_pins axi_gpio_1/s_axi_aclk] \
+#   [get_bd_pins axi_gpio_2/s_axi_aclk] \
+#   [get_bd_pins axi_gp0_ic/M01_ACLK] \
+#   [get_bd_pins axi_gp0_ic/M02_ACLK] \
+#   [get_bd_pins axi_mem_intercon/ACLK] \
+#   [get_bd_pins axi_mem_intercon/S00_ACLK] \
+#   [get_bd_pins axi_mem_intercon/M00_ACLK] \
+#   [get_bd_pins processing_system7_0/S_AXI_HP0_ACLK] \
+#   [get_bd_pins processing_system7_0/M_AXI_GP0_ACLK]
+# connect_bd_net [get_bd_pins processing_system7_0/FCLK_RESET0_N] \
+#   [get_bd_pins axi_gp0_ic/ARESETN] \
+#   [get_bd_pins axi_gp0_ic/S00_ARESETN] \
+#   [get_bd_pins axi_gp0_ic/M00_ARESETN] \
+#   [get_bd_pins axi_gpio_0/s_axi_aresetn] \
+#   [get_bd_pins axi_gpio_1/s_axi_aresetn] \
+#   [get_bd_pins axi_gpio_2/s_axi_aresetn] \
+#   [get_bd_pins axi_gp0_ic/M01_ARESETN] \
+#   [get_bd_pins axi_gp0_ic/M02_ARESETN] \
+#   [get_bd_pins axi_mem_intercon/ARESETN] \
+#   [get_bd_pins axi_mem_intercon/S00_ARESETN] \
+#   [get_bd_pins axi_mem_intercon/M00_ARESETN]
+# connect_bd_intf_net [get_bd_intf_pins processing_system7_0/M_AXI_GP0] \
+#   [get_bd_intf_pins axi_gp0_ic/S00_AXI]
+# connect_bd_intf_net [get_bd_intf_pins axi_gp0_ic/M00_AXI] \
+#   [get_bd_intf_pins axi_gpio_0/S_AXI]
+# connect_bd_intf_net [get_bd_intf_pins axi_gp0_ic/M01_AXI] \
+#   [get_bd_intf_pins axi_gpio_1/S_AXI]
+# connect_bd_intf_net [get_bd_intf_pins axi_gp0_ic/M02_AXI] \
+#   [get_bd_intf_pins axi_gpio_2/S_AXI]
+# connect_bd_intf_net [get_bd_intf_pins axi_mem_intercon/M00_AXI] \
+#   [get_bd_intf_pins processing_system7_0/S_AXI_HP0]
+# make_bd_intf_pins_external [get_bd_intf_pins axi_mem_intercon/S00_AXI]
+# foreach p [get_bd_intf_ports] {
+#   if {[string match *S00* $p]} { catch {set_property name M_AXI_HP0 $p} }
+# }
+# create_bd_port -dir O -type clk -freq_hz 100000000 FCLK_CLK0
+# connect_bd_net [get_bd_pins processing_system7_0/FCLK_CLK0] [get_bd_ports FCLK_CLK0]
+# create_bd_port -dir O -type rst FCLK_RESET0_N
+# set_property CONFIG.POLARITY ACTIVE_LOW [get_bd_ports FCLK_RESET0_N]
+# connect_bd_net [get_bd_pins processing_system7_0/FCLK_RESET0_N] [get_bd_ports FCLK_RESET0_N]
+# proc bd_port_names {} {
+#   set r {}
+#   foreach p [get_bd_ports] { lappend r [get_property NAME $p] }
+#   return $r
+# }
+# foreach {pin newname} {
+#   axi_gpio_0/gpio_io_o   GPIO_0_tri_o
+#   axi_gpio_1/gpio_io_i   GPIO_1_tri_i
+#   axi_gpio_2/gpio_io_o   GPIO_2_tri_o
+#   axi_gpio_2/gpio2_io_o  GPIO_3_tri_o
+# } {
+#   set before [bd_port_names]
+#   make_bd_pins_external [get_bd_pins $pin]
+#   set fresh {}
+#   foreach n [bd_port_names] { if {[lsearch -exact $before $n] < 0} { lappend fresh $n } }
+#   if {[llength $fresh] != 1} { puts "PORT_LOOKUP_FAILED $pin fresh={$fresh}"; exit 1 }
+#   set_property name $newname [get_bd_ports $fresh]
+#   puts "PORT $pin -> $newname"
+# }
+WARNING: [BD 41-1306] The connection to interface pin </axi_gpio_0/gpio_io_o> is being overridden by the user with net <axi_gpio_0_gpio_io_o>. This pin will not be connected as a part of interface connection <GPIO>, and might not recreate the connectivity as expected using the writ_bd_tcl command.
+PORT axi_gpio_0/gpio_io_o -> GPIO_0_tri_o
+WARNING: [BD 41-1306] The connection to interface pin </axi_gpio_1/gpio_io_i> is being overridden by the user with net <gpio_io_i_0_1>. This pin will not be connected as a part of interface connection <GPIO>, and might not recreate the connectivity as expected using the writ_bd_tcl command.
+PORT axi_gpio_1/gpio_io_i -> GPIO_1_tri_i
+WARNING: [BD 41-1306] The connection to interface pin </axi_gpio_2/gpio_io_o> is being overridden by the user with net <axi_gpio_2_gpio_io_o>. This pin will not be connected as a part of interface connection <GPIO>, and might not recreate the connectivity as expected using the writ_bd_tcl command.
+PORT axi_gpio_2/gpio_io_o -> GPIO_2_tri_o
+WARNING: [BD 41-1306] The connection to interface pin </axi_gpio_2/gpio2_io_o> is being overridden by the user with net <axi_gpio_2_gpio2_io_o>. This pin will not be connected as a part of interface connection <GPIO2>, and might not recreate the connectivity as expected using the writ_bd_tcl command.
+PORT axi_gpio_2/gpio2_io_o -> GPIO_3_tri_o
+# puts "BD PORTS: [get_bd_ports]"
+BD PORTS: /DDR_addr /DDR_ba /DDR_cas_n /DDR_ck_n /DDR_ck_p /DDR_cke /DDR_cs_n /DDR_dm /DDR_dq /DDR_dqs_n /DDR_dqs_p /DDR_odt /DDR_ras_n /DDR_reset_n /DDR_we_n /FCLK_CLK0 /FCLK_RESET0_N /FIXED_IO_ddr_vrn /FIXED_IO_ddr_vrp /FIXED_IO_mio /FIXED_IO_ps_clk /FIXED_IO_ps_porb /FIXED_IO_ps_srstb /GPIO_0_tri_o /GPIO_1_tri_i /GPIO_2_tri_o /GPIO_3_tri_o /M_AXI_HP0_araddr /M_AXI_HP0_arburst /M_AXI_HP0_arcache /M_AXI_HP0_arlen /M_AXI_HP0_arlock /M_AXI_HP0_arprot /M_AXI_HP0_arqos /M_AXI_HP0_arready /M_AXI_HP0_arsize /M_AXI_HP0_arvalid /M_AXI_HP0_awaddr /M_AXI_HP0_awburst /M_AXI_HP0_awcache /M_AXI_HP0_awlen /M_AXI_HP0_awlock /M_AXI_HP0_awprot /M_AXI_HP0_awqos /M_AXI_HP0_awready /M_AXI_HP0_awsize /M_AXI_HP0_awvalid /M_AXI_HP0_bready /M_AXI_HP0_bresp /M_AXI_HP0_bvalid /M_AXI_HP0_rdata /M_AXI_HP0_rlast /M_AXI_HP0_rready /M_AXI_HP0_rresp /M_AXI_HP0_rvalid /M_AXI_HP0_wdata /M_AXI_HP0_wlast /M_AXI_HP0_wready /M_AXI_HP0_wstrb /M_AXI_HP0_wvalid
+# catch {set_property CONFIG.ASSOCIATED_BUSIF {M_AXI_HP0} [get_bd_ports FCLK_CLK0]}
+# assign_bd_address
+INFO: [BD 41-3093] Triggering Legacy Auto Assign Algorithm
+Slave segment '/processing_system7_0/S_AXI_HP0/HP0_DDR_LOWOCM' is being assigned into address space '/M_AXI_HP0' at <0x0000_0000 [ 1G ]>.
+Slave segment '/axi_gpio_0/S_AXI/Reg' is being assigned into address space '/processing_system7_0/Data' at <0x4120_0000 [ 64K ]>.
+Slave segment '/axi_gpio_1/S_AXI/Reg' is being assigned into address space '/processing_system7_0/Data' at <0x4121_0000 [ 64K ]>.
+Slave segment '/axi_gpio_2/S_AXI/Reg' is being assigned into address space '/processing_system7_0/Data' at <0x4122_0000 [ 64K ]>.
+# foreach {seg want} {
+#   axi_gpio_0/S_AXI/Reg 0x41200000
+#   axi_gpio_1/S_AXI/Reg 0x41210000
+#   axi_gpio_2/S_AXI/Reg 0x41220000
+# } {
+#   assign_bd_address -offset $want -range 64K \
+#     -target_address_space [get_bd_addr_spaces processing_system7_0/Data] \
+#     [get_bd_addr_segs $seg] -force
+# }
+# set aspace [get_bd_addr_spaces processing_system7_0/Data]
+# foreach s [get_bd_addr_segs -quiet -of_objects $aspace] {
+#   puts "ADDRMAP [get_property NAME $s] = [get_property OFFSET $s]"
+# }
+ADDRMAP SEG_axi_gpio_0_Reg = 0x41200000
+ADDRMAP SEG_axi_gpio_1_Reg = 0x41210000
+ADDRMAP SEG_axi_gpio_2_Reg = 0x41220000
+# set bad_addr 0
+# foreach {cell want} { axi_gpio_0 0x41200000  axi_gpio_1 0x41210000  axi_gpio_2 0x41220000 } {
+#   # 段�?�象要从**地址空间�?**取（`get_bd_addr_segs axi_gpio_0/S_AXI/Reg` 取到的是接口定义�?
+#   # 它的 OFFSET �?空的 —�? 上一次这里判红就�?这个原因，不�?地址没钉上）
+#   set s [get_bd_addr_segs -quiet -of_objects $aspace -filter "NAME =~ *SEG_${cell}_Reg*"]
+#   if {$s eq ""} { puts "ADDR_LOG $cell want=$want got=NOT_FOUND"; incr bad_addr; continue }
+#   set got [get_property OFFSET $s]
+#   # 比较必须圡�**数�?**上做：把 OFFSET 塞进 expr 或直接当字�?�串比都会�??刡� —�?
+#   # 这个属性经数字一走就显示成十进制�?0x41200000 �? 1092616192），字�?�串比�?�必然红�?
+#   set gv 0
+#   set wv 0
+#   scan [string tolower $got] "%x" gv
+#   scan [string tolower $want] "%x" wv
+#   puts "ADDR_LOG $cell want=$want got=$got num_ok=[expr {$gv == $wv}]"
+#   if {$gv != $wv} { incr bad_addr }
+# }
+ADDR_LOG axi_gpio_0 want=0x41200000 got=0x41200000 num_ok=1
+ADDR_LOG axi_gpio_1 want=0x41210000 got=0x41210000 num_ok=1
+ADDR_LOG axi_gpio_2 want=0x41220000 got=0x41220000 num_ok=1
+# validate_bd_design
+CRITICAL WARNING: [BD 41-1348] Reset pin /axi_gpio_0/s_axi_aresetn (associated clock /axi_gpio_0/s_axi_aclk) is connected to asynchronous reset source /processing_system7_0/FCLK_RESET0_N.
+This may prevent design from meeting timing. Please add Processor System Reset module to create a reset that is synchronous to the associated clock source /processing_system7_0/FCLK_CLK0.
+CRITICAL WARNING: [BD 41-1348] Reset pin /axi_gpio_1/s_axi_aresetn (associated clock /axi_gpio_1/s_axi_aclk) is connected to asynchronous reset source /processing_system7_0/FCLK_RESET0_N.
+This may prevent design from meeting timing. Please add Processor System Reset module to create a reset that is synchronous to the associated clock source /processing_system7_0/FCLK_CLK0.
+CRITICAL WARNING: [BD 41-1348] Reset pin /axi_gpio_2/s_axi_aresetn (associated clock /axi_gpio_2/s_axi_aclk) is connected to asynchronous reset source /processing_system7_0/FCLK_RESET0_N.
+This may prevent design from meeting timing. Please add Processor System Reset module to create a reset that is synchronous to the associated clock source /processing_system7_0/FCLK_CLK0.
+CRITICAL WARNING: [BD 41-1348] Reset pin /axi_gp0_ic/ARESETN (associated clock /axi_gp0_ic/ACLK) is connected to asynchronous reset source /processing_system7_0/FCLK_RESET0_N.
+This may prevent design from meeting timing. Please add Processor System Reset module to create a reset that is synchronous to the associated clock source /processing_system7_0/FCLK_CLK0.
+CRITICAL WARNING: [BD 41-1348] Reset pin /axi_gp0_ic/S00_ARESETN (associated clock /axi_gp0_ic/S00_ACLK) is connected to asynchronous reset source /processing_system7_0/FCLK_RESET0_N.
+This may prevent design from meeting timing. Please add Processor System Reset module to create a reset that is synchronous to the associated clock source /processing_system7_0/FCLK_CLK0.
+CRITICAL WARNING: [BD 41-1348] Reset pin /axi_gp0_ic/M00_ARESETN (associated clock /axi_gp0_ic/M00_ACLK) is connected to asynchronous reset source /processing_system7_0/FCLK_RESET0_N.
+This may prevent design from meeting timing. Please add Processor System Reset module to create a reset that is synchronous to the associated clock source /processing_system7_0/FCLK_CLK0.
+CRITICAL WARNING: [BD 41-1348] Reset pin /axi_gp0_ic/M01_ARESETN (associated clock /axi_gp0_ic/M01_ACLK) is connected to asynchronous reset source /processing_system7_0/FCLK_RESET0_N.
+This may prevent design from meeting timing. Please add Processor System Reset module to create a reset that is synchronous to the associated clock source /processing_system7_0/FCLK_CLK0.
+CRITICAL WARNING: [BD 41-1348] Reset pin /axi_gp0_ic/M02_ARESETN (associated clock /axi_gp0_ic/M02_ACLK) is connected to asynchronous reset source /processing_system7_0/FCLK_RESET0_N.
+This may prevent design from meeting timing. Please add Processor System Reset module to create a reset that is synchronous to the associated clock source /processing_system7_0/FCLK_CLK0.
+CRITICAL WARNING: [BD 41-1348] Reset pin /axi_mem_intercon/ARESETN (associated clock /axi_mem_intercon/ACLK) is connected to asynchronous reset source /processing_system7_0/FCLK_RESET0_N.
+This may prevent design from meeting timing. Please add Processor System Reset module to create a reset that is synchronous to the associated clock source /processing_system7_0/FCLK_CLK0.
+CRITICAL WARNING: [BD 41-1348] Reset pin /axi_mem_intercon/S00_ARESETN (associated clock /axi_mem_intercon/S00_ACLK) is connected to asynchronous reset source /processing_system7_0/FCLK_RESET0_N.
+This may prevent design from meeting timing. Please add Processor System Reset module to create a reset that is synchronous to the associated clock source /processing_system7_0/FCLK_CLK0.
+CRITICAL WARNING: [BD 41-1348] Reset pin /axi_mem_intercon/M00_ARESETN (associated clock /axi_mem_intercon/M00_ACLK) is connected to asynchronous reset source /processing_system7_0/FCLK_RESET0_N.
+This may prevent design from meeting timing. Please add Processor System Reset module to create a reset that is synchronous to the associated clock source /processing_system7_0/FCLK_CLK0.
+# if {$bad_addr} { puts "ADDRESS PINNING FAILED"; exit 1 }
+# save_bd_design
+Wrote  : <D:\Xilinx\Prj\pro\Video_Processing\vivado_system\zynq_video_sys.srcs\sources_1\bd\design_1\design_1.bd> 
+# if {[lindex $argv 0] eq "bd_only"} { puts "BD_ONLY_DONE"; exit 0 }
+# make_wrapper -files [get_files design_1.bd] -top
+INFO: [BD 41-1662] The design 'design_1.bd' is already validated. Therefore parameter propagation will not be re-run.
+Verilog Output written to : D:/Xilinx/Prj/pro/Video_Processing/vivado_system/zynq_video_sys.gen/sources_1/bd/design_1/synth/design_1.v
+Verilog Output written to : D:/Xilinx/Prj/pro/Video_Processing/vivado_system/zynq_video_sys.gen/sources_1/bd/design_1/sim/design_1.v
+Verilog Output written to : D:/Xilinx/Prj/pro/Video_Processing/vivado_system/zynq_video_sys.gen/sources_1/bd/design_1/hdl/design_1_wrapper.v
+# set wrap [file join $proj_dir ${proj_name}.gen sources_1 bd design_1 hdl design_1_wrapper.v]
+# if {![file exists $wrap]} {
+#   set wrap [lindex [glob -nocomplain [file join $proj_dir ${proj_name}.srcs sources_1 bd design_1 hdl design_1_wrapper.v]] 0]
+# }
+# add_files -norecurse $wrap
+# puts "WRAPPER: $wrap"
+WRAPPER: D:/Xilinx/Prj/pro/Video_Processing/vivado_system/zynq_video_sys.gen/sources_1/bd/design_1/hdl/design_1_wrapper.v
+# puts "TOP: system_top.v (maintained, includes PL ETH)"
+TOP: system_top.v (maintained, includes PL ETH)
+# set_property top system_top [current_fileset]
+# update_compile_order -fileset sources_1
+# launch_runs synth_1 -jobs 4
+INFO: [BD 41-1662] The design 'design_1.bd' is already validated. Therefore parameter propagation will not be re-run.
+Verilog Output written to : D:/Xilinx/Prj/pro/Video_Processing/vivado_system/zynq_video_sys.gen/sources_1/bd/design_1/synth/design_1.v
+Verilog Output written to : D:/Xilinx/Prj/pro/Video_Processing/vivado_system/zynq_video_sys.gen/sources_1/bd/design_1/sim/design_1.v
+Verilog Output written to : D:/Xilinx/Prj/pro/Video_Processing/vivado_system/zynq_video_sys.gen/sources_1/bd/design_1/hdl/design_1_wrapper.v
+INFO: [IP_Flow 19-5611] Unable to find an associated reset port for the interface 'M_AXI_GP0'. A default connection has been created.
+INFO: [IP_Flow 19-5611] Unable to find an associated reset port for the interface 'S_AXI_HP0'. A default connection has been created.
+INFO: [BD 41-1029] Generation completed for the IP Integrator block processing_system7_0 .
+INFO: [BD 41-1029] Generation completed for the IP Integrator block axi_gpio_0 .
+INFO: [BD 41-1029] Generation completed for the IP Integrator block axi_gpio_1 .
+INFO: [BD 41-1029] Generation completed for the IP Integrator block axi_gpio_2 .
+INFO: [BD 41-1029] Generation completed for the IP Integrator block axi_gp0_ic/xbar .
+WARNING: [IP_Flow 19-4994] Overwriting existing constraint file 'd:/Xilinx/Prj/pro/Video_Processing/vivado_system/zynq_video_sys.gen/sources_1/bd/design_1/ip/design_1_axi_gp0_ic_imp_auto_pc_0/design_1_axi_gp0_ic_imp_auto_pc_0_ooc.xdc'
+INFO: [BD 41-1029] Generation completed for the IP Integrator block axi_gp0_ic/s00_couplers/auto_pc .
+Exporting to file D:/Xilinx/Prj/pro/Video_Processing/vivado_system/zynq_video_sys.gen/sources_1/bd/design_1/hw_handoff/design_1.hwh
+Generated Hardware Definition File D:/Xilinx/Prj/pro/Video_Processing/vivado_system/zynq_video_sys.gen/sources_1/bd/design_1/synth/design_1.hwdef
+INFO: [BD 41-3262] Generated VHDL Instantiation Template file d:/Xilinx/Prj/pro/Video_Processing/vivado_system/zynq_video_sys.gen/sources_1/bd/design_1/design_1.vho
+INFO: [BD 41-3262] Generated Verilog Instantiation Template file d:/Xilinx/Prj/pro/Video_Processing/vivado_system/zynq_video_sys.gen/sources_1/bd/design_1/design_1.veo
+INFO: [BD 41-3262] Generated System Verilog Instantiation Template file d:/Xilinx/Prj/pro/Video_Processing/vivado_system/zynq_video_sys.gen/sources_1/bd/design_1/design_1_sv.sveo
+WARNING: [Vivado 12-7122] Auto Incremental Compile:: No reference checkpoint was found in run synth_1. Auto-incremental flow will not be run, the standard flow will be run instead.
+[Fri Sep 25 00:10:11 2026] Launched design_1_processing_system7_0_0_synth_1, design_1_axi_gpio_0_0_synth_1, design_1_axi_gpio_2_0_synth_1, design_1_axi_gpio_1_0_synth_1, design_1_axi_gp0_ic_imp_xbar_0_synth_1, design_1_axi_gp0_ic_imp_auto_pc_0_synth_1...
+Run output will be captured here:
+design_1_processing_system7_0_0_synth_1: D:/Xilinx/Prj/pro/Video_Processing/vivado_system/zynq_video_sys.runs/design_1_processing_system7_0_0_synth_1/runme.log
+design_1_axi_gpio_0_0_synth_1: D:/Xilinx/Prj/pro/Video_Processing/vivado_system/zynq_video_sys.runs/design_1_axi_gpio_0_0_synth_1/runme.log
+design_1_axi_gpio_2_0_synth_1: D:/Xilinx/Prj/pro/Video_Processing/vivado_system/zynq_video_sys.runs/design_1_axi_gpio_2_0_synth_1/runme.log
+design_1_axi_gpio_1_0_synth_1: D:/Xilinx/Prj/pro/Video_Processing/vivado_system/zynq_video_sys.runs/design_1_axi_gpio_1_0_synth_1/runme.log
+design_1_axi_gp0_ic_imp_xbar_0_synth_1: D:/Xilinx/Prj/pro/Video_Processing/vivado_system/zynq_video_sys.runs/design_1_axi_gp0_ic_imp_xbar_0_synth_1/runme.log
+design_1_axi_gp0_ic_imp_auto_pc_0_synth_1: D:/Xilinx/Prj/pro/Video_Processing/vivado_system/zynq_video_sys.runs/design_1_axi_gp0_ic_imp_auto_pc_0_synth_1/runme.log
+[Fri Sep 25 00:10:11 2026] Launched synth_1...
+Run output will be captured here: D:/Xilinx/Prj/pro/Video_Processing/vivado_system/zynq_video_sys.runs/synth_1/runme.log
+launch_runs: Time (s): cpu = 00:00:26 ; elapsed = 00:00:31 . Memory (MB): peak = 743.355 ; gain = 33.645
+# wait_on_run synth_1
+[Fri Sep 25 00:10:11 2026] Waiting for synth_1 to finish...
+
+*** Running vivado
+    with args -log system_top.vds -m64 -product Vivado -mode batch -messageDb vivado.pb -notrace -source system_top.tcl
+
+
+
+****** Vivado v2025.2.1 (64-bit)
+  **** SW Build 6403652 on Thu Mar 19 19:48:24 GMT 2026
+  **** IP Build 6403511 on Thu Mar 19 12:41:45 MDT 2026
+  **** SharedData Build 6403650 on Thu Mar 19 14:02:13 MDT 2026
+  **** Start of session at: Fri Sep 25 00:12:50 2026
+    ** Copyright 1986-2022 Xilinx, Inc. All Rights Reserved.
+    ** Copyright 2022-2026 Advanced Micro Devices, Inc. All Rights Reserved.
+
+source system_top.tcl -notrace
+create_project: Time (s): cpu = 00:00:16 ; elapsed = 00:00:10 . Memory (MB): peak = 539.340 ; gain = 223.824
+INFO: [IP_Flow 19-234] Refreshing IP repositories
+INFO: [IP_Flow 19-1704] No user IP repositories specified
+INFO: [IP_Flow 19-2313] Loaded Vivado IP repository 'D:/Software/Vivado/2025.2.1/Vivado/data/ip'.
+Command: synth_design -top system_top -part xc7z020clg484-2
+Starting synth_design
+Attempting to get a license for feature 'Synthesis' and/or device 'xc7z020'
+INFO: [Common 17-349] Got license for feature 'Synthesis' and/or device 'xc7z020'
+INFO: [Device 21-403] Loading part xc7z020clg484-2
+INFO: [Synth 8-7079] Multithreading enabled for synth_design using a maximum of 2 processes.
+INFO: [Synth 8-7078] Launching helper process for spawning children vivado processes
+INFO: [Synth 8-7075] Helper process launched with PID 7188
+---------------------------------------------------------------------------------
+Starting RTL Elaboration : Time (s): cpu = 00:00:06 ; elapsed = 00:00:06 . Memory (MB): peak = 1341.277 ; gain = 540.801
+---------------------------------------------------------------------------------
+WARNING: [Synth 8-10929] literal value 'd10 truncated to fit in 2 bits [D:/Xilinx/Prj/pro/Video_Processing/src/rtl/util/src_arb.v:36]
+INFO: [Synth 8-6157] synthesizing module 'system_top' [D:/Xilinx/Prj/pro/Video_Processing/src/rtl/top/system_top.v:3]
+INFO: [Synth 8-6157] synthesizing module 'design_1_wrapper' [D:/Xilinx/Prj/pro/Video_Processing/vivado_system/zynq_video_sys.gen/sources_1/bd/design_1/hdl/design_1_wrapper.v:13]
+INFO: [Synth 8-6157] synthesizing module 'design_1' [d:/Xilinx/Prj/pro/Video_Processing/vivado_system/zynq_video_sys.gen/sources_1/bd/design_1/synth/design_1.v:13]
+INFO: [Synth 8-6157] synthesizing module 'design_1_axi_gp0_ic_0' [d:/Xilinx/Prj/pro/Video_Processing/vivado_system/zynq_video_sys.gen/sources_1/bd/design_1/synth/design_1.v:692]
+INFO: [Synth 8-6157] synthesizing module 'm00_couplers_imp_EJ3EHT' [d:/Xilinx/Prj/pro/Video_Processing/vivado_system/zynq_video_sys.gen/sources_1/bd/design_1/synth/design_1.v:1604]
+INFO: [Synth 8-6155] done synthesizing module 'm00_couplers_imp_EJ3EHT' (0#1) [d:/Xilinx/Prj/pro/Video_Processing/vivado_system/zynq_video_sys.gen/sources_1/bd/design_1/synth/design_1.v:1604]
+INFO: [Synth 8-6157] synthesizing module 'm01_couplers_imp_1OS1680' [d:/Xilinx/Prj/pro/Video_Processing/vivado_system/zynq_video_sys.gen/sources_1/bd/design_1/synth/design_1.v:1719]
+INFO: [Synth 8-6155] done synthesizing module 'm01_couplers_imp_1OS1680' (0#1) [d:/Xilinx/Prj/pro/Video_Processing/vivado_system/zynq_video_sys.gen/sources_1/bd/design_1/synth/design_1.v:1719]
+INFO: [Synth 8-6157] synthesizing module 'm02_couplers_imp_DQUA3M' [d:/Xilinx/Prj/pro/Video_Processing/vivado_system/zynq_video_sys.gen/sources_1/bd/design_1/synth/design_1.v:1834]
+INFO: [Synth 8-6155] done synthesizing module 'm02_couplers_imp_DQUA3M' (0#1) [d:/Xilinx/Prj/pro/Video_Processing/vivado_system/zynq_video_sys.gen/sources_1/bd/design_1/synth/design_1.v:1834]
+INFO: [Synth 8-6157] synthesizing module 's00_couplers_imp_1KZGM77' [d:/Xilinx/Prj/pro/Video_Processing/vivado_system/zynq_video_sys.gen/sources_1/bd/design_1/synth/design_1.v:1949]
+INFO: [Synth 8-6157] synthesizing module 'design_1_axi_gp0_ic_imp_auto_pc_0' [D:/Xilinx/Prj/pro/Video_Processing/vivado_system/zynq_video_sys.runs/synth_1/.Xil/Vivado-5308-Uie-laptop/realtime/design_1_axi_gp0_ic_imp_auto_pc_0_stub.v:6]
+INFO: [Synth 8-6155] done synthesizing module 'design_1_axi_gp0_ic_imp_auto_pc_0' (0#1) [D:/Xilinx/Prj/pro/Video_Processing/vivado_system/zynq_video_sys.runs/synth_1/.Xil/Vivado-5308-Uie-laptop/realtime/design_1_axi_gp0_ic_imp_auto_pc_0_stub.v:6]
+INFO: [Synth 8-6155] done synthesizing module 's00_couplers_imp_1KZGM77' (0#1) [d:/Xilinx/Prj/pro/Video_Processing/vivado_system/zynq_video_sys.gen/sources_1/bd/design_1/synth/design_1.v:1949]
+INFO: [Synth 8-6157] synthesizing module 'design_1_axi_gp0_ic_imp_xbar_0' [D:/Xilinx/Prj/pro/Video_Processing/vivado_system/zynq_video_sys.runs/synth_1/.Xil/Vivado-5308-Uie-laptop/realtime/design_1_axi_gp0_ic_imp_xbar_0_stub.v:6]
+INFO: [Synth 8-6155] done synthesizing module 'design_1_axi_gp0_ic_imp_xbar_0' (0#1) [D:/Xilinx/Prj/pro/Video_Processing/vivado_system/zynq_video_sys.runs/synth_1/.Xil/Vivado-5308-Uie-laptop/realtime/design_1_axi_gp0_ic_imp_xbar_0_stub.v:6]
+WARNING: [Synth 8-7071] port 'm_axi_awprot' of module 'design_1_axi_gp0_ic_imp_xbar_0' is unconnected for instance 'xbar' [d:/Xilinx/Prj/pro/Video_Processing/vivado_system/zynq_video_sys.gen/sources_1/bd/design_1/synth/design_1.v:1233]
+WARNING: [Synth 8-7071] port 'm_axi_arprot' of module 'design_1_axi_gp0_ic_imp_xbar_0' is unconnected for instance 'xbar' [d:/Xilinx/Prj/pro/Video_Processing/vivado_system/zynq_video_sys.gen/sources_1/bd/design_1/synth/design_1.v:1233]
+WARNING: [Synth 8-7023] instance 'xbar' of module 'design_1_axi_gp0_ic_imp_xbar_0' has 40 connections declared, but only 38 given [d:/Xilinx/Prj/pro/Video_Processing/vivado_system/zynq_video_sys.gen/sources_1/bd/design_1/synth/design_1.v:1233]
+INFO: [Synth 8-6155] done synthesizing module 'design_1_axi_gp0_ic_0' (0#1) [d:/Xilinx/Prj/pro/Video_Processing/vivado_system/zynq_video_sys.gen/sources_1/bd/design_1/synth/design_1.v:692]
+INFO: [Synth 8-6157] synthesizing module 'design_1_axi_gpio_0_0' [D:/Xilinx/Prj/pro/Video_Processing/vivado_system/zynq_video_sys.runs/synth_1/.Xil/Vivado-5308-Uie-laptop/realtime/design_1_axi_gpio_0_0_stub.v:6]
+INFO: [Synth 8-6155] done synthesizing module 'design_1_axi_gpio_0_0' (0#1) [D:/Xilinx/Prj/pro/Video_Processing/vivado_system/zynq_video_sys.runs/synth_1/.Xil/Vivado-5308-Uie-laptop/realtime/design_1_axi_gpio_0_0_stub.v:6]
+INFO: [Synth 8-6157] synthesizing module 'design_1_axi_gpio_1_0' [D:/Xilinx/Prj/pro/Video_Processing/vivado_system/zynq_video_sys.runs/synth_1/.Xil/Vivado-5308-Uie-laptop/realtime/design_1_axi_gpio_1_0_stub.v:6]
+INFO: [Synth 8-6155] done synthesizing module 'design_1_axi_gpio_1_0' (0#1) [D:/Xilinx/Prj/pro/Video_Processing/vivado_system/zynq_video_sys.runs/synth_1/.Xil/Vivado-5308-Uie-laptop/realtime/design_1_axi_gpio_1_0_stub.v:6]
+INFO: [Synth 8-6157] synthesizing module 'design_1_axi_gpio_2_0' [D:/Xilinx/Prj/pro/Video_Processing/vivado_system/zynq_video_sys.runs/synth_1/.Xil/Vivado-5308-Uie-laptop/realtime/design_1_axi_gpio_2_0_stub.v:6]
+INFO: [Synth 8-6155] done synthesizing module 'design_1_axi_gpio_2_0' (0#1) [D:/Xilinx/Prj/pro/Video_Processing/vivado_system/zynq_video_sys.runs/synth_1/.Xil/Vivado-5308-Uie-laptop/realtime/design_1_axi_gpio_2_0_stub.v:6]
+INFO: [Synth 8-6157] synthesizing module 'design_1_axi_mem_intercon_0' [d:/Xilinx/Prj/pro/Video_Processing/vivado_system/zynq_video_sys.gen/sources_1/bd/design_1/synth/design_1.v:1274]
+INFO: [Synth 8-6157] synthesizing module 's00_couplers_imp_7HNO1D' [d:/Xilinx/Prj/pro/Video_Processing/vivado_system/zynq_video_sys.gen/sources_1/bd/design_1/synth/design_1.v:2195]
+INFO: [Synth 8-6155] done synthesizing module 's00_couplers_imp_7HNO1D' (0#1) [d:/Xilinx/Prj/pro/Video_Processing/vivado_system/zynq_video_sys.gen/sources_1/bd/design_1/synth/design_1.v:2195]
+INFO: [Synth 8-6155] done synthesizing module 'design_1_axi_mem_intercon_0' (0#1) [d:/Xilinx/Prj/pro/Video_Processing/vivado_system/zynq_video_sys.gen/sources_1/bd/design_1/synth/design_1.v:1274]
+INFO: [Synth 8-6157] synthesizing module 'design_1_processing_system7_0_0' [D:/Xilinx/Prj/pro/Video_Processing/vivado_system/zynq_video_sys.runs/synth_1/.Xil/Vivado-5308-Uie-laptop/realtime/design_1_processing_system7_0_0_stub.v:6]
+INFO: [Synth 8-6155] done synthesizing module 'design_1_processing_system7_0_0' (0#1) [D:/Xilinx/Prj/pro/Video_Processing/vivado_system/zynq_video_sys.runs/synth_1/.Xil/Vivado-5308-Uie-laptop/realtime/design_1_processing_system7_0_0_stub.v:6]
+WARNING: [Synth 8-7071] port 'S_AXI_HP0_RCOUNT' of module 'design_1_processing_system7_0_0' is unconnected for instance 'processing_system7_0' [d:/Xilinx/Prj/pro/Video_Processing/vivado_system/zynq_video_sys.gen/sources_1/bd/design_1/synth/design_1.v:586]
+WARNING: [Synth 8-7071] port 'S_AXI_HP0_WCOUNT' of module 'design_1_processing_system7_0_0' is unconnected for instance 'processing_system7_0' [d:/Xilinx/Prj/pro/Video_Processing/vivado_system/zynq_video_sys.gen/sources_1/bd/design_1/synth/design_1.v:586]
+WARNING: [Synth 8-7071] port 'S_AXI_HP0_RACOUNT' of module 'design_1_processing_system7_0_0' is unconnected for instance 'processing_system7_0' [d:/Xilinx/Prj/pro/Video_Processing/vivado_system/zynq_video_sys.gen/sources_1/bd/design_1/synth/design_1.v:586]
+WARNING: [Synth 8-7071] port 'S_AXI_HP0_WACOUNT' of module 'design_1_processing_system7_0_0' is unconnected for instance 'processing_system7_0' [d:/Xilinx/Prj/pro/Video_Processing/vivado_system/zynq_video_sys.gen/sources_1/bd/design_1/synth/design_1.v:586]
+WARNING: [Synth 8-7023] instance 'processing_system7_0' of module 'design_1_processing_system7_0_0' has 107 connections declared, but only 103 given [d:/Xilinx/Prj/pro/Video_Processing/vivado_system/zynq_video_sys.gen/sources_1/bd/design_1/synth/design_1.v:586]
+INFO: [Synth 8-6155] done synthesizing module 'design_1' (0#1) [d:/Xilinx/Prj/pro/Video_Processing/vivado_system/zynq_video_sys.gen/sources_1/bd/design_1/synth/design_1.v:13]
+INFO: [Synth 8-6155] done synthesizing module 'design_1_wrapper' (0#1) [D:/Xilinx/Prj/pro/Video_Processing/vivado_system/zynq_video_sys.gen/sources_1/bd/design_1/hdl/design_1_wrapper.v:13]
+INFO: [Synth 8-6157] synthesizing module 'clk_gen' [D:/Xilinx/Prj/pro/Video_Processing/src/rtl/clocks/clk_gen.v:4]
+INFO: [Synth 8-6157] synthesizing module 'MMCME2_BASE' [D:/Software/Vivado/2025.2.1/Vivado/scripts/rt/data/unisim_comp.v:95830]
+	Parameter BANDWIDTH bound to: OPTIMIZED - type: string 
+	Parameter CLKFBOUT_MULT_F bound to: 2.000000e+01 - type: double 
+	Parameter CLKFBOUT_PHASE bound to: 0.000000e+00 - type: double 
+	Parameter CLKIN1_PERIOD bound to: 2.000000e+01 - type: double 
+	Parameter CLKOUT0_DIVIDE_F bound to: 2.000000e+01 - type: double 
+	Parameter CLKOUT0_DUTY_CYCLE bound to: 5.000000e-01 - type: double 
+	Parameter CLKOUT0_PHASE bound to: 0.000000e+00 - type: double 
+	Parameter CLKOUT1_DIVIDE bound to: 4 - type: integer 
+	Parameter CLKOUT1_DUTY_CYCLE bound to: 5.000000e-01 - type: double 
+	Parameter CLKOUT1_PHASE bound to: 0.000000e+00 - type: double 
+	Parameter CLKOUT2_DIVIDE bound to: 5 - type: integer 
+	Parameter CLKOUT2_DUTY_CYCLE bound to: 5.000000e-01 - type: double 
+	Parameter CLKOUT2_PHASE bound to: 0.000000e+00 - type: double 
+	Parameter DIVCLK_DIVIDE bound to: 1 - type: integer 
+	Parameter REF_JITTER1 bound to: 1.000000e-02 - type: double 
+	Parameter STARTUP_WAIT bound to: FALSE - type: string 
+INFO: [Synth 8-6155] done synthesizing module 'MMCME2_BASE' (0#1) [D:/Software/Vivado/2025.2.1/Vivado/scripts/rt/data/unisim_comp.v:95830]
+INFO: [Synth 8-6157] synthesizing module 'BUFG' [D:/Software/Vivado/2025.2.1/Vivado/scripts/rt/data/unisim_comp.v:2678]
+INFO: [Synth 8-6155] done synthesizing module 'BUFG' (0#1) [D:/Software/Vivado/2025.2.1/Vivado/scripts/rt/data/unisim_comp.v:2678]
+INFO: [Synth 8-6155] done synthesizing module 'clk_gen' (0#1) [D:/Xilinx/Prj/pro/Video_Processing/src/rtl/clocks/clk_gen.v:4]
+INFO: [Synth 8-6157] synthesizing module 'eth_udp_video_top' [D:/Xilinx/Prj/pro/Video_Processing/src/rtl/eth/eth_udp_video_top.v:4]
+	Parameter IMG_W bound to: 16'b0000001000000000 
+	Parameter IMG_H bound to: 16'b0000000100101100 
+	Parameter BASE_ADDR bound to: 268435456 - type: integer 
+	Parameter UDP_PORT bound to: 16'b0001001110001001 
+	Parameter BOARD_MAC bound to: 48'b000000000001000100100010001100110100010001010101 
+	Parameter BOARD_IP bound to: 32'b11000000101010000000000100001010 
+	Parameter IDELAY_VALUE bound to: 15 - type: integer 
+INFO: [Synth 8-6157] synthesizing module 'gmii_to_rgmii' [D:/Xilinx/Prj/pro/Video_Processing/src/rtl/eth/gmii_to_rgmii.v:14]
+	Parameter IDELAY_VALUE bound to: 15 - type: integer 
+INFO: [Synth 8-6157] synthesizing module 'rgmii_rx' [D:/Xilinx/Prj/pro/Video_Processing/src/rtl/eth/rgmii_rx.v:14]
+	Parameter IDELAY_VALUE bound to: 15 - type: integer 
+INFO: [Synth 8-6157] synthesizing module 'IDELAYE2' [D:/Software/Vivado/2025.2.1/Vivado/scripts/rt/data/unisim_comp.v:85037]
+	Parameter IDELAY_TYPE bound to: FIXED - type: string 
+	Parameter IDELAY_VALUE bound to: 15 - type: integer 
+	Parameter REFCLK_FREQUENCY bound to: 2.000000e+02 - type: double 
+INFO: [Synth 8-6155] done synthesizing module 'IDELAYE2' (0#1) [D:/Software/Vivado/2025.2.1/Vivado/scripts/rt/data/unisim_comp.v:85037]
+INFO: [Synth 8-6157] synthesizing module 'IDDR' [D:/Software/Vivado/2025.2.1/Vivado/scripts/rt/data/unisim_comp.v:84902]
+	Parameter DDR_CLK_EDGE bound to: SAME_EDGE_PIPELINED - type: string 
+	Parameter INIT_Q1 bound to: 1'b0 
+	Parameter INIT_Q2 bound to: 1'b0 
+	Parameter SRTYPE bound to: SYNC - type: string 
+INFO: [Synth 8-6155] done synthesizing module 'IDDR' (0#1) [D:/Software/Vivado/2025.2.1/Vivado/scripts/rt/data/unisim_comp.v:84902]
+INFO: [Synth 8-6157] synthesizing module 'BUFIO' [D:/Software/Vivado/2025.2.1/Vivado/scripts/rt/data/unisim_comp.v:2951]
+INFO: [Synth 8-6155] done synthesizing module 'BUFIO' (0#1) [D:/Software/Vivado/2025.2.1/Vivado/scripts/rt/data/unisim_comp.v:2951]
+WARNING: [Synth 8-4446] all outputs are unconnected for this instance and logic may be removed [D:/Xilinx/Prj/pro/Video_Processing/src/rtl/eth/rgmii_rx.v:60]
+INFO: [Synth 8-6157] synthesizing module 'IDELAYCTRL' [D:/Software/Vivado/2025.2.1/Vivado/scripts/rt/data/unisim_comp.v:85024]
+INFO: [Synth 8-6155] done synthesizing module 'IDELAYCTRL' (0#1) [D:/Software/Vivado/2025.2.1/Vivado/scripts/rt/data/unisim_comp.v:85024]
+INFO: [Synth 8-6155] done synthesizing module 'rgmii_rx' (0#1) [D:/Xilinx/Prj/pro/Video_Processing/src/rtl/eth/rgmii_rx.v:14]
+INFO: [Synth 8-6157] synthesizing module 'rgmii_tx' [D:/Xilinx/Prj/pro/Video_Processing/src/rtl/eth/rgmii_tx.v:14]
+INFO: [Synth 8-6157] synthesizing module 'ODDR' [D:/Software/Vivado/2025.2.1/Vivado/scripts/rt/data/unisim_comp.v:117062]
+	Parameter DDR_CLK_EDGE bound to: SAME_EDGE - type: string 
+	Parameter INIT bound to: 1'b0 
+	Parameter SRTYPE bound to: SYNC - type: string 
+INFO: [Synth 8-6155] done synthesizing module 'ODDR' (0#1) [D:/Software/Vivado/2025.2.1/Vivado/scripts/rt/data/unisim_comp.v:117062]
+INFO: [Synth 8-6155] done synthesizing module 'rgmii_tx' (0#1) [D:/Xilinx/Prj/pro/Video_Processing/src/rtl/eth/rgmii_tx.v:14]
+INFO: [Synth 8-6155] done synthesizing module 'gmii_to_rgmii' (0#1) [D:/Xilinx/Prj/pro/Video_Processing/src/rtl/eth/gmii_to_rgmii.v:14]
+INFO: [Synth 8-6157] synthesizing module 'sync_fifo' [D:/Xilinx/Prj/pro/Video_Processing/src/rtl/eth/sync_fifo.v:5]
+	Parameter DATA_W bound to: 8 - type: integer 
+	Parameter ADDR_W bound to: 11 - type: integer 
+INFO: [Synth 8-6155] done synthesizing module 'sync_fifo' (0#1) [D:/Xilinx/Prj/pro/Video_Processing/src/rtl/eth/sync_fifo.v:5]
+INFO: [Synth 8-6157] synthesizing module 'arp' [D:/Xilinx/Prj/pro/Video_Processing/src/rtl/eth/arp.v:15]
+	Parameter BOARD_MAC bound to: 48'b000000000001000100100010001100110100010001010101 
+	Parameter BOARD_IP bound to: -1062731510 - type: integer 
+	Parameter DES_MAC bound to: 48'b111111111111111111111111111111111111111111111111 
+	Parameter DES_IP bound to: -1062731418 - type: integer 
+INFO: [Synth 8-6157] synthesizing module 'arp_rx' [D:/Xilinx/Prj/pro/Video_Processing/src/rtl/eth/arp_rx.v:14]
+	Parameter BOARD_MAC bound to: 48'b000000000001000100100010001100110100010001010101 
+	Parameter BOARD_IP bound to: -1062731510 - type: integer 
+INFO: [Synth 8-6155] done synthesizing module 'arp_rx' (0#1) [D:/Xilinx/Prj/pro/Video_Processing/src/rtl/eth/arp_rx.v:14]
+INFO: [Synth 8-6157] synthesizing module 'arp_tx' [D:/Xilinx/Prj/pro/Video_Processing/src/rtl/eth/arp_tx.v:14]
+	Parameter BOARD_MAC bound to: 48'b000000000001000100100010001100110100010001010101 
+	Parameter BOARD_IP bound to: -1062731510 - type: integer 
+	Parameter DES_MAC bound to: 48'b111111111111111111111111111111111111111111111111 
+	Parameter DES_IP bound to: -1062731418 - type: integer 
+INFO: [Synth 8-6155] done synthesizing module 'arp_tx' (0#1) [D:/Xilinx/Prj/pro/Video_Processing/src/rtl/eth/arp_tx.v:14]
+INFO: [Synth 8-6157] synthesizing module 'crc32_d8' [D:/Xilinx/Prj/pro/Video_Processing/src/rtl/eth/crc32_d8.v:15]
+INFO: [Synth 8-6155] done synthesizing module 'crc32_d8' (0#1) [D:/Xilinx/Prj/pro/Video_Processing/src/rtl/eth/crc32_d8.v:15]
+INFO: [Synth 8-6155] done synthesizing module 'arp' (0#1) [D:/Xilinx/Prj/pro/Video_Processing/src/rtl/eth/arp.v:15]
+INFO: [Synth 8-6157] synthesizing module 'icmp' [D:/Xilinx/Prj/pro/Video_Processing/src/rtl/eth/icmp.v:14]
+	Parameter BOARD_MAC bound to: 48'b000000000001000100100010001100110100010001010101 
+	Parameter BOARD_IP bound to: -1062731510 - type: integer 
+INFO: [Synth 8-6157] synthesizing module 'icmp_rx' [D:/Xilinx/Prj/pro/Video_Processing/src/rtl/eth/icmp_rx.v:15]
+	Parameter BOARD_MAC bound to: 48'b000000000001000100100010001100110100010001010101 
+	Parameter BOARD_IP bound to: -1062731510 - type: integer 
+INFO: [Synth 8-6155] done synthesizing module 'icmp_rx' (0#1) [D:/Xilinx/Prj/pro/Video_Processing/src/rtl/eth/icmp_rx.v:15]
+INFO: [Synth 8-6157] synthesizing module 'icmp_tx' [D:/Xilinx/Prj/pro/Video_Processing/src/rtl/eth/icmp_tx.v:16]
+	Parameter BOARD_MAC bound to: 48'b000000000001000100100010001100110100010001010101 
+	Parameter BOARD_IP bound to: -1062731510 - type: integer 
+	Parameter DES_MAC bound to: 48'b111111111111111111111111111111111111111111111111 
+	Parameter DES_IP bound to: -1062731418 - type: integer 
+INFO: [Synth 8-6155] done synthesizing module 'icmp_tx' (0#1) [D:/Xilinx/Prj/pro/Video_Processing/src/rtl/eth/icmp_tx.v:16]
+INFO: [Synth 8-6155] done synthesizing module 'icmp' (0#1) [D:/Xilinx/Prj/pro/Video_Processing/src/rtl/eth/icmp.v:14]
+INFO: [Synth 8-6157] synthesizing module 'udp_tx' [D:/Xilinx/Prj/pro/Video_Processing/src/rtl/eth/udp_tx.v:15]
+	Parameter BOARD_MAC bound to: 48'b000000000001000100100010001100110100010001010101 
+	Parameter BOARD_IP bound to: -1062731510 - type: integer 
+INFO: [Synth 8-6155] done synthesizing module 'udp_tx' (0#1) [D:/Xilinx/Prj/pro/Video_Processing/src/rtl/eth/udp_tx.v:15]
+INFO: [Synth 8-6157] synthesizing module 'gmii_rx_mac' [D:/Xilinx/Prj/pro/Video_Processing/src/rtl/eth/gmii_rx_mac.v:14]
+INFO: [Synth 8-6155] done synthesizing module 'gmii_rx_mac' (0#1) [D:/Xilinx/Prj/pro/Video_Processing/src/rtl/eth/gmii_rx_mac.v:14]
+INFO: [Synth 8-6157] synthesizing module 'udp_rx_parser' [D:/Xilinx/Prj/pro/Video_Processing/src/rtl/eth/udp_rx_parser.v:4]
+	Parameter UDP_PORT bound to: 16'b0001001110001001 
+INFO: [Synth 8-6155] done synthesizing module 'udp_rx_parser' (0#1) [D:/Xilinx/Prj/pro/Video_Processing/src/rtl/eth/udp_rx_parser.v:4]
+INFO: [Synth 8-6157] synthesizing module 'eth_ctrl' [D:/Xilinx/Prj/pro/Video_Processing/src/rtl/eth/eth_ctrl.v:15]
+INFO: [Synth 8-6155] done synthesizing module 'eth_ctrl' (0#1) [D:/Xilinx/Prj/pro/Video_Processing/src/rtl/eth/eth_ctrl.v:15]
+INFO: [Synth 8-6157] synthesizing module 'frame_reasm' [D:/Xilinx/Prj/pro/Video_Processing/src/rtl/eth/frame_reasm.v:13]
+	Parameter IMG_W bound to: 16'b0000001000000000 
+	Parameter IMG_H bound to: 16'b0000000100101100 
+INFO: [Synth 8-6155] done synthesizing module 'frame_reasm' (0#1) [D:/Xilinx/Prj/pro/Video_Processing/src/rtl/eth/frame_reasm.v:13]
+INFO: [Synth 8-6157] synthesizing module 'link_monitor' [D:/Xilinx/Prj/pro/Video_Processing/src/rtl/eth/link_monitor.v:25]
+	Parameter CLK_HZ bound to: 125000000 - type: integer 
+	Parameter LIVE_MS bound to: 16'b0000000011001000 
+INFO: [Synth 8-6155] done synthesizing module 'link_monitor' (0#1) [D:/Xilinx/Prj/pro/Video_Processing/src/rtl/eth/link_monitor.v:25]
+INFO: [Synth 8-6157] synthesizing module 'dc_fifo' [D:/Xilinx/Prj/pro/Video_Processing/src/rtl/eth/dc_fifo.v:3]
+	Parameter DATA_W bound to: 36 - type: integer 
+	Parameter ADDR_W bound to: 13 - type: integer 
+INFO: [Synth 8-6155] done synthesizing module 'dc_fifo' (0#1) [D:/Xilinx/Prj/pro/Video_Processing/src/rtl/eth/dc_fifo.v:3]
+INFO: [Synth 8-6157] synthesizing module 'ddr_bank_commit' [D:/Xilinx/Prj/pro/Video_Processing/src/rtl/eth/ddr_bank_commit.v:16]
+	Parameter BANK0 bound to: 268435456 - type: integer 
+	Parameter BANK1 bound to: 32'b00010000000010000000000000000000 
+	Parameter TAIL_GUARD bound to: 1'b1 
+INFO: [Synth 8-6155] done synthesizing module 'ddr_bank_commit' (0#1) [D:/Xilinx/Prj/pro/Video_Processing/src/rtl/eth/ddr_bank_commit.v:16]
+INFO: [Synth 8-6157] synthesizing module 'axi_frame_saver64' [D:/Xilinx/Prj/pro/Video_Processing/src/rtl/eth/axi_frame_saver64.v:14]
+	Parameter BASE_ADDR bound to: 268435456 - type: integer 
+INFO: [Synth 8-6155] done synthesizing module 'axi_frame_saver64' (0#1) [D:/Xilinx/Prj/pro/Video_Processing/src/rtl/eth/axi_frame_saver64.v:14]
+INFO: [Synth 8-6155] done synthesizing module 'eth_udp_video_top' (0#1) [D:/Xilinx/Prj/pro/Video_Processing/src/rtl/eth/eth_udp_video_top.v:4]
+INFO: [Synth 8-6157] synthesizing module 'snap_cross' [D:/Xilinx/Prj/pro/Video_Processing/src/rtl/eth/snap_cross.v:18]
+	Parameter W bound to: 320 - type: integer 
+	Parameter DST_HZ bound to: 100000000 - type: integer 
+	Parameter HB_TO_MS bound to: 200 - type: integer 
+INFO: [Synth 8-6155] done synthesizing module 'snap_cross' (0#1) [D:/Xilinx/Prj/pro/Video_Processing/src/rtl/eth/snap_cross.v:18]
+INFO: [Synth 8-6157] synthesizing module 'pl_video_top' [D:/Xilinx/Prj/pro/Video_Processing/src/rtl/top/pl_video_top.v:5]
+	Parameter IMG_W bound to: 16'b0000001000000000 
+	Parameter IMG_H bound to: 16'b0000000100101100 
+	Parameter PANE_W bound to: 16'b0000001000000000 
+	Parameter BASE_ADDR bound to: 268435456 - type: integer 
+	Parameter PS_BASE_ADDR bound to: 269484032 - type: integer 
+INFO: [Synth 8-6157] synthesizing module 'key_debounce' [D:/Xilinx/Prj/pro/Video_Processing/src/rtl/util/key_debounce.v:3]
+	Parameter CNT_MAX bound to: 1000000 - type: integer 
+INFO: [Synth 8-6155] done synthesizing module 'key_debounce' (0#1) [D:/Xilinx/Prj/pro/Video_Processing/src/rtl/util/key_debounce.v:3]
+INFO: [Synth 8-6157] synthesizing module 'key_long' [D:/Xilinx/Prj/pro/Video_Processing/src/rtl/util/key_long.v:20]
+	Parameter HOLD_CYC bound to: 30000000 - type: integer 
+	Parameter ARM_CYC bound to: 10000000 - type: integer 
+INFO: [Synth 8-6155] done synthesizing module 'key_long' (0#1) [D:/Xilinx/Prj/pro/Video_Processing/src/rtl/util/key_long.v:20]
+INFO: [Synth 8-6157] synthesizing module 'src_mode' [D:/Xilinx/Prj/pro/Video_Processing/src/rtl/util/src_mode.v:30]
+WARNING: [Synth 8-589] replacing case/wildcard equality operator !== with logical equality operator != [D:/Xilinx/Prj/pro/Video_Processing/src/rtl/util/src_mode.v:54]
+INFO: [Synth 8-6155] done synthesizing module 'src_mode' (0#1) [D:/Xilinx/Prj/pro/Video_Processing/src/rtl/util/src_mode.v:30]
+INFO: [Synth 8-6157] synthesizing module 'angle_ctrl' [D:/Xilinx/Prj/pro/Video_Processing/src/rtl/process/rotate/angle_ctrl.v:3]
+INFO: [Synth 8-6155] done synthesizing module 'angle_ctrl' (0#1) [D:/Xilinx/Prj/pro/Video_Processing/src/rtl/process/rotate/angle_ctrl.v:3]
+INFO: [Synth 8-6157] synthesizing module 'effect_ctrl' [D:/Xilinx/Prj/pro/Video_Processing/src/rtl/process/effect_ctrl.v:13]
+INFO: [Synth 8-6155] done synthesizing module 'effect_ctrl' (0#1) [D:/Xilinx/Prj/pro/Video_Processing/src/rtl/process/effect_ctrl.v:13]
+INFO: [Synth 8-6157] synthesizing module 'video_timing_1024x600' [D:/Xilinx/Prj/pro/Video_Processing/src/rtl/video/video_timing_1024x600.v:6]
+INFO: [Synth 8-6157] synthesizing module 'video_timing' [D:/Xilinx/Prj/pro/Video_Processing/src/rtl/video/video_timing.v:4]
+	Parameter H_ACTIVE bound to: 1024 - type: integer 
+	Parameter V_ACTIVE bound to: 600 - type: integer 
+	Parameter H_FP bound to: 44 - type: integer 
+	Parameter H_SYNC bound to: 88 - type: integer 
+	Parameter H_BP bound to: 188 - type: integer 
+	Parameter V_FP bound to: 3 - type: integer 
+	Parameter V_SYNC bound to: 6 - type: integer 
+	Parameter V_BP bound to: 16 - type: integer 
+	Parameter H_POL bound to: 1'b1 
+	Parameter V_POL bound to: 1'b0 
+INFO: [Synth 8-6155] done synthesizing module 'video_timing' (0#1) [D:/Xilinx/Prj/pro/Video_Processing/src/rtl/video/video_timing.v:4]
+INFO: [Synth 8-6155] done synthesizing module 'video_timing_1024x600' (0#1) [D:/Xilinx/Prj/pro/Video_Processing/src/rtl/video/video_timing_1024x600.v:6]
+INFO: [Synth 8-6157] synthesizing module 'zoom_ctrl' [D:/Xilinx/Prj/pro/Video_Processing/src/rtl/process/zoom/zoom_ctrl.v:5]
+	Parameter INV_LO bound to: 10'b0100000000 
+	Parameter INV_HI bound to: 10'b1000000000 
+	Parameter STEP bound to: 10'b0000000010 
+INFO: [Synth 8-6155] done synthesizing module 'zoom_ctrl' (0#1) [D:/Xilinx/Prj/pro/Video_Processing/src/rtl/process/zoom/zoom_ctrl.v:5]
+INFO: [Synth 8-6157] synthesizing module 'zoom_mapper' [D:/Xilinx/Prj/pro/Video_Processing/src/rtl/process/zoom/zoom_mapper.v:4]
+	Parameter IMAGE_W bound to: 16'b0000001000000000 
+	Parameter IMAGE_H bound to: 16'b0000000100101100 
+INFO: [Synth 8-6157] synthesizing module 'sin_rom' [D:/Xilinx/Prj/pro/Video_Processing/src/rtl/process/rotate/sin_rom.v:3]
+INFO: [Synth 8-6155] done synthesizing module 'sin_rom' (0#1) [D:/Xilinx/Prj/pro/Video_Processing/src/rtl/process/rotate/sin_rom.v:3]
+INFO: [Synth 8-6157] synthesizing module 'cos_rom' [D:/Xilinx/Prj/pro/Video_Processing/src/rtl/process/rotate/cos_rom.v:3]
+INFO: [Synth 8-6155] done synthesizing module 'cos_rom' (0#1) [D:/Xilinx/Prj/pro/Video_Processing/src/rtl/process/rotate/cos_rom.v:3]
+INFO: [Synth 8-6155] done synthesizing module 'zoom_mapper' (0#1) [D:/Xilinx/Prj/pro/Video_Processing/src/rtl/process/zoom/zoom_mapper.v:4]
+INFO: [Synth 8-6157] synthesizing module 'src_arb' [D:/Xilinx/Prj/pro/Video_Processing/src/rtl/util/src_arb.v:18]
+	Parameter T_OFF_CYC bound to: 2000000 - type: integer 
+INFO: [Synth 8-6155] done synthesizing module 'src_arb' (0#1) [D:/Xilinx/Prj/pro/Video_Processing/src/rtl/util/src_arb.v:18]
+INFO: [Synth 8-6157] synthesizing module 'frame_commit_lock' [D:/Xilinx/Prj/pro/Video_Processing/src/rtl/video/frame_commit_lock.v:5]
+	Parameter IMG_H bound to: 16'b0000000100101100 
+	Parameter DISP_H bound to: 600 - type: integer 
+INFO: [Synth 8-6155] done synthesizing module 'frame_commit_lock' (0#1) [D:/Xilinx/Prj/pro/Video_Processing/src/rtl/video/frame_commit_lock.v:5]
+INFO: [Synth 8-6157] synthesizing module 'axi_frame_writer_gated' [D:/Xilinx/Prj/pro/Video_Processing/src/rtl/axi/axi_frame_writer_gated.v:7]
+	Parameter IMG_W bound to: 16'b0000001000000000 
+	Parameter IMG_H bound to: 16'b0000000100101100 
+	Parameter BASE_ADDR bound to: 268435456 - type: integer 
+INFO: [Synth 8-6155] done synthesizing module 'axi_frame_writer_gated' (0#1) [D:/Xilinx/Prj/pro/Video_Processing/src/rtl/axi/axi_frame_writer_gated.v:7]
+INFO: [Synth 8-6157] synthesizing module 'ps_publish' [D:/Xilinx/Prj/pro/Video_Processing/src/rtl/util/ps_publish.v:11]
+INFO: [Synth 8-6155] done synthesizing module 'ps_publish' (0#1) [D:/Xilinx/Prj/pro/Video_Processing/src/rtl/util/ps_publish.v:11]
+INFO: [Synth 8-6157] synthesizing module 'frame_latency' [D:/Xilinx/Prj/pro/Video_Processing/src/rtl/video/frame_latency.v:38]
+WARNING: [Synth 8-589] replacing case/wildcard equality operator !== with logical equality operator != [D:/Xilinx/Prj/pro/Video_Processing/src/rtl/video/frame_latency.v:128]
+WARNING: [Synth 8-589] replacing case/wildcard equality operator === with logical equality operator == [D:/Xilinx/Prj/pro/Video_Processing/src/rtl/video/frame_latency.v:130]
+WARNING: [Synth 8-589] replacing case/wildcard equality operator === with logical equality operator == [D:/Xilinx/Prj/pro/Video_Processing/src/rtl/video/frame_latency.v:131]
+WARNING: [Synth 8-589] replacing case/wildcard equality operator === with logical equality operator == [D:/Xilinx/Prj/pro/Video_Processing/src/rtl/video/frame_latency.v:132]
+INFO: [Synth 8-6155] done synthesizing module 'frame_latency' (0#1) [D:/Xilinx/Prj/pro/Video_Processing/src/rtl/video/frame_latency.v:38]
+INFO: [Synth 8-6157] synthesizing module 'axi_frame_writer64' [D:/Xilinx/Prj/pro/Video_Processing/src/rtl/axi/axi_frame_writer64.v:4]
+	Parameter IMG_W bound to: 16'b0000001000000000 
+	Parameter IMG_H bound to: 16'b0000000100101100 
+	Parameter BASE_ADDR bound to: 269484032 - type: integer 
+INFO: [Synth 8-6155] done synthesizing module 'axi_frame_writer64' (0#1) [D:/Xilinx/Prj/pro/Video_Processing/src/rtl/axi/axi_frame_writer64.v:4]
+INFO: [Synth 8-6157] synthesizing module 'frame_buffer_w64' [D:/Xilinx/Prj/pro/Video_Processing/src/rtl/video/frame_buffer_w64.v:11]
+	Parameter W bound to: 16'b0000001000000000 
+	Parameter H bound to: 16'b0000000100101100 
+INFO: [Synth 8-6155] done synthesizing module 'frame_buffer_w64' (0#1) [D:/Xilinx/Prj/pro/Video_Processing/src/rtl/video/frame_buffer_w64.v:11]
+WARNING: [Synth 8-7071] port 'rd_data64' of module 'frame_buffer_w64' is unconnected for instance 'u_fb' [D:/Xilinx/Prj/pro/Video_Processing/src/rtl/top/pl_video_top.v:586]
+WARNING: [Synth 8-7023] instance 'u_fb' of module 'frame_buffer_w64' has 8 connections declared, but only 7 given [D:/Xilinx/Prj/pro/Video_Processing/src/rtl/top/pl_video_top.v:586]
+INFO: [Synth 8-6157] synthesizing module 'test_card' [D:/Xilinx/Prj/pro/Video_Processing/src/rtl/video/test_card.v:25]
+	Parameter H_ACTIVE bound to: 16'b0000001000000000 
+	Parameter V_ACTIVE bound to: 16'b0000000100101100 
+INFO: [Synth 8-6155] done synthesizing module 'test_card' (0#1) [D:/Xilinx/Prj/pro/Video_Processing/src/rtl/video/test_card.v:25]
+INFO: [Synth 8-6157] synthesizing module 'proc_pipeline' [D:/Xilinx/Prj/pro/Video_Processing/src/rtl/process/proc_pipeline.v:36]
+	Parameter H_ACTIVE bound to: 16'b0000001000000000 
+INFO: [Synth 8-6157] synthesizing module 'gamma_lut' [D:/Xilinx/Prj/pro/Video_Processing/src/rtl/video/gamma_lut.v:21]
+WARNING: [Synth 8-589] replacing case/wildcard equality operator !== with logical equality operator != [D:/Xilinx/Prj/pro/Video_Processing/src/rtl/video/gamma_lut.v:52]
+INFO: [Synth 8-6155] done synthesizing module 'gamma_lut' (0#1) [D:/Xilinx/Prj/pro/Video_Processing/src/rtl/video/gamma_lut.v:21]
+INFO: [Synth 8-6157] synthesizing module 'proc_gray' [D:/Xilinx/Prj/pro/Video_Processing/src/rtl/process/proc_gray.v:3]
+INFO: [Synth 8-6155] done synthesizing module 'proc_gray' (0#1) [D:/Xilinx/Prj/pro/Video_Processing/src/rtl/process/proc_gray.v:3]
+INFO: [Synth 8-6157] synthesizing module 'proc_invert' [D:/Xilinx/Prj/pro/Video_Processing/src/rtl/process/proc_invert.v:3]
+INFO: [Synth 8-6155] done synthesizing module 'proc_invert' (0#1) [D:/Xilinx/Prj/pro/Video_Processing/src/rtl/process/proc_invert.v:3]
+INFO: [Synth 8-6157] synthesizing module 'proc_box_blur' [D:/Xilinx/Prj/pro/Video_Processing/src/rtl/process/proc_box_blur.v:3]
+	Parameter H_ACTIVE bound to: 16'b0000001000000000 
+INFO: [Synth 8-6155] done synthesizing module 'proc_box_blur' (0#1) [D:/Xilinx/Prj/pro/Video_Processing/src/rtl/process/proc_box_blur.v:3]
+INFO: [Synth 8-6157] synthesizing module 'proc_sharpen' [D:/Xilinx/Prj/pro/Video_Processing/src/rtl/process/proc_sharpen.v:11]
+	Parameter H_ACTIVE bound to: 16'b0000001000000000 
+INFO: [Synth 8-6155] done synthesizing module 'proc_sharpen' (0#1) [D:/Xilinx/Prj/pro/Video_Processing/src/rtl/process/proc_sharpen.v:11]
+INFO: [Synth 8-6157] synthesizing module 'proc_sobel' [D:/Xilinx/Prj/pro/Video_Processing/src/rtl/process/proc_sobel.v:3]
+	Parameter H_ACTIVE bound to: 16'b0000001000000000 
+INFO: [Synth 8-6155] done synthesizing module 'proc_sobel' (0#1) [D:/Xilinx/Prj/pro/Video_Processing/src/rtl/process/proc_sobel.v:3]
+INFO: [Synth 8-6157] synthesizing module 'proc_binary' [D:/Xilinx/Prj/pro/Video_Processing/src/rtl/process/proc_binary.v:4]
+INFO: [Synth 8-6155] done synthesizing module 'proc_binary' (0#1) [D:/Xilinx/Prj/pro/Video_Processing/src/rtl/process/proc_binary.v:4]
+INFO: [Synth 8-6157] synthesizing module 'proc_morph' [D:/Xilinx/Prj/pro/Video_Processing/src/rtl/process/proc_morph.v:15]
+	Parameter H_ACTIVE bound to: 16'b0000001000000000 
+WARNING: [Synth 8-7186] Applying attribute ram_style = "distributed" is ignored, object 'mb0' is not inferred as ram due to incorrect usage [D:/Xilinx/Prj/pro/Video_Processing/src/rtl/process/proc_morph.v:43]
+WARNING: [Synth 8-7186] Applying attribute ram_style = "distributed" is ignored, object 'mb1' is not inferred as ram due to incorrect usage [D:/Xilinx/Prj/pro/Video_Processing/src/rtl/process/proc_morph.v:44]
+INFO: [Synth 8-6155] done synthesizing module 'proc_morph' (0#1) [D:/Xilinx/Prj/pro/Video_Processing/src/rtl/process/proc_morph.v:15]
+INFO: [Synth 8-6155] done synthesizing module 'proc_pipeline' (0#1) [D:/Xilinx/Prj/pro/Video_Processing/src/rtl/process/proc_pipeline.v:36]
+INFO: [Synth 8-6157] synthesizing module 'split_display' [D:/Xilinx/Prj/pro/Video_Processing/src/rtl/video/split_display.v:4]
+	Parameter PANE_W bound to: 16'b0000001000000000 
+INFO: [Synth 8-6155] done synthesizing module 'split_display' (0#1) [D:/Xilinx/Prj/pro/Video_Processing/src/rtl/video/split_display.v:4]
+INFO: [Synth 8-6157] synthesizing module 'snap_cross__parameterized0' [D:/Xilinx/Prj/pro/Video_Processing/src/rtl/eth/snap_cross.v:18]
+	Parameter W bound to: 320 - type: integer 
+	Parameter DST_HZ bound to: 50000000 - type: integer 
+	Parameter HB_TO_MS bound to: 200 - type: integer 
+INFO: [Synth 8-6155] done synthesizing module 'snap_cross__parameterized0' (0#1) [D:/Xilinx/Prj/pro/Video_Processing/src/rtl/eth/snap_cross.v:18]
+INFO: [Synth 8-6157] synthesizing module 'osd_overlay' [D:/Xilinx/Prj/pro/Video_Processing/src/rtl/video/osd_overlay.v:11]
+INFO: [Synth 8-6155] done synthesizing module 'osd_overlay' (0#1) [D:/Xilinx/Prj/pro/Video_Processing/src/rtl/video/osd_overlay.v:11]
+INFO: [Synth 8-6157] synthesizing module 'rgb2dvi' [D:/Xilinx/Prj/pro/Video_Processing/src/rtl/hdmi/rgb2dvi.v:3]
+INFO: [Synth 8-6157] synthesizing module 'tmds_encoder' [D:/Xilinx/Prj/pro/Video_Processing/src/rtl/hdmi/tmds_encoder.v:3]
+INFO: [Synth 8-6155] done synthesizing module 'tmds_encoder' (0#1) [D:/Xilinx/Prj/pro/Video_Processing/src/rtl/hdmi/tmds_encoder.v:3]
+INFO: [Synth 8-6157] synthesizing module 'tmds_serializer' [D:/Xilinx/Prj/pro/Video_Processing/src/rtl/hdmi/tmds_serializer.v:4]
+INFO: [Synth 8-6157] synthesizing module 'OSERDESE2' [D:/Software/Vivado/2025.2.1/Vivado/scripts/rt/data/unisim_comp.v:117669]
+	Parameter DATA_RATE_OQ bound to: DDR - type: string 
+	Parameter DATA_RATE_TQ bound to: SDR - type: string 
+	Parameter DATA_WIDTH bound to: 10 - type: integer 
+	Parameter SERDES_MODE bound to: MASTER - type: string 
+	Parameter TBYTE_CTL bound to: FALSE - type: string 
+	Parameter TBYTE_SRC bound to: FALSE - type: string 
+	Parameter TRISTATE_WIDTH bound to: 1 - type: integer 
+INFO: [Synth 8-6155] done synthesizing module 'OSERDESE2' (0#1) [D:/Software/Vivado/2025.2.1/Vivado/scripts/rt/data/unisim_comp.v:117669]
+INFO: [Synth 8-6157] synthesizing module 'OSERDESE2__parameterized0' [D:/Software/Vivado/2025.2.1/Vivado/scripts/rt/data/unisim_comp.v:117669]
+	Parameter DATA_RATE_OQ bound to: DDR - type: string 
+	Parameter DATA_RATE_TQ bound to: SDR - type: string 
+	Parameter DATA_WIDTH bound to: 10 - type: integer 
+	Parameter SERDES_MODE bound to: SLAVE - type: string 
+	Parameter TBYTE_CTL bound to: FALSE - type: string 
+	Parameter TBYTE_SRC bound to: FALSE - type: string 
+	Parameter TRISTATE_WIDTH bound to: 1 - type: integer 
+INFO: [Synth 8-6155] done synthesizing module 'OSERDESE2__parameterized0' (0#1) [D:/Software/Vivado/2025.2.1/Vivado/scripts/rt/data/unisim_comp.v:117669]
+INFO: [Synth 8-6157] synthesizing module 'OBUFDS' [D:/Software/Vivado/2025.2.1/Vivado/scripts/rt/data/unisim_comp.v:113400]
+INFO: [Synth 8-6155] done synthesizing module 'OBUFDS' (0#1) [D:/Software/Vivado/2025.2.1/Vivado/scripts/rt/data/unisim_comp.v:113400]
+INFO: [Synth 8-6155] done synthesizing module 'tmds_serializer' (0#1) [D:/Xilinx/Prj/pro/Video_Processing/src/rtl/hdmi/tmds_serializer.v:4]
+INFO: [Synth 8-6155] done synthesizing module 'rgb2dvi' (0#1) [D:/Xilinx/Prj/pro/Video_Processing/src/rtl/hdmi/rgb2dvi.v:3]
+INFO: [Synth 8-6155] done synthesizing module 'pl_video_top' (0#1) [D:/Xilinx/Prj/pro/Video_Processing/src/rtl/top/pl_video_top.v:5]
+INFO: [Synth 8-6155] done synthesizing module 'system_top' (0#1) [D:/Xilinx/Prj/pro/Video_Processing/src/rtl/top/system_top.v:3]
+WARNING: [Synth 8-6014] Unused sequential element ip_head_byte_num_reg was removed.  [D:/Xilinx/Prj/pro/Video_Processing/src/rtl/eth/icmp_rx.v:133]
+WARNING: [Synth 8-6014] Unused sequential element icmp_code_reg was removed.  [D:/Xilinx/Prj/pro/Video_Processing/src/rtl/eth/icmp_rx.v:138]
+WARNING: [Synth 8-6014] Unused sequential element icmp_checksum_reg was removed.  [D:/Xilinx/Prj/pro/Video_Processing/src/rtl/eth/icmp_rx.v:139]
+WARNING: [Synth 8-6014] Unused sequential element rec_en_cnt_reg was removed.  [D:/Xilinx/Prj/pro/Video_Processing/src/rtl/eth/icmp_rx.v:149]
+WARNING: [Synth 8-7137] Register ip_head_reg[6] in module icmp_tx has both Set and reset with same priority. This may cause simulation mismatches. Consider rewriting code  [D:/Xilinx/Prj/pro/Video_Processing/src/rtl/eth/icmp_tx.v:186]
+WARNING: [Synth 8-7137] Register ip_head_reg[5] in module icmp_tx has both Set and reset with same priority. This may cause simulation mismatches. Consider rewriting code  [D:/Xilinx/Prj/pro/Video_Processing/src/rtl/eth/icmp_tx.v:186]
+WARNING: [Synth 8-7137] Register ip_head_reg[4] in module icmp_tx has both Set and reset with same priority. This may cause simulation mismatches. Consider rewriting code  [D:/Xilinx/Prj/pro/Video_Processing/src/rtl/eth/icmp_tx.v:186]
+WARNING: [Synth 8-7137] Register ip_head_reg[3] in module icmp_tx has both Set and reset with same priority. This may cause simulation mismatches. Consider rewriting code  [D:/Xilinx/Prj/pro/Video_Processing/src/rtl/eth/icmp_tx.v:186]
+WARNING: [Synth 8-7137] Register ip_head_reg[2] in module icmp_tx has both Set and reset with same priority. This may cause simulation mismatches. Consider rewriting code  [D:/Xilinx/Prj/pro/Video_Processing/src/rtl/eth/icmp_tx.v:186]
+WARNING: [Synth 8-7137] Register ip_head_reg[0] in module icmp_tx has both Set and reset with same priority. This may cause simulation mismatches. Consider rewriting code  [D:/Xilinx/Prj/pro/Video_Processing/src/rtl/eth/icmp_tx.v:186]
+WARNING: [Synth 8-7137] Register ip_head_reg[6] in module udp_tx has both Set and reset with same priority. This may cause simulation mismatches. Consider rewriting code  [D:/Xilinx/Prj/pro/Video_Processing/src/rtl/eth/udp_tx.v:172]
+WARNING: [Synth 8-7137] Register ip_head_reg[5] in module udp_tx has both Set and reset with same priority. This may cause simulation mismatches. Consider rewriting code  [D:/Xilinx/Prj/pro/Video_Processing/src/rtl/eth/udp_tx.v:172]
+WARNING: [Synth 8-7137] Register ip_head_reg[4] in module udp_tx has both Set and reset with same priority. This may cause simulation mismatches. Consider rewriting code  [D:/Xilinx/Prj/pro/Video_Processing/src/rtl/eth/udp_tx.v:172]
+WARNING: [Synth 8-7137] Register ip_head_reg[3] in module udp_tx has both Set and reset with same priority. This may cause simulation mismatches. Consider rewriting code  [D:/Xilinx/Prj/pro/Video_Processing/src/rtl/eth/udp_tx.v:172]
+WARNING: [Synth 8-7137] Register ip_head_reg[2] in module udp_tx has both Set and reset with same priority. This may cause simulation mismatches. Consider rewriting code  [D:/Xilinx/Prj/pro/Video_Processing/src/rtl/eth/udp_tx.v:172]
+WARNING: [Synth 8-7137] Register ip_head_reg[0] in module udp_tx has both Set and reset with same priority. This may cause simulation mismatches. Consider rewriting code  [D:/Xilinx/Prj/pro/Video_Processing/src/rtl/eth/udp_tx.v:172]
+WARNING: [Synth 8-6014] Unused sequential element saw_sfd_reg was removed.  [D:/Xilinx/Prj/pro/Video_Processing/src/rtl/eth/gmii_rx_mac.v:61]
+WARNING: [Synth 8-6014] Unused sequential element pkt_start_reg was removed.  [D:/Xilinx/Prj/pro/Video_Processing/src/rtl/eth/frame_reasm.v:133]
+WARNING: [Synth 8-3848] Net fifo_tx_data in module/entity eth_udp_video_top does not have driver. [D:/Xilinx/Prj/pro/Video_Processing/src/rtl/eth/eth_udp_video_top.v:111]
+WARNING: [Synth 8-6014] Unused sequential element p00_reg was removed.  [D:/Xilinx/Prj/pro/Video_Processing/src/rtl/process/proc_sharpen.v:86]
+WARNING: [Synth 8-6014] Unused sequential element p20_reg was removed.  [D:/Xilinx/Prj/pro/Video_Processing/src/rtl/process/proc_sharpen.v:86]
+WARNING: [Synth 8-6014] Unused sequential element de_d_reg[12] was removed.  [D:/Xilinx/Prj/pro/Video_Processing/src/rtl/top/pl_video_top.v:265]
+WARNING: [Synth 8-6014] Unused sequential element de_d_reg[13] was removed.  [D:/Xilinx/Prj/pro/Video_Processing/src/rtl/top/pl_video_top.v:265]
+WARNING: [Synth 8-6014] Unused sequential element de_d_reg[14] was removed.  [D:/Xilinx/Prj/pro/Video_Processing/src/rtl/top/pl_video_top.v:265]
+WARNING: [Synth 8-6014] Unused sequential element de_d_reg[15] was removed.  [D:/Xilinx/Prj/pro/Video_Processing/src/rtl/top/pl_video_top.v:265]
+WARNING: [Synth 8-6014] Unused sequential element hs_d_reg[12] was removed.  [D:/Xilinx/Prj/pro/Video_Processing/src/rtl/top/pl_video_top.v:265]
+WARNING: [Synth 8-6014] Unused sequential element hs_d_reg[13] was removed.  [D:/Xilinx/Prj/pro/Video_Processing/src/rtl/top/pl_video_top.v:265]
+WARNING: [Synth 8-6014] Unused sequential element hs_d_reg[14] was removed.  [D:/Xilinx/Prj/pro/Video_Processing/src/rtl/top/pl_video_top.v:265]
+WARNING: [Synth 8-6014] Unused sequential element hs_d_reg[15] was removed.  [D:/Xilinx/Prj/pro/Video_Processing/src/rtl/top/pl_video_top.v:265]
+WARNING: [Synth 8-6014] Unused sequential element vs_d_reg[12] was removed.  [D:/Xilinx/Prj/pro/Video_Processing/src/rtl/top/pl_video_top.v:265]
+WARNING: [Synth 8-6014] Unused sequential element vs_d_reg[13] was removed.  [D:/Xilinx/Prj/pro/Video_Processing/src/rtl/top/pl_video_top.v:265]
+WARNING: [Synth 8-6014] Unused sequential element vs_d_reg[14] was removed.  [D:/Xilinx/Prj/pro/Video_Processing/src/rtl/top/pl_video_top.v:265]
+WARNING: [Synth 8-6014] Unused sequential element vs_d_reg[15] was removed.  [D:/Xilinx/Prj/pro/Video_Processing/src/rtl/top/pl_video_top.v:265]
+WARNING: [Synth 8-6014] Unused sequential element left_d_reg[4] was removed.  [D:/Xilinx/Prj/pro/Video_Processing/src/rtl/top/pl_video_top.v:265]
+WARNING: [Synth 8-6014] Unused sequential element left_d_reg[5] was removed.  [D:/Xilinx/Prj/pro/Video_Processing/src/rtl/top/pl_video_top.v:265]
+WARNING: [Synth 8-6014] Unused sequential element left_d_reg[6] was removed.  [D:/Xilinx/Prj/pro/Video_Processing/src/rtl/top/pl_video_top.v:265]
+WARNING: [Synth 8-6014] Unused sequential element left_d_reg[7] was removed.  [D:/Xilinx/Prj/pro/Video_Processing/src/rtl/top/pl_video_top.v:265]
+WARNING: [Synth 8-6014] Unused sequential element left_d_reg[8] was removed.  [D:/Xilinx/Prj/pro/Video_Processing/src/rtl/top/pl_video_top.v:265]
+WARNING: [Synth 8-6014] Unused sequential element left_d_reg[9] was removed.  [D:/Xilinx/Prj/pro/Video_Processing/src/rtl/top/pl_video_top.v:265]
+WARNING: [Synth 8-6014] Unused sequential element left_d_reg[10] was removed.  [D:/Xilinx/Prj/pro/Video_Processing/src/rtl/top/pl_video_top.v:265]
+WARNING: [Synth 8-6014] Unused sequential element left_d_reg[11] was removed.  [D:/Xilinx/Prj/pro/Video_Processing/src/rtl/top/pl_video_top.v:265]
+WARNING: [Synth 8-6014] Unused sequential element left_d_reg[12] was removed.  [D:/Xilinx/Prj/pro/Video_Processing/src/rtl/top/pl_video_top.v:265]
+WARNING: [Synth 8-6014] Unused sequential element left_d_reg[13] was removed.  [D:/Xilinx/Prj/pro/Video_Processing/src/rtl/top/pl_video_top.v:265]
+WARNING: [Synth 8-6014] Unused sequential element left_d_reg[14] was removed.  [D:/Xilinx/Prj/pro/Video_Processing/src/rtl/top/pl_video_top.v:265]
+WARNING: [Synth 8-6014] Unused sequential element left_d_reg[15] was removed.  [D:/Xilinx/Prj/pro/Video_Processing/src/rtl/top/pl_video_top.v:265]
+WARNING: [Synth 8-6014] Unused sequential element x_d_reg[12] was removed.  [D:/Xilinx/Prj/pro/Video_Processing/src/rtl/top/pl_video_top.v:266]
+WARNING: [Synth 8-6014] Unused sequential element x_d_reg[13] was removed.  [D:/Xilinx/Prj/pro/Video_Processing/src/rtl/top/pl_video_top.v:266]
+WARNING: [Synth 8-6014] Unused sequential element x_d_reg[14] was removed.  [D:/Xilinx/Prj/pro/Video_Processing/src/rtl/top/pl_video_top.v:266]
+WARNING: [Synth 8-6014] Unused sequential element x_d_reg[15] was removed.  [D:/Xilinx/Prj/pro/Video_Processing/src/rtl/top/pl_video_top.v:266]
+WARNING: [Synth 8-6014] Unused sequential element y_d_reg[12] was removed.  [D:/Xilinx/Prj/pro/Video_Processing/src/rtl/top/pl_video_top.v:266]
+WARNING: [Synth 8-6014] Unused sequential element y_d_reg[13] was removed.  [D:/Xilinx/Prj/pro/Video_Processing/src/rtl/top/pl_video_top.v:266]
+WARNING: [Synth 8-6014] Unused sequential element y_d_reg[14] was removed.  [D:/Xilinx/Prj/pro/Video_Processing/src/rtl/top/pl_video_top.v:266]
+WARNING: [Synth 8-6014] Unused sequential element y_d_reg[15] was removed.  [D:/Xilinx/Prj/pro/Video_Processing/src/rtl/top/pl_video_top.v:266]
+WARNING: [Synth 8-6014] Unused sequential element cx_d_reg[4] was removed.  [D:/Xilinx/Prj/pro/Video_Processing/src/rtl/top/pl_video_top.v:266]
+WARNING: [Synth 8-6014] Unused sequential element cx_d_reg[5] was removed.  [D:/Xilinx/Prj/pro/Video_Processing/src/rtl/top/pl_video_top.v:266]
+WARNING: [Synth 8-6014] Unused sequential element cx_d_reg[6] was removed.  [D:/Xilinx/Prj/pro/Video_Processing/src/rtl/top/pl_video_top.v:266]
+WARNING: [Synth 8-6014] Unused sequential element cx_d_reg[7] was removed.  [D:/Xilinx/Prj/pro/Video_Processing/src/rtl/top/pl_video_top.v:266]
+WARNING: [Synth 8-6014] Unused sequential element cx_d_reg[8] was removed.  [D:/Xilinx/Prj/pro/Video_Processing/src/rtl/top/pl_video_top.v:266]
+WARNING: [Synth 8-6014] Unused sequential element cx_d_reg[9] was removed.  [D:/Xilinx/Prj/pro/Video_Processing/src/rtl/top/pl_video_top.v:266]
+WARNING: [Synth 8-6014] Unused sequential element cx_d_reg[10] was removed.  [D:/Xilinx/Prj/pro/Video_Processing/src/rtl/top/pl_video_top.v:266]
+WARNING: [Synth 8-6014] Unused sequential element cx_d_reg[11] was removed.  [D:/Xilinx/Prj/pro/Video_Processing/src/rtl/top/pl_video_top.v:266]
+WARNING: [Synth 8-6014] Unused sequential element cx_d_reg[12] was removed.  [D:/Xilinx/Prj/pro/Video_Processing/src/rtl/top/pl_video_top.v:266]
+WARNING: [Synth 8-6014] Unused sequential element cx_d_reg[13] was removed.  [D:/Xilinx/Prj/pro/Video_Processing/src/rtl/top/pl_video_top.v:266]
+WARNING: [Synth 8-6014] Unused sequential element cx_d_reg[14] was removed.  [D:/Xilinx/Prj/pro/Video_Processing/src/rtl/top/pl_video_top.v:266]
+WARNING: [Synth 8-6014] Unused sequential element cx_d_reg[15] was removed.  [D:/Xilinx/Prj/pro/Video_Processing/src/rtl/top/pl_video_top.v:266]
+WARNING: [Synth 8-6014] Unused sequential element cy_d_reg[4] was removed.  [D:/Xilinx/Prj/pro/Video_Processing/src/rtl/top/pl_video_top.v:266]
+WARNING: [Synth 8-6014] Unused sequential element cy_d_reg[5] was removed.  [D:/Xilinx/Prj/pro/Video_Processing/src/rtl/top/pl_video_top.v:266]
+WARNING: [Synth 8-6014] Unused sequential element cy_d_reg[6] was removed.  [D:/Xilinx/Prj/pro/Video_Processing/src/rtl/top/pl_video_top.v:266]
+WARNING: [Synth 8-6014] Unused sequential element cy_d_reg[7] was removed.  [D:/Xilinx/Prj/pro/Video_Processing/src/rtl/top/pl_video_top.v:266]
+WARNING: [Synth 8-6014] Unused sequential element cy_d_reg[8] was removed.  [D:/Xilinx/Prj/pro/Video_Processing/src/rtl/top/pl_video_top.v:266]
+WARNING: [Synth 8-6014] Unused sequential element cy_d_reg[9] was removed.  [D:/Xilinx/Prj/pro/Video_Processing/src/rtl/top/pl_video_top.v:266]
+WARNING: [Synth 8-6014] Unused sequential element cy_d_reg[10] was removed.  [D:/Xilinx/Prj/pro/Video_Processing/src/rtl/top/pl_video_top.v:266]
+WARNING: [Synth 8-6014] Unused sequential element cy_d_reg[11] was removed.  [D:/Xilinx/Prj/pro/Video_Processing/src/rtl/top/pl_video_top.v:266]
+WARNING: [Synth 8-6014] Unused sequential element cy_d_reg[12] was removed.  [D:/Xilinx/Prj/pro/Video_Processing/src/rtl/top/pl_video_top.v:266]
+WARNING: [Synth 8-6014] Unused sequential element cy_d_reg[13] was removed.  [D:/Xilinx/Prj/pro/Video_Processing/src/rtl/top/pl_video_top.v:266]
+WARNING: [Synth 8-6014] Unused sequential element cy_d_reg[14] was removed.  [D:/Xilinx/Prj/pro/Video_Processing/src/rtl/top/pl_video_top.v:266]
+WARNING: [Synth 8-6014] Unused sequential element cy_d_reg[15] was removed.  [D:/Xilinx/Prj/pro/Video_Processing/src/rtl/top/pl_video_top.v:266]
+WARNING: [Synth 8-3917] design system_top has port eth_mdc driven by constant 0
+WARNING: [Synth 8-7129] Port src_sel in module osd_overlay is either unconnected or has no load
+WARNING: [Synth 8-7129] Port eth_link in module osd_overlay is either unconnected or has no load
+WARNING: [Synth 8-7129] Port net_pkts[15] in module osd_overlay is either unconnected or has no load
+WARNING: [Synth 8-7129] Port net_pkts[14] in module osd_overlay is either unconnected or has no load
+WARNING: [Synth 8-7129] Port net_pkts[13] in module osd_overlay is either unconnected or has no load
+WARNING: [Synth 8-7129] Port net_pkts[12] in module osd_overlay is either unconnected or has no load
+WARNING: [Synth 8-7129] Port net_pkts[11] in module osd_overlay is either unconnected or has no load
+WARNING: [Synth 8-7129] Port net_pkts[10] in module osd_overlay is either unconnected or has no load
+WARNING: [Synth 8-7129] Port net_pkts[9] in module osd_overlay is either unconnected or has no load
+WARNING: [Synth 8-7129] Port net_pkts[8] in module osd_overlay is either unconnected or has no load
+WARNING: [Synth 8-7129] Port net_pkts[7] in module osd_overlay is either unconnected or has no load
+WARNING: [Synth 8-7129] Port net_pkts[6] in module osd_overlay is either unconnected or has no load
+WARNING: [Synth 8-7129] Port net_pkts[5] in module osd_overlay is either unconnected or has no load
+WARNING: [Synth 8-7129] Port net_pkts[4] in module osd_overlay is either unconnected or has no load
+WARNING: [Synth 8-7129] Port net_pkts[3] in module osd_overlay is either unconnected or has no load
+WARNING: [Synth 8-7129] Port net_pkts[2] in module osd_overlay is either unconnected or has no load
+WARNING: [Synth 8-7129] Port net_pkts[1] in module osd_overlay is either unconnected or has no load
+WARNING: [Synth 8-7129] Port net_pkts[0] in module osd_overlay is either unconnected or has no load
+WARNING: [Synth 8-7129] Port net_bad[15] in module osd_overlay is either unconnected or has no load
+WARNING: [Synth 8-7129] Port net_bad[14] in module osd_overlay is either unconnected or has no load
+WARNING: [Synth 8-7129] Port net_bad[13] in module osd_overlay is either unconnected or has no load
+WARNING: [Synth 8-7129] Port net_bad[12] in module osd_overlay is either unconnected or has no load
+WARNING: [Synth 8-7129] Port net_bad[11] in module osd_overlay is either unconnected or has no load
+WARNING: [Synth 8-7129] Port net_bad[10] in module osd_overlay is either unconnected or has no load
+WARNING: [Synth 8-7129] Port net_bad[9] in module osd_overlay is either unconnected or has no load
+WARNING: [Synth 8-7129] Port net_bad[8] in module osd_overlay is either unconnected or has no load
+WARNING: [Synth 8-7129] Port net_bad[7] in module osd_overlay is either unconnected or has no load
+WARNING: [Synth 8-7129] Port net_bad[6] in module osd_overlay is either unconnected or has no load
+WARNING: [Synth 8-7129] Port net_bad[5] in module osd_overlay is either unconnected or has no load
+WARNING: [Synth 8-7129] Port net_bad[4] in module osd_overlay is either unconnected or has no load
+WARNING: [Synth 8-7129] Port net_bad[3] in module osd_overlay is either unconnected or has no load
+WARNING: [Synth 8-7129] Port net_bad[2] in module osd_overlay is either unconnected or has no load
+WARNING: [Synth 8-7129] Port net_bad[1] in module osd_overlay is either unconnected or has no load
+WARNING: [Synth 8-7129] Port net_bad[0] in module osd_overlay is either unconnected or has no load
+WARNING: [Synth 8-7129] Port bg_pix[15] in module osd_overlay is either unconnected or has no load
+WARNING: [Synth 8-7129] Port bg_pix[14] in module osd_overlay is either unconnected or has no load
+WARNING: [Synth 8-7129] Port bg_pix[13] in module osd_overlay is either unconnected or has no load
+WARNING: [Synth 8-7129] Port bg_pix[12] in module osd_overlay is either unconnected or has no load
+WARNING: [Synth 8-7129] Port bg_pix[11] in module osd_overlay is either unconnected or has no load
+WARNING: [Synth 8-7129] Port bg_pix[10] in module osd_overlay is either unconnected or has no load
+WARNING: [Synth 8-7129] Port bg_pix[9] in module osd_overlay is either unconnected or has no load
+WARNING: [Synth 8-7129] Port bg_pix[8] in module osd_overlay is either unconnected or has no load
+WARNING: [Synth 8-7129] Port bg_pix[7] in module osd_overlay is either unconnected or has no load
+WARNING: [Synth 8-7129] Port bg_pix[6] in module osd_overlay is either unconnected or has no load
+WARNING: [Synth 8-7129] Port bg_pix[5] in module osd_overlay is either unconnected or has no load
+WARNING: [Synth 8-7129] Port bg_pix[4] in module osd_overlay is either unconnected or has no load
+WARNING: [Synth 8-7129] Port bg_pix[3] in module osd_overlay is either unconnected or has no load
+WARNING: [Synth 8-7129] Port bg_pix[2] in module osd_overlay is either unconnected or has no load
+WARNING: [Synth 8-7129] Port bg_pix[1] in module osd_overlay is either unconnected or has no load
+WARNING: [Synth 8-7129] Port bg_pix[0] in module osd_overlay is either unconnected or has no load
+WARNING: [Synth 8-7129] Port y[11] in module split_display is either unconnected or has no load
+WARNING: [Synth 8-7129] Port y[10] in module split_display is either unconnected or has no load
+WARNING: [Synth 8-7129] Port y[9] in module split_display is either unconnected or has no load
+WARNING: [Synth 8-7129] Port y[8] in module split_display is either unconnected or has no load
+WARNING: [Synth 8-7129] Port y[7] in module split_display is either unconnected or has no load
+WARNING: [Synth 8-7129] Port y[6] in module split_display is either unconnected or has no load
+WARNING: [Synth 8-7129] Port y[5] in module split_display is either unconnected or has no load
+WARNING: [Synth 8-7129] Port y[4] in module split_display is either unconnected or has no load
+WARNING: [Synth 8-7129] Port y[3] in module split_display is either unconnected or has no load
+WARNING: [Synth 8-7129] Port y[2] in module split_display is either unconnected or has no load
+WARNING: [Synth 8-7129] Port y[1] in module split_display is either unconnected or has no load
+WARNING: [Synth 8-7129] Port y[0] in module split_display is either unconnected or has no load
+WARNING: [Synth 8-7129] Port angle_idx[1] in module split_display is either unconnected or has no load
+WARNING: [Synth 8-7129] Port angle_idx[0] in module split_display is either unconnected or has no load
+WARNING: [Synth 8-7129] Port vs_in in module proc_sobel is either unconnected or has no load
+WARNING: [Synth 8-7129] Port hs_in in module proc_box_blur is either unconnected or has no load
+WARNING: [Synth 8-7129] Port vs_in in module proc_box_blur is either unconnected or has no load
+WARNING: [Synth 8-7129] Port rotate_active in module proc_pipeline is either unconnected or has no load
+WARNING: [Synth 8-7129] Port de in module frame_commit_lock is either unconnected or has no load
+WARNING: [Synth 8-7129] Port gamma_async[13] in module effect_ctrl is either unconnected or has no load
+WARNING: [Synth 8-7129] Port gamma_async[12] in module effect_ctrl is either unconnected or has no load
+WARNING: [Synth 8-7129] Port gamma_async[11] in module effect_ctrl is either unconnected or has no load
+WARNING: [Synth 8-7129] Port gamma_async[10] in module effect_ctrl is either unconnected or has no load
+WARNING: [Synth 8-7129] Port gamma_async[9] in module effect_ctrl is either unconnected or has no load
+WARNING: [Synth 8-7129] Port gamma_async[8] in module effect_ctrl is either unconnected or has no load
+WARNING: [Synth 8-7129] Port gamma_async[7] in module effect_ctrl is either unconnected or has no load
+WARNING: [Synth 8-7129] Port gamma_async[6] in module effect_ctrl is either unconnected or has no load
+WARNING: [Synth 8-7129] Port gamma_async[5] in module effect_ctrl is either unconnected or has no load
+WARNING: [Synth 8-7129] Port gamma_async[4] in module effect_ctrl is either unconnected or has no load
+WARNING: [Synth 8-7129] Port gamma_async[3] in module effect_ctrl is either unconnected or has no load
+WARNING: [Synth 8-7129] Port gamma_async[2] in module effect_ctrl is either unconnected or has no load
+WARNING: [Synth 8-7129] Port gamma_async[1] in module effect_ctrl is either unconnected or has no load
+WARNING: [Synth 8-7129] Port gamma_async[0] in module effect_ctrl is either unconnected or has no load
+WARNING: [Synth 8-7129] Port m_axi_rid[5] in module pl_video_top is either unconnected or has no load
+WARNING: [Synth 8-7129] Port m_axi_rid[4] in module pl_video_top is either unconnected or has no load
+WARNING: [Synth 8-7129] Port m_axi_rid[3] in module pl_video_top is either unconnected or has no load
+WARNING: [Synth 8-7129] Port m_axi_rid[2] in module pl_video_top is either unconnected or has no load
+WARNING: [Synth 8-7129] Port m_axi_rid[1] in module pl_video_top is either unconnected or has no load
+WARNING: [Synth 8-7129] Port m_axi_rid[0] in module pl_video_top is either unconnected or has no load
+WARNING: [Synth 8-7129] Port m_axi_rresp[1] in module pl_video_top is either unconnected or has no load
+WARNING: [Synth 8-7129] Port m_axi_rresp[0] in module pl_video_top is either unconnected or has no load
+WARNING: [Synth 8-7129] Port eth_wr_clk in module pl_video_top is either unconnected or has no load
+WARNING: [Synth 8-7129] Port eth_wr_en in module pl_video_top is either unconnected or has no load
+WARNING: [Synth 8-7129] Port eth_wr_addr[18] in module pl_video_top is either unconnected or has no load
+WARNING: [Synth 8-7129] Port eth_wr_addr[17] in module pl_video_top is either unconnected or has no load
+WARNING: [Synth 8-7129] Port eth_wr_addr[16] in module pl_video_top is either unconnected or has no load
+WARNING: [Synth 8-7129] Port eth_wr_addr[15] in module pl_video_top is either unconnected or has no load
+WARNING: [Synth 8-7129] Port eth_wr_addr[14] in module pl_video_top is either unconnected or has no load
+WARNING: [Synth 8-7129] Port eth_wr_addr[13] in module pl_video_top is either unconnected or has no load
+WARNING: [Synth 8-7129] Port eth_wr_addr[12] in module pl_video_top is either unconnected or has no load
+INFO: [Common 17-14] Message 'Synth 8-7129' appears 100 times and further instances of the messages will be disabled. Use the Tcl command set_msg_config to change the current settings.
+---------------------------------------------------------------------------------
+Finished RTL Elaboration : Time (s): cpu = 00:00:12 ; elapsed = 00:00:13 . Memory (MB): peak = 1561.844 ; gain = 761.367
+---------------------------------------------------------------------------------
+---------------------------------------------------------------------------------
+Start Handling Custom Attributes
+---------------------------------------------------------------------------------
+---------------------------------------------------------------------------------
+Finished Handling Custom Attributes : Time (s): cpu = 00:00:12 ; elapsed = 00:00:13 . Memory (MB): peak = 1561.844 ; gain = 761.367
+---------------------------------------------------------------------------------
+---------------------------------------------------------------------------------
+Finished RTL Optimization Phase 1 : Time (s): cpu = 00:00:12 ; elapsed = 00:00:13 . Memory (MB): peak = 1561.844 ; gain = 761.367
+---------------------------------------------------------------------------------
+Netlist sorting complete. Time (s): cpu = 00:00:00 ; elapsed = 00:00:00.361 . Memory (MB): peak = 1561.844 ; gain = 0.000
+INFO: [Netlist 29-17] Analyzing 21 Unisim elements for replacement
+INFO: [Netlist 29-28] Unisim Transformation completed in 0 CPU seconds
+INFO: [Project 1-570] Preparing netlist for logic optimization
+
+Processing XDC Constraints
+Initializing timing engine
+Parsing XDC File [d:/Xilinx/Prj/pro/Video_Processing/vivado_system/zynq_video_sys.gen/sources_1/bd/design_1/ip/design_1_processing_system7_0_0/design_1_processing_system7_0_0/design_1_processing_system7_0_0_in_context.xdc] for cell 'u_bd/design_1_i/processing_system7_0'
+Finished Parsing XDC File [d:/Xilinx/Prj/pro/Video_Processing/vivado_system/zynq_video_sys.gen/sources_1/bd/design_1/ip/design_1_processing_system7_0_0/design_1_processing_system7_0_0/design_1_processing_system7_0_0_in_context.xdc] for cell 'u_bd/design_1_i/processing_system7_0'
+Parsing XDC File [d:/Xilinx/Prj/pro/Video_Processing/vivado_system/zynq_video_sys.gen/sources_1/bd/design_1/ip/design_1_axi_gpio_0_0/design_1_axi_gpio_0_0/design_1_axi_gpio_0_0_in_context.xdc] for cell 'u_bd/design_1_i/axi_gpio_0'
+Finished Parsing XDC File [d:/Xilinx/Prj/pro/Video_Processing/vivado_system/zynq_video_sys.gen/sources_1/bd/design_1/ip/design_1_axi_gpio_0_0/design_1_axi_gpio_0_0/design_1_axi_gpio_0_0_in_context.xdc] for cell 'u_bd/design_1_i/axi_gpio_0'
+Parsing XDC File [d:/Xilinx/Prj/pro/Video_Processing/vivado_system/zynq_video_sys.gen/sources_1/bd/design_1/ip/design_1_axi_gpio_1_0/design_1_axi_gpio_1_0/design_1_axi_gpio_1_0_in_context.xdc] for cell 'u_bd/design_1_i/axi_gpio_1'
+Finished Parsing XDC File [d:/Xilinx/Prj/pro/Video_Processing/vivado_system/zynq_video_sys.gen/sources_1/bd/design_1/ip/design_1_axi_gpio_1_0/design_1_axi_gpio_1_0/design_1_axi_gpio_1_0_in_context.xdc] for cell 'u_bd/design_1_i/axi_gpio_1'
+Parsing XDC File [d:/Xilinx/Prj/pro/Video_Processing/vivado_system/zynq_video_sys.gen/sources_1/bd/design_1/ip/design_1_axi_gpio_2_0/design_1_axi_gpio_2_0/design_1_axi_gpio_2_0_in_context.xdc] for cell 'u_bd/design_1_i/axi_gpio_2'
+Finished Parsing XDC File [d:/Xilinx/Prj/pro/Video_Processing/vivado_system/zynq_video_sys.gen/sources_1/bd/design_1/ip/design_1_axi_gpio_2_0/design_1_axi_gpio_2_0/design_1_axi_gpio_2_0_in_context.xdc] for cell 'u_bd/design_1_i/axi_gpio_2'
+Parsing XDC File [d:/Xilinx/Prj/pro/Video_Processing/vivado_system/zynq_video_sys.gen/sources_1/bd/design_1/ip/design_1_axi_gp0_ic_imp_xbar_0/design_1_axi_gp0_ic_imp_xbar_0/design_1_axi_gp0_ic_imp_xbar_0_in_context.xdc] for cell 'u_bd/design_1_i/axi_gp0_ic/xbar'
+Finished Parsing XDC File [d:/Xilinx/Prj/pro/Video_Processing/vivado_system/zynq_video_sys.gen/sources_1/bd/design_1/ip/design_1_axi_gp0_ic_imp_xbar_0/design_1_axi_gp0_ic_imp_xbar_0/design_1_axi_gp0_ic_imp_xbar_0_in_context.xdc] for cell 'u_bd/design_1_i/axi_gp0_ic/xbar'
+Parsing XDC File [d:/Xilinx/Prj/pro/Video_Processing/vivado_system/zynq_video_sys.gen/sources_1/bd/design_1/ip/design_1_axi_gp0_ic_imp_auto_pc_0/design_1_axi_gp0_ic_imp_auto_pc_0/design_1_axi_gp0_ic_imp_auto_pc_0_in_context.xdc] for cell 'u_bd/design_1_i/axi_gp0_ic/s00_couplers/auto_pc'
+Finished Parsing XDC File [d:/Xilinx/Prj/pro/Video_Processing/vivado_system/zynq_video_sys.gen/sources_1/bd/design_1/ip/design_1_axi_gp0_ic_imp_auto_pc_0/design_1_axi_gp0_ic_imp_auto_pc_0/design_1_axi_gp0_ic_imp_auto_pc_0_in_context.xdc] for cell 'u_bd/design_1_i/axi_gp0_ic/s00_couplers/auto_pc'
+Parsing XDC File [D:/Xilinx/Prj/pro/Video_Processing/src/constraints/rk_zynq7020.xdc]
+Finished Parsing XDC File [D:/Xilinx/Prj/pro/Video_Processing/src/constraints/rk_zynq7020.xdc]
+INFO: [Project 1-236] Implementation specific constraints were found while reading constraint file [D:/Xilinx/Prj/pro/Video_Processing/src/constraints/rk_zynq7020.xdc]. These constraints will be ignored for synthesis but will be used in implementation. Impacted constraints are listed in the file [.Xil/system_top_propImpl.xdc].
+Resolution: To avoid this warning, move constraints listed in [.Xil/system_top_propImpl.xdc] to another XDC file and exclude this new file from synthesis with the used_in_synthesis property (File Properties dialog in GUI) and re-run elaboration/synthesis.
+Parsing XDC File [D:/Xilinx/Prj/pro/Video_Processing/vivado_system/zynq_video_sys.runs/synth_1/dont_touch.xdc]
+Finished Parsing XDC File [D:/Xilinx/Prj/pro/Video_Processing/vivado_system/zynq_video_sys.runs/synth_1/dont_touch.xdc]
+INFO: [Timing 38-2] Deriving generated clocks
+Completed Processing XDC Constraints
+
+Netlist sorting complete. Time (s): cpu = 00:00:00 ; elapsed = 00:00:00.012 . Memory (MB): peak = 1658.258 ; gain = 0.000
+INFO: [Project 1-111] Unisim Transformation Summary:
+  A total of 6 instances were transformed.
+  MMCME2_BASE => MMCME2_ADV: 2 instances
+  OBUFDS => OBUFDS_DUAL_BUF (INV, OBUFDS(x2)): 4 instances
+
+Constraint Validation Runtime : Time (s): cpu = 00:00:00 ; elapsed = 00:00:00.243 . Memory (MB): peak = 1658.258 ; gain = 0.000
+---------------------------------------------------------------------------------
+Finished Constraint Validation : Time (s): cpu = 00:00:28 ; elapsed = 00:00:30 . Memory (MB): peak = 1658.258 ; gain = 857.781
+---------------------------------------------------------------------------------
+---------------------------------------------------------------------------------
+Start Loading Part and Timing Information
+---------------------------------------------------------------------------------
+Loading part: xc7z020clg484-2
+---------------------------------------------------------------------------------
+Finished Loading Part and Timing Information : Time (s): cpu = 00:00:28 ; elapsed = 00:00:30 . Memory (MB): peak = 1658.258 ; gain = 857.781
+---------------------------------------------------------------------------------
+---------------------------------------------------------------------------------
+Start Applying 'set_property' XDC Constraints
+---------------------------------------------------------------------------------
+---------------------------------------------------------------------------------
+Finished applying 'set_property' XDC Constraints : Time (s): cpu = 00:00:29 ; elapsed = 00:00:30 . Memory (MB): peak = 1658.258 ; gain = 857.781
+---------------------------------------------------------------------------------
+INFO: [Synth 8-802] inferred FSM for state register 'cur_state_reg' in module 'arp_rx'
+INFO: [Synth 8-802] inferred FSM for state register 'cur_state_reg' in module 'arp_tx'
+INFO: [Synth 8-802] inferred FSM for state register 'cur_state_reg' in module 'icmp_rx'
+INFO: [Synth 8-802] inferred FSM for state register 'cur_state_reg' in module 'icmp_tx'
+INFO: [Synth 8-802] inferred FSM for state register 'cur_state_reg' in module 'udp_tx'
+INFO: [Synth 8-802] inferred FSM for state register 'state_reg' in module 'gmii_rx_mac'
+---------------------------------------------------------------------------------------------------
+                   State |                     New Encoding |                Previous Encoding 
+---------------------------------------------------------------------------------------------------
+                 st_idle |                            00001 |                            00001
+             st_preamble |                            00010 |                            00010
+             st_eth_head |                            00100 |                            00100
+             st_arp_data |                            01000 |                            01000
+               st_rx_end |                            10000 |                            10000
+---------------------------------------------------------------------------------------------------
+INFO: [Synth 8-3354] encoded FSM with state register 'cur_state_reg' using encoding 'one-hot' in module 'arp_rx'
+---------------------------------------------------------------------------------------------------
+                   State |                     New Encoding |                Previous Encoding 
+---------------------------------------------------------------------------------------------------
+                 st_idle |                            00001 |                            00001
+             st_preamble |                            00010 |                            00010
+             st_eth_head |                            00100 |                            00100
+             st_arp_data |                            01000 |                            01000
+                  st_crc |                            10000 |                            10000
+---------------------------------------------------------------------------------------------------
+INFO: [Synth 8-3354] encoded FSM with state register 'cur_state_reg' using encoding 'one-hot' in module 'arp_tx'
+---------------------------------------------------------------------------------------------------
+                   State |                     New Encoding |                Previous Encoding 
+---------------------------------------------------------------------------------------------------
+                 st_idle |                          0000001 |                          0000001
+             st_preamble |                          0000010 |                          0000010
+             st_eth_head |                          0000100 |                          0000100
+              st_ip_head |                          0001000 |                          0001000
+            st_icmp_head |                          0010000 |                          0010000
+              st_rx_data |                          0100000 |                          0100000
+               st_rx_end |                          1000000 |                          1000000
+---------------------------------------------------------------------------------------------------
+INFO: [Synth 8-3354] encoded FSM with state register 'cur_state_reg' using encoding 'one-hot' in module 'icmp_rx'
+---------------------------------------------------------------------------------------------------
+                   State |                     New Encoding |                Previous Encoding 
+---------------------------------------------------------------------------------------------------
+                 st_idle |                         00000001 |                         00000001
+            st_check_sum |                         00000010 |                         00000010
+           st_check_icmp |                         00000100 |                         00000100
+             st_preamble |                         00001000 |                         00001000
+             st_eth_head |                         00010000 |                         00010000
+              st_ip_head |                         00100000 |                         00100000
+              st_tx_data |                         01000000 |                         01000000
+                  st_crc |                         10000000 |                         10000000
+---------------------------------------------------------------------------------------------------
+INFO: [Synth 8-3354] encoded FSM with state register 'cur_state_reg' using encoding 'one-hot' in module 'icmp_tx'
+---------------------------------------------------------------------------------------------------
+                   State |                     New Encoding |                Previous Encoding 
+---------------------------------------------------------------------------------------------------
+                 st_idle |                          0000001 |                          0000001
+            st_check_sum |                          0000010 |                          0000010
+             st_preamble |                          0000100 |                          0000100
+             st_eth_head |                          0001000 |                          0001000
+              st_ip_head |                          0010000 |                          0010000
+              st_tx_data |                          0100000 |                          0100000
+                  st_crc |                          1000000 |                          1000000
+---------------------------------------------------------------------------------------------------
+INFO: [Synth 8-3354] encoded FSM with state register 'cur_state_reg' using encoding 'one-hot' in module 'udp_tx'
+---------------------------------------------------------------------------------------------------
+                   State |                     New Encoding |                Previous Encoding 
+---------------------------------------------------------------------------------------------------
+                  S_WAIT |                              001 |                               00
+                   S_PRE |                              010 |                               01
+                  S_DATA |                              100 |                               10
+---------------------------------------------------------------------------------------------------
+INFO: [Synth 8-3354] encoded FSM with state register 'state_reg' using encoding 'one-hot' in module 'gmii_rx_mac'
+---------------------------------------------------------------------------------
+Finished RTL Optimization Phase 2 : Time (s): cpu = 00:00:39 ; elapsed = 00:00:41 . Memory (MB): peak = 1692.508 ; gain = 892.031
+---------------------------------------------------------------------------------
+---------------------------------------------------------------------------------
+Start RTL Component Statistics 
+---------------------------------------------------------------------------------
+Detailed RTL Component Info : 
++---Adders : 
+	   2 Input   32 Bit       Adders := 20    
+	   3 Input   32 Bit       Adders := 5     
+	   4 Input   32 Bit       Adders := 1     
+	   2 Input   26 Bit       Adders := 1     
+	   2 Input   25 Bit       Adders := 1     
+	   2 Input   21 Bit       Adders := 1     
+	   2 Input   20 Bit       Adders := 2     
+	  10 Input   20 Bit       Adders := 2     
+	   2 Input   19 Bit       Adders := 3     
+	   3 Input   17 Bit       Adders := 2     
+	   2 Input   17 Bit       Adders := 4     
+	   2 Input   16 Bit       Adders := 26    
+	   2 Input   14 Bit       Adders := 2     
+	   2 Input   13 Bit       Adders := 7     
+	   2 Input   12 Bit       Adders := 16    
+	   3 Input   12 Bit       Adders := 21    
+	   7 Input   11 Bit       Adders := 2     
+	   2 Input   11 Bit       Adders := 2     
+	   2 Input   10 Bit       Adders := 4     
+	   9 Input   10 Bit       Adders := 1     
+	   3 Input   10 Bit       Adders := 1     
+	   2 Input    9 Bit       Adders := 4     
+	   9 Input    9 Bit       Adders := 2     
+	   3 Input    9 Bit       Adders := 2     
+	   3 Input    8 Bit       Adders := 2     
+	   2 Input    8 Bit       Adders := 11    
+	   4 Input    8 Bit       Adders := 1     
+	   3 Input    7 Bit       Adders := 1     
+	   2 Input    7 Bit       Adders := 18    
+	   4 Input    7 Bit       Adders := 4     
+	   5 Input    6 Bit       Adders := 6     
+	   4 Input    6 Bit       Adders := 3     
+	   2 Input    6 Bit       Adders := 6     
+	   2 Input    5 Bit       Adders := 7     
+	   8 Input    4 Bit       Adders := 6     
+	   2 Input    4 Bit       Adders := 5     
+	   2 Input    3 Bit       Adders := 4     
+	   2 Input    2 Bit       Adders := 2     
++---XORs : 
+	   2 Input     14 Bit         XORs := 2     
+	   2 Input      1 Bit         XORs := 82    
+	   3 Input      1 Bit         XORs := 24    
+	   6 Input      1 Bit         XORs := 28    
+	   8 Input      1 Bit         XORs := 4     
+	   5 Input      1 Bit         XORs := 16    
+	   7 Input      1 Bit         XORs := 28    
+	  10 Input      1 Bit         XORs := 8     
+	   9 Input      1 Bit         XORs := 12    
+	  12 Input      1 Bit         XORs := 4     
+	   4 Input      1 Bit         XORs := 4     
++---Registers : 
+	              320 Bit    Registers := 3     
+	              300 Bit    Registers := 1     
+	               64 Bit    Registers := 5     
+	               48 Bit    Registers := 4     
+	               36 Bit    Registers := 2     
+	               32 Bit    Registers := 60    
+	               28 Bit    Registers := 1     
+	               26 Bit    Registers := 1     
+	               24 Bit    Registers := 1     
+	               21 Bit    Registers := 2     
+	               19 Bit    Registers := 8     
+	               18 Bit    Registers := 2     
+	               17 Bit    Registers := 1     
+	               16 Bit    Registers := 86    
+	               14 Bit    Registers := 6     
+	               13 Bit    Registers := 7     
+	               12 Bit    Registers := 76    
+	               10 Bit    Registers := 7     
+	                9 Bit    Registers := 3     
+	                8 Bit    Registers := 127   
+	                7 Bit    Registers := 6     
+	                6 Bit    Registers := 5     
+	                5 Bit    Registers := 9     
+	                4 Bit    Registers := 4     
+	                3 Bit    Registers := 9     
+	                2 Bit    Registers := 8     
+	                1 Bit    Registers := 311   
++---RAMs : 
+	            2048K Bit	(32768 X 64 bit)          RAMs := 1     
+	             512K Bit	(8192 X 64 bit)          RAMs := 1     
+	             288K Bit	(8192 X 36 bit)          RAMs := 1     
+	              16K Bit	(2048 X 8 bit)          RAMs := 1     
+	               8K Bit	(512 X 16 bit)          RAMs := 6     
+	               4K Bit	(512 X 8 bit)          RAMs := 2     
++---Muxes : 
+	   2 Input  300 Bit        Muxes := 10    
+	   6 Input  300 Bit        Muxes := 2     
+	   2 Input   64 Bit        Muxes := 4     
+	   4 Input   64 Bit        Muxes := 2     
+	   7 Input   64 Bit        Muxes := 1     
+	   5 Input   48 Bit        Muxes := 1     
+	   2 Input   48 Bit        Muxes := 1     
+	   2 Input   36 Bit        Muxes := 1     
+	   2 Input   32 Bit        Muxes := 45    
+	   6 Input   32 Bit        Muxes := 2     
+	   2 Input   25 Bit        Muxes := 2     
+	   2 Input   21 Bit        Muxes := 2     
+	   2 Input   20 Bit        Muxes := 5     
+	   2 Input   19 Bit        Muxes := 12    
+	   6 Input   19 Bit        Muxes := 2     
+	   2 Input   17 Bit        Muxes := 1     
+	   4 Input   16 Bit        Muxes := 3     
+	   2 Input   16 Bit        Muxes := 66    
+	   5 Input   16 Bit        Muxes := 2     
+	   3 Input   16 Bit        Muxes := 3     
+	   6 Input   16 Bit        Muxes := 2     
+	   8 Input   16 Bit        Muxes := 1     
+	   2 Input   14 Bit        Muxes := 1     
+	   2 Input   13 Bit        Muxes := 1     
+	   2 Input   12 Bit        Muxes := 43    
+	   2 Input   11 Bit        Muxes := 2     
+	   5 Input   10 Bit        Muxes := 3     
+	   2 Input   10 Bit        Muxes := 10    
+	   2 Input    9 Bit        Muxes := 4     
+	   2 Input    8 Bit        Muxes := 46    
+	   8 Input    8 Bit        Muxes := 8     
+	   3 Input    8 Bit        Muxes := 6     
+	   4 Input    8 Bit        Muxes := 6     
+	   2 Input    7 Bit        Muxes := 39    
+	   3 Input    7 Bit        Muxes := 4     
+	   7 Input    7 Bit        Muxes := 4     
+	   2 Input    6 Bit        Muxes := 32    
+	   4 Input    6 Bit        Muxes := 1     
+	   3 Input    5 Bit        Muxes := 5     
+	   2 Input    5 Bit        Muxes := 51    
+	   4 Input    5 Bit        Muxes := 3     
+	   5 Input    5 Bit        Muxes := 4     
+	   8 Input    5 Bit        Muxes := 1     
+	   2 Input    4 Bit        Muxes := 13    
+	   4 Input    4 Bit        Muxes := 3     
+	   2 Input    3 Bit        Muxes := 8     
+	   4 Input    3 Bit        Muxes := 1     
+	   6 Input    3 Bit        Muxes := 1     
+	   8 Input    3 Bit        Muxes := 1     
+	   2 Input    2 Bit        Muxes := 14    
+	   3 Input    2 Bit        Muxes := 3     
+	   2 Input    1 Bit        Muxes := 235   
+	   4 Input    1 Bit        Muxes := 22    
+	   5 Input    1 Bit        Muxes := 16    
+	   6 Input    1 Bit        Muxes := 12    
+	   8 Input    1 Bit        Muxes := 2     
+	   3 Input    1 Bit        Muxes := 4     
+	   7 Input    1 Bit        Muxes := 1     
+---------------------------------------------------------------------------------
+Finished RTL Component Statistics 
+---------------------------------------------------------------------------------
+---------------------------------------------------------------------------------
+Start Part Resource Summary
+---------------------------------------------------------------------------------
+Part Resources:
+DSPs: 220 (col length:60)
+BRAMs: 280 (col length: RAMB18 60 RAMB36 30)
+---------------------------------------------------------------------------------
+Finished Part Resource Summary
+---------------------------------------------------------------------------------
+---------------------------------------------------------------------------------
+Start Cross Boundary and Area Optimization
+---------------------------------------------------------------------------------
+DSP Report: Generating DSP raw_xs, operation Mode is: A''*B.
+DSP Report: register xp_reg is absorbed into DSP raw_xs.
+DSP Report: register xp_s1_reg is absorbed into DSP raw_xs.
+DSP Report: operator raw_xs is absorbed into DSP raw_xs.
+DSP Report: Generating DSP xr_m1, operation Mode is: A2*B.
+DSP Report: register xp_reg is absorbed into DSP xr_m1.
+DSP Report: operator xr_m1 is absorbed into DSP xr_m1.
+DSP Report: Generating DSP xr_m_reg, operation Mode is: (PCIN+((D:0x96)-A)*B)'.
+DSP Report: register xr_m_reg is absorbed into DSP xr_m_reg.
+DSP Report: register yp_math_reg is absorbed into DSP xr_m_reg.
+DSP Report: operator xr_m0 is absorbed into DSP xr_m_reg.
+DSP Report: operator xr_m1 is absorbed into DSP xr_m_reg.
+DSP Report: operator yp_math0 is absorbed into DSP xr_m_reg.
+DSP Report: Generating DSP rot_xs, operation Mode is: A*B.
+DSP Report: operator rot_xs is absorbed into DSP rot_xs.
+DSP Report: Generating DSP raw_ys, operation Mode is: A2*B.
+DSP Report: register yp_s1_reg is absorbed into DSP raw_ys.
+DSP Report: operator raw_ys is absorbed into DSP raw_ys.
+DSP Report: Generating DSP yr_m1, operation Mode is: ((D:0x96)-A)*B.
+DSP Report: register yp_math_reg is absorbed into DSP yr_m1.
+DSP Report: operator yr_m1 is absorbed into DSP yr_m1.
+DSP Report: operator yp_math0 is absorbed into DSP yr_m1.
+DSP Report: Generating DSP yr_m_reg, operation Mode is: (PCIN-A2*B)'.
+DSP Report: register xp_reg is absorbed into DSP yr_m_reg.
+DSP Report: register yr_m_reg is absorbed into DSP yr_m_reg.
+DSP Report: operator yr_m0 is absorbed into DSP yr_m_reg.
+DSP Report: operator yr_m2 is absorbed into DSP yr_m_reg.
+DSP Report: Generating DSP rot_ys, operation Mode is: A*B.
+DSP Report: operator rot_ys is absorbed into DSP rot_ys.
+DSP Report: Generating DSP u_blur/gp, operation Mode is: A*(B:0x39).
+DSP Report: operator u_blur/gp is absorbed into DSP u_blur/gp.
+WARNING: [Synth 8-3917] design system_top has port eth_mdc driven by constant 0
+WARNING: [Synth 8-6849] Infeasible attribute ram_style = "block" set for RAM "u_pli_6/u_pipe/u_blur/lb1_reg",trying to implement using LUTRAM
+WARNING: [Synth 8-6849] Infeasible attribute ram_style = "block" set for RAM "u_pli_6/u_pipe/u_blur/lb1_reg",trying to implement using LUTRAM
+WARNING: [Synth 8-6849] Infeasible attribute ram_style = "block" set for RAM "u_pli_6/u_pipe/u_sharp/lb1_reg",trying to implement using LUTRAM
+WARNING: [Synth 8-6849] Infeasible attribute ram_style = "block" set for RAM "u_pli_6/u_pipe/u_sharp/lb1_reg",trying to implement using LUTRAM
+WARNING: [Synth 8-6849] Infeasible attribute ram_style = "block" set for RAM "u_pli_6/u_pipe/u_sobel/lb1_reg",trying to implement using LUTRAM
+WARNING: [Synth 8-6849] Infeasible attribute ram_style = "block" set for RAM "u_pli_6/u_pipe/u_sobel/lb1_reg",trying to implement using LUTRAM
+CRITICAL WARNING: [Synth 8-6859] multi-driven net on pin Q with 1st driver pin 'u_pli_6/u_pipe/u_blur/border_r_reg[2]/Q' [D:/Xilinx/Prj/pro/Video_Processing/src/rtl/process/proc_box_blur.v:76]
+CRITICAL WARNING: [Synth 8-6859] multi-driven net on pin Q with 2nd driver pin 'GND' [D:/Xilinx/Prj/pro/Video_Processing/src/rtl/process/proc_box_blur.v:76]
+CRITICAL WARNING: [Synth 8-6858] multi-driven net Q is connected to at least one constant driver which has been preserved, other driver is ignored [D:/Xilinx/Prj/pro/Video_Processing/src/rtl/process/proc_box_blur.v:76]
+CRITICAL WARNING: [Synth 8-6859] multi-driven net on pin Q with 1st driver pin 'u_pli_6/u_pipe/u_blur/border_r_reg[1]/Q' [D:/Xilinx/Prj/pro/Video_Processing/src/rtl/process/proc_box_blur.v:76]
+CRITICAL WARNING: [Synth 8-6859] multi-driven net on pin Q with 2nd driver pin 'GND' [D:/Xilinx/Prj/pro/Video_Processing/src/rtl/process/proc_box_blur.v:76]
+CRITICAL WARNING: [Synth 8-6858] multi-driven net Q is connected to at least one constant driver which has been preserved, other driver is ignored [D:/Xilinx/Prj/pro/Video_Processing/src/rtl/process/proc_box_blur.v:76]
+CRITICAL WARNING: [Synth 8-6859] multi-driven net on pin Q with 1st driver pin 'u_pli_6/u_pipe/u_blur/border_r_reg[0]/Q' [D:/Xilinx/Prj/pro/Video_Processing/src/rtl/process/proc_box_blur.v:76]
+CRITICAL WARNING: [Synth 8-6859] multi-driven net on pin Q with 2nd driver pin 'GND' [D:/Xilinx/Prj/pro/Video_Processing/src/rtl/process/proc_box_blur.v:76]
+CRITICAL WARNING: [Synth 8-6858] multi-driven net Q is connected to at least one constant driver which has been preserved, other driver is ignored [D:/Xilinx/Prj/pro/Video_Processing/src/rtl/process/proc_box_blur.v:76]
+CRITICAL WARNING: [Synth 8-6859] multi-driven net on pin Q with 1st driver pin 'u_pli_6/u_pipe/u_sharp/border_r_reg[2]/Q' [D:/Xilinx/Prj/pro/Video_Processing/src/rtl/process/proc_sharpen.v:87]
+CRITICAL WARNING: [Synth 8-6859] multi-driven net on pin Q with 2nd driver pin 'GND' [D:/Xilinx/Prj/pro/Video_Processing/src/rtl/process/proc_sharpen.v:87]
+CRITICAL WARNING: [Synth 8-6858] multi-driven net Q is connected to at least one constant driver which has been preserved, other driver is ignored [D:/Xilinx/Prj/pro/Video_Processing/src/rtl/process/proc_sharpen.v:87]
+CRITICAL WARNING: [Synth 8-6859] multi-driven net on pin Q with 1st driver pin 'u_pli_6/u_pipe/u_sharp/border_r_reg[1]/Q' [D:/Xilinx/Prj/pro/Video_Processing/src/rtl/process/proc_sharpen.v:87]
+CRITICAL WARNING: [Synth 8-6859] multi-driven net on pin Q with 2nd driver pin 'GND' [D:/Xilinx/Prj/pro/Video_Processing/src/rtl/process/proc_sharpen.v:87]
+CRITICAL WARNING: [Synth 8-6858] multi-driven net Q is connected to at least one constant driver which has been preserved, other driver is ignored [D:/Xilinx/Prj/pro/Video_Processing/src/rtl/process/proc_sharpen.v:87]
+CRITICAL WARNING: [Synth 8-6859] multi-driven net on pin Q with 1st driver pin 'u_pli_6/u_pipe/u_sharp/border_r_reg[0]/Q' [D:/Xilinx/Prj/pro/Video_Processing/src/rtl/process/proc_sharpen.v:87]
+CRITICAL WARNING: [Synth 8-6859] multi-driven net on pin Q with 2nd driver pin 'GND' [D:/Xilinx/Prj/pro/Video_Processing/src/rtl/process/proc_sharpen.v:87]
+CRITICAL WARNING: [Synth 8-6858] multi-driven net Q is connected to at least one constant driver which has been preserved, other driver is ignored [D:/Xilinx/Prj/pro/Video_Processing/src/rtl/process/proc_sharpen.v:87]
+CRITICAL WARNING: [Synth 8-6859] multi-driven net on pin Q with 1st driver pin 'u_pli_6/u_pipe/u_sobel/border_r_reg[2]/Q' [D:/Xilinx/Prj/pro/Video_Processing/src/rtl/process/proc_sobel.v:88]
+CRITICAL WARNING: [Synth 8-6859] multi-driven net on pin Q with 2nd driver pin 'GND' [D:/Xilinx/Prj/pro/Video_Processing/src/rtl/process/proc_sobel.v:88]
+CRITICAL WARNING: [Synth 8-6858] multi-driven net Q is connected to at least one constant driver which has been preserved, other driver is ignored [D:/Xilinx/Prj/pro/Video_Processing/src/rtl/process/proc_sobel.v:88]
+CRITICAL WARNING: [Synth 8-6859] multi-driven net on pin Q with 1st driver pin 'u_pli_6/u_pipe/u_sobel/border_r_reg[1]/Q' [D:/Xilinx/Prj/pro/Video_Processing/src/rtl/process/proc_sobel.v:88]
+CRITICAL WARNING: [Synth 8-6859] multi-driven net on pin Q with 2nd driver pin 'GND' [D:/Xilinx/Prj/pro/Video_Processing/src/rtl/process/proc_sobel.v:88]
+CRITICAL WARNING: [Synth 8-6858] multi-driven net Q is connected to at least one constant driver which has been preserved, other driver is ignored [D:/Xilinx/Prj/pro/Video_Processing/src/rtl/process/proc_sobel.v:88]
+CRITICAL WARNING: [Synth 8-6859] multi-driven net on pin Q with 1st driver pin 'u_pli_6/u_pipe/u_sobel/border_r_reg[0]/Q' [D:/Xilinx/Prj/pro/Video_Processing/src/rtl/process/proc_sobel.v:88]
+CRITICAL WARNING: [Synth 8-6859] multi-driven net on pin Q with 2nd driver pin 'GND' [D:/Xilinx/Prj/pro/Video_Processing/src/rtl/process/proc_sobel.v:88]
+CRITICAL WARNING: [Synth 8-6858] multi-driven net Q is connected to at least one constant driver which has been preserved, other driver is ignored [D:/Xilinx/Prj/pro/Video_Processing/src/rtl/process/proc_sobel.v:88]
+CRITICAL WARNING: [Synth 8-6859] multi-driven net on pin Q with 1st driver pin 'u_pli_6/u_pipe/u_morph/border_r_reg[2]/Q' [D:/Xilinx/Prj/pro/Video_Processing/src/rtl/process/proc_morph.v:92]
+CRITICAL WARNING: [Synth 8-6859] multi-driven net on pin Q with 2nd driver pin 'GND' [D:/Xilinx/Prj/pro/Video_Processing/src/rtl/process/proc_morph.v:92]
+CRITICAL WARNING: [Synth 8-6858] multi-driven net Q is connected to at least one constant driver which has been preserved, other driver is ignored [D:/Xilinx/Prj/pro/Video_Processing/src/rtl/process/proc_morph.v:92]
+CRITICAL WARNING: [Synth 8-6859] multi-driven net on pin Q with 1st driver pin 'u_pli_6/u_pipe/u_morph/border_r_reg[1]/Q' [D:/Xilinx/Prj/pro/Video_Processing/src/rtl/process/proc_morph.v:92]
+CRITICAL WARNING: [Synth 8-6859] multi-driven net on pin Q with 2nd driver pin 'GND' [D:/Xilinx/Prj/pro/Video_Processing/src/rtl/process/proc_morph.v:92]
+CRITICAL WARNING: [Synth 8-6858] multi-driven net Q is connected to at least one constant driver which has been preserved, other driver is ignored [D:/Xilinx/Prj/pro/Video_Processing/src/rtl/process/proc_morph.v:92]
+CRITICAL WARNING: [Synth 8-6859] multi-driven net on pin Q with 1st driver pin 'u_pli_6/u_pipe/u_morph/border_r_reg[0]/Q' [D:/Xilinx/Prj/pro/Video_Processing/src/rtl/process/proc_morph.v:92]
+CRITICAL WARNING: [Synth 8-6859] multi-driven net on pin Q with 2nd driver pin 'GND' [D:/Xilinx/Prj/pro/Video_Processing/src/rtl/process/proc_morph.v:92]
+CRITICAL WARNING: [Synth 8-6858] multi-driven net Q is connected to at least one constant driver which has been preserved, other driver is ignored [D:/Xilinx/Prj/pro/Video_Processing/src/rtl/process/proc_morph.v:92]
+WARNING: [Synth 8-3332] Sequential element (FSM_onehot_cur_state_reg[6]) is unused and will be removed from module udp_tx.
+WARNING: [Synth 8-3332] Sequential element (FSM_onehot_cur_state_reg[5]) is unused and will be removed from module udp_tx.
+WARNING: [Synth 8-3332] Sequential element (FSM_onehot_cur_state_reg[4]) is unused and will be removed from module udp_tx.
+WARNING: [Synth 8-3332] Sequential element (FSM_onehot_cur_state_reg[3]) is unused and will be removed from module udp_tx.
+WARNING: [Synth 8-3332] Sequential element (FSM_onehot_cur_state_reg[2]) is unused and will be removed from module udp_tx.
+WARNING: [Synth 8-3332] Sequential element (FSM_onehot_cur_state_reg[1]) is unused and will be removed from module udp_tx.
+WARNING: [Synth 8-3332] Sequential element (FSM_onehot_cur_state_reg[0]) is unused and will be removed from module udp_tx.

@@ -41,7 +41,7 @@ module tb_v796_src_arb;
 
     task expect(input [639:0] name, input cond);   // 90 个 ASCII 字符：32 位宽的 name 会把标签的头几个字节挤掉
         begin
-            if (!cond) begin
+            if (cond !== 1'b1) begin
                 errors = errors + 1;
                 $display("FAIL %0s (t=%0t)", name, $time);
             end else $display("PASS %0s", name);

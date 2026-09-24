@@ -59,20 +59,44 @@ module proc_morph #(
     reg m00, m01, m02, m10, m11, m12, m20, m21, m22;
     reg [15:0] p12, p11;
     reg dv_d1, dv_d2;
-    reg [11:0] x_d1, y_d1;
+
+    // 边界守卫：一根**跟着有效像素走**的旗标链，判「这个中心像素的 3x3 是不是真在画面内」。
+    // 为什么不用 x_d1/y_d1 直接和 0 比：那种写法比的是『发出去之后第几拍』，
+    //   ① 与消隐宽度、一拍几个像素有关 —— 同一句判据在 512 宽连续栅格与 8 宽(一拍一个像素)
+    //      的台架里挡住的列不一样（tb_rotate_window 就是这样被 SLOT_LAG=2 多挡了两列而假红的）；
+    //   ② 中心抽头本来就滞后一格，比 0 挡住的是上一行的尾巴，本行第 0 格照样吃到上一行末尾
+    //      —— 那就是用户看到的『分割线旁边的颜色条』(ISSUES #56 / #54 (A'))。
+    // 旗标按**有效像素**移位（de_in 才动），内容与 p11 那个中心一格不差：
+    //   首列（左邻缺）、末列（右邻缺）、首行（上一行缺，行缓存里是上一帧的尾巴）。
+    // 四个窗口级现在用的是**同一根**守卫（blur/sharpen/sobel 写法逐字一致），
+    //   台架判据：tb_v92 的 C2/C3（左邻与上一帧的回绕）+ tb_v84 的"morph 旁路与 blur 旁路逐位相同"。
+    reg [2:0] border_r;
+    // ⚠ 复位只能写在这**一个**块里。以前图省事把它也写进主 always 的复位分支，
+    //   于是 border_r 有两个驱动源 ⇒ 综合报 `Synth 8-6859/8-6858 multi-driven net`
+    //   并且把常量那一侧保留、逻辑那一侧**忽略** ⇒ 旗标在 bit 里恒为 0，
+    //   而**仿真看不出来**（xsim 按进程后写覆盖，行为看起来是对的）。
+    //   这条由门禁第 13 项（多驱动 CRITICAL WARNING 计数）拦下，见 ISSUES #61。
+    always @(posedge clk or negedge rst_n)
+    if (!rst_n) border_r <= 3'b0;
+    else if (de_in) begin
+        border_r[0] <= (x_in == 12'd0) || (x_in == H_ACTIVE-1) || (y_in == 12'd0);
+        border_r[1] <= border_r[0];
+        border_r[2] <= border_r[1];
+    end
+    // 三拍 = 本模块"一个像素从进来到 dout"的深度（行缓存读 → 窗口移位 → 输出寄存），
+    // **按有效像素数**计，所以与消隐宽度、一拍几个像素无关（这是 SLOT_LAG 那版犯的错）。
+    // 量出来的凭据：tb_v92 的 DBG 显示"发出槽位 0 的那一拍 x_in=3"⇒ 中心 = x_in − 3。
+    wire border = border_r[2];
 
     wire all1 = m00 & m01 & m02 & m10 & m11 & m12 & m20 & m21 & m22;
     wire any1 = m00 | m01 | m02 | m10 | m11 | m12 | m20 | m21 | m22;
-    // 与 blur 唯一的差别：blur 只守卫首行，这里连**行首**也守卫（第一列的"左邻"是上一行末尾，
-    // 对腐蚀是白啃一列、对膨胀是糊上一列）。台架因此只判内部区域，边界行为单独看 T9。
-    wire border = (y_d1 == 12'd0) || (x_d1 == 12'd0);
     wire res = (mode == 2'd1) ? (border ? m11  : all1)
                               : (border ? m11  : any1);
 
     always @(posedge clk or negedge rst_n) begin
         if (!rst_n) begin
             m00<=0; m01<=0; m02<=0; m10<=0; m11<=0; m12<=0; m20<=0; m21<=0; m22<=0;
-            p12<=0; p11<=0; dv_d1<=0; dv_d2<=0; x_d1<=0; y_d1<=0; de_out<=0; dout<=0;
+            p12<=0; p11<=0; dv_d1<=0; dv_d2<=0; de_out<=0; dout<=0;
         end else begin
             if (de_in) begin
                 m00<=m01; m01<=m02; m02<=b00;
@@ -81,8 +105,6 @@ module proc_morph #(
                 p12<=c01; p11<=p12;             // 原色中心抽头，与 blur 的 p11 同一个位置
             end
             dv_d1 <= de_in;
-            x_d1  <= x_in;
-            y_d1  <= y_in;
             dv_d2 <= dv_d1;
             de_out <= dv_d2;                    // 三拍，不是两拍 —— 见文件头与 ISSUES #54
             dout   <= by ? p11 : (res ? 16'hFFFF : 16'h0000);

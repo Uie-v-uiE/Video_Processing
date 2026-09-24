@@ -60,7 +60,7 @@ module tb_v80_ku5p_cmd;
 
     task expect(input [639:0] name, input cond);
         begin
-            if (!cond) begin
+            if (cond !== 1'b1) begin
                 errors = errors + 1;
                 $display("FAIL %0s (t=%0t)", name, $time);
             end else $display("PASS %0s", name);

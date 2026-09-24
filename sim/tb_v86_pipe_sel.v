@@ -77,7 +77,7 @@ module tb_v86_pipe_sel;
         input [100*8:1] name;
         input cond;
         begin
-            if (!cond) begin errors = errors + 1; chk_no = chk_no + 1; $display("  FAIL #%0d %0s", chk_no, name); end
+            if (cond !== 1'b1) begin errors = errors + 1; chk_no = chk_no + 1; $display("  FAIL #%0d %0s", chk_no, name); end
             else chk_no = chk_no + 1;
         end
     endtask

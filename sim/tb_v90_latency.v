@@ -25,22 +25,40 @@ module tb_v90_latency;
     wire [31:0] c1, c2, tot, mx;
     wire [15:0] ncyc;
     wire        clamp;
+    // #59：读回口用的那一组快照
+    reg         arm = 0;
+    wire [31:0] qc1, qc2, qtot, qmax, qstat;
 
     frame_latency dut (
         .axi_clk(clk), .axi_rst_n(rst_n),
         .commit(commit), .copy_start(copy_start), .copy_done(copy_done),
-        .disp_sof_tgl(sof_tgl),
+        .disp_sof_tgl(sof_tgl), .arm(arm),
         .c1_cyc(c1), .c2_cyc(c2), .tot_cyc(tot), .max_cyc(mx),
-        .n_meas(ncyc), .clamped(clamp)
+        .n_meas(ncyc), .clamped(clamp),
+        .q_c1(qc1), .q_c2(qc2), .q_tot(qtot), .q_max(qmax), .q_stat(qstat)
     );
 
     integer errors = 0, t1, t2, t3, i, j, mx_keep;
+    integer a1, a2, a3, bad, nchk;
+
+    // 0 = 这组含钳位值、判不了；1 = 可信且恒等式成立；2 = 可信但恒等式破了
+    function [1:0] id_ok;
+        input [31:0] x1, x2, xt;
+        begin
+            if (x1 === 32'hFFFF_FFFF || x2 === 32'hFFFF_FFFF || xt === 32'hFFFF_FFFF)
+                id_ok = 2'd0;
+            else id_ok = (xt >= x1 + x2) ? 2'd1 : 2'd2;
+        end
+    endfunction
 
     task chk;
         input [100*8:1] name;
         input cond;
         begin
-            if (!cond) begin errors = errors + 1; $display("  FAIL %0s", name); end
+            // `!== 1'b1` 而不是 `!cond`：cond 为 X 时 `if (!cond)` 两个分支都不走 ⇒
+            // **判据会因为一个未初始化的计数器而静默变绿**（本文件 2026-09-24 就是这么绿了一次：
+            // nchk 没清零 ⇒ X ⇒ T10b/T10c 一条都没判却报 PASS）。X 一律当红。
+            if (cond !== 1'b1) begin errors = errors + 1; $display("  FAIL %0s", name); end
         end
     endtask
 
@@ -140,6 +158,49 @@ module tb_v90_latency;
         // "最大时延"就永远读不出真数了 ⇒ RTL 里 max 只认真读数。
         chk("T7c 钳位的那一轮不污染 max（一次倒挂不许把最大时延永远钉在 0xFFFFFFFF）",
             mx === mx_keep);
+
+        // ---- T8/T8b/T8c/T9/T10：#59 的快照口 ----
+        // 为什么要它：这五个字之间有恒等式 `tot ≥ c1 + c2`（c3 = 等扫描，非负），
+        // 而 live 寄存器每轮都在换。上位机是**逐 lane 各读一次**（一次 mwr + 一次 mrd，
+        // 五个 lane 要几毫秒），推流时每 ~16 ms 换一轮 ⇒ 读到的是不同轮的碎片。
+        // r50 板级 11 组读数里 4 组破坏恒等式（`build/lat_tearing_r50.txt`），
+        // 而 RTL 里这五个值是在**同一个 always 块、同一拍**写的 ⇒ 单次读一定自洽，
+        // 所以错的是读法不是硬件 —— 这条判据就是钉住"读法"这一半。
+        ev(0); wait_cyc(40); ev(1); wait_cyc(60); ev(2); ev_sof();     // 先跑一轮干净的
+        chk("T8 起点：live 有可用读数且未钳位（否则下面的『不动』是空的）",
+            tot != 0 && tot !== 32'hFFFF_FFFF);
+        @(negedge clk); arm = 1; @(negedge clk); arm = 0;               // 一拍武装 = 同时抄五个
+        a1 = qc1; a2 = qc2; a3 = qtot;
+        chk("T8b 刚抄完：快照逐字等于当时的 live（五口同源）",
+            qc1 === c1 && qc2 === c2 && qtot === tot && qmax === mx && qstat[31:16] === ncyc);
+        ev(0); wait_cyc(90); ev(1); wait_cyc(40); ev(2); ev_sof();      // 再来一轮，live 必须换
+        chk("T8c 又跑了一轮，live 确实更新了（否则『快照不动』没有对照意义）",
+            tot !== a3);
+        chk("T8d 没有再武装 ⇒ 快照一动不动（读回口拿到的是同一轮）",
+            qc1 === a1 && qc2 === a2 && qtot === a3);
+        @(negedge clk); arm = 1; @(negedge clk); arm = 0;
+        chk("T9 再武装一次，快照跟到最新一轮",
+            qc1 === c1 && qc2 === c2 && qtot === tot);
+        // ⚠ 判"这一组可用"不能用 qstat[0]：`clamped` 是**整个会话的粘滞位**（T7 注过一次倒挂
+        //    就永远是 1），拿它当"本轮无效"的筛子会让判据要么假红、要么**一条都没判就绿**
+        //    （T10b 第一版就是这么假绿的）。本轮可不可信只看这一组自己有没有钳位值。
+        chk("T10 快照这组满足恒等式 tot >= c1 + c2（板级破的就是它）",
+            id_ok(qc1, qc2, qtot));
+        // T10b **相位扫描**：轮次正在跑的时候，在任意一拍武装，抄到的一组都必须自洽。
+        //      这条是判据里唯一会碰到"武装那一拍正好与写回同一拍"的相位，
+        //      少了它，"快照"这个说法只在采样点错开时才成立 —— 那不够。
+        bad = 0; nchk = 0;      // ⚠ Verilog 的 integer 默认是 X，不清零就是把判据交给 X
+        for (i = 0; i < 600; i = i + 1) begin
+            @(negedge clk); arm = 1; @(negedge clk); arm = 0;
+            if (id_ok(qc1, qc2, qtot) == 2) bad = bad + 1;   // 2 = 这组可信但恒等式破了
+            if (id_ok(qc1, qc2, qtot) != 0) nchk = nchk + 1;  // 真的判过几条（不许空跑）
+            if (i % 60 == 59) begin ev(0); ev(1); ev(2); ev_sof(); end
+        end
+        chk("T10b 600 个相位各处武装，抄到的一组都不破坏恒等式", bad == 0);
+        chk("T10c 相位扫描**真的判到了**可信组（否则 T10b 的绿是空的）", nchk > 50);
+        // 计数打成 ASCII：判据的数字要能被 grep/脚本读走，不该压在中文里（本仓台架的规矩）
+        $display("T10b phases=600 trusted=%0d violated=%0d snapshot_n=%0d",
+                 nchk, bad, qstat[31:16]);
 
         $display("");
         $display("口径提醒：本模块量的是 PL 内部（commit 之后到该帧开始扫描），单位是 axi 拍数；");

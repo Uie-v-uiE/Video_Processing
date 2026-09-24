@@ -103,3 +103,7 @@ build/*.stdout
 # 所以它**不入库**；写在 .gitignore 而不是 .git/info/exclude，是为了这条排除规则本身可被审查看见、
 # 换机器也不会失效（原来只在 .git/info/exclude 里 = 只存在于这台机器）。
 study/
+
+# xsim/vivado 就地生成的工程壳：跑批时留在原地会污染 git status（2026-09-24 加）
+.srcs/
+xsim.dir/

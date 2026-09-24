@@ -92,6 +92,22 @@ module tb_v92_seam_bleed;
         end
     endtask
 
+    // 诊断打印：抓"被测点正好落在第 MEAS_ROW 行第 0/1/2 列"那一拍，把各模块**自己的**
+    // 边界判据坐标 (x_d1/y_d1) 打出来。为什么要有这一行：三个模块用同一条 `x_d1==0` 判据，
+    // 结果 sharpen 绿、另外三个红 —— 说明"同一个判据"在四个模块里对应的**实际列**并不相同，
+    // 光看代码推不出来（推了三轮，每轮都自洽但互相矛盾）。让 DUT 自己报。
+    reg dbg_en = 0;
+    always @(posedge clk) if (rst_n && dbg_en) begin
+        if (d_blu && pc[0] % W <= 2 && pc[0] / W == MEAS_ROW)
+            $display("DBG blur  slot列%0d border_r=%b x_in=%0d", pc[0] % W, u_blu.border_r, u_blu.x_in);
+        if (d_shp && pc[1] % W <= 2 && pc[1] / W == MEAS_ROW)
+            $display("DBG sharp slot列%0d border_r=%b x_in=%0d", pc[1] % W, u_shp.border_r, u_shp.x_in);
+        if (d_sob && pc[2] % W <= 2 && pc[2] / W == MEAS_ROW)
+            $display("DBG sobel slot列%0d border_r=%b x_in=%0d", pc[2] % W, u_sob.border_r, u_sob.x_in);
+        if (d_mor && pc[3] % W <= 2 && pc[3] / W == MEAS_ROW)
+            $display("DBG morph slot列%0d border_r=%b x_in=%0d", pc[3] % W, u_mor.border_r, u_mor.x_in);
+    end
+
     always @(posedge clk) if (rst_n) begin
         if (d_blu) sample(0, q_blu);
         if (d_shp) sample(1, q_shp);
@@ -154,7 +170,7 @@ module tb_v92_seam_bleed;
     endtask
     task expect; input [120*8:1] name; input cond;
         begin
-            if (!cond) begin errors = errors + 1; $display("  FAIL %0s", name); end
+            if (cond !== 1'b1) begin errors = errors + 1; $display("  FAIL %0s", name); end
             else $display("  PASS %0s", name);
         end
     endtask
@@ -182,7 +198,9 @@ module tb_v92_seam_bleed;
             for (k = 0; k < NC; k = k + 1) clean[me][k] = got[me][k];
 
         // 第二遍：把**上一行末尾** 4 格拉成 HOT —— 干净的设计里它碰不到第 0/1/2 列
+        dbg_en = 1;
         one_run(MEAS_ROW-1, W-4, 4);
+        dbg_en = 0;
         for (me = 0; me < 4; me = me + 1)
             for (k = 0; k < NC; k = k + 1) prov[me][k] = got[me][k];
 
@@ -268,11 +286,13 @@ module tb_v92_seam_bleed;
                         mv = diff_bits(base_v[me], got[me][3 + (TGT - SP0)]);
                         mapbits[me][(1-dy)*3 + (dx+1)] = mv;
                         line_buf = {line_buf, mv ? "##" : ".."};
-                        val_buf  = {val_buf, " ", $hexp(16, base_v[me]), "->",
-                                    $hexp(16, got[me][3 + (TGT - SP0)])};
+                        // 本方言没有 $hexp()（xelab 会说 Undefined system function，
+                        // 而我差点被这个失败留下的**旧 run.log** 骗一次）：数值打成 32 位十六进制拼进串
+                        val_buf  = {val_buf, " ", mv ? 16'h2323 : 16'h2E2E, 16'h2020};
                     end
                     $display("%0s  源行偏移 d%0d ：%0s", name_of(me), dy, line_buf);
-                    $display("            数值%0s", val_buf);
+                    $display("            每格 ##=受影响 .=不受影响（基线值 %h 与扰动后 %h 只在上面 C2 那行打印）",
+                     base_v[me], got[me][3 + (TGT - SP0)]);
                 end
             end
             // 判据：九格必须**全**亮（3×3 窗口的定义），且中心格也亮（旁路/工作都取中心抽头）

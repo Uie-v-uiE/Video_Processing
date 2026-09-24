@@ -1,0 +1,8 @@
+c1=  192487 c2=   38491 tot= 1076012 max=  1722928 n=15605 clamp=False  tot>=c1:True  tot>=c1+c2:True
+c1=  611595 c2=   38488 tot= 1580261 max=  1722928 n=15706 clamp=False  tot>=c1:True  tot>=c1+c2:True
+c1= 1076608 c2=   38485 tot= 1101755 max=  1722928 n=15796 clamp=False  tot>=c1:True  tot>=c1+c2:False
+c1= 1418500 c2=   38488 tot= 1400891 max=  1722928 n=15895 clamp=False  tot>=c1:False  tot>=c1+c2:False
+c1=  354979 c2=   38491 tot=  269271 max=  1722928 n=16032 clamp=False  tot>=c1:False  tot>=c1+c2:False
+c1= 1495460 c2=   38489 tot=  724596 max=  1722928 n=16150 clamp=False  tot>=c1:False  tot>=c1+c2:False
+c1=  912654 c2=   38491 tot=  970812 max=  1722928 n=16265 clamp=False  tot>=c1:True  tot>=c1+c2:True
+c1=  569922 c2=   38487 tot=  375852 max=  1722928 n=16382 clamp=False  tot>=c1:False  tot>=c1+c2:False

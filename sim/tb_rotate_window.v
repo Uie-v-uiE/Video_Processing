@@ -101,9 +101,13 @@ module tb_rotate_window;
         end else $display("PASS blur active with rotate_active=1");
 
         // Also verify rotate_active=0 still blurs
+        // ⚠ 边界守卫换成「跟着有效像素走」的旗标链之后（ISSUES #54 (A')），原来这个三行的图样里
+        //   已经没有内行中心可采（最后一行的中心落在它自己那一行上，采到的尾巴全属边界）。
+        //   所以推到第 5 行、边推边采 —— 问的还是原来那句话「旋转关掉时模糊还在不在」，
+        //   只是激励现在真的含有一行内部像素。判据没有放宽：仍然要求出现中间值。
         rot = 0;
         got = 0;
-        for (row = 0; row < 3; row = row + 1)
+        for (row = 0; row < 5; row = row + 1)
             for (i = 0; i < 8; i = i + 1)
                 push_pix(i<4 ? 16'h0 : 16'hF800, i[11:0], row[11:0]);
         for (i = 0; i < 40; i = i + 1) begin

@@ -130,6 +130,26 @@ else
         $([ "$W689" = "0" ] && echo 1 || echo 0)
 fi
 [ "$W689" != "0" ] && grep -a "Synth 8-689" "$BLOG" 2>/dev/null | sed 's/^/        /' | head -6
+
+# 13) 多驱动 net（Synth 8-6859 / 8-6858）—— #61 的教训（2026-09-24 深夜）。
+#     一个 reg 的复位被我同时写进两个 always 块 ⇒ 综合**保留常量那一侧、忽略逻辑那一侧**，
+#     bit 里那根旗标恒为 0；而仿真按"进程后写覆盖"，台架 56 条全绿。
+#     这类"仿真绿、硬件不动"的差别不会出现在任何时序/资源报告里，只能读综合的 CRITICAL WARNING。
+#     凭据文件与 8-689 同一处生成（build/multi_driven.txt），一起进冻结目录。
+if [ -f "$D/multi_driven.txt" ] || [ -f "$D/../multi_driven.txt" ]; then
+    MF=$(pick multi_driven.txt)
+    MD=$(awk '{print $1}' "$MF")
+    say "多驱动 net 8-685x" "$MD" "== 0（凭据 $(basename "$MF")，同一次构建）" \
+        $([ "$MD" = "0" ] && echo 1 || echo 0)
+elif [ -z "$BLOG" ]; then
+    say "多驱动 net 8-685x" "NOLOG" "无凭据=未验" 0
+else
+    MD=$(grep -ac "multi-driven net" "$BLOG" || true)
+    [ -z "$MD" ] && MD=NA
+    say "多驱动 net 8-685x" "$MD" "== 0（⚠ 回落：$(basename "$BLOG")，未与报告绑定）" \
+        $([ "$MD" = "0" ] && echo 1 || echo 0)
+fi
+[ "${MD:-0}" != "0" ] && grep -a "multi-driven net" "$BLOG" 2>/dev/null | sed 's/^/        /' | head -6
 echo
 echo "端点总数 $eps；CDC 现在按 build/CDC_BASELINE.txt 的**配对集合**判，功耗仍要人比有没有变差。"
 if [ "$pass" = 1 ]; then echo "GATES: ALL PASS"; exit 0; else echo "GATES: 有红项 —— 不采纳，保留上一版"; exit 1; fi

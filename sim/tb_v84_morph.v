@@ -64,7 +64,7 @@ module tb_v84_morph;
         input [100*8:1] name;
         input cond;
         begin
-            if (!cond) begin
+            if (cond !== 1'b1) begin
                 errors = errors + 1;
                 $display("  FAIL %0s", name);
             end

@@ -61,7 +61,7 @@ module tb_v85_sharpen;
         input [100*8:1] name;
         input cond;
         begin
-            if (!cond) begin errors = errors + 1; $display("  FAIL %0s", name); end
+            if (cond !== 1'b1) begin errors = errors + 1; $display("  FAIL %0s", name); end
         end
     endtask
 

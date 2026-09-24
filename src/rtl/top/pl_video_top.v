@@ -50,6 +50,10 @@ module pl_video_top #(
     // 换算成时间戳在 `src/host/health_read.mjs` 里做（一个常量：fclk0=100 MHz ⇒ 1 拍 = 10 ns）。
     // 与 dbg_src 同一套做法：全部是 axi 域本来就有的电平 ⇒ 零新增跨域。
     output wire [5*32-1:0] dbg_lat,
+    // 抄快照的触发：system_top 在"lane 选择指到 25"时给一拍（读这一组的第一个字天然就是它）。
+    // 为什么需要它：五个字之间有恒等式 tot ≥ c1+c2，而 live 寄存器每轮都在换，
+    // 上位机逐 lane 读会读到不同轮 ⇒ ISSUES #59（板级 11 组读数里 4 组破坏恒等式）。
+    input  wire        lat_arm,
 
     output wire        tmds_clk_p,
     output wire        tmds_clk_n,
@@ -193,9 +197,22 @@ module pl_video_top #(
         .frame_start(frame_start), .frame_done(frame_done)
     );
 
+    wire [7:0]  pipe_off_rows;   // 效果链自己声明的"内容滞后几行"（u_pipe 的输出口）
     wire        left_pane = (x < PANE_W);
     wire [11:0] cx = left_pane ? x : (x - PANE_W);
     wire [11:0] cy = (y >> 1) < IMG_H ? (y >> 1) : (IMG_H - 1);
+    // 右窗读坐标**提前 u_pipe.OFF_LINES 个显示行**（= 效果链的内容滞后，实测 −4 行且逐像素一致）。
+    // 为什么这样补是免费的、也是唯一因果上成立的补法：
+    //   * 行缓存式 3×3 滤波必然滞后一整行（收到第 y 行才算得出第 y−1 行的窗口），
+    //     所以"把数据提前"不可能，只能"把地址提前" —— 而片源在帧缓存里，地址是随机的；
+    //   * 两个窗共用一个读口、各用各的坐标（见下面 sx_fb/sy_fb 的 mux），
+    //     所以只提前右窗这一路，左窗（未处理的原始画面）不动 ⇒ 缝两侧的内容从此同一行；
+    //   * 提前量加在 **mapper 的显示行输入**上而不是加在 it 输出的源行上：
+    //     链子的滞后发生在显示栅格上，缩放/旋转之后"源行差 4"并不等于"显示行差 4"。
+    // 判据：tb_v89 的 T1（把激励按 OFF_LINES 提前，整链内部偏移必须变成 (0,0)）；
+    //       缝连续性的最终凭据是眼睛（`board/README.md` 第 12 行）。
+    wire [12:0] y_right_adv = {1'b0, y} + {5'b0, pipe_off_rows};
+    wire [11:0] cy_r = ((y_right_adv >> 1) >= IMG_H) ? (IMG_H - 1) : y_right_adv[11:0] >> 1;
 
     wire [9:0] inv_scale;
     wire       zoom_active, zoom_dir;
@@ -233,7 +250,7 @@ module pl_video_top #(
     zoom_mapper #(.IMAGE_W(IMG_W), .IMAGE_H(IMG_H)) u_zmap (
         .clk(clk_pix), .rst_n(rst_pix_n),
         .inv_scale(inv_scale), .angle(angle), .rotate_en(rot_on),
-        .x_in(cx), .y_in(cy),
+        .x_in(cx), .y_in(cy_r),     // ← 提前 OFF_LINES 个显示行，抵掉效果链的内容滞后（#54 (B)）
         .x_out(sx_r), .y_out(sy_r), .oob(oob_r),
         .frac_x(zfrac_x), .frac_y(zfrac_y)
     );
@@ -493,6 +510,8 @@ module pl_video_top #(
 
     wire [31:0] lat_c1, lat_c2, lat_tot, lat_max;
     wire [15:0] lat_n;
+    // 快照那一组（读回口给出去的就是这五个，见下面的 dbg_lat）
+    wire [31:0] lq_c1, lq_c2, lq_tot, lq_max, lq_stat;
     wire        lat_clamp;
     // **PL 里不做除法**：r49 在这里把拍数除以 100 换 µs，除数不是 2 的幂 ⇒ 综合架出组合除法器，
     // 100 MHz 域直接 WNS −5.014 / 96 个失败端点（被门禁拦下，见 ISSUES #58）。
@@ -500,9 +519,10 @@ module pl_video_top #(
     frame_latency u_lat (
         .axi_clk(axi_clk), .axi_rst_n(axi_rst_n),
         .commit(eth_commit), .copy_start(row_start), .copy_done(row_done),
-        .disp_sof_tgl(sof_tgl),
+        .disp_sof_tgl(sof_tgl), .arm(lat_arm),
         .c1_cyc(lat_c1), .c2_cyc(lat_c2), .tot_cyc(lat_tot), .max_cyc(lat_max),
-        .n_meas(lat_n), .clamped(lat_clamp)
+        .n_meas(lat_n), .clamped(lat_clamp),
+        .q_c1(lq_c1), .q_c2(lq_c2), .q_tot(lq_tot), .q_max(lq_max), .q_stat(lq_stat)
     );
     // 五个字，lane 号 = 25 + 序号（system_top 的 mux 按这个式子取）：
     //   lane29 = c1（commit→start_copy，等消隐窗口）
@@ -510,7 +530,10 @@ module pl_video_top #(
     //   lane27 = tot（commit→显示帧起始；c3 = tot − c1 − c2，不单独占一口）
     //   lane26 = max（历轮 tot 的最大值，演示念这个）
     //   lane25 = { n_meas[15:0], 15'd0, clamped }
-    assign dbg_lat = { lat_c1, lat_c2, lat_tot, lat_max, {lat_n, 15'd0, lat_clamp} };
+    // ⚠ 这一行给出去的是 **q_*（快照）**，不是 live 的 lat_*：读回口要的是"一组自洽的数"，
+    //    而 live 值每轮都在换（#59）。live 的 lat_* 仍然接在台架上（tb_v90 逐周期对账用它们），
+    //    板级读回来的这五个字则是"指到 lane25 那一刻的同时抄走的那一轮"。
+    assign dbg_lat = { lq_c1, lq_c2, lq_tot, lq_max, lq_stat };
 
     assign m_axi_arid = 6'd0;
 
@@ -609,7 +632,7 @@ module pl_video_top #(
         .hs_in(hs_d[3]), .vs_in(vs_d[3]),
         .de_in(de_d[3] && !left_d[3]),
         .x_in(cx_d[3]), .y_in(cy_d[3]),
-        .din(pix_right),
+        .din(pix_right), .off_rows(pipe_off_rows),
         .de_out(pipe_de), .dout(pipe_dout)
     );
 

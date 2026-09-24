@@ -214,6 +214,12 @@ module system_top (
     //   2026-09-24 因为 V8-6 要新加观测口才发现它 —— 详见 ISSUES #57（也纠正了当晚一条凭据说法）。
     wire [7:0]  dbg_src;
     wire [5*32-1:0] dbg_lat;             // V8-6：lane25..29（lane N = dbg_lat[(N-25)*32 +: 32]）
+    // 指到 lane25 就把这一组五个字**同时**抄进快照（#59：逐 lane 各读各的会读到不同轮，
+    // 于是板级 11 组读数里 4 组破坏了恒等式 tot ≥ c1 + c2）。
+    // 读这一组的顺序必须是 25→26→27→28→29，因为 25 既是"轮次/钳位位"也是武装位；
+    // `health_read.mjs` 的 want 列表就是这个顺序，改那里的时候记得一起看。
+    // 域：gpio_o 由 axi 写更新，frame_latency 也在 axi 域 ⇒ 这不是跨域信号。
+    wire          lat_arm = (lm_lane == 5'd25);
     always @(*) begin
         if      (lm_lane == 5'd31)     lm_rd = {30'd0, lm_clk_slow, lm_clk_gone};
         else if (lm_lane == 5'd30)     lm_rd = {24'd0, dbg_src};
@@ -246,7 +252,7 @@ module system_top (
         .zoom_en(gpio_o[17]),
         .ps_publish(gpio_o[18]),        // 每翻转一次 = PS 请求把 DDR 里那一帧搬上屏一次
         .key1_n(key1_n), .key2_n(key2_n), .led(led),
-        .dbg_src(dbg_src), .dbg_lat(dbg_lat),
+        .dbg_src(dbg_src), .dbg_lat(dbg_lat), .lat_arm(lat_arm),
         .tmds_clk_p(tmds_clk_p), .tmds_clk_n(tmds_clk_n),
         .tmds_data_p(tmds_data_p), .tmds_data_n(tmds_data_n),
         .m_axi_araddr(m_araddr), .m_axi_arid(m_arid), .m_axi_arlen(m_arlen8),

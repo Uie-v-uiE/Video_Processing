@@ -25,6 +25,16 @@
 //
 // 跨域只有一个：像素域的"显示帧起始"。按本仓库规矩**只以翻转位**过来，并过 3 级 ASYNC_REG
 // 再检测边沿（脉冲跨域会被吃掉 —— ISSUES #36 那一课；一级 prev 的浅同步是 #52 那类白送边沿的形状）。
+//
+// ⚠ **读回口必须是"一组"而不是"五个各读各的"（ISSUES #59）**：
+//   这一组数之间有恒等式 `tot ≥ c1 + c2`（c3 是"等扫描轮到它"，非负）。
+//   而 `c1_*` 这些寄存器**每一轮（推流时约 9~60 次/秒）都在换**，上位机逐 lane 读要几毫秒 ⇒
+//   五个数来自不同轮是完全正常的。r50 板级实测 11 组读数里 4 组破坏恒等式
+//   （`build/lat_tearing_r50.txt`），而 RTL 里 `t_start ≤ t_done ≤ cyc` 是构造性成立的 ⇒
+//   **错的是读法，不是硬件**。所以本模块另给一组 `q_*`：`arm` 为真的那一拍把五口**同时**抄走，
+//   此后无论 live 寄存器怎么换，`q_*` 都保持同一轮的快照 ⇒ 上位机读到的一定是一组自洽的数。
+//   `arm` 由 `system_top` 用"lane 选择 == 25"生成（读这一组的第一个就是 25 ⇒ 天然先武装再读其余）。
+//   快照与 live 更新撞在同一拍：拿到的仍是**同一轮**的五个值 ⇒ 恒等式照样成立。
 module frame_latency (
     input  wire        axi_clk,
     input  wire        axi_rst_n,
@@ -32,12 +42,19 @@ module frame_latency (
     input  wire        copy_start,    // 开始搬运（axi 域脉冲）
     input  wire        copy_done,     // 搬运完成（axi 域脉冲）
     input  wire        disp_sof_tgl,  // 显示帧起始，**像素域转过来的翻转位**
+    input  wire        arm,           // 抄快照：lane 选择指到 25 的那一拍
     output reg  [31:0] c1_cyc,
     output reg  [31:0] c2_cyc,
     output reg  [31:0] tot_cyc,       // = c1+c2+c3（同一次配对里由拍号直接减出）
     output reg  [31:0] max_cyc,       // 历轮 tot 的最大值 —— 演示时念的就是这个
     output reg  [15:0] n_meas,        // 完整走完一轮的次数（0 ⇒ 还没量到，读数别念）
-    output reg         clamped        // 粘滞：发生过"倒挂/超长"⇒ 本会话的读数只能当**下界**
+    output reg         clamped,       // 粘滞：发生过"倒挂/超长"⇒ 本会话的读数只能当**下界**
+    // ---- 同一轮的五口快照（读回口只接这一组）----
+    output reg  [31:0] q_c1,
+    output reg  [31:0] q_c2,
+    output reg  [31:0] q_tot,
+    output reg  [31:0] q_max,
+    output reg  [31:0] q_stat         // { n_meas[15:0], 15'd0, clamped }
 );
     localparam [31:0] CLAMP = 32'hFFFF_FFFF;
 
@@ -65,8 +82,17 @@ module frame_latency (
             sof_sync <= 3'b0;
             c1_cyc <= 32'd0; c2_cyc <= 32'd0; tot_cyc <= 32'd0; max_cyc <= 32'd0;
             n_meas <= 16'd0; clamped <= 1'b0;
+            q_c1 <= 32'd0; q_c2 <= 32'd0; q_tot <= 32'd0; q_max <= 32'd0; q_stat <= 32'd0;
         end else begin
             cyc <= cyc + 32'd1;
+            // 快照：五口在**同一拍**抄走 ⇒ 任何时刻读到的这一组都来自同一轮（#59）。
+            if (arm) begin
+                q_c1   <= c1_cyc;
+                q_c2   <= c2_cyc;
+                q_tot  <= tot_cyc;
+                q_max  <= max_cyc;
+                q_stat <= { n_meas, 15'd0, clamped };
+            end
             sof_sync <= {sof_sync[1:0], disp_sof_tgl};   // 三级：一级采样、一级稳定、一级给异或
 
             // ---- 三个 axi 域事件：只锁拍号，不在这里算账 ----

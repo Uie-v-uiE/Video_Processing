@@ -41,7 +41,7 @@ module tb_v82_src_mode;
     integer errors = 0;
     task expect; input [100*8:1] name; input cond;
         begin
-            if (!cond) begin errors = errors + 1; $display("FAIL %0s (t=%0t)", name, $time); end
+            if (cond !== 1'b1) begin errors = errors + 1; $display("FAIL %0s (t=%0t)", name, $time); end
             else $display("PASS %0s", name);
         end
     endtask

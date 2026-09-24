@@ -23,7 +23,10 @@ module tb_v89_align;
     localparam W = 32;
     localparam H = 32;
     localparam LINE = W + 1;              // 一帧一行 = W 个 de + 1 拍行间空隙
-    localparam NG = 7;                    // Δ 直方图边长（-3..+3）
+    localparam NG = 11;                   // Δ 直方图边长（-5..+5）
+    // 从 7 加宽到 11 的理由（2026-09-24 深夜，#54 (A') 之后）：四个窗口级统一到同一套中心抽头
+    // 约定之后，整链的行偏移从 -3 变成 -4（每级 -1 × 四级），7 格窗装不下 ⇒ 621 个样本被记成
+    // "落在 ±3 之外"。那不是新缺陷，是**量程不够**；判据判的还是同一件事，只是窗要盖得住现象。
 
     reg clk = 0, rst_n = 0;
     always #10 clk = ~clk;
@@ -31,6 +34,8 @@ module tb_v89_align;
     reg         de = 0;
     reg  [11:0] xs = 0, ys = 0;
     reg  [15:0] src = 0;
+    integer src_row;   // 行号取模后的整数（表达式不能直接位选）
+    integer src_off = 0;   // T1：模拟读侧提前 OFF_LINES 行取像素
 
     // ---------------- 被测：四个窗口级（各自旁路）+ 整链（全旁路）----------------
     wire        d_blur, d_shp, d_sob, d_mor, d_pipe;
@@ -87,13 +92,13 @@ module tb_v89_align;
             fy = q[15:11]; fx = q[4:0];
             dr = fy - posy[idx];
             dc = fx - posx[idx];
-            if (dr >= -3 && dr <= 3 && dc >= -3 && dc <= 3)
-                hb[idx][(dr + 3)*NG + (dc + 3)] = hb[idx][(dr + 3)*NG + (dc + 3)] + 1;
+            if (dr >= -5 && dr <= 5 && dc >= -5 && dc <= 5)
+                hb[idx][(dr + 5)*NG + (dc + 5)] = hb[idx][(dr + 5)*NG + (dc + 5)] + 1;
             else obc[idx] = obc[idx] + 1;
             cnt[idx] = cnt[idx] + 1;
             if (posy[idx] >= MARGIN && posy[idx] < H-1 && posx[idx] >= MARGIN && posx[idx] < W-1) begin
-                if (dr >= -3 && dr <= 3 && dc >= -3 && dc <= 3)
-                    hbi[idx][(dr + 3)*NG + (dc + 3)] = hbi[idx][(dr + 3)*NG + (dc + 3)] + 1;
+                if (dr >= -5 && dr <= 5 && dc >= -5 && dc <= 5)
+                    hbi[idx][(dr + 5)*NG + (dc + 5)] = hbi[idx][(dr + 5)*NG + (dc + 5)] + 1;
                 else obi[idx] = obi[idx] + 1;
                 cnti[idx] = cnti[idx] + 1;
             end
@@ -123,7 +128,19 @@ module tb_v89_align;
     integer ii2, jj2, biv, totv;               // 内部像素那一套峰值
     integer nsec [0:4];                         // 内部"第二个偏移"的样本数（报数用）
     integer drow_i [0:4], dcol_i [0:4];         // 每个被测的内部主偏移
+    // 本文件原来的判据是内联写的（`if (!c) errors=errors+1;`）。新加的 T0/T1 用统一的任务，
+    // 而这个任务**必须判 X**：`if (!cond)` 在 cond=X 时两个分支都不走 ⇒ 静默绿（ISSUES #60）。
+    task expect; input [100*8:1] name; input cond;
+        begin
+            if (cond !== 1'b1) begin errors = errors + 1; $display("  FAIL %0s", name); end
+            else $display("  PASS %0s", name);   // 打出来：看不到"判过什么"的判据等于没判（#60）
+        end
+    endtask
+
+    integer OFF;
+    integer c4dr, c4dc, c4cons, c4tot, c4ob;   // 补偿前整链那一遍的账（T0 用）
     initial begin
+        OFF = u_pipe.OFF_LINES;          // 从 RTL 取声明值，不在台架里重抄一遍数字
         for (ii = 0; ii < 5; ii = ii + 1) begin
             obc[ii] = 0; cnt[ii] = 0; posx[ii] = 0; posy[ii] = 0;
             obi[ii] = 0; cnti[ii] = 0;
@@ -153,7 +170,7 @@ module tb_v89_align;
                 for (kk = 0; kk < W; kk = kk + 1) begin
                     @(negedge clk);
                     xs  = kk[11:0]; ys = jj[11:0];
-                    src = {jj[4:0], 6'h2A, kk[4:0]};        // 行号 / 常数记号 / 列号
+                    src_row = (jj + src_off) % H; src = {src_row[4:0], 6'h2A, kk[4:0]};  // 行号(+平移) / 记号 / 列号
                     de  = 1;
                 end
                 @(negedge clk); de = 0;                     // 行间空隙
@@ -181,8 +198,8 @@ module tb_v89_align;
                 for (jj = 0; jj < NG; jj = jj + 1)
                     if (hbi[kk][ii*NG + jj] > biv) begin biv = hbi[kk][ii*NG + jj]; ii2 = ii; jj2 = jj; end
             $display("%0s  整帧 d=(%0d,%0d) %0d/%0d 越界%0d | 内部 d=(%0d,%0d) %0d/%0d 越界%0d | 收到 %0d 拍",
-                     name_of(kk), bi - 3, bj - 3, bv, tot, obc[kk],
-                     ii2 - 3, jj2 - 3, biv, totv, obi[kk], cnt[kk]);
+                     name_of(kk), bi - 5, bj - 5, bv, tot, obc[kk],
+                     ii2 - 5, jj2 - 5, biv, totv, obi[kk], cnt[kk]);
             if (biv != totv) begin
                 // 这不是"模型错了"，而是**真实存在的第二个偏移**：sobel 的 +2 列会在每行末尾
                 // 绕到下一行开头，所以它内部有两种偏移（27 个 ≈ 每行 2 个 × 13 行）。
@@ -205,10 +222,57 @@ module tb_v89_align;
                          name_of(kk), cnt[kk], H*W);
                 errors = errors + 1;
             end
-            if (kk < 4) dr_sum = dr_sum + (ii2 - 3);
-            else        dr_chain = ii2 - 3;
-            drow_i[kk] = ii2 - 3; dcol_i[kk] = jj2 - 3;
+            if (kk < 4) dr_sum = dr_sum + (ii2 - 5);
+            else        dr_chain = ii2 - 5;
+            drow_i[kk] = ii2 - 5; dcol_i[kk] = jj2 - 5;
+            if (kk == 4) begin          // 整链那份账先存下来：下面 T1 会重记同样的数组
+                c4dr = ii2 - 5; c4dc = jj2 - 5; c4cons = biv; c4tot = totv; c4ob = obi[4];
+            end
         end
+        // ---- T1：读侧补偿真的抵消得了吗（模拟 pl_video_top 的 cy_r）----
+        // 把激励整体平移 OFF_LINES 行 = "显示第 r 行时去问第 r+OFF 行的像素"。
+        // 链子的内容滞后是 −OFF，两者相加必须是 0 —— 这一条过了，才允许在顶层写那个提前量。
+        begin : comp
+            integer rows2;
+            src_off = OFF;                          // OFF 在下面是从 RTL 取的声明值
+            for (jj = 0; jj < 5; jj = jj + 1) begin
+                posx[jj] = 0; posy[jj] = 0;
+                cnt[jj] = 0; obc[jj] = 0; cnti[jj] = 0; obi[jj] = 0;
+                for (kk = 0; kk < NG*NG; kk = kk + 1) begin hb[jj][kk] = 0; hbi[jj][kk] = 0; end
+            end
+            for (rows2 = 0; rows2 < 2; rows2 = rows2 + 1) begin
+                for (jj = 0; jj < H; jj = jj + 1) begin
+                    for (kk = 0; kk < W; kk = kk + 1) begin
+                        @(negedge clk);
+                        xs = kk[11:0]; ys = jj[11:0];
+                        src_row = (jj + src_off) % H; src = {src_row[4:0], 6'h2A, kk[4:0]};
+                        de  = 1;
+                    end
+                    @(negedge clk); de = 0;
+                end
+                de = 0;
+                repeat (LINE * 4 + 16) @(negedge clk);
+                if (rows2 == 0) begin
+                    // 第一帧只是让行缓存热起来，账目在第二帧才记
+                    for (jj = 0; jj < 5; jj = jj + 1) begin
+                        posx[jj] = 0; posy[jj] = 0; cnt[jj] = 0; cnti[jj] = 0; obi[jj] = 0;
+                        for (kk = 0; kk < NG*NG; kk = kk + 1) begin hb[jj][kk] = 0; hbi[jj][kk] = 0; end
+                    end
+                end
+            end
+            src_off = 0;
+            // 只看整链：内部偏移必须是 (0,0) 且 100 % 一致
+            ii2 = 0; jj2 = 0; biv = -1; totv = 0;
+            for (ii = 0; ii < NG*NG; ii = ii + 1) totv = totv + hbi[4][ii];
+            for (ii = 0; ii < NG; ii = ii + 1)
+                for (jj = 0; jj < NG; jj = jj + 1)
+                    if (hbi[4][ii*NG + jj] > biv) begin biv = hbi[4][ii*NG + jj]; ii2 = ii; jj2 = jj; end
+            $display("T1 读侧提前 %0d 行之后，整链内部偏移 d=(%0d,%0d) 一致 %0d/%0d",
+                     OFF, ii2 - 5, jj2 - 5, biv, totv);
+            expect("T1 补偿后整链内部偏移 = (0,0)（顶层 cy_r 的提前量由此才有依据）",
+                   (ii2 - 5) == 0 && (jj2 - 5) == 0 && biv == totv && totv > 0 && obi[4] == 0);
+        end
+
         // S4：三个"取中心抽头"的窗口级必须**同一套约定**（blur 是那份约定的原主）。
         // 这条才是本文件真正的看门狗：谁把某一级改成自洽旁路（r45 我差点写成那样），
         // 它的 drow 就会与另外两级不同 ⇒ 切换效果时画面会跳一行。
@@ -224,10 +288,14 @@ module tb_v89_align;
             errors = errors + 1;
         end
         // T0：修完之后这条会升级成硬判据；今天只报数，不假装绿
-        if (dr_chain == 0 && hbi[4][3*NG + 3] == cnti[4])
-            $display("T0 PASS 全旁路时整链内部 d=(0,0)（ISSUES #54 已修完）");
-        else
-            $display("T0 NOT-YET 全旁路仍有内部 drow=%0d ⇒ ISSUES #54，V8-4 之前必须修完", dr_chain);
+        // T0（2026-09-24 深夜升级）：判的不是"偏移必须是 0"——行缓存式 3×3 因果上就要滞后一行，
+        // 那是物理不是缺陷。判的是**"偏移必须等于模块自己声明的 OFF_LINES，且逐像素一致"**：
+        // 只要这条成立，顶层就能用一个常量把平移补掉（pl_video_top 的 cy_r）；
+        // 反过来，谁加了一级窗口级却忘了改 OFF_LINES，或把某一级改成另一套抽头约定，这条立刻红。
+        $display("T0 补偿前整链实测：d=(%0d,%0d) 主偏移占 %0d/%0d，越界 %0d；声明的 OFF_LINES=%0d",
+                 c4dr, c4dc, c4cons, c4tot, c4ob, OFF);
+        expect("T0 整链内部偏移 = (−OFF_LINES, 0) 且 100 % 一致（声明值与行为对得上）",
+               c4dr == -OFF && c4dc == 0 && c4cons == c4tot && c4tot > 0 && c4ob == 0);
 
         $display("");
         if (errors == 0) $display("PASS tb_v89_align");

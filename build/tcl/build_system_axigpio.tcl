@@ -275,11 +275,19 @@ puts "XSA: [file join $outdir system.xsa]"
 # 扫的是综合的 runme.log（顶层 + 各 OOC IP），8-689 就报在那里，带 file:line。
 set wcount 0
 set wseen {}
+set mcount 0
+set mseen {}
 foreach lg [glob -nocomplain [file join $proj_dir [file tail $proj_name].runs * runme.log]] {
   if {![file exists $lg]} { continue }
   if {[catch {open $lg r} fh]} { continue }
   while {[gets $fh line] >= 0} {
     if {[string match "*Synth 8-689*" $line]} { incr wcount; lappend wseen [string trim $line] }
+    # 多驱动 net（同一个 reg 被两个 always 块赋值）：Synth 8-6859 / 8-6858。
+    # 为什么必须单独数：综合的处理是**保留常量那一侧、忽略逻辑那一侧**，
+    # 于是 bit 里那根线恒为 0，而**仿真按进程后写覆盖，行为看起来完全正确**
+    # —— 这是"台架全绿、硬件不工作"最省事的一条路（2026-09-24 就踩在 border_r 上，
+    #    见 report/ISSUES.md #61：旗标链的复位被我同时写进了两个 always 块）。
+    if {[string match "*multi-driven net*" $line]} { incr mcount; lappend mseen [string trim $line] }
   }
   close $fh
 }
@@ -288,6 +296,12 @@ puts $wf $wcount
 foreach s $wseen { puts $wf "  $s" }
 close $wf
 puts "WIDTH_WARNINGS count=$wcount -> [file join $outdir width_warnings.txt]"
+set mf [open [file join $outdir multi_driven.txt] w]
+puts $mf $mcount
+foreach t [lrange $mseen 0 40] { puts $mf "  $t" }
+close $mf
+puts "MULTI_DRIVEN count=$mcount -> [file join $outdir multi_driven.txt]"
+foreach t [lrange $mseen 0 5] { puts "  MULTIDRIVE: $t" }
 foreach s [lrange $wseen 0 5] { puts "  WIDTH: $s" }
 
 puts "SYSTEM BUILD DONE"

@@ -3,7 +3,7 @@
   **** SW Build 6403652 on Thu Mar 19 19:48:24 GMT 2026
   **** IP Build 6403511 on Thu Mar 19 12:41:45 MDT 2026
   **** SharedData Build 6403650 on Thu Mar 19 14:02:13 MDT 2026
-  **** Start of session at: Thu Sep 24 22:44:12 2026
+  **** Start of session at: Thu Sep 24 23:59:51 2026
     ** Copyright 1986-2022 Xilinx, Inc. All Rights Reserved.
     ** Copyright 2022-2026 Advanced Micro Devices, Inc. All Rights Reserved.
 
@@ -11,6 +11,30 @@ source xsim.dir/snap/xsim_script.tcl
 # xsim {snap} -autoloadwcfg -runall
 Time resolution is 1 ps
 run -all
+DBG blur  slotåˆ—0 border_r=0 x_in=3
+DBG sharp slotåˆ—0 border_r=0 x_in=3
+DBG sobel slotåˆ—0 border_r=0 x_in=3
+DBG morph slotåˆ—0 border_r=0 x_in=3
+DBG blur  slotåˆ—1 border_r=0 x_in=4
+DBG sharp slotåˆ—1 border_r=0 x_in=4
+DBG sobel slotåˆ—1 border_r=0 x_in=4
+DBG morph slotåˆ—1 border_r=0 x_in=4
+DBG blur  slotåˆ—2 border_r=0 x_in=5
+DBG sharp slotåˆ—2 border_r=0 x_in=5
+DBG sobel slotåˆ—2 border_r=0 x_in=5
+DBG morph slotåˆ—2 border_r=0 x_in=5
+DBG blur  slotåˆ—0 border_r=0 x_in=3
+DBG sharp slotåˆ—0 border_r=0 x_in=3
+DBG sobel slotåˆ—0 border_r=0 x_in=3
+DBG morph slotåˆ—0 border_r=0 x_in=3
+DBG blur  slotåˆ—1 border_r=0 x_in=4
+DBG sharp slotåˆ—1 border_r=0 x_in=4
+DBG sobel slotåˆ—1 border_r=0 x_in=4
+DBG morph slotåˆ—1 border_r=0 x_in=4
+DBG blur  slotåˆ—2 border_r=0 x_in=5
+DBG sharp slotåˆ—2 border_r=0 x_in=5
+DBG sobel slotåˆ—2 border_r=0 x_in=5
+DBG morph slotåˆ—2 border_r=0 x_in=5
 
 === æœ€å·¦åˆ—çš„è¡Œæœ«å›ç»•ï¼ˆä¸Šä¸€è¡Œæœ«å°¾ 4 æ ¼ HOTï¼Œçœ‹ç¬¬ 2 è¡Œçš„ç¬¬ 0/1/2 åˆ—åŠ¨ä¸åŠ¨ï¼‰===
 blur  ç¬¬0åˆ— æ— æ‰°åŠ¨=2104 æœ‰æ‰°åŠ¨=39c7 | å¯¹ç…§åŒºç¬¬200åˆ— æ— æ‰°åŠ¨=2104 æœ‰æ‰°åŠ¨=39c7
@@ -42,15 +66,18 @@ blur  å¸§è¾¹ç•Œç¬¬ 0 è¡Œï¼šè„ç¼“å­˜=2104 å¹²å‡€=2104
   PASS C3     blur ÿÿÿ–ÿÿÿäÿÿÿÿÿÿŠÿÿÿåÿÿÿœÿÿÿÿÿÿèÿÿÿ½ÿÿÿ
 sharpen  å¸§è¾¹ç•Œç¬¬ 0 è¡Œï¼šè„ç¼“å­˜=2104 å¹²å‡€=2104
   PASS C3  sharpen ÿÿÿ–ÿÿÿäÿÿÿÿÿÿŠÿÿÿåÿÿÿœÿÿÿÿÿÿèÿÿÿ½ÿÿÿ
-sobel  å¸§è¾¹ç•Œç¬¬ 0 è¡Œï¼šè„ç¼“å­˜=ffff å¹²å‡€=0000
-  FAIL C3    sobel ÿÿÿ–ÿÿÿäÿÿÿÿÿÿŠÿÿÿåÿÿÿœÿÿÿÿÿÿèÿÿÿ½ÿÿÿ
+sobel  å¸§è¾¹ç•Œç¬¬ 0 è¡Œï¼šè„ç¼“å­˜=2104 å¹²å‡€=2104
+  PASS C3    sobel ÿÿÿ–ÿÿÿäÿÿÿÿÿÿŠÿÿÿåÿÿÿœÿÿÿÿÿÿèÿÿÿ½ÿÿÿ
 morph  å¸§è¾¹ç•Œç¬¬ 0 è¡Œï¼šè„ç¼“å­˜=0000 å¹²å‡€=0000
   PASS C3    morph ÿÿÿ–ÿÿÿäÿÿÿÿÿÿŠÿÿÿåÿÿÿœÿÿÿÿÿÿèÿÿÿ½ÿÿÿ
 
 === ä¹ç‚¹æŠ½å¤´å›¾ï¼ˆ. = æ— å½±å“ï¼Œ# = æœ‰å½±å“ï¼›ä¸­å¿ƒ = è¢«æµ‹åƒç´  (è¡Œ2,åˆ—200)ï¼‰===
-?  è¡Œd : ÿÿÿÿ                                                                                                                                                                                                                                                                                                                                                                                                                                                                                           3026478
-?  è¡Œd :                                                                                                                                                                                                                                                                                                                                                                                                                                                                                            3026478
-?  è¡Œd :                                                                                                                                                                                                                                                                                                                                                                                                                                                                                            3026478
+?  æºè¡Œåç§» d-1 ï¼š......
+            æ¯æ ¼ ##=å—å½±å“ .=ä¸å—å½±å“ï¼ˆåŸºçº¿å€¼ xxxx ä¸æ‰°åŠ¨å xxxxxxxx åªåœ¨ä¸Šé¢ C2 é‚£è¡Œæ‰“å°ï¼‰
+?  æºè¡Œåç§» d0 ï¼š......
+            æ¯æ ¼ ##=å—å½±å“ .=ä¸å—å½±å“ï¼ˆåŸºçº¿å€¼ xxxx ä¸æ‰°åŠ¨å xxxxxxxx åªåœ¨ä¸Šé¢ C2 é‚£è¡Œæ‰“å°ï¼‰
+?  æºè¡Œåç§» d1 ï¼š......
+            æ¯æ ¼ ##=å—å½±å“ .=ä¸å—å½±å“ï¼ˆåŸºçº¿å€¼ xxxx ä¸æ‰°åŠ¨å xxxxxxxx åªåœ¨ä¸Šé¢ C2 é‚£è¡Œæ‰“å°ï¼‰
   PASS C4     blur ÿÿÿäÿÿÿ‚ÿÿÿ½ÿÿÿåÿÿÿ¹ÿÿÿ¼ÿÿÿäÿÿÿ¼ˆ3x3ÿÿÿ—ÿÿÿåÿÿÿ•ÿÿÿ‰
   PASS C4  sharpen ÿÿÿäÿÿÿ‚ÿÿÿ½ÿÿÿåÿÿÿ¹ÿÿÿ¼ÿÿÿäÿÿÿ¼ˆ3x3ÿÿÿ—ÿÿÿåÿÿÿ•ÿÿÿ‰
   PASS C4    sobel ÿÿÿäÿÿÿ‚ÿÿÿ½ÿÿÿåÿÿÿ¹ÿÿÿ¼ÿÿÿäÿÿÿ¼ˆ3x3ÿÿÿ—ÿÿÿåÿÿÿ•ÿÿÿ‰
@@ -59,7 +86,7 @@ morph  å¸§è¾¹ç•Œç¬¬ 0 è¡Œï¼šè„ç¼“å­˜=0000 å¹²å‡€=0000
 è¯´æ˜ C2/C3 ç°åœ¨çš„çº¢æ˜¯**ç™»è®°åœ¨å†Œçš„ç¼ºé™·**ï¼ˆblur åªæŒ¡é¦–è¡Œã€sobel ä¸¤ä¸ªéƒ½ä¸æŒ¡ï¼‰ï¼Œ
      ä¿®æ³•æ˜¯è®©ä¸‰/å››ä¸ªçª—å£çº§å…±ç”¨åŒä¸€å¥—è¾¹ç•Œçº¦å®šï¼Œè§ ISSUES #54 (A') ä¸ #56ã€‚
 
-FAIL tb_v92_seam_bleed errors=4
-$finish called at time : 3120560 ns : File "D:/Xilinx/Prj/pro/Video_Processing/sim/known_red/tb_v92_seam_bleed.v" Line 284
+FAIL tb_v92_seam_bleed errors=3
+$finish called at time : 3120560 ns : File "D:/Xilinx/Prj/pro/Video_Processing/sim/tb_v92_seam_bleed.v" Line 309
 exit
-INFO: [Common 17-206] Exiting xsim at Thu Sep 24 22:44:14 2026...
+INFO: [Common 17-206] Exiting xsim at Thu Sep 24 23:59:53 2026...

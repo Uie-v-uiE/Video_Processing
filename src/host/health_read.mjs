@@ -192,11 +192,21 @@ if (get('json', false) === true) {
         unit: 'cycles', ns_per_cycle: NS_PER_CYC,
         c1_cyc: w29, c2_cyc: w28, tot_cyc: w27, max_cyc: w26,
         c1_ms: ms(w29), c2_ms: ms(w28), tot_ms: ms(w27), max_ms: ms(w26),
-        // 第三段（搬完→开始扫描）由恒等式给出，不单独占一口
-        c3_ms: (w27 > w29 + w28) ? +(((w27 - w29 - w28) * NS_PER_CYC) / 1e6).toFixed(3) : null,
+        // 第三段（搬完→开始扫描）由恒等式给出，不单独占一口。
+        // ⚠ 恒等式 `tot = c1 + c2 + c3` 只有在**同一轮**的数上才成立：r51 之前读回口给的是 live 值，
+        //    五个 lane 分五次读 ⇒ 会读到不同轮的碎片（板级 8 组里 4 组破功，见 ISSUES #59）。
+        //    r51 起 lane25 那一读会把五口**同时**抄成快照，于是这里能反过来用它当判据：
+        //    `torn` 在 r51 位流上必须永远是 false；它是 true 就说明读回口又变回"各读各的"了。
+        torn: ![w29, w28, w27].some(v => v === CLAMP) && (w27 >>> 0) < ((w29 + w28) >>> 0),
+        c3_ms: (![w29, w28, w27].some(v => v === CLAMP) && w27 >= w29 + w28)
+                 ? +(((w27 - w29 - w28) * NS_PER_CYC) / 1e6).toFixed(3) : null,
         n_meas: nmeas, clamped: !!clamped,
-        // 没量到 / 钳位过 ⇒ 只能当下界用，不许当"实测时延"念
-        valid: nmeas > 0 && !clamped && w27 !== CLAMP,
+        // n_meas 是 16 位的饱和计数：读到 65535 意思是"至少 65535 轮"（约 2 小时 @9 轮/秒），
+        // 不是"正好 65535 轮"。别说成精确值 —— 数字的口径写在读数旁边，别等评委问。
+        n_meas_saturated: nmeas === 0xFFFF,
+        // 没量到 / 钳位过 / 一组不同源 ⇒ 只能当下界用，不许当"实测时延"念
+        valid: nmeas > 0 && !clamped && w27 !== CLAMP &&
+               !(![w29, w28, w27].some(v => v === CLAMP) && (w27 >>> 0) < ((w29 + w28) >>> 0)),
       };
     })(),
     frames_bad: l.lane1 === undefined ? NaN : f16(l.lane1, false),

@@ -114,9 +114,15 @@ SRC0 SRC1 TH80 ZOOM0 ZOOM1 BILIN0 BILIN1 FRAME12 AUTOPLAY0 AUTOPLAY1 SD PLAY STO
 rot 45 / rot +15 / rot auto / rot speed 1     缺 PL 的角度写入口
 split 50 / split auto / split range 20 80 / split speed 2 / split swap
                                               缺整个 split_ctrl（分割线参数化 + 自动扫描）
-osd on / osd off                              OSD 现在常显，缺行开关位
+osd on / osd off                              OSD 现在常显（V8-5 会加行开关位）
 zoom 1.5 / zoom auto                          缺缩放因子寄存器（现在只有 on/off 一位）
 ```
+
+**好消息：这一段的解析器已经写好了**（V8-1 就把语法统一掉了，敲了会得到"缺什么"而不是静默吞），
+所以接下去只差**PL 侧 + 一个寄存器写**。位预算已经分好在 `report/PLAN_V8_SPEC.md` §7a：
+`split_x[11:0]` = 第二个 GPIO 通道 1 的 `[20:9]`、`split_auto` = bit21、`sep_mode[1:0]` = `[23:22]`、
+`zsel[3:0]` = `[27:24]` —— **不动 BD**（用的就是 r45 已经建好的那个 32 位宽通道）。
+`sep_mode` 是给用户报的"缝周围颜色条"留的开关：`=0` 时 `split_display` 那根硬编码蓝线**完全不画**。
 
 ## 6. 三条最容易踩的坑
 
