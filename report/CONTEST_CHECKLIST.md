@@ -65,7 +65,11 @@
    修完整卡 4398 帧播完并回绕，卡与 FAT 都是好的（凭据 `build/frozen_r32_sdfix/`）。
 3. **UltraRAM 帧缓存实验没收口**：2025.2.1 拒绝 `ultramark`/`ultraram` 两种 `ram_style` 拼法并静默退回
    `auto`，量到的 BRAM 仍是 72 tile、URAM 0 ⇒ 结论"工具不会自己为该形状选 UltraRAM"是实测的，
-   但"9 块 UltraRAM"目前只是算出来的。要真量需 UG901 的属性名或直接例化 `URAM1240`。
+   但"9 块 UltraRAM"目前只是算出来的。**并且这一条里有一处当时写错的名字要更正**：
+   原来写"要真量需直接例化 `URAM1240`" —— 那是 **UltraScale+** 的原语，**Zynq-7020 的 UltraRAM 是
+   `URAM288`/`URAM288E`** ⇒ 那次失败究竟证明了多少"工具不为这形状选 UltraRAM"、多少是"我拿错器件族的名字"，
+   **目前不知道**，重开实验前先查 7 系 UG901 的 `ram_style` 合法值与 URAM288 的端口形状（`OVERNIGHT_LOG` §40）。
+   **对外口径不变**：本期不宣称 UltraRAM，只说"帧缓存在 BRAM，占用 65.71 %（r56 `utilization.rpt`）"。
 4. **`udp_rx_parser` 的三个统计脉冲没接可读寄存器**（`stat_drop_filt` 等）：端口过滤已进顶层，
    但"被过滤掉的包数"还不是可读数。接不接是独立小决定，没有顺手塞进 #38 那一笔。
 5. **`bad` 会动这件事只有台架证据**（`tb_v795_rx_chain` 的 C2）。现场没有可靠的注错手段，

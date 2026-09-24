@@ -246,6 +246,18 @@ if {[get_property PROGRESS [get_runs synth_1]] != "100%"} {
   puts "SYNTH FAILED [get_property STATUS [get_runs synth_1]]"
   exit 1
 }
+# 实现策略可以用环境变量 IMPL_STRATEGY 指定；不设就是工程默认（"Vivado Implementation Defaults"）。
+# 为什么做成"外部传 + 一定把名字打进日志"而不是直接改这一行：步骤② 的采纳判据要
+# "同一份 RTL + 某个策略"**两次独立构建同方向**（扫描里 `Performance_ExploreWithRemap`
+# 把 WHS 从 0.019 抬到 0.028），而策略一旦写死进脚本，过几个月没人知道眼前这颗 bit 是哪一档出来的。
+# ⇒ 名字必须出现在构建日志里，产物自己带着它的出身。
+if {[info exists ::env(IMPL_STRATEGY)] && $::env(IMPL_STRATEGY) ne ""} {
+  if {[catch {set_property -dict [list strategy $::env(IMPL_STRATEGY)] [get_runs impl_1]} e]} {
+    puts "BUILD_STRATEGY_REJECTED $::env(IMPL_STRATEGY) : $e"
+    exit 1
+  }
+}
+puts "BUILD_STRATEGY [get_property STRATEGY [get_runs impl_1]]"
 launch_runs impl_1 -to_step write_bitstream -jobs 4
 wait_on_run impl_1
 
