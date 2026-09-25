@@ -192,6 +192,25 @@ module tb_v98_top_seam;
     //   `active`/`row`（它跑到第几行了）；③ `copy_hold` 有多常挂着。
     //   有了这三条，"屏上大片 X"到底是"没搬进来"还是"搬进来了但我读的预期地址不对"就分得开。
     integer fb_wr_pulses = 0, hold_cyc = 0, aw_active_cyc = 0, last_row = -1;
+    // ⚠ 关于 `dut.aw_wr_en` 是不是"被显示那一颗"的写口：是。`pl_video_top.v:661-666` 把
+    //   `aw_wr_en/aw_wr_addr/aw_wr_data` 三根线**直接**接到 `u_fb`(`frame_buffer_w64`) 的
+    //   `wr_en/wr_addr/wr_data`（第 683-686 行），而 `wr_addr` 按端口注释是**64 位字下标 = 像素号 >>2**。
+    //   所以" pulses = 115200 = 3×38400"讲的确实是显示帧缓存被整帧写满三次。
+    //   上一轮我把它说成"那是 AXI 写通道的 enable、不是帧缓存写口"是**我读错了名字没读接线**，
+    //   这条订正同时留下一道判据：数**去重之后**到底有多少个字下标被写过 ——
+    //   如果整帧 38400 个字都写到过，那"屏上读回 X"就一定发生在 `frame_buffer_w64` 里面
+    //   （lo/hi 两块 RAM 的分法或读出 mux），而不是"没搬进来"；差多少就摆多少。
+    reg         wseen [0:38399];
+    integer     wdistinct = 0, i0b = 0, xlo = 9999, xhi = -1, nxread = 0;
+    always @(*) begin end
+    initial for (i0b = 0; i0b < 38400; i0b = i0b + 1) wseen[i0b] = 1'b0;
+    always @(posedge dut.axi_clk) if (dut.aw_wr_en === 1'b1 && dut.aw_wr_addr <= 38399) begin
+        if (wseen[dut.aw_wr_addr] !== 1'b1) begin
+            wseen[dut.aw_wr_addr] = 1'b1;
+            wdistinct = wdistinct + 1;
+        end
+    end
+
     always @(posedge dut.axi_clk) begin
         if (dut.aw_wr_en === 1'b1) fb_wr_pulses = fb_wr_pulses + 1;   // 用连过去的网线，不引用端口名
         if (dut.copy_hold === 1'b1)  hold_cyc = hold_cyc + 1;
@@ -205,7 +224,11 @@ module tb_v98_top_seam;
     //   那时 DDR→帧缓存的第一次拷贝还没完成（`fill_busy` 还挂着、那些行在仿真里是 X），
     //   屏上落回测试图卡，于是"内容对不上"是**我的采样时刻错了**，不是顶层错了。
     //   （同一族前科：读 DUT 输出读在同步链灌满之前。）
-    wire measure_ok = (frames_done >= 2);
+    // 采样门：不是"数够帧数"，而是**显示帧缓存的每一个字下标都至少被写过一次**（C0f 那个计数）。
+    //   第一版用 `frames_done >= 2` 当门，可那只能保证"过了两帧"，不能保证"拷完了一帧"——
+    //   于是前几帧读到的还是 RAM 出生时的 X，而 X 让比较既不成立也不失败（见第十签名）。
+    //   换成这个门之后，"还有 X"就真的只剩一种解释：写口与读口对不上（地址映射），而不是"还没搬完"。
+    wire measure_ok = (wdistinct >= 38400);
     always @(posedge dut.clk_pix) begin
         if (mix_de && measure_ok) begin
             if (left_pane) begin
@@ -277,7 +300,13 @@ module tb_v98_top_seam;
                 // 为什么必须有这一条：第一版 C1c 在**整屏都是 X** 的数据上判成了 PASS
                 // （`dsub(X,..) != 0` 是 X ⇒ if 不成立 ⇒ 计数器不涨 ⇒ "零个错"）——
                 // 这是"判据在空集上成立"的形状，比假红更危险。
-                if ((tap_raw ^ tap_raw) !== 16'd0) c1_hasx = c1_hasx + 1;
+                if ((tap_raw ^ tap_raw) !== 16'd0) begin
+                    c1_hasx = c1_hasx + 1;
+                    nxread = nxread + 1;
+                    if (c1_col < xlo) xlo = c1_col;
+                    if ({20'd0, c1_col} > xhi) xhi = c1_col;   // ⚠ 必须把无符号那侧显式扩到位宽，
+                    //   否则 `integer` 的 -1 在无符号比较里被换算成巨大值 ⇒ 这一格永远不更新（实测踩过）
+                end
                 c1_dx  = dsub(mem_col(tap_raw), c1_col[7:0]);
                 c1_dy  = dsub(mem_row(tap_raw), (c1_row >> 1));
                 if (c1_dx == 0) c1_zero = c1_zero + 1;
@@ -356,6 +385,10 @@ module tb_v98_top_seam;
         //   老的 stage-11 那套计数保留作对照，并补一条自洽判据 C0e：
         //   "超出量程"的样本按定义必是"不符"集合的子集，一旦 bad_l < hl_c[0] 红的是台架自己
         //   （今天这对 38 % 与 98.5 % 就是这么露馅的）。
+        line("C0f whole fb word space written", wdistinct == 38400,
+             "de-duplicated write-word index count must cover the full frame once");
+        $display("     X 读回 %0d 格，落在列 %0d..%0d；去重写过的字下标 %0d/38400",
+                 nxread, xlo, xhi, wdistinct);
         line("C0e RULER self-consistent", n_l > 0 && bad_l >= hl_c[0],
              "out-of-range bucket must be a subset of the mismatch set");
         line("C1a content-check coverage", c1_n > 50000,
