@@ -1,0 +1,8 @@
+PS7_INIT_FILE: D:/Xilinx/Prj/pro/Video_Processing/build/ps7_init.tcl
+CONNECT: tcfchan#0
+RST_SYSTEM: ok
+PS7_INIT: ok
+PS7_POST_CONFIG: ok
+DDR_ECHO: 10000000:   5A5AA5A5
+
+PS BOOT STEP DONE â€? ä¸‹ä¸€æ­? build/tcl/program_pl.tcl é…? PL

@@ -1,0 +1,24 @@
+== 1) L1 全量 18:05:36
+SIM DONE pass=64 fail=0
+== 2) PL 构建 18:12:25
+BUILD_OK 18:29:52
+== 3) 门禁 18:29:52
+  WNS (ns)               0.097        >= 0                         PASS
+  WHS (ns)               0.017        >= 0                         PASS
+  BRAM (tile/%)          96/68.57%    <= 97%                       PASS
+  Slice LUT / 占比     12793/24.05% <= 98%                       PASS
+  Dynamic (W)            2.207        与前次同量级           PASS
+  cdc.rpt Critical 行   3            基线 4 行，配对不新增、unsafe 不增长 PASS
+GATES_OK 18:29:54
+== 4) 刷板 18:29:54
+BOOT_EXIT=0
+RELOAD_EXIT=0
+== 5) 板级机器复验（71 条命令，含 split 的 8 条）18:30:28
+BOARD_VERIFY_EXIT=1
+[ARB] 结论：八条全过 ⇒ "自动交回 + 不抖 + 可逆"有凭据了（屏幕观感仍欠眼睛）
+RESULT FAIL uart_cmd_check  (71 条命令, 67.4 s, 捕获 board/uart_script_capture.txt)
+RESULT board_verify FAIL nred=1 ⇒ 这一版不能采纳
+21637a1061tem.bit
+3988a54633tem.xsa
+ca174452fbapp.elf
+CHAIN_OK 18:33:46
