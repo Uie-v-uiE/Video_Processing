@@ -4,7 +4,7 @@ DOW: ok
 PC_BEFORE_CON: pc: 000000cc
 
 CON: ok
-pc: pc: 00007548
+pc: pc: 0000754c
 
 cpsr: cpsr: 8000005f
        n (Bits [31]):  1      z (Bits [30]):  0      c (Bits [29]):  0

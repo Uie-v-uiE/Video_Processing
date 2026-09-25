@@ -4420,3 +4420,17 @@ r64 = r63c + #83（串口能真正关掉双线性）。门禁 14 项里 **2 红*
 * **保留**的是功能本身：`gpio_o[19] → 3 级 ASYNC_REG → fb_bilin.bilin_en`，复位默认 1 ⇒ 与 r63c 逐位相同；
   于是早上 `bilin off/on` 第一次真的会改硬件（此前它只改 PS 里的一个变量）。
   ⚠ 这条链**还没过构建/门禁**，所以它是"待验"，不是"待用"——板上现在跑的仍是全绿的 r63c。
+
+## §58  05:07–05:10（9/26）：r64b 全绿并上板 —— `bilin on/off` 从今天起**真的会改硬件**
+* r64b = r63c + `gpio_o[19] → 3 级 ASYNC_REG → fb_bilin.bilin_en`（复位默认 1 ⇒ 与 r63c 逐位相同），
+  读回那条路按 #85 整条回退不做。门禁 **14 项 ALL PASS**（`build/evidence_r64b/r64b_gates.txt`）：
+  **`cdc.rpt Critical 3 行、配对不新增、unsafe 不增长` ⇒ 这条链的 CDC 代价是零**（axi→pixel 方向本就在基线里，
+  红的是我原先把像素域信号往 axi 输口塞的那一步，不是同步链本身）；ports_check 570 项 violations=0（`pl_demo_top` 的修在真构建里也成立）。
+* 板上验收：`build/wip_flash_r63.sh` 三步跑完 —— `board_verify PASS（判红步骤 0）`、
+  串口电池 **97/97**（91.7 s，末态 `bilin=1` 回到初态）、`geom_check ok=8 fail=0`、lane23 `verdict OK`。
+  位流 md5 `543f6820…`（连同 xsa/elf 一起存在 `build/evidence_r64b/MANIFEST.md5`）。
+* ⚠ 要如实记下的数：WNS 这三次构建分别是 r63b **0.918**、r63c **0.807**、r64b **0.314**（都 ≥0，门禁过）。
+  ⇒ 设置的余量本身也在"重布线掷硬币"，不像单看一份报告那么宽松；#46 的下一刀应该问
+  "eth_rxc 那组的 0.3~0.9 摆动是谁在决定"，而不是满足于"这次绿了"。
+* 于是**剩下的只有一件事**：眼睛。`zoom 1.5` 下 `bilin off` ↔ `bilin on`（十秒就能做完的 A/B），
+  以及 `board/README.md` 第 28/29 行。机器侧不再有借口。
