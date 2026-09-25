@@ -258,6 +258,22 @@ if {[info exists ::env(IMPL_STRATEGY)] && $::env(IMPL_STRATEGY) ne ""} {
   }
 }
 puts "BUILD_STRATEGY [get_property STRATEGY [get_runs impl_1]]"
+# 布线后物理综合（post-route phys_opt）：默认**关**（不设变量就是 r64b 那一档流程，逐位同源的对照）。
+# 为什么单独开一档试：`report/OPTIMIZATION_LOG.md` §4 量到全设计 WNS 由两条**布线主导**（route 占 60~67 %）的
+# 路径轮流决定，其中 eth 那条的高扇出网络 fo=96 / 17 正好是 phys_opt 的靶子；而它**不动网表**只动物理结果，
+# 所以这一档不需要重跑 RTL 台架 —— 但它同样要"产物自己带着出身"，故与 IMPL_STRATEGY 一样打进日志。
+if {[info exists ::env(IMPL_PRPO)] && $::env(IMPL_PRPO) eq "1"} {
+  if {[catch {
+    set_property STEPS.POST_ROUTE_PHYS_OPT_DESIGN.IS_ENABLED true [get_runs impl_1]
+    set_property STEPS.POST_ROUTE_PHYS_OPT_DESIGN.ARGS.DIRECTIVE AggressiveExplore [get_runs impl_1]
+  } e]} {
+    puts "BUILD_PRPO_REJECTED $e"
+    exit 1
+  }
+  puts "BUILD_PRPO on AggressiveExplore"
+} else {
+  puts "BUILD_PRPO off"
+}
 launch_runs impl_1 -to_step write_bitstream -jobs 4
 wait_on_run impl_1
 
