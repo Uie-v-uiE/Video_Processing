@@ -13,7 +13,11 @@ module pl_video_top #(
     // 仲裁只管"谁用 DDR→帧缓存这台搬运机"，**管不到谁写 DDR**（SD 的 DMA 走 PS 的 HP0，
     // 根本不经过 PL），所以这个重叠只能靠地址分开来治。
     parameter PS_BASE_ADDR = 32'h1010_0000,
-    parameter ZOOM_DEFAULT_ON = 1
+    parameter ZOOM_DEFAULT_ON = 1,
+    // #51：扫描速度与端点是"设一次就忘"的量 ⇒ 做成构建参数，不占控制位（#70 的预算账）
+    parameter [3:0] SPLIT_SPEED = 4'd1,
+    parameter [4:0] SPLIT_LO16  = 5'd2,
+    parameter [4:0] SPLIT_HI16  = 5'd14
 )(
     input  wire        sys_clk,
     input  wire        sys_rst_n,
@@ -41,6 +45,12 @@ module pl_video_top #(
     // 这一层**不许自己采样**（#24/#49 那一课）。
     input  wire [2:0]  zoom_sel_async,
     input  wire        zoom_manual_async,
+    // #51：split 的控制位。位图唯一出处见 ISSUES #70 追加：
+    //   [9:0]=pos_px（显示列）、[10]=auto_en、[11]=follow、[12]=swap、[13]=marker_off
+    //   物理位 = CFG_DATA0[22:13] 与 [30]（在 system_top 里拼成一束），14 位**一起过 snap_cross**。
+    //   ⚠ 为什么不并进 effect_ctrl 那条现成的 ASYNC_REG 链：#71 量过 —— 加宽那条链会让
+    //   cdc.rpt 的 unsafe 端点按位长涨（rot/osd 那次 24→34 位就被门禁第 11 项判红）。
+    input  wire [13:0] split_ctl,
     // PS 侧"这一帧 DDR 写完了"的发布脉冲：每翻转一次 = 请求 PL 在下一个 frame_start
     // 把 DDR 搬进显示帧缓存一次。SD 回放靠它避免撕裂（见 src/ps/sd_play.c 头部协议说明）。
     input  wire        ps_publish,
@@ -766,11 +776,53 @@ module pl_video_top #(
     wire de_o, hs_o, vs_o;
     // 标记线开关：今天仍是"画"（不改观感，也不动 `board/README.md` 第 12 行那条已验的口径），
     // V8-4 把缝做成真可动之后由 PS 决定关不关（#56-2 的 (a) 那一半就是这条线）。
-    wire split_marker = 1'b1;
-    split_display #(.PANE_W(PANE_W)) u_split (
+    //（marker 的开关现在是 sp_pix[13]，见上面的 split_marker_on）
+
+    // ---- #51：分割线的执行者 ----
+    //   控制位在 axi 域每 ~1.3 ms 整拍抄一次并翻 toggle；目的域等 3 级同步之后才采总线
+    //   ⇒ 采到的永远是完整值（snap_cross 文件头那条契约）。心跳就用这个刷新沿：
+    //   axi 时钟要是停了，bus_q 里的缝位还是旧的 —— 这里不接慢/停标志，因为缝位晚一帧
+    //   生效的代价只是"下一格才跳"，不是数据错。
+    reg  [13:0] sp_bus;
+    reg         sp_tog;
+    reg  [16:0] sp_ref;
+    always @(posedge axi_clk or negedge axi_rst_n) begin
+        if (!axi_rst_n) begin
+            sp_bus <= 14'd0; sp_tog <= 1'b0; sp_ref <= 17'd0;
+        end else if (sp_ref == 17'h1FFFF) begin
+            sp_ref <= 17'd0;
+            sp_bus <= split_ctl;
+            sp_tog <= ~sp_tog;
+        end else begin
+            sp_ref <= sp_ref + 17'd1;
+        end
+    end
+    wire [13:0] sp_pix;
+    snap_cross #(.W(14), .DST_HZ(50_000_000), .HB_TO_MS(200)) u_split_x (
+        .dst_clk(clk_pix), .dst_rst_n(rst_pix_n),
+        .bus(sp_bus), .bus_tog(sp_tog), .hb_tog(sp_tog),
+        .bus_q(sp_pix), .hb_gone(), .hb_slow()
+    );
+
+    wire [11:0] split_eff;
+    wire        split_raw_left;
+    wire [11:0] split_pct_w;
+    split_ctrl #(.DISP_W(2*PANE_W), .SRC_W(IMG_W), .TICK_BITS(16)) u_split_ctrl (
+        .clk(clk_pix), .rst_n(rst_pix_n), .de(de),
+        .pos_px({2'd0, sp_pix[9:0]}),
+        .auto_en(sp_pix[10]), .follow(sp_pix[11]),
+        .speed(SPLIT_SPEED), .lo16(SPLIT_LO16), .hi16(SPLIT_HI16), .swap(sp_pix[12]),
+        .split_eff(split_eff), .raw_on_left(split_raw_left), .shown_pct(split_pct_w)
+    );
+    // 标记线：sp_pix[13]=1 才是"关" ⇒ 复位/PS 没写过时屏上仍有那条 2 px 蓝线，
+    //   与 r59a 的观感口径一致（board/README.md 第 12 行说的就是"故意画的"）。
+    wire split_marker_on = ~sp_pix[13];
+
+    split_display u_split (
         .clk(clk_pix), .rst_n(rst_pix_n),
         .x(x_d11), .y(y_d11), .de(de_d11), .hs(hs_d11), .vs(vs_d11),
-        .x_sel(x_d[MIX_D]), .marker(split_marker),   // 与内容同级的那一路坐标（#68）；OSD 用的 x/y 不动
+        .x_sel(x_d[MIX_D]), .marker(split_marker_on),
+        .seam(split_eff), .raw_left(split_raw_left),   // 与内容同级的那一路坐标（#68）；OSD 用的 x/y 不动
         .orig_pix(orig_disp), .proc_pix(pipe_dout),
         .oob_l(oob_out), .oob_r(oob_out),   // 越界对两个抽头是同一件事（同一份源坐标）⇒ 一位喂两口
         .angle_idx(angle[1:0]),
@@ -847,10 +899,11 @@ module pl_video_top #(
     wire        lat_ok_pix = lat_bus_q[17] & lat_bus_q[16] & ~lat_gone;
     wire [15:0] lat_ms_pix = lat_bus_q[15:0];
 
+
     // ---- Split 那一格现在来自几何参数（缝还没有执行者，见 ISSUES #62 / split_ctrl 的文件头）----
     // 除法是 elaboration 常数（PANE_W、DISP_W_H 都是参数），综合折成一个数，不留硬件。
-    localparam [11:0] DISP_W_H      = 12'd1024;
-    localparam [7:0]  SPLIT_PCT_FIX = ((PANE_W * 100) / DISP_W_H);
+    //（这一格以前是上面那个 SPLIT_PCT_FIX 死数；#51 之后由 split_ctrl 的 shown_pct 真驱动，
+    //  死数与它的推导注释一起删掉 —— 留着就是"两处各说一遍"，正是 #66 那一族的病）
 
     wire [7:0] r_osd, g_osd, b_osd;
     wire de_osd, hs_osd, vs_osd;
@@ -862,7 +915,7 @@ module pl_video_top #(
         .threshold(th_sync),
         .gamma_disp(gm_disp),
         .zoom_code(zoom_code), .zoom_auto(zoom_run && !zman_pix),   // V8-8：手动档不许再标 (Auto)
-        .split_pct(SPLIT_PCT_FIX), .split_auto(1'b0),
+        .split_pct(split_pct_w[7:0]), .split_auto(sp_pix[10]),
         .lat_ms(lat_ms_pix), .lat_ok(lat_ok_pix),
         .src_eff({fb_vis, owner_eth_pix}),   // 屏幕上真的这一路：CARD / PS / ETH
         .mode(mode),

@@ -261,6 +261,8 @@ module system_top (
         //   [28:26] 档号、[29] 手动旗标。异步性一致 ⇒ 一并交给 effect_ctrl 那条 sel 链。
         //   ⚠ 别写成 gpio_cfg2_o：那是 PS 侧 +0x08 的 gamma 窗口（命名差一位是这里的坑）。
         .zoom_sel_async(gpio_cfg1_o[28:26]), .zoom_manual_async(gpio_cfg1_o[29]),
+        // #51：分割线控制位（位图见 ISSUES #70 追加）：[22:13]=pos_px/auto/follow/swap、[30]=marker_off
+        .split_ctl({gpio_cfg1_o[30], gpio_cfg1_o[25:23], gpio_cfg1_o[22:13]}),
         .gamma_ctl(gpio_cfg2_o),        // axi_gpio_2 通道 2（+0x08）：gamma 表的 idx/data/wr/en
         // V7.7：ZOOM0/ZOOM1 不再是死命令。之前这里硬绑 1'b1，串口命令与 GPIO bit17 全无效
         // （main.c 自己就注明"当前 RTL 常开，bit17 仅预留"）。

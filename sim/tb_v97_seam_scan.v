@@ -47,26 +47,26 @@ module tb_v97_seam_scan;
 
     /* ================= 实例 A：板上用的 512 ================= */
     wire [7:0] ra, ga, ba;  wire dea, hsa, vsa;
-    split_display #(.PANE_W(512)) u_a (
-        .clk(clk), .rst_n(rst_n), .x(x), .y(y), .de(de), .hs(hs), .vs(vs), .x_sel(x_sel), .marker(marker),
+    split_display u_a (
+        .clk(clk), .rst_n(rst_n), .x(x), .y(y), .de(de), .hs(hs), .vs(vs), .x_sel(x_sel), .marker(marker), .seam(12'd512), .raw_left(1'b1),
         .orig_pix(orig_pix), .proc_pix(proc_pix), .angle_idx(angle_idx),
         .oob_l(oob_l), .oob_r(oob_r), .r(ra), .g(ga), .b(ba),
         .de_out(dea), .hs_out(hsa), .vs_out(vsa));
 
     /* ============ 实例 B/C/D：极端缝位（V8-4a 会遇到的那三个） ============ */
     wire [7:0] rb, gb, bb;  wire deb;
-    split_display #(.PANE_W(1)) u_b (
-        .clk(clk), .rst_n(rst_n), .x(x), .y(y), .de(de), .hs(hs), .vs(vs), .x_sel(x_sel), .marker(marker),
+    split_display u_b (
+        .clk(clk), .rst_n(rst_n), .x(x), .y(y), .de(de), .hs(hs), .vs(vs), .x_sel(x_sel), .marker(marker), .seam(12'd1), .raw_left(1'b1),
         .orig_pix(orig_pix), .proc_pix(proc_pix), .angle_idx(angle_idx),
         .oob_l(oob_l), .oob_r(oob_r), .r(rb), .g(gb), .b(bb), .de_out(deb));
     wire [7:0] rc, gc, bc;  wire dec;
-    split_display #(.PANE_W(0)) u_c (
-        .clk(clk), .rst_n(rst_n), .x(x), .y(y), .de(de), .hs(hs), .vs(vs), .x_sel(x_sel), .marker(marker),
+    split_display u_c (
+        .clk(clk), .rst_n(rst_n), .x(x), .y(y), .de(de), .hs(hs), .vs(vs), .x_sel(x_sel), .marker(marker), .seam(12'd0), .raw_left(1'b1),
         .orig_pix(orig_pix), .proc_pix(proc_pix), .angle_idx(angle_idx),
         .oob_l(oob_l), .oob_r(oob_r), .r(rc), .g(gc), .b(bc), .de_out(dec));
     wire [7:0] rd, gd, bd;  wire ded;
-    split_display #(.PANE_W(1024)) u_d (
-        .clk(clk), .rst_n(rst_n), .x(x), .y(y), .de(de), .hs(hs), .vs(vs), .x_sel(x_sel), .marker(marker),
+    split_display u_d (
+        .clk(clk), .rst_n(rst_n), .x(x), .y(y), .de(de), .hs(hs), .vs(vs), .x_sel(x_sel), .marker(marker), .seam(12'd1024), .raw_left(1'b1),
         .orig_pix(orig_pix), .proc_pix(proc_pix), .angle_idx(angle_idx),
         .oob_l(oob_l), .oob_r(oob_r), .r(rd), .g(gd), .b(bd), .de_out(ded));
 

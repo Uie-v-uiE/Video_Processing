@@ -2,7 +2,6 @@
 // Dual-pane: left original / right processed+zoomed.
 // Display 1024x600, each pane 512 wide, source 512x300 with 2x vertical scale.
 module split_display #(
-    parameter PANE_W = 512
 )(
     input  wire        clk,
     input  wire        rst_n,
@@ -18,6 +17,10 @@ module split_display #(
     //   `x`/`y`/`de`/`hs`/`vs` 继续按原级数穿过输出寄存器 ⇒ **OSD 的位置一个像素都不动**；
     //   只有"选哪一路"与"标记线画在哪一列"跟着内容走（= 修好本应如此的东西）。
     input  wire [11:0] x_sel,
+    // #51：缝位从此是**输入**（显示列 0..DISP_W）。顶层不接它就没有旧行为 ——
+    //   PANE_W 退化成一个默认值的出处，不再是唯一说法（ISSUES #66 那一族的病）。
+    input  wire [11:0] seam,
+    input  wire        raw_left,        // 1 = 缝左边给原图（swap 只换这一位，不换缝位）
     input  wire        marker,           // 1 = 画那条 2 px 标记线（V8-4 起可关；关掉了 #56-2(a) 就没了）
     input  wire        de,
     input  wire        hs,
@@ -34,13 +37,15 @@ module split_display #(
     output reg         hs_out,
     output reg         vs_out
 );
-    wire        left = (x_sel < PANE_W);
+    wire        left = (x_sel < seam);   // 缝位是输入（#51）；旧代码这里写的是参数 PANE_W
     wire        oob  = left ? oob_l : oob_r;
-    wire [15:0] sel  = oob ? 16'h0000 : (left ? orig_pix : proc_pix);
+    // swap 只改"哪一侧给原图"，不改缝的位置，也不改 oob 归属（#56-2：内容对调与几何对调是两件事）
+    wire        take_orig = raw_left ? left : ~left;
+    wire [15:0] sel  = oob ? 16'h0000 : (take_orig ? orig_pix : proc_pix);
     wire [4:0]  r5   = sel[15:11];
     wire [5:0]  g6   = sel[10:5];
     wire [4:0]  b5   = sel[4:0];
-    wire        sep  = marker && ((x_sel == PANE_W-1) || (x_sel == PANE_W));
+    wire        sep  = marker && ((x_sel == (seam - 12'd1)) || (x_sel == seam));
 
     always @(posedge clk or negedge rst_n) begin
         if (!rst_n) begin

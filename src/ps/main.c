@@ -85,6 +85,20 @@
 #define SEL_ERODE   (1u << 7)
 #define SEL_DILATE  (1u << 8)
 
+/* #51：分割线控制位。位图唯一出处 = ISSUES #70 追加；PL 侧对应 pl_video_top 的 split_ctl。
+ *   [22:13] pos_px（显示列 0..1024）、[23] auto_en、[24] follow、[25] swap、[30] marker_off
+ *   这 14 位在 PL 里一起过 snap_cross（#71：不许并进 effect_ctrl 那条已批准的同步链） */
+#define SPLIT_POS_SHIFT   13u
+#define SPLIT_POS_MASK    (0x3FFu << SPLIT_POS_SHIFT)
+#define SPLIT_AUTO_BIT    (1u << 23)
+#define SPLIT_FOLLOW_BIT  (1u << 24)
+#define SPLIT_SWAP_BIT    (1u << 25)
+#define SPLIT_MARKOFF_BIT (1u << 30)
+#define SPLIT_MASK        (SPLIT_POS_MASK | SPLIT_AUTO_BIT | SPLIT_FOLLOW_BIT | SPLIT_SWAP_BIT | SPLIT_MARKOFF_BIT)
+#define SPLIT_DISP_W      1024u            /* 整屏一个视口（r59b-1）：缝位单位 = 显示列 */
+#define SPLIT_LO16_DEF    2u               /* 扫描端点与速度是构建参数（顶层 SPLIT_LO16/HI16/SPEED） */
+#define SPLIT_HI16_DEF    14u
+static u32 cur_split = (512u << SPLIT_POS_SHIFT);   /* 默认缝在正中 = 旧行为 */
 static u32 cur_sel = 0;        /* 效果选择的唯一真相（九位） */
 static u32 cur_en = 0;         /* gpio_o[4:0] 上的老五位镜像，由 cur_sel 反推，不独立存在 */
 static u8  cur_thr = 80;
@@ -132,7 +146,8 @@ static u32 ctrl_write(void)
      * ⚠ 这里的 CFG_DATA0 就是 RTL 的 gpio_cfg1_o；gamma 那个窗口是 CFG_DATA1(+0x08)。
      *   两个名字差一位，写错字的症状恰恰是"设了没反应"，最容易误判成 PL 坏了。 */
     Xil_Out32(CFG_DATA0, (cur_sel & 0x1FFu)
-               | ((u32)(cur_zsel & 7u) << 26) | ((u32)(cur_zman ? 1u : 0u) << 29));
+               | ((u32)(cur_zsel & 7u) << 26) | ((u32)(cur_zman ? 1u : 0u) << 29)
+               | (cur_split & SPLIT_MASK));   /* #51：分割线的 14 位在同一个字里 */
     return v;
 }
 
@@ -678,8 +693,73 @@ static int dispatch(char **tk, int nt)
     }
     /* —— 以下四个是 spec §14 里还没落地的动词：先把语法收住，出口只有一条 —— */
     if (ci_eq(tk[0], "ROT"))     { not_wired("rot", "PL 的角度写入口（angle_ctrl 现在只吃按键）", "V8-2/V8-8"); return 0; }
-    if (ci_eq(tk[0], "SPLIT"))   { not_wired("split", "缝位的执行者（split_ctrl 已单独验完、尚未接线；"
-                                                     "先要统一几何，见 ISSUES #62）", "V8-4"); return 0; }
+    if (ci_eq(tk[0], "SPLIT")) {
+        /* #51：分割线真的可动了。单位是**显示列**（整屏 1024，r59b-1），屏上第四行 `Split:`
+         * 印的就是同一位换算出来的百分比 —— 发的、执行的、屏上写的三处同源（#66 那一族的病）。 */
+        u32 pos = (cur_split & SPLIT_POS_MASK) >> SPLIT_POS_SHIFT;
+        int b, pct;
+        if (nt >= 2 && ci_eq(tk[1], "SHOW")) {
+            xil_printf("[SPLIT] pos=%u/%u = %u%% %s%s%s marker=%s\r\n",
+                       (unsigned)pos, (unsigned)SPLIT_DISP_W, (unsigned)((pos * 100u) / SPLIT_DISP_W),
+                       (cur_split & SPLIT_AUTO_BIT) ? "auto" : "manual",
+                       (cur_split & SPLIT_FOLLOW_BIT) ? "follow " : "",
+                       (cur_split & SPLIT_SWAP_BIT) ? "swap(原图在右) " : "",
+                       (cur_split & SPLIT_MARKOFF_BIT) ? "off" : "on");
+            return 0;
+        }
+        if (nt >= 2 && ci_eq(tk[1], "AUTO")) {
+            cur_split |= SPLIT_AUTO_BIT; ctrl_apply();
+            xil_printf("[SPLIT] auto：缝在 [%u..%u]/16 宽度之间自动扫（速度与端点是构建参数；"
+                       "`split range`/`speed` 仍待接）\r\n",
+                       (unsigned)SPLIT_LO16_DEF, (unsigned)SPLIT_HI16_DEF);
+            return 0;
+        }
+        if (nt >= 2 && ci_eq(tk[1], "MANUAL")) {
+            cur_split &= ~SPLIT_AUTO_BIT; ctrl_apply();
+            xil_printf("[SPLIT] manual：停在 pos=%u（屏上 Split 格不再标 Auto）\r\n", (unsigned)pos);
+            return 0;
+        }
+        if (nt >= 3 && (ci_eq(tk[1], "SWAP") || ci_eq(tk[1], "FOLLOW") || ci_eq(tk[1], "MARKER"))) {
+            u32 bit = ci_eq(tk[1], "SWAP") ? SPLIT_SWAP_BIT
+                      : ci_eq(tk[1], "FOLLOW") ? SPLIT_FOLLOW_BIT : SPLIT_MARKOFF_BIT;
+            if (!strict_int(tk[2], &b) || (b != 0 && b != 1)) {
+                xil_printf("[SPLIT] %s 只认 0 或 1\r\n", tk[1]); return 0;
+            }
+            if (ci_eq(tk[1], "MARKER")) {           /* marker 语义是"画不画"，位是 marker_off：取反 */
+                if (b) cur_split &= ~bit; else cur_split |= bit;
+            } else {
+                if (b) cur_split |= bit; else cur_split &= ~bit;
+            }
+            ctrl_apply();
+            xil_printf("[SPLIT] %s=%d（%s）\r\n", tk[1], b,
+                       ci_eq(tk[1], "SWAP") ? "只换内容，不换缝位"
+                       : ci_eq(tk[1], "FOLLOW") ? "1 = 按源坐标量，旋转时跟着画面转"
+                                                : "那条 2 像素蓝线");
+            return 0;
+        }
+        if (nt >= 3 && ci_eq(tk[1], "PX")) {
+            if (!strict_int(tk[2], &pct) || pct < 0 || (u32)pct > SPLIT_DISP_W) {
+                xil_printf("[SPLIT] px 只认 0..%u\r\n", (unsigned)SPLIT_DISP_W); return 0;
+            }
+            cur_split = (cur_split & ~SPLIT_POS_MASK) | (((u32)pct) << SPLIT_POS_SHIFT);
+            cur_split &= ~SPLIT_AUTO_BIT; ctrl_apply();
+            xil_printf("[SPLIT] pos=%u px = %u%%（manual）\r\n", (unsigned)pct,
+                       (unsigned)(((u32)pct * 100u) / SPLIT_DISP_W));
+            return 0;
+        }
+        if (nt >= 2 && strict_int(tk[1], &pct) && pct >= 0 && pct <= 100) {
+            u32 px = ((u32)pct * SPLIT_DISP_W) / 100u;      /* 除法只在 PS 做一次，PL 无除法器（#58） */
+            cur_split = (cur_split & ~SPLIT_POS_MASK) | (px << SPLIT_POS_SHIFT);
+            cur_split &= ~SPLIT_AUTO_BIT; ctrl_apply();
+            xil_printf("[SPLIT] %d%% -> pos=%u/%u（manual；屏上 Split 格应显示 %d%%）\r\n",
+                       pct, (unsigned)px, (unsigned)SPLIT_DISP_W, pct);
+            return 0;
+        }
+        /* 不认的写法一律明确拒绝、不改任何状态（#67）；`split range` 这类还没接的说法也在这里拒掉 */
+        xil_printf("[SPLIT] 只认：split <0..100> / px <0..1024> / auto / manual / swap 0|1 / follow 0|1 / marker 0|1 / show"
+                   "（range/speed 仍是构建参数，待接）\r\n");
+        return 0;
+    }
     if (ci_pre(tk[0], "GAMMA")) {
         /* `gamma off` / `gamma 1.8` / `gamma 180`（γ×100）三种写法；参数粘着或分开都吃。 */
         const char *arg = (nt >= 2) ? tk[1] : tk[0] + 5;

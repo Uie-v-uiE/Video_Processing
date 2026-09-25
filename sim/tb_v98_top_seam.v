@@ -83,11 +83,13 @@ module tb_v98_top_seam;
     wire [2:0]  tmds_data_p, tmds_data_n;
     wire [1:0]  led;
 
+    reg  [13:0]  split_ctl_tb = 14'd0;   // 缝位/auto/follow/swap/marker 全默认（tb_v97 才动缝）
     pl_video_top dut (
         .sys_clk(sys_clk), .sys_rst_n(sys_rst_n), .axi_clk(axi_clk), .axi_rst_n(axi_rst_n),
         .effect_en(effect_en), .stage_sel(stage_sel), .threshold(threshold), .gamma_ctl(gamma_ctl),
         .src_sel(src_sel), .zoom_en(zoom_en), .mode_ovr(mode_ovr), .mode_ovr_tog(mode_tog),
         .zoom_sel_async(zoom_sel), .zoom_manual_async(zoom_manual),
+        .split_ctl(split_ctl_tb),      // #51 新输入：不接=悬空 X（#7 那一族）⇒ 钉成 0
         .ps_publish(ps_publish), .key1_n(key1_n), .key2_n(key2_n), .led(led),
         .dbg_src(dbg_src), .dbg_lat(dbg_lat), .dbg_zoom(dbg_zoom), .lat_arm(lat_arm),
         .tmds_clk_p(tmds_clk_p), .tmds_clk_n(tmds_clk_n),

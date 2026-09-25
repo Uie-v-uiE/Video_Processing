@@ -29,6 +29,8 @@ module pl_demo_top (
         .zoom_en(1'b1),
         .zoom_sel_async(3'd0),       // 纯 PL 演示没有 PS：缩放留在自动呼吸
         .zoom_manual_async(1'b0),
+        // #51：演示顶层不驱动分割线（14 位全 0 = 缝在 0、auto 关、marker 照旧画）
+        .split_ctl(14'd0),
         .ps_publish(1'b0),          // 纯 PL 演示没有 PS：不发布，DDR 回放路径保持静默
         .mode_ovr(2'b00), .mode_ovr_tog(1'b0),   // 没有 PS ⇒ 片源模式只听按键环
         .key1_n(key1_n),

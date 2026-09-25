@@ -72,3 +72,11 @@ sd
 sd files
 sd file 1
 sd file 99
+split 30
+split swap 1
+split swap 0
+split marker 0
+split marker 1
+split show
+split 150
+split 50
