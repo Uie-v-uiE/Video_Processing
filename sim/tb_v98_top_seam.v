@@ -211,6 +211,18 @@ module tb_v98_top_seam;
         end
     end
 
+    integer xr_rd = 0, xr_out = 0, xr_hold = 0, n_blank = 0;   // X 是从哪一级进来的（声明必须在使用之前）
+    // X 的来源分层数（active 期间才数）：`fb_rd`（BRAM 原始读出）/ `fb_pix_hold` / `fb_out`。
+    //   哪一层先出现 X，缺口就在哪一层 —— 今天这条就是为 #54 那个"内容判据做不到"准备的。
+    always @(posedge dut.clk_pix) begin
+        if (dut.de_d[4]) begin
+            n_blank = n_blank + 1;
+            if ((dut.fb_rd ^ dut.fb_rd) !== 16'd0)      xr_rd  = xr_rd + 1;
+            if ((dut.fb_pix_hold ^ dut.fb_pix_hold) !== 16'd0) xr_hold = xr_hold + 1;
+            if ((dut.fb_out ^ dut.fb_out) !== 16'd0)    xr_out = xr_out + 1;
+        end
+    end
+
     always @(posedge dut.axi_clk) begin
         if (dut.aw_wr_en === 1'b1) fb_wr_pulses = fb_wr_pulses + 1;   // 用连过去的网线，不引用端口名
         if (dut.copy_hold === 1'b1)  hold_cyc = hold_cyc + 1;
@@ -235,10 +247,10 @@ module tb_v98_top_seam;
                 n_l = n_l + 1;
                 // ---- C-tap：只比 DUT 自己的两个坐标，不碰帧缓存内容 ----
                 //   内容站在第 3+1+1+PROC_LAT=20 级，标签用的是 x_d[11] ⇒ 今天差 9 列（#68）
-                if (dut.oob_l == 1'b0) begin
+                if (dut.oob == 1'b0) begin
                     tap_cnt = tap_cnt + 1;
                     // 内容列（读地址那一拍之前的 sx_l 再减 1 拍 rd_addr_q）对比混色级标签列
-                    sxv  = dut.sx_l;
+                    sxv  = dut.sx;
                     labv = mix_x;
                     if (labv >= 512) labv = labv - 512;
                     tap_d = sxv - 1 - labv;
@@ -262,7 +274,7 @@ module tb_v98_top_seam;
                     // 关键探针：**同时看顶层自己算出来的源坐标**（sx_l/sy_l）与读回来的字。
                     // 只打 tap_raw 分不开"我的期望错了"与"帧缓存里的内容不是这张图"两种情况。
                     $display("DBG 左窗 x=%0d y=%0d | 顶层源坐标 sx_l=%0d sy_l=%0d oob=%0d | tap_raw=%04x 解出(%0d,%0d) fb_out=%04x rd_addr=%0d",
-                             mix_x, mix_y, dut.sx_l, dut.sy_l, dut.oob_l,
+                             mix_x, mix_y, dut.sx, dut.sy, dut.oob,
                              tap_raw, mem_row(tap_raw), mem_col(tap_raw),
                              dut.fb_out, dut.rd_addr_q);
                 end
@@ -289,10 +301,13 @@ module tb_v98_top_seam;
     wire [11:0] c1_row = dut.y_d11;
     integer c1_n = 0, c1_skip = 0, c1_colbad = 0, c1_rowbad = 0, c1_zero = 0;
     integer c1_fcol = -999, c1_frow = -999, c1_varies = 0, c1_dumped = 0;
-    integer c1_dx, c1_dy, c1_hasx = 0;
+    integer c1_dx, c1_dy, c1_hasx = 0, c1_gx = 0, c1_gy = 0, c1_n3 = 0;
+    integer c1_geom_bad = 0, c1_geom_bad_row = 0, c1_gdump = 0;
+    integer c1_kbad [0:5], c1_k;                     // 级数标定用
+    integer c1_clamp = 0;                            // 帧底夹紧被跳过的格数（C1h 的例外）
     always @(posedge dut.clk_pix) begin
         if (mix_de && left_pane && measure_ok) begin
-            if (dut.oob_l || c1_col < 25 || c1_col > (512 - 25)) begin
+            if (dut.oob || c1_col < 25 || c1_col > (512 - 25)) begin
                 c1_skip = c1_skip + 1;         // 出界填空黑 / 行首行尾那 24 列：标签与内容不同行，不计
             end else begin
                 c1_n   = c1_n + 1;
@@ -307,8 +322,41 @@ module tb_v98_top_seam;
                     if ({20'd0, c1_col} > xhi) xhi = c1_col;   // ⚠ 必须把无符号那侧显式扩到位宽，
                     //   否则 `integer` 的 -1 在无符号比较里被换算成巨大值 ⇒ 这一格永远不更新（实测踩过）
                 end
-                c1_dx  = dsub(mem_col(tap_raw), c1_col[7:0]);
+                // r59b-1 之后"这一格该来自源图哪一格"只有**一处**答案：顶层自己要的地址 (sx, sy)。
+                //   比这个不是"抄顶层算式"—— 被验的命题就是"送进链子/送上屏的那一格，是不是地址发生器
+                //   当时要的那一格"（管道对齐），而"几何本身对不对"另由 C1f 单独看（源列 = 显示列 >>1）。
+                // 期望值只依赖**显示标签**（第 20 级的列 + 第 11 级的行），不引用顶层内部坐标：
+                //   单视口 + 手动 1.00x + 不旋转 时，显示 (X,Y) 这一格的内容必须就是源 (X>>1, Y>>1)。
+                //   这才是"整屏一个视口"这句话的内容级证据；内部坐标那条路（sx/sy）由 C1g/C1h 单独看。
+                c1_dx  = dsub(mem_col(tap_raw), (c1_col >> 1));
                 c1_dy  = dsub(mem_row(tap_raw), (c1_row >> 1));
+                // 视口几何：源列必须等于**同一级**的显示列 >>1（整屏一个视口的定义就是这一条）。
+                //   取 x_d[3] 而不是 x_sel：sx/sy 是第 3 级的标签，跨级比就是重犯 #68。
+                // sx/sy 是 mapper 的输出：复位后前几拍与越界那一拍本身就是 X，
+                //   不挡的话"几何不符"的计数会跟"内容 X"的计数撞在一起（本轮就这么误判过一次）。
+                if ((({ dut.sx, dut.sy }) ^ ({ dut.sx, dut.sy })) === 24'd0) begin
+                    c1_n3  = c1_n3 + 1;
+                    // 级数标定：mapper 输出到底与第几级的显示列同源，用数据说话（我推理两次错过一级）
+                    for (c1_k = 0; c1_k < 6; c1_k = c1_k + 1)
+                        if (dsub((dut.x_d[c1_k] >> 1), dut.sx) != 0) c1_kbad[c1_k] = c1_kbad[c1_k] + 1;
+                    c1_gx  = dsub((dut.x_d[3] >> 1), dut.sx);   // 列：源列必须 = 同级的显示列 >>1
+                    if (c1_gx != 0) begin
+                        c1_geom_bad = c1_geom_bad + 1;
+                        if (c1_gdump < 6) begin               // 前 10 处摆原始数：形状规则 = 尺子错
+                            c1_gdump = c1_gdump + 1;
+                            $display("     GEOM x_d[3]=%0d 期望src=%0d 顶层src=%0d dx=%0d | de3=%0d oob=%0d sy=%0d y3=%0d",
+                                     dut.x_d[3], (dut.x_d[3] >> 1), dut.sx, c1_gx,
+                                     dut.de_d[3], dut.oob, dut.sy, dut.y_d[3]);
+                        end
+                    end
+                    // 行：地址带着 #54 (B) 的提前量，所以期望是 (y + OFF_LINES) >> 1，不是 y >> 1。
+                    //   提前量取顶层自己声明的 u_pipe.OFF_LINES（台架里独立算，不抄内部信号）。
+                    c1_gy  = dsub(((dut.y_d[2] + {4'd0, dut.pipe_off_rows[3:0]}) >> 1), dut.sy);
+                    // 帧底那两行是**设计上的夹紧**（#54 的提前量在末尾没有行可提前 ⇒ 夹到 IMG_H-1），
+                    //   不是几何错位 ⇒ 跳过并计数，跳过数本身打出来给人看（不静默）。
+                    if (dut.sy >= (12'd300 - 1)) c1_clamp = c1_clamp + 1;
+                    else if (c1_gy != 0) c1_geom_bad_row = c1_geom_bad_row + 1;
+                end
                 if (c1_dx == 0) c1_zero = c1_zero + 1;
                 else            c1_colbad = c1_colbad + 1;
                 if (c1_dy != 0) c1_rowbad = c1_rowbad + 1;
@@ -330,6 +378,7 @@ module tb_v98_top_seam;
     endtask
 
     initial begin
+        for (i0 = 0; i0 < 6; i0 = i0 + 1) c1_kbad[i0] = 0;
         for (i0 = 0; i0 < 14; i0 = i0 + 1) hist[i0] = 0;
         for (i0 = 0; i0 < 10; i0 = i0 + 1) begin hl_c[i0] = 0; hl_r[i0] = 0; end
 
@@ -389,6 +438,22 @@ module tb_v98_top_seam;
              "de-duplicated write-word index count must cover the full frame once");
         $display("     X 读回 %0d 格，落在列 %0d..%0d；去重写过的字下标 %0d/38400",
                  nxread, xlo, xhi, wdistinct);
+        // r59b-1 的核心主张，而且它**不需要**帧缓存里真有内容（只看顶层自己的两个同级标签）
+        //   ⇒ 在 #54 那条"拷贝路径建模"补上之前，这一条就是新几何唯一能当场成立的机器判据。
+        $display("     级数标定：源列 == 第 k 级显示列 >>1 的不符数（样本 %0d）", c1_n3);
+        for (i0 = 0; i0 < 6; i0 = i0 + 1)
+            $display("       k=%0d 不符 %0d", i0, c1_kbad[i0]);
+        // 标定实测（826259 格）：k=2 是唯一一处不符为 0 —— 这就是 mapper 那三级寄存器与
+        //   `x_d[k] = x(T-1-k)` 这个下标约定的合力：mapper 输出 = 输入延迟 3 拍 = x_d[2]。
+        //   写成 k=2 而不是"存在某个 k"：判据要能红，就必须钉死一个具体的级数（改几何时会红给它看）。
+        line("C1g VIEWPORT col: src == x_d[2]>>1", c1_n3 > 50000 && c1_kbad[2] == 0,
+             "整屏一个视口：顶层要的源列必须等于第 2 级显示列 >>1（标定实测 k=2 唯一为零）");
+        $display("     C1h 跳过帧底夹紧 %0d 格（sy==299）；行不符 %0d", c1_clamp, c1_geom_bad_row);
+        line("C1h VIEWPORT row: src == (y_d[2]+OFF)>>1", c1_geom_bad_row == 0,
+             "行方向同一个定义：两个显示行共用一个源行（600 行面板对应 300 源行）");
+        $display("     C1g/C1h 样本 %0d 格；列不符(旧口径) %0d", c1_n3, c1_geom_bad);
+        $display("     X 分层：有效拍 %0d | fb_rd 是 X 的 %0d | fb_pix_hold 是 X 的 %0d | fb_out 是 X 的 %0d",
+                 n_blank, xr_rd, xr_hold, xr_out);
         line("C0e RULER self-consistent", n_l > 0 && bad_l >= hl_c[0],
              "out-of-range bucket must be a subset of the mismatch set");
         line("C1a content-check coverage", c1_n > 50000,

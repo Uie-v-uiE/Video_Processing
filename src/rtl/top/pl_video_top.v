@@ -229,8 +229,13 @@ module pl_video_top #(
     );
 
     wire [7:0]  pipe_off_rows;   // 效果链自己声明的"内容滞后几行"（u_pipe 的输出口）
-    wire        left_pane = (x < PANE_W);
-    wire [11:0] cx = left_pane ? x : (x - PANE_W);
+    // ---- r59b-1（#73）：整屏一个视口 ----
+    //   1024 个显示列对应 512 个源列 ⇒ 每个源列在屏上占两列；行方向 600 对应 300，还是那一次 >>1。
+    //   原图抽头与处理抽头从此共用同一份源坐标，缝只是逐像素二选一 ——
+    //   "分割线 0~100 % 可调"与"整体旋转缩放"在数学上第一次相容
+    //   （旧几何里两屏各画一整幅，缝只能钉死在 512，就是 #62 从头说的那件不相容的事）。
+    wire        left_pane = (x < PANE_W);      // 只留给调试位；内容选择从此不看它
+    wire [11:0] cx = x >> 1;                   // 视口内的源列（0..511），左右两半同一个数
     wire [11:0] cy = (y >> 1) < IMG_H ? (y >> 1) : (IMG_H - 1);
     // 右窗读坐标**提前 u_pipe.OFF_LINES 个显示行**（= 效果链的内容滞后，实测 −4 行且逐像素一致）。
     // 为什么这样补是免费的、也是唯一因果上成立的补法：
@@ -256,36 +261,18 @@ module pl_video_top #(
         .dir(zoom_dir)
     );
 
-    // 左半窗**不旋转**：旋转只属于右半窗（由 zoom_mapper 内部的 rotate_en 分支承担）。
-    // 于是这里不再例化 rotate_mapper —— 保持左路用 cx_q3/cy_q3（= 今天 angle=0 时的同一条路径），
-    // 流水深度不动，免得把已经验过的列配准重新搅一遍。
-    reg [11:0] cx_q1, cx_q2, cx_q3, cy_q1, cy_q2, cy_q3;
-    reg        oob_q1, oob_q2, oob_q3;
-    always @(posedge clk_pix or negedge rst_pix_n) begin
-        if (!rst_pix_n) begin
-            {cx_q1,cx_q2,cx_q3} <= 36'd0;
-            {cy_q1,cy_q2,cy_q3} <= 36'd0;
-            {oob_q1,oob_q2,oob_q3} <= 3'd1;
-        end else begin
-            cx_q1 <= cx; cx_q2 <= cx_q1; cx_q3 <= cx_q2;
-            cy_q1 <= cy; cy_q2 <= cy_q1; cy_q3 <= cy_q2;
-            oob_q1 <= (cx >= IMG_W) || (cy >= IMG_H);
-            oob_q2 <= oob_q1; oob_q3 <= oob_q2;
-        end
-    end
-    wire        rot_on = rotate_active;   // 只驱动右窗
-    wire [11:0] sx_l = cx_q3;             // 左窗 = 未旋转原画面
-    wire [11:0] sy_l = cy_q3;
-    wire        oob_l = oob_q3;
-
-    wire [11:0] sx_r, sy_r;
-    wire        oob_r;
+    // 旋转/缩放从此属于**整幅画面**：只有一份源坐标，左半不再单独走一条"不旋转"的路。
+    //   旧的 cx_q*/cy_q* 三拍打拍与 sx_l/sy_l 一起删掉 —— 那是"两屏各画一整幅"时代的遗产。
+    //   ⚠ 这是对观感有实感的改动（#73 第 0 条）：整幅图铺满 1024，旋转时左右两半一起转。
+    wire        rot_on = rotate_active;
+    wire [11:0] sx, sy;
+    wire        oob;
     wire [7:0]  zfrac_x, zfrac_y;
     zoom_mapper #(.IMAGE_W(IMG_W), .IMAGE_H(IMG_H)) u_zmap (
         .clk(clk_pix), .rst_n(rst_pix_n),
         .inv_scale(inv_scale), .angle(angle), .rotate_en(rot_on),
         .x_in(cx), .y_in(cy_r),     // ← 提前 OFF_LINES 个显示行，抵掉效果链的内容滞后（#54 (B)）
-        .x_out(sx_r), .y_out(sy_r), .oob(oob_r),
+        .x_out(sx), .y_out(sy), .oob(oob),
         .frac_x(zfrac_x), .frac_y(zfrac_y)
     );
 
@@ -662,21 +649,19 @@ module pl_video_top #(
     wire [18:0] aw_wr_addr = eth_mode ? row_wr_addr : fill_wr_addr;
     wire [63:0] aw_wr_data = eth_mode ? row_wr_data : fill_wr_data;
 
-    wire        fb_sel_right = ~left_d[2];
-    wire [11:0] sx_fb = fb_sel_right ? sx_r : sx_l;
-    wire [11:0] sy_fb = fb_sel_right ? sy_r : sy_l;
-    wire        oob_fb = fb_sel_right ? oob_r : oob_l;
+    // 一个读口、一条地址流、一份坐标（#73）：这里从此没有"左用哪套源坐标 / 右用哪套"的 mux。
+    wire [11:0] sx_fb = sx;
+    wire [11:0] sy_fb = sy;
+    wire        oob_fb = oob;
 
     reg [18:0] rd_addr_q;
     reg        oob_fb_d0;
-    reg        left_sel_q;
     always @(posedge clk_pix or negedge rst_pix_n) begin
         if (!rst_pix_n) begin
-            rd_addr_q <= 0; oob_fb_d0 <= 1; left_sel_q <= 1;
+            rd_addr_q <= 0; oob_fb_d0 <= 1;
         end else begin
             rd_addr_q  <= {sy_fb[8:0], 9'b0} + {7'b0, sx_fb};
             oob_fb_d0  <= oob_fb;
-            left_sel_q <= left_d[2];
         end
     end
 
@@ -689,47 +674,61 @@ module pl_video_top #(
     // SRC0 位置原来是静止彩条（`color_bar`）。换成**会动的测试图卡**：静止图案分不清
     // "通路在刷新"和"卡在最后一帧"，而这张卡自带移动块 + 帧号二值格（见 test_card.v 文件头）。
     // 端口与 color_bar 同形、输出同样只打一拍 ⇒ PROC_LAT 与 bar_l_d4/bar_r_d2 那些抽头不用动。
-    wire [15:0] bar_l0, bar_r0;
-    reg  [15:0] bar_l_d1, bar_l_d2, bar_l_d3, bar_l_d4, bar_r_d1, bar_r_d2;
-    test_card #(.H_ACTIVE(IMG_W), .V_ACTIVE(IMG_H)) u_bar_l (
+    // 图卡也只剩一份，并且吃同一份源坐标 (sx, sy)：没片源时左右两半画的是同一幅卡，
+    //   缝上不会多出"左半的卡与右半的卡对不上"这种新条纹。
+    //   （旧代码里 u_bar_l 吃 cx/cy、u_bar_r 吃 mapper 输出，正是两套几何并存的另一半遗产。）
+    wire [15:0] bar0;
+    reg  [15:0] bar_d1, bar_d2;
+    test_card #(.H_ACTIVE(IMG_W), .V_ACTIVE(IMG_H)) u_bar (
         .clk(clk_pix), .rst_n(rst_pix_n), .vs(vs),
-        .x(cx), .y(cy), .de(de), .rgb565(bar_l0)
-    );
-    test_card #(.H_ACTIVE(IMG_W), .V_ACTIVE(IMG_H)) u_bar_r (
-        .clk(clk_pix), .rst_n(rst_pix_n), .vs(vs),
-        .x(sx_r), .y(sy_r), .de(de_d[2]), .rgb565(bar_r0)
+        .x(sx), .y(sy), .de(de_d[2]), .rgb565(bar0)
     );
     always @(posedge clk_pix) begin
-        bar_l_d1 <= bar_l0; bar_l_d2 <= bar_l_d1;
-        bar_l_d3 <= bar_l_d2; bar_l_d4 <= bar_l_d3;
-        bar_r_d1 <= bar_r0;  bar_r_d2 <= bar_r_d1;
+        bar_d1 <= bar0; bar_d2 <= bar_d1;
     end
 
-    reg oob_fb_d1, left_sel_d1;
-    always @(posedge clk_pix) begin
-        oob_fb_d1 <= oob_fb_d0;
-        left_sel_d1 <= left_sel_q;
-    end
-    wire left_pix = left_sel_d1;
+    reg oob_fb_d1;
+    always @(posedge clk_pix) oob_fb_d1 <= oob_fb_d0;
 
-    wire [15:0] pix_left  = left_pix ? (oob_fb_d1 ? 16'h0000 : (fb_vis ? fb_out : bar_l_d4))
-                                      : 16'h0000;
-    wire [15:0] pix_right = left_pix ? 16'h0000
-                                      : (oob_fb_d1 ? 16'h0000 : (fb_vis ? fb_out : bar_r_d2));
-    wire oob_l_pix = left_pix & oob_fb_d1;
-    wire oob_r_pix = (~left_pix) & oob_fb_d1;
+    // 第 5 级"这一格该显示什么"：有片源取帧缓存，没片源取会动的图卡，越界给黑。
+    //   旧版这里是一对 pix_left / pix_right（各按半窗把自己那一侧以外强制清零）——
+    //   那对 mux 就是 #68 那条暗带的另一半：标签与内容不同级时，被清零的一路会在缝旁留一条带。
+    //   现在只有一个流，没有"另一侧"可清 ⇒ 那一族错位在结构上消失。
+    wire [15:0] pix_raw = oob_fb_d1 ? 16'h0000 : (fb_vis ? fb_out : bar_d2);
+    wire        oob_raw = oob_fb_d1;
+
+    // ---- r59b-2（#73）：原图抽头必须过一条**行环**，缝两侧才是同一行画面 ----
+    //   单流之后地址只有一份，而它的行号带着 #54 (B) 的提前量 `cy_r = (y+OFF_LINES)>>1`
+    //   —— 那个提前量是给链子准备的（链子内容天生滞后 4 行），原图抽头不需要它。
+    //   补偿办法不是再开一个读口（第二个逻辑读口实测把 80 块 BRAM 顶到 160 块，全片才 140），
+    //   而是把原图抽头整体延后 OFF_LINES 个显示行：
+    //     第 r 行写进去的内容是源行 (r+OFF)>>1，第 r+OFF 行读出来 ⇒ 落在显示行 r+OFF 上，
+    //     而那一行要的正是源行 (r+OFF)>>1 —— 列号由环按 x 寻址，一格都不偏。
+    //   LINES 的唯一合法出处是 u_pipe.OFF_LINES（链子哪天改了，这条自动跟着改）。
+    localparam integer RAW_LINES = u_pipe.OFF_LINES;
+    wire [15:0] raw_ring;
+    wire        raw_ring_v;
+    raw_line_delay #(.LINES(RAW_LINES), .W(2*IMG_W)) u_raw (
+        .clk(clk_pix), .rst_n(rst_pix_n),
+        .de(de_d[5]), .x(x_d[5]), .y(y_d[5]),
+        .d_in(pix_raw), .d_out(raw_ring), .de_out(raw_ring_v)
+    );
 
     wire [15:0] pipe_dout;
     wire        pipe_de;
-    proc_pipeline #(.H_ACTIVE(IMG_W)) u_pipe (
+    // #73：链子现在的"一行"是显示列 1024（相邻两拍内容是同一个源列的复制）。
+    //   代价写死在这里，不许算作免费：行缓存宽度翻倍（约 +8 块 BRAM），而且 3x3 滤波的空间尺度
+    //   从"源像素"变成"显示像素"（横向覆盖 1.5 个源列）⇒ 横方向的模糊/边缘比旧版略宽。
+    //   要回到源域等距就得给整条链加时钟使能（#73 订正里那条支路）。
+    proc_pipeline #(.H_ACTIVE(2*IMG_W)) u_pipe (
         .clk(clk_pix), .rst_n(rst_pix_n),
         .stage_sel(sel_sync), .threshold(th_sync),
         .gamma_en(gm_en), .gamma_wr(gm_wr), .gamma_idx(gm_idx), .gamma_data(gm_data),
         .rotate_active(rot_on),
         .hs_in(hs_d[3]), .vs_in(vs_d[3]),
-        .de_in(de_d[3] && !left_d[3]),
-        .x_in(cx_d[3]), .y_in(cy_d[3]),
-        .din(pix_right), .off_rows(pipe_off_rows),
+        .de_in(de_d[3]),                 // 整行都进链（旧版只喂右窗那 512 个）
+        .x_in(x_d[3]), .y_in(cy_d[3]),   // 链子里的"列"= 显示列，"行"= 源行（两个显示行同名，照旧）
+        .din(pix_raw), .off_rows(pipe_off_rows),
         .de_out(pipe_de), .dout(pipe_dout)
     );
 
@@ -741,28 +740,24 @@ module pl_video_top #(
     localparam LEFT_TAIL = PROC_LAT;
 
     reg [15:0] orig_skid [0:LEFT_TAIL-1];
-    reg        oob_l_skid [0:LEFT_TAIL-1];
-    reg        oob_r_skid [0:LEFT_TAIL-1];
+    reg        oob_skid [0:LEFT_TAIL-1];
     integer s;
     always @(posedge clk_pix or negedge rst_pix_n) begin
         if (!rst_pix_n) begin
             for (s = 0; s < LEFT_TAIL; s = s + 1) begin
-                orig_skid[s] <= 0; oob_l_skid[s] <= 0; oob_r_skid[s] <= 0;
+                orig_skid[s] <= 0; oob_skid[s] <= 0;
             end
         end else begin
-            orig_skid[0] <= pix_left;
-            oob_l_skid[0] <= oob_l_pix;
-            oob_r_skid[0] <= oob_r_pix;
+            orig_skid[0] <= raw_ring;      // 行环之后再做 15 拍 skid：行与列都才对得上（#73）
+            oob_skid[0]  <= oob_raw;
             for (s = 1; s < LEFT_TAIL; s = s + 1) begin
                 orig_skid[s] <= orig_skid[s-1];
-                oob_l_skid[s] <= oob_l_skid[s-1];
-                oob_r_skid[s] <= oob_r_skid[s-1];
+                oob_skid[s]  <= oob_skid[s-1];
             end
         end
     end
-    wire [15:0] orig_disp = orig_skid[LEFT_TAIL-1];
-    wire        oob_lo = oob_l_skid[LEFT_TAIL-1];
-    wire        oob_ro = oob_r_skid[LEFT_TAIL-1];
+    wire [15:0] orig_disp = orig_skid[LEFT_TAIL-1];   // 链子之前的抽头，与 pipe_dout 同一级
+    wire        oob_out   = oob_skid[LEFT_TAIL-1];
 
     wire de_d11 = de_d[11], hs_d11 = hs_d[11], vs_d11 = vs_d[11];
     wire [11:0] x_d11 = x_d[11], y_d11 = y_d[11];
@@ -777,7 +772,7 @@ module pl_video_top #(
         .x(x_d11), .y(y_d11), .de(de_d11), .hs(hs_d11), .vs(vs_d11),
         .x_sel(x_d[MIX_D]), .marker(split_marker),   // 与内容同级的那一路坐标（#68）；OSD 用的 x/y 不动
         .orig_pix(orig_disp), .proc_pix(pipe_dout),
-        .oob_l(oob_lo), .oob_r(oob_ro),
+        .oob_l(oob_out), .oob_r(oob_out),   // 越界对两个抽头是同一件事（同一份源坐标）⇒ 一位喂两口
         .angle_idx(angle[1:0]),
         .r(r), .g(g), .b(b),
         .de_out(de_o), .hs_out(hs_o), .vs_out(vs_o)

@@ -1,0 +1,6 @@
+XELAB FAILED
+ERROR: [VRFC 10-2991] 'oob_l' is not declared under prefix 'dut' [D:/Xilinx/Prj/pro/Video_Processing/sim/tb_v98_top_seam.v:238]
+ERROR: [VRFC 10-2991] 'sx_l' is not declared under prefix 'dut' [D:/Xilinx/Prj/pro/Video_Processing/sim/tb_v98_top_seam.v:241]
+ERROR: [VRFC 10-2991] 'sx_l' is not declared under prefix 'dut' [D:/Xilinx/Prj/pro/Video_Processing/sim/tb_v98_top_seam.v:265]
+ERROR: [VRFC 10-2991] 'oob_l' is not declared under prefix 'dut' [D:/Xilinx/Prj/pro/Video_Processing/sim/tb_v98_top_seam.v:295]
+ERROR: [XSIM 43-3322] Static elaboration of top level Verilog design unit(s) in library work failed.
