@@ -273,6 +273,12 @@ module system_top (
         // （main.c 自己就注明"当前 RTL 常开，bit17 仅预留"）。
         // 注意默认值：set_src.tcl 现在写 0x0003_0000（bit16+bit17），保持"上电即呼吸缩放"的旧观感。
         .zoom_en(gpio_o[17]),
+        // #83：PS 侧 `BILIN_BIT 19`（main.c:44/181）从 V6 起就在写这一位，而 PL 从来没读它
+        //   ⇒ 症状是"串口答应了、硬件没动"，电池那三条只能证明 PS 记下了值。这里把它接进来，
+        //   跨域用 `pl_video_top` 里与 `zoom_en` 完全相同的单水位 3 级 ASYNC_REG（准静态电平，
+        //   不需要 toggle/快照）。**不并进 effect_ctrl 那条已批准的链**（#71 的红线），
+        //   也不与任何现成发射 FF 共用（#65 / r54 构建 #34 的 CDC-11 Critical 就是这么来的）。
+        .bilin_en_axi(gpio_o[19]),
         .ps_publish(gpio_o[18]),        // 每翻转一次 = PS 请求把 DDR 里那一帧搬上屏一次
         // V8-2 补的片源模式覆盖（2026-09-25）：[24:23] = 码（00 自动/01 ETH/11 SD/10 TEST），
         // [22] = 翻转位。码与翻转的先后由 main.c 保证（先写码再翻位），跨域在 src_mode 里做。

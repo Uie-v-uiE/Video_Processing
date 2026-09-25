@@ -27,6 +27,11 @@ module pl_demo_top (
         .threshold(threshold),
         .src_sel(src_sel),
         .zoom_en(1'b1),
+        // #83：pl_video_top 新增的 axi 域准静态输入，在这个"纯 PL 演示"顶层里没有 PS/GPIO ⇒
+        //   钉 1'b1 = 与 r63b/r63c 的 localparam 默认**同一个行为**（双线性开）。
+        //   不连就是悬空输入（综合成 0、仿真成 Z），门禁的 ports_check 会为它判红 ——
+        //   这条红是它该红的样子：新加一口时必须两棵树一起接，否则"另一个顶层"就悄悄变了行为。
+        .bilin_en_axi(1'b1),
         .zoom_sel_async(3'd0),       // 纯 PL 演示没有 PS：缩放留在自动呼吸
         .zoom_manual_async(1'b0),
         // #51：演示顶层不驱动分割线；V9 起这一束是 19 位（多出来的 5 位是 rot_auto/rot_speed/zoom_fit）。

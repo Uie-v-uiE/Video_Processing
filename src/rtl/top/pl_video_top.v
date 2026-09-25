@@ -34,6 +34,7 @@ module pl_video_top #(
     input  wire [31:0] gamma_ctl,
     input  wire        src_sel,
     input  wire        zoom_en,
+    input  wire        bilin_en_axi,   // #83：gpio_o[19]（PS 的 BILIN_BIT），axi 域准静态电平
     // V8-2 补的那半件事（2026-09-25）：串口命令可以把片源模式**钉住**，不必只靠按键环。
     // 都是 axi 域准静态电平，跨域与"命令优先还是按键优先"全在 `src_mode` 里处理，
     // 这一层只负责把线接过去（不许在这里自己采）。
@@ -292,7 +293,18 @@ module pl_video_top #(
     localparam integer BILIN_ROWS = 2;
     // 运行时 on/off 还缺一个控制位：cfg1 的 32 位已满（report/COMMANDS.md §5 的位表），
     //   下一位只能来自 gpio_cfg2 或 gpio_o ⇒ 那是一次新的跨域，按 #71/#76 的规矩单独走。
-    localparam BILIN_EN = 1'b1;
+    // 运行时 on/off 现在有了：`gpio_o[19]` → 这条 3 级同步 → `bilin_en_pix`（#83）。
+    // 复位默认取 **1** ⇒ 上电后的画面与 r63b/r63c（localparam 1）逐位相同，"加了口子但观感不变"这条可查。
+    // （历史备注：这一版之前它是 localparam 常量 1'b1，PS 那一位一直悬空在 PL 门口。）
+    (* ASYNC_REG = "TRUE" *) reg be0, be1, be2;
+    always @(posedge clk_pix or negedge rst_pix_n) begin
+        if (!rst_pix_n) begin
+            be0 <= 1'b1; be1 <= 1'b1; be2 <= 1'b1;
+        end else begin
+            be0 <= bilin_en_axi; be1 <= be0; be2 <= be1;
+        end
+    end
+    wire bilin_en_pix = be2;
     wire [12:0] y_right_adv = {1'b0, y} + {5'b0, pipe_off_rows} + BILIN_ROWS[12:0];
     wire [11:0] cy_r = ((y_right_adv >> 1) >= IMG_H) ? (IMG_H - 1) : y_right_adv[11:0] >> 1;
 
@@ -696,7 +708,9 @@ module pl_video_top #(
     //   `split_ctl` 本来就是 axi_gpio_2 的输出寄存器 ⇒ 取它 = 零新增跨域。
     //   而"像素域到底有没有在用拟合"不该由这一位作证 —— 那是 `inv_used` 与 `zoom_code`
     //   的关系去证的（`src/host/geom_check.mjs` 的 G1b/G1c/G2 三条就是干这个的）。
-    assign dbg_zoom = {~z_pix_gone, 11'd0, split_ctl[18], z_bus_axi};
+    //   bit30 = ** bilin_en_pix **（#83：像素域真的在用的那一位）⇒ "PS 写了 1 ⇒ 像素域收到 1"有末端凭据
+    //   [29:20] 其余仍为 0（留扩展）
+    assign dbg_zoom = {~z_pix_gone, 10'd0, bilin_en_pix, split_ctl[18], z_bus_axi};
 
     assign m_axi_arid = 6'd0;
 
@@ -746,7 +760,7 @@ module pl_video_top #(
         .clk(clk_pix), .rst_n(rst_pix_n),
         .wr_clk(axi_clk), .wr_en(aw_wr_en), .wr_addr(aw_wr_addr), .wr_data(aw_wr_data),
         .sx(sx_fb), .sy(sy_fb), .fx(zfrac_x), .fy(zfrac_y),
-        .bilin_en(BILIN_EN),
+        .bilin_en(bilin_en_pix),
         // ⚠ 相位量必须与 `sx/sy` **同一级**，而"哪一级"是量出来的不是推出来的：
         //   tb_v98 自带的级数标定（`sx` vs 第 k 级显示列 >>1，样本 822555）给
         //   k=0 全错｜k=1 412166｜**k=2 0**｜k=3 410389｜k=4/5 全错 ⇒ sx 站在第 2 级。

@@ -92,6 +92,10 @@ function decodeZoom(v) {
     // 少了这一位，`zoom fit 1` + 手动档（zman=1）会撞上"inv_scale 必须等于 256÷该档倍率"
     // 那条判据：拟合值当然不等于档号 ⇒ 假红，而且红的是**没坏的**那条链（#68 的尺子先错）。
     zoom_fit: b(19),
+    // #83（r64）：bit30 = 像素域真的在用的双线性位（`bilin_en_pix`，gpio_o[19] 同步之后的那一级）。
+    // 为什么要有它：没有这一位时，"bilin on/off" 只能证明 PS 记下了值（STAT 回显），
+    // 而实际发生过的情况恰恰是 **PL 根本不读那一位** ⇒ 命令答应了、硬件没动、电池全绿。
+    bilin: b(30),
     zman: b(18), zsel: (v >>> 15) & 7, zcode: (v >>> 12) & 7,
     zoom_active: b(11), zoom_dir: b(10), inv_scale: v & 0x3FF,
   };
@@ -163,6 +167,7 @@ if (get('selfcheck', false) === true) {
   const ZOWN = {
     31: ['alive'], 19: ['zoom_fit'], 18: ['zman'], 15: ['zsel'], 16: ['zsel'], 17: ['zsel'],
     12: ['zcode'], 13: ['zcode'], 14: ['zcode'], 11: ['zoom_active'], 10: ['zoom_dir'],
+    30: ['bilin'],                                 // #83：像素域双线性位的归属（[29:20] 其余仍空）
   };
   for (let bit = 0; bit < 10; bit++) ZOWN[bit] = ['inv_scale'];
   let z_ok = 0;
@@ -173,7 +178,7 @@ if (get('selfcheck', false) === true) {
     if (moved === want) z_ok++;
     else console.log(`  DBG S4 bit${bit}: 改了 ${moved} 期望 ${want}`);
   }
-  say('S4 lane23 逐位独热走查 32/32（19..30 是保留位，译码器不许被它们动）', z_ok === 32, `${z_ok}/32`);
+  say('S4 lane23 逐位独热走查 32/32（每一位只许属于 ZOWN 里那一个字段；现在只剩 [29:20] 是保留 0）', z_ok === 32, `${z_ok}/32`);
   // S5 八档期望：全部由"倍率"推导（25600/x100 四舍五入，夹到 10 bit 天花板 1023），
   //   并顺手验最近一档函数在**每一档的期望值**上必须回到自己（不然 lane23 的 zcode 判据是空的）。
   let s5 = 0;
@@ -511,7 +516,11 @@ console.log('');
     const codeOk = z.zman ? (z.zcode === z.zsel) : (z.zcode === near_of(z.inv_scale));
     console.log(`  23  0x${(w >>> 0).toString(16).padStart(8, '0')}  缩放：实际 ${(256 / z.inv_scale).toFixed(3)}x` +
       `（inv=${z.inv_scale}${z.zman ? ` 期望 ${e}` : ' 呼吸中，只卡量程'}）屏上画 ${(ZOOM_X100[z.zcode] / 100).toFixed(2)}x` +
-      ` 档${z.zsel}${z.zsel === z.zcode ? '=' : '≠'}屏${z.zcode} zman=${z.zman} active=${z.zoom_active} dir=${z.zoom_dir}`);
+      ` 档${z.zsel}${z.zsel === z.zcode ? '=' : '≠'}屏${z.zcode} zman=${z.zman} active=${z.zoom_active} dir=${z.zoom_dir}` +
+      // #83：`bilin=` 读的是 lane23.bit30 = **像素域真的在用的那一位**。
+      // ⚠ 读 r63c 及更早的位流时它恒为 0 —— 那是"那版 RTL 没有驱动这一位"，**不是**"双线性关着"；
+      //   r64 起这一位由 `bilin_en_pix` 驱动（上电默认 1），届时 0/1 才有含义（0 只可能来自 `bilin off`）。
+      ` bilin=${z.bilin}`);
     console.log('  ⇒ ' + (invOk && codeOk ? '链路末端与屏上同一档 ok'
       : `不一致（inv ${invOk ? 'ok' : '红'} / 屏上档 ${codeOk ? 'ok' : '红'}）—— 屏上那个倍率不许写进报告`));
   }

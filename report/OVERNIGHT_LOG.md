@@ -4369,3 +4369,45 @@ RESULT tb_v98_top_seam FAIL nfail=2      凭据 build/r63b_c1i_falsify.txt
 * 一次 `launch_runs -jobs 4` 的构建在 `tasklist` 里会看到 **4 个 vivado.exe**（各 ~1.4 GB）——
   那是正常的并行 worker，不是"杀不掉的孤儿"（孤儿那条只在**中途 kill** 之后出现，判据是 `<proj>.runs/` 被占住）。
   今早如果看到 4 个就先数一遍 `launch_runs` 的 jobs，别急着 taskkill。
+
+## §55  04:12–04:17（9/26）：r63c 上板，机器那一半全绿；#80 的 hold 修法验过（我原来的验收盘子写错了）
+### 1. r63c（= r63b + `set_clock_uncertainty -hold 0.500 [get_clocks eth_rxc]`）门禁 ALL PASS
+凭据 `build/evidence_r63c/`（含本套 bit/xsa 副本与 8 个源文件 md5）：
+WNS 0.807、WHS 0.052、失败端点 0/0、BRAM 97 tile(69.29 %)、LUT 14116、Reg 9856、Dynamic 2.205 W、
+methodology CRIT 0、布线错误 0、CDC Critical 3（基线 4，不新增）、端口/宽度/多驱动 0、ports_check 88 实例 violations=0。
+
+### 2. 这 0.5 到底生效没有 —— 看的是"required time 里有没有它"，不是看 WHS 变大
+`build/timing_summary.rpt:498` 的 hold 路径 required-time 表里出现了
+`clock uncertainty  0.500  2.092` ⇒ **约束生效**（不是 `eth_rst_n` 那种空约束）；失败 hold 端点仍是 0
+⇒ 工具真把那条 BUFIO→BUFG 偏斜路径垫到了"新要求"之上 ⇒ **物理余量 ≈ 0.052 + 0.5 = 0.55 ns**，
+不再是 r62 的 +0.001 / r63b 的 +0.052 那种"下一次布线重新掷"的数。
+⚠ 我原来写的验收盘子是"WHS 应升到 ≥0.4"——**这条期望本身是错的**：抬高要求之后，报出来的 slack
+本来就该回到 0 附近；照错期望判断会把一次成功读成失败。正确的三条观察已写进提交说明：
+① uncertainty 出现在 required time；② 失败端点仍为 0；③ 下一次重布线仍然必须同时满足这两条。
+（WNS 0.918→0.807 属于重布线波动，门禁口径 `>=0` 仍过；这一条不是"变差"，也不许写成"变好"。）
+
+### 3. 板子（JTAG 只配 PL；QSPI / FT2232 EEPROM 一个字节都没动）
+`bash build/wip_flash_r63.sh`：`PROGRAMMED xc7z020_1 <- build/system.bit`（md5 `e73e67af…`）
+→ `ps_app_reload.tcl`（只复位 A9，位流保留）→ `board_verify.sh --battery --geom`：
+**RESULT board_verify PASS（判红的步骤：0）**、串口电池 **97/97**（91.9 s，跑完回到初态
+`en=00 thr=80 src=1 zoom=1 bilin=1 zsel=4 zman=0 gm=0.00 mode=0 geom=00400000`）、
+`geom_check` **ok=8 fail=0**、lane23 译码 `verdict OK`。
+⇒ 屏上现在跑的就是双线性读口那一版。**眼睛判据留给用户**：`board/README.md` 第 29 行（放大档锯齿应变软；
+`zoom 1.0`/`fit` 两档必须与 r62 逐位一样）、第 28 行（屏顶"上一帧尾巴"从 4 行变 6 行）。
+
+### 4. 两条必须一起读到的告警（都不许被"全绿"盖掉）
+* 电池里 `bilin=1` 那几条**只证明 PS 记下了这个位**：`gpio_o[19]` 目前没有任何 PL 逻辑在读（#83）
+  ⇒ 它们不构成"双线性开关有效"的证据。修它 = 明天的第一件事（一级发射 FF + 3 级 ASYNC_REG + 挂进 lane23 的 bit30）。
+* `cdc.rpt` 里"基线有而本版没有：`eth_rxc>clk_fpga_0`"与"同配对端点数 17→95"两条仍然**未解释**；
+  门禁按"不新增配对"判绿是对的，但原因没查之前不许当改进念。
+
+## §56  04:41（9/26）：r64 被门禁拦下 —— 我又犯了本文件里写着的那件事；板子仍是 r63c
+r64 = r63c + #83（串口能真正关掉双线性）。门禁 14 项里 **2 红**，脚本自己写"不采纳，保留上一版"，
+我照它执行：**没有刷板**（板上还是 r63c 那份 `e73e67af…`），r64 的证据留在 `build/evidence_r64_rejected/`。
+* 红 ① `ports_check`：新加的 `bilin_en_axi` 只接了一棵顶层，`pl_demo_top` 里悬空 ⇒ 已钉 `1'b1`（复验 violations=0，
+  这条判据读源码，不用重跑构建）。顺带学到 `gates.sh` 自己会提醒"有 RTL 源比 bit 新 ⇒ 这份产物不含这些改动"。
+* 红 ② `cdc.rpt`：新增配对 `clkout0_1 → clk_fpga_0` —— 起因是我把**像素域**的 `bilin_en_pix` 塞进 axi 侧读走的
+  `dbg_zoom`，而 `pl_video_top.v:681-686` 的注释写着 r61 为**同一件事**判红过一次。⇒ 细节与三条出路在 **#84**。
+  要用户拍的点：走 A（`snap_cross` 快照 + 给 CDC 基线写理由）还是 B（只回读 axi 原值，承认它证不到像素域）。
+今晚的教训是同一条的第三次复现：**注释不是凭据，读它才算**（相位取第 3 级、`OPTIMIZATION_LOG` 里那句
+"别把注释当已证事实用"、以及这次的 r61 警告）。
