@@ -281,7 +281,19 @@ module pl_video_top #(
     //     链子的滞后发生在显示栅格上，缩放/旋转之后"源行差 4"并不等于"显示行差 4"。
     // 判据：tb_v89 的 T1（把激励按 OFF_LINES 提前，整链内部偏移必须变成 (0,0)）；
     //       缝连续性的最终凭据是眼睛（`board/README.md` 第 12 行）。
-    wire [12:0] y_right_adv = {1'b0, y} + {5'b0, pipe_off_rows};
+    // r63 / #52：双线性读口在**行方向**的代价 —— 一对显示行的结果要在这对的第二行才算得出来、
+    //   下一对才读得到 ⇒ 内容天生晚 2 个显示行（台架 tb_v101 的 L3 量出来的就是 (2 行, 2 拍)）。
+    //   把这个提前量加回喂给 mapper 的行号，"显示在第 Y 行的内容"就与换读口之前逐位同源：
+    //   请求行 = (Y+OFF+2)>>1，实际显示的是上一对算出的 ⇒ 源行 = 那个数 −1 = (Y+OFF)>>1 ✓
+    //   ⇒ 下面 `u_raw` 那条 OFF_LINES 行环一个都不动（它补的是链子的滞后，不是读口的）。
+    // ⚠ BILIN_ROWS 必须是**偶数**：成对奇偶由 `row0 = ~y[0]` 决定，加奇数会让一对的两行分属
+    //   两个源行，A/B 抽头就此错行（这条在 tb_v101 的 L6「四槽同值」上会红）。
+    //   凭据不是这段注释：tb_v101（模块级）+ tb_v98 的 C1c/C1d（顶层列/行两个方向的硬判据）。
+    localparam integer BILIN_ROWS = 2;
+    // 运行时 on/off 还缺一个控制位：cfg1 的 32 位已满（report/COMMANDS.md §5 的位表），
+    //   下一位只能来自 gpio_cfg2 或 gpio_o ⇒ 那是一次新的跨域，按 #71/#76 的规矩单独走。
+    localparam BILIN_EN = 1'b1;
+    wire [12:0] y_right_adv = {1'b0, y} + {5'b0, pipe_off_rows} + BILIN_ROWS[12:0];
     wire [11:0] cy_r = ((y_right_adv >> 1) >= IMG_H) ? (IMG_H - 1) : y_right_adv[11:0] >> 1;
 
     wire [9:0] inv_scale;
@@ -717,25 +729,33 @@ module pl_video_top #(
     wire [63:0] aw_wr_data = eth_mode ? row_wr_data : fill_wr_data;
 
     // 一个读口、一条地址流、一份坐标（#73）：这里从此没有"左用哪套源坐标 / 右用哪套"的 mux。
+    // ---- r63 / #52：显示侧读口换成 `fb_bilin`（双线性，每源像素用满它天然的 4 个 50 MHz 拍）----
+    //   对外形状与旧的"rd_addr_q + frame_buffer_w64"逐位同深（请求 → 2 拍到数据），所以
+    //   `MIX_D = 3 + 1 + 1 + LATENCY` 的两个 `1` 原样成立 ⇒ 混色级、skid、SEAM_TAPS 全不动。
+    //   唯一额外的代价是**行方向晚一整对显示行**（乒乓缓冲：一对的结果在那对的第二行才算得出），
+    //   由上面 `y_right_adv` 的 `BILIN_ROWS` 补偿掉 ⇒ 见那条线旁边的注释。
     wire [11:0] sx_fb = sx;
     wire [11:0] sy_fb = sy;
-    wire        oob_fb = oob;
 
-    reg [18:0] rd_addr_q;
-    reg        oob_fb_d0;
-    always @(posedge clk_pix or negedge rst_pix_n) begin
-        if (!rst_pix_n) begin
-            rd_addr_q <= 0; oob_fb_d0 <= 1;
-        end else begin
-            rd_addr_q  <= {sy_fb[8:0], 9'b0} + {7'b0, sx_fb};
-            oob_fb_d0  <= oob_fb;
-        end
-    end
-
-    frame_buffer_w64 #(.W(IMG_W), .H(IMG_H)) u_fb (
-        .wr_clk(axi_clk), .wr_en(aw_wr_en),
-        .wr_addr(aw_wr_addr), .wr_data(aw_wr_data),
-        .rd_clk(clk_pix), .rd_addr(rd_addr_q), .rd_data(fb_rd)
+    // `fb_rd` / `oob_fb_d1` 沿用旧名字（前者在 514 行声明），下面 fb_pix_hold / fb_out / pix_raw
+    // 那一串因此一个都不动 —— 换的只是"这两个信号由谁驱动"。
+    wire        oob_fb_d1;
+    fb_bilin #(
+        .IMG_W(IMG_W), .IMG_H(IMG_H)
+    ) u_bilin (
+        .clk(clk_pix), .rst_n(rst_pix_n),
+        .wr_clk(axi_clk), .wr_en(aw_wr_en), .wr_addr(aw_wr_addr), .wr_data(aw_wr_data),
+        .sx(sx_fb), .sy(sy_fb), .fx(zfrac_x), .fy(zfrac_y),
+        .bilin_en(BILIN_EN),
+        // ⚠ 相位量必须与 `sx/sy` **同一级**，而"哪一级"是量出来的不是推出来的：
+        //   tb_v98 自带的级数标定（`sx` vs 第 k 级显示列 >>1，样本 822555）给
+        //   k=0 全错｜k=1 412166｜**k=2 0**｜k=3 410389｜k=4/5 全错 ⇒ sx 站在第 2 级。
+        //   第一版这里接的是 [3]（照注释里 "MIX_D = 3+1+1+LATENCY" 的那个 3）⇒ 地址与列奇偶错一拍
+        //   ⇒ "每源像素的 4 拍"跨到相邻源像素，屏上四分之一格子错列（C1c Δcol 204306 就是这么来的）。
+        //   行方向同结论：C1h 用 y_d[2] + OFF + BILIN_ROWS 判绿。
+        .col0(~x_d[2][0]), .row0(~y_d[2][0]), .pair_odd(y_d[2][1]),
+        .req_vld(de_d[2]), .oob_in(oob),
+        .pix(fb_rd), .oob_out(oob_fb_d1)
     );
 
     // SRC0 位置原来是静止彩条（`color_bar`）。换成**会动的测试图卡**：静止图案分不清
@@ -754,8 +774,7 @@ module pl_video_top #(
         bar_d1 <= bar0; bar_d2 <= bar_d1;
     end
 
-    reg oob_fb_d1;
-    always @(posedge clk_pix) oob_fb_d1 <= oob_fb_d0;
+    // oob_fb_d1 现在是 `u_bilin` 从结果缓冲里带出来的那一位（与像素同一次写、同一拍读 ⇒ 天生同级）。
 
     // 第 5 级"这一格该显示什么"：有片源取帧缓存，没片源取会动的图卡，越界给黑。
     //   旧版这里是一对 pix_left / pix_right（各按半窗把自己那一侧以外强制清零）——

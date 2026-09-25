@@ -1,0 +1,108 @@
+
+****** xsim v2025.2.1 (64-bit)
+  **** SW Build 6403652 on Thu Mar 19 19:48:24 GMT 2026
+  **** IP Build 6403511 on Thu Mar 19 12:41:45 MDT 2026
+  **** SharedData Build 6403650 on Thu Mar 19 14:02:13 MDT 2026
+  **** Start of session at: Sat Sep 26 03:13:55 2026
+    ** Copyright 1986-2022 Xilinx, Inc. All Rights Reserved.
+    ** Copyright 2022-2026 Advanced Micro Devices, Inc. All Rights Reserved.
+
+source xsim.dir/snap/xsim_script.tcl
+# xsim {snap} -autoloadwcfg -runall
+Time resolution is 1 ps
+run -all
+unisims_sim âš  OSERDESE2 æ˜¯å ä½æ¨¡å‹ï¼ˆä¸ä¸²è¡ŒåŒ–ï¼‰â‡’ åˆ¤æ®åªè®¸è¯»å¹¶è¡Œåƒç´ ï¼Œä¸è®¸è¯» DVI å¼•è„š
+unisims_sim âš  OSERDESE2 æ˜¯å ä½æ¨¡å‹ï¼ˆä¸ä¸²è¡ŒåŒ–ï¼‰â‡’ åˆ¤æ®åªè®¸è¯»å¹¶è¡Œåƒç´ ï¼Œä¸è®¸è¯» DVI å¼•è„š
+unisims_sim âš  OSERDESE2 æ˜¯å ä½æ¨¡å‹ï¼ˆä¸ä¸²è¡ŒåŒ–ï¼‰â‡’ åˆ¤æ®åªè®¸è¯»å¹¶è¡Œåƒç´ ï¼Œä¸è®¸è¯» DVI å¼•è„š
+unisims_sim âš  OSERDESE2 æ˜¯å ä½æ¨¡å‹ï¼ˆä¸ä¸²è¡ŒåŒ–ï¼‰â‡’ åˆ¤æ®åªè®¸è¯»å¹¶è¡Œåƒç´ ï¼Œä¸è®¸è¯» DVI å¼•è„š
+unisims_sim âš  OSERDESE2 æ˜¯å ä½æ¨¡å‹ï¼ˆä¸ä¸²è¡ŒåŒ–ï¼‰â‡’ åˆ¤æ®åªè®¸è¯»å¹¶è¡Œåƒç´ ï¼Œä¸è®¸è¯» DVI å¼•è„š
+unisims_sim âš  OSERDESE2 æ˜¯å ä½æ¨¡å‹ï¼ˆä¸ä¸²è¡ŒåŒ–ï¼‰â‡’ åˆ¤æ®åªè®¸è¯»å¹¶è¡Œåƒç´ ï¼Œä¸è®¸è¯» DVI å¼•è„š
+unisims_sim âš  OSERDESE2 æ˜¯å ä½æ¨¡å‹ï¼ˆä¸ä¸²è¡ŒåŒ–ï¼‰â‡’ åˆ¤æ®åªè®¸è¯»å¹¶è¡Œåƒç´ ï¼Œä¸è®¸è¯» DVI å¼•è„š
+unisims_sim âš  OSERDESE2 æ˜¯å ä½æ¨¡å‹ï¼ˆä¸ä¸²è¡ŒåŒ–ï¼‰â‡’ åˆ¤æ®åªè®¸è¯»å¹¶è¡Œåƒç´ ï¼Œä¸è®¸è¯» DVI å¼•è„š
+[tb_v98_top_seam.v:151] [Xborn0] åˆå§‹åŒ–ç°åœº p3=0003 p2=0002 p1=0001 p0=0000 -> ddr[0]=0003000200010000
+PASS C0ÿÿÿ°ÿÿÿ | px_valÿÿÿèÿÿÿ  / ÿÿ¡ 256 ÿÿÿçÿÿÿÿÿÿ®ÿÿÿèÿÿÿ‡ÿÿÿ½ÿÿÿåÿ« 0ÿÿÿåÿÿÿ€ÿÿÿÿÿÿäÿÿÿ¾ÿÿÿŒÿÿÿåÿÿÿ»ÿÿÿ¤ÿÿÿæÿÿÿÿÿÿ‰
+PASS C0a2 ÿÿÿåÿÿÿ›ÿÿÿ» | ÿÿÿÿÿÿåÿÿÿ¹ÿÿÿÿÿÿèÿ» ddr[0ÿÿÿ¸ ddÿÿÿœÿÿÿÿÿÿæÿÿÿïÿÿÿ‡ÿÿÿ°ÿÿ¹ ÿÿ  ÿÿÿçÿÿÿ¯ÿÿÿ‰
+[Xborn1] rvalid#1 w0=0 beat=0 len=15 rdata=0003000200010000 ddr[0]=0003000200010000
+[Xborn1] rvalid#2 w0=0 beat=1 len=15 rdata=0007000600050004 ddr[1]=0007000600050004
+[tb_v98_top_seam.v:234] [Xborn2] fbå†™#1 addr=0 data=0003000200010000
+[Xborn1] rvalid#3 w0=0 beat=2 len=15 rdata=000b000a00090008 ddr[2]=000b000a00090008
+[tb_v98_top_seam.v:234] [Xborn2] fbå†™#2 addr=1 data=0007000600050004
+[Xborn1] rvalid#4 w0=0 beat=3 len=15 rdata=000f000e000d000c ddr[3]=000f000e000d000c
+[tb_v98_top_seam.v:234] [Xborn2] fbå†™#3 addr=2 data=000b000a00090008
+[Xborn1] rvalid#5 w0=0 beat=4 len=15 rdata=0013001200110010 ddr[4]=0013001200110010
+[Xborn1] rvalid#6 w0=0 beat=5 len=15 rdata=0017001600150014 ddr[5]=0017001600150014
+[tb_v98_top_seam.v:444] DBG2 x_sel=221 y11=15 | å±ä¸Š=076e æœŸæœ›åˆ—=221 æœŸæœ›è¡Œ=007 Î”col=0 Î”row=0
+[tb_v98_top_seam.v:424] GEOM x_d[3]=239 æœŸæœ›src=119 é¡¶å±‚src=120 dx=-1 | de3=1 oob=0 sy=10 y3=15
+[tb_v98_top_seam.v:444] DBG2 x_sel=222 y11=15 | å±ä¸Š=076f æœŸæœ›åˆ—=222 æœŸæœ›è¡Œ=007 Î”col=0 Î”row=0
+[tb_v98_top_seam.v:444] DBG2 x_sel=223 y11=15 | å±ä¸Š=076f æœŸæœ›åˆ—=223 æœŸæœ›è¡Œ=007 Î”col=0 Î”row=0
+[tb_v98_top_seam.v:424] GEOM x_d[3]=241 æœŸæœ›src=120 é¡¶å±‚src=121 dx=-1 | de3=1 oob=0 sy=10 y3=15
+[tb_v98_top_seam.v:424] GEOM x_d[3]=243 æœŸæœ›src=121 é¡¶å±‚src=122 dx=-1 | de3=1 oob=0 sy=10 y3=15
+[tb_v98_top_seam.v:424] GEOM x_d[3]=245 æœŸæœ›src=122 é¡¶å±‚src=123 dx=-1 | de3=1 oob=0 sy=10 y3=15
+[tb_v98_top_seam.v:424] GEOM x_d[3]=247 æœŸæœ›src=123 é¡¶å±‚src=124 dx=-1 | de3=1 oob=0 sy=10 y3=15
+[tb_v98_top_seam.v:424] GEOM x_d[3]=249 æœŸæœ›src=124 é¡¶å±‚src=125 dx=-1 | de3=1 oob=0 sy=10 y3=15
+[tb_v98_top_seam.v:353] DBG å·¦çª— x=100 y=300 | é¡¶å±‚æºåæ ‡ sx_l=54 sy_l=153 oob=0 | tap_raw=962d è§£å‡º(150,45) fb_out=9835 rd_addr=19597
+[tb_v98_top_seam.v:353] DBG å·¦çª— x=101 y=300 | é¡¶å±‚æºåæ ‡ sx_l=55 sy_l=153 oob=0 | tap_raw=962e è§£å‡º(150,46) fb_out=9836 rd_addr=19598
+[tb_v98_top_seam.v:353] DBG å·¦çª— x=102 y=300 | é¡¶å±‚æºåæ ‡ sx_l=55 sy_l=153 oob=0 | tap_raw=962e è§£å‡º(150,46) fb_out=9836 rd_addr=19597
+[tb_v98_top_seam.v:353] DBG å·¦çª— x=103 y=300 | é¡¶å±‚æºåæ ‡ sx_l=56 sy_l=153 oob=0 | tap_raw=962f è§£å‡º(150,47) fb_out=9837 rd_addr=19598
+[tb_v98_top_seam.v:353] DBG å·¦çª— x=104 y=300 | é¡¶å±‚æºåæ ‡ sx_l=56 sy_l=153 oob=0 | tap_raw=962f è§£å‡º(150,47) fb_out=9837 rd_addr=19598
+[tb_v98_top_seam.v:353] DBG å·¦çª— x=105 y=300 | é¡¶å±‚æºåæ ‡ sx_l=57 sy_l=153 oob=0 | tap_raw=9630 è§£å‡º(150,48) fb_out=9838 rd_addr=19599
+[tb_v98_top_seam.v:353] DBG å·¦çª— x=106 y=300 | é¡¶å±‚æºåæ ‡ sx_l=57 sy_l=153 oob=0 | tap_raw=9630 è§£å‡º(150,48) fb_out=9838 rd_addr=19598
+[tb_v98_top_seam.v:353] DBG å·¦çª— x=107 y=300 | é¡¶å±‚æºåæ ‡ sx_l=58 sy_l=153 oob=0 | tap_raw=9631 è§£å‡º(150,49) fb_out=9839 rd_addr=19599
+[tb_v98_top_seam.v:255] [Xborn] ä»æœº rvalid=38400 å…¶ä¸­å­—å«X=0 | fb å†™=38400 æ‹ å…¶ä¸­æ•°æ®å«X=0
+[tb_v98_top_seam.v:257] [Xborn] é˜µåˆ—ï¼ˆlo 32768 + hi 8192 = 40960 å­—ï¼‰é‡Œå« X çš„å­—æ•°=2560ï¼Œé¦–ä¸ªä¸‹æ ‡=38400
+[tb_v98_top_seam.v:259] [Xborn] æœ‰æ•ˆæ‹=1843200ï¼šrd_addr æ˜¯ X çš„=0ï¼Œfb_rd æ˜¯ X çš„=1231284
+[tb_v98_top_seam.v:262] [Xborn3] gp(19ä½å‡ ä½•)=0000000000000000000 inv_used= 256 sx=   0 sy=   0 oob=1 rd_addr=     0
+[tb_v98_top_seam.v:496] PROBE fb_wr_pulses=115200 (ä¸€å¸§è¦ 38400)  copy_hold æ‹äº† 0  u_aw.active=122402 æœ€ååˆ°çš„ row=0
+[tb_v98_top_seam.v:498] DIAG fb_vis=1 owner_eth=0 fill_busy=1 row_busy=0 eth_live=0 tb_ok=0 dbg_src=0308 tap_raw å…¨é»‘æ¯”ä¾‹ 6/892270
+PASS Cÿÿÿåÿÿÿ¸ÿÿÿŸÿÿÿæÿÿÿ‰ÿÿÿÿÿÿäÿÿÿ˜ÿÿÿ¨ÿÿ‘ ÿÿÿ¸ÿÿÿ¯ÿÿÿåÿÿÿ›ÿÿÿ¡ÿÿÿäÿÿÿ¾ÿÿÿ‰ | ÿÿÿçÿÿÿ ÿÿÿ¬ÿÿÿåÿÿÿ»ÿÿÿ¹ÿÿÿäÿÿÿ¸ÿÿÿŠÿÿÿåÿÿÿºÿÿÿ±ÿÿÿæÿÿÿœÿÿÿ¡ÿÿÿèÿÿÿÿÿÿ‰
+PASS Cÿÿÿåÿÿÿ•ÿÿÿŸ | ÿÿÿ³ÿÿÿèÿÿÿ¤Ÿ 3 ÿÿÿïÿÿÿÿÿÿ™ÿÿÿéÿÿÿšÿÿÿ°ÿÿÿäÿÿÿ®ÿÿÿ°
+PASS C0c ÿÿÿèÿÿÿ´ÿÿÿ€ | AXIÿÿÿ‰ÿÿÿåÿÿÿ€ÿÿÿåÿÿÿŠÿÿÿ¹ÿÿÿãÿÿÿ²ÿÿÿ»ÿÿ° ÿÿÿçÿÿÿÿÿÿ–
+[tb_v98_top_seam.v:513] OBS C-tap è§‚æµ‹ï¼ˆä¸åˆ¤å®šï¼‰ï¼šæ ·æœ¬ 892270 æ ¼ã€åå·®éé›¶ 888702 æ ¼ã€é¦–æ ¼åå·® -112
+[tb_v98_top_seam.v:515] INFO C-tap æ ·æœ¬ 892270 æ ¼ã€å 888702 æ ¼ã€é¦–æ ¼åå·® -112ï¼ˆ0 æ‰æ˜¯å¯¹çš„ï¼‰
+PASS C0f whole fb word space written | de-duplicated write-word index count must cover the full frame once
+[tb_v98_top_seam.v:529] X è¯»å› 0 æ ¼ï¼Œè½åœ¨åˆ— 9999..-1ï¼›å»é‡å†™è¿‡çš„å­—ä¸‹æ ‡ 38400/38400
+[tb_v98_top_seam.v:533] çº§æ•°æ ‡å®šï¼šæºåˆ— == ç¬¬ k çº§æ˜¾ç¤ºåˆ— >>1 çš„ä¸ç¬¦æ•°ï¼ˆæ ·æœ¬ 820703ï¼‰
+[tb_v98_top_seam.v:535] k=0 ä¸ç¬¦ 820703
+[tb_v98_top_seam.v:535] k=1 ä¸ç¬¦ 411238
+[tb_v98_top_seam.v:535] k=2 ä¸ç¬¦ 0
+[tb_v98_top_seam.v:535] k=3 ä¸ç¬¦ 409465
+[tb_v98_top_seam.v:535] k=4 ä¸ç¬¦ 820703
+[tb_v98_top_seam.v:535] k=5 ä¸ç¬¦ 820703
+PASS C1g VIEWPORT col: src == x_d[2]>>1 | ÿÿÿåÿÿÿ¸ÿÿÿªÿÿÿåÿÿÿ¼ÿÿÿ¶ÿÿÿèÿÿÿšÿÿÿÿÿÿåÿÿÿ¡ÿÿÿ‰ÿÿÿçÿ¬ 2ÿÿÿ§ÿÿÿçÿÿÿˆ— >>ÿÿÿˆÿÿÿåÿÿÿ®ÿÿÿ‹ k=2ÿÿÿ¯ÿÿÿäÿÿÿ›ÿÿÿ‰
+[tb_v98_top_seam.v:541] C1h è·³è¿‡å¸§åº•å¤¹ç´§ 11112 æ ¼ï¼ˆsy==299ï¼‰ï¼›è¡Œä¸ç¬¦ 0
+PASS C1h VIEWPORT row: src == (y_d[2]+OFF)>>1 | ÿÿÿæÿÿÿÿÿÿŒÿÿÿäÿÿÿ®ÿÿÿ‰ÿÿÿäÿÿÿ¸ÿÿÿ¾ÿÿÿèÿÿÿ…ÿÿÿ¨ÿÿÿäÿÿÿºÿÿÿŒÿÿˆ6ÿÿÿèÿÿÿÿÿÿ¿ÿÿÿåÿ” 3ÿÿÿæÿÿÿ¡ÿÿÿ‰
+[tb_v98_top_seam.v:544] C1g/C1h æ ·æœ¬ 820703 æ ¼ï¼›åˆ—ä¸ç¬¦(æ—§å£å¾„) 409465
+[tb_v98_top_seam.v:545] X åˆ†å±‚ï¼šæœ‰æ•ˆæ‹ 3072000 | fb_rd æ˜¯ X çš„ 1231284 | fb_pix_hold æ˜¯ X çš„ 1231287 | fb_out æ˜¯ X çš„ 1231284
+PASS C0e RULER self-consistent | out-of-range bucket must be a subset of the mismatch set
+PASS C1a content-check coverage | in-line left-pane samples below 50k means nothing was measured
+[tb_v98_top_seam.v:551] C1 æ ·æœ¬ 820703 æ ¼ï¼ˆè·³è¿‡å‡ºç•Œ/è¡Œé¦–å°¾ 66011ï¼‰ï¼›Î”col é¦–å€¼ 0ã€Î”row é¦–å€¼ 0ã€è·³å˜ 0 æ¬¡
+[tb_v98_top_seam.v:564]        C1 æ ·æœ¬ 820703 æ ¼ï¼ˆè·³è¿‡å‡ºç•Œ/è¡Œé¦–å°¾ 66011ï¼‰ï¼›X æ ¼ 0ï¼›Î”col ä¸ç¬¦ 0ã€Î”row ä¸ç¬¦ 0ï¼›Î”col é¦–å€¼ 0ã€Î”row é¦–å€¼ 0ã€è·³å˜ 0 æ¬¡
+PASS C1e PRECONDITION no X inside the measurement window | with X present every dcol/drow below is false-green on an empty set (#78)
+PASS C1c content column == display column >> 1 | single-viewport geometry, content-level evidence (was a NOTE before #78)
+[tb_v98_top_seam.v:571] OBS C1d è¡Œæ–¹å‘åŸå§‹è®¡æ•°ï¼ˆç¡¬åˆ¤æ®åœ¨å®ƒä¸‹é¢ä¸€è¡Œï¼‰ï¼šÎ”row ä¸ç¬¦ 0ã€è·¨å¸§æ’å®š = 1
+PASS C1d content row == display row >> 1 (outside ring warm-up) | row-wise content alignment of the raw tap; warm-up rows are counted, not hidden
+C1d ä¾‹å¤–è®¡æ•°ï¼šè¡Œç¯çƒ­èº«è·³è¿‡ 5556 æ ¼ã€å¸§åº•å¤¹ç´§è·³è¿‡ 11112 æ ¼ã€å‡ºç•Œ/è¡Œé¦–å°¾è·³è¿‡ 66011 æ ¼
+PASS C1d-b skips are explained | every skipped warm-up cell must decode to source row 299, else the skip hides something
+ROWMIX values drow=-4..+3 | big+ big- : 0 0 0 0 0 0 0 0 | 0 0
+ROWMIX cols bucket=32 (0..7): 0 0 0 0 0 0 0 0
+ROWMIX cols bucket=32 (8..15): 0 0 0 0 0 0 0 0
+[tb_v98_top_seam.v:573] è§‚æµ‹ï¼ˆè€å°ºå­ï¼Œä»…ä¾›ä»¥åå¯¹æ¯”ï¼‰ï¼šå·¦çª— n=892270 ä¸ç¬¦=892270ï¼›å³çª—åˆ—ä¸ç¬¦=928200
+[tb_v98_top_seam.v:579] M2 å³çª—è¡Œåç§»ï¼ˆå…¨æ—è·¯ï¼Œä»Šå¤©åªæŠ¥æ•°ï¼‰ï¼šä¼—æ•°=0 å˜åŒ–æ¬¡æ•°=6288 æ ·æœ¬=935340
+[tb_v98_top_seam.v:582] Î”row0 : 929052 ç‚¹
+[tb_v98_top_seam.v:586] å·¦çª— Î”col2 : 3570 ç‚¹
+[tb_v98_top_seam.v:586] å·¦çª— Î”col3 : 3570 ç‚¹
+[tb_v98_top_seam.v:586] å·¦çª— Î”col4 : 3570 ç‚¹
+[tb_v98_top_seam.v:588] å·¦çª— Î”row-1 : 8840 ç‚¹
+[tb_v98_top_seam.v:588] å·¦çª— Î”row0 : 877410 ç‚¹
+[tb_v98_top_seam.v:589] å·¦çª— Î”col è¶…å‡ºÂ±5 : 877990 ç‚¹ï¼ˆé‡ç¨‹ä¸å¤Ÿ / å†…å®¹æ ¹æœ¬ä¸æ˜¯è¿™å¼ å›¾ï¼‰
+[tb_v98_top_seam.v:590] å·¦çª— Î”row è¶…å‡ºÂ±5 : 6020 ç‚¹
+[tb_v98_top_seam.v:591] â‡’ é 0 æ˜¯**å·²çŸ¥çš„**ï¼š`cy_r` æå‰ OFF_LINES è¡Œè¡¥çš„æ˜¯é“¾å­å†…å®¹æ»åï¼Œå…¨æ—è·¯æ—¶é“¾å­ä¸æ»åã€‚
+[tb_v98_top_seam.v:592] V8-4bï¼ˆå•æµ + é“¾å‰/é“¾åä¸¤æŠ½å¤´ï¼‰ä¹‹åè¿™ä¸€æ ¼å¿…é¡»æ˜¯ 0ï¼Œå±Šæ—¶æŠŠ M2 è½¬æˆç¡¬åˆ¤æ®ã€‚
+[tb_v98_top_seam.v:599] OBS M3 å³çª—è¡Œåç§»è·¨å¸§æ˜¯å¦æ’å®šï¼ˆä¸åˆ¤å®šï¼Œå†…å®¹æœŸæœ›æœªä¿®å¯¹ï¼‰ï¼šæ’å®š = 0ï¼ˆ1=æ’å®šï¼Œ0=ä¸€å¸§ä¸€å˜ï¼‰ï¼Œå˜åŒ–æ¬¡æ•° 6288
+[tb_v98_top_seam.v:601] INFO ç»Ÿè®¡ frames=6 ar=7201 r=115201 odd=0 outwin=0 n_l=892270 bad_l=892270 n_r=935340 bad_r_col=928200
+RESULT tb_v98_top_seam PASS
+$finish called at time : 84000165 ns : File "D:/Xilinx/Prj/pro/Video_Processing/sim/tb_v98_top_seam.v" Line 673
+run: Time (s): cpu = 00:00:00 ; elapsed = 00:03:23 . Memory (MB): peak = 227.738 ; gain = 0.000
+exit
+INFO: xsimkernel Simulation Memory Usage: 12884 KB (Peak: 12884 KB), Simulation CPU Usage: 198796 ms
+INFO: [Common 17-206] Exiting xsim at Sat Sep 26 03:17:21 2026...

@@ -1,0 +1,601 @@
+
+****** Vivado v2025.2.1 (64-bit)
+  **** SW Build 6403652 on Thu Mar 19 19:48:24 GMT 2026
+  **** IP Build 6403511 on Thu Mar 19 12:41:45 MDT 2026
+  **** SharedData Build 6403650 on Thu Mar 19 14:02:13 MDT 2026
+  **** Start of session at: Sat Sep 26 02:58:40 2026
+    ** Copyright 1986-2022 Xilinx, Inc. All Rights Reserved.
+    ** Copyright 2022-2026 Advanced Micro Devices, Inc. All Rights Reserved.
+
+source build_system_axigpio.tcl
+# set root [file normalize [file join [file dirname [info script]] .. ..]]
+# set proj_dir [file join $root vivado_system]
+# set proj_name zynq_video_sys
+# set part xc7z020clg484-2
+# set outdir [file join $root build]
+# file mkdir $outdir
+# create_project $proj_name $proj_dir -part $part -force
+create_project: Time (s): cpu = 00:00:18 ; elapsed = 00:00:11 . Memory (MB): peak = 539.430 ; gain = 221.391
+# set_property target_language Verilog [current_project]
+# set rtl_files {}
+# foreach d {util clocks video process process/rotate process/zoom process/bilin axi hdmi eth} {
+#   foreach f [glob -nocomplain [file join $root src rtl $d *.v]] { lappend rtl_files $f }
+# }
+# lappend rtl_files [file join $root src rtl top pl_video_top.v]
+# lappend rtl_files [file join $root src rtl top system_top.v]
+# add_files -norecurse $rtl_files
+# add_files -fileset constrs_1 -norecurse [file join $root src constraints rk_zynq7020.xdc]
+# set cgxdc [add_files -fileset constrs_1 -norecurse [file join $root src constraints clock_groups_impl.xdc]]
+# set_property used_in_synthesis false $cgxdc
+# set_property used_in_implementation true $cgxdc
+# create_bd_design design_1
+Wrote  : <D:\Xilinx\Prj\pro\Video_Processing\vivado_system\zynq_video_sys.srcs\sources_1\bd\design_1\design_1.bd> 
+# create_bd_cell -type ip -vlnv xilinx.com:ip:processing_system7:5.5 processing_system7_0
+# set ps [get_bd_cells processing_system7_0]
+# apply_bd_automation -rule xilinx.com:bd_rule:processing_system7 \
+#   -config {make_external "FIXED_IO, DDR" Master "Disable" Slave "Disable" apply_board_preset "0"} $ps
+WARNING: [Boardtcl 53-1] No current board_part set.
+# set_property -dict [list \
+#   CONFIG.PCW_FPGA0_PERIPHERAL_FREQMHZ {100} \
+#   CONFIG.PCW_EN_CLK0_PORT {1} CONFIG.PCW_EN_RST0_PORT {1} \
+#   CONFIG.PCW_USE_M_AXI_GP0 {1} \
+#   CONFIG.PCW_USE_S_AXI_HP0 {1} CONFIG.PCW_S_AXI_HP0_DATA_WIDTH {64} \
+#   CONFIG.PCW_ENET0_PERIPHERAL_ENABLE {1} \
+#   CONFIG.PCW_ENET0_ENET0_IO {MIO 16 .. 27} \
+#   CONFIG.PCW_ENET0_GRP_MDIO_ENABLE {1} CONFIG.PCW_ENET0_GRP_MDIO_IO {MIO 52 .. 53} \
+#   CONFIG.PCW_UART0_PERIPHERAL_ENABLE {1} CONFIG.PCW_UART0_UART0_IO {MIO 10 .. 11} \
+#   CONFIG.PCW_QSPI_PERIPHERAL_ENABLE {1} CONFIG.PCW_QSPI_GRP_SINGLE_SS_ENABLE {1} \
+#   CONFIG.PCW_SD0_PERIPHERAL_ENABLE {1} CONFIG.PCW_SD0_SD0_IO {MIO 40 .. 45} \
+#   CONFIG.PCW_SD0_GRP_CD_ENABLE {1} CONFIG.PCW_SD0_GRP_CD_IO {MIO 9} \
+#   CONFIG.PCW_GPIO_EMIO_GPIO_ENABLE {0} \
+#   CONFIG.PCW_GPIO_MIO_GPIO_ENABLE {1} CONFIG.PCW_GPIO_MIO_GPIO_IO {MIO} \
+#   CONFIG.PCW_MIO_0_PULLUP {enabled} CONFIG.PCW_MIO_0_IOTYPE {LVCMOS 3.3V} \
+#   CONFIG.PCW_MIO_0_DIRECTION {inout} CONFIG.PCW_MIO_0_SLEW {slow} \
+#   CONFIG.PCW_MIO_12_PULLUP {enabled} CONFIG.PCW_MIO_12_IOTYPE {LVCMOS 3.3V} \
+#   CONFIG.PCW_MIO_12_DIRECTION {inout} CONFIG.PCW_MIO_12_SLEW {slow} \
+#   CONFIG.PCW_PRESET_BANK0_VOLTAGE {LVCMOS 3.3V} \
+#   CONFIG.PCW_PRESET_BANK1_VOLTAGE {LVCMOS 1.8V} \
+#   CONFIG.PCW_UIPARAM_DDR_PARTNO {MT41K256M16 RE-125} \
+#   CONFIG.PCW_UIPARAM_DDR_BUS_WIDTH {32 Bit} \
+#   CONFIG.PCW_UIPARAM_DDR_DRAM_WIDTH {16 Bits} \
+# ] $ps
+# create_bd_cell -type ip -vlnv xilinx.com:ip:axi_gpio:2.0 axi_gpio_0
+# set_property -dict [list \
+#   CONFIG.C_GPIO_WIDTH {32} \
+#   CONFIG.C_ALL_OUTPUTS {1} \
+#   CONFIG.C_INTERRUPT_PRESENT {0} \
+# ] [get_bd_cells axi_gpio_0]
+# create_bd_cell -type ip -vlnv xilinx.com:ip:axi_gpio:2.0 axi_gpio_1
+# set_property -dict [list \
+#   CONFIG.C_GPIO_WIDTH {32} \
+#   CONFIG.C_ALL_INPUTS {1} \
+#   CONFIG.C_INTERRUPT_PRESENT {0} \
+# ] [get_bd_cells axi_gpio_1]
+# create_bd_cell -type ip -vlnv xilinx.com:ip:axi_gpio:2.0 axi_gpio_2
+# set_property -dict [list \
+#   CONFIG.C_IS_DUAL {1} \
+#   CONFIG.C_GPIO_WIDTH {32} \
+#   CONFIG.C_GPIO2_WIDTH {32} \
+#   CONFIG.C_ALL_OUTPUTS {1} \
+#   CONFIG.C_ALL_OUTPUTS_2 {1} \
+#   CONFIG.C_INTERRUPT_PRESENT {0} \
+# ] [get_bd_cells axi_gpio_2]
+# create_bd_cell -type ip -vlnv xilinx.com:ip:axi_interconnect:2.1 axi_gp0_ic
+# set_property -dict [list CONFIG.NUM_MI {3} CONFIG.NUM_SI {1}] [get_bd_cells axi_gp0_ic]
+# create_bd_cell -type ip -vlnv xilinx.com:ip:axi_interconnect:2.1 axi_mem_intercon
+# set_property -dict [list CONFIG.NUM_MI {1} CONFIG.NUM_SI {1}] [get_bd_cells axi_mem_intercon]
+# connect_bd_net [get_bd_pins processing_system7_0/FCLK_CLK0] \
+#   [get_bd_pins axi_gp0_ic/ACLK] \
+#   [get_bd_pins axi_gp0_ic/S00_ACLK] \
+#   [get_bd_pins axi_gp0_ic/M00_ACLK] \
+#   [get_bd_pins axi_gpio_0/s_axi_aclk] \
+#   [get_bd_pins axi_gpio_1/s_axi_aclk] \
+#   [get_bd_pins axi_gpio_2/s_axi_aclk] \
+#   [get_bd_pins axi_gp0_ic/M01_ACLK] \
+#   [get_bd_pins axi_gp0_ic/M02_ACLK] \
+#   [get_bd_pins axi_mem_intercon/ACLK] \
+#   [get_bd_pins axi_mem_intercon/S00_ACLK] \
+#   [get_bd_pins axi_mem_intercon/M00_ACLK] \
+#   [get_bd_pins processing_system7_0/S_AXI_HP0_ACLK] \
+#   [get_bd_pins processing_system7_0/M_AXI_GP0_ACLK]
+# connect_bd_net [get_bd_pins processing_system7_0/FCLK_RESET0_N] \
+#   [get_bd_pins axi_gp0_ic/ARESETN] \
+#   [get_bd_pins axi_gp0_ic/S00_ARESETN] \
+#   [get_bd_pins axi_gp0_ic/M00_ARESETN] \
+#   [get_bd_pins axi_gpio_0/s_axi_aresetn] \
+#   [get_bd_pins axi_gpio_1/s_axi_aresetn] \
+#   [get_bd_pins axi_gpio_2/s_axi_aresetn] \
+#   [get_bd_pins axi_gp0_ic/M01_ARESETN] \
+#   [get_bd_pins axi_gp0_ic/M02_ARESETN] \
+#   [get_bd_pins axi_mem_intercon/ARESETN] \
+#   [get_bd_pins axi_mem_intercon/S00_ARESETN] \
+#   [get_bd_pins axi_mem_intercon/M00_ARESETN]
+# connect_bd_intf_net [get_bd_intf_pins processing_system7_0/M_AXI_GP0] \
+#   [get_bd_intf_pins axi_gp0_ic/S00_AXI]
+# connect_bd_intf_net [get_bd_intf_pins axi_gp0_ic/M00_AXI] \
+#   [get_bd_intf_pins axi_gpio_0/S_AXI]
+# connect_bd_intf_net [get_bd_intf_pins axi_gp0_ic/M01_AXI] \
+#   [get_bd_intf_pins axi_gpio_1/S_AXI]
+# connect_bd_intf_net [get_bd_intf_pins axi_gp0_ic/M02_AXI] \
+#   [get_bd_intf_pins axi_gpio_2/S_AXI]
+# connect_bd_intf_net [get_bd_intf_pins axi_mem_intercon/M00_AXI] \
+#   [get_bd_intf_pins processing_system7_0/S_AXI_HP0]
+# make_bd_intf_pins_external [get_bd_intf_pins axi_mem_intercon/S00_AXI]
+# foreach p [get_bd_intf_ports] {
+#   if {[string match *S00* $p]} { catch {set_property name M_AXI_HP0 $p} }
+# }
+# create_bd_port -dir O -type clk -freq_hz 100000000 FCLK_CLK0
+# connect_bd_net [get_bd_pins processing_system7_0/FCLK_CLK0] [get_bd_ports FCLK_CLK0]
+# create_bd_port -dir O -type rst FCLK_RESET0_N
+# set_property CONFIG.POLARITY ACTIVE_LOW [get_bd_ports FCLK_RESET0_N]
+# connect_bd_net [get_bd_pins processing_system7_0/FCLK_RESET0_N] [get_bd_ports FCLK_RESET0_N]
+# proc bd_port_names {} {
+#   set r {}
+#   foreach p [get_bd_ports] { lappend r [get_property NAME $p] }
+#   return $r
+# }
+# foreach {pin newname} {
+#   axi_gpio_0/gpio_io_o   GPIO_0_tri_o
+#   axi_gpio_1/gpio_io_i   GPIO_1_tri_i
+#   axi_gpio_2/gpio_io_o   GPIO_2_tri_o
+#   axi_gpio_2/gpio2_io_o  GPIO_3_tri_o
+# } {
+#   set before [bd_port_names]
+#   make_bd_pins_external [get_bd_pins $pin]
+#   set fresh {}
+#   foreach n [bd_port_names] { if {[lsearch -exact $before $n] < 0} { lappend fresh $n } }
+#   if {[llength $fresh] != 1} { puts "PORT_LOOKUP_FAILED $pin fresh={$fresh}"; exit 1 }
+#   set_property name $newname [get_bd_ports $fresh]
+#   puts "PORT $pin -> $newname"
+# }
+WARNING: [BD 41-1306] The connection to interface pin </axi_gpio_0/gpio_io_o> is being overridden by the user with net <axi_gpio_0_gpio_io_o>. This pin will not be connected as a part of interface connection <GPIO>, and might not recreate the connectivity as expected using the writ_bd_tcl command.
+PORT axi_gpio_0/gpio_io_o -> GPIO_0_tri_o
+WARNING: [BD 41-1306] The connection to interface pin </axi_gpio_1/gpio_io_i> is being overridden by the user with net <gpio_io_i_0_1>. This pin will not be connected as a part of interface connection <GPIO>, and might not recreate the connectivity as expected using the writ_bd_tcl command.
+PORT axi_gpio_1/gpio_io_i -> GPIO_1_tri_i
+WARNING: [BD 41-1306] The connection to interface pin </axi_gpio_2/gpio_io_o> is being overridden by the user with net <axi_gpio_2_gpio_io_o>. This pin will not be connected as a part of interface connection <GPIO>, and might not recreate the connectivity as expected using the writ_bd_tcl command.
+PORT axi_gpio_2/gpio_io_o -> GPIO_2_tri_o
+WARNING: [BD 41-1306] The connection to interface pin </axi_gpio_2/gpio2_io_o> is being overridden by the user with net <axi_gpio_2_gpio2_io_o>. This pin will not be connected as a part of interface connection <GPIO2>, and might not recreate the connectivity as expected using the writ_bd_tcl command.
+PORT axi_gpio_2/gpio2_io_o -> GPIO_3_tri_o
+# puts "BD PORTS: [get_bd_ports]"
+BD PORTS: /DDR_addr /DDR_ba /DDR_cas_n /DDR_ck_n /DDR_ck_p /DDR_cke /DDR_cs_n /DDR_dm /DDR_dq /DDR_dqs_n /DDR_dqs_p /DDR_odt /DDR_ras_n /DDR_reset_n /DDR_we_n /FCLK_CLK0 /FCLK_RESET0_N /FIXED_IO_ddr_vrn /FIXED_IO_ddr_vrp /FIXED_IO_mio /FIXED_IO_ps_clk /FIXED_IO_ps_porb /FIXED_IO_ps_srstb /GPIO_0_tri_o /GPIO_1_tri_i /GPIO_2_tri_o /GPIO_3_tri_o /M_AXI_HP0_araddr /M_AXI_HP0_arburst /M_AXI_HP0_arcache /M_AXI_HP0_arlen /M_AXI_HP0_arlock /M_AXI_HP0_arprot /M_AXI_HP0_arqos /M_AXI_HP0_arready /M_AXI_HP0_arsize /M_AXI_HP0_arvalid /M_AXI_HP0_awaddr /M_AXI_HP0_awburst /M_AXI_HP0_awcache /M_AXI_HP0_awlen /M_AXI_HP0_awlock /M_AXI_HP0_awprot /M_AXI_HP0_awqos /M_AXI_HP0_awready /M_AXI_HP0_awsize /M_AXI_HP0_awvalid /M_AXI_HP0_bready /M_AXI_HP0_bresp /M_AXI_HP0_bvalid /M_AXI_HP0_rdata /M_AXI_HP0_rlast /M_AXI_HP0_rready /M_AXI_HP0_rresp /M_AXI_HP0_rvalid /M_AXI_HP0_wdata /M_AXI_HP0_wlast /M_AXI_HP0_wready /M_AXI_HP0_wstrb /M_AXI_HP0_wvalid
+# catch {set_property CONFIG.ASSOCIATED_BUSIF {M_AXI_HP0} [get_bd_ports FCLK_CLK0]}
+# assign_bd_address
+INFO: [BD 41-3093] Triggering Legacy Auto Assign Algorithm
+Slave segment '/processing_system7_0/S_AXI_HP0/HP0_DDR_LOWOCM' is being assigned into address space '/M_AXI_HP0' at <0x0000_0000 [ 1G ]>.
+Slave segment '/axi_gpio_0/S_AXI/Reg' is being assigned into address space '/processing_system7_0/Data' at <0x4120_0000 [ 64K ]>.
+Slave segment '/axi_gpio_1/S_AXI/Reg' is being assigned into address space '/processing_system7_0/Data' at <0x4121_0000 [ 64K ]>.
+Slave segment '/axi_gpio_2/S_AXI/Reg' is being assigned into address space '/processing_system7_0/Data' at <0x4122_0000 [ 64K ]>.
+# foreach {seg want} {
+#   axi_gpio_0/S_AXI/Reg 0x41200000
+#   axi_gpio_1/S_AXI/Reg 0x41210000
+#   axi_gpio_2/S_AXI/Reg 0x41220000
+# } {
+#   assign_bd_address -offset $want -range 64K \
+#     -target_address_space [get_bd_addr_spaces processing_system7_0/Data] \
+#     [get_bd_addr_segs $seg] -force
+# }
+# set aspace [get_bd_addr_spaces processing_system7_0/Data]
+# foreach s [get_bd_addr_segs -quiet -of_objects $aspace] {
+#   puts "ADDRMAP [get_property NAME $s] = [get_property OFFSET $s]"
+# }
+ADDRMAP SEG_axi_gpio_0_Reg = 0x41200000
+ADDRMAP SEG_axi_gpio_1_Reg = 0x41210000
+ADDRMAP SEG_axi_gpio_2_Reg = 0x41220000
+# set bad_addr 0
+# foreach {cell want} { axi_gpio_0 0x41200000  axi_gpio_1 0x41210000  axi_gpio_2 0x41220000 } {
+#   # 段�?�象要从**地址空间�?**取（`get_bd_addr_segs axi_gpio_0/S_AXI/Reg` 取到的是接口定义�?
+#   # 它的 OFFSET �?空的 —�? 上一次这里判红就�?这个原因，不�?地址没钉上）
+#   set s [get_bd_addr_segs -quiet -of_objects $aspace -filter "NAME =~ *SEG_${cell}_Reg*"]
+#   if {$s eq ""} { puts "ADDR_LOG $cell want=$want got=NOT_FOUND"; incr bad_addr; continue }
+#   set got [get_property OFFSET $s]
+#   # 比较必须圡�**数�?**上做：把 OFFSET 塞进 expr 或直接当字�?�串比都会�??刡� —�?
+#   # 这个属性经数字一走就显示成十进制�?0x41200000 �? 1092616192），字�?�串比�?�必然红�?
+#   set gv 0
+#   set wv 0
+#   scan [string tolower $got] "%x" gv
+#   scan [string tolower $want] "%x" wv
+#   puts "ADDR_LOG $cell want=$want got=$got num_ok=[expr {$gv == $wv}]"
+#   if {$gv != $wv} { incr bad_addr }
+# }
+ADDR_LOG axi_gpio_0 want=0x41200000 got=0x41200000 num_ok=1
+ADDR_LOG axi_gpio_1 want=0x41210000 got=0x41210000 num_ok=1
+ADDR_LOG axi_gpio_2 want=0x41220000 got=0x41220000 num_ok=1
+# validate_bd_design
+CRITICAL WARNING: [BD 41-1348] Reset pin /axi_gpio_0/s_axi_aresetn (associated clock /axi_gpio_0/s_axi_aclk) is connected to asynchronous reset source /processing_system7_0/FCLK_RESET0_N.
+This may prevent design from meeting timing. Please add Processor System Reset module to create a reset that is synchronous to the associated clock source /processing_system7_0/FCLK_CLK0.
+CRITICAL WARNING: [BD 41-1348] Reset pin /axi_gpio_1/s_axi_aresetn (associated clock /axi_gpio_1/s_axi_aclk) is connected to asynchronous reset source /processing_system7_0/FCLK_RESET0_N.
+This may prevent design from meeting timing. Please add Processor System Reset module to create a reset that is synchronous to the associated clock source /processing_system7_0/FCLK_CLK0.
+CRITICAL WARNING: [BD 41-1348] Reset pin /axi_gpio_2/s_axi_aresetn (associated clock /axi_gpio_2/s_axi_aclk) is connected to asynchronous reset source /processing_system7_0/FCLK_RESET0_N.
+This may prevent design from meeting timing. Please add Processor System Reset module to create a reset that is synchronous to the associated clock source /processing_system7_0/FCLK_CLK0.
+CRITICAL WARNING: [BD 41-1348] Reset pin /axi_gp0_ic/ARESETN (associated clock /axi_gp0_ic/ACLK) is connected to asynchronous reset source /processing_system7_0/FCLK_RESET0_N.
+This may prevent design from meeting timing. Please add Processor System Reset module to create a reset that is synchronous to the associated clock source /processing_system7_0/FCLK_CLK0.
+CRITICAL WARNING: [BD 41-1348] Reset pin /axi_gp0_ic/S00_ARESETN (associated clock /axi_gp0_ic/S00_ACLK) is connected to asynchronous reset source /processing_system7_0/FCLK_RESET0_N.
+This may prevent design from meeting timing. Please add Processor System Reset module to create a reset that is synchronous to the associated clock source /processing_system7_0/FCLK_CLK0.
+CRITICAL WARNING: [BD 41-1348] Reset pin /axi_gp0_ic/M00_ARESETN (associated clock /axi_gp0_ic/M00_ACLK) is connected to asynchronous reset source /processing_system7_0/FCLK_RESET0_N.
+This may prevent design from meeting timing. Please add Processor System Reset module to create a reset that is synchronous to the associated clock source /processing_system7_0/FCLK_CLK0.
+CRITICAL WARNING: [BD 41-1348] Reset pin /axi_gp0_ic/M01_ARESETN (associated clock /axi_gp0_ic/M01_ACLK) is connected to asynchronous reset source /processing_system7_0/FCLK_RESET0_N.
+This may prevent design from meeting timing. Please add Processor System Reset module to create a reset that is synchronous to the associated clock source /processing_system7_0/FCLK_CLK0.
+CRITICAL WARNING: [BD 41-1348] Reset pin /axi_gp0_ic/M02_ARESETN (associated clock /axi_gp0_ic/M02_ACLK) is connected to asynchronous reset source /processing_system7_0/FCLK_RESET0_N.
+This may prevent design from meeting timing. Please add Processor System Reset module to create a reset that is synchronous to the associated clock source /processing_system7_0/FCLK_CLK0.
+CRITICAL WARNING: [BD 41-1348] Reset pin /axi_mem_intercon/ARESETN (associated clock /axi_mem_intercon/ACLK) is connected to asynchronous reset source /processing_system7_0/FCLK_RESET0_N.
+This may prevent design from meeting timing. Please add Processor System Reset module to create a reset that is synchronous to the associated clock source /processing_system7_0/FCLK_CLK0.
+CRITICAL WARNING: [BD 41-1348] Reset pin /axi_mem_intercon/S00_ARESETN (associated clock /axi_mem_intercon/S00_ACLK) is connected to asynchronous reset source /processing_system7_0/FCLK_RESET0_N.
+This may prevent design from meeting timing. Please add Processor System Reset module to create a reset that is synchronous to the associated clock source /processing_system7_0/FCLK_CLK0.
+CRITICAL WARNING: [BD 41-1348] Reset pin /axi_mem_intercon/M00_ARESETN (associated clock /axi_mem_intercon/M00_ACLK) is connected to asynchronous reset source /processing_system7_0/FCLK_RESET0_N.
+This may prevent design from meeting timing. Please add Processor System Reset module to create a reset that is synchronous to the associated clock source /processing_system7_0/FCLK_CLK0.
+# if {$bad_addr} { puts "ADDRESS PINNING FAILED"; exit 1 }
+# save_bd_design
+Wrote  : <D:\Xilinx\Prj\pro\Video_Processing\vivado_system\zynq_video_sys.srcs\sources_1\bd\design_1\design_1.bd> 
+# if {[lindex $argv 0] eq "bd_only"} { puts "BD_ONLY_DONE"; exit 0 }
+# make_wrapper -files [get_files design_1.bd] -top
+INFO: [BD 41-1662] The design 'design_1.bd' is already validated. Therefore parameter propagation will not be re-run.
+Verilog Output written to : D:/Xilinx/Prj/pro/Video_Processing/vivado_system/zynq_video_sys.gen/sources_1/bd/design_1/synth/design_1.v
+Verilog Output written to : D:/Xilinx/Prj/pro/Video_Processing/vivado_system/zynq_video_sys.gen/sources_1/bd/design_1/sim/design_1.v
+Verilog Output written to : D:/Xilinx/Prj/pro/Video_Processing/vivado_system/zynq_video_sys.gen/sources_1/bd/design_1/hdl/design_1_wrapper.v
+# set wrap [file join $proj_dir ${proj_name}.gen sources_1 bd design_1 hdl design_1_wrapper.v]
+# if {![file exists $wrap]} {
+#   set wrap [lindex [glob -nocomplain [file join $proj_dir ${proj_name}.srcs sources_1 bd design_1 hdl design_1_wrapper.v]] 0]
+# }
+# add_files -norecurse $wrap
+# puts "WRAPPER: $wrap"
+WRAPPER: D:/Xilinx/Prj/pro/Video_Processing/vivado_system/zynq_video_sys.gen/sources_1/bd/design_1/hdl/design_1_wrapper.v
+# puts "TOP: system_top.v (maintained, includes PL ETH)"
+TOP: system_top.v (maintained, includes PL ETH)
+# set_property top system_top [current_fileset]
+# update_compile_order -fileset sources_1
+# launch_runs synth_1 -jobs 4
+INFO: [BD 41-1662] The design 'design_1.bd' is already validated. Therefore parameter propagation will not be re-run.
+Verilog Output written to : D:/Xilinx/Prj/pro/Video_Processing/vivado_system/zynq_video_sys.gen/sources_1/bd/design_1/synth/design_1.v
+Verilog Output written to : D:/Xilinx/Prj/pro/Video_Processing/vivado_system/zynq_video_sys.gen/sources_1/bd/design_1/sim/design_1.v
+Verilog Output written to : D:/Xilinx/Prj/pro/Video_Processing/vivado_system/zynq_video_sys.gen/sources_1/bd/design_1/hdl/design_1_wrapper.v
+INFO: [IP_Flow 19-5611] Unable to find an associated reset port for the interface 'M_AXI_GP0'. A default connection has been created.
+INFO: [IP_Flow 19-5611] Unable to find an associated reset port for the interface 'S_AXI_HP0'. A default connection has been created.
+INFO: [BD 41-1029] Generation completed for the IP Integrator block processing_system7_0 .
+INFO: [BD 41-1029] Generation completed for the IP Integrator block axi_gpio_0 .
+INFO: [BD 41-1029] Generation completed for the IP Integrator block axi_gpio_1 .
+INFO: [BD 41-1029] Generation completed for the IP Integrator block axi_gpio_2 .
+INFO: [BD 41-1029] Generation completed for the IP Integrator block axi_gp0_ic/xbar .
+WARNING: [IP_Flow 19-4994] Overwriting existing constraint file 'd:/Xilinx/Prj/pro/Video_Processing/vivado_system/zynq_video_sys.gen/sources_1/bd/design_1/ip/design_1_axi_gp0_ic_imp_auto_pc_0/design_1_axi_gp0_ic_imp_auto_pc_0_ooc.xdc'
+INFO: [BD 41-1029] Generation completed for the IP Integrator block axi_gp0_ic/s00_couplers/auto_pc .
+Exporting to file D:/Xilinx/Prj/pro/Video_Processing/vivado_system/zynq_video_sys.gen/sources_1/bd/design_1/hw_handoff/design_1.hwh
+Generated Hardware Definition File D:/Xilinx/Prj/pro/Video_Processing/vivado_system/zynq_video_sys.gen/sources_1/bd/design_1/synth/design_1.hwdef
+INFO: [BD 41-3262] Generated VHDL Instantiation Template file d:/Xilinx/Prj/pro/Video_Processing/vivado_system/zynq_video_sys.gen/sources_1/bd/design_1/design_1.vho
+INFO: [BD 41-3262] Generated Verilog Instantiation Template file d:/Xilinx/Prj/pro/Video_Processing/vivado_system/zynq_video_sys.gen/sources_1/bd/design_1/design_1.veo
+INFO: [BD 41-3262] Generated System Verilog Instantiation Template file d:/Xilinx/Prj/pro/Video_Processing/vivado_system/zynq_video_sys.gen/sources_1/bd/design_1/design_1_sv.sveo
+WARNING: [Vivado 12-7122] Auto Incremental Compile:: No reference checkpoint was found in run synth_1. Auto-incremental flow will not be run, the standard flow will be run instead.
+[Sat Sep 26 02:59:41 2026] Launched design_1_axi_gpio_1_0_synth_1, design_1_processing_system7_0_0_synth_1, design_1_axi_gpio_0_0_synth_1, design_1_axi_gpio_2_0_synth_1, design_1_axi_gp0_ic_imp_xbar_0_synth_1, design_1_axi_gp0_ic_imp_auto_pc_0_synth_1...
+Run output will be captured here:
+design_1_axi_gpio_1_0_synth_1: D:/Xilinx/Prj/pro/Video_Processing/vivado_system/zynq_video_sys.runs/design_1_axi_gpio_1_0_synth_1/runme.log
+design_1_processing_system7_0_0_synth_1: D:/Xilinx/Prj/pro/Video_Processing/vivado_system/zynq_video_sys.runs/design_1_processing_system7_0_0_synth_1/runme.log
+design_1_axi_gpio_0_0_synth_1: D:/Xilinx/Prj/pro/Video_Processing/vivado_system/zynq_video_sys.runs/design_1_axi_gpio_0_0_synth_1/runme.log
+design_1_axi_gpio_2_0_synth_1: D:/Xilinx/Prj/pro/Video_Processing/vivado_system/zynq_video_sys.runs/design_1_axi_gpio_2_0_synth_1/runme.log
+design_1_axi_gp0_ic_imp_xbar_0_synth_1: D:/Xilinx/Prj/pro/Video_Processing/vivado_system/zynq_video_sys.runs/design_1_axi_gp0_ic_imp_xbar_0_synth_1/runme.log
+design_1_axi_gp0_ic_imp_auto_pc_0_synth_1: D:/Xilinx/Prj/pro/Video_Processing/vivado_system/zynq_video_sys.runs/design_1_axi_gp0_ic_imp_auto_pc_0_synth_1/runme.log
+[Sat Sep 26 02:59:41 2026] Launched synth_1...
+Run output will be captured here: D:/Xilinx/Prj/pro/Video_Processing/vivado_system/zynq_video_sys.runs/synth_1/runme.log
+launch_runs: Time (s): cpu = 00:00:28 ; elapsed = 00:00:33 . Memory (MB): peak = 744.027 ; gain = 34.086
+# wait_on_run synth_1
+[Sat Sep 26 02:59:41 2026] Waiting for synth_1 to finish...
+
+
+*** Running vivado
+    with args -log system_top.vds -m64 -product Vivado -mode batch -messageDb vivado.pb -notrace -source system_top.tcl
+
+
+
+****** Vivado v2025.2.1 (64-bit)
+  **** SW Build 6403652 on Thu Mar 19 19:48:24 GMT 2026
+  **** IP Build 6403511 on Thu Mar 19 12:41:45 MDT 2026
+  **** SharedData Build 6403650 on Thu Mar 19 14:02:13 MDT 2026
+  **** Start of session at: Sat Sep 26 03:03:08 2026
+    ** Copyright 1986-2022 Xilinx, Inc. All Rights Reserved.
+    ** Copyright 2022-2026 Advanced Micro Devices, Inc. All Rights Reserved.
+
+source system_top.tcl -notrace
+create_project: Time (s): cpu = 00:00:12 ; elapsed = 00:00:07 . Memory (MB): peak = 542.086 ; gain = 225.145
+INFO: [IP_Flow 19-234] Refreshing IP repositories
+INFO: [IP_Flow 19-1704] No user IP repositories specified
+INFO: [IP_Flow 19-2313] Loaded Vivado IP repository 'D:/Software/Vivado/2025.2.1/Vivado/data/ip'.
+Command: synth_design -top system_top -part xc7z020clg484-2
+Starting synth_design
+Attempting to get a license for feature 'Synthesis' and/or device 'xc7z020'
+INFO: [Common 17-349] Got license for feature 'Synthesis' and/or device 'xc7z020'
+INFO: [Device 21-403] Loading part xc7z020clg484-2
+INFO: [Synth 8-7079] Multithreading enabled for synth_design using a maximum of 2 processes.
+INFO: [Synth 8-7078] Launching helper process for spawning children vivado processes
+INFO: [Synth 8-7075] Helper process launched with PID 2896
+---------------------------------------------------------------------------------
+Starting RTL Elaboration : Time (s): cpu = 00:00:09 ; elapsed = 00:00:09 . Memory (MB): peak = 1343.418 ; gain = 540.836
+---------------------------------------------------------------------------------
+WARNING: [Synth 8-9694] invalid size of integer constant literal [D:/Xilinx/Prj/pro/Video_Processing/src/rtl/video/split_ctrl.v:71]
+WARNING: [Synth 8-9694] invalid size of integer constant literal [D:/Xilinx/Prj/pro/Video_Processing/src/rtl/video/split_ctrl.v:72]
+WARNING: [Synth 8-9397] empty parameter declaration is only allowed in SystemVerilog mode [D:/Xilinx/Prj/pro/Video_Processing/src/rtl/video/split_display.v:5]
+WARNING: [Synth 8-10929] literal value 'd10 truncated to fit in 2 bits [D:/Xilinx/Prj/pro/Video_Processing/src/rtl/util/src_arb.v:46]
+INFO: [Synth 8-6157] synthesizing module 'system_top' [D:/Xilinx/Prj/pro/Video_Processing/src/rtl/top/system_top.v:3]
+INFO: [Synth 8-6157] synthesizing module 'design_1_wrapper' [D:/Xilinx/Prj/pro/Video_Processing/vivado_system/zynq_video_sys.gen/sources_1/bd/design_1/hdl/design_1_wrapper.v:13]
+INFO: [Synth 8-6157] synthesizing module 'design_1' [d:/Xilinx/Prj/pro/Video_Processing/vivado_system/zynq_video_sys.gen/sources_1/bd/design_1/synth/design_1.v:13]
+INFO: [Synth 8-6157] synthesizing module 'design_1_axi_gp0_ic_0' [d:/Xilinx/Prj/pro/Video_Processing/vivado_system/zynq_video_sys.gen/sources_1/bd/design_1/synth/design_1.v:692]
+INFO: [Synth 8-6157] synthesizing module 'm00_couplers_imp_EJ3EHT' [d:/Xilinx/Prj/pro/Video_Processing/vivado_system/zynq_video_sys.gen/sources_1/bd/design_1/synth/design_1.v:1604]
+INFO: [Synth 8-6155] done synthesizing module 'm00_couplers_imp_EJ3EHT' (0#1) [d:/Xilinx/Prj/pro/Video_Processing/vivado_system/zynq_video_sys.gen/sources_1/bd/design_1/synth/design_1.v:1604]
+INFO: [Synth 8-6157] synthesizing module 'm01_couplers_imp_1OS1680' [d:/Xilinx/Prj/pro/Video_Processing/vivado_system/zynq_video_sys.gen/sources_1/bd/design_1/synth/design_1.v:1719]
+INFO: [Synth 8-6155] done synthesizing module 'm01_couplers_imp_1OS1680' (0#1) [d:/Xilinx/Prj/pro/Video_Processing/vivado_system/zynq_video_sys.gen/sources_1/bd/design_1/synth/design_1.v:1719]
+INFO: [Synth 8-6157] synthesizing module 'm02_couplers_imp_DQUA3M' [d:/Xilinx/Prj/pro/Video_Processing/vivado_system/zynq_video_sys.gen/sources_1/bd/design_1/synth/design_1.v:1834]
+INFO: [Synth 8-6155] done synthesizing module 'm02_couplers_imp_DQUA3M' (0#1) [d:/Xilinx/Prj/pro/Video_Processing/vivado_system/zynq_video_sys.gen/sources_1/bd/design_1/synth/design_1.v:1834]
+INFO: [Synth 8-6157] synthesizing module 's00_couplers_imp_1KZGM77' [d:/Xilinx/Prj/pro/Video_Processing/vivado_system/zynq_video_sys.gen/sources_1/bd/design_1/synth/design_1.v:1949]
+INFO: [Synth 8-6157] synthesizing module 'design_1_axi_gp0_ic_imp_auto_pc_0' [D:/Xilinx/Prj/pro/Video_Processing/vivado_system/zynq_video_sys.runs/synth_1/.Xil/Vivado-14432-Uie-laptop/realtime/design_1_axi_gp0_ic_imp_auto_pc_0_stub.v:6]
+INFO: [Synth 8-6155] done synthesizing module 'design_1_axi_gp0_ic_imp_auto_pc_0' (0#1) [D:/Xilinx/Prj/pro/Video_Processing/vivado_system/zynq_video_sys.runs/synth_1/.Xil/Vivado-14432-Uie-laptop/realtime/design_1_axi_gp0_ic_imp_auto_pc_0_stub.v:6]
+INFO: [Synth 8-6155] done synthesizing module 's00_couplers_imp_1KZGM77' (0#1) [d:/Xilinx/Prj/pro/Video_Processing/vivado_system/zynq_video_sys.gen/sources_1/bd/design_1/synth/design_1.v:1949]
+INFO: [Synth 8-6157] synthesizing module 'design_1_axi_gp0_ic_imp_xbar_0' [D:/Xilinx/Prj/pro/Video_Processing/vivado_system/zynq_video_sys.runs/synth_1/.Xil/Vivado-14432-Uie-laptop/realtime/design_1_axi_gp0_ic_imp_xbar_0_stub.v:6]
+INFO: [Synth 8-6155] done synthesizing module 'design_1_axi_gp0_ic_imp_xbar_0' (0#1) [D:/Xilinx/Prj/pro/Video_Processing/vivado_system/zynq_video_sys.runs/synth_1/.Xil/Vivado-14432-Uie-laptop/realtime/design_1_axi_gp0_ic_imp_xbar_0_stub.v:6]
+WARNING: [Synth 8-7071] port 'm_axi_awprot' of module 'design_1_axi_gp0_ic_imp_xbar_0' is unconnected for instance 'xbar' [d:/Xilinx/Prj/pro/Video_Processing/vivado_system/zynq_video_sys.gen/sources_1/bd/design_1/synth/design_1.v:1233]
+WARNING: [Synth 8-7071] port 'm_axi_arprot' of module 'design_1_axi_gp0_ic_imp_xbar_0' is unconnected for instance 'xbar' [d:/Xilinx/Prj/pro/Video_Processing/vivado_system/zynq_video_sys.gen/sources_1/bd/design_1/synth/design_1.v:1233]
+WARNING: [Synth 8-7023] instance 'xbar' of module 'design_1_axi_gp0_ic_imp_xbar_0' has 40 connections declared, but only 38 given [d:/Xilinx/Prj/pro/Video_Processing/vivado_system/zynq_video_sys.gen/sources_1/bd/design_1/synth/design_1.v:1233]
+INFO: [Synth 8-6155] done synthesizing module 'design_1_axi_gp0_ic_0' (0#1) [d:/Xilinx/Prj/pro/Video_Processing/vivado_system/zynq_video_sys.gen/sources_1/bd/design_1/synth/design_1.v:692]
+INFO: [Synth 8-6157] synthesizing module 'design_1_axi_gpio_0_0' [D:/Xilinx/Prj/pro/Video_Processing/vivado_system/zynq_video_sys.runs/synth_1/.Xil/Vivado-14432-Uie-laptop/realtime/design_1_axi_gpio_0_0_stub.v:6]
+INFO: [Synth 8-6155] done synthesizing module 'design_1_axi_gpio_0_0' (0#1) [D:/Xilinx/Prj/pro/Video_Processing/vivado_system/zynq_video_sys.runs/synth_1/.Xil/Vivado-14432-Uie-laptop/realtime/design_1_axi_gpio_0_0_stub.v:6]
+INFO: [Synth 8-6157] synthesizing module 'design_1_axi_gpio_1_0' [D:/Xilinx/Prj/pro/Video_Processing/vivado_system/zynq_video_sys.runs/synth_1/.Xil/Vivado-14432-Uie-laptop/realtime/design_1_axi_gpio_1_0_stub.v:6]
+INFO: [Synth 8-6155] done synthesizing module 'design_1_axi_gpio_1_0' (0#1) [D:/Xilinx/Prj/pro/Video_Processing/vivado_system/zynq_video_sys.runs/synth_1/.Xil/Vivado-14432-Uie-laptop/realtime/design_1_axi_gpio_1_0_stub.v:6]
+INFO: [Synth 8-6157] synthesizing module 'design_1_axi_gpio_2_0' [D:/Xilinx/Prj/pro/Video_Processing/vivado_system/zynq_video_sys.runs/synth_1/.Xil/Vivado-14432-Uie-laptop/realtime/design_1_axi_gpio_2_0_stub.v:6]
+INFO: [Synth 8-6155] done synthesizing module 'design_1_axi_gpio_2_0' (0#1) [D:/Xilinx/Prj/pro/Video_Processing/vivado_system/zynq_video_sys.runs/synth_1/.Xil/Vivado-14432-Uie-laptop/realtime/design_1_axi_gpio_2_0_stub.v:6]
+INFO: [Synth 8-6157] synthesizing module 'design_1_axi_mem_intercon_0' [d:/Xilinx/Prj/pro/Video_Processing/vivado_system/zynq_video_sys.gen/sources_1/bd/design_1/synth/design_1.v:1274]
+INFO: [Synth 8-6157] synthesizing module 's00_couplers_imp_7HNO1D' [d:/Xilinx/Prj/pro/Video_Processing/vivado_system/zynq_video_sys.gen/sources_1/bd/design_1/synth/design_1.v:2195]
+INFO: [Synth 8-6155] done synthesizing module 's00_couplers_imp_7HNO1D' (0#1) [d:/Xilinx/Prj/pro/Video_Processing/vivado_system/zynq_video_sys.gen/sources_1/bd/design_1/synth/design_1.v:2195]
+INFO: [Synth 8-6155] done synthesizing module 'design_1_axi_mem_intercon_0' (0#1) [d:/Xilinx/Prj/pro/Video_Processing/vivado_system/zynq_video_sys.gen/sources_1/bd/design_1/synth/design_1.v:1274]
+INFO: [Synth 8-6157] synthesizing module 'design_1_processing_system7_0_0' [D:/Xilinx/Prj/pro/Video_Processing/vivado_system/zynq_video_sys.runs/synth_1/.Xil/Vivado-14432-Uie-laptop/realtime/design_1_processing_system7_0_0_stub.v:6]
+INFO: [Synth 8-6155] done synthesizing module 'design_1_processing_system7_0_0' (0#1) [D:/Xilinx/Prj/pro/Video_Processing/vivado_system/zynq_video_sys.runs/synth_1/.Xil/Vivado-14432-Uie-laptop/realtime/design_1_processing_system7_0_0_stub.v:6]
+WARNING: [Synth 8-7071] port 'S_AXI_HP0_RCOUNT' of module 'design_1_processing_system7_0_0' is unconnected for instance 'processing_system7_0' [d:/Xilinx/Prj/pro/Video_Processing/vivado_system/zynq_video_sys.gen/sources_1/bd/design_1/synth/design_1.v:586]
+WARNING: [Synth 8-7071] port 'S_AXI_HP0_WCOUNT' of module 'design_1_processing_system7_0_0' is unconnected for instance 'processing_system7_0' [d:/Xilinx/Prj/pro/Video_Processing/vivado_system/zynq_video_sys.gen/sources_1/bd/design_1/synth/design_1.v:586]
+WARNING: [Synth 8-7071] port 'S_AXI_HP0_RACOUNT' of module 'design_1_processing_system7_0_0' is unconnected for instance 'processing_system7_0' [d:/Xilinx/Prj/pro/Video_Processing/vivado_system/zynq_video_sys.gen/sources_1/bd/design_1/synth/design_1.v:586]
+WARNING: [Synth 8-7071] port 'S_AXI_HP0_WACOUNT' of module 'design_1_processing_system7_0_0' is unconnected for instance 'processing_system7_0' [d:/Xilinx/Prj/pro/Video_Processing/vivado_system/zynq_video_sys.gen/sources_1/bd/design_1/synth/design_1.v:586]
+WARNING: [Synth 8-7023] instance 'processing_system7_0' of module 'design_1_processing_system7_0_0' has 107 connections declared, but only 103 given [d:/Xilinx/Prj/pro/Video_Processing/vivado_system/zynq_video_sys.gen/sources_1/bd/design_1/synth/design_1.v:586]
+INFO: [Synth 8-6155] done synthesizing module 'design_1' (0#1) [d:/Xilinx/Prj/pro/Video_Processing/vivado_system/zynq_video_sys.gen/sources_1/bd/design_1/synth/design_1.v:13]
+INFO: [Synth 8-6155] done synthesizing module 'design_1_wrapper' (0#1) [D:/Xilinx/Prj/pro/Video_Processing/vivado_system/zynq_video_sys.gen/sources_1/bd/design_1/hdl/design_1_wrapper.v:13]
+INFO: [Synth 8-6157] synthesizing module 'clk_gen' [D:/Xilinx/Prj/pro/Video_Processing/src/rtl/clocks/clk_gen.v:4]
+INFO: [Synth 8-6157] synthesizing module 'MMCME2_BASE' [D:/Software/Vivado/2025.2.1/Vivado/scripts/rt/data/unisim_comp.v:95830]
+	Parameter BANDWIDTH bound to: OPTIMIZED - type: string 
+	Parameter CLKFBOUT_MULT_F bound to: 2.000000e+01 - type: double 
+	Parameter CLKFBOUT_PHASE bound to: 0.000000e+00 - type: double 
+	Parameter CLKIN1_PERIOD bound to: 2.000000e+01 - type: double 
+	Parameter CLKOUT0_DIVIDE_F bound to: 2.000000e+01 - type: double 
+	Parameter CLKOUT0_DUTY_CYCLE bound to: 5.000000e-01 - type: double 
+	Parameter CLKOUT0_PHASE bound to: 0.000000e+00 - type: double 
+	Parameter CLKOUT1_DIVIDE bound to: 4 - type: integer 
+	Parameter CLKOUT1_DUTY_CYCLE bound to: 5.000000e-01 - type: double 
+	Parameter CLKOUT1_PHASE bound to: 0.000000e+00 - type: double 
+	Parameter CLKOUT2_DIVIDE bound to: 5 - type: integer 
+	Parameter CLKOUT2_DUTY_CYCLE bound to: 5.000000e-01 - type: double 
+	Parameter CLKOUT2_PHASE bound to: 0.000000e+00 - type: double 
+	Parameter DIVCLK_DIVIDE bound to: 1 - type: integer 
+	Parameter REF_JITTER1 bound to: 1.000000e-02 - type: double 
+	Parameter STARTUP_WAIT bound to: FALSE - type: string 
+INFO: [Synth 8-6155] done synthesizing module 'MMCME2_BASE' (0#1) [D:/Software/Vivado/2025.2.1/Vivado/scripts/rt/data/unisim_comp.v:95830]
+INFO: [Synth 8-6157] synthesizing module 'BUFG' [D:/Software/Vivado/2025.2.1/Vivado/scripts/rt/data/unisim_comp.v:2678]
+INFO: [Synth 8-6155] done synthesizing module 'BUFG' (0#1) [D:/Software/Vivado/2025.2.1/Vivado/scripts/rt/data/unisim_comp.v:2678]
+INFO: [Synth 8-6155] done synthesizing module 'clk_gen' (0#1) [D:/Xilinx/Prj/pro/Video_Processing/src/rtl/clocks/clk_gen.v:4]
+INFO: [Synth 8-6157] synthesizing module 'eth_udp_video_top' [D:/Xilinx/Prj/pro/Video_Processing/src/rtl/eth/eth_udp_video_top.v:4]
+	Parameter IMG_W bound to: 16'b0000001000000000 
+	Parameter IMG_H bound to: 16'b0000000100101100 
+	Parameter BASE_ADDR bound to: 268435456 - type: integer 
+	Parameter UDP_PORT bound to: 16'b0001001110001001 
+	Parameter BOARD_MAC bound to: 48'b000000000001000100100010001100110100010001010101 
+	Parameter BOARD_IP bound to: 32'b11000000101010000000000100001010 
+	Parameter IDELAY_VALUE bound to: 15 - type: integer 
+INFO: [Synth 8-6157] synthesizing module 'gmii_to_rgmii' [D:/Xilinx/Prj/pro/Video_Processing/src/rtl/eth/gmii_to_rgmii.v:14]
+	Parameter IDELAY_VALUE bound to: 15 - type: integer 
+INFO: [Synth 8-6157] synthesizing module 'rgmii_rx' [D:/Xilinx/Prj/pro/Video_Processing/src/rtl/eth/rgmii_rx.v:14]
+	Parameter IDELAY_VALUE bound to: 15 - type: integer 
+INFO: [Synth 8-6157] synthesizing module 'IDELAYE2' [D:/Software/Vivado/2025.2.1/Vivado/scripts/rt/data/unisim_comp.v:85037]
+	Parameter IDELAY_TYPE bound to: FIXED - type: string 
+	Parameter IDELAY_VALUE bound to: 15 - type: integer 
+	Parameter REFCLK_FREQUENCY bound to: 2.000000e+02 - type: double 
+INFO: [Synth 8-6155] done synthesizing module 'IDELAYE2' (0#1) [D:/Software/Vivado/2025.2.1/Vivado/scripts/rt/data/unisim_comp.v:85037]
+INFO: [Synth 8-6157] synthesizing module 'IDDR' [D:/Software/Vivado/2025.2.1/Vivado/scripts/rt/data/unisim_comp.v:84902]
+	Parameter DDR_CLK_EDGE bound to: SAME_EDGE_PIPELINED - type: string 
+	Parameter INIT_Q1 bound to: 1'b0 
+	Parameter INIT_Q2 bound to: 1'b0 
+	Parameter SRTYPE bound to: SYNC - type: string 
+INFO: [Synth 8-6155] done synthesizing module 'IDDR' (0#1) [D:/Software/Vivado/2025.2.1/Vivado/scripts/rt/data/unisim_comp.v:84902]
+INFO: [Synth 8-6157] synthesizing module 'BUFIO' [D:/Software/Vivado/2025.2.1/Vivado/scripts/rt/data/unisim_comp.v:2951]
+INFO: [Synth 8-6155] done synthesizing module 'BUFIO' (0#1) [D:/Software/Vivado/2025.2.1/Vivado/scripts/rt/data/unisim_comp.v:2951]
+WARNING: [Synth 8-4446] all outputs are unconnected for this instance and logic may be removed [D:/Xilinx/Prj/pro/Video_Processing/src/rtl/eth/rgmii_rx.v:60]
+INFO: [Synth 8-6157] synthesizing module 'IDELAYCTRL' [D:/Software/Vivado/2025.2.1/Vivado/scripts/rt/data/unisim_comp.v:85024]
+INFO: [Synth 8-6155] done synthesizing module 'IDELAYCTRL' (0#1) [D:/Software/Vivado/2025.2.1/Vivado/scripts/rt/data/unisim_comp.v:85024]
+INFO: [Synth 8-6155] done synthesizing module 'rgmii_rx' (0#1) [D:/Xilinx/Prj/pro/Video_Processing/src/rtl/eth/rgmii_rx.v:14]
+INFO: [Synth 8-6157] synthesizing module 'rgmii_tx' [D:/Xilinx/Prj/pro/Video_Processing/src/rtl/eth/rgmii_tx.v:14]
+INFO: [Synth 8-6157] synthesizing module 'ODDR' [D:/Software/Vivado/2025.2.1/Vivado/scripts/rt/data/unisim_comp.v:117062]
+	Parameter DDR_CLK_EDGE bound to: SAME_EDGE - type: string 
+	Parameter INIT bound to: 1'b0 
+	Parameter SRTYPE bound to: SYNC - type: string 
+INFO: [Synth 8-6155] done synthesizing module 'ODDR' (0#1) [D:/Software/Vivado/2025.2.1/Vivado/scripts/rt/data/unisim_comp.v:117062]
+INFO: [Synth 8-6155] done synthesizing module 'rgmii_tx' (0#1) [D:/Xilinx/Prj/pro/Video_Processing/src/rtl/eth/rgmii_tx.v:14]
+INFO: [Synth 8-6155] done synthesizing module 'gmii_to_rgmii' (0#1) [D:/Xilinx/Prj/pro/Video_Processing/src/rtl/eth/gmii_to_rgmii.v:14]
+INFO: [Synth 8-6157] synthesizing module 'sync_fifo' [D:/Xilinx/Prj/pro/Video_Processing/src/rtl/eth/sync_fifo.v:5]
+	Parameter DATA_W bound to: 8 - type: integer 
+	Parameter ADDR_W bound to: 11 - type: integer 
+INFO: [Synth 8-6155] done synthesizing module 'sync_fifo' (0#1) [D:/Xilinx/Prj/pro/Video_Processing/src/rtl/eth/sync_fifo.v:5]
+INFO: [Synth 8-6157] synthesizing module 'arp' [D:/Xilinx/Prj/pro/Video_Processing/src/rtl/eth/arp.v:15]
+	Parameter BOARD_MAC bound to: 48'b000000000001000100100010001100110100010001010101 
+	Parameter BOARD_IP bound to: -1062731510 - type: integer 
+	Parameter DES_MAC bound to: 48'b111111111111111111111111111111111111111111111111 
+	Parameter DES_IP bound to: -1062731418 - type: integer 
+INFO: [Synth 8-6157] synthesizing module 'arp_rx' [D:/Xilinx/Prj/pro/Video_Processing/src/rtl/eth/arp_rx.v:14]
+	Parameter BOARD_MAC bound to: 48'b000000000001000100100010001100110100010001010101 
+	Parameter BOARD_IP bound to: -1062731510 - type: integer 
+INFO: [Synth 8-6155] done synthesizing module 'arp_rx' (0#1) [D:/Xilinx/Prj/pro/Video_Processing/src/rtl/eth/arp_rx.v:14]
+INFO: [Synth 8-6157] synthesizing module 'arp_tx' [D:/Xilinx/Prj/pro/Video_Processing/src/rtl/eth/arp_tx.v:14]
+	Parameter BOARD_MAC bound to: 48'b000000000001000100100010001100110100010001010101 
+	Parameter BOARD_IP bound to: -1062731510 - type: integer 
+	Parameter DES_MAC bound to: 48'b111111111111111111111111111111111111111111111111 
+	Parameter DES_IP bound to: -1062731418 - type: integer 
+INFO: [Synth 8-6155] done synthesizing module 'arp_tx' (0#1) [D:/Xilinx/Prj/pro/Video_Processing/src/rtl/eth/arp_tx.v:14]
+INFO: [Synth 8-6157] synthesizing module 'crc32_d8' [D:/Xilinx/Prj/pro/Video_Processing/src/rtl/eth/crc32_d8.v:15]
+INFO: [Synth 8-6155] done synthesizing module 'crc32_d8' (0#1) [D:/Xilinx/Prj/pro/Video_Processing/src/rtl/eth/crc32_d8.v:15]
+INFO: [Synth 8-6155] done synthesizing module 'arp' (0#1) [D:/Xilinx/Prj/pro/Video_Processing/src/rtl/eth/arp.v:15]
+INFO: [Synth 8-6157] synthesizing module 'icmp' [D:/Xilinx/Prj/pro/Video_Processing/src/rtl/eth/icmp.v:14]
+	Parameter BOARD_MAC bound to: 48'b000000000001000100100010001100110100010001010101 
+	Parameter BOARD_IP bound to: -1062731510 - type: integer 
+INFO: [Synth 8-6157] synthesizing module 'icmp_rx' [D:/Xilinx/Prj/pro/Video_Processing/src/rtl/eth/icmp_rx.v:15]
+	Parameter BOARD_MAC bound to: 48'b000000000001000100100010001100110100010001010101 
+	Parameter BOARD_IP bound to: -1062731510 - type: integer 
+INFO: [Synth 8-6155] done synthesizing module 'icmp_rx' (0#1) [D:/Xilinx/Prj/pro/Video_Processing/src/rtl/eth/icmp_rx.v:15]
+INFO: [Synth 8-6157] synthesizing module 'icmp_tx' [D:/Xilinx/Prj/pro/Video_Processing/src/rtl/eth/icmp_tx.v:16]
+	Parameter BOARD_MAC bound to: 48'b000000000001000100100010001100110100010001010101 
+	Parameter BOARD_IP bound to: -1062731510 - type: integer 
+	Parameter DES_MAC bound to: 48'b111111111111111111111111111111111111111111111111 
+	Parameter DES_IP bound to: -1062731418 - type: integer 
+INFO: [Synth 8-6155] done synthesizing module 'icmp_tx' (0#1) [D:/Xilinx/Prj/pro/Video_Processing/src/rtl/eth/icmp_tx.v:16]
+INFO: [Synth 8-6155] done synthesizing module 'icmp' (0#1) [D:/Xilinx/Prj/pro/Video_Processing/src/rtl/eth/icmp.v:14]
+INFO: [Synth 8-6157] synthesizing module 'udp_tx' [D:/Xilinx/Prj/pro/Video_Processing/src/rtl/eth/udp_tx.v:15]
+	Parameter BOARD_MAC bound to: 48'b000000000001000100100010001100110100010001010101 
+	Parameter BOARD_IP bound to: -1062731510 - type: integer 
+INFO: [Synth 8-6155] done synthesizing module 'udp_tx' (0#1) [D:/Xilinx/Prj/pro/Video_Processing/src/rtl/eth/udp_tx.v:15]
+INFO: [Synth 8-6157] synthesizing module 'gmii_rx_mac' [D:/Xilinx/Prj/pro/Video_Processing/src/rtl/eth/gmii_rx_mac.v:14]
+INFO: [Synth 8-6155] done synthesizing module 'gmii_rx_mac' (0#1) [D:/Xilinx/Prj/pro/Video_Processing/src/rtl/eth/gmii_rx_mac.v:14]
+INFO: [Synth 8-6157] synthesizing module 'udp_rx_parser' [D:/Xilinx/Prj/pro/Video_Processing/src/rtl/eth/udp_rx_parser.v:4]
+	Parameter UDP_PORT bound to: 16'b0001001110001001 
+INFO: [Synth 8-6155] done synthesizing module 'udp_rx_parser' (0#1) [D:/Xilinx/Prj/pro/Video_Processing/src/rtl/eth/udp_rx_parser.v:4]
+INFO: [Synth 8-6157] synthesizing module 'eth_ctrl' [D:/Xilinx/Prj/pro/Video_Processing/src/rtl/eth/eth_ctrl.v:15]
+INFO: [Synth 8-6155] done synthesizing module 'eth_ctrl' (0#1) [D:/Xilinx/Prj/pro/Video_Processing/src/rtl/eth/eth_ctrl.v:15]
+INFO: [Synth 8-6157] synthesizing module 'frame_reasm' [D:/Xilinx/Prj/pro/Video_Processing/src/rtl/eth/frame_reasm.v:13]
+	Parameter IMG_W bound to: 16'b0000001000000000 
+	Parameter IMG_H bound to: 16'b0000000100101100 
+INFO: [Synth 8-6155] done synthesizing module 'frame_reasm' (0#1) [D:/Xilinx/Prj/pro/Video_Processing/src/rtl/eth/frame_reasm.v:13]
+INFO: [Synth 8-6157] synthesizing module 'link_monitor' [D:/Xilinx/Prj/pro/Video_Processing/src/rtl/eth/link_monitor.v:25]
+	Parameter CLK_HZ bound to: 125000000 - type: integer 
+	Parameter LIVE_MS bound to: 16'b0000000011001000 
+INFO: [Synth 8-6155] done synthesizing module 'link_monitor' (0#1) [D:/Xilinx/Prj/pro/Video_Processing/src/rtl/eth/link_monitor.v:25]
+INFO: [Synth 8-6157] synthesizing module 'dc_fifo' [D:/Xilinx/Prj/pro/Video_Processing/src/rtl/eth/dc_fifo.v:3]
+	Parameter DATA_W bound to: 36 - type: integer 
+	Parameter ADDR_W bound to: 13 - type: integer 
+INFO: [Synth 8-6155] done synthesizing module 'dc_fifo' (0#1) [D:/Xilinx/Prj/pro/Video_Processing/src/rtl/eth/dc_fifo.v:3]
+INFO: [Synth 8-6157] synthesizing module 'ddr_bank_commit' [D:/Xilinx/Prj/pro/Video_Processing/src/rtl/eth/ddr_bank_commit.v:16]
+	Parameter BANK0 bound to: 268435456 - type: integer 
+	Parameter BANK1 bound to: 32'b00010000000010000000000000000000 
+	Parameter TAIL_GUARD bound to: 1'b1 
+INFO: [Synth 8-6155] done synthesizing module 'ddr_bank_commit' (0#1) [D:/Xilinx/Prj/pro/Video_Processing/src/rtl/eth/ddr_bank_commit.v:16]
+INFO: [Synth 8-6157] synthesizing module 'axi_frame_saver64' [D:/Xilinx/Prj/pro/Video_Processing/src/rtl/eth/axi_frame_saver64.v:14]
+	Parameter BASE_ADDR bound to: 268435456 - type: integer 
+INFO: [Synth 8-6155] done synthesizing module 'axi_frame_saver64' (0#1) [D:/Xilinx/Prj/pro/Video_Processing/src/rtl/eth/axi_frame_saver64.v:14]
+INFO: [Synth 8-6155] done synthesizing module 'eth_udp_video_top' (0#1) [D:/Xilinx/Prj/pro/Video_Processing/src/rtl/eth/eth_udp_video_top.v:4]
+INFO: [Synth 8-6157] synthesizing module 'snap_cross' [D:/Xilinx/Prj/pro/Video_Processing/src/rtl/eth/snap_cross.v:18]
+	Parameter W bound to: 320 - type: integer 
+	Parameter DST_HZ bound to: 100000000 - type: integer 
+	Parameter HB_TO_MS bound to: 200 - type: integer 
+INFO: [Synth 8-6155] done synthesizing module 'snap_cross' (0#1) [D:/Xilinx/Prj/pro/Video_Processing/src/rtl/eth/snap_cross.v:18]
+INFO: [Synth 8-6157] synthesizing module 'pl_video_top' [D:/Xilinx/Prj/pro/Video_Processing/src/rtl/top/pl_video_top.v:5]
+	Parameter IMG_W bound to: 16'b0000001000000000 
+	Parameter IMG_H bound to: 16'b0000000100101100 
+	Parameter PANE_W bound to: 16'b0000001000000000 
+	Parameter BASE_ADDR bound to: 268435456 - type: integer 
+	Parameter PS_BASE_ADDR bound to: 269484032 - type: integer 
+INFO: [Synth 8-6157] synthesizing module 'key_debounce' [D:/Xilinx/Prj/pro/Video_Processing/src/rtl/util/key_debounce.v:3]
+	Parameter CNT_MAX bound to: 1000000 - type: integer 
+INFO: [Synth 8-6155] done synthesizing module 'key_debounce' (0#1) [D:/Xilinx/Prj/pro/Video_Processing/src/rtl/util/key_debounce.v:3]
+INFO: [Synth 8-6157] synthesizing module 'key_long' [D:/Xilinx/Prj/pro/Video_Processing/src/rtl/util/key_long.v:20]
+	Parameter HOLD_CYC bound to: 30000000 - type: integer 
+	Parameter ARM_CYC bound to: 10000000 - type: integer 
+INFO: [Synth 8-6155] done synthesizing module 'key_long' (0#1) [D:/Xilinx/Prj/pro/Video_Processing/src/rtl/util/key_long.v:20]
+INFO: [Synth 8-6157] synthesizing module 'src_mode' [D:/Xilinx/Prj/pro/Video_Processing/src/rtl/util/src_mode.v:32]
+WARNING: [Synth 8-589] replacing case/wildcard equality operator === with logical equality operator == [D:/Xilinx/Prj/pro/Video_Processing/src/rtl/util/src_mode.v:97]
+WARNING: [Synth 8-589] replacing case/wildcard equality operator === with logical equality operator == [D:/Xilinx/Prj/pro/Video_Processing/src/rtl/util/src_mode.v:97]
+WARNING: [Synth 8-589] replacing case/wildcard equality operator !== with logical equality operator != [D:/Xilinx/Prj/pro/Video_Processing/src/rtl/util/src_mode.v:97]
+WARNING: [Synth 8-589] replacing case/wildcard equality operator !== with logical equality operator != [D:/Xilinx/Prj/pro/Video_Processing/src/rtl/util/src_mode.v:107]
+INFO: [Synth 8-6155] done synthesizing module 'src_mode' (0#1) [D:/Xilinx/Prj/pro/Video_Processing/src/rtl/util/src_mode.v:32]
+INFO: [Synth 8-6157] synthesizing module 'angle_ctrl' [D:/Xilinx/Prj/pro/Video_Processing/src/rtl/process/rotate/angle_ctrl.v:17]
+INFO: [Synth 8-6155] done synthesizing module 'angle_ctrl' (0#1) [D:/Xilinx/Prj/pro/Video_Processing/src/rtl/process/rotate/angle_ctrl.v:17]
+INFO: [Synth 8-6157] synthesizing module 'effect_ctrl' [D:/Xilinx/Prj/pro/Video_Processing/src/rtl/process/effect_ctrl.v:13]
+INFO: [Synth 8-6155] done synthesizing module 'effect_ctrl' (0#1) [D:/Xilinx/Prj/pro/Video_Processing/src/rtl/process/effect_ctrl.v:13]
+INFO: [Synth 8-6157] synthesizing module 'video_timing_1024x600' [D:/Xilinx/Prj/pro/Video_Processing/src/rtl/video/video_timing_1024x600.v:6]
+INFO: [Synth 8-6157] synthesizing module 'video_timing' [D:/Xilinx/Prj/pro/Video_Processing/src/rtl/video/video_timing.v:4]
+	Parameter H_ACTIVE bound to: 1024 - type: integer 
+	Parameter V_ACTIVE bound to: 600 - type: integer 
+	Parameter H_FP bound to: 44 - type: integer 
+	Parameter H_SYNC bound to: 88 - type: integer 
+	Parameter H_BP bound to: 188 - type: integer 
+	Parameter V_FP bound to: 3 - type: integer 
+	Parameter V_SYNC bound to: 6 - type: integer 
+	Parameter V_BP bound to: 16 - type: integer 
+	Parameter H_POL bound to: 1'b1 
+	Parameter V_POL bound to: 1'b0 
+INFO: [Synth 8-6155] done synthesizing module 'video_timing' (0#1) [D:/Xilinx/Prj/pro/Video_Processing/src/rtl/video/video_timing.v:4]
+INFO: [Synth 8-6155] done synthesizing module 'video_timing_1024x600' (0#1) [D:/Xilinx/Prj/pro/Video_Processing/src/rtl/video/video_timing_1024x600.v:6]
+INFO: [Synth 8-6157] synthesizing module 'zoom_fit' [D:/Xilinx/Prj/pro/Video_Processing/src/rtl/process/zoom/zoom_fit.v:24]
+	Parameter IMAGE_W bound to: 512 - type: integer 
+	Parameter IMAGE_H bound to: 300 - type: integer 
+INFO: [Synth 8-6157] synthesizing module 'sin_rom' [D:/Xilinx/Prj/pro/Video_Processing/src/rtl/process/rotate/sin_rom.v:3]
+INFO: [Synth 8-6155] done synthesizing module 'sin_rom' (0#1) [D:/Xilinx/Prj/pro/Video_Processing/src/rtl/process/rotate/sin_rom.v:3]
+INFO: [Synth 8-6157] synthesizing module 'cos_rom' [D:/Xilinx/Prj/pro/Video_Processing/src/rtl/process/rotate/cos_rom.v:3]
+INFO: [Synth 8-6155] done synthesizing module 'cos_rom' (0#1) [D:/Xilinx/Prj/pro/Video_Processing/src/rtl/process/rotate/cos_rom.v:3]
+INFO: [Synth 8-6155] done synthesizing module 'zoom_fit' (0#1) [D:/Xilinx/Prj/pro/Video_Processing/src/rtl/process/zoom/zoom_fit.v:24]
+INFO: [Synth 8-6157] synthesizing module 'zoom_ctrl' [D:/Xilinx/Prj/pro/Video_Processing/src/rtl/process/zoom/zoom_ctrl.v:5]
+	Parameter INV_LO bound to: 10'b0100000000 
+	Parameter INV_HI bound to: 10'b1000000000 
+	Parameter STEP bound to: 10'b0000000010 
+INFO: [Synth 8-6155] done synthesizing module 'zoom_ctrl' (0#1) [D:/Xilinx/Prj/pro/Video_Processing/src/rtl/process/zoom/zoom_ctrl.v:5]
+INFO: [Synth 8-6157] synthesizing module 'zoom_mapper' [D:/Xilinx/Prj/pro/Video_Processing/src/rtl/process/zoom/zoom_mapper.v:4]
+	Parameter IMAGE_W bound to: 16'b0000001000000000 
+	Parameter IMAGE_H bound to: 16'b0000000100101100 
+INFO: [Synth 8-6155] done synthesizing module 'zoom_mapper' (0#1) [D:/Xilinx/Prj/pro/Video_Processing/src/rtl/process/zoom/zoom_mapper.v:4]
+INFO: [Synth 8-6157] synthesizing module 'src_arb' [D:/Xilinx/Prj/pro/Video_Processing/src/rtl/util/src_arb.v:18]
+	Parameter T_OFF_CYC bound to: 2000000 - type: integer 
+INFO: [Synth 8-6155] done synthesizing module 'src_arb' (0#1) [D:/Xilinx/Prj/pro/Video_Processing/src/rtl/util/src_arb.v:18]
+INFO: [Synth 8-6157] synthesizing module 'frame_commit_lock' [D:/Xilinx/Prj/pro/Video_Processing/src/rtl/video/frame_commit_lock.v:5]
+	Parameter IMG_H bound to: 16'b0000000100101100 
+	Parameter DISP_H bound to: 600 - type: integer 
+INFO: [Synth 8-6155] done synthesizing module 'frame_commit_lock' (0#1) [D:/Xilinx/Prj/pro/Video_Processing/src/rtl/video/frame_commit_lock.v:5]
+INFO: [Synth 8-6157] synthesizing module 'axi_frame_writer_gated' [D:/Xilinx/Prj/pro/Video_Processing/src/rtl/axi/axi_frame_writer_gated.v:7]
+	Parameter IMG_W bound to: 16'b0000001000000000 
+	Parameter IMG_H bound to: 16'b0000000100101100 
+	Parameter BASE_ADDR bound to: 268435456 - type: integer 
+INFO: [Synth 8-6155] done synthesizing module 'axi_frame_writer_gated' (0#1) [D:/Xilinx/Prj/pro/Video_Processing/src/rtl/axi/axi_frame_writer_gated.v:7]
+INFO: [Synth 8-6157] synthesizing module 'ps_publish' [D:/Xilinx/Prj/pro/Video_Processing/src/rtl/util/ps_publish.v:11]
+INFO: [Synth 8-6155] done synthesizing module 'ps_publish' (0#1) [D:/Xilinx/Prj/pro/Video_Processing/src/rtl/util/ps_publish.v:11]
+INFO: [Synth 8-6157] synthesizing module 'frame_latency' [D:/Xilinx/Prj/pro/Video_Processing/src/rtl/video/frame_latency.v:38]
+WARNING: [Synth 8-589] replacing case/wildcard equality operator !== with logical equality operator != [D:/Xilinx/Prj/pro/Video_Processing/src/rtl/video/frame_latency.v:150]
+WARNING: [Synth 8-589] replacing case/wildcard equality operator === with logical equality operator == [D:/Xilinx/Prj/pro/Video_Processing/src/rtl/video/frame_latency.v:152]
+WARNING: [Synth 8-589] replacing case/wildcard equality operator === with logical equality operator == [D:/Xilinx/Prj/pro/Video_Processing/src/rtl/video/frame_latency.v:153]
+WARNING: [Synth 8-589] replacing case/wildcard equality operator === with logical equality operator == [D:/Xilinx/Prj/pro/Video_Processing/src/rtl/video/frame_latency.v:154]
+WARNING: [Synth 8-589] replacing case/wildcard equality operator === with logical equality operator == [D:/Xilinx/Prj/pro/Video_Processing/src/rtl/video/frame_latency.v:206]
+INFO: [Synth 8-6155] done synthesizing module 'frame_latency' (0#1) [D:/Xilinx/Prj/pro/Video_Processing/src/rtl/video/frame_latency.v:38]
+INFO: [Synth 8-6157] synthesizing module 'zoom_snap' [D:/Xilinx/Prj/pro/Video_Processing/src/rtl/process/zoom/zoom_snap.v:14]
+INFO: [Synth 8-6155] done synthesizing module 'zoom_snap' (0#1) [D:/Xilinx/Prj/pro/Video_Processing/src/rtl/process/zoom/zoom_snap.v:14]
+INFO: [Synth 8-6157] synthesizing module 'snap_cross__parameterized0' [D:/Xilinx/Prj/pro/Video_Processing/src/rtl/eth/snap_cross.v:18]
+	Parameter W bound to: 19 - type: integer 
+	Parameter DST_HZ bound to: 100000000 - type: integer 
+	Parameter HB_TO_MS bound to: 200 - type: integer 
+INFO: [Synth 8-6155] done synthesizing module 'snap_cross__parameterized0' (0#1) [D:/Xilinx/Prj/pro/Video_Processing/src/rtl/eth/snap_cross.v:18]
+INFO: [Synth 8-6157] synthesizing module 'axi_frame_writer64' [D:/Xilinx/Prj/pro/Video_Processing/src/rtl/axi/axi_frame_writer64.v:4]
+	Parameter IMG_W bound to: 16'b0000001000000000 
+	Parameter IMG_H bound to: 16'b0000000100101100 
+	Parameter BASE_ADDR bound to: 269484032 - type: integer 
+INFO: [Synth 8-6155] done synthesizing module 'axi_frame_writer64' (0#1) [D:/Xilinx/Prj/pro/Video_Processing/src/rtl/axi/axi_frame_writer64.v:4]
+INFO: [Synth 8-6157] synthesizing module 'fb_bilin' [D:/Xilinx/Prj/pro/Video_Processing/src/rtl/process/bilin/fb_bilin.v:45]
+	Parameter IMG_W bound to: 16'b0000001000000000 
+	Parameter IMG_H bound to: 16'b0000000100101100 
+INFO: [Synth 8-6157] synthesizing module 'frame_buffer_w64' [D:/Xilinx/Prj/pro/Video_Processing/src/rtl/video/frame_buffer_w64.v:11]
+	Parameter W bound to: 16'b0000001000000000 
+	Parameter H bound to: 16'b0000000100101100 
+INFO: [Synth 8-6155] done synthesizing module 'frame_buffer_w64' (0#1) [D:/Xilinx/Prj/pro/Video_Processing/src/rtl/video/frame_buffer_w64.v:11]
+ERROR: [Synth 8-91] ambiguous clock in event control [D:/Xilinx/Prj/pro/Video_Processing/src/rtl/process/bilin/fb_bilin.v:175]
+ERROR: [Synth 8-6156] failed synthesizing module 'fb_bilin' [D:/Xilinx/Prj/pro/Video_Processing/src/rtl/process/bilin/fb_bilin.v:45]
+ERROR: [Synth 8-6156] failed synthesizing module 'pl_video_top' [D:/Xilinx/Prj/pro/Video_Processing/src/rtl/top/pl_video_top.v:5]
+ERROR: [Synth 8-6156] failed synthesizing module 'system_top' [D:/Xilinx/Prj/pro/Video_Processing/src/rtl/top/system_top.v:3]
+---------------------------------------------------------------------------------
+Finished RTL Elaboration : Time (s): cpu = 00:00:12 ; elapsed = 00:00:12 . Memory (MB): peak = 1481.438 ; gain = 678.855
+---------------------------------------------------------------------------------
+RTL Elaboration failed
+INFO: [Common 17-83] Releasing license: Synthesis
+144 Infos, 22 Warnings, 0 Critical Warnings and 5 Errors encountered.
+synth_design failed
+synth_design: Time (s): cpu = 00:00:14 ; elapsed = 00:00:18 . Memory (MB): peak = 1481.438 ; gain = 927.926
+ERROR: [Common 17-69] Command failed: Synthesis failed - please see the console or run log file for details
+INFO: [Common 17-206] Exiting Vivado at Sat Sep 26 03:03:45 2026...
+[Sat Sep 26 03:03:49 2026] synth_1 finished
+ERROR: [Vivado 12-13638] Failed runs(s) : 'synth_1'
+wait_on_runs: Time (s): cpu = 00:00:02 ; elapsed = 00:04:07 . Memory (MB): peak = 744.027 ; gain = 0.000
+ERROR: [Common 17-39] 'wait_on_runs' failed due to earlier errors.
+
+    while executing
+"wait_on_run synth_1"
+    (file "build_system_axigpio.tcl" line 244)
+INFO: [Common 17-206] Exiting Vivado at Sat Sep 26 03:03:49 2026...

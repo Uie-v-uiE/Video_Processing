@@ -239,18 +239,18 @@ module tb_v98_top_seam;
     always @(posedge dut.clk_pix) begin
         if (dut.de_d[5]) begin
             xb_cyc  = xb_cyc + 1;
-            if ((dut.rd_addr_q ^ dut.rd_addr_q) !== 19'd0) xb_addrX = xb_addrX + 1;
+            if ((dut.u_bilin.addr_q ^ dut.u_bilin.addr_q) !== 19'd0) xb_addrX = xb_addrX + 1;
             if ((dut.fb_rd   ^ dut.fb_rd)       !== 16'd0) xb_rdX   = xb_rdX   + 1;
         end
         if (!xb_done && frames_done >= 4) begin
             xb_done = 1;
             for (xb_k = 0; xb_k < 32768; xb_k = xb_k + 1)
-                if ((dut.u_fb.lo[xb_k] ^ dut.u_fb.lo[xb_k]) !== 64'd0) begin
+                if ((dut.u_bilin.u_fb.lo[xb_k] ^ dut.u_bilin.u_fb.lo[xb_k]) !== 64'd0) begin
                     xb_arrX = xb_arrX + 1;
                     if (xb_firstX < 0) xb_firstX = xb_k;
                 end
             for (xb_k = 0; xb_k < 8192; xb_k = xb_k + 1)
-                if ((dut.u_fb.hi[xb_k] ^ dut.u_fb.hi[xb_k]) !== 64'd0) begin
+                if ((dut.u_bilin.u_fb.hi[xb_k] ^ dut.u_bilin.u_fb.hi[xb_k]) !== 64'd0) begin
                     xb_arrX = xb_arrX + 1;
                     if (xb_firstX < 0) xb_firstX = 32768 + xb_k;
                 end
@@ -262,7 +262,7 @@ module tb_v98_top_seam;
                      xb_cyc, xb_addrX, xb_rdX);
             // 几何那一路的 X 是分开的第二个症状（地址 X ⇒ 读哪儿都是 X）：把源头三格一起念出来
             $display("[tb_v98_top_seam.v:262] [Xborn3] gp(19位几何)=%b inv_used=%d sx=%d sy=%d oob=%b rd_addr=%d",
-                     dut.gp, dut.inv_used, dut.sx, dut.sy, dut.oob, dut.rd_addr_q);
+                     dut.gp, dut.inv_used, dut.sx, dut.sy, dut.oob, dut.u_bilin.addr_q);
         end
     end
 
@@ -355,7 +355,7 @@ module tb_v98_top_seam;
                     $display("[tb_v98_top_seam.v:353] DBG 左窗 x=%0d y=%0d | 顶层源坐标 sx_l=%0d sy_l=%0d oob=%0d | tap_raw=%04x 解出(%0d,%0d) fb_out=%04x rd_addr=%0d",
                              mix_x, mix_y, dut.sx, dut.sy, dut.oob,
                              tap_raw, mem_row(tap_raw), mem_col(tap_raw),
-                             dut.fb_out, dut.rd_addr_q);
+                             dut.fb_out, dut.u_bilin.addr_q);
                 end
             end else begin
                 n_r = n_r + 1;
@@ -383,15 +383,19 @@ module tb_v98_top_seam;
     integer c1_dx, c1_dy, c1_hasx = 0, c1_gx = 0, c1_gy = 0, c1_n3 = 0;
     integer c1_geom_bad = 0, c1_geom_bad_row = 0, c1_gdump = 0;
     integer c1_kbad [0:5], c1_k;                     // 级数标定用
+    integer c1_pbad [0:5];                           // C1i：读口的相位量与第 k 级标签不符数（r63/#79）
+    integer c1_kn, c1_ktrue;                         // "几何 0 不符"的级数有几个、是哪一级
     integer c1_clamp = 0;                            // 帧底夹紧被跳过的格数（C1h 的例外）
     integer c1_ring  = 0;                            // 行环热身被跳过的格数（#54 第 5 条，见采样处注释）
+    integer c1_ring_unexpl = 0;                      // 被跳过的格子里"内容不是上一帧帧底"的个数（必须 0）
+    localparam integer C1_WARM = 2;                  // = pl_video_top 的 BILIN_ROWS：乒乓缓冲在帧首多出来的那一对
     // #54 第 5 条的仪器（Δrow ≠ 0 到底长什么样）：按 Δrow 值分 10 桶 + 按列位置分 16 桶
     integer c1_rdh [0:9], c1_rdbk [0:15], c1_rdump;
     always @(posedge dut.clk_pix) begin
         if (mix_de && left_pane && measure_ok) begin
             if (dut.oob || c1_col < 25 || c1_col > (512 - 25)) begin
                 c1_skip = c1_skip + 1;         // 出界填空黑 / 行首行尾那 24 列：标签与内容不同行，不计
-            end else if (c1_row < dut.pipe_off_rows) begin
+            end else if (c1_row < (dut.pipe_off_rows + C1_WARM)) begin
                 // #54 第 5 条（01:58 定性）：这不是尺子的错，也不是地址的错，是**行环的开机热身**。
                 //   原图抽头走 `raw_line_delay #(.LINES(RAW_LINES = u_pipe.OFF_LINES))`：
                 //   一帧的头 OFF_LINES 个显示行里，环里装的还是**上一帧尾部**那一行（地址被夹到 299，
@@ -401,6 +405,11 @@ module tb_v98_top_seam;
                 //   然后 C1d 才是硬判据。屏幕顶上那 4 行会不会真看得见"上一帧的尾巴"，
                 //   记成板级眼睛项（`board/README.md`），台架不许把它粉饰成"没问题"。
                 c1_ring = c1_ring + 1;
+                // r63/#79：宽了 `C1_WARM` 行之后，这一族的例外必须**说得出内容是什么**才许跳过。
+                //   帧首这几行读的是**上一帧帧底**那一行（地址夹在 IMG_H-1 = 299 ⇒ 编码进像素行字节
+                //   的低 8 位 = 43）⇒ 跳过的格子里只要出现别的行号，下面那条硬判据就红。
+                //   （为什么不能只计数：#68/#78 两次都是"例外变成藏东西的地方"。）
+                if (mem_row(tap_raw) != 8'd43) c1_ring_unexpl = c1_ring_unexpl + 1;
             end else begin
                 c1_n   = c1_n + 1;
                 // X 探测（Verilog-2001 合法写法）：任何一位是 X/Z，异或回来就是 X ⇒ `!== 0` 成立。
@@ -431,6 +440,15 @@ module tb_v98_top_seam;
                     // 级数标定：mapper 输出到底与第几级的显示列同源，用数据说话（我推理两次错过一级）
                     for (c1_k = 0; c1_k < 6; c1_k = c1_k + 1)
                         if (dsub((dut.x_d[c1_k] >> 1), dut.sx) != 0) c1_kbad[c1_k] = c1_kbad[c1_k] + 1;
+                    // C1i（r63/#79）：换读口那次差点死在"相位接错一级"上（C1c 抓到 Δcol 24.8 %）。
+                    //   这条把"读口的四个相位量必须与 `sx` 同一级标签同源"变成常设判据：
+                    //   对**每一级**都数一遍 ⇒ 判据用的级数不是抄来的字面量，是同一份标定量出来的。
+                    for (c1_k = 0; c1_k < 6; c1_k = c1_k + 1) begin
+                        if (dut.u_bilin.col0     !== ~dut.x_d[c1_k][0]) c1_pbad[c1_k] = c1_pbad[c1_k] + 1;
+                        if (dut.u_bilin.row0     !== ~dut.y_d[c1_k][0]) c1_pbad[c1_k] = c1_pbad[c1_k] + 1;
+                        if (dut.u_bilin.pair_odd !==  dut.y_d[c1_k][1]) c1_pbad[c1_k] = c1_pbad[c1_k] + 1;
+                        if (dut.u_bilin.req_vld  !==  dut.de_d[c1_k])   c1_pbad[c1_k] = c1_pbad[c1_k] + 1;
+                    end
                     c1_gx  = dsub((dut.x_d[3] >> 1), dut.sx);   // 列：源列必须 = 同级的显示列 >>1
                     if (c1_gx != 0) begin
                         c1_geom_bad = c1_geom_bad + 1;
@@ -443,7 +461,12 @@ module tb_v98_top_seam;
                     end
                     // 行：地址带着 #54 (B) 的提前量，所以期望是 (y + OFF_LINES) >> 1，不是 y >> 1。
                     //   提前量取顶层自己声明的 u_pipe.OFF_LINES（台架里独立算，不抄内部信号）。
-                    c1_gy  = dsub(((dut.y_d[2] + {4'd0, dut.pipe_off_rows[3:0]}) >> 1), dut.sy);
+                    // r63/#52 追加的第二项 `12'd2` 是**双线性读口的行方向代价补偿**（顶层 `BILIN_ROWS`）：
+                    //   乒乓缓冲让"显示在第 Y 行的内容"来自上一对请求 ⇒ 请求行必须提前 2 个显示行，
+                    //   否则整幅画面会在垂直方向错一行。这条与 `MIX_D` 无关（列方向仍是 2 拍）。
+                    //   ⚠ 顶层哪天改了 BILIN_ROWS，这里必须同步改 —— 两处都是"设计上的提前量"，
+                    //   不是判据松紧。为什么不用字面量算进去再判：那样 C1h 就退化成"期望 = 实测"。
+                    c1_gy  = dsub(((dut.y_d[2] + {4'd0, dut.pipe_off_rows[3:0]} + 12'd2) >> 1), dut.sy);
                     // 帧底那两行是**设计上的夹紧**（#54 的提前量在末尾没有行可提前 ⇒ 夹到 IMG_H-1），
                     //   不是几何错位 ⇒ 跳过并计数，跳过数本身打出来给人看（不静默）。
                     if (dut.sy >= (12'd300 - 1)) c1_clamp = c1_clamp + 1;
@@ -487,6 +510,7 @@ module tb_v98_top_seam;
 
     initial begin
         for (i0 = 0; i0 < 6; i0 = i0 + 1) c1_kbad[i0] = 0;
+        for (i0 = 0; i0 < 6; i0 = i0 + 1) c1_pbad[i0] = 0;
         for (i0 = 0; i0 < 10; i0 = i0 + 1) c1_rdh[i0] = 0;
         for (i0 = 0; i0 < 16; i0 = i0 + 1) c1_rdbk[i0] = 0;
         c1_rdump = 0;
@@ -496,12 +520,12 @@ module tb_v98_top_seam;
         // ---- C0a 尺子校准：在任何测量之前先证明尺子对 ----
         //   #78 之后覆盖加宽：0 与"小列号"那一组是当年漏掉的（整数取位给 X 恰好不在 (200,177) 上出现），
         //   还有帧底/帧右两个边界（编码是 8 bit，299/511 会回绕，回绕方向也要一起验）。
-        line("C0a 尺子", mem_row(px_val(200,177)) == 8'd200 && mem_col(px_val(200,177)) == 8'd177
+        line("C0a ruler encodes position in the pixel", mem_row(px_val(200,177)) == 8'd200 && mem_col(px_val(200,177)) == 8'd177
              && px_val(0,0) == 16'h0000 && mem_row(px_val(0,2)) == 8'd0 && mem_col(px_val(0,2)) == 8'd2
              && mem_row(px_val(1,255)) == 8'd1  && mem_col(px_val(1,255)) == 8'hFF
              && mem_row(px_val(299,511)) == 8'd43 && mem_col(px_val(299,511)) == 8'd255
              && dsub(8'd2, 8'd254) == 4 && dsub(8'd254, 8'd2) == -4 && dsub(8'd0, 8'd255) == 1,
-             "px_val / 解码 / 模 256 有符号差三者自洽（含 0、小值、两个边界与回绕两个方向）");
+             "px_val / decoder / mod-256 signed diff must agree, incl. 0, small values, both edges, both wrap directions");
 
         // ---- 复位释放 ----
         repeat (4) @(posedge sys_clk);
@@ -512,9 +536,9 @@ module tb_v98_top_seam;
         //   放在复位之后再读：两个 initial 块（DDR 建模 vs 这一段）在 t=0 的先后是不确定的，
         //   而且"验函数"与"验被写进数组的东西"是两件事 —— 这次骗过所有人的正是后者。
         //   读首尾两格：尾格 (299,508..511) 同时钉住"行号 8 bit 回绕"与"数组最后一个字真的写到了"。
-        line("C0a2 模型回读", ddr[0] == 64'h0003_0002_0001_0000
+        line("C0a2 golden array actually holds it", ddr[0] == 64'h0003_0002_0001_0000
              && ddr[FRAME_WORDS-1] == 64'h2BFF_2BFE_2BFD_2BFC,
-             "初始化之后回读 ddr[0] 与 ddr[最后一格]（函数对 ≠ 数组对）");
+             "read back ddr[0] and the last word after init: a correct function is not a correct array");
 
         // ---- 跑到够帧数（发布位每帧翻一次，模拟"PS 每帧写完敲一次"） ----
         // 刻意**不用** fork/join_any/disable fork：那是 SystemVerilog 构造，而这份台架按 Verilog 编译。
@@ -532,11 +556,11 @@ module tb_v98_top_seam;
         $display("[tb_v98_top_seam.v:498] DIAG fb_vis=%0d owner_eth=%0d fill_busy=%0d row_busy=%0d eth_live=%0d tb_ok=%0d dbg_src=%04x tap_raw 全黑比例 %0d/%0d",
                  dut.fb_vis, dut.owner_eth, dut.fill_busy, dut.row_busy, eth_live, eth_tb_ok,
                  dbg_src, black_l, n_l);
-        line("C0d 屏上真的有片源（不是全黑 / 不是只在图卡那一侧）",
-             n_l > 0 && black_l * 2 < n_l, "左窗样本里全黑点少于一半（多了就是根本没搬进来）");
-        line("C0b 帧数够", frames_done >= FRAMES_MIN, "至少跑够 3 帧，否则下面的数都不算数");
-        line("C0c 搬运活着", ar_bursts > 100 && r_beats > 800 && odd_align == 0 && out_of_window == 0,
-             "AXI 有突发、8 字节对齐、没读到 PS 窗口外");
+        line("C0d a real source is on screen",
+             n_l > 0 && black_l * 2 < n_l, "less than half of left-pane samples are black, else nothing was copied");
+        line("C0b enough frames ran", frames_done >= FRAMES_MIN, "at least 3 frames, otherwise every count below is void");
+        line("C0c the AXI copy is alive", ar_bursts > 100 && r_beats > 800 && odd_align == 0 && out_of_window == 0,
+             "AXI bursts present, 8-byte aligned, never read outside the PS window");
         // ⚠ 这一条**降级为只报数**（当天第二次尺子先错，账记进 #68）：
         //   原来拿当拍的 sx_l（第 3 级地址）比当拍的标签，而这两者描述的不是同一个像素——
         //   标签描述的是 17 拍之前那个地址取回的内容。能真正判定标签与内容同列的只有两条路：
@@ -570,11 +594,19 @@ module tb_v98_top_seam;
         // 标定实测（826259 格）：k=2 是唯一一处不符为 0 —— 这就是 mapper 那三级寄存器与
         //   `x_d[k] = x(T-1-k)` 这个下标约定的合力：mapper 输出 = 输入延迟 3 拍 = x_d[2]。
         //   写成 k=2 而不是"存在某个 k"：判据要能红，就必须钉死一个具体的级数（改几何时会红给它看）。
+        // C1i：先要求"几何唯一级"存在，再要求**那一级**的相位不符数为 0（两级都靠测量，不靠字面量）。
+        c1_kn = 0; c1_ktrue = 0;
+        for (i0 = 0; i0 < 6; i0 = i0 + 1)
+            if (c1_kbad[i0] == 0) begin c1_kn = c1_kn + 1; c1_ktrue = i0; end
+        $display("[tb_v98_top_seam.v] OBS C1i 标定级数：几何 0 不符的 k 有 %0d 个（k=%0d），该级相位不符 %0d（其余级：k=2 相位 %0d）",
+                 c1_kn, c1_ktrue, c1_pbad[c1_ktrue], c1_pbad[2]);
+        line("C1i read-port phase same stage as src", c1_kn == 1 && c1_pbad[c1_ktrue] == 0,
+             "col0/row0/pair_odd/req_vld must come from the calibrated label stage, not from a comment");
         line("C1g VIEWPORT col: src == x_d[2]>>1", c1_n3 > 50000 && c1_kbad[2] == 0,
-             "整屏一个视口：顶层要的源列必须等于第 2 级显示列 >>1（标定实测 k=2 唯一为零）");
+             "single viewport: src column == display column >>1 at the calibrated stage (k=2 is the only zero)");
         $display("[tb_v98_top_seam.v:541] C1h 跳过帧底夹紧 %0d 格（sy==299）；行不符 %0d", c1_clamp, c1_geom_bad_row);
-        line("C1h VIEWPORT row: src == (y_d[2]+OFF)>>1", c1_geom_bad_row == 0,
-             "行方向同一个定义：两个显示行共用一个源行（600 行面板对应 300 源行）");
+        line("C1h VIEWPORT row: src == (y_d[2]+OFF+BILIN)>>1", c1_geom_bad_row == 0,
+             "same definition row-wise: two display rows share one source row (600-line panel, 300 source rows)");
         $display("[tb_v98_top_seam.v:544] C1g/C1h 样本 %0d 格；列不符(旧口径) %0d", c1_n3, c1_geom_bad);
         $display("[tb_v98_top_seam.v:545] X 分层：有效拍 %0d | fb_rd 是 X 的 %0d | fb_pix_hold 是 X 的 %0d | fb_out 是 X 的 %0d",
                  n_blank, xr_rd, xr_hold, xr_out);
@@ -613,6 +645,9 @@ module tb_v98_top_seam;
              "row-wise content alignment of the raw tap; warm-up rows are counted, not hidden");
         $display("C1d 例外计数：行环热身跳过 %0d 格、帧底夹紧跳过 %0d 格、出界/行首尾跳过 %0d 格",
                  c1_ring, c1_clamp, c1_skip);
+        // 例外自己也要被验一遍（不是"跳过就算数"）：热身那 C1_WARM+OFF 行里内容必须全是上一帧帧底。
+        line("C1d-b skips are explained", c1_ring_unexpl == 0,
+             "every skipped warm-up cell must decode to source row 299, else the skip hides something");
         // Δrow 的形状（#54 第 5 条）：值分布 + 列分布 + 原始样本，三样一起看才知道该修谁
         $display("ROWMIX values drow=-4..+3 | big+ big- : %0d %0d %0d %0d %0d %0d %0d %0d | %0d %0d",
                  c1_rdh[0], c1_rdh[1], c1_rdh[2], c1_rdh[3], c1_rdh[4], c1_rdh[5], c1_rdh[6],
