@@ -43,7 +43,7 @@ module tb_osd_lines;
     osd_overlay #(.X0(X0), .Y0(Y0), .SCALE(SC), .CHAR_W(CW), .CHAR_H(CH),
                   .LINE_GAP(LG), .MAX_CHARS(MC), .N_LINES(NL),
                   .IMG_W(512), .IMG_H(300)) u_osd (
-        .clk(clk), .rst_n(rst_n), .x(tx), .y(ty), .de(tde),
+        .clk(clk), .en(1'b1), .rst_n(rst_n), .x(tx), .y(ty), .de(tde),   // V8-10：en 恒开，测的就是画字本身
         .angle(i_angle), .fps(i_fps), .stage_sel(i_sel), .threshold(i_th),
         .gamma_disp(i_gd), .zoom_code(i_zc), .zoom_auto(i_za),
         .split_pct(i_sp), .split_auto(i_sa), .lat_ms(i_ms), .lat_ok(i_ok),

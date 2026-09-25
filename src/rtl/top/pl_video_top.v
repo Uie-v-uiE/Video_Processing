@@ -193,6 +193,8 @@ module pl_video_top #(
     wire [5:0] gm_disp;          // V8-5：只给 OSD 的 gamma×10（同一对同步器带过来的 6 位）
     wire [2:0] zsel_pix;         // V8-8：手动档号（与 sel_sync 同源同深度）
     wire       zman_pix;         // V8-8：手动旗标
+    wire [7:0] rot_code;         // V8-10：串口角度码（2 度步进），走 effect_ctrl 那条 gm 链进来
+    wire       rot_ovr_en, osd_off;
     effect_ctrl u_eff (
         .clk(clk_pix), .rst_n(rst_pix_n),
         .effect_en_async(effect_en),
@@ -205,7 +207,8 @@ module pl_video_top #(
         .zoom_sel(zsel_pix), .zoom_manual(zman_pix),
         .effect_en(en_sync), .threshold(th_sync),
         .gamma_en(gm_en), .gamma_wr(gm_wr), .gamma_idx(gm_idx), .gamma_data(gm_data),
-        .gamma_disp(gm_disp)
+        .gamma_disp(gm_disp),
+        .rot_code(rot_code), .rot_ovr_en(rot_ovr_en), .osd_off(osd_off)
     );
 
     (* ASYNC_REG = "TRUE" *) reg ze0, ze1, ze2;
@@ -256,6 +259,13 @@ module pl_video_top #(
         .dir(zoom_dir)
     );
 
+    // V8-10（#70 追加）：串口可以覆盖按键角度。码是 2 度步进 ⇒ 最大 510，折回 0..359 只需一次减法，
+    //   **没有除法**（#58 那条 100 MHz 组合除法器把 WNS 打到 −5.014 的账不许重犯）。
+    //   覆盖是"整条角度一起换"，不是叠加：`rot_ovr_en=0` 时按键那一路完全照旧。
+    wire [8:0] ang_ser = ({rot_code, 1'b0} >= 9'd360) ? ({rot_code, 1'b0} - 9'd360) : {rot_code, 1'b0};
+    wire [8:0] angle_eff = rot_ovr_en ? ang_ser : angle;
+    wire       rot_act_eff = (angle_eff != 9'd0);
+
     // 左半窗**不旋转**：旋转只属于右半窗（由 zoom_mapper 内部的 rotate_en 分支承担）。
     // 于是这里不再例化 rotate_mapper —— 保持左路用 cx_q3/cy_q3（= 今天 angle=0 时的同一条路径），
     // 流水深度不动，免得把已经验过的列配准重新搅一遍。
@@ -273,7 +283,7 @@ module pl_video_top #(
             oob_q2 <= oob_q1; oob_q3 <= oob_q2;
         end
     end
-    wire        rot_on = rotate_active;   // 只驱动右窗
+    wire        rot_on = rot_act_eff;     // 只驱动右窗（V8-10：按键或串口哪一路来的角度都从这里过）
     wire [11:0] sx_l = cx_q3;             // 左窗 = 未旋转原画面
     wire [11:0] sy_l = cy_q3;
     wire        oob_l = oob_q3;
@@ -283,7 +293,7 @@ module pl_video_top #(
     wire [7:0]  zfrac_x, zfrac_y;
     zoom_mapper #(.IMAGE_W(IMG_W), .IMAGE_H(IMG_H)) u_zmap (
         .clk(clk_pix), .rst_n(rst_pix_n),
-        .inv_scale(inv_scale), .angle(angle), .rotate_en(rot_on),
+        .inv_scale(inv_scale), .angle(angle_eff), .rotate_en(rot_on),
         .x_in(cx), .y_in(cy_r),     // ← 提前 OFF_LINES 个显示行，抵掉效果链的内容滞后（#54 (B)）
         .x_out(sx_r), .y_out(sy_r), .oob(oob_r),
         .frac_x(zfrac_x), .frac_y(zfrac_y)
@@ -778,7 +788,7 @@ module pl_video_top #(
         .x_sel(x_d[MIX_D]), .marker(split_marker),   // 与内容同级的那一路坐标（#68）；OSD 用的 x/y 不动
         .orig_pix(orig_disp), .proc_pix(pipe_dout),
         .oob_l(oob_lo), .oob_r(oob_ro),
-        .angle_idx(angle[1:0]),
+        .angle_idx(angle_eff[1:0]),
         .r(r), .g(g), .b(b),
         .de_out(de_o), .hs_out(hs_o), .vs_out(vs_o)
     );
@@ -862,7 +872,7 @@ module pl_video_top #(
     osd_overlay #(.IMG_W(IMG_W), .IMG_H(IMG_H)) u_osd (
         .clk(clk_pix), .rst_n(rst_pix_n),
         .x(x_d11), .y(y_d11), .de(de_o),
-        .angle(angle), .fps(fps_q),
+        .angle(angle_eff), .fps(fps_q),
         .stage_sel(sel_sync),                 // 五级链实际生效的九位
         .threshold(th_sync),
         .gamma_disp(gm_disp),
@@ -871,6 +881,7 @@ module pl_video_top #(
         .lat_ms(lat_ms_pix), .lat_ok(lat_ok_pix),
         .src_eff({fb_vis, owner_eth_pix}),   // 屏幕上真的这一路：CARD / PS / ETH
         .mode(mode),
+        .en(~osd_off),                     // V8-10：`osd 0` 关掉画字（节拍不变，见 osd_overlay 的 en 注释）
         .bg_pix(16'h0),
         .r_in(r), .g_in(g), .b_in(b),
         .hs_in(hs_o), .vs_in(vs_o),
@@ -896,6 +907,6 @@ module pl_video_top #(
     // 原来这里挂的是 src_use，但屏幕 OSD 已经有片源行，LED 挂一个"看得见有没有生效"的东西更有用。
     assign led[1] = k1_hold ? 1'b1 : ltog;
 
-    assign status = {zoom_dir, zoom_active, inv_scale, eth_ready, locked, rotate_active,
-                     angle, en_sync, src_use, 2'b00};
+    assign status = {zoom_dir, zoom_active, inv_scale, eth_ready, locked, rot_act_eff,   // V8-10：这一位报的是**真正在驱动几何的那一路**（按键或串口）
+                     angle_eff, en_sync, src_use, 2'b00};
 endmodule

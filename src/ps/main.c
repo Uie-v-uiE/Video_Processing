@@ -71,6 +71,13 @@
 #define GM_WR             (1u << 30)
 #define GM_DATA(v)        ((((u32)(v)) & 0xFFu) << 22)
 #define GM_IDX(i)         ((((u32)(i)) & 0xFFu) << 14)
+/* V8-10（#70 追加）：gamma 只用通道 2 的 [31:8] ⇒ 低 10 位整块空着，rot/osd 就住这里。
+ * 便宜在两点：PL 侧不必加输入端口（effect_ctrl 本来就收着整字），也不必新开一对跨域同步器
+ * ——只把那条 gm 链从 24 位加宽到 34 位，cdc.rpt 的配对集合一字不动。 */
+#define GM_CODE(v)        ((((u32)(v)) & 0xFFu) << 0)      /* 串口角度码：2 度步进 */
+#define GM_ROT_OVR        (1u << 8)                        /* 1 = 串口覆盖按键角度 */
+#define GM_OSD_OFF        (1u << 9)                        /* 取反放：复位/没写过 = OSD 仍然开 */
+#define GM_ROT_MASK       (GM_CODE(0xFFu) | GM_ROT_OVR)
 #define GM_DISP_MASK      (0x3Fu << 8)
 #define GM_DISP(v)        ((((u32)(v)) & 0x3Fu) << 8)
 
@@ -677,7 +684,33 @@ static int dispatch(char **tk, int nt)
         return 0;
     }
     /* —— 以下四个是 spec §14 里还没落地的动词：先把语法收住，出口只有一条 —— */
-    if (ci_eq(tk[0], "ROT"))     { not_wired("rot", "PL 的角度写入口（angle_ctrl 现在只吃按键）", "V8-2/V8-8"); return 0; }
+    if (ci_eq(tk[0], "ROT")) {
+        /* V8-10：串口覆盖按键角度。2 度步进是**位宽换简单**（#70 追加），不是硬件只能 2 度
+         * （sin/cos ROM 是 0..359 全表）。所以奇数度不许静默向下取整（#67 那族"半个接受"）：
+         * 这里收，但把"实际生效值"念回来，并说明 1 度这一步仍要走按键（`rot auto` 交还）。 */
+        u32 eff, code;
+        if (nt >= 2 && ci_eq(tk[1], "AUTO")) {
+            gm_w &= ~GM_ROT_MASK;
+            Xil_Out32(CFG_DATA1, gm_w);
+            xil_printf("[ROT] auto：覆盖关闭，角度交还按键（KEY1/KEY2 仍是 1 度一步）\r\n");
+            return 0;
+        }
+        if (nt >= 2 && strict_int(tk[1], &v) && v >= 0 && v <= 359) {
+            eff  = ((u32)v) & ~1u;
+            code = eff >> 1;
+            gm_w = (gm_w & ~GM_ROT_MASK) | GM_CODE(code) | GM_ROT_OVR;
+            Xil_Out32(CFG_DATA1, gm_w);
+            if (eff != (u32)v)
+                xil_printf("[ROT] %d -> %u（串口步进 2 度；要 1 度先 rot auto 交给按键）覆盖=开\r\n",
+                           v, (unsigned)eff);
+            else
+                xil_printf("[ROT] %u 覆盖=开（2 度步进；rot auto 交还按键）\r\n", (unsigned)eff);
+            return 0;
+        }
+        xil_printf("[ROT] 只认 `rot <0..359>` 或 `rot auto`；当前覆盖=%s\r\n",
+                   (gm_w & GM_ROT_OVR) ? "已开" : "未开（按键说了算）");
+        return 0;
+    }
     if (ci_eq(tk[0], "SPLIT"))   { not_wired("split", "缝位的执行者（split_ctrl 已单独验完、尚未接线；"
                                                      "先要统一几何，见 ISSUES #62）", "V8-4"); return 0; }
     if (ci_pre(tk[0], "GAMMA")) {
@@ -693,7 +726,20 @@ static int dispatch(char **tk, int nt)
         gamma_set(g);
         return 0;
     }
-    if (ci_eq(tk[0], "OSD"))     { not_wired("osd", "OSD 行开关位（现在是常显）", "V8-5"); return 0; }
+    if (ci_eq(tk[0], "OSD")) {
+        /* V8-10：关的是"画不画字"这一件事。PL 里 `en` 只挡 in_char，de/hs/vs 的节拍一字不变，
+         * 所以关掉之后画面不会跟着错位——这也是当初不在顶层另接一条旁路的原因。 */
+        if (nt >= 2 && strict_int(tk[1], &v) && (v == 0 || v == 1)) {
+            if (v) gm_w &= ~(u32)GM_OSD_OFF; else gm_w |= (u32)GM_OSD_OFF;
+            Xil_Out32(CFG_DATA1, gm_w);
+            xil_printf("[OSD] %s（off = 四行字都不画，画面与同步一个字都不动）\r\n",
+                       v ? "on" : "off");
+            return 0;
+        }
+        xil_printf("[OSD] 只认 `osd 0` 或 `osd 1`；当前 %s\r\n",
+                   (gm_w & GM_OSD_OFF) ? "off" : "on");
+        return 0;
+    }
 
     if (ci_pre(tk[0], "FRAME")) {
         const char *arg = (nt >= 2) ? tk[1] : tk[0] + 5;   /* frame 12 / FRAME12 */
