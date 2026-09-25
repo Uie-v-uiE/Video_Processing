@@ -26,3 +26,16 @@ RESULT tb_v98_top_seam PASS
 # （两条判据的名字与说明走 line() 的定宽实参 ⇒ 必须 ASCII：含 ≥0x80 的字符串被赋给定宽向量会按字节砍掉
 #   bit7，日志里就是一串乱码 —— 树上老 line() 的中文说明全是这个形状，#55 的教训又中一次。）
 # 顺带：build/tag_bench_labels.mjs 加了 --refresh（锚点行号会随文件增删漂移，今晚自己就先漂了 76 条）。
+
+# 02:00 追加：#54 第 5 条（Δrow 那 3704 次）——仪器先上，病自己开口
+# 见 run_row.log（装仪器）/ run_row2.log（加完例外）
+ROWMIX col=25 y11=0 | screen=2b0c dec(43,12) exp(0,12) dcol=0 drow=43 sx=21 sy=2 off=4
+ROWMIX values drow=-4..+3 | big+ big- : 0 0 0 0 0 0 0 0 | 3704 0
+ROWMIX cols bucket=32 (0..7): 56 256 256 256 256 256 256 256
+ROWMIX cols bucket=32 (8..15): 256 256 256 256 256 256 256 64
+# ⇒ 全部 +43 = 0x2B = 299 的低 8 位、列上均匀、只在 y11=0..3 ⇒ 是 raw_line_delay 的开机热身
+#   （一帧头 OFF_LINES 行里环装的是上一帧被夹到 299 的尾行），不是地址错、不是尺子错。
+#   我先前猜的"行边界那几列"是错的：分桶之后才看清。
+PASS C1d content row == display row >> 1 (outside ring warm-up) | ... warm-up rows are counted, not hidden
+C1d 例外计数：行环热身跳过 3704 格、帧底夹紧跳过 8334 格、出界/行首尾跳过 66011 格
+RESULT tb_v98_top_seam PASS

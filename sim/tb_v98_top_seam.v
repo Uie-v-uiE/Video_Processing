@@ -22,7 +22,9 @@
 //         以前它全程在数 X（两个真 bug：① split_ctl 加宽到 19 位后台架还接 14 位 ⇒ 高 5 位是 Z
 //         ⇒ fit_en 是 Z ⇒ inv_used/sx/sy/rd_addr 全 X；② DDR 初始化那条"一行里四次调用函数再拼接"
 //         在 xsim 里低 40 位给 X）。修完之后实测：窗口内 X 占比 0/826259、**Δcol 不符 0**。
-//         剩下的 Δrow 不符 3704（0.45%）与 M2 变化 4192 指向"行边界那几列标签跳行"，还没转成硬判据
+//         剩下的 Δrow 不符 3704 也已定性（01:58）：**全部是 +43 = 299 的低 8 位**，
+//         即"一帧头 OFF_LINES 行里行环还装着上一帧尾"——跳过条件由 u_pipe.OFF_LINES 推出、
+//         跳过的格数照 print，于是 **C1d 也是硬判据**。屏顶那几行归眼睛（板级项），台架不粉饰。
 //         —— 全部细节与凭据：report/ISSUES.md #78、sim/v98_ruler_fix_verdict.txt。
 //   M2  右窗行偏移：**今天众数已经是 0**（V8-4b 预言对了），但一帧之内还会变几千次
 //        ⇒ 转硬判据之前要先解释那几千次（见 #78 剩下的第 5 条）。
@@ -382,10 +384,23 @@ module tb_v98_top_seam;
     integer c1_geom_bad = 0, c1_geom_bad_row = 0, c1_gdump = 0;
     integer c1_kbad [0:5], c1_k;                     // 级数标定用
     integer c1_clamp = 0;                            // 帧底夹紧被跳过的格数（C1h 的例外）
+    integer c1_ring  = 0;                            // 行环热身被跳过的格数（#54 第 5 条，见采样处注释）
+    // #54 第 5 条的仪器（Δrow ≠ 0 到底长什么样）：按 Δrow 值分 10 桶 + 按列位置分 16 桶
+    integer c1_rdh [0:9], c1_rdbk [0:15], c1_rdump;
     always @(posedge dut.clk_pix) begin
         if (mix_de && left_pane && measure_ok) begin
             if (dut.oob || c1_col < 25 || c1_col > (512 - 25)) begin
                 c1_skip = c1_skip + 1;         // 出界填空黑 / 行首行尾那 24 列：标签与内容不同行，不计
+            end else if (c1_row < dut.pipe_off_rows) begin
+                // #54 第 5 条（01:58 定性）：这不是尺子的错，也不是地址的错，是**行环的开机热身**。
+                //   原图抽头走 `raw_line_delay #(.LINES(RAW_LINES = u_pipe.OFF_LINES))`：
+                //   一帧的头 OFF_LINES 个显示行里，环里装的还是**上一帧尾部**那一行（地址被夹到 299，
+                //   编码只剩低 8 位 ⇒ 解出来正好是 43 = 0x2B）。实测 3704 个 Δrow≠0 的样本
+                //   **全部**是 +43、且只出现在 `y11 = 0..3`（ROWMIX 那三行分布：列上均匀、值上单一）。
+                //   ⇒ 跳过它并**数出来**（与 oob / 行首尾 / 帧底夹紧同一族：例外要说得清、要见数），
+                //   然后 C1d 才是硬判据。屏幕顶上那 4 行会不会真看得见"上一帧的尾巴"，
+                //   记成板级眼睛项（`board/README.md`），台架不许把它粉饰成"没问题"。
+                c1_ring = c1_ring + 1;
             end else begin
                 c1_n   = c1_n + 1;
                 // X 探测（Verilog-2001 合法写法）：任何一位是 X/Z，异或回来就是 X ⇒ `!== 0` 成立。
@@ -436,7 +451,23 @@ module tb_v98_top_seam;
                 end
                 if (c1_dx == 0) c1_zero = c1_zero + 1;
                 else            c1_colbad = c1_colbad + 1;
-                if (c1_dy != 0) c1_rowbad = c1_rowbad + 1;
+                if (c1_dy != 0) begin
+                    c1_rowbad = c1_rowbad + 1;
+                    // #54 第 5 条的仪器：Δrow ≠ 0 的**形状**是什么？按 Δrow 值与列位置分桶，
+                    //   再留 6 个原始样本。"集中在行边界"与"散布在全行"是两种完全不同的病，
+                    //   光有一个 3704 的总数改不动任何东西。
+                    if (c1_dy >= -4 && c1_dy <= 3) c1_rdh[c1_dy + 4] = c1_rdh[c1_dy + 4] + 1;
+                    else if (c1_dy > 3)  c1_rdh[8] = c1_rdh[8] + 1;
+                    else                 c1_rdh[9] = c1_rdh[9] + 1;
+                    c1_rdbk[c1_col / 32] = c1_rdbk[c1_col / 32] + 1;
+                    if (c1_rdump < 6) begin
+                        c1_rdump = c1_rdump + 1;
+                        $display("ROWMIX col=%0d y11=%0d | screen=%h dec(%0d,%0d) exp(%0d,%0d) dcol=%0d drow=%0d sx=%0d sy=%0d off=%0d",
+                                 c1_col, c1_row, tap_raw, mem_row(tap_raw), mem_col(tap_raw),
+                                 (c1_row >> 1), (c1_col >> 1), c1_dx, c1_dy,
+                                 dut.sx, dut.sy, dut.pipe_off_rows);
+                    end
+                end
                 if (c1_fcol == -999) begin c1_fcol = c1_dx; c1_frow = c1_dy; end
                 else if (c1_dx != c1_fcol || c1_dy != c1_frow) c1_varies = c1_varies + 1;
                 if (c1_dumped < 3) begin
@@ -456,6 +487,9 @@ module tb_v98_top_seam;
 
     initial begin
         for (i0 = 0; i0 < 6; i0 = i0 + 1) c1_kbad[i0] = 0;
+        for (i0 = 0; i0 < 10; i0 = i0 + 1) c1_rdh[i0] = 0;
+        for (i0 = 0; i0 < 16; i0 = i0 + 1) c1_rdbk[i0] = 0;
+        c1_rdump = 0;
         for (i0 = 0; i0 < 14; i0 = i0 + 1) hist[i0] = 0;
         for (i0 = 0; i0 < 10; i0 = i0 + 1) begin hl_c[i0] = 0; hl_r[i0] = 0; end
 
@@ -555,9 +589,12 @@ module tb_v98_top_seam;
         //   （split_ctl 加宽到 19 位后台架还接 14 位 ⇒ 高位 Z ⇒ inv_used/sx/sy/rd_addr 全 X；
         //    以及 DDR 初始化里"一个表达式连调四次函数"在 xsim 给 X）。修完之后
         //   窗口内 X 占比实测 0/826259、Δcol 不符 0 ⇒ **X 前置与 Δcol 从今天起是硬判据**。
-        //   行方向还留着：Δrow 不符 3704（0.45%）+ M2 一帧内变化 4192 次，形状指向
-        //   "行边界那几列：第 11 级的行标签已经跳行而内容还在本行"（见 300 行那段注释）——
-        //   没解释干净之前**不转硬**，也不许为了绿去放宽阈值或改成"允许 ±1"。
+        //   行方向（01:58 也解释了，于是 C1d 同样是硬判据）：3704 个 Δrow≠0 **全是 +43**，
+        //   而 43 = 0x2B = 299 的低 8 位 ⇒ 病不是地址、不是尺子，是**行环的开机热身**：一帧头
+        //   OFF_LINES 个显示行里 `raw_line_delay` 装的还是上一帧尾部（地址夹在 299）那一行。
+        //   跳过条件由 `u_pipe.OFF_LINES` 推出来（不写字面量 4），跳过的格数照 print，
+        //   剩下的样本里 Δrow 必须为 0 —— 不是"允许 ±1"。屏幕顶上那几行的"上一帧尾巴"归眼睛
+        //   （板级项），台架不粉饰；顶层里 `raw_line_delay` 的 de_out（raw_ring_v）目前没人用。
         //   ⚠ 走 `line()` 的 tag/说明**必须是 ASCII**：这个 task 的实参是定宽向量，而含 ≥0x80 字节的
         //   字符串一被赋给定宽向量就按字节砍掉 bit7（#55 记过），症状是判据名在日志里全是乱码 ——
         //   树上那些老 `line()` 就是这个形状，新写的两条改成 ASCII，中文放进直接的 $display（那条不截）。
@@ -568,8 +605,24 @@ module tb_v98_top_seam;
              "with X present every dcol/drow below is false-green on an empty set (#78)");
         line("C1c content column == display column >> 1", c1_colbad == 0,
              "single-viewport geometry, content-level evidence (was a NOTE before #78)");
-        $display("[tb_v98_top_seam.v:571] OBS C1d 行方向（未转硬，先解释 #54 剩下的第 5 条）：Δrow 不符 %0d、跨帧恒定 = %0d",
+        $display("[tb_v98_top_seam.v:571] OBS C1d 行方向原始计数（硬判据在它下面一行）：Δrow 不符 %0d、跨帧恒定 = %0d",
                  c1_rowbad, (c1_varies == 0) ? 1 : 0);
+        // #54 第 5 条解释完就转硬：跳过的两族例外都要见数（环热身 c1_ring、帧底夹紧 c1_clamp），
+        //   剩下的样本里 Δrow 必须为 0 —— 不是"允许 ±1"，那一档放宽过就等于没有判据。
+        line("C1d content row == display row >> 1 (outside ring warm-up)", c1_rowbad == 0,
+             "row-wise content alignment of the raw tap; warm-up rows are counted, not hidden");
+        $display("C1d 例外计数：行环热身跳过 %0d 格、帧底夹紧跳过 %0d 格、出界/行首尾跳过 %0d 格",
+                 c1_ring, c1_clamp, c1_skip);
+        // Δrow 的形状（#54 第 5 条）：值分布 + 列分布 + 原始样本，三样一起看才知道该修谁
+        $display("ROWMIX values drow=-4..+3 | big+ big- : %0d %0d %0d %0d %0d %0d %0d %0d | %0d %0d",
+                 c1_rdh[0], c1_rdh[1], c1_rdh[2], c1_rdh[3], c1_rdh[4], c1_rdh[5], c1_rdh[6],
+                 c1_rdh[7], c1_rdh[8], c1_rdh[9]);
+        $display("ROWMIX cols bucket=32 (0..7): %0d %0d %0d %0d %0d %0d %0d %0d",
+                 c1_rdbk[0], c1_rdbk[1], c1_rdbk[2], c1_rdbk[3], c1_rdbk[4], c1_rdbk[5],
+                 c1_rdbk[6], c1_rdbk[7]);
+        $display("ROWMIX cols bucket=32 (8..15): %0d %0d %0d %0d %0d %0d %0d %0d",
+                 c1_rdbk[8], c1_rdbk[9], c1_rdbk[10], c1_rdbk[11], c1_rdbk[12], c1_rdbk[13],
+                 c1_rdbk[14], c1_rdbk[15]);
         $display("[tb_v98_top_seam.v:573] 观测（老尺子，仅供以后对比）：左窗 n=%0d 不符=%0d；右窗列不符=%0d",
                  n_l, bad_l, bad_r_col);
         // ⚠ 这一条原来写的是 `... 恒定 = %0s ...", m2_mode, (m2_varies==0)?"是":"否", n_r` ——
