@@ -27,5 +27,8 @@ if [ ! -d xsim.dir/work ]; then echo "XVLOG 没建出 work 库，xv.log 尾部�
 $V/xelab $TB -s snap > el.log 2>&1
 if grep -q "^ERROR" el.log; then echo "XELAB FAILED"; grep -A3 "^ERROR" el.log | head -20; exit 1; fi
 $V/xsim snap -R > run.log 2>&1
-grep -aE "FAIL|PASS|INFO|error|Error" run.log | head -40
+# ⚠ 过滤词表必须包含台架**专门为了回答"缺口在哪"而打的那些行**（PROBE/DIAG/NOTE/OBS）：
+#   2026-09-25 台架 tb_v98 数出"帧缓存到底被写了多少字"的那条 PROBE 就是被这个过滤器挡在
+#   run.log 里的，我因此多绕了一趟临时目录才看到它 —— 而那份 console 才是要留在报告里的凭据。
+grep -aE "FAIL|PASS|INFO|PROBE|DIAG|NOTE|OBS |error|Error" run.log | head -60
 tail -2 run.log

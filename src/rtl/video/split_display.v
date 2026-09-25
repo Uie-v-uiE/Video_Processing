@@ -8,6 +8,17 @@ module split_display #(
     input  wire        rst_n,
     input  wire [11:0] x,
     input  wire [11:0] y,
+    // ⚠ `x_sel` = **与两个像素抽头同一级**的列坐标（ISSUES #68）。
+    //   以前本模块直接用 `x` 判"这一格属于左窗还是右窗"、也用它画那条 2 px 标记线，
+    //   而顶层送进来的 `x` 是第 11 级标签，`orig_pix/proc_pix` 却是第 20 级的内容
+    //   （3 拍打地址 + 1 拍读地址寄存 + 1 拍 BRAM + `u_pipe.LATENCY`=15）
+    //   ⇒ 判定比内容旧 9 列 ⇒ 缝左边约 9 列里"标签说左窗、内容其实是右窗那一路(被强制清 0)"
+    //   ⇒ 选中的是 0 ⇒ 一条近黑的竖带。这就是用户念的"缩放碰到分割线时周围出现颜色条"的第二个成分
+    //   （第一个是故意画的蓝线，见下面 `marker`）。
+    //   `x`/`y`/`de`/`hs`/`vs` 继续按原级数穿过输出寄存器 ⇒ **OSD 的位置一个像素都不动**；
+    //   只有"选哪一路"与"标记线画在哪一列"跟着内容走（= 修好本应如此的东西）。
+    input  wire [11:0] x_sel,
+    input  wire        marker,           // 1 = 画那条 2 px 标记线（V8-4 起可关；关掉了 #56-2(a) 就没了）
     input  wire        de,
     input  wire        hs,
     input  wire        vs,
@@ -23,13 +34,13 @@ module split_display #(
     output reg         hs_out,
     output reg         vs_out
 );
-    wire        left = (x < PANE_W);
+    wire        left = (x_sel < PANE_W);
     wire        oob  = left ? oob_l : oob_r;
     wire [15:0] sel  = oob ? 16'h0000 : (left ? orig_pix : proc_pix);
     wire [4:0]  r5   = sel[15:11];
     wire [5:0]  g6   = sel[10:5];
     wire [4:0]  b5   = sel[4:0];
-    wire        sep  = (x == PANE_W-1) || (x == PANE_W);
+    wire        sep  = marker && ((x_sel == PANE_W-1) || (x_sel == PANE_W));
 
     always @(posedge clk or negedge rst_n) begin
         if (!rst_n) begin

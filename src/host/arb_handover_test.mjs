@@ -322,7 +322,10 @@ async function sampleSession(keep, durMs) {
       while ((i = buf.indexOf('\n')) >= 0) {
         const line = buf.slice(0, i).replace(/\r$/, ''); buf = buf.slice(i + 1);
         const m = line.match(/^S\s+(\d+)\s+(\d+)\s*[0-9a-fA-F]{1,8}:\s*([0-9a-fA-F]{1,8})/);
-        if (m) samples.push({ ms: Number(m[1]), lane: Number(m[2]), v: parseInt(m[3], 16) >>> 0 });
+        if (m) {
+          samples.push({ ms: Number(m[1]), lane: Number(m[2]), v: parseInt(m[3], 16) >>> 0 });
+          markFirst();
+        }
       }
     });
     child.stderr.on('data', (d) => process.stdout.write(String(d)));
@@ -332,6 +335,9 @@ async function sampleSession(keep, durMs) {
   try { unlinkSync(tcl); } catch {}
   return samples;
 }
+
+// 采样会话"第一拍出数"的信号。runBoard 在掐四个阶段的时间点**之前**等它 —— 原因见 runBoard 里那段注释。
+let markFirst = () => {};
 
 function spawnSender() {
   return spawn(process.execPath, [host('video_sender.mjs'),
@@ -346,8 +352,26 @@ async function runBoard() {
   const wasPlaying = sdWasPlaying();
   const autoOk = ensureAutoMode();     // 起点不干净 ⇒ 红了先看这一行（见函数注释）
   if (wasPlaying) uart(['STOP'], 6);
-  const total = (PRE + STREAM + AFTER + RESTART) * 1000 + 6000;
+  // +10 s 余量：会话真正开始出数之前有一段"xsdb 连上 hw_server + 第一次 mrd"的爬坡，
+  // 这段时间算在 total 里，否则四个阶段跑完时会话已经先断了（尾部样本会丢）。
+  const total = (PRE + STREAM + AFTER + RESTART) * 1000 + 6000 + 10000;
   const sess = sampleSession(keep, total);       // 先起会话，再掐推流的时间点
+
+  // ⚠ 必须等**第一拍样本真的到了**再掐 t0（2026-09-25 r59a 的一条误红就出在这里）：
+  //   V1 量的是"推流前 PRE 秒这段静默里 owner_eth 必须为 0，而且窗口里**要有样本**"。
+  //   上一版直接 `const t0 = Date.now()`，于是 PRE 那 3 s 全花在"会话还在爬坡"上 ——
+  //   那次的 json 里第一个样本落在 t1+1254 ms（即 t0 之后 4.25 s），PRE 窗口 0 个样本 ⇒ V1 红。
+  //   当时机器上同时跑着综合与一台 xsim，爬坡比 r58 那次长，所以同样的脚本一次绿一次红：
+  //   **这是判据自己的时间起点和采样链路抢跑，不是仲裁坏了**。
+  //   修法不是把 PRE 放大或把 `base.n > 0` 去掉（那等于把判据阉掉），而是把时间起点挪到"确实在出数"之后：
+  //   基线段仍然被完整覆盖，V1 该红的时候照样红（基线里 owner=1 就红、样本永远不来则 V0 红）。
+  const firstSeen = new Promise((r) => { markFirst = r; });
+  const raced = await Promise.race([firstSeen.then(() => 'live'), sleep(15000).then(() => 'stall')]);
+  markFirst = () => {};
+  if (raced === 'stall')
+    console.log('[ARB] ⚠ 采样会话 15 s 内一拍都没出 —— 继续跑，但 V0（密度）会据此判红，别看 V1');
+  else
+    console.log('[ARB] 采样会话已出数，开始掐四个阶段的时间点');
 
   const t0 = Date.now();
   await sleep(PRE * 1000);

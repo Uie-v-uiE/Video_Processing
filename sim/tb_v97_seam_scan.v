@@ -18,6 +18,10 @@ module tb_v97_seam_scan;
     localparam [7:0]  MR = 8'h40, MG = 8'h40, MB = 8'hFF;   // RTL 里写死的标记色
 
     reg clk = 0, rst_n = 0;
+    reg [11:0] x_sel = 12'd0;      // 与内容同级的列坐标（本 TB 里由测试自己驱动）
+    reg        marker  = 1'b1;     // 2 px 标记线开关（V8-4 起可关）
+    reg        sel_override = 1'b0;// S7b：1 = 让 x_sel 故意比 x 落后 sel_lag 列
+    reg [11:0] sel_lag     = 12'd9;
     always #10 clk = ~clk;
 
     reg  [11:0] x, y;
@@ -44,7 +48,7 @@ module tb_v97_seam_scan;
     /* ================= 实例 A：板上用的 512 ================= */
     wire [7:0] ra, ga, ba;  wire dea, hsa, vsa;
     split_display #(.PANE_W(512)) u_a (
-        .clk(clk), .rst_n(rst_n), .x(x), .y(y), .de(de), .hs(hs), .vs(vs),
+        .clk(clk), .rst_n(rst_n), .x(x), .y(y), .de(de), .hs(hs), .vs(vs), .x_sel(x_sel), .marker(marker),
         .orig_pix(orig_pix), .proc_pix(proc_pix), .angle_idx(angle_idx),
         .oob_l(oob_l), .oob_r(oob_r), .r(ra), .g(ga), .b(ba),
         .de_out(dea), .hs_out(hsa), .vs_out(vsa));
@@ -52,26 +56,28 @@ module tb_v97_seam_scan;
     /* ============ 实例 B/C/D：极端缝位（V8-4a 会遇到的那三个） ============ */
     wire [7:0] rb, gb, bb;  wire deb;
     split_display #(.PANE_W(1)) u_b (
-        .clk(clk), .rst_n(rst_n), .x(x), .y(y), .de(de), .hs(hs), .vs(vs),
+        .clk(clk), .rst_n(rst_n), .x(x), .y(y), .de(de), .hs(hs), .vs(vs), .x_sel(x_sel), .marker(marker),
         .orig_pix(orig_pix), .proc_pix(proc_pix), .angle_idx(angle_idx),
         .oob_l(oob_l), .oob_r(oob_r), .r(rb), .g(gb), .b(bb), .de_out(deb));
     wire [7:0] rc, gc, bc;  wire dec;
     split_display #(.PANE_W(0)) u_c (
-        .clk(clk), .rst_n(rst_n), .x(x), .y(y), .de(de), .hs(hs), .vs(vs),
+        .clk(clk), .rst_n(rst_n), .x(x), .y(y), .de(de), .hs(hs), .vs(vs), .x_sel(x_sel), .marker(marker),
         .orig_pix(orig_pix), .proc_pix(proc_pix), .angle_idx(angle_idx),
         .oob_l(oob_l), .oob_r(oob_r), .r(rc), .g(gc), .b(bc), .de_out(dec));
     wire [7:0] rd, gd, bd;  wire ded;
     split_display #(.PANE_W(1024)) u_d (
-        .clk(clk), .rst_n(rst_n), .x(x), .y(y), .de(de), .hs(hs), .vs(vs),
+        .clk(clk), .rst_n(rst_n), .x(x), .y(y), .de(de), .hs(hs), .vs(vs), .x_sel(x_sel), .marker(marker),
         .orig_pix(orig_pix), .proc_pix(proc_pix), .angle_idx(angle_idx),
         .oob_l(oob_l), .oob_r(oob_r), .r(rd), .g(gd), .b(bd), .de_out(ded));
 
     // 一列的期望颜色（按定义算）：marker=1 表示这一列按规格该是标记蓝
-    task set_pix(input [11:0] xx, input d, input oob);
-        begin
+    task set_pix(input [11:0] xx, input d, input oob);   // ⚠ 参数名不能叫 de：会和模块的 reg de 撞名
+        reg [11:0] sel_of;
+        begin sel_of = (sel_override == 1'b1) ? (xx - sel_lag) : xx;
             x = xx; y = 12'd100; de = d; hs = ~d; vs = 1'b0;
             oob_l = oob; oob_r = oob; angle_idx = 2'd0;
             orig_pix = ORIG; proc_pix = PROC;
+            x_sel  = sel_of;                         // 默认与 x 同级（老行为）；S7b 会故意让它错开
             @(posedge clk); #1;
         end
     endtask
@@ -153,7 +159,7 @@ module tb_v97_seam_scan;
             kept = 1;
             set_pix(12'd300, 1'b1, 1'b0);                 // 先取一个正常的左窗列
             if (ra === MR && ga === MG && ba === MB) kept = 0;
-            x = 12'd511; de = 1'b0;
+            x = 12'd511; de = 1'b0; x_sel = 12'd511;   // 标记位置该成立，只有 de 不许成立
             @(posedge clk); #1;
             if (ra === MR && ga === MG && ba === MB) kept = 0;   // 上一样子是 300 列的内容，不是蓝
             expect("S5 with de=0 the seam does not paint a fresh marker (keeps prior pixel)",
@@ -180,6 +186,50 @@ module tb_v97_seam_scan;
                    c0 == 1);                 // 只剩 x==0 这一列；−1 那一列必须不匹配
             expect("S6c PANE_W=1024 puts the marker on the last column only", cN == 1);
             expect("S6d PANE_W=1024 keeps the whole screen on the original side", bad_sel_d == 0);
+        end
+
+        // ⑦ r59a 新增：`x_sel` / `marker` 两个入口的语义（ISSUES #68 的修法 + #56-2(a) 的可关性）
+        begin : s7
+            integer no_mk, cont_left_bad, mk_ok, mk_bad;
+            no_mk = 0; cont_left_bad = 0; mk_ok = 0; mk_bad = 0;
+            // S7a：关掉标记线 ⇒ 整行一列蓝都不许有；左右内容的分界照旧（不许顺手改掉选择逻辑）
+            marker = 1'b0; sel_override = 1'b0;
+            for (i = 0; i < 1024; i = i + 1) begin
+                set_pix(i[11:0], 1'b1, 1'b0);
+                if (ra === MR && ga === MG && ba === MB) no_mk = no_mk + 1;
+                if (i < 512 && !near1(ra, exp5(ORIG[15:11]))) cont_left_bad = cont_left_bad + 1;
+            end
+            expect("S7a marker=0 时一列蓝都没有（V8-4 关标记线的凭据）", no_mk == 0);
+            expect("S7b 关线之后左窗内容仍是 orig（选择逻辑没被顺手改掉）", cont_left_bad == 0);
+            // S7c：让 x_sel 故意比 x 落后 9 列 ⇒ 蓝线必须落在 x = 520/521（= 511+9 / 512+9），
+            //       而不是 x = 511/512 ⇒ 证明"标记与选路由 x_sel 决定"，也就是 #68 的修法。
+            marker = 1'b1; sel_override = 1'b1; sel_lag = 12'd9;
+            for (i = 0; i < 1024; i = i + 1) begin
+                set_pix(i[11:0], 1'b1, 1'b0);
+                if (ra === MR && ga === MG && ba === MB) begin
+                    if (i == 520 || i == 521) mk_ok = mk_ok + 1; else mk_bad = mk_bad + 1;
+                end
+            end
+            expect("S7c 标记线跟着 x_sel（与内容同级的坐标）走，不跟着 x", mk_ok == 2 && mk_bad == 0);
+            sel_override = 1'b0;
+
+            // ⑧ r59a：缝位本身也该跟着 x_sel ⇒ 内容的左右分界随 x_sel 移动 9 列
+            marker = 1'b1; sel_override = 1'b1; sel_lag = 12'd9;
+            mk_ok = 0; mk_bad = 0;
+            // ⚠ 520/521 这两列正是标记蓝的落点（x_sel=511/512），内容判据必须把它们跳过去 ——
+            //   第一版没跳，红在我自己的期望上（不是模块错）：这条记下来，因为"边界前一列是标记"
+            //   这种重叠在 V8-4 真做可动缝时还会再来一次。
+            for (i = 512; i < 520; i = i + 1) begin          // x=512..519：x_sel=503..510 仍是"左"
+                set_pix(i[11:0], 1'b1, 1'b0);
+                if (!near1(ra, exp5(ORIG[15:11]))) mk_bad = mk_bad + 1;
+            end
+            for (i = 522; i < 541; i = i + 1) begin          // x>=522 ⇒ x_sel>=513 = "右" ⇒ proc
+                set_pix(i[11:0], 1'b1, 1'b0);
+                if (!near1(ra, exp5(PROC[15:11]))) mk_bad = mk_bad + 1;
+                else mk_ok = mk_ok + 1;
+            end
+            expect("S8 左右内容的分界同样跟着 x_sel（缝=参数化的前提）", mk_bad == 0 && mk_ok == 19);
+            sel_override = 1'b0;
         end
 
         if (errors == 0) $display("PASS tb_v97_seam_scan");

@@ -18,6 +18,10 @@ OUT=build/evidence/verify_$(date +%m%d_%H%M)
 mkdir -p build/evidence
 LOG=$OUT.txt
 XSDB='"D:/Software/Vivado/2025.2.1/Vitis/bin/xsdb.bat"'
+# ⚠ 这一版之前脚本**没有总判定**：不管中间红成什么样，最后都是 `exit 0`（而且各步都挂在管道尾巴上，
+#   退出码是 `tail` 的）。2026-09-25 r59a 那次日志里明写着"[ARB] 结论：1 条不通过 ⇒ 判红"，
+#   而调用方看到的 VERIFY_EXIT 仍是 0 ⇒ 记成 NRED 计数，末尾一行总判定 + 非零退出。
+NRED=0
 
 DO_STREAM=0; DO_BATT=0        # `set -u` 在下面，未初始化就直接引用会退出
 # 两个开关可以任意顺序、任意组合（原来是"只认前两个参数"，写 --stream --battery 会把 battery 吃掉）
@@ -63,13 +67,23 @@ if [ -s "$OUT.health.json" ]; then
   ' "$OUT.health.json" 2>&1 | tee -a "$LOG"
 else
   echo "  health_read 没有输出（hw_server 没起？A9 没在跑？）：$(head -2 "$OUT.health.err")" | tee -a "$LOG"
+  NRED=$((NRED+1))     # 读回口拿不到 json ⇒ 后面所有"读回来对不对"的判据都不成立，这一版不能算验过
 fi
 
 if [ "$DO_STREAM" = 1 ]; then
   # arb_handover_test 自己会 spawn video_sender（参数 IP/SPORT/FPS 在它内部），所以这里不再另起推流；
   # 一次跑完 PRE→STREAM→AFTER→RESTART 四个阶段，约 40 s + 采样，八条判据打在 stdout。
   echo "-- 3) 仲裁交接八条（脚本内部会自己开关推流；含新的 V7 原因位自洽）--" | tee -a "$LOG"
-  node src/host/arb_handover_test.mjs 2>&1 | tee "$OUT.arb.txt" | tail -22 | tee -a "$LOG"
+  # ⚠ 原来这一行是 `node ... | tee x | tail -22 | tee -a $LOG` ⇒ 流水线的退出码是**最后一个 tail 的**，
+  #   arb 自己 `process.exit(1)` 的那条红在这里被吞掉：2026-09-25 r59a 那次日志明明白白写着
+  #   "[ARB] 结论：1 条不通过 ⇒ 判红，这一版不能采纳"，而整个 board_verify 仍然 VERIFY_EXIT=0。
+  #   这就是"假绿"——比假红危险。改法：先落盘再回放，用 PIPESTATUS[0] 拿到 node 的码。
+  node src/host/arb_handover_test.mjs > "$OUT.arb.txt" 2>&1
+  ARB_RC=$?
+  tail -22 "$OUT.arb.txt" | tee -a "$LOG"
+  grep -a "八条全过" "$OUT.arb.txt" >/dev/null 2>&1 || ARB_RC=1
+  echo "[ARB] 退出码 $ARB_RC（0=八条全绿）" | tee -a "$LOG"
+  [ "$ARB_RC" = 0 ] || NRED=$((NRED+1))
   grep -a "arb_handover_last.json" "$OUT.arb.txt" >/dev/null 2>&1 || true
   cp -f build/evidence/arb_handover_last.json "$OUT.arb.json" 2>/dev/null || \
     cp -f /tmp/arb_handover_last.json "$OUT.arb.json" 2>/dev/null || true
@@ -77,7 +91,18 @@ fi
 
 if [ "$DO_BATT" = 1 ]; then
   echo "-- 4) 串口命令电池（59 条 + 初末态必须相同）--" | tee -a "$LOG"
-  node src/host/uart_cmd_check.mjs --port COM6 2>&1 | tail -25 | tee -a "$LOG"
+  # 同样不能吃管道退出码（原来 `| tail -25 | tee` 之后 $? 是 tee 的）。
+  # 这里两重保险：命令自己的退出码 + stdout 里那一行 `RESULT PASS uart_cmd_check`。
+  node src/host/uart_cmd_check.mjs --port COM6 > "$OUT.batt.txt" 2>&1
+  BATT_RC=$?
+  tail -25 "$OUT.batt.txt" | tee -a "$LOG"
+  grep -a "RESULT PASS uart_cmd_check" "$OUT.batt.txt" >/dev/null 2>&1 || BATT_RC=1
+  echo "[BATT] 退出码 $BATT_RC" | tee -a "$LOG"
+  [ "$BATT_RC" = 0 ] || NRED=$((NRED+1))
 fi
 
 echo "== 日志留在 $LOG ==" | tee -a "$LOG"
+if [ "$NRED" = 0 ]; then
+  echo "RESULT board_verify PASS（判红的步骤：0）" | tee -a "$LOG"; exit 0
+fi
+echo "RESULT board_verify FAIL nred=$NRED ⇒ 这一版不能采纳" | tee -a "$LOG"; exit 1

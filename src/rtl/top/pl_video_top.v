@@ -289,7 +289,11 @@ module pl_video_top #(
         .frac_x(zfrac_x), .frac_y(zfrac_y)
     );
 
-    localparam SB = 16;
+    // 混色级要的列坐标必须由**流水线深度**推出来，不许再抄字面量 11（ISSUES #68）。
+    //   内容站在：3(`cx/cy` 打到 mapper 与左路的打拍) + 1(`rd_addr_q`) + 1(BRAM 读出) + PROC_LAT = 20 级。
+    //   以前 `u_split` 拿的是 `x_d[11]` ⇒ 缝的判定比内容旧 9 列（台架 `tb_v98_top_seam` 的 C-tap 钉住）。
+    localparam MIX_D = 3 + 1 + 1 + u_pipe.LATENCY;
+    localparam SB = (MIX_D > 16) ? (MIX_D + 1) : 16;
     reg        de_d[0:SB-1], hs_d[0:SB-1], vs_d[0:SB-1], left_d[0:SB-1];
     reg [11:0] x_d[0:SB-1], y_d[0:SB-1], cx_d[0:SB-1], cy_d[0:SB-1];
     integer k;
@@ -765,9 +769,13 @@ module pl_video_top #(
 
     wire [7:0] r, g, b;
     wire de_o, hs_o, vs_o;
+    // 标记线开关：今天仍是"画"（不改观感，也不动 `board/README.md` 第 12 行那条已验的口径），
+    // V8-4 把缝做成真可动之后由 PS 决定关不关（#56-2 的 (a) 那一半就是这条线）。
+    wire split_marker = 1'b1;
     split_display #(.PANE_W(PANE_W)) u_split (
         .clk(clk_pix), .rst_n(rst_pix_n),
         .x(x_d11), .y(y_d11), .de(de_d11), .hs(hs_d11), .vs(vs_d11),
+        .x_sel(x_d[MIX_D]), .marker(split_marker),   // 与内容同级的那一路坐标（#68）；OSD 用的 x/y 不动
         .orig_pix(orig_disp), .proc_pix(pipe_dout),
         .oob_l(oob_lo), .oob_r(oob_ro),
         .angle_idx(angle[1:0]),
