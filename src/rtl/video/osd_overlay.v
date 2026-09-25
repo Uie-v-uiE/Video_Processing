@@ -39,7 +39,6 @@ module osd_overlay #(
     parameter IMG_W = 512,          // 片源几何：第一行末尾那一格报的就是它（实参，不是示意值）
     parameter IMG_H = 300
 )(
-    input  wire        en,              // V8-10：0 = 什么都不画（只挡 in_char；de/hs/vs 的节拍一字都不变）
     input  wire        clk,
     input  wire        rst_n,
     input  wire [11:0] x,
@@ -86,9 +85,7 @@ module osd_overlay #(
     wire [7:0]  pix_y = ly - line * LINE_H;
     wire [4:0]  cidx  = lx / CHAR_W;
     wire [7:0]  pix_x = lx % CHAR_W;
-    // V8-10：`en=0` 只是"什么都不画"——**刻意不去旁路 de/hs/vs**（它们是打过一拍的，
-    //   在顶层另接一条旁路就要把像素也延同一拍，容易在缝上造出错位；挡 in_char 则节拍一字不变）
-    wire        in_char = en && in_box && (pix_y < CHAR_H) && (line < N_LINES);
+    wire        in_char = in_box && (pix_y < CHAR_H) && (line < N_LINES);
 
     function [7:0] dig;
         input [3:0] v;

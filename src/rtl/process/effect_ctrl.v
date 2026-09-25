@@ -28,14 +28,7 @@ module effect_ctrl (
     output reg         gamma_wr,            // 已同步的**翻转位**（边沿检测在 gamma_lut 里做）
     output reg  [7:0]  gamma_idx,
     output reg  [7:0]  gamma_data,
-    output reg  [5:0]  gamma_disp,          // V8-5：只给 OSD 看的"当前 gamma ×10"（不参与运算）
-    // V8-10（#70 追加）：rot / osd 的两个旗标与角度码**并进同一条 gm 链**，
-    //   数据源就是本模块已经收着的 `gamma_async[31:0]` 的低 10 位（gamma 只用到 [31:8]）。
-    //   为什么不新开一组同步器：§7a 第三条规矩 ⇒ 多一对跨域配对就要重画 cdc.rpt 基线；
-    //   为什么不加输入端口：#7 那一族（新输入在四份台架里浮空成 X，伪装成功能坏了）。
-    output reg  [7:0]  rot_code,            // 串口角度码，2 度步进（0..255 → 0..510，顶层折回 0..359）
-    output reg         rot_ovr_en,          // 1 = 串口覆盖按键角度
-    output reg         osd_off              // 1 = 关掉 OSD 叠加（**取反放**：复位/未写时 OSD 仍开）
+    output reg  [5:0]  gamma_disp           // V8-5：只给 OSD 看的"当前 gamma ×10"（不参与运算）
     // 说明：OSD 要的"五级实际生效的九位"**已经在 `stage_sel` 这个输出口上**
     //（它就是"新字非 0 用新字、否则用老五位翻出来的等价形式"那道合流之后的值），
     // 所以这里不再另开一个口 —— 开两个口迟早会出现两个口给两个不同答案的那天。
@@ -47,18 +40,17 @@ module effect_ctrl (
     // 那正好是 #58/#59 一路在防的那类错拍。同一条链 ⇒ 同源同深度。
     (* ASYNC_REG = "TRUE" *) reg [12:0] sel_meta, sel_sync;   // {manual, zsel[2:0], stage[8:0]}
     (* ASYNC_REG = "TRUE" *) reg [7:0] th_meta, th_sync;
-    // V8-10：这一条从 24 位加宽到 34 位 —— 见上面那三个新输出的理由（同源同深度）
     // gamma 那四个字段一起过同一对同步器：`wr` 是边沿标志，协议要求"idx/data 在 wr 翻转之前
     // 已经稳定至少一次 AXI 写"，所以它们必须与 wr **同源同深度** —— 分两组同步就会出现在
     // 本域里"边沿到了、数据还是上一次的"那种错拍（spec §6b D4 方案②的前提条件）。
-    (* ASYNC_REG = "TRUE" *) reg [33:0] gm_meta, gm_sync;   // {en, wr, data, idx, disp[5:0], code[7:0], rot_ovr, osd_off}
+    (* ASYNC_REG = "TRUE" *) reg [23:0] gm_meta, gm_sync;   // {en, wr, data, idx, disp[5:0]}
 
     always @(posedge clk or negedge rst_n) begin
         if (!rst_n) begin
             en_meta <= 5'd0;  en_sync  <= 5'd0;
             sel_meta <= 13'd0; sel_sync <= 13'd0;
             th_meta <= 8'd80; th_sync  <= 8'd80;
-            gm_meta <= 34'd0; gm_sync  <= 34'd0;
+            gm_meta <= 24'd0; gm_sync  <= 24'd0;
         end else begin
             en_meta  <= effect_en_async;
             en_sync  <= en_meta;
@@ -67,8 +59,7 @@ module effect_ctrl (
             th_meta  <= threshold_async;
             th_sync  <= th_meta;
             gm_meta  <= {gamma_async[31], gamma_async[30], gamma_async[29:22],
-                         gamma_async[21:14], gamma_async[13:8],
-                         gamma_async[7:0], gamma_async[8], gamma_async[9]};
+                         gamma_async[21:14], gamma_async[13:8]};
             gm_sync  <= gm_meta;
         end
     end
@@ -79,8 +70,7 @@ module effect_ctrl (
     // 那条 ASYNC_REG 链" —— 新开一组就多一对跨域配对，`cdc.rpt` 的基线就要重画，
     // 而那 3 行 Critical 是唯一能挡住"新代码悄悄裸采样"的门禁。
     always @(*) begin
-        {gamma_en, gamma_wr, gamma_data, gamma_idx, gamma_disp,
-         rot_code, rot_ovr_en, osd_off} = gm_sync;
+        {gamma_en, gamma_wr, gamma_data, gamma_idx, gamma_disp} = gm_sync;
     end
 
     // 老五位 → 新九位（invert 从 bit4 挪到 bit1、binary 从 bit1 挪到 bit5，其余原位）

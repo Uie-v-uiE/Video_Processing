@@ -72,7 +72,3 @@ sd
 sd files
 sd file 1
 sd file 99
-osd 0
-osd 1
-rot 45
-rot auto
