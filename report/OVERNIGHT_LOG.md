@@ -4471,3 +4471,10 @@ r64 = r63c + #83（串口能真正关掉双线性）。门禁 14 项里 **2 红*
   3. **#53 `osd on/off`**：与 `bilin` 同一把模子（`gpio_o[20]` + 一条自己的三级链 + 判据），单独一次构建。
   4. **#55** 其余台架判据标签改 ASCII；**#57** RGMII 收口改 BUFG+IDELAY（要用户在场 + 1000M 在线验）。
   5. 提交材料里"功耗"只能写**估算**（`power.rpt` 默认翻转率），实测要上板量电源轨——这条今天没做。
+
+## §61 05:45（9/26）：r65 跑完 —— 门禁 ALL PASS 但 `AB: REFUSE（无收益）`，板子仍是 r64b；顺手否掉我一句"掷硬币"
+收尾链按规则执行：两个 rc 里 AB 是 1 ⇒ **不冻结成默认、不上板**（`build/r65_gates.txt`、`build/r65_ab.txt` 在案，
+实验件 `build/evidence_r65_notadopted/`）。布线后 phys_opt 真跑了（`post_route_phys_opt_design.pb` + 第二次
+`Command: phys_opt_design -directive AggressiveExplore`），但它报"没有可复制的候选网络"，所有分组数与 r64b 逐格相同。
+⇒ 由此**更正 §4/§59 的"掷硬币"说法**：同一份 RTL 只差一个流程开关时结果不动 ⇒ 0.912→0.314 是有因的确定性变化，
+不是运气；#80 那句"同一份 RTL 两次构建"的对照本身不成立（r62→r63b 中间改了东西）。细账 `OPTIMIZATION_LOG.md` §8。

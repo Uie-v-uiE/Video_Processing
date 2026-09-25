@@ -302,3 +302,24 @@ DSP 从 14 个增加到 20 个但功耗不变（这几个乘法器只在像素�
   `AB: REFUSE（无收益）`。这一支原来从没被执行过（"没收益"这条分支若不测，就等于"多花一次构建时间也会被当成采纳"）。
   同时补上**结论必须带退出码**：`ADOPT` 才 0，两种 `REFUSE` 都是 1 —— 否则一句 `| tail` 就能把"别开默认"读成"过了"
   （同一个坑在门禁 rc 上踩过一次）。三分支实测：`rc=0 / ADOPT`、`rc=1 / REFUSE（保持默认关）`、`rc=1 / REFUSE（无收益）`。
+
+## 8. r65 的结果：**没收益**，而且它顺手否掉了我自己在 §4 写的一句"掷硬币"（2026-09-26 05:45）
+* 这一档**确实开了**（不是空跑）：构建日志 `BUILD_PRPO on AggressiveExplore`、`impl_1` 目录里出现
+  `post_route_phys_opt_design.pb`、`runme.log` 里 `Command: phys_opt_design -directive AggressiveExplore`
+  是布局后那一条之外的第二次。它自己的话是 `INFO: [Physopt 32-949] No candidate nets found for
+  dynamic/static region interface net replication`。
+* 结果与 r64b **逐格相同**：分组 setup `eth_rxc 0.314 / clkout0_1 0.834 / clk_fpga_0 2.323`、
+  门禁 WNS 0.314、WHS 0.049、Dynamic 2.203 W、LUT 14117/26.54 %、BRAM 97/69.29 %（`build/r65_gates.txt`
+  `GATES: ALL PASS`，CDC Critical 3 行不增长）。位流 md5 却不同（`e73db717…` 对 `543f6820…`）。
+  ⇒ 采纳脚本判 `AB: REFUSE（无收益）`，**板子保持 r64b 没动**，实验件留在 `build/evidence_r65_notadopted/`
+  （`MANIFEST.md5` 里写了 `verdict=REFUSE_no_gain` 与当时的 `git_head`）。
+* **要自我更正的那句**：§4 第 3 条我写"r64b 只多一根同步链、ETH 域一行 RTL 没动，eth 组却从 0.912 掉到 0.314
+  ⇒ 这是掷硬币"。这次的最小配对（同一份 RTL/约束，只差一个流程开关）显示：**实现结果不自己动**。
+  所以 0.912→0.314 不是随机，而是"加了东西之后全局摆放变了"的**确定性后果**；同样地，#80 里
+  "同一份 RTL 两次构建 r62 +0.001 / r63b +0.052"那句也站不住 —— r62→r63b 之间隔着双线性读口与那条
+  `-hold` 不确定度，**不是同一份 RTL**，那是有因可循的差，不该记在运气账上。
+  口径收在这里：只说"这套设计 + 这个流程 + `-jobs 4` + 同一台机器可复现"，不外推到"Vivado 永远确定"。
+* 这条结果对优化路线的实际含义：**0.314 这条路径没有物理层的便宜可占**（phys_opt 明确说没有可复制的候选网络）。
+  要抬它只剩**逻辑那一刀**：把 `link_monitor` 的"减法 → 饱和 → 比较"拆拍（§4 第 2 条），
+  而那一刀的前置条件是我先把仪表口径证清楚（`frame_done` 与 `ms_tick` 同拍不是"十万分之一"，
+  两者共享同一时钟根，锁相是可能的）。**#57 的那条 RGMII 结构改法不受影响，仍然是最值钱的一刀，但要用户在场。**
