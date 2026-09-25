@@ -28,6 +28,17 @@ int sd_show(u32 idx);
 u32 sd_frame_now(void);
 u32 sd_frame_total(void);
 
+/*
+ * V8-9：卡上通常不止一段（META.TXT 里若干条 FILEn）。以前 PS 侧只有"挂载 + 打摘要"，
+ * 想跳到第 n 段必须人肉去算全局帧号（`frame 900` 这种），演示时既慢又容易算错 ——
+ * 所以这里把段表露出来：段数、段名、每段帧数、每段的**首帧全局号**。
+ * 全部只读静态数组，不需要挂载成功也能调（返回 0/NULL），越界一律返回 0/NULL 而不是回绕。
+ */
+u32 sd_file_count(void);
+const char *sd_file_name(u32 i);
+u32 sd_file_frames(u32 i);
+u32 sd_file_first(u32 i);            /* 第 i 段的第一帧在 sd_show() 那套全局帧号里的位置 */
+
 /* 错误原因（静态串，永不释放） */
 const char *sd_err(void);
 

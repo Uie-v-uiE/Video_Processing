@@ -67,3 +67,8 @@ src 2
 src 1
 src auto
 STAT
+
+sd
+sd files
+sd file 1
+sd file 99

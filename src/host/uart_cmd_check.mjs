@@ -120,6 +120,14 @@ const EXPECT = [
   [/\[SRC\].*mode=0/],                                     // 再 auto：把板上状态还干净
   [/^\[STAT\] ctrl en=(\w\w) thr=(\d+) src=(\d) zoom=(\d) bilin=(\d) zsel=(\d) zman=(\d)/m],
 
+  // V8-9：卡上不止一段（META.TXT 的 FILEn）。以前"想看第 3 段"只能人肉去算全局帧号
+  //   （`frame 900` 这种），段表明明就在固件里。这四条钉住新加的三件事 + 一条反面：
+  //   裸 `sd` 的摘要没被顺手改坏；`sd files` 真的把"每段第几帧"列出来；
+  //   `sd file 1` 跳段并念出全局号；`sd file 99` 越界**明确拒绝且不改任何状态**（#67 那条规矩）。
+  [/\[SD\]/, /files=|META|card=|frame/i],
+  [/\[SD\] \d+ file\(s\)/, /first=\d+/],
+  [/file #1 /, /first=\d+/],
+  [/只认 0\./, /!file #99/],
 ];
 
 /* `--align`：只做"判据表与命令表逐行对位"这一件事就退出（不碰串口、不需要板子）。

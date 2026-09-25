@@ -673,6 +673,19 @@ int sd_show(u32 idx)
     return show_frame(idx);
 }
 
+/* V8-9 段表访问器（见 sd_play.h 那段注释）。越界返回 0/NULL：宁可让命令层报"只认 0..n-1"，
+ * 也不许悄悄回绕到另一段 —— 那正是 #67 里"静默取模"的形状。 */
+u32 sd_file_count(void)  { return mounted ? nfiles : 0u; }
+const char *sd_file_name(u32 i) { return (mounted && i < nfiles) ? fname[i] : (const char *)0; }
+u32 sd_file_frames(u32 i)       { return (mounted && i < nfiles) ? fframes[i] : 0u; }
+u32 sd_file_first(u32 i)
+{
+    u32 k, sum = 0u;
+    if (!mounted || i >= nfiles) return 0u;
+    for (k = 0; k < i; k++) sum += fframes[k];
+    return sum;
+}
+
 u32 sd_frame_now(void)   { return nxt; }
 u32 sd_frame_total(void) { return mounted ? total_frames : 0u; }
 

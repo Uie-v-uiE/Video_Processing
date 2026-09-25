@@ -702,7 +702,48 @@ static int dispatch(char **tk, int nt)
         ctrl_set_src(1);
         return 0;
     }
-    if (ci_eq(tk[0], "SD"))  { if (sd_mount() == 0) sd_status(); else xil_printf("[SD] mount failed: %s\r\n", sd_err()); return 0; }
+    if (ci_eq(tk[0], "SD")) {
+        /* V8-9：`sd files` 列出卡上每段（名字/帧数/首帧全局号），`sd file <n>` 跳到那段的第一帧。
+         * 为什么不该让人算 `frame 900`：段表本来就在固件里（META.TXT 解析出来的），
+         * 把"每段多少帧"背在操作者身上，等于把我算错的账转到演示现场。
+         * 不认识的子命令、越界的段号一律明确拒绝且不改任何状态（#67）。
+         */
+        if (nt >= 2 && ci_eq(tk[1], "FILES")) {
+            u32 i, nf = sd_file_count();
+            if (nf == 0u) { xil_printf("[SD] files: 卡还没挂载（先敲 sd）\r\n"); return 0; }
+            xil_printf("[SD] %u file(s), %u frame(s) total\r\n",
+                       (unsigned)nf, (unsigned)sd_frame_total());
+            for (i = 0; i < nf; i++)
+                xil_printf("  #%u %s %u frame(s) first=%u\r\n",
+                           (unsigned)i, sd_file_name(i), (unsigned)sd_file_frames(i),
+                           (unsigned)sd_file_first(i));
+            return 0;
+        }
+        if (nt >= 2 && ci_eq(tk[1], "FILE")) {
+            u32 nf = sd_file_count();
+            if (nt < 3 || !strict_int(tk[2], &v) || v < 0 || (u32)v >= nf) {
+                xil_printf("[SD] file 只认 0..%u（不认的写法不改任何状态；先看 sd files）\r\n",
+                           nf ? (unsigned)(nf - 1u) : 0u);
+                return 0;
+            }
+            if (sd_show(sd_file_first((u32)v)) != 0) {
+                xil_printf("[SD] file %u 跳帧失败: %s\r\n", (unsigned)v, sd_err());
+                return 0;
+            }
+            ctrl_set_src(1);
+            xil_printf("[SD] file #%u %s (%u frame(s)) first=%u\r\n", (unsigned)v,
+                       sd_file_name((u32)v), (unsigned)sd_file_frames((u32)v),
+                       (unsigned)sd_file_first((u32)v));
+            return 0;
+        }
+        if (nt >= 2) {
+            xil_printf("[SD] sd 只认：（裸=挂载并打摘要）/ files / file n；其余 play stop frame autoplay\r\n");
+            return 0;
+        }
+        if (sd_mount() == 0) sd_status();
+        else xil_printf("[SD] mount failed: %s\r\n", sd_err());
+        return 0;
+    }
     if (ci_eq(tk[0], "PLAY")) {
         ctrl_set_src(1);
         if (!sd_play(1)) xil_printf("[SD] play refused: %s\r\n", sd_err());
