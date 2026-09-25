@@ -1,8 +1,8 @@
-[CTRL] AXI_GPIO=0x004F5000 sel=000 thr=80 src=1 zoom=1 pub=1 bilin=1
+[CTRL] AXI_GPIO=0x004B5000 sel=000 thr=80 src=1 zoom=1 pub=0 bilin=1
 [CTRL]   zoom_step=4 1.00x (????????????)
 [SD] playing (STOP to end; ETH ????????????????????????)
-[SD] frame 33: last 33 frames 29.999 fps (since play 29.337)
-[SD] frame 133: last 100 frames 29.999 fps (since play 29.338)
-[SD] frame 233: last 100 frames 29.999 fps (since play 29.338)
-[SD] frame 333: last 100 frames 29.999 fps (since play 29.339)
+[SD] frame 30: last 30 frames 29.999 fps (since play 21.747)
+[SD] frame 130: last 100 frames 29.999 fps (since play 21.796)
+[SD] frame 230: last 100 frames 29.999 fps (since play 21.843)
+[SD] frame 330: last 100 frames 29.999 fps (since play 21.890)
 

@@ -155,8 +155,19 @@ function judge(samples, t1, t2, t3, t4) {
   const add = (id, ok, msg) => R.push({ id, ok: !!ok, msg });
 
   const base = windowStats(samples, t1 - PRE * 1000, t1);
-  add('V1 基线归 PS', base.n > 0 && base.own1 === 0,
-      `静默 ${PRE}s 内 owner_eth=1 的样本 ${base.own1}/${base.n}（应为 0）`);
+  // V1 原来一条判两件事，2026-09-25 因此误红过一次：基线里 owner_eth=1 可能是
+  //   (a) 外部真的在推流（本机没推、但别人/别的窗口在推）⇒ **测试前提不成立**，不是仲裁坏了；
+  //   (b) 没有流却还占着总线 ⇒ 那才是"交回失败"，是要判红的东西。
+  // 硬件本来就分得开这两件事：lane30 的 eth_live 是"最近有没有收到包"的独立位，
+  //   所以拆开之后 V1 的牙没变钝（live=0 而 own=1 照样红），只是不再把环境当故障报。
+  const baseLive = samples.filter((x) => x.ms >= t1 - PRE * 1000 && x.ms < t1 && LIV(x.v)).length;
+  const baseN = base.n;
+  add('V1 基线归 PS', baseN > 0 && base.own1 === 0,
+      `静默 ${PRE}s 内 owner_eth=1 的样本 ${base.own1}/${baseN}（应为 0）`
+      + (base.own1 > 0 && baseLive > 0 ? ` ⇒ ⚠ 同一窗口里 eth_live=1 的样本 ${baseLive} 个：`
+                                       + '**外部在推流**，这一轮的前提不成立（先看是谁在推），不算仲裁判红' : ''));
+  add('V1b 无流却占着（真故障）', !(baseN > 0 && base.own1 > 0 && baseLive === 0),
+      `基线 ${baseN} 点里 owner=1 而 live=0 的情况必须为零（有 owner 无流 = 交回失败）`);
 
   const w1 = windowStats(samples, t1, t2);
   const takeMs = Number.isFinite(w1.first1) ? w1.first1 - t1 : NaN;
@@ -426,7 +437,7 @@ async function runBoard() {
   console.log('');
   console.log(bad.length
     ? `[ARB] 结论：${bad.length} 条不通过 ⇒ 判红，这一版不能采纳`
-    : '[ARB] 结论：八条全过 ⇒ "自动交回 + 不抖 + 可逆"有凭据了（屏幕观感仍欠眼睛）');
+    : '[ARB] 结论：九条全过 ⇒ "自动交回 + 不抖 + 可逆 + 无流不占总线"有凭据了（屏幕观感仍欠眼睛）');
 
   appendFileSync(dump('arb_handover_last.json'), JSON.stringify({
     at: new Date().toISOString(), t1, t2, t3, t4, keep,

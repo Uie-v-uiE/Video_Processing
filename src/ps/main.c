@@ -873,7 +873,10 @@ static void cmd_help(void)
                "(gray/invert/blur/sharpen/sobel/binary/bin_pol/erode/dilate)，**其余长度一律拒**\r\n");
     xil_printf("  屏上 Pipe 那一格不是这串 0/1：它是五位、每位的 0..3 表示\"这一级选了第几个算法\"，"
                "想知道现在开着什么就敲 pipe show\r\n");
-    xil_printf("  语法已收/硬件待接: rot ... | split ... | osd on|off\r\n");
+    xil_printf("  语法已收/硬件待接: rot ... | osd on|off | split 的 range/speed\r\n");
+    /* #51：缝位本身已经可动了（`split <0..100>` / px / auto / manual / swap / follow / marker / show），
+     * 所以 split 从上面那半行里摘出来 —— 继续留着"待接"就是说谎（#67 同族）。 */
+    xil_printf("  分割线: split 0..100 | split px 0..1024 | auto | manual | swap 0|1 | follow 0|1 | marker 0|1 | show\r\n");
     xil_printf("  旧写法仍可用: SRC0 SRC1 TH80 ZOOM0 ZOOM1 BILIN0 BILIN1 FRAME12 00111\r\n");
 }
 

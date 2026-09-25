@@ -73,7 +73,7 @@ fi
 if [ "$DO_STREAM" = 1 ]; then
   # arb_handover_test 自己会 spawn video_sender（参数 IP/SPORT/FPS 在它内部），所以这里不再另起推流；
   # 一次跑完 PRE→STREAM→AFTER→RESTART 四个阶段，约 40 s + 采样，八条判据打在 stdout。
-  echo "-- 3) 仲裁交接八条（脚本内部会自己开关推流；含新的 V7 原因位自洽）--" | tee -a "$LOG"
+  echo "-- 3) 仲裁交接九条（脚本内部会自己开关推流；含 V1/V1b 拆分：外部在推流不再被当成仲裁故障）--" | tee -a "$LOG"
   # ⚠ 原来这一行是 `node ... | tee x | tail -22 | tee -a $LOG` ⇒ 流水线的退出码是**最后一个 tail 的**，
   #   arb 自己 `process.exit(1)` 的那条红在这里被吞掉：2026-09-25 r59a 那次日志明明白白写着
   #   "[ARB] 结论：1 条不通过 ⇒ 判红，这一版不能采纳"，而整个 board_verify 仍然 VERIFY_EXIT=0。
@@ -81,8 +81,8 @@ if [ "$DO_STREAM" = 1 ]; then
   node src/host/arb_handover_test.mjs > "$OUT.arb.txt" 2>&1
   ARB_RC=$?
   tail -22 "$OUT.arb.txt" | tee -a "$LOG"
-  grep -a "八条全过" "$OUT.arb.txt" >/dev/null 2>&1 || ARB_RC=1
-  echo "[ARB] 退出码 $ARB_RC（0=八条全绿）" | tee -a "$LOG"
+  grep -a "九条全过" "$OUT.arb.txt" >/dev/null 2>&1 || ARB_RC=1
+  echo "[ARB] 退出码 $ARB_RC（0=九条全绿）" | tee -a "$LOG"
   [ "$ARB_RC" = 0 ] || NRED=$((NRED+1))
   grep -a "arb_handover_last.json" "$OUT.arb.txt" >/dev/null 2>&1 || true
   cp -f build/evidence/arb_handover_last.json "$OUT.arb.json" 2>/dev/null || \
