@@ -136,7 +136,7 @@ module tb_v96_zoom_scan;
             $display("[tb_v96_zoom_scan.v:136] FAIL tb_v96_zoom_scan(align) 找不到对齐位移：后面全部无法判");
             $finish;
         end
-        $display("[tb_v96_zoom_scan.v:139]   INFO 流水线延迟 = %0d 拍（台架扫出来的，不是抄 RTL 注释的）", best_k);
+        $display("[tb_v96_zoom_scan.v:139] INFO 流水线延迟 = %0d 拍（台架扫出来的，不是抄 RTL 注释的）", best_k);
 
         /* ---------- M1 floor/frac 逐像素自洽（含中心两侧）---------- */
         reset_capture; scan(10'd512, 9'd0, 1'b0);

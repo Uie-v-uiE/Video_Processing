@@ -18,3 +18,11 @@
 [病后] 老尺子（左/右窗，已失效）：n=892270 不符=892270；右窗列不符=928200
 [病后] PASS C0a2 模型回读 | 初始化之后回读 ddr[0] 与 ddr[最后一格]
 [病后] RESULT tb_v98_top_seam PASS
+
+# 01:50 追加：#54 的第 3、4 条今晚就做完了（判据从 OBS 升成硬判据）
+PASS C1e PRECONDITION no X inside the measurement window | with X present every dcol/drow below is false-green on an empty set (#78)
+PASS C1c content column == display column >> 1 | single-viewport geometry, content-level evidence (was a NOTE before #78)
+RESULT tb_v98_top_seam PASS
+# （两条判据的名字与说明走 line() 的定宽实参 ⇒ 必须 ASCII：含 ≥0x80 的字符串被赋给定宽向量会按字节砍掉
+#   bit7，日志里就是一串乱码 —— 树上老 line() 的中文说明全是这个形状，#55 的教训又中一次。）
+# 顺带：build/tag_bench_labels.mjs 加了 --refresh（锚点行号会随文件增删漂移，今晚自己就先漂了 76 条）。

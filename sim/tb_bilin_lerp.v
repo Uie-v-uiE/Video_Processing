@@ -180,7 +180,7 @@ module tb_bilin_lerp;
             if (dr > 1 || dg > 1 || db > 1) begin
                 $display("[tb_bilin_lerp.v:181] FAIL 判据5 第%0d 组偏离黄金模型 dR=%0d dG=%0d dB=%0d 码 (fx=%0d fy=%0d)",
                          k, dr, dg, db, fx, fy);
-                $display("[tb_bilin_lerp.v:183]      p00=%h p10=%h p01=%h p11=%h -> pix=%h，参考=%h%h%h",
+                $display("[tb_bilin_lerp.v:183] p00=%h p10=%h p01=%h p11=%h -> pix=%h，参考=%h%h%h",
                          p00, p10, p01, p11, pix, xa, xb, xc);
                 errors = errors + 1; k = 99999;
             end

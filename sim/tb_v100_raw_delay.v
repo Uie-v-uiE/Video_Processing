@@ -81,13 +81,13 @@ module tb_v100_raw_delay;
                         if ((p_col % 3 != 0) && (partial == 1)) begin
                             if (qd !== p_de_prev) begin
                                 pbad = pbad + 1;
-                                if (pbad <= 3) $display("[tb_v100_raw_delay.v:84]      de 不符：喂入(row=%0d,col=%0d) de_out=%0b 应为 %0b",
+                                if (pbad <= 3) $display("[tb_v100_raw_delay.v:84] de 不符：喂入(row=%0d,col=%0d) de_out=%0b 应为 %0b",
                                                         p_row, p_col, qd, p_de_prev);
                             end
                         end else if (q !== expq || qd !== p_de_prev) begin   // de_out 必须就是上一拍的 de
                             pbad = pbad + 1;
                             if (pbad <= 3)
-                                $display("[tb_v100_raw_delay.v:90]      不符：喂入(row=%0d,col=%0d) 输出=%04x 期望=%04x de_out=%0b",
+                                $display("[tb_v100_raw_delay.v:90] 不符：喂入(row=%0d,col=%0d) 输出=%04x 期望=%04x de_out=%0b",
                                          p_row, p_col, q, expq, qd);
                         end
                     end

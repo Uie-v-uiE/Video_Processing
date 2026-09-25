@@ -74,7 +74,7 @@ module tb_fb_roundtrip;
             @(posedge rd_clk); #1;
             if (rd_data !== exp_of(px)) begin
                 badcnt = badcnt + 1;
-                $display("[tb_fb_roundtrip.v:77]   MISMATCH(定点) p=%0d got=%h want=%h", px, rd_data, exp_of(px));
+                $display("[tb_fb_roundtrip.v:77] MISMATCH(定点) p=%0d got=%h want=%h", px, rd_data, exp_of(px));
             end
         end
     endtask
@@ -97,7 +97,7 @@ module tb_fb_roundtrip;
             if (got !== want_v) begin
                 badcnt = badcnt + 1;
                 if (shown < 10) begin
-                    $display("[tb_fb_roundtrip.v:100]   MISMATCH(流水) p=%0d got=%h want=%h", p, got, want_v);
+                    $display("[tb_fb_roundtrip.v:100] MISMATCH(流水) p=%0d got=%h want=%h", p, got, want_v);
                     shown = shown + 1;
                 end
             end

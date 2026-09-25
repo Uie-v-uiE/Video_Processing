@@ -105,7 +105,7 @@ module tb_ps_publish;
         tog = ~tog; #60;
         tog = ~tog; #60;
         repeat (10) @(posedge clk);
-        $display("[tb_ps_publish.v:108]   诊断(5): rises=%0d falls=%0d consumes=%0d pend=%b", rises, falls, consumes, pend);
+        $display("[tb_ps_publish.v:108] 诊断(5): rises=%0d falls=%0d consumes=%0d pend=%b", rises, falls, consumes, pend);
         // 合并的证据是"只有一个上升沿 + 一次消费"：pend 本来就已经是 1，
         // 第二次发布不可能再产生一个上升沿 —— 断言 rises==2 是我一开始写错的期望。
         chk("5 两次快速发布只留一个挂起（pend 仅上一个沿且保持）",
@@ -113,7 +113,7 @@ module tb_ps_publish;
         @(posedge clk); #1 consume = 1;
         @(posedge clk); #1 consume = 0;
         repeat (6) @(posedge clk);
-        $display("[tb_ps_publish.v:116]   诊断(5b): rises=%0d falls=%0d consumes=%0d pend=%b", rises, falls, consumes, pend);
+        $display("[tb_ps_publish.v:116] 诊断(5b): rises=%0d falls=%0d consumes=%0d pend=%b", rises, falls, consumes, pend);
         chk("5b 合并后一次消费即回到静默", pend === 1'b0 && falls == 1 && consumes == 1);
 
         // ---- 6. 相位扫描：60 次发布必须正好 60 次消费 ----

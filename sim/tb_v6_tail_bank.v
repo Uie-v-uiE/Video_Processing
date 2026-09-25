@@ -152,13 +152,13 @@ module tb_v6_tail_bank;
         if (hit_old == WORDS) begin
             $display("[tb_v6_tail_bank.v:153] FAIL 复现失效：TAIL_GUARD=0 的旧链帧尾竟然完整，激励没触发机理");
             errors = errors + 1;
-        end else $display("[tb_v6_tail_bank.v:155]   OK 旧链复现出帧尾丢失：缺 %0d 个字", WORDS - hit_old);
+        end else $display("[tb_v6_tail_bank.v:155] OK 旧链复现出帧尾丢失：缺 %0d 个字", WORDS - hit_old);
 
         if (hit_new != WORDS) begin
             $display("[tb_v6_tail_bank.v:158] FAIL 修复无效：TAIL_GUARD=1 的新链仍有 %0d/%0d 个字不完整",
                      WORDS - hit_new, WORDS);
             errors = errors + 1;
-        end else $display("[tb_v6_tail_bank.v:161]   OK 新链整帧完整落在自己的 bank 0x%h", new_base);
+        end else $display("[tb_v6_tail_bank.v:161] OK 新链整帧完整落在自己的 bank 0x%h", new_base);
 
         if (u_new.commit_cnt != 2) begin
             $display("[tb_v6_tail_bank.v:164] FAIL 新链提交 %0d 次（期望 2），换页被过度延迟", u_new.commit_cnt);

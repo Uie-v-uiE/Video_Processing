@@ -153,7 +153,7 @@ module tb_v86_pipe_sel;
         // ================= ② 总延迟固定 =================
         chk("T2 实测 de 延迟 == 模块声明的 LATENCY", first_lat == up.LATENCY);
         if (first_lat != up.LATENCY)
-            $display("[tb_v86_pipe_sel.v:156]      T2 实测=%0d 声明=%0d 期望=%0d", first_lat, up.LATENCY, LAT_EXPECT);
+            $display("[tb_v86_pipe_sel.v:156] T2 实测=%0d 声明=%0d 期望=%0d", first_lat, up.LATENCY, LAT_EXPECT);
         chk("T3 LATENCY 参数与手算的逐级和一致", up.LATENCY == LAT_EXPECT);
         chk("T4 脉冲数 == 像素数（没有多发也没有漏发）", n_p == H * W);
 

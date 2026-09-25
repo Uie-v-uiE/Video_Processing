@@ -350,7 +350,7 @@ module tb_v98_top_seam;
                     dumped = dumped + 1;
                     // 关键探针：**同时看顶层自己算出来的源坐标**（sx_l/sy_l）与读回来的字。
                     // 只打 tap_raw 分不开"我的期望错了"与"帧缓存里的内容不是这张图"两种情况。
-                    $display("[tb_v98_top_seam.v:278] DBG 左窗 x=%0d y=%0d | 顶层源坐标 sx_l=%0d sy_l=%0d oob=%0d | tap_raw=%04x 解出(%0d,%0d) fb_out=%04x rd_addr=%0d",
+                    $display("[tb_v98_top_seam.v:353] DBG 左窗 x=%0d y=%0d | 顶层源坐标 sx_l=%0d sy_l=%0d oob=%0d | tap_raw=%04x 解出(%0d,%0d) fb_out=%04x rd_addr=%0d",
                              mix_x, mix_y, dut.sx, dut.sy, dut.oob,
                              tap_raw, mem_row(tap_raw), mem_col(tap_raw),
                              dut.fb_out, dut.rd_addr_q);
@@ -421,7 +421,7 @@ module tb_v98_top_seam;
                         c1_geom_bad = c1_geom_bad + 1;
                         if (c1_gdump < 6) begin               // 前 10 处摆原始数：形状规则 = 尺子错
                             c1_gdump = c1_gdump + 1;
-                            $display("[tb_v98_top_seam.v:349]      GEOM x_d[3]=%0d 期望src=%0d 顶层src=%0d dx=%0d | de3=%0d oob=%0d sy=%0d y3=%0d",
+                            $display("[tb_v98_top_seam.v:424] GEOM x_d[3]=%0d 期望src=%0d 顶层src=%0d dx=%0d | de3=%0d oob=%0d sy=%0d y3=%0d",
                                      dut.x_d[3], (dut.x_d[3] >> 1), dut.sx, c1_gx,
                                      dut.de_d[3], dut.oob, dut.sy, dut.y_d[3]);
                         end
@@ -441,7 +441,7 @@ module tb_v98_top_seam;
                 else if (c1_dx != c1_fcol || c1_dy != c1_frow) c1_varies = c1_varies + 1;
                 if (c1_dumped < 3) begin
                     c1_dumped = c1_dumped + 1;
-                    $display("[tb_v98_top_seam.v:369] DBG2 x_sel=%0d y11=%0d | 屏上=%04x 期望列=%03d 期望行=%03d Δcol=%0d Δrow=%0d",
+                    $display("[tb_v98_top_seam.v:444] DBG2 x_sel=%0d y11=%0d | 屏上=%04x 期望列=%03d 期望行=%03d Δcol=%0d Δrow=%0d",
                              c1_col, c1_row, tap_raw, c1_col[7:0], (c1_row >> 1), c1_dx, c1_dy);                end
             end
         end
@@ -493,9 +493,9 @@ module tb_v98_top_seam;
             i1 = i1 + 1;
         end
 
-        $display("[tb_v98_top_seam.v:408] PROBE fb_wr_pulses=%0d (一帧要 %0d)  copy_hold 拍了 %0d  u_aw.active=%0d 最后到的 row=%0d",
+        $display("[tb_v98_top_seam.v:496] PROBE fb_wr_pulses=%0d (一帧要 %0d)  copy_hold 拍了 %0d  u_aw.active=%0d 最后到的 row=%0d",
                  fb_wr_pulses, FRAME_WORDS, hold_cyc, aw_active_cyc, last_row);
-        $display("[tb_v98_top_seam.v:410] DIAG fb_vis=%0d owner_eth=%0d fill_busy=%0d row_busy=%0d eth_live=%0d tb_ok=%0d dbg_src=%04x tap_raw 全黑比例 %0d/%0d",
+        $display("[tb_v98_top_seam.v:498] DIAG fb_vis=%0d owner_eth=%0d fill_busy=%0d row_busy=%0d eth_live=%0d tb_ok=%0d dbg_src=%04x tap_raw 全黑比例 %0d/%0d",
                  dut.fb_vis, dut.owner_eth, dut.fill_busy, dut.row_busy, eth_live, eth_tb_ok,
                  dbg_src, black_l, n_l);
         line("C0d 屏上真的有片源（不是全黑 / 不是只在图卡那一侧）",
@@ -510,9 +510,9 @@ module tb_v98_top_seam;
         //      “没搬进来”那个解释，真正错的是尺子取错级数）；② 板上看缝左右 10 列有没有暗带
         //      （board/README.md 第 12 行，r59a 之后必看的眼睛判据）。
         //   留在这里当判据只会造出一条不可能成立的判据 ⇒ 打数、不判。
-        $display("[tb_v98_top_seam.v:425] OBS C-tap 观测（不判定）：样本 %0d 格、偏差非零 %0d 格、首格偏差 %0d",
+        $display("[tb_v98_top_seam.v:513] OBS C-tap 观测（不判定）：样本 %0d 格、偏差非零 %0d 格、首格偏差 %0d",
                  tap_cnt, tap_bad, tap_mode);
-        $display("[tb_v98_top_seam.v:427] INFO C-tap 样本 %0d 格、偏 %0d 格、首格偏差 %0d（0 才是对的）",
+        $display("[tb_v98_top_seam.v:515] INFO C-tap 样本 %0d 格、偏 %0d 格、首格偏差 %0d（0 才是对的）",
                  tap_cnt, tap_bad, tap_mode);
         // ---- C1 系列：内容级对齐（本轮升成硬判据）----
         //   这段的历史留着，别让它假装从来没错过：
@@ -526,73 +526,79 @@ module tb_v98_top_seam;
         //   （今天这对 38 % 与 98.5 % 就是这么露馅的）。
         line("C0f whole fb word space written", wdistinct == 38400,
              "de-duplicated write-word index count must cover the full frame once");
-        $display("[tb_v98_top_seam.v:441]      X 读回 %0d 格，落在列 %0d..%0d；去重写过的字下标 %0d/38400",
+        $display("[tb_v98_top_seam.v:529] X 读回 %0d 格，落在列 %0d..%0d；去重写过的字下标 %0d/38400",
                  nxread, xlo, xhi, wdistinct);
         // r59b-1 的核心主张，而且它**不需要**帧缓存里真有内容（只看顶层自己的两个同级标签）
         //   ⇒ 在 #54 那条"拷贝路径建模"补上之前，这一条就是新几何唯一能当场成立的机器判据。
-        $display("[tb_v98_top_seam.v:445]      级数标定：源列 == 第 k 级显示列 >>1 的不符数（样本 %0d）", c1_n3);
+        $display("[tb_v98_top_seam.v:533] 级数标定：源列 == 第 k 级显示列 >>1 的不符数（样本 %0d）", c1_n3);
         for (i0 = 0; i0 < 6; i0 = i0 + 1)
-            $display("[tb_v98_top_seam.v:447]        k=%0d 不符 %0d", i0, c1_kbad[i0]);
+            $display("[tb_v98_top_seam.v:535] k=%0d 不符 %0d", i0, c1_kbad[i0]);
         // 标定实测（826259 格）：k=2 是唯一一处不符为 0 —— 这就是 mapper 那三级寄存器与
         //   `x_d[k] = x(T-1-k)` 这个下标约定的合力：mapper 输出 = 输入延迟 3 拍 = x_d[2]。
         //   写成 k=2 而不是"存在某个 k"：判据要能红，就必须钉死一个具体的级数（改几何时会红给它看）。
         line("C1g VIEWPORT col: src == x_d[2]>>1", c1_n3 > 50000 && c1_kbad[2] == 0,
              "整屏一个视口：顶层要的源列必须等于第 2 级显示列 >>1（标定实测 k=2 唯一为零）");
-        $display("[tb_v98_top_seam.v:453]      C1h 跳过帧底夹紧 %0d 格（sy==299）；行不符 %0d", c1_clamp, c1_geom_bad_row);
+        $display("[tb_v98_top_seam.v:541] C1h 跳过帧底夹紧 %0d 格（sy==299）；行不符 %0d", c1_clamp, c1_geom_bad_row);
         line("C1h VIEWPORT row: src == (y_d[2]+OFF)>>1", c1_geom_bad_row == 0,
              "行方向同一个定义：两个显示行共用一个源行（600 行面板对应 300 源行）");
-        $display("[tb_v98_top_seam.v:456]      C1g/C1h 样本 %0d 格；列不符(旧口径) %0d", c1_n3, c1_geom_bad);
-        $display("[tb_v98_top_seam.v:457]      X 分层：有效拍 %0d | fb_rd 是 X 的 %0d | fb_pix_hold 是 X 的 %0d | fb_out 是 X 的 %0d",
+        $display("[tb_v98_top_seam.v:544] C1g/C1h 样本 %0d 格；列不符(旧口径) %0d", c1_n3, c1_geom_bad);
+        $display("[tb_v98_top_seam.v:545] X 分层：有效拍 %0d | fb_rd 是 X 的 %0d | fb_pix_hold 是 X 的 %0d | fb_out 是 X 的 %0d",
                  n_blank, xr_rd, xr_hold, xr_out);
         line("C0e RULER self-consistent", n_l > 0 && bad_l >= hl_c[0],
              "out-of-range bucket must be a subset of the mismatch set");
         line("C1a content-check coverage", c1_n > 50000,
              "in-line left-pane samples below 50k means nothing was measured");
-        $display("[tb_v98_top_seam.v:463]      C1 样本 %0d 格（跳过出界/行首尾 %0d）；Δcol 首值 %0d、Δrow 首值 %0d、跳变 %0d 次",
+        $display("[tb_v98_top_seam.v:551] C1 样本 %0d 格（跳过出界/行首尾 %0d）；Δcol 首值 %0d、Δrow 首值 %0d、跳变 %0d 次",
                  c1_n, c1_skip, c1_fcol, c1_frow, c1_varies);
-        // C1b/C1c/C1d 本轮**只报数**，而且是**明知它现在不成立**才不判的：
-        //   实测 `tap_raw`（= `dut.orig_disp`，左窗混色级抽头）里 X 占的比例见上面 C1 那一行，
-        //   而 X 不是来自 skid 链、是来自更上游的 `dut.fb_out`（台架开头那几条 DBG 就是 X）。
-        //   ⇒ 缺口的位置比上一版写得更具体了：**台架没有把"DDR→显示帧缓存"这条路建模到位**
-        //     （我这轮的探针数的是 `dut.aw_wr_en` —— 那是 AXI 写通道那一侧的 enable，
-        //      不是显示帧缓存 `u_fb` 的写口，所以 115200 那个数说明不了"显示帧缓存被写满三帧"）。
-        //   升成硬判据的前置条件（按顺序）：① 找对显示帧缓存的写口与读口（`u_fb` 的 `wr_en`/`rd_data`），
-        //     ② 证明一个 512x300 的字确实从 DDR 进了被显示的那一颗，③ 才谈 Δcol/Δrow 是否为 0。
-        //   在那之前，"标签与内容同列"（r59a 的卖点）**唯一的凭据仍然是板级眼睛**
-        //     —— `board/README.md` 第 22 行。这一条不因为台架做不到而暂缓。
-        $display("[tb_v98_top_seam.v:475] OBS C1e X 占比 %0d/%0d（>10%% ⇒ C1b/C1c/C1d 全都不算数，见上面那段前置条件）",
-                 c1_hasx, c1_n);
-        $display("[tb_v98_top_seam.v:477] OBS C1b/C1c/C1d（不判定）Δcol 不符 %0d、Δrow 不符 %0d、恒定 %0d（首值见上一行 C1 那行）",
-                 c1_colbad, c1_rowbad, (c1_varies == 0) ? 1 : 0);
-        $display("[tb_v98_top_seam.v:479]      观测（老尺子，仅供以后对比）：左窗 n=%0d 不符=%0d；右窗列不符=%0d",
+        // #78（2026-09-26 01:45）：这一段以前是"明知不成立所以只报数"，理由写的是
+        //   "台架没把 DDR→显示帧缓存建模到位"。**那个理由错了**：真因是两个台架 bug
+        //   （split_ctl 加宽到 19 位后台架还接 14 位 ⇒ 高位 Z ⇒ inv_used/sx/sy/rd_addr 全 X；
+        //    以及 DDR 初始化里"一个表达式连调四次函数"在 xsim 给 X）。修完之后
+        //   窗口内 X 占比实测 0/826259、Δcol 不符 0 ⇒ **X 前置与 Δcol 从今天起是硬判据**。
+        //   行方向还留着：Δrow 不符 3704（0.45%）+ M2 一帧内变化 4192 次，形状指向
+        //   "行边界那几列：第 11 级的行标签已经跳行而内容还在本行"（见 300 行那段注释）——
+        //   没解释干净之前**不转硬**，也不许为了绿去放宽阈值或改成"允许 ±1"。
+        //   ⚠ 走 `line()` 的 tag/说明**必须是 ASCII**：这个 task 的实参是定宽向量，而含 ≥0x80 字节的
+        //   字符串一被赋给定宽向量就按字节砍掉 bit7（#55 记过），症状是判据名在日志里全是乱码 ——
+        //   树上那些老 `line()` 就是这个形状，新写的两条改成 ASCII，中文放进直接的 $display（那条不截）。
+        $display("[tb_v98_top_seam.v:564]        C1 样本 %0d 格（跳过出界/行首尾 %0d）；X 格 %0d；Δcol 不符 %0d、Δrow 不符 %0d；Δcol 首值 %0d、Δrow 首值 %0d、跳变 %0d 次",
+                 c1_n, c1_skip, c1_hasx, c1_colbad, c1_rowbad,
+                 c1_fcol, c1_frow, c1_varies);
+        line("C1e PRECONDITION no X inside the measurement window", c1_hasx == 0,
+             "with X present every dcol/drow below is false-green on an empty set (#78)");
+        line("C1c content column == display column >> 1", c1_colbad == 0,
+             "single-viewport geometry, content-level evidence (was a NOTE before #78)");
+        $display("[tb_v98_top_seam.v:571] OBS C1d 行方向（未转硬，先解释 #54 剩下的第 5 条）：Δrow 不符 %0d、跨帧恒定 = %0d",
+                 c1_rowbad, (c1_varies == 0) ? 1 : 0);
+        $display("[tb_v98_top_seam.v:573] 观测（老尺子，仅供以后对比）：左窗 n=%0d 不符=%0d；右窗列不符=%0d",
                  n_l, bad_l, bad_r_col);
         // ⚠ 这一条原来写的是 `... 恒定 = %0s ...", m2_mode, (m2_varies==0)?"是":"否", n_r` ——
         //   三元式里两个字符串字面量在 Verilog 里会**折成较短操作数的位宽**（实测：整行输出成乱码，
         //   连前面的 `%0d` 都被带歪），所以这里一律改成数字 + 单独一句中文说明。
         //   见 `skill/bench_verilog_subset.md` 第 9 类。
-        $display("[tb_v98_top_seam.v:485] M2 右窗行偏移（全旁路，今天只报数）：众数=%0d 变化次数=%0d 样本=%0d",
+        $display("[tb_v98_top_seam.v:579] M2 右窗行偏移（全旁路，今天只报数）：众数=%0d 变化次数=%0d 样本=%0d",
                  m2_mode, m2_varies, n_r);
         for (i0 = 0; i0 < 14; i0 = i0 + 1)
-            if (hist[i0] != 0) $display("[tb_v98_top_seam.v:488]      Δrow%0d : %0d 点", i0 - 7, hist[i0]);
+            if (hist[i0] != 0) $display("[tb_v98_top_seam.v:582] Δrow%0d : %0d 点", i0 - 7, hist[i0]);
         // 左窗的两条直方图 = **尺子诊断**：如果 Δ 全挤在 +1/-1 或奇偶两格，那是映射/相位/端序的问题，
         // 不是硬件错位；如果是一条宽分布，才是真的没对齐。
         for (i0 = 1; i0 < 10; i0 = i0 + 1)
-            if (hl_c[i0] != 0) $display("[tb_v98_top_seam.v:492]      左窗 Δcol%0d : %0d 点", i0 - 5, hl_c[i0]);
+            if (hl_c[i0] != 0) $display("[tb_v98_top_seam.v:586] 左窗 Δcol%0d : %0d 点", i0 - 5, hl_c[i0]);
         for (i0 = 1; i0 < 10; i0 = i0 + 1)
-            if (hl_r[i0] != 0) $display("[tb_v98_top_seam.v:494]      左窗 Δrow%0d : %0d 点", i0 - 5, hl_r[i0]);
-        if (hl_c[0] != 0) $display("[tb_v98_top_seam.v:495]      左窗 Δcol 超出±5 : %0d 点（量程不够 / 内容根本不是这张图）", hl_c[0]);
-        if (hl_r[0] != 0) $display("[tb_v98_top_seam.v:496]      左窗 Δrow 超出±5 : %0d 点", hl_r[0]);
-        $display("[tb_v98_top_seam.v:497]      ⇒ 非 0 是**已知的**：`cy_r` 提前 OFF_LINES 行补的是链子内容滞后，全旁路时链子不滞后。");
-        $display("[tb_v98_top_seam.v:498]        V8-4b（单流 + 链前/链后两抽头）之后这一格必须是 0，届时把 M2 转成硬判据。");
+            if (hl_r[i0] != 0) $display("[tb_v98_top_seam.v:588] 左窗 Δrow%0d : %0d 点", i0 - 5, hl_r[i0]);
+        if (hl_c[0] != 0) $display("[tb_v98_top_seam.v:589] 左窗 Δcol 超出±5 : %0d 点（量程不够 / 内容根本不是这张图）", hl_c[0]);
+        if (hl_r[0] != 0) $display("[tb_v98_top_seam.v:590] 左窗 Δrow 超出±5 : %0d 点", hl_r[0]);
+        $display("[tb_v98_top_seam.v:591] ⇒ 非 0 是**已知的**：`cy_r` 提前 OFF_LINES 行补的是链子内容滞后，全旁路时链子不滞后。");
+        $display("[tb_v98_top_seam.v:592] V8-4b（单流 + 链前/链后两抽头）之后这一格必须是 0，届时把 M2 转成硬判据。");
         // ⚠ 原来这一条写成 `line("M3 ...", m2_varies == 0 || 1'b1, ...)` —— 那个 `|| 1'b1`
         //   使它**永远不可能红**，是仓库自己定的规矩里明令禁止的"假判据"（见
         //   `skill/bench_self_inflicted_reds.md`）。今天右窗的内容期望还没修对（见上面 C1/C2 那段），
         //   所以这里**没有任何一条**关于行偏移的判据能成立 ⇒ 老老实实只报数，
         //   等 C1/C2 的前置条件（两个自相矛盾的计数器先一致）满足后，再把"跨帧恒定 + 恒等于 +OFF_LINES"
         //   一起转成硬判据 —— 那时它才有可能是红的。
-        $display("[tb_v98_top_seam.v:505] OBS M3 右窗行偏移跨帧是否恒定（不判定，内容期望未修对）：恒定 = %0d（1=恒定，0=一帧一变），变化次数 %0d",
+        $display("[tb_v98_top_seam.v:599] OBS M3 右窗行偏移跨帧是否恒定（不判定，内容期望未修对）：恒定 = %0d（1=恒定，0=一帧一变），变化次数 %0d",
                  (m2_varies == 0) ? 1 : 0, m2_varies);
-        $display("[tb_v98_top_seam.v:507] INFO 统计 frames=%0d ar=%0d r=%0d odd=%0d outwin=%0d n_l=%0d bad_l=%0d n_r=%0d bad_r_col=%0d",
+        $display("[tb_v98_top_seam.v:601] INFO 统计 frames=%0d ar=%0d r=%0d odd=%0d outwin=%0d n_l=%0d bad_l=%0d n_r=%0d bad_r_col=%0d",
                  frames_done, ar_bursts, r_beats, odd_align, out_of_window, n_l, bad_l, n_r, bad_r_col);
         if (nfail == 0) $display("RESULT tb_v98_top_seam PASS");
         else            $display("RESULT tb_v98_top_seam FAIL nfail=%0d", nfail);

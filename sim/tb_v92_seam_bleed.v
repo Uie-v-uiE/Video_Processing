@@ -224,7 +224,7 @@ module tb_v92_seam_bleed;
                 for (k = 0; k < NC; k = k + 1) if (!have[me][k]) miss = miss + 1;
             // 注：have 的位宽按 0..2 + 对照区排布，NC 已经包含整段
             expect("C0 十六个采样点全部真的抓到（量具没空跑）", miss == 0);
-            if (miss) $display("[tb_v92_seam_bleed.v:227]      缺采样 %0d 个", miss);
+            if (miss) $display("[tb_v92_seam_bleed.v:227] 缺采样 %0d 个", miss);
         end
         // C1 牙齿对照：每一级都必须**真的**被自己的左邻影响得到，否则下面的"没变"不算证据
         for (me = 0; me < 4; me = me + 1) begin
@@ -234,7 +234,7 @@ module tb_v92_seam_bleed;
                     if (wmove < 0) wmove = SP0 + k;
                     wcnt = wcnt + 1;
                 end
-            $display("[tb_v92_seam_bleed.v:237]      %0s 对照区：扰动让 %0d 列的输出变了，最先变的是第 %0d 列（左邻在第 199 列）",
+            $display("[tb_v92_seam_bleed.v:237] %0s 对照区：扰动让 %0d 列的输出变了，最先变的是第 %0d 列（左邻在第 199 列）",
                      name_of(me), wcnt, wmove);
             chk("C1", me, wcnt >= 1, "左邻(199)变 HOT 时对照区必须有一列跟着变");
         end
@@ -291,7 +291,7 @@ module tb_v92_seam_bleed;
                         val_buf  = {val_buf, " ", mv ? 16'h2323 : 16'h2E2E, 16'h2020};
                     end
                     $display("[tb_v92_seam_bleed.v:293] %0s  源行偏移 d%0d ：%0s", name_of(me), dy, line_buf);
-                    $display("[tb_v92_seam_bleed.v:294]             每格 ##=受影响 .=不受影响（基线值 %h 与扰动后 %h 只在上面 C2 那行打印）",
+                    $display("[tb_v92_seam_bleed.v:294] 每格 ##=受影响 .=不受影响（基线值 %h 与扰动后 %h 只在上面 C2 那行打印）",
                      base_v[me], got[me][3 + (TGT - SP0)]);
                 end
             end
@@ -302,7 +302,7 @@ module tb_v92_seam_bleed;
 
         $display("");
         $display("[tb_v92_seam_bleed.v:304] 说明 C2/C3 现在的红是**登记在册的缺陷**（blur 只挡首行、sobel 两个都不挡），");
-        $display("[tb_v92_seam_bleed.v:305]      修法是让三/四个窗口级共用同一套边界约定，见 ISSUES #54 (A') 与 #56。");
+        $display("[tb_v92_seam_bleed.v:305] 修法是让三/四个窗口级共用同一套边界约定，见 ISSUES #54 (A') 与 #56。");
         $display("");
         if (errors == 0) $display("PASS tb_v92_seam_bleed");
         else             $display("FAIL tb_v92_seam_bleed errors=%0d", errors);

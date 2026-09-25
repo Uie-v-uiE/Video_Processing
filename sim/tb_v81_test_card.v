@@ -142,7 +142,7 @@ module tb_v81_test_card;
             for (i = 0; i < 8; i = i + 1) begin
                 px(i*BW+16, Y_BAND+5, v);
                 w = ((16'hA5 >> (7-i)) & 16'h1) ? C_WHITE : C_CELL0;
-                if (v !== w) begin bad = bad + 1; $display("[tb_v81_test_card.v:145]   格 %0d got=%h exp=%h", i, v, w); end
+                if (v !== w) begin bad = bad + 1; $display("[tb_v81_test_card.v:145] 格 %0d got=%h exp=%h", i, v, w); end
             end
             expect("T11 帧号 0xA5 的 8 个二值格逐位正确（拍照即可读出帧号）", bad == 0);
             px(0*BW+1, Y_BAND+5, v);
