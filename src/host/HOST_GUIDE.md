@@ -276,3 +276,22 @@ node src\host\ddr_stale.mjs            :: 单独分析上一次落盘的 data/me
 node src/host/video_sender.mjs --test frameid --fps 15 --count 200 --mtu-payload 1396
 node src/host/measure_v63.mjs --fps 15 --count 200        :: 1392 对照
 ```
+
+## V8-11 双击就推真视频：`stream_video.bat`（2026-09-25 傍晚）
+
+根目录的 `stream_video.bat` 双击即推：默认推 `D:\UserData\Downloads\a.mp4`，也可以把文件拖到图标上，
+或 `stream_video.bat D:\path\to.mp4 30`（第二个参数是帧率）。
+
+它做的事只有一件：让 ffmpeg 把视频解成面板要的 **512x300 RGB565 裸流**，用管道喂给
+`node src/host/video_sender.mjs --file -`（这个 stdin 模式是本轮加的）。三条都是刻意的：
+
+- **不在 node 里解 mp4** —— 解码交给 ffmpeg，发送端只按帧边界切片；
+- **不发半帧** —— 末尾不足 307200 字节的残片直接丢掉并报数：半帧会让板端"这一帧少一行"变成常态，
+  `frames_bad` / `rows_miss_max` 从此没法对账；
+- **保留发送端 15 MB/s 的包内匀速** —— `-re` 给的是帧到达节奏，包仍然匀速铺开：
+  221 包以线速倾泻会打爆板端入包 FIFO（早期踩过）。
+- 比例用 `scale=512:288,pad=512:300:0:6` 保 16:9（上下各 6 行黑），不把 16:9 硬拉成 512:300。
+
+**本轮实测（读的是板上硬件计数器，不是脚本自说自话）**：16 s 片段 ⇒ 发送端
+`stream end: 480 frames, 106080 pkts (dropped 0)` = 正好 30 fps；流中间
+`drop_words=0`、`owner_eth=1`、`eth_live=1`（AUTO 下自动接管）。Ctrl+C 停。

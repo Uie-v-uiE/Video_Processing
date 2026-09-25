@@ -40,6 +40,10 @@ const COUNT = Number(get('count', 0));
 const TEST = String(get('test', 'bars'));
 // --dump <文件>：把最后两帧写到 <文件> 和 <文件>.prev，供 host/ddr_verify.mjs --ref 逐字节比对
 const DUMP = typeof get('dump', null) === 'string' ? String(get('dump', '')) : null;
+// V8-11：`--file -` = 真实视频（ffmpeg 解出来的 512x300 RGB565 裸流）从 stdin 进来。
+// 只认 `-`：把 mp4 塞进 node 再解等于在发送端重做一遍解码；而管道里字节的到达时机
+// 就是 ffmpeg `-re` 给的实时节奏 ⇒ 这里只按帧边界切片，限速沿用 paceSpend（保护板端入包 FIFO）。
+const FILE = typeof get('file', null) === 'string' ? String(get('file', '')) : null;
 let lastFrame = null;
 
 const buf = Buffer.alloc(FRAME_BYTES);
@@ -232,6 +236,35 @@ function tick() {
   setTimeout(tick, d > 0 ? d : 0);
   if (d <= 0) nextT = Date.now();
 }
-tick();
+
+// V8-11：真实视频模式。切片规则 = 每 FRAME_BYTES 一帧；末尾不足一帧的残字节丢掉（不是截半帧，
+// 因为半帧会让板端"这一帧少一行"变成常态，读数就没法对账了）。
+function startStdinPump() {
+  let acc = Buffer.alloc(0), lastReport = Date.now();
+  console.log(`[TX] source = stdin raw rgb565 ${W}x${H} -> ${IP}:${PORT} (${FRAME_BYTES} B/frame)`);
+  process.stdin.on('data', (chunk) => {
+    acc = acc.length ? Buffer.concat([acc, chunk]) : chunk;
+    while (acc.length >= FRAME_BYTES) {
+      const fr = Buffer.from(acc.subarray(0, FRAME_BYTES));
+      acc = acc.subarray(FRAME_BYTES);
+      sendFrame(fr);
+      n++;
+      if (n === 1) console.log(`[TX] first frame ${FRAME_BYTES} B = ${Math.ceil(FRAME_BYTES / MTU)} pkts`);
+      if (n % 60 === 0 || Date.now() - lastReport > 3000) {
+        lastReport = Date.now();
+        console.log(`[TX] frames=${n} sent_pkts=${sentPkts} dropped=${droppedPkts}`);
+      }
+    }
+  });
+  process.stdin.on('end', () => {
+    const left = acc.length;
+    if (left) console.log(`[TX] 丢掉末尾残帧字节 ${left} B（不足一帧 ⇒ 故意不发半帧）`);
+    console.log(`[TX] stream end: ${n} frames, ${sentPkts} pkts (dropped ${droppedPkts})`);
+    setTimeout(() => { sock.close(); process.exit(0); }, 1000);
+  });
+  process.stdin.resume();
+}
+
+if (FILE === '-') startStdinPump(); else tick();
 
 process.on('SIGINT', () => { console.log(`\n[TX] sent ${n} frames`); sock.close(); process.exit(0); });
