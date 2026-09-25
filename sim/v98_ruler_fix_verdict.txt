@@ -1,0 +1,20 @@
+#78 台架尺子修复的对照凭据（.log 被 .gitignore 挡着，所以只落这些行）
+# 病前：sim/v98run/run_base.log   病后：sim/v98run/run_z.log   隔离实验：sim/xtest.v
+
+[病前] X 分层：有效拍 3072000 | fb_rd 是 X 的 3072000 | fb_pix_hold 3072000 | fb_out 3072000
+[病前] Xborn: 从机 rvalid=38400 其中字含X=38400 | fb 写=38400 其中数据含X=38400
+[病前] Xborn: 有效拍=1843200：rd_addr 是 X 的=1793027，fb_rd 是 X 的=1843200
+[病前] Xborn3: gp(19位几何)=zzzzz00000000000000 inv_used=X sx=x sy=x
+[病前] Xborn1: rvalid#1 w0=0 beat=0 rdata=000300xxxxxxxxxx ddr[0]=000300xxxxxxxxxx
+[病前] OBS C1e X 占比 826259/826259 ；OBS C-tap 样本 892270、偏差非零 0（空集上绿）
+
+[病后] Xborn: 从机 rvalid=38400 其中字含X=0 | fb 写=38400 其中数据含X=0
+[病后] Xborn: 阵列含 X 的字数=2560，首个下标=38400  ← 正好是从未写的越界尾巴（lo+hi=40960 > WORDS=38400），不是病
+[病后] Xborn: 有效拍=1843200：rd_addr 是 X 的=0，fb_rd 是 X 的=1228944（早帧/消隐/出界窗口，C1 的窗口里没有）
+[病后] Xborn3: gp=0000000000000000000 inv_used=256 sx=0 sy=0 oob=1 rd_addr=0
+[病后] OBS C1e X 占比 0/826259
+[病后] OBS C1b/C1c/C1d：Δcol 不符 0、Δrow 不符 3704、恒定 0（样本 826259）
+[病后] M2 右窗行偏移：众数=0 变化次数=4192 样本=935340
+[病后] 老尺子（左/右窗，已失效）：n=892270 不符=892270；右窗列不符=928200
+[病后] PASS C0a2 模型回读 | 初始化之后回读 ddr[0] 与 ddr[最后一格]
+[病后] RESULT tb_v98_top_seam PASS

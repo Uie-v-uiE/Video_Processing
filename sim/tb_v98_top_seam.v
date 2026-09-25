@@ -18,17 +18,18 @@
 //   C-tap 【硬】混色级的列标签必须与它正在取的内容**同一列**：比的是 DUT 内部两个坐标
 //         （`sx_l/sy_l` 与 `x_d11/y_d11`），**不依赖帧缓存里是什么** ⇒ 这条就是 #68 的判据，
 //         今天必须红（实测 sx_l = mix_x + 9），V8-4b 把标签由深度推出来之后必须绿。
-//   C1/C2 【降级为 NOTE】"屏上那一格的内容是不是我喂的那张图"——今天量不准，原因在**台架自己**：
-//         我的 AXI 从机响应得太快（真实 DDR 有延迟、固件按帧节流），而显示帧缓存的写被调度到消隐期，
-//         于是一次 publish 只搬得动一小截，其余格子在仿真里是 X（凭据：`tap_raw=xxxx`、
-//         `fill_busy=1` 一直挂着、`ar=2401` 恰好等于一帧的突发数）。
-//         ⇒ 记成**已知缺口**（任务 #49 的"还欠什么"），不许当"已经验过内容对齐"。
-//   M2  右窗**行**偏移：今天允许非 0 并只打印 + 直方图 ——
-//        读地址的提前量 `cy_r` 补的是"链子的内容滞后"，全旁路时链子不滞后 ⇒ 理论上正好差 OFF_LINES 行。
-//        这正是 #62 说的那一族；V8-4b（单流 + 链前/链后两抽头）之后必须是 0，**那时把 M2 转成硬判据**。
-//        今天既不许为了绿删掉它，也不许拿它当红去改 RTL（它是设计输入，不是错误）。
+//   C1/C2 【#78 之后已经能用了】"屏上那一格的内容是不是我喂的那张图"。
+//         以前它全程在数 X（两个真 bug：① split_ctl 加宽到 19 位后台架还接 14 位 ⇒ 高 5 位是 Z
+//         ⇒ fit_en 是 Z ⇒ inv_used/sx/sy/rd_addr 全 X；② DDR 初始化那条"一行里四次调用函数再拼接"
+//         在 xsim 里低 40 位给 X）。修完之后实测：窗口内 X 占比 0/826259、**Δcol 不符 0**。
+//         剩下的 Δrow 不符 3704（0.45%）与 M2 变化 4192 指向"行边界那几列标签跳行"，还没转成硬判据
+//         —— 全部细节与凭据：report/ISSUES.md #78、sim/v98_ruler_fix_verdict.txt。
+//   M2  右窗行偏移：**今天众数已经是 0**（V8-4b 预言对了），但一帧之内还会变几千次
+//        ⇒ 转硬判据之前要先解释那几千次（见 #78 剩下的第 5 条）。
 //   M3  右窗行偏移必须**跨帧恒定**（常数在几都行）⇒ 这是 SPLIT_TAP 可推导的前提；
 //        如果它一帧一变，那说明顶层还有一条我们没建模的反馈路径，V8-4b 之前必须先解释掉。
+//   ⚠ 自校准的形状（#78 的教训）：C0a 只验"函数对不对"，验不到"写进数组之后对不对"——
+//     当年函数是好的、数组是 X，C0a 一路 PASS。所以多了 C0a2 **模型回读**。
 //
 // ⚠ 观测全走层次引用（`dut.` 里的并行像素与标签），**不读 DVI 引脚**：
 //   `sim/prim/unisims_sim.v` 的 OSERDESE2 是占位件、不串行化 ⇒ 读它就等于信它。
@@ -83,7 +84,12 @@ module tb_v98_top_seam;
     wire [2:0]  tmds_data_p, tmds_data_n;
     wire [1:0]  led;
 
-    reg  [13:0]  split_ctl_tb = 14'd0;   // 缝位/auto/follow/swap/marker 全默认（tb_v97 才动缝）
+    // ⚠ #78：这份 tie 必须是 **19 位**。r62（V9）把 `split_ctl` 从 14 位加宽到 19 位时
+    //   只改了综合树里的两个顶层（`ports_check` 抓到了 `pl_demo_top`），**台架不在综合树里 ⇒ 没人抓它**：
+    //   14 位的 tie 接到 19 位端口，xsim 把高位填成 Z ⇒ `gp[18:14]=zzzzz` ⇒ `fit_en` 是 Z ⇒
+    //   `inv_used = fit_en ? inv_fit : inv_scale` 出 X ⇒ sx/sy/rd_addr 全 X ⇒ **fb_rd 100% 是 X**
+    //   （这就是"内容级判据全是空的"的第一因；证据 `[Xborn3] gp(19位几何)=zzzzz00000000000000`）。
+    reg  [18:0] split_ctl_tb = 19'd0;   // 缝位/auto/follow/swap/marker/旋转三位/fit 全默认
     pl_video_top dut (
         .sys_clk(sys_clk), .sys_rst_n(sys_rst_n), .axi_clk(axi_clk), .axi_rst_n(axi_rst_n),
         .effect_en(effect_en), .stage_sel(stage_sel), .threshold(threshold), .gamma_ctl(gamma_ctl),
@@ -106,7 +112,14 @@ module tb_v98_top_seam;
     );
 
     // ---------------- 坐标即值的那张图 ----------------
-    function [15:0] px_val; input integer r; input integer c;
+    // ⚠ #78：端口用定宽向量（不是 `integer`）只是**顺手统一写法**，真因是另一件事：
+    //   在**一条表达式里连调四次同一个 function 再拼接**，xsim 在这个大台架里给出
+    //   `ddr[0]=000300xxxxxxxxxx`（低 40 位 X）；拆成四个临时寄存器再拼（见下面的 initial）就干净了。
+    //   同样的写法在 20 行的隔离实验 `sim/xtest.v` 里是**干净的**（三种写法都对）⇒ xsim 的根因没查出来，
+    //   但症状与修法都实测过。**教训不是"别那样写"，而是下面那条**：
+    //   尺子的模型必须在**初始化之后回读一格**（C0a 现在这么做了）——
+    //   旧版 C0a 只直接调 `px_val(200,177)` 验函数本身，于是"函数对、数组是 X"这种形状它看不见。
+    function [15:0] px_val; input [31:0] r; input [31:0] c;
         begin px_val = {r[7:0], c[7:0]}; end
     endfunction
     function [7:0] mem_row; input [15:0] v; begin mem_row = v[15:8]; end endfunction
@@ -123,11 +136,21 @@ module tb_v98_top_seam;
 
     reg [63:0] ddr [0:FRAME_WORDS-1];
     integer ii, jj;
+    reg [15:0] p3, p2, p1, p0;
     initial begin
         for (ii = 0; ii < SRC_H; ii = ii + 1)
-            for (jj = 0; jj < WPL; jj = jj + 1)
-                ddr[ii*WPL + jj] = {px_val(ii, jj*4+3), px_val(ii, jj*4+2),
-                                    px_val(ii, jj*4+1), px_val(ii, jj*4)};
+            for (jj = 0; jj < WPL; jj = jj + 1) begin
+                // ⚠ #78：这里先从函数里取到**各自的临时寄存器**再拼 ——
+                //   一行里连调四次同一个函数时，xsim 在这个大台架里给出的低 40 位是 X
+                //   （同样写法在 20 行的隔离实验 `sim/xtest.v` 里是干净的 ⇒ 结论：还没找到真因，
+                //    见 report/ISSUES.md #78 的"未定论"段）。
+                p3 = px_val(ii, jj*4+3); p2 = px_val(ii, jj*4+2);
+                p1 = px_val(ii, jj*4+1); p0 = px_val(ii, jj*4);
+                ddr[ii*WPL + jj] = {p3, p2, p1, p0};
+                if (ii == 0 && jj == 0)
+                    $display("[tb_v98_top_seam.v:151] [Xborn0] 初始化现场 p3=%h p2=%h p1=%h p0=%h -> ddr[0]=%h",
+                             p3, p2, p1, p0, ddr[0]);
+            end
     end
 
     // ---------------- AXI 从机（一次一个突发） ----------------
@@ -188,6 +211,58 @@ module tb_v98_top_seam;
     integer dumped = 0, black_l = 0;            // 前 8 个样本（帧中间）+ 左窗全黑点数
 
     always @(posedge dut.frame_start) frames_done = frames_done + 1;
+
+    // ---- #78 ⓪：先找 X 的**出生地**，再谈机制（每层都带分母，不许只看"有没有"）----
+    //   四层：从机送出的字 → 写进 fb 的字 → fb 阵列本身 → 读出的字。
+    //   阵列里就有一堆 X ⇒ 病在写侧；阵列干净而读出是 X ⇒ 病在读侧（撞沿 / 地址是 X / 选块）。
+    integer xb_rvalid = 0, xb_rdataX = 0, xb_wren = 0, xb_wdataX = 0;
+    integer xb_rdX = 0, xb_addrX = 0, xb_arrX = 0, xb_firstX = -1, xb_k, xb_cyc = 0;
+    reg     xb_done = 0;
+    always @(posedge axi_clk) begin
+        if (m_axi_rvalid) begin
+            xb_rvalid = xb_rvalid + 1;
+            if ((m_axi_rdata ^ m_axi_rdata) !== 64'd0) xb_rdataX = xb_rdataX + 1;
+            // 头 6 拍把"索引三件套 + 读出来的字"并排打出来：X 是在**索引**上还是在**数组**里，一眼分得开
+            if (xb_rvalid <= 6)
+                $display("[Xborn1] rvalid#%0d w0=%0d beat=%0d len=%0d rdata=%h ddr[%0d]=%h",
+                         xb_rvalid, w0, beat, len, m_axi_rdata, w0 + beat, ddr[w0 + beat]);
+        end
+        if (dut.aw_wr_en) begin
+            xb_wren = xb_wren + 1;
+            if ((dut.aw_wr_data ^ dut.aw_wr_data) !== 64'd0) xb_wdataX = xb_wdataX + 1;
+            if (xb_wren <= 3)
+                $display("[tb_v98_top_seam.v:234] [Xborn2] fb写#%0d addr=%0d data=%h", xb_wren, dut.aw_wr_addr, dut.aw_wr_data);
+        end
+    end
+    always @(posedge dut.clk_pix) begin
+        if (dut.de_d[5]) begin
+            xb_cyc  = xb_cyc + 1;
+            if ((dut.rd_addr_q ^ dut.rd_addr_q) !== 19'd0) xb_addrX = xb_addrX + 1;
+            if ((dut.fb_rd   ^ dut.fb_rd)       !== 16'd0) xb_rdX   = xb_rdX   + 1;
+        end
+        if (!xb_done && frames_done >= 4) begin
+            xb_done = 1;
+            for (xb_k = 0; xb_k < 32768; xb_k = xb_k + 1)
+                if ((dut.u_fb.lo[xb_k] ^ dut.u_fb.lo[xb_k]) !== 64'd0) begin
+                    xb_arrX = xb_arrX + 1;
+                    if (xb_firstX < 0) xb_firstX = xb_k;
+                end
+            for (xb_k = 0; xb_k < 8192; xb_k = xb_k + 1)
+                if ((dut.u_fb.hi[xb_k] ^ dut.u_fb.hi[xb_k]) !== 64'd0) begin
+                    xb_arrX = xb_arrX + 1;
+                    if (xb_firstX < 0) xb_firstX = 32768 + xb_k;
+                end
+            $display("[tb_v98_top_seam.v:255] [Xborn] 从机 rvalid=%0d 其中字含X=%0d | fb 写=%0d 拍 其中数据含X=%0d",
+                     xb_rvalid, xb_rdataX, xb_wren, xb_wdataX);
+            $display("[tb_v98_top_seam.v:257] [Xborn] 阵列（lo 32768 + hi 8192 = 40960 字）里含 X 的字数=%0d，首个下标=%0d",
+                     xb_arrX, xb_firstX);
+            $display("[tb_v98_top_seam.v:259] [Xborn] 有效拍=%0d：rd_addr 是 X 的=%0d，fb_rd 是 X 的=%0d",
+                     xb_cyc, xb_addrX, xb_rdX);
+            // 几何那一路的 X 是分开的第二个症状（地址 X ⇒ 读哪儿都是 X）：把源头三格一起念出来
+            $display("[tb_v98_top_seam.v:262] [Xborn3] gp(19位几何)=%b inv_used=%d sx=%d sy=%d oob=%b rd_addr=%d",
+                     dut.gp, dut.inv_used, dut.sx, dut.sy, dut.oob, dut.rd_addr_q);
+        end
+    end
 
     // ---- 探针（本轮的 NOTE C1/C2 缺口就是为了它）：到底有没有写进显示帧缓存？----
     //   只数三个东西：① `u_fb.wr_en` 的拍数（= 真正落到帧缓存的字）；② 搬运机自己的
@@ -385,14 +460,27 @@ module tb_v98_top_seam;
         for (i0 = 0; i0 < 10; i0 = i0 + 1) begin hl_c[i0] = 0; hl_r[i0] = 0; end
 
         // ---- C0a 尺子校准：在任何测量之前先证明尺子对 ----
+        //   #78 之后覆盖加宽：0 与"小列号"那一组是当年漏掉的（整数取位给 X 恰好不在 (200,177) 上出现），
+        //   还有帧底/帧右两个边界（编码是 8 bit，299/511 会回绕，回绕方向也要一起验）。
         line("C0a 尺子", mem_row(px_val(200,177)) == 8'd200 && mem_col(px_val(200,177)) == 8'd177
+             && px_val(0,0) == 16'h0000 && mem_row(px_val(0,2)) == 8'd0 && mem_col(px_val(0,2)) == 8'd2
+             && mem_row(px_val(1,255)) == 8'd1  && mem_col(px_val(1,255)) == 8'hFF
+             && mem_row(px_val(299,511)) == 8'd43 && mem_col(px_val(299,511)) == 8'd255
              && dsub(8'd2, 8'd254) == 4 && dsub(8'd254, 8'd2) == -4 && dsub(8'd0, 8'd255) == 1,
-             "px_val / 解码 / 模 256 有符号差三者自洽（含回绕两个方向）");
+             "px_val / 解码 / 模 256 有符号差三者自洽（含 0、小值、两个边界与回绕两个方向）");
 
         // ---- 复位释放 ----
         repeat (4) @(posedge sys_clk);
         sys_rst_n = 1; axi_rst_n = 1;
         repeat (10) @(posedge axi_clk);
+
+        // ---- C0a2 模型回读（#78 新增的那一格）----
+        //   放在复位之后再读：两个 initial 块（DDR 建模 vs 这一段）在 t=0 的先后是不确定的，
+        //   而且"验函数"与"验被写进数组的东西"是两件事 —— 这次骗过所有人的正是后者。
+        //   读首尾两格：尾格 (299,508..511) 同时钉住"行号 8 bit 回绕"与"数组最后一个字真的写到了"。
+        line("C0a2 模型回读", ddr[0] == 64'h0003_0002_0001_0000
+             && ddr[FRAME_WORDS-1] == 64'h2BFF_2BFE_2BFD_2BFC,
+             "初始化之后回读 ddr[0] 与 ddr[最后一格]（函数对 ≠ 数组对）");
 
         // ---- 跑到够帧数（发布位每帧翻一次，模拟"PS 每帧写完敲一次"） ----
         // 刻意**不用** fork/join_any/disable fork：那是 SystemVerilog 构造，而这份台架按 Verilog 编译。

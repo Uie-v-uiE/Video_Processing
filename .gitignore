@@ -107,3 +107,12 @@ study/
 # xsim/vivado 就地生成的工程壳：跑批时留在原地会污染 git status（2026-09-24 加）
 .srcs/
 xsim.dir/
+
+# 2026-09-26：读口探针与台架的一次性运行目录（vivado/xsim 生成物，重跑方法在各自 README/注释里）
+build/micro_rd/proj_*/
+build/micro_rd/gen/
+sim/v98run/
+sim/xtest/
+sim/tagchk/
+sim/syntaxchk/
+sim/v100run2/
