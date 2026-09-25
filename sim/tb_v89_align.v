@@ -133,7 +133,7 @@ module tb_v89_align;
     task expect; input [100*8:1] name; input cond;
         begin
             if (cond !== 1'b1) begin errors = errors + 1; $display("  FAIL %0s", name); end
-            else $display("  PASS %0s", name);   // 打出来：看不到"判过什么"的判据等于没判（#60）
+            else $display("[tb_v89_align.v:136]   PASS %0s", name);   // 打出来：看不到"判过什么"的判据等于没判（#60）
         end
     endtask
 
@@ -180,9 +180,9 @@ module tb_v89_align;
         end
 
         $display("");
-        $display("=== 旁路下的「数据 vs 标签」错位量（像素值=坐标；单位：一行/一个像素）===");
-        $display("    整帧那一列把首行/首列也算进来（窗口级在那里走的是「缓存还没内容」的分支），");
-        $display("    判据只看**内部**那一列：错位必须是一个固定值，边界几格由数字说话。");
+        $display("[tb_v89_align.v:183] === 旁路下的「数据 vs 标签」错位量（像素值=坐标；单位：一行/一个像素）===");
+        $display("[tb_v89_align.v:184]     整帧那一列把首行/首列也算进来（窗口级在那里走的是「缓存还没内容」的分支），");
+        $display("[tb_v89_align.v:185]     判据只看**内部**那一列：错位必须是一个固定值，边界几格由数字说话。");
         dr_sum = 0; dr_chain = 0;
         for (kk = 0; kk < 5; kk = kk + 1) begin
             // 整帧峰值（只报数）
@@ -197,28 +197,28 @@ module tb_v89_align;
             for (ii = 0; ii < NG; ii = ii + 1)
                 for (jj = 0; jj < NG; jj = jj + 1)
                     if (hbi[kk][ii*NG + jj] > biv) begin biv = hbi[kk][ii*NG + jj]; ii2 = ii; jj2 = jj; end
-            $display("%0s  整帧 d=(%0d,%0d) %0d/%0d 越界%0d | 内部 d=(%0d,%0d) %0d/%0d 越界%0d | 收到 %0d 拍",
+            $display("[tb_v89_align.v:200] %0s  整帧 d=(%0d,%0d) %0d/%0d 越界%0d | 内部 d=(%0d,%0d) %0d/%0d 越界%0d | 收到 %0d 拍",
                      name_of(kk), bi - 5, bj - 5, bv, tot, obc[kk],
                      ii2 - 5, jj2 - 5, biv, totv, obi[kk], cnt[kk]);
             if (biv != totv) begin
                 // 这不是"模型错了"，而是**真实存在的第二个偏移**：sobel 的 +2 列会在每行末尾
                 // 绕到下一行开头，所以它内部有两种偏移（27 个 ≈ 每行 2 个 × 13 行）。
                 // 数量当凭据报出来，别判红 —— 判红会让这条真实发现被当成量具坏了。
-                $display("  NOTE S1 %0s：内部有 %0d/%0d 个样本落在第二个偏移上（行末回绕/边界逻辑）",
+                $display("[tb_v89_align.v:207]   NOTE S1 %0s：内部有 %0d/%0d 个样本落在第二个偏移上（行末回绕/边界逻辑）",
                          name_of(kk), totv - biv, totv);
                 nsec[kk] = totv - biv;
             end else nsec[kk] = 0;
             if (totv == 0) begin
-                $display("  FAIL S1c %0s：内部一个样本都没采到 ⇒ 量具自己坏了（MARGIN 太大？）",
+                $display("[tb_v89_align.v:212]   FAIL S1c %0s：内部一个样本都没采到 ⇒ 量具自己坏了（MARGIN 太大？）",
                          name_of(kk));
                 errors = errors + 1;
             end
             if (obi[kk] != 0) begin
-                $display("  FAIL S1b %0s：内部有 %0d 个样本的偏移落在 ±3 之外", name_of(kk), obi[kk]);
+                $display("[tb_v89_align.v:217]   FAIL S1b %0s：内部有 %0d 个样本的偏移落在 ±3 之外", name_of(kk), obi[kk]);
                 errors = errors + 1;
             end
             if (cnt[kk] != H*W) begin
-                $display("  FAIL S3 %0s：收到 %0d 拍，应为 %0d（de 链多发或漏发）",
+                $display("[tb_v89_align.v:221]   FAIL S3 %0s：收到 %0d 拍，应为 %0d（de 链多发或漏发）",
                          name_of(kk), cnt[kk], H*W);
                 errors = errors + 1;
             end
@@ -267,7 +267,7 @@ module tb_v89_align;
             for (ii = 0; ii < NG; ii = ii + 1)
                 for (jj = 0; jj < NG; jj = jj + 1)
                     if (hbi[4][ii*NG + jj] > biv) begin biv = hbi[4][ii*NG + jj]; ii2 = ii; jj2 = jj; end
-            $display("T1 读侧提前 %0d 行之后，整链内部偏移 d=(%0d,%0d) 一致 %0d/%0d",
+            $display("[tb_v89_align.v:270] T1 读侧提前 %0d 行之后，整链内部偏移 d=(%0d,%0d) 一致 %0d/%0d",
                      OFF, ii2 - 5, jj2 - 5, biv, totv);
             expect("T1 补偿后整链内部偏移 = (0,0)（顶层 cy_r 的提前量由此才有依据）",
                    (ii2 - 5) == 0 && (jj2 - 5) == 0 && biv == totv && totv > 0 && obi[4] == 0);
@@ -278,13 +278,13 @@ module tb_v89_align;
         // 它的 drow 就会与另外两级不同 ⇒ 切换效果时画面会跳一行。
         if (drow_i[1] != drow_i[0] || drow_i[3] != drow_i[0] ||
             dcol_i[1] != dcol_i[0] || dcol_i[3] != dcol_i[0]) begin
-            $display("  FAIL S4 三个窗口级约定不一致：blur=(%0d,%0d) sharp=(%0d,%0d) morph=(%0d,%0d)",
+            $display("[tb_v89_align.v:281]   FAIL S4 三个窗口级约定不一致：blur=(%0d,%0d) sharp=(%0d,%0d) morph=(%0d,%0d)",
                      drow_i[0], dcol_i[0], drow_i[1], dcol_i[1], drow_i[3], dcol_i[3]);
             errors = errors + 1;
         end
-        $display("四个窗口级内部 drow 之和 = %0d；整链内部实测 drow = %0d", dr_sum, dr_chain);
+        $display("[tb_v89_align.v:285] 四个窗口级内部 drow 之和 = %0d；整链内部实测 drow = %0d", dr_sum, dr_chain);
         if (dr_sum != dr_chain) begin
-            $display("  FAIL S2 累加性不成立 ⇒ 「每级各错若干行」的模型是错的，得重查哪一级");
+            $display("[tb_v89_align.v:287]   FAIL S2 累加性不成立 ⇒ 「每级各错若干行」的模型是错的，得重查哪一级");
             errors = errors + 1;
         end
         // T0：修完之后这条会升级成硬判据；今天只报数，不假装绿
@@ -292,7 +292,7 @@ module tb_v89_align;
         // 那是物理不是缺陷。判的是**"偏移必须等于模块自己声明的 OFF_LINES，且逐像素一致"**：
         // 只要这条成立，顶层就能用一个常量把平移补掉（pl_video_top 的 cy_r）；
         // 反过来，谁加了一级窗口级却忘了改 OFF_LINES，或把某一级改成另一套抽头约定，这条立刻红。
-        $display("T0 补偿前整链实测：d=(%0d,%0d) 主偏移占 %0d/%0d，越界 %0d；声明的 OFF_LINES=%0d",
+        $display("[tb_v89_align.v:295] T0 补偿前整链实测：d=(%0d,%0d) 主偏移占 %0d/%0d，越界 %0d；声明的 OFF_LINES=%0d",
                  c4dr, c4dc, c4cons, c4tot, c4ob, OFF);
         expect("T0 整链内部偏移 = (−OFF_LINES, 0) 且 100 % 一致（声明值与行为对得上）",
                c4dr == -OFF && c4dc == 0 && c4cons == c4tot && c4tot > 0 && c4ob == 0);

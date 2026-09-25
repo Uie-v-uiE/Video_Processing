@@ -142,7 +142,7 @@ module tb_v81_test_card;
             for (i = 0; i < 8; i = i + 1) begin
                 px(i*BW+16, Y_BAND+5, v);
                 w = ((16'hA5 >> (7-i)) & 16'h1) ? C_WHITE : C_CELL0;
-                if (v !== w) begin bad = bad + 1; $display("  格 %0d got=%h exp=%h", i, v, w); end
+                if (v !== w) begin bad = bad + 1; $display("[tb_v81_test_card.v:145]   格 %0d got=%h exp=%h", i, v, w); end
             end
             expect("T11 帧号 0xA5 的 8 个二值格逐位正确（拍照即可读出帧号）", bad == 0);
             px(0*BW+1, Y_BAND+5, v);
@@ -202,7 +202,7 @@ module tb_v81_test_card;
                 end
             expect("T14 图卡跨帧确实变了（这就是通路在刷新的可视证据）", diff_card > 0);
             expect("T15 反面对照：静止彩条跨帧一个像素都不变", diff_static == 0);
-            $display("INFO 跨帧变化像素 card=%0d color_bar=%0d（共 %0d）",
+            $display("[tb_v81_test_card.v:205] INFO 跨帧变化像素 card=%0d color_bar=%0d（共 %0d）",
                      diff_card, diff_static, H*V);
         end
 

@@ -99,13 +99,13 @@ module tb_v92_seam_bleed;
     reg dbg_en = 0;
     always @(posedge clk) if (rst_n && dbg_en) begin
         if (d_blu && pc[0] % W <= 2 && pc[0] / W == MEAS_ROW)
-            $display("DBG blur  slot列%0d border_r=%b x_in=%0d", pc[0] % W, u_blu.border_r, u_blu.x_in);
+            $display("[tb_v92_seam_bleed.v:102] DBG blur  slot列%0d border_r=%b x_in=%0d", pc[0] % W, u_blu.border_r, u_blu.x_in);
         if (d_shp && pc[1] % W <= 2 && pc[1] / W == MEAS_ROW)
-            $display("DBG sharp slot列%0d border_r=%b x_in=%0d", pc[1] % W, u_shp.border_r, u_shp.x_in);
+            $display("[tb_v92_seam_bleed.v:104] DBG sharp slot列%0d border_r=%b x_in=%0d", pc[1] % W, u_shp.border_r, u_shp.x_in);
         if (d_sob && pc[2] % W <= 2 && pc[2] / W == MEAS_ROW)
-            $display("DBG sobel slot列%0d border_r=%b x_in=%0d", pc[2] % W, u_sob.border_r, u_sob.x_in);
+            $display("[tb_v92_seam_bleed.v:106] DBG sobel slot列%0d border_r=%b x_in=%0d", pc[2] % W, u_sob.border_r, u_sob.x_in);
         if (d_mor && pc[3] % W <= 2 && pc[3] / W == MEAS_ROW)
-            $display("DBG morph slot列%0d border_r=%b x_in=%0d", pc[3] % W, u_mor.border_r, u_mor.x_in);
+            $display("[tb_v92_seam_bleed.v:108] DBG morph slot列%0d border_r=%b x_in=%0d", pc[3] % W, u_mor.border_r, u_mor.x_in);
     end
 
     always @(posedge clk) if (rst_n) begin
@@ -210,9 +210,9 @@ module tb_v92_seam_bleed;
             for (k = 0; k < NC; k = k + 1) ctrl[me][k] = got[me][k];
 
         $display("");
-        $display("=== 最左列的行末回绕（上一行末尾 4 格 HOT，看第 %0d 行的第 0/1/2 列动不动）===", MEAS_ROW);
+        $display("[tb_v92_seam_bleed.v:213] === 最左列的行末回绕（上一行末尾 4 格 HOT，看第 %0d 行的第 0/1/2 列动不动）===", MEAS_ROW);
         for (me = 0; me < 4; me = me + 1) begin
-            $display("%0s  第0列 无扰动=%h 有扰动=%h | 对照区第200列 无扰动=%h 有扰动=%h",
+            $display("[tb_v92_seam_bleed.v:215] %0s  第0列 无扰动=%h 有扰动=%h | 对照区第200列 无扰动=%h 有扰动=%h",
                      name_of(me), clean[me][0], prov[me][0], clean[me][3+3], ctrl[me][3+3]);
         end
         // C0 量具自己先自证：十六个采样点必须**真的**抓到过（没抓到 = 采样位置算错，
@@ -224,7 +224,7 @@ module tb_v92_seam_bleed;
                 for (k = 0; k < NC; k = k + 1) if (!have[me][k]) miss = miss + 1;
             // 注：have 的位宽按 0..2 + 对照区排布，NC 已经包含整段
             expect("C0 十六个采样点全部真的抓到（量具没空跑）", miss == 0);
-            if (miss) $display("     缺采样 %0d 个", miss);
+            if (miss) $display("[tb_v92_seam_bleed.v:227]      缺采样 %0d 个", miss);
         end
         // C1 牙齿对照：每一级都必须**真的**被自己的左邻影响得到，否则下面的"没变"不算证据
         for (me = 0; me < 4; me = me + 1) begin
@@ -234,7 +234,7 @@ module tb_v92_seam_bleed;
                     if (wmove < 0) wmove = SP0 + k;
                     wcnt = wcnt + 1;
                 end
-            $display("     %0s 对照区：扰动让 %0d 列的输出变了，最先变的是第 %0d 列（左邻在第 199 列）",
+            $display("[tb_v92_seam_bleed.v:237]      %0s 对照区：扰动让 %0d 列的输出变了，最先变的是第 %0d 列（左邻在第 199 列）",
                      name_of(me), wcnt, wmove);
             chk("C1", me, wcnt >= 1, "左邻(199)变 HOT 时对照区必须有一列跟着变");
         end
@@ -259,7 +259,7 @@ module tb_v92_seam_bleed;
         drive_frame(LN-1, 0, 0);                   // 再来一遍（缓存也干净了）
         for (me = 0; me < 4; me = me + 1) clean[me][2] = got[me][0];
         for (me = 0; me < 4; me = me + 1) begin
-            $display("%0s  帧边界第 0 行：脏缓存=%h 干净=%h", name_of(me), prov[me][2], clean[me][2]);
+            $display("[tb_v92_seam_bleed.v:262] %0s  帧边界第 0 行：脏缓存=%h 干净=%h", name_of(me), prov[me][2], clean[me][2]);
             chk("C3", me, diff_bits(prov[me][2], clean[me][2]) == 0,
                 "首行不受上一帧最后一行影响");
         end
@@ -273,7 +273,7 @@ module tb_v92_seam_bleed;
             integer dy, dx, mv;
             cur_row = MEAS_ROW;         // C3 把它搬到了第 0 行，这一段必须搬回来
             $display("");
-            $display("=== 九点抽头图（. = 无影响，# = 有影响；中心 = 被测像素 (行%0d,列%0d)）===",
+            $display("[tb_v92_seam_bleed.v:276] === 九点抽头图（. = 无影响，# = 有影响；中心 = 被测像素 (行%0d,列%0d)）===",
                      MEAS_ROW, TGT);
             one_run(-1, 0, 0);                          // 全 FLAT 基线
             for (me = 0; me < 4; me = me + 1) base_v[me] = got[me][3 + (TGT - SP0)];
@@ -290,8 +290,8 @@ module tb_v92_seam_bleed;
                         // 而我差点被这个失败留下的**旧 run.log** 骗一次）：数值打成 32 位十六进制拼进串
                         val_buf  = {val_buf, " ", mv ? 16'h2323 : 16'h2E2E, 16'h2020};
                     end
-                    $display("%0s  源行偏移 d%0d ：%0s", name_of(me), dy, line_buf);
-                    $display("            每格 ##=受影响 .=不受影响（基线值 %h 与扰动后 %h 只在上面 C2 那行打印）",
+                    $display("[tb_v92_seam_bleed.v:293] %0s  源行偏移 d%0d ：%0s", name_of(me), dy, line_buf);
+                    $display("[tb_v92_seam_bleed.v:294]             每格 ##=受影响 .=不受影响（基线值 %h 与扰动后 %h 只在上面 C2 那行打印）",
                      base_v[me], got[me][3 + (TGT - SP0)]);
                 end
             end
@@ -301,8 +301,8 @@ module tb_v92_seam_bleed;
         end
 
         $display("");
-        $display("说明 C2/C3 现在的红是**登记在册的缺陷**（blur 只挡首行、sobel 两个都不挡），");
-        $display("     修法是让三/四个窗口级共用同一套边界约定，见 ISSUES #54 (A') 与 #56。");
+        $display("[tb_v92_seam_bleed.v:304] 说明 C2/C3 现在的红是**登记在册的缺陷**（blur 只挡首行、sobel 两个都不挡），");
+        $display("[tb_v92_seam_bleed.v:305]      修法是让三/四个窗口级共用同一套边界约定，见 ISSUES #54 (A') 与 #56。");
         $display("");
         if (errors == 0) $display("PASS tb_v92_seam_bleed");
         else             $display("FAIL tb_v92_seam_bleed errors=%0d", errors);

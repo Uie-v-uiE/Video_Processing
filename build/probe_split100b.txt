@@ -1,0 +1,5 @@
+split video
+split px 512
+split screen
+split show
+split 50

@@ -226,7 +226,7 @@ module tb_v84_morph;
         chk("T2b blur 也认这个点是亮区（掩码非空，比较不是空对空）", cnt > 0);
         centroid(0, c_x, c_y);
         ox = c_x - 3;  oy = c_y - 3;      // 孤立点在 (3,3) ⇒ 实测偏移
-        if (diff) $display("     T2 掩码不同的位置数=%0d morph 质心=(%0d,%0d)", diff, c_x, c_y);
+        if (diff) $display("[tb_v84_morph.v:229]      T2 掩码不同的位置数=%0d morph 质心=(%0d,%0d)", diff, c_x, c_y);
 
         // ================= T3..T8 语义（大方块 + 孤立点同时在场）=================
         for (fy = 0; fy < H; fy = fy + 1)
@@ -247,7 +247,7 @@ module tb_v84_morph;
         chk("T4 腐蚀：孤立点连同邻域一起没",
             snap_e[3][3] == BLACK && snap_e[4][4] == BLACK);
         chk("T5 膨胀：孤立点长成 3x3（离方块够远，计数干净）", dot_lit == 9);
-        if (dot_lit != 9) $display("     T5 孤立点邻域亮像素=%0d 期望 9", dot_lit);
+        if (dot_lit != 9) $display("[tb_v84_morph.v:250]      T5 孤立点邻域亮像素=%0d 期望 9", dot_lit);
         chk("T6 同一位置 (x=7,y=8) 两者相反：腐蚀黑 / 膨胀白（没接反）",
             snap_e[8][7] == BLACK && snap_d[8][7] == WHITE);
 
@@ -260,20 +260,20 @@ module tb_v84_morph;
                     !(i == 2 && j <= 5)) bad = bad + 1;     // 左边守卫列另说
             end
         chk("T7 腐蚀逐像素等于定义（邻域全 1）", bad == 0);
-        if (bad) $display("     T7 不符定义的像素数=%0d 偏移 ox=%0d oy=%0d", bad, ox, oy);
+        if (bad) $display("[tb_v84_morph.v:263]      T7 不符定义的像素数=%0d 偏移 ox=%0d oy=%0d", bad, ox, oy);
 
         bad = 0;
         for (j = 2; j < H - 2; j = j + 1)
             for (i = 2; i < W - 2; i = i + 1)
                 if (exp_dilate(i, j) != (snap_d[j][i] == WHITE)) bad = bad + 1;
         chk("T8 膨胀逐像素等于定义（邻域有 1）", bad == 0);
-        if (bad) $display("     T8 不符定义的像素数=%0d", bad);
+        if (bad) $display("[tb_v84_morph.v:270]      T8 不符定义的像素数=%0d", bad);
 
         cnt = 0;
         for (j = 4; j < H - 4; j = j + 1)
             for (i = 4; i < W - 4; i = i + 1)
                 if (snap_e[j][i] == WHITE) cnt = cnt + 1;
-        if (cnt != 24) $display("     T9 腐蚀亮像素 cnt=%0d 期望 24", cnt);
+        if (cnt != 24) $display("[tb_v84_morph.v:276]      T9 腐蚀亮像素 cnt=%0d 期望 24", cnt);
         chk("T9 腐蚀把 8x6 缩成 6x4", cnt == 24);
 
         // ================= T10 mode3（腐蚀+膨胀同时要求）= 旁路 =================

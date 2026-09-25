@@ -354,10 +354,10 @@ module tb_link_monitor;
             if (d_slow !== 1'b1) begin
                 $display("FAIL hb_slow stayed low although the heartbeat period was 8x SLOW_MS");
                 errors = errors + 1;
-            end else $display("PASS hb_slow asserts when the source clock is degraded (拔线工况)");
+            end else $display("[tb_link_monitor.v:357] PASS hb_slow asserts when the source clock is degraded (拔线工况)");
             if (d_gone !== 1'b0) begin
                 $display("FAIL hb_gone fired while heartbeats were still arriving"); errors = errors + 1;
-            end else $display("PASS hb_gone correctly stays clear (它看不见这件事，正是加 hb_slow 的理由)");
+            end else $display("[tb_link_monitor.v:360] PASS hb_gone correctly stays clear (它看不见这件事，正是加 hb_slow 的理由)");
         end
 
         s_hb = 0;                                // 源时钟停了
@@ -368,7 +368,7 @@ module tb_link_monitor;
         end else $display("PASS hb_gone asserts when the source clock stops");
         if (d_bus === 64'd0) begin
             $display("FAIL dst bus lost its value after hb_gone"); errors = errors + 1;
-        end else $display("PASS the last snapshot survives the source clock dying (显示端仍能看到数字)");
+        end else $display("[tb_link_monitor.v:371] PASS the last snapshot survives the source clock dying (显示端仍能看到数字)");
 
         $display("INFO pubs=%0d frames=%0d aborts=%0d drops=%0d stall=%0d",
                  pubs, s_frames, aborts, P_DROP, P_STALL);

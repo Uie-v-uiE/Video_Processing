@@ -124,12 +124,12 @@ module tb_v795_rx_fcs;
             c0 = 32'hFFFF_FFFF;
             for (q = 8; q < FLEN; q = q + 1) c0 = crc32_step(fr[q], c0);   // 从 DA[0] 起算
             if (c0 !== 32'hDEBB_20E3) begin
-                $display("FAIL T0 台架自校：造出来的帧不是标准 FCS（校验值=%h，应为 debb20e3）", c0);
+                $display("[tb_v795_rx_fcs.v:127] FAIL T0 台架自校：造出来的帧不是标准 FCS（校验值=%h，应为 debb20e3）", c0);
                 errors = errors + 1;
             end else if ((c0 ^ 32'hFFFF_FFFF) !== 32'h2144_DF1C) begin
-                $display("FAIL T0 与 tb_ku5p_telem 的常数口径不一致");
+                $display("[tb_v795_rx_fcs.v:130] FAIL T0 与 tb_ku5p_telem 的常数口径不一致");
                 errors = errors + 1;
-            end else $display("INFO T0 量具自校通过（debb20e3 == ~2144df1c）");
+            end else $display("[tb_v795_rx_fcs.v:132] INFO T0 量具自校通过（debb20e3 == ~2144df1c）");
         end
 
         // T1：内容 A 的合法帧 ⇒ 必须判好；记下这一帧算完的残值
@@ -138,7 +138,7 @@ module tb_v795_rx_fcs;
         res1 = dut.crc_q;                              // DUT 内部残值（层次引用，只为把常数量出来）
         chk("T1 好帧计入 good", good_cnt, 1);
         chk("T1 好帧不计坏",    bad_cnt,  0);
-        $display("INFO T1 residue=%h（内容 A）", res1);
+        $display("[tb_v795_rx_fcs.v:141] INFO T1 residue=%h（内容 A）", res1);
 
         // T2：换内容的合法帧 ⇒ 残值必须与 T1 **相同**，且仍判好
         build_frame(8'h5A);
@@ -147,10 +147,10 @@ module tb_v795_rx_fcs;
         chk("T2 好帧计入 good", good_cnt, 2);
         chk("T2 好帧不计坏",    bad_cnt,  0);
         if (res2 !== res1) begin
-            $display("FAIL 残值与内容有关（%h vs %h）⇒ 这个约定不是标准以太网，或者判据形式错了", res1, res2);
+            $display("[tb_v795_rx_fcs.v:150] FAIL 残值与内容有关（%h vs %h）⇒ 这个约定不是标准以太网，或者判据形式错了", res1, res2);
             errors = errors + 1;
         end
-        $display("INFO T2 residue=%h（内容 B，必须与 A 相同）", res2);
+        $display("[tb_v795_rx_fcs.v:153] INFO T2 residue=%h（内容 B，必须与 A 相同）", res2);
 
         // T3：载荷里翻一个 bit，FCS 没跟着改 ⇒ 必须判坏（这是本模块存在的全部理由）
         build_frame(8'h5A);
@@ -166,7 +166,7 @@ module tb_v795_rx_fcs;
 
         // T5：残值常数被钉住 —— RTL 里的 localparam 必须等于实测值
         chk("T5 RTL 常数 == 实测残值", (dut.FCS_RESIDUE === res1) ? 1 : 0, 1);
-        $display("INFO 字节数=%0d good=%0d bad=%0d", byte_cnt, good_cnt, bad_cnt);
+        $display("[tb_v795_rx_fcs.v:169] INFO 字节数=%0d good=%0d bad=%0d", byte_cnt, good_cnt, bad_cnt);
 
         if (errors == 0) $display("PASS tb_v795_rx_fcs");
         else             $display("FAIL tb_v795_rx_fcs errors=%0d", errors);
@@ -175,7 +175,7 @@ module tb_v795_rx_fcs;
 
     initial begin
         #500_000;
-        $display("FAIL watchdog：台架超时未跑完");
+        $display("[tb_v795_rx_fcs.v:178] FAIL watchdog：台架超时未跑完");
         $finish;
     end
 endmodule

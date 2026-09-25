@@ -12,9 +12,12 @@
 | `system.xsa` | 同上 |
 | `ps_app.elf` | 同上（本轮 PS 侧改了：`rot`/`zoom fit`/`split screen|video`/`gamma auto`、`T_MAX` 8、`[STAT] geom=`） |
 
-⚠ 表里的 `ps_app.elf` 是 **23:42 重编的那一份**（只改了 `split show` 的文案：加上单位，
-`pos=307/1024（显示列） = 29%`）。位流没动 —— `system.bit` / `system.xsa` 仍是 23:25 构建 #49 的那一份，
-板上现在跑的 elf 就是表里这一份（`md5sum -c` 已核）。
+⚠ 表里的 `ps_app.elf` 是 **00:39 重编的那一份**（PS-only，位流没动）。两次重编的账：
+23:42 给 `split show` 的文案加单位（`pos=307/1024（显示列） = 29%`）；
+00:39 修 **#77**：`split 100` / `split px 1024` / `split screen` 三条写口把缝位夹到 10 位上限 1023 并明说，
+回显的百分比改由**存进去的值**反算（与屏上 Split 格同一个式子）。
+`system.bit` / `system.xsa` 仍是 23:25 构建 #49 的那一份；板上现在跑的就是表里这三件（`md5sum -c` 13 个文件全 OK）。
+`battery_r62.txt` 也换成修完之后的那一轮：**97 条全 PASS**（92.0 s，初末 `geom=00400000` 相同）。
 
 ## 门禁 14 项 `GATES: ALL PASS`（`gates_r62.txt`；复核 `bash build/gates.sh build/frozen_r62_geom`）
 WNS **+0.792**（r59b-1 +0.575、r60 曾 **−0.482** 判红）、WHS **+0.001**、失败 setup/hold 端点 0/0、

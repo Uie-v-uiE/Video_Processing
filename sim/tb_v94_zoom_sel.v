@@ -101,7 +101,7 @@ module tb_v94_zoom_sel;
     endtask
 
     initial begin
-        $display("== tb_v94_zoom_sel：八档往返 + 手动/自动交接不瞬移 ==");
+        $display("[tb_v94_zoom_sel.v:104] == tb_v94_zoom_sel：八档往返 + 手动/自动交接不瞬移 ==");
         repeat (4) @(posedge clk);
         rst_n = 1;
         repeat (3) @(posedge clk);
@@ -144,13 +144,13 @@ module tb_v94_zoom_sel;
             @(negedge clk); manual = 1; zsel = i[2:0];
             wait_change;
             if (!wc_ok) begin
-                $display("  DBG T3 档 %0d 没等到 inv 变化", i);
+                $display("[tb_v94_zoom_sel.v:147]   DBG T3 档 %0d 没等到 inv 变化", i);
                 t3_bad = t3_bad + 1;
             end else begin
                 repeat (2) @(negedge clk);            // code 比 inv 晚一拍
                 if (inv_scale !== exp_inv(i[2:0], x10k(i[2:0])) || zoom_code !== i[2:0]) begin
                     t3_bad = t3_bad + 1;
-                    $display("  DBG T3 档 %0d: inv=%0d 期望=%0d code=%0d",
+                    $display("[tb_v94_zoom_sel.v:153]   DBG T3 档 %0d: inv=%0d 期望=%0d code=%0d",
                              i, inv_scale, exp_inv(i[2:0], x10k(i[2:0])), zoom_code);
                 end
             end
@@ -217,12 +217,12 @@ module tb_v94_zoom_sel;
         end
         chk("T7 从 0.25x 走回呼吸带：每帧一步、280 帧内进带",
             nstep_bad == 0 && before <= INV_HI);
-        $display("  DBG T7 回到 inv=%0d 用了 %0d 步", before, j);
+        $display("[tb_v94_zoom_sel.v:220]   DBG T7 回到 inv=%0d 用了 %0d 步", before, j);
 
         $display("");
-        $display("口径提醒：这里判的是**档位选择与交接节拍**，画面上像素对不对是 zoom_mapper 的事");
-        $display("   （tb_zoom_* 那一套）。八档表与 zoom_code 的中点判据是同一个约定的两端，");
-        $display("   T3 就是把这两个约定钉在一起：任何一边被改而另一边没跟上，这一条就红。");
+        $display("[tb_v94_zoom_sel.v:223] 口径提醒：这里判的是**档位选择与交接节拍**，画面上像素对不对是 zoom_mapper 的事");
+        $display("[tb_v94_zoom_sel.v:224]    （tb_zoom_* 那一套）。八档表与 zoom_code 的中点判据是同一个约定的两端，");
+        $display("[tb_v94_zoom_sel.v:225]    T3 就是把这两个约定钉在一起：任何一边被改而另一边没跟上，这一条就红。");
         $display("TB DONE pass=%0d fail=%0d", pass, fail);
         if (fail != 0) $display("TB RESULT FAIL");
         else $display("TB RESULT PASS");

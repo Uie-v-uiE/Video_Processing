@@ -1,4 +1,4 @@
-[TX] SENT 97 CMD  CAPTURED -> board\uart_script_capture.txt
+[TX] SENT 93 CMD  CAPTURED -> board\uart_script_capture.txt
 ok    1 STAT
 ok    2 th 80
 ok    3 TH120
@@ -71,32 +71,28 @@ ok   69 split show
 ok   70 split 150
 ok   71 split 100
 ok   72 split show
-ok   73 split video
-ok   74 split px 512
-ok   75 split screen
-ok   76 split show
-ok   77 split 50
-ok   78 rot show
-ok   79 rot speed 3
-ok   80 rot speed 9
-ok   81 rot auto 1
-ok   82 rot auto 2
-ok   83 rot auto 0
-ok   84 zoom fit 0
-ok   85 zoom fit 1
-ok   86 zoom fit 2
-ok   87 zoom fit 0
-ok   88 split video
-ok   89 split 40
-ok   90 split px 9999
-ok   91 split screen
-ok   92 split 50
-ok   93 rot speed 0
-ok   94 gamma auto
-ok   95 gamma manual
-ok   96 gamma off
-ok   97 STAT
+ok   73 split 50
+ok   74 rot show
+ok   75 rot speed 3
+ok   76 rot speed 9
+ok   77 rot auto 1
+ok   78 rot auto 2
+ok   79 rot auto 0
+ok   80 zoom fit 0
+ok   81 zoom fit 1
+ok   82 zoom fit 2
+ok   83 zoom fit 0
+ok   84 split video
+ok   85 split 40
+ok   86 split px 9999
+ok   87 split screen
+ok   88 split 50
+ok   89 rot speed 0
+ok   90 gamma auto
+ok   91 gamma manual
+ok   92 gamma off
+ok   93 STAT
 WARN [STAT] 有 1 条被串口心跳行劈开（不参与初末比较；碎片 >2 就该查串口丢行）
 ok   跑完回到初态：en=00 thr=80 src=1 zoom=1 bilin=1 zsel=4 zman=0 gm=0.00 mode=0 geom=00400000
 
-RESULT PASS uart_cmd_check  (97 条命令, 92.0 s, 捕获 board/uart_script_capture.txt)
+RESULT PASS uart_cmd_check  (93 条命令, 87.9 s, 捕获 board/uart_script_capture.txt)

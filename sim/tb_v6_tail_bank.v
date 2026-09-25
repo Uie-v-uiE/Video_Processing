@@ -123,18 +123,18 @@ module tb_v6_tail_bank;
         send_frame(0, -1);
         repeat (5000) @(posedge axi_clk);
         check_frame(0);
-        $display("frame0: commits old=%0d new=%0d base old=%h new=%h 完整 old=%0d/%0d new=%0d/%0d",
+        $display("[tb_v6_tail_bank.v:126] frame0: commits old=%0d new=%0d base old=%h new=%h 完整 old=%0d/%0d new=%0d/%0d",
                  u_old.commit_cnt, u_new.commit_cnt, old_base, new_base,
                  hit_old, WORDS, hit_new, WORDS);
         if (hit_old != WORDS || hit_new != WORDS) begin
-            $display("FAIL frame0 基线就没落位（old=%0d new=%0d）", hit_old, hit_new);
+            $display("[tb_v6_tail_bank.v:130] FAIL frame0 基线就没落位（old=%0d new=%0d）", hit_old, hit_new);
             errors = errors + 1;
         end
 
         // 帧 1：最后一个字只交付 lane0/lane1 就停读，随后 frame_done 到达
         send_frame(1, 1);
         repeat (3000) @(posedge axi_clk);
-        $display("停读期间: commits old=%0d new=%0d  （old 若已提前翻页则 new 仍是 1）",
+        $display("[tb_v6_tail_bank.v:137] 停读期间: commits old=%0d new=%0d  （old 若已提前翻页则 new 仍是 1）",
                  u_old.commit_cnt, u_new.commit_cnt);
 
         rd_allow = 1'b1;                       // 反压解除，滞留的 lane 与标记继续走
@@ -142,7 +142,7 @@ module tb_v6_tail_bank;
 
         check_frame(1);
         if ($test$plusargs("TRACE")) for (w=0;w<WORDS;w=w+1) $display("MEM old[%0d]=%h  new[%0d]=%h", w, u_old.mem[w], w, u_new.mem[w]);
-        $display("frame1: 完整 old=%0d/%0d (first_bad_word=%0d)  new=%0d/%0d",
+        $display("[tb_v6_tail_bank.v:145] frame1: 完整 old=%0d/%0d (first_bad_word=%0d)  new=%0d/%0d",
                  hit_old, WORDS, first_bad, hit_new, WORDS);
         $display("  old: base=%h word7=%h%h%h%h", old_base,
                  g_old[63:48], g_old[47:32], g_old[31:16], g_old[15:0]);
@@ -150,18 +150,18 @@ module tb_v6_tail_bank;
                  g_new[63:48], g_new[47:32], g_new[31:16], g_new[15:0]);
 
         if (hit_old == WORDS) begin
-            $display("FAIL 复现失效：TAIL_GUARD=0 的旧链帧尾竟然完整，激励没触发机理");
+            $display("[tb_v6_tail_bank.v:153] FAIL 复现失效：TAIL_GUARD=0 的旧链帧尾竟然完整，激励没触发机理");
             errors = errors + 1;
-        end else $display("  OK 旧链复现出帧尾丢失：缺 %0d 个字", WORDS - hit_old);
+        end else $display("[tb_v6_tail_bank.v:155]   OK 旧链复现出帧尾丢失：缺 %0d 个字", WORDS - hit_old);
 
         if (hit_new != WORDS) begin
-            $display("FAIL 修复无效：TAIL_GUARD=1 的新链仍有 %0d/%0d 个字不完整",
+            $display("[tb_v6_tail_bank.v:158] FAIL 修复无效：TAIL_GUARD=1 的新链仍有 %0d/%0d 个字不完整",
                      WORDS - hit_new, WORDS);
             errors = errors + 1;
-        end else $display("  OK 新链整帧完整落在自己的 bank 0x%h", new_base);
+        end else $display("[tb_v6_tail_bank.v:161]   OK 新链整帧完整落在自己的 bank 0x%h", new_base);
 
         if (u_new.commit_cnt != 2) begin
-            $display("FAIL 新链提交 %0d 次（期望 2），换页被过度延迟", u_new.commit_cnt);
+            $display("[tb_v6_tail_bank.v:164] FAIL 新链提交 %0d 次（期望 2），换页被过度延迟", u_new.commit_cnt);
             errors = errors + 1;
         end
 

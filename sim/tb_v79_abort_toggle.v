@@ -117,12 +117,12 @@ module tb_v79_abort_toggle;
 
         // A1：翻转同步器在每一个相位都必须不多不少
         if (phases_tog_bad != 0)
-            $display("FAIL A1 toggle 在 %0d 个相位上数目不对", phases_tog_bad);
+            $display("[tb_v79_abort_toggle.v:120] FAIL A1 toggle 在 %0d 个相位上数目不对", phases_tog_bad);
         // A2 / A3：负向对照必须抓到东西，否则说明这条问题记错了
         if (phases_missed_raw == 0)
-            $display("FAIL A2 没有任何相位让裸采漏看 —— ISSUES #27 的现象描述要重写");
+            $display("[tb_v79_abort_toggle.v:123] FAIL A2 没有任何相位让裸采漏看 —— ISSUES #27 的现象描述要重写");
         if (phases_lvl_differs != 0)
-            $display("FAIL A3 电平 3 级与裸采出现了不一致（%0d 个相位）—— 这条结论要重测",
+            $display("[tb_v79_abort_toggle.v:125] FAIL A3 电平 3 级与裸采出现了不一致（%0d 个相位）—— 这条结论要重测",
                      phases_lvl_differs);
 
         $display("TOTAL aborts=%0d raw=%0d lvl3=%0d toggle=%0d  (raw-miss-phases=%0d, lvl-diff-phases=%0d)",

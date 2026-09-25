@@ -79,20 +79,20 @@ module tb_v83_card_render;
         // ---- 取景器自己的四条断言（不表态的台架按失败算，这是 sim/run_sim.tcl 的规矩）----
         for (gi = 0; gi < FRAMES; gi = gi + 1)
             if (written[gi] != H*V) begin
-                $display("FAIL 帧 %0d 只写了 %0d 像素（应 %0d）", gi, written[gi], H*V);
+                $display("[tb_v83_card_render.v:82] FAIL 帧 %0d 只写了 %0d 像素（应 %0d）", gi, written[gi], H*V);
                 bad = bad + 1;
             end
-        if (nx != 0) begin $display("FAIL 输出含 X 态 %0d 处", nx); bad = bad + 1; end
+        if (nx != 0) begin $display("[tb_v83_card_render.v:85] FAIL 输出含 X 态 %0d 处", nx); bad = bad + 1; end
         for (gi = 0; gi < FRAMES; gi = gi + 1)
             if (white_cnt[gi] == 0) begin
-                $display("FAIL 帧 %0d 没有纯白像素 ⇒ 球没画出来，这张预览不可信", gi);
+                $display("[tb_v83_card_render.v:88] FAIL 帧 %0d 没有纯白像素 ⇒ 球没画出来，这张预览不可信", gi);
                 bad = bad + 1;
             end
         if (diff_prev == 0) begin
-            $display("FAIL 跨帧一个像素都没变 ⇒ 拍到的是静止图，用它判'好看'无效");
+            $display("[tb_v83_card_render.v:92] FAIL 跨帧一个像素都没变 ⇒ 拍到的是静止图，用它判'好看'无效");
             bad = bad + 1;
         end
-        $display("INFO 每帧像素=%0d 白点=%0d/%0d/%0d 跨帧变化=%0d X态=%0d",
+        $display("[tb_v83_card_render.v:95] INFO 每帧像素=%0d 白点=%0d/%0d/%0d 跨帧变化=%0d X态=%0d",
                  written[0], white_cnt[0], white_cnt[1], white_cnt[2], diff_prev, nx);
         if (bad == 0) $display("PASS tb_v83_card_render");
         else          $display("FAIL tb_v83_card_render errors=%0d", bad);

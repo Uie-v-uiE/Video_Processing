@@ -1,0 +1,18 @@
+﻿=== CAPTURE START 4 commands ===
+>> split 50
+[CTRL] AXI_GPIO=0x000F5000 sel=000 thr=80 src=1 zoom=1 pub=1 bilin=1
+[CTRL]   zoom_step=4 1.00x (自动呼吸)
+[SPLIT] 50% -> pos=512/1024（显示列；manual；屏上 Split 格应显示 50%）
+>> split 100
+[CTRL] AXI_GPIO=0x000F5000 sel=000 thr=80 src=1 zoom=1 pub=1 bilin=1
+[CTRL]   zoom_step=4 1.00x (自动呼吸)
+[SPLIT] 100% -> pos=1024/1024（显示列；manual；屏上 Split 格应显示 100%）
+>> split show
+[SPLIT] pos=0/1024（显示列） = 0% manual marker=on
+[SD] frame 600: last 100 frames 29.650 fps (since play 29.747)
+>> split 50
+[CTRL] AXI_GPIO=0x000B5000 sel=000 thr=80 src=1 zoom=1 pub=0 bilin=1
+[CTRL]   zoom_step=4 1.00x (自动呼吸)
+[SPLIT] 50% -> pos=512/1024（显示列；manual；屏上 Split 格应显示 50%）
+=== CAPTURE END ===
+

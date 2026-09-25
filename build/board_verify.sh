@@ -3,7 +3,7 @@
 #
 #   bash build/board_verify.sh              # 只跑不需要推流的那几项（读回口 + 开机自检）
 #   bash build/board_verify.sh --stream     # 再加：推流 → 仲裁交接 → 停流交回（要 ~2 min）
-#   bash build/board_verify.sh --battery    # 再加：串口命令电池（91 条 = V8 的 71 + V9 的 20，
+#   bash build/board_verify.sh --battery    # 再加：串口命令电池（97 条 = V8 的 71 + V9 的 20 + #77 的 6，
 #                                          #        会改板上控制字并复原；复原由 STAT 的 geom= 兜底）
 #   bash build/board_verify.sh --geom       # 再加：V9 几何自动化的"最后一跳"（lane23 + CFG_DATA0）
 #                                          #   与电池分开取证：电池看**回显**，这一条看**像素域真值**
@@ -108,7 +108,7 @@ if [ "$DO_GEOM" = 1 ]; then
 fi
 
 if [ "$DO_BATT" = 1 ]; then
-  echo "-- 4) 串口命令电池（91 条：V8 的 71 条 + V9 的 20 条，初末态必须相同）--" | tee -a "$LOG"
+  echo "-- 4) 串口命令电池（97 条：V8 的 71 + V9 的 20 + #77 的 6，初末态必须相同）--" | tee -a "$LOG"
   # 同样不能吃管道退出码（原来 `| tail -25 | tee` 之后 $? 是 tee 的）。
   # 这里两重保险：命令自己的退出码 + stdout 里那一行 `RESULT PASS uart_cmd_check`。
   node src/host/uart_cmd_check.mjs --port COM6 > "$OUT.batt.txt" 2>&1

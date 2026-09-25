@@ -114,7 +114,7 @@ module tb_v85_sharpen;
             for (i = 0; i < W; i = i + 1)
                 if (got[j][i] !== gotb[j][i]) bad = bad + 1;
         chk("T1 旁路与 blur 的旁路逐位相同", bad == 0);
-        if (bad) $display("     T1 不同的像素=%0d", bad);
+        if (bad) $display("[tb_v85_sharpen.v:117]      T1 不同的像素=%0d", bad);
 
         // ---------- T2 平场不动 ----------
         for (fy = 0; fy < H; fy = fy + 1)
@@ -161,7 +161,7 @@ module tb_v85_sharpen;
         v = got[4][2];
         chk("T4 R/B 过冲钳到满量程 31", v[15:11] === 5'd31 && v[4:0] === 5'd31);
         chk("T5 G 过冲钳到 6 bit 的满量程 63（不是 31）", v[10:5] === 6'd63);
-        if (v[10:5] !== 6'd63) $display("     T5 实际 G=%0d 期望 63（整像素 %h）", v[10:5], v);
+        if (v[10:5] !== 6'd63) $display("[tb_v85_sharpen.v:164]      T5 实际 G=%0d 期望 63（整像素 %h）", v[10:5], v);
 
         // ---------- T6 锐化真的改了画面（反例：通路被旁路掉也会全绿）----------
         bad = 0;

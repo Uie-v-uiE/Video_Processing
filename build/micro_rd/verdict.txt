@@ -1,0 +1,24 @@
+# micro_rd 探针结论摘录（原始 vivado *.log 被 .gitignore 挡着；重跑方法见本目录 README.md）
+# 生成 2026-09-26 00:50，一次进程一个 MODE（内存只有 ~2.7 GB 空余，别并行）
+# 每一段：WNS/TNS/失败端点那一行 + 最差违例路径的起止 + BRAM 用量
+
+===== MODE 0 (r2_m0.log) =====
+WNS/TNS/failEP/totalEP/WPWS:      -0.497      -25.120                    156                  912        1.500        0.000                       0                   270  
+Slack (VIOLATED) :        -0.497ns  (required time - arrival time)
+  Source:                 u_dut/u_fb/hi_reg_0/CLKBWRCLK
+  Destination:            u_dut/acc_q_reg[31]/D
+| Block RAM Tile    |   21 |     0 |          0 |       140 | 15.00 |
+
+===== MODE 1 (r2_m1.log) =====
+WNS/TNS/failEP/totalEP/WPWS:      -0.064       -0.139                      4                  912        1.500        0.000                       0                   270  
+Slack (VIOLATED) :        -0.064ns  (required time - arrival time)
+  Source:                 u_dut/b1_q_reg[10]/C
+  Destination:            u_dut/u_fb/lo_reg_0_10/ADDRBWRADDR[10]
+| Block RAM Tile    |   21 |     0 |          0 |       140 | 15.00 |
+
+===== MODE 2 (r2_m2.log) =====
+WNS/TNS/failEP/totalEP/WPWS:      -0.011       -0.011                      1                  950        1.500        0.000                       0                   287  
+Slack (VIOLATED) :        -0.011ns  (required time - arrival time)
+  Source:                 u_dut/u_fb/lo_reg_0_17/CLKBWRCLK
+  Destination:            u_dut/w_b_reg[46]/D
+| Block RAM Tile    |   21 |     0 |          0 |       140 | 15.00 |

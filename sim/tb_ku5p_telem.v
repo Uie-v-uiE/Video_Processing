@@ -175,7 +175,7 @@ module tb_ku5p_telem;
             base = fstart[fi];
             p    = find_magic(base, flen[fi]);
             if (p < 42) begin
-                $display("FAIL frame %0d: KU5P 魔数缺失或偏移异常 (p=%0d len=%0d)", fi, p, flen[fi]);
+                $display("[tb_ku5p_telem.v:178] FAIL frame %0d: KU5P 魔数缺失或偏移异常 (p=%0d len=%0d)", fi, p, flen[fi]);
                 $write("     dump: ");
                 for (q = 0; q < flen[fi]; q = q + 1) $write("%02h ", cap[base+q]);
                 $display("");
@@ -241,7 +241,7 @@ module tb_ku5p_telem;
     // （C7 要等 3 个 tick、C8 还要再看一帧 ⇒ 60 µs 不够，扩到 120 µs ≈ 15000 拍）
     initial begin : watchdog
         #120_000;
-        $display("FAIL watchdog: 120us 内没跑到结尾（发了 %0d 帧、%0d 字节）", nframe, cap_n);
+        $display("[tb_ku5p_telem.v:244] FAIL watchdog: 120us 内没跑到结尾（发了 %0d 帧、%0d 字节）", nframe, cap_n);
         errors = errors + 1;
         $display("FAIL tb_ku5p_telem");
         $finish;

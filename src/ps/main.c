@@ -93,6 +93,18 @@
  *   这 14 位在 PL 里一起过 snap_cross（#71：不许并进 effect_ctrl 那条已批准的同步链） */
 #define SPLIT_POS_SHIFT   13u
 #define SPLIT_POS_MASK    (0x3FFu << SPLIT_POS_SHIFT)
+#define SPLIT_POS_MAX     1023u   /* 字段只有 10 位，而**屏幕宽是 1024** ⇒ 见下面这两条 ⚠（都在板上复现过）
+                                   *  1024 << 13 = 0x800000 = bit23 = SPLIT_AUTO_BIT，症状按写口分两种：
+                                   *   ① `split 100` / `split px 1024`：紧接着的 `&= ~SPLIT_AUTO_BIT` 把误置的
+                                   *      auto 清掉了，留下的是**缝位变成 0** —— 要"整屏处理图"得到"整屏原图"，
+                                   *      而回显写着 pos=1024/1024 100%（build/probe_split100_old.txt）。
+                                   *   ② `split video` + `split px 512` 再 `split screen`：这条写口**不清 auto**，
+                                   *      于是缝跳到第 0 列 + 自动扫描**悄悄开起来**，回显还说"auto 仍开着"
+                                   *      （build/probe_split100b_old.txt）。
+                                   *  cfg1 三十二位已经排满（[8:0] 效果、[12:9] 旋转、[22:13] 缝位、
+                                   *  [25:23] 三个旗标、[28:26] 缩放档、[29] 手动、[30] 蓝线、[31] 拟合），
+                                   *  塞不进第 11 位 ⇒ 在 PS 侧夹住并**明说夹了**：
+                                   *  差的这一列是 1/1024，比"用户没要求却开了扫描"轻得多。 */
 #define SPLIT_AUTO_BIT    (1u << 23)
 #define SPLIT_FOLLOW_BIT  (1u << 24)
 #define SPLIT_SWAP_BIT    (1u << 25)
@@ -117,6 +129,15 @@ static u32 cur_split = (512u << SPLIT_POS_SHIFT);   /* 默认缝在正中 = 旧�
 #define ZOOM_FIT_BIT    (1u << 31)
 #define GEOM_MASK       (SPLIT_MASK | ROT_AUTO_BIT | ROT_SPEED_MASK | ZOOM_FIT_BIT)
 #define SPLIT_SRC_W     512u   /* follow=1 时缝位与百分比量的都是**画面宽**，不是屏宽 */
+
+/* 缝位写进寄存器之前夹一道，返回 1 = 夹过（调用方**必须**在回显里说出来）。
+ * 为什么由调用方打印而不是这里打印：三处写口的文案各自不同，而"夹了"必须与
+ * 那一处报出的百分比同源（#66：回声与执行值不同源是这一族病的签名）。 */
+static u32 split_pos_clamp(u32 *px) {
+    if (*px <= SPLIT_POS_MAX) return 0;
+    *px = SPLIT_POS_MAX;
+    return 1;
+}
 static u32 cur_sel = 0;        /* 效果选择的唯一真相（九位） */
 static u32 cur_en = 0;         /* gpio_o[4:0] 上的老五位镜像，由 cur_sel 反推，不独立存在 */
 static u8  cur_thr = 80;
@@ -912,13 +933,15 @@ static int dispatch(char **tk, int nt)
             u32 w_new = video ? SPLIT_SRC_W : SPLIT_DISP_W;
             u32 pct   = ((pos * 100u) / w_old) * w_new / 100u;
             if (pct > w_new) pct = w_new;
+            u32 cl3 = split_pos_clamp(&pct);
             cur_split = (cur_split & ~SPLIT_POS_MASK) | (pct << SPLIT_POS_SHIFT);
             if (video) cur_split |= SPLIT_FOLLOW_BIT; else cur_split &= ~SPLIT_FOLLOW_BIT;
             ctrl_apply();
-            xil_printf("[SPLIT] %s：缝在%s里扫，pos=%u/%u = %u%%%s\r\n", tk[1],
+            xil_printf("[SPLIT] %s：缝在%s里扫，pos=%u/%u = %u%%%s%s\r\n", tk[1],
                        video ? "**画面**列（线跟着旋转走，端点是画面的两端）" : "显示列（屏幕左右扫）",
                        (unsigned)pct, (unsigned)w_new, (unsigned)((pct * 100u) / w_new),
-                       (cur_split & SPLIT_AUTO_BIT) ? "，auto 仍开着" : "");
+                       (cur_split & SPLIT_AUTO_BIT) ? "，auto 仍开着" : "",
+                       cl3 ? "（缝位已夹到 10 位上限 1023）" : "");
             return 0;
         }
         if (nt >= 3 && ci_eq(tk[1], "PX")) {
@@ -926,19 +949,25 @@ static int dispatch(char **tk, int nt)
                 xil_printf("[SPLIT] px 只认 0..%u（当前是%s空间）\r\n", (unsigned)w,
                            (cur_split & SPLIT_FOLLOW_BIT) ? "画面列" : "显示列"); return 0;
             }
-            cur_split = (cur_split & ~SPLIT_POS_MASK) | (((u32)pct) << SPLIT_POS_SHIFT);
+            u32 px2 = (u32)pct, cl2 = split_pos_clamp(&px2);
+            cur_split = (cur_split & ~SPLIT_POS_MASK) | (px2 << SPLIT_POS_SHIFT);
             cur_split &= ~SPLIT_AUTO_BIT; ctrl_apply();
-            xil_printf("[SPLIT] pos=%u px = %u%%（manual）\r\n", (unsigned)pct,
-                       (unsigned)(((u32)pct * 100u) / w));
+            xil_printf("[SPLIT] pos=%u px = %u%%%s（manual）\r\n", (unsigned)px2,
+                       (unsigned)(((u32)px2 * 100u) / w),
+                       cl2 ? "（已夹到 10 位上限 1023）" : "");
             return 0;
         }
         if (nt >= 2 && strict_int(tk[1], &pct) && pct >= 0 && pct <= 100) {
             u32 px = ((u32)pct * w) / 100u;                /* 除法只在 PS 做一次，PL 无除法器（#58） */
+            u32 cl = split_pos_clamp(&px);                 /* 100% 在屏幕空间会算出 1024 ⇒ 见 SPLIT_POS_MAX */
             cur_split = (cur_split & ~SPLIT_POS_MASK) | (px << SPLIT_POS_SHIFT);
             cur_split &= ~SPLIT_AUTO_BIT; ctrl_apply();
-            xil_printf("[SPLIT] %d%% -> pos=%u/%u（%s；manual；屏上 Split 格应显示 %d%%）\r\n",
+            /* 最后那个百分比由**存进去的值**反算，不再回显用户输入的 pct：
+             * 夹过的时候屏上那一格印的就是 99，回显 100 就是"发的与执行的不同源"。 */
+            xil_printf("[SPLIT] %d%% -> pos=%u/%u（%s；manual；屏上 Split 格应显示 %u%%%s）\r\n",
                        pct, (unsigned)px, (unsigned)w,
-                       (cur_split & SPLIT_FOLLOW_BIT) ? "画面列" : "显示列", pct);
+                       (cur_split & SPLIT_FOLLOW_BIT) ? "画面列" : "显示列",
+                       (unsigned)((px * 100u) / w), cl ? "；已夹到 10 位上限" : "");
             return 0;
         }
         /* 不认的写法一律明确拒绝、不改任何状态（#67）；`split range` 这类还没接的说法也在这里拒掉 */

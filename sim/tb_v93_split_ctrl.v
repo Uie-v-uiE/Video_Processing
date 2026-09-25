@@ -159,7 +159,7 @@ module tb_v93_split_ctrl;
             lo_exp = (pos_px * 100) / DW;
             if (pct !== lo_exp) begin
                 bad3 = bad3 + 1;
-                $display("     T3 eff=%0d 百分比=%0d 期望 %0d", pos_px, pct, lo_exp);
+                $display("[tb_v93_split_ctrl.v:162]      T3 eff=%0d 百分比=%0d 期望 %0d", pos_px, pct, lo_exp);
             end
         end
         chk("T3  显示域 16 个位置的百分比与整数除法逐点一致", bad3 == 0);

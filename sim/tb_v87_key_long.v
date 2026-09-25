@@ -54,7 +54,7 @@ module tb_v87_key_long;
                 #1;                     // 取样点放在 NBA 之后，避免读到旧值
                 sp_cnt = sp_cnt + (short_pulse ? 1 : 0);
             end
-            $display("INFO %0s：按住期间 short_pulse 次数=%0d holding=%0b tog=%0b",
+            $display("[tb_v87_key_long.v:57] INFO %0s：按住期间 short_pulse 次数=%0d holding=%0b tog=%0b",
                      tag, sp_cnt, holding, tog);
         end
     endtask

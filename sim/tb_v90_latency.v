@@ -325,10 +325,10 @@ module tb_v90_latency;
         $display("T16 npair=%0d nskip=%0d nbad=%0d", npair, nskip, nbadpair);
 
         $display("");
-        $display("口径提醒：本模块量的是 PL 内部（commit 之后到该帧开始扫描），单位是 axi 拍数；");
-        $display("   上位机编码与网线传输不在内 ⇒ 对外只能说「链路内时延（PL 侧）」，");
-        $display("   且第三段（等扫描）的分辨率是一个显示帧 ⇒ 报数必须带 ±1 帧。");
-        $display("   换算成时间戳在 src/host/health_read.mjs 里做（1 拍 = 10 ns，一个常量）。");
+        $display("[tb_v90_latency.v:328] 口径提醒：本模块量的是 PL 内部（commit 之后到该帧开始扫描），单位是 axi 拍数；");
+        $display("[tb_v90_latency.v:329]    上位机编码与网线传输不在内 ⇒ 对外只能说「链路内时延（PL 侧）」，");
+        $display("[tb_v90_latency.v:330]    且第三段（等扫描）的分辨率是一个显示帧 ⇒ 报数必须带 ±1 帧。");
+        $display("[tb_v90_latency.v:331]    换算成时间戳在 src/host/health_read.mjs 里做（1 拍 = 10 ns，一个常量）。");
         $display("");
         if (errors == 0) $display("PASS tb_v90_latency");
         else             $display("FAIL tb_v90_latency errors=%0d", errors);

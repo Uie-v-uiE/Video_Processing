@@ -333,9 +333,9 @@ module tb_v6_pingpong;
                      f, hit0, WORDS, hit0*100/WORDS, hit1, other, firstmiss);
         end
 
-        $display("force_flush: pulses=%0d total_cycles=%0d max=%0d (1 帧=%0d 拍)",
+        $display("[tb_v6_pingpong.v:336] force_flush: pulses=%0d total_cycles=%0d max=%0d (1 帧=%0d 拍)",
                  ff_pulses, ff_total, ff_max, FRAME_BYTES/8*(W_LAT+1));
-        $display("探针: cdc_drop(16bit字)=%0d  packer_full 持续=%0d 拍  beats 收到=%0d/%0d W_LAT=%0d COPY_CYC=%0d",
+        $display("[tb_v6_pingpong.v:338] 探针: cdc_drop(16bit字)=%0d  packer_full 持续=%0d 拍  beats 收到=%0d/%0d W_LAT=%0d COPY_CYC=%0d",
                  cdc_drop, svf_cyc, wr0 + wr1, WORDS*NFRAMES, W_LAT, CP_CYC);
         if (commit_cnt != NFRAMES) begin
             $display("FAIL commits=%0d expected=%0d", commit_cnt, NFRAMES);

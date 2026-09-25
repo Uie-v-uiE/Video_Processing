@@ -141,7 +141,7 @@ module tb_v795_rx_chain;
         chk("C1 不误报丢弃", sb + sf, 0);
         for (k = 0; k < PAYN; k = k + 1)
             if (got[k] !== 8'hA0 + k[7:0]) begin
-                $display("FAIL C1 第 %0d 字节 = %h，应为 %h", k, got[k], 8'hA0 + k[7:0]);
+                $display("[tb_v795_rx_chain.v:144] FAIL C1 第 %0d 字节 = %h，应为 %h", k, got[k], 8'hA0 + k[7:0]);
                 errors = errors + 1; k = PAYN;
             end
         $display("INFO C1 pay_len=%0d", pay_len);
@@ -182,7 +182,7 @@ module tb_v795_rx_chain;
         chk("C5 第一帧进 udp_ok", so, 1);
         chk("C5 两包都闭合", pl_eof, 2);
 
-        $display("INFO C5 got[0]=%h got[1]=%h（第二帧的头两字节，必须是 A0/A1 而不是重复第一帧）",
+        $display("[tb_v795_rx_chain.v:185] INFO C5 got[0]=%h got[1]=%h（第二帧的头两字节，必须是 A0/A1 而不是重复第一帧）",
                  got[0], got[1]);
 
         if (errors == 0) $display("PASS tb_v795_rx_chain");

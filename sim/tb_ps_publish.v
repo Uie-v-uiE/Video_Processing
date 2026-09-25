@@ -36,7 +36,7 @@ module tb_ps_publish;
         input [8*60:1] named;
         input ok;
         begin
-            $display("%-58s %s", named, ok ? "ok" : "<<< 不成立");
+            $display("[tb_ps_publish.v:39] %-58s %s", named, ok ? "ok" : "<<< 不成立");
             if (!ok) errors = errors + 1;
         end
     endtask
@@ -62,7 +62,7 @@ module tb_ps_publish;
             tog = ~tog;
             wait_pend(8);
             if (got == 0) begin
-                $display("<<< 第 %0d 次发布没有被同步到（pend 未在 8 拍内起来）", k);
+                $display("[tb_ps_publish.v:65] <<< 第 %0d 次发布没有被同步到（pend 未在 8 拍内起来）", k);
                 errors = errors + 1;
             end
             #((ph % 25) * 0.1);
@@ -105,7 +105,7 @@ module tb_ps_publish;
         tog = ~tog; #60;
         tog = ~tog; #60;
         repeat (10) @(posedge clk);
-        $display("  诊断(5): rises=%0d falls=%0d consumes=%0d pend=%b", rises, falls, consumes, pend);
+        $display("[tb_ps_publish.v:108]   诊断(5): rises=%0d falls=%0d consumes=%0d pend=%b", rises, falls, consumes, pend);
         // 合并的证据是"只有一个上升沿 + 一次消费"：pend 本来就已经是 1，
         // 第二次发布不可能再产生一个上升沿 —— 断言 rises==2 是我一开始写错的期望。
         chk("5 两次快速发布只留一个挂起（pend 仅上一个沿且保持）",
@@ -113,7 +113,7 @@ module tb_ps_publish;
         @(posedge clk); #1 consume = 1;
         @(posedge clk); #1 consume = 0;
         repeat (6) @(posedge clk);
-        $display("  诊断(5b): rises=%0d falls=%0d consumes=%0d pend=%b", rises, falls, consumes, pend);
+        $display("[tb_ps_publish.v:116]   诊断(5b): rises=%0d falls=%0d consumes=%0d pend=%b", rises, falls, consumes, pend);
         chk("5b 合并后一次消费即回到静默", pend === 1'b0 && falls == 1 && consumes == 1);
 
         // ---- 6. 相位扫描：60 次发布必须正好 60 次消费 ----
@@ -127,15 +127,15 @@ module tb_ps_publish;
             rises == 60 && falls == 60 && consumes == 60);
 
         $display("");
-        $display("计数：rises=%0d falls=%0d consumes=%0d", rises, falls, consumes);
+        $display("[tb_ps_publish.v:130] 计数：rises=%0d falls=%0d consumes=%0d", rises, falls, consumes);
         if (errors == 0) $display("RESULT tb_ps_publish PASS");
-        else             $display("RESULT tb_ps_publish FAIL (%0d 处不成立)", errors);
+        else             $display("[tb_ps_publish.v:132] RESULT tb_ps_publish FAIL (%0d 处不成立)", errors);
         $finish;
     end
 
     initial begin
         #400_000;
-        $display("RESULT tb_ps_publish FAIL 超时（没有跑到最后的断言）");
+        $display("[tb_ps_publish.v:138] RESULT tb_ps_publish FAIL 超时（没有跑到最后的断言）");
         $finish;
     end
 endmodule

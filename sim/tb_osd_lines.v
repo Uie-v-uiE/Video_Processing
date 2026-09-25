@@ -119,9 +119,9 @@ module tb_osd_lines;
             ncell = ncell + k;
             if (right > 511) begin
                 errors = errors + 1;
-                $display("  FAIL %0s L%0d 占了 %0d 格 ⇒ 右沿 x=%0d 越过分割线 511", tag, ln, k, right);
+                $display("[tb_osd_lines.v:122]   FAIL %0s L%0d 占了 %0d 格 ⇒ 右沿 x=%0d 越过分割线 511", tag, ln, k, right);
             end else begin
-                $display("  ok   %0s L%0d 占 %0d 格，右沿 x=%0d <= 511", tag, ln, k, right);
+                $display("[tb_osd_lines.v:124]   ok   %0s L%0d 占 %0d 格，右沿 x=%0d <= 511", tag, ln, k, right);
             end
         end
     endtask
@@ -150,7 +150,7 @@ module tb_osd_lines;
             tde = 1'b0;
             if (oncnt != wantcnt) begin
                 errors = errors + 1;
-                $display("  FAIL %0s 格(%0d,%0d) 亮 %0d 像素，点阵说 %0d", tag, ln, cidx, oncnt, wantcnt);
+                $display("[tb_osd_lines.v:153]   FAIL %0s 格(%0d,%0d) 亮 %0d 像素，点阵说 %0d", tag, ln, cidx, oncnt, wantcnt);
             end
         end
     endtask
@@ -171,11 +171,11 @@ module tb_osd_lines;
                     nvis = nvis + 1;
                     if (u_osd.gi === 6'd63) begin
                         errors = errors + 1;
-                        $display("  FAIL %0s 第 %0d 格码点 %h 没有字模（屏上看不见这一笔）", tag, c, code);
+                        $display("[tb_osd_lines.v:174]   FAIL %0s 第 %0d 格码点 %h 没有字模（屏上看不见这一笔）", tag, c, code);
                     end
                 end else if (u_osd.gi !== 6'd63) begin
                     errors = errors + 1;
-                    $display("  FAIL %0s 空格格位 %0d 竟然译出了字模号 %0d", tag, c, u_osd.gi);
+                    $display("[tb_osd_lines.v:178]   FAIL %0s 空格格位 %0d 竟然译出了字模号 %0d", tag, c, u_osd.gi);
                 end
                 release u_osd.ch;
             end
@@ -212,7 +212,7 @@ module tb_osd_lines;
                 end
             if (hit == 0) begin
                 errors = errors + 1;
-                $display("  FAIL %0s L%0d 里找不到码点 %h（这一格没画出来）", tag, ln, code);
+                $display("[tb_osd_lines.v:215]   FAIL %0s L%0d 里找不到码点 %h（这一格没画出来）", tag, ln, code);
             end
         end
     endtask
@@ -236,7 +236,7 @@ module tb_osd_lines;
         expect_line(1, "Pipe:11000 Th:80 Gamma:1.8", "T1b");
         expect_line(2, {"Rot:45", 8'hDF, "  Zoom:0.75x(Auto)"}, "T1c");
         expect_line(3, "Split:50%  Latency:16ms", "T1d");
-        if (errors == 0) $display("PASS T1 四行逐字符等于用户原话（分辨率按真实几何 512x300 画）");
+        if (errors == 0) $display("[tb_osd_lines.v:239] PASS T1 四行逐字符等于用户原话（分辨率按真实几何 512x300 画）");
 
         // ================= T2 数字宽度：不打前导零；越界一律饱和不回卷 =================
         i_fps = 8'd9;   i_angle = 9'd5; i_th = 8'd9; i_sp = 8'd7; i_ms = 16'd5; settle;
@@ -249,7 +249,7 @@ module tb_osd_lines;
         expect_line(1, "Pipe:11000 Th:255 Gamma:1.8", "T2f");
         expect_line(2, {"Rot:359", 8'hDF, "  Zoom:0.75x(Auto)"}, "T2g");
         expect_line(3, "Split:100%  Latency:999ms", "T2h");
-        if (errors == 0) $display("PASS T2 一位数不占两格、fps/ms 越界饱和（99 / 999）而不是回卷成小数");
+        if (errors == 0) $display("[tb_osd_lines.v:252] PASS T2 一位数不占两格、fps/ms 越界饱和（99 / 999）而不是回卷成小数");
 
         // ================= T3 片源那一格：标签跟着屏幕走，不跟意愿走 =================
         // ⚠ 用词是**用户的决定**，一天里改了两次：先是他的读法 `CARD`=SD 回放 / `PS`=片内图卡，
@@ -265,7 +265,7 @@ module tb_osd_lines;
         expect_line(0, "FPS:30  Src:TEST*  512x300", "T3c");
         i_src = 2'b11; i_mode = 2'b00; settle;
         expect_line(0, "FPS:30  Src:ETH  512x300", "T3d");
-        if (errors == 0) $display("PASS T3 锁住才有 *、* 紧跟名字；仲裁与 mux 不一致时画 mux 那一路（#55）");
+        if (errors == 0) $display("[tb_osd_lines.v:268] PASS T3 锁住才有 *、* 紧跟名字；仲裁与 mux 不一致时画 mux 那一路（#55）");
 
         // ================= T4 五位 Pipe 码 =================
         defaults(); settle;             // 每段自己把激励摆回基线：T2 留下的 Th=255 会把期望串顶歪
@@ -280,7 +280,7 @@ module tb_osd_lines;
         i_sel = 9'h180; settle; expect_line(1, "Pipe:00000 Th:80 Gamma:1.8", "T4g");
         i_sel = 9'h1FF; settle; expect_line(1, "Pipe:33120 Th:80 Gamma:1.8", "T4h");
         defaults(); settle;
-        if (errors == 0) $display("PASS T4 八种控制字逐位对（全 1 那组：前两级 3、Sobel 1、阈值旁路 0）");
+        if (errors == 0) $display("[tb_osd_lines.v:283] PASS T4 八种控制字逐位对（全 1 那组：前两级 3、Sobel 1、阈值旁路 0）");
 
         // ================= T5 Zoom 八档 + (Auto) 后缀 =================
         begin : blk5
@@ -302,7 +302,7 @@ module tb_osd_lines;
         i_zc = 3'd3; i_za = 1'b0; settle;
         expect_line(2, {"Rot:45", 8'hDF, "  Zoom:0.75x"}, "T5z");
         i_za = 1'b1; settle;
-        if (errors == 0) $display("PASS T5 八档各自精确；zoom_auto 关掉就不许再有 (Auto)");
+        if (errors == 0) $display("[tb_osd_lines.v:305] PASS T5 八档各自精确；zoom_auto 关掉就不许再有 (Auto)");
 
         // ================= T6 Gamma 那一格（γ×10 逐档） =================
         begin : blk6
@@ -321,7 +321,7 @@ module tb_osd_lines;
         i_gd = 6'd0; settle;
         expect_line(1, "Pipe:11000 Th:80 Gamma:0.0", "T6z");
         i_gd = 6'd18; settle;
-        if (errors == 0) $display("PASS T6 gamma×10 二十一台逐档对；0.0 = 表关着（PL 逐位旁路）");
+        if (errors == 0) $display("[tb_osd_lines.v:324] PASS T6 gamma×10 二十一台逐档对；0.0 = 表关着（PL 逐位旁路）");
 
         // ================= T7 Latency：没测量就必须画 -- =================
         i_ms = 16'd0; settle;
@@ -335,7 +335,7 @@ module tb_osd_lines;
         i_ok = 1'b1; i_sa = 1'b1; i_ms = 16'd33; settle;
         expect_line(3, "Split:50%(Auto)  Latency:33ms", "T7e");
         i_sa = 1'b0; i_ms = 16'd16; settle;
-        if (errors == 0) $display("PASS T7 lat_ok=0 屏上是 --，过期/没算完的数不许冒充测量值");
+        if (errors == 0) $display("[tb_osd_lines.v:338] PASS T7 lat_ok=0 屏上是 --，过期/没算完的数不许冒充测量值");
 
         // ================= T8 分辨率那一格来自参数，不是写死的串 =================
         begin : blk8
@@ -349,17 +349,17 @@ module tb_osd_lines;
                 if (c8 == 3) exp8 = 8'h78;
                 if (u_osd2.chars[0*MC + 17 + c8] !== exp8) begin
                     errors = errors + 1;
-                    $display("  FAIL T8 第二份(640x480) 第 %0d 格 = %h 期望 %h", c8,
+                    $display("[tb_osd_lines.v:352]   FAIL T8 第二份(640x480) 第 %0d 格 = %h 期望 %h", c8,
                              u_osd2.chars[0*MC + 17 + c8], exp8);
                 end
                 ncell = ncell + 1;
             end
-            if (errors == 0) $display("PASS T8 换一组 IMG_* 参数那一格就跟着变 ⇒ 画的是实参");
+            if (errors == 0) $display("[tb_osd_lines.v:357] PASS T8 换一组 IMG_* 参数那一格就跟着变 ⇒ 画的是实参");
             // 第一份仍是 512x300（与第二份并存 ⇒ 排除"两份共用同一个常数"的假绿）
             expect_line(0, "FPS:30  Src:ETH  512x300", "T8b");
             if (u_osd.chars[0*MC+17] === u_osd2.chars[0*MC+17]) begin
                 errors = errors + 1;
-                $display("  FAIL T8c 两份画了同一个数字 ⇒ 分辨率那一格没吃到参数");
+                $display("[tb_osd_lines.v:362]   FAIL T8c 两份画了同一个数字 ⇒ 分辨率那一格没吃到参数");
             end
         end
 
@@ -372,7 +372,7 @@ module tb_osd_lines;
         no_invisible(0, "T9e"); no_invisible(1, "T9f");
         no_invisible(2, "T9g"); no_invisible(3, "T9h");
         defaults(); settle;
-        if (errors == 0) $display("PASS T9 两种状态 × 四行：每个非空格都译得出字模号，空格必须译成 63");
+        if (errors == 0) $display("[tb_osd_lines.v:375] PASS T9 两种状态 × 四行：每个非空格都译得出字模号，空格必须译成 63");
 
         // ================= T10 新字模逐像素扫（按码点找格子，不手写第几格） =================
         // 位图是 TB 自己抄的（`build/glyphs_draft.txt` 那份），与 RTL 互为反例源：
@@ -390,18 +390,18 @@ module tb_osd_lines;
         i_ok = 1'b0; settle;
         scan_code(3, 8'h2D, G_DASH, "T10j");    // Latency 没有可信测量时的两根短线
         i_ok = 1'b1; settle;
-        if (errors == 0) $display("PASS T10 新字模逐个扫过（a m o Z ° ( % : . -），少一笔就少一截亮像素");
+        if (errors == 0) $display("[tb_osd_lines.v:393] PASS T10 新字模逐个扫过（a m o Z ° ( %% : . -），少一笔就少一截亮像素");
 
         // ================= T11 判据自己有牙吗：拿错的期望比，必须逐格红 =================
         save_e = errors; verbose = 0;
         expect_line(0, "FPS:31  Src:ETH  512x300", "T11");
         if (errors == save_e + 1) begin
-            $display("  PASS T11 错期望被抓到（那一格确实逐格在比，不是恒真式）");
+            $display("[tb_osd_lines.v:399]   PASS T11 错期望被抓到（那一格确实逐格在比，不是恒真式）");
             errors = save_e; verbose = 1;          // 自检的"红"是预期，撤销计数并恢复打印
         end else begin
             verbose = 1;
             errors = errors + 1;
-            $display("  FAIL T11 判据没牙：错期望报了 %0d 处（应为 1）", errors - save_e);
+            $display("[tb_osd_lines.v:404]   FAIL T11 判据没牙：错期望报了 %0d 处（应为 1）", errors - save_e);
         end
 
         // ================= T13 行宽：任何一行都不许越过左半窗的分割线 =================
@@ -420,7 +420,7 @@ module tb_osd_lines;
         settle;
         line_within_pane(0, "T13a"); line_within_pane(1, "T13b");
         line_within_pane(2, "T13c"); line_within_pane(3, "T13d");
-        if (errors == 0) $display("PASS T13 最宽可达激励下四行都留在分割线这边（X0+k*CW <= 511）");
+        if (errors == 0) $display("[tb_osd_lines.v:423] PASS T13 最宽可达激励下四行都留在分割线这边（X0+k*CW <= 511）");
 
         // ================= T14 两个"看着像别的字母"的字模（用户报 Src→Sro / Split→Solit）====
         // 点阵是**按字母形状手抄**的，不从 osd_overlay.v 复制（那正是当初让它活下来的原因：
@@ -428,14 +428,14 @@ module tb_osd_lines;
         // 位置：L0 "FPS:99  Src:TEST*…" 的 'c' 在第 10 格；L1 "Pipe:…" 的小写 'p' 在第 2 格。
         scan_glyph(0, 10, 35'b00000_00000_01110_10000_10000_10000_01111, "T14a"); // c
         scan_glyph(1,  2, 35'b00000_00000_10110_10001_10001_10110_10000, "T14b"); // p
-        if (errors == 0) $display("PASS T14 c/p 两个字模逐像素对上（c 右列全空、p 左列贯通）");
+        if (errors == 0) $display("[tb_osd_lines.v:431] PASS T14 c/p 两个字模逐像素对上（c 右列全空、p 左列贯通）");
 
         // ================= T12 陪跑：样本数必须 > 0（#60 那一课） =================
-        if (errors == 0) $display("PASS T12 本台架比对了 %0d 格、查了 %0d 个非空格、扫了 %0d 个字形",
+        if (errors == 0) $display("[tb_osd_lines.v:434] PASS T12 本台架比对了 %0d 格、查了 %0d 个非空格、扫了 %0d 个字形",
                                   ncell, nvis, nscan);
         if (ncell < 1500 || nvis < 150 || nscan < 12) begin
             errors = errors + 1;
-            $display("FAIL T12 样本太少（ncell=%0d nvis=%0d）⇒ 上面有些判据是空的", ncell, nvis);
+            $display("[tb_osd_lines.v:438] FAIL T12 样本太少（ncell=%0d nvis=%0d）⇒ 上面有些判据是空的", ncell, nvis);
         end
 
         $display("");

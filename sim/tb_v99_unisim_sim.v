@@ -60,7 +60,7 @@ module tb_v99_unisim_sim;
     initial begin
         // 看门狗：无论发生什么，500 µs 仿真时间后必须收尾（挂死 = 整轮回归没有结论）
         #500_000;
-        $display("FAIL 看门狗到点 | 台架没自己结束 ⇒ 这一版又不该有等待事件的写法");
+        $display("[tb_v99_unisim_sim.v:63] FAIL 看门狗到点 | 台架没自己结束 ⇒ 这一版又不该有等待事件的写法");
         $finish;
     end
 
@@ -73,15 +73,15 @@ module tb_v99_unisim_sim;
         // （第一版正是这样，量出 13 ns 而不是 20 ns —— 数字看着像 bug，其实是我的尺子错位）。
         e0 = 0; e1 = 0; e2 = 0;
         #WIN_NS;
-        $display("INFO 计数窗口 %0d ns（复位释放后起算）：pix=%0d 5x=%0d 200m=%0d locked=%b",
+        $display("[tb_v99_unisim_sim.v:76] INFO 计数窗口 %0d ns（复位释放后起算）：pix=%0d 5x=%0d 200m=%0d locked=%b",
                  WIN_NS, e0, e1, e2, locked);
         // C4 先判"量到了没有"：没量到就不许判 C1/C3（防"空跑判据"）
         if (e0 < 20 || e1 < 60 || e2 < 40) begin
-            $display("FAIL C4 窗口不够 | 三个计数器至少要 20/60/40 拍才算量得出比例（实到 %0d/%0d/%0d）",
+            $display("[tb_v99_unisim_sim.v:80] FAIL C4 窗口不够 | 三个计数器至少要 20/60/40 拍才算量得出比例（实到 %0d/%0d/%0d）",
                      e0, e1, e2);
             nfail = nfail + 1;
         end else begin
-            $display("PASS C4 窗口够长 | 比例判据不是空跑（%0d/%0d/%0d 拍）", e0, e1, e2);
+            $display("[tb_v99_unisim_sim.v:84] PASS C4 窗口够长 | 比例判据不是空跑（%0d/%0d/%0d 拍）", e0, e1, e2);
             // C1 比例：窗口是同一段时间，所以"边沿数之比 = 频率之比"
             chk("C1a 5x = 5 倍 pix", (e1 == 5 * e0) || (e1 == 5 * e0 + 5) || (e1 == 5 * e0 - 5),
                 "TMDS 串行器要 5 倍时钟；边沿数允许 ±5 拍的相位边界");

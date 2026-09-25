@@ -74,7 +74,7 @@ module tb_fb_roundtrip;
             @(posedge rd_clk); #1;
             if (rd_data !== exp_of(px)) begin
                 badcnt = badcnt + 1;
-                $display("  MISMATCH(定点) p=%0d got=%h want=%h", px, rd_data, exp_of(px));
+                $display("[tb_fb_roundtrip.v:77]   MISMATCH(定点) p=%0d got=%h want=%h", px, rd_data, exp_of(px));
             end
         end
     endtask
@@ -86,7 +86,7 @@ module tb_fb_roundtrip;
         wr_word(WORDS);                    // 越界写：第 38401 个字
         wr_word(19'h7FFFF);                // 地址全 1，最坏情况
         @(negedge wr_clk); wr_en = 1'b0;
-        $display("写入完成 %0d 字 + 2 次越界写，t=%0t", WORDS, $time);
+        $display("[tb_fb_roundtrip.v:89] 写入完成 %0d 字 + 2 次越界写，t=%0t", WORDS, $time);
 
         // ---- 流水回读：第 p 拍的 rd_data 必须等于 exp_of(p) ----
         rd_addr = 19'd0;
@@ -97,7 +97,7 @@ module tb_fb_roundtrip;
             if (got !== want_v) begin
                 badcnt = badcnt + 1;
                 if (shown < 10) begin
-                    $display("  MISMATCH(流水) p=%0d got=%h want=%h", p, got, want_v);
+                    $display("[tb_fb_roundtrip.v:100]   MISMATCH(流水) p=%0d got=%h want=%h", p, got, want_v);
                     shown = shown + 1;
                 end
             end
@@ -108,7 +108,7 @@ module tb_fb_roundtrip;
         for (p = (D_LO-2)*4; p < (D_LO+2)*4; p = p + 1) point_check(p[18:0]);
         for (p = (WORDS-1)*4; p < WORDS*4; p = p + 1)   point_check(p[18:0]);
 
-        $display("tb_fb_roundtrip: 比对 %0d 次（流水 %0d + 越界读 %0d + 边界/帧尾定点 16），错 %0d 次",
+        $display("[tb_fb_roundtrip.v:111] tb_fb_roundtrip: 比对 %0d 次（流水 %0d + 越界读 %0d + 边界/帧尾定点 16），错 %0d 次",
                  TOTAL + 16, TOTAL, TAIL, badcnt);
         if (badcnt == 0) $display("PASS tb_fb_roundtrip");
         else             $display("FAIL tb_fb_roundtrip bad=%0d", badcnt);

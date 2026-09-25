@@ -159,7 +159,7 @@ module tb_v100_fit_rot;
         if (ang !== 9'd355) begin
             $display("FAIL T3e key_inc to 355 got %0d -- T3f below is then meaningless", ang);
             errors = errors + 1;
-        end else $display("ok   T3e key ±1 deg still reaches any angle (355)");
+        end else $display("[tb_v100_fit_rot.v:162] ok   T3e key ±1 deg still reaches any angle (355)");
         checks = checks + 1;
         auto_en = 1;
         repeat (2) begin @(posedge clk) ftgl = ~ftgl; @(posedge clk); end   // 2 帧 x 7 = +14 => 369 => 9

@@ -81,13 +81,13 @@ module tb_v100_raw_delay;
                         if ((p_col % 3 != 0) && (partial == 1)) begin
                             if (qd !== p_de_prev) begin
                                 pbad = pbad + 1;
-                                if (pbad <= 3) $display("     de 不符：喂入(row=%0d,col=%0d) de_out=%0b 应为 %0b",
+                                if (pbad <= 3) $display("[tb_v100_raw_delay.v:84]      de 不符：喂入(row=%0d,col=%0d) de_out=%0b 应为 %0b",
                                                         p_row, p_col, qd, p_de_prev);
                             end
                         end else if (q !== expq || qd !== p_de_prev) begin   // de_out 必须就是上一拍的 de
                             pbad = pbad + 1;
                             if (pbad <= 3)
-                                $display("     不符：喂入(row=%0d,col=%0d) 输出=%04x 期望=%04x de_out=%0b",
+                                $display("[tb_v100_raw_delay.v:90]      不符：喂入(row=%0d,col=%0d) 输出=%04x 期望=%04x de_out=%0b",
                                          p_row, p_col, q, expq, qd);
                         end
                     end
@@ -120,7 +120,7 @@ module tb_v100_raw_delay;
 
         // ---- T2：头 LINES 行只预热 ----
         feed(0, LINES, 0, 0);
-        $display("INFO T2 前 %0d 行只预热不判定（RAM 里还没有上一行；屏上落在帧首，与 #54 同一族）", LINES);
+        $display("[tb_v100_raw_delay.v:123] INFO T2 前 %0d 行只预热不判定（RAM 里还没有上一行；屏上落在帧首，与 #54 同一族）", LINES);
 
         // ---- T1 + T5：稳态逐格（喂到 13 行，跨过 8 行的槽位回绕）----
         feed(LINES, ROWS, 0, 1);
@@ -130,7 +130,7 @@ module tb_v100_raw_delay;
              "输出第 (row,k) 格必须是第 row-LINES 行的同一列 k");
         line("T5 跨过槽位回绕仍对齐", t1_bad == 0,
              "喂到 13 行 > 2^RLOG=8 ⇒ 环回绕之后判据仍然成立");
-        $display("INFO T1 样本 %0d 格、错 %0d 格（W=%0d × 行 %0d..%0d）", t1_cnt, t1_bad, W, LINES, ROWS-1);
+        $display("[tb_v100_raw_delay.v:133] INFO T1 样本 %0d 格、错 %0d 格（W=%0d × 行 %0d..%0d）", t1_cnt, t1_bad, W, LINES, ROWS-1);
 
         // ---- T3：de 只打在 k%3==0 的列上 ----
         feed(ROWS, ROWS + 4, 1, 1);
@@ -143,7 +143,7 @@ module tb_v100_raw_delay;
         //     加了一条它没承诺、也用不上的语义 ⇒ 红在台架自己。改成判"de_out == 上一拍的 de"。
         line("T3 de 与数据同为一拍延迟", t3_cnt > 60 && t3_bad == 0,
              "d_out 与 de_out 都只延后一拍 ⇒ 不允许出现“数据到了、de 还没到”（#54 那一族的另一种）");
-        $display("INFO T3 样本 %0d 格、错 %0d 格", t3_cnt, t3_bad);
+        $display("[tb_v100_raw_delay.v:146] INFO T3 样本 %0d 格、错 %0d 格", t3_cnt, t3_bad);
 
         // ---- T4：LINES=0 是组合直通 ----
         @(negedge clk);

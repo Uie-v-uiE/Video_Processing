@@ -83,7 +83,7 @@ module tb_v82_src_mode;
         // ⇒ **上电白送一次长按**，模式 AUTO→锁ETH。而 `sel=锁ETH` 在 src_arb 里是
         // `force_eth=1` ⇒ owner_eth 永远为 1、"停流交回"永不发生 —— 与板级实测一字不差。
         expect("T1b 反面对照：旧写法(链复位=1)上电自己一步到锁ETH", mode_old === M_ETH);
-        $display("INFO 复位后 mode=%0d AUTO=%0d ETH=%0d SD=%0d TEST=%0d / 旧写法=%0d",
+        $display("[tb_v82_src_mode.v:86] INFO 复位后 mode=%0d AUTO=%0d ETH=%0d SD=%0d TEST=%0d / 旧写法=%0d",
                  mode, M_AUTO, M_ETH, M_SD, M_TEST, mode_old);
 
         // ---- T2 一次长按 = 恰好一步 ----
@@ -107,7 +107,7 @@ module tb_v82_src_mode;
                 if ((mode ^ before) === 2'd0 || (mode ^ before) === 2'd3) bad = bad + 1;
             end
             expect("T3 四次切换每步都只有一位变化", bad == 0);
-            $display("INFO T3 两位同时变化的步数 = %0d（必须为 0）", bad);
+            $display("[tb_v82_src_mode.v:110] INFO T3 两位同时变化的步数 = %0d（必须为 0）", bad);
         end
 
         // ---- T4 一次翻转只算一次事件：等满 24 拍也不许多走 ----
@@ -134,7 +134,7 @@ module tb_v82_src_mode;
             for (k = 0; k < 3; k = k + 1) one_press;
             repeat (8) @(posedge clk);
             expect("T6 连续三次长按 = 前进三格（到 TEST 档）", mode === M_TEST);
-            $display("INFO T6 结束位置 mode=%0d（期望 %0d=TEST 档）", mode, M_TEST);
+            $display("[tb_v82_src_mode.v:137] INFO T6 结束位置 mode=%0d（期望 %0d=TEST 档）", mode, M_TEST);
         end
 
         // ---- T7 AUTO 那一格不许是空动作（用户实测：ETH 画面下第一次长按百分百没反应）----
@@ -153,7 +153,7 @@ module tb_v82_src_mode;
                 one_press;
                 if ((prev_m ^ mode) === 2'b11) bad2 = bad2 + 1;   // 两位同时翻 = 格雷码被破坏
                 if (prev_m === mode)           same = same + 1;   // 原地不动 = 空动作（就是用户报的那条）
-                $display("INFO T7c 一步 %0d -> %0d（翻转位 %02b）", prev_m, mode, prev_m ^ mode);
+                $display("[tb_v82_src_mode.v:156] INFO T7c 一步 %0d -> %0d（翻转位 %02b）", prev_m, mode, prev_m ^ mode);
             end
             expect("T7c 之后两格仍每格只翻 1 位（格雷码没破）", bad2 == 0);
             expect("T7d 每一格都必须真的换态（不许有空动作）", same == 0);

@@ -282,7 +282,7 @@ module tb_v6_ingress_integrity;
                 if (first_bad < 0) first_bad = pi;
             end
         end
-        $display("stage counts: reasm_wr→cdc ok=%0d lost=%0d | cdc_rd=%0d | packer_drop=%0d | axi_wr=%0d (need %0d)",
+        $display("[tb_v6_ingress_integrity.v:285] stage counts: reasm_wr→cdc ok=%0d lost=%0d | cdc_rd=%0d | packer_drop=%0d | axi_wr=%0d (need %0d)",
                  cdc_ok, cdc_drop, cdc_rd, sv_drop, axi_wr, TB_WORDS);
         $display("reasm stats: frames=%0d pkts=%0d bytes=%0d bad=%0d oob=%0d",
                  s_frames, s_pkts, s_bytes, s_bad, s_oob);

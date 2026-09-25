@@ -100,7 +100,7 @@ module tb_v794_osd_glyph;
             release u_osd.ch;
         end
         if (n_hit !== 256) begin
-            $display("FAIL 只比对了 %0d/256 个码点", n_hit);
+            $display("[tb_v794_osd_glyph.v:103] FAIL 只比对了 %0d/256 个码点", n_hit);
             errors = errors + 1;
         end
 
@@ -109,11 +109,11 @@ module tb_v794_osd_glyph;
         force u_osd.ch = 8'h53;                  // 'S'，真值应是 24
         #1;
         if (u_osd.gi === 6'd25) begin
-            $display("FAIL 反向断言失效：'S' 竟然等于故意写错的 25");
+            $display("[tb_v794_osd_glyph.v:112] FAIL 反向断言失效：'S' 竟然等于故意写错的 25");
             errors = errors + 1;
         end
         if (u_osd.gi !== 6'd24) begin
-            $display("FAIL 'S' 既不等于 24 也不该等于别的：实得 %0d", u_osd.gi);
+            $display("[tb_v794_osd_glyph.v:116] FAIL 'S' 既不等于 24 也不该等于别的：实得 %0d", u_osd.gi);
             errors = errors + 1;
         end
         release u_osd.ch;
@@ -125,7 +125,7 @@ module tb_v794_osd_glyph;
         force u_osd.ch = 8'h62;                  // 'b'
         #1;
         if (u_osd.gi !== 6'd63) begin
-            $display("FAIL 未画的 b 应该落到空格 63，实得 gi=%0d", u_osd.gi);
+            $display("[tb_v794_osd_glyph.v:128] FAIL 未画的 b 应该落到空格 63，实得 gi=%0d", u_osd.gi);
             errors = errors + 1;
         end
         release u_osd.ch;
@@ -135,14 +135,14 @@ module tb_v794_osd_glyph;
         force u_osd.ch = 8'h20;                  // 空格本身
         #1;
         if (u_osd.gi !== 6'd63) begin
-            $display("FAIL 空格 20 应落到 63，实得 %0d", u_osd.gi);
+            $display("[tb_v794_osd_glyph.v:138] FAIL 空格 20 应落到 63，实得 %0d", u_osd.gi);
             errors = errors + 1;
         end
         release u_osd.ch;
         force u_osd.ch = 8'h30;                  // '0' 与"空格 31"这对老号不能再混
         #1;
         if (u_osd.gi !== 6'd0) begin
-            $display("FAIL '0' 应落到 0，实得 %0d", u_osd.gi);
+            $display("[tb_v794_osd_glyph.v:145] FAIL '0' 应落到 0，实得 %0d", u_osd.gi);
             errors = errors + 1;
         end
         release u_osd.ch;
@@ -154,7 +154,7 @@ module tb_v794_osd_glyph;
 
     initial begin
         #200_000;                                  // 60 µs 量级就够（没有长流水线）
-        $display("FAIL watchdog：台架没跑完就超时");
+        $display("[tb_v794_osd_glyph.v:157] FAIL watchdog：台架没跑完就超时");
         $finish;
     end
 endmodule

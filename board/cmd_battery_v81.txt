@@ -79,6 +79,12 @@ split marker 0
 split marker 1
 split show
 split 150
+split 100
+split show
+split video
+split px 512
+split screen
+split show
 split 50
 # ---- V9（ISSUES #75）：几何自动化的三件事 + 三条反面 + 收尾还原 ----
 # 顺序按"改了必须还得回来"排：rot auto 1 会顺带开 zoom fit（固件明说），所以它后面

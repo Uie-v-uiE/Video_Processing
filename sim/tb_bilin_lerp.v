@@ -76,19 +76,19 @@ module tb_bilin_lerp;
             fx = 8'd0; fy = 8'd0;
             wait_out;
             if (pix !== p00) begin
-                $display("FAIL 判据1 fx=fy=0：pix=%h 应为 p00=%h", pix, p00);
+                $display("[tb_bilin_lerp.v:79] FAIL 判据1 fx=fy=0：pix=%h 应为 p00=%h", pix, p00);
                 errors = errors + 1;
             end
         end
-        $display("PASS 判据1 fx=fy=0 逐位等于 p00");
+        $display("[tb_bilin_lerp.v:83] PASS 判据1 fx=fy=0 逐位等于 p00");
 
         // ================= 判据 6：端点色恒等（白/黑）=================
         p00 = 16'hFFFF; p10 = p00; p01 = p00; p11 = p00;
         fx = 8'd91; fy = 8'd173; wait_out;
         if (pix !== 16'hFFFF) begin
-            $display("FAIL 判据6 纯白插值后 = %h（应仍为 ffff，说明展开通道不是位复制）", pix);
+            $display("[tb_bilin_lerp.v:89] FAIL 判据6 纯白插值后 = %h（应仍为 ffff，说明展开通道不是位复制）", pix);
             errors = errors + 1;
-        end else $display("PASS 判据6 纯白在任意权重下保持 ffff");
+        end else $display("[tb_bilin_lerp.v:91] PASS 判据6 纯白在任意权重下保持 ffff");
 
         // ================= 判据 2：四角同色 ⇒ 恒等 =================
         for (k = 0; k < 6; k = k + 1) begin
@@ -106,7 +106,7 @@ module tb_bilin_lerp;
                     fx = i[7:0]; fy = j[7:0];
                     wait_out;
                     if (pix !== p00) begin
-                        $display("FAIL 判据2 四角同色 %h 在 fx=%0d fy=%0d 下读出 %h",
+                        $display("[tb_bilin_lerp.v:109] FAIL 判据2 四角同色 %h 在 fx=%0d fy=%0d 下读出 %h",
                                  p00, fx, fy, pix);
                         errors = errors + 1;
                         i = 9999; j = 9999;
@@ -114,7 +114,7 @@ module tb_bilin_lerp;
                 end
             end
         end
-        $display("PASS 判据2 四角同色对全部采样 (fx,fy) 恒等（白/黑/纯红/纯绿/纯蓝/一般色）");
+        $display("[tb_bilin_lerp.v:117] PASS 判据2 四角同色对全部采样 (fx,fy) 恒等（白/黑/纯红/纯绿/纯蓝/一般色）");
 
         // ================= 判据 3：单调 =================
         for (j = 0; j <= 255; j = j + 1) begin
@@ -122,12 +122,12 @@ module tb_bilin_lerp;
             fx = j[7:0]; fy = 8'd0;
             wait_out;
             if (j > 0 && pix[15:11] < pa) begin
-                $display("FAIL 判据3 非单调：fx=%0d 时 R 从 %0d 退回 %0d", j, pa, pix[15:11]);
+                $display("[tb_bilin_lerp.v:125] FAIL 判据3 非单调：fx=%0d 时 R 从 %0d 退回 %0d", j, pa, pix[15:11]);
                 errors = errors + 1; j = 9999;
             end
             pa = pix[15:11];
         end
-        $display("PASS 判据3 沿插值方向输出单调不减");
+        $display("[tb_bilin_lerp.v:130] PASS 判据3 沿插值方向输出单调不减");
 
         // ================= 判据 4：左右镜像 =================
         for (k = 0; k < 16; k = k + 1) begin
@@ -147,11 +147,11 @@ module tb_bilin_lerp;
             pb = pix[15:11];
             dr = pa > pb ? pa - pb : pb - pa;
             if (dr > 1) begin
-                $display("FAIL 判据4 镜像不对称：原 %0d 镜像后 %0d", pa, pb);
+                $display("[tb_bilin_lerp.v:150] FAIL 判据4 镜像不对称：原 %0d 镜像后 %0d", pa, pb);
                 errors = errors + 1;
             end
         end
-        $display("PASS 判据4 左右镜像在 ±1 LSB 内对称");
+        $display("[tb_bilin_lerp.v:154] PASS 判据4 左右镜像在 ±1 LSB 内对称");
 
         // ================= 判据 5：随机对照黄金模型 =================
         worst = 0;
@@ -178,15 +178,15 @@ module tb_bilin_lerp;
             if (dg > worst) worst = dg;
             if (db > worst) worst = db;
             if (dr > 1 || dg > 1 || db > 1) begin
-                $display("FAIL 判据5 第%0d 组偏离黄金模型 dR=%0d dG=%0d dB=%0d 码 (fx=%0d fy=%0d)",
+                $display("[tb_bilin_lerp.v:181] FAIL 判据5 第%0d 组偏离黄金模型 dR=%0d dG=%0d dB=%0d 码 (fx=%0d fy=%0d)",
                          k, dr, dg, db, fx, fy);
-                $display("     p00=%h p10=%h p01=%h p11=%h -> pix=%h，参考=%h%h%h",
+                $display("[tb_bilin_lerp.v:183]      p00=%h p10=%h p01=%h p11=%h -> pix=%h，参考=%h%h%h",
                          p00, p10, p01, p11, pix, xa, xb, xc);
                 errors = errors + 1; k = 99999;
             end
         end
         if (errors == 0)
-            $display("PASS 判据5 400 组随机抽头与黄金模型逐通道差 <=1 个输出码（最差 %0d）", worst);
+            $display("[tb_bilin_lerp.v:189] PASS 判据5 400 组随机抽头与黄金模型逐通道差 <=1 个输出码（最差 %0d）", worst);
 
         $display("");
         if (errors == 0) $display("RESULT tb_bilin_lerp PASS");

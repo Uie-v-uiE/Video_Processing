@@ -218,7 +218,7 @@ module tb_ku5p_tx_arb;
         chk("V 帧在飞时厂商 mux 没放别人的字节", v_midbad, 0);
         chk("V ARP 请求没被丢掉（应答字节数）", v_arp_seen, LEN);
         chk("V UDP 帧完整（修好前会被截断）", v_udp_seen, LEN);
-        $display("INFO vendor-after-fix: midbad=%0d arp=%0d udp=%0d flips=%0d(含帧边界)",
+        $display("[tb_ku5p_tx_arb.v:221] INFO vendor-after-fix: midbad=%0d arp=%0d udp=%0d flips=%0d(含帧边界)",
                  v_midbad, v_arp_seen, v_udp_seen, v_flips);
 
         // ---- T3：同拍三个请求 ⇒ 只有 ARP 立刻拿到，其余排队 ----
