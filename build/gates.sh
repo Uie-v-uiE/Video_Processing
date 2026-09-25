@@ -209,6 +209,29 @@ else
         echo "  n/a  顶层接线 —— 该冻结件早于第 14 项，没有对应的 ports_check 凭据（不判红，见上面注释）"
     fi
 fi
+# 14) WNS/WHS 的**归属组**（记录用，绝不判红）—— 2026-09-26 的教训，出处 `report/OPTIMIZATION_LOG.md` §4。
+#     上表念的是 Design Timing Summary 里那**一个**数，而它由两条互不相干、都属"布线主导"的路径轮流决定：
+#     125 MHz ETH 组（`u_cdc/wbin→BRAM ENARDEN`、`u_lm/ms32→gap_min`）对上 50 MHz 像素组（`u_pipe→u_osd` 字形）。
+#     同一套约束三次构建 WNS = 0.918 / 0.807 / 0.314，只抄那一个数就会误判成"某次改动拖慢了设计"
+#     （r64b 的 0.314 与双线性**无因果**：ETH 域一行 RTL 没动）⇒ 分组数才是可比的量。
+#     判据不变（还是上表那一项），这一块只负责"把话说清是谁"；From!=To 的跨组路径不在这里，
+#     读不到分组行时明说"未验"，不许把空表当成通过。
+echo "分组最差（记录用；判据仍是上表的 WNS/WHS）："
+GRP=$(awk '
+  /^From Clock:/ {from=$3}
+  /^  To Clock:/ {to=$3}
+  /^Setup :/ && from!="" && from==to {v=$8; gsub(/ns,?/,"",v); print from"|"v"|"$3"|setup"}
+  /^Hold  :/ && from!="" && from==to {v=$8; gsub(/ns,?/,"",v); print from"|"v"||hold"}
+' "$T")
+[ -n "$GRP" ] || echo "  n/a 读不到 From==To 分组行 ⇒ 这一项未验（不当 0、也不当通过）"
+echo "$GRP" | awk -F'|' -v wns="$wns" '
+  $4=="setup" {sup[$1]=$2; sf[$1]=$3; next}
+  $4=="hold"  {hol[$1]=$2}
+  END {for (g in sup) {own=""; if (sup[g]==wns) {own="   ← 门禁 WNS 就是这一组"; hit=1}
+        h=(hol[g]==""?"NA":hol[g]"ns");
+        print sprintf("  %-12s setup %-8s (失败端点 %s)   hold %-8s%s", g, sup[g]"ns", sf[g], h, own)}
+        if (!hit) print "  ⚠ 门禁 WNS 不来自任何 From==To 组 ⇒ 它是跨时钟组/IO 路径，去报告里认那一组"}' | sort
+
 echo
 echo "端点总数 $eps；CDC 现在按 build/CDC_BASELINE.txt 的**配对集合**判，功耗仍要人比有没有变差。"
 if [ "$pass" = 1 ]; then echo "GATES: ALL PASS"; exit 0; else echo "GATES: 有红项 —— 不采纳，保留上一版"; exit 1; fi
