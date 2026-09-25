@@ -149,3 +149,51 @@ set_clock_groups -asynchronous \
 `build/tcl/{build_v6,program_pl,ps_jtag_boot,set_src}.tcl`、`build/*.{bit,xsa,rpt}`、
 `report/V6_ROOT_CAUSE.md`、`report/V6_BOARD_MEASUREMENT.md`、`report/AI_COLLABORATION.md`、
 `skill/zynq-video-rtl-debug/*`、`skill/frameid_loss_signature.md`
+
+---
+
+## 2026-09-26 · r63 双线性读口的代价，与全设计最紧那两条路径的机制
+
+这一节只放**从报告里抄出来的数**（每一份都点名出处），以及"没量到的东西"明确说不量到。
+
+### 1. 双线性换读口到底花了多少（r62 `build/frozen_r62_geom/` vs r63b `build/evidence_r63b/`）
+| 资源 | r62 | r63b | 差 | 口径 |
+|---|---|---|---|---|
+| Slice LUT | 12958 (24.36 %) | 14116 (26.53 %) | +1158 | `utilization.rpt` |
+| Slice 寄存器 | 9491 (8.92 %) | 9856 (9.26 %) | +365 | 同上 |
+| Block RAM tile | 96 (68.57 %) | 97 (69.29 %) | **+1** | 同上；RAMB18 6→8 |
+| DSP48 | 14 (6.36 %) | 20 (9.09 %) | **+6** | 同上（插值乘法第一次进 DSP） |
+| 端点总数 | 33896 | 34561 | +665 | `timing_summary.rpt` |
+| 估算功耗 Total / Dynamic | 2.378 / 2.201 W | 2.381 / 2.204 W | +0.003 / +0.003 W | `power.rpt`，**Vivado 默认翻转率** |
+
+要点（可以直接对外讲的那句）：**双线性没有引入任何新的高频时钟域、没有加第二个帧缓存读口** ——
+读口仍挂在 50 MHz 像素时钟上，每个源像素用它本来就空着的 4 个拍；
+代价换成 +6 个 DSP48、+1158 LUT、1 块 BRAM tile，估算功耗在同一档（+0.13 %）。
+背景：2026-09-23 那三次失败的做法是"每像素周期 5 次读 ⇒ 必须 250 MHz ⇒ 5 选 1 地址 mux ⇒ mux→RAMB36 地址脚"，
+build#14/#15/#16 分别 −1.277 / −0.485 / −0.327 ⇒ 那条路被 `build/micro_rd/` 三 MODE 探针量死后放弃（#76）。
+**不声称**的部分：插值"看起来更好"属眼睛，`board/README.md` 第 29 行是留给用户的判据，本文不代答。
+
+### 2. 全设计最紧的两条路径，现在都有机制（不再只有数字）
+`timing_summary.rpt` 里 WNS 与 WHS 同时由 `eth_rxc`（RGMII 收 125 MHz）那一组决定：
+* **WHS 的机制**：起点 `u_iddr_rx_ctl`（ILOGIC，走 **BUFIO**，SCD 3.171 ns）→ 1 级 LUT4 →
+  终点 `u_rx_mac/m_good_reg`（fabric，走 **BUFG**，DCD 4.854 ns）⇒ **时钟路径偏斜 +1.616 ns**，
+  而整条数据路径只有 1.855 ns（预算 8.000 ns）。
+  ⇒ 同一份 RTL 两次构建：r62 WHS +0.001、r63b +0.052 —— 这个抖动不是设计变化，是工具在两条时钟树之间掷硬币。
+* **已排除的三种"便宜修法"**（写清楚免得重复走）：`set_false_path`（两侧同频同相，是真实同步路径，判假路径=允许采错拍）；
+  只搬走 `m_good` 一个计数器（该 IDDR 输出 `fo=22`，机制不变，下一条最差路径顶上）；
+  让 fabric 吃 BUFIO（7 系列 BUFIO 只驱动 ILOGIC/OSERDES，做不到）。
+* **今天采用的那条（r63c 在验）**：`set_clock_uncertainty -hold 0.500 [get_clocks eth_rxc]`
+  —— 与"放松判据"方向相反：给 hold **加**要求，逼工具插延迟把余量做成设计值；
+  数据路径还有 ~6 ns setup 余量，垫 0.5 ns 负担得起（`-hold` 不参与 setup 检查）。
+  验收：WHS 应从 +0.05 量级升到 ≥ +0.4，且 WNS 不被它压低。凭据 `build/r63c_gates.txt`。
+* **仍待用户在场的那条**：把 RGMII RX 的 IDDR 也改用 BUFG + IDELAY 对齐（发射/接收同一棵树），
+  它会**移动采样时刻** ⇒ 必须重调 IDELAY 并做 1000M 在线验证（#57）。
+
+### 3. 两处"空转"的资源，量出来了但还没动（各自的正确顺序）
+* 死模块 `src/rtl/process/bilin/{fb_rd5x,tap_sched}.v`：`sim/*.v` 与 `src/rtl/**` 里已无任何活引用
+  （只在历史日志中出现）⇒ 建议移入 `docs/archive/`，出构建 glob。
+  ⚠ 曾猜"它们制造了综合警告噪声"，**量过是错的**：整份 `r63c_build.log` 里 `Synth 8-3332` 只有 7 条，
+  全是某个 FSM 的不可达状态，与这两个模块无关 ⇒ 移它们的收益只剩"少一个会让后人误以为必须有 250 MHz 快域的入口"。
+* 250 MHz 时钟树空转：`clock_util.rpt` 的 `clkout1_1` = `u_pl/u_clk/u_bufg_5x/O → clk_pix5x`，
+  **fabric 负载 0**、每次构建仍要为它算一条 4 ns 约束组 ⇒ 可去掉一路 MMCM 输出 + 一只 BUFG。
+  收益口径要诚实：**毫瓦级**动态功耗 + 少一棵要收敛的树，不是整数瓦；且必须排在移死模块之后（否则新错来了分不清是谁）。

@@ -4361,3 +4361,11 @@ RESULT tb_v98_top_seam FAIL nfail=2      凭据 build/r63b_c1i_falsify.txt
 跑完 `trap` 把顶层还原，`md5sum` 与跑前的备份逐字符相同（`650a3d15 5b02c8b8…`）⇒ 源码树回到门禁全绿那份状态
 （这条也算给 `build/wip_c1i_falsify.sh` 自己做的反例：脚本故意改坏被测对象，那它必须自己保证改回来）。
 两条判据各自正反两面都量过 ⇒ #52 的"台架侧"到此收口；剩下的只有**上板（眼睛）**与**运行时开关（#81）**。
+
+### 工具坑两条（03:50，都是我自己的命令写法）
+* `powershell -Command "... { $_.Name }"` 里的 **`$_` 会被 Git Bash 先展开**（展开成上一条命令的最后一个词，
+  这次是 `===`），于是 PowerShell 收到的脚本块里根本没有管道变量，报
+  `无法将 '===' 项识别为 cmdlet`。⇒ 写 PS 内联命令时用**单引号**包住脚本，或直接写 `.ps1`（那条老规矩：`.ps1` 只能 ASCII）。
+* 一次 `launch_runs -jobs 4` 的构建在 `tasklist` 里会看到 **4 个 vivado.exe**（各 ~1.4 GB）——
+  那是正常的并行 worker，不是"杀不掉的孤儿"（孤儿那条只在**中途 kill** 之后出现，判据是 `<proj>.runs/` 被占住）。
+  今早如果看到 4 个就先数一遍 `launch_runs` 的 jobs，别急着 taskkill。
