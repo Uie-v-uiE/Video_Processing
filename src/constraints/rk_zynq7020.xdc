@@ -34,6 +34,17 @@ set_property -dict {PACKAGE_PIN AB19 IOSTANDARD LVCMOS33} [get_ports eth_mdio]
 set_property -dict {PACKAGE_PIN Y21 IOSTANDARD LVCMOS33} [get_ports eth_rst_n]
 
 create_clock -period 8.000 -name eth_rxc [get_ports eth_rxc]
+# #80 / #46-T1（r63c，2026-09-26）：RGMII 收口最差 hold 的**机制**已经量出来了，不再靠猜：
+#   起点 IDDR 走 BUFIO（SCD 3.171 ns），终点 fabric FF 走 BUFG（DCD 4.854 ns）⇒ 两棵时钟树差 **1.616 ns**，
+#   而那条数据路径只有 1.855 ns（预算 8.000 ns）⇒ 工具**垫得出来**，但每次布线垫多少是随机的：
+#   r62 只剩 WHS +0.001、r63b 是 +0.052 —— 同一份 RTL 的两个数是"掷硬币"的直接证据。
+# 这一行方向与"放松判据"相反：给 hold **加** 0.5 ns 要求，逼工具把余量做成设计值（Setup 不受影响，
+#   -hold 的不确定性不参与 setup 检查；数据路径还有 6 ns 的 setup 余量，垫得起）。
+# ⚠ 只写 eth_rxc 一个对象：本文件下面那段旧账（51-56 行）证明，把 `get_clocks` 取不到的名字
+#   （例如 PS7 IP 自己 create 的 clk_fpga_0）并进同一条命令，会让**整条命令空转**、
+#   连带把 eth_rxc/sys_clk 那几组一起废掉，而且现场只留下一句 warning。
+# 验收口径：WHS 应升到 ≥ 0.4（工具真的插了 buffer），WNS 不应当因此变差；两者都记进 gates 的数。
+set_clock_uncertainty -hold 0.500 [get_clocks eth_rxc]
 # eth_rst_n 是**输出**（system_top.v:41 `output wire eth_rst_n`，由上电复位计数器驱动），
 # 所以它只能作为 -to 的终点；原先那行 `set_false_path -from [get_ports eth_rst_n]`
 # 每次综合都报 `CRITICAL WARNING [Constraints 18-513] ... -from ... contains no valid
