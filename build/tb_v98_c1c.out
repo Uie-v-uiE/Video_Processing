@@ -1,0 +1,19 @@
+PASS C0ÿÿÿ°ÿÿÿ | px_val / ÿÿÿçÿ /ÿÿÿ¡ 256ÿÿÿ‰ÿÿÿåÿÿÿ·ÿÿÿ‰ÿÿÿèÿÿÿ´ÿÿÿˆÿÿÿåÿÿÿ»ÿÿÿ¤ÿÿÿæÿÿÿÿÿÿ‰
+PROBE fb_wr_pulses=115200 (ä¸€å¸§è¦ 38400)  copy_hold æ‹äº† 0  u_aw.active=122402 æœ€ååˆ°çš„ row=0
+DIAG fb_vis=1 owner_eth=0 fill_busy=1 row_busy=0 eth_live=0 tb_ok=0 dbg_src=0308 tap_raw å…¨é»‘æ¯”ä¾‹ 19200/461262
+PASS Cÿÿÿåÿÿÿ¸ÿÿÿŸÿÿÿæÿÿÿ‰ÿÿÿÿÿÿäÿÿÿ˜ÿÿÿ¨ÿÿ‘ ÿÿÿ¸ÿÿÿ¯ÿÿÿåÿÿÿ›ÿÿÿ¡ÿÿÿäÿÿÿ¾ÿÿÿ‰ | ÿÿÿçÿÿÿ ÿÿÿ¬ÿÿÿåÿÿÿ»ÿÿÿ¹ÿÿÿäÿÿÿ¸ÿÿÿŠÿÿÿåÿÿÿºÿÿÿ±ÿÿÿæÿÿÿœÿÿÿ¡ÿÿÿèÿÿÿÿÿÿ‰
+PASS Cÿÿÿåÿÿÿ•ÿÿÿŸ | ÿÿÿ³ÿÿÿèÿÿÿ¤Ÿ 3 ÿÿÿïÿÿÿÿÿÿ™ÿÿÿéÿÿÿšÿÿÿ°ÿÿÿäÿÿÿ®ÿÿÿ°
+PASS C0c ÿÿÿèÿÿÿ´ÿÿÿ€ | AXIÿÿÿ‰ÿÿÿåÿÿÿ€ÿÿÿåÿÿÿŠÿÿÿ¹ÿÿÿãÿÿÿ²ÿÿÿ»ÿÿ° ÿÿÿçÿÿÿÿÿÿ–
+OBS C-tap è§‚æµ‹ï¼ˆä¸åˆ¤å®šï¼‰ï¼šæ ·æœ¬ 1200000 æ ¼ã€åå·®éé›¶ 1200000 æ ¼ã€é¦–æ ¼åå·® 8
+INFO C-tap æ ·æœ¬ 1200000 æ ¼ã€å 1200000 æ ¼ã€é¦–æ ¼åå·® 8ï¼ˆ0 æ‰æ˜¯å¯¹çš„ï¼‰
+PASS C0e RULER self-consistent | out-of-range bucket must be a subset of the mismatch set
+PASS C1a content-check coverage | in-line left-pane samples below 50k means nothing was measured
+OBS C1e X å æ¯” 694296/1111200ï¼ˆ>10% â‡’ C1b/C1c/C1d å…¨éƒ½ä¸ç®—æ•°ï¼Œè§ä¸Šé¢é‚£æ®µå‰ç½®æ¡ä»¶ï¼‰
+OBS C1b/C1c/C1dï¼ˆä¸åˆ¤å®šï¼‰Î”col ä¸ç¬¦ 1111200ã€Î”row ä¸ç¬¦ 0ã€æ’å®š 1ï¼ˆé¦–å€¼è§ä¸Šä¸€è¡Œ C1 é‚£è¡Œï¼‰
+OBS M3 å³çª—è¡Œåç§»è·¨å¸§æ˜¯å¦æ’å®šï¼ˆä¸åˆ¤å®šï¼Œå†…å®¹æœŸæœ›æœªä¿®å¯¹ï¼‰ï¼šæ’å®š = 0ï¼ˆ1=æ’å®šï¼Œ0=ä¸€å¸§ä¸€å˜ï¼‰ï¼Œå˜åŒ–æ¬¡æ•° 456881
+INFO ç»Ÿè®¡ frames=6 ar=7201 r=115201 odd=0 outwin=0 n_l=461262 bad_l=459452 n_r=1257600 bad_r_col=455298
+RESULT tb_v98_top_seam PASS
+INFO: xsimkernel Simulation Memory Usage: 12724 KB (Peak: 12724 KB), Simulation CPU Usage: 235327 ms
+INFO: [Common 17-206] Exiting xsim at Fri Sep 25 14:22:59 2026...
+INFO: xsimkernel Simulation Memory Usage: 12724 KB (Peak: 12724 KB), Simulation CPU Usage: 235327 ms
+INFO: [Common 17-206] Exiting xsim at Fri Sep 25 14:22:59 2026...

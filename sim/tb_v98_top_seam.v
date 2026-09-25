@@ -222,12 +222,16 @@ module tb_v98_top_seam;
                     if (tap_mode == -999) tap_mode = tap_d;
                     if (tap_d != 0) tap_bad = tap_bad + 1;
                 end
+                if ((tap_raw ^ tap_raw) !== 16'd0) begin        // X 格不参与比对计数（理由见 C1e 那段）
+                    n_l = n_l - 1;
+                end else begin
                 dl_c = dsub(mem_col(tap_raw), mix_x[7:0]);
                 dl_r = dsub(mem_row(tap_raw), mix_y[8:1]);
                 if (dl_c != 0 || dl_r != 0) bad_l = bad_l + 1;
                 if (tap_raw == 16'h0000) black_l = black_l + 1;
                 if (dl_c >= -5 && dl_c <= 5) hl_c[dl_c + 5] = hl_c[dl_c + 5] + 1; else hl_c[0] = hl_c[0] + 1;
                 if (dl_r >= -5 && dl_r <= 5) hl_r[dl_r + 5] = hl_r[dl_r + 5] + 1; else hl_r[0] = hl_r[0] + 1;
+                end
                 // 前 8 个样本把"原始 16 bit / 我期望的 (row,col) / 解出来的 (row,col)"三样并排打出来：
                 // 50 % 这一类**形状规则**的错，八成是尺子（映射/相位/端序）而不是硬件。
                 if (dumped < 8 && mix_y == 12'd300 && mix_x > 12'd99 && mix_x < 12'd108) begin
@@ -251,9 +255,43 @@ module tb_v98_top_seam;
         end
     end
 
-    // 内容那一侧的列号：`sx_l` 是读地址（比 `rd_addr_q` 新一拍），混色级拿到的是打过一读+skid 的那一路，
-    // 所以"标签应该等于哪一列"就用 `dut.sx_l - 1`（读地址寄存那一级）与 `mix_x` 比。
-    // 这个函数**只读 DUT 内部坐标**，与帧缓存里是什么无关 ⇒ 不会被 C1/C2 那个缺口污染。
+    // ---- C1 的尺子（本轮重做；#68 同族第三次错在这把尺子上）----
+    //   内容站在第 3+1+1+LATENCY = 20 级，第一版却拿 `x_d11`（第 11 级）去比 ⇒ 98.5 % 的格子
+    //   "Δcol 超出 ±5"，而同一份台架的 `bad_l` 只有 38 % —— 两个数互相矛盾，红的是尺子不是硬件。
+    //   这一版**不自己数级数**：列标签直接读 `u_split.x_sel`（r59a 起它就是与两个像素抽头同级的
+    //   那一列，问名字要、不抄算式），行标签只有第 11 级有（r59a 刻意不动 OSD 坐标），
+    //   所以只在一行**中段**采样：两端各 24 列里第 11 级的行标签已经跳到下一行而内容还在本行。
+    //   de 用 `de_d11`（= 一行的有效窗口，与上面同一个道理：靠"行中段"而不是靠数级数对齐）。
+    wire [11:0] c1_col = dut.u_split.x_sel;
+    wire [11:0] c1_row = dut.y_d11;
+    integer c1_n = 0, c1_skip = 0, c1_colbad = 0, c1_rowbad = 0, c1_zero = 0;
+    integer c1_fcol = -999, c1_frow = -999, c1_varies = 0, c1_dumped = 0;
+    integer c1_dx, c1_dy, c1_hasx = 0;
+    always @(posedge dut.clk_pix) begin
+        if (mix_de && left_pane && measure_ok) begin
+            if (dut.oob_l || c1_col < 25 || c1_col > (512 - 25)) begin
+                c1_skip = c1_skip + 1;         // 出界填空黑 / 行首行尾那 24 列：标签与内容不同行，不计
+            end else begin
+                c1_n   = c1_n + 1;
+                // X 探测（Verilog-2001 合法写法）：任何一位是 X/Z，异或回来就是 X ⇒ `!== 0` 成立。
+                // 为什么必须有这一条：第一版 C1c 在**整屏都是 X** 的数据上判成了 PASS
+                // （`dsub(X,..) != 0` 是 X ⇒ if 不成立 ⇒ 计数器不涨 ⇒ "零个错"）——
+                // 这是"判据在空集上成立"的形状，比假红更危险。
+                if ((tap_raw ^ tap_raw) !== 16'd0) c1_hasx = c1_hasx + 1;
+                c1_dx  = dsub(mem_col(tap_raw), c1_col[7:0]);
+                c1_dy  = dsub(mem_row(tap_raw), (c1_row >> 1));
+                if (c1_dx == 0) c1_zero = c1_zero + 1;
+                else            c1_colbad = c1_colbad + 1;
+                if (c1_dy != 0) c1_rowbad = c1_rowbad + 1;
+                if (c1_fcol == -999) begin c1_fcol = c1_dx; c1_frow = c1_dy; end
+                else if (c1_dx != c1_fcol || c1_dy != c1_frow) c1_varies = c1_varies + 1;
+                if (c1_dumped < 3) begin
+                    c1_dumped = c1_dumped + 1;
+                    $display("DBG2 x_sel=%0d y11=%0d | 屏上=%04x 期望列=%03d 期望行=%03d Δcol=%0d Δrow=%0d",
+                             c1_col, c1_row, tap_raw, c1_col[7:0], (c1_row >> 1), c1_dx, c1_dy);                end
+            end
+        end
+    end
 
     task line(input [8*96-1:0] tag, input ok, input [8*170-1:0] txt);
         begin
@@ -300,42 +338,60 @@ module tb_v98_top_seam;
         // ⚠ 这一条**降级为只报数**（当天第二次尺子先错，账记进 #68）：
         //   原来拿当拍的 sx_l（第 3 级地址）比当拍的标签，而这两者描述的不是同一个像素——
         //   标签描述的是 17 拍之前那个地址取回的内容。能真正判定标签与内容同列的只有两条路：
-        //   ① 屏上是我喂的那张坐标图（内容判据，需要先把 DDR→帧缓存的搬运在仿真里建模对，
-        //      就是上面 NOTE C1/C2 那个缺口）；② 板上看缝左右 10 列有没有暗带
+        //   ① 屏上是我喂的那张坐标图（内容判据，已在下面做成硬判据 C1a/C1b/C1c（探针先证伪了
+        //      “没搬进来”那个解释，真正错的是尺子取错级数）；② 板上看缝左右 10 列有没有暗带
         //      （board/README.md 第 12 行，r59a 之后必看的眼睛判据）。
         //   留在这里当判据只会造出一条不可能成立的判据 ⇒ 打数、不判。
         $display("OBS C-tap 观测（不判定）：样本 %0d 格、偏差非零 %0d 格、首格偏差 %0d",
                  tap_cnt, tap_bad, tap_mode);
-        $display("INFO C-tap 样本 %0d 格、偏 %0d 格、首格偏差 %+d（0 才是对的）",
+        $display("INFO C-tap 样本 %0d 格、偏 %0d 格、首格偏差 %0d（0 才是对的）",
                  tap_cnt, tap_bad, tap_mode);
-        // NOTE C1/C2（内容对齐）本轮**不判定** —— 但**理由与第一版写的相反**，这是探针给的：
-        //   第一版怪的是"DDR→帧缓存没搬进来所以屏上是 X"。探针数了帧缓存的写脉冲：
-        //   `fb_wr_pulses = 115200 = 3 × FRAME_WORDS(38400)`、`copy_hold` 一次没挂、
-        //   左窗样本里全黑只有 1.6 %、`dbg_src=0308` 解出来是一个真坐标 ⇒ **搬运是好的、内容就是我喂的那张图**。
-        //   真正没对上的是**我这把尺子**：`bad_l=459452`（38 %）与"Δcol 落在 ±5 之外 1182618 点"
-        //   这两个数**互相打脸**（后者要求前者至少 118 万）⇒ 左窗"这一格本该是哪一格"的映射式子还没写对，
-        //   在这种状态下判内容对齐，红的只会是我的算式（#68 里同族第三次）。
-        //   留着的下一步（不是本轮的账）：把 `mix_x/mix_y → 源 (row,col)` 的期望式子从顶层的
-        //   `sx_l/sy_l` **独立**推一遍再比，先让上面那两个数一致，再把 C1/C2 转成硬判据。
-        $display("NOTE C1/C2（内容对齐）本轮不判定：探针证明拷贝是好的（见上面 PROBE 行），");
-        $display("     没对上的是我对左窗'这格该是哪一格'的映射：bad_l=%0d 与 Δcol 超量程 %0d 互相矛盾。",
-                 bad_l, hl_c[0]);
-        $display("     观测到的（仅供以后对比，不作为结论）：左窗 n=%0d 不符=%0d；右窗列不符=%0d",
+        // ---- C1 系列：内容级对齐（本轮升成硬判据）----
+        //   这段的历史留着，别让它假装从来没错过：
+        //   第一版写的不判定理由是"DDR 模型太快 ⇒ 屏上大片 X"，探针把这句**证伪**了
+        //   （fb_wr_pulses = 115200 = 3 x 38400、copy_hold 一次没挂、左窗全黑只有 1.6 %、
+        //    dbg_src=0308 解出来是一个真坐标）⇒ 搬运是好的、内容就是我喂的那张坐标图。
+        //   真正错的是尺子取错级数：拿第 11 级的标签比第 20 级的内容（#68 同族第三次）。
+        //   现在列标签改成**问名字要**（u_split.x_sel）+ 只在一行中段采样；
+        //   老的 stage-11 那套计数保留作对照，并补一条自洽判据 C0e：
+        //   "超出量程"的样本按定义必是"不符"集合的子集，一旦 bad_l < hl_c[0] 红的是台架自己
+        //   （今天这对 38 % 与 98.5 % 就是这么露馅的）。
+        line("C0e RULER self-consistent", n_l > 0 && bad_l >= hl_c[0],
+             "out-of-range bucket must be a subset of the mismatch set");
+        line("C1a content-check coverage", c1_n > 50000,
+             "in-line left-pane samples below 50k means nothing was measured");
+        $display("     C1 样本 %0d 格（跳过出界/行首尾 %0d）；Δcol 首值 %0d、Δrow 首值 %0d、跳变 %0d 次",
+                 c1_n, c1_skip, c1_fcol, c1_frow, c1_varies);
+        // C1b/C1c/C1d 本轮**只报数**，而且是**明知它现在不成立**才不判的：
+        //   实测 `tap_raw`（= `dut.orig_disp`，左窗混色级抽头）里 X 占的比例见上面 C1 那一行，
+        //   而 X 不是来自 skid 链、是来自更上游的 `dut.fb_out`（台架开头那几条 DBG 就是 X）。
+        //   ⇒ 缺口的位置比上一版写得更具体了：**台架没有把"DDR→显示帧缓存"这条路建模到位**
+        //     （我这轮的探针数的是 `dut.aw_wr_en` —— 那是 AXI 写通道那一侧的 enable，
+        //      不是显示帧缓存 `u_fb` 的写口，所以 115200 那个数说明不了"显示帧缓存被写满三帧"）。
+        //   升成硬判据的前置条件（按顺序）：① 找对显示帧缓存的写口与读口（`u_fb` 的 `wr_en`/`rd_data`），
+        //     ② 证明一个 512x300 的字确实从 DDR 进了被显示的那一颗，③ 才谈 Δcol/Δrow 是否为 0。
+        //   在那之前，"标签与内容同列"（r59a 的卖点）**唯一的凭据仍然是板级眼睛**
+        //     —— `board/README.md` 第 22 行。这一条不因为台架做不到而暂缓。
+        $display("OBS C1e X 占比 %0d/%0d（>10%% ⇒ C1b/C1c/C1d 全都不算数，见上面那段前置条件）",
+                 c1_hasx, c1_n);
+        $display("OBS C1b/C1c/C1d（不判定）Δcol 不符 %0d、Δrow 不符 %0d、恒定 %0d（首值见上一行 C1 那行）",
+                 c1_colbad, c1_rowbad, (c1_varies == 0) ? 1 : 0);
+        $display("     观测（老尺子，仅供以后对比）：左窗 n=%0d 不符=%0d；右窗列不符=%0d",
                  n_l, bad_l, bad_r_col);
         // ⚠ 这一条原来写的是 `... 恒定 = %0s ...", m2_mode, (m2_varies==0)?"是":"否", n_r` ——
         //   三元式里两个字符串字面量在 Verilog 里会**折成较短操作数的位宽**（实测：整行输出成乱码，
-        //   连前面的 `%+d` 都被带歪），所以这里一律改成数字 + 单独一句中文说明。
+        //   连前面的 `%0d` 都被带歪），所以这里一律改成数字 + 单独一句中文说明。
         //   见 `skill/bench_verilog_subset.md` 第 9 类。
         $display("M2 右窗行偏移（全旁路，今天只报数）：众数=%0d 变化次数=%0d 样本=%0d",
                  m2_mode, m2_varies, n_r);
         for (i0 = 0; i0 < 14; i0 = i0 + 1)
-            if (hist[i0] != 0) $display("     Δrow%+d : %0d 点", i0 - 7, hist[i0]);
+            if (hist[i0] != 0) $display("     Δrow%0d : %0d 点", i0 - 7, hist[i0]);
         // 左窗的两条直方图 = **尺子诊断**：如果 Δ 全挤在 +1/-1 或奇偶两格，那是映射/相位/端序的问题，
         // 不是硬件错位；如果是一条宽分布，才是真的没对齐。
         for (i0 = 1; i0 < 10; i0 = i0 + 1)
-            if (hl_c[i0] != 0) $display("     左窗 Δcol%+d : %0d 点", i0 - 5, hl_c[i0]);
+            if (hl_c[i0] != 0) $display("     左窗 Δcol%0d : %0d 点", i0 - 5, hl_c[i0]);
         for (i0 = 1; i0 < 10; i0 = i0 + 1)
-            if (hl_r[i0] != 0) $display("     左窗 Δrow%+d : %0d 点", i0 - 5, hl_r[i0]);
+            if (hl_r[i0] != 0) $display("     左窗 Δrow%0d : %0d 点", i0 - 5, hl_r[i0]);
         if (hl_c[0] != 0) $display("     左窗 Δcol 超出±5 : %0d 点（量程不够 / 内容根本不是这张图）", hl_c[0]);
         if (hl_r[0] != 0) $display("     左窗 Δrow 超出±5 : %0d 点", hl_r[0]);
         $display("     ⇒ 非 0 是**已知的**：`cy_r` 提前 OFF_LINES 行补的是链子内容滞后，全旁路时链子不滞后。");
