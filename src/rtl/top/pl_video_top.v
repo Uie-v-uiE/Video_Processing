@@ -696,7 +696,8 @@ module pl_video_top #(
         .bus_q(z_bus_axi), .hb_gone(z_pix_gone), .hb_slow()
     );
     // 位序（唯一出处，改这里要同步改 health_read.mjs 的 decodeZoom 与门禁反例）：
-    //   bit31 = 像素时基活着（0 ⇒ 下面 19 位是旧的）  bit[30:20] = 0（留扩展）
+    //   bit31 = 像素时基活着（0 ⇒ 下面 19 位是旧的）  bit[30:20] = 0（留扩展；bit30 是 #84 留给
+    //   "像素域 bilin 的快照读回"的位置 —— 那条路要先解决 zoom_snap 加宽后的三条不变量，见 #85）
     //   **bit19 = zoom_fit**（V9-2：1 ⇒ 此刻的 inv 是角度定出来的，不再等于八档表里的哪一档）
     //   bit[18]=zman [17:15]=zsel [14:12]=zoom_code [11]=zoom_active [10]=zoom_dir [9:0]=inv_used
     // ⚠ 为什么 fit 位必须进这个字：判据①"PS 写 zsel=i ⇒ 像素域 inv == TBL[i]"在拟合模式下
@@ -708,9 +709,11 @@ module pl_video_top #(
     //   `split_ctl` 本来就是 axi_gpio_2 的输出寄存器 ⇒ 取它 = 零新增跨域。
     //   而"像素域到底有没有在用拟合"不该由这一位作证 —— 那是 `inv_used` 与 `zoom_code`
     //   的关系去证的（`src/host/geom_check.mjs` 的 G1b/G1c/G2 三条就是干这个的）。
-    //   bit30 = ** bilin_en_pix **（#83：像素域真的在用的那一位）⇒ "PS 写了 1 ⇒ 像素域收到 1"有末端凭据
+    //   bit30 = **暂时留空为 0**（#84 的教训：把像素域的 `bilin_en_pix` 直接塞进这个 axi 口，
+    //   会让 cdc.rpt 长出 `clkout0_1 → clk_fpga_0` 这条 Critical 配对 —— r61 为同一件事红过一次；
+    //   走 `zoom_snap` 加宽快照总线那条正解又被 `tb_v95` 的三条不变量判住，见 #85）
     //   [29:20] 其余仍为 0（留扩展）
-    assign dbg_zoom = {~z_pix_gone, 10'd0, bilin_en_pix, split_ctl[18], z_bus_axi};
+    assign dbg_zoom = {~z_pix_gone, 11'd0, split_ctl[18], z_bus_axi};
 
     assign m_axi_arid = 6'd0;
 

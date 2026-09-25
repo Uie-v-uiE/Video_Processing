@@ -1,2 +1,2 @@
   skipped(端口表看不懂/非 ANSI): fb_bilin fb_rd5x
-CHECK PORTS: instances=88 modules=78 skipped=2 width_compared=569 violations=0 PASS
+CHECK PORTS: instances=88 modules=78 skipped=2 width_compared=570 violations=0 PASS

@@ -1,7 +1,7 @@
 Copyright 1986-2022 Xilinx, Inc. All Rights Reserved. Copyright 2022-2026 Advanced Micro Devices, Inc. All Rights Reserved.
 -------------------------------------------------------------------------------------------------------------------------------------------------
 | Tool Version     : Vivado v.2025.2.1 (win64) Build 6403652 Thu Mar 19 19:48:24 GMT 2026
-| Date             : Sat Sep 26 04:08:06 2026
+| Date             : Sat Sep 26 04:38:37 2026
 | Host             : Uie-laptop running 64-bit major release  (build 9200)
 | Command          : report_power -file D:/Xilinx/Prj/pro/Video_Processing/build/power.rpt
 | Design           : system_top
@@ -52,17 +52,17 @@ Table of Contents
 +--------------------------+-----------+----------+-----------+-----------------+
 | On-Chip                  | Power (W) | Used     | Available | Utilization (%) |
 +--------------------------+-----------+----------+-----------+-----------------+
-| Clocks                   |     0.048 |       10 |       --- |             --- |
-| Slice Logic              |     0.032 |    28900 |       --- |             --- |
-|   LUT as Logic           |     0.028 |    12203 |     53200 |           22.94 |
-|   CARRY4                 |     0.001 |     1123 |     13300 |            8.44 |
+| Clocks                   |     0.049 |       10 |       --- |             --- |
+| Slice Logic              |     0.032 |    28906 |       --- |             --- |
+|   LUT as Logic           |     0.029 |    12219 |     53200 |           22.97 |
+|   CARRY4                 |     0.001 |     1122 |     13300 |            8.44 |
 |   LUT as Distributed RAM |     0.001 |     1772 |     17400 |           10.18 |
-|   Register               |    <0.001 |     9856 |    106400 |            9.26 |
-|   F7/F8 Muxes            |    <0.001 |      881 |     53200 |            1.66 |
+|   Register               |    <0.001 |     9858 |    106400 |            9.27 |
+|   F7/F8 Muxes            |    <0.001 |      877 |     53200 |            1.65 |
 |   LUT as Shift Register  |    <0.001 |      141 |     17400 |            0.81 |
-|   Others                 |     0.000 |      344 |       --- |             --- |
-| Signals                  |     0.048 |    21445 |       --- |             --- |
-| Block RAM                |     0.167 |       97 |       140 |           69.29 |
+|   Others                 |     0.000 |      345 |       --- |             --- |
+| Signals                  |     0.048 |    21461 |       --- |             --- |
+| Block RAM                |     0.165 |       97 |       140 |           69.29 |
 | MMCM                     |     0.212 |        2 |         4 |           50.00 |
 | DSPs                     |     0.007 |       20 |       220 |            9.09 |
 | I/O                      |     0.158 |       27 |       200 |           13.50 |
@@ -87,7 +87,7 @@ Table of Contents
 | Vcco135   |       1.350 |     0.000 |       0.000 |      0.000 |       NA    | Unspecified | NA         |
 | Vcco12    |       1.200 |     0.000 |       0.000 |      0.000 |       NA    | Unspecified | NA         |
 | Vccaux_io |       1.800 |     0.000 |       0.000 |      0.000 |       NA    | Unspecified | NA         |
-| Vccbram   |       1.000 |     0.024 |       0.015 |      0.009 |       NA    | Unspecified | NA         |
+| Vccbram   |       1.000 |     0.024 |       0.014 |      0.009 |       NA    | Unspecified | NA         |
 | MGTAVcc   |       1.000 |     0.000 |       0.000 |      0.000 |       NA    | Unspecified | NA         |
 | MGTAVtt   |       1.200 |     0.000 |       0.000 |      0.000 |       NA    | Unspecified | NA         |
 | MGTVccaux |       1.800 |     0.000 |       0.000 |      0.000 |       NA    | Unspecified | NA         |
@@ -168,11 +168,12 @@ Table of Contents
 |       axi_gpio_1           |     0.002 |
 |       axi_gpio_2           |     0.001 |
 |       processing_system7_0 |     1.534 |
-|   u_eth                    |     0.052 |
+|   u_eth                    |     0.054 |
 |     u_arp                  |     0.003 |
-|       u_arp_rx             |     0.001 |
+|       u_arp_rx             |     0.002 |
+|       u_arp_tx             |     0.001 |
 |     u_cdc                  |     0.014 |
-|     u_icmp                 |     0.005 |
+|     u_icmp                 |     0.006 |
 |       u_icmp_rx            |     0.002 |
 |       u_icmp_tx            |     0.003 |
 |     u_icmp_fifo            |     0.001 |
@@ -183,11 +184,11 @@ Table of Contents
 |     u_saver                |     0.011 |
 |   u_idelay_clkgen          |     0.106 |
 |   u_lm_axi                 |     0.002 |
-|   u_pl                     |     0.480 |
+|   u_pl                     |     0.478 |
 |     u_ang                  |     0.003 |
-|     u_aw                   |     0.001 |
-|     u_bilin                |     0.153 |
-|       u_fb                 |     0.150 |
+|     u_aw                   |     0.002 |
+|     u_bilin                |     0.151 |
+|       u_fb                 |     0.148 |
 |     u_clk                  |     0.107 |
 |     u_dvi                  |     0.134 |
 |       u_ser0               |     0.034 |
@@ -197,7 +198,7 @@ Table of Contents
 |     u_lat                  |     0.004 |
 |     u_lat_x                |     0.001 |
 |     u_osd                  |     0.003 |
-|     u_pipe                 |     0.048 |
+|     u_pipe                 |     0.047 |
 |       u_bin                |     0.001 |
 |       u_blur               |     0.002 |
 |       u_morph              |     0.026 |

@@ -1,2 +1,9 @@
-e73e67afbcedb49436efc1abcf5fec52 *evidence_r63c/system.bit
-2354b6eb8d40caa17d2a395484741bb9 *evidence_r63c/system.xsa
+e73e67afbcedb49436efc1abcf5fec52 *build/system.bit
+2354b6eb8d40caa17d2a395484741bb9 *build/system.xsa
+54603265bafadaf5cc4876e0b94772d7 *build/ps_app.elf
+b6498d339079f9ab91f34c7c2e30c611 *src/rtl/process/bilin/fb_bilin.v
+cbea8b5e63c837761d21e46d2b71728c *src/rtl/process/bilin_lerp.v
+650a3d155b02c8b8acff85849cabd3b7 *src/rtl/top/pl_video_top.v
+149dc2c35767bf471bc169681d552a84 *src/rtl/top/system_top.v
+b7846498c198a6afb59447678ba6d6cd *src/constraints/rk_zynq7020.xdc
+dedca274780f8e6f6f680d1da18b8c2f *src/ps/main.c

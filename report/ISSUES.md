@@ -3144,3 +3144,24 @@ r64 = r63c + #83。门禁两项判红，且都是真话（`build/r64_gates.txt`�
 **板子上跑的仍是 r63c**（全绿那版，`program_pl` 之后没再动硬件）；r64 的位流**没刷**、不采纳。
 #83 的同步链本身（`be0/be1/be2` 三级 + 默认 1）没有引发第 2 项 —— 引发它的是**读回那一根线**，
 所以 A/B/C 任一条都不需要重做读口，只需要决定"怎么把这一位送回去"。
+
+## #85（2026-09-26 04:47）加宽 `zoom_snap` 快照总线不是"加一位"那么便宜 —— 台架当场把它拦住
+`bilin_en_pix` 送进 lane23 的正解看起来是"搭已有的帧首快照路"（`zoom_snap` 的 `bus` 从 19 位加宽到 20 位，
+`dbg_zoom` 用 `z_bus_axi[19]` 填 bit30）⇒ 零新增跨域 ⇒ 不用动 CDC 基线。**这条今天做不完，已经整条回退。**
+实况（`build/evidence_r64_rejected/tb_v95_zoom_snap_20bit.txt`，那份台架是 #45 立的"两条不变量"守门人）：
+```
+PASS Z0 reset: bus=0, no edge, bus_q=0      FAIL Z1 20 identical frames produce zero edges
+FAIL Z2a..Z2f（逐字段：zman/zsel/zcode/active/dir/inv）  PASS Z3 8 changes -> 8 edges
+PASS Z4 edge lags frame_start by exactly 8 pix clocks    FAIL Z5/Z6/Z7b（目的域看到的值不对）
+```
+形状很清楚：**帧沿、发沿时机都没坏（Z3/Z4 绿）**，坏在"每帧都被判成换了值"（Z1 与 Z2*、Z5/Z6/Z7b 全红）
+⇒ 加进总线的那一位**每帧都在变**，也就是我在台架里喂它的那个 `bilin_tb` 实际上不是常量（隐式 1 位 net = Z ⇒
+`in_bus != bus` 每帧成立）。这既是台架接线的错，也说明一件更重要的事：
+**这条路上"每一位都必须有主、且必须是准静态"是 `tb_v95` 三条不变量的前提**，
+所以真要加一位，得同时改：`zoom_snap` 的位序注释、`tb_v95` 里所有 19 位字面量与掩码、
+`health_read` 的 `decodeZoom`+`ZOWN`（两边必须一起改，否则它的位归属自检会红）、
+lane23 的位序文档（#70 追加）、以及 geom_check 的期望。六处 ⇒ 一次独立的改动，不搭在任何别的构建里。
+今晚的状态：`zoom_snap.v` 与 `tb_v95` 已回退，`dbg_zoom` 回到原样（bit30 留空），
+`bilin_en_axi → 3 级 ASYNC_REG → fb_bilin.bilin_en` 这条**功能路保留**（默认 1 ⇒ 与 r63c 逐位相同）。
+下一步（早上）：先构建 + 门禁确认"保留的这条链"不新增 CDC Critical（axi→pixel 方向本来就在基线里），
+再单独做 #85 的六处同步，把读回补上。
