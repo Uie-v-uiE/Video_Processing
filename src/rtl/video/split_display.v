@@ -21,6 +21,13 @@ module split_display #(
     //   PANE_W 退化成一个默认值的出处，不再是唯一说法（ISSUES #66 那一族的病）。
     input  wire [11:0] seam,
     input  wire        raw_left,        // 1 = 缝左边给原图（swap 只换这一位，不换缝位）
+    // ---- V9-1：缝可以量在**图像列**里（`split follow 1`）----
+    //   `seam_in_src=1` 时下面两路由 `seam_src` 在**源头那一拍**算好、跟着内容一起推到这一级，
+    //   于是那条线是"画面里的一条竖线"，画到屏上就跟着旋转/缩放一起走（用户要的"蓝线跟着视频转"）。
+    //   `seam_in_src=0` 时这两路完全不参与，走的就是 #51 那条已经上板验过的显示列比较。
+    input  wire        seam_in_src,
+    input  wire        src_orig,        // 1 = 这一格给原图
+    input  wire        src_mark,        // 1 = 这一格是那条 2 图像列宽的标记线（画面外不给 1）
     input  wire        marker,           // 1 = 画那条 2 px 标记线（V8-4 起可关；关掉了 #56-2(a) 就没了）
     input  wire        de,
     input  wire        hs,
@@ -37,15 +44,17 @@ module split_display #(
     output reg         hs_out,
     output reg         vs_out
 );
-    wire        left = (x_sel < seam);   // 缝位是输入（#51）；旧代码这里写的是参数 PANE_W
+    wire        left = seam_in_src ? ~src_orig : (x_sel < seam);   // 缝位是输入（#51）；旧代码这里写的是参数 PANE_W
+    // oob 对两个抽头是同一件事（同一份源坐标），所以 `left` 在这里只影响下面这一位的选择，
+    // 而 V9-1 的图像域路径已经把"哪一侧给原图"在源头算完了 ⇒ 不再过一遍 raw_left（过两遍就是反的）。
     wire        oob  = left ? oob_l : oob_r;
-    // swap 只改"哪一侧给原图"，不改缝的位置，也不改 oob 归属（#56-2：内容对调与几何对调是两件事）
-    wire        take_orig = raw_left ? left : ~left;
+    wire        take_orig = seam_in_src ? src_orig : (raw_left ? left : ~left);
     wire [15:0] sel  = oob ? 16'h0000 : (take_orig ? orig_pix : proc_pix);
     wire [4:0]  r5   = sel[15:11];
     wire [5:0]  g6   = sel[10:5];
     wire [4:0]  b5   = sel[4:0];
-    wire        sep  = marker && ((x_sel == (seam - 12'd1)) || (x_sel == seam));
+    wire        sep  = marker && (seam_in_src ? src_mark
+                                              : ((x_sel == (seam - 12'd1)) || (x_sel == seam)));
 
     always @(posedge clk or negedge rst_n) begin
         if (!rst_n) begin

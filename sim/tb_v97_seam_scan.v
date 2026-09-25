@@ -50,6 +50,7 @@ module tb_v97_seam_scan;
     split_display u_a (
         .clk(clk), .rst_n(rst_n), .x(x), .y(y), .de(de), .hs(hs), .vs(vs), .x_sel(x_sel), .marker(marker), .seam(12'd512), .raw_left(1'b1),
         .orig_pix(orig_pix), .proc_pix(proc_pix), .angle_idx(angle_idx),
+        .seam_in_src(1'b0), .src_orig(1'b0), .src_mark(1'b0),   // V9-1 的图像域那一支：这四例判的都是显示列
         .oob_l(oob_l), .oob_r(oob_r), .r(ra), .g(ga), .b(ba),
         .de_out(dea), .hs_out(hsa), .vs_out(vsa));
 
@@ -58,16 +59,19 @@ module tb_v97_seam_scan;
     split_display u_b (
         .clk(clk), .rst_n(rst_n), .x(x), .y(y), .de(de), .hs(hs), .vs(vs), .x_sel(x_sel), .marker(marker), .seam(12'd1), .raw_left(1'b1),
         .orig_pix(orig_pix), .proc_pix(proc_pix), .angle_idx(angle_idx),
+        .seam_in_src(1'b0), .src_orig(1'b0), .src_mark(1'b0),   // V9-1 的图像域那一支：这四例判的都是显示列
         .oob_l(oob_l), .oob_r(oob_r), .r(rb), .g(gb), .b(bb), .de_out(deb));
     wire [7:0] rc, gc, bc;  wire dec;
     split_display u_c (
         .clk(clk), .rst_n(rst_n), .x(x), .y(y), .de(de), .hs(hs), .vs(vs), .x_sel(x_sel), .marker(marker), .seam(12'd0), .raw_left(1'b1),
         .orig_pix(orig_pix), .proc_pix(proc_pix), .angle_idx(angle_idx),
+        .seam_in_src(1'b0), .src_orig(1'b0), .src_mark(1'b0),   // V9-1 的图像域那一支：这四例判的都是显示列
         .oob_l(oob_l), .oob_r(oob_r), .r(rc), .g(gc), .b(bc), .de_out(dec));
     wire [7:0] rd, gd, bd;  wire ded;
     split_display u_d (
         .clk(clk), .rst_n(rst_n), .x(x), .y(y), .de(de), .hs(hs), .vs(vs), .x_sel(x_sel), .marker(marker), .seam(12'd1024), .raw_left(1'b1),
         .orig_pix(orig_pix), .proc_pix(proc_pix), .angle_idx(angle_idx),
+        .seam_in_src(1'b0), .src_orig(1'b0), .src_mark(1'b0),   // V9-1 的图像域那一支：这四例判的都是显示列
         .oob_l(oob_l), .oob_r(oob_r), .r(rd), .g(gd), .b(bd), .de_out(ded));
 
     // 一列的期望颜色（按定义算）：marker=1 表示这一列按规格该是标记蓝

@@ -1,0 +1,162 @@
+#!/usr/bin/env node
+/**
+ * geom_check.mjs —— V9（ISSUES #75）几何自动化的"最后一跳"机器判据。
+ *
+ * 为什么要有这个文件（不是"再写一个脚本"，而是补一个**证据等级**）：
+ *   串口电池能证明"固件收到命令并回显了它以为的值"，证明不了"像素域真的用了它"。
+ *   V8-8 为缩放补过这一跳（lane23 = 像素域真的在用的 inv / zoom_code / zman），
+ *   V9 新加了三种像素域行为（自动旋转、按角度定倍率、缝搬进图像列）。
+ *   只留回显，它们就是"屏上看着像、机器说不出"那一类 —— 评审问"怎么证明"答不上来。
+ *
+ * 四条判据（都是"命令 → 读回像素域自己吐出来的数"，不看回显文本）：
+ *   G1 `zoom fit 1`      ⇒ lane23 的 bit19 = 1，inv_used 落在 [256,512]，且 zcode == 独立复算的最近档
+ *   G2 `rot auto 1` 之后  ⇒ **在同一次 halt 里隔 1.2 s 读两次 lane23，两次的 inv 必须不同**
+ *                          （CPU 停着 ⇒ 变的只可能是 PL 自己：角度在走、拟合跟着角度走）
+ *   G3 `split video`      ⇒ CFG_DATA0 的 bit24（= 打包后 gp[11]）为 1
+ *   G4 收尾              ⇒ 整串跑完，CFG_DATA0 的 19 个几何位与进来时**逐位相同**（不许留自动态）
+ *
+ * 用法：node src/host/geom_check.mjs [--com COM6] [--jtag 3121]
+ * 前置：板子上电、r60 那套三件套已下载、hw_server 在跑（同 health_read.mjs）。
+ * ⚠ 会动板上状态：结尾一定要还原（G4 就是钉这件事的）。
+ */
+import { execSync } from 'node:child_process';
+import { writeFileSync, readFileSync, unlinkSync, existsSync } from 'node:fs';
+import { tmpdir } from 'node:os';
+
+const arg = (k, d) => { const i = process.argv.indexOf(k); return i > 0 && process.argv[i + 1] ? process.argv[i + 1] : d; };
+if (process.argv.includes('--help') || process.argv.includes('-h')) {
+  console.log('用法：node src/host/geom_check.mjs [--com COM6] [--jtag 3121] [--xsdb <xsdb.bat>]');
+  console.log('四条判据 G1..G4 全是"命令 → 读回像素域/寄存器的真值"，不看回显文本。');
+  console.log('⚠ 会动板上状态（结尾自己还原，G4 就是钉这件事的）。跑之前确认 hw_server 在、bit 已下载。');
+  process.exit(0);
+}
+const XSDB = String(arg('--xsdb', 'D:\\Software\\Vivado\\2025.2.1\\Vitis\\bin\\xsdb.bat'));
+const JPORT = String(arg('--jtag', '3121'));
+const COM = String(arg('--com', 'COM6'));
+const SENDER = 'board/uart_cmd_script.ps1';
+const GPIO0 = '0x41200000', GPIO1 = '0x41210000', CFG1 = '0x41220000';
+
+let fail = 0, okn = 0;
+const line = (name, pass, note = '') => {
+  if (pass) { okn++; console.log(`ok   ${name}${note ? '  ' + note : ''}`); }
+  else { fail++; console.log(`FAIL ${name}${note ? '  ' + note : ''}`); }
+};
+
+/* 19 位几何控制字在 CFG_DATA0 里的掩码（唯一出处 = src/ps/main.c 的 GEOM_MASK，两边同序）：
+ * bit31 fit ｜ bit30 marker_off ｜ bit[25:23] auto/follow/swap ｜ bit[22:13] 缝位
+ * ｜ bit[12:10] rot_speed ｜ bit9 rot_auto。[8:0] 是效果九位、[29]/[28:26] 是缩放档 ⇒ 不比较。 */
+const GEOM_MASK = (0x80000000 | 0x40000000 | 0x03800000 | 0x001FE000 | 0x00001C00 | 0x00000200) >>> 0;
+
+/* 屏上 `Zoom:` 那一格的八档分区 —— 与 zoom_ctrl.v 里那七个"相邻两档中点"**同一套数**。
+ * 为什么在脚本里再算一遍：这条判据要抓的恰恰是"屏上写的与真正在用的不是一回事"，
+ * 而 lane23 里 zcode 与 inv 来自 zoom_ctrl 同一个寄存器组 ⇒ 只有独立复算才咬得住。
+ * 改了 RTL 的那七个中点必须同时改这里（不一致就红，红得对）。 */
+const nearOf = (inv) => (inv >= 900 ? 0 : inv >= 644 ? 1 : inv >= 427 ? 2 : inv >= 299 ? 3 :
+                         inv >= 224 ? 4 : inv >= 182 ? 5 : inv >= 150 ? 6 : 7);
+
+const VAL_RE = /VAL\s*[0-9a-fA-F]{1,8}:\s*([0-9a-fA-F]{1,8})/;
+const TAG = 'geom';
+const dump = (n) => `${tmpdir()}/${TAG}_${n}`;
+
+/* 一次 halt 里做完：读 GPIO0 原值 → 选 lane → 读 GPIO1 → 还原 GPIO0 →（可选）读 CFG1 → con。
+ * 抄 health_read 的套路（catch {stop} + after，最后才 con）：A9 停在断点时 mrd/mwr 走
+ * CoreSight 直打 GP0 从端口；不停 CPU 的话固件会随时改 GPIO0[31:27]，lane 选择会被踩掉。 */
+function sample(laneN, extraDelayMs) {
+  const L = [
+    `catch {connect -host localhost -port ${JPORT}}`,
+    'targets -set -filter {name =~ "*#0"}',
+    'catch {stop}', 'after 100',
+    `puts "BASE [mrd -force ${GPIO0} 1]"`,
+    `mwr -force ${GPIO0} 0x00000000 32`,                       // 先把 lane 清 0，避免读到上一次的选择
+    `after 20`,
+  ];
+  const emit = (n, tag) => {
+    L.push(`mwr -force ${GPIO0} 0x${(((n & 0x1F) << 27) >>> 0).toString(16)} 32`);
+    L.push('after 20');
+    L.push(`puts "${tag} [mrd -force ${GPIO1} 1]"`);
+  };
+  emit(laneN, 'A');
+  if (extraDelayMs) { L.push(`after ${extraDelayMs}`); emit(laneN, 'B'); }
+  L.push('catch {con}', 'after 50');
+  const tcl = dump(`${TAG}.tcl`), out = dump(`${TAG}.out`);
+  writeFileSync(tcl, L.join('\n') + '\n');
+  try { execSync(`"${XSDB}" "${tcl}" > "${out}" 2>&1`, { windowsVerbatimArguments: true }); } catch (e) { /* 下面按内容判 */ }
+  unlinkSync(tcl);
+  const text = existsSync(out) ? readFileSync(out, 'utf8').replace(/\r\n/g, '\n') : '';
+  const grab = (tag) => { const m = text.match(new RegExp(tag + '\\s*[0-9a-fA-F]{1,8}:\\s*([0-9a-fA-F]{1,8})')); return m ? (parseInt(m[1], 16) >>> 0) : null; };
+  const head = text.split('\n').slice(0, 6).join('\n');
+  if (/^error|no targets|cannot|invalid target/im.test(head))
+    console.log('[GEOM] xsdb 报错（板子有电？bit 已下载？hw_server 在跑？):\n' + head);
+  const dec = (v) => v === null ? null : ({
+    raw: v, alive: (v >>> 31) & 1, zoom_fit: (v >>> 19) & 1, zman: (v >>> 18) & 1,
+    zsel: (v >>> 15) & 7, zcode: (v >>> 12) & 7, active: (v >>> 11) & 1, dir: (v >>> 10) & 1,
+    inv: v & 0x3FF,
+  });
+  return { base: grab('BASE'), a: dec(grab('A')), b: extraDelayMs ? dec(grab('B')) : null };
+}
+
+function readCfg1() {
+  const L = [`catch {connect -host localhost -port ${JPORT}}`, 'targets -set -filter {name =~ "*#0"}',
+             'catch {stop}', 'after 100', `puts "CFG [mrd -force ${CFG1} 1]"`, 'catch {con}'];
+  const tcl = dump('cfg.tcl'), out = dump('cfg.out');
+  writeFileSync(tcl, L.join('\n') + '\n');
+  try { execSync(`"${XSDB}" "${tcl}" > "${out}" 2>&1`, { windowsVerbatimArguments: true }); } catch (e) {}
+  unlinkSync(tcl);
+  const m = (existsSync(out) ? readFileSync(out, 'utf8') : '').match(/CFG\s+[0-9a-fA-F]{1,8}:\s*([0-9a-fA-F]{1,8})/);
+  return m ? (parseInt(m[1], 16) >>> 0) : null;
+}
+
+/* 串口：把一批命令发给固件（发送器就是电池用的那个 ps1），只回显、不判定 ——
+ * 判定全部在 lane23 / CFG1 那两侧（回显只能证明固件"说了"，证明不了硬件"用了"）。 */
+function send(cmds) {
+  const f = dump('cmds.txt'), echo = dump('echo.txt');
+  writeFileSync(f, cmds.join('\n') + '\n');
+  try {
+    execSync(`powershell -NoProfile -ExecutionPolicy Bypass -File ${SENDER} -Port ${COM} ` +
+             `-File "${f}" -DelayMs 250 -Out "${echo}" >nul 2>&1`, { shell: true });
+  } catch (e) { console.log(`FAIL 发送器没跑成（COM=${COM} 被占？）：${String(e.message).slice(0, 90)}`); fail++; }
+  return existsSync(echo) ? readFileSync(echo, 'utf8') : '';
+}
+
+console.log('# geom_check（V9 的"最后一跳"：命令 → 像素域真的用了它）');
+const cfg0 = readCfg1();
+if (cfg0 === null) { console.log('FATAL 读不到 CFG_DATA0（0x41220000）—— 一个字节都不写，先修 JTAG 通路'); process.exit(2); }
+console.log(`  进来时 CFG_DATA0 = 0x${cfg0.toString(16)}（几何位 0x${(cfg0 & GEOM_MASK).toString(16)}）`);
+
+// ---- G1：开拟合，看像素域真的换了来源 ----
+send(['zoom fit 1']);
+let s = sample(23, 0);
+const z1 = s.a;
+line('G1a `zoom fit 1` ⇒ lane23.bit19（zoom_fit）= 1', !!z1 && z1.zoom_fit === 1,
+     z1 ? `lane23=0x${z1.raw.toString(16)} alive=${z1.alive}` : '读不到 lane23（位流没有这一口？）');
+line('G1b 拟合的 inv_used 落在 [256,512]（只缩小、不放大到画外）',
+     !!z1 && z1.alive === 1 && z1.inv >= 256 && z1.inv <= 512, z1 ? `inv=${z1.inv}` : '');
+line('G1c 屏上档位与真值同档（zcode == 独立复算的最近档）',
+     !!z1 && z1.zcode === nearOf(z1.inv), z1 ? `zcode=${z1.zcode} nearOf(${z1.inv})=${nearOf(z1.inv)}` : '');
+
+// ---- G2：自动旋转期间，在同一次 halt 里隔 1.2 s 读两次 ⇒ PL 自己在动 ----
+send(['rot speed 5', 'rot auto 1']);
+const s2 = sample(23, 1200);
+line('G2 开着自动旋转，CPU 停着，1.2 s 之间 inv_used 变了（缩放真的跟着角度走）',
+     !!s2.a && !!s2.b && s2.a.zoom_fit === 1 && s2.b.zoom_fit === 1 && s2.a.inv !== s2.b.inv,
+     s2.a && s2.b ? `${s2.a.inv} → ${s2.b.inv}（相等 = 只有后缀在动，倍率没动）` : '');
+line('G2x 全程没有把 zoom 弹出量程', !!s2.b && s2.b.inv >= 256 && s2.b.inv <= 512,
+     s2.b ? `inv=${s2.b.inv}` : '');
+
+// ---- G3 + G4：follow 位落进那一束，然后一切还原 ----
+send(['rot auto 0', 'rot speed 0', 'zoom fit 0', 'split video']);
+const c1 = readCfg1();
+line('G3 `split video` ⇒ CFG_DATA0 bit24 = 1（缝的分类改在图像列里做）',
+     c1 !== null && ((c1 >>> 24) & 1) === 1, c1 === null ? '读不到 CFG1' : `cfg1=0x${c1.toString(16)}`);
+const s3 = sample(23, 0);
+line('G3x 收尾把 fit 关了：lane23.bit19 回 0', !!s3.a && s3.a.zoom_fit === 0,
+     s3.a ? `lane23=0x${s3.a.raw.toString(16)}` : '');
+send(['split screen', 'split 50']);
+const c2 = readCfg1();
+const diff = (c2 === null) ? null : (((cfg0 ^ c2) & GEOM_MASK) >>> 0);
+line('G4 整串跑完，CFG_DATA0 的 19 个几何位与进来时逐位相同（电池不许留自动态）',
+     diff === 0, c2 === null ? '读不到 CFG1'
+     : `cfg1 末=0x${c2.toString(16)} diff&掩码=0x${diff.toString(16)}`);
+
+console.log(`\nRESULT ${fail === 0 ? 'PASS' : 'FAIL'} geom_check（ok=${okn} fail=${fail}）`);
+process.exit(fail === 0 ? 0 : 1);

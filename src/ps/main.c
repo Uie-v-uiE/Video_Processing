@@ -22,6 +22,9 @@
 #include "xuartps.h"
 #include "xadcps.h"               /* V8-7 片上温度：PS 侧 XADC，PL 零改动 */
 #include "sleep.h"
+#include "xiltimer.h"             /* V9-5 的 gamma Auto：XTime / XTime_GetTime / COUNTS_PER_SECOND
+                                   * —— 与 sd_play.c 用的是同一个入口（`xtime_l.h` 不在这套手搓
+                                   * app 的 -I 列表里，今天第一次编译就报 No such file） */
 #include "sd_play.h"
 
 #define FRAME_W     512
@@ -99,6 +102,21 @@
 #define SPLIT_LO16_DEF    2u               /* 扫描端点与速度是构建参数（顶层 SPLIT_LO16/HI16/SPEED） */
 #define SPLIT_HI16_DEF    14u
 static u32 cur_split = (512u << SPLIT_POS_SHIFT);   /* 默认缝在正中 = 旧行为 */
+
+/* V9（2026-09-25）：几何控制字里**新加的 5 位** —— 自动旋转 + "按角度定缩放"。
+ *   cfg1[9] = rot_auto，cfg1[12:10] = rot_speed（每帧几个度），cfg1[31] = zoom_fit
+ * 为什么挤进同一个字，而不是新开一个 GPIO 通道或第二个寄存器：PL 侧这 19 位走的是
+ * **同一条** snap_cross（#71 的预算账）。新开一条跨域路就要多一对 bus/toggle 同步器，
+ * 而"一个发射触发器扇出到两组目的域"正是 CDC-11 Critical 的签名（#65 与 r54 构建 #34
+ * 各为它红过一次门禁）。
+ * ⚠ 位图现在有三处读者，改任何一处必须同一次把三处改完：这里的宏、
+ *   pl_video_top 的 split_ctl 端口注释、report/ISSUES.md #70 追加。 */
+#define ROT_AUTO_BIT    (1u << 9)
+#define ROT_SPEED_SHIFT 10u
+#define ROT_SPEED_MASK  (7u << ROT_SPEED_SHIFT)
+#define ZOOM_FIT_BIT    (1u << 31)
+#define GEOM_MASK       (SPLIT_MASK | ROT_AUTO_BIT | ROT_SPEED_MASK | ZOOM_FIT_BIT)
+#define SPLIT_SRC_W     512u   /* follow=1 时缝位与百分比量的都是**画面宽**，不是屏宽 */
 static u32 cur_sel = 0;        /* 效果选择的唯一真相（九位） */
 static u32 cur_en = 0;         /* gpio_o[4:0] 上的老五位镜像，由 cur_sel 反推，不独立存在 */
 static u8  cur_thr = 80;
@@ -147,7 +165,7 @@ static u32 ctrl_write(void)
      *   两个名字差一位，写错字的症状恰恰是"设了没反应"，最容易误判成 PL 坏了。 */
     Xil_Out32(CFG_DATA0, (cur_sel & 0x1FFu)
                | ((u32)(cur_zsel & 7u) << 26) | ((u32)(cur_zman ? 1u : 0u) << 29)
-               | (cur_split & SPLIT_MASK));   /* #51：分割线的 14 位在同一个字里 */
+               | (cur_split & GEOM_MASK));  /* #51 的 14 位 + V9 的 5 位，同一个字、同一条 snap_cross */
     return v;
 }
 
@@ -181,6 +199,59 @@ void ps_publish(void)
 static u32 gm_w = 0;           /* 通道 2 当前电平：wr 位的唯一真相在这里（PL 那边只看边沿） */
 static u32 cur_gamma = 0;      /* γ×100；0 = 关（en=0，PL 逐位旁路） */
 
+/* ---- V9-5：gamma 的 Auto ----
+ * 用户 2026-09-25：「Gamma 设置：我们可以给它做一个 Auto 模式，让它在一段数值里面自动来回
+ * 切换；或者我们也可以通过窗口命令去发送来指定它。」后半句本来就是 `gamma 1.8`，这一条补前半句。
+ * 为什么在 PS 扫、不在 PL 扫：γ 表是 PS 通过 GPIO 的 idx/data 窗口一项一项灌进去的（V8-3 的
+ * 设计），PL 那边只有一张表和一个写口，没有第二条曲线发生器 ⇒ 在 PS 扫 = 零新增硬件、
+ * 零时序风险（本项目的教训 #58：往 100 MHz/50 MHz 域里塞算术之前先问一句值不值）。
+ * 代价说清楚：它只在主循环转到 gamma_tick() 时推进，而 gamma_set 一次要写 256 项（约 5 ms，
+ * 还打一行日志），所以节奏门限卡在 200 ms，默认 2 s 一步。 */
+static void gamma_set(u32 g100);       /* 前向声明，真正的定义在下面 */
+static u8  gm_auto = 0;
+static u32 gm_lo = 100u, gm_hi = 300u, gm_step = 20u, gm_ms = 2000u;
+static int gm_dir = 1;
+static XTime gm_t0;
+
+static void gamma_auto_start(u32 lo, u32 hi, u32 step, u32 ms)
+{
+    if (lo < 100u || hi > 300u || hi <= lo || step == 0u || step > (hi - lo) || ms < 200u) {
+        xil_printf("[GAMMA] auto 的账：100<=lo<hi<=300、0<step<=hi-lo、ms>=200"
+                   "（收到 lo=%d hi=%d step=%d ms=%d）\r\n",
+                   (int)lo, (int)hi, (int)step, (int)ms);
+        return;
+    }
+    gm_lo = lo; gm_hi = hi; gm_step = step; gm_ms = ms; gm_dir = 1;
+    gamma_set(lo);
+    XTime_GetTime(&gm_t0);
+    gm_auto = 1;
+    xil_printf("[GAMMA] auto：%d.%02d..%d.%02d，每 %d ms 走 %d.%02d"
+               "（停：gamma manual，或直接 gamma <数>）\r\n",
+               (int)(lo / 100u), (int)(lo % 100u),
+               (int)(hi / 100u), (int)(hi % 100u), (int)ms,
+               (int)(step / 100u), (int)(step % 100u));
+}
+
+/* 主循环里每圈问一次；没到时间就立刻返回，不挡 uart_poll / sd_tick。 */
+static void gamma_tick(void)
+{
+    XTime now;
+    u32   g;
+    if (!gm_auto) return;
+    XTime_GetTime(&now);
+    if ((u64)(now - gm_t0) * 1000u < (u64)gm_ms * (u64)COUNTS_PER_SECOND) return;
+    XTime_GetTime(&gm_t0);
+    g = cur_gamma ? cur_gamma : gm_lo;
+    if (gm_dir > 0) {
+        if (g + gm_step >= gm_hi) { g = gm_hi; gm_dir = -1; }
+        else                      { g = g + gm_step; }
+    } else {
+        if (g <= gm_lo + gm_step) { g = gm_lo; gm_dir = 1; }
+        else                      { g = g - gm_step; }
+    }
+    gamma_set(g);
+}
+
 static void gamma_put(u32 i, u32 v)
 {
     Xil_Out32(CFG_DATA1, gm_w | GM_DATA(v) | GM_IDX(i));   /* 先摆地址与数据，wr 不动 */
@@ -202,6 +273,7 @@ static u8 gamma_curve(u32 g100, u32 i)
 
 static void gamma_off(void)
 {
+    gm_auto = 0;                        /* 手动出口永远先把 Auto 停掉：不许"关了还在扫" */
     cur_gamma = 0;
     gm_w &= ~GM_EN;                       /* 只关使能，表留着：现场要在"开/关"之间来回切 */
     gm_w &= ~GM_DISP_MASK;                /* 屏上那一格跟着变成 0.0 = "没开"，不许留着旧值说谎 */
@@ -405,7 +477,13 @@ static void print_sel_names(u32 sel)
  * 老写法是 `strncmp(buf,"TH",2)` 这种前缀匹配，参数是"粘在动词后面"的；新解析器把参数按空白
  * 切开单独取，顺带把 "THE" 也能当 TH 用的那个宽接受集关掉。
  */
-#define T_MAX 4
+/* T_MAX：一条命令最多切成几个 token。
+ * V9-5 之前是 4 —— 那时最长的命令是 `split range 20 80` 这种"动词 + 2 参数"。
+ * 现在 `gamma auto 1.20 2.60 20 1500` 要 6 个 token，而 tokenize 是**静默截断**的：
+ * 超出的参数不会被看见，于是"我明明设了步长，它却按默认步长走"——那正是 #67 禁止的
+ * "收了但什么都不做"。所以抬到 8（留两个余量），并且真正的上限其实由 `buf[48]` 管：
+ * 48 字节里塞不下 9 个有内容的 token。 */
+#define T_MAX 8
 
 static void cmd_help(void);
 static void cmd_fill(void);
@@ -660,6 +738,24 @@ static int dispatch(char **tk, int nt)
         if (ci_eq(arg, "OFF")) b = 0;
         if (b >= 0) { ctrl_set_zoom((u8)b); return 0; }
         if (ci_eq(arg, "AUTO")) { cur_zman = 0; ctrl_apply(); return 0; }
+        if (ci_eq(arg, "FIT")) {
+            /* V9-2：把倍率交给**角度**定（zoom_fit.v：转多少就缩多少，画面永远整幅在屏内）。
+             * 与 `zoom auto`（呼吸）/`zoom <倍率>`（手动）是并列的第三种来源，屏上那一格
+             * 分别标 (Auto) / 什么都不标 / (Fit) ⇒ 观众看见的后缀就是此刻真的那一路。 */
+            int on = 1, iv;
+            if (nt >= 3) {
+                if (!strict_int(tk[2], &iv) || (iv != 0 && iv != 1)) {
+                    xil_printf("[ZOOM] fit 只认 0 或 1（1 = 倍率跟着角度走）\r\n"); return 0;
+                }
+                on = iv;
+            }
+            if (on) cur_split |= ZOOM_FIT_BIT; else cur_split &= ~ZOOM_FIT_BIT;
+            ctrl_apply();
+            xil_printf("[ZOOM] fit=%d（%s；关掉之后回到%s）\r\n", on,
+                       on ? "此刻真的在用的 inv 由角度算出来，屏上 Zoom 格标 (Fit)" : "不再由角度定",
+                       cur_zman ? "手动档" : "呼吸自动档");
+            return 0;
+        }
         {
             int x100 = 0;
             if (zoom_parse_x100(arg, &x100) == 0) {
@@ -692,15 +788,79 @@ static int dispatch(char **tk, int nt)
         return 0;
     }
     /* —— 以下四个是 spec §14 里还没落地的动词：先把语法收住，出口只有一条 —— */
-    if (ci_eq(tk[0], "ROT"))     { not_wired("rot", "PL 的角度写入口（angle_ctrl 现在只吃按键）", "V8-2/V8-8"); return 0; }
+    if (ci_eq(tk[0], "ROT")) {
+        /* V9-3（2026-09-25）：rot 从"语法已收、硬件待接"变成真的动词。
+         * 用户要的是「增加一个 Auto 旋转模式，让它自己在那转」+「我们人可以控制的是旋转的
+         * 速度或角度」。角度本身仍然只活在 PL 的 angle_ctrl 里（按键 ±1° 那条路一个字没动），
+         * 这里发出去的是"要不要自动转 / 每帧几个度"两个控制位。
+         * ⚠ 有意**没有** `rot 37` 这种"设成某个绝对角度"：那需要一个 9 位写窗口 + 一次跨域
+         *   同步（新硬件、新时序账），而 ±1° 的按键已经能把角度带到 0..359 的任何一格；
+         *   真要"从 0 开始转一整圈"用 rot auto + 看着它转回去就够了。 */
+        int iv;
+        if (nt >= 2 && ci_eq(tk[1], "SHOW")) {
+            xil_printf("[ROT] auto=%u speed=%u deg/frame %s（KEY1/KEY2 的 ±1° 一直有效）\r\n",
+                       (unsigned)((cur_split & ROT_AUTO_BIT) ? 1u : 0u),
+                       (unsigned)((cur_split & ROT_SPEED_MASK) >> ROT_SPEED_SHIFT),
+                       (cur_split & ZOOM_FIT_BIT) ? "zoom=fit" : "zoom=now");
+            return 0;
+        }
+        if (nt >= 3 && ci_eq(tk[1], "SPEED")) {
+            if (!strict_int(tk[2], &iv) || iv < 0 || iv > 7) {
+                xil_printf("[ROT] speed 只认 0..7（每帧几个度：60 fps 下 1≈6 s 一圈，7≈0.9 s 一圈；"
+                           "0 = 自动开着但不走）\r\n");
+                return 0;
+            }
+            cur_split = (cur_split & ~ROT_SPEED_MASK) | (((u32)iv) << ROT_SPEED_SHIFT);
+            ctrl_apply();
+            xil_printf("[ROT] speed=%d 度/帧\r\n", iv);
+            return 0;
+        }
+        if (nt >= 2 && (ci_eq(tk[1], "AUTO") || ci_eq(tk[1], "ON") || ci_eq(tk[1], "OFF")
+                        || ci_eq(tk[1], "0") || ci_eq(tk[1], "1"))) {
+            int on = (ci_eq(tk[1], "OFF") || ci_eq(tk[1], "0")) ? 0 : 1;
+            if (nt >= 3 && (!strict_int(tk[2], &iv) || (iv != 0 && iv != 1))) {
+                xil_printf("[ROT] auto 只认 0 或 1\r\n"); return 0;
+            }
+            if (nt >= 3) on = iv;
+            if (on) {
+                cur_split |= ROT_AUTO_BIT;
+                if (!(cur_split & ROT_SPEED_MASK))
+                    cur_split = (cur_split & ~ROT_SPEED_MASK) | (2u << ROT_SPEED_SHIFT);
+                if (!(cur_split & ZOOM_FIT_BIT)) {
+                    /* 用户指定的成对语义：「在这个模式下，缩放就一直设为 Auto，根据旋转的角度
+                     * 来自动控制缩放的比例」⇒ 开自动旋转就同时把缩放交给拟合，一次命令到位。 */
+                    cur_split |= ZOOM_FIT_BIT;
+                    xil_printf("[ROT] auto=1：顺带把缩放切到 fit（屏上 Zoom 格标 (Fit)）；"
+                               "不想这样就先 zoom fit 0 再 rot auto 1\r\n");
+                } else {
+                    xil_printf("[ROT] auto=1\r\n");
+                }
+            } else {
+                cur_split &= ~ROT_AUTO_BIT;
+                xil_printf("[ROT] auto=0（停在当前角度；缩放那一路不变）\r\n");
+            }
+            ctrl_apply();
+            return 0;
+        }
+        xil_printf("[ROT] 只认：rot auto [0|1] | rot speed <0..7> | rot show\r\n"
+                   "       （角度仍然用 KEY1/KEY2 ±1°；`rot auto 1` 会同时开缩放拟合）\r\n");
+        return 0;
+    }
     if (ci_eq(tk[0], "SPLIT")) {
         /* #51：分割线真的可动了。单位是**显示列**（整屏 1024，r59b-1），屏上第四行 `Split:`
          * 印的就是同一位换算出来的百分比 —— 发的、执行的、屏上写的三处同源（#66 那一族的病）。 */
         u32 pos = (cur_split & SPLIT_POS_MASK) >> SPLIT_POS_SHIFT;
+        /* V9-1：`follow 1` 之后缝位量的是**画面**的列（PL 里 split_ctrl 的 W 跟着换成 SRC_W），
+         * 所以 PS 这一侧的百分比与 px 必须一起换坐标空间。不换的症状很具体：
+         * `split 60` 在 follow 下算出 px=614，而 PL 把 eff 夹进 [0,512] ⇒ 缝钉死在画面右端，
+         * 屏上 Split 格却印 60% —— 那就是"发的、执行的、屏上写的"三处不同源（#66 那一族的病）。 */
+        u32 w      = (cur_split & SPLIT_FOLLOW_BIT) ? SPLIT_SRC_W : SPLIT_DISP_W;
         int b, pct;
         if (nt >= 2 && ci_eq(tk[1], "SHOW")) {
-            xil_printf("[SPLIT] pos=%u/%u = %u%% %s%s%s marker=%s\r\n",
-                       (unsigned)pos, (unsigned)SPLIT_DISP_W, (unsigned)((pos * 100u) / SPLIT_DISP_W),
+            xil_printf("[SPLIT] pos=%u/%u（%s） = %u%% %s%s%s marker=%s\r\n",
+                       (unsigned)pos, (unsigned)w,
+                       (cur_split & SPLIT_FOLLOW_BIT) ? "画面列" : "显示列",
+                       (unsigned)((pos * 100u) / w),
                        (cur_split & SPLIT_AUTO_BIT) ? "auto" : "manual",
                        (cur_split & SPLIT_FOLLOW_BIT) ? "follow " : "",
                        (cur_split & SPLIT_SWAP_BIT) ? "swap(原图在右) " : "",
@@ -709,9 +869,11 @@ static int dispatch(char **tk, int nt)
         }
         if (nt >= 2 && ci_eq(tk[1], "AUTO")) {
             cur_split |= SPLIT_AUTO_BIT; ctrl_apply();
-            xil_printf("[SPLIT] auto：缝在 [%u..%u]/16 宽度之间自动扫（速度与端点是构建参数；"
+            xil_printf("[SPLIT] auto：缝在 [%u..%u]/16 宽度之间自动扫（%s；速度与端点是构建参数；"
                        "`split range`/`speed` 仍待接）\r\n",
-                       (unsigned)SPLIT_LO16_DEF, (unsigned)SPLIT_HI16_DEF);
+                       (unsigned)SPLIT_LO16_DEF, (unsigned)SPLIT_HI16_DEF,
+                       (cur_split & SPLIT_FOLLOW_BIT) ? "follow=1 ⇒ 扫的是画面的两端，线跟着画面转"
+                                                      : "follow=0 ⇒ 扫的是屏幕的左右");
             return 0;
         }
         if (nt >= 2 && ci_eq(tk[1], "MANUAL")) {
@@ -731,32 +893,57 @@ static int dispatch(char **tk, int nt)
                 if (b) cur_split |= bit; else cur_split &= ~bit;
             }
             ctrl_apply();
+            /* V9-1 起 follow 是**真的**换判据空间（seam_src 在图像列里分类），不再只是换扫描坐标系 */
             xil_printf("[SPLIT] %s=%d（%s）\r\n", tk[1], b,
                        ci_eq(tk[1], "SWAP") ? "只换内容，不换缝位"
-                       : ci_eq(tk[1], "FOLLOW") ? "1 = 按源坐标量，旋转时跟着画面转"
+                       : ci_eq(tk[1], "FOLLOW") ? "1 = 缝量在画面列里：线长在画面上、跟着旋转一起转"
                                                 : "那条 2 像素蓝线");
             return 0;
         }
+        /* V9-1b（用户 2026-09-25 晚的用语：「蓝线在屏幕上扫和在视频里面扫这两种效果，
+         * 可以通过串口命令来控制它进行切换」）：给这一位两个说人话的入口 ——
+         *   `split screen` = 缝在**屏幕**里左右扫；`split video` = 缝在**画面**里扫、跟着转。
+         * 与 `split follow 0|1` 是**同一个位**，不新增编码、不改硬件行为。
+         * 换空间时把缝位按百分比搬过去（614/1024 → 307/512）：老空间那个绝对列号
+         * 在新空间没有意义，PL 会把它夹到边界 ⇒ 症状是"一切换线就贴边"。 */
+        if (nt >= 2 && (ci_eq(tk[1], "SCREEN") || ci_eq(tk[1], "VIDEO"))) {
+            u32 video = ci_eq(tk[1], "VIDEO") ? 1u : 0u;
+            u32 w_old = (cur_split & SPLIT_FOLLOW_BIT) ? SPLIT_SRC_W : SPLIT_DISP_W;
+            u32 w_new = video ? SPLIT_SRC_W : SPLIT_DISP_W;
+            u32 pct   = ((pos * 100u) / w_old) * w_new / 100u;
+            if (pct > w_new) pct = w_new;
+            cur_split = (cur_split & ~SPLIT_POS_MASK) | (pct << SPLIT_POS_SHIFT);
+            if (video) cur_split |= SPLIT_FOLLOW_BIT; else cur_split &= ~SPLIT_FOLLOW_BIT;
+            ctrl_apply();
+            xil_printf("[SPLIT] %s：缝在%s里扫，pos=%u/%u = %u%%%s\r\n", tk[1],
+                       video ? "**画面**列（线跟着旋转走，端点是画面的两端）" : "显示列（屏幕左右扫）",
+                       (unsigned)pct, (unsigned)w_new, (unsigned)((pct * 100u) / w_new),
+                       (cur_split & SPLIT_AUTO_BIT) ? "，auto 仍开着" : "");
+            return 0;
+        }
         if (nt >= 3 && ci_eq(tk[1], "PX")) {
-            if (!strict_int(tk[2], &pct) || pct < 0 || (u32)pct > SPLIT_DISP_W) {
-                xil_printf("[SPLIT] px 只认 0..%u\r\n", (unsigned)SPLIT_DISP_W); return 0;
+            if (!strict_int(tk[2], &pct) || pct < 0 || (u32)pct > w) {
+                xil_printf("[SPLIT] px 只认 0..%u（当前是%s空间）\r\n", (unsigned)w,
+                           (cur_split & SPLIT_FOLLOW_BIT) ? "画面列" : "显示列"); return 0;
             }
             cur_split = (cur_split & ~SPLIT_POS_MASK) | (((u32)pct) << SPLIT_POS_SHIFT);
             cur_split &= ~SPLIT_AUTO_BIT; ctrl_apply();
             xil_printf("[SPLIT] pos=%u px = %u%%（manual）\r\n", (unsigned)pct,
-                       (unsigned)(((u32)pct * 100u) / SPLIT_DISP_W));
+                       (unsigned)(((u32)pct * 100u) / w));
             return 0;
         }
         if (nt >= 2 && strict_int(tk[1], &pct) && pct >= 0 && pct <= 100) {
-            u32 px = ((u32)pct * SPLIT_DISP_W) / 100u;      /* 除法只在 PS 做一次，PL 无除法器（#58） */
+            u32 px = ((u32)pct * w) / 100u;                /* 除法只在 PS 做一次，PL 无除法器（#58） */
             cur_split = (cur_split & ~SPLIT_POS_MASK) | (px << SPLIT_POS_SHIFT);
             cur_split &= ~SPLIT_AUTO_BIT; ctrl_apply();
-            xil_printf("[SPLIT] %d%% -> pos=%u/%u（manual；屏上 Split 格应显示 %d%%）\r\n",
-                       pct, (unsigned)px, (unsigned)SPLIT_DISP_W, pct);
+            xil_printf("[SPLIT] %d%% -> pos=%u/%u（%s；manual；屏上 Split 格应显示 %d%%）\r\n",
+                       pct, (unsigned)px, (unsigned)w,
+                       (cur_split & SPLIT_FOLLOW_BIT) ? "画面列" : "显示列", pct);
             return 0;
         }
         /* 不认的写法一律明确拒绝、不改任何状态（#67）；`split range` 这类还没接的说法也在这里拒掉 */
-        xil_printf("[SPLIT] 只认：split <0..100> / px <0..1024> / auto / manual / swap 0|1 / follow 0|1 / marker 0|1 / show"
+        xil_printf("[SPLIT] 只认：split screen | split video | split <0..100> | px <0..1024 或 0..512>"
+                   " | auto | manual | swap 0|1 | follow 0|1 | marker 0|1 | show"
                    "（range/speed 仍是构建参数，待接）\r\n");
         return 0;
     }
@@ -766,10 +953,46 @@ static int dispatch(char **tk, int nt)
         u32 g = 0;
         if (ci_eq(arg, "OFF") || ci_eq(arg, "0")) { gamma_off(); return 0; }
         if (ci_eq(arg, "ON"))  { gamma_set(cur_gamma ? cur_gamma : 220u); return 0; }
+        if (ci_eq(arg, "SHOW")) {
+            xil_printf("[GAMMA] %s g=%d.%02d auto=%u（区间 %d.%02d..%d.%02d，步长 %d.%02d，每 %d ms 一步）\r\n",
+                       cur_gamma ? "on" : "off",
+                       (int)(cur_gamma / 100u), (int)(cur_gamma % 100u), (unsigned)gm_auto,
+                       (int)(gm_lo / 100u), (int)(gm_lo % 100u),
+                       (int)(gm_hi / 100u), (int)(gm_hi % 100u),
+                       (int)(gm_step / 100u), (int)(gm_step % 100u), (int)gm_ms);
+            return 0;
+        }
+        if (ci_eq(arg, "MANUAL")) {
+            gm_auto = 0;
+            xil_printf("[GAMMA] auto 停了，停在 g=%d.%02d\r\n",
+                       (int)(cur_gamma / 100u), (int)(cur_gamma % 100u));
+            return 0;
+        }
+        if (ci_eq(arg, "AUTO")) {
+            /* `gamma auto [lo hi [step [ms]]]`：不带参数就用上一次的区间（默认 1.00..3.00，
+             * 2.0 s 一步 0.20）。lo/hi 认 `1.20` 也认 `120`（与 gamma <数> 同一个解析器）。 */
+            u32  lo = gm_lo, hi = gm_hi, st = gm_step, ms = gm_ms;
+            int  ib;
+            if (nt >= 3 && !parse_gamma(tk[2], &lo)) {
+                xil_printf("[GAMMA] auto 的 lo 要写成 1.20 或 120，收到 \"%s\"\r\n", tk[2]); return 0; }
+            if (nt >= 4 && !parse_gamma(tk[3], &hi)) {
+                xil_printf("[GAMMA] auto 的 hi 要写成 2.60 或 260，收到 \"%s\"\r\n", tk[3]); return 0; }
+            if (nt >= 5 && (!strict_int(tk[4], &ib) || ib <= 0)) {
+                xil_printf("[GAMMA] auto 的 step 要的是 γ×100 的正整数（20 = 0.20）\r\n"); return 0; }
+            if (nt >= 5) st = (u32)ib;
+            if (nt >= 6 && (!strict_int(tk[5], &ib) || ib < 200)) {
+                xil_printf("[GAMMA] auto 的 ms 要 >=200（一次要写 256 项表，见 main.c 里那段注释）\r\n");
+                return 0; }
+            if (nt >= 6) ms = (u32)ib;
+            gamma_auto_start(lo, hi, st, ms);
+            return 0;
+        }
         if (!parse_gamma(arg, &g)) {
             xil_printf("[GAMMA] 要 off / 1.00..3.00（或 100..300），收到的是 \"%s\"\r\n", arg);
             return 0;
         }
+        /* 手动指定一个数就**先停 Auto**：否则"我明明设了 1.8，画面怎么还在自己变"。 */
+        gm_auto = 0;
         gamma_set(g);
         return 0;
     }
@@ -850,14 +1073,20 @@ static int dispatch(char **tk, int nt)
         /* 字段顺序不许动：串口电池与 arb_handover_test.mjs 都按 "ctrl en=… thr=…" 的前缀解析，
          * 新加的 sel / gm 只能往后放。en 是老五位的投影，sel 才是效果链的真相，
          * gm=0.00 表示 gamma 关（PL 那一侧逐位旁路）。 */
+        /* V9：末尾再挂一个 `geom=%05x` —— 那是 19 位几何控制字（缝位 + auto/follow/swap/marker
+         * + rot_auto/rot_speed/zoom_fit）的**整字**回显。为什么要它：串口电池的"跑完必须回到初态"
+         * 是比 STAT 元组的，而元组里以前看不见这些位 ⇒ 电池可以把板子留在"自动旋转还开着、
+         * 缩放还在 fit、缝贴着右边缘"而判绿。V8-8 给 zsel/zman 补过同一次账（uart_cmd_check 的
+         * 注释里记着），这次是同一课的第二遍。新字段照老规矩**只往后加**，不动前面的位序。 */
         xil_printf("[STAT] ctrl en=%02x thr=%d src=%d zoom=%d bilin=%d zsel=%d zman=%d pub=%d"
                    " sd=%d frames=%d playing=%d sel=%03x gm=%d.%02d (PL owns UDP datapath)"
-                   " mode=%d\r\n",
+                   " mode=%d geom=%08x\r\n",
                    cur_en & 0x1F, cur_thr, cur_src, cur_zoom ? 1 : 0,
                    cur_bilin ? 1 : 0, cur_zsel, cur_zman, (int)pub_lvl,
                    sd_frame_total() ? 1 : 0, (int)sd_frame_total(), sd_is_playing(),
                    cur_sel & 0x1FF,
-                   (int)(cur_gamma / 100u), (int)(cur_gamma % 100u), (int)cur_mode_ovr);
+                   (int)(cur_gamma / 100u), (int)(cur_gamma % 100u), (int)cur_mode_ovr,
+                   (unsigned)(cur_split & GEOM_MASK));
         return 0;
     }
     if (ci_eq(tk[0], "HELP") || ci_eq(tk[0], "?")) { cmd_help(); return 0; }
@@ -873,10 +1102,16 @@ static void cmd_help(void)
                "(gray/invert/blur/sharpen/sobel/binary/bin_pol/erode/dilate)，**其余长度一律拒**\r\n");
     xil_printf("  屏上 Pipe 那一格不是这串 0/1：它是五位、每位的 0..3 表示\"这一级选了第几个算法\"，"
                "想知道现在开着什么就敲 pipe show\r\n");
-    xil_printf("  语法已收/硬件待接: rot ... | osd on|off | split 的 range/speed\r\n");
+    xil_printf("  语法已收/硬件待接: osd on|off | split 的 range/speed\r\n");
+    /* V9-3/V9-2：rot 已经接到硬件了（自动旋转的两个控制位），从上面那半行摘下来；
+     * 留着不说就是"有功能没入口"，说了不说新的又是"帮助与屏不符"（#67 同族）。 */
+    xil_printf("  几何(V9): rot auto [0|1] | rot speed 0..7（度/帧）| rot show\r\n");
+    xil_printf("  缩放(V9): zoom fit [0|1]（1 = 倍率跟着角度定，旋转时整幅画面永远在屏内）\r\n");
+    xil_printf("  Gamma:  gamma <1.00..3.00> | off | on | auto [lo hi [step [ms]]] | manual | show\r\n");
     /* #51：缝位本身已经可动了（`split <0..100>` / px / auto / manual / swap / follow / marker / show），
      * 所以 split 从上面那半行里摘出来 —— 继续留着"待接"就是说谎（#67 同族）。 */
-    xil_printf("  分割线: split 0..100 | split px 0..1024 | auto | manual | swap 0|1 | follow 0|1 | marker 0|1 | show\r\n");
+    xil_printf("  分割线: split screen（屏幕里扫）| split video（画面里扫、跟着转）| split 0..100 |"
+               " split px | auto | manual | swap 0|1 | follow 0|1 | marker 0|1 | show\r\n");
     xil_printf("  旧写法仍可用: SRC0 SRC1 TH80 ZOOM0 ZOOM1 BILIN0 BILIN1 FRAME12 00111\r\n");
 }
 
@@ -978,6 +1213,7 @@ int main(void)
     while (1) {
         uart_poll();
         sd_tick();
+        gamma_tick();      /* V9-5：gamma Auto 的推进（没开 Auto 时它立刻返回） */
     }
     return 0;
 }

@@ -45,9 +45,9 @@ module tb_osd_lines;
                   .IMG_W(512), .IMG_H(300)) u_osd (
         .clk(clk), .rst_n(rst_n), .x(tx), .y(ty), .de(tde),
         .angle(i_angle), .fps(i_fps), .stage_sel(i_sel), .threshold(i_th),
-        .gamma_disp(i_gd), .zoom_code(i_zc), .zoom_auto(i_za),
+        .gamma_disp(i_gd), .zoom_code(i_zc), .zoom_auto(i_za), .zoom_fit(1'b0),
         .split_pct(i_sp), .split_auto(i_sa), .lat_ms(i_ms), .lat_ok(i_ok),
-        .src_eff(i_src), .mode(i_mode), .bg_pix(16'h0),
+        .src_eff(i_src), .mode(i_mode), .bg_pix(16'h0), .no_sig(1'b0),
         .r_in(8'd0), .g_in(8'd0), .b_in(8'd0), .hs_in(1'b0), .vs_in(1'b0),
         .r(ro), .g(go), .b(bo), .de_out(de_o), .hs_out(hs_o), .vs_out(vs_o)
     );
@@ -60,9 +60,9 @@ module tb_osd_lines;
                   .IMG_W(640), .IMG_H(480)) u_osd2 (
         .clk(clk), .rst_n(rst_n), .x(tx), .y(ty), .de(tde),
         .angle(i_angle), .fps(i_fps), .stage_sel(i_sel), .threshold(i_th),
-        .gamma_disp(i_gd), .zoom_code(i_zc), .zoom_auto(i_za),
+        .gamma_disp(i_gd), .zoom_code(i_zc), .zoom_auto(i_za), .zoom_fit(1'b0),
         .split_pct(i_sp), .split_auto(i_sa), .lat_ms(i_ms), .lat_ok(i_ok),
-        .src_eff(i_src), .mode(i_mode), .bg_pix(16'h0),
+        .src_eff(i_src), .mode(i_mode), .bg_pix(16'h0), .no_sig(1'b0),
         .r_in(8'd0), .g_in(8'd0), .b_in(8'd0), .hs_in(1'b0), .vs_in(1'b0),
         .r(r2), .g(g2), .b(b2), .de_out(), .hs_out(), .vs_out()
     );

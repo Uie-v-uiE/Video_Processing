@@ -53,8 +53,10 @@ const EXPECT = [
   [/bilin=0/],
   [/bilin=1/],
   [/!frame \d+ failed/],                                   // frame 12：不许报失败
-  [/语法已收，硬件未接/, /angle_ctrl/],
-  [/语法已收，硬件未接/, /angle_ctrl/],                     // rot speed 1 同一个出口
+  // V9-3：`rot` 不再是"语法已收、硬件待接"。这两条从"必须明说待接"改成"必须真的动那个位"：
+  // 留旧判据的话它会一直红（红得对，但报的是过期），而放松成"有回应就算过"又等于没判。
+  [/只认：rot auto/, /rot speed/, /!\[CTRL\]/],                 // 裸 rot：用法要说全，而且**不许写寄存器**
+  [/\[ROT\] speed=1 度\/帧/],                                  // rot speed 1：回声里带的就是存进去的那个数
   [/\[SPLIT\] auto/, /构建参数/],                              // #51 split auto：真的开了自动扫，并说明端点/速度仍是参数
   [/\[SPLIT\] 只认/, /待接/],                                   // split range 20 80：还没接的那部分必须**明说待接**（不许静默收下）
   // V8-3：gamma 不再是"待接"。这条判据同时钉三件事：回声里的 γ 值、曲线单调、端点 0/255 ——
@@ -133,10 +135,42 @@ const EXPECT = [
   [/\[SPLIT\] swap=0/],
   [/\[SPLIT\] marker=0/, /2 像素蓝线/],                          // 关线（#56-2(a) 的另一半）
   [/\[SPLIT\] marker=1/],
-  [/\[SPLIT\] pos=307\/1024 = 29% manual/, /!Auto/],          // show 报的是**执行值**：30% ⇒ 307 列，
-  //   百分比向下取整所以是 29（屏上 Split 格用同一个式子）—— 报 50% 反倒说明它在回声上一条命令
+  [/\[SPLIT\] pos=307\/1024（显示列） = 29% manual/, /!Auto/], // show 报的是**执行值**：30% ⇒ 307 列，
+  //   百分比向下取整所以是 29（屏上 Split 格用同一个式子）—— 报 50% 反倒说明它在回声上一条命令。
+  //   V9-1 之后括号里必须写清量的是哪一种列（显示列 / 画面列），否则 `split video` 之后
+  //   "pos=204" 这种数字会被读成 20 % 屏宽（其实是 40 % 画面宽）。
   [/\[SPLIT\] 只认/, /!pos=/],                                  // split 150：越界必须拒，且不许写寄存器
   [/\[SPLIT\] 50% -> pos=512/],                                 // 收尾回到默认缝位
+
+  // ================= V9（ISSUES #75）：几何自动化的 20 条 =================
+  // 这一段的形状与前面几代一样：**每条都说清"回声里必须出现什么"，拒绝的那几条还要证明
+  // 它没写寄存器**（`![CTRL]` —— 拒了还写就等于没拒，与 pipe 长度那组同一招）。
+  // 另外顺序是有账的：`rot auto 1` 会顺带开 zoom fit（固件明说了），所以 fit 的那三条排在它后面，
+  // 而结尾必须有 `zoom fit 0` + `rot speed 0` + `split 50` 把三个新位还得干干净净 ——
+  // 还得回来这件事从今天起由 STAT 末尾那个 `geom=%08x` 把关（19 位控制字的整字指纹）。
+  [/\[ROT\] auto=0 speed=1/, /zoom=now/],                     // rot show：念的是**第 19 条**（`rot speed 1`）
+  //   设进去的值，而不是上电默认。为什么故意这样对：这 53 条命令里 `split`/`zoom`/`gamma` 都在写
+  //   同一个 cfg1 字，speed 字段（bit 12:10）能原样活到最后 ⇒ 证明没有谁顺手踩了别人的位。
+  //   反面：这里若念成 speed=0，说明中途有人清了位；念成 speed=3，说明第 19 条写错了字段。
+  [/\[ROT\] speed=3 度\/帧/],
+  [/\[ROT\] speed 只认 0\.\.7/, /!\[CTRL\]/],                  // 越界：拒 + 不写
+  [/\[ROT\] auto=1/, /顺带把缩放切到 fit/],                     // 用户指定的成对语义，回声要说出来
+  [/\[ROT\] auto 只认 0 或 1/, /!\[CTRL\]/],
+  [/\[ROT\] auto=0/],
+  [/\[ZOOM\] fit=0/, /不再由角度定/],
+  [/\[ZOOM\] fit=1/, /\(Fit\)/],                              // 屏上那一格的后缀来自同一路
+  [/\[ZOOM\] fit 只认 0 或 1/, /!\[CTRL\]/],
+  [/\[ZOOM\] fit=0/],
+  [/\[SPLIT\] video/, /画面/, /pos=256\/512/],                 // 512/1024 → 256/512：换空间按百分比搬
+  [/\[SPLIT\] 40% -> pos=204\/512/, /画面列/],                 // 此刻 40 % 量的就是画面宽
+  [/\[SPLIT\] px 只认 0\.\.512/, /!\[CTRL\]/],                 // 上限跟着空间变（不是写死的 1024）
+  [/\[SPLIT\] screen/, /显示列/, /pos=399\/1024/],             // 39 %（向下取整）× 1024 = 399
+  [/\[SPLIT\] 50% -> pos=512\/1024/],
+  [/\[ROT\] speed=0 度\/帧/],
+  [/\[GAMMA\] auto：1\.00\.\.3\.00/, /每 2000 ms/],             // 区间与节奏要说出来（否则用户不知道它在动）
+  [/auto 停/, /!\[GAMMA\] auto/],                              // gamma manual：停住，且不许自己又开起来
+  [/\[GAMMA\] off/],                                          // 收尾：γ 复零（关闭 = 逐位旁路，表保留）
+  [/^\[STAT\].*geom=[0-9a-f]{8}/m],                            // 末态这一条必须带 geom，否则元组比不了
 ];
 
 /* `--align`：只做"判据表与命令表逐行对位"这一件事就退出（不碰串口、不需要板子）。
@@ -201,17 +235,23 @@ for (let i = 0; i < lines.length; i++) {
 
 /* 收尾判据：最后一条 STAT 必须等于第一条（pub 位不在比较范围内，它每帧翻）
  * gm= 也在元组里：V8-3 之后"电池不许改变板上状态"必须能抓住"gamma 被留在开着"。
- * V8-8 起 zsel/zman 也进元组：手动档留在板上就是改了状态，与 gamma 同一类，不许靠"看着像 auto"放过。 */
+ * V8-8 起 zsel/zman 也进元组：手动档留在板上就是改了状态，与 gamma 同一类，不许靠"看着像 auto"放过。
+ * V9（#75）起 geom= 也进元组：那一个字段就是 19 位几何控制字（缝位 / auto / follow / swap /
+ * marker / rot_auto / rot_speed / zoom_fit）。少了它，V9 那一串新命令可以把板子留在
+ * "自动旋转还开着、缩放还在 fit、缝贴着右边缘"而这条判据依然绿 —— 同一课在 V8-8 就上过。 */
 const cap2 = cap.split(/\r?\n/);
-const stats = cap2.filter(l => l.startsWith('[STAT]'))
-  .map(l => { const m = l.match(/ctrl (en=\w\w) (thr=\d+) (src=\d) (zoom=\d) (bilin=\d) (zsel=\d) (zman=\d).*?(gm=\d+\.\d\d).*?(mode=\d)/); return m ? m.slice(1).join(' ') : 'NO_MATCH'; });
-if (stats.length < 2) { console.log('FAIL 没有两条 STAT，初/末态无从比较'); fail++; }
-/* ⚠ 先验"元组真的被抓到了"再比相等：正则一旦不匹配，两条都变成同一个 'NO_MATCH' 字符串，
- *   `stats[0] !== stats[last]` 就**永远相等** ⇒ 这条判据永远不会红（V8-8 给 STAT 加 zsel/zman 时，
- *   如果我改正则却忘了改固件，就是这个形状）。"两个都读不到"必须判红，不许判绿。 */
-else if (stats.some((s) => s === 'NO_MATCH')) {
-  console.log('FAIL [STAT] 元组正则没抓到东西 —— 判据本身过期了（固件行变了，正则没跟着变）'); fail++;
-}
+/* ⚠ 不能"每一行以 [STAT] 开头的都必须匹配元组"：串口捕获会把 **周期性的 [SD] 心跳行**
+ *   插在一条 STAT 中间（板上每 4 秒打一行帧率），于是那条 STAT 被劈成两半 —— 前半没有
+ *   `geom=`，落到 NO_MATCH，整条判据就永远红，而硬件其实没问题（2026-09-25 r62 第一次跑
+ *   91 条电池就是这个形状红的：91 条里 90 条 ok，只有元组这一步 FAIL）。
+ *   所以改成：**完整的 tuple 至少要有两条**才比；被劈开的碎片**单独报出来数一数**
+ *   （不静默放过 —— 碎片变多本身就是在提醒串口在丢行），但不再一票否决。 */
+const statLines = cap2.filter(l => l.startsWith('[STAT]'));
+const TUPLE = /ctrl (en=\w\w) (thr=\d+) (src=\d) (zoom=\d) (bilin=\d) (zsel=\d) (zman=\d).*?(gm=\d+\.\d\d).*?(mode=\d) (geom=[0-9a-f]{8})/;
+const stats = statLines.map(l => { const m = l.match(TUPLE); return m ? m.slice(1).join(' ') : null; }).filter(Boolean);
+const torn = statLines.length - stats.length;
+if (torn > 0) console.log(`WARN [STAT] 有 ${torn} 条被串口心跳行劈开（不参与初末比较；碎片 >2 就该查串口丢行）`);
+if (stats.length < 2) { console.log('FAIL 没有两条完整的 STAT，初/末态无从比较（抓到的碎片另计）'); fail++; }
 else if (stats[0] !== stats[stats.length - 1]) {
   console.log(`FAIL 电池改变了板上状态：初 ${stats[0]} ≠ 末 ${stats[stats.length - 1]}`); fail++;
 } else console.log(`ok   跑完回到初态：${stats[0]}`);

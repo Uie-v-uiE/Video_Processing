@@ -124,5 +124,16 @@ module split_ctrl #(
     wire [26:0] prod_src  = eff * PCT_SRC;
     wire [7:0]  pct_disp  = prod_disp >> 14;
     wire [7:0]  pct_src   = prod_src  >> 14;
-    assign shown_pct = follow ? {4'd0, pct_src} : {4'd0, pct_disp};
+    // ⚠ **这一级寄存器是给 r60 的那条 −0.482 ns 准备的**（别删）：
+    //   r60 全设计最差路径是 `u_split_ctrl/swp_reg[7] → u_osd/r_reg[1]`，28 级、
+    //   里面有一个 DSP48 —— 起点就是这里的 `eff × PCT`（端点/扫描值 → 百分比乘法 → OSD 的
+    //   十进制拆位 → 字模 → 像素）。乘法本身在 50 MHz 下没问题，**串到 OSD 的字符装配后面**才有问题。
+    //   这个数只是屏上给人读的一格，晚一拍完全不可见；而"把显示用的数在源头寄存一拍"
+    //   正是 r51 冻结件里预留的两个杠杆之一（另一个是 `split_eff` 提前一拍）。
+    reg [11:0] pct_q;
+    always @(posedge clk or negedge rst_n) begin
+        if (!rst_n) pct_q <= 12'd0;
+        else        pct_q <= (follow ? {4'd0, pct_src} : {4'd0, pct_disp});
+    end
+    assign shown_pct = pct_q;
 endmodule

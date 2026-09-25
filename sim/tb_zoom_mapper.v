@@ -12,7 +12,8 @@ module tb_zoom_mapper;
     zoom_ctrl #(.INV_LO(10'd256), .INV_HI(10'd512), .STEP(10'd8)) u_ctrl (
         .clk(clk), .rst_n(rst_n), .enable(enable),
         .frame_start(frame_start),
-        .inv_scale(inv_scale), .zoom_active(zoom_active), .dir(dir)
+        .fit_en(1'b0), .inv_fit(10'd256),   // V9-2：这台台架用 inv_force 直接喂 mapper，缩放来源钉成"非拟合"
+        .inv_scale(inv_scale), .inv_used(), .zoom_active(zoom_active), .dir(dir)
     );
 
     reg  [11:0] x_in = 0, y_in = 0;

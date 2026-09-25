@@ -12,8 +12,15 @@ module zoom_ctrl #(
     input  wire        enable,
     input  wire [2:0]  zsel,            // V8-8：手动档号（见下面八档表）
     input  wire        manual,          // V8-8：1=停在手动档（呼吸被打断），0=自动呼吸
+    // V9-2：第三种缩放来源 —— 由**角度**定出来的"刚好装得下"那一档（见 zoom_fit.v）。
+    //   为什么 mux 在本模块而不是在顶层：这里已经是"倍率的唯一出处"（八档表、呼吸、
+    //   zoom_code 的分区比较都在本文件）；顶层再 mux 一次就会出现"屏上那一格与真正在用的
+    //   inv 不是一回事"—— 那正是 lane23 两条判据要拦的那类错（#52/#59/#66 同一族）。
+    input  wire        fit_en,
+    input  wire [9:0]  inv_fit,         // 拟合值（Q8，与 inv_scale 同一个约定）
     input  wire        frame_start,
     output reg  [9:0]  inv_scale,
+    output wire [9:0]  inv_used,        // ← 顶层 / OSD / lane23 一律读这一个
     output reg         zoom_active,
     output reg  [2:0]  zoom_code,     // V8-5：OSD 的"最近一档"编号（见下面的表）
     output reg         dir            // 0: 向缩小走(inv增) 1: 回到1.0x(inv减)
@@ -44,6 +51,8 @@ module zoom_ctrl #(
         end
     endfunction
     // ---- OSD 用的 8 档倍率表（#58 合规做法：查表，不除）----
+    // ⚠ 比较的对象是 `inv_used`（真正喂给 mapper 的那一个），不是 `inv_scale`：
+    //   开拟合时后者还停在呼吸/手动的位置，拿它分区就会"屏上写 1.00x、画面上是 0.52x"。
     // inv_scale 是 Q8 倒数尺度：scale = 256/inv ⇒ 想显示 "0.75x" 就得算 25600/inv，
     // 那是一条运行时非 2 幂除法 —— 在快域里就是 #58 那个 −5.014 ns 的组合除法器。
     // 所以这里只把 inv 与**相邻两档的中点**比大小（8 档 ⇒ 7 个常数比较，优先级链），
@@ -52,14 +61,15 @@ module zoom_ctrl #(
     // 中点取整：mid(1024,776)=900 mid(776,512)=644 mid(512,341)=427 mid(341,256)=299
     //           mid(256,192)=224 mid(192,171)=182 mid(171,128)=150
     reg [2:0] code_nxt;
+    assign inv_used = fit_en ? inv_fit : inv_scale;
     always @(*) begin
-        if      (inv_scale >= 10'd900) code_nxt = 3'd0;
-        else if (inv_scale >= 10'd644) code_nxt = 3'd1;
-        else if (inv_scale >= 10'd427) code_nxt = 3'd2;
-        else if (inv_scale >= 10'd299) code_nxt = 3'd3;
-        else if (inv_scale >= 10'd224) code_nxt = 3'd4;
-        else if (inv_scale >= 10'd182) code_nxt = 3'd5;
-        else if (inv_scale >= 10'd150) code_nxt = 3'd6;
+        if      (inv_used >= 10'd900) code_nxt = 3'd0;
+        else if (inv_used >= 10'd644) code_nxt = 3'd1;
+        else if (inv_used >= 10'd427) code_nxt = 3'd2;
+        else if (inv_used >= 10'd299) code_nxt = 3'd3;
+        else if (inv_used >= 10'd224) code_nxt = 3'd4;
+        else if (inv_used >= 10'd182) code_nxt = 3'd5;
+        else if (inv_used >= 10'd150) code_nxt = 3'd6;
         else                     code_nxt = 3'd7;
     end
 
@@ -73,7 +83,12 @@ module zoom_ctrl #(
             // 档位号只跟着**上一拍**的 inv_scale ⇒ 这一段不进 OSD 那条组合链（V7.9.4 的教训）。
             // 与 inv_scale 同一个块驱动：多驱动 net 会让综合扔掉逻辑那一侧，见 ISSUES #61。
             zoom_code   <= code_nxt;
-            if (!enable) begin
+            if (fit_en) begin
+                // V9-2 拟合：整条 inv_scale 链**旁路**（这里不写 inv_scale ⇒ 关掉拟合时，
+                // 呼吸/手动从它原来的位置接着走，不会跳档）。但 `zoom_active` 要照
+                // `inv_used` 报 —— 不然会出现"lane23 说没在缩放、屏上画面缩了一半"。
+                zoom_active <= (inv_used != INV_LO);
+            end else if (!enable) begin
                 inv_scale   <= INV_LO;
                 dir         <= 1'b0;
                 zoom_active <= 1'b0;

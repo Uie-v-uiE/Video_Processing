@@ -1,0 +1,72 @@
+﻿=== CAPTURE START 23 commands ===
+>> rot show
+[ROT] auto=0 speed=0 deg/frame zoom=now（KEY1/KEY2 的 ±1° 一直有效）
+>> split 30
+[CTRL] AXI_GPIO=0x004B5000 sel=000 thr=80 src=1 zoom=1 pub=0 bilin=1
+[CTRL]   zoom_step=4 1.00x (自动呼吸)
+[SPLIT] 30% -> pos=307/1024（显示列；manual；屏上 Split 格应显示 30%）
+>> rot show
+[ROT] auto=0 speed=0 deg/frame zoom=now（KEY1/KEY2 的 ±1° 一直有效）
+[SD] frame 953: last 100 frames 29.898 fps (since play 29.794)
+>> split swap 1
+[CTRL] AXI_GPIO=0x004F5000 sel=000 thr=80 src=1 zoom=1 pub=1 bilin=1
+[CTRL]   zoom_step=4 1.00x (自动呼吸)
+[SPLIT] swap=1（只换内容，不换缝位）
+>> rot show
+[ROT] auto=0 speed=0 deg/frame zoom=now（KEY1/KEY2 的 ±1° 一直有效）
+>> split swap 0
+[CTRL] AXI_GPIO=0x004F5000 sel=000 thr=80 src=1 zoom=1 pub=1 bilin=1
+[CTRL]   zoom_step=4 1.00x (自动呼吸)
+[SPLIT] swap=0（只换内容，不换缝位）
+>> rot show
+[ROT] auto=0 speed=0 deg/frame zoom=now（KEY1/KEY2 的 ±1° 一直有效）
+>> split marker 0
+[CTRL] AXI_GPIO=0x004F5000 sel=000 thr=80 src=1 zoom=1 pub=1 bilin=1
+[CTRL]   zoom_step=4 1.00x (自动呼吸)
+[SPLIT] marker=0（那条 2 像素蓝线）
+[SD] frame 1053: last 100 frames 29.048 fps (since play 29.785)
+>> rot show
+[ROT] auto=0 speed=0 deg/frame zoom=now（KEY1/KEY2 的 ±1° 一直有效）
+>> split marker 1
+[CTRL] AXI_GPIO=0x004B5000 sel=000 thr=80 src=1 zoom=1 pub=0 bilin=1
+[CTRL]   zoom_step=4 1.00x (自动呼吸)
+[SPLIT] marker=1（那条 2 像素蓝线）
+>> rot show
+[ROT] auto=0 speed=0 deg/frame zoom=now（KEY1/KEY2 的 ±1° 一直有效）
+>> split show
+[SPLIT] pos=307/1024（显示列） = 29% manual marker=on
+[SD] frame 1153: last 100 frames 29.999 fps (since play 29.788)
+>> rot show
+[ROT] auto=0 speed=0 deg/frame zoom=now（KEY1/KEY2 的 ±1° 一直有效）
+>> split 150
+[SPLIT] 只认：split screen | split video | split <0..100> | px <0..1024 或 0..512> | auto | manual | swap 0|1 | follow 0|1 | marker 0|1 | show（range/speed 仍是构建参数，待接）
+>> rot show
+[ROT] auto=0 speed=0 deg/frame zoom=now（KEY1/KEY2 的 ±1° 一直有效）
+>> split 50
+[CTRL] AXI_GPIO=0x004B5000 sel=000 thr=80 src=1 zoom=1 pub=0 bilin=1
+[CTRL]   zoom_step=4 1.00x (自动呼吸)
+[SPLIT] 50% -> pos=512/1024（显示列；manual；屏上 Split 格应显示 50%）
+>> rot show
+[ROT] auto=0 speed=0 deg/frame zoom=now（KEY1/KEY2 的 ±1° 一直有效）
+[SD] frame 1253: last 100 frames 29.925 fps (since play 29.789)
+>> split video
+[CTRL] AXI_GPIO=0x004F5000 sel=000 thr=80 src=1 zoom=1 pub=1 bilin=1
+[CTRL]   zoom_step=4 1.00x (自动呼吸)
+[SPLIT] video：缝在**画面**列（线跟着旋转走，端点是画面的两端）里扫，pos=256/512 = 50%
+>> rot show
+[ROT] auto=0 speed=0 deg/frame zoom=now（KEY1/KEY2 的 ±1° 一直有效）
+>> split screen
+[CTRL] AXI_GPIO=0x004B5000 sel=000 thr=80 src=1 zoom=1 pub=0 bilin=1
+[CTRL]   zoom_step=4 1.00x (自动呼吸)
+[SPLIT] screen：缝在显示列（屏幕左右扫）里扫，pos=512/1024 = 50%
+>> rot show
+[ROT] auto=0 speed=0 deg/frame zoom=now（KEY1/KEY2 的 ±1° 一直有效）
+>> rot speed 0
+[CTRL] AXI_GPIO=0x004B5000 sel=000 thr=80 src=1 zoom=1 pub=0 bilin=1
+[CTRL]   zoom_step=4 1.00x (自动呼吸)
+[ROT] speed=0 度/帧
+[SD] frame 1353: last 100 frames 29.843 fps (since play 29.789)
+>> rot show
+[ROT] auto=0 speed=0 deg/frame zoom=now（KEY1/KEY2 的 ±1° 一直有效）
+=== CAPTURE END ===
+

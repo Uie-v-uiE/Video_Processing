@@ -1,0 +1,13 @@
+35e24dd984ce4c6191593259de88afe5 *battery_r62.txt
+a5981b7bdf959547c537ad2adbf7cd9e *cdc.rpt
+575845b9c187ef6e74e6dd6f557f3256 *clock_util.rpt
+527b7034e57be4bdabaedd1a7540b220 *gates_r62.txt
+bfdfaf6142d0601bd7ab23de88e96858 *methodology.rpt
+04243a53b7ad9145d54be2f50de86eb5 *power.rpt
+c25ca0362d7c471bd144552d988c1ff2 *ps_app.elf
+a46b2bdcdfe2df77ee824f5922b51f35 *route_status.rpt
+2d2e9ce3940391aefa242e4688a9102a *system.bit
+4570a4786843c49d64849f683f671cbc *system.xsa
+0d41c31d555b3b4e11cc15c8ceb3c826 *timing_summary.rpt
+d26737f651ec87851bbb10ffc4fcc19c *utilization.rpt
+bc7fb35f190c8fc1dc82073749c79d28 *xsim_v100_fit_rot.log

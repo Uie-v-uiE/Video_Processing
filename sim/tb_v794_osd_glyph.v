@@ -23,10 +23,10 @@ module tb_v794_osd_glyph;
         .clk(clk), .rst_n(rst_n), .x(tx), .y(ty), .de(tde),
         .angle(9'd0), .fps(8'd0),
         .stage_sel(9'd0), .threshold(8'd80), .gamma_disp(6'd18),
-        .zoom_code(3'd4), .zoom_auto(1'b0),
+        .zoom_code(3'd4), .zoom_auto(1'b0), .zoom_fit(1'b0),
         .split_pct(8'd50), .split_auto(1'b0),
         .lat_ms(16'd0), .lat_ok(1'b0),
-        .src_eff(2'b11), .mode(2'b00), .bg_pix(16'h0),
+        .src_eff(2'b11), .mode(2'b00), .bg_pix(16'h0), .no_sig(1'b0),
         .r_in(8'd0), .g_in(8'd0), .b_in(8'd0), .hs_in(1'b0), .vs_in(1'b0),
         .r(ro), .g(go), .b(bo), .de_out(de_o), .hs_out(hs_o), .vs_out(vs_o)
     );

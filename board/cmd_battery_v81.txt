@@ -80,3 +80,29 @@ split marker 1
 split show
 split 150
 split 50
+# ---- V9（ISSUES #75）：几何自动化的三件事 + 三条反面 + 收尾还原 ----
+# 顺序按"改了必须还得回来"排：rot auto 1 会顺带开 zoom fit（固件明说），所以它后面
+# 有一对 fit 0 / speed 0；`split video` 与 `split screen` 之间换的是**坐标空间**，
+# 缝位按百分比搬（512/1024 → 256/512 → 399/1024），最后一条 split 50 把缝还回正中。
+# 结尾这条 STAT 才是"末态"：从 V9 起它带 geom=%08x（19 位控制字整字回显），
+# 于是"电池不许改变板上状态"这条判据第一次真的看得见 rot / fit / 缝位。
+rot show
+rot speed 3
+rot speed 9
+rot auto 1
+rot auto 2
+rot auto 0
+zoom fit 0
+zoom fit 1
+zoom fit 2
+zoom fit 0
+split video
+split 40
+split px 9999
+split screen
+split 50
+rot speed 0
+gamma auto
+gamma manual
+gamma off
+STAT

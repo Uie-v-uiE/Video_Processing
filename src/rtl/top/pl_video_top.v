@@ -45,12 +45,18 @@ module pl_video_top #(
     // 这一层**不许自己采样**（#24/#49 那一课）。
     input  wire [2:0]  zoom_sel_async,
     input  wire        zoom_manual_async,
-    // #51：split 的控制位。位图唯一出处见 ISSUES #70 追加：
-    //   [9:0]=pos_px（显示列）、[10]=auto_en、[11]=follow、[12]=swap、[13]=marker_off
-    //   物理位 = CFG_DATA0[22:13] 与 [30]（在 system_top 里拼成一束），14 位**一起过 snap_cross**。
+    // #51：split 的控制位。V9 起这一个束改名叫"几何控制字"（名字留着是为了不折腾台架），
+    //   位图唯一出处见 ISSUES #70 追加：
+    //   [9:0]=pos_px、[10]=auto_en、[11]=follow、[12]=swap、[13]=marker_off
+    //   [14]=rot_auto、[17:15]=rot_speed（度/帧）、[18]=zoom_fit          ← V9 新增 5 位
+    //   物理位 = CFG_DATA0[22:13]、[25:23]、[30]、[9]、[12:10]、[31]（在 system_top 里拼成一束），
+    //   19 位**一起过同一条 snap_cross**。
     //   ⚠ 为什么不并进 effect_ctrl 那条现成的 ASYNC_REG 链：#71 量过 —— 加宽那条链会让
     //   cdc.rpt 的 unsafe 端点按位长涨（rot/osd 那次 24→34 位就被门禁第 11 项判红）。
-    input  wire [13:0] split_ctl,
+    //   ⚠ 为什么也不再开第二条 snap_cross：那条路要新增一对 bus/toggle 同步器，而"发射触发器
+    //   扇出到两组目的域"正是 CDC-11 Critical 的签名（#65 与 r54 构建 #34 各红过一次）；
+    //   并入现有这一束，端点只按新增的 5 位涨，配对集合一行都不多。
+    input  wire [18:0] split_ctl,
     // PS 侧"这一帧 DDR 写完了"的发布脉冲：每翻转一次 = 请求 PL 在下一个 frame_start
     // 把 DDR 搬进显示帧缓存一次。SD 回放靠它避免撕裂（见 src/ps/sd_play.c 头部协议说明）。
     input  wire        ps_publish,
@@ -76,8 +82,8 @@ module pl_video_top #(
     // 与 dbg_src 同一套做法：全部是 axi 域本来就有的电平 ⇒ 零新增跨域。
     output wire [6*32-1:0] dbg_lat,
     // V8-8 最后一跳（lane23）：像素域**正在用**的缩放状态，已跨到 axi 域。
-    //   bit31=像素时基活着（0 ⇒ 下面 19 位是上一次的值）bit[30:19]=0
-    //   bit[18]=zman [17:15]=zsel [14:12]=zoom_code [11]=zoom_active [10]=zoom_dir [9:0]=inv_scale
+    //   位图（含 V9-2 新加的 bit19=zoom_fit）**唯一出处在文件尾 `assign dbg_zoom` 上面那段**，
+    //   这里不再抄一遍 —— 抄两遍就是 #66 那一族的病（改一处忘一处，而症状是"脚本读错档"）。
     // ⚠ 与上面两口的区别：dbg_src/dbg_lat 全部取自 axi 域现成的电平 ⇒ 零新增跨域；
     //   这一口的 19 位**本来在像素域**，所以必须真跨一次（snap_cross + 帧首准静态总线，见文件尾）。
     //   代价实测过一次：r54 第一次构建里心跳借用了 `sof_tgl`，那一个发射触发器就同时扇出到
@@ -187,11 +193,21 @@ module pl_video_top #(
     end
     // 图卡模式不参与仲裁（保持 AUTO）：它只是"显示什么"，不是"谁在搬"
     wire [1:0] arb_sel = (ms2 == M_ETH) ? 2'd1 : (ms2 == M_SD) ? 2'd2 : 2'd0;
+    // ---- V9 的几何控制字（19 位，跨域放在下面的 u_split_x，与 #51 那 14 位同一条路）----
+    // 这里先声明、在下面才由 snap_cross 驱动：angle_ctrl / zoom_ctrl 都排在更早的位置，
+    // 而 Verilog-2001 不许在名字声明之前先切它的位（写成隐式 net 就是"看着接上、其实常 0"）。
+    wire [18:0] gp;
+    wire        rot_auto    = gp[14];    // 自动旋转（用户 2026-09-25：「增加一个 Auto 旋转模式」）
+    wire [2:0]  rot_speed   = gp[17:15]; // 度/帧，0 = 钉住（「我们人可以控制的是旋转的速度或角度」）
+    wire        zoom_fit_en = gp[18];    // 缩放跟着角度自动定（见 zoom_fit.v）
+    reg         rot_fs_tog;              // 每个显示帧翻一次 —— 单独一个 FF，理由见 angle_ctrl 文件头
+
     wire [8:0] angle;
     wire rotate_active;
     angle_ctrl u_ang (
         .clk(sys_clk), .rst_n(sys_rst_n),
         .key_inc(k1_short), .key_dec(p2),   // 短按改松手发（ISSUES #55）
+        .frame_tgl(rot_fs_tog), .auto_en(rot_auto), .speed(rot_speed),
         .angle(angle), .rotate_active(rotate_active)
     );
 
@@ -238,6 +254,14 @@ module pl_video_top #(
         .frame_start(frame_start), .frame_done(frame_done)
     );
 
+    // 自动旋转的节拍：帧首翻转位（像素域产生，angle_ctrl 里同步）。
+    // ⚠ **单独一个发射触发器**，不共用现成的 sof_tgl / z_hb_tog：同一个翻转位扇出到两组
+    //   目的域同步器 = CDC-11 Critical 的签名，这件事在本文件里已经红过两次（#65、r54 构建 #34）。
+    always @(posedge clk_pix or negedge rst_pix_n) begin
+        if (!rst_pix_n) rot_fs_tog <= 1'b0;
+        else if (frame_start) rot_fs_tog <= ~rot_fs_tog;
+    end
+
     wire [7:0]  pipe_off_rows;   // 效果链自己声明的"内容滞后几行"（u_pipe 的输出口）
     // ---- r59b-1（#73）：整屏一个视口 ----
     //   1024 个显示列对应 512 个源列 ⇒ 每个源列在屏上占两列；行方向 600 对应 300，还是那一次 >>1。
@@ -261,13 +285,20 @@ module pl_video_top #(
     wire [11:0] cy_r = ((y_right_adv >> 1) >= IMG_H) ? (IMG_H - 1) : y_right_adv[11:0] >> 1;
 
     wire [9:0] inv_scale;
+    wire [9:0] inv_fit;          // V9-2：角度定出来的"刚好装得下"那一档
+    wire [9:0] inv_used;         // ← 本文件里"此刻真的在用哪个倍率"的**唯一**读数
     wire       zoom_active, zoom_dir;
     wire [2:0] zoom_code;        // V8-5：OSD 的"最近一档"（八档表在 zoom_ctrl 里，不除）
+    zoom_fit #(.IMAGE_W(IMG_W), .IMAGE_H(IMG_H)) u_zfit (
+        .clk(clk_pix), .rst_n(rst_pix_n), .angle(angle), .inv_fit(inv_fit)
+    );
     zoom_ctrl #(.INV_LO(10'd256), .INV_HI(10'd512), .STEP(10'd2)) u_zctrl (
         .clk(clk_pix), .rst_n(rst_pix_n),
         .enable(zoom_run), .frame_start(frame_start),
         .zsel(zsel_pix), .manual(zman_pix),        // V8-8：手动档（同一对同步器带来的两个位）
-        .inv_scale(inv_scale), .zoom_active(zoom_active), .zoom_code(zoom_code),
+        .fit_en(zoom_fit_en), .inv_fit(inv_fit),   // V9-2：第三种来源；mux 在 zoom_ctrl 里做，不在这里
+        .inv_scale(inv_scale), .inv_used(inv_used),
+        .zoom_active(zoom_active), .zoom_code(zoom_code),
         .dir(zoom_dir)
     );
 
@@ -280,7 +311,7 @@ module pl_video_top #(
     wire [7:0]  zfrac_x, zfrac_y;
     zoom_mapper #(.IMAGE_W(IMG_W), .IMAGE_H(IMG_H)) u_zmap (
         .clk(clk_pix), .rst_n(rst_pix_n),
-        .inv_scale(inv_scale), .angle(angle), .rotate_en(rot_on),
+        .inv_scale(inv_used), .angle(angle), .rotate_en(rot_on),
         .x_in(cx), .y_in(cy_r),     // ← 提前 OFF_LINES 个显示行，抵掉效果链的内容滞后（#54 (B)）
         .x_out(sx), .y_out(sy), .oob(oob),
         .frac_x(zfrac_x), .frac_y(zfrac_y)
@@ -442,6 +473,22 @@ module pl_video_top #(
     end
     wire eth_link_pix = el2;
 
+    // ---- V9-4：屏上那句 "ETH is no signal" 的判据 ----
+    // 用户 2026-09-25 报的现象：「没有 ETH 的时候，如果接到 ETH 信号，它仍然是锁住上一帧的画面」
+    // —— 冻住的最后一帧在屏上**没有任何说法**，看上去就是"板子卡死"。他选的方案就是把这件事
+    // 印出来。判据用 `eth_live`（健康快照 lane7.bit3：200 ms 内真的见过帧）而不是 `eth_link`
+    // （那位自配置以来只置不清，拔线不回 0，正是 #47 那次的根）；跨域按仓库规矩 3 级同步，
+    // 与上面 eth_link_pix 同构（U11/R22：同一个文件里不许一处同步一处裸采）。
+    (* ASYNC_REG = "TRUE" *) reg lv0, lv1, lv2;
+    always @(posedge clk_pix or negedge rst_pix_n) begin
+        if (!rst_pix_n) {lv2,lv1,lv0} <= 3'b0;
+        else {lv2,lv1,lv0} <= {lv1, lv0, eth_live};
+    end
+    wire eth_live_pix = lv2;
+    // "屏上这一路本该是 ETH _live 却没有"：钉在 ETH 模式，或仲裁此刻把屏交给 ETH。
+    // AUTO 模式不判 —— 那时 src_arb 已经把屏交回 PS/图卡，屏上画的就不是冻结的 ETH 帧。
+    wire no_sig = (mode_eth | owner_eth_pix) & ~eth_live_pix;
+
     // 像素域要的是**仲裁结果**而不是第二份判据。判据（eth_live AND 时基健康）留在 src_arb 里，
     // 这里只把它问一遍再拿答案用：
     //   · ETH 拥有搬运机时，PS 的发布不被消费（pend 留着，等轮到 PS 那一帧再消费），
@@ -601,7 +648,7 @@ module pl_video_top #(
     zoom_snap u_zsnap (
         .pix_clk(clk_pix), .pix_rst_n(rst_pix_n), .frame_start(frame_start),
         .zman(zman_pix), .zsel(zsel_pix), .zoom_code(zoom_code),
-        .zoom_active(zoom_active), .zoom_dir(zoom_dir), .inv_scale(inv_scale),
+        .zoom_active(zoom_active), .zoom_dir(zoom_dir), .inv_scale(inv_used),
         .bus(z_bus), .bus_tog(z_bus_tog));
     wire [18:0] z_bus_axi;
     wire        z_pix_gone;
@@ -625,9 +672,19 @@ module pl_video_top #(
         .bus_q(z_bus_axi), .hb_gone(z_pix_gone), .hb_slow()
     );
     // 位序（唯一出处，改这里要同步改 health_read.mjs 的 decodeZoom 与门禁反例）：
-    //   bit31 = 像素时基活着（0 ⇒ 下面 19 位是旧的）  bit[30:19] = 0（留扩展）
-    //   bit[18]=zman [17:15]=zsel [14:12]=zoom_code [11]=zoom_active [10]=zoom_dir [9:0]=inv_scale
-    assign dbg_zoom = {~z_pix_gone, 12'd0, z_bus_axi};
+    //   bit31 = 像素时基活着（0 ⇒ 下面 19 位是旧的）  bit[30:20] = 0（留扩展）
+    //   **bit19 = zoom_fit**（V9-2：1 ⇒ 此刻的 inv 是角度定出来的，不再等于八档表里的哪一档）
+    //   bit[18]=zman [17:15]=zsel [14:12]=zoom_code [11]=zoom_active [10]=zoom_dir [9:0]=inv_used
+    // ⚠ 为什么 fit 位必须进这个字：判据①"PS 写 zsel=i ⇒ 像素域 inv == TBL[i]"在拟合模式下
+    //   **按构造就不成立**（inv 来自角度，不来自档号）。没有这一位，脚本会把一次正常的拟合
+    //   读成一次档位错乱 —— 那是"尺子先错"（#68），不是设计错。
+    // ⚠ bit19 取的是 `split_ctl[18]`（axi 域那份原始请求位），**不是** `zoom_fit_en`
+    //   （同一个位的像素域副本）。r61 的门禁第 6 项为这件事判红过一次：新增的 Critical 配对
+    //   `clkout0_1 → clk_fpga_0` 就是"把一根像素域信号直接塞进 axi 域输出口"。
+    //   `split_ctl` 本来就是 axi_gpio_2 的输出寄存器 ⇒ 取它 = 零新增跨域。
+    //   而"像素域到底有没有在用拟合"不该由这一位作证 —— 那是 `inv_used` 与 `zoom_code`
+    //   的关系去证的（`src/host/geom_check.mjs` 的 G1b/G1c/G2 三条就是干这个的）。
+    assign dbg_zoom = {~z_pix_gone, 11'd0, split_ctl[18], z_bus_axi};
 
     assign m_axi_arid = 6'd0;
 
@@ -783,12 +840,12 @@ module pl_video_top #(
     //   ⇒ 采到的永远是完整值（snap_cross 文件头那条契约）。心跳就用这个刷新沿：
     //   axi 时钟要是停了，bus_q 里的缝位还是旧的 —— 这里不接慢/停标志，因为缝位晚一帧
     //   生效的代价只是"下一格才跳"，不是数据错。
-    reg  [13:0] sp_bus;
+    reg  [18:0] sp_bus;
     reg         sp_tog;
     reg  [16:0] sp_ref;
     always @(posedge axi_clk or negedge axi_rst_n) begin
         if (!axi_rst_n) begin
-            sp_bus <= 14'd0; sp_tog <= 1'b0; sp_ref <= 17'd0;
+            sp_bus <= 19'd0; sp_tog <= 1'b0; sp_ref <= 17'd0;
         end else if (sp_ref == 17'h1FFFF) begin
             sp_ref <= 17'd0;
             sp_bus <= split_ctl;
@@ -797,11 +854,10 @@ module pl_video_top #(
             sp_ref <= sp_ref + 17'd1;
         end
     end
-    wire [13:0] sp_pix;
-    snap_cross #(.W(14), .DST_HZ(50_000_000), .HB_TO_MS(200)) u_split_x (
+    snap_cross #(.W(19), .DST_HZ(50_000_000), .HB_TO_MS(200)) u_split_x (
         .dst_clk(clk_pix), .dst_rst_n(rst_pix_n),
         .bus(sp_bus), .bus_tog(sp_tog), .hb_tog(sp_tog),
-        .bus_q(sp_pix), .hb_gone(), .hb_slow()
+        .bus_q(gp), .hb_gone(), .hb_slow()
     );
 
     wire [11:0] split_eff;
@@ -809,20 +865,37 @@ module pl_video_top #(
     wire [11:0] split_pct_w;
     split_ctrl #(.DISP_W(2*PANE_W), .SRC_W(IMG_W), .TICK_BITS(16)) u_split_ctrl (
         .clk(clk_pix), .rst_n(rst_pix_n), .de(de),
-        .pos_px({2'd0, sp_pix[9:0]}),
-        .auto_en(sp_pix[10]), .follow(sp_pix[11]),
-        .speed(SPLIT_SPEED), .lo16(SPLIT_LO16), .hi16(SPLIT_HI16), .swap(sp_pix[12]),
+        .pos_px({2'd0, gp[9:0]}),
+        .auto_en(gp[10]), .follow(gp[11]),
+        .speed(SPLIT_SPEED), .lo16(SPLIT_LO16), .hi16(SPLIT_HI16), .swap(gp[12]),
         .split_eff(split_eff), .raw_on_left(split_raw_left), .shown_pct(split_pct_w)
     );
-    // 标记线：sp_pix[13]=1 才是"关" ⇒ 复位/PS 没写过时屏上仍有那条 2 px 蓝线，
+    // 标记线：gp[13]=1 才是"关" ⇒ 复位/PS 没写过时屏上仍有那条 2 px 蓝线，
     //   与 r59a 的观感口径一致（board/README.md 第 12 行说的就是"故意画的"）。
-    wire split_marker_on = ~sp_pix[13];
+    wire split_marker_on = ~gp[13];
+
+    // ---- V9-1：缝可以量在图像列里，于是那条线跟着画面一起转 ----
+    //   `gp[11]`（follow）今天同时管两件事：`split_ctrl` 的扫描坐标系（端点按画面的两端量）
+    //   与下面这一路的判据空间（线长在画面里）。以前它只管前者，所以"follow"名不副实。
+    //   ⚠ TAPS 由流水线深度推出来，不抄字面量（#68）：内容站在 `x_d[MIX_D]` 那一拍，
+    //   而 `sx` 是 mapper 的第 3 级输出 ⇒ 从 sx 到混色级要走 MIX_D+1−3 拍。
+    //   差几拍在这里只是把整条线刚体平移几列，**不会**再产生暗带（暗带的根因是"标签与内容
+    //   不是同一份流"，这里两者是同一份流上的同一个位）。
+    localparam integer SEAM_TAPS = MIX_D + 1 - 3;
+    wire seam_src_orig, seam_src_mark;
+    seam_src #(.TAPS(SEAM_TAPS)) u_seam_src (
+        .clk(clk_pix), .rst_n(rst_pix_n),
+        .sx(sx), .oob(oob), .seam(split_eff),
+        .marker_on(split_marker_on), .raw_left(split_raw_left),
+        .take_orig(seam_src_orig), .mark(seam_src_mark)
+    );
 
     split_display u_split (
         .clk(clk_pix), .rst_n(rst_pix_n),
         .x(x_d11), .y(y_d11), .de(de_d11), .hs(hs_d11), .vs(vs_d11),
         .x_sel(x_d[MIX_D]), .marker(split_marker_on),
         .seam(split_eff), .raw_left(split_raw_left),   // 与内容同级的那一路坐标（#68）；OSD 用的 x/y 不动
+        .seam_in_src(gp[11]), .src_orig(seam_src_orig), .src_mark(seam_src_mark),
         .orig_pix(orig_disp), .proc_pix(pipe_dout),
         .oob_l(oob_out), .oob_r(oob_out),   // 越界对两个抽头是同一件事（同一份源坐标）⇒ 一位喂两口
         .angle_idx(angle[1:0]),
@@ -914,11 +987,13 @@ module pl_video_top #(
         .stage_sel(sel_sync),                 // 五级链实际生效的九位
         .threshold(th_sync),
         .gamma_disp(gm_disp),
-        .zoom_code(zoom_code), .zoom_auto(zoom_run && !zman_pix),   // V8-8：手动档不许再标 (Auto)
-        .split_pct(split_pct_w[7:0]), .split_auto(sp_pix[10]),
+        .zoom_code(zoom_code), .zoom_auto(zoom_run && !zman_pix && !zoom_fit_en),   // V8-8：手动档不许再标 (Auto)
+        .zoom_fit(zoom_fit_en),                    // V9-2：倍率由角度定 ⇒ 标 (Fit)
+        .split_pct(split_pct_w[7:0]), .split_auto(gp[10]),
         .lat_ms(lat_ms_pix), .lat_ok(lat_ok_pix),
         .src_eff({fb_vis, owner_eth_pix}),   // 屏幕上真的这一路：CARD / PS / ETH
         .mode(mode),
+        .no_sig(no_sig),                     // V9-4：屏上印 "ETH is no signal"
         .bg_pix(16'h0),
         .r_in(r), .g_in(g), .b_in(b),
         .hs_in(hs_o), .vs_in(vs_o),
@@ -944,6 +1019,8 @@ module pl_video_top #(
     // 原来这里挂的是 src_use，但屏幕 OSD 已经有片源行，LED 挂一个"看得见有没有生效"的东西更有用。
     assign led[1] = k1_hold ? 1'b1 : ltog;
 
-    assign status = {zoom_dir, zoom_active, inv_scale, eth_ready, locked, rotate_active,
+    // `inv_used` 而不是 `inv_scale`：这一口是给 JTAG 侧"屏上到底是什么倍率"用的，
+    // 拟合模式下前者才是答案（非拟合模式下两者同一个数 ⇒ 老脚本读法不受影响）。
+    assign status = {zoom_dir, zoom_active, inv_used, eth_ready, locked, rotate_active,
                      angle, en_sync, src_use, 2'b00};
 endmodule

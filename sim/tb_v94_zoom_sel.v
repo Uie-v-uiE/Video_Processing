@@ -20,7 +20,9 @@ module tb_v94_zoom_sel;
     zoom_ctrl #(.INV_LO(INV_LO), .INV_HI(INV_HI), .STEP(STEP)) dut (
         .clk(clk), .rst_n(rst_n), .enable(enable),
         .zsel(zsel), .manual(manual), .frame_start(frame_start),
-        .inv_scale(inv_scale), .zoom_active(zoom_active), .zoom_code(zoom_code), .dir(dir)
+        .fit_en(1'b0), .inv_fit(10'd256),   // V9-2 的第三种来源：这台台架判的是八档，钉成"不参与"
+        .inv_scale(inv_scale), .inv_used(), // 新出口本台架不读（留空，不接=不判）
+        .zoom_active(zoom_active), .zoom_code(zoom_code), .dir(dir)
     );
 
     always #5 clk = ~clk;

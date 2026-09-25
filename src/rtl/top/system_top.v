@@ -262,7 +262,12 @@ module system_top (
         //   ⚠ 别写成 gpio_cfg2_o：那是 PS 侧 +0x08 的 gamma 窗口（命名差一位是这里的坑）。
         .zoom_sel_async(gpio_cfg1_o[28:26]), .zoom_manual_async(gpio_cfg1_o[29]),
         // #51：分割线控制位（位图见 ISSUES #70 追加）：[22:13]=pos_px/auto/follow/swap、[30]=marker_off
-        .split_ctl({gpio_cfg1_o[30], gpio_cfg1_o[25:23], gpio_cfg1_o[22:13]}),
+        // #51 的 14 位 + V9 的 5 位（[14]=rot_auto、[17:15]=rot_speed、[18]=zoom_fit）。
+        // 位图唯一出处 = ISSUES #70 追加 与 pl_video_top 的端口注释；PS 侧的拼字在 src/ps/main.c。
+        // cfg1 的可用位：[8:0] 效果九位、[22:13] 缝位、[25:23] 三个旗标、[28:26] 缩放档、
+        //                [29] 手动、[30] 蓝线关、[31] 拟合 ← V9 用掉剩下的 [9] 与 [12:10]
+        .split_ctl({gpio_cfg1_o[31], gpio_cfg1_o[12:10], gpio_cfg1_o[9],
+                    gpio_cfg1_o[30], gpio_cfg1_o[25:23], gpio_cfg1_o[22:13]}),
         .gamma_ctl(gpio_cfg2_o),        // axi_gpio_2 通道 2（+0x08）：gamma 表的 idx/data/wr/en
         // V7.7：ZOOM0/ZOOM1 不再是死命令。之前这里硬绑 1'b1，串口命令与 GPIO bit17 全无效
         // （main.c 自己就注明"当前 RTL 常开，bit17 仅预留"）。

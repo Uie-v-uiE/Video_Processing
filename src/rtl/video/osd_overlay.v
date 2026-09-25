@@ -35,7 +35,12 @@ module osd_overlay #(
     parameter CHAR_H = 21,          // 7*3
     parameter LINE_GAP = 10,
     parameter MAX_CHARS = 32,
-    parameter N_LINES = 4,
+    // V9-4：第 5 行只有一件事 —— 没有 ETH 信号时印 "ETH is no signal"（用户 2026-09-25 指定的
+    // 那半句话），其余时间整行是空格、屏幕上看不见多出来的一行。为什么开第 5 行而不是塞进
+    // 前四行：那四行的格式是用户亲给的，字段、顺序、空格都动不得；而这一句必须完整可读，
+    // 塞进 L0 尾巴会在 "Src:ETH 512x300" 之后贴边（32 格早就用满）。
+    // 高度账：5×(21+10) = 155 px < 600 ✓，字格尺寸一个都没动。
+    parameter N_LINES = 5,
     parameter IMG_W = 512,          // 片源几何：第一行末尾那一格报的就是它（实参，不是示意值）
     parameter IMG_H = 300
 )(
@@ -52,12 +57,17 @@ module osd_overlay #(
     input  wire [5:0]  gamma_disp,   // gamma×10，PS 写 LUT 时同一个字顺路带过来，只用于显示
     input  wire [2:0]  zoom_code,    // zoom_ctrl 的"最近一档"号（八档表在它那边）
     input  wire        zoom_auto,    // 1 = 呼吸缩放正在跑 ⇒ Zoom 后面加 (Auto)
+    input  wire        zoom_fit,     // V9-2：1 = 倍率由角度定 ⇒ 加 (Fit)，并且不再叠 (Auto)
     input  wire [7:0]  split_pct,    // 见文件头：现在来自几何参数
     input  wire        split_auto,   // 1 = 缝在自动扫描 ⇒ (Auto)
     input  wire [15:0] lat_ms,       // 链路内时延（ms），axi 域除完再过 snap_cross
     input  wire        lat_ok,       // 0 ⇒ 没有可信测量，画 `--`
     input  wire [1:0]  src_eff,      // {fb_vis, owner_eth}：屏幕上真的这一路
     input  wire [1:0]  mode,         // 00 自动 01 ETH 11 SD 10 TEST（与 src_mode 同序；`*` 由它派生）
+    // V9-4：ETH 那一路"该有画面却没有"——顶层判的是"屏上挂的是 ETH 帧、但 200 ms 没等到新帧"。
+    // 用户的原话：「现在没有 ETH 的时候，如果接到 ETH 信号，它仍然是锁住上一帧的画面」⇒
+    // 不许只是悄悄冻着，要在屏上说清楚（他选的方案就是"打印一条 ETH is no signal"）。
+    input  wire        no_sig,
     input  wire [15:0] bg_pix,
     output reg  [7:0]  r,
     output reg  [7:0]  g,
@@ -267,7 +277,10 @@ module osd_overlay #(
         put(8'hDF);                    // '°'（Latin-1 的度数符号）
         puts("  Zoom:", 7);
         put(zc0); put(zc1); put(zc2); put(zc3); put(zc4);
-        if (zoom_auto) puts("(Auto)", 6);
+        // (Fit) 与 (Auto) 互斥：同时开两个后缀那一格就 32 格溢到下一行去了（`put` 会
+        // 直接写进 L3 的格子里），而且"呼吸"与"按角度定"本来就不可能同时成立。
+        if (zoom_fit)       puts("(Fit)", 5);
+        else if (zoom_auto) puts("(Auto)", 6);
 
         // ---------- L3: Split:50%(Auto)  Latency:16ms ----------
         at(3);
@@ -279,6 +292,16 @@ module osd_overlay #(
         if (!lat_ok) puts("--", 2);              // 没有可信测量 ⇒ 两条短线，不画数
         else putd3(lt_h, (lt_rem / 8'd10), (lt_rem % 8'd10));
         puts("ms", 2);
+
+        // ---------- L4（V9-4）：只在"屏上挂着 ETH 帧、但已经没有信号"时出现 ----------
+        // 为什么值得单独一行：这条判据是**给用户看的**（拔了线/停了推流时画面会冻在最后一帧，
+        // 没有这一句就会被当成"板子卡死"）。它的凭据不是眼睛：`no_sig` 由顶层从 eth_live
+        // 推出来，而 eth_live 每一位都有台架（tb_link_monitor）与机器读回（lane0/lane2）。
+        at(4);
+        if (no_sig) begin
+            puts("ETH is no ", 10);
+            puts("signal", 6);
+        end
     end
 
     // 5x7 font。索引 0..27 是 V7 / V8 前三步用过的号（**历史插入序，不是字母序**），
@@ -409,6 +432,9 @@ module osd_overlay #(
         font[51][3]=5'b11001; font[51][4]=5'b10001; font[51][5]=5'b10001; font[51][6]=5'b10001; // h
         font[52][0]=5'b00000; font[52][1]=5'b00000; font[52][2]=5'b00000;
         font[52][3]=5'b11111; font[52][4]=5'b00000; font[52][5]=5'b00000; font[52][6]=5'b00000; // -
+        // 53 = 小写 g（V9-4 的 "ETH is no signal" 是第一个要用它的位置；碗 + 下面的钩）
+        font[53][0]=5'b01110; font[53][1]=5'b10001; font[53][2]=5'b10001;
+        font[53][3]=5'b01111; font[53][4]=5'b00001; font[53][5]=5'b10001; font[53][6]=5'b01110; // g
         // 63 = 空格（全 0，由开头的循环清好）
     end
 
@@ -452,6 +478,7 @@ module osd_overlay #(
                 8'h2D: glyph_idx = 6'd52;  // -（Latency 没有可信测量时画 `--`）
                 8'h61: glyph_idx = 6'd28;  8'h63: glyph_idx = 6'd29;
                 8'h65: glyph_idx = 6'd30;  8'h68: glyph_idx = 6'd51;
+                8'h67: glyph_idx = 6'd53;  // g（V9-4 的 "no signal"）
                 8'h69: glyph_idx = 6'd32;  8'h6C: glyph_idx = 6'd33;
                 8'h6D: glyph_idx = 6'd34;  8'h6E: glyph_idx = 6'd35;
                 8'h6F: glyph_idx = 6'd36;  8'h70: glyph_idx = 6'd37;

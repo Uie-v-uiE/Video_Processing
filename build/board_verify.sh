@@ -3,7 +3,10 @@
 #
 #   bash build/board_verify.sh              # 只跑不需要推流的那几项（读回口 + 开机自检）
 #   bash build/board_verify.sh --stream     # 再加：推流 → 仲裁交接 → 停流交回（要 ~2 min）
-#   bash build/board_verify.sh --battery    # 再加：串口命令电池（71 条，会改板上控制字并复原）
+#   bash build/board_verify.sh --battery    # 再加：串口命令电池（91 条 = V8 的 71 + V9 的 20，
+#                                          #        会改板上控制字并复原；复原由 STAT 的 geom= 兜底）
+#   bash build/board_verify.sh --geom       # 再加：V9 几何自动化的"最后一跳"（lane23 + CFG_DATA0）
+#                                          #   与电池分开取证：电池看**回显**，这一条看**像素域真值**
 #
 # 为什么要这个脚本：这些判据以前是我半夜手敲一串命令跑的，**别人复现不了**（比赛要审"他人能否复现"）。
 # 现在把顺序、判据、以及"每一项看哪一行输出"固定在一个文件里，跑完把日志留在 build/evidence/。
@@ -23,14 +26,15 @@ XSDB='"D:/Software/Vivado/2025.2.1/Vitis/bin/xsdb.bat"'
 #   而调用方看到的 VERIFY_EXIT 仍是 0 ⇒ 记成 NRED 计数，末尾一行总判定 + 非零退出。
 NRED=0
 
-DO_STREAM=0; DO_BATT=0        # `set -u` 在下面，未初始化就直接引用会退出
-# 两个开关可以任意顺序、任意组合（原来是"只认前两个参数"，写 --stream --battery 会把 battery 吃掉）
+DO_STREAM=0; DO_BATT=0; DO_GEOM=0        # `set -u` 在下面，未初始化就直接引用会退出
+# 开关可以任意顺序、任意组合（原来是"只认前两个参数"，写 --stream --battery 会把 battery 吃掉）
 for a in "$@"; do
   case "$a" in
     --stream)  DO_STREAM=1 ;;
     --battery) DO_BATT=1 ;;
+    --geom)    DO_GEOM=1 ;;
     -h|--help) grep '^# ' "$0" | sed 's/^# \{0,1\}//'; exit 0 ;;
-    *) echo "忽略未知参数：$a（可用：--stream --battery --help）" >&2 ;;
+    *) echo "忽略未知参数：$a（可用：--stream --battery --geom --help）" >&2 ;;
   esac
 done
 
@@ -89,8 +93,22 @@ if [ "$DO_STREAM" = 1 ]; then
     cp -f /tmp/arb_handover_last.json "$OUT.arb.json" 2>/dev/null || true
 fi
 
+if [ "$DO_GEOM" = 1 ]; then
+  echo "-- 5) V9 几何自动化的『最后一跳』（geom_check：命令 → 读回像素域 lane23 / CFG_DATA0）--" | tee -a "$LOG"
+  # 为什么单独一步而不并进电池：电池判的是**回显**（固件说了什么），这一条判的是
+  # lane23 里像素域自己吐出来的 inv/zoom_code/fit 位，以及 CFG_DATA0 的 19 个几何位。
+  # 回显绿而硬件没动，正是本项目反复踩过的那一类（#52/#66/#68），必须分开取证。
+  # ⚠ 这一步会动板上状态，脚本结尾自己还原，并用 G4 证明"跑完 == 进来"。
+  node src/host/geom_check.mjs --com COM6 > "$OUT.geom.txt" 2>&1
+  GEOM_RC=$?
+  tail -20 "$OUT.geom.txt" | tee -a "$LOG"
+  grep -a "RESULT PASS geom_check" "$OUT.geom.txt" >/dev/null 2>&1 || GEOM_RC=1
+  echo "[GEOM] 退出码 $GEOM_RC" | tee -a "$LOG"
+  [ "$GEOM_RC" = 0 ] || NRED=$((NRED+1))
+fi
+
 if [ "$DO_BATT" = 1 ]; then
-  echo "-- 4) 串口命令电池（71 条 + 初末态必须相同）--" | tee -a "$LOG"
+  echo "-- 4) 串口命令电池（91 条：V8 的 71 条 + V9 的 20 条，初末态必须相同）--" | tee -a "$LOG"
   # 同样不能吃管道退出码（原来 `| tail -25 | tee` 之后 $? 是 tee 的）。
   # 这里两重保险：命令自己的退出码 + stdout 里那一行 `RESULT PASS uart_cmd_check`。
   node src/host/uart_cmd_check.mjs --port COM6 > "$OUT.batt.txt" 2>&1

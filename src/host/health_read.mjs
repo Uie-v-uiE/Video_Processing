@@ -88,6 +88,10 @@ function decodeZoom(v) {
   const b = (n) => (v >>> n) & 1;
   return {
     alive: b(31),
+    // V9-2：bit19 = zoom_fit —— 此刻倍率是**角度**定出来的（zoom_fit.v），不是档号给的。
+    // 少了这一位，`zoom fit 1` + 手动档（zman=1）会撞上"inv_scale 必须等于 256÷该档倍率"
+    // 那条判据：拟合值当然不等于档号 ⇒ 假红，而且红的是**没坏的**那条链（#68 的尺子先错）。
+    zoom_fit: b(19),
     zman: b(18), zsel: (v >>> 15) & 7, zcode: (v >>> 12) & 7,
     zoom_active: b(11), zoom_dir: b(10), inv_scale: v & 0x3FF,
   };
@@ -157,7 +161,7 @@ if (get('selfcheck', false) === true) {
   const ZKEYS = Object.keys(decodeZoom(0));
   const zbase = decodeZoom(0);
   const ZOWN = {
-    31: ['alive'], 18: ['zman'], 15: ['zsel'], 16: ['zsel'], 17: ['zsel'],
+    31: ['alive'], 19: ['zoom_fit'], 18: ['zman'], 15: ['zsel'], 16: ['zsel'], 17: ['zsel'],
     12: ['zcode'], 13: ['zcode'], 14: ['zcode'], 11: ['zoom_active'], 10: ['zoom_dir'],
   };
   for (let bit = 0; bit < 10; bit++) ZOWN[bit] = ['inv_scale'];
@@ -165,7 +169,7 @@ if (get('selfcheck', false) === true) {
   for (let bit = 0; bit < 32; bit++) {
     const d = decodeZoom(1 << bit);
     const moved = norm(ZKEYS.filter((k) => String(d[k]) !== String(zbase[k])));
-    const want = norm(ZOWN[bit] || []);        // 19..30 恒 0 ⇒ 译码器必须无视
+    const want = norm(ZOWN[bit] || []);        // 20..30 恒 0 ⇒ 译码器必须无视（bit19 从 V9-2 起有主）
     if (moved === want) z_ok++;
     else console.log(`  DBG S4 bit${bit}: 改了 ${moved} 期望 ${want}`);
   }
@@ -321,7 +325,14 @@ if (get('json', false) === true) {
       if (w === 0xDEADBEEF) return { raw: w, verdict: 'NO_LANE' };   // 老位流上没有这一口
       const out = { raw: w, ...z, x100_actual: z.alive ? +(25600 / z.inv_scale).toFixed(1) : null };
       if (!z.alive) { out.verdict = 'STALE'; return out; }
-      if (z.zman) {
+      if (z.zoom_fit) {
+        // V9-2 拟合：倍率由角度定 ⇒ 既不该等于档号，也不该被当成"呼吸中随机游走"。
+        // 这里能负责的是三件：量程对、屏上那一格与真值同档、并且它**不会**小于 1.0x
+        //（拟合只会缩小去装旋转后的外框，永远不会放大到画外）。
+        out.inv_expected = null;
+        out.inv_ok = (z.inv_scale >= 256 && z.inv_scale <= 1023);
+        out.code_ok = (z.zcode === near_of(z.inv_scale));
+      } else if (z.zman) {
         out.inv_expected = inv_exp_of(z.zsel);
         out.inv_ok = (z.inv_scale === out.inv_expected);
         out.code_ok = (z.zcode === z.zsel);
