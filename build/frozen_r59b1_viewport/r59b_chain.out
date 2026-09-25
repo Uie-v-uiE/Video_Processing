@@ -1,0 +1,18 @@
+== 1) L1 全量 17:21:13
+SIM DONE pass=64 fail=0
+== 2) PL 构建 17:28:41
+BUILD_OK 17:47:58
+== 3) 门禁 17:47:58
+GATES_OK 17:48:00
+== 4) 刷板 17:48:00
+BOOT_EXIT=0
+RELOAD_EXIT=0
+== 5) 板级机器复验 17:48:30
+BOARD_VERIFY_EXIT=0
+[ARB] 结论：八条全过 ⇒ "自动交回 + 不抖 + 可逆"有凭据了（屏幕观感仍欠眼睛）
+RESULT PASS uart_cmd_check  (63 条命令, 59.8 s, 捕获 board/uart_script_capture.txt)
+RESULT board_verify PASS（判红的步骤：0）
+ccbe9979f6tem.bit
+e5cc51d7fdtem.xsa
+ff37ebe6a3app.elf
+CHAIN_OK 17:51:35
