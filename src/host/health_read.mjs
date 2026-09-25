@@ -73,8 +73,9 @@ function decodeSrc(src) {
     fill_busy: b(3), row_busy: b(4), mode_gray: (src >>> 5) & 3,
     why_gray: why,
     why_tb_untrusted: b(8), why_no_stream: b(9), why_force_ps: b(10),
-    mode: ({ 0: 'AUTO', 1: 'LOCK_ETH', 3: 'LOCK_PS', 2: 'LOCK_CARD' })[((src >>> 5) & 3)] ?? 'BAD',
-    why: (['手动锁 PS', '没有流', '源时基不可信'].filter((_, i) => (why >>> (2 - i)) & 1)).join('+')
+    // 档名与屏上同源（2026-09-25 用户定稿 ETH/SD/TEST；编号一个没动：SD=3、TEST=2）
+    mode: ({ 0: 'AUTO', 1: 'ETH', 3: 'SD', 2: 'TEST' })[((src >>> 5) & 3)] ?? 'BAD',
+    why: (['手动锁 SD', '没有流', '源时基不可信'].filter((_, i) => (why >>> (2 - i)) & 1)).join('+')
          || '无（ETH 想要总线）',
   };
 }
@@ -128,10 +129,10 @@ if (get('selfcheck', false) === true) {
     say(`S1 bit${bit} 只改 [${OWN[bit].join(',')}]`,
         moved === OWN_S[bit], `实际改了 [${JSON.parse(moved).join(',')}]`);
   }
-  // ② 手抄语义表：{锁PS, 没流, 时基不可信} 三位的 8 种组合各自该印成什么
+  // ② 手抄语义表：{强制看 fb(SD), 没流, 时基不可信} 三位的 8 种组合各自该印成什么
   const WHY_TXT = ['无（ETH 想要总线）', '源时基不可信', '没有流', '没有流+源时基不可信',
-                   '手动锁 PS', '手动锁 PS+源时基不可信', '手动锁 PS+没有流',
-                   '手动锁 PS+没有流+源时基不可信'];
+                   '手动锁 SD', '手动锁 SD+源时基不可信', '手动锁 SD+没有流',
+                   '手动锁 SD+没有流+源时基不可信'];
   for (let w = 0; w < 8; w++)
     say(`S2 why=0b${w.toString(2).padStart(3, '0')} → 「${WHY_TXT[w]}」`,
         decodeSrc(w << 8).why === WHY_TXT[w] && decodeSrc(w << 8).why_gray === w,
@@ -452,8 +453,8 @@ const slow = (clk === undefined) ? -1 : ((clk >>> 1) & 1);
 if (src !== undefined) {
   const s = decodeSrc(src);   // 与 --json 走同一个函数：两处各写一遍移位就会各说一套话
   console.log(`  30  0x${src.toString(16).padStart(8, '0')}  片源仲裁：屏幕归` +
-    ` ${s.owner_eth ? 'ETH' : 'PS'}，eth_live=${s.eth_live} 时基可信=${s.eth_tb_ok}` +
-    ` 模式=${({ AUTO: '自动', LOCK_ETH: '锁ETH', LOCK_PS: '锁PS', LOCK_CARD: '锁图卡' })[s.mode] ?? s.mode}` +
+    ` ${s.owner_eth ? 'ETH' : '帧缓存(PS 写)'}，eth_live=${s.eth_live} 时基可信=${s.eth_tb_ok}` +
+    ` 模式=${s.mode}` +   // 名字直接来自 decodeSrc 那张表（AUTO/ETH/SD/TEST），这里不再抄第二遍
     ` 搬运中: PS=${s.fill_busy} ETH=${s.row_busy}` +
     // V8-7：判决那一拍看到的三个原因位。PS 拿着屏幕却读不出原因 ⇒ 才是真的"判据说谎"
     ` 原因(判决拍)=0b${s.why_gray.toString(2).padStart(3, '0')}：${s.why}`);

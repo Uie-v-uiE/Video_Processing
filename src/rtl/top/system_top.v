@@ -215,7 +215,8 @@ module system_top (
     // ⚠ 位宽必须与 `pl_video_top.dbg_src` **一模一样**（r54 起是 16 bit：bit[6:5] = 模式，
     //   bit[10:8] = V8-7 的 why_ps）。这里以前写过 [5:0] ⇒ 综合只给一条 `Synth 8-689` 警告
     //   就把模式的高位**静默丢掉**，lane30 的 mode 于是永远只能读成 0/1：
-    //   锁图卡(10) 读起来像自动(00)、锁PS(11) 读起来像锁ETH(01)。2026-09-24 才发现 —— ISSUES #57。
+    //   TEST(10) 读起来像自动(00)、SD(11) 读起来像 ETH(01)。2026-09-24 才发现 —— ISSUES #57。
+//   （这里括号里是**当时的编号**；档名 2026-09-25 起随屏上词改成 SD/TEST，编号不变。）
     //   这一类"名字连对、宽度被吞"现在由门禁第 14 项的**位宽判据**当场拦（`build/check_ports.py`，
     //   它的反例之一改的就是这一根线）。
     wire [15:0] dbg_src;
@@ -266,6 +267,11 @@ module system_top (
         // 注意默认值：set_src.tcl 现在写 0x0003_0000（bit16+bit17），保持"上电即呼吸缩放"的旧观感。
         .zoom_en(gpio_o[17]),
         .ps_publish(gpio_o[18]),        // 每翻转一次 = PS 请求把 DDR 里那一帧搬上屏一次
+        // V8-2 补的片源模式覆盖（2026-09-25）：[24:23] = 码（00 自动/01 ETH/11 SD/10 TEST），
+        // [22] = 翻转位。码与翻转的先后由 main.c 保证（先写码再翻位），跨域在 src_mode 里做。
+        // 为什么占 22~24：gpio_o 的 [4:0]/[15:8]/16/17/18/19 都各有主人，[26] 是 gapclr，
+        // [31:27] 是 lane 号 ⇒ 20~25 是当时唯一成片的空位（取中段三个，留 20/21/25 给以后）。
+        .mode_ovr(gpio_o[24:23]), .mode_ovr_tog(gpio_o[22]),
         .key1_n(key1_n), .key2_n(key2_n), .led(led),
         .dbg_src(dbg_src), .dbg_lat(dbg_lat), .dbg_zoom(dbg_zoom), .lat_arm(lat_arm),
         .tmds_clk_p(tmds_clk_p), .tmds_clk_n(tmds_clk_n),

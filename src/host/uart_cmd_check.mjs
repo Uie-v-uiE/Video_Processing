@@ -83,6 +83,12 @@ const EXPECT = [
   [/sel=0A0/i],                                              // pipe 000001010 = 二值化 + 腐蚀 ⇒ 0x0A0
   [/sel=100/i],                                              // pipe 000000001 = 膨胀           ⇒ 0x100
   [/sel=008/i],                                              // pipe 001000000 = 锐化            ⇒ 0x008
+  // ---- r58：`pipe` 的长度口径（用户报"必须发 8/10 位才读得到"）----
+  // 6/7/8 位过去被静默当成"9 位前面补零"⇒ 命令串与屏上五位对不上，这正是那两条抱怨的来源。
+  // 反例判据 `!sel=` 是这一组的核心：拒了还写寄存器，等于没拒。
+  [/长度只收/, /!sel=/],                                     // pipe 00001100（8 位）：必须拒
+  [/长度只收/, /!sel=/],                                     // pipe 1（1 位）：同上
+  [/\[PIPE\] sel=008 生效: sharpen/],                        // pipe show：只说名字，不动状态
   [/sel=000/i],                                           // pipe 00000：收尾恢复全旁路（电池不许改变板上状态）
   [/\[SD\] autoplay off/],                                  // AUTOPLAY0（老写法，参数粘着）
   [/\[SD\] autoplay on/],                                   // autoplay 1（V8 写法；顺序保证电池结束时仍是默认的开）
@@ -103,6 +109,15 @@ const EXPECT = [
   [/\[TEMP\] th [^=]/, /!th=85C/],                         // temp th 光杆：必须拒（`!` = 不许出现）
   [/\[TEMP\] th [^=]/, /!th=85C/],                         // temp th 999：越界也拒，且自己退回 85
   [/\[TEMP\] degC=.*th=85C .*sane=1/],                     // TEMP（大写）：别名有效 + 阈值已回到默认
+  // ---- r58 新加的"串口钉片源模式"（V8-2 欠的那半件事）----
+  // 每条都验 `mode=` 这个**回显值**，不是验"有没有回应"：钉错码与钉不住都会在这里露出来。
+  // 顺序是 auto → 图卡 → SD → ETH → auto，最后一条把状态还回 AUTO，
+  // 于是"末态必须等于初态"那条（下面的元组比对）同时也在管 mode。
+  [/\[SRC\].*mode=0/],                                     // src auto：钉回自动（也交还按键环）
+  [/\[SRC\].*mode=2/],                                     // src 0：钉图卡（码 2，与 PL 的 M_TEST 一致）
+  [/\[SRC\].*mode=3/],                                     // src 2：钉 SD 回放（码 3 = M_SD）
+  [/\[SRC\].*mode=1/],                                     // src 1：钉网络（码 1 = M_ETH）
+  [/\[SRC\].*mode=0/],                                     // 再 auto：把板上状态还干净
   [/^\[STAT\] ctrl en=(\w\w) thr=(\d+) src=(\d) zoom=(\d) bilin=(\d) zsel=(\d) zman=(\d)/m],
 
 ];
@@ -172,7 +187,7 @@ for (let i = 0; i < lines.length; i++) {
  * V8-8 起 zsel/zman 也进元组：手动档留在板上就是改了状态，与 gamma 同一类，不许靠"看着像 auto"放过。 */
 const cap2 = cap.split(/\r?\n/);
 const stats = cap2.filter(l => l.startsWith('[STAT]'))
-  .map(l => { const m = l.match(/ctrl (en=\w\w) (thr=\d+) (src=\d) (zoom=\d) (bilin=\d) (zsel=\d) (zman=\d).*?(gm=\d+\.\d\d)/); return m ? m.slice(1).join(' ') : 'NO_MATCH'; });
+  .map(l => { const m = l.match(/ctrl (en=\w\w) (thr=\d+) (src=\d) (zoom=\d) (bilin=\d) (zsel=\d) (zman=\d).*?(gm=\d+\.\d\d).*?(mode=\d)/); return m ? m.slice(1).join(' ') : 'NO_MATCH'; });
 if (stats.length < 2) { console.log('FAIL 没有两条 STAT，初/末态无从比较'); fail++; }
 /* ⚠ 先验"元组真的被抓到了"再比相等：正则一旦不匹配，两条都变成同一个 'NO_MATCH' 字符串，
  *   `stats[0] !== stats[last]` 就**永远相等** ⇒ 这条判据永远不会红（V8-8 给 STAT 加 zsel/zman 时，

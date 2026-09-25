@@ -1,0 +1,3 @@
+[SD] frame 3000: last 100 frames 29.982 fps (since play 29.842)
+[SD] frame 3100: last 100 frames 29.318 fps (since play 29.828)
+

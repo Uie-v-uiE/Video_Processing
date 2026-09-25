@@ -30,6 +30,11 @@ module pl_video_top #(
     input  wire [31:0] gamma_ctl,
     input  wire        src_sel,
     input  wire        zoom_en,
+    // V8-2 补的那半件事（2026-09-25）：串口命令可以把片源模式**钉住**，不必只靠按键环。
+    // 都是 axi 域准静态电平，跨域与"命令优先还是按键优先"全在 `src_mode` 里处理，
+    // 这一层只负责把线接过去（不许在这里自己采）。
+    input  wire [1:0]  mode_ovr,        // 00 自动 / 01 锁 ETH / 11 锁 SD / 10 锁 TEST（屏上就印这三个词）
+    input  wire        mode_ovr_tog,    // 翻一次 = 上面那个码是新写的
     // V8-8 手动缩放：`zoom_sel_async[2:0]` = 档号、`zoom_manual_async` = 1 停在手动档。
     // 两者与 `stage_sel` 来自**同一个 32 位控制字**（gpio_cfg1 = PS 侧 CFG_DATA0 的
     // [28:26] 与 [29]），都是 axi 域异步电平 ⇒ 一律交给 effect_ctrl 那条 sel 链同步，
@@ -150,7 +155,7 @@ module pl_video_top #(
         .clk(sys_clk), .rst_n(sys_rst_n), .pressed(~k1_up),
         .tog(ltog), .short_pulse(k1_short), .holding(k1_hold));
 
-    localparam [1:0] M_AUTO = 2'd0, M_ETH = 2'd1, M_PS = 2'd3, M_CARD = 2'd2;
+    localparam [1:0] M_AUTO = 2'd0, M_ETH = 2'd1, M_SD = 2'd3, M_TEST = 2'd2;
     // 模式寄存器搬到了 `src/rtl/util/src_mode.v`，原因是"这段逻辑有没有台架"：
     // 以前它就写在这里（一个 3 级链 + 一个四态寄存器），顶层没有任何台架碰得到它，
     // 于是链的复位值写成 3'b111（源头 `tog` 复位是 0）这件事一直没人查 —— 上电白送一次
@@ -159,11 +164,11 @@ module pl_video_top #(
     wire [1:0] mode;
     src_mode u_mode (
         .clk(clk_pix), .rst_n(rst_pix_n), .ltog(ltog),
-        .eth_now(owner_eth_pix), .mode(mode)
+        .eth_now(owner_eth_pix), .ov_code(mode_ovr), .ov_tog(mode_ovr_tog), .mode(mode)
     );
     wire mode_eth  = (mode == M_ETH);
-    wire mode_ps   = (mode == M_PS);
-    wire mode_card = (mode == M_CARD);
+    wire mode_ps   = (mode == M_SD);
+    wire mode_card = (mode == M_TEST);
 
     (* ASYNC_REG = "TRUE" *) reg [1:0] ms0, ms1, ms2;
     always @(posedge axi_clk or negedge axi_rst_n) begin
@@ -171,7 +176,7 @@ module pl_video_top #(
         else begin ms0 <= mode; ms1 <= ms0; ms2 <= ms1; end
     end
     // 图卡模式不参与仲裁（保持 AUTO）：它只是"显示什么"，不是"谁在搬"
-    wire [1:0] arb_sel = (ms2 == M_ETH) ? 2'd1 : (ms2 == M_PS) ? 2'd2 : 2'd0;
+    wire [1:0] arb_sel = (ms2 == M_ETH) ? 2'd1 : (ms2 == M_SD) ? 2'd2 : 2'd0;
     wire [8:0] angle;
     wire rotate_active;
     angle_ctrl u_ang (
@@ -514,7 +519,7 @@ module pl_video_top #(
     // 没有片源时显示的是会动的图卡（见下面 pix_left/pix_right），屏幕从此不会是红的或黑的。
     // 这也是图卡存在的理由之一：#47 之前"看不见 PS 片源"和"没搬片源"在屏幕上长得一模一样。
     wire have_src = eth_link_pix | ps_src_seen;
-    // 模式决定"看哪一路"：锁 ETH / 锁 PS 时强制看 fb；锁图卡时强制看图卡；AUTO 交回给
+    // 模式决定"看哪一路"：锁 ETH / 锁 SD 时强制看 fb；锁 TEST 时强制看图卡；AUTO 交回给
     // PS 的 SRC0/SRC1 命令（src_use），行为与 #23/#25 一致。
     wire fb_vis   = (mode_card ? 1'b0 : (mode_eth | mode_ps) ? 1'b1 : src_use) && have_src;
 

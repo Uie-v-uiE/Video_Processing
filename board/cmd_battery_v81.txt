@@ -37,6 +37,12 @@ BOGUS
 pipe 000001010
 pipe 000000001
 pipe 000100000
+# r58：用户报"必须发 8 位才读得到、五位读不到"。根因是 6/7/8 位过去被当成 9 位补零收下，
+# 于是"命令里那串"和"屏上那五位（每一级选了第几个算法）"永远对不上。这三条钉住新规矩：
+# 长度只收 5 或 9，其余**拒且一个寄存器都不写**（所以判据里有 !sel= 这条反例）。
+pipe 00001100
+pipe 1
+pipe show
 pipe 00000
 AUTOPLAY0
 autoplay 1
@@ -55,4 +61,9 @@ temp
 temp th
 temp th 999
 TEMP
+src auto
+src 0
+src 2
+src 1
+src auto
 STAT

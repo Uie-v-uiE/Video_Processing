@@ -19,7 +19,7 @@ module tb_v796_src_arb;
 
     reg  eth_live = 1'b0;
     reg  tb_ok    = 1'b1;             // 量 eth_live 的那个源时基是否还准
-    reg  [1:0] sel = 2'd0;            // 0=AUTO 1=锁ETH 2=锁PS（长按按键切来的）
+    reg  [1:0] sel = 2'd0;            // 0=AUTO 1=强制 ETH 2=强制看 fb（=SD 回放；长按/命令切来的）
     reg  row_busy = 1'b0, fill_busy = 1'b0;
     wire owner_a, owner_b, owner_d;
     // V8-7：三个实例都接上 why_ps —— 不接就等于这条出口没人判（#55 那一类"设了没人看"）。
@@ -162,7 +162,7 @@ module tb_v796_src_arb;
         repeat (6) @(posedge clk);
         expect("F1 force-ETH takes the bus although eth_live=0", owner_a === 1'b1);
         fill_busy = 1'b1;
-        sel = 2'd2;                                // 当场改锁 PS：PS 引擎正在拷贝，不许切
+        sel = 2'd2;                                // 当场改成"强制看 fb"：DDR 引擎正在拷贝，不许切
         repeat (600) @(posedge clk);
         expect("F2 force-PS still waits for fill_busy (互锁没被绕开)", owner_a === 1'b1);
         fill_busy = 1'b0;
@@ -171,12 +171,12 @@ module tb_v796_src_arb;
         sel = 2'd0; eth_live = 1'b1;
         repeat (6) @(posedge clk);
         expect("F4 AUTO resumes following eth_live", owner_a === 1'b1);
-        sel = 2'd3; eth_live = 1'b0;               // 11 是保留值：必须按 AUTO 处理，不能当"锁 PS"
+        sel = 2'd3; eth_live = 1'b0;               // 11 是保留值：必须按 AUTO 处理，不能当"强制看 fb"
         repeat (600) @(posedge clk);
         expect("F5 sel=11 behaves as AUTO", owner_a === 1'b0);
 
         // ---- G（V8-7）why_ps：PS 拿着屏幕"是因为什么"拿着 ----
-        // 期望值在这里**按激励手算**（{锁PS, 没流, 时基不可信}），不引用 RTL 里任何式子 ——
+        // 期望值在这里**按激励手算**（{强制看 fb, 没流, 时基不可信}），不引用 RTL 里任何式子 ——
         // 抄过来就等于"用被测代码验被测代码"，改了 bug 一起改判据就永远绿。
         rst_n = 1'b0;
         repeat (3) @(posedge clk);
@@ -185,11 +185,11 @@ module tb_v796_src_arb;
         rst_n = 1'b1;
         // G1 十六种激励逐条对表（sel 的四种编码全走一遍）。两个 busy 拉高 ⇒ 只看"原因"，
         // 不会被换手时序混进来。
-        // bit2 的解码表写死在这里（只有 2'b10 = 「锁 PS」点亮），**不抄 RTL 的 (sel==2'd10)**：
-        // 上一版把激励拼成 sel={1'b0,gi[2]} ⇒ 01 是「锁 ETH」而不是「锁 PS」，红的是台架自己。
+        // bit2 的解码表写死在这里（只有 2'b10 = 「强制看 fb（SD）」点亮），**不抄 RTL 的 (sel==2'd10)**：
+        // 上一版把激励拼成 sel={1'b0,gi[2]} ⇒ 01 是「强制 ETH」而不是「强制看 fb」，红的是台架自己。
         row_busy = 1'b1; fill_busy = 1'b1; ngood = 0;
         for (gi = 0; gi < 16; gi = gi + 1) begin
-            sel      = gi[3:2];                       // 00=AUTO 01=锁ETH 10=锁PS 11=保留(按 AUTO)
+            sel      = gi[3:2];                       // 00=AUTO 01=强制ETH 10=强制看fb(SD) 11=保留(按 AUTO)
             eth_live = gi[1];
             tb_ok    = gi[0];
             case (sel)

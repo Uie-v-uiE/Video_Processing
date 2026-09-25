@@ -39,6 +39,17 @@
 #define GPIO_TRI      (AXI_GPIO_BASE + 0x04u)
 #define PUBLISH_BIT   18u
 #define BILIN_BIT     19u     /* 右窗双线性插值开关：0 = 最近邻（同一条通路，小数钉 0） */
+/* V8-2 欠到现在的"mode 覆盖位"（2026-09-25 接上）：bit22 = 翻转位，[24:23] = 模式码。
+ * 码的取值与 PL 里 src_mode 的编码**必须一致**：00 自动 / 01 ETH / 11 SD / 10 TEST
+ * （屏上那三个词就是这一张表，2026-09-25 用户定稿；旧文档里的"锁 PS / 锁图卡"= SD / TEST。）
+ * 为什么是 22~24：[4:0] 老五位、[15:8] 阈值、16 src_sel、17 zoom_en、18 publish、19 bilin，
+ * [26] gapclr、[31:27] lane 号 ⇒ 20~25 是唯一成片的空位，留 20/21/25 给以后。 */
+#define MODE_TOG_BIT  22u
+#define MODE_CODE_BIT 23u
+#define MODE_AUTO 0u
+#define MODE_ETH  1u
+#define MODE_SD   3u
+#define MODE_TEST 2u
 
 /* ---- V8-2：第二条控制字（BD 里的 axi_gpio_2，双通道 ×32bit 纯输出） ----
  * 基址 0x41220000 是 build/tcl/build_system_axigpio.tcl 里**钉死并回读校验过**的
@@ -89,6 +100,8 @@ static const char *ZOOM_NAME[8] = { "0.25x", "0.33x", "0.50x", "0.75x",
                                     "1.00x", "1.33x", "1.50x", "2.00x" };
 static u8  cur_bilin = 1;  /* GPIO bit19: 双线性/最近邻 A-B 对照，演示时现场切换用 */
 static u32 pub_lvl = 0;
+static u32 cur_mode_ovr = MODE_AUTO;   /* 0 = 不覆盖（听按键环）；非 0 = 钉住这一路 */
+static u32 mode_tog_lvl = 0;
 
 /* 老五位是"新九位的一个投影"，不是第二个控制源 —— 这样 RTL 的旁路优先级
  * （cfg != 0 用 cfg，否则用老位）在固件这边永远自洽：两边永远说同一件事。 */
@@ -112,7 +125,8 @@ static u32 ctrl_write(void)
     sel_sync_legacy();
     v = (cur_en & 0x1F) | ((u32)cur_thr << 8) | ((u32)cur_src << 16)
       | ((u32)(cur_zoom ? 1 : 0) << 17) | (pub_lvl << PUBLISH_BIT)
-      | ((u32)(cur_bilin ? 1 : 0) << BILIN_BIT);
+      | ((u32)(cur_bilin ? 1 : 0) << BILIN_BIT)
+      | ((cur_mode_ovr & 3u) << MODE_CODE_BIT) | (mode_tog_lvl << MODE_TOG_BIT);
     Xil_Out32(GPIO_DATA, v);
     /* cfg1 一次写整个字：低 9 位是效果选择，[28:26] 是缩放档，[29] 是手动旗标。
      * ⚠ 这里的 CFG_DATA0 就是 RTL 的 gpio_cfg1_o；gamma 那个窗口是 CFG_DATA1(+0x08)。
@@ -270,6 +284,20 @@ static void ctrl_set_src(u8 src)
     ctrl_apply();
 }
 
+/* 把片源模式钉到 PL：两次寄存器写，顺序**就是这条改动的全部风险**。
+ * 像素域那边（src_mode）看到的是一根翻转位 + 一个两位码，它在翻转沿走到 3 级链的末尾
+ * 那一刻才采码 ⇒ 码必须在沿之前就已经稳定。一次 Xil_Out32 同时改码和翻位，对面读到的
+ * 可能是"新码 + 还没认的沿"或"旧码 + 已认的沿"，覆盖就白丢了（现象：串口回显成功、屏上没变）。
+ * 所以：第一次写只更新码、沿保持原值；第二次写只翻沿。与 ps_publish 的"先写数据再翻发布位"同一课。 */
+static void ctrl_publish_mode(u32 code, const char *name)
+{
+    cur_mode_ovr = code & 3u;
+    (void)ctrl_write();            /* 第一笔：码就位，翻转位不动 */
+    mode_tog_lvl ^= 1u;
+    (void)ctrl_write();            /* 第二笔：翻位 ⇒ 像素域采到的必是上面那个码 */
+    xil_printf("[SRC] 已钉住 %s（mode=%u；长按 KEY1 一次即交还给按键环）\r\n", name, code & 3u);
+}
+
 static void ctrl_set_zoom(u8 on)
 {
     cur_zoom = on ? 1 : 0;
@@ -315,6 +343,9 @@ static void ctrl_set_bilin(u8 on)
     ctrl_apply();
 }
 
+/* 长度只认 5 与 9，**6/7/8 一律拒**（2026-09-25 用户报"必须发 8 位才读得到"）。
+ * 老写法在这里是有害的：`pipe 00001100`（8 位）过去被当成"9 位前面补一个 0"，
+ * 于是用户以为自己设的和屏上显示的是两件事。宁可拒，也不要"看着收了、意思变了"。 */
 static int parse_bits(const char *s, u32 *out)
 {
     u32 en = 0;
@@ -326,9 +357,29 @@ static int parse_bits(const char *s, u32 *out)
         en |= ((u32)(*s - '0')) << n;
         ++n;
     }
-    if (n == 0) return -1;
+    if (n != 5 && n != 9) return -1;
     *out = en;
     return n;
+}
+
+/* 位 → 名字：**只用于串口回显**，位定义的唯一出处仍是 proc_pipeline.v（文件头那条注释）。
+ * 之所以要有这一行：屏上 `Pipe:` 那一格是"这一级选中了第几个算法"（0..3，见 osd_overlay.v），
+ * 与命令里那 9 个 0/1 不是一一对应的字符串 —— 用户拿命令串去对屏上五位必然对不上。 */
+static const char *SEL_NAME[9] = {
+    "gray", "invert", "blur", "sharpen", "sobel",
+    "binary", "bin_pol", "erode", "dilate"
+};
+
+static void print_sel_names(u32 sel)
+{
+    int i, n = 0;
+    xil_printf("[PIPE] sel=%03x 生效:", sel & 0x1FFu);
+    for (i = 0; i < 9; i++) {
+        if (sel & (1u << i)) { xil_printf(" %s", SEL_NAME[i]); n++; }
+    }
+    if (n == 0) xil_printf(" none");
+    xil_printf("\r\n[PIPE] 屏上那五是**每一级选了第几个算法**（0=无,1/2=该级的两个算法,"
+               "3=两位都设了）⇒ 与命令串不是同一个写法，看这一行的名字\r\n");
 }
 
 /* ================= V8 spec §14：统一文本协议 =================
@@ -435,22 +486,29 @@ static void cmd_fill(void)
 
 static void cmd_src(int n)
 {
+    /* V8-2 的"独占"这一半今天才真的接上：以前这里只动 1 bit src_sel（0=图卡/1=DDR），
+     * 然后打印一句"还要 mode 覆盖位"就完事 —— 用户按了没反应、我的脚本也没法保证起点，
+     * 2026-09-25 的三条投诉（"切不到 SD""长按要按几次""屏上写的和放的对不上"）根子都在这。
+     * 消息里的三个词**就是屏上那三个词**（ETH / SD / TEST，2026-09-25 用户定稿）：
+     * 以前这里刻意躲开 CARD/PS，因为屏上那两个词的归属和他念的不一样。歧义已经从源头去掉了。 */
     switch (n) {
-    case 0: ctrl_set_src(0); break;               /* 图卡 */
-    case 1: ctrl_set_src(1); break;               /* DDR：ETH 活着时仲裁给 ETH */
+    case 0:
+        ctrl_set_src(0);
+        ctrl_publish_mode(MODE_TEST, "TEST = 片内自绘测试图卡");
+        break;
+    case 1:
+        ctrl_set_src(1);
+        ctrl_publish_mode(MODE_ETH, "ETH = 网络推流");
+        break;
     case 2:                                             /* SD：也是 DDR，只是把回放踢起来 */
         ctrl_set_src(1);
         if (!sd_play(1)) xil_printf("[SD] play refused: %s\r\n", sd_err());
+        ctrl_publish_mode(MODE_SD, "SD = 卡里回放（帧缓存走 DDR）");
         break;
     default:
-        xil_printf("[SRC] 只认 0=图卡 1=网络 2=SD\r\n");
+        xil_printf("[SRC] 只认 auto / 0=TEST 图卡 / 1=ETH 网络 / 2=SD 卡回放（屏上印的就是这三个词）\r\n");
         return;
     }
-    /* 说不清就是埋坑：spec 的 src 0/1/2 是"独占这一路"，而 PS 写得动的只有 1 bit src_sel
-     * （0=图卡 / 1=DDR）；"锁哪一路"是 PL 里 src_mode 的四态，目前只有 KEY1 长按能改。
-     * 真正的三态锁 + spec 要求的"手动命令退出自动模式"在 V8-2 的控制字里一起给。 */
-    xil_printf("[SRC] 已切 src_sel=%d；**独占**还要 mode 覆盖位（V8-2）——现在 AUTO 下仍由仲裁定屏幕\r\n",
-               n ? 1 : 0);
 }
 
 /* ============================ V8-7：片上温度（PS 侧 XADC）============================
@@ -539,12 +597,19 @@ static int dispatch(char **tk, int nt)
     int nb;
 
     nb = parse_bits(tk[0], &en);
-    if (nt == 1 && nb > 0) { apply_pipe_bits(en, nb); return 0; }
+    if (nt == 1 && nb > 0) { apply_pipe_bits(en, nb); print_sel_names(cur_sel); return 0; }
 
     if (ci_eq(tk[0], "PIPE")) {
+        if (nt >= 2 && ci_eq(tk[1], "SHOW")) { print_sel_names(cur_sel); return 0; }
         nb = (nt >= 2) ? parse_bits(tk[1], &en) : -1;
-        if (nb <= 0) { xil_printf("[PIPE] 要跟 5 位（老写法）或 9 位（新写法）0/1，例：pipe 11000\r\n"); return 0; }
+        if (nb <= 0) {
+            xil_printf("[PIPE] 长度只收 **5（老位序）或 9（新位序）**，其余一律不认"
+                       "（6/7/8 位过去被当成 9 位补零，屏上就对不上）。例：pipe 000000100 /"
+                       " pipe show\r\n");
+            return 0;
+        }
         apply_pipe_bits(en, nb);
+        print_sel_names(cur_sel);
         return 0;
     }
     if (ci_pre(tk[0], "TH")) {
@@ -560,10 +625,12 @@ static int dispatch(char **tk, int nt)
     if (ci_pre(tk[0], "SRC")) {
         /* 一条出口同时吃 `src 2`（V8，参数分开）与 `SRC0/SRC1`（老写法，参数粘着）：
          * 老代码是两个 strncmp 分支，重构成"取尾字符"时数错过一位（BILIN1 那次），
-         * 所以这里改成"整串交给 strict_int"，不再按下标取字符。 */
+         * 所以这里改成"整串交给 strict_int"，不再按下标取字符。
+         * `auto` 是 2026-09-25 新加的：用户报"锁住之后只能长按三次才出来"，需要一个出口。 */
         const char *arg = (nt >= 2) ? tk[1] : tk[0] + 3;
-        if (strict_int(arg, &v)) cmd_src(v);
-        else xil_printf("[SRC] 只认 0=图卡 1=网络 2=SD\r\n");
+        if (ci_eq(arg, "AUTO")) ctrl_publish_mode(MODE_AUTO, "自动（控制权交还按键环）");
+        else if (strict_int(arg, &v)) cmd_src(v);
+        else xil_printf("[SRC] 只认 auto / 0=图卡 1=网络 2=SD\r\n");
         return 0;
     }
     if (ci_pre(tk[0], "ZOOM")) {
@@ -663,12 +730,13 @@ static int dispatch(char **tk, int nt)
          * 新加的 sel / gm 只能往后放。en 是老五位的投影，sel 才是效果链的真相，
          * gm=0.00 表示 gamma 关（PL 那一侧逐位旁路）。 */
         xil_printf("[STAT] ctrl en=%02x thr=%d src=%d zoom=%d bilin=%d zsel=%d zman=%d pub=%d"
-                   " sd=%d frames=%d playing=%d sel=%03x gm=%d.%02d (PL owns UDP datapath)\r\n",
+                   " sd=%d frames=%d playing=%d sel=%03x gm=%d.%02d (PL owns UDP datapath)"
+                   " mode=%d\r\n",
                    cur_en & 0x1F, cur_thr, cur_src, cur_zoom ? 1 : 0,
                    cur_bilin ? 1 : 0, cur_zsel, cur_zman, (int)pub_lvl,
                    sd_frame_total() ? 1 : 0, (int)sd_frame_total(), sd_is_playing(),
                    cur_sel & 0x1FF,
-                   (int)(cur_gamma / 100u), (int)(cur_gamma % 100u));
+                   (int)(cur_gamma / 100u), (int)(cur_gamma % 100u), (int)cur_mode_ovr);
         return 0;
     }
     if (ci_eq(tk[0], "HELP") || ci_eq(tk[0], "?")) { cmd_help(); return 0; }
@@ -677,11 +745,13 @@ static int dispatch(char **tk, int nt)
 
 static void cmd_help(void)
 {
-    xil_printf("  V8 语法: src 0|1|2 | pipe <5 或 9 位> | th 80 | zoom on|off|auto|<倍率> | bilin on|off |"
+    xil_printf("  V8 语法: src auto|0|1|2 | pipe <5 或 9 位>|pipe show | th 80 | zoom on|off|auto|<倍率> | bilin on|off |"
                " gamma off|1.8 | frame N | sd | play | stop | fill | autoplay 0|1 | temp [th <°C>] |"
                " stat | help\r\n");
     xil_printf("  pipe 五位=老位序(gray/binary/blur/sobel/invert)，九位=新位序"
-               "(gray/invert/blur/sharpen/sobel/binary/bin_pol/erode/dilate)\r\n");
+               "(gray/invert/blur/sharpen/sobel/binary/bin_pol/erode/dilate)，**其余长度一律拒**\r\n");
+    xil_printf("  屏上 Pipe 那一格不是这串 0/1：它是五位、每位的 0..3 表示\"这一级选了第几个算法\"，"
+               "想知道现在开着什么就敲 pipe show\r\n");
     xil_printf("  语法已收/硬件待接: rot ... | split ... | osd on|off\r\n");
     xil_printf("  旧写法仍可用: SRC0 SRC1 TH80 ZOOM0 ZOOM1 BILIN0 BILIN1 FRAME12 00111\r\n");
 }

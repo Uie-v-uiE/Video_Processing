@@ -15,17 +15,22 @@
 // 期望常数（四个模式的格雷码）在这里重抄一遍，不从 RTL 引用。
 module tb_v82_src_mode;
 
-    localparam [1:0] M_AUTO = 2'd0, M_ETH = 2'd1, M_PS = 2'd3, M_CARD = 2'd2;
+    localparam [1:0] M_AUTO = 2'd0, M_ETH = 2'd1, M_SD = 2'd3, M_TEST = 2'd2;
 
     reg clk = 0, rst_n = 0;
     reg  ltog = 0;
     reg  eth_now = 0;   // 此刻屏上是不是 ETH：AUTO 那一格按它挑目标（ISSUES #55）
     reg  [1:0] prev_m;  // T7 比较相邻两格用
     wire [1:0] mode;
+    // V8-2 补的"串口命令钉模式"：码 + 翻转位（都是 axi 域准静态，这里按同一形状喂）
+    reg  [1:0] ov_code = M_AUTO;
+    reg        ov_tog  = 1'b0;
+    reg  [1:0] mode_before_ov;
     reg  [1:0] mode_old = M_AUTO;      // 旧写法（复位灌 1）的对照
     (* ASYNC_REG = "TRUE" *) reg [2:0] lsync_old = 3'b111;
 
-    src_mode u_dut (.clk(clk), .rst_n(rst_n), .ltog(ltog), .eth_now(eth_now), .mode(mode));
+    src_mode u_dut (.clk(clk), .rst_n(rst_n), .ltog(ltog), .eth_now(eth_now),
+                    .ov_code(ov_code), .ov_tog(ov_tog), .mode(mode));
 
     always #10 clk = ~clk;             // 50 ns = 20 MHz，像素钟的量级够用
 
@@ -54,6 +59,18 @@ module tb_v82_src_mode;
         end
     endtask
 
+    // 一次真实的"命令钉模式"：先让码稳定 8 拍，再翻位（main.c 的 ctrl_publish_mode 就是这两笔）。
+    // 顺序反过来写就会红 —— 那正是这条改动唯一的风险点，所以它自己必须是一条判据。
+    task publish_mode;
+        input [1:0] code;
+        begin
+            ov_code = code;
+            repeat (8) @(posedge clk);
+            ov_tog  = ~ov_tog;
+            repeat (8) @(posedge clk);
+        end
+    endtask
+
     initial begin
         repeat (4) @(posedge clk);
         rst_n = 1;
@@ -66,16 +83,16 @@ module tb_v82_src_mode;
         // ⇒ **上电白送一次长按**，模式 AUTO→锁ETH。而 `sel=锁ETH` 在 src_arb 里是
         // `force_eth=1` ⇒ owner_eth 永远为 1、"停流交回"永不发生 —— 与板级实测一字不差。
         expect("T1b 反面对照：旧写法(链复位=1)上电自己一步到锁ETH", mode_old === M_ETH);
-        $display("INFO 复位后 mode=%0d AUTO=%0d ETH=%0d PS=%0d CARD=%0d / 旧写法=%0d",
-                 mode, M_AUTO, M_ETH, M_PS, M_CARD, mode_old);
+        $display("INFO 复位后 mode=%0d AUTO=%0d ETH=%0d SD=%0d TEST=%0d / 旧写法=%0d",
+                 mode, M_AUTO, M_ETH, M_SD, M_TEST, mode_old);
 
         // ---- T2 一次长按 = 恰好一步 ----
         one_press;  repeat (6) @(posedge clk);
         expect("T2 一次长按只前进一格 AUTO→锁ETH", mode === M_ETH);
         one_press;  repeat (6) @(posedge clk);
-        expect("T2b 再一次 → 锁PS", mode === M_PS);
+        expect("T2b 再一次 → 锁PS", mode === M_SD);
         one_press;  repeat (6) @(posedge clk);
-        expect("T2c 再一次 → 锁图卡", mode === M_CARD);
+        expect("T2c 再一次 → TEST 档", mode === M_TEST);
         one_press;  repeat (6) @(posedge clk);
         expect("T2d 再一次 → 回 AUTO（四态环闭合）", mode === M_AUTO);
 
@@ -116,8 +133,8 @@ module tb_v82_src_mode;
             integer k;
             for (k = 0; k < 3; k = k + 1) one_press;
             repeat (8) @(posedge clk);
-            expect("T6 连续三次长按 = 前进三格（到锁图卡）", mode === M_CARD);
-            $display("INFO T6 结束位置 mode=%0d（期望 %0d=锁图卡）", mode, M_CARD);
+            expect("T6 连续三次长按 = 前进三格（到 TEST 档）", mode === M_TEST);
+            $display("INFO T6 结束位置 mode=%0d（期望 %0d=TEST 档）", mode, M_TEST);
         end
 
         // ---- T7 AUTO 那一格不许是空动作（用户实测：ETH 画面下第一次长按百分百没反应）----
@@ -127,7 +144,7 @@ module tb_v82_src_mode;
         repeat (12) @(posedge clk);
         expect("T7a 起点是 AUTO 且 eth_now=1", mode === M_AUTO);
         one_press;
-        expect("T7b 正在显示 ETH ⇒ 一次长按直接到锁PS（不许走成看不出变化的锁ETH）", mode === M_PS);
+        expect("T7b 正在显示 ETH ⇒ 一次长按直接到锁PS（不许走成看不出变化的锁ETH）", mode === M_SD);
         begin : gray2
             integer k2, bad2, same;
             bad2 = 0; same = 0;
@@ -141,6 +158,35 @@ module tb_v82_src_mode;
             expect("T7c 之后两格仍每格只翻 1 位（格雷码没破）", bad2 == 0);
             expect("T7d 每一格都必须真的换态（不许有空动作）", same == 0);
         end
+        eth_now = 1'b0;
+        // ---- T8~T12：V8-2 补的"串口命令钉模式"（2026-09-25 用户报"锁住之后只能长按三次才出来"）----
+        publish_mode(M_AUTO);
+        expect("T8a 起点：命令 AUTO 之后模式是 AUTO", mode === M_AUTO);
+        one_press;
+        expect("T8b 环也从 AUTO 起步（AUTO 覆盖会把环一起清，否则交还出一个旧锁）", mode === M_ETH);
+        publish_mode(M_AUTO);                          // 回到已知起点
+        publish_mode(M_TEST);
+        expect("T9a 命令钉 TEST ⇒ 模式立刻是 TEST 档", mode === M_TEST);
+        one_press;
+        expect("T9b 覆盖期间长按只做一件事 = 交还（交还后环还在 AUTO，所以看到 AUTO）",
+               mode === M_AUTO);
+        publish_mode(M_SD);
+        expect("T10a 命令钉 SD（码=11）", mode === M_SD);
+        eth_now = 1'b1;
+        publish_mode(M_ETH);
+        expect("T10b 覆盖可以被下一条命令立刻换掉（钉 ETH），与 eth_now 无关", mode === M_ETH);
+        eth_now = 1'b0;
+        publish_mode(M_AUTO);
+        // T11：延迟线判据 —— 沿**之后**才改的码不算数（这是 ctrl_publish_mode 两笔写的依据）
+        publish_mode(M_SD);
+        mode_before_ov = mode;
+        ov_tog = ~ov_tog;                              // 先翻沿
+        @(posedge clk);
+        ov_code = M_TEST;                              // 沿之后才改码（故意写错顺序）
+        repeat (8) @(posedge clk);
+        expect("T11 沿之后才改的码不算数（采的是沿出发那一刻的码）", mode === mode_before_ov);
+        publish_mode(M_AUTO);
+        expect("T12 收尾回到 AUTO，后面若再加判据起点是干净的", mode === M_AUTO);
         eth_now = 1'b0;
         if (errors == 0) $display("PASS tb_v82_src_mode");
         else             $display("FAIL tb_v82_src_mode errors=%0d", errors);

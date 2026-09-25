@@ -24,7 +24,9 @@ module src_arb #(
     input  wire rst_n,
     input  wire eth_live,     // 已在本域同步好的电平（慢变量，ms 级）
     input  wire eth_tb_ok,    // 量 eth_live 的那个源时基仍然准（0=被拉慢或停掉 ⇒ 不信 eth_live）
-    input  wire [1:0] sel,    // 00=AUTO 01=锁ETH 10=锁PS 11=按 AUTO 处理（图卡模式不改仲裁）
+    input  wire [1:0] sel,    // 00=AUTO 01=强制 ETH 10=强制看 fb（=SD 回放）11=按 AUTO 处理
+                          // ⚠ 这一份编码**不是** src_mode 的四态码（那边 SD=3、TEST=2）：
+                          //   顶层 pl_video_top 里有一行适配器把模式翻译成这里的 sel。
     input  wire row_busy,     // ETH 引擎（axi_frame_writer_gated）正在拷贝
     input  wire fill_busy,    // PS 引擎（axi_frame_writer64）正在拷贝
     output reg  owner_eth,    // 1 = AXI 读口与帧缓存写口归 ETH 引擎

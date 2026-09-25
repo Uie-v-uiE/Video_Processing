@@ -103,6 +103,29 @@ module tb_osd_lines;
         end
     endtask
 
+    // 一行占多少格、右沿到不到分割线。几何：X0=16 起点、CW=18 一格 ⇒ 第 k 格（1 基）右沿 = X0+k*CW。
+    // 分割线在 x=511/512（split_display 的 PANE_W-1/PANE_W 两列标记）⇒ 判据 X0+k*CW <= 511。
+    // 这条是 2026-09-25 用户报"gamma 那一行跑到分界线那边去了"之后加的：
+    // 改之前第二行是 28 格 ⇒ 16+28*18 = 520 > 511 ⇒ 当时就会红；收窄之后 26 格 = 484。
+    task line_within_pane;
+        input integer ln;
+        input [4*8-1:0] tag;
+        integer c, k, right;
+        begin
+            k = 0;
+            for (c = 0; c < MC; c = c + 1)
+                if (u_osd.chars[ln*MC + c] !== 8'h20) k = c + 1;
+            right = X0 + k * CW;
+            ncell = ncell + k;
+            if (right > 511) begin
+                errors = errors + 1;
+                $display("  FAIL %0s L%0d 占了 %0d 格 ⇒ 右沿 x=%0d 越过分割线 511", tag, ln, k, right);
+            end else begin
+                $display("  ok   %0s L%0d 占 %0d 格，右沿 x=%0d <= 511", tag, ln, k, right);
+            end
+        end
+    endtask
+
     // 逐像素扫一个字符格：亮的像素数必须和 TB 独立写的那份点阵一致
     task scan_glyph;
         input integer ln;
@@ -210,7 +233,7 @@ module tb_osd_lines;
         // ================= T1 用户给的那四行，逐字符 =================
         defaults(); settle;
         expect_line(0, "FPS:30  Src:ETH  512x300", "T1a");
-        expect_line(1, "Pipe:11000  Th:80  Gamma:1.8", "T1b");
+        expect_line(1, "Pipe:11000 Th:80 Gamma:1.8", "T1b");
         expect_line(2, {"Rot:45", 8'hDF, "  Zoom:0.75x(Auto)"}, "T1c");
         expect_line(3, "Split:50%  Latency:16ms", "T1d");
         if (errors == 0) $display("PASS T1 四行逐字符等于用户原话（分辨率按真实几何 512x300 画）");
@@ -218,39 +241,44 @@ module tb_osd_lines;
         // ================= T2 数字宽度：不打前导零；越界一律饱和不回卷 =================
         i_fps = 8'd9;   i_angle = 9'd5; i_th = 8'd9; i_sp = 8'd7; i_ms = 16'd5; settle;
         expect_line(0, "FPS:9  Src:ETH  512x300", "T2a");
-        expect_line(1, "Pipe:11000  Th:9  Gamma:1.8", "T2b");
+        expect_line(1, "Pipe:11000 Th:9 Gamma:1.8", "T2b");
         expect_line(2, {"Rot:5", 8'hDF, "  Zoom:0.75x(Auto)"}, "T2c");
         expect_line(3, "Split:7%  Latency:5ms", "T2d");
         i_fps = 8'd200; i_angle = 9'd359; i_th = 8'd255; i_sp = 8'd100; i_ms = 16'd5000; settle;
         expect_line(0, "FPS:99  Src:ETH  512x300", "T2e");
-        expect_line(1, "Pipe:11000  Th:255  Gamma:1.8", "T2f");
+        expect_line(1, "Pipe:11000 Th:255 Gamma:1.8", "T2f");
         expect_line(2, {"Rot:359", 8'hDF, "  Zoom:0.75x(Auto)"}, "T2g");
         expect_line(3, "Split:100%  Latency:999ms", "T2h");
         if (errors == 0) $display("PASS T2 一位数不占两格、fps/ms 越界饱和（99 / 999）而不是回卷成小数");
 
         // ================= T3 片源那一格：标签跟着屏幕走，不跟意愿走 =================
+        // ⚠ 用词是**用户的决定**，一天里改了两次：先是他的读法 `CARD`=SD 回放 / `PS`=片内图卡，
+        //   随后他直接定了三个词 **`ETH` / `SD` / `TEST`**（"就叫 ETH SD TEST"）。
+        //   本台架换的只是"这一状态印哪个词"：`i_src` 的位序 `{fb_vis, owner_eth}` 一个都没动。
+        //   判据的**不变部分**才是重点：三态各自印什么词可以谈，但"标签必须跟着屏幕走、
+        //   锁住才有 `*`、`*` 紧跟名字"这三条不许动（ISSUES #55/#66 讲的是这个，不是用词）。
         i_fps = 8'd30; i_src = 2'b10; i_mode = 2'b11; settle;
-        expect_line(0, "FPS:30  Src:PS*  512x300", "T3a");
+        expect_line(0, "FPS:30  Src:SD*  512x300", "T3a");
         i_src = 2'b00; i_mode = 2'b10; settle;
-        expect_line(0, "FPS:30  Src:CARD*  512x300", "T3b");
+        expect_line(0, "FPS:30  Src:TEST*  512x300", "T3b");
         i_src = 2'b01; i_mode = 2'b01; settle;
-        expect_line(0, "FPS:30  Src:CARD*  512x300", "T3c");
+        expect_line(0, "FPS:30  Src:TEST*  512x300", "T3c");
         i_src = 2'b11; i_mode = 2'b00; settle;
         expect_line(0, "FPS:30  Src:ETH  512x300", "T3d");
         if (errors == 0) $display("PASS T3 锁住才有 *、* 紧跟名字；仲裁与 mux 不一致时画 mux 那一路（#55）");
 
         // ================= T4 五位 Pipe 码 =================
         defaults(); settle;             // 每段自己把激励摆回基线：T2 留下的 Th=255 会把期望串顶歪
-        i_sel = 9'd0;   settle; expect_line(1, "Pipe:00000  Th:80  Gamma:1.8", "T4a");
-        i_sel = 9'h003; settle; expect_line(1, "Pipe:30000  Th:80  Gamma:1.8", "T4b");
-        i_sel = 9'h008; settle; expect_line(1, "Pipe:02000  Th:80  Gamma:1.8", "T4c");
-        i_sel = 9'h010; settle; expect_line(1, "Pipe:00100  Th:80  Gamma:1.8", "T4d");
-        i_sel = 9'h060; settle; expect_line(1, "Pipe:00020  Th:80  Gamma:1.8", "T4e");
-        i_sel = 9'h080; settle; expect_line(1, "Pipe:00001  Th:80  Gamma:1.8", "T4f");
+        i_sel = 9'd0;   settle; expect_line(1, "Pipe:00000 Th:80 Gamma:1.8", "T4a");
+        i_sel = 9'h003; settle; expect_line(1, "Pipe:30000 Th:80 Gamma:1.8", "T4b");
+        i_sel = 9'h008; settle; expect_line(1, "Pipe:02000 Th:80 Gamma:1.8", "T4c");
+        i_sel = 9'h010; settle; expect_line(1, "Pipe:00100 Th:80 Gamma:1.8", "T4d");
+        i_sel = 9'h060; settle; expect_line(1, "Pipe:00020 Th:80 Gamma:1.8", "T4e");
+        i_sel = 9'h080; settle; expect_line(1, "Pipe:00001 Th:80 Gamma:1.8", "T4f");
         // 腐蚀+膨胀同时置 1 = proc_pipeline 里写死的"两个都不做"⇒ 第五格必须是 0，
         // 写 3 就是"屏上说两个都开、画面上什么都没发生"（tb_v86 T14 那条语义的屏上版）
-        i_sel = 9'h180; settle; expect_line(1, "Pipe:00000  Th:80  Gamma:1.8", "T4g");
-        i_sel = 9'h1FF; settle; expect_line(1, "Pipe:33120  Th:80  Gamma:1.8", "T4h");
+        i_sel = 9'h180; settle; expect_line(1, "Pipe:00000 Th:80 Gamma:1.8", "T4g");
+        i_sel = 9'h1FF; settle; expect_line(1, "Pipe:33120 Th:80 Gamma:1.8", "T4h");
         defaults(); settle;
         if (errors == 0) $display("PASS T4 八种控制字逐位对（全 1 那组：前两级 3、Sobel 1、阈值旁路 0）");
 
@@ -287,11 +315,11 @@ module tb_osd_lines;
                 g_hi = 8'h30 + (q / 10);
                 g_lo = 8'h30 + (q % 10);
                 settle;
-                expect_line(1, {"Pipe:11000  Th:80  Gamma:", g_hi, 8'h2E, g_lo}, "T6");
+                expect_line(1, {"Pipe:11000 Th:80 Gamma:", g_hi, 8'h2E, g_lo}, "T6");
             end
         end
         i_gd = 6'd0; settle;
-        expect_line(1, "Pipe:11000  Th:80  Gamma:0.0", "T6z");
+        expect_line(1, "Pipe:11000 Th:80 Gamma:0.0", "T6z");
         i_gd = 6'd18; settle;
         if (errors == 0) $display("PASS T6 gamma×10 二十一台逐档对；0.0 = 表关着（PL 逐位旁路）");
 
@@ -375,6 +403,32 @@ module tb_osd_lines;
             errors = errors + 1;
             $display("  FAIL T11 判据没牙：错期望报了 %0d 处（应为 1）", errors - save_e);
         end
+
+        // ================= T13 行宽：任何一行都不许越过左半窗的分割线 =================
+        // 拿"今天可达的最宽一组激励"来量：FPS 三位、Src 带 * 且是**最长的那个词**、阈值三位、
+        // 效果字四位全非零、γ 一位小数、时延三位。这时任何一行都不许出界。
+        // ⚠ "最长"这一条**跟着用词走**：用词从 CARD 换成 TEST/SD 之后，`2'b10` 那一态只剩两个字母
+        //   （"SD"），拿它当"最宽激励"会悄悄把这一行缩短 3 格 ⇒ 判据就没牙了。所以这里取
+        //   `i_src = 2'b00` → `TEST*`（5 格，与当初的 `CARD*` 同宽）。以后再加词，先回来看这一行。
+        // ⚠ `i_sa`（Split 的 (Auto) 旗标）**必须留 0** —— 顶层现在把它绑成常量 0（缝还没有执行者，
+        //   ISSUES #62）。第一次跑这条判据时我用 i_sa=1 量出 **L3 = 31 格 = 574 px > 511**，
+        //   也就是说：**V8-4b 一旦让 (Auto) 真的亮起来，第四行就会压到分割线上**，
+        //   届时要先把 L3 的双空格收掉（或那一格不再画 (Auto)）。这条约束记在这里，别让它丢。
+        i_fps = 8'd99; i_src = 2'b00; i_mode = 2'b11;
+        i_sel = 9'h1FF; i_th = 8'd255; i_gd = 6'd18;
+        i_angle = 9'd359; i_zc = 4; i_za = 1; i_sp = 8'd100; i_sa = 0; i_ms = 16'd999; i_ok = 1;
+        settle;
+        line_within_pane(0, "T13a"); line_within_pane(1, "T13b");
+        line_within_pane(2, "T13c"); line_within_pane(3, "T13d");
+        if (errors == 0) $display("PASS T13 最宽可达激励下四行都留在分割线这边（X0+k*CW <= 511）");
+
+        // ================= T14 两个"看着像别的字母"的字模（用户报 Src→Sro / Split→Solit）====
+        // 点阵是**按字母形状手抄**的，不从 osd_overlay.v 复制（那正是当初让它活下来的原因：
+        // 金表与实现同源 ⇒ 抄错也一起错）。'c' 的右列一整列必须空，'p' 的左列必须贯通到降部。
+        // 位置：L0 "FPS:99  Src:TEST*…" 的 'c' 在第 10 格；L1 "Pipe:…" 的小写 'p' 在第 2 格。
+        scan_glyph(0, 10, 35'b00000_00000_01110_10000_10000_10000_01111, "T14a"); // c
+        scan_glyph(1,  2, 35'b00000_00000_10110_10001_10001_10110_10000, "T14b"); // p
+        if (errors == 0) $display("PASS T14 c/p 两个字模逐像素对上（c 右列全空、p 左列贯通）");
 
         // ================= T12 陪跑：样本数必须 > 0（#60 那一课） =================
         if (errors == 0) $display("PASS T12 本台架比对了 %0d 格、查了 %0d 个非空格、扫了 %0d 个字形",

@@ -235,7 +235,7 @@ module tb_v81_test_card;
         end
 
         // ---- T20 模式格雷码环：验 `pl_video_top` 里手推的那条下一状态式 ----
-        // 顶层写的是 `mode <= {mode[0], ~mode[1]}`（自动 00 → 锁ETH 01 → 锁PS 11 → 锁图卡 10 → 自动）。
+        // 顶层写的是 `mode <= {mode[0], ~mode[1]}`（AUTO 00 → ETH 01 → SD 11 → TEST 10 → AUTO）。
         // 这里只验**式子本身**；顶层有没有接对是板级长按判据（`board/README.md`）。
         // 四个编码重抄一遍而不是引用 RTL，是为了让"改一边忘一边"能红。
         begin : gray_ring
@@ -243,7 +243,7 @@ module tb_v81_test_card;
             m = 2'd0;
             m0 = {m[0], ~m[1]};  m1 = {m0[0], ~m0[1]};
             m2 = {m1[0], ~m1[1]}; m3 = {m2[0], ~m2[1]};
-            expect("T20 四步环依次落在 锁ETH/锁PS/锁图卡/自动",
+            expect("T20 四步环依次落在 ETH/SD/TEST/AUTO",
                    m0 == 2'd1 && m1 == 2'd3 && m2 == 2'd2 && m3 == 2'd0);
             expect("T20b 每一步只有一位变化（格雷码成立才允许打拍跨域）",
                    (m ^ m0) == 2'd01 && (m0 ^ m1) == 2'd10 &&

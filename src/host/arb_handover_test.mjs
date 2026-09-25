@@ -66,10 +66,12 @@ const TBK = (v) => v & 1;
 const FILL = (v) => (v >>> 3) & 1;      // PS 引擎搬运中
 const ROW = (v) => (v >>> 4) & 1;       // ETH 引擎搬运中
 const MODEG = (v) => (v >>> 5) & 3;     // 仲裁"看到"的模式（格雷码）
-// V8-7（r54 起的 bit 才有）：判决那一拍看到的三个原因位 = {锁PS, 没流, 时基不可信}
+// V8-7（r54 起的 bit 才有）：判决那一拍看到的三个原因位 = {强制看 fb, 没流, 时基不可信}
 const WHY = (v) => (v >>> 8) & 7;
 const WHY_PS = (v) => (v >>> 10) & 1;
-const MODE = { 0: 'AUTO', 1: '锁ETH', 3: '锁PS', 2: '锁图卡' };
+// 档名 2026-09-25 起与屏上同源（ETH / SD / TEST，编号不变：SD=3、TEST=2）；
+//   旧文档里的"锁PS/锁图卡"= 这里的 SD/TEST。
+const MODE = { 0: 'AUTO', 1: 'ETH', 3: 'SD', 2: 'TEST' };
 const fmt = (x) => Number.isFinite(x) ? Math.round(x) : '—';
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 
@@ -102,6 +104,26 @@ function sdWasPlaying() {
   const on = m[1] === '1';
   console.log(`[ARB] 测前 SD playing=${m[1]}${on ? ' ⇒ 先 STOP，测完再 PLAY 回去' : ''}`);
   return on;
+}
+
+/**
+ * 把片源模式钉回 AUTO，并**验它真的回去了**。
+ * 为什么必须有这一步（2026-09-25 的误红）：模式环以前只有 KEY1 长按能改，脚本没有入口 ⇒
+ * 用户按过几轮之后板子停在"锁 PS"，我的八条判据里 V3/V6 就红了 —— 症状像硬件坏了，
+ * 实际是**起点未知**。从 r58 起固件有 `src auto`（STAT 末尾也回显 `mode=`），这里用它钉起点；
+ * 遇到旧固件（没有 mode= 这个字段）就明说"起点不可知"，不许假装钉好了。
+ * 返回 true = 起点已确认为 AUTO。
+ */
+function ensureAutoMode() {
+  const t1 = uart(['src auto', 'STAT'], 8);
+  const m = t1.match(/\[STAT\].*?mode=(\d)/);
+  if (!m) {
+    console.log('[ARB] ⚠ 这份固件没有 mode= 回显（早于 r58）⇒ **片源模式的起点不可知**，'
+              + '若 V3/V6 红了先怀疑板子被长按钉住了，不是仲裁坏了');
+    return false;
+  }
+  console.log(`[ARB] 测前片源模式 mode=${m[1]}${m[1] === '0' ? '（AUTO，起点干净）' : ' ⇒ 钉不回 AUTO，起点不干净'}`);
+  return m[1] === '0';
 }
 
 /* ------------------------- 判据（纯函数，可台架验） ------------------------- */
@@ -171,7 +193,7 @@ function judge(samples, t1, t2, t3, t4) {
       ((WHY(x.v) & 0b011) === 0 || WHY_PS(x.v) === 1));
   add('V7 交回后原因位自洽', stay.n > 0 && whyBad.length === 0,
       `交回段 ${stay.n} 个样本里原因位不可用的 ${whyBad.length} 个` +
-      `（要 没流/时基 至少亮一位、且不亮锁PS；全 0 = 板上的 bit 早于 r54）`);
+      `（要 没流/时基 至少亮一位、且不亮强制看 fb；全 0 = 板上的 bit 早于 r54）`);
   return R;
 }
 
@@ -322,6 +344,7 @@ async function runBoard() {
   console.log(`[ARB] GPIO_0 控制位保留 0x${keep.toString(16)}，采样周期 ${PERIOD} ms`);
   // 按住 A9 之前先把 SD 回放停下来：控制器不在传输中间，就不会被调试器留在半途（ISSUES #50）。
   const wasPlaying = sdWasPlaying();
+  const autoOk = ensureAutoMode();     // 起点不干净 ⇒ 红了先看这一行（见函数注释）
   if (wasPlaying) uart(['STOP'], 6);
   const total = (PRE + STREAM + AFTER + RESTART) * 1000 + 6000;
   const sess = sampleSession(keep, total);       // 先起会话，再掐推流的时间点
@@ -371,6 +394,11 @@ async function runBoard() {
   if (clkBad) console.log(`  注：lane31 有 ${clkBad}/${lane31.length} 点报"时基被拉慢/消失"（拔线态）`);
   const bad = R.filter((r) => !r.ok);
   if (bad.length) console.log('\n[ARB] 定位（不判红，只摆证据）：\n  ' + diagnose(lane30, t2, t3) + '\n');
+  if (bad.length && !autoOk) {
+    // 今天真实发生过：板子被 KEY1 长按钉在"锁 PS"，V3/V6 一起红，看起来像仲裁坏了。
+    console.log('[ARB] ⚠ 起点没确认成 AUTO（见上面那行 mode=）⇒ 先排这一条再谈硬件：'
+              + '模式被钉住时 owner_eth 本来就不该动，那两条红是脚本的起点问题。\n');
+  }
   console.log('');
   console.log(bad.length
     ? `[ARB] 结论：${bad.length} 条不通过 ⇒ 判红，这一版不能采纳`
@@ -462,7 +490,7 @@ function selftest() {
   ]);
   chk('交回后原因位全 0 ⇒ V7 红（这条不是装饰）', red(judge(lie, T1, T2, T3, T4), 'V7 交回后原因位自洽'));
   const lock = mk([[T2 + 400, 0, 0, 1, 0b110], [T2 + 5000, 0, 0, 1, 0b110], [T3 - 100, 0, 0, 1, 0b110]]);
-  chk('亮着「锁PS」也不自洽 ⇒ V7 红（本测试从不锁模式）',
+  chk('亮着「强制看 fb(SD)」也不自洽 ⇒ V7 红（本测试从不锁模式）',
       red(judge(lock, T1, T2, T3, T4), 'V7 交回后原因位自洽'));
 
   const bad = ok.filter(([, c]) => !c).length;

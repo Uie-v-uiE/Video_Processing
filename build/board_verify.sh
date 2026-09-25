@@ -3,7 +3,7 @@
 #
 #   bash build/board_verify.sh              # 只跑不需要推流的那几项（读回口 + 开机自检）
 #   bash build/board_verify.sh --stream     # 再加：推流 → 仲裁交接 → 停流交回（要 ~2 min）
-#   bash build/board_verify.sh --battery    # 再加：串口命令电池（51 条，会改板上控制字并复原）
+#   bash build/board_verify.sh --battery    # 再加：串口命令电池（59 条，会改板上控制字并复原）
 #
 # 为什么要这个脚本：这些判据以前是我半夜手敲一串命令跑的，**别人复现不了**（比赛要审"他人能否复现"）。
 # 现在把顺序、判据、以及"每一项看哪一行输出"固定在一个文件里，跑完把日志留在 build/evidence/。
@@ -76,7 +76,7 @@ if [ "$DO_STREAM" = 1 ]; then
 fi
 
 if [ "$DO_BATT" = 1 ]; then
-  echo "-- 4) 串口命令电池（51 条 + 初末态必须相同）--" | tee -a "$LOG"
+  echo "-- 4) 串口命令电池（59 条 + 初末态必须相同）--" | tee -a "$LOG"
   node src/host/uart_cmd_check.mjs --port COM6 2>&1 | tail -25 | tee -a "$LOG"
 fi
 

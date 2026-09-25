@@ -13,7 +13,8 @@ mkdir -p $R && cd $R || exit 1
 rm -rf xsim.dir
 SRC="$(find $ROOT/src/rtl -name '*.v' | tr '\n' ' ') \
 $ROOT/ku5p/src/rtl/ku5p_telem.v $ROOT/ku5p/src/rtl/ku5p_tx_arb.v $ROOT/ku5p/src/rtl/ku5p_cmd.v \
-$(find $ROOT/sim -maxdepth 1 -name 'tb_*.v' | tr '\n' ' ')"
+$(find $ROOT/sim -maxdepth 1 -name 'tb_*.v' | tr '\n' ' ') \
+$(find $ROOT/sim/prim -name '*.v' 2>/dev/null | tr '\n' ' ')"
 # ⚠ 清单**必须走 -f 文件**，不能拼在命令行上：台架加多之后 xvlog 会被 Windows 命令行长度上限
 #   截成一句"参数太多"，而 xv.log 里连 ERROR 都没有 ⇒ 本脚本只看 "^ERROR" 就往下走，
 #   最后报成一句看不懂的 "Cannot find design unit"（2026-09-25 加 tb_v94 时撞到）。

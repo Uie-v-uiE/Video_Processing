@@ -53,6 +53,11 @@ foreach f [list [file join $ws ku5p src rtl ku5p_telem.v] \
                [file join $ws ku5p src rtl ku5p_cmd.v]] {
     if {[file exists $f]} { lappend rtl $f }
 }
+# 仿真用的厂商原语占位件（sim/prim/）：本机 xsim 没有 UNISIM 库，缺了它们**任何例化 clk_gen 的
+# 顶层都 elaboration 不起来**（实测 `Module <MMCME2_BASE> not found`）⇒ 顶层台架的可行性押在这两行。
+# ⚠ 与 sim/run_one.sh 里那一处**必须同时改**（2026-09-23 只加过一边：单台架绿、全量判 ELAB_FAIL）。
+foreach f [glob -nocomplain [file join $simdir prim *.v]] { lappend rtl $f }
+
 puts "xvlog rtl=[llength $rtl] tb=[llength $tbs]"
 
 set sources {}

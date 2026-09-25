@@ -220,7 +220,7 @@ WNS +0.740 / WHS +0.042 / 0 失败端点(23613) / LUT 7403(13.92%) / BRAM 64.64%
 | 无输出/黑屏 | LED0 心跳在不在；`md5sum build/system.bit` 对不对；SRC 位是不是 1 | §9.5 第 1、5 步 |
 | 画面撕裂/半新半旧 | `health_read.mjs` 读 `copy_overrun`；拷贝是否超出一场 V-blank | `pl_video_top.v` 的 VBLANK_AXI_CYC 注释 |
 | **SD 播到第 3584 帧就停 / `STAT` 变 `sd=0`** | 先怀疑 **elf 不是 #32 那份**：`md5sum build/ps_app.elf` 应以 `c00b6553` 开头，且挂载横幅里要有 `[SD] dir map ok: 9 files, ...`。若已变 `sd=0`：重跑 `ps_jtag_boot → program_pl → ps_app_reload` 一遍就回来，**不用断电、不用拔卡**（卡是好的，见 ISSUES #50 结案段） | `build/frozen_r32_sdfix/MANIFEST.txt` |
-| 停流后画面没交回 SD | `node src/host/health_read.mjs` 读 lane30：`owner_eth / eth_live / eth_tb_ok / mode` 四个位就能分清是"仲裁还占着"还是"模式被手动锁在 ETH"；`mode` 若是"锁ETH"就是被人长按锁住了 —— `KEY1` 长按 0.6 s（r46 起；之前是 1.2 s）每按一次前进一格（自动→锁ETH→锁PS→锁图卡→回自动），最多按三次回自动。**⚠ 这条判读的成立条件**：lane30 的模式高位在 r48 及之前被 `system_top` 一根
+| 停流后画面没交回 SD | `node src/host/health_read.mjs` 读 lane30：`owner_eth / eth_live / eth_tb_ok / mode` 四个位就能分清是"仲裁还占着"还是"模式被手动锁在 ETH"；`mode` 若是"锁ETH"就是被人长按锁住了 —— `KEY1` 长按 0.6 s（r46 起；之前是 1.2 s）每按一次前进一格（自动→ETH→SD→TEST→回自动），最多按三次回自动；**r58 起有直接出口**：串口 `src auto` 一条就回自动（脚本会验回显 `mode=0`），不必再数按键。**⚠ 这条判读的成立条件**：lane30 的模式高位在 r48 及之前被 `system_top` 一根
 6 bit 线宽吞掉（读出来永远 0/1，分不清"自动 vs 锁图卡"），**r49 起才可信** —— 见 ISSUES #57 | `board/README.md` 无人值守交接判据 V1–V6 |
 | 推流没画面但 PC 能 ping 通 | ARP：板子只有点对点直连验证过，过交换机不保证 | `skill/board_eth_uart.md` |
 | SD 打不开 | `SD` 的报错文本（`card absent` 是控制器问题，不是文件系统问题） | `src/ps/sd_play.c` 的 `sd_err()` |
