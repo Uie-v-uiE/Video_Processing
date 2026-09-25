@@ -60,7 +60,7 @@ printf "  %-24s %-18s %-18s\n" "BRAM (tile)" "$(row "$NEW_OUT" "BRAM (tile/%)")"
 
 # 判据（§5）：① 两个竞争组都不许退步；② 至少一个组真的变好（否则多跑的布线后综合是白花构建时间）；
 # ③ 失败端点两边都必须 0。WHS/功耗只报不判（功耗涨了要在结论里点名，不许只报时序收益）。
-awk -v n="$(grp "$NEW_OUT" eth_rxc)" -v r="$(grp "$REF_OUT" eth_rxc)" \
+VERD=$(awk -v n="$(grp "$NEW_OUT" eth_rxc)" -v r="$(grp "$REF_OUT" eth_rxc)" \
     -v n2="$(grp "$NEW_OUT" clkout0_1)" -v r2="$(grp "$REF_OUT" clkout0_1)" \
     -v fen="$(fail_ep "$NEW_OUT")" -v fhn="$(fail_hd "$NEW_OUT")" \
     -v dyn="$(row "$NEW_OUT" "Dynamic (W)")" -v dynr="$(row "$REF_OUT" "Dynamic (W)")" '
@@ -74,4 +74,8 @@ BEGIN {
     if (dyn != "" && dynr != "" && dyn+0 > dynr+0 + 0.0005)
         printf "  点名：Dynamic 从 %s W 涨到 %s W（+%d mW）—— 复制高扇出驱动的价格，不许只报时序收益\n", dynr, dyn, (dyn-dynr)*1000
     print (bad ? "AB: REFUSE（保持默认关）" : (gain ? "AB: ADOPT（可把 IMPL_PRPO 设成默认开）" : "AB: REFUSE（无收益）"))
-}'
+}')
+echo "$VERD"
+# 结论必须带**退出码**：这条脚本是采纳判据本身，若 REFUSE 也返回 0，管道后面一句 `| tail` 就能把
+# "别开默认"读成"过了"（同一族错：门禁曾经把 rc 交给管道吃掉）。⇒ ADOPT 才 0，其它一律 1。
+case "$VERD" in *"AB: ADOPT"*) exit 0;; *) exit 1;; esac
