@@ -4434,3 +4434,22 @@ r64 = r63c + #83（串口能真正关掉双线性）。门禁 14 项里 **2 红*
   "eth_rxc 那组的 0.3~0.9 摆动是谁在决定"，而不是满足于"这次绿了"。
 * 于是**剩下的只有一件事**：眼睛。`zoom 1.5` 下 `bilin off` ↔ `bilin on`（十秒就能做完的 A/B），
   以及 `board/README.md` 第 28/29 行。机器侧不再有借口。
+
+## §59  05:14–05:22（9/26）：§58 那问"谁在决定 0.3~0.9 摆动"——答案抄完了，另有一刀砍在我自己腿上
+* **答案不是视频侧，是两条布线主导的路径在轮流当裁判**（三份 `timing_summary.rpt` 逐条抄，表在
+  `report/OPTIMIZATION_LOG.md` §4）：125 MHz ETH 组的 `u_cdc/wbin→BRAM ENARDEN`（r63b 0.918）/
+  `u_lm/ms32→gap_min/CE`（r63c 0.912、r64b **0.314**，14 级里 10 级 CARRY4，route 63.3%），
+  对上 50 MHz 像素组的 `u_pipe/xd_reg[7][4]→u_osd/g_reg[6]`（27 级，route 65~67%，1.306 / 0.807 / 0.834）。
+  ⇒ 0.314 不是"双线性把 ETH 拖慢了"：r64b 相对 r63c 只多一根 `bilin_en` 同步链，ETH 域一行 RTL 没动。
+  摆动幅度就是全局拥挤的价格 —— 这个数要记住，别把它读成因果。
+* **`gap_min` 那条为什么会是 14 级**：`ms32 − ms_last32`（32 位借位链）→ 饱和判 `>0xFFFF` → `< gap_min`（16 位再一条借位链），
+  三段串在同一拍，服务对象是**每帧才用一次**的统计量（`link_monitor.v:101-103,150`）。文件头第 11–14 行写着
+  "本模块里没有组合式的多级逻辑进关键路径" —— **那句话是错的**，本报告就是反例；改它之前先想清楚仪表口径
+  （`frame_done` 与 `ms_tick` 同拍的概率不是十万分之一：30 fps 的帧周期 ≈ 33 ms 刻度，与 1 ms 分频可能锁相）。
+* **T3（250 MHz 时钟树空转）作废，而且是读表读错了列**：`clock_util.rpt` 第 6 张表列名是
+  `Slice Loads | IO Loads | Clocking Loads | GT Loads`，g4 的读数是 **0 | 8 | 0 | 0**；那 8 只 IO 负载
+  = 4 条 TMDS 通道 ×（OSERDESE2 MASTER + SLAVE）（`tmds_serializer.v:31/69` × `rgb2dvi.v:35/39/43/49`）——
+  它是 HDMI 输出本身。**"fabric 负载 0" ≠ "空转"**，教训一句话记在 OPTIMIZATION_LOG §3。
+* **r65 在跑**：唯一改动是构建流程加一档 `IMPL_PRPO=1`（布线后物理综合 `AggressiveExplore`；默认关 = 与 r64b 同流程，
+  对照直接用已归档的 `evidence_r64b`）。网表逐位不变 ⇒ 不动 RTL、不重跑台架。判据四件事见 §5，
+  采纳规则是"eth_rxc 与 clkout0_1 两组**同时**不退步"，功耗涨就报涨。跑完在 §60 落数。
