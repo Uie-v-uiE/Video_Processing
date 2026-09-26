@@ -39,7 +39,7 @@ screen. What still needs eyes is narrower: that the picture is really alive afte
 | Display | HDMI 1024×600 @ 50 MHz (left = original, right = processed + zoomed) |
 | Network | board PL port `192.168.1.10:5001`, PC `192.168.1.100` |
 | Control | AXI GPIO `@0x41200000`, UART 115200 |
-| Implementation | current default bit (build#23): **WNS +0.740 ns, 0 failing endpoints**, BRAM 64.64 %, Slice LUT 13.92 %, 5904 registers, 2.178 W dynamic. Full table and sources: `report/PERF_REPORT.md`; re-check with `bash build/gates.sh build/frozen_r23_srcseen` |
+| Implementation | **latest gate-green frozen set = r69**: WNS +0.188 ns / WHS +0.025 ns, 0 failing endpoints, BRAM 97 tiles (69.29 %), Slice LUT 14144 (26.59 %), 9871 registers, 2.214 W dynamic. Sources: `build/evidence_r69/` (per-file md5 in its `MANIFEST.md5`) and `build/r69_gates.txt`. The board currently runs **r71** (WNS +0.346 ns; the worst path moved from glyph decoding to the `eth_rxc` ingress chain — `build/r71_gates.txt` is green on 16 items and only item 15, "top-level bench from the same run as the current top", is not yet back to green, so r71 is not frozen and none of its other numbers are quoted). Full table: `report/PERF_REPORT.md`; re-check with `bash build/gates.sh` (current reports in `build/`) or `bash build/gates.sh build/evidence_r69` (the frozen set) |
 | Licence | MIT |
 
 ## Overview
@@ -203,17 +203,21 @@ unplug the Ethernet *before* programming the bitstream for this act. Details in
 
 ## UART commands (115200 8N1, terminate with CR+LF)
 
+> The authoritative list is `report/COMMANDS.md` (every verb's syntax, rejection message and side
+> effect checked against the firmware, judged line by line by `src/host/uart_cmd_check.mjs`).
+> This table only carries the handful of commands a demo needs, so the two cannot drift apart.
+
 | Command | Effect |
 |---------|--------|
 | `00000` | all effects off |
 | `10000` | gray |
 | `01000` | binary |
 | `00111` | blur + Sobel + invert |
-| `SRC0` / `SRC1` | colour bars / video source |
+| `src 0` / `src 1` / `src 2` / `src auto` | pin the picture source: 0 = animated test card, 1 = UDP stream over the wire, 2 = SD frame library; `auto` hands the switch back to the button ring. Legacy `SRC0`/`SRC1` go through the same exit and `SRC0` now means the card, not colour bars |
 | `SD` / `PLAY` / `STOP` / `FRAME<n>` | mount & print the SD frame library / loop-play / stop / show one frame |
 | `TH80` | binary threshold |
-| `ZOOM0` / `ZOOM1` | right-window zoom off / on (on by default) |
-| `BILIN0` / `BILIN1` | right-window bilinear interpolation off / on (AXI GPIO bit 19). Off falls back to nearest neighbour on the **same datapath**. **Not in the mainline right now** — V7.8 closed all but 0.327 ns on the 250 MHz time-multiplexed read port; the full implementation lives on tag `v7.8-bilinear-wip`. With the build#13 bit the pin is unconnected and the command only echoes state |
+| `ZOOM0` / `ZOOM1` | right-window zoom off / on (on by default). Back to 1.00x must be written `zoom 1.0` — plain `zoom 1` still means the V7 "breathing" toggle |
+| `bilin on` / `bilin off` / `bilin show` | right-window bilinear interpolation off / on (AXI GPIO bit 19). Off falls back to nearest neighbour on the **same datapath**; the current mainline carries it (`stat` echoes `bilin=`). **When the difference is visible**: angle 0 and a non-integer scale (e.g. `src 0` → `zoom 1.5` → toggle); rotated content and the 1.00x step are identical by construction |
 | `FILL` / `STAT` | diagnostics / status |
 
 Effect bit order: **gray / binary / blur / sobel / invert** (bit 0 leftmost). A complete Ethernet

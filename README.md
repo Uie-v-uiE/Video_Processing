@@ -43,7 +43,7 @@
 | 显示 | HDMI 1024×600 @ 50 MHz（左原图 / 右处理+缩放） |
 | 网络 | 板卡 PL 口 `192.168.1.10:5001`，PC `192.168.1.100` |
 | 控制 | AXI GPIO `@0x41200000`，UART 115200 |
-| 实现结果 | 当前默认 bit（build#23）：**WNS +0.740 ns、0 违例端点**、BRAM 64.64 %、Slice LUT 13.92 %、寄存器 5904、Dynamic 2.178 W。逐项数字与出处见 `report/PERF_REPORT.md`，复核一条命令 `bash build/gates.sh build/frozen_r23_srcseen` |
+| 实现结果 | **最近一次门禁全绿的冻结集 = r69**：WNS +0.188 ns / WHS +0.025 ns、0 违例端点、BRAM 97 tile（69.29 %）、Slice LUT 14144（26.59 %）、寄存器 9871、Dynamic 2.214 W——出处 `build/evidence_r69/`（逐文件 md5 见其中的 `MANIFEST.md5`）与 `build/r69_gates.txt`。板上现在烧的是 **r71**（WNS +0.346 ns，最差路径已从字形译码换到 `eth_rxc` 收包链；`build/r71_gates.txt` 16 项绿、只有第 15 项「顶层台架与当前顶层同一次跑」未复绿 ⇒ 尚未冻结，不引用它的其它数字）。逐项数字与出处见 `report/PERF_REPORT.md`，复跑 `bash build/gates.sh`（读 `build/` 里当前这套报告）或 `bash build/gates.sh build/evidence_r69`（读冻结那一套） |
 | 开源协议 | MIT |
 
 ### 项目简介
@@ -251,16 +251,19 @@ PC 网卡 `192.168.1.100/24`，网线接 **板卡 PL 网口**。默认 15 MB/s �
 
 ## 串口命令（115200 8N1，CR+LF）
 
+> 权威清单是 `report/COMMANDS.md`（每条动词的语法、拒绝消息、副作用都对着固件核过，并由
+> `src/host/uart_cmd_check.mjs` 逐条判绿）。本表只列演示最常用的几条，避免两处各写一份而其中一份过期。
+
 | 命令 | 作用 |
 |------|------|
 | `00000` | 关闭全部效果 |
 | `10000` | 灰度 |
 | `01000` | 二值化 |
 | `00111` | 模糊 + Sobel + 反色 |
-| `SRC0` / `SRC1` | 彩条 / 视频源 |
+| `src 0` / `src 1` / `src 2` / `src auto` | 片源：0=会动的测试图卡、1=网线推流、2=SD 帧序列；`auto` 把切换权交还按键环（旧写法 `SRC0`/`SRC1` 走同一条出口，`SRC0` 现在是图卡不是彩条） |
 | `TH80` | 二值化阈值 |
-| `ZOOM0` / `ZOOM1` | 右屏缩放 关/开（V7.7 起真正生效；`set_src.tcl` 写 1 保持旧观感） |
-| `BILIN0` / `BILIN1` | 右窗双线性插值 关/开（AXI GPIO bit19）。关掉即退回最近邻，**同一条数据通路**，用来现场对比效果。**主线目前不含此项**（V7.8 收口在 250 MHz 分时读口上差 0.327 ns），完整实现在 tag `v7.8-bilinear-wip`；下 build#13 的 bit 时这一位没有连接，命令只会打印状态 |
+| `ZOOM0` / `ZOOM1` | 右屏缩放 关/开（V7.7 起真正生效；`set_src.tcl` 写 1 保持旧观感）。**回到 1.00 倍要写 `zoom 1.0`**——`zoom 1` 沿用的是 V7 的"开呼吸" |
+| `bilin on` / `bilin off` / `bilin show` | 右窗双线性插值 关/开（AXI GPIO bit19）。关掉即退回最近邻，**同一条数据通路**，用来现场对比效果；当前主线带着它（`stat` 行回显 `bilin=`）。**什么时候看得出差**：角度 0 且倍率非整数（例：`src 0` → `zoom 1.5` → 来回切），旋转态与 1.00x 档按构造无差别——这句也印在回包里 |
 | `SD` / `PLAY` / `STOP` / `FRAME<n>` | 挂载并打印 SD 卡帧库 / 循环回放 / 停止 / 跳到第 n 帧 |
 | `FILL` / `STAT` | 诊断 / 状态 |
 
