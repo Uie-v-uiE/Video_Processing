@@ -64,6 +64,12 @@ module tb_v794_osd_glyph;
             else if (c == 8'h61) gold_glyph = 6'd28;   // a
             else if (c == 8'h63) gold_glyph = 6'd29;   // c
             else if (c == 8'h65) gold_glyph = 6'd30;   // e
+            // g：V9-4 给 "ETH is no signal" 新画的号（RTL 里 `font[53]` + `8'h67 → 53` 都齐）。
+            // ⚠ 这一条是 r69 那次**全量**回归才发现缺的（`门禁不跑台架` = #88 那一族的第二次）：
+            //   缺它的时候 RTL 说 53、金表说 63=空格 ⇒ 报 1 条码点不符 + 1 条"只比对了 255/256"。
+            //   也就是说下面那条 `n_hit !== 256` 的覆盖地板**真的**在干活：它把"金表漏了一格"
+            //   从"看不见的静默"变成了两条红。谁再加字模，先改这张表再改 RTL。
+            else if (c == 8'h67) gold_glyph = 6'd53;   // g
             else if (c == 8'h68) gold_glyph = 6'd51;   // h
             else if (c == 8'h69) gold_glyph = 6'd32;   // i
             else if (c == 8'h6C) gold_glyph = 6'd33;   // l
