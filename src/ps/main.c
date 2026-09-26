@@ -341,8 +341,12 @@ static void gamma_set(u32 g100)
     gm_w = (gm_w & ~GM_DISP_MASK) | GM_DISP((g100 + 5u) / 10u);
     Xil_Out32(CFG_DATA1, gm_w);
     cur_gamma = g100;
-    xil_printf("[GAMMA] g=%d.%02d mono_bad=%d first=%d last=%d\r\n",
-               (int)(g100 / 100u), (int)(g100 % 100u), (int)bad, (int)first, (int)last);
+    /* Auto 扫档时**不再每 2 秒吼一行**（用户 2026-09-26："窗口里一直闪那个 GAMMA，没法看"）：
+     * 例行确认只在手动/单次设置时打；曲线自检不过（下面的 [GAMMA!]）任何时候都要打，
+     * 那是告警不是噪声。 */
+    if (!gm_auto)
+        xil_printf("[GAMMA] g=%d.%02d mono_bad=%d first=%d last=%d\r\n",
+                   (int)(g100 / 100u), (int)(g100 % 100u), (int)bad, (int)first, (int)last);
     if (bad != 0u || first != 0u || last != 255u)
         xil_printf("[GAMMA!] 曲线自检没过（表已写入但**不要**用它演示）\r\n");
 }
@@ -1120,11 +1124,26 @@ static int dispatch(char **tk, int nt)
         return 0;
     }
     if (ci_eq(tk[0], "PLAY")) {
+        /* 2026-09-26 用户实测撞上的坑：`play` 分支原来**不看参数**，`play 0` 也是"开始播"，
+         * 而停播是另一个裸词 `stop` —— 于是一句最自然的"play 0"不但停不下来，还回一句
+         * "[SD] playing"，看起来像命令坏了。这里把 0/off/stop 收进同一条出口。
+         * ⚠ 故意**保留**开播时钉源到 SD 那一步（`ctrl_set_src(1)`）：串口电池与演示流程都按
+         *   "play 之后源就是 SD"来判，动它是另一次改动，要连电池一起改口径（已在 ISSUES 记一笔）。 */
+        const char *arg = (nt >= 2) ? tk[1] : (const char *)0;
+        if (arg && (ci_eq(arg, "0") || ci_eq(arg, "OFF") || ci_eq(arg, "STOP"))) {
+            (void)sd_play(0);
+            xil_printf("[SD] stopped at frame %d\r\n", (int)sd_frame_now());
+            return 0;
+        }
+        if (arg && !(ci_eq(arg, "1") || ci_eq(arg, "ON"))) {
+            xil_printf("[SD] play 只认 0/off/stop 或 1/on（不带参数=开播）\r\n");
+            return 0;
+        }
         ctrl_set_src(1);
         if (!sd_play(1)) xil_printf("[SD] play refused: %s\r\n", sd_err());
         /* 旧文案写的是"cable must stay out"——那是 #49 之前没有仲裁时的规矩，
          * 现在停流会自动交回，留着这句话只会误导下一个操作的人。 */
-        else xil_printf("[SD] playing (STOP to end; ETH 有流时会自动让位)\r\n");
+        else xil_printf("[SD] playing (stop / play 0 结束; ETH 有流时会自动让位)\r\n");
         return 0;
     }
     if (ci_eq(tk[0], "STOP")) {
