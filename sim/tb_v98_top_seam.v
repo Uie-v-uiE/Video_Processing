@@ -750,6 +750,38 @@ module tb_v98_top_seam;
     //   ① 只数 `p_row >= C3_ROW0` 的行：OSD 那个框在 y∈[12, 12+5*31)，会把自己涂成非黑；
     //   ② 采这段时间把那条 2 px 标记线**关掉**（gp[13]=1 = `split marker 0`）：
     //      缝位钉在 0 时 `x_sel==seam` 恰好在屏上第几列画两格蓝，不关掉就是在量台架自己。
+    // ============================ C4（#93 的第一把尺子：旋转下的"形状"）============================
+    // 为什么按形状判而不按坐标判：要在台架里复算 `zoom_mapper` 的逆映射（sin/cos 的 Q 格式、
+    // 中心取整、越界钉 0）就等于把被测的那段代码再抄一遍——抄错也一起错（#88 那一课）。
+    // 而用户那三句话本身是**形状**陈述："右上方一道宽彩条，内容和右下角一样"、"屏幕左边一条细线，
+    // 画的是旋转前的内容" ⇒ 这两件事都有一个不依赖坐标的签名：
+    //   **一条旋转后的矩形画面，被任何一条水平线切到的部分只能是**一段**连续区间。**
+    // 于是"某一行的非黑段数 > 1"就是那两道多出来的东西，而"段数 <= 1"不需要知道画面在哪。
+    // 黑 = 画面外：这个等价关系由 C0a3 先证明（图卡 300×512 个格子里没有一格编码成全黑），
+    // 再把那条 2 px 缝标记关掉、并把 OSD 那个框所在的行排除掉（C3_ROW0 以下才采）。
+    // ⚠ 这一段走最近邻（bilin off）：插值会把两格的 tag 混成第三格，那时"非黑"仍然成立但
+    //   "这一格是哪一格"不再成立 —— 形状判据不需要它，就别把它拉进来。
+    localparam integer C4_NA   = 4;                    // 角度档：0 / 45 / 90 / 168
+    localparam integer C4_ZERO = 0, C4_A45 = 1, C4_A90 = 2, C4_A168 = 3;
+    reg        c4_on = 1'b0;
+    // ⚠ 必须是三位：写成 [1:0] 时 `c4_a < 4` 在数到 3 之后回卷成 0 ⇒ 这个 for 永不退出
+    //   （xsim 会安静地跑到超时，看起来像"台架卡死"，其实是循环变量装不下上界）
+    reg  [2:0] c4_a  = 3'd0;
+    // ⚠ Verilog-2001 的数组声明要的是**范围**（`[0:N-1]`），`[N]` 是 SystemVerilog 写法：
+    //   xvlog 在 -i2v 下报 "single value range is not allowed"，整个台架模块被忽略（#88 那一族的另一张脸）。
+    integer    c4_rows2[0:C4_NA-1], c4_zero[0:C4_NA-1], c4_bad[0:C4_NA-1];
+    integer    c4_fmin[0:C4_NA-1], c4_fmax[0:C4_NA-1], c4_lmin[0:C4_NA-1], c4_lmax[0:C4_NA-1];
+    integer    c4_run, c4_r1s, c4_r1e, c4_r2s, c4_dump = 0;
+    reg        c4_prev_nb = 1'b0, c4_nb;
+    integer    c4_e;
+
+    initial begin
+        for (c4_e = 0; c4_e < C4_NA; c4_e = c4_e + 1) begin
+            c4_rows2[c4_e]=0; c4_zero[c4_e]=0; c4_bad[c4_e]=0;
+            c4_fmin[c4_e]=-1; c4_fmax[c4_e]=-1; c4_lmin[c4_e]=-1; c4_lmax[c4_e]=-1;
+        end
+    end
+
     localparam integer C3_ROW0 = 210;              // 离开 OSD 那个框（含 vs 沿约定的余量）
     reg        c3_vs_d = 1'b0, c3_de_d = 1'b0;
     integer    c3_prow = 0, c3_pcol = 0, c3_pw = 0, c3_first = -1, c3_last = -1;
@@ -780,6 +812,7 @@ module tb_v98_top_seam;
         c3_vs_d = dut.vs_osd;
         if (dut.de_osd && !c3_de_d) begin            // 行首
             c3_pcol = 0; c3_pw = 0; c3_first = -1; c3_last = -1;
+            c4_run = 0; c4_prev_nb = 1'b0; c4_r1s = -1; c4_r1e = -1; c4_r2s = -1;
         end else if (dut.de_osd) c3_pcol = c3_pcol + 1;
         if (dut.de_osd) begin
             c3_pw = c3_pw + 1;
@@ -787,6 +820,15 @@ module tb_v98_top_seam;
                 if (c3_first < 0) c3_first = c3_pcol;
                 c3_last = c3_pcol;
             end
+            // C4：同一拍顺手数"这一行的非黑段有几段"（与上面那三行用的是同一束线，不分二级）
+            c4_nb = ({dut.r_osd, dut.g_osd, dut.b_osd} !== 24'd0);
+            if (c4_nb && !c4_prev_nb) begin
+                c4_run = c4_run + 1;
+                if (c4_run == 1) c4_r1s = c3_pcol;
+                if (c4_run == 2) c4_r2s = c3_pcol;
+            end
+            if (c4_nb && c4_run == 1) c4_r1e = c3_pcol;
+            c4_prev_nb = c4_nb;
         end
         if (!dut.de_osd && c3_de_d) begin            // 行尾：结算这一行
             if (c2_on) begin
@@ -820,10 +862,40 @@ module tb_v98_top_seam;
                     end
                 end
             end
+            if (c4_on && c3_prow >= C3_ROW0) begin
+                if (c4_run == 0) c4_zero[c4_a[1:0]] = c4_zero[c4_a[1:0]] + 1;      // 这一行没画面（大角度下正常）
+                else if (c4_run == 1) begin
+                    c4_rows2[c4_a[1:0]] = c4_rows2[c4_a[1:0]] + 1;
+                    if (c4_fmin[c4_a[1:0]] < 0) begin
+                        c4_fmin[c4_a[1:0]] = c4_r1s; c4_fmax[c4_a[1:0]] = c4_r1s;
+                        c4_lmin[c4_a[1:0]] = c4_r1e; c4_lmax[c4_a[1:0]] = c4_r1e;
+                    end else begin
+                        if (c4_r1s < c4_fmin[c4_a[1:0]]) c4_fmin[c4_a[1:0]] = c4_r1s;
+                        if (c4_r1s > c4_fmax[c4_a[1:0]]) c4_fmax[c4_a[1:0]] = c4_r1s;
+                        if (c4_r1e < c4_lmin[c4_a[1:0]]) c4_lmin[c4_a[1:0]] = c4_r1e;
+                        if (c4_r1e > c4_lmax[c4_a[1:0]]) c4_lmax[c4_a[1:0]] = c4_r1e;
+                    end
+                end else begin                                              // 两段以上 = #93 那两道多出来的东西
+                    c4_bad[c4_a[1:0]] = c4_bad[c4_a[1:0]] + 1;
+                    if (c4_dump < 8) begin
+                        c4_dump = c4_dump + 1;
+                        $display("C4RUN ang=%0d prow=%0d 段数=%0d 第1段=[%0d,%0d] 第2段从=%0d 末段到=%0d | y_d[MIX_D]=%0d sx=%0d sy=%0d oob_out=%b",
+                                 c4_ang_of(c4_a[1:0]), c3_prow, c4_run, c4_r1s, c4_r1e, c4_r2s, c3_last,
+                                 dut.y_d[dut.MIX_D], dut.sx, dut.sy, dut.oob_out);
+                    end
+                end
+            end
             c3_prow = c3_prow + 1;
         end
         c3_de_d = dut.de_osd;
     end
+
+    function integer c4_ang_of; input [1:0] a;
+        begin
+            case (a) 2'd0: c4_ang_of = 0;   2'd1: c4_ang_of = 45;
+                       2'd2: c4_ang_of = 90; default: c4_ang_of = 168; endcase
+        end
+    endfunction
 
     task line(input [8*96-1:0] tag, input ok, input [8*170-1:0] txt);
         begin
@@ -1034,6 +1106,47 @@ module tb_v98_top_seam;
         // 上面一整轮 C1 判据的期望是按 **1.00x 手动档**写的（`zoom_sel=4`），那一档画面正好铺满
         // 整屏 ⇒ 没有背景带可量。0.50x 时画面只该占 x∈[256,767]，两侧各 256 列背景 ⇒
         // #92 的"贴边那一线"就在这里现形，并且报出来是**几列**（用户说肉眼量不出来）。
+        // ============================ C4（#93 的尺子，先量后修）============================
+        // 放在 C2 之前、且**自己把设置还回去**：C2 那八档的数是 r74/r75 门禁第 15 项的凭据，
+        // 一个字符都不许被这一轮动到。这一轮只**报数 + 判形状**，不碰 RTL（用户 2026-09-26 17:0x
+        // 的原话是"你先别修，先把这条记下来"，而 #93 的 (C) 段说的就是"先有这把尺子"）。
+        split_ctl_tb[13] = 1'b1;             // 缝标记关掉：不然"第二段"就是台架自己画的那条蓝线
+        bilin_en_tb      = 1'b0;             // 最近邻：插值会把两格的 tag 混成第三格，形状判据不需要它
+        zoom_en = 1'b1; zoom_manual = 1'b1; zoom_sel = 3'd4;   // 钉在 1.00x：画面本应铺满整屏
+        force dut.rot_on     = 1'b1;         // 手动把旋转打开（angle_ctrl 自己的步进不参与这一轮）
+        for (c4_a = 3'd0; c4_a < 3'd4; c4_a = c4_a + 3'd1) begin
+            case (c4_a[1:0])
+                2'd0: force dut.angle = 9'd0;
+                2'd1: force dut.angle = 9'd45;
+                2'd2: force dut.angle = 9'd90;
+                default: force dut.angle = 9'd168;
+            endcase
+            if (c4_a == 3'd0) force dut.rot_on = 1'b0;
+            else              force dut.rot_on = 1'b1;
+            repeat (3) @(posedge dut.frame_start);       // 强设不是 snap 过的：等它稳定，别采到换角那一帧
+            c4_on = 1'b1;
+            repeat (2) @(posedge dut.frame_start);
+            c4_on = 1'b0;
+            $display("C4 ang=%0d 有画面行=%0d 无画面行=%0d **多段行=%0d** 第1列[%0d..%0d] 末列[%0d..%0d] | angle=%0d rot_on=%b",
+                     c4_ang_of(c4_a[1:0]), c4_rows2[c4_a[1:0]], c4_zero[c4_a[1:0]], c4_bad[c4_a[1:0]],
+                     c4_fmin[c4_a[1:0]], c4_fmax[c4_a[1:0]], c4_lmin[c4_a[1:0]], c4_lmax[c4_a[1:0]],
+                     dut.angle, dut.rot_on);
+            // 覆盖地板：没有 200 行的话，下面那条"每行一段"就是空集上的绿（#60 那一课）
+            line("C4a rows judged", c4_rows2[c4_a[1:0]] > 200,
+                 "this angle must actually have content rows, else C4b below means nothing");
+            line("C4b one run per row", c4_bad[c4_a[1:0]] == 0,
+                 "a rotated rectangle meets every panel row in ONE contiguous run; 2+ runs = #93's stray diagonal bar / left-edge line");
+        end
+        release dut.angle;
+        release dut.rot_on;
+        c4_on = 1'b0;
+        force dut.angle = 9'd0;                // 还回 C1 阶段那个"没旋转"的世界，再让 angle_ctrl 接管
+        release dut.angle;
+        repeat (2) @(posedge dut.frame_start);
+        split_ctl_tb[13] = 1'b0;
+        bilin_en_tb      = 1'b1;
+        zoom_en = 1'b0; zoom_sel = 3'd4;
+        repeat (2) @(posedge dut.frame_start);
         zoom_en     = 1'b1;                  // 顶层的 enable 门：不打开，zoom_ctrl 根本不换倍率
         zoom_manual = 1'b1;                  // 停在手动档，别让呼吸把期望漂走
         // C3 要把那条 2 px 标记线关掉（见上面 C3 注释第 ② 条）：缝位=0 时它正好落在屏上最左几列，
