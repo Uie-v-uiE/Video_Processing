@@ -1,0 +1,52 @@
+# 由 src/host/demo_cmds.mjs --emit 从 report/DEMO_SCRIPT.md 抽出，不要手改
+stat
+src auto
+play
+zoom 0.25
+zoom 2
+zoom auto
+rot speed 1
+rot auto 1
+zoom fit 1
+pipe 000000000
+pipe 000010000
+pipe show
+pipe 001000000
+th 60
+th 200
+pipe 000000110
+pipe 100001100
+split screen
+split 50
+split video
+split marker 1
+split show
+zoom 2
+bilin off
+bilin on
+bilin show
+gamma 1.8
+gamma auto 100 300 20 2000
+gamma manual
+gamma show
+stat
+temp
+temp th 60
+rot show
+split show
+stat
+pipe 000000000
+th 80
+zoom 1.0
+zoom auto
+zoom fit 0
+rot auto 0
+rot speed 0
+bilin on
+split screen
+split marker 1
+gamma off
+temp
+src auto
+stat
+stat
