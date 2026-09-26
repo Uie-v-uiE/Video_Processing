@@ -1053,7 +1053,10 @@ module pl_video_top #(
 
     wire [7:0] r_osd, g_osd, b_osd;
     wire de_osd, hs_osd, vs_osd;
-    osd_overlay #(.IMG_W(IMG_W), .IMG_H(IMG_H)) u_osd (
+    // #67：OSD 第一行那格从"片源 512×300"换成**面板 1024×600**，所以递进去的是面板那一份。
+    // ×2 这条关系在本文件里只有一个出处（`proc_pipeline.H_ACTIVE`、`raw_line_delay.W` 用的也是它），
+    // 不是在这儿另抄一遍 1024/600 —— 谁改了窗口展开的倍数，屏上那格就跟着改。
+    osd_overlay #(.OUT_W(2*IMG_W), .OUT_H(2*IMG_H)) u_osd (
         .clk(clk_pix), .rst_n(rst_pix_n),
         // #92：跟着上面那一束一起提到 `MIX_D`。它与 `de_o` 的相对关系**一格都不变**
         //   （`de_o` 是 `de_d[MIX_D]` 再打一拍，这里的 `x/y` 就是同一拍的值 ⇒ 仍是"早一拍"，

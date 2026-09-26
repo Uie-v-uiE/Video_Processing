@@ -39,7 +39,11 @@ module tb_v794_osd_glyph;
     // 黄金表：**按 §7d / glyphs_draft 那张号表独立抄一遍**（不是从 RTL 里 copy 出来的），
     // 谁改了 RTL 的 case 而没改这张表，这里就红。
     // V7.9.3 的"改前语义"仍然成立（0x30..0x39、0x41..0x46、大写若干、* 与 =），
-    // V8-5 只是往表里**加**码点：小写 16 个、: . % ( ) ° -、大写 Z。空格的号从 31 挪到 63。
+    // V8-5 只是往表里**加**码点：: . % ( ) ° -、大写 Z。空格的号从 31 挪到 63。
+    // #67：**屏上不再有小写** —— 0x61~0x7A 这一族从 RTL 的 case 里删掉了，本表也一起删，
+    //   它们因此落到最后的 63=空格。大小写折算发生在 `put`（写格子那一侧），不在这一条并行链上，
+    //   所以 `glyph_idx` 收到小写码点本身就是错（折算漏了）⇒ 下面那 256 次全码点扫描仍在盯这件事。
+    //   同时新增四个大写：I=54 M=55 X=56 Y=57（PIPE / GAMMA / 尺寸分隔符 / LATENCY 要用）。
     function [5:0] gold_glyph;
         input [7:0] c;
         begin
@@ -56,6 +60,10 @@ module tb_v794_osd_glyph;
             else if (c == 8'h54) gold_glyph = 6'd19;   // T
             else if (c == 8'h55) gold_glyph = 6'd23;   // U
             else if (c == 8'h5A) gold_glyph = 6'd50;   // Z（Zoom）
+            else if (c == 8'h49) gold_glyph = 6'd54;   // I（#67：PIPE / SPLIT）
+            else if (c == 8'h4D) gold_glyph = 6'd55;   // M（#67：GAMMA / ZOOM）
+            else if (c == 8'h58) gold_glyph = 6'd56;   // X（#67：尺寸那一格的分隔符）
+            else if (c == 8'h59) gold_glyph = 6'd57;   // Y（#67：LATENCY）
             else if (c == 8'h2A) gold_glyph = 6'd26;   // *
             else if (c == 8'h3D) gold_glyph = 6'd27;   // =
             else if (c == 8'h3A) gold_glyph = 6'd44;   // :
@@ -65,29 +73,11 @@ module tb_v794_osd_glyph;
             else if (c == 8'h29) gold_glyph = 6'd48;   // )
             else if (c == 8'hDF) gold_glyph = 6'd49;   // °（Latin-1）
             else if (c == 8'h2D) gold_glyph = 6'd52;   // -（Latency 的 `--`）
-            // V8-5 的十六个小写：号按草稿走（28..43 里挑出来的那 15 个 + h 接在 51）
-            else if (c == 8'h61) gold_glyph = 6'd28;   // a
-            else if (c == 8'h63) gold_glyph = 6'd29;   // c
-            else if (c == 8'h65) gold_glyph = 6'd30;   // e
-            // g：V9-4 给 "ETH is no signal" 新画的号（RTL 里 `font[53]` + `8'h67 → 53` 都齐）。
-            // ⚠ 这一条是 r69 那次**全量**回归才发现缺的（`门禁不跑台架` = #88 那一族的第二次）：
-            //   缺它的时候 RTL 说 53、金表说 63=空格 ⇒ 报 1 条码点不符 + 1 条"只比对了 255/256"。
-            //   也就是说下面那条 `n_hit !== 256` 的覆盖地板**真的**在干活：它把"金表漏了一格"
-            //   从"看不见的静默"变成了两条红。谁再加字模，先改这张表再改 RTL。
-            else if (c == 8'h67) gold_glyph = 6'd53;   // g
-            else if (c == 8'h68) gold_glyph = 6'd51;   // h
-            else if (c == 8'h69) gold_glyph = 6'd32;   // i
-            else if (c == 8'h6C) gold_glyph = 6'd33;   // l
-            else if (c == 8'h6D) gold_glyph = 6'd34;   // m
-            else if (c == 8'h6E) gold_glyph = 6'd35;   // n
-            else if (c == 8'h6F) gold_glyph = 6'd36;   // o
-            else if (c == 8'h70) gold_glyph = 6'd37;   // p
-            else if (c == 8'h72) gold_glyph = 6'd38;   // r
-            else if (c == 8'h73) gold_glyph = 6'd39;   // s
-            else if (c == 8'h74) gold_glyph = 6'd40;   // t
-            else if (c == 8'h75) gold_glyph = 6'd41;   // u
-            else if (c == 8'h78) gold_glyph = 6'd42;   // x
-            else if (c == 8'h79) gold_glyph = 6'd43;   // y
+            // 小写 a c e g h i l m n o p r s t u x y 那 17 条**从这里删掉了**（#67）。
+            // ⚠ 这条表的历史教训留着不动（r69 那次全量回归才发现金表漏了 0x67 一格，
+            //   而报出来的除了"码点不符"还有一句"只比对了 255/256"）：
+            //   下面那句 `n_hit !== 256` 的覆盖地板才是把"金表漏一格"从静默变成红的东西。
+            //   ⇒ 谁以后加字模，先改这张表再改 RTL，而且必须跑**全量**（门禁不跑台架 = #88 那一族）。
             else                 gold_glyph = 6'd63;   // 空格
         end
     endfunction

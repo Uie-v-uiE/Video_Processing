@@ -9,8 +9,10 @@
 //   2) 每个可动态变的字段都在**边界值**上对一遍（fps 9/99/200、angle 5/45/359、
 //      threshold 9/80/255、pct 7/50/100、ms 0/5/16/125/999/饱和、gamma 0..30）；
 //   3) 屏上不许有"看不见的字母"：凡是画出来的格，字码必须能在字模表里找到号（T9），
-//      这条专门挡"忘了画某个小写、屏上静默少一笔"（V7.6 的 R/O/T/L 就是这么抓出来的）；
-//   4) 分辨率那一格必须来自**参数**而不是写死的字符串（T8 用第二份不同参数的例化对账）；
+//      这条专门挡"忘了画某个字母、屏上静默少一笔"（V7.6 的 R/O/T/L 就是这么抓出来的）；
+//      #67 之后同族多一条 T14：**屏上不许残留小写**（字库里已经没有小写，漏折的那一格会画成空格）；
+//   4) 尺寸那一格必须来自**参数**而不是写死的字符串（T8 用第二份不同参数的例化对账）。
+//      #67 起它画的是**面板**尺寸（1024×600），旧版画的是片源的 512×300；
 //   5) 判据自身要有牙（T11）：故意拿错的期望去比，必须逐格报红，否则 T1 那 4×32 次比对
 //      就是恒真式（#60 那一课：绿得不明不白比不绿更危险）。
 // ⚠ 期望串里的度数符号是用 {"Rot:45", 8'hDF, "..."} **拼**出来的，不是直接打那个字符：
@@ -49,7 +51,7 @@ module tb_osd_lines;
 
     osd_overlay #(.X0(X0), .Y0(Y0), .SCALE(SC), .CHAR_W(CW), .CHAR_H(CH),
                   .LINE_GAP(LG), .MAX_CHARS(MC), .N_LINES(NL),
-                  .IMG_W(512), .IMG_H(300)) u_osd (
+                  .OUT_W(1024), .OUT_H(600)) u_osd (
         .clk(clk), .rst_n(rst_n), .x(tx), .y(ty), .de(tde),
         .angle(i_angle), .fps(i_fps), .stage_sel(i_sel), .threshold(i_th),
         .gamma_disp(i_gd), .zoom_code(i_zc), .zoom_auto(i_za), .zoom_fit(1'b0),
@@ -59,12 +61,15 @@ module tb_osd_lines;
         .r(ro), .g(go), .b(bo), .de_out(de_o), .hs_out(hs_o), .vs_out(vs_o)
     );
 
-    // 第二份：只换片源参数。它存在的唯一理由是把"分辨率那一格是实参"钉住
-    //（第一份无论怎么改激励都回答不了"512x300 是不是写死的"）。
+    // 第二份：只换面板参数。它存在的唯一理由是把"尺寸那一格是实参"钉住
+    //（第一份无论怎么改激励都回答不了"1024X600 是不是写死的"）。
+    // ⚠ 选 1280/960 而不是 800/600：`putnum4` 只有在**四位**那条分支上才会打千位，
+    //   换一组三位数的参数就永远测不到那一支（而且第一份画的是"1024X600"，两格的第 1 位
+    //   都是 '1' ⇒ T8c 比的是第 2 格，那里才分得开）。
     wire [7:0] r2, g2, b2;
     osd_overlay #(.X0(X0), .Y0(Y0), .SCALE(SC), .CHAR_W(CW), .CHAR_H(CH),
                   .LINE_GAP(LG), .MAX_CHARS(MC), .N_LINES(NL),
-                  .IMG_W(640), .IMG_H(480)) u_osd2 (
+                  .OUT_W(1280), .OUT_H(960)) u_osd2 (
         .clk(clk), .rst_n(rst_n), .x(tx), .y(ty), .de(tde),
         .angle(i_angle), .fps(i_fps), .stage_sel(i_sel), .threshold(i_th),
         .gamma_disp(i_gd), .zoom_code(i_zc), .zoom_auto(i_za), .zoom_fit(1'b0),
@@ -190,9 +195,14 @@ module tb_osd_lines;
     endtask
 
     // TB 独立抄一遍的新字模（与 RTL 那份互为反例源：谁改了另一处就红）
-    localparam [5*7-1:0] G_A    = {5'b00000,5'b00000,5'b01110,5'b00001,5'b01111,5'b10001,5'b01111};
-    localparam [5*7-1:0] G_M    = {5'b00000,5'b00000,5'b11110,5'b10101,5'b10101,5'b10101,5'b10101};
-    localparam [5*7-1:0] G_O    = {5'b00000,5'b00000,5'b01110,5'b10001,5'b10001,5'b10001,5'b01110};
+    // #67：下面 a/m/o 三个原来抄的是**小写**点阵，屏上只有大写之后它们换成大写那一份；
+    // I/X/Y 是这一轮新画的四个大写里的三个（M 老早就有号 34，但那是小写的号，见 RTL 注释）。
+    localparam [5*7-1:0] G_A    = {5'b01110,5'b10001,5'b10001,5'b11111,5'b10001,5'b10001,5'b10001};
+    localparam [5*7-1:0] G_I    = {5'b11111,5'b00100,5'b00100,5'b00100,5'b00100,5'b00100,5'b11111};
+    localparam [5*7-1:0] G_M    = {5'b10001,5'b11011,5'b10101,5'b10101,5'b10001,5'b10001,5'b10001};
+    localparam [5*7-1:0] G_O    = {5'b01110,5'b10001,5'b10001,5'b10001,5'b10001,5'b10001,5'b01110};
+    localparam [5*7-1:0] G_X    = {5'b10001,5'b10001,5'b01010,5'b00100,5'b01010,5'b10001,5'b10001};
+    localparam [5*7-1:0] G_Y    = {5'b10001,5'b10001,5'b01010,5'b00100,5'b00100,5'b00100,5'b00100};
     localparam [5*7-1:0] G_Z    = {5'b11111,5'b00001,5'b00010,5'b00100,5'b01000,5'b10000,5'b11111};
     localparam [5*7-1:0] G_PCT  = {5'b11000,5'b11001,5'b00010,5'b00100,5'b01000,5'b10011,5'b00011};
     localparam [5*7-1:0] G_COL  = {5'b00000,5'b00110,5'b00110,5'b00000,5'b00110,5'b00110,5'b00000};
@@ -238,28 +248,28 @@ module tb_osd_lines;
     initial begin
         rst_n = 0; repeat (4) @(posedge clk); rst_n = 1; tde = 0; #1;
 
-        // ================= T1 用户给的那四行，逐字符 =================
+        // ================= T1 用户给的那四行，逐字符（#67 之后屏上一律大写、尺寸换成面板）=========
         defaults(); settle;
-        expect_line(0, "FPS:30  Src:ETH  512x300", "T1a");
-        expect_line(1, "Pipe:11000 Th:80 Gamma:1.8", "T1b");
-        expect_line(2, {"Rot:45", 8'hDF, "  Zoom:0.75x(Auto)"}, "T1c");
-        expect_line(3, "Split:50%  Latency:16ms", "T1d");
+        expect_line(0, "1024X600  FPS:30  SRC:ETH", "T1a");
+        expect_line(1, "PIPE:11000 TH:80 GAMMA:1.8", "T1b");
+        expect_line(2, {"ROT:45", 8'hDF, "  ZOOM:0.75X(AUTO)"}, "T1c");
+        expect_line(3, "SPLIT:50%  LATENCY:16MS", "T1d");
         // L4（V9-4 开、V9-6 起常驻温度）：这一格第一次有金表 —— 以前 NL 写死 4，
         // RTL 里那一行整个没被例化出来，所以"绿"是空集上的绿（见文件头那条 ⚠）。
-        expect_line(4, "Temp:47C", "T1e");
-        if (errors == 0) $display("[tb_osd_lines.v:239] PASS T1 四行逐字符等于用户原话（分辨率按真实几何 512x300 画），第 5 行是常驻的温度格");
+        expect_line(4, "TEMP:47C", "T1e");
+        if (errors == 0) $display("[tb_osd_lines.v:239] PASS T1 四行逐字符等于用户原话（尺寸那一格画面板 1024X600），第 5 行是常驻的温度格");
 
         // ================= T2 数字宽度：不打前导零；越界一律饱和不回卷 =================
         i_fps = 8'd9;   i_angle = 9'd5; i_th = 8'd9; i_sp = 8'd7; i_ms = 16'd5; settle;
-        expect_line(0, "FPS:9  Src:ETH  512x300", "T2a");
-        expect_line(1, "Pipe:11000 Th:9 Gamma:1.8", "T2b");
-        expect_line(2, {"Rot:5", 8'hDF, "  Zoom:0.75x(Auto)"}, "T2c");
-        expect_line(3, "Split:7%  Latency:5ms", "T2d");
+        expect_line(0, "1024X600  FPS:9  SRC:ETH", "T2a");
+        expect_line(1, "PIPE:11000 TH:9 GAMMA:1.8", "T2b");
+        expect_line(2, {"ROT:5", 8'hDF, "  ZOOM:0.75X(AUTO)"}, "T2c");
+        expect_line(3, "SPLIT:7%  LATENCY:5MS", "T2d");
         i_fps = 8'd200; i_angle = 9'd359; i_th = 8'd255; i_sp = 8'd100; i_ms = 16'd5000; settle;
-        expect_line(0, "FPS:99  Src:ETH  512x300", "T2e");
-        expect_line(1, "Pipe:11000 Th:255 Gamma:1.8", "T2f");
-        expect_line(2, {"Rot:359", 8'hDF, "  Zoom:0.75x(Auto)"}, "T2g");
-        expect_line(3, "Split:100%  Latency:999ms", "T2h");
+        expect_line(0, "1024X600  FPS:99  SRC:ETH", "T2e");
+        expect_line(1, "PIPE:11000 TH:255 GAMMA:1.8", "T2f");
+        expect_line(2, {"ROT:359", 8'hDF, "  ZOOM:0.75X(AUTO)"}, "T2g");
+        expect_line(3, "SPLIT:100%  LATENCY:999MS", "T2h");
         if (errors == 0) $display("[tb_osd_lines.v:252] PASS T2 一位数不占两格、fps/ms 越界饱和（99 / 999）而不是回卷成小数");
 
         // ================= T3 片源那一格：标签跟着屏幕走，不跟意愿走 =================
@@ -269,27 +279,27 @@ module tb_osd_lines;
         //   判据的**不变部分**才是重点：三态各自印什么词可以谈，但"标签必须跟着屏幕走、
         //   锁住才有 `*`、`*` 紧跟名字"这三条不许动（ISSUES #55/#66 讲的是这个，不是用词）。
         i_fps = 8'd30; i_src = 2'b10; i_mode = 2'b11; settle;
-        expect_line(0, "FPS:30  Src:SD*  512x300", "T3a");
+        expect_line(0, "1024X600  FPS:30  SRC:SD*", "T3a");
         i_src = 2'b00; i_mode = 2'b10; settle;
-        expect_line(0, "FPS:30  Src:TEST*  512x300", "T3b");
+        expect_line(0, "1024X600  FPS:30  SRC:TEST*", "T3b");
         i_src = 2'b01; i_mode = 2'b01; settle;
-        expect_line(0, "FPS:30  Src:TEST*  512x300", "T3c");
+        expect_line(0, "1024X600  FPS:30  SRC:TEST*", "T3c");
         i_src = 2'b11; i_mode = 2'b00; settle;
-        expect_line(0, "FPS:30  Src:ETH  512x300", "T3d");
+        expect_line(0, "1024X600  FPS:30  SRC:ETH", "T3d");
         if (errors == 0) $display("[tb_osd_lines.v:268] PASS T3 锁住才有 *、* 紧跟名字；仲裁与 mux 不一致时画 mux 那一路（#55）");
 
         // ================= T4 五位 Pipe 码 =================
         defaults(); settle;             // 每段自己把激励摆回基线：T2 留下的 Th=255 会把期望串顶歪
-        i_sel = 9'd0;   settle; expect_line(1, "Pipe:00000 Th:80 Gamma:1.8", "T4a");
-        i_sel = 9'h003; settle; expect_line(1, "Pipe:30000 Th:80 Gamma:1.8", "T4b");
-        i_sel = 9'h008; settle; expect_line(1, "Pipe:02000 Th:80 Gamma:1.8", "T4c");
-        i_sel = 9'h010; settle; expect_line(1, "Pipe:00100 Th:80 Gamma:1.8", "T4d");
-        i_sel = 9'h060; settle; expect_line(1, "Pipe:00020 Th:80 Gamma:1.8", "T4e");
-        i_sel = 9'h080; settle; expect_line(1, "Pipe:00001 Th:80 Gamma:1.8", "T4f");
+        i_sel = 9'd0;   settle; expect_line(1, "PIPE:00000 TH:80 GAMMA:1.8", "T4a");
+        i_sel = 9'h003; settle; expect_line(1, "PIPE:30000 TH:80 GAMMA:1.8", "T4b");
+        i_sel = 9'h008; settle; expect_line(1, "PIPE:02000 TH:80 GAMMA:1.8", "T4c");
+        i_sel = 9'h010; settle; expect_line(1, "PIPE:00100 TH:80 GAMMA:1.8", "T4d");
+        i_sel = 9'h060; settle; expect_line(1, "PIPE:00020 TH:80 GAMMA:1.8", "T4e");
+        i_sel = 9'h080; settle; expect_line(1, "PIPE:00001 TH:80 GAMMA:1.8", "T4f");
         // 腐蚀+膨胀同时置 1 = proc_pipeline 里写死的"两个都不做"⇒ 第五格必须是 0，
         // 写 3 就是"屏上说两个都开、画面上什么都没发生"（tb_v86 T14 那条语义的屏上版）
-        i_sel = 9'h180; settle; expect_line(1, "Pipe:00000 Th:80 Gamma:1.8", "T4g");
-        i_sel = 9'h1FF; settle; expect_line(1, "Pipe:33120 Th:80 Gamma:1.8", "T4h");
+        i_sel = 9'h180; settle; expect_line(1, "PIPE:00000 TH:80 GAMMA:1.8", "T4g");
+        i_sel = 9'h1FF; settle; expect_line(1, "PIPE:33120 TH:80 GAMMA:1.8", "T4h");
         defaults(); settle;
         if (errors == 0) $display("[tb_osd_lines.v:283] PASS T4 八种控制字逐位对（全 1 那组：前两级 3、Sobel 1、阈值旁路 0）");
 
@@ -299,21 +309,21 @@ module tb_osd_lines;
             for (q = 0; q <= 7; q = q + 1) begin
                 i_zc = q[2:0]; settle;
                 case (q)
-                    0:    expect_line(2, {"Rot:45", 8'hDF, "  Zoom:0.25x(Auto)"}, "T50");
-                    1:    expect_line(2, {"Rot:45", 8'hDF, "  Zoom:0.33x(Auto)"}, "T51");
-                    2:    expect_line(2, {"Rot:45", 8'hDF, "  Zoom:0.50x(Auto)"}, "T52");
-                    3:    expect_line(2, {"Rot:45", 8'hDF, "  Zoom:0.75x(Auto)"}, "T53");
-                    4:    expect_line(2, {"Rot:45", 8'hDF, "  Zoom:1.00x(Auto)"}, "T54");
-                    5:    expect_line(2, {"Rot:45", 8'hDF, "  Zoom:1.33x(Auto)"}, "T55");
-                    6:    expect_line(2, {"Rot:45", 8'hDF, "  Zoom:1.50x(Auto)"}, "T56");
-                    default: expect_line(2, {"Rot:45", 8'hDF, "  Zoom:2.00x(Auto)"}, "T57");
+                    0:    expect_line(2, {"ROT:45", 8'hDF, "  ZOOM:0.25X(AUTO)"}, "T50");
+                    1:    expect_line(2, {"ROT:45", 8'hDF, "  ZOOM:0.33X(AUTO)"}, "T51");
+                    2:    expect_line(2, {"ROT:45", 8'hDF, "  ZOOM:0.50X(AUTO)"}, "T52");
+                    3:    expect_line(2, {"ROT:45", 8'hDF, "  ZOOM:0.75X(AUTO)"}, "T53");
+                    4:    expect_line(2, {"ROT:45", 8'hDF, "  ZOOM:1.00X(AUTO)"}, "T54");
+                    5:    expect_line(2, {"ROT:45", 8'hDF, "  ZOOM:1.33X(AUTO)"}, "T55");
+                    6:    expect_line(2, {"ROT:45", 8'hDF, "  ZOOM:1.50X(AUTO)"}, "T56");
+                    default: expect_line(2, {"ROT:45", 8'hDF, "  ZOOM:2.00X(AUTO)"}, "T57");
                 endcase
             end
         end
         i_zc = 3'd3; i_za = 1'b0; settle;
-        expect_line(2, {"Rot:45", 8'hDF, "  Zoom:0.75x"}, "T5z");
+        expect_line(2, {"ROT:45", 8'hDF, "  ZOOM:0.75X"}, "T5z");
         i_za = 1'b1; settle;
-        if (errors == 0) $display("[tb_osd_lines.v:305] PASS T5 八档各自精确；zoom_auto 关掉就不许再有 (Auto)");
+        if (errors == 0) $display("[tb_osd_lines.v:305] PASS T5 八档各自精确；zoom_auto 关掉就不许再有 (AUTO)");
 
         // ================= T6 Gamma 那一格（γ×10 逐档） =================
         begin : blk6
@@ -326,57 +336,63 @@ module tb_osd_lines;
                 g_hi = 8'h30 + (q / 10);
                 g_lo = 8'h30 + (q % 10);
                 settle;
-                expect_line(1, {"Pipe:11000 Th:80 Gamma:", g_hi, 8'h2E, g_lo}, "T6");
+                expect_line(1, {"PIPE:11000 TH:80 GAMMA:", g_hi, 8'h2E, g_lo}, "T6");
             end
         end
         i_gd = 6'd0; settle;
-        expect_line(1, "Pipe:11000 Th:80 Gamma:0.0", "T6z");
+        expect_line(1, "PIPE:11000 TH:80 GAMMA:0.0", "T6z");
         i_gd = 6'd18; settle;
         if (errors == 0) $display("[tb_osd_lines.v:324] PASS T6 gamma×10 二十一台逐档对；0.0 = 表关着（PL 逐位旁路）");
 
         // ================= T7 Latency：没测量就必须画 -- =================
         i_ms = 16'd0; settle;
-        expect_line(3, "Split:50%  Latency:0ms", "T7a");
+        expect_line(3, "SPLIT:50%  LATENCY:0MS", "T7a");
         i_ms = 16'd16; settle;
-        expect_line(3, "Split:50%  Latency:16ms", "T7b");
+        expect_line(3, "SPLIT:50%  LATENCY:16MS", "T7b");
         i_ms = 16'd125; settle;
-        expect_line(3, "Split:50%  Latency:125ms", "T7c");
+        expect_line(3, "SPLIT:50%  LATENCY:125MS", "T7c");
         i_ok = 1'b0; i_ms = 16'd77; settle;
-        expect_line(3, "Split:50%  Latency:--ms", "T7d");
+        expect_line(3, "SPLIT:50%  LATENCY:--MS", "T7d");
         i_ok = 1'b1; i_sa = 1'b1; i_ms = 16'd33; settle;
-        expect_line(3, "Split:50%(Auto)  Latency:33ms", "T7e");
+        expect_line(3, "SPLIT:50%(AUTO)  LATENCY:33MS", "T7e");
         i_sa = 1'b0; i_ms = 16'd16; settle;
         if (errors == 0) $display("[tb_osd_lines.v:338] PASS T7 lat_ok=0 屏上是 --，过期/没算完的数不许冒充测量值");
 
-        // ================= T8 分辨率那一格来自参数，不是写死的串 =================
+        // ================= T8 尺寸那一格来自参数，不是写死的串 =================
+        // 第二份例化 .OUT_W(1280) .OUT_H(960) ⇒ 第一格起应该是 "1280X960" 八个字符。
+        // 走的是 `putnum4` 的**四位**分支（打千位之后三位不省前导零）：换成 800/600 就一辈子
+        // 测不到那一支，所以这八格逐格比，一位都不能错。
         begin : blk8
             integer c8;
             reg [7:0] exp8;
-            for (c8 = 0; c8 < 7; c8 = c8 + 1) begin
-                exp8 = "0" + (c8 == 0 ? 8'd6  : (c8 == 1 ? 8'd4  :
-                        (c8 == 2 ? 8'd0  : (c8 == 3 ? 8'd24 :
-                        (c8 == 4 ? 8'd4  : (c8 == 5 ? 8'd8  : 8'd0))))));
-                // 640x480：'6' '4' '0' 'x'(0x78) '4' '8' '0'
-                if (c8 == 3) exp8 = 8'h78;
-                if (u_osd2.chars[0*MC + 17 + c8] !== exp8) begin
+            for (c8 = 0; c8 < 8; c8 = c8 + 1) begin
+                // '1' '2' '8' '0' 'X' '9' '6' '0'
+                exp8 = (c8 == 0) ? 8'h31 : (c8 == 1) ? 8'h32 :
+                       (c8 == 2) ? 8'h38 : (c8 == 3) ? 8'h30 :
+                       (c8 == 4) ? 8'h58 : (c8 == 5) ? 8'h39 :
+                       (c8 == 6) ? 8'h36 : 8'h30;
+                if (u_osd2.chars[0*MC + c8] !== exp8) begin
                     errors = errors + 1;
-                    $display("[tb_osd_lines.v:352] FAIL T8 第二份(640x480) 第 %0d 格 = %h 期望 %h", c8,
-                             u_osd2.chars[0*MC + 17 + c8], exp8);
+                    $display("[tb_osd_lines.v:352] FAIL T8 第二份(1280x960) 第 %0d 格 = %h 期望 %h", c8,
+                             u_osd2.chars[0*MC + c8], exp8);
                 end
                 ncell = ncell + 1;
             end
-            if (errors == 0) $display("[tb_osd_lines.v:357] PASS T8 换一组 IMG_* 参数那一格就跟着变 ⇒ 画的是实参");
-            // 第一份仍是 512x300（与第二份并存 ⇒ 排除"两份共用同一个常数"的假绿）
-            expect_line(0, "FPS:30  Src:ETH  512x300", "T8b");
-            if (u_osd.chars[0*MC+17] === u_osd2.chars[0*MC+17]) begin
+            if (errors == 0) $display("[tb_osd_lines.v:357] PASS T8 换一组 OUT_* 参数那一格就跟着变 ⇒ 画的是实参");
+            // 第一份仍是 1024X600（与第二份并存 ⇒ 排除"两份共用同一个常数"的假绿）。
+            // ⚠ 比的是**第 2 格**：两份的千位都是 '1'，拿第 0/1 格比会一起绿（1024 与 1280 的
+            //   区别在第 2 格上：'0' 对 '2'）。
+            expect_line(0, "1024X600  FPS:30  SRC:ETH", "T8b");
+            if (u_osd.chars[0*MC+1] === u_osd2.chars[0*MC+1]) begin
                 errors = errors + 1;
-                $display("[tb_osd_lines.v:362] FAIL T8c 两份画了同一个数字 ⇒ 分辨率那一格没吃到参数");
+                $display("[tb_osd_lines.v:362] FAIL T8c 两份画了同一个数字 ⇒ 尺寸那一格没吃到参数");
             end
         end
 
         // ================= T9 屏上不许有"看不见的字母" =================
-        // V9-6 起第五行也要查：那一行有 `Temp:`（大写 T + 三个小写 + 冒号）、数字、`C`，
-        // 以及 `ETH is no signal`（那句里的小写 g 是 V9-4 新画的）—— 少一个字模就是屏上静默少一笔。
+        // V9-6 起第五行也要查：那一行有 `TEMP:`、两位温度、`C`，
+        // 以及 `ETH IS NO SIGNAL`（#67 之后那一句里全是大写，S/I/G/N/A/L 八个字母一个都不能少字模）
+        // —— 少一个字模就是屏上静默少一笔。
         defaults(); settle;
         no_invisible(0, "T9a"); no_invisible(1, "T9b");
         no_invisible(2, "T9c"); no_invisible(3, "T9d"); no_invisible(4, "T9i");
@@ -392,23 +408,26 @@ module tb_osd_lines;
         // 位图是 TB 自己抄的（`build/glyphs_draft.txt` 那份），与 RTL 互为反例源：
         // 谁改了 RTL 的一行位图而没改这里，亮像素数就对不上。
         defaults(); settle;
-        scan_code(1, 8'h61, G_A,    "T10a");    // Gamma 的两个 a
-        scan_code(1, 8'h6D, G_M,    "T10b");    // Gamma 的两个 m
-        scan_code(2, 8'h6F, G_O,    "T10c");    // Rot/Zoom/(Auto) 里的 o
+        scan_code(1, 8'h49, G_I,    "T10a");    // PIPE 的 I（#67 新画，号 54）
+        scan_code(1, 8'h4D, G_M,    "T10b");    // GAMMA 的两个 M（#67 新画，号 55）
+        scan_code(1, 8'h41, G_A,    "T10m");    // GAMMA 的两个 A（老号 10，形状与小写 a 不同）
+        scan_code(2, 8'h4F, G_O,    "T10c");    // ROT / ZOOM / (AUTO) 里的 O（老号 18）
         scan_code(2, 8'hDF, G_DEG,  "T10d");    // 度数符号
-        scan_code(2, 8'h5A, G_Z,    "T10e");    // Zoom 的 Z（V8-5 新画的大写）
-        scan_code(2, 8'h28, G_LPAR, "T10f");    // (Auto) 的左括号
+        scan_code(2, 8'h5A, G_Z,    "T10e");    // ZOOM 的 Z（V8-5 新画的大写）
+        scan_code(2, 8'h28, G_LPAR, "T10f");    // (AUTO) 的左括号
         scan_code(3, 8'h25, G_PCT,  "T10g");    // 百分号
-        scan_code(3, 8'h3A, G_COL,  "T10h");    // 冒号（Split:/Latency: 两处，都要有笔画）
+        scan_code(3, 8'h3A, G_COL,  "T10h");    // 冒号（SPLIT:/LATENCY: 两处，都要有笔画）
         scan_code(1, 8'h2E, G_DOT,  "T10i");    // 1.8 的小数点
+        scan_code(0, 8'h58, G_X,    "T10n");    // 尺寸那一格的分隔符 X（#67 新画，号 56）
+        scan_code(3, 8'h59, G_Y,    "T10o");    // LATENCY 的 Y（#67 新画，号 57）
         i_ok = 1'b0; settle;
         scan_code(3, 8'h2D, G_DASH, "T10j");    // Latency 没有可信测量时的两根短线
         i_ok = 1'b1; settle;
-        if (errors == 0) $display("[tb_osd_lines.v:393] PASS T10 新字模逐个扫过（a m o Z ° ( %% : . -），少一笔就少一截亮像素");
+        if (errors == 0) $display("[tb_osd_lines.v:393] PASS T10 字模逐个扫过（I M A O Z ( %% : . X Y -），少一笔就少一截亮像素");
 
         // ================= T11 判据自己有牙吗：拿错的期望比，必须逐格红 =================
         save_e = errors; verbose = 0;
-        expect_line(0, "FPS:31  Src:ETH  512x300", "T11");
+        expect_line(0, "1024X600  FPS:31  SRC:ETH", "T11");
         if (errors == save_e + 1) begin
             $display("[tb_osd_lines.v:399] PASS T11 错期望被抓到（那一格确实逐格在比，不是恒真式）");
             errors = save_e; verbose = 1;          // 自检的"红"是预期，撤销计数并恢复打印
@@ -440,13 +459,36 @@ module tb_osd_lines;
         line_within_pane(4, "T13e");
         if (errors == 0) $display("[tb_osd_lines.v:423] PASS T13 最宽可达激励下五行都留在分割线这边（X0+k*CW <= 511）");
 
-        // ================= T14 两个"看着像别的字母"的字模（用户报 Src→Sro / Split→Solit）====
-        // 点阵是**按字母形状手抄**的，不从 osd_overlay.v 复制（那正是当初让它活下来的原因：
-        // 金表与实现同源 ⇒ 抄错也一起错）。'c' 的右列一整列必须空，'p' 的左列必须贯通到降部。
-        // 位置：L0 "FPS:99  Src:TEST*…" 的 'c' 在第 10 格；L1 "Pipe:…" 的小写 'p' 在第 2 格。
-        scan_glyph(0, 10, 35'b00000_00000_01110_10000_10000_10000_01111, "T14a"); // c
-        scan_glyph(1,  2, 35'b00000_00000_10110_10001_10001_10110_10000, "T14b"); // p
-        if (errors == 0) $display("[tb_osd_lines.v:431] PASS T14 c/p 两个字模逐像素对上（c 右列全空、p 左列贯通）");
+        // ================= T14 屏上不许残留小写（#67：字库里已经没有小写）=================
+        // 为什么这一条必须单独有：折算在 `put`（写格子那一侧）做，`glyph_idx` 已经不认 0x61~0x7A ⇒
+        // **漏折的那一格不会报错，只会画成空格**（屏上静默少一笔），正是 T9 那一族里最隐蔽的一种：
+        // 它不会让任何一次"码点→号"的比对变红，因为格子已经变成空格了。
+        // 所以这里直接扫 5×32 个格子：非空格落在小写区间就判红，并且**要求非空格足够多**
+        //（空集不许过 —— #60 那一课）。沿用 T13 留下的最宽激励：五行都填满、且那句
+        // `ETH IS NO SIGNAL` 亮着（这一句是原来小写最密集的地方，最有资格抓漏折）。
+        begin : blk14
+            integer c14, l14, nchk14, nlow14;
+            reg [7:0] b14;
+            nchk14 = 0; nlow14 = 0;
+            for (l14 = 0; l14 < NL; l14 = l14 + 1)
+                for (c14 = 0; c14 < MC; c14 = c14 + 1) begin
+                    b14 = u_osd.chars[l14*MC + c14];
+                    if (b14 !== 8'h20) begin
+                        nchk14 = nchk14 + 1;
+                        if (b14 >= 8'h61 && b14 <= 8'h7A) nlow14 = nlow14 + 1;
+                    end
+                    ncell = ncell + 1;
+                end
+            if (nlow14 != 0) begin
+                errors = errors + 1;
+                $display("[tb_osd_lines.v:443] FAIL T14 屏上有 %0d 格是小写码点 ⇒ put 的折算漏了，它们画不出笔画", nlow14);
+            end
+            if (nchk14 < 90) begin
+                errors = errors + 1;
+                $display("[tb_osd_lines.v:448] FAIL T14 只扫到 %0d 个非空格 ⇒ 这一条是空集上的绿", nchk14);
+            end
+            if (errors == 0) $display("[tb_osd_lines.v:452] PASS T14 %0d 个非空格没有一个小写码点", nchk14);
+        end
 
         // ================= T15 温度那一格：256 个编码全扫（V9-6） =================
         // 为什么是"全扫 256"而不是挑几个：这一格的规则是一句位判断
@@ -473,10 +515,10 @@ module tb_osd_lines;
                 o15  = c15[3:0];
                 i_tmp = c15;
                 if (d15 <= 4'd9 && o15 <= 4'd9) begin
-                    w15 = {"Temp:", 8'h30 + d15, 8'h30 + o15, 8'h43};   // 'C'
+                    w15 = {"TEMP:", 8'h30 + d15, 8'h30 + o15, 8'h43};   // 'C'
                     ndig15 = ndig15 + 1;
                 end else begin
-                    w15 = "Temp:--";
+                    w15 = "TEMP:--";
                     ndash15 = ndash15 + 1;
                 end
                 settle;
@@ -492,12 +534,12 @@ module tb_osd_lines;
             // 复位值那一格：effect_ctrl 的 gm_sync 低字节复位成 0xFF ⇒ 屏上必须是 `--`，
             // 不能是 `Temp:00C`（那是一条谁都没测过的数）。扫面里已经含 0xFF，这一条是把它点名。
             i_tmp = 8'hFF; settle;
-            expect_line(4, "Temp:--", "T15z");
+            expect_line(4, "TEMP:--", "T15z");
             // 这条判据自己有没有牙：拿错的期望比一次 L4（T11 的同一手法，针对新加的这一行）
             save_e = errors; verbose = 0;
             i_tmp = 8'h47; settle;
             hit15 = errors;
-            expect_line(4, "Temp:48C", "T15t");          // 故意比错：个位差 1
+            expect_line(4, "TEMP:48C", "T15t");          // 故意比错：个位差 1
             if (errors == hit15 + 1) errors = hit15;      // 预期的红，撤销
             else begin
                 verbose = 1;
