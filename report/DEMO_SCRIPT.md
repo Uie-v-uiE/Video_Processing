@@ -29,12 +29,12 @@
 | 8 | **回到起点这件事本身（复位对账）** | 首尾两条 `stat` 逐字段相等 ⇒ 这一场没把板子留在某个中间态 | 幕 8 | `src/host/demo_cmds.mjs --check` | 该脚本 + `board/cmd_battery_v81.txt`（97 条） |
 
 "**这一份是被机器验过的**（不是"我觉得能演"）：命令是从本文件的代码块里**抽**出来的，
-所以清单改了、抽出来的就跟着改，不存在"文档里有一条板上没有的写法"。r74 板上 2026-09-27 02:21 实跑：
+所以清单改了、抽出来的就跟着改，不存在"文档里有一条板上没有的写法"。板上每一版都重跑一遍；最近一次是 **r75、2026-09-27 03:1x**（r74 那次在 02:21，同样全绿）：
 
 ```
 node src/host/demo_cmds.mjs --emit                                   # 抽出 51 条（含首尾 stat 基线）
-powershell -NoProfile -ExecutionPolicy Bypass -File board/uart_cmd_script.ps1          -Port COM6 -File board/demo_rehearsal.txt -DelayMs 900          -Out build/evidence/r74_demo_rehearsal.txt                   # 逐条发给板子并录回包
-node src/host/demo_cmds.mjs --check build/evidence/r74_demo_rehearsal.txt
+powershell -NoProfile -ExecutionPolicy Bypass -File board/uart_cmd_script.ps1          -Port COM6 -File board/demo_rehearsal.txt -DelayMs 900          -Out build/evidence/r75_demo_rehearsal.txt                   # 逐条发给板子并录回包
+node src/host/demo_cmds.mjs --check build/evidence/r75_demo_rehearsal.txt
 # → PASS demo 目录回包：抽出 49 条命令，回显对上 49 条，拒绝 0 条
 #   （它同时比首尾两条 [STAT] 逐字段：除 `pub=` 之外必须全等 ⇒ "第 8 幕回到初态"不是说说而已）
 ```
