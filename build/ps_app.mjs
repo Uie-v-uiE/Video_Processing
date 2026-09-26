@@ -24,7 +24,10 @@ const root = path.resolve(path.dirname(new URL(import.meta.url).pathname.replace
 const arg = (n, d) => { const i = process.argv.indexOf('--' + n); return i < 0 ? d : process.argv[i + 1]; };
 
 const CC  = process.env.PS_CC  || 'D:/Software/Vivado/2025.2.1/Vitis/gnu/aarch32/nt/gcc-arm-none-eabi/bin/arm-none-eabi-gcc.exe';
-const BSP = process.env.PS_BSP || 'D:/Xilinx/Prj/project_handoff/vitis/platform/ps7_cortexa9_0/standalone_ps7_cortexa9_0/bsp';
+// 默认平台在**仓库内**（2026-09-26，见 ISSUES #89/#90）：以前默认指向仓库外一个"曾经存在过"的
+// `D:/Xilinx/Prj/project_handoff/...`，那个目录一被删，PS 侧就悄悄变成"只能沿用旧 ELF、不敢重编"——
+// 而我花了半天用 2×2 对照才排除掉自己改的代码。指进仓库 = 换机器/删别的项目都不会再断。
+const BSP = process.env.PS_BSP || path.join(root, 'vitis', 'platform', 'ps7_cortexa9_0', 'standalone_ps7_cortexa9_0', 'bsp');
 const SRC = path.join(root, 'src', 'ps');
 const OBJ = path.join(root, 'build', 'ps_obj');
 const OUT = path.join(root, 'build', 'ps_app.elf');
