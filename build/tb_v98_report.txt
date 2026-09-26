@@ -1,0 +1,94 @@
+# provenance top_md5=53d4dbc4c946 tb_md5=72885e965e26 date=2026-09-26T16:43:48+08:00 src=/tmp/kx/tb_v98_top_seam.run/run.log
+PASS C0a ruler encodes position in the pixel | px_val / decoder / mod-256 signed diff must agree, incl. 0, small values, both edges, both wrap directions
+PASS C0a2 golden array actually holds it | read back ddr[0] and the last word after init: a correct function is not a correct array
+PASS C0d a real source is on screen | less than half of left-pane samples are black, else nothing was copied
+PASS C0b enough frames ran | at least 3 frames, otherwise every count below is void
+PASS C0c the AXI copy is alive | AXI bursts present, 8-byte aligned, never read outside the PS window
+PASS C0f whole fb word space written | de-duplicated write-word index count must cover the full frame once
+PASS C1i read-port phase same stage as src | col0/row0/pair_odd/req_vld must come from the calibrated label stage, not from a comment
+PASS C1g VIEWPORT col: src == x_d[2]>>1 | single viewport: src column == display column >>1 at the calibrated stage (k=2 is the only zero)
+PASS C1h VIEWPORT row: src == (y_d[2]+OFF+BILIN)>>1 | same definition row-wise: two display rows share one source row (600-line panel, 300 source rows)
+PASS C0e RULER self-consistent | out-of-range bucket must be a subset of the mismatch set
+PASS C1a content-check coverage | in-line left-pane samples below 50k means nothing was measured
+PASS C1e PRECONDITION no X inside the measurement window | with X present every dcol/drow below is false-green on an empty set (#78)
+PASS C1c content column == display column >> 1 | single-viewport geometry, content-level evidence (was a NOTE before #78)
+PASS C1d content row == display row >> 1 (outside ring warm-up) | row-wise content alignment of the raw tap; warm-up rows are counted, not hidden
+PASS C1d-b skips are explained | every skipped warm-up cell must decode to source row 299, else the skip hides something
+C2 table  code inv  nin     nout     inbad viol measl measr geol geor leakl leakr blank invbad | C3 rows empt wbad rbad fmin fmax lmin lmax
+C2 row    0 1023    62436   185372      0    0   384   641  384  641    -1    -1     0    0 |  300  480   0   0  384  384  641  641
+PASS C2pre inv took | inv_used must equal the table value, and the code must have been sampled
+PASS C3pre marker off | the 2px seam marker would itself be a non-black column at the panel edge (#92)
+PASS C3a panel active window | every measured line must be exactly 1024 de-high columns and the frame 600 lines
+PASS C3b panel rows judged | C3 must actually have content rows to judge, else the edge numbers below are void
+PASS C2a bg black | no content in background / no black hole inside the picture
+PASS C2b col matches definition | each in-window column must decode to the source column the definition asks for
+PASS C2c edges match definition | measured picture edges == geometric edges (content stage, in columns)
+PASS C3c panel edges match definition | the panel's own first/last non-black column == the geometric edges, same on every row
+PASS C2d coverage | zoom-out codes must actually have background columns to judge
+C2 row    1  776    81796   166012      0    0   344   681  344  681    -1    -1     0    0 |  380  400   0   0  344  344  681  681
+PASS C2pre inv took | inv_used must equal the table value, and the code must have been sampled
+PASS C3pre marker off | the 2px seam marker would itself be a non-black column at the panel edge (#92)
+PASS C3a panel active window | every measured line must be exactly 1024 de-high columns and the frame 600 lines
+PASS C3b panel rows judged | C3 must actually have content rows to judge, else the edge numbers below are void
+PASS C2a bg black | no content in background / no black hole inside the picture
+PASS C2b col matches definition | each in-window column must decode to the source column the definition asks for
+PASS C2c edges match definition | measured picture edges == geometric edges (content stage, in columns)
+PASS C3c panel edges match definition | the panel's own first/last non-black column == the geometric edges, same on every row
+PASS C2d coverage | zoom-out codes must actually have background columns to judge
+C2 row    2  512   123904   123904      0    0   256   767  256  767    -1    -1     0    0 |  480  300   0   0  256  258  767  767
+PASS C2pre inv took | inv_used must equal the table value, and the code must have been sampled
+PASS C3pre marker off | the 2px seam marker would itself be a non-black column at the panel edge (#92)
+PASS C3a panel active window | every measured line must be exactly 1024 de-high columns and the frame 600 lines
+PASS C3b panel rows judged | C3 must actually have content rows to judge, else the edge numbers below are void
+PASS C2a bg black | no content in background / no black hole inside the picture
+PASS C2b col matches definition | each in-window column must decode to the source column the definition asks for
+PASS C2c edges match definition | measured picture edges == geometric edges (content stage, in columns)
+FAIL C3c panel edges match definition | the panel's own first/last non-black column == the geometric edges, same on every row
+PASS C2d coverage | zoom-out codes must actually have background columns to judge
+C2 row    3  341   186340    61468      0    0   128   897  128  897    -1    -1     0    0 |  632  148   0   0  128  130  897  897
+PASS C2pre inv took | inv_used must equal the table value, and the code must have been sampled
+PASS C3pre marker off | the 2px seam marker would itself be a non-black column at the panel edge (#92)
+PASS C3a panel active window | every measured line must be exactly 1024 de-high columns and the frame 600 lines
+PASS C3b panel rows judged | C3 must actually have content rows to judge, else the edge numbers below are void
+PASS C2a bg black | no content in background / no black hole inside the picture
+PASS C2b col matches definition | each in-window column must decode to the source column the definition asks for
+PASS C2c edges match definition | measured picture edges == geometric edges (content stage, in columns)
+FAIL C3c panel edges match definition | the panel's own first/last non-black column == the geometric edges, same on every row
+PASS C2d coverage | zoom-out codes must actually have background columns to judge
+C2 row    4  256   247808        0    484    0     0  1023    0 1023    -1    -1     0    0 |  780    0   0   0    0    2 1023 1023
+PASS C2pre inv took | inv_used must equal the table value, and the code must have been sampled
+PASS C3pre marker off | the 2px seam marker would itself be a non-black column at the panel edge (#92)
+PASS C3a panel active window | every measured line must be exactly 1024 de-high columns and the frame 600 lines
+PASS C3b panel rows judged | C3 must actually have content rows to judge, else the edge numbers below are void
+PASS C2a bg black | no content in background / no black hole inside the picture
+FAIL C2b col matches definition | each in-window column must decode to the source column the definition asks for
+PASS C2c edges match definition | measured picture edges == geometric edges (content stage, in columns)
+FAIL C3c panel edges match definition | the panel's own first/last non-black column == the geometric edges, same on every row
+C2 row    5  192   247808        0    484    0     0  1023    0 1023    -1    -1     0    0 |  780    0   0   0    0    0 1023 1023
+PASS C2pre inv took | inv_used must equal the table value, and the code must have been sampled
+PASS C3pre marker off | the 2px seam marker would itself be a non-black column at the panel edge (#92)
+PASS C3a panel active window | every measured line must be exactly 1024 de-high columns and the frame 600 lines
+PASS C3b panel rows judged | C3 must actually have content rows to judge, else the edge numbers below are void
+PASS C2a bg black | no content in background / no black hole inside the picture
+FAIL C2b col matches definition | each in-window column must decode to the source column the definition asks for
+PASS C2c edges match definition | measured picture edges == geometric edges (content stage, in columns)
+PASS C3c panel edges match definition | the panel's own first/last non-black column == the geometric edges, same on every row
+C2 row    6  171   247808        0    484    0     0  1023    0 1023    -1    -1     0    0 |  780    0   0   0    0    0 1023 1023
+PASS C2pre inv took | inv_used must equal the table value, and the code must have been sampled
+PASS C3pre marker off | the 2px seam marker would itself be a non-black column at the panel edge (#92)
+PASS C3a panel active window | every measured line must be exactly 1024 de-high columns and the frame 600 lines
+PASS C3b panel rows judged | C3 must actually have content rows to judge, else the edge numbers below are void
+PASS C2a bg black | no content in background / no black hole inside the picture
+FAIL C2b col matches definition | each in-window column must decode to the source column the definition asks for
+PASS C2c edges match definition | measured picture edges == geometric edges (content stage, in columns)
+PASS C3c panel edges match definition | the panel's own first/last non-black column == the geometric edges, same on every row
+C2 row    7  128   247808        0      0    0     0  1023    0 1023    -1    -1     0    0 |  780    0   0   0    0    0 1023 1023
+PASS C2pre inv took | inv_used must equal the table value, and the code must have been sampled
+PASS C3pre marker off | the 2px seam marker would itself be a non-black column at the panel edge (#92)
+PASS C3a panel active window | every measured line must be exactly 1024 de-high columns and the frame 600 lines
+PASS C3b panel rows judged | C3 must actually have content rows to judge, else the edge numbers below are void
+PASS C2a bg black | no content in background / no black hole inside the picture
+PASS C2b col matches definition | each in-window column must decode to the source column the definition asks for
+PASS C2c edges match definition | measured picture edges == geometric edges (content stage, in columns)
+PASS C3c panel edges match definition | the panel's own first/last non-black column == the geometric edges, same on every row
+RESULT tb_v98_top_seam FAIL nfail=6

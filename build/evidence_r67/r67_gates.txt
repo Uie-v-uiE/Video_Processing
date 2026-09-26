@@ -1,0 +1,31 @@
+报告目录：build
+新鲜度：system.bit 2026-09-26 09:06:54 / timing 2026-09-26 09:07:30
+        基线里有而本版没有：eth_rxc>clk_fpga_0 （原因未查证，不算改进）
+        同配对端点数增长：clk_fpga_0>clkout0_1(17→96) （记录用，不判红）
+门禁七项：
+  WNS (ns)               0.513        >= 0                         PASS
+  失败 setup 端点    0            == 0                         PASS
+  WHS (ns)               0.055        >= 0                         PASS
+  失败 hold 端点     0            == 0                         PASS
+  BRAM (tile/%)          97/69.29%    <= 97%                       PASS
+  Slice LUT / 占比     14114/26.53% <= 98%                       PASS
+  Slice 寄存器        9852         记录用（无阈值）     PASS
+  Dynamic (W)            2.216        与前次同量级           PASS
+  methodology CRIT       0            == 0                         PASS
+  布线错误网线     0            == 0                         PASS
+  cdc.rpt Critical 行   3            基线 4 行，配对不新增、unsafe 不增长 PASS
+  端口宽度警告 8-689 0            == 0（凭据 width_warnings.txt，同一次构建） PASS
+  多驱动 net 8-685x   0            == 0（凭据 multi_driven.txt，同一次构建） PASS
+  顶层接线（端口名/悬空输入/位宽） CHECK PORTS: instances=88 modules=78 skipped=2 width_compared=570 violations=0 PASS violations=0（凭据 build/ports_check.txt，当场跑） PASS
+分组最差（记录用；判据仍是上表的 WNS/WHS）：
+  clk_fpga_0   setup 1.282ns  (失败端点 0)   hold 0.055ns 
+  clkfbout     setup NAns     (失败端点 NA)   hold NAns    
+  clkfbout_1   setup NAns     (失败端点 NA)   hold NAns    
+  clkout0_1    setup 0.598ns  (失败端点 0)   hold 0.089ns 
+  clkout1_1    setup NAns     (失败端点 NA)   hold NAns    
+  clkout2      setup NAns     (失败端点 NA)   hold NAns    
+  eth_rxc      setup 0.513ns  (失败端点 0)   hold 0.056ns    ← 门禁 WNS 就是这一组
+  sys_clk      setup 13.669ns (失败端点 0)   hold 0.104ns 
+
+端点总数 34556；CDC 现在按 build/CDC_BASELINE.txt 的**配对集合**判，功耗仍要人比有没有变差。
+GATES: ALL PASS

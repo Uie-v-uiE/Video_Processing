@@ -1,0 +1,12 @@
+# geom_check（V9 的"最后一跳"：命令 → 像素域真的用了它）
+  进来时 CFG_DATA0 = 0x10400000（几何位 0x0）
+ok   G1a `zoom fit 1` ⇒ lane23.bit19（zoom_fit）= 1  lane23=0x800a4909 alive=1
+ok   G1b 拟合的 inv_used 落在 [256,512]（只缩小、不放大到画外）  inv=265
+ok   G1c 屏上档位与真值同档（zcode == 独立复算的最近档）  zcode=4 nearOf(265)=4
+ok   G2 开着自动旋转，CPU 停着，1.2 s 之间 inv_used 变了（缩放真的跟着角度走）  488 → 456（相等 = 只有后缀在动，倍率没动）
+ok   G2x 全程没有把 zoom 弹出量程  inv=456
+ok   G3 `split video` ⇒ CFG_DATA0 bit24 = 1（缝的分类改在图像列里做）  cfg1=0x11200000
+ok   G3x 收尾把 fit 关了：lane23.bit19 回 0  lane23=0x80024100
+ok   G4 整串跑完，CFG_DATA0 的 19 个几何位与进来时逐位相同（电池不许留自动态）  cfg1 末=0x10400000 diff&掩码=0x0
+
+RESULT PASS geom_check（ok=8 fail=0）

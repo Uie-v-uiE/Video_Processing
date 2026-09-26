@@ -116,3 +116,9 @@ sim/xtest/
 sim/tagchk/
 sim/syntaxchk/
 sim/v100run2/
+
+# 每轮的 bit/xsa/elf 二进制只留本地一份用于回滚（MANIFEST.md5 里已记哈希）；
+# 仓库里 commit 的是报告 + MANIFEST，与 build/frozen_r62_geom/ 的既有约定一致（r70 清理时写死）。
+build/evidence_r*/system.bit
+build/evidence_r*/system.xsa
+build/evidence_r*/ps_app.elf
