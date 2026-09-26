@@ -1,7 +1,14 @@
-# Board bring-up（第四版 V6.x）
+# Board bring-up（板上现在是 r75；这份文件本身从 V6 一路用到现在）
 
-相关文档：`report/V6_BOARD_MEASUREMENT.md`（复测数据）、`report/V6_ROOT_CAUSE.md`（根因与判据方法）、
-`report/ETH_BRINGUP.md`、`report/BOARD_PINS.md`、`report/AI_COLLABORATION.md`。
+**今天该看哪里**：
+- 板子上跑的是 **r75**（`build/evidence_r75/MANIFEST.md5` 里那三件套的 md5 才是它的名片；认 md5 不认文件名）。
+- 下面这张表 **第 29/30/31 行只有你能签**：bilin A/B 的观感、边缘那条带（#92/#93）、拔卡与 `sd remount` 那一幕。
+  其余行由脚本判：`bash build/board_verify.sh --battery --geom`。
+- 怎么构建 / 怎么刷（**三条命令，不是一条**）：`build/tcl/README.md`；怎么演：`report/DEMO_SCRIPT.md`；
+  哪份文档是干什么的：`report/README.md`。
+
+历史相关文档（V6 时代的复测与根因，只作对照）：`report/V6_BOARD_MEASUREMENT.md`、
+`report/V6_ROOT_CAUSE.md`、`report/ETH_BRINGUP.md`、`report/BOARD_PINS.md`、`report/AI_COLLABORATION.md`。
 
 ## Hardware
 
