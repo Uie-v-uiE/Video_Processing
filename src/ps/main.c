@@ -229,6 +229,20 @@ static u32 cur_gamma = 0;      /* γ×100；0 = 关（en=0，PL 逐位旁路） 
  * 代价说清楚：它只在主循环转到 gamma_tick() 时推进，而 gamma_set 一次要写 256 项（约 5 ms，
  * 还打一行日志），所以节奏门限卡在 200 ms，默认 2 s 一步。 */
 static void gamma_set(u32 g100);       /* 前向声明，真正的定义在下面 */
+
+/* ---- 串口命令的"保命缓冲"：收字节与切派发分开 ----
+ * 为什么要拆开：`gamma_set` 一次要写 256 项、每项两次 usleep(5) ⇒ 约 2.6 ms **不回主循环**，
+ * 而 115200 波特下 Zynq 的 RX FIFO 只有 16 字节（≈1.4 ms 的量）。人把一整行**粘**进来时，
+ * 这 2.6 ms 里到的字节就从 FIFO 漏掉了 —— 用户报的"命令要发好几次才有反应"，真会丢字符的是这一段
+ * （另一个原因是老实现不回显，看不见自己敲了什么，那是错觉不是丢包）。
+ * ⇒ `rx_fill()` 只把人来的字节搬进 cmd_buf（顺手回显），**不切不派发**；长流程里反复调它，
+ *   主循环的 uart_poll() 再把攒下的整行按顺序派发。这样既不在 gamma 的中途改参数（那是重入），
+ *   也不丢字符。 */
+#define CMD_BUF 128                     /* 旧值 48 且**静默截断**：超长行会被啃掉尾巴还当正常行派发 */
+static char cmd_buf[CMD_BUF];
+static int  cmd_len = 0;                /* 已收字节数（含行尾 '\n'） */
+static u8   cmd_toolong = 0;            /* 一次超长只报一条，不许刷屏 */
+static void rx_fill(void);              /* 只搬运不派发 */
 static u8  gm_auto = 0;
 static u32 gm_lo = 100u, gm_hi = 300u, gm_step = 20u, gm_ms = 2000u;
 static int gm_dir = 1;
@@ -319,6 +333,7 @@ static void gamma_set(u32 g100)
         if (i == 0u)   first = (u8)v;
         if (i == 255u) last  = (u8)v;
         gamma_put(i, v);
+        rx_fill();      /* 这 256 项要写约 2.6 ms：中途只搬 UART 字节不派发，否则粘进来的行会丢字 */
     }
     gm_w |= GM_EN;
     /* OSD 那一格与表**同一次提交**：γ×10 四舍五入（180→18 ⇒ 屏上 1.8）。
@@ -801,11 +816,23 @@ static int dispatch(char **tk, int nt)
     if (ci_pre(tk[0], "BILIN")) {
         const char *arg = (nt >= 2) ? tk[1] : tk[0] + 5;   /* BILIN 是 5 个字母 */
         int b = -1;
+        if (nt >= 2 && ci_eq(tk[1], "SHOW")) {
+            /* 为什么要把"什么时候才看得出差别"一起印出来：这个开关在**旋转态**与**1.00 倍**下
+             * 按构造都不改变任何一个像素（`zoom_mapper.v:73-74` 旋转通路把 frac 钉 0；1:1 时 frac 天生 0），
+             * 所以只说"bilin=1"会让人以为开关坏了 —— 那是 ISSUES #86，不是这条命令坏了。 */
+            xil_printf("[BILIN] bilin=%s（gpio_o[19]）；看得出的条件：角度=0 且倍率非整数，"
+                       "例：src 0 → zoom 1.5 → bilin off/on（旋转态与本档 1.00 按构造无差别）\r\n",
+                       cur_bilin ? "on" : "off");
+            return 0;
+        }
         if (strict_int(arg, &v) && (v == 0 || v == 1)) b = v;
         if (ci_eq(arg, "ON")) b = 1;
         if (ci_eq(arg, "OFF")) b = 0;
-        if (b < 0) xil_printf("[BILIN] 只认 on/off（0/1）\r\n");
-        else ctrl_set_bilin((u8)b);
+        if (b < 0) xil_printf("[BILIN] 只认 on/off（0/1）或 show\r\n");
+        else {
+            ctrl_set_bilin((u8)b);
+            xil_printf("[BILIN] bilin=%s\r\n", cur_bilin ? "on" : "off");
+        }
         return 0;
     }
     /* —— 以下四个是 spec §14 里还没落地的动词：先把语法收住，出口只有一条 —— */
@@ -1165,24 +1192,50 @@ static void cmd_help(void)
  * `split range 20 80`（含回车 18 字节），老尺寸装不下多参数命令。 */
 static void uart_poll(void)
 {
-    static char buf[48];
-    static int idx = 0;
     char *tk[T_MAX];
     int nt;
 
+    rx_fill();
+
+    /* 一次可能攒下好几行（粘贴、或长流程里连发），所以按行首的 '\n' 一条条切出来派发。
+     * 行分隔认 CR 也认 LF（两者都存成 '\n'）⇒ 终端发 LF / CR / CRLF 都能用，这条一直没变。 */
+    for (;;) {
+        int i, n = 0;
+        for (i = 0; i < cmd_len; i++) {
+            if (cmd_buf[i] == '\n') { n = i + 1; break; }
+        }
+        if (n == 0) break;                       /* 没有完整行 */
+        cmd_buf[n - 1] = 0;                      /* 行尾换成语义上的 0 */
+        nt = tokenize(cmd_buf, tk);
+        if (nt > 0 && dispatch(tk, nt) < 0) {
+            xil_printf("[CMD] 不认: %s\r\n", cmd_buf);
+            cmd_help();
+        }
+        memmove(cmd_buf, cmd_buf + n, (size_t)(cmd_len - n));
+        cmd_len -= n;
+        cmd_toolong = 0;                         /* 新的一行重新允许报一次超长 */
+    }
+}
+
+/* 把 RX 里的字节搬进 cmd_buf：只搬运、只回显，绝不切词派发（派发在 uart_poll）。
+ * 存进缓冲时 CR/LF 都归一成 '\n' ⇒ 上面那条"按行切"的逻辑与终端的换行风格无关。 */
+static void rx_fill(void)
+{
     while (XUartPs_IsReceiveData(STDIN_BASEADDRESS)) {
         u8 ch = XUartPs_RecvByte(STDIN_BASEADDRESS);
-        if (ch != '\n' && ch != '\r') {
-            if (idx < (int)sizeof(buf) - 1) buf[idx++] = (char)ch;
-            continue;
-        }
-        buf[idx] = 0;
-        idx = 0;
-        nt = tokenize(buf, tk);
-        if (nt == 0) continue;
-        if (dispatch(tk, nt) < 0) {
-            xil_printf("[CMD] 不认: %s\r\n", buf);
-            cmd_help();
+        if (ch == '\r') ch = '\n';               /* CR 与 CRLF 都只留一个行尾 */
+        if (ch == '\n') {
+            if (cmd_len > 0) { cmd_buf[cmd_len++] = '\n'; }
+            xil_printf("\r\n");                  /* 回显一个行尾，看不见回车也算一种"没反应" */
+        } else {
+            if (cmd_len < CMD_BUF - 1) {
+                cmd_buf[cmd_len++] = (char)ch;
+                XUartPs_SendByte(STDIN_BASEADDRESS, ch);   /* 本地回显：老实现一个字都不回， */
+            } else if (!cmd_toolong) {                     /* 用户只能靠"再发一次"猜有没有收到 */
+                cmd_toolong = 1;
+                xil_printf("\r\n[CMD!] 这行超过 %d 字节，多出来的丢掉（不是没收到，是太长）\r\n",
+                           CMD_BUF - 1);
+            }
         }
     }
 }
