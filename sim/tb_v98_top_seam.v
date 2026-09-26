@@ -67,6 +67,22 @@ module tb_v98_top_seam;
     reg         ps_publish  = 1'b0;      // 下面有个进程按帧翻它（真实固件是"每帧写完翻一次"）
     reg         lat_arm     = 1'b0;
 
+    // #94 之后**必须有**这一条，否则整份台架会被自己的新判据污染：
+    //   `have_src` 现在是"最近 30 帧内收到过一次发布"的活判据（`src_life`，500 ms @ 16.8 ms/帧），
+    //   而下面 C2 的八档扫描要跑 40+ 帧 ⇒ 不持续敲发布位，扫到中途屏幕就**正确地**落到测试图卡。
+    //   18:11 那一轮正是这样：code 5/6/7 采到的"不符"其实采的是图卡的渐变色（`sel=08ec` 那种
+    //   row/col 全不对、且 orig==proc 的形状），不是显存内容 —— 红的是激励少了心跳，不是几何。
+    //   节拍照抄固件的 `ps_keepalive()`：真实固件 100 ms 一次 = 每 6 帧；这里每 4 帧一次，
+    //   远快于 30 帧的看门狗。**"不敲心跳会落图卡"这件事本身的判据在 tb_v102**，这里只保证
+    //   C2/C3 量的是几何而不是采到图卡。
+    reg hb_cnt = 2'd0;
+    always @(posedge dut.frame_start) begin
+        if (hb_cnt == 2'd3) begin
+            hb_cnt     <= 2'd0;
+            ps_publish <= ~ps_publish;
+        end else hb_cnt <= hb_cnt + 2'd1;
+    end
+
     // ---------------- 以太网侧全安静 ----------------
     reg eth_link = 0, eth_live = 0, eth_tb_ok = 0, eth_frame = 0, eth_commit = 0;
     reg [31:0] eth_ddr_base = 32'd0;
@@ -833,7 +849,8 @@ module tb_v98_top_seam;
         i1 = 0;
         while (frames_done < FRAMES_MIN + 3 && i1 < 16) begin   // 多跑几帧：前 2 帧只用来让拷贝落地
             #(H_TOTAL * V_TOTAL * 20.0);          // 一帧 = 840000 拍 × 20 ns = 16.8 ms
-            ps_publish = ~ps_publish;
+            // 发布位由下面 `lm_hb` 那个进程统一翻（原来这里也翻一次：两个进程写同一根激励位
+            // 就是"谁最后写算谁"，而 #94 之后这件事会直接决定屏幕画不画帧缓存 ⇒ 只留一个写者）
             i1 = i1 + 1;
         end
 
