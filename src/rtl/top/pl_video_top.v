@@ -24,9 +24,9 @@ module pl_video_top #(
     input  wire        axi_clk,
     input  wire        axi_rst_n,
 
-    input  wire [4:0]  effect_en,
-    // V8 的九位算法选择字（新控制字 gpio_cfg[8:0]）。0 = "PS 没意见"，此时 effect_ctrl 用
-    // effect_en 翻出来的等价形式 —— 老工具（set_src.tcl / health_read.mjs）因此一字不改还能用。
+    // V8 的九位算法选择字（新控制字 gpio_cfg[8:0]），一位一级、**唯一**的一套效果口径。
+    // V7 那五位 `effect_en`（gpio_o[4:0]）的入口与兜底合流已删（#66）：PS 每次控制都写整字，
+    // 那五位只剩"新字为 0 时顶上"一条活路，而它让 `pipe 00111` 与 `pipe 000000111` 成了两种答案。
     input  wire [8:0]  stage_sel,
     input  wire [7:0]  threshold,
     // 第二个控制字的**通道 2**（axi_gpio_2 的 GPIO2，偏移 +0x08）：gamma 表的
@@ -212,7 +212,6 @@ module pl_video_top #(
         .angle(angle), .rotate_active(rotate_active)
     );
 
-    wire [4:0] en_sync;
     wire [7:0] th_sync;
     wire [8:0] sel_sync;
     wire       gm_en, gm_wr;
@@ -223,7 +222,6 @@ module pl_video_top #(
     wire       zman_pix;         // V8-8：手动旗标
     effect_ctrl u_eff (
         .clk(clk_pix), .rst_n(rst_pix_n),
-        .effect_en_async(effect_en),
         .stage_sel_async(stage_sel),
         .zoom_sel_async(zoom_sel_async),
         .zoom_manual_async(zoom_manual_async),
@@ -231,7 +229,7 @@ module pl_video_top #(
         .gamma_async(gamma_ctl),
         .stage_sel(sel_sync),
         .zoom_sel(zsel_pix), .zoom_manual(zman_pix),
-        .effect_en(en_sync), .threshold(th_sync),
+        .threshold(th_sync),
         .gamma_en(gm_en), .gamma_wr(gm_wr), .gamma_idx(gm_idx), .gamma_data(gm_data),
         .gamma_disp(gm_disp), .temp_disp(tmp_disp)
     );

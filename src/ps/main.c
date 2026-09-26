@@ -154,8 +154,7 @@ static u32 split_pos_clamp(u32 *px) {
     *px = SPLIT_POS_MAX;
     return 1;
 }
-static u32 cur_sel = 0;        /* 效果选择的唯一真相（九位） */
-static u32 cur_en = 0;         /* gpio_o[4:0] 上的老五位镜像，由 cur_sel 反推，不独立存在 */
+static u32 cur_sel = 0;        /* 效果选择的唯一真相（九位，一位一级） */
 static u8  cur_thr = 80;
 static u8  cur_src = 0;
 static u8  cur_zoom = 1;   /* GPIO bit17: 右屏无极缩放的"要不要呼吸" */
@@ -175,18 +174,6 @@ static u32 mode_tog_lvl = 0;
 static u8    ps_hold  = 0;
 static XTime ps_ka_t;
 
-/* 老五位是"新九位的一个投影"，不是第二个控制源 —— 这样 RTL 的旁路优先级
- * （cfg != 0 用 cfg，否则用老位）在固件这边永远自洽：两边永远说同一件事。 */
-static void sel_sync_legacy(void)
-{
-    cur_en = ((cur_sel & SEL_GRAY)   ? 1u  : 0u)
-           | ((cur_sel & SEL_BIN)    ? 2u  : 0u)
-           | ((cur_sel & SEL_BLUR)   ? 4u  : 0u)
-           | ((cur_sel & SEL_SOBEL)  ? 8u  : 0u)
-           | ((cur_sel & SEL_INVERT) ? 16u : 0u);
-}
-
-
 /* 只写寄存器、不打字，返回写进去的值。
  * 每帧一次的"发布"脉冲必须走这条：原来 ps_publish() 直接调 ctrl_apply()，于是 30 fps 的
  * 回放每秒往串口推约 2 KB（115200 只有 11.5 KB/s，而 xil_printf 是轮询等 TX 的阻塞实现），
@@ -194,8 +181,10 @@ static void sel_sync_legacy(void)
 static u32 ctrl_write(void)
 {
     u32 v;
-    sel_sync_legacy();
-    v = (cur_en & 0x1F) | ((u32)cur_thr << 8) | ((u32)cur_src << 16)
+    /* [4:0] 是 V7 那五位效果的旧位置 —— **保留但恒写 0**（PL 侧那个入口已经删了，#66）。
+     * 为什么还占着：BD 里 gpio_o 是 32 位整字，位序一改，`set_src.tcl`/`health_read.mjs`
+     * 这些按位写的工具就全错位；空位比"重排一遍再逐个改工具"诚实。 */
+    v = ((u32)cur_thr << 8) | ((u32)cur_src << 16)
       | ((u32)(cur_zoom ? 1 : 0) << 17) | (pub_lvl << PUBLISH_BIT)
       | ((u32)(cur_bilin ? 1 : 0) << BILIN_BIT)
       | ((cur_mode_ovr & 3u) << MODE_CODE_BIT) | (mode_tog_lvl << MODE_TOG_BIT);
@@ -440,7 +429,8 @@ static void ctrl_set_sel(u32 sel)
     ctrl_apply();
 }
 
-/* 老五位 → 新九位：bit0 gray / bit1 binary / bit2 blur / bit3 sobel / bit4 invert */
+/* 老五位 → 新九位（**只用来把"五位的老写法"翻译成人能照着敲的九位**，不再参与任何控制：
+ * RTL 那个第二源已经删了，#66）。invert 从 bit4 挪到 bit1、binary 从 bit1 挪到 bit5。 */
 static u32 legacy_to_sel(u32 e)
 {
     return ((e & 1u)  ? SEL_GRAY   : 0u)
@@ -450,12 +440,24 @@ static u32 legacy_to_sel(u32 e)
          | ((e & 16u) ? SEL_INVERT : 0u);
 }
 
-/* `pipe` 与裸位串：5 位是**老写法**（老位序），9 位是**新写法**（新位序）。
- * 两种都收是为了不断掉 HOST_GUIDE / DEMO_SCRIPT / set_src.tcl 里已经写好的例子，
- * 但它们的意思不同 —— 这条差异写在 HOST_GUIDE 的命令表里，串口电池的 6/7 两条各钉一边。 */
-static void apply_pipe_bits(u32 b, int n)
+/* 只收九位。给到五位（V7 的老写法）时**不猜、不补零、不静默改意思**：把等价的九位原样算出来
+ * 印给他看，一句就知道该敲什么。（旧版本在这里"两种都收"，代价是同一个串有两种答案 ——
+ * 那条差异昨天还写在 HOST_GUIDE 里，今天随五位一起退掉了。）
+ * ⚠ 打印顺序必须与 `parse_bits` **同侧**：那串字符是"第 0 个字符 = 第 0 位 = gray"，
+ *   所以这里必须从 bit0 往后打。反过来打（先打 bit8）给出的是一串镜像，照着敲会开出
+ *   完全不同的几级 —— `pipe_len_check` 的 B 段就是拿这个当 FAIL 的（今天被它抓到过一次）。
+ * 返回 1 = 已生效；0 = 没收（调用方不要再回声）。 */
+static int apply_pipe_bits(u32 b, int n)
 {
-    ctrl_set_sel(n == 5 ? legacy_to_sel(b) : (b & 0x1FFu));
+    int i;
+    u32 s;
+    if (n == 9) { ctrl_set_sel(b); return 1; }
+    s = legacy_to_sel(b);
+    xil_printf("[PIPE] 只收 **九位**（一位一级，顺序 gray/invert/blur/sharpen/sobel/"
+               "binary/bin_pol/erode/dilate）。你给的这串是五位的老位序，等价的九位是：pipe ");
+    for (i = 0; i <= 8; ++i) xil_printf("%d", (int)((s >> i) & 1u));
+    xil_printf("\r\n");
+    return 0;
 }
 
 static void ctrl_set_thr(u8 thr)
@@ -539,7 +541,7 @@ static int parse_bits(const char *s, u32 *out)
     for (; *s; ++s) {
         if (*s == '\r' || *s == '\n' || *s == ' ') break;
         if (*s != '0' && *s != '1') return -1;
-        if (n >= 9) return -1;            /* 新写法最长 9 位（老写法 5 位，见 apply_pipe_bits） */
+        if (n >= 9) return -1;            /* 九位是唯一长度；五位仍然数得出来，好把等价串报给他（apply_pipe_bits） */
         en |= ((u32)(*s - '0')) << n;
         ++n;
     }
@@ -860,19 +862,18 @@ static int dispatch(char **tk, int nt)
     int nb;
 
     nb = parse_bits(tk[0], &en);
-    if (nt == 1 && nb > 0) { apply_pipe_bits(en, nb); print_sel_names(cur_sel); return 0; }
+    if (nt == 1 && nb > 0) { if (apply_pipe_bits(en, nb)) print_sel_names(cur_sel); return 0; }
 
     if (ci_eq(tk[0], "PIPE")) {
         if (nt >= 2 && ci_eq(tk[1], "SHOW")) { print_sel_names(cur_sel); return 0; }
         nb = (nt >= 2) ? parse_bits(tk[1], &en) : -1;
         if (nb <= 0) {
-            xil_printf("[PIPE] 长度只收 **5（老位序）或 9（新位序）**，其余一律不认"
-                       "（6/7/8 位过去被当成 9 位补零，屏上就对不上）。例：pipe 000000100 /"
-                       " pipe show\r\n");
+            xil_printf("[PIPE] 长度只收 **九位**（一位一级）。五位是 V7 的老写法，"
+                       "给了会告诉你等价的九位；6/7/8 位一律拒（过去被当 9 位补零，屏上对不上）。"
+                       "例：pipe 000000100 / pipe show\r\n");
             return 0;
         }
-        apply_pipe_bits(en, nb);
-        print_sel_names(cur_sel);
+        if (apply_pipe_bits(en, nb)) print_sel_names(cur_sel);
         return 0;
     }
     if (ci_pre(tk[0], "TH")) {
@@ -1323,10 +1324,10 @@ static int dispatch(char **tk, int nt)
          * 是比 STAT 元组的，而元组里以前看不见这些位 ⇒ 电池可以把板子留在"自动旋转还开着、
          * 缩放还在 fit、缝贴着右边缘"而判绿。V8-8 给 zsel/zman 补过同一次账（uart_cmd_check 的
          * 注释里记着），这次是同一课的第二遍。新字段照老规矩**只往后加**，不动前面的位序。 */
-        xil_printf("[STAT] ctrl en=%02x thr=%d src=%d zoom=%d bilin=%d zsel=%d zman=%d pub=%d"
+        xil_printf("[STAT] ctrl thr=%d src=%d zoom=%d bilin=%d zsel=%d zman=%d pub=%d"
                    " sd=%d frames=%d playing=%d sel=%03x gm=%d.%02d (PL owns UDP datapath)"
                    " mode=%d geom=%08x\r\n",
-                   cur_en & 0x1F, cur_thr, cur_src, cur_zoom ? 1 : 0,
+                   cur_thr, cur_src, cur_zoom ? 1 : 0,
                    cur_bilin ? 1 : 0, cur_zsel, cur_zman, (int)pub_lvl,
                    sd_frame_total() ? 1 : 0, (int)sd_frame_total(), sd_is_playing(),
                    cur_sel & 0x1FF,
@@ -1340,11 +1341,11 @@ static int dispatch(char **tk, int nt)
 
 static void cmd_help(void)
 {
-    xil_printf("  V8 语法: src auto|0|1|2 | pipe <5 或 9 位>|pipe show | th 80 | zoom on|off|auto|<倍率> | bilin on|off |"
+    xil_printf("  V8 语法: src auto|0|1|2 | pipe <九位>|pipe show | th 80 | zoom on|off|auto|<倍率> | bilin on|off |"
                " gamma off|1.8 | frame N | sd [files|file n|remount] | play | stop | fill | autoplay 0|1 | temp [th <°C>] |"
                " stat | help\r\n");
-    xil_printf("  pipe 五位=老位序(gray/binary/blur/sobel/invert)，九位=新位序"
-               "(gray/invert/blur/sharpen/sobel/binary/bin_pol/erode/dilate)，**其余长度一律拒**\r\n");
+    xil_printf("  pipe 九位一位一级（gray/invert/blur/sharpen/sobel/binary/bin_pol/erode/dilate）；"
+               "五位是 V7 老位序，给了只回一句等价的九位、不生效。**其余长度一律拒**\r\n");
     xil_printf("  屏上 Pipe 那一格不是这串 0/1：它是五位、每位的 0..3 表示\"这一级选了第几个算法\"，"
                "想知道现在开着什么就敲 pipe show\r\n");
     xil_printf("  语法已收/硬件待接: osd on|off | split 的 range/speed\r\n");
@@ -1357,7 +1358,8 @@ static void cmd_help(void)
      * 所以 split 从上面那半行里摘出来 —— 继续留着"待接"就是说谎（#67 同族）。 */
     xil_printf("  分割线: split screen（屏幕里扫）| split video（画面里扫、跟着转）| split 0..100 |"
                " split px | auto | manual | swap 0|1 | follow 0|1 | marker 0|1 | show\r\n");
-    xil_printf("  旧写法仍可用: SRC0 SRC1 TH80 ZOOM0 ZOOM1 BILIN0 BILIN1 FRAME12 00111\r\n");
+    xil_printf("  旧写法仍可用: SRC0 SRC1 TH80 ZOOM0 ZOOM1 BILIN0 BILIN1 FRAME12"
+               "（裸五位已随五位控制退役，给了会回一句等价的九位）\r\n");
 }
 
 

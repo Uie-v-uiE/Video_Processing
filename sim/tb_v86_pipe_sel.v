@@ -18,11 +18,9 @@ module tb_v86_pipe_sel;
     always #10 clk = ~clk;
 
     // ---------------- effect_ctrl ----------------
-    reg  [4:0] en_a = 0;
     reg  [8:0] cfg_a = 0;
     reg  [7:0] th_a = 80;
     wire [8:0] sel_q;
-    wire [4:0] en_q;
     wire [7:0] th_q;
     // 声明必须在 u_eff 之前：端口连接里先出现的标识符会被当成**隐式 1 bit 线网**，
     // 后面再写 `reg [31:0] gm_a` 就成了重复声明（ModelSim 抓过一次，规矩记在学习文档里）。
@@ -31,13 +29,13 @@ module tb_v86_pipe_sel;
     wire [7:0]  gm_idx_q, gm_data_q;
     effect_ctrl u_eff (
         .clk(clk), .rst_n(rst_n),
-        .effect_en_async(en_a), .stage_sel_async(cfg_a), .threshold_async(th_a),
+        .stage_sel_async(cfg_a), .threshold_async(th_a),
         .gamma_async(gm_a),             // gamma 表本身由 tb_v88_gamma 测；这里加 T15/T16 钉"位序与同步"
         // V8-8 给 effect_ctrl 加的两个缩放输入在这个台架里**没人管**（它判的是算法选择字与 gamma 位序），
         // 但悬空 = Z ⇒ 会顺着 `sel_meta` 把 X 灌进同一条同步链的输出，而 `#88` 刚教过这一课
         // （顶层台架因为一个悬空输入红了四判据好几天）。显式钉成"1.00x 手动"，与固件默认一致。
         .zoom_sel_async(3'd4), .zoom_manual_async(1'b1),
-        .stage_sel(sel_q), .effect_en(en_q), .threshold(th_q),
+        .stage_sel(sel_q), .threshold(th_q),
         .gamma_en(gm_en_q), .gamma_wr(gm_wr_q), .gamma_idx(gm_idx_q), .gamma_data(gm_data_q)
     );
 
@@ -194,30 +192,31 @@ module tb_v86_pipe_sel;
                 if (got[j][i] !== 16'hFFFF && got[j][i] !== 16'h0000) bad = bad + 1;
         chk("T8 二值化输出只有全亮/全暗两种", bad == 0);
 
-        // ================= ③ 两套控制源的优先级与投影 =================
-        // 老五位全开、新九位为 0 ⇒ 新九位必须等于老五位的等价形式（位序见 proc_pipeline.v 头）
-        en_a = 5'b11111; cfg_a = 9'h000; th_a = 8'd123;
+        // ================= ③ 只有一套控制源（#66：五位那个第二源已经删掉）=================
+        // 原来这一节钉的是"老五位全开、新九位为 0 ⇒ 新九位等于老五位的等价形式"（T9/T10）与
+        // "新字非 0 时老五位不许漏进效果"（T13）。`effect_ctrl` 现在只有一个入口，
+        // 那两条**在结构上成立**，留在这里只会让人以为还有第二个源要防。
+        // 换成钉今天真的会坏的两件事：cfg=0 必须全旁路；cfg 必须逐位直连（同步链不改位）。
+        cfg_a = 9'h000; th_a = 8'd123;
         repeat (6) @(negedge clk);
-        chk("T9 老五位 11111 → 新九位 0x37（gray/invert/blur/sobel/binary）", sel_q == 9'h037);
-        chk("T10 OSD 投影回老位序 11111（投影不是第二个源）", en_q == 5'b11111);
+        chk("T9 cfg=0 ⇒ 全旁路（五位这个第二源已不存在，没人能把效果偷偷打开）", sel_q == 9'h000);
         chk("T11 阈值同步过来（3 拍链）", th_q == 8'd123);
 
-        // 新九位非 0 时**盖住**老五位；只开 sharpen 时 gray/binary 等必须都是关的
-        en_a = 5'b11111; cfg_a = 9'h008;
+        // 新九位逐位直连：只开 sharpen 那一位，其余八位必须是 0
+        cfg_a = 9'h008;
         repeat (6) @(negedge clk);
-        chk("T12 cfg 非 0 时以 cfg 为准（老五位不再参与）", sel_q == 9'h008);
-        // 判据改成可判定的形式：同一个 cfg，老五位从 0 变成 11111，输出必须一模一样
-        // （= 老五位确实没有漏进效果里）。原来写的是「不许出现 FFFF/0000」，
-        // 但输入本来就有黑白条纹，锐化在平地上当然还是黑白 —— 那条判据是错的判据。
-        en_a = 5'b00000; run_frame(9'h008);
+        chk("T12 九位控制字逐位直连（cfg=0x008 ⇒ sel_q=0x008）", sel_q == 9'h008);
+        // 同一份 cfg 连跑两帧，输出必须一模一样 —— 替掉原来的"换老五位输出不变"那条：
+        // 它防的是"第二个源漏进来"，现在它能防的是"同步链自己每帧漂"（同源同深度这件事没人白给）。
+        run_frame(9'h008);
         for (j = 0; j < H; j = j + 1)
             for (i = 0; i < W; i = i + 1) ref0[j][i] = got[j][i];
-        en_a = 5'b11111; run_frame(9'h008);
+        run_frame(9'h008);
         bad = 0;
         for (j = 0; j < H; j = j + 1)
             for (i = 0; i < W; i = i + 1)
                 if (got[j][i] !== ref0[j][i]) bad = bad + 1;
-        chk("T13 cfg 非 0 时老五位完全不起作用（换 en 输出逐位不变）", bad == 0);
+        chk("T13 同一份 cfg 连跑两帧逐位一致（同步链与效果链都不漂）", bad == 0);
 
         // 腐蚀 + 膨胀同时要求 = 两个都不做（= 旁路）
         cfg_a = 9'h180;
@@ -244,7 +243,7 @@ module tb_v86_pipe_sel;
             gm_en_q === 1'b0 && gm_wr_q === 1'b0 && gm_data_q === 8'h5A && gm_idx_q === 8'hC3);
 
         gm_a = 32'd0;
-        cfg_a = 9'h000; en_a = 5'b00000;
+        cfg_a = 9'h000;
         repeat (4) @(negedge clk);
         $display("");
         if (errors == 0) $display("PASS tb_v86_pipe_sel");

@@ -54,7 +54,6 @@ module tb_v98_top_seam;
     reg sys_rst_n = 0, axi_rst_n = 0;
 
     // ---------------- PS 侧控制（axi 域电平） ----------------
-    reg  [4:0]  effect_en   = 5'd0;
     reg  [8:0]  stage_sel   = 9'd0;      // 全旁路
     reg  [7:0]  threshold   = 8'd80;
     reg  [31:0] gamma_ctl   = 32'd0;
@@ -115,7 +114,7 @@ module tb_v98_top_seam;
     reg  [18:0] split_ctl_tb = 19'd0;   // 缝位/auto/follow/swap/marker/旋转三位/fit 全默认
     pl_video_top dut (
         .sys_clk(sys_clk), .sys_rst_n(sys_rst_n), .axi_clk(axi_clk), .axi_rst_n(axi_rst_n),
-        .effect_en(effect_en), .stage_sel(stage_sel), .threshold(threshold), .gamma_ctl(gamma_ctl),
+        .stage_sel(stage_sel), .threshold(threshold), .gamma_ctl(gamma_ctl),
         .src_sel(src_sel), .zoom_en(zoom_en), .mode_ovr(mode_ovr), .mode_ovr_tog(mode_tog),
         // ⚠ #88 的**根因就这一行**：这个输入原来在台架里**根本没接**（#83 加端口时只改了
         //   `pl_demo_top`，而门禁第 14 项的端口审计当时只看 `src/rtl`，台架不在里面）⇒ 悬空成 Z
@@ -622,6 +621,7 @@ module tb_v98_top_seam;
     // 坏格的**差值形状**：18:11 那一轮的教训是"全局 dump 配额被第一档吃光，后面几档一个字没留下"
     //（30 行全花在 code 4 上，code 5/6/7 只有总数没有形状）。所以差值按档累计，打印也只按档配额。
     integer c2_dm1 [0:7], c2_dp1 [0:7], c2_doth [0:7], c2_ibc [0:7], c2_dd;
+    integer c2_tbc [0:7];      // C2TAIL：每档允许摆几行行尾（见下面那段注释）
 
     initial begin
         for (c2_e = 0; c2_e < 8; c2_e = c2_e + 1) begin
@@ -630,7 +630,7 @@ module tb_v98_top_seam;
             c2_geol[c2_e]=-1; c2_geor[c2_e]=-1; c2_measl[c2_e]=-1; c2_measr[c2_e]=-1;
             c2_leakl[c2_e]=-1; c2_leakr[c2_e]=-1; c2_blank[c2_e]=0;
             c2_ibv[c2_e]=512'd0;
-            c2_dm1[c2_e]=0; c2_dp1[c2_e]=0; c2_doth[c2_e]=0; c2_ibc[c2_e]=0;
+            c2_dm1[c2_e]=0; c2_dp1[c2_e]=0; c2_doth[c2_e]=0; c2_ibc[c2_e]=0; c2_tbc[c2_e]=0;
         end
     end
 
@@ -705,6 +705,26 @@ module tb_v98_top_seam;
                                  dut.oob_out, dut.y_d[dut.MIX_D]);
                     end
                 end
+            end
+            // ---- C2TAIL：把**行尾 6 列**在同一拍上摆开（诊断，不是判据；每档限 6 行）----
+            // 为什么需要它：模块级与整链级（`tb_v89` 的 ID 判据）已经逐列恒等，可顶层每行最后一列对
+            // 仍然少一格 ⇒ 病灶只可能在**顶层特有**的那几环：链子吃的标签级是 `de_d[3]/x_d[3]`
+            // 而行环吃的是 `de_d[5]/x_d[5]`；链子输出又多寄存了一拍（`pipe_dout_q`，#92 第一笔）；
+            // 混色级吃的标签是 `x_d[MIX_D]`。这三件事在行中间互相抵消、只在行尾露馅 ⇒
+            // 必须同拍看到"读口给的什么、链子给的什么、混色级吃的什么、标签说什么"。
+            // 教训（#68/#78/#92 每一轮都是"再推一遍"输的）：摆原始数，一眼就分得开。
+            if (c2_tbc[c2_k] < 6 && dut.u_split.x_sel >= (2*512-6) && dut.u_split.x_sel <= (2*512-1)) begin
+                c2_tbc[c2_k] = c2_tbc[c2_k] + 1;
+                $display("C2TAIL code=%0d x=%0d exp=%0d | mix sel=%h(c%0d) orig=%h(c%0d) proc=%h(c%0d) | chain_out=%h(c%0d) chain_de=%b mix_de=%b | fb jd=%0d res=%h(c%0d) asm=%b | blur de=%b x=%0d owed=%b lend=%b",
+                         c2_k, dut.u_split.x_sel, c2_exp_col(dut.u_split.x_sel, C2_TBL(c2_k)),
+                         dut.u_split.sel, mem_col(dut.u_split.sel),
+                         dut.u_split.orig_pix, mem_col(dut.u_split.orig_pix),
+                         dut.u_split.proc_pix, mem_col(dut.u_split.proc_pix),
+                         dut.pipe_dout, mem_col(dut.pipe_dout), dut.pipe_de,
+                         dut.de_d[dut.MIX_D], dut.u_bilin.jd, dut.u_bilin.res_q[15:0],
+                         mem_col(dut.u_bilin.res_q[15:0]), dut.u_bilin.asm_d2,
+                         dut.u_pipe.u_blur.de_in, dut.u_pipe.u_blur.x_in,
+                         dut.u_pipe.u_blur.owed, dut.u_pipe.u_blur.line_end === 1'b1);
             end
         end
     end

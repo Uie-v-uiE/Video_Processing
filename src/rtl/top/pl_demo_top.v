@@ -12,7 +12,8 @@ module pl_demo_top (
     output wire [2:0] tmds_data_n
 );
     // gray only by default — clearer left/right difference than invert+binary
-    wire [4:0] effect_en = 5'b00001;
+    // （九级控制字是唯一的一套效果口径：老五位 `effect_en` 已经删掉，见 effect_ctrl.v 文件头）
+    wire [8:0] stage_sel = 9'd1;
     wire [7:0] threshold = 8'd80;
     wire       src_sel   = 1'b0;
 
@@ -23,7 +24,7 @@ module pl_demo_top (
         .sys_rst_n(1'b1),
         .axi_clk(sys_clk),
         .axi_rst_n(1'b1),
-        .effect_en(effect_en),
+        .stage_sel(stage_sel),
         .threshold(threshold),
         .src_sel(src_sel),
         .zoom_en(1'b1),

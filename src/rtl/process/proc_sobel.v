@@ -50,12 +50,16 @@ module proc_sobel #(
     reg de_d1, de_d2;
     // 只在"刚吃掉本行末列"那一跳多走一拍（见 proc_box_blur.v 那条 #92 第四笔的注释；
     // 拿 de 断点当行尾会被 `tb_rotate_window` 的一拍一像素激励误触发）。
-    reg owed;
+    // 行尾多跳一拍：判据与理由全在 proc_box_blur.v 的 #92 第四笔那段（v1/v2/v3 各红在哪个台架）。
+    // 一句话版：**数连续有效像素**，与 `x_in` 的起点/标签级无关；一拍一像素的激励数不满一行，不会误触发。
+    reg [11:0] run;
     always @(posedge clk or negedge rst_n)
-        if (!rst_n) owed <= 1'b0;
-        else if (de_in && (x_in == H_ACTIVE[11:0] - 12'd1)) owed <= 1'b1;
-        else if (owed && de_d1 && !de_in)                  owed <= 1'b0;
-    wire shift_w = de_in || (owed && de_d1 && !de_in);
+        if (!rst_n)      run <= 12'd0;
+        else if (de_in)  run <= run + 12'd1;
+        else if (!de_d1) run <= 12'd0;
+    wire owed     = (run == H_ACTIVE[11:0]);
+    wire line_end = owed && de_d1 && !de_in;
+    wire shift_w  = de_in || line_end;
     // 边界判据用的坐标：与 p11（窗口中心抽头）同一时刻的 x/y。
     // 以前本级**完全没有**边界判据（`y_in` 端口甚至从没被用过），于是：
     //   · 每行第 0 列的"左邻"= 上一行末尾的像素  ⇒ 右窗分割线旁边糊出一条竖的错色；

@@ -256,7 +256,9 @@ module system_top (
                    .PS_BASE_ADDR(PS_DDR_BASE)) u_pl (
         .sys_clk(sys_clk), .sys_rst_n(1'b1),
         .axi_clk(fclk0), .axi_rst_n(fclk0_rst_n),
-        .effect_en(gpio_o[4:0]), .stage_sel(gpio_cfg1_o[8:0]), .threshold(gpio_o[15:8]), .src_sel(gpio_o[16]),
+        // gpio_o[4:0] 以前是 V7 那五位效果使能，现已退役（九级控制字是唯一口径）⇒ 这几位
+        // **保留但不接**，PS 侧一律写 0；`check_ports.py`（门禁第 14 项）会盯端口对不对得上。
+        .stage_sel(gpio_cfg1_o[8:0]), .threshold(gpio_o[15:8]), .src_sel(gpio_o[16]),
         // V8-8 手动缩放：**同一个字**的高位（PS 侧 CFG_DATA0 = 0x41220000）：
         //   [28:26] 档号、[29] 手动旗标。异步性一致 ⇒ 一并交给 effect_ctrl 那条 sel 链。
         //   ⚠ 别写成 gpio_cfg2_o：那是 PS 侧 +0x08 的 gamma 窗口（命名差一位是这里的坑）。

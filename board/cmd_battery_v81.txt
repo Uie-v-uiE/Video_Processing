@@ -43,7 +43,7 @@ pipe 000100000
 pipe 00001100
 pipe 1
 pipe show
-pipe 00000
+pipe 000000000
 AUTOPLAY0
 autoplay 1
 SRC2
