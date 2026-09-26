@@ -1,0 +1,23 @@
+5d358855c7e1a5f64da7e7a7efc50367 *./system.bit
+f4f6970e8c4b8b1b241ae6fe0cce9623 *./system.xsa
+826dd50fe1b8171f1d2175593813e88d *./ps_app.elf
+d23341adc040da513294685ed6eb89a7 *./cdc.rpt
+3bec822dac01d01e9b71826725ab2d88 *./timing_summary.rpt
+ed48b0ee2da565f974667db5c071d192 *./utilization.rpt
+7ea141d99ebc26980c219308ba13562a *./power.rpt
+fecfb204e2b9c5cf4a2e770f352266e6 *./methodology.rpt
+a46883e68b37deacf4bb4431aa3e8b4b *./route_status.rpt
+21438ef4b9ad4fc266b6129a2f60de29 *./width_warnings.txt
+21438ef4b9ad4fc266b6129a2f60de29 *./multi_driven.txt
+ed4a53e8ec8ed6f2c428c4feba801cda *./ports_check.txt
+16ce41ad3847f64fcfc2eeeb6cdd73e3 *./r69_gates.txt
+git_head=1a85ab7d4135884d5a2d452a4234ce233f2b1dcc change=osd-xadc-temp-cell flow=defaults(IMPL_PRPO=0)
+# 这一套把 ps_app.elf **拷进目录**再算 md5（r68 那份写的是 ../ps_app.elf = 活路径，
+# 下一次构建就会把它换掉；规矩见 OPTIMIZATION_LOG/skill：冻结=把件拷进来）。
+# 2026-09-26：这一套里 system.bit / system.xsa / ps_app.elf **留在本地不入库**（.gitignore 第 74-79 行那条口径：
+#  归档只入库报告 + md5 清单）。所以 `md5sum -c MANIFEST.md5` 要在**有这三件二进制的工作副本**里跑；
+#  干净克隆里它们会报 "No such file"，那不是清单坏了，是件没带来 —— 拿本地那份一比即可。
+# 与 r68 那份的差别：r68 的清单里 elf 写成 `../ps_app.elf`（活路径，下一次构建就把它换掉）；
+#  这一份把 elf **拷进目录**再算，所以 elf 的 md5 与 r69 这一笔永久绑定。
+# 上面那行 git_head=1a85ab7… 是**动手之前的** HEAD（这一笔的 sha 在提交前拿不到）；
+#  r69 这一笔就是 `git log` 里紧跟着 1a85ab7 的那一条（标题以 "r69" 开头）。

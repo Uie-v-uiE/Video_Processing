@@ -67,6 +67,17 @@
  * [31] en、[30] wr（**翻转位**，不是电平）、[29:22] data、[21:14] idx、
  * [13:8] gamma_disp = γ×10（V8-5 新加：只给 OSD 显示"1.8"这一格用，PL 不参与运算；
  *                     0 表示"gamma 关着"，屏上会看到 Gamma:0.0）。
+ * [7:0]  temp_disp = 片上温度的**两位十进制 BCD**（V9-6，只给 OSD 那一格，PL 不参与运算）：
+ *                   [7:4]=十位、[3:0]=个位 ⇒ 屏上画 `Temp:47C`。
+ *                   ⚠ 十进制换算是**这里**做的、不是 OSD 里：OSD 那五行字符是一整块组合逻辑，
+ *                     而 `u_pipe/xd_reg → u_osd/g_reg`（27 级）正是 clkout0_1 那一组的 WNS 路径
+ *                     （r63b/r63c/r64b 三份 timing_summary 都指着它）—— 在屏上再加一次 /100 与 /10
+ *                     就是往全设计最差的链上加深度。同一件事的先例：Latency 那一格从 #59 起
+ *                     就是"换算在 axi 域做完再跨域"。
+ *                   ⚠ 任何一个半字节 >9 = "没有可信读数" ⇒ 屏上画 `Temp:--`（与 Latency 没有
+ *                     测量时画 `--` 同一规矩）。PL 那条链的复位值就是 0xFF，所以 app 起来之前
+ *                     屏上是 `--` 而不是 `00C`。量程 0..99 °C：装不下的（结温真到 100 以上、
+ *                     或零下）一律画 `--` 并在串口打一条 [TEMP!]，完整读数永远在 `temp` 那一行。
  * ⚠ 这一组位与 gamma 协议在**同一个寄存器**里 ⇒ 所有写通道 2 的地方都必须从 `gm_w`
  *   这个影子出发整字写回（读-改-写会踩 #55 那个"PS 每帧重写把别的位抹掉"的同一个坑）。 */
 #define CFG_DATA1         (AXI_GPIO_CFG_BASE + 0x08u)
@@ -76,6 +87,11 @@
 #define GM_IDX(i)         ((((u32)(i)) & 0xFFu) << 14)
 #define GM_DISP_MASK      (0x3Fu << 8)
 #define GM_DISP(v)        ((((u32)(v)) & 0x3Fu) << 8)
+/* V9-6：通道 2 的低字节 = 屏上温度那一格（编码规则与"为什么在 PS 侧算十进制"见上面那段）。 */
+#define GM_TEMP_MASK      0xFFu
+#define GM_TEMP(v)        (((u32)(v)) & 0xFFu)
+#define GM_TEMP_NONE      0xFFu          /* 两个半字节都不是十进制数字 ⇒ 屏上画 -- */
+#define TEMP_POLL_MS      1000u          /* 片上温度秒级就够：结温的热时间常数是秒，不是毫秒 */
 
 /* 九位算法选择字：位定义的唯一出处是 `src/rtl/process/proc_pipeline.v` 文件头，这里只是抄一份。 */
 #define SEL_GRAY    (1u << 0)
@@ -217,7 +233,9 @@ void ps_publish(void)
  * 两项之间必须 usleep：PL 看的是 `wr` 的**边沿**，而 AXI 连发的间隔可以短到一个像素拍都不到
  * （协议前提写在 gamma_lut.v 头部）。5 µs ⇒ 256 项约 2.6 ms，人看不出来，
  * 但它把"丢几项"从"看运气"变成"永远有余量"。这条约束是真实的，别删。 */
-static u32 gm_w = 0;           /* 通道 2 当前电平：wr 位的唯一真相在这里（PL 那边只看边沿） */
+static u32 gm_w = GM_TEMP_NONE;  /* 通道 2 当前电平：wr 位的唯一真相在这里（PL 那边只看边沿）。
+                                 * 低字节初值 = "还没有可信读数"，与 PL 那条同步链的复位值一致 ⇒
+                                 * app 起来到第一次读到 XADC 之间，屏上是 `Temp:--` 而不是 `Temp:00C`。 */
 static u32 cur_gamma = 0;      /* γ×100；0 = 关（en=0，PL 逐位旁路） */
 
 /* ---- V9-5：gamma 的 Auto ----
@@ -681,6 +699,58 @@ static void xadc_init(void)
 #endif
 }
 
+/* ---- V9-6：屏上那一格的编码与节拍（`Temp:47C`，画不出可信读数时 `Temp:--`）----
+ * 编码规则的唯一出处在上面的 CFG_DATA1 注释里（[7:4]=十位、[3:0]=个位、半字节 >9 = 没有可信读数）；
+ * 这里只回答"一次 ADC 读数怎么变成那两个半字节"。
+ *
+ * ⚠ 为什么这里**不用** cmd_temp 那个 `sane` 当门：`sane` 的温度窗是 0..80 °C，量的是
+ *   "这一格像不像一次台架常识内的读数"（串口电池在测它，改它等于改判据）。而屏上这一格的
+ *   本职是"盯着结温往上走"，默认告警阈值就是 85 °C —— 用 0..80 当门会让最需要看的那一段变 `--`。
+ *   所以这里换一条自己的门：**VCCINT 那一路健康**（一次真实转换的最强证据：读数错位一般先
+ *   体现在供电那一路，而不是温度那一路）+ 温度落在 XADC 的物理量程内 + 结果装得进两位。
+ *   装不下的（零下、或 100 °C 以上）画 `--` 而不是画一个错数 —— 与 Latency 没有可信测量时
+ *   画 `--` 是同一条规矩；完整读数永远在串口这一行。 */
+static u8 temp_code_of(s32 mc, s32 mv)
+{
+    s32 d;
+    if (!(mv > 800 && mv < 1300)) return GM_TEMP_NONE;
+    if (mc < -40000 || mc > 150000) return GM_TEMP_NONE;
+    d = (mc >= 0) ? (mc + 500) / 1000 : -((-mc + 500) / 1000);   /* 四舍五入到整度 */
+    if (d < 0 || d > 99) return GM_TEMP_NONE;
+    return (u8)(((((u32)d) / 10u) << 4) | ((((u32)d) % 10u) & 0xFu));
+}
+
+/* 写屏上那一格：改影子、整字写回。**只有编码真的变了才写** ——
+ * 通道 2 是 gamma 窗口的同一个寄存器，多一次没必要的整字写就多一次与 gamma_put 抢总线的机会。 */
+static void temp_disp_write(u8 code)
+{
+    if ((gm_w & GM_TEMP_MASK) == (u32)code) return;
+    gm_w = (gm_w & ~GM_TEMP_MASK) | (u32)code;
+    Xil_Out32(CFG_DATA1, gm_w);
+}
+
+/* 一秒一次的节拍（gamma_tick 的同一模子）：到点才读、读一次、编码、需要才写。 */
+static void temp_poll(void)
+{
+    static XTime tp_t0;
+    static int   tp_armed = 0;
+    XTime now;
+    u16 rt, rv;
+    s32 mc, mv;
+
+    if (!xadc_ok) return;             /* 读不到：开机那行 [TEMP] 已经说了为什么，这里不再刷 */
+    XTime_GetTime(&now);
+    if (tp_armed &&
+        (u64)(now - tp_t0) * 1000u < (u64)TEMP_POLL_MS * (u64)COUNTS_PER_SECOND) return;
+    XTime_GetTime(&tp_t0);
+    tp_armed = 1;
+    rt = XAdcPs_GetAdcData(&xadc_inst, XADCPS_CH_TEMP);
+    rv = XAdcPs_GetAdcData(&xadc_inst, XADCPS_CH_VCCINT);
+    mc = temp_mc_of(rt);
+    mv = volt_mv_of(rv);
+    temp_disp_write(temp_code_of(mc, mv));
+}
+
 /* temp [th <°C>] —— 读一次片上温度；`temp th <n>` 改告警阈值。
  * 阈值为什么可改、而不是钉死 85：判据必须能**人为造红**。室温下的板子永远到不了 85 °C，
  * 于是"接了 XADC 但告警从没亮过"和"根本没接"在串口上长得一模一样。把阈值压到环境以下
@@ -693,6 +763,8 @@ static void cmd_temp(int n, char **tk)
     u16 rt, rv;
     s32 mc, mv, th, a;
     int over, sane;
+    u8   code;                 /* V9-6：屏上那一格的 BCD 编码 */
+    char osd_s[4];             /* 同一件事的三种写法之一：屏上真的画那三个字符 */
 
     if (n >= 2 && ci_eq(tk[1], "TH")) {
         const char *arg = (n >= 3) ? tk[2] : tk[1] + 2;    /* `temp th 60` 与 `temp th60` */
@@ -715,8 +787,25 @@ static void cmd_temp(int n, char **tk)
     over = (mc >= th) ? 1 : 0;
     sane = (mc > 0 && mc < 80000 && mv > 800 && mv < 1300) ? 1 : 0;
     a = (mc < 0) ? -mc : mc;
-    xil_printf("[TEMP] degC=%d.%02d raw=0x%04x vccint=%dmv th=%dC over=%d sane=%d\r\n",
-               (int)(mc / 1000), (int)((a / 10) % 100), rt, mv, temp_th_deg, over, sane);
+    /* 屏上那一格也在这里刷一次（平时由 temp_poll 每秒刷）：这样"发了 temp 之后屏上的数跟着动"
+     * 是可以被命令触发的，而不是要等下一个节拍。
+     * ⚠ 打印的 `osd=` 就是**屏上会画出来的那三个字符**（画不出可信读数时是 `--`），
+     *   `gpio=` 是从设备读回来的低字节 = PL 那条同步链正在采的那个值。
+     *   于是这一行把三段账一次钉住：`degC`（驱动读数）↔ `osd`（编码器的输出）↔ `gpio`（真的写到了 PL）。
+     *   串口电池拿这三者做机器判据，不需要任何人看屏幕。 */
+    code = temp_code_of(mc, mv);
+    temp_disp_write(code);
+    if (((code >> 4) <= 9) && ((code & 0x0F) <= 9)) {
+        osd_s[0] = (char)('0' + (code >> 4));
+        osd_s[1] = (char)('0' + (code & 0x0F));
+        osd_s[2] = 'C';
+        osd_s[3] = 0;
+    } else {
+        osd_s[0] = '-'; osd_s[1] = '-'; osd_s[2] = 0;
+    }
+    xil_printf("[TEMP] degC=%d.%02d raw=0x%04x vccint=%dmv th=%dC over=%d sane=%d osd=%s gpio=0x%02x\r\n",
+               (int)(mc / 1000), (int)((a / 10) % 100), rt, mv, temp_th_deg, over, sane,
+               osd_s, (unsigned)(Xil_In32(CFG_DATA1) & GM_TEMP_MASK));
     if (!sane)
         xil_printf("[TEMP!] raw=%04x 译出来 %d.%02d °C 不像一次真实转换 ⇒ "
                    "FIFO 握手或 XADC 复位有问题，这一格的数不许写进报告\r\n", rt, (int)(mc / 1000),
@@ -1340,6 +1429,7 @@ int main(void)
         uart_poll();
         sd_tick();
         gamma_tick();      /* V9-5：gamma Auto 的推进（没开 Auto 时它立刻返回） */
+        temp_poll();       /* V9-6：一秒一次的片上温度 → OSD 那一格 */
     }
     return 0;
 }

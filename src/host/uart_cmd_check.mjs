@@ -103,7 +103,12 @@ const EXPECT = [
   // 注意 raw 的十六进制是**大写**：`xil_printf` 用的字母表是 0123456789ABCDEF，`%04x` 也一样。
   // 第一次跑这八条时这行红过一回，红在判据写成 [0-9a-f] —— 改判据去配合打印约定，不是放松判据
   // （放松是指把"必须有 4 位十六进制 raw"改成"随便什么都算过"，这里没有）。
-  [/\[TEMP\] degC=\d+\.\d+ raw=0x[0-9A-F]{4} vccint=\d+mv th=85C over=0 sane=1/],
+  // V9-6 起这一条还钉住"屏上那一格"的三段账：`osd=` 是 OSD 会画出来的那三个字符，
+  // `gpio=` 是从 CFG_DATA1 读回来的低字节（= PL 那条同步链正在采的值）。
+  // 反引用 `\1\2` 不是装饰：BCD 的一个字节写成十六进制，两位数字就是它的两个半字节，
+  // 所以 `osd=47C` 与 `gpio=0x47` 必须同形 —— 不同形就是"编码器算了、寄存器没收到"或反之。
+  //（`degC` 与 `osd` 的数值关系留给下面那段 JS 去算：四舍五入不是正则能做的。）
+  [/\[TEMP\] degC=\d+\.\d+ raw=0x[0-9A-F]{4} vccint=\d+mv th=85C over=0 sane=1 osd=(\d)(\d)C gpio=0x\1\2/],
   [/\[TEMP\] th=0C/],                                      // temp th 0：把告警线压到环境温度以下
   [/over=1/, /sane=1/],                                    // 于是同一块冷板子也必须报"过热"
   [/\[TEMP\] th=200C/],                                    // temp th 200：抬到物理不可能的位置
@@ -272,6 +277,46 @@ if (stats.length < 2) { console.log('FAIL 没有两条完整的 STAT，初/末�
 else if (stats[0] !== stats[stats.length - 1]) {
   console.log(`FAIL 电池改变了板上状态：初 ${stats[0]} ≠ 末 ${stats[stats.length - 1]}`); fail++;
 } else console.log(`ok   跑完回到初态：${stats[0]}`);
+
+/* ---- V9-6：屏上温度那一格的三方对账（驱动读数 ↔ 编码器输出 ↔ 寄存器实值）----
+ * 为什么这一段要写在 JS 里、而不是塞进上面那张正则表：这一格的分工是"PS 算十进制、PL 只照画"，
+ * 三段账里唯一需要**算术**才能对上的就是"读数 → 两位十进制"（四舍五入 + BCD 拼），正则做不到。
+ * 所以这里在判据器里**另写一份**编码器，与 `src/ps/main.c:temp_code_of` 互为反例源：
+ * 谁改了其中一份而没改另一份，这一段就红（同一个手法见 tb_osd_lines 的字模金表）。
+ * 反例：拿没有 `osd=`/`gpio=` 字段的旧捕获跑 —— 必须红，否则这条判据就是在空集上过。 */
+{
+    const T3 = /\[TEMP\] degC=(-?\d+)\.(\d+) raw=0x[0-9A-F]{4} vccint=(\d+)mv th=\d+C over=(\d) sane=(\d) osd=(\S+) gpio=0x([0-9A-F]{2})/g;
+    let m3, n3 = 0, bad3 = 0, anyDeg = 0;
+    while ((m3 = T3.exec(cap)) !== null) {
+        n3++;
+        const deg = parseInt(m3[1], 10), frac = m3[2], mv = parseInt(m3[3], 10);
+        // 打印口径是 `%d.%02d`，那两位是 (|mc|/10)%100 ⇒ 还原 = 度×1000 + 两位×10（符号取整数那份）
+        const mc = (deg < 0 ? -1 : 1) * (Math.abs(deg) * 1000 + parseInt(frac, 10) * 10);
+        const d = (mc >= 0) ? Math.floor((mc + 500) / 1000) : -Math.floor((-mc + 500) / 1000);
+        // 下面三行是 main.c:temp_code_of 的同一条门的第三种写法（VCCINT 那一路 + 物理量程 + 两位装得下）
+        const want = !((mv > 800 && mv < 1300) && mc > -40000 && mc < 150000 && d >= 0 && d <= 99)
+                   ? 0xFF : (((Math.floor(d / 10) << 4) | (d % 10)) >>> 0);
+        const osdWant = (want === 0xFF) ? '--'
+                      : `${Math.floor(want >> 4)}${want & 0xF}C`;
+        const got = parseInt(m3[7], 16), osdGot = m3[6];
+        if (got !== want || osdGot !== osdWant) {
+            bad3++;
+            console.log(`FAIL V9-6 温度格：读数 ${m3[1]}.${m3[2]} / vccint=${mv}mv ⇒ 应画 ${osdWant}` +
+                        `（编码 0x${want.toString(16).padStart(2, '0').toUpperCase()}），` +
+                        `板上回显 osd=${osdGot} gpio=0x${m3[7]}`);
+        }
+    }
+    anyDeg = cap.split(/\r?\n/).filter(l => l.startsWith('[TEMP] degC=')).length;
+    if (n3 === 0) {
+        console.log(`FAIL V9-6 温度格：${anyDeg} 行 [TEMP] degC= 但一条都对不上新格式 ⇒ ` +
+                    `elf 还没有这一格（或那几行被 SD 心跳劈开了）—— 红着比静默通过好`);
+        fail++;
+    } else if (bad3) {
+        fail += bad3;
+    } else {
+        console.log(`ok   V9-6 温度格三方对账：${n3} 条 [TEMP] 的 degC↔osd↔gpio 全部自洽`);
+    }
+}
 
 console.log(`\nRESULT ${fail === 0 ? 'PASS' : 'FAIL'} uart_cmd_check  (${lines.length} 条命令, ${((Date.now() - t0) / 1000).toFixed(1)} s, 捕获 ${OUT})`);
 if (fail) console.log(`     ${fail} 条不满足判据`);

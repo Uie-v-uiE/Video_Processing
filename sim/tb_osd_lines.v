@@ -17,7 +17,12 @@
 //   Verilog 字符串按字节塞，直接写会进去两个 UTF-8 字节（C2 B0），整行错位。
 module tb_osd_lines;
     localparam integer X0 = 16, Y0 = 12, SC = 3, CW = 18, CH = 21, LG = 10;
-    localparam integer MC = 32, NL = 4, LH = CH + LG;
+    // NL 跟 RTL 的默认值 N_LINES=5。**这里曾经写死 4**：`put` 有 `col < N_LINES*MAX_CHARS` 的
+    // 边界保护 ⇒ 传进 4 会把 V9-4 那一行**整行丢掉**，于是"ETH is no signal"与后来加的
+    // 温度格从头到尾没有金表（两份 RTL 都编得过、台架全绿，因为被测的那一份根本没有第五行）。
+    // 这是一类坑的第三次出现（#60/#88：判据在空集上过），修法也一样：让例化跟默认参数一致，
+    // 再让 T1e/T13e/T15 真的去比那一行。
+    localparam integer MC = 32, NL = 5, LH = CH + LG;
 
     reg clk = 0, rst_n = 0;
     always #10 clk = ~clk;
@@ -27,6 +32,8 @@ module tb_osd_lines;
     reg [8:0]  i_sel   = 0;
     reg [7:0]  i_th    = 80;
     reg [5:0]  i_gd    = 0;
+    reg [7:0]  i_tmp   = 8'hFF;   // V9-6：屏上温度那一格（BCD，半字节 >9 = 没有可信读数）
+    reg        i_ns    = 0;       // V9-4：ETH is no signal 的开关
     reg [2:0]  i_zc    = 4;
     reg        i_za    = 0;
     reg [7:0]  i_sp    = 50;
@@ -47,7 +54,7 @@ module tb_osd_lines;
         .angle(i_angle), .fps(i_fps), .stage_sel(i_sel), .threshold(i_th),
         .gamma_disp(i_gd), .zoom_code(i_zc), .zoom_auto(i_za), .zoom_fit(1'b0),
         .split_pct(i_sp), .split_auto(i_sa), .lat_ms(i_ms), .lat_ok(i_ok),
-        .src_eff(i_src), .mode(i_mode), .bg_pix(16'h0), .no_sig(1'b0),
+        .src_eff(i_src), .mode(i_mode), .bg_pix(16'h0), .no_sig(i_ns), .temp_disp(i_tmp),
         .r_in(8'd0), .g_in(8'd0), .b_in(8'd0), .hs_in(1'b0), .vs_in(1'b0),
         .r(ro), .g(go), .b(bo), .de_out(de_o), .hs_out(hs_o), .vs_out(vs_o)
     );
@@ -62,7 +69,7 @@ module tb_osd_lines;
         .angle(i_angle), .fps(i_fps), .stage_sel(i_sel), .threshold(i_th),
         .gamma_disp(i_gd), .zoom_code(i_zc), .zoom_auto(i_za), .zoom_fit(1'b0),
         .split_pct(i_sp), .split_auto(i_sa), .lat_ms(i_ms), .lat_ok(i_ok),
-        .src_eff(i_src), .mode(i_mode), .bg_pix(16'h0), .no_sig(1'b0),
+        .src_eff(i_src), .mode(i_mode), .bg_pix(16'h0), .no_sig(1'b0), .temp_disp(i_tmp),
         .r_in(8'd0), .g_in(8'd0), .b_in(8'd0), .hs_in(1'b0), .vs_in(1'b0),
         .r(r2), .g(g2), .b(b2), .de_out(), .hs_out(), .vs_out()
     );
@@ -223,6 +230,7 @@ module tb_osd_lines;
             i_gd = 6'd18;  i_zc = 3'd3;     i_za = 1'b1;
             i_sp = 8'd50;  i_sa = 1'b0;     i_ms = 16'd16;  i_ok = 1'b1;
             i_src = 2'b11; i_mode = 2'b00;
+            i_tmp = 8'h47; i_ns = 1'b0;     // 屏上温度那一格：BCD 47 ⇒ `Temp:47C`
         end
     endtask
 
@@ -236,7 +244,10 @@ module tb_osd_lines;
         expect_line(1, "Pipe:11000 Th:80 Gamma:1.8", "T1b");
         expect_line(2, {"Rot:45", 8'hDF, "  Zoom:0.75x(Auto)"}, "T1c");
         expect_line(3, "Split:50%  Latency:16ms", "T1d");
-        if (errors == 0) $display("[tb_osd_lines.v:239] PASS T1 四行逐字符等于用户原话（分辨率按真实几何 512x300 画）");
+        // L4（V9-4 开、V9-6 起常驻温度）：这一格第一次有金表 —— 以前 NL 写死 4，
+        // RTL 里那一行整个没被例化出来，所以"绿"是空集上的绿（见文件头那条 ⚠）。
+        expect_line(4, "Temp:47C", "T1e");
+        if (errors == 0) $display("[tb_osd_lines.v:239] PASS T1 四行逐字符等于用户原话（分辨率按真实几何 512x300 画），第 5 行是常驻的温度格");
 
         // ================= T2 数字宽度：不打前导零；越界一律饱和不回卷 =================
         i_fps = 8'd9;   i_angle = 9'd5; i_th = 8'd9; i_sp = 8'd7; i_ms = 16'd5; settle;
@@ -364,15 +375,18 @@ module tb_osd_lines;
         end
 
         // ================= T9 屏上不许有"看不见的字母" =================
+        // V9-6 起第五行也要查：那一行有 `Temp:`（大写 T + 三个小写 + 冒号）、数字、`C`，
+        // 以及 `ETH is no signal`（那句里的小写 g 是 V9-4 新画的）—— 少一个字模就是屏上静默少一笔。
         defaults(); settle;
         no_invisible(0, "T9a"); no_invisible(1, "T9b");
-        no_invisible(2, "T9c"); no_invisible(3, "T9d");
+        no_invisible(2, "T9c"); no_invisible(3, "T9d"); no_invisible(4, "T9i");
         i_src = 2'b00; i_mode = 2'b11; i_sa = 1'b1; i_zc = 3'd7;
-        i_th = 8'd255; i_ok = 1'b0; i_gd = 6'd30; settle;
+        i_th = 8'd255; i_ok = 1'b0; i_gd = 6'd30;
+        i_ns = 1'b1;   i_tmp = 8'hFF;   settle;   // 温度读不到 + ETH 那一句亮着：这一行的另一半状态
         no_invisible(0, "T9e"); no_invisible(1, "T9f");
-        no_invisible(2, "T9g"); no_invisible(3, "T9h");
+        no_invisible(2, "T9g"); no_invisible(3, "T9h"); no_invisible(4, "T9j");
         defaults(); settle;
-        if (errors == 0) $display("[tb_osd_lines.v:375] PASS T9 两种状态 × 四行：每个非空格都译得出字模号，空格必须译成 63");
+        if (errors == 0) $display("[tb_osd_lines.v:375] PASS T9 两种状态 × 五行：每个非空格都译得出字模号，空格必须译成 63");
 
         // ================= T10 新字模逐像素扫（按码点找格子，不手写第几格） =================
         // 位图是 TB 自己抄的（`build/glyphs_draft.txt` 那份），与 RTL 互为反例源：
@@ -417,10 +431,14 @@ module tb_osd_lines;
         i_fps = 8'd99; i_src = 2'b00; i_mode = 2'b11;
         i_sel = 9'h1FF; i_th = 8'd255; i_gd = 6'd18;
         i_angle = 9'd359; i_zc = 4; i_za = 1; i_sp = 8'd100; i_sa = 0; i_ms = 16'd999; i_ok = 1;
+        // 第五行的最宽激励：温度两位数 + ETH 那一句**同时**在（两者会拼在同一行，
+        // 任缺其一都会把这一行的宽度少算 16 格 ⇒ 出界就看不见了）。
+        i_tmp = 8'h99; i_ns = 1'b1;
         settle;
         line_within_pane(0, "T13a"); line_within_pane(1, "T13b");
         line_within_pane(2, "T13c"); line_within_pane(3, "T13d");
-        if (errors == 0) $display("[tb_osd_lines.v:423] PASS T13 最宽可达激励下四行都留在分割线这边（X0+k*CW <= 511）");
+        line_within_pane(4, "T13e");
+        if (errors == 0) $display("[tb_osd_lines.v:423] PASS T13 最宽可达激励下五行都留在分割线这边（X0+k*CW <= 511）");
 
         // ================= T14 两个"看着像别的字母"的字模（用户报 Src→Sro / Split→Solit）====
         // 点阵是**按字母形状手抄**的，不从 osd_overlay.v 复制（那正是当初让它活下来的原因：
@@ -429,6 +447,69 @@ module tb_osd_lines;
         scan_glyph(0, 10, 35'b00000_00000_01110_10000_10000_10000_01111, "T14a"); // c
         scan_glyph(1,  2, 35'b00000_00000_10110_10001_10001_10110_10000, "T14b"); // p
         if (errors == 0) $display("[tb_osd_lines.v:431] PASS T14 c/p 两个字模逐像素对上（c 右列全空、p 左列贯通）");
+
+        // ================= T15 温度那一格：256 个编码全扫（V9-6） =================
+        // 为什么是"全扫 256"而不是挑几个：这一格的规则是一句位判断
+        //   （`temp_disp[7:4] <= 9 && temp_disp[3:0] <= 9` ⇒ 画 BCD，否则画 `--`），
+        //   挑样最容易漏掉的就是"边界那 1"：把 `<= 9` 写成 `< 9`，只有含数字 9 的那些编码会红
+        //   （0x09、0x19、…、0x90、0x99 —— 而 47 °C 这种室温激励一个都不会红）。
+        // TB 侧的期望是**自己算的**（十位/个位各自转 ASCII），不是抄 RTL 的字符串：
+        //   抄来的期望与实现同源 ⇒ 抄错也一起错（T14 那条注释讲的是同一件事）。
+        // 顺带钉住"两位固定宽度"：100 个编码里 0..9 °C 画的是 `Temp:07C` 而不是 `Temp:7C` ——
+        //   这与 L1/L3 的"不打前导零"**相反**，是有意的：这一格后面跟着 ETH 那句异常文字，
+        //   数字宽度一跳整句就会左右抖。理由写在 osd_overlay.v 的 L4 那段。
+        begin : blk15
+            integer q15, ndig15, ndash15, hit15;
+            reg [7:0] c15;                      // ⚠ 扫描变量必须是 reg 不是 integer：**integer 不许
+                                                //   做部分选择**（Verilog-2001），而这里要拆两个半字节
+            reg [3:0] d15, o15;
+            reg [8*32-1:0] w15;
+            ndig15 = 0; ndash15 = 0;
+            defaults(); settle;      // ⚠ 必须先把 i_ns 收回 0：T13 的最宽激励把 ETH 那一句点亮了，
+                                     //   而 expect_line 是**整行 32 格**都比（尾巴多一句就是几十个 FAIL）
+            for (q15 = 0; q15 < 256; q15 = q15 + 1) begin
+                c15  = q15;        // 靠赋值截到低 8 位（integer 不能做部分选择，写 q15[7:0] 是非法的）
+                d15  = c15[7:4];
+                o15  = c15[3:0];
+                i_tmp = c15;
+                if (d15 <= 4'd9 && o15 <= 4'd9) begin
+                    w15 = {"Temp:", 8'h30 + d15, 8'h30 + o15, 8'h43};   // 'C'
+                    ndig15 = ndig15 + 1;
+                end else begin
+                    w15 = "Temp:--";
+                    ndash15 = ndash15 + 1;
+                end
+                settle;
+                expect_line(4, w15, "T15");
+            end
+            // 陪跑数：100 个能画、156 个画 `--`。少了这一条，"扫了 256 次"本身也可能是错觉
+            //（比如循环变量接错，256 次都是同一个编码 ⇒ 全都"过"）。
+            if (ndig15 != 100 || ndash15 != 156) begin
+                errors = errors + 1;
+                $display("[tb_osd_lines.v:452] FAIL T15 分类数不对：能画 %0d（应 100）、-- %0d（应 156）",
+                         ndig15, ndash15);
+            end
+            // 复位值那一格：effect_ctrl 的 gm_sync 低字节复位成 0xFF ⇒ 屏上必须是 `--`，
+            // 不能是 `Temp:00C`（那是一条谁都没测过的数）。扫面里已经含 0xFF，这一条是把它点名。
+            i_tmp = 8'hFF; settle;
+            expect_line(4, "Temp:--", "T15z");
+            // 这条判据自己有没有牙：拿错的期望比一次 L4（T11 的同一手法，针对新加的这一行）
+            save_e = errors; verbose = 0;
+            i_tmp = 8'h47; settle;
+            hit15 = errors;
+            expect_line(4, "Temp:48C", "T15t");          // 故意比错：个位差 1
+            if (errors == hit15 + 1) errors = hit15;      // 预期的红，撤销
+            else begin
+                verbose = 1;
+                errors = errors + 1;
+                $display("[tb_osd_lines.v:462] FAIL T15t 第五行的比对没牙：错期望报了 %0d 处（应为 1）",
+                         errors - hit15);
+            end
+            verbose = 1;
+            defaults(); settle;
+            if (errors == save_e)
+                $display("[tb_osd_lines.v:466] PASS T15 温度那一格 256 个编码全扫过，且错期望会被抓到");
+        end
 
         // ================= T12 陪跑：样本数必须 > 0（#60 那一课） =================
         if (errors == 0) $display("[tb_osd_lines.v:434] PASS T12 本台架比对了 %0d 格、查了 %0d 个非空格、扫了 %0d 个字形",

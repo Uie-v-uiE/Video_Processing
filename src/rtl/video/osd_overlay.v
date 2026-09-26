@@ -68,6 +68,14 @@ module osd_overlay #(
     // 用户的原话：「现在没有 ETH 的时候，如果接到 ETH 信号，它仍然是锁住上一帧的画面」⇒
     // 不许只是悄悄冻着，要在屏上说清楚（他选的方案就是"打印一条 ETH is no signal"）。
     input  wire        no_sig,
+    // V9-6：片上温度（PS 侧 XADC）。两位**十进制 BCD**（[7:4]=十位、[3:0]=个位），
+    //   任何一个半字节 >9 就是"还没有可信读数"⇒ 画 `--`（与 `lat_ok=0` 同一规矩）。
+    //   为什么 PS 就把十进制算好了再传：这个 always 块是**一整块组合逻辑**，而
+    //   `u_pipe/xd_reg[7][4] → u_osd/g_reg[6]/D`（27 级）正是 clkout0_1 那一组的 WNS 路径
+    //   （r63b/r63c/r64b 三份 timing_summary 都指着它）⇒ 这里再加一次 /100+/10 是往
+    //   全设计最差的链上加深度。先例：Latency 那一格从 #59 起就是"换算在 axi 域做完再跨"。
+    //   量程与诚实：这一格只画 0..99 °C；越界与读不到都画 `--`，完整读数在串口 `temp`。
+    input  wire [7:0]  temp_disp,
     input  wire [15:0] bg_pix,
     output reg  [7:0]  r,
     output reg  [7:0]  g,
@@ -293,13 +301,29 @@ module osd_overlay #(
         else putd3(lt_h, (lt_rem / 8'd10), (lt_rem % 8'd10));
         puts("ms", 2);
 
-        // ---------- L4（V9-4）：只在"屏上挂着 ETH 帧、但已经没有信号"时出现 ----------
-        // 为什么值得单独一行：这条判据是**给用户看的**（拔了线/停了推流时画面会冻在最后一帧，
-        // 没有这一句就会被当成"板子卡死"）。它的凭据不是眼睛：`no_sig` 由顶层从 eth_live
-        // 推出来，而 eth_live 每一位都有台架（tb_link_monitor）与机器读回（lane0/lane2）。
+        // ---------- L4：V9-4 开这一行，现在它常驻"片上温度"，ETH 那一句跟在后面 ----------
+        // 为什么温度落在这一行而不是 L1（gamma 旁边）：上面四行的字段、顺序、空格是用户
+        //   2026-09-24 亲给的，V8-5 的偏差清单只允许改空格数；而这一行本来就是"要告诉用户的话"
+        //   开的。最宽激励 `Temp:47C  ETH is no signal` = 26 格 ⇒ 右沿 16+26*18 = 484 < 511，
+        //   温度与异常句并存也不压到分割线（判据 tb_osd_lines T13e）。
+        // `no_sig` 的判据不变（顶层从 eth_live 推）：这一句仍然只在"屏上挂着 ETH 帧但没信号"时出现。
+        // 为什么当初值得单独开这一行、今天为什么还留着：这条判据是**给用户看的**（拔了线/停了推流
+        //   时画面会冻在最后一帧，没有这一句就会被当成"板子卡死"）。它的凭据不是眼睛：`eth_live`
+        //   每一位都有台架（tb_link_monitor）与机器读回（lane0/lane2）。
         at(4);
+        puts("Temp:", 5);
+        // 两个半字节都是十进制数字才画数，否则画 `--` —— 与 `lat_ok=0` 同一规矩：
+        //   不许把不成立的数画到屏上。上电时 effect_ctrl 那条链的复位值就是"非数字"，
+        //   所以 PS app 起来之前这一格是 `Temp:--`，不是 `Temp:00C`（那是一条没人测过的数）。
+        if ((temp_disp[7:4] <= 4'd9) && (temp_disp[3:0] <= 4'd9)) begin
+            put(dig(temp_disp[7:4]));          // 十位
+            put(dig(temp_disp[3:0]));          // 个位
+            put("C");
+        end else begin
+            puts("--", 2);
+        end
         if (no_sig) begin
-            puts("ETH is no ", 10);
+            puts("  ETH is no ", 12);
             puts("signal", 6);
         end
     end

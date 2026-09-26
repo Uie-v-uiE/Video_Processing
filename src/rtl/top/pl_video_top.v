@@ -218,6 +218,7 @@ module pl_video_top #(
     wire       gm_en, gm_wr;
     wire [7:0] gm_idx, gm_data;
     wire [5:0] gm_disp;          // V8-5：只给 OSD 的 gamma×10（同一对同步器带过来的 6 位）
+    wire [7:0] tmp_disp;         // V9-6：只给 OSD 的片上温度 BCD（**同一对**同步器的低字节）
     wire [2:0] zsel_pix;         // V8-8：手动档号（与 sel_sync 同源同深度）
     wire       zman_pix;         // V8-8：手动旗标
     effect_ctrl u_eff (
@@ -232,7 +233,7 @@ module pl_video_top #(
         .zoom_sel(zsel_pix), .zoom_manual(zman_pix),
         .effect_en(en_sync), .threshold(th_sync),
         .gamma_en(gm_en), .gamma_wr(gm_wr), .gamma_idx(gm_idx), .gamma_data(gm_data),
-        .gamma_disp(gm_disp)
+        .gamma_disp(gm_disp), .temp_disp(tmp_disp)
     );
 
     (* ASYNC_REG = "TRUE" *) reg ze0, ze1, ze2;
@@ -1033,6 +1034,7 @@ module pl_video_top #(
         .src_eff({fb_vis, owner_eth_pix}),   // 屏幕上真的这一路：CARD / PS / ETH
         .mode(mode),
         .no_sig(no_sig),                     // V9-4：屏上印 "ETH is no signal"
+        .temp_disp(tmp_disp),                // V9-6：片上温度那一格（L4 常驻）
         .bg_pix(16'h0),
         .r_in(r), .g_in(g), .b_in(b),
         .hs_in(hs_o), .vs_in(vs_o),
