@@ -85,6 +85,16 @@ module tb_v89_align;
     // "缓存没内容"的分支，把边界与内部混在一张直方图里，S1 判的就不是"错位是不是固定"
     // 而是"边界有几格" —— 那是另一种问法，得分开问。
     integer MARGIN = 4;
+    // ---------------- 逐列恒等账（#92 的第二把尺子，2026-09-26 夜）----------------
+    // 为什么现有判据看不见这件事：内部那一套把 `posx == W-1` 整列**排除**在判据之外（下面
+    // `posx[idx] < W-1` 那一条），而整帧那一套用的是直方图峰值——每行错一列 = 32/1024 个样本，
+    // 峰仍在主偏移上，所以 T0/T1 全绿。而顶层台架 `tb_v98` 的 C2 恰恰是在**每行最后一列**量到
+    // 484 个偏离（`dm1=484 dp1=0 dother=0`，见 `build/evidence_r71` 之外的 `build/r71_gates.txt`
+    // 第 15 项）。两边说的是同一件事，只是这里能几秒钟跑完、还知道是哪一级。
+    // 记法：对每个被测、每个**输出列号**，存一份"该列看到的错位量"直方图；跑完之后拿整帧主偏移
+    // 当基准，凡是某一列的样本没落在主偏移上，就把这一列报出来。不做任何延迟假设。
+    localparam DCN = 11;                        // dc 的记账窗（-5..+5），与 NG 同宽
+    integer colbin [0:4][0:W-1][0:DCN-1];
     task sample;
         input integer idx;
         input [15:0]  q;
@@ -96,6 +106,9 @@ module tb_v89_align;
                 hb[idx][(dr + 5)*NG + (dc + 5)] = hb[idx][(dr + 5)*NG + (dc + 5)] + 1;
             else obc[idx] = obc[idx] + 1;
             cnt[idx] = cnt[idx] + 1;
+            // 逐列那份账：只跳过**首几行**（行缓存热身），最后一列要算进来
+            if (posy[idx] >= MARGIN && dc >= -5 && dc <= 5)
+                colbin[idx][posx[idx]][dc + 5] = colbin[idx][posx[idx]][dc + 5] + 1;
             if (posy[idx] >= MARGIN && posy[idx] < H-1 && posx[idx] >= MARGIN && posx[idx] < W-1) begin
                 if (dr >= -5 && dr <= 5 && dc >= -5 && dc <= 5)
                     hbi[idx][(dr + 5)*NG + (dc + 5)] = hbi[idx][(dr + 5)*NG + (dc + 5)] + 1;
@@ -126,6 +139,8 @@ module tb_v89_align;
 
     integer ii, jj, kk, bi, bj, bv, tot, errors, dr_chain, dr_sum;
     integer ii2, jj2, biv, totv;               // 内部像素那一套峰值
+    integer ii3, jj3, c3, b3, m3, mj;          // ID（逐列恒等）内层循环
+    integer idbad, idncol, idcol1, iddc1, idn1, idtot;   // ID 的账
     integer nsec [0:4];                         // 内部"第二个偏移"的样本数（报数用）
     integer drow_i [0:4], dcol_i [0:4];         // 每个被测的内部主偏移
     // 本文件原来的判据是内联写的（`if (!c) errors=errors+1;`）。新加的 T0/T1 用统一的任务，
@@ -164,6 +179,8 @@ module tb_v89_align;
                     for (kk = 0; kk < NG*NG; kk = kk + 1) begin
                         hb[jj][kk] = 0; hbi[jj][kk] = 0;
                     end
+                    for (ii3 = 0; ii3 < W; ii3 = ii3 + 1)
+                        for (jj3 = 0; jj3 < DCN; jj3 = jj3 + 1) colbin[jj][ii3][jj3] = 0;
                 end
             end
             for (jj = 0; jj < H; jj = jj + 1) begin
@@ -222,6 +239,28 @@ module tb_v89_align;
                          name_of(kk), cnt[kk], H*W);
                 errors = errors + 1;
             end
+            // ---- ID：旁路下的逐列恒等（#92 第二把尺子）----
+            // 每一列的样本都必须落在**整帧主偏移**那一格上；哪一列没有，就把它和它偏到哪一格报出来。
+            // 这条不看峰值、不排最后一列，所以 T0/T1 全绿而顶层 C2 每行错一列这件事，从这里开始不可能再藏。
+            idbad = 0; idncol = 0; idcol1 = -1; iddc1 = 0; idn1 = 0; idtot = 0;
+            for (ii3 = 0; ii3 < W; ii3 = ii3 + 1) begin
+                c3 = 0; b3 = 0; m3 = -1; mj = 0;
+                for (jj3 = 0; jj3 < DCN; jj3 = jj3 + 1) begin
+                    c3 = c3 + colbin[kk][ii3][jj3];
+                    if (jj3 != bj && colbin[kk][ii3][jj3] > 0) begin
+                        b3 = b3 + colbin[kk][ii3][jj3];
+                        if (colbin[kk][ii3][jj3] > m3) begin m3 = colbin[kk][ii3][jj3]; mj = jj3; end
+                    end
+                end
+                idtot = idtot + c3;
+                if (b3 != 0) begin
+                    idbad = idbad + b3; idncol = idncol + 1;
+                    if (idcol1 < 0) begin idcol1 = ii3; iddc1 = mj - 5; idn1 = b3; end
+                end
+            end
+            $display("ID %0s: off-col samples=%0d/%0d in %0d cols | first col=%0d dc=%0d n=%0d",
+                     name_of(kk), idbad, idtot, idncol, idcol1, iddc1, idn1);
+            expect("ID 旁路必须逐列恒等（含每行最后一列，偏移只有一个值）", idbad == 0);
             if (kk < 4) dr_sum = dr_sum + (ii2 - 5);
             else        dr_chain = ii2 - 5;
             drow_i[kk] = ii2 - 5; dcol_i[kk] = jj2 - 5;

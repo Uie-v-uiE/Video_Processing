@@ -29,16 +29,23 @@ mkdir -p "$D"
 # 三件成品（位流/xsa/elf）+ 七份报告 + 两份台架与门禁 + 端口/宽度/多驱自检
 for f in system.bit system.xsa ps_app.elf timing_summary.rpt utilization.rpt power.rpt \
          route_status.rpt methodology.rpt cdc.rpt multi_driven.txt width_warnings.txt \
-         tb_v98_report.txt r71_gates.txt r71_build_console.txt r71_tb98_report_wrap.txt \
-         r71_tb98_console.txt; do
+         ports_check.txt tb_v98_report.txt r71_gates.txt r71_build_console.txt \
+         r71_tb98_report_wrap.txt r71_tb98_console.txt; do
     [ -f "build/$f" ] && cp -f "build/$f" "$D/$f"
 done
 # 这几份是"这一轮跑台架时的现场"，不在 build/ 里而在 /tmp（run_one 的工作目录）
 [ -f /tmp/kx/tb_v98_top_seam.run/run.log ] && cp -f /tmp/kx/tb_v98_top_seam.run/run.log "$D/r71_tb_v98_run.log"
 [ -f /tmp/kx/tb_v98_top_seam.run/prov.txt ] && cp -f /tmp/kx/tb_v98_top_seam.run/prov.txt "$D/r71_tb98_prov.txt"
 [ -f /tmp/kx/r71_finalize.log ] && cp -f /tmp/kx/r71_finalize.log "$D/r71_finalize.log"
+# **L1 全量回归的原始日志也要进这一套**：门禁第 15 项只盯顶层台架那一份报告，其余台架红着
+# 门禁可以全绿（2026-09-26 一天之内撞见两次：`tb_link_monitor` 与 `tb_v98` 都曾静默红过）。
+# 所以冻结件里必须留一份"这一版下所有台架各自的 RESULT 行"，否则下一轮无法回答
+# "r71 当时到底跑过哪些判据"。
+[ -f /tmp/kx/r71_l1.log ] && cp -f /tmp/kx/r71_l1.log "$D/r71_l1_regress.txt"
 # 顶层台架里"C2SHAPE / C2IBAD"那几行是 #92 残余那一格的唯一原始读数，单独抽一份免得埋在 60 KB 日志里
 grep -a "^C2SHAPE\|^C2 row\|^C2IBAD\|^C2BLK" "$D/r71_tb_v98_run.log" > "$D/r71_c2_shape.txt" 2>/dev/null
+L1P=$(grep -ac '^RESULT .* PASS' "$D/r71_l1_regress.txt" 2>/dev/null || echo 0)
+L1F=$(grep -ac '^RESULT .* FAIL' "$D/r71_l1_regress.txt" 2>/dev/null || echo 0)
 
 ( cd build
   # ⚠ 只列"成套"那几件（三件成品 + 报告），不列 evidence 目录自己 —— 否则 MANIFEST 要包含自己的 md5。

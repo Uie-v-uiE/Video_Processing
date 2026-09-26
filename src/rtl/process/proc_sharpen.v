@@ -33,8 +33,11 @@ module proc_sharpen #(
             lb1[x_in] <= din;
         end
     end
-    wire [15:0] up2 = lb0[x_in];           // 上上行
-    wire [15:0] up1 = lb1[x_in];           // 上一行
+    // #92 第四笔（与 proc_box_blur.v 同名注释一条）：行尾多跳一拍，末列的中心才进得了输出。
+    wire shift_w = de_in || (de_d1 && !de_in);
+    wire [11:0] x_rd = (x_in >= H_ACTIVE[11:0]) ? (H_ACTIVE[11:0] - 12'd1) : x_in;
+    wire [15:0] up2 = lb0[x_rd];           // 上上行
+    wire [15:0] up1 = lb1[x_rd];           // 上一行
 
     // R/B 5 bit，G 6 bit；中心 ×4 + 中心 = ×5，四邻直接相加（≤ 4×满量程）
     // 抽头约定与 proc_box_blur 一模一样：**移位之前**的 p00..p22 就是以 p11 为中心的 3×3，
@@ -79,8 +82,9 @@ module proc_sharpen #(
     //   这条由门禁第 13 项（多驱动 CRITICAL WARNING 计数）拦下，见 ISSUES #61。
     always @(posedge clk or negedge rst_n)
     if (!rst_n) border_r <= 3'b0;
-    else if (de_in) begin
-        border_r[0] <= (x_in == 12'd0) || (x_in == H_ACTIVE-1) || (y_in == 12'd0);
+    else if (shift_w) begin
+        // 旗标链与中心链同拍移位（含行尾那一跳）；那一跳对应的正是末列 ⇒ 旗标钉 1。
+        border_r[0] <= de_in ? ((x_in == 12'd0) || (x_in == H_ACTIVE-1) || (y_in == 12'd0)) : 1'b1;
         border_r[1] <= border_r[0];
         border_r[2] <= border_r[1];
     end
@@ -93,17 +97,21 @@ module proc_sharpen #(
             p00<=0; p01<=0; p02<=0; p10<=0; p11<=0; p12<=0; p20<=0; p21<=0; p22<=0;
             de_d1<=0; de_d2<=0; de_out<=0; dout<=0;
         end else begin
-            if (de_in) begin
+            // 行缓存那两路跟 `shift_w`（含行尾多跳的一拍）；当前行那一路只跟 `de_in`——
+            // 消隐期的 `din` 不是像素，移进窗口只会把左边界更早就弄脏。
+            if (shift_w) begin
                 p00<=p01; p01<=p02; p02<=up2;
                 p10<=p11; p11<=p12; p12<=up1;
+            end
+            if (de_in) begin
                 p20<=p21; p21<=p22; p22<=din;
             end
             de_d1 <= de_in;
             de_d2 <= de_d1;
             de_out <= de_d2;
             // 旁路/边界取 p11（窗口中心抽头）—— 与 proc_box_blur / proc_sobel / proc_morph 同一个约定。
-            // 本级单独做到"de 与数据自洽"反而更糟：混用约定会让"开关某一级"时画面跳一行。
-            // 窗口级本身的行列错位是独立问题，记在 ISSUES #54，不在这里半修。
+            // 四个窗口级以前**每行最后一列**都发的是前一列的中心（`tb_v89` 的 ID 判据，#92 第四笔）；
+            // 行尾多跳一拍之后 ID 归零，#54 那条"行列错位"的账到这里才算平。
             dout   <= (bypass || border) ? p11 : sharp;   // 中心抽头，与 blur 同约定
         end
     end

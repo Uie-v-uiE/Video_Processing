@@ -21,6 +21,21 @@ module proc_box_blur #(
     reg [15:0] p00, p01, p02, p10, p11, p12, p20, p21, p22;
     reg        de_d1, de_d2;
 
+    // ---------------------------------------------------------------- #92 第四笔：行尾多跳一拍
+    // 症状（`tb_v89_align` 的 ID 判据，2026-09-26 夜）：**每一行的最后一列**发出的中心是**前一列**
+    // 的（`off-col samples=28/896 in 1 cols | first col=31 dc=-1`，四个窗口级一模一样），
+    // 顶层台架 `tb_v98` 的 C2 于是量到 `inbad=484 badpairs=1 firstpair=511`。
+    // 机理：中心抽头是 `p11 <= p12 <= r1`，也就是"当拍读到的那一格要**再跳一拍**才成为中心"；
+    // 而移位整个被 `de_in` 钉住 ⇒ 行内最后一个有效像素读完，下一拍就是消隐，那一跳永远不来。
+    // ⇒ 每行少发一个样本，输出流却按 `de_out` 数够格子 ⇒ 最后一格只能重复前一列。
+    // 修法：行尾**多跳一拍**（`de_d1 && !de_in` 恰好一拍）。多跳这拍要的正是末列自己，
+    // 所以当前行那一路（p22，喂 avg 的）不参与——消隐期的 `din` 不是像素，把它移进窗口只会更糟。
+    wire shift_w = de_in || (de_d1 && !de_in);
+    // 多跳那一拍 `x_in` 已经走到 porch（顶层一屏 1344 计数，而行缓存只有 H_ACTIVE 深）：
+    // 直接拿它当读地址，仿真越界给 X、硬件按位截断读到别的列 ⇒ 读地址钉在**末列**。
+    // 这既是"复制边像素"(clamp-to-edge)，也让这一拍移进窗口的两个邻居与末列的中心一格不差。
+    wire [11:0] x_rd = (x_in >= H_ACTIVE[11:0]) ? (H_ACTIVE[11:0] - 12'd1) : x_in;
+
     always @(posedge clk) begin
         if (de_in) begin
             lb0[x_in] <= lb1[x_in];
@@ -28,8 +43,8 @@ module proc_box_blur #(
         end
     end
 
-    wire [15:0] r0 = lb0[x_in];
-    wire [15:0] r1 = lb1[x_in];
+    wire [15:0] r0 = lb0[x_rd];
+    wire [15:0] r1 = lb1[x_rd];
 
     // 9-sample sums (5b*9=9b, 6b*9=10b)
     wire [9:0] rs = {5'd0,p00[15:11]}+{5'd0,p01[15:11]}+{5'd0,p02[15:11]}
@@ -67,8 +82,10 @@ module proc_box_blur #(
     //   这条由门禁第 13 项（多驱动 CRITICAL WARNING 计数）拦下，见 ISSUES #61。
     always @(posedge clk or negedge rst_n)
     if (!rst_n) border_r <= 3'b0;
-    else if (de_in) begin
-        border_r[0] <= (x_in == 12'd0) || (x_in == H_ACTIVE-1) || (y_in == 12'd0);
+    else if (shift_w) begin
+        // 旗标链必须与中心链**同拍**移位（含行尾那一跳），否则边界位与内容差一格——
+        // 那正是 #54 (A') 记过的"比的是发出去之后第几拍"那一族。多跳那一拍对应的正是末列 ⇒ 旗标 1。
+        border_r[0] <= de_in ? ((x_in == 12'd0) || (x_in == H_ACTIVE-1) || (y_in == 12'd0)) : 1'b1;
         border_r[1] <= border_r[0];
         border_r[2] <= border_r[1];
     end
@@ -82,9 +99,13 @@ module proc_box_blur #(
             p00<=0; p01<=0; p02<=0; p10<=0; p11<=0; p12<=0; p20<=0; p21<=0; p22<=0;
             de_d1<=0; de_d2<=0; de_out<=0; dout<=0;
         end else begin
-            if (de_in) begin
+            // 中心那两行来自行缓存读，跟着 `shift_w` 走（含行尾多跳的那一拍）；
+            // 当前行那一路只跟 `de_in` 走 —— 消隐期的 `din` 不是像素，移进窗口只会污染左边界。
+            if (shift_w) begin
                 p00<=p01; p01<=p02; p02<=r0;
                 p10<=p11; p11<=p12; p12<=r1;
+            end
+            if (de_in) begin
                 p20<=p21; p21<=p22; p22<=din;
             end
             de_d1 <= de_in;

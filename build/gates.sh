@@ -259,12 +259,15 @@ if [ "$D" = "build" ]; then
         TBYES=$(sed -n 's/.* tb_md5=\([0-9a-f]*\).*/\1/p' "$TB98" | head -1)
         NFAIL=$(grep -ac "^FAIL " "$TB98")
         DONE=$(grep -ac "^RESULT tb_v98_top_seam PASS$" "$TB98")
+        # 台架"跑完了并且自己判红"与"跑挂了什么都没判"是**两件不同的事**，念成一句话就会把人
+        # 支去重跑一次 75 min 的台架（而真正该做的是读那三行 FAIL 的数）。汇总行里有 FAIL 就直说。
+        RFIN=$(grep -ac "^RESULT tb_v98_top_seam FAIL" "$TB98")
         OK=1
         WHY=""
         [ "$TOPYES" = "$TOPWANT" ] || { OK=0; WHY="$WHY顶层 md5 不符($TOPYES!=$TOPWANT：改过 pl_video_top，报告与当前树不是同一次跑) "; }
         [ "$TBYES" = "$TBWANT" ]   || { OK=0; WHY="$WHY台架 md5 不符($TBYES!=$TBWANT：改过 tb_v98，复跑) "; }
         [ "$NFAIL" = "0" ]         || { OK=0; WHY="$WHY报告里有 $NFAIL 行 FAIL "; }
-        [ "$DONE" = "1" ]          || { OK=0; WHY="$WHY没有 RESULT…PASS 汇总行（台架没跑完或中途退出） "; }
+        [ "$DONE" = "1" ]          || { OK=0; WHY="$WHY没有 RESULT…PASS 汇总行（$([ "$RFIN" -gt 0 ] && echo "台架跑完了、是它自己判红的，先读 FAIL 那几行的数" || echo "台架没跑完或中途退出")） "; }
         say "顶层台架 tb_v98" "top=$TOPYES FAIL行=$NFAIL" "同一次跑且无 FAIL" $OK
         [ -n "$WHY" ] && echo "        ——$WHY"
     else
@@ -288,11 +291,15 @@ printf '%s\n' "$HBOUT" | tail -6 | sed 's/^/        /'
 # 坏掉的不是硬件，是"演示时念给自己听的那份清单"，而那份要给评审看 ⇒ 判据要能自己跑。
 # --self 那一路是它自己的反例（造三条坏行必须抓到三条），没有这一段就等于"绿给绿的人看"。
 node src/host/doc_enc_check.mjs --self > /tmp/docenc_self.$$.txt 2>&1; DOCRC1=$?
-DOCSUM=$(node src/host/doc_enc_check.mjs 2>&1 | head -1); DOCRC2=$?
-say "手写件编码 doc_enc" "$(printf '%s' "$DOCSUM" | cut -c1-24)" "self 抓到 3/3 且全树干净" \
+# ⚠ 退出码**不能从管道里取**：`SUM=$(node … | head -1); RC=$?` 拿到的是 `head` 的 0，
+#   于是判据红着这一项也绿（第 18 项今天就是这么被抓出来的——见下面那条双向验证）。
+DOCOUT=$(node src/host/doc_enc_check.mjs 2>&1); DOCRC2=$?
+DOCSUM=$(printf '%s\n' "$DOCOUT" | head -1)
+DOCRED=$(printf '%s\n' "$DOCOUT" | tail -n +2 | grep -c .)
+say "手写件编码 doc_enc" "$(printf '%s' "$DOCSUM" | cut -c1-24) 坏行=$DOCRED" "self 抓到 3/3 且全树干净" \
     $([ "$DOCRC1" = 0 ] && [ "$DOCRC2" = 0 ] && echo 1 || echo 0)
 if [ "$DOCRC2" != 0 ]; then
-    node src/host/doc_enc_check.mjs 2>&1 | sed -n '2,9p' | sed 's/^/        /'
+    printf '%s\n' "$DOCOUT" | sed -n '2,9p' | sed 's/^/        /'
 fi
 [ "$DOCRC1" = 0 ] || { echo "        —— doc_enc 的 --self 反例不成立（判据抓不到造出来的坏行）："; sed 's/^/        /' /tmp/docenc_self.$$.txt; }
 rm -f /tmp/docenc_self.$$.txt
@@ -303,12 +310,13 @@ rm -f /tmp/docenc_self.$$.txt
 # D3 首页念的"门禁全绿 = rNN"必须等于 build/*gates*.txt 里编号最大且 ALL PASS 的那一套
 # ⇒ 下一次冻结成功时这一项会自己红，逼着回头改首页（今天不写下来，明天就会再忘一次）。
 node src/host/doc_currency_check.mjs --self > /tmp/cur_self.$$.txt 2>&1; CURRC1=$?
-CURSUM=$(node src/host/doc_currency_check.mjs 2>&1 | head -1); CURRC2=$?
-CURROWS=$(node src/host/doc_currency_check.mjs 2>&1 | grep -c ' D[123] ')
-say "文档时效 doc_cur" "扫首页/报告/脚本，红行=$CURROWS" "self 变异 3 条+对照 2 条且全树 0 条" \
+CUROUT=$(node src/host/doc_currency_check.mjs 2>&1); CURRC2=$?
+CURSUM=$(printf '%s\n' "$CUROUT" | head -1)
+CURROWS=$(printf '%s\n' "$CUROUT" | grep -c ' D[123] ')
+say "文档时效 doc_cur" "$(printf '%s' "$CURSUM" | cut -c1-20) 红行=$CURROWS" "self 变异 3+对照 2 且全树 0 条" \
     $([ "$CURRC1" = 0 ] && [ "$CURRC2" = 0 ] && echo 1 || echo 0)
 if [ "$CURRC2" != 0 ]; then
-    node src/host/doc_currency_check.mjs 2>&1 | sed -n '2,9p' | sed 's/^/        /'
+    printf '%s\n' "$CUROUT" | grep ' D[123] ' | sed -n '1,8p' | sed 's/^/        /'
 fi
 [ "$CURRC1" = 0 ] || { echo "        —— doc_currency 的 --self 反例不成立（该红的没红）："; sed 's/^/        /' /tmp/cur_self.$$.txt; }
 rm -f /tmp/cur_self.$$.txt

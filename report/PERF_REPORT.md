@@ -49,7 +49,7 @@
 > 现在的口径只有一条：**数字成套地念**——念某一版，就念它自己那一份 `rNN_gates.txt` 与
 > `evidence_rNN/` 里的报告，不跨版拼数；没冻结的版本不引用它的数字。
 
-| 项 | **r69**（最新且门禁全绿：`build/r69_gates.txt` + `build/evidence_r69/`） | r71（板上这一套，出处 `build/r71_gates.txt`；是否已冻结看 `build/evidence_r71/MANIFEST.md5` 在不在） |
+| 项 | **r69**（最新且门禁全绿：`build/r69_gates.txt` + `build/evidence_r69/`） | r71（板上这一套，出处 `build/r71_gates.txt`；它有没有冻结，查 `ls build \| grep evidence` 里有没有 r71 那一份） |
 |---|---|---|
 | 全局 WNS / WHS (ns) | **+0.188 / +0.025** | +0.346 / +0.052 |
 | 失败 setup / hold 端点 | 0 / 0 | 0 / 0 |

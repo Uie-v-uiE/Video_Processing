@@ -51,14 +51,17 @@ module proc_morph #(
             mc1[x_in] <= din;
         end
     end
-    wire        b00 = mb0[x_in];
-    wire        b01 = mb1[x_in];
-    wire [15:0] c01 = mc1[x_in];
+    // #92 第四笔：读地址钉在末列（行尾多跳那一拍 `x_in` 已在 porch 上，越界读 = 仿真 X / 硬件读到别的列）
+    wire [11:0] x_rd = (x_in >= H_ACTIVE[11:0]) ? (H_ACTIVE[11:0] - 12'd1) : x_in;
+    wire        b00 = mb0[x_rd];
+    wire        b01 = mb1[x_rd];
+    wire [15:0] c01 = mc1[x_rd];
 
     // 命名照 blur：第一维 0/1/2 = 上上/上/当前行，第二维 0/1/2 = 左/中/右
     reg m00, m01, m02, m10, m11, m12, m20, m21, m22;
     reg [15:0] p12, p11;
     reg dv_d1, dv_d2;
+    wire shift_w = de_in || (dv_d1 && !de_in);   // 行尾多跳一拍，末列的中心才进得了输出（见 blur 同名注释）
 
     // 边界守卫：一根**跟着有效像素走**的旗标链，判「这个中心像素的 3x3 是不是真在画面内」。
     // 为什么不用 x_d1/y_d1 直接和 0 比：那种写法比的是『发出去之后第几拍』，
@@ -78,8 +81,9 @@ module proc_morph #(
     //   这条由门禁第 13 项（多驱动 CRITICAL WARNING 计数）拦下，见 ISSUES #61。
     always @(posedge clk or negedge rst_n)
     if (!rst_n) border_r <= 3'b0;
-    else if (de_in) begin
-        border_r[0] <= (x_in == 12'd0) || (x_in == H_ACTIVE-1) || (y_in == 12'd0);
+    else if (shift_w) begin
+        // 旗标链与中心链同拍移位（含行尾那一跳）；那一跳对应的正是末列 ⇒ 旗标钉 1。
+        border_r[0] <= de_in ? ((x_in == 12'd0) || (x_in == H_ACTIVE-1) || (y_in == 12'd0)) : 1'b1;
         border_r[1] <= border_r[0];
         border_r[2] <= border_r[1];
     end
@@ -98,11 +102,15 @@ module proc_morph #(
             m00<=0; m01<=0; m02<=0; m10<=0; m11<=0; m12<=0; m20<=0; m21<=0; m22<=0;
             p12<=0; p11<=0; dv_d1<=0; dv_d2<=0; de_out<=0; dout<=0;
         end else begin
-            if (de_in) begin
+            // 上上/上一行两路（行缓存读）与原色中心跟着 `shift_w` 走；当前行的掩码只跟 `de_in`——
+            // 消隐期的 `bin` 不是像素。
+            if (shift_w) begin
                 m00<=m01; m01<=m02; m02<=b00;
                 m10<=m11; m11<=m12; m12<=b01;
-                m20<=m21; m21<=m22; m22<=bin;
                 p12<=c01; p11<=p12;             // 原色中心抽头，与 blur 的 p11 同一个位置
+            end
+            if (de_in) begin
+                m20<=m21; m21<=m22; m22<=bin;
             end
             dv_d1 <= de_in;
             dv_d2 <= dv_d1;
