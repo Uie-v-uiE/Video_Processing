@@ -2,9 +2,16 @@
  * PS control plane + SD 卡本地回放。UDP 视频数据通路仍然整个在 PL（rtl/eth 目录）。
  *
  * AXI GPIO @ 0x41200000（V7 的那条，位序不许动 —— 老工具按位读写它）
- *   [4:0]   effect_en（= 下面九位的一个投影）[15:8] threshold  [16] src_sel  [17] zoom_en
+ *   [4:0]   **保留、不写**：V7 那五位 effect_en 已随 #66 退役（PL 侧入口与兜底合流一起删），
+ *           九位 stage_sel（下面 0x41220000 那条）是唯一的一套效果口径。位还占着只因为整字
+ *           是 32 位、重排位序会把按位写的工具全打乱 —— 见 ctrl_write() 上面那段注释。
+ *   [15:8]  threshold      [16] src_sel      [17] zoom_en
  *   [18]    ps_publish —— 翻转一次 = "DDR 里这一帧写完了，请在下一个 frame_start 搬走"
- *   [19]    bilin_en   [26] gapclr_sel   [31:27] 健康 lane 号
+ *   [19]    bilin_en       [26] gapclr_sel   [31:27] 健康 lane 号
+ *   [21:20] 保留（2026-09-25 定这张表时与 25 一起留给以后）
+ *   [22]    mode_tog（翻转一拍 = 下面那两位码是新写的）
+ *   [24:23] mode_ovr（00 自动 / 01 ETH / 11 SD / 10 TEST —— 与 PL 里 src_mode 同一张表，
+ *                     屏上那三个词就是它；编码不许在这儿"顺手改"，见 MODE_*_BIT 上面那段）
  * AXI GPIO @ 0x41220000（V8-2 新增，BD 里的 axi_gpio_2，双通道×32bit）
  *   ch1[8:0] stage_sel —— 效果链的真相，位定义的唯一出处是 src/rtl/process/proc_pipeline.v
  *   ch1[31:9] 与 ch2 留给 V8-3/Gamma、V8-4/分割线（现在一个字节都不写）
