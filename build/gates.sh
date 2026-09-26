@@ -1,5 +1,8 @@
 #!/bin/bash
-# build/gates.sh —— 一条命令读回"门禁七项"，并和阈值比。
+# build/gates.sh —— 一条命令读回门禁清单，并和阈值比。
+#   条数会随教训增长（2026-09-23 那会儿是"七项"，r70 起是 **15 项**：第 15 项 = 顶层台架
+#   `tb_v98` 的报告必须与当前顶层同一次跑，出处 #88/#92）⇒ 这里**不再写死条数**，
+#   以本文件里 `say` 的调用次数为准。
 #
 #   bash build/gates.sh                 # 读 build/ 里当前这套报告（= 最近一次构建）
 #   bash build/gates.sh build/frozen_r19_arb   # 读某一组成套冻结件
@@ -128,7 +131,7 @@ say() { # say <名字> <实测> <判据文本> <0/1>
     printf "  %-22s %-12s %-28s %s\n" "$1" "$2" "$3" "$([ "$4" = 1 ] && echo PASS || { echo FAIL; })"
     [ "$4" = 1 ] || pass=0
 }
-echo "门禁七项："
+echo "门禁清单（逐项，条数以本文件 say 调用为准）："
 say "WNS (ns)"        "$wns"  ">= 0"            $(awk -v v="$wns" 'BEGIN{print (v+0>=0)?1:0}')
 say "失败 setup 端点"   "$tnsfail" "== 0"           $([ "$tnsfail" -eq 0 ] && echo 1 || echo 0)
 say "WHS (ns)"        "$whs"  ">= 0"            $(awk -v v="$whs" 'BEGIN{print (v+0>=0)?1:0}')
@@ -233,5 +236,42 @@ echo "$GRP" | awk -F'|' -v wns="$wns" '
         if (!hit) print "  ⚠ 门禁 WNS 不来自任何 From==To 组 ⇒ 它是跨时钟组/IO 路径，去报告里认那一组"}' | sort
 
 echo
+# 15) 顶层台架（`tb_v98_top_seam` 的 C0/C1/C2/C3）—— #88 留下的那一半，2026-09-26 补上。
+#     缺口原来长这样：`pl_video_top` 唯一的台架一次要跑 40+ 帧（八档缩放扫描）≈ 75 分钟，
+#     放进"构建完就读"的门禁里没人会等 ⇒ 于是第 1~14 项**不含任何顶层内容级判据**，
+#     #88 那几天"gates 14/14"与"唯一例化顶层的台架红着"是**同时成立**的两件事。
+#     折衷：门禁不跑它，但**必须**认一份与当前顶层同一次跑出来的报告 ——
+#     `build/tb_v98_report.txt` 头部两枚 md5（顶层源 + 台架源）与树里的现值必须对得上，
+#     并且正文里既没有 `FAIL ` 行、又有一行 `RESULT tb_v98_top_seam PASS`（两条都要：
+#     只有后一条时，"跑挂了、什么都没判"也能伪装成绿 —— 本项目为这类"空集上成立"记过几次账）。
+#     反例（判据自己的测试，凭据 `build/tb98_gate_ce.txt`）：
+#       A. 头部 `top_md5` 改成不相干的 12 位 ⇒ 这一项必须红，且说的是"报告与当前顶层不是同一次跑"；
+#       B. 把 RESULT 行删掉 ⇒ 必须红（跑完这件事要有证据）；
+#       C. 造一份"有 RESULT PASS 但也有一行 FAIL"的报告 ⇒ 必须红（红项不许被汇总行盖掉）。
+if [ "$D" = "build" ]; then
+    TB98=${TB98_REPORT:-build/tb_v98_report.txt}   # 反例脚本用这个变量指到临时报告上
+    if [ -f "$TB98" ]; then
+        TOPWANT=$(md5sum src/rtl/top/pl_video_top.v | cut -c1-12)
+        TBWANT=$(md5sum sim/tb_v98_top_seam.v | cut -c1-12)
+        TOPYES=$(sed -n 's/.*top_md5=\([0-9a-f]*\).*/\1/p' "$TB98" | head -1)
+        TBYES=$(sed -n 's/.* tb_md5=\([0-9a-f]*\).*/\1/p' "$TB98" | head -1)
+        NFAIL=$(grep -ac "^FAIL " "$TB98")
+        DONE=$(grep -ac "^RESULT tb_v98_top_seam PASS$" "$TB98")
+        OK=1
+        WHY=""
+        [ "$TOPYES" = "$TOPWANT" ] || { OK=0; WHY="$WHY顶层 md5 不符($TOPYES!=$TOPWANT：改过 pl_video_top，报告与当前树不是同一次跑) "; }
+        [ "$TBYES" = "$TBWANT" ]   || { OK=0; WHY="$WHY台架 md5 不符($TBYES!=$TBWANT：改过 tb_v98，复跑) "; }
+        [ "$NFAIL" = "0" ]         || { OK=0; WHY="$WHY报告里有 $NFAIL 行 FAIL "; }
+        [ "$DONE" = "1" ]          || { OK=0; WHY="$WHY没有 RESULT…PASS 汇总行（台架没跑完或中途退出） "; }
+        say "顶层台架 tb_v98" "top=$TOPYES FAIL行=$NFAIL" "同一次跑且无 FAIL" $OK
+        [ -n "$WHY" ] && echo "        ——$WHY"
+    else
+        say "顶层台架 tb_v98" "缺 build/tb_v98_report.txt" "必须先跑 tb98_report.sh" 0
+        echo "        —— 生成：bash sim/run_one.sh tb_v98_top_seam && bash build/tb98_report.sh"
+    fi
+else
+    echo "  n/a  顶层台架 tb_v98 —— 历史冻结件不带与它同一次跑的顶层 md5，不判红（同第 14 项的口径）"
+fi
+
 echo "端点总数 $eps；CDC 现在按 build/CDC_BASELINE.txt 的**配对集合**判，功耗仍要人比有没有变差。"
 if [ "$pass" = 1 ]; then echo "GATES: ALL PASS"; exit 0; else echo "GATES: 有红项 —— 不采纳，保留上一版"; exit 1; fi

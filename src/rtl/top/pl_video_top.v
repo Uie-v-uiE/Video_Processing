@@ -813,12 +813,16 @@ module pl_video_top #(
     //     而那一行要的正是源行 (r+OFF)>>1 —— 列号由环按 x 寻址，一格都不偏。
     //   LINES 的唯一合法出处是 u_pipe.OFF_LINES（链子哪天改了，这条自动跟着改）。
     localparam integer RAW_LINES = u_pipe.OFF_LINES;
-    wire [15:0] raw_ring;
+    // #92 第三笔：**越界标签与像素打包过同一条环**。以前 `pix_raw` 过环（4 行 + 1 拍）而
+    //   `oob_raw` 绕开环只走等长 skid ⇒ 到混色级时两者差 (4 行, 1 列)：画面右沿最后一列被
+    //   "别的格子"的越界位按黑，上下边界的越界位来自别的行（屏上=上边缘有东西闪）。
+    //   17 位仍在 RAMB36 的 18 位宽度模式里 ⇒ BRAM 一块不多要（这句要在 utilization.rpt 上核，不许停在注释）。
+    wire [16:0] raw_ring;
     wire        raw_ring_v;
-    raw_line_delay #(.LINES(RAW_LINES), .W(2*IMG_W)) u_raw (
+    raw_line_delay #(.LINES(RAW_LINES), .W(2*IMG_W), .DW(17)) u_raw (
         .clk(clk_pix), .rst_n(rst_pix_n),
         .de(de_d[5]), .x(x_d[5]), .y(y_d[5]),
-        .d_in(pix_raw), .d_out(raw_ring), .de_out(raw_ring_v)
+        .d_in({oob_raw, pix_raw}), .d_out(raw_ring), .de_out(raw_ring_v)
     );
 
     wire [15:0] pipe_dout;
@@ -846,6 +850,20 @@ module pl_video_top #(
     localparam PROC_LAT = u_pipe.LATENCY;
     localparam LEFT_TAIL = PROC_LAT;
 
+    // ---- #92 第一笔：两个抽头必须**同深**，否则缝上错开一整列 ----
+    //   原图那一路 = `raw_line_delay`(1 拍 RAM 读出) + `orig_skid`(PROC_LAT 拍) = **PROC_LAT+1 拍**，
+    //   而链子自己只有 PROC_LAT 拍 ⇒ 处理抽头比原图抽头**早一整拍** = 混色级早一整列。
+    //   1.00x 时画面铺满整屏，偏一列看不出来；一缩小，左边界就把"画面自己最左那一列"甩进背景带、
+    //   右边界少一列（对着黑底看不见）—— 用户念的"从视频里切出来贴在边上的一条线"这一笔占一列。
+    //   凭据（`sim/tb_v98_top_seam`）：C1c 独立钉住"原图抽头与 `x_d[MIX_D]` 同级"⇒ 要动的是链子这一路；
+    //   C2 在 inv=512 与 inv=1023 两档都量到"内容左右沿 = 定义左右沿 − 1"（**恒为一列、不随倍率变**，
+    //   所以不是取整偏差而是整拍之差），且恰好一半列的内容对不上定义 = 每个显示列对里的奇数列。
+    reg [15:0] pipe_dout_q;
+    always @(posedge clk_pix or negedge rst_pix_n) begin
+        if (!rst_pix_n) pipe_dout_q <= 16'h0000;
+        else            pipe_dout_q <= pipe_dout;
+    end
+
     reg [15:0] orig_skid [0:LEFT_TAIL-1];
     reg        oob_skid [0:LEFT_TAIL-1];
     integer s;
@@ -855,8 +873,8 @@ module pl_video_top #(
                 orig_skid[s] <= 0; oob_skid[s] <= 0;
             end
         end else begin
-            orig_skid[0] <= raw_ring;      // 行环之后再做 15 拍 skid：行与列都才对得上（#73）
-            oob_skid[0]  <= oob_raw;
+            orig_skid[0] <= raw_ring[15:0];   // 行环之后再做 15 拍 skid：行与列都才对得上（#73）
+            oob_skid[0]  <= raw_ring[16];     // #92：标签与像素过**同一条环** ⇒ 到这一拍仍然配好对
             for (s = 1; s < LEFT_TAIL; s = s + 1) begin
                 orig_skid[s] <= orig_skid[s-1];
                 oob_skid[s]  <= oob_skid[s-1];
@@ -932,11 +950,22 @@ module pl_video_top #(
 
     split_display u_split (
         .clk(clk_pix), .rst_n(rst_pix_n),
-        .x(x_d11), .y(y_d11), .de(de_d11), .hs(hs_d11), .vs(vs_d11),
+        // #92 第二笔：整束标签必须与**像素同一级**。r59b 修 #68 时只把"选哪一路"的 `x_sel` 提到
+        //   `MIX_D`，而 `x/y/de/hs/vs` 留在第 11 级 ⇒ 送到面板的 `de` 比它同一拍的像素早 9 列
+        //   （`MIX_D - 11`）：屏上最左 9 列画的是**上一行末尾那 9 格**（= 用户念的"从视频里切出来
+        //   贴在屏幕左边缘的一条线"，内容与上下范围随旋转/缩放变），最右 9 列的像素落在消隐里丢掉
+        //   （对着黑底看不见 ⇒ "右边缘没有"），而 OSD 一格都不动（它的 `x/y` 与 `de` 同源、
+        //   跟着一起错 ⇒ "OSD 完全不受影响"）。三条观察同一件事。
+        //   凭据：`tb_v98_top_seam` 的 C3 —— 面板坐标系**只用输出引脚**（`de_osd/vs_osd/r_osd/
+        //   g_osd/b_osd`）建立，不引用任何内部标签；改之前量到"屏上画面左右沿 = 定义 +8 列"
+        //   （= 本笔的 +9 与上一笔的 −1 之和），且左右沿同幅、带宽不变 ⇒ 是整幅平移不是尺寸错。
+        //   C3a 同时给出"每一行正好 1024 个有效列、一帧正好 600 行"⇒ #92 里"消隐/有效窗口
+        //   不匹配"那一条**排除**（这条以前没有凭据）。
+        .x(x_d[MIX_D]), .y(y_d[MIX_D]), .de(de_d[MIX_D]), .hs(hs_d[MIX_D]), .vs(vs_d[MIX_D]),
         .x_sel(x_d[MIX_D]), .marker(split_marker_on),
         .seam(split_eff), .raw_left(split_raw_left),   // 与内容同级的那一路坐标（#68）；OSD 用的 x/y 不动
         .seam_in_src(gp[11]), .src_orig(seam_src_orig), .src_mark(seam_src_mark),
-        .orig_pix(orig_disp), .proc_pix(pipe_dout),
+        .orig_pix(orig_disp), .proc_pix(pipe_dout_q),
         .oob_l(oob_out), .oob_r(oob_out),   // 越界对两个抽头是同一件事（同一份源坐标）⇒ 一位喂两口
         .angle_idx(angle[1:0]),
         .r(r), .g(g), .b(b),
@@ -1022,7 +1051,11 @@ module pl_video_top #(
     wire de_osd, hs_osd, vs_osd;
     osd_overlay #(.IMG_W(IMG_W), .IMG_H(IMG_H)) u_osd (
         .clk(clk_pix), .rst_n(rst_pix_n),
-        .x(x_d11), .y(y_d11), .de(de_o),
+        // #92：跟着上面那一束一起提到 `MIX_D`。它与 `de_o` 的相对关系**一格都不变**
+        //   （`de_o` 是 `de_d[MIX_D]` 再打一拍，这里的 `x/y` 就是同一拍的值 ⇒ 仍是"早一拍"，
+        //   与改前 `x_d11` vs `de_d11+1` 完全同形）⇒ OSD 在屏上的位置一个像素都不动，
+        //   动的只有"画面 vs 面板有效窗口"那一笔（上面 C3 那条）。
+        .x(x_d[MIX_D]), .y(y_d[MIX_D]), .de(de_o),
         .angle(angle), .fps(fps_q),
         .stage_sel(sel_sync),                 // 五级链实际生效的九位
         .threshold(th_sync),

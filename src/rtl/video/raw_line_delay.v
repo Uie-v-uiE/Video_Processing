@@ -24,15 +24,22 @@
 //   讲的"最上面 4 行本来就没有上一行可算"同一族，不是新缺陷（台架 T2 明说不判那几行）。
 module raw_line_delay #(
     parameter integer LINES = 4,     // 延后几行（唯一合法来源：u_pipe.OFF_LINES）
-    parameter integer W     = 512    // 一行多少个**有效**像素（4b 之后是源列数，不是面板列数）
+    parameter integer W     = 512,   // 一行多少个**有效**像素（4b 之后是源列数，不是面板列数）
+    // 一路多少位。**#92 的教训写在这里而不是藏在调用处**：与像素同源的那份"越界"标签必须
+    // 和像素**过同一条环**。顶层以前让 `pix_raw` 过环（4 行 + 1 拍）、让 `oob` 绕开环只走
+    // 等长的 skid ⇒ 两者差 (4 行, 1 列)：画面右沿的最后一列被"别的格子"的越界位按黑，
+    // 上下边界的越界位则来自别的行（屏上表现为"上边缘有东西闪"）。
+    // 现在把标签打包进来一起走，代价是 RAM 宽度 +1 位：16→17 位仍在 RAMB36 的 18 位宽度模式里
+    // ⇒ **一块 BRAM 都不多要**（这条要在构建后的 utilization.rpt 上核对，不许停在注释）。
+    parameter integer DW    = 16
 )(
     input  wire        clk,
     input  wire        rst_n,
     input  wire        de,             // 本拍 d_in 是有效像素
     input  wire [11:0] x,              // 行内列号（0..W-1）
     input  wire [11:0] y,              // 显示行号（只用低 RLOG 位选行槽）
-    input  wire [15:0] d_in,
-    output wire [15:0] d_out,
+    input  wire [DW-1:0] d_in,
+    output wire [DW-1:0] d_out,
     output wire        de_out
 );
     // clog2 在 elaboration 期算完，不留硬件
@@ -54,16 +61,16 @@ module raw_line_delay #(
         assign d_out  = d_in;
         assign de_out = de;
     end else begin : g_ring
-        reg [15:0] mem [0:DEPTH-1];
+        reg [DW-1:0] mem [0:DEPTH-1];
         integer m;
-        initial for (m = 0; m < DEPTH; m = m + 1) mem[m] = 16'h0000;
+        initial for (m = 0; m < DEPTH; m = m + 1) mem[m] = {DW{1'b0}};
 
         wire [RLOG-1:0] wslot = y[RLOG-1:0];
         wire [RLOG-1:0] rslot = y[RLOG-1:0] - LINES[RLOG-1:0];        // 就是 (y-LINES) mod 2^RLOG
         wire [RLOG+CWID-1:0] widx = {wslot, x[CWID-1:0]};
         wire [RLOG+CWID-1:0] ridx = {rslot, x[CWID-1:0]};
 
-        reg [15:0] q;
+        reg [DW-1:0] q;
         reg        v;
         always @(posedge clk) begin
             if (de) mem[widx] <= d_in;          // 写：本行本列

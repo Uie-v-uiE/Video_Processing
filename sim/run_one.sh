@@ -21,6 +21,13 @@ $(find $ROOT/sim/prim -name '*.v' 2>/dev/null | tr '\n' ' ')"
 # ⚠ 文件里写的必须是 **Windows 正斜杠路径**（`cygpath -m`）：命令行参数会被 MSYS 自动换算，
 #   但 -f 文件的内容不会 —— 直接写 /d/... 会让 xvlog 报 "Can not find file"（同一天撞到第二次）。
 printf '%s\n' $SRC | cygpath -m -f - > files.f
+# 出处（provenance）：**编译之前**记下这次跑的树里两份关键源的 md5。
+# 为什么在这里记而不是事后：门禁第 15 项要的恰恰是"这份报告是不是**当前这份顶层**跑出来的"，
+# 而事后补 md5 等于把今天的指纹盖在昨天的日志上（#88 那几天"gates 全绿 + 顶层台架红着"的根源
+# 就是没有任何东西把报告与被测的树绑在一起）。
+{ echo "top_md5=$(md5sum $ROOT/src/rtl/top/pl_video_top.v | cut -c1-12)"
+  echo "tb_md5=$(md5sum $ROOT/sim/$TB.v 2>/dev/null | cut -c1-12)"
+  echo "date=$(date -Iseconds)"; } > prov.txt
 $V/xvlog -f files.f > xv.log 2>&1
 if grep -q "^ERROR" xv.log; then echo "XVLOG FAILED"; grep "^ERROR" xv.log | head -8; exit 1; fi
 if [ ! -d xsim.dir/work ]; then echo "XVLOG 没建出 work 库，xv.log 尾部："; tail -3 xv.log; exit 1; fi
