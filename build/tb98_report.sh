@@ -29,7 +29,7 @@ else
 fi
 {
     echo "# provenance top_md5=$TOP tb_md5=$TB rtl_md5=$RTL date=$WHEN src=$SRC"
-    grep -a "^\(PASS \|FAIL \|RESULT \|C2 table\|C2 row\|C2BLK\|C2SHAPE\|C2IBAD\|P1 \|INFO \)" "$SRC"
+    grep -a "^\(PASS \|FAIL \|RESULT \|C2 table\|C2 row\|C2BLK\|C2SHAPE\|C2IBAD\|C4 \|C4RUN \|P1 \|INFO \)" "$SRC"
 } > "$OUT"
 # 空报告不许算绿：跑挂了的台架可能一条 PASS 都没打出来，那时 `RESULT` 那一行也不会有 ⇒
 # 门禁判"必须有 RESULT ... PASS 且没有任何 FAIL 行"，两条都在报告正文上。

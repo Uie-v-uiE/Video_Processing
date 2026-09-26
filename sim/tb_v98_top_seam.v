@@ -761,17 +761,34 @@ module tb_v98_top_seam;
     // 再把那条 2 px 缝标记关掉、并把 OSD 那个框所在的行排除掉（C3_ROW0 以下才采）。
     // ⚠ 这一段走最近邻（bilin off）：插值会把两格的 tag 混成第三格，那时"非黑"仍然成立但
     //   "这一格是哪一格"不再成立 —— 形状判据不需要它，就别把它拉进来。
-    localparam integer C4_NA   = 4;                    // 角度档：0 / 45 / 90 / 168
-    localparam integer C4_ZERO = 0, C4_A45 = 1, C4_A90 = 2, C4_A168 = 3;
+    //
+    // ---------- 第二轮（2026-09-27）：为什么必须加"倍率"这一维，光有角度是不够的 ----------
+    // 1.00x 那四条（0/45/90/168）**全绿**（`多段行=0`，四档各 780 行有画面），90° 量的
+    // 第1列/末列 = [212..212]/[811..811] 正好是几何该给的那 600 列 ⇒ 尺子会分辨形状（它不是
+    // 一条恒真的线），但**它在这一维上根本看不见 #93**：
+    //   1.00x 时画面铺满整屏 ⇒ 屏上没有一列背景 ⇒ 任何多出来的东西（左缘那条细线、右上角
+    //   那道宽彩条）都**贴在**同一个非黑段上，段数还是 1。"每行一段"在这个倍率下是结构上
+    //   必然成立的，红不了 —— 这正是"绿着不等于验过"（#60 那一课的几何版）。
+    // 0.50x 时画面只占 x∈[256,767]，两侧各 256 列背景 ⇒ 多出来的东西第一次有了可以站身的
+    // 地方，"段数=2"才可能真的出现。所以第二维取 `zoom_sel=2`（inv=512=0.50x，见 C2_TBL），
+    // 而不是 0.75x/1.00x 那些"没有背景带"的档 —— 用户原话是"只要缩放到非 100% 那条线就在"。
+    // 判据不变（还是 C4b 数段数），只是把同一把尺子架到它**看得见病**的那一格上。
+    // 第三档再加 0.25x（inv=1023，背景带各 384 列）：ISSUES #93 (C) 段写的就是这个矩阵
+    //   `angle ∈ {0,45,90,168} × inv ∈ {1023,512,256}`，一次跑齐，别留给"下次再说"。
+    localparam integer C4_NA   = 12;                   // 4 个角度 × 3 个倍率（0..3=1.00x，4..7=0.50x，8..11=0.25x）
     reg        c4_on = 1'b0;
-    // ⚠ 必须是三位：写成 [1:0] 时 `c4_a < 4` 在数到 3 之后回卷成 0 ⇒ 这个 for 永不退出
-    //   （xsim 会安静地跑到超时，看起来像"台架卡死"，其实是循环变量装不下上界）
-    reg  [2:0] c4_a  = 3'd0;
+    // ⚠ 扫描下标用 `integer` 而不是定宽 reg，是被两回坑之后定的：
+    //   · 定宽 [1:0] 配 `c4_a < 4`：数到 3 回卷成 0 ⇒ for 永不退出，xsim 安静跑到超时，
+    //     看起来像"台架卡死"（其实是循环变量装不下上界）；
+    //   · 定宽 [2:0] 配 `c4_a < 3'd8`：Verilog 的比较是**自定宽**的，那个 8 先被截成 0 ⇒
+    //     条件恒假 ⇒ 整个 C4 一档都不跑，而台架**全绿**（八档一个样本都没采）。
+    //   `integer` 两头都不怕，而它只是台架里的循环变量，不进硬件。
+    integer  c4_a  = 0;
     // ⚠ Verilog-2001 的数组声明要的是**范围**（`[0:N-1]`），`[N]` 是 SystemVerilog 写法：
     //   xvlog 在 -i2v 下报 "single value range is not allowed"，整个台架模块被忽略（#88 那一族的另一张脸）。
     integer    c4_rows2[0:C4_NA-1], c4_zero[0:C4_NA-1], c4_bad[0:C4_NA-1];
     integer    c4_fmin[0:C4_NA-1], c4_fmax[0:C4_NA-1], c4_lmin[0:C4_NA-1], c4_lmax[0:C4_NA-1];
-    integer    c4_run, c4_r1s, c4_r1e, c4_r2s, c4_dump = 0;
+    integer    c4_run, c4_r1s, c4_r1e, c4_r2s, c4_dump = 0;   // c4_dump 是**跨档累计**的上限，见下面 16
     reg        c4_prev_nb = 1'b0, c4_nb;
     integer    c4_e;
 
@@ -863,24 +880,27 @@ module tb_v98_top_seam;
                 end
             end
             if (c4_on && c3_prow >= C3_ROW0) begin
-                if (c4_run == 0) c4_zero[c4_a[1:0]] = c4_zero[c4_a[1:0]] + 1;      // 这一行没画面（大角度下正常）
+                if (c4_run == 0) c4_zero[c4_a] = c4_zero[c4_a] + 1;      // 这一行没画面（0.50x 与大角度下都正常）
                 else if (c4_run == 1) begin
-                    c4_rows2[c4_a[1:0]] = c4_rows2[c4_a[1:0]] + 1;
-                    if (c4_fmin[c4_a[1:0]] < 0) begin
-                        c4_fmin[c4_a[1:0]] = c4_r1s; c4_fmax[c4_a[1:0]] = c4_r1s;
-                        c4_lmin[c4_a[1:0]] = c4_r1e; c4_lmax[c4_a[1:0]] = c4_r1e;
+                    c4_rows2[c4_a] = c4_rows2[c4_a] + 1;
+                    if (c4_fmin[c4_a] < 0) begin
+                        c4_fmin[c4_a] = c4_r1s; c4_fmax[c4_a] = c4_r1s;
+                        c4_lmin[c4_a] = c4_r1e; c4_lmax[c4_a] = c4_r1e;
                     end else begin
-                        if (c4_r1s < c4_fmin[c4_a[1:0]]) c4_fmin[c4_a[1:0]] = c4_r1s;
-                        if (c4_r1s > c4_fmax[c4_a[1:0]]) c4_fmax[c4_a[1:0]] = c4_r1s;
-                        if (c4_r1e < c4_lmin[c4_a[1:0]]) c4_lmin[c4_a[1:0]] = c4_r1e;
-                        if (c4_r1e > c4_lmax[c4_a[1:0]]) c4_lmax[c4_a[1:0]] = c4_r1e;
+                        if (c4_r1s < c4_fmin[c4_a]) c4_fmin[c4_a] = c4_r1s;
+                        if (c4_r1s > c4_fmax[c4_a]) c4_fmax[c4_a] = c4_r1s;
+                        if (c4_r1e < c4_lmin[c4_a]) c4_lmin[c4_a] = c4_r1e;
+                        if (c4_r1e > c4_lmax[c4_a]) c4_lmax[c4_a] = c4_r1e;
                     end
                 end else begin                                              // 两段以上 = #93 那两道多出来的东西
-                    c4_bad[c4_a[1:0]] = c4_bad[c4_a[1:0]] + 1;
-                    if (c4_dump < 8) begin
+                    c4_bad[c4_a] = c4_bad[c4_a] + 1;
+                    // 上限 16 而不是 8：现在有八档，前四档（1.00x）注定一段都没有，
+                    // 全部配额该留给真正可能看见病的后四档；这个计数器只由本块写，所以
+                    // 不在激励里按档清零（两个进程写同一根激励位 = #94 那一族的错）。
+                    if (c4_dump < 16) begin
                         c4_dump = c4_dump + 1;
-                        $display("C4RUN ang=%0d prow=%0d 段数=%0d 第1段=[%0d,%0d] 第2段从=%0d 末段到=%0d | y_d[MIX_D]=%0d sx=%0d sy=%0d oob_out=%b",
-                                 c4_ang_of(c4_a[1:0]), c3_prow, c4_run, c4_r1s, c4_r1e, c4_r2s, c3_last,
+                        $display("C4RUN ang=%0d zoomsel=%0d prow=%0d 段数=%0d 第1段=[%0d,%0d] 第2段从=%0d 末段到=%0d | y_d[MIX_D]=%0d sx=%0d sy=%0d oob_out=%b",
+                                 c4_ang_of(c4_a), c4_pct_of(c4_a), zoom_sel, c3_prow, c4_run, c4_r1s, c4_r1e, c4_r2s, c3_last,
                                  dut.y_d[dut.MIX_D], dut.sx, dut.sy, dut.oob_out);
                     end
                 end
@@ -890,10 +910,18 @@ module tb_v98_top_seam;
         c3_de_d = dut.de_osd;
     end
 
-    function integer c4_ang_of; input [1:0] a;
+    function integer c4_ang_of; input integer a;
         begin
-            case (a) 2'd0: c4_ang_of = 0;   2'd1: c4_ang_of = 45;
-                       2'd2: c4_ang_of = 90; default: c4_ang_of = 168; endcase
+            case (a % 4) 0: c4_ang_of = 0;   1: c4_ang_of = 45;
+                         2: c4_ang_of = 90; default: c4_ang_of = 168; endcase
+        end
+    endfunction
+    // 这一档到底是几倍：由台架按**定义**报，不打印内部寄存器（Q8.8 的 inv 256 = 1.00x）。
+    // 用它是因为报告里"0.50x 有没有背景带"这件事要一眼能读出来，而不是让明天的人去反推 index。
+    function integer c4_pct_of; input integer a;
+        begin
+            case (a / 4) 0: c4_pct_of = 100;  1: c4_pct_of = 50;  default: c4_pct_of = 25;
+            endcase
         end
     endfunction
 
@@ -1112,29 +1140,37 @@ module tb_v98_top_seam;
         // 的原话是"你先别修，先把这条记下来"，而 #93 的 (C) 段说的就是"先有这把尺子"）。
         split_ctl_tb[13] = 1'b1;             // 缝标记关掉：不然"第二段"就是台架自己画的那条蓝线
         bilin_en_tb      = 1'b0;             // 最近邻：插值会把两格的 tag 混成第三格，形状判据不需要它
-        zoom_en = 1'b1; zoom_manual = 1'b1; zoom_sel = 3'd4;   // 钉在 1.00x：画面本应铺满整屏
-        force dut.rot_on     = 1'b1;         // 手动把旋转打开（angle_ctrl 自己的步进不参与这一轮）
-        for (c4_a = 3'd0; c4_a < 3'd4; c4_a = c4_a + 3'd1) begin
-            case (c4_a[1:0])
-                2'd0: force dut.angle = 9'd0;
-                2'd1: force dut.angle = 9'd45;
-                2'd2: force dut.angle = 9'd90;
+        zoom_en = 1'b1; zoom_manual = 1'b1;              // 倍率由下面每一档自己钉，别让呼吸把期望漂走
+        for (c4_a = 0; c4_a < C4_NA; c4_a = c4_a + 1) begin
+            case (c4_a % 4)
+                0: force dut.angle = 9'd0;
+                1: force dut.angle = 9'd45;
+                2: force dut.angle = 9'd90;
                 default: force dut.angle = 9'd168;
             endcase
-            if (c4_a == 3'd0) force dut.rot_on = 1'b0;
-            else              force dut.rot_on = 1'b1;
-            repeat (3) @(posedge dut.frame_start);       // 强设不是 snap 过的：等它稳定，别采到换角那一帧
+            // 强设不是 snap 过的：等它稳定，别采到换角那一帧。`angle==0` 时把 rot_on 关掉，
+            // 与 C1 阶段那个"没旋转"的世界同形。
+            force dut.rot_on = ((c4_a % 4) == 0) ? 1'b0 : 1'b1;
+            case (c4_a / 4)
+                0:   zoom_sel = 3'd4;          // inv 256  = 1.00x：无背景带，本维结构上看不见细线
+                1:   zoom_sel = 3'd2;          // inv 512  = 0.50x：两侧各 256 列背景
+                default: zoom_sel = 3'd0;      // inv 1023 = 0.25x：两侧各 384 列背景（最敏感的一档）
+            endcase
+            repeat (3) @(posedge dut.frame_start);
             c4_on = 1'b1;
             repeat (2) @(posedge dut.frame_start);
             c4_on = 1'b0;
-            $display("C4 ang=%0d 有画面行=%0d 无画面行=%0d **多段行=%0d** 第1列[%0d..%0d] 末列[%0d..%0d] | angle=%0d rot_on=%b",
-                     c4_ang_of(c4_a[1:0]), c4_rows2[c4_a[1:0]], c4_zero[c4_a[1:0]], c4_bad[c4_a[1:0]],
-                     c4_fmin[c4_a[1:0]], c4_fmax[c4_a[1:0]], c4_lmin[c4_a[1:0]], c4_lmax[c4_a[1:0]],
+            // 无画面行**只报不判**：0.50x/0.25x 画面只占 300/150 行高，屏上下各有一带黑的行是**对的**。
+            // 判的只有两件事：这一档真有足够多的行被量到（覆盖地板），以及每一行至多一段。
+            $display("C4 idx=%0d ang=%0d zoom=%0d%% zsel=%0d 有画面行=%0d 无画面行=%0d **多段行=%0d** 第1列[%0d..%0d] 末列[%0d..%0d] | angle=%0d rot_on=%b",
+                     c4_a, c4_ang_of(c4_a), c4_pct_of(c4_a), zoom_sel,
+                     c4_rows2[c4_a], c4_zero[c4_a], c4_bad[c4_a],
+                     c4_fmin[c4_a], c4_fmax[c4_a], c4_lmin[c4_a], c4_lmax[c4_a],
                      dut.angle, dut.rot_on);
             // 覆盖地板：没有 200 行的话，下面那条"每行一段"就是空集上的绿（#60 那一课）
-            line("C4a rows judged", c4_rows2[c4_a[1:0]] > 200,
-                 "this angle must actually have content rows, else C4b below means nothing");
-            line("C4b one run per row", c4_bad[c4_a[1:0]] == 0,
+            line("C4a rows judged", c4_rows2[c4_a] > 200,
+                 "this (angle, zoom) cell must actually have content rows, else C4b below means nothing");
+            line("C4b one run per row", c4_bad[c4_a] == 0,
                  "a rotated rectangle meets every panel row in ONE contiguous run; 2+ runs = #93's stray diagonal bar / left-edge line");
         end
         release dut.angle;

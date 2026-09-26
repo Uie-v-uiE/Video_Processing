@@ -1,4 +1,4 @@
-# provenance top_md5=995ef3513992 tb_md5=29daf91ffcce rtl_md5=2440cf87d4f7 date=2026-09-27T02:30:59+08:00 src=/tmp/kx/tb_v98_top_seam.run/run.log
+# provenance top_md5=995ef3513992 tb_md5=0c393ebed3d3 rtl_md5=2440cf87d4f7 date=2026-09-27T04:24:55+08:00 src=/tmp/kx/tb_v98_top_seam.run/run.log
 PASS C0a ruler encodes position in the pixel | px_val / decoder / mod-256 signed diff must agree, incl. 0, small values, both edges, both wrap directions
 PASS C0a3 no black cell exists in the pattern | the panel-level ruler equates black with outside-the-picture, so the pattern must not contain black
 PASS C0a2 golden array actually holds it | read back ddr[0] and the last word after init: a correct function is not a correct array
@@ -15,6 +15,42 @@ PASS C1e PRECONDITION no X inside the measurement window | with X present every 
 PASS C1c content column == display column >> 1 | single-viewport geometry, content-level evidence (was a NOTE before #78)
 PASS C1d content row == display row >> 1 (outside ring warm-up) | row-wise content alignment of the raw tap; warm-up rows are counted, not hidden
 PASS C1d-b skips are explained | every skipped warm-up cell must decode to source row 299, else the skip hides something
+C4 idx=0 ang=0 zoom=100% zsel=4 有画面行=780 无画面行=0 **多段行=0** 第1列[0..0] 末列[1023..1023] | angle=0 rot_on=0
+PASS C4a rows judged | this (angle, zoom) cell must actually have content rows, else C4b below means nothing
+PASS C4b one run per row | a rotated rectangle meets every panel row in ONE contiguous run; 2+ runs = #93's stray diagonal bar / left-edge line
+C4 idx=1 ang=45 zoom=100% zsel=4 有画面行=780 无画面行=0 **多段行=0** 第1列[0..176] 末列[635..1023] | angle=45 rot_on=1
+PASS C4a rows judged | this (angle, zoom) cell must actually have content rows, else C4b below means nothing
+PASS C4b one run per row | a rotated rectangle meets every panel row in ONE contiguous run; 2+ runs = #93's stray diagonal bar / left-edge line
+C4 idx=2 ang=90 zoom=100% zsel=4 有画面行=780 无画面行=0 **多段行=0** 第1列[212..212] 末列[811..811] | angle=90 rot_on=1
+PASS C4a rows judged | this (angle, zoom) cell must actually have content rows, else C4b below means nothing
+PASS C4b one run per row | a rotated rectangle meets every panel row in ONE contiguous run; 2+ runs = #93's stray diagonal bar / left-edge line
+C4 idx=3 ang=168 zoom=100% zsel=4 有画面行=780 无画面行=0 **多段行=0** 第1列[0..460] 末列[973..1023] | angle=168 rot_on=1
+PASS C4a rows judged | this (angle, zoom) cell must actually have content rows, else C4b below means nothing
+PASS C4b one run per row | a rotated rectangle meets every panel row in ONE contiguous run; 2+ runs = #93's stray diagonal bar / left-edge line
+C4 idx=4 ang=0 zoom=50% zsel=2 有画面行=480 无画面行=300 **多段行=0** 第1列[256..256] 末列[767..767] | angle=0 rot_on=0
+PASS C4a rows judged | this (angle, zoom) cell must actually have content rows, else C4b below means nothing
+PASS C4b one run per row | a rotated rectangle meets every panel row in ONE contiguous run; 2+ runs = #93's stray diagonal bar / left-edge line
+C4 idx=5 ang=45 zoom=50% zsel=2 有画面行=756 无画面行=24 **多段行=0** 第1列[226..436] 末列[437..799] | angle=45 rot_on=1
+PASS C4a rows judged | this (angle, zoom) cell must actually have content rows, else C4b below means nothing
+PASS C4b one run per row | a rotated rectangle meets every panel row in ONE contiguous run; 2+ runs = #93's stray diagonal bar / left-edge line
+C4 idx=6 ang=90 zoom=50% zsel=2 有画面行=696 无画面行=84 **多段行=0** 第1列[362..362] 末列[661..661] | angle=90 rot_on=1
+PASS C4a rows judged | this (angle, zoom) cell must actually have content rows, else C4b below means nothing
+PASS C4b one run per row | a rotated rectangle meets every panel row in ONE contiguous run; 2+ runs = #93's stray diagonal bar / left-edge line
+C4 idx=7 ang=168 zoom=50% zsel=2 有画面行=584 无画面行=196 **多段行=0** 第1列[230..728] 末列[731..793] | angle=168 rot_on=1
+PASS C4a rows judged | this (angle, zoom) cell must actually have content rows, else C4b below means nothing
+PASS C4b one run per row | a rotated rectangle meets every panel row in ONE contiguous run; 2+ runs = #93's stray diagonal bar / left-edge line
+C4 idx=8 ang=0 zoom=25% zsel=0 有画面行=300 无画面行=480 **多段行=0** 第1列[384..384] 末列[641..641] | angle=0 rot_on=0
+PASS C4a rows judged | this (angle, zoom) cell must actually have content rows, else C4b below means nothing
+PASS C4b one run per row | a rotated rectangle meets every panel row in ONE contiguous run; 2+ runs = #93's stray diagonal bar / left-edge line
+C4 idx=9 ang=45 zoom=25% zsel=0 有画面行=468 无画面行=312 **多段行=0** 第1列[370..496] 末列[475..655] | angle=45 rot_on=1
+PASS C4a rows judged | this (angle, zoom) cell must actually have content rows, else C4b below means nothing
+PASS C4b one run per row | a rotated rectangle meets every panel row in ONE contiguous run; 2+ runs = #93's stray diagonal bar / left-edge line
+C4 idx=10 ang=90 zoom=25% zsel=0 有画面行=440 无画面行=340 **多段行=0** 第1列[438..438] 末列[587..587] | angle=90 rot_on=1
+PASS C4a rows judged | this (angle, zoom) cell must actually have content rows, else C4b below means nothing
+PASS C4b one run per row | a rotated rectangle meets every panel row in ONE contiguous run; 2+ runs = #93's stray diagonal bar / left-edge line
+C4 idx=11 ang=168 zoom=25% zsel=0 有画面行=384 无画面行=396 **多段行=0** 第1列[372..620] 末列[447..653] | angle=168 rot_on=1
+PASS C4a rows judged | this (angle, zoom) cell must actually have content rows, else C4b below means nothing
+PASS C4b one run per row | a rotated rectangle meets every panel row in ONE contiguous run; 2+ runs = #93's stray diagonal bar / left-edge line
 C2 table  code inv  nin     nout     inbad viol measl measr geol geor leakl leakr blank invbad | C3 rows empt wbad rbad fmin fmax lmin lmax
 C2 row    0 1023    62436   185372      0    0   384   641  384  641    -1    -1     0    0 |  300  480   0   0  384  384  641  641
 C2SHAPE code=0 inv=1023 inbad=0 badpairs=0 firstpair=-1 lastpair=-1 dm1=0 dp1=0 dother=0
@@ -100,5 +136,5 @@ PASS C2a bg black | no content in background / no black hole inside the picture
 PASS C2b col matches definition | each in-window column must decode to the source column the definition asks for
 PASS C2c edges match definition | measured picture edges == geometric edges (content stage, in columns)
 PASS C3c panel edges match definition | the panel's own first/last non-black column == the geometric edges, same on every row
-P1 chain-blur: arm(x==1023&de)=0 flush=28200 run@行尾 min=1024 max=1024 | pipe_de=28876800 mix_de_d11=28876800 (差 0)
+P1 chain-blur: arm(x==1023&de)=0 flush=66600 run@行尾 min=1024 max=1024 | pipe_de=68198400 mix_de_d11=68198400 (差 0)
 RESULT tb_v98_top_seam PASS
