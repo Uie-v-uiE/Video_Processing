@@ -43,7 +43,7 @@
 | 显示 | HDMI 1024×600 @ 50 MHz（左原图 / 右处理+缩放） |
 | 网络 | 板卡 PL 口 `192.168.1.10:5001`，PC `192.168.1.100` |
 | 控制 | AXI GPIO `@0x41200000`，UART 115200 |
-| 实现结果 | **最近一次门禁全绿的冻结集 = r75**（板上跑的就是它；门禁 18 项全绿的明细在 `build/r75_gates.txt`，成套凭据在 `build/evidence_r75/`）：WNS +0.287 ns / WHS +0.041 ns、失败端点 0 / 0、BRAM 97.5 tile（69.64 %）、Slice LUT 14776（27.77 %）、寄存器 10018、Dynamic 2.209 W；bit `38964a98b19e` / elf `f4a22f4f08d1`。⚠ 念数的时候两句一起念：#96 把它攻的那组（`clkout0_1`，OSD 字格几何）从 0.549 拉到 **3.488 ns**，而全局 WNS 因归属换成 `eth_rxc` 而从 0.549 变 0.287 —— 理由与下一刀的靶子都写在 `report/PERF_REPORT.md` §3 与 `report/ISSUES.md` #95/#96。上一套 r74 同样全绿且已冻结（出处 `build/evidence_r74/`）。复跑：`bash build/gates.sh`（当前这套报告）或 `bash build/gates.sh build/evidence_r75`（冻结那一套） |
+| 实现结果 | **最近一次门禁全绿的冻结集 = r75**（板上跑的就是它；门禁 19 项全绿的明细在 `build/r75_gates.txt`，成套凭据在 `build/evidence_r75/`）：WNS +0.287 ns / WHS +0.041 ns、失败端点 0 / 0、BRAM 97.5 tile（69.64 %）、Slice LUT 14776（27.77 %）、寄存器 10018、Dynamic 2.209 W；bit `38964a98b19e` / elf `f4a22f4f08d1`。⚠ 念数的时候两句一起念：#96 把它攻的那组（`clkout0_1`，OSD 字格几何）从 0.549 拉到 **3.488 ns**，而全局 WNS 因归属换成 `eth_rxc` 而从 0.549 变 0.287 —— 理由与下一刀的靶子都写在 `report/PERF_REPORT.md` §3 与 `report/ISSUES.md` #95/#96。上一套 r74 同样全绿且已冻结（出处 `build/evidence_r74/`）。复跑：`bash build/gates.sh`（当前这套报告）或 `bash build/gates.sh build/evidence_r75`（冻结那一套） |
 | 开源协议 | MIT |
 
 ### 项目简介
