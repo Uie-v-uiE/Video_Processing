@@ -1,8 +1,10 @@
 #!/bin/bash
 # build/gates.sh —— 一条命令读回门禁清单，并和阈值比。
-#   条数会随教训增长（2026-09-23 那会儿是"七项"，r70 起是 **15 项**：第 15 项 = 顶层台架
-#   `tb_v98` 的报告必须与当前顶层同一次跑，出处 #88/#92）⇒ 这里**不再写死条数**，
-#   以本文件里 `say` 的调用次数为准。
+#   条数会随教训增长（2026-09-23 那会儿是"七项"；r70 起 **15 项** = 第 15 项顶层台架
+#   `tb_v98` 的报告必须与当前顶层同一次跑，出处 #88/#92；今天再加两项：**16 = PS 心跳与
+#   停心跳的约定**（#94）、**17 = 手写件的编码**（COMMANDS §5 曾被 cp936 打坏一整段）、
+#   **18 = 文档时效**（README/PERF_REPORT 把 build#23 念成"当前默认"整整五十版）
+#   ⇒ 这里**不再写死条数**，以本文件里 `say` 的调用次数为准。
 #
 #   bash build/gates.sh                 # 读 build/ 里当前这套报告（= 最近一次构建）
 #   bash build/gates.sh build/frozen_r19_arb   # 读某一组成套冻结件
@@ -294,6 +296,22 @@ if [ "$DOCRC2" != 0 ]; then
 fi
 [ "$DOCRC1" = 0 ] || { echo "        —— doc_enc 的 --self 反例不成立（判据抓不到造出来的坏行）："; sed 's/^/        /' /tmp/docenc_self.$$.txt; }
 rm -f /tmp/docenc_self.$$.txt
+
+# ---- 18：文档时效（README 把 build#23 念成"当前默认 bit"、还说 bilin 不在主线，整整五十版；
+#      PERF_REPORT §3 同病。这类错不改任何行为，坏的是"念给评审听的那一句"⇒ 判据要自己跑。）----
+# 三条：D1 不许把带编号的旧构建说成"当前/默认"；D2 点名的冻结目录必须在盘上；
+# D3 首页念的"门禁全绿 = rNN"必须等于 build/*gates*.txt 里编号最大且 ALL PASS 的那一套
+# ⇒ 下一次冻结成功时这一项会自己红，逼着回头改首页（今天不写下来，明天就会再忘一次）。
+node src/host/doc_currency_check.mjs --self > /tmp/cur_self.$$.txt 2>&1; CURRC1=$?
+CURSUM=$(node src/host/doc_currency_check.mjs 2>&1 | head -1); CURRC2=$?
+CURROWS=$(node src/host/doc_currency_check.mjs 2>&1 | grep -c ' D[123] ')
+say "文档时效 doc_cur" "扫首页/报告/脚本，红行=$CURROWS" "self 变异 3 条+对照 2 条且全树 0 条" \
+    $([ "$CURRC1" = 0 ] && [ "$CURRC2" = 0 ] && echo 1 || echo 0)
+if [ "$CURRC2" != 0 ]; then
+    node src/host/doc_currency_check.mjs 2>&1 | sed -n '2,9p' | sed 's/^/        /'
+fi
+[ "$CURRC1" = 0 ] || { echo "        —— doc_currency 的 --self 反例不成立（该红的没红）："; sed 's/^/        /' /tmp/cur_self.$$.txt; }
+rm -f /tmp/cur_self.$$.txt
 
 echo "端点总数 $eps；CDC 现在按 build/CDC_BASELINE.txt 的**配对集合**判，功耗仍要人比有没有变差。"
 if [ "$pass" = 1 ]; then echo "GATES: ALL PASS"; exit 0; else echo "GATES: 有红项 —— 不采纳，保留上一版"; exit 1; fi
