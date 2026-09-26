@@ -8,6 +8,16 @@
 #   ③ 最后 board_verify（机器那一半验收：读回口 + 自检 + 电池 + geom）。
 # 顺序错了的症状都很难看，所以钉在这里。
 #
+# ⚠ 2026-09-26 09:0x 又踩一次，症状同上但**换了触发条件**：这次用的是 `program_pl.tcl`（Vivado 那条正道），
+#   但板子上 **app 正在 30 fps 播 SD**（每帧几百 KB 的 DDR + 一路 GPIO 写）⇒ 换位流的瞬间 PS 的 AXI 事务被挂住
+#   ⇒ 随后 `dow` 报 `Memory write error at 0x0 / DAP status 0xF0000021`、寄存器全 `N/A`、屏变黑。
+#   也就是说："谁在跑 AXI"才是关键，不是"用哪条命令配位流"。
+#   正解两条，任选一条：
+#     (A) 刷之前先把 app 停到不碰 AXI：串口发 `play 0`（停 SD 播放）再刷；COM6 被终端占着时这条做不到，
+#         所以脚本不假装自己能做，改用 (B)。
+#     (B) 事后自愈：`rst -system`（会冲掉位流）→ `ps_jtag_boot.tcl`(ps7_init) → `program_pl.tcl` →
+#         `ps_app_reload.tcl`。09:1x 实测这一条把板子救回来了（`DOW: ok`、`pc: 0000754c`、`cpsr: 8000005f`）。
+#
 # 故意**不**做的事：不写 QSPI/SPI flash（2025.2.1 下绝不动那块 flash 是硬规矩）；不动 FT2232 EEPROM；
 #   不在没有活板子时反复重试（板子没电的表现是 `No devices detected on target`，软件层面无解，见 env 备忘）。
 set -u

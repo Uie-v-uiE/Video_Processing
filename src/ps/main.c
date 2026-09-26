@@ -1240,6 +1240,15 @@ static void rx_fill(void)
     }
 }
 
+/* 给长流程用的保命口：**只搬字节、不派发**。
+ * 为什么不干脆调 uart_poll()：那会在喂帧/写表的中途改参数（重入 dispatch），
+ * 一条 `gamma 2.2` 打进 gamma_set 的中间、或一次 SD 读帧里冒出一整行，都是没人想要的笑话。
+ * 搬进 cmd_buf 的字节由主循环下一次 uart_poll() 按顺序派发 —— 顺序不变、字符不丢。 */
+void uart_keepalive(void)
+{
+    rx_fill();
+}
+
 int main(void)
 {
     u32 rb, rb2;

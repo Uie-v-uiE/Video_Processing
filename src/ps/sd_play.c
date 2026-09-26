@@ -631,6 +631,10 @@ static int open_at(u32 i, u32 off)
  * 从当前游标读一帧到 FRAME_ADDR。逐簇读，因为簇链可以不连续；
  * 帧内跨簇的边界用目标指针偏移接起来。
  */
+/* 喂帧期间必须给 UART 留一个出水口：一帧约 300 KB，整帧读完后才回主循环轮询的话，
+ * 板上 autoplay 期间命令要发好几遍才中一次（实测就是这么来的）。见 main.c 的 uart_keepalive。 */
+extern void uart_keepalive(void);
+
 static int feed_cur(void)
 {
     u32 left = FRAME_BYTES, dst = FRAME_ADDR;
@@ -646,6 +650,7 @@ static int feed_cur(void)
         }
         last_clus = ff_clus;            /* 供 read_secs 失败时打印（见 #50） */
         if (read_secs(clus_lba(ff_clus, ff_blk), nsec, (u8 *)dst) != 0) return -1;
+        uart_keepalive();               /* 每段（几 KB）搬一次 RX：只收字节不派发，不重入命令层 */
         left    -= bytes;
         dst     += bytes;
         ff_blk  += nsec;
