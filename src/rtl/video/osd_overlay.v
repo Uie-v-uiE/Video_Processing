@@ -105,7 +105,26 @@ module osd_overlay #(
     localparam BOX_W  = MAX_CHARS * CHAR_W;
     localparam BOX_H  = N_LINES * LINE_H;
 
-    wire in_box = de && (x >= X0) && (x < X0 + BOX_W) &&
+    // ====== #96 时序专项：把"字格几何"这一级算完就**寄存一拍** ======
+    // r74 的 `build/timing_summary.rpt` 里全设计最差那条是
+    // `u_pl/x_d_reg[20][4] → u_pl/u_osd/b_reg[4]/D`，**29 级、9 个 CARRY4**、slack 只剩 0.549 ns。
+    // 那 9 个 CARRY4 不是字形译码（R25 那次已经把它并行化了），而是这里的**格子换算**：
+    // `ly / 31`、`lx / 18`、`lx % 18` 三个除/模（LINE_H 与 CHAR_W 都不是 2 的幂）——
+    // 它们原本和"取字符 → 查字形 → 选位图行 → 上色"串在同一拍里，一条链上既有减法又有查表。
+    // 拆法只有一处聪明可言：**把减法那一半挪到前一拍**（输入是 `x_d/y_d` 的寄存器，本来就是给这一拍用的），
+    // 背景像素 `r_in/g_in/b_in` 与 `de/hs/vs` 跟着**同样晚一拍** ⇒ 内容与坐标仍然同一拍，
+    // 整个模块的输出延迟从 1 拍变 2 拍，而这一拍对面板不可见（所有下游都吃这一份输出）。
+    // 为什么不该改成"提前算好整行"：那要把 32 格一次算出来，硬件从 1 个乘法器变成一整排，
+    // 而本项目最差的一条链缺的是**深度**不是吞吐（同一件事的先例见 Latency 那一格：换算挪地方，不挪数据量）。
+    reg [2:0] s_line;
+    reg [7:0] s_pix_y;
+    reg [4:0] s_cidx;
+    reg [7:0] s_pix_x;
+    reg       s_in_char;
+    reg [7:0] s_r, s_g, s_b;
+    reg       s_de, s_hs, s_vs;
+
+    wire        in_box = de && (x >= X0) && (x < X0 + BOX_W) &&
                   (y >= Y0) && (y < Y0 + BOX_H);
     wire [11:0] lx = x - X0;
     wire [11:0] ly = y - Y0;
@@ -116,6 +135,16 @@ module osd_overlay #(
     wire [4:0]  cidx  = lx / CHAR_W;
     wire [7:0]  pix_x = lx % CHAR_W;
     wire        in_char = in_box && (pix_y < CHAR_H) && (line < N_LINES);
+
+    always @(posedge clk) begin
+        s_line    <= line;
+        s_pix_y   <= pix_y;
+        s_cidx    <= cidx;
+        s_pix_x   <= pix_x;
+        s_in_char <= in_char;
+        s_r <= r_in;  s_g <= g_in;  s_b <= b_in;
+        s_de <= de;   s_hs <= hs_in; s_vs <= vs_in;
+    end
 
     function [7:0] dig;
         input [3:0] v;
@@ -485,6 +514,8 @@ module osd_overlay #(
     // 字码 → 字形号。**故意写成 case 而不是 if/else 区间比较**（V7.9.4 / 时序深度优化）：
     // 原来那串 `c >= 0x30 && c <= 0x39` 之类是**串行优先级链**，每个区间比较还要一次减法，
     // 它们和同一拍里的 `line*MAX_CHARS+cidx`、`font[gi][fy]` 串成一条 27 级、CARRY4=10 的链，
+    // ⚠ #96 又把这条链**从中间切了一拍**（格子换算 `ly/31`、`lx/18`、`lx%18` 挪到前一拍寄存，
+    //   背景像素与 de/hs/vs 跟着晚一拍）⇒ 读这一侧现在只剩"取字符 + 并行译码 + 选位图行"。
     // 就是 L3 报告里 `x_d_reg[11]→b_reg` 这条全设计最差路径的主体。
     // case 的码点是**并行**译码（真值表与逐项金表由 `tb_v794_osd_glyph` 差分钉住），
     // 表里没有的码点仍然落到 63=空格 —— 语义一字未改，只是不再串行。
@@ -533,25 +564,27 @@ module osd_overlay #(
         end
     endfunction
 
-    wire [7:0] ch = chars[line*MAX_CHARS + cidx];
+    // 读这一侧全部吃**上一拍算好的格子**（`s_*`）：`chars` 的索引是 移位+或（MAX_CHARS=32），
+    // 字形译码是并行 case（R25），`/SCALE` 只有 5 个值 —— 这一侧原本就不深，深的是前一拍的除/模。
+    wire [7:0] ch = chars[s_line * MAX_CHARS + s_cidx];
     wire [5:0] gi = glyph_idx(ch);
-    wire [2:0] fx = pix_x / SCALE;
-    wire [2:0] fy = (pix_y < 7*SCALE) ? (pix_y / SCALE) : 3'd6;
+    wire [2:0] fx = s_pix_x / SCALE;
+    wire [2:0] fy = (s_pix_y < 7*SCALE) ? (s_pix_y / SCALE) : 3'd6;
     wire [4:0] font_row = font[gi][fy];
-    wire pixel_on = in_char && (fx < 5) && (font_row[4-fx] == 1'b1);
+    wire pixel_on = s_in_char && (fx < 5) && (font_row[4-fx] == 1'b1);
 
     always @(posedge clk or negedge rst_n) begin
         if (!rst_n) begin
             r <= 0; g <= 0; b <= 0;
             de_out <= 0; hs_out <= 0; vs_out <= 0;
         end else begin
-            de_out <= de;
-            hs_out <= hs_in;
-            vs_out <= vs_in;
+            de_out <= s_de;          // #96：格子与背景像素一起晚了一拍 ⇒ 这里跟着晚一拍
+            hs_out <= s_hs;
+            vs_out <= s_vs;
             if (pixel_on) begin
                 r <= 8'hFF; g <= 8'h00; b <= 8'h90; // rose
             end else begin
-                r <= r_in; g <= g_in; b <= b_in;
+                r <= s_r; g <= s_g; b <= s_b;
             end
         end
     end

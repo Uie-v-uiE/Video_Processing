@@ -144,25 +144,45 @@ module tb_osd_lines;
         input integer cidx;
         input [5*7-1:0] want;
         input [4*8-1:0] tag;
-        integer r, c, oncnt, wantcnt;
+        reg wexp;
+        integer r, c, oncnt, wantcnt, npx, nbad;
         reg got;
         begin
-            oncnt = 0; wantcnt = 0;
+            oncnt = 0; wantcnt = 0; npx = 0; nbad = 0;
             for (r = 0; r < 7; r = r + 1) begin
                 for (c = 0; c < 5; c = c + 1) begin
                     tx = X0 + cidx*CW + c*SC + SC/2;
                     ty = Y0 + ln*LH + r*SC + SC/2;
                     tde = 1'b1;
+                    // #96：字格几何现在是**前一拍寄存**的（`s_line/s_cidx/s_pix_x/s_pix_y`），
+                    // 所以要放一个时钟沿让那一拍成立，再在这一拍里读 `pixel_on`。
+                    // 少这一拍会怎样：读到的永远是**上一个位置**的像素 —— 那条判据不会变红，
+                    // 而是整幅形状平移一格后继续"对上"（亮像素总数不变 ⇒ 计数式判据看不见平移）。
+                    // 所以这里不只加沿，末尾 T12 还要求扫描次数 nscan 不为零（形状判据要有样本）。
+                    @(posedge clk);
                     #1;
                     got = u_osd.pixel_on;
+                    wexp = want[(6-r)*5 + (4-c)];      // 逐像素：第 r 行、第 c 列（位序与 want 的拼法一致）
+                    npx = npx + 1;
+                    if (got !== wexp) nbad = nbad + 1;
                     if (got) oncnt = oncnt + 1;
-                    if (want[(6-r)*5 +: 5] & (5'b10000 >> c)) wantcnt = wantcnt + 1;
+                    if (wexp) wantcnt = wantcnt + 1;
                 end
             end
             tde = 1'b0;
+            // 两条判据，**逐像素那条才是主判**：只数亮像素总数的话，"整幅形状平移一格"
+            // 是看不见红的（总数一个都不变）—— #96 把字格几何挪到前一拍寄存，最容易出的正是这一类平移。
+            if (nbad != 0) begin
+                errors = errors + 1;
+                $display("[tb_osd_lines.v:153] FAIL %0s 格(%0d,%0d) 逐像素 %0d/%0d 不对（形状平移/错行）", tag, ln, cidx, nbad, npx);
+            end
+            if (npx != 35) begin
+                errors = errors + 1;
+                $display("[tb_osd_lines.v:156] FAIL %0s 格(%0d,%0d) 只扫了 %0d 个像素（应为 35）⇒ 这一条是空集上的绿", tag, ln, cidx, npx);
+            end
             if (oncnt != wantcnt) begin
                 errors = errors + 1;
-                $display("[tb_osd_lines.v:153] FAIL %0s 格(%0d,%0d) 亮 %0d 像素，点阵说 %0d", tag, ln, cidx, oncnt, wantcnt);
+                $display("[tb_osd_lines.v:161] FAIL %0s 格(%0d,%0d) 亮 %0d 像素，点阵说 %0d", tag, ln, cidx, oncnt, wantcnt);
             end
         end
     endtask
