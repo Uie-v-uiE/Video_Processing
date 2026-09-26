@@ -101,6 +101,9 @@ fi
 cp -f "$GT" "build/r${NN}_gates.txt"
 echo "  → bash build/freeze_evidence.sh $NN"
 bash build/freeze_evidence.sh "$NN" || { echo "冻结失败（原因在它自己那几行）"; rm -f /tmp/art.$$.txt; exit 1; }
-echo "完成。口径 ③：$D/r${NN}_l1_regress.txt 抄自上一次 L1 全量（$(stat -c %y "$D/r${NN}_l1_regress.txt" 2>/dev/null | cut -c1-16)），"
-echo "      不含本轮台架改动 ⇒ 下一次真实 RTL 改动之前，仍要先重跑 L1 再冻结。"
+echo "完成。口径 ③：$D/r${NN}_l1_regress.txt 是**上一次 L1 全量**抄来的（本轮只改台架/文档，没重跑那 67 个）。"
+echo "      ⚠ 不要用 `stat` 的 mtime 去说它是几点跑的：`freeze_evidence.sh` 每刷一次就 `cp -f` 一次，"
+echo "        mtime 会被刷成拷贝时间（今晚打印出 05:41 而内容是 03:49，就是这么来的）。"
+echo "      要看它含了什么，念这两条：`grep -c '^RESULT .* PASS' $D/r${NN}_l1_regress.txt` 与它自己头部的 Vivado banner。"
+echo "      下一次真实 RTL 改动之前，仍要先重跑 L1 再冻结。"
 rm -f /tmp/art.$$.txt
