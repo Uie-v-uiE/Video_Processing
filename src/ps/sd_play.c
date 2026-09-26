@@ -551,6 +551,16 @@ int sd_mount(void)
  * 这里做的事：停播（心跳交给 show_frame 那条错误路径）→ 清掉上一次会话的痕迹（打开的文件号、
  * FAT 扇区缓存、mounted）→ 让 sd_mount() 把控制器与簇表重新初始化一遍。
  * 失败时 mounted 保持 0 ⇒ 后续 play 会被明确拒绝，不会再"假装卡还在"。
+ *
+ * ⚠ **2026-09-27 早：#45 那句"SD 控制器每个上电周期只能初始化一次"是错的，它其实是驱动的
+ * 二次初始化守卫**：`XSdPs_CfgInitialize` 开头就是
+ *     if (InstancePtr->IsReady == XIL_COMPONENT_IS_READY) return XST_DEVICE_IS_STARTED;
+ * （`xsdps.c:156-159`，注释原文 "If this API is getting called twice, return value accordingly"），
+ * 而我们的代码里没有任何一处清 `IsReady` ⇒ 第二次初始化**永远**在第一步就被驱动挡回。
+ * 所以这里在重挂之前把 `IsReady` 清掉，让 `CfgInitialize` 真的去做它该做的
+ * `PortReset` + 寄存器初始化。A 侧凭据（改之前，卡在不插的状态下敲 `sd remount`）：
+ *     [SD] remount failed: XSdPs_CfgInitialize failed
+ * B 侧凭据见 `report/ISSUES.md` #45/#94 的 06:2x 追加段。
  */
 int sd_remount(void)
 {
@@ -559,7 +569,57 @@ int sd_remount(void)
     open_idx = 0xFFFFFFFFu;
     FatLba   = 0xFFFFFFFFu;
     nxt      = 0;
+    Sd.IsReady = 0u;          /* 驱动的"已初始化"旗标：不清它就永远 XST_DEVICE_IS_STARTED */
     return sd_mount();
+}
+
+/*
+ * 自动恢复（用户 2026-09-27 的要求："插上仍然不能自动切到 SD 卡"）。
+ * 规则：这个上电周期里**曾经挂载过、而且丢卡那一刻是在播放的**（`want_play` 由本函数在
+ * `mounted==1` 时跟随 `playing` 得到 —— 这样 `stop` 之后再插卡不会被"自动开播"，
+ * 也不用在每条失败路径上插旗），一旦卡丢了（`mounted` 变 0）就每 2 s 试一次 `sd_remount()`，
+ * 成功就继续回放。30 次（约 1 分钟）没成就停手并**明说**，不再无声地一直重试。
+ * 为什么每拍最多一次、为什么限 2 s：`sd_recover_tick()` 跑在主循环里，而主循环同时是**串口**的
+ * 服务循环 —— 卡不在位时一次初始化要等 CMD 超时，连着跑几十次，控制台就没人在听了。
+ */
+static int   seen_mounted = 0;
+static int   want_play    = 0;
+static int   giveup       = 0;
+static u32   rec_tries    = 0;
+static XTime rec_t        = 0;
+
+void sd_recover_tick(void)
+{
+    XTime now;
+    u32   n;
+
+    if (mounted) {
+        seen_mounted = 1;
+        want_play    = playing;          /* 只有"当时在播"才值得自动接回来 */
+        giveup       = 0;
+        rec_tries    = 0;
+        return;
+    }
+    if (!seen_mounted || !want_play || giveup) { return; }
+
+    XTime_GetTime(&now);
+    if ((now - rec_t) < (XTime)(2u * COUNTS_PER_SECOND)) { return; }
+    rec_t = now;
+
+    if (rec_tries >= 30u) {
+        giveup = 1;
+        xil_printf("[SD] 自动重挂 30 次没成功，停手：插上卡后敲 `sd remount`，或重下 elf（JTAG 三件套第三条）\r\n");
+        return;
+    }
+    rec_tries++;
+    if (sd_remount() == 0) {
+        n = rec_tries;
+        giveup = 0; rec_tries = 0;
+        xil_printf("[SD] 卡回来了：自动重挂 ok（试了 %u 次），继续回放\r\n", (unsigned)n);
+        (void)sd_play(1);
+    } else {
+        xil_printf("[SD] 自动重挂第 %u 次没成功：%s\r\n", (unsigned)rec_tries, sd_err());
+    }
 }
 
 void sd_status(void)

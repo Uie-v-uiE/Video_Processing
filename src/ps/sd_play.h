@@ -19,6 +19,8 @@ int sd_mount(void);
  * mounted 清回 0 ⇒ 插回去也修不好，以前只能重下 elf。返回同 sd_mount()。
  */
 int sd_remount(void);
+/* 主循环每拍调一次：曾经挂载过且丢卡在播时，每 2 s 自动试一次 sd_remount()（#94/#45） */
+void sd_recover_tick(void);
 
 /* 打印卡/文件系统/帧库摘要，用于串口验收 */
 void sd_status(void);

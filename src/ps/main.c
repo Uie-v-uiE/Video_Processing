@@ -1517,6 +1517,7 @@ int main(void)
     while (1) {
         uart_poll();
         sd_tick();
+        sd_recover_tick(); /* #94/#45：卡插回来自动重挂并接回回放（每 2 s 一次，最多 30 次） */
         ps_keepalive();    /* #94：暂停/定点这些"屏上这张要留住"的状态替 PS 报心跳 */
         gamma_tick();      /* V9-5：gamma Auto 的推进（没开 Auto 时它立刻返回） */
         temp_poll();       /* V9-6：一秒一次的片上温度 → OSD 那一格 */

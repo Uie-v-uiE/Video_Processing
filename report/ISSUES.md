@@ -3738,6 +3738,43 @@ skid 那 15 拍两路本来就一样长 ⇒ 三者（原图像素 / 处理像素
   `report/COMMANDS.md` / `board/README.md` 里引用它的地方在改写之前都按"未定量"对待。
 
 
+### #45/#94 更正（2026-09-27 06:2x）：**"SD 控制器每个上电周期只能初始化一次"是错的**，那是驱动的二次初始化守卫
+
+今早用户复测给出两件事：① 拔卡现在能自动落到 `SRC:TEST`（#94 那半个修好了），
+② **插回卡仍然不会自动回到 SD**。沿 ② 去读驱动，找到了 #45 那条"硬件限制"的真正出处：
+
+```c
+/* xsdps.c:156-159 —— BSP 2025.2.1，libsrc/sdps/src/xsdps.c */
+/* If this API is getting called twice, return value accordingly */
+if (InstancePtr->IsReady == XIL_COMPONENT_IS_READY) {
+    Status = (s32)XST_DEVICE_IS_STARTED;  goto RETURN_PATH;
+}
+```
+
+我们的 `sd_remount()` 清了 `mounted / open_idx / FatLba / nxt`，**但没有任何一处清 `Sd.IsReady`**
+⇒ 第二次 `XSdPs_CfgInitialize` 在第一步就被驱动挡回，报出来的正是我们打印的那句
+`XSdPs_CfgInitialize failed`。当年（#45）我从"报错文本 + 只能重下 elf 才好"倒推出"控制器不能二次初始化"，
+**没有去读驱动那 20 行** —— 于是把一个软件守卫写成了硬件事实，还据此定了演示的一条硬规矩
+（"拔卡只能排最后一幕"）和一条限制说明。这是 #68 那一族的又一例：**结论的强度不能超过它的凭据**。
+
+修法（两处，都在 PS 侧）：
+1. `sd_remount()` 里在重新挂载之前 `Sd.IsReady = 0u;`；
+2. 主循环加 `sd_recover_tick()`（`src/ps/sd_play.c`）：**曾经挂载过、且丢卡那一刻正在播** ⇒
+   每 2 s 自动试一次重挂，最多 30 次，成功就自己接回放行；到限就停手并明说
+   （"插上卡后敲 `sd remount`，或重下 elf"）。为什么限 2 s / 每拍一次：主循环同时是串口的服务循环，
+   卡不在位时一次初始化要等 CMD 超时，连着跑几十次等于把控制台闷死。
+
+A/B 凭据（同一块板、同一个上电周期、elf `f17cd75df407`；两份原始回包入库）：
+
+| | `sd remount` 的回包 |
+|---|---|
+| 改之前 | `[SD] remount failed: XSdPs_CfgInitialize failed` + `只能断电重插（见 ISSUES #45/#94）` — `build/evidence/r75_sd_remount_before.txt` |
+| 改之后 | `[SD] remount ok` → `[SD] dir map ok: 9 files` → `[SD] frame 600: last 100 frames 29.654 fps (since play 29.824)` — `build/evidence/r75_sd_remount_after.txt` |
+
+⚠ **还差一次真插拔**：上面的 B 侧全程卡都在座（它验的是"第二次初始化能成"，不是"拔了再插能自动接回"）。
+自动接回要用户手上做一次"播放中拔卡 → 等几秒插回"，看到 `[SD] 卡回来了：自动重挂 ok（试了 N 次）` 才算闭合。
+在那之前，`report/DEMO_SCRIPT.md` 第 9 幕那条"拔卡排最后"的规矩**保留**（宁保守也不在台上赌）。
+
 ## #95（2026-09-26 19:3x）**已回退的尝试**：把 `link_monitor` 的帧间隔统计拆成三级寄存器，去抬全设计最差那条 setup
 
 **病灶（数出自 `build/evidence_r70/timing_summary.rpt` 与 r71 的同名报告）**：r71 的 WNS = **0.346 ns**，
