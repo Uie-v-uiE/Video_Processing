@@ -136,9 +136,20 @@ module tb_v98_top_seam;
     //   尺子的模型必须在**初始化之后回读一格**（C0a 现在这么做了）——
     //   旧版 C0a 只直接调 `px_val(200,177)` 验函数本身，于是"函数对、数组是 X"这种形状它看不见。
     function [15:0] px_val; input [31:0] r; input [31:0] c;
-        begin px_val = {r[7:0], c[7:0]}; end
+        // ⚠ 位 15 **钉成 1**（#92 收尾，2026-09-26 17:3x）。原来写的是 `{r[7:0],c[7:0]}`，
+        //   于是源格 (0,0)、(256,0) 这些 `(row mod 256)==0 && col==0` 的格子编出来就是 **16'h0000**
+        //   —— 而面板级那把尺子（C3）判"这一格在不在画面里"用的就是"是不是全黑"：
+        //   图案自己的黑格与"画面外的黑"在引脚上**长得一模一样**，于是 0.50x/0.75x 各有两行
+        //   的左沿量到"晚两列"（`C3DEV` 报的正是 `prow=406/407`、`461` 这种成对行 = 一个源行），
+        //   红的是尺子的前提，不是硬件。位 15 当"非黑"标志 ⇒ 全帧 300×512 格没有一格是黑的，
+        //   黑色重新变成"画面外"的唯一签名。
+        //   代价：行标签从 8 位变 7 位 ⇒ `mem_row` 是 `row mod 128`。这不影响这些判据要抓的东西
+        //   （它们全是"小偏移"检测：Δrow 差 1/2/4 行照样看得见），但**所有绝对行号期望都要按
+        //   mod 128 写**（299 → 43 恰好与原来同值；200 → 72）。C0a 现在直接把"没有一格是黑的"
+        //   当成一条判据来跑，不再靠注释。
+        begin px_val = {1'b1, r[6:0], c[7:0]}; end
     endfunction
-    function [7:0] mem_row; input [15:0] v; begin mem_row = v[15:8]; end endfunction
+    function [7:0] mem_row; input [15:0] v; begin mem_row = v[14:8]; end endfunction
     function [7:0] mem_col; input [15:0] v; begin mem_col = v[7:0];  end endfunction
     // 模 256 的有符号差（-128..127）
     function integer dsub; input [7:0] a; input [7:0] b; integer d;
@@ -151,7 +162,7 @@ module tb_v98_top_seam;
     endfunction
 
     reg [63:0] ddr [0:FRAME_WORDS-1];
-    integer ii, jj;
+    integer ii, jj, c0a3_r, c0a3_c, c0a3_black;
     reg [15:0] p3, p2, p1, p0;
     initial begin
         for (ii = 0; ii < SRC_H; ii = ii + 1)
@@ -376,7 +387,7 @@ module tb_v98_top_seam;
                     n_l = n_l - 1;
                 end else begin
                 dl_c = dsub(mem_col(tap_raw), mix_x[7:0]);
-                dl_r = dsub(mem_row(tap_raw), mix_y[8:1]);
+                dl_r = dsub(mem_row(tap_raw), mix_y[8:1] & 8'h7F);   // #92：行标签现在是 mod 128
                 if (dl_c != 0 || dl_r != 0) bad_l = bad_l + 1;
                 if (tap_raw == 16'h0000) black_l = black_l + 1;
                 if (dl_c >= -5 && dl_c <= 5) hl_c[dl_c + 5] = hl_c[dl_c + 5] + 1; else hl_c[0] = hl_c[0] + 1;
@@ -396,7 +407,7 @@ module tb_v98_top_seam;
             end else begin
                 n_r = n_r + 1;
                 dx = dsub(mem_col(tap_proc), (mix_x - 12'd512));
-                dr = dsub(mem_row(tap_proc), (mix_y >> 1));
+                dr = dsub(mem_row(tap_proc), (mix_y >> 1) & 8'h7F);
                 if (dx != 0) bad_r_col = bad_r_col + 1;
                 if (dr >= -7 && dr <= 6) hist[dr + 7] = hist[dr + 7] + 1;
                 if (m2_mode == -999) m2_mode = dr;
@@ -466,7 +477,7 @@ module tb_v98_top_seam;
                 //   单视口 + 手动 1.00x + 不旋转 时，显示 (X,Y) 这一格的内容必须就是源 (X>>1, Y>>1)。
                 //   这才是"整屏一个视口"这句话的内容级证据；内部坐标那条路（sx/sy）由 C1g/C1h 单独看。
                 c1_dx  = dsub(mem_col(tap_raw), (c1_col >> 1));
-                c1_dy  = dsub(mem_row(tap_raw), (c1_row >> 1));
+                c1_dy  = dsub(mem_row(tap_raw), (c1_row >> 1) & 8'h7F);   // 同上：小偏移检测不受影响
                 // 视口几何：源列必须等于**同一级**的显示列 >>1（整屏一个视口的定义就是这一条）。
                 //   取 x_d[3] 而不是 x_sel：sx/sy 是第 3 级的标签，跨级比就是重犯 #68。
                 // sx/sy 是 mapper 的输出：复位后前几拍与越界那一拍本身就是 X，
@@ -575,7 +586,7 @@ module tb_v98_top_seam;
     integer c2_viol [0:7], c2_nout [0:7], c2_nin [0:7], c2_inbad [0:7], c2_invbad [0:7];
     integer c2_geol [0:7], c2_geor [0:7], c2_measl [0:7], c2_measr [0:7];
     integer c2_leakl [0:7], c2_leakr [0:7], c2_blank [0:7], c2_rows [0:7];
-    integer c2_e, c2_bdump = 0;
+    integer c2_e, c2_bdump = 0, c2_ibdump = 0;
 
     initial begin
         for (c2_e = 0; c2_e < 8; c2_e = c2_e + 1) begin
@@ -632,7 +643,19 @@ module tb_v98_top_seam;
                                  dut.inv_used, bilin_en_tb, dut.u_bilin.jd);
                     end
                 end
-                if (dsub(mem_col(dut.u_split.sel), c2_e) != 0) c2_inbad[c2_k] = c2_inbad[c2_k] + 1;
+                if (dsub(mem_col(dut.u_split.sel), c2_e) != 0) begin
+                    c2_inbad[c2_k] = c2_inbad[c2_k] + 1;
+                    // 诊断（不是判据）：r70 那轮量到"1.00x/1.33x/1.5x 三档各 484 格对不上，
+                    // 而 0.25x~0.75x 是 0、2.0x 也是 0" —— 484 = 2 列 × 121 行 × 2 帧 = **每行恰好一个列对**，
+                    // 这种"只错一对"的形状必须知道它是**哪一对**才修得动（行首？行尾？中间？）。
+                    // 只把数打出来不猜：#68/#78/#92 三轮的账都是"再推一遍"输的。
+                    if (c2_ibdump < 8) begin
+                        c2_ibdump = c2_ibdump + 1;
+                        $display("C2IBAD code=%0d x_sel=%0d pair=%0d 解出col=%0d 期望col=%0d | sel=%h oob_out=%b y=%0d",
+                                 c2_k, dut.u_split.x_sel, (dut.u_split.x_sel >> 1), mem_col(dut.u_split.sel),
+                                 c2_e, dut.u_split.sel, dut.oob_out, dut.y_d[dut.MIX_D]);
+                    end
+                end
             end
         end
     end
@@ -745,12 +768,23 @@ module tb_v98_top_seam;
         // ---- C0a 尺子校准：在任何测量之前先证明尺子对 ----
         //   #78 之后覆盖加宽：0 与"小列号"那一组是当年漏掉的（整数取位给 X 恰好不在 (200,177) 上出现），
         //   还有帧底/帧右两个边界（编码是 8 bit，299/511 会回绕，回绕方向也要一起验）。
-        line("C0a ruler encodes position in the pixel", mem_row(px_val(200,177)) == 8'd200 && mem_col(px_val(200,177)) == 8'd177
-             && px_val(0,0) == 16'h0000 && mem_row(px_val(0,2)) == 8'd0 && mem_col(px_val(0,2)) == 8'd2
+        line("C0a ruler encodes position in the pixel", mem_row(px_val(200,177)) == 8'd72 && mem_col(px_val(200,177)) == 8'd177
+             && px_val(0,0) == 16'h8000 && mem_row(px_val(0,2)) == 8'd0 && mem_col(px_val(0,2)) == 8'd2
              && mem_row(px_val(1,255)) == 8'd1  && mem_col(px_val(1,255)) == 8'hFF
              && mem_row(px_val(299,511)) == 8'd43 && mem_col(px_val(299,511)) == 8'd255
              && dsub(8'd2, 8'd254) == 4 && dsub(8'd254, 8'd2) == -4 && dsub(8'd0, 8'd255) == 1,
              "px_val / decoder / mod-256 signed diff must agree, incl. 0, small values, both edges, both wrap directions");
+        // C0a3：**全帧 300×512 格没有一格编码成 16'h0000**。这条不是装饰：面板级尺子只能用
+        // "是不是全黑"判断"在不在画面里"，只要图案里存在一个黑格，那条尺子就永远有假红可找。
+        begin
+            c0a3_black = 0;
+            for (c0a3_r = 0; c0a3_r < 300; c0a3_r = c0a3_r + 1)
+                for (c0a3_c = 0; c0a3_c < 512; c0a3_c = c0a3_c + 1)
+                    if (px_val(c0a3_r, c0a3_c) == 16'h0000) c0a3_black = c0a3_black + 1;
+        end
+        line("C0a3 no black cell exists in the pattern", c0a3_black == 0,
+             "the panel-level ruler equates black with outside-the-picture, so the pattern must not contain black");
+
 
         // ---- 复位释放 ----
         repeat (4) @(posedge sys_clk);
