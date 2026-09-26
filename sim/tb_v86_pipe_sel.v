@@ -33,6 +33,10 @@ module tb_v86_pipe_sel;
         .clk(clk), .rst_n(rst_n),
         .effect_en_async(en_a), .stage_sel_async(cfg_a), .threshold_async(th_a),
         .gamma_async(gm_a),             // gamma 表本身由 tb_v88_gamma 测；这里加 T15/T16 钉"位序与同步"
+        // V8-8 给 effect_ctrl 加的两个缩放输入在这个台架里**没人管**（它判的是算法选择字与 gamma 位序），
+        // 但悬空 = Z ⇒ 会顺着 `sel_meta` 把 X 灌进同一条同步链的输出，而 `#88` 刚教过这一课
+        // （顶层台架因为一个悬空输入红了四判据好几天）。显式钉成"1.00x 手动"，与固件默认一致。
+        .zoom_sel_async(3'd4), .zoom_manual_async(1'b1),
         .stage_sel(sel_q), .effect_en(en_q), .threshold(th_q),
         .gamma_en(gm_en_q), .gamma_wr(gm_wr_q), .gamma_idx(gm_idx_q), .gamma_data(gm_data_q)
     );

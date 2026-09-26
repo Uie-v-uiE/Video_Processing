@@ -11,6 +11,10 @@ module tb_zoom_mapper;
 
     zoom_ctrl #(.INV_LO(10'd256), .INV_HI(10'd512), .STEP(10'd8)) u_ctrl (
         .clk(clk), .rst_n(rst_n), .enable(enable),
+        // V8-8 给 zoom_ctrl 加的这两个输入以前在这里是**悬空**的（`check_ports --audit-sim` 抓到；
+        //  #88 的教训就是"悬空在仿真里是 Z，症状长得像硬件坏了"）。这台架量的是**呼吸**，
+        // 所以钉 manual=0（自动），档号给一个合法值让 `zsel` 那一路不产生 X。
+        .zsel(3'd4), .manual(1'b0),
         .frame_start(frame_start),
         .fit_en(1'b0), .inv_fit(10'd256),   // V9-2：这台台架用 inv_force 直接喂 mapper，缩放来源钉成"非拟合"
         .inv_scale(inv_scale), .inv_used(), .zoom_active(zoom_active), .dir(dir)

@@ -27,6 +27,11 @@ module tb_v794_osd_glyph;
         .split_pct(8'd50), .split_auto(1'b0),
         .lat_ms(16'd0), .lat_ok(1'b0),
         .src_eff(2'b11), .mode(2'b00), .bg_pix(16'h0), .no_sig(1'b0),
+        // ⚠ V9-6 新加的 `temp_disp` 必须**显式接一个值**，不许悬空：悬空 = X，而 X 会顺着
+        //   `if ((temp_disp[7:4] <= 4'd9) ...)` 把整行字符变成 X —— 这条教训就是 #88 的全部根因
+        //   （顶层台架因为 `bilin_en_axi` 悬空红了四判据好几天）。本台架只判"码点→字形号"，
+        //   给"没有可信读数"那个编码即可；`N_LINES(4)` 是有意的：这里不比行内容，行数是几都与映射无关。
+        .temp_disp(8'hFF),
         .r_in(8'd0), .g_in(8'd0), .b_in(8'd0), .hs_in(1'b0), .vs_in(1'b0),
         .r(ro), .g(go), .b(bo), .de_out(de_o), .hs_out(hs_o), .vs_out(vs_o)
     );

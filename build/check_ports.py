@@ -31,6 +31,7 @@
 用法（仓库根目录）：
     python build/check_ports.py             # 逐条打印
     python build/check_ports.py --quiet     # 只要汇总行（gates.sh 用）
+    python build/check_ports.py --audit-sim # 只审计 sim/ 下的台架例化（①/②，不判位宽），见 audit_sim()
 退出码：0 干净 / 1 有违规 / 2 脚本自己出错
 """
 import io
@@ -151,21 +152,32 @@ def ports_of(src, mstart):
     if ".*" in body or "`" in body:
         return None
     ins, allp, wids = set(), set(), {}
+    # 一行声明多个端口（`input wire [11:0] sx, sy,`）会被 split_top 切开 ⇒ 后半截是**裸名字**。
+    # 第一版在这里直接 return None ⇒ 整个模块被跳过，而 `fb_bilin`/`fb_rd5x` 恰好就是这么躲过审计的
+    # （`fb_bilin` 正是 r63 换读口时改动最多、最需要被审计的那一个）。所以裸名字沿用上一条的方向/位宽。
+    last_dir, last_rng = None, None
     for chunk in split_top(body):
         chunk = chunk.strip()
         if not chunk:
             continue
         d = re.match(r"^(input|output|inout)\b(.*)$", chunk, re.S)
-        if not d:
+        if d:
+            is_in = d.group(1) in ("input", "inout")
+            last_dir = "input" if is_in else "output"
+            # 位宽**先取出来**再去掉：`[W-1:0]` 这种含参数的取不到 ⇒ None ⇒ 这一条不判宽度。
+            rng = re.search(r"\[[^\]]*\]", d.group(2))
+            last_rng = rng.group(0) if rng else None
+            w = lit_width(last_rng)
+            rest = re.sub(r"\b(input|output|inout|reg|wire|signed)\b", " ", d.group(2))
+            # **先去掉 [ ... ] 位宽**：`input wire [W-1:0] bus` 里的 W 是参数，不是端口。
+            # 第一版没去 ⇒ 每个"带参数位宽"的端口都报成"输入 W 没连"，13 条假红。
+            rest = re.sub(r"\[[^\]]*\]", " ", rest)
+            single = len([n for n in re.findall(r"[A-Za-z_]\w*", rest) if n not in KEYWORDS]) == 1
+        elif re.match(r"^[A-Za-z_]\w*$", chunk) and last_dir:
+            is_in = last_dir == "input"
+            w, rest, single = lit_width(last_rng), chunk, True
+        else:
             return None                       # 非 ANSI（裸名字表）：不猜
-        is_in = d.group(1) in ("input", "inout")
-        # 位宽**先取出来**再去掉：`[W-1:0]` 这种含参数的取不到 ⇒ None ⇒ 这一条不判宽度。
-        rng = re.search(r"\[[^\]]*\]", d.group(2))
-        w = lit_width(rng.group(0) if rng else None)
-        rest = re.sub(r"\b(input|output|inout|reg|wire|signed)\b", " ", d.group(2))
-        # **先去掉 [ ... ] 位宽**：`input wire [W-1:0] bus` 里的 W 是参数，不是端口。
-        # 第一版没去 ⇒ 每个"带参数位宽"的端口都报成"输入 W 没连"，13 条假红。
-        rest = re.sub(r"\[[^\]]*\]", " ", rest)
         names = [n for n in re.findall(r"[A-Za-z_]\w*", rest) if n not in KEYWORDS]
         if not names:
             return None
@@ -173,7 +185,7 @@ def ports_of(src, mstart):
             allp.add(n)
             if is_in:
                 ins.add(n)
-            if w is not None and len(names) == 1:   # 一行多名（`input [7:0] a, b`）不猜谁是谁
+            if w is not None and single:                # 一行多名（`input [7:0] a, b`）不猜谁是谁
                 wids[n] = w
     return ins, allp, wids
 
@@ -226,10 +238,91 @@ def instances(src):
     return out
 
 
+SIM = os.path.join(ROOT, "sim")
+
+
+def check_instances(path, src, mods, problems, want_width=True):
+    """一个文件里的所有例化 → 追加违规，返回 (例化数, 比过位宽的连接数)。
+
+    ①连了不存在的端口名 ②输入悬空 —— 两类都判；③位宽只在 RTL 内部判（`want_width`）：
+      台架里"往 19 位端口上接 14 位常数"这类事是**有意的钉值**还是错，脚本分不出来，
+      而分不出来就不许判红（#57/#60 那一课反过来用：假红会把检查器关掉）。
+    """
+    rel = os.path.relpath(path, ROOT).replace("\\", "/")
+    decls = decl_widths(src)
+    for mname, (mpath, _mi, _ma, mw) in mods.items():
+        if mpath == path:
+            for k, v in mw.items():
+                decls.setdefault(k, v)
+    checked = wchecked = 0
+    for mod, inst, arg, line in instances(src):
+        if mod not in mods or mod in SKIP or mod == inst:
+            continue
+        if os.path.basename(path)[:-2] == mod:      # 自己例化自己（不该发生，但别当违规报）
+            continue
+        _p, ins, allp, wids = mods[mod]
+        if ".*" in arg:
+            continue
+        checked += 1
+        conns = set(re.findall(r"\.\s*([A-Za-z_]\w*)\s*\(", arg))
+        for bad in sorted(conns - allp):
+            problems.append("%s:%d  %s %s 连了不存在的端口 .%s()" % (rel, line, mod, inst, bad))
+        for miss in sorted(ins - conns):
+            problems.append("%s:%d  %s %s 的输入 %s 没连（悬空=Z/X）%s"
+                            % (rel, line, mod, inst, miss,
+                               "" if want_width else "  ← 台架例化"))
+        if not want_width:
+            continue
+        for chunk in split_top(arg):
+            m = re.match(r"^\.\s*([A-Za-z_]\w*)\s*\((.*)\)$", chunk.strip(), re.S)
+            if not m or m.group(1) not in allp:
+                continue
+            fw = wids.get(m.group(1))
+            aw = actual_width(m.group(2), decls)
+            if not fw or not aw:
+                continue
+            wchecked += 1
+            if fw != aw:
+                problems.append("%s:%d  %s %s .%s(…) 位宽不符：端口 %d 位，接的是 %d 位"
+                                "（Verilog 静默补零/截断 ⇒ 高位会被吃掉，见 #57）"
+                                % (rel, line, mod, inst, m.group(1), fw, aw))
+    return checked, wchecked
+
+
+def walk_files(root):
+    for base, _d, names in os.walk(root):
+        for n in sorted(names):
+            if n.endswith(".v"):
+                p = os.path.join(base, n)
+                yield p, strip_comments(io.open(p, encoding="utf-8", errors="replace").read())
+
+
 def main():
     quiet = "--quiet" in sys.argv
+    sim_only = "--audit-sim" in sys.argv
     mods = collect()
-    problems, checked, wchecked = [], 0, 0
+    problems = []
+    checked = wchecked = 0
+    if not sim_only:
+        for path, src in walk_files(RTL):
+            c, w = check_instances(path, src, mods, problems, want_width=True)
+            checked += c
+            wchecked += w
+    # 台架也扫：**#88 的根因就在这一格里** —— `#83` 给顶层加的 `bilin_en_axi` 只接进了 `pl_demo_top`
+    # （RTL，也就是原来唯一的扫描范围），顶层台架 tb_v98 的例化没人看 ⇒ 输入悬空成 Z ⇒
+    # 整条显示内容在仿真里是 X ⇒ 四条内容判据红了好几天，而症状读起来像"顶层通路坏了"。
+    # 台架只判 ①/②（悬空与错名），位宽不判（理由见 check_instances）。
+    for path, src in walk_files(SIM):
+        c, _w = check_instances(path, src, mods, problems, want_width=False)
+        checked += c
+    for p in problems:
+        print(p)
+    if not quiet and SKIP_LIST:
+        print("  skipped(端口表看不懂/非 ANSI): " + " ".join(sorted(set(SKIP_LIST))))
+    print("CHECK PORTS: instances=%d modules=%d skipped=%d width_compared=%d violations=%d %s"
+          % (checked, len(mods), len(set(SKIP_LIST)), wchecked, len(problems),
+             "PASS" if not problems else "FAIL"))
+    return 0 if not problems else 1
     for base, _d, names in os.walk(RTL):
         for n in sorted(names):
             if not n.endswith(".v"):
