@@ -30,7 +30,10 @@
 - **当时的处置（V1 是"关功能"而不是"修功能"）**：旋转时**自动旁路** blur/sobel，
   灰度/二值/反色因为是点运算所以保留。证据：`origin/v1-ps-ethernet:docs/ROTATION_AND_EFFECTS.md`
   的表（1–359° 行里 gray✓ binary✓ **blur✗自动关 sobel✗自动关** invert✓），
-  实现 `rtl/process/proc_pipeline.v:24-25`：`wire by2 = ~effect_en[2] | rotate_active;`。
+  实现 `origin/v1-ps-ethernet:rtl/process/proc_pipeline.v:24-25`：`wire by2 = ~effect_en[2] | rotate_active;`。
+  ⚠ 那句引的是 **v1 分支上那份文件**，不是主线现在的代码：今天窗口级的旁路只看九位里的自己那一位
+  （`w_blur = stage_sel[2]`，`rotate_active` 只剩状态用途），而 `effect_en` 这个名字连同它那五位
+  在 2026-09-26 一起退役了（理由写在 `src/rtl/process/effect_ctrl.v` 文件头，命令层的影响见 `COMMANDS.md` §4）。
 - **根因（同文档写明）**：窗滤要的是**源图扫描顺序上的 3×3 邻域**，而旋转是**逆映射**
   （屏幕上每点反算 `(sx,sy)`），于是邻域像素在源图里不再连续 ⇒ 窗口不成立。
 - **解法（V2 落地）**：把 3×3 窗口建在**目标域**（右窗光栅顺序）上，

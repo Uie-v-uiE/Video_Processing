@@ -28,14 +28,14 @@
                                        ▼
 ┌─────────────┐  AXI GPIO     ┌──────────────────┐
 │   UART PS   │ ────────────► │  pl_video_top    │
-│  115200     │  en/thr/src   │  旋转+缩放+效果   │
+│  115200     │  sel/thr/src  │  旋转+缩放+效果   │
 └─────────────┘               └────────┬─────────┘
                                        │ TMDS
                                        ▼
                               ┌──────────────────┐
                               │ HDMI 1024×600    │
                               │ 左原图 | 右缩放+效果│
-                              │ OSD: FPS/ANG/EN  │
+                              │ OSD: FPS/Src/Pipe│
                               └──────────────────┘
 ```
 
@@ -73,8 +73,9 @@ video_timing_1024x600
    左窗像素 (原图)        右窗像素 (缩放后源像素)
         │                     │
         │                     ▼
-        │              proc_pipeline
-        │              gray→binary→blur→sobel→invert
+        │              proc_pipeline（九位 stage_sel，一位一级）
+        │              级0 gamma → 颜色(灰度/反色) → 滤波(模糊/锐化)
+        │                       → Sobel → 阈值(二值化±判决) → 形态学(腐蚀/膨胀)
         │              （目标域 3×3，挂在右窗光栅上）
         │                     │
         ▼                     ▼
@@ -82,7 +83,7 @@ video_timing_1024x600
          左=orig  右=proc  中间蓝线
                    │
                    ▼
-         osd_overlay (FPS/ANG/EN)
+         osd_overlay (OSD 五行：FPS/Src/Pipe/Rot/Split/Temp)
                    │
                    ▼
               rgb2dvi → HDMI
@@ -93,7 +94,7 @@ video_timing_1024x600
 | 点 | 说明 |
 |----|------|
 | FB 单口读 | 左右窗扫描时间不重叠，按 `left_pane` 选择地址 |
-| 延迟对齐 | mapper 3 拍 + rd_addr 1 拍 + BRAM 1 拍 + proc 7 拍；sideband 延到匹配 |
+| 延迟对齐 | mapper 3 拍 + rd_addr 1 拍 + BRAM 1 拍 + proc **15 拍**（顶层只取 `u_pipe.LATENCY`，不许再数一遍）；sideband 延到匹配 |
 | 效果位置 | **右窗缩放后数据流**；左窗始终原图，便于对比 |
 | 缩放 | 原始尺寸为最大（1.0×），自动缩小再回到原始；OOB 黑边 |
 | line_cache | 旧「左扫效果→右读行缓」路径已废弃，不再接入 top |
@@ -153,14 +154,28 @@ MMCM：VCO=1000 MHz（50×20），÷20 / ÷4 / ÷5。
 
 ---
 
-## 6. 控制字（AXI GPIO @ 0x41200000）
+## 6. 控制字（两只 AXI GPIO）
+
+`0x41200000` = `gpio_o`（老那 32 位；PS 每次控制都**整字**重写）：
 
 ```
-bit[4:0]   effect_en   gray/binary/blur/sobel/invert
+bit[4:0]   保留，恒写 0 —— V7 的 effect_en 五位于 2026-09-26 从 RTL 删净，PL 侧已无读者
+           （位还占着：set_src.tcl / health_read.mjs 按位写这只字，重排等于把老工具全判红）
 bit[15:8]  threshold
-bit[16]    src_sel     0=彩条  1=视频
-bit[17]    zoom_en     预留；PL 侧 system_top 常绑 1
+bit[16]    src_sel     0=图卡  1=视频
+bit[17]    zoom_en     右窗呼吸缩放的开/关（V7.7 起不再是 RTL 里的常数 1'b1）
+bit[18]    ps_publish  片源发布的翻转位
+bit[19]    bilin_en    右窗双线性 / 最近邻
+bit[24:23] 片源模式码、bit[22] 它的翻转位（`src 0|1|2` 钉住哪一路）
+bit[26]/[31:27] 由观测工具写（gapclr / lane 选择）⇒ PS 一重写就被抹掉，见 PLAN §7a 规矩②
 ```
+
+`0x41220000` = `gpio_cfg1`（V8 的新字）：**效果链只有一套口径 = 九位 `stage_sel`**（一位一级，
+串口 `pipe <九个 0/1>` 写的就是它），同字 `[28:26]/[29]` 是缩放档与手动旗标、`[22:13]` 等 19 位是几何；
+通道 2（`+0x08`）是 gamma 窗口 + 只给 OSD 看的 `gamma_disp` 与温度。
+
+⇒ `effect_ctrl` 没有第二个入口、也没有"新字为 0 时顶上老五位"那道合流，OSD 的 `Pipe:` 那一格与
+    `proc_pipeline` 吃的是**同一个** `stage_sel`（理由与退役过程写在 `effect_ctrl.v` 文件头）。
 
 勿用 EMIO：本板 bank2 读回恒 0。
 
@@ -195,7 +210,7 @@ inv_scale Q8: 256=1.0×（最大） ↔ 512=0.5×（最小）
 |------|------|------|
 | sync_fifo | `src/rtl/eth/sync_fifo.v` | 同钟；存储无异步复位，`ram_style=block` |
 | dc_fifo | `src/rtl/eth/dc_fifo.v` | 跨钟 Gray；打包 `{1'b0,addr[18:0],data[15:0]}` |
-| osd_overlay | `src/rtl/video/osd_overlay.v` | FPS/ANG/EN，3× 字模，空格空白字模 |
+| osd_overlay | `src/rtl/video/osd_overlay.v` | 五行（FPS/Src/Pipe/Th/Gamma/Rot/Zoom/Split/Latency/Temp），3× 字模，空格空白字模；`Pipe:` 那一格由 `stage_sel[8:0]` 组合 |
 
 ---
 

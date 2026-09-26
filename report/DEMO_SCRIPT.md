@@ -16,7 +16,7 @@
 | 步 | 做什么 | 怎么确认（不要"看起来好了"） |
 |---|---|---|
 | 1 | 板子 JTAG 上电：`xsdb build/tcl/ps_jtag_boot.tcl`（含 `ps7_init` → 编 PL → 下 elf → `con`） | LED0 以 **1.5 Hz** 跳（心跳）；串口出现 `[BOOT]` 那一行 |
-| 2 | 串口另开一个终端在 **COM6 115200 8N1**（或 `board/uart_cap_once.ps1 -Port COM6`） | 敲 `stat` 回一行 `[STAT] ctrl en=… thr=… src=… zoom=… bilin=… zsel=… zman=… pub=…` |
+| 2 | 串口另开一个终端在 **COM6 115200 8N1**（或 `board/uart_cap_once.ps1 -Port COM6`） | 敲 `stat` 回一行 `[STAT] ctrl thr=… src=… zoom=… bilin=… zsel=… zman=… pub=…` |
 | 3 | HDMI 接屏（1024×600） | 屏上有 OSD，`Src:` 那一格写着 `TEST`（或 `SD`），图卡在**动**（移动块 + 帧号二值格） |
 | 4 | PC 网卡 `192.168.1.100/24`，`ping 192.168.1.10` 通 | 通了再推流，否则第一幕会卡在这里 |
 | 5 | **先记起点**：敲一次 `stat`，把这一行抄在旁边纸上 | 收尾第 8 幕要用它对账（"跑完必须回到初态"） |

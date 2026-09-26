@@ -1100,5 +1100,7 @@ module pl_video_top #(
     // `inv_used` 而不是 `inv_scale`：这一口是给 JTAG 侧"屏上到底是什么倍率"用的，
     // 拟合模式下前者才是答案（非拟合模式下两者同一个数 ⇒ 老脚本读法不受影响）。
     assign status = {zoom_dir, zoom_active, inv_used, eth_ready, locked, rotate_active,
-                     angle, en_sync, src_use, 2'b00};
+                     angle, 5'b0 /* 原 en_sync：随 #66 五位控制一起退役，位保留填 0（与
+                                  * gpio_o[4:0] 同样处理：不重排，JTAG 侧的读法就不会错位） */,
+                     src_use, 2'b00};
 endmodule

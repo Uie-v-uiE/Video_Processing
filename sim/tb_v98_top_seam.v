@@ -258,10 +258,17 @@ module tb_v98_top_seam;
     // 病灶要么在顶层喂给链子的**标签级**（链子吃 `de_d[3]/x_d[3]`，行环吃 `de_d[5]/x_d[5]`），
     // 要么在混色级怎么消费链子的输出。先把"有没有武装/有没有跳"数出来——
     // 这是三行代码换一个 40 分钟周期，比继续推便宜。计数不判红，判据等数字出来再写。
-    integer p_arm = 0, p_flush = 0, p_piped = 0, p_mixde = 0;
+    integer p_arm = 0, p_flush = 0, p_piped = 0, p_mixde = 0, p_runmax = 0, p_runmin = 99999;
     always @(posedge dut.clk_pix) begin
         if (dut.u_pipe.u_blur.de_in === 1'b1 && dut.u_pipe.u_blur.x_in === 12'd1023) p_arm = p_arm + 1;
         if (dut.u_pipe.u_blur.line_end === 1'b1)                                     p_flush = p_flush + 1;
+        // v5 的判据是"行尾那一拍 run 正好等于 H_ACTIVE(=1024)"。顶层每行到底数出几个有效像素，
+        // 这里当场量出来：min/max 都是 1024 ⇒ 会武装；不是 ⇒ 差几个就是链子的 de 窗与 H_ACTIVE
+        // 的差（这一条数就是下一次该怎么写 `owed` 的唯一依据，不许靠猜）。
+        if (dut.u_pipe.u_blur.de_d1 === 1'b1 && dut.u_pipe.u_blur.de_in === 1'b0) begin
+            if (dut.u_pipe.u_blur.run > p_runmax) p_runmax = dut.u_pipe.u_blur.run;
+            if (dut.u_pipe.u_blur.run < p_runmin) p_runmin = dut.u_pipe.u_blur.run;
+        end
         if (dut.pipe_de === 1'b1)                                                    p_piped = p_piped + 1;
         if (dut.de_d[11] === 1'b1)                                                   p_mixde = p_mixde + 1;
     end
@@ -1098,8 +1105,8 @@ module tb_v98_top_seam;
         bilin_en_tb = 1'b1;
         // P1 的账（报数，不判红）：arm 应当约等于"行数 × 帧数"，flush 与 arm 同量级才说明
         // 顶层真的多跳了那一拍；p_piped 与 p_mixde 差多少 = 链子的 de 与混色级取的标签差几拍。
-        $display("P1 chain-blur: arm=%0d flush=%0d | pipe_de=%0d mix_de_d11=%0d (差 %0d)",
-                 p_arm, p_flush, p_piped, p_mixde, p_piped - p_mixde);
+        $display("P1 chain-blur: arm(x==1023&de)=%0d flush=%0d run@行尾 min=%0d max=%0d | pipe_de=%0d mix_de_d11=%0d (差 %0d)",
+                 p_arm, p_flush, p_runmin, p_runmax, p_piped, p_mixde, p_piped - p_mixde);
         if (nfail == 0) $display("RESULT tb_v98_top_seam PASS");
         else            $display("RESULT tb_v98_top_seam FAIL nfail=%0d", nfail);
         $finish;

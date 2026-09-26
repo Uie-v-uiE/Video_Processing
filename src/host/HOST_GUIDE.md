@@ -133,12 +133,14 @@ python video_sender.py --video test.mjpeg
 
 ### 4.1 命令表（V8 语法：动词 + 空格 + 参数，大小写不敏感）
 
-固件里两套语法都收：新的是 spec §14 的写法，老写法是 `SRC0/TH80/ZOOM1/BILIN1/FRAME12/裸位串`，
+固件里两套语法都收：新的是 spec §14 的写法，老写法是 `SRC0/TH80/ZOOM1/BILIN1/FRAME12`，
 `src/host/arb_handover_test.mjs` 与 `board/uart_cap_once.ps1` 这些既有工具在用它们，所以不能断。
+**效果链那一格是例外**：裸位串只剩九位这一种生效写法，五位串（`00111`、`pipe 11000`）自 2026-09-26 起
+一个位都不写，只回一句"等价的九位是 `pipe ……`"（老五位在 RTL 里已经删净，见 `report/COMMANDS.md` §1/§4）。
 
 | V8 写法 | 老写法 | 作用 |
 |------|------|------|
-| `pipe 11000` | `00111`（裸位串） | 效果链开关，**位序左起 bit0** = `gray / binary / blur / sobel / invert` |
+| `pipe 011010000` | 裸五位 `00111`（只回译，不生效） | 效果链开关，**九位一位一级**，最左边那个字符是 bit0 = `gray / invert / blur / sharpen / sobel / binary / bin_pol / erode / dilate`；五位串现在只打印一句等价的九位，什么都不改 |
 | `th 80` | `TH80` | 二值化阈值（0–255） |
 | `src 0` / `src 1` / `src 2` | `SRC0` / `SRC1` | 0=图卡 1=DDR(网络) 2=DDR 并起播 SD。**注意**：PS 写得动的只有 1 bit `src_sel`，"独占哪一路"仍由 PL 的 `src_mode` 四态 + 仲裁决定，模式覆盖位要到 V8-2 的控制字才有 |
 | `zoom on` / `zoom off` | `ZOOM1` / `ZOOM0` | 右屏缩放开关（PL 侧默认常开）。`zoom 1.5` / `zoom auto` **语法已收、硬件未接**（缺缩放因子寄存器，V8-8） |
@@ -168,18 +170,21 @@ ETH 推流 > PS（SD 帧序列，PC 预转换 / FILL）> 会动的测试图卡�
 
 ```bat
 run_serial.bat COM5
-> pipe 10000
+> pipe 100000000
 > th 120
-> 00111
+> pipe 011010000
 > src 0
 > stat
 > quit
 ```
 
+两个 `pipe` 都是**九位**：`100000000` = 只开灰度，`011010000` = 模糊 + Sobel + 反色
+（这两个组合在老工具里写成了五位串 `10000` 与 `00111`，那种写法今天只会换回一句"等价的九位是……"）。
+
 单次命令：
 
 ```bat
-python serial_ctrl.py --port COM5 --cmd 00111
+python serial_ctrl.py --port COM5 --cmd "pipe 011010000"
 ```
 
 ---
@@ -252,6 +257,10 @@ node src\host\ddr_stale.mjs            :: 单独分析上一次落盘的 data/me
 2. **发完再回读**：回读要几秒，边推边读会让每个地址段读到不同时刻的帧。
 3. 回读脚本会 `rst -processor` 停住 A9（否则 `mrd` 读到 D-Cache），且**不会 `con`**；
    因此每轮复测前要重跑 `ps_jtag_boot → program_pl → set_src`。
+4. `build/tcl/set_src.tcl` 是**整字覆盖** `0x41200000`，里面那个 `SRC_VAL 0x000B0000` 点亮的是
+   bit16 `src_sel` / bit17 `zoom_en` / bit19 `bilin_en`，**低五位 `[4:0]` 写进去就是 0**。
+   别指望用它开效果：V7 那五位使能 2026-09-26 已从 RTL 删净（`gpio_o[4:0]` 只剩保留位），
+   效果链的九位字在**另一只** GPIO `0x41220000`（`gpio_cfg1`），平时用串口 `pipe <九个 0/1>` 就够了。
 
 ### 6.1 分包长度：规律黑点的第一嫌疑（实测）
 

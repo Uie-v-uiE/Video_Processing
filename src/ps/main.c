@@ -1316,8 +1316,9 @@ static int dispatch(char **tk, int nt)
     }
     if (ci_pre(tk[0], "TEMP")) { cmd_temp(nt, tk); return 0; }
     if (ci_eq(tk[0], "STAT") || ci_eq(tk[0], "STATUS")) {
-        /* 字段顺序不许动：串口电池与 arb_handover_test.mjs 都按 "ctrl en=… thr=…" 的前缀解析，
-         * 新加的 sel / gm 只能往后放。en 是老五位的投影，sel 才是效果链的真相，
+        /* 字段顺序不许动：串口电池与 uart_cmd_check.mjs 都按 "[STAT] ctrl thr=…" 的前缀解析，
+         * 后加的 sel / mode / geom 只能往后放。sel 是效果链的唯一真相（#66 之后老五位那个
+         * 投影 `en=` 已经删掉，checker 反过来把"还在打 en="当旧固件的反例），
          * gm=0.00 表示 gamma 关（PL 那一侧逐位旁路）。 */
         /* V9：末尾再挂一个 `geom=%05x` —— 那是 19 位几何控制字（缝位 + auto/follow/swap/marker
          * + rot_auto/rot_speed/zoom_fit）的**整字**回显。为什么要它：串口电池的"跑完必须回到初态"

@@ -35,12 +35,17 @@ module proc_box_blur #(
     //     于是这一版在顶层一次都没武装 ⇒ 模块级修好、顶层原样。**依赖标签的判据不可用**。
     //   v3（这一版）：**数连续有效像素**。与 `x` 的起点、与标签级完全无关；一拍一像素那种激励
     //     永远数不满 `H_ACTIVE`，所以也不会误触发。
+    // ⚠ 清零必须"de 一断就清"，不能等第二拍：行间隙只有一拍的激励（`tb_v89` 的 LINE=W+1）里，
+    //   晚一拍清等于永远不清 ⇒ 计数越滚越大，`== H_ACTIVE` 一辈子不成立（这 bug 我先在 v3 里
+    //   踩了一遍、改成 `>=` 才绿，而 `>=` 又把 `tb_rotate_window` 弄红：它一拍一像素，
+    //   数到第 8 拍就 >=8 了。**同一拍里非阻塞更新的旧值仍然看得见**，所以 de 落下那一拍
+    //   run 正好是本行的宽度 —— 两个台架都满足，也不需要 `>=`。
     reg [11:0] run;                          // 本行已连续吃进的有效像素数
     always @(posedge clk or negedge rst_n)
         if (!rst_n)     run <= 12'd0;
         else if (de_in) run <= run + 12'd1;
-        else if (!de_d1) run <= 12'd0;       // 消隐期归零；de 刚落下那一拍先保持，好让下面看得见长度
-    wire owed     = (run == H_ACTIVE[11:0]); // 这一行吃满了 = 刚吃完的正是末列
+        else            run <= 12'd0;
+    wire owed     = (run == H_ACTIVE[11:0]); // 本行正好 H_ACTIVE 个有效像素 = 刚吃完的是末列
     wire line_end = owed && de_d1 && !de_in; // 只有一拍：就是现在欠那一跳
     wire shift_w  = de_in || line_end;
     // 多跳那一拍 `x_in` 已经走到 porch（顶层一屏 1344 计数，而行缓存只有 H_ACTIVE 深）：

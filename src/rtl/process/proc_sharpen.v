@@ -40,7 +40,7 @@ module proc_sharpen #(
     always @(posedge clk or negedge rst_n)
         if (!rst_n)      run <= 12'd0;
         else if (de_in)  run <= run + 12'd1;
-        else if (!de_d1) run <= 12'd0;
+        else            run <= 12'd0;   // de 一断就清：那一拍非阻塞更新的旧值仍看得见，就是本行的宽度（详见 proc_box_blur.v 那五段）
     wire owed     = (run == H_ACTIVE[11:0]);
     wire line_end = owed && de_d1 && !de_in;
     wire shift_w  = de_in || line_end;

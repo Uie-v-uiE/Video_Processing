@@ -52,7 +52,7 @@ module osd_overlay #(
     // ---- 四行的数据来源。规矩：**每一个都必须在 PLAN §7d 的表里**，不在表里的不许上屏 ----
     input  wire [8:0]  angle,        // 度（0..359：angle_ctrl 里就是十进制度数，不用换算）
     input  wire [7:0]  fps,          // fps_q
-    input  wire [8:0]  stage_sel,    // 五级链实际生效的九位（effect_ctrl 合流之后的那一个口）
+    input  wire [8:0]  stage_sel,    // 五级链实际生效的九位（effect_ctrl 同步到本域的那一个口）
     input  wire [7:0]  threshold,    // 二值化阈值
     input  wire [5:0]  gamma_disp,   // gamma×10，PS 写 LUT 时同一个字顺路带过来，只用于显示
     input  wire [2:0]  zoom_code,    // zoom_ctrl 的"最近一档"号（八档表在它那边）

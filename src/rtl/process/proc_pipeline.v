@@ -11,8 +11,9 @@
 // 与 V7 的差别写清楚，免得以后有人拿旧文档对不上：
 //   * V7 的链是 gray → binary → blur → sobel → invert，二值化在滤波**之前**；
 //     现在按 spec 的编号把阈值放到第 4 级，形态学接在它后面（形态学本来就是对面具图的操作）。
-//   * 老的 5 个使能位仍然有效，但要先经 `effect_ctrl` 翻成下面这张表；
-//     翻完之后 bit 的含义与 V7 完全一致（gray/binary/blur/sobel/invert）。
+//   * 老的 5 个使能位已经退役（#66）：`effect_ctrl` 不再做"五位 → 九位"的翻译，
+//     `stage_sel` 就是 PS 写的那九位，逐位直连。位含义与 V7 一致的只有 gray/binary/blur/sobel/invert
+//     那五位，其余四位（sharpen/bin_pol/morph 的两个方向）是 V8 新增的。
 //
 // stage_sel 位定义（**每一位一个算法**，只有级 5 那两位是互斥的）：
 //   [0] 灰度        [1] 反色        [2] 3×3 模糊     [3] 3×3 锐化
