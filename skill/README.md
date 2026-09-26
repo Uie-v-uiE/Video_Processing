@@ -46,6 +46,7 @@ Reusable engineering notes from this project. Each item lists scope, usage, veri
 | `build/board_verify.sh` | 一条命令做完"板上那一半"的机器复验：三件套 md5 → 串口活着/在播/没报错 → `health_read`（含同源判据）→ 仲裁八条（自己开关推流）→ 命令电池；**不刷板**（刷板留给人确认） | 三件套文件名、COM 口号、电池命令表 |
 | `build/orphan_rtl.sh` | 拿**综合日志**（`Synth 8-6157`）当可达性 oracle，一次算出"声明了但没进这一版位流"的 RTL，并按去向分类（KU5P 树 / 台架被测对象 / 另一顶层 / 真孤儿）。`--selftest` 5 条含"在位流里的不许出现"与"空日志必须拒绝出表" | 控制台文件路径（默认最新冻结件那份） |
 | `build/cleanup_wip.sh` | WIP 目录清点：**默认干跑**；判据是"被 `report/ board/ skill/` 点到名字 ⇒ 不删"，另设一档"仿真运行壳无条件可删"；`--yes` 才动手 | 引用目录清单与候选 glob；跑着 xsim/Vivado 时不许 `--yes`（锁目录） |
+| `build/refresh_evidence.sh` | "**只改了台架/文档**"时刷新同一号冻结件的次序：先对账三件成品 md5 是否仍等于 `MANIFEST.md5`（不等 ⇒ REFUSE，那是一次新构建，必须换新号），台架 → 报告 → 门禁写 /tmp（**只有 ALL PASS 才 cp 进 `rNN_gates.txt`**，避开第 18 项自截空）→ 冻结 → 报告 L1 那份的实际来历。`--selftest` 5 条含"一致必须放行"与"变了必须拒绝并点名" | 构建号；`--skip-bench`（台架已经跑过） |
 
 | `sim/run_one.sh` | 只跑一个台架（几十秒），改完 RTL 的第一道关 | `SRC` 文件清单 |
 | `src/host/ddr_stale.mjs` | S9 的实现：包内字节偏移→丢字率、连续丢字带分布、16bit 粒度错帧计数 | `WORDS / PAYLOAD` 两个常数 |
