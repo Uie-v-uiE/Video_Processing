@@ -29,7 +29,7 @@
 module tb_v101_fb_bilin;
     localparam IMG_W = 512, IMG_H = 300;
     localparam H_TOT = 1344, H_FP = 160, H_ACT = 1024;   // 一行：前肩 160 + 有效 1024 + 后肩 160
-    localparam NROW  = 18;                                // 三段 × 6 行（边界 0/6/12 都是偶数）
+    localparam NROW  = 24;                                // 四段 × 6 行（边界 0/6/12/18 都是偶数）
     localparam NCYC  = NROW * H_TOT + 8;
     localparam LAG   = 2*H_TOT + 2;    // 量出来的错位：晚 1 对显示行（2 行）+ 2 拍（L3 钉住它，不抄字面量）
 
@@ -41,6 +41,7 @@ module tb_v101_fb_bilin;
     reg  [18:0] wr_addr = 0;
     reg  [63:0] wr_data = 0;
     reg  [11:0] sx = 0, sy = 0;
+    reg  [8:0]  jd = 0;              // 显示列对号（顶层 = x[9:1]）：暂存/结果缓冲用它索引
     reg  [7:0]  fx = 0, fy = 0;
     reg         bilin_en = 1, col0 = 1, row0 = 1, pair_odd = 0, req_vld = 0, oob_in = 0;
     wire [15:0] pix;
@@ -49,7 +50,7 @@ module tb_v101_fb_bilin;
     fb_bilin #(.IMG_W(IMG_W), .IMG_H(IMG_H)) dut (
         .clk(clk), .rst_n(rst_n),
         .wr_clk(clk), .wr_en(wr_en), .wr_addr(wr_addr), .wr_data(wr_data),
-        .sx(sx), .sy(sy), .fx(fx), .fy(fy), .bilin_en(bilin_en),
+        .sx(sx), .sy(sy), .jd(jd), .fx(fx), .fy(fy), .bilin_en(bilin_en),
         .col0(col0), .row0(row0), .pair_odd(pair_odd), .req_vld(req_vld), .oob_in(oob_in),
         .pix(pix), .oob_out(oob_out)
     );
@@ -130,7 +131,7 @@ module tb_v101_fb_bilin;
     endtask
 
     integer rl, cl, nm, nbest, best_rl, best_cl, nchk, nchk_best;
-    integer idx, nnbad, slotbad, nslot, nx, nckA, nckB, nckC, pixbad, labbad, firstbad, warm;
+    integer idx, nnbad, slotbad, nslot, nx, nckA, nckB, nckC, nckD, pixbad, labbad, firstbad, warm;
     reg [15:0] a1, a2, a3, a4;
 
     // ===================================================================== 主流程
@@ -171,7 +172,10 @@ module tb_v101_fb_bilin;
         $finish;
     end
 
-    // 三段：A 常规双线性（sy 10..12）、B 末行夹取 + 人造标签（sy 297..299）、C bilin_en=0 最近邻
+    // 四段：A 常规双线性（sy 10..12）、B 末行夹取 + 人造标签（sy 297..299）、C bilin_en=0 最近邻、
+    // D **旋转样子的映射**（2026-09-26 补）：源行随"列"走、源列每 4 个显示列对才 +1 ⇒ 同一个源列
+    //   在一行里被反复用到却属于不同源行。这正是"暂存按源列 sx 索引"会撞车的形状 ——
+    //   用户报的"一开始旋转就满屏噪点"就是它（顶层 r63 起只有 fb_bilin 这一个读口）。
     task drive;
         input integer row, xx;
         integer pair_in_blk;
@@ -180,17 +184,19 @@ module tb_v101_fb_bilin;
             row0     = ~row[0];
             pair_odd =  row[1];
             req_vld  = (xx >= H_FP) && (xx < H_FP + H_ACT);
-            sx       = (xx - H_FP) >> 1;                  // 有效区相对列 ÷2；消隐期给它跑飞（有 req_vld 挡）
-            bilin_en = (row < 12);
+            jd       = (xx - H_FP) >> 1;                  // 显示列对号：一对显示列内恒定
+            sx       = (row >= 18) ? (100 + (jd >> 2)) : jd;   // 段 D：源列**倒退着重复**（旋转）
+            bilin_en = (row < 12) || (row >= 18);
             pair_in_blk = (row - (row/6)*6) >> 1;         // 段内第几对显示行
             sy       = (row < 6)  ? (10 + pair_in_blk)
                      : (row < 12) ? (297 + pair_in_blk)
-                                  : (20 + pair_in_blk);
+                     : (row < 18) ? (20 + pair_in_blk)
+                                  : ((200 + jd) % 290);   // 段 D：源行沿着一行走 = 旋转的一条线
             fx       = ((sx * 7) + 13) & 8'hFF;       // 只依赖源列 ⇒ 一对显示列内恒定
             fy       = ((sy * 11) + 5) & 8'hFF;       // 只依赖源行 ⇒ 一对显示行内恒定
             oob_in   = (sx >= IMG_W) || (sy >= IMG_H) ||
                        ((row >= 6 && row < 12) && (sx >= 256)) ||
-                       ((row >= 12) && ((sx >> 6) & 1));   // 后两项是**人造**标签，只验"标签跟着内容走"
+                       ((row >= 12 && row < 18) && ((sx >> 6) & 1));   // 后两项是**人造**标签，只验"标签跟着内容走"
         end
     endtask
 
@@ -228,7 +234,7 @@ module tb_v101_fb_bilin;
 
             // ---- L4 严格流比对（钉在 (2,0)）+ L5 最近邻 + L7 无 X ----
             pixbad = 0; labbad = 0; nnbad = 0; nx = 0; warm = 0;
-            nckA = 0; nckB = 0; nckC = 0; firstbad = -1;
+            nckA = 0; nckB = 0; nckC = 0; nckD = 0; firstbad = -1;
             for (c = LAG; c < NROW*H_TOT; c = c + 1) begin
                 idx = c - LAG;
                 if (!gvalid[c] || !gvalid[idx]) begin
@@ -241,7 +247,9 @@ module tb_v101_fb_bilin;
                             nnbad = nnbad + 1;  if (firstbad < 0) firstbad = c;
                         end
                     end else begin
-                        if (idx / H_TOT < 6) nckA = nckA + 1; else nckB = nckB + 1;
+                        if      (idx / H_TOT < 6)  nckA = nckA + 1;
+                        else if (idx / H_TOT < 12) nckB = nckB + 1;
+                        else                       nckD = nckD + 1;   // 段 D：旋转样子的映射
                         if (pq[c] !== gq[idx]) begin
                             pixbad = pixbad + 1; if (firstbad < 0) firstbad = c;
                         end
@@ -279,8 +287,8 @@ module tb_v101_fb_bilin;
             line("L7 no X on checked slots", nx == 0, "X would make every count above a false green");
             $display("[tb_v101.v]      bad pix=%0d label=%0d nn=%0d X=%0d firstbad_cyc=%0d 跳过=%0d",
                      pixbad, labbad, nnbad, nx, firstbad, warm);
-            $display("[tb_v101.v]      样本：段A=%0d 段B=%0d 最近邻=%0d 黄金越界请求=%0d",
-                     nckA, nckB, nckC, guard_bad);
+            $display("[tb_v101.v]      样本：段A=%0d 段B=%0d 段D(旋转映射)=%0d 最近邻=%0d 黄金越界请求=%0d",
+                     nckA, nckB, nckD, nckC, guard_bad);
 
             // ---- L6 一个 2x2 显示块四槽同值（无模型自检：撕裂/极性的直接证据）----
             slotbad = 0; nslot = 0;
@@ -298,8 +306,10 @@ module tb_v101_fb_bilin;
             $display("[tb_v101.v]      L6 检查 %0d 个显示块，不符 %0d", nslot, slotbad);
 
             // ---- L8 覆盖：判据不许在空集上过 ----
-            line("L8 coverage", (nckA > 4000 && nckB > 4000 && nckC > 4000 && nslot > 3000
-                                 && guard_bad == 0),
+            // 段 D 也必须真的被量过：把旋转映射从 drive() 里删掉的话，L4 只会"少比对一段"而照样绿
+            // —— 这条判据就是拦这个的（#68 同族：判据不许在空集上过）。
+            line("L8 coverage", (nckA > 4000 && nckB > 4000 && nckC > 4000 && nckD > 4000
+                                 && nslot > 3000 && guard_bad == 0),
                  "each segment must actually have been measured");
 
             if (errors == 0) $display("[tb_v101.v] RESULT tb_v101_fb_bilin PASS errors=0");
