@@ -586,11 +586,14 @@ module tb_v98_top_seam;
     integer c2_viol [0:7], c2_nout [0:7], c2_nin [0:7], c2_inbad [0:7], c2_invbad [0:7];
     integer c2_geol [0:7], c2_geor [0:7], c2_measl [0:7], c2_measr [0:7];
     integer c2_leakl [0:7], c2_leakr [0:7], c2_blank [0:7], c2_rows [0:7];
-    integer c2_e, c2_bdump = 0, c2_ibdump = 0;
+    integer c2_e, c2_bdump = 0;
     // 坏格落在**哪几个列对**上：484 这种数只说"每行错一对"，说不清是哪一对，而"哪一对"才决定修法
     //（行尾 ⇒ 末列折回；行首 ⇒ 乒乓/首拍；中间 ⇒ 地址级）。所以逐列对记一位。
     reg [511:0] c2_ibv [0:7];
     integer c2_ib_np, c2_ib_f, c2_ib_l, c2_ib_q;
+    // 坏格的**差值形状**：18:11 那一轮的教训是"全局 dump 配额被第一档吃光，后面几档一个字没留下"
+    //（30 行全花在 code 4 上，code 5/6/7 只有总数没有形状）。所以差值按档累计，打印也只按档配额。
+    integer c2_dm1 [0:7], c2_dp1 [0:7], c2_doth [0:7], c2_ibc [0:7], c2_dd;
 
     initial begin
         for (c2_e = 0; c2_e < 8; c2_e = c2_e + 1) begin
@@ -599,6 +602,7 @@ module tb_v98_top_seam;
             c2_geol[c2_e]=-1; c2_geor[c2_e]=-1; c2_measl[c2_e]=-1; c2_measr[c2_e]=-1;
             c2_leakl[c2_e]=-1; c2_leakr[c2_e]=-1; c2_blank[c2_e]=0;
             c2_ibv[c2_e]=512'd0;
+            c2_dm1[c2_e]=0; c2_dp1[c2_e]=0; c2_doth[c2_e]=0; c2_ibc[c2_e]=0;
         end
     end
 
@@ -648,22 +652,26 @@ module tb_v98_top_seam;
                                  dut.inv_used, bilin_en_tb, dut.u_bilin.jd);
                     end
                 end
-                if (dsub(mem_col(dut.u_split.sel), c2_e) != 0) begin
+                c2_dd = dsub(mem_col(dut.u_split.sel), c2_e);
+                if (c2_dd != 0) begin
                     c2_inbad[c2_k] = c2_inbad[c2_k] + 1;
                     c2_ibv[c2_k][dut.u_split.x_sel >> 1] = 1'b1;
+                    if      (c2_dd == -1) c2_dm1 [c2_k] = c2_dm1 [c2_k] + 1;
+                    else if (c2_dd ==  1) c2_dp1 [c2_k] = c2_dp1 [c2_k] + 1;
+                    else                  c2_doth[c2_k] = c2_doth[c2_k] + 1;
                     // 诊断（不是判据）：r70 那轮量到"1.00x/1.33x/1.5x 三档各 484 格对不上，
                     // 而 0.25x~0.75x 是 0、2.0x 也是 0" —— 484 = 2 列 × 121 行 × 2 帧 = **每行恰好一个列对**，
                     // 这种"只错一对"的形状必须知道它是**哪一对**才修得动（行首？行尾？中间？）。
                     // 只把数打出来不猜：#68/#78/#92 三轮的账都是"再推一遍"输的。
-                    if (c2_ibdump < 30) begin
-                        c2_ibdump = c2_ibdump + 1;
+                    if (c2_ibc[c2_k] < 4) begin
+                        c2_ibc[c2_k] = c2_ibc[c2_k] + 1;
                         // 摆**同一拍 mux 自己的两个抽头**，不摆 fb_bilin 的内部（那是另一级，
                         // 拿它配这一拍就是 #68/#92 反复交的税）。哪一路是错的，一眼就分得开：
                         //   orig 错 proc 对 ⇒ 原图那条延迟线（raw_line_delay/orig_skid）；
                         //   两路都错 ⇒ 错误在进链之前（mapper 坐标或 fb_bilin 的地址）。
-                        $display("C2IBAD code=%0d x_sel=%0d pair=%0d 解出col=%0d 期望col=%0d | sel=%h take_orig=%b orig=%h(c%0d) proc=%h(c%0d) oob_out=%b y=%0d",
+                        $display("C2IBAD code=%0d x_sel=%0d pair=%0d 解出col=%0d 期望col=%0d 差=%0d | sel=%h take_orig=%b orig=%h(c%0d) proc=%h(c%0d) oob_out=%b y=%0d",
                                  c2_k, dut.u_split.x_sel, (dut.u_split.x_sel >> 1), mem_col(dut.u_split.sel),
-                                 c2_e, dut.u_split.sel, dut.u_split.take_orig,
+                                 c2_e, c2_dd, dut.u_split.sel, dut.u_split.take_orig,
                                  dut.u_split.orig_pix, mem_col(dut.u_split.orig_pix),
                                  dut.u_split.proc_pix, mem_col(dut.u_split.proc_pix),
                                  dut.oob_out, dut.y_d[dut.MIX_D]);
@@ -808,8 +816,14 @@ module tb_v98_top_seam;
         //   放在复位之后再读：两个 initial 块（DDR 建模 vs 这一段）在 t=0 的先后是不确定的，
         //   而且"验函数"与"验被写进数组的东西"是两件事 —— 这次骗过所有人的正是后者。
         //   读首尾两格：尾格 (299,508..511) 同时钉住"行号 8 bit 回绕"与"数组最后一个字真的写到了"。
-        line("C0a2 golden array actually holds it", ddr[0] == 64'h0003_0002_0001_0000
-             && ddr[FRAME_WORDS-1] == 64'h2BFF_2BFE_2BFD_2BFC,
+        //   读首尾两格：尾格 (299,508..511) 同时钉住"行号 8 bit 回绕"与"数组最后一个字真的写到了"。
+        // ⚠ #92 那一轮把图案换成 `{1'b1, r[6:0], c[7:0]}`（位 15 当"非黑"标志）之后，**这两个字面量
+        //   一直没跟着改** ⇒ 18:11 那一轮它红了，红的是尺子：判据里写的还是老编码
+        //   （`0003_0002_0001_0000` / `2BFF_…`），而新图案第一字是 `8003_8002_8001_8000`、
+        //   尾字是行 299 mod 128 = 43 = 0x2B 再并上位 15 ⇒ 0xABFF…。C0a 当时改了、C0a2 漏了。
+        //   数按 `px_val` 手推（不是照抄实现），C0a 已经把"函数对不对"钉住，这里只补"数组里真的是它"。
+        line("C0a2 golden array actually holds it", ddr[0] == 64'h8003_8002_8001_8000
+             && ddr[FRAME_WORDS-1] == 64'hABFF_ABFE_ABFD_ABFC,
              "read back ddr[0] and the last word after init: a correct function is not a correct array");
 
         // ---- 跑到够帧数（发布位每帧翻一次，模拟"PS 每帧写完敲一次"） ----
@@ -998,8 +1012,9 @@ module tb_v98_top_seam;
                     if (c2_ib_f < 0) c2_ib_f = c2_ib_q;
                     c2_ib_l = c2_ib_q;
                 end
-            $display("C2SHAPE code=%0d inv=%0d inbad=%0d badpairs=%0d firstpair=%0d lastpair=%0d",
-                     c2_k, C2_TBL(c2_k), c2_inbad[c2_k], c2_ib_np, c2_ib_f, c2_ib_l);
+            $display("C2SHAPE code=%0d inv=%0d inbad=%0d badpairs=%0d firstpair=%0d lastpair=%0d dm1=%0d dp1=%0d dother=%0d",
+                     c2_k, C2_TBL(c2_k), c2_inbad[c2_k], c2_ib_np, c2_ib_f, c2_ib_l,
+                     c2_dm1[c2_k], c2_dp1[c2_k], c2_doth[c2_k]);
             line("C2pre inv took", c2_invbad[c2_k] == 0 && c2_nin[c2_k] > 20000,
                  "inv_used must equal the table value, and the code must have been sampled");
             line("C3pre marker off", dut.split_marker_on === 1'b0,
