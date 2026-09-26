@@ -3836,3 +3836,12 @@ R25 那次已经把译码并行化了（ISSUES #39），剩下的深度在这里
 
 **待 r75 构建填的数**：WNS（归属哪一组）、Levels、WHS、LUT/寄存器增量、以及 `cdc.rpt` Critical 行数。
 判"采纳"的规矩沿用 `OPTIMIZATION_LOG.md` §5：两组都不许退、失败端点保持 0、Dynamic 若涨要点名。
+
+**r75 的数（03:04 构建、门禁 18 项 ALL PASS、冻结 `build/evidence_r74`→`build/evidence_r75/`、已上板并 `board_verify PASS`）**：
+`clkout0_1` 这一组 setup **0.549 → 3.488 ns**、hold 0.051 → 0.066，Slice LUT 少 53 个（14776）、寄存器 +44、
+Dynamic 2.209 W —— **改法有效，攻的那组大幅变好**。但全局 WNS 变成 **0.287 ns**，归属换到 `eth_rxc`
+（同一组 r74 是 0.712）：这一版**没有任何 eth 的 RTL 改动**，是布局/布线耦合把那条 `u_lm/ms32 → gap_max/CE`
+压下来的（r64b/r65 记过同一件事："局部改动能动远处一组"）。所以按 `OPTIMIZATION_LOG.md` §5 的 A/B 规矩
+（两组都不许退）这一版**不是干净的 ADOPT**：一句"WNS 变好了"或"变差了"都是错的，两句要一起说。
+下一刀的靶子从此唯一：#95 第二次尝试 —— 只把 `ms32 - ms_last32` 这个差值寄存下来、max 晚一拍吃，
+而不是第一次那样把整个统计拆成三级；先让 `tb_link_monitor`（饱和 / gapclr / 70 s 长间隙三条）证明它不改结论。

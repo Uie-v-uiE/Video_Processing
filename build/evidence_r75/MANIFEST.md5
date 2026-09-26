@@ -1,0 +1,24 @@
+38964a98b19ef68e30b176b7686c9cab *system.bit
+68a4256038b2898500833bef8a28c7a0 *system.xsa
+f4a22f4f08d1889eaf3f805a9606b282 *ps_app.elf
+65368731bf11726112dfbb732d88b975 *timing_summary.rpt
+fd5a0c67c2591b3486d8af06a8cadadb *utilization.rpt
+ad2924d758df309f53ad6713b6ec59f7 *power.rpt
+ca8ec2e54723f40669b9892bf492cde0 *route_status.rpt
+3aae68660f7c9629d48d6b0daae0fa0f *methodology.rpt
+00cc2a028140d4ac589f798afc3a7b04 *cdc.rpt
+0c7ff41e1d3a9216ef945aeae556bd58 *tb_v98_report.txt
+8f98105c784a367b207dc49f354b90c9 *r75_gates.txt
+# r75 evidence —— 生成于 2026-09-27T03:04:14+08:00   git=f5070b4
+# 指纹：顶层 995ef3513992 / 整个 src/rtl 2440cf87d4f7（门禁第 15 项按这两枚对账）
+#
+# 板上跑法只有 JTAG：build/tcl/ps_jtag_boot.tcl（先 ps7_init → 编 PL → 下 elf → con）
+# **不写 QSPI/SPI flash**（2025.2.1 的写入路径未验），也不碰 FT2232 EEPROM。
+#
+# 机器判据：门禁 19 行明细（build/r75_gates.txt）；**这一版没有全量 L1**，只有定向清单 r75_benches.txt
+#            （改动的模块只被那一批台架看着；全量 L1 补跑之后请把它的日志一起放进本目录）
+#           顶层台架逐列读数见 r75_c2_shape.txt（C2SHAPE / C2IBAD / ID / OBS lastcol）
+#
+# 还欠眼睛/手的（这一版由用户签，见 board/README.md 对应行）：
+#   第 30 项 #92 边缘那条带；第 31 项 #94 拔卡/暂停不丢画/sd remount（要一只手）；
+#   第 29 项 bilin A/B 的观感；#93 旋转大角度两条（用户 2026-09-26 明确先放着最后再修）
