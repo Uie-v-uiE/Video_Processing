@@ -160,6 +160,15 @@ module tb_link_monitor;
         .bus_q(d_bus), .hb_gone(d_gone), .hb_slow(d_slow)
     );
 
+    // B2 的判据本体（下面 initial 里用）。写成 `reg + always @*` 而不是 `wire`：
+    // 反例测试要在仿真期 force 一个假的 `gap_sum` 看它会不会变红，`wire` 表达式不会因 force 重算
+    // ⇒ 那种写法测不出"判据根本没看 sum"（今天差点写成这样）。
+    reg b2_ok;
+    always @* b2_ok = u_lm.gap_valid
+                   && (u_lm.gap_min <= u_lm.gap_last) && (u_lm.gap_last <= u_lm.gap_max)
+                   && (u_lm.gap_min === u_lm.gap_max)
+                   && (u_lm.gap_sum === {16'd0, u_lm.gap_max});
+
     initial begin
         rst_n = 0; prst_n = 0;
         repeat (10) @(posedge clk);  rst_n  = 1;
@@ -193,6 +202,27 @@ module tb_link_monitor;
             errors = errors + 1;
         end else $display("PASS gap min=%0d last=%0d max=%0d sum=%0d ms",
                          P_GAP_MIN, P_GAP_LAST, P_GAP_MAX, P_GAP_SUM);
+        // ============ B2 统计与发布**分家**（ISSUES #95 第 1 步）============
+        // 上面那三条读的是 `lm_bus`，也就是"发布出来的那一份"；这一段读的是统计寄存器本身。
+        // 为什么要分开：上一轮把 `ms32 - ms_last32` 拆成几级寄存器时，"统计落地"与"快照发布"
+        // 不再是同一拍，于是**红的是哪一半说不清**（`stream_live` 读到的是 stall=201 那一份旧快照），
+        // 判据只能整体回退。分家之后：B2 红 = 算术坏了；B 红而 B2 绿 = 发布路径/节拍坏了。
+        // 这两句话现在都是硬件答应的事，不再依赖任何"我记得等几拍"。
+        if (!b2_ok) begin
+            $display("FAIL B2 gap registers: valid=%b min=%0d last=%0d max=%0d sum=%0d（两帧之间应当只有一个间隔）",
+                     u_lm.gap_valid, u_lm.gap_min, u_lm.gap_last, u_lm.gap_max, u_lm.gap_sum);
+            errors = errors + 1;
+        end else $display("PASS B2 statistics registers self-consistent (min=last=max=%0d sum=%0d)",
+                         u_lm.gap_max, u_lm.gap_sum);
+        // B2 自己的反例（老规矩：判据要有自己的测试，"绿给绿的人看"不算数）。
+        // 不改 RTL（构建正在读 src/rtl），改用仿真期的 force：把 sum 弄成"多算了一项"，
+        // 上面那条 `b2_ok` 必须变成假。变不了就说明这条判据根本不看 sum ⇒ 是个假绿，记一条错。
+        force u_lm.gap_sum = u_lm.gap_max + 32'd1;
+        #1;
+        if (b2_ok === 1'b1) begin
+            $display("FAIL B2-mut force 过的 gap_sum 仍然让判据说绿 ⇒ b2_ok 没有真的在看 sum"); errors = errors + 1;
+        end else $display("PASS B2-mut forced gap_sum is caught（判据不是假绿）");
+        release u_lm.gap_sum;
         if (!P_FLAGS[3]) begin
             $display("FAIL stream_live clear while frames are flowing"); errors = errors + 1;
         end else $display("PASS stream_live set while flowing");
