@@ -1005,17 +1005,25 @@ static int dispatch(char **tk, int nt)
             }
             if (nt >= 3) on = iv;
             if (on) {
+                u8 sp_bump = 0;
                 cur_split |= ROT_AUTO_BIT;
-                if (!(cur_split & ROT_SPEED_MASK))
+                if (!(cur_split & ROT_SPEED_MASK)) {
                     cur_split = (cur_split & ~ROT_SPEED_MASK) | (2u << ROT_SPEED_SHIFT);
+                    /* 改了状态就必须说出来：以前这条是静默的（19:59 板上撞见 —— `rot show`
+                     * 报出 speed=2 而没人设过它）。"转起来才有动静"是对的，
+                     * 悄悄替用户设一个值就是 #66 那一族"回声与执行不同源"。 */
+                    sp_bump = 1;
+                }
                 if (!(cur_split & ZOOM_FIT_BIT)) {
                     /* 用户指定的成对语义：「在这个模式下，缩放就一直设为 Auto，根据旋转的角度
                      * 来自动控制缩放的比例」⇒ 开自动旋转就同时把缩放交给拟合，一次命令到位。 */
                     cur_split |= ZOOM_FIT_BIT;
-                    xil_printf("[ROT] auto=1：顺带把缩放切到 fit（屏上 Zoom 格标 (Fit)）；"
-                               "不想这样就先 zoom fit 0 再 rot auto 1\r\n");
+                    xil_printf("[ROT] auto=1：%s顺带把缩放切到 fit（屏上 Zoom 格标 (Fit)）；"
+                               "不想这样就先 zoom fit 0 再 rot auto 1\r\n",
+                               sp_bump ? "speed 0→2（不然转不起来）、" : "");
                 } else {
-                    xil_printf("[ROT] auto=1\r\n");
+                    xil_printf("[ROT] auto=1%s\r\n",
+                               sp_bump ? "（顺带 speed 0→2：不然转不起来）" : "");
                 }
             } else {
                 cur_split &= ~ROT_AUTO_BIT;
