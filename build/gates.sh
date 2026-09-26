@@ -282,4 +282,18 @@ say "PS 心跳约定 ps_hb" "rc=$HBRCC 红行=$HBRED" "--self 全绿(条数以�
     $([ "$HBRCC" = 0 ] && [ "$HBRED" = 0 ] && echo 1 || echo 0)
 printf '%s\n' "$HBOUT" | tail -6 | sed 's/^/        /'
 
-echo "端点总数 $eps；CDC 现在按 build/CDC_BASELINE.txt 的**配对集合**判，功耗仍要人比有没有变差。"if [ "$pass" = 1 ]; then echo "GATES: ALL PASS"; exit 0; else echo "GATES: 有红项 —— 不采纳，保留上一版"; exit 1; fi
+# ---- 17：手写件的编码（`report/COMMANDS.md` 第 5 节曾经被 cp936 打坏一整段，位流/台架/门禁一个都没红）----
+# 坏掉的不是硬件，是"演示时念给自己听的那份清单"，而那份要给评审看 ⇒ 判据要能自己跑。
+# --self 那一路是它自己的反例（造三条坏行必须抓到三条），没有这一段就等于"绿给绿的人看"。
+node src/host/doc_enc_check.mjs --self > /tmp/docenc_self.$$.txt 2>&1; DOCRC1=$?
+DOCSUM=$(node src/host/doc_enc_check.mjs 2>&1 | head -1); DOCRC2=$?
+say "手写件编码 doc_enc" "$(printf '%s' "$DOCSUM" | cut -c1-24)" "self 抓到 3/3 且全树干净" \
+    $([ "$DOCRC1" = 0 ] && [ "$DOCRC2" = 0 ] && echo 1 || echo 0)
+if [ "$DOCRC2" != 0 ]; then
+    node src/host/doc_enc_check.mjs 2>&1 | sed -n '2,9p' | sed 's/^/        /'
+fi
+[ "$DOCRC1" = 0 ] || { echo "        —— doc_enc 的 --self 反例不成立（判据抓不到造出来的坏行）："; sed 's/^/        /' /tmp/docenc_self.$$.txt; }
+rm -f /tmp/docenc_self.$$.txt
+
+echo "端点总数 $eps；CDC 现在按 build/CDC_BASELINE.txt 的**配对集合**判，功耗仍要人比有没有变差。"
+if [ "$pass" = 1 ]; then echo "GATES: ALL PASS"; exit 0; else echo "GATES: 有红项 —— 不采纳，保留上一版"; exit 1; fi

@@ -166,15 +166,13 @@ split range 20 80 / split speed 2             扫描端点与速度仍是**构�
 osd on / osd off                              OSD 现在常显（V8-5 已把行内容改成五行，开关位仍缺 ——
                                               cfg1 三十二位已排满 ⇒ 它得走 `gpio_o` 的空位（[19]/[20]/[21]/[25]
                                               实测悬空）+ 那一位自己的"独立发射 FF + 3 级同步"，见 #83）
-bilin on / bilin off / bilin show             **;�r64b w	**`gpio_o[19]` � 3 � ASYNC_REG �
-                                              `fb_bilin.bilin_en`
-Mؤ  � 
-5 r63c M�
-                                              `bilin off` S:� ѻ>'c����l	
-                                              �:��/**� ���**lane23.bit30 �(R 0
-                                              +I/� H�q�� M
-/̿'s@
-                                              �e���9mU( ISSUES #85
+bilin 的**读回**（不是 on/off 本身）            on/off/show 从 r64b 起是**活的**（`gpio_o[19]` → 那一位自己
+                                              的 3 级 ASYNC_REG → `fb_bilin.bilin_en`，默认开着），
+                                              所以它不在本表；这一行欠的只有"JTAG 侧看得见它现在是什么"
+                                              = `lane23.bit30`，要走 #85 那条像素→axi 的正路
+                                              （`zoom_snap` 那个模子），不许把像素域一根线裸插进 axi 口
+                                              （#61/#65 交过的税）。A/B 观感在 `board/README.md` 第 29 项，
+                                              `bilin off` 当场退回最近邻（1:1 档两边必须一模一样）。
                                               ⚠ 本节 03:37 那版写的是"cfg1 已满 ⇒ 必须新开一次跨域"，
                                               04:04 自查后作废：错在只数了 `cfg1` 一只寄存器。
 ```

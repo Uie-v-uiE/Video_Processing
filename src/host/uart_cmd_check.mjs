@@ -200,7 +200,7 @@ const EXPECT = [
  * 症状是"一大片 FAIL"，最容易被误诊成固件坏了，真正的原因只是判据表没跟着插。
  * 每次动过 board/cmd_battery_*.txt 或这张表，先跑这个（几秒钟）。 */
 if (process.argv.includes('--align')) {
-  const bat = readFileSync(FILE, 'utf8').replace(/^﻿/, '').split(/\r?\n/)
+  const bat = readFileSync(FILE, 'utf8').replace(/^\ufeff/, '').split(/\r?\n/)
     .filter((l) => l.trim() && !l.trim().startsWith('#'));
   for (let k = 0; k < bat.length; k++) {
     console.log(`${String(k + 1).padStart(2)} ${bat[k].padEnd(18)} | ` +
@@ -239,7 +239,7 @@ if (!existsSync(OUT)) { console.log('FAIL 捕获文件不存在（发送器没�
   console.log('[REPLAY] 不碰串口，直接判 ' + REPLAY);
 }
 // PowerShell 的 -Encoding UTF8 会写 BOM，留下它第一条正则永远对不上
-const cap = readFileSync(REPLAY || OUT, 'utf8').replace(/^﻿/, '');
+const cap = readFileSync(REPLAY || OUT, 'utf8').replace(/^\ufeff/, '');
 
 const lines = cap.split(/\r?\n/).filter(l => l.startsWith('>> ')).map(l => l.slice(3));
 let fail = 0, cursor = 0;
