@@ -254,6 +254,19 @@ module tb_v98_top_seam;
 
     always @(posedge dut.frame_start) frames_done = frames_done + 1;
 
+    // ---------------- P1：链子在第一级（blur）到底有没有"武装 / 多跳"过（#92 第四笔的顶层追问） ----------------
+    // 台架 `tb_v89` 里四个窗口级 + 整链的逐列恒等已经全绿，可顶层 C2 的 484 一模一样还在 ⇒
+    // 病灶要么在顶层喂给链子的**标签级**（链子吃 `de_d[3]/x_d[3]`，行环吃 `de_d[5]/x_d[5]`），
+    // 要么在混色级怎么消费链子的输出。先把"有没有武装/有没有跳"数出来——
+    // 这是三行代码换一个 40 分钟周期，比继续推便宜。计数不判红，判据等数字出来再写。
+    integer p_arm = 0, p_flush = 0, p_piped = 0, p_mixde = 0;
+    always @(posedge dut.clk_pix) begin
+        if (dut.u_pipe.u_blur.de_in === 1'b1 && dut.u_pipe.u_blur.x_in === 12'd1023) p_arm = p_arm + 1;
+        if (dut.u_pipe.u_blur.line_end === 1'b1)                                     p_flush = p_flush + 1;
+        if (dut.pipe_de === 1'b1)                                                    p_piped = p_piped + 1;
+        if (dut.de_d[11] === 1'b1)                                                   p_mixde = p_mixde + 1;
+    end
+
     // ---- #78 ⓪：先找 X 的**出生地**，再谈机制（每层都带分母，不许只看"有没有"）----
     //   四层：从机送出的字 → 写进 fb 的字 → fb 阵列本身 → 读出的字。
     //   阵列里就有一堆 X ⇒ 病在写侧；阵列干净而读出是 X ⇒ 病在读侧（撞沿 / 地址是 X / 选块）。
@@ -1063,6 +1076,10 @@ module tb_v98_top_seam;
         zoom_sel = 3'd4;
         split_ctl_tb[13] = 1'b0;             // 标记线也还回去（与 C1 阶段同一个形状）
         bilin_en_tb = 1'b1;
+        // P1 的账（报数，不判红）：arm 应当约等于"行数 × 帧数"，flush 与 arm 同量级才说明
+        // 顶层真的多跳了那一拍；p_piped 与 p_mixde 差多少 = 链子的 de 与混色级取的标签差几拍。
+        $display("P1 chain-blur: arm=%0d flush=%0d | pipe_de=%0d mix_de_d11=%0d (差 %0d)",
+                 p_arm, p_flush, p_piped, p_mixde, p_piped - p_mixde);
         if (nfail == 0) $display("RESULT tb_v98_top_seam PASS");
         else            $display("RESULT tb_v98_top_seam FAIL nfail=%0d", nfail);
         $finish;
