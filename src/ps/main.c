@@ -1186,7 +1186,9 @@ static int dispatch(char **tk, int nt)
         gamma_set(g);
         return 0;
     }
-    if (ci_eq(tk[0], "OSD"))     { not_wired("osd", "OSD 行开关位（现在是常显）", "V8-5"); return 0; }
+    if (ci_eq(tk[0], "OSD"))     { not_wired("osd", "1 个 gpio_o 空位 + 一处开关；两条接法都不算顺手：给 osd_overlay 加 en 端口要连改三处台架例化，"
+                                                   "在 HDMI 输出前加一级 mux 又要碰字形那一路（r71 该组 setup 最差 0.514 ns）",
+                                                   "时序那一轮之后，ISSUES #53"); return 0; }
     /* （这里原来放了一条 `bilin` 的"待接"提示 —— 撤掉，两个理由：
      *   ① 它永远不会被执行：上面 801 行 `ci_pre(tk[0], "BILIN")` 是前缀匹配，先到先赢；
      *   ② 它说的是错的活。04:03 查过：PS 侧 `bilin on/off` 一直是**完整实现**的
