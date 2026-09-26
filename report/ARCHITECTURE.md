@@ -227,3 +227,27 @@ inv_scale Q8: 256=1.0×（最大） ↔ 512=0.5×（最小）
 | FIFO | `src/rtl/eth/sync_fifo.v`, `dc_fifo.v` |
 | 约束 | `src/constraints/rk_zynq7020.xdc` |
 | 构建 | `build/tcl/build_system_axigpio.tcl` |
+
+## 11. 异常处理一览（答辩那一问的标准答案，每一行都指着做过的判据）
+
+> 这一节的规矩只有一条：**没有凭据的"我们做了容错"不写**。
+> 每条都写"谁检测 / 系统做什么 / 人在屏上或串口看到什么 / 哪份判据钉住它"。
+> 三条总原则贯穿下表：① **没有可信数据就宁可不画**（画 `--`，绝不画 0）；
+> ② **被拒绝的命令不许改任何状态**（`#67` 的规矩，改状态就是"设了没反应"那一族）；
+> ③ **屏上写的永远是屏幕上真的那一回事**（标签跟着 mux 走，不跟意愿走，`ISSUES` #55/#66）。
+
+| 失效模式 | 谁检测 | 系统行为 | 看得见/读得到 | 凭据 |
+|---|---|---|---|---|
+| 网线拔了 / 推流停了 | `eth_live` 翻转位 → 像素域三级同步 → `no_sig` | 帧缓存保留最后一帧但**明说是旧的**，并把屏幕交回下一路 | OSD 第五行 `ETH IS NO SIGNAL`；`stat` 里 `src=` 与屏上一致 | `tb_link_monitor`、lane0/lane2、`tb_osd_lines` T9（那句里每个字母都要有字模） |
+| PS 片源不再发布（拔卡 / 读错 / 固件卡住） | PL 的 `src_life` 看门狗：500 ms 没见到发布位就当没片源 | 交回仲裁 → 落到下一路（SD 或图卡） | 串口 `[SRC] PS 停心跳：片源不可信（拔卡 / 读错），画面交回仲裁`；≤0.5 s 换画面 | `tb_v102_src_life`（S12 钉 PS 100 ms : PL 500 ms 的 1:5 比例）、`build/evidence/r71_remount_probe.txt` |
+| SD 读**失败**（不是"命令被拒"） | 固件 `ps_source_lost()` | 收回"我要当片源"的意愿；**被拒绝的命令绝不走到这一步** | `sd=`/`playing=` 变 0，`frames=` 停住 | `ps_hb_check` 约定 + 97 条电池（跑完必须回初态） |
+| 半行残包（脚本发断 / 终端抖 / 发一半） | 固件收包侧对残包计数并丢弃 | 不把残包当帧提交，`frames=` 不骗人 | `stat` 里 `bad`/残包计数；屏不闪 | `main.c` 残包那一段（#94 同族）+ `ps_hb_check.mjs --self` |
+| 命令语法/单位不对（`pipe` 给五位、`gamma auto` 给小数） | 解析层显式分类拒绝 | **不改任何寄存器**，并回一句"等价写法是什么"（九位那一串按 LSB-first 回显，与解析同一侧） | `[CMD!]` / `[PIPE] 只收 **九位** … 等价的九位是：pipe XXXXXXXXX` | `pipe_len_check.mjs`（B 段：gcc 现编现跑 26 用例）、`uart_cmd_check` 对应三条 |
+| 数值越界（`fps=200`、`lat_ms=5000`、`zoom` 出 0.01x–4.00x） | 硬件侧饱和 / 固件侧不认 | 屏上画饱和值（99 / 999）**不回卷成小数**；越界的倍率直接拒 | OSD 那两位数字；`[ZOOM] 不认的参数…` | `tb_osd_lines` T2（含 T2h 的 999 饱和）、`main.c` 的 `0.01x…4.00x` 边界 |
+| 没有可信测量（时延没测到、温度没读到） | `lat_ok` / 温度两位 BCD 半字节是否都 ≤9 | **画 `--` 而不是 0**（"没数"与"数是 0"是两件事） | `LATENCY:--MS`、`TEMP:--`（上电到 PS app 起来之前一直是 `--`） | `tb_osd_lines` T7d、T15（256 个编码全扫 + 100/156 陪跑数） |
+| 像素时钟失锁（面板没插 / MMCM 没锁） | `locked` | `rst_pix_n = sys_rst_n & locked` ⇒ **不放像素也不输出半帧** | 黑屏 + LED0 心跳停（一眼就知道是链路不是算法） | `pl_video_top.v:148-154`，`board/README.md` 第 1 步 |
+| 帧还没写完就提交 | `frame_commit_lock`：只在消隐安全窗口 `blank_safe` 原子切 bank | 屏上永远不会出现"上半新下半旧"的帧 | 肉眼：无撕裂；机器：`frames=` 单调 | `tb_v57_rdw_copy`、`tb_v5_gated`、`tb_v5_copy`、`tb_v57_first_ar` |
+| 几何出画（缩放/旋转后越界那一圈） | 视口映射产生 `oob`，**与像素同过一次行环**（#92 第三笔） | 回黑，且黑的是它自己那一格那一行 | `tb_v98` 的 C1/C3（出界/行首尾跳过格数） | `tb_v98_top_seam`、`tb_v100_raw_delay` |
+| 行缓存读地址越界（行尾多跳那一拍 `x` 已在 porch） | `x_rd` 钳到末列（clamp-to-edge） | 补跳那一拍读到的是末列本身 ⇒ 复制边像素，不是读到别的列 | `ID blur/…: off-col samples=0/896` | `tb_v89_align`、`tb_rotate_window`（一拍一像素那种激励下不许误判行尾） |
+| 重编 PL 把 PS 的 AXI 打悬（`DAP 0xF0000021`） | 流程性：刷之前先停 app | 恢复 = `rst -system → ps7_init → program_pl → ps_app_reload`（约 90 s，不必断电） | 串口/寄存器读数 | `build/evidence/r71_after_recover.txt`、`build/tcl/README.md` §2 |
+| 同一张卡重复 `sd remount` | 控制器不能二次初始化 ⇒ **诚实报错**而不是假装成功 | `[SD] remount failed: …`，恢复仍走 JTAG 三件套 | 串口那一句 | `build/evidence/r71_remount_probe.txt`（演示顺序"拔卡放最后"就是它定的） |
