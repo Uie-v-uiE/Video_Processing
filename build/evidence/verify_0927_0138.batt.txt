@@ -1,0 +1,295 @@
+[TX] SENT 97 CMD  CAPTURED -> board\uart_script_capture.txt
+FAIL  1 STAT
+     缺/违: ^\[STAT\] ctrl thr=\d+ src=\d zoom=\d bilin=\d | sel=[0-9A-Fa-f]{3}
+     回声: 
+FAIL  2 th 80
+     缺/违: thr=80
+     回声: 
+FAIL  3 TH120
+     缺/违: thr=120
+     回声: 
+FAIL  4 THE
+     缺/违: \[TH\]
+     回声: 
+FAIL  5 th
+     缺/违: \[TH\]
+     回声: 
+FAIL  6 pipe 11000
+     缺/违: \[PIPE\] 只收 | 等价的九位是：pipe [01]{9}(?![01])
+     回声: 
+FAIL  7 01010
+     缺/违: \[PIPE\] 只收 | 等价的九位是：pipe [01]{9}(?![01])
+     回声: 
+FAIL  8 pipe 00000
+     缺/违: \[PIPE\] 只收 | 等价的九位是：pipe [01]{9}(?![01])
+     回声: 
+FAIL  9 src 0
+     缺/违: src=0 | \[SRC\]
+     回声: 
+FAIL 10 src 2
+     缺/违: src=1
+     回声: 
+FAIL 11 src 1
+     缺/违: src=1
+     回声: 
+FAIL 12 src 9
+     缺/违: \[SRC\] 只认
+     回声: 
+FAIL 13 zoom off
+     缺/违: zoom=0
+     回声: 
+FAIL 14 ZOOM1
+     缺/违: zoom=1
+     回声: 
+FAIL 15 bilin off
+     缺/违: bilin=0
+     回声: 
+FAIL 16 BILIN1
+     缺/违: bilin=1
+     回声: 
+ok   17 frame 12
+FAIL 18 rot 45
+     缺/违: 只认：rot auto | rot speed
+     回声: 
+FAIL 19 rot speed 1
+     缺/违: \[ROT\] speed=1 度\/帧
+     回声: 
+FAIL 20 split auto
+     缺/违: \[SPLIT\] auto | 构建参数
+     回声: 
+FAIL 21 split range 20 80
+     缺/违: \[SPLIT\] 只认 | 待接
+     回声: 
+FAIL 22 gamma 1.8
+     缺/违: \[GAMMA\] g=1\.80 mono_bad=0 first=0 last=255
+     回声: 
+FAIL 23 gamma off
+     缺/违: \[GAMMA\] off
+     回声: 
+FAIL 24 osd off
+     缺/违: 语法已收，硬件未接 | OSD
+     回声: 
+FAIL 25 zoom 1.5
+     缺/违: \[ZOOM\].*最近档 1\.50x | zoom_step=6 1\.50x \(手动\)
+     回声: 
+FAIL 26 zoom 0.25
+     缺/违: \[ZOOM\].*最近档 0\.25x | zoom_step=0 0\.25x \(手动\)
+     回声: 
+FAIL 27 zoom 0.9
+     缺/违: \[ZOOM\].*最近档 1\.00x | zoom_step=4 1\.00x \(手动\)
+     回声: 
+FAIL 28 zoom 2
+     缺/违: \[ZOOM\].*最近档 2\.00x | zoom_step=7 2\.00x \(手动\)
+     回声: 
+FAIL 29 zoom 1.0
+     缺/违: zoom_step=4 1\.00x \(手动\)
+     回声: 
+FAIL 30 zoom auto
+     缺/违: zoom_step=\d+ .*\(自动呼吸\)
+     回声: 
+FAIL 31 zoom 9
+     缺/违: 不认的参数 | 0\.75
+     回声: 
+FAIL 32 help
+     缺/违: V8 语法 | pipe <九位> | 旧写法仍可用 | 裸五位已随五位控制退役
+     回声: 
+FAIL 33 BOGUS
+     缺/违: 不认: BOGUS
+     回声: 
+FAIL 34 pipe 000001010
+     缺/违: sel=0A0
+     回声: 
+FAIL 35 pipe 000000001
+     缺/违: sel=100
+     回声: 
+FAIL 36 pipe 000100000
+     缺/违: sel=008
+     回声: 
+FAIL 37 pipe 00001100
+     缺/违: \[PIPE\] 长度只收 | 九位
+     回声: 
+FAIL 38 pipe 1
+     缺/违: \[PIPE\] 长度只收 | 九位
+     回声: 
+FAIL 39 pipe show
+     缺/违: \[PIPE\] sel=008 生效: sharpen
+     回声: 
+FAIL 40 pipe 000000000
+     缺/违: \[PIPE\] sel=000
+     回声: 
+FAIL 41 AUTOPLAY0
+     缺/违: \[SD\] autoplay off
+     回声: 
+FAIL 42 autoplay 1
+     缺/违: \[SD\] autoplay on
+     回声: 
+FAIL 43 SRC2
+     缺/违: src=1
+     回声: 
+FAIL 44 bilin 2
+     缺/违: \[BILIN\] 只认
+     回声: 
+FAIL 45 TH80
+     缺/违: thr=80
+     回声: 
+FAIL 46 temp
+     缺/违: \[TEMP\] degC=\d+\.\d+ raw=0x[0-9A-F]{4} vccint=\d+mv th=85C over=0 sane=1 osd=(\d)(\d)C gpio=0x\1\2
+     回声: 
+FAIL 47 temp th 0
+     缺/违: \[TEMP\] th=0C
+     回声: 
+FAIL 48 temp
+     缺/违: over=1 | sane=1
+     回声: 
+FAIL 49 temp th 200
+     缺/违: \[TEMP\] th=200C
+     回声: 
+FAIL 50 temp
+     缺/违: over=0 | sane=1
+     回声: 
+FAIL 51 temp th
+     缺/违: \[TEMP\] th [^=]
+     回声: 
+FAIL 52 temp th 999
+     缺/违: \[TEMP\] th [^=]
+     回声: 
+FAIL 53 TEMP
+     缺/违: \[TEMP\] degC=.*th=85C .*sane=1
+     回声: 
+FAIL 54 src auto
+     缺/违: \[SRC\].*mode=0
+     回声: 
+FAIL 55 src 0
+     缺/违: \[SRC\].*mode=2
+     回声: 
+FAIL 56 src 2
+     缺/违: \[SRC\].*mode=3
+     回声: 
+FAIL 57 src 1
+     缺/违: \[SRC\].*mode=1
+     回声: 
+FAIL 58 src auto
+     缺/违: \[SRC\].*mode=0
+     回声: 
+FAIL 59 STAT
+     缺/违: ^\[STAT\] ctrl thr=(\d+) src=\d zoom=\d bilin=\d | sel=[0-9A-Fa-f]{3}
+     回声: 
+FAIL 60 sd
+     缺/违: \[SD\] | files=|META|card=|frame
+     回声: 
+FAIL 61 sd files
+     缺/违: \[SD\] \d+ file\(s\) | first=\d+
+     回声: 
+FAIL 62 sd file 1
+     缺/违: file #1  | first=\d+
+     回声: 
+FAIL 63 sd file 99
+     缺/违: 只认 0\.
+     回声: 
+FAIL 64 split 30
+     缺/违: \[SPLIT\] 30% -> pos=307 | 屏上 Split 格
+     回声: 
+FAIL 65 split swap 1
+     缺/违: \[SPLIT\] swap=1 | 不换缝位
+     回声: 
+FAIL 66 split swap 0
+     缺/违: \[SPLIT\] swap=0
+     回声: 
+FAIL 67 split marker 0
+     缺/违: \[SPLIT\] marker=0 | 2 像素蓝线
+     回声: 
+FAIL 68 split marker 1
+     缺/违: \[SPLIT\] marker=1
+     回声: 
+FAIL 69 split show
+     缺/违: \[SPLIT\] pos=307\/1024（显示列） = 29% manual
+     回声: 
+FAIL 70 split 150
+     缺/违: \[SPLIT\] 只认
+     回声: 
+FAIL 71 split 100
+     缺/违: \[SPLIT\] 100% -> pos=1023\/1024 | 已夹到 10 位上限
+     回声: 
+FAIL 72 split show
+     缺/违: \[SPLIT\] pos=1023\/1024（显示列） = 99% manual
+     回声: 
+FAIL 73 split video
+     缺/违: \[SPLIT\] video | pos=506\/512
+     回声: 
+FAIL 74 split px 512
+     缺/违: \[SPLIT\] pos=512 px = 100%
+     回声: 
+FAIL 75 split screen
+     缺/违: \[SPLIT\] screen | pos=1023\/1024 | 已夹到 10 位上限
+     回声: 
+FAIL 76 split show
+     缺/违: \[SPLIT\] pos=1023\/1024（显示列） = 99% manual
+     回声: 
+FAIL 77 split 50
+     缺/违: \[SPLIT\] 50% -> pos=512
+     回声: 
+FAIL 78 rot show
+     缺/违: \[ROT\] auto=0 speed=1 | zoom=now
+     回声: 
+FAIL 79 rot speed 3
+     缺/违: \[ROT\] speed=3 度\/帧
+     回声: 
+FAIL 80 rot speed 9
+     缺/违: \[ROT\] speed 只认 0\.\.7
+     回声: 
+FAIL 81 rot auto 1
+     缺/违: \[ROT\] auto=1 | 顺带把缩放切到 fit
+     回声: 
+FAIL 82 rot auto 2
+     缺/违: \[ROT\] auto 只认 0 或 1
+     回声: 
+FAIL 83 rot auto 0
+     缺/违: \[ROT\] auto=0
+     回声: 
+FAIL 84 zoom fit 0
+     缺/违: \[ZOOM\] fit=0 | 不再由角度定
+     回声: 
+FAIL 85 zoom fit 1
+     缺/违: \[ZOOM\] fit=1 | \(Fit\)
+     回声: 
+FAIL 86 zoom fit 2
+     缺/违: \[ZOOM\] fit 只认 0 或 1
+     回声: 
+FAIL 87 zoom fit 0
+     缺/违: \[ZOOM\] fit=0
+     回声: 
+FAIL 88 split video
+     缺/违: \[SPLIT\] video | 画面 | pos=256\/512
+     回声: 
+FAIL 89 split 40
+     缺/违: \[SPLIT\] 40% -> pos=204\/512 | 画面列
+     回声: 
+FAIL 90 split px 9999
+     缺/违: \[SPLIT\] px 只认 0\.\.512
+     回声: 
+FAIL 91 split screen
+     缺/违: \[SPLIT\] screen | 显示列 | pos=399\/1024
+     回声: 
+FAIL 92 split 50
+     缺/违: \[SPLIT\] 50% -> pos=512\/1024
+     回声: 
+FAIL 93 rot speed 0
+     缺/违: \[ROT\] speed=0 度\/帧
+     回声: 
+FAIL 94 gamma auto
+     缺/违: \[GAMMA\] auto：1\.00\.\.3\.00 | 每 2000 ms
+     回声: 
+FAIL 95 gamma manual
+     缺/违: auto 停
+     回声: 
+FAIL 96 gamma off
+     缺/违: \[GAMMA\] off
+     回声: 
+FAIL 97 STAT
+     缺/违: ^\[STAT\].*geom=[0-9A-Fa-f]{8}
+     回声: === CAPTURE END ===
+FAIL 没有两条完整的 STAT，初/末态无从比较（抓到的碎片另计）
+FAIL V9-6 温度格：0 行 [TEMP] degC= 但一条都对不上新格式 ⇒ elf 还没有这一格（或那几行被 SD 心跳劈开了）—— 红着比静默通过好
+
+RESULT FAIL uart_cmd_check  (97 条命令, 91.9 s, 捕获 board/uart_script_capture.txt)
+     98 条不满足判据

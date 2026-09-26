@@ -1,0 +1,62 @@
+== board_verify 2026-09-27 01:35:04 ==
+工作目录：/d/Xilinx/Prj/pro/Video_Processing
+-- 三件套（请与 build/frozen_*/MANIFEST.md 对账）--
+  build/system.bit  md5=767ffef6  2026-09-27 01:02
+  build/system.xsa  md5=073fcebb  2026-09-27 01:03
+  build/ps_app.elf  md5=f4a22f4f  2026-09-27 01:04
+-- 1) 串口现在在说什么（活着、在播、没报错）--
+  \[SD\] frame → （没有这行）
+  \[SD\] play refused → （没有这行）
+  \[SD\] mount failed → （没有这行）
+  \[TEMP!\] → （没有这行）
+  !! → （没有这行）
+-- 2) 读回口：health_read（lane0..9 + 23..31）--
+<anonymous_script>:1
+[HEALTH] xsdb 报错，前几行：
+ ^
+
+SyntaxError: Unexpected token 'H', "[HEALTH] xs"... is not valid JSON
+    at JSON.parse (<anonymous>)
+    at [eval]:2:20
+    at runScriptInThisContext (node:internal/vm:219:10)
+    at node:internal/process/execution:451:12
+    at [eval]-wrapper:6:24
+    at runScriptInContext (node:internal/process/execution:449:60)
+    at evalFunction (node:internal/process/execution:283:30)
+    at evalTypeScript (node:internal/process/execution:295:3)
+    at node:internal/main/eval_string:71:3
+
+Node.js v24.21.0
+-- 5) V9 几何自动化的『最后一跳』（geom_check：命令 → 读回像素域 lane23 / CFG_DATA0）--
+# geom_check（V9 的"最后一跳"：命令 → 像素域真的用了它）
+FATAL 读不到 CFG_DATA0（0x41220000）—— 一个字节都不写，先修 JTAG 通路
+[GEOM] 退出码 1
+-- 4) 串口命令电池（97 条：V8 的 71 + V9 的 20 + #77 的 6，初末态必须相同）--
+     缺/违: \[SPLIT\] screen | 显示列 | pos=399\/1024
+     回声: 
+FAIL 92 split 50
+     缺/违: \[SPLIT\] 50% -> pos=512\/1024
+     回声: 
+FAIL 93 rot speed 0
+     缺/违: \[ROT\] speed=0 度\/帧
+     回声: 
+FAIL 94 gamma auto
+     缺/违: \[GAMMA\] auto：1\.00\.\.3\.00 | 每 2000 ms
+     回声: 
+FAIL 95 gamma manual
+     缺/违: auto 停
+     回声: 
+FAIL 96 gamma off
+     缺/违: \[GAMMA\] off
+     回声: 
+FAIL 97 STAT
+     缺/违: ^\[STAT\].*geom=[0-9A-Fa-f]{8}
+     回声: === CAPTURE END ===
+FAIL 没有两条完整的 STAT，初/末态无从比较（抓到的碎片另计）
+FAIL V9-6 温度格：0 行 [TEMP] degC= 但一条都对不上新格式 ⇒ elf 还没有这一格（或那几行被 SD 心跳劈开了）—— 红着比静默通过好
+
+RESULT FAIL uart_cmd_check  (97 条命令, 91.7 s, 捕获 board/uart_script_capture.txt)
+     98 条不满足判据
+[BATT] 退出码 1
+== 日志留在 build/evidence/verify_0927_0135.txt ==
+RESULT board_verify FAIL nred=2 ⇒ 这一版不能采纳

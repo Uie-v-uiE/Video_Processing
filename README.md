@@ -43,7 +43,7 @@
 | 显示 | HDMI 1024×600 @ 50 MHz（左原图 / 右处理+缩放） |
 | 网络 | 板卡 PL 口 `192.168.1.10:5001`，PC `192.168.1.100` |
 | 控制 | AXI GPIO `@0x41200000`，UART 115200 |
-| 实现结果 | **最近一次门禁全绿的冻结集 = r69**：WNS +0.188 ns / WHS +0.025 ns、0 违例端点、BRAM 97 tile（69.29 %）、Slice LUT 14144（26.59 %）、寄存器 9871、Dynamic 2.214 W——出处 `build/evidence_r69/`（逐文件 md5 见其中的 `MANIFEST.md5`）与 `build/r69_gates.txt`。板上现在烧的是 **r71**（WNS +0.346 ns，最差路径已从字形译码换到 `eth_rxc` 收包链；`build/r71_gates.txt` 16 项绿、只有第 15 项「顶层台架与当前顶层同一次跑」未复绿 ⇒ 尚未冻结，不引用它的其它数字）。逐项数字与出处见 `report/PERF_REPORT.md`，复跑 `bash build/gates.sh`（读 `build/` 里当前这套报告）或 `bash build/gates.sh build/evidence_r69`（读冻结那一套） |
+| 实现结果 | **最近一次门禁全绿的冻结集 = r74**：WNS +0.549 ns / WHS +0.001 ns、失败端点 0 / 0、BRAM 97.5 tile（69.64 %）、Slice LUT 14829（27.87 %）、寄存器 9974、Dynamic 2.210 W——出处 `build/evidence_r74/`（逐文件 md5 见其中的 `MANIFEST.md5`）与 `build/r74_gates.txt`（18 项全绿，含第 15 项"顶层台架与当前顶层同一次跑"）。板上正在刷的就是这一套（bit `767ffef6e982` / elf `f4a22f4f08d1`）。逐项数字与出处、以及"这一版改了什么、数字为什么这样动"见 `report/PERF_REPORT.md` §3，复跑 `bash build/gates.sh`（读 `build/` 里当前这套报告）或 `bash build/gates.sh build/evidence_r74`（读冻结那一套） |
 | 开源协议 | MIT |
 
 ### 项目简介
