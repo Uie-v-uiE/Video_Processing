@@ -4775,3 +4775,120 @@ Dynamic 2.213 W、methodology CRIT 0、cdc Critical 2、端口 violations 0。
   ⇒ **判据红着也会绿**。第 18 项出生当天就用一次真实的红→绿对把它抓了出来。
 - 另加 `build/freeze_evidence.sh <NN>`：按编号参数化，两道硬门（门禁 ALL PASS + 两枚指纹），
   没有全量 L1 时在 MANIFEST 里明说而不是假装看过。
+
+---
+
+## §67 00:1x–00:5x（9/27）：#92 在顶层清了账（484 → 0）；五位控制退役之后那份"还能删什么"；OSD 全大写 + 尺寸改画面板
+
+### 1) #92 第四笔：v5 那一跳在顶层真的打起来了，而且**每行恰好一次**
+
+顶层台架 `tb_v98_top_seam` 这一跑（`RESULT tb_v98_top_seam PASS`，C1/C2/C2b/C2c/C3a/C3b/C3c 全绿）：
+
+| 量 | 上一版（v2/v4 之间） | 这一版（v5） |
+| --- | --- | --- |
+| `C2SHAPE code=4/5/6 inbad/badpairs` | 484 / 1 | **0 / 0**（八个缩放档全部 0/0） |
+| `P1 chain-blur: arm(x==1023&de)` | 0 | 0（按 x 标签武装的那条判据在顶层**一辈子不触发**） |
+| `P1 … flush` | 0 | **28200** |
+| `P1 … run@行尾 min/max` | — | **1024 / 1024** |
+
+两件事被这两个数钉死了：
+
+- `pipe_de / 1024 = 28200` 恰等于本次跑的**总行数**，而 `flush` 也是 28200 ⇒ 补那一跳
+  **一行一次、不多不少**。这一条比"结果对了"更值钱：`tb_rotate_window` 那一族坏法（一拍一像素地推，
+  于是每个像素后面都补一跳）在这条陪跑数下会直接红，不需要谁去看模糊好不好。
+- 链子里 blur 那一级的 `de` 每行正好 1024 拍（`run` 的 min=max=1024）⇒ "数满一行有效像素"这个判据
+  在**顶层与模块级同形**。而 v2 那版按坐标标签武装（`x_in == H_ACTIVE-1`）在顶层 `arm=0`：
+  顶层喂链子的 `x_d[3]` 与 `de_d[3]` 不同级，`x` 早就走到 porch（实测 `blur de=0 x=1032`）。
+  ⇒ **凡"行尾"这类判据，别用坐标标签，数 de**（#92 这一笔买了三版才买到这条结论）。
+
+顺带把上一节的猜测否掉一半：那 9 列之差不是行中间的整体偏移（`pipe_de` 与 `mix_de_d11` 差 0），
+就是行尾那一跳没补上——补上之后 C3（面板坐标系那把尺子）也跟着绿了。
+
+### 2) #66：五位 `effect_en` 退役，做完了
+
+`effect_ctrl` 现在只有一条链、一套口径：九位控制字逐位直连，"新字非 0 用新字、否则用老五位翻出来的等价形式"
+那道合流连同 `en_meta/en_sync`、`legacy_sel`、`effect_en` 出口一起删了。跟着改的：
+PS 侧的镜像 `cur_en`/`sel_sync_legacy()` 删掉，`pipe` 命令**只收九位**（收短的就回显等价九位而不是偷偷写），
+`gpio_o[4:0]` 保留但不接（BD 里那个口还在，撤位等于动 BD），`status` 里那 5 位填 0 保住位序，
+两份台架（`tb_v86` 的 T9/T12/T13 换成"cfg=0 ⇒ 全旁路 / 逐位直连 / 同 cfg 两帧逐位一致"）、
+串口电池（closer 改 `pipe 000000000`）、四个 checker（`pipe_len_check` 重写成 A/B/C/D 四段 + `--self` 27 条、
+`uart_cmd_check` 把"还在打 `en=`"当旧固件的反例）一起跟上。
+
+**这笔的代价记一下**：r73 死在综合，报 `'en_sync' is not declared`——在 `status` 那行，一个我从没读过、
+也从没在台架里见过的表达式。xsim 对未声明标识符是**默默造一根 1 bit 线网**，所以台架全绿的树可以综合都过不去。
+⇒ 结论进 memory：**台架绿 ≠ RTL 干净**，端口审计与 Vivado 也算判据。（同一族的第一次是 #88 的"X 出生地"。）
+
+### 3) #66 的后半问："还有哪些功能冗余、重复、没必要做"——分三类答
+
+先说这条评估的口径：**"删了会不会少一块能力"与"删了会不会少一条凭据"是两件事**，
+所以每一类都写清楚动它的后果，而不是给一个"看起来干净"的清单。
+
+**A 类：建议删（纯一次性/坏掉的工具与被取代的产物，删了不减任何能力）**
+
+- `build/wip_c1i_falsify.sh`、`wip_flash_r63.sh`、`wip_r65_ab.sh`、`wip_r69_finalize.sh`、
+  `wip_r71_finalize.sh`、`wip_r71_freeze.sh` —— 六个一次性收尾脚本，职责已被
+  `build/freeze_evidence.sh <NN>`（参数化）与 `build/board_verify.sh`（有总判定）吸收。
+  `wip_flash_r63.sh` 是 `board_verify` 唯一的调用者，但它自己的头部那三步（`rst -system → ps7_init →
+  program_pl → reload`）已经抄进 memory 与 `report/BUILD.md`，删它不丢知识。
+- `build/tcl/` 里九个没有任何脚本或文档引用的 tcl：`apply_cdc_report`、`build_bitstream`、
+  `create_project`、`crit_path`、`fix_bd_and_top`、`micro_rd`、`rebuild_opt`、`rebuild_zoom_out`、
+  `synth_pl_only`，以及那两个**根目录少解析一层**的（`build_system.tcl`、`build_pl_full.tcl`：
+  `add_files` 指向 `build/src/...` 报错却 exit 0，ISSUES #22/#41 记过）。留着唯一的后果是
+  有人误跑并且相信它的退出码。
+- 一次性探针目录与产物：`build/micro_rd/`、`build/strprobe/`、`build/uram_probe/`、
+  `build/exp_r20_glyph/`、`build/failed_r19b/`、`build/failed_r24/`、`build/snap_*/`、
+  `build/__pycache__/`、`build/rot_osd_wip.patch.txt`、`build/video_pipeline.bit`（3.9 MB，
+  `pl_demo_top` 时代的 bit，板上跑的从来不是它）。
+- `build/` 顶层 268 个"全仓库没有任何地方引用"的一次性日志/报告（其中 15 MB 是本来就 gitignore 的 `*.log`），
+  `board/` 里 84 个未被引用的 `uart_*` / `prog_*` / `send_*` 抓拍。**冻结目录 `build/evidence_r*/`、
+  `build/frozen_r*/` 一个都不动**——它们是文档点名的凭据，门禁第 18 项就在盯这类指针。
+
+**B 类：不删，但要在文档里点名它是"历史 / 另一棵树 / 未接线的活"**（删它才是引入风险）
+
+- 从 `system_top` 走不到的 15 个模块：`axi_frame_writer`、`frame_buffer`、`frame_buffer_db`、`fb_pack`、
+  `line_cache`、`color_bar`、`video_timing_720p`、`udp`、`udp_rx`、`axi_frame_saver`、
+  `axi_frame_saver_burst`、`rotate_mapper`、`fb_rd5x`、`tap_sched`、`pl_demo_top`。三条理由：
+  ① 构建的文件清单是**按目录 glob**（`build/tcl/build_system_axigpio.tcl:14-18`），不被例化的模块
+  一块 LUT 都不占、不进 `.bit` ⇒ 留在树里的代价只有 elaboration 多读几个文件；
+  ② `fb_pack` / `axi_frame_saver` 是 **KU5P 那棵树**（`ku5p/src/rtl/ku5p_eth_top.v`）在用，
+  删这里等于把第二块板子那次 WNS +1.840 的绿构建弄断；
+  ③ `fb_rd5x` / `tap_sched` 是 r63 那台**尚未接线**的双线性读口（任务 #52 还开着），
+  它有独立台架，删它就是把一条还没兑现的能力当垃圾。
+  （`rotate_mapper` 是"被 `zoom_mapper`/`seam_src` 取代的上一代"，`color_bar` 被 `test_card` 取代，
+  `udp.v` 这个厂商风格包装被 `eth_udp_video_top` 直接例化 `udp_tx/udp_rx` 取代——这三个是真的历史。）
+- 九个"没有脚本引用"的老台架（`tb_crc32`、`tb_proc_gray`、`tb_sync_fifo`、`tb_timing`、
+  `tb_uart_decode_bits`、`tb_v50_rowmath`、`tb_v571_allow_lead`、`tb_v58_full_done`、`tb_rotate_mapper`）：
+  `run_one.sh` 与 `run_sim.tcl` 都是 glob 清单 ⇒ 它们跟着 L1 全量免费跑，是**回归**，不是死代码；
+  删一个就要重画一次"全量是多少条"的基线，而那正是 #88 之后我在防的事。
+- 验证层的重复只有一处值得记：`tb_osd_lines` 的 T10 与 `tb_v794_osd_glyph` 都在钉字模，但**一个按码点扫像素、
+  一个按 256 码点比译码号**，两把尺子量的不是同一件事——保留，写清楚别再往上加第三把。
+
+**C 类：功能层面看着重复、但撤掉会咬演示的（要用户点头才动）**
+
+- 片源有**三条入口**：KEY1 长按、串口 `src <0..3>` 钉、`src auto` 回落。看起来冗余，实际分工是
+  "人站在屏前要能钉住"与"上位机要能程序化"，撤任何一条都会咬演示（#55/#66 那两课都是这条链上的）。
+- `bin_pol`（bit[6]）与阈值判决反相是一件事的两面，但它与 `invert`（bit[1]）不同级，撤掉它
+  "暗底白字"就没有入口；`erode`/`dilate` 两位同时为 1 是**明确旁路**（开/闭运算要两遍窗口），
+  这个行为有 `tb_v86` T14 与 OSD 那一格共同钉住，不算冗余。
+- `status` 那 16 位里现在有 5 位是"退役后填 0 保位序"、`gpio_o[4:0]` 同理。位序比"少几根线"值钱：
+  串口电池与 `health_read` 都按位读，撤位 = 让所有历史凭据里的数失去可比性。
+- 真正"没必要再做"的：MIPI、KU5P 的第二块板（roadmap 里已停）、`osd on|off`（#53，故意推迟）。
+
+### 4) #67：OSD 全大写 + 尺寸那一格改画面板
+
+用户两句话一起办："小写字母搞出来有点奇怪，特别是 p 弄得很丑 ⇒ 全部改成大写"，
+以及"512×300 那一格现在是一整幅画面了，是不是该改成 1024×600"。
+
+- 17 个小写字模连同 `glyph_idx` 里 `0x61~0x7A` 那 17 个码点一起删；补画大写 **I/M/X/Y**（号 54..57，
+  照旧"只往后加、不回头改已用的号"）。**折算放在 `put`（写格子那一侧）**而不是译码那条链上——
+  `ch→gi→font→b_reg` 正是全设计最差路径的主体（`x_d_reg[11]→b_reg`），在那里加区间比较是往最差那条链
+  上加深度，而在这里折一次换来的恰恰是那 17 个分支不见。
+- L0 变成 `1024X600  FPS:30  SRC:ETH`：尺寸放**行首**而不是紧跟 `SRC:`。放在 `SRC:` 后面会读成
+  "片源是 1024×600"（那是假话，片源是 512×300），而用户要的"屏上这一幅是多大"恰恰只有放在行首才不歧义
+  ——27 格（最宽那一态 `TEST*`）右沿 502 ≤ 511，仍整行在分割线这边。
+  参数 `IMG_W/IMG_H` → `OUT_W/OUT_H`，顶层递 `2*IMG_W`（与 `proc_pipeline.H_ACTIVE`、`raw_line_delay.W`
+  同一个出处，不是在这儿另抄一遍 1024/600）。新 `putnum4` **只吃 elaboration 常数**，注释里写明了为什么。
+- 判据跟上（`tb_osd_lines` 十五项全绿）：新增 **T14 = 扫 5×32 格，116 个非空格里不许有一个小写码点**
+  ——漏折的那一格不会让任何"码点→号"的比对变红，因为它已经变成空格了，T9 抓不到它；
+  T8 的第二份例化换成 `1280×960`，否则永远走不到 `putnum4` 的四位分支，而两份并存才排掉"共用同一个常数"的假绿；
+  `tb_v794` 的 256 码点金表跟着删小写、加四个大写（那句"覆盖地板 n_hit=256 才作数"的老教训留在原位）。
