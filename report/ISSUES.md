@@ -3581,7 +3581,7 @@ skid 那 15 拍两路本来就一样长 ⇒ 三者（原图像素 / 处理像素
 |---|---|---|
 | ① PS 片源心跳 + 有名字的超时 | `src/rtl/util/src_life.v`（新模块），顶层 `pl_video_top.v` 的 `u_life`，超时 `PS_SRC_TIMEOUT_MS=500` 由 `localparam` 给 | `sim/tb_v102_src_life.v` 13 条（S1/S2/S3/S9/S10/S12/S5a/S5b/S6/S7/S8a/S8b/S8c/S11），两次跑同样绿 |
 | ② 两个粘滞位换成随时间衰减的量 | 顶层里 `ps_src_seen` 那一段已删（`have_src` 现在来自 `src_life`，不再是"只置 1"的 reg）；OSD 的 `Src:` 由 `fb_vis`/`owner_eth` 推，PS 停心跳时退回 `TEST` | 同上 + `src/host/ps_hb_check.mjs` 的 A9（顶层不许再有粘滞片源位） |
-| ③ 卡插回的恢复键 | `sd_play.c:sd_remount()` + 串口 `sd remount`；失败时明说"要断电重插"，不静默 | `src/host/ps_hb_check.mjs` 的 A7/A8 |
+| ③ 卡插回的恢复键 | `sd_play.c:sd_remount()` + 串口 `sd remount`；**19:13 板上实测：卡在原位也回 `XSdPs_CfgInitialize failed`**（#45 的限制成立），它做的是"清干净软件状态 + 试一次 + 失败就说明白"，不是"把回放救回来" | `src/host/ps_hb_check.mjs` 的 A7/A8 + `build/evidence/r71_remount_probe.txt` |
 
 **心跳为什么是固件的活（这一条是本修法的要害）**：换成活判据之后，"暂停 / `play 0` / `frame N` /
 `FILL` 之后屏上那张要留住"这件事 PL 已经不可能自己知道 —— 于是 `ps_keepalive()` 每 100 ms 把
@@ -3607,6 +3607,26 @@ skid 那 15 拍两路本来就一样长 ⇒ 三者（原图像素 / 处理像素
 * 上一段里"机器判据是 uart_cmd_check 新增一条"这句话**作废**：`stat` 的元组是电池比对基准，
   为了这一条去动它会牵连 97 条用例；心跳的可观测点改为两处已有的 ——`Src:` 那一格 +
   `[SRC] PS 停心跳…` 这一行串口回包（后者是新增的、不碰任何既有格式）。
+
+### #94 板级：r71 已上板，机器那一半全绿（2026-09-26 19:0x–19:1x）
+
+三件套：bit `f826f5ef7dc8` / xsa `830ff645a397` / elf `8cff602c67fd`（顺序 `ps_jtag_boot` → `program_pl` → `ps_app_reload`）。
+
+* `bash build/board_verify.sh` ⇒ **PASS**（0 判红）：串口说"活着、在播、没报错"，
+  `lane30` 说 `mode=AUTO, owner_eth=0, why=没有流`，`lane23` zoom `verdict=OK`，`drop_words=0`。
+* `bash build/board_verify.sh --battery --geom` ⇒ 第一次 **91.7 s / 96 条 ok + 1 条不满足判据**，
+  而那一条红的是**我自己刚改的一句文案**：`osd` 的"待接"回包我重写时说得更准了，
+  但 `uart_cmd_check.mjs` 钉的是"待接那一行必须出现大写 `OSD`"（`[/语法已收，硬件未接/, /OSD/]`），
+  我新文案里只剩小写 `osd_overlay` ⇒ 判据按设计红了。改回带 `OSD` 的说法、重下 elf、重跑 ⇒
+  **97/97 PASS + geom ok=8 + 温度格三方对账自洽**（凭据 `build/evidence/verify_0926_1910.txt`）。
+  顺带一句：这属于"编码/用词只在两处一致就够"的错觉 —— 同一课 #48 记过一次（`Src:` 用词那次也是）。
+* **心跳在板上看得见**：`stop` 之后连敲两次 `stat`，`pub=` 在 0/1 之间跳 ⇒ 固件那 100 ms 的重发真的在发
+  （原始件 `build/evidence/r71_remount_probe.txt`）。
+* **`sd remount` 的实话已被实测**（见上面 ③ 那一行）：卡在原位、之前挂载成功过，它回
+  `XSdPs_CfgInitialize failed`；恢复靠重跑 JTAG 三件套（不需要断电），恢复后 `29.999 fps`。
+  ⇒ #45 那条"一个上电周期只成功一次"从"记录"升级成"重复验证过的事实"，
+  而 `DEMO_SCRIPT.md` 第 1 幕因此多了一条硬规矩：**拔卡这一幕只能排在最后**。
+* 还欠的只剩眼睛：`board/README.md` 第 30/31 两项由用户签（31 要一只手 —— 拔卡是物理动作）。
 
 ### #92 的"三档各 484"要重测（2026-09-26 19:0x，r71 台架第一轮揭出的尺子问题）
 

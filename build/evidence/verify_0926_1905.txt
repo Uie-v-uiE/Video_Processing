@@ -1,0 +1,19 @@
+== board_verify 2026-09-26 19:05:28 ==
+工作目录：/d/Xilinx/Prj/pro/Video_Processing
+-- 三件套（请与 build/frozen_*/MANIFEST.md 对账）--
+  build/system.bit  md5=f826f5ef  2026-09-26 18:47
+  build/system.xsa  md5=830ff645  2026-09-26 18:48
+  build/ps_app.elf  md5=1fd687bd  2026-09-26 18:51
+-- 1) 串口现在在说什么（活着、在播、没报错）--
+  \[SD\] frame → [SD] frame 600: last 100 frames 29.655 fps (since play 29.802)
+  \[SD\] play refused → （没有这行）
+  \[SD\] mount failed → （没有这行）
+  \[TEMP!\] → （没有这行）
+  !! → （没有这行）
+-- 2) 读回口：health_read（lane0..9 + 23..31）--
+  lane30 src_state → {"eth_tb_ok":1,"eth_live":0,"owner_eth":0,"fill_busy":0,"row_busy":0,"mode_gray":0,"why_gray":2,"why_tb_untrusted":0,"why_no_stream":1,"why_force_ps":0,"mode":"AUTO","why":"没有流"}
+  lane23 zoom → {"raw":2147629436,"alive":1,"zoom_fit":0,"zman":0,"zsel":4,"zcode":3,"zoom_active":1,"zoom_dir":0,"inv_scale":380,"x100_actual":67.4,"inv_expected":null,"inv_ok":true,"code_ok":true,"verdict":"OK"}
+  lat.osd_ms_matches_tot → true
+  drop_words → 0
+== 日志留在 build/evidence/verify_0926_1905.txt ==
+RESULT board_verify PASS（判红的步骤：0）

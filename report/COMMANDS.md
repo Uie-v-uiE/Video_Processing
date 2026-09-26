@@ -231,11 +231,17 @@ bilin 的**读回**（不是 on/off 本身）            on/off/show 从 r64b �
 
 ## #94 增补（2026-09-26 18:2x）：片源改"活判据"之后，固件多了一条心跳与一个恢复键
 
-| `sd remount` | 把 SD 控制器重新初始化一遍再挂载（停播 → 清 `mounted`/簇表/FAT 缓存 → `sd_mount()`），成功回 `[SD] remount ok` + 摘要，失败回原因 + 一句"要不要断电重插" |
+| `sd remount` | 把 SD 控制器重新初始化一遍再挂载（停播 → 清 `mounted`/簇表/FAT 缓存 → `sd_mount()`），成功回 `[SD] remount ok` + 摘要，失败回原因 + 一句实话 |
 
-**为什么操作者需要它**：以前卡被热拔之后，固件里的 `mounted` 从来没有哪条路径会清回 0，
-于是"把卡插回去"修不好任何东西 —— 唯一恢复手段是重下 elf（约 20 s + 要接 JTAG），演示现场等于中止。
-`sd_play.c:sd_remount()` 就是那一个键。**不写卡、不动 flash**，只是重新初始化控制器与簇表。
+**⚠ 板上实测（2026-09-26 19:13，卡在原位、之前已挂载成功过一次）**：它回的是
+`[SD] remount failed: XSdPs_CfgInitialize failed` ⇒ **#45 那条限制是真的**：同一个上电周期里
+驱动不能第二次初始化成功。所以这一条**不是"插回卡就能恢复"的键**，它是"把软件状态清干净并试一次，
+失败就明说失败"的键 —— 现场意义在于**不再静默假装卡还在**（以前 `mounted` 永不清零，
+`sd`/`play` 都撞在假挂载上）。要真的恢复 SD 这一路：**重跑 JTAG 三件套**
+（`ps_jtag_boot` → `program_pl` → `ps_app_reload`，约 90 s，**不必拔电源**；
+凭据 `build/evidence/r71_after_recover.txt`，恢复后 `[SD] frame … 29.999 fps`）。
+原始探测记录在 `build/evidence/r71_remount_probe.txt`（同一次还看到 `stat` 的 `pub=` 在两位之间跳
+⇒ 固件心跳 100 ms 真的在板上跑）。**不写卡、不动 flash。**
 
 **片源存在性的口径变了（这一条改变上面第 2 节的语义）**：
 
@@ -249,7 +255,7 @@ bilin 的**读回**（不是 on/off 本身）            on/off/show 从 r64b �
 凭据分三层，缺一层就是没验：
 `sim/tb_v102_src_life.v`（PL 那 13 条，含"锁网络冻帧是语义""AUTO 下交还那一拍起看心跳"）、
 `src/host/ps_hb_check.mjs --self`（固件那 11 条 + **4 条变异对照**，已进 `build/gates.sh` 第 16 项）、
-`board/README.md` 的眼睛那一行（整机：拔卡 ≤0.5 s 落图卡、暂停不丢画面、`sd remount` 能救回来）。
+`board/README.md` 的眼睛那一行（整机：拔卡 ≤0.5 s 落图卡、暂停不丢画面、`sd remount` 说不说实话说）。
 
 **故意不收的两个键**：`src` 的"锁 TEST"这一格仍然不需要心跳（图卡由 PL 自绘，`fb_vis` 那条第一列就是 0）；
 `osd on|off` 还在"语法已收、硬件待接"那张表里（第 5 节），要等时序那一轮之后再接 ——

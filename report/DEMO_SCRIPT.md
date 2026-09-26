@@ -48,7 +48,11 @@ play
 * **拔掉 SD 卡** → ≤0.5 秒内落到 `Src:TEST` + 图卡自己在动，串口出一行
   `[SRC] PS 停心跳：片源不可信（拔卡 / 读错），画面交回仲裁`（r71 之前这一步是**永久冻在最后一帧**，
   而屏上还写着 `SD` —— 这就是本幕要演的那个修复）；
-* 卡插回去 → `sd remount` → `play` → 恢复回放（`remount failed:` 也是实话，见 `board/README.md` 第 31 项）。
+* 卡插回去 → `sd remount` **救不回回放**（2026-09-26 19:13 实测：`[SD] remount failed: XSdPs_CfgInitialize failed`
+  —— 同一个上电周期里 SD 驱动不能第二次初始化成功，#45 那条限制是真的）。
+  **⇒ 顺序上的硬规矩：把"拔卡"排在整场演示的最后。** 拔完之后要恢复 SD 这一路，
+  不必拔电源，重跑 JTAG 三件套即可（`ps_jtag_boot` → `program_pl` → `ps_app_reload`，约 90 s；
+  凭据 `build/evidence/r71_after_recover.txt`：回来之后 `[SD] frame … 29.999 fps`）。
 
 **演砸了怎么办**：`Src:` 与屏上画面不一致 → 立刻 `src auto` 再看一次；仍不一致就是仲裁那一层的事，
 **不要**改成手动锁源继续演（锁了就看不出"让位"了），跳过本幕去演第 2 幕。
