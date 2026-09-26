@@ -12,7 +12,7 @@
 | 工具版本 2026.1（推荐）或 2025.2；用其他版本须**在报告中说明并保证脚本可复现** | 用 **2025.2.1**（同一主版本线的补丁版）。说明写在 `README.md` 表格下方那段引用块 + `report/BUILD.md` §1 路径表；复现性由"仓库相对 Tcl 脚本 + `[file dirname [info script]]` 自适应路径"保证 | ✅ 已声明 |
 | 允许用大模型/智能体，须提交**交互记录**（提示词、模型回答、**自我纠错轨迹**） | `report/AI_COLLABORATION.md`；纠错轨迹是原文照录的，包括判错的（09-24 又加七个：门禁写死阈值把自己漏掉、one-hot 重编码冒充跨域 bug、报告 mtime 念错版本、指标分母用错总体、同步链复位值与源头不一致、一次把乱码 shell 输出读成「证据」、以及连两晚把一个**空间**缺陷
 （目录项字节序）解释成一堆**时间**问题（直到失败行自己报出地址为止））：#36 那条"电平同步只会更糟"被自己的台架否掉、残值常数 `0xC921091D`→`0x4223AD77`→`0xC704DD7B` 连错两次被自己的 T5 判据拦下、`build#18 的 bit 没了`其实是能从 git 历史复原的推论越界 | ✅ |
-| 须把可复用经验提炼为**技能包**随作品提交 | `skill/`（**17 项**，四段式：适用场景 / 使用方法 / 已验证效果 / 失效条件）+ `skill/README.md` 索引 + 配套脚本表（含本轮新增的 `cdc_pair_baseline_gate.md`：CDC 门禁要比配对集合；`failing_read_prints_geometry.md`：定点失败要让失败行自己报几何量） | ✅ |
+| 须把可复用经验提炼为**技能包**随作品提交 | `skill/`（**21 项**，四段式：适用场景 / 使用方法 / 已验证效果 / 失效条件）+ `skill/README.md` 索引 + 配套脚本表（含本轮新增的 `cdc_pair_baseline_gate.md`：CDC 门禁要比配对集合；`failing_read_prints_geometry.md`：定点失败要让失败行自己报几何量） | ✅ |
 | 初级组器件范围（7 系列 / Zynq-7000 / UltraScale(+)） | 两块板都在范围内：`xc7z020clg484-2`（Zynq-7000）与 `xcku5p-ffvb676-2-i`（UltraScale+） | ✅ |
 | **须声明具体型号** | `README.md` 表格、`report/BOARD_PINS.md`、`ku5p/README.md`（含引脚出处） | ✅ |
 | **作品须在板上跑通并提供实测输出** | Z7：`data/measured/`（`board_measure_15fps.txt`、R06/R07、R08…）+ `report/V6_BOARD_MEASUREMENT.md` + LED/OSD/串口判据。Z7 本轮新增的可核查实测：仲裁交接五次（交回 0.2–0.5 s、接管 0.15–0.38 s、0 次意外翻转）、两次 300 s 长跑（9000 帧 / 1,989,000 包，`drop_words`/`cdc_episodes`/`frames_bad` 增量全 0）、受控丢包与算术对上（预测 11.05 % vs 实测 11.06 %）。**KU5P：只到台架级 + 门禁全绿的构建，尚未上板**（JTAG 独占与 Z7 冲突、且今晚没人看板）→ 这一条对第二块板**还不满足**，写清楚而不是含糊过去 | ⚠ 部分 |
@@ -38,7 +38,7 @@
 | 综合与实现报告（资源、频率、关键指标） | `build/*.rpt` 与每组成套 `build/frozen_*/`、`ku5p/build/frozen_*/` | 报告与 bit 是**同一轮**的（md5 清单钉住） |
 | 上板工程、运行脚本、实测输出与参考结果比对 | `board/README.md`、`build/tcl/program_*.tcl`、`data/measured/`、`data/golden/` | |
 | 可复现的构建脚本 | `build/tcl/build_system_axigpio.tcl`、`ku5p/build/tcl/ku5p_build.tcl` | 全部仓库相对路径 |
-| 技能包 `skill/README.md` | ✅ 17 项 + 四类归纳 + 配套脚本表 | |
+| 技能包 `skill/README.md` | ✅ 21 项 + 四类归纳 + 配套脚本表 | |
 | 设计报告：**背景与创新点要含"前人做过什么"** / 原理与框图 / 软硬件划分 / 优化过程含前后对比表 / 协作记录 / 技能包提炼过程 / 复现说明 | `report/BACKGROUND_AND_NOVELTY.md`（新增：三条确切参照 + 明确声明"未做系统文献检索" + 五条创新点逐条挂证据）、`ARCHITECTURE.md`、`PS_VS_PL.md`、`PERF_REPORT.md`、`OPTIMIZATION_LOG.md`、`AI_COLLABORATION.md`、`BUILD.md`、`ISSUES.md`、`CHANGELOG_V6/V7.md` | ⚠ 前人工作一节只敢列确切参照过的三条，正式检索待补（写在该文 §5） |
 | 推荐目录结构（非强制，但采用其他组织须在 README 给出**目录对照**） | `README.md` 的目录树 + `report/MODULES.md` 模块地图 | 我们多了 `ku5p/`（第二块板）与 `report/` 细分 |
 

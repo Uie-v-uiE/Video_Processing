@@ -336,5 +336,31 @@ fi
 [ "$CURRC1" = 0 ] || { echo "        —— doc_currency 的 --self 反例不成立（该红的没红）："; sed 's/^/        /' /tmp/cur_self.$$.txt; }
 rm -f /tmp/cur_self.$$.txt
 
+# ---- 19：演示排练脚本必须等于讲稿抽出来的那一份（2026-09-27 加，起因是今晚自己差点造出来）----
+# `board/demo_rehearsal.txt` 是**照着敲进板子**的那一份，而它是从 `report/DEMO_SCRIPT.md` 的代码块
+# 抽出来的（`src/host/demo_cmds.mjs --emit`）。讲稿改了而这份没重抽 ⇒ 排练与演示用的是两套东西，
+# 症状恰好是 #67 那一族（"清单里有、板上没有"）：台上敲一条不存在的写法，或者少演一条改过的。
+# 今晚改讲稿次序（第 9 幕拔卡）时我是**手工**比了一遍才敢说"49/49 那条仍然成立" ——
+# 手工比一次的事后必然有一次不比，所以把它变成一项。
+# 反向对照（证明这条比较不是恒真）：拿抽出来的那份**去掉最后一行**去比，必须判成不同。
+node src/host/demo_cmds.mjs --emit /tmp/rehearsal_fresh.txt > /tmp/emit_note.$$.txt 2>&1; EMT1=$?
+if [ "$EMT1" = 0 ]; then
+    if diff -q <(sed 's/\r$//' board/demo_rehearsal.txt) <(sed 's/\r$//' /tmp/rehearsal_fresh.txt) >/dev/null; then
+        EMSAME=1; EMROWS=0
+    else
+        EMSAME=0; EMROWS=$(diff <(sed 's/\r$//' board/demo_rehearsal.txt) <(sed 's/\r$//' /tmp/rehearsal_fresh.txt) | grep -c '^[<>]')
+    fi
+    # 变异对照：少一行必须"不相同"（否则这条比较是摆设）
+    diff -q <(sed 's/\r$//' /tmp/rehearsal_fresh.txt) <(sed '$d' /tmp/rehearsal_fresh.txt) >/dev/null \
+        && EMMUT=0 || EMMUT=1
+else
+    EMSAME=0; EMROWS="?"; EMMUT=0
+fi
+say "排练脚本=讲稿抽取 rehearsal" "差异行=$EMROWS 变异对照=$([ "$EMMUT" = 1 ] && echo 能红 || echo 恒真)" \
+    "改讲稿不重抽 ⇒ 这一项红；少一行必须判成不同（对照）" \
+    $([ "$EMSAME" = 1 ] && [ "$EMMUT" = 1 ] && echo 1 || echo 0)
+[ "$EMSAME" = 1 ] || { echo "        —— 盘上那份是旧的：跑 \`node src/host/demo_cmds.mjs --emit\` 重抽再提交。"; }
+rm -f /tmp/rehearsal_fresh.txt /tmp/emit_note.$$.txt
+
 echo "端点总数 $eps；CDC 现在按 build/CDC_BASELINE.txt 的**配对集合**判，功耗仍要人比有没有变差。"
 if [ "$pass" = 1 ]; then echo "GATES: ALL PASS"; exit 0; else echo "GATES: 有红项 —— 不采纳，保留上一版"; exit 1; fi
