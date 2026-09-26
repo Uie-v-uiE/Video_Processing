@@ -561,9 +561,12 @@ module pl_video_top #(
     // 而同文件里 src_sel_pix/src_use 早就存在 —— 帧起始那拍采它会采到亚稳态。
     wire pub_consume = frame_start && src_use && !owner_eth_pix;
     wire pub_pend;
+    wire pub_new;                      // PS 刚提交了一帧（同步后的沿）⇒ #94 心跳的唯一来源
+                                       //   ⚠ 必须在这里声明：端口先引用会造出隐式 net，
+                                       //   后面再显式声明就是重定义（本文件 620 行那条老规矩）。
     ps_publish u_pub (
         .clk(clk_pix), .rst_n(rst_pix_n),
-        .tog(ps_publish), .consume(pub_consume), .pend(pub_pend), .new_tog());
+        .tog(ps_publish), .consume(pub_consume), .pend(pub_pend), .new_tog(pub_new));
 
     reg fs_tog;
     always @(posedge clk_pix or negedge rst_pix_n) begin
@@ -577,23 +580,26 @@ module pl_video_top #(
     end
     wire ps_frame_start = fs1 ^ fs2;
 
-    // 片源存在性判据（原来只有 eth_link_pix 一项，见上面那行注释被挪下来的原因）：
-    //   ETH 侧：链路在 ⇒ 显示 fb（和以前**逐位一致**，不动已验过的行为）
-    //   PS  侧：至少发布过一次搬运 ⇒ 也显示 fb
-    // 少了后一项，网线一拔这块红就永久挡在 fb 前面 —— FILL / SD 回放在屏幕上不可达，
-    // 而 pub_consume / ps_publish / axi_frame_writer64 明明都在，说明设计上要两条片源。
-    // 用像素域的 pub_consume 置位，不引入新的跨域（ps_frame_start 是 axi_clk 域的脉冲）。
-    reg ps_src_seen;
-    always @(posedge clk_pix or negedge rst_pix_n) begin
-        if (!rst_pix_n) ps_src_seen <= 1'b0;
-        else if (pub_consume) ps_src_seen <= 1'b1;
-    end
-    // 片源存在性判据（#47 加的那一项）现在**只用来决定"看不看 fb"**，不再决定"涂不涂红"：
-    // 没有片源时显示的是会动的图卡（见下面 pix_left/pix_right），屏幕从此不会是红的或黑的。
-    // 这也是图卡存在的理由之一：#47 之前"看不见 PS 片源"和"没搬片源"在屏幕上长得一模一样。
-    wire have_src = eth_link_pix | ps_src_seen;
+    // ---- #94：片源存在性判据换成**活判据**（`src_life`），不再用两位"只置不清零"的粘滞位 ----
+    //   原来这里 `have_src = eth_link_pix | ps_src_seen`，两位都只会被置 1、永远不会回 0
+    //   ⇒ 用户实测：AUTO 下拔掉 SD 卡，画面**永久冻在最后一帧**，插回也不恢复（`fb_vis` 恒 1，
+    //   设计里"两路都没片源就画图卡"那一条根本进不去）。判据现在取自**已有的发布握手**
+    //   （`ps_publish` 同步出来的 `new_tog`）+ 一条 500 ms 看门狗 ⇒
+    //   **不新增 GPIO 位、不新增异步配对**（`cdc.rpt` 若因此多出一行，就是接错了）。
+    //   三条语义由 `sim/tb_v102_src_life.v` 逐条钉：锁网络"冻在最后一帧"是语义、
+    //   锁 SD 而 PS 没货要落图卡、AUTO 下 ETH 交还的那一拍起看 PS 心跳（不留粘滞）。
+    //   `ps_no_pub` 今天只上屏（OSD 的 `Src:` 退回 TEST）；要把它做成寄存器回读得走 `zoom_snap`
+    //   那条像素→axi 的正路（#85），不在这里塞一根裸线进 axi 口（#61/#65 交过的税）。
+    localparam integer PS_SRC_TIMEOUT_MS = 500;
+    wire ps_src_now, have_src, ps_no_pub;
+    src_life #(.CLK_HZ(50_000_000), .HB_TIMEOUT_MS(PS_SRC_TIMEOUT_MS)) u_life (
+        .clk(clk_pix), .rst_n(rst_pix_n), .frame_start(frame_start), .ps_pub(pub_new),
+        .eth_owner(owner_eth_pix), .mode_eth(mode_eth), .mode_ps(mode_ps),
+        .ps_src_now(ps_src_now), .have_src(have_src), .ps_no_pub(ps_no_pub)
+    );
     // 模式决定"看哪一路"：锁 ETH / 锁 SD 时强制看 fb；锁 TEST 时强制看图卡；AUTO 交回给
-    // PS 的 SRC0/SRC1 命令（src_use），行为与 #23/#25 一致。
+    // PS 的 SRC0/SRC1 命令（src_use），行为与 #23/#25 一致 —— 这一行**一个字都没改**，
+    // 改的只有它右边 `have_src` 由谁算。
     wire fb_vis   = (mode_card ? 1'b0 : (mode_eth | mode_ps) ? 1'b1 : src_use) && have_src;
 
     // ---- 仲裁状态可观测口（dbg_src）----

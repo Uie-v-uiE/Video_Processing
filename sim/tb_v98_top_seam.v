@@ -292,9 +292,9 @@ module tb_v98_top_seam;
             // 而屏上内容仍是 X ⇒ 嫌疑只剩"**这一格该显示谁**"那一束控制位。全部用 %b：X 会直接显形。
             //   fb_vis = (mode_card ? 0 : (mode_eth|mode_ps) ? 1 : src_use) && have_src
             //   ⇒ mode 里有一位是 X，这三个 compare 就都是 X，pix_raw 整条流跟着变 X。
-            $display("[tb_v98_top_seam.v:266] [Xborn4] 归属链 mode=%b owner_eth=%b owner_pix=%b src_use=%b eth_link_pix=%b ps_seen=%b have_src=%b fb_vis=%b | fb_out=%h orig_disp=%h",
+            $display("[tb_v98_top_seam.v:266] [Xborn4] 归属链 mode=%b owner_eth=%b owner_pix=%b src_use=%b eth_link_pix=%b ps_now=%b have_src=%b fb_vis=%b | fb_out=%h orig_disp=%h",
                      dut.mode, dut.owner_eth, dut.owner_eth_pix, dut.src_use, dut.eth_link_pix,
-                     dut.ps_src_seen, dut.have_src, dut.fb_vis, dut.fb_out, dut.orig_disp);
+                     dut.ps_src_now, dut.have_src, dut.fb_vis, dut.fb_out, dut.orig_disp);
             // 第二层（同一次运行里接着往下看一格）：`u_bilin` 的**写**把 X 存进结果缓冲时，
             //   读口才"干净阵列读出 X"—— 所以要把写侧的四元组与插值输入一起摆出来。
             //   为什么必须有这一层：帧缓存阵列已证干净（上面那条只报填充区），而 fb_out 是 X，
@@ -587,6 +587,10 @@ module tb_v98_top_seam;
     integer c2_geol [0:7], c2_geor [0:7], c2_measl [0:7], c2_measr [0:7];
     integer c2_leakl [0:7], c2_leakr [0:7], c2_blank [0:7], c2_rows [0:7];
     integer c2_e, c2_bdump = 0, c2_ibdump = 0;
+    // 坏格落在**哪几个列对**上：484 这种数只说"每行错一对"，说不清是哪一对，而"哪一对"才决定修法
+    //（行尾 ⇒ 末列折回；行首 ⇒ 乒乓/首拍；中间 ⇒ 地址级）。所以逐列对记一位。
+    reg [511:0] c2_ibv [0:7];
+    integer c2_ib_np, c2_ib_f, c2_ib_l, c2_ib_q;
 
     initial begin
         for (c2_e = 0; c2_e < 8; c2_e = c2_e + 1) begin
@@ -594,6 +598,7 @@ module tb_v98_top_seam;
             c2_invbad[c2_e]=0; c2_rows[c2_e]=0;
             c2_geol[c2_e]=-1; c2_geor[c2_e]=-1; c2_measl[c2_e]=-1; c2_measr[c2_e]=-1;
             c2_leakl[c2_e]=-1; c2_leakr[c2_e]=-1; c2_blank[c2_e]=0;
+            c2_ibv[c2_e]=512'd0;
         end
     end
 
@@ -645,15 +650,23 @@ module tb_v98_top_seam;
                 end
                 if (dsub(mem_col(dut.u_split.sel), c2_e) != 0) begin
                     c2_inbad[c2_k] = c2_inbad[c2_k] + 1;
+                    c2_ibv[c2_k][dut.u_split.x_sel >> 1] = 1'b1;
                     // 诊断（不是判据）：r70 那轮量到"1.00x/1.33x/1.5x 三档各 484 格对不上，
                     // 而 0.25x~0.75x 是 0、2.0x 也是 0" —— 484 = 2 列 × 121 行 × 2 帧 = **每行恰好一个列对**，
                     // 这种"只错一对"的形状必须知道它是**哪一对**才修得动（行首？行尾？中间？）。
                     // 只把数打出来不猜：#68/#78/#92 三轮的账都是"再推一遍"输的。
-                    if (c2_ibdump < 8) begin
+                    if (c2_ibdump < 30) begin
                         c2_ibdump = c2_ibdump + 1;
-                        $display("C2IBAD code=%0d x_sel=%0d pair=%0d 解出col=%0d 期望col=%0d | sel=%h oob_out=%b y=%0d",
+                        // 摆**同一拍 mux 自己的两个抽头**，不摆 fb_bilin 的内部（那是另一级，
+                        // 拿它配这一拍就是 #68/#92 反复交的税）。哪一路是错的，一眼就分得开：
+                        //   orig 错 proc 对 ⇒ 原图那条延迟线（raw_line_delay/orig_skid）；
+                        //   两路都错 ⇒ 错误在进链之前（mapper 坐标或 fb_bilin 的地址）。
+                        $display("C2IBAD code=%0d x_sel=%0d pair=%0d 解出col=%0d 期望col=%0d | sel=%h take_orig=%b orig=%h(c%0d) proc=%h(c%0d) oob_out=%b y=%0d",
                                  c2_k, dut.u_split.x_sel, (dut.u_split.x_sel >> 1), mem_col(dut.u_split.sel),
-                                 c2_e, dut.u_split.sel, dut.oob_out, dut.y_d[dut.MIX_D]);
+                                 c2_e, dut.u_split.sel, dut.u_split.take_orig,
+                                 dut.u_split.orig_pix, mem_col(dut.u_split.orig_pix),
+                                 dut.u_split.proc_pix, mem_col(dut.u_split.proc_pix),
+                                 dut.oob_out, dut.y_d[dut.MIX_D]);
                     end
                 end
             end
@@ -976,6 +989,17 @@ module tb_v98_top_seam;
                      c2_leakl[c2_k], c2_leakr[c2_k], c2_blank[c2_k], c2_invbad[c2_k],
                      c3_rows[c2_k], c3_empty[c2_k], c3_wbad[c2_k], c3_rbad[c2_k],
                      c3_fmin[c2_k], c3_fmax[c2_k], c3_lmin[c2_k], c3_lmax[c2_k]);
+            // 坏格的**列对形状**当场算清（484 这种总数只说"每行错几格"，不说错在哪一对；
+            // 行尾 / 行首 / 中间 是三套完全不同的修法，留给下一轮猜就是再花两小时）。
+            c2_ib_np = 0; c2_ib_f = -1; c2_ib_l = -1;
+            for (c2_ib_q = 0; c2_ib_q < 512; c2_ib_q = c2_ib_q + 1)
+                if (c2_ibv[c2_k][c2_ib_q]) begin
+                    c2_ib_np = c2_ib_np + 1;
+                    if (c2_ib_f < 0) c2_ib_f = c2_ib_q;
+                    c2_ib_l = c2_ib_q;
+                end
+            $display("C2SHAPE code=%0d inv=%0d inbad=%0d badpairs=%0d firstpair=%0d lastpair=%0d",
+                     c2_k, C2_TBL(c2_k), c2_inbad[c2_k], c2_ib_np, c2_ib_f, c2_ib_l);
             line("C2pre inv took", c2_invbad[c2_k] == 0 && c2_nin[c2_k] > 20000,
                  "inv_used must equal the table value, and the code must have been sampled");
             line("C3pre marker off", dut.split_marker_on === 1'b0,

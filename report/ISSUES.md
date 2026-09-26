@@ -3571,3 +3571,27 @@ skid 那 15 拍两路本来就一样长 ⇒ 三者（原图像素 / 处理像素
 插回卡并 `sd` + `play`（实测不恢复，串口最可能给 `[SD] playback stopped at frame N: frame file not found on card`
 或 `[SDRD!] lba=… OUT-OF-RANGE`）。这三步全部要写进 `board/README.md` 的验收表里，机器判据是
 `uart_cmd_check.mjs` 新增一条"拔卡后 `stat` 的 `playing=` 必须变 0，且 lane 里能读到 PS 心跳停了"。
+
+
+### #94 修到了哪一步（2026-09-26 18:2x，r71 待构建）
+
+上面那"要修的三件事"三件都动了，各自有凭据；**没有动 GPIO 位、没有新增异步配对**：
+
+| 那三件事 | 现在在哪 | 凭据 |
+|---|---|---|
+| ① PS 片源心跳 + 有名字的超时 | `src/rtl/util/src_life.v`（新模块），顶层 `pl_video_top.v` 的 `u_life`，超时 `PS_SRC_TIMEOUT_MS=500` 由 `localparam` 给 | `sim/tb_v102_src_life.v` 13 条（S1/S2/S3/S9/S10/S12/S5a/S5b/S6/S7/S8a/S8b/S8c/S11），两次跑同样绿 |
+| ② 两个粘滞位换成随时间衰减的量 | 顶层里 `ps_src_seen` 那一段已删（`have_src` 现在来自 `src_life`，不再是"只置 1"的 reg）；OSD 的 `Src:` 由 `fb_vis`/`owner_eth` 推，PS 停心跳时退回 `TEST` | 同上 + `src/host/ps_hb_check.mjs` 的 A9（顶层不许再有粘滞片源位） |
+| ③ 卡插回的恢复键 | `sd_play.c:sd_remount()` + 串口 `sd remount`；失败时明说"要断电重插"，不静默 | `src/host/ps_hb_check.mjs` 的 A7/A8 |
+
+**心跳为什么是固件的活（这一条是本修法的要害）**：换成活判据之后，"暂停 / `play 0` / `frame N` /
+`FILL` 之后屏上那张要留住"这件事 PL 已经不可能自己知道 —— 于是 `ps_keepalive()` 每 100 ms 把
+**同一帧**重发一次（`main.c`），而**只有真的读卡失败**那两条路会调 `ps_source_lost()` 停心跳。
+判"要不要停"用的不是"是谁让它停的"，而是"最后一次发布是不是成功的"—— 这样"被拒的命令"
+（帧号越界、没挂载）不会顺手把画面改掉（#67 那一族的规矩）。
+
+**还差的（不是代码，是凭据）**：
+* 整机那一步必须**动手**：拔卡是物理动作，`uart_cmd_check.mjs` 变不出这只手。所以它记在
+  `board/README.md` 验收表新增的**第 31 项**（四条期望：落图卡、`[SRC]` 那一行、暂停不许丢画面、`sd remount` 的实话），签核栏留空给用户。
+* 上一段里"机器判据是 uart_cmd_check 新增一条"这句话**作废**：`stat` 的元组是电池比对基准，
+  为了这一条去动它会牵连 97 条用例；心跳的可观测点改为两处已有的 ——`Src:` 那一格 +
+  `[SRC] PS 停心跳…` 这一行串口回包（后者是新增的、不碰任何既有格式）。

@@ -171,6 +171,9 @@ static u8  cur_bilin = 1;  /* GPIO bit19: 双线性/最近邻 A-B 对照，演�
 static u32 pub_lvl = 0;
 static u32 cur_mode_ovr = MODE_AUTO;   /* 0 = 不覆盖（听按键环）；非 0 = 钉住这一路 */
 static u32 mode_tog_lvl = 0;
+/* #94：PS 片源的"我还在"由这两个量撑着 —— 定义与判据见下面 ps_publish / ps_keepalive 那段 */
+static u8    ps_hold  = 0;
+static XTime ps_ka_t;
 
 /* 老五位是"新九位的一个投影"，不是第二个控制源 —— 这样 RTL 的旁路优先级
  * （cfg != 0 用 cfg，否则用老位）在固件这边永远自洽：两边永远说同一件事。 */
@@ -223,6 +226,38 @@ void ps_publish(void)
 {
     pub_lvl ^= 1u;
     (void)ctrl_write();
+    /* #94：交过一次货就说明"屏上这张是 PS 主动要留的"。PL 那边的判据换成了**活判据**
+     *（`src_life`：500 ms 没见到发布就当没片源），所以这句话必须由固件说出来 ——
+     * 反过来，只有"读失败"那一条路会把它收回（见 ps_source_lost）。 */
+    ps_hold = 1u;
+    XTime_GetTime(&ps_ka_t);
+}
+
+/* ---- #94：PS 片源的心跳 ----
+ * 为什么要有这一条：`stop` / `play 0` / `frame N` / `FILL` 之后 PS 不再每帧发布，而屏上那张
+ * 画**是要留住的**。PL 现在按"最近有没有收到发布"判片源存在 ⇒ 没人替 PS 说话就会落图卡，
+ * 那是拿掉一个红（拔卡冻帧）换来一个新红（一切暂停就丢画面），不划算。
+ * 100 ms 与 PL 那侧的 500 ms 是同一件事的两半，比例 1:5 由 `sim/tb_v102_src_life.v` 的 S12 钉住
+ *（改这里就要改那里，两边各自成立不等于合起来成立）。
+ * 重发的是**同一帧**：DDR 里那张画没动，PL 重新搬一遍，屏幕上看不出差别。 */
+#define PS_HB_MS 100u
+static void ps_keepalive(void)
+{
+    XTime now;
+
+    if (!ps_hold) return;
+    XTime_GetTime(&now);
+    if ((u64)(now - ps_ka_t) * 1000u < (u64)PS_HB_MS * (u64)COUNTS_PER_SECOND) return;
+    ps_publish();
+}
+
+/* sd_play.c 在"读失败 ⇒ 片源不可信"那一拍调用：这里停心跳，PL 的看门狗到期后把画面交回仲裁
+ *（有网线就回网络，没有就画图卡）。用户主动停播不走这条路，所以停播不会丢画面。 */
+void ps_source_lost(void)
+{
+    if (!ps_hold) return;
+    ps_hold = 0u;
+    xil_printf("[SRC] PS 停心跳：片源不可信（拔卡 / 读错），画面交回仲裁\r\n");
 }
 
 /* ---- V8-3：Gamma 表 ----
@@ -260,6 +295,12 @@ static void gamma_set(u32 g100);       /* 前向声明，真正的定义在下�
 static char cmd_buf[CMD_BUF];
 static int  cmd_len = 0;                /* 已收字节数（含行尾 '\n'） */
 static u8   cmd_toolong = 0;            /* 一次超长只报一条，不许刷屏 */
+/* #94 同族的另一件"异常"：**残包**。半行留在 buf 里可以留到永远 —— 于是脚本发断/终端抖一下
+ * 之后，"我敲的下一条命令"会与那半行拼成一句谁都没敲过的东西（症状是"板子执行了一句我没打过的话"，
+ * 最难查的一类）。所以半行搁置超过 RX_IDLE_MS 就丢掉并**明说丢了**（静默丢与不丢一样坏）。
+ * 3 s 的取法：粘贴与脚本连发都在毫秒级（不会被误伤），人手打到一个字的停顿在亚秒级。 */
+#define RX_IDLE_MS 3000u
+static XTime rx_t;                      /* 最后一个 RX 字节的时基；0 = 缓冲区本来就是空的 */
 static void rx_fill(void);              /* 只搬运不派发 */
 static u8  gm_auto = 0;
 static u32 gm_lo = 100u, gm_hi = 300u, gm_step = 20u, gm_ms = 2000u;
@@ -1204,8 +1245,22 @@ static int dispatch(char **tk, int nt)
                        (unsigned)sd_file_first((u32)v));
             return 0;
         }
+        if (nt >= 2 && ci_eq(tk[1], "REMOUNT")) {
+            /* #94 的另一半：卡被热拔之后，固件里的 `mounted` 从来没清过（#45 记的就是这笔），
+             * 于是"插回去"也没有任何键能让它重新初始化 —— 以前唯一恢复手段是重下 elf（约 20 s +
+             * 要接 JTAG）。PL 那侧换成活判据之后，画面会落到图卡，操作者现场就需要这一个键。
+             * 失败的话说清楚"卡真的不在还是要断电"，不许回一句"ok"糊过去。 */
+            if (sd_remount() == 0) {
+                xil_printf("[SD] remount ok\r\n");
+                sd_status();
+            } else {
+                xil_printf("[SD] remount failed: %s\r\n", sd_err());
+                xil_printf("[SD] 若卡已经在座：SD 控制器停在半途传输里，只能断电重插（见 ISSUES #45/#94）\r\n");
+            }
+            return 0;
+        }
         if (nt >= 2) {
-            xil_printf("[SD] sd 只认：（裸=挂载并打摘要）/ files / file n；其余 play stop frame autoplay\r\n");
+            xil_printf("[SD] sd 只认：（裸=挂载并打摘要）/ files / file n / remount；其余 play stop frame autoplay\r\n");
             return 0;
         }
         if (sd_mount() == 0) sd_status();
@@ -1276,7 +1331,7 @@ static int dispatch(char **tk, int nt)
 static void cmd_help(void)
 {
     xil_printf("  V8 语法: src auto|0|1|2 | pipe <5 或 9 位>|pipe show | th 80 | zoom on|off|auto|<倍率> | bilin on|off |"
-               " gamma off|1.8 | frame N | sd | play | stop | fill | autoplay 0|1 | temp [th <°C>] |"
+               " gamma off|1.8 | frame N | sd [files|file n|remount] | play | stop | fill | autoplay 0|1 | temp [th <°C>] |"
                " stat | help\r\n");
     xil_printf("  pipe 五位=老位序(gray/binary/blur/sobel/invert)，九位=新位序"
                "(gray/invert/blur/sharpen/sobel/binary/bin_pol/erode/dilate)，**其余长度一律拒**\r\n");
@@ -1296,14 +1351,27 @@ static void cmd_help(void)
 }
 
 
-/* 一行输入 → 切 token → dispatch()。缓冲区从 32 扩到 48：spec §14 里最长的一条是
- * `split range 20 80`（含回车 18 字节），老尺寸装不下多参数命令。 */
+/* 一行输入 → 切 token → dispatch()。缓冲区现在 128（见 CMD_BUF 那行：老值 48 会**静默截断**），
+ * 装得下 spec §14 里最长的几条多参数命令（`gamma auto 1.0 3.0 0.2 2000`）。
+ * 半行搁置超过 RX_IDLE_MS 会被丢掉（残包），见 rx_fill / uart_poll 那两条。 */
 static void uart_poll(void)
 {
     char *tk[T_MAX];
     int nt;
 
     rx_fill();
+
+    /* 残包判据（放在 rx_fill 之后：真的有新字节到达时时基已经被刷新，不会误丢正在打的那一行）*/
+    if (cmd_len > 0) {
+        XTime now;
+        XTime_GetTime(&now);
+        if ((u64)(now - rx_t) * 1000u >= (u64)RX_IDLE_MS * (u64)COUNTS_PER_SECOND) {
+            xil_printf("\r\n[CMD!] 这行 %u ms 没写完，丢掉 %d 个字节（不是没收到，是残包；"
+                       "重敲这一行就行）\r\n", (unsigned)RX_IDLE_MS, cmd_len);
+            cmd_len = 0;
+            cmd_toolong = 0;
+        }
+    }
 
     /* 一次可能攒下好几行（粘贴、或长流程里连发），所以按行首的 '\n' 一条条切出来派发。
      * 行分隔认 CR 也认 LF（两者都存成 '\n'）⇒ 终端发 LF / CR / CRLF 都能用，这条一直没变。 */
@@ -1331,6 +1399,7 @@ static void rx_fill(void)
 {
     while (XUartPs_IsReceiveData(STDIN_BASEADDRESS)) {
         u8 ch = XUartPs_RecvByte(STDIN_BASEADDRESS);
+        XTime_GetTime(&rx_t);                    /* 每收一个字节都重设时基（残包判据的起点） */
         if (ch == '\r') ch = '\n';               /* CR 与 CRLF 都只留一个行尾 */
         if (ch == '\n') {
             if (cmd_len > 0) { cmd_buf[cmd_len++] = '\n'; }
@@ -1428,6 +1497,7 @@ int main(void)
     while (1) {
         uart_poll();
         sd_tick();
+        ps_keepalive();    /* #94：暂停/定点这些"屏上这张要留住"的状态替 PS 报心跳 */
         gamma_tick();      /* V9-5：gamma Auto 的推进（没开 Auto 时它立刻返回） */
         temp_poll();       /* V9-6：一秒一次的片上温度 → OSD 那一格 */
     }

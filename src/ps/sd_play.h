@@ -13,6 +13,13 @@
 /* 挂载并解析卡上的视频帧库。返回 0=成功，其余为错误码（sd_err 里有文字说明） */
 int sd_mount(void);
 
+/*
+ * #94/#45：把卡重新初始化一遍再挂载（停播 → 清 mounted 与簇/FAT 缓存 → sd_mount()）。
+ * 为什么需要它：sd_mount() 里第一件事就是 `if (mounted) return 0;`，而热拔卡没有任何路径把
+ * mounted 清回 0 ⇒ 插回去也修不好，以前只能重下 elf。返回同 sd_mount()。
+ */
+int sd_remount(void);
+
 /* 打印卡/文件系统/帧库摘要，用于串口验收 */
 void sd_status(void);
 
@@ -47,5 +54,12 @@ const char *sd_err(void);
  * 实现在 main.c —— 只有它拥有那根 AXI GPIO 控制字，回放模块不该去改别人的位。
  */
 void ps_publish(void);
+
+/*
+ * #94：反过来通知"PS 这一路不可信了"——只在**读失败**那一拍调用（用户主动 stop / play 0 / frame
+ * 不走这里，那些是"屏上这张要留住"）。PL 那边的 500 ms 看门狗因此到期，画面交回仲裁。
+ * 实现在 main.c（心跳的节拍与那根发布位同属一个主人）。
+ */
+void ps_source_lost(void);
 
 #endif

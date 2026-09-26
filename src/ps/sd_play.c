@@ -543,11 +543,29 @@ int sd_mount(void)
     return 0;
 }
 
+/*
+ * #94/#45：卡被热拔之后的恢复键。
+ * 为什么不能直接再调一次 sd_mount()：它第一行就是 `if (mounted) return 0;`（#45 里为了"别把
+ * 已经量好的簇表丢掉"加的），而拔出卡没有任何路径把 mounted 清回 0 ⇒ 插回去依然是"假挂载"，
+ * 每一次读都失败。以前的唯一恢复手段是重下 elf（约 20 s + 要接 JTAG），演示现场等于中止。
+ * 这里做的事：停播（心跳交给 show_frame 那条错误路径）→ 清掉上一次会话的痕迹（打开的文件号、
+ * FAT 扇区缓存、mounted）→ 让 sd_mount() 把控制器与簇表重新初始化一遍。
+ * 失败时 mounted 保持 0 ⇒ 后续 play 会被明确拒绝，不会再"假装卡还在"。
+ */
+int sd_remount(void)
+{
+    playing  = 0;
+    mounted  = 0;
+    open_idx = 0xFFFFFFFFu;
+    FatLba   = 0xFFFFFFFFu;
+    nxt      = 0;
+    return sd_mount();
+}
+
 void sd_status(void)
 {
     u32 i;
-    if (!mounted) { xil_printf("[SD] not mounted: %s\r\n", err); return; }
-    xil_printf("[SD] FAT32 part_lba=%d spc=%d rootclus=%d data_lba=%d\r\n",
+    if (!mounted) { xil_printf("[SD] not mounted: %s\r\n", err); return; }    xil_printf("[SD] FAT32 part_lba=%d spc=%d rootclus=%d data_lba=%d\r\n",
                (int)part_lba, (int)spc, (int)root_clus, (int)data_lba);
     xil_printf("[SD] frames=%d fps=%d.%03d files=%d frame=%dB\r\n",
                (int)total_frames, (int)(fps_num / fps_den),
@@ -665,8 +683,13 @@ static int show_frame(u32 idx)
 
     if (!mounted) { err = "not mounted"; return -1; }
     if (frame_map(idx, &fi, &off) != 0) { err = "frame index out of range"; return -1; }
-    if (open_at(fi, off) != 0) return -1;
-    if (feed_cur() != 0) return -1;
+    /* 只有**真的去读卡并且读失败了**这两条路才停 PS 的心跳（#94：PL 那边的判据换成了"最近
+     * 500 ms 收到过发布没有"，停心跳 = 把画面交回仲裁 ⇒ 拔卡后屏幕从"永久冻在最后一帧"变成
+     * "落回图卡/网络"）。
+     * 上面那两条（没挂载、帧号越界）**不停**：那时候屏上那张仍然是 PS 主动交出去的画，
+     * 而且"越界"是命令被拒 —— 被拒的命令不许顺手改观感（#67 那一笔账）。 */
+    if (open_at(fi, off) != 0) { ps_source_lost(); return -1; }
+    if (feed_cur()   != 0)     { ps_source_lost(); return -1; }
     ps_publish();
     return 0;
 }
@@ -746,7 +769,7 @@ void sd_tick(void)
          * 见 ISSUES #45/#50（重下 elf 约 20 秒）。 */
         open_idx = 0xFFFFFFFFu;
         FatLba   = 0xFFFFFFFFu;
-        xil_printf("[SD] playback stopped at frame %d: %s (PLAY retries; if it keeps failing, re-download the elf)\r\n",
+        xil_printf("[SD] playback stopped at frame %d: %s (PLAY retries; if it keeps failing, `sd remount`)\r\n",
                    (int)nxt, err);
         return;
     }

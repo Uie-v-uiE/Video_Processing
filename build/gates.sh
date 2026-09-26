@@ -273,5 +273,13 @@ else
     echo "  n/a  顶层台架 tb_v98 —— 历史冻结件不带与它同一次跑的顶层 md5，不判红（同第 14 项的口径）"
 fi
 
-echo "端点总数 $eps；CDC 现在按 build/CDC_BASELINE.txt 的**配对集合**判，功耗仍要人比有没有变差。"
-if [ "$pass" = 1 ]; then echo "GATES: ALL PASS"; exit 0; else echo "GATES: 有红项 —— 不采纳，保留上一版"; exit 1; fi
+# ---- 16：#94 固件那一半的约定（心跳节拍 / 超时余量 / 收心跳的调用点 / 恢复键）----
+# 为什么进门禁：这一半没有台架也没有板级判据 —— 它钉的是"三处源码之间的约定还成立"，
+# 而这种约定在下一次改动时最容易悄悄断（`ps_hb_check.mjs` 自己带四条变异对照，红不红得起来它自己交代）。
+HBOUT=$(node src/host/ps_hb_check.mjs --self 2>&1); HBRCC=$?
+HBRED=$(printf '%s\n' "$HBOUT" | grep -c "^  FAIL")
+say "PS 心跳约定 ps_hb" "rc=$HBRCC 红行=$HBRED" "--self 全绿(条数以脚本为准)" \
+    $([ "$HBRCC" = 0 ] && [ "$HBRED" = 0 ] && echo 1 || echo 0)
+printf '%s\n' "$HBOUT" | tail -6 | sed 's/^/        /'
+
+echo "端点总数 $eps；CDC 现在按 build/CDC_BASELINE.txt 的**配对集合**判，功耗仍要人比有没有变差。"if [ "$pass" = 1 ]; then echo "GATES: ALL PASS"; exit 0; else echo "GATES: 有红项 —— 不采纳，保留上一版"; exit 1; fi
