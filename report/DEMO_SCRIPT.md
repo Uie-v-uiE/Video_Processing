@@ -28,6 +28,17 @@
 | 7 | **链路自诊断 + 端到端时延 + 片上温度** | 丢包、时延毫秒、结温都是板子自己数的，屏上没有可信测量时印 `--` 而不是 0 | 幕 7 | `stat`、`temp`、`temp th 60`、`node src/host/health_read.mjs` | `tb_link_monitor`（B2 统计）、lane0~lane25、`tb_osd_lines` T7/T15 |
 | 8 | **回到起点这件事本身（复位对账）** | 首尾两条 `stat` 逐字段相等 ⇒ 这一场没把板子留在某个中间态 | 幕 8 | `src/host/demo_cmds.mjs --check` | 该脚本 + `board/cmd_battery_v81.txt`（97 条） |
 
+"**这一份是被机器验过的**（不是"我觉得能演"）：命令是从本文件的代码块里**抽**出来的，
+所以清单改了、抽出来的就跟着改，不存在"文档里有一条板上没有的写法"。r74 板上 2026-09-27 02:21 实跑：
+
+```
+node src/host/demo_cmds.mjs --emit                                   # 抽出 51 条（含首尾 stat 基线）
+powershell -NoProfile -ExecutionPolicy Bypass -File board/uart_cmd_script.ps1          -Port COM6 -File board/demo_rehearsal.txt -DelayMs 900          -Out build/evidence/r74_demo_rehearsal.txt                   # 逐条发给板子并录回包
+node src/host/demo_cmds.mjs --check build/evidence/r74_demo_rehearsal.txt
+# → PASS demo 目录回包：抽出 49 条命令，回显对上 49 条，拒绝 0 条
+#   （它同时比首尾两条 [STAT] 逐字段：除 `pub=` 之外必须全等 ⇒ "第 8 幕回到初态"不是说说而已）
+```
+
 ⚠ 三件**不要**在台上说的：`osd on|off`（语法收了、硬件待接，#53）、`rot <绝对角度>`（有意不做）、
 以及任何"AI/识别/深度学习"字眼（本设计一个都没有）。
 

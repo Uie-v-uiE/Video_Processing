@@ -4956,3 +4956,20 @@ PS 侧的镜像 `cur_en`/`sel_sync_legacy()` 删掉，`pipe` 命令**只收九�
 （它在 L1 那套里是进程内跑完整八档扫描，比 `run_one.sh` 慢得多）。
 ⇒ 这一版**不能**写"L1 全量绿"；能写的是"64/64 已判过的全绿 + 顶层台架单独一次 PASS（带 `rtl_md5` 出处，
 见第 2 节那一行）"。明早要是那个文件里多出一条 FAIL，按老规矩先怀疑判据再怀疑硬件。
+
+### 6) 演示目录这一份也上了板验证（02:21，r74）
+
+`node src/host/demo_cmds.mjs --check build/evidence/r74_demo_rehearsal.txt`
+⇒ `PASS demo 目录回包：抽出 49 条命令，回显对上 49 条，拒绝 0 条`，并且首尾两条 `[STAT]` 逐字段相等
+（除 `pub=`）——也就是**第 8 幕"回到初态"在硬件上成立**，不是文档里说说。
+命令不是手抄的：`--emit` 从 `report/DEMO_SCRIPT.md` 的代码块里抽 ⇒ 清单与文档不能各说各话。
+重跑的两条命令已经写进那份文档自己（它教别人怎么验它）。
+
+### 7) 清理的第二刀（一次性日志，不进 git 的那种）
+
+`build/` + `board/` 顶层 30 分钟以前的 `*.log` / `*.jou` / `*.out` / `*.stdout` 共 **185 个、14 MB** 删掉，
+其中 16 个是入库过的一次性 `.out`——**逐个查过没有任何文档点名它们**（脚本：对每个 basename 在
+`report/*.md` + 两份 README + `board/README.md` 里 grep，命中 0），所以这一刀不毁任何凭据；
+真要找回任何一份，git 历史里都还在。`build/evidence_r*/`、`build/frozen_r*/` 一个没动，
+仓库根的 `vivado*.log` 也**故意留着**（此刻 L1 还在跑，那两个文件是它的活凭据）。
+`build/` + `board/` 现在 148 MB（大头是 42 个成套冻结目录与 `vivado_system/` 92 MB，那是构建本身）。
