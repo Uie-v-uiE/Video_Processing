@@ -1,8 +1,13 @@
 # 性能与资源报告（第三版 + 第四版 V6.x 增补）
 
-> **时效声明（2026-09-23 加）**：本文里的数字是 **v3 / V6.x 当时**的测量值，保留是为了能对比
+> **时效声明（2026-09-23 加，2026-09-26 19:5x 改指路）**：本文里的数字是 **v3 / V6.x 当时**的测量值，保留是为了能对比
 > "同一指标在不同版本上的走势"，**不要当成当前值引用**。当前值只有一处权威来源：
-> `report/CHANGELOG_V7.md` 的「五版累计」表与 V7.9 门禁表，逐轮原始数字在 `report/OVERNIGHT_LOG.md` §5，
+> ~~`report/CHANGELOG_V7.md` 的「五版累计」表与 V7.9 门禁表~~ —— **这句已经过期**：CHANGELOG 最后一节是
+> V7.9（R22+R23），而板子早已走到 r70/r71，照这个指路去念会念到五十多版之前的数字（这才是"引用旧值"真正的风险）。
+> 现在指**跟着构建走的那三样**，它们不需要有人记得去更新：
+>   ① 冻结件 `build/evidence_rNN/MANIFEST.md5`（三件套的 md5 + 那一轮的 `timing_summary/utilization/power/route_status/methodology/cdc.rpt`）；
+>   ② 那一轮的门禁原始输出 `build/rNN_gates.txt`（项数与阈值以 `build/gates.sh` 自己打印的为准）；
+>   ③ 走势与"这一版为什么被采纳/否掉"记在 `report/OVERNIGHT_LOG.md` 的对应小节，问题账在 `report/ISSUES.md`。
 > 演示口径在 `report/DEMO_SCRIPT.md`（它的第 0 步末尾那条"只认 md5"就是"屏上跑的是哪一版"的判据）。
 > 同一份数字抄在第二个地方就会漂移，所以这里只给指路、不复制数值。
 
