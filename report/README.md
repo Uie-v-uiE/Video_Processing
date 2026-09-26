@@ -64,3 +64,12 @@
    现在**同时提到板子版本/门禁项数**的活文档有 4 份（`ARCHITECTURE`/`DEMO_SCRIPT`/`PERF_REPORT`/`README`，
    另两份是日记）⇒ 这一刀最省事的做法是"版本与项数只许出现在 `PERF_REPORT` 与首页"，
    其余改成指路；今天 `CONTEST_CHECKLIST` 那个"17 项"就是这一刀没砍的代价（实物已经 21 项）。
+
+4. **（第四刀，2026-09-27 05:5x 现成的审计结果）对外念的每个数，检查它引用的报告是不是当前那一版。**
+   今晚已经抓到并改掉一处：`CONTEST_CHECKLIST` 的"BRAM 65.71 %"是 **r57** 的数（`frozen_r57_remap`），
+   而 `H_ACTIVE` 512→1024 之后板上 r75 是 **97.5/140 = 69.64 %** —— 门禁第 18 项管不到资源行。
+   还剩这些**待你判定**（同一条命令可复跑：`grep -rnoE "build/(frozen|evidence|failed)_r[0-9]+[a-z_]*/?[A-Za-z0-9_.]*" <活文档> | awk -F'_r' '$2+0<74'`）：
+   `README.md:22` 与 `README.en.md:29`、`PERF_REPORT.md:207,223`、`PLAN_V8_SPEC.md:13,58,86`、
+   `board/README.md:143`、`COMMANDS.md:4`、`CONTEST_CHECKLIST.md:50,56,59,65`。
+   判定只有两种，且不能混：**① 它是"那一次测到的历史"** ⇒ 保留，但句子要写成"rNN 那天测得"；
+   **② 它是"我们现在是"** ⇒ 必须换成当前冻结件（或重测）。第 18 项只能看句式，看不出这两种语义。
