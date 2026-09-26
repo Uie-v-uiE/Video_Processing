@@ -5002,4 +5002,5 @@ CARRY4 是减法链 ⇒ 病灶不是字形译码（R25 并行化过了），是 
 
 另两件小事：活文档里指"屏上那一格"的标签统一成大写（`SRC:`/`SPLIT:`…），
 `CONTEST_CHECKLIST.md` 里那处引用户原话的小写**故意保留**（那是历史不是现状）；
-L1 全量正在为 r75 重跑，跑完之前这一版不写"L1 绿"。
+**L1 全量已为 r75 重跑完：67 条 `RESULT … PASS`、0 条 FAIL、rc=0**（03:49，console 在 `build/l1_r75.txt`，
+也进了冻结件 `build/evidence_r75/r75_l1_regress.txt`）—— 这一版因此可以写"L1 全量绿"。
