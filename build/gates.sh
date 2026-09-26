@@ -255,8 +255,10 @@ if [ "$D" = "build" ]; then
     if [ -f "$TB98" ]; then
         TOPWANT=$(md5sum src/rtl/top/pl_video_top.v | cut -c1-12)
         TBWANT=$(md5sum sim/tb_v98_top_seam.v | cut -c1-12)
+        RTLWANT=$(find src/rtl -name '*.v' | LC_ALL=C sort | xargs md5sum | md5sum | cut -c1-12)
         TOPYES=$(sed -n 's/.*top_md5=\([0-9a-f]*\).*/\1/p' "$TB98" | head -1)
         TBYES=$(sed -n 's/.* tb_md5=\([0-9a-f]*\).*/\1/p' "$TB98" | head -1)
+        RTLYES=$(sed -n 's/.* rtl_md5=\([0-9a-f]*\).*/\1/p' "$TB98" | head -1)
         NFAIL=$(grep -ac "^FAIL " "$TB98")
         DONE=$(grep -ac "^RESULT tb_v98_top_seam PASS$" "$TB98")
         # 台架"跑完了并且自己判红"与"跑挂了什么都没判"是**两件不同的事**，念成一句话就会把人
@@ -265,6 +267,11 @@ if [ "$D" = "build" ]; then
         OK=1
         WHY=""
         [ "$TOPYES" = "$TOPWANT" ] || { OK=0; WHY="$WHY顶层 md5 不符($TOPYES!=$TOPWANT：改过 pl_video_top，报告与当前树不是同一次跑) "; }
+        # 顶层之外的那一路也必须对得上：r72 改的是四个窗口级，`pl_video_top.v` 一个字节没动，
+        # 只比顶层 md5 的话 r71 的旧报告能原样冒充今天的凭据（今天就差一点撞上）。
+        if [ "$RTLYES" != "$RTLWANT" ]; then
+            OK=0; WHY="${WHY}RTL 合指纹不符(${RTLYES:-报告头部没有 rtl_md5 字段——那是加这枚指纹之前的旧报告}!=$RTLWANT：改过 src/rtl 里顶层之外的文件，这份报告不算当前树) ";
+        fi
         [ "$TBYES" = "$TBWANT" ]   || { OK=0; WHY="$WHY台架 md5 不符($TBYES!=$TBWANT：改过 tb_v98，复跑) "; }
         [ "$NFAIL" = "0" ]         || { OK=0; WHY="$WHY报告里有 $NFAIL 行 FAIL "; }
         [ "$DONE" = "1" ]          || { OK=0; WHY="$WHY没有 RESULT…PASS 汇总行（$([ "$RFIN" -gt 0 ] && echo "台架跑完了、是它自己判红的，先读 FAIL 那几行的数" || echo "台架没跑完或中途退出")） "; }

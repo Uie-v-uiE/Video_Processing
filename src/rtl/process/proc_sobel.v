@@ -48,7 +48,14 @@ module proc_sobel #(
     reg [7:0] p00,p01,p02,p10,p11,p12,p20,p21,p22;
     reg [15:0] c11, c12;                       // 与 p11/p12 同步搬的"原色中心抽头"（旁路用）
     reg de_d1, de_d2;
-    wire shift_w = de_in || (de_d1 && !de_in);
+    // 只在"刚吃掉本行末列"那一跳多走一拍（见 proc_box_blur.v 那条 #92 第四笔的注释；
+    // 拿 de 断点当行尾会被 `tb_rotate_window` 的一拍一像素激励误触发）。
+    reg owed;
+    always @(posedge clk or negedge rst_n)
+        if (!rst_n) owed <= 1'b0;
+        else if (de_in && (x_in == H_ACTIVE[11:0] - 12'd1)) owed <= 1'b1;
+        else if (owed && de_d1 && !de_in)                  owed <= 1'b0;
+    wire shift_w = de_in || (owed && de_d1 && !de_in);
     // 边界判据用的坐标：与 p11（窗口中心抽头）同一时刻的 x/y。
     // 以前本级**完全没有**边界判据（`y_in` 端口甚至从没被用过），于是：
     //   · 每行第 0 列的"左邻"= 上一行末尾的像素  ⇒ 右窗分割线旁边糊出一条竖的错色；

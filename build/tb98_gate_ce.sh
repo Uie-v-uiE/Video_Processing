@@ -15,12 +15,20 @@ cd "$(dirname "$0")/.." || exit 2
 TMP=$(mktemp -d)
 TOP=$(md5sum src/rtl/top/pl_video_top.v | cut -c1-12)
 TB=$(md5sum sim/tb_v98_top_seam.v | cut -c1-12)
-HDR="# provenance top_md5=$TOP tb_md5=$TB date=ce-synthetic src=$TMP"
+RTL=$(find src/rtl -name '*.v' | LC_ALL=C sort | xargs md5sum | md5sum | cut -c1-12)
+HDR="# provenance top_md5=$TOP tb_md5=$TB rtl_md5=$RTL date=ce-synthetic src=$TMP"
 GOOD="$TMP/p.txt";     printf '%s\nPASS C1c x\nPASS C3c y\nRESULT tb_v98_top_seam PASS\n' "$HDR" > "$GOOD"
 BADMD5="$TMP/a.txt";   printf '%s\nPASS C1c x\nRESULT tb_v98_top_seam PASS\n' \
                             "${HDR/top_md5=$TOP/top_md5=deadbeef0000}" > "$BADMD5"
 NOEND="$TMP/b.txt";    printf '%s\nPASS C1c x\n' "$HDR" > "$NOEND"
 WITHFAIL="$TMP/c.txt"; printf '%s\nPASS C1c x\nFAIL C3c panel edges match definition\nRESULT tb_v98_top_seam FAIL nfail=1\n' "$HDR" > "$WITHFAIL"
+# E：顶层**没改**、只改了顶层以下的 RTL —— 今天 r72 就是这一型（四个窗口级改了、pl_video_top 一字未动），
+# 当时靠 top_md5 对账会放行 r71 的旧报告。这一例就是那件事的反例。
+BADRTL="$TMP/e.txt";   printf '%s\nPASS C1c x\nRESULT tb_v98_top_seam PASS\n' \
+                            "${HDR/rtl_md5=$RTL/rtl_md5=cafe00000000}" > "$BADRTL"
+# F：加这枚指纹之前的旧报告（头部根本没有 rtl_md5）⇒ 也必须红，不能"字段缺=不判"。
+OLDHDR="$TMP/f.txt";   printf '# provenance top_md5=%s tb_md5=%s date=ce-synthetic src=%s\nPASS C1c x\nRESULT tb_v98_top_seam PASS\n' \
+                            "$TOP" "$TB" "$TMP" > "$OLDHDR"
 MISSING="$TMP/d_none.txt"
 
 want() { # want <名字> <报告路径> <期望 PASS|FAIL>
@@ -33,11 +41,13 @@ want() { # want <名字> <报告路径> <期望 PASS|FAIL>
     else echo "  BAD  $name 期望 $exp，实得 [$got] / 整行：$line"; FAILS=$((FAILS+1)); fi
 }
 FAILS=0
-echo "门禁第 15 项的反例（当前 top_md5=$TOP tb_md5=$TB）："
+echo "门禁第 15 项的反例（当前 top_md5=$TOP rtl_md5=$RTL tb_md5=$TB）："
 want "P 合格报告"        "$GOOD"    PASS
 want "A 顶层指纹不符"    "$BADMD5"  FAIL
 want "B 没有跑完"        "$NOEND"   FAIL
 want "C 报告里有红项"    "$WITHFAIL" FAIL
 want "D 报告不存在"      "$MISSING" FAIL
+want "E 顶层没改、其它 RTL 改了" "$BADRTL" FAIL
+want "F 旧报告缺 rtl_md5 字段"   "$OLDHDR" FAIL
 rm -rf "$TMP"
-if [ "$FAILS" = 0 ]; then echo "CE: PASS（五条全对）"; exit 0; else echo "CE: FAIL（$FAILS 条不对）"; exit 1; fi
+if [ "$FAILS" = 0 ]; then echo "CE: PASS（七条全对）"; exit 0; else echo "CE: FAIL（$FAILS 条不对）"; exit 1; fi

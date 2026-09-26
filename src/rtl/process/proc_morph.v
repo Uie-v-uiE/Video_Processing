@@ -61,7 +61,14 @@ module proc_morph #(
     reg m00, m01, m02, m10, m11, m12, m20, m21, m22;
     reg [15:0] p12, p11;
     reg dv_d1, dv_d2;
-    wire shift_w = de_in || (dv_d1 && !de_in);   // 行尾多跳一拍，末列的中心才进得了输出（见 blur 同名注释）
+    // 只在"刚吃掉本行末列"那一跳多走一拍（#92 第四笔，理由见 proc_box_blur.v 同名注释；
+    // 用 de 断点当行尾会被一拍一像素的激励误触发）。
+    reg owed;
+    always @(posedge clk or negedge rst_n)
+        if (!rst_n) owed <= 1'b0;
+        else if (de_in && (x_in == H_ACTIVE[11:0] - 12'd1)) owed <= 1'b1;
+        else if (owed && dv_d1 && !de_in)                  owed <= 1'b0;
+    wire shift_w = de_in || (owed && dv_d1 && !de_in);
 
     // 边界守卫：一根**跟着有效像素走**的旗标链，判「这个中心像素的 3x3 是不是真在画面内」。
     // 为什么不用 x_d1/y_d1 直接和 0 比：那种写法比的是『发出去之后第几拍』，

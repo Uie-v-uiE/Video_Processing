@@ -34,7 +34,14 @@ module proc_sharpen #(
         end
     end
     // #92 第四笔（与 proc_box_blur.v 同名注释一条）：行尾多跳一拍，末列的中心才进得了输出。
-    wire shift_w = de_in || (de_d1 && !de_in);
+    // 只在"刚吃掉本行末列"那一跳多走 —— 拿 `de_d1 && !de_in` 当行尾会在**每个 de 断点**多跳一次
+    // （`tb_rotate_window` 一拍一像素地推 ⇒ 模糊整个坏掉，2026-09-26 红给我看过）。
+    reg owed;
+    always @(posedge clk or negedge rst_n)
+        if (!rst_n) owed <= 1'b0;
+        else if (de_in && (x_in == H_ACTIVE[11:0] - 12'd1)) owed <= 1'b1;
+        else if (owed && de_d1 && !de_in)                  owed <= 1'b0;
+    wire shift_w = de_in || (owed && de_d1 && !de_in);
     wire [11:0] x_rd = (x_in >= H_ACTIVE[11:0]) ? (H_ACTIVE[11:0] - 12'd1) : x_in;
     wire [15:0] up2 = lb0[x_rd];           // 上上行
     wire [15:0] up1 = lb1[x_rd];           // 上一行

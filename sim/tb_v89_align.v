@@ -34,6 +34,7 @@ module tb_v89_align;
     reg         de = 0;
     reg  [11:0] xs = 0, ys = 0;
     reg  [15:0] src = 0;
+    integer cw_blur = 0, cw_pipe = 0, cw_hold = 0;   // 末列 (de_in, x_in) 是否同拍（诊断，见下面 always 里那条）
     integer src_row;   // 行号取模后的整数（表达式不能直接位选）
     integer src_off = 0;   // T1：模拟读侧提前 OFF_LINES 行取像素
 
@@ -126,6 +127,12 @@ module tb_v89_align;
         if (d_sob)   sample(2, q_sob);
         if (d_mor)   sample(3, q_mor);
         if (d_pipe)  sample(4, q_pipe);
+        // 诊断（不是判据）：末列那一拍各级的 (de_in, x_in) 到底有没有对上。
+        // 为什么现在要问：单独例化的四级 `line_end` arming 成立、链子里的那份不成立
+        //（ID 只有 chain 红），差别只可能在坐标延迟线 `xd[]` 与逐级 de 的对齐上——猜没用，数一拍。
+        cw_blur  = cw_blur  + ((u_blur.de_in  && u_blur.x_in  == W-1) ? 1 : 0);
+        cw_pipe  = cw_pipe  + ((u_pipe.u_blur.de_in && u_pipe.u_blur.x_in == W-1) ? 1 : 0);
+        cw_hold  = cw_hold  + ((u_pipe.u_blur.de_in && u_pipe.u_blur.x_in == W-1 && u_pipe.u_blur.de_out) ? 1 : 0);
     end
 
     function [8*8:1] name_of;             // 打印用
@@ -337,6 +344,8 @@ module tb_v89_align;
                c4dr == -OFF && c4dc == 0 && c4cons == c4tot && c4tot > 0 && c4ob == 0);
 
         $display("");
+        $display("OBS lastcol: standalone_blur=%0d chain_blur=%0d (arming beats seen by each blur; the chain's de and its x tap are NOT the same beat, so arming alone is not enough to time the flush)",
+                 cw_blur, cw_pipe);
         if (errors == 0) $display("PASS tb_v89_align");
         else             $display("FAIL tb_v89_align errors=%0d", errors);
         $finish;

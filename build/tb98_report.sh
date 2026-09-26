@@ -22,15 +22,16 @@ PROV=$(dirname "$SRC")/prov.txt
 if [ -f "$PROV" ]; then
     TOP=$(sed -n 's/^top_md5=\(.*\)$/\1/p' "$PROV" | head -1)
     TB=$(sed -n 's/^tb_md5=\(.*\)$/\1/p' "$PROV" | head -1)
+    RTL=$(sed -n 's/^rtl_md5=\(.*\)$/\1/p' "$PROV" | head -1)
     WHEN=$(sed -n 's/^date=\(.*\)$/\1/p' "$PROV" | head -1)
 else
-    TOP=UNKNOWN; TB=UNKNOWN; WHEN="无 prov.txt（这份 run 早于出处机制，或不是 run_one.sh 跑的）"
+    TOP=UNKNOWN; TB=UNKNOWN; RTL=UNKNOWN; WHEN="无 prov.txt（这份 run 早于出处机制，或不是 run_one.sh 跑的）"
 fi
 {
-    echo "# provenance top_md5=$TOP tb_md5=$TB date=$WHEN src=$SRC"
+    echo "# provenance top_md5=$TOP tb_md5=$TB rtl_md5=$RTL date=$WHEN src=$SRC"
     grep -a "^\(PASS \|FAIL \|RESULT \|C2 table\|C2 row\|C2BLK\|INFO \)" "$SRC"
 } > "$OUT"
 # 空报告不许算绿：跑挂了的台架可能一条 PASS 都没打出来，那时 `RESULT` 那一行也不会有 ⇒
 # 门禁判"必须有 RESULT ... PASS 且没有任何 FAIL 行"，两条都在报告正文上。
-echo "WROTE $OUT  ($(grep -ac '' "$OUT") 行) top_md5=$TOP tb_md5=$TB"
+echo "WROTE $OUT  ($(grep -ac '' "$OUT") 行) top_md5=$TOP rtl_md5=$RTL tb_md5=$TB"
 tail -3 "$OUT"

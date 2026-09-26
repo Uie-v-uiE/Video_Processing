@@ -25,8 +25,13 @@ printf '%s\n' $SRC | cygpath -m -f - > files.f
 # 为什么在这里记而不是事后：门禁第 15 项要的恰恰是"这份报告是不是**当前这份顶层**跑出来的"，
 # 而事后补 md5 等于把今天的指纹盖在昨天的日志上（#88 那几天"gates 全绿 + 顶层台架红着"的根源
 # 就是没有任何东西把报告与被测的树绑在一起）。
+# ⚠ 只有 `top_md5` 是**不够的**（2026-09-26 r72 那天撞见）：那一轮改的是四个窗口级
+#   （`proc_box_blur/sharpen/sobel/morph`），`pl_video_top.v` 一个字节没动 ⇒ 顶层 md5 仍然"对得上"，
+#   而 r71 那份旧报告可以原样冒充"当前这一版台架"。所以再加一枚 `rtl_md5`：整个 `src/rtl` 的合指纹。
+RTLALL=$(cd "$ROOT" && find src/rtl -name '*.v' | LC_ALL=C sort | xargs md5sum | md5sum | cut -c1-12)
 { echo "top_md5=$(md5sum $ROOT/src/rtl/top/pl_video_top.v | cut -c1-12)"
   echo "tb_md5=$(md5sum $ROOT/sim/$TB.v 2>/dev/null | cut -c1-12)"
+  echo "rtl_md5=$RTLALL"
   echo "date=$(date -Iseconds)"; } > prov.txt
 $V/xvlog -f files.f > xv.log 2>&1
 if grep -q "^ERROR" xv.log; then echo "XVLOG FAILED"; grep "^ERROR" xv.log | head -8; exit 1; fi
