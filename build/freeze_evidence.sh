@@ -40,7 +40,8 @@ mkdir -p "$D"
 # 三件成品（位流/xsa/elf）+ 七份 Vivado 报告 + 三份自检 + 台架与门禁
 for f in system.bit system.xsa ps_app.elf timing_summary.rpt utilization.rpt power.rpt \
          route_status.rpt methodology.rpt cdc.rpt clock_util.rpt multi_driven.txt \
-         width_warnings.txt ports_check.txt tb_v98_report.txt r${NN}_gates.txt; do
+         width_warnings.txt ports_check.txt tb_v98_report.txt r${NN}_gates.txt \
+         r${NN}_benches.txt; do
     [ -f "build/$f" ] && cp -f "build/$f" "$D/$f"
 done
 # 构建与台架的**原始 console**（今天它们在 /tmp，不在 build/）
@@ -67,7 +68,12 @@ GITHEAD=$(git rev-parse --short HEAD 2>/dev/null || echo 未知)
   echo "# 板上跑法只有 JTAG：build/tcl/ps_jtag_boot.tcl（先 ps7_init → 编 PL → 下 elf → con）"
   echo "# **不写 QSPI/SPI flash**（2025.2.1 的写入路径未验），也不碰 FT2232 EEPROM。"
   echo "#"
-  echo "# 机器判据：门禁 $NG 行明细（$GT）；L1 全量台架 PASS=$L1P FAIL=$L1F（r${NN}_l1_regress.txt）"
+  if [ -f "$D/r${NN}_l1_regress.txt" ]; then
+    echo "# 机器判据：门禁 $NG 行明细（$GT）；L1 全量台架 PASS=$L1P FAIL=$L1F（r${NN}_l1_regress.txt）"
+  else
+    echo "# 机器判据：门禁 $NG 行明细（$GT）；**这一版没有全量 L1**，只有定向清单 r${NN}_benches.txt"
+    echo "#            （改动的模块只被那一批台架看着；全量 L1 补跑之后请把它的日志一起放进本目录）"
+  fi
   echo "#           顶层台架逐列读数见 r${NN}_c2_shape.txt（C2SHAPE / C2IBAD / ID / OBS lastcol）"
   echo "#"
   echo "# 还欠眼睛/手的（这一版由用户签，见 board/README.md 对应行）："
