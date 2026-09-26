@@ -181,7 +181,9 @@ bilin 的**读回**（不是 on/off 本身）            on/off/show 从 r64b �
 `rot auto [0|1]`、`rot speed <0..7>`、`rot show`、`zoom fit [0|1]`、
 `split <0..100>`、`split px <n>`、`split screen`、`split video`、`split auto|manual|swap|follow|marker|show`、
 `gamma auto <lo> <hi> [step [ms]]`、`gamma manual`、`gamma show`。
-`rot auto 1` 会**顺带**把缩放切到 fit（用户指定的成对语义，回声里明说，不想要就先 `zoom fit 0`）。
+`rot auto 1` 会**顺带**做两件事，而且两件都会在回声里明说（12:00 板上复核过）：把缩放切到 fit
+（用户指定的成对语义，不想要就先 `zoom fit 0`），以及当 `speed` 是 0 时把它提到 2 ——
+不然 "auto=1" 看着就像没反应。`zoom fit` 与 `rot auto` **不带参数都等于 1**。
 
 **⚠ 缝位只有 10 位（`ISSUES #77`）**：屏幕宽 1024 而字段 `[22:13]` 装到 1023 ⇒
 `split 100` / `split px 1024` / 从画面空间 100% 换回屏幕空间，这三种写法都被**夹到 1023 并在回显里说出来**，
