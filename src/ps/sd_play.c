@@ -573,6 +573,22 @@ int sd_remount(void)
     return sd_mount();
 }
 
+/* #94（2026-09-27 13:0x）：**读失败的统一收口**。
+ * 为什么需要它：`sd_recover_tick()` 的第一行是 `if (mounted) return;`，而拔出卡在这之前
+ * 没有任何路径把 `mounted` 清 0（本文件上面 `sd_remount` 的注释就写着这件事）
+ * ⇒ 自动重挂的门永远关着，"插回来也不会自己切回 SD"就是这么来的。
+ * 这里清的都是"下一次挂载要重量一遍"的东西：停播、挂载旗、打开的文件号、簇游标；
+ * 画面交回仲裁由 `ps_source_lost()` 做（PL 那边 500 ms 收不到发布就落回图卡/网络）。
+ * ⚠ 不动 `Sd.IsReady`：那是 `sd_remount()` 的事，这里只把账本撕成"没挂载"。 */
+static void card_gone(void)
+{
+    playing  = 0;
+    mounted  = 0;
+    open_idx = 0xFFFFFFFFu;
+    FatLba   = 0xFFFFFFFFu;
+    ps_source_lost();
+}
+
 /*
  * 自动恢复（用户 2026-09-27 的要求："插上仍然不能自动切到 SD 卡"）。
  * 规则：这个上电周期里**曾经挂载过、而且丢卡那一刻是在播放的**（`want_play` 由本函数在
@@ -747,9 +763,16 @@ static int show_frame(u32 idx)
      * 500 ms 收到过发布没有"，停心跳 = 把画面交回仲裁 ⇒ 拔卡后屏幕从"永久冻在最后一帧"变成
      * "落回图卡/网络"）。
      * 上面那两条（没挂载、帧号越界）**不停**：那时候屏上那张仍然是 PS 主动交出去的画，
-     * 而且"越界"是命令被拒 —— 被拒的命令不许顺手改观感（#67 那一笔账）。 */
-    if (open_at(fi, off) != 0) { ps_source_lost(); return -1; }
-    if (feed_cur()   != 0)     { ps_source_lost(); return -1; }
+     * 而且"越界"是命令被拒 —— 被拒的命令不许顺手改观感（#67 那一笔账）。
+     *
+     * ⚠ 2026-09-27 13:0x 补的一刀（用户："拔掉内存卡现在可以切到 test，但插上仍然不能自动切到
+     * SD 卡"）：这两条路以前**只停心跳**。而 `sd_recover_tick()` 的第一行是 `if (mounted) return;`
+     * —— 拔出卡没有任何路径把 `mounted` 清回 0（本文件上面 `sd_remount` 的注释早就写着这件事，
+     * 却只在**手工**那条路上修了），于是自动重挂的门**永远关着**：卡插回来了，固件也不再去看它一眼。
+     * ⇒ 读失败 = "这张卡当前不可用"，把 FS 的账一起清掉，门就开了；`want_play` 是 recover_tick
+     *   在还挂着的那一拍按 `playing` 记下的（=1），正好跨过这一次清零留住"本来在播"这个意图。 */
+    if (open_at(fi, off) != 0) { card_gone(); return -1; }
+    if (feed_cur()   != 0)     { card_gone(); return -1; }
     ps_publish();
     return 0;
 }

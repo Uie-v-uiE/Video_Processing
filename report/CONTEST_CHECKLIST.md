@@ -16,7 +16,7 @@
 | 初级组器件范围（7 系列 / Zynq-7000 / UltraScale(+)） | 两块板都在范围内：`xc7z020clg484-2`（Zynq-7000）与 `xcku5p-ffvb676-2-i`（UltraScale+） | ✅ |
 | **须声明具体型号** | `README.md` 表格、`report/BOARD_PINS.md`、`ku5p/README.md`（含引脚出处） | ✅ |
 | **作品须在板上跑通并提供实测输出** | Z7：`data/measured/`（`board_measure_15fps.txt`、R06/R07、R08…）+ `report/V6_BOARD_MEASUREMENT.md` + LED/OSD/串口判据。Z7 本轮新增的可核查实测：仲裁交接五次（交回 0.2–0.5 s、接管 0.15–0.38 s、0 次意外翻转）、两次 300 s 长跑（9000 帧 / 1,989,000 包，`drop_words`/`cdc_episodes`/`frames_bad` 增量全 0）、受控丢包与算术对上（预测 11.05 % vs 实测 11.06 %）。**KU5P：只到台架级 + 门禁全绿的构建，尚未上板**（JTAG 独占与 Z7 冲突、且今晚没人看板）→ 这一条对第二块板**还不满足**，写清楚而不是含糊过去 | ⚠ 部分 |
-| 开源（GitHub/Gitee + 可再分发协议，推荐 MIT/Apache-2.0） | 仓库带 `LICENSE`（**MIT**）。推送由用户明确指示后才做（本轮未推） | ✅ 协议就绪 |
+| 开源（GitHub/Gitee + 可再分发协议，推荐 MIT/Apache-2.0） | 仓库带 `LICENSE`（**MIT**）。远端 `origin = https://github.com/Uie-v-uiE/Video_Processing`。**2026-09-27 16:2x 用户明确指示推送**；这台机器此刻 `git ls-remote` 直接 `Recv failure: Connection was reset`（不是凭据问题：凭据也仍需人输一次）⇒ **提交已在本地完成（`main` 领先 97 个提交），推送这一步要等网络/凭据**，不写成已达成 | ⚠ 待推 |
 | **目录名/文件名纯英文（小写、数字、下划线、连字符），中文只出现在正文** | 已核查：`git ls-files` 中**非 ASCII 文件名 = 0**；作者自用的中文目录 `study/` **不入库**（`.gitignore` 已收）。**大写文件名是有意的例外**：`README.md` 本身就是指南示例里的写法，`report/*.md` 沿用同一风格（42 个含大写的路径，全部 ASCII） | ✅（大写为文档化的有意例外） |
 
 ## 2. §3.3.4 优化目标

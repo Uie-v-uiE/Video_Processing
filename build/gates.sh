@@ -293,6 +293,38 @@ else
     echo "  n/a  顶层台架 tb_v98 —— 历史冻结件不带与它同一次跑的顶层 md5，不判红（同第 14 项的口径）"
 fi
 
+# ---- 15b：#97 边缘条带那把尺子（窗口级的"值"与"陈旧行"，C2/C3/C4 三把位置尺子看不见它）----
+# 为什么进门禁：这一族的红是**屏上一条带**，不是任何计数器；四个窗口级共用同一套旗标，
+# 而下一次动窗口级的人只看得到 tb_v89/tb_v92 那两把"位置"尺子 —— 它们对边缘的内容不敏感。
+# 判据与第 15 项同一形状：认 md5（整个 src/rtl 的合指纹 + 台架自己），正文不许有 FAIL 行，
+# 必须有汇总行，而且**四条圈的覆盖地板**（n2..n5 ≥ 20）要在报告里看得见——
+# 空集上的 PASS 正是这把尺子自己红过的形状（见 ISSUES #97 第一节）。
+if [ "$D" = "build" ]; then
+    if [ -n "${RIM_REPORT:-}" ]; then RIM=$RIM_REPORT; else RIM=$(ls -1 build/tb_edge_rim_r*.txt 2>/dev/null | sort -V | tail -1); fi
+    if [ -n "$RIM" ]; then
+        RTLWANT=$(find src/rtl -name '*.v' | LC_ALL=C sort | xargs md5sum | md5sum | cut -c1-12)
+        TBWANT=$(md5sum sim/tb_edge_rim.v | cut -c1-12)
+        RTLYES=$(sed -n 's/^rtl_md5=\([0-9a-f]*\).*/\1/p' "$RIM" | head -1)
+        TBYES=$(sed -n 's/^tb_md5=\([0-9a-f]*\).*/\1/p' "$RIM" | head -1)
+        NFAIL=$(grep -ac "^FAIL" "$RIM")
+        DONE=$(grep -ac "^RESULT tb_edge_rim PASS$" "$RIM")
+        FLOOR=$(grep -acE "^PASS R[2-5]" "$RIM")
+        OK=1; WHY=""
+        [ "$RTLYES" = "$RTLWANT" ] || { OK=0; WHY="${WHY}RTL 合指纹不符($RTLYES!=$RTLWANT：改过 src/rtl，这份 rim 报告不算当前树) "; }
+        [ "$TBYES" = "$TBWANT" ] || { OK=0; WHY="${WHY}台架 md5 不符($TBYES!=$TBWANT：改过 tb_edge_rim，复跑) "; }
+        [ "$NFAIL" = "0" ] || { OK=0; WHY="${WHY}报告里有 $NFAIL 行 FAIL "; }
+        [ "$DONE" = "1" ] || { OK=0; WHY="${WHY}没有 RESULT tb_edge_rim PASS 汇总行 "; }
+        [ "$FLOOR" = "4" ] || { OK=0; WHY="${WHY}四条圈只绿了 $FLOOR/4 条（少一条就是那一族的判据没跑或被地板挡下） "; }
+        say "边缘条带 tb_edge_rim" "$(basename "$RIM") rtl=$RTLYES FAIL行=$NFAIL" "同一次跑、无 FAIL、四条圈齐" $OK
+        [ -n "$WHY" ] && echo "        ——$WHY"
+    else
+        say "边缘条带 tb_edge_rim" "缺 build/tb_edge_rim_rNN.txt" "必须先跑并留凭据" 0
+        echo "        —— 生成：bash sim/run_one.sh tb_edge_rim，再把 prov.txt 与 run.log 的判据行并成一份报告（见 report/TESTING.md 的那条配方）"
+    fi
+else
+    echo "  n/a  边缘条带 tb_edge_rim —— 历史冻结件不带与它同一次跑的 RTL 合指纹，不判红（同第 15 项的口径）"
+fi
+
 # ---- 16：#94 固件那一半的约定（心跳节拍 / 超时余量 / 收心跳的调用点 / 恢复键）----
 # 为什么进门禁：这一半没有台架也没有板级判据 —— 它钉的是"三处源码之间的约定还成立"，
 # 而这种约定在下一次改动时最容易悄悄断（`ps_hb_check.mjs` 自己带四条变异对照，红不红得起来它自己交代）。

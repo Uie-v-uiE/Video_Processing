@@ -96,16 +96,18 @@ module tb_v92_seam_bleed;
     // 边界判据坐标 (x_d1/y_d1) 打出来。为什么要有这一行：三个模块用同一条 `x_d1==0` 判据，
     // 结果 sharpen 绿、另外三个红 —— 说明"同一个判据"在四个模块里对应的**实际列**并不相同，
     // 光看代码推不出来（推了三轮，每轮都自洽但互相矛盾）。让 DUT 自己报。
+    // #97：四家的单根 `border_r` 换成了四根（左/右/上/陈旧），这里跟着念四根 ——
+    // 念的是"哪一格被夹过"，判据本身不看这一行，它只是把现场摆出来。
     reg dbg_en = 0;
     always @(posedge clk) if (rst_n && dbg_en) begin
         if (d_blu && pc[0] % W <= 2 && pc[0] / W == MEAS_ROW)
-            $display("[tb_v92_seam_bleed.v:102] DBG blur  slot列%0d border_r=%b x_in=%0d", pc[0] % W, u_blu.border_r, u_blu.x_in);
+            $display("[tb_v92_seam_bleed.v:102] DBG blur  slot列%0d L%0d R%0d A%0d S%0d x_in=%0d", pc[0] % W, u_blu.no_left, u_blu.no_right, u_blu.no_above, u_blu.stale_row, u_blu.x_in);
         if (d_shp && pc[1] % W <= 2 && pc[1] / W == MEAS_ROW)
-            $display("[tb_v92_seam_bleed.v:104] DBG sharp slot列%0d border_r=%b x_in=%0d", pc[1] % W, u_shp.border_r, u_shp.x_in);
+            $display("[tb_v92_seam_bleed.v:104] DBG sharp slot列%0d L%0d R%0d A%0d S%0d x_in=%0d", pc[1] % W, u_shp.no_left, u_shp.no_right, u_shp.no_above, u_shp.stale_row, u_shp.x_in);
         if (d_sob && pc[2] % W <= 2 && pc[2] / W == MEAS_ROW)
-            $display("[tb_v92_seam_bleed.v:106] DBG sobel slot列%0d border_r=%b x_in=%0d", pc[2] % W, u_sob.border_r, u_sob.x_in);
+            $display("[tb_v92_seam_bleed.v:106] DBG sobel slot列%0d L%0d R%0d A%0d S%0d x_in=%0d", pc[2] % W, u_sob.no_left, u_sob.no_right, u_sob.no_above, u_sob.stale_row, u_sob.x_in);
         if (d_mor && pc[3] % W <= 2 && pc[3] / W == MEAS_ROW)
-            $display("[tb_v92_seam_bleed.v:108] DBG morph slot列%0d border_r=%b x_in=%0d", pc[3] % W, u_mor.border_r, u_mor.x_in);
+            $display("[tb_v92_seam_bleed.v:108] DBG morph slot列%0d L%0d R%0d A%0d S%0d x_in=%0d", pc[3] % W, u_mor.no_left, u_mor.no_right, u_mor.no_above, u_mor.stale_row, u_mor.x_in);
     end
 
     always @(posedge clk) if (rst_n) begin

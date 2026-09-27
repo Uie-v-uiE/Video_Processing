@@ -1,0 +1,34 @@
+﻿=== CAPTURE START 4 commands ===
+[SD] frame 2700: last 100 frames 29.999 fps (since play 27.183)
+>> stat
+stat
+[STAT] ctrl thr=80 src=1 zoom=1 bilin=1 zsel=4 zman=0 pub=1 sd=1 frames=4398 playing=1 sel=000 gm=0.00 (PL owns UDP datapath) mode=0 geom=00400000
+[SD] frame 2800: last 100 frames 29.998 fps (since play 27.273)
+[SD] frame 2900: last 100 frames 29.999 fps (since play 27.358)
+>> sd remount
+sd remount
+[SD] dir map ok: 9 files, first clusters within 1946818
+[SD] remount ok
+[SD] FAT32 part_lba=2048 spc=32 rootclus=2 data_lba=34816
+[SD] frames=4398 fps=30.000 files=9 frame=307200B
+[SD]   VIDEO000.BIN frames=512
+[SD]   VIDEO001.BIN frames=512
+[SD]   VIDEO002.BIN frames=512
+[SD]   VIDEO003.BIN frames=512
+[SD]   VIDEO004.BIN frames=512
+[SD]   VIDEO005.BIN frames=512
+[SD]   VIDEO006.BIN frames=512
+[SD]   VIDEO007.BIN frames=512
+[SD]   VIDEO008.BIN frames=302
+>> play
+play
+[CTRL] AXI_GPIO=0x000F5000 sel=000 thr=80 src=1 zoom=1 pub=1 bilin=1
+[CTRL]   zoom_step=4 1.00x (自动呼吸)
+[SD] playing (stop / play 0 结束; ETH 有流时会自动让位)
+[SD] frame 100: last 100 frames 29.999 fps (since play 29.803)
+>> stat
+stat
+[STAT] ctrl thr=80 src=1 zoom=1 bilin=1 zsel=4 zman=0 pub=1 sd=1 frames=4398 playing=1 sel=000 gm=0.00 (PL owns UDP datapath) mode=0 geom=00400000
+[SD] frame 200: last 100 frames 29.999 fps (since play 29.886)
+=== CAPTURE END ===
+

@@ -63,16 +63,74 @@ module proc_box_blur #(
     wire [15:0] r0 = lb0[x_rd];
     wire [15:0] r1 = lb1[x_rd];
 
+    // ---------------------------------------------------------------- #97：四条圈的旗标落在哪一格，由台架量、不由我推
+    // `tb_edge_rim`（2026-09-27 06:4x，第一版数）第一次把"边缘条带"变成一个坐标：
+    //   ① 拍 k（`x_in==k` 那一拍）武装的旗标落在**槽位 k+1** ⇒ 旧写法 `x_in==0` 管的是第 1 列，
+    //      真正的第 0 列没人管（R1 逐列直方图：`column 1 mismatches … in 62/62 rows`）。
+    //   ② 行尾补跳那一拍（`line_end`）武装的旗标落在**下一行的第 0 槽** —— 旧代码在这里塞了
+    //      一个 `1'b1`（那是"单旗标时代末列也算边界"的遗留），它正好落在第 0 列 ⇒ ①的另一半：
+    //      第 0 列被 `border` 旁路成原图直出（实测 `got==raw`），往里一格才是平均 ⇒ **左边一条带**。
+    //   ③ 中心行 = 输入行 − 1（mode=1 实测行平移 +1）⇒ 每帧**第一个输出槽吃的中心是上一帧的末行**
+    //      （行缓存里刚写的还是上一帧最后两行）⇒ **上边缘那条带的出生地**：不是位置错、不是没裁黑，
+    //      是内容陈旧。旧的 `y_in==0` 只标住"缺上邻"，标不住"整行都是旧的"，所以那一格补了也没用。
+    // 于是四条圈各自的武装拍：缺左邻 = 补跳那一拍；缺右邻 = `x_in == H_ACTIVE-2`（①的平移）；
+    // 缺上邻 = `y_in == 1`（中心行 0）；整行陈旧 = `y_in == 0`（中心行 −1）⇒ 三行都用当前行。
+    // ⚠ 复位只能写在这**一个**块里：写进主 always 的复位分支会造成两个驱动源 ⇒
+    //   综合报 `Synth 8-6859/8-6858 multi-driven net` 并把逻辑那一侧**忽略**（恒 0），
+    //   而**仿真看不出来**（xsim 按进程后写覆盖）。门禁第 13 项拦的就是它，见 ISSUES #61。
+    reg [11:0] y_row_d;                    // this display line's y_in, latched at line end
+    always @(posedge clk or negedge rst_n)
+        if (!rst_n) y_row_d <= 12'h0FFF;
+        else if (line_end) y_row_d <= y_in;
+    wire row_first = (y_in != y_row_d);    // x2 raster: only the FIRST display row of a
+                                           // source row can be missing the row above
+    reg [2:0] no_left_r, no_right_r, no_above_r, stale_row_r;
+    always @(posedge clk or negedge rst_n)
+    if (!rst_n) begin
+        no_left_r <= 3'b0; no_right_r <= 3'b0; no_above_r <= 3'b0; stale_row_r <= 3'b0;
+    end else if (shift_w) begin
+        // 旗标链必须与中心链**同拍**移位（含行尾那一跳），否则边界位与内容差一格——
+        // 那正是 #54 (A') 记过的"比的是发出去之后第几拍"那一族。
+        no_left_r  [0] <= ~de_in;                                     // 补跳那一拍 = 下一行第 0 槽
+        no_right_r [0] <= de_in && (x_in == H_ACTIVE[11:0] - 12'd2);
+        no_above_r [0] <= de_in && (y_in == 12'd1) && row_first;
+        stale_row_r[0] <= de_in && (y_in == 12'd0);
+        no_left_r  [1] <= no_left_r  [0];  no_left_r  [2] <= no_left_r  [1];
+        no_right_r [1] <= no_right_r [0];  no_right_r [2] <= no_right_r [1];
+        no_above_r [1] <= no_above_r [0];  no_above_r [2] <= no_above_r [1];
+        stale_row_r[1] <= stale_row_r[0];  stale_row_r[2] <= stale_row_r[1];
+    end
+    wire no_left   = no_left_r[2];
+    wire no_right  = no_right_r[2];
+    wire no_above  = no_above_r[2];
+    wire stale_row = stale_row_r[2];
+
+    // 水平：缺的邻居复制**中心那一列**（clamp-to-edge）⇒ 窗口宽度不变、值与内部连续，
+    // 最外圈不再"直出原图"，那条断层就是用户报的带。
+    wire [15:0] h00 = no_left ? p01 : p00;   wire [15:0] h02 = no_right ? p01 : p02;
+    wire [15:0] h10 = no_left ? p11 : p10;   wire [15:0] h12 = no_right ? p11 : p12;
+    wire [15:0] h20 = no_left ? p21 : p20;   wire [15:0] h22 = no_right ? p21 : p22;
+    wire [15:0] h01 = p01, h11 = p11, h21 = p21;   // 中心列不需要复制，写出来只为垂直那一步能同形
+    // 垂直：只缺上邻 ⇒ 上行复制中心行；整行陈旧 ⇒ 上行与中心行都复制**当前行**
+    //（屏上这一格该给的就是帧的第一行，而它在 p2x 那一路里，不在行缓存里）。
+    wire [15:0] e00 = stale_row ? h20 : (no_above ? h10 : h00);
+    wire [15:0] e01 = stale_row ? h21 : (no_above ? h11 : h01);
+    wire [15:0] e02 = stale_row ? h22 : (no_above ? h12 : h02);
+    wire [15:0] e10 = stale_row ? h20 : h10;
+    wire [15:0] e11 = stale_row ? h21 : h11;
+    wire [15:0] e12 = stale_row ? h22 : h12;
+    wire [15:0] e20 = h20, e21 = h21, e22 = h22;
+
     // 9-sample sums (5b*9=9b, 6b*9=10b)
-    wire [9:0] rs = {5'd0,p00[15:11]}+{5'd0,p01[15:11]}+{5'd0,p02[15:11]}
-                   +{5'd0,p10[15:11]}+{5'd0,p11[15:11]}+{5'd0,p12[15:11]}
-                   +{5'd0,p20[15:11]}+{5'd0,p21[15:11]}+{5'd0,p22[15:11]};
-    wire [10:0] gs = {5'd0,p00[10:5]}+{5'd0,p01[10:5]}+{5'd0,p02[10:5]}
-                    +{5'd0,p10[10:5]}+{5'd0,p11[10:5]}+{5'd0,p12[10:5]}
-                    +{5'd0,p20[10:5]}+{5'd0,p21[10:5]}+{5'd0,p22[10:5]};
-    wire [9:0] bs = {5'd0,p00[4:0]}+{5'd0,p01[4:0]}+{5'd0,p02[4:0]}
-                   +{5'd0,p10[4:0]}+{5'd0,p11[4:0]}+{5'd0,p12[4:0]}
-                   +{5'd0,p20[4:0]}+{5'd0,p21[4:0]}+{5'd0,p22[4:0]};
+    wire [9:0] rs = {5'd0,e00[15:11]}+{5'd0,e01[15:11]}+{5'd0,e02[15:11]}
+                   +{5'd0,e10[15:11]}+{5'd0,e11[15:11]}+{5'd0,e12[15:11]}
+                   +{5'd0,e20[15:11]}+{5'd0,e21[15:11]}+{5'd0,e22[15:11]};
+    wire [10:0] gs = {5'd0,e00[10:5]}+{5'd0,e01[10:5]}+{5'd0,e02[10:5]}
+                    +{5'd0,e10[10:5]}+{5'd0,e11[10:5]}+{5'd0,e12[10:5]}
+                    +{5'd0,e20[10:5]}+{5'd0,e21[10:5]}+{5'd0,e22[10:5]};
+    wire [9:0] bs = {5'd0,e00[4:0]}+{5'd0,e01[4:0]}+{5'd0,e02[4:0]}
+                   +{5'd0,e10[4:0]}+{5'd0,e11[4:0]}+{5'd0,e12[4:0]}
+                   +{5'd0,e20[4:0]}+{5'd0,e21[4:0]}+{5'd0,e22[4:0]};
 
     // *57 >> 9 ≈ /9  (57/512 ≈ 0.1113)
     wire [16:0] rp = rs * 17'd57;
@@ -83,33 +141,9 @@ module proc_box_blur #(
     wire [4:0] b_avg = bp[13:9];
     wire [15:0] avg = {r_avg, g_avg, b_avg};
 
-    // 边界守卫：一根**跟着有效像素走**的旗标链，判「这个中心像素的 3x3 是不是真在画面内」。
-    // 为什么不用 x_d1/y_d1 直接和 0 比：那种写法比的是『发出去之后第几拍』，
-    //   ① 与消隐宽度、一拍几个像素有关 —— 同一句判据在 512 宽连续栅格与 8 宽(一拍一个像素)
-    //      的台架里挡住的列不一样（tb_rotate_window 就是这样被 SLOT_LAG=2 多挡了两列而假红的）；
-    //   ② 中心抽头本来就滞后一格，比 0 挡住的是上一行的尾巴，本行第 0 格照样吃到上一行末尾
-    //      —— 那就是用户看到的『分割线旁边的颜色条』(ISSUES #56 / #54 (A'))。
-    // 旗标按**有效像素**移位（de_in 才动），内容与 p11 那个中心一格不差：
-    //   首列（左邻缺）、末列（右邻缺）、首行（上一行缺，行缓存里是上一帧的尾巴）。
-    reg [2:0] border_r;
-    // ⚠ 复位只能写在这**一个**块里。以前图省事把它也写进主 always 的复位分支，
-    //   于是 border_r 有两个驱动源 ⇒ 综合报 `Synth 8-6859/8-6858 multi-driven net`
-    //   并且把常量那一侧保留、逻辑那一侧**忽略** ⇒ 旗标在 bit 里恒为 0，
-    //   而**仿真看不出来**（xsim 按进程后写覆盖，行为看起来是对的）。
-    //   这条由门禁第 13 项（多驱动 CRITICAL WARNING 计数）拦下，见 ISSUES #61。
-    always @(posedge clk or negedge rst_n)
-    if (!rst_n) border_r <= 3'b0;
-    else if (shift_w) begin
-        // 旗标链必须与中心链**同拍**移位（含行尾那一跳），否则边界位与内容差一格——
-        // 那正是 #54 (A') 记过的"比的是发出去之后第几拍"那一族。多跳那一拍对应的正是末列 ⇒ 旗标 1。
-        border_r[0] <= de_in ? ((x_in == 12'd0) || (x_in == H_ACTIVE-1) || (y_in == 12'd0)) : 1'b1;
-        border_r[1] <= border_r[0];
-        border_r[2] <= border_r[1];
-    end
-    // 三拍 = 一个像素从进来到 dout 的深度（行缓存读 → 窗口移位 → 输出寄存），
-    // **按有效像素数**计 ⇒ 与消隐宽度、一拍几个像素无关（SLOT_LAG 那版就是错在按拍号）。
-    // 凭据：tb_v92 的 DBG —— "发出槽位 0 的那一拍 x_in = 3" ⇒ 中心列 = x_in − 3。
-    wire border = border_r[2];
+    // 中心抽头 `p11` 在陈旧行上是上一帧的尾巴 ⇒ 旁路也必须跟着换，否则"关掉效果"时
+    // 上边缘那条陈旧带原样还在（这条由 tb_edge_rim 的 mode=1 与 R3 一起管）。
+    wire [15:0] center = stale_row ? e21 : p11;
 
     always @(posedge clk or negedge rst_n) begin
         if (!rst_n) begin
@@ -121,15 +155,18 @@ module proc_box_blur #(
             if (shift_w) begin
                 p00<=p01; p01<=p02; p02<=r0;
                 p10<=p11; p11<=p12; p12<=r1;
-            end
-            if (de_in) begin
-                p20<=p21; p21<=p22; p22<=din;
+                // 行尾补跳那一拍，**当前行这一路也必须跳**：中心行与下一行只差一拍的话，
+                // 末列那一格的三行窗口里"下面那一行"就还停在倒数第二列 ⇒ 窗口整体错位，
+                // 补上来的那一格既不是 clamp 也不是原始平均（`tb_edge_rim` R4：
+                // `got=8c51` 而 clamp=`b596`、raw=`d69a`、下一行折回=`83f0`，四个都不是）。
+                // 消隐期没有新像素 ⇒ 把末列**重复一次**，与上面两行用 `x_rd` 钉末列同一手法。
+                p20<=p21; p21<=p22; p22<=de_in ? din : p22;
             end
             de_d1 <= de_in;
             de_d2 <= de_d1;
             de_out <= de_d2;
-            if (bypass || border)
-                dout <= p11;
+            if (bypass)
+                dout <= center;
             else
                 dout <= avg;
         end

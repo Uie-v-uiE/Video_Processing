@@ -24,7 +24,7 @@ module proc_sharpen #(
     (* ram_style = "block" *) reg [15:0] lb0 [0:H_ACTIVE-1];
     (* ram_style = "block" *) reg [15:0] lb1 [0:H_ACTIVE-1];
 
-    reg [15:0] p00, p01, p02, p10, p11, p12, p20, p21, p22;
+    reg [15:0] q00, q01, q02, q10, q11, q12, q20, q21, q22;   // 窗口原始抽头（下面按边界复制成 p**）
     reg        de_d1, de_d2;
 
     always @(posedge clk) begin
@@ -48,6 +48,48 @@ module proc_sharpen #(
     wire [15:0] up2 = lb0[x_rd];           // 上上行
     wire [15:0] up1 = lb1[x_rd];           // 上一行
 
+    // ---------------------------------------------------------------- #97：四条圈的旗标（推导与凭据在 proc_box_blur.v 的 #97 段）
+    // `tb_edge_rim` 量出来的三条事实，四个窗口级共用同一套旗标（"逐字同形"是 S4/tb_v92
+    // 能差分验证的前提）：① 拍 k 武装的旗标落在槽位 k+1；② 行尾补跳那一拍落在**下一行第 0 槽**
+    // （旧代码在这里塞 1 ⇒ 第 0 列被旁路成原图 = 用户念的"左边一条带"）；
+    // ③ 中心行 = 输入行 − 1 ⇒ 每帧第一个输出槽吃的是上一帧的末行（"上边缘那条带"）。
+    reg [11:0] y_row_d;                    // this display line's y_in, latched at line end
+    always @(posedge clk or negedge rst_n)
+        if (!rst_n) y_row_d <= 12'h0FFF;
+        else if (line_end) y_row_d <= y_in;
+    wire row_first = (y_in != y_row_d);    // x2 raster: only the FIRST display row of a
+                                           // source row can be missing the row above
+    reg [2:0] no_left_r, no_right_r, no_above_r, stale_row_r;
+    // ⚠ 复位只写在这**一个**块里（两个驱动源 = Synth 8-6859，bit 里恒 0 而仿真看不出来，#61）。
+    always @(posedge clk or negedge rst_n)
+    if (!rst_n) begin
+        no_left_r <= 3'b0; no_right_r <= 3'b0; no_above_r <= 3'b0; stale_row_r <= 3'b0;
+    end else if (shift_w) begin
+        no_left_r  [0] <= ~de_in;                                     // 补跳那一拍 = 下一行第 0 槽
+        no_right_r [0] <= de_in && (x_in == H_ACTIVE[11:0] - 12'd2);   // ①：拍 k 落槽位 k+1
+        no_above_r [0] <= de_in && (y_in == 12'd1) && row_first;                    // 中心行 0，上面缺
+        stale_row_r[0] <= de_in && (y_in == 12'd0);                    // 中心行 −1：整行都是旧的
+        no_left_r  [1] <= no_left_r  [0];  no_left_r  [2] <= no_left_r  [1];
+        no_right_r [1] <= no_right_r [0];  no_right_r [2] <= no_right_r [1];
+        no_above_r [1] <= no_above_r [0];  no_above_r [2] <= no_above_r [1];
+        stale_row_r[1] <= stale_row_r[0];  stale_row_r[2] <= stale_row_r[1];
+    end
+    wire no_left = no_left_r[2], no_right = no_right_r[2];
+    wire no_above = no_above_r[2], stale_row = stale_row_r[2];
+    // 缺的邻居复制中心 ⇒ 最外圈不再"直出原图"，那条断层就是用户报的带。
+    // 抽头约定不变：`p00..p22` 仍是**移位之前**以 p11 为中心的 3×3，只是边缘那几格被复制过。
+    wire [15:0] h00 = no_left ? q01 : q00;   wire [15:0] h02 = no_right ? q01 : q02;
+    wire [15:0] h10 = no_left ? q11 : q10;   wire [15:0] h12 = no_right ? q11 : q12;
+    wire [15:0] h20 = no_left ? q21 : q20;   wire [15:0] h22 = no_right ? q21 : q22;
+    wire [15:0] h01 = q01, h11 = q11, h21 = q21;
+    wire [15:0] p00 = stale_row ? h20 : (no_above ? h10 : h00);
+    wire [15:0] p01 = stale_row ? h21 : (no_above ? h11 : h01);
+    wire [15:0] p02 = stale_row ? h22 : (no_above ? h12 : h02);
+    wire [15:0] p10 = stale_row ? h20 : h10;
+    wire [15:0] p11 = stale_row ? h21 : h11;
+    wire [15:0] p12 = stale_row ? h22 : h12;
+    wire [15:0] p20 = h20, p21 = h21, p22 = h22;
+
     // R/B 5 bit，G 6 bit；中心 ×4 + 中心 = ×5，四邻直接相加（≤ 4×满量程）
     // 抽头约定与 proc_box_blur 一模一样：**移位之前**的 p00..p22 就是以 p11 为中心的 3×3，
     // 组合逻辑算完、下一拍寄存输出，所以四邻取 p01(上)/p21(下)/p10(左)/p12(右)。
@@ -70,58 +112,25 @@ module proc_sharpen #(
     wire [4:0] b_o = (b_d > 9'd31)  ? 5'd31 : b_d[4:0];
     wire [15:0] sharp = {r_o, g_o, b_o};
 
-    // 首行的行缓存是空的、行首的"左邻"是上一行末尾 —— 与 proc_morph 同一套处理：只取中心
-    // （变量一开始叫 `edge`，那是 Verilog 保留字：综合报 Synth 8-10307 后
-    //   接着把下一行误判成"`res` 是未知类型"，第一个错误才是真的）
-
-
-    // 边界守卫：一根**跟着有效像素走**的旗标链，判「这个中心像素的 3x3 是不是真在画面内」。
-    // 为什么不用 x_d1/y_d1 直接和 0 比：那种写法比的是『发出去之后第几拍』，
-    //   ① 与消隐宽度、一拍几个像素有关 —— 同一句判据在 512 宽连续栅格与 8 宽(一拍一个像素)
-    //      的台架里挡住的列不一样（tb_rotate_window 就是这样被 SLOT_LAG=2 多挡了两列而假红的）；
-    //   ② 中心抽头本来就滞后一格，比 0 挡住的是上一行的尾巴，本行第 0 格照样吃到上一行末尾
-    //      —— 那就是用户看到的『分割线旁边的颜色条』(ISSUES #56 / #54 (A'))。
-    // 旗标按**有效像素**移位（de_in 才动），内容与 p11 那个中心一格不差：
-    //   首列（左邻缺）、末列（右邻缺）、首行（上一行缺，行缓存里是上一帧的尾巴）。
-    reg [2:0] border_r;
-    // ⚠ 复位只能写在这**一个**块里。以前图省事把它也写进主 always 的复位分支，
-    //   于是 border_r 有两个驱动源 ⇒ 综合报 `Synth 8-6859/8-6858 multi-driven net`
-    //   并且把常量那一侧保留、逻辑那一侧**忽略** ⇒ 旗标在 bit 里恒为 0，
-    //   而**仿真看不出来**（xsim 按进程后写覆盖，行为看起来是对的）。
-    //   这条由门禁第 13 项（多驱动 CRITICAL WARNING 计数）拦下，见 ISSUES #61。
-    always @(posedge clk or negedge rst_n)
-    if (!rst_n) border_r <= 3'b0;
-    else if (shift_w) begin
-        // 旗标链与中心链同拍移位（含行尾那一跳）；那一跳对应的正是末列 ⇒ 旗标钉 1。
-        border_r[0] <= de_in ? ((x_in == 12'd0) || (x_in == H_ACTIVE-1) || (y_in == 12'd0)) : 1'b1;
-        border_r[1] <= border_r[0];
-        border_r[2] <= border_r[1];
-    end
-    // 三拍 = 一个像素从进来到 dout 的深度，**按有效像素数**计（见 proc_box_blur.v 同名注释）。
-    // 四个窗口级用**逐字相同**的守卫：这是 S4/tb_v92 能差分验证的前提。
-    wire border = border_r[2];
-
     always @(posedge clk or negedge rst_n) begin
         if (!rst_n) begin
-            p00<=0; p01<=0; p02<=0; p10<=0; p11<=0; p12<=0; p20<=0; p21<=0; p22<=0;
+            q00<=0; q01<=0; q02<=0; q10<=0; q11<=0; q12<=0; q20<=0; q21<=0; q22<=0;
             de_d1<=0; de_d2<=0; de_out<=0; dout<=0;
         end else begin
-            // 行缓存那两路跟 `shift_w`（含行尾多跳的一拍）；当前行那一路只跟 `de_in`——
-            // 消隐期的 `din` 不是像素，移进窗口只会把左边界更早就弄脏。
+            // 行缓存那两路与当前行那一路**都**跟 `shift_w` 走（含行尾多跳的一拍）：
+            // 只让上面两行跳的话，末列那一格的"下面一行"还停在倒数第二列 ⇒ 窗口整体错一列
+            //（#97：`tb_edge_rim` R4 实测 `got` 既不是 clamp 也不是原始平均，四个候选全不是）。
+            // 消隐期没有新像素 ⇒ 当前行重复末列，与 `x_rd` 钉末列同一手法。
             if (shift_w) begin
-                p00<=p01; p01<=p02; p02<=up2;
-                p10<=p11; p11<=p12; p12<=up1;
-            end
-            if (de_in) begin
-                p20<=p21; p21<=p22; p22<=din;
+                q00<=q01; q01<=q02; q02<=up2;
+                q10<=q11; q11<=q12; q12<=up1;
+                q20<=q21; q21<=q22; q22<=de_in ? din : q22;
             end
             de_d1 <= de_in;
             de_d2 <= de_d1;
             de_out <= de_d2;
-            // 旁路/边界取 p11（窗口中心抽头）—— 与 proc_box_blur / proc_sobel / proc_morph 同一个约定。
-            // 四个窗口级以前**每行最后一列**都发的是前一列的中心（`tb_v89` 的 ID 判据，#92 第四笔）；
-            // 行尾多跳一拍之后 ID 归零，#54 那条"行列错位"的账到这里才算平。
-            dout   <= (bypass || border) ? p11 : sharp;   // 中心抽头，与 blur 同约定
+            // 旁路取窗口中心抽头 p11（陈旧行已被换成当前行）—— 与 proc_box_blur 同一约定。
+            dout   <= bypass ? p11 : sharp;
         end
     end
 endmodule

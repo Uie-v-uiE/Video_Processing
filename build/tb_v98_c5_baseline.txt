@@ -1,0 +1,37 @@
+# tb_v98 的 C5/C6 基线（r76 树 = 四个窗口级已修、顶层读侧未修）
+# ⚠ 这份是**部分**日志：为让 r77 构建不被 CPU 抢、并把复跑留给当前树，10:19 主动停了 xsim（C4 只跑到 idx=2）。
+# 它只用来钉一件事：帧头四行画的是源图末行（第四笔），以及 C6 一格没红（左边不是读侧回绕）。
+top_md5=995ef3513992
+tb_md5=cf1436bfb917
+rtl_md5=e092ad0df22e
+date=2026-09-27T10:03:17+08:00
+PASS C0a ruler encodes position in the pixel | px_val / decoder / mod-256 signed diff must agree, incl. 0, small values, both edges, both wrap directions
+PASS C0a3 no black cell exists in the pattern | the panel-level ruler equates black with outside-the-picture, so the pattern must not contain black
+PASS C0a2 golden array actually holds it | read back ddr[0] and the last word after init: a correct function is not a correct array
+PASS C0d a real source is on screen | less than half of left-pane samples are black, else nothing was copied
+PASS C0b enough frames ran | at least 3 frames, otherwise every count below is void
+PASS C0c the AXI copy is alive | AXI bursts present, 8-byte aligned, never read outside the PS window
+PASS C0f whole fb word space written | de-duplicated write-word index count must cover the full frame once
+PASS C1i read-port phase same stage as src | col0/row0/pair_odd/req_vld must come from the calibrated label stage, not from a comment
+PASS C1g VIEWPORT col: src == x_d[2]>>1 | single viewport: src column == display column >>1 at the calibrated stage (k=2 is the only zero)
+PASS C1h VIEWPORT row: src == (y_d[2]+OFF+BILIN)>>1 | same definition row-wise: two display rows share one source row (600-line panel, 300 source rows)
+PASS C0e RULER self-consistent | out-of-range bucket must be a subset of the mismatch set
+PASS C1a content-check coverage | in-line left-pane samples below 50k means nothing was measured
+PASS C1e PRECONDITION no X inside the measurement window | with X present every dcol/drow below is false-green on an empty set (#78)
+PASS C1c content column == display column >> 1 | single-viewport geometry, content-level evidence (was a NOTE before #78)
+PASS C1d content row == display row >> 1 (outside ring warm-up) | row-wise content alignment of the raw tap; warm-up rows are counted, not hidden
+C1d 例外计数：行环热身跳过 0 格、帧底夹紧跳过 3704 格、出界/行首尾跳过 21611 格
+PASS C1d-b skips are explained | every skipped warm-up cell must decode to source row 299, else the skip hides something
+C5HEAD prow=0 px=ab00 源行tag=43 定义=0 | 屏上这一格来自哪一行的判决
+C5HEAD prow=1 px=ab00 源行tag=43 定义=0 | 屏上这一格来自哪一行的判决
+C5HEAD prow=2 px=ab00 源行tag=43 定义=1 | 屏上这一格来自哪一行的判决
+C5HEAD prow=3 px=ab00 源行tag=43 定义=1 | 屏上这一格来自哪一行的判决
+C5HEAD prow=0 px=ab00 源行tag=43 定义=0 | 屏上这一格来自哪一行的判决
+C5HEAD prow=1 px=ab00 源行tag=43 定义=0 | 屏上这一格来自哪一行的判决
+C5HEAD prow=2 px=ab00 源行tag=43 定义=1 | 屏上这一格来自哪一行的判决
+C5HEAD prow=3 px=ab00 源行tag=43 定义=1 | 屏上这一格来自哪一行的判决
+C4 idx=0 ang=0 zoom=100% zsel=4 有画面行=780 无画面行=0 **多段行=0** 第1列[0..0] 末列[1023..1023] | angle=0 rot_on=0
+PASS C4a rows judged | this (angle, zoom) cell must actually have content rows, else C4b below means nothing
+PASS C4b one run per row | a rotated rectangle meets every panel row in ONE contiguous run; 2+ runs = #93's stray diagonal bar / left-edge line
+C4 idx=1 ang=45 zoom=100% zsel=4 有画面行=780 无画面行=0 **多段行=0** 第1列[0..176] 末列[635..1023] | angle=45 rot_on=1
+PASS C4a rows judged | this (angle, zoom) cell must actually have content rows, else C4b below means nothing

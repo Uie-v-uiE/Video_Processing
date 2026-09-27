@@ -9,6 +9,18 @@ V=/d/Software/Vivado/2025.2.1/Vivado/bin
 TB=$1
 ROOT=/d/Xilinx/Prj/pro/Video_Processing
 R=/tmp/kx/$TB.run
+# ⚠ 2026-09-27 12:48 撞到的一件事：**同一时刻只能有一个 xsim 在写这个目录**。
+#   第二次 `run_one.sh` 并不会让第一次停下 —— 前一个 xsim/xsimk 还活着，继续往同一个
+#   `run.log` 里写它那一跑的行。两次跑的行混在一份文件里，`tb98_report.sh` 就会把
+#   "上一跑的 C5c" 与 "这一跑的 C5c" 拼成一份报告（今天 12:45 那份就是这么废掉的，
+#   而它的头部 md5 全对 —— 认 md5 也救不了"正文来自两个进程"这件事）。
+#   所以：门口先看有没有活的 xsim/xsimk，有就**拒绝启动**并说清该杀谁（不自动杀：
+#   正在跑的那一跑可能是别人要的凭据）。
+if tasklist //FI "IMAGENAME eq xsim.exe" 2>/dev/null | grep -qi "xsim.exe"; then
+    echo "REFUSE: 已经有 xsim 在跑（它会把行写进同一份 run.log）。先看是谁的：tasklist //FI \"IMAGENAME eq xsim.exe\""
+    echo "        确认可以中断再：taskkill //F //IM xsim.exe //T && taskkill //F //IM xsimk.exe //T"
+    exit 3
+fi
 mkdir -p $R && cd $R || exit 1
 rm -rf xsim.dir
 SRC="$(find $ROOT/src/rtl -name '*.v' | tr '\n' ' ') \
@@ -42,5 +54,5 @@ $V/xsim snap -R > run.log 2>&1
 # ⚠ 过滤词表必须包含台架**专门为了回答"缺口在哪"而打的那些行**（PROBE/DIAG/NOTE/OBS）：
 #   2026-09-25 台架 tb_v98 数出"帧缓存到底被写了多少字"的那条 PROBE 就是被这个过滤器挡在
 #   run.log 里的，我因此多绕了一趟临时目录才看到它 —— 而那份 console 才是要留在报告里的凭据。
-grep -aE "FAIL|PASS|INFO|PROBE|DIAG|NOTE|OBS |error|Error" run.log | head -60
+grep -aE "FAIL|PASS|INFO|PROBE|DIAG|NOTE|OBS |GOLDEN|^D[123] |error|Error" run.log | head -80
 tail -2 run.log

@@ -19,7 +19,7 @@
 
 ## 二、判据与凭据在什么地方（要复核任何一个数，先来这里）
 
-- **门禁 19 项**：`bash build/gates.sh`（`--self` 反例：`build/tb98_gate_ce.sh`）→ 输出 `build/rNN_gates.txt`。
+- **门禁 20 项**：`bash build/gates.sh`（反例对照：`build/tb98_gate_ce.sh` 七条 + `build/rim_gate_ce.sh` 六条）→ 输出 `build/rNN_gates.txt`。
   ⚠ 别把 gates 的输出直接重定向进它自己要读的 `rNN_gates.txt`（`build/gates.sh` 头部第 9-16 行讲这件事）。
 - **冻结一套**：`bash build/freeze_evidence.sh <NN>` → `build/evidence_rNN/`（含 `MANIFEST.md5` 三件套指纹）。
   认 md5 不认文件名；`evidence_r*/` 与 `frozen_r*/` **不是垃圾，不许清**。

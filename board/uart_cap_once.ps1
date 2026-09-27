@@ -4,6 +4,11 @@ param([string]$Port = 'COM6', [int]$Seconds = 8, [string]$Out = 'board\uart_capt
 #   boot banner only : -Seconds 20
 #   one command      : -Cmd STAT
 #   several, spaced  : -Cmds "SD,PLAY,STOP" -CmdDelay 12 -Seconds 8
+#                      !! -Cmds 是按 [,\s]+ 拆的（PowerShell 的数组绑定会把空格拆开），所以
+#                         **带参数的命令不能走 -Cmds**：`-Cmds "ROT SHOW"` 会变成两条 `ROT`、`SHOW`，
+#                         板子回你两条用法/不认，看着像"固件把空格当行尾"——其实是发送端拆的词
+#                         （2026-09-27 13:4x 我就这样误判过一次，纠正：固件对带空格命令处理是对的，
+#                          要一发一条就写 -Cmd "ROT SHOW"）。
 # -CmdDelay is the gap as seen by the board, and everything is read inside one port session,
 # so "frames counted / (CmdDelay * (n-1))" is a defensible rate measurement.
 # -Drain discards what the FTDI buffer already holds, so a previous run's banner cannot leak

@@ -117,7 +117,7 @@ bilin on / bilin off    右窗双线性 ↔ 最近邻，现场对比用（老写
 th 120                  二值化阈值（老写法 TH120）
 frame 1200              只显示 SD 的第 1200 帧（老写法 FRAME1200）
 play / stop             SD 播放 开始 / 停止
-sd                      重新挂载 SD（`XSdPs_CfgInitialize` 每个上电周期只成功一次，见 ISSUES #45）
+sd                      重新挂载 SD（r76 起会先清驱动的 `IsReady` 再挂；#45 那句"每上电周期只成功一次"已更正，见 ISSUES #45/#94 的 06:2x 追加段）
 fill                    PS 直接写一张四色诊断帧（查通路用）
 autoplay 0 / 1          关/开上电自动播放（只影响下一次上电；老写法 AUTOPLAY0/1）
 temp                    读一次片上温度（r54 起，读 PS 侧 XADC，PL 零改动）
@@ -253,6 +253,16 @@ bilin 的**读回**（不是 on/off 本身）            on/off/show 从 r64b �
 ## #94 增补（2026-09-26 18:2x）：片源改"活判据"之后，固件多了一条心跳与一个恢复键
 
 | `sd remount` | 把 SD 控制器重新初始化一遍再挂载（停播 → 清 `mounted`/簇表/FAT 缓存 → `sd_mount()`），成功回 `[SD] remount ok` + 摘要，失败回原因 + 一句实话 |
+
+**更正（2026-09-27 06:2x，代码已改、板上待签）**：上面那句"#45 那条限制是真的"**作废**。
+根因是驱动的二次初始化守卫 —— `XSdPs_CfgInitialize` 开头
+`if (IsReady == XIL_COMPONENT_IS_READY) return XST_DEVICE_IS_STARTED;`（`xsdps.c:156-159`），
+而我们没有任何一处清它。`sd_remount()` 现在先 `Sd.IsReady = 0u` 再挂，所以重挂在同一上电周期里
+是**能成功的**；并且主循环多了 `sd_recover_tick()`：卡插回来自己重挂、重挂成功自己接回回放
+（2 s 一次、最多 30 次、失败会明说；**13:1x 补的第 16 条**：读卡失败必须把 `mounted` 清 0，
+否则 `sd_recover_tick()` 第一行那道门永远关着 —— 见 `report/ISSUES.md` #94 追加）。
+机器凭据 `src/host/ps_hb_check.mjs`（17 条 + 10 条变异对照）；
+**整机的这一手要人在板前拔插卡**，所以 `board/README.md` 第 31 行的 ④ 才是判据，签核在人。
 
 **⚠ 板上实测（2026-09-26 19:13，卡在原位、之前已挂载成功过一次）**：它回的是
 `[SD] remount failed: XSdPs_CfgInitialize failed` ⇒ **#45 那条限制是真的**：同一个上电周期里

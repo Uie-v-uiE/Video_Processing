@@ -38,10 +38,13 @@ NG=$(grep -acE ' (PASS|FAIL)$' "$GT")
 
 mkdir -p "$D"
 # 三件成品（位流/xsa/elf）+ 七份 Vivado 报告 + 三份自检 + 台架与门禁
+# r77 起多带三件：#97 的边缘条带凭据、它自己的反例、以及"修之前红成什么样"的 C5 基线
+#（少了后两件，冻结件里就只剩"绿"，没有"这条判据曾经红过"——那是 S15/门禁 15b 反复要的东西）。
 for f in system.bit system.xsa ps_app.elf timing_summary.rpt utilization.rpt power.rpt \
          route_status.rpt methodology.rpt cdc.rpt clock_util.rpt multi_driven.txt \
          width_warnings.txt ports_check.txt tb_v98_report.txt r${NN}_gates.txt \
-         r${NN}_benches.txt; do
+         r${NN}_benches.txt tb_edge_rim_r${NN}.txt rim_gate_ce_r${NN}.txt \
+         tb_v98_c5_baseline.txt; do
     [ -f "build/$f" ] && cp -f "build/$f" "$D/$f"
 done
 # 构建与台架的**原始 console**（今天它们在 /tmp，不在 build/）

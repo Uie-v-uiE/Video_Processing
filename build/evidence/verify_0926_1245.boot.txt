@@ -1,2 +1,0 @@
-[SD] frame 500: last 100 frames 29.554 fps (since play 29.775)
-

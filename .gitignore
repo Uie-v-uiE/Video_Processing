@@ -122,3 +122,8 @@ sim/v100run2/
 build/evidence_r*/system.bit
 build/evidence_r*/system.xsa
 build/evidence_r*/ps_app.elf
+
+# 2026-09-27 工作区清理：板级验收脚本每次跑都重生成这两类东西，它们不是凭据（.health.err 成功时恒为 0 字节，
+# 而 0 字节的"错误文件"当证据本身就是我们禁的形状；.o 是 ps_app.mjs 的中间产物，入库的产物是 ps_app.elf）。
+build/evidence/verify_*.health.err
+build/ps_obj/*.o

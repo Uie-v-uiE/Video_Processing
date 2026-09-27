@@ -50,6 +50,20 @@ const MUT = {
     stale_tb:     t => ({ ...t, tb102: t.tb102.replace(/TO_FRAMES\s*=\s*30/, 'TO_FRAMES = 31') }),
     // 残包门限放到 9 s ⇒ 实际上等于"永远不丢"（半行会跟下一条命令拼成一句谁都没敲过的话）
     slow_rx:      t => ({ ...t, main: t.main.replace('#define RX_IDLE_MS 3000u', '#define RX_IDLE_MS 9000u') }),
+    // #94/#97 追加的四条：卡插回来**自己**要能接上，这四条少一条就退化成"要手/要重下 elf"
+    no_recover:   t => ({ ...t, main: t.main.replace('sd_recover_tick();', 'MUT_OFF();') }),
+    no_ready:     t => ({ ...t, sd: t.sd.replace('Sd.IsReady = 0u;', '/* MUT: 不清驱动的已初始化旗标 */') }),
+    always_rec:   t => ({ ...t, sd: t.sd.replace('if (!seen_mounted || !want_play || giveup) { return; }',
+                                                 'if (0) { return; }') }),
+    no_resume:    t => ({ ...t, sd: t.sd.replace('(void)sd_play(1);', '/* MUT: 挂上就不管了 */') }),
+    // A16 的反例：**只**把收口里"清挂载旗"那一行挖掉（两条读失败路照旧走 `card_gone()`，
+    // 所以 A5 不该跟着红 —— 第一版反例把 `card_gone()` 换回 `ps_source_lost()`，结果同时动了
+    // A5 的结构前提，实测红=[A5,A16]，那种"一次红两条"的反例不能钉住是哪一条判据在守）。
+    no_clear:     t => {
+        const cg = /static void card_gone\(void\)\s*\{[\s\S]*?\n\}/;
+        const body = t.sd.match(cg)?.[0] ?? '';
+        return { ...t, sd: t.sd.replace(cg, body.replace(/mounted\s*=\s*0;/, '/* MUT: 不清 mounted 了 */')) };
+    },
 };
 
 const num = (s, re, what) => {
@@ -99,6 +113,42 @@ function check(t) {
     // A8：串口得有这一个键，不然恢复手段还是"重下 elf"
     add('A8 sd remount 有入口', /"REMOUNT"/.test(t.main) ? '有' : '无', '命令层认 REMOUNT 这个子词',
         /REMOUNT/.test(t.main));
+    // ---- A16（2026-09-27 13:1x，#94 追加：门从来没开过的那一半）----
+    // 自动恢复的**门**是 `sd_recover_tick()` 的第一行 `if (mounted) return;`。
+    // 拔出卡时那两条"真的去读卡并且读失败"的路以前只调 `ps_source_lost()`（= 画面交回仲裁，
+    // 用户看到的"切到 test"），却没人清 `mounted` ⇒ 门永远关着，"插回来不自动切回 SD"就是这么来的。
+    // 所以这里钉两件：① 两条读失败路都走同一个收口 `card_gone()`；② 那个收口里必须清 `mounted`。
+    const sf16 = t.sd.match(/static int show_frame\(u32 idx\)[\s\S]*?\n\}/)?.[0] ?? '';
+    const cg16 = t.sd.match(/static void card_gone\(void\)\s*\{[\s\S]*?\n\}/)?.[0] ?? '';
+    const n16  = (sf16.match(/card_gone\(\)/g) || []).length;
+    add('A16 读失败清挂载旗', `走收口=${n16} 处 收口清mounted=${/mounted\s*=\s*0/.test(cg16) ? '是' : '否'}`,
+        'show_frame 的两条读卡失败路都调 card_gone()，且它清 mounted（否则 recover 的门永远关着）',
+        n16 === 2 && /mounted\s*=\s*0/.test(cg16));
+
+    // ---- A12~A15（2026-09-27，#94 的"插回不恢复"那一半）：卡插回来必须**自己**接上，不要手 ----
+    // A12：自动重挂得敲在主循环里（敲在 sd_tick 里 ⇒ 一旦 playing=0 就再没人叫它，正是用户报的死路）
+    add('A12 主循环里敲自动重挂', /sd_recover_tick\(\)/.test(loop) ? '在' : '不在',
+        'while(1) 体内调用 sd_recover_tick()', /sd_recover_tick\(\)/.test(loop));
+    // A13：#45 那句"每个上电周期只能初始化一次"其实是驱动的 `IsReady` 守卫（`xsdps.c:156-159`），
+    //       不清它，`sd_mount()` 第一步就被挡回 ⇒ 重挂永远失败，改多少次软件状态都没用。
+    add('A13 重挂前清驱动 IsReady',
+        `清=${/Sd\.IsReady\s*=\s*0u/.test(rm)} 挂在后面=${/Sd\.IsReady\s*=\s*0u[\s\S]*sd_mount\(\)/.test(rm)}`,
+        '清零在 sd_mount() 之前', /Sd\.IsReady\s*=\s*0u/.test(rm) && /Sd\.IsReady\s*=\s*0u[\s\S]*sd_mount\(\)/.test(rm));
+    // A14：动手的条件必须同时是"这个上电周期挂过 + 丢卡那一刻在播 + 还没放弃"，而且要有节拍与次数上限。
+    //       少任何一半都会变成：没插卡的板子上电就每拍撞一次 CMD 超时 ⇒ 控制台没人听（#94 文件头那条）。
+    const rec = t.sd.match(/void sd_recover_tick\(void\)\s*\{[\s\S]*?\n\}/)?.[0] ?? '';
+    // ⚠ 判"闸门在不在"必须判**那一句**，不能判三个标识符是否出现在函数体里：
+    //   `seen_mounted/want_play/giveup` 在"挂载成功"那个分支里也各自被赋值，
+    //   把 return 守卫删掉它们照样全在 ⇒ 判据结构上红不了（`--self` 的 always_rec 变异
+    //   第一次就是这么"红=[]"暴露的）。
+    const gate = /if\s*\(\s*!seen_mounted\s*\|\|\s*!want_play\s*\|\|\s*giveup\s*\)\s*\{\s*return;/.test(rec);
+    add('A14 自动重挂有闸门',
+        `三个条件都在同一句守卫里=${gate} 节拍=${/COUNTS_PER_SECOND/.test(rec)} 上限=${/rec_tries\s*>=/.test(rec)}`,
+        '三个条件在**同一句 return 守卫**里 + 有 2 s 级节拍 + 有次数上限并明说',
+        gate && /COUNTS_PER_SECOND/.test(rec) && /rec_tries\s*>=/.test(rec));
+    // A15：重挂成功必须把回放接回来（只挂载不播 = 屏上仍是一张静止画，用户念的还是"没自动切到 SD"）
+    add('A15 挂上就接回放', /sd_play\(1\)/.test(rec) ? '有' : '无',
+        '成功分支里调用 sd_play(1)', /sd_play\(1\)/.test(rec));
     // A9：PL 侧不许再留"只置位从不清零"的粘滞位（那是这次的红生的地方）
     add('A9 顶层无粘滞片源位', `ps_src_seen=${(t.top.match(/ps_src_seen/g) || []).length}`,
         '顶层里除了历史注释（0 处代码）不得再有该位',
@@ -145,7 +195,8 @@ if (argv.includes('--self')) {
     const baseRows = check(base);
     const bad0 = report(baseRows, '当前树');
     if (bad0) { console.log('SELF: 当前树就有红项 —— 变异对照没有意义'); process.exit(1); }
-    const expect = { slow_hb: 'A2', no_lost: 'A4', lost_on_badj: 'A5', stale_tb: 'A10b', slow_rx: 'A11' };
+    const expect = { slow_hb: 'A2', no_lost: 'A4', lost_on_badj: 'A5', stale_tb: 'A10b', slow_rx: 'A11',
+                     no_recover: 'A12', no_ready: 'A13', always_rec: 'A14', no_resume: 'A15', no_clear: 'A16' };
     for (const [name, mut] of Object.entries(MUT)) {
         const t = mut(structuredClone(base));
         if (JSON.stringify(t) === JSON.stringify(base)) {

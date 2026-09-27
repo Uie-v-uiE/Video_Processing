@@ -58,8 +58,9 @@ module proc_morph #(
     wire [15:0] c01 = mc1[x_rd];
 
     // 命名照 blur：第一维 0/1/2 = 上上/上/当前行，第二维 0/1/2 = 左/中/右
-    reg m00, m01, m02, m10, m11, m12, m20, m21, m22;
+    reg k00, k01, k02, k10, k11, k12, k20, k21, k22;   // 窗口原始掩码（下面按边界复制成 m**）
     reg [15:0] p12, p11;
+    reg [15:0] c20, c21, c22;                          // 当前行的原色（#97：陈旧行的中心要用它）
     reg dv_d1, dv_d2;
     // 只在"刚吃掉本行末列"那一跳多走一拍（#92 第四笔，理由见 proc_box_blur.v 同名注释；
     // 用 de 断点当行尾会被一拍一像素的激励误触发）。
@@ -73,59 +74,75 @@ module proc_morph #(
     wire line_end = owed && dv_d1 && !de_in;
     wire shift_w  = de_in || line_end;
 
-    // 边界守卫：一根**跟着有效像素走**的旗标链，判「这个中心像素的 3x3 是不是真在画面内」。
-    // 为什么不用 x_d1/y_d1 直接和 0 比：那种写法比的是『发出去之后第几拍』，
-    //   ① 与消隐宽度、一拍几个像素有关 —— 同一句判据在 512 宽连续栅格与 8 宽(一拍一个像素)
-    //      的台架里挡住的列不一样（tb_rotate_window 就是这样被 SLOT_LAG=2 多挡了两列而假红的）；
-    //   ② 中心抽头本来就滞后一格，比 0 挡住的是上一行的尾巴，本行第 0 格照样吃到上一行末尾
-    //      —— 那就是用户看到的『分割线旁边的颜色条』(ISSUES #56 / #54 (A'))。
-    // 旗标按**有效像素**移位（de_in 才动），内容与 p11 那个中心一格不差：
-    //   首列（左邻缺）、末列（右邻缺）、首行（上一行缺，行缓存里是上一帧的尾巴）。
-    // 四个窗口级现在用的是**同一根**守卫（blur/sharpen/sobel 写法逐字一致），
-    //   台架判据：tb_v92 的 C2/C3（左邻与上一帧的回绕）+ tb_v84 的"morph 旁路与 blur 旁路逐位相同"。
-    reg [2:0] border_r;
-    // ⚠ 复位只能写在这**一个**块里。以前图省事把它也写进主 always 的复位分支，
-    //   于是 border_r 有两个驱动源 ⇒ 综合报 `Synth 8-6859/8-6858 multi-driven net`
-    //   并且把常量那一侧保留、逻辑那一侧**忽略** ⇒ 旗标在 bit 里恒为 0，
-    //   而**仿真看不出来**（xsim 按进程后写覆盖，行为看起来是对的）。
-    //   这条由门禁第 13 项（多驱动 CRITICAL WARNING 计数）拦下，见 ISSUES #61。
+    // ---------------------------------------------------------------- #97：四条圈的旗标（数由 tb_edge_rim 量，推导正本在 proc_box_blur.v）
+    // 旧写法是**一根** `border_r`：`(x_in==0)||(x_in==H_ACTIVE-1)||(y_in==0)`，并在行尾补跳那一拍塞
+    // `1'b1`。两个错叠在一起：那一拍落到的其实是**下一行第 0 槽** ⇒ 第 0 列被"旁路成原图"，
+    // 而真正的末列没人管 ⇒ 窗口吃下一行折回的格子。再加上"中心行 = 输入行 − 1"，
+    // 每帧第一格吃的中心是上一帧的末行 —— 三条合起来就是用户念的"左边与上边那两条带"。
+    reg [11:0] y_row_d;                    // this display line's y_in, latched at line end
     always @(posedge clk or negedge rst_n)
-    if (!rst_n) border_r <= 3'b0;
-    else if (shift_w) begin
-        // 旗标链与中心链同拍移位（含行尾那一跳）；那一跳对应的正是末列 ⇒ 旗标钉 1。
-        border_r[0] <= de_in ? ((x_in == 12'd0) || (x_in == H_ACTIVE-1) || (y_in == 12'd0)) : 1'b1;
-        border_r[1] <= border_r[0];
-        border_r[2] <= border_r[1];
+        if (!rst_n) y_row_d <= 12'h0FFF;
+        else if (line_end) y_row_d <= y_in;
+    wire row_first = (y_in != y_row_d);    // x2 raster: only the FIRST display row of a
+                                           // source row can be missing the row above
+    reg [2:0] no_left_r, no_right_r, no_above_r, stale_row_r;
+    // ⚠ 复位只写在这**一个**块里（两个驱动源 = Synth 8-6859，bit 里恒 0 而仿真看不出来，#61）。
+    always @(posedge clk or negedge rst_n)
+    if (!rst_n) begin
+        no_left_r <= 3'b0; no_right_r <= 3'b0; no_above_r <= 3'b0; stale_row_r <= 3'b0;
+    end else if (shift_w) begin
+        no_left_r  [0] <= ~de_in;                                     // 补跳那一拍 = 下一行第 0 槽
+        no_right_r [0] <= de_in && (x_in == H_ACTIVE[11:0] - 12'd2);   // 拍 k 武装 ⇒ 落槽位 k+1
+        no_above_r [0] <= de_in && (y_in == 12'd1) && row_first;                    // 中心行 0，上面缺
+        stale_row_r[0] <= de_in && (y_in == 12'd0);                    // 中心行 −1：整行都是旧的
+        no_left_r  [1] <= no_left_r  [0];  no_left_r  [2] <= no_left_r  [1];
+        no_right_r [1] <= no_right_r [0];  no_right_r [2] <= no_right_r [1];
+        no_above_r [1] <= no_above_r [0];  no_above_r [2] <= no_above_r [1];
+        stale_row_r[1] <= stale_row_r[0];  stale_row_r[2] <= stale_row_r[1];
     end
-    // 三拍 = 本模块"一个像素从进来到 dout"的深度（行缓存读 → 窗口移位 → 输出寄存），
-    // **按有效像素数**计，所以与消隐宽度、一拍几个像素无关（这是 SLOT_LAG 那版犯的错）。
-    // 量出来的凭据：tb_v92 的 DBG 显示"发出槽位 0 的那一拍 x_in=3"⇒ 中心 = x_in − 3。
-    wire border = border_r[2];
+    wire no_left = no_left_r[2], no_right = no_right_r[2];
+    wire no_above = no_above_r[2], stale_row = stale_row_r[2];
+    // 缺的邻居复制中心（clamp-to-edge）：腐蚀在左沿不会因为"外面算 0"而被啃掉一圈，
+    // 膨胀也不会因为行缓存里是上一帧的尾巴而凭空鼓一圈 —— 这两种都是"条带"。
+    wire k00h = no_left ? k01 : k00, k02h = no_right ? k01 : k02;
+    wire k10h = no_left ? k11 : k10, k12h = no_right ? k11 : k12;
+    wire k20h = no_left ? k21 : k20, k22h = no_right ? k21 : k22;
+    wire m00 = stale_row ? k20h : (no_above ? k10h : k00h);
+    wire m01 = stale_row ? k21  : (no_above ? k11  : k01 );
+    wire m02 = stale_row ? k22h : (no_above ? k12h : k02h);
+    wire m10 = stale_row ? k20h : k10h;
+    wire m11 = stale_row ? k21  : k11;
+    wire m12 = stale_row ? k22h : k12h;
+    wire m20 = k20h, m21 = k21, m22 = k22h;
 
     wire all1 = m00 & m01 & m02 & m10 & m11 & m12 & m20 & m21 & m22;
     wire any1 = m00 | m01 | m02 | m10 | m11 | m12 | m20 | m21 | m22;
-    wire res = (mode == 2'd1) ? (border ? m11  : all1)
-                              : (border ? m11  : any1);
+    // 边界不再"发中心"（#97）：复制过邻居的 m** 已经是 clamp-to-edge 的窗口，
+    // 腐蚀在最外圈啃不掉一圈、膨胀也鼓不出多余的一圈。
+    wire res = (mode == 2'd1) ? all1 : any1;
 
     always @(posedge clk or negedge rst_n) begin
         if (!rst_n) begin
-            m00<=0; m01<=0; m02<=0; m10<=0; m11<=0; m12<=0; m20<=0; m21<=0; m22<=0;
-            p12<=0; p11<=0; dv_d1<=0; dv_d2<=0; de_out<=0; dout<=0;
+            k00<=0; k01<=0; k02<=0; k10<=0; k11<=0; k12<=0; k20<=0; k21<=0; k22<=0;
+            p12<=0; p11<=0; c20<=0; c21<=0; c22<=0;
+            dv_d1<=0; dv_d2<=0; de_out<=0; dout<=0;
         end else begin
-            // 上上/上一行两路（行缓存读）与原色中心跟着 `shift_w` 走；当前行的掩码只跟 `de_in`——
-            // 消隐期的 `bin` 不是像素。
+            // 三路掩码与两条原色链**都**跟 `shift_w` 走（含行尾多跳那一拍）：只让上面两行跳的话，
+            // 末列那一格的"下面一行"还停在倒数第二列 ⇒ 窗口整体错一列（#97 第五笔）。
+            // 消隐期没有新像素 ⇒ 当前行重复末列一次（`bin`/`din` 在消隐期不是像素，这条不变）。
             if (shift_w) begin
-                m00<=m01; m01<=m02; m02<=b00;
-                m10<=m11; m11<=m12; m12<=b01;
+                k00<=k01; k01<=k02; k02<=b00;
+                k10<=k11; k11<=k12; k12<=b01;
+                k20<=k21; k21<=k22; k22<=de_in ? bin : k22;
                 p12<=c01; p11<=p12;             // 原色中心抽头，与 blur 的 p11 同一个位置
-            end
-            if (de_in) begin
-                m20<=m21; m21<=m22; m22<=bin;
+                c20<=c21; c21<=c22; c22<=de_in ? din : c22;
             end
             dv_d1 <= de_in;
             dv_d2 <= dv_d1;
             de_out <= dv_d2;                    // 三拍，不是两拍 —— 见文件头与 ISSUES #54
-            dout   <= by ? p11 : (res ? 16'hFFFF : 16'h0000);
+            // 旁路必须是"与其它三级同一个中心抽头的原色"（tb_v84 的差分判据），
+            // 而陈旧行（帧的第一格）那一行的原色也在当前行那一路里 ⇒ 一起换。
+            dout   <= by ? (stale_row ? c21 : p11) : (res ? 16'hFFFF : 16'h0000);
         end
     end
 endmodule

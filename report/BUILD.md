@@ -39,7 +39,7 @@ set VIVADO=D:\Software\Vivado\2025.2.1\Vivado\bin\vivado.bat
 :: 增量重跑（改 RTL/约束后）
 %VIVADO% -mode batch -source build\tcl\rebuild_cdc_fix.tcl
 
-:: 读回门禁（项数以 `build/gates.sh` 自己打印的为准：2026-09-27 是 19 项）（也可复核任一组成套冻结件）
+:: 读回门禁（项数以 `build/gates.sh` 自己打印的为准：2026-09-27 晚上是 19 项，今天 07:5x 起 20 项（新增 15b = 边缘条带 `tb_edge_rim` 的凭据与反例，见 `build/rim_gate_ce.sh`））（也可复核任一组成套冻结件）
 bash build/gates.sh
 bash build/gates.sh build/evidence_r75
 
