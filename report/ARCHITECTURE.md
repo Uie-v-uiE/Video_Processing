@@ -1,257 +1,158 @@
-# 系统架构与数据通路（Zynq-7020 主线）
+# 系统架构（Zynq-7020 主线）
 
-工程：`Video_Processing` · Zynq-7020 · PL 以太网视频 + 右半窗旋转/无极缩放  
-工具：Vivado / Vitis 2025.2.1  
-版本：本文描述的是**当前主线结构**（V7.7 的功能面 + V7.9 的三笔 CDC 收紧）；
-逐轮改动与门禁数字在 `report/CHANGELOG_V7.md`、`report/VERSION_LINEAGE.md`、`report/OVERNIGHT_LOG.md`。  
-**范围声明**：本文只讲 Z7 这块板。第二块板（RK-XCKU5P-F / UltraScale+，同一套自研以太网栈 +
-每秒一包 UDP 遥测 + 自研发送仲裁器）的工程文档是 `ku5p/README.md`，学习文档是
-`study/02_架构/04_跨器件移植_Zynq到UltraScale.md`；两板共用哪些文件、不能共用哪些，
-写在后者的 §1/§7 与 `report/VERSION_LINEAGE.md` §6。
+器件 `xc7z020clg484-2`、综合顶层 `system_top`（`build/tcl/build_system_axigpio.tcl:5,232`）、
+Vivado / Vitis 2025.2.1。本文只描述**当前代码里的结构**，每条断言给 `文件:行号`；
+改动过程与历史数字在 `report/ISSUES.md`、`report/OVERNIGHT_LOG.md`（追加式档案），不搬到这里。
+第二块板（RK-XCKU5P-F）是 `ku5p/` 下另一棵树，本文不涉及。
 
----
+## 1. 数据从哪里来、到哪里去
 
-## 1. 总体框图
-
-```
-┌─────────────┐   UDP 5001    ┌──────────────────┐
-│  PC 上位机   │ ────────────► │  PL ETH PHY2     │
-│ video_sender │  RGB565      │  RGMII BANK33    │
-└─────────────┘  512×300      └────────┬─────────┘
-                                       │ rgmii → arp/icmp/udp → frame_reasm
-                                       ▼
-                              ┌──────────────────┐
-                              │ frame_buffer     │  BRAM 512×300×16b
-                              │ (ETH 直写)        │
-                              └────────┬─────────┘
-                                       │ 随机读（左/右窗时分复用）
-                                       ▼
-┌─────────────┐  AXI GPIO     ┌──────────────────┐
-│   UART PS   │ ────────────► │  pl_video_top    │
-│  115200     │  sel/thr/src  │  旋转+缩放+效果   │
-└─────────────┘               └────────┬─────────┘
-                                       │ TMDS
-                                       ▼
-                              ┌──────────────────┐
-                              │ HDMI 1024×600    │
-                              │ 左原图 | 右缩放+效果│
-                              │ OSD: FPS/Src/Pipe│
-                              └──────────────────┘
-```
-
-**PS 不收 UDP 视频包**，仅控制面。备份：`FILL` 可写 DDR，`axi_frame_writer` 回读。
-
----
-
-## 2. PL 显示数据通路（当前实现）
+三路片源里只有前两路过 DDR。ETH 那路由 PL 自己收包、自己当 AXI 主设备写进 DDR 的乒乓
+bank，PS 全程不碰这些字节；SD 回放那路由 PS 的 SD 控制器 DMA 写进**第三个** bank，PL 只在
+收到发布翻转位之后把它搬上屏；图卡那路根本不进内存，由 PL 按同一份源坐标现场画。
+三路在"进帧缓存"这一层由仲裁器选一路（谁在搬），在"像素从哪来"这一层再由 `fb_vis` 选一次
+（帧缓存还是图卡，`src/rtl/top/pl_video_top.v:830`）。读出之后立刻分叉成两条抽头：原图抽头
+过一条 4 显示行的行延迟环，处理抽头过 15 拍的特效链；两条在同一拍上并排站着，由分割线逐像素
+二选一，再叠 OSD、编 TMDS 出屏。
 
 ```
-video_timing_1024x600
-        │ x,y,de,hs,vs,frame_start
-        ▼
-   left_pane = (x < 512)
-   cx = x 或 x-512
-   cy = y >> 1                 ← 垂直 2×（300→600 行）
-        │
-        ├─────────────────────────────┬──────────────────────────────┐
-        ▼ 左窗                          ▼ 右窗
-   rotate_mapper                  zoom_ctrl + zoom_mapper
-   (angle≠0)                      inv_scale 三角波（默认常开）
-        │                             │ 可叠加 rotate
-        │                             ▼
-        │                        zoom 逆映射 (sx,sy)
-        │
-        └──────────┬──────────────────┘
-                   ▼
-            FB 地址时分复用
-            左: rotate 后坐标
-            右: zoom 后坐标
-                   │ rd_addr 打拍 + BRAM 读
-                   ▼
-        ┌──────────┴──────────┐
-        ▼                     ▼
-   左窗像素 (原图)        右窗像素 (缩放后源像素)
-        │                     │
-        │                     ▼
-        │              proc_pipeline（九位 stage_sel，一位一级）
-        │              级0 gamma → 颜色(灰度/反色) → 滤波(模糊/锐化)
-        │                       → Sobel → 阈值(二值化±判决) → 形态学(腐蚀/膨胀)
-        │              （目标域 3×3，挂在右窗光栅上）
-        │                     │
-        ▼                     ▼
-              split_display
-         左=orig  右=proc  中间蓝线
-                   │
-                   ▼
-         osd_overlay (OSD 五行：FPS/Src/Pipe/Rot/Split/Temp)
-                   │
-                   ▼
-              rgb2dvi → HDMI
+片源（三路）                      写侧（进 DDR）                    读侧与显示（clk_pix = 50 MHz）
+─────────────                    ────────────                      ────────────────────────────
+ PC ─UDP:5001─► RGMII ─► gmii_rx_mac ─► udp_rx_parser ─► frame_reasm
+                      (eth_rxc 125 MHz：自算 FCS-32、按目的端口过滤)
+                                                                    │ {flush,addr[18:0],data[15:0]}
+                                                                    ▼
+                                              dc_fifo（格雷码指针，eth_rxc → axi_clk）
+                                                                    ▼
+                                              axi_frame_saver64（16b→64b 打包 + AXI3 写 HP0）
+                                                                    │
+ SD 卡 ─► PS 固件 sd_play.c ─► SD 控制器 DMA ─┐   DDR：PS bank 0x1010_0000 ｜ ETH 乒乓 0x1000_0000、0x1008_0000
+                                             │                     ▼
+                       发布位 gpio_o[18] 翻转 ─┤      frame_commit_lock（提交锁到消隐窗口 + 看门狗）
+                                             │                     │ allow_copy / start_copy / copy_abort
+                                             ▼                     ▼
+                     axi_frame_writer64(PS) 或 axi_frame_writer_gated(ETH)，按 owner_eth 复用读口
+                                             └────────┬───────────┘  64bit 整帧
+                                                      ▼
+                       frame_buffer_w64（实例在 fb_bilin 里）← 一条地址流、一份坐标
+                                                      │  cx = x>>1 ，cy_r = (y + OFF + BILIN)>>1
+                                                      ▼
+                                zoom_mapper 逆映射（缩放 ⊕ 旋转，Q8 sin/cos）→ sx,sy,frac,oob
+                                                      │
+                                          fb_bilin（bilin_en 选双线性 / 最近邻）→ fb_rd
+                                                      │
+   图卡 test_card（PL 现场画，吃同一份 sx,sy）───────► pix_raw = oob ? 黑 : (fb_vis ? fb_rd : 图卡)
+                                                      │
+                    ┌─────────────────────────────────┴──────────────────────────────┐
+                    ▼ 原图抽头                                                        ▼ 处理抽头
+        raw_line_delay（4 行环，17 位含 oob 标签）                    proc_pipeline（stage_sel[8:0]，15 拍）
+                    │ 再串 PROC_LAT 拍 skid                              │ 再打一拍
+                    └────────────────────────┬───────────────────────────┘
+                                             ▼
+                    split_display 逐像素二选一（缝位来自 split_ctrl，图像域时由 seam_src 判定）
+                                             ▼
+                                osd_overlay（5 行）──► rgb2dvi ──► TMDS 1024×600
 ```
 
-### 2.1 关键设计点
+`src/rtl/top/pl_video_top.v:266-273` 是"整屏一个视口"那段：1024 个显示列对应 512 个源列、
+600 个显示行对应 300 个源行，左右两半从此共用同一份源坐标，`left_pane` 只剩调试用途。
 
-| 点 | 说明 |
-|----|------|
-| FB 单口读 | 左右窗扫描时间不重叠，按 `left_pane` 选择地址 |
-| 延迟对齐 | mapper 3 拍 + rd_addr 1 拍 + BRAM 1 拍 + proc **15 拍**（顶层只取 `u_pipe.LATENCY`，不许再数一遍）；sideband 延到匹配 |
-| 效果位置 | **右窗缩放后数据流**；左窗始终原图，便于对比 |
-| 缩放 | 原始尺寸为最大（1.0×），自动缩小再回到原始；OOB 黑边 |
-| line_cache | 旧「左扫效果→右读行缓」路径已废弃，不再接入 top |
+## 2. 时钟与复位
 
----
-
-## 3. PL 以太网协议栈
-
-```
-RGMII (IDDR/IDELAY, IDELAY=15)
-    → gmii_to_rgmii
-    → arp_rx / arp_tx
-    → icmp_rx / icmp_tx   ← 载荷走自写 sync_fifo
-    → udp_rx / udp_tx
-    → eth_ctrl            ← 发送仲裁（v7.9 起：要求"两路都空闲"+ `arp_pend` 记账，见 ISSUES #37）
-    → frame_reasm         ← [u32 LE offset][RGB565]
-    → dc_fifo (eth_rxc→axi_clk) → BRAM 写
-```
-
-`eth_ctrl` 这条仲裁规则的原文是 `arp_rx_flag && (udp_tx_busy==0 || icmp_tx_busy==0)`，
-语义是"**任一**空闲"⇒ 会在别人帧中间切 mux；v7.9 改成"全部空闲"并给一拍宽的请求补了记账位。
-KU5P 侧同一位置换成了自研 `ku5p_tx_arb`（只认当前 owner 的 `done`）。判据：`sim/tb_ku5p_tx_arb.v`。
-
-跨钟：`dc_fifo` Gray 码指针 + 双级同步；同钟：`sync_fifo`。均为 **RTL 手写**，非厂商 FIFO IP。
-
----
-
-## 4. 时钟
-
-| 时钟 | 频率 | 来源 | 用途 |
+| 时钟 | 频率 | 来源 | 谁用 |
 |------|------|------|------|
-| sys_clk | 50 MHz | 板载 W17 | MMCM 输入、按键 |
-| clk_pix (clkout0_1) | 50 MHz | MMCM OUT0 | 像素、效果、HDMI |
-| clk_pix5x | 250 MHz | MMCM OUT1 | TMDS 5× |
-| clk_200m | 200 MHz | MMCM OUT2 | IDELAYCTRL |
-| axi_clk / clk_fpga_0 | 100 MHz | PS FCLK0 | AXI、GPIO、HP0 |
-| eth_rxc | 125 MHz | PHY2 | RGMII 收包 |
+| `sys_clk` | 50 MHz（周期 20 ns，引脚 W17） | 板载振荡器，`src/constraints/rk_zynq7020.xdc:5-6` | MMCM 输入、按键、FPS 计数 |
+| `clk_pix` = `clkout0` | 50 MHz | MMCM CLKOUT0 ÷20，`src/rtl/clocks/clk_gen.v:21` | 栅格、映射、特效链、混合、OSD |
+| `clk_pix5x` = `clkout1` | 250 MHz | MMCM CLKOUT1 ÷4，`clk_gen.v:24` | TMDS 串化（`rgb2dvi`） |
+| `clk_200m` = `clkout2` | 200 MHz | MMCM CLKOUT2 ÷5，`clk_gen.v:27` | IDELAYCTRL 参考 |
+| `axi_clk` = `clk_fpga_0` | 100 MHz | PS FCLK0，`system_top.v:82` | AXI 读写、GPIO、两个搬运引擎 |
+| `eth_rxc` → `gmii_rx_clk` | 125 MHz（引脚 Y19，`rk_zynq7020.xdc:20,36`） | PHY2 RGMII，经 BUFG | 整个收包协议栈 + frame_reasm |
 
-MMCM：VCO=1000 MHz（50×20），÷20 / ÷4 / ÷5。
+MMCM 是 `MMCME2_BASE`，VCO = 50 × 20 = 1000 MHz（`clk_gen.v:15-31`）。`pl_video_top` 与
+`system_top` 各例化一只 `clk_gen`（`pl_video_top.v:150`、`system_top.v:117`），后者只取 200 MHz 那一路。
 
-1024×600：H=1344，V=625；50 MHz 代替 50.25 MHz，误差约 0.5%。
+复位：`rst_pix_n = sys_rst_n & locked`（`pl_video_top.v:154`），MMCM 失锁即整条像素链一起停；
+`axi_rst_n` 用 PS 的 `FCLK_RESET0_N`（`system_top.v:255-258`，这里 `sys_rst_n` 恒接 1'b1）；
+ETH 侧 `rst_n = eth_rst_n & mmcm_locked`（`system_top.v:163`），`eth_rst_n` 由 24 位计数器
+的 bit23 给出，即 2^23 / 50 MHz ≈ 168 ms（`system_top.v:107-111`）。
 
-**约束要点：** `set_clock_groups -asynchronous` 必须用 `-include_generated_clocks sys_clk` 覆盖 MMCM 生成钟，否则 eth→像素钟会被误分析。见 `OPTIMIZATION_LOG.md`。
+跨域做法（按对象分，不搞一套通用IP）：
 
----
+- 单 bit 准静态电平 → 2~3 级 `ASYNC_REG`（`pl_video_top.v:237-246` 缩放使能、`effect_ctrl.v:38-43` 三对同步器）
+- 脉冲 → 先转翻转位、目的域 3 级 + 异拍出沿（`key_long`→`src_mode`、`ps_publish`、`frame_commit_lock.v:111` 的 `abort_tgl`）
+- 宽总线 → `snap_cross`「准静态总线 + 跳变沿」：源域整拍写总线并翻 toggle，目的域等同步沿再采
+  （`system_top.v:202`、`pl_video_top.v:720,941,1061`，契约写在 `src/rtl/eth/snap_cross.v:2-8`）；
+  像素域→axi 域的缩放快照先由 `zoom_snap` 打包并配独立心跳触发器（`pl_video_top.v:699-724`）
+- 16 bit 视频流 eth_rxc → axi_clk → `dc_fifo` 格雷码指针 + 双级同步（BRAM 推断，`eth_udp_video_top.v:293`）
 
-## 5. 带宽与资源
+异步时钟组的声明**不在**功能约束里，单独放 `src/constraints/clock_groups_impl.xdc`，且
+`used_in_synthesis false`（`build_system_axigpio.tcl:24-26`）—— `clk_fpga_0` 由 PS7 IP 自己的 XDC
+创建，综合阶段还不存在。`sys_clk` 那一组必须带 `-include_generated_clocks`，否则 `clk_pix` 会被当成
+独立钟去和 `eth_rxc` 做 setup 分析（该文件 13-17 行）。
 
-| 项 | 数值 |
-|----|------|
-| 一帧 | 512×300×2 = 307200 B |
-| 30 fps 入口 | ≈9.2 MB/s ≈74 Mbps |
-| 显示 BRAM 读 | 307200 B × 60 Hz ≈18.4 MB/s |
-| frame_buffer | 2.34 Mbit（7020 约 4.9 Mbit） |
-| 双缓冲 | 资源不够，未采用 |
-| 优化后占用 | LUT≈20%，FF≈19%，BRAM Tile≈59%，DSP≈6% |
+## 3. 软硬件划分
 
----
+数据面全在 PL：收包、拼帧、写 DDR、读回、帧缓存、几何、特效、混合、OSD、TMDS。
+PS 做三件事：发命令、读计数、把 SD 卡上的帧 DMA 进自己那块 DDR（零拷贝，写完只翻一次发布位，
+`src/ps/sd_play.c:13-20`）。PS 不中转任何 ETH 视频字节。
 
-## 6. 控制字（两只 AXI GPIO）
+| 通道 | 地址 | 方向 | 内容 |
+|------|------|------|------|
+| `axi_gpio_0`（`gpio_o`） | `0x41200000` | PS→PL | 阈值 `[15:8]`、`src_sel[16]`、`zoom_en[17]`、发布位 `[18]`、双线性 `[19]`、片源模式码 `[24:23]`+翻转 `[22]`、lane 选择 `[31:27]`（`src/ps/main.c:47`、`system_top.v:261-289`） |
+| `axi_gpio_2` 通道 1 | `0x41220000` | PS→PL | 九位 `stage_sel[8:0]`、几何控制字 `[22:13]`/`[25:23]`/`[9]`/`[12:10]`/`[30]`/`[31]`、缩放档 `[28:26]`、手动旗标 `[29]`（`main.c:71-72`、`system_top.v:265-272`） |
+| `axi_gpio_2` 通道 2 | `0x41220000 + 0x08` | PS→PL | gamma 表窗口 `{en,wr,data[29:22],idx[21:14]}` + 只给 OSD 的 `gamma_disp`/温度（`main.c:90`、`pl_video_top.v:32-34`） |
+| `axi_gpio_1`（`GPIO_1_tri_i`） | `0x41210000` | PL→PS | 32 位状态窗口，**命令写 gpio_o、状态读这一只**（`build/tcl/build_system_axigpio.tcl:189,202`） |
 
-`0x41200000` = `gpio_o`（老那 32 位；PS 每次控制都**整字**重写）：
+状态通道是"先写 lane 号再读一个字"的窗口：lane 号取 `gpio_o[31:27]`，读回 `gpio1_i`。
+lane0~9 是链路健康计数（`src/rtl/eth/link_monitor.v:212-221`），lane23 是像素域真正在用的缩放
+状态，lane24~29 是时延快照，lane30 是仲裁输入，lane31 是 ETH 时基健康（`system_top.v:233-242`）。
+`lat_arm` 就是"lane 指到 25"这一拍，用来把五个时延字同时抄进一份自洽快照（`system_top.v:232`）。
 
-```
-bit[4:0]   保留，恒写 0 —— V7 的 effect_en 五位于 2026-09-26 从 RTL 删净，PL 侧已无读者
-           （位还占着：set_src.tcl / health_read.mjs 按位写这只字，重排等于把老工具全判红）
-bit[15:8]  threshold
-bit[16]    src_sel     0=图卡  1=视频
-bit[17]    zoom_en     右窗呼吸缩放的开/关（V7.7 起不再是 RTL 里的常数 1'b1）
-bit[18]    ps_publish  片源发布的翻转位
-bit[19]    bilin_en    右窗双线性 / 最近邻
-bit[24:23] 片源模式码、bit[22] 它的翻转位（`src 0|1|2` 钉住哪一路）
-bit[26]/[31:27] 由观测工具写（gapclr / lane 选择）⇒ PS 一重写就被抹掉，见 PLAN §7a 规矩②
-```
+## 4. 关键常数
 
-`0x41220000` = `gpio_cfg1`（V8 的新字）：**效果链只有一套口径 = 九位 `stage_sel`**（一位一级，
-串口 `pipe <九个 0/1>` 写的就是它），同字 `[28:26]/[29]` 是缩放档与手动旗标、`[22:13]` 等 19 位是几何；
-通道 2（`+0x08`）是 gamma 窗口 + 只给 OSD 看的 `gamma_disp` 与温度。
+| 常数 | 值 | 出处 |
+|------|----|------|
+| 源（帧缓存）尺寸 | 512 × 300，RGB565，一帧 307200 B | `pl_video_top.v:6-7`、`src/rtl/eth/frame_reasm.v:14-16` |
+| 显示尺寸 / 时序 | 1024 × 600，H_TOTAL 1344、V_TOTAL 625，像素钟 50 MHz 代 50.25 MHz | `src/rtl/video/video_timing_1024x600.v:2-4,17-20` |
+| 视口映射 | 1 源列 = 2 显示列（`cx = x>>1`）、1 源行 = 2 显示行 | `pl_video_top.v:272-273` |
+| 效果链延迟 `LATENCY` | 15 拍（1+1+3+3+3+1+3），与旁路组合无关 | `src/rtl/process/proc_pipeline.v:26-28,44` |
+| 效果链内容滞后 `OFF_LINES` | 4 行（四个窗口级各 −1） | `proc_pipeline.v:45-52` |
+| 混合域 `MIX_D` | 3 + 1 + 1 + LATENCY = 20（顶层只从 `u_pipe.LATENCY` 取） | `pl_video_top.v:368-369` |
+| 原图行延迟环 | 深 = `u_pipe.OFF_LINES` = 4 行、宽 `W = 2*IMG_W` = 1024、位宽 17（像素+oob 同环） | `pl_video_top.v:841,848` |
+| 双线性额外行 `BILIN_ROWS` | 2 显示行（乒乓读口一对结果下一对才读得到），必须为偶数 | `pl_video_top.v:285-292` |
+| 缝判定抽头 `SEAM_TAPS` | `MIX_D + 1 - 3` = 18 | `pl_video_top.v:968` |
+| 缩放范围 | `INV_LO`=256（1.0×）↔ `INV_HI`=512（0.5×），`STEP`=2，三角波按帧走 | `pl_video_top.v:340`、`zoom_ctrl.v:3-8` |
+| 手动档 / 拟合档 | 八档表按 `inv_used` 分界（900/644/427/299/224/182/150）；`fit_en` 时 inv 由角度定 | `src/rtl/process/zoom/zoom_ctrl.v:66-72`、`zoom_fit.v:2-7` |
+| 端口 / 地址 | UDP 5001、板 MAC `00:11:22:33:44:55`、IP 192.168.1.10 | `system_top.v:145,158-159` |
+| DDR bank | ETH 乒乓 `0x1000_0000` / `+0x0008_0000`；PS 专用 `0x1010_0000` | `src/rtl/eth/eth_udp_video_top.v:64-65`、`pl_video_top.v:9,15` |
+| 消隐拷贝窗口 | `disp_quiet` 从第 600 行起、末行只到 `x ≤ 1279`；判超用的门限 67200 个 axi 拍 | `pl_video_top.v:415-419,465-470` |
+| 片源看门狗 | PS 心跳超时 500 ms；ETH 让位静默 2×10^6 个 axi 拍 = 20 ms | `pl_video_top.v:440,613` |
+| 链路存活判据 | `LIVE_MS` = 200 ms @125 MHz（`stall_ms < 200` 即 lane7.bit3） | `eth_udp_video_top.v:279-281`、`system_top.v:252` |
+| 按键 | 消抖计数 10^6（20 ms）；长按 3×10^7 = 0.6 s，松开臂 10^7 = 0.2 s | `pl_video_top.v:158-171` |
+| RGMII 输入延迟 | `IDELAY_VALUE` = 15（FIXED 抽头，参考 200 MHz） | `system_top.v:160`、`src/rtl/eth/rgmii_rx.v:68-71` |
+| OSD 版式 | 5 行（`N_LINES`）、5×7 字模 ×3 放大（18×21）、每行 32 格、起点 (16,12) | `src/rtl/video/osd_overlay.v:37-50` |
 
-⇒ `effect_ctrl` 没有第二个入口、也没有"新字为 0 时顶上老五位"那道合流，OSD 的 `Pipe:` 那一格与
-    `proc_pipeline` 吃的是**同一个** `stage_sel`（理由与退役过程写在 `effect_ctrl.v` 文件头）。
+## 5. 改哪里要看什么
 
-勿用 EMIO：本板 bank2 读回恒 0。
+`build/gates.sh` 里被 md5 钉住的台架只有两个：**第 15 项**认 `build/tb_v98_report.txt` 头部的
+`top_md5`（`src/rtl/top/pl_video_top.v`）、`rtl_md5`（整棵 `src/rtl` 的合指纹）与 `tb_md5`
+（`sim/tb_v98_top_seam.v`）三枚，缺一即红（`build/gates.sh:261-291`）；紧随其后的 **15b**
+同样认 `sim/tb_edge_rim.v` 与同一枚 RTL 合指纹（`gates.sh:296-323`）—— 改过 `src/rtl` 里任何一个文件，
+这两份报告在复跑之前门禁都是红的。
 
----
-
-## 7. 无极缩放
-
-```
-inv_scale Q8: 256=1.0×（最大） ↔ 512=0.5×（最小）
-每帧 STEP=2，三角波循环
-
-无旋转:
-  sx = W/2 + ((x-W/2)*inv)>>8
-  sy = H/2 + ((y-H/2)*inv)>>8
-
-有旋转: 在缩放偏移上再套 rotate_mapper 的 Q8 公式
-```
-
-`zoom_ctrl` 按 `frame_start` 更新；`zoom_mapper` 3 级流水，与 rotate 同拍对齐。
-
----
-
-## 8. 旋转
-
-同前版：Q8 sin/cos ROM，逆映射，`cos(0)=256` 不可饱和为 255。可与缩放叠加。
-
----
-
-## 9. 自写 FIFO / OSD
-
-| 模块 | 文件 | 要点 |
-|------|------|------|
-| sync_fifo | `src/rtl/eth/sync_fifo.v` | 同钟；存储无异步复位，`ram_style=block` |
-| dc_fifo | `src/rtl/eth/dc_fifo.v` | 跨钟 Gray；打包 `{1'b0,addr[18:0],data[15:0]}` |
-| osd_overlay | `src/rtl/video/osd_overlay.v` | 五行（FPS/Src/Pipe/Th/Gamma/Rot/Zoom/Split/Latency/Temp），3× 字模，空格空白字模；`Pipe:` 那一格由 `stage_sel[8:0]` 组合 |
-
----
-
-## 10. 模块文件对照
-
-| 模块 | 文件 |
-|------|------|
-| 系统顶层 | `src/rtl/top/system_top.v` |
-| 视频顶层 | `src/rtl/top/pl_video_top.v` |
-| ETH 顶层 | `src/rtl/eth/eth_udp_video_top.v` |
-| 缩放 | `src/rtl/process/zoom/zoom_ctrl.v`, `zoom_mapper.v` |
-| 旋转 | `src/rtl/process/rotate/*` |
-| 效果 | `src/rtl/process/proc_*.v` |
-| FIFO | `src/rtl/eth/sync_fifo.v`, `dc_fifo.v` |
-| 约束 | `src/constraints/rk_zynq7020.xdc` |
-| 构建 | `build/tcl/build_system_axigpio.tcl` |
-
-## 11. 异常处理一览（答辩那一问的标准答案，每一行都指着做过的判据）
-
-> 这一节的规矩只有一条：**没有凭据的"我们做了容错"不写**。
-> 2026-09-27 对本节做过一次逐条回读（13 行引用的 11 个台架、2 个 host 脚本、3 处 `build/` 路径
-> 全部存在，且那 11 个台架都在 r75 的 L1 全量里判绿）。复跑口径就是这两条：
-> `grep -c "RESULT tb_… PASS" build/evidence_r75/r75_l1_regress.txt`（每个名字至少 1）
-> 与 `ls sim/tb_….v src/host/….mjs build/evidence/r71_*.txt`。
-> 每条都写"谁检测 / 系统做什么 / 人在屏上或串口看到什么 / 哪份判据钉住它"。
-> 三条总原则贯穿下表：① **没有可信数据就宁可不画**（画 `--`，绝不画 0）；
-> ② **被拒绝的命令不许改任何状态**（`#67` 的规矩，改状态就是"设了没反应"那一族）；
-> ③ **屏上写的永远是屏幕上真的那一回事**（标签跟着 mux 走，不跟意愿走，`ISSUES` #55/#66）。
-
-| 失效模式 | 谁检测 | 系统行为 | 看得见/读得到 | 凭据 |
-|---|---|---|---|---|
-| 网线拔了 / 推流停了 | `eth_live` 翻转位 → 像素域三级同步 → `no_sig` | 帧缓存保留最后一帧但**明说是旧的**，并把屏幕交回下一路 | OSD 第五行 `ETH IS NO SIGNAL`；`stat` 里 `src=` 与屏上一致 | `tb_link_monitor`、lane0/lane2、`tb_osd_lines` T9（那句里每个字母都要有字模） |
-| PS 片源不再发布（拔卡 / 读错 / 固件卡住） | PL 的 `src_life` 看门狗：500 ms 没见到发布位就当没片源 | 交回仲裁 → 落到下一路（SD 或图卡） | 串口 `[SRC] PS 停心跳：片源不可信（拔卡 / 读错），画面交回仲裁`；≤0.5 s 换画面 | `tb_v102_src_life`（S12 钉 PS 100 ms : PL 500 ms 的 1:5 比例）、`build/evidence/r71_remount_probe.txt` |
-| SD 读**失败**（不是"命令被拒"） | 固件 `ps_source_lost()` | 收回"我要当片源"的意愿；**被拒绝的命令绝不走到这一步** | `sd=`/`playing=` 变 0，`frames=` 停住 | `ps_hb_check` 约定 + 97 条电池（跑完必须回初态） |
-| 半行残包（脚本发断 / 终端抖 / 发一半） | 固件收包侧对残包计数并丢弃 | 不把残包当帧提交，`frames=` 不骗人 | `stat` 里 `bad`/残包计数；屏不闪 | `main.c` 残包那一段（#94 同族）+ `ps_hb_check.mjs --self` |
-| 命令语法/单位不对（`pipe` 给五位、`gamma auto` 给小数） | 解析层显式分类拒绝 | **不改任何寄存器**，并回一句"等价写法是什么"（九位那一串按 LSB-first 回显，与解析同一侧） | `[CMD!]` / `[PIPE] 只收 **九位** … 等价的九位是：pipe XXXXXXXXX` | `pipe_len_check.mjs`（B 段：gcc 现编现跑 26 用例）、`uart_cmd_check` 对应三条 |
-| 数值越界（`fps=200`、`lat_ms=5000`、`zoom` 出 0.01x–4.00x） | 硬件侧饱和 / 固件侧不认 | 屏上画饱和值（99 / 999）**不回卷成小数**；越界的倍率直接拒 | OSD 那两位数字；`[ZOOM] 不认的参数…` | `tb_osd_lines` T2（含 T2h 的 999 饱和）、`main.c` 的 `0.01x…4.00x` 边界 |
-| 没有可信测量（时延没测到、温度没读到） | `lat_ok` / 温度两位 BCD 半字节是否都 ≤9 | **画 `--` 而不是 0**（"没数"与"数是 0"是两件事） | `LATENCY:--MS`、`TEMP:--`（上电到 PS app 起来之前一直是 `--`） | `tb_osd_lines` T7d、T15（256 个编码全扫 + 100/156 陪跑数） |
-| 像素时钟失锁（面板没插 / MMCM 没锁） | `locked` | `rst_pix_n = sys_rst_n & locked` ⇒ **不放像素也不输出半帧** | 黑屏 + LED0 心跳停（一眼就知道是链路不是算法） | `pl_video_top.v:148-154`，`board/README.md` 第 1 步 |
-| 帧还没写完就提交 | `frame_commit_lock`：只在消隐安全窗口 `blank_safe` 原子切 bank | 屏上永远不会出现"上半新下半旧"的帧 | 肉眼：无撕裂；机器：`frames=` 单调 | `tb_v57_rdw_copy`、`tb_v5_gated`、`tb_v5_copy`、`tb_v57_first_ar` |
-| 几何出画（缩放/旋转后越界那一圈） | 视口映射产生 `oob`，**与像素同过一次行环**（#92 第三笔） | 回黑，且黑的是它自己那一格那一行 | `tb_v98` 的 C1/C3（出界/行首尾跳过格数） | `tb_v98_top_seam`、`tb_v100_raw_delay` |
-| 行缓存读地址越界（行尾多跳那一拍 `x` 已在 porch） | `x_rd` 钳到末列（clamp-to-edge） | 补跳那一拍读到的是末列本身 ⇒ 复制边像素，不是读到别的列 | `ID blur/…: off-col samples=0/896` | `tb_v89_align`、`tb_rotate_window`（一拍一像素那种激励下不许误判行尾） |
-| 重编 PL 把 PS 的 AXI 打悬（`DAP 0xF0000021`） | 流程性：刷之前先停 app | 恢复 = `rst -system → ps7_init → program_pl → ps_app_reload`（约 90 s，不必断电） | 串口/寄存器读数 | `build/evidence/r71_after_recover.txt`、`build/tcl/README.md` §2 |
-| 同一张卡重复 `sd remount` | 控制器不能二次初始化 ⇒ **诚实报错**而不是假装成功 | `[SD] remount failed: …`，恢复仍走 JTAG 三件套 | 串口那一句 | `build/evidence/r71_remount_probe.txt`（演示顺序"拔卡放最后"就是它定的） |
+| 改动位置 | 先看哪个台架 | 门禁关系 |
+|----------|--------------|----------|
+| `top/pl_video_top.v`、`top/system_top.v` | `tb_v98_top_seam`（唯一例化顶层的台架，一趟 40+ 帧） | 第 15 项认它的报告；第 14 项 `build/check_ports.py` 当场判端口名/悬空输入/位宽 |
+| 四个窗口级（`proc_box_blur`/`sharpen`/`sobel`/`morph`） | `tb_v89_align`（位置）、`tb_edge_rim`（边缘内容）、`tb_v92_seam_bleed` | 15b 认 `tb_edge_rim` 的报告与四条圈的覆盖地板 |
+| `proc_pipeline` 的级数 / `LATENCY` | `tb_v86_pipe_sel`（实测 de_in→de_out 与声明值对账） | 顶层 `MIX_D`、`PROC_LAT` 都从它推，改一次三处跟着动 |
+| `fb_bilin` / `bilin_lerp` / `frame_buffer_w64` | `tb_v101_fb_bilin`、`tb_bilin_lerp`、`tb_fb_roundtrip` | 经 15 项的 `rtl_md5` 生效 |
+| `raw_line_delay` | `tb_v100_raw_delay` | 同上 |
+| `split_ctrl` / `split_display` / `seam_src` | `tb_v93_split_ctrl`、`tb_v97_seam_scan` | 缝的最终凭据是 15 项的 `tb_v98` C1~C3 |
+| `zoom_ctrl` / `zoom_fit` / `zoom_mapper` / `zoom_snap` | `tb_v94_zoom_sel`、`tb_v100_fit_rot`、`tb_v96_zoom_scan`、`tb_v95_zoom_snap` | — |
+| ETH 收包链（`gmii_rx_mac`/`udp_rx_parser`/`frame_reasm`） | `tb_v795_rx_fcs`、`tb_v795_rx_chain`、`tb_udp_reasm`、`tb_v50_rows*` | — |
+| DDR 写/读与提交（`axi_frame_saver64`/`ddr_bank_commit`/`frame_commit_lock`/两个 writer） | `tb_v6_pingpong`、`tb_v6_tail_bank`、`tb_v6_vblank_copy`、`tb_v5_lock`、`tb_v79_abort_toggle` | — |
+| 片源仲裁与心跳（`src_arb`/`src_mode`/`src_life`/`ps_publish`） | `tb_v796_src_arb`、`tb_v82_src_mode`、`tb_v102_src_life`、`tb_ps_publish` | 第 16 项 `ps_hb_check.mjs --self` 管固件那半边的约定 |
+| `osd_overlay` | `tb_osd_lines`、`tb_v794_osd_glyph` | — |
+| `link_monitor` / `snap_cross` | `tb_link_monitor` | — |
+| 手写文档的编码、"把旧构建念成当前" | 无需台架 | 第 17 项 `doc_enc_check.mjs`、第 18 项 `doc_currency_check.mjs`、第 19 项排练脚本比对 |
+| 约束、CDC 结构 | 无需台架 | 第 1~11 项读 Vivado 报告；第 6 项按 `build/CDC_BASELINE.txt` 的**配对集合**判，新增配对或 unsafe 增长即红 |

@@ -682,7 +682,6 @@ static void cmd_fill(void)
     Xil_DCacheFlushRange(FRAME_ADDR, FRAME_BYTES);
     ctrl_set_src(1);
     ps_publish();       /* 新协议：PL 只在收到发布脉冲后才搬一次 */
-    xil_printf("[CMD] FILL diagnostic via PS DDR\r\n");
 }
 
 static void cmd_src(int n)
@@ -1273,7 +1272,7 @@ static int dispatch(char **tk, int nt)
                 sd_status();
             } else {
                 xil_printf("[SD] remount failed: %s\r\n", sd_err());
-                xil_printf("[SD] 若卡已经在座：SD 控制器停在半途传输里，只能断电重插（见 ISSUES #45/#94）\r\n");
+                xil_printf("[SD] 若卡已在座：先等 2~3 秒让自动重挂试一轮；仍失败会由下一行说明是哪一步\r\n");
             }
             return 0;
         }
@@ -1499,7 +1498,7 @@ int main(void)
     xadc_init();
 
     xil_printf("[BOOT] UDP RX is in PL (RGMII PHY2). PS is control + SD playback.\r\n");
-    xil_printf("[BOOT] uart115200，V8 语法见 help；旧写法仍可用（SRC0/TH80/ZOOM1/00111…）\r\n");
+    xil_printf("[BOOT] uart115200，命令表敲 help；效果控制字是 9 位（pipe 010000000）\r\n");
 
     /* 上电自动挂载 + 起播：不需要任何人敲命令，屏幕就有画面。
      * 与仲裁的分工要写清：自动播放只让 PS 这一路"有货"；屏幕归谁仍是 PL 的 src_arb 决定，
