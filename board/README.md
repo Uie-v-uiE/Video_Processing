@@ -1,10 +1,10 @@
-# Board bring-up（板上现在是 **r78**：bit `a0bbe1c8e857` / elf `926565342970`，17:2x 由"先停片源→ps_jtag_boot→vivado program_pl→reload"三件套上板；**r79 已构建并过 19/20 门禁**（bit `b0cf32570500`，唯一红项 = 第 15 项 `C5c` = #98 帧头，凭据 `build/evidence/r79_gates_red_C5c.txt`），**等用户看完屏再刷**——历史备注：r77 是 bit `947847c7b81a` / xsa `bf10fd408bab` / elf `926565342970`，10:55 构建、11:17 三件套上板、11:19 `board_verify PASS`；13:09 只换了 elf（#94 的"自动重挂那道门从来没开过"修好了，见下面第 31 行与 `report/ISSUES.md` #94 追加），13:09 `board_verify PASS` 判红 0 步；**尚未冻结** —— 门禁 20 项里第 15 项红着，红在 `C5c`：绕回之后屏顶四行画的是源行 1（改之前画的是源行 299），**只差一行但还没到定义** ——
+# Board bring-up（板上现在是 **r80**：bit `1906b6764ae4` / elf `926565342970`（elf 未变），23:0x 由「ps_jtag_boot → vivado -mode batch program_pl → ps_app_reload」三件套上板，凭据 `build/evidence/r80_flash.log`；门禁 **19/20**，唯一红项 = 第 15 项 `C5c`(#98) ⇒ **r80 不冻结**，见 `build/evidence/r80_gates_red_C5c.txt`
 16:3x 用 `tb_v98` 新加的 **P98 探针**量到了机制（环入口摆的内容比 mapper 的请求晚一整"读口对"，
 所以写进 4..7 号槽的是 `299,299,0,0` 而帧头要 `0,0,1,1`），改法是一行（窗提前 2 行 + 取模量 301→300），
 排在 r78 的第一笔；细节与凭据：`report/ISSUES.md` #98 结案段 + `build/evidence/r77_p98_headfeed_probe.txt`。最近一套"全绿并冻结"的仍是 `build/evidence_r75/`。这份文件本身从 V6 一路用到现在）
 
 **今天该看哪里**：
-- 板子上跑的是 **r78**（名片是 `build/system.bit` 的 md5 `a0bbe1c8e857` + `build/ps_app.elf` 的 `926565342970`；认 md5 不认文件名）。**r79 = `b0cf32570500` 已构建、门禁 19/20（红的那一项就是 `C5c`/(#98)），刷不刷由用户当场决定**（他正在按 `board/HANDS_ON.md` 逐条看屏，中途换比特会把他的对照打断）。
+- 板子上跑的是 **r80**（名片是 `build/system.bit` 的 md5 `1906b6764ae4` + `build/ps_app.elf` 的 `926565342970`；认 md5 不认文件名）。r80 只有两处内容：`raw_line_delay` 行首那一格的预读（#102 第一刀，模块级变异对照 + 顶层 C8a/C8b 各 1178 格 0 不符）与台架/文档。**第一跑位流时序红了（WNS −0.276 / 73 端点，全在 `u_eth/u_cdc` 那一锥）没有烧**，换 `IMPL_STRATEGY=Performance_Explore` 重建成 WNS +0.066 / WHS +0.056 / 失败端点 0 —— 引用它时请带上「同一网表换策略重掷」这句（#46/#57）
   **最近一套"全绿 + 冻结"仍是 `build/evidence_r75/`** —— r76/r77 都没有冻结，因为它们各自的门禁里
   都有一项红（r77 红在 `C5c`，见本文件第 1 行那句与 `report/ISSUES.md` #97 追加七）。
   门禁项数从昨晚的 19 涨到 **20**（新加的第 15b 项 = 边缘条带凭据 `build/tb_edge_rim_rNN.txt`，
