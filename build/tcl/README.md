@@ -44,7 +44,17 @@ set VIVADO=D:\Software\Vivado\2025.2.1\Vivado\bin\vivado.bat
 `report/OPTIMIZATION_LOG.md` §5 那次"实现策略扫描"用的工具，那一份 A/B 对比脚本
 （`build/wip_r65_ab.sh`）已经退役，扫描结论本身在 OPTIMIZATION_LOG 里。
 
-## 4. 仿真
+## 4. 一次性修复脚本（别当模板抄）
+
+`apply_cdc_report.tcl`、`fix_bd_and_top.tcl`、`rebuild_opt.tcl`、`rebuild_zoom_out.tcl` 这四条
+当年只修某一个版本的 BD/顶层，没有任何脚本或现行文档调用它们，留在这里只为可追溯；
+`rebuild_cdc_fix.tcl` 在 `report/BUILD.md` 里被点名，所以也留着。**新工作不要基于它们改。**
+
+`uram_presence.tcl` / `uram_probe.tcl` / `uram_sites.tcl` 是"7 系列有没有 URAM"那次探针
+（结论：没有），`build/uram_probe/` 这条路径被 `src/host/doc_enc_check.mjs` 的白名单写死，
+所以**不能整目录删掉**。
+
+## 5. 仿真
 
 `sim/run_one.sh <tb名>`（xvlog + xelab + `xsim -R snap`，单台架，编译清单与全量同口径，
 并在**编译前**记 `top_md5`/`tb_md5`/`rtl_md5` 三枚指纹 —— 门禁第 15 项就靠它把报告与树绑在一起）；
