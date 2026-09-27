@@ -1,8 +1,7 @@
-[CTRL] AXI_GPIO=0x000F5008 sel=010 thr=80 src=1 zoom=1 pub=1 bilin=1
-[CTRL]   zoom_step=4 1.00x (????????????)
-[SRC] ?????? src_sel=1???**??????**?????? mode ????????????V8-2??????????????? AUTO ????????????????????????
-[STAT] ctrl en=08 thr=80 src=1 zoom=1 bilin=1 zsel=4 zman=0 pub=0 sd=1 frames=4398 playing=1 sel=010 gm=0.00 (PL owns UDP datapath)
-[SD] frame 578: last 100 frames 29.362 fps (since play 29.521)
-[SD] frame 678: last 100 frames 29.999 fps (since play 29.521)
-[SD] frame 778: last 100 frames 29.999 fps (since play 29.521)
+STAT
+
+[STAT] ctrl thr=80 src=1 zoom=1 bilin=1 zsel=4 zman=0 pub=1 sd=1 frames=4398 playing=1 sel=000 gm=0.00 (PL owns UDP datapath) mode=0 geom=00400000
+[SD] frame 1400: last 100 frames 29.974 fps (since play 29.846)
+[SD] frame 1500: last 100 frames 29.740 fps (since play 29.837)
+[SD] frame 1600: last 100 frames 29.482 fps (since play 29.822)
 
