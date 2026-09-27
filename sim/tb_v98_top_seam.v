@@ -1214,7 +1214,7 @@ module tb_v98_top_seam;
     //   没有 C9b，C9a 的零可能只是探测器瞎了。
     localparam integer C9_SEAM = 512;
     integer c9_blk[0:1023], c9_rows = 0, c9_col = 0, c9_de_d = 0, c9_k = 0, c9_any = 0;
-    integer c9_worst = 0, c9_wcol = -1, c9_best = 0, c9_bcol = -1;
+    integer c9_worst = 0, c9_wcol = -1, c9_best = 0, c9_bcol = -1, c9_border = 0;
     reg    c9_on = 1'b0;
     always @(posedge dut.clk_pix) begin
         if (dut.de_o && !c9_de_d) c9_col = 0;
@@ -1581,8 +1581,34 @@ module tb_v98_top_seam;
              "this window must have judged nearly the whole frame, else C9a below is a green on an empty set");
         line("C9a no full-height black column with gray on and seam mid", c9_worst * 2 < c9_rows,
              "the line the user reported at 23:3x: no column inside the picture may be majority near-black");
-        line("C9b positive control - some column is almost all bright", c9_best * 4 < c9_rows,
-             "the detector can see bright pixels, so C9a's zero is not blindness (pair criterion)");
+        line("C9c columns at the seam are not black either",
+             (c9_blk[C9_SEAM-1] * 2 < c9_rows) && (c9_blk[C9_SEAM] * 2 < c9_rows) &&
+             (c9_blk[C9_SEAM+1] * 2 < c9_rows),
+             "the user says the line appears where the divider passes; the seam's own columns are the suspect set");
+        // ---- C9b：把**同一把尺子**拿到"已知有一条条黑列"的那一档去，它必须数到东西 ----
+        // 原来这一格判的是"最亮列几乎全亮"，而 best 的初值就是 0 ⇒ 探测器全瞎也照样 PASS，
+        // 也就是说 C9a 的那个 0 从来没被证明不是瞎。这一档改成"必须数到黑"（0.50x 有背景带）。
+        for (c9_k = 0; c9_k < 1024; c9_k = c9_k + 1) c9_blk[c9_k] = 0;
+        c9_rows = 0; c9_col = 0; c9_de_d = 0; c9_any = 0;
+        stage_sel  = 9'd5;                    // 灰度 + 模糊：这一档顺带覆盖"窗口级开着"的情形
+        zoom_sel   = 3'd2;                    // 0.50x ⇒ 左右各 256 列黑背景（C4 那一维量过）
+        split_ctl_tb[9:0] = 10'd512;
+        repeat (3) @(posedge dut.frame_start);
+        c9_on = 1'b1;
+        repeat (2) @(posedge dut.frame_start);
+        c9_on = 1'b0;
+        stage_sel = 9'd0;
+        zoom_sel  = 3'd4;
+        split_ctl_tb[9:0] = 10'd0;            // 还回去：后面的 C2/C3/C7 不能被这一档重定基线
+        c9_border = 0;
+        for (c9_k = 1; c9_k < 1023; c9_k = c9_k + 1)
+            if (c9_blk[c9_k] * 2 >= c9_rows) c9_border = c9_border + 1;
+        $display("C9b 0.50x gray+blur: rows %0d near-black cells %0d || whole-dark columns %0d (border should give ~512)",
+                 c9_rows, c9_any, c9_border);
+        line("C9bpre rows judged", c9_rows >= 550,
+             "the control window must have judged nearly a whole frame, else C9b means nothing");
+        line("C9b detector does see known black columns", c9_border >= 100,
+             "pair for C9a: on a cell where a dark column is guaranteed, this same counter must light up");
 
         $display("C2 table  code inv  nin     nout     inbad viol measl measr geol geor leakl leakr blank invbad | C3 rows empt wbad rbad fmin fmax lmin lmax");
         for (c2_k = 4'd0; c2_k < 4'd8; c2_k = c2_k + 4'd1) begin
