@@ -16,6 +16,12 @@
 | `COMMANDS.md` + `../src/host/HOST_GUIDE.md` | 串口/上位机命令的**口径**（含 `pipe` 九位、`gamma auto` 的 γ×100 单位） | 与固件不一致就是缺陷，按 #67 那一族处理 |
 | `BUILD.md` / `BOARD_PINS.md` / `../build/tcl/README.md` | 怎么构建、引脚、跑哪几条脚本 | 刷板是**三条**命令不是一条（见 `build/tcl/README.md` §2） |
 | `AI_COLLABORATION.md` | 人机协作方式与提交物四要素 | 赛题 §3.3 要求的那一份 |
+| `../board/HANDS_ON.md` | **亲手把每个功能过一遍**的清单：每条命令 + 串口该回什么 + 屏上该看到什么 + 看到的若是别的对应哪条已知问题 | 与 `DEMO_SCRIPT.md` 的分工：那份是"演给人看"的顺序，这份是"自己把功能用一遍"。命令逐字取自 `board/cmd_battery_v81.txt`（当前 elf 上 99/99 PASS）与 `COMMANDS.md` |
+
+> **只有一小时读文档的话，按这个顺序读这四份就够**：`BACKGROUND_AND_NOVELTY.md`（做了什么、别人做过什么）
+> → `ARCHITECTURE.md`（怎么分的）→ `PERF_REPORT.md`（数字，成套念）→ `CONTEST_CHECKLIST.md`（赛题逐条对照，
+> 含**没做到的那一节**）。其余都是证据与日记：`ISSUES.md`/`OVERNIGHT_LOG.md` 是过程账，`MODULES.md` 是查表，
+> 不需要顺序读。这一句是 2026-09-27 加的，因为"22 份文档"本身会被当成"没有主线"。
 
 ## 二、判据与凭据在什么地方（要复核任何一个数，先来这里）
 

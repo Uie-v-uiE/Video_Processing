@@ -111,4 +111,12 @@ rot speed 0
 gamma auto
 gamma manual
 gamma off
+# #99：片源锚点必须在**整串的最后**。中段那组 `src auto/0/2/1/auto` 收尾时确实回到了 AUTO，
+# 但它后面还有 `sd`/`sd file 1`（跳段会让 PS 重新发布一帧 ⇒ `ps_hold=1` ⇒ `mode` 就变了）
+# ⇒ 末态那条 STAT 与初态比的是"两个不同的 mode"。r75 之前一直看起来绿，是因为板子的**初态**
+# 早已被上一次电池钉在 ETH 上（初末自然相同）—— 今天 `ps_app_reload` 之后从 AUTO 起步才揭开。
+# 同一条判据还抓到第二处没还回来的：`rot auto 1` 会顺带把缩放切到 fit，而 `zoom fit 0` 不把手动档
+# 还回来（初 zman=1 → 末 zman=0）。所以最后先把"手动 1.00x"钉回去 —— 这也是演示的默认档。
+zoom 1.0
+src auto
 STAT

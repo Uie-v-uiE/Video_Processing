@@ -559,21 +559,23 @@ module tb_v98_top_seam;
                     //   否则整幅画面会在垂直方向错一行。这条与 `MIX_D` 无关（列方向仍是 2 拍）。
                     //   ⚠ 顶层哪天改了 BILIN_ROWS，这里必须同步改 —— 两处都是"设计上的提前量"，
                     //   不是判据松紧。为什么不用字面量算进去再判：那样 C1h 就退化成"期望 = 实测"。
-                    // #97 第四笔之后，"帧底没有行可提前"这件事的**定义**变了：末尾那 OFF_LINES 行不再
-                    //   夹到 299，而是绕回成**下一帧帧头**的请求（0,0,1,1）。期望式子必须带上这一项 ——
-                    //   不带的话这条判据把修好的那几行当成几何错位（10:41 实测：红 1852 格、全在 y_d[2]>=596，
-                    //   而同一轮 C5c 正在往相反的方向红 ⇒ 两把尺子说的是同一件事的两侧）。
-                    //   绕回条件与绕回量都由台架自己按显示行号算（不读 dut.cy_r，那正是被验对象）。
+                    // #97 第四笔 / #98：帧底没有行可提前 ⇒ 请求行是**绕回**的，不是夹到 299。
+                    //   期望式子必须带上这一项 —— 不带的话这条判据把修好的那几行当成几何错位
+                    //   （10:41 实测：红 1852 格、全在 y_d[2]>=596，而同一轮 C5c 正往相反方向红）。
+                    // ⚠ 这一把尺子**跟着设计的定义走**（它就是"mapper 有没有发出这一行的定义行号"），
+                    //   所以 #98 这一笔的凭据**不是它**，而是 C5c（面板级、期望只含 `屏上行>>1`、
+                    //   不含绕回式的任何一项）。把它写在这里是因为上一轮就差点拿 C1h 当凭据自证 ——
+                    //   #78/#88 记过的同一族：例外/期望 keyed 在被验对象上，就永远测不出漏。
                     c1_adv = (dut.y_d[2] + {4'd0, dut.pipe_off_rows[3:0]} + 12'd2) >> 1;
-                    c1_exp = (dut.y_d[2] >= (12'd600 - {4'd0, dut.pipe_off_rows[3:0]}))
-                             ? (c1_adv - (12'd300 + 12'd1))            // IMG_H + BILIN_ROWS/2
-                             : ((c1_adv >= 12'd300) ? (12'd300 - 1) : c1_adv);
+                    c1_exp = (c1_adv >= 12'd300) ? (c1_adv - 12'd300) : c1_adv;   // 绕回 = 减一次 SRC_H
                     c1_gy  = dsub(c1_exp, dut.sy);
-                    if (dut.y_d[2] >= (12'd600 - {4'd0, dut.pipe_off_rows[3:0]})) c1_wrapn = c1_wrapn + 1;
-                    // 期望落在"夹紧那一行"的格数照数给人看，但**不再跳过**：
-                    //   旧写法 `if (dut.sy >= 299) skip` 是拿**被验对象**当例外条件 —— 绕回没生效时
-                    //   sy 恰好还是 299，于是那一格被自己跳掉了，这一族从此修不红（#78/#88 记过的形状）。
-                    if (c1_exp >= (12'd300 - 1)) c1_clamp = c1_clamp + 1;
+                    // 落在绕回窗里的格数（`req ≥ 300` ⇔ `y ≥ 600 − OFF − BILIN`）：地板用，没有它
+                    // 上面那一条退化成"永远走 else"，绿得毫无意义。
+                    if (c1_adv >= 12'd300) c1_wrapn = c1_wrapn + 1;
+                    // 期望**恰好等于末行 299** 的格数：绕回之后 299 仍然是合法行（y_d[2]=592、593），
+                    // 数出来是为了证明"这里没有第二个例外"——旧写法 `if (dut.sy >= 299) skip` 拿被验
+                    // 对象当例外条件，那一族从此修不红（#78/#88）。
+                    if (c1_exp == (12'd300 - 1)) c1_clamp = c1_clamp + 1;
                     if (c1_gy != 0) c1_geom_bad_row = c1_geom_bad_row + 1;
                 end
                 if (c1_dx == 0) c1_zero = c1_zero + 1;
@@ -652,11 +654,31 @@ module tb_v98_top_seam;
     //（30 行全花在 code 4 上，code 5/6/7 只有总数没有形状）。所以差值按档累计，打印也只按档配额。
     integer c2_dm1 [0:7], c2_dp1 [0:7], c2_doth [0:7], c2_ibc [0:7], c2_dd;
     integer c2_tbc [0:7];      // C2TAIL：每档允许摆几行行尾（见下面那段注释）
+    // ---- C7（#102 的尺子）：**同一批采样点上的"行"标签** ----
+    // 为什么 C2 绿着而用户看得见左缘一条线：C2 只比 `mem_col(sel)`（列），C1d 比行但**明确跳过
+    // 源列 < 25 的那一窗**，C6 只看屏上第 0 列的**列**标签 ⇒ "最左若干源列画的是哪一行"今天
+    // **一个数都没有**。用户 09-27 的矩阵（2.0x 看不见 / 0.5–1.0x 存在且宽度随倍率走 / 只在左边 /
+    // 内容与左侧对齐但"有些延迟"）里那句"延迟"说的就是**行**：一列被错行复用，看起来就像边缘
+    // 有一条跟着画面走的细带。所以这一条把行标签补在**与 C2 完全相同的采样窗**上（同拍、同点、
+    // 同一份逆映射表），两把尺子的差别只剩"比的是哪一半位"。
+    // 期望行的来源**不引用顶层的任何补偿项**（`OFF`/`BILIN`/绕回一个都不进）：
+    //   图像行 = (屏上行 >>1)，再按该档 inv 逆缩放。为什么敢这样定：C5b 已经在 1.00x 证明
+    //   "屏上第 Y 行画的就是图像行 Y>>1"（那是面板级、只用引脚建的坐标系），
+    //   而 inv=256 时下面的式子恰好退化成它自己 ⇒ 这一条不是抄 DUT，是把已判绿的那条定义
+    //   沿用到另外七档。若它红了而形状显示"所有列同差一行"，那是**我的复合算错了一档**，
+    //   不是硬件错 —— 所以差值按 ±1/±2 分桶打出来，一眼分得开（同一族教训：#68/#78/#92/#98）。
+    integer c7_rbad [0:7], c7_rn [0:7], c7_rm1 [0:7], c7_rp1 [0:7], c7_rblk [0:7];
+    integer c7_rdc [0:7];                            // 每档允许的原始样本数（全局配额会被第一档吃光）
+    reg  [511:0] c7_rbv [0:7];                       // 坏格的"源列对"位图（哪几列被错行）
+    integer c7_np, c7_f, c7_l, c7_q, c7_dr, c7_er;
 
     initial begin
         for (c2_e = 0; c2_e < 8; c2_e = c2_e + 1) begin
             c2_viol[c2_e]=0; c2_nout[c2_e]=0; c2_nin[c2_e]=0; c2_inbad[c2_e]=0;
             c2_invbad[c2_e]=0; c2_rows[c2_e]=0;
+            c7_rbad[c2_e]=0; c7_rn[c2_e]=0; c7_rm1[c2_e]=0; c7_rp1[c2_e]=0; c7_rblk[c2_e]=0;
+            c7_rdc[c2_e]=0;
+            c7_rbv[c2_e]=512'd0;
             c2_geol[c2_e]=-1; c2_geor[c2_e]=-1; c2_measl[c2_e]=-1; c2_measr[c2_e]=-1;
             c2_leakl[c2_e]=-1; c2_leakr[c2_e]=-1; c2_blank[c2_e]=0;
             c2_ibv[c2_e]=512'd0;
@@ -670,6 +692,20 @@ module tb_v98_top_seam;
             d = (x >> 1) - (512/2);
             p = d * vi;
             c2_exp_col = (((p >= 0) ? (p / 256) : -(((-p) + 255) / 256)) + (512/2));
+        end
+    endfunction
+
+    // C7：同一套逆映射，作用在**行**上。中心与高度都取本 TB 自己的源几何（`SRC_H`），
+    // 与 `zoom_mapper` 里那两条 `IMAGE_H/2` 是同一件事的两处写法（一个是设计、一个是台架的期望）。
+    // 取整方向与 `c2_exp_col` 逐字符相同（向 −∞ 取整），这样"列与行是同一把尺子"这句话在代码上
+    // 就是真的，不是注释里说的。inv=256 时它恰好退化成 `y>>1` —— 那正是 C5b 已经在面板上判绿的
+    // 那一条定义 ⇒ 这一条不是抄 DUT，是把已判绿的定义沿用到另外七档。
+    function integer c2_exp_row; input integer y; input integer vi;
+        integer d, p;
+        begin
+            d = (y >> 1) - (SRC_H/2);
+            p = d * vi;
+            c2_exp_row = (((p >= 0) ? (p / 256) : -(((-p) + 255) / 256)) + (SRC_H/2));
         end
     endfunction
 
@@ -690,6 +726,34 @@ module tb_v98_top_seam;
                 end
             end else begin
                 c2_nin[c2_k] = c2_nin[c2_k] + 1;
+                // ---- C7：与上面**同一拍、同一个采样点**，只是比"行"那一半位（#102 缺的那把尺子）----
+                c7_er = c2_exp_row(dut.y_d[dut.MIX_D], C2_TBL(c2_k));
+                if (c7_er < 0 || c7_er > (SRC_H-1)) begin
+                    // 这一档的画面纵向没铺到这条带 ⇒ 不参与行判定，但**必须数出来**：
+                    // 少了这一位，"C7 全绿"就可能只是"样本集为空"（#78/#94 那一族的第三种死法）。
+                    c7_rblk[c2_k] = c7_rblk[c2_k] + 1;
+                end else begin
+                    c7_rn[c2_k] = c7_rn[c2_k] + 1;
+                    c7_dr = dsub(mem_row(dut.u_split.sel), c7_er[6:0]);   // 位图与 tag 都是 mod 128
+                    if (c7_dr != 0) begin
+                        c7_rbad[c2_k] = c7_rbad[c2_k] + 1;
+                        c7_rbv[c2_k][dut.u_split.x_sel >> 1] = 1'b1;
+                        if      (c7_dr == -1) c7_rm1[c2_k] = c7_rm1[c2_k] + 1;
+                        else if (c7_dr ==  1) c7_rp1[c2_k] = c7_rp1[c2_k] + 1;
+                        if (c7_rdc[c2_k] < 3) begin
+                            c7_rdc[c2_k] = c7_rdc[c2_k] + 1;
+                            // 摆"哪一路抽头错的"：orig 错 proc 对 ⇒ 原图那条环（#98 那一族）；
+                            // 两路都错 ⇒ 错误在进链之前（mapper 的行号或读口的地址）。
+                            $display("C7BAD code=%0d x=%0d y=%0d 解出行=%0d 期望行=%0d 差=%0d | sel=%h take_orig=%b orig=%h(r%0d) proc=%h(r%0d) oob=%b oob_out=%b sx=%0d sy=%0d",
+                                     c2_k, dut.u_split.x_sel, dut.y_d[dut.MIX_D],
+                                     mem_row(dut.u_split.sel), (c7_er & 8'h7F), c7_dr,
+                                     dut.u_split.sel, dut.u_split.take_orig,
+                                     dut.u_split.orig_pix, mem_row(dut.u_split.orig_pix),
+                                     dut.u_split.proc_pix, mem_row(dut.u_split.proc_pix),
+                                     dut.oob, dut.oob_out, dut.sx, dut.sy);
+                        end
+                    end
+                end
                 if (c2_geol[c2_k] < 0) c2_geol[c2_k] = dut.u_split.x_sel;
                 c2_geor[c2_k] = dut.u_split.x_sel;
                 if (dut.u_split.sel !== 16'h0000) begin
@@ -1386,6 +1450,21 @@ module tb_v98_top_seam;
             $display("C2SHAPE code=%0d inv=%0d inbad=%0d badpairs=%0d firstpair=%0d lastpair=%0d dm1=%0d dp1=%0d dother=%0d",
                      c2_k, C2_TBL(c2_k), c2_inbad[c2_k], c2_ib_np, c2_ib_f, c2_ib_l,
                      c2_dm1[c2_k], c2_dp1[c2_k], c2_doth[c2_k]);
+            // ---- C7（#102）：同一点、同一拍，比的是**行**那一半位 ----
+            c7_np = 0; c7_f = -1; c7_l = -1;
+            for (c7_q = 0; c7_q < 512; c7_q = c7_q + 1)
+                if (c7_rbv[c2_k][c7_q]) begin
+                    c7_np = c7_np + 1;
+                    if (c7_f < 0) c7_f = c7_q;
+                    c7_l = c7_q;
+                end
+            $display("C7 row    code=%0d inv=%0d rn=%0d rblk=%0d rbad=%0d badpairs=%0d firstpair=%0d lastpair=%0d dm1=%0d dp1=%0d dother=%0d",
+                     c2_k, C2_TBL(c2_k), c7_rn[c2_k], c7_rblk[c2_k], c7_rbad[c2_k], c7_np, c7_f, c7_l,
+                     c7_rm1[c2_k], c7_rp1[c2_k], c7_rbad[c2_k] - c7_rm1[c2_k] - c7_rp1[c2_k]);
+            line("C7pre sampled", c7_rn[c2_k] > 20000 && c7_rblk[c2_k] < 20000,
+                 "the row ruler needs samples in the SAME window C2 judges (rblk<20000 = 采样带纵向没跑出画面)");
+            line("C7 row matches definition", c7_rbad[c2_k] == 0,
+                 "each sampled cell must decode to the source ROW the definition asks for, all 8 zoom steps");
             line("C2pre inv took", c2_invbad[c2_k] == 0 && c2_nin[c2_k] > 20000,
                  "inv_used must equal the table value, and the code must have been sampled");
             line("C3pre marker off", dut.split_marker_on === 1'b0,

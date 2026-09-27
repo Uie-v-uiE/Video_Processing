@@ -62,21 +62,28 @@ module link_monitor #(
     // ---------------------------------------------------------------- 时基
     reg [DW-1:0] ms_div;
     reg        ms_tick;
-    // 毫秒计数必须 32bit。原来 16bit 让 gap = ms_now − ms_last 在超过 65.5 s 的间隔上
-    // 回卷：2026-09-22 拔线实验实测到 gap_max 停在 34066 ms，那是「真实计数 mod 65536」的
-    // 假数；而 gap_max 是终身保持的，一次长空闲就把它永久污染，之后更大的间隔还会因为
-    // 回卷而读起来更小 —— 两个方向都会说谎。仪表的数字宁可饱和也不许绕回去。
-    reg [31:0] ms32;                          // 自由运行的毫秒计（32bit ⇒ 49 天不回卷）
-    reg [31:0] ms_last32;
+    // ------------------------------------------------------------------ r79 / #46：间隔不再"相减"，改成"直接数"
+    // 旧写法是两个自由跑的 32 位毫秒计相减（`ms32 − ms_last32`）。那个 32 位减法实测站在
+    // **全设计最差 setup** 上：`u_lm/ms32_reg[1] → u_lm/gap_min_reg[10]/CE`，数据路径
+    // 7.323 ns（逻辑 2.699 + 布线 4.624）而预算只有 8.000 ns —— 因为它站在 `eth_rxc`
+    // (125 MHz) 这个域里，而那一拍还要接着做饱和比较与 min/max 比较去生成 CE。
+    // 现在直接数"上一帧到现在过了几个 ms tick"：`gap_cnt` 在 ms_tick 加一、在 frame_done /
+    // gapclr 清零 ⇒ 间隔**躺在寄存器里**，组合只剩"一位判饱和 + 16 位比较"。
+    // ⚠ 顺序一个拍子都没动：先试过"拆两拍"的做法，那时记账与 min/max 全对，但
+    //   `lm_bus` 快照在记账之前就被采走，`tb_link_monitor` 红两条 —— 仪表的读数节拍是
+    //   对外契约的一部分，不许为了时序去挪它。教训写在 `skill/` 的判据盲区那一族里。
+    // 位宽的理由不换：宁可饱和也不许绕回（2026-09-22 拔线实测 16 位回卷把 gap_max 永远
+    // 污染成 34066 ms，且之后更大的间隔读起来反而更小 ⇒ 两个方向都会说谎）。但**不需要 32 位**：
+    // 数到 0x1FFFF 钉住，`gap_new` 见 bit[16] 就报 0xFFFF，语义仍是"至少 65.5 s"，与旧写法同形。
+    reg [16:0] gap_cnt;
     always @(posedge clk or negedge rst_n) begin
         if (!rst_n) begin
-            ms_div <= 0; ms_tick <= 0; ms32 <= 0; lm_hb <= 0;
+            ms_div <= 0; ms_tick <= 0; lm_hb <= 0;
         end else begin
             ms_tick <= 1'b0;
             if (ms_div == TC-1) begin
                 ms_div <= 0;
                 ms_tick <= 1'b1;
-                ms32    <= ms32 + 1'b1;
                 lm_hb   <= ~lm_hb;
             end else begin
                 ms_div <= ms_div + 1'b1;
@@ -98,9 +105,9 @@ module link_monitor #(
     reg        full_d;
 
     wire cdc_rise = cdc_full & ~full_d;
-    wire [31:0] gap_raw = ms32 - ms_last32;
-    // 超过 65535 ms 一律饱和：读数 0xFFFF 的含义是「至少 65.5 s」
-    wire [15:0] gap_new = (gap_raw > 32'h0000FFFF) ? 16'hFFFF : gap_raw[15:0];
+    // 间隔的读数 = 数出来的那个数（见上面 `gap_cnt` 那段）。饱和判断只剩 bit[16] 一位 ⇒
+    // 旧写法里那一整个 32 位比较 `gap_raw > 32'h0000FFFF` 就此消失。
+    wire [15:0] gap_new = gap_cnt[16] ? 16'hFFFF : gap_cnt[15:0];
     // 16bit 字段一旦越过 65535 就饱和而不是回卷：健康数字回卷到 0 会被读成"没问题"，
     // 这是比少报更坏的错。
     wire [15:0] bad16 = (frames_bad > 32'h0000FFFF) ? 16'hFFFF : frames_bad[15:0];
@@ -112,9 +119,15 @@ module link_monitor #(
             drop_words<=0; frames_bad<=0; pkt_err<=0; cdc_ep<=0;
             rows_miss_max<=0; stall_ms<=0;
             gap_last<=0; gap_min<=0; gap_max<=0; gap_sum<=0;
-            have_base<=0; gap_valid<=0; full_d<=0; ms_last32<=0;
+            have_base<=0; gap_valid<=0; full_d<=0; gap_cnt<=0;
         end else begin
             full_d <= cdc_full;
+
+            // 间隔计数器：清 > 帧边界 > 毫秒滴答。三者的优先关系就是语义本身
+            //（"清"之后从 0 重数；帧边界这一拍的值就是上一条间隔，下一拍才归零）。
+            if (gapclr)                      gap_cnt <= 17'd0;
+            else if (frame_done)             gap_cnt <= 17'd0;
+            else if (ms_tick && !gap_cnt[16]) gap_cnt <= gap_cnt + 1'b1;   // 一进 0x10000 就钉住
 
             // 帧间隔统计清零。撤销 have_base 基准，于是下一个 frame_done 只重建基准、
             // 不会把「空闲到现在」折进间隔（与判据 D 同一套道理）。
@@ -134,11 +147,15 @@ module link_monitor #(
             end
             if (frame_err) pkt_err <= pkt_err + 1'b1;
 
+            // 记账**就在 frame_done 这一拍**（读的是上面那个计数器，所以组合深度只有
+            // "一位饱和 + 16 位比较"，比旧的"32 位减法 + 32 位饱和 + 16 位比较"浅两级）。
+            // 与旧写法唯一可辨的差别：ms tick 与 frame_done 同拍时，这一条间隔少计 1 ms
+            //（旧式是"两个自由计数相减"，会把它算进去）。125 MHz 下 tick 每 125000 拍才一次，
+            // 而且这是仪表的 ms 整数读数，不是数据通路 ⇒ 记下，不修。
             if (frame_done) begin
                 stall_ms  <= 0;
-                ms_last32 <= ms32;
-                // 第一个 frame_done 只建立基准（ms_last32），量不出间隔；
-                // 从第二个起才有 gap_last/min/max，否则 min 会被"上电到现在"污染。
+                // 第一个 frame_done 只建立基准，量不出间隔；从第二个起才有 last/min/max，
+                // 否则 min 会被"上电到现在"污染。
                 if (have_base) begin
                     gap_last <= gap_new;
                     gap_sum  <= gap_sum + {16'd0, gap_new};

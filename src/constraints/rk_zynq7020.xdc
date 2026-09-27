@@ -44,7 +44,10 @@ create_clock -period 8.000 -name eth_rxc [get_ports eth_rxc]
 #   （例如 PS7 IP 自己 create 的 clk_fpga_0）并进同一条命令，会让**整条命令空转**、
 #   连带把 eth_rxc/sys_clk 那几组一起废掉，而且现场只留下一句 warning。
 # 验收口径：WHS 应升到 ≥ 0.4（工具真的插了 buffer），WNS 不应当因此变差；两者都记进 gates 的数。
-set_clock_uncertainty -hold 0.500 [get_clocks eth_rxc]
+# r79 试验（2026-09-27）：0.5 那一档工具只做到 WHS +0.051（<0.4 的自定验收）⇒ 再加严到 0.8。
+#   这是**加**要求，不是放松：若这一版关不住时序（出现失败端点），就带着两个数字退回 0.500，
+#   并把"工具在这个布局下垫不到 0.4"记成 #46 的实测结论，而不是悄悄把验收改掉。
+set_clock_uncertainty -hold 0.800 [get_clocks eth_rxc]
 # eth_rst_n 是**输出**（system_top.v:41 `output wire eth_rst_n`，由上电复位计数器驱动），
 # 所以它只能作为 -to 的终点；原先那行 `set_false_path -from [get_ports eth_rst_n]`
 # 每次综合都报 `CRITICAL WARNING [Constraints 18-513] ... -from ... contains no valid

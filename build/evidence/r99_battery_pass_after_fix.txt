@@ -463,3 +463,10 @@ STAT
 [SD] frame 1531: last 100 frames 29.107 fps (since play 29.847)
 === CAPTURE END ===
 
+# #99 结案（2026-09-27 17:2x，板上 r77 / elf 926565342970，串口 COM6）
+# 修法两条：(1) 片源锚点 src auto 挪到整串最后；(2) 结尾补 zoom 1.0 把手动 1.00x 还回来。
+# 判据器 stdout（不在捕获里）三条关键行：
+#   ok   跑完回到初态：thr=80 src=1 zoom=1 bilin=1 zsel=4 zman=1 sel=000 gm=0.00 mode=0 geom=00400000
+#   NOTE 初态 = 文档默认档（zsel=4 zman=1 mode=0 AUTO）=> 上面那条"回到初态"是在默认档上证的
+#   RESULT PASS uart_cmd_check  (99 条命令, 93.9 s, 捕获 board/uart_script_capture.txt)
+# 反例（同一判据在修之前红的话）：见 build/evidence/r99_battery_before_fix.txt 的头部

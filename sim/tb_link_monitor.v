@@ -189,8 +189,17 @@ module tb_link_monitor;
             $display("FAIL clean frames reported bad (aborts=%0d bus=%0d)", aborts, P_FRAMES_BAD);
             errors = errors + 1;
         end else $display("PASS clean frames raise no abort");
+        // r79/#46 的落点说明：这里**不再多等拍**。减法从关键路径上拿掉之后，记账与旧的
+        // `frame_done` 同拍（`gap_cnt` 就是读数），所以判据的时间契约与 r78 完全一致。
+        // （先前的"拆两拍"版本要求多等一拍，那会真的削弱这条判据：晚两拍的错也照样放过。
+        //   那一版被 `lm_bus` 快照的落点顶红，见 `link_monitor.v` 里那段。）
         if (!P_FLAGS[4]) begin
-            $display("FAIL gap_valid clear after 2 frames"); errors = errors + 1;
+            // 红话必须自带几何量：总线侧与寄存器侧同时摆出来，才能一眼分清
+            // "没记账"（寄存器也是 0）与"记了但快照没带上"（寄存器有值、总线没有）。
+            $display("FAIL gap_valid clear after 2 frames | 总线 FLAGS=%b max=%0d last=%0d || 寄存器 gap_valid=%b have_base=%b gap_cnt=%0d gap_max=%0d gap_last=%0d",
+                     P_FLAGS, P_GAP_MAX, P_GAP_LAST,
+                     u_lm.gap_valid, u_lm.have_base, u_lm.gap_cnt, u_lm.gap_max, u_lm.gap_last);
+            errors = errors + 1;
         end else if (!(P_GAP_MIN <= P_GAP_LAST && P_GAP_LAST <= P_GAP_MAX)) begin
             $display("FAIL gap_last=%0d outside [min=%0d,max=%0d]", P_GAP_LAST, P_GAP_MIN, P_GAP_MAX);
             errors = errors + 1;
