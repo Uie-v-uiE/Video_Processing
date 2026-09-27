@@ -21,7 +21,7 @@ split 50
 split video
 split marker 1
 split show
-zoom 2
+zoom 1.5
 bilin off
 bilin on
 bilin show
