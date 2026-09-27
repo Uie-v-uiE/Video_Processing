@@ -58,3 +58,11 @@
 2. **历史句子必须写成"rNN 那天测得 X"**，现状句子必须能指到当前冻结件。
    同一条命令可以自查：
    `grep -rnoE "build/(frozen|evidence|failed)_r[0-9]+[a-z_]*/?[A-Za-z0-9_.]*" report/ board/ | awk -F'_r' '$2+0<74'`
+
+（2026-09-28 02:0x 把上面第 2 条对全树跑了一遍，判定结果记在这里，省得明天重跑：
+现存 sub-r75 的引用**全部属"那一次测到的历史"**——`frozen_r32_sdfix` 是 SD 热点与仲裁交接那两天的凭据、
+`PLAN_V8_SPEC` 是原始设计、`OPTIMIZATION_LOG` 的 r62–r65 是实现策略 A/B 的账（含没采纳的）、
+`board/README` 那条指 #50 的结案段 ⇒ **一个都不改**。唯一要留神的是念"交接多少毫秒"时：
+`build/frozen_r54_readback/arb_handover_r54.json` 与 `build/frozen_r55_deadcdc/arb_handover_r55.json`
+是**换过 bit 之后仍复现**的那两组，要念这两组，不是 r32 那一组。）
+
