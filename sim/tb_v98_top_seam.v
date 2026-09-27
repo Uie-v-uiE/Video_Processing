@@ -1077,8 +1077,77 @@ module tb_v98_top_seam;
         c5_de_d = dut.de_o;
     end
 
+    // ---- C8（#102 的判据：**每一行的第一格**，两个抽头各自判）----
+    //   为什么必须有它，而 C5/C6/C7 都不够：C5/C7 采样列在 300/512/900，**从来不判第 0 列**；
+    //   C6 判第 0 列但只看"屏上那一格"，而屏上是缝选中的那一路（今天 = 处理抽头），
+    //   且它只比**列**不比行。P100 量到的两条病灶恰好都躲在第 0 列：
+    //     · 原图抽头的第 0 列摆的是"源列 160"（= 消隐期地址读回来的格子）⇒ 用户念的左缘细线；
+    //     · 处理抽头的第 0 列在帧头那几行摆的是别的行（这一条归 C5c 判，不在 C8 的窗里）。
+    //   所以 C8 把窗限定在**本体行**（`y ≥ OFF+BILIN`），只问一件事：第 0 列是不是本行的第一列。
+    //   两路分开数、分开判 ⇒ 红了直接说出是哪一路（不再需要跑板子上做 `split` A/B）。
+    integer c8_os = 0, c8_ob = 0, c8_ps = 0, c8_pb = 0, c8_odump = 0, c8_pdump = 0;
+    always @(posedge dut.clk_pix) begin
+        if (c5_on && dut.u_split.de && dut.u_split.x == 12'd0
+            && dut.u_split.y >= (c5_off + 2) && dut.u_split.y < 12'd595) begin
+            // 期望：源列 = 0，源行 = 面板行 >>1（`px_val` 的 tag 是 mod 128/256，用 dsub 判小偏移）
+            c8_os = c8_os + 1;
+            if (mem_col(dut.u_split.orig_pix) !== 8'd0
+                || dsub(mem_row(dut.u_split.orig_pix), ((dut.u_split.y >> 1) & 8'h7F)) != 0) begin
+                c8_ob = c8_ob + 1;
+                if (c8_odump < 6) begin
+                    c8_odump = c8_odump + 1;
+                    $display("C8OBAD y=%0d 原图第0列=(行%0d,列%0d) 定义=(行%0d,列0) oob=%b",
+                             dut.u_split.y, mem_row(dut.u_split.orig_pix), mem_col(dut.u_split.orig_pix),
+                             (dut.u_split.y >> 1) & 8'h7F, dut.u_split.oob);
+                end
+            end
+            c8_ps = c8_ps + 1;
+            if (mem_col(dut.u_split.proc_pix) !== 8'd0
+                || dsub(mem_row(dut.u_split.proc_pix), ((dut.u_split.y >> 1) & 8'h7F)) != 0) begin
+                c8_pb = c8_pb + 1;
+                if (c8_pdump < 6) begin
+                    c8_pdump = c8_pdump + 1;
+                    $display("C8PBAD y=%0d 处理第0列=(行%0d,列%0d) 定义=(行%0d,列0) oob=%b",
+                             dut.u_split.y, mem_row(dut.u_split.proc_pix), mem_col(dut.u_split.proc_pix),
+                             (dut.u_split.y >> 1) & 8'h7F, dut.u_split.oob);
+                end
+            end
+        end
+    end
+
     // `OFF_LINES` 从**被测对象**取，不抄字面量（#68 那条老规矩：抄来的数会变成"我相信我自己"）。
     initial c5_off = dut.u_pipe.OFF_LINES;
+
+    // ================= P100（#98/#102 的探针：**面板级、两个抽头一起量**，只打印不判定）=================
+    // 为什么已有的 C5/C6/C7 三个都不够：它们判的是**引脚上那一格**，而引脚上是谁由缝位决定 ——
+    //   台架把 `split_ctl_tb` 钉在 0 ⇒ `left=(x_sel<0)=0` ⇒ `take_orig=~left... ` 见 split_display，
+    //   实测结果是**整屏都是处理抽头**。而用户念的两条症状（屏顶带、左缘细线）在 r79 那次
+    //   用 `split 0` / `split 100` 的屏上 A/B 已经钉在**原图抽头**上 ⇒ 顶层台架对被判的那一路
+    //   是**全盲**的（P98 量的是链路中间的 `raw_ring`，不是屏上那一格）。
+    // 这一段的办法不是去动缝位（那会把 C2/C3/C4/C5/C6/C7 的既有数全改一遍、凭据作废重来），
+    //   而是直接取 `u_split` 的两个**输入**：`orig_pix` / `proc_pix` 与混色级同一拍、同一格，
+    //   缝选谁都在它旁边 —— 于是一次跑就把两路各自的 (源行, 源列) 摆出来，不必猜。
+    // ⚠ 这一跑仍然在 `c5_on` 的窗里（0° × 1.00x × 最近邻、标记线关）：与 C5/C6 同一激励，
+    //   两边的数才能对着读。行数只取**帧头 10 行 + 帧尾 5 行 + 中间一行**，列只取**左右各 3 列**
+    //   ⇒ 一帧 90 条、上限 200 条，不会把日志淹掉（P98 的教训：探针要能被读完）。
+    // ⚠ **采样必须落在混色级自己的标签上，不能落在引脚上**：`split_display` 的输出是打拍的，
+    //   引脚 `de_o` 拉高的那一拍，`sel` 已经是**上一拍**的内容 ⇒ 第一版这里自发把两路都读成
+    //   "列 = (pcol+1)>>1"，看着像两个抽头都偏一列，其实是探针自己晚了一拍（#92 同族，第 N 次）。
+    //   所以这一段的窗用 `u_split.de`、坐标用 `u_split.x/y`（= 顶层的 `x_d[MIX_D]/y_d[MIX_D]`），
+    //   与它同一拍的 `orig_pix/proc_pix` 才是同一格。期望按定义当场算在打印里，读的人不用推。
+    integer p100_n = 0;
+    always @(posedge dut.clk_pix) begin
+        if (c5_on && dut.u_split.de && p100_n < 200 &&
+            (dut.u_split.y < 10 || dut.u_split.y == 12'd300 || dut.u_split.y >= 12'd595) &&
+            (dut.u_split.x < 12'd3  || dut.u_split.x > 12'd1020)) begin
+            p100_n = p100_n + 1;
+            $display("PROBE P100 x=%0d y=%0d 定义(行%0d,列%0d) | 原图(行%0d,列%0d) 处理(行%0d,列%0d) | oob=%b take_orig=%b sel=%h",
+                     dut.u_split.x, dut.u_split.y, (dut.u_split.y >> 1) & 8'h7F, (dut.u_split.x >> 1) & 8'hFF,
+                     mem_row(dut.u_split.orig_pix), mem_col(dut.u_split.orig_pix),
+                     mem_row(dut.u_split.proc_pix),  mem_col(dut.u_split.proc_pix),
+                     dut.u_split.oob, dut.u_split.take_orig, dut.u_split.sel);
+        end
+    end
 
     // ================= P98（#98 的探针：**只打印，不判定**）=================
     // 为什么要它：C5c 量到"帧头 0..3 行的内容是源行 1"，而按 C1h（mapper 第 3 级的 sy 逐格对过）
@@ -1087,7 +1156,7 @@ module tb_v98_top_seam;
     //   再推第三种模型没有意义，直接把**写侧每一尾行的 tag**与**读侧每一头行的 tag**打成表：
     //   一次跑完就知道差的是"写进去的东西"还是"槽的对齐"。
     //   每行只在 `x_d[5]==0` 那一拍打一条 ⇒ 10 条尾行 + 8 条头行，不把日志淹掉。
-    integer p98_w = 0, p98_r = 0;
+    integer p98_w = 0, p98_r = 0, p98_m = 0;
     always @(posedge dut.clk_pix) begin
         if (c5_on && dut.de_d[5] && dut.x_d[5] == 12'd0) begin
             if (dut.y_d[5] >= 12'd588 && p98_w < 12) begin
@@ -1103,6 +1172,34 @@ module tb_v98_top_seam;
                          mem_row(dut.raw_ring[15:0]), mem_col(dut.raw_ring[15:0]),
                          mem_row(dut.pix_raw));
             end
+            // P98M（r80 那一轮补的"帧中间对照"）：头尾两段的数都有了，但**没有一个数说"帧中间
+            //   地址说要哪一行、环里走的又是哪一行"** ⇒ 头那几行的偏差没法归一（是"读口滞后"还是
+            //   "绕回窗早了/晚了两行"，只有拿中间的常数当零点才分得开）。同一拍的地址三件
+            //   （`y_req_row` 请求行 / `cy_r` 折回本帧的行号）与两路的 tag 一起打，中间段的
+            //   "环出口 − 定义"就是这一把尺子的零点，头/尾的数才读得懂。
+            if (dut.y_d[5] >= 12'd300 && dut.y_d[5] < 12'd304 && p98_m < 8) begin
+                p98_m = p98_m + 1;
+                $display("PROBE P98M y_d5=%0d 定义行=%0d | 请求 y_req_row=%0d cy_r=%0d | 环入口 tag=(行%0d,列%0d) 环出口 tag=(行%0d,列%0d)",
+                         dut.y_d[5], (dut.y_d[5] >> 1) & 8'h7F, dut.y_req_row, dut.cy_r,
+                         mem_row(dut.pix_raw), mem_col(dut.pix_raw),
+                         mem_row(dut.raw_ring[15:0]), mem_col(dut.raw_ring[15:0]));
+            end
+        end
+    end
+
+    // ================= P101（#98 第二问：**链子的传递函数**，只打印不判定）=================
+    // P100 已经量到：帧头 0..5 显示行上**原图抽头逐格等于定义、处理抽头恒等于源行 2**。
+    //   两路吃的是同一个 `pix_raw`，所以病灶在 `u_pipe` 内部（它的行缓存/绕过 mux 在帧头怎么走的），
+    //   不在地址侧。要把"内部哪一级开始重复"说出来，只需要链子**入口**的 (标签行, 内容 tag) 与
+    //   **出口**的同一列对在一起 —— 入口在顶层第 3 级（`de_d[3]/x_d[3]/y_d[3]`，din = pix_raw），
+    //   出口就是 P100 里那一列 `处理(行,列)`（同一列号 300，两处的数直接对着读）。
+    integer p101_n = 0;
+    always @(posedge dut.clk_pix) begin
+        if (c5_on && dut.de_d[3] && dut.x_d[3] == 12'd300 && p101_n < 40 &&
+            (dut.y_d[3] < 12'd12 || dut.y_d[3] >= 12'd588)) begin
+            p101_n = p101_n + 1;
+            $display("PROBE P101 链入口 y_d3=%0d cy_d3=%0d | din tag=(行%0d,列%0d) oob_fb=%b",
+                     dut.y_d[3], dut.cy_d[3], mem_row(dut.pix_raw), mem_col(dut.pix_raw), dut.oob_fb_d1);
         end
     end
 
@@ -1403,6 +1500,15 @@ module tb_v98_top_seam;
         $display("C6  每行第0格 judged=%0d 源列不是0的=%0d", c6_n, c6_bad);
         line("C6a line head carries the line's own column 0", c6_n > 500 && c6_bad == 0,
              "at 0deg x 100% the picture fills the screen, so NO background-based ruler can see a wrapped line head; the tag's column must be 0 (= #97's left band candidate)");
+        // ---- C8（#102）：两路抽头各自的"每行第一格"，本体行窗 ----
+        $display("C8  第0列：原图 样本 %0d 格、不符 %0d 格 || 处理 样本 %0d 格、不符 %0d 格",
+                 c8_os, c8_ob, c8_ps, c8_pb);
+        line("C8a raw tap's first column of every body row is the row's own column 0",
+             c8_os > 500 && c8_ob == 0,
+             "#102：行环在行首读到的是消隐期那个地址的格子（实测=源列 160），不是本行第一列");
+        line("C8b proc tap's first column of every body row is the row's own column 0",
+             c8_ps > 500 && c8_pb == 0,
+             "同一格在处理抽头上的对照面：C8a 绿而屏上仍有线时，问题就落在这一路");
         release dut.angle;
         release dut.rot_on;
         c4_on = 1'b0;

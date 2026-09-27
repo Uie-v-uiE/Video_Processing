@@ -112,15 +112,91 @@ module tb_v100_raw_delay;
     endtask
 
     integer f1_cnt, f1_bad;
+    // ================= T7 / T8：真实光栅（x 自由跑过消隐 + 竖消隐回帧头）=================
+    // 为什么原来那三条抓不到 #102：`feed()` 的"消隐"只有 2 拍，而且那两拍里 **x 停在 W−1**
+    //   （顶层不是这样：`video_timing` 的 x 一路数到 H_TOTAL−1 = 1343）。
+    //   RAM 读出晚一拍 + 消隐期拿 `x` 的低几位当列地址 ⇒ 行首那一格读到的是"消隐最后那个地址"
+    //   的格子，而这个洞在本台架里根本不存在（x 不动）⇒ 模块台架全绿、板上却有一条左缘细线。
+    //   这一段把 x/y 按真光栅驱动：HT=80（W=64 有效 + 16 空拍）、VT=16 行（0..7 有效，8..15 竖消隐），
+    //   有效行数 8 = 环深 8 的整数倍（顶层是 2·IMG_H=600 mod 8 = 0，同一个条件）。
+    //   期望分两条，各自数各自的样本（混成一条就说不清"坏在哪一格"）：
+    //     T7  行首那一格（第 0 列，绝对期望）= `{参考行, 0}` —— 必须就是"本行第一列"自己，
+    //           而不是消隐期那个地址读出来的格子（#102 的病灶）。
+    //     T7k 第 1..W-1 列仍按既有契约判 `{参考行, k}`：预读只许占用"de 刚掉下去"那一拍，
+    //           中间任何一列被挪动就是 #92 第一笔那族整列错位，这条会当场红。
+    //           ⚠ 期望里是 `k` 而不是 `k-1`：晚的是**拍**不是**列**（第一跑写成 k-1，1008/1008 全红）。
+    //   帧头（竖消隐之后那一行）读的槽本来就该是上一帧尾巴写的：模块不负责绕回（那是顶层地址
+    //     那一路的事，#98），所以 T7 的期望写成 `mod 环深` 而不是"直接减"。
+    //   "第 0 列与第 1 列同源"是**顶层**的 ×2 复制性质，不归本模块判（tb_v98 的 P100/C6 管它）。
+    localparam integer HT = 80, VT = 16, VACT = 8;
+    integer t7_cnt = 0, t7_bad = 0, t7k_cnt = 0, t7k_bad = 0;
+    integer rrow, rcol, exp_k;
+    integer SLOTS;                         // 环深：由 LINES 现推（与被测模块 `clog2(LINES+1)` 同一条式子），不抄 8
+    // 参考行 = (rw - LINES) mod 环深。写成 mod 而不是直接减：帧头那几行读的槽里装的是
+    //   上一帧尾巴（行 4..7）的内容，"减出负数"在这里不是错误、就是这个语义。
+    function [7:0] ref_row; input integer rw;
+        // 赋给 [7:0] 的函数返回值本身就是截断，不写 SystemVerilog 的尺寸强转（这份台架按 Verilog 编）
+        begin ref_row = (((rw - LINES) % SLOTS) + SLOTS) % SLOTS; end
+    endfunction
+    // 相位先量清楚再定期望（这一段第一次跑出来的教训：`feed()` 的"喂完之后第二拍才检查"
+    //   与顶层 P100 的"标签与本拍内容同拍"不是一回事，直接用哪一条去判行首都可能是空判）。
+    //   `PPHASE` 打开时：驱动之后、下一个 posedge 之前取一次 `d_out` —— 那正是硬件把"本拍标签"
+    //   与"上一拍发出去的地址读回来的格子"配成一对的那半拍，行首那一格就在这里现形。
+    integer ph_cnt = 0;
+    task raster(input integer n_frames, input integer check);
+        begin
+            for (rr = 0; rr < n_frames; rr = rr + 1) begin
+                for (rrow = 0; rrow < VT; rrow = rrow + 1) begin
+                    for (rcol = 0; rcol < HT; rcol = rcol + 1) begin
+                        @(negedge clk);
+                        // ---------- 2) 先喂这一拍：x 自由跑到 HT-1，de 只盖住有效列 ----------
+                        x <= rcol[11:0];
+                        y <= rrow[11:0];
+                        de <= ((rrow < VACT) && (rcol < W)) ? 1'b1 : 1'b0;
+                        d  <= {rrow[7:0], rcol[7:0]};
+                        #2;   // 半个周期之后、下一个 posedge 之前：此刻标签就是本拍驱动的值
+                        // ---------- 1) 判"本拍标签"配对的那一格 ----------
+                        if (check == 1 && rrow < VACT && rcol < W) begin
+                            exp_k = (rcol == 0) ? 0 : (rcol - 1);
+                            if (rcol == 0) begin
+                                t7_cnt = t7_cnt + 1;
+                                if (q !== {ref_row(rrow), 8'd0}) begin
+                                    t7_bad = t7_bad + 1;
+                                    if (t7_bad <= 6)
+                                        $display("T7 行首不符：标签(row=%0d,col=0) 输出=%04x 期望=%04x",
+                                                 rrow, q, {ref_row(rrow), 8'd0});
+                                end
+                            end else begin
+                                t7k_cnt = t7k_cnt + 1;
+                                if (q !== {ref_row(rrow), exp_k[7:0]}) begin
+                                    t7k_bad = t7k_bad + 1;
+                                    if (t7k_bad <= 3)
+                                        $display("T7k 行内不符：标签(row=%0d,col=%0d) 输出=%04x 期望=%04x",
+                                                 rrow, rcol, q, {ref_row(rrow), exp_k[7:0]});
+                                end
+                            end
+                        end
+                        if (ph_cnt < 14 && check == 1 && rrow == 5 && rcol < 4) begin
+                            ph_cnt = ph_cnt + 1;
+                            $display("PROBE PHASE row=%0d col=%0d d_out=%04x (cell k-1 应=%04x, cell k 应=%04x)",
+                                     rrow, rcol, q, {ref_row(rrow), (rcol-1)}, {ref_row(rrow), rcol[7:0]});
+                        end
+                    end
+                end
+            end
+        end
+    endtask
+
     initial begin
         de = 0; x = 0; y = 0; d = 0; p_row = -1; p_col = 8'hFF; p_valid = 0;
+        SLOTS = 1; while (SLOTS < LINES + 1) SLOTS = SLOTS * 2;   // 与被测模块同一把式子（2^clog2(LINES+1)）
         repeat (4) @(negedge clk);
         rst_n = 1;
         repeat (3) @(negedge clk);
 
         // ---- T2：头 LINES 行只预热 ----
         feed(0, LINES, 0, 0);
-        $display("[tb_v100_raw_delay.v:123] INFO T2 前 %0d 行只预热不判定（RAM 里还没有上一行；屏上落在帧首，与 #54 同一族）", LINES);
+        $display("INFO T2 前 %0d 行只预热不判定（RAM 里还没有上一行；屏上落在帧首，与 #54 同一族）", LINES);
 
         // ---- T1 + T5：稳态逐格（喂到 13 行，跨过 8 行的槽位回绕）----
         feed(LINES, ROWS, 0, 1);
@@ -130,20 +206,14 @@ module tb_v100_raw_delay;
              "输出第 (row,k) 格必须是第 row-LINES 行的同一列 k");
         line("T5 跨过槽位回绕仍对齐", t1_bad == 0,
              "喂到 13 行 > 2^RLOG=8 ⇒ 环回绕之后判据仍然成立");
-        $display("[tb_v100_raw_delay.v:133] INFO T1 样本 %0d 格、错 %0d 格（W=%0d × 行 %0d..%0d）", t1_cnt, t1_bad, W, LINES, ROWS-1);
+        $display("INFO T1 样本 %0d 格、错 %0d 格（W=%0d × 行 %0d..%0d）", t1_cnt, t1_bad, W, LINES, ROWS-1);
 
         // ---- T3：de 只打在 k%3==0 的列上 ----
         feed(ROWS, ROWS + 4, 1, 1);
         t3_cnt = pcnt; t3_bad = pbad;
-        // T3 判的是模块**真正承诺**的那件事：`de_out` 与 `d_out` 都只延后一拍（同一块 RAM 的读出），
-        //   不存在"标签比内容新/旧一拍"。
-        //   ⚠ 前提也要说明：本模块**不**给 de 做 LINES 行的行延迟 ⇒ 调用方必须保证
-        //     "每一行的 de 图样相同"（顶层就是如此：偶数列打 de，天天一样）。
-        //     第一版我拿"只在一部分列上打 de"去判"输出 de 必须与输入 de 同一列"，那是我给模块
-        //     加了一条它没承诺、也用不上的语义 ⇒ 红在台架自己。改成判"de_out == 上一拍的 de"。
         line("T3 de 与数据同为一拍延迟", t3_cnt > 60 && t3_bad == 0,
              "d_out 与 de_out 都只延后一拍 ⇒ 不允许出现“数据到了、de 还没到”（#54 那一族的另一种）");
-        $display("[tb_v100_raw_delay.v:146] INFO T3 样本 %0d 格、错 %0d 格", t3_cnt, t3_bad);
+        $display("INFO T3 样本 %0d 格、错 %0d 格", t3_cnt, t3_bad);
 
         // ---- T4：LINES=0 是组合直通 ----
         @(negedge clk);
@@ -153,9 +223,23 @@ module tb_v100_raw_delay;
              "深度 0 ⇒ 直通且不推 RAM");
         @(negedge clk); de <= 1'b0;
 
+        // ---- T7 / T8：真实光栅（x 自由跑到 H_TOTAL-1、并且走满一个竖消隐）----
+        //   第一趟（rr==0）只预热：环里还是上面几个任务留下的内容，行首的绝对期望当然对不上；
+        //   第二趟起才判，且此时每一行的第 0 列都已经被上一帧的同一槽写过 ⇒ 期望成立。
+        raster(1, 0);
+        raster(2, 1);
+        line("T7 行首第一格 = 本行第一列（不是消隐期地址的格子）",
+             t7_cnt > 12 && t7_bad == 0,
+             "#102：消隐期 x 还在数 ⇒ 旧写法让行首读到 `x[H_TOTAL-1]` 低位那一格；行首要等于自己那一列");
+        line("T7k 行内其余列一格都不许动（预读只许占用消隐那一拍）",
+             t7k_cnt > 600 && t7k_bad == 0,
+             "把中间任何一列挪动就是 #92 第一笔那族整列错位；这一条就是那一族的护栏");
+        $display("INFO T7 行首样本 %0d 格、错 %0d 格 || 行内样本 %0d 格、错 %0d 格",
+                 t7_cnt, t7_bad, t7k_cnt, t7k_bad);
+
         // ---- T6：覆盖面 ----
-        line("T6 覆盖面不是空跑", (t1_cnt + t3_cnt) > 500,
-             "两条逐格判据加起来要有几百格的覆盖面，否则差一格也可能被空窗混过去");
+        line("T6 覆盖面不是空跑", (t1_cnt + t3_cnt + t7_cnt + t7k_cnt) > 1500,
+             "逐格判据加起来要有几百格的覆盖面，否则差一格也可能被空窗混过去");
 
         if (nfail == 0) $display("RESULT tb_v100_raw_delay PASS");
         else            $display("RESULT tb_v100_raw_delay FAIL nfail=%0d", nfail);
