@@ -58,3 +58,4 @@ PASS R3 top row == clamp-to-edge (judged 52)
 PASS R4/D2 last column == clamp-to-edge and responds (golden judged 52)
 PASS R5/D3 screen row 0 == its own window, no stale row (golden judged 52)
 NFAIL=0
+RESULT tb_edge_rim PASS
