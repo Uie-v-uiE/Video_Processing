@@ -2,24 +2,26 @@
 stat
 src auto
 play
-zoom 1.0
-zoom 1.5
+zoom 0.25
 zoom 2
+zoom auto
 rot speed 1
 rot auto 1
-zoom auto
+zoom fit 1
 pipe 000000000
 pipe 000010000
-pipe 000001000
-th 60
-pipe 000001010
 pipe show
-split 50
-split marker 0
-split show
-split 20
-split video
+pipe 001000000
+th 60
+th 200
+pipe 000000110
+pipe 100001100
 split screen
+split 50
+split video
+split marker 1
+split show
+zoom 1.5
 bilin off
 bilin on
 bilin show
@@ -30,7 +32,9 @@ gamma show
 stat
 temp
 temp th 60
-temp
+rot show
+split show
+stat
 pipe 000000000
 th 80
 zoom 1.0
@@ -40,10 +44,9 @@ rot auto 0
 rot speed 0
 bilin on
 split screen
-split 50
 split marker 1
 gamma off
-temp th 85
+temp
 src auto
 stat
 stat
