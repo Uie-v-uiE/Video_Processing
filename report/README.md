@@ -19,7 +19,7 @@
 | `COMMANDS.md` + `../src/host/HOST_GUIDE.md` | 串口与上位机命令口径（九位 `pipe`、`Pipe:` 五位成对编码、γ×100 单位） | 与固件不一致就是缺陷，`uart_cmd_check.mjs` 会抓 |
 | `BUILD.md` / `BOARD_PINS.md` / `../build/tcl/README.md` / `../sim/README.md` | 怎么构建、引脚、跑哪几条脚本、台架怎么跑 | 刷板是三条命令不是一条；构建入口只有一个 |
 | `AI_COLLABORATION.md` | 人机协作记录：约束怎么给、模型怎么跑偏、用什么读数判掉 | 只写有出处的往来，不写台词 |
-| `../skill/README.md` | 技能包索引（每一项的适用场景 / 用法 / 失效条件 / 从哪次失败来） | 与本页分工：这里是项目文档，那里是**别人换题目也能用**的方法 |
+| `../skill/README.md` | 技能包索引（每一项四段：适用场景 / 使用方法 / 已验证效果（从哪次失败来）/ 失效条件） | 与本页分工：这里是项目文档，那里是**别人换题目也能用**的方法 |
 | `CONTEST_CHECKLIST.md` | 提交物逐条对照（含"没做到的那一节"） | 里面的"门禁几项"这类数会漂，念之前先跑一遍 gates |
 
 **只有一小时**：`PROJECT_BRIEF.md` → `BACKGROUND_AND_NOVELTY.md` → `ARCHITECTURE.md` →

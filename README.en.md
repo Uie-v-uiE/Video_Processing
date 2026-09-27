@@ -71,7 +71,7 @@ row naming the report it came from - is in
 | `build/` | build and gate scripts, `tcl/`, implementation reports, `rNN_gates.txt`, `evidence/` |
 | `board/` | on-board procedures, acceptance table, serial captures |
 | `data/` | `golden/` reference images, `measured/` measured data |
-| `skill/` | reusable skills distilled from the LLM collaboration, each with scope, usage, failure conditions |
+| `skill/` | reusable skills distilled from the LLM collaboration, each in four parts: when it applies, how to use it, the verified effect (which failure it came from), and when it stops working |
 | `report/` | design report, optimisation log, `ISSUES.md` and `OVERNIGHT_LOG.md` (append-only history) |
 | `ku5p/` | separate project for the second board (XCKU5P) |
 

@@ -79,43 +79,28 @@ wire copy_abort_pix = ab1 ^ ab2;      // 每次事件恰好一拍
 5. 如果脉冲产生侧本身是**组合毛刺**产生的（不是寄存器输出），翻转位会被毛刺多翻一次 ⇒
    先确认翻转源是触发器（本工程 `copy_abort` 是寄存器 ✓）。
 
-## 五、硬规矩：一个发射触发器只服务一组同步器（2026-09-25 r54 撞到）
+## 五、硬规矩：一个发射触发器只服务一组同步器（r54、r55 各撞一次）
 
-"翻转位跨域"这件事，**发射触发器必须一对一**：同一个源域触发器的输出，不许同时接到
-两组目的域寄存器的 D。原因不是亚稳态，而是工具判定：
+"翻转位跨域"这件事，**发射触发器必须一对一**：同一个源域触发器的输出，不许同时接到两组目的域
+寄存器的 D。原因不是亚稳态，而是**工具判定**：
 
 - `report_cdc` 看到"一个 launch flop 扇出到多个目的时钟域寄存器"会报 **CDC-11 Critical
-  "Fan-out from launch flop to destination clock"**，并把**整对**时钟从 Info/Warning 提成 Critical；
-- 于是门禁第 6 项（`build/CDC_BASELINE.txt` 的**配对集合**不新增 Critical）当场红。
+  "Fan-out from launch flop to destination clock"**，并把**整对**时钟从 Info/Warning 提成 Critical。
+- r54 实例（`build/gates_r54_build34_CDC_RED.txt` + `build/cdc_details.rpt`）：lane23 的心跳图省事
+  借用了 `sof_tgl`，而它已经喂着 `frame_latency` 的 `sof_sync_reg[0]` ⇒ details 里同一个
+  `u_pl/sof_tgl_reg/C` 出现在两条 CDC-11 行上，`clkout0_1→clk_fpga_0` 从"这一对项目里根本没有"
+  变成 **27 端点 / 2 unsafe 的 Critical 行**，门禁里 CDC 那一项当场红。
+- 正解：**给每条跨域一个自己的翻转触发器**（哪怕它与被借用的那个同源同拍，多 1 个 FF）。
+  本工程改成 `z_hb_tog` 与 `sof_tgl` 各自只扇出一组 ⇒ 这一对退回 19× CDC-15 Warning + 2× CDC-3 Info，
+  配对不再 Critical。
+- **别误读 CDC-15**：「Clock enable controlled CDC structure」在本工程里是**期望中的 Warning**
+  （它正是"总线只在边沿那一拍被采"的证据），不要为了让它消失去改结构；真正要盯的是
+  **CDC-10**（同步器前有组合逻辑）与 **CDC-11**（本条）。
 
-r54 实例（`build/gates_r54_build34_CDC_RED.txt` + `build/cdc_details.rpt`）：lane23 的心跳图省事
-借用了 `sof_tgl`，而它已经喂着 `frame_latency` 的 `sof_sync_reg[0]` ⇒ details 里同一个
-`u_pl/sof_tgl_reg/C` 出现在两条 CDC-11 行上（row 5 与 row 25），`clkout0_1→clk_fpga_0`
-从"这一对项目里根本没有"变成 **27 端点 / 2 unsafe 的 Critical 行**。
-
-- 正解：**给每条跨域一个自己的翻转触发器**（哪怕它与被借用的那个同源同拍，多 1 个 FF）：
-  `z_hb_tog` 与 `sof_tgl` 都是"帧首翻转"，但各自只扇出一组 ⇒ 这一对退回
-  19× CDC-15 Warning（准静态总线被 `bus_edge` 使能采样，是 `snap_cross` 的固有写法）
-  + 2× CDC-3 Info，配对不再 Critical。
-- 顺手记一条**别误读**：CDC-15「Clock enable controlled CDC structure」在本工程里是
-  **期望中的 Warning**（它正是"总线只在边沿那拍被采"的证据），不要为了让它消失去改结构；
-  真正要盯的是 CDC-10（同步器前有组合逻辑）与 CDC-11（本条）。
-- 判据在哪：门禁第 6 项按配对集合判；`build/tcl/cdc_who.tcl` 回答"这一行是谁"。
-  两者合起来才让"多加一条跨域"这件事有代价、有解释、不会被静默接受。
-
-## 六、同一课的第二遍（r55 撞到）：**落在已有配对上的 CDC-11，"配对集合"看不见**
-
-§五 那条规矩在 r54 能当场抓到，是因为它**新增了一条配对**。r55 才发现：同一形状
-（V8-5 的时延快照把 `bus_tog` 与 `hb_tog` 接在同一根发射触发器上）**落在一条基线里本来就有的配对上**
-⇒ 配对集合不变 ⇒ 门禁一声不响，只有 **Unsafe 那一列**从 1 悄悄变成 3（`report/ISSUES.md` #65）。
-
-这一课的三条可迁移做法（基线要钉到"每对配对的 unsafe 端点数"、新判据必须自带能红也能绿的反例、
-"记录用不判红"的提示要有人清账）**住在 [S16](cdc_pair_baseline_gate.md) 里，本文件不再复述**。
-本文件只留下与"怎么写跨域脉冲"直接相关的那一条：**每条跨域一个自己的翻转触发器，
-哪怕它与已有那个同源同拍**——多花 1 个 FF，换来"多加一条跨域"这件事有代价、有解释、不会被静默接受。
-判据在哪：`build/gates.sh` 的 CDC 项 + `build/tcl/cdc_who.tcl` 回答"这一行是谁"。
-
-顺带一条**别误读**：CDC-15「Clock enable controlled CDC structure」在本工程里是**期望中的 Warning**
-（它正是"总线只在边沿那拍被采"的证据），不要为了让它消失去改结构；真正要盯的是
-CDC-10（同步器前有组合逻辑）与 CDC-11（本条）。
+⚠ r55 又撞了一次同一形状，而那次**门禁一声不响**：因为它落在一条基线里本来就有的配对上 ⇒ 配对集合不变，
+只有 Unsafe 那一列从 1 变成 3（`report/ISSUES.md` #65）。**这一课的三条可迁移做法（基线要钉到
+"每对配对的 unsafe 端点数"、新判据必须自带能红也能绿的反例、"记录用不判红"的提示要有人清账）
+住在 [S16](cdc_pair_baseline_gate.md) 规矩四里，本文件不复述。**
+本页只留那句与"怎么写跨域脉冲"直接相关的：**每条跨域一个自己的翻转触发器，哪怕它与已有那个同源同拍**——
+多花 1 个 FF，换来"多加一条跨域"这件事有代价、有解释、不会被静默接受。
 

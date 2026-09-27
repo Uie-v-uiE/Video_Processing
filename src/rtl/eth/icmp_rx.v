@@ -1,16 +1,8 @@
-//----------------------------------------------------------------------------------------
-// File name:           icmp_rx
-// Last modified Date:  2024/11/22
-// Last Version:        V1.0
-// Descriptions:        icmp接收模块
-//----------------------------------------------------------------------------------------
-// Created by:          riguke
-// Created date:        2024/11/22
-// Version:             V1.0
-// Descriptions:        The original version
-//
-//----------------------------------------------------------------------------------------
-//****************************************************************************************//
+// icmp_rx — 厂商例程（riguke，V1.0，非自研）：从 GMII 收流里认 IPv4+ICMP，收 echo request 并备应答。
+// 解析：以太网类型 0x0800 → 由 byte14 低 4 位 IHL 跳过 IP 头 → 协议字段 1=ICMP 才继续；icmp_type/
+// code 只是记账（11/0 = TTL 超时丢弃），真正回填用的是 identifier、sequence 与 payload。
+// 载荷字节数 = IP 总长 − 20(IP 头) − 8(ICMP 头)；rec_en 逐字节出、rec_pkt_done 打一拍。
+// 时钟域：clk = gmii_rx_clk（125 MHz）。不看错误标志——RGMII 无 RX_ER，帧级判定在 gmii_rx_mac（#38）。
 
 module icmp_rx (
     input clk,   //时钟信号
@@ -71,10 +63,6 @@ module icmp_rx (
     reg [15:0] icmp_rx_cnt;  //接收数据计数
     reg [7:0] icmp_rx_data_d0;
     reg [31:0] reply_checksum_add;
-    //****************************************************
-    //**                    main code
-    //*****************************************************
-
     //(三段式状态机)同步时序描述状态转移
     always @(posedge clk or negedge rst_n) begin
         if (!rst_n) cur_state <= st_idle;

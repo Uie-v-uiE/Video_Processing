@@ -67,11 +67,13 @@ module zoom_mapper #(
 
     wire signed [31:0] sx_c = rot_s1 ? (xr_pix + (IMAGE_W / 2))
                                       : (xs_pix + (IMAGE_W / 2));
-    wire signed [31:0] sy_c = rot_s1 ? ((IMAGE_H / 2) - yr_pix)
+    wire signed [31:0] sy_c = rot_s1 ? ((IMAGE_H / 2) - yr_pix)   // 旋转支要把 y 再翻回来：表是数学坐标（y 向上）
                                       : (ys_pix + (IMAGE_H / 2));
 
-    wire [7:0] fx = rot_s1 ? 8'h00 : raw_xs[7:0];
-    wire [7:0] fy = rot_s1 ? 8'h00 : raw_ys[7:0];
+    // floor 与 frac 必须自洽：`>>> 8` 是**朝 −∞** 取整，余下的低 8 位正好是 [0,1) 的小数 ⇒ x_out 与 frac_x
+    // 指的是同一条数轴上的同一格（换成 `/256` + 取余就会在负数上错一格）。
+    wire [7:0] fx = rot_s1 ? 8'h00 : raw_xs[7:0];   // ⚠ 旋转那一支把小数钉成 0 ⇒ `bilin on` 在旋转态是空头（见 ISSUES #104）
+    wire [7:0] fy = rot_s1 ? 8'h00 : raw_ys[7:0];   //   同上：纵向也一样，#104 未修，改这里要先看那一条
 
     always @(posedge clk or negedge rst_n) begin
         if (!rst_n) begin

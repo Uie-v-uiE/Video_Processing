@@ -39,10 +39,10 @@
 - 定位到根因 = `axi_frame_saver64` 逐字等 B 响应，在途深度 1 ⇒ HP0 RTT≈40 拍时上限
   **20 MB/s**（`report/MODULES.md` §「为什么根因在 axi_frame_saver64 的写通道」）。
   流水化（`OST=8`）后 15/30/60 fps 全部 **100.0%**、各带 **0.0%**、半字错帧 **0/76800**
-  （`report/ISSUES.md` §31）。
+  （`report/ISSUES.md` #31）。
 - 「深度无用」不是观点而是两次失败：CDC 512→8192 + 反压，仿真 100%、板上仍 **42~52%**
-  （`report/ISSUES.md` §30）。本夜的定量版：要吃下 V-blank 拷贝窗口的 672 µs 需要 ≈84 个
-  BRAM tile，全片才 140 ⇒ 结构上不可能（`report/OVERNIGHT_LOG.md` U3）。
+  （`report/ISSUES.md` #30）。这条判据为什么能支持"排空速率而不是深度"这个结论，
+  算术在 [S4](zynq_ddr_bandwidth.md)（那里是这笔账的唯一住处），本页只负责给出这组数。
 - 同一套判据在仿真里可复现：`sim/tb_v6_pingpong.v` 里端口被独占 N 拍 ⇒ 丢字起始位置恰好等于
   打包器 FIFO 深度 **512**（机理见 `report/V6_ROOT_CAUSE.md`，同一份台架至今还钉着这条）；
   `sim/tb_v6_ingress_integrity.v +FULL` 221 包整帧 `38400/38400`（`sim/results/regression_v6.txt` 头部说明）。
@@ -59,7 +59,7 @@
    `build/tcl/ps_jtag_boot.tcl` → `build/tcl/program_pl.tcl` → `build/tcl/set_src.tcl` 三件套，
    否则量的是「PS 不跑」的工况（`data/measured/board_measure_r06_r07.md` §环境确认）。
 4. 载荷不是 8 字节整数倍时，「包内相位」会与打包器的部分字状态混在一起 ⇒ 先解决对齐再用本判据
-   （1396 B 的签名见 `report/ISSUES.md` §29）。
+   （1396 B 的签名见 `report/ISSUES.md` #29）。
 5. `node src/host/ddr_verify.mjs` 结尾固定打一行「两个 bank 都没读到有效 wordid 图案」
    （`src/host/ddr_verify.mjs:260`），它与同一轮统计行里的 100.0% **不矛盾**，是文案位置错的假警报
    （`data/measured/board_measure_r06_r07.md` §结论 4）⇒ 判读看判据表，不看最后一行。

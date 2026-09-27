@@ -33,33 +33,36 @@
   320 MB/s 溢出到后续消隐（1708873 拍）但**不写有效行、不重复、不越界**，20 ms 看门狗不误杀
   （`report/V6_ROOT_CAUSE.md` §3；`sim/results/regression_v77_r13.txt` 的 `RESULT tb_v6_vblank_copy PASS`）。
 - 「入包丢字不是深度问题、是排空速率问题」有定量证明：CDC 512→8192 + 反压后仿真 100%、
-  板上仍 **42~52%**（`report/ISSUES.md` §30）；本夜进一步算清吸收一次 V-blank 拷贝需 ≈84 个
-  BRAM tile 而全片只有 140 ⇒ 加深这条路**结构上不可行**（`report/OVERNIGHT_LOG.md` U3）。
+  板上仍 **42~52%**（`report/ISSUES.md` #30）；再往下算清"吸收一次 V-blank 拷贝需 ≈84 个 BRAM tile
+  而全片只有 140" ⇒ 加深这条路**结构上不可行**（`report/OVERNIGHT_LOG.md` U3）。
+  ⇒ 这一条的值钱之处在于：**"再加缓冲"是被一道算术题否掉的，不是被一次失败劝退的**。
+  测量方法（怎么得到 42~52% 这类数）在 [S9](frameid_loss_signature.md)，不在本页。
 - 流水化写通道后同一判据的板级结果：15/30/60 fps 全部 **100.0%**、包内各带 **0.0%**、
-  半字错帧 **0/76800**（`report/ISSUES.md` §31；`data/measured/board_measure_r06_r07.md` 三档复测）。
+  半字错帧 **0/76800**（`report/ISSUES.md` #31；`data/measured/board_measure_r06_r07.md` 三档复测）。
 - 入口负载实测很小：30 fps ≈ **9.2 MB/s**、显示侧 BRAM 读 307200 B × 60 Hz ≈ **18.4 MB/s**
   （`report/ARCHITECTURE.md` §5），而千兆线速上限 125 MB/s、排空侧 ≈200 MB/s
   ⇒ 所以 `--no-pace` 洪水在板上压不满 CDC（`data/measured/board_measure_r08.md` §反例复现）。
 - 片上账已清：帧缓存按 2 的幂拆两块后 BRAM **98.93% → 64.64%**（90.5/140，剩 49.5 tile），
   WNS 同时由 +0.596 升到 **+0.819**（`report/OVERNIGHT_LOG.md` §5 R04 行）；
   一行的行缓存只要 **1 个 tile**（512×16bit，`report/OVERNIGHT_LOG.md` U2）⇒ 剩下的余量够做插值。
-- 双读口这条路是**实测出局**：探针 `sim/probes/dpfb.v` + `probe4.tcl` 数出
-  1W1R = **80** RAMB36、1W2R = **160**（正好翻倍），7 系列 RAMB36 只有 A/B 两个口
-  ⇒ 90.5 + 80 = 170.5 > 140（`report/OVERNIGHT_LOG.md` §12）。
+- 双读口这条路是**实测出局**的：一块 1W2R 的存储会把 BRAM 数量**正好翻倍**（探针数字与写法在
+  [S10](derived_clock_port_mux.md) §一，那是它的唯一住处）⇒ 算完发现超过全片总量，只能回头做分时。
+  **教训与器件无关**：想在"再加一个读口"和"再深一层缓冲"之间选，先把这两笔算术都写完。
 
 ## 失效条件
-1. **旧文里「HP0 理论 400 MB/s @ 50 MHz」不是本设计的时钟**：本 BD 的 FCLK0 是 100 MHz
-   （`report/ARCHITECTURE.md` §4）。保留原话只因为它是**公式**正确、参数错；引用前按实钟重算。
-2. **旧文里「720p 全帧 ≈13.8 Mbit」本轮找不到出处**，按 W×H×2 重算 1280×720×2 = 1.84 Mbit
-   ⇒ 记为**未验证**，不要引用。可追溯的只有 `report/ARCHITECTURE.md` §5：
-   512×300 帧缓存 = 2.34 Mbit、7020 约 4.9 Mbit、双缓冲「资源不够，未采用」。
+
+1. **公式对、参数错的那一类**：本仓库旧文里写过"HP0 理论 400 MB/s"，那是按 50 MHz 算的，而 BD 里
+   FCLK0 是 100 MHz（`report/ARCHITECTURE.md` §4）。同一句话在自己文档里传了十几版没人复核 ⇒
+   **引用任何带宽数字前先按实钟/实位宽重算一遍**，别看它眼熟。
+2. **算不出出处的数字就删掉**：旧文里的"720p 全帧 ≈13.8 Mbit"在本仓库找不到依据（按 W×H×2 重算
+   1280×720×2 = 1.84 Mbit）⇒ 记为**未验证**，不许引用（可追溯的只有 `report/ARCHITECTURE.md` §5 那几条）。
 3. HP 口的位宽 / ARSIZE / burst 长度必须与 BD 里那条 HP 一致；本工程是 AXI3，
-   **burst > 16 拍非法**（`BEATS=16` 已贴上限）。
-4. 未 `Xil_DCacheFlushRange` 时 PL 读到的是旧数据 —— 这条只覆盖 FILL 与 SD 回放两条 PS 写路径，
-   UDP 直写 DDR 的入包链不经过 A9 缓存，不要用这条去解释它的现象。
-5. 「上板双窗稳定」属**画质/肉眼**判据，本轮没有重新肉眼确认；
-   有数据面证据的只有入包链（`report/V6_BOARD_MEASUREMENT.md` §5 观察项 2/3 写的就是「肉眼待确认」）。
-6. 功耗与温升数字（`report/OVERNIGHT_LOG.md` §5 R05 行：Total 2.350 W / Dynamic 2.176 W /
-   Tj 52.1 °C）置信度是 **Low**
-   （没有 SAIF / 开关活动文件，`build/power.rpt` §1 `Confidence Level = Low`）⇒ 只能做相对比较，
-   不能当绝对功耗引用（未竟项 U4）。
+   **burst > 16 拍非法**（`BEATS=16` 已贴上限）。换到 AXI4 这条限制就变了，要重读协议版本。
+4. 未 `Xil_DCacheFlushRange` 时 PL 读到的是旧数据 —— 这条**只覆盖 PS 写 DDR 的那两条路径**
+   （FILL 与 SD 回放），外设直接 DMA 进 DDR 的入包链不经过 A9 缓存，别拿它去解释入包链的现象。
+5. "上板双窗稳定"属**画质/肉眼**判据，本轮没有重新肉眼确认；有数据面证据的只有入包链
+   （`report/V6_BOARD_MEASUREMENT.md` §5 观察项 2/3 写的就是"肉眼待确认"）。
+   这一眼怎么要、由谁签，见 [S23](eye_acceptance_loop.md)。
+6. 功耗与温升数字（`report/OVERNIGHT_LOG.md` §5 R05 行：Total 2.350 W / Dynamic 2.176 W / Tj 52.1 °C）
+   置信度是 **Low**（没有 SAIF / 开关活动文件，`build/power.rpt` §1 `Confidence Level = Low`）⇒
+   只能做相对比较，不能当绝对功耗引用（未竟项 U4）。**念任何估算类数字都要把置信度一起念出来。**

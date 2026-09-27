@@ -1,17 +1,10 @@
 `timescale 1ns/1ps
 // tb_tap_sched —— 判"每个请求拿到的 4 个抽头 + fx/fy 都对、左窗字也对、输出节拍=输入节拍"。
-//
-// 独立性怎么保证（这条最重要）：期望值**不走** DUT 的字地址/车道路径，
-// 而是直接用像素函数 pix(n) 算 `pix(sy*W+sx)`、`pix(...+1)`、`pix(...+W)`、`pix(...+W+1)`；
-// 存储模型只用来喂 DUT 的读口。两边算法不同 ⇒ 有一方错就会露出来。
-// 左窗那一路另算一条独立判据：aux_q/aux_lane 必须等于 pix(aux_word*4 + aux_word[1:0])。
-//
-// 台架卫生（都是今晚踩过的，写在这儿免得再踩）：
-//   · 驱动与检查都在 negedge：寄存型输出在 posedge 之后一整拍稳定。
-//   · 判据实参在**调用点**求值，所以计数类判据前要先留 settling。
-//   · 标签用 ASCII：中文在 xsim 的控制台输出里会糊成 ?。
-//   · 存储模型每拍都跟随地址（真 BRAM 就是这个行为，frame_buffer_w64 无条件寄存 q_lo），
-//     所以不需要 rd_en —— 少一个"TB 自己造的控制信号"就少一处自证。
+// 独立性（这条最重要）：期望值**不走** DUT 的字地址/车道路径，直接用像素函数算
+//   pix(sy*W+sx)、pix(...+1)、pix(...+W)、pix(...+W+1)；存储模型只用来喂 DUT 的读口
+//   ⇒ 两边算法不同，有一方错就会露出来。左窗那一路另算一条独立判据：
+//   aux_q/aux_lane 必须等于 pix(aux_word*4 + aux_word[1:0])。
+// 跑法：bash sim/run_one.sh tb_tap_sched
 module tb_tap_sched;
     localparam IW = 512;
     localparam SL = 5;
@@ -44,7 +37,8 @@ module tb_tap_sched;
         .rd_word_addr(rd_word_addr), .rd_word(rd_word),
         .p00(p00), .p10(p10), .p01(p01), .p11(p11), .ofx(ofx), .ofy(ofy), .vld(vld));
 
-    // ---------------- 存储模型 ----------------
+    // 存储模型：每拍都跟随地址（真 BRAM 就是这个行为，frame_buffer_w64 无条件寄存 q_lo），
+    // 所以不需要 rd_en —— 少一个"TB 自己造的控制信号"就少一处自证。
     function [15:0] pix;
         input [24:0] n;
         begin
@@ -74,7 +68,7 @@ module tb_tap_sched;
 
     always @(posedge clk) rd_word <= word_of(rd_word_addr);
 
-    // ---------------- 请求序列：覆盖 lane=0..3、跨行、行首/行尾 ----------------
+    // 请求序列：覆盖 lane=0..3、跨行、行首/行尾
     integer   nreq = 60, i = 0, k = 0;
     reg [11:0] q_sx [0:63];
     reg [11:0] q_sy [0:63];
@@ -97,7 +91,7 @@ module tb_tap_sched;
         end
     endtask
 
-    // ---------------- 期望队列（右窗抽头） ----------------
+    // 期望队列（右窗抽头）
     reg [63:0] e_taps [0:63];              // {p11,p01,p10,p00}
     reg [15:0] e_frs  [0:63];              // {fx,fy}
     integer   e_head = 0, e_tail = 0;
@@ -127,8 +121,7 @@ module tb_tap_sched;
             req <= (i < nreq);                      // 发完就停：否则尾部会多出没有期望的 vld
             if (i < nreq) begin
                 word <= {(q_sy[i]*IW + q_sx[i]) >> 2};
-                // 另外三个字号：台架按"慢域算好再送进快域"的接口约定自己算一遍。
-                // 期望值仍然只走 pix(n) 那条独立路径 ⇒ 地址算错照样会露（抽头会对不上）。
+                // 另外三个字号按"慢域算好再送进快域"的接口约定自己算一遍；期望值仍只走 pix(n) 那条独立路径 ⇒ 地址算错照样会露
                 word_p1     <= {((q_sy[i]*IW + q_sx[i]) >> 2) + 17'd1};
                 word_row    <= {((q_sy[i]*IW + q_sx[i]) >> 2) + (IW/4)};
                 word_row_p1 <= {((q_sy[i]*IW + q_sx[i]) >> 2) + (IW/4) + 17'd1};
@@ -173,9 +166,8 @@ module tb_tap_sched;
         end
     end
 
-    // 左窗字：aux_q 在 s1 沿装好，s2 内整拍稳定 ⇒ 在 s2 的 negedge 判。
-    // 期望值直接从 aux_word 自己算（不走 DUT 的路径），所以这条判据不依赖任何队列对齐；
-    // 头两个周期流水还没灌满（aux_q 仍是复位值），用 cyc 跳过。
+    // 左窗字：aux_q 在 s1 沿装好、s2 内整拍稳定 ⇒ 在 s2 的 negedge 判；期望值直接从 aux_word 自己算
+    // （不走 DUT 的路径）⇒ 这条判据不依赖任何队列对齐。头两个周期流水没灌满，用 cyc 跳过。
     wire in_s2 = (u_dut.slot == 3'd2);
     integer cyc = 0;
     always @(negedge clk) begin
@@ -195,6 +187,7 @@ module tb_tap_sched;
         end
     end
 
+    // 标签用 ASCII：中文在 xsim 的控制台输出里会糊成 ?
     task chk;
         input [8*46:1] named;
         input ok;
@@ -211,7 +204,7 @@ module tb_tap_sched;
         #1;
         repeat (4) @(posedge clk);
         rst_n = 1;
-        // 前 2 个周期是流水灌满（aux_q 里还没有对应本请求的字），从第 3 个周期起才开始判
+        // 判据实参在**调用点**求值 ⇒ 计数类判据前先留 settling（前 2 个周期流水灌满，从第 3 个周期起才判）
         repeat (60 * SL + 12) @(posedge clk);
         #1;
         chk("all 60 requests produced 60 tap groups", nchk == nreq);

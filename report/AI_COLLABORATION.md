@@ -174,7 +174,7 @@
 - 读数的**限定条件**是判据的一部分：`health_read.mjs:524-527` 在 `slow=1` 那一档直接把 `stall_ms` 降格成"序指标，不是毫秒"；`--gapclr` 只归零帧间隔那三条 lane，其余 lane 仍是自启动以来（`health_read.mjs:14`、`ISSUES.md:4021` 的 `gap_max` 终身保持语义）。换一个工程，这些限定要重新量，不能沿用。
 
 **已经在 `skill/` 里作为可复用条目的（只指路，正文以 `skill/` 那一份为准，本文不复制、也不引它的行号——那目录此刻正在重写）：**
-`skill/criterion_blind_spot.md`（"绿着错"那一族，§4 案例 A/B/C/E 是它的现场）、`skill/llm_fpga_debug_workflow.md`、`skill/frameid_loss_signature.md`、`skill/artifact_freeze_and_freshness.md`、`skill/failing_read_prints_geometry.md`、`skill/cdc_pair_baseline_gate.md`、`skill/bench_self_inflicted_reds.md`、`skill/derived_clock_port_mux.md`、`skill/arbiter_pending_pulse.md`、`skill/zynq_ddr_bandwidth.md`、`skill/zynq-video-rtl-debug/`。
+`skill/criterion_blind_spot.md`（"绿着错"那一族，§4 案例 A/B/C/E 是它的现场）、`skill/llm_fpga_debug_workflow.md`、`skill/eye_acceptance_loop.md`（"我发命令、人看屏"那一半的操作规程，§5 与 §6 第 4 笔的落点）、`skill/frameid_loss_signature.md`、`skill/artifact_freeze_and_freshness.md`、`skill/failing_read_prints_geometry.md`、`skill/cdc_pair_baseline_gate.md`、`skill/bench_self_inflicted_reds.md`、`skill/derived_clock_port_mux.md`、`skill/arbiter_pending_pulse.md`、`skill/zynq_ddr_bandwidth.md`、`skill/zynq-video-rtl-debug/`。
 
 ---
 

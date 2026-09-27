@@ -1,20 +1,10 @@
 `timescale 1ns/1ps
-// 台架：src/rtl/video/split_ctrl.v（V8-4 分割线发生器）
-//
-// 这个模块里"看着对"和"判得住"差别最大的是扫描，所以判据都写成**可反例**的形式：
-//   * 端点判"必须真的取到 lo 与 hi"（T5/T6/T11），不是"落在 [lo,hi] 内" ——
-//     后者在三角波卡死在中点时照样绿；
-//   * 步长判"每一次变化恰好等于 speed，或者是落在端点上的那一步"（T6a）——
-//     只判"最终到了端点"挡不住"一拍跳 16 像素"；
-//   * 节拍判**有效像素数**而不是周期数，并且同一件事在"连续栅格"和"1024 有效 + 320 消隐"
-//     两种栅格上各量一遍（T7 与 T8）：如果实现用的是"第几拍"，这两次的像素数会差 31 %
-//     （= 消隐占比）而拍数不变 ⇒ 这一对判据能区分"按像素计"与"按拍计"。#54/#56 就栽在
-//     这种区别上（tb_rotate_window 的 SLOT_LAG 假红、"分割线旁边的颜色条"）；
-//   * 百分比不抄 RTL 的乘子，用整数除法 (eff*100)/W 独立算一遍（T3/T4 各若干个点）；
-//   * swap 判"缝位与百分比一个像素都不动"（T2）——spec 要的是只换内容不换线位；
-//   * 夹紧的"判据自身是活的"由 T1b 陪证：同一个模块里 777 必须原样透传，
-//     所以 T1c/T1d 的"输出等于 1024"不可能是"输出恒为 1024"蒙对的。
-//   * 统计类判据全部配一条"真的驱动了 N 个像素"的陪跑（T13）——#60 那一课。
+// 台架：src/rtl/video/split_ctrl.v（V8-4 分割线发生器）。跑：bash sim/run_one.sh tb_v93_split_ctrl
+// 判据一律写成可反例的形式：端点判"真的取到 lo/hi"（T5/T6b/T11），不是"落在 [lo,hi] 内"；
+// 步长判"每步恰好 = speed 或落在端点上的收尾那一步"（T6a）；夹紧的"判据有牙"由 T1b（777 原样透传）陪证；
+// 节拍按**有效像素数**计，在连续栅格与"1024 有效 + 320 消隐"上各量一遍（T7/T8）：按拍计会让两次
+//   像素数差 31 %（= 消隐占比）而拍数不变 —— #54/#56 就栽在这区别上；
+// 百分比不抄 RTL 乘子、用整数除法 (eff*100)/W 独立算（T3/T4）；swap 只换内容不换缝位（T2）；统计类配"真的驱动了 N 个像素"陪跑（T13，#60）。
 module tb_v93_split_ctrl;
 
     localparam DW = 1024, SW = 512;
@@ -50,7 +40,6 @@ module tb_v93_split_ctrl;
 
     integer errors = 0, nvalid = 0, i, bad3, v, k;
     integer lo_exp, hi_exp;                    // watch 的期望端点（每次 watch 前先设好）
-    // watch 的统计量
     integer minv, maxv, nchg, touched_lo, touched_hi, bad_step, first_delta;
     integer vp_min_gap, vp_max_gap;
 
@@ -76,9 +65,8 @@ module tb_v93_split_ctrl;
         end
     endtask
 
-    // 扫 total 个有效像素，途中插 gap 个消隐拍（每 64 个有效像素一次），记录：
-    //   变化次数 / 相邻变化的有效像素间隔（**跳过第一次**，因为 tcnt 的相位是任意的）/
-    //   min/max / 两个端点各被采到几次 / 步长不合规的次数
+    // 扫 total 个有效像素，途中每 64 个插 gap 拍消隐；记录变化次数 / 相邻变化的有效像素间隔
+    // （**跳过第一次**，tcnt 相位任意）/ min/max / 两端点各被采到几次 / 步长不合规次数
     task watch;
         input integer total;
         input integer gap;
@@ -118,8 +106,7 @@ module tb_v93_split_ctrl;
                 if (eff === lo_exp[11:0]) touched_lo = touched_lo + 1;
                 if (eff === hi_exp[11:0]) touched_hi = touched_hi + 1;
             end
-            // 每段观测都把自己的账打出来：红了之后要能一眼看出是"被测者没做到"还是
-            // "观测窗口不够 / 初值不在区间里"（skill/failing_read_prints_geometry）。
+            // 每段观测都打自己的账：红了要能一眼分清"被测者没做到"还是"观测窗口不够/初值不在区间里"
             $display("     DBG watch total=%0d nchg=%0d min=%0d max=%0d touched_lo=%0d touched_hi=%0d bad_step=%0d first_delta=%0d gap=[%0d,%0d]",
                      total, nchg, minv, maxv, touched_lo, touched_hi, bad_step,
                      first_delta, vp_min_gap, vp_max_gap);
@@ -216,9 +203,7 @@ module tb_v93_split_ctrl;
             minv >= lo_exp && maxv <= hi_exp);
 
         // ---------- T9 speed=0 = 钉住 ----------
-        // 先把 swp 灌成 300（只有手工模式会让扫描值跟住 pos_px），再打开 auto + speed=0：
-        // 期望"钉在 300 这一拍上"。第一次这里判失败是因为顺序写反了 —— 打开 auto 之后再改
-        // pos_px 是不灌的（那样"手工位置"与"扫描值"就成了两条互不相干的数，判据会假绿）。
+        // 顺序要紧：只有手工模式才把扫描值灌成 pos_px，打开 auto 之后再改 pos_px 是不灌的
         speed = 0; lo16 = 0; hi16 = 16; lo_exp = 0; hi_exp = DW;
         auto_en = 0; pos_px = 300; pixels(4);
         v = eff;
@@ -234,9 +219,8 @@ module tb_v93_split_ctrl;
             v === 300 && nchg > 0 && first_delta == 1 && eff > 300 && eff < 400);
 
         // ---------- T11 range 写反（lo>hi）必须折成 [min,max] ----------
-        // 窗口要盖得住"从 300 起、上行 468 + 下行 512 + 上行 512 = 1492 像素 @ 每步 3 像素
-        // × 每步 64 个有效像素"≈ 3.2 万像素。第一次这里判红是因为只给了 2 万像素 ——
-        // 那是**观测窗口不够**，不是被测者错（同一个教训见 tb_v89 把直方图 NG 从 7 加到 11）。
+        // 窗口要盖得住"从 300 起、上 468 + 下 512 + 上 512 ≈ 1492 像素 @ 每步 3 像素 × 每步 64 个
+        // 有效像素" ≈ 3.2 万像素；观测窗口不够 ≠ 被测者错（同一教训见 tb_v89 直方图 NG 7→11）。
         auto_en = 0; speed = 3; lo16 = 12; hi16 = 4; lo_exp = 256; hi_exp = 768;
         pos_px = 300; pixels(4);
         auto_en = 1; watch(45000, 0);

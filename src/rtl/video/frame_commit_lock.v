@@ -1,7 +1,7 @@
 `timescale 1ns/1ps
-// frame_commit_lock v5.9 — RESTORE first-good v5 policy
-// allow = ALL blanking after de_d4→de_d[11] only (output pipeline).
-// NO near_de, NO V-blank-only, NO mute.
+// frame_commit_lock —— 把"提交一帧"锁到显示消隐窗口里再搬（两个时钟域：axi_clk 搬、pix_clk 判窗口）。
+// v5.9 — RESTORE first-good v5 policy：allow = ALL blanking after de_d4→de_d[11] only (output pipeline).
+// NO near_de, NO V-blank-only, NO mute —— 这三种变体是本版**刻意不做**的，改窗口前先翻 ISSUES 里的旧账。
 module frame_commit_lock #(
     parameter IMG_H   = 300,
     parameter DISP_H  = 600,
@@ -23,7 +23,9 @@ module frame_commit_lock #(
     output reg         frame_ready_pix,
     output wire        allow_copy_axi,
     output reg         copy_abort,
-    output reg         abort_tgl        // v7.9：copy_abort 每发生一次就翻转一位（给像素域用）
+    output reg         abort_tgl        // v7.9：copy_abort 每发生一次翻转一位（给像素域）。两次 abort 至少隔 WD_CYC
+                                        //（默认 20 ms = 100 万 axi 拍，因为 abort 清掉 copy_active、要再来一次
+                                        // commit_req）⇒ 不会两次翻转落进同一像素周期被并成 0 次
 );
     reg pending;
     reg [31:0] pending_base;
@@ -95,18 +97,12 @@ module frame_commit_lock #(
         end
     end
 
-    // v7.9：`copy_abort` 是 axi_clk 上**只有 1 拍（10 ns）**的脉冲，而消费者
-    // `pl_video_top` 的 `eth_has_frame` 在 50 MHz 像素域 —— 两路时钟同源同相
-    // （MMCM 出来的 100 MHz 与 50 MHz），于是脉冲的翻转沿**正好压在**像素域的采样沿上：
-    // 收不收得到取决于建立/保持窗口里的亚稳。
-    // 注意：这条**不会体现在 `report_cdc` 里**（那份报告只有"时钟对 + 端点数"的粒度，
-    // 不点名信号；build#17 与 #18 的 cdc.rpt 逐行相同），它的证据是台架相位扫描
-    // `sim/tb_v79_abort_toggle.v`：错开 4 ns 时裸采 0/3，翻转式 3/3。
-    // 电平型 3 级同步在这里并不能修好它（实测与裸采逐相位一模一样，见 tb_v79_abort_toggle）；
-    // 正确形式是翻转式脉冲同步器，与本文件里像素域→axi 域那一侧的 `blank_tog` 完全对称（已有模板）。
-    // 翻转式是"电平语义"：两次翻转若落在同一个像素周期内会被合并成 0 次。这里不会发生 ——
-    // 两次 abort 之间至少隔 WD_CYC（默认 20 ms = 100 万个 axi 拍），因为 abort 会把 copy_active
-    // 清掉、必须再来一次 commit_req 才可能重新走到看门狗。
+    // v7.9：`copy_abort` 是 axi_clk 上**只有 1 拍（10 ns）**的脉冲，消费者 `pl_video_top` 的 `eth_has_frame` 在
+    // 50 MHz 像素域 —— 两路时钟同源同相（MMCM 出来的 100/50 MHz），于是翻转沿**正好压在**像素域的采样沿上：
+    // 收不收得到取决于建立/保持窗口里的亚稳。⚠ **电平型 3 级同步在这里并不能修好它**（实测与裸采逐相位一模
+    // 一样）；正确形式是**翻转式脉冲同步器**，与本文件像素域→axi 那一侧的 `blank_tog` 完全对称（已有模板）。
+    // 这条**不会体现在 `report_cdc` 里**（那份报告只有"时钟对 + 端点数"的粒度，不点名信号；build#17 与 #18 的
+    // cdc.rpt 逐行相同），证据是台架相位扫描 `sim/tb_v79_abort_toggle.v`：错开 4 ns 时裸采 0/3、翻转式 3/3。
     always @(posedge axi_clk or negedge axi_rst_n) begin
         if (!axi_rst_n) abort_tgl <= 1'b0;
         else if (copy_abort) abort_tgl <= ~abort_tgl;

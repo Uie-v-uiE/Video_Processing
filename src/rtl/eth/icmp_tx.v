@@ -1,16 +1,8 @@
-//----------------------------------------------------------------------------------------
-// File name:           icmp_tx
-// Last modified Date:  2024/11/22
-// Last Version:        V1.0
-// Descriptions:        icmp发送模块
-//----------------------------------------------------------------------------------------
-// Created by:          riguke
-// Created date:        2024/11/22
-// Version:             V1.0
-// Descriptions:        The original version
-//
-//----------------------------------------------------------------------------------------
-//****************************************************************************************//
+// icmp_tx — 厂商例程（riguke，V1.0，非自研）：拼一帧 ICMP 回显应答（ping reply）发给对端。
+// 帧：前导码 8B → 以太网头 14B（类型 0x0800）→ IPv4 头 20B（版本/IHL 0x45、DF=010、TTL=0x80、
+// 协议字段 1=ICMP）→ ICMP 8B（type=0 回显应答、code=0、identifier、sequence、checksum）→ 数据，
+// 不足 46B 补齐。IP 首部校验和与 ICMP 校验和都在本模块内算（一补数累加、进位再累两次、取反）：
+// ICMP 校验和覆盖 ICMP 头+数据、不含 IP 头。FCS 由外部 crc32_d8 算，这里按位取反后 LSB first 附 4B。
 
 
 module icmp_tx (
@@ -90,9 +82,6 @@ module icmp_tx (
     //wire define                       
     wire pos_start_en;  //开始发送数据上升沿
     wire [15:0] real_tx_data_num;  //实际发送的字节数(以太网最少字节要求)
-    //*****************************************************
-    //**                    main code
-    //*****************************************************
 
     assign pos_start_en     = (~start_en_d2) & start_en_d1;
     assign real_tx_data_num = (tx_data_num >= MIN_DATA_NUM) ? tx_data_num : MIN_DATA_NUM;

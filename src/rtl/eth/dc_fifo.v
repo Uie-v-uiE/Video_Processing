@@ -28,6 +28,8 @@ module dc_fifo #(
     endfunction
 
     // write
+    // 指针是 ADDR_W+1 位的二进制，跨域只传**格雷码**版本（相邻两位才可能同时变）；
+    // full 用"对端格雷码的最高两位取反、其余相等"判，省掉一次二进制比较。
     wire [ADDR_W:0] wbin_n  = wbin + 1'b1;
     wire [ADDR_W:0] wgray_n = bin2gray(wbin_n);
     assign wr_full = (wgray_n == {~rgray_s1[ADDR_W:ADDR_W-1], rgray_s1[ADDR_W-2:0]});
@@ -64,7 +66,7 @@ module dc_fifo #(
         end
     end
 
-    // sync
+    // 格雷码指针跨域：各在**对方**时钟域打两拍（s0→s1），二进制指针永不跨域
     always @(posedge wr_clk or negedge wr_rst_n) begin
         if (!wr_rst_n) begin
             rgray_s0 <= 0; rgray_s1 <= 0;

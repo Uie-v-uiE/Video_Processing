@@ -1,14 +1,10 @@
 `timescale 1ns/1ps
 // 台架：effect_ctrl（两套控制源折成一套 + 跨域同步）与 proc_pipeline（五级链的整体契约）
-//
-// 这个台架钉的是"整条链对外承诺的三件事"，单模块台架（tb_v84/tb_v85）管不到：
-//   ① **全旁路 = 逐位不动**：sel=0 时输出必须与输入完全一致（不错位、不钳位、不变灰）。
-//      V8-4 要把"原图"和"处理图"按分割线逐像素混合，只要旁路时错一行/错一列，分割线两侧
-//      就会出现一条错缝 —— 那是"看起来像 bug 但没人说得清"的最坏情况。
-//   ② **总延迟固定**：实测 de_in→de_out 必须等于模块自己声明的 LATENCY，且与 sel 无关。
-//      顶层左窗的 skid 长度直接取 `u_pipe.LATENCY`，所以这条一红，左右窗就一定错位。
-//   ③ **老五位与新九位的优先级**：`cfg != 0` 用新九位，否则用老五位翻出来的等价形式；
-//      OSD 上那五位是新九位的投影，不许成为第二个控制源（两边都能开就再也关不掉了）。
+// 钉的是"整条链对外承诺的三件事"，单模块台架（tb_v84/tb_v85）管不到。跑：bash sim/run_one.sh tb_v86_pipe_sel
+// ① **全旁路 = 逐位不动**（sel=0 不许错位、钳位、变灰）：V8-4 要按分割线逐像素混合，旁路错一行/一列就出一条说不清的错缝；
+// ② **总延迟固定**：实测 de_in→de_out == 模块自己声明的 LATENCY 且与 sel 无关 —— 顶层左窗的 skid 长度直接取 `u_pipe.LATENCY`，这条一红左右窗就一定错位；
+// ③ **只有一套控制源**：`cfg != 0` 用新九位，否则用老五位翻出来的等价形式；OSD 上那五位是新九位的投影，
+//    不许成为第二个控制源（两边都能开就再也关不掉了）。
 module tb_v86_pipe_sel;
 
     localparam W = 16, H = 8;
@@ -17,13 +13,12 @@ module tb_v86_pipe_sel;
     reg clk = 0, rst_n = 0;
     always #10 clk = ~clk;
 
-    // ---------------- effect_ctrl ----------------
+    // ---- effect_ctrl ----
     reg  [8:0] cfg_a = 0;
     reg  [7:0] th_a = 80;
     wire [8:0] sel_q;
     wire [7:0] th_q;
-    // 声明必须在 u_eff 之前：端口连接里先出现的标识符会被当成**隐式 1 bit 线网**，
-    // 后面再写 `reg [31:0] gm_a` 就成了重复声明（ModelSim 抓过一次，规矩记在学习文档里）。
+    // 声明必须在 u_eff 之前：端口连接里先出现的标识符会被当成**隐式 1 bit 线网**，再写 `reg [31:0] gm_a` 就是重复声明
     reg  [31:0] gm_a = 32'd0;
     wire        gm_en_q, gm_wr_q;
     wire [7:0]  gm_idx_q, gm_data_q;
@@ -31,15 +26,14 @@ module tb_v86_pipe_sel;
         .clk(clk), .rst_n(rst_n),
         .stage_sel_async(cfg_a), .threshold_async(th_a),
         .gamma_async(gm_a),             // gamma 表本身由 tb_v88_gamma 测；这里加 T15/T16 钉"位序与同步"
-        // V8-8 给 effect_ctrl 加的两个缩放输入在这个台架里**没人管**（它判的是算法选择字与 gamma 位序），
-        // 但悬空 = Z ⇒ 会顺着 `sel_meta` 把 X 灌进同一条同步链的输出，而 `#88` 刚教过这一课
-        // （顶层台架因为一个悬空输入红了四判据好几天）。显式钉成"1.00x 手动"，与固件默认一致。
+        // V8-8 给 effect_ctrl 加的两个缩放输入在本台架**没人判**（这里判选择字与 gamma 位序），但悬空 = Z
+        // 会顺着 `sel_meta` 把 X 灌进同一条同步链（#88：一个悬空输入红了四判据好几天）。钉成"1.00x 手动"=固件默认。
         .zoom_sel_async(3'd4), .zoom_manual_async(1'b1),
         .stage_sel(sel_q), .threshold(th_q),
         .gamma_en(gm_en_q), .gamma_wr(gm_wr_q), .gamma_idx(gm_idx_q), .gamma_data(gm_data_q)
     );
 
-    // ---------------- proc_pipeline ----------------
+    // ---- proc_pipeline ----
     reg         de = 0;
     reg  [11:0] xs = 0, ys = 0;
     reg  [15:0] src = 0;
@@ -48,9 +42,8 @@ module tb_v86_pipe_sel;
     wire [15:0] d_o;
     proc_pipeline #(.H_ACTIVE(W)) up (
         .clk(clk), .rst_n(rst_n), .stage_sel(sel), .threshold(8'd80),
-        // gamma 关掉：本台架测的是"上面那五级 + 老五位映射"，gamma 自己有 tb_v88_gamma。
-        // 留一条副作用判据：gamma_en=0 时它必须逐位透明，所以这里的 T1（sel=0 只含输入里
-        // 出现过的颜色）同时也是"gamma 旁路不偷改像素"的证据。
+        // gamma 关掉：这里测"上面那五级 + 老五位映射"，表的内容由 tb_v88_gamma 测。留一条副作用判据：
+        // gamma_en=0 必须逐位透明，所以 T1（sel=0 只含输入里出现过的颜色）同时也是"gamma 旁路不偷改像素"的证据。
         .gamma_en(1'b0), .gamma_wr(1'b0), .gamma_idx(8'd0), .gamma_data(8'd0),
         .rotate_active(1'b0), .hs_in(1'b0), .vs_in(1'b0),
         .de_in(de), .x_in(xs), .y_in(ys), .din(src), .de_out(de_o), .dout(d_o)
@@ -141,8 +134,7 @@ module tb_v86_pipe_sel;
                 ref0[j][i] = got[j][i];
                 refbyp[j][i] = got[j][i];
             end
-        // 旁路是**中心抽头**（与 blur/sobel 同约定），所以这里不要求逐位等于输入；
-        // 要求的是更强的性质：全旁路时不许产生任何输入里没有的颜色（不量化、不运算）。
+        // 旁路是**中心抽头**（与 blur/sobel 同约定，见 ISSUES #54），所以这里不要求逐位等于输入，而是要求更强的性质：全旁路时不许产生任何输入里没有的颜色（不量化、不运算）。
         chk("T1 sel=0 输出只含输入里出现过的颜色（旁路不做任何运算）", bad == 0);
         if (bad) begin
             for (j = 0; j < H; j = j + 1) begin
@@ -193,10 +185,8 @@ module tb_v86_pipe_sel;
         chk("T8 二值化输出只有全亮/全暗两种", bad == 0);
 
         // ================= ③ 只有一套控制源（#66：五位那个第二源已经删掉）=================
-        // 原来这一节钉的是"老五位全开、新九位为 0 ⇒ 新九位等于老五位的等价形式"（T9/T10）与
-        // "新字非 0 时老五位不许漏进效果"（T13）。`effect_ctrl` 现在只有一个入口，
-        // 那两条**在结构上成立**，留在这里只会让人以为还有第二个源要防。
-        // 换成钉今天真的会坏的两件事：cfg=0 必须全旁路；cfg 必须逐位直连（同步链不改位）。
+        // 原来这一节钉"老五位全开、新九位为 0 ⇒ 等价"（T9/T10）与"新字非 0 时老五位不许漏进效果"（T13）；
+        // `effect_ctrl` 现在只有一个入口，那两条**结构上成立**，于是换成钉今天真的会坏的两件事：cfg=0 必全旁路、cfg 逐位直连。
         cfg_a = 9'h000; th_a = 8'd123;
         repeat (6) @(negedge clk);
         chk("T9 cfg=0 ⇒ 全旁路（五位这个第二源已不存在，没人能把效果偷偷打开）", sel_q == 9'h000);
@@ -206,8 +196,7 @@ module tb_v86_pipe_sel;
         cfg_a = 9'h008;
         repeat (6) @(negedge clk);
         chk("T12 九位控制字逐位直连（cfg=0x008 ⇒ sel_q=0x008）", sel_q == 9'h008);
-        // 同一份 cfg 连跑两帧，输出必须一模一样 —— 替掉原来的"换老五位输出不变"那条：
-        // 它防的是"第二个源漏进来"，现在它能防的是"同步链自己每帧漂"（同源同深度这件事没人白给）。
+        // 同一份 cfg 连跑两帧必须一模一样 —— 替掉原来的"换老五位输出不变"（那条防第二个源），现在防"同步链自己每帧漂"
         run_frame(9'h008);
         for (j = 0; j < H; j = j + 1)
             for (i = 0; i < W; i = i + 1) ref0[j][i] = got[j][i];

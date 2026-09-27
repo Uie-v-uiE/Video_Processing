@@ -1,21 +1,10 @@
 `timescale 1ns/1ps
-// tb_fb_rd5x —— 判"这条 5 槽读口产出的像素，确实是对应那一拍请求的像素"。
-//
-// 这个台架要防的不是插值算错（那是 tb_bilin_lerp 的活），而是**配准**：
-// 左窗 1 次读 + 右窗 4 次读 + 2 级插值 + 侧带移位链，任何一处少打一拍，板上的现象就是
-// "画面错开一列 / 切窗口时跳一下"，而这种错**不会让任何模块报错**，也只会在明早的屏上露出来。
-//
-// 四条独立性设计：
-//  1. 期望值用 TB 里的实数（real）双线性公式算，走与 DUT 完全不同的代码路径；
-//     容差只给 ±1 个 5bit 通道 LSB —— 拿去吸收定点舍入，不吸收"取错像素"。
-//  2. 延迟不是写死的：在 0..20 里搜唯一能全对的平移量，并且**断言唯一性**
-//     （两个不同的平移量都能对上 = 判据没牙）。搜到的值再和钉住的常数比，
-//     以后谁在通路里加/减一拍，这里直接红，而不是"画面悄悄挪一列"。
-//  3. 反向对照（teeth）：同一批样本拿**最近邻**去比必须大面积不通过（>50%），
-//     否则说明容差松到"插不插值都算对"。
-//  4. 左窗那条腿必须**逐位精确**（它没有插值，任何误差都是错的）。
-//
-// 台架卫生：标签 ASCII；两个时钟同相（clk 的每个沿都落在 clk5 的沿上），与 MMCM 的真实关系一致。
+// tb_fb_rd5x —— 判"这条 5 槽读口产出的像素，确实是对应那一拍请求的像素"：防的是**配准**，不是插值算错
+//   （那是 tb_bilin_lerp 的活）。少打一拍 = 板上"画面错开一列 / 切窗口跳一下"，不会让任何模块报错。跑法：bash sim/run_one.sh tb_fb_rd5x
+// 四条独立性：① 期望值用 TB 里的实数（real）双线性公式算，走与 DUT 完全不同的代码路径，容差只给
+//   ±1 个 5bit 通道 LSB（吸收定点舍入，不吸收"取错像素"）；② 延迟不写死 —— 在 0..20 里搜唯一能全对的
+//   平移量并**断言唯一**（两个平移都对 = 判据没牙），再与钉住的 LAT_PIN 比；③ 反向对照：同一批样本拿
+//   **最近邻**比必须大面积不通过（>50%），否则容差松到"插不插值都算对"；④ 左窗那条腿必须**逐位精确**。
 module tb_fb_rd5x;
     localparam IW = 512;
     localparam IH = 300;
@@ -46,7 +35,7 @@ module tb_fb_rd5x;
         .pix(pix), .oob_out(oob_out), .right_out(right_out)
     );
 
-    // ---------------- 图像模型（高频图案：双线性与最近邻必须明显不同） ----------------
+    // 图像模型（高频图案：双线性与最近邻必须明显不同）
     function [15:0] img;
         input [11:0] x;
         input [11:0] y;
@@ -108,7 +97,7 @@ module tb_fb_rd5x;
         end
     endfunction
 
-    // ---------------- 请求表 ----------------
+    // 请求表
     integer  q;
     reg [11:0] r_x [0:NREQ-1], r_y [0:NREQ-1], l_x [0:NREQ-1], l_y [0:NREQ-1];
     reg [7:0]  r_fx [0:NREQ-1], r_fy [0:NREQ-1];
@@ -116,7 +105,7 @@ module tb_fb_rd5x;
     reg        r_bilin [0:NREQ-1];
     reg [15:0] e_bil [0:NREQ-1], e_nn [0:NREQ-1], e_left [0:NREQ-1];
 
-    // ---------------- 观测表：每拍收一次输出（与请求同节拍计数） ----------------
+    // 观测表：每拍收一次输出（与请求同节拍计数）
     localparam NOBS = NREQ + 24;
     reg [15:0] o_pix [0:NOBS-1];
     reg        o_sel [0:NOBS-1], o_oob [0:NOBS-1];
@@ -150,6 +139,7 @@ module tb_fb_rd5x;
     end
 
     integer errors = 0;
+    // 标签用 ASCII（中文在 xsim 控制台会糊成 ?）
     task chk;
         input [8*46:1] named;
         input ok;
@@ -179,7 +169,7 @@ module tb_fb_rd5x;
             e_left[q] = img(l_x[q], l_y[q]);
         end
 
-        // ---- 走 DUT 自己的写口灌一张图（38400 个 64bit 字）----
+        // 走 DUT 自己的写口灌一张图（38400 个 64bit 字）
         for (j = 0; j < (IW*IH)/4; j = j + 1) begin
             @(negedge clk5);
             wr_en = 1'b1;  wr_addr = j;
@@ -191,7 +181,7 @@ module tb_fb_rd5x;
         repeat (NREQ + 22) @(posedge clk);
         #1;
 
-        // ---- 搜平移量 ----
+        // 搜平移量（banner 设计②：唯一性 + 与 LAT_PIN 比对）
         nzero = 0; found = -1;
         for (cand = 0; cand <= 20; cand = cand + 1) begin
             nbad = 0;
@@ -209,7 +199,7 @@ module tb_fb_rd5x;
         chk("shift is unique (two matches would mean no teeth)", nzero == 1);
         chk("measured LAT equals pinned value", found == LAT_PIN);
 
-        // ---- 逐样本比对 ----
+        // 逐样本比对（banner 设计③④：最近邻反向对照、左窗逐位精确）
         nbil = 0; nnear = 0; nleft = 0; nflag = 0; ncmp = 0; far = 0; nnoff = 0; noffbad = 0;
         for (i = 6; i < NREQ - 2; i = i + 1) begin
             if (i + found >= nobs) begin nflag = nflag + 1; i = NREQ; end

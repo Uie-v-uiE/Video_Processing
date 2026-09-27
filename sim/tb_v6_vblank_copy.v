@@ -1,13 +1,9 @@
 `timescale 1ns/1ps
-// v6 proof TB — PRODUCTION geometry (512x300 source, 1024x600 @50MHz pix,
-// 100MHz AXI). Question: does the whole frame land in the display BRAM inside
-// ONE V-blank window, so no visible row can ever mix two DDR frames?
-//
-//   window = 25 blank lines x 1344 px = 33600 pix cycles = 67200 axi cycles
-//   frame  = 38400 words of 64 bit (4 RGB565 each)
-//
-// The slave models HP0 as a sustained bandwidth (rate_num beats / 10 cycles;
-// 10 = the 800 MB/s peak of a 64-bit @100MHz port) plus a cold-start latency.
+// v6 proof TB — PRODUCTION geometry (512x300 src, 1024x600 @50MHz pix, 100MHz AXI).
+// Question: does the whole frame land in the display BRAM inside ONE V-blank window, so
+// no visible row can ever mix two DDR frames?  run: bash sim/run_one.sh tb_v6_vblank_copy
+//   window = 25 blank lines x 1344 px = 33600 pix cycles = 67200 axi cycles;  frame = 38400 words x 64 bit (4 RGB565)
+// Slave models HP0 as a sustained bandwidth (rate_num beats / 10 cycles; 10 = 800 MB/s peak) + cold-start latency.
 module tb_v6_vblank_copy;
     localparam integer IMG_W  = 512;
     localparam integer IMG_H  = 300;
@@ -64,7 +60,7 @@ module tb_v6_vblank_copy;
         .m_axi_rready(rready), .copy_cycles(copy_cycles)
     );
 
-    // ---- bandwidth-limited read slave -----------------------------------
+    // bandwidth-limited read slave
     integer rate_num, credits, pending, rem_burst, gap, idle_seen;
     always @(posedge axi_clk) begin
         if (!rst_n) begin
@@ -93,7 +89,7 @@ module tb_v6_vblank_copy;
         end
     end
 
-    // ---- checks ----------------------------------------------------------
+    // checks: coverage / dup / oob / write-during-active-line
     reg [WORDS-1:0] seen;
     integer errors, w_ok, w_dup, w_oob, w_viol;
     reg window_open;
@@ -136,9 +132,8 @@ module tb_v6_vblank_copy;
             while (allow && !copy_done && !copy_abort) @(posedge axi_clk);
             did1 = copy_done;
             if (!did1 && !in_one) begin
-                // below the 0.571 beat/cycle floor the swap legitimately spills
-                // into the next blank; it must still finish and never write an
-                // active line. One display frame = 1.68 M axi cycles.
+                // below the 0.571 beat/cycle floor the swap legitimately spills into the next
+                // blank; it must still finish and never write an active line (1 frame = 1.68 M axi cycles)
                 g = 0;
                 while (!copy_done && (g < 3_000_000)) begin
                     @(posedge axi_clk); g = g + 1;
@@ -170,7 +165,6 @@ module tb_v6_vblank_copy;
                 $display("rate=%0d/10 swapped inside the first V-blank (window budget met)", r);
             else
                 $display("rate=%0d/10 spilled to a later V-blank (below the 0.571 beat/cycle floor)", r);
-            // wait for the abort/idle path to settle, then for the window to close
             while (copy_busy) @(posedge axi_clk);
             while (allow) @(posedge axi_clk);
             repeat (3000) @(posedge axi_clk);

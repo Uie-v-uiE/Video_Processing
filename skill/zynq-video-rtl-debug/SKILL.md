@@ -26,8 +26,20 @@ description: Layered (L0-L4) RTL debug and single-variable fix protocol for this
 | 单个台架快速迭代（只编要编的文件） | [`../../sim/run_one.sh`](../../sim/run_one.sh) |
 | 建工程 + BD + 综合实现 + bit + xsa | [`../../build/tcl/build_system_axigpio.tcl`](../../build/tcl/build_system_axigpio.tcl) |
 | 新模块上全流程前的结构预检 | [`../../build/tcl/ooc_newmods.tcl`](../../build/tcl/ooc_newmods.tcl)（`OOC_ONLY=<模块名>` 一次一个；它的数字**不是门禁**，对输入一律加 3 ns） |
-| 下 bit / 起 PS / 选显示源 | `build/tcl/{program_pl,program_system,ps_jtag_boot,set_src,scan_jtag}.tcl` |
+| 下 bit / 起 PS / 选显示源 | 三件套 `build/tcl/{ps_jtag_boot,program_pl,ps_app_reload}.tcl`；选源是 `build/tcl/set_src.tcl`；链上有没有器件是 `scan_jtag.tcl` |
 | 门禁复核 | `bash ../../build/gates.sh`（它检查什么、红了先看哪里，见 README 的 C 表） |
+
+## 已验证效果（这条分层顺序真的按下去过多少次）
+
+- **L4 的第一格就是被它救回来的**：`ping` 发送=3 / 接收=3 / 丢失=0 与 `DDR_ECHO`、`PROGRAMMED xc7z020_1`
+  三行连起来读，才把"没画面"从"网口坏了"改成"PS 没重起"（`report/OVERNIGHT_LOG.md` §「L4 执行」）。
+- **L1 的一条"没有断言就不算绿"**把整类假绿堵住了：`sim/run_sim.tcl` 不再把 `NO_ASSERT` 计为 pass
+  （`report/OVERNIGHT_LOG.md` R13 第 3 条）——起因是一个什么都不断言的台架可以永远绿。
+- **机器那一半跑通、并且说得清是谁跑的**：`bash build/board_verify.sh --battery --geom` 退出码 **0**
+  （串口电池 99/99、`geom_check ok=8 fail=0`，`build/evidence/verify_0927_2309*.txt`），
+  同一轮的位流身份是 md5 `1906b6764ae4` 而不是文件名（`build/evidence/r80_flash.log`）。
+- **它救过最贵的一次是反着用的**：门禁全绿而唯一例化顶层的台架连着红了好几版，因为门禁当时不跑它
+  （`report/ISSUES.md` #88/#78）⇒ "分层"不是走过场，每一层都得有一条真的会红的判据。
 
 ## 使用方法：按层推进，每层都要留下一条能复跑的判据
 

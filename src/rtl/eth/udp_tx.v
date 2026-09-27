@@ -1,16 +1,8 @@
-//----------------------------------------------------------------------------------------
-// File name:           udp_tx
-// Last modified Date:  2024/11/22
-// Last Version:        V1.0
-// Descriptions:        udp发送模块
-//----------------------------------------------------------------------------------------
-// Created by:          riguke
-// Created date:        2024/11/22
-// Version:             V1.0
-// Descriptions:        The original version
-//
-//----------------------------------------------------------------------------------------
-//****************************************************************************************//
+// udp_tx — 厂商例程（riguke，V1.0，非自研）：逐字节拼一帧 Ethernet + IPv4 + UDP 再吐给 GMII 发送口。
+// 帧布局在 tx_data/eth_head/ip_head 里按偏移填：前导码 8B → DA/SA/类型 14B → IP 头 20B → UDP 头 8B →
+// 载荷；最小帧 64B ⇒ 载荷不足 46-20-8=18 字节时补齐。IP 首部校验和在本机内算（一补数累加两次进位），
+// UDP 校验和恒 0（IPv4 下即"不计算"）。FCS 由外部 crc32_d8 算，本模块只发 crc_en/crc_clr 并取反拼上。
+// 时钟域：clk = gmii_tx_clk，在本设计里就是收侧恢复出的那一路 125 MHz（见 gmii_to_rgmii）。
 
 module udp_tx (
     input clk,   //时钟信号
@@ -78,10 +70,6 @@ module udp_tx (
     //wire define                       
     wire pos_start_en;  //开始发送数据上升沿
     wire [15:0] real_tx_data_num;  //实际发送的字节数(以太网最少字节要求)
-    //*****************************************************
-    //**                    main code
-    //*****************************************************
-
     assign pos_start_en     = (~start_en_d2) & start_en_d1;
     assign real_tx_data_num = (tx_data_num >= MIN_DATA_NUM) ? tx_data_num : MIN_DATA_NUM;
 
@@ -229,7 +217,7 @@ module udp_tx (
                         else ip_head[4] <= DES_IP;
                         //16位源端口号：1234  16位目的端口号：1234                      
                         ip_head[5] <= {16'd1234, 16'd1234};
-                        //16位udp长度，16位udp校验和              
+                        //16位udp长度，16位udp校验和=0（IPv4 下 0 表示"不计算校验和"）
                         ip_head[6] <= {udp_num, 16'h0000};
                         //更新MAC地址
                         if (des_mac != 48'b0) begin

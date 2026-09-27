@@ -1,16 +1,6 @@
-//----------------------------------------------------------------------------------------
-// File name:           gmii_to_rgmii
-// Last modified Date:  2024/11/22
-// Last Version:        V1.0
-// Descriptions:        GMII接口转RGMII接口模块
-//----------------------------------------------------------------------------------------
-// Created by:          riguke
-// Created date:        2024/11/22
-// Version:             V1.0
-// Descriptions:        The original version
-//
-//----------------------------------------------------------------------------------------
-//****************************************************************************************//
+// gmii_to_rgmii — 纯连线壳：把厂商的 rgmii_rx / rgmii_tx 拼在一起，并让 gmii_tx_clk = gmii_rx_clk
+//（RGMII 只有 RXC/TXC 两根时钟，这里 TX 侧沿用的是收侧恢复出来的那一路 125 MHz ⇒ 整个 ETH 逻辑
+// 实际是**单时钟域**，各模块里的"tx 域"就是 rx 域）。厂商例程（riguke，V1.0）。
 module gmii_to_rgmii (
     input        idelay_clk,    //IDELAY时钟
     //以太网GMII接口
@@ -32,11 +22,7 @@ module gmii_to_rgmii (
     //parameter define
     parameter IDELAY_VALUE = 0;  //输入数据IO延时(如果为n,表示延时n*78ps) 
 
-    //*****************************************************
-    //**                    main code
-    //*****************************************************
-
-    assign gmii_tx_clk = gmii_rx_clk;
+    assign gmii_tx_clk = gmii_rx_clk;   // TX 侧不发自己的时钟，见文件头
 
     //RGMII接收
     rgmii_rx #(

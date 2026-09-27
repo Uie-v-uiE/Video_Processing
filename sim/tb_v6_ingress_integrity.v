@@ -1,13 +1,10 @@
 `timescale 1ns/1ps
-// v6 入包完整性 TB
-//
-// 板上用 JTAG 回读 DDR 看到：38400 个 64bit 字里，绝大多数只有 lane{0,2} 或
-// lane{1,3} 落了数据（mask 1010 / 0101），约 40% 的 16bit lane 从来没被写过；
-// 而且改变上位机「包间」限速完全不影响比例（包内仍是 125MHz 连续字节流）。
-// 本 TB 用「和 eth_udp_video_top 完全相同的胶水」把
-//   frame_reasm → dc_fifo → axi_frame_saver64 → AXI 从机
-// 串起来，满速灌 221 个 1392B 的包，再逐字比对 AXI 端收到的 64bit 字，
-// 并统计每一级的计数，直接指出丢在哪一级。
+// v6 入包完整性 TB（跑法：bash sim/run_one.sh tb_v6_ingress_integrity）
+// 板上 JTAG 回读 DDR：38400 个 64bit 字里绝大多数只有 lane{0,2} 或 lane{1,3} 落了数据
+//   （WSTRB mask 1010 / 0101），约 40% 的 16bit lane 从来没被写过；改「包间」限速不影响比例。
+// 用和 eth_udp_video_top 完全相同的胶水串起 frame_reasm → dc_fifo → axi_frame_saver64 → AXI 从机，
+//   灌包后逐字比对 AXI 端收到的 64bit 字并统计每一级计数 ⇒ 直接指出丢在哪一级。
+// 判据：words exact == 本次应落字数，且 cdc_drop == 0、packer_drop == 0；只灌部分包时 frames_done 必须为 0。
 module tb_v6_ingress_integrity;
     localparam IMG_W = 512, IMG_H = 300;
     localparam FRAME_BYTES = IMG_W * IMG_H * 2;                    // 307200
@@ -20,9 +17,8 @@ module tb_v6_ingress_integrity;
     // 用来查**帧尾那半个 u32**（板上 frameid 回读发现每帧最后 4 字节是 0）
     integer PKTS, TB_WORDS;
     integer FULL;
-    // +MISALIGN：把分包长度改成 1396 B（不是 8 的倍数），复现板上的「规律黑点」：
-    // 包边界落在 64bit 字中间 ⇒ 同一个字被相邻两包各推一次。v6.4 之前 WSTRB 恒 0xFF，
-    // 后一次把前一次覆盖成 0；有了按 lane 的写选通之后两种分包都必须整帧全对。
+    // +MISALIGN：分包长度改 1396 B（不是 8 的倍数），复现板上的「规律黑点」——包边界落在 64bit
+    // 字中间 ⇒ 同一个字被相邻两包各推一次；v6.4 前 WSTRB 恒 0xFF 会把前一次覆盖成 0，现在两种分包都必须整帧全对。
     integer MIS;
     integer PL_B;                 // 实际分包载荷字节数
 
@@ -51,7 +47,7 @@ module tb_v6_ingress_integrity;
         .stat_bad(s_bad), .stat_oob_off(s_oob)
     );
 
-    // ---- 与 eth_udp_video_top 相同的 sof 检测 / CDC 胶水 ----
+    // 与 eth_udp_video_top 相同的 sof 检测 / CDC 胶水
     reg in_udp_pkt;
     always @(posedge gmii_rx_clk or negedge rst_n) begin
         if (!rst_n) in_udp_pkt <= 1'b0;
@@ -119,7 +115,7 @@ module tb_v6_ingress_integrity;
         end
     end
 
-    // ---- 真实打包 + AXI 写引擎 ----
+    // 真实打包 + AXI 写引擎
     reg         m_awready, m_wready, m_bvalid;
     wire [31:0] m_awaddr;
     wire [7:0]  m_awlen;
@@ -149,10 +145,9 @@ module tb_v6_ingress_integrity;
     reg [31:0] aw_addr_r;
     reg [31:0] bsh;
     reg [63:0] mem [0:WORDS-1];
-    // 模拟真实系统里 DDR/HP0 的积压：每接受一个 beat，就停发 ready 若干拍
-    // （显示拷贝引擎与入包写引擎共用同一条 64bit 通道）
-    // v6.3：saver 现在是**流水化**的（AW/W 同拍挂出、不逐字等 B），所以从机必须
-    // 用标准握手接收、并按序回 B（B 管道深度 4，够 2 拍/beat 的稳态）。
+    // 模拟真实系统里 DDR/HP0 的积压：每接受一个 beat 就停发 ready 若干拍
+    // （显示拷贝与入包写共用同一条 64bit 通道）。v6.3 起 saver 是**流水化**的（AW/W 同拍挂出、
+    // 不逐字等 B），所以从机必须用标准握手接收并按序回 B（B 管道深度 4，够 2 拍/beat 的稳态）。
     localparam RDDR_BEATS = 20;  // 每个 beat 占用端口 ≈20 拍(真实 HP0+DDR 量级)
     integer rd_hold;
     integer si;                       // WSTRB 合并循环
@@ -185,10 +180,8 @@ module tb_v6_ingress_integrity;
         end
     end
 
-    // ---- 激励 ----
-    // 注意：每个字节只占一个 gmii 周期（在 negedge 更新，正沿采样一次）。
-    // 早前一版在每次调用的末尾多等了一个 negedge，等于每字节 2 拍，
-    // 让 reasm 把同一个字节配成像素 → 仿真里出现假丢字（已修）。
+    // 激励：每个字节只占一个 gmii 周期（negedge 更新、正沿采样一次）——
+    // 调用末尾多等一个 negedge 就成每字节 2 拍，reasm 把同一字节配成像素 ⇒ 仿真里出现假丢字。
     task send_byte;
         input [7:0] b;
         input       sof;

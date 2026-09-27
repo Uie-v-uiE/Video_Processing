@@ -1,20 +1,10 @@
 `timescale 1ns/1ps
-// tb_v100_fit_rot —— V9 新算术的两台台架：
-//   T1/T2  zoom_fit：360 个角度逐个验"装得下"与"不白缩"
-//   T2b    0° 必须回到 1.0x 附近（拟合不该在没转的时候留一个明显的缩水）
-//   T3     angle_ctrl 的自动旋转：只在帧沿走、speed=0 钉住、过 360 取模不丢度、按键仍然有效
-//   T5     zoom_ctrl 的第三种来源：inv_used / zoom_code 是不是同一个数
-//
-// ⚠ 判据与 DUT **不共用同一条算式**（这是仓库里"尺子先错"那一族教训的正面做法，#68）：
-//   zoom_fit 里面用"乘倒数常数 + 移位"避开运行时除法（#58），这里就用**交叉相乘**的整数比较
-//   判同一件事 —— 台架里一次除法都不做，也不抄那个常数。
-// ⚠ 消息全部 ASCII：xsim 在中文 Windows 控制台下打 CJK 会落成乱码（任务 #55 记的就是这件事，
-//   而红了读不出数字 = 白跑一轮）。中文只出现在注释里，那里不进日志。
-//
-// 怎么跑（快照名要可辨认，理由见 ISSUES #75 的"读到过别人的 PASS"那段）：
-//   cmd //c "D:\Software\Vivado\2025.2.1\Vivado\bin\xvlog.bat" <本文件 + 下面四个 RTL>
-//   cmd //c "D:\Software\Vivado\2025.2.1\Vivado\bin\xelab.bat" tb_v100_fit_rot -s v100fr
-//   cmd //c "D:\Software\Vivado\2025.2.1\Vivado\bin\xsim.bat"  -runall v100fr
+// tb_v100_fit_rot —— V9 新算术的三台 DUT。T1/T2 zoom_fit：360 个角度逐个验"装得下"与"不白缩"；T2b 0° 必须回到 1.0x 附近（拟合不该在没转的时候留一个明显的缩水）
+// T3 angle_ctrl 自动旋转：只在帧沿走、speed=0 钉住、过 360 取模不丢度、按键仍然有效；T5 zoom_ctrl 的第三种来源：inv_used / zoom_code 是不是同一个数
+// 跑：bash sim/run_one.sh tb_v100_fit_rot（快照名要可辨认，理由见 ISSUES #75 的"读到过别人的 PASS"那段）
+// ⚠ 判据与 DUT **不共用同一条算式**（"尺子先错"那一族的正面做法，#68）：zoom_fit 里用"乘倒数常数 + 移位"避开运行时除法（#58），
+//   这里就用**交叉相乘**的整数比较判同一件事 —— 台架里一次除法都不做，也不抄那个常数。
+// ⚠ 消息全部 ASCII：xsim 在中文 Windows 控制台下打 CJK 会落成乱码、红了读不出数字 = 白跑一轮（任务 #55）；中文只出现在注释里，那里不进日志。
 module tb_v100_fit_rot;
     localparam integer IW = 512, IH = 300;
 
@@ -62,9 +52,8 @@ module tb_v100_fit_rot;
         .zoom_active(zact), .zoom_code(zcode), .dir(zdir)
     );
 
-    // 帧沿要过 3 级同步 + 异或才成为 angle_ctrl 里的那一次推进 ⇒ **检查之前必须等几步**。
-    // 不等的话最后一次翻转的沿还没落地，读到的角度少一步 —— 第一版的 T3f 就是这样把
-    // 正确的硬件读成"取模丢了 7°"的（尺子先错，#68 那一族的第三次）。
+    // 帧沿要过 3 级同步 + 异或才成为 angle_ctrl 里的那一次推进 ⇒ **检查之前必须等几步**：不等就是最后一次翻转还没
+    // 落地、读到的角度少一步（第一版的 T3f 就是这样把正确的硬件读成"取模丢了 7°"的，#68 那一族的第三次）。
     task settle;
         begin repeat (6) @(posedge clk); end
     endtask

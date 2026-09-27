@@ -1,17 +1,8 @@
-//----------------------------------------------------------------------------------------
-// File name:           eth_ctrl
-// Last modified Date:  2024/11/22
-// Last Version:        V1.0
-// Descriptions:        eth_ctrl模块
-//----------------------------------------------------------------------------------------
-// Created by:          riguke
-// Created date:        2024/11/22
-// Version:             V1.0
-// Descriptions:        The original version
-//
-//----------------------------------------------------------------------------------------
-//****************************************************************************************//
-
+// eth_ctrl — 厂商例程（riguke，V1.0）的发送仲裁：ARP/UDP/ICMP 三路共用一根 GMII 发送口，
+// protocol_sw 选 2'b00=ARP、2'b01=UDP、2'b10=ICMP；收侧只做 icmp_rec/udp_rec → rec_* 的二选一转发。
+// 时钟域：整块跑在 clk=gmii_rx_clk（125 MHz）。这不是漏了同步——RGMII 下 gmii_tx_clk 就是 gmii_rx_clk
+// 本身（见 gmii_to_rgmii 的 assign），所以三路发送字节与本域同拍，全 ETH 逻辑实际是单时钟域。
+// V7.9 改过这条仲裁（见 ISSUES #28 / #37）：ARP 应答从"抢一拍"改为"记账 + 全空闲才兑现"，见 arp_pend。
 module eth_ctrl (
     input            clk,               //时钟
     input            rst_n,             //系统复位信号，低电平有效 
@@ -60,10 +51,6 @@ module eth_ctrl (
     reg       arp_rx_flag;  //接收到ARP请求信号的标志
     reg       icmp_tx_req_d0;  //ICMP读数据请求信号寄存器
     reg       udp_tx_req_d0;  //UDP读数据请求信号寄存器
-
-    //*****************************************************
-    //**                    main code
-    //*****************************************************
 
     assign arp_tx_type  = 1'b1;  //ARP发送类型固定为ARP应答    				
     assign tx_req       = udp_tx_req ? 1'b1 : icmp_tx_req;  //读数据请求信号选择
@@ -147,13 +134,11 @@ module eth_ctrl (
         else arp_rx_flag <= 1'b0;
     end
 
-    // 收到 ARP 请求后先"记账"，等介质真空闲才发应答（V7.9 / ISSUES #28）。
-    // 原来这里只有一拍宽的 arp_rx_flag，把下面那条 OR 改成 && 之后，请求会在
-    // "另一路正在发"的那一拍被**丢掉**（PC 要等 ARP 超时重发），所以修 bug 不能只改符号。
-    //
-    // 记账和兑现必须放在**同一个 always**里：第一版我把 arp_pend 写在单独的块里、
-    // 用 `else if (arp_tx_en)` 清账，结果读到的是上一拍的 arp_tx_en（非阻塞赋值），
-    // 于是 arp_tx_en 连高两拍、ARP 帧第 0 字节被重发一次（台架数到 13 个字节而不是 12）。
+    // 收到 ARP 请求后先"记账"，等介质全空闲才发应答（V7.9 / ISSUES #28）。原来只有一拍宽的
+    // arp_rx_flag，把下面那条 OR 改成 && 之后请求会在"另一路正在发"的那一拍被**丢掉**（PC 要等
+    // ARP 超时重发）⇒ 修 bug 不能只改符号。
+    // 记账与兑现必须在**同一个 always**里：arp_pend 单独一块用 `else if (arp_tx_en)` 清账时读到的是
+    // 上一拍的 arp_tx_en（非阻塞赋值），arp_tx_en 连高两拍、ARP 帧第 0 字节被重发一次。
     reg arp_pend;
     //控制protocol_sw和arp_tx_en信号
     always @(posedge clk or negedge rst_n) begin

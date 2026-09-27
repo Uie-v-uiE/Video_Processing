@@ -1,24 +1,17 @@
 `timescale 1ns/1ps
-// ku5p_telem 台架：把"这包遥测 PC 到底收不收"做成可判据的形式。
-//
-// 链路 = ku5p_telem + ku5p_tx_arb + 真 udp（含厂商 crc32_d8），输出是 GMII 字节流；
-// TB 自己把以太网帧拆出来核对，并**用与网卡相同的办法验 CRC**：
-//   把"目的MAC…载荷 + 4 字节 FCS"整段喂进标准 CRC-32（反射、初值 FFFFFFFF、末异或 FFFFFFFF），
-//   余数必须是常数 0x2144DF1C —— 这就是接收方"这帧没坏"的判据，不需要猜厂商的字节序。
-//   先自校：同一函数对 "123456789" 必须给出 0xCBF43926；常数 0x2144DF1C 本身由
-//   **另一份独立实现（node 里跑的同一算法）**算出，不是从被测对象回抄的。
-//
-// 八条判据：
-//   C1 peer_known=0 时一个字节都不发（ARP 没学到对端 ⇒ 发往随机 MAC 是有害的）
-//   C2 头部字段逐字节正确（dstMAC/srcMAC/ethertype/TTL/proto/源目IP/端口/UDP长度/IP总长）
-//   C3 载荷 42 字节的线上格式与文档一致（含大端；v0x02 起的 6 个命令字段也在这一条里逐字节钉）
-//   C4 **快照原子性**：发送途中继续改计数器，包里必须是发起前的值
-//   C5 FCS 让整帧 CRC 余数 = 0x2144DF1C
-//   C6 周期：两帧起点相差 TICK_CYC（±仲裁的几拍），且第二包的计数确实前进了
-//   C7 命令改周期：period_s=3 ⇒ 间隔变成约 3 个 tick（证明周期不是摆设）
-//   C8 CLR 只推基线（包里是差值，不是绝对值，也不是 0）+ SNAP 立刻出一包（不用等下一个 tick）
-//      ⇒ 这两条合起来就是"PC 能命令这块板，而且回执看得见"
+// ku5p_telem 台架：把"这包遥测 PC 到底收不收"做成可判据的形式。跑法：bash sim/run_one.sh tb_ku5p_telem
+// 链路 = ku5p_telem + ku5p_tx_arb + 真 udp（含厂商 crc32_d8），输出是 GMII 字节流；TB 自己拆出以太网帧核对，
+//   并**用与网卡相同的办法验 CRC**：把"目的MAC…载荷 + 4 字节 FCS"整段喂进标准 CRC-32（反射、初值/末异或
+//   FFFFFFFF），余数必须是常数 0x2144DF1C —— 这就是接收方"这帧没坏"的判据，不需要猜厂商的字节序。
+// 先自校量具：同一 CRC 函数对 "123456789" 必须给出 0xCBF43926；常数 0x2144DF1C 本身由**另一份独立实现
+//   （node 里跑的同一算法）**算出，不是从被测对象回抄的。八条判据 C1..C8 列在 module 声明之后。
 module tb_ku5p_telem;
+    // C1 peer_known=0 时一个字节都不发（ARP 没学到对端 ⇒ 发往随机 MAC 是有害的）
+    // C2 头部字段逐字节正确（dstMAC/srcMAC/ethertype/TTL/proto/源目IP/端口/UDP长度/IP总长）
+    // C3 载荷 42 字节的线上格式与文档一致（含大端；v0x02 起的 6 个命令字段也在这一条里逐字节钉）
+    // C4 **快照原子性**：发送途中继续改计数器，包里必须是发起前的值   C5 FCS 让整帧 CRC 余数 = 0x2144DF1C
+    // C6 两帧起点相差 TICK_CYC（±仲裁的几拍）且第二包计数确实前进了   C7 period_s=3 ⇒ 间隔约 3 个 tick（证明周期不是摆设）
+    // C8 CLR 只推基线（包里是差值，不是绝对值也不是 0）+ SNAP 立刻出一包 ⇒ "PC 能命令这块板，回执看得见"
     localparam [47:0] BOARD_MAC = 48'h00_11_22_33_44_66;
     localparam [31:0] BOARD_IP  = {8'd192, 8'd168, 8'd1, 8'd11};
     localparam [47:0] PC_MAC    = 48'h0A_BB_CC_DD_EE_01;
@@ -28,11 +21,11 @@ module tb_ku5p_telem;
     reg clk = 0, rst_n = 0;
     always #4 clk = ~clk;                 // 125 MHz GMII
 
-    // ---- 被打包的观测值，TB 随时可改（C4 就靠这个）----
+    // 被打包的观测值，TB 随时可改（C4 就靠这个）
     reg [31:0] x_frames = 0, x_pkts = 0, x_bytes = 0, x_bad = 0, x_oob = 0;
     reg [15:0] x_rows = 0;
     reg link_up = 0, frames_seen = 0, abort_seen = 0, data_alive = 0, peer_known = 0;
-    // ---- 命令通道（ku5p_cmd）那一侧的输入，本台架直接驱动 ----
+    // 命令通道（ku5p_cmd）那一侧的输入，本台架直接驱动
     reg [7:0]  x_period = 8'd1;
     reg        x_clr = 0, x_snap = 0, x_seen = 0;
     reg [15:0] x_cok = 0, x_cbad = 0;
@@ -79,7 +72,7 @@ module tb_ku5p_telem;
         .tx_done(udp_done), .tx_req(udp_tx_req)
     );
 
-    // ---- GMII 抓包 ----
+    // GMII 抓包
     reg [7:0] cap [0:1023];
     integer   cap_n = 0, nframe = 0;
     integer   fstart[0:7], flen[0:7], ftime[0:7];
@@ -103,7 +96,7 @@ module tb_ku5p_telem;
         end
     end
 
-    // ---- TB 自己的标准 CRC-32（反射式），先自校再当判据用 ----
+    // TB 自己的标准 CRC-32（反射式），先自校再当判据用
     function [31:0] crc32_step;
         input [7:0]  b;
         input [31:0] seed;
@@ -222,23 +215,21 @@ module tb_ku5p_telem;
             chk32("oob",     {cap[i0+26], cap[i0+27], cap[i0+28], cap[i0+29]}, e_oob);
             chk32("rows",    {16'd0, cap[i0+30], cap[i0+31]}, {16'd0, e_rows});
             chk32("uptime",  {cap[i0+32], cap[i0+33], cap[i0+34], cap[i0+35]}, e_secs);
-            // ---- v0x02 的 6 个命令字段（逐字节钉，PC 解析器按同一张表读）----
+            // v0x02 的 6 个命令字段（C3 的一部分：逐字节钉，PC 解析器按同一张表读）
             chk32("cmds_ok",   {16'd0, cap[i0+36], cap[i0+37]}, {16'd0, e_cok});
             chk32("cmds_bad",  {16'd0, cap[i0+38], cap[i0+39]}, {16'd0, e_cbad});
             chk32("period",    {24'd0, cap[i0+40]}, {24'd0, e_period});
             chk32("flags2",    {24'd0, cap[i0+41]}, {24'd0, e_flags2});
             crc_over(i0-42, i0+45, crc_res);
-            // 常数 0x2144DF1C = "init FFFFFFFF + 末异或 FFFFFFFF 的 CRC-32 跑完 帧+FCS" 的余数，
-            // 与帧内容无关 ⇒ 只要 FCS 是自算的、且字节序/异或约定与标准一致就会命中。
-            // 这个数是**用另一份独立实现（node）算出来的**，不是从被验对象那里抄回来的。
+            // 0x2144DF1C = "init FFFFFFFF + 末异或 FFFFFFFF 的 CRC-32 跑完 帧+FCS" 的余数，与帧内容无关
+            // ⇒ 只要 FCS 是自算的、且字节序/异或约定与标准一致就会命中（常数的来源见文件头）。
             chk32("crc residue = PC 收帧判据", crc_res, 32'h2144_DF1C);
             chki("frame length", flen[fi], (i0 + 46) - base);   // 42 载荷 + 4 FCS
         end
     endtask
 
     integer t0, t1, sp, t2, sp2, nf, tn0;
-    // 全局看门狗：跑不到断言就等于失败，不能让 xsim 永远等下去
-    // （C7 要等 3 个 tick、C8 还要再看一帧 ⇒ 60 µs 不够，扩到 120 µs ≈ 15000 拍）
+    // 全局看门狗：跑不到断言就等于失败（C7 要等 3 个 tick、C8 还要再看一帧 ⇒ 120 µs ≈ 15000 拍）
     initial begin : watchdog
         #120_000;
         $display("[tb_ku5p_telem.v:244] FAIL watchdog: 120us 内没跑到结尾（发了 %0d 帧、%0d 字节）", nframe, cap_n);

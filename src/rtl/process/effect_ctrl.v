@@ -1,14 +1,10 @@
 `timescale 1ns/1ps
-// 效果选择解码 + 跨域同步：AXI GPIO(GP0, 100 MHz) → 像素域(50 MHz)。
-//
-// 两件活：
-//  1) **同步**：下面三对寄存器都是跨域入口，必须 ASYNC_REG，否则工具会把它们当普通逻辑优化掉
-//     （同文件里 src_sel / eth_link 的正确写法可对照；这条踩过，见 ISSUES #24/#49）。
-//  2) **只有一套控制源**：九级算法选择字 `stage_sel`（一位一级）。
-//     V7 那五位 `effect_en` 的兜底合流与"反翻五位给 OSD"的第二出口在 2026-09-26 一起删了
-//     （#66：九级命令层 V8-1 之后老五位只剩"新字为 0 时顶上"这一条活路，而 PS 早就每次都写新字，
-//     那位 `status` 输出更是从头没人读）。留着它，`pipe 00111` 与 `pipe 000000111` 就是两种答案，
-//     而"同一个意思只能有一套写法"是这一版验收过的口径。
+// 效果选择解码 + 跨域同步：AXI GPIO(GP0, 100 MHz) → 像素域(50 MHz)。两件活：
+//  1) **同步**：下面三对寄存器都是跨域入口，必须 ASYNC_REG，否则工具会把它们当普通逻辑优化掉（这条踩过，
+//     见 ISSUES #24/#49；同文件里 src_sel / eth_link 的正确写法可对照）。
+//  2) **只有一套控制源**：九级算法选择字 `stage_sel`（一位一级）。V7 那五位 `effect_en` 的兜底合流与"反翻五位
+//     给 OSD"的第二出口已一起删了（#66）：留着它，`pipe 00111` 与 `pipe 000000111` 就是两种答案，而"同一个
+//     意思只能有一套写法"是这一版验收过的口径。
 module effect_ctrl (
     input  wire       clk,
     input  wire       rst_n,
@@ -61,22 +57,14 @@ module effect_ctrl (
         end
     end
 
-    // 位序照 `PLAN_V8_SPEC.md` §6b 的字：[31] en、[30] wr（翻转=写一项）、[29:22] data、
-    // [21:14] idx、[13:8] **gamma_disp**（V8-5 新加的 6 位，只给 OSD 看，不参与运算）、
-    // [7:0] **temp_disp**（V9-6：PS 的 XADC 读数编成 BCD 十进制两位，见下面那条注释）。
-    // 为什么并进这一条链而不是另开一组：§7a 的第三条规矩"新增的位一律走 effect_ctrl 已有的
-    // 那条 ASYNC_REG 链" —— 新开一组就多一对跨域配对，`cdc.rpt` 的基线就要重画，
-    // 而那 3 行 Critical 是唯一能挡住"新代码悄悄裸采样"的门禁。
-    //
-    // ⚠ **为什么这一格要 PS 侧先算成 BCD 再跨，而不是把二进制温度传过来在这里除**：
-    //   OSD 那五行字符是一整块组合逻辑，而 `u_pipe/xd_reg → u_osd/g_reg/D` 正是 clkout0_1
-    //   那条 27 级的关键路径（r63b/r63c/r64b 三份报告都指着它）—— 在这里多一次 /100 与 /10
-    //   就是往全设计最差的那条链上再加深度。同一件事的先例：Latency 那一格从 #59 起就是
-    //   "换算在 axi 域用逐次除法做完再按翻转位跨域"。
-    //   代价说清楚：温度这一格的十进制口径由 PS 说了算，PL 只照画 —— 所以"屏上写的数"与
-    //   `temp` 打印的数必然同源（判据 tb_osd_lines T15 钉的就是"画的是编码，不是猜的"）。
+    // 位序照 `PLAN_V8_SPEC.md` §6b 的字：[31] en、[30] wr（翻转=写一项）、[29:22] data、[21:14] idx、
+    //   [13:8] **gamma_disp**（只给 OSD 看，不参与运算）、[7:0] **temp_disp**（XADC 编成 BCD 两位）。
+    // 为什么并进这一条链而不另开一组：§7a 第三条规矩"新增的位一律走 effect_ctrl 已有的那条 ASYNC_REG 链"——新开一组就多一对跨域配对、`cdc.rpt` 基线要重画，而那 3 行 Critical 是唯一能挡住"新代码裸采样"的门禁。
+    // ⚠ 温度为什么由 PS 先算成 BCD 再跨、不在这里除：OSD 那五行字符是一整块组合逻辑，而 `u_pipe/xd_reg →
+    //   u_osd/g_reg/D` 正是 clkout0_1 那条 27 级的关键路径（r63b/r63c/r64b 三份报告都指着它），多一次 /100 与
+    //   /10 就是往全设计最差的链上加深度（先例：Latency 从 #59 起就是"axi 域逐次除法做完再按翻转位跨域"）。
     always @(*) begin
-        {gamma_en, gamma_wr, gamma_data, gamma_idx, gamma_disp, temp_disp} = gm_sync;
+        {gamma_en, gamma_wr, gamma_data, gamma_idx, gamma_disp, temp_disp} = gm_sync;   // 代价说清楚：温度那一格的十进制口径由 PS 说了算、PL 只照画 ⇒ "屏上写的数"与 `temp` 打印的数必然同源（判据 tb_osd_lines T15 钉的就是"画的是编码，不是猜的"）
     end
 
     wire [8:0] sel_pix = sel_sync[8:0];

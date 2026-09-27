@@ -1,14 +1,10 @@
 `timescale 1ns/1ps
-// tb_v795_rx_fcs —— 证明"收侧自己算 FCS"这件事真的成立，并把残值常数钉住。
-//
-// 为什么要独立算 FCS：RTL 里用的是发送侧同一个 `crc32_d8`，如果我只拿它自己来验它自己，
-// 那"残值是常数"这件事可以是同义反复（两边一起错也照样过）。所以这里的帧**由 TB 用另一套实现
-// 造出来**：标准以太网 CRC-32（反射、多项式 0xEDB88320、初值 FFFFFFFF、末异或 FFFFFFFF），
-// 也就是 `sim/tb_ku5p_telem.v` 里那套已经被 Node 独立算过一遍的实现（残值 0x2144DF1C 那一条）。
-// ⇒ 如果 `crc32_d8` 的约定不是标准以太网，那么：
-//    ① 两种不同内容的帧会算出**两个不同的残值**（T1 vs T2 会红），
-//    ② 或者干脆连"好帧"都不认（T1 的 m_good 会红）。
-// 两种情况都会被抓到，所以这 4 条判据是有牙的。
+// tb_v795_rx_fcs —— 证明"收侧自己算 FCS"真的成立，并把残值常数钉住。跑法：bash sim/run_one.sh tb_v795_rx_fcs
+// 为什么独立算：RTL 用的是发送侧同一个 crc32_d8，只拿它自己验它就是同义反复（两边一起错也照样过）。
+// 这里的帧由 TB 用另一套实现造：标准以太网 CRC-32（反射、多项式 0xEDB88320、初值/末异或 FFFFFFFF），
+//   即 tb_ku5p_telem 里那套被 Node 独立算过一遍的实现（残值 0x2144DF1C）。
+// ⇒ 若 crc32_d8 的约定不是标准以太网：① 两种内容的帧会算出**两个不同**的残值（T1 vs T2 红），
+//   ② 或连"好帧"都不认（T1 的 m_good 红）—— 两种都会被抓到 ⇒ 这几条判据有牙。
 module tb_v795_rx_fcs;
 
     reg clk = 0, rst_n = 0;
@@ -26,7 +22,7 @@ module tb_v795_rx_fcs;
         .m_good(m_good), .m_bad(m_bad)
     );
 
-    // ---- 独立实现的标准 CRC-32（反射 / EDB88320）----
+    // 独立实现的标准 CRC-32（反射 / EDB88320）
     function [31:0] crc32_step;
         input [7:0]  b;
         input [31:0] seed;
@@ -40,7 +36,7 @@ module tb_v795_rx_fcs;
         end
     endfunction
 
-    // ---- 帧缓冲：preamble(7)+SFD(1)+DA(6)+SA(2)+type(2)+payload+FCS(4) ----
+    // 帧缓冲：preamble(7)+SFD(1)+DA(6)+SA(2)+type(2)+payload+FCS(4)
     localparam integer HDR  = 7 + 1 + 6 + 6 + 2;      // 前导码/SFD 之后到 type 结束
     localparam integer PAY  = 46;                     // 46 字节载荷 ⇒ 整帧 60+4 = 64 字节（以太网最小帧）
     localparam integer FLEN = HDR + PAY + 4;
@@ -57,8 +53,7 @@ module tb_v795_rx_fcs;
             fr[14] = 8'hc0; fr[15] = 8'ha8; fr[16] = 8'h00;      // SA
             fr[17] = 8'h01; fr[18] = 8'h12; fr[19] = 8'h34;
             fr[20] = 8'h08; fr[21] = 8'h00;                      // type = IPv4
-            // 先摆好载荷，再对 **DA[0]..载荷末** 整段算 CRC —— FCS 盖住载荷是不够的，
-            // 第一版就是这么错的（量出来一个自洽但不是以太网的常数 0x4223AD77）。
+            // 先摆好载荷，再对 **DA[0]..载荷末** 整段算 CRC：FCS 只盖载荷不够（第一版量出自洽但非以太网的 0x4223AD77）
             for (k = HDR; k < HDR + PAY; k = k + 1) fr[k] = k[7:0] ^ seed[7:0];
             c = 32'hFFFF_FFFF;
             for (k = 8; k < HDR + PAY; k = k + 1) c = crc32_step(fr[k], c);
@@ -71,10 +66,9 @@ module tb_v795_rx_fcs;
         end
     endtask
 
-    // 发一帧（len 可短于整帧，用来造"太短"的反例）
-    // 计数放在**独立 always**里：第一版把 `if (m_good)` 写在 send_frame 的字节循环里，
-    // 而 m_good 是在 DV 落下之后那一拍才脉冲的 —— 循环早就退出了，于是 good/bad 恒 0，
-    // 看起来像"DUT 不判帧"，其实是台架自己没采到（这类错必须先怀疑量具）。
+    // 发一帧（len 可短于整帧 ⇒ 造"太短"的反例）
+    // 计数放在**独立 always** 里：m_good 在 DV 落下之后那一拍才脉冲，写在 send_frame 的字节循环里会
+    // 因循环提前退出而恒 0 —— 看着像"DUT 不判帧"，其实是量具没采到（先怀疑量具，再怀疑 DUT）。
     integer good_cnt, bad_cnt, byte_cnt;
     always @(posedge clk) begin
         if (m_valid) byte_cnt = byte_cnt + 1;
@@ -113,11 +107,10 @@ module tb_v795_rx_fcs;
         good_cnt = 0; bad_cnt = 0; byte_cnt = 0;
         rst_n = 0; repeat (3) @(posedge clk); #1 rst_n = 1; repeat (3) @(posedge clk); #1;
 
-        // T0：**先验量具自己** —— 把 TB 亲手造的整帧（含 FCS）过一遍标准 CRC。
-        // 反射 CRC-32（0xEDB88320，初值 FFFFFFFF）有个性质：**"消息 + 附带的 4 字节 FCS" 再过一遍，
-        // 累加器必然停在一个与内容无关的常数** —— 不做末异或是 0xDEBB20E3，做末异或是 0x2144DF1C
-        // （两者互为按位取反，所以这一条同时把 `tb_ku5p_telem` 里钉的那个常数也对上了）。
-        // 这一条不过，就说明本台架造的帧根本不是合法以太网帧，后面四条判据全部无意义。
+        // T0：**先验量具自己** —— 把 TB 亲手造的整帧（含 FCS）过一遍标准 CRC：反射 CRC-32
+        // （0xEDB88320、初值 FFFFFFFF）的性质是"消息 + 附带的 4 字节 FCS"再过一遍，累加器必停在
+        // 与内容无关的常数 —— 不末异或 0xDEBB20E3、末异或 0x2144DF1C（互为取反 ⇒ 与 tb_ku5p_telem 同口径）。
+        // 这条不过 ⇒ 造的帧根本不是合法以太网帧，后面四条判据全部无意义。
         begin : t0
             integer q; reg [31:0] c0;
             build_frame(8'h00);

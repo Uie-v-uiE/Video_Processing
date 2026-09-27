@@ -1,5 +1,5 @@
 `timescale 1ns/1ps
-// Dual-pane: left original / right processed+zoomed.
+// Dual-pane: left original / right processed+zoomed. 单个像素时钟域，输出打一拍。
 // Display 1024x600, each pane 512 wide, source 512x300 with 2x vertical scale.
 module split_display #(
 )(
@@ -7,15 +7,12 @@ module split_display #(
     input  wire        rst_n,
     input  wire [11:0] x,
     input  wire [11:0] y,
-    // ⚠ `x_sel` = **与两个像素抽头同一级**的列坐标（ISSUES #68）。
-    //   以前本模块直接用 `x` 判"这一格属于左窗还是右窗"、也用它画那条 2 px 标记线，
-    //   而顶层送进来的 `x` 是第 11 级标签，`orig_pix/proc_pix` 却是第 20 级的内容
-    //   （3 拍打地址 + 1 拍读地址寄存 + 1 拍 BRAM + `u_pipe.LATENCY`=15）
-    //   ⇒ 判定比内容旧 9 列 ⇒ 缝左边约 9 列里"标签说左窗、内容其实是右窗那一路(被强制清 0)"
-    //   ⇒ 选中的是 0 ⇒ 一条近黑的竖带。这就是用户念的"缩放碰到分割线时周围出现颜色条"的第二个成分
-    //   （第一个是故意画的蓝线，见下面 `marker`）。
-    //   `x`/`y`/`de`/`hs`/`vs` 继续按原级数穿过输出寄存器 ⇒ **OSD 的位置一个像素都不动**；
-    //   只有"选哪一路"与"标记线画在哪一列"跟着内容走（= 修好本应如此的东西）。
+    // ⚠ `x_sel` = **与两个像素抽头同一级**的列坐标（ISSUES #68）。以前这里直接用 `x` 判左/右窗、也用它画那条
+    //   2 px 标记线，而顶层的 `x` 是第 11 级标签、`orig_pix/proc_pix` 却是第 20 级的内容（3 拍打地址 + 1 拍读地址
+    //   寄存 + 1 拍 BRAM + `u_pipe.LATENCY`=15）⇒ 判定比内容旧 9 列 ⇒ 缝左边约 9 列里"标签说左窗、内容其实是右窗
+    //   那一路（被强制清 0）"⇒ 选中的是 0 ⇒ 一条近黑的竖带：这就是用户念的"缩放碰到分割线时周围出现颜色条"的第二
+    //   个成分（第一个是故意画的蓝线，见下面 `marker`）。`x`/`y`/`de`/`hs`/`vs` 仍按原级数穿过输出寄存器 ⇒
+    //   **OSD 位置一个像素都不动**，只有"选哪一路"与"标记线画在哪一列"跟着内容走（= 修好本应如此的东西）。
     input  wire [11:0] x_sel,
     // #51：缝位从此是**输入**（显示列 0..DISP_W）。顶层不接它就没有旧行为 ——
     //   PANE_W 退化成一个默认值的出处，不再是唯一说法（ISSUES #66 那一族的病）。

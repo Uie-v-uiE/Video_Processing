@@ -2,11 +2,9 @@
 // tb_v83_card_render —— 不是判据，是**取景器**：把 test_card 的像素逐点倒到文件里，
 // 再用脚本转成 PNG。为什么要它：图卡好不好看，以前只能等一次完整构建 + 上板看屏幕，
 // 一轮 40 分钟；而"丑"这件事根本不值得花一轮构建去发现。
-//
 // 采样契约（与顶层 PROC_LAT 无关，这里只测 test_card 本身）：
 // 输入在 negedge 驱动 ⇒ 下一个 posedge 打进输出寄存器 ⇒ **再下一个 negedge** 读到的
 // 就是刚驱动那个像素的值。所以循环体是"先读上一像素，再驱动本像素"，帧末多走一拍冲刷。
-//
 // 输出：<运行目录>/card_dump.txt，每行 `frame x y r g b`（8 bit 每通道，按 RGB565 标准还原）。
 module tb_v83_card_render;
     localparam H = 512, V = 300, FRAMES = 6;

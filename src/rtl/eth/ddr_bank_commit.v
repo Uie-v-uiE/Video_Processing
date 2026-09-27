@@ -1,22 +1,14 @@
 `timescale 1ns/1ps
-// DDR 乒乓 bank 的「提交 / 换页」glue。
-//
-// 原来这段状态机写在 eth_udp_video_top 里，仿真只能靠 TB **抄一份**（tb_v6_pingpong
-// 就是这么做的）——抄的那份永远不会因为真代码改错而变红，所以抽成本模块，
-// 让 TB 直接例化上板的实现。
-//
-// 职责：frame_done（gmii 域）→ 3 级同步 + 边沿检测（axi 域）→ 请求换页 →
-//       等打包器排空且**本帧数据已完整交付**→ 提交 completed_base + 翻转 bank。
-//
-// TAIL_GUARD=1 修的是 v6.4 遗留的「帧尾 4 字节偶发丢失」：旧判据只看打包器空
-// （saver_idle 对 8192 深的 CDC 和它后面的读流水完全不可见），于是打包器一旦排空
-// 就翻 bank，而本帧最后几个 16bit 还排在 CDC 里 —— 它们随后被写进**下一帧**的
-// bank，刚提交的那块内存的帧尾 4 字节就停在旧值/0 上（板上 HDMI 右下角少 2 像素）。
-// TAIL_GUARD=0 保留 v6.4 行为，仅供 A/B 对照复现。
+// DDR 乒乓 bank 的「提交 / 换页」glue：frame_done（gmii 域）→ 3 级同步 + 边沿检测（axi 域）→
+// 请求换页 → 等打包器排空且**本帧数据已完整交付** → 提交 completed_base + 翻转 bank。
+// 这段原来写在 eth_udp_video_top 里、TB 只能抄一份（抄的那份永远不会因真代码改错而变红），
+// 所以抽成本模块让 TB 直接例化上板的实现。
+// TAIL_GUARD=1 修 v6.4 的「帧尾 4 字节偶发丢失」：旧判据只看 saver_idle，它对 8192 深的 CDC 和
+// 后面的读流水完全不可见 ⇒ 帧尾几个 16bit 被写进**下一帧**的 bank（板上 HDMI 右下角少 2 像素）。
 module ddr_bank_commit #(
     parameter [31:0] BANK0      = 32'h1000_0000,
     parameter [31:0] BANK1      = 32'h1008_0000,
-    parameter        TAIL_GUARD = 1'b1
+    parameter        TAIL_GUARD = 1'b1   // =0 保留 v6.4 的旧判据，只供 A/B 对照复现用
 )(
     input  wire        gmii_clk,        // frame_done 所在时钟域（RGMII 125 MHz）
     input  wire        axi_clk,         // 提交/换页所在域（HP0 100 MHz）

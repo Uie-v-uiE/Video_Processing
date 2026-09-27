@@ -1,15 +1,10 @@
 `timescale 1ns/1ps
-// v6 乒乓提交 TB
-//
-// 板上实测：单帧（发完就停）任何速率都 100% 落位；连续推流时**每帧只有约 53%
-// 的 64bit 字**真正写进它自己的 bank（各帧占比 53/26/21，正好是「每帧独立丢 47%」
-// 的几何分布）。差别只发生在「帧提交 → 等 saver_idle → 翻 bank」这条路径上，
-// 而 tb_v6_ingress_integrity 里没有这段 glue。
-//
-// 本 TB 把 eth_udp_video_top 的提交/翻 bank glue 原样搬过来：
-//   frame_reasm → CDC(1条/拍) → axi_frame_saver64(base=sav_base)
-//   frame_done 跨时钟 → switch_req/force_flush → saver_idle 时翻 bank + commit
-// 连续灌 3 个完整帧，AXI 从机带可配置写延迟，按 bank 分别统计每帧落位率。
+// v6 乒乓提交 TB：连续推流时每帧丢字，跑法 bash sim/run_one.sh tb_v6_pingpong
+// 板上：单帧（发完就停）任何速率都 100% 落位；连续推流时每帧只有约 53% 的 64bit 字
+// 写进它自己的 bank（各帧 53/26/21 = 「每帧独立丢 47%」的几何分布）。差别只发生在
+// 「帧提交 → 等 saver_idle → 翻 bank」这条 glue 上，tb_v6_ingress_integrity 没有这段。
+// 链路照搬 eth_udp_video_top 的 glue：frame_reasm → CDC(1条/拍) → axi_frame_saver64 → 翻 bank，
+// AXI 从机带可配置写延迟。判据：commits==NFRAMES，且最后一帧在它自己提交的 bank 里 exact==WORDS。
 module tb_v6_pingpong;
     localparam IMG_W = 512, IMG_H = 60;            // 60 行小帧：仿真时长可控，缓冲压力比例不变
     localparam FRAME_BYTES = IMG_W * IMG_H * 2;    // 61440
@@ -112,9 +107,8 @@ module tb_v6_pingpong;
         end
     end
 
-    // ---- 提交 + 乒乓 bank ----
-    // 这里例化**上板的实现** ddr_bank_commit，不再手抄 eth_udp_video_top 的 glue。
-    // 手抄副本的代价是「真代码改错、TB 照样绿」；原副本见 git 历史 v6.4。
+    // 提交 + 乒乓 bank：例化**上板的实现** ddr_bank_commit，不手抄顶层 glue
+    // （手抄副本的代价是「真代码改错、TB 照样绿」；原副本见 git 历史 v6.4）。
     wire        saver_idle;
     wire [31:0] sav_base;
     wire        pack_flush;
@@ -143,8 +137,7 @@ module tb_v6_pingpong;
     wire fd_axi = u_commit.fd_axi;   // 诊断用
 
     integer commit_cnt = 0;
-    // 诊断：force_flush 每次拉高持续多少 axi 拍（连续推流下若远大于排空所需，
-    // 说明 bank 翻转被 saver_idle 卡住，flush 长期挂着会毁掉后续帧）
+    // 诊断：force_flush 每次拉高持续多少 axi 拍 —— 远大于排空所需 ⇒ 翻 bank 被 saver_idle 卡住，长期挂着会毁掉后续帧
     integer ff_len = 0, ff_total = 0, ff_max = 0, ff_pulses = 0;
     reg     ff_prev = 1'b0;
     always @(posedge axi_clk) begin
@@ -194,10 +187,9 @@ module tb_v6_pingpong;
         .m_axi_bvalid(m_bvalid), .m_axi_bready(m_bready)
     );
 
-    // ---- 并发显示拷贝的等效建模 ----
-    // 真实系统里 axi_frame_writer_gated 在 V-blank 用同一条 HP0 读整帧。这里不重做
-    // 读引擎，而是等效成「每次提交后端口被读独占 CP_CYC 拍」：期间 awready/wready
-    // 拉低 ⇒ 打包器积压 ⇒ FIFO 溢出丢字。扫 CP_CYC 即可标定每次提交毁掉多少帧。
+    // 并发显示拷贝的等效建模：不重做读引擎，等效成「每次提交后端口被读独占 CP_CYC 拍」
+    // ⇒ awready/wready 拉低 ⇒ 打包器积压 ⇒ FIFO 溢出丢字。扫 CP_CYC 标定每次提交毁掉多少帧
+    // （真实系统里是 axi_frame_writer_gated 在 V-blank 用同一条 HP0 读整帧）。
     integer cp_dn = 0;
     always @(posedge axi_clk or negedge axi_rst_n) begin
         if (!axi_rst_n)        cp_dn <= 0;
@@ -206,9 +198,8 @@ module tb_v6_pingpong;
     end
     wire port_taken = (cp_dn > 0);
 
-    // ---- 带端口占用模型的 AXI3 从机 + 两个 bank 的内存模型 ----
-    // AW/W 同时接收（DUT 是同拍挂出、各自保持到被接收），B 用移位管道返回，
-    // 因此从机可以承载多个在途写而不会把响应弄丢（旧模型只有 1 个 B 寄存器）。
+    // 带端口占用模型的 AXI3 从机 + 两个 bank 的内存模型：AW/W 同时接收（DUT 同拍挂出、
+    // 各自保持到被接收），B 用移位管道返回 ⇒ 可承载多个在途写而不丢响应（旧模型只有 1 个 B 寄存器）。
     reg [63:0] mem0 [0:WORDS-1];
     reg [63:0] mem1 [0:WORDS-1];
     integer bwait, wr0, wr1;
@@ -238,7 +229,7 @@ module tb_v6_pingpong;
         end
     end
 
-    // ---- 激励 ----
+    // 激励：字节流 + 包间 GAP 空拍
     task send_byte;
         input [7:0] b; input sof; input eof;
         begin

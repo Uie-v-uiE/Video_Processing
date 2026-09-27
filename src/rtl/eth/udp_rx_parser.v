@@ -44,7 +44,7 @@ module udp_rx_parser #(
 
     // 本拍的字节是不是这一包的最后一个载荷字节（按 udp_len 口径，不含 FCS 与填充）。
     // 需要它是因为厂商风格的 s_eof 与最后一个字节同拍，那一拍 eof_pend 还来不及置上。
-    // 声明必须放在上面这几个 reg **之后** —— xvlog 不允许标识符先用后声明（第一次就踩在这）。
+    // 声明必须放在上面这几个 reg **之后**：xvlog 不允许标识符先用后声明。
     wire last_pay_now = accept && s_valid && (bcnt >= (udp_off + 16'd8)) &&
                         (bcnt == (udp_off + udp_len - 16'd1));
 
@@ -80,10 +80,9 @@ module udp_rx_parser #(
             p_eof   <= 1'b0;
             p_good  <= 1'b0;
             stat_udp_ok <= 1'b0;
-            // V7.9.5（#38 第 2 步）：这两个统计位**原来只有复位时的 0，运行中没有默认值** ——
-            // 于是它们不是脉冲，而是"这辈子见过一次坏帧就永远为 1"的粘连电平。
-            // 接顶层时如果拿它们去 ++ 计数，第一帧坏包之后计数就会每拍加一，数字完全不可信。
-            // （`stat_udp_ok` 当时是每拍清 0 的，三条同类信号两种口径 —— 台架一跑就露出来了。）
+            // V7.9.5（#38 第 2 步）：这两个统计位原来运行中**没有默认值**，于是变成"见过一次坏帧就
+            // 永远为 1"的粘连电平；顶层拿它们去 ++ 计数的话，第一帧坏包之后就会每拍加一。
+            //（stat_udp_ok 当时是每拍清 0 的——三条同类信号两种口径，必须逐条脉冲化。）
             stat_drop_bad  <= 1'b0;
             stat_drop_filt <= 1'b0;
 
@@ -128,11 +127,10 @@ module udp_rx_parser #(
                 // We have ihl from byte14 collected when bcnt was 14;
                 // so decision at bcnt == 14 + 4*ihl is safe (ihl known one cycle earlier).
 
-                // V7.9.6 修：`ihl` 是在 bcnt==14 这一拍**才被存进去**的，同拍读到的还是复位值 0，
-                // 于是 `bcnt == 14 + ihl*4` 在 bcnt==14 也成立 ⇒ 每个帧都会在这一拍提前做一次判定，
-                // 而那时 b23(proto) 还没采到，判定必然失败 ⇒ **每帧都误发一次 stat_drop_filt**。
-                // （载荷后来在真正的 bcnt==34 又被正确接受，所以这个假信号只污染统计、不影响画面 ——
-                //  恰好是那种"功能看起来对、数字全是假的"的 bug。判据：tb_v795_rx_chain 的 C1"不误报丢弃"。）
+                // V7.9.6 修：`ihl` 在 bcnt==14 这一拍**才被存进去**，同拍读到的还是旧值 0 ⇒
+                // `bcnt == 14 + ihl*4` 在 bcnt==14 也成立，每帧都会提前判定一次，而那时 proto(b23)
+                // 还没采到 ⇒ **每帧误发一次 stat_drop_filt**（载荷随后在真正的 bcnt==34 仍被正确接受，
+                // 所以只污染统计、不影响画面）。判据：tb_v795_rx_chain 的 C1"不误报丢弃"。
                 if ((ihl != 4'd0) && bcnt == (16'd14 + {10'd0, ihl, 2'b00})) begin
                     udp_off <= bcnt;
                     // verify IPv4/UDP/no-frag using stored fields
@@ -184,13 +182,11 @@ module udp_rx_parser #(
                 bcnt <= bcnt + 16'd1;      // 推进到下一个字节（s_eof 那一拍在顶层分支处理）
             end
 
-            // ---- 帧尾收尾：放在字节处理**之后**，这样同一拍里收尾的清零压过 bcnt/pay_cnt 的推进 ----
+            // 帧尾收尾放在字节处理**之后**，这样同拍里收尾的清零压过 bcnt/pay_cnt 的推进。
             // 两种 s_eof 时序都必须认，否则换个例化方式就少一个字节：
-            //   ① 厂商风格：s_eof 与**最后一个字节同拍**（那一拍 s_valid=1）—— `tb_udp_parser` 就是这么驱的；
+            //   ① 厂商风格：s_eof 与**最后一个字节同拍**（那一拍 s_valid=1），tb_udp_parser 就是这么驱的；
             //   ② 本仓库 V7.9.5 的 gmii_rx_mac：最后一个字节上一拍已随 m_valid 出去，
             //      m_eof 与 m_good/m_bad 同拍、那一拍 m_valid=0。
-            // 第一版只认 ②，`tb_udp_parser` 立刻报 `pay_bytes=9 exp 10` ——
-            // 这是"改了契约就得把所有既有例化一起想清楚"的现场版（判据：那条 FAIL 本身就是回归）。
             if (s_eof) begin
                 if (eof_pend || last_pay_now) begin
                     p_eof   <= 1'b1;

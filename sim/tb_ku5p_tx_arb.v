@@ -1,12 +1,10 @@
 `timescale 1ns/1ps
-// ku5p_tx_arb 台架。三条硬判据 + 一次"拿厂商 mux 做对照"的表征：
-//   T1 不丢请求：脉冲请求存进 pending，空闲时一定会发出 grant
-//   T2 不抢占  ：帧发到一半来了 ARP 请求，介质不许换源（用字节"来源标签"直接量）
-//   T3 同拍三请求：只有最高优先级拿到介质，另两个排队
-//   T4 只认 owner 的 done：别人的 done 不能把介质提前放掉
-//   V  对照：同一套激励喂厂商 eth_ctrl ⇒ 它**必须**既不在帧中间放别人的字节、又不丢 ARP 请求。
-//      （改之前它两个都失败：换源 1 次、UDP 帧被截断。这一组现在是 ISSUES #28 的回归判据。）
-// 标签约定：ARP 字节 8'hA0+i、ICMP 8'hC0+i、UDP 8'hD0+i，高 4 位就是来源。
+// ku5p_tx_arb 台架：四条硬判据 + 一次"拿厂商 mux 做对照"的表征。跑法：bash sim/run_one.sh tb_ku5p_tx_arb
+//   T1 不丢请求：脉冲请求存进 pending，空闲时一定会发出 grant；T2 不抢占：帧发到一半来了 ARP 请求，介质不许换源
+//   T3 同拍三请求：只有最高优先级拿到介质，另两个排队；T4 只认 owner 的 done：别人的 done 不能把介质提前放掉
+//   V  对照：同一套激励喂厂商 eth_ctrl ⇒ 它**必须**既不在帧中间放别人的字节、又不丢 ARP 请求
+//     （改之前它两个都失败：换源 1 次、UDP 帧被截断。这一组现在是 ISSUES #28 的回归判据）
+// 标签约定：ARP 字节 8'hA0+i、ICMP 8'hC0+i、UDP 8'hD0+i，高 4 位就是来源（用它直接量"这拍是谁的字节"）。
 module tb_ku5p_tx_arb;
     reg clk = 0, rst_n = 0;
     always #4 clk = ~clk;          // 125 MHz GMII
@@ -34,7 +32,7 @@ module tb_ku5p_tx_arb;
         .gmii_tx_en(gmii_tx_en), .gmii_txd(gmii_txd)
     );
 
-    // ---- 厂商 mux 的对照面用到的信号（必须先声明：模型里的 arp_grant|v_arp_tx_en 要读它）----
+    // 厂商 mux 的对照面用到的信号（必须先声明：模型里的 arp_grant|v_arp_tx_en 要读它）
     reg  arp_rx_done = 0, arp_rx_type = 0;
     wire v_arp_tx_en, v_arp_tx_type, v_tx_req, v_rec_en;
     wire [7:0] v_arp_txd, v_icmp_data, v_udp_data, v_tx_data, v_rec_data;
@@ -44,7 +42,7 @@ module tb_ku5p_tx_arb;
     integer    v_flips = 0, v_seen = 0, v_arp_seen = 0, v_udp_seen = 0, v_midbad = 0;
     reg [3:0]  v_prev = 4'h0;
 
-    // ---- 三个"协议模块"模型：grant 之后连发 LEN 拍，最后一拍后报 done ----
+    // 三个"协议模块"模型：grant 之后连发 LEN 拍，最后一拍后报 done
     reg [4:0] ai = 0, ci = 0, ui = 0;
     always @(posedge clk or negedge rst_n) begin
         if (!rst_n) begin arp_tx_en <= 0; arp_done <= 0; ai <= 0; end
@@ -80,7 +78,7 @@ module tb_ku5p_tx_arb;
         end
     end
 
-    // ---- 观测：数各来源的字节，并记录"一帧内换源"次数 ----
+    // 观测：数各来源的字节，并记录"一帧内换源"次数
     integer seen_arp = 0, seen_icmp = 0, seen_udp = 0, errors = 0;
     integer arb_flips = 0;
     reg [3:0] cur_src = 0, prev_src = 0;
@@ -112,7 +110,7 @@ module tb_ku5p_tx_arb;
         end
     endtask
 
-    // ---- 厂商 mux 的对照面：同一批字节流喂 eth_ctrl，量它换不换源 ----
+    // 厂商 mux 的对照面：同一批字节流喂 eth_ctrl，量它换不换源
     eth_ctrl u_vendor (
         .clk(clk), .rst_n(rst_n),
         .arp_rx_done(arp_rx_done), .arp_rx_type(arp_rx_type),
@@ -157,8 +155,8 @@ module tb_ku5p_tx_arb;
               v_arp_seen=0; v_udp_seen=0; v_midbad=0; end
     endtask
 
-    // 每个测试都从"三条模型流全 idle + 观测清零"出发 —— 否则上一拍的尾巴会算进下一笔账，
-    // 数字看起来差两三拍，其实是被测对象没错、台架自己串了行。
+    // 每个测试都从"三条模型流全 idle + 观测清零"出发 —— 否则上一拍的尾巴算进下一笔账：
+    // 数字差两三拍，其实是被测对象没错、台架自己串了行。
     task quiesce;
         begin
             for (w = 0; w < 300 && (arp_tx_en || icmp_tx_en || udp_tx_en); w = w + 1) @(posedge clk);
@@ -181,13 +179,13 @@ module tb_ku5p_tx_arb;
         rst_n = 0; repeat (3) @(posedge clk); rst_n = 1;
         repeat (2) @(posedge clk);
 
-        // ---- T1：单独一路 UDP，LEN 个字节、一次换源（0→D 不算抢占，只是开始）----
+        // T1：单独一路 UDP，LEN 个字节、一次换源（0→D 不算抢占，只是开始）
         req(2'd2);
         wait_bytes(0, 0, LEN);
         chk("T1 udp bytes", seen_udp, LEN);
         chk("T1 arp bytes",  seen_arp, 0);
 
-        // ---- T2：UDP 帧中间来 ARP 请求 ⇒ 不许换源，两个请求都要发完 ----
+        // T2：UDP 帧中间来 ARP 请求 ⇒ 不许换源，两个请求都要发完
         quiesce();
         fork
             begin req(2'd2); end                      // 先发 UDP
@@ -198,10 +196,9 @@ module tb_ku5p_tx_arb;
         chk("T2 arp bytes", seen_arp, LEN);
         chk("T2 flips-at-boundary-only", arb_flips, 1);
 
-        // ---- V：同一场景喂厂商 mux ⇒ 修好之后它**不许**换源，而且 ARP 不能丢 ----
-        // 这段就是 ISSUES #28 的回归判据。改之前（`||`）实测它会在这帧中间换源 1 次；
-        // 改成 `&&` 之后如果只把"换源"修掉、不补 pending，ARP 请求会被整拍丢掉
-        // —— 所以下面两条要一起看：v_flips 必须 0，ARP 那 12 个字节必须出现在厂商输出口上。
+        // V：同一场景喂厂商 mux ⇒ 修好之后它**不许**换源，而且 ARP 不能丢（这段就是 ISSUES #28 的回归判据）。
+        // 改之前（`||`）实测它会在这帧中间换源 1 次；改成 `&&` 之后如果只把"换源"修掉、不补 pending，
+        // ARP 请求会被整拍丢掉 —— 所以下面两条要一起看：v_flips 必须 0，ARP 那 12 个字节必须出现在厂商输出口上。
         quiesce();
         fork
             begin req(2'd2); end
@@ -221,7 +218,7 @@ module tb_ku5p_tx_arb;
         $display("[tb_ku5p_tx_arb.v:221] INFO vendor-after-fix: midbad=%0d arp=%0d udp=%0d flips=%0d(含帧边界)",
                  v_midbad, v_arp_seen, v_udp_seen, v_flips);
 
-        // ---- T3：同拍三个请求 ⇒ 只有 ARP 立刻拿到，其余排队 ----
+        // T3：同拍三个请求 ⇒ 只有 ARP 立刻拿到，其余排队
         quiesce();
         @(posedge clk);
         arp_rqs <= 1'b1; icmp_rqs <= 1'b1; udp_rqs <= 1'b1;
@@ -233,7 +230,7 @@ module tb_ku5p_tx_arb;
         chk("T3 udp bytes", seen_udp, LEN);
         chk("T3 three frames in priority order", arb_flips, 2);
 
-        // ---- T4：帧中间打别人的 done ⇒ 不能放掉介质 ----
+        // T4：帧中间打别人的 done ⇒ 不能放掉介质
         quiesce();
         fork
             begin req(2'd1); end                       // ICMP 发

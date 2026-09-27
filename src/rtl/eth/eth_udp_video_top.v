@@ -1,6 +1,9 @@
 `timescale 1ns/1ps
-// ETH UDP video top — ghosting-fix v5
-// DDR ping-pong + burst saver; commit pulse with completed base.
+// ETH UDP video top — ghosting-fix v5：DDR ping-pong + burst saver，提交脉冲带 completed base。
+// 链路：gmii_to_rgmii → gmii_rx_mac(自算 FCS) → udp_rx_parser → frame_reasm → dc_fifo(BRAM CDC)
+//      → axi_frame_saver64 → ddr_bank_commit；控制面 arp/icmp/eth_ctrl，观测面 link_monitor。
+// 时钟域：gmii_rx_clk 与 gmii_tx_clk 是**同一根**（收侧恢复出来的 125 MHz）；与 axi_clk(HP0 100 MHz)
+// 之间只准过 dc_fifo 的格雷码指针与 ddr_bank_commit 的 3 级同步器，其余一律禁止组合跨域。
 module eth_udp_video_top #(
     parameter IMG_W      = 512,
     parameter IMG_H      = 300,
@@ -148,13 +151,11 @@ module eth_udp_video_top #(
         .tx_done(icmp_tx_done), .tx_req(icmp_tx_req)
     );
 
-    // ---- V7.9.6（ISSUES #38）：收侧换成自研那一对，发侧只留厂商 udp_tx ----
-    // 原来例化的是厂商 `udp` 包装层（udp_rx + udp_tx 一起进来）。udp_rx 不看帧长、也没有错误
-    // 标志可看（RGMII 只有 4 数据 + 1 控制，RX_CTL 在 rgmii_rx.v 里只当 gmii_rx_dv 用，
-    // **板上根本没有 RX_ER 这根线**）⇒ 下面 frame_reasm 的 p_good 只能硬接 1 ⇒ 遥测/OSD 里的
-    // "坏包"是构造性为 0 的死数字。现在错误源由 gmii_rx_mac 逐字节算 FCS-32 自己造出来。
-    // 发侧维持今天的状态（`tx_start_en` 恒 0，UDP 发送在 Z7 上是接着但没人启动），
-    // 只是不再连带把 udp_rx 拉回来。判据：sim/tb_v795_rx_chain.v（C1..C5）。
+    // V7.9.6（ISSUES #38）：收侧换成自研那一对，发侧只留厂商 udp_tx。原来例化的是厂商 `udp` 包装层，
+    // 而 udp_rx 不看帧长、也没有错误标志可看（RGMII 只有 4 数据 + 1 控制，RX_CTL 在 rgmii_rx.v 里
+    // 只当 gmii_rx_dv 用，**板上根本没有 RX_ER 这根线**）⇒ frame_reasm 的 p_good 只能硬接 1 ⇒
+    // 遥测/OSD 里的"坏包"是构造性为 0 的死数字。现在错误源由 gmii_rx_mac 逐字节算 FCS-32 自己造。
+    // 发侧维持今天的状态（tx_start_en 恒 0，Z7 上 UDP 发送接着但没人启动）。判据：tb_v795_rx_chain C1..C5。
     wire        crc_en, crc_clr;
     wire [31:0] crc_data, crc_next;
     assign crc_d8 = udp_gmii_txd;
@@ -320,9 +321,8 @@ module eth_udp_video_top #(
     wire [31:0] sav_base;
     wire       pack_flush;
 
-    // v6.4 的「帧尾 4 字节偶发丢失」修在这里：换页必须等本帧数据全部穿过 CDC。
-    // 这段 glue 从本文件抽成独立模块，是为了让 tb_v6_pingpong / tb_v6_tail_bank
-    // 例化**上板的实现**而不是 TB 里的手抄副本。
+    // v6.4 的「帧尾 4 字节偶发丢失」修在这里：换页必须等本帧数据全部穿过 CDC。这段 glue 抽成独立
+    // 模块是为了让 tb_v6_pingpong / tb_v6_tail_bank 例化**上板的实现**而不是 TB 里的手抄副本。
     ddr_bank_commit #(
         .BANK0(BANK0), .BANK1(BANK1), .TAIL_GUARD(1'b1)
     ) u_commit (

@@ -1,14 +1,10 @@
 `timescale 1ns/1ps
-// v7.9 台架：`copy_abort`（axi 域 1 拍 = 10 ns 脉冲）到 50 MHz 像素域的三种接法，
-// 用**相位扫描**把它们量开：0 = 两路时钟同相（这正是板上 MMCM 50/100 MHz 的真实情况），
-// 1..9 ns = 人为加的偏移，代表硅片上的时钟不确定度（skew/JI）。
-//   RAW   ：像素域直接 `if (copy_abort)` —— 改之前的写法
-//   LVL3  ：电平型 3 级同步 —— "看起来最正规"的那版，为什么在这里反而更糟
-//   TOG   ：翻转式脉冲同步器（frame_commit_lock.abort_tgl + 3FF + 异拍）—— 本版
-// 判据：
-//   A1 每个相位下 TOG 看到的次数 == 真发生的 abort 次数（一次不多、一次不少）
-//   A2 至少有一个相位 RAW 漏看（证明这不是理论洁癖）
-//   A3 LVL3 与 RAW 在**每一个**相位上数目都一样 ⇒ "换电平同步"根本不是修法（实测，不是推论）
+// v7.9 台架：`copy_abort`（axi 域 1 拍 = 10 ns 脉冲）进 50 MHz 像素域的三种接法，用**相位扫描**量开：
+//   相位 0 = 两钟同相（板上 MMCM 50/100 MHz 的真实情况），1..9 ns = 人为偏移 = 硅片上的 skew/JI。
+//   RAW = 像素域直接 `if (copy_abort)`（改之前的写法）；LVL3 = 电平型 3 级同步（"看起来最正规"的那版）；
+//   TOG = 翻转式脉冲同步器（frame_commit_lock.abort_tgl + 3FF + 异拍）—— 本版。
+// 判据 A1 每个相位 TOG 次数 == 真发生的 abort 次数（不多不少）；A2 至少一个相位 RAW 漏看；
+//   A3 LVL3 与 RAW 在**每一个**相位数目都一样 ⇒ "换电平同步"根本不是修法（实测，不是推论）。跑：sim/run_one.sh tb_v79_abort_toggle
 module tb_v79_abort_toggle;
     localparam integer IMG_H = 300;
     localparam integer WD    = 32'd30;      // 看门狗 30 个 axi 拍 = 300 ns，短到能量相位
@@ -34,7 +30,7 @@ module tb_v79_abort_toggle;
         .copy_abort(copy_abort), .abort_tgl(copy_abort_tgl)
     );
 
-    // ---- 真值：axi 域里 abort 发生了多少次 ----
+    // 真值：axi 域里 abort 发生了多少次
     integer n_abort = 0;
     always @(posedge axi_clk) if (copy_abort) n_abort = n_abort + 1;
 
@@ -73,8 +69,7 @@ module tb_v79_abort_toggle;
         end
     endtask
 
-    // 跑一轮：一个 commit → 一次 abort
-    task one_abort;
+    task one_abort;                        // 一个 commit → 一次 abort
         integer k;
         begin
             @(posedge axi_clk);

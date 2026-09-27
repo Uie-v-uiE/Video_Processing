@@ -1,16 +1,8 @@
-//----------------------------------------------------------------------------------------
-// File name:           rgmii_rx
-// Last modified Date:  2024/11/22
-// Last Version:        V1.0
-// Descriptions:        RGMII接收模块
-//----------------------------------------------------------------------------------------
-// Created by:          riguke
-// Created date:        2024/11/22
-// Version:             V1.0
-// Descriptions:        The original version
-//
-//----------------------------------------------------------------------------------------
-//****************************************************************************************//
+// rgmii_rx — RGMII(4bit DDR) → GMII(8bit SDR)。厂商例程（riguke，V1.0），非自研。
+// 位段：RXC 上升沿那半字节是字节低位、下降沿是高位（IDDR SAME_EDGE_PIPELINED：Q1=正沿、Q2=负沿）。
+// 时钟域：rgmii_rxc 本身就是 GMII 侧的 125 MHz —— BUFG 出来的那路当 gmii_rx_clk 给下游，
+// BUFIO 只供采样沿。RX_CTL 仅当 gmii_rx_dv 用：RGMII 没有 GMII 的 RX_ER 通道，本模块交不出错误标志。
+// IDELAY 全为 FIXED=0（对齐靠 PHY 内部延迟），参考时钟 idelay_clk = 200 MHz。
 module rgmii_rx (
     input idelay_clk,  //200Mhz时钟，IDELAY时钟
 
@@ -34,10 +26,6 @@ module rgmii_rx (
     wire [3:0] rgmii_rxd_delay;  //rgmii_rxd输入延时
     wire       rgmii_rx_ctl_delay;  //rgmii_rx_ctl输入延时
     wire [1:0] gmii_rxdv_t;  //两位GMII接收有效信号 
-
-    //*****************************************************
-    //**                    main code
-    //*****************************************************
 
     assign gmii_rx_clk = rgmii_rxc_bufg;
     assign gmii_rx_dv  = gmii_rxdv_t[0] & gmii_rxdv_t[1];
@@ -84,13 +72,12 @@ module rgmii_rx (
         .REGRST     (1'b0)                 // 1-bit input: Active-high reset tap-delay input
     );
 
-    //输入双沿采样寄存器
+    //rx_ctl 双沿采样：Q1=正沿、Q2=负沿，两沿都为 1 才算 dv（见上面的 assign）
     IDDR #(
-        .DDR_CLK_EDGE("SAME_EDGE_PIPELINED"),  // "OPPOSITE_EDGE", "SAME_EDGE" 
-                                               //    or "SAME_EDGE_PIPELINED" 
+        .DDR_CLK_EDGE("SAME_EDGE_PIPELINED"),  // "OPPOSITE_EDGE" / "SAME_EDGE" / "SAME_EDGE_PIPELINED"
         .INIT_Q1     (1'b0),                   // Initial value of Q1: 1'b0 or 1'b1
         .INIT_Q2     (1'b0),                   // Initial value of Q2: 1'b0 or 1'b1
-        .SRTYPE      ("SYNC")                  // Set/Reset type: "SYNC" or "ASYNC" 
+        .SRTYPE      ("SYNC")                  // Set/Reset type: "SYNC" or "ASYNC"
     ) u_iddr_rx_ctl (
         .Q1(gmii_rxdv_t[0]),      // 1-bit output for positive edge of clock
         .Q2(gmii_rxdv_t[1]),      // 1-bit output for negative edge of clock
@@ -126,13 +113,11 @@ module rgmii_rx (
                 .REGRST     (1'b0)                 // 1-bit input: Active-high reset tap-delay
             );
 
-            //输入双沿采样寄存器
             IDDR #(
-                .DDR_CLK_EDGE("SAME_EDGE_PIPELINED"),  // "OPPOSITE_EDGE", "SAME_EDGE" 
-                                                       //    or "SAME_EDGE_PIPELINED" 
+                .DDR_CLK_EDGE("SAME_EDGE_PIPELINED"),  // 同 u_iddr_rx_ctl
                 .INIT_Q1     (1'b0),                   // Initial value of Q1: 1'b0 or 1'b1
                 .INIT_Q2     (1'b0),                   // Initial value of Q2: 1'b0 or 1'b1
-                .SRTYPE      ("SYNC")                  // Set/Reset type: "SYNC" or "ASYNC" 
+                .SRTYPE      ("SYNC")                  // Set/Reset type: "SYNC" or "ASYNC"
             ) u_iddr_rxd (
                 .Q1(gmii_rxd[i]),         // 1-bit output for positive edge of clock
                 .Q2(gmii_rxd[4+i]),       // 1-bit output for negative edge of clock

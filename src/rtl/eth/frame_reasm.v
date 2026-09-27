@@ -1,15 +1,10 @@
 `timescale 1ns/1ps
-// frame_reasm v5.1 — commit only if EVERY source row was written this frame.
-// Missing rows leave old/zero pixels in DDR → frozen frame shows black + ghost.
-// Zoom animation makes those holes look like "moving" black stripes.
-//
-// v5.1 is a timing-only rewrite of the byte-count arithmetic (the accept/reject
-// decisions are unchanged). The 3-operand 32-bit adder that used to evaluate
-// `cover + pkt_pay + 1 >= FRAME_BYTES` on the fly owned all ten worst paths of
-// the 125 MHz eth_rxc group (WNS +0.499): its carry chain started behind a
-// 1.95 ns route out of udp_rx's rec_en. It is replaced by two saturating
-// running totals, so the test became a constant compare of a local register
-// and p_valid only has to reach one LUT input.
+// frame_reasm — commits a frame only if EVERY source row was written this frame; missing rows
+// leave old/zero pixels in DDR ⇒ a frozen frame shows black stripes that "move" while zooming.
+// Clock domain: gmii_rx_clk / eth_rxc (125 MHz); all outputs are registered.
+// v5.1 rewrote only the byte-count arithmetic (accept/reject decisions unchanged): the
+// 3-operand 32-bit adder for `cover + pkt_pay + 1 >= FRAME_BYTES` owned all ten worst paths of
+// this 125 MHz group (WNS +0.499); it is now two saturating running totals + a constant compare.
 module frame_reasm #(
     parameter IMG_W       = 512,
     parameter IMG_H       = 300,
@@ -28,11 +23,9 @@ module frame_reasm #(
     output reg         flush,
     output reg         frame_done,
     output reg         frame_err,
-    // v7.6: 两个**只增不改行为**的观测口，给 link_monitor 用。
-    // frame_abort 只在「本帧字节预算已用完、但验收门没过」的那一拍脉冲一次；
-    // rows_missed 与它同拍有效 = 还差多少源行没被写过（黑纹的行数）。
-    // 注意：一个连 FRAME_BYTES 都没凑够的短帧不会脉冲 frame_abort（它没有
-    // "结束"这件事可报），那种情况由 link_monitor 的 stall_ms 抓到。
+    // v7.6: 两个**只增不改行为**的观测口，给 link_monitor 用。frame_abort 只在「本帧字节预算已
+    // 用完但验收门没过」的那一拍脉冲一次，rows_missed 与它同拍 = 还差多少源行没被写过（黑纹行数）。
+    // 注意：连 FRAME_BYTES 都没凑够的短帧不脉冲 frame_abort（它没有"结束"可报），由 stall_ms 抓到。
     output reg         frame_abort,
     output reg  [15:0] rows_missed,
     output reg  [31:0] stat_frames,
@@ -50,30 +43,16 @@ module frame_reasm #(
     reg [31:0] pkt_pay;
     reg [31:0] pkt_start;
     reg        pkt_active;
+    // Deliberate behaviour change vs v5.0: a running byte total cannot un-count a failed packet,
+    // so a bad packet now sets this flag and the commit gate tests it (same verdict, 1 bit).
     reg        bad_frame;      // a failed packet landed in this frame
 
-    // ---- byte accounting ----------------------------------------------
-    // cov  = payload bytes received for this frame, including the packet in
-    //        flight (it is what cover+pkt_pay used to add up to);
-    // pend = the same count for the packet in flight only, i.e. the byte
-    //        offset its next payload byte lands on.
-    // Both saturate at FRAME_BYTES.
-    //
-    // Saturation is loss-free here: the old code only ever asked
-    // "cov + 1 >= FRAME_BYTES", and for a monotonically growing count
-    // ">= FRAME_BYTES" and "== FRAME_BYTES" are the same question. Both
-    // counters are cleared at frame start and at commit, so a frame can never
-    // inherit a saturated value from an earlier one.
-    //
-    // `cov` is not called `cover`: that is a SystemVerilog keyword and xvlog
-    // rejects it as an identifier as soon as a file is compiled with -sv.
-    //
-    // One behavioural difference vs v5.0, and it is deliberate: v5.0 subtracted
-    // a failed packet out of the byte total, which is what made a bad packet
-    // reject the frame. A running per-byte total cannot un-count bytes that
-    // were already folded in, so a failed packet now sets `bad_frame` and the
-    // commit gate tests that flag instead. Same verdict, one bit cheaper, and
-    // it no longer needs the frame's byte total to remember every packet.
+    // Byte accounting. cov  = payload bytes received for this frame, including the packet in
+    // flight (what cover+pkt_pay used to add up to); pend = the same count for the in-flight
+    // packet only, i.e. the byte offset its next payload byte lands on. Both saturate at
+    // FRAME_BYTES, loss-free: the old code only ever asked "cov + 1 >= FRAME_BYTES", and for a
+    // monotonic count that is the same question as "== FRAME_BYTES". Both are cleared at frame
+    // start and at commit. `cov` is not `cover` — cover is a SystemVerilog keyword under -sv.
     localparam integer CW    = $clog2(FRAME_BYTES + 1);
     localparam [CW-1:0] SAT  = FRAME_BYTES;          // frame complete
     localparam [CW-1:0] SAT1 = FRAME_BYTES - 1;      // one byte short
@@ -86,9 +65,8 @@ module frame_reasm #(
     wire pend_sat = (pend == SAT);
     wire pend_end = (pend == SAT1);
 
-    // The last byte of a packet shares its cycle with p_eof and the counters
-    // have not seen it yet, so it is credited here (and only here) — the same
-    // off-by-one guard v5.0 needed, now one LUT deep instead of an adder.
+    // The last byte of a packet shares its cycle with p_eof and the counters have not seen it
+    // yet, so it is credited here (and only here) — same off-by-one guard v5.0 needed, one LUT deep.
     wire bytes_ok = cov_sat  | (cov_end  & p_valid);
     // the frame is over when a packet reaches FRAME_BYTES, whole or not
     wire last_pkt = pend_sat | (pend_end & p_valid);
@@ -97,9 +75,8 @@ module frame_reasm #(
     reg [IMG_H-1:0] row_ok;
     reg [15:0]      rows_hit;
 
-    // byte_off → row: row = byte_off / (IMG_W*2)
-    // IMG_W=512 → ROW_STRIDE=1024 → off>>10. Must NOT use off[16:1] (16-bit
-    // pixel index truncates ~172/300 rows → frame_done never → SRC1 black).
+    // byte_off → row: row = byte_off / (IMG_W*2). Must NOT use off[16:1] (a 16-bit pixel index
+    // truncates ~172/300 rows → frame_done never → SRC1 black).
     localparam integer ROW_STRIDE = IMG_W * 2;
     wire [31:0] row_idx = off / ROW_STRIDE;
 
@@ -169,11 +146,10 @@ module frame_reasm #(
                 flush<=1;
                 stat_pkts<=stat_pkts+1;
                 if (p_good) begin
-                    // Completeness gate: no failed packet this frame, every
-                    // source row touched, AND all FRAME_BYTES arrived. The row
-                    // bitmap alone lets a lost packet through as a "complete"
-                    // row, and the hole (a BRAM word never written = 0) shows
-                    // as a black stripe that survives a stopped stream.
+                    // Completeness gate: no failed packet this frame, every source row touched,
+                    // AND all FRAME_BYTES arrived. The row bitmap alone lets a lost packet through
+                    // as a "complete" row, and the hole (a never-written BRAM word = 0) survives a
+                    // stopped stream as a black stripe.
                     if (rows_hit >= IMG_H[15:0] && bytes_ok && !bad_frame) begin
                         frame_done<=1;
                         cov<=0;
@@ -182,10 +158,8 @@ module frame_reasm #(
                         bad_frame<=0;
                         stat_frames<=stat_frames+1;
                     end else begin
-                        // short frame: keep the last good frame on screen and
-                        // count it once, when the frame's last packet arrived.
-                        // The EOF-cycle byte is credited here, exactly like
-                        // v5.0's `cov <= cov + pkt_pay + p_valid` did.
+                        // short frame: keep the last good frame on screen and count it once, when
+                        // the frame's last packet arrived. The EOF-cycle byte is credited here too.
                         if (p_valid) begin
                             if (!cov_sat)  cov  <= cov  + 1'b1;
                             if (!pend_sat) pend <= pend + 1'b1;

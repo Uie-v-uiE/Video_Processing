@@ -1,16 +1,6 @@
-//----------------------------------------------------------------------------------------
-// File name:           rgmii_tx
-// Last modified Date:  2024/11/22
-// Last Version:        V1.0
-// Descriptions:        RGMII发送模块
-//----------------------------------------------------------------------------------------
-// Created by:          riguke
-// Created date:        2024/11/22
-// Version:             V1.0
-// Descriptions:        The original version
-//
-//----------------------------------------------------------------------------------------
-//****************************************************************************************//
+// rgmii_tx — GMII(8bit SDR) → RGMII(4bit DDR)。厂商例程（riguke，V1.0），非自研。
+// 位段：字节低 4 位走 TXC 上升沿（D1）、高 4 位走下降沿（D2）；TX_CTL 两沿同送 tx_en。
+// rgmii_txc 直接等于 gmii_tx_clk，不另起时钟域。
 module rgmii_tx (
     //GMII发送端口
     input       gmii_tx_clk,  //GMII发送时钟    
@@ -22,10 +12,6 @@ module rgmii_tx (
     output       rgmii_tx_ctl,  //RGMII输出数据有效信号
     output [3:0] rgmii_txd      //RGMII输出数据     
 );
-
-    //*****************************************************
-    //**                    main code
-    //*****************************************************
 
     assign rgmii_txc = gmii_tx_clk;
 

@@ -1,13 +1,10 @@
 `timescale 1ns/1ps
-// Display frame buffer: 64-bit write port (4 RGB565), 16-bit random read.
+// Display frame buffer: 64-bit write port (4 RGB565), 16-bit random read. 写 wr_clk / 读 rd_clk 两个域。
 // Read latency = 1 clock (BRAM 输出寄存器 + 块内 lane mux)，与 v6.4 一致。
-//
-// 为什么要按 2 的幂拆成两块，而不是直接声明一个 38400 深的数组：
-// BRAM 推断会把非 2 的幂的深度**向上填充到 2^16**，于是 512x300 的帧缓存
-// 实测吃掉 128 个 RAMB36（整个 xc7z020 只有 140 个，BRAM 98.93% 全卡在这），
-// 而数据量本身只需要 67 个 tile。拆成 32768 + 8192 两块以后实测 80 个，
-// 省下的 48 个 tile 足够放插值行缓存。对照实验见 tmp_ramtest/fbtest.v
-// （v0 单阵列 = 128，v5 分块 = 80），不是猜的。
+// ⚠ 必须按 2 的幂拆成两块，不能直接声明一个 38400 深的数组：BRAM 推断会把非 2 的幂的深度**向上填充到
+//   2^16** ⇒ 512x300 的帧缓存实测吃掉 128 个 RAMB36（整个 xc7z020 只有 140 个，98.93% 全卡在这），而数据量
+//   本身只要 67 个 tile。拆成 32768 + 8192 两块以后实测 80 个，省下的 48 个够放插值行缓存。对照实验见
+//   tmp_ramtest/fbtest.v（v0 单阵列 = 128，v5 分块 = 80），不是猜的。
 module frame_buffer_w64 #(
     parameter W = 512,
     parameter H = 300

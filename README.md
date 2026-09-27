@@ -59,7 +59,7 @@ bash build/board_verify.sh --battery --geom
 | `build/` | 构建与门禁脚本、`tcl/`、综合实现报告、`rNN_gates.txt` 与 `evidence/` 留档 |
 | `board/` | 上板操作说明、验收表、串口捕获 |
 | `data/` | `golden/` 参考图，`measured/` 实测数据 |
-| `skill/` | 大模型协作沉淀的技能包（每项写适用场景、用法、失效条件） |
+| `skill/` | 大模型协作沉淀的技能包（每项四段：适用场景 / 使用方法 / 已验证效果的凭据 / 失效条件；条目数以 `skill/README.md` 自己那行为准） |
 | `report/` | 设计报告、优化记录、`ISSUES.md` 与 `OVERNIGHT_LOG.md`（追加式历史） |
 | `ku5p/` | 第二块板（XCKU5P）的独立工程 |
 

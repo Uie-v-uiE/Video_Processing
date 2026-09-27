@@ -1,53 +1,63 @@
-# S2 · 旋转与窗口滤波必须做在**目标域**
+# S2 · 邻域滤波必须做在**目标域**：几何变换与窗口滤波的先后顺序
+
+> 四段式：适用场景 / 使用方法 / 已验证效果 / 失效条件。
+> 来源：`report/ISSUES.md` #10（旋转时一开模糊/Sobel 就花屏）与 #16（效果挂载位置的最终结论）。
 
 ## 适用场景
-- 任意角逆映射旋转（0–359°）+ 3×3 邻域滤波（blur / Sobel）要**同时开**。
-- 症状长这样：`angle≠0` 时一开模糊/Sobel 就花屏、出现中间混叠值；关掉旋转又正常。
-- 机理（一句话）：窗滤若在**源图扫描序**上取邻域，逆映射之后「屏幕邻域 ≠ 源图邻域」⇒ 滤的是错的 3×3。
-  **点运算**（gray / binary / invert）与邻域无关，任何域都兼容 ⇒ 只有窗滤类需要本次重构。
+
+- 任意角逆映射（旋转/缩放/透视这一类"屏幕坐标 → 源坐标"的映射）**与 3×3 邻域滤波**
+  （blur / sharpen / Sobel / 形态学）要**同时开**。
+- 症状长这样：`angle≠0` 时一开模糊或 Sobel 就花屏、出现中间混叠值；把旋转关掉又完全正常。
+- 机理（一句话）：滤波如果在**源图扫描序**上取邻域，逆映射之后"屏幕邻域 ≠ 源图邻域" ⇒
+  滤的是一个根本不挨着的 3×3。
+- **点运算**（灰度 / 二值 / 反色 / gamma）与邻域无关，任何域都兼容 ⇒ 只有**窗滤类**需要按本页重排。
+- 不适用：映射是整行平移/整屏缩放这类"邻域保持"的变换（那两种序都等价，别为此重构）。
 
 ## 使用方法（目标域四步）
-1. 屏幕 `(cx,cy)` 经缩放/旋转逆映射得 `(sx,sy)` 并读像素（`src/rtl/process/zoom/zoom_mapper.v`）。
-2. 承认「读出来的像素流本身就是**旋转后图像的光栅序**」。
-3. 在这条流上用行缓存建 3×3，列坐标用**屏幕 cx**寻址：
-   `src/rtl/process/proc_box_blur.v:18-19`、`proc_sobel.v:17-18` 各 2 行缓存，
-   深度 = `H_ACTIVE`，由 `src/rtl/top/pl_video_top.v:422` 的 `proc_pipeline #(.H_ACTIVE(IMG_W)) u_pipe` 传入。
-4. 删掉 `bypass = ~en | rotate_active` 里对 blur/sobel 的强制旁路：现状是
-   `src/rtl/process/proc_pipeline.v:26-27` `by2 = ~effect_en[2]` / `by3 = ~effect_en[3]`；
-   `rotate_active` 端口还在（`:12`，注释即「retained for status」），`pl_video_top.v:425` 仍把
-   `rot_on` 接进去，但在 `proc_pipeline.v` 全文里它只出现这一次 ⇒ 结构上已经不可能旁路任何一级。
-5. OOB 填 0，并在效果链**之后**再强制黑边——否则 invert 会把 OOB 的 0 变成白。
-   串口侧命令见 `report/ROTATION_AND_EFFECTS.md` §6（如 `00111` = 右窗模糊+Sobel+反色）。
-6. 台架：`SIM_TB=tb_rotate_window vivado -mode batch -nojournal -source sim/run_sim.tcl`。
+
+1. 屏幕 `(cx,cy)` 经缩放/旋转**逆映射**得 `(sx,sy)` 并读像素（本工程：`src/rtl/process/zoom/zoom_mapper.v`）。
+2. **承认"读出来的像素流本身就是旋转后图像的光栅序"** —— 这是整件事的关键一句，
+   它把"滤波该挂在哪"从选择题变成了事实题。
+3. 在**这条流**上用行缓存建 3×3，列坐标用**屏幕 cx** 寻址（本工程：`proc_box_blur.v` / `proc_sobel.v`
+   各 2 行缓存，深度 = 顶层传进去的 `H_ACTIVE`）。行缓存深度必须 ≥ 有效行宽，见失效条件 1。
+4. 把"旋转时强制旁路窗滤"那个捷径删掉。检查它有没有真的删干净：本工程的 `rotate_active` 端口还留着
+   （注释写着 "retained for status"），但在 `proc_pipeline.v` 全文里只出现那一次 ⇒
+   **端口还在 ≠ 功能还在； grep 它被读了几次**（这一招的通用版在 [S1](udp_offset_reasm.md) 失效条件 3）。
+5. 越界填 0 要放在效果链**之前**、黑边强制放在**之后** —— 否则 invert 会把 OOB 的 0 变成白，
+   一个"看起来像丢帧"的现象就是这么造出来的。
+6. 判据（这是本页最可抄的一条）：**别只判"没花屏"，要判"滤波真的在跑"**。
+   台架把 `rotate_active=1` 时的期望写成"**必须**出现中间混叠值"——
+   不出现就说明窗滤被静默旁路了（`sim/tb_rotate_window.v:89` 的失败文案就是
+   `no intermediate blur value under rotate_active=1`）。反向判据的通用形态见
+   [S21](criterion_blind_spot.md)：让缺陷无处藏身的激励才是判据。
 
 ## 已验证效果
-- 台架判据是「反向」的（rotate_active=1 时**必须**出现中间混叠值 ⇒ 证明 blur 真的在跑）：
-  `sim/tb_rotate_window.v:89` 的失败文案是 `no intermediate blur value under rotate_active=1`，
-  `:91` `PASS blur active with rotate_active=1`、`:106` `PASS blur active with rotate_active=0`；
-  该 TB 在全量回归里 PASS（`sim/results/regression_v77_r13.txt`，`SIM DONE pass=34 fail=0`）。
-- 结论已写进工程文档：`report/ISSUES.md` §10「旋转时窗滤花屏（旧）→ 目标域 3×3 重构后任意角可用
-  blur/sobel」、§16「原 line_cache（左扫右读）废弃，效果改挂右窗缩放后光栅，左窗保持原图」、
-  `report/ROTATION_AND_EFFECTS.md` §2。
-- 顺带把「旋转放在哪个窗」这件事变成资源收益：V7.7/R12 将旋转限制在右窗、
-  删掉左路的 `rotate_mapper` 实例 ⇒ **DSP48 13 → 9（−4）**、Slice LUT −182、Reg −24、
-  时序端点 −279，WNS 反而由 +0.408 升到 **+0.540**，BRAM 64.64% 不变
-  （`report/OVERNIGHT_LOG.md` §5 R12 行、§6 bit `166f4b94`；`report/CHANGELOG_V7.md` V7.7）。
-- 左路改动的风险论证是「走今天已在板上逐像素正确的那条分支」：`rot_on=0`（angle=0）路径不变、
-  不引入新数据通路、不动 3 级列配准深度（`report/OVERNIGHT_LOG.md` R12）。
+
+- 上面那条反向判据在全量回归里 PASS（两档：`rotate_active=1` 与 `=0` 都要求看到"滤波在跑"），
+  `sim/results/regression_v77_r13.txt` 末行 `SIM DONE pass=34 fail=0`。
+  ⇒ 引用回归条数必须说出是哪一份 `sim/results/*`，**条数随轮次长，不是常数**。
+- 结论已进工程文档：`report/ISSUES.md` #10（旋转时窗滤花屏 → 目标域 3×3 重构后任意角可用）、
+  #16（左扫右读的行缓存方案废弃，效果改挂右窗缩放后的光栅）。
+- **顺带拿到一次资源收益**：把旋转限制在一个窗、删掉另一路多余的 `rotate_mapper` 实例 ⇒
+  DSP48 **13 → 9（−4）**、Slice LUT −182、Reg −24、时序端点 −279，WNS 反而由 +0.408 升到 **+0.540**，
+  BRAM 不变（`report/OVERNIGHT_LOG.md` §5 R12 行、`report/CHANGELOG_V7.md` V7.7）。
+  ⇒ 几何重排常常是**减逻辑**的，不是加逻辑的；先算哪一路能省。
 
 ## 失效条件
-1. **行缓存深度 < 有效行宽**：`H_ACTIVE` 默认 640，本设计传的是 `IMG_W`=512 ⇒ 一旦右窗宽度大于
-   传入值，3×3 的列就对不上（改分辨率要一起改）。
-2. **在源域行缓存上滤波却用屏幕坐标寻址**——仍是错的，只是错得更隐蔽。重构的充分条件是
-   「行缓存挂在逆映射**之后**的那条流上」。
-3. 与「未旋转源图」做逐像素金标对比时，**金标也要先旋转/缩放再滤波**
-   （`report/ROTATION_AND_EFFECTS.md` §5），否则会报出一堆假差异。
-4. **R12 之后左窗不再旋转**：`report/ROTATION_AND_EFFECTS.md` §1 仍写着「左右窗均可旋转」，
-   与当前 RTL（`src/rtl/top/pl_video_top.v:132-150`，`sx_l = cx_q3` 无旋转分支）不一致。
-   需要左窗旋转时必须重新例化 `rotate_mapper` —— 它现在**没有被任何模块例化**（全树 grep 无实例），
-   只在回归里作为独立数学参考被 `tb_rotate_mapper` 覆盖。
-5. 「左窗不转、右窗转」「OSD 角度行仍跟随」这条**尚未上板肉眼确认**
-   （`report/OVERNIGHT_LOG.md` R12 明写「待明天上板确认」）⇒ 属未验证，不要当战果引用。
-6. 旋转分支的 `frac_x/frac_y` 被强制清 0（`src/rtl/process/zoom/zoom_mapper.v:73-74`
-   `fx = rot_s1 ? 8'h00 : raw_xs[7:0]`）⇒ 本 skill 描述的是**最近邻**取像素下的旋转+窗滤共存；
-   想在旋转态做双线性必须先补出小数位，且 `src/rtl/process/bilin_lerp.v` 目前未被例化。
+
+1. **行缓存深度 < 有效行宽**：3×3 的列就会对不上（本工程默认值 640、实传 512，
+   一旦右窗宽度过大于传入值就出错）⇒ 改分辨率要连着改这里，且它**不会报错**，只是列错。
+2. **在源域行缓存上滤波、却用屏幕坐标寻址**——仍是错的，只是错得更隐蔽。
+   重构成立的充分条件是"行缓存挂在逆映射**之后**的那条流上"，不是"坐标换了"。
+3. 与"未旋转源图"做逐像素金标对比时，**金标也要先旋转/缩放再滤波**
+   （`report/ROTATION_AND_EFFECTS.md` §5），否则报出一堆假差异——那是比错的参照物，不是缺陷。
+4. **金标/参考图本身不可一键重跑**时，这条对比的证据等级只有"人工比对"
+   （`data/golden/README.md` 明写没有生成脚本）⇒ 别把"和参考图看着一样"写成逐像素一致。
+5. 本页讲的是**最近邻**取像素下的"旋转 + 窗滤共存"。想在旋转态做双线性，先确认小数权重真的传出去了：
+   本工程旋转那一支把 `frac_x/frac_y` 钉成 0（`zoom_mapper.v:73-74`），于是 `bilin on` 与 `off`
+   在角度非 0 时是同一张画，而屏上那一格写着开（`report/ISSUES.md` #104，**已记录未修**）。
+   这一族的通用形态是"开关的投影与硬件真的那一位不是同一位"，见
+   [S20](bench_self_inflicted_reds.md) 第六签名与 `report/AI_COLLABORATION.md` §6 第 2 笔。
+6. "哪一窗转、哪一窗不转"是**产品决定**，会随版本变（本工程 R12 之后左窗不再旋转，
+   而当时文档还写着"左右窗均可旋转"）。所以：任何"文档说的几何行为"要用一条命令验一遍，
+   读不到就按未验证处理（`report/ROTATION_AND_EFFECTS.md` §1 那条不一致就是当场 grep 出来的）。

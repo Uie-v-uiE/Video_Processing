@@ -1,23 +1,16 @@
 `timescale 1ns/1ps
-// tb_link_monitor — V7.6 (P0-A) 链路健康自诊断引擎的验收。
-//
+// tb_link_monitor — V7.6 (P0-A) 链路健康自诊断引擎的验收。跑法：bash sim/run_one.sh tb_link_monitor
 // 四条必须成立、**不成立就会误报平安**的性质：
-//   A 反例判据：挡住 CDC 写口（fifo_full 拉住）⇒ drop_words 必须非 0；
-//     反向也要成立：没有 full 时必须恒 0，否则这个数字是噪声。
-//   B 缺一个**中间包**（最后一个包到了、行没凑齐）⇒ frame_abort 恰好一次、
-//     rows_missed=1，并出现在快照 lane1/lane2 里。
-//   C 断流之后快照必须**继续刷新**，否则 stall_ms 冻在最后一个值上，
-//     OSD 会把"线被拔了"显示成"一切正常"。
-//   D 第一个 frame_done 只建立基准，不得把"上电到现在"当成帧间隔写进 min/max。
-// 外加 snap_cross 的两条：跨域取到的必须是完整快照（不撕烈）、心跳停了要报。
-//
-// 时间尺度：link_monitor 用 CLK_HZ=1000 例化 ⇒ 1 个源时钟 = 1 ms，否则等 200 ms
-// 断流要跑 2500 万拍。帧间隔一律取 50 拍（> SETTLE=32），保证每帧都能发布。
+//   A 反例判据：挡住 CDC 写口（fifo_full 拉住）⇒ drop_words 必须非 0；反向没有 full 时必须恒 0，否则这数字是噪声。
+//   B 缺一个**中间包**（最后一个包到了、行没凑齐）⇒ frame_abort 恰好一次、rows_missed=1，并出现在快照 lane1/lane2 里。
+//   C 断流之后快照必须**继续刷新**，否则 stall_ms 冻在最后一个值上，OSD 会把"线被拔了"显示成"一切正常"。
+//   D 第一个 frame_done 只建立基准，不得把"上电到现在"当成帧间隔写进 min/max。外加 snap_cross 两条：跨域取到完整快照（不撕裂）、心跳停了要报。
 module tb_link_monitor;
     localparam integer IMG_W = 8, IMG_H = 4, FRAME_BYTES = 64, PAY = 16;
     localparam integer PKTS  = FRAME_BYTES / PAY;   // 4
     localparam integer LMW   = 320;
-    localparam integer GAP   = 50;
+    localparam integer GAP   = 50;          // 帧间隔一律取 50 拍（> SETTLE=32）保证每帧都能发布；CLK_HZ=1000 ⇒ 1 拍 = 1 ms，
+                                            // 否则等 200 ms 断流要跑 2500 万拍（时基换算见 E 段那条饱和判据）
 
     reg clk = 0, rst_n = 0;
     always #4 clk = ~clk;
@@ -25,7 +18,6 @@ module tb_link_monitor;
     reg pclk = 0, prst_n = 0;
     always #62.5 pclk = ~pclk;                       // 8 MHz 的"目的域"
 
-    // ---------------------------------------------------------------- 激励
     reg        p_valid = 0, p_sof = 0, p_eof = 0, p_good = 1;
     reg  [7:0] p_data = 0;
     wire       wr_en, flush, frame_done, frame_err, frame_abort;
@@ -47,8 +39,8 @@ module tb_link_monitor;
 
     // CDC 写口模型：与 eth_udp_video_top 里 cdc_wr 的同一式子
     reg  cdc_full = 0;
-    // v7.6c：帧间隔统计清零入口。板级实测到 gap_max 停在 34066 ms —— 那是 16bit
-    // 毫秒计数回卷出来的假数（真实间隔 > 65.5 s）。修法是时基加宽 + 饱和 + 可清零。
+    // v7.6c：帧间隔统计清零入口 —— 板级 gap_max 停在 34066 ms = 16bit 毫秒计数回卷的假数（真实间隔 > 65.5 s）；
+    // 修法是时基加宽 + 饱和 + 可清零，饱和由 E 段判、清零由 F 段判。
     reg        lm_gapclr = 0;
     wire cdc_wr_req = wr_en | flush;
 
@@ -114,10 +106,8 @@ module tb_link_monitor;
     endtask
 
     // ---- 生产时基守门 ----
-    // 上面为了跑得动，把 CLK_HZ 改成了 1000（TC=1，一拍一 ms）。这正好掩盖过一类
-    // 致命错：ms_div 写死 16 bit 时装不下 125000，比较恒假 ⇒ 真实时钟下 ms_tick
-    // 永远不来，ms16/stall/gap/心跳在板上全死。这里用**生产参数**再例化一份，
-    // 只问一件事：跑完这段仿真之后，它的 ms_tick 到底有没有响过。
+    // 为了跑得动把 CLK_HZ 改成 1000（一拍一 ms），这正好掩盖过一类致命错：ms_div 写死 16 bit 时装不下 125000、比较恒假
+    // ⇒ 真实时钟下 ms_tick 永远不来，ms16/stall/gap/心跳在板上全死。故用**生产参数**再例化一份，只问 ms_tick 响过没有。
     wire [LMW-1:0] p_lm_bus;
     wire           p_lm_tog, p_lm_hb;
     link_monitor #(.CLK_HZ(125_000_000), .SETTLE(32), .LIVE_MS(16'd200)) u_lm_prod (
@@ -148,7 +138,6 @@ module tb_link_monitor;
         prev_tog <= lm_bus_tog;
     end
 
-    // ---------------------------------------------------------------- 跨域
     localparam integer SW = 64;
     reg  [SW-1:0] s_bus = 0;
     reg           s_tog = 0, s_hb = 0;
@@ -160,9 +149,7 @@ module tb_link_monitor;
         .bus_q(d_bus), .hb_gone(d_gone), .hb_slow(d_slow)
     );
 
-    // B2 的判据本体（下面 initial 里用）。写成 `reg + always @*` 而不是 `wire`：
-    // 反例测试要在仿真期 force 一个假的 `gap_sum` 看它会不会变红，`wire` 表达式不会因 force 重算
-    // ⇒ 那种写法测不出"判据根本没看 sum"（今天差点写成这样）。
+    // B2 的判据本体。写成 `reg + always @*` 而不是 `wire`：反例测试要在仿真期 force 一个假的 `gap_sum` 看它会不会变红，而 `wire` 表达式不随 force 重算 ⇒ 那种写法测不出"判据根本没看 sum"。
     reg b2_ok;
     always @* b2_ok = u_lm.gap_valid
                    && (u_lm.gap_min <= u_lm.gap_last) && (u_lm.gap_last <= u_lm.gap_max)
@@ -189,13 +176,10 @@ module tb_link_monitor;
             $display("FAIL clean frames reported bad (aborts=%0d bus=%0d)", aborts, P_FRAMES_BAD);
             errors = errors + 1;
         end else $display("PASS clean frames raise no abort");
-        // r79/#46 的落点说明：这里**不再多等拍**。减法从关键路径上拿掉之后，记账与旧的
-        // `frame_done` 同拍（`gap_cnt` 就是读数），所以判据的时间契约与 r78 完全一致。
-        // （先前的"拆两拍"版本要求多等一拍，那会真的削弱这条判据：晚两拍的错也照样放过。
-        //   那一版被 `lm_bus` 快照的落点顶红，见 `link_monitor.v` 里那段。）
+        // r79/#46 落点：这里**不再多等拍** —— 减法从关键路径拿掉后记账与 `frame_done` 同拍（`gap_cnt` 就是读数），
+        // 判据的时间契约与 r78 完全一致。（先前"拆两拍"的版本要多等一拍，那会真削弱判据：晚两拍的错也照样放过。）
         if (!P_FLAGS[4]) begin
-            // 红话必须自带几何量：总线侧与寄存器侧同时摆出来，才能一眼分清
-            // "没记账"（寄存器也是 0）与"记了但快照没带上"（寄存器有值、总线没有）。
+            // 红话必须自带几何量：总线侧与寄存器侧同时摆出来，才分得清"没记账"与"记了但快照没带上"。
             $display("FAIL gap_valid clear after 2 frames | 总线 FLAGS=%b max=%0d last=%0d || 寄存器 gap_valid=%b have_base=%b gap_cnt=%0d gap_max=%0d gap_last=%0d",
                      P_FLAGS, P_GAP_MAX, P_GAP_LAST,
                      u_lm.gap_valid, u_lm.have_base, u_lm.gap_cnt, u_lm.gap_max, u_lm.gap_last);
@@ -204,28 +188,22 @@ module tb_link_monitor;
             $display("FAIL gap_last=%0d outside [min=%0d,max=%0d]", P_GAP_LAST, P_GAP_MIN, P_GAP_MAX);
             errors = errors + 1;
         end else if ((P_GAP_MAX - P_GAP_MIN) > 16'd2) begin
-            // D：TB 里每帧节奏完全一样 ⇒ min 必须等于 max。若第一个 frame_done
-            // 把"复位到现在"折进间隔，min 会明显小于 max，这里就会红。
+            // D：TB 里每帧节奏完全一样 ⇒ min 必须等于 max；若第一个 frame_done 把"复位到现在"折进间隔，min 会明显小于 max，这里就会红。
             $display("FAIL gap spread min=%0d max=%0d although the stimulus is periodic",
                      P_GAP_MIN, P_GAP_MAX);
             errors = errors + 1;
         end else $display("PASS gap min=%0d last=%0d max=%0d sum=%0d ms",
                          P_GAP_MIN, P_GAP_LAST, P_GAP_MAX, P_GAP_SUM);
         // ============ B2 统计与发布**分家**（ISSUES #95 第 1 步）============
-        // 上面那三条读的是 `lm_bus`，也就是"发布出来的那一份"；这一段读的是统计寄存器本身。
-        // 为什么要分开：上一轮把 `ms32 - ms_last32` 拆成几级寄存器时，"统计落地"与"快照发布"
-        // 不再是同一拍，于是**红的是哪一半说不清**（`stream_live` 读到的是 stall=201 那一份旧快照），
-        // 判据只能整体回退。分家之后：B2 红 = 算术坏了；B 红而 B2 绿 = 发布路径/节拍坏了。
-        // 这两句话现在都是硬件答应的事，不再依赖任何"我记得等几拍"。
+        // 上面三条读的是 `lm_bus`（发布出来的那一份），这一段读统计寄存器本身：拆成几级寄存器后"统计落地"与"快照发布"
+        // 不再是同一拍，不分开就说不清**红的是哪一半**（判据只能整体回退）。分家后：B2 红 = 算术坏了；B 红而 B2 绿 = 发布路径/节拍坏了。
         if (!b2_ok) begin
             $display("FAIL B2 gap registers: valid=%b min=%0d last=%0d max=%0d sum=%0d（两帧之间应当只有一个间隔）",
                      u_lm.gap_valid, u_lm.gap_min, u_lm.gap_last, u_lm.gap_max, u_lm.gap_sum);
             errors = errors + 1;
         end else $display("PASS B2 statistics registers self-consistent (min=last=max=%0d sum=%0d)",
                          u_lm.gap_max, u_lm.gap_sum);
-        // B2 自己的反例（老规矩：判据要有自己的测试，"绿给绿的人看"不算数）。
-        // 不改 RTL（构建正在读 src/rtl），改用仿真期的 force：把 sum 弄成"多算了一项"，
-        // 上面那条 `b2_ok` 必须变成假。变不了就说明这条判据根本不看 sum ⇒ 是个假绿，记一条错。
+        // B2 自己的反例（判据要有自己的测试，"绿给绿的人看"不算数）：不改 RTL（构建正在读 src/rtl），改用仿真期 force 把 sum 弄成"多算了一项"——`b2_ok` 必须变假，变不了就说明这条判据根本不看 sum ⇒ 假绿，记一条错。
         force u_lm.gap_sum = u_lm.gap_max + 32'd1;
         #1;
         if (b2_ok === 1'b1) begin
@@ -280,9 +258,8 @@ module tb_link_monitor;
             errors = errors + 1;
         end else $display("PASS negative control: no fifo_full, no drops");
 
-        // cdc_full 必须在**负沿**驱动：在正沿上做阻塞赋值会和 DUT 的
-        // always @(posedge) 抢同一时刻，full_d 可能和本拍一起变 1，
-        // 于是 cdc_rise 永远看不到上升沿（第一版就是这么误报的）。
+        // cdc_full 必须在**负沿**驱动：正沿上做阻塞赋值会和 DUT 的 always @(posedge) 抢同一时刻 ⇒ full_d 与本拍一起变 1，
+        // cdc_rise 永远看不到上升沿（第一版就是这么误报的）。
         @(negedge clk); cdc_full = 1;
         send_frame(-1, GAP);         // 整帧数据全撞在 full 上
         @(negedge clk); cdc_full = 0;
@@ -318,8 +295,8 @@ module tb_link_monitor;
             errors = errors + 1;
         end else $display("PASS a new frame clears stall_ms");
 
-        // ============ E 长间隔必须饱和，不许回卷（板级抓到过 34066 的假数） ============
-        // TB 里 1 拍 = 1 ms（CLK_HZ=1000），所以空转 70000 拍就是一个 70 s 的间隔。
+        // ============ E 长间隔必须饱和，不许回卷（板级抓到过 34066 的假数）============
+        // TB 里 1 拍 = 1 ms（CLK_HZ=1000）⇒ 空转 70000 拍就是一个 70 s 的间隔。
         repeat (70_000) @(posedge clk);
         send_frame(-1, GAP);
         if (P_GAP_MAX !== 16'hFFFF) begin
@@ -380,9 +357,8 @@ module tb_link_monitor;
             end else $display("PASS hb_slow clear while the heartbeat is at nominal rate");
         end
 
-        // 板级实测到的那件事：拔线后 RTL8211F 不停 RXC，而是把它拉到约 1/48，
-        // 于是心跳“还在，但间隔变成 ~50 ms”。这里用 8 ms 的间隔复现它，
-        // 判 hb_slow 必须亮 —— 这是 hb_gone 永远看不见的那个工况。
+        // 板级实测：拔线后 RTL8211F 不停 RXC，而是把它拉到约 1/48 ⇒ 心跳"还在，但间隔变成 ~50 ms"。这里用 8 ms 的间隔
+        // 复现它，判 hb_slow 必须亮 —— 这是 hb_gone 永远看不见的那个工况。
         begin : slow_case
             integer j;
             for (j = 0; j < 3; j = j + 1) begin

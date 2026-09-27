@@ -123,16 +123,12 @@ module system_top (
     wire        eth_wr_en, eth_frame_done, eth_link;
     wire [18:0] eth_wr_addr;
     wire [15:0] eth_wr_data;
-    // （r55）u_eth 的四个统计口在本层**故意不接**：eth_pkts/eth_bytes/eth_bad 原来送进 pl_video_top
-    // 用两级触发器跨 16 位总线，而那个同步值没有读者；eth_frames 同样没人用（OSD 的 FPS 是
-    // 像素域数 vsync 得来的，不依赖它）。计数的正路是 link_monitor → snap_cross → lane1/8/9。
-    // 端口本身留着是对的：一批台架（tb_v50_rows / tb_v6_* / tb_udp_reasm / tb_link_monitor）直接读它们。
-    // 账记在 ISSUES #64。
+    // （r55）u_eth 的四个统计口在本层**故意不接**：eth_pkts/eth_bytes/eth_bad 原来送进 pl_video_top 用两级
+    // 触发器跨 16 位总线，而那个同步值没有读者；eth_frames 同样没人用（OSD 的 FPS 是像素域数 vsync 得来的）。
+    // 计数的正路是 link_monitor → snap_cross → lane1/8/9（ISSUES #64）；端口本身留着是对的：一批台架
+    // （tb_v50_rows / tb_v6_* / tb_udp_reasm / tb_link_monitor）直接读它们。
     // ---- V7.9.6（P0-C ③）：几何与 DDR 基址只在这里出现一次 ----
-    // 原来 512/300/0x1000_0000 在下面两个例化上各写一遍字面量。两个模块自己都有 parameter，
-    // 但**没有任何东西阻止两边不一致** —— 而一旦不一致，现象是"写进去的帧几何与读出来的
-    // 显示几何对不上"（整幅画面错位/撕裂），既不是综合错误也不是仿真必红。
-    // 换分辨率因此从"全文搜字面量"变成"改这四行"。
+    // 原来 512/300/0x1000_0000 在下面两个例化上各写一遍字面量，两个模块自己都有 parameter，但**没有任何东西阻止两边不一致** ⇒ 现象是"写进去的帧几何与读出来的显示几何对不上"（整幅错位/撕裂），既不是综合错误也不是仿真必红。换分辨率因此从"全文搜字面量"变成"改这四行"。
     localparam [15:0] VIDEO_W    = 16'd512;      // 帧缓冲宽（像素）
     localparam [15:0] VIDEO_H    = 16'd300;      // 帧缓冲高（行）
     localparam [15:0] PANE_W     = 16'd512;      // 右半窗宽（当前与 VIDEO_W 同值，语义不同）
@@ -206,28 +202,20 @@ module system_top (
     );
     wire [4:0] lm_lane = gpio_o[31:27];
     reg  [31:0] lm_rd;
-    // 片源仲裁的可观测状态（来自 pl_video_top，axi_clk=fclk0 域电平）：
-    //   bit0=eth_tb_ok bit1=eth_live bit2=owner_eth，bit[5:3] 恒 0
-    //   （#26 一度把像素域的 mode / ps_src_seen 也打拍放进来，代价是 cdc.rpt 多一条 Critical，
-    //    已撤；那两位属于"看图卡有没有上屏"的眼睛判据，不需要机器读回）
-    // 有了 lane30，"停流后 owner_eth 是否在几十毫秒内从 1 变 0"就是**可机器判定**的，
-    // 不必等任何人看屏幕（判据：`src/host/health_read.mjs` 的 --json 输出）。
-    // ⚠ 位宽必须与 `pl_video_top.dbg_src` **一模一样**（r54 起是 16 bit：bit[6:5] = 模式，
-    //   bit[10:8] = V8-7 的 why_ps）。这里以前写过 [5:0] ⇒ 综合只给一条 `Synth 8-689` 警告
-    //   就把模式的高位**静默丢掉**，lane30 的 mode 于是永远只能读成 0/1：
-    //   TEST(10) 读起来像自动(00)、SD(11) 读起来像 ETH(01)。2026-09-24 才发现 —— ISSUES #57。
-//   （这里括号里是**当时的编号**；档名 2026-09-25 起随屏上词改成 SD/TEST，编号不变。）
-    //   这一类"名字连对、宽度被吞"现在由门禁第 14 项的**位宽判据**当场拦（`build/check_ports.py`，
-    //   它的反例之一改的就是这一根线）。
+    // 片源仲裁的可观测状态（来自 pl_video_top，axi 域电平）：位序的唯一出处在 pl_video_top 的 `dbg_src`
+    // 端口注释里，这里不抄第二遍（抄两遍就是 #66 那一族的病）。有了 lane30，"停流后 owner_eth 是否在几十
+    // 毫秒内从 1 变 0"就是**可机器判定**的，不必等任何人看屏幕。
+    // ⚠ 位宽必须与 `pl_video_top.dbg_src` **一模一样**（r54 起是 16 bit）。这里以前写过 [5:0] ⇒ 综合只给一条
+    //   `Synth 8-689` 警告就把模式高位**静默丢掉**：TEST(10) 读起来像自动(00)、SD(11) 像 ETH(01)（ISSUES #57）。
+    //   这类"名字连对、宽度被吞"现在由门禁第 14 项的位宽判据当场拦（`build/check_ports.py` 的反例之一就是这根线）。
     wire [15:0] dbg_src;
     wire [31:0] dbg_zoom;              // V8-8 lane23：像素域在用的缩放状态（pl_video_top 里已跨好）
     wire [6*32-1:0] dbg_lat;             // V8-6/V8-5：lane25..29 与 lane24
-    //   lane N(25..29) = dbg_lat[(N-25)*32 +: 32]；lane24 = dbg_lat[5*32 +: 32] = q_ms
-    //   lane24 的位序 {14'd0, pair_ok, 本轮 sticky, ms[15:0]} —— 屏上 Latency 那一格的机器对照
-    // 指到 lane25 就把这一组五个字**同时**抄进快照（#59：逐 lane 各读各的会读到不同轮，
-    // 于是板级 11 组读数里 4 组破坏了恒等式 tot ≥ c1 + c2）。
-    // 读这一组的顺序必须是 25→26→27→28→29，因为 25 既是"轮次/钳位位"也是武装位；
-    // `health_read.mjs` 的 want 列表就是这个顺序，改那里的时候记得一起看。
+    //   lane N(25..29) = dbg_lat[(N-25)*32 +: 32]；lane24 = dbg_lat[5*32 +: 32] = q_ms，位序
+    //   {14'd0, pair_ok, 本轮 sticky, ms[15:0]} —— 屏上 Latency 那一格的机器对照。
+    // 指到 lane25 就把这一组五个字**同时**抄进快照（#59：逐 lane 各读各的会读到不同轮，于是板级 11 组读数里
+    // 4 组破坏了恒等式 tot ≥ c1 + c2）。读的顺序必须是 25→26→27→28→29，因为 25 既是"轮次/钳位位"也是武装位
+    // （`health_read.mjs` 的 want 列表就是这个顺序，改那里的时候记得一起看）。
     // 域：gpio_o 由 axi 写更新，frame_latency 也在 axi 域 ⇒ 这不是跨域信号。
     wire          lat_arm = (lm_lane == 5'd25);
     always @(*) begin
@@ -242,13 +230,12 @@ module system_top (
     end
     assign gpio1_i = lm_rd;
 
-    // 片源仲裁的两个输入，都取自已经 u_lm_axi 同步进 fclk0 的现成信号 ⇒ 顶层不新增跨域，
-    // 也**不在这里做相与**：判据的组合归 src_arb 管（那里才台架验得到，见 tb_v796_src_arb 的 E 段）。
+    // 片源仲裁的两个输入，都取自已经 u_lm_axi 同步进 fclk0 的现成信号 ⇒ 顶层不新增跨域，也**不在这里做
+    // 相与**：判据的组合归 src_arb 管（那里才台架验得到，见 tb_v796_src_arb 的 E 段）。
     //   · eth_live = 快照 lane7.bit3 = (stall_ms < 200)，"最近真的收到过完整帧"；
-    //   · eth_tb_ok  = 量它的源时基仍准。板级实测（今晚就撞了）：断链时 RTL8211 不停 RXC
-    //     而是拉到 ~2.5 MHz ⇒ stall_ms 慢约 48 倍地爬，单看那一位会永远判"活着"，
-    //     于是仲裁死死占住 ETH、SD 再也接不回画面（屏幕上同时表现为 STALL=9999 ——
-    //     那是 OSD 钉住的显示值，不是 9999 ms）。hb_slow 专门看的就是这种"心跳还在但变慢"。
+    //   · eth_tb_ok = 量它的源时基仍准。板级实测：断链时 RTL8211 不停 RXC 而是拉到 ~2.5 MHz ⇒ stall_ms 慢约
+    //     48 倍地爬，单看那一位会永远判"活着" ⇒ 仲裁死死占住 ETH、SD 再也接不回画面（屏上 STALL=9999 是
+    //     OSD 钉住的显示值，不是 9999 ms）。hb_slow 专门看这种"心跳还在但变慢"。
     wire eth_live   = lm_axi[7*32 + 3];
     wire eth_tb_ok  = !(lm_clk_slow || lm_clk_gone);
 

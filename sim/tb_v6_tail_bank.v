@@ -1,19 +1,10 @@
 `timescale 1ns/1ps
-// v6.4 遗留问题「帧尾 4 字节（最后 2 个像素）偶发丢失」的复现 + 回归 TB。
-//
-// 机理（R03 定位）：换页判据只看打包器空（saver_idle），而打包器的 idle 对
-// 8192 深的 CDC 和它后面的两级读流水**完全不可见**。当打包器满过一轮（sv_full
-// 反压）后恰好在帧的最后一个字中间放开，本帧最后两个 16bit lane 还排在 CDC 里；
-// 此时 frame_done 已同步到 axi 域并拉起 force_flush，把已到达的半截字推走 ⇒
-// 打包器排空 ⇒ saver_idle ⇒ 旧逻辑翻 bank。随后那 2 个 lane 进打包器时
-// pack_base 已经换 bank ⇒ 它们被写进**下一帧**的缓冲区，刚提交的那块内存的
-// 帧尾 4 字节停在旧值/0 上。相位相关 ⇒ 板上 8 次见到 4 次、与速率无关。
-//
-// 同一条激励同时灌进两条独立链做 A/B：
-//   u_old = ddr_bank_commit #(.TAIL_GUARD(1'b0))   v6.4 行为
-//   u_new = ddr_bank_commit #(.TAIL_GUARD(1'b1))   修复后
-// 判据是双向的：旧链**必须**复现丢尾（否则激励退化、TB 失去意义，判 FAIL），
-// 新链**必须**整帧完整（否则修复无效，判 FAIL）。
+// v6.4「帧尾 4 字节（最后 2 个像素）偶发丢失」的复现 + 回归 TB（机理记 R03）。
+// 换页判据只看 saver_idle，而 idle 对 8192 深 CDC 和它后面两级读流水**完全不可见**：
+// 帧最后一个字中途放开反压 ⇒ force_flush 提前排空 ⇒ 翻 bank ⇒ 剩下 2 个 lane 写进下一帧。
+// A/B：u_old = ddr_bank_commit #(.TAIL_GUARD(1'b0))（v6.4 行为）／u_new = 1'b1（修复后）。
+// 判据双向：旧链必须复现丢尾、新链必须整帧完整，否则各判 FAIL。
+// 跑法：bash sim/run_one.sh tb_v6_tail_bank
 module tb_v6_tail_bank;
 
     localparam BANK0 = 32'h1000_0000;
@@ -25,7 +16,7 @@ module tb_v6_tail_bank;
     always #4  gmii_clk = ~gmii_clk;          // 125 MHz
     always #5  axi_clk  = ~axi_clk;           // 100 MHz
 
-    // ---- 共享激励：gmii 域的「frame_reasm 输出口」----
+    // 共享激励：gmii 域的 frame_reasm 输出口
     reg         s_wr_en   = 1'b0;
     reg  [18:0] s_wr_addr = 19'd0;
     reg  [15:0] s_wr_data = 16'd0;
@@ -46,7 +37,7 @@ module tb_v6_tail_bank;
         .s_flush(s_flush), .s_frame_done(s_frame_done), .rd_allow(rd_allow),
         .completed_base(new_base), .commit_pulse());
 
-    // ---- 激励任务 ----
+    // 激励任务
     task push16;                             // 一个 16bit lane 写
         input [18:0] a; input [15:0] d;
         begin
@@ -88,7 +79,7 @@ module tb_v6_tail_bank;
         end
     endtask
 
-    // ---- 判据：直接按层次引用读两条链的 bank 内存 ----
+    // 判据：按层次引用读两条链的 bank 内存
     reg [63:0] g_old, g_new;
     integer    hit_old, hit_new, first_bad;
     reg [15:0] ib;
@@ -177,9 +168,7 @@ module tb_v6_tail_bank;
     end
 endmodule
 
-// ---------------------------------------------------------------------------
 // 一条完整入包链：CDC(dc_fifo) → axi_frame_saver64 → ddr_bank_commit → AXI3 从机
-// ---------------------------------------------------------------------------
 module tail_lane #(
     parameter GUARD = 1'b1
 )(
@@ -255,7 +244,7 @@ module tail_lane #(
         .switch_req(), .force_flush()
     );
 
-    // ---- AXI3 从机 + 两 bank 内存模型（WSTRB 逐字节生效，缺这个就看不见 lane 级 bug）----
+    // AXI3 从机 + 两 bank 内存模型（WSTRB 逐字节生效，缺这个就看不见 lane 级 bug）
     reg [63:0] mem [0:2*WORDS-1];
     reg        awready, wready;
     reg  [31:0] awaddr_r;
@@ -280,8 +269,7 @@ module tail_lane #(
         .m_axi_bvalid(bvalid), .m_axi_bready(bready)
     );
 
-    // AW/W 同拍挂出，所以本拍的地址要用**当拍**的 awaddr（用寄存器版会晚一拍，
-    // 整帧数据就错位成「只有 word0 对」——第一版栽过这个坑）。
+    // AW/W 同拍挂出 ⇒ 本拍地址要用**当拍**的 awaddr（用寄存器版会晚一拍，整帧错位成「只有 word0 对」）
     wire [31:0] cur_addr  = (awvalid && awready) ? awaddr : awaddr_r;
     wire [31:0] beat_base = (cur_addr >= BANK1) ? BANK1 : BANK0;
     wire [31:0] beat_off  = (cur_addr - beat_base) >> 3;

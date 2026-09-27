@@ -1,13 +1,10 @@
 `timescale 1ns/1ps
-// tb_v795_rx_chain —— #38 第 2 步的**接顶层之前**的判据：
-// 自研 `gmii_rx_mac`（V7.9.5 起自己算 FCS）+ 自研 `udp_rx_parser`（带目的端口过滤）这一对，
-// 从 GMII 字节流一直验到 `p_data/p_sof/p_eof/p_good` 与三个统计脉冲。
-//
-// 为什么单独写这一台：仓库里 `tb_udp_parser.v` 的判据是**照着期望值手算的**，
-// 而 `udp_rx_parser` 从来没有被任何顶层例化过（见 report/ISSUES.md #38 与学习文档 §0 的"三种绿色"）——
-// 也就是说这个模块的真实行为一直没被人看过一眼。这一台就是要先看一眼。
-//
-// 帧由 TB 用独立实现的标准 CRC-32 造（口径同 tb_v795_rx_fcs 的 T0），所以"好帧/坏帧"是真好坏。
+// tb_v795_rx_chain —— #38 第 2 步「接顶层之前」的判据：自研 gmii_rx_mac（V7.9.5 起自己算 FCS）
+// + 自研 udp_rx_parser（带目的端口过滤），从 GMII 字节流验到 p_data/p_sof/p_eof/p_good 与三个统计脉冲。
+// 为什么单独写这一台：tb_udp_parser.v 的判据是照期望值手算的，而 udp_rx_parser 从未被任何顶层例化过
+//   ⇒ 这个模块的真实行为一直没被人看过一眼（判据盲区记 report/ISSUES.md #38）。
+// 帧由 TB 用独立实现的标准 CRC-32 造（口径同 tb_v795_rx_fcs 的 T0）⇒ "好帧/坏帧"是真好坏。
+// 跑法：bash sim/run_one.sh tb_v795_rx_chain
 module tb_v795_rx_chain;
     localparam [15:0] PORT_VIDEO = 16'd5001;
     localparam [15:0] PORT_WRONG = 16'd5002;
@@ -146,10 +143,9 @@ module tb_v795_rx_chain;
             end
         $display("INFO C1 pay_len=%0d", pay_len);
 
-        // C2：载荷翻一 bit（FCS 不再匹配）。**约定要说清楚**：字节是流式转发的，
-        // FCS 的判定要到帧尾才知道，所以坏帧的字节仍会流出去 —— 关键是
-        // p_eof 会带着 p_good=0 闭合这一包，frame_reasm 于是 stat_bad++ / frame_err=1，
-        // 整帧不提交（屏上保持上一好帧）。"坏帧不吐字节"这种契约在这里做不到，也不该假装做到。
+        // C2：载荷翻一 bit（FCS 不再匹配）。约定：字节是流式转发的、FCS 到帧尾才判定，
+        // 所以坏帧的字节仍会流出去 —— 关键是 p_eof 带着 p_good=0 闭合这一包，frame_reasm 于是
+        // stat_bad++ / frame_err=1，整帧不提交（屏上保持上一好帧）。"坏帧不吐字节"做不到也不该假装做到。
         clr(); build(PORT_VIDEO); send(FLEN, HDRP + 5);
         chk("C2 mac 判坏", mbe, 1);
         chk("C2 字节仍流式转发", pl_cnt, PAYN);
