@@ -120,10 +120,10 @@ module split_ctrl #(
     // ---- 百分比：eff*100/W。W 是 2 的幂 ⇒ 乘常数 + 固定移位，无除法硬件 ----
     localparam [13:0] PCT_DISP = (100 * 16384) / DISP_W;
     localparam [13:0] PCT_SRC  = (100 * 16384) / SRC_W;
-    wire [26:0] prod_disp = eff * PCT_DISP;      // 左边给足宽度，否则乘法在 14 bit 里截断
-    wire [26:0] prod_src  = eff * PCT_SRC;
-    wire [7:0]  pct_disp  = prod_disp >> 14;
-    wire [7:0]  pct_src   = prod_src  >> 14;
+    // 两枝只差一个常数，而选它的那一位就在下面 ⇒ 先选常数再乘，只留一个乘子（逐位等价）
+    wire [13:0] pct_c     = follow ? PCT_SRC : PCT_DISP;
+    wire [26:0] prod      = eff * pct_c;         // 左边给足宽度，否则乘法在 14 bit 里截断
+    wire [7:0]  pct       = prod >> 14;
     // ⚠ **这一级寄存器是给 r60 的那条 −0.482 ns 准备的**（别删）：
     //   r60 全设计最差路径是 `u_split_ctrl/swp_reg[7] → u_osd/r_reg[1]`，28 级、
     //   里面有一个 DSP48 —— 起点就是这里的 `eff × PCT`（端点/扫描值 → 百分比乘法 → OSD 的
@@ -133,7 +133,7 @@ module split_ctrl #(
     reg [11:0] pct_q;
     always @(posedge clk or negedge rst_n) begin
         if (!rst_n) pct_q <= 12'd0;
-        else        pct_q <= (follow ? {4'd0, pct_src} : {4'd0, pct_disp});
+        else        pct_q <= {4'd0, pct};
     end
     assign shown_pct = pct_q;
 endmodule

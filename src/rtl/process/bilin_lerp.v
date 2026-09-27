@@ -40,7 +40,7 @@ module bilin_lerp (
     reg         v0;
     always @(posedge clk or negedge rst_n) begin
         if (!rst_n) begin
-            tr<=0; tg<=0; tb<=0; br<=0; bg<=0; bb<=0; fy1<=0; v0<=0;
+            v0 <= 1'b0;   // 只复位 valid：数据寄存器带异步复位会挡住它们被打进 DSP48 流水级
         end else begin
             tr <= r00 * wx0 + r10 * wx1;
             tg <= g00 * wx0 + g10 * wx1;

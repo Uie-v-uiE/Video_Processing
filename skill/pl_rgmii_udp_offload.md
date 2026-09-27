@@ -25,9 +25,10 @@
    （现写 `0x00030000`）→ `ping 192.168.1.10`。
 
 ## 已验证效果
-- 台架规模：基线 28/28（`report/OVERNIGHT_LOG.md` §1.5，命令即 §4 那条）→ 本轮加
+- 台架规模：基线 28/28（`report/OVERNIGHT_LOG.md` §1.5，命令即 §4 那条）→ 到 **r13 那一轮**加
   `tb_link_monitor` / `tb_osd_lines` / `tb_fb_roundtrip` / `tb_bilin_lerp` / `tb_ps_publish`
   后 **34/34**（`sim/results/regression_v77_r13.txt` 末行 `SIM DONE pass=34 fail=0`）。
+  ⇒ 引用回归数字必须说出是哪一份 `sim/results/*` 文件，条数本身会随轮次增长，不是常数。
 - 「协议栈活着」的不看屏判据：`ping 192.168.1.10` 发送=3 / 接收=3 / 丢失=0、RTT 1–2 ms，
   而此时 PS 只做控制面 ⇒ ARP/ICMP 由 RTL 应答（`report/OVERNIGHT_LOG.md` §「L4 执行」）。
 - 入包链数据完整性（同一 bit、三档激励）：15 fps×200 / 30 fps×300 / 不限速 60 fps×400 帧，

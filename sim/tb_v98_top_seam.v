@@ -1203,6 +1203,32 @@ module tb_v98_top_seam;
         end
     end
 
+    // ---- C9（2026-09-27 23:3x 用户报的"效果开着时，跟着分割线走的一条黑线"）----
+    //   为什么现有判据看不见它，两条都成立才怪：
+    //     ① 台架把缝钉在 0 ⇒ 整屏只有处理抽头，"缝旁"那一档**结构上不存在**；
+    //     ② `stage_sel` 全程 0（全旁路）⇒ 任何只在效果链开着时才坏的列都无从现形。
+    //   所以这一段把缝挪到正中、只开灰度，并且**只看亮度不看 tag**：
+    //   灰度把 RGB→亮度之后 tag 就不存在了，而图案每一格位 15 恒为 1 ⇒ 红通道最低也有 0xF8，
+    //   灰度之后仍然远不是黑 ⇒ "画面内出现一整列近黑"就是缺陷本身，与它是什么颜色无关。
+    //   成对写（本仓那条老规矩）：C9a 判"没有整列近黑"，C9b 判"确实有整列是亮的"——
+    //   没有 C9b，C9a 的零可能只是探测器瞎了。
+    localparam integer C9_SEAM = 512;
+    integer c9_blk[0:1023], c9_rows = 0, c9_col = 0, c9_de_d = 0, c9_k = 0, c9_any = 0;
+    integer c9_worst = 0, c9_wcol = -1, c9_best = 0, c9_bcol = -1;
+    reg    c9_on = 1'b0;
+    always @(posedge dut.clk_pix) begin
+        if (dut.de_o && !c9_de_d) c9_col = 0;
+        else if (dut.de_o) c9_col = c9_col + 1;
+        if (c9_on && dut.de_o) begin
+            if ((dut.r < 8'd16) && (dut.g < 8'd16) && (dut.b < 8'd16)) begin
+                c9_blk[c9_col] = c9_blk[c9_col] + 1;
+                c9_any = c9_any + 1;
+            end
+        end
+        if (!dut.de_o && c9_de_d) c9_rows = c9_rows + 1;
+        c9_de_d = dut.de_o;
+    end
+
     function integer c4_ang_of; input integer a;
         begin
             case (a % 4) 0: c4_ang_of = 0;   1: c4_ang_of = 45;
@@ -1529,6 +1555,35 @@ module tb_v98_top_seam;
         // inbad = 68920/77400 = 89 % —— 那是插值，不是错位；尺子不许把别人的活计判成红）。
         bilin_en_tb = 1'b0;
         repeat (2) @(posedge dut.frame_start);
+        // ---- C9（用户 2026-09-27 23:3x 报的那一条）：缝挪到正中 + 只开灰度 ----
+        //   为什么这一档以前必然看不见它：① 缝在 0 ⇒ "缝旁"那一档在屏上不存在；
+        //   ② `stage_sel` 全程 0 ⇒ 只在效果开着时才坏的列无从现形。两条都是台架的窗，不是设计无辜。
+        for (c9_k = 0; c9_k < 1024; c9_k = c9_k + 1) c9_blk[c9_k] = 0;  // ⚠ `integer` 数组的初值是 X，必须清（#94 那一族）
+        c9_rows = 0; c9_col = 0; c9_de_d = 0; c9_any = 0;
+        split_ctl_tb[9:0] = 10'd512;          // 缝在正中：左半原图、右半处理（不写 C9_SEAM[9:0]：对无位宽参数做部分选择不稳）
+        stage_sel         = 9'd1;             // 只开灰度 = 用户念的 `pipe 100000000`
+        repeat (3) @(posedge dut.frame_start);   // 等 sel_sync 与缝的 snap 都落定，别采到换档那一帧
+        c9_on = 1'b1;
+        repeat (2) @(posedge dut.frame_start);
+        c9_on = 1'b0;
+        stage_sel = 9'd0;
+        split_ctl_tb[9:0] = 10'd0;            // 全部还回去：C2/C3/C7 已有的数不能被这一档重定基线
+        repeat (2) @(posedge dut.frame_start);
+        c9_worst = 0; c9_wcol = -1; c9_best = 999999; c9_bcol = -1;
+        for (c9_k = 1; c9_k < 1023; c9_k = c9_k + 1) begin
+            if (c9_blk[c9_k] > c9_worst) begin c9_worst = c9_blk[c9_k]; c9_wcol = c9_k; end
+            if (c9_blk[c9_k] < c9_best)  begin c9_best  = c9_blk[c9_k]; c9_bcol  = c9_k; end
+        end
+        $display("C9  灰度 x 缝=%0d：判 %0d 行、近黑格 %0d || 最暗列 col%0d=%0d 行、最亮列 col%0d=%0d 行 || 缝旁 col%0d=%0d col%0d=%0d col%0d=%0d",
+                 C9_SEAM, c9_rows, c9_any, c9_wcol, c9_worst, c9_bcol, c9_best,
+                 C9_SEAM-1, c9_blk[C9_SEAM-1], C9_SEAM, c9_blk[C9_SEAM], C9_SEAM+1, c9_blk[C9_SEAM+1]);
+        line("C9pre rows judged", c9_rows >= 550,
+             "this window must have judged nearly the whole frame, else C9a below is a green on an empty set");
+        line("C9a no full-height black column with gray on and seam mid", c9_worst * 2 < c9_rows,
+             "the line the user reported at 23:3x: no column inside the picture may be majority near-black");
+        line("C9b positive control - some column is almost all bright", c9_best * 4 < c9_rows,
+             "the detector can see bright pixels, so C9a's zero is not blindness (pair criterion)");
+
         $display("C2 table  code inv  nin     nout     inbad viol measl measr geol geor leakl leakr blank invbad | C3 rows empt wbad rbad fmin fmax lmin lmax");
         for (c2_k = 4'd0; c2_k < 4'd8; c2_k = c2_k + 4'd1) begin
             zoom_sel = c2_k[2:0];
