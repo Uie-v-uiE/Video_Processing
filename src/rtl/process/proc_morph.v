@@ -83,7 +83,7 @@ module proc_morph #(
         no_left_r <= 3'b0; no_right_r <= 3'b0; no_above_r <= 3'b0; stale_row_r <= 3'b0;
     end else if (shift_w) begin
         no_left_r  [0] <= ~de_in;                                     // 补跳那一拍 = 下一行第 0 槽
-        no_right_r [0] <= de_in && (x_in == H_ACTIVE[11:0] - 12'd2);   // 拍 k 武装 ⇒ 落槽位 k+1
+        no_right_r [0] <= de_in && (x_in == H_ACTIVE[11:0] - 12'd1);   // #103：坐标抽头对齐到 de 之后，武装位从 -2 改回 -1；拍 k 武装仍落槽位 k+1（正本见 proc_box_blur.v 的 #97 段）
         no_above_r [0] <= de_in && (y_in == 12'd1) && row_first;                    // 中心行 0，上面缺
         stale_row_r[0] <= de_in && (y_in == 12'd0);                    // 中心行 −1：整行都是旧的
         no_left_r  [1] <= no_left_r  [0];  no_left_r  [2] <= no_left_r  [1];

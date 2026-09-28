@@ -17,7 +17,7 @@
 | 判断依据进报告 | `docs/log/ISSUES.md`（症状→假设→量到的数→为什么这样修→还欠什么）与 `docs/log/OVERNIGHT_LOG.md`（决策与被否掉的推论）是追加式档案；`docs/log/VERSION_LINEAGE.md` 标哪些代码来自厂商例程、哪些自研 | ✅ |
 | 大模型协作记录（提示词/回答/**自我纠错轨迹**） | `docs/AI_COLLABORATION.md`：约束怎么给、模型怎么跑偏、用什么读数判掉、之后哪条规则进了脚本 | ✅ |
 | 技能包（可复用性是评分标准） | `skill/README.md` 为唯一索引（条目数只有那一行写着），四类（工作流 / 可抄的案例模板 / 校验脚本 / 技术踩坑），**每条固定六节**：触发 · 不适用 · 动作 · 完成判据 · 失效边界 · 出处（一行，指回 `docs/log/` 里那次真实失败）。正文不许出现日期与构建号，具体信号名只作举例 ⇒ 换板换题目照样能用；每条 ≤ 90 行 | ✅ |
-| 开源 | `LICENSE` = MIT；远端仓库已在配置里，**推送这一步还没完成**（这台机器上 `git ls-remote` 直接 `Connection was reset`，且交互式凭据需要人输一次）→ 不写成已达成 | ⚠ |
+| 开源 | `LICENSE` = MIT；远端 **已存在且公开**：`github.com/Uie-v-uiE/Video_Processing`（默认分支 `main`，最后推送 2026-09-27 16:52，68 MB，7 个分支，issue 数 0）。**但 `main` 与本地已分叉**：远端顶层还有 `ku5p/`、`stream_video.bat`、`tight_setup_hold_pins.txt`，而且是 `report/` 布局（本地已删 KU5P、文档拆成 `docs/` 三类 + 导出器）。⇒ 推送过、内容过期；交付前要用导出器产物覆盖 `main`（覆盖前先看包体大小，评委 clone 慢会直接伤"可复现"）。凭据：2026-09-28 21:0x 用 `curl` 打 GitHub REST（这台机器没有 `gh`，`git ls-remote` 走不通但 REST 可读） | ⚠ 已开源、待同步 |
 | 目录/文件名纯 ASCII | `git ls-files` 里非 ASCII 文件名 = 0；作者自用的中文目录不入库。大写名（`README.md`、`docs/*.md`）是指南示例本身的写法，作为文档化的例外保留 | ✅ |
 | 复现说明（他人从零执行） | `docs/BUILD.md` + `build/tcl/README.md`（哪个脚本是入口、哪几条**不要**用）+ 板级 `board/README.md`、`board/HANDS_ON.md` | ✅ |
 | 提交包结构（推荐目录） | 仓库里文档按三类放（`docs/` 交付物、`docs/log/` 工作记录、`docs/study/` 本地学习件不入库）；`bash build/make_submission.sh` 出一份**照官方目录摆**的提交包：`docs/ -> report/`（连指路一起改）、`build/` 与 `sim/` 只带被交付文档点名的留档、位流与 elf 按 md5 认身份，并在包内自检"每条路径式指路都解析得出来"（不通过就不落盘） | ✅ |
