@@ -5874,3 +5874,18 @@ OSD 叠层有了总开关（`osd on|off`，`gpio_o[20]` 反相）；`wr_full` �
 **给自己留的一条顺序纪律**（今晚第三次撞上同一件事）：`sim/run_one.sh`、`build/tb98_report.sh`
 这些**正在被执行**的脚本不能边跑边改（bash 是边读边执行的），所以 #93 拆成两批；
 同理 `src/rtl` 在台架跑动期间一个字节都不能改——r85 那一轮的报告就靠这条保住出处。
+
+### 03:32 一条我自己的操作记录（不写就等于没发生）
+
+我想查 `src/host/metrics.mjs` 是不是"数 skill 条目"的工具，于是**顺手把它跑了**——它是**读板子的实测工具**
+（内部调 `health_read.mjs` 走 JTAG 取 lane，另起一发推流跑吞吐）。这正是我自己写在规矩里的那件事：
+"有些 `src/host` 检查器会占 COM6 并改写留档，别随手跑"。后果核对如下，都做了：
+
+- `git status` 里**没有任何被跟踪文件被它改写**：它新写的 `board/evidence_metrics/` 是未跟踪目录，
+  核对内容后**删掉**（那不是我计划里的测量，留着一份无出处的"实测"比不留更糟）。
+- 板子状态跑完仍在文档默认档：`zman=1 pub=0 sd=1 playing=1 mode=0 geom=00400000 osd=1`
+  （凭据 `build/evidence/r85_state_after_metrics.txt`，03:32 一条 `stat` 读回）。
+- 它那一跑自己的判据结论是"入包链一个字都没丢 / `drop_words` 增量 0"，但**帧率只有 13–15 fps**——
+  这是它自己灌的那股流量的形状，**不能**拿来替代 `docs/PERF_REPORT.md` 里 116.7 fps 那条板上数。
+- 顺手删掉一个我早前测试留下的 `build/tcl/_tmp_isolated_roll.tcl`（正式脚本的副本就是会漂，
+  `roll_isolated.sh` 本来就该自己清掉它——它清的那行在拒绝路径之后，这就是漏下来的原因）。

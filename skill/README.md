@@ -27,6 +27,8 @@
 | 需要人看一眼，可是我不能自己看 | [S23 eye_acceptance_loop.md](eye_acceptance_loop.md) |
 | 门禁全绿，但我不敢说这是哪一次构建的数 | [S15](artifact_freeze_and_freshness.md) + 下面 C 表的 `gates.sh` |
 | CDC / 资源数字变了，不知道是谁 | [S16](cdc_pair_baseline_gate.md) + `build/tcl/cdc_who.tcl` |
+| WNS 是负的，不知道该动算术、动扇出还是动物理 | [S28 wns_logic_vs_route_lever.md](wns_logic_vs_route_lever.md)（先读 `logic/route` 分配，`build/tcl/crit_path.tcl` 就是那个口子） |
+| 想证明这次改动是"免费的"，可再滚一轮会把证据盖掉 | [S27 prove_change_is_free_by_bitstream_header.md](prove_change_is_free_by_bitstream_header.md)（隔离构建 `build/roll_isolated.sh` + 位流包头比对） |
 | 上板没画面、没反应、ping 不通 | [S8 zynq-video-rtl-debug/SKILL.md](zynq-video-rtl-debug/SKILL.md)（L0–L4 分层），再 [S7](board_eth_uart.md) |
 | 回读回来的一组数不自洽（"部分大于整体"） | [S18](atomic_register_window_readback.md) |
 | 同一位置必失败，旁边的人往"超时/竞态"上解释 | [S17](failing_read_prints_geometry.md) |
@@ -151,6 +153,11 @@
 - **[S2 rotate_window_target_domain.md](rotate_window_target_domain.md)** —— 邻域滤波必须做在逆映射**之后**的那条流上。
   失效：行缓存深度小于有效行宽；金标对比时金标也要先旋转再滤波。
   凭据：`docs/log/ISSUES.md` #10/#16，判据本身是反向的（不出现混叠值就说明滤波根本没跑）。
+- **[S28 wns_logic_vs_route_lever.md](wns_logic_vs_route_lever.md)** —— 负 WNS 先读 `logic/route` 分配再选杠杆：
+  动算术、动扇出、还是动物理（Pblock / 压端点族 / 疏解绕线）。凭据：`docs/log/ISSUES.md` #105/#121 ——
+  我先猜扇出（`max_fanout` 把 WNS 从 −0.062 拖到 −0.192，回滚），再写下"瓶颈是锥体本身"，
+  等 `crit_path.tcl` 修到能跑时实测 **6 级逻辑 / route 71 %**，那句结论也被推翻。
+  失效：违例属 async/CDC 组，或换角后分配本身会变。
 
 ### D2 仿真与判据
 
@@ -191,6 +198,11 @@
   一拍宽请求要记账、跨 always 清标志晚一拍。凭据：`docs/log/ISSUES.md` #37，
   那张"四个 eth_ctrl 变体各挂一条判据"的对照表就是判据为什么必须三条一起写的证据。
   失效：要公平性/配额、带 ready-valid 的总线不适用。
+- **[S27 prove_change_is_free_by_bitstream_header.md](prove_change_is_free_by_bitstream_header.md)** —— 想证明一次
+  改动是"免费的"，用隔离构建（`build/roll_isolated.sh`：只 sed 一行 outdir，替换不生效就拒绝跑）把产物写到旁边，
+  再 `cmp -l` 两块位流：差异全落在包头 `d` 那个**构建时刻** ⇒ 配置逐位相同。凭据：`docs/OPTIMIZATION_LOG.md` r85 一节
+  （同为 2 222 010 B、只差 4 个字节、位置 126/128/129/132）。
+  失效：改了 XDC/器件速度/IP 版本时位流必然动；`rtl_md5` 变了仍要重跑钉它的那两份台架报告。
 
 ### D4 口径（**不是条目**，是 C 表那几支脚本的使用说明；正文各自的住处已写出，这里只指路）
 
