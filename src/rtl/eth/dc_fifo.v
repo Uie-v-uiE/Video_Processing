@@ -30,8 +30,6 @@ module dc_fifo #(
     // write
     // 指针是 ADDR_W+1 位的二进制，跨域只传**格雷码**版本（相邻两位才可能同时变）；
     // full 用"对端格雷码的最高两位取反、其余相等"判，省掉一次二进制比较。
-    wire [ADDR_W:0] wbin_n  = wbin + 1'b1;
-    wire [ADDR_W:0] wgray_n = bin2gray(wbin_n);
     // #105 第一刀**已回滚**（2026-09-28 深夜，实测无效）：给 `wr_full` 加 `max_fanout=12` 想让综合
     //   复制本地缓冲，结果 WNS 从 r81 的 − 0.062 掉到 − 0.192、失败端点 28 → 34（凭据 build/r83_gates.txt
     //   与 build/timing_summary.rpt）。**说明瓶颈不是扇出，是锥体本身**：14 位加法 → 二进制转格雷 →
