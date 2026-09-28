@@ -268,6 +268,7 @@ module system_top (
         //   不需要 toggle/快照）。**不并进 effect_ctrl 那条已批准的链**（#71 的红线），
         //   也不与任何现成发射 FF 共用（#65 / r54 构建 #34 的 CDC-11 Critical 就是这么来的）。
         .bilin_en_axi(gpio_o[19]),
+        .osd_off_axi(gpio_o[20]),       // r83：**反相**，1 = 关掉 OSD 叠层（PS 侧 `OSD_OFF_BIT 20`）
         .ps_publish(gpio_o[18]),        // 每翻转一次 = PS 请求把 DDR 里那一帧搬上屏一次
         // V8-2 补的片源模式覆盖（2026-09-25）：[24:23] = 码（00 自动/01 ETH/11 SD/10 TEST），
         // [22] = 翻转位。码与翻转的先后由 main.c 保证（先写码再翻位），跨域在 src_mode 里做。

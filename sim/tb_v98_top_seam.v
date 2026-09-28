@@ -68,6 +68,8 @@ module tb_v98_top_seam;
     //   给出 68920/77400 = 89 % 的"inbad"，那不是错位，是**尺子把插值当成了 bug**
     //   （bilin=0 ⇒ 最近邻 ⇒ C2b 才成立）。所以扫描段把它钉成 0，别再去松判据。
     reg         bilin_en_tb = 1'b1;
+    // r83：OSD 叠层总开关（`gpio_o[20]` 反相）。默认 0 = OSD 开着，与固件默认一致。
+    reg         osd_off_tb  = 1'b0;
     // ⚠ #78：这份 tie 必须是 **19 位**。r62（V9）把 `split_ctl` 从 14 位加宽到 19 位时
     //   只改了综合树里的两个顶层（`ports_check` 抓到了 `pl_demo_top`），**台架不在综合树里 ⇒ 没人抓它**：
     //   14 位的 tie 接到 19 位端口，xsim 把高位填成 Z ⇒ `gp[18:14]=zzzzz` ⇒ `fit_en` 是 Z ⇒
@@ -84,6 +86,7 @@ module tb_v98_top_seam;
         //   于是 C1e 与它下游的 C1c/C0d/C0e 一起红了好几天，而**症状读起来像"顶层内容通路坏了"**。
         //   现在接台架的 `bilin_en_tb`：默认 1 = 双线性开（与固件默认一致），扫描段改成 0 的理由在那个 reg 上面。
         .bilin_en_axi(bilin_en_tb),
+        .osd_off_axi(osd_off_tb),        // r83：反相位，1 = 关掉叠层（判据 C12）
         .zoom_sel_async(zoom_sel), .zoom_manual_async(zoom_manual),
         .split_ctl(split_ctl_tb),      // #51 新输入：不接=悬空 X（#7 那一族）⇒ 钉成 0
         .ps_publish(ps_publish), .key1_n(key1_n), .key2_n(key2_n), .led(led),
@@ -1023,6 +1026,14 @@ module tb_v98_top_seam;
     // `OFF_LINES` 从**被测对象**取，不抄字面量（#68 那条老规矩：抄来的数会变成"我相信我自己"）。
     initial c5_off = dut.u_pipe.OFF_LINES;
 
+    // ---- C12 的采样：只看 u_osd 输出上的 rose 字形色（与延迟无关，不需要标签对齐）----
+    integer osd_rose = 0, osd_cells = 0, osd_rose_on = 0, osd_rose_off = 0, osd_rose_n_on = 0;
+    reg     osd_count = 1'b0;
+    always @(posedge dut.clk_pix) if (osd_count && dut.u_osd.de_out) begin
+        osd_cells = osd_cells + 1;
+        if ({dut.u_osd.r, dut.u_osd.g, dut.u_osd.b} === 24'hFF0090) osd_rose = osd_rose + 1;
+    end
+
     // ================= P100（#98/#102 的探针：**面板级、两个抽头一起量**，只打印不判定）=================
     // 为什么已有的 C5/C6/C7 三个都不够：它们判的是**引脚上那一格**，而引脚上是谁由缝位决定 ——
     //   台架把 `split_ctl_tb` 钉在 0 ⇒ `left=(x_sel<0)=0` ⇒ `take_orig=~left... ` 见 split_display，
@@ -1565,6 +1576,34 @@ module tb_v98_top_seam;
              "this window must have judged nearly the whole frame, else C9e below is a green on an empty set");
         line("C9e no majority-dark column, processed tap full-screen at 1.5x", c9_worst * 2 < c9_burst,
              "board shows a full-height near-black column at internal col 128 (display 256) here; ISSUES #103");
+
+        // ⚠ 八档扫描**自己关双线性**，不靠远处某次"恢复"。C2b/C7 是纯几何尺子（期望值里
+        //   一个补偿项都不引用），而插值按定义会把相邻两格混成第三格 ⇒ 开着跑必然红在
+        //   `inbad`（解不出定义值）上。2026-09-28 那份 nfail=13 的 12 条 C2b/C7 就是这个漏：
+        //   上一个块（C9）末尾把 `bilin_en_tb` 恢复成 1，而这一段在它**后面**跑。
+        //   归因凭据：同一版台架、未改 RTL 的基线跑（rtl=f3b40bf991c0）红名单一模一样 ⇒ 与 #103 无关；
+        //   r80 冻结件（tb=54570ada5045）里这些条目全 PASS、`inbad` 那一列八档全是 0。
+        bilin_en_tb = 1'b0;
+        // ================= C12（r83）：OSD 总开关在**整屏引脚上**有效 =================
+        // 为什么顶层还要一条：`tb_osd_lines` 的 T13 判的是模块内"关掉=逐位等于背景"，它证明不了
+        //   `gpio_o[20] → 那一位自己的 3 级同步 → u_osd` 这条**接线**是通的（#88 的教训就是
+        //   "端口加了、台架没接 ⇒ 悬空成 Z"，而那次是门禁抓不到台架）。
+        // 判据只看一件事：屏上有没有那个 rose 色（8'hFF/8'h00/8'h90）的字形像素。
+        //   成对：开着必须数得到（>0），关掉必须一个都没有（=0）。少一半就是空判据。
+        osd_rose = 0; osd_cells = 0; osd_off_tb = 1'b0;
+        osd_count = 1'b1; repeat (2) @(posedge dut.frame_start); osd_count = 1'b0;
+        osd_rose_on = osd_rose; osd_rose_n_on = osd_cells;
+        osd_rose = 0; osd_cells = 0; osd_off_tb = 1'b1;
+        repeat (4) @(posedge dut.clk_pix);                 // 跨域链 3 拍 + 余量：别采到换档那一拍
+        osd_count = 1'b1; repeat (2) @(posedge dut.frame_start); osd_count = 1'b0;
+        osd_rose_off = osd_rose;
+        $display("C12 osd switch at the panel: rose cells ON=%0d (over %0d px) OFF=%0d",
+                 osd_rose_on, osd_rose_n_on, osd_rose_off);
+        line("C12pre the rose probe does see glyphs when OSD is on", osd_rose_on > 1000 && osd_rose_n_on > 200000,
+             "pair for C12a: with OSD on, the panel must actually carry glyph cells, else C12a's zero is a blind probe");
+        line("C12a osd off removes every glyph cell at the panel", osd_rose_off == 0,
+             "gpio_o[20] must reach u_osd through its own 3-stage chain; ISSUES r83 OSD switch");
+        osd_off_tb = 1'b0;
 
         $display("C2 table  code inv  nin     nout     inbad viol measl measr geol geor leakl leakr blank invbad | C3 rows empt wbad rbad fmin fmax lmin lmax");
         for (c2_k = 4'd0; c2_k < 4'd8; c2_k = c2_k + 4'd1) begin

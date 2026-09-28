@@ -52,6 +52,10 @@ module osd_overlay #(
     //   正是 clkout0_1 那一组的 WNS 路径 ⇒ 这里再加一次 /100+/10 是往最差的链上加深度。
     input  wire [7:0]  temp_disp,
     input  wire [15:0] bg_pix,
+    // 叠层总开关（r83）：0 = 输出**逐位等于背景**，等价于"这一层不存在"。
+    // 放在下面那级"字形还是背景"的选择上，**不另加一级寄存器** ⇒ 关与开的内容延迟一模一样，
+    // 顶层的 `MIX_D`/`PROC_LAT` 账一个字都不动。用途：逐像素比对与拍摄时叠字会盖住左上角那块画面。
+    input  wire        osd_en,
     output reg  [7:0]  r,
     output reg  [7:0]  g,
     output reg  [7:0]  b,
@@ -495,7 +499,7 @@ module osd_overlay #(
             de_out <= s_de;          // 格子与背景像素一起晚了一拍 ⇒ 这里跟着晚一拍
             hs_out <= s_hs;
             vs_out <= s_vs;
-            if (pixel_on) begin
+            if (osd_en && pixel_on) begin
                 r <= 8'hFF; g <= 8'h00; b <= 8'h90; // rose
             end else begin
                 r <= s_r; g <= s_g; b <= s_b;

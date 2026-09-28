@@ -32,6 +32,7 @@ module pl_video_top #(
     input  wire        src_sel,
     input  wire        zoom_en,
     input  wire        bilin_en_axi,   // #83：gpio_o[19]（PS 的 BILIN_BIT），axi 域准静态电平
+    input  wire        osd_off_axi,    // r83：gpio_o[20]（**反相**，1 = 关掉叠层），同一类准静态电平
     // V8-2：串口命令可以把片源模式**钉住**，不必只靠按键环。都是 axi 域准静态电平，跨域与
     // "命令优先还是按键优先"全在 `src_mode` 里处理，这一层只把线接过去（不许在这里自己采）。
     input  wire [1:0]  mode_ovr,        // 00 自动 / 01 锁 ETH / 11 锁 SD / 10 锁 TEST（屏上就印这三个词）
@@ -260,6 +261,19 @@ module pl_video_top #(
         end
     end
     wire bilin_en_pix = be2;
+    // OSD 总开关（r83）：`gpio_o[20]`（反相）→ 这一条**独立**的 3 级同步 → `osd_en`。
+    //   为什么每一位各走一条链而不共用：#65 那一次 CDC-11 就是"把两个翻转位挂同一级扇出"打出来的；
+    //   为什么复位取 **0**（= OSD 开着）：与固件默认一致 ⇒ 上电/PS 没写过时的屏上与加这个口子之前
+    //   逐位相同，"开了口子但观感不变"是可查的（同 `be0..be2` 取 1 的理由，#83）。
+    (* ASYNC_REG = "TRUE" *) reg oo0, oo1, oo2;
+    always @(posedge clk_pix or negedge rst_pix_n) begin
+        if (!rst_pix_n) begin
+            oo0 <= 1'b0; oo1 <= 1'b0; oo2 <= 1'b0;
+        end else begin
+            oo0 <= osd_off_axi; oo1 <= oo0; oo2 <= oo1;
+        end
+    end
+    wire osd_en = ~oo2;
     wire [12:0] y_right_adv = {1'b0, y} + {5'b0, pipe_off_rows} + BILIN_ROWS[12:0];
     wire [11:0] y_req_row = y_right_adv[11:0] >> 1;
     // #97 第四笔 / #98：读行提前 `OFF_LINES + BILIN_ROWS` ⇒ 本帧末尾几行的越界请求喂的是**下一帧的头
@@ -961,6 +975,7 @@ module pl_video_top #(
         .no_sig(no_sig),                     // V9-4：屏上印 "ETH is no signal"
         .temp_disp(tmp_disp),                // V9-6：片上温度那一格（L4 常驻）
         .bg_pix(16'h0),
+        .osd_en(osd_en),                // r83：0 = 输出逐位等于背景（见 osd_overlay 端口注释）
         .r_in(r), .g_in(g), .b_in(b),
         .hs_in(hs_o), .vs_in(vs_o),
         .r(r_osd), .g(g_osd), .b(b_osd),

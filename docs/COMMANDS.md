@@ -95,8 +95,9 @@ src 0        钉住图卡（PL 自绘：会动的渐变底 + 彗星，自带帧�
 src 1        钉住网络推流那一路（DDR）
 src 2        钉住 SD 卡回放（DDR）并立刻开始播
 stat         回读，字段顺序就是固件那一句 xil_printf：
-             thr src zoom bilin zsel zman pub sd frames playing sel gm mode geom
-             （**没有 `en=` 了** —— 老五位的那个投影随五位一起删了，效果链的真相只剩 `sel=%03x`）
+             thr src zoom bilin zsel zman pub sd frames playing sel gm mode geom osd
+             （**没有 `en=` 了** —— 老五位的那个投影随五位一起删了，效果链的真相只剩 `sel=%03x`；
+              `osd=` 是 r83 新加的，按"新字段只往后加"的规矩排在最后）
 ```
 > **2026-09-25 r58 起 `src` 真的能钉住了**：以前它只写 PS 手里那 1 bit `src_sel`，
 > 而"钉住哪一路"是 PL 里四态环、只有 KEY1 长按能改 ⇒ 命令打印一句"还要 mode 覆盖位"就没了下文
@@ -115,6 +116,10 @@ zoom 0.75               手动定档（r53 起）：八档里取最近的一档�
                         与 `zoom auto` 交还呼吸。⚠ `zoom 1` 仍是 V7 的"开呼吸"（开关语义），
                         要 1.0 倍必须写 `zoom 1.0` —— 重叠已记 ISSUES #63，固件的拒绝消息自己会说
 bilin on / bilin off    右窗双线性 ↔ 最近邻，现场对比用（老写法 BILIN1 / BILIN0）
+osd on / osd off        叠层开/关（r83 起是活的，`gpio_o[20]` **反相** ⇒ 复位/PS 没写过时屏上有 OSD）。
+                        关掉的用途不是好看：① 逐像素比对与拍屏时叠字盖住了左上角那块画面；
+                        ② 想要一张干净图。它只碰输出级"字形还是背景"那一个选择，
+                        数据通路/计数/串口一个比特都不受影响（判据见 `sim/tb_osd_lines.v`）
 th 120                  二值化阈值（老写法 TH120）
 frame 1200              只显示 SD 的第 1200 帧（老写法 FRAME1200）
 play / stop             SD 播放 开始 / 停止
@@ -181,9 +186,8 @@ rot <数字> / rot +15                          **有意不做**"设成某个绝
                                               + 一次跨域同步（新硬件、新时序账），而按键 ±1° 已经
                                               能把角度带到 0..359 任何一格（V9 之后 rot auto/speed 是活的）
 split range 20 80 / split speed 2             扫描端点与速度仍是**构建参数**（顶层 SPLIT_LO16/HI16/SPEED）
-osd on / osd off                              OSD 现在常显（V8-5 已把行内容改成五行，开关位仍缺 ——
-                                              cfg1 三十二位已排满 ⇒ 它得走 `gpio_o` 的空位（[19]/[20]/[21]/[25]
-                                              实测悬空）+ 那一位自己的"独立发射 FF + 3 级同步"，见 #83）
+（`osd on/off` 原来在这一张表里，r83 起已接进硬件 ⇒ 移回上面 §3；它欠的东西从来不是"没有位"，
+ 而是"那一位要配一条独立跨域链 + 一条能红的判据"——#83 记的就是这笔账）
 bilin 的**读回**（不是 on/off 本身）            on/off/show 从 r64b 起是**活的**（`gpio_o[19]` → 那一位自己
                                               的 3 级 ASYNC_REG → `fb_bilin.bilin_en`，默认开着），
                                               所以它不在本表；这一行欠的只有"JTAG 侧看得见它现在是什么"

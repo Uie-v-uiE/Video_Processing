@@ -24,7 +24,7 @@ module tb_v794_osd_glyph;
         .zoom_code(3'd4), .zoom_auto(1'b0), .zoom_fit(1'b0),
         .split_pct(8'd50), .split_auto(1'b0),
         .lat_ms(16'd0), .lat_ok(1'b0),
-        .src_eff(2'b11), .mode(2'b00), .bg_pix(16'h0), .no_sig(1'b0),
+        .src_eff(2'b11), .mode(2'b00), .bg_pix(16'h0), .osd_en(1'b1), .no_sig(1'b0),
         // ⚠ V9-6 新加的 `temp_disp` 必须**显式接一个值**，不许悬空：悬空 = X，会顺着 `if ((temp_disp[7:4] <= 4'd9) ...)`
         //   把整行字符变成 X（#88 的根因就是顶层台架一个悬空输入红了四判据好几天）。这里给"没有可信读数"那个编码即可；
         //   `N_LINES(4)` 也是有意的：这里不比行内容，行数是几都与"码点→字形号"无关。

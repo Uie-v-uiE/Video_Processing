@@ -27,6 +27,10 @@ module tb_osd_lines;
     reg [1:0]  i_src   = 2'b11;
     reg [1:0]  i_mode  = 2'b00;
     reg [11:0] tx = 0, ty = 0;
+    // T13 用：背景像素与叠层总开关。背景**故意不给全黑** —— 全黑时"输出等于背景"和
+    // "输出被清成 0"是同一个数，判据就没有牙（#78 那一族：零要能区分"对"与"没测"）。
+    reg [7:0] i_r = 8'h12, i_g = 8'h34, i_b = 8'h56;
+    reg       i_en = 1'b1;
     reg        tde = 0;
     wire [7:0] ro, go, bo;
     wire de_o, hs_o, vs_o;
@@ -38,8 +42,8 @@ module tb_osd_lines;
         .angle(i_angle), .fps(i_fps), .stage_sel(i_sel), .threshold(i_th),
         .gamma_disp(i_gd), .zoom_code(i_zc), .zoom_auto(i_za), .zoom_fit(1'b0),
         .split_pct(i_sp), .split_auto(i_sa), .lat_ms(i_ms), .lat_ok(i_ok),
-        .src_eff(i_src), .mode(i_mode), .bg_pix(16'h0), .no_sig(i_ns), .temp_disp(i_tmp),
-        .r_in(8'd0), .g_in(8'd0), .b_in(8'd0), .hs_in(1'b0), .vs_in(1'b0),
+        .src_eff(i_src), .mode(i_mode), .bg_pix(16'h0), .osd_en(i_en), .no_sig(i_ns), .temp_disp(i_tmp),
+        .r_in(i_r), .g_in(i_g), .b_in(i_b), .hs_in(1'b0), .vs_in(1'b0),
         .r(ro), .g(go), .b(bo), .de_out(de_o), .hs_out(hs_o), .vs_out(vs_o)
     );
 
@@ -52,7 +56,7 @@ module tb_osd_lines;
         .angle(i_angle), .fps(i_fps), .stage_sel(i_sel), .threshold(i_th),
         .gamma_disp(i_gd), .zoom_code(i_zc), .zoom_auto(i_za), .zoom_fit(1'b0),
         .split_pct(i_sp), .split_auto(i_sa), .lat_ms(i_ms), .lat_ok(i_ok),
-        .src_eff(i_src), .mode(i_mode), .bg_pix(16'h0), .no_sig(1'b0), .temp_disp(i_tmp),
+        .src_eff(i_src), .mode(i_mode), .bg_pix(16'h0), .osd_en(1'b1), .no_sig(1'b0), .temp_disp(i_tmp),
         .r_in(8'd0), .g_in(8'd0), .b_in(8'd0), .hs_in(1'b0), .vs_in(1'b0),
         .r(r2), .g(g2), .b(b2), .de_out(), .hs_out(), .vs_out()
     );
@@ -67,6 +71,28 @@ module tb_osd_lines;
             #1;
         end
     endtask
+
+    // 扫过 OSD 那块矩形（步长 2：字模的一个像素是 SCALE=3 宽，2 的步长不会整块漏掉笔画），
+    // 数"输出 != 背景"的格子。latency 是 2 拍 ⇒ 每格等 3 拍再采。
+    integer ndiff = 0, nseen = 0;
+    task scan_bg;
+        input [8*16-1:0] nm;
+        integer sx, sy;
+        begin
+            ndiff = 0; nseen = 0;
+            for (sy = 0; sy < NL*(CH+LG); sy = sy + 2) begin
+                for (sx = 0; sx < MC*CW; sx = sx + 2) begin
+                    tx = (X0 + sx); ty = (Y0 + sy); tde = 1'b1;
+                    @(posedge clk); @(posedge clk); @(posedge clk); #1;
+                    nseen = nseen + 1;
+                    if ({ro, go, bo} !== {i_r, i_g, i_b}) ndiff = ndiff + 1;
+                end
+            end
+            tde = 1'b0;
+            $display("T13 scan %0s: 扫过 %0d 格、与背景不同 %0d 格", nm, nseen, ndiff);
+        end
+    endtask
+    integer t13_on = 0, t13_off = 0, t13_seen = 0;
 
     // 整串比对：**长度由 want 自己数出来**（Verilog 把短串左补 0 塞进宽端口 ⇒ 最高那个非 0 字节的位置就是实际长度），手数格子一定数错。
     // 前 n 格等于 want，其余格必须是空格 —— "尾巴上不许有垃圾"这一条也一起判掉。
@@ -533,6 +559,26 @@ module tb_osd_lines;
             errors = errors + 1;
             $display("[tb_osd_lines.v:438] FAIL T12 样本太少（ncell=%0d nvis=%0d）⇒ 上面有些判据是空的", ncell, nvis);
         end
+
+        // ---- T13：`osd_en=0` 必须让输出**逐位等于背景**（= 这一层不存在），开着才画得出字 ----
+        // 为什么成对：只判"关掉以后没有字"是不够的 —— 那可能只是这一层本来就没在画。
+        // 所以先量"开着时与背景不同的格子数 > 0"（正对照，证明这块矩形里真的画了东西），
+        // 再要求"关掉时那一数 = 0"。两件事同一次扫描里量，格子集合完全相同。
+        i_r = 8'h12; i_g = 8'h34; i_b = 8'h56;
+        i_en = 1'b1;
+        repeat (4) @(posedge clk); #1;
+        scan_bg("en=1");  t13_on = ndiff;  t13_seen = nseen;
+        i_en = 1'b0;
+        repeat (4) @(posedge clk); #1;
+        scan_bg("en=0");  t13_off = ndiff;
+        if (t13_off == 0 && t13_on > 0 && t13_seen > 5000)
+            $display("PASS T13 osd_en=0 => 输出逐位等于背景（关掉=这层不存在），开着在同一片格子里画出了字（对照）");
+        else begin
+            $display("FAIL T13 en=1 差异格=%0d（要 >0）  en=0 差异格=%0d（要 =0）  扫过格=%0d（要 >5000）",
+                     t13_on, t13_off, t13_seen);
+            errors = errors + 1;
+        end
+        i_en = 1'b1;
 
         $display("");
         if (errors == 0) $display("RESULT tb_osd_lines PASS");

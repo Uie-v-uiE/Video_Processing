@@ -49,6 +49,11 @@
 #define GPIO_TRI      (AXI_GPIO_BASE + 0x04u)
 #define PUBLISH_BIT   18u
 #define BILIN_BIT     19u     /* 右窗双线性插值开关：0 = 最近邻（同一条通路，小数钉 0） */
+/* OSD 叠层开关。**1 = 关掉**（与几何字那条 `gp[13]=1 才是关` 同一极性口径）⇒ 复位、或 PS 从没写过
+ * 这一位时，屏上仍然有 OSD：默认观感与 r82 之前逐位相同，不会因为"忘了初始化"变成干净画面。
+ * 为什么是 20：gpio_o 的空位只有 20/21/25（[4:0] 退役位、[15:8] 阈值、16 src、17 zoom、18 publish、
+ * 19 bilin、22 mode 翻转、[24:23] mode 码、26 gapclr、[31:27] lane 号）。 */
+#define OSD_OFF_BIT   20u
 /* V8-2 欠到现在的"mode 覆盖位"（2026-09-25 接上）：bit22 = 翻转位，[24:23] = 模式码。
  * 码的取值与 PL 里 src_mode 的编码**必须一致**：00 自动 / 01 ETH / 11 SD / 10 TEST
  * （屏上那三个词就是这一张表，2026-09-25 用户定稿；旧文档里的"锁 PS / 锁图卡"= SD / TEST。）
@@ -174,6 +179,8 @@ static const u8   ZOOM_X100[8] = { 25, 33, 50, 75, 100, 133, 150, 200 };
 static const char *ZOOM_NAME[8] = { "0.25x", "0.33x", "0.50x", "0.75x",
                                     "1.00x", "1.33x", "1.50x", "2.00x" };
 static u8  cur_bilin = 1;  /* GPIO bit19: 双线性/最近邻 A-B 对照，演示时现场切换用 */
+static u8  cur_osd   = 1;  /* GPIO bit20（反相）: OSD 叠层开/关。关掉的用处是取证与拍摄 ——
+                            * 叠字会盖住画面最左上角那一块，逐像素比对时它是脏的 */
 static u32 pub_lvl = 0;
 static u32 cur_mode_ovr = MODE_AUTO;   /* 0 = 不覆盖（听按键环）；非 0 = 钉住这一路 */
 static u32 mode_tog_lvl = 0;
@@ -194,6 +201,7 @@ static u32 ctrl_write(void)
     v = ((u32)cur_thr << 8) | ((u32)cur_src << 16)
       | ((u32)(cur_zoom ? 1 : 0) << 17) | (pub_lvl << PUBLISH_BIT)
       | ((u32)(cur_bilin ? 1 : 0) << BILIN_BIT)
+      | ((u32)(cur_osd ? 0 : 1) << OSD_OFF_BIT)   /* 反相位：1 = 关掉叠层，复位=0 = 有 OSD */
       | ((cur_mode_ovr & 3u) << MODE_CODE_BIT) | (mode_tog_lvl << MODE_TOG_BIT);
     Xil_Out32(GPIO_DATA, v);
     /* cfg1 一次写整个字：低 9 位是效果选择，[28:26] 是缩放档，[29] 是手动旗标。
@@ -208,9 +216,9 @@ static u32 ctrl_write(void)
 static void ctrl_apply(void)
 {
     u32 v = ctrl_write();
-    xil_printf("[CTRL] AXI_GPIO=0x%08x sel=%03x thr=%d src=%d zoom=%d pub=%d bilin=%d\r\n",
+    xil_printf("[CTRL] AXI_GPIO=0x%08x sel=%03x thr=%d src=%d zoom=%d pub=%d bilin=%d osd=%d\r\n",
                v, cur_sel & 0x1FF, cur_thr, cur_src, cur_zoom ? 1 : 0, (int)pub_lvl,
-               cur_bilin ? 1 : 0);
+               cur_bilin ? 1 : 0, cur_osd ? 1 : 0);
     /* 缩放这一格把"设进去的档"和"现在是手动还是呼吸"分开报：自动时屏上那一格是活的，
      * 这里报的 step 只是"切回手动就会用哪一档"，别让它看起来像当前倍率。 */
     xil_printf("[CTRL]   zoom_step=%d %s (%s)\r\n", cur_zsel,
@@ -535,6 +543,17 @@ static u8 zoom_step_near(int x100)
 static void ctrl_set_bilin(u8 on)
 {
     cur_bilin = on ? 1 : 0;
+    ctrl_apply();
+}
+
+/* OSD 叠层开/关。关掉的正当用途有两个，都不是"好看"：
+ *   ① 逐像素比对/取证时叠字盖住了画面左上角那一块，量到的不是画面本身；
+ *   ② 拍摄/截屏要一张干净画面。
+ * 开关只碰输出级的那个"字形 vs 背景"选择，不碰任何数据通路 ⇒ 关掉时屏上每一格
+ * 必须逐位等于"这一层不存在"（判据在 `sim/tb_osd_lines.v`，配了正对照）。 */
+static void ctrl_set_osd(u8 on)
+{
+    cur_osd = on ? 1 : 0;
     ctrl_apply();
 }
 
@@ -976,6 +995,29 @@ static int dispatch(char **tk, int nt)
         }
         return 0;
     }
+    if (ci_pre(tk[0], "OSD")) {
+        /* 与 bilin 同一种"开关在硬件里是真的"的写法：`gpio_o[20]`（反相）→ 顶层一条独立同步链
+         * → `osd_overlay` 的输出级选择。以前这条命令是 `not_wired` 提示，那份提示的理由
+         * （"加 en 端口要连改三处台架例化；输出前加 mux 要碰字形那一路"）今天仍然成立，
+         * 只是都做完了：三处例化 = tb_osd_lines / tb_v794_osd_glyph / tb_v90_latency，
+         * 而 mux 没有新加一级 —— 它就是把"字形还是背景"那个选择多喂一个输入。 */
+        const char *arg = (nt >= 2) ? tk[1] : tk[0] + 3;   /* OSD 是 3 个字母 */
+        int b = -1;
+        if (nt >= 2 && ci_eq(tk[1], "SHOW")) {
+            xil_printf("[OSD] osd=%s（gpio_o[20] 反相，复位=有 OSD）；"
+                       "关掉只影响叠字，画面/计数/串口都不受影响\r\n", cur_osd ? "on" : "off");
+            return 0;
+        }
+        if (strict_int(arg, &v) && (v == 0 || v == 1)) b = v;
+        if (ci_eq(arg, "ON")) b = 1;
+        if (ci_eq(arg, "OFF")) b = 0;
+        if (b < 0) xil_printf("[OSD] 只认 on/off（0/1）或 show\r\n");
+        else {
+            ctrl_set_osd((u8)b);
+            xil_printf("[OSD] osd=%s\r\n", cur_osd ? "on" : "off");
+        }
+        return 0;
+    }
     /* —— 以下四个是 spec §14 里还没落地的动词：先把语法收住，出口只有一条 —— */
     if (ci_eq(tk[0], "ROT")) {
         /* V9-3（2026-09-25）：rot 从"语法已收、硬件待接"变成真的动词。
@@ -1201,9 +1243,8 @@ static int dispatch(char **tk, int nt)
         gamma_set(g);
         return 0;
     }
-    if (ci_eq(tk[0], "OSD"))     { not_wired("osd", "OSD 那一层的开关位（现在是常显）。两条接法都不便宜：给 osd_overlay 加 en 端口要连改三处台架例化；"
-                                                   "在 HDMI 输出前加一级 mux 又要碰字形那一路（r71 该组 setup 最差 0.514 ns）",
-                                                   "时序那一轮之后，ISSUES #53"); return 0; }
+    /* （这里原来放着 `osd` 的"待接"提示 —— 撤掉：上面 `ci_pre(tk[0], "OSD")` 已经真的接进硬件了，
+     *   留一条永远走不到的待接分支就是"两处各说一遍"，正是 #66 那一族的病。） */
     /* （这里原来放了一条 `bilin` 的"待接"提示 —— 撤掉，两个理由：
      *   ① 它永远不会被执行：上面 801 行 `ci_pre(tk[0], "BILIN")` 是前缀匹配，先到先赢；
      *   ② 它说的是错的活。04:03 查过：PS 侧 `bilin on/off` 一直是**完整实现**的
@@ -1333,13 +1374,13 @@ static int dispatch(char **tk, int nt)
          * 注释里记着），这次是同一课的第二遍。新字段照老规矩**只往后加**，不动前面的位序。 */
         xil_printf("[STAT] ctrl thr=%d src=%d zoom=%d bilin=%d zsel=%d zman=%d pub=%d"
                    " sd=%d frames=%d playing=%d sel=%03x gm=%d.%02d (PL owns UDP datapath)"
-                   " mode=%d geom=%08x\r\n",
+                   " mode=%d geom=%08x osd=%d\r\n",
                    cur_thr, cur_src, cur_zoom ? 1 : 0,
                    cur_bilin ? 1 : 0, cur_zsel, cur_zman, (int)pub_lvl,
                    sd_frame_total() ? 1 : 0, (int)sd_frame_total(), sd_is_playing(),
                    cur_sel & 0x1FF,
                    (int)(cur_gamma / 100u), (int)(cur_gamma % 100u), (int)cur_mode_ovr,
-                   (unsigned)(cur_split & GEOM_MASK));
+                   (unsigned)(cur_split & GEOM_MASK), cur_osd ? 1 : 0);
         return 0;
     }
     if (ci_eq(tk[0], "HELP") || ci_eq(tk[0], "?")) { cmd_help(); return 0; }
@@ -1349,13 +1390,14 @@ static int dispatch(char **tk, int nt)
 static void cmd_help(void)
 {
     xil_printf("  V8 语法: src auto|0|1|2 | pipe <九位>|pipe show | th 80 | zoom on|off|auto|<倍率> | bilin on|off |"
+               " osd on|off |"
                " gamma off|1.8 | frame N | sd [files|file n|remount] | play | stop | fill | autoplay 0|1 | temp [th <°C>] |"
                " stat | help\r\n");
     xil_printf("  pipe 九位一位一级（gray/invert/blur/sharpen/sobel/binary/bin_pol/erode/dilate）；"
                "五位是 V7 老位序，给了只回一句等价的九位、不生效。**其余长度一律拒**\r\n");
     xil_printf("  屏上 Pipe 那一格不是这串 0/1：它是五位、每位的 0..3 表示\"这一级选了第几个算法\"，"
                "想知道现在开着什么就敲 pipe show\r\n");
-    xil_printf("  语法已收/硬件待接: osd on|off | split 的 range/speed\r\n");
+    xil_printf("  语法已收/硬件待接: split 的 range/speed\r\n");
     /* V9-3/V9-2：rot 已经接到硬件了（自动旋转的两个控制位），从上面那半行摘下来；
      * 留着不说就是"有功能没入口"，说了不说新的又是"帮助与屏不符"（#67 同族）。 */
     xil_printf("  几何(V9): rot auto [0|1] | rot speed 0..7（度/帧）| rot show\r\n");
