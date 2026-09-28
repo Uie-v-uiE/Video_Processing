@@ -1,5 +1,6 @@
 `timescale 1ns/1ps
-// system_top — ghosting-fix v5 (same pins as src)
+// system_top：FPGA 顶层（构建脚本的 top）。design_1_wrapper(PS7+AXI) + clk_gen(IDELAY 参考) +
+// eth_udp_video_top(自研收包，占 HP0 写 DDR) + pl_video_top(显示通路) + snap_cross(观测 lane 复用回 AXI)。
 module system_top (
     inout  wire        DDR_cas_n,
     inout  wire        DDR_cke,

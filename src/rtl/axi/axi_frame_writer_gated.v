@@ -1,5 +1,6 @@
 `timescale 1ns/1ps
-// axi_frame_writer_gated v5.11
+// axi_frame_writer_gated：pl_video_top 里的 u_row —— 显示帧缓存的逐行搬运机：从 HP0 把 DDR 里刚提交
+// 的一帧拉回来，只在 allow（消隐、链子排空之后）那几拍落 BRAM。
 // v5 policy: BRAM writes ONLY when allow (all blanking after pipeline drain).
 // Speed: direct BRAM write from AXI R when allow && skid empty (copy finishes
 // inside one display frame → no motion ghosting).

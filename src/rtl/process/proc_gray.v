@@ -1,5 +1,5 @@
 `timescale 1ns/1ps
-// RGB565 -> luminance gray -> RGB565
+// 级 1 颜色的第一路：RGB565 → 亮度 → 写回三个分量（去色）。proc_pipeline 里占 1 拍，~w_gray 时纯旁路。
 module proc_gray (
     input  wire        clk,
     input  wire        rst_n,

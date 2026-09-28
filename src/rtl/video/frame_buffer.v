@@ -1,5 +1,6 @@
 `timescale 1ns/1ps
-// Full-frame dual-port BRAM. Write sequential, read random (for rotation).
+// 整帧双端口 BRAM（顺序写、随机读）。⚠ **本树无人例化**：现役显示帧缓存是 frame_buffer_w64
+//（64bit 写口，包在 fb_bilin/fb_rd5x 里）。遗留件。
 // ADDR = y*W + x
 module frame_buffer #(
     parameter W = 640,

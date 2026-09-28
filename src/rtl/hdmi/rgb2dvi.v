@@ -1,5 +1,6 @@
 `timescale 1ns/1ps
-// RGB888 + sync -> HDMI TMDS differential
+// RGB888 + 同步 → HDMI TMDS 差分。定位：pl_video_top 的 u_dvi，吃的就是 osd_overlay 之后那一路
+//（与面板同一份内容）；三条 tmds_encoder + tmds_serializer。
 module rgb2dvi (
     input  wire       clk_pix,
     input  wire       clk_pix5x,

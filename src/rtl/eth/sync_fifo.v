@@ -1,5 +1,5 @@
 `timescale 1ns/1ps
-// Sync FIFO (same clock).
+// 同时钟 FIFO。定位：eth_udp_video_top 的 u_icmp_fifo（ICMP 请求字节，收/发两侧同一根 gmii 时钟）。
 // OPT: 存储阵列去掉异步复位，便于推断 BRAM（大深度 icmp_fifo 原先落到寄存器堆，
 // 导致 eth_rxc@125MHz 域内路径 WNS 为负）。
 module sync_fifo #(

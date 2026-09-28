@@ -1,5 +1,6 @@
 `timescale 1ns/1ps
-// Double-buffered frame buffer: AXI writes back buffer, video reads front.
+// 乒乓帧缓存。⚠ **本树无人例化**：乒乓改在 DDR bank 层做（ddr_bank_commit + frame_reasm），
+// 显示侧只留一块 frame_buffer_w64。遗留件。
 // Swap on frame_done (AXI domain) synchronized to video vsync.
 module frame_buffer_db #(
     parameter W = 512,

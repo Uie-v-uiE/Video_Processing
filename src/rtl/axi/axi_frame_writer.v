@@ -1,5 +1,6 @@
 `timescale 1ns/1ps
-// AXI3 HP0 frame fetcher: 64-bit data, max 16 beats/burst.
+// AXI3 HP0 整帧取数（64bit、最多 16 拍/突发）。⚠ **本树无人例化**：现役两代是
+// axi_frame_writer_gated（逐行拷，消隐期写）与 axi_frame_writer64。只在 sim/run_sim.tcl 的文件清单里挂名。
 // Each beat = 4x RGB565; unpack over 4 cycles into frame_buffer.
 module axi_frame_writer #(
     parameter IMG_W     = 512,

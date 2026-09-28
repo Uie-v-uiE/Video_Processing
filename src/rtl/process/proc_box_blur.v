@@ -1,5 +1,6 @@
 `timescale 1ns/1ps
-// 3x3 box blur, sequential raster only. bypass => center pixel.
+// 级 2 滤波的第一路：3×3 均值模糊（逐光栅，bypass 时出中心像素）。proc_pipeline 里占 **3 拍**、
+// 内容偏移贡献 −1 行；行尾多跳与四条圈的旗标都在本文件，是四个窗口级的正本。
 module proc_box_blur #(
     parameter H_ACTIVE = 640
 )(

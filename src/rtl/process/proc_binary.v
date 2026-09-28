@@ -1,5 +1,6 @@
 `timescale 1ns/1ps
-// Binary threshold on luminance
+// 级 4 阈值：亮度 >= threshold 出全白、否则全黑（pol 位反相）。放在滤波之后、形态学之前——形态学的定义
+// 本来就是对面具图的操作。一级 1 拍，~bypass 时纯旁路。
 // pol=0 亮于阈值算白（V7 的行为）；pol=1 暗于阈值算白（同一级的第二个算法，不额外占硬件）
 module proc_binary (
     input  wire        clk,

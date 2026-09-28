@@ -1,5 +1,6 @@
 `timescale 1ns/1ps
-// Active-low key debounce + one-cycle press pulse
+// Active-low 按键消抖 + 单拍按下脉冲。定位：pl_video_top 的 u_k1/u_k2（板键 KEY1/KEY2，sys_clk 域），
+// 长按那一支在 key_long。
 module key_debounce #(
     parameter CNT_MAX = 1_000_000
 )(

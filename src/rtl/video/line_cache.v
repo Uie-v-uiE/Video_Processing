@@ -1,5 +1,6 @@
 `timescale 1ns/1ps
-// Simple dual-port line buffer (write one clock, read another)
+// 简单双端口行缓存（一 clk 写、另一 clk 读）。⚠ **本树无人例化**：效果链里三行窗口用的是
+// proc_* 内部自己的行缓存数组；写进环在 raw_line_delay。遗留件，别按它找结构。
 module line_cache #(
     parameter W = 640
 )(

@@ -1,5 +1,5 @@
 `timescale 1ns/1ps
-// RGB invert
+// 级 1 颜色的第二路：RGB565 逐位取反。与 proc_gray **串接**（所以两个各占自己的 1 拍），~w_inv 时纯旁路。
 module proc_invert (
     input  wire        clk,
     input  wire        rst_n,

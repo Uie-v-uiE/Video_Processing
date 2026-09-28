@@ -1,5 +1,6 @@
 `timescale 1ns/1ps
-// 1280x720@60-ish timing (pixel clock 75 MHz on this board)
+// 720p 时序发生器。⚠ **本树无人例化**：现役面板是 1024x600@50 MHz（video_timing_1024x600）。
+// 它只是 video_timing 的一组分参数，留着给以后换屏。
 module video_timing_720p (
     input  wire        clk,      // 75 MHz
     input  wire        rst_n,

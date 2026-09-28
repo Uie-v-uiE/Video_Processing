@@ -1,5 +1,8 @@
 `timescale 1ns/1ps
-// pl_video_top — ghosting-fix v5
+// pl_video_top：显示通路顶层（system_top 里那份 PL 逻辑）。链路 = video_timing_1024x600 出时序 →
+// axi_frame_writer_gated/64 把 DDR 里刚提交的一帧搬进显示帧缓存 → fb_bilin 读口 → proc_pipeline 效果链 →
+// split_display 原图/处理图逐像素混合 → osd_overlay 叠状态字 → 同一份 RGB888+同步同时走面板与 u_dvi。
+// 时钟域：clk_pix 单域；PS 侧命令经 effect_ctrl/src_* 的同步器进来（ghosting-fix v5 的策略见下面三行）。
 // Display BRAM written ONLY by axi_frame_writer_gated during blanking (~de).
 // commit base locked until copy completes.
 module pl_video_top #(
