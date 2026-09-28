@@ -85,7 +85,12 @@ const EXPECT = [
   // 这三样都是 PS 侧算的（PL 只查表），所以它是 `[GAMMA]` 自检的**外部对照**。
   [/\[GAMMA\] g=1\.80 mono_bad=0 first=0 last=255/],
   [/\[GAMMA\] off/],                                        // 收尾必须关掉：电池不许留下状态改变
-  [/语法已收，硬件未接/, /OSD/],
+  // V9-4 / #112：`osd` 不再是"语法已收，硬件未接"。两条判据成对出现（电池不许留下状态改变）：
+  //   off 那条要求回声 `[OSD] osd=off` **且** [CTRL] 回显里 `osd=0`（回显才是写了 gpio_o[20] 的证据），
+  //   紧跟一条 `osd on` 把它还原（同样要 `osd=1`）。以前这一格是那条 not_wired 桩的判据，桩删了判据没跟着删
+  //   ⇒ 2026-09-29 那一跑它就是"红得没有道理"的那一条（ISSUES #117）。
+  [/\[OSD\] osd=off/, /osd=0/],
+  [/\[OSD\] osd=on/, /osd=1/],
   // V8-8：`zoom <倍率>` 不再是"待接"。判据一条管一头，六条连起来把"解析 → 取最近档 → 写进硬件的三位
   //   → 收尾还原"整条链钉住：
   //   1.5  精确命中一档；0.25/2 两个**端点**（越界方向各一个）；0.9 证明取的是"最近"而不是"向下取整"；
@@ -326,7 +331,10 @@ const cap2 = cap.split(/\r?\n/);
  *   所以改成：**完整的 tuple 至少要有两条**才比；被劈开的碎片**单独报出来数一数**
  *   （不静默放过 —— 碎片变多本身就是在提醒串口在丢行），但不再一票否决。 */
 const statLines = cap2.filter(l => l.startsWith('[STAT]'));
-const TUPLE = /ctrl (thr=\d+) (src=\d) (zoom=\d) (bilin=\d) (zsel=\d) (zman=\d).*?(sel=[0-9A-Fa-f]{3}) (gm=\d+\.\d\d).*?(mode=\d) (geom=[0-9A-Fa-f]{8})/;
+/* #117（2026-09-29）：`osd=` 进元组。理由与 V8-8 那次 `zsel/zman`、V9 那次 `geom=` 完全同一课 ——
+ * 那天晚上电池里已经有 `osd off` 却没有还原、元组也不看这一格，于是电池把 OSD 留在"关"上而
+ * "跑完回到初态"这条照样绿：**判据看不见的那一位，就等于没有判据**。 */
+const TUPLE = /ctrl (thr=\d+) (src=\d) (zoom=\d) (bilin=\d) (zsel=\d) (zman=\d).*?(sel=[0-9A-Fa-f]{3}) (gm=\d+\.\d\d).*?(mode=\d) (geom=[0-9A-Fa-f]{8}) (osd=\d)/;
 const stats = statLines.map(l => { const m = l.match(TUPLE); return m ? m.slice(1).join(' ') : null; }).filter(Boolean);
 const torn = statLines.length - stats.length;
 if (torn > 0) console.log(`WARN [STAT] 有 ${torn} 条被串口心跳行劈开（不参与初末比较；碎片 >2 就该查串口丢行）`);
