@@ -63,7 +63,7 @@
 | `split follow 1` / `split video` | `SPLIT_FOLLOW_BIT` → `cfg1[24]`（`main.c:1090`、`1114`） | `split_ctrl.v:33` | 与 `auto` 同时开时新的 `pos` 不动屏 | 说明了"auto 仍开着"（`main.c:1119`） |
 | `split swap 1` | `SPLIT_SWAP_BIT` → `cfg1[25]`（`main.c:1090`） | `split_ctrl.v:103`→`split_display.v:48` | — | 说明了"只换内容，不换缝位"（`main.c:1095`） |
 | `split marker 0` | `SPLIT_MARKOFF_BIT` → `cfg1[30]`（反着写，`main.c:1087-1088`） | `pl_video_top.v:839`→`split_display.v:53-65` | 标记线盖过缝两侧的内容 | 是（那格说明是蓝线） |
-| `split range` / `split speed` | 不存在 | 端点/速度是构建参数（`pl_video_top.v:16-18`、`834`） | — | 明确拒绝（`main.c:1150-1152`） |
+| `split range` / `split speed` | 不存在 | 端点/速度是构建参数（声明 `pl_video_top.v:19-21`，送进 `split_ctrl` 那一处 `:851`） | — | 明确拒绝（`main.c:1150-1152`） |
 | `pipe <九位>` | `cur_sel` → `cfg1[8:0]`（`main.c:435`、`202`） | `proc_pipeline.v:49-58` | 缝位决定"看得见几成" | 见 §7 |
 | `pipe` 的 `[6]`（bin_pol） | 同上 | `proc_pipeline.v:131` | **`[5]=0` 时无人读它** | **没有**（§8） |
 | `pipe` 的 `[7]`＋`[8]` 同开 | 同上 | `proc_pipeline.v:56-58`、`proc_morph.v:24` | **两者互相抵消** | **没有**（§8） |
@@ -346,7 +346,7 @@ gamma 是链子的第 0 级（`proc_pipeline.v:92-96`，`en=0` 时逐位旁路�
 | `pipe` 给 6/7/8 位 | 拒，不做补零解释 | `main.c:541-558`、`876-881` |
 | `src 3` | 拒，并念出 0/1/2 的词表 | `main.c:708-710` |
 | `rot 37` / `rot angle …` | 拒，并说明角度只走按键 | `main.c:1042-1043` |
-| `split range …` / `split speed …` | 拒，并说明端点与速度是构建参数 | `main.c:1150-1152`；参数在 `pl_video_top.v:16-18`、`834` |
+| `split range …` / `split speed …` | 拒，并说明端点与速度是构建参数 | `main.c:1150-1152`；参数在 `pl_video_top.v:19-21`（声明）与 `:851`（送进 `split_ctrl`） |
 | `osd on/off` | "语法已收，硬件未接"，并说明两条接法各要付什么 | `main.c:1204-1206` |
 | `zoom show` | **不存在**：落到 `ZOOM` 的通用拒绝消息 | `main.c:951-954`（对照 `split show` 在 `main.c:1056`） |
 | `gamma auto` 参数越界 | 拒，并把收到的四个数原样念出来 | `main.c:308-313` |
