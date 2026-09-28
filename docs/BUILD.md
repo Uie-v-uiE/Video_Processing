@@ -28,6 +28,17 @@
 
 **仓库根不用设**：`sim/*.sh` 与 `build/*.sh` 都按自己所在位置往回两级算根
 （`ROOT="$(cd "$(dirname "$0")/.." && pwd)"`），`build/tcl/*.tcl` 用 `[file dirname [info script]] .. ..`。
+**这句话怎么当场验**（正对照，2026-09-29 06:14 在这台机器上跑过，输出就是这两行）：
+
+```
+$ VP_VIVADO_BIN=/nonexistent_path bash build/roll_isolated.sh; echo "rc=$?"
+REFUSE: 找不到 xvlog（当前 /nonexistent_path）。设 VP_VIVADO_BIN=<Vivado>/bin 再跑（docs/BUILD.md）
+rc=2
+```
+
+拒绝发生在 `mkdir`/`sed` 之前，所以**不留任何临时文件**（`ls build/tcl/_tmp_isolated_roll.tcl` 报 no such file）——
+"换一台机器会怎样"这件事本来只能靠推理，这一条让它变成一次可以跑的观察。
+`VP_XSDB` 那一支故意不当场跑：`board_verify.sh` 会占 COM6 并改写留档，拿板子做这种对照不值。
 2026-09-29 之前这几个脚本里写死的是**这台机器的绝对路径**（`/d/Xilinx/Prj/pro/...`），换机器要改一堆行——
 #93 记的就是这件事，r85 那一轮把它落地了。**默认值仍然留着**（本机少敲一步），但它是"便利"不是"标准"，
 所以每一个读默认值的脚本都带一条存在性检查：宁可在第一步拒绝，也不要跑到一半留下半份产物。
