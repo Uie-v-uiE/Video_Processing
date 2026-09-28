@@ -1,4 +1,4 @@
-# Board bring-up（板上现在是 **r80**：bit `1906b6764ae4` / elf `926565342970`（elf 未变），23:0x 由「ps_jtag_boot → vivado -mode batch program_pl → ps_app_reload」三件套上板，凭据 `build/evidence/r80_flash.log`；门禁 **19/20**，唯一红项 = 第 15 项 `C5c`(#98) ⇒ **r80 不冻结**，见 `build/evidence/r80_gates_red_C5c.txt`
+# Board bring-up（板上现在是 **r81 诊断版**：bit `f83a6831ae86`、WNS −0.062 ⇒ **不作交付**；elf `0ad46b9d7049`。r81 四滚逐位相同的凭据 `build/evidence/r81_roll4_still_red.txt`，r80 那一份门禁红项的现场 `build/evidence/r80_gates_red_C5c.txt`；上板走三件套 `ps_jtag_boot → program_pl → ps_app_reload`，只 JTAG、不写 QSPI）
 16:3x 用 `tb_v98` 新加的 **P98 探针**量到了机制（环入口摆的内容比 mapper 的请求晚一整"读口对"，
 所以写进 4..7 号槽的是 `299,299,0,0` 而帧头要 `0,0,1,1`），改法是一行（窗提前 2 行 + 取模量 301→300），
 排在 r78 的第一笔；细节与凭据：`docs/log/ISSUES.md` #98 结案段 + `build/evidence/r77_p98_headfeed_probe.txt`。最近一套"全绿并冻结"的仍是 `build/evidence_r75/`。这份文件本身从 V6 一路用到现在）

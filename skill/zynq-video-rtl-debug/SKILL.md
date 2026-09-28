@@ -37,7 +37,7 @@ description: Layered (L0-L4) RTL debug and single-variable fix protocol for this
   （`docs/log/OVERNIGHT_LOG.md` R13 第 3 条）——起因是一个什么都不断言的台架可以永远绿。
 - **机器那一半跑通、并且说得清是谁跑的**：`bash build/board_verify.sh --battery --geom` 退出码 **0**
   （串口电池 99/99、`geom_check ok=8 fail=0`，`build/evidence/verify_0927_2309*.txt`），
-  同一轮的位流身份是 md5 `1906b6764ae4` 而不是文件名（`build/evidence/r80_flash.log`）。
+  同一轮的位流身份是**它的 md5**而不是文件名（每次上板生成的 flash 日志是工具输出，不入库，所以能带走的是那串 md5）。
 - **它救过最贵的一次是反着用的**：门禁全绿而唯一例化顶层的台架连着红了好几版，因为门禁当时不跑它
   （`docs/log/ISSUES.md` #88/#78）⇒ "分层"不是走过场，每一层都得有一条真的会红的判据。
 
