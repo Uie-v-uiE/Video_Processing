@@ -1121,19 +1121,32 @@ module tb_v98_top_seam;
     //   成对写（本仓那条老规矩）：C9a 判"没有整列近黑"，C9b 判"确实有整列是亮的"——
     //   没有 C9b，C9a 的零可能只是探测器瞎了。
     localparam integer C9_SEAM = 512;
-    integer c9_blk[0:1023], c9_rows = 0, c9_col = 0, c9_de_d = 0, c9_k = 0, c9_any = 0;
+    integer c9_blk[0:1023], c9_rows = 0, c9_k = 0, c9_any = 0, c9_burst = 0, c9_px = 0;
+    integer c9_de_d = 0;
     integer c9_worst = 0, c9_wcol = -1, c9_best = 0, c9_bcol = -1, c9_border = 0;
     reg    c9_on = 1'b0;
+    // ⚠ 列号**不许**靠"数 de 脉冲"得来：这一路 `de_o` 一行内不止一个 burst
+    //   （第一版就是这么写的，量到 `c9_rows=4200`/两帧 —— 那是 2100 个"行"，而面板只有 600 行，
+    //   这个说不通的数就是尺子坏掉的自供）。于是直方图被摊平到错误的列上，
+    //   C9a 的"没有整列黑"是**在一张废图上判的**。改成取混色级自己的 `x`，
+    //   并让它自己报出"这一窗里有多少个 de burst / 多少像素"，好让下一个人一眼看出对齐对不对。
+    reg [11:0] c9_x = 12'd0;
     always @(posedge dut.clk_pix) begin
-        if (dut.de_o && !c9_de_d) c9_col = 0;
-        else if (dut.de_o) c9_col = c9_col + 1;
+        c9_x <= dut.x_d[dut.MIX_D];          // split_display 的输出晚一拍 ⇒ 列号也晚一拍去对
         if (c9_on && dut.de_o) begin
-            if ((dut.r < 8'd16) && (dut.g < 8'd16) && (dut.b < 8'd16)) begin
-                c9_blk[c9_col] = c9_blk[c9_col] + 1;
+            c9_px = c9_px + 1;
+            if (c9_x >= 12'd1024) begin
+                // 消隐期/异常：列号越界就**不数**，但要让它可见（下面按 burst 报数），
+                // 否则直方图又会悄悄摊到错误的格上。
+            end else if ((dut.r < 8'd16) && (dut.g < 8'd16) && (dut.b < 8'd16)) begin
+                c9_blk[c9_x] = c9_blk[c9_x] + 1;
                 c9_any = c9_any + 1;
             end
         end
-        if (!dut.de_o && c9_de_d) c9_rows = c9_rows + 1;
+        if (!dut.de_o && c9_de_d) begin
+            c9_rows = c9_rows + 1;
+            if (c9_on) c9_burst = c9_burst + 1;
+        end
         c9_de_d = dut.de_o;
     end
 
@@ -1467,7 +1480,7 @@ module tb_v98_top_seam;
         //   为什么这一档以前必然看不见它：① 缝在 0 ⇒ "缝旁"那一档在屏上不存在；
         //   ② `stage_sel` 全程 0 ⇒ 只在效果开着时才坏的列无从现形。两条都是台架的窗，不是设计无辜。
         for (c9_k = 0; c9_k < 1024; c9_k = c9_k + 1) c9_blk[c9_k] = 0;  // ⚠ `integer` 数组的初值是 X，必须清（#94 那一族）
-        c9_rows = 0; c9_col = 0; c9_de_d = 0; c9_any = 0;
+        c9_rows = 0; c9_de_d = 0; c9_any = 0; c9_burst = 0; c9_px = 0;
         split_ctl_tb[9:0] = 10'd512;          // 缝在正中：左半原图、右半处理（不写 C9_SEAM[9:0]：对无位宽参数做部分选择不稳）
         stage_sel         = 9'd1;             // 只开灰度 = 用户念的 `pipe 100000000`
         repeat (3) @(posedge dut.frame_start);   // 等 sel_sync 与缝的 snap 都落定，别采到换档那一帧
@@ -1497,7 +1510,7 @@ module tb_v98_top_seam;
         // 原来这一格判的是"最亮列几乎全亮"，而 best 的初值就是 0 ⇒ 探测器全瞎也照样 PASS，
         // 也就是说 C9a 的那个 0 从来没被证明不是瞎。这一档改成"必须数到黑"（0.50x 有背景带）。
         for (c9_k = 0; c9_k < 1024; c9_k = c9_k + 1) c9_blk[c9_k] = 0;
-        c9_rows = 0; c9_col = 0; c9_de_d = 0; c9_any = 0;
+        c9_rows = 0; c9_de_d = 0; c9_any = 0; c9_burst = 0; c9_px = 0;
         stage_sel  = 9'd5;                    // 灰度 + 模糊：这一档顺带覆盖"窗口级开着"的情形
         zoom_sel   = 3'd2;                    // 0.50x ⇒ 左右各 256 列黑背景（C4 那一维量过）
         split_ctl_tb[9:0] = 10'd512;
@@ -1517,6 +1530,33 @@ module tb_v98_top_seam;
              "the control window must have judged nearly a whole frame, else C9b means nothing");
         line("C9b detector does see known black columns", c9_border >= 100,
              "pair for C9a: on a cell where a dark column is guaranteed, this same counter must light up");
+
+        // ---- C9e（2026-09-28 08:4x，板上量出来的那一档）：处理抽头铺满整屏 x 1.5x x 只开灰度 ----
+        //   为什么必须换这一档：C9a 那档缝在 512、左半给原图，而板上的黑列在**内部列 128**
+        //   （显示列 256）——正好落在被原图盖住的那一半里，**结构上就看不见**。
+        //   板上三条事实：`split swap 0` 之后线消失 ⇒ 属于处理抽头；`zoom 1.0` 下线不在 256 ⇒ 跟着缩放走；
+        //   效果全关、bilin 关、SD 片源下仍在 ⇒ 与效果链内容无关。
+        for (c9_k = 0; c9_k < 1024; c9_k = c9_k + 1) c9_blk[c9_k] = 0;
+        c9_rows = 0; c9_de_d = 0; c9_any = 0; c9_burst = 0; c9_px = 0;
+        stage_sel    = 9'd1;                  // 只开灰度 = 用户念的 pipe 100000000
+        bilin_en_tb  = 1'b0;                  // 板上 bilin 关着也看得见，别把变量加回来
+        zoom_en      = 1'b1;
+        zoom_sel     = 3'd6;                  // ZOOM_X100[6]=150 ⇒ 1.5x（板上量到线的那一档）
+        split_ctl_tb[9:0] = 10'd0;            // 缝=0 ⇒ 整屏都是处理抽头，内部列 128 不再被原图盖住
+        repeat (3) @(posedge dut.frame_start);
+        c9_on = 1'b1;
+        repeat (2) @(posedge dut.frame_start);
+        c9_on = 1'b0;
+        stage_sel = 9'd0; zoom_en = 1'b0; zoom_sel = 3'd4;
+        c9_worst = 0; c9_wcol = -1;
+        for (c9_k = 1; c9_k < 1023; c9_k = c9_k + 1)
+            if (c9_blk[c9_k] > c9_worst) begin c9_worst = c9_blk[c9_k]; c9_wcol = c9_k; end
+        $display("C9e full-processed x 1.5x x gray: rows %0d de-burst %0d px %0d near-black %0d || darkest col %0d = %0d rows",
+                 c9_rows, c9_burst, c9_px, c9_any, c9_wcol, c9_worst);
+        line("C9epre rows judged", c9_rows >= 550,
+             "this window must have judged nearly the whole frame, else C9e below is a green on an empty set");
+        line("C9e no majority-dark column, processed tap full-screen at 1.5x", c9_worst * 2 < c9_rows,
+             "board shows a full-height near-black column at internal col 128 (display 256) here; ISSUES #103");
 
         $display("C2 table  code inv  nin     nout     inbad viol measl measr geol geor leakl leakr blank invbad | C3 rows empt wbad rbad fmin fmax lmin lmax");
         for (c2_k = 4'd0; c2_k < 4'd8; c2_k = c2_k + 4'd1) begin
