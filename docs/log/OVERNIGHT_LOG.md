@@ -5839,3 +5839,19 @@ OSD 叠层有了总开关（`osd on|off`，`gpio_o[20]` 反相）；`wr_full` �
   `git -c http.version=HTTP/1.1 push origin HEAD:refs/heads/wip-2026-09-28`。
 - `tb_v98`（顶层台架）与 `gates.sh` 的数字：这一跑从 01:16 起还在跑（`xsimk` CPU 在长，不是卡死），
   跑完我把两行结果补在本节末尾。
+
+### 02:39 补：顶层台架与门禁的数进来了（上面那张表的最后两行就是它俩）
+
+| 项 | 结果 | 凭据 |
+|---|---|---|
+| 顶层台架 `tb_v98` | **跑完 82 分钟**（01:16→02:32；`xsimk` CPU 一直在长，不是卡死），`RESULT … FAIL nfail=1`——**唯一红 = C5c**（`frame head is not the previous frame's tail` = #98 那一族的历史红灯，与今晚两件事无关）。其余全绿，含 **#93 的 C4b/C4c（旋转形状）**、**C9a/C9b/C9c/C9e（缝附近不许有黑列）**、**C12（OSD 叠字格 ON/OFF）** | `build/tb_v98_report.txt`，头 `top=47c59cd3a852 tb=d64b883a6d94 rtl=7a780b95ff5e` |
+| 出处对账 | 报告头部三枚 md5 与树里现值**逐枚相同**（`pl_video_top.v` / `tb_v98_top_seam.v` / 整棵 `src/rtl` 合指纹）⇒ 这份报告是**当前这棵树**跑的，可采纳 | 同上 + `build/r84_gates.txt` 第 15 项的读数 |
+| `tb_edge_rim`（r84 重跑） | **PASS**，四条圈 R2..R5 齐、0 行 FAIL：`build/tb_edge_rim_r84.txt`，`rtl=7a780b95ff5e` | 同上（门禁第 16 项从"报告不算当前树"翻成 PASS） |
+| 门禁 20 项 | **三条红**：WNS −0.094、失败 setup 端点 16（都是 #105 那一族）、第 15 项 C5c 那一行 FAIL。其余全绿：BRAM 95/67.86 %、Slice LUT 14360/26.99 %、multi-driven 0、位宽 0、端口接线 violations=0、CDC Critical 2（基线 4）、doc_enc/doc_cur/排练脚本对账/ps_hb 自检+10 条变异 全 PASS | `build/r84_gates.txt` |
+| 冻结 | `freeze_evidence.sh 84` **拒绝**（"有红项——不采纳，保留上一版"）。这是它该有的行为 ⇒ 提交包里的"最新 ALL PASS 冻结集"仍是 **r75**，r84 的数字写在 `docs/PERF_REPORT.md` §11 里并注明未冻结 | 同上 |
+
+⚠ **门禁自己报了一行 WARN，必须解释，不能被当成"已过"**：`有 RTL 源比 system.bit 新 ⇒ 这份产物不含这些改动`。
+那 16 个文件是**注释**（01:15 的模块头补定位 + #109 改口），代码一个字节没动，证明有两把：
+① `python build/trim_comments.py --check` → "注释之外的部分与 HEAD 完全一致"（它剥掉注释后逐字比对）；
+② 全树 `xvlog` 重编 **0 error**。所以这块 r84 位流与现在树里的代码是同一份实现；
+下一次真改代码的构建会把这个 WARN 消掉。

@@ -1,0 +1,173 @@
+# provenance top_md5=47c59cd3a852 tb_md5=d64b883a6d94 rtl_md5=7a780b95ff5e date=2026-09-29T01:16:14+08:00 src=/tmp/kx/tb_v98_top_seam.run/run.log
+PASS C0a ruler encodes position in the pixel | px_val / decoder / mod-256 signed diff must agree, incl. 0, small values, both edges, both wrap directions
+PASS C0a3 no black cell exists in the pattern | the panel-level ruler equates black with outside-the-picture, so the pattern must not contain black
+PASS C0a2 golden array actually holds it | read back ddr[0] and the last word after init: a correct function is not a correct array
+PASS C0d a real source is on screen | less than half of left-pane samples are black, else nothing was copied
+PASS C0b enough frames ran | at least 3 frames, otherwise every count below is void
+PASS C0c the AXI copy is alive | AXI bursts present, 8-byte aligned, never read outside the PS window
+PASS C0f whole fb word space written | de-duplicated write-word index count must cover the full frame once
+PASS C1i read-port phase same stage as src | col0/row0/pair_odd/req_vld must come from the calibrated label stage, not from a comment
+PASS C1g VIEWPORT col: src == x_d[2]>>1 | single viewport: src column == display column >>1 at the calibrated stage (k=2 is the only zero)
+PASS C1h VIEWPORT row: src == wrap((y_d[2]+OFF+BILIN)>>1) | row-wise definition now includes the #97 frame-head wrap; floor c1_wrapn proves the wrap window was judged
+PASS C0e RULER self-consistent | out-of-range bucket must be a subset of the mismatch set
+PASS C1a content-check coverage | in-line left-pane samples below 50k means nothing was measured
+PASS C1e PRECONDITION no X inside the measurement window | with X present every dcol/drow below is false-green on an empty set (#78)
+PASS C1c content column == display column >> 1 | single-viewport geometry, content-level evidence (was a NOTE before #78)
+PASS C1d content row == display row >> 1 (outside ring warm-up) | row-wise content alignment of the raw tap; warm-up rows are counted, not hidden
+C4 idx=0 ang=0 zoom=100% zsel=4 æœ‰ç”»é¢è¡Œ=780 æ— ç”»é¢è¡Œ=0 **å¤šæ®µè¡Œ=0** ç¬¬1åˆ—[0..0] æœ«åˆ—[1023..1023] | angle=0 rot_on=0
+PASS C4a rows judged | this (angle, zoom) cell must actually have content rows, else C4b below means nothing
+PASS C4b one run per row | a rotated rectangle meets every panel row in ONE contiguous run; 2+ runs = #93's stray diagonal bar / left-edge line
+C4 idx=1 ang=45 zoom=100% zsel=4 æœ‰ç”»é¢è¡Œ=780 æ— ç”»é¢è¡Œ=0 **å¤šæ®µè¡Œ=0** ç¬¬1åˆ—[0..176] æœ«åˆ—[635..1023] | angle=45 rot_on=1
+PASS C4a rows judged | this (angle, zoom) cell must actually have content rows, else C4b below means nothing
+PASS C4b one run per row | a rotated rectangle meets every panel row in ONE contiguous run; 2+ runs = #93's stray diagonal bar / left-edge line
+C4 idx=2 ang=90 zoom=100% zsel=4 æœ‰ç”»é¢è¡Œ=780 æ— ç”»é¢è¡Œ=0 **å¤šæ®µè¡Œ=0** ç¬¬1åˆ—[212..212] æœ«åˆ—[811..811] | angle=90 rot_on=1
+PASS C4a rows judged | this (angle, zoom) cell must actually have content rows, else C4b below means nothing
+PASS C4b one run per row | a rotated rectangle meets every panel row in ONE contiguous run; 2+ runs = #93's stray diagonal bar / left-edge line
+C4 idx=3 ang=168 zoom=100% zsel=4 æœ‰ç”»é¢è¡Œ=780 æ— ç”»é¢è¡Œ=0 **å¤šæ®µè¡Œ=0** ç¬¬1åˆ—[0..460] æœ«åˆ—[973..1023] | angle=168 rot_on=1
+PASS C4a rows judged | this (angle, zoom) cell must actually have content rows, else C4b below means nothing
+PASS C4b one run per row | a rotated rectangle meets every panel row in ONE contiguous run; 2+ runs = #93's stray diagonal bar / left-edge line
+C4 idx=4 ang=0 zoom=50% zsel=2 æœ‰ç”»é¢è¡Œ=480 æ— ç”»é¢è¡Œ=300 **å¤šæ®µè¡Œ=0** ç¬¬1åˆ—[256..256] æœ«åˆ—[767..767] | angle=0 rot_on=0
+PASS C4a rows judged | this (angle, zoom) cell must actually have content rows, else C4b below means nothing
+PASS C4b one run per row | a rotated rectangle meets every panel row in ONE contiguous run; 2+ runs = #93's stray diagonal bar / left-edge line
+C4 idx=5 ang=45 zoom=50% zsel=2 æœ‰ç”»é¢è¡Œ=756 æ— ç”»é¢è¡Œ=24 **å¤šæ®µè¡Œ=0** ç¬¬1åˆ—[226..436] æœ«åˆ—[437..799] | angle=45 rot_on=1
+PASS C4a rows judged | this (angle, zoom) cell must actually have content rows, else C4b below means nothing
+PASS C4b one run per row | a rotated rectangle meets every panel row in ONE contiguous run; 2+ runs = #93's stray diagonal bar / left-edge line
+C4 idx=6 ang=90 zoom=50% zsel=2 æœ‰ç”»é¢è¡Œ=696 æ— ç”»é¢è¡Œ=84 **å¤šæ®µè¡Œ=0** ç¬¬1åˆ—[362..362] æœ«åˆ—[661..661] | angle=90 rot_on=1
+PASS C4a rows judged | this (angle, zoom) cell must actually have content rows, else C4b below means nothing
+PASS C4b one run per row | a rotated rectangle meets every panel row in ONE contiguous run; 2+ runs = #93's stray diagonal bar / left-edge line
+C4 idx=7 ang=168 zoom=50% zsel=2 æœ‰ç”»é¢è¡Œ=584 æ— ç”»é¢è¡Œ=196 **å¤šæ®µè¡Œ=0** ç¬¬1åˆ—[230..728] æœ«åˆ—[731..793] | angle=168 rot_on=1
+PASS C4a rows judged | this (angle, zoom) cell must actually have content rows, else C4b below means nothing
+PASS C4b one run per row | a rotated rectangle meets every panel row in ONE contiguous run; 2+ runs = #93's stray diagonal bar / left-edge line
+C4 idx=8 ang=0 zoom=25% zsel=0 æœ‰ç”»é¢è¡Œ=300 æ— ç”»é¢è¡Œ=480 **å¤šæ®µè¡Œ=0** ç¬¬1åˆ—[384..384] æœ«åˆ—[641..641] | angle=0 rot_on=0
+PASS C4a rows judged | this (angle, zoom) cell must actually have content rows, else C4b below means nothing
+PASS C4b one run per row | a rotated rectangle meets every panel row in ONE contiguous run; 2+ runs = #93's stray diagonal bar / left-edge line
+C4 idx=9 ang=45 zoom=25% zsel=0 æœ‰ç”»é¢è¡Œ=468 æ— ç”»é¢è¡Œ=312 **å¤šæ®µè¡Œ=0** ç¬¬1åˆ—[370..496] æœ«åˆ—[475..655] | angle=45 rot_on=1
+PASS C4a rows judged | this (angle, zoom) cell must actually have content rows, else C4b below means nothing
+PASS C4b one run per row | a rotated rectangle meets every panel row in ONE contiguous run; 2+ runs = #93's stray diagonal bar / left-edge line
+C4 idx=10 ang=90 zoom=25% zsel=0 æœ‰ç”»é¢è¡Œ=440 æ— ç”»é¢è¡Œ=340 **å¤šæ®µè¡Œ=0** ç¬¬1åˆ—[438..438] æœ«åˆ—[587..587] | angle=90 rot_on=1
+PASS C4a rows judged | this (angle, zoom) cell must actually have content rows, else C4b below means nothing
+PASS C4b one run per row | a rotated rectangle meets every panel row in ONE contiguous run; 2+ runs = #93's stray diagonal bar / left-edge line
+C4 idx=11 ang=168 zoom=25% zsel=0 æœ‰ç”»é¢è¡Œ=384 æ— ç”»é¢è¡Œ=396 **å¤šæ®µè¡Œ=0** ç¬¬1åˆ—[372..620] æœ«åˆ—[447..653] | angle=168 rot_on=1
+PASS C4a rows judged | this (angle, zoom) cell must actually have content rows, else C4b below means nothing
+PASS C4b one run per row | a rotated rectangle meets every panel row in ONE contiguous run; 2+ runs = #93's stray diagonal bar / left-edge line
+PASS C5a judged rows | the 0deg x 100% cell must give >=500 judged rows, else C5b/C5c below mean nothing
+PASS C5b body rows carry their own source row | decoded tag row == panel row/2 below the pipeline head; any off-by-N is the read-side advance (cy_r)
+FAIL C5c frame head is not the previous frame's tail | first OFF+BILIN output rows must carry their own source row on BOTH sides of the seam
+PASS C6a line head carries the line's own column 0 | at 0deg x 100% the picture fills the screen, so NO background-based ruler can see a wrapped line head; the tag's column must be 0 (= #97's left band candidate)
+PASS C8a raw tap's first column of every body row is the row's own column 0 | #10ÿÿÿšÿÿÿçÿÿÿœÿÿÿŒÿÿÿèÿÿÿˆÿÿÿ„ÿÿÿæÿÿÿšÿÿÿŸÿÿÿäÿÿÿœÿÿÿ€ÿÿÿæÿÿÿ­ÿÿÿˆÿÿÿæÿÿÿæÿÿÿˆ— 16ÿÿÿ‰ÿÿÿäÿÿÿ˜ÿÿÿ¬ÿÿÿçÿÿÿ¸ÿÿÿ—
+PASS C8b proc tap's first column of every body row is the row's own column 0 | ÿÿÿåÿÿÿ¸ÿÿÿ¼ÿÿÿåÿÿÿÿÿÿ½ÿÿÿäÿÿÿšÿÿÿ¹ÿÿÿéÿÿÿ¼šC8aÿÿÿ¿ÿÿÿåÿÿÿ¸ÿÿÿÿÿÿçÿÿÿ—ÿÿÿŒÿÿÿéÿÿÿ°ÿÿÿ½ÿÿÿèÿÿÿ¸ÿÿÿ¯
+C9 gray x seam=512: lines-in-window 1200 (de-edges 4200) near-black-cells 0 || darkest col-1=0 rows, brightest col1=0 rows || at seam col511=0 col512=0 col513=0
+PASS C9pre rows judged | this window must have judged nearly the whole frame, else C9a below is a green on an empty set
+PASS C9a no full-height black column with gray on and seam mid | the line the user reported at 23:3x: no column inside the picture may be majority near-black
+PASS C9c columns at the seam are not black either | the user says the line appears where the divider passes; the seam's own columns are the suspect set
+C9b 0.50x gray+blur: lines-in-window 1200 (de-edges 3000) near-black-cells 921600 || whole-dark columns 1022 (border should give ~512)
+PASS C9bpre rows judged | the control window must have judged nearly a whole frame, else C9b means nothing
+PASS C9b detector does see known black columns | pair for C9a: on a cell where a dark column is guaranteed, this same counter must light up
+C9e full-processed x 1.5x x gray: lines-in-window 1200 (de-edges 3000) px 1228800 near-black 0 || darkest col -1 = 0 rows
+PASS C9epre rows judged | this window must have judged nearly the whole frame, else C9e below is a green on an empty set
+PASS C9e no majority-dark column, processed tap full-screen at 1.5x | board shows a full-height near-black column at internal col 128 (display 256) here; ISSUES #103
+PASS C12pre the rose probe does see glyphs when OSD is on | pair for C12a: with OSD on, the panel must actually carry glyph cells, else C12a's zero is a blind probe
+PASS C12a osd off removes every glyph cell at the panel | gpio_o[20] must reach u_osd through its own 3-stage chain; ISSUES r83 OSD switch
+C2 table  code inv  nin     nout     inbad viol measl measr geol geor leakl leakr blank invbad | C3 rows empt wbad rbad fmin fmax lmin lmax
+C2 row    0 1023    62436   185372      0    0   384   641  384  641    -1    -1     0    0 |  300  480   0   0  384  384  641  641
+C2SHAPE code=0 inv=1023 inbad=0 badpairs=0 firstpair=-1 lastpair=-1 dm1=0 dp1=0 dother=0
+PASS C7pre sampled | the row ruler needs samples in the SAME window C2 judges (rblk<20000 =ÿÿÿ‡ÿÿÿåÿÿÿºÿÿÿ‘ÿÿÿèÿÿÿ‡ÿÿÿ»ÿÿ¢)
+PASS C7 row matches definition | each sampled cell must decode to the source ROW the definition asks for, all 8 zoom steps
+PASS C2pre inv took | inv_used must equal the table value, and the code must have been sampled
+PASS C3pre marker off | the 2px seam marker would itself be a non-black column at the panel edge (#92)
+PASS C3a panel active window | every measured line must be exactly 1024 de-high columns and the frame 600 lines
+PASS C3b panel rows judged | C3 must actually have content rows to judge, else the edge numbers below are void
+PASS C2a bg black | no content in background / no black hole inside the picture
+PASS C2b col matches definition | each in-window column must decode to the source column the definition asks for
+PASS C2c edges match definition | measured picture edges == geometric edges (content stage, in columns)
+PASS C3c panel edges match definition | the panel's own first/last non-black column == the geometric edges, same on every row
+PASS C2d coverage | zoom-out codes must actually have background columns to judge
+C2 row    1  776    81796   166012      0    0   344   681  344  681    -1    -1     0    0 |  380  400   0   0  344  344  681  681
+C2SHAPE code=1 inv=776 inbad=0 badpairs=0 firstpair=-1 lastpair=-1 dm1=0 dp1=0 dother=0
+PASS C7pre sampled | the row ruler needs samples in the SAME window C2 judges (rblk<20000 =ÿÿÿ‡ÿÿÿåÿÿÿºÿÿÿ‘ÿÿÿèÿÿÿ‡ÿÿÿ»ÿÿ¢)
+PASS C7 row matches definition | each sampled cell must decode to the source ROW the definition asks for, all 8 zoom steps
+PASS C2pre inv took | inv_used must equal the table value, and the code must have been sampled
+PASS C3pre marker off | the 2px seam marker would itself be a non-black column at the panel edge (#92)
+PASS C3a panel active window | every measured line must be exactly 1024 de-high columns and the frame 600 lines
+PASS C3b panel rows judged | C3 must actually have content rows to judge, else the edge numbers below are void
+PASS C2a bg black | no content in background / no black hole inside the picture
+PASS C2b col matches definition | each in-window column must decode to the source column the definition asks for
+PASS C2c edges match definition | measured picture edges == geometric edges (content stage, in columns)
+PASS C3c panel edges match definition | the panel's own first/last non-black column == the geometric edges, same on every row
+PASS C2d coverage | zoom-out codes must actually have background columns to judge
+C2 row    2  512   123904   123904      0    0   256   767  256  767    -1    -1     0    0 |  480  300   0   0  256  256  767  767
+C2SHAPE code=2 inv=512 inbad=0 badpairs=0 firstpair=-1 lastpair=-1 dm1=0 dp1=0 dother=0
+PASS C7pre sampled | the row ruler needs samples in the SAME window C2 judges (rblk<20000 =ÿÿÿ‡ÿÿÿåÿÿÿºÿÿÿ‘ÿÿÿèÿÿÿ‡ÿÿÿ»ÿÿ¢)
+PASS C7 row matches definition | each sampled cell must decode to the source ROW the definition asks for, all 8 zoom steps
+PASS C2pre inv took | inv_used must equal the table value, and the code must have been sampled
+PASS C3pre marker off | the 2px seam marker would itself be a non-black column at the panel edge (#92)
+PASS C3a panel active window | every measured line must be exactly 1024 de-high columns and the frame 600 lines
+PASS C3b panel rows judged | C3 must actually have content rows to judge, else the edge numbers below are void
+PASS C2a bg black | no content in background / no black hole inside the picture
+PASS C2b col matches definition | each in-window column must decode to the source column the definition asks for
+PASS C2c edges match definition | measured picture edges == geometric edges (content stage, in columns)
+PASS C3c panel edges match definition | the panel's own first/last non-black column == the geometric edges, same on every row
+PASS C2d coverage | zoom-out codes must actually have background columns to judge
+C2 row    3  341   186340    61468      0    0   128   897  128  897    -1    -1     0    0 |  632  148   0   0  128  128  897  897
+C2SHAPE code=3 inv=341 inbad=0 badpairs=0 firstpair=-1 lastpair=-1 dm1=0 dp1=0 dother=0
+PASS C7pre sampled | the row ruler needs samples in the SAME window C2 judges (rblk<20000 =ÿÿÿ‡ÿÿÿåÿÿÿºÿÿÿ‘ÿÿÿèÿÿÿ‡ÿÿÿ»ÿÿ¢)
+PASS C7 row matches definition | each sampled cell must decode to the source ROW the definition asks for, all 8 zoom steps
+PASS C2pre inv took | inv_used must equal the table value, and the code must have been sampled
+PASS C3pre marker off | the 2px seam marker would itself be a non-black column at the panel edge (#92)
+PASS C3a panel active window | every measured line must be exactly 1024 de-high columns and the frame 600 lines
+PASS C3b panel rows judged | C3 must actually have content rows to judge, else the edge numbers below are void
+PASS C2a bg black | no content in background / no black hole inside the picture
+PASS C2b col matches definition | each in-window column must decode to the source column the definition asks for
+PASS C2c edges match definition | measured picture edges == geometric edges (content stage, in columns)
+PASS C3c panel edges match definition | the panel's own first/last non-black column == the geometric edges, same on every row
+PASS C2d coverage | zoom-out codes must actually have background columns to judge
+C2 row    4  256   247808        0      0    0     0  1023    0 1023    -1    -1     0    0 |  780    0   0   0    0    0 1023 1023
+C2SHAPE code=4 inv=256 inbad=0 badpairs=0 firstpair=-1 lastpair=-1 dm1=0 dp1=0 dother=0
+PASS C7pre sampled | the row ruler needs samples in the SAME window C2 judges (rblk<20000 =ÿÿÿ‡ÿÿÿåÿÿÿºÿÿÿ‘ÿÿÿèÿÿÿ‡ÿÿÿ»ÿÿ¢)
+PASS C7 row matches definition | each sampled cell must decode to the source ROW the definition asks for, all 8 zoom steps
+PASS C2pre inv took | inv_used must equal the table value, and the code must have been sampled
+PASS C3pre marker off | the 2px seam marker would itself be a non-black column at the panel edge (#92)
+PASS C3a panel active window | every measured line must be exactly 1024 de-high columns and the frame 600 lines
+PASS C3b panel rows judged | C3 must actually have content rows to judge, else the edge numbers below are void
+PASS C2a bg black | no content in background / no black hole inside the picture
+PASS C2b col matches definition | each in-window column must decode to the source column the definition asks for
+PASS C2c edges match definition | measured picture edges == geometric edges (content stage, in columns)
+PASS C3c panel edges match definition | the panel's own first/last non-black column == the geometric edges, same on every row
+C2 row    5  192   247808        0      0    0     0  1023    0 1023    -1    -1     0    0 |  780    0   0   0    0    0 1023 1023
+C2SHAPE code=5 inv=192 inbad=0 badpairs=0 firstpair=-1 lastpair=-1 dm1=0 dp1=0 dother=0
+PASS C7pre sampled | the row ruler needs samples in the SAME window C2 judges (rblk<20000 =ÿÿÿ‡ÿÿÿåÿÿÿºÿÿÿ‘ÿÿÿèÿÿÿ‡ÿÿÿ»ÿÿ¢)
+PASS C7 row matches definition | each sampled cell must decode to the source ROW the definition asks for, all 8 zoom steps
+PASS C2pre inv took | inv_used must equal the table value, and the code must have been sampled
+PASS C3pre marker off | the 2px seam marker would itself be a non-black column at the panel edge (#92)
+PASS C3a panel active window | every measured line must be exactly 1024 de-high columns and the frame 600 lines
+PASS C3b panel rows judged | C3 must actually have content rows to judge, else the edge numbers below are void
+PASS C2a bg black | no content in background / no black hole inside the picture
+PASS C2b col matches definition | each in-window column must decode to the source column the definition asks for
+PASS C2c edges match definition | measured picture edges == geometric edges (content stage, in columns)
+PASS C3c panel edges match definition | the panel's own first/last non-black column == the geometric edges, same on every row
+C2 row    6  171   247808        0      0    0     0  1023    0 1023    -1    -1     0    0 |  780    0   0   0    0    0 1023 1023
+C2SHAPE code=6 inv=171 inbad=0 badpairs=0 firstpair=-1 lastpair=-1 dm1=0 dp1=0 dother=0
+PASS C7pre sampled | the row ruler needs samples in the SAME window C2 judges (rblk<20000 =ÿÿÿ‡ÿÿÿåÿÿÿºÿÿÿ‘ÿÿÿèÿÿÿ‡ÿÿÿ»ÿÿ¢)
+PASS C7 row matches definition | each sampled cell must decode to the source ROW the definition asks for, all 8 zoom steps
+PASS C2pre inv took | inv_used must equal the table value, and the code must have been sampled
+PASS C3pre marker off | the 2px seam marker would itself be a non-black column at the panel edge (#92)
+PASS C3a panel active window | every measured line must be exactly 1024 de-high columns and the frame 600 lines
+PASS C3b panel rows judged | C3 must actually have content rows to judge, else the edge numbers below are void
+PASS C2a bg black | no content in background / no black hole inside the picture
+PASS C2b col matches definition | each in-window column must decode to the source column the definition asks for
+PASS C2c edges match definition | measured picture edges == geometric edges (content stage, in columns)
+PASS C3c panel edges match definition | the panel's own first/last non-black column == the geometric edges, same on every row
+C2 row    7  128   247808        0      0    0     0  1023    0 1023    -1    -1     0    0 |  780    0   0   0    0    0 1023 1023
+C2SHAPE code=7 inv=128 inbad=0 badpairs=0 firstpair=-1 lastpair=-1 dm1=0 dp1=0 dother=0
+PASS C7pre sampled | the row ruler needs samples in the SAME window C2 judges (rblk<20000 =ÿÿÿ‡ÿÿÿåÿÿÿºÿÿÿ‘ÿÿÿèÿÿÿ‡ÿÿÿ»ÿÿ¢)
+PASS C7 row matches definition | each sampled cell must decode to the source ROW the definition asks for, all 8 zoom steps
+PASS C2pre inv took | inv_used must equal the table value, and the code must have been sampled
+PASS C3pre marker off | the 2px seam marker would itself be a non-black column at the panel edge (#92)
+PASS C3a panel active window | every measured line must be exactly 1024 de-high columns and the frame 600 lines
+PASS C3b panel rows judged | C3 must actually have content rows to judge, else the edge numbers below are void
+PASS C2a bg black | no content in background / no black hole inside the picture
+PASS C2b col matches definition | each in-window column must decode to the source column the definition asks for
+PASS C2c edges match definition | measured picture edges == geometric edges (content stage, in columns)
+PASS C3c panel edges match definition | the panel's own first/last non-black column == the geometric edges, same on every row
+P1 chain-blur: arm(x==1023&de)=79200 flush=79200 run@è¡Œå°¾ min=1024 max=1024 | pipe_de=81100800 mix_de_d11=81100800 (å·® 0)
+RESULT tb_v98_top_seam FAIL nfail=1
