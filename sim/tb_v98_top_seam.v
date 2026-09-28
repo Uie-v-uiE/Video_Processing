@@ -1547,11 +1547,14 @@ module tb_v98_top_seam;
         c9_on = 1'b1;
         repeat (2) @(posedge dut.frame_start);
         c9_on = 1'b0;
-        stage_sel = 9'd0; zoom_en = 1'b0; zoom_sel = 3'd4;
-        // ⚠ 必须在这里把 bilin 还回 1：C9a/C9b/C9e 三档都为了"别把两格混成第三格"把双线性关掉，
-        //   而后面的 C2/C3/C7 八档扫描的期望值是按**默认 bilin 开**算的。关掉它跑扫描，红的是
-        //   C2a/C2b/C2c/C3c/C2pre/C7 一整族（2026-09-28 09:5x 那份就是这样红的 —— 台架漏了状态，
-        //   不是设计变了）。
+        stage_sel = 9'd0; zoom_en = 1'b1; zoom_sel = 3'd4;
+        // ⚠ 这两行**必须还成 zoom_en=1 / bilin_en_tb=1**，不是"还成台架初值"：
+        //   C5/C8/C9 这一段前面（`zoom_en = 1'b1;` 那一行）已经把缩放门打开了，而后面的
+        //   C2/C3/C7 八档扫描只自己写 `zoom_sel`，**倍率能不能生效全靠 zoom_en**。
+        //   2026-09-28 那份里 C2pre 的 `invbad` 等于全部采样数（247808）、`viol` 等于 `nout`，
+        //   就是"门没开、倍率从没换过"的签名；C2a/C2b/C2c/C3c/C7 一整族因此全红。
+        //   双线性是第二个漏（C9 三档为"别把两格混成第三格"把它关掉），红了同一族里的边缘判据。
+        //   两个都是**台架漏状态**，不是设计变了 —— r80 那份冻结件里这些条目都是 PASS。
         bilin_en_tb = 1'b1;
         c9_worst = 0; c9_wcol = -1;
         for (c9_k = 1; c9_k < 1023; c9_k = c9_k + 1)
