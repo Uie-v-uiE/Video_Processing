@@ -13,7 +13,7 @@
 | 不写厂商 flash：改板只走 JTAG | `build/tcl/ps_jtag_boot.tcl` / `program_pl.tcl` / `ps_app_reload.tcl`；仓库里**没有**任何写 QSPI/SPI flash 的流程或脚本 | ✅ |
 | 软硬件协同 | 数据面全在 PL，PS 只有几百行裸机控制面；划分依据与反例写在 `docs/PS_VS_PL.md`，接口（AXI-Lite 两个基址 + `gpio_o/gpio_i` 窄通道 + 读回 lane）在 `docs/ARCHITECTURE.md` 与 `src/ps/main.c` | ✅ |
 | 可测量性能 + 与基线对比 | 唯一一张数字表在 `docs/PERF_REPORT.md`（吞吐、时延、资源、时序、功耗，每行带它出自哪份报告）；优化过程与**没采纳**的那些在 `docs/OPTIMIZATION_LOG.md` | ✅ |
-| 功能正确性如何确认 | 一条命令跑门禁（`build/gates.sh`：时序/资源/端口/CDC/文档一致性 + 两个钉 md5 的整屏台架 + 几十个单模块台架）；判据为什么"必须能变红"、变异对照怎么做，写在 `sim/README.md` 与 `skill/` 的对应条目 | ✅ |
+| 功能正确性如何确认 | 一条命令跑门禁（`build/gates.sh`：时序/资源/端口/CDC/文档一致性 + **两个钉 md5 的整屏台架**（`tb_v98_top_seam`、`tb_edge_rim`）+ 几支检查器自带的变异对照）；**其余几十个单模块台架不在门禁里**，它们是 `sim/run_sim.tcl` 的 L1 全量（跑法见 `docs/BUILD.md`）或 `sim/run_one.sh <tb名>` 单跑——2026-09-29 07:28 改正这一句，原来这里写"门禁含几十个单模块台架"是把两条流水线说成了一条（同一族的"文档说的与跑的不一样"，`#122`/`#129`）；r86 这棵树上今晚跑过的 10 支单模块台架记 `build/r86_l1_subset.txt`。判据为什么"必须能变红"、变异对照怎么做，写在 `sim/README.md` 与 `skill/` 的对应条目 | ✅ |
 | 判断依据进报告 | `docs/log/ISSUES.md`（症状→假设→量到的数→为什么这样修→还欠什么）与 `docs/log/OVERNIGHT_LOG.md`（决策与被否掉的推论）是追加式档案；`docs/log/VERSION_LINEAGE.md` 标哪些代码来自厂商例程、哪些自研 | ✅ |
 | 大模型协作记录（提示词/回答/**自我纠错轨迹**） | `docs/AI_COLLABORATION.md`：约束怎么给、模型怎么跑偏、用什么读数判掉、之后哪条规则进了脚本 | ✅ |
 | 技能包（可复用性是评分标准） | `skill/README.md` 为唯一索引（条目数只有那一行写着），四类（工作流 / 可抄的案例模板 / 校验脚本 / 技术踩坑），**每条固定六节**：触发 · 不适用 · 动作 · 完成判据 · 失效边界 · 出处（一行，指回 `docs/log/` 里那次真实失败）。正文不许出现日期与构建号，具体信号名只作举例 ⇒ 换板换题目照样能用；每条 ≤ 90 行 | ✅ |

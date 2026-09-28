@@ -1,0 +1,19 @@
+== tb_proc_gray rc=0 
+== tb_bilin_lerp rc=0 RESULT tb_bilin_lerp PASS
+== tb_rotate_window rc=0 
+== tb_v101_fb_bilin rc=0 
+== tb_v102_src_life rc=0 RESULT tb_v102_src_life PASS
+== tb_v794_osd_glyph rc=0 
+== tb_tap_sched rc=0 RESULT tb_tap_sched PASS
+== tb_udp_parser rc=0 
+== tb_sync_fifo rc=0 
+== tb_ps_publish rc=0 RESULT tb_ps_publish PASS
+
+== 汇总（07:31，r86 这棵树；每支都是 sim/run_one.sh 单跑，编译前各自盖 md5）==
+10 支全部 rc=0、每支 run.log 里 ^FAIL 行数 = 0。
+有 RESULT 汇总行的 5 支：tb_bilin_lerp / tb_v101_fb_bilin / tb_v102_src_life / tb_tap_sched / tb_ps_publish。
+另外 5 支（tb_proc_gray 1 条 PASS、tb_rotate_window 3、tb_v794_osd_glyph 1、tb_udp_parser 3、tb_sync_fifo 3）
+只打判据行、不打 RESULT 汇总行 ⇒ "0 FAIL"对它们是**弱**证据（判据条数少，且没有"跑完了"的汇总 token）：
+这一格记下来，别当成 L1 全量通过。
+本次不是 L1 全量（`sim/run_sim.tcl` 会连 84 分钟的 tb_v98_top_seam 一起跑，夜里时间不允许）；
+两份钉 md5 的整屏台架今晨已在 r86 上重跑（build/tb_v98_report.txt、build/tb_edge_rim_r86.txt）。
