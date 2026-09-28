@@ -5602,3 +5602,25 @@ R7/R9 的 `<40` 地板等于循环次数（恒成立）、覆盖率地板 `n2..n
   这条是 #128 那三条改码"没把牙磨钝"的直接凭据。
 - 边缘条带 r86 的凭据 `build/tb_edge_rim_r86.txt`：`rtl_md5=2b3c5945a9e0`（与现树一致）、
   `^FAIL` 行数 0、`^RESULT tb_edge_rim PASS$` 汇总行 1、`^PASS R[2-5]` 四条圈齐（门禁第 15b 项要求恰好 4）。
+
+---
+
+## #129（2026-09-29 06:56）：交付包的**死链自检**抓到 3 条指路指到不存在的东西——而这类只有打包那一步会看
+
+`bash build/make_submission.sh` 在最后一步会解析"活文档"里的每条相对路径指路，并在**剪过的文件树**上验它存不存在；
+不存在就 `FAIL：包里有 N 条死链`，**不落到 ../submission/**（这个拒绝行为今天第二次发挥作用）。三条：
+
+| 指路 | 为什么是死链 | 处理 |
+|---|---|---|
+| `docs/BUILD.md` → `build/tcl/_tmp_isolated_roll.tcl` | 那是 `roll_isolated.sh` 用完即删的临时脚本：包里没有它是**正确的**，错的是文档把它当"可 ls 的东西"来引用 | 改成描述行为（"拒绝发生在 mkdir/sed 之前，所以连那份临时 Tcl 都不会被创建"） |
+| `docs/OPTIMIZATION_LOG.md` → `build/crit_path.tcl` | 纯粹**写错路径**，真身在 `build/tcl/crit_path.tcl` | 改对 |
+| `docs/OPTIMIZATION_LOG.md` → `build/r85_isolated/system.bit` | 那是本机暂存的隔离产物，不随交付走；而那句话是要教人**怎么复现** | 换成 `OUT=<目录> bash build/roll_isolated.sh` 重跑一次再 `cmp -l` 的说法 |
+
+**口径要记下来**：`doc_currency_check`（D1/D2/D3/D4）管的是"活文档有没有把旧的念成当前、点名的冻结目录在不在盘上"，
+`line_cite_check`（D5）管的是"代码行号引用有没有越过文件末尾"，**只有打包那一步会解析全部指路并验证目标存在**。
+所以"导出通过"是这三把尺子之外的一格，不能拿前两项绿来代替它。
+
+**同一格里的自我提醒（第三次，同一夜）**：`git commit -F - <<'MSG'` 的消息体我又一次写在了**别的命令之后**，
+于是 bash 把每一行消息当成命令执行（`build/r85_isolated/system.bit: cannot execute binary file`），
+git 报 *"empty commit message"* 而暂存的文件原样留着——看上去像"这轮做完了"。规矩没变：
+**消息体紧跟开标记的下一行，收尾标记单独一行，后续命令放在收尾之后**。
