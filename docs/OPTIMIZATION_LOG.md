@@ -135,9 +135,9 @@ set_clock_groups -asynchronous \
 - V6.4 板级验收：1396 B 分包下两个 bank 命中率 **100.0%**、每帧空洞 **0**（v6.3 同条件下是 99.9% / 222 个 16bit 字）。
 
 ### 判据方法（本版新增，可复用）
-`src/host/video_sender.mjs --test frameid` + `src/host/ddr_verify.mjs --frameid`
-+ `src/host/ddr_stale.mjs`（包内相位 / 游程长度 / 粒度三维展开），一条命令
-`node src/host/measure_v63.mjs --fps N`。**必须发完再回读**。详见 `skill/frameid_loss_signature.md`。
+`src/host/video_sender.mjs --test frameid` + `ddr_verify.mjs --frameid`
++ `ddr_stale.mjs`（包内相位 / 游程长度 / 粒度三维展开），一条命令
+`node measure_v63.mjs --fps N`。**必须发完再回读**。详见 `skill/frameid_loss_signature.md`。
 
 ### 本版变更文件
 `src/rtl/eth/{frame_reasm,eth_udp_video_top,axi_frame_saver64}.v`
@@ -280,7 +280,7 @@ DSP 从 14 个增加到 20 个但功耗不变（这几个乘法器只在像素�
   （`pl_video_top.v:149` 那个 `clk_200m_unused` 是 `u_pl/u_clk` 里的另一路，工具已经把没负载的 BUFG 剪掉了：
   时钟树清单里只有 g0~g7 这 8 棵，没有第二棵 200 MHz。）
 
-## 7. §5 的采纳规则写成了脚本：`build/wip_r65_ab.sh`（自检已过，两向都有牙）
+## 7. §5 的采纳规则当时写成过一个脚本（自检已过、两向都有牙；脚本本身是阶段性的，已退役）
 
 > **2026-09-27 更新（#66 的 A 类清理）**：那个一次性脚本已经删掉，但**规则本身仍然有效**，
 > 而且比脚本更长：采纳 = `eth_rxc` 与 `clkout0_1` 两组都不退 + 至少一组变好 + 失败端点 0，

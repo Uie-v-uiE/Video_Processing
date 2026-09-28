@@ -127,7 +127,7 @@ V7 的老写法（`SRC0` `TH80` `ZOOM1` `BILIN1` `FRAME12`）仍然收；裸五�
 | `demo_cmds.mjs` | 演示脚本里的命令块逐条对固件解析器（不碰板子） | `build/gates.sh` |
 | `ps_hb_check.mjs` | 不碰板子：从固件源码原文抠出"PS 心跳/`ps_hold` 那一半"必须同时成立的事实逐条钉；`--self` 用四条变异证明它会红 | `build/gates.sh` |
 | `uart_cmd_check.mjs` | §5 那条命令电池 | `build/board_verify.sh` |
-| `pipe_len_check.mjs` | `pipe` 这一条命令的"唯一口径"离线核对：位号四份一致、五位一条都不写、退役不退半截（A/B/C/D 四组，不碰板子） | 手工（改效果链口径后必跑） |
+| `pipe_len_check.mjs` | `pipe` 这一条命令的"唯一口径"离线核对：位号四份一致、五位一条都不写、退役不退半截（A/B/C/D 四组，不碰板子） | 作者留存，不随包发布 |
 | `udp_sink_check.mjs` | 本机 UDP 环回自检：协议、切片、匀速这三件事对不对，不依赖板子 | 手工（改发送端后必跑） |
 | `health_read.mjs` | JTAG 读健康快照 12 条 lane；`--json` 出机器可读对象，`--gapclr` 归零帧间隔统计 | `build/board_verify.sh`、`board/HANDS_ON.md` |
 | `geom_check.mjs` | 缩放/旋转的几何读数与预期公式对账 | `build/board_verify.sh`、`board/HANDS_ON.md` |
@@ -135,15 +135,15 @@ V7 的老写法（`SRC0` `TH80` `ZOOM1` `BILIN1` `FRAME12`）仍然收；裸五�
 | `video_sender.mjs` | 推流（§2） | `build/board_verify.sh`、演示 |
 | `make_sd_video.mjs` | 把 mp4 转成 SD 播放要的裸帧序列（`--in a.mp4 --out E:`） | `board/HANDS_ON.md` |
 | `metrics.mjs` | 两次 `health_read --json` 的差值算成抖动/丢包指标；`--selftest` 验算数本身 | `board/evidence_r41/` |
-| `ddr_verify.mjs` | 只回读 DDR 两个 bank 并落盘 `data/measured/ddr_dump.out` | 手工 |
-| `ddr_stale.mjs` | 反解每个 16bit 字来自第几帧 ⇒ 丢字率、游程分布、错帧计数 | 手工 |
-| `ddr_holemap.mjs` | 把回读结果按行段画空洞分布 | 手工 |
-| `ingress_probe.mjs` | 定点注入：只灌 K 个包（每像素写"字号+一个没用过的帧号"）再回读，报落位率与"从第几个字开始丢"⇒ 直接指出是哪一级缓冲不够 | 手工 |
-| `measure_v63.mjs` | 一条命令走完"推 frameid → 发完 → 回读两 bank → 相位判据" | 手工 |
-| `card_preview.mjs` | 把 `sim/tb_v83_card_render.v` 倒出的像素转储渲染成 PNG ⇒ 图卡观感一分钟能看到，不用等一轮构建+上板 | 手工 |
-| `interp_study.mjs` | 动手写硬件之前先算清"插值在本项目的几何区间里值不值"（`inv=256/512` 两端小数位恒为 0 ⇒ 双线性逐像素等于最近邻） | 手工 |
-| `lane30_watch.mjs` | 高频盯 lane30 那一位（`[秒=45] [间隔ms=150]`） | 手工 |
-| `temp_formula_check.mjs` | XADC 温度公式与固件换算对账 | 手工 |
+| `ddr_verify.mjs` | 只回读 DDR 两个 bank 并落盘 `data/measured/ddr_dump.out` | 作者留存，不随包发布 |
+| `ddr_stale.mjs` | 反解每个 16bit 字来自第几帧 ⇒ 丢字率、游程分布、错帧计数 | 作者留存，不随包发布 |
+| `ddr_holemap.mjs` | 把回读结果按行段画空洞分布 | 作者留存，不随包发布 |
+| `ingress_probe.mjs` | 定点注入：只灌 K 个包（每像素写"字号+一个没用过的帧号"）再回读，报落位率与"从第几个字开始丢"⇒ 直接指出是哪一级缓冲不够 | 作者留存，不随包发布 |
+| `measure_v63.mjs` | 一条命令走完"推 frameid → 发完 → 回读两 bank → 相位判据" | 作者留存，不随包发布 |
+| `card_preview.mjs` | 把 `sim/tb_v83_card_render.v` 倒出的像素转储渲染成 PNG ⇒ 图卡观感一分钟能看到，不用等一轮构建+上板 | 作者留存，不随包发布 |
+| `interp_study.mjs` | 动手写硬件之前先算清"插值在本项目的几何区间里值不值"（`inv=256/512` 两端小数位恒为 0 ⇒ 双线性逐像素等于最近邻） | 作者留存，不随包发布 |
+| `lane30_watch.mjs` | 高频盯 lane30 那一位（`[秒=45] [间隔ms=150]`） | 作者留存，不随包发布 |
+| `temp_formula_check.mjs` | XADC 温度公式与固件换算对账 | 作者留存，不随包发布 |
 | `repo_path.mjs` | 公共路径/落盘函数，被上面几个 import | —— |
 
 ## 7. 故障排查

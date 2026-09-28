@@ -51,7 +51,7 @@
 2. **链路健康做成硬件自计数、三方可对账**：同一组计数器有三个独立出口——OSD 直接印在屏上、
    AXI GPIO 可被 JTAG `mrd` 读回、串口命令可清可读。于是"报告里写 0 丢包"变成"你能自己验证它是 0"。
    板级三态、拔线可逆性、`gapclr` 对账见 `docs/log/OVERNIGHT_LOG.md` R08–R10；工具在
-   `src/host/health_read.mjs`、`src/host/ddr_stale.mjs`。
+   `src/host/health_read.mjs`、`ddr_stale.mjs`。
 3. **抗乱序、抗丢包的 offset 拼帧**：每包自带帧内偏移，比"要求按序到达"更适合尽力而为的以太网；
    配三重提交门限（行覆盖位图 ∧ 字节预算 ∧ 无坏包标记），使"丢一包 + 一包重复偏移"这种
    **能被累计字节数伪装成完整**的帧不会上屏。证据：`sim/tb_v6_cover_gate.v`、`docs/log/V6_ROOT_CAUSE.md`、

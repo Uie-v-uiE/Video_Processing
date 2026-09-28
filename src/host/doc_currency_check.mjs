@@ -39,6 +39,9 @@ const SCOPE_DIRS = ['build/tcl', 'src/host'];
 const SKIP_DIR = new Set(['.git', 'vivado_system', 'xsim.dir', 'node_modules', '.Xil', 'dist']);
 const HOME = ['README.md', 'README.en.md'];          // D3 只看首页这两份
 const SELF = 'src/host/doc_currency_check.mjs';      // 判据不看自己的例子（例子里就得写坏句）
+// 导出器是**故意**要写 `report/` 的：仓库里叫 docs/，交出去必须是官方结构里的 report/，
+// 它的整个职责就是这两个名字之间的映射。拿"旧目录不许出现"去判它，等于判翻译器"不许提目标语言"。
+const MAPPER = 'build/make_submission.sh';
 
 function walk(dir, out) {
     for (const name of readdirSync(dir)) {
@@ -121,7 +124,7 @@ const OLD_DIR = /(?:^|[^/\w.-])report\/[\w.*-]/g;
 function checkPaths(fileLines, exists) {
     const rows = [];
     for (const [rel, lines] of Object.entries(fileLines)) {
-        if (rel === SELF) continue;
+        if (rel === SELF || rel === MAPPER) continue;      // 见上面两条豁免的理由
         lines.forEach((l, i) => {
             const at = `${rel}:${i + 1}`;
             for (const m of l.matchAll(CITE_MD)) {

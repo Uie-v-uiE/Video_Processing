@@ -3,11 +3,11 @@
 读这份表的三条口径：
 
 1. **例化者**一栏只写当前代码里真实存在的例化位置（`文件:行`）。写"未例化"就是从这个顶层不可达；
-   写"仅台架"是只有 `sim/` 下的测试例化它。这个集合用综合日志复核过：下面 15 个文件不出现在
+   写"仅台架"是只有 `sim/` 下的测试例化它。这个集合用综合日志复核过：下面 13 个文件不出现在
    `Synth 8-6157` 行里（口径与判据见 `build/orphan_rtl.sh:2-13`）——
-   `axi_frame_saver`、`axi_frame_saver_burst`、`axi_frame_writer`、`color_bar`、`fb_pack`、
-   `fb_rd5x`、`frame_buffer`、`frame_buffer_db`、`line_cache`、`pl_demo_top`、`rotate_mapper`、
-   `tap_sched`、`udp`、`udp_rx`、`video_timing_720p`。
+   `axi_frame_saver`、`axi_frame_saver_burst`、`axi_frame_writer`、`color_bar`、`fb_rd5x`、
+   `frame_buffer`、`frame_buffer_db`、`line_cache`、`pl_demo_top`、`rotate_mapper`、
+   `tap_sched`、`udp_rx`、`video_timing_720p`（13 个）。
 2. 综合收的文件清单 = `build/tcl/build_system_axigpio.tcl:12-17`（各目录整体 + 两个顶层），
    顶层 = `system_top`（同文件 `:232`）；不在清单里的可达性无从谈起。
 3. 原理、常数、时钟域、门禁对应关系都在 `docs/ARCHITECTURE.md`，这里不重复。
@@ -58,7 +58,6 @@
 | `gamma_lut` | 效果链级 0：256 项 8bit 表，PS 逐项目写入；组合读出、不加拍 | `proc_pipeline.v:123` | `tb_v88_gamma` |
 | `frame_latency` | 链路内时延：commit→起拷→拷完→该帧开始扫描，分三段量并在 axi 域除成 ms | `pl_video_top.v:658` | `tb_v90_latency` |
 | `line_cache` | 早期"左扫效果→右读行缓"的行列缓存 | 未例化 | 无 |
-| `fb_pack` | 16bit 流→64bit 字 + 帧尾凑不满一格的落盘 | 未例化于 Z7 树（`ku5p/src/rtl/ku5p_eth_top.v` 用它） | `tb_fb_pack` |
 
 ## hdmi/
 
@@ -128,5 +127,5 @@
 | `udp_tx` | 以太/IP/UDP 头的组装与发送（`udp_tx.v:52` 那批常数）；FCS 由外挂的 `crc32_d8` 算、它填进帧尾。Z7 上 `tx_start_en` 恒 0：接着但从不启动 | `eth_udp_video_top.v:162` | `tb_eth_video` |
 | `arp` → `arp_rx` / `arp_tx` | who-has 请求与应答，MAC/IP 由参数给（外部样例那一批，文件头 `arp.v:3,7`） | `eth_udp_video_top.v:123` → `arp.v:61,77` | — |
 | `icmp` → `icmp_rx` / `icmp_tx` | echo reply，载荷走下面的 `sync_fifo`（同一批外部样例） | `eth_udp_video_top.v:137` → `icmp.v:68,88` | — |
-| `udp` / `udp_rx` | 同一批外部样例的收发包包装层 | 未例化（收侧换成了上面的自研那一对） | `tb_eth_video` 仍直接测 `udp_rx` |
+| `udp_rx` | 外部样例的收侧包装层 | 未例化（收侧换成了上面的自研那一对） | `tb_eth_video` 仍直接测它 |
 | `axi_frame_saver` / `axi_frame_saver_burst` | 16bit 与早期 burst 两版打包器 | 未例化 | `tb_v5_saver`（测 `_burst`） |
