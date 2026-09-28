@@ -36,7 +36,7 @@ REFUSE: 找不到 xvlog（当前 /nonexistent_path）。设 VP_VIVADO_BIN=<Vivad
 rc=2
 ```
 
-拒绝发生在 `mkdir`/`sed` 之前，所以**不留任何临时文件**（`ls build/tcl/_tmp_isolated_roll.tcl` 报 no such file）——
+拒绝发生在 `mkdir`/`sed` 之前，所以**连那份临时 Tcl 都不会被创建**（脚本正常走完时也会自己删掉它）——
 "换一台机器会怎样"这件事本来只能靠推理，这一条让它变成一次可以跑的观察。
 `VP_XSDB` 那一支故意不当场跑：`board_verify.sh` 会占 COM6 并改写留档，拿板子做这种对照不值。
 2026-09-29 之前这几个脚本里写死的是**这台机器的绝对路径**（`/d/Xilinx/Prj/pro/...`），换机器要改一堆行——
