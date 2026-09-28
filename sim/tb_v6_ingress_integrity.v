@@ -17,6 +17,7 @@ module tb_v6_ingress_integrity;
     // 用来查**帧尾那半个 u32**（板上 frameid 回读发现每帧最后 4 字节是 0）
     integer PKTS, TB_WORDS;
     integer FULL;
+    integer gap_cyc;               // +GAP0 = 0：GMII 线速连灌（#105 要的压力）
     // +MISALIGN：分包长度改 1396 B（不是 8 的倍数），复现板上的「规律黑点」——包边界落在 64bit
     // 字中间 ⇒ 同一个字被相邻两包各推一次；v6.4 前 WSTRB 恒 0xFF 会把前一次覆盖成 0，现在两种分包都必须整帧全对。
     integer MIS;
@@ -87,6 +88,24 @@ module tb_v6_ingress_integrity;
         .rd_clk(axi_clk), .rd_rst_n(axi_rst_n),
         .rd_en(fifo_rd), .rd_data(fifo_dout), .rd_empty(fifo_empty)
     );
+
+    // ---- #105 的"吸收量"探针（2026-09-29 加）----
+    // 想问的是：**8192 格的深度是不是过剩？** 只有量出峰值占用才答得了；没量过就降深度，
+    // 等于拿"零丢包"那句承诺赌（ISSUES #105 里写过的同一条）。
+    // ⚠ 三点自限，别把这一行数读成它管不了的东西：
+    //   ① 这是**跨域同拍采样**两个域各自的二进制指针（写 125 MHz / 读 100 MHz），瞬时值可能差 ±1 格
+    //      —— 对"要不要降到 1024"这个数量级的决策无所谓，对"证明探针活着"也无所谓；
+    //   ② 这一跑的流量形状是**本台架生成的那一种**（默认 60 包 / 包间 GAP=10230 等效限速 15 MB/s；
+    //      +FULL 才是一整帧 221 包连灌）。**读侧被 `sv_full` 堵住的窗口**才是深度的真正来源，
+    //      而那一半在这里没有建模 ⇒ 峰值只是下界，不是设计界；
+    //   ③ 所以判据只判"探针看见过非空"（`peak>0`）：如果它一直是 0，要么探针接错了名字，
+    //      要么这个模型里 CDC 从来没缓冲过东西 ⇒ 这条 PASS 就没有意义（#81/#90 那一族"空判"）。
+    reg  [13:0] cdc_peak = 14'd0;
+    reg  [13:0] cdc_now;
+    always @(u_cdc.wbin or u_cdc.rbin) begin
+        cdc_now = u_cdc.wbin - u_cdc.rbin;
+        if (cdc_now > cdc_peak) cdc_peak = cdc_now;
+    end
 
     // 统计：reasm 发出了 wr_en 但没进 CDC（被 flush 抢占 / 满）
     always @(posedge gmii_rx_clk or negedge rst_n) begin
@@ -224,14 +243,21 @@ module tb_v6_ingress_integrity;
             // 包间一个空拍（等效上位机限速；真实 gmii_rx_dv 在帧间会掉）
             @(negedge gmii_rx_clk);
             p_valid = 0; p_eof = 0; p_sof = 0;
-            repeat (GAP) @(negedge gmii_rx_clk);
+            repeat (gap_cyc) @(negedge gmii_rx_clk);
         end
     endtask
 
     initial begin
         errors = 0; first_bad = -1;
         FULL = 0;
+        gap_cyc = GAP;
         if ($test$plusargs("FULL")) FULL = 1;
+        // ⚠ **#105 要的正是这一档**：包间空拍按 `GAP=10230` 灌，等效上位机限速 15 MB/s ⇒ 峰值占用只有
+        //   3 格（02:51 量到的），那个数**说明不了深度可以降**——因为写侧根本没压满过。
+        //   `+GAP0` 把包间空拍去掉 = GMII 线速连灌，才是 CDC 深度的真压力（读侧 `sv_full` 的阻塞窗口
+        //   由这个 AXI 从机模型给出）。跑法（plusargs 在 xsim 里只能这么给，见 `sim/run_sim.tcl:70`）：
+        //     xsim snap -R --testplusarg FULL --testplusarg GAP0
+        if ($test$plusargs("GAP0")) gap_cyc = 0;
         MIS = 0;
         if ($test$plusargs("MISALIGN")) MIS = 1;
         PL_B = MIS ? 1396 : PAYLOAD;
@@ -288,6 +314,12 @@ module tb_v6_ingress_integrity;
         $display("tail3: [%0d]=%h [%0d]=%h [%0d]=%h",
                  TB_WORDS-3, mem[TB_WORDS-3], TB_WORDS-2, mem[TB_WORDS-2],
                  TB_WORDS-1, mem[TB_WORDS-1]);
+        $display("PROBE cdc peak_occupancy=%0d words of depth=%0d  （本次流量形状下的**下界**：读侧 sv_full 阻塞窗口未建模 ⇒ 不是设计界，见文件头 ①②③）",
+                 cdc_peak, (1 << 13));
+        if (cdc_peak == 0) begin
+            $display("FAIL cdc peak probe never saw a non-empty FIFO");
+            errors = errors + 1;
+        end else $display("PASS cdc peak probe alive");
         if (w_ok != TB_WORDS || cdc_drop != 0 || sv_drop != 0) begin
             $display("FAIL ingress loses data");
             errors = errors + 1;
