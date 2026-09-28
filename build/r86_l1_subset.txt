@@ -34,3 +34,6 @@
 10 支的判定行逐条核过：5 支是 `RESULT … PASS`（bilin_lerp、v101_fb_bilin、v102_src_life、tap_sched、ps_publish），
 5 支是 `PASS <tb>[ ALL]`（proc_gray、rotate_window、v794_osd_glyph、udp_parser、sync_fifo）⇒ **这 10 支是真过的**，
 而"rc=0"那句话是我当时的弱代理，留在这里当反面教材。
+（补正一条：`tb_v101_fb_bilin` 的收尾是 `[tb_v101.v] RESULT … PASS errors=0`——**不在行首**。
+`run_one.sh` 第一版用 `^RESULT` 锚，会把它读成"没判定"；07:48 两种写法各跑一遍验出来，锚改成
+`grep "RESULT $TB"`。上面"5 支是 `RESULT … PASS`"这句按字面应是"4 支行首 + 1 支带前缀"。）

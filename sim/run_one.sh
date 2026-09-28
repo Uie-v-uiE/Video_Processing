@@ -60,7 +60,7 @@ tail -2 run.log
 # 逐支跑以前没有 ⇒ 只打 `PASS <tb>[ ALL]` 的那几支（tb_sync_fifo / tb_udp_parser / tb_proc_gray /
 # tb_v794_osd_glyph / tb_rotate_window）在 `grep ^RESULT` 眼里等于"没判定"。这里补一行，
 # 并把 FAIL 行数一起报出来：判定与计数同源，省得再拿"0 个 FAIL"当结论。
-V=$(grep -aE "^RESULT $TB([ :]|$)" run.log | tail -1)
+V=$(grep -a "RESULT $TB" run.log | tail -1)
 [ -n "$V" ] || V=$(grep -aE "^(PASS|FAIL) $TB( ALL)?$" run.log | tail -1)
 [ -n "$V" ] || V="NO-VERDICT-LINE（这支台架一条判定都没打，去数判据条数）"
 echo "VERDICT $TB: $V || FAIL 行数=$(grep -ac '^FAIL' run.log) || PASS 行数=$(grep -ac '^PASS' run.log)"
