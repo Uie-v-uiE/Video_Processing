@@ -5931,3 +5931,43 @@ E1/E2 全绿。所以那次的差 1 不在硬件里，是**我的判据读了 `s
 **正在跑的两件事**（05:15/05:16 起，两条同时）：正式一轮 r86 覆盖 `build/`（`build/r86_build_console.txt`），
 `tb_v98_top_seam` 在 r86 的 RTL 上重跑（旧报告的三枚 md5 已经因为 `link_monitor.v` 变了而不再可采纳）。
 板上仍是 r84（`b2a36ac5`，01:12），回滚凭据 `/tmp/r84_system.bit.keep` 在。
+
+## 06:00 早间单（这一节是给你醒来读的，只写"此刻板上是哪块 / 机器已经证到哪一步 / 需要你做的三件事"）
+
+### 1. 此刻板上跑的是 r86，与树里逐字节同一块
+
+`build/system.bit` md5 `2b7e11e2…`（05:38 生成、05:45 下板），`build/ps_app.elf` md5 `b9f6966d…`（05:36 编）。
+下板三步的凭据：`build/r86_flash_1_psboot.txt`（`PS7_INIT: ok`/`RST_SYSTEM: ok`）→
+`build/r86_flash_2_program.txt`（`PROGRAMMED xc7z020_1 <- …/build/system.bit`）→
+`build/r86_flash_3_app.txt`（`RST_PROC: ok`/`DOW: ok`/`CON: ok`）。
+上一块 r84（`b2a36ac5…`）留在 `/tmp/r84_system.bit.keep`，要退回就拷回 `build/system.bit` 再走这三步。
+
+### 2. 机器已经证到的（数字都指名出处，不再重述过程）
+
+| 事 | 结论 | 凭据 |
+|---|---|---|
+| #103 黑线（延迟线越界写 → 硬件把行缓存写地址折回 319） | 机器侧全绿：变异对照在预测那一格红、改回全绿；r84 起就在板上，r86 继承 | `build/evidence/r86_lm_*` 之外，C10f 那条见 `sim/mut_control.sh` 的记录与 `docs/log/ISSUES.md` #103 收口段 |
+| OSD 开关（`gpio_o[20]` 反相，独立三级同步链） | 板上连测三轮（r83/r84/r86）都算数：电池里 `osd off` 与 `osd on` 成对，元组里 `osd` 那一格跟着动 | `build/evidence/r86_board_warm.txt`（100 条全 ok）、`build/evidence/r84_osd_switch.txt` |
+| 时序（#124 那一刀） | 目标族整族消失：失败端点 **16 → 2**、TNS **−0.747 → −0.243**；但 WNS **−0.135**（没有转正，最差换成 `u_cdc` 写使能 → BRAM `ENARDEN` 那条兄弟路） | `build/evidence/r86_timing_summary.rpt`、`r86_crit_paths.txt`；过程与收回的那句过头话在 `docs/OPTIMIZATION_LOG.md` r86 一节 |
+| 板侧机器验收 | **暖态 0 红、100 条 / 93.2 s**；冷态那一跑有 **1 红**，红的只有 `zman` 一格（初 0 ≠ 末 1，其余十格逐字符相同） | `build/evidence/r86_board_warm.txt` 与 `r86_board_cold.txt`；为什么两跑都要留：`ISSUES #126` |
+| 门禁 / 冻结 | **仍未全绿**（第 14 项时序 + 第 15 项 C5c）⇒ 对外只说"最新全绿冻结集 = r75"，这条口径没变 | `node src/host/doc_currency_check.mjs` 自己会报出 r75 |
+
+### 3. 需要你做的三件事（我不能再往下走的，都写清"不成立时说明什么"）
+
+① **眼睛那三条**（#103 与 #102 的最后一半只有屏幕能给）。配方，串口一次一条，每条只问一个事实：
+   `fill` → `th 8` → `pipe 000100000` → `split 31` → `split marker 1`：黑线在不在、宽度跟不跟 zoom 走；
+   再 `src 0` → `split 50` → `split marker 0`：换到原图那一路看同一条位置。
+   如果 `split marker 0` 之后那条竖线消失 ⇒ 它是缝标记（我 `SPLIT 20` 那次就误判过，#100 记着），不是数据通路缺陷。
+② **#118/#126 那一格**：上电默认（自动呼吸 `zman=0`）与文档/演示默认档（手动 1.00× `zman=1`）不一致。
+   三个选项写在 `ISSUES #126` 里（改上电默认 / 电池末尾加 `zoom auto` / 操作规程里写明"跑电池前先 `zoom 1.0`"）。
+   我今晚一个都没动：改哪个都在改演示契约，那是你的那一格。
+③ **#104**（旋转支的双线性小数位）：要不要在这一轮之后排进去。它不影响今天任何一条判据，影响的是旋转大角度下的观感。
+
+### 4. 我这一夜自己错的地方（都留在档案里，不重写）
+
+- 把 `snap_cross` 的旧快照读成"DUT 漏记一次"，并据此写了一条 RTL 注释说"延迟操作数会漏事件"——
+  两种写法实测同数，已更正（`#124` 收口段、`docs/AI_COLLABORATION.md` §4 案例 L）。
+- 把一次隔离构建的 +0.248 当成采纳后的预期收益，写了"冻结会跟着绿"——正式构建 −0.135，已收回（r86 一节）。
+- 往 `skill/` 加条目时才发现 `doc_enc_check` 从来没扫过 `skill/`（判据的覆盖范围也会漂，而且它漂的时候不会红）。
+- `git add` 里带了一个不存在的路径 ⇒ 整条 add 静默失败，我按 `git status | head` 只看了前几行没发现；
+  补提交在 `9cbe60d`。同族第二个错：两次把 heredoc 提交消息写空（`git commit` 报"empty commit message"）。
