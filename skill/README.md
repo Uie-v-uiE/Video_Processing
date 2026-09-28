@@ -3,7 +3,9 @@
 这里放的是**方法**，不是 FPGA 教材，也不是本项目的说明书。留下它的标准只有一条：
 另一支队伍、另一块板、另一个题目，明天就能照它做一遍，并且做完能省掉一次真实的错误。
 
-**目录里现在有 24 项编号条目**（S1…S23，空号 S3、S6），加一份给智能体直接加载的 `SKILL.md`。
+**目录里现在有 27 项编号条目**（S1…S29，空号 S3、S6；S8 住在 `zynq-video-rtl-debug/` 里），
+加一份给智能体直接加载的 `SKILL.md`。
+数法（别抄数，跑这条）：`grep -h -m1 '^# S' skill/*.md skill/zynq-video-rtl-debug/*.md | grep -c '^# S[0-9]'`。
 分四组：A 工作流 / B 可抄的骨架 / C 校验脚本（**C 组不占条目，它只有脚本**）/ D 技术踩坑。
 **这一句是全仓库唯一写条目数的地方**，别处（README、清单、文档地图）只指路、不抄数——抄了就会漂。
 
@@ -29,6 +31,7 @@
 | CDC / 资源数字变了，不知道是谁 | [S16](cdc_pair_baseline_gate.md) + `build/tcl/cdc_who.tcl` |
 | WNS 是负的，不知道该动算术、动扇出还是动物理 | [S28 wns_logic_vs_route_lever.md](wns_logic_vs_route_lever.md)（先读 `logic/route` 分配，`build/tcl/crit_path.tcl` 就是那个口子） |
 | 想证明这次改动是"免费的"，可再滚一轮会把证据盖掉 | [S27 prove_change_is_free_by_bitstream_header.md](prove_change_is_free_by_bitstream_header.md)（隔离构建 `build/roll_isolated.sh` + 位流包头比对） |
+| 有一段不能碰 RTL 的空档，想让代理通读找坑 | [S29 read_only_review_agent.md](read_only_review_agent.md)（边界写死"禁改/禁跑碰 COM6 的脚本"，**只有能指出 `file:line` 的才算发现**） |
 | 上板没画面、没反应、ping 不通 | [S8 zynq-video-rtl-debug/SKILL.md](zynq-video-rtl-debug/SKILL.md)（L0–L4 分层），再 [S7](board_eth_uart.md) |
 | 回读回来的一组数不自洽（"部分大于整体"） | [S18](atomic_register_window_readback.md) |
 | 同一位置必失败，旁边的人往"超时/竞态"上解释 | [S17](failing_read_prints_geometry.md) |
@@ -73,6 +76,14 @@
   （一句没发出去的"已发"让人去查不存在的 bug）、§81 五 与 §82（#102 的最后一半由眼睛关闭）、
   `docs/log/ISSUES.md` #102 的五档观察矩阵、#104 的"看不出差别就是还没修好"。
   会失效于：那一路其实有面板级判据（先去补判据）；没有 A/B 通道；放大后画面碰不到被判的那条边。
+- **[S29 read_only_review_agent.md](read_only_review_agent.md)**
+  什么时候用：有一段不能碰 `src/rtl`、也不能再开一个仿真的空档（构建/长台架正占着机器），
+  而你要的是"整批代码里还有什么坑"。
+  怎么用：边界写死（禁改文件、禁跑仿真、**禁跑 `src/host` 下任何会碰 COM6/JTAG 的脚本**）+
+  把缺陷分成五类去问 + 每条必须带 `file:line` + 主代理逐条回读，**指不出行号的降级为"下一步该量什么"**。
+  凭据：`docs/log/ISSUES.md` #125（代理交回 16 条 ⇒ 8 条进正文、4 条降为 CANDIDATE、其余不采信；
+  当场修掉的两条都是"会说谎的那一行"：`[TEMP]` 的负号、`gpio_o[20]` 的三张过期位表）。
+  会失效于：需要测量的判断（时序收敛、板级观感、上位机协议）——代理给不出这些，只有判据与眼睛能给。
 
 ## B 案例模板 —— 可以直接抄进自己仓库的骨架
 

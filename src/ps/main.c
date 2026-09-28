@@ -8,7 +8,8 @@
  *   [15:8]  threshold      [16] src_sel      [17] zoom_en
  *   [18]    ps_publish —— 翻转一次 = "DDR 里这一帧写完了，请在下一个 frame_start 搬走"
  *   [19]    bilin_en       [26] gapclr_sel   [31:27] 健康 lane 号
- *   [21:20] 保留（2026-09-25 定这张表时与 25 一起留给以后）
+ *   [20]    osd_off（反相：写 1 = 关掉叠层，复位 = 有 OSD；r83 起在用）
+ *   [21]、[25] 保留（2026-09-25 定这张表时留给以后）
  *   [22]    mode_tog（翻转一拍 = 下面那两位码是新写的）
  *   [24:23] mode_ovr（00 自动 / 01 ETH / 11 SD / 10 TEST —— 与 PL 里 src_mode 同一张表，
  *                     屏上那三个词就是它；编码不许在这儿"顺手改"，见 MODE_*_BIT 上面那段）
@@ -862,6 +863,8 @@ static void cmd_temp(int n, char **tk)
      *   于是这一行把三段账一次钉住：`degC`（驱动读数）↔ `osd`（编码器的输出）↔ `gpio`（真的写到了 PL）。
      *   串口电池拿这三者做机器判据，不需要任何人看屏幕。 */
     code = temp_code_of(mc, mv);
+    /* 负号从 mc 取、整数与小数都从 a=|mc| 取：C 的除法朝零截断，mc=-400 时 mc/1000 已经是 0，
+     * 若照旧写 "%d.%02d" 就会把 −0.40 °C 打成 0.40 —— 少一个负号、数值方向整个反过来。 */
     temp_disp_write(code);
     if (((code >> 4) <= 9) && ((code & 0x0F) <= 9)) {
         osd_s[0] = (char)('0' + (code >> 4));
@@ -871,13 +874,13 @@ static void cmd_temp(int n, char **tk)
     } else {
         osd_s[0] = '-'; osd_s[1] = '-'; osd_s[2] = 0;
     }
-    xil_printf("[TEMP] degC=%d.%02d raw=0x%04x vccint=%dmv th=%dC over=%d sane=%d osd=%s gpio=0x%02x\r\n",
-               (int)(mc / 1000), (int)((a / 10) % 100), rt, mv, temp_th_deg, over, sane,
+    xil_printf("[TEMP] degC=%s%d.%02d raw=0x%04x vccint=%dmv th=%dC over=%d sane=%d osd=%s gpio=0x%02x\r\n",
+               (mc < 0) ? "-" : "", (int)(a / 1000), (int)((a / 10) % 100), rt, mv, temp_th_deg, over, sane,
                osd_s, (unsigned)(Xil_In32(CFG_DATA1) & GM_TEMP_MASK));
     if (!sane)
-        xil_printf("[TEMP!] raw=%04x 译出来 %d.%02d °C 不像一次真实转换 ⇒ "
-                   "FIFO 握手或 XADC 复位有问题，这一格的数不许写进报告\r\n", rt, (int)(mc / 1000),
-                   (int)((a / 10) % 100));
+        xil_printf("[TEMP!] raw=%04x 译出来 %s%d.%02d °C 不像一次真实转换 ⇒ "
+                   "FIFO 握手或 XADC 复位有问题，这一格的数不许写进报告\r\n", rt,
+                   (mc < 0) ? "-" : "", (int)(a / 1000), (int)((a / 10) % 100));
 }
 
 static int dispatch(char **tk, int nt)

@@ -26,7 +26,7 @@ const EXT = new Set(['.md', '.v', '.c', '.h', '.mjs', '.sh', '.ps1', '.tcl']);
 // 只扫**我写的东西**所在的那几棵树。为什么不是"整仓库扫一遍"：
 //   `vitis/platform/**` 是 Xilinx 的 BSP/FSBL 源码（版权行里就有非 UTF-8 的字节），
 //   把它们报成红等于让门禁永远不会绿，而"修它们"是破坏第三方件 —— 两条都不接受。
-const SCOPE = ['docs', 'board', 'src', 'sim', 'tools', 'build/tcl'];   // 交付文档在 docs/（含 docs/log/）；report/ 与 study/ 已不存在
+const SCOPE = ['docs', 'board', 'src', 'sim', 'tools', 'build/tcl', 'skill'];   // 交付文档在 docs/（含 docs/log/）；report/ 与 study/ 已不存在；skill/ 是给评委读的手写正文，2026-09-29 补进扫描范围（漏掉它的那天我刚往 skill/ 加了一条 CJK 条目）
 // 明确点名放行的一类：早期探针的原始件。`build/uram_probe/uram_probe.v` 的中文注释在
 // 出现这个判据**之前**就已经坏掉（字节丢失，不可恢复），而它的结论被
 // `build/frozen_r57_remap/MANIFEST.md5` 与两份报告按 md5 引用 —— 改一个字节就等于伪造凭据。
