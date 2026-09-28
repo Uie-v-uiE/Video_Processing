@@ -20,7 +20,7 @@
 | 步 | 做什么 | 看见什么算过 |
 |---|---|---|
 | 1 | 只走 JTAG，**三条按顺序**（先起 `hw_server`，否则第一句就是 `Invalid target`）：`xsdb.bat build/tcl/ps_jtag_boot.tcl` → `vivado -mode batch -nojournal -source build/tcl/program_pl.tcl` → `xsdb.bat build/tcl/ps_app_reload.tcl` | 第一条打 `DDR_ECHO: …5A5AA5A5`（它写进 DDR 的就是这个字，`build/tcl/ps_jtag_boot.tcl:72`）+ `PS BOOT STEP DONE`；第二条打 `PROGRAMMED …`（这条**只能**在 Vivado 批处理里跑）；第三条打 `CON: ok`。之后 LED0 以 1.5 Hz 跳、串口出 `[BOOT]`（`main.c:1457`） |
-| 2 | 另开一个终端在 **COM6 115200 8N1**（或 `board/uart_cap_once.ps1 -Port COM6 -Seconds 20`；**开着终端就没法同时用脚本发**，二者只能有一个） | 敲 `stat` 回一行 `[STAT] ctrl thr=… src=… zoom=… bilin=… zsel=… zman=… pub=… sd=… frames=… playing=… sel=… gm=… mode=… geom=…`（字段顺序就是 `main.c:1334`） |
+| 2 | 另开一个终端在 **COM6 115200 8N1**（或 `board/uart_cap_once.ps1 -Port COM6 -Seconds 20`；**开着终端就没法同时用脚本发**，二者只能有一个） | 敲 `stat` 回一行 `[STAT] ctrl thr=… src=… zoom=… bilin=… zsel=… zman=… pub=… sd=… frames=… playing=… sel=… gm=… mode=… geom=…`（字段顺序就是 `main.c:1378`） |
 | 3 | HDMI 接 1024×600 屏 | 屏上五行 OSD（`src/rtl/video/osd_overlay.v:326`–`385`）：L0 `1024X600 FPS:30 SRC:ETH`，其中 `SRC:` 写的就是屏上真的那一路（只有 `ETH`/`SD`/`TEST` 三个词，末尾 `*` = 手动锁住） |
 | 4 | PC 有线网卡静态 `192.168.1.100/24`，`ping 192.168.1.10` | 0% 丢包 = PL 网络栈活着；不通就别开第 1 幕 |
 | 5 | **先记起点**：敲一次 `stat`，把这一行抄在纸上 | 第 8 幕拿它对账；少了它"跑完回不回得来"就无从判 |

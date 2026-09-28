@@ -15,7 +15,7 @@
 - 本文不替代 `docs/COMMANDS.md`（命令口径表）。本文只管"命令同时有效时谁赢"。两份文档对不上的地方在
   第 13 节点名，以代码为准。
 
-一个贯穿全文的区分：`stat` 打出来的每一个字段都是 **PS 侧的影子**（`src/ps/main.c:1334-1342`），
+一个贯穿全文的区分：`stat` 打出来的每一个字段都是 **PS 侧的影子**（`src/ps/main.c:1378-1386`），
 它证明"固件请求了这个值"，证明不了"像素域正在用这个值"。请求侧与执行侧的对账见第 11 节。
 
 正文里的出处用短文件名（在本仓 `src/` 下每个名字都只有一份），完整路径是：
@@ -57,7 +57,7 @@
 | `src auto` | 同上，码=AUTO | `src_mode.v:79-81`（连按键环一起清） | — | 是 |
 | `src 3` | 不存在 | — | — | 明确拒绝（`main.c:708-710`） |
 | `SRC0/SRC1`（`src_sel`） | `cur_src` → `gpio_o[16]`（`main.c:478`、`194`） | 显示侧 `pl_video_top.v:545`；搬运机 `pl_video_top.v:641` | **显示侧：任何非 AUTO 的 mode 都让它失效**；搬运机那一路的闸门是 `owner_eth` 而不是 mode | **没有**（§4、§5） |
-| `play` / `fill` / `frame N` | 只写 `cur_src`＋发布位（`main.c:1303`、`683-684`、`1228`） | 搬运机 `pl_video_top.v:509`、`641` | `src 0`/`src 1` 钉住期间 | **没有**（§5） |
+| `play` / `fill` / `frame N` | 只写 `cur_src`＋发布位（`main.c:1348`、`683-684`、`1228`） | 搬运机 `pl_video_top.v:509`、`641` | `src 0`/`src 1` 钉住期间 | **没有**（§5） |
 | `split <pct>` / `split px <n>` | 清 `SPLIT_AUTO_BIT`、写 `pos_px`（`main.c:1130`、`1140`） | `split_ctrl.v:92` | 无人盖（它自己盖 `auto`） | 说明"manual"（`main.c:1131`、`1143`） |
 | `split auto` | `SPLIT_AUTO_BIT` → `cfg1[23]`（`main.c:1068`） | `split_ctrl.v:92`、`100` | **它盖 `pos_px`** | 半说明（§6） |
 | `split follow 1` / `split video` | `SPLIT_FOLLOW_BIT` → `cfg1[24]`（`main.c:1090`、`1114`） | `split_ctrl.v:33` | 与 `auto` 同时开时新的 `pos` 不动屏 | 说明了"auto 仍开着"（`main.c:1119`） |
@@ -137,7 +137,7 @@
   所以按住键的那一帧，帧首步进被按键顶掉。这是设计意图，不需要回显。
 
 `rot show` 印的是 `auto`、`speed`、以及 fit 位（`main.c:990-993`），三个都取自 PS 影子 `cur_split`；
-它**不含角度**，而固件里也没有角度的串口读口（`stat` 的字段表见 `main.c:1334-1342`，
+它**不含角度**，而固件里也没有角度的串口读口（`stat` 的字段表见 `main.c:1378-1386`，
 几何控制字 `geom=` 也不含角度）。要看真实角度只能读屏上 `Rot:` 那一格
 （`src/rtl/video/osd_overlay.v:284-286`）。
 
@@ -192,7 +192,7 @@ PS 这一路看的是 500 ms 内有没有过发布（`src_life.v:41-47`），而
 （`osd_overlay.v:244-246`），模式非 AUTO 时只在名字后加一个 `*`（`osd_overlay.v:248`）。
 
 `stat` 里与片源有关的是两个字段，**都是 PS 影子**：`src=` 是 `cur_src`（bit16 那个位），
-`mode=` 是 `cur_mode_ovr`（`main.c:1334-1341`）。它们合起来仍然回答不了"此刻屏上是谁" ——
+`mode=` 是 `cur_mode_ovr`（`main.c:1378-1385`）。它们合起来仍然回答不了"此刻屏上是谁" ——
 因为 `owner_eth` 与 `have_src` 不在 `stat` 里。真值走 lane30（`pl_video_top.v:553`，
 译码在 `src/host/health_read.mjs:70-78`）。
 
@@ -205,7 +205,7 @@ PS 这一路看的是 500 ms 内有没有过发布（`src_life.v:41-47`），而
 | 命令 | 写了什么 | 没写什么 |
 |---|---|---|
 | `src 2` | `cur_src=1` ＋ 踢回放 ＋ **钉模式到 SD**（`main.c:704-706`） | — |
-| `play` | `cur_src=1` ＋ `sd_play(1)`（`main.c:1303-1304`） | 模式 |
+| `play` | `cur_src=1` ＋ `sd_play(1)`（`main.c:1348-1349`） | 模式 |
 | `frame N` | `sd_show()` ＋ `cur_src=1`（`main.c:1227-1228`） | 模式 |
 | `fill` | 写 DDR ＋ `cur_src=1` ＋ 发布一次（`main.c:683-684`） | 模式 |
 
@@ -218,7 +218,7 @@ PS 这一路看的是 500 ms 内有没有过发布（`src_life.v:41-47`），而
 - 钉 TEST 时 `fb_vis` 被强制成 0（`pl_video_top.v:545`），DDR 里那张画和发布都真发生了，
   只是显示侧不看它。
 
-回声方面：`play` 那句是 "[SD] playing (stop / play 0 结束; ETH 有流时会自动让位)"（`main.c:1307`）。
+回声方面：`play` 那句是 "[SD] playing (stop / play 0 结束; ETH 有流时会自动让位)"（`main.c:1351`）。
 它只覆盖了 AUTO 模式下的交接，既没说"模式现在是钉住的"，也没覆盖钉 TEST 的情形。
 `fill` 完全没有自己的回声（只有 `ctrl_apply` 的 `[CTRL]` 行，`main.c:211`）。
 
@@ -360,7 +360,7 @@ gamma 是链子的第 0 级（`proc_pipeline.v:92-96`，`en=0` 时逐位旁路�
 
 ## 11. 怎么确认此刻真的在用哪一路
 
-原则：**先读执行侧，再读影子。** 影子的字段清单在 `main.c:1334-1342`（`stat` 那一行的字段顺序被
+原则：**先读执行侧，再读影子。** 影子的字段清单在 `main.c:1378-1386`（`stat` 那一行的字段顺序被
 串口电池按前缀解析，所以只能往后加，`main.c:1325-1333`）。
 
 | 想知道的事 | 读哪里 | 出处 |
@@ -376,7 +376,7 @@ gamma 是链子的第 0 级（`proc_pipeline.v:92-96`，`en=0` 时逐位旁路�
 | `th` 此刻有没有读者 | `pipe show` 里有没有 binary / erode / dilate | 读者只有 `proc_binary.v:22`、`proc_morph.v:34` |
 | 缝在哪个坐标空间 | `split show` 的"画面列/显示列"与 `pos=<n>/<W>` | `main.c:1056-1064`；空间的唯一判据 `split_ctrl.v:33` |
 | 缝是不是在被自动扫 | `split show` 的 `auto/manual`；屏上 `Split:` 后面的 `(Auto)` | `main.c:1061`、`osd_overlay.v:299` |
-| 几何控制字整字（含 fit 位） | `stat` 的 `geom=%08x`（PS 影子），bit31 = zoom_fit | `main.c:1334-1342`、`main.c:152` |
+| 几何控制字整字（含 fit 位） | `stat` 的 `geom=%08x`（PS 影子），bit31 = zoom_fit | `main.c:1378-1386`、`main.c:152` |
 | 此刻的角度 | **只有屏上 `Rot:` 那一格**；固件没有角度读口 | `osd_overlay.v:284-286`；对照 `main.c:990-993`、`1334-1342` |
 | 温度/延时的屏上格 | `temp` 那一行末尾同时给 `degC`/`osd`/`gpio` 三种写法 | `main.c:855-857` |
 
