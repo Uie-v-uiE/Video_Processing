@@ -6015,3 +6015,29 @@ E1/E2 全绿。所以那次的差 1 不在硬件里，是**我的判据读了 `s
 ⇒ 这一格的结论按能核查的强度写：**79/79 有文件头，头里普遍写着"它是哪一级/谁例化/跨哪个钟/为什么这样切"**；
    单薄的（1 行）只有 8 个，其中 `dc_fifo`/`tmds_encoder`/`cos_rom`/`sin_rom` 是厂商或标准件。
    顺带一句方法：一个测量如果**第一次就报出"大片不合格"**，先怀疑度量（这是 #122 与今晚那三次"341 条红"同一课）。
+
+### 07:53 眼睛那三条：可直接粘贴的命令（一发一收，每条各自留捕获）
+
+前置：先**关掉占用 COM6 的终端**（否则 `UnauthorizedAccessException`，脚本抢不到口）。
+每条命令一发一收，`-Out` 各留一份捕获，回答只填"是/否 + 在哪一档"：
+
+```
+powershell -ExecutionPolicy Bypass -File board/uart_cap_once.ps1 -Port COM6 -Cmd "fill"             -Seconds 3 -Out board\eye_1_fill.txt
+powershell -ExecutionPolicy Bypass -File board/uart_cap_once.ps1 -Port COM6 -Cmd "th 8"             -Seconds 3 -Out board\eye_2_th8.txt
+powershell -ExecutionPolicy Bypass -File board/uart_cap_once.ps1 -Port COM6 -Cmd "pipe 000100000"   -Seconds 3 -Out board\eye_3_pipe.txt
+powershell -ExecutionPolicy Bypass -File board/uart_cap_once.ps1 -Port COM6 -Cmd "split 31"         -Seconds 3 -Out board\eye_4_split31.txt
+powershell -ExecutionPolicy Bypass -File board/uart_cap_once.ps1 -Port COM6 -Cmd "split marker 1"   -Seconds 4 -Out board\eye_5_marker_on.txt
+# 问 1：蓝线右侧紧贴着的那条 1 像素黑线还在吗？（在 => #103 没收住，把这份捕获发我）
+powershell -ExecutionPolicy Bypass -File board/uart_cap_once.ps1 -Port COM6 -Cmd "src 0"            -Seconds 3 -Out board\eye_6_src0.txt
+powershell -ExecutionPolicy Bypass -File board/uart_cap_once.ps1 -Port COM6 -Cmd "split marker 0"   -Seconds 4 -Out board\eye_7_marker_off.txt
+# 问 2：那条 2 px 蓝标记整条消失了吗？消失之后屏上还有别的竖线吗？（还有 => 那条才是要判的对象，接着看问 3）
+powershell -ExecutionPolicy Bypass -File board/uart_cap_once.ps1 -Port COM6 -Cmd "split 50"         -Seconds 3 -Out board\eye_8_split50.txt
+# 问 3：还看得见的那条线，是跟着缝从 31% 走到 50%，还是钉在原来那一列？（跟缝走 => 缝的产物；钉住 => 真缺陷，
+#        #102 那天量到的是"钉住、不跟缝"，所以两种答案都各有意义）
+powershell -ExecutionPolicy Bypass -File board/uart_cap_once.ps1 -Port COM6 -Cmd "split show"       -Seconds 3 -Out board\eye_9_splitshow.txt
+# 这一步不是眼睛判据，是**前提**：`split show` 的 `marker=` 栏必须真的写着 off。
+# 少了这一栏的凭据，"它就是标记"这个解释就没被排除（ISSUES #102 追加里 07:4x 那次是靠它锁住前提的）。
+```
+
+为什么写成"一发一条"而不是批量 `-Cmds`：`-Cmds` 按 `[,\s]+` 拆，**带参数的命令会被劈成两条**
+（`"ROT SHOW"` → `ROT` + `SHOW`），2026-09-27 我就这样误判过一次"固件把空格当行尾"。
