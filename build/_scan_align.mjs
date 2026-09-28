@@ -3,7 +3,9 @@
  * 只看 ldr/str（无 b/h/d 后缀）配 [rN,#imm] 且 imm%4!=0 的形式；寄存器变址（[r4,r2]）
  * 静态判不出来（基址对齐性未知），所以还要人眼扫一遍反汇编 —— 这个脚本是"别把已知的一类漏掉"。 */
 import { execFileSync } from 'node:child_process';
-const CC = 'D:/Software/Vivado/2025.2.1/Vitis/gnu/aarch32/nt/gcc-arm-none-eabi/bin/arm-none-eabi';
+// 与 build/ps_app.mjs 用同一个变量名 PS_CC（一个东西只有一个说法），VP_CC 只是别名；默认值是本机的便利，见 docs/BUILD.md §1。
+const CC = process.env.PS_CC || process.env.VP_CC ||
+           'D:/Software/Vivado/2025.2.1/Vitis/gnu/aarch32/nt/gcc-arm-none-eabi/bin/arm-none-eabi';
 const d = execFileSync(CC + '-objdump.exe', ['-d', 'build/ps_app.elf'], { encoding: 'utf8' });
 const re = /^\s*([0-9a-f]+):\s+[0-9a-f]+\s+(ldr|str)(b|h|d|sb|sh|db|)?\s+r\d+,\s*\[r\d+,\s*#(\d+)\]/;
 let bad = 0, tot = 0, cur = '';

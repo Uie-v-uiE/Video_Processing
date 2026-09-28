@@ -13,10 +13,24 @@
 | Vivado 工程 | `vivado_system\zynq_video_sys.xpr`（已 gitignore，可用 TCL 重建） |
 | 构建脚本 | `build\tcl\build_system_axigpio.tcl` |
 | 下载脚本 | `build\tcl\program_system.tcl`；PS 起来用 `build\tcl\ps_jtag_boot.tcl`（会自动从 xsa 解出 `ps7_init.tcl`） |
-| 第二块板 | `ku5p\build\tcl\ku5p_build.tcl`（`KU5P_SYNTH_ONLY=1` 只综合；正式产物在 `ku5p\build\`，实验跑法加 `KU5P_TAG=<名>` 落到 `ku5p\build\exp_<名>\` 不盖正式报告） |
-| 上位机 | `src\host\`（推流 `video_sender.mjs`、健康读回 `health_read.mjs`、KU5P 遥测 `ku5p_stats.mjs`） |
+| 上位机 | `src\host\`（推流 `video_sender.mjs`、健康读回 `health_read.mjs`）。**第二块板 KU5P 整棵已删除**（提交 `58faa85`，2026-09-28：`ku5p/` 与 `ku5p_stats.mjs` 都不在了） |
 | PS 源码 | `src\ps\main.c`（编译：`node build\ps_app.mjs`，需要 `PS_BSP`） |
 | Git | `D:\Software\Git\Git\bin\git.exe`（**旧的 `D:\Git\Git\bin` 在这台机器上已不存在**；PATH 里也有 `git`） |
+
+### 换一台机器只要设这几个变量
+
+| 变量 | 指哪儿 | 谁读它 | 不设会怎样 |
+|---|---|---|---|
+| `VP_VIVADO_BIN` | `<Vivado>/bin`（Git Bash 里写成 `/d/...` 这种） | `sim/run_one.sh`、`sim/mut_control.sh`、`build/roll_isolated.sh` | 脚本第一步 `REFUSE: 找不到 xvlog（当前 …）` 并念出变量名——不会让人对着 RTL 怀疑 |
+| `VP_XSDB` | `<Vitis>/bin/xsdb.bat` | `build/board_verify.sh`（以及手工跑 `build/tcl/ps_app_reload.tcl` 时） | 同上 `REFUSE: 找不到 xsdb` |
+| `PS_CC` | `<Vitis>/gnu/aarch32/nt/gcc-arm-none-eabi/bin/arm-none-eabi` 前缀 | `build/ps_app.mjs`、`build/_scan_align.mjs` | 编译 PS 应用那一步报错 |
+| `PS_BSP` | 已 generate 过的 zynq BSP 目录（里面有 `include/` 与 `lib/libxil.a`） | `build/ps_app.mjs` | 同上 |
+
+**仓库根不用设**：`sim/*.sh` 与 `build/*.sh` 都按自己所在位置往回两级算根
+（`ROOT="$(cd "$(dirname "$0")/.." && pwd)"`），`build/tcl/*.tcl` 用 `[file dirname [info script]] .. ..`。
+2026-09-29 之前这几个脚本里写死的是**这台机器的绝对路径**（`/d/Xilinx/Prj/pro/...`），换机器要改一堆行——
+#93 记的就是这件事，r85 那一轮把它落地了。**默认值仍然留着**（本机少敲一步），但它是"便利"不是"标准"，
+所以每一个读默认值的脚本都带一条存在性检查：宁可在第一步拒绝，也不要跑到一半留下半份产物。
 
 ---
 

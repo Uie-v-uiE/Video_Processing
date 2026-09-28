@@ -18,7 +18,7 @@
 #   bash build/refresh_evidence.sh --check 75        # 只对账，不做任何事
 #   bash build/refresh_evidence.sh --selftest        # 反例测试（能红也能绿）
 set -u
-ROOT=${REFRESH_ROOT:-/d/Xilinx/Prj/pro/Video_Processing}
+ROOT=${REFRESH_ROOT:-"$(cd "$(dirname "$0")/.." && pwd)"}   # 默认自适应仓库根，REFRESH_ROOT 仍可覆盖
 cd "$ROOT" || exit 1
 ARTS="system.bit system.xsa ps_app.elf"
 

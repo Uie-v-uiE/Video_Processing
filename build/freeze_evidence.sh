@@ -12,7 +12,7 @@
 #
 #   用法：bash build/freeze_evidence.sh 72
 set -u
-ROOT=/d/Xilinx/Prj/pro/Video_Processing
+ROOT="$(cd "$(dirname "$0")/.." && pwd)"   # 仓库根自适应（原来写死本机路径）
 cd "$ROOT" || exit 1
 NN=${1:-}
 case "$NN" in (''|*[!0-9]*) echo "用法: bash build/freeze_evidence.sh <构建编号，如 72>"; exit 2;; esac
