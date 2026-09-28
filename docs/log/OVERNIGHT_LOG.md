@@ -5844,7 +5844,7 @@ OSD 叠层有了总开关（`osd on|off`，`gpio_o[20]` 反相）；`wr_full` �
 
 | 项 | 结果 | 凭据 |
 |---|---|---|
-| 顶层台架 `tb_v98` | **跑完 82 分钟**（01:16→02:32；`xsimk` CPU 一直在长，不是卡死），`RESULT … FAIL nfail=1`——**唯一红 = C5c**（`frame head is not the previous frame's tail` = #98 那一族的历史红灯，与今晚两件事无关）。其余全绿，含 **#93 的 C4b/C4c（旋转形状）**、**C9a/C9b/C9c/C9e（缝附近不许有黑列）**、**C12（OSD 叠字格 ON/OFF）** | `build/tb_v98_report.txt`，头 `top=47c59cd3a852 tb=d64b883a6d94 rtl=7a780b95ff5e` |
+| 顶层台架 `tb_v98` | **跑完 82 分钟**（01:16→02:32；`xsimk` CPU 一直在长，不是卡死），`RESULT … FAIL nfail=1`——**唯一红 = C5c**（`frame head is not the previous frame's tail` = #98 那一族的历史红灯，与今晚两件事无关）。其余全绿，含 **#93 的 C4a/C4b（旋转形状的"每行一段连续"）**、**C9a/C9b/C9c/C9e（缝附近不许有黑列，含两条正对照 C9bpre/C9epre）**、**C12pre/C12a（OSD 叠字格 ON 看得见、OFF 归零）** | `build/tb_v98_report.txt`，头 `top=47c59cd3a852 tb=d64b883a6d94 rtl=7a780b95ff5e` |
 | 出处对账 | 报告头部三枚 md5 与树里现值**逐枚相同**（`pl_video_top.v` / `tb_v98_top_seam.v` / 整棵 `src/rtl` 合指纹）⇒ 这份报告是**当前这棵树**跑的，可采纳 | 同上 + `build/r84_gates.txt` 第 15 项的读数 |
 | `tb_edge_rim`（r84 重跑） | **PASS**，四条圈 R2..R5 齐、0 行 FAIL：`build/tb_edge_rim_r84.txt`，`rtl=7a780b95ff5e` | 同上（门禁第 16 项从"报告不算当前树"翻成 PASS） |
 | 门禁 20 项 | **三条红**：WNS −0.094、失败 setup 端点 16（都是 #105 那一族）、第 15 项 C5c 那一行 FAIL。其余全绿：BRAM 95/67.86 %、Slice LUT 14360/26.99 %、multi-driven 0、位宽 0、端口接线 violations=0、CDC Critical 2（基线 4）、doc_enc/doc_cur/排练脚本对账/ps_hb 自检+10 条变异 全 PASS | `build/r84_gates.txt` |
