@@ -1,0 +1,10 @@
+# worst setup paths (source: D:/Xilinx/Prj/pro/Video_Processing/build/crit_paths_raw.rpt)
+# slack | clock_group | data_path_delay | logic_levels | start -> end
+-0.094ns | eth_rxc | 7.694ns | 6 | u_eth/u_cdc/wbin_reg[0]/C -> u_eth/u_lm/drop_words_reg[20]/CE
+-0.094ns | eth_rxc | 7.694ns | 6 | u_eth/u_cdc/wbin_reg[0]/C -> u_eth/u_lm/drop_words_reg[21]/CE
+-0.094ns | eth_rxc | 7.694ns | 6 | u_eth/u_cdc/wbin_reg[0]/C -> u_eth/u_lm/drop_words_reg[22]/CE
+-0.094ns | eth_rxc | 7.694ns | 6 | u_eth/u_cdc/wbin_reg[0]/C -> u_eth/u_lm/drop_words_reg[23]/CE
+-0.074ns | eth_rxc | 7.674ns | 6 | u_eth/u_cdc/wbin_reg[0]/C -> u_eth/u_lm/drop_words_reg[24]/CE
+-0.074ns | eth_rxc | 7.674ns | 6 | u_eth/u_cdc/wbin_reg[0]/C -> u_eth/u_lm/drop_words_reg[25]/CE
+-0.074ns | eth_rxc | 7.674ns | 6 | u_eth/u_cdc/wbin_reg[0]/C -> u_eth/u_lm/drop_words_reg[26]/CE
+-0.074ns | eth_rxc | 7.674ns | 6 | u_eth/u_cdc/wbin_reg[0]/C -> u_eth/u_lm/drop_words_reg[27]/CE
