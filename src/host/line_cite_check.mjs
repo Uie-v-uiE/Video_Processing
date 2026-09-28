@@ -187,7 +187,20 @@ function selfTest(code) {
       if (r.ok === want) pass++;
     }
   }
-  return pass === 2 ? 0 : 1;
+  // 硬错那一层也要能红：两条必定坏的必须被认出来，一条"越过 200 但在长文件里合法"的不许误报。
+  // 说清楚强度差别：这里证明的是**判据还在跑**（以及被引文件真的被读进来了）；
+  // 它真正的红→绿凭据是今晚那一次——修之前全树报 7 条硬错、逐条改对之后报 0 条（ISSUES #122 收口段）。
+  const lm = code.get('src/rtl/eth/link_monitor.v');
+  const hardCases = [
+    ['越过 EOF', resolveTarget('link_monitor.v', code) !== null && 9999 > lm.length, true],
+    ['文件不在树里', resolveTarget('no_such_file_zzz.v', code) === null && !VENDOR.has('no_such_file_zzz.v'), true],
+    ['同一行号在长文件里合法（不许误报）', 900 > code.get('src/rtl/top/pl_video_top.v').length, false],
+  ];
+  for (const [name, got, want] of hardCases) {
+    console.log(`  ${got === want ? 'PASS' : 'FAIL'} 硬错判据 ${name}：${got === want ? '符合预期' : '不符合预期'}`);
+    if (got === want) pass++;
+  }
+  return pass === 5 ? 0 : 1;
 }
 
 // 每个被引文件"认识的符号"全集：锚点必须先过这一关，才有资格判红（理由见 check 里那段注释）。
