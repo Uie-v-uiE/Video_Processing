@@ -1,0 +1,12 @@
+﻿=== CAPTURE START 2 commands ===
+[SD] frame 1763: last 100 frames 29.999 fps (since play 29.574)
+>> stat
+stat
+[STAT] ctrl thr=80 src=1 zoom=1 bilin=1 zsel=4 zman=1 pub=1 sd=1 frames=4398 playing=1 sel=000 gm=0.00 (PL owns UDP datapath) mode=0 geom=00400000 osd=1
+[SD] frame 1863: last 100 frames 29.975 fps (since play 29.574)
+>> stat
+stat
+[STAT] ctrl thr=80 src=1 zoom=1 bilin=1 zsel=4 zman=1 pub=0 sd=1 frames=4398 playing=1 sel=000 gm=0.00 (PL owns UDP datapath) mode=0 geom=00400000 osd=1
+[SD] frame 1963: last 100 frames 29.956 fps (since play 29.575)
+=== CAPTURE END ===
+

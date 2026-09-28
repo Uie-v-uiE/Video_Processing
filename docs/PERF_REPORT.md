@@ -284,3 +284,25 @@ PS CPU：主循环仅 `uart_poll`，不参与视频搬移。
 - 28 个 testbench 全 PASS（`sim/results/regression_v6.txt`，在打包后的仓库目录内跑的）。
 - 板级：`node measure_v63.mjs --fps {15,30,60}`，原始输出见
   `data/measured/board_measure_*.txt`。
+
+## 11. 现在板上这一版（r84）的数字，以及还欠的那一项
+
+上面各节都是**按版本留档**的对照，本节只说此刻这块 bit，每个数字指名它出自哪份报告：
+
+| 项 | 值 | 出处 |
+|---|---|---|
+| 位流 / PS 应用 | `system.bit` md5 `b2a36ac57c0c`（01:12）/ `ps_app.elf` md5 `a992736e`（23:26，带 `osd` 动词那一版） | `build/evidence/r84_artifact_md5.txt` |
+| 建立时间 | WNS **−0.094 ns**、TNS −0.747、失败 setup 端点 **16**（共 50883 端点） | `build/evidence/r84_timing_summary.rpt` 01:12:48 |
+| 保持时间 | WHS **+0.056 ns**、失败 hold **0**；WPWS +0.264 | 同上 |
+| 最差那一族 | `u_eth/u_cdc/wbin_reg[0]/C → u_lm/drop_words_reg[20]/CE`，`eth_rxc` 8 ns 域 ⇒ **ISSUES #105，未收口**（门禁第 14 项因此判红） | 同上 + `build/r84_build_console.txt` |
+| Block RAM | **95 / 140 tile = 67.86 %** | `build/evidence/r84_utilization.rpt` |
+| LUT | as Logic 10173 = 19.12 %；as Memory 4187 = 24.06 % | 同上 |
+| 寄存器 | Flip Flop 8073 = 7.59 % | 同上 |
+| DSP | 19 / 220 = 8.64 % | 同上 |
+| 功耗（**工具估算，非实测**） | 总计 2.382 W = 动态 2.205 + 静态 0.177；结温估算 52.5 °C | `build/power.rpt` 01:13:01 |
+| 方法学 | multi-driven **0**、位宽告警 **0**、`Synth 8-6849`/`8-7186` 各 **0**（本轮主动改分布式 RAM 想要的就是后两条归零） | `build/multi_driven.txt`、`build/width_warnings.txt`、`build/r84_build_console.txt` |
+| 板侧机器验收 | `board_verify` PASS（判红步骤 0）；串口电池 **100 条全绿 / 93.0 s**；`geom_check` ok=8；OSD 开关 `0x001B5000 ↔ 0x000B5000`（差正好 `0x100000` = bit20） | `build/r84_battery2_console.txt`、`build/evidence/verify_0929_0132.txt`（另有 `.batt`/`.geom`/`.boot`）、`build/evidence/r84_osd_switch.txt` |
+
+⚠ 两句话不许省：① **"功耗"那一行是 Vivado 的估算**，这台板子上没有仪表实测，写进报告就只能标估算；
+② 这一版**门禁没有全绿**（第 14 项时序红），所以它不进 `build/frozen_*`——
+`node src/host/doc_currency_check.mjs` 认的"最新且 ALL PASS 的冻结集"仍是 r75，本节所有数字与那份冻结集是两回事。
