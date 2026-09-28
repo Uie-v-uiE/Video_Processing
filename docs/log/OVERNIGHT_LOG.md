@@ -5954,7 +5954,7 @@ E1/E2 全绿。所以那次的差 1 不在硬件里，是**我的判据读了 `s
 | OSD 开关（`gpio_o[20]` 反相，独立三级同步链） | 板上连测三轮（r83/r84/r86）都算数：电池里 `osd off` 与 `osd on` 成对，元组里 `osd` 那一格跟着动 | `build/evidence/r86_board_warm.txt`（100 条全 ok）、`build/evidence/r84_osd_switch.txt` |
 | 时序（#124 那一刀） | 目标族整族消失：失败端点 **16 → 2**、TNS **−0.747 → −0.243**；但 WNS **−0.135**（没有转正，最差换成 `u_cdc` 写使能 → BRAM `ENARDEN` 那条兄弟路） | `build/evidence/r86_timing_summary.rpt`、`r86_crit_paths.txt`；过程与收回的那句过头话在 `docs/OPTIMIZATION_LOG.md` r86 一节 |
 | 板侧机器验收 | **暖态 0 红、100 条 / 93.2 s**；冷态那一跑有 **1 红**，红的只有 `zman` 一格（初 0 ≠ 末 1，其余十格逐字符相同） | `build/evidence/r86_board_warm.txt` 与 `r86_board_cold.txt`；为什么两跑都要留：`ISSUES #126` |
-| 门禁 / 冻结 | **仍未全绿**（第 14 项时序 + 第 15 项 C5c）⇒ 对外只说"最新全绿冻结集 = r75"，这条口径没变 | `node src/host/doc_currency_check.mjs` 自己会报出 r75 |
+| 门禁 / 冻结 | 20 项跑完：**第 15b 项（边缘条带）从红转绿**（`rtl_md5=2b3c5945a9e0` 与现树一致、0 FAIL、四条圈齐），第 15 项的红现在**只**是 `C5c` 那个历史缺陷；第 14 项仍红（WNS −0.135 / 端点 2）⇒ 对外只说"最新全绿冻结集 = r75"，这条口径没变 | `build/r86_gates.txt`、`build/tb_edge_rim_r86.txt`、`build/r86_freeze_attempt.txt`（`freeze_evidence.sh 86` 拒绝的现场），`doc_currency_check` 自己也会报出 r75 |
 
 ### 3. 需要你做的三件事（我不能再往下走的，都写清"不成立时说明什么"）
 
