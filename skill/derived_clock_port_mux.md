@@ -5,7 +5,7 @@
 想把一个只有"1 读/1 写"的存储器（帧缓存、行缓存）在**不增加任何 RAM** 的前提下供多个消费者使用，
 而片上正好有一个 N 倍于工作时钟、**同一个 PLL/MMCM 出来、同相**的时钟。
 本项目用它把 512×300 RGB565 帧缓存的读口从"1 次/像素"扩到"5 次/像素"，实现右窗双线性插值
-（`src/rtl/process/bilin/`，`report/CHANGELOG_V7.md` V7.8）。
+（`src/rtl/process/bilin/`，`docs/log/CHANGELOG_V7.md` V7.8）。
 
 ## 使用方法（下面第一到第七节就是用法本身，按顺序做）
 
@@ -89,7 +89,7 @@ route 占八成 + 只有 2 级逻辑 ⇒ **不是深度问题**，再砍逻辑�
 - 或 Pblock 把调度器与那批 BRAM tile 圈在一起。
 反例（本项目 build#14）：`base+ROWW` 在快域 ⇒ 2 级 LUT 外加一条 17 位进位链，
 那是真深度问题，只能按第二节把算术搬回慢域。三版红的数字都留档：
-**−1.277 / −0.485 / −0.327**（`report/OVERNIGHT_LOG.md` R20、`report/CHANGELOG_V7.md` 的 build 表），
+**−1.277 / −0.485 / −0.327**（`docs/log/OVERNIGHT_LOG.md` R20、`docs/log/CHANGELOG_V7.md` 的 build 表），
 最后是 `build/micro_rd/` 的三 MODE 探针量死后才放弃这条路（ISSUES #76）。
 
 同一格判据救过一次"冤枉优化"（r81，ISSUES #105）：三档策略全红，量到的都是同一条锥 ——
@@ -136,11 +136,11 @@ route 占八成 + 只有 2 级逻辑 ⇒ **不是深度问题**，再砍逻辑�
 - **回代自检真的抓到过东西**：把 `RD_LAT=2` 代回这套公式，原样得到旧代码里的字面量，
   顺带抓出两处"存在很多版本、不会报错、只有眼睛能看见"的 1 像素错位（右窗彩条与效果链 `PROC_LAT`）。
 - **算术题救了三版构建**：三版红的数字都留档 **−1.277 / −0.485 / −0.327**
-  （`report/OVERNIGHT_LOG.md` R20、`report/CHANGELOG_V7.md` 的 build 表），最后是 `build/micro_rd/`
-  的三 MODE 探针量死后才放弃那条路（`report/ISSUES.md` #76）。
+  （`docs/log/OVERNIGHT_LOG.md` R20、`docs/log/CHANGELOG_V7.md` 的 build 表），最后是 `build/micro_rd/`
+  的三 MODE 探针量死后才放弃那条路（`docs/log/ISSUES.md` #76）。
 - **分时成立的前提是数出来的**：1W1R = 80、1W2R = 160 个 RAMB36（`sim/probes/dpfb.v`），
   而全片只有 140 ⇒ 没有这两个数，"必须分时"这条结论就没有资格。
-- V7.8 那一夜的流水见 `report/OVERNIGHT_LOG.md` 的 R19/R20 与 `report/CHANGELOG_V7.md` V7.8；
+- V7.8 那一夜的流水见 `docs/log/OVERNIGHT_LOG.md` 的 R19/R20 与 `docs/log/CHANGELOG_V7.md` V7.8；
   预算表与槽位表来自 `src/rtl/process/bilin/`，延迟量取与回代自检来自 `sim/tb_fb_rd5x.v` /
   `sim/tb_tap_sched.v`；两个失败版本（快域加法 −1.277、换节拍后两台架同时红）记在
-  `report/OVERNIGHT_LOG.md` 对应的 R 轮里。
+  `docs/log/OVERNIGHT_LOG.md` 对应的 R 轮里。

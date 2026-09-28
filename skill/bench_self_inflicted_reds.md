@@ -111,12 +111,12 @@ if (!wc_ok) chk("切回自动后确实动了（没等到变化=判据空跑）",
 
 十张处方没有一张是想出来的，每一条都对应一次真实红灯与一份留档凭据：
 
-- 签名一~四同一天出自 `sim/tb_v94_zoom_sel.v` 与 `sim/tb_v796_src_arb.v`（`report/OVERNIGHT_LOG.md` §35），
+- 签名一~四同一天出自 `sim/tb_v94_zoom_sel.v` 与 `sim/tb_v796_src_arb.v`（`docs/log/OVERNIGHT_LOG.md` §35），
   当天硬件其实全对 —— 按"红了就是硬件错"去改 RTL 就会把一个正确的实现改坏。
 - 签名五~七出自 r57/r58（探针对照表、板被人按过、加端口后四份台架浮空），
   凭据是 `build/uram_presence_console*.txt`、`build/mutation_zoom_snap_r54.txt` 与那两次变异读数。
 - 签名八~十出自 ISSUES #87（"命令要发好几遍"）、§43（看门狗假红）、以及 `tb_v98` 第一次跑出的
-  "行绿列红"（`report/ISSUES.md` #78/#88 一族）。
+  "行绿列红"（`docs/log/ISSUES.md` #78/#88 一族）。
 - **最有说服力的一组数是那张 Z4 表**：同一份台架、两种变异，第二次变异只让一条判据红 ⇒
   "末态检查"永远抓不到时序错，这不是观点，是量出来的。
 
@@ -137,9 +137,9 @@ if (!wc_ok) chk("切回自动后确实动了（没等到变化=判据空跑）",
 - `sim/tb_v95_zoom_snap.v` + `build/mutation_zoom_snap_r54.txt`（两次变异，Z4 的判别力证据）
 - `src/host/temp_formula_check.mjs`（同一族的"容差是算出来的不是调出来的"：截断 + 两次取整）
 - `src/host/pipe_len_check.mjs`（签名八：函数原文现编 + 位号从 RTL 抠 + 两条变异对照）
-- `report/ISSUES.md` #58（硬件里不许运行时除法 ⇒ 台架里可以）、#59/#60（快照与"空跑判据"两条前科）
+- `docs/log/ISSUES.md` #58（硬件里不许运行时除法 ⇒ 台架里可以）、#59/#60（快照与"空跑判据"两条前科）
 - `skill/atomic_register_window_readback.md`（同一族的"判据不许因为没判而报绿"）
-- `report/OVERNIGHT_LOG.md` §35、§37（2026-09-25 那一夜，V8-8 / V8-7 两轮）
+- `docs/log/OVERNIGHT_LOG.md` §35、§37（2026-09-25 那一夜，V8-8 / V8-7 两轮）
 
 ## 第五个签名（探针版，2026-09-25 r57）：**"查不到"被当成"不存在"**
 

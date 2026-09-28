@@ -33,9 +33,6 @@ the same geometry that produced them.
 - **Online self-diagnosis**: received/dropped/corrupt/CRC counters, ping-pong bank
   state and in-link latency, counted in hardware, shown on the OSD and readable over
   the serial port; cable-pull and card-pull behaviour can be reconciled afterwards.
-- **Second board**: `ku5p/` carries the same receive/transmit logic on an
-  RK-XCKU5P-F (pure PL, no PS), which is how the interface logic was checked for
-  device independence.
 
 ## Reproducing it
 
@@ -49,7 +46,7 @@ bash build/board_verify.sh --battery --geom
 ```
 
 Command list, register map, every criterion and where to look when one turns red:
-[report/COMMANDS.md](report/COMMANDS.md), [report/BUILD.md](report/BUILD.md),
+[docs/COMMANDS.md](docs/COMMANDS.md), [docs/BUILD.md](docs/BUILD.md),
 [board/README.md](board/README.md).
 
 ## Numbers
@@ -57,7 +54,7 @@ Command list, register map, every criterion and where to look when one turns red
 The newest gate-green frozen set is r75: twenty of twenty items pass, post-route
 WNS +0.287 ns. The full table of utilisation, power, frame rate and latency - each
 row naming the report it came from - is in
-[report/PERF_REPORT.md](report/PERF_REPORT.md); artefacts are archived under
+[docs/PERF_REPORT.md](docs/PERF_REPORT.md); artefacts are archived under
 `build/` and `build/evidence/`.
 
 ## Layout
@@ -72,14 +69,14 @@ row naming the report it came from - is in
 | `board/` | on-board procedures, acceptance table, serial captures |
 | `data/` | `golden/` reference images, `measured/` measured data |
 | `skill/` | reusable skills distilled from the LLM collaboration, each in four parts: when it applies, how to use it, the verified effect (which failure it came from), and when it stops working |
-| `report/` | design report, optimisation log, `ISSUES.md` and `OVERNIGHT_LOG.md` (append-only history) |
-| `ku5p/` | separate project for the second board (XCKU5P) |
+| `docs/` | design report, optimisation log, command reference, reproduction guide |
+| `docs/log/` | `ISSUES.md` and `OVERNIGHT_LOG.md` (append-only work log) |
 
 ## Where to start reading
 
-[report/ARCHITECTURE.md](report/ARCHITECTURE.md) (block diagram and module
-responsibilities) -> [report/PS_VS_PL.md](report/PS_VS_PL.md) (the hardware/software
-split) -> [report/BACKGROUND_AND_NOVELTY.md](report/BACKGROUND_AND_NOVELTY.md)
+[docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) (block diagram and module
+responsibilities) -> [docs/PS_VS_PL.md](docs/PS_VS_PL.md) (the hardware/software
+split) -> [docs/BACKGROUND_AND_NOVELTY.md](docs/BACKGROUND_AND_NOVELTY.md)
 (why it is built this way) -> [board/HANDS_ON.md](board/HANDS_ON.md) (what to look at
 on the panel).
 

@@ -2,7 +2,7 @@
 
 被测 bit：`build/system.bit` md5 `7d2cf8ee`（1777758 B）
 被测网表差异：`frame_reasm` v5.1（饱和累加改写）+ XDC 拆分（时钟组仅实现阶段生效）
-上一版金样：`f5c69ca7`（R05）—— 其 22 轮结果见 `board/README.md` 与 `report/CHANGELOG_V7.md`
+上一版金样：`f5c69ca7`（R05）—— 其 22 轮结果见 `board/README.md` 与 `docs/log/CHANGELOG_V7.md`
 
 ## 环境确认（每轮都重跑三件套，因为回读会让 A9 停在复位态）
 

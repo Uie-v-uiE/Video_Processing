@@ -21,18 +21,18 @@
 | 双线性插值 | **算术核在、未合入主线**：250 MHz 读口域三次时序红（−1.277/−0.485/−0.327） | tag `v7.8-bilinear-wip`；`process/{bilin_lerp,fb_rd5x,tap_sched}.v` |
 | 五级流水线（颜色/滤波/边缘/阈值/形态学）+ 每级 bypass | **四级有、第五级没有**：现链是 `en[4:0] = gray, binary, blur, sobel, invert`，**无锐化、无腐蚀/膨胀** | `src/rtl/process/proc_pipeline.v:3`（位定义就写在这一行） |
 | Gamma 查找表（PS 写 LUT、按键循环） | **完全没有**（无 `gamma_lut.v`、无 LUT 写入通路、无按键） | 全仓 grep 无 gamma |
-| OSD 四行（FPS/源/分辨率/pipe/th/gamma/rot/zoom/split/**Latency**） | **有 5 行 OSD**，内容不同；**端到端时延从未测过** | `src/rtl/video/osd_overlay.v:19`（`N_LINES = 5`）；`report/PERF_REPORT.md` §6b 明写"链路内时延未测" |
+| OSD 四行（FPS/源/分辨率/pipe/th/gamma/rot/zoom/split/**Latency**） | **有 5 行 OSD**，内容不同；**端到端时延从未测过** | `src/rtl/video/osd_overlay.v:19`（`N_LINES = 5`）；`docs/PERF_REPORT.md` §6b 明写"链路内时延未测" |
 | 4 个按键 KEY0~KEY3（短按+长按） | **成立，但要分开**：PL 那两个已经在用（W18/V14），**PS 那两个电气上存在、固件读不到** | 手册 §1.21"2 PS 2 PL"；原理图 `PS_MIO0_KEY1`/`PS_MIO12_KEY2`/`PL_KEY1`/`PL_KEY2`；读不到的两条原因见 **§6a** |
-| PS 命令双通道 | **有**：串口命令 + AXI GPIO 控制字；但语法是 `SRC0/TH80/ZOOM1`（无空格），与 spec 的 `src 0/th 80` 不同 | `src/ps/main.c`、`src/host/HOST_GUIDE.md` |
+| PS 命令双通道 | **有**：串口命令 + AXI GPIO 控制字；但语法是 `SRC0/TH80/ZOOM1`（无空格），与 spec 的 `src 0/th 80` 不同 | `src/ps/main.c`、`docs/HOST_GUIDE.md` |
 | 异常：DDR 读写错误 / VDMA 中断 | **无 VDMA**（自研通路），对应物是硬件计数器 `drop_words / frames_bad / copy_overrun / rows_miss_max` | `link_monitor` + `frame_commit_lock`；读回见 `health_read.mjs` |
 | 异常：温度过高（XADC>85°C） | **无**（PL/PS 都没接 XADC） | — |
-| 全自主 RTL、不依赖厂商视频 IP | **成立**（自研 RGMII/ARP/ICMP/UDP + 自研 DDR 乒乓与搬运机） | `report/BACKGROUND_AND_NOVELTY.md` |
+| 全自主 RTL、不依赖厂商视频 IP | **成立**（自研 RGMII/ARP/ICMP/UDP + 自研 DDR 乒乓与搬运机） | `docs/BACKGROUND_AND_NOVELTY.md` |
 
 **当前位流状态**（刚跑完，全绿）：bit `c7f90cc`（含 #53 地址分离 + 图卡 v2）
 WNS +0.756 / **WHS +0.050** / 0 失败端点(24137) / LUT 8270(15.55 %) / Reg 6176 / BRAM 64.64 % / 2.159 W /
 methodology 0 CRIT / `cdc.rpt` Critical 3 行 = 基线配对无新增。
 ⚠ 值得注意：**hold 余量从 0.062 掉到 0.050**（图卡新增逻辑压在像素域），这是"最小余量"不是 WNS，
-以后每加一级像素域逻辑都要盯它（`study/04_版本演进/03_优化的方法论.md` §7b 第 3 条说的就是这件事）。
+以后每加一级像素域逻辑都要盯它（`docs/study/04_版本演进/03_优化的方法论.md` §7b 第 3 条说的就是这件事）。
 
 ---
 
@@ -56,7 +56,7 @@ methodology 0 CRIT / `cdc.rpt` Critical 3 行 = 基线配对无新增。
 | 步 | 目标 | 动哪些文件 | 怎么算"过" | 预估 | 回退点 |
 |---|---|---|---|---|---|
 | **0** | **收尾今天这一版**（#53 并发抢画面 + 图卡 v2） | 已完成：`pl_video_top.v`/`system_top.v`/`sd_play.c`/`main.c`/`test_card.v` | ✅ 16:0x 上板（bit `c7f90cc` + elf）；机器侧红绿对照已闭环 `board/ddr_churn_r33_pair.md`；L1 全量 48/48 `sim/results/regression_v79_r44.txt`。**只剩眼睛**：并发不闪、图卡观感、长按切源 | 20 min（含下板） | `build/frozen_r32_sdfix/`（bit `efc89779`） |
-| **1** | **命令层统一**（spec §14 语法），零 RTL 风险 | `src/ps/main.c`（解析器 + 别名表）、`src/host/HOST_GUIDE.md` | ✅ 2026-09-24 17:0x：`node src/host/uart_cmd_check.mjs` **32 条逐条对回声 + 反例 + 收尾回初态**，`RESULT PASS`（`board/uart_cmd_check_r44.txt`）。elf `1be21dee` | 30–40 min | 纯固件，重下 elf 即可 |
+| **1** | **命令层统一**（spec §14 语法），零 RTL 风险 | `src/ps/main.c`（解析器 + 别名表）、`docs/HOST_GUIDE.md` | ✅ 2026-09-24 17:0x：`node src/host/uart_cmd_check.mjs` **32 条逐条对回声 + 反例 + 收尾回初态**，`RESULT PASS`（`board/uart_cmd_check_r44.txt`）。elf `1be21dee` | 30–40 min | 纯固件，重下 elf 即可 |
 | **2** | **补齐第 5 级形态学 + 锐化**，并把"每级 2 算法"的控制字设计出来 | 新 `process/proc_morph.v`、`process/proc_sharpen.v`；改 `proc_pipeline.v`、`effect_ctrl.v`（`en[4:0]` 要扩成"每级 2 bit 选择"）、`system_top.v` 的 GPIO 位分配 | ✅ **r45 已交付**（bit `bb301595`）：`tb_v84_morph`/`tb_v85_sharpen`/`tb_v86_pipe_sel` 三份新台架 + L1 51/51，控制字落成"第二个 GPIO（0x41220000）"，门禁全绿、上板寄存器级验证过。**只剩眼睛**（`board/README.md` 10~12 行） | 2–3 h | 新模块不接进链就不影响主线 |
 | **3** | **Gamma 查找表**（D4 方案②） | 新 `video/gamma_lut.v`、`pl_video_top.v` 插入位置、`main.c`（生成表 + `gamma` 命令）、按键循环（D2） | ✅ **r47 已交付**（bit `90781f69` / elf `9aaccb23`）：插在**第 0 级**、3×256×8 LUTRAM 异步读出 ⇒ `LATENCY` 仍是 15（`tb_v86` T2 实测过）；`tb_v88_gamma` 八条（T1 做过反例）+ L1 53/53；板上 `[CFG] gamma window @41220008 ok` + 电池 37/37。**只剩眼睛第 16 行**；⚠ 代价记在案：WNS +1.111→**+0.795**、WHS →**+0.053** | 1.5–2 h | 插入点用参数旁路（`GAMMA_BYPASS`）——实际用的是运行时的 `en` 位（旁路=逐位透传），不需要重编译 |
 | **4** | **分割线参数化 + 自动扫描 + swap**（D5 方案①：输入域混合） | 改 `split_display.v` → 输入域 mixer + 新 `video/split_ctrl.v`（位置/三角扫描/range/speed/swap），`pl_video_top.v` 接线，`main.c` 命令 | 台架：扫描三角波端点、range 夹紧、swap 后左右必须互换、**0%/100% 边界不许越界读**；板级：旋转 45° 时分割线成斜线（这是 spec 的硬要求） | 3–4 h（本表最大一块） | 保留旧"固定双窗"行为作为 `split 50 auto off` 的退化态 |
@@ -65,7 +65,7 @@ methodology 0 CRIT / `cdc.rpt` Critical 3 行 = 基线配对无新增。
 | **7** | **异常处理补全**：温度 + 回落原因上屏 | XADC（PS 侧读 PS-XADC 最省，或 PL `axi_hwicap`/XADC IP——注意这会引入一个厂商 IP，要算进"零 IP"口径）、`main.c` 回落状态机 | 每条异常都能**人为造出来**（拔线、拔卡、非法命令）并看到 OSD 提示；温度那条不许只写"已实现" | 1.5–2 h | 温度可先只做串口不做 OSD |
 | **8** | **自动缩放补偿核对/补齐**（spec §6.2 公式） | `zoom_ctrl.v`/`zoom_mapper.v` | 台架：θ = 0/30/45/90 时算出的 zoom 与公式一致，且**外接矩形不越屏**；板级看四角有没有黑边 | 1.5 h | 若已实现则只补文档与判据 |
 | **9** | **双线性合入**（D3 方案①，可选/另开一晚） | `process/bilin/*`、`fb_pack`/读口调度 | 250 MHz 域时序必须收口（三次红过），L1 全绿 + 板级画质对比 | 3 h+，**可能失败** | 失败就退回 tag `v7.8-bilinear-wip`，文档口径不变 |
-| **10** | 演示脚本与文档口径重写 | `report/DEMO_SCRIPT.md`、`README.md`、`PERF_REPORT.md`、`CONTEST_CHECKLIST.md` | 每个数字点名一份报告；spec 里没做的项**明确写"未做"** | 1 h | — |
+| **10** | 演示脚本与文档口径重写 | `docs/DEMO_SCRIPT.md`、`README.md`、`PERF_REPORT.md`、`CONTEST_CHECKLIST.md` | 每个数字点名一份报告；spec 里没做的项**明确写"未做"** | 1 h | — |
 
 **2026-09-24 深夜的进度贴在这里（免得明早对不上）**：
 步 6 的机器部分 = **r50 上板 + r51 修完读数撕裂**（#59 快照口）；

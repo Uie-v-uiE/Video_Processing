@@ -24,8 +24,6 @@
 - **屏上状态**：OSD 四行显示片源、角度、缩放档、效果码、分割线位置、帧率、时延、温度。
 - **在线自诊断**：收包/丢包/坏字/CRC 校验、乒乓 bank 状态、链路内时延，硬件计数 + OSD +
   串口可读回，拔线与拔卡后的行为可核对。
-- **第二块板**：`ku5p/` 是 RK-XCKU5P-F（纯 PL，无 PS）上的同源收口与发送工程，
-  用于验证这套接口逻辑的器件无关性。
 
 ## 复现路径
 
@@ -39,14 +37,14 @@ bash build/board_verify.sh --battery --geom
 ```
 
 命令表、寄存器映射、逐项判据与失败时看哪个文件，见
-[report/COMMANDS.md](report/COMMANDS.md)、[report/BUILD.md](report/BUILD.md)、
+[docs/COMMANDS.md](docs/COMMANDS.md)、[docs/BUILD.md](docs/BUILD.md)、
 [board/README.md](board/README.md)。
 
 ## 数据
 
 最近一次门禁全绿的冻结集 = r75：二十项全通过，实现后 WNS +0.287 ns。
 资源占用、功耗、帧率与时延的完整表格（含每一项出自哪份报告）见
-[report/PERF_REPORT.md](report/PERF_REPORT.md)，留档在 `build/` 与 `build/evidence/`。
+[docs/PERF_REPORT.md](docs/PERF_REPORT.md)，留档在 `build/` 与 `build/evidence/`。
 
 ## 目录
 
@@ -60,17 +58,17 @@ bash build/board_verify.sh --battery --geom
 | `board/` | 上板操作说明、验收表、串口捕获 |
 | `data/` | `golden/` 参考图，`measured/` 实测数据 |
 | `skill/` | 大模型协作沉淀的技能包（每项四段：适用场景 / 使用方法 / 已验证效果的凭据 / 失效条件；条目数以 `skill/README.md` 自己那行为准） |
-| `report/` | 设计报告、优化记录、`ISSUES.md` 与 `OVERNIGHT_LOG.md`（追加式历史） |
-| `ku5p/` | 第二块板（XCKU5P）的独立工程 |
+| `docs/` | 设计报告、优化记录、命令表、复现说明 |
+| `docs/log/` | `ISSUES.md` 与 `OVERNIGHT_LOG.md`（追加式工作记录） |
 
-对应关系与赛程推荐结构的差异已在表中说明；`report/ISSUES.md` 与
-`report/OVERNIGHT_LOG.md` 是只追加的历史记录，不重写。
+对应关系与赛程推荐结构的差异已在表中说明；`docs/log/ISSUES.md` 与
+`docs/log/OVERNIGHT_LOG.md` 是只追加的历史记录，不重写。
 
 ## 阅读顺序
 
-第一次接触这个工程：[report/ARCHITECTURE.md](report/ARCHITECTURE.md)（框图与模块职责）→
-[report/PS_VS_PL.md](report/PS_VS_PL.md)（软硬件怎么切分）→
-[report/BACKGROUND_AND_NOVELTY.md](report/BACKGROUND_AND_NOVELTY.md)（为什么这么做）→
+第一次接触这个工程：[docs/ARCHITECTURE.md](docs/ARCHITECTURE.md)（框图与模块职责）→
+[docs/PS_VS_PL.md](docs/PS_VS_PL.md)（软硬件怎么切分）→
+[docs/BACKGROUND_AND_NOVELTY.md](docs/BACKGROUND_AND_NOVELTY.md)（为什么这么做）→
 [board/HANDS_ON.md](board/HANDS_ON.md)（动手看什么）。
 
 ## 许可

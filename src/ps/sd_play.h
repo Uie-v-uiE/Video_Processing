@@ -1,5 +1,5 @@
 /*
- * SD 卡本地回放的 PS 侧接口（见 sd_play.c 与 report/OVERNIGHT_LOG.md §P1）。
+ * SD 卡本地回放的 PS 侧接口（见 sd_play.c 与 docs/log/OVERNIGHT_LOG.md §P1）。
  *
  * 数据流：SD(DMA) → DDR@BASE_ADDR →（PL 在 frame_start 拉一次 HP0 复制）→ 显示帧缓存。
  * PS 全程不做 memcpy：SD 控制器的 DMA 直接落到 PL 要读的那块 DDR，

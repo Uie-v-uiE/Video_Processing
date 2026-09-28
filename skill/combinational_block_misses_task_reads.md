@@ -67,7 +67,7 @@ Verilog-2001 的 `@(*)` 是把**这个块自己的表达式里读到的**量收�
 
 - 这条判据**写出来的那一轮就抓住了真 bug**：`sim/tb_osd_lines.v` 的 T3 连比四种片源状态，
   第一次跑就报出 `src_eff=CARD` 而屏上仍是 `PS`（2026-09-25 凌晨，r52，
-  `report/OVERNIGHT_LOG.md` §33）⇒ 屏上的标签与mux 实际选中的那一路第一次被同一句判据钉住。
+  `docs/log/OVERNIGHT_LOG.md` §33）⇒ 屏上的标签与mux 实际选中的那一路第一次被同一句判据钉住。
 - 它的价值形状可以复述成一句可迁移的话：**"仿真少算一次更新"这类错，只有差分激励能看见；
   综合、时序报告、门禁在那一晚全都是绿的**。
 
@@ -84,4 +84,4 @@ Verilog-2001 的 `@(*)` 是把**这个块自己的表达式里读到的**量收�
 
 - `src/rtl/video/osd_overlay.v`（V8-5 四行 OSD，`put_src` 的注释写了为什么是入参）
 - `sim/tb_osd_lines.v` T3
-- `report/OVERNIGHT_LOG.md` §33（2026-09-25 凌晨，r52）
+- `docs/log/OVERNIGHT_LOG.md` §33（2026-09-25 凌晨，r52）

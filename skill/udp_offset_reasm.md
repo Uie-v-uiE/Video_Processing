@@ -45,11 +45,11 @@
    （`bash build/orphan_rtl.sh` 就是干这个的：拿综合日志当可达性 oracle）。
    同一件事的另一半：目的端口过滤**现在确实在顶层**（`udp_rx_parser.v:151` 比 `UDP_PORT`），
    但被它丢掉的包只输出三个统计脉冲、**没接成可读寄存器** ⇒ "过滤掉了多少"板上看不到
-   （`report/CONTEST_CHECKLIST.md` §2 第 4 条）。**功能与它的可观测性是两笔账。**
+   （`docs/log/CONTEST_CHECKLIST.md` §2 第 4 条）。**功能与它的可观测性是两笔账。**
 4. **被硬接的统计位**：`p_good` 曾经是 `1'b1`（厂商 `udp_rx` 不给错误标志），
    于是下游"坏包计数"**构造性为 0** —— 那一版所有关于坏包的遥测都是死数字。
    今天它由自研 FCS 检查给真值（`eth_udp_video_top.v:233` 的注释就写着"原来是 1'b1"），
-   但"它真的会跳"目前**只有台架证据**（`tb_v795_rx_chain` 的 C2，见 `report/CONTEST_CHECKLIST.md` §2 第 5 条）。
+   但"它真的会跳"目前**只有台架证据**（`tb_v795_rx_chain` 的 C2，见 `docs/log/CONTEST_CHECKLIST.md` §2 第 5 条）。
    ⇒ 通用规矩不变：**任何"看起来恒真/恒 0"的输入都要 grep 它的驱动**，并在结论里写清它靠哪一级证据。
 5. **端口/地址/IP 在几处各写了一份**：`UDP_PORT=16'd5001` 出现在 `eth_udp_video_top.v:8`、
    `udp_rx_parser.v:5`、`system_top.v:145`，上位机 `src/host/video_sender.mjs:34` 又独立写死一份 ⇒
@@ -69,11 +69,11 @@ bash sim/run_one.sh tb_v6_ingress_integrity # SIM_ARGS="+FULL +MISALIGN"：整�
 
 ## 已验证效果
 
-- **协议必要性**：`report/ISSUES.md` #5（UDP 乱序错位 ⇒ 包头加 `[u32 LE offset]`、按 offset 写 BRAM）；
+- **协议必要性**：`docs/log/ISSUES.md` #5（UDP 乱序错位 ⇒ 包头加 `[u32 LE offset]`、按 offset 写 BRAM）；
   #27 记录"只看累计字节"会把「丢一包 + 一包重复偏移」当成收满 ⇒ **空洞帧被 commit**，对策是加行覆盖门。
-- **对齐是量出来的**：上面那组 1396/1392 的数字出自 `report/V6_BOARD_MEASUREMENT.md` §4.2；
+- **对齐是量出来的**：上面那组 1396/1392 的数字出自 `docs/log/V6_BOARD_MEASUREMENT.md` §4.2；
   仿真侧同步判据 `tb_v6_ingress_integrity +FULL +MISALIGN` 修复前 `38290/38400`、
-  `first bad word=174`（正是 `1396/8=174.5` 那个跨界字），修复后 `38400/38400`（`report/ISSUES.md` #29）。
+  `first bad word=174`（正是 `1396/8=174.5` 那个跨界字），修复后 `38400/38400`（`docs/log/ISSUES.md` #29）。
   ⇒ 这条的价值在于：**"174"这个数字自己解释了机理**，不需要再猜。
 - **提交门生效**：`sim/tb_v6_cover_gate.v` 五条断言（含"有洞的帧被计数""下一完整帧仍能提交"）
   在 `sim/results/regression_v77_r13.txt` 里是 `RESULT tb_v6_cover_gate PASS`。
@@ -81,10 +81,10 @@ bash sim/run_one.sh tb_v6_ingress_integrity # SIM_ARGS="+FULL +MISALIGN"：整�
   u32 内两 lane 异帧 **0/76800**、包内六带丢字率全 **0.0%**、连续丢字带 **0 字**
   （`data/measured/board_measure_r06_r07.md`）；判据本身怎么写见 [S9](frameid_loss_signature.md)。
 - **协议栈"活着"的不看屏判据**：`ping` 发送=3 / 接收=3 / **丢失=0**、RTT 1–2 ms，而此时 PS 完全不参与
-  ARP/ICMP ⇒ 数据面确实与处理器无关（`report/OVERNIGHT_LOG.md` §「L4 执行」）。
+  ARP/ICMP ⇒ 数据面确实与处理器无关（`docs/log/OVERNIGHT_LOG.md` §「L4 执行」）。
 - **卸载是有代价的，代价被量化过**：新增链路健康自诊断（一路计数 + 跨域快照 + 屏上两行 + 一路 GPIO 读回）
   **一个 BRAM tile 都没加**（占用率不变），代价是网口时钟域 WNS +0.974 → **+0.527**
-  （`report/CHANGELOG_V7.md` V7.6 门禁表）。⇒ 说"不占资源"之前先把这两列数摆出来。
+  （`docs/log/CHANGELOG_V7.md` V7.6 门禁表）。⇒ 说"不占资源"之前先把这两列数摆出来。
 
 ## 失效条件
 
@@ -94,7 +94,7 @@ bash sim/run_one.sh tb_v6_ingress_integrity # SIM_ARGS="+FULL +MISALIGN"：整�
    （`frame_reasm.v:132` 的 `stat_oob_off`）。要防它得在应用层再加 magic/CRC，别指望协议栈替你验。
 2. **两个提交判据都是分辨率相关的**：行覆盖要求 `IMG_W/IMG_H` 与实际推流一致，而帧长常数如果没被例化
    覆盖（`eth_udp_video_top.v:230` 只传 `.IMG_W/.IMG_H`，`frame_reasm.v:11` 的 `FRAME_BYTES` 默认 307200
-   恰好等于 512×300×2）⇒ 改分辨率会静默失配（`report/OVERNIGHT_LOG.md` U12 —— 这一条是**读代码**读出来的，
+   恰好等于 512×300×2）⇒ 改分辨率会静默失配（`docs/log/OVERNIGHT_LOG.md` U12 —— 这一条是**读代码**读出来的，
    不是跑出来的，所以它没有台架凭据，只有失效条件）。
 3. **不处理 IP 分片**：载荷超过 MTU 由网卡/协议栈分片，本链不重组 ⇒ 上位机必须自己控制包长。
 4. **行覆盖门在稀疏载荷上会误判**：点云抽稀、稀疏矩阵这类"一行只写几个字节"的载荷，
@@ -102,7 +102,7 @@ bash sim/run_one.sh tb_v6_ingress_integrity # SIM_ARGS="+FULL +MISALIGN"：整�
 5. **片外时序没有约束**：位对齐靠固定抽头（`system_top.v:160` 传 `IDELAY_VALUE(15)`，
    而 `rgmii_rx.v:29` 的默认是 0），全仓库 `set_input_delay`/`set_output_delay` 为 0 条，
    发送侧被 `src/constraints/rk_zynq7020.xdc` 里那四条 `-to` false path 整条豁免 ⇒
-   **时序报告全绿只说明片内满足**，片外只有板级证据（`report/OVERNIGHT_LOG.md` U10；
+   **时序报告全绿只说明片内满足**，片外只有板级证据（`docs/log/OVERNIGHT_LOG.md` U10；
    `check_timing` 与 `methodology.rpt` 的 TIMING-18 会自己点名这些端口）。
    换板 / 换走线要重扫抽头。
 6. **换到 UltraScale+ 整段失效**：收侧 `IDDR`/`IDELAYE2`/`IDELAYCTRL`（`IDELAYCTRL` 还要 200 MHz 参考，

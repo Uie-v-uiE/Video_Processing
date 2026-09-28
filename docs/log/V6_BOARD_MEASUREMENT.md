@@ -1,7 +1,7 @@
 # v6 上板验证单（结果由板测填写）
 
-> 本文是**验收数据表**。逐版本的完整修改记录（改了什么/为什么/判据/是否回退）见 `report/CHANGELOG_V6.md`；
-> 机理推导与测量方法学见 `report/V6_ROOT_CAUSE.md`。
+> 本文是**验收数据表**。逐版本的完整修改记录（改了什么/为什么/判据/是否回退）见 `docs/log/CHANGELOG_V6.md`；
+> 机理推导与测量方法学见 `docs/log/V6_ROOT_CAUSE.md`。
 
 
 产物：`build_v6/system.bit`、`build_v6/system.xsa`（同目录含
@@ -86,7 +86,7 @@ reasm/CDC/打包器的确定性逻辑问题。最合理的解释：**帧最后 2
 | 1392 B（默认） | **100.0%** | 0 ~ 2（即 §4.1 的已知残留） | — |
 
 机理、修法与仿真对照（`+MISALIGN`：修复前 `words exact=38290/38400`、`first bad word=174`）
-见 `docs/ANALYSIS_v6.md` §7.7。v6.4 之后**分包长度不再是约束**，但默认仍留 1392。
+见 v6 那份分析笔记 §7.7（那份笔记从未入库，正文已摘进本文与 `docs/HOST_GUIDE.md` 的 §4）。v6.4 之后**分包长度不再是约束**，但默认仍留 1392。
 
 **v6.4 上板验收（2026-09-21 10:4x，WNS +0.708 ns 的那版 bit）——已通过**：
 同样的 1396 B 分包、200 帧 @15fps，回读两个 bank：
@@ -130,7 +130,7 @@ reasm/CDC/打包器的确定性逻辑问题。最合理的解释：**帧最后 2
 3. `frame_commit_lock.v`：拷贝在 `allow` 上升沿即启动（不再等 vsync 边沿，多出 36% 预算）。
 4. `axi_frame_writer_gated.v`：`MAX_OUT` 2→4（64 拍在途）。
 5. `host/video_sender.py`：新增 `Pacer` 帧内限速，默认 15 MB/s；分包长度
-   1396 → **1392（必须是 8 的倍数，见 `docs/ANALYSIS_v6.md` §7.1）**。
+   1396 → **1392（必须是 8 的倍数，见 v6 分析笔记 §7.1，未入库）**。
 6. `rtl_fix/eth_udp_video_top.v`（v6.1，板级回读定位）：入包 CDC 读侧从
    「每 3 拍 1 条」改成「每拍 1 条」，并让 flush 不再顶掉数据写 —— 这是
    黑横纹的真正主因，与上位机速率无关。
@@ -143,17 +143,17 @@ reasm/CDC/打包器的确定性逻辑问题。最合理的解释：**帧最后 2
 9. **v6.3** `rtl_fix/axi_frame_saver64.v`：写通道不再逐字等 B 响应（AW/W 同拍挂出、
    各保持到被接收，`OST=8` 在途，`m_axi_bready` 恒 1，`outst` 只回收计数且不回绕）。
    入包写吞吐上限由「往返延迟决定 ≈20 MB/s」变成「总线握手决定 ≈400 MB/s」。
-   定位依据与仿真表见 `docs/ANALYSIS_v6.md` §7.5；判据工具 `host/ddr_stale.mjs`。
+   定位依据与仿真表见 v6 分析笔记 §7.5（未入库）；判据工具 `src/host/ddr_stale.mjs`。
 10. **v6.4** `rtl_fix/axi_frame_saver64.v`：`WSTRB` 由 `8'hFF` 改成**按 16bit lane 的掩码**
    （`cur_keep → q_keep → keep_r`）。修掉「分包不是 8 的倍数时同一个字被两包推送、
    后一次把前一次覆盖成 0」⇒ 屏上均匀散布的黑点（实测 1396 每帧 111 处）。
    之后入包链对分包长度不再敏感。`sim/tb_v6_ingress_integrity.v` 新增 `+MISALIGN`，
    并让从机按 `WSTRB` 做读-改-写（否则测不出覆盖）：修复前 38290/38400、
-   修复后 38400/38400。见 `docs/ANALYSIS_v6.md` §7.7。
+   修复后 38400/38400。见 v6 那份分析笔记 §7.7（那份笔记从未入库，正文已摘进本文与 `docs/HOST_GUIDE.md` 的 §4）。
 
 仿真（全量回归 16/16 PASS，`sim_work/reg3.log`）：
 `tb_v6_cover_gate` / `tb_v6_vblank_copy` / `tb_v6_ingress_integrity` 新增并通过，
-`tb_v50_rows_prod` 按 v6 契约更新期望。详见 `docs/ANALYSIS_v6.md`。
+`tb_v50_rows_prod` 按 v6 契约更新期望。详见 v6 那份分析笔记（未入库）。
 
 ## 7. 不看屏幕的复验方法（JTAG 回读 DDR）
 

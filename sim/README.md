@@ -47,4 +47,4 @@
 
 **必须修的（是注释在骗人，不是台架有问题）：** `sim/run_sim.tcl` 开头声称
 `axi_frame_saver.v` / `axi_frame_writer.v` "各自都有台架"——按现名搜只有带后缀的变体有。
-这类"文档/注释对不上树"的条目统一记在 `report/ISSUES.md` 的注释精简那一类里处理。
+这类"文档/注释对不上树"的条目统一记在 `docs/log/ISSUES.md` 的注释精简那一类里处理。

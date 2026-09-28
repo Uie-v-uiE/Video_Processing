@@ -2,7 +2,7 @@
 #
 #   vivado -mode batch -nojournal -source build/tcl/uram_presence.tcl
 #
-# 为什么要单独问这句（`report/CONTEST_CHECKLIST.md` 第 3 项欠了两年的账）：
+# 为什么要单独问这句（`docs/log/CONTEST_CHECKLIST.md` 第 3 项欠了两年的账）：
 # 清单里写"9 块 UltraRAM 换掉 48 块 BRAM"是**算出来**的，还写"要真量需例化 `URAM1240`" ——
 # 而 `URAM1240` 是 UltraScale+ 的原语。**如果这颗器件根本没有 UltraRAM，那整个方向从一开始就不成立**，
 # 而这个问题不需要查手册，工具自己能回答。

@@ -136,7 +136,7 @@ module tb_v98_top_seam;
                 // ⚠ #78：这里先从函数里取到**各自的临时寄存器**再拼 ——
                 //   一行里连调四次同一个函数时，xsim 在这个大台架里给出的低 40 位是 X
                 //   （同样写法在 20 行的隔离实验 `sim/xtest.v` 里是干净的 ⇒ 结论：还没找到真因，
-                //    见 report/ISSUES.md #78 的"未定论"段）。
+                //    见 docs/log/ISSUES.md #78 的"未定论"段）。
                 p3 = px_val(ii, jj*4+3); p2 = px_val(ii, jj*4+2);
                 p1 = px_val(ii, jj*4+1); p0 = px_val(ii, jj*4);
                 ddr[ii*WPL + jj] = {p3, p2, p1, p0};

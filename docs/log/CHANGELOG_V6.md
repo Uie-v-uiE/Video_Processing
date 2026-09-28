@@ -2,8 +2,8 @@
 
 本文是**逐版本的完整修改记录**：每一版写了什么、为什么写、用什么判据判定、
 仿真与板级各是什么数、有没有回退。机理推导与测量方法学见
-`report/V6_ROOT_CAUSE.md`，验收数据表见 `report/V6_BOARD_MEASUREMENT.md`，
-工程流水线的通用经验见 `skill/` 与 `report/AI_COLLABORATION.md`。
+`docs/log/V6_ROOT_CAUSE.md`，验收数据表见 `docs/log/V6_BOARD_MEASUREMENT.md`，
+工程流水线的通用经验见 `skill/` 与 `docs/AI_COLLABORATION.md`。
 
 约定：所有板级数字都是**同一块板（RK-ZYNQ7020-F，`xc7z020clg484-2`）、同一台 PC
 （192.168.1.100 千兆直连 PL 口）、同一判据**（`--test frameid` 推流 → 停止 →
@@ -197,8 +197,8 @@ Slice Registers 54588（51.30%）、BRAM 138.5/140（98.93%）、DSP48E1 用 13�
 
 | 项 | 状态 |
 |---|---|
-| 帧最后 4 字节偶发读到 0（`+0x4aff8`） | **未修**。8 次 bank 末帧读数中出现 4 次，15/30/60 fps 与两种分包都会；只影响 2 个像素且下一帧同地址覆盖 ⇒ 自愈、肉眼不可见；`+FULL` 不复现。怀疑帧尾 `wr_en` 与 `flush` 竞争。见 `report/V6_BOARD_MEASUREMENT.md` §4.1 |
-| 右屏缩放细线闪烁 / 轻微偏移 | **不是数据问题**：`zoom_mapper` 是截断式最近邻（算了 `frac_x/frac_y` 但没用），1 像素细线在 1.0↔0.5 连续缩放里会周期性落进采样间隙。线宽改成 4 像素后闪烁消失，只剩位置偏移。→ 正在替换为 bicubic（`report/V6_ROOT_CAUSE.md` §8） |
+| 帧最后 4 字节偶发读到 0（`+0x4aff8`） | **未修**。8 次 bank 末帧读数中出现 4 次，15/30/60 fps 与两种分包都会；只影响 2 个像素且下一帧同地址覆盖 ⇒ 自愈、肉眼不可见；`+FULL` 不复现。怀疑帧尾 `wr_en` 与 `flush` 竞争。见 `docs/log/V6_BOARD_MEASUREMENT.md` §4.1 |
+| 右屏缩放细线闪烁 / 轻微偏移 | **不是数据问题**：`zoom_mapper` 是截断式最近邻（算了 `frac_x/frac_y` 但没用），1 像素细线在 1.0↔0.5 连续缩放里会周期性落进采样间隙。线宽改成 4 像素后闪烁消失，只剩位置偏移。→ 正在替换为 bicubic（`docs/log/V6_ROOT_CAUSE.md` §8） |
 | 主机完全不限速（`--no-pace`） | 允许丢包（覆盖门限会拒收空洞帧），不作为验收条件 |
 | HP1 分离 / 突发写（AWLEN=15） | **不再必要**：V6.3 后握手决定吞吐，26× 余量；突发要处理 4KB 边界与 idle 语义（历史上 `axi_frame_saver_burst` 就是这两点挂死），风险大于收益 |
 | JTAG 兜底启动 ≠ 交付态 | 正常交付应跑 FSBL/ELF；只有 FSBL 会写 SLCR `FPGA_FCM*` 一类寄存器。本文数字用的是 JTAG 启动路径（PL 通路与两者无关），但性能类结论应以 FSBL 启动为准 |

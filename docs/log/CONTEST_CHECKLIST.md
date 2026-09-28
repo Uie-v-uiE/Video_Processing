@@ -11,15 +11,15 @@
 | 工具版本须说明并保证脚本可复现 | 用 **Vivado/Vitis 2025.2.1**（指南推荐 2026.1 或 2025.2；同一主版本线的补丁版，差异写在这里而不是含糊过去）。构建/门禁/上板全是仓库相对路径的 Tcl 与 shell：`build/tcl/build_system_axigpio.tcl`、`build/gates.sh`、`build/board_verify.sh` | ✅ |
 | 声明具体型号、板上跑通并给实测输出 | **`xc7z020clg484-2`**（Zynq-7020）已上板：实测在 `data/measured/`，验收表在 `board/README.md`。第二块板 **`xcku5p-ffvb676-2-i`** 只到"台架 + 构建全绿"，**尚未上板**（见 §2 第 1 条） | ⚠ 一块满足、一块不满足 |
 | 不写厂商 flash：改板只走 JTAG | `build/tcl/ps_jtag_boot.tcl` / `program_pl.tcl` / `ps_app_reload.tcl`；仓库里**没有**任何写 QSPI/SPI flash 的流程或脚本 | ✅ |
-| 软硬件协同 | 数据面全在 PL，PS 只有几百行裸机控制面；划分依据与反例写在 `report/PS_VS_PL.md`，接口（AXI-Lite 两个基址 + `gpio_o/gpio_i` 窄通道 + 读回 lane）在 `report/ARCHITECTURE.md` 与 `src/ps/main.c` | ✅ |
-| 可测量性能 + 与基线对比 | 唯一一张数字表在 `report/PERF_REPORT.md`（吞吐、时延、资源、时序、功耗，每行带它出自哪份报告）；优化过程与**没采纳**的那些在 `report/OPTIMIZATION_LOG.md` | ✅ |
+| 软硬件协同 | 数据面全在 PL，PS 只有几百行裸机控制面；划分依据与反例写在 `docs/PS_VS_PL.md`，接口（AXI-Lite 两个基址 + `gpio_o/gpio_i` 窄通道 + 读回 lane）在 `docs/ARCHITECTURE.md` 与 `src/ps/main.c` | ✅ |
+| 可测量性能 + 与基线对比 | 唯一一张数字表在 `docs/PERF_REPORT.md`（吞吐、时延、资源、时序、功耗，每行带它出自哪份报告）；优化过程与**没采纳**的那些在 `docs/OPTIMIZATION_LOG.md` | ✅ |
 | 功能正确性如何确认 | 一条命令跑门禁（`build/gates.sh`：时序/资源/端口/CDC/文档一致性 + 两个钉 md5 的整屏台架 + 几十个单模块台架）；判据为什么"必须能变红"、变异对照怎么做，写在 `sim/README.md` 与 `skill/` 的对应条目 | ✅ |
-| 判断依据进报告 | `report/ISSUES.md`（症状→假设→量到的数→为什么这样修→还欠什么）与 `report/OVERNIGHT_LOG.md`（决策与被否掉的推论）是追加式档案；`report/VERSION_LINEAGE.md` 标哪些代码来自厂商例程、哪些自研 | ✅ |
-| 大模型协作记录（提示词/回答/**自我纠错轨迹**） | `report/AI_COLLABORATION.md`：约束怎么给、模型怎么跑偏、用什么读数判掉、之后哪条规则进了脚本 | ✅ |
+| 判断依据进报告 | `docs/log/ISSUES.md`（症状→假设→量到的数→为什么这样修→还欠什么）与 `docs/log/OVERNIGHT_LOG.md`（决策与被否掉的推论）是追加式档案；`docs/log/VERSION_LINEAGE.md` 标哪些代码来自厂商例程、哪些自研 | ✅ |
+| 大模型协作记录（提示词/回答/**自我纠错轨迹**） | `docs/AI_COLLABORATION.md`：约束怎么给、模型怎么跑偏、用什么读数判掉、之后哪条规则进了脚本 | ✅ |
 | 技能包（可复用性是评分标准） | `skill/README.md` 为唯一索引（条目数只有那一行写着），四类（工作流 / 可抄的案例模板 / 校验脚本 / 技术踩坑），每条四段：**适用场景 · 使用方法 · 已验证效果（点名从哪次失败来）· 失效条件**；换板换题目不能用的内容已合并或删掉 | ✅ |
 | 开源 | `LICENSE` = MIT；远端仓库已在配置里，**推送这一步还没完成**（这台机器上 `git ls-remote` 直接 `Connection was reset`，且交互式凭据需要人输一次）→ 不写成已达成 | ⚠ |
-| 目录/文件名纯 ASCII | `git ls-files` 里非 ASCII 文件名 = 0；作者自用的中文目录不入库。大写名（`README.md`、`report/*.md`）是指南示例本身的写法，作为文档化的例外保留 | ✅ |
-| 复现说明（他人从零执行） | `report/BUILD.md` + `build/tcl/README.md`（哪个脚本是入口、哪几条**不要**用）+ 板级 `board/README.md`、`board/HANDS_ON.md` | ✅ |
+| 目录/文件名纯 ASCII | `git ls-files` 里非 ASCII 文件名 = 0；作者自用的中文目录不入库。大写名（`README.md`、`docs/*.md`）是指南示例本身的写法，作为文档化的例外保留 | ✅ |
+| 复现说明（他人从零执行） | `docs/BUILD.md` + `build/tcl/README.md`（哪个脚本是入口、哪几条**不要**用）+ 板级 `board/README.md`、`board/HANDS_ON.md` | ✅ |
 | 提交包结构（推荐目录） | 仓库根即 `README.md / src / sim / build / board / data / skill / report`；`bash build/make_submission.sh` 另出一份只含跟踪件、并逐条说明剪了什么的导出版 | ✅ |
 
 ## 2. 没做到的（逐条给"缺什么"）

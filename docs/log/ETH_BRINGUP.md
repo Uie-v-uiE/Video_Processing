@@ -42,7 +42,7 @@ python video_sender.py --ip 192.168.1.10 --src 192.168.1.100 --fps 30 --anim
 ```
 
 `--src` 绑定 PC 以太网地址，避免双网卡走 WLAN。  
-详细说明：`src/host/HOST_GUIDE.md`。
+详细说明：`docs/HOST_GUIDE.md`。
 
 ---
 

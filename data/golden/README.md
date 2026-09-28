@@ -2,7 +2,7 @@
 
 这个目录放的是**软件侧算出来的参考结果**，用来跟屏上照片做人工比对。
 它们**不是任何台架的输入**：全仓库对 `data/golden` 的引用只有
-`report/CONTEST_CHECKLIST.md` 提了一次目录名，没有任何 `.v`、`.mjs`、`.sh`
+`docs/log/CONTEST_CHECKLIST.md` 提了一次目录名，没有任何 `.v`、`.mjs`、`.sh`
 读这里面的文件（核实命令：`grep -rn "data/golden|frame_640x360" --include='*.v' --include='*.mjs' --include='*.sh' .`）。
 所以这一目录的定位是"人眼比对的参照物"，不要当成黄金参考自动化比对在用。
 

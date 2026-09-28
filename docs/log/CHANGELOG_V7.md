@@ -2,8 +2,8 @@
 
 本文是**第五版相对第四版的完整优化对比**：每一条改了什么、当时看到什么证据、
 判据是什么、数字前后差多少、哪条被否决。原始工程流水（含每轮命令、报告门禁逐条、
-被推翻的假设）在 `report/OVERNIGHT_LOG.md`；本文是给它整理的对外版本。
-第四版及更早的逐版记录见 `report/CHANGELOG_V6.md` 与 `report/VERSION_LINEAGE.md`。
+被推翻的假设）在 `docs/log/OVERNIGHT_LOG.md`；本文是给它整理的对外版本。
+第四版及更早的逐版记录见 `docs/log/CHANGELOG_V6.md` 与 `docs/log/VERSION_LINEAGE.md`。
 
 约定：所有资源/时序数字来自同一份可复现构建
 （`vivado -mode batch -source build/tcl/build_system_axigpio.tcl`，器件 `xc7z020clg484-2`）；
@@ -75,7 +75,7 @@ v3 说明不加属性时综合器会把它塞进 BRAM——而 BRAM 只剩 1.5 �
 
 ## V7.2（R03）—— 帧尾 4 字节偶发丢失：判据看不见 CDC
 
-**现象**（第四版遗留、`report/ISSUES.md` 与 `V6_BOARD_MEASUREMENT.md:65` 记录在案）：
+**现象**（第四版遗留、`docs/log/ISSUES.md` 与 `V6_BOARD_MEASUREMENT.md:65` 记录在案）：
 512×300 帧最后一个 64bit 字（DDR `+0x4AFF8`）高半 32bit 偶发读回 0，板上 8 次见 4 次，与速率无关，
 既有 `tb_v6_ingress_integrity +FULL` 复现不出来。
 
@@ -329,7 +329,7 @@ RX 侧靠固定 tap 的 `IDELAYE2`（`IDELAY_VALUE=15`）而没有将这段延�
 `eth_rxc → clk_fpga_0` 这一行有 **1 个 unsafe / 14 个无 ASYNC_REG**，是本轮新加的
 100 MHz 那一路 `snap_cross` 里 `bus_q` 的捕获总线 —— 它**故意**不打 `ASYNC_REG`
 （那是数据总线不是同步链），安全性由 `SETTLE` 节流 + 边沿后捕获保证，
-L1 的 100/100 不撕烈断言就是它的证据。这一点在 `study/03_模块详解/08_链路健康自诊断.md` §4 有完整推导。
+L1 的 100/100 不撕烈断言就是它的证据。这一点在 `docs/study/03_模块详解/08_链路健康自诊断.md` §4 有完整推导。
 
 **L4（同日 20:15–20:55 补做，板子可访问后）**：`d7e385b6` 上板，JTAG 读回十个 lane，
 空闲/推流/停流三态全部符合设计，**22 次两遍读零撕烈**，`stall_ms` 从 0 线性涨到 12142 ms；
@@ -527,7 +527,7 @@ ARP 还在解析时帧头包已发出 —— 与拔线重连同一种形状。�
 
 **未获得的结论（不粉饰）**：把 V6.4 基线 bit（`155d73bc`）烧回板上，用同样四档激励测（6 轮 + 两轮洪水），
 当年记录的"帧尾 +0x4AFF8 高半个 u32 读 0、8 次见 4 次"**一次都没有出现**
-（仓库自身 `report/V6_BOARD_MEASUREMENT.md:99` 也记过一次"连帧尾残留都没出现"）。
+（仓库自身 `docs/log/V6_BOARD_MEASUREMENT.md:99` 也记过一次"连帧尾残留都没出现"）。
 ⇒ V7.2 的板级 A/B **没有区分力**，其证据等级只到"机理三段论 + 仿真双向判据"。
 同时撤销过程中一个过度推论：中途曾写"文档里已接受的 `--no-pace` 洪水丢包消失了"，
 随后 V6.4 基线同样洪水下也是 100%，说明该现象在手头激励下根本没被触发。
@@ -616,7 +616,7 @@ ARP 还在解析时帧头包已发出 —— 与拔线重连同一种形状。�
 明早直接下冻结的 bit 本体，不重跑构建。
 对外口径因此是：**双线性插值 = 组件、集成与台架全部完成并通过，250 MHz 分时读口最后
 0.327 ns 未收口 ⇒ 不说"板上已有双线性"**。收口的三条候选路径写在
-`report/OVERNIGHT_LOG.md` R21 末（Pblock 圈住 `u_rd` + 那 80 个 BRAM tile 最对症）。
+`docs/log/OVERNIGHT_LOG.md` R21 末（Pblock 圈住 `u_rd` + 那 80 个 BRAM tile 最对症）。
 
 ## V7.9（R22 + R23）—— 两笔 CDC 账结掉，第二块板开始说话
 
@@ -638,7 +638,7 @@ ARP 还在解析时帧头包已发出 —— 与拔线重连同一种形状。�
    且只认当前 owner 的 `done`）；主线侧本轮也改了 —— 但**不是一行能改完的**：
    符号之外还要补 `arp_pend` 记账位，否则那一拍宽的 `arp_rx_flag` 会被"另一路还忙"吃掉。
    两处改动的完整理由（含台架抓到的"跨块清标志晚一拍 ⇒ `arp_tx_en` 高两拍 ⇒ ARP 发 13 字节"）
-   登记在 `report/ISSUES.md` #37，门禁数字见下面的构建表。
+   登记在 `docs/log/ISSUES.md` #37，门禁数字见下面的构建表。
 2. **`tx_data` 的端口名一样，契约不一样**：厂商 `udp_tx` 的 `tx_req` 在 UDP 头最后一字节
    就提前拉高，而它原来的数据源是带一拍读延迟的同步 FIFO ⇒ 用组合 mux 直接喂会吃掉第 0 字节。
    抓包 dump 一眼看到（线上从 `55 35 50` 开始而不是 `4B 55 35 50`）。
@@ -673,7 +673,7 @@ ARP 还在解析时帧头包已发出 —— 与拔线重连同一种形状。�
 | #17 | V7.7 功能 + R22 两笔 CDC | **WNS +0.447 / WHS +0.066 / 0 失败端点 / BRAM 90.5 / Dynamic 2.183 W**，L1 37/37 → 采纳，归档 `build/frozen_r17_cdc/` |
 | **#18** | 再加 R23 的 `abort_tgl` 翻转同步 | **WNS +1.002 / WHS +0.050 / 0 失败端点(23422) / Slice LUT 7184(13.50%) / Reg 5800(5.45%) / BRAM 90.5(64.64%) / Dynamic 2.184 W / 布线 0 错误 / methodology 0 CRITICAL / 日志 CRITICAL WARNING 9（与基线同）**，L1 **40/40** ⇒ **采纳**（md5 `534f7760…`，报告与校验和冻结在 `build/frozen_r18_abort/`；⚠ 那一版**没拷 bit**、MANIFEST 引用的是活路径 `../system.bit`，被 #19 覆盖过 ⇒
 07:1x 靠 `git show 7578217:build/system.bit`（md5 核对 = `534f7760`、1855990 B）**复原**进
-`frozen_r18_abort/system.bit`；没丢成是因为仓库恰好把 bit 入库，不是流程保证 ⇒ 规矩见 `report/BUILD.md` §7） |
+`frozen_r18_abort/system.bit`；没丢成是因为仓库恰好把 bit 入库，不是流程保证 ⇒ 规矩见 `docs/BUILD.md` §7） |
 | **#19** | 再加 R24 的厂商发送仲裁修复（ISSUES #37：`||`→`&&` + `arp_pend` 记账位） | **WNS +0.598 / WHS +0.043 / WPWS +0.264 / 0 失败端点(23424) / Slice LUT 7185(13.51%) / Reg 5802(5.45%) / BRAM 90.5(64.64%) / Dynamic 2.184 W（与 #18 完全相同）/ 12503 根可布线网全布通、0 路由错误 / methodology 0 CRITICAL**，L1 **40/40** ⇒ **采纳，明早默认下这一块**（md5 `545a27a1…`，**bit/xsa/elf + 8 份报告成套拷进** `build/frozen_r19_arb/`；回退链 `frozen_r17_cdc/11998af8` → `frozen_r13/0f46ec91`） |
 
 `cdc.rpt` 在 #17 与 #18 之间**逐行相同（只有时间戳差异）**，而且整份报告里搜不到 `abort`、

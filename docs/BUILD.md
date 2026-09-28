@@ -1,7 +1,7 @@
 # 构建与上板
 
 > 版本注记：本文最早写于第三版，命令与脚本路径至今仍适用；**版本相关的数字**（哪块 bit、
-> 门禁多少）不在这里，看 `report/DEMO_SCRIPT.md` §0 与 `report/OVERNIGHT_LOG.md` §9.5。
+> 门禁多少）不在这里，看 `docs/DEMO_SCRIPT.md` §0 与 `docs/log/OVERNIGHT_LOG.md` §9.5。
 
 ## 1. 本机路径
 

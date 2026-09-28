@@ -2,7 +2,7 @@
 #
 #   vivado -mode batch -nojournal -source build/tcl/uram_probe.tcl
 #
-# 来龙去脉（`report/CONTEST_CHECKLIST.md` 第 3 项）：以前只试过在**真实帧缓存**上打
+# 来龙去脉（`docs/log/CONTEST_CHECKLIST.md` 第 3 项）：以前只试过在**真实帧缓存**上打
 # `ram_style="ultramark"` / `"ultraram"`，两种拼法都被 2025.2.1 拒掉并静默退回 `auto`，
 # 于是留下两笔糊涂账：①"9 块 UltraRAM 能换掉 48 块 BRAM"只是**算出来**的；
 # ②那次失败里有多少是"工具不为这个形状选 UltraRAM"、多少是"我拿错了器件族的名字"

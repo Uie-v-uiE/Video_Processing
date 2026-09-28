@@ -109,8 +109,8 @@ logical nets 92829 / routable 64604 / fully routed 64604 / nets with routing err
 | P01b | `axi_frame_writer_gated.v` 的 `sk_addr_reg/sk_data_reg` 同样掉进触发器（综合报 Synth 8-4767「Block RAM or DRAM implementation is not possible」），约 5.3k FDRE = 剩余寄存器的 55% | build#4 综合日志、`utilization.rpt` Reg 9560 | **已修（R05：Reg 9.02%→4.08%，Slice 36.05%→18.03%）** | R05 |
 
 | P02 | BRAM 98.93%，无余量做任何新缓冲/插值 | `utilization.rpt`、`util_hier.rpt`（u_fb 独占 128 tile） | **已修（R04：90.5/140 = 64.64%，剩 49.5 tile）** | R04 |
-| P03 | 帧尾最后 64bit 字高半 32bit（2 像素）偶发丢（板上 4/8 次），TB +FULL 复现不出 | `report/ISSUES.md`、`report/V6_BOARD_MEASUREMENT.md:70-73` | **已定位并修复（R03：换页未等 CDC 交付完）；证据等级=机理三段论+仿真双向判据。板上 8 轮 A/B 未能复现原现象 ⇒ 无区分力，不宣称板级证实** | R03 / U9 |
-| P04 | `--no-pace` 时 CDC 灌满、整包被丢，画面冻结（文档记为已接受） | `report/CHANGELOG_V6.md:202` | **板上未复现**：v6.4 与 R05 两份 bit 在 60/120 fps 不限速下都是 100% 命中；原触发条件需重建（很可能是非 8 倍数载荷） | U9 |
+| P03 | 帧尾最后 64bit 字高半 32bit（2 像素）偶发丢（板上 4/8 次），TB +FULL 复现不出 | `docs/log/ISSUES.md`、`docs/log/V6_BOARD_MEASUREMENT.md:70-73` | **已定位并修复（R03：换页未等 CDC 交付完）；证据等级=机理三段论+仿真双向判据。板上 8 轮 A/B 未能复现原现象 ⇒ 无区分力，不宣称板级证实** | R03 / U9 |
+| P04 | `--no-pace` 时 CDC 灌满、整包被丢，画面冻结（文档记为已接受） | `docs/log/CHANGELOG_V6.md:202` | **板上未复现**：v6.4 与 R05 两份 bit 在 60/120 fps 不限速下都是 100% 命中；原触发条件需重建（很可能是非 8 倍数载荷） | U9 |
 | P05 | zoom/rotate 最近邻取整，图像有 1px 栅格闪烁，`frac_x/frac_y` 算了却没用 | `CHANGELOG_V6.md:201`、`V6_ROOT_CAUSE.md:278` | 未开始 | R06 |
 | P06 | `power.rpt` 无切换活动文件，置信度 Low | `build/power.rpt` | 未开始 | 待排 |
 | P07 | 36 条 DPIR-1（异步复位寄存器驱动 DSP）+ 76 条 SYNTH-6 | `methodology.rpt` | 未开始 | 待排 |
@@ -127,7 +127,7 @@ logical nets 92829 / routable 64604 / fully routed 64604 / nets with routing err
 - **取源**：直连 GitHub 被重置 → 代理成功克隆 `647160e`。
 - **外部检索**：本轮未联网检索（先把基线钉住）。
 - **工具与子代理**：
-  - `Explore` 子代理（very thorough）通读 `report/*.md` + `src/rtl`，产出「管线/瓶颈/验证资产/硬限制」摘要 → 直接决定了 R02 主线（其 Q2 表格给出 5 个候选并附文件行号）。
+  - `Explore` 子代理（very thorough）通读当时的文档目录 + `src/rtl`，产出「管线/瓶颈/验证资产/硬限制」摘要 → 直接决定了 R02 主线（其 Q2 表格给出 5 个候选并附文件行号）。
   - 主代理直读 `build/*.rpt` 与 `axi_frame_saver64.v`、`eth_udp_video_top.v:184-315`，数字自行核对，未采信子代理转述的数字。
 - **决策与否决**：
   - 采用：以仓库内已提交的 v6.4 报告为基线，**不重跑**基线全量构建（省 40 分钟，报告可复现性由 `647160e` 的提交信息背书）。
@@ -215,7 +215,7 @@ logical nets 92829 / routable 64604 / fully routed 64604 / nets with routing err
 
 ### R03 · 2026-09-21 22:46–23:52 · 正确性：帧尾 4 字节偶发丢失（P03）定位并修复
 
-- **动机与证据**：`report/ISSUES.md` 与 `report/V6_BOARD_MEASUREMENT.md:70-73` 记录：板上 512×300 帧
+- **动机与证据**：`docs/log/ISSUES.md` 与 `docs/log/V6_BOARD_MEASUREMENT.md:70-73` 记录：板上 512×300 帧
   的最后一个 64bit 字（DDR 偏移 `+0x4AFF8`，即第 38399 字）高半 32bit 读回为 0，8 次里见 4 次，
   与速率无关；既有 `tb_v6_ingress_integrity +FULL` 复现不出来。**根因夜之前未被定位**。
 - **工具与子代理**：派 `general-purpose` 子代理做只读根因分析（禁止改文件、禁止跑仿真，避免和
@@ -349,7 +349,7 @@ logical nets 92829 / routable 64604 / fully routed 64604 / nets with routing err
 
 ### L4 尝试 · 2026-09-22 07:55 · **板卡当前不可访问，L4 未执行（如实记录）**
 
-按 `report/V6_BOARD_MEASUREMENT.md` §7 的规程先做在位检查，结论是**硬件拿不到**，不是脚本问题：
+按 `docs/log/V6_BOARD_MEASUREMENT.md` §7 的规程先做在位检查，结论是**硬件拿不到**，不是脚本问题：
 
 | 检查 | 命令 | 结果 |
 |------|------|------|
@@ -445,7 +445,7 @@ ping 192.168.1.10                 → 发送=3 接收=3 丢失=0，RTT 1-2 ms   
 - **R03 的板级 A/B 没有区分力**：在 15 MB/s、30 MB/s、60 fps 不限速、120 fps 不限速
   四档激励下，v6.4 基线 bit **6 轮 + 洪水 2 轮全部干净**，没有出现当年记录的
   「帧尾 +0x4aff8 高半个 u32 读 0、8 次见 4 次」。所以**我无法用板上数据证明 R03 修好了那个现象**。
-  仓库自身其实早有同样记录：`report/V6_BOARD_MEASUREMENT.md:99` 写明某次复测
+  仓库自身其实早有同样记录：`docs/log/V6_BOARD_MEASUREMENT.md:99` 写明某次复测
   「连 §4.1 的帧尾残留都没出现」⇒ 该现象条件极窄/极稀有，当年的触发条件（载荷是否 8 的倍数、
   上位机分片对齐、网卡 offload 状态）在本机已不可照搬。
 - 因此 R03 的证据等级保持为：**机理三段论（flush 与 frame_done 同拍、idle 看不见 CDC、sv_full 会在帧中间截断读出）
@@ -756,7 +756,7 @@ ping 192.168.1.10                 → 发送=3 接收=3 丢失=0，RTT 1-2 ms   
 | arXiv 2009.09622《Low-Cost Implementation of Bilinear and Bicubic Image Interpolation on FPGAs》 | 论文（检索命中，PDF 正文抓取失败） | 方向性参考：低 BRAM 插值的行缓存/通道共享思路 | 否。只写进 U2 的问题界定，未据此改一行代码 | 论文，仅读 |
 | GitHub `delhatch/Zynq_UDP`、`lastweek/source-verilog-ethernet`、`embedded-explorer/Zynq7000-Video-Interfacing` | 同类工程（检索命中） | 确认"PL 侧 RGMII + UDP 卸载"是社区通行结构，本工程与之同构 | 否，未复制任何文件；入包链为自研（v5→v6.4 自有版本记录） | 各仓库许可，未引入 |
 | 本仓库 `skill/*.md`（尤其 `frameid_loss_signature.md`） | 自研技能包 | L4 判据（逐字反解帧号；看每个 bank 的帧号跨度判"换帧是否原子"）直接构成 R03 的板级判据 | 是 | 本工程自有 |
-| `report/ISSUES.md`、`report/V6_BOARD_MEASUREMENT.md`、`report/V6_ROOT_CAUSE.md` | 工程自身记录 | 帧尾现象的原始观测（4/8 次、`+0x4AFF8`）与"深度无用"的既有结论 ⇒ 用于**否决 U3** | 是 | 本工程自有 |
+| `docs/log/ISSUES.md`、`docs/log/V6_BOARD_MEASUREMENT.md`、`docs/log/V6_ROOT_CAUSE.md` | 工程自身记录 | 帧尾现象的原始观测（4/8 次、`+0x4AFF8`）与"深度无用"的既有结论 ⇒ 用于**否决 U3** | 是 | 本工程自有 |
 | 本地只读参考 `D:\UserData\Downloads\Ultra-Vision-main\Algorithm`、`Image_Rotate-master` | 外部工程 | 本夜未使用（R06 做插值时可作对照） | 否 | 未引入 |
 
 **诚信说明**：R02/R04 的两个关键结论（推断被拒的真正原因、BRAM 填充的机制）都是
@@ -842,7 +842,7 @@ methodology 0 条 Critical Warning；`ku5p_eth.bit` 15.4 MB 已生成。
    于是"每段最后一个字"永远来不及计分，现象却像 DUT 少写一次；正确写法是在调用点之前 settle。
 ② 我把一个字面量的车道位置写反（`{0,0,img51,img50}`，实际 lane2=[47:32]、lane3=[63:48]）。
 ⇒ 教训：**判据变红时先问"这个数是台架算的还是被测者算的"**。已写进
-`study/05_验证与上板/01_怎样写出能抓bug的testbench.md` 第九、十节。
+`docs/study/05_验证与上板/01_怎样写出能抓bug的testbench.md` 第九、十节。
 
 **还抓到我自己一次"无牙的 PASS"**：给 `video_sender.mjs` 加 `--drop-every N` 后，
 我写了个回环脚本验证，baseline 收到 **0** 个包 ⇒ `0 == 0` 让脚本高高兴兴打了 `PASS`。
@@ -851,7 +851,7 @@ methodology 0 条 Critical Warning；`ku5p_eth.bit` 15.4 MB 已生成。
 而不是让"相等"在 0 上成立。`node --check` 只证明语法，不证明行为。
 
 **P0-B 的读口调度：设计定稿、代码没写**。想清楚了两件事并写进
-`study/_notes/tap_sched_design.md`：① 4 抽头的槽位表（发 4 收 4、第 4 槽出结果），
+`docs/study/_notes/tap_sched_design.md`：① 4 抽头的槽位表（发 4 收 4、第 4 槽出结果），
 **一套属性寄存器就够**（想错就会白加 512 个触发器）；② 行偏移在字地址里是常数
 `IMG_W/4`（前提是 `IMG_W % 4 == 0`），所以调度器里没有乘法器。
 我确实动手写过一版 `tap_sched.v`，但它在车道装载那几行开始变糊（同一拍写两遍、
@@ -1161,7 +1161,7 @@ FPGA 配置了。不是故障；要把这个行为拿回来，就是我们自己
 13×10 DSP 路径），以及它带来的 `angle` 跨模块扇出。具体数字等 L3 报告，不猜。
 
 **`rotate_mapper.v` 留在树里**：它仍是 `zoom_mapper` 旋转分支那份数学的参考实现和学习文档
-[模块详解 06](../study/03_模块详解/06_旋转与缩放.md) 的讲解对象；未被例化的模块不会进综合。
+[模块详解 06](../docs/study/03_模块详解/06_旋转与缩放.md) 的讲解对象；未被例化的模块不会进综合。
 
 **待明天上板确认**：按 key1/key2 转角度时，左窗**不动**、右窗转；OSD 角度行仍跟着变。
 
@@ -1357,7 +1357,7 @@ Logic Levels 2 (LUT6=2)
 **03:00 的我不该去借显示通路当草稿纸**：这一版即使最后调通，也只有"仿真抓不到"的时间余量，
 没有"板上没看出"的把握。于是：
 
-1. 把这一版整份留档 `study/_notes/tap_sched_addr_registered_experiment.v`（含槽位表与失败现象），
+1. 把这一版整份留档 `docs/study/_notes/tap_sched_addr_registered_experiment.v`（含槽位表与失败现象），
    **不是删掉**；下一夜要么按那张表推准，要么放弃这条路。
 2. `git checkout` 回 build#15 的调度（那是 **L1 全绿** 的版本：60/60 抽头 + 61/61 左窗 + 152/152 端到端 ✓），
    再单独补回那处真错——左窗的**字号与车道必须同一个沿采集**（02:50 已用台架验过 ✓）。
@@ -1444,7 +1444,7 @@ u_pl/u_rd/u_sched/lo_reg_0_0_i_45_n_0. Replicated 1...`）⇒ 方向对，但**�
 | 现在下哪块 bit？ | `build/system.bit`，**先 `md5sum` 必须是 `43b76e15…` 开头**（= build#22 = build#21 的全部内容 + 一次**纯别名**的参数集中化重构；七项门禁全绿：WNS **+0.566** / WHS +0.044 / 0 失败端点(23612) / BRAM 64.64% / Dynamic 2.180 W / 0 布线错误 / methodology 0 Critical）。**回退链**（实体都在盘上）：#21(`f39e2e78`) → #19(`545a27a1`) → #18(`534f7760`) → #17(`11998af8`) → #13(`0f46ec91`)。⚠ 一个方法论收获：#21→#22 的逻辑**完全等价**（只改了常数写在哪），bit 哈希却不同、LUT 差 56、WNS 差 0.204 ns ⇒ **单次构建的 slack 差值不能当时序结论**，这条现在有干净的样本了（详见 `build/frozen_r22_param/MANIFEST.txt`）。对不上就取冻结目录，别硬下 |
 | 那三块红的呢？ | `build/failed_r19b/`（−1.277）与 `build/failed_r24/`（−0.327，功能上就是 V7.8 双线性）。想**亲眼看插值效果**可以临时下 `failed_r24` 那块；它时序未收口，可能偶发抖动或不显示，看完记得换回去并重新校验 md5 |
 | SD 卡回放？ | 卡已在 Z7 上。固件 `build/ps_app.elf` 已重编（含 `SD/PLAY/STOP/FRAME<n>/BILIN0/BILIN1/STAT`）。上电顺序照 §9.5 第 1–4 步 |
-| 双线性插值到底做完了没？ | **组件与集成全做完、台架全过（L1 37/37）**，只差 250 MHz 分时读口最后 0.327 ns 没收口 ⇒ 没进主线，整套在 tag **`v7.8-bilinear-wip`**。下一步最对症的一刀是 Pblock（`report/OVERNIGHT_LOG.md` R21 末有三条候选） |
+| 双线性插值到底做完了没？ | **组件与集成全做完、台架全过（L1 37/37）**，只差 250 MHz 分时读口最后 0.327 ns 没收口 ⇒ 没进主线，整套在 tag **`v7.8-bilinear-wip`**。下一步最对症的一刀是 Pblock（`docs/log/OVERNIGHT_LOG.md` R21 末有三条候选） |
 | KU5P 那块板？ | 自研以太网栈已在 `xcku5p` 上综合+实现收敛，而且**这一轮开始会说话了**：每秒一包 UDP 遥测（`ku5p_telem`）+ 自研发送仲裁器（`ku5p_tx_arb`，替掉厂商 mux 那处会在帧中间换源的 `||`）。05:43 那次构建全绿：WNS **+1.916** / WHS +0.010 / 11668 端点 0 违例 / BRAM 72(15.0%) / 0 布线错误 / 0 CRITICAL，报告与 md5 冻结在 `ku5p/build/frozen_r23/`（bit `cd7c705b`）。**只 JTAG 配置，绝不写它的 QSPI**（厂商 bat 锁 2023.1，高版本写会变砖）。上板判据是 §9.5 第 8 与 8b 步 |
 | 有哪些"必须你眼睛看"的？ | §9.5 清单第 1–8、**8b（KU5P 遥测一行行的数字）**、10–11 步（OSD 好不好读、SD 回放观感与撕裂、彩条对齐、拔线表现、KU5P 的 LED/ping/遥测） |
 | 今晚我自己搞坏过什么吗？ | 两次都当场发现并修好：① 恢复 `build/system.bit` 后被 build#15 跑完又覆盖（同名不同内容）⇒ 清单项现在带 md5 断言；② `mv` 用错顺序把刚恢复的好 bit 挪进了"失败"目录并留下错标签 ⇒ 已删除错标签副本、重新恢复并二次校验。两处都写进 R21 |
@@ -1492,7 +1492,7 @@ ps7_init"修复在之后的提交 `c5ae5b5`** ⇒ 从 tag 起做实验前，要�
 |----|------|-----------------------------------|
 | `eth_link` 被像素域裸采 4 处（同文件里 `src_sel` 却是 3 级同步） | 统一成 3 级 `el0/el1/el2`，4 处改用 `eth_link_pix`；顺带删掉重复的 `link_s0/link_s1` 二级链 | `cdc.rpt` 的 `eth_rxc→clkout0_1`：**端点 84 → 51、被标记 16 → 1** |
 | `effect_ctrl` 的 en/th 两级同步链没标 `ASYNC_REG` | 补属性（工具会因此把它们当同步器，不再计入"无同步器"那类） | `clk_fpga_0→clkout0_1` 那行的未归类计数 **13 → 0** |
-| `copy_abort` 像素域裸采 | **不做。** 读代码发现它是 `axi_clk` 上只有 1 拍（10 ns）的脉冲，电平型 3 级同步会比裸采样**更容易整串漏掉** —— 那不是修 bug 是换个更隐蔽的 bug | 已登记 `report/ISSUES.md` #36，含正确修法（本仓库已有的 `util/ps_publish.v` 翻转式模板）与台架思路（`tb_v6_vblank_copy` 的激励 + 调短 `WD_CYC`） |
+| `copy_abort` 像素域裸采 | **不做。** 读代码发现它是 `axi_clk` 上只有 1 拍（10 ns）的脉冲，电平型 3 级同步会比裸采样**更容易整串漏掉** —— 那不是修 bug 是换个更隐蔽的 bug | 已登记 `docs/log/ISSUES.md` #36，含正确修法（本仓库已有的 `util/ps_publish.v` 翻转式模板）与台架思路（`tb_v6_vblank_copy` 的激励 + 调短 `WD_CYC`） |
 
 **其余门禁（build#17）**：WNS **+0.447** / WHS **+0.066**（r13 是 +0.426 / +0.025 ⇒ 保持余量这个观察项也顺带好转）、
 0 失败端点 / 23422、路由 12497 根全布通 0 错误、BRAM 90.5（64.64%）、LUT 7181、Reg 5800、
@@ -1638,7 +1638,7 @@ methodology 0 CRITICAL / 日志 CRITICAL WARNING 9 条（与基线同）/ L1 40-
 - 最终源码上全量台架：**SIM DONE pass=40 fail=0**（`sim/results/regression_v79_r23.txt` 已刷新，含本轮三个新台架）。
   构建 #18 是在 `abort_tgl` 那版源码上跑的，之后仓库只加了注释 ⇒ "源码与 bit 一致"这句一律写成
   "**除注释外一致**"（`frozen_r18_abort/MANIFEST.txt` 里也这么写）。
-- `report/BUILD.md` 与 5 个一次性 tcl 脚本里还写着旧根 `D:\Xilinx\Prj\ADD\Video_Pipeline-main`。**这一段我先前写错过**：上一版这里写的是
+- `docs/BUILD.md` 与 5 个一次性 tcl 脚本里还写着旧根 `D:\Xilinx\Prj\ADD\Video_Pipeline-main`。**这一段我先前写错过**：上一版这里写的是
   "那个目录今天已经不存在（`ls` 报 No such file）"——**没查就下的结论**。实测那棵树今天还在，
   是 v3 时代的另一份工作副本（它自己的 git HEAD 是 `7cde28d`）。
   ⇒ 真问题因此比"路径失效"**更坏不是更好**：脚本指过去不报错，只会**静默改到另一棵树上**
@@ -1647,7 +1647,7 @@ methodology 0 CRITICAL / 日志 CRITICAL WARNING 9 条（与基线同）/ L1 40-
 - 同一批复查抓到两处过期事实：ISSUES #26 记的 `D:\Git\Git\bin`（现在 Git 在 `D:\Software\Git\Git\bin`，旧目录确实不存在，
   这条是 `ls` 过的）；以及 skill 里"本机无 python"那句（本机有 3.12，只是交付件仍要求零依赖）。
   另把 `ARCHITECTURE.md` 的标题从"（第三版）"改成中性版本说明并加了范围声明（本文只讲 Z7；
-  第二块板的工程文档是 `ku5p/README.md`）——评委只翻 `report/` 时不该看不见第二块板。
+  第二块板的工程文档是 `ku5p/README.md`）——评委只翻交付文档时不该看不见第二块板。
 - **两条教训，本条自己就是活例子**：
   ① "以前验证过的事实"有保质期，路径、版本号、"这台机器没有 X"尤其如此。写之前 `ls`/`which` 一次只要几秒，
      而这次我省了那几秒，就把一个错事实写进了交付文档（发现后当场订正，并把"下了结论没验"这件事本身记下来）。
@@ -1688,8 +1688,8 @@ methodology 0 CRITICAL / 日志 CRITICAL WARNING 9 条（与基线同）/ L1 40-
 
 - **ISSUES 撞号**：`[v4]` 组早就占了 27–35，我今晚新写的三条又用了 27/28/29
   ⇒ 同一份文档里两个 `#28`，"见 ISSUES #28" 直接失效。新三条改到 **36/37/38**，
-  并在文件头写了编号口径 + "引编号前先 `grep "^### " report/ISSUES.md`"。
-  连带把 `study/04_版本演进` 里那组**本地**编号改成 `V5-36…V5-42`，两套编号不再混。
+  并在文件头写了编号口径 + "引编号前先 `grep "^### " docs/log/ISSUES.md`"。
+  连带把 `docs/study/04_版本演进` 里那组**本地**编号改成 `V5-36…V5-42`，两套编号不再混。
 - **`ku5p/README.md` 里那句"主线改成 `&&` 就修好了"**、`CHANGELOG` 的"一行"、
   `VERSION_LINEAGE` 的"一行"、§13 的"一行改 &&" —— 全按实测订正（不是一行）。
 - **学习文档的覆盖表还写着 30 个 TB**，实际 40：补齐 9 行（含今晚三个新台架各断言什么）。
@@ -1785,7 +1785,7 @@ hold 好了一点点也是真的。而 WNS 那 0.136 ns 的差别**不能读成"
 摊成"地址与每个下标比一遍"的比较链**，以及 `line*MAX_CHARS(=10)+cidx` 的乘法。
 要动它就必须改延迟（真 RAM + 寄存地址 / 列距换成 2 的幂），
 连带 `PROC_LAT` 与配准判据（`tb_osd_lines`、`tb_v5_vblast`），**最后要上板看文字位置**。
-⇒ 白天的活；判据与代价已经写进 `report/ISSUES.md` #39 与 `study/03_模块详解/04_OSD与HDMI输出.md` §1.5。
+⇒ 白天的活；判据与代价已经写进 `docs/log/ISSUES.md` #39 与 `docs/study/03_模块详解/04_OSD与HDMI输出.md` §1.5。
 
 ## 17. R26 · 2026-09-23 12:0x–13:0x · 收包链上顶层：`bad` 从死数字变成活数字（ISSUES #38 结案）
 
@@ -1847,7 +1847,7 @@ hold 好了一点点也是真的。而 WNS 那 0.136 ns 的差别**不能读成"
 ### R26-E · 现在的状态与还要人看的
 
 * 默认下：Z7 `build/system.bit`（md5 `f39e2e78`）+ KU5P `ku5p/build/frozen_r26/ku5p_eth.bit`（`14bd5752`）。
-  两块都是**实体拷贝冻结**，回退链见 `report/BUILD.md` §7。
+  两块都是**实体拷贝冻结**，回退链见 `docs/BUILD.md` §7。
 * **要人看（仿真替代不了）**：① 正常推流画面应与 #19 无差别、health 的 `bad` 稳定为 0；
   ② `bad` 会动的证据目前只有台架 C2（现场没有可靠注错手段）⇒ 只能报"改前是死的、改后有判据"；
   ③ 端口过滤进了顶层，但 `stat_drop_filt` 还没接可读寄存器 —— 要不要接是**独立小决定，没顺手塞**。
@@ -2334,7 +2334,7 @@ V0 采样密度       245 点 / 期望 350（实测中位周期 142 ms）
 4. **（可选，10 分钟）** 长按切模式会顺带 +1° 旋转（同一根按键的已知代价）。
    要把旋转改成"只在短按释放时触发"就是一次小改 + 一次回归。
 5. **（要不要花一轮，纯指标向）深优化的三个候选**已经按证据列进
-   `study/04_版本演进/03_优化的方法论.md` §7b，每条都指着 `build/timing_summary.rpt` 里一条真实路径：
+   `docs/study/04_版本演进/03_优化的方法论.md` §7b，每条都指着 `build/timing_summary.rpt` 里一条真实路径：
    ① 全局 WNS **+0.764** 就是 `u_pl/x_d_reg[11][3] → u_pl/u_osd/r_reg[7]` 这条 **24 级、含 9 个 CARRY4**
       的 OSD 算术（route 占 64.5 %）⇒ 三条里**唯一能抬对外 WNS** 的，但它动的是显示路径，改坏了只有眼睛看得见；
    ② `clk_fpga_0` 的 +1.233 是 **1 级逻辑 / route 92.3 %**（仲裁寄存器 → 帧缓存写地址）⇒ 物理距离问题，
@@ -2400,8 +2400,8 @@ V0 采样密度       245 点 / 期望 350（实测中位周期 142 ms）
   一个不存在的 `build_v6` 子目录）⇒ 学习文档里"定点注入测缓冲深度"那套方法一直没法自动化。
   现在改成走 `repo_path.mjs` 的 `dump()`、`--xsdb` 可覆盖，并加 `--dry`（只算计划，不发包、不碰 JTAG，
   因为这脚本真跑会 `rst -processor`）。`--dry --packets 6` 实测 exit 0，8352 B / 2088 u32 与手算一致。
-- `report/DEMO_SCRIPT.md`（明早真正会照着念的那份）也扫了一遍，抓到并修掉两处：§0 说"bit 必须以 `18443ffd` 开头"而 §2 的资源数字是 `efc89779` —— 同一份文件自相矛盾，照 §0 做会把演示退回没有仲裁的 #23；补上"今天 = #31 位流 + #32 固件 + 没有 `dir map ok` 那行就是 elf 不对"的现场自检；排障表加两行（3584 停 ⇒ 先查 elf；交回没发生 ⇒ 读 lane30 四个位分清谁占着）。第三幕补上可核对的仲裁数字（七次交回 210–481 ms ⇒ 说 0.2–0.5 s 并报分辨率）。
-- 学习文档同步补了四段（本地 `study/`，不入库）：SD 回放那篇加了"首簇字为什么会被拼反"的完整数值链，
+- `docs/DEMO_SCRIPT.md`（明早真正会照着念的那份）也扫了一遍，抓到并修掉两处：§0 说"bit 必须以 `18443ffd` 开头"而 §2 的资源数字是 `efc89779` —— 同一份文件自相矛盾，照 §0 做会把演示退回没有仲裁的 #23；补上"今天 = #31 位流 + #32 固件 + 没有 `dir map ok` 那行就是 elf 不对"的现场自检；排障表加两行（3584 停 ⇒ 先查 elf；交回没发生 ⇒ 读 lane30 四个位分清谁占着）。第三幕补上可核对的仲裁数字（七次交回 210–481 ms ⇒ 说 0.2–0.5 s 并报分辨率）。
+- 学习文档同步补了四段（本地 `docs/study/`，不入库）：SD 回放那篇加了"首簇字为什么会被拼反"的完整数值链，
   判据那篇加了 §5.0b"让失败行自己报几何量"，问题全记录加了"同一位置必失败"的三条症状行与两道自测题，
   优化方法论加 §7b 三个候选（每条指着 `timing_summary.rpt` 里一条真实路径，并写清哪条抬不动对外指标）。
 
@@ -2473,8 +2473,8 @@ L1 台架用**当前这棵树**重跑：**47/47 全过**，存档 `sim/results/r
 |---|---|---|
 | Z7 内容做完（三源 + 仲裁 + SD 回放 + 指标包） | `build/frozen_r32_sdfix/`（12 文件 `md5sum -c` OK：bit `efc89779` + elf `c00b6553` + 9 份凭据）；`bash build/gates.sh` 七项 ALL PASS；L1 `sim/results/regression_v79_r42.txt` **47/47**；整卡 4398 帧播完回绕 `sd_hotspot_fixed.txt`；并发 165 s 零失败 `uart_sd_with_eth.txt`；仲裁七条 ×2 遍 `arb_handover_r32{,b}.json` | **机器那一半全部完成**；欠三条眼睛判据（下表末行） |
 | 旋转只在右窗 | 台架 `tb_rotate_window` 在 47/47 里；用户 09-23 已在屏上确认（ISSUES 记录原话"有的和你说的一样"） | 完成 |
-| 深度时序 / 资源优化 | 已完成的收益在 `report/PERF_REPORT.md` §4/§4b/§7（含 R02 LUTRAM、R04 BRAM 64.64 %、R25 OSD 字形并行）；**下一轮的三条候选**按证据写在 `study/04_版本演进/03_优化的方法论.md` §7b，并写明哪条抬不动对外 WNS、真正最小余量是 WHS +0.062 | 停在"候选已列、未动构建"——**剩 <5 分钟，开构建只会给你一个没验完的产物** |
-| 工程文档 + 学习文档 | 工程侧：ISSUES #49/#50/#52 结案段、§23/§24/§25、CHANGELOG V7.10、VERSION_LINEAGE、PERF §4b/§6b/§7、AI_COLLABORATION §11/§12、CONTEST_CHECKLIST（技能包 17 项、ModelSim 口径纠偏）、board/README（SD 串口判读表 + 第 9 条眼睛项）、HOST_GUIDE；学习侧：`study/` 四篇更新（SD 篇数值链、判据篇 §5.0b、问题全记录三行 + 两题、优化方法论 §7b） | 完成 |
+| 深度时序 / 资源优化 | 已完成的收益在 `docs/PERF_REPORT.md` §4/§4b/§7（含 R02 LUTRAM、R04 BRAM 64.64 %、R25 OSD 字形并行）；**下一轮的三条候选**按证据写在 `docs/study/04_版本演进/03_优化的方法论.md` §7b，并写明哪条抬不动对外 WNS、真正最小余量是 WHS +0.062 | 停在"候选已列、未动构建"——**剩 <5 分钟，开构建只会给你一个没验完的产物** |
+| 工程文档 + 学习文档 | 工程侧：ISSUES #49/#50/#52 结案段、§23/§24/§25、CHANGELOG V7.10、VERSION_LINEAGE、PERF §4b/§6b/§7、AI_COLLABORATION §11/§12、CONTEST_CHECKLIST（技能包 17 项、ModelSim 口径纠偏）、board/README（SD 串口判读表 + 第 9 条眼睛项）、HOST_GUIDE；学习侧：`docs/study/` 四篇更新（SD 篇数值链、判据篇 §5.0b、问题全记录三行 + 两题、优化方法论 §7b） | 完成 |
 | 保持在分支上、不推 GitHub | `git rev-parse --abbrev-ref HEAD` = `dev/night-2026-09-22`；无 upstream；`git status --short` 空；172 次提交 | 按指示保留在本地 |
 | KU5P / MIPI / 双线性合入 | 用户 09-23 夜明确暂停（"ku5p我实在没看明白有啥用""mipi其实我不是很想走"）；双线性停在 tag `v7.8-bilinear-wip` | **按决定不动**，等用户重开 |
 
@@ -2680,10 +2680,10 @@ U/H 两个字模完整；外加 #53 的"并发不闪"、图卡 v2 观感、缝�
 
 ### 先记账：两处我自己写错的判据性文字（都在动手实现之前发现的）
 
-1. `report/COMMANDS.md` 的示例串 **`001110000` 标成"模糊 + Sobel"** —— 按"最左边是 bit0"的约定它其实是
+1. `docs/COMMANDS.md` 的示例串 **`001110000` 标成"模糊 + Sobel"** —— 按"最左边是 bit0"的约定它其实是
    模糊+锐化+Sobel；而括号里那句"老 00111 的等价写法要打成 001100000"两处都错（老 `00111` =
    模糊+Sobel+反色，等价的新九位是 `011010000`）。**把仓里所有 9 位示例串逐条重算了一遍**，只有这一行错。
-2. `src/host/HOST_GUIDE.md` 写着电池是"**28 条命令**"，实际文件里 36 条（今天加 `gamma off` 后 37 条）。
+2. `docs/HOST_GUIDE.md` 写着电池是"**28 条命令**"，实际文件里 36 条（今天加 `gamma off` 后 37 条）。
    另外两处源码注释引的台架叫 `tb_v88`，而那个编号当时还不存在（真正的判据在 `tb_v86_pipe_sel` 的
    T9/T2）—— 现在 `tb_v88_gamma` 真的有了，如果当时不改，注释就会指向一个**做完全不同事的台架**。
    **教训同上一节**：引用一个凭据要指到"哪一份文件的哪一条"，指错文件比不指更贵。
@@ -2856,7 +2856,7 @@ V8-5（OSD 四行全改）是像素域的大改，动手前得先看这条线。
 （延后的是数据、提前的是地址，帧缓存里数据本来就在）⇒ **零 BRAM**。
 因果性上也只有这一条成立：行缓存式 3×3 滤波"第 y−1 行的结果"只能在收到第 y 行时才算得出，
 所以"全旁路偏移必须为 0"这个判据问错了问题 —— 已把 `tb_v89` 的 T0 改成
-"整链内部偏移必须逐像素等于**声明的常量**（一致性 100 %）"。细节写在 `report/ISSUES.md` #54 末尾。
+"整链内部偏移必须逐像素等于**声明的常量**（一致性 100 %）"。细节写在 `docs/log/ISSUES.md` #54 末尾。
 
 ### 下一步（顺序写死，别临场挑软的做）
 
@@ -2904,13 +2904,13 @@ r50 上板后 `health_read.mjs --json` 给出 `c1=5.498 ms / tot=5.324 ms`。我
    那个台架一拍一个像素，按拍号的判据在两种栅格下挡的列不一样。
    ⇒ 正确做法：把"我是不是行首/行末/首行"做成**跟着有效像素移位的 1 bit 旗标链**。
    但注意**深度**：先写成一拍，rotate_window 绿了而 tb_v92 的 C2 三条又红；
-   让台架回读四个模块"发出槽位 0 那一拍"的 `x_in`，四个都报 **3**（`report/tb_v92_flagchain.txt` 的 DBG 行）
+   让台架回读四个模块"发出槽位 0 那一拍"的 `x_in`，四个都报 **3**（`build/evidence/tb_v92_flagchain.txt` 的 DBG 行）
    ⇒ 旗标必须走 **3 个有效像素**（行缓存读 → 窗口移位 → 输出寄存），于是 `border_r[2]` 才是对的。
    改完 6 个台架（tb_v92 / rotate_window / v84 / v85 / v86 / v89）**同时**全绿 ——
    两个互相矛盾的判据能被同一个解释同时安抚，说明这次找到的不是"让某一个测试过关的补丁"而是对齐本身。
    **一句总结：任何按拍号的边界判据都依赖消隐形状；要按"有效像素"数，且深度必须量出来。**
 3. **(A″) 级间坐标**：单级全部 `(-1,0) 729/729 一致`，整链却是 `(-4,0)` 混 29.6 % 第二偏移；
-   把行空隙从 1 拍改到 60 拍，第二偏移涨到 40 %（`report/tb_v89_gap60_probe.txt`）⇒
+   把行空隙从 1 拍改到 60 拍，第二偏移涨到 40 %（`build/evidence/tb_v89_gap60_probe.txt`）⇒
    排除小间隙假象，指向 `proc_pipeline` 把顶层 `x_in/y_in` **一份喂四级**，
    而第 k 级的数据已经晚了几拍 ⇒ **行缓存写进了后面像素的列号**。
    修法：坐标延迟线，抽头 2/5/8/12（= 前面各级深度之和），312 个触发器，零 BRAM。
@@ -4212,7 +4212,7 @@ y0 行那两拍凑齐的 {p00,p10} 写抽头暂存（512×32），y0+1 行凑齐
 `u_fb` 移进 `u_bilin`；`y_right_adv` 追加 `BILIN_ROWS = 2`（**必须偶数**，否则一对的两行分属两个源行）；
 `pix_raw`/`fb_pix_hold`/`SEAM_TAPS`/`MIX_D` 一个没动（沿用 `fb_rd`、`oob_fb_d1` 两个名字）。
 `BILIN_EN` 暂时是顶层 localparam `1'b1` —— **运行时开关还缺一个位**：`gpio_cfg1` 32 位已满
-（`report/COMMANDS.md` §5 位表），下一位只能来自 `gpio_cfg2` 或 `gpio_o` ⇒ 那是一次新的跨域，按 #71/#76 单独走。
+（`docs/COMMANDS.md` §5 位表），下一位只能来自 `gpio_cfg2` 或 `gpio_o` ⇒ 那是一次新的跨域，按 #71/#76 单独走。
 
 ### 3. `tb_v98`（唯一例化顶层的台架）实况：`C1e` 由红转绿，`C1c/C1d` 由绿转红 —— **判据保持硬、保持红**
 - 第一版 C1e（窗口内无 X）判红，根因是我这条新读口在**末源行**要读 `w_a + ROW_WORDS`，落到帧缓存
@@ -4437,7 +4437,7 @@ r64 = r63c + #83（串口能真正关掉双线性）。门禁 14 项里 **2 红*
 
 ## §59  05:14–05:22（9/26）：§58 那问"谁在决定 0.3~0.9 摆动"——答案抄完了，另有一刀砍在我自己腿上
 * **答案不是视频侧，是两条布线主导的路径在轮流当裁判**（三份 `timing_summary.rpt` 逐条抄，表在
-  `report/OPTIMIZATION_LOG.md` §4）：125 MHz ETH 组的 `u_cdc/wbin→BRAM ENARDEN`（r63b 0.918）/
+  `docs/OPTIMIZATION_LOG.md` §4）：125 MHz ETH 组的 `u_cdc/wbin→BRAM ENARDEN`（r63b 0.918）/
   `u_lm/ms32→gap_min/CE`（r63c 0.912、r64b **0.314**，14 级里 10 级 CARRY4，route 63.3%），
   对上 50 MHz 像素组的 `u_pipe/xd_reg[7][4]→u_osd/g_reg[6]`（27 级，route 65~67%，1.306 / 0.807 / 0.834）。
   ⇒ 0.314 不是"双线性把 ETH 拖慢了"：r64b 相对 r63c 只多一根 `bilin_en` 同步链，ETH 域一行 RTL 没动。
@@ -4560,7 +4560,7 @@ r70 读数：0.25/0.33/0.50x 三档 `inbad=viol=blank=0`，画面沿 == 定义�
   这条链子以前只有"读代码看起来对"，现在改坏任何一处约定都会红。
 
 顺手抓到的一处**自己写错的判据**：`board/README.md` 第 30 项里我写了 `rot 30` ——
-而"设成某个绝对角度"是**有意不做**的（`report/COMMANDS.md` 第 162 行）。已改成
+而"设成某个绝对角度"是**有意不做**的（`docs/COMMANDS.md` 第 162 行）。已改成
 `rot speed 1` → `rot auto 1` → `zoom fit 0`，并把"要停角度只能按 KEY1/KEY2"写进同一行。
 
 ### 3) 异常处理又补一条：残包
@@ -4569,7 +4569,7 @@ r70 读数：0.25/0.33/0.50x 三档 `inbad=viol=blank=0`，画面沿 == 定义�
 "板子做了我没让它做的事"）。现在 `uart_poll` 里"计时→清空→出声"三件事都做，门限 3 s
 （粘贴/脚本连发在毫秒级，不会误伤），判据 = `ps_hb_check.mjs` 的 A11 + 变异 `slow_rx`。
 
-### 4) 演示目录落地：`report/DEMO_SCRIPT.md`
+### 4) 演示目录落地：`docs/DEMO_SCRIPT.md`
 
 八幕、约 6 分钟，每幕三行（说什么 / 敲什么 / 看到什么）+ 一张"演砸了怎么办"表。
 **只写命令层真的接了硬件的东西**：`osd on|off` 与"设绝对角度"都不在里面。
@@ -4652,7 +4652,7 @@ r70 读数：0.25/0.33/0.50x 三档 `inbad=viol=blank=0`，画面沿 == 定义�
 
 * `build/gates.sh` 被我自己粘死过一行（一次只差换行的 Edit 把 `echo` 和末尾的 `if` 连在一起）——
   `bash -n` 当场红；判据脚本坏掉比文档坏掉更隐蔽，因为它表现为"构建的问题"。
-* `report/COMMANDS.md` 第 5 节里 bilin 那几行**早就是乱码**（字节丢失），现在按事实重写并加了
+* `docs/COMMANDS.md` 第 5 节里 bilin 那几行**早就是乱码**（字节丢失），现在按事实重写并加了
   门禁第 17 项（`src/host/doc_enc_check.mjs`，302 个手写件全干净；它自己带三条变异对照）。
 * `src/host/uart_cmd_check.mjs` 里两个**看不见的裸 U+FEFF** 改成字面转义（行为一致，源码可见）。
 
@@ -4686,7 +4686,7 @@ r71 位流/elf 已在 `build/`，门禁 16/17 绿、第 15 项等 19:0x 那轮�
    `[SRC] PS 停心跳…`；然后 `stop` / `frame 12` / `fill` 各等 3 秒 ⇒ **画面必须留住**（不许落图卡）；
    卡插回后 `sd remount` ⇒ 会回 `remount failed`（这是实测到的实话，恢复要重跑 JTAG 三件套）。
 2. **第 30 项**：`zoom 0.5` 的黑带里还有没有那条"从视频里切出来的线"（旋转起来再确认一次）。
-3. **一个决定**：`report/PERF_REPORT.md` 那串指标还是旧的（它以前指的 CHANGELOG 表停在 V7.9 —— 指路我已改）。
+3. **一个决定**：`docs/PERF_REPORT.md` 那串指标还是旧的（它以前指的 CHANGELOG 表停在 V7.9 —— 指路我已改）。
    要我**在 r71 上重测**（帧率/丢包/时延/功耗各拿一份新数）还是先把"只引用已演示过的数字"这条口径守住？
 
 ### 下一批（我按这个顺序自己往下走，除非你改）
@@ -4701,8 +4701,8 @@ r71 位流/elf 已在 `build/`，门禁 16/17 绿、第 15 项等 19:0x 那轮�
 
 - `README.md` / `README.en.md` 的实现结果行还写着"当前默认 bit（build#23）：WNS +0.740 …"，
   命令表还把 `bilin` 写成"主线目前不含此项"（它 r63b 就在主线了），`SRC0/SRC1` 的语义也是 V5 的。
-  三处都按固件与报告现状重写，并把"权威清单在 `report/COMMANDS.md`"这句话放进表头。
-- `report/PERF_REPORT.md` §3 同样在念 #23/#25。改成**成套地念**：
+  三处都按固件与报告现状重写，并把"权威清单在 `docs/COMMANDS.md`"这句话放进表头。
+- `docs/PERF_REPORT.md` §3 同样在念 #23/#25。改成**成套地念**：
   r69（最新且门禁全绿，`build/r69_gates.txt` + `build/evidence_r69/`）与 r71/r72 两列分开，
   并写明"没冻结的版本不引用它的数字"。
 - 这类错不改任何行为，所以加了一条自己会跑的判据：**门禁第 18 项** `src/host/doc_currency_check.mjs`
@@ -4829,7 +4829,7 @@ PS 侧的镜像 `cur_en`/`sel_sync_legacy()` 删掉，`pipe` 命令**只收九�
   `wip_r71_finalize.sh`、`wip_r71_freeze.sh` —— 六个一次性收尾脚本，职责已被
   `build/freeze_evidence.sh <NN>`（参数化）与 `build/board_verify.sh`（有总判定）吸收。
   `wip_flash_r63.sh` 是 `board_verify` 唯一的调用者，但它自己的头部那三步（`rst -system → ps7_init →
-  program_pl → reload`）已经抄进 memory 与 `report/BUILD.md`，删它不丢知识。
+  program_pl → reload`）已经抄进 memory 与 `docs/BUILD.md`，删它不丢知识。
 - `build/tcl/` 里九个没有任何脚本或文档引用的 tcl：`apply_cdc_report`、`build_bitstream`、
   `create_project`、`crit_path`、`fix_bd_and_top`、`micro_rd`、`rebuild_opt`、`rebuild_zoom_out`、
   `synth_pl_only`，以及那两个**根目录少解析一层**的（`build_system.tcl`、`build_pl_full.tcl`：
@@ -4927,7 +4927,7 @@ PS 侧的镜像 `cur_en`/`sel_sync_legacy()` 删掉，`pipe` 命令**只收九�
 `geom_check ok=8 fail=0`（`zoom fit 1` ⇒ lane23.bit19=1、收尾回 0）、温度三方对账 4 条自洽。
 
 ⚠ **刷板流程里我撞到两处自己的文档缺陷**（都已改）：
-① `report/DEMO_SCRIPT.md` 第 0 步写的是"`xsdb build/tcl/ps_jtag_boot.tcl`（含 ps7_init → 编 PL → 下 elf → con）"
+① `docs/DEMO_SCRIPT.md` 第 0 步写的是"`xsdb build/tcl/ps_jtag_boot.tcl`（含 ps7_init → 编 PL → 下 elf → con）"
 —— **不成立**：那条脚本只做 `rst -system → ps7_init → DDR 自检` 就停，剩下两条要自己按顺序跑
 （`program_pl.tcl` **必须** `vivado -mode batch -source`，它用 `open_hw_manager`，在 xsdb 下报
 `invalid command name`；然后 `ps_app_reload.tcl` 下 elf + `con`）。第一遍我按旧文案跑，PL 没编、elf 没下，
@@ -4962,14 +4962,14 @@ PS 侧的镜像 `cur_en`/`sel_sync_legacy()` 删掉，`pipe` 命令**只收九�
 `node src/host/demo_cmds.mjs --check build/evidence/r74_demo_rehearsal.txt`
 ⇒ `PASS demo 目录回包：抽出 49 条命令，回显对上 49 条，拒绝 0 条`，并且首尾两条 `[STAT]` 逐字段相等
 （除 `pub=`）——也就是**第 8 幕"回到初态"在硬件上成立**，不是文档里说说。
-命令不是手抄的：`--emit` 从 `report/DEMO_SCRIPT.md` 的代码块里抽 ⇒ 清单与文档不能各说各话。
+命令不是手抄的：`--emit` 从 `docs/DEMO_SCRIPT.md` 的代码块里抽 ⇒ 清单与文档不能各说各话。
 重跑的两条命令已经写进那份文档自己（它教别人怎么验它）。
 
 ### 7) 清理的第二刀（一次性日志，不进 git 的那种）
 
 `build/` + `board/` 顶层 30 分钟以前的 `*.log` / `*.jou` / `*.out` / `*.stdout` 共 **185 个、14 MB** 删掉，
 其中 16 个是入库过的一次性 `.out`——**逐个查过没有任何文档点名它们**（脚本：对每个 basename 在
-`report/*.md` + 两份 README + `board/README.md` 里 grep，命中 0），所以这一刀不毁任何凭据；
+docs/ + 两份 README + board/README.md 里 grep，命中 0），所以这一刀不毁任何凭据；
 真要找回任何一份，git 历史里都还在。`build/evidence_r*/`、`build/frozen_r*/` 一个没动，
 仓库根的 `vivado*.log` 也**故意留着**（此刻 L1 还在跑，那两个文件是它的活凭据）。
 `build/` + `board/` 现在 148 MB（大头是 42 个成套冻结目录与 `vivado_system/` 92 MB，那是构建本身）。
@@ -5041,7 +5041,7 @@ C4 ang=168  有画面行=780 无画面行=0 多段行=0 第1列[0..460]   末列
    **凭据**：`node build/ps_app.mjs` 重链接后 `build/ps_app.elf` 的 md5 仍是 `f4a22f4f08d1889eaf3f805a9606b282`，
    与 `build/evidence_r75/ps_app.elf` 逐字节相同 ⇒ 纯注释改动，板上那一套不用重刷。
 2. **文件清理**（用户安排的第 3 步）先交工具不交"已删"：`build/cleanup_wip.sh` 默认干跑，
-   判据是"被 `report/ board/ skill/` 任一点到名字 ⇒ 不删"，另设一档"仿真运行壳无条件可删"
+   判据是"被 `docs/ board/ skill/` 任一点到名字 ⇒ 不删"，另设一档"仿真运行壳无条件可删"
    （`.Xil`/`xsim.dir`/`sim_work` 里不可能有凭据，而 `CHANGELOG_V7.md` 提到 `.Xil` 那句是技术注记不是引用）。
    `--selftest` 11 条**第一跑就红**，红出两个真 bug：`[ -s 目录 ]` 在本机恒为假（会把每个非空目录
    误判成"零字节"，而 `rm -f 目录` 删不动）；四个 fixture 全是空目录 ⇒ "被引用不删"那条其实从没被验过。
@@ -5092,12 +5092,12 @@ C4 ang=168  有画面行=780 无画面行=0 多段行=0 第1列[0..460]   末列
 | 4 | `43b1ed1` | `build/cleanup_wip.sh`：**默认干跑**。要不要真的清 60 M（运行壳 41 M + 未被引用的快照 19 M）由你点头，脚本不会自己动 |
 | 5 | `8a0e902` | §70 那一节（C4 第一轮四格 + 为什么 1.00x 的绿不算证据） |
 | 6 | `6018248` | `build/orphan_rtl.sh` 的口径："拿综合日志当可达性 oracle"。真正的残留 = **4 个文件 290 行**；要不要删是你的决定（删了要重过构建 + 门禁） |
-| 7 | `8c51d2e` | `report/DEMO_SCRIPT.md`：第 1 幕只做**可逆**两跳（ETH ⇄ SD），拔卡挪成**第 9 幕**排在收尾 `stat` 之后。这条改的是**演示顺序本身** ⇒ 需要你认可"这样演讲得通" |
-| 8 | `5236a9d` | `report/PLAN_V8_SPEC.md` §7g：屏上尺寸那一格现在写 1024X600、并且全表补了"屏上一律大写"的读表口径 |
+| 7 | `8c51d2e` | `docs/DEMO_SCRIPT.md`：第 1 幕只做**可逆**两跳（ETH ⇄ SD），拔卡挪成**第 9 幕**排在收尾 `stat` 之后。这条改的是**演示顺序本身** ⇒ 需要你认可"这样演讲得通" |
+| 8 | `5236a9d` | `docs/log/PLAN_V8_SPEC.md` §7g：屏上尺寸那一格现在写 1024X600、并且全表补了"屏上一律大写"的读表口径 |
 | 9 | `b5dd854` | 门禁第 **19** 项（排练脚本必须等于讲稿此刻抽出来的那份）。加一项=加一条以后你自己会被它挡住的规矩，认可与否请看 `build/gates.sh` 那 20 行 |
-| 10 | `0dc9cff` | `report/ARCHITECTURE.md` §11 节首：13 行异常处理的凭据逐条回读过的记录（11 台架 + 2 host 脚本 + 3 处路径，全在 r75 的 L1 里绿） |
+| 10 | `0dc9cff` | `docs/ARCHITECTURE.md` §11 节首：13 行异常处理的凭据逐条回读过的记录（11 台架 + 2 host 脚本 + 3 处路径，全在 r75 的 L1 里绿） |
 | 11 | `69afde0` | `board/README.md` 头部三段（板上是 r75 / 门禁从 18 涨到 19 时该怎么念 / 第 9 幕为什么在最后） |
-| 12 | `cd1915b` | `report/README.md` §四：**文档瘦身的三刀，每条都补了实测代价**（65 % 的体量在两份日记里；挪目录的代价是两份首页 49/37 处链接）。这一刀我故意没砍，等你的口径 |
+| 12 | `cd1915b` | `docs/README.md` §四：**文档瘦身的三刀，每条都补了实测代价**（65 % 的体量在两份日记里；挪目录的代价是两份首页 49/37 处链接）。这一刀我故意没砍，等你的口径 |
 | 13 | `7c1e529` + `c488aa8` | 收尾次序脚本与讲稿第 2 幕的凭据补齐（fit 在旋转下装得下 = `tb_v100_fit_rot` T1/T2，360 个角度） |
 
 ### 二、需要你决定或需要你的手的（我故意没做）
@@ -5131,7 +5131,7 @@ C4 ang=168  有画面行=780 无画面行=0 多段行=0 第1列[0..460]   末列
    （"L1 全量那份仍是 03:49，本轮没重跑 67 个台架"），脚本那一行的措辞留到明天连着修。
 教训同 S21 那一族：**报告的过滤器也是一把尺子**——它不收进来，就等于那一格没测过。
 
-### §71 再补（05:5x）：`report/COMMANDS.md` 第 4 行写着"**当下这块 bit（r62 …）**"，而板上是 r75
+### §71 再补（05:5x）：`docs/COMMANDS.md` 第 4 行写着"**当下这块 bit（r62 …）**"，而板上是 r75
 
 同一族（对外念的数/版本引用了旧构建），但这一处**语义明确是"我们现在是"**，不用等判定：
 它带着"当下"两个字，后面括号里却是 r62 的 `bit 2d2e9ce3 / elf 54603265`。
@@ -5139,7 +5139,7 @@ C4 ang=168  有画面行=780 无画面行=0 多段行=0 第1列[0..460]   末列
 并补一句"板上是哪一版只认 md5，不认文件名"。
 ⇒ 第四刀那张表里的 **13 处** 现在实际剩 **11 处**待判（`CONTEST_CHECKLIST` 的 BRAM 行与这一行已判掉）；
 `board/README.md:143` 判为语义①（那一份诊断确实是 r32 那天测的）⇒ 不动。
-`report/README.md` §四 那段列表**本身还没同步这个数**（我改它两次没匹配上，不烧回合去抠字符串），
+`docs/README.md` §四 那段列表**本身还没同步这个数**（我改它两次没匹配上，不烧回合去抠字符串），
 以这里为准。
 
 ## §72（2026-09-27 06:1x–07:1x，r76 待构建）：#97 边缘条带 + #94 的"插回不恢复"
@@ -5406,7 +5406,7 @@ elf `926565342970` 上板、**用户 13:0x 亲手拔插**：「拔下这个 SD �
   `synthesizing module`，不是 grep 例化名）：**没进这一版位流 = 10 个**，其中
   `axi_frame_writer / frame_buffer / frame_buffer_db / video_timing_720p` 四个**连台架都不引用**（真死，290 行），
   另外六个（`color_bar / fb_rd5x / line_cache / rotate_mapper / tap_sched / axi_frame_saver_burst`）
-  仍被各自的老台架例化。**这一轮没删它们**：删 RTL 要重跑 L1 回归 + `report/MODULES.md` 同步改口径，
+  仍被各自的老台架例化。**这一轮没删它们**：删 RTL 要重跑 L1 回归 + `docs/MODULES.md` 同步改口径，
   而顶层台架此刻正在跑（30 分钟一趟）—— 记在下一次构建的待办开头，不夹在推送这一脚里做。
 
 ### 六、推送的实际结果（17:0x 补）
@@ -5627,7 +5627,7 @@ bilin_lerp.v 横向插值那七个数据寄存器不再带异步复位，只复�
 ARCHITECTURE 257→158、MODULES 163→132（删掉"左窗原图/右窗处理""ETH 直写 BRAM""五位 effect_en 七拍链"
 等已不成立的说法，15 个未被顶层例化的 RTL 如实标"仅台架"）；DEMO_SCRIPT 297→150、HANDS_ON 175→139
 （重写时对着 main.c 逐条核命令，列出十处文档与固件不一致）；CONTEST_CHECKLIST 去掉权重背诵与会漂计数；
-report/README 文档地图同步；skill/ 三份顶层说明合一把唯一索引、删掉与 sim/run_sim.tcl 已经漂移的
+docs/README 文档地图同步；skill/ 三份顶层说明合一把唯一索引、删掉与 sim/run_sim.tcl 已经漂移的
 旧脚本副本、把 axi_stream_verify 的通用四条并进去向条目；AI_COLLABORATION 从 230 行改成 192 行的可核对往来；
 新增 sim/README.md（台架怎么被跑、哪两个钉 md5、退役候选）与 data/golden/README.md（参考图没有生成脚本、
 640x360 向量是孤儿）；固件三条调试/过期回显收掉（FILL diagnostic 删除、"只能断电重插"与开机横幅的裸五位

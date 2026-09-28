@@ -105,7 +105,7 @@ set_clock_groups -asynchronous \
 | `src/rtl/process/zoom/*` | 无极缩放 |
 | `src/rtl/eth/sync_fifo.v` `dc_fifo.v` | 自写 FIFO、BRAM 友好 |
 | `src/host/*` | 上位机 |
-| `report/*` | 全量按 v3 重写 |
+| `docs/*.md` | 全量按 v3 重写 |
 
 ---
 
@@ -147,7 +147,7 @@ set_clock_groups -asynchronous \
 `src/host/*`（Node 工具集）、`sim/tb_v5*.v`、`sim/tb_v6*.v`、`sim/run_sim.tcl`、
 `sim/tb_eth_video.v`（修好第三版就失效的参数引用）、
 `build/tcl/{build_v6,program_pl,ps_jtag_boot,set_src}.tcl`、`build/*.{bit,xsa,rpt}`、
-`report/V6_ROOT_CAUSE.md`、`report/V6_BOARD_MEASUREMENT.md`、`report/AI_COLLABORATION.md`、
+`docs/log/V6_ROOT_CAUSE.md`、`docs/log/V6_BOARD_MEASUREMENT.md`、`docs/AI_COLLABORATION.md`、
 `skill/zynq-video-rtl-debug/*`、`skill/frameid_loss_signature.md`
 
 ---

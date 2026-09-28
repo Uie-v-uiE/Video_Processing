@@ -1,7 +1,7 @@
 // src/host/doc_currency_check.mjs —— "文档不许把旧构建念成当前"
 //
 // 为什么要有它（这一轮撞了两次，都是同一类）：
-//   * `report/PERF_REPORT.md` 的"当前值看这里"指到 `CHANGELOG_V7.md`，而那份日志最后一节是
+//   * `docs/PERF_REPORT.md` 的"当前值看这里"指到 `CHANGELOG_V7.md`，而那份日志最后一节是
 //     V7.9（R22+R23）——照它念会念到五十多版之前。
 //   * `README.md` / `README.en.md` 的实现结果行一直写着 `当前默认 bit（build#23）：WNS +0.740 …`，
 //     而板上烧的是 r71；同一张命令表还把 `bilin` 写成"主线目前不含此项"，而它早就在主线上了。
@@ -27,13 +27,13 @@ import path from 'node:path';
 const ROOT = path.resolve(import.meta.dirname, '..', '..');
 const EXT = new Set(['.md', '.mjs', '.sh', '.ps1', '.tcl']);
 // **只扫"念给人看的那一份"**：首页、板上操作卡、性能报告、构建说明、比赛清单、演示脚本、命令表。
-// 为什么把 `report/OVERNIGHT_LOG.md`、`report/CHANGELOG_V7.md`、`report/ISSUES.md`、
-// `report/VERSION_LINEAGE.md` 排除在 D1 之外——它们是**日记**，里面的"当前默认 #23""下一步冻结
+// 为什么把 `docs/log/OVERNIGHT_LOG.md`、`docs/log/CHANGELOG_V7.md`、`docs/log/ISSUES.md`、
+// `docs/log/VERSION_LINEAGE.md` 排除在 D1 之外——它们是**日记**，里面的"当前默认 #23""下一步冻结
 // frozen_r61_geom"写的是**当时**的当前与当时的计划。拿今天的盘去判昨天的日记，红的不是文档过期，
 // 而是我逼着自己回头改日记（那是销毁过程凭据，比过期更糟）。要改的永远是"现在还会被念出来"的那几页。
 const SCOPE_DOCS = ['README.md', 'README.en.md', 'board/README.md',
-    'report/PERF_REPORT.md', 'report/BUILD.md', 'report/CONTEST_CHECKLIST.md',
-    'report/DEMO_SCRIPT.md', 'report/COMMANDS.md', 'report/BACKGROUND_AND_NOVELTY.md'];
+    'docs/PERF_REPORT.md', 'docs/BUILD.md', 'docs/log/CONTEST_CHECKLIST.md',
+    'docs/DEMO_SCRIPT.md', 'docs/COMMANDS.md', 'docs/BACKGROUND_AND_NOVELTY.md'];
 // 会被复制粘贴去跑的脚本：里面的指路同样要成立。
 const SCOPE_DIRS = ['build/tcl', 'src/host'];
 const SKIP_DIR = new Set(['.git', 'vivado_system', 'xsim.dir', 'node_modules', '.Xil', 'dist']);
@@ -104,6 +104,60 @@ function checkLines(docLines, dirExists, newestGreen) {
     return rows;
 }
 
+// D4：文档与脚本里**点名的路径必须成立**（这一条是给"搬目录"这件事兜底的）。
+//   2026-09-28 把 `report/` 拆成交付物（`docs/`）与工作记录（`docs/log/）时，全仓有四百来处指路；
+//   搬一半留一半是这类活最坏的收场——文件都在，评审照文档去翻却翻到一个不存在的目录，
+//   而这件事**不改变任何行为**：位流照编、台架照跑、门禁照绿。所以判据必须自己跑。
+//   口径收得很窄，两种情形：
+//     D4a 带目录前缀、以 .md 结尾、且不是占位名的指路 ⇒ 目标必须在盘上（`docs/*.md`、
+//         `frozen_rNN_*` 这种带星号/占位名的写法天然不匹配，正当的命名规则句不会被咬）。
+//     D4b `report/` 这个旧目录名后面直接跟文件名字符 ⇒ 一律红（旧目录已经不存在了；
+//         "当年那个 report/ 目录"这种**叙事**（斜杠后是空格）不算指路，放过）。
+//   日记（docs/log/*.md）也在扫描范围内：里面那句"见 `report/ISSUES.md`"曾经是历史叙述，
+//   但既然指路已经全部改写，留着就是半搬 —— 所以一视同仁。
+const CITE_MD = /(?:^|[^/\w.:-])(docs\/log|docs|build|src|sim|board|skill)\/[\w./-]*?[\w-]+\.md\b/g;
+const OLD_DIR = /(?:^|[^/\w.-])report\/[\w.*-]/g;
+
+function checkPaths(fileLines, exists) {
+    const rows = [];
+    for (const [rel, lines] of Object.entries(fileLines)) {
+        if (rel === SELF) continue;
+        lines.forEach((l, i) => {
+            const at = `${rel}:${i + 1}`;
+            for (const m of l.matchAll(CITE_MD)) {
+                const tok = m[0].replace(/^[^a-z]/, '');
+                if (tok.includes('NN') || tok.includes('$')) continue;
+                if (!exists(tok)) rows.push(`${at} D4a 点名的文档盘上没有：${tok}`);
+            }
+            for (const m of l.matchAll(OLD_DIR)) {
+                rows.push(`${at} D4b 还在指已经删掉的旧目录：${l.trim().slice(0, 70)}`);
+            }
+        });
+    }
+    return rows;
+}
+
+const HAND_EXT = new Set(['.md', '.mjs', '.sh', '.tcl', '.v', '.c', '.h', '.bat', '.ps1', '.xdc', '.py']);
+// 不扫的：生成物与器件库、以及**当时的凭据**（冻结集里那份文本指的路就是它冻结时的那条路，
+// 改它等于伪造记录），还有本地学习材料（docs/study/，不入库，里面引用的是另一套路径）。
+const HAND_SKIP_DIRS = new Set(['.git', 'vivado_system', 'vitis', 'xsim.dir', 'sim_work',
+    'node_modules', '.Xil', 'study', 'learn', 'golden', 'build']);
+const HAND_SKIP_PREFIX = ['build/frozen_', 'build/evidence_', 'build/failed_', 'docs/study/'];
+
+function handWrittenFiles(dir, out, relBase) {
+    for (const name of readdirSync(dir)) {
+        const rel = relBase ? `${relBase}/${name}` : name;
+        if (HAND_SKIP_DIRS.has(name) && rel !== 'build') continue;
+        if (name === 'build') { handWrittenFiles(path.join(dir, name), out, rel); continue; }
+        if (HAND_SKIP_PREFIX.some(p => (rel + '/').startsWith(p))) continue;
+        const p = path.join(dir, name);
+        const st = statSync(p);
+        if (st.isDirectory()) handWrittenFiles(p, out, rel);
+        else if (HAND_EXT.has(path.extname(name).toLowerCase())) out.push(rel);
+    }
+    return out;
+}
+
 // `build/*gates*.txt` 两种命名都有（早期 gates_rNN.txt，后来 rNN_gates.txt），
 // 取"编号最大且写着 GATES: ALL PASS"的那一套。文件名里的编号就是它判的那次构建。
 function newestGreenSet() {
@@ -135,7 +189,20 @@ function scanTree() {
     } catch { /* build/ 一定在 */ }
     const has = (tok) => dirs.includes(tok) || dirs.some(d => d.startsWith(tok + '_'));
     const g = newestGreenSet();
-    return { rows: checkLines(docs, has, g.nn), g, n: Object.keys(docs).length };
+    // D4 的扫描面比 D1/D2/D3 宽得多：凡是"人会抄去跑"的手写文件都算（.v/.c 里的注释也在内，
+    // 因为那些注释就是"下一版该去看哪一份"的指路）。
+    const allFiles = {};
+    try {
+        for (const rel of handWrittenFiles(ROOT, [], '')) {
+            try { allFiles[rel] = readFileSync(path.join(ROOT, rel), 'utf8').split('\n'); }
+            catch { /* 单个文件读不到就跳过，缺文件另有 D 项管 */ }
+        }
+    } catch { /* 整棵树读不到就只跑 D1/D2/D3 */ }
+    const exists = (tok) => {
+        try { return statSync(path.join(ROOT, tok)).isFile(); } catch { return false; }
+    };
+    return { rows: checkLines(docs, has, g.nn).concat(checkPaths(allFiles, exists)),
+        g, n: Object.keys(docs).length, m: Object.keys(allFiles).length };
 }
 
 const argv = process.argv.slice(2);
@@ -155,25 +222,38 @@ if (argv.includes('--self')) {
         checkLines({ 'README.md': ['最近一次门禁全绿的冻结集 = r69：WNS +0.188'] }, okDir, 71), /D3/);
     // 正当句不许误报：过去式 + 编号目录真实存在 + 首页点的正是最新那套
     const good = checkLines({
-        'report/CHANGELOG_V6.md': ['第四版得到 WNS +0.708 / 寄存器 51.30%（`build/frozen_r13`）'],
+        'docs/log/CHANGELOG_V6.md': ['第四版得到 WNS +0.708 / 寄存器 51.30%（`build/frozen_r13`）'],
         'README.md': ['最近一次门禁全绿的冻结集 = r71：WNS +0.346'],
     }, okDir, 71);
     console.log(`  ${good.length === 0 ? 'PASS' : 'FAIL'} 对照：过去式与点名最新全绿的那一套都不误报（实测 ${good.length} 条）`);
     for (const r of good) console.log('        ' + r);
     // 两个"别咬到正当文本"的边界：命名规则里的占位名、以及**带路径前缀**的那一种（不是仓库根的 build/）。
     const edges = checkLines({
-        'report/BUILD.md': ['冻结目录命名规则：`build/frozen_rNN_xxx/`（NN 是那一次构建的编号）',
+        'docs/BUILD.md': ['冻结目录命名规则：`build/frozen_rNN_xxx/`（NN 是那一次构建的编号）',
             '备份包里的 `submission/build/frozen_r26/` 是复制品，不拿工作区判它存在与否'],
     }, () => false, 0);
     console.log(`  ${edges.length === 0 ? 'PASS' : 'FAIL'} 对照：占位名与带前缀的路径不误报（实测 ${edges.length} 条）`);
     for (const r of edges) console.log('        ' + r);
-    const all = n === 3 && good.length === 0 && edges.length === 0;
-    console.log(`${all ? 'SELF: 全绿' : 'SELF: 有红'}（变异 3 条 + 对照 2 条）`);
+    // D4 自己的反例：一条"点名的文档盘上没有"、一条"还在指已经删掉的旧目录"，两条都必须红；
+    // 再加一条正当句（真的在盘上的 `docs/COMMANDS.md` + 一个占位名 `frozen_rNN_x`）不许红。
+    const d4bad = checkPaths({ 'docs/ARCHITECTURE.md': ['详见 `docs/NO_SUCH_DOC.md` 的 §2'], }, () => false);
+    const d4old = checkPaths({ 'src/rtl/top/pl_video_top.v': ['// 口径见 `report/ISSUES.md` #66'], }, () => true);
+    const d4ok = checkPaths({ 'README.md': ['详见 `docs/COMMANDS.md`；凭据在 `build/frozen_rNN_x/`；',
+        '当年那个 report/ 目录已经拆成 docs/ 与 docs/log/（这是叙事，不是指路）'], },
+        (tok) => tok === 'docs/COMMANDS.md');
+    let d4 = 0;
+    d4 += yes('D4a：点名的文档盘上没有', d4bad, /D4a/);
+    d4 += yes('D4b：还在指旧目录 report/', d4old, /D4b/);
+    console.log(`  ${d4ok.length === 0 ? 'PASS' : 'FAIL'} 对照：真指路 + 占位名 + "旧目录"的叙事句不误报（实测 ${d4ok.length} 条）`);
+    for (const r of d4ok) console.log('        ' + r);
+
+    const all = n === 3 && good.length === 0 && edges.length === 0 && d4 === 2 && d4ok.length === 0;
+    console.log(`${all ? 'SELF: 全绿' : 'SELF: 有红'}（变异 ${n} + D4 变异 ${d4} 条 + 对照 ${good.length + edges.length + d4ok.length} 条）`);
     process.exit(all ? 0 : 1);
 }
 
-const { rows, g, n } = scanTree();
-console.log(`扫了 ${n} 个文档；最新且 ALL PASS 的冻结集 = ${g.name || '（没有）'}；判据 D1/D2/D3`);
+const { rows, g, n, m } = scanTree();
+console.log(`扫了 ${n} 个文档（D1/D2/D3）+ ${m} 个手写文件（D4）；最新且 ALL PASS 的冻结集 = ${g.name || '（没有）'}`);
 if (argv.includes('--probe')) {
     for (const r of rows) console.log('  ' + r);
     console.log(`（probe：以上 ${rows.length} 条只报数，不判红）`);

@@ -2,7 +2,7 @@
 # make_submission.sh — 从当前 git 跟踪集导出一份可直接交给评委的提交目录。
 #
 # 为什么以 `git ls-files` 为唯一入口：仓库里绝大多数的垃圾（vivado.log、xsim.dir/、
-# .Xil/、study/、各处 dfx_runtime.txt）本来就被 .gitignore 挡住，跟着跟踪集走就自动
+# .Xil/、docs/study/、各处 dfx_runtime.txt）本来就被 .gitignore 挡住，跟着跟踪集走就自动
 # 不会带出来；剩下的都是"曾经提交过、后来没人引用"的东西，用下面的 PRUNE 名单显式列。
 #
 # 用法：bash build/make_submission.sh [--dry]
@@ -19,7 +19,7 @@ DRY=0
 # 1) 一次性修复脚本：只修当年那一版 BD/顶层，没人再调用，别人照着跑只会困惑。
 # 2) 重复/未引用的串口捕获：同一份内容有多份字节相同的副本，或没有任何文档引用。
 # 3) Vivado 自动生成、且没人引用的 leftovers。
-# 注意：build/tcl/rebuild_cdc_fix.tcl 在 report/BUILD.md 里有名字，保留；
+# 注意：build/tcl/rebuild_cdc_fix.tcl 在 docs/BUILD.md 里有名字，保留；
 #       sim/tb_v5_saver.v 虽然测的是未例化的老 saver，但它是 DDR 打包器改动的
 #       复验工具（见 ISSUES 与优化清单），保留。
 PRUNE_LIST=(
@@ -36,7 +36,6 @@ PRUNE_GLOBS=(
   "board/uart_50_soak2.txt"
   "board/uart_soak_A2.txt"
   "board/hw_server_scan2.log"
-  "report/hw_server_scan2.log"
 )
 # 这些 send_/uart_ 捕获是门禁或文档点名的，PRUNE_GLOBS 命中也不删
 KEEP_LIST=(
@@ -96,7 +95,9 @@ cat > MANIFEST.txt <<EOF
   board/         -> board/       上板说明、串口捕获、验收表
   data/          -> data/        golden/ 参考图、measured/ 实测数据
   skill/         -> skill/       大模型协作沉淀的技能包（README.md 为总说明）
-  report/        -> report/      设计报告 + 大模型协作记录 + ISSUES/OVERNIGHT_LOG 追加式历史
+  docs/          -> docs/        交付文档（架构/原理/优化对比/实测指标/命令表/协作记录/复现说明）
+  docs/log/      -> docs/log/    工作记录：ISSUES 与 OVERNIGHT_LOG 等追加式历史
+  （docs/study/ 是本地学习材料，被 .gitignore 挡住，不进提交包）
 EOF
 
 echo

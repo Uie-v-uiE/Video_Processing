@@ -18,7 +18,7 @@
 #   共同点是**判据读的与被判的是同一个对象**——加判据时先问一句：它读的文件是谁写的、什么时候写。
 #
 # 数字全部来自 Vivado 报告本身，不重新跑构建；退出码：全绿 0，任何一项红 1。
-# 阈值口径与 report/OVERNIGHT_LOG.md §1 的门禁表一致（**不要因为某项红了就改这里的阈值**）。
+# 阈值口径与 docs/log/OVERNIGHT_LOG.md §1 的门禁表一致（**不要因为某项红了就改这里的阈值**）。
 set -u
 D=${1:-build}
 pick() { [ -f "$D/$1" ] && echo "$D/$1" || echo "$D/../$1"; }   # 冻结目录里缺的文件回落到 build/
@@ -201,7 +201,7 @@ fi
 #     所以"改了子模块端口、顶层忘了连"这类错 L1 全量 57 条一条都不会红，
 #     只能等 25 分钟的构建 —— 今晚 osd_overlay 换端口就踩在这个空档上。
 #     判据脚本自己有反例：拿两份故意改坏的拷贝跑，必须分别报"连了不存在的端口"和"输入没连"
-#     （见 report/OVERNIGHT_LOG.md §33 与 skill/ 那条"判据要有自己的测试"）。
+#     （见 docs/log/OVERNIGHT_LOG.md §33 与 skill/ 那条"判据要有自己的测试"）。
 #     r52 加宽到第三条**位宽**（`dbg_lat` 从 5 口变 6 口时想到的：#57 那类"高位被一根窄线吞掉"
 #     名字对得上、仿真与综合都不报，只有把两头量出来才看得见）。反例两份 + 一份负对照，
 #     凭据 `build/ports_check_width_ce.txt`。
@@ -222,7 +222,7 @@ else
         echo "  n/a  顶层接线 —— 该冻结件早于第 14 项，没有对应的 ports_check 凭据（不判红，见上面注释）"
     fi
 fi
-# 14) WNS/WHS 的**归属组**（记录用，绝不判红）—— 2026-09-26 的教训，出处 `report/OPTIMIZATION_LOG.md` §4。
+# 14) WNS/WHS 的**归属组**（记录用，绝不判红）—— 2026-09-26 的教训，出处 `docs/OPTIMIZATION_LOG.md` §4。
 #     上表念的是 Design Timing Summary 里那**一个**数，而它由两条互不相干、都属"布线主导"的路径轮流决定：
 #     125 MHz ETH 组（`u_cdc/wbin→BRAM ENARDEN`、`u_lm/ms32→gap_min`）对上 50 MHz 像素组（`u_pipe→u_osd` 字形）。
 #     同一套约束三次构建 WNS = 0.918 / 0.807 / 0.314，只抄那一个数就会误判成"某次改动拖慢了设计"
@@ -319,7 +319,7 @@ if [ "$D" = "build" ]; then
         [ -n "$WHY" ] && echo "        ——$WHY"
     else
         say "边缘条带 tb_edge_rim" "缺 build/tb_edge_rim_rNN.txt" "必须先跑并留凭据" 0
-        echo "        —— 生成：bash sim/run_one.sh tb_edge_rim，再把 prov.txt 与 run.log 的判据行并成一份报告（见 report/TESTING.md 的那条配方）"
+        echo "        —— 生成：bash sim/run_one.sh tb_edge_rim，再把 prov.txt 与 run.log 的判据行并成一份 build/tb_edge_rim_rNN.txt"
     fi
 else
     echo "  n/a  边缘条带 tb_edge_rim —— 历史冻结件不带与它同一次跑的 RTL 合指纹，不判红（同第 15 项的口径）"
@@ -334,7 +334,7 @@ say "PS 心跳约定 ps_hb" "rc=$HBRCC 红行=$HBRED" "--self 全绿(条数以�
     $([ "$HBRCC" = 0 ] && [ "$HBRED" = 0 ] && echo 1 || echo 0)
 printf '%s\n' "$HBOUT" | tail -6 | sed 's/^/        /'
 
-# ---- 17：手写件的编码（`report/COMMANDS.md` 第 5 节曾经被 cp936 打坏一整段，位流/台架/门禁一个都没红）----
+# ---- 17：手写件的编码（`docs/COMMANDS.md` 第 5 节曾经被 cp936 打坏一整段，位流/台架/门禁一个都没红）----
 # 坏掉的不是硬件，是"演示时念给自己听的那份清单"，而那份要给评审看 ⇒ 判据要能自己跑。
 # --self 那一路是它自己的反例（造三条坏行必须抓到三条），没有这一段就等于"绿给绿的人看"。
 node src/host/doc_enc_check.mjs --self > /tmp/docenc_self.$$.txt 2>&1; DOCRC1=$?
@@ -369,7 +369,7 @@ fi
 rm -f /tmp/cur_self.$$.txt
 
 # ---- 19：演示排练脚本必须等于讲稿抽出来的那一份（2026-09-27 加，起因是今晚自己差点造出来）----
-# `board/demo_rehearsal.txt` 是**照着敲进板子**的那一份，而它是从 `report/DEMO_SCRIPT.md` 的代码块
+# `board/demo_rehearsal.txt` 是**照着敲进板子**的那一份，而它是从 `docs/DEMO_SCRIPT.md` 的代码块
 # 抽出来的（`src/host/demo_cmds.mjs --emit`）。讲稿改了而这份没重抽 ⇒ 排练与演示用的是两套东西，
 # 症状恰好是 #67 那一族（"清单里有、板上没有"）：台上敲一条不存在的写法，或者少演一条改过的。
 # 今晚改讲稿次序（第 9 幕拔卡）时我是**手工**比了一遍才敢说"49/49 那条仍然成立" ——

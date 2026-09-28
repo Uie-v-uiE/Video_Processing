@@ -32,9 +32,9 @@
 - 厂商例程是真实起点：以太网协议栈那一层（`arp/icmp/udp/eth_ctrl`）来自开发板厂商例程，
   它止于"收发通了"。把它接成视频通路的过程中发现并修掉了它自带的两处缺陷
   （发送仲裁在帧中间换源 = ISSUES #37；`udp_rx_parser`/`gmii_rx_mac` 三处未验证行为 = #38），
-  逐文件的"哪些是厂商代码、哪些是自研"标在 `report/VERSION_LINEAGE.md`。
+  逐文件的"哪些是厂商代码、哪些是自研"标在 `docs/log/VERSION_LINEAGE.md`。
 - 与 PYNQ 路线的差别是有意选择的：同一颗 XC7Z020，官方生态用 Python/Notebook 驱动 PS 侧；
-  本作品数据面完全在 PL，PS 只跑一个几百行的裸机控制面。取舍论证写在 `report/PS_VS_PL.md`。
+  本作品数据面完全在 PL，PS 只跑一个几百行的裸机控制面。取舍论证写在 `docs/PS_VS_PL.md`。
 
 **边界声明**：上面那份名单来自学校公开发的竞赛通报，不是完整的获奖作品集，也没有做系统的
 文献检索（IEEE/CnKI 关键词、往届报告库）。所以本节是"我知道自己参照过什么、同赛道大致在
@@ -50,15 +50,15 @@
    行行都有一格）与一类"缩放碰到分割线时出现的色带"（#68 那族相位错 9 列）。
 2. **链路健康做成硬件自计数、三方可对账**：同一组计数器有三个独立出口——OSD 直接印在屏上、
    AXI GPIO 可被 JTAG `mrd` 读回、串口命令可清可读。于是"报告里写 0 丢包"变成"你能自己验证它是 0"。
-   板级三态、拔线可逆性、`gapclr` 对账见 `report/OVERNIGHT_LOG.md` R08–R10；工具在
+   板级三态、拔线可逆性、`gapclr` 对账见 `docs/log/OVERNIGHT_LOG.md` R08–R10；工具在
    `src/host/health_read.mjs`、`src/host/ddr_stale.mjs`。
 3. **抗乱序、抗丢包的 offset 拼帧**：每包自带帧内偏移，比"要求按序到达"更适合尽力而为的以太网；
    配三重提交门限（行覆盖位图 ∧ 字节预算 ∧ 无坏包标记），使"丢一包 + 一包重复偏移"这种
-   **能被累计字节数伪装成完整**的帧不会上屏。证据：`sim/tb_v6_cover_gate.v`、`report/V6_ROOT_CAUSE.md`、
+   **能被累计字节数伪装成完整**的帧不会上屏。证据：`sim/tb_v6_cover_gate.v`、`docs/log/V6_ROOT_CAUSE.md`、
    `skill/udp_offset_reasm.md`。
 4. **消隐期内原子提交的 DDR 乒乓 + 拷贝看门狗**：显示侧永远只读一整帧；拷贝赶不上消隐窗口就
    整笔作废并保留上一帧（宁可不动，不可撕裂）。看门狗跨时钟域用翻转式脉冲同步器（#36 的修法），
-   判据是相位扫描 30/30。证据：`sim/tb_v79_abort_toggle.v`、`sim/tb_v5_vblast.v`、`report/ARCHITECTURE.md`。
+   判据是相位扫描 30/30。证据：`sim/tb_v79_abort_toggle.v`、`sim/tb_v5_vblast.v`、`docs/ARCHITECTURE.md`。
 5. **一条可复用的设计规则：窗口类滤波必须做在目标域**。否则旋转与平滑互相打架（转的时候模糊跟着抖）。
    规则被固化为技能条目与台架：`sim/tb_rotate_window.v`、`skill/rotate_window_target_domain.md`。
 6. **多片源仲裁，而且"谁拥有屏幕"是可机器判定的**。三路（网流 / SD 裸帧 / PL 自生图卡）共用同一台

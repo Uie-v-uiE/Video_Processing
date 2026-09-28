@@ -5,7 +5,7 @@
 - `ddr_dump_20260921_15fps.out.gz`：同一次测量的两个 bank 原始回读（76800×2 个 u32，文本格式
   `<addr>: <data>`），可用 `src/host/ddr_stale.mjs <解包后的文件>` 重新分析。
 
-判读要点（与 `report/V6_BOARD_MEASUREMENT.md` §4.1 同一判据）：
+判读要点（与 `docs/log/V6_BOARD_MEASUREMENT.md` §4.1 同一判据）：
 
 | 指标 | 本次(15fps) | 30fps | 60fps(18.4MB/s) | 修复前 |
 |---|---|---|---|---|

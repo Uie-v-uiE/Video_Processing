@@ -2,7 +2,7 @@
 # build/freeze_evidence.sh <NN> —— 把第 NN 次构建的成套凭据收进 build/evidence_rNN/，并生成 MANIFEST.md5。
 #
 # 为什么要有 MANIFEST.md5：现场只认 md5 不认文件名（`build/evidence_r*` 里同名的位流有好几份），
-# 而"板上跑的到底是哪一版"是眼睛判据能不能算数的前提（`report/DEMO_SCRIPT.md` 第 0 步那条）。
+# 而"板上跑的到底是哪一版"是眼睛判据能不能算数的前提（`docs/DEMO_SCRIPT.md` 第 0 步那条）。
 #
 # 两道硬门（"红 = 没做完"，把红的东西冻结下来等于给下一轮留一个"看起来有凭据"的坑）：
 #   1) `build/rNN_gates.txt` 里必须是 `GATES: ALL PASS`；

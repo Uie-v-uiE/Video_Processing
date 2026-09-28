@@ -2,7 +2,7 @@
 
 这些文件回答的是「**Vivado 到底把这段写法综合成什么**」，只能靠 out-of-context 综合来判定，
 写 TB 是测不出来的。它们是本仓库若干结论的证据来源，命令与数字记在
-`report/OVERNIGHT_LOG.md` 的 R02 / R04。
+`docs/log/OVERNIGHT_LOG.md` 的 R02 / R04。
 
 | 文件 | 回答的问题 | 结论 |
 |------|-----------|------|

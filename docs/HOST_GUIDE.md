@@ -89,9 +89,9 @@ v6.4 起打包器按 16bit lane 驱动 `WSTRB`，这个坑已经被硬件堵掉�
 | `board/uart_cap_once.ps1 -Port COM6 -Seconds 14 -Out <文件>` | 只收不发，抓一段自发输出（心跳、`[STAT]`） |
 | `node src/host/uart_cmd_check.mjs [--file board/cmd_battery_v81.txt] [--port COM6] [--dry]` | 命令层的验收判据：逐条对回声 + 该拒的必须拒 + 跑完 `STAT` 必须回到初态 |
 
-命令的**权威表在 `report/COMMANDS.md`**（动词、参数、回声、拒收条件都在那），命令之间的
+命令的**权威表在 `docs/COMMANDS.md`**（动词、参数、回声、拒收条件都在那），命令之间的
 **覆盖关系**（哪些组合会静默无效，例如 `zoom fit 1` 下的 `zoom 1.5`）在
-`report/COMMAND_PRECEDENCE.md`。这里只抄最常用的几条：
+`docs/COMMAND_PRECEDENCE.md`。这里只抄最常用的几条：
 
 ```
 src auto | src 0 | src 1 | src 2     片源：0=图卡 1=DDR(网络) 2=DDR 并起播 SD

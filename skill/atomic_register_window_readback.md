@@ -1,7 +1,7 @@
 # S18 · 多字读回必须是"一组"：寄存器窗口的撕裂读数与原子快照口
 
 > 四段式：适用场景 / 使用方法 / 已验证效果 / 失效条件。
-> 来源：`report/ISSUES.md` #59（`c1 = 5.498 ms` 却 `tot = 5.324 ms`）与 #60（没判的判据报成 PASS）。
+> 来源：`docs/log/ISSUES.md` #59（`c1 = 5.498 ms` 却 `tot = 5.324 ms`）与 #60（没判的判据报成 PASS）。
 
 ## 适用场景
 
@@ -46,7 +46,7 @@
 
 ## 已验证效果
 
-Zynq-7020 视频链路，2026-09-24（`report/ISSUES.md` #59，构建 r51）：
+Zynq-7020 视频链路，2026-09-24（`docs/log/ISSUES.md` #59，构建 r51）：
 
 - 现象：板级第一次读到端到端时延，`c1 = 5.498 ms` 却 `tot = 5.324 ms`——`c1` 是 `tot` 的一段，
   这在物理上不可能。凭据 `build/lat_tearing_r50.txt`（8 组）与 `build/frozen_r50_lat/health_r50_lat.json`。
@@ -76,4 +76,4 @@ Zynq-7020 视频链路，2026-09-24（`report/ISSUES.md` #59，构建 r51）：
   `osd_ms_matches_tot` 报成 `null`（不判），并单独给出 `osd_ms_lanes_aligned` 说明为什么没判。
 - 判据里任何"计数型"字段（判到了多少个样本）**必须初始化并打印出来**：
   本项目 `integer nchk` 忘了清零 ⇒ 条件是 X ⇒ 而 `if (!cond)` 在 X 时两个分支都不走 ⇒
-  **一条什么都没判的判据报成 PASS**（`report/ISSUES.md` #60）。
+  **一条什么都没判的判据报成 PASS**（`docs/log/ISSUES.md` #60）。

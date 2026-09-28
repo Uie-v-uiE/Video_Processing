@@ -32,7 +32,7 @@ apply_bd_automation -rule xilinx.com:bd_rule:processing_system7 \
   -config {make_external "FIXED_IO, DDR" Master "Disable" Slave "Disable" apply_board_preset "0"} $ps
 
 # V8-2：开 MIO GPIO，为了读板上那两个 PS 按键（原理图网络名 PS_MIO0_KEY1 / PS_MIO12_KEY2）。
-# 老配置只有 EMIO GPIO=0、MIO GPIO 根本没开 ⇒ 那两个脚电气上存在但固件读不到（见 report/PLAN_V8_SPEC.md §6a）。
+# 老配置只有 EMIO GPIO=0、MIO GPIO 根本没开 ⇒ 那两个脚电气上存在但固件读不到（见 docs/log/PLAN_V8_SPEC.md §6a）。
 # MIO 0 与 12 都没被占用：QSPI=MIO 1..6、UART0=MIO 10..11、ENET0=MIO 16..27(+MDIO 52..53)、SD0=MIO 40..45(+CD MIO 9)。
 # 每脚四行（PULLUP/IOTYPE/DIRECTION/SLEW）是 GPIO 认领这两行 MIO 所必需的，缺了 validate_bd_design 会报 IOTYPE 未设。
 # 注意这个 dict 里**不能夹注释行**：整块是一个 `set_property -dict [list ... ]`，
@@ -259,7 +259,7 @@ if {[info exists ::env(IMPL_STRATEGY)] && $::env(IMPL_STRATEGY) ne ""} {
 }
 puts "BUILD_STRATEGY [get_property STRATEGY [get_runs impl_1]]"
 # 布线后物理综合（post-route phys_opt）：默认**关**（不设变量就是 r64b 那一档流程，逐位同源的对照）。
-# 为什么单独开一档试：`report/OPTIMIZATION_LOG.md` §4 量到全设计 WNS 由两条**布线主导**（route 占 60~67 %）的
+# 为什么单独开一档试：`docs/OPTIMIZATION_LOG.md` §4 量到全设计 WNS 由两条**布线主导**（route 占 60~67 %）的
 # 路径轮流决定，其中 eth 那条的高扇出网络 fo=96 / 17 正好是 phys_opt 的靶子；而它**不动网表**只动物理结果，
 # 所以这一档不需要重跑 RTL 台架 —— 但它同样要"产物自己带着出身"，故与 IMPL_STRATEGY 一样打进日志。
 if {[info exists ::env(IMPL_PRPO)] && $::env(IMPL_PRPO) eq "1"} {
@@ -314,7 +314,7 @@ foreach lg [glob -nocomplain [file join $proj_dir [file tail $proj_name].runs * 
     # 为什么必须单独数：综合的处理是**保留常量那一侧、忽略逻辑那一侧**，
     # 于是 bit 里那根线恒为 0，而**仿真按进程后写覆盖，行为看起来完全正确**
     # —— 这是"台架全绿、硬件不工作"最省事的一条路（2026-09-24 就踩在 border_r 上，
-    #    见 report/ISSUES.md #61：旗标链的复位被我同时写进了两个 always 块）。
+    #    见 docs/log/ISSUES.md #61：旗标链的复位被我同时写进了两个 always 块）。
     if {[string match "*multi-driven net*" $line]} { incr mcount; lappend mseen [string trim $line] }
   }
   close $fh
