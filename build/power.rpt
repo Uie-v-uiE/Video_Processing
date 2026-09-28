@@ -1,7 +1,7 @@
 Copyright 1986-2022 Xilinx, Inc. All Rights Reserved. Copyright 2022-2026 Advanced Micro Devices, Inc. All Rights Reserved.
 -------------------------------------------------------------------------------------------------------------------------------------------------
 | Tool Version     : Vivado v.2025.2.1 (win64) Build 6403652 Thu Mar 19 19:48:24 GMT 2026
-| Date             : Tue Sep 29 01:13:01 2026
+| Date             : Tue Sep 29 05:39:33 2026
 | Host             : Uie-laptop running 64-bit major release  (build 9200)
 | Command          : report_power -file D:/Xilinx/Prj/pro/Video_Processing/build/power.rpt
 | Design           : system_top
@@ -52,16 +52,16 @@ Table of Contents
 +--------------------------+-----------+----------+-----------+-----------------+
 | On-Chip                  | Power (W) | Used     | Available | Utilization (%) |
 +--------------------------+-----------+----------+-----------+-----------------+
-| Clocks                   |     0.044 |       10 |       --- |             --- |
-| Slice Logic              |     0.030 |    27595 |       --- |             --- |
-|   LUT as Logic           |     0.022 |    10173 |     53200 |           19.12 |
+| Clocks                   |     0.045 |       10 |       --- |             --- |
+| Slice Logic              |     0.030 |    27597 |       --- |             --- |
+|   LUT as Logic           |     0.022 |    10171 |     53200 |           19.12 |
 |   LUT as Distributed RAM |     0.005 |     4044 |     17400 |           23.24 |
 |   CARRY4                 |     0.002 |     1126 |     13300 |            8.47 |
-|   Register               |    <0.001 |     8073 |    106400 |            7.59 |
+|   Register               |    <0.001 |     8075 |    106400 |            7.59 |
 |   F7/F8 Muxes            |    <0.001 |     1248 |     53200 |            2.35 |
 |   LUT as Shift Register  |    <0.001 |      143 |     17400 |            0.82 |
 |   Others                 |     0.000 |      347 |       --- |             --- |
-| Signals                  |     0.054 |    20905 |       --- |             --- |
+| Signals                  |     0.054 |    20912 |       --- |             --- |
 | Block RAM                |     0.166 |       95 |       140 |           67.86 |
 | MMCM                     |     0.212 |        2 |         4 |           50.00 |
 | DSPs                     |     0.008 |       19 |       220 |            8.64 |
@@ -78,7 +78,7 @@ Table of Contents
 +-----------+-------------+-----------+-------------+------------+-------------+-------------+------------+
 | Source    | Voltage (V) | Total (A) | Dynamic (A) | Static (A) | Powerup (A) | Budget (A)  | Margin (A) |
 +-----------+-------------+-----------+-------------+------------+-------------+-------------+------------+
-| Vccint    |       1.000 |     0.315 |       0.290 |      0.025 |       NA    | Unspecified | NA         |
+| Vccint    |       1.000 |     0.315 |       0.291 |      0.025 |       NA    | Unspecified | NA         |
 | Vccaux    |       1.800 |     0.139 |       0.121 |      0.018 |       NA    | Unspecified | NA         |
 | Vcco33    |       3.300 |     0.046 |       0.045 |      0.001 |       NA    | Unspecified | NA         |
 | Vcco25    |       2.500 |     0.000 |       0.000 |      0.000 |       NA    | Unspecified | NA         |
@@ -169,7 +169,7 @@ Table of Contents
 |       axi_gpio_2           |     0.001 |
 |       processing_system7_0 |     1.534 |
 |   u_eth                    |     0.055 |
-|     u_arp                  |     0.003 |
+|     u_arp                  |     0.004 |
 |       u_arp_rx             |     0.002 |
 |       u_arp_tx             |     0.001 |
 |     u_cdc                  |     0.014 |
@@ -189,7 +189,7 @@ Table of Contents
 |     u_aw                   |     0.002 |
 |     u_bilin                |     0.159 |
 |       u_fb                 |     0.149 |
-|       u_lerp               |     0.005 |
+|       u_lerp               |     0.004 |
 |     u_clk                  |     0.107 |
 |     u_dvi                  |     0.134 |
 |       u_ser0               |     0.034 |
@@ -206,7 +206,7 @@ Table of Contents
 |       u_sobel              |     0.003 |
 |     u_raw                  |     0.005 |
 |     u_row                  |     0.004 |
-|     u_split_ctrl           |     0.003 |
+|     u_split_ctrl           |     0.002 |
 |     u_zfit                 |     0.003 |
 |     u_zmap                 |     0.006 |
 +----------------------------+-----------+
