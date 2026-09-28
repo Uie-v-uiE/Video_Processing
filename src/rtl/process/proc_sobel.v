@@ -14,14 +14,14 @@ module proc_sobel #(
     output reg         de_out,
     output reg  [15:0] dout
 );
-    (* ram_style = "block" *) reg [7:0] lb0 [0:H_ACTIVE-1];
-    (* ram_style = "block" *) reg [7:0] lb1 [0:H_ACTIVE-1];
+    (* ram_style = "distributed" *) reg [7:0] lb0 [0:H_ACTIVE-1];
+    (* ram_style = "distributed" *) reg [7:0] lb1 [0:H_ACTIVE-1];
     // 旁路用的**原色**上一行缓存（与 proc_morph 的 `mc1` 同一个写法）。
     // 为什么必须有它：本级的窗口链存的是 8 bit 亮度，而"旁路 = 只搬运不运算"要求搬的是
     // **原来那 16 bit 的 RGB565**，并且必须与其它三级取**同一个中心抽头**（tb_v84 的差分判据：
     // "morph 的旁路与 blur 的旁路逐位相同"）。以前写 `dout <= din` 是把"本级自洽"凌驾于"全链一致"，
     // 代价就是开/关 Sobel 时画面跳一行 + tb_v89 量到的 +2 列。
-    (* ram_style = "block" *) reg [15:0] mc1 [0:H_ACTIVE-1];
+    (* ram_style = "distributed" *) reg [15:0] mc1 [0:H_ACTIVE-1];
 
     // luminance extract
     wire [4:0] r5 = din[15:11];

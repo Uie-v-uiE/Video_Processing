@@ -15,8 +15,8 @@ module proc_box_blur #(
     output reg         de_out,
     output reg  [15:0] dout
 );
-    (* ram_style = "block" *) reg [15:0] lb0 [0:H_ACTIVE-1];
-    (* ram_style = "block" *) reg [15:0] lb1 [0:H_ACTIVE-1];
+    (* ram_style = "distributed" *) reg [15:0] lb0 [0:H_ACTIVE-1];
+    (* ram_style = "distributed" *) reg [15:0] lb1 [0:H_ACTIVE-1];
 
     reg [15:0] p00, p01, p02, p10, p11, p12, p20, p21, p22;
     reg        de_d1, de_d2;

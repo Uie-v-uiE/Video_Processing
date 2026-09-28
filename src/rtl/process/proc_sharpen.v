@@ -17,8 +17,8 @@ module proc_sharpen #(
     output reg         de_out,
     output reg  [15:0] dout
 );
-    (* ram_style = "block" *) reg [15:0] lb0 [0:H_ACTIVE-1];
-    (* ram_style = "block" *) reg [15:0] lb1 [0:H_ACTIVE-1];
+    (* ram_style = "distributed" *) reg [15:0] lb0 [0:H_ACTIVE-1];
+    (* ram_style = "distributed" *) reg [15:0] lb1 [0:H_ACTIVE-1];
 
     reg [15:0] q00, q01, q02, q10, q11, q12, q20, q21, q22;   // 窗口原始抽头（下面按边界复制成 p**）
     reg        de_d1, de_d2;

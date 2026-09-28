@@ -33,9 +33,15 @@ module proc_morph #(
     wire [15:0] y16 = r8 * 8'd77 + g8 * 8'd150 + b8 * 8'd29;
     wire        bin = (y16[15:8] >= threshold);
 
-    (* ram_style = "distributed" *) reg [0:H_ACTIVE-1] mb0;          // 掩码：上上行
-    (* ram_style = "distributed" *) reg [0:H_ACTIVE-1] mb1;          // 掩码：上一行
-    (* ram_style = "block" *)       reg [15:0] mc1 [0:H_ACTIVE-1];   // 原色：上一行（旁路用）
+    // ⚠ 存储器**必须写成 `reg mb0 [0:H_ACTIVE-1]`（每个元素一格），不能写成 `reg [0:H_ACTIVE-1] mb0`
+    //   （那是一根 1024 位的**向量**，`mb0[x_in]` 是按位取值）。后者综合器推断不出 RAM，报
+    //   `Synth 8-7186 ... using registers` ⇒ 两条掩码行缓存变成 2×H_ACTIVE 个触发器，
+    //   而两个异步读口各变成一棵 1024:1 的 LUT 树。r83 之前它就是这个状态（凭据：build/r80_build2.log）。
+    (* ram_style = "distributed" *) reg mb0 [0:H_ACTIVE-1];          // 掩码：上上行
+    (* ram_style = "distributed" *) reg mb1 [0:H_ACTIVE-1];          // 掩码：上一行
+    // `mc1` 的读是**异步**的（组合读出），BRAM 做不到 ⇒ 原来写 `ram_style="block"` 只会被判
+    // `Synth 8-6849 infeasible` 然后自己退回 LUTRAM。这里把话说明白，少四条假警告。
+    (* ram_style = "distributed" *) reg [15:0] mc1 [0:H_ACTIVE-1];   // 原色：上一行（旁路用）
 
     always @(posedge clk) begin
         if (de_in) begin
