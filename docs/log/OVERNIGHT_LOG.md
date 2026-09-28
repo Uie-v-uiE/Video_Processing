@@ -5889,3 +5889,21 @@ OSD 叠层有了总开关（`osd on|off`，`gpio_o[20]` 反相）；`wr_full` �
   这是它自己灌的那股流量的形状，**不能**拿来替代 `docs/PERF_REPORT.md` 里 116.7 fps 那条板上数。
 - 顺手删掉一个我早前测试留下的 `build/tcl/_tmp_isolated_roll.tcl`（正式脚本的副本就是会漂，
   `roll_isolated.sh` 本来就该自己清掉它——它清的那行在拒绝路径之后，这就是漏下来的原因）。
+
+### 04:40 补：r85 那棵树的顶层台架与门禁数字进来了（早间单最后更新一次）
+
+| 项 | 结果 | 凭据 |
+|---|---|---|
+| 顶层台架 `tb_v98`（r85 树，03:09→04:33，84 分钟） | `RESULT … FAIL nfail=1`，**唯一红仍是 C5c**（#98 历史红）；`C4a/C4b`（旋转形状）、`C9a/C9b/C9c/C9e` + 两条正对照、`C12pre/C12a`（OSD）全绿 | `build/tb_v98_report.txt`，头 `top=47c59cd3a852 tb=d64b883a6d94 rtl=8da71c50bbc8`，**三枚与现树逐枚相同** ⇒ 这份可采纳 |
+| 另外三支回归（同一跑） | `tb_edge_rim` **PASS**（四条圈 R2..R5 齐、0 FAIL，报告 `build/tb_edge_rim_r85.txt`，`rtl=8da71c50bbc8`）；`tb_v103` 只有 **C10c** 红（= #111 的尺子，故意红着）；`tb_osd_lines` PASS | `build/r85_tb98_console.txt` |
+| 门禁 20 项（r85） | 还是那**三条红**：WNS −0.094、失败 setup 端点 16（都是 #105/#121 那一族）、第 15 项 C5c。`freeze_evidence.sh 85` 拒绝冻结 ⇒ **提交包认的最新全绿冻结集仍是 r75** | `build/r85_gates.txt` |
+| 板侧机器验收（改过路径的两支脚本重跑一遍） | `board_verify --battery` **PASS（判红步骤 0）**：100 条命令 92.9 s、初态 = 文档默认档、`ok 跑完回到初态：… osd=1`；三件套 md5 打印出来仍是 `b2a36ac5 / 3465deac / a992736e` | `build/r85_board_verify.txt`、`build/evidence/r85_battery_capture.txt` |
+
+**#93 到这一节就全部落地了**：`sim/run_one.sh` 与 `build/tb98_report.sh` 是最后两支（改完用它们复跑了
+`tb_edge_rim`/`tb_v103` 与报告生成，见上面两行）。现在仓库里剩下的绝对路径只有**文档里的示例**
+与脚本各自的**默认值**（都能用 `VP_VIVADO_BIN`/`VP_XSDB`/`PS_CC`/`PS_BSP` 覆盖，清单在 `docs/BUILD.md` §1）。
+
+**板上是哪一块，一句话**：`build/system.bit` 仍是 r84 那块（`b2a36ac5`，01:12）；这棵树自己生成的 r85 那块
+（`36de9b75`，03:06，在 `build/r85_isolated/`）与它**只差包头里的构建时刻**（4 个字节，见 §11.1）⇒
+屏上看到的、串口量到的，就是这棵树的配置。之所以不把 r85 拷进 `build/` 而让门禁少一行 WARN：
+那会让"板上块 / 报告里块 / 冻结清单里的块"三个名字指向两份文件，而收益只是消掉一行**已经被两把证明答复过**的提示。

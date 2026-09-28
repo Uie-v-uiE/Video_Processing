@@ -1,0 +1,178 @@
+PASS C0a ruler encodes position in the pixel | px_val / decoder / mod-256 signed diff must agree, incl. 0, small values, both edges, both wrap directions
+PASS C0a3 no black cell exists in the pattern | the panel-level ruler equates black with outside-the-picture, so the pattern must not contain black
+PASS C0a2 golden array actually holds it | read back ddr[0] and the last word after init: a correct function is not a correct array
+[tb_v98_top_seam.v:496] PROBE fb_wr_pulses=38400 (一帧要 38400)  copy_hold 拍了 0  u_aw.active=40800 最后到的 row=299
+[tb_v98_top_seam.v:498] DIAG fb_vis=1 owner_eth=0 fill_busy=0 row_busy=0 eth_live=0 tb_ok=0 dbg_src=0300 tap_raw 全黑比例 0/292270
+PASS C0d a real source is on screen | less than half of left-pane samples are black, else nothing was copied
+PASS C0b enough frames ran | at least 3 frames, otherwise every count below is void
+PASS C0c the AXI copy is alive | AXI bursts present, 8-byte aligned, never read outside the PS window
+[tb_v98_top_seam.v:513] OBS C-tap 观测（不判定）：样本 292270 格、偏差非零 291102 格、首格偏差 -112
+[tb_v98_top_seam.v:515] INFO C-tap 样本 292270 格、偏 291102 格、首格偏差 -112（0 才是对的）
+PASS C0f whole fb word space written | de-duplicated write-word index count must cover the full frame once
+[tb_v98_top_seam.v] OBS C1i 标定级数：几何 0 不符的 k 有 1 个（k=2），该级相位不符 0（其余级：k=2 相位 0）
+PASS C1i read-port phase same stage as src | col0/row0/pair_odd/req_vld must come from the calibrated label stage, not from a comment
+PASS C1g VIEWPORT col: src == x_d[2]>>1 | single viewport: src column == display column >>1 at the calibrated stage (k=2 is the only zero)
+PASS C1h VIEWPORT row: src == wrap((y_d[2]+OFF+BILIN)>>1) | row-wise definition now includes the #97 frame-head wrap; floor c1_wrapn proves the wrap window was judged
+PASS C0e RULER self-consistent | out-of-range bucket must be a subset of the mismatch set
+PASS C1a content-check coverage | in-line left-pane samples below 50k means nothing was measured
+PASS C1e PRECONDITION no X inside the measurement window | with X present every dcol/drow below is false-green on an empty set (#78)
+PASS C1c content column == display column >> 1 | single-viewport geometry, content-level evidence (was a NOTE before #78)
+[tb_v98_top_seam.v:571] OBS C1d 行方向原始计数（硬判据在它下面一行）：Δrow 不符 0、跨帧恒定 = 1
+PASS C1d content row == display row >> 1 (outside ring warm-up) | row-wise content alignment of the raw tap; warm-up rows are counted, not hidden
+OBS C1d-b (retired): warm-up branch samples = 0 (judged 0, unexplained 0) => 空集，判据搬到 C5c
+[tb_v98_top_seam.v:599] OBS M3 右窗行偏移跨帧是否恒定（不判定，内容期望未修对）：恒定 = 1（1=恒定，0=一帧一变），变化次数 0
+[tb_v98_top_seam.v:601] INFO 统计 frames=6 ar=2400 r=38400 odd=0 outwin=0 n_l=292270 bad_l=292270 n_r=306540 bad_r_col=304200
+PROBE P100 x=0 y=0 定义(行0,列0) | 原图(行0,列0) 处理(行2,列0) | oob=0 take_orig=0 sel=8200
+PROBE P100 x=1 y=0 定义(行0,列0) | 原图(行0,列0) 处理(行2,列0) | oob=0 take_orig=0 sel=8200
+PROBE P100 x=2 y=0 定义(行0,列1) | 原图(行0,列1) 处理(行2,列1) | oob=0 take_orig=0 sel=8201
+PROBE P101 链入口 y_d3=0 cy_d3=0 | din tag=(行2,列149) oob_fb=0
+PROBE P100 x=1021 y=0 定义(行0,列254) | 原图(行0,列254) 处理(行2,列254) | oob=0 take_orig=0 sel=82fe
+PROBE P100 x=1022 y=0 定义(行0,列255) | 原图(行0,列255) 处理(行2,列255) | oob=0 take_orig=0 sel=82ff
+PROBE P100 x=1023 y=0 定义(行0,列255) | 原图(行0,列255) 处理(行2,列255) | oob=0 take_orig=0 sel=82ff
+PROBE P100 x=0 y=1 定义(行0,列0) | 原图(行0,列0) 处理(行2,列0) | oob=0 take_orig=0 sel=8200
+PROBE P100 x=1 y=1 定义(行0,列0) | 原图(行0,列0) 处理(行2,列0) | oob=0 take_orig=0 sel=8200
+PROBE P100 x=2 y=1 定义(行0,列1) | 原图(行0,列1) 处理(行2,列1) | oob=0 take_orig=0 sel=8201
+PROBE P101 链入口 y_d3=1 cy_d3=0 | din tag=(行2,列149) oob_fb=0
+PROBE P100 x=1021 y=1 定义(行0,列254) | 原图(行0,列254) 处理(行2,列254) | oob=0 take_orig=0 sel=82fe
+PROBE P100 x=1022 y=1 定义(行0,列255) | 原图(行0,列255) 处理(行2,列255) | oob=0 take_orig=0 sel=82ff
+PROBE P100 x=1023 y=1 定义(行0,列255) | 原图(行0,列255) 处理(行2,列255) | oob=0 take_orig=0 sel=82ff
+PROBE P100 x=0 y=2 定义(行1,列0) | 原图(行1,列0) 处理(行2,列0) | oob=0 take_orig=0 sel=8200
+PROBE P100 x=1 y=2 定义(行1,列0) | 原图(行1,列0) 处理(行2,列0) | oob=0 take_orig=0 sel=8200
+PROBE P100 x=2 y=2 定义(行1,列1) | 原图(行1,列1) 处理(行2,列1) | oob=0 take_orig=0 sel=8201
+PROBE P101 链入口 y_d3=2 cy_d3=1 | din tag=(行3,列149) oob_fb=0
+PROBE P100 x=1021 y=2 定义(行1,列254) | 原图(行1,列254) 处理(行2,列254) | oob=0 take_orig=0 sel=82fe
+PROBE P100 x=1022 y=2 定义(行1,列255) | 原图(行1,列255) 处理(行2,列255) | oob=0 take_orig=0 sel=82ff
+PROBE P100 x=1023 y=2 定义(行1,列255) | 原图(行1,列255) 处理(行2,列255) | oob=0 take_orig=0 sel=82ff
+PROBE P100 x=0 y=3 定义(行1,列0) | 原图(行1,列0) 处理(行2,列0) | oob=0 take_orig=0 sel=8200
+PROBE P100 x=1 y=3 定义(行1,列0) | 原图(行1,列0) 处理(行2,列0) | oob=0 take_orig=0 sel=8200
+PROBE P100 x=2 y=3 定义(行1,列1) | 原图(行1,列1) 处理(行2,列1) | oob=0 take_orig=0 sel=8201
+PROBE P101 链入口 y_d3=3 cy_d3=1 | din tag=(行3,列149) oob_fb=0
+PROBE P100 x=1021 y=3 定义(行1,列254) | 原图(行1,列254) 处理(行2,列254) | oob=0 take_orig=0 sel=82fe
+PROBE P100 x=1022 y=3 定义(行1,列255) | 原图(行1,列255) 处理(行2,列255) | oob=0 take_orig=0 sel=82ff
+PROBE P100 x=1023 y=3 定义(行1,列255) | 原图(行1,列255) 处理(行2,列255) | oob=0 take_orig=0 sel=82ff
+PROBE P100 x=0 y=4 定义(行2,列0) | 原图(行2,列0) 处理(行2,列0) | oob=0 take_orig=0 sel=8200
+PROBE P100 x=1 y=4 定义(行2,列0) | 原图(行2,列0) 处理(行2,列0) | oob=0 take_orig=0 sel=8200
+PROBE P100 x=2 y=4 定义(行2,列1) | 原图(行2,列1) 处理(行2,列1) | oob=0 take_orig=0 sel=8201
+PROBE P101 链入口 y_d3=4 cy_d3=2 | din tag=(行4,列149) oob_fb=0
+PROBE P100 x=1021 y=4 定义(行2,列254) | 原图(行2,列254) 处理(行2,列254) | oob=0 take_orig=0 sel=82fe
+PROBE P100 x=1022 y=4 定义(行2,列255) | 原图(行2,列255) 处理(行2,列255) | oob=0 take_orig=0 sel=82ff
+PROBE P100 x=1023 y=4 定义(行2,列255) | 原图(行2,列255) 处理(行2,列255) | oob=0 take_orig=0 sel=82ff
+PROBE P100 x=0 y=5 定义(行2,列0) | 原图(行2,列0) 处理(行2,列0) | oob=0 take_orig=0 sel=8200
+PROBE P100 x=1 y=5 定义(行2,列0) | 原图(行2,列0) 处理(行2,列0) | oob=0 take_orig=0 sel=8200
+PROBE P100 x=2 y=5 定义(行2,列1) | 原图(行2,列1) 处理(行2,列1) | oob=0 take_orig=0 sel=8201
+PROBE P101 链入口 y_d3=5 cy_d3=2 | din tag=(行4,列149) oob_fb=0
+PROBE P100 x=1021 y=5 定义(行2,列254) | 原图(行2,列254) 处理(行2,列254) | oob=0 take_orig=0 sel=82fe
+PROBE P100 x=1022 y=5 定义(行2,列255) | 原图(行2,列255) 处理(行2,列255) | oob=0 take_orig=0 sel=82ff
+PROBE P100 x=1023 y=5 定义(行2,列255) | 原图(行2,列255) 处理(行2,列255) | oob=0 take_orig=0 sel=82ff
+PROBE P100 x=0 y=6 定义(行3,列0) | 原图(行3,列0) 处理(行3,列0) | oob=0 take_orig=0 sel=8300
+PROBE P100 x=1 y=6 定义(行3,列0) | 原图(行3,列0) 处理(行3,列0) | oob=0 take_orig=0 sel=8300
+PROBE P100 x=2 y=6 定义(行3,列1) | 原图(行3,列1) 处理(行3,列1) | oob=0 take_orig=0 sel=8301
+PROBE P101 链入口 y_d3=6 cy_d3=3 | din tag=(行5,列149) oob_fb=0
+PROBE P100 x=1021 y=6 定义(行3,列254) | 原图(行3,列254) 处理(行3,列254) | oob=0 take_orig=0 sel=83fe
+PROBE P100 x=1022 y=6 定义(行3,列255) | 原图(行3,列255) 处理(行3,列255) | oob=0 take_orig=0 sel=83ff
+PROBE P100 x=1023 y=6 定义(行3,列255) | 原图(行3,列255) 处理(行3,列255) | oob=0 take_orig=0 sel=83ff
+PROBE P100 x=0 y=7 定义(行3,列0) | 原图(行3,列0) 处理(行3,列0) | oob=0 take_orig=0 sel=8300
+PROBE P100 x=1 y=7 定义(行3,列0) | 原图(行3,列0) 处理(行3,列0) | oob=0 take_orig=0 sel=8300
+PROBE P100 x=2 y=7 定义(行3,列1) | 原图(行3,列1) 处理(行3,列1) | oob=0 take_orig=0 sel=8301
+PROBE P101 链入口 y_d3=7 cy_d3=3 | din tag=(行5,列149) oob_fb=0
+PROBE P100 x=1021 y=7 定义(行3,列254) | 原图(行3,列254) 处理(行3,列254) | oob=0 take_orig=0 sel=83fe
+PROBE P100 x=1022 y=7 定义(行3,列255) | 原图(行3,列255) 处理(行3,列255) | oob=0 take_orig=0 sel=83ff
+PROBE P100 x=1023 y=7 定义(行3,列255) | 原图(行3,列255) 处理(行3,列255) | oob=0 take_orig=0 sel=83ff
+INFO: xsimkernel Simulation Memory Usage: 13960 KB (Peak: 13960 KB), Simulation CPU Usage: 4963374 ms
+INFO: [Common 17-206] Exiting xsim at Tue Sep 29 04:35:20 2026...
+TB98 exit=0
+WROTE /d/Xilinx/Prj/pro/Video_Processing/build/tb_v98_report.txt  (173 行) top_md5=47c59cd3a852 rtl_md5=8da71c50bbc8 tb_md5=d64b883a6d94
+PASS C3c panel edges match definition | the panel's own first/last non-black column == the geometric edges, same on every row
+P1 chain-blur: arm(x==1023&de)=79200 flush=79200 run@行尾 min=1024 max=1024 | pipe_de=81100800 mix_de_d11=81100800 (差 0)
+RESULT tb_v98_top_seam FAIL nfail=1
+REPORT exit=0
+GOLDEN gmode=0: latency = (0 columns, 0 rows); interior mismatch 0 of 3844
+PASS R1 calibration trusted: interior == definition at (0,0) over 3844 cells
+GOLDEN gmode=1: latency = (0 columns, 1 rows); interior mismatch 0 of 3844
+PASS R1 calibration trusted: interior == definition at (0,1) over 3844 cells
+D1 stage=0 : left rim responds in 52/52 rows; interior control changed in 52/52
+PASS D1 stage=0 left column is processed, not passed through
+PASS D1w stage=0 left column carries no wrapped-in neighbour
+D2 stage=0 : last rim responds in 52/52 rows; interior control changed in 52/52
+PASS D2 stage=0 last column is processed, not passed through
+PASS D2w stage=0 last column carries no wrapped-in neighbour
+D3 stage=0 : screen row 0 stable in 60/60 cols; last-row control alternates in 60/60
+PASS D3 stage=0 screen row 0 carries no stale row
+D1 stage=1 : left rim responds in 52/52 rows; interior control changed in 52/52
+PASS D1 stage=1 left column is processed, not passed through
+PASS D1w stage=1 left column carries no wrapped-in neighbour
+D2 stage=1 : last rim responds in 52/52 rows; interior control changed in 52/52
+PASS D2 stage=1 last column is processed, not passed through
+PASS D2w stage=1 last column carries no wrapped-in neighbour
+D3 stage=1 : screen row 0 stable in 60/60 cols; last-row control alternates in 60/60
+PASS D3 stage=1 screen row 0 carries no stale row
+D1 stage=2 : left rim responds in 52/52 rows; interior control changed in 52/52
+PASS D1 stage=2 left column is processed, not passed through
+PASS D1w stage=2 left column carries no wrapped-in neighbour
+D2 stage=2 : last rim responds in 52/52 rows; interior control changed in 52/52
+PASS D2 stage=2 last column is processed, not passed through
+PASS D2w stage=2 last column carries no wrapped-in neighbour
+D3 stage=2 : screen row 0 stable in 60/60 cols; last-row control alternates in 60/60
+PASS D3 stage=2 screen row 0 carries no stale row
+D1 stage=3 : left rim responds in 52/52 rows; interior control changed in 52/52
+PASS D1 stage=3 left column is processed, not passed through
+PASS D1w stage=3 left column carries no wrapped-in neighbour
+D2 stage=3 : last rim responds in 52/52 rows; interior control changed in 52/52
+PASS D2 stage=3 last column is processed, not passed through
+PASS D2w stage=3 last column carries no wrapped-in neighbour
+D3 stage=3 : screen row 0 stable in 60/60 cols; last-row control alternates in 60/60
+PASS D3 stage=3 screen row 0 carries no stale row
+PASS R8 no X in the captured steady frames
+PASS R7 x2-duplicated geometry: all 64 display rows == definition
+PASS R9 x2-duplicated columns: all 64 display cols == definition
+PASS R0 ruler integrity: 4 frames per run, all four stages share one de
+PASS R1 interior == the definition at the measured latency
+PASS R2/D1 left column == clamp-to-edge and responds to its neighbour (golden judged 52)
+PASS R3 top row == clamp-to-edge (judged 52)
+PASS R4/D2 last column == clamp-to-edge and responds (golden judged 52)
+PASS R5/D3 screen row 0 == its own window, no stale row (golden judged 52)
+RESULT tb_edge_rim PASS
+INFO: [Common 17-206] Exiting xsim at Tue Sep 29 04:35:35 2026...
+exit
+INFO: [Common 17-206] Exiting xsim at Tue Sep 29 04:35:35 2026...
+== tb_edge_rim done exit=0
+PASS C0r ruler pattern is invertible and holds no black | every judged column below is read out of the pixel, so the encoding must round-trip and must not contain the thing we count
+PASS C10dpre the cache probe sees every array | before any pixel is fed each of the nine arrays must read all X, so C10d's zero cannot come from a hierarchical name that points at nothing
+OBS #111 head/tail: val@pos0=0000 isX=0 dec@pos0/1/2=-1/0/1 dec@pos1023=1022 (head black + last column never emitted)
+PASS C10pre window A judged a whole output burst | the judged row must be a full H_ACTIVE-long output burst, else the zeros below come from an empty set
+PASS C10a bypassed chain invents no black or X cell | input has no black and all nine stages are bypassed => any black/X out inside the line is made by the chain (#103)
+FAIL C10c every input column is emitted exactly once per row | ISSUES #111, NOT #103: the chain's data is one beat behind its own de_out, so the last column of every line falls off the end and a 0x0000 cell is inserted at the head (top hides it with pipe_dout_q; #102's left-edge line is the same defect)
+PASS C10d every line-cache slot was written at least once | an unwritten slot reads X in xsim and 0 on the board: that is one black column per name
+PASS C10f no window stage writes outside its own line cache | the coordinate taps sit one beat behind the de chain, so each line head writes x_in=1343: xsim drops that write, the board truncates it to slot 319 and stores the blanking value 0 => one black column at display column 320 (#103)
+PASS C10b the same detector does see a black column fed in | pair for C10a: forcing one input column black must light that very counter and that very histogram bin
+RESULT tb_v103_pipe_bypass FAIL nfail=1
+INFO: [Common 17-206] Exiting xsim at Tue Sep 29 04:35:47 2026...
+exit
+INFO: [Common 17-206] Exiting xsim at Tue Sep 29 04:35:47 2026...
+== tb_v103_pipe_bypass done exit=0
+[tb_osd_lines.v:239] PASS T1 四行逐字符等于用户原话（尺寸那一格画面板 1024X600），第 5 行是常驻的温度格
+[tb_osd_lines.v:252] PASS T2 一位数不占两格、fps/ms 越界饱和（99 / 999）而不是回卷成小数
+[tb_osd_lines.v:268] PASS T3 锁住才有 *、* 紧跟名字；仲裁与 mux 不一致时画 mux 那一路（#55）
+[tb_osd_lines.v:283] PASS T4 八种控制字逐位对（全 1 那组：前两级 3、Sobel 1、阈值旁路 0）
+[tb_osd_lines.v:305] PASS T5 八档各自精确；zoom_auto 关掉就不许再有 (AUTO)
+[tb_osd_lines.v:324] PASS T6 gamma×10 二十一台逐档对；0.0 = 表关着（PL 逐位旁路）
+[tb_osd_lines.v:338] PASS T7 lat_ok=0 屏上是 --，过期/没算完的数不许冒充测量值
+[tb_osd_lines.v:357] PASS T8 换一组 OUT_* 参数那一格就跟着变 ⇒ 画的是实参
+[tb_osd_lines.v:375] PASS T9 两种状态 × 五行：每个非空格都译得出字模号，空格必须译成 63
+[tb_osd_lines.v:393] PASS T10 字模逐个扫过（I M A O Z ( % : . X Y -），少一笔就少一截亮像素
+[tb_osd_lines.v:399] PASS T11 错期望被抓到（那一格确实逐格在比，不是恒真式）
+[tb_osd_lines.v:423] PASS T13 最宽可达激励下五行都留在分割线这边（X0+k*CW <= 511）
+[tb_osd_lines.v:452] PASS T14 116 个非空格没有一个小写码点
+[tb_osd_lines.v:466] PASS T15 温度那一格 256 个编码全扫过，且错期望会被抓到
+[tb_osd_lines.v:434] PASS T12 本台架比对了 10571 格、查了 215 个非空格、扫了 20 个字形
+PASS T13 osd_en=0 => 输出逐位等于背景（关掉=这层不存在），开着在同一片格子里画出了字（对照）
+RESULT tb_osd_lines PASS
+INFO: [Common 17-206] Exiting xsim at Tue Sep 29 04:35:55 2026...
+exit
+INFO: [Common 17-206] Exiting xsim at Tue Sep 29 04:35:55 2026...
+== tb_osd_lines done exit=0
+PASS tb_v84_morph
+INFO: [Common 17-206] Exiting xsim at Tue Sep 29 04:36:04 2026...
+exit
+INFO: [Common 17-206] Exiting xsim at Tue Sep 29 04:36:04 2026...
+== tb_v84_morph done exit=0

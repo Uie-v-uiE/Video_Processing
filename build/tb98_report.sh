@@ -11,7 +11,7 @@
 #   所以报告的头部钉住 `pl_video_top.v` 与本台架各自的 md5，门禁拿树里的现值比：
 #   对不上就是"改过顶层，这份不算数"（本仓的规矩：认 md5，不认文件名）。
 set -u
-ROOT=/d/Xilinx/Prj/pro/Video_Processing
+ROOT="$(cd "$(dirname "$0")/.." && pwd)"   # 仓库根自适应（原来写死本机路径，见 docs/BUILD.md §1）
 SRC=${1:-/tmp/kx/tb_v98_top_seam.run/run.log}
 OUT=$ROOT/build/tb_v98_report.txt
 cd "$ROOT" || exit 2
