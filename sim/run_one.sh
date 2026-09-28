@@ -56,3 +56,11 @@ $V/xsim snap -R > run.log 2>&1
 #   run.log 里的，我因此多绕了一趟临时目录才看到它 —— 而那份 console 才是要留在报告里的凭据。
 grep -aE "FAIL|PASS|INFO|PROBE|DIAG|NOTE|OBS |GOLDEN|^D[123] |error|Error" run.log | head -80
 tail -2 run.log
+# 统一收尾 token（2026-09-29 07:46，#104）：L1 的 `run_sim.tcl` 会给每支台架补一行 `RESULT <tb> …`，
+# 逐支跑以前没有 ⇒ 只打 `PASS <tb>[ ALL]` 的那几支（tb_sync_fifo / tb_udp_parser / tb_proc_gray /
+# tb_v794_osd_glyph / tb_rotate_window）在 `grep ^RESULT` 眼里等于"没判定"。这里补一行，
+# 并把 FAIL 行数一起报出来：判定与计数同源，省得再拿"0 个 FAIL"当结论。
+V=$(grep -aE "^RESULT $TB([ :]|$)" run.log | tail -1)
+[ -n "$V" ] || V=$(grep -aE "^(PASS|FAIL) $TB( ALL)?$" run.log | tail -1)
+[ -n "$V" ] || V="NO-VERDICT-LINE（这支台架一条判定都没打，去数判据条数）"
+echo "VERDICT $TB: $V || FAIL 行数=$(grep -ac '^FAIL' run.log) || PASS 行数=$(grep -ac '^PASS' run.log)"

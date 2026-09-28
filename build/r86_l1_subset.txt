@@ -25,3 +25,12 @@
 而 `sim/run_one.sh` 不补 ⇒ 只 grep `^RESULT` 的人（例如我自己上面那个汇总循环）会误判成"没跑完/没判定"。
 所以这一格的正确说法是：**10/10 都有明确判定行，rc=0，^FAIL=0**；待办是"让 run_one.sh 收尾也 echo 一行统一 RESULT"
 （工具侧改动，不在这轮做，免得动到明早还要用的跑法）。
+
+== 07:47 补：`rc=0` 不是判据，VERDICT 才是（顺手把这条做进 run_one.sh）==
+上面那句"10 支全部 rc=0"其实**不构成通过**——`run_one.sh` 的退出码不编码台架判定（它编译/仿真跑完就 0，
+红不红看日志）。07:47 给 `sim/run_one.sh` 补了一行统一收尾 `VERDICT <tb>: <判定> || FAIL 行数 || PASS 行数`，
+并用三种台架验它的方向：`tb_sync_fifo`→`PASS tb_sync_fifo ALL`、`tb_proc_gray`→`PASS tb_proc_gray`、
+`tb_v103_pipe_bypass`→`RESULT tb_v103_pipe_bypass FAIL nfail=1 / FAIL 行数=1`（这条**应当**红：#111 的尺子）。
+10 支的判定行逐条核过：5 支是 `RESULT … PASS`（bilin_lerp、v101_fb_bilin、v102_src_life、tap_sched、ps_publish），
+5 支是 `PASS <tb>[ ALL]`（proc_gray、rotate_window、v794_osd_glyph、udp_parser、sync_fifo）⇒ **这 10 支是真过的**，
+而"rc=0"那句话是我当时的弱代理，留在这里当反面教材。
