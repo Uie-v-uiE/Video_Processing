@@ -1,14 +1,17 @@
-# Board bring-up（板上现在是 **r81 诊断版**：bit `f83a6831ae86`、WNS −0.062 ⇒ **不作交付**；elf `0ad46b9d7049`。r81 四滚逐位相同的凭据 `build/evidence/r81_roll4_still_red.txt`，r80 那一份门禁红项的现场 `build/evidence/r80_gates_red_C5c.txt`；上板走三件套 `ps_jtag_boot → program_pl → ps_app_reload`，只 JTAG、不写 QSPI）
+# Board bring-up（板上现在是 **r86**：bit `2b7e11e27e70`（05:38 生成、05:45 下板）+ elf `b9f6966dcf72`（05:36，带 `osd` 动词与 `[TEMP]` 负号修复）；WNS **−0.135 / 失败 setup 端点 2**（r85 是 −0.094 / 16）⇒ 门禁两项红（第 14 项时序、第 15 项 `C5c`）**不冻结**，"最新全绿冻结集 = r75" 这句没变。上板走三件套 `ps_jtag_boot → program_pl → ps_app_reload`，只 JTAG、不写 QSPI；三步凭据 `build/r86_flash_1_psboot.txt` / `_2_program.txt` / `_3_app.txt`，数字对照 `docs/PERF_REPORT.md` §11.2）
 16:3x 用 `tb_v98` 新加的 **P98 探针**量到了机制（环入口摆的内容比 mapper 的请求晚一整"读口对"，
 所以写进 4..7 号槽的是 `299,299,0,0` 而帧头要 `0,0,1,1`），改法是一行（窗提前 2 行 + 取模量 301→300），
 排在 r78 的第一笔；细节与凭据：`docs/log/ISSUES.md` #98 结案段 + `build/evidence/r77_p98_headfeed_probe.txt`。最近一套"全绿并冻结"的仍是 `build/evidence_r75/`。这份文件本身从 V6 一路用到现在）
 
 **今天该看哪里**：
-- 板子上跑的是 **r80**（名片是 `build/system.bit` 的 md5 `1906b6764ae4` + `build/ps_app.elf` 的 `926565342970`；认 md5 不认文件名）。r80 只有两处内容：`raw_line_delay` 行首那一格的预读（#102 第一刀，模块级变异对照 + 顶层 C8a/C8b 各 1178 格 0 不符）与台架/文档。**第一跑位流时序红了（WNS −0.276 / 73 端点，全在 `u_eth/u_cdc` 那一锥）没有烧**，换 `IMPL_STRATEGY=Performance_Explore` 重建成 WNS +0.066 / WHS +0.056 / 失败端点 0 —— 引用它时请带上「同一网表换策略重掷」这句（#46/#57）
-  **最近一套"全绿 + 冻结"仍是 `build/evidence_r75/`** —— r76/r77 都没有冻结，因为它们各自的门禁里
-  都有一项红（r77 红在 `C5c`，见本文件第 1 行那句与 `docs/log/ISSUES.md` #97 追加七）。
-  门禁项数从昨晚的 19 涨到 **20**（新加的第 15b 项 = 边缘条带凭据 `build/tb_edge_rim_rNN.txt`，
-  它带自己的变异对照 `build/rim_gate_ce.sh`）。
+- 板子上跑的是 **r86**（名片是 `build/system.bit` 的 md5 `2b7e11e27e70` + `build/ps_app.elf` 的 `b9f6966dcf72`；认 md5 不认文件名）。这一版比 r85 只多一件事：`link_monitor` 两个诊断计数器的使能改喂"事件寄存一拍"（`ISSUES #124`，采纳前先补了 `tb_link_monitor` 的 E1/E2 精确计数判据 + 变异对照）。**它确实切断了瞄准的那一族**：`wbin_reg → drop_words/CE` 整族从最差表消失、失败端点 16→2、TNS −0.747→−0.243；但**全设计 WNS 没有转正**——最差换成本刀没碰过的 `u_cdc` 写使能 → BRAM `ENARDEN`（7 级），而同一条路两次构建之间摆 **0.4 ns** ⇒ 引用这一版时请带上"WNS 绝对差既不能当收益也不能当损失"这句（`docs/OPTIMIZATION_LOG.md` r86 一节）。
+  ⚠ **跑串口电池之前先敲 `zoom 1.0`**：上电默认是"自动呼吸"（`zman=0`），而文档与演示默认档是手动 1.00×，
+  电池第 98 条 `zoom 1.0` 会把 `zman` 钉成 1 ⇒ **冷板第一跑必然在"回到初态"那一格判红**（只有那一格，其余十格逐字符相同）。
+  两份凭据都在：`build/evidence/r86_board_cold.txt`（1 红）与 `r86_board_warm.txt`（0 红、100 条全 ok）。
+  这一格怎么收口是**用户那一格**（`ISSUES #126` / `#118`），判据本身不许改。
+  **最近一套"全绿 + 冻结"仍是 `build/evidence_r75/`** —— r76 起每一轮都没能冻结，因为各自门禁里都有红项
+  （r77 红在 `C5c`；r84/r85/r86 红在第 14 项时序 + 第 15 项 `C5c`，见 `build/r85_gates.txt`）。
+  门禁项数是 **20**（第 15b 项 = 边缘条带凭据 `build/tb_edge_rim_rNN.txt`，它带自己的变异对照 `build/rim_gate_ce.sh`）。
   ⚠ r77 是**真实 RTL 改动** ⇒ 冻结之前 L1 全量台架必须重跑（r75 那份 L1 是 03:49 的，不能跨版拼数）。
   `build/evidence_r75/` **已在 05:41 按 19 项重新冻结过**（三件成品的 md5 一字未变，
   刷的是台架报告 + 门禁 + MANIFEST；`MANIFEST.md5` 头部那行 `git=1708e5d` 是刷新时的 HEAD）。
