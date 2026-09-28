@@ -1,306 +1,159 @@
-# 上位机使用教程（UDP 视频推流 + 串口控制）
+# 上位机工具：推流与串口控制
 
-适用于 `Video_Pipeline-main` 工程，板卡 **RK-ZYNQ7020-F**，源分辨率 **512×300 RGB565**。
+这一层的活只有两件：**把画面灌进板子**、**把命令送进固件**。全部只依赖 Node.js 和
+Windows 自带的 PowerShell，不需要 Python、不需要装任何依赖包。
 
----
+| 需要 | 用来做 | 备注 |
+|------|--------|------|
+| Node.js 18+ | 所有 `src/host/*.mjs` | 实测 v24；只用 `node:` 内置模块 |
+| PowerShell 5+ | 串口收发（`board/*.ps1`） | 用自带的 `SerialPort`，本机没有 pyserial |
+| ffmpeg（可选） | 把 mp4 解成裸流 | 只有推真实视频才需要 |
 
-## 1. 环境准备
+## 1. 连接与准备
 
-### 1.1 软件
-
-| 软件 | 用途 | 安装 |
-|------|------|------|
-| Python 3.10+ | 推流 / 串口脚本 | 官网或 `winget install Python.Python.3.12` |
-| 依赖库 | numpy / Pillow / pyserial | `pip install -r src\host\requirements.txt` |
-| FFmpeg（可选） | 解码 mp4 等视频 | `winget install Gyan.FFmpeg` |
-| OpenCV（可选） | 摄像头 | `pip install opencv-python` |
-
-### 1.2 网络
-
-1. 网线连接 **PC ↔ 板卡 PL 网口**（不是 PS 网口）
-2. PC 网卡静态 IP：
-   - 地址 `192.168.1.100`，子网掩码 `255.255.255.0`
-3. 板卡 PL IP（RTL 固定参数）：`192.168.1.10`，UDP 端口 `5001`
-4. 验证：
+1. 网线接 **PL 侧网口**（PHY 是 RTL8211，挂在 PL，不是 PS 网口）。
+2. PC 网卡静态地址：`192.168.1.100 / 255.255.255.0`；板卡固定 `192.168.1.10`，视频端口 `UDP 5001`。
+3. `ping 192.168.1.10` 能通再推流 —— 通不通由 PL 里的 ICMP 应答决定，所以这一步同时验了位流。
+4. 板侧下载顺序（JTAG，不写 QSPI）。前提是把 Vivado 与 Vitis 2025.2.1 的 `bin` 目录放进 PATH，
+   下面用裸命令名（`vivado` / `xsdb`）：
 
 ```bat
-ping 192.168.1.10
+xsdb build\tcl\ps_jtag_boot.tcl
+vivado -mode batch -source build\tcl\program_pl.tcl
+xsdb build\tcl\ps_app_reload.tcl
 ```
 
-能 ping 通（PL 内 ICMP 应答）再推流。
+只想看 HDMI 出图、不需要命令的话，第三步可以省。串口是 COM6 / 115200 / 8N1。
 
-### 1.3 板卡侧
-
-1. Vivado 下载 `build\system.bit`
-2. Vitis Run 下载 PS ELF（串口命令需要；**仅看右屏自动缩放可不下载 ELF**）
-3. HDMI 接 1024×600 显示器
-
----
-
-## 2. 推流脚本 `video_sender.py`
-
-路径：`src\host\video_sender.py`
-
-### 2.1 一键脚本
-
-| 脚本 | 作用 |
-|------|------|
-| `run_sender.bat` | 内置动画 @30fps |
-| `run_video.bat 视频路径` | 播放本地视频 |
-| `run_serial.bat COMx` | 打开串口控制台 |
+## 2. 推流：`src/host/video_sender.mjs`
 
 ```bat
-cd /d D:\Xilinx\Prj\pro\Video_Processing\src\host
-run_sender.bat
-run_video.bat D:\Videos\demo.mp4
-run_serial.bat COM5
-```
-
-可选参数（bat）：`run_sender.bat [板卡IP] [PC_IP]`
-
-### 2.2 命令行参数
-
-```bat
-python video_sender.py [选项]
+node src\host\video_sender.mjs --test bars --fps 15
+node src\host\video_sender.mjs --test frameid --fps 15 --count 200   :: 丢帧判据专用
+node src\host\video_sender.mjs --file - < raw.rgb565                 :: 裸流从 stdin 进
 ```
 
 | 参数 | 默认 | 说明 |
 |------|------|------|
-| `--ip` | 192.168.1.10 | 板卡 PL IP |
-| `--port` | 5001 | UDP 端口 |
-| `--src` | 192.168.1.100 | PC 网卡绑定 IP；传 `""` 走默认路由 |
-| `--anim` | 自动 | 内置测试动画 |
-| `--video 路径` | 无 | mp4/avi 或 `.mjpeg` |
-| `--image 路径` | 无 | 静图 + 移动竖条 |
-| `--webcam 序号` | 无 | 摄像头，如 `--webcam 0` |
-| `--fps` | 30 | 发送帧率 |
-| `--once` | 关 | 视频只播一遍 |
-| `--count N` | 0 | 发送 N 帧后退出 |
-| `--quiet` | 关 | 减少日志 |
+| `--ip` / `--port` | 192.168.1.10 / 5001 | 板卡地址 |
+| `--src` | 192.168.1.100 | 本机绑定地址；传 `""` 走默认路由 |
+| `--fps` | 15 | 帧率。线速附近请配合下面的匀速 |
+| `--count N` | 0（一直发） | 发满 N 帧退出 |
+| `--pace-mpbps` | 15 | **包内匀速**：一整帧 221 包若以线速倾泻会打爆板端入包 FIFO |
+| `--no-pace` | 关 | 关掉匀速（做压力实验时才用） |
+| `--mtu-payload` | 1392 | 必须 8 的倍数，见 §4 |
+| `--drop-every N` | 0 | 每 N 包确定性丢一个（演示坏包恢复，不是随机） |
+| `--dump FILE` | 关 | 把第一帧的字节落盘，供离线核对 |
 
-### 2.3 常用示例
+`--test` 的图案各管一件事，选错了就看不出问题：
 
-```bat
-:: 测试动画
-python video_sender.py --anim --fps 30
+| 图案 | 看得出的现象 | 看不出的 |
+|------|--------------|----------|
+| `bars` | 横向黑纹（丢行）、黄块拖影（重复帧）、左缘奇偶行标记（行序错乱） | 逐帧丢字 |
+| `grad` | 量化、色带 | 时序类 |
+| `edge` | 换帧是否原子（非原子会看到灰行/残影） | 空间定位 |
+| `move` | 谁在动 ⇒ 一眼分清屏幕上是哪一路源 | 位级错误 |
+| `blocks` `hold` `wordid` | 地址映射、车道对齐 | 逐帧丢字 |
+| `frameid` | **逐帧丢字 / 陈旧帧**（每个字写着自己来自第几帧） | —— |
 
-:: 真实视频
-python video_sender.py --video D:\demo.mp4 --fps 30
+推真实视频用根目录的 `stream_video.bat`（双击、或把文件拖到图标上、或
+`stream_video.bat D:\path\a.mp4 30`）。它只做一件事：让 ffmpeg 把视频解成面板要的
+512×300 RGB565 裸流，用管道喂给 `video_sender.mjs --file -`。解码不进 Node 是有意的：
+发送端只按帧边界切片，末尾不足一帧的残片直接丢掉并报数 —— 半帧会让板端"这一帧少一行"
+变成常态，`frames_bad` / `rows_miss_max` 从此没法对账。
 
-:: 无 FFmpeg 时用 MJPEG
-python video_sender.py --video test.mjpeg
-
-:: 静态图
-python video_sender.py --image logo.png --fps 25
-
-:: 摄像头
-python video_sender.py --webcam 0 --fps 30
-
-:: 只发 90 帧（3 秒）
-python video_sender.py --anim --count 90
-```
-
-### 2.4 生成测试 MJPEG（无需 FFmpeg）
-
-```bat
-python make_test_mjpeg.py
-python video_sender.py --video test.mjpeg
-```
-
----
-
-## 3. UDP 协议（与 PL 对齐）
+## 3. UDP 协议（与 PL 端对齐）
 
 ```
-每包: [u32 小端 byte_offset][RGB565 载荷]
-载荷长度 ≤ 1396 字节
-一帧: 512 × 300 × 2 = 307200 字节 ≈ 221 包
+每包   : [u32 小端 byte_offset][RGB565 载荷 ≤ 1392 B]
+一帧   : 512 × 300 × 2 = 307200 B ≈ 221 包
 ```
 
-- 板端 `frame_reasm` 按 offset 写入帧缓，**乱序可拼对**
-- 坏包丢弃、不重传，下一帧自动恢复
-- ETH 收到完整帧后自动切到视频源（不必发 `SRC1`）
+- 板端 `frame_reasm` 按 offset 落位，**乱序可以拼对**；
+- 坏包丢弃、不重传，下一帧自动恢复；
+- 收到完整帧后 PL 自动把屏幕交给 ETH，不必先发 `src 1`。
 
----
+## 4. 分包长度为什么钉在 8 的倍数
 
-## 4. 串口控制 `serial_ctrl.py`
+DDR 打包器一个字是 64bit（4 像素）。载荷取 1396 时包边界落在字中间，同一个字被分两次推送、
+后一次覆盖前一次 ⇒ 每帧留下约每两个包一处的 4 字节洞，洞里是 `0x0000`，屏上就是均匀散布的黑点。
+v6.4 起打包器按 16bit lane 驱动 `WSTRB`，这个坑已经被硬件堵掉（同一块板、同一版 bit 复测：
+1396 → 命中率 100.0%、空洞 0）。默认仍建议 1392：少发约 0.3% 的重复 beat，而且"一个包不跨两个
+64bit 字"这个性质让包内相位分析还能用。`--mtu-payload` 只为做这个对照实验而存在。
 
-| 项 | 值 |
-|----|-----|
-| 波特率 | 115200 8N1 |
-| 结尾 | 命令后自动补 **CR+LF** |
-| 查看端口 | 运行脚本不带 `--port`，或设备管理器 |
-
-### 4.1 命令表（V8 语法：动词 + 空格 + 参数，大小写不敏感）
-
-固件里两套语法都收：新的是 spec §14 的写法，老写法是 `SRC0/TH80/ZOOM1/BILIN1/FRAME12`，
-`src/host/arb_handover_test.mjs` 与 `board/uart_cap_once.ps1` 这些既有工具在用它们，所以不能断。
-**效果链那一格是例外**：裸位串只剩九位这一种生效写法，五位串（`00111`、`pipe 11000`）自 2026-09-26 起
-一个位都不写，只回一句"等价的九位是 `pipe ……`"（老五位在 RTL 里已经删净，见 `report/COMMANDS.md` §1/§4）。
-
-| V8 写法 | 老写法 | 作用 |
-|------|------|------|
-| `pipe 011010000` | 裸五位 `00111`（只回译，不生效） | 效果链开关，**九位一位一级**，最左边那个字符是 bit0 = `gray / invert / blur / sharpen / sobel / binary / bin_pol / erode / dilate`；五位串现在只打印一句等价的九位，什么都不改 |
-| `th 80` | `TH80` | 二值化阈值（0–255） |
-| `src 0` / `src 1` / `src 2` | `SRC0` / `SRC1` | 0=图卡 1=DDR(网络) 2=DDR 并起播 SD。**注意**：PS 写得动的只有 1 bit `src_sel`，"独占哪一路"仍由 PL 的 `src_mode` 四态 + 仲裁决定，模式覆盖位要到 V8-2 的控制字才有 |
-| `zoom on` / `zoom off` | `ZOOM1` / `ZOOM0` | 右屏缩放开关（PL 侧默认常开）。`zoom 1.5` / `zoom auto` **语法已收、硬件未接**（缺缩放因子寄存器，V8-8） |
-| `bilin on` / `bilin off` | `BILIN1` / `BILIN0` | 右屏双线性/最近邻 A-B 对照 |
-| `frame 12` | `FRAME12` | 只显示第 n 帧（成功后自动切到 DDR 片源） |
-| `sd` `play` `stop` `fill` | 同（大写） | 挂载 / 回放 / 停 / 写诊断色块 |
-| `autoplay 0|1` | `AUTOPLAY0/1` | 关/开**上电自动挂载+播放**（只影响下一次上电，默认开） |
-| `stat`（或 `status`） | `STAT` | 读回控制字与 SD 状态 |
-| `help` | — | 打印三套语法 |
-| `rot 45` `rot +15` `rot auto` `rot speed 1` | — | **语法已收、硬件未接**：`angle_ctrl` 现在只吃按键，PS 侧没有角度写入口（V8-2/V8-8） |
-| `split 50` `split auto` `split range 20 80` `split speed 2` `split swap` | — | **语法已收、硬件未接**：整个 `split_ctrl` 是 V8-4 |
-| `gamma 1.8` / `gamma off` | — | **V8-3 已接**：PS 算曲线并逐项写进 PL 的 256 项表（只改右窗，与左窗原图直接对比）；`gamma 180` 是同义写法，1.00..3.00 之外一律拒收 |
-| `osd on` `osd off` | — | **语法已收、硬件未接**：OSD 现在是常显，行开关位是 V8-5 |
-
-"语法已收、硬件未接"不是客套话：这几条命令敲下去会**明确打印缺哪个模块、规划在哪一步**，
-不会静默收下。判据本身也有测试：`node src/host/uart_cmd_check.mjs`（37 条命令逐条对回声，
-含 `THE`、`src 9` 这类**必须被拒**的反例、`gamma` 的曲线自检，
-跑完还要求控制字回到初态（含 `gm=`）；凭据 `build/frozen_r46_keys/uart_battery_r46_capture.txt`（r46 那份 36 条）、
-`build/frozen_r47_gamma/uart_battery_r47.txt`（r47 起 37 条，含 gamma）。
-
-**三个片源与"谁在屏幕上"**（#25 起的仲裁口径，别再用"拔网线"的老规矩）：
-ETH 推流 > PS（SD 帧序列，PC 预转换 / FILL）> 会动的测试图卡。停流后 PL 会在几百毫秒内自动把屏幕交回 PS，
-不必拔网线、不必重配 FPGA；`KEY1` **长按 0.6 s** 在 自动 → 锁 ETH → 锁 PS → 锁图卡 之间轮转
-（r46 起：短按改在**松手**时发，所以长按不再顺带 +1°；按住 0.2 s 后 LED1 亮表示"正在计时"）。
-
-### 4.2 示例
-
-```bat
-run_serial.bat COM5
-> pipe 100000000
-> th 120
-> pipe 011010000
-> src 0
-> stat
-> quit
-```
-
-两个 `pipe` 都是**九位**：`100000000` = 只开灰度，`011010000` = 模糊 + Sobel + 反色
-（这两个组合在老工具里写成了五位串 `10000` 与 `00111`，那种写法今天只会换回一句"等价的九位是……"）。
-
-单次命令：
-
-```bat
-python serial_ctrl.py --port COM5 --cmd "pipe 011010000"
-```
-
----
-
-## 5. 与右屏无极缩放配合
-
-- 下载 bit 后右屏自动：**原始尺寸（最大）→ 缩小 → 回原始** 循环
-- 左屏始终为原图（可旋转）
-- 效果命令作用在**右屏缩放后的画面**上
-- 选源、推流、按键旋转不受影响
-
-推流动画时，右屏应能看到同样内容在缩放循环。
-
----
-
-## 6. 故障排查
-
-| 现象 | 处理 |
-|------|------|
-| ping 不通 192.168.1.10 | 检查是否插 **PL 网口**；PC IP 是否 192.168.1.100；bit 是否已下载 |
-| 推流无画面 | 确认 ETH 有链路（LED1）；串口 `STAT`；降低 `--fps 15` 试 |
-| 画面花屏/错位 | 网线质量；关杀软流量扫描；固定全双工 1G |
-| 串口无响应 | 必须 Run PS ELF；核对 COM 号与 115200 |
-| FFmpeg 报无 H.264 | `winget install Gyan.FFmpeg`，或先转 mjpeg |
-| Python 找不到模块 | `pip install -r src\host\requirements.txt` |
-| bat 提示 python not found | 安装 Python 并勾选 Add to PATH，或改 bat 内路径 |
-
----
-
-## 7. 文件一览
-
-```
-src/host/
-├── video_sender.py      UDP 推流主程序
-├── serial_ctrl.py       串口控制台
-├── make_test_mjpeg.py   生成 test.mjpeg
-├── run_sender.bat       内置动画
-├── run_video.bat        本地视频
-├── run_serial.bat       串口
-└── requirements.txt     Python 依赖
-```
-
----
-
-## 6. Node.js 工具集（第四版新增，无需 python/ffmpeg）
-
-判据类工具用 Node 写，是因为验收 PC 上不一定有 python，而这些脚本要能直接跑在
-`report/V6_BOARD_MEASUREMENT.md` 描述的复测流程里。全部走同一 UDP 协议。
+## 5. 串口：命令与捕获
 
 | 脚本 | 作用 |
 |------|------|
-| `video_sender.mjs` | 推流。`--test bars\|grad\|edge\|blocks\|hold\|move\|wordid\|frameid`；`--fps` `--count` `--pace-mpbps` `--no-pace` `--dump <file>` |
-| `measure_v63.mjs` | 一条命令复验：推 `frameid` → **发完** → JTAG 回读两个 bank → 打印相位判据 |
-| `ddr_verify.mjs` | 只做回读与分析：`--frameid` / `--ref` / `--bank-only 0\|1`；落盘 `data/measured/ddr_dump.out` |
-| `ddr_stale.mjs` | 判据核心：反解每个 16bit 字来自第几帧，输出「包内字节偏移→丢字率」「游程长度分布」「16bit 粒度错帧计数」 |
-| `ddr_holemap.mjs` | 把回读结果按行段画空洞分布（早期定位用） |
-| `ingress_probe.mjs` | 只灌 K 个包 + 回读，做定点注入实验（`--packets/--pace/--tag/--dry`）。`--dry` 只算不发不碰 JTAG。**注意**：真跑时会 `rst -processor`，回放跑着之前先 `STOP`（见 ISSUES #50 的次生现象）。09-24 修好：这脚本此前一加载就 `ReferenceError`（用了没 import 的 `MEASURED`），所以 §5.4 那套方法一直没自动化 |
-| `udp_sink_check.mjs` | 本机环回自检（确认协议/限速实现，不依赖板子） |
-| `health_read.mjs` | JTAG 读健康快照 12 条 lane；`--json` 出机器可读对象；`--gapclr` 归零帧间隔统计 |
-| `metrics.mjs` | 把两次 `health_read --json` 的差值算成抖动/丢包指标；`--selftest` 验算数本身 |
-| `arb_handover_test.mjs` | **无人值守的仲裁交接判据**：静默→推流→停→再推，期间按 100 ms 密度采 lane30，输出七条 PASS/FAIL + 交回用时（毫秒）。`--selftest` 只验判据，不打板子 |
+| `board/uart_cmd_script.ps1 -Port COM6 -File <清单> [-DelayMs 900] [-Out <捕获>]` | 按行发，每行前面 echo `>> <行>`，所以捕获能按命令切片 |
+| `board/uart_cap_once.ps1 -Port COM6 -Seconds 14 -Out <文件>` | 只收不发，抓一段自发输出（心跳、`[STAT]`） |
+| `node src/host/uart_cmd_check.mjs [--file board/cmd_battery_v81.txt] [--port COM6] [--dry]` | 命令层的验收判据：逐条对回声 + 该拒的必须拒 + 跑完 `STAT` 必须回到初态 |
 
-```bat
-node src\host\measure_v63.mjs --fps 15 --count 200
-node src\host\ddr_stale.mjs            :: 单独分析上一次落盘的 data/measured/ddr_dump.out
+命令的**权威表在 `report/COMMANDS.md`**（动词、参数、回声、拒收条件都在那），命令之间的
+**覆盖关系**（哪些组合会静默无效，例如 `zoom fit 1` 下的 `zoom 1.5`）在
+`report/COMMAND_PRECEDENCE.md`。这里只抄最常用的几条：
+
+```
+src auto | src 0 | src 1 | src 2     片源：0=图卡 1=DDR(网络) 2=DDR 并起播 SD
+pipe <九位> | pipe show              效果链，一位一级：gray invert blur sharpen sobel binary bin_pol erode dilate
+th 80                                二值化阈值
+zoom on|off|auto|fit|1.5             缩放开关与倍率
+rot auto [0|1] | rot 45 | rot show   旋转
+split 50 | split swap 1 | split show 分割线位置、左右互换
+bilin on|off                         双线性 / 最近邻
+gamma 1.8 | gamma off | gamma auto   PS 算曲线写进 PL 的 256 项表
+sd files | sd file 2 | play | stop | fill | autoplay 0|1
+temp [th 70] | stat | help
 ```
 
-要点（都是踩过的）：
-1. `--test frameid` 才能发现「逐帧丢字」；`wordid`/纯色等恒定图案只能验地址映射。
-2. **发完再回读**：回读要几秒，边推边读会让每个地址段读到不同时刻的帧。
-3. 回读脚本会 `rst -processor` 停住 A9（否则 `mrd` 读到 D-Cache），且**不会 `con`**；
-   因此每轮复测前要重跑 `ps_jtag_boot → program_pl → set_src`。
-4. `build/tcl/set_src.tcl` 是**整字覆盖** `0x41200000`，里面那个 `SRC_VAL 0x000B0000` 点亮的是
-   bit16 `src_sel` / bit17 `zoom_en` / bit19 `bilin_en`，**低五位 `[4:0]` 写进去就是 0**。
-   别指望用它开效果：V7 那五位使能 2026-09-26 已从 RTL 删净（`gpio_o[4:0]` 只剩保留位），
-   效果链的九位字在**另一只** GPIO `0x41220000`（`gpio_cfg1`），平时用串口 `pipe <九个 0/1>` 就够了。
+V7 的老写法（`SRC0` `TH80` `ZOOM1` `BILIN1` `FRAME12`）仍然收；裸五位串只回一句等价的九位、
+**一个位都不写**（五位控制字已从 RTL 删净）。
 
-### 6.1 分包长度：规律黑点的第一嫌疑（实测）
+跑判据前的两件事，都是踩过坑的：
 
-`MTU_PAYLOAD` 必须是 **8 的倍数**（本工程取 1392）。用 1396 时包边界落在 64bit 字中间，
-打包器对同一个字分两次推送、后一次把前一次覆盖 ⇒ 每帧留下约每两个包一处的 4 字节洞，
-洞里的值是 0x0000，**屏幕上就是均匀散布的黑点**。
+1. **确认板子在默认态**。判据要求"末态 == 初态"，如果之前手动改过缩放/效果，这条会红 ——
+   红得对，要先把状态清回去，而不是把判据放宽。
+2. **COM6 不能同时被别的终端占着**，否则 PowerShell 报 `UnauthorizedAccessException`。
+   这个脚本会**重写** `board/uart_script_capture.txt`（已被 `.gitignore` 挡住，不再进库）。
 
-同一块板、同一版 bit、同一次会话内的 A/B 实测（`--test frameid` 200 帧 @15fps，回读两个 bank）：
+## 6. 工具清单与被谁调用
 
-| 分包 | 最新帧 16bit 命中率 | 每帧空洞（16bit 字） | 说明 |
-|---|---|---|---|
-| 1396 B | 99.9% | **222（111 处 × 2）** | 规律黑点 |
-| 1392 B | **100.0%** | 0~2（帧最后一个字的已知残留） | 干净 |
+`build/gates.sh` 与 `build/board_verify.sh` 会点名的，才是"必须有"的；其余是量测/复算工具。
 
-**v6.4 起这条不再是使用约束**：打包器按 16bit lane 驱动 `WSTRB`，上表的 1396 那一行
-用 v6.4 的 bit 复测变成命中率 100.0%、空洞 0。默认仍建议 1392（少发约 0.3% 的重复 beat，
-且保持「一个包不跨两个 64bit 字」，便于用包内相位分析定位问题）。
+| 脚本 | 一句话 | 被谁调用 |
+|------|--------|----------|
+| `doc_enc_check.mjs` | 所有 md 必须 UTF-8 无 BOM、无 CR 混排 | `build/gates.sh` |
+| `doc_currency_check.mjs` | 文档里点名的 `build/frozen_rNN/` 必须盘上真有、旧编号不许写成"当前默认" | `build/gates.sh` |
+| `demo_cmds.mjs` | 演示脚本里的命令块逐条对固件解析器（不碰板子） | `build/gates.sh` |
+| `ps_hb_check.mjs` | 不碰板子：从固件源码原文抠出"PS 心跳/`ps_hold` 那一半"必须同时成立的事实逐条钉；`--self` 用四条变异证明它会红 | `build/gates.sh` |
+| `uart_cmd_check.mjs` | §5 那条命令电池 | `build/board_verify.sh` |
+| `pipe_len_check.mjs` | `pipe` 这一条命令的"唯一口径"离线核对：位号四份一致、五位一条都不写、退役不退半截（A/B/C/D 四组，不碰板子） | 手工（改效果链口径后必跑） |
+| `udp_sink_check.mjs` | 本机 UDP 环回自检：协议、切片、匀速这三件事对不对，不依赖板子 | 手工（改发送端后必跑） |
+| `health_read.mjs` | JTAG 读健康快照 12 条 lane；`--json` 出机器可读对象，`--gapclr` 归零帧间隔统计 | `build/board_verify.sh`、`board/HANDS_ON.md` |
+| `geom_check.mjs` | 缩放/旋转的几何读数与预期公式对账 | `build/board_verify.sh`、`board/HANDS_ON.md` |
+| `arb_handover_test.mjs` | 无人值守的仲裁交接：静默→推流→停→再推，100 ms 密度采 lane30，七条 PASS/FAIL；`--selftest` 不打板子 | `build/board_verify.sh` |
+| `video_sender.mjs` | 推流（§2） | `build/board_verify.sh`、演示 |
+| `make_sd_video.mjs` | 把 mp4 转成 SD 播放要的裸帧序列（`--in a.mp4 --out E:`） | `board/HANDS_ON.md` |
+| `metrics.mjs` | 两次 `health_read --json` 的差值算成抖动/丢包指标；`--selftest` 验算数本身 | `board/evidence_r41/` |
+| `ddr_verify.mjs` | 只回读 DDR 两个 bank 并落盘 `data/measured/ddr_dump.out` | 手工 |
+| `ddr_stale.mjs` | 反解每个 16bit 字来自第几帧 ⇒ 丢字率、游程分布、错帧计数 | 手工 |
+| `ddr_holemap.mjs` | 把回读结果按行段画空洞分布 | 手工 |
+| `ingress_probe.mjs` | 定点注入：只灌 K 个包（每像素写"字号+一个没用过的帧号"）再回读，报落位率与"从第几个字开始丢"⇒ 直接指出是哪一级缓冲不够 | 手工 |
+| `measure_v63.mjs` | 一条命令走完"推 frameid → 发完 → 回读两 bank → 相位判据" | 手工 |
+| `card_preview.mjs` | 把 `sim/tb_v83_card_render.v` 倒出的像素转储渲染成 PNG ⇒ 图卡观感一分钟能看到，不用等一轮构建+上板 | 手工 |
+| `interp_study.mjs` | 动手写硬件之前先算清"插值在本项目的几何区间里值不值"（`inv=256/512` 两端小数位恒为 0 ⇒ 双线性逐像素等于最近邻） | 手工 |
+| `lane30_watch.mjs` | 高频盯 lane30 那一位（`[秒=45] [间隔ms=150]`） | 手工 |
+| `temp_formula_check.mjs` | XADC 温度公式与固件换算对账 | 手工 |
+| `repo_path.mjs` | 公共路径/落盘函数，被上面几个 import | —— |
 
-复现命令（`--mtu-payload` 只为做这个对照实验而存在）：
+## 7. 故障排查
 
-```bat
-node src/host/video_sender.mjs --test frameid --fps 15 --count 200 --mtu-payload 1396
-node src/host/measure_v63.mjs --fps 15 --count 200        :: 1392 对照
-```
-
-## V8-11 双击就推真视频：`stream_video.bat`（2026-09-25 傍晚）
-
-根目录的 `stream_video.bat` 双击即推：默认推 `D:\UserData\Downloads\a.mp4`，也可以把文件拖到图标上，
-或 `stream_video.bat D:\path\to.mp4 30`（第二个参数是帧率）。
-
-它做的事只有一件：让 ffmpeg 把视频解成面板要的 **512x300 RGB565 裸流**，用管道喂给
-`node src/host/video_sender.mjs --file -`（这个 stdin 模式是本轮加的）。三条都是刻意的：
-
-- **不在 node 里解 mp4** —— 解码交给 ffmpeg，发送端只按帧边界切片；
-- **不发半帧** —— 末尾不足 307200 字节的残片直接丢掉并报数：半帧会让板端"这一帧少一行"变成常态，
-  `frames_bad` / `rows_miss_max` 从此没法对账；
-- **保留发送端 15 MB/s 的包内匀速** —— `-re` 给的是帧到达节奏，包仍然匀速铺开：
-  221 包以线速倾泻会打爆板端入包 FIFO（早期踩过）。
-- 比例用 `scale=512:288,pad=512:300:0:6` 保 16:9（上下各 6 行黑），不把 16:9 硬拉成 512:300。
-
-**本轮实测（读的是板上硬件计数器，不是脚本自说自话）**：16 s 片段 ⇒ 发送端
-`stream end: 480 frames, 106080 pkts (dropped 0)` = 正好 30 fps；流中间
-`drop_words=0`、`owner_eth=1`、`eth_live=1`（AUTO 下自动接管）。Ctrl+C 停。
+| 现象 | 先查 |
+|------|------|
+| ping 不通 | 是不是插了 PS 网口；PC IP；位流是否已下载（ICMP 在 PL 里） |
+| 推流无画面 | `health_read.mjs` 看 `eth_live`/`owner_eth`；降 `--fps 15`；`stat` 看片源 |
+| 屏上均匀黑点 | 分包长度（§4）；或 `--pace-mpbps` 太大把入包 FIFO 打满，看 `drop_words` |
+| 画面花/错位 | 网线；关掉杀软的流量扫描；网卡强制全双工 1G |
+| 串口无响应 | ELF 是否下载；COM 号；115200 8N1；有没有别的终端占着端口 |
+| 判据脚本卡住 | `hw_server` 是否在跑；xsdb 与 vivado 的调用顺序；读 DDR 前要不要 `rst -processor` |
+| `uart_cmd_check` 报"末态≠初态" | 板子之前被手动改过状态；先清回默认再跑 |

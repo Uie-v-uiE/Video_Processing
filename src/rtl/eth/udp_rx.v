@@ -2,7 +2,7 @@
 // 判据链：前导码 7×0x55 + 0xD5 → 目的 MAC = 本机或广播 + 类型 0x0800 → 协议字段 17=UDP →
 // 目的 IP = BOARD_IP；UDP 载荷长度 = udp_byte_num − 8。内部 error_en 只中止解析，**不出错误口**。
 // 主线收侧已换掉它（没有错误标志可看，见 ISSUES #38：自研 gmii_rx_mac + udp_rx_parser），现在只有
-// 厂商 udp 套壳与 KU5P 台架还例化它。时钟域：clk = gmii_rx_clk（125 MHz）。
+// `sim/tb_eth_video.v` 还例化它（厂商收侧的对照台架）。时钟域：clk = gmii_rx_clk（125 MHz）。
 
 
 module udp_rx (

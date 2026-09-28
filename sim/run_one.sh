@@ -1,8 +1,7 @@
 #!/bin/bash
 # 快速单台架回归（绕开全量 run_sim.tcl 的两分钟编译），用法：run_one.sh <tb_name>
 #
-# 编译清单与 run_sim.tcl 同口径：src/rtl 整棵树 + KU5P 自研那两个模块（**不整目录 glob**，
-# 那边的 gmii_*/rgmii_* 与 src/rtl/eth 下同名会撞）+ sim/tb_*.v。
+# 编译清单与 run_sim.tcl 同口径：src/rtl 整棵树 + sim/prim 占位件 + sim/tb_*.v。
 # 以前这里是手写的一小串文件，结果是"改了 pl_video_top 想快点看一眼"时 xelab 直接报
 # Cannot find design unit —— 顶层唯一的台架 tb_v6_vblank_copy 根本不在清单里（2026-09-23 撞到）。
 V=/d/Software/Vivado/2025.2.1/Vivado/bin
@@ -24,7 +23,6 @@ fi
 mkdir -p $R && cd $R || exit 1
 rm -rf xsim.dir
 SRC="$(find $ROOT/src/rtl -name '*.v' | tr '\n' ' ') \
-$ROOT/ku5p/src/rtl/ku5p_telem.v $ROOT/ku5p/src/rtl/ku5p_tx_arb.v $ROOT/ku5p/src/rtl/ku5p_cmd.v \
 $(find $ROOT/sim -maxdepth 1 -name 'tb_*.v' | tr '\n' ' ') \
 $(find $ROOT/sim/prim -name '*.v' 2>/dev/null | tr '\n' ' ')"
 # ⚠ 清单**必须走 -f 文件**，不能拼在命令行上：台架加多之后 xvlog 会被 Windows 命令行长度上限

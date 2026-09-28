@@ -2,7 +2,7 @@
 // tb_v795_rx_fcs —— 证明"收侧自己算 FCS"真的成立，并把残值常数钉住。跑法：bash sim/run_one.sh tb_v795_rx_fcs
 // 为什么独立算：RTL 用的是发送侧同一个 crc32_d8，只拿它自己验它就是同义反复（两边一起错也照样过）。
 // 这里的帧由 TB 用另一套实现造：标准以太网 CRC-32（反射、多项式 0xEDB88320、初值/末异或 FFFFFFFF），
-//   即 tb_ku5p_telem 里那套被 Node 独立算过一遍的实现（残值 0x2144DF1C）。
+//   标准 CRC-32 的"消息+FCS 再过一遍"残值：不末异或是 0xDEBB20E3，末异或版互为取反 = 0x2144DF1C。
 // ⇒ 若 crc32_d8 的约定不是标准以太网：① 两种内容的帧会算出**两个不同**的残值（T1 vs T2 红），
 //   ② 或连"好帧"都不认（T1 的 m_good 红）—— 两种都会被抓到 ⇒ 这几条判据有牙。
 module tb_v795_rx_fcs;
@@ -109,7 +109,7 @@ module tb_v795_rx_fcs;
 
         // T0：**先验量具自己** —— 把 TB 亲手造的整帧（含 FCS）过一遍标准 CRC：反射 CRC-32
         // （0xEDB88320、初值 FFFFFFFF）的性质是"消息 + 附带的 4 字节 FCS"再过一遍，累加器必停在
-        // 与内容无关的常数 —— 不末异或 0xDEBB20E3、末异或 0x2144DF1C（互为取反 ⇒ 与 tb_ku5p_telem 同口径）。
+        // 与内容无关的常数 —— 不末异或 0xDEBB20E3（末异或版本 0x2144DF1C 与它互为取反）。
         // 这条不过 ⇒ 造的帧根本不是合法以太网帧，后面四条判据全部无意义。
         begin : t0
             integer q; reg [31:0] c0;
@@ -119,10 +119,7 @@ module tb_v795_rx_fcs;
             if (c0 !== 32'hDEBB_20E3) begin
                 $display("[tb_v795_rx_fcs.v:127] FAIL T0 台架自校：造出来的帧不是标准 FCS（校验值=%h，应为 debb20e3）", c0);
                 errors = errors + 1;
-            end else if ((c0 ^ 32'hFFFF_FFFF) !== 32'h2144_DF1C) begin
-                $display("[tb_v795_rx_fcs.v:130] FAIL T0 与 tb_ku5p_telem 的常数口径不一致");
-                errors = errors + 1;
-            end else $display("[tb_v795_rx_fcs.v:132] INFO T0 量具自校通过（debb20e3 == ~2144df1c）");
+            end else $display("[tb_v795_rx_fcs.v:130] INFO T0 量具自校通过（debb20e3 == ~2144df1c）");
         end
 
         // T1：内容 A 的合法帧 ⇒ 必须判好；记下这一帧算完的残值

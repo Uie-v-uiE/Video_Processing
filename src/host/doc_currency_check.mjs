@@ -65,8 +65,8 @@ function scopedFiles() {
 
 const NOW = /(当前默认|现在默认|默认 bit|current default|default bit)/;
 const NUM = /(build#\d+|frozen_r\d)/;
-// 只认**从仓库根起算**的那一种：`ku5p/build/frozen_r26/` 是第二块板的工程（另一棵树），
-// 前面有路径分隔符或名字，就不该拿 Z7 的盘去判它存在与否。
+// 只认**从仓库根起算**的那一种：前面有路径分隔符或名字（`submission/build/frozen_r26/`），
+// 就不该拿工作区的盘去判它存在与否。
 const CITED = /(^|[^/\w.-])build\/(frozen_[\w.-]+|evidence_[\w.-]+)/g;
 const GREEN = /(门禁全绿|gate-?green)[^。\n]{0,40}?\br(\d+)/i;
 // 目录名里必须有真实编号：`frozen_rNN_…`（BUILD.md 讲的是命名规则）与光秃秃的 `frozen_r`（glob）都不算引用。
@@ -160,12 +160,12 @@ if (argv.includes('--self')) {
     }, okDir, 71);
     console.log(`  ${good.length === 0 ? 'PASS' : 'FAIL'} 对照：过去式与点名最新全绿的那一套都不误报（实测 ${good.length} 条）`);
     for (const r of good) console.log('        ' + r);
-    // 两个"别咬到正当文本"的边界：命名规则里的占位名、以及**另一棵树**（ku5p/build/…）里的路径。
+    // 两个"别咬到正当文本"的边界：命名规则里的占位名、以及**带路径前缀**的那一种（不是仓库根的 build/）。
     const edges = checkLines({
         'report/BUILD.md': ['冻结目录命名规则：`build/frozen_rNN_xxx/`（NN 是那一次构建的编号）',
-            '换 KU5P 时下 `ku5p/build/frozen_r26/ku5p_eth.bit`（第二块板自己的树）'],
+            '备份包里的 `submission/build/frozen_r26/` 是复制品，不拿工作区判它存在与否'],
     }, () => false, 0);
-    console.log(`  ${edges.length === 0 ? 'PASS' : 'FAIL'} 对照：占位名与 ku5p/build/ 那条树不误报（实测 ${edges.length} 条）`);
+    console.log(`  ${edges.length === 0 ? 'PASS' : 'FAIL'} 对照：占位名与带前缀的路径不误报（实测 ${edges.length} 条）`);
     for (const r of edges) console.log('        ' + r);
     const all = n === 3 && good.length === 0 && edges.length === 0;
     console.log(`${all ? 'SELF: 全绿' : 'SELF: 有红'}（变异 3 条 + 对照 2 条）`);

@@ -41,18 +41,8 @@ foreach d [glob -nocomplain -directory $rtl_dir *] {
 set rtl [lsort -unique $rtl]
 
 set tbs [lsort [glob -nocomplain [file join $simdir tb_*.v]]]
-# KU5P 的台架与主线台架同目录（判据要一起跑才算回归），所以它自研的那几个模块也要进编译清单。
-# **不能**整目录 glob：ku5p/src/rtl 里的 gmii_to_rgmii/rgmii_rx/rgmii_tx 与 src/rtl/eth 下的
-# 同名文件是"同一层、两种器件写法"（7 系列 IDELAYE2+IDDR vs UltraScale+ IDDRE1），
-# 一次 xvlog 里出现两份同名模块定义会互相覆盖 —— 那正是"看起来绿、其实验的不是同一份代码"。
-# ku5p_eth_top.v 也不编：它例化的是 UltraScale 原语，本工程没有它的台架（板级判据见 ku5p/README.md）。
-# 加新模块要**这里与 sim/run_one.sh 两处一起加**：2026-09-23 只加了 run_one.sh，
-# 结果单台架跑绿、全量回归把 tb_v80_ku5p_cmd 判成 ELAB_FAIL —— 红的是清单，不是 RTL。
-foreach f [list [file join $ws ku5p src rtl ku5p_telem.v] \
-               [file join $ws ku5p src rtl ku5p_tx_arb.v] \
-               [file join $ws ku5p src rtl ku5p_cmd.v]] {
-    if {[file exists $f]} { lappend rtl $f }
-}
+# 加新模块要**这里与 sim/run_one.sh 两处一起加**：只加一边会"单台架跑绿、全量回归判 ELAB_FAIL"
+# —— 红的是清单，不是 RTL（2026-09-23 撞到）。
 # 仿真用的厂商原语占位件（sim/prim/）：本机 xsim 没有 UNISIM 库，缺了它们**任何例化 clk_gen 的
 # 顶层都 elaboration 不起来**（实测 `Module <MMCME2_BASE> not found`）⇒ 顶层台架的可行性押在这两行。
 # ⚠ 与 sim/run_one.sh 里那一处**必须同时改**（2026-09-23 只加过一边：单台架绿、全量判 ELAB_FAIL）。

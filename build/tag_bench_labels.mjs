@@ -14,7 +14,7 @@
 //  2) **行号会漂移**：往文件里插了新行，旧锚点就指向别处。所以有 `--refresh`：
 //     把每一处 `[xxx.v:123]` 重写成当前真实行号。改了台架文件就跑一次它。
 //
-// 用法：node build/tag_bench_labels.mjs [--dry] [--refresh]     （只改 sim/*.v，不碰 ku5p/）
+// 用法：node build/tag_bench_labels.mjs [--dry] [--refresh]     （只改 sim/*.v）
 import { readFileSync, writeFileSync, readdirSync } from 'node:fs';
 import { join } from 'node:path';
 

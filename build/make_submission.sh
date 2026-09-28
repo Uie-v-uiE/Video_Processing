@@ -97,7 +97,6 @@ cat > MANIFEST.txt <<EOF
   data/          -> data/        golden/ 参考图、measured/ 实测数据
   skill/         -> skill/       大模型协作沉淀的技能包（README.md 为总说明）
   report/        -> report/      设计报告 + 大模型协作记录 + ISSUES/OVERNIGHT_LOG 追加式历史
-  （额外）ku5p/  -> 第二块板（RK-XCKU5P-F）的独立工程，与 Z7 主线互不依赖
 EOF
 
 echo

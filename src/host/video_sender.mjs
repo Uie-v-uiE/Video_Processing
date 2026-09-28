@@ -1,12 +1,13 @@
 #!/usr/bin/env node
 /**
- * video_sender.mjs — 与 host/video_sender.py 同协议的 UDP 推流（无需 numpy/python）
+ * video_sender.mjs — UDP 推流（Node 内置 dgram，无需 numpy/python/ffmpeg）
  *
  * 协议: 每包 [u32 LE byte_offset][RGB565 载荷], 载荷 <= 1392 B（8 的倍数）
  * 用法: node video_sender.mjs [--ip 192.168.1.10] [--port 5001]
  *                             [--src 192.168.1.100] [--fps 15]
  *                             [--pace-mpbps 15] [--no-pace] [--count N]
- *                             [--test bars|grad|edge]
+ *                             [--test bars|grad|edge|blocks|hold|move|wordid|frameid]
+ *                             [--file -]  ffmpeg 解出来的 512x300 RGB565 裸流从 stdin 进
  *
  *                             [--drop-every N]  每 N 个包确定性丢一个
  * --test 图案：
@@ -19,7 +20,7 @@ import dgram from 'node:dgram';
 import { writeFileSync } from 'node:fs';
 
 const W = 512, H = 300, FRAME_BYTES = W * H * 2, HDR = 4;
-// 载荷必须是 8 的倍数：见 video_sender.py 里 MTU_PAYLOAD 的注释（否则每包边界会毁掉一个 64bit DDR 字）
+// 载荷必须是 8 的倍数：否则包边界落在 64bit DDR 字中间，打包器对同一个字分两次推送会互相覆盖
 // --mtu-payload 1396 是用来**复现**这个错误的（A/B 对照实验用），不是让你日常这么发。
 const MTU = Number(get('mtu-payload', 1392));
 if (MTU % 8) console.log(`[TX] 警告：MTU_PAYLOAD=${MTU} 不是 8 的倍数，包边界会毁掉 64bit 字（规律黑点）`);
