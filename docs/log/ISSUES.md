@@ -5242,7 +5242,7 @@ plusargs 在 xsim 里只能这么给（`sim/run_sim.tcl:70` 那行注释就是�
 
 **怎么撞出来的**：想核对"今晚给 16 个模块头补定位、又删了 `split_display` 的一对空括号"会不会把文档里的行号引用弄漂，
 于是把 `README.md`/`docs/*.md`/`skill/*.md` 里的 `xxx.v:NNN(-MMM)` 全抽出来数了一下：**201 处**。
-`node src/host/doc_currency_check.mjs` 的 D4 管的是**路径存在性**（`docs/foo.md` 在不在盘上），
+`node src/host/doc_currency_check.mjs` 的 D4 管的是**路径存在性**（`docs/` 下面点名的那个 `.md` 在不在盘上），
 **不管行号**——所以这 201 处就算全错，门禁照样全绿、位流照样编得出来。这正是 #66/#67 那一族
 （"清单里有、板上没有"）在文档侧的镜像。
 
