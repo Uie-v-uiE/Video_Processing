@@ -191,7 +191,12 @@ module tb_v103_pipe_bypass;
     // ⇒ 这条判据是"根因"，C10d/C10a 是它的两个可见后果；三者必须一起从红变绿。
     integer oor_blur = 0, oor_sharp = 0, oor_sobel = 0, oor_morph = 0;
     integer oor_x = -1, oor_slot = -1, oor_din = 0;
+    // 取样地板（2026-09-29 只读评审报的一类空判据）：C10f 原来只数"坏条件出现几次"，
+    // 于是 `oor_* == 0` 有两种解释——修好了，或者激励根本没把坐标推到行尾（激励一改就白过）。
+    // near_edge 数的是"机会"：`de_in` 为高且坐标已经走到最后一列或更靠外。它为 0 时 C10f 不许算数。
+    integer near_edge = 0;
     always @(posedge clk) if (rst_n) begin
+        if (u_pipe.u_blur.de_in && u_pipe.u_blur.x_in >= HA - 1) near_edge = near_edge + 1;
         if (u_pipe.u_blur.de_in && u_pipe.u_blur.x_in >= HA) begin
             oor_blur = oor_blur + 1;
             if (oor_x < 0) begin
@@ -318,8 +323,11 @@ module tb_v103_pipe_bypass;
              "ISSUES #111, NOT #103: the chain's data is one beat behind its own de_out, so the last column of every line falls off the end and a 0x0000 cell is inserted at the head (top hides it with pipe_dout_q; #102's left-edge line is the same defect)");
         line("C10d every line-cache slot was written at least once", unwr == 0,
              "an unwritten slot reads X in xsim and 0 on the board: that is one black column per name");
-        $display("C10f out-of-range cache writes (de high && x_in >= H_ACTIVE): blur=%0d sharp=%0d sobel=%0d morph=%0d || first offender x_in=%0d -> HW slot %0d with din=%h",
-                 oor_blur, oor_sharp, oor_sobel, oor_morph, oor_x, oor_slot, oor_din);
+        $display("C10f out-of-range cache writes (de high && x_in >= H_ACTIVE): blur=%0d sharp=%0d sobel=%0d morph=%0d || first offender x_in=%0d -> HW slot %0d with din=%h || opportunity beats (de && x_in >= H_ACTIVE-1)=%0d",
+                 oor_blur, oor_sharp, oor_sobel, oor_morph, oor_x, oor_slot, oor_din, near_edge);
+        line("C10fs the stimulus really pushed the coordinate to the line end (C10f's sample floor)",
+             near_edge > 0,
+             "if this is 0, C10f's zeros prove nothing: the stimulus never reached the beat that can overflow the write address. Pair with sim/mut_control.sh: the pre-fix RTL must redden C10f under this same stimulus.");
         line("C10f no window stage writes outside its own line cache",
              oor_blur == 0 && oor_sharp == 0 && oor_sobel == 0 && oor_morph == 0,
              "the coordinate taps sit one beat behind the de chain, so each line head writes x_in=1343: xsim drops that write, the board truncates it to slot 319 and stores the blanking value 0 => one black column at display column 320 (#103)");

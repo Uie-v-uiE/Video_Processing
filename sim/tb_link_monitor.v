@@ -47,13 +47,17 @@ module tb_link_monitor;
     //      这里用与 link_monitor 同样的两个式子在台架里独立数一遍，收尾逐字比对。
     reg [31:0] ref_drop = 32'd0, ref_ep = 32'd0;
     reg        ref_full_d = 1'b0;
-    always @(posedge clk) begin
+    always @(posedge clk) if (rst_n) begin
         if (cdc_wr_req && cdc_full)     ref_drop <= ref_drop + 1'b1;
         if (cdc_full && !ref_full_d)    ref_ep   <= ref_ep   + 1'b1;
         ref_full_d <= cdc_full;
     end
     // E2 用：一拍一拍的 0/1 交替，把"满只高一拍"这种边界造出来（隔离的单次事件最容易丢）
     reg        flip_en = 1'b0;
+    // "最后一张快照在源钟停之后还在"这一条的期望值：原来写的是 `d_bus !== 0`，
+    // 而目的侧那一路本来就会被灌成非 0（xdomain 循环留下的 00FF0001×100），所以那条判据**永远不会红**。
+    // 现在先把停钟前一刻的读数钉住，再比"停钟之后有没有变"——这才是要判的那件事。
+    reg [63:0] d_bus_hold = 64'hx;
     always @(negedge clk) if (flip_en) cdc_full = ~cdc_full;
 
     wire [LMW-1:0] lm_bus;
@@ -421,14 +425,16 @@ module tb_link_monitor;
         end
 
         s_hb = 0;                                // 源时钟停了
+        d_bus_hold = d_bus;                       // 钉住"停钟之前目的侧到底读到什么"
         repeat (500_000) @(posedge pclk);        // 62.5 ms @8 MHz > HB_TO_MS=50
         if (d_gone !== 1'b1) begin
             $display("FAIL hb_gone did not assert after the heartbeat died");
             errors = errors + 1;
         end else $display("PASS hb_gone asserts when the source clock stops");
-        if (d_bus === 64'd0) begin
-            $display("FAIL dst bus lost its value after hb_gone"); errors = errors + 1;
-        end else $display("[tb_link_monitor.v:371] PASS the last snapshot survives the source clock dying (显示端仍能看到数字)");
+        if (d_bus !== d_bus_hold) begin
+            $display("FAIL dst bus lost its value after hb_gone: held=%h now=%h", d_bus_hold, d_bus);
+            errors = errors + 1;
+        end else $display("[tb_link_monitor.v:371] PASS the last snapshot survives the source clock dying (显示端仍能看到数字，比的是停钟前钉住的那 %h)", d_bus_hold);
 
         $display("INFO pubs=%0d frames=%0d aborts=%0d drops=%0d stall=%0d",
                  pubs, s_frames, aborts, P_DROP, P_STALL);
