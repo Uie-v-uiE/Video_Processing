@@ -41,6 +41,21 @@ module tb_link_monitor;
     reg        lm_gapclr = 0;
     wire cdc_wr_req = wr_en | flush;
 
+    // ---- #124：参考计数器。判据要问的不是"drop_words 非 0"，而是"它数的次数对不对"。
+    //      差别很要命：板上"零丢包"那句话说的是 `drop_words == 0`，而这个寄存器以前只被
+    //      "非 0 就行 / 不动就行"级别的判据看过 ⇒ 任何一次把事件挪一拍、少记一次边沿的改动都能全绿。
+    //      这里用与 link_monitor 同样的两个式子在台架里独立数一遍，收尾逐字比对。
+    reg [31:0] ref_drop = 32'd0, ref_ep = 32'd0;
+    reg        ref_full_d = 1'b0;
+    always @(posedge clk) begin
+        if (cdc_wr_req && cdc_full)     ref_drop <= ref_drop + 1'b1;
+        if (cdc_full && !ref_full_d)    ref_ep   <= ref_ep   + 1'b1;
+        ref_full_d <= cdc_full;
+    end
+    // E2 用：一拍一拍的 0/1 交替，把"满只高一拍"这种边界造出来（隔离的单次事件最容易丢）
+    reg        flip_en = 1'b0;
+    always @(negedge clk) if (flip_en) cdc_full = ~cdc_full;
+
     wire [LMW-1:0] lm_bus;
     wire           lm_bus_tog, lm_hb;
     link_monitor #(.CLK_HZ(1000), .SETTLE(32), .LIVE_MS(16'd200)) u_lm (
@@ -268,6 +283,39 @@ module tb_link_monitor;
         if (P_CDC_EP === 16'd0) begin
             $display("FAIL cdc_episodes=0 although fifo_full was held"); errors = errors + 1;
         end else $display("PASS cdc_episodes=%0d", P_CDC_EP);
+
+        // 先让快照发布一次再读：P_* 是从 snap_cross 的那条总线解码出来的**快照**，
+        // 堵口那一帧结束时最后一拍的事件还没进下一次发布 ⇒ 直接读会少 1（这不是计数错，是拿错了时刻。
+        // 我自己第一版就把它读成了"实验版丢了一次事件"——见 ISSUES #124 的更正段）。
+        send_frame(0, GAP); repeat (40) @(posedge clk);
+        // ============ E1（#124 的采纳前提）：整帧堵口之后，两个计数器必须与参考**逐字相等** ============
+        // 参考跑的是同样的式子，但它独立于 DUT（DUT 里那条使能被寄存、被改写、被合成都改得出来）；
+        // 相等说明"每一次满+写的事件都被记了一次、且只记一次"，不等就是丢或多。
+        if (P_DROP !== ref_drop) begin
+            $display("FAIL E1 drop_words=%0d 但参考数到 %0d 计数器与事件不再一一对应", P_DROP, ref_drop);
+            errors = errors + 1;
+        end else $display("PASS E1 drop_words == 参考计数 (%0d)", ref_drop);
+        if (P_CDC_EP !== ref_ep[15:0]) begin
+            $display("FAIL E1 cdc_episodes=%0d 但参考数到 %0d 次进入满状态", P_CDC_EP, ref_ep);
+            errors = errors + 1;
+        end else $display("PASS E1 cdc_episodes == 参考计数 (%0d)", ref_ep[15:0]);
+
+        // ============ E2：满只持续一拍的边界事件（最容易丢的一种），再逐字比一次 ============
+        // A 段那种"整帧都满"是最宽松的激励：一次边沿、一次事件，丢了也很难看出来。
+        // flip_en 把 cdc_full 打成 1/0/1/0，于是每一拍都可能造出"单个事件 + 单次进满"。
+        flip_en = 1'b1;
+        send_frame(-1, GAP);
+        @(negedge clk); flip_en = 1'b0; @(negedge clk); cdc_full = 1'b0;
+        send_frame(0, GAP);              // 干净收尾：不留在 full 上
+        repeat (40) @(posedge clk);
+        if (P_DROP !== ref_drop) begin
+            $display("FAIL E2 drop_words=%0d 但参考数到 %0d 满只高一拍的边界事件被丢或被重记", P_DROP, ref_drop);
+            errors = errors + 1;
+        end else $display("PASS E2 单拍满事件计数一致 (drop=%0d)", ref_drop);
+        if (P_CDC_EP !== ref_ep[15:0]) begin
+            $display("FAIL E2 cdc_episodes=%0d 但参考数到 %0d 进满边沿在单拍宽度下数错", P_CDC_EP, ref_ep);
+            errors = errors + 1;
+        end else $display("PASS E2 单拍进满边沿计数一致 (ep=%0d)", ref_ep[15:0]);
         if (!P_FLAGS[0]) begin
             $display("FAIL drop_seen clear after drops"); errors = errors + 1;
         end else $display("PASS drop_seen flag latches");

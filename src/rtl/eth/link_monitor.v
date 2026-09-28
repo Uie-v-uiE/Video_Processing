@@ -79,6 +79,10 @@ module link_monitor #(
     reg        full_d;
 
     wire cdc_rise = cdc_full & ~full_d;
+    // 两个计数器的使能各延迟一拍再入账：`u_cdc/wbin_reg -> …-> CE` 是全设计最差 setup（ISSUES #121/#124）。
+    // 必须延迟**事件谓词本身**，不能延迟两个操作数——(req_d && full_d) 与 (req && full) 延一拍不等价，
+    // 两信号在不同拍上各自变化时前者会漏记那一拍（台架 E1 实测 DUT 31 / 参考 32）。
+    reg drop_ev_d, cdc_rise_d;
     // 间隔的读数 = 数出来的那个数（见上面 gap_cnt 那段），饱和判断只剩 bit[16] 一位
     wire [15:0] gap_new = gap_cnt[16] ? 16'hFFFF : gap_cnt[15:0];
     // 16bit 字段一旦越过 65535 就饱和而不是回卷：健康数字回卷到 0 会被读成"没问题"，
@@ -95,6 +99,8 @@ module link_monitor #(
             have_base<=0; gap_valid<=0; full_d<=0; gap_cnt<=0;
         end else begin
             full_d <= cdc_full;
+            drop_ev_d   <= cdc_wr_req && cdc_full;
+            cdc_rise_d  <= cdc_rise;
 
             // 间隔计数器：清 > 帧边界 > 毫秒滴答。三者的优先关系就是语义本身
             //（"清"之后从 0 重数；帧边界这一拍的值就是上一条间隔，下一拍才归零）。
@@ -109,9 +115,9 @@ module link_monitor #(
                 have_base<=0;
             end
 
-            // 每拍都可能：丢字
-            if (cdc_wr_req && cdc_full) drop_words <= drop_words + 1'b1;
-            if (cdc_rise)               cdc_ep     <= cdc_ep + 1'b1;
+            // 每拍都可能：丢字 / 进满边沿（使见上面 drop_ev_d 的说明：晚一拍入账，计数值不变）
+            if (drop_ev_d)            drop_words <= drop_words + 1'b1;
+            if (cdc_rise_d)           cdc_ep     <= cdc_ep + 1'b1;
 
             // 每帧一次：以下互不冲突（都在同一个 always 块里，但作用于不同寄存器）
             if (frame_abort) begin

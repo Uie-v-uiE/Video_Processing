@@ -1,0 +1,10 @@
+# worst setup paths (source: D:/Xilinx/Prj/pro/Video_Processing/build/crit_paths_raw.rpt)
+# slack | clock_group | data_path_delay | logic_levels | start -> end
+0.248ns | eth_rxc | 7.483ns | 4 | u_eth/u_icmp/u_icmp_rx/FSM_onehot_cur_state_reg[0]/C -> u_eth/u_icmp/u_icmp_rx/total_length_reg[2]/CE
+0.248ns | eth_rxc | 7.483ns | 4 | u_eth/u_icmp/u_icmp_rx/FSM_onehot_cur_state_reg[0]/C -> u_eth/u_icmp/u_icmp_rx/total_length_reg[3]/CE
+0.248ns | eth_rxc | 7.483ns | 4 | u_eth/u_icmp/u_icmp_rx/FSM_onehot_cur_state_reg[0]/C -> u_eth/u_icmp/u_icmp_rx/total_length_reg[4]/CE
+0.297ns | eth_rxc | 8.730ns | 3 | u_eth/u_rgmii/u_rgmii_rx/rxdata_bus[0].u_iddr_rxd/C -> u_eth/u_rx_mac/u_crc_rx/crc_data_reg[8]/D
+0.338ns | eth_rxc | 7.430ns | 4 | u_eth/u_icmp/u_icmp_rx/FSM_onehot_cur_state_reg[0]/C -> u_eth/u_icmp/u_icmp_rx/total_length_reg[0]/CE
+0.341ns | eth_rxc | 7.050ns | 8 | u_eth/u_cdc/wbin_reg[2]/C -> u_eth/u_cdc/mem_reg_3/ENARDEN
+0.386ns | eth_rxc | 7.347ns | 4 | u_eth/u_icmp/u_icmp_rx/FSM_onehot_cur_state_reg[0]/C -> u_eth/u_icmp/u_icmp_rx/total_length_reg[1]/CE
+0.386ns | eth_rxc | 7.347ns | 4 | u_eth/u_icmp/u_icmp_rx/FSM_onehot_cur_state_reg[0]/C -> u_eth/u_icmp/u_icmp_rx/total_length_reg[5]/CE
