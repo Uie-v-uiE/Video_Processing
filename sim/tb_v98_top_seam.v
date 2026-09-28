@@ -1,10 +1,7 @@
 `timescale 1ns/1ps
-// tb_v98_top_seam —— 唯一例化**顶层** pl_video_top 的台架（#49，V8-4b 第 0 步）；钉 #62 风险②、#68。跑法 `bash sim/run_one.sh tb_v98_top_seam`（门禁第 15 项钉它的 md5，改完必须重出报告）
-//   为什么必须先有它再动几何："混色级的坐标标签必须由流水线深度推出来，不许再抄 x_d[11]……新几何下缝会动，差一拍就是一条可见的竖带"
-//   —— 今天这份差值**看不见**，因为缝只有 512 一个合法值。内容怎么读出来：DDR 里那帧合成图的**每个像素值就是它自己的坐标**（16 bit 装 row/col 各 8 bit）
-//   ⇒ 屏上任意一点解出 (row,col) 与"它该来自哪里"一减就是错位量。⚠ 只有 8 bit ⇒ 256 以上回绕，一律用"模 256 的有符号差"（判据红先看**量程**够不够）。
-// 判据（每条的期望值写在各段开头）：C0a 编码/解码/取模差三者自洽（含回绕方向）· C0b 通路活着（帧数够、AXI 读通道有突发、8 字节对齐、**没有读到 PS 窗口外面**）· C-tap【硬】混色级的列标签必须与它正在取的内容**同一列**（比 DUT 内部 `sx_l/sy_l` 与 `x_d11/y_d11`，**不依赖帧缓存里是什么** ⇒ 今天必须红：实测 sx_l = mix_x + 9，V8-4b 把标签由深度推出来之后必须绿）· C1 内容级 / C2 缩放贴边 / C3 面板级 / C4 旋转形状 / C5 行维 / C6 屏上第 0 格 / C7 行标签 / C8 两抽头行首 / C9 缝旁黑列 · M2/M3 右窗行偏移只报数（M3 跨帧恒定是 SPLIT_TAP 可推导的前提，一帧一变说明还有一条没建模的反馈路径）。
-// ⚠ 观测全走层次引用（`dut.` 里的并行像素与标签），**不读 DVI 引脚**：`sim/prim/unisims_sim.v` 的 OSERDESE2 是占位件、不串行化 ⇒ 读它就等于信它。
+// tb_v98_top_seam —— 唯一例化顶层 pl_video_top 的台架：DDR 帧是坐标图、每个像素值就是它自己的坐标（16 bit = {1'b1 非黑标志, 行 mod 128, 列 mod 256}），验"屏上任意一点解出的 (row,col) 与'它该来自哪里'一减为零"；差值一律用模 256 的有符号差（dsub，判据红先看量程够不够）；读数全走 `dut.` 层次引用、不读 DVI 引脚（sim/prim/unisims_sim.v 的 OSERDESE2 是占位件、不串行化，读它就等于信它）。
+// 判据索引：C0a/C0a2/C0a3、C0b..C0f 尺子与拷贝通路自证 · C-tap 混色级列标签与内容同列（差一拍就是一条可见的竖带）· C1 系列 内容级对齐与级数标定 · C2/C7 八档缩放的列/行等于定义 · C3 面板级几何 · C4 旋转形状（每行至多一段非黑）· C5/C6/C8 帧头、屏上第 0 格、两抽头行首 · C9a..C9e 缝旁黑列 · M2/M3 右窗行偏移只报数（跨帧恒定是把这一条转成硬判据的前提，一帧一变 = 还有一条没建模的反馈路径）。每条的期望值与反例写在自己代码段开头。
+// 跑法：bash sim/run_one.sh tb_v98_top_seam
 module tb_v98_top_seam;
 
     localparam [31:0] PS_BASE      = 32'h1010_0000;   // 与 pl_video_top 的 PS_BASE_ADDR 同值
@@ -1130,6 +1127,9 @@ module tb_v98_top_seam;
     //   这个说不通的数就是尺子坏掉的自供）。于是直方图被摊平到错误的列上，
     //   C9a 的"没有整列黑"是**在一张废图上判的**。改成取混色级自己的 `x`，
     //   并让它自己报出"这一窗里有多少个 de burst / 多少像素"，好让下一个人一眼看出对齐对不对。
+    // ⚠ 分母用 `c9_burst`（窗内**结束**的 1024 像素行数），不能用 `c9_rows`：后者连 c9_on=0 的
+    //   那几帧预热也算，两帧的窗它会报 3000 而真行只有 1200 ⇒ "某列半数以上近黑"这条**永远达不到**，
+    //   于是 C9a/C9e 的绿是"分母虚高"给的，C9b 的红是分母给的，两边都没有牙（2026-09-28 那份现场）。
     reg [11:0] c9_x = 12'd0;
     always @(posedge dut.clk_pix) begin
         c9_x <= dut.x_d[dut.MIX_D];          // split_display 的输出晚一拍 ⇒ 列号也晚一拍去对
@@ -1495,16 +1495,16 @@ module tb_v98_top_seam;
             if (c9_blk[c9_k] > c9_worst) begin c9_worst = c9_blk[c9_k]; c9_wcol = c9_k; end
             if (c9_blk[c9_k] < c9_best)  begin c9_best  = c9_blk[c9_k]; c9_bcol  = c9_k; end
         end
-        $display("C9  灰度 x 缝=%0d：判 %0d 行、近黑格 %0d || 最暗列 col%0d=%0d 行、最亮列 col%0d=%0d 行 || 缝旁 col%0d=%0d col%0d=%0d col%0d=%0d",
-                 C9_SEAM, c9_rows, c9_any, c9_wcol, c9_worst, c9_bcol, c9_best,
+        $display("C9  灰度 x 缝=%0d：窗内整行 %0d（de 沿 %0d）、近黑格 %0d || 最暗列 col%0d=%0d 行、最亮列 col%0d=%0d 行 || 缝旁 col%0d=%0d col%0d=%0d col%0d=%0d",
+                 C9_SEAM, c9_burst, c9_rows, c9_any, c9_wcol, c9_worst, c9_bcol, c9_best,
                  C9_SEAM-1, c9_blk[C9_SEAM-1], C9_SEAM, c9_blk[C9_SEAM], C9_SEAM+1, c9_blk[C9_SEAM+1]);
-        line("C9pre rows judged", c9_rows >= 550,
+        line("C9pre rows judged", c9_burst >= 550,
              "this window must have judged nearly the whole frame, else C9a below is a green on an empty set");
-        line("C9a no full-height black column with gray on and seam mid", c9_worst * 2 < c9_rows,
+        line("C9a no full-height black column with gray on and seam mid", c9_worst * 2 < c9_burst,
              "the line the user reported at 23:3x: no column inside the picture may be majority near-black");
         line("C9c columns at the seam are not black either",
-             (c9_blk[C9_SEAM-1] * 2 < c9_rows) && (c9_blk[C9_SEAM] * 2 < c9_rows) &&
-             (c9_blk[C9_SEAM+1] * 2 < c9_rows),
+             (c9_blk[C9_SEAM-1] * 2 < c9_burst) && (c9_blk[C9_SEAM] * 2 < c9_burst) &&
+             (c9_blk[C9_SEAM+1] * 2 < c9_burst),
              "the user says the line appears where the divider passes; the seam's own columns are the suspect set");
         // ---- C9b：把**同一把尺子**拿到"已知有一条条黑列"的那一档去，它必须数到东西 ----
         // 原来这一格判的是"最亮列几乎全亮"，而 best 的初值就是 0 ⇒ 探测器全瞎也照样 PASS，
@@ -1523,10 +1523,10 @@ module tb_v98_top_seam;
         split_ctl_tb[9:0] = 10'd0;            // 还回去：后面的 C2/C3/C7 不能被这一档重定基线
         c9_border = 0;
         for (c9_k = 1; c9_k < 1023; c9_k = c9_k + 1)
-            if (c9_blk[c9_k] * 2 >= c9_rows) c9_border = c9_border + 1;
-        $display("C9b 0.50x gray+blur: rows %0d near-black cells %0d || whole-dark columns %0d (border should give ~512)",
-                 c9_rows, c9_any, c9_border);
-        line("C9bpre rows judged", c9_rows >= 550,
+            if (c9_blk[c9_k] * 2 >= c9_burst) c9_border = c9_border + 1;
+        $display("C9b 0.50x gray+blur: 窗内整行 %0d（de 沿 %0d）近黑格 %0d || whole-dark columns %0d (border should give ~512)",
+                 c9_burst, c9_rows, c9_any, c9_border);
+        line("C9bpre rows judged", c9_burst >= 550,
              "the control window must have judged nearly a whole frame, else C9b means nothing");
         line("C9b detector does see known black columns", c9_border >= 100,
              "pair for C9a: on a cell where a dark column is guaranteed, this same counter must light up");
@@ -1548,14 +1548,19 @@ module tb_v98_top_seam;
         repeat (2) @(posedge dut.frame_start);
         c9_on = 1'b0;
         stage_sel = 9'd0; zoom_en = 1'b0; zoom_sel = 3'd4;
+        // ⚠ 必须在这里把 bilin 还回 1：C9a/C9b/C9e 三档都为了"别把两格混成第三格"把双线性关掉，
+        //   而后面的 C2/C3/C7 八档扫描的期望值是按**默认 bilin 开**算的。关掉它跑扫描，红的是
+        //   C2a/C2b/C2c/C3c/C2pre/C7 一整族（2026-09-28 09:5x 那份就是这样红的 —— 台架漏了状态，
+        //   不是设计变了）。
+        bilin_en_tb = 1'b1;
         c9_worst = 0; c9_wcol = -1;
         for (c9_k = 1; c9_k < 1023; c9_k = c9_k + 1)
             if (c9_blk[c9_k] > c9_worst) begin c9_worst = c9_blk[c9_k]; c9_wcol = c9_k; end
-        $display("C9e full-processed x 1.5x x gray: rows %0d de-burst %0d px %0d near-black %0d || darkest col %0d = %0d rows",
-                 c9_rows, c9_burst, c9_px, c9_any, c9_wcol, c9_worst);
-        line("C9epre rows judged", c9_rows >= 550,
+        $display("C9e full-processed x 1.5x x gray: 窗内整行 %0d（de 沿 %0d）px %0d near-black %0d || darkest col %0d = %0d rows",
+                 c9_burst, c9_rows, c9_px, c9_any, c9_wcol, c9_worst);
+        line("C9epre rows judged", c9_burst >= 550,
              "this window must have judged nearly the whole frame, else C9e below is a green on an empty set");
-        line("C9e no majority-dark column, processed tap full-screen at 1.5x", c9_worst * 2 < c9_rows,
+        line("C9e no majority-dark column, processed tap full-screen at 1.5x", c9_worst * 2 < c9_burst,
              "board shows a full-height near-black column at internal col 128 (display 256) here; ISSUES #103");
 
         $display("C2 table  code inv  nin     nout     inbad viol measl measr geol geor leakl leakr blank invbad | C3 rows empt wbad rbad fmin fmax lmin lmax");
