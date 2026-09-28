@@ -1,8 +1,7 @@
 `timescale 1ns/1ps
 // Dual-pane: left original / right processed+zoomed. 单个像素时钟域，输出打一拍。
 // Display 1024x600, each pane 512 wide, source 512x300 with 2x vertical scale.
-module split_display #(
-)(
+module split_display (
     input  wire        clk,
     input  wire        rst_n,
     input  wire [11:0] x,

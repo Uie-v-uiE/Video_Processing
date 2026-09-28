@@ -50,8 +50,10 @@ module split_ctrl #(
     reg  [TICK_BITS-1:0] tcnt;
     reg  [12:0]          swp;
     reg                  dir;                    // 0 = 向 hi，1 = 向 lo
-    wire [12:0] lo13 = {0'd0, lo_use[12:0]};
-    wire [12:0] hi13 = {0'd0, hi_use[12:0]};
+    // 取低 13 位本身就是 13 位，不需要补零：原来的 `{0'd0, …}` 里那个 **宽度为 0 的字面量**
+    // 就是 `Synth 8-9694 invalid size of integer constant literal` 报的东西（补 1'd0 又会多一位再被截掉）。
+    wire [12:0] lo13 = lo_use[12:0];
+    wire [12:0] hi13 = hi_use[12:0];
     wire [12:0] step = {9'd0, speed};
     // "再加一步就到/越过 hi" 的判据。先减后比，不把 swp+step 放到会溢出的位宽里算。
     // 减法要防下溢：hi 很小而 speed 很大时（range 0 0 + speed 15 是合法输入），

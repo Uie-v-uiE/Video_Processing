@@ -135,3 +135,9 @@ board/uart_*.txt
 board/send_*.txt
 board/ddr_*.txt
 board/sd_*.txt
+
+# 隔离滚一轮（build/roll_isolated.sh）的产物：报告可比对、二进制只留本地
+build/isolated_*/*.bit
+build/*isolated*/*.bit
+build/isolated_*/*.xsa
+build/*isolated*/*.xsa
