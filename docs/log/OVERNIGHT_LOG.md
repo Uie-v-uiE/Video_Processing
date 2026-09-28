@@ -5941,6 +5941,10 @@ E1/E2 全绿。所以那次的差 1 不在硬件里，是**我的判据读了 `s
 `build/r86_flash_2_program.txt`（`PROGRAMMED xc7z020_1 <- …/build/system.bit`）→
 `build/r86_flash_3_app.txt`（`RST_PROC: ok`/`DOW: ok`/`CON: ok`）。
 上一块 r84（`b2a36ac5…`）留在 `/tmp/r84_system.bit.keep`，要退回就拷回 `build/system.bit` 再走这三步。
+**没进交付的两处本机暂存**（写明免得被当成缺件）：`build/r86_exp_isolated/` 是那一轮隔离构建的工作目录
+（未被 git 跟踪 ⇒ `make_submission.sh` 自然不会带它），它读到的那份数已经归档成
+`build/evidence/r86exp_{timing_summary,utilization,crit_paths,build_console}.*`；`/tmp` 下的回滚位流与
+变异对照副本同理，只是凭据的原件不在仓库里、结论的复印件在。
 
 ### 2. 机器已经证到的（数字都指名出处，不再重述过程）
 
