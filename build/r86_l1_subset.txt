@@ -17,3 +17,11 @@
 这一格记下来，别当成 L1 全量通过。
 本次不是 L1 全量（`sim/run_sim.tcl` 会连 84 分钟的 tb_v98_top_seam 一起跑，夜里时间不允许）；
 两份钉 md5 的整屏台架今晨已在 r86 上重跑（build/tb_v98_report.txt、build/tb_edge_rim_r86.txt）。
+
+== 07:36 更正上面那句"弱证据"（我把工具口径当成了台架缺陷）==
+五支"没有 RESULT 汇总行"的台架其实各自都有**由 errors==0 门住的收尾判定行**，今晚的日志里逐条在：
+  PASS tb_proc_gray / PASS tb_rotate_window ALL / PASS tb_v794_osd_glyph / PASS tb_udp_parser ALL / PASS tb_sync_fifo ALL
+真正缺的是**统一 token**：`sim/run_sim.tcl`（L1 全量）会给每支台架补一行 `RESULT <tb> <判定>`，
+而 `sim/run_one.sh` 不补 ⇒ 只 grep `^RESULT` 的人（例如我自己上面那个汇总循环）会误判成"没跑完/没判定"。
+所以这一格的正确说法是：**10/10 都有明确判定行，rc=0，^FAIL=0**；待办是"让 run_one.sh 收尾也 echo 一行统一 RESULT"
+（工具侧改动，不在这轮做，免得动到明早还要用的跑法）。
