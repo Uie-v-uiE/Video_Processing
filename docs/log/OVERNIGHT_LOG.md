@@ -5723,3 +5723,63 @@ PRUNE 逐条带理由，MANIFEST 写目录对照与来源提交号）。
   **板子对串口不发话**（COM6 存在、能打开、99 条命令零回包），要么板子没电要么固件不在跑——
   这不影响今晚的构建，但明早上板前要先确认。
   ⇒ 规矩补一条：**跑任何 `src/host/*.mjs` 之前先看它会不会碰硬件或改写 tracked 文件**。
+
+---
+
+## 2026-09-28 23:0x → 明早验收清单（r83：#103 黑线 + #112 OSD 开关 + #105 第一刀）
+
+**这一版改了什么（一句话）**：效果链的列标签晚一拍导致行缓存写地址越界、被硬件截断成第 319 槽（= 显示列 320 那根黑线）已修；
+OSD 叠层有了总开关（`osd on|off`，`gpio_o[20]` 反相）；`wr_full` 加了 `max_fanout` 让综合复制本地缓冲（纯物理，语义不变）。
+
+### A. 不用眼睛的部分（先跑，红了就别往下省时间）
+1. `bash build/gates.sh` ⇒ 20 项。已知会红的只有第 15 项里那条 **C5c**（#98 帧头绕回，历史红灯，不是今晚新增）。
+2. `bash build/tb98_report.sh` 之后看 `build/tb_v98_report.txt`：期望 `RESULT tb_v98_top_seam FAIL nfail=1`
+   且那 1 条是 C5c。**若 `nfail` 里出现 C2b/C7/C12 任何一条 ⇒ 今晚的修改有问题**，别去调屏。
+   新判据 C12 的读数是 `rose cells ON=… OFF=0`；`OFF` 不为 0 就是接线没通。
+3. 时序：`build/` 下 r83 的 `*_timing_summary.rpt` 看 WNS/TNS。r81 是 **−0.062 / −0.812 / 28 端点**，
+   全在 `u_eth/u_cdc/wbin_reg → u_lm/drop_words_reg[*]/CE`。**若仍为负**：那是 #105 的第二刀
+   （"寄存 full + 留一格余量"）没做，属已知欠账，不许把它写成已达成。
+4. 资源：`utilization_srt.rpt` 的 BRAM 与 LUT 数与 r81 对比，写进 `docs/PERF_REPORT.md`（只写这一版真数）。
+
+### B. 上板（`build/tcl/ps_jtag_boot.tcl` → `program_pl.tcl` → `ps_app_reload.tcl`，只走 JTAG，不碰 flash）
+| # | 命令 | 预期 | "不"意味着 |
+|---|---|---|---|
+| 1 | `fill` `zoom 1.00` `th 8` `pipe 000001000` `split 31` `split marker 1` | 整屏白；蓝线（316/317）右侧**没有**黑线 | 黑线仍在 320 附近 ⇒ 越界写没修好（回来报"第几列"） |
+| 2 | `pipe 000000000` `src 0` `split 50` `split marker 0` | 左右两半都没有竖线 | 有 ⇒ 说明还有第二个来源，回来我按 A/B 再量 |
+| 3 | `osd off` / `osd on` | 五行字立刻消失/出现，**画面本身一帧都不动**；`stat` 末尾 `osd=0`→`1` | 字不消失 ⇒ 板上还是旧 bit；画面跟着抖 ⇒ 我把开关做进了数据通路（严重，立刻回退） |
+| 4 | `bilin on/off`、`zoom 0.25…2.00`、`rot auto`、`split auto` | 与 r81 观感一致 | 任何一档异常 ⇒ 记档号+现象，坐标类回归今晚动过标签链 |
+| 5 | 拔网线 30 s 再插、播放中拔 SD 再插回 | 自动让位 / 恢复 | 与 #94 已知行为对照 |
+
+### C. 今晚没做完的（明早别误以为已达成）
+- #103 的 **C10f 变异对照**（"改前必须红"）：要临时把 `xd[1] <= x_in` 改回 `xd[0]`，会动 `src/rtl`，
+  而今晚构建与顶层台架都在跑 ⇒ 排到它们结束之后。
+- **#111**：链子数据比它自己的 `de_out` 晚一拍 ⇒ 每行末列丢失、行首凭空一格黑（`tb_v103` 的 C10c 为它红着）。
+  修它要同时重标顶层 `pipe_dout_q` 与 `MIX_D`，单独一轮。
+- **#105 第二刀**（结构性：寄存 `full` + 留一格余量）与 #104（旋转态 `bilin` 名不副实）。
+- 提交包：`build/make_submission.sh` 要在这一切冻结后重跑一次；`submission-export` 分支还等 GitHub 凭据。
+
+### 00:56 补：r83 已经烧进板子，机器侧的结果先摆在这里
+
+| 项 | 结果 | 凭据 |
+|---|---|---|
+| 顶层台架 | `RESULT tb_v98_top_seam FAIL nfail=1`（唯一红 = C5c，历史红灯 #98） | `build/tb_v98_report.txt`，头 `top=4b871228a847 tb=d64b883a6d94 rtl=ff93dc0f95ee` |
+| 八档扫描（#113 的修复） | code 0 由 `inbad=45540 / C7 rbad=30780` 变成 **0 / 0** | 同上，`C2 row 0` 与 `C7 row code=0` 两行 |
+| OSD 开关（顶层） | `C12 rose cells ON=22842 (over 1228800 px) OFF=0` | 同上 |
+| OSD 开关（模块级） | `T13 PASS`：关掉逐位等于背景、开着同一片格子画得出字 | `sim/run_one.sh tb_osd_lines` |
+| 窗口级回归 | `tb_edge_rim` 全绿（报告 `build/tb_edge_rim_r83.txt`）、`tb_v89_align`/`tb_v84_morph`/`tb_v85_sharpen`/`tb_v88_gamma`/`tb_v86_pipe_sel`/`tb_v97_seam_scan`/`tb_v794_osd_glyph`/`tb_v90_latency` 全 PASS | 各自 run.log |
+| 门禁 | **两条红**：WNS −0.192（`eth_rxc` 组，34 端点）与第 15 项（C5c 那一条 FAIL 行） | `build/r83_gates.txt` |
+| 冻结 | `freeze_evidence.sh 83` **拒绝**（"不是 ALL PASS 不冻结"）——这是它该有的行为 | 同上 |
+| 时序/资源 | WNS −0.062 → **−0.192**（`max_fanout` 那一刀无效）；BRAM 97.5 → **95 块**（morph 那一刀有效） | `build/timing_summary.rpt`、`build/utilization.rpt` |
+| 板上 | `program_pl.tcl` 烧 `build/system.bit`(23:46) ✓；`xsdb ps_app_reload.tcl` → `DOW: ok / CON: ok / FLOW_DONE` ✓ | `/tmp/kx/prog_r83.txt`、串口回包 |
+| 串口实证 | `stat` 末尾出现 `osd=1`；`osd off` 后 `AXI_GPIO=0x001B5000`（与 `osd on` 的 `0x000F5000` 差 **0x100000 = bit20**）⇒ 那一位真的被写进去了 | COM6 回包 |
+
+**留给早上的两件事**：① 眼睛确认黑线消失（口径见上面表格 B 的第 1、2 行）；② `osd off` 看那五行字是否立刻消失而画面不动。
+
+**#105 我没在深夜动结构，原因是这样**：现在这个"写域算满"的结构是**教科书上正确的**结构
+（满判据必须用**发虚的读指针**去算才保守 ⇒ 宁可早停不许晚停；反过来把满判据搬到读域算，
+就会**低估填充度 ⇒ 可能溢出**）。要真 shorten 那条锥体，只有两条路，都需要先量：
+1. 把 `u_cdc` 从 36×8192（8 块 RAMB36）降到 36×1024（2 块）——锥体短 3 位、省 6 块 BRAM，
+   但**必须先量出真实吸收需求**：用 `drop_words`/`cdc_ep` 两个计数器在台架与板上各量一次突发长度。
+2. 保留深度，把"下一拍会不会满"改成"已经满 + 留一格余量"，配一条"写满边界不丢字"的新判据。
+两条都不是深夜盲改的事。今晚先把无效的那一刀回滚掉（见下条），让 WNS 回到 −0.06 附近，
+再决定走哪一条。

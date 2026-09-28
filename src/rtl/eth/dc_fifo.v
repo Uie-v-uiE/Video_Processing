@@ -32,14 +32,14 @@ module dc_fifo #(
     // full 用"对端格雷码的最高两位取反、其余相等"判，省掉一次二进制比较。
     wire [ADDR_W:0] wbin_n  = wbin + 1'b1;
     wire [ADDR_W:0] wgray_n = bin2gray(wbin_n);
-    // #105 第一刀（**纯物理，不改一个比特的语义**）：`wr_full` 要同时喂写指针 CE、BRAM 写使能、
-    // 以及**另一个模块**里 `link_monitor` 的丢字计数器 CE。r81 的 28 条失败端点全是这一条：
-    // 14 位加法 → 格雷 → 14 位等值比较，再跨模块拉一根长线（报告：25 级、数据路径 73 % 是布线）。
-    // 这里让综合器把它**复制成多份本地缓冲**（每个扇出组一份），逻辑式一个字没动 ⇒
-    // 所有台架与板上行为不变，变的只是布局布线。下一刀才是"寄存 full + 留一格余量"的结构性改法
-    //（那会改变满判据的时序，必须配新判据，见 ISSUES #105）。
-    (* max_fanout = 12 *) wire full_now = (wgray_n == {~rgray_s1[ADDR_W:ADDR_W-1], rgray_s1[ADDR_W-2:0]});
-    assign wr_full = full_now;
+    // #105 第一刀**已回滚**（2026-09-28 深夜，实测无效）：给 `wr_full` 加 `max_fanout=12` 想让综合
+    //   复制本地缓冲，结果 WNS 从 r81 的 − 0.062 掉到 − 0.192、失败端点 28 → 34（凭据 build/r83_gates.txt
+    //   与 build/timing_summary.rpt）。**说明瓶颈不是扇出，是锥体本身**：14 位加法 → 二进制转格雷 →
+    //   14 位等值比较，全压在写域一拍里。剩下的两条真修法（降深度 / 留一格余量）与为什么不能把满判据
+    //   搬到读域算，写在 `docs/log/OVERNIGHT_LOG.md` 00:56 那一节。
+    wire [ADDR_W:0] wbin_n  = wbin + 1'b1;
+    wire [ADDR_W:0] wgray_n = bin2gray(wbin_n);
+    assign wr_full = (wgray_n == {~rgray_s1[ADDR_W:ADDR_W-1], rgray_s1[ADDR_W-2:0]});
 
     // write pointer (async rst)
     always @(posedge wr_clk or negedge wr_rst_n) begin
