@@ -25,20 +25,6 @@ TMP="$(mktemp -d "${TMPDIR:-/tmp}/sub.XXXXXX")"
 DRY=0
 [ "${1:-}" = "--dry" ] && DRY=1
 
-# ---- 显式剪掉：作者工作区留着，提交包不带 ----
-# 判据是"评委照文档跑，会不会用到它"。门禁与板级验收要调的那些一律留。
-PRUNE_HOST=(
-  card_preview.mjs        # 把图卡像素转储渲成 PNG，作者调观感用
-  ddr_holemap.mjs         # 早期定位 DDR 空洞分布的画图脚本
-  ddr_stale.mjs           # 反解帧号算丢字率：产出的数字已写进报告，不需要复跑
-  ddr_verify.mjs          # 配合上一条的回读器
-  ingress_probe.mjs       # 定点注入实验探针（一次性取证）
-  interp_study.mjs        # 双线性收益测算的草稿
-  lane30_watch.mjs        # 高频盯一条 lane，调试期用
-  measure_v63.mjs         # 第 6 版那一轮的一站式量测
-  pipe_len_check.mjs      # `pipe` 长度口径离线核对（口径已由固件台架与命令电池覆盖）
-  temp_formula_check.mjs  # 温度换算核对，产出的数已冻结在 build/frozen_r54_readback/
-)
 # 一次性修复脚本：只修当年那一版 BD/顶层，没人再调用，别人照着跑只会困惑。
 PRUNE_ONEOFF=(
   build/tcl/apply_cdc_report.tcl
@@ -49,7 +35,7 @@ PRUNE_ONEOFF=(
 )
 
 # ---- 无论有没有被点名都留着：跑起来的那一套（源码与脚本本体）----
-KEEP_ALWAYS_RE='\.(sh|tcl|py|ps1|bat|xdc|f|v|c|h)$|^src/|^data/golden/|MANIFEST|README'
+KEEP_ALWAYS_RE='\.(sh|tcl|py|ps1|bat|xdc|f|v|c|h)$|^src/(rtl|ps|constraints)/|^data/golden/|MANIFEST|README'
 
 cd "$REPO"
 COMMIT="$(git rev-parse --short HEAD)"
@@ -88,23 +74,30 @@ grep -rhoE "[A-Za-z0-9_./-]+\.[A-Za-z0-9]{1,5}" "${LIVE_SCOPE[@]}" 2>/dev/null \
 grep -rhoE "src/host/[A-Za-z0-9_.-]+\.mjs" build/*.sh 2>/dev/null | sort -u >> _cited.txt
 sort -u -o _cited.txt _cited.txt
 
+# 被别的 .mjs import 的公共模块必须跟着走（现在只有一个：repo_path.mjs）。
+# 不写死名字，改成"有被留着的文件 import 它就留"，免得以后加了新的公共模块又踩一次。
+for f in src/host/*.mjs; do
+  [ -f "$f" ] || continue
+  grep -hoE "from '\./[A-Za-z0-9_.-]+\.mjs'" "$f" 2>/dev/null |
+    sed "s|from '\./||; s|'||" | while read -r dep; do
+      echo "src/host/$dep" >> _cited.txt
+    done || true      # pipefail：没有 import 的文件 grep 返回 1，不该把整个导出带走
+done
+sort -u -o _cited.txt _cited.txt
+
 for p in src/host build sim board data; do
   [ -d "$p" ] || continue
   find "$p" -type f | while read -r f; do
     echo "$f" | grep -qE "$KEEP_ALWAYS_RE" && continue
     grep -qxF "$f" _cited.txt && continue
-    grep -qxF "$(basename "$f")" _cited.txt && continue
+    # 工具与留档两种口径：**工具**要按路径点名才带（HOST_GUIDE 里"作者留存"的那些是裸名，
+    # 不该因此进包）；**留档**只要文件名被点名就带（文档里常写"`rNN_gates.txt` 第几行"这种）。
+    case "$p" in src/host) ;; *) grep -qxF "$(basename "$f")" _cited.txt && continue ;; esac
     rm -f "$f"; echo "未被活文档点名 $f" >> _pruned.txt
   done
 done
 find build sim board data src/host -type d -empty -delete 2>/dev/null || true
 
-# 显式名单**优先于**引用规则：HOST_GUIDE 的"作者留存"一节会列出这些名字（不带路径，
-# 所以不会被当成指路），但它们确实不该进包——产出的数字已经在 report/ 与 data/measured/ 里了。
-for n in "${PRUNE_HOST[@]}"; do
-  [ -f "src/host/$n" ] || continue
-  rm -f "src/host/$n"; echo "作者留存工具 src/host/$n" >> _pruned.txt
-done
 find src/host -type d -empty -delete 2>/dev/null || true
 removed="$(sort -u -o _pruned.txt _pruned.txt; grep -c '' _pruned.txt)"
 
@@ -116,8 +109,9 @@ for f in README.md README.en.md report/*.md skill/*.md skill/*/*.md board/*.md; 
   grep -oE '(src|sim|build|board|data|skill|report)/[A-Za-z0-9_./-]*[A-Za-z0-9_-]\.[A-Za-z0-9]{1,6}' "$f" 2>/dev/null |
   sort -u | while read -r t; do
     case "$t" in *'*'*|*'<'*|*'>'*|*'$'*|*NN*) continue ;; esac      # 通配与占位名不算指路
-    # 生成物：跑脚本才有的输出，包里没有是应该的（文档里提到它们时说的是什么东西被生成）
-    case "$t" in build/tb_v98_report.txt|board/uart_script_capture.txt|data/measured/ddr_dump.out) continue ;; esac
+    # 生成物：跑脚本/跑构建才有的输出（*.log 与 *.elf 按 .gitignore 政策本来就不入库），
+    # 包里没有是应该的；文档提到它们时说的是"什么东西被生成出来"
+    case "$t" in *.log|*.elf|build/tb_v98_report.txt|board/uart_script_capture.txt|data/measured/ddr_dump.out) continue ;; esac
     [ -e "$t" ] && continue
     [ -e "$d/$t" ] && continue
     echo "死链 $f -> $t"
@@ -126,6 +120,25 @@ done > _dead.txt 2>&1 || true
 DEAD="$(grep -c '死链' _dead.txt || true)"; DEAD=${DEAD:-0}
 head -20 _dead.txt
 echo "== 自检：活文档死链 $DEAD 条（记录类不判，理由见上面第 2 步）=="
+
+# ---- 3b. 位流与固件镜像：仓库里不跟踪（太大/是输出），但交出去必须能对上"板上是哪一版" ----
+BIN_LINES=""
+for b in build/system.bit build/ps_app.elf; do
+  if [ -f "$REPO/$b" ]; then
+    cp "$REPO/$b" "$b"
+    BIN_LINES="$BIN_LINES  $b  md5 $(md5sum "$b" | cut -c1-12)$(printf '
+')"
+  fi
+done
+# 位流的身份**只能由它自己的 md5 去认**：哪一份门禁报告里写着这串 md5，就念那一份；
+# 一份都没有 ⇒ 这一版没有全绿凭据，必须明说"不作交付"，绝不能拿"最新的那份报告"顶替
+# （文件名排序的"最新"和"与这份位流同一次构建"是两件事，r81 就是活例子：它四滚全红）。
+BIT_MD5=""; [ -f build/system.bit ] && BIT_MD5="$(md5sum build/system.bit | cut -c1-12)"
+GATES_FOR_BIT=""
+if [ -n "$BIT_MD5" ]; then
+    GATES_FOR_BIT="$(grep -l "$BIT_MD5" build/*gates*.txt build/evidence/*.txt 2>/dev/null | head -1)"
+    [ -n "$GATES_FOR_BIT" ] || GATES_FOR_BIT="没有一份门禁报告写着这串 md5 ⇒ 这一版不作交付（诊断用）"
+fi
 
 # ---- 4. 清单 ----
 files="$(find . -type f | wc -l)"
@@ -150,15 +163,18 @@ cat > MANIFEST.txt <<EOF
                                       （仓库内叫 docs/log/，导出时改名并改写指路）
 
 不带进提交包的（判据：评委照文档跑用不到，且文档也不指它）
-  · 作者工作区里的一次性量测与研究脚本 ${#PRUNE_HOST[@]} 个（名单在脚本 PRUNE_HOST）——
+  · src/host/ 里没有被活文档按路径点名的工具（判据与引用规则同源，见脚本第 2 步）——
     它们产出的数字已经写进 report/ 与 data/measured/，交脚本本身没有意义
   · 四个一次性 BD/顶层修复脚本（PRUNE_ONEOFF）
   · build/ 与 sim/ 里没有被 report/ 点名的留档，逐条见 _pruned.txt
   · 本地学习材料（仓库里 docs/study/，被 .gitignore 挡住，本来就不在跟踪集内）
 
+板上的那一份（位流与固件镜像仓库不跟踪，这里按 md5 带出来，身份不靠文件名）：
+$BIN_LINES  它的门禁凭据：$GATES_FOR_BIT
+
 自检：包内路径式指路解析不出的有 $DEAD 条（0 才算过；不通过时本脚本不落盘）
 EOF
-rm -f _cited.txt
+rm -f _cited.txt _dead.txt
 
 echo
 echo "导出提交 $COMMIT：$files 个文件 / $bytes，剪掉 $removed 条，死链 $DEAD 条"
