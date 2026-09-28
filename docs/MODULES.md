@@ -63,7 +63,7 @@
 
 | 模块 | 职责 | 例化者 | 台架 |
 |------|------|--------|------|
-| `rgb2dvi` | RGB + de/hs/vs → 三路 TMDS：三套编码器 + 三套 5× 串化（channel0 走蓝，消隐期把 hs/vs 当控制符送进去） | `pl_video_top.v:1107` | — |
+| `rgb2dvi` | RGB + de/hs/vs → 三路 TMDS：三套编码器 + 三套 5× 串化（channel0 走蓝，消隐期把 hs/vs 当控制符送进去） | `pl_video_top.v:988` | — |
 | `tmds_encoder` | 单通道 8b/10b：比较查表翻转 + 运行不一致度 + 特例码 | `rgb2dvi.v:21,25,29` | 无独立台架 |
 | `tmds_serializer` | 10bit 并→串（跑在 `clk_pix5x` 上） | `rgb2dvi.v:34` 起 | 无独立台架 |
 
@@ -77,10 +77,10 @@
 | `proc_invert` | 级 1 的第二选项：反色 | `proc_pipeline.v:135` | 无独立台架（`tb_v86`/`tb_v89` 覆盖） |
 | `proc_box_blur` | 级 2：3×3 均值模糊，两条行缓存、三拍 de 链 | `proc_pipeline.v:140` | `tb_v84_morph`、`tb_v85_sharpen`、`tb_v89_align`、`tb_v92_seam_bleed`、`tb_edge_rim` |
 | `proc_sharpen` | 级 2 的第二选项：3×3 锐化（与模糊同级、非串联） | `proc_pipeline.v:146` | `tb_v85_sharpen`、`tb_v89_align`、`tb_edge_rim` |
-| `proc_sobel` | 级 3：Sobel 梯度幅值，白边黑底 | `proc_pipeline.v:153` | `tb_v89_align`、`tb_v92_seam_bleed`、`tb_edge_rim` |
-| `proc_binary` | 级 4：阈值二值化，`pol` 选判决方向（亮于/暗于阈值算白） | `proc_pipeline.v:161` | 无独立台架（`tb_v86` 逐档、`tb_v89` 整链） |
-| `proc_morph` | 级 5：3×3 腐蚀 / 膨胀；两位同时为 1 时明确旁路 | `proc_pipeline.v:167` | `tb_v84_morph`、`tb_v89_align`、`tb_edge_rim` |
-| `bilin_lerp` | 双线性算术核，两级流水（先横后纵），与抽头怎么来完全解耦 | `fb_bilin.v:212` | `tb_bilin_lerp` |
+| `proc_sobel` | 级 3：Sobel 梯度幅值，白边黑底 | `proc_pipeline.v:132` | `tb_v89_align`、`tb_v92_seam_bleed`、`tb_edge_rim` |
+| `proc_binary` | 级 4：阈值二值化，`pol` 选判决方向（亮于/暗于阈值算白） | `proc_pipeline.v:140` | 无独立台架（`tb_v86` 逐档、`tb_v89` 整链） |
+| `proc_morph` | 级 5：3×3 腐蚀 / 膨胀；两位同时为 1 时明确旁路 | `proc_pipeline.v:146` | `tb_v84_morph`、`tb_v89_align`、`tb_edge_rim` |
+| `bilin_lerp` | 双线性算术核，两级流水（先横后纵），与抽头怎么来完全解耦 | `fb_bilin.v:172` | `tb_bilin_lerp` |
 
 ## process/rotate/ 与 process/zoom/
 
@@ -112,7 +112,7 @@
 | `eth_udp_video_top` | RGMII→协议栈→拼帧→CDC→打包写 DDR 的容器，含乒乓基址与提交脉冲 | `system_top.v:154` | `tb_v6_pingpong`、`tb_v6_ingress_integrity`、`tb_v5_bank`、`tb_link_monitor` |
 | `gmii_to_rgmii` | RGMII ↔ GMII 的壳：BUFG 收钟 + IDELAYCTRL + 收/发两侧 | `eth_udp_video_top.v:70` | — |
 | `rgmii_rx` | BUFIO/IDDR(`SAME_EDGE_PIPELINED`) + IDELAYE2(FIXED, 参考 200 MHz) | `gmii_to_rgmii.v:42` | — |
-| `rgmii_tx` | ODDR 双沿拼 4bit + TX_CTL | `gmii_to_rgmii.v:56` | — |
+| `rgmii_tx` | ODDR 双沿拼 4bit + TX_CTL | `gmii_to_rgmii.v:42` | — |
 | `gmii_rx_mac` | 去前导/SFD、按字节数与自己算的 FCS-32 判包好坏，出 `m_good/m_bad` | `eth_udp_video_top.v:185` | `tb_v795_rx_fcs` |
 | `udp_rx_parser` | 按下标解 IPv4/UDP + 目的端口过滤，出 `p_sof/p_eof/p_good` | `eth_udp_video_top.v:196` | `tb_udp_parser`、`tb_v795_rx_chain` |
 | `frame_reasm` | `[u32 LE offset][RGB565]` 拼帧：凑满 307200 B 才算一帧，坏帧计数、缺行上报 | `eth_udp_video_top.v:230` | `tb_udp_reasm`、`tb_v50_rows`、`tb_v50_rows_prod`、`tb_v6_cover_gate`、`tb_link_monitor` |

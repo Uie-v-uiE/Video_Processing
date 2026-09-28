@@ -104,7 +104,7 @@ PS 做三件事：发命令、读计数、把 SD 卡上的帧 DMA 进自己那�
 | `axi_gpio_1`（`GPIO_1_tri_i`） | `0x41210000` | PL→PS | 32 位状态窗口，**命令写 gpio_o、状态读这一只**（`build/tcl/build_system_axigpio.tcl:189,202`） |
 
 状态通道是"先写 lane 号再读一个字"的窗口：lane 号取 `gpio_o[31:27]`，读回 `gpio1_i`。
-lane0~9 是链路健康计数（`src/rtl/eth/link_monitor.v:212-221`），lane23 是像素域真正在用的缩放
+lane0~9 是链路健康计数（`src/rtl/eth/link_monitor.v:184-193`），lane23 是像素域真正在用的缩放
 状态，lane24~29 是时延快照，lane30 是仲裁输入，lane31 是 ETH 时基健康（`system_top.v:233-242`）。
 `lat_arm` 就是"lane 指到 25"这一拍，用来把五个时延字同时抄进一份自洽快照（`system_top.v:232`）。
 
