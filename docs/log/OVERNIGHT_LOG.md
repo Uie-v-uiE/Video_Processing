@@ -5962,6 +5962,9 @@ E1/E2 全绿。所以那次的差 1 不在硬件里，是**我的判据读了 `s
    `fill` → `th 8` → `pipe 000100000` → `split 31` → `split marker 1`：黑线在不在、宽度跟不跟 zoom 走；
    再 `src 0` → `split 50` → `split marker 0`：换到原图那一路看同一条位置。
    如果 `split marker 0` 之后那条竖线消失 ⇒ 它是缝标记（我 `SPLIT 20` 那次就误判过，#100 记着），不是数据通路缺陷。
+   **这些命令的语法不是我猜的**：`src 0`、`pipe 000100000`、`split marker 0`/`split marker 1`、`split 50`
+   都在这板子今晚跑过的那 100 条里（逐条 ok，`build/evidence/r86_board_warm.txt`）；
+   `fill` 是 `docs/COMMANDS.md:127` 那条"PS 直接写一张四色诊断帧"，`th 8` / `split 31` 与电池里的 `th 80` / `split 50` 同型。
 ② **#118/#126 那一格**：上电默认（自动呼吸 `zman=0`）与文档/演示默认档（手动 1.00× `zman=1`）不一致。
    三个选项写在 `ISSUES #126` 里（改上电默认 / 电池末尾加 `zoom auto` / 操作规程里写明"跑电池前先 `zoom 1.0`"）。
    我今晚一个都没动：改哪个都在改演示契约，那是你的那一格。
