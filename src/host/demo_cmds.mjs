@@ -16,7 +16,7 @@ import { readFileSync, writeFileSync } from 'node:fs';
 import path from 'node:path';
 
 const ROOT = path.resolve(import.meta.dirname, '..', '..');
-const DOC = path.join(ROOT, 'report', 'DEMO_SCRIPT.md');
+const DOC = path.join(ROOT, 'docs', 'DEMO_SCRIPT.md');
 const PC_SIDE = /^(run_sender|node |bash |powershell|md5sum|xsdb|vivado|%)/i;
 
 export function extract() {

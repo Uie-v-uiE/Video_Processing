@@ -54,7 +54,7 @@ const NO_WRITE = 0xDEAD;            // 被改过就说明"拒了还写寄存器"
  * （位号一律从 RTL 抠，见 A 组）。RTL 换中文名或固件换宏名就改这里；改错了会由 A 组报出来。 */
 const ZH2EN = {
   '灰度': 'gray', '反色': 'invert', '3×3 模糊': 'blur', '3×3 锐化': 'sharpen',
-  'Sobel': 'sobel', '二值化': 'binary', '二值化判决反相': 'bin_pol', '腐蚀': 'erode', '膨胀': 'dilate',
+  'Sobel': 'sobel', '二值化': 'binary', '判决反相': 'bin_pol', '腐蚀': 'erode', '膨胀': 'dilate',
 };
 const MACRO2EN = {
   SEL_GRAY: 'gray', SEL_INVERT: 'invert', SEL_BLUR: 'blur', SEL_SHARP: 'sharpen', SEL_SOBEL: 'sobel',
