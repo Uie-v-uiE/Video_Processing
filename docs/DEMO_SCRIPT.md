@@ -6,8 +6,11 @@
 > 每幕四件事：**前置 → 敲什么 → 看见什么算过 → 每一个"不通过"分别说明什么**。全套约 6 分钟；
 > 时间不够只演第 1、2、3 幕（那三样就是项目名里的东西）。
 > **顺序上唯一不许动的是第 9 幕（拔卡）排在收尾 `stat` 之后**：它要一只手，而插回前那几秒屏上没有 SD 这一路。
-> 台上不要说三件事：`osd on|off`（语法收了、硬件没接，`main.c:1204`）、"设成某个绝对角度"（`rot <数字>` 有意
-> 不做，`main.c:1042`；要停角度只有板上 KEY1/KEY2 每按一次 ±1°）、任何"AI/识别/深度学习"字眼（一个都没有）。
+> 台上不要说两件事："设成某个绝对角度"（`rot <数字>` 有意不做，`main.c:1042`；要停角度只有板上 KEY1/KEY2
+> 每按一次 ±1°）、任何"AI/识别/深度学习"字眼（一个都没有）。
+> `osd on|off` 从 **r83 起是活的**（`gpio_o[20]` **反相**，1 = 关掉叠层）：拍屏或逐像素比对前把五行字关掉、
+> `osd on` 立刻回来。这一对可以现场演，凭据三处：`sim/tb_osd_lines.v` 的 T13（关掉逐位等于背景）、
+> 顶层 `tb_v98` 的 C12pre/C12a（叠字格 ON 看得见、OFF 归零）、串口 `AXI_GPIO` 差正好 `0x100000`。
 > 可复跑的凭据：`sim/tb_v102_src_life.v`、`sim/tb_v100_fit_rot.v`、`sim/tb_v86_pipe_sel.v`、`sim/tb_v98_top_seam.v`（C1/C2/C3）、
 > `sim/tb_v93_split_ctrl.v`、`sim/tb_v101_fb_bilin.v`、`sim/tb_v88_gamma.v`、`sim/tb_link_monitor.v` + `sim/tb_osd_lines.v`、
 > `board/cmd_battery_v81.txt`、`bash build/board_verify.sh --battery --geom`；排练：`node src/host/demo_cmds.mjs --emit` 从本文件的代码块**抽**出脚本 → 逐条发给板子 → `--check <回包>`。
