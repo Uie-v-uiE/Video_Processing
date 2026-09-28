@@ -285,7 +285,7 @@ PS CPU：主循环仅 `uart_poll`，不参与视频搬移。
 - 板级：`node measure_v63.mjs --fps {15,30,60}`，原始输出见
   `data/measured/board_measure_*.txt`。
 
-## 11. 现在板上这一版（r84）的数字，以及还欠的那一项
+## 11. 历史一节：r84 那块（2026-09-29 01:12）的数字——此刻板上跑的已经是 r86，见 §11.2
 
 上面各节都是**按版本留档**的对照，本节只说此刻这块 bit，每个数字指名它出自哪份报告：
 
@@ -326,3 +326,30 @@ PS CPU：主循环仅 `uart_poll`，不参与视频搬移。
 板上那块 r84 位流与这棵树生成的那块只差一个时间戳，所以不必重烧。
 两条用这一轮量出来的诊断也记进本表之外：`ISSUES #120`（线速连灌下 CDC 峰值占用 8191/8192 ⇒ **深度不许降**）
 与 `ISSUES #121`（同一族最差路径 **6 级逻辑 / route 71 %** ⇒ #105 的杠杆应从"改算术"改向"把路径变短"）。
+
+### 11.2 此刻板上这一版（r86，2026-09-29 05:39）：`#124` 那一刀切断了它瞄准的那一族，WNS 却没有转正
+
+这一版比 r85 只多一件事：`link_monitor` 两个诊断计数器的使能改喂"事件寄存一拍"（`ISSUES #124`，
+判据是 `tb_link_monitor` 的 E1/E2 精确计数 + 变异对照）。每个数字指名出处：
+
+| 项 | r85 | **r86（板上这块）** | 出处 |
+|---|---|---|---|
+| 位流 / PS 应用 | `b2a36ac5…` / `a992736e…` | **`2b7e11e27e70`（05:38）/ `b9f6966dcf72`（05:36，带 `[TEMP]` 负号修复）** | `build/evidence/r86_artifact_md5.txt`；下板凭据 `build/r86_flash_2_program.txt` 里的 `PROGRAMMED xc7z020_1 <- …/build/system.bit` |
+| 建立时间 | WNS −0.094 / TNS −0.747 / 失败端点 **16** | WNS **−0.135** / TNS **−0.243** / 失败端点 **2**（共 50885） | `build/evidence/r86_timing_summary.rpt` 05:39:17 |
+| 保持 / 脉宽 | +0.056 / 0；WPWS +0.264 | **+0.053 / 0；WPWS +0.264** | 同上 |
+| 最差那一族 | `u_cdc/wbin_reg[0] → u_lm/drop_words_reg[20..27]/CE`（6 级，route 71 %） | **`u_cdc/wbin_reg[3] → u_cdc/mem_reg_N/ENARDEN`（7 级）**——`drop_words/CE` 那一族**整族从最差表里消失** | `build/evidence/r86_crit_paths.txt` |
+| BRAM / LUT(逻辑+记忆) / FF / DSP | 95 / 10173+4187 / 8073 / 19 | **95（67.86 %）/ 10171+4187 / 8075 / 19** | `build/evidence/r86_utilization.rpt` |
+| 功耗（**工具估算，非实测**） | 2.382 W（动态 2.205 + 静态 0.177），估算结温 52.5 °C | **同一组数**（2.382 W / 52.5 °C，05:39 重算） | `build/power.rpt` |
+| 方法学 | multi-driven 0、位宽告警 0 | **multi-driven 0、位宽告警 0** | `build/multi_driven.txt`、`build/width_warnings.txt`、`build/r86_build_console.txt` |
+| `Synth 8-7137`（"set 与 reset 同优先级"）告警条数 | 19（都在厂商 `icmp_tx`/`udp_tx` 的 `ip_head_reg` 上） | **21**——多出来的两条就是这一刀新加的 `drop_ev_d`/`cdc_rise_d`（它们没进那个 always 块的复位清单） | `build/r85_build_console.txt` 对 `build/r86_build_console.txt` 各 `grep -c "8-7137"` |
+| 板侧机器验收 | 暖态 PASS | **两跑：冷态 1 红（`zman` 初 0 ≠ 末 1，其余十格逐字符相同）→ 暖态 0 红、100 条全 ok / 93.2 s** | `build/evidence/r86_board_cold.txt`、`r86_board_warm.txt`（合起来就是 `ISSUES #126`，也就是 `#118` 那笔账第一次被量出来） |
+
+**这一版该怎么评价（一句都不许夸大）**：
+① 那一刀**对它瞄准的对象有效**——失败端点 16 → 2、TNS −0.747 → −0.243，方向与机制都对；
+② 但**"WNS 转正"没有实现**：最差换成了同一片 `u_cdc` 邻域里的兄弟路（BRAM 写使能），
+而这条路的 slack 在两次构建之间从 +0.341（隔离那一跑）摆到 −0.135（正式这一跑）⇒
+**0.4 ns 量级的布局摆动**，本仓早就写明"WNS 的绝对差不能当收益"，今天应验的是它的对称面：
+**也不能当损失**。所以 `ISSUES #124` 里那句"采纳后门禁第 14 项与冻结都会跟着绿"由我收回；
+③ 门禁因此**仍未全绿**（第 14 项时序 + 第 15 项 C5c），`doc_currency_check` 认的最新全绿冻结集**还是 r75**；
+④ 下一刀的候选形状已经写进 `#124` 补充那一节（把 `dc_fifo` 的写使能寄存一拍），
+但它动的不再是仪表而是数据通路，必须先在 `tb_v6_ingress_integrity` 的整屏逐字节判据上证——那一轮没排进今晚。

@@ -5454,6 +5454,13 @@ WNS 转正后**门禁第 14 项与冻结**都会跟着绿。
    必须先有 `tb_v6_ingress_integrity` 那条"逐字节到齐"的整屏判据来判（今天 #120 已经给它加了峰值占用探针）。
    **今晚不做**：它要一次 RTL 改动 + 一整轮构建 + 顶层台架重跑，而现在 05:51，
    正在跑的那一趟 `tb_v98_top_seam` 是这一版能被采纳成凭据的唯一一份顶层台架凭据。
+4. **这一刀还多付了一条我没预想到的代价（说清楚，别藏）**：`Synth 8-7137`
+   （"Register has both Set and reset with same priority"）从 **19 条变成 21 条**——
+   多出来的两条正是新加的 `drop_ev_d`/`cdc_rise_d`，因为它们**没写进那个异步复位 always 块的复位清单**。
+   基线那 19 条都在厂商 `icmp_tx`/`udp_tx` 的 `ip_head_reg` 上（`build/r85_build_console.txt` 对
+   `build/r86_build_console.txt`，各 `grep -c "8-7137"` 数出来）。
+   修法是一行（复位清单里补 `drop_ev_d<=0; cdc_rise_d<=0;`），**但它现在不能做**：动 `src/rtl` 就等于
+   把正在跑的那份顶层台架报告的 `rtl_md5` 作废（#123 的机制）。下一轮第一件事就是这一行 + 重新数一次条数。
 
 **门禁与冻结的口径不变**：r86 仍有一条红（WNS 项 + 第 15 项 C5c），所以最新全绿冻结集仍是 **r75**；
 但 r86 比 r85 近的这不是一点点——`docs/PERF_REPORT.md` §11 与 `docs/OPTIMIZATION_LOG.md` 都按上面的表改口。
