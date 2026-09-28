@@ -1,10 +1,8 @@
 `timescale 1ns/1ps
-// V8-6：链路内时延打点 —— "一帧提交"到"这一帧开始被扫描"过了多久，分三段量（成因完全不同，合起来报等于没报）：
-//   c1 = commit→copy_start  等显示消隐窗口（frame_commit_lock 故意等到 quiet 才搬）
-//   c2 = copy_start→copy_done  整帧搬运 DDR→帧缓存（超出消隐窗口就是 copy_overrun）
-//   c3 = copy_done→显示帧起始  搬完还要等扫描轮到它        tot = commit→显示帧起始 = c1+c2+c3
-// 时钟域：axi_clk 100 MHz。唯一跨域的是像素域的"显示帧起始"，按本仓库规矩**只以翻转位**过来、过 3 级
-//   ASYNC_REG 再检边沿（脉冲跨域会被吃掉 —— #36；一级 prev 的浅同步是白送边沿 —— #52）。
+// frame_latency：把"一帧提交 → 这一帧开始被扫描"分成三段量（c1 commit→copy_start、c2 copy_start→copy_done、
+//   c3 copy_done→显示帧起始），输出三段拍数、tot=c1+c2+c3、历轮 max、轮数 n_meas 与粘滞 clamped。
+// 口径：只量 PL 内部；c3 的分辨率是一个显示帧 ⇒ 报数带 ±1 帧；输出一律是 **axi 拍数**，换算在读的那一侧做。
+// 时钟域：axi_clk 100 MHz 单域；跨进来的只有像素域的"显示帧起始"翻转位 disp_sof_tgl。
 module frame_latency (
     input  wire        axi_clk,
     input  wire        axi_rst_n,
@@ -13,16 +11,16 @@ module frame_latency (
     input  wire        copy_done,     // 搬运完成（axi 域脉冲）
     input  wire        disp_sof_tgl,  // 显示帧起始，**像素域转过来的翻转位**
     input  wire        arm,           // 抄快照：lane 选择指到 25 的那一拍
-    output reg  [31:0] c1_cyc,
-    output reg  [31:0] c2_cyc,
+    output reg  [31:0] c1_cyc,        // commit→copy_start：等显示消隐窗口（frame_commit_lock 故意等到 quiet 才搬）
+    output reg  [31:0] c2_cyc,        // copy_start→copy_done：整帧搬运 DDR→帧缓存（超出消隐窗口就是 copy_overrun）
     output reg  [31:0] tot_cyc,       // = c1+c2+c3（同一次配对里由拍号直接减出）
-    output reg  [31:0] max_cyc,       // 历轮 tot 的最大值 —— 演示时念的就是这个
+    output reg  [31:0] max_cyc,       // 历轮 tot 的最大值
     output reg  [15:0] n_meas,        // 完整走完一轮的次数（0 ⇒ 还没量到，读数别念）
     output reg         clamped,       // 粘滞：发生过"倒挂/超长"⇒ 本会话的读数只能当**下界**
-    // ---- 同一轮的五口快照（读回口只接这一组）—— ISSUES #59 ----
-    // 不能"五个各读各的"：这些寄存器每轮（推流时约 9~60 次/秒）都在换，上位机逐 lane 读要几毫秒 ⇒
-    // 来自不同轮是完全正常的。r50 板级实测 11 组读数里 4 组破坏恒等式 `tot ≥ c1+c2`（build/lat_tearing_r50.txt），
-    // 而 RTL 里 `t_start ≤ t_done ≤ cyc` 是构造性成立的 ⇒ **错的是读法，不是硬件**。
+    // 同一轮的五口快照（读回口只接这一组）：
+    // 这些寄存器每轮（推流时约 9~60 次/秒）都在换，上位机逐 lane 各读各的要几毫秒 ⇒ 读到跨轮的五个值是
+    // 完全正常的（板级实测 11 组读数里 4 组破坏恒等式 `tot ≥ c1+c2`，而 RTL 里 `t_start ≤ t_done ≤ cyc`
+    // 是构造性成立的 ⇒ 错的是读法，不是硬件）。
     // `arm` 为真的那一拍把五口**同时**抄走；它与 live 更新撞在同一拍也仍是同一轮的五个值 ⇒ 恒等式照样成立。
     // `arm` 由 `system_top` 用"lane 选择 == 25"生成（读这一组的第一个就是 25 ⇒ 天然先武装再读其余）。
     output reg  [31:0] q_c1,
@@ -31,7 +29,7 @@ module frame_latency (
     output reg  [31:0] q_max,
     output reg  [31:0] q_stat,        // { n_meas[15:0], 15'd0, clamped }
     output reg  [31:0] q_ms,          // lane24：{14'd0, pair_ok, 本轮 sticky, ms[15:0]}
-    // ---- V8-5：给 OSD 的那一口（axi 域算好 ms，再按翻转位跨到像素域）----
+    // 给 OSD 的那一口（axi 域算好 ms，再按翻转位跨到像素域）
     output reg  [15:0] lat_ms,        // 最近一轮 tot 换算成 ms，饱和 9999
     output reg         lat_valid,     // 至少完成过一次换算（0 ⇒ OSD 画 `--`）
     output reg         lat_sticky,    // 这一轮的数不可信（配对被钳位过）⇒ OSD 也要画 `--`
@@ -41,13 +39,13 @@ module frame_latency (
 
     // 口径：量的是 PL 内部（提交之后），上位机编码/网线/交换机排队一概不知道 ⇒ 对外只能叫
     // "链路内时延（PL 侧）"，不许叫端到端；c3 的分辨率是一个显示帧（60 Hz ⇒ 16.7 ms）⇒ 报数带 **±1 帧**。
-    // ⚠ 输出全是 **axi 拍数**，不在这里换算成时间：第一版（r49）在这儿除以 100 换 µs，除数不是 2 的幂
-    // ⇒ 综合架出一条组合除法器挂在 100 MHz 域，WNS −5.014 ns / 96 个失败端点（门禁拦下，见 ISSUES #58）。
-    // 换算属于"读的人那一侧"：`src/host/health_read.mjs` 一个常量（100 MHz ⇒ 1 拍 = 10 ns）做完。
+    // ⚠ 输出全是 **axi 拍数**，不在这里换算成时间：除数 100 不是 2 的幂 ⇒ 综合架出一条组合除法器挂在
+    //   100 MHz 域，实测 WNS −5.014 ns / 96 个失败端点。换算属于"读的人那一侧"：
+    //   `src/host/health_read.mjs` 一个常量（100 MHz ⇒ 1 拍 = 10 ns）做完。
     reg [31:0] cyc;                       // 自由跑的拍号（32 bit @100 MHz ≈ 43 s 一圈）
     reg [31:0] t_commit, t_start, t_done;
     reg        have_commit, have_start, have_done;
-    reg        drun;                    // 除法在跑（下面 lane24 的快照与 T13 都要读它 ⇒ 声明提前）
+    reg        drun;                    // 除法在跑（lane24 的快照要读它 ⇒ 声明提前）
     (* ASYNC_REG = "TRUE" *) reg [2:0] sof_sync;
     wire disp_edge = sof_sync[1] ^ sof_sync[2];
 
@@ -81,7 +79,7 @@ module frame_latency (
             q_ms <= 32'd0;
         end else begin
             cyc <= cyc + 32'd1;
-            // 快照：五口在**同一拍**抄走 ⇒ 任何时刻读到的这一组都来自同一轮（#59）。
+            // 快照：五口在**同一拍**抄走 ⇒ 任何时刻读到的这一组都来自同一轮。
             if (arm) begin
                 q_c1   <= c1_cyc;
                 q_c2   <= c2_cyc;
@@ -89,14 +87,13 @@ module frame_latency (
                 q_max  <= max_cyc;
                 q_stat <= { n_meas, 15'd0, clamped };
                 // 第六口（lane24）：**与上面 q_tot 同一轮**的毫秒数，位序 {14'd0, pair_ok, 本轮 sticky, ms[15:0]}。
-                // 为什么不直接把 live 的 lat_ms 给 lane24：lat_ms 是"最近一轮除完的商"、tot_cyc 是"最近一轮的
-                // 拍数"，正常同轮，但**除法要 32 拍** —— arm 落在这 32 拍里时商还是上一轮的 ⇒ 跟这一轮的 q_tot
-                // 比就会假红。所以把"这一对到底是不是一轮"(pair_ok=~drun) 一起抄下来，脚本见 valid=0 就当没这条。
+                // 不直接取 live 的 lat_ms：**除法要 32 拍**，arm 落在这 32 拍里时商还是上一轮的 ⇒ 跟这一轮的
+                // q_tot 比就不是同一轮。所以把"这一对到底是不是一轮"(pair_ok=~drun) 一起抄进位段里。
                 q_ms   <= { 14'd0, ~drun, lat_sticky, (drun ? 16'd0 : lat_ms) };
             end
-            sof_sync <= {sof_sync[1:0], disp_sof_tgl};   // 三级：一级采样、一级稳定、一级给异或
+            sof_sync <= {sof_sync[1:0], disp_sof_tgl};   // 三级：一级采样、一级稳定、一级给异或（脉冲直接跨域会被吃掉）
 
-            // ---- 三个 axi 域事件：只锁拍号，不在这里算账 ----
+            // 三个 axi 域事件：只锁拍号，不在这里算账
             if (commit) begin
                 // 新的一轮：清掉上一轮没配对完的标记 ⇒ 晚到的旧事件凑不出一轮。
                 // （commit_lock 里有 pending 串行化，正常走不到；这条防的是"异常时序下报假数"）
@@ -114,18 +111,16 @@ module frame_latency (
                 have_done  <= 1'b1;
             end
 
-            // ---- 一轮收尾：显示帧起始到了（同步链晚 2 拍 = 20 ns，相对 ±1 帧的口径可忽略），
-            //      且这一帧确实搬完过 ----
+            // 一轮收尾：显示帧起始到了（同步链晚 2 拍 = 20 ns，相对 ±1 帧的口径可忽略），且这一帧确实搬完过
             if (disp_edge && have_done) begin
                 c1_cyc  <= diff(t_start, t_commit);
                 c2_cyc  <= diff(t_done,  t_start);
                 // tot 由"首尾两个拍号"直接减，而不是把三段加起来：
                 // 加法会把三段的 CLAMP 传染成看不懂的数，而这里要的是"这一帧总共等了多久"。
-                // 台架 tb_v90 的 T2d 钉 tot == c1+c2+c3（在未钳位时），钳位时那一段单独判。
+                // 未钳位时 tot == c1+c2+c3；钳位时那一段单独判。
                 tot_cyc <= tot_new;
                 // max 只认真读数：**钳位的那一轮不许污染 max** ——
                 // 否则一次时序倒挂会把 max 永远钉在 0xFFFFFFFF，"最大时延"就再也读不出来了
-                // （这是 tb_v90 的 T7 逼出来的，不是先想到再写的）。
                 if (tot_new !== CLAMP && tot_new > max_cyc)
                     max_cyc <= tot_new;
                 if ((diff(t_start, t_commit) === CLAMP) ||
@@ -137,9 +132,9 @@ module frame_latency (
         end
     end
 
-    // 拍数 → ms：32 步"移位-减"的逐次除法（V8-5）。
+    // 拍数 → ms：32 步"移位-减"的逐次除法。
     // 为什么不在 OSD 里除：OSD 在**像素域**（50 MHz），`chars[]` 那一片是全工程组合链最深的一段，
-    // #58 那条 −5.014 的教训就是"在快域里搭组合除法器"。这里改成 axi 域一轮一次的时序除法：
+    // 在快域里搭组合除法器的代价就是上面那条 −5.014 ns。这里改成 axi 域一轮一次的时序除法：
     // 32 拍 = 320 ns，相对一轮之间至少一帧（100 万拍）可忽略；而且**除完才写 lat_ms** ⇒ OSD 看到的
     // 永远是完整稳定的数（配 lat_tog 走 snap_cross，两帧之间不会变）。
     localparam [16:0] DIV_MS = 17'd100_000;         // 100 MHz ⇒ 1 ms = 100000 拍
@@ -173,10 +168,8 @@ module frame_latency (
                 if (dstep == 6'd31) begin
                     drun <= 1'b0;
                     // 最后一位的 `take` 是**本拍**算出来的，非阻塞赋值还来不及进 quo ⇒
-                    // 收尾必须用 q_final，不能用 quo（差 1 ms，而且差在"看起来对"的那一位上，
-                    // 台架不加独立期望值就发现不了）。
-                    // 饱和而不回卷：回卷到 0 会被读成"没有时延"，那是这块屏最不该撒的谎
-                    // （同 osd 的 DROP/STALL 那一套）。
+                    // 收尾必须用 q_final，不能用 quo（差 1 ms，而且差在"看起来对"的那一位上）。
+                    // 饱和而不回卷：回卷到 0 会被读成"没有时延"。
                     lat_ms    <= (q_final > 32'd9999) ? 16'd9999 : q_final[15:0];
                     lat_valid <= 1'b1;
                     // 这一轮自己钳位过 ⇒ 屏上宁可不画。`clamped` 是粘滞的（整个会话的账），

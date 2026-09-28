@@ -1,10 +1,7 @@
 `timescale 1ns/1ps
-// tb_link_monitor — V7.6 (P0-A) 链路健康自诊断引擎的验收。跑法：bash sim/run_one.sh tb_link_monitor
-// 四条必须成立、**不成立就会误报平安**的性质：
-//   A 反例判据：挡住 CDC 写口（fifo_full 拉住）⇒ drop_words 必须非 0；反向没有 full 时必须恒 0，否则这数字是噪声。
-//   B 缺一个**中间包**（最后一个包到了、行没凑齐）⇒ frame_abort 恰好一次、rows_missed=1，并出现在快照 lane1/lane2 里。
-//   C 断流之后快照必须**继续刷新**，否则 stall_ms 冻在最后一个值上，OSD 会把"线被拔了"显示成"一切正常"。
-//   D 第一个 frame_done 只建立基准，不得把"上电到现在"当成帧间隔写进 min/max。外加 snap_cross 两条：跨域取到完整快照（不撕裂）、心跳停了要报。
+// tb_link_monitor —— 例化 frame_reasm + link_monitor（测试时基一份，再用生产 CLK_HZ=125e6 例第二份只问 ms_tick）+ snap_cross，验链路健康自诊断**不误报平安**：丢字、断包、断流、帧间隔、心跳，每一条都要看得见。
+// 判据索引：A 反例（挡住 CDC 写口 ⇒ drop_words 必须非 0；没有 full 时必须恒 0，否则这数字是噪声）· B/B2/B3（两帧正常提交；发布与统计寄存器**分家**判——B2 红=算术坏了、B 红 B2 绿=发布路径坏了，B2-mut 是它自己的反例；缺一个中间包 ⇒ frame_abort 恰好一次、rows_missed=1 并进快照 lane1/lane2；坏包那条上板恒 0 的路）· C 断流后快照必须继续刷新（否则 stall_ms 冻住，OSD 把"线被拔了"显示成"一切正常"）· D 第一个 frame_done 只建立基准，不许把"上电到现在"写进 min/max · E 长间隔饱和 0xFFFF 不许回卷 · F gapclr 只清帧间隔统计、别的计数不动 · snap_cross 不撕裂 + hb_slow（拔线时钟退化工况）+ hb_gone。每条期望值写在各字母段的判行上。
+// 跑法：bash sim/run_one.sh tb_link_monitor
 module tb_link_monitor;
     localparam integer IMG_W = 8, IMG_H = 4, FRAME_BYTES = 64, PAY = 16;
     localparam integer PKTS  = FRAME_BYTES / PAY;   // 4
