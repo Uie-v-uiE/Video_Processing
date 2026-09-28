@@ -122,8 +122,9 @@ V7 的老写法（`SRC0` `TH80` `ZOOM1` `BILIN1` `FRAME12`）仍然收；裸五�
 
 | 脚本 | 一句话 | 被谁调用 |
 |------|--------|----------|
-| `doc_enc_check.mjs` | 所有 md 必须 UTF-8 无 BOM、无 CR 混排 | `build/gates.sh` |
+| `doc_enc_check.mjs` | 手写文件（`.md .v .c .h .mjs .sh .ps1 .tcl`，范围 `docs/board/src/sim/tools/build/tcl` **与 `skill/`**——后者是 2026-09-29 补进来的，之前那 29 个给评委读的文件从没被扫过）必须 UTF-8 无 BOM、无 CR 混排、无替换符/私用区 | `build/gates.sh` |
 | `doc_currency_check.mjs` | 文档里点名的 `build/frozen_rNN/` 必须盘上真有、旧编号不许写成"当前默认" | `build/gates.sh` |
+| `line_cite_check.mjs` | 交付文档里的 `文件.v:NNN` 引用：硬错=文件不在树里 / 行号越过文件末尾（决定退出码）；"锚点不在那几行"只列候选不判红（`--self` 是 #122 那个真实事故） | **暂时不在门禁里**——注册之前要先给它一条能红的对照，见 `ISSUES #122` 收口段；今晚用它把 7 处硬错清零 |
 | `demo_cmds.mjs` | 演示脚本里的命令块逐条对固件解析器（不碰板子） | `build/gates.sh` |
 | `ps_hb_check.mjs` | 不碰板子：从固件源码原文抠出"PS 心跳/`ps_hold` 那一半"必须同时成立的事实逐条钉；`--self` 用四条变异证明它会红 | `build/gates.sh` |
 | `uart_cmd_check.mjs` | §5 那条命令电池 | `build/board_verify.sh` |
