@@ -29,8 +29,12 @@ else
 fi
 {
     echo "# provenance top_md5=$TOP tb_md5=$TB rtl_md5=$RTL date=$WHEN src=$SRC"
-    grep -a "^\(PASS \|FAIL \|RESULT \|C2 table\|C2 row\|C2BLK\|C2SHAPE\|C2IBAD\|C4 \|C4RUN \|P1 \|INFO \)" "$SRC"
+    grep -a "^\(PASS \|FAIL \|RESULT \|C2 table\|C2 row\|C2BLK\|C2SHAPE\|C2IBAD\|C4 \|C4RUN \|C9\|P1 \|INFO \)" "$SRC"
 } > "$OUT"
+# C9 一族（#103 的尺子）的**原始读数行**必须在报告里：`C9a/C9b/C9e` 那三条
+# 判据的绿与红全靠那几个数（窗内整行、de 沿、近黑格、最暗列），只留 PASS 行等于
+# 让下一个人没法复核。以前白名单里没有 C9 ⇒ 报告里只有结论没有数。
+#
 # 空报告不许算绿：跑挂了的台架可能一条 PASS 都没打出来，那时 `RESULT` 那一行也不会有 ⇒
 # 门禁判"必须有 RESULT ... PASS 且没有任何 FAIL 行"，两条都在报告正文上。
 echo "WROTE $OUT  ($(grep -ac '' "$OUT") 行) top_md5=$TOP rtl_md5=$RTL tb_md5=$TB"

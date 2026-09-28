@@ -1495,7 +1495,7 @@ module tb_v98_top_seam;
             if (c9_blk[c9_k] > c9_worst) begin c9_worst = c9_blk[c9_k]; c9_wcol = c9_k; end
             if (c9_blk[c9_k] < c9_best)  begin c9_best  = c9_blk[c9_k]; c9_bcol  = c9_k; end
         end
-        $display("C9  灰度 x 缝=%0d：窗内整行 %0d（de 沿 %0d）、近黑格 %0d || 最暗列 col%0d=%0d 行、最亮列 col%0d=%0d 行 || 缝旁 col%0d=%0d col%0d=%0d col%0d=%0d",
+        $display("C9 gray x seam=%0d: lines-in-window %0d (de-edges %0d) near-black-cells %0d || darkest col%0d=%0d rows, brightest col%0d=%0d rows || at seam col%0d=%0d col%0d=%0d col%0d=%0d",
                  C9_SEAM, c9_burst, c9_rows, c9_any, c9_wcol, c9_worst, c9_bcol, c9_best,
                  C9_SEAM-1, c9_blk[C9_SEAM-1], C9_SEAM, c9_blk[C9_SEAM], C9_SEAM+1, c9_blk[C9_SEAM+1]);
         line("C9pre rows judged", c9_burst >= 550,
@@ -1524,7 +1524,7 @@ module tb_v98_top_seam;
         c9_border = 0;
         for (c9_k = 1; c9_k < 1023; c9_k = c9_k + 1)
             if (c9_blk[c9_k] * 2 >= c9_burst) c9_border = c9_border + 1;
-        $display("C9b 0.50x gray+blur: 窗内整行 %0d（de 沿 %0d）近黑格 %0d || whole-dark columns %0d (border should give ~512)",
+        $display("C9b 0.50x gray+blur: lines-in-window %0d (de-edges %0d) near-black-cells %0d || whole-dark columns %0d (border should give ~512)",
                  c9_burst, c9_rows, c9_any, c9_border);
         line("C9bpre rows judged", c9_burst >= 550,
              "the control window must have judged nearly a whole frame, else C9b means nothing");
@@ -1559,7 +1559,7 @@ module tb_v98_top_seam;
         c9_worst = 0; c9_wcol = -1;
         for (c9_k = 1; c9_k < 1023; c9_k = c9_k + 1)
             if (c9_blk[c9_k] > c9_worst) begin c9_worst = c9_blk[c9_k]; c9_wcol = c9_k; end
-        $display("C9e full-processed x 1.5x x gray: 窗内整行 %0d（de 沿 %0d）px %0d near-black %0d || darkest col %0d = %0d rows",
+        $display("C9e full-processed x 1.5x x gray: lines-in-window %0d (de-edges %0d) px %0d near-black %0d || darkest col %0d = %0d rows",
                  c9_burst, c9_rows, c9_px, c9_any, c9_wcol, c9_worst);
         line("C9epre rows judged", c9_burst >= 550,
              "this window must have judged nearly the whole frame, else C9e below is a green on an empty set");
