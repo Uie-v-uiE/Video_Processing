@@ -3,7 +3,7 @@
 这里放的是**方法**，不是 FPGA 教材，也不是本项目的说明书。留下它的标准只有一条：
 另一支队伍、另一块板、另一个题目，明天就能照它做一遍，并且做完能省掉一次真实的错误。
 
-**目录里现在有 21 项编号条目**（S1…S23，空号 S3、S6），加一份给智能体直接加载的 `SKILL.md`。
+**目录里现在有 24 项编号条目**（S1…S23，空号 S3、S6），加一份给智能体直接加载的 `SKILL.md`。
 分四组：A 工作流 / B 可抄的骨架 / C 校验脚本（**C 组不占条目，它只有脚本**）/ D 技术踩坑。
 **这一句是全仓库唯一写条目数的地方**，别处（README、清单、文档地图）只指路、不抄数——抄了就会漂。
 
@@ -158,6 +158,9 @@
   `always @(*)` 看不见只在 `task`/`function` 里读的信号：仿真少算一次更新、综合照建方程，屏上是真错标签。
   用法：信号当入参传进去；判据必须**差分**写。凭据：`docs/log/OVERNIGHT_LOG.md` §33
   （`sim/tb_osd_lines.v` T3 第一次跑就抓住）。失效：只抽一个代表状态的判据抓不到。
+- **[S24 sim_hw_divergence_array_writes.md](sim_hw_divergence_array_writes.md)** —— 屏上一根钉死在固定列的黑线、内容无关、仿真全绿：查“越界的数组写在 xsim 被丢掉、在硬件里按地址位截断”与“从没写过的槽”，两条判据都要配复位时的对照。
+- **[S25 ab_revert_control_run.md](ab_revert_control_run.md)** —— 改完红了一批、而上一份冻结报告是绿的：把改动存补丁退回未改状态，用**同一版台架**再跑一遍比红名单，再下“是不是我改坏的”的结论。
+- **[S26 switch_feature_two_level_evidence.md](switch_feature_two_level_evidence.md)** —— 加“开关”类功能要两级证据：模块内关掉逐位等于背景（背景不许取全黑），顶层在引脚上数一个只有这条链能产生的特征（证明接线真的通）。
 - **[S22 bench_verilog_subset.md](bench_verilog_subset.md)** —— xsim/`xvlog` 的 Verilog-2001 子集与
   `$display` 格式化子集会怎么骗你：`real'()`/`join_any`/无参 function、非 ASCII 经过定宽向量会掉 bit7、
   `%+d` 会把后面所有参数对位带歪、`integer` 与无符号 net 比较时 −1 哨兵永不成立，
