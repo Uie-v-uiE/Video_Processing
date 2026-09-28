@@ -126,7 +126,7 @@
 | `src/host/health_read.mjs` | `node src/host/health_read.mjs [--json] [--gapclr]` | 从 PS 侧经 GPIO 读 PL 的链路健康快照 | 帧间隔类指标测之前必须先 `--gapclr`；`hb_slow=1` 时 ms 全是周期数不是毫秒（S7） |
 | `src/host/arb_handover_test.mjs` | `node src/host/arb_handover_test.mjs [--selftest]` | 无人值守的仲裁交接：自己开关推流，输出七条 PASS/FAIL 与停流后交回用时 | 测前会 `STAT`、在放就先 `STOP`；它红而门禁绿 ⇒ 先看模式是不是被钉住（S20 第六签名） |
 | `src/host/geom_check.mjs` · `ps_hb_check.mjs` · `uart_cmd_check.mjs` · `pipe_len_check.mjs` · `temp_formula_check.mjs` | 各自带 `--self` 或 `--selftest` | 分别钉：几何最后一跳、心跳约定、命令电池、控制字长度口径、定点换算 | 这些都不碰板子（`uart_cmd_check` 除外），红了不需要接硬件就能复现 |
-| `src/host/ddr_verify.mjs` → `ddr_stale.mjs` · `ddr_holemap.mjs` | 先回读再分析；一站式用 `measure_v63.mjs --fps N` | 回读两个乒乓 bank、反解帧号、包内相位分带、最长连续丢字带 | 必须**停流之后**再读（边推边读统计全废，S9） |
+| `ddr_verify.mjs` → `ddr_stale.mjs` · `ddr_holemap.mjs` | 先回读再分析；一站式用 `measure_v63.mjs --fps N` | 回读两个乒乓 bank、反解帧号、包内相位分带、最长连续丢字带 | 必须**停流之后**再读（边推边读统计全废，S9） |
 | `src/host/demo_cmds.mjs` · `build/_scan_align.mjs` | `--emit` 或 `--check` / 传镜像路径 | 讲稿抽命令与回包对账、扫 ELF 里非对齐字访问 | 与硬件无关的解析类红：先跑它们的自检 |
 
 ## D 踩坑清单 —— 技术类条目，四组
@@ -168,7 +168,7 @@
 ### D3 上板与取证
 
 - **[S8 zynq-video-rtl-debug/SKILL.md](zynq-video-rtl-debug/SKILL.md)** —— 上板不亮/画面异常的分层定位 L0–L4，
-  每层给真实入口与判据。凭据：`build/evidence/r80_flash.log`、`build/evidence/verify_0927_2309.txt`
+  每层给真实入口与判据。凭据：`build/evidence/verify_0927_2309.txt`
   （`board_verify.sh` 退出码 0）。失效：无 JTAG、无第二网口、画质类问题（那一半在 S23）。
 - **[S7 board_eth_uart.md](board_eth_uart.md)** —— 双网口板的连线/绑源地址/COM 号重扫/下 bit 后 PS 必重起；
   两颗 FT2232 同序列号时只有一块可见。凭据：`docs/log/OVERNIGHT_LOG.md` §11 与 §「L4 尝试」
