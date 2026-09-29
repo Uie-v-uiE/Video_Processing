@@ -1,8 +1,11 @@
 # r87 全功能验收单（每条：命令 → 该看见什么 → 看不见的時候说明什么）
 
 板上是 **r87**：bit `1818ce4be15e` / elf `86c4a0ccc1a0`（认 md5 不认文件名：
-`certutil -hashfile buildsystem.bit MD5`）。这一版与 r86 的差别只有四件：`link_monitor` 两个事件寄存器进复位、
+`certutil -hashfile build/system.bit MD5`）。这一版与 r86 的差别只有四件：`link_monitor` 两个事件寄存器进复位、
 `osd_overlay` 的读地址起了一根线、四个模块文件头、**上电默认改成手动 1.00×**（第 1、9 条就是验它）。
+
+> 分工：这份是**这一版（r87）的快速过一遍**（36 条，按屏上看得见的效果排）；每条的深挖四要素配方在
+> `board/HANDS_ON.md`（31 行长清单）。两边不一致时以 HANDS_ON 的凭据为准，并把这份补上。
 
 ## 怎么发命令（先看清，否则会得到假结果）
 
