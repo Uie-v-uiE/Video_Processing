@@ -79,8 +79,10 @@ if [ -d docs ]; then
     for f in docs/log/*.md; do if [ -f "$f" ]; then mv "$f" "report/log/$(basename "$f")"; fi; done
   fi
   rm -rf docs
+  # `*.csv` 也在改写名单里：`data/metrics.csv` 是"唯一那张数字表"，每行都点名凭据，
+  # 漏改就等于把仓内路径原样搬进包里 ⇒ 评审照表去翻却翻到一个不存在的 `docs/`（D4c 在仓里看得见，在包里看不见）。
   { find . -type f \( -name '*.md' -o -name '*.sh' -o -name '*.tcl' -o -name '*.mjs' -o -name '*.py' \
-      -o -name '*.v' -o -name '*.c' -o -name '*.h' -o -name '*.bat' \) -print; echo README.md; echo README.en.md; } |
+      -o -name '*.v' -o -name '*.c' -o -name '*.h' -o -name '*.bat' -o -name '*.csv' \) -print; echo README.md; echo README.en.md; } |
   while read -r f; do
     if [ -f "$f" ]; then sed -i 's|\.\./docs/|../report/|g; s|docs/log/|report/log/|g; s|docs/|report/|g' "$f"; fi
   done
@@ -280,7 +282,7 @@ DEADLIST="${TMPDIR:-/tmp}/sub_dead_$(basename "$TMP").txt"
 for f in README.md README.en.md report/*.md skill/*.md skill/*/*.md board/*.md sim/*.md build/*.md build/tcl/*.md data/*.csv; do
   if [ -f "$f" ]; then
     d="$(dirname "$f")"
-    grep -oE '(src|sim|build|board|data|skill|report)/[A-Za-z0-9_./-]*[A-Za-z0-9_-]\.[A-Za-z0-9]{1,6}' "$f" 2>/dev/null |
+    grep -oE '(src|sim|build|board|data|skill|report|docs)/[A-Za-z0-9_./-]*[A-Za-z0-9_-]\.[A-Za-z0-9]{1,6}' "$f" 2>/dev/null |
     sort -u | while read -r t; do
       case "$t" in *'*'*|*'<'*|*'$'*|*NN*) continue ;; esac
       case "$t" in *.log|*.out|board/uart_script_capture.txt) continue ;; esac
