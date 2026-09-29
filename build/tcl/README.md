@@ -30,7 +30,7 @@ set VIVADO=<Vivado>\bin\vivado.bat
 | `program_pl.tcl` | 只重编 PL 位流（`ps_app.elf` 不动） |
 | `ps_app_reload.tcl` | 只换 PS app（PL 不动） |
 | `program_system.tcl` / `program_and_check.tcl` | 上面两件的组合 / 带读回检查 |
-| `scan_jtag.tcl` | JTAG 链扫不到时用（DAP 全 0 就是板子侧的事，见 `docs/BUILD.md`） |
+| `scan_jtag.tcl` | JTAG 链扫不到时用（**跑法是 `vivado -mode batch -source build/tcl/scan_jtag.tcl`，不是 xsdb** —— 它用的是 `open_hw_manager`/`open_hw_target` 这套硬件管理命令，xsdb 里不存在，会一头撞上 `invalid command name "open_hw_manager"`）。DAP 全 0 或 `No devices detected` 就是板子侧的事，见 `docs/BUILD.md` |
 | `build/board_verify.sh` | 刷完之后"机器能判的那一半"验收（有 `RESULT … PASS/FAIL nred=` 总判定，#69） |
 
 ⚠ `program_board.tcl` 属 V7 那条纯 PL 流程（下载 `output/video_pipeline.bit`），那个 bit 已从仓库删除
