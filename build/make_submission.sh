@@ -230,7 +230,7 @@ while IFS= read -r f; do
   fi
   if [ -e "$np" ]; then np="build/reports/$(basename "$(dirname "$f")")_$(basename "$base")"; fi
   if [ "$f" != "$np" ]; then mv "$f" "$np"; add_mv "$f" "$np"; fi
-done < <(find build -type f \( -name '*.rpt' -o -name '*.txt' \) 2>/dev/null | grep -v '^./build/reports/' | sort)
+done < <(find build -type f \( -name '*.rpt' -o -name '*.txt' \) 2>/dev/null | grep -v '^./build/reports/' | grep -v '^build/evidence/' | sort)
 
 # 交付文档名小写（§3.3.5.4 字面要求；README/LICENSE/MANIFEST 是指南自己用的大写名，留作例外）
 for f in report/*.md report/log/*.md; do
