@@ -1,0 +1,47 @@
+﻿SENT: stat
+BYTES: 113
+HISTOGRAM (descending by count):
+  0x20 = 17
+  0x65 = 10
+  0x74 = 8
+  0x69 = 7
+  0x6E = 6
+  0x73 = 5
+  0x72 = 5
+  0x6C = 4
+  0x64 = 4
+  0x30 = 4
+  0x6F = 4
+  0x79 = 3
+  0x61 = 3
+  0x70 = 3
+  0x66 = 2
+  0x62 = 2
+  0x29 = 2
+  0x28 = 2
+  0x0D = 2
+  0x75 = 2
+  0x0A = 2
+  0x68 = 2
+  0x44 = 1
+  0x2D = 1
+  0x43 = 1
+  0x21 = 1
+  0x6D = 1
+  0x4D = 1
+  0x5D = 1
+  0x32 = 1
+  0x5B = 1
+  0x2C = 1
+  0x3B = 1
+  0x67 = 1
+  0x3A = 1
+  0x33 = 1
+HIGH-BYTES (>=0x80, i.e. UTF-8 CJK payload) = 0
+SPACES (0x20) = 17
+DECODED AS UTF-8:
+
+[CMD!] dropped 20 trailing byte(s): line unfinished for 3000 ms (residue, not a lost byte; re-type that line)
+
+FIRST 160 BYTES HEX:
+0D 0A 5B 43 4D 44 21 5D 20 64 72 6F 70 70 65 64 20 32 30 20 74 72 61 69 6C 69 6E 67 20 62 79 74 65 28 73 29 3A 20 6C 69 6E 65 20 75 6E 66 69 6E 69 73 68 65 64 20 66 6F 72 20 33 30 30 30 20 6D 73 20 28 72 65 73 69 64 75 65 2C 20 6E 6F 74 20 61 20 6C 6F 73 74 20 62 79 74 65 3B 20 72 65 2D 74 79 70 65 20 74 68 61 74 20 6C 69 6E 65 29 0D 0A

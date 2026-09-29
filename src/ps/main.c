@@ -191,6 +191,10 @@ static u8  cur_bilin = 1;  /* GPIO bit19: 双线性/最近邻 A-B 对照，演�
 static u8  cur_osd   = 1;  /* GPIO bit20（反相）: OSD 叠层开/关。关掉的用处是取证与拍摄 ——
                             * 叠字会盖住画面最左上角那一块，逐像素比对时它是脏的 */
 static u32 pub_lvl = 0;
+/* 板子要不要把你打的字符回显一份。默认 **0 = 不回显**：我们用的 Vitis IDE 串口终端自带本地回显，
+ * 两边都回就成了"打一个 S 看见 SS"（2026-09-29 用户报）。换成没有本地回显的终端（例如 telnet 到
+ * hw_server 的 console）时敲 `echo 1` 打开。这是会话内开关，重新下载固件就回到默认 0。 */
+static u8 cmd_echo = 0;
 static u32 cur_mode_ovr = MODE_AUTO;   /* 0 = 不覆盖（听按键环）；非 0 = 钉住这一路 */
 static u32 mode_tog_lvl = 0;
 /* #94：PS 片源的"我还在"由这两个量撑着 —— 定义与判据见下面 ps_publish / ps_keepalive 那段 */
@@ -1365,6 +1369,19 @@ static int dispatch(char **tk, int nt)
         return 0;
     }
     if (ci_eq(tk[0], "FILL")) { cmd_fill(); return 0; }
+    if (ci_pre(tk[0], "ECHO")) {
+        const char *arg = (nt >= 2) ? tk[1] : tk[0] + 4;   /* ECHO 是 4 个字母 */
+        if (arg[0] == 0) {
+            xil_printf("[ECHO] %s（1 = 板子逐字回显；Vitis 串口终端自带本地回显，所以默认 0）\r\n",
+                       cmd_echo ? "on" : "off");
+            return 0;
+        }
+        if (!strict_int(arg, &v) || (v != 0 && v != 1)) { xil_printf("[ECHO] 只认 0 或 1\r\n"); return 0; }
+        cmd_echo = (u8)v;
+        /* 关掉的这一刻起，你打的字只有终端自己那份了 —— 所以这一句必须回，否则"echo 0"看起来像把串口打死。 */
+        xil_printf("[ECHO] %s（会话内开关；重新下载固件会回到默认 off）\r\n", v ? "on" : "off");
+        return 0;
+    }
     if (ci_pre(tk[0], "AUTOPLAY")) {
         const char *arg = (nt >= 2) ? tk[1] : tk[0] + 8;   /* AUTOPLAY 是 8 个字母 */
         if (!strict_int(arg, &v) || (v != 0 && v != 1)) { xil_printf("[SD] autoplay 要跟 0 或 1\r\n"); return 0; }
@@ -1418,6 +1435,8 @@ static void cmd_help(void)
      * 所以 split 从上面那半行里摘出来 —— 继续留着"待接"就是说谎（#67 同族）。 */
     xil_printf("  分割线: split screen（屏幕里扫）| split video（画面里扫、跟着转）| split 0..100 |"
                " split px | auto | manual | swap 0|1 | follow 0|1 | marker 0|1 | show\r\n");
+    xil_printf("  串口: echo [0|1]（板子回不回显你敲的字符。Vitis IDE 的串口终端自带本地回显 ⇒ 默认 0，"
+               "否则一个字会看见两遍；telnet 到 hw_server 那种没本地回显的再 echo 1）\r\n");
     xil_printf("  旧写法仍可用: SRC0 SRC1 TH80 ZOOM0 ZOOM1 BILIN0 BILIN1 FRAME12"
                "（裸五位已随五位控制退役，给了会回一句等价的九位）\r\n");
 }
@@ -1486,11 +1505,13 @@ static void rx_fill(void)
         if (ch == '\r') ch = '\n';               /* CR 与 CRLF 都只留一个行尾 */
         if (ch == '\n') {
             if (cmd_len > 0) { cmd_buf[cmd_len++] = '\n'; }
-            xil_printf("\r\n");                  /* 回显一个行尾，看不见回车也算一种"没反应" */
+            if (cmd_echo) xil_printf("\r\n");     /* 行尾也回显：看不见回车也算一种"没反应" */
         } else {
             if (cmd_len < CMD_BUF - 1) {
                 cmd_buf[cmd_len++] = (char)ch;
-                XUartPs_SendByte(STDIN_BASEADDRESS, ch);   /* 本地回显：老实现一个字都不回， */
+                /* 逐字回显交给 `echo` 这个开关管：Vitis IDE 的串口终端自带本地回显，两边都回就变成
+                 * "打一个 S 看见 SS"（2026-09-29 用户报）。默认关；没有本地回显的终端自己 `echo 1`。 */
+                if (cmd_echo) XUartPs_SendByte(STDIN_BASEADDRESS, ch);
             } else if (!cmd_toolong) {                     /* 用户只能靠"再发一次"猜有没有收到 */
                 cmd_toolong = 1;
                 xil_printf("\r\n[CMD!] 这行超过 %d 字节，多出来的丢掉（不是没收到，是太长）\r\n",
