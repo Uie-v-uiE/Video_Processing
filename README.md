@@ -2,109 +2,90 @@
 
 # Zynq 实时视频图像处理与逐像素对照显示
 
-一颗 Zynq-7020（`xc7z020clg484-2`）在做这件事：网口、SD 卡或片内图卡送来 512×300 的
-视频流，PL 侧完成缩放、旋转与七级图像处理，并以 1024×600 的 HDMI 输出。屏幕上任何
-一条竖线以左是**未经处理**的画面、以右是**同一坐标系下处理后**的画面，分割线可以固定、
-自动扫描，也可以贴在图像域里跟着旋转缩放一起走。
+一块 Zynq-7020（`xc7z020clg484-2`）跑着一整套实时视频通路：**千兆网、SD 卡或片内图卡**任一路
+送来视频，PL 侧完成缩放、旋转与图像处理，最终以 **HDMI 1024×600 @ 50 Hz** 上屏（PL 处理画幅为
+512×300 的 RGB565，输出侧做 ×2 展开到面板）。屏幕上任何一条竖线**以左是未经处理的画面、以右是
+同一坐标系下处理后的画面**，分割线可以固定、自动扫描，也可以贴在图像域里跟着旋转缩放一起走。
 
-这个"同帧逐像素对照"是本项目的立足点：它既是一种显示方式，也是一台测量仪器——
-边缘条带、一行错位、一个越界格子，都能在没有任何额外探针的情况下被肉眼看见，
-也能被同一套几何关系直接算出来。
+这个"同帧逐像素对照"是立足点：它既是一种显示方式，也是**一台测量仪器**——边缘条带、一行错位、
+一个越界格子，都不用加额外探针就能被肉眼看见，也能被同一套几何关系直接算出来、被台架判成数字。
 
-## 特性
+## 特点
 
-- **三路片源**：千兆 RGMII 收 UDP 视频流、SD 卡本地播放（FAT32 簇链自研解析）、片内动态
-  测试图卡；仲裁与回退在 PL 里完成，PS 只发命令。
+- **三路片源，仲裁在硬件里**：RGMII 收 UDP 视频流（自研收包链，带 CRC 校验与坏字计数）、
+  SD 卡本地播放（FAT32 簇链自研解析，不依赖文件系统库）、PL 自绘动态测试图卡；任一路心跳消失
+  半秒内自动让位，PS 只发命令、不参与数据面。
 - **几何通路**：八档缩放（定点逆序比例，不做实时除法）、多档旋转（正弦/余弦 ROM + 象限折叠），
   最近邻与双线性插值可运行时切换。
 - **效果链**：灰度、反色、3×3 均值模糊、锐化、Sobel 边缘、阈值二值化（含判决反相位）、
   3×3 腐蚀/膨胀，共九位控制字，逐级可旁路，整链固定 15 级流水。
-- **对照显示**：0–100% 任意分割线、左/右互换、2 像素标记线可关；原图抽头用行延迟环与
+- **对照显示**：0–100 % 任意分割线、左/右互换、2 像素标记线可关；原图抽头用行延迟环与
   处理链对齐到同一拍同一列。
 - **屏上状态**：OSD 五行（`N_LINES=5`）显示片源、角度、缩放档与来源、效果码、分割线位置、
   帧率、时延、温度。
-- **在线自诊断**：收包/丢包/坏字/CRC 校验、乒乓 bank 状态、链路内时延，硬件计数 + OSD +
-  串口可读回，拔线与拔卡后的行为可核对。
+- **在线自诊断**：收包/丢包/坏字/CRC、乒乓 bank 状态、链路内时延，全部由硬件计数，
+  同时上 OSD 与串口读回——拔线、拔卡之后的行为可以核对，不靠运气。
+- **可复现到底**：一条命令出位流，一份脚本跑门禁与上板校验，Vivado 报告原文随包；
+  数字只写实测过的，估算值（如功耗）会标明是估算。
 
-## 复现路径
+## 复现三步
 
 ```bash
-# 1) 建工程、综合、实现、出比特流（Vivado 2025.2.1，命令行）
+# 1) 建工程 → 综合 → 实现 → 出位流（Vivado 2025.2.1，命令行）
 vivado -mode batch -source build/tcl/build_system_axigpio.tcl
-# 2) 门禁：时序/资源/端口/CDC/文档一致性 + 两个钉 md5 的整屏台架（项数以脚本自己打印的为准）
+# 2) 门禁：时序/资源/端口/CDC/文档一致性 + 整屏逐像素台架（项数以脚本打印的那行为准）
 bash build/gates.sh
-# 3) 上板（JTAG；本工程不向 QSPI 烧写）+ 串口命令电池 + 实测回读
-bash build/board_verify.sh --battery --geom
+# 3) 上板（只走 JTAG，本工程不向 QSPI/SPI flash 写入）：PS 起来 → 烧 PL → 重载应用 → 一把验完
+<Vitis>/bin/xsdb.bat build/tcl/ps_jtag_boot.tcl
+vivado -mode batch -source build/tcl/program_pl.tcl
+<Vitis>/bin/xsdb.bat build/tcl/ps_app_reload.tcl
+VP_XSDB=<Vitis>/bin/xsdb.bat bash build/board_verify.sh --battery --geom
 ```
 
-命令表、寄存器映射、逐项判据与失败时看哪个文件，见
+上位机推流：[src/host/video_sender.py](src/host/video_sender.py) 发**任意视频文件**
+（装了 ffmpeg 就解任意格式，没装就发内置测试图，两者都缩放到 PL 的 512×300 画幅再发）；
+板子在手边时**双击 [send_demo.bat](send_demo.bat)**——它先 ping 板子，再推一段自带测试视频。
+命令表、寄存器映射与逐项判据见 [docs/HOST_GUIDE.md](docs/HOST_GUIDE.md)、
 [docs/COMMANDS.md](docs/COMMANDS.md)、[docs/BUILD.md](docs/BUILD.md)、
 [board/README.md](board/README.md)。
 
-## 数据
+## 关键数字（每个数点名它的报告）
 
-一句先说清楚的话：**"板上现在跑的那一版"与"最近一套全绿冻结的那一版"不是同一版**，两个都给。
+| 指标 | 读数 | 出处 |
+|---|---|---|
+| 全设计 setup WNS | **+0.516 ns**，失败 setup/hold 端点 **0 / 50885** | `build/timing_summary.rpt` |
+| 时钟域松紧 | 关键路径在 125 MHz 以太网收包域；50 MHz 显示域余量约 2.5 %，是更紧的一侧 | 同上（逐时钟汇总） |
+| BRAM / LUT / FF / DSP | **95 tile（67.86 %）/ 14358（26.99 %）/ 8075（7.59 %）/ 19（8.64 %）** | `build/utilization.rpt` |
+| 功耗 | 动态 **2.205 W**、估算结温 **52.5 °C**（工具置信度 Low，**是估算**，没有实测） | `build/power.rpt` |
+| SD 本地播放 | **29.8 – 30.0 fps**（100 帧滑窗，板上读回） | [data/metrics.csv](data/metrics.csv) |
+| 上板校验 | 串口命令电池 100 条通过、几何"最后一跳"8 条判定全过 | [board/ACCEPTANCE.md](board/ACCEPTANCE.md) |
 
-- 最近一套**门禁全绿且已冻结**的是 r75：那一轮 19 项全通过（门禁脚本现在长到 20 项，
-  多出来的是当晚后加的检查），实现后 setup WNS **+0.287 ns**、BRAM 97.5 tile / 69.64 %。
-  凭据：`build/r75_gates.txt` 与 `build/evidence_r75/`。
-- 板上当前是 **r87**（**未冻结**）：WNS +0.152 ns、失败端点 0 / 50885，LUT 14363（27.00 %）、
-  FF 8075（7.59 %）、BRAM 95 tile（67.86 %）、DSP 19（8.64 %）——逐项数值与它们出自哪份报告，
-  统一在 **[data/metrics.csv](data/metrics.csv)**，报告原件在 `build/` 里那一版的
-  `rNN_timing_summary.rpt` / `rNN_utilization.rpt`（提交包按 §3.3.5.4 把它们展平进 `build/reports/`，
-  文件名不变 —— 所以下面表里那一条路径在两处都指同一份）。
-  它没冻结的原因写在 [docs/KNOWN_ISSUES.md](docs/KNOWN_ISSUES.md)：顶层台架那 138 条逐像素判定里（最近一次留档的那一跑是 r86）
-  有 1 条是**故意留红**的（`C5c`，对应未修的 #98）。
-- 走势与"为什么某一版被否掉"在 [docs/OPTIMIZATION_LOG.md](docs/OPTIMIZATION_LOG.md)；
-  本报告不复制数值，只给指路——同一份数字抄在两处一定会漂（这条本身是一次真实事故的结论，#133）。
+数值走势、哪些优化被证据否掉、以及为什么某些差值不作为收益口径，写在
+[docs/OPTIMIZATION_LOG.md](docs/OPTIMIZATION_LOG.md) 与 [docs/PERF_REPORT.md](docs/PERF_REPORT.md)；
+本页不复制它们——同一份数字抄在两处一定会漂。
+
+**本页不作门禁全绿声明**：某一版有没有过门禁、过几项、哪一项红，只以
+`bash build/gates.sh` 打印的那一行为准（红项存在时它会明说"有红项"，不会含糊）。
 
 ## 目录
 
 | 目录 | 内容 |
 |---|---|
-| `src/rtl/` | RTL，按 `top / video / process / eth / hdmi / clocks / axi / util` 分层 |
-| `src/ps/` | PS 侧裸机固件（串口命令解析、寄存器配置、SD 播放、自诊断读回） |
-| `src/host/` | PC 侧工具与自检脚本（发流、回读、文档与命令表一致性检查） |
-| `sim/` | 台架与两个 runner；`tb_v98_top_seam` 例化整个视频顶层，是几何与显示的主尺子 |
-| `build/` | 构建与门禁脚本、`tcl/`、综合实现报告、`rNN_gates.txt` 与 `evidence/` 留档 |
-| `board/` | 上板操作说明、验收表、串口捕获 |
-| `data/` | `golden/` 参考图，`measured/` 实测数据 |
-| `skill/` | 大模型协作沉淀的技能包（每项四段：适用场景 / 使用方法 / 已验证效果的凭据 / 失效条件；条目数以 `skill/README.md` 自己那行为准） |
-| `docs/` | 设计报告、优化记录、命令表、复现说明 |
-| `docs/log/` | `ISSUES.md` 与 `OVERNIGHT_LOG.md`（追加式工作记录） |
+| `src/rtl/` | PL 侧 RTL，按 `top / video / process / eth / hdmi / clocks / axi / util` 分层 |
+| `src/ps/` | PS 侧裸机固件：命令解析、寄存器配置、SD 播放、自诊断读回 |
+| `src/host/` | PC 侧上位机与自检脚本（Python 推流、寄存器回读、文档与命令表一致性检查） |
+| `src/constraints/` | 引脚与时序约束 |
+| `sim/` | 台架与 runner；例化整个视频顶层那支是几何与显示的主尺子，`sim/NAMES.md` 给新旧名对照 |
+| `build/` | 可复现的构建脚本（`tcl/`）+ 综合与实现报告（`reports/`）+ 位流，说明见 [build/README.md](build/README.md) |
+| `board/` | 上板工程、运行脚本与实测输出（[board/README.md](board/README.md)、验收表 [board/ACCEPTANCE.md](board/ACCEPTANCE.md)） |
+| `data/` | `golden/` 参考图、`measured/` 实测数据、[data/metrics.csv](data/metrics.csv) 是唯一那张数字表 |
+| `skill/` | 大模型协作沉淀的技能卡，每张四段：适用场景 / 用法 / 凭据 / 失效条件（条目数以 `skill/README.md` 自己那行为准） |
+| `docs/` | 交付文档：设计说明、优化记录、命令表、复现说明（索引在 [docs/README.md](docs/README.md)） |
+| `docs/log/` | 追加式工作记录（问题账、过夜流水）；只作过程留痕，不当结论引用 |
 
-对应关系与赛程推荐结构的差异已在表中说明；`docs/log/ISSUES.md` 与
-`docs/log/OVERNIGHT_LOG.md` 是只追加的历史记录，不重写。
-
-### 与赛程推荐目录（§3.3.5.4）的对照
-
-本仓库按"交付文档 / 工作记录 / 本地学习件"三类摆放，与推荐结构不同 ⇒ 按指南要求在此给对照。
-交出去的包由 `bash build/make_submission.sh` 一条命令生成（`../final_submission/`），
-它做的三件事是**改名**而不是**改内容**：`docs` 那一层改名成 `report`（连文档里的指路一起改）、
-台架按职责命名、报告展平进 `build/reports`。
-
-| 推荐目录 | 仓库里在哪 | 包里在哪 |
-|---|---|---|
-| `README.md` 项目简介 + 复现步骤 | `README.md`（中）/ `README.en.md`（英） | 同名 |
-| `src/` 设计源码 | `src/rtl/**`（PL）+ `src/ps/**`（裸机固件）+ `src/constraints/**` | 同名 |
-| `sim/` 仿真脚本与结果 | `sim/**`（仓库里的全部台架） | 支撑交付结论的那几支 + `sim/NAMES.md`（新旧名对照）；判据结果在 `build/reports` |
-| `build/` 构建脚本 + 综合实现报告 | `build/tcl/**`（入口 `build_system_axigpio.tcl`）、`build/gates.sh`、各轮留档 | `build/tcl/**` + `build/reports`（展平后的 .rpt/.txt）+ `build/bitstream/`（板上那一版 .bit/.xsa/.elf） |
-| `board/` 上板工程与实测输出 | `board/**`（操作卡、验收表、JTAG 脚本） | 同名（`board/VERIFY_r87.md` 是 36 行全功能验收表） |
-| `data/` 测试数据与参考结果 | `data/golden/**`、`data/measured/**`、`data/metrics.csv` | 同名 |
-| `skill/` 技能包 | `skill/**`（`README.md` 是索引，每张卡固定六节） | 同名 |
-| 设计报告 + 协作记录（推荐名 report） | 仓库里的 docs 目录（交付文档）与它下面的 log 子目录（工作记录） | 包里的 report 与它下面的 log |
-| 不进包 | docs 下的 study 子目录（作者自用学习材料，`.gitignore` 已挡）、`vitis/`、`vivado_system/`、`sim_work/` 等工具生成物 | — |
-
-**不随包的东西都有理由，且理由写在包里**：`../final_submission/_pruned.txt` 逐条列出"这次剪掉了谁、
-按哪条判据剪的"；包内所有"路径式指路"由导出器自检，任何一条指不到包内文件就**拒绝落盘**（不通过的
-包不存在，比一个有死链接的包好）。
-
-## 阅读顺序
-
-第一次接触这个工程：[docs/ARCHITECTURE.md](docs/ARCHITECTURE.md)（框图与模块职责）→
-[docs/PS_VS_PL.md](docs/PS_VS_PL.md)（软硬件怎么切分）→
-[docs/BACKGROUND_AND_NOVELTY.md](docs/BACKGROUND_AND_NOVELTY.md)（为什么这么做）→
-[board/HANDS_ON.md](board/HANDS_ON.md)（动手看什么）。
+目录摆放按比赛要求的形状来（`src/ sim/ build/ board/ data/ skill/ report/`）。仓库里交付文档这一层叫
+`docs/`，导出提交包时改名成 `report/`，文档里的指路跟着一起改；剪掉了什么、按哪条判据剪的，
+逐条写在包内 `_pruned.txt`，而包内所有"路径式指路"由导出器自检——指不到就拒绝落盘。
 
 ## 许可
 

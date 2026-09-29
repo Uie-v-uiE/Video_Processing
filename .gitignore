@@ -146,3 +146,7 @@ build/*isolated*/*.xsa
 # 捕获是 board/serial_bytes.ps1 每次跑都重生成的本机产物，不是判据原件（原件在 build/evidence/）
 build/*_draft.txt
 build/serial_bytes_*.txt
+
+# 上手卡（HANDS_ON）留在本机给上板的人自己看，不进 git、不进提交包：
+# 交付件里 board/README.md 已经写了"上板工程 / 运行脚本 / 实测输出"三块，两张卡会让评审重复读。
+board/HANDS_ON.md

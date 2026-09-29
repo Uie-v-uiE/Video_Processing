@@ -47,7 +47,7 @@ SIM_PLAIN=(tb_link_monitor tb_zoom_mapper tb_rotate_window tb_cdc_capacity)
 SIM_KEEP=("${!SIM_MAP[@]}" "${SIM_PLAIN[@]}")
 
 # ---- 硬剔除：被否决的轮次、探针与构建中间物、零引用 RTL ----
-HARD_DROP_RE='^build/(failed_|red_|multidrive_|exp_|strprobe|uram_probe|micro_rd|ps_obj|snap_|r[0-9]+_isolated|r[0-9]+_exp|build/|vivado_system/|__pycache__/)|^build/(evidence|frozen)_r[0-9]+[^/]*(rejected|notadopted|wip|abort)/|^sim/(probes|msim|v98run|xtest|tagchk|syntaxchk|v100run2)/|^src/rtl/(axi/axi_frame_writer|eth/axi_frame_saver|video/frame_buffer_db|video/video_timing_720p)\.v$'
+HARD_DROP_RE='^build/(failed_|red_|multidrive_|exp_|strprobe|uram_probe|micro_rd|ps_obj|snap_|r[0-9]+_isolated|r[0-9]+_exp|build/|vivado_system/|__pycache__/)|^sim/(probes|msim|v98run|xtest|tagchk|syntaxchk|v100run2)/|^src/rtl/(axi/axi_frame_writer|eth/axi_frame_saver|video/frame_buffer_db|video/video_timing_720p)\.v$'
 PRUNE_ONEOFF=(
   build/tcl/apply_cdc_report.tcl build/tcl/fix_bd_and_top.tcl build/tcl/rebuild_opt.tcl
   build/tcl/rebuild_zoom_out.tcl build/tcl/rebuild_cdc_fix.tcl build/tcl/micro_rd.tcl
@@ -90,10 +90,33 @@ fi
 
 # ---- 2. 剪 ----
 for n in "${PRUNE_ONEOFF[@]}"; do prune "$n" "一次性脚本"; done
+# 过程留档目录（`build/evidence_rNN/`、`build/frozen_rNN/`）默认不进包 —— 但
+# **交付文档按路径点名的那些不能剪**：剪掉就等于亲手造出死链接，而包末尾的自检会因此拒绝落盘
+# （2026-09-29 把两类目录一起剪时，`report/commands.md` 指着的 `build/evidence_r75/MANIFEST.md5`
+# 就变死了，39 条死链全是这一类）。所以先读"活文档点哪些目录"，再决定剪谁。
+CRED_DIRS=$( { grep -rhoE 'build/(evidence|frozen)_[A-Za-z0-9_.-]+/' \
+    report README.md README.en.md skill board/README.md data/metrics.csv 2>/dev/null; } | sort -u )
+for d in build/evidence_* build/frozen_*; do
+  if [ -d "$d" ]; then
+    if printf '%s\n' "$CRED_DIRS" | grep -qF -- "$d/"; then
+      echo "保留（交付文档点名要它） $d" >> _pruned.txt
+    else
+      prune "$d" "过程留档"
+    fi
+  fi
+done
 find . -mindepth 1 2>/dev/null | sed 's|^\./||' | grep -E "$HARD_DROP_RE" |
 while read -r n; do if [ -e "$n" ]; then rm -rf "$n"; echo "被否决轮次/中间物 $n" >> _pruned.txt; fi; done || true
 
-LIVE_SCOPE=(report README.md README.en.md skill board/README.md board/HANDS_ON.md data/metrics.csv)
+# 剪完必须收空壳：`build/evidence_rNN/` 这类目录里只有二进制或一次性报告被剪掉之后，
+# 目录本身会留在空处（2026-09-29 用户看包时最先看到的就是"build 里一堆空文件夹"）。
+# 判据：删空目录，并**当场打印删了几个、还剩几个**，剩的不为 0 就是这一步没做完。
+EMPTY_DEL=$(find . -type d -empty -delete -print 2>/dev/null | wc -l)
+EMPTY_LEFT=$(find . -type d -empty 2>/dev/null | wc -l)
+echo "空目录：删掉 $EMPTY_DEL 个，落包后余 $EMPTY_LEFT 个" >> _pruned.txt
+echo "  空目录 删=$EMPTY_DEL 余=$EMPTY_LEFT"
+
+LIVE_SCOPE=(report README.md README.en.md skill board/README.md board/README.md data/metrics.csv)
 { grep -rhoE "[A-Za-z0-9_./-]+\.[A-Za-z0-9]{1,5}" "${LIVE_SCOPE[@]}" 2>/dev/null | sed 's|^\./||'; } > _cited.txt || true
 { grep -rhoE "src/host/[A-Za-z0-9_.-]+\.mjs" build/*.sh 2>/dev/null; } >> _cited.txt || true
 sort -u -o _cited.txt _cited.txt

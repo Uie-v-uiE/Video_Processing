@@ -98,8 +98,14 @@ function checkLines(docLines, dirExists, newestGreen) {
     }
     if (newestGreen > 0) {
         const home = claims.filter(c => c.at.startsWith('README.md') || c.at.startsWith('README.en.md'));
-        if (!home.some(c => c.at.startsWith('README.md')))
-            rows.push(`README.md D3 首页没有"门禁全绿 = rNN"这一句（最新那一套是 r${newestGreen}）`);
+        // 首页有两种**都算诚实**的写法：① 念"门禁全绿 = rNN"，那 rNN 必须等于盘上最新且 ALL PASS 的那一套；
+        // ② 干脆不念版本号，明写"不作门禁全绿声明"，让读者自己去跑 `build/gates.sh`（交付件口吻用的就是这条）。
+        // 两种都没有才算红 —— 因为"沉默"既可能是有意的（②），也可能是忘了（那就是 #88 那一类：门禁绿不绿没人说）。
+        const txt = (docLines['README.md'] || []).join('\n');
+        const neutral = /不作门禁全绿声明|no gate-green claim/i.test(txt);
+        if (!home.some(c => c.at.startsWith('README.md')) && !neutral)
+            rows.push(`README.md D3 首页既没有"门禁全绿 = rNN"（最新那一套是 r${newestGreen}），`
+                + '也没有明写"不作门禁全绿声明" ⇒ 两种诚实写法至少要有一种');
         for (const c of home)
             if (c.nn !== newestGreen)
                 rows.push(`${c.at} D3 首页念的是 r${c.nn}，盘上最新且 ALL PASS 的那一套是 r${newestGreen}`);
@@ -147,7 +153,9 @@ function checkPaths(fileLines, exists) {
             for (const m of l.matchAll(CITE_MD)) {
                 const tok = m[0].replace(/^[^a-z]/, '');
                 if (tok.includes('NN') || tok.includes('$')) continue;
-                if (!exists(tok)) rows.push(`${at} D4a 点名的文档盘上没有：${tok}`);
+                if (exists(tok)) continue;
+                const row = `${at} D4a 点名的文档盘上没有：${tok}`;
+                if (hard) rows.push(row); else adv.push(row);
             }
             for (const m of l.matchAll(CITE_ART)) {
                 const tok = m[0].replace(/^[^a-z]/, '');
@@ -263,6 +271,12 @@ if (argv.includes('--self')) {
     }, () => false, 0);
     console.log(`  ${edges.length === 0 ? 'PASS' : 'FAIL'} 对照：占位名与带前缀的路径不误报（实测 ${edges.length} 条）`);
     for (const r of edges) console.log('        ' + r);
+    // D3 的另一种诚实写法（首页明写"不作门禁全绿声明"）必须**不判红**；
+    // 而"既没有 rNN 也没有这句话"仍然是红 —— 上面那条变异用例管的就是后者。
+    const neutral = checkLines({ 'README.md': ['**本页不作门禁全绿声明**：以 `bash build/gates.sh` 打印的那一行为准。'] },
+        okDir, 71).filter(r => /D3/.test(r));
+    console.log(`  ${neutral.length === 0 ? 'PASS' : 'FAIL'} 对照：首页明写"不作门禁全绿声明"不误报 D3（实测 ${neutral.length} 条）`);
+    for (const r of neutral) console.log('        ' + r);
     // D4 自己的反例：一条"点名的文档盘上没有"、一条"还在指已经删掉的旧目录"，两条都必须红；
     // 再加一条正当句（真的在盘上的 `docs/COMMANDS.md` + 一个占位名 `frozen_rNN_x`）不许红。
     const d4bad = checkPaths({ 'docs/ARCHITECTURE.md': ['详见 `docs/NO_SUCH_DOC.md` 的 §2'], }, () => false).rows;
@@ -278,9 +292,10 @@ if (argv.includes('--self')) {
         (tok) => tok === 'build/gates.sh').rows;
     // 范围对照（#141 那一类：尺子的作用范围会无声漂移）：同一句指路写在日记里**不许判红**，
     // 但必须进"只报数"那一堆 —— 两边都查，缺一边就是范围漂了。
-    const sp = checkPaths({ 'docs/log/OVERNIGHT_LOG.md': ['当时那份 `build/r99_gates_nope.txt` 已经删了'], }, () => false);
-    const scope = sp.rows.length === 0 && sp.adv.length === 1;
-    console.log(`  ${scope ? 'PASS' : 'FAIL'} 对照：同一句凭据指路在日记里只报数（判红 ${sp.rows.length} / 报数 ${sp.adv.length}）`);
+    const sp = checkPaths({ 'docs/log/OVERNIGHT_LOG.md': ['当时那份 `build/r99_gates_nope.txt` 已经删了',
+        '那份简介 `docs/PROJECT_BRIEF_NOPE.md` 后来也撤了'], }, () => false);
+    const scope = sp.rows.length === 0 && sp.adv.length === 2;
+    console.log(`  ${scope ? 'PASS' : 'FAIL'} 对照：同一句指路（.txt 与 .md 各一）在日记里只报数（判红 ${sp.rows.length} / 报数 ${sp.adv.length}）`);
     let d4 = 0;
     d4 += yes('D4a：点名的文档盘上没有', d4bad, /D4a/);
     d4 += yes('D4b：还在指旧目录 report/', d4old, /D4b/);
@@ -291,7 +306,7 @@ if (argv.includes('--self')) {
     for (const r of d4artok) console.log('        ' + r);
 
     const all = n === 3 && good.length === 0 && edges.length === 0 && d4 === 3
-        && d4ok.length === 0 && d4artok.length === 0 && scope;
+        && d4ok.length === 0 && d4artok.length === 0 && scope && neutral.length === 0;
     console.log(`${all ? 'SELF: 全绿' : 'SELF: 有红'}（变异 ${n} + D4 变异 ${d4} 条 + 对照 ${good.length + edges.length + d4ok.length + d4artok.length} 条，范围对照${scope ? '过' : '不过'}）`);
     process.exit(all ? 0 : 1);
 }
