@@ -108,15 +108,7 @@ done
 find . -mindepth 1 2>/dev/null | sed 's|^\./||' | grep -E "$HARD_DROP_RE" |
 while read -r n; do if [ -e "$n" ]; then rm -rf "$n"; echo "被否决轮次/中间物 $n" >> _pruned.txt; fi; done || true
 
-# 剪完必须收空壳：`build/evidence_rNN/` 这类目录里只有二进制或一次性报告被剪掉之后，
-# 目录本身会留在空处（2026-09-29 用户看包时最先看到的就是"build 里一堆空文件夹"）。
-# 判据：删空目录，并**当场打印删了几个、还剩几个**，剩的不为 0 就是这一步没做完。
-EMPTY_DEL=$(find . -type d -empty -delete -print 2>/dev/null | wc -l)
-EMPTY_LEFT=$(find . -type d -empty 2>/dev/null | wc -l)
-echo "空目录：删掉 $EMPTY_DEL 个，落包后余 $EMPTY_LEFT 个" >> _pruned.txt
-echo "  空目录 删=$EMPTY_DEL 余=$EMPTY_LEFT"
-
-LIVE_SCOPE=(report README.md README.en.md skill board/README.md board/README.md data/metrics.csv)
+LIVE_SCOPE=(report README.md README.en.md skill board data/metrics.csv)
 { grep -rhoE "[A-Za-z0-9_./-]+\.[A-Za-z0-9]{1,5}" "${LIVE_SCOPE[@]}" 2>/dev/null | sed 's|^\./||'; } > _cited.txt || true
 { grep -rhoE "src/host/[A-Za-z0-9_.-]+\.mjs" build/*.sh 2>/dev/null; } >> _cited.txt || true
 sort -u -o _cited.txt _cited.txt
@@ -300,6 +292,12 @@ done
 # 一起落进了 final_submission/，而 MANIFEST 的"文件数"又把它们算进去 ⇒ 报的数与落地差 2）。
 DEADLIST="${TMPDIR:-/tmp}/sub_dead_$(basename "$TMP").txt"
 : > "$DEADLIST"
+# 空目录在**这一步之前**收：真正让目录变空的是后面"没人点名就剪"那一道，
+# 所以删空目录必须排在所有剪枝之后（第一次实现放在剪枝中间，落包时照样剩 10 个空壳）。
+EMPTY_DEL=$(find . -type d -empty -delete -print 2>/dev/null | wc -l)
+EMPTY_LEFT=$(find . -type d -empty 2>/dev/null | wc -l)
+echo "空目录：删掉 $EMPTY_DEL 个，落包后余 $EMPTY_LEFT 个" >> _pruned.txt
+echo "  空目录 删=$EMPTY_DEL 余=$EMPTY_LEFT"
 # 判死链的范围 = "活文档"（评委照着跑的说明书），**不含 report/log/**：那里的路径是当时那天的名字，
 # 台架删了、工具改名了、捕获清了都留在里面，那是过程记录，不该拿它判包不完整。
 for f in README.md README.en.md report/*.md skill/*.md skill/*/*.md board/*.md sim/*.md build/*.md build/tcl/*.md data/*.csv; do
