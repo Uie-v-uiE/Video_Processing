@@ -42,7 +42,7 @@ set VIVADO=D:\Software\Vivado\2025.2.1\Vivado\bin\vivado.bat
 门禁里"`cdc.rpt` Critical 行 = 基线那几行，配对不新增、unsafe 不增长"那一项用的就是构建落下的 `build/cdc.rpt`）、
 `report_mem_hier.tcl`（存储层次）、`read_run_result.tcl`（读 run 状态）。`ooc_newmods.tcl` / `sweep_impl_strategy.tcl` 是
 `docs/OPTIMIZATION_LOG.md` §5 那次"实现策略扫描"用的工具，那一份 A/B 对比脚本
-（`build/wip_r65_ab.sh`）已经退役，扫描结论本身在 OPTIMIZATION_LOG 里。
+（仓库里曾有的 `wip_r65_ab.sh`）已经退役，扫描结论本身在 OPTIMIZATION_LOG 里。
 
 ## 4. 一次性修复脚本（别当模板抄）
 

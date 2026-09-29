@@ -23,7 +23,7 @@ TMP=build/tcl/_tmp_isolated_roll.tcl
 # 工具路径只有一个说法：VP_VIVADO_BIN 指到 <Vivado>/bin（见 docs/BUILD.md「换一台机器」那一节）。
 # 默认值留着是为了本机少敲一步，**不是**"这台机器就是标准"：找不到 xvlog 就明说并退出，
 # 别让人对着一句 "No such file or directory" 去怀疑 RTL。
-V=${VP_VIVADO_BIN:-/d/Software/Vivado/2025.2.1/Vivado/bin}
+V=${VP_VIVADO_BIN:-}
 [ -x "$V/xvlog" ] || { echo "REFUSE: 找不到 xvlog（当前 $V）。设 VP_VIVADO_BIN=<Vivado>/bin 再跑（docs/BUILD.md）"; exit 2; }
 sed 's#^set outdir \[file join \$root build\]$#set outdir [file join $root '"$OUT"']#' "$SRC" > "$TMP"
 # 改不动就停：正式脚本哪天换了写法，这条 sed 会**静默不匹配**，于是一轮构建就把 build/ 覆盖了。

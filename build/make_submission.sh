@@ -51,8 +51,7 @@ PRUNE_ONEOFF=(
   build/tcl/rebuild_zoom_out.tcl build/tcl/rebuild_cdc_fix.tcl build/tcl/micro_rd.tcl
   build/tcl/uram_presence.tcl build/tcl/uram_probe.tcl build/tcl/uram_sites.tcl
   build/tcl/ooc_newmods.tcl build/tcl/dfx_runtime.txt build/tcl/retry_open_nr.log
-  sim/run_zoom_only.tcl tight_setup_hold_pins.txt
-  build/_scan_align.mjs build/roll_isolated.sh build/cleanup_wip.sh
+  sim/run_zoom_only.tcl tight_setup_hold_pins.txt board/ddr_churn_r33_pair.md
 )
 
 # ---- 无论有没有被点名都留着：跑起来的那一套 ----
@@ -90,24 +89,6 @@ for n in "${PRUNE_ONEOFF[@]}"; do prune "$n" "一次性脚本"; done
 find . -mindepth 1 2>/dev/null | sed 's|^\./||' | grep -E "$HARD_DROP_RE" |
 while read -r n; do if [ -e "$n" ]; then rm -rf "$n"; echo "被否决轮次/中间物 $n" >> _pruned.txt; fi; done || true
 
-# 2a) 台架取舍放在 _cited 建好之后（判据与报告同源：文档引用了它的结论才带）
-
-# 台架被引用的形态常常是裸名（"`tb_v98_top_seam` 的 C5c"），不带 .v，所以单独抽一张表；
-# 门禁脚本点名的也算被引用（它在管的事就是这份包能不能自证）。
-{ grep -rhoE "tb_[A-Za-z0-9_]+" "${LIVE_SCOPE[@]}" build/gates.sh build/freeze_evidence.sh sim/run_one.sh 2>/dev/null |
-  sed 's/\.v$//' ; } | sort -u > _cited_tb.txt || true
-
-for f in sim/*.v; do
-  if [ -f "$f" ]; then
-    b="$(basename "$f" .v)"
-    hit=0
-    for k in "${SIM_KEEP[@]}"; do if [ "$b" = "$k" ]; then hit=1; fi; done
-    if grep -qxF "$b" _cited_tb.txt; then hit=1; fi
-    if [ "$hit" = "0" ]; then prune "$f" "回归台架（交付文档没引用它的结论）"; fi
-  fi
-done
-
-# 2b) 其余按"点没点名"剪
 LIVE_SCOPE=(report README.md README.en.md skill board/README.md board/HANDS_ON.md)
 { grep -rhoE "[A-Za-z0-9_./-]+\.[A-Za-z0-9]{1,5}" "${LIVE_SCOPE[@]}" 2>/dev/null | sed 's|^\./||'; } > _cited.txt || true
 { grep -rhoE "src/host/[A-Za-z0-9_.-]+\.mjs" build/*.sh 2>/dev/null; } >> _cited.txt || true
@@ -120,6 +101,24 @@ for f in src/host/*.mjs; do
 done
 sort -u -o _cited.txt _cited.txt
 
+# 2a) 台架取舍 = 手写名单 ∪ 被留下的脚本点名的（gates.sh 要对它算 md5，指着不存在的文件就是包的缺陷）。
+#     其余一律不带：交付文档里以裸名提到它们，说的是"过程里举过的例子"，不是"包里该有这个文件"。
+: > _dropped_tb.txt
+{ grep -rhoE "tb_[A-Za-z0-9_]+" build/gates.sh build/freeze_evidence.sh sim/run_one.sh sim/mut_control.sh 2>/dev/null |
+  sed 's/\.v$//' ; } | sort -u > _script_tb.txt || true
+for f in sim/*.v; do
+  if [ -f "$f" ]; then
+    b="$(basename "$f" .v)"
+    hit=0
+    for k in "${SIM_KEEP[@]}"; do if [ "$b" = "$k" ]; then hit=1; fi; done
+    if grep -qxF "$b" _script_tb.txt; then hit=1; fi
+    if [ "$hit" = "0" ]; then
+      prune "$f" "回归台架（不随包，文档里的裸名提及指的是仓库）"
+      echo "$b" >> _dropped_tb.txt
+    fi
+  fi
+done
+
 # 一条 awk 判完，不逐文件 spawn（Windows 上每个 grep 都要几十毫秒，1500 个文件就是几分钟）
 find src/host build sim board data -type f 2>/dev/null | sed 's|^\./||' > _all.txt || true
 grep -vE "$KEEP_ALWAYS_RE" _all.txt > _cand.txt || true
@@ -128,6 +127,9 @@ awk 'FILENAME=="_cited.txt" {c[$0]=1; next}
      FILENAME=="_cited_bases.txt" {b[$0]=1; next}
      { p=$0; n=split(p,a,"/"); bn=a[n]
        if (p in c) next
+       # 逐轮留档（build/<frozen|evidence>_rNN/…）**只认路径式点名**：文档里写一句
+       # "`cdc_details.rpt` 每轮都有" 不该把十几份 380 KB 的同名副本全拖进包里。
+       if (p ~ /^build\/[a-z]+_r[0-9]/) { print "轮次留档未被按路径点名\t" p; next }
        if (p !~ /^src\/host\// && (bn in b)) next
        if (p ~ /^src\/host\//) print "未被活文档按路径点名\t" p
        else print "未被活文档点名\t" p }' _cited.txt _cited_bases.txt _cand.txt > _prune_list.tsv
@@ -209,6 +211,14 @@ while IFS=$'\t' read -r o n; do
 done < _mv.tsv | sort -rn -k1,1 | cut -f2,3 |
 while IFS=$'\t' read -r oe ne; do printf 's|%s|%s|g\n' "$oe" "$ne"; done > _map.sed
 
+# 包里不带、但文档以**路径**提过的回归台架：把路径式指地就地道改成"仓库里的名字"。
+# 评委照 sim/tb_xxx.v 去找会撞空 —— 空链接是包的缺陷，不是文档的缺陷，所以在这一步补掉。
+while read -r b; do
+  if [ -n "$b" ]; then
+    printf 's|sim/%s\\.v|仓库回归台架 %s（不在本包内）|g\n' "$b" "$b" >> _map.sed
+  fi
+done < _dropped_tb.txt
+
 # 改写只作用于" prose 与脚本"；证据类（build/reports/、report/log/）保持原文
 find . -type f \( -name '*.md' -o -name '*.sh' -o -name '*.tcl' -o -name '*.py' -o -name '*.mjs' \
     -o -name '*.ps1' -o -name '*.bat' -o -name '*.v' -o -name '*.c' -o -name '*.h' \) 2>/dev/null |
@@ -228,7 +238,7 @@ xargs -r sed -i -f _map.sed < _txt.txt
     if [ "$old" = "${NAME_MAP[$old]}" ]; then
       echo "| \`sim/$old.v\` | 同名（本来就按职责命名） | 见 \`build/reports/\` 里带它名字的那份 |"
     else
-      echo "| \`sim/${NAME_MAP[$old]}.v\` | \`sim/$old.v\` | 见 \`build/reports/\` 里带它名字的那份 |"
+      echo "| \`sim/${NAME_MAP[$old]}.v\` | \`$old.v\` | 见 \`build/reports/\` 里带它名字的那份 |"
     fi
   done | sort
 } > sim/NAMES.md
@@ -254,19 +264,21 @@ done > _dead.txt 2>&1 || true
 DEAD="$(grep -c '死链' _dead.txt 2>/dev/null || true)"; DEAD="${DEAD:-0}"
 if [ "$DEAD" = "0" ]; then DEAD=0; fi
 
+# 旧名残留一次算完（每个名字 spawn 一次 grep 在这一千多个文件上要四分钟）
+{ for old in "${!NAME_MAP[@]}"; do if [ "$old" != "${NAME_MAP[$old]}" ]; then echo "$old"; fi; done; } > _oldnames.txt
 STALE=0
-for old in "${!NAME_MAP[@]}"; do
-  if [ "$old" = "${NAME_MAP[$old]}" ]; then continue; fi
-  n="$( { grep -rl "$old" --include='*.md' --include='*.sh' --include='*.tcl' --include='*.v' . 2>/dev/null |
-          grep -vE '^\./report/log/|^\./build/reports/|^\./sim/NAMES.md' || true; } | wc -l)"
-  if [ "$n" != "0" ]; then echo "残留旧台架名 $old：$n 个文件"; STALE=$((STALE+1)); fi
-done
+if [ -s _oldnames.txt ]; then
+  bad="$( { grep -rlF -f _oldnames.txt --include='*.md' --include='*.sh' --include='*.tcl' --include='*.v' . 2>/dev/null |
+            grep -vE '^\./report/log/|^\./build/reports/|^\./sim/NAMES.md' || true; } | tr '\n' ' ')"
+  if [ -n "$bad" ]; then echo "残留旧台架名：$bad"; STALE=1; fi
+fi
 
 # 绝对路径只判"真被用到的"：注释里写"原来硬编码 D:/... 后来改了"是过程说明，不算违规
+# ⚠ 管道末尾必须 || true：没有命中时 grep 退 1，而赋值语句的非零状态会被 set -e 直接杀掉整支脚本
 ABS="$( { grep -rnE "D:/|C:/Users|/d/Software|/d/Xilinx" --include='*.sh' --include='*.tcl' --include='*.py' \
           --include='*.mjs' --include='*.ps1' --include='*.bat' --include='*.v' --include='*.c' --include='*.h' \
           --exclude='make_submission.sh' . 2>/dev/null || true; } |
-        grep -vE ':[0-9]+:[[:space:]]*(#|//|\*)' | cut -d: -f1 | sort -u | tr '\n' ' ')"
+        grep -vE ':[0-9]+:[[:space:]]*(#|//|\*)' | cut -d: -f1 | sort -u | tr '\n' ' ' || true)"
 ABSN=0
 if [ -n "$ABS" ]; then ABSN="$(printf '%s\n' $ABS | wc -l)"; fi
 
@@ -276,7 +288,7 @@ echo "== 自检：死链 $DEAD ／ 旧名残留 $STALE ／ 带绝对路径的脚
 # ---- 5. 清单 ----
 files="$(find . -type f ! -name '_dead.txt' ! -name '_map.sed' ! -name '_mv.tsv' ! -name '_cited.txt' ! -name '_pruned.txt' | wc -l)"
 bytes="$(du -sh . | cut -f1)"
-removed="$(sort -u -o _pruned.txt _pruned.txt; grep -c '' _pruned.txt)"
+removed="$(sort -u -o _pruned.txt _pruned.txt; { grep -c '' _pruned.txt || true; })"; removed="${removed:-0}"
 BIT_MD5=""
 if [ -f build/bitstream/system.bit ]; then BIT_MD5="$(md5sum build/bitstream/system.bit | cut -c1-12)"; fi
 GATES_FOR_BIT="没有一份门禁报告写着这串 md5 ⇒ 这一版不作交付（诊断用）"
