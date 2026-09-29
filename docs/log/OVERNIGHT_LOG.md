@@ -6031,25 +6031,26 @@ E1/E2 全绿。所以那次的差 1 不在硬件里，是**我的判据读了 `s
 ### 07:53 眼睛那三条：可直接粘贴的命令（一发一收，每条各自留捕获）
 
 前置：先**关掉占用 COM6 的终端**（否则 `UnauthorizedAccessException`，脚本抢不到口）。
-每条命令一发一收，`-Out` 各留一份捕获，回答只填"是/否 + 在哪一档"：
+每条命令一发一收，`-Out` 各留一份捕获（落在 `build/evidence/`，与今晚其它凭据同一格，判完可以直接当凭据提交），
+回答只填"是/否 + 在哪一档"：
 
 ```
-powershell -ExecutionPolicy Bypass -File board/uart_cap_once.ps1 -Port COM6 -Cmd "fill"             -Seconds 3 -Out board\eye_1_fill.txt
-powershell -ExecutionPolicy Bypass -File board/uart_cap_once.ps1 -Port COM6 -Cmd "th 8"             -Seconds 3 -Out board\eye_2_th8.txt
-powershell -ExecutionPolicy Bypass -File board/uart_cap_once.ps1 -Port COM6 -Cmd "pipe 000100000"   -Seconds 3 -Out board\eye_3_pipe.txt
-powershell -ExecutionPolicy Bypass -File board/uart_cap_once.ps1 -Port COM6 -Cmd "split 31"         -Seconds 3 -Out board\eye_4_split31.txt
-powershell -ExecutionPolicy Bypass -File board/uart_cap_once.ps1 -Port COM6 -Cmd "split marker 1"   -Seconds 4 -Out board\eye_5_marker_on.txt
+powershell -ExecutionPolicy Bypass -File board/uart_cap_once.ps1 -Port COM6 -Cmd "fill"             -Seconds 3 -Out build\evidence\eye_1_fill.txt
+powershell -ExecutionPolicy Bypass -File board/uart_cap_once.ps1 -Port COM6 -Cmd "th 8"             -Seconds 3 -Out build\evidence\eye_2_th8.txt
+powershell -ExecutionPolicy Bypass -File board/uart_cap_once.ps1 -Port COM6 -Cmd "pipe 000100000"   -Seconds 3 -Out build\evidence\eye_3_pipe.txt
+powershell -ExecutionPolicy Bypass -File board/uart_cap_once.ps1 -Port COM6 -Cmd "split 31"         -Seconds 3 -Out build\evidence\eye_4_split31.txt
+powershell -ExecutionPolicy Bypass -File board/uart_cap_once.ps1 -Port COM6 -Cmd "split marker 1"   -Seconds 4 -Out build\evidence\eye_5_marker_on.txt
 # 问 1：蓝线右侧紧贴着的那条 1 像素黑线还在吗？（在 => #103 没收住，把这份捕获发我）
-powershell -ExecutionPolicy Bypass -File board/uart_cap_once.ps1 -Port COM6 -Cmd "src 0"            -Seconds 3 -Out board\eye_6_src0.txt
-powershell -ExecutionPolicy Bypass -File board/uart_cap_once.ps1 -Port COM6 -Cmd "split marker 0"   -Seconds 4 -Out board\eye_7_marker_off.txt
+powershell -ExecutionPolicy Bypass -File board/uart_cap_once.ps1 -Port COM6 -Cmd "src 0"            -Seconds 3 -Out build\evidence\eye_6_src0.txt
+powershell -ExecutionPolicy Bypass -File board/uart_cap_once.ps1 -Port COM6 -Cmd "split marker 0"   -Seconds 4 -Out build\evidence\eye_7_marker_off.txt
 # 问 2：那条 2 px 蓝标记整条消失了吗？消失之后屏上还有别的竖线吗？（还有 ⇒ 那条才是要判的对象，接着看问 3）
-powershell -ExecutionPolicy Bypass -File board/uart_cap_once.ps1 -Port COM6 -Cmd "split show"       -Seconds 3 -Out board\eye_8_show_premise.txt
+powershell -ExecutionPolicy Bypass -File board/uart_cap_once.ps1 -Port COM6 -Cmd "split show"       -Seconds 3 -Out build\evidence\eye_8_show_premise.txt
 # ↑ 这一步不是眼睛判据，是**前提**：`marker=` 栏必须真的写着 off。少了它，"它是标记"这个解释就没被排除
 #   （ISSUES #103 追加段 07:4x 那次就是靠这一栏才锁住前提的）。
-powershell -ExecutionPolicy Bypass -File board/uart_cap_once.ps1 -Port COM6 -Cmd "split 50"         -Seconds 3 -Out board\eye_9_split50.txt
+powershell -ExecutionPolicy Bypass -File board/uart_cap_once.ps1 -Port COM6 -Cmd "split 50"         -Seconds 3 -Out build\evidence\eye_9_split50.txt
 # 问 3：还看得见的那条线，是跟着缝从 31% 走到 50%，还是钉在原来那一列？（跟缝走 ⇒ 缝的产物；钉住 ⇒ 真缺陷。
 #        #102 那天量到的是"钉住、不跟缝"，所以两种答案都各有意义。）
-powershell -ExecutionPolicy Bypass -File board/uart_cap_once.ps1 -Port COM6 -Cmd "split show"       -Seconds 3 -Out board\eye_10_show_after.txt
+powershell -ExecutionPolicy Bypass -File board/uart_cap_once.ps1 -Port COM6 -Cmd "split show"       -Seconds 3 -Out build\evidence\eye_10_show_after.txt
 # ↑ 第二个前提：这里必须仍写着 `marker=off`、而 pos 已经变成 ~50%。串口电池里**没有**"`split <n>` 之后
 #   marker 位不变"这条判据（ISSUES.md:4692 计划过、`src/host/uart_cmd_check.mjs:180` 只核对回包文本），
 #   而历史上 `split 20` 真把标记位重新打开过一次（ISSUES.md:4689）⇒ 这一栏就是现场补的那条判据。
