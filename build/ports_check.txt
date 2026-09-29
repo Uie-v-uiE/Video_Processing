@@ -1,1 +1,4 @@
-CHECK PORTS: instances=196 modules=79 skipped=0 width_compared=563 violations=0 PASS
+DUP src/rtl/top/pl_demo_top.v:20  pl_video_top u_pl 端口 .stage_sel() 被连了 2 次（后一次覆盖前一次 = 静默接错）
+  DUP = 重复命名关联这一类：现在**不判红**，加 `--dup` 才升为违规。
+  升的那一轮必须同时把被连两次的端口改掉（#127-1），否则门禁第 14 项会替我记住这笔债。
+CHECK PORTS: instances=197 modules=79 skipped=0 width_compared=563 violations=0 PASS
