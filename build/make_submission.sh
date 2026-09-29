@@ -219,7 +219,7 @@ while IFS=$'\t' read -r o n; do
 done < _mv.tsv | sort -rn -k1,1 | cut -f2,3 |
 while IFS=$'\t' read -r oe ne; do printf 's|%s|%s|g\n' "$oe" "$ne"; done > _map.sed
 
-# 包里不带、但文档以**路径**提过的回归台架：把路径式指地就地道改成"仓库里的名字"。
+# 包里不带、但文档以**路径**提过的回归台架：把那条路径就地改成"仓库回归台架 <名>"。
 # 评委照 sim/tb_xxx.v 去找会撞空 —— 空链接是包的缺陷，不是文档的缺陷，所以在这一步补掉。
 while read -r b; do
   if [ -n "$b" ]; then
@@ -256,7 +256,10 @@ for b in build/system.bit build/system.xsa build/ps_app.elf; do
 done
 
 # ---- 4. 自检 ----
-: > _dead.txt
+# 死链清单写到树**外面**：包根目录里不留工作文件（上一版把 _all.txt/_cand.txt/… 九个中间件
+# 一起落进了 final_submission/，而 MANIFEST 的"文件数"又把它们算进去 ⇒ 报的数与落地差 2）。
+DEADLIST="${TMPDIR:-/tmp}/sub_dead_$(basename "$TMP").txt"
+: > "$DEADLIST"
 # 判死链的范围 = "活文档"（评委照着跑的说明书），**不含 report/log/**：那里的路径是当时那天的名字，
 # 台架删了、工具改名了、捕获清了都留在里面，那是过程记录，不该拿它判包不完整。
 for f in README.md README.en.md report/*.md skill/*.md skill/*/*.md board/*.md sim/*.md build/*.md build/tcl/*.md data/*.csv; do
@@ -270,8 +273,8 @@ for f in README.md README.en.md report/*.md skill/*.md skill/*/*.md board/*.md s
       echo "死链 $f -> $t"
     done
   fi
-done > _dead.txt 2>&1 || true
-DEAD="$(grep -c '死链' _dead.txt 2>/dev/null || true)"; DEAD="${DEAD:-0}"
+done > "$DEADLIST" 2>&1 || true
+DEAD="$(grep -c '死链' "$DEADLIST" 2>/dev/null || true)"; DEAD="${DEAD:-0}"
 if [ "$DEAD" = "0" ]; then DEAD=0; fi
 
 # 旧名残留一次算完（每个名字 spawn 一次 grep 在这一千多个文件上要四分钟）
@@ -292,11 +295,15 @@ ABS="$( { grep -rnE "D:/|C:/Users|/d/Software|/d/Xilinx" --include='*.sh' --incl
 ABSN=0
 if [ -n "$ABS" ]; then ABSN="$(printf '%s\n' $ABS | wc -l)"; fi
 
-head -25 _dead.txt
+head -25 "$DEADLIST"
 echo "== 自检：死链 $DEAD ／ 旧名残留 $STALE ／ 带绝对路径的脚本 $ABSN${ABS:+ （$ABS）} =="
 
+# 工作文件不许落进包（上一版把九个中间件一起交出去了，而"文件数"又漏数了要交的那份 _pruned.txt）
+rm -f _all.txt _cand.txt _cited.txt _cited_bases.txt _dropped_tb.txt _map.sed _mv.tsv \
+      _oldnames.txt _prune_list.tsv _script_tb.txt _txt.txt
+
 # ---- 5. 清单 ----
-files="$(find . -type f ! -name '_dead.txt' ! -name '_map.sed' ! -name '_mv.tsv' ! -name '_cited.txt' ! -name '_pruned.txt' | wc -l)"
+files="$(find . -type f | wc -l)"
 bytes="$(du -sh . | cut -f1)"
 removed="$(sort -u -o _pruned.txt _pruned.txt; { grep -c '' _pruned.txt || true; })"; removed="${removed:-0}"
 BIT_MD5=""
@@ -336,10 +343,9 @@ echo "导出提交 $COMMIT：$files 个文件 / $bytes，剪掉 $removed 条，�
 if [ "$DRY" = "1" ]; then echo "DRY RUN：$TMP 留着，自己看过再 rm -rf"; exit 0; fi
 if [ "$DEAD" != "0" ] || [ "$STALE" != "0" ] || [ "$ABSN" != "0" ]; then
   echo "FAIL：死链 $DEAD ／ 旧名残留 $STALE ／ 绝对路径 $ABSN。不写 $OUT。"
-  echo "      明细：$TMP/_dead.txt 与 $TMP/_pruned.txt"
+  echo "      明细：$DEADLIST 与 $TMP/_pruned.txt"
   exit 1
 fi
-rm -f _cited.txt _dead.txt _map.sed _mv.tsv
 rm -rf "$OUT"
 mv "$TMP" "$OUT"
 echo "-> $OUT"
