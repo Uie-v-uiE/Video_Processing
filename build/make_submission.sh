@@ -52,7 +52,7 @@ PRUNE_ONEOFF=(
   build/tcl/apply_cdc_report.tcl build/tcl/fix_bd_and_top.tcl build/tcl/rebuild_opt.tcl
   build/tcl/rebuild_zoom_out.tcl build/tcl/rebuild_cdc_fix.tcl build/tcl/micro_rd.tcl
   build/tcl/uram_presence.tcl build/tcl/uram_probe.tcl build/tcl/uram_sites.tcl
-  build/tcl/ooc_newmods.tcl build/tcl/dfx_runtime.txt build/tcl/retry_open_nr.log
+  build/tcl/dfx_runtime.txt build/tcl/retry_open_nr.log
   sim/run_zoom_only.tcl tight_setup_hold_pins.txt board/ddr_churn_r33_pair.md
 )
 
@@ -91,7 +91,7 @@ for n in "${PRUNE_ONEOFF[@]}"; do prune "$n" "一次性脚本"; done
 find . -mindepth 1 2>/dev/null | sed 's|^\./||' | grep -E "$HARD_DROP_RE" |
 while read -r n; do if [ -e "$n" ]; then rm -rf "$n"; echo "被否决轮次/中间物 $n" >> _pruned.txt; fi; done || true
 
-LIVE_SCOPE=(report README.md README.en.md skill board/README.md board/HANDS_ON.md)
+LIVE_SCOPE=(report README.md README.en.md skill board/README.md board/HANDS_ON.md data/metrics.csv)
 { grep -rhoE "[A-Za-z0-9_./-]+\.[A-Za-z0-9]{1,5}" "${LIVE_SCOPE[@]}" 2>/dev/null | sed 's|^\./||'; } > _cited.txt || true
 { grep -rhoE "src/host/[A-Za-z0-9_.-]+\.mjs" build/*.sh 2>/dev/null; } >> _cited.txt || true
 sort -u -o _cited.txt _cited.txt
@@ -149,6 +149,9 @@ mkdir -p build/reports build/bitstream
 #     规则只有一条：包里的台架名不许带 rNN/vNN —— 那是作者本地的时间轴，不是职责。
 declare -A NAME_MAP
 for old in "${!SIM_MAP[@]}"; do NAME_MAP["$old"]="${SIM_MAP[$old]}"; done
+# 报告文件名里的简称也一起换（`build/tb_v98_report.txt` → `.../tb_video_pipeline_top_report.txt`），
+# 否则交付物里会剩下一串只有作者看得懂的 vNN。
+NAME_MAP["tb_v98"]="tb_video_pipeline_top"
 for f in sim/tb_*.v; do
   if [ ! -f "$f" ]; then continue; fi
   b="$(basename "$f" .v)"
@@ -181,7 +184,7 @@ while IFS= read -r f; do
     case "$base" in *"$old"*) base="${base//$old/${NAME_MAP[$old]}}" ;; esac
   done
   tag="$(printf '%s' "$f" | grep -oE '(^|[^a-z])r[0-9]+' | grep -oE 'r[0-9]+' | head -1 || true)"
-  if [ -n "$tag" ]; then np="build/reports/${tag}_${base}"; else np="build/reports/$base"; fi
+  if [ -n "$tag" ] && [ "${base#$tag}" = "$base" ]; then np="build/reports/${tag}_${base}"; else np="build/reports/$base"; fi
   if [ -e "$np" ]; then np="build/reports/$(basename "$(dirname "$f")")_$(basename "$base")"; fi
   if [ "$f" != "$np" ]; then mv "$f" "$np"; add_mv "$f" "$np"; fi
 done < <(find build -type f \( -name '*.rpt' -o -name '*.txt' \) 2>/dev/null | grep -v '^./build/reports/' | sort)
@@ -223,7 +226,7 @@ done < _dropped_tb.txt
 
 # 改写只作用于" prose 与脚本"；证据类（build/reports/、report/log/）保持原文
 find . -type f \( -name '*.md' -o -name '*.sh' -o -name '*.tcl' -o -name '*.py' -o -name '*.mjs' \
-    -o -name '*.ps1' -o -name '*.bat' -o -name '*.v' -o -name '*.c' -o -name '*.h' \) 2>/dev/null |
+    -o -name '*.ps1' -o -name '*.bat' -o -name '*.v' -o -name '*.c' -o -name '*.h' -o -name '*.csv' \) 2>/dev/null |
 grep -vE '^\./build/reports/|^\./report/log/' > _txt.txt || true
 xargs -r sed -i -f _map.sed < _txt.txt
 
@@ -251,7 +254,9 @@ done
 
 # ---- 4. 自检 ----
 : > _dead.txt
-for f in README.md README.en.md report/*.md skill/*.md skill/*/*.md board/*.md sim/*.md build/*.md build/tcl/*.md; do
+# 判死链的范围 = "活文档"（评委照着跑的说明书），**不含 report/log/**：那里的路径是当时那天的名字，
+# 台架删了、工具改名了、捕获清了都留在里面，那是过程记录，不该拿它判包不完整。
+for f in README.md README.en.md report/*.md skill/*.md skill/*/*.md board/*.md sim/*.md build/*.md build/tcl/*.md data/*.csv; do
   if [ -f "$f" ]; then
     d="$(dirname "$f")"
     grep -oE '(src|sim|build|board|data|skill|report)/[A-Za-z0-9_./-]*[A-Za-z0-9_-]\.[A-Za-z0-9]{1,6}' "$f" 2>/dev/null |

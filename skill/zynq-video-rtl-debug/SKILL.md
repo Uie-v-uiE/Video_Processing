@@ -29,7 +29,7 @@ description: Layered (L0-L4) RTL debug and single-variable fix protocol for this
 | 下 bit / 起 PS / 选显示源 | 三件套 `build/tcl/{ps_jtag_boot,program_pl,ps_app_reload}.tcl`；选源是 `build/tcl/set_src.tcl`；链上有没有器件是 `scan_jtag.tcl` |
 | 门禁复核 | `bash ../../build/gates.sh`（它检查什么、红了先看哪里，见 README 的 C 表） |
 
-## 已验证效果（这条分层顺序真的按下去过多少次）
+## 已验证效果与出处（这条分层顺序真的按下去过多少次）
 
 - **L4 的第一格就是被它救回来的**：`ping` 发送=3 / 接收=3 / 丢失=0 与 `DDR_ECHO`、`PROGRAMMED xc7z020_1`
   三行连起来读，才把"没画面"从"网口坏了"改成"PS 没重起"（`docs/log/OVERNIGHT_LOG.md` §「L4 执行」）。

@@ -87,7 +87,7 @@ bash build/board_verify.sh --battery --geom
 | `src/` 设计源码 | `src/rtl/**`（PL）+ `src/ps/**`（裸机固件）+ `src/constraints/**` | 同名 |
 | `sim/` 仿真脚本与结果 | `sim/**`（仓库里的全部台架） | 支撑交付结论的那几支 + `sim/NAMES.md`（新旧名对照）；判据结果在 `build/reports` |
 | `build/` 构建脚本 + 综合实现报告 | `build/tcl/**`（入口 `build_system_axigpio.tcl`）、`build/gates.sh`、各轮留档 | `build/tcl/**` + `build/reports`（展平后的 .rpt/.txt）+ `build/bitstream/`（板上那一版 .bit/.xsa/.elf） |
-| `board/` 上板工程与实测输出 | `board/**`（操作卡、验收表、JTAG 脚本） | 同名（`board/verify_r87.md` 是 36 行全功能验收表） |
+| `board/` 上板工程与实测输出 | `board/**`（操作卡、验收表、JTAG 脚本） | 同名（`board/VERIFY_r87.md` 是 36 行全功能验收表） |
 | `data/` 测试数据与参考结果 | `data/golden/**`、`data/measured/**`、`data/metrics.csv` | 同名 |
 | `skill/` 技能包 | `skill/**`（`README.md` 是索引，每张卡固定六节） | 同名 |
 | 设计报告 + 协作记录（推荐名 report） | 仓库里的 docs 目录（交付文档）与它下面的 log 子目录（工作记录） | 包里的 report 与它下面的 log |

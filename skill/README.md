@@ -125,6 +125,7 @@
 |------|----------|-----------|--------------|
 | `build/gates.sh` | `bash build/gates.sh [某个冻结目录]` | 读现成报告出 PASS/FAIL：WNS/WHS 与两类失败端点、BRAM、Slice LUT/Reg、Dynamic、methodology Critical、布线错误网线、CDC 配对集合+unsafe、端口宽度 8-689、多驱动 8-685x、顶层接线、顶层台架 `tb_v98`、边缘条带、PS 心跳约定、手写件编码、文档时效、排练=讲稿。解析不到值就 FATAL 退出，**不拿空值当 0 判绿** | 它自己印的候选行（读不到时会把最像的三行原样打出来）；CDC 那行红 → `cdc_who.tcl` 点名；"WARN 相差 N 分钟" → 构建没跑完，见 S15 |
 | `build/gates_cdc_test.sh` | `bash build/gates_cdc_test.sh` | 门禁 CDC 项**自己**的判据：真冻结件必须红、把 unsafe 改回 1 必须绿、新增配对、基线缺列、基线不存在 | 它红 = 你改了 `gates.sh` 的 CDC 解析而没带上这份测试 |
+| `build/check_skill_cards.py` | `python build/check_skill_cards.py [--self]` | **本目录自己的**判据：每张卡片六节齐不齐（同义词表认得两种历史形式）、卡片是否超长、README 里那行条目数是否等于盘上实际数。**这是全仓库唯一写条目数的那一行的守卫** | `--self` 先跑：它自带两条反例（缺节的卡、写错的计数），反例不红就说明这把尺子没牙；正文红 → 补那一节，不是把卡片删掉 |
 | `build/check_ports.py` | `python build/check_ports.py` | 顶层端口名对得上、输入没悬空、位宽两头一致（因为顶层没有任何台架例化它，这类错全量仿真一条都不会红） | 它点名的那条 net 与两侧模块；凭据文件是 `build/ports_check.txt` |
 | `sim/run_one.sh` | `bash sim/run_one.sh tb_xxx` | 单台架快跑（只编要编的文件）；编译**之前**把 `top_md5` / `tb_md5` / `rtl_md5` 写进 `prov.txt` | `exit 3` = 有别的 xsim 正在写同一份 `run.log`，先问是谁的那一跑；红了看 `/tmp/kx/<tb>.run/run.log` |
 | `build/tb98_report.sh` · `build/tb98_gate_ce.sh` · `build/rim_gate_ce.sh` | `bash build/tb98_report.sh [run.log]` | 把顶层台架的 console 收成门禁要的凭据（头部两枚 md5）；后两个是这两份凭据各自的反例判据 | 报"不是同一次跑" = 报告比当前树旧 ⇒ 重跑台架，别改报告 |
