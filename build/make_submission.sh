@@ -47,7 +47,7 @@ SIM_PLAIN=(tb_link_monitor tb_zoom_mapper tb_rotate_window tb_cdc_capacity tb_ic
 SIM_KEEP=("${!SIM_MAP[@]}" "${SIM_PLAIN[@]}")
 
 # ---- 硬剔除：被否决的轮次、探针与构建中间物、零引用 RTL ----
-HARD_DROP_RE='^build/(failed_|red_|multidrive_|exp_|strprobe|uram_probe|micro_rd|ps_obj|snap_|r[0-9]+_isolated|r[0-9]+_exp|build/|vivado_system/|__pycache__/)|^sim/(probes|msim|v98run|xtest|tagchk|syntaxchk|v100run2)/|^src/rtl/(axi/axi_frame_writer|eth/axi_frame_saver|video/frame_buffer_db|video/video_timing_720p)\.v$'
+HARD_DROP_RE='^build/(failed_|red_|multidrive_|exp_|strprobe|uram_probe|micro_rd|ps_obj|snap_|r[0-9]+_|build/|vivado_system/|__pycache__/)|^sim/(probes|msim|v98run|xtest|tagchk|syntaxchk|v100run2)/|^src/rtl/(axi/axi_frame_writer|eth/axi_frame_saver|video/frame_buffer_db|video/video_timing_720p)\.v$'
 PRUNE_ONEOFF=(
   build/tcl/apply_cdc_report.tcl build/tcl/fix_bd_and_top.tcl build/tcl/rebuild_opt.tcl
   build/tcl/rebuild_zoom_out.tcl build/tcl/rebuild_cdc_fix.tcl build/tcl/micro_rd.tcl
@@ -61,8 +61,7 @@ PRUNE_ONEOFF=(
   build/_scan_align.mjs build/cleanup_wip.sh build/refresh_evidence.sh build/roll_isolated.sh
   build/trim_comments.py build/orphan_rtl.sh build/rim_gate_ce.sh build/tb98_gate_ce.sh
   build/ps_app.mjs build/tag_bench_labels.mjs build/_tmp_isolated_roll.tcl
-  build/r90_phase1.sh build/r90_phase2.sh build/r90_phase3.sh build/r90_patch_icmp.py
-  build/r91_strategy_round.sh
+  # rNN_ 开头的开发件现在由上面的形状规则统一剪掉，不再逐个列名字（列名就会漏，r92 漏过九个）。
   # `board/` 同理：留"上板工程 / 运行脚本 / 实测输出"，一次性探针走。
   # 名单不是凭印象 —— 先查过谁被指路：`rdddr.tcl` 被 BUILD.md 点名、`demo_rehearsal.txt` 被 gates.sh 用、
   # `pswhy.tcl` / `serial_bytes.ps1` / `uart_*.ps1` / `evidence_r41/` 都有文档指路 ⇒ 全部保留；
@@ -217,7 +216,7 @@ if [ -n "$GBIT" ]; then mkdir -p build/reports; cp "$GBIT" build/reports/gates.t
 mkdir -p board/output
 for f in $(grep -ohE 'build/evidence/[A-Za-z0-9_.-]+' board/ACCEPTANCE.md 2>/dev/null | sort -u); do
   if [ -f "$f" ]; then
-    nb="$(printf '%s' "$(basename "$f")" | sed -E 's/^r[0-9]+_//; s/_r[0-9]+//')"
+    nb="$(printf '%s' "$(basename "$f")" | sed -E 's/^r[0-9]+[a-z]?_//; s/_r[0-9]+//')"
     mv "$f" "board/output/$nb"
     add_mv "$f" "board/output/$nb"
     echo "板级实测输出搬进包内板级目录 $f -> board/output/$nb" >> _pruned.txt
