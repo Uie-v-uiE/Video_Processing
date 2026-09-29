@@ -3,7 +3,7 @@
 这里放的是**方法**，不是 FPGA 教材，也不是本项目的说明书。留下它的标准只有一条：
 另一支队伍、另一块板、另一个题目，明天就能照它做一遍，并且做完能省掉一次真实的错误。
 
-**目录里现在有 27 项编号条目**（S1…S29，空号 S3、S6；S8 住在 `zynq-video-rtl-debug/` 里），
+**目录里现在有 28 项编号条目**（S1…S30，空号 S3、S6；S8 住在 `zynq-video-rtl-debug/` 里），
 加一份给智能体直接加载的 `SKILL.md`。
 数法（别抄数，跑这条）：`grep -h -m1 '^# S' skill/*.md skill/zynq-video-rtl-debug/*.md | grep -c '^# S[0-9]'`。
 分四组：A 工作流 / B 可抄的骨架 / C 校验脚本（**C 组不占条目，它只有脚本**）/ D 技术踩坑。
@@ -32,6 +32,7 @@
 | WNS 是负的，不知道该动算术、动扇出还是动物理 | [S28 wns_logic_vs_route_lever.md](wns_logic_vs_route_lever.md)（先读 `logic/route` 分配，`build/tcl/crit_path.tcl` 就是那个口子） |
 | 想证明这次改动是"免费的"，可再滚一轮会把证据盖掉 | [S27 prove_change_is_free_by_bitstream_header.md](prove_change_is_free_by_bitstream_header.md)（隔离构建 `build/roll_isolated.sh` + 位流包头比对） |
 | 有一段不能碰 RTL 的空档，想让代理通读找坑 | [S29 read_only_review_agent.md](read_only_review_agent.md)（边界写死"禁改/禁跑碰 COM6 的脚本"，**只有能指出 `file:line` 的才算发现**） |
+| 门禁/CI 打了"全绿"，而你怀疑有几项今天根本没判 | [S30 verdict_line_must_print_scope.md](verdict_line_must_print_scope.md)（结论行必须带"判定 N 项 / 未判 M 项"，未判那一档行首要换词好让下游 grep 自然拒绝） |
 | 上板没画面、没反应、ping 不通 | [S8 zynq-video-rtl-debug/SKILL.md](zynq-video-rtl-debug/SKILL.md)（L0–L4 分层），再 [S7](board_eth_uart.md) |
 | 回读回来的一组数不自洽（"部分大于整体"） | [S18](atomic_register_window_readback.md) |
 | 同一位置必失败，旁边的人往"超时/竞态"上解释 | [S17](failing_read_prints_geometry.md) |
@@ -84,6 +85,16 @@
   凭据：`docs/log/ISSUES.md` #125（代理交回 16 条 ⇒ 8 条进正文、4 条降为 CANDIDATE、其余不采信；
   当场修掉的两条都是"会说谎的那一行"：`[TEMP]` 的负号、`gpio_o[20]` 的三张过期位表）。
   会失效于：需要测量的判断（时序收敛、板级观感、上位机协议）——代理给不出这些，只有判据与眼睛能给。
+
+- **[S30 verdict_line_must_print_scope.md](verdict_line_must_print_scope.md)**
+  什么时候用：你有一把把 N 项小判据合成一句结论的聚合判据，而里面有"这条今天没法判"的分支。
+  怎么用：给"未判"加计数器（`NSAY`/`NNA` + 一个会自增的 `naa()`，不是散落的 `echo "n/a"`），
+  结论行分**三态**且携带范围（有红项 / `PARTIAL —— 判定 N 项全过，但有 M 项未判` / `ALL PASS（N 项全部判定）`），
+  并且未判那一档的**行首必须换词**，让下游 `grep '^ALL PASS'` 自然拒绝（本仓下游是 `freeze_evidence.sh`）。
+  凭据：`docs/log/ISSUES.md` #141 —— 同一份 r88 报告集，改前打 `ALL PASS` rc=0（`build/r88_gates_naive.txt`）、
+  改后打 `PARTIAL … 判定 18 项 / 2 项未判` rc=1（`build/r88_gates_partial.txt`），而那两项正是两把主台架。
+  会失效于："未判"若是长期状态 ⇒ 每次都 PARTIAL，很快被忽略，该删那一项或改成硬要求；
+  退出码变严会把历史目录的重放也判红（先跑旧目录，分清"真缺凭据"与"读错文件名"）。
 
 ## B 案例模板 —— 可以直接抄进自己仓库的骨架
 
