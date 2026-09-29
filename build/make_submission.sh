@@ -67,6 +67,10 @@ BUILD_DEV_ONLY=(
   build/_scan_align.mjs build/cleanup_wip.sh build/refresh_evidence.sh build/roll_isolated.sh
   build/trim_comments.py build/orphan_rtl.sh build/rim_gate_ce.sh build/tb98_gate_ce.sh
 )
+# 赛程对照表也不进包（用户原话："那些什么与赛程对照啥的都丢掉，直接把这个项目说清楚就行，
+# 不过是按照比赛的目录罢了"）：它是作者对着指南打勾用的工作记录，评审要的"比赛推荐的目录形状"
+# 已经由摆放本身给出了，不需要在包里再放一张对照表。剪掉之后同样要把指路改口，别留死链接。
+DOC_EXCLUDE=(report/log/CONTEST_CHECKLIST.md)
 
 # ---- 无论有没有被点名都留着：跑起来的那一套 ----
 KEEP_ALWAYS_RE='\.(sh|tcl|py|ps1|bat|xdc|f|v|c|h)$|^src/(rtl|ps|constraints)/|^data/golden/|MANIFEST|README'
@@ -117,6 +121,7 @@ for d in build/evidence_* build/frozen_*; do
     fi
   fi
 done
+for f in "${DOC_EXCLUDE[@]}"; do prune "$f" "赛程对照（工作记录，不随包）"; done
 find . -mindepth 1 2>/dev/null | sed 's|^\./||' | grep -E "$HARD_DROP_RE" |
 while read -r n; do if [ -e "$n" ]; then rm -rf "$n"; echo "被否决轮次/中间物 $n" >> _pruned.txt; fi; done || true
 
@@ -312,6 +317,14 @@ for f in README.md README.en.md report/*.md skill/*.md skill/*/*.md board/*.md s
       n="$(grep -cF -- "$t" "$f")"
       sed -i "s|${t//./\\.}|仓库里的 ${bn}（工具，不随包）|g" "$f"
       echo "改口 $f: $t → 仓库里的 ${bn}（$n 处）" >> _pruned.txt
+    fi
+  done
+  # 文档级的排除同理处理：包名已被改成小写，指路可能还是大写，所以两边都匹配（I 标志）。
+  for t in "${DOC_EXCLUDE[@]}"; do
+    if grep -qiF -- "$t" "$f" 2>/dev/null; then
+      n="$(grep -ciF -- "$t" "$f")"
+      sed -i "s|${t//./\\.}|仓库里的工作记录（赛程对照，不随包）|Ig" "$f"
+      echo "改口 $f: $t → 仓库里的工作记录（$n 处）" >> _pruned.txt
     fi
   done
 done
