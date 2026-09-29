@@ -354,6 +354,7 @@ if [ "$DEAD" != "0" ] || [ "$STALE" != "0" ] || [ "$ABSN" != "0" ]; then
 fi
 rm -rf "$OUT"
 mv "$TMP" "$OUT"
+cd "$REPO"        # 刚被 mv 走的 $TMP 就是上一秒的工作目录，站在里面 find 会直接失败
 landed="$(find "$OUT" -type f | wc -l)"
 if [ "$landed" != "$((files + 1))" ]; then
   echo "FAIL：MANIFEST 写 $files 个文件，落地数到 $landed（差 1 应该是 MANIFEST.txt 自己，不是就不是）"
