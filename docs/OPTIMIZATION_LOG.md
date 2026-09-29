@@ -542,7 +542,7 @@ BRAM **95 = 67.86 %**、LUT as Logic **10173**、LUT as Memory **4187**、FF **8
 
 **门禁（同一份报告集，`bash build/gates.sh build/r88_exp`）**：先跑目录参数时是 18 项判定全过、**2 项 `n/a`**
 （顶层台架 `tb_v98` 与边缘条带 `tb_edge_rim` 都没有"与这一次构建同跑"的 md5 凭据）⇒
-`GATES: PARTIAL`、rc=1（`build/r88_gates_partial.txt`）。把这一版采纳进 `build/` 之后复跑：`GATES: 有红项（判定 20 项）`，红的就是第 15 项里 `C5c` 那一行（`build/r88_gates.txt`），`freeze_evidence.sh 88` 按规则 REFUSE（`build/r88_freeze_attempt.txt`）。**板上仍是 r87**（等供电）。
+`GATES: PARTIAL`、rc=1（`build/r88_gates_partial.txt`）。把这一版采纳进 `build/` 之后复跑：`GATES: 有红项（判定 20 项）`，红的就是第 15 项里 `C5c` 那一行（`build/evidence/r88_gates.txt`），`freeze_evidence.sh 88` 按规则 REFUSE（`build/evidence/r88_freeze_attempt.txt`）。**板上仍是 r87**（等供电）。
 ⚠ 这一版顺手把**判据本身**修了一处（ISSUES **#141**）：改前 `say()` 只数红绿、`n/a` 四处独立打印，
 于是"两支主台架都没判"的一版会端出 `GATES: ALL PASS`（那份留在 `build/r88_gates_naive.txt`），
 而 `freeze_evidence.sh` 就 grep 这一行。现在 n/a 会被数进结尾、行首也不再是 `ALL PASS` ⇒ 冻结自动拒绝。
