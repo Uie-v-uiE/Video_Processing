@@ -89,7 +89,7 @@ repository keeps the names that the work log refers to.
 [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) (block diagram and module
 responsibilities) -> [docs/PS_VS_PL.md](docs/PS_VS_PL.md) (the hardware/software
 split) -> [docs/BACKGROUND_AND_NOVELTY.md](docs/BACKGROUND_AND_NOVELTY.md)
-(why it is built this way) -> [board/HANDS_ON.md](board/HANDS_ON.md) (what to look at
+(why it is built this way) -> [board/README.md](board/README.md) (what to look at
 on the panel).
 
 ## License
