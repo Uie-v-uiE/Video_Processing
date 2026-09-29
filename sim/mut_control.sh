@@ -75,7 +75,17 @@ osd_inchar_all)
     EXPDIFF=2
     sed -i 's/wire        in_char = in_box \&\& (pix_y < CHAR_H) \&\& (line < N_LINES);/wire        in_char = (pix_y < CHAR_H);/' "$P" || exit 1
     ;;
-*)  echo "REFUSE: 不认识 mutation '$MUT'（现有：pipeline | osd_inchar | osd_addr | osd_inchar_all）。别猜，往下读 case 分支。"; exit 2 ;;
+bilin_ky_fold)
+    # `tb_v101_fb_bilin` 的 L10 需要的正例：拆掉纵向抽头的折回钉子（`ky_use` 里的 `sy >= IMG_H-1` 那一项），
+    # 于是末行那次 `w_b` 越界读**不再被折回**、直接喂进插值 ⇒ L10 必须数到非零。
+    # 为什么这条算正例而"改判据的 mask"不算：那个只证明计数器会动，这个证明它管的是 DUT 的那道门。
+    # ⚠ 预期会有连带红（参考模型仍按折回算 ⇒ 末行的像素比对也会红）⇒ 判定看"L10 在不在红名单里"，
+    #   连带项写进凭据而不是删掉。
+    P=rtl_mut/process/bilin/fb_bilin.v
+    EXPDIFF=2
+    sed -i 's/ ky_use = !bilin_en || sy >= IMG_H-1;/ ky_use = !bilin_en;/' "$P" || exit 1
+    ;;
+*)  echo "REFUSE: 不认识 mutation '$MUT'（现有：pipeline | osd_inchar | osd_addr | osd_inchar_all | bilin_ky_fold）。别猜，往下读 case 分支。"; exit 2 ;;
 esac
 # 原件那一侧必须写**绝对**路径：这个脚本前面已经 `cd "$R"` 了，用相对路径会让 diff 找不到原件，
 # 于是把整个 mutant 文件当成"新增"报出 509 行 —— 守卫照样拒绝，但拒绝的原因是路径而不是改动本身（2026-09-29 08:19 实踩）。

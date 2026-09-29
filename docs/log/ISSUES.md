@@ -5580,6 +5580,13 @@ osd_inchar_all`），改完**重跑过**旧那条以证明重构没弄坏它（`
 ⑤ **还欠**：L10 的牙口目前只有"换一个 mask 它就跟着动（3→0）"这条间接证据，**没有** DUT 侧变异对照。
 需要的正例是 `sim/mut_control.sh` 再加一条分支拆掉 `ky_use` 里的 `|| sy >= IMG_H-1` ⇒ L10 必须数到非零；
 与第 4、5 条 CANDIDATE 一起排在任务 #102。
+⑥ **08:46 把 ⑤ 那笔账还上了**（凭据 `build/evidence/r86_bilin_L10_teeth.txt`，跑法
+`sim/mut_control.sh tb_v101_fb_bilin L10 bilin_ky_fold`）：新增一条 mutation 分支，拆掉 `ky_use` 里的
+`|| sy >= IMG_H-1`（纵向抽头的折回钉子）。结果 **L10 报红、且只它一条红**（`RESULT … FAIL errors=1`），
+harm 从 0 变成 **256 拍** —— 正好是末行那 512 个像素里"发 B 抽头"的那一半。
+现场那行现在也**红在预测的位置上**：`first offender: tap=vertical-B sy_then=299 ky_d2=0`（末行 + 折回失效），
+不是"红了就算"。⇒ 第 3 条的牙口与第 2 条同等强度；⑤ 里"没有 DUT 侧变异对照"这句作废，
+剩下的只欠那个结构性修法（给读地址起一根线，动 `src/rtl` ⇒ 与 #99/#100 同一构建轮）。
 
 ---
 
