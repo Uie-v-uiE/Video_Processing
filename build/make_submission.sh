@@ -62,6 +62,7 @@ PRUNE_ONEOFF=(
   build/trim_comments.py build/orphan_rtl.sh build/rim_gate_ce.sh build/tb98_gate_ce.sh
   build/ps_app.mjs build/tag_bench_labels.mjs build/_tmp_isolated_roll.tcl
   build/r90_phase1.sh build/r90_phase2.sh build/r90_phase3.sh build/r90_patch_icmp.py
+  build/r91_strategy_round.sh
   # `board/` 同理：留"上板工程 / 运行脚本 / 实测输出"，一次性探针走。
   # 名单不是凭印象 —— 先查过谁被指路：`rdddr.tcl` 被 BUILD.md 点名、`demo_rehearsal.txt` 被 gates.sh 用、
   # `pswhy.tcl` / `serial_bytes.ps1` / `uart_*.ps1` / `evidence_r41/` 都有文档指路 ⇒ 全部保留；
