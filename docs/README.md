@@ -37,7 +37,7 @@
 | `AI_COLLABORATION.md` | 人机协作记录：约束怎么给、模型怎么跑偏、用什么读数判掉 | 只写有出处的往来，不写台词 |
 | `../skill/README.md` | 技能包索引（每张卡**六节**：触发 / 不适用 / 动作 / 完成判据 / 失效边界 / 出处） | 与本页分工：这里是本项目，那里是**别人换题目也能用**的方法；六节齐不齐由 `build/check_skill_cards.py` 判 |
 | `../board/HANDS_ON.md` | 自己把每个功能过一遍的清单（每条一个四要素配方） | 与 `DEMO_SCRIPT` 的分工：那份是演给别人看的顺序 |
-| `log/README.md` | 工作记录十页的读法（哪一页是原料、哪一页只到 V7.9、为什么它们不参与死链自检） | 进了 `report/log/` 先看这页 |
+| `log/README.md` | 工作记录十页的读法（哪一页是原料、哪一页只到 V7.9、为什么它们不参与死链自检） | 进了工作记录那一层先看这页 |
 
 **只有 5 分钟**：`PROJECT_BRIEF.md` → `BACKGROUND_AND_NOVELTY.md` → `../data/metrics.csv` →
 `LLM_COLLAB.md` → `KNOWN_ISSUES.md`。**只有一小时**：再加 `ARCHITECTURE.md` → `MODULES.md` →
