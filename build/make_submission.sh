@@ -136,12 +136,18 @@ done
 BIT_MD5=""; [ -f build/system.bit ] && BIT_MD5="$(md5sum build/system.bit | cut -c1-12)"
 GATES_FOR_BIT=""
 if [ -n "$BIT_MD5" ]; then
-    GATES_FOR_BIT="$(grep -l "$BIT_MD5" build/*gates*.txt build/evidence/*.txt 2>/dev/null | head -1)"
+    # ⚠ 2026-09-29 10:3x 修：这里原来是 $(grep -l … | head -1)。grep 没命中就退 1，而本脚本第 20 行是
+    #   set -euo pipefail ⇒ 整支脚本在"这一版还没有门禁报告"时**静默死掉**，下一行写好的"不作交付"分支根本轮不到跑。
+    #   现场：r87 位流刚构建完、门禁还没跑，`bash make_submission.sh` rc=1 却只打印了自检行；
+    #   而我连着两次用 `… | tail -2` 看状态，读到的是 tail 的 0 ⇒ 把失败当成通过（判"通不通过"要看被 pipe 掉的命令本身）。
+    GATES_FOR_BIT="$( { grep -l "$BIT_MD5" build/*gates*.txt build/evidence/*.txt 2>/dev/null || true; } | head -1 )"
     [ -n "$GATES_FOR_BIT" ] || GATES_FOR_BIT="没有一份门禁报告写着这串 md5 ⇒ 这一版不作交付（诊断用）"
 fi
 
 # ---- 4. 清单 ----
-files="$(find . -type f | wc -l)"
+# ⚠ 计数要排掉自检的临时文件 `_dead.txt`：它在上面被创建、又不属于交付内容、稍后被删 ⇒
+#   原来这一行数出来的"925 / 933"永远比包里真正落地的多 1（`ISSUES #106`，10:47 结案）。
+files="$(find . -type f ! -name _dead.txt | wc -l)"
 bytes="$(du -sh . | cut -f1)"
 cat > MANIFEST.txt <<EOF
 导出时间: $(date '+%Y-%m-%d %H:%M:%S')
