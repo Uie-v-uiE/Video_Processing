@@ -36,3 +36,17 @@ ERROR: [Common 17-39] 'open_hw_target' failed due to earlier errors.
 "open_hw_target"
     (file "build/tcl/scan_jtag.tcl" line 4)
 INFO: [Common 17-206] Exiting Vivado at Tue Sep 29 16:13:10 2026...
+# 15:33 补查：USB 侧（板子供电之外的两段）都是好的
+# 命令：powershell Get-PnpDevice -PresentOnly（按 0403/XILINX/jtag/Cable 过滤）
+
+Status Class FriendlyName          
+------ ----- ------------          
+OK     USB   USB Composite Device  
+OK     USB   USB Serial Converter A
+OK     USB   USB Serial Converter B
+OK     Ports USB Serial Port (COM6)
+
+
+
+# 结论：FT2232 线缆枚举正常（Composite Device + Serial Converter A/B + COM6 全 OK），
+#       而 scan_jtag 报 No devices detected ⇒ 缺的是**板子供电**，不是驱动/线/PC。
