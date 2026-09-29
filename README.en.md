@@ -4,7 +4,7 @@
 
 A single Zynq-7020 (`xc7z020clg484-2`) runs the whole path: video arrives from
 **Gigabit Ethernet, an SD card or an on-chip test card**, the PL scales, rotates and
-filters it, and the result leaves as **HDMI 1024x600 @ 50 Hz** (the processing canvas
+filters it, and the result leaves as **HDMI 1024x600 at 59.5 Hz** (50 MHz pixel clock, 1344x625 totals) (the processing canvas
 is 512x300 RGB565, expanded x2 on the way out). Left of any vertical line on the panel
 you see the **unprocessed** picture, right of it the **processed** one in the same
 coordinate system. The seam can be fixed, auto-swept, or locked into the image domain

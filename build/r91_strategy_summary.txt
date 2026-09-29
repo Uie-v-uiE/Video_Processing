@@ -1,0 +1,5 @@
+# r91 实现策略轮 —— 2026-09-30 00:24 —— 同 RTL 同 XDC，只换策略
+# 门槛：WHS>=+0.15 且 WNS>=+0.40 且失败端点=0；两滚同向才算
+# 基线（板上那一版，IMPL_STRATEGY=Vivado Implementation Defaults）：design WNS=+0.516 WHS=+0.051 fail_ep=0 total_ep=50885 | eth_rxc WNS=+0.516 WHS=+0.051
+Performance_Explore  design WNS=0.500 WHS=0.046 fail_ep=0 total_ep=50805 | eth_rxc WNS=0.500 WHS=0.046
+Performance_ExtraTimingOpt  design WNS=0.157 WHS=0.051 fail_ep=0 total_ep=50885 | eth_rxc WNS=0.157 WHS=0.052

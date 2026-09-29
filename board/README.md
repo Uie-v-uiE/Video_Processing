@@ -8,7 +8,7 @@
 | 项 | 值 | 出处 |
 |---|---|---|
 | 器件 | Zynq-7020 `xc7z020clg484-2` | `docs/BUILD.md` |
-| 显示输出 | HDMI **1024×600 @ 50 Hz**（像素时钟 50 MHz，`H_TOTAL=1344`） | `docs/PERF_REPORT.md`、`build/timing_summary.rpt` |
+| 显示输出 | HDMI **1024×600**，像素时钟 50 MHz、`H_TOTAL=1344`/`V_TOTAL=625`（`video_timing_1024x600.v:18-20`）⇒ 场频 **59.5 Hz**。别念成 50 Hz——那是像素时钟的数值，不是刷新率 | `docs/PERF_REPORT.md`、`build/timing_summary.rpt` |
 | PL 处理画幅 | 512×300（RGB565），输出侧 ×2 展开到 1024×600 上屏 | `src/rtl/top/pl_video_top.v` |
 | 片源 | 千兆 RGMII/UDP、SD 卡（FAT32 簇链自研解析）、PL 自绘测试图卡；仲裁与回退在 PL | `docs/ARCHITECTURE.md` |
 | 上板方式 | **只走 JTAG**：PS 起来 → 烧 PL → 重载应用。本工程的任何脚本都不向 QSPI/SPI flash 写入，也不碰板载 EEPROM | 下面第 2 节的三条命令 |

@@ -668,3 +668,40 @@ BRAM **95 = 67.86 %**、LUT as Logic **10173**、LUT as Memory **4187**、FF **8
 `rtl_md5`、以及板上那一跑留档的出处，三者同为 `41384499f3a9`
 （对照 `build/tb_v98_report.txt` 头部与 `build/r89_adopted_tb98.txt`）——
 即树里现在这份就是板子上那块、也是今晚 `board_verify PASS（判红步骤 0）` 验过的那份。
+
+## r91（2026-09-30 00:24–00:55，隔离构建 `build/isolated_r91_explore/` 与 `build/isolated_r91_extratimingopt/`）：最后一轮时序 —— 实现策略这一档**量出来是空的**
+
+**这一轮先问的是"还有没有不需要动 RTL 的余量"**。三个数在 r90 之后就摆在那儿：
+setup 最差 `eth_rxc` +0.516 ns（8 ns 周期的 6.5 %），而三个域的 **hold 同为 +0.05x ns** —— 薄的是 hold。
+hold 的机制在 `docs/log/ISSUES.md:2876` 那一条已经摊开过：发射端 ILOGIC 吃 **BUFIO**（SCD 3.171 ns），
+接收端 fabric 吃 **BUFG**（DCD 4.854 ns），两棵树偏斜 1.616 ns ⇒ 每次重建都在掷 ±1 ps 的硬币。
+这一档能不能靠"实现时更用力"买回来？以前只在**综合前的旧网表**上扫过策略，而板上这一版
+`build/r8*_build_console.txt` 里那行 `BUILD_STRATEGY Vivado Implementation Defaults` 说明
+**采纳的那一版从来没用过策略**。所以这一轮就是补这一问。
+
+**同尺子**：RTL 与 XDC 一个字节不改（`set_clock_uncertainty -hold 0.800 [get_clocks eth_rxc]` 保持 r79 加严后的值），
+只换策略，各滚一整轮，产物落隔离目录不碰 `build/`。门槛跑之前写在 `build/r91_strategy_round.sh` 头部：
+WHS ≥ +0.15 ns（历史六版 WHS 在 +0.012…+0.054 之间跳，0.04 的带内不算）、WNS ≥ +0.40 ns、失败端点 0。
+
+| 策略 | 全设计 WNS | 全设计 WHS | 失败端点 | `eth_rxc` WNS/WHS | 凭据 |
+|---|---|---|---|---|---|
+| 板上这一版（Implementation Defaults） | +0.516 | +0.051 | 0 / 50885 | +0.516 / +0.051 | `build/timing_summary.rpt` |
+| `Performance_Explore` | +0.500 | +0.046 | 0 / 50805 | +0.500 / +0.046 | 盘上的 `build/isolated_r91_explore/timing_summary.rpt`（隔离滚动产物，不入库、不随包） |
+| `Performance_ExtraTimingOpt` | **+0.157** | +0.051 | 0 / 50885 | +0.157 / +0.052 | 盘上的 `build/isolated_r91_extratimingopt/timing_summary.rpt`（隔离滚动产物，不入库、不随包） |
+
+**读数**：hold 在三个策略下是 0.046 / 0.051 / 0.051 —— 完全落在历史噪声带里，**一位都没买到**；
+setup 侧 `ExtraTimingOpt` 反而把 `eth_rxc` 从 +0.516 花到 +0.157。两滚没有一同向好的，门槛一条都没过。
+这反过来把 #57 那句判断钉硬了：**+0.05x 的 hold 不是"实现不够用力"，是时钟树结构**（BUFIO 与 BUFG 两条树），
+ placer 无权改布线树拓扑，所以换策略对它必然无效。
+
+**决定：不采纳，`build/` 里那套产物与板上那一位流保持原样**（规矩 35：一次构建的绝对 delta 不承诺结果，
+这里两滚连方向都不一致，更没有采纳的理由）。#57 那条结构修法仍然挂在账上没做，而且这一轮把它的前置条件写清了：
+`src/constraints/` 里**没有任何 `set_input_delay`**（grep 证实），所以"采样点落在 RGMII 眼图哪里"
+从来不在时序报告的管辖内 —— 把 5 个 IDDR 改吃 BUFG 会让报告里的内部路径变好，却看不见外部采样窗变坏，
+**只有真板子在 1000M 流量下能判**。夜里没有人看屏，这一刀不在这里落。
+
+**同一轮顺手做的口径审计**（不是时序，但它属于"把文档更新一下"）：三篇对外文档把
+"HDMI 1024×600 **@ 50 Hz**"写成了刷新率，那是像素时钟 50 **MHz** 的数值；
+按 `video_timing_1024x600.v:18-20` 的 `H_TOTAL=1344 / V_TOTAL=625` 与 50 MHz 像素钟算是 **59.52 Hz**，
+而板上 SD 播放实测 29.8–30.0 fps 正好是它的一半（×2 垂直展开 ⇒ 一帧源占两场）—— 两把独立的尺子对上。
+详见 `docs/log/ISSUES.md` 的 #153。另一处把 512×300 标成"面板通路要的"也改成"PL 画幅"（#153）。
