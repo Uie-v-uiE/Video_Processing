@@ -3,19 +3,21 @@
 > 版本注记：本文最早写于第三版，命令与脚本路径至今仍适用；**版本相关的数字**（哪块 bit、
 > 门禁多少）不在这里，看 `docs/DEMO_SCRIPT.md` §0 与 `docs/log/OVERNIGHT_LOG.md` §9.5。
 
-## 1. 本机路径
+## 1. 怎么定位工具链（本节**不写任何一台机器的绝对路径**）
 
-| 用途 | 路径 |
+| 用途 | 在哪 |
 |------|------|
-| 仓库根 | `D:\Xilinx\Prj\pro\Video_Processing\`（旧文档与一次性脚本里曾是**另一份工作副本**根 `D:\Xilinx\Prj\ADD\Video_Pipeline-main`；那棵树今天还在、停在 v3 时代（git HEAD `7cde28d`）⇒ 脚本指过去**不会报错，只会静默改错树**，比失败更坏；2026-09-23 已全部改成自适应路径） |
-| Vivado | `D:\Software\Vivado\2025.2.1\Vivado\bin\vivado.bat` |
-| Vitis | `D:\Software\Vivado\2025.2.1\Vitis\bin\xsdb.bat`（批处理式跑法；无后缀的 `xsdb` 是 Linux 包装脚本，Git Bash 下会报 rlwrap 缺失） |
-| Vivado 工程 | `vivado_system\zynq_video_sys.xpr`（已 gitignore，可用 TCL 重建） |
-| 构建脚本 | `build\tcl\build_system_axigpio.tcl` |
-| 下载脚本 | `build\tcl\program_system.tcl`；PS 起来用 `build\tcl\ps_jtag_boot.tcl`（会自动从 xsa 解出 `ps7_init.tcl`） |
-| 上位机 | `src\host\`（推流 `video_sender.mjs`、健康读回 `health_read.mjs`）。**第二块板 KU5P 整棵已删除**（提交 `58faa85`，2026-09-28：`ku5p/` 与 `ku5p_stats.mjs` 都不在了） |
-| PS 源码 | `src\ps\main.c`（编译：`node build\ps_app.mjs`，需要 `PS_BSP`） |
-| Git | `D:\Software\Git\Git\bin\git.exe`（**旧的 `D:\Git\Git\bin` 在这台机器上已不存在**；PATH 里也有 `git`） |
+| 仓库根 | 由脚本自己按所在位置往回算，不用设任何东西（验证方法见本节末尾） |
+| Vivado / Vitis | 2025.2.1（版本注记在 `docs/PERF_REPORT.md` 与仓库根首页）。定位方式两种：把对应 `bin` 目录放进 `PATH`，或设下面那几个变量 |
+| Vivado 工程 | `vivado_system/`（已 gitignore，用 `build/tcl/build_system_axigpio.tcl` 重建） |
+| 构建入口 | `build/tcl/build_system_axigpio.tcl`（**只有这一个**；同目录另几支是历史/局部构建，见 `build/tcl/README.md`） |
+| 下载脚本 | `build/tcl/program_system.tcl`；PS 起来用 `build/tcl/ps_jtag_boot.tcl`（会自动从 xsa 解出 `ps7_init.tcl`） |
+| 上位机 | 推流 `python3 src/host/udp_push.py`（协议、限速、确定性丢包都在文件头）；其余取证类工具是 Node 写的（`src/host/*.mjs`），需要 Node 24，**不在演示主链路上** |
+| PS 源码 | `src/ps/main.c`（编译：`python3 build/build_ps_app.py`，需要 `PS_BSP`，见下表） |
+
+> 曾经这一节的第一行就是本机安装路径的清单（Vivado 装在哪、仓库在哪、git 装在哪），
+> 换一台机器照着抄会全错，而且"仓库里还有另一份旧的工作副本"这种事写进交付文档只会让人误判。
+> 规矩：**代码、Tcl、脚本与交付文档都不许多绝对路径**；这条现在由导出器判（见 §5 与 `build/make_submission.sh` 头部判据 4）。
 
 ### 换一台机器只要设这几个变量
 
@@ -23,8 +25,9 @@
 |---|---|---|---|
 | `VP_VIVADO_BIN` | `<Vivado>/bin`（Git Bash 里写成 `/d/...` 这种） | `sim/run_one.sh`、`sim/mut_control.sh`、`build/roll_isolated.sh` | 脚本第一步 `REFUSE: 找不到 xvlog（当前 …）` 并念出变量名——不会让人对着 RTL 怀疑 |
 | `VP_XSDB` | `<Vitis>/bin/xsdb.bat` | `build/board_verify.sh`（以及手工跑 `build/tcl/ps_app_reload.tcl` 时） | 同上 `REFUSE: 找不到 xsdb` |
-| `PS_CC` | `<Vitis>/gnu/aarch32/nt/gcc-arm-none-eabi/bin/arm-none-eabi` 前缀 | `build/ps_app.mjs`、`build/_scan_align.mjs` | 编译 PS 应用那一步报错 |
-| `PS_BSP` | 已 generate 过的 zynq BSP 目录（里面有 `include/` 与 `lib/libxil.a`） | `build/ps_app.mjs` | 同上 |
+| `PS_CC` | `arm-none-eabi-gcc` 的前缀或完整路径 | `build/build_ps_app.py`、`build/_scan_align.mjs` | 不设就假定工具链在 `PATH` 上；两处都没有时报 `FATAL: PATH 上找不到 …`（退出码 2），不会去怀疑 RTL |
+| `PS_BSP` | 已 generate 过的 zynq BSP 目录（里面有 `include/` 与 `lib/libxil.a`） | `build/build_ps_app.py` | 默认指**仓库内**那份 `vitis/platform/…/bsp`（2026-09-26 起，#89/#90：以前默认指仓库外一个"曾经存在过"的目录，那树一删，PS 侧就悄悄变成"只能沿用旧 ELF、不敢重编"） |
+| `PS_OUT` / `PS_OBJ` | ELF 输出路径 / 中间件目录 | `build/build_ps_app.py` | 默认 `build/ps_app.elf` 与 `build/ps_obj`；**想验证脚本而不动交付件时把 `PS_OUT` 指到别处**——2026-09-29 就是这么证明 Python 端口与 Node 端口产出逐字节相同（`md5 d0b07f84a068…`，即板上那一版） |
 
 **仓库根不用设**：`sim/*.sh` 与 `build/*.sh` 都按自己所在位置往回两级算根
 （`ROOT="$(cd "$(dirname "$0")/.." && pwd)"`），`build/tcl/*.tcl` 用 `[file dirname [info script]] .. ..`。
@@ -48,8 +51,8 @@ rc=2
 ## 2. 常用命令
 
 ```bat
-cd /d D:\Xilinx\Prj\pro\Video_Processing
-set VIVADO=D:\Software\Vivado\2025.2.1\Vivado\bin\vivado.bat
+cd /d <仓库根>
+set VIVADO=<Vivado>\bin\vivado.bat
 
 :: 从零生成 bit + xsa
 %VIVADO% -mode batch -source build\tcl\build_system_axigpio.tcl
@@ -74,7 +77,7 @@ bash sim/run_one.sh tb_osd_lines
 :: 推流
 cd src\host
 run_sender.bat
-run_video.bat D:\path\to\video.mp4
+run_video.bat <你的视频.mp4>
 run_serial.bat COM5
 ```
 
@@ -100,7 +103,7 @@ run_serial.bat COM5
 ### 3.1 PS 应用怎么重建、怎么自检（`node build/ps_app.mjs`）
 
 ```bat
-set PS_CC=D:\Software\Vivado\2025.2.1\Vitis\gnu\aarch32\nt\gcc-arm-none-eabi\bin\arm-none-eabi-gcc.exe
+set PS_CC=<Vitis>\gnu\aarch32\nt\gcc-arm-none-eabi\bin\arm-none-eabi-gcc.exe
 set PS_BSP=<一个已经 generate 过的 zynq 平台>\ps7_cortexa9_0\standalone_ps7_cortexa9_0\bsp
 node build\ps_app.mjs --clean        :: 产出 build\ps_app.elf
 ```

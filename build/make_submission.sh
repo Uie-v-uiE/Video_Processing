@@ -303,10 +303,11 @@ fi
 
 # 绝对路径只判"真被用到的"：注释里写"原来硬编码 D:/... 后来改了"是过程说明，不算违规
 # ⚠ 管道末尾必须 || true：没有命中时 grep 退 1，而赋值语句的非零状态会被 set -e 直接杀掉整支脚本
-ABS="$( { grep -rnE "D:/|C:/Users|/d/Software|/d/Xilinx" --include='*.sh' --include='*.tcl' --include='*.py' \
+ABS="$( { grep -rnE "D:[/\\]|C:[/\\]|/d/Software|/d/Xilinx" --include='*.sh' --include='*.tcl' --include='*.py' \
           --include='*.mjs' --include='*.ps1' --include='*.bat' --include='*.v' --include='*.c' --include='*.h' \
+          --include='*.md' --include='*.xdc' --include='*.csv' \
           --exclude='make_submission.sh' . 2>/dev/null || true; } |
-        grep -vE ':[0-9]+:[[:space:]]*(#|//|\*)' | cut -d: -f1 | sort -u | tr '\n' ' ' || true)"
+        grep -vE ':[0-9]+:[[:space:]]*(#|//|\*)' | grep -vE '^\./report/log/' | cut -d: -f1 | sort -u | tr '\n' ' ' || true)"
 ABSN=0
 if [ -n "$ABS" ]; then ABSN="$(printf '%s\n' $ABS | wc -l)"; fi
 

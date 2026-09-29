@@ -25,15 +25,27 @@ xsdb build\tcl\ps_app_reload.tcl
 
 只想看 HDMI 出图、不需要命令的话，第三步可以省。串口是 COM6 / 115200 / 8N1。
 
-## 2. 推流：`src/host/video_sender.mjs`
+## 2. 推流：两条发送端，一条零依赖
 
-```bat
+| 工具 | 要装什么 | 能做什么 | 什么时候用它 |
+|---|---|---|---|
+| `python3 src/host/udp_push.py` | **只要 Python 3（标准库）** | `--pattern edge` 整屏逐帧黑白交替（判"换帧是否原子"）、`--file F` 推裸 RGB565 帧流、`--pace-mbps` 限速、`--drop-every N` 确定性丢包 | 默认用它：评委/任何人拿到包就能推，不需要 Node；演示"坏帧不上屏"用 `--drop-every` |
+| `node src/host/video_sender.mjs` | Node 18+（实测 v24，只用内置 `node:` 模块） | 上面那些 + 一整套**自带判据的图案**：`bars`（横条纹滚动 + 移动方块拖影 + 左缘奇偶行洋红标记，用于行序错乱）、`frameid`/`wordid`（每帧一个编号的 8 个二值格 ⇒ 拍照就能读出屏上这帧是第几帧）、`grad`、`hold`、`move`、`edge` | 做归因实验时用它；协议与上面完全一致（同一套 `[u32 LE 偏移][载荷]`） |
+
+```bash
+python3 src/host/udp_push.py --pattern edge --fps 15 --count 600
+python3 src/host/udp_push.py --file frames.rgb --fps 30 --pace-mbps 15
+python3 src/host/udp_push.py --pattern edge --count 300 --drop-every 500   # 板上必须整帧不上屏
 node src\host\video_sender.mjs --test bars --fps 15
 node src\host\video_sender.mjs --test frameid --fps 15 --count 200   :: 丢帧判据专用
 node src\host\video_sender.mjs --file - < raw.rgb565                 :: 裸流从 stdin 进
 ```
 
-| 参数 | 默认 | 说明 |
+```bat
+node src\host\video_sender.mjs --test bars --fps 15 --ip 192.168.1.10
+```
+
+| 参数（下表是 `video_sender.mjs` 的；`udp_push.py` 的参数用 `--help` 看，命名一致但少几项） | 默认 | 说明 |
 |------|------|------|
 | `--ip` / `--port` | 192.168.1.10 / 5001 | 板卡地址 |
 | `--src` | 192.168.1.100 | 本机绑定地址；传 `""` 走默认路由 |
@@ -57,7 +69,7 @@ node src\host\video_sender.mjs --file - < raw.rgb565                 :: 裸流�
 | `frameid` | **逐帧丢字 / 陈旧帧**（每个字写着自己来自第几帧） | —— |
 
 推真实视频用根目录的 `stream_video.bat`（双击、或把文件拖到图标上、或
-`stream_video.bat D:\path\a.mp4 30`）。它只做一件事：让 ffmpeg 把视频解成面板要的
+`stream_video.bat <你的视频.mp4> 30`）。它只做一件事：让 ffmpeg 把视频解成面板要的
 512×300 RGB565 裸流，用管道喂给 `video_sender.mjs --file -`。解码不进 Node 是有意的：
 发送端只按帧边界切片，末尾不足一帧的残片直接丢掉并报数 —— 半帧会让板端"这一帧少一行"
 变成常态，`frames_bad` / `rows_miss_max` 从此没法对账。
@@ -122,6 +134,8 @@ V7 的老写法（`SRC0` `TH80` `ZOOM1` `BILIN1` `FRAME12`）仍然收；裸五�
 
 | 脚本 | 一句话 | 被谁调用 |
 |------|--------|----------|
+| `src/host/udp_push.py` | 零依赖推流（协议、限速、确定性丢包）；`--pattern edge` 是"换帧原子性"的现场判据 | 手工；`docs/HOST_GUIDE.md` §2 的第一条 |
+| `build/build_ps_app.py` | 不用 IDE 把 `src/ps` 编成 ELF，并做**成品自检**（入口 = `_boot`、`_vector_table` 必须在 0x0、`.text` 体积下界、七个符号必须在）；退出码 2/1/3 分别指"输入不在/编译失败/成品不可执行" | `docs/BUILD.md` §1；与 `build/ps_app.mjs` 产出**逐字节相同**（md5 `d0b07f84a068…`，即板上那一版）|
 | `doc_enc_check.mjs` | 手写文件（`.md .v .c .h .mjs .sh .ps1 .tcl`，范围 `docs/board/src/sim/tools/build/tcl` **与 `skill/`**——后者是 2026-09-29 补进来的，之前那 29 个给评委读的文件从没被扫过）必须 UTF-8 无 BOM、无 CR 混排、无替换符/私用区 | `build/gates.sh` |
 | `doc_currency_check.mjs` | 文档里点名的 `build/frozen_rNN/` 必须盘上真有、旧编号不许写成"当前默认" | `build/gates.sh` |
 | `line_cite_check.mjs` | 交付文档里的 `文件.v:NNN` 引用：硬错=文件不在树里 / 行号越过文件末尾（决定退出码）；"锚点不在那几行"只列候选不判红（`--self` 是 #122 那个真实事故） | **暂时不在门禁里**——注册之前要先给它一条能红的对照，见 `ISSUES #122` 收口段；今晚用它把 7 处硬错清零 |

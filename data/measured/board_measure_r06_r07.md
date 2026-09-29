@@ -51,7 +51,7 @@ ping -n 4 192.168.1.10             有回包（TTL=128, 1 ms）⇒ ARP/ICMP 在�
 ## 复算命令
 
 ```bat
-set PS7_INIT=D:/Xilinx/Prj/pro/Video_Processing/vivado_system/zynq_video_sys.gen/sources_1/bd/design_1/ip/design_1_processing_system7_0_0/ps7_init.tcl
+set PS7_INIT=<仓库根>/vivado_system/zynq_video_sys.gen/sources_1/bd/design_1/ip/design_1_processing_system7_0_0/ps7_init.tcl
 "%VITIS%\bin\xsdb.bat" build\tcl\ps_jtag_boot.tcl
 "%VIVADO%\bin\vivado.bat" -mode batch -nojournal -source build\tcl\program_pl.tcl
 "%VITIS%\bin\xsdb.bat" build\tcl\set_src.tcl

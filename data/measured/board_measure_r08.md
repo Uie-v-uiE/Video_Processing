@@ -8,15 +8,15 @@ JTAG：板载 FT2232，`0ABC01A`，链路 = `arm_dap_0 + xc7z020_1`。
 
 ```bat
 :: 0) 只连一块板的 Type-C（两块板的 FT2232 共用序列号 0ABC01，同时插只认一个）
-"D:\Software\Vivado\2025.2.1\Vivado\bin\hw_server"          :: 另开一个窗口
+"<Vivado>\bin\hw_server"          :: 另开一个窗口
 :: 1) 起 PS（DDR + FCLK_CLK0）
 set PS7_INIT=vivado_system\zynq_video_sys.gen\sources_1\bd\design_1\ip\design_1_processing_system7_0_0\ps7_init.tcl
-"D:\Software\Vivado\2025.2.1\Vitis\bin\xsdb.bat" build\tcl\ps_jtag_boot.tcl
+"<Vitis>\bin\xsdb.bat" build\tcl\ps_jtag_boot.tcl
 ::    → RST_SYSTEM ok / PS7_INIT ok / PS7_POST_CONFIG ok / DDR_ECHO 5A5AA5A5
 :: 2) 下 PL
-"D:\Software\Vivado\2025.2.1\Vivado\bin\vivado.bat" -mode batch -source build\tcl\program_pl.tcl
+"<Vivado>\bin\vivado.bat" -mode batch -source build\tcl\program_pl.tcl
 :: 3) 选显示源 SRC1=视频
-"D:\Software\Vivado\2025.2.1\Vitis\bin\xsdb.bat" build\tcl\set_src.tcl
+"<Vitis>\bin\xsdb.bat" build\tcl\set_src.tcl
 ::    → GPIO 0x41200000 = 00010000
 :: 4) 确认 PL 以太网栈活着（ARP/ICMP 是 RTL 应答的，不需要 PS 参与）
 ping 192.168.1.10        → 0%% 丢失，平均 1 ms

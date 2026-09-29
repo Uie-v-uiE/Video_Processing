@@ -46,8 +46,8 @@
 ## 顺序
 
 ```bat
-set VIVADO=D:\Software\Vivado\2025.2.1\Vivado\bin\vivado.bat
-set XSDBAT=D:\Software\Vivado\2025.2.1\Vitis\bin\xsdb.bat
+set VIVADO=<Vivado>\bin\vivado.bat
+set XSDBAT=<Vitis>\bin\xsdb.bat
 
 %VIVADO% -mode batch -nojournal -log build\build_v6.log -source build\tcl\build_v6.tcl   :: bit + XSA + 报告
 %XSDBAT% build\tcl\ps_jtag_boot.tcl  <path\to\ps7_init.tcl>                              :: 起 PS（DDR + FCLK0=100MHz）
