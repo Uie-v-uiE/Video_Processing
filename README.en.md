@@ -68,7 +68,7 @@ the built-in test video. Commands, registers and every criterion are in
 | Metric | Reading | Source |
 |---|---|---|
 | Design-wide setup WNS | **+0.516 ns**, failing setup/hold endpoints **0 / 50885** | `build/timing_summary.rpt` |
-| Per-clock setup slack | 125 MHz receive domain **+0.516 ns** (6.5 % of its 8 ns period, and the design's worst path); 100 MHz domain **+1.643 ns**; 50 MHz display domain **+1.177 ns** (12 %) | same file, Intra Clock Table |
+| Per-clock setup slack | 125 MHz receive domain **+0.516 ns** (6.5 % of its 8 ns period, and the design's worst path); 100 MHz domain **+1.643 ns** (16 % of 10 ns); 50 MHz display domain **+1.177 ns** (5.9 % of 20 ns) | same file, Intra Clock Table |
 | Hold time | **+0.051 ns** in all three domains - this is the thinnest margin, not the setup number above | same file |
 | BRAM / LUT / FF / DSP | **95 tiles (67.86 %) / 14358 (26.99 %) / 8075 (7.59 %) / 19 (8.64 %)** | `build/utilization.rpt` |
 | Power | **2.205 W** dynamic, estimated junction temperature **52.5 degC** (tool confidence Low; **an estimate**, no measured current and no SAF file) | `build/power.rpt` |

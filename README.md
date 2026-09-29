@@ -54,7 +54,7 @@ VP_XSDB=<Vitis>/bin/xsdb.bat bash build/board_verify.sh --battery --geom
 | 指标 | 读数 | 出处 |
 |---|---|---|
 | 全设计 setup WNS | **+0.516 ns**，失败 setup/hold 端点 **0 / 50885** | `build/timing_summary.rpt` |
-| 逐时钟 setup 余量 | 125 MHz 收包域 **+0.516 ns**（占周期 6.5 %，全设计最差就是它）；100 MHz 域 **+1.643 ns**（16 %）；50 MHz 显示域 **+1.177 ns**（12 %） | 同上，Intra Clock Table 那一段 |
+| 逐时钟 setup 余量 | 125 MHz 收包域 **+0.516 ns**（占它 8 ns 周期的 6.5 %，全设计最差就是它）；100 MHz 域 **+1.643 ns**（16 %）；50 MHz 显示域 **+1.177 ns**（5.9 %） | 同上，Intra Clock Table 那一段 |
 | 保持时间 | 三个域同为 **+0.051 ns** —— 这是最薄的一个数，比 setup 余量更值得盯 | 同上 |
 | BRAM / LUT / FF / DSP | **95 tile（67.86 %）/ 14358（26.99 %）/ 8075（7.59 %）/ 19（8.64 %）** | `build/utilization.rpt` |
 | 功耗 | 动态 **2.205 W**、估算结温 **52.5 °C**（工具置信度 Low，**是估算**，没有实测） | `build/power.rpt` |

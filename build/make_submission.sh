@@ -39,7 +39,7 @@ declare -A SIM_MAP=(
   [tb_v94_zoom_sel]=tb_zoom_sel
   [tb_v102_src_life]=tb_src_life
 )
-SIM_PLAIN=(tb_link_monitor tb_zoom_mapper tb_rotate_window tb_cdc_capacity)
+SIM_PLAIN=(tb_link_monitor tb_zoom_mapper tb_rotate_window tb_cdc_capacity tb_icmp_rx_len)
 # 台架取舍 = 下面这份手写名单 ∪ 被留下的脚本（gates.sh / run_one.sh / mut_control.sh）点名的。
 # 名单里的是**招牌判据**（给新名字）；被脚本点名的按原名带出去（改名会让脚本找不到文件）。
 # 其余回归台架不进包：交付文档里以裸名提到它们，说的是"过程里举过的例子"，不是"包里有这个文件"；
@@ -60,6 +60,8 @@ PRUNE_ONEOFF=(
   # gates_cdc_test.sh、tb98_report.sh、board_verify.sh，所以那几个**留**，其余走。
   build/_scan_align.mjs build/cleanup_wip.sh build/refresh_evidence.sh build/roll_isolated.sh
   build/trim_comments.py build/orphan_rtl.sh build/rim_gate_ce.sh build/tb98_gate_ce.sh
+  build/ps_app.mjs build/tag_bench_labels.mjs build/_tmp_isolated_roll.tcl
+  build/r90_phase1.sh build/r90_phase2.sh build/r90_patch_icmp.py
   # `board/` 同理：留"上板工程 / 运行脚本 / 实测输出"，一次性探针走。
   # 名单不是凭印象 —— 先查过谁被指路：`rdddr.tcl` 被 BUILD.md 点名、`demo_rehearsal.txt` 被 gates.sh 用、
   # `pswhy.tcl` / `serial_bytes.ps1` / `uart_*.ps1` / `evidence_r41/` 都有文档指路 ⇒ 全部保留；
@@ -72,6 +74,7 @@ PRUNE_ONEOFF=(
 BUILD_DEV_ONLY=(
   build/_scan_align.mjs build/cleanup_wip.sh build/refresh_evidence.sh build/roll_isolated.sh
   build/trim_comments.py build/orphan_rtl.sh build/rim_gate_ce.sh build/tb98_gate_ce.sh
+  build/ps_app.mjs build/tag_bench_labels.mjs
 )
 # 赛程对照表也不进包（用户原话："那些什么与赛程对照啥的都丢掉，直接把这个项目说清楚就行，
 # 不过是按照比赛的目录罢了"）：它是作者对着指南打勾用的工作记录，评审要的"比赛推荐的目录形状"
@@ -188,13 +191,93 @@ done > _round_prune.txt || true
 while read -r f; do rm -f "$f"; echo "轮次目录里未被按路径点名（清单不算理由） $f" >> _pruned.txt; done < _round_prune.txt
 rm -f _round_prune.txt
 find build -mindepth 1 -type d -empty -delete 2>/dev/null || true
+
+# 2d) `build/` 只留两样东西：**可复现的构建脚本 + 综合与实现报告**（用户原话"也就是 tcl 和报告"）。
+#     逐轮的门禁/控制台留档与归档目录不进包 —— 那是作者的时间轴；活文档里按路径指着它们的句子
+#     由 3.9b 就地改口成"仓库留档 <名>（不随包）"，改口与剪枝一一对得上，末尾的死链自检兜住。
+#     反过来，**板级实测输出从 build/evidence/ 搬进 board/output/**：让 board/ 一眼就是
+#     "上板工程 / 运行脚本 / 实测输出"三样东西（用户："里面是这三样东西我都没看到"）。
+IMPL_REPORT_RE='^(system_top_)?(timing_summary|utilization|power|methodology|route_status|clock_util|cdc)\.rpt$|^(crit_paths|multi_driven|width_warnings)\.txt$'
+BOARD_MOVE_TCL=(ps_jtag_boot.tcl ps_app_reload.tcl program_pl.tcl program_system.tcl program_and_check.tcl scan_jtag.tcl)
+BUILD_PRUNED=()          # 逐条记下被剪的名字，3.9b 用它改口（不靠正则扫全文，避免误伤留下的实现报告）
+PRUNED_DIRS=()
+
+# 2d-0) 板上那一版的"门禁凭据"只带一份，并按板上那块的身份取，不靠轮次号
+BIT12="$(md5sum "$REPO/build/system.bit" 2>/dev/null | cut -c1-12)"
+GBIT=""
+if [ -n "$BIT12" ]; then
+  for c in "$REPO"/build/*gates*.txt "$REPO"/build/evidence/*gates*.txt "$REPO"/build/evidence_r*/*gates*.txt; do
+    if [ -f "$c" ] && grep -q "$BIT12" "$c" 2>/dev/null; then GBIT="$c"; break; fi
+  done
+fi
+if [ -n "$GBIT" ]; then mkdir -p build/reports; cp "$GBIT" build/reports/gates.txt; echo "带上板上那一版的门禁件 $(basename "$GBIT") -> build/reports/gates.txt" >> _pruned.txt; fi
+
+# 2d-1) 板级实测输出：只搬 board/ACCEPTANCE.md 按路径点名的那几份，并把轮次号从包内名字里去掉
+mkdir -p board/output
+for f in $(grep -ohE 'build/evidence/[A-Za-z0-9_.-]+' board/ACCEPTANCE.md 2>/dev/null | sort -u); do
+  if [ -f "$f" ]; then
+    nb="$(printf '%s' "$(basename "$f")" | sed -E 's/^r[0-9]+_//; s/_r[0-9]+//')"
+    mv "$f" "board/output/$nb"
+    add_mv "$f" "board/output/$nb"
+    echo "板级实测输出搬进包内板级目录 $f -> board/output/$nb" >> _pruned.txt
+  fi
+done
+
+# 2d-2) 上板要用的 tcl 与串口脚本归到 board/（工程名在导出时改，仓库里的名字是工作日志引用的）
+mkdir -p board/tcl board/scripts
+for t in "${BOARD_MOVE_TCL[@]}"; do
+  if [ -f "build/tcl/$t" ]; then mv "build/tcl/$t" "board/tcl/$t"; add_mv "build/tcl/$t" "board/tcl/$t"; fi
+done
+for f in board/*.ps1 board/cmd_*.txt board/*.png board/*.mjs; do
+  if [ -f "$f" ]; then mv "$f" "board/scripts/$(basename "$f")"; add_mv "$f" "board/scripts/$(basename "$f")"; fi
+done
+# 板级剩下的 tcl（`pswhy.tcl` / `rdddr.tcl` 这类读回探针）也归到 board/tcl/：
+# 用户要的"运行脚本"是一个能看到的地方，不是散在板级根目录的六个文件。
+for f in board/*.tcl; do
+  if [ -f "$f" ]; then mv "$f" "board/tcl/$(basename "$f")"; add_mv "$f" "board/tcl/$(basename "$f")"; fi
+done
+
+# 2d-3) build/ 根上的**逐轮过程留档**（名字里带轮次号的那些 txt/rpt/log/csv）不进包。
+#       判据只用"名字里有没有 rNN"这一条，不另列白名单：实现报告（timing_summary.rpt 等）、
+#       板级脚本、gates.sh 要调的 check_ports.py / gates_cdc_test.sh 都不带轮次号，自然留下；
+#       而 245 份 `battery_rNN.txt`、`gates_rNN.txt` 是作者的时间轴（用户："其他多余的都删掉"）。
+#       ⚠ 这里不要写成"白名单外一律剪"：上一版那样会把 `build/README.md` 和实现报告一起剪掉，
+#         并把 gates.sh 还要调的 `gates_cdc_test.sh` 剪掉 —— 一次导出就把交付物砍成了空壳（2026-09-29 撞到）。
+for f in build/*.txt build/*.rpt build/*.log build/*.csv; do
+  if [ -f "$f" ]; then
+    bn="$(basename "$f")"
+    case "$bn" in *r[0-9]*) ;; *) continue ;; esac
+    # 例外：台架的判据报告**留着** —— `gates.sh` 第 15/16 项就是照名字找它们的，
+    # 而交付文档里"这一轮的边缘台架读数"点的也是这份；它们不是过程噪声，是判据本身。
+    case "$bn" in tb_edge_rim_r*|tb_v98_report*) continue ;; esac
+    # 另一类多余件是**探针与扫描**的 console：名字里带 probe / _console / sweep_ / repro_ /
+    # contaminated / _old 的全都不随包（用户："除了可复现的构建脚本 + 综合与实现报告，其他多余的都删掉"）。
+    case "$bn" in probe_*|*_console.txt|sweep_*|*contaminated*|*_old.txt|*repro_*|uram_*)
+      BUILD_PRUNED+=("build/$bn"); prune "$f" "探针/扫描的过程输出（不随包）"; continue ;;
+    esac
+    if printf '%s' "$bn" | grep -qE "$IMPL_REPORT_RE"; then continue; fi
+    BUILD_PRUNED+=("build/$bn"); prune "$f" "build 逐轮过程留档（不随包）"
+  fi
+done
+for d in build/evidence build/evidence_* build/frozen_* build/isolated_* build/*_probe board/evidence_* board/frozen_*; do
+  if [ -d "$d" ]; then PRUNED_DIRS+=("$d"); fi
+done
+for d in ${PRUNED_DIRS[@]+"${PRUNED_DIRS[@]}"}; do prune "$d" "归档目录（逐轮留档，不随包）"; done
+# 板级目录里带轮次号的记录（`VERIFY_rNN.md` 那类）同理：用户要 board/ 里不留版本叙事。
+for f in board/*; do
+  if [ -f "$f" ]; then
+    bn="$(basename "$f")"
+    case "$bn" in *.md|*.tcl|*.mjs) ;; *) continue ;; esac
+    case "$bn" in *r[0-9]*) BUILD_PRUNED+=("$f"); prune "$f" "board 里带轮次号的记录（不随包）" ;; esac
+  fi
+done
 # 2c) 二进制一律不带，稍后只放回板上这一版
 find . \( -name '*.bit' -o -name '*.xsa' -o -name '*.elf' -o -name '*.dcp' \) -type f 2>/dev/null |
 while read -r f; do rm -f "$f"; echo "构建产物（由板上那一版补回） $f" >> _pruned.txt; done || true
 find build sim board data src/host -type d -empty -delete 2>/dev/null || true
 
 # ---- 3. 改名：报告展平、文档名小写、台架换名；一份 _map.sed 做全部指路改写 ----
-mkdir -p build/reports build/bitstream
+mkdir -p build/reports
 
 # 3.0 台架换名：手写的招牌判据优先；其余只是**去掉轮次号段**（`tb_v6_cover_gate`→`tb_cover_gate`）。
 #     规则只有一条：包里的台架名不许带 rNN/vNN —— 那是作者本地的时间轴，不是职责。
@@ -226,8 +309,10 @@ for f in sim/tb_*.v; do
 done
 
 # 3.0b 板上那一版的落点也换（文档原来指 build/system.bit，那是仓库里的构建输出位置）
+#      包里的位置是 `board/project/`：评委要找的"往板子上放的东西"和"怎么放"都在 board/ 一处。
+mkdir -p board/project
 for b in build/system.bit build/system.xsa build/ps_app.elf; do
-  add_mv "$b" "build/bitstream/$(basename "$b")"
+  add_mv "$b" "board/project/$(basename "$b")"
 done
 
 # 报告展平：build/**.rpt|txt -> build/reports/[rNN_]名字（名字里带轮次号的换成新台架名）
@@ -307,7 +392,7 @@ xargs -r sed -i -f _map.sed < _txt.txt
 } > sim/NAMES.md
 
 for b in build/system.bit build/system.xsa build/ps_app.elf; do
-  if [ -f "$REPO/$b" ]; then cp "$REPO/$b" "build/bitstream/$(basename "$b")"; fi
+  if [ -f "$REPO/$b" ]; then cp "$REPO/$b" "board/project/$(basename "$b")"; fi
 done
 
 # ---- 3.9 被剪掉的**仓库工具**，活文档里的指路就地改口 ----
@@ -315,7 +400,7 @@ done
 # 改口只动"活文档"，`report/log/` 里的日记保持原样 —— 那里写的是"当时那天跑的是哪个脚本"，
 # 把它改成"仓库里的"等于替史官改写历史。每改一处都记进 _pruned.txt，让这件事能被核对。
 for f in README.md README.en.md report/*.md skill/*.md skill/*/*.md board/*.md sim/*.md \
-         data/metrics.csv build/README.md; do
+         data/metrics.csv build/README.md build/tcl/README.md; do
   [ -f "$f" ] || continue
   for t in "${BUILD_DEV_ONLY[@]}"; do
     bn="$(basename "$t")"
@@ -334,6 +419,26 @@ for f in README.md README.en.md report/*.md skill/*.md skill/*/*.md board/*.md s
     fi
   done
 done
+
+# ---- 3.9b 被剪掉的 build 留档与归档目录：活文档里的**路径式**指路就地改口 ----
+# 改口后的文字里不许再留着斜杠形状：死链自检就是照形状从文档里抓 `build/x.txt` 的，
+# 留下形状等于留了个问题却没留下文件（"仓库回归台架"那一条定的就是同一写法：换说法，别留壳）。
+# 一次生成 sed 表、一遍跑完：这里曾有 245 条剪枝名，逐条 spawn grep/sed 会把这个脚本变成十分钟。
+: > _prune_map.sed
+for t in ${BUILD_PRUNED[@]+"${BUILD_PRUNED[@]}"}; do
+  esc="$(printf '%s' "$t" | sed 's|[][\\.*^$&/|]|\\&|g')"
+  printf '%d\ts|%s|仓库留档 %s（逐轮过程件，不随包）|g\n' "${#t}" "$esc" "$(basename "$t")" >> _prune_map.sed
+done
+for d in ${PRUNED_DIRS[@]+"${PRUNED_DIRS[@]}"}; do
+  esc="$(printf '%s' "$d" | sed 's|[][\\.*^$&/|]|\\&|g')"
+  printf '9998\ts|%s/\\([A-Za-z0-9_.-]*\\)|仓库留档 \\1（归档件，不随包）|g\n' "$esc" >> _prune_map.sed
+done
+sort -rn _prune_map.sed | cut -f2- > _prune_map.sorted.sed && mv _prune_map.sorted.sed _prune_map.sed
+{ ls README.md README.en.md data/metrics.csv 2>/dev/null
+  ls report/*.md skill/*.md skill/*/*.md board/*.md sim/*.md build/README.md build/tcl/README.md 2>/dev/null; } |
+xargs -r sed -i -f _prune_map.sed
+echo "改口：逐轮留档与归档目录的指路，规则 $(grep -c '' _prune_map.sed) 条已作用于活文档" >> _pruned.txt
+rm -f _prune_map.sed
 
 # ---- 4. 自检 ----
 # 死链清单写到树**外面**：包根目录里不留工作文件（上一版把 _all.txt/_cand.txt/… 九个中间件
@@ -396,7 +501,7 @@ files="$(find . -type f ! -name MANIFEST.txt | wc -l)"
 bytes="$(du -sh . | cut -f1)"
 removed="$(sort -u -o _pruned.txt _pruned.txt; { grep -c '' _pruned.txt || true; })"; removed="${removed:-0}"
 BIT_MD5=""
-if [ -f build/bitstream/system.bit ]; then BIT_MD5="$(md5sum build/bitstream/system.bit | cut -c1-12)"; fi
+if [ -f board/project/system.bit ]; then BIT_MD5="$(md5sum board/project/system.bit | cut -c1-12)"; fi
 GATES_FOR_BIT="没有一份门禁报告写着这串 md5 ⇒ 这一版不作交付（诊断用）"
 if [ -n "$BIT_MD5" ]; then
   hit="$( { grep -rl "$BIT_MD5" build/reports 2>/dev/null || true; } | head -1)"
@@ -414,15 +519,16 @@ cat > MANIFEST.txt <<EOF
   src/        设计源码              <- src/rtl/**（PL）+ src/ps/**（裸机固件）+ src/host/**（PC 侧）
   sim/        仿真脚本与结果        <- 支撑交付结论的台架 + run_one.sh/run_sim.tcl + mut_control.sh
                                       名字对照见 sim/NAMES.md，判据报告在 build/reports/
-  build/      构建脚本 + 报告       <- tcl/**（入口 build_system_axigpio.tcl）+ gates.sh
-                                      + reports/**（展平自仓库各轮留档）+ bitstream/**（板上那一版）
-  board/      上板工程与实测输出    <- board/**（操作卡与验收表）
+  build/      可复现构建 + 实现报告 <- tcl/build_system_axigpio.tcl（一条命令出位流）
+                                     + reports/**（这一版的综合/实现报告）+ 入口脚本 gates.sh
+  board/      工程/脚本/实测输出    <- project/**（板上那一版 .bit/.elf/.xsa）
+                                     + tcl|scripts/**（JTAG 与串口脚本）+ output/**（实测输出）
   data/       测试数据与参考结果    <- data/golden/**、data/measured/**
   skill/      技能包                <- skill/**（README.md 是索引）
   report/     设计报告 + 协作记录   <- 仓库里的 docs/（交付文档），工作记录在 report/log/
 
 板上那一份（位流与固件仓库不跟踪，按 md5 认身份，不靠文件名）：
-$(for f in build/bitstream/*; do if [ -f "$f" ]; then printf '  %-14s md5 %s\n' "$(basename "$f")" "$(md5sum "$f" | cut -c1-12)"; fi; done)  门禁凭据: $GATES_FOR_BIT
+$(for f in board/project/*; do if [ -f "$f" ]; then printf '  %-14s md5 %s\n' "$(basename "$f")" "$(md5sum "$f" | cut -c1-12)"; fi; done)  门禁凭据: $GATES_FOR_BIT
 
 自检: 活文档死链 $DEAD 条（0 才算过）／被改名台架的旧名残留 $STALE／含本机绝对路径的脚本 $ABSN
 EOF
