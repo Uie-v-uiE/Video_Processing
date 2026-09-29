@@ -2,95 +2,110 @@
 
 # Real-time video processing on Zynq with per-pixel original/processed comparison
 
-A Zynq-7020 (`xc7z020clg484-2`) takes a 512x300 video stream from Gigabit Ethernet,
-an SD card or an on-chip test card, scales, rotates and filters it in the PL, and
-outputs 1024x600 HDMI. Left of an adjustable vertical seam the panel shows the
-**unprocessed** frame, right of it the **processed** one, in the same coordinate
-system. The seam can be fixed, auto-swept, or locked into the image domain so that
-it rotates and zooms together with the picture.
+A single Zynq-7020 (`xc7z020clg484-2`) runs the whole path: video arrives from
+**Gigabit Ethernet, an SD card or an on-chip test card**, the PL scales, rotates and
+filters it, and the result leaves as **HDMI 1024x600 @ 50 Hz** (the processing canvas
+is 512x300 RGB565, expanded x2 on the way out). Left of any vertical line on the panel
+you see the **unprocessed** picture, right of it the **processed** one in the same
+coordinate system. The seam can be fixed, auto-swept, or locked into the image domain
+so it travels with rotation and zoom.
 
-That per-pixel, same-frame comparison is the core of the design: it is both a
-display mode and a measuring instrument. Edge stripes, a one-row offset or a single
-out-of-range cell become visible without any extra probe, and are quantifiable from
-the same geometry that produced them.
+That same-frame, per-pixel comparison is the point of the design: it is both a display
+mode and **a measuring instrument**. Edge stripes, a one-row offset or a single
+out-of-range cell show up without any extra probe, and can be computed from the same
+geometry that produced them - which is also what lets a testbench turn them into numbers.
 
 ## Features
 
-- **Three sources**: UDP video over RGMII at 1 Gb/s, local SD playback (own FAT32
-  cluster-chain parser), and a dynamic on-chip test card. Arbitration and fallback
-  live in the PL; the PS only issues commands.
+- **Three sources, arbitrated in hardware**: UDP video over self-written RGMII receive
+  logic (with CRC check and corrupt-word counters), local SD playback (own FAT32
+  cluster-chain parser, no file-system library), and a dynamic on-chip test card. If a
+  source stops heartbeating, another takes over within half a second; the PS only issues
+  commands and never sits in the data path.
 - **Geometry path**: eight zoom steps (fixed-point reciprocal, no run-time division),
-  several rotation angles (sine/cosine ROM with quadrant folding), nearest-neighbour
-  and bilinear interpolation switchable at run time.
+  several rotation angles (sine/cosine ROM with quadrant folding), nearest-neighbour and
+  bilinear interpolation switchable at run time.
 - **Effect chain**: grayscale, invert, 3x3 box blur, sharpen, Sobel, threshold
-  binarisation (with polarity flip), 3x3 erode/dilate - nine control bits, every
-  stage bypassable, the chain a constant 15 pipeline stages deep.
-- **Comparison display**: seam anywhere from 0 to 100 %, sides swappable, 2-pixel
-  marker optional; the original tap is delayed by a line-ring so both taps land on
-  the same clock cycle and the same column.
-- **On-screen state**: five OSD lines (`N_LINES=5`) - source, angle, zoom step and who
-  owns it, effect code, seam position, frame rate, end-to-end latency, die temperature.
-- **Online self-diagnosis**: received/dropped/corrupt/CRC counters, ping-pong bank
-  state and in-link latency, counted in hardware, shown on the OSD and readable over
-  the serial port; cable-pull and card-pull behaviour can be reconciled afterwards.
+  binarisation (with polarity flip), 3x3 erode/dilate - nine control bits, every stage
+  bypassable, the chain a constant 15 pipeline stages deep.
+- **Comparison display**: seam anywhere from 0 to 100 %, sides swappable, 2-pixel marker
+  optional; the original tap is aligned to the processed one by a line delay ring, same
+  cycle and same column.
+- **On-screen state**: five OSD lines (`N_LINES=5`) - source, angle, zoom step and owner,
+  effect code, seam position, frame rate, in-link latency, die temperature.
+- **Online self-diagnosis**: received / dropped / corrupt / CRC counters, ping-pong bank
+  state and in-link latency, all counted in hardware, shown on the OSD and readable over
+  the serial port, so cable-pull and card-pull behaviour can be reconciled afterwards.
+- **Reproducible to the bit**: one command builds the bitstream, one script runs the gate
+  and the on-board verification, and Vivado's own reports ship with the package. Numbers
+  are quoted only where they were measured; estimates (power) are labelled as estimates.
 
 ## Reproducing it
 
 ```bash
 # 1) project, synthesis, implementation, bitstream (Vivado 2025.2.1, command line)
 vivado -mode batch -source build/tcl/build_system_axigpio.tcl
-# 2) twenty gate items: two full-panel benches plus timing/resource/port/doc checks
+# 2) gate: timing / resources / ports / CDC / doc consistency + full-panel testbench
+#    (the item count and verdict are whatever this script prints - nothing else is authoritative)
 bash build/gates.sh
-# 3) flash over JTAG (this project never writes QSPI) + serial battery + read-back
-bash build/board_verify.sh --battery --geom
+# 3) on-board, JTAG only - this project never writes QSPI/SPI flash
+<Vitis>/bin/xsdb.bat build/tcl/ps_jtag_boot.tcl
+vivado -mode batch -source build/tcl/program_pl.tcl
+<Vitis>/bin/xsdb.bat build/tcl/ps_app_reload.tcl
+VP_XSDB=<Vitis>/bin/xsdb.bat bash build/board_verify.sh --battery --geom
 ```
 
-Command list, register map, every criterion and where to look when one turns red:
-[docs/COMMANDS.md](docs/COMMANDS.md), [docs/BUILD.md](docs/BUILD.md),
-[board/README.md](board/README.md).
+Host side: [src/host/video_sender.py](src/host/video_sender.py) streams **any video file**
+(it decodes through ffmpeg when installed, and falls back to a built-in test pattern when
+not; every source is scaled to the PL's 512x300 canvas). With the board on your desk,
+**double-click [send_demo.bat](send_demo.bat)** - it pings the board first, then streams
+the built-in test video. Commands, registers and every criterion are in
+[docs/HOST_GUIDE.md](docs/HOST_GUIDE.md), [docs/COMMANDS.md](docs/COMMANDS.md),
+[docs/BUILD.md](docs/BUILD.md) and [board/README.md](board/README.md).
 
-## Numbers
+## Key numbers (each one names its report)
 
-One sentence first: **the bitstream currently on the board and the newest gate-green
-frozen set are not the same build** - both are given.
+| Metric | Reading | Source |
+|---|---|---|
+| Design-wide setup WNS | **+0.516 ns**, failing setup/hold endpoints **0 / 50885** | `build/timing_summary.rpt` |
+| Per-clock setup slack | 125 MHz receive domain **+0.516 ns** (6.5 % of its 8 ns period, and the design's worst path); 100 MHz domain **+1.643 ns**; 50 MHz display domain **+1.177 ns** (12 %) | same file, Intra Clock Table |
+| Hold time | **+0.051 ns** in all three domains - this is the thinnest margin, not the setup number above | same file |
+| BRAM / LUT / FF / DSP | **95 tiles (67.86 %) / 14358 (26.99 %) / 8075 (7.59 %) / 19 (8.64 %)** | `build/utilization.rpt` |
+| Power | **2.205 W** dynamic, estimated junction temperature **52.5 degC** (tool confidence Low; **an estimate**, no measured current and no SAF file) | `build/power.rpt` |
+| SD local playback | **29.8 - 30.0 fps** (100-frame sliding window, read back from the board) | [data/metrics.csv](data/metrics.csv) |
+| On-board verification | 100-command serial battery PASS, geometry "last hop" 8/8 PASS, `drop_words=0` while streaming | [board/ACCEPTANCE.md](board/ACCEPTANCE.md) |
 
-- Newest gate-green + frozen set: **r75**, 19 of 19 items passing at freeze time (the
-  gate script has since grown a 20th check), post-route setup WNS **+0.287 ns**.
-  Evidence: `build/r75_gates.txt` and `build/evidence_r75/`.
-- On the board now: **r87**, **not frozen** - WNS +0.152 ns with 0 failing endpoints out
-  of 50885, LUT 14363 (27.00 %), FF 8075 (7.59 %), BRAM 95 tiles (67.86 %), DSP 19 (8.64 %).
-  Every number, with the report it came from, lives in **[data/metrics.csv](data/metrics.csv)**;
-  the reports are archived under `build/`. It is not frozen because exactly one of the 138
-  per-pixel checks on the top-level testbench fails on purpose (`C5c`, unfixed issue #98) -
-  see [docs/KNOWN_ISSUES.md](docs/KNOWN_ISSUES.md).
+Trends, which optimisations were rejected by evidence, and why a raw WNS delta is not
+accepted as a gain are in [docs/OPTIMIZATION_LOG.md](docs/OPTIMIZATION_LOG.md) and
+[docs/PERF_REPORT.md](docs/PERF_REPORT.md). This page deliberately does not copy them -
+the same number written in two places always drifts.
+
+**This page makes no gate-green claim.** Whether a given build passes the gate, how many
+items are judged and which one is red is decided only by the line `bash build/gates.sh`
+prints (if something fails it says so explicitly instead of rounding it off).
 
 ## Layout
 
 | Directory | Contents |
 |---|---|
-| `src/rtl/` | RTL, split into `top / video / process / eth / hdmi / clocks / axi / util` |
+| `src/rtl/` | PL logic, split into `top / video / process / eth / hdmi / clocks / axi / util` |
 | `src/ps/` | bare-metal firmware: command parser, register setup, SD playback, counter read-back |
-| `src/host/` | PC-side tools and self-check scripts (streaming, read-back, doc/command consistency) |
-| `sim/` | testbenches and two runners; `tb_v98_top_seam` instantiates the whole video top |
-| `build/` | build and gate scripts, `tcl/`, implementation reports, `rNN_gates.txt`, `evidence/` |
-| `board/` | on-board procedures, acceptance table, serial captures |
-| `data/` | `golden/` reference images, `measured/` measured data |
-| `skill/` | reusable skills distilled from the LLM collaboration; each card has six fixed parts: trigger, when it does *not* apply, action, completion criterion, expiry boundary, and the real failure it came from |
-| `docs/` | design report, optimisation log, command reference, reproduction guide |
-| `docs/log/` | `ISSUES.md` and `OVERNIGHT_LOG.md` (append-only work log) |
+| `src/host/` | PC-side tools: Python streamer, register reader, documentation consistency checks |
+| `src/constraints/` | pin and timing constraints |
+| `sim/` | testbenches and runners; the one that instantiates the whole video top is the primary geometry/display ruler. `sim/NAMES.md` maps old to new bench names |
+| `build/` | reproducible build scripts (`tcl/`) plus synthesis/implementation reports (`reports/`) and the bitstream - see [build/README.md](build/README.md) |
+| `board/` | what runs on the board, how to start it, and what was read back ([board/README.md](board/README.md), [board/ACCEPTANCE.md](board/ACCEPTANCE.md)) |
+| `data/` | `golden/` reference images, `measured/` measurements, and `metrics.csv` as the single number table |
+| `skill/` | skill cards distilled from the LLM collaboration; each card has six fixed parts: trigger, when it does *not* apply, action, completion criterion, expiry boundary, and the real failure it came from |
+| `docs/` | delivery documentation: design, optimisation record, command reference, reproduction guide (index in [docs/README.md](docs/README.md)) |
+| `docs/log/` | append-only working log (issue ledger, overnight log); kept as process evidence, not quoted as conclusions |
 
-The shipped package follows the contest's recommended tree (§3.3.5.4) after one
-export step; the row-by-row mapping lives in the Chinese README's table and in
-`MANIFEST.txt` inside the package - renaming happens at export time only, so the
-repository keeps the names that the work log refers to.
-
-## Where to start reading
-
-[docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) (block diagram and module
-responsibilities) -> [docs/PS_VS_PL.md](docs/PS_VS_PL.md) (the hardware/software
-split) -> [docs/BACKGROUND_AND_NOVELTY.md](docs/BACKGROUND_AND_NOVELTY.md)
-(why it is built this way) -> [board/README.md](board/README.md) (what to look at
-on the panel).
+The tree is arranged in the shape the contest asks for (`src/ sim/ build/ board/
+data/ skill/ report/`); in the repository the delivery documentation sits in `docs/`
+and the export step renames it to `report/`, rewriting the cross-references along with
+it. What got pruned, and under which rule, is listed item by item in `_pruned.txt`
+inside the package, and every path quoted by a shipped document is checked at export
+time - if one does not resolve, the package is not written.
 
 ## License
 
