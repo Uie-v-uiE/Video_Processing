@@ -740,5 +740,6 @@ setup 侧 `ExtraTimingOpt` 反而把 `eth_rxc` 从 +0.516 花到 +0.157。两滚
 共发 552721 包**，推流之中 `pkts=184315`、`bytes=390417344`、`drop_words=0`、`丢过字=0`、`eth_rxc 心跳：正常`、
 屏上 `Latency=6ms` 与回读 `tot/100000=6` 同源一致。凭据 `build/evidence/r92f_1_psboot.txt`、`_2_program_log.txt`、
 `_3_app.txt`、`r92f_tx.txt`、`r92f_health.txt`、`verify_0930_0424.txt`。
-**还欠的两件**：顶层台架 `tb_v98` 与边缘条带 `tb_edge_rim` 必须按新 `src/rtl`（合指纹 `c8bf35eb19e5`）重跑，
-门禁第 15/16 项认的是"同一次跑"的 md5；屏幕 E1–E3 仍待眼睛。这两件没齐之前，**采纳只在日志里写"待门禁"**。
+**台架与门禁（05:0x–06:0x，`build/r92_gates.txt`，仓库里的件、不随包）**：两份台架都按新 `src/rtl` 重跑完了 —— `tb_edge_rim` 31 条判据 `PASS`（`build/tb_edge_rim_r92.txt`，`rtl=c8bf35eb19e5`）；`tb_v98` 一共 138 行判据，**只有 1 行 FAIL**，而且就是那条一直在的 `C5c`（#98）：`RESULT tb_v98_top_seam FAIL nfail=1` —— **这一刀没有引入新的失败**。报告头三枚 md5 `top=47c59cd3a852` / `tb=d64b883a6d94` / `rtl=c8bf35eb19e5` 与树一致，所以门禁第 15 项原先那条"RTL 合指纹不符"的理由消失了，只剩 `C5c` 本身 ⇒ `GATES: 有红项（判定 20 项）—— 不采纳，保留上一版`。
+这一行与 r88/r90 完全同形：20 项全判定、唯一红项是故意留着的 `C5c`，冻结集继续是 **r75**；这一版被采纳的依据不是那一行绿，而是**板上那一套**（0 丢字 + 100 条电池 + 判红步骤 0 + `BUFIO` 用量 0）。
+**还欠的只剩眼睛**：`board/ACCEPTANCE.md` 的 E1–E3（屏已摆成 `split 50` + 蓝线关 + 片源 ETH 的样子）。
