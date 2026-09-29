@@ -53,7 +53,7 @@ bash build/board_verify.sh --battery --geom
   统一在 **[data/metrics.csv](data/metrics.csv)**，报告原件在 `build/` 里那一版的
   `rNN_timing_summary.rpt` / `rNN_utilization.rpt`（提交包按 §3.3.5.4 把它们展平进 `build/reports/`，
   文件名不变 —— 所以下面表里那一条路径在两处都指同一份）。
-  它没冻结的原因写在 [docs/KNOWN_ISSUES.md](docs/KNOWN_ISSUES.md)：顶层台架那 128 条逐像素判定里
+  它没冻结的原因写在 [docs/KNOWN_ISSUES.md](docs/KNOWN_ISSUES.md)：顶层台架那 138 条逐像素判定里（最近一次留档的那一跑是 r86）
   有 1 条是**故意留红**的（`C5c`，对应未修的 #98）。
 - 走势与"为什么某一版被否掉"在 [docs/OPTIMIZATION_LOG.md](docs/OPTIMIZATION_LOG.md)；
   本报告不复制数值，只给指路——同一份数字抄在两处一定会漂（这条本身是一次真实事故的结论，#133）。

@@ -60,7 +60,7 @@ frozen set are not the same build** - both are given.
 - On the board now: **r87**, **not frozen** - WNS +0.152 ns with 0 failing endpoints out
   of 50885, LUT 14363 (27.00 %), FF 8075 (7.59 %), BRAM 95 tiles (67.86 %), DSP 19 (8.64 %).
   Every number, with the report it came from, lives in **[data/metrics.csv](data/metrics.csv)**;
-  the reports are archived under `build/`. It is not frozen because exactly one of the 128
+  the reports are archived under `build/`. It is not frozen because exactly one of the 138
   per-pixel checks on the top-level testbench fails on purpose (`C5c`, unfixed issue #98) -
   see [docs/KNOWN_ISSUES.md](docs/KNOWN_ISSUES.md).
 
