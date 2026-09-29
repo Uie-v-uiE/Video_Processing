@@ -161,8 +161,11 @@ module tb_icmp_rx_len;
     endtask
 
     // 监视：rec_en 每一拍收一个字节，顺序必须与 pay[] 一致
+    reg [7:0] cap0, cap3;
     always @(posedge clk) begin
         if (rec_en === 1'b1) begin
+            if (en_cnt == 0) cap0 = rec_data;
+            if (en_cnt == 3) cap3 = rec_data;
             if (en_cnt < 64 && rec_data !== pay[en_cnt]) begin
                 if (badidx < 0) badidx = en_cnt;
             end
@@ -213,15 +216,24 @@ module tb_icmp_rx_len;
                  "identifier/sequence from the ICMP header: proves the header parse still lines up");
         end
 
-        // 畸形包：声明长度 0、后面却跟着 4 个字节。厂商码在这上面的既有行为是
-        // "一个字节都不往外发"（rec_en 静默）且"状态机出不去"，改动前后都必须一样。
-        // 它必须放在最后：出不去是既有缺陷，会把后面的包一起带坏。
+        // 畸形包：声明长度 0、后面却跟着 4 个字节。它钉的是**读出来的**厂商行为，不是我猜的
+        // （猜"rec_en 会静默"被打回来了两次，见 ISSUES #150 —— 锚就是为抓这个准备的）：
+        //   (1) `rec_en <= 1'b1` 在 `if (gmii_rx_dv)` 里是无条件的，不受长度门控 ⇒ 真实字节照样冒出去；
+        //   (2) `rec_en <= 1'b0` 只写在 `st_rx_end` 那一支 ⇒ 窗关不上时 rec_en 一直挂在 1；
+        //   (3) `rec_pkt_done` 不来、`rec_byte_num` 不写（等不到 `cnt == len-1`）；
+        //   (4) 状态机出不去（既有缺陷 #151），所以这一包必须放在最后。
         bn_before = rec_byte_num;
-        en_cnt = 0; done_cnt = 0; badidx = -1;
+        en_cnt = 0; done_cnt = 0; badidx = -1; cap0 = 8'hxx; cap3 = 8'hxx;
         send_packet(4, 0);
         repeat (20) @(posedge clk); #1;
-        line("H_decl0_silent",     (en_cnt === 0 && done_cnt === 0),
-                 "declared length 0 with real bytes must stay silent (vendor behaviour, pinned both trees)");
+        line("H_decl0_bytes_emitted", (en_cnt >= 4),
+             "rec_en is not length-gated inside st_rx_data, so the four real bytes still pulse out");
+        line("H2_first4_in_order",   (cap0 === pay[0] && cap3 === pay[3]),
+             "the first four pulses carry THIS packet's bytes in order, otherwise the reply payload is wrong");
+        line("H3_decl0_no_pkt_done", (done_cnt === 0),
+             "with declared length 0 the packet never completes: rec_pkt_done stays silent");
+        line("H4_rec_en_hangs_high", (rec_en === 1'b1),
+             "vendor artefact pinned: rec_en is cleared only in st_rx_end, so it hangs high while wedged");
         line("I_decl0_num_stable", (rec_byte_num === bn_before[15:0]),
                  "rec_byte_num must not be written by a packet whose declared length is 0");
         line("J_decl0_stays_wedged", (dut.cur_state !== S_IDLE),
