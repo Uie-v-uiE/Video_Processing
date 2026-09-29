@@ -449,6 +449,11 @@ printf '9997\ts|build/[A-Za-z0-9_./-]*probe[A-Za-z0-9_./-]*|仓库留档（探�
 printf '9997\ts|build/[A-Za-z0-9_./-]*sweep[A-Za-z0-9_./-]*|仓库留档（策略扫描留档，不随包）|g\n' >> _prune_map.sed
 printf '9997\ts|build/[A-Za-z0-9_./-]*repro[A-Za-z0-9_./-]*|仓库留档（复现对照留档，不随包）|g\n' >> _prune_map.sed
 printf '9997\ts|build/[A-Za-z0-9_./-]*uram[A-Za-z0-9_./-]*|仓库留档（URAM 探针留档，不随包）|g\n' >> _prune_map.sed
+# 这一轮的**工作件**（隔离滚的读数、`rNN_*.txt` 那类对照）本来就只留在仓库里：
+# 交付文档 r90 那一节按路径点了它们的名字，所以也要改口 —— 注意 `build/reports/`、
+# `build/rim_report.sh` 这些**要随包**的名字不能被 `r[0-9]` 误伤，所以判据是"r 后面紧跟数字"。
+printf '9997\ts|build/isolated[A-Za-z0-9_./-]*|仓库留档（隔离构建的读数，不随包）|g\n' >> _prune_map.sed
+printf '9997\ts|build/r[0-9][A-Za-z0-9_./-]*|仓库留档（本轮工作件，不随包）|g\n' >> _prune_map.sed
 sort -rn _prune_map.sed | cut -f2- > _prune_map.sorted.sed && mv _prune_map.sorted.sed _prune_map.sed
 { ls README.md README.en.md data/metrics.csv 2>/dev/null
   ls report/*.md skill/*.md skill/*/*.md board/*.md sim/*.md build/README.md build/tcl/README.md 2>/dev/null; } |
