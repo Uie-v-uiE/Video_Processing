@@ -187,7 +187,11 @@ while IFS= read -r f; do
     case "$base" in *"$old"*) base="${base//$old/${NAME_MAP[$old]}}" ;; esac
   done
   tag="$(printf '%s' "$f" | grep -oE '(^|[^a-z])r[0-9]+' | grep -oE 'r[0-9]+' | head -1 || true)"
-  if [ -n "$tag" ] && [ "${base#$tag}" = "$base" ]; then np="build/reports/${tag}_${base}"; else np="build/reports/$base"; fi
+  if [ -n "$tag" ] && [ "${base#$tag}" = "$base" ] && [ "${base#*$tag}" = "$base" ]; then
+    np="build/reports/${tag}_${base}"
+  else
+    np="build/reports/$base"     # 名字里本来就带着轮次的（gates_rNN.txt / rNN_*.rpt）不再加前缀
+  fi
   if [ -e "$np" ]; then np="build/reports/$(basename "$(dirname "$f")")_$(basename "$base")"; fi
   if [ "$f" != "$np" ]; then mv "$f" "$np"; add_mv "$f" "$np"; fi
 done < <(find build -type f \( -name '*.rpt' -o -name '*.txt' \) 2>/dev/null | grep -v '^./build/reports/' | sort)
