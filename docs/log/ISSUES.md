@@ -6447,3 +6447,23 @@ t = t[:m.end()] + row + '\n'
 "匹配到了"不等于"没删东西"。这与 #88/#92 给台架报告补 md5 是同一类事：**尺子要能察觉自己变短**。
 连带后果：截断发生在我已经提交之后，所以 `git log` 里 `23efec3` 那一版是残缺的，
 本次修复另起一个提交，不改历史。
+
+## #156（2026-09-30 06:1x，r92 自查）：我把一句话写宽了 —— "WHS 带 0.8 口径"只对 `eth_rxc` 成立，全设计最差那条已经换到 `clk_fpga_0`
+
+写 `docs/KNOWN_ISSUES.md` 那条口径说明时，我拿的是 `eth_rxc` 的事实，却说成了"报告里 `+0.0x ns` 都如此"。
+本轮去**确认那句约束到底生效没有**（#80 追加那段本来就要这一步），顺手把两个数拆开量了：
+
+| 数 | 路径 | 域 | 报告里的要求项 | 结论 |
+|---|---|---|---|---|
+| **+0.037** | `u_pl/u_lat/t_commit_reg[0] → u_pl/u_lat/max_cyc_reg[4]` | `clk_fpga_0`（100 MHz） | `Requirement: 0.000ns`，**没有** `clock uncertainty` 行 | 全设计最差 min 路径，**不吃** 0.8 口径；它是同沿 min 检查的裸余量 |
+| **+0.049** | `u_eth/u_rx_mac/m_sof_reg → u_eth/u_rx_par/in_pay_reg` | `eth_rxc`（125 MHz） | 表里明写 `clock uncertainty 0.800`（累计 2.381） | 这一格才是"按 0.8 ns 要求之后还剩 0.049" ⇒ **约束确认生效** |
+
+两个后果都写进文档了：
+1. `docs/KNOWN_ISSUES.md` 与 `board/README.md` 那句话**收窄**成"念 WHS 先问是哪一格"，凭据点 `build/clock_uncertainty.rpt`
+   （尺子是新建的只读脚本 `build/tcl/clock_uncertainty.tcl`，开已布线 dcp，不重跑任何步骤）；
+2. **下一刀的对象换了**：想再压 hold，要动的是 100 MHz 域那一族（延迟打点计数器 `u_lat`），不是收包域。
+   给 `clk_fpga_0` 加约束要小心 `src/constraints/rk_zynq7020.xdc:51-56` 那笔旧账——它在 XDC 读取阶段
+   `get_clocks` 取不到（PS7 IP 自己 create 的），当年一条 `set_clock_groups` 因此整条静默不生效。
+
+另外记一笔工具事实：`report_clock_timing` 在 2025.2.1 的 7 系列批处理里**不存在**（`invalid command name`），
+第一次试的时候当场失败；能看见不确定度的地方只有 `report_timing` 的路径表。
