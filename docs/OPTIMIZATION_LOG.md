@@ -705,3 +705,39 @@ setup 侧 `ExtraTimingOpt` 反而把 `eth_rxc` 从 +0.516 花到 +0.157。两滚
 按 `video_timing_1024x600.v:18-20` 的 `H_TOTAL=1344 / V_TOTAL=625` 与 50 MHz 像素钟算是 **59.52 Hz**，
 而板上 SD 播放实测 29.8–30.0 fps 正好是它的一半（×2 垂直展开 ⇒ 一帧源占两场）—— 两把独立的尺子对上。
 详见 `docs/log/ISSUES.md` 的 #153。另一处把 512×300 标成"面板通路要的"也改成"PL 画幅"（#153）。
+
+## r92（2026-09-30 04:0x–04:5x，隔离构建 `build/isolated_r92_bufig/` → 正式件 `build/system.bit` md5 `883dd3b7654d`）：#57 那一刀落了 —— **偏斜消掉了，WHS 数字没动**，两件事分开记账
+
+**动的是采样结构，不是协议逻辑**（只两处）：`rgmii_rx.v` 删掉 `BUFIO`、5 个 IDDR 改吃 `rgmii_rxc_bufg`；
+`system_top.v` 的 `IDELAY_VALUE` 15 → 26。补拍数的算术写在代码注释里：BUFG 比 BUFIO 晚
+`4.854 − 3.171 = 1.683 ns`，`idelay_clk` 200 MHz ⇒ 每拍 `1/(32×200 MHz) = 156 ps` ⇒ 要补 `10.8` 拍，取 +11。
+
+| 读数 | 改之前（板上那版 `be753623afb8`） | 改之后（r92） | 出处 |
+|---|---|---|---|
+| 全设计 setup WNS | +0.516（最差在 `eth_rxc`） | **+0.522**（仍在 `eth_rxc`） | 各自 `timing_summary.rpt` Design Timing Summary |
+| 全设计 hold WHS | +0.051 | **+0.037**（最差挪到 100 MHz 域） | 同上 |
+| `eth_rxc` setup / hold | +0.516 / +0.051 | +0.522 / **+0.049** | Intra Clock Table |
+| `clkout0_1`（50 MHz 显示） | +1.177 / +0.059 | +0.885 / +0.048 | 同上 |
+| `clk_fpga_0`（100 MHz） | +1.643 / +0.051 | **+2.161** / +0.037 | 同上 |
+| 失败 setup/hold 端点 | 0 / 50885 | **0 / 50885** | 同上（"All user specified timing constraints are met"） |
+| BRAM / LUT / FF / DSP | 95 / 14358 / 8075 / 19 | 95 / **14351** / 8075 / 19 | `build/utilization.rpt` |
+| **最差那族 hold 的时钟偏斜** | **+1.616 ns**（BUFIO→BUFG 两条树） | **0.013 / 0.032 / 0.037 / 0.262 / 0.349 ns**（同一棵树内） | `build/tcl/hold_paths.tcl` → `build/hold_paths.rpt` |
+
+**这一张表要怎么念**（这是本轮最重要的一句话）：**WHS 没有变好，但"它为什么薄"换了**。
+改之后 +0.037/+0.049 仍然薄，可它薄在**我自己在 r79 加严的 0.8 ns hold 不确定度**上——数据侧只有 1 级 LUT，
+工具把最小延迟插到刚跨过那条要求线，落地就是一族 0.04~0.05；而 r91 用两滚实现策略证明"更用力布线"买不到这个数
+（`Performance_Explore` +0.046、`Performance_ExtraTimingOpt` +0.051，全在历史噪声带内）。
+#80 猜的机制（两条时钟树 1.616 ns 偏斜 ⇒ 每次重建掷 ±1 ps 硬币）**这一轮被证实并被消除**：
+最差 20 条 hold 的偏斜现在是同树内的 0.013~0.349 ns。所以收益记成**结构性**的，不记成数字收益——
+把 +0.051→+0.037 念成"退步 0.014"和念成"改结构没用"都是错的。
+
+**功能那一半才是这一刀唯一的判据**（`src/constraints/` 里没有任何 `set_input_delay` ⇒ 报告看不见采样窗）：
+板上先烧隔离件（md5 `1af8b4a14d72`）实流量：`pkts=162576`、`bytes=224789184`、`drop_words=0`、`丢过字=0`、
+`stall_ms=0`、`CDC灌满过=0`、`流活着=1`、`缺行峰值=299`、`作废过帧=1`（与 r90 基线同一个"推流起始那一帧"形状）；
+上板电池整套 `RESULT PASS uart_cmd_check (100 条命令, 92.9 s)` + `RESULT board_verify PASS（判红的步骤：0）`。
+再烧**正式件** `build/system.bit`（`883dd3b7654d`）复验一次：`--demo --fps 25` 推 **2501 帧 / 100.05 s = 25.00 fps、
+共发 552721 包**，推流之中 `pkts=184315`、`bytes=390417344`、`drop_words=0`、`丢过字=0`、`eth_rxc 心跳：正常`、
+屏上 `Latency=6ms` 与回读 `tot/100000=6` 同源一致。凭据 `build/evidence/r92f_1_psboot.txt`、`_2_program_log.txt`、
+`_3_app.txt`、`r92f_tx.txt`、`r92f_health.txt`、`verify_0930_0424.txt`。
+**还欠的两件**：顶层台架 `tb_v98` 与边缘条带 `tb_edge_rim` 必须按新 `src/rtl`（合指纹 `c8bf35eb19e5`）重跑，
+门禁第 15/16 项认的是"同一次跑"的 md5；屏幕 E1–E3 仍待眼睛。这两件没齐之前，**采纳只在日志里写"待门禁"**。

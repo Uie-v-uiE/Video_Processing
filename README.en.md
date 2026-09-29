@@ -67,11 +67,11 @@ the built-in test video. Commands, registers and every criterion are in
 
 | Metric | Reading | Source |
 |---|---|---|
-| Design-wide setup WNS | **+0.516 ns**, failing setup/hold endpoints **0 / 50885** | `build/timing_summary.rpt` |
-| Per-clock setup slack | 125 MHz receive domain **+0.516 ns** (6.5 % of its 8 ns period, and the design's worst path); 100 MHz domain **+1.643 ns** (16 % of 10 ns); 50 MHz display domain **+1.177 ns** (5.9 % of 20 ns) | same file, Intra Clock Table |
-| Hold time | **+0.051 ns** in all three domains - this is the thinnest margin, not the setup number above | same file |
-| BRAM / LUT / FF / DSP | **95 tiles (67.86 %) / 14358 (26.99 %) / 8075 (7.59 %) / 19 (8.64 %)** | `build/utilization.rpt` |
-| Power | **2.205 W** dynamic, estimated junction temperature **52.5 degC** (tool confidence Low; **an estimate**, no measured current and no SAF file) | `build/power.rpt` |
+| Design-wide setup WNS | **0.522 ns**, failing setup/hold endpoints **0 / 50885** | `build/timing_summary.rpt` |
+| Per-clock setup slack | 125 MHz receive domain **0.522 ns** (6.5 % of its 8 ns period, and the design's worst path); 100 MHz domain **2.161 ns** (21.6 % of 10 ns); 50 MHz display domain **0.885 ns** (4.4 % of 20 ns) | same file, Intra Clock Table |
+| Hold time | worst **0.037 ns** (100 MHz domain), receive domain **0.049**, display domain **0.048** - the thinnest class of margin, quoted **after** the 0.8 ns hold uncertainty this repo imposes | same file |
+| BRAM / LUT / FF / DSP | **95 tiles (67.86 %) / 14351 (26.98 %) / 8075 (7.59 %) / 19 (8.64 %)** | `build/utilization.rpt` |
+| Power | **2.204 W** dynamic, estimated junction temperature **52.5 degC** (tool confidence Low; **an estimate**, no measured current and no SAF file) | `build/power.rpt` |
 | SD local playback | **29.8 - 30.0 fps** (100-frame sliding window, read back from the board) | [data/metrics.csv](data/metrics.csv) |
 | On-board verification | 100-command serial battery PASS, geometry "last hop" 8/8 PASS, `drop_words=0` while streaming | [board/ACCEPTANCE.md](board/ACCEPTANCE.md) |
 

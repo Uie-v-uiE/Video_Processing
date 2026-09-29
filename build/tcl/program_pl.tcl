@@ -7,7 +7,9 @@
 # (ps_jtag_boot.tcl), then program the PL, then write the AXI GPIO (set_src.tcl).
 
 set root [file normalize [file join [file dirname [info script]] .. ..]]
+# VP_BIT 可以指向别处的位流（隔离滚一轮的产物拿去做板上对照时用），不设就是 build/system.bit
 set bit  [file join $root build system.bit]
+if {[info exists ::env(VP_BIT)] && $::env(VP_BIT) ne ""} { set bit [file normalize $::env(VP_BIT)] }
 if {![file exists $bit]} { puts "NO BIT $bit"; exit 1 }
 
 open_hw_manager

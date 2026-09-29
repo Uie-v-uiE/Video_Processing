@@ -111,7 +111,7 @@
 |------|------|--------|------|
 | `eth_udp_video_top` | RGMII→协议栈→拼帧→CDC→打包写 DDR 的容器，含乒乓基址与提交脉冲 | `system_top.v:154` | `tb_v6_pingpong`、`tb_v6_ingress_integrity`、`tb_v5_bank`、`tb_link_monitor` |
 | `gmii_to_rgmii` | RGMII ↔ GMII 的壳：BUFG 收钟 + IDELAYCTRL + 收/发两侧 | `eth_udp_video_top.v:70` | — |
-| `rgmii_rx` | BUFIO/IDDR(`SAME_EDGE_PIPELINED`) + IDELAYE2(FIXED, 参考 200 MHz) | `gmii_to_rgmii.v:42` | — |
+| `rgmii_rx` | IDDR(`SAME_EDGE_PIPELINED`) **吃 BUFG**（#57 之后 IO 与 fabric 同一棵树）+ IDELAYE2(FIXED, 参考 200 MHz, `IDELAY_VALUE=26`) | `gmii_to_rgmii.v:42` | — |
 | `rgmii_tx` | ODDR 双沿拼 4bit + TX_CTL | `gmii_to_rgmii.v:42` | — |
 | `gmii_rx_mac` | 去前导/SFD、按字节数与自己算的 FCS-32 判包好坏，出 `m_good/m_bad` | `eth_udp_video_top.v:185` | `tb_v795_rx_fcs` |
 | `udp_rx_parser` | 按下标解 IPv4/UDP + 目的端口过滤，出 `p_sof/p_eof/p_good` | `eth_udp_video_top.v:196` | `tb_udp_parser`、`tb_v795_rx_chain` |

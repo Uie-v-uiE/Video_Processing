@@ -157,7 +157,9 @@ module system_top (
         .UDP_PORT(UDP_VIDEO_PORT),
         .BOARD_MAC(48'h00_11_22_33_44_55),
         .BOARD_IP({8'd192,8'd168,8'd1,8'd10}),
-        .IDELAY_VALUE(15)
+        // #57：IDDR 与 fabric 同吃 BUFG 之后，采样沿往后推 1.683 ns（BUFIO→BUFG 之差），
+        // 数据侧要补同样的量：200 MHz 参考 ⇒ 156 ps/拍 ⇒ +10.8 拍，取 15+11=26（0~31 之内）
+        .IDELAY_VALUE(26)
     ) u_eth (
         .rgmii_rxc(eth_rxc),
         .rst_n(eth_rst_n & mmcm_locked),

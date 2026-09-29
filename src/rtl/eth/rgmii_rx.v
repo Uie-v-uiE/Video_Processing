@@ -1,8 +1,14 @@
-// rgmii_rx — RGMII(4bit DDR) → GMII(8bit SDR)。厂商例程（riguke，V1.0），非自研。
+// rgmii_rx — RGMII(4bit DDR) → GMII(8bit SDR)。厂商例程（riguke，V1.0），**采样沿这一处被改过**（#57/#80）。
 // 位段：RXC 上升沿那半字节是字节低位、下降沿是高位（IDDR SAME_EDGE_PIPELINED：Q1=正沿、Q2=负沿）。
-// 时钟域：rgmii_rxc 本身就是 GMII 侧的 125 MHz —— BUFG 出来的那路当 gmii_rx_clk 给下游，
-// BUFIO 只供采样沿。RX_CTL 仅当 gmii_rx_dv 用：RGMII 没有 GMII 的 RX_ER 通道，本模块交不出错误标志。
-// IDELAY 全为 FIXED=0（对齐靠 PHY 内部延迟），参考时钟 idelay_clk = 200 MHz。
+// 时钟域：rgmii_rxc 本身就是 GMII 侧的 125 MHz —— 现在 5 个 IDDR 与下游 fabric **吃同一只 BUFG**。
+// 原来 IDDR 吃 BUFIO（SCD 3.171 ns）、fabric 吃 BUFG（DCD 4.854 ns），同频同相却分走两条树，
+// 偏斜 +1.616 ns 由综合器插 hold buffer 硬补 ⇒ WHS 每次重建在 ±1 ps 上掷硬币（r62 量到 +0.001）。
+// RX_CTL 仅当 gmii_rx_dv 用：RGMII 没有 GMII 的 RX_ER 通道，本模块交不出错误标志。
+// ⚠ 改时钟源会**把采样沿往后推 1.683 ns**（BUFIO→BUFG 之差），所以数据侧必须补同样的量：
+//   `idelay_clk` 是 200 MHz ⇒ 每拍 1/(32×200 MHz) = 156 ps ⇒ 1.683 ns ≈ 10.8 拍 ⇒ 取 +11 拍。
+//   拍数只有一个出处：顶层 `system_top.v` 传下来的 `IDELAY_VALUE`（原来 15，现在是 15+11 = 26）。
+//   这一处不在时序报告的管辖内（`src/constraints/` 里没有任何 `set_input_delay`）⇒ 报告只能证明
+//   内部路径变好，采样点落没落在眼里必须由 1000M 实流量的 `bad`/`drop_words` 判。
 module rgmii_rx (
     input idelay_clk,  //200Mhz时钟，IDELAY时钟
 
@@ -22,7 +28,6 @@ module rgmii_rx (
 
     //wire define
     wire       rgmii_rxc_bufg;  //全局时钟缓存
-    wire       rgmii_rxc_bufio;  //全局时钟IO缓存
     wire [3:0] rgmii_rxd_delay;  //rgmii_rxd输入延时
     wire       rgmii_rx_ctl_delay;  //rgmii_rx_ctl输入延时
     wire [1:0] gmii_rxdv_t;  //两位GMII接收有效信号 
@@ -30,16 +35,10 @@ module rgmii_rx (
     assign gmii_rx_clk = rgmii_rxc_bufg;
     assign gmii_rx_dv  = gmii_rxdv_t[0] & gmii_rxdv_t[1];
 
-    //全局时钟缓存
+    //全局时钟缓存：IDDR 与下游 fabric 都吃这一只，偏斜才是"同一棵树内的零点几 ns"
     BUFG BUFG_inst (
         .I(rgmii_rxc),      // 1-bit input: Clock input
         .O(rgmii_rxc_bufg)  // 1-bit output: Clock output
-    );
-
-    //全局时钟IO缓存
-    BUFIO BUFIO_inst (
-        .I(rgmii_rxc),       // 1-bit input: Clock input
-        .O(rgmii_rxc_bufio)  // 1-bit output: Clock output
     );
 
     //输入延时控制
@@ -81,7 +80,7 @@ module rgmii_rx (
     ) u_iddr_rx_ctl (
         .Q1(gmii_rxdv_t[0]),      // 1-bit output for positive edge of clock
         .Q2(gmii_rxdv_t[1]),      // 1-bit output for negative edge of clock
-        .C (rgmii_rxc_bufio),     // 1-bit clock input
+        .C (rgmii_rxc_bufg),     // 1-bit clock input
         .CE(1'b1),                // 1-bit clock enable input
         .D (rgmii_rx_ctl_delay),  // 1-bit DDR data input
         .R (1'b0),                // 1-bit reset
@@ -121,7 +120,7 @@ module rgmii_rx (
             ) u_iddr_rxd (
                 .Q1(gmii_rxd[i]),         // 1-bit output for positive edge of clock
                 .Q2(gmii_rxd[4+i]),       // 1-bit output for negative edge of clock
-                .C (rgmii_rxc_bufio),     // 1-bit clock input rgmii_rxc_bufio
+                .C (rgmii_rxc_bufg),     // 1-bit clock input：与下游 fabric 同一棵树
                 .CE(1'b1),                // 1-bit clock enable input
                 .D (rgmii_rxd_delay[i]),  // 1-bit DDR data input
                 .R (1'b0),                // 1-bit reset

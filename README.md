@@ -53,11 +53,11 @@ VP_XSDB=<Vitis>/bin/xsdb.bat bash build/board_verify.sh --battery --geom
 
 | 指标 | 读数 | 出处 |
 |---|---|---|
-| 全设计 setup WNS | **+0.516 ns**，失败 setup/hold 端点 **0 / 50885** | `build/timing_summary.rpt` |
-| 逐时钟 setup 余量 | 125 MHz 收包域 **+0.516 ns**（占它 8 ns 周期的 6.5 %，全设计最差就是它）；100 MHz 域 **+1.643 ns**（16 %）；50 MHz 显示域 **+1.177 ns**（5.9 %） | 同上，Intra Clock Table 那一段 |
-| 保持时间 | 三个域同为 **+0.051 ns** —— 这是最薄的一个数，比 setup 余量更值得盯 | 同上 |
-| BRAM / LUT / FF / DSP | **95 tile（67.86 %）/ 14358（26.99 %）/ 8075（7.59 %）/ 19（8.64 %）** | `build/utilization.rpt` |
-| 功耗 | 动态 **2.205 W**、估算结温 **52.5 °C**（工具置信度 Low，**是估算**，没有实测） | `build/power.rpt` |
+| 全设计 setup WNS | **0.522 ns**，失败 setup/hold 端点 **0 / 50885** | `build/timing_summary.rpt` |
+| 逐时钟 setup 余量 | 125 MHz 收包域 **0.522 ns**（占它 8 ns 周期的 6.5 %，全设计最差就是它）；100 MHz 域 **2.161 ns**（21.6 %）；50 MHz 显示域 **0.885 ns**（4.4 %） | 同上，Intra Clock Table 那一段 |
+| 保持时间 | 最差 **0.037 ns**（100 MHz 域），125 MHz 收包域 **0.049**、50 MHz 显示域 **0.048** —— 最薄的一类数。⚠ 口径要说清：这是"**按 r79 加严的 0.8 ns hold 不确定度**要求之后"剩下的量，不是真实余量只有 0.0x | 同上 |
+| BRAM / LUT / FF / DSP | **95 tile（67.86 %）/ 14351（26.98 %）/ 8075（7.59 %）/ 19（8.64 %）** | `build/utilization.rpt` |
+| 功耗 | 动态 **2.204 W**、估算结温 **52.5 °C**（工具置信度 Low，**是估算**，没有实测） | `build/power.rpt` |
 | SD 本地播放 | **29.8 – 30.0 fps**（100 帧滑窗，板上读回） | [data/metrics.csv](data/metrics.csv) |
 | 上板校验 | 串口命令电池 100 条通过、几何"最后一跳"8 条判定全过 | [board/ACCEPTANCE.md](board/ACCEPTANCE.md) |
 

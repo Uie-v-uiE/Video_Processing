@@ -15,10 +15,12 @@
 | 交付二进制 | `build/system.bit`、`build/system.xsa`、`build/ps_app.elf`（认 md5 不认文件名） | `build/MANIFEST`（导出器按 md5 反查它点名的报告） |
 
 时钟域的分工要说清楚，否则"余量 0.5 ns"会被读错：**全设计最差那条 setup 在 125 MHz 收包域，
-+0.516 ns，占它自己 8 ns 周期的 6.5 %**；50 MHz 显示域（`clkout0_1`，周期 20 ns）是
-**+1.177 ns（5.9 %）**，100 MHz 那一路是 **+1.643 ns（16 %）** —— 所以"50 MHz 只剩 2.5 %"
+0.522 ns，占它自己 8 ns 周期的 6.5 %**；50 MHz 显示域（`clkout0_1`，周期 20 ns）是
+**0.885 ns（4.4 %）**，100 MHz 那一路是 **2.161 ns（21.6 %）** —— 所以"50 MHz 只剩 2.5 %"
 是拿 125 MHz 那条数去除 20 ns 周期得到的，别按那个说法讲。真正薄的是**保持时间**：
-三个域同为 **+0.051 ns**。
+最差 **0.037 ns**（100 MHz 域），收包域 0.049、显示域 0.048。
+⚠ 念这个数要带口径：它是**按 r79 加严的 0.8 ns hold 不确定度要求之后**剩下的量，不是"真实余量只有 0.0x"；
+#57 那一刀之后，这一族的时钟偏斜已经在**同一棵树**里（`build/hold_paths.rpt`：最差 20 条的偏斜 0.013~0.349 ns，不再是 1.616 ns）。
 逐时钟的表在 `build/timing_summary.rpt` 的 Intra Clock Table 那一段。
 
 ## 2. 运行脚本
@@ -57,8 +59,8 @@ VP_XSDB=<Vitis>/bin/xsdb.bat bash build/board_verify.sh --battery --geom
 | 缩放档位自洽 | `lane23 zoom → zsel=4 zcode=4 inv_scale=256 x100_actual=100 verdict=OK` | 同上（开机回读段） |
 | 温度三方对账 | `V9-6 温度格三方对账：4 条 [TEMP] 的 degC↔osd↔gpio 全部自洽` | 同上 |
 | SD 本地播放帧率 | **29.8 – 30.0 fps**（100 帧滑窗，板上读回） | `data/metrics.csv` 那两行 |
-| 全设计时序 | setup WNS **+0.516 ns**（最差在 125 MHz 收包域）、失败 setup/hold 端点 **0** | `build/timing_summary.rpt` |
-| 功耗 | 动态 **2.205 W**、估算结温 **52.5 °C**（工具置信度 Low） | `build/power.rpt`；**这是估算**，不是实测 |
+| 全设计时序 | setup WNS **0.522 ns**（最差在 125 MHz 收包域）、失败 setup/hold 端点 **0** | `build/timing_summary.rpt` |
+| 功耗 | 动态 **2.204 W**、估算结温 **52.5 °C**（工具置信度 Low） | `build/power.rpt`；**这是估算**，不是实测 |
 
 **要肉眼确认的（机器判不了）**：屏幕左半是未处理画面、右半是处理后的同一帧，分割线两侧的
 几何关系一致；缩放/旋转时画面不出现整行错位；OSD 各格读数与串口读回一致。

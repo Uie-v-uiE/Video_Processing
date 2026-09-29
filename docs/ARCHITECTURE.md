@@ -129,7 +129,7 @@ lane0~9 是链路健康计数（`src/rtl/eth/link_monitor.v:184-193`），lane23
 | 片源看门狗 | PS 心跳超时 500 ms；ETH 让位静默 2×10^6 个 axi 拍 = 20 ms | `pl_video_top.v:440,613` |
 | 链路存活判据 | `LIVE_MS` = 200 ms @125 MHz（`stall_ms < 200` 即 lane7.bit3） | `eth_udp_video_top.v:279-281`、`system_top.v:252` |
 | 按键 | 消抖计数 10^6（20 ms）；长按 3×10^7 = 0.6 s，松开臂 10^7 = 0.2 s | `pl_video_top.v:158-171` |
-| RGMII 输入延迟 | `IDELAY_VALUE` = 15（FIXED 抽头，参考 200 MHz） | `system_top.v:160`、`src/rtl/eth/rgmii_rx.v:68-71` |
+| RGMII 输入延迟 | `IDELAY_VALUE` = **26**（FIXED 抽头，参考 200 MHz ⇒ 每拍 156 ps；#57 换树之后按 `4.854−3.171=1.683 ns` 补 +11 拍） | `src/rtl/top/system_top.v:162`、`src/rtl/eth/rgmii_rx.v:68-71` |
 | OSD 版式 | 5 行（`N_LINES`）、5×7 字模 ×3 放大（18×21）、每行 32 格、起点 (16,12) | `src/rtl/video/osd_overlay.v:37-50` |
 
 ## 5. 改哪里要看什么
