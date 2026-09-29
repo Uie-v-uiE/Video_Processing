@@ -1,6 +1,6 @@
 # r87 全功能验收单（每条：命令 → 该看见什么 → 看不见的時候说明什么）
 
-板上是 **r87**：bit `1818ce4be15e` / elf `86c4a0ccc1a0`（认 md5 不认文件名：
+板上是 **r87**：bit `1818ce4be15e` / elf `881e733d642f`（认 md5 不认文件名：
 `certutil -hashfile build/system.bit MD5`）。这一版与 r86 的差别只有四件：`link_monitor` 两个事件寄存器进复位、
 `osd_overlay` 的读地址起了一根线、四个模块文件头、**上电默认改成手动 1.00×**（第 1、9 条就是验它）。
 
@@ -19,7 +19,7 @@
 
 | # | 敲 | 该看见 | 看不见的含义 |
 |---|---|---|---|
-| 1 | `-Drain -Cmd "stat"` | `zman=1 zsel=4 zoom=1 bilin=1 osd=1 pub=0 sel=000 thr=80 geom=00400000 src=1 sd=1 playing=1`；屏上第 3 行 `ZOOM:1.00X` **不带** `(Auto)`/`(Fit)` | 带 `(Auto)` 或 `zman=0` ⇒ 这一版上电默认没生效（先看 elf 是不是 `86c4a0ccc1a0`） |
+| 1 | `-Drain -Cmd "stat"` | `zman=1 zsel=4 zoom=1 bilin=1 osd=1 pub=0 sel=000 thr=80 geom=00400000 src=1 sd=1 playing=1`；屏上第 3 行 `ZOOM:1.00X` **不带** `(Auto)`/`(Fit)` | 带 `(Auto)` 或 `zman=0` ⇒ 这一版上电默认没生效（先看 elf 是不是 `881e733d642f`） |
 | 2 | 屏上看第 1 行 | `1024X600 FPS:30 SRC:SD`（或 ETH，取决于有没有在推流）—— 画面**静止不呼吸** | 画面自己在缩放 ⇒ 同第 1 条 |
 | 3 | `Cmd "frames" 之类不存在的词` | 回一行用法提示、并且**不改任何状态** | 若它悄悄接受了，是命令层回退 |
 

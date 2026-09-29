@@ -638,14 +638,24 @@ void sd_recover_tick(void)
     }
 }
 
+/* 定义在文件下面（喂帧那一段旁边）；这里要用它，所以先给一条前置声明 ——
+ * 少了它就是 implicit declaration → 与 u64 定义冲突，编译直接失败（本次就是这么撞的）。 */
+static u64 avg_fps_milli(void);
+
 void sd_status(void)
 {
     u32 i;
-    if (!mounted) { xil_printf("[SD] not mounted: %s\r\n", err); return; }    xil_printf("[SD] FAT32 part_lba=%d spc=%d rootclus=%d data_lba=%d\r\n",
+    if (!mounted) { xil_printf("[SD] not mounted: %s\r\n", err); return; }
+    xil_printf("[SD] FAT32 part_lba=%d spc=%d rootclus=%d data_lba=%d\r\n",
                (int)part_lba, (int)spc, (int)root_clus, (int)data_lba);
-    xil_printf("[SD] frames=%d fps=%d.%03d files=%d frame=%dB\r\n",
+    /* declared = 文件里写的帧率；measured = 自开播以来真的喂出去多少帧（`avg_fps_milli`）。
+     * 以前 measured 只出现在每 100 帧自动打的那一行里，2026-09-29 应用户要求取消自动打印，
+     * 所以把它挪到这里 —— 能力不减，只是**由你问它才说**。两者不等就是真信号（卡带宽/停顿）。 */
+    xil_printf("[SD] frames=%d fps=%d.%03d measured=%d.%03d files=%d frame=%dB\r\n",
                (int)total_frames, (int)(fps_num / fps_den),
-               (int)(((fps_num % fps_den) * 1000u) / fps_den), (int)nfiles, (int)FRAME_BYTES);
+               (int)(((fps_num % fps_den) * 1000u) / fps_den),
+               (int)(avg_fps_milli() / 1000u), (int)(avg_fps_milli() % 1000u),
+               (int)nfiles, (int)FRAME_BYTES);
     for (i = 0; i < nfiles; i++)
         xil_printf("[SD]   %s frames=%d\r\n", fname[i], (int)fframes[i]);
     if (meta_warn)
@@ -859,19 +869,12 @@ void sd_tick(void)
     nxt++;
     fed_cnt++;
     last_t = now;
+    /* 2026-09-29：这里原来每 100 帧自动往串口打一条 `[SD] frame N: last 100 frames … fps`，
+     * 用户明确要去掉 —— 播放时它每 ~3.3 秒就插一行，把命令回显冲得看不清（也会把中文回复挤成
+     * 一屏乱码，看着像"回一堆空白"）。**数据没丢**：`sd` 走 sd_status() 打印 frames/fps/files 一次，
+     * `stat` 念 playing 与片长；屏上第 1 行的 FPS 是 PL 侧算的，与串口无关。
+     * 计时的基准仍然要滚动，否则哪天再开这条打印，第一段的窗口长度会把整段播放都算进去。 */
     if ((fed_cnt % 100u) == 0u) {
-        /* 两个数都要报，但含义必须分清：
-         *   last N frames = 这 100 帧自己的耗时 ⇒ 板子当下的真实速率（受 SD 读带宽限制）；
-         *   since play    = 自"上一次开始播放"起的平均 ⇒ 含停顿/换卡的时间，只能当占空比看。
-         * 原来只报后者却写作 "avg fps"，读的人会当成帧率（今晚实测：同一时刻一个报 1.449、
-         * 一个是 30，因为前者把两次播放会话之间的空闲也算进了分母）。 */
-        u64 span = (u64)(now - rpt_t);
-        u32 win = fed_cnt - rpt_cnt;
-        u64 w = span ? (u64)win * 1000u * (u64)COUNTS_PER_SECOND / span : 0u;
-        u64 f = avg_fps_milli();
-        xil_printf("[SD] frame %d: last %u frames %d.%03d fps (since play %d.%03d)\r\n",
-                   (int)nxt, win, (int)(w / 1000u), (int)(w % 1000u),
-                   (int)(f / 1000u), (int)(f % 1000u));
         rpt_t = now;
         rpt_cnt = fed_cnt;
     }

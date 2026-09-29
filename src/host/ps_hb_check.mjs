@@ -167,11 +167,15 @@ function check(t) {
         'tb 的 TO_FRAMES == floor(clk/1000*超时ms/帧周期)+1', calc === tbv);
     // A11：残包（半行）必须会被丢掉**并且说出来**。这一条与心跳同族：都是"PS 这一侧的异常"，
     //      而且症状一样讨厌 —— 半行留在缓冲区里，下一条命令就变成一句谁都没敲过的话。
+    //      2026-09-29 收紧：过去只要"清空 cmd_buf"就算过，可那会把**已经写完的行一起陪葬**
+    //      （派发在这段之后才跑）。现在要求它明确"只丢最后一个行尾之后的那段"：
+    //      既算出 keep（最后一个 '\n' 之后），又只把 cmd_len 收到 keep。
     const poll = t.main.match(/static void uart_poll\(void\)\s*\{[\s\S]*?\n\}/)?.[0] ?? '';
     const idle = num(t.main, /#define\s+RX_IDLE_MS\s+(\d+)u/, 'RX_IDLE_MS');
-    add('A11 残包会被丢且明说', `ms=${idle} 丢=${/cmd_len\s*=\s*0/.test(poll)} 说=${/\[CMD!\]/.test(poll)} 判=${/rx_t\)/.test(poll)}`,
-        'uart_poll 里有"计时→清空→出声"三件事，且门限在 0.5..5 s',
-        /cmd_len\s*=\s*0/.test(poll) && /\[CMD!\]/.test(poll) && /rx_t\)/.test(poll) && idle >= 500 && idle <= 5000);
+    const keepTail = /keep\s*=\s*k\s*\+\s*1/.test(poll) && /cmd_len\s*=\s*keep/.test(poll);
+    add('A11 残包只丢尾巴且明说', `ms=${idle} 只丢尾=${keepTail} 说=${/\[CMD!\]/.test(poll)} 判=${/rx_t\)/.test(poll)}`,
+        'uart_poll 里有"计时→算 keep→收到 keep→出声"，且门限在 0.5..5 s',
+        keepTail && /\[CMD!\]/.test(poll) && /rx_t\)/.test(poll) && idle >= 500 && idle <= 5000);
     return r;
 }
 

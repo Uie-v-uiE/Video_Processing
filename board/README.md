@@ -1,4 +1,4 @@
-# Board bring-up（板上现在是 **r87**：bit `1818ce4be15e`（10:09 生成、10:12 下板）+ elf `86c4a0ccc1a0`（10:11，**上电默认改成手动 1.00×**、`zman=1` 已在板上读回验过）。本版全设计时序 WNS **+0.152 ns / 失败 setup 端点 0**（r86 是 −0.135 / 2）—— **但这一版不把它记成收益**：本轮没对准任何路径，差值落在 r85/r86 之间量到的 0.4 ns 布局摆幅内，见 `docs/OPTIMIZATION_LOG.md` r87 一节。门禁与冻结结论等 r87 的两份整屏台架报告（`tb_v98_top_seam`、`tb_edge_rim` 正在重跑）出来后才有，届时若 `C5c`(#98) 仍红就不冻结、"最新全绿冻结集 = r75" 不变。全功能验收单：**`board/VERIFY_r87.md`**。上板仍走三件套 `ps_jtag_boot → program_pl → ps_app_reload`，只 JTAG、不写 QSPI；三步凭据 `build/r87_flash_1_psboot.txt` / `_2_program.txt` / `_3_app.txt`）
+# Board bring-up（板上现在是 **r87**：bit `1818ce4be15e`（10:09 生成、10:12 下板）+ elf `881e733d642f`（10:11，**上电默认改成手动 1.00×**、`zman=1` 已在板上读回验过）。本版全设计时序 WNS **+0.152 ns / 失败 setup 端点 0**（r86 是 −0.135 / 2）—— **但这一版不把它记成收益**：本轮没对准任何路径，差值落在 r85/r86 之间量到的 0.4 ns 布局摆幅内，见 `docs/OPTIMIZATION_LOG.md` r87 一节。门禁与冻结结论等 r87 的两份整屏台架报告（`tb_v98_top_seam`、`tb_edge_rim` 正在重跑）出来后才有，届时若 `C5c`(#98) 仍红就不冻结、"最新全绿冻结集 = r75" 不变。全功能验收单：**`board/VERIFY_r87.md`**。上板仍走三件套 `ps_jtag_boot → program_pl → ps_app_reload`，只 JTAG、不写 QSPI；三步凭据 `build/r87_flash_1_psboot.txt` / `_2_program.txt` / `_3_app.txt`）
 16:3x 用 `tb_v98` 新加的 **P98 探针**量到了机制（环入口摆的内容比 mapper 的请求晚一整"读口对"，
 所以写进 4..7 号槽的是 `299,299,0,0` 而帧头要 `0,0,1,1`），改法是一行（窗提前 2 行 + 取模量 301→300），
 排在 r78 的第一笔；细节与凭据：`docs/log/ISSUES.md` #98 结案段 + `build/evidence/r77_p98_headfeed_probe.txt`。最近一套"全绿并冻结"的仍是 `build/evidence_r75/`。这份文件本身从 V6 一路用到现在）
@@ -142,7 +142,7 @@ node src\hostrb_handover_test.mjs                                  :: 完整一�
 | 串口行 | 含义 | 不该看到什么 |
 |---|---|---|
 | `[SD] dir map ok: 9 files, first clusters within 1946818` | 挂载时把**每个**片源文件的首簇都与分区上界核对过一遍（#50 的判据） | `WARN n/9 file(s) have cluster >= ...` ⇒ 目录项/簇号不对，别再往下播 |
-| `[SD] autoplay: playing` + 每 100 帧一条 `[SD] frame N: ... 29.x fps` | 自动开播，速率自报（不用任何人敲命令） | 停在 `frame 3584` ⇒ 用的是 #31 或更早的 elf（那条 elf 已标注作废） |
+| `[SD] autoplay: playing`，之后**不再每 100 帧自动打** `frame N:`（r87b 去掉刷屏）；要看实测速率敲 `sd` → `[SD] frames=… fps=30.000 measured=29.9xx` | 自动开播，速率自报（不用任何人敲命令） | 停在 `frame 3584` ⇒ 用的是 #31 或更早的 elf（那条 elf 已标注作废） |
 | 播到 4398 后出现 `frame 6 / 106 / 206 …` | **整卡播完并自动回绕**（这是 #50 修复的端到端凭据） | — |
 | `[SD] autoplay: mount failed: cluster decode SELF-TEST failed (firmware bug, not the card)` | 固件的 FAT 解码自检没过 ⇒ **拒绝挂载**，与卡无关 | 看到这句不要怀疑卡，怀疑 elf |
 | `[SDRD!] lba=… clus=… part_end=… OUT-OF-RANGE` | 读失败时自己报出"想去哪儿、这地址怎么来的、边界在哪" —— 就是它把 #50 从"并发挤的"翻案成"字节序拼错" | 正常回放里不该出现；出现就把这一行整行贴进 issue |

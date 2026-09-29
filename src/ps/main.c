@@ -1438,10 +1438,21 @@ static void uart_poll(void)
         XTime now;
         XTime_GetTime(&now);
         if ((u64)(now - rx_t) * 1000u >= (u64)RX_IDLE_MS * (u64)COUNTS_PER_SECOND) {
-            xil_printf("\r\n[CMD!] 这行 %u ms 没写完，丢掉 %d 个字节（不是没收到，是残包；"
-                       "重敲这一行就行）\r\n", (unsigned)RX_IDLE_MS, cmd_len);
-            cmd_len = 0;
-            cmd_toolong = 0;
+            /* 两点改动（2026-09-29 10:5x，用户报"串口里一大长串空白"之后）：
+             *   ① 原来这里直接把整个 cmd_len 清 0，而按行派发在这段**之后**才跑 ⇒ 缓冲里已经写完的行
+             *      会陪着尾部残包一起被扔掉。现在只丢"最后一个行尾之后"的那段，写完的行照旧执行。
+             *   ② 消息改成 **ASCII 打头**：中文提示在 cp936/GBK 的 Windows 控制台里渲染不出来，
+             *      看着就是一长串空白 —— 用户今天报的现象主因就是这个。ASCII 段保证任何终端都能读懂，
+             *      中文解释跟在后面（愿意看得懂的人看，看不懂也不丢信息）。 */
+            int keep = 0, k;
+            for (k = 0; k < cmd_len; k++) { if (cmd_buf[k] == '\n') keep = k + 1; }
+            if (cmd_len > keep) {
+                xil_printf("\r\n[CMD!] dropped %d trailing byte(s): line unfinished for %u ms "
+                           "(residue, not a lost byte; re-type that line)\r\n",
+                           cmd_len - keep, (unsigned)RX_IDLE_MS);
+                cmd_len = keep;
+                cmd_toolong = 0;
+            }
         }
     }
 

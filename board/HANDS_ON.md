@@ -22,7 +22,7 @@
 |---|---|---|---|
 | 1 | `src 0` | `[SRC] 已钉住 TEST = 片内自绘测试图卡（mode=2…）`；屏上底色渐变 + 一个移动块 + 一排帧号二值格在跳 | 画面还是上一路 = 覆盖位没进去（两笔写在 `main.c:487`–`492`）；图卡不动 = PL 侧的事，与命令无关 |
 | 2 | `src 1`（PC 没推流时） | 屏上 `SRC:ETH*`，画面**冻在最后一帧** | 那就是"锁"的定义，不是坏了；要"让位"必须 `src auto`。若你要看的是仲裁，就别钉 |
-| 3 | 卡上有 `node src/host/make_sd_video.mjs --in <mp4> --out E:` 做的裸帧序列 → `src 2` | `mode=3` 且立刻开播；`[SD] frame N: last 100 frames … fps (since play …)` **每 100 帧一行**（`src/ps/sd_play.c:864`–`873`） | 回 `play refused: …`（`main.c:705`）= 卡没挂载：敲 `sd` 看摘要 `[SD] FAT32 part_lba=… spc=… rootclus=… data_lba=…` + `frames=… fps=… files=…`（`sd_play.c:641`–`648`）；`not mounted` 就说的是卡或文件系统不是那种做法 |
+| 3 | 卡上有 `node src/host/make_sd_video.mjs --in <mp4> --out E:` 做的裸帧序列 → `src 2` | `mode=3` 且立刻开播；问 `sd` 得一行 `[SD] frames=… fps=30.000 measured=29.9xx …`（**r87b 起不再每 100 帧自动打** `frame N:` —— 用户要求去掉刷屏；实测平均速率挪到 `sd_status()` 里，你问它才说。凭据 `build/evidence/r87_serial_three.txt`，账在 `ISSUES #134`） | 回 `play refused: …`（`main.c:705`）= 卡没挂载：敲 `sd` 看摘要 `[SD] FAT32 part_lba=… spc=… rootclus=… data_lba=…` + `frames=… fps=… files=…`（`sd_play.c:641`–`648`）；`not mounted` 就说的是卡或文件系统不是那种做法 |
 | 4 | 在播 → `frame 100` | 画面跳到第 100 帧附近（内容真的换了 = 通路在刷新，不是定格）；**成功时串口不出声** | 只有越界/读失败才回 `[SD] frame 100 failed: …`（`main.c:1227`）；屏上没换 = 通路的事，与帧号无关 |
 | 5 | `stop` → `play` → `play 0` | `[SD] stopped at frame N` / `[SD] playing (stop / play 0 结束; ETH 有流时会自动让位)` | **没有 `pause` 这个动词**；`play 0`/`play off`/`play stop` 是同一条出口（`main.c:1294`），别的参数被拒（`main.c:1300`） |
 | 6 | `sd files` → `sd file 1` → `sd file 99` | 列出每段（段号**从 0 起**，带首帧全局号）/ 跳到那段第一帧 / 越界**明确拒绝且不改任何状态**（`main.c:1250`） | 拒了还改状态就是 bug（#67 那一族）；卡不在位时 `files` 会说"卡还没挂载（先敲 sd）" |
