@@ -33,6 +33,55 @@ module tb_v101_fb_bilin;
         .pix(pix), .oob_out(oob_out)
     );
 
+    // ---- L9/L10：`ISSUES #127` 第 3 条 CANDIDATE 的"机会计数"探针 ----
+    // 末行那次 `w_b = w_a + ROW_WORDS` 会越过 `frame_buffer_w64` 的真实数据（WORDS=38400 个字，实际写到 38400
+    // 但 bank 深 8192 的填充区从没写过）⇒ xsim 读出 X、板上读出 BRAM 上电的 0。RTL 靠 `ky_use`/`kx_use` 把
+    // 越界方向的抽头**折回图内**（`fb_bilin.v:161-162`），所以"屏上没现象"与"真的被折回门住了"两种说法
+    // 今天无法区分 —— 除非数出一个非零的**机会**。
+    // 吃 DUT 自己的 `addr_nxt` 那根线，不在台架里重算地址：T18 那一轮实测过"重算式判据看不见 RTL 地址算术被换"
+    // （`sim/mut_control.sh` 的 `osd_addr` 分支）。对齐：addr_nxt(T) ⇒ 数据在 T+2 回来，`ky_d2` 也是 T 的两拍后。
+    localparam WRD = (IMG_W * IMG_H + 3) / 4;
+    reg  [1:0] vld_h = 2'b00;
+    // 槽位身份决定"该看哪一道折回"：`(row0=0,col0=1)` 发的就是 `w_b`（末行越界），由 **ky** 折回；
+    // `(row0=1,col0=0)` 发的是 `w_a+1`（只有最后一个像素越界），由 **kx** 折回。
+    // 第一版把两者混成一个计数、只查 ky_d2 ⇒ 末列那一读被算成"没折回"，L10 假红（度量错，不是 DUT 错）。
+    reg  [1:0] oobB_h = 2'b00, oobA_h = 2'b00;
+    reg [11:0] sy_h1 = 0, sy_h2 = 0;     // 归因用：越界那一拍的 sy 要**两级**历史（一拍历史量到的是下一拍的坐标）
+    integer bil_oob_opp = 0, bil_oob_harm = 0, bil_oobB = 0, bil_oobA = 0;
+    integer harm_now = 0;
+    integer harm_sy = -1, harm_ky = 0, harm_be = 0;
+    real    harm_t = 0;
+    always @(posedge clk) begin
+        oobB_h <= {oobB_h[0], (dut.addr_nxt >= WRD && !dut.row0 && dut.col0)};
+        oobA_h <= {oobA_h[0], (dut.addr_nxt >= WRD &&  dut.row0 && !dut.col0)};
+        vld_h  <= {vld_h[0], req_vld};
+        sy_h1  <= sy;
+        sy_h2  <= sy_h1;
+        if (dut.addr_nxt >= WRD) begin
+            bil_oob_opp = bil_oob_opp + 1;
+            // 身份要**当场**判（同一拍的 addr 与同一拍的 row0/col0 才配得上）：上一版拿晚一拍的历史位去 AND
+            // 当拍的槽位身份，量的是两件不同的事，所以 B/A 都报了 0 —— 那不是"没有 B 越界"，是度量写错了。
+            if (!dut.row0 && dut.col0)    bil_oobB = bil_oobB + 1;
+            else if (dut.row0 && !dut.col0) bil_oobA = bil_oobA + 1;
+        end
+        if (vld_h[1]) begin
+            // 第三道门：图外那一格由 `oob` 链回黑（`fb_bilin.v:47` 那句"越界由顶层的 oob 回黑：同一个像素、同一拍"），
+            // 所以只有"这一格本来要画、且两道折回都没生效"才算伤害。第一版漏了它 ⇒ 3 拍假红（度量错，不是 DUT 错）。
+            harm_now = ((oobB_h[1] && !dut.ky_d2) || (oobA_h[1] && !dut.kx_d2)) && !dut.oob_d2;
+            if (harm_now) begin
+                // 先钉现场再累加：上一版把捕获写在 `bil_oob_harm == 0` 上，而累加是同块里的阻塞赋值 ⇒
+                // 第一次红的那一拍读到的已经是 1，现场永远没记下来（打出来 t=0 / sy=-1 就是这个空值）。
+                if (harm_sy < 0) begin
+                    harm_t  = $time;
+                    harm_sy = sy_h2;                   // 越界那一拍（T）的 sy：299=末行（折回本该是 1）
+                    harm_ky = dut.ky_d2;
+                    harm_be = oobB_h[1];               // 1=纵向 B 抽头，0=横向 +1 抽头
+                end
+                bil_oob_harm = bil_oob_harm + 1;
+            end
+        end
+    end
+
     // ---- 黄金内存（与写口同一份数据，逐字写进 DUT）----
     reg [15:0] mem [0:IMG_W*IMG_H-1];
     reg [15:0] w0, w1, w2, w3;
@@ -291,6 +340,18 @@ module tb_v101_fb_bilin;
             line("L8 coverage", (nckA > 4000 && nckB > 4000 && nckC > 4000 && nckD > 4000
                                  && nslot > 3000 && guard_bad == 0),
                  "each segment must actually have been measured");
+
+            // ---- L9/L10：#127 第 3 条的成对判据（先让"机会"非零，再说"门住了"）----
+            $display("[tb_v101.v]      L9/L10 counts: oob_word_reads=%0d oob_used_unfolded=%0d words=%0d (B=%0d A=%0d)",
+                     bil_oob_opp, bil_oob_harm, WRD, bil_oobB, bil_oobA);
+            // 没有 offender 时**整行不打**：留一行 t=0 / sy=-1 的初值会让人以为"抓到过-but-没内容"
+            if (harm_sy >= 0)
+                $display("[tb_v101.v]      L10 first offender: t=%0t tap=%0s sy_then=%0d ky_d2=%0d",
+                         harm_t, (harm_be ? "vertical-B" : "horizontal+1"), harm_sy, harm_ky);
+            line("L9 bilin padding read happened", (bil_oob_opp > 0),
+                 "if 0 the last row was never reached: L10 proves nothing");
+            line("L10 padding word never used", (bil_oob_harm == 0),
+                 "oob beat folded into the picture with ky_d2=0");
 
             if (errors == 0) $display("[tb_v101.v] RESULT tb_v101_fb_bilin PASS errors=0");
             else             $display("[tb_v101.v] RESULT tb_v101_fb_bilin FAIL errors=%0d", errors);
