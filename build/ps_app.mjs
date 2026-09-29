@@ -23,7 +23,7 @@ import { execFileSync, spawnSync } from 'node:child_process';
 const root = path.resolve(path.dirname(new URL(import.meta.url).pathname.replace(/^\/(\w:)/, '$1')), '..');
 const arg = (n, d) => { const i = process.argv.indexOf('--' + n); return i < 0 ? d : process.argv[i + 1]; };
 
-const CC  = process.env.PS_CC  || 'D:/Software/Vivado/2025.2.1/Vitis/gnu/aarch32/nt/gcc-arm-none-eabi/bin/arm-none-eabi-gcc.exe';
+const CC  = process.env.PS_CC  || '';
 // 默认平台在**仓库内**（2026-09-26，见 ISSUES #89/#90）：以前默认指向仓库外一个"曾经存在过"的
 // `D:/Xilinx/Prj/project_handoff/...`，那个目录一被删，PS 侧就悄悄变成"只能沿用旧 ELF、不敢重编"——
 // 而我花了半天用 2×2 对照才排除掉自己改的代码。指进仓库 = 换机器/删别的项目都不会再断。

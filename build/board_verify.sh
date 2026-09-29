@@ -23,7 +23,7 @@ LOG=$OUT.txt
 # xsdb 只有一个说法：VP_XSDB 指到 <Vitis>/bin/xsdb.bat（默认值只是本机的便利，不是标准，见 docs/BUILD.md）。
 # 外面那一层双引号是必需的：XSDB 之后会被拼进命令行，路径带空格时没引号就断成两条命令——
 # 所以先把**裸路径**放进 VP_XSDB 做存在性检查，再包引号交给 XSDB，不用 eval 去拆。
-VP_XSDB=${VP_XSDB:-D:/Software/Vivado/2025.2.1/Vitis/bin/xsdb.bat}
+VP_XSDB=${VP_XSDB:-}
 [ -f "$VP_XSDB" ] || { echo "REFUSE: 找不到 xsdb（当前 $VP_XSDB）。设 VP_XSDB=<Vitis>/bin/xsdb.bat 再跑（docs/BUILD.md）"; exit 2; }
 XSDB="\"$VP_XSDB\""
 # ⚠ 这一版之前脚本**没有总判定**：不管中间红成什么样，最后都是 `exit 0`（而且各步都挂在管道尾巴上，

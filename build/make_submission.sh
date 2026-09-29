@@ -1,40 +1,58 @@
 #!/usr/bin/env bash
-# make_submission.sh — 从当前 git 跟踪集导出一份照赛程官方目录结构摆放的提交包。
+# make_submission.sh — 从当前 git 跟踪集导出选题指南 §3.3.5.4 那份目录（final_submission/）。
 #
-# 官方结构（选题指南 §3.3.5.4）：
-#   <项目>/README.md  src/  sim/  build/  board/  data/  skill/README.md  report/
-#
-# 三条设计决定，都是为了处理"仓库里合理、交出去不合理"的东西：
-#  1) **目录映射**：仓库里交付文档在 `docs/`、工作记录在 `docs/log/`（本地按三类分着好用），
-#     交出去必须是 `report/`。导出时改名，并把包内所有 `docs/…` 的指路**一并改写**成 `report/…`
-#     —— 只改目录不改指路，等于交一份满篇死链接的包。
-#  2) **按引用留凭据**：`build/` 与 `sim/` 跟踪了一千多个文件（每一轮的门禁输出、冻结集、
-#     策略扫描日志）。判据不是"哪一轮的"，而是"**交付文档点没点名**"：被 `report/`、`README*`、
-#     `skill/`、板级操作卡里任何一处按路径或文件名引用的就带，没被引用的不带。
-#     理由：评委复核任何一个数字，走的都是文档里那条指路；没被点名的留档在包里只是噪声。
-#  3) **导出后自检**：包内所有"路径式指路"必须在**包内**解析得出来，解析不出来就退出非 0、
-#     不落盘。这一条是防我自己：剪多了文件而文档还在指它，是最容易犯也最难看的一种错。
+# 四条判据，每条都是为了处理"仓库里合理、交出去不合理"：
+#  1) **按引用留凭据**：build/ 与 sim/ 跟踪了上千个文件。被交付文档、两份 README、skill/、板级
+#     操作卡点名的才带；评委复核任何数字走的都是文档里那条指路，没被点名的留档在包里只是噪声。
+#  2) **被否决的轮次不进包**（HARD_DROP）：failed_/red_/rejected/notadopted/_wip/aborted 这些目录
+#     即使被文档点名也不带——文档还指着它们，就说明该改的是文档，不是把它们塞进包。
+#  3) **交付名工程化**（SIM_MAP + 小写化）：§3.3.5.4 要求文件名纯英文小写；带轮次号的
+#     `tb_v98_top_seam.v` 换成按职责命名的 `tb_video_pipeline_top.v`。**改名只发生在导出时**：
+#     仓库里那几百处旧名是"当时看到的名字"，改它等于抹掉过程凭据。
+#     ⇒ 证据类（build/reports/ 与 report/log/）的正文**不参与改写**，包里那份判据报告仍是跑当时
+#       的原文；新旧名对上靠生成的 sim/NAMES.md。
+#  4) **导出后自检**：活文档里的路径式指路必须在包内解析得出；被改名台架的旧名与本机绝对路径必须为 0。
+#     任一不过就不落盘。这一条是防我自己。
 #
 # 用法：bash build/make_submission.sh [--dry]
-#   --dry 只解出来看、不落到 ../submission/（临时目录留着，自己看过再 rm -rf）
 set -euo pipefail
 
 REPO="$(cd "$(dirname "$0")/.." && pwd)"
-OUT="$(cd "$REPO/.." && pwd)/submission"
+OUT="$(cd "$REPO/.." && pwd)/final_submission"
 TMP="$(mktemp -d "${TMPDIR:-/tmp}/sub.XXXXXX")"
 DRY=0
-[ "${1:-}" = "--dry" ] && DRY=1
+if [ "${1:-}" = "--dry" ]; then DRY=1; fi
 
-# 一次性修复脚本：只修当年那一版 BD/顶层，没人再调用，别人照着跑只会困惑。
+# ---- 交付台架：旧名 -> 新名（只列要改的；原名已按职责的不列）----
+declare -A SIM_MAP=(
+  [tb_v98_top_seam]=tb_video_pipeline_top
+  [tb_edge_rim]=tb_display_edge_rim
+  [tb_osd_lines]=tb_osd_overlay
+  [tb_v101_fb_bilin]=tb_fb_bilinear
+  [tb_v6_ingress_integrity]=tb_eth_ingress_integrity
+  [tb_v6_vblank_copy]=tb_fb_vblank_copy
+  [tb_v6_pingpong]=tb_fb_pingpong
+  [tb_v794_osd_glyph]=tb_osd_glyph_rom
+  [tb_bilin_lerp]=tb_bilinear_core
+  [tb_v92_seam_bleed]=tb_seam_bleed
+  [tb_v93_split_ctrl]=tb_split_ctrl
+  [tb_v94_zoom_sel]=tb_zoom_sel
+  [tb_v102_src_life]=tb_src_life
+)
+SIM_PLAIN=(tb_link_monitor tb_zoom_mapper tb_rotate_window)
+SIM_KEEP=("${!SIM_MAP[@]}" "${SIM_PLAIN[@]}")
+
+# ---- 硬剔除：被否决的轮次、探针与构建中间物、零引用 RTL ----
+HARD_DROP_RE='^build/(failed_|red_|multidrive_|exp_|strprobe|uram_probe|micro_rd|ps_obj|snap_|r[0-9]+_isolated|r[0-9]+_exp|build/|vivado_system/|__pycache__/)|^build/(evidence|frozen)_r[0-9]+[^/]*(rejected|notadopted|wip)/|^sim/(probes|results|msim|v98run|xtest|tagchk|syntaxchk|v100run2)/|^src/rtl/(axi/axi_frame_writer|eth/axi_frame_saver|video/frame_buffer_db|video/video_timing_720p)\.v$'
 PRUNE_ONEOFF=(
-  build/tcl/apply_cdc_report.tcl
-  build/tcl/fix_bd_and_top.tcl
-  build/tcl/rebuild_opt.tcl
-  build/tcl/rebuild_zoom_out.tcl
-  tight_setup_hold_pins.txt
+  build/tcl/apply_cdc_report.tcl build/tcl/fix_bd_and_top.tcl build/tcl/rebuild_opt.tcl
+  build/tcl/rebuild_zoom_out.tcl build/tcl/rebuild_cdc_fix.tcl build/tcl/micro_rd.tcl
+  build/tcl/uram_presence.tcl build/tcl/uram_probe.tcl build/tcl/uram_sites.tcl
+  build/tcl/ooc_newmods.tcl build/tcl/dfx_runtime.txt build/tcl/retry_open_nr.log
+  sim/run_zoom_only.tcl tight_setup_hold_pins.txt
 )
 
-# ---- 无论有没有被点名都留着：跑起来的那一套（源码与脚本本体）----
+# ---- 无论有没有被点名都留着：跑起来的那一套 ----
 KEEP_ALWAYS_RE='\.(sh|tcl|py|ps1|bat|xdc|f|v|c|h)$|^src/(rtl|ps|constraints)/|^data/golden/|MANIFEST|README'
 
 cd "$REPO"
@@ -43,156 +61,233 @@ DIRTY="$(git status --porcelain | wc -l)"
 git archive --format=tar HEAD | tar -x -C "$TMP"
 cd "$TMP"
 
-# ---- 1. 目录映射 docs/ -> report/，并改写包内指路 ----
+: > _pruned.txt
+MV=""
+add_mv() { if [ "$1" != "$2" ]; then MV="$MV$1"$'\t'"$2"$'\n'; fi; }
+prune() { if [ -e "$1" ]; then rm -rf "$1"; echo "$2 $1" >> _pruned.txt; fi; }
+
+# ---- 1. docs/ -> report/，指路一并改写（只改目录不改指路 = 交一份满篇死链接的包）----
 if [ -d docs ]; then
   mkdir -p report
   mv docs/*.md report/ 2>/dev/null || true
-  if [ -d docs/log ]; then mkdir -p report/log; mv docs/log/*.md report/log/ 2>/dev/null || true; fi
+  if [ -d docs/log ]; then
+    mkdir -p report/log
+    for f in docs/log/*.md; do if [ -f "$f" ]; then mv "$f" "report/log/$(basename "$f")"; fi; done
+  fi
   rm -rf docs
-  grep -rl "docs/" --include="*.md" --include="*.mjs" --include="*.sh" --include="*.tcl" \
-        --include="*.v" --include="*.c" --include="*.h" --include="*.bat" . 2>/dev/null |
+  { find . -type f \( -name '*.md' -o -name '*.sh' -o -name '*.tcl' -o -name '*.mjs' -o -name '*.py' \
+      -o -name '*.v' -o -name '*.c' -o -name '*.h' -o -name '*.bat' \) -print; echo README.md; echo README.en.md; } |
   while read -r f; do
-    sed -i 's|\.\./docs/|../report/|g; s|docs/log/|report/log/|g; s|docs/|report/|g' "$f"
+    if [ -f "$f" ]; then sed -i 's|\.\./docs/|../report/|g; s|docs/log/|report/log/|g; s|docs/|report/|g' "$f"; fi
   done
 fi
 
-# ---- 2. 剪：只按"活文档点没点名"判，记录类不参与 ----
-# 活文档 = 评委会当成说明去跟的那几页：report/ 顶层、两份 README、skill/、board/ 的操作卡。
-# 记录类 = report/log/（ISSUES 与 OVERNIGHT_LOG 等）与 build/frozen_r*/、build/evidence_r*/：
-#   里面的路径是**当时**的名字（台架删了、捕获清了、工具改名了都在那里留着），
-#   既不能作为"这个文件还得带"的依据，也不该被拿来判死链——改它就是伪造过程记录。
-: > _pruned.txt
-for n in "${PRUNE_ONEOFF[@]}"; do
-  [ -f "$n" ] || continue
-  rm -f "$n"; echo "一次性脚本 $n" >> _pruned.txt
+# ---- 2. 剪 ----
+for n in "${PRUNE_ONEOFF[@]}"; do prune "$n" "一次性脚本"; done
+find . -mindepth 1 2>/dev/null | sed 's|^\./||' | grep -E "$HARD_DROP_RE" |
+while read -r n; do if [ -e "$n" ]; then rm -rf "$n"; echo "被否决轮次/中间物 $n" >> _pruned.txt; fi; done || true
+
+# 2a) 台架白名单
+for f in sim/*.v; do
+  if [ -f "$f" ]; then
+    b="$(basename "$f" .v)"
+    hit=0
+    for k in "${SIM_KEEP[@]}"; do if [ "$b" = "$k" ]; then hit=1; fi; done
+    if [ "$hit" = "0" ]; then prune "$f" "回归台架（不支撑交付结论）"; fi
+  fi
 done
 
+# 2b) 其余按"点没点名"剪
 LIVE_SCOPE=(report README.md README.en.md skill board/README.md board/HANDS_ON.md)
-grep -rhoE "[A-Za-z0-9_./-]+\.[A-Za-z0-9]{1,5}" "${LIVE_SCOPE[@]}" 2>/dev/null \
-  | sed 's|^\./||; s|^report/|report/|' | sort -u > _cited.txt
-# 交付文档里点名要跑的宿主脚本，即使正文没写全路径也算被点名（门禁与验收脚本会调它们）
-grep -rhoE "src/host/[A-Za-z0-9_.-]+\.mjs" build/*.sh 2>/dev/null | sort -u >> _cited.txt
+{ grep -rhoE "[A-Za-z0-9_./-]+\.[A-Za-z0-9]{1,5}" "${LIVE_SCOPE[@]}" 2>/dev/null | sed 's|^\./||'; } > _cited.txt || true
+{ grep -rhoE "src/host/[A-Za-z0-9_.-]+\.mjs" build/*.sh 2>/dev/null; } >> _cited.txt || true
 sort -u -o _cited.txt _cited.txt
 
-# 被别的 .mjs import 的公共模块必须跟着走（现在只有一个：repo_path.mjs）。
-# 不写死名字，改成"有被留着的文件 import 它就留"，免得以后加了新的公共模块又踩一次。
 for f in src/host/*.mjs; do
-  [ -f "$f" ] || continue
-  grep -hoE "from '\./[A-Za-z0-9_.-]+\.mjs'" "$f" 2>/dev/null |
-    sed "s|from '\./||; s|'||" | while read -r dep; do
-      echo "src/host/$dep" >> _cited.txt
-    done || true      # pipefail：没有 import 的文件 grep 返回 1，不该把整个导出带走
+  if [ -f "$f" ]; then
+    { grep -hoE "from '\./[A-Za-z0-9_.-]+\.mjs'" "$f" 2>/dev/null | sed "s|from '\./||; s|'||" | sed 's|^|src/host/|'; } >> _cited.txt || true
+  fi
 done
 sort -u -o _cited.txt _cited.txt
 
 for p in src/host build sim board data; do
-  [ -d "$p" ] || continue
-  find "$p" -type f | while read -r f; do
-    echo "$f" | grep -qE "$KEEP_ALWAYS_RE" && continue
-    grep -qxF "$f" _cited.txt && continue
-    # 工具与留档两种口径：**工具**要按路径点名才带（HOST_GUIDE 里"作者留存"的那些是裸名，
-    # 不该因此进包）；**留档**只要文件名被点名就带（文档里常写"`rNN_gates.txt` 第几行"这种）。
-    case "$p" in src/host) ;; *) grep -qxF "$(basename "$f")" _cited.txt && continue ;; esac
-    rm -f "$f"; echo "未被活文档点名 $f" >> _pruned.txt
-  done
-done
-find build sim board data src/host -type d -empty -delete 2>/dev/null || true
-
-find src/host -type d -empty -delete 2>/dev/null || true
-removed="$(sort -u -o _pruned.txt _pruned.txt; grep -c '' _pruned.txt)"
-
-# ---- 3. 自检：活文档里的路径式指路必须在包内解析得出 ----
-: > _dead.txt
-for f in README.md README.en.md report/*.md skill/*.md skill/*/*.md board/*.md; do
-  [ -f "$f" ] || continue
-  d="$(dirname "$f")"
-  grep -oE '(src|sim|build|board|data|skill|report)/[A-Za-z0-9_./-]*[A-Za-z0-9_-]\.[A-Za-z0-9]{1,6}' "$f" 2>/dev/null |
-  sort -u | while read -r t; do
-    case "$t" in *'*'*|*'<'*|*'>'*|*'$'*|*NN*) continue ;; esac      # 通配与占位名不算指路
-    # 生成物：跑脚本/跑构建才有的输出（*.log 与 *.elf 按 .gitignore 政策本来就不入库），
-    # 包里没有是应该的；文档提到它们时说的是"什么东西被生成出来"
-    case "$t" in *.log|*.elf|build/tb_v98_report.txt|board/uart_script_capture.txt|data/measured/ddr_dump.out) continue ;; esac
-    [ -e "$t" ] && continue
-    [ -e "$d/$t" ] && continue
-    echo "死链 $f -> $t"
-  done
-done > _dead.txt 2>&1 || true
-DEAD="$(grep -c '死链' _dead.txt || true)"; DEAD=${DEAD:-0}
-head -20 _dead.txt
-echo "== 自检：活文档死链 $DEAD 条（记录类不判，理由见上面第 2 步）=="
-
-# ---- 3b. 位流与固件镜像：仓库里不跟踪（太大/是输出），但交出去必须能对上"板上是哪一版" ----
-BIN_LINES=""
-for b in build/system.bit build/ps_app.elf; do
-  if [ -f "$REPO/$b" ]; then
-    cp "$REPO/$b" "$b"
-    BIN_LINES="$BIN_LINES  $b  md5 $(md5sum "$b" | cut -c1-12)$(printf '
-')"
+  if [ -d "$p" ]; then
+    find "$p" -type f 2>/dev/null | while read -r f; do
+      f="${f#./}"
+      if echo "$f" | grep -qE "$KEEP_ALWAYS_RE"; then continue; fi
+      if grep -qxF "$f" _cited.txt; then continue; fi
+      case "$p" in
+        src/host) ;;
+        *) if grep -qxF "$(basename "$f")" _cited.txt; then continue; fi ;;
+      esac
+      rm -f "$f"; echo "未被活文档点名 $f" >> _pruned.txt
+    done || true
   fi
 done
-# 位流的身份**只能由它自己的 md5 去认**：哪一份门禁报告里写着这串 md5，就念那一份；
-# 一份都没有 ⇒ 这一版没有全绿凭据，必须明说"不作交付"，绝不能拿"最新的那份报告"顶替
-# （文件名排序的"最新"和"与这份位流同一次构建"是两件事，r81 就是活例子：它四滚全红）。
-BIT_MD5=""; [ -f build/system.bit ] && BIT_MD5="$(md5sum build/system.bit | cut -c1-12)"
-GATES_FOR_BIT=""
+
+# 2c) 二进制一律不带，稍后只放回板上这一版
+find . \( -name '*.bit' -o -name '*.xsa' -o -name '*.elf' -o -name '*.dcp' \) -type f 2>/dev/null |
+while read -r f; do rm -f "$f"; echo "构建产物（由板上那一版补回） $f" >> _pruned.txt; done || true
+find build sim board data src/host -type d -empty -delete 2>/dev/null || true
+
+# ---- 3. 改名：报告展平、文档名小写、台架换名；一份 _map.sed 做全部指路改写 ----
+mkdir -p build/reports build/bitstream
+
+# 台架先换（文件名 + 一条"裸名"映射，让正文里的提及也跟上）
+for old in "${!SIM_MAP[@]}"; do
+  new="${SIM_MAP[$old]}"
+  if [ -f "sim/$old.v" ]; then
+    mv "sim/$old.v" "sim/$new.v"
+    add_mv "sim/$old.v" "sim/$new.v"
+    add_mv "$old" "$new"
+  fi
+done
+
+# 报告展平：build/**.rpt|txt -> build/reports/[rNN_]名字（名字里带轮次号的换成新台架名）
+while IFS= read -r f; do
+  f="${f#./}"
+  base="$(basename "$f")"
+  for old in "${!SIM_MAP[@]}"; do
+    if printf '%s' "$base" | grep -q "$old"; then base="$(printf '%s' "$base" | sed "s|$old|${SIM_MAP[$old]}|g")"; fi
+  done
+  tag="$(printf '%s' "$f" | grep -oE '(^|[^a-z])r[0-9]+' | grep -oE 'r[0-9]+' | head -1 || true)"
+  if [ -n "$tag" ]; then np="build/reports/${tag}_${base}"; else np="build/reports/$base"; fi
+  if [ -e "$np" ]; then np="build/reports/$(basename "$(dirname "$f")")_$(basename "$base")"; fi
+  if [ "$f" != "$np" ]; then mv "$f" "$np"; add_mv "$f" "$np"; fi
+done < <(find build -type f \( -name '*.rpt' -o -name '*.txt' \) 2>/dev/null | grep -v '^./build/reports/' | sort)
+
+# 交付文档名小写（§3.3.5.4 字面要求；README/LICENSE/MANIFEST 是指南自己用的大写名，留作例外）
+for f in report/*.md report/log/*.md; do
+  if [ -f "$f" ]; then
+    b="$(basename "$f")"
+    lb="$(printf '%s' "$b" | tr 'A-Z' 'a-z')"
+    case "$lb" in readme.md|license|manifest.txt) lb="$b" ;; esac
+    if [ "$b" != "$lb" ]; then mv "$f" "$(dirname "$f")/$lb"; add_mv "$f" "$(dirname "$f")/$lb"; fi
+  fi
+done
+for f in board/*.md; do
+  if [ -f "$f" ]; then
+    b="$(basename "$f")"; lb="$(printf '%s' "$b" | tr 'A-Z' 'a-z')"
+    case "$lb" in readme.md) lb="$b" ;; esac
+    if [ "$b" != "$lb" ]; then mv "$f" "$(dirname "$f")/$lb"; add_mv "$f" "$(dirname "$f")/$lb"; fi
+  fi
+done
+
+printf '%s' "$MV" > _mv.tsv
+: > _map.sed
+while IFS=$'\t' read -r o n; do
+  if [ -z "$o" ]; then continue; fi
+  oe="$(printf '%s' "$o" | sed 's/[.[\*^$&/]/\\&/g')"
+  ne="$(printf '%s' "$n" | sed 's/[&|\/]/\\&/g')"
+  printf '%d\t%s\t%s\n' "${#o}" "$oe" "$ne"
+done < _mv.tsv | sort -rn -k1,1 | cut -f2,3 |
+while IFS=$'\t' read -r oe ne; do printf 's|%s|%s|g\n' "$oe" "$ne"; done > _map.sed
+
+# 改写只作用于" prose 与脚本"；证据类（build/reports/、report/log/）保持原文
+find . -type f \( -name '*.md' -o -name '*.sh' -o -name '*.tcl' -o -name '*.py' -o -name '*.mjs' \
+    -o -name '*.ps1' -o -name '*.bat' -o -name '*.v' -o -name '*.c' -o -name '*.h' \) 2>/dev/null |
+grep -vE '^\./build/reports/|^\./report/log/' |
+while read -r f; do sed -i -f _map.sed "$f"; done || true
+
+# 新旧名对照（生成的，所以永远与表一致）
+{
+  echo '# 台架名字对照（导出时由 build/make_submission.sh 生成）'
+  echo
+  echo '包里按**职责**命名；随包的判据报告是仓库里那一跑的**原始输出**，里面的名字没被改写——'
+  echo '改它等于改证据。两边靠这张表对上。'
+  echo
+  echo '| 包内文件 | 仓库里的名字 | 钉住的结论 |'
+  echo '|---|---|---|'
+  for old in "${!SIM_MAP[@]}"; do
+    echo "| \`sim/${SIM_MAP[$old]}.v\` | \`sim/$old.v\` | 见 \`build/reports/\` 里同名前缀的那份 |"
+  done
+  for p in "${SIM_PLAIN[@]}"; do echo "| \`sim/$p.v\` | \`sim/$p.v\`（未改） | 同上 |"; done
+} > sim/NAMES.md
+
+for b in build/system.bit build/system.xsa build/ps_app.elf; do
+  if [ -f "$REPO/$b" ]; then cp "$REPO/$b" "build/bitstream/$(basename "$b")"; fi
+done
+
+# ---- 4. 自检 ----
+: > _dead.txt
+for f in README.md README.en.md report/*.md skill/*.md skill/*/*.md board/*.md sim/*.md build/*.md build/tcl/*.md; do
+  if [ -f "$f" ]; then
+    d="$(dirname "$f")"
+    grep -oE '(src|sim|build|board|data|skill|report)/[A-Za-z0-9_./-]*[A-Za-z0-9_-]\.[A-Za-z0-9]{1,6}' "$f" 2>/dev/null |
+    sort -u | while read -r t; do
+      case "$t" in *'*'*|*'<'*|*'$'*|*NN*) continue ;; esac
+      case "$t" in *.log|*.out|board/uart_script_capture.txt) continue ;; esac
+      if [ -e "$t" ] || [ -e "$d/$t" ]; then continue; fi
+      echo "死链 $f -> $t"
+    done
+  fi
+done > _dead.txt 2>&1 || true
+DEAD="$(grep -c '死链' _dead.txt 2>/dev/null || true)"; DEAD="${DEAD:-0}"
+if [ "$DEAD" = "0" ]; then DEAD=0; fi
+
+STALE=0
+for old in "${!SIM_MAP[@]}"; do
+  n="$( { grep -rl "$old" --include='*.md' --include='*.sh' --include='*.tcl' --include='*.v' . 2>/dev/null |
+          grep -vE '^\./report/log/|^\./build/reports/|^\./sim/NAMES.md|\./sim/\.\./' || true; } | wc -l)"
+  if [ "$n" != "0" ]; then echo "残留旧台架名 $old：$n 个文件"; STALE=$((STALE+1)); fi
+done
+
+# 绝对路径只判"真被用到的"：注释里写"原来硬编码 D:/... 后来改了"是过程说明，不算违规
+ABS="$( { grep -rnE "D:/|C:/Users|/d/Software|/d/Xilinx" --include='*.sh' --include='*.tcl' --include='*.py' \
+          --include='*.mjs' --include='*.ps1' --include='*.bat' --include='*.v' --include='*.c' --include='*.h' \
+          --exclude='make_submission.sh' . 2>/dev/null || true; } |
+        grep -vE ':[0-9]+:[[:space:]]*(#|//|\*)' | cut -d: -f1 | sort -u | tr '\n' ' ')"
+ABSN=0
+if [ -n "$ABS" ]; then ABSN="$(printf '%s\n' $ABS | wc -l)"; fi
+
+head -25 _dead.txt
+echo "== 自检：死链 $DEAD ／ 旧名残留 $STALE ／ 带绝对路径的脚本 $ABSN${ABS:+ （$ABS）} =="
+
+# ---- 5. 清单 ----
+files="$(find . -type f ! -name '_dead.txt' ! -name '_map.sed' ! -name '_mv.tsv' ! -name '_cited.txt' ! -name '_pruned.txt' | wc -l)"
+bytes="$(du -sh . | cut -f1)"
+removed="$(sort -u -o _pruned.txt _pruned.txt; grep -c '' _pruned.txt)"
+BIT_MD5=""
+if [ -f build/bitstream/system.bit ]; then BIT_MD5="$(md5sum build/bitstream/system.bit | cut -c1-12)"; fi
+GATES_FOR_BIT="没有一份门禁报告写着这串 md5 ⇒ 这一版不作交付（诊断用）"
 if [ -n "$BIT_MD5" ]; then
-    # ⚠ 2026-09-29 10:3x 修：这里原来是 $(grep -l … | head -1)。grep 没命中就退 1，而本脚本第 20 行是
-    #   set -euo pipefail ⇒ 整支脚本在"这一版还没有门禁报告"时**静默死掉**，下一行写好的"不作交付"分支根本轮不到跑。
-    #   现场：r87 位流刚构建完、门禁还没跑，`bash make_submission.sh` rc=1 却只打印了自检行；
-    #   而我连着两次用 `… | tail -2` 看状态，读到的是 tail 的 0 ⇒ 把失败当成通过（判"通不通过"要看被 pipe 掉的命令本身）。
-    GATES_FOR_BIT="$( { grep -l "$BIT_MD5" build/*gates*.txt build/evidence/*.txt 2>/dev/null || true; } | head -1 )"
-    [ -n "$GATES_FOR_BIT" ] || GATES_FOR_BIT="没有一份门禁报告写着这串 md5 ⇒ 这一版不作交付（诊断用）"
+  hit="$( { grep -rl "$BIT_MD5" build/reports 2>/dev/null || true; } | head -1)"
+  if [ -n "$hit" ]; then GATES_FOR_BIT="$hit"; fi
 fi
 
-# ---- 4. 清单 ----
-# ⚠ 计数要排掉自检的临时文件 `_dead.txt`：它在上面被创建、又不属于交付内容、稍后被删 ⇒
-#   原来这一行数出来的"925 / 933"永远比包里真正落地的多 1（`ISSUES #106`，10:47 结案）。
-files="$(find . -type f ! -name _dead.txt | wc -l)"
-bytes="$(du -sh . | cut -f1)"
 cat > MANIFEST.txt <<EOF
 导出时间: $(date '+%Y-%m-%d %H:%M:%S')
-来源仓库: $REPO
 来源提交: $COMMIT（导出时工作区未提交改动 $DIRTY 条）
 文件数  : $files，体积 $bytes，本次剪掉 $removed 条（逐条与理由见 _pruned.txt）
-生成脚本: build/make_submission.sh（可重跑；三条判据写在脚本头部）
+生成脚本: build/make_submission.sh（可重跑；四条判据写在脚本头部）
 
-目录对照（赛程推荐结构 -> 本仓库）
-  README.md   项目简介 + 复现步骤   <- README.md（中文）/ README.en.md（英文）
-  src/        设计源码              <- src/rtl/**（PL）+ src/ps/**（裸机固件）+ src/host/**（PC 工具）
-  sim/        仿真脚本与结果        <- sim/**（台架与两个 runner；判据输出在 build/tb_*_rNN.txt）
-  build/      构建脚本 + 报告       <- build/tcl/**（唯一入口 build_system_axigpio.tcl）+ 门禁与冻结脚本
-                                      + **被交付文档点名的**那些 rNN 留档
-  board/      上板工程与实测输出    <- board/**（操作卡、串口脚本、evidence_rNN/）
+目录对照（选题指南 §3.3.5.4 推荐结构 -> 本仓库）
+  README.md   项目简介 + 复现步骤   <- README.md（中）/ README.en.md（英）
+  src/        设计源码              <- src/rtl/**（PL）+ src/ps/**（裸机固件）+ src/host/**（PC 侧）
+  sim/        仿真脚本与结果        <- 支撑交付结论的台架 + run_one.sh/run_sim.tcl + mut_control.sh
+                                      名字对照见 sim/NAMES.md，判据报告在 build/reports/
+  build/      构建脚本 + 报告       <- tcl/**（入口 build_system_axigpio.tcl）+ gates.sh
+                                      + reports/**（展平自仓库各轮留档）+ bitstream/**（板上那一版）
+  board/      上板工程与实测输出    <- board/**（操作卡与验收表）
   data/       测试数据与参考结果    <- data/golden/**、data/measured/**
-  skill/      技能包                <- skill/**（README.md 是索引，S 编号是对外接口）
-  report/     设计报告 + 协作记录   <- 仓库里的 docs/（交付文档）；工作记录在 report/log/
-                                      （仓库内叫 docs/log/，导出时改名并改写指路）
+  skill/      技能包                <- skill/**（README.md 是索引）
+  report/     设计报告 + 协作记录   <- 仓库里的 docs/（交付文档），工作记录在 report/log/
 
-不带进提交包的（判据：评委照文档跑用不到，且文档也不指它）
-  · src/host/ 里没有被活文档按路径点名的工具（判据与引用规则同源，见脚本第 2 步）——
-    它们产出的数字已经写进 report/ 与 data/measured/，交脚本本身没有意义
-  · 四个一次性 BD/顶层修复脚本（PRUNE_ONEOFF）
-  · build/ 与 sim/ 里没有被 report/ 点名的留档，逐条见 _pruned.txt
-  · 本地学习材料（仓库里 docs/study/，被 .gitignore 挡住，本来就不在跟踪集内）
+板上那一份（位流与固件仓库不跟踪，按 md5 认身份，不靠文件名）：
+$(for f in build/bitstream/*; do if [ -f "$f" ]; then printf '  %-14s md5 %s\n' "$(basename "$f")" "$(md5sum "$f" | cut -c1-12)"; fi; done)  门禁凭据: $GATES_FOR_BIT
 
-板上的那一份（位流与固件镜像仓库不跟踪，这里按 md5 带出来，身份不靠文件名）：
-$BIN_LINES  它的门禁凭据：$GATES_FOR_BIT
-
-自检：包内路径式指路解析不出的有 $DEAD 条（0 才算过；不通过时本脚本不落盘）
+自检: 活文档死链 $DEAD 条（0 才算过）／被改名台架的旧名残留 $STALE／含本机绝对路径的脚本 $ABSN
 EOF
-rm -f _cited.txt _dead.txt
 
 echo
-echo "导出提交 $COMMIT：$files 个文件 / $bytes，剪掉 $removed 条，死链 $DEAD 条"
-if [ "$DRY" = "1" ]; then
-  echo "DRY RUN：$TMP 留着，自己看过再 rm -rf"
-  exit 0
-fi
-if [ "$DEAD" != "0" ]; then
-  echo "FAIL：包里有 $DEAD 条死链。要么把该带的留档放回来，要么改文档里的指路。不写 $OUT。"
-  echo "      明细：$TMP/_dead.txt"
+echo "导出提交 $COMMIT：$files 个文件 / $bytes，剪掉 $removed 条，死链 $DEAD，旧名残留 $STALE，绝对路径 $ABSN"
+if [ "$DRY" = "1" ]; then echo "DRY RUN：$TMP 留着，自己看过再 rm -rf"; exit 0; fi
+if [ "$DEAD" != "0" ] || [ "$STALE" != "0" ] || [ "$ABSN" != "0" ]; then
+  echo "FAIL：死链 $DEAD ／ 旧名残留 $STALE ／ 绝对路径 $ABSN。不写 $OUT。"
+  echo "      明细：$TMP/_dead.txt 与 $TMP/_pruned.txt"
   exit 1
 fi
+rm -f _cited.txt _dead.txt _map.sed _mv.tsv
 rm -rf "$OUT"
 mv "$TMP" "$OUT"
 echo "-> $OUT"

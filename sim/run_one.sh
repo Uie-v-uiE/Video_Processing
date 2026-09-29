@@ -5,7 +5,7 @@
 # 以前这里是手写的一小串文件，结果是"改了 pl_video_top 想快点看一眼"时 xelab 直接报
 # Cannot find design unit —— 顶层唯一的台架 tb_v6_vblank_copy 根本不在清单里（2026-09-23 撞到）。
 # 工具路径只有一个说法：VP_VIVADO_BIN 指到 <Vivado>/bin（清单见 docs/BUILD.md §1）；找不到就第一步 REFUSE。
-V=${VP_VIVADO_BIN:-/d/Software/Vivado/2025.2.1/Vivado/bin}
+V=${VP_VIVADO_BIN:-}
 [ -x "$V/xvlog" ] || { echo "REFUSE: 找不到 xvlog（当前 $V）。设 VP_VIVADO_BIN=<Vivado>/bin 再跑（docs/BUILD.md）"; exit 2; }
 TB=$1
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"   # 仓库根自适应：本文件在 <repo>/sim/（原来写死本机路径）

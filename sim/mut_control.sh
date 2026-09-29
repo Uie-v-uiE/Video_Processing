@@ -22,7 +22,7 @@ ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 # 工具路径只有一个说法：VP_VIVADO_BIN 指到 <Vivado>/bin（见 docs/BUILD.md「换一台机器」那一节）。
 # 默认值留着是为了本机少敲一步，**不是**"这台机器就是标准"：找不到 xvlog 就明说并退出，
 # 别让人对着一句 "No such file or directory" 去怀疑 RTL。
-V=${VP_VIVADO_BIN:-/d/Software/Vivado/2025.2.1/Vivado/bin}
+V=${VP_VIVADO_BIN:-}
 [ -x "$V/xvlog" ] || { echo "REFUSE: 找不到 xvlog（当前 $V）。设 VP_VIVADO_BIN=<Vivado>/bin 再跑（docs/BUILD.md）"; exit 2; }
 TB=${1:?用法: mut_control.sh <tb_name> <criterion>}
 CRIT=${2:?用法: mut_control.sh <tb_name> <criterion>}
