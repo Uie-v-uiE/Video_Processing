@@ -3,7 +3,7 @@
 器件 `xc7z020clg484-2`、综合顶层 `system_top`（`build/tcl/build_system_axigpio.tcl:5,232`）、
 Vivado / Vitis 2025.2.1。本文只描述**当前代码里的结构**，每条断言给 `文件:行号`；
 改动过程与历史数字在 `docs/log/ISSUES.md`、`docs/log/OVERNIGHT_LOG.md`（追加式档案），不搬到这里。
-第二块板（RK-XCKU5P-F）是 `ku5p/` 下另一棵树，本文不涉及。
+第二块板（RK-XCKU5P-F）的工程已于 2026-09-28 从仓库撤出（`ku5p/` 整棵树删除），本文只讲这一块板。
 
 ## 1. 数据从哪里来、到哪里去
 

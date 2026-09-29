@@ -31,7 +31,7 @@
 ```bash
 # 1) 建工程、综合、实现、出比特流（Vivado 2025.2.1，命令行）
 vivado -mode batch -source build/tcl/build_system_axigpio.tcl
-# 2) 二十项门禁：两个大台架 + 时钟/资源/端口/文档一致性检查
+# 2) 门禁：时序/资源/端口/CDC/文档一致性 + 两个钉 md5 的整屏台架（项数以脚本自己打印的为准）
 bash build/gates.sh
 # 3) 上板（JTAG；本工程不向 QSPI 烧写）+ 串口命令电池 + 实测回读
 bash build/board_verify.sh --battery --geom

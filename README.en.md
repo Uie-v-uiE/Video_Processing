@@ -28,8 +28,8 @@ the same geometry that produced them.
 - **Comparison display**: seam anywhere from 0 to 100 %, sides swappable, 2-pixel
   marker optional; the original tap is delayed by a line-ring so both taps land on
   the same clock cycle and the same column.
-- **On-screen state**: four OSD lines - source, angle, zoom step, effect code,
-  seam position, frame rate, end-to-end latency, die temperature.
+- **On-screen state**: five OSD lines (`N_LINES=5`) - source, angle, zoom step and who
+  owns it, effect code, seam position, frame rate, end-to-end latency, die temperature.
 - **Online self-diagnosis**: received/dropped/corrupt/CRC counters, ping-pong bank
   state and in-link latency, counted in hardware, shown on the OSD and readable over
   the serial port; cable-pull and card-pull behaviour can be reconciled afterwards.
@@ -51,11 +51,18 @@ Command list, register map, every criterion and where to look when one turns red
 
 ## Numbers
 
-The newest gate-green frozen set is r75: twenty of twenty items pass, post-route
-WNS +0.287 ns. The full table of utilisation, power, frame rate and latency - each
-row naming the report it came from - is in
-[docs/PERF_REPORT.md](docs/PERF_REPORT.md); artefacts are archived under
-`build/` and `build/evidence/`.
+One sentence first: **the bitstream currently on the board and the newest gate-green
+frozen set are not the same build** - both are given.
+
+- Newest gate-green + frozen set: **r75**, 19 of 19 items passing at freeze time (the
+  gate script has since grown a 20th check), post-route setup WNS **+0.287 ns**.
+  Evidence: `build/r75_gates.txt` and `build/evidence_r75/`.
+- On the board now: **r87**, **not frozen** - WNS +0.152 ns with 0 failing endpoints out
+  of 50885, LUT 14363 (27.00 %), FF 8075 (7.59 %), BRAM 95 tiles (67.86 %), DSP 19 (8.64 %).
+  Every number, with the report it came from, lives in **[data/metrics.csv](data/metrics.csv)**;
+  the reports are archived under `build/`. It is not frozen because exactly one of the 128
+  per-pixel checks on the top-level testbench fails on purpose (`C5c`, unfixed issue #98) -
+  see [docs/KNOWN_ISSUES.md](docs/KNOWN_ISSUES.md).
 
 ## Layout
 
@@ -68,9 +75,14 @@ row naming the report it came from - is in
 | `build/` | build and gate scripts, `tcl/`, implementation reports, `rNN_gates.txt`, `evidence/` |
 | `board/` | on-board procedures, acceptance table, serial captures |
 | `data/` | `golden/` reference images, `measured/` measured data |
-| `skill/` | reusable skills distilled from the LLM collaboration, each in four parts: when it applies, how to use it, the verified effect (which failure it came from), and when it stops working |
+| `skill/` | reusable skills distilled from the LLM collaboration; each card has six fixed parts: trigger, when it does *not* apply, action, completion criterion, expiry boundary, and the real failure it came from |
 | `docs/` | design report, optimisation log, command reference, reproduction guide |
 | `docs/log/` | `ISSUES.md` and `OVERNIGHT_LOG.md` (append-only work log) |
+
+The shipped package follows the contest's recommended tree (§3.3.5.4) after one
+export step; the row-by-row mapping lives in the Chinese README's table and in
+`MANIFEST.txt` inside the package - renaming happens at export time only, so the
+repository keeps the names that the work log refers to.
 
 ## Where to start reading
 

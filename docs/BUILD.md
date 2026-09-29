@@ -69,7 +69,7 @@ bash build/gates.sh
 bash build/gates.sh build/evidence_r75
 
 :: 只跑一个台架（比全量回归快得多，改完 RTL 的第一道关）
-bash sim/run_one.sh tb_ku5p_tx_arb
+bash sim/run_one.sh tb_osd_lines
 
 :: 推流
 cd src\host

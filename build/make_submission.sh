@@ -47,7 +47,7 @@ SIM_PLAIN=(tb_link_monitor tb_zoom_mapper tb_rotate_window)
 SIM_KEEP=("${!SIM_MAP[@]}" "${SIM_PLAIN[@]}")
 
 # ---- 硬剔除：被否决的轮次、探针与构建中间物、零引用 RTL ----
-HARD_DROP_RE='^build/(failed_|red_|multidrive_|exp_|strprobe|uram_probe|micro_rd|ps_obj|snap_|r[0-9]+_isolated|r[0-9]+_exp|build/|vivado_system/|__pycache__/)|^build/(evidence|frozen)_r[0-9]+[^/]*(rejected|notadopted|wip)/|^sim/(probes|msim|v98run|xtest|tagchk|syntaxchk|v100run2)/|^src/rtl/(axi/axi_frame_writer|eth/axi_frame_saver|video/frame_buffer_db|video/video_timing_720p)\.v$'
+HARD_DROP_RE='^build/(failed_|red_|multidrive_|exp_|strprobe|uram_probe|micro_rd|ps_obj|snap_|r[0-9]+_isolated|r[0-9]+_exp|build/|vivado_system/|__pycache__/)|^build/(evidence|frozen)_r[0-9]+[^/]*(rejected|notadopted|wip|abort)/|^sim/(probes|msim|v98run|xtest|tagchk|syntaxchk|v100run2)/|^src/rtl/(axi/axi_frame_writer|eth/axi_frame_saver|video/frame_buffer_db|video/video_timing_720p)\.v$'
 PRUNE_ONEOFF=(
   build/tcl/apply_cdc_report.tcl build/tcl/fix_bd_and_top.tcl build/tcl/rebuild_opt.tcl
   build/tcl/rebuild_zoom_out.tcl build/tcl/rebuild_cdc_fix.tcl build/tcl/micro_rd.tcl
@@ -152,6 +152,9 @@ for old in "${!SIM_MAP[@]}"; do NAME_MAP["$old"]="${SIM_MAP[$old]}"; done
 # 报告文件名里的简称也一起换（`build/tb_v98_report.txt` → `.../tb_video_pipeline_top_report.txt`），
 # 否则交付物里会剩下一串只有作者看得懂的 vNN。
 NAME_MAP["tb_v98"]="tb_video_pipeline_top"
+# 这条别名没有同名文件（它是"报告文件名与正文简称"用的），所以映射要显式登记，
+# 否则 `build/tb_v98_report.txt` 与散在 RTL/脚本注释里的 `tb_v98` 换不掉，而旧名残留自检会抓住它。
+add_mv "tb_v98" "tb_video_pipeline_top"
 for f in sim/tb_*.v; do
   if [ ! -f "$f" ]; then continue; fi
   b="$(basename "$f" .v)"

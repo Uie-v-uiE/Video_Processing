@@ -120,7 +120,7 @@
 | `axi_frame_saver64` | 16bit→64bit 打包 + AXI3 写 DDR：`AWLEN=0` 的单拍写、AW/W 并行挂出、在途 OST=8（B 只回收计数） | `eth_udp_video_top.v:350` | `tb_v5_bank`、`tb_v6_pingpong`、`tb_v6_tail_bank`、`tb_v6_ingress_integrity` |
 | `ddr_bank_commit` | 换 bank 必须等本帧数据全部穿过 CDC，之后发 `commit_pulse` + 完成基址 | `eth_udp_video_top.v:326` | `tb_v6_pingpong`、`tb_v6_tail_bank` |
 | `link_monitor` | 链路健康计数：丢字、坏包、缺行、断流 ms、帧间隔 min/last/max/Σ，打包 10 条 lane + 心跳 | `eth_udp_video_top.v:279` | `tb_link_monitor` |
-| `eth_ctrl` | 发送侧仲裁与 GMII 出口复用（ARP/ICMP/UDP 三路） | `eth_udp_video_top.v:205` | `tb_ku5p_tx_arb`。它的用户收发口在本层无下游：`fifo_tx_*`/`fifo_rec_*` 只在 `:111-113` 声明、`:218-219` 连线 |
+| `eth_ctrl` | 发送侧仲裁与 GMII 出口复用（ARP/ICMP/UDP 三路） | `eth_udp_video_top.v:205` | **没有台架例化本层**（原来那支单测随 KU5P 那棵树一并撤出，2026-09-28）⇒ 它的行为只由顶层台架端到端覆盖，本行的"验证"栏因此是空的。它的用户收发口在本层无下游：`fifo_tx_*`/`fifo_rec_*` 只在 `:111-113` 声明、`:218-219` 连线 |
 | `snap_cross` | 「准静态总线 + 跳变沿」跨域器，带心跳丢失/变慢两种上报 | `system_top.v:202`、`pl_video_top.v:720,941,1061` | `tb_link_monitor`、`tb_v95_zoom_snap` |
 | `sync_fifo` | 同钟 FIFO（读出寄存一拍、空满比指针最高位；存储无异步复位 + `ram_style=block`） | `eth_udp_video_top.v:116`（ICMP 载荷） | `tb_sync_fifo` |
 | `crc32_d8` | 反射 CRC-32 逐字节核 | `udp_tx.v`、`gmii_rx_mac.v`、`arp.v`、`icmp.v` | `tb_crc32` |
