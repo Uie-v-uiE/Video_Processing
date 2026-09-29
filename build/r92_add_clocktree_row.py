@@ -33,7 +33,9 @@ else:
     m = re.search(r'^\| 9 \|.*时序/资源读数与报告一致.*$\n', t, re.M)
     if not m:
         raise SystemExit("找不到第 9 行，不冒险插")
-    t = t[:m.end()] + row + '\n'
+    t = t[:m.end()] + row + '\n' + t[m.end():]   # 尾巴必须接回来：漏了 `+ t[m.end():]` 就会把第 9 行之后整段删掉
+    if len(t) <= len(rd(p)):                    # 这个脚本真栽过一次，所以"写完变短"直接停手
+        raise SystemExit('REFUSE: 写回去比原文短，这是删除不是插入')
     io.open(os.path.join(ROOT, p), 'w', encoding='utf-8', newline='').write(t)
     print("OK   ACCEPTANCE 第 10 行已插入机器判据表")
 
