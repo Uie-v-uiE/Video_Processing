@@ -23,8 +23,11 @@
 | `ARCHITECTURE.md` / `MODULES.md` | 数据流框图与模块清单 | 只写当前顶层真实例化的东西；未被例化的如实标注"仅台架" |
 | `PS_VS_PL.md` | 为什么控制面在 PS、数据面在 PL | 软硬件划分的依据都在这份里 |
 | `ROTATION_AND_EFFECTS.md` | 几何（旋转/缩放）与效果链的设计原理 | |
-| `PERF_REPORT.md` | 全部量化指标（吞吐/时延/资源/时序/功耗），**唯一一张数字表** | 铁规矩：念哪一版就念它自己那一份 `rNN_gates.txt` + `evidence_rNN/`，不许跨版拼数 |
-| `OPTIMIZATION_LOG.md` | 时序/资源/功耗的优化实验账，含**没采纳**的那些与前后对比 | 采纳与不采纳的判据各有一节 |
+| `PERF_REPORT.md` | 全部量化指标的叙述与走势 | 铁规矩：念哪一版就念它自己那一份 `rNN_gates.txt` + `evidence_rNN/`，不许跨版拼数；**逐行的数与它出自哪份报告，在 `../data/metrics.csv`** |
+| `../data/metrics.csv` | 指标表（表头：指标名称/类别/数值/单位/测量条件/测试次数或时长/证据文件） | 赛程 §3.2.5.2 那张"表头可直接套用"的表；每行的证据文件都指包内路径，被包的死链自检管着 |
+| `OPTIMIZATION_LOG.md` | 时序/资源/功耗的优化实验账，含**没采纳**的那些、逐轮前后对比、以及末尾那张跨全期累计表 | 采纳与不采纳的判据各有一节；累计表表后写着"为什么它不能读成收益曲线" |
+| `KNOWN_ISSUES.md` | **未修清单与验证边界**：五条已确认没修的、四项性能上没做到的、六条验证手段自身的边界 | 被问"哪里还有问题/你怎么证明你对"念这份；§3.3.5.3 的"失败分析"必答项就是它 |
+| `LLM_COLLAB.md` | 大模型协作记录（§3.3.3.1 硬性要求）：四个真实案例的原提示、当时的解释、被哪个读数推翻，加智能体工作流设计 | 与 `AI_COLLABORATION.md` 的分工：这份讲"错在哪、怎么被抓到"，那份讲"约束怎么给" |
 | `COMMANDS.md` | 串口命令口径（动词、参数、回声、拒收条件） | 与固件不一致就是缺陷，`uart_cmd_check.mjs` 会抓 |
 | `COMMAND_PRECEDENCE.md` | 命令之间的**覆盖关系**：哪些组合会静默无效 | 被问"命令冲突"念这份 |
 | `DEFAULTS.md` | 上电默认档是什么、为什么是这一套、怎么自己验（三条独立证据） | 被问"开机画面/默认状态"念这份；行号会漂，先重 grep |
@@ -32,11 +35,13 @@
 | `BUILD.md` / `BOARD_PINS.md` | 怎么构建、怎么刷板、引脚与极性 | 刷板是三条命令不是一条；构建入口只有一个 |
 | `DEMO_SCRIPT.md` | 演示动线：每一步敲什么、看见什么算过 | 里面的命令由 `src/host/demo_cmds.mjs` 抽出来逐条上过板，别手抄进别处 |
 | `AI_COLLABORATION.md` | 人机协作记录：约束怎么给、模型怎么跑偏、用什么读数判掉 | 只写有出处的往来，不写台词 |
-| `../skill/README.md` | 技能包索引（每项四段：适用场景 / 使用方法 / 从哪次失败来 / 失效条件） | 与本页分工：这里是本项目，那里是**别人换题目也能用**的方法 |
+| `../skill/README.md` | 技能包索引（每张卡**六节**：触发 / 不适用 / 动作 / 完成判据 / 失效边界 / 出处） | 与本页分工：这里是本项目，那里是**别人换题目也能用**的方法；六节齐不齐由 `build/check_skill_cards.py` 判 |
 | `../board/HANDS_ON.md` | 自己把每个功能过一遍的清单（每条一个四要素配方） | 与 `DEMO_SCRIPT` 的分工：那份是演给别人看的顺序 |
+| `log/README.md` | 工作记录十页的读法（哪一页是原料、哪一页只到 V7.9、为什么它们不参与死链自检） | 进了 `report/log/` 先看这页 |
 
-**只有一小时**：`PROJECT_BRIEF.md` → `BACKGROUND_AND_NOVELTY.md` → `ARCHITECTURE.md` →
-`PERF_REPORT.md` → `../skill/README.md`。其余按需查，不必顺序读。
+**只有 5 分钟**：`PROJECT_BRIEF.md` → `BACKGROUND_AND_NOVELTY.md` → `../data/metrics.csv` →
+`LLM_COLLAB.md` → `KNOWN_ISSUES.md`。**只有一小时**：再加 `ARCHITECTURE.md` → `MODULES.md` →
+`PS_VS_PL.md` → `OPTIMIZATION_LOG.md` 末尾那张累计表 → `../skill/README.md` → `BUILD.md`。
 
 ## 二、判据与凭据在哪（要复核任何一个数，先来这里）
 
@@ -47,8 +52,12 @@
 - **台架**：`bash sim/run_one.sh <tb名>`（编译前盖 `top_md5`/`tb_md5`/`rtl_md5`），全量在 `sim/run_sim.tcl`。
 - **板级机器验收**：`bash build/board_verify.sh --battery --geom`。
 - **静态判据**：`python build/check_ports.py`、`python build/trim_comments.py --check`、
+  `python build/check_skill_cards.py --self`（技能包六节齐不齐 + 条目数对不对）、
   `node src/host/{ps_hb_check,doc_enc_check,doc_currency_check,pipe_len_check}.mjs`——
   每个都带自己的反例或变异对照，红的都是**文档或脚本**，不是板子。
+- **交付包本身**：`bash build/make_submission.sh` 产出 `../final_submission/`，三条自检
+  （活文档死链 / 被改名台架的旧名残留 / 代码里的本机绝对路径）任一非 0 就拒绝落盘；
+  落地之后还会把"清单里写的文件数"与"盘上数到的"对一遍——这一条是 #106 那一族第三次复发之后加的。
 
 ## 三、工作记录（`docs/log/`，追因时才查）
 
@@ -64,7 +73,9 @@
 
 ## 四、文档口径的两条规矩
 
-1. **版本号、门禁项数、板子上是哪一版，只许出现在 `PERF_REPORT.md` 与仓库根首页。**
+1. **新增一个数，先进 `../data/metrics.csv`**（那一行必须写清测量条件与它出自哪份报告）。
+   叙述性的走势写在 `PERF_REPORT.md` 与 `OPTIMIZATION_LOG.md`，但**不许带没在指标表里出现过的数**；
+   版本号、门禁项数、板子上是哪一版，只许出现在指标表、`PERF_REPORT.md` 与仓库根首页这三处。
    其余文档一律指路，不复制数字。
 2. **历史句子必须写成"rNN 那天测得 X"**，现状句子必须能指到当前冻结件。
    这两条由 `src/host/doc_currency_check.mjs` 把关：D1 旧构建号不许念成"当前默认"、
