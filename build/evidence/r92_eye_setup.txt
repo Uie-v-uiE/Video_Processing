@@ -1,0 +1,7 @@
+src
+src auto
+split manual
+split 50
+split marker 0
+split show
+STAT
