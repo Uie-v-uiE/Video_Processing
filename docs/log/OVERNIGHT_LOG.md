@@ -5953,6 +5953,7 @@ E1/E2 全绿。所以那次的差 1 不在硬件里，是**我的判据读了 `s
 | #103 黑线（延迟线越界写 → 硬件把行缓存写地址折回 319） | 机器侧全绿：变异对照在预测那一格红、改回全绿；r84 起就在板上，r86 继承 | `build/evidence/r86_lm_*` 之外，C10f 那条见 `sim/mut_control.sh` 的记录与 `docs/log/ISSUES.md` #103 收口段 |
 | OSD 开关（`gpio_o[20]` 反相，独立三级同步链） | 板上连测三轮（r83/r84/r86）都算数：电池里 `osd off` 与 `osd on` 成对，元组里 `osd` 那一格跟着动 | `build/evidence/r86_board_warm.txt`（100 条全 ok）、`build/evidence/r84_osd_switch.txt` |
 | 时序（#124 那一刀） | 目标族整族消失：失败端点 **16 → 2**、TNS **−0.747 → −0.243**；但 WNS **−0.135**（没有转正，最差换成 `u_cdc` 写使能 → BRAM `ENARDEN` 那条兄弟路） | `build/evidence/r86_timing_summary.rpt`、`r86_crit_paths.txt`；过程与收回的那句过头话在 `docs/OPTIMIZATION_LOG.md` r86 一节 |
+| 潜在缺陷排查（`ISSUES #127` 第 2 条，08:2x 做完） | OSD 那一层 `chars` 的**越界读坐实为"被门住"**：整个有效区扫一遍有 **190464 拍**索引越出数组上界 159（最大 255＝位宽上限），其中"正在画像素"的拍 **0 次**；判据的牙口靠**两道门一起拆**才测得出（拆一道时计数一字不变 ⇒ 那两道 `in_box` / `line < N_LINES` 是冗余的），拆完 harm=129024 且**只红这一条** | `build/r86_tb_osd_lines_probe.txt`（T17/T18 绿）＋ `build/evidence/r86_osd_t18_teeth_doubleguard.txt`（有力）＋ 同目录 `_teeth.txt`（负控制）与 `_teeth_addr.txt`（T18 的边界：改地址算术它抓不到 ⇒ 已排进下一轮，要给读地址起一根线） |
 | 板侧机器验收 | **暖态 0 红、100 条 / 93.2 s**；冷态那一跑有 **1 红**，红的只有 `zman` 一格（初 0 ≠ 末 1，其余十格逐字符相同） | `build/evidence/r86_board_warm.txt` 与 `r86_board_cold.txt`；为什么两跑都要留：`ISSUES #126` |
 | 门禁 / 冻结 | 20 项跑完：**第 15b 项（边缘条带）从红转绿**（`rtl_md5=2b3c5945a9e0` 与现树一致、0 FAIL、四条圈齐），第 15 项的红现在**只**是 `C5c` 那个历史缺陷；第 14 项仍红（WNS −0.135 / 端点 2）⇒ 对外只说"最新全绿冻结集 = r75"，这条口径没变 | `build/r86_gates.txt`、`build/tb_edge_rim_r86.txt`、`build/r86_freeze_attempt.txt`（`freeze_evidence.sh 86` 拒绝的现场），`doc_currency_check` 自己也会报出 r75 |
 
