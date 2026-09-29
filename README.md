@@ -21,7 +21,8 @@
   3×3 腐蚀/膨胀，共九位控制字，逐级可旁路，整链固定 15 级流水。
 - **对照显示**：0–100% 任意分割线、左/右互换、2 像素标记线可关；原图抽头用行延迟环与
   处理链对齐到同一拍同一列。
-- **屏上状态**：OSD 四行显示片源、角度、缩放档、效果码、分割线位置、帧率、时延、温度。
+- **屏上状态**：OSD 五行（`N_LINES=5`）显示片源、角度、缩放档与来源、效果码、分割线位置、
+  帧率、时延、温度。
 - **在线自诊断**：收包/丢包/坏字/CRC 校验、乒乓 bank 状态、链路内时延，硬件计数 + OSD +
   串口可读回，拔线与拔卡后的行为可核对。
 
@@ -42,9 +43,18 @@ bash build/board_verify.sh --battery --geom
 
 ## 数据
 
-最近一次门禁全绿的冻结集 = r75：二十项全通过，实现后 WNS +0.287 ns。
-资源占用、功耗、帧率与时延的完整表格（含每一项出自哪份报告）见
-[docs/PERF_REPORT.md](docs/PERF_REPORT.md)，留档在 `build/` 与 `build/evidence/`。
+一句先说清楚的话：**"板上现在跑的那一版"与"最近一套全绿冻结的那一版"不是同一版**，两个都给。
+
+- 最近一套**门禁全绿且已冻结**的是 r75：那一轮 19 项全通过（门禁脚本现在长到 20 项，
+  多出来的是当晚后加的检查），实现后 setup WNS **+0.287 ns**、BRAM 97.5 tile / 69.64 %。
+  凭据：`build/r75_gates.txt` 与 `build/evidence_r75/`。
+- 板上当前是 **r87**（**未冻结**）：WNS +0.152 ns、失败端点 0 / 50885，LUT 14363（27.00 %）、
+  FF 8075（7.59 %）、BRAM 95 tile（67.86 %）、DSP 19（8.64 %）——逐项数值与它们出自哪份报告，
+  统一在 **[data/metrics.csv](data/metrics.csv)**，报告原件在 `build/reports/r87_*.rpt`。
+  它没冻结的原因写在 [docs/KNOWN_ISSUES.md](docs/KNOWN_ISSUES.md)：顶层台架那 128 条逐像素判定里
+  有 1 条是**故意留红**的（`C5c`，对应未修的 #98）。
+- 走势与"为什么某一版被否掉"在 [docs/OPTIMIZATION_LOG.md](docs/OPTIMIZATION_LOG.md)；
+  本报告不复制数值，只给指路——同一份数字抄在两处一定会漂（这条本身是一次真实事故的结论，#133）。
 
 ## 目录
 
@@ -63,6 +73,29 @@ bash build/board_verify.sh --battery --geom
 
 对应关系与赛程推荐结构的差异已在表中说明；`docs/log/ISSUES.md` 与
 `docs/log/OVERNIGHT_LOG.md` 是只追加的历史记录，不重写。
+
+### 与赛程推荐目录（§3.3.5.4）的对照
+
+本仓库按"交付文档 / 工作记录 / 本地学习件"三类摆放，与推荐结构不同 ⇒ 按指南要求在此给对照。
+交出去的包由 `bash build/make_submission.sh` 一条命令生成（`../final_submission/`），
+它做的三件事是**改名**而不是**改内容**：`docs` 那一层改名成 `report`（连文档里的指路一起改）、
+台架按职责命名、报告展平进 `build/reports`。
+
+| 推荐目录 | 仓库里在哪 | 包里在哪 |
+|---|---|---|
+| `README.md` 项目简介 + 复现步骤 | `README.md`（中）/ `README.en.md`（英） | 同名 |
+| `src/` 设计源码 | `src/rtl/**`（PL）+ `src/ps/**`（裸机固件）+ `src/constraints/**` | 同名 |
+| `sim/` 仿真脚本与结果 | `sim/**`（仓库里的全部台架） | 支撑交付结论的那几支 + `sim/NAMES.md`（新旧名对照）；判据结果在 `build/reports` |
+| `build/` 构建脚本 + 综合实现报告 | `build/tcl/**`（入口 `build_system_axigpio.tcl`）、`build/gates.sh`、各轮留档 | `build/tcl/**` + `build/reports`（展平后的 .rpt/.txt）+ `build/bitstream/`（板上那一版 .bit/.xsa/.elf） |
+| `board/` 上板工程与实测输出 | `board/**`（操作卡、验收表、JTAG 脚本） | 同名（`board/verify_r87.md` 是 36 行全功能验收表） |
+| `data/` 测试数据与参考结果 | `data/golden/**`、`data/measured/**`、`data/metrics.csv` | 同名 |
+| `skill/` 技能包 | `skill/**`（`README.md` 是索引，每张卡固定六节） | 同名 |
+| 设计报告 + 协作记录（推荐名 report） | 仓库里的 docs 目录（交付文档）与它下面的 log 子目录（工作记录） | 包里的 report 与它下面的 log |
+| 不进包 | docs 下的 study 子目录（作者自用学习材料，`.gitignore` 已挡）、`vitis/`、`vivado_system/`、`sim_work/` 等工具生成物 | — |
+
+**不随包的东西都有理由，且理由写在包里**：`../final_submission/_pruned.txt` 逐条列出"这次剪掉了谁、
+按哪条判据剪的"；包内所有"路径式指路"由导出器自检，任何一条指不到包内文件就**拒绝落盘**（不通过的
+包不存在，比一个有死链接的包好）。
 
 ## 阅读顺序
 
