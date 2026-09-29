@@ -5902,7 +5902,7 @@ git 报 *"empty commit message"* 而暂存的文件原样留着——看上去�
 | `build/ps_app.mjs`、`build/_scan_align.mjs`、`sim/run_one.sh`、`sim/mut_control.sh`、`build/board_verify.sh`、`build/roll_isolated.sh` | 工具链默认值 = 本机路径 | 默认空值 + 第一步 `REFUSE` 并念出该设的变量（早上已改，今天补进判据范围） |
 
 **判据**：`build/make_submission.sh` 的绝对路径自检范围从"代码/脚本"扩到 `.md/.csv/.xdc`，
-只排除**记录留档**（`report/log/`，那里的命令行是当时用过的原话，改它=伪造证据）；
+只排除**记录留档**（工作记录那一层，也就是仓库里的 docs/log、包里的 report 下那层——那里的命令行是当时用过的原话，改它=伪造证据）；
 检测式实测过 `D:\` 与 `D:/` 两种斜杠都抓、相对路径不误报。跑出来的收敛过程：9 → 1 → 0。
 
 **顺带两条端口**（"上位机只有 Node"这件事对评委不友好，而 §3.3.5.1 要"他人从零复现"）：
