@@ -120,11 +120,28 @@ function checkLines(docLines, dirExists, newestGreen) {
 //   但既然指路已经全部改写，留着就是半搬 —— 所以一视同仁。
 const CITE_MD = /(?:^|[^/\w.:-])(docs\/log|docs|build|src|sim|board|skill)\/[\w./-]*?[\w-]+\.md\b/g;
 const OLD_DIR = /(?:^|[^/\w.-])report\/[\w.*-]/g;
+//     D4c 与 D4a 同一条路，只是尾缀换成**凭据类**文件（.txt/.rpt/.csv/.bit/.elf/…）：
+//         r88 那一轮连着三次栽在"文档指的那份报告在交付目录里不存在"，而 D4a 只认 `.md` ⇒
+//         指路修完了、凭据没人管。凭据比章节更容易搬丢：导出器会把 `build/*.rpt|txt` 摊进
+//         `build/reports/`、把 `build/rNN_exp/` 整个丢掉 ⇒ 同一句话在仓里对、在包里错。
+const ART_EXT = 'txt|rpt|csv|bit|elf|md5|xdc|py|mjs|sh|tcl|v|bat|log|wdb';
+const CITE_ART = new RegExp(
+    '(?:^|[^/\\w.:-])(build|data|sim|board|skill|docs)/[\\w./-]*?[\\w-]+\\.(?:' + ART_EXT + ')\\b', 'g');
+
+//   D4c 的**范围**是这条尺子能不能留下来的关键，所以写死并念出来：
+//     判红只认"交付文档"（首页两份、board/README.md、docs/*.md 非 log 的那些）——
+//     它们是评审会照着翻的指路。日记（docs/log/）、RTL/脚本注释里点名的很多是
+//     **当时生成又随后删掉**的中间件（`build/wip_*.sh`、`sim/xsim.log`、某次的 `.log`），
+//     把它们判红等于逼人去改历史记录（#98 那条老规矩）；这一类只报数、不判红。
+const DELIVERY = (rel) => HOME.includes(rel) || rel === 'board/README.md'
+    || /^docs\/(?!log\/)[\w.-]+\.md$/.test(rel);
 
 function checkPaths(fileLines, exists) {
     const rows = [];
+    const adv = [];
     for (const [rel, lines] of Object.entries(fileLines)) {
         if (rel === SELF || rel === MAPPER) continue;      // 见上面两条豁免的理由
+        const hard = DELIVERY(rel);
         lines.forEach((l, i) => {
             const at = `${rel}:${i + 1}`;
             for (const m of l.matchAll(CITE_MD)) {
@@ -132,15 +149,22 @@ function checkPaths(fileLines, exists) {
                 if (tok.includes('NN') || tok.includes('$')) continue;
                 if (!exists(tok)) rows.push(`${at} D4a 点名的文档盘上没有：${tok}`);
             }
+            for (const m of l.matchAll(CITE_ART)) {
+                const tok = m[0].replace(/^[^a-z]/, '');
+                if (tok.includes('NN') || tok.includes('$') || tok.includes('*')) continue;
+                if (exists(tok)) continue;
+                const line = `${at} D4c 点名的凭据盘上没有：${tok}`;
+                if (hard) rows.push(line); else adv.push(line);
+            }
             for (const m of l.matchAll(OLD_DIR)) {
                 rows.push(`${at} D4b 还在指已经删掉的旧目录：${l.trim().slice(0, 70)}`);
             }
         });
     }
-    return rows;
+    return { rows, adv };
 }
 
-const HAND_EXT = new Set(['.md', '.mjs', '.sh', '.tcl', '.v', '.c', '.h', '.bat', '.ps1', '.xdc', '.py']);
+const HAND_EXT = new Set(['.md', '.mjs', '.sh', '.tcl', '.v', '.c', '.h', '.bat', '.ps1', '.xdc', '.py', '.csv']);
 // 不扫的：生成物与器件库、以及**当时的凭据**（冻结集里那份文本指的路就是它冻结时的那条路，
 // 改它等于伪造记录），还有本地学习材料（docs/study/，不入库，里面引用的是另一套路径）。
 const HAND_SKIP_DIRS = new Set(['.git', 'vivado_system', 'vitis', 'xsim.dir', 'sim_work',
@@ -204,7 +228,9 @@ function scanTree() {
     const exists = (tok) => {
         try { return statSync(path.join(ROOT, tok)).isFile(); } catch { return false; }
     };
-    return { rows: checkLines(docs, has, g.nn).concat(checkPaths(allFiles, exists)),
+    const p = checkPaths(allFiles, exists);
+    const nd = Object.keys(allFiles).filter(DELIVERY).length;
+    return { rows: checkLines(docs, has, g.nn).concat(p.rows), adv: p.adv, nd,
         g, n: Object.keys(docs).length, m: Object.keys(allFiles).length };
 }
 
@@ -239,23 +265,38 @@ if (argv.includes('--self')) {
     for (const r of edges) console.log('        ' + r);
     // D4 自己的反例：一条"点名的文档盘上没有"、一条"还在指已经删掉的旧目录"，两条都必须红；
     // 再加一条正当句（真的在盘上的 `docs/COMMANDS.md` + 一个占位名 `frozen_rNN_x`）不许红。
-    const d4bad = checkPaths({ 'docs/ARCHITECTURE.md': ['详见 `docs/NO_SUCH_DOC.md` 的 §2'], }, () => false);
-    const d4old = checkPaths({ 'src/rtl/top/pl_video_top.v': ['// 口径见 `report/ISSUES.md` #66'], }, () => true);
+    const d4bad = checkPaths({ 'docs/ARCHITECTURE.md': ['详见 `docs/NO_SUCH_DOC.md` 的 §2'], }, () => false).rows;
+    const d4old = checkPaths({ 'src/rtl/top/pl_video_top.v': ['// 口径见 `report/ISSUES.md` #66'], }, () => true).rows;
     const d4ok = checkPaths({ 'README.md': ['详见 `docs/COMMANDS.md`；凭据在 `build/frozen_rNN_x/`；',
         '当年那个 report/ 目录已经拆成 docs/ 与 docs/log/（这是叙事，不是指路）'], },
-        (tok) => tok === 'docs/COMMANDS.md');
+        (tok) => tok === 'docs/COMMANDS.md').rows;
+    // D4c 的反例：点名一份盘上没有的报告必须红；对照是"通配/占位/变量"三种写法都不许咬
+    // ——门禁那一句 `build/*gates*.txt` 是命名规则，不是指路（`build/gates.sh` 本身在盘上）。
+    const d4art = checkPaths({ 'docs/PERF_REPORT.md': ['门禁读数见 `build/r99_gates_nope.txt`'], }, () => false).rows;
+    const d4artok = checkPaths({ 'README.md': ['跑 `bash build/gates.sh`，认 `build/*gates*.txt` 里编号最大且',
+        '`ALL PASS` 的那一份；`$OUT/build/system.bit` 由脚本决定；`build/frozen_rNN/MANIFEST.md5` 是命名规则'], },
+        (tok) => tok === 'build/gates.sh').rows;
+    // 范围对照（#141 那一类：尺子的作用范围会无声漂移）：同一句指路写在日记里**不许判红**，
+    // 但必须进"只报数"那一堆 —— 两边都查，缺一边就是范围漂了。
+    const sp = checkPaths({ 'docs/log/OVERNIGHT_LOG.md': ['当时那份 `build/r99_gates_nope.txt` 已经删了'], }, () => false);
+    const scope = sp.rows.length === 0 && sp.adv.length === 1;
+    console.log(`  ${scope ? 'PASS' : 'FAIL'} 对照：同一句凭据指路在日记里只报数（判红 ${sp.rows.length} / 报数 ${sp.adv.length}）`);
     let d4 = 0;
     d4 += yes('D4a：点名的文档盘上没有', d4bad, /D4a/);
     d4 += yes('D4b：还在指旧目录 report/', d4old, /D4b/);
+    d4 += yes('D4c：点名的凭据（.txt/.rpt/…）盘上没有', d4art, /D4c/);
     console.log(`  ${d4ok.length === 0 ? 'PASS' : 'FAIL'} 对照：真指路 + 占位名 + "旧目录"的叙事句不误报（实测 ${d4ok.length} 条）`);
     for (const r of d4ok) console.log('        ' + r);
+    console.log(`  ${d4artok.length === 0 ? 'PASS' : 'FAIL'} 对照：通配/变量/占位名的凭据写法不误报（实测 ${d4artok.length} 条）`);
+    for (const r of d4artok) console.log('        ' + r);
 
-    const all = n === 3 && good.length === 0 && edges.length === 0 && d4 === 2 && d4ok.length === 0;
-    console.log(`${all ? 'SELF: 全绿' : 'SELF: 有红'}（变异 ${n} + D4 变异 ${d4} 条 + 对照 ${good.length + edges.length + d4ok.length} 条）`);
+    const all = n === 3 && good.length === 0 && edges.length === 0 && d4 === 3
+        && d4ok.length === 0 && d4artok.length === 0 && scope;
+    console.log(`${all ? 'SELF: 全绿' : 'SELF: 有红'}（变异 ${n} + D4 变异 ${d4} 条 + 对照 ${good.length + edges.length + d4ok.length + d4artok.length} 条，范围对照${scope ? '过' : '不过'}）`);
     process.exit(all ? 0 : 1);
 }
 
-const { rows, g, n, m } = scanTree();
+const { rows, adv, nd, g, n, m } = scanTree();
 console.log(`扫了 ${n} 个文档（D1/D2/D3）+ ${m} 个手写文件（D4）；最新且 ALL PASS 的冻结集 = ${g.name || '（没有）'}`);
 if (argv.includes('--probe')) {
     for (const r of rows) console.log('  ' + r);
@@ -264,5 +305,7 @@ if (argv.includes('--probe')) {
 }
 for (const r of rows.slice(0, 40)) console.log('  ' + r);
 if (rows.length > 40) console.log(`  …另外 ${rows.length - 40} 条`);
+console.log(`D4c 范围：交付文档 ${nd} 份判红；其余 ${m - nd} 份点名凭据 ${adv.length} 条只报数`
+    + '（日记与注释里那些"当时存在、随后删掉"的中间件不算指路错误 —— 见脚本头部）');
 console.log(rows.length ? `CURRENCY: ${rows.length} 条过期指路` : 'CURRENCY: 干净');
 process.exit(rows.length ? 1 : 0);
