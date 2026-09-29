@@ -259,19 +259,14 @@ module tb_v98_top_seam;
         if (!xb_done && frames_done >= 4) begin
             xb_done = 1;
             for (xb_k = 0; xb_k < 32768; xb_k = xb_k + 1)
-                if ((dut.u_bilin.u_fb.a0[xb_k] ^ dut.u_bilin.u_fb.a0[xb_k]) !== 64'd0) begin
+                if ((dut.u_bilin.u_fb.lo[xb_k] ^ dut.u_bilin.u_fb.lo[xb_k]) !== 64'd0) begin
                     xb_arrX = xb_arrX + 1;
                     if (xb_firstX < 0) xb_firstX = xb_k;
                 end
-            for (xb_k = 0; xb_k < 4096; xb_k = xb_k + 1)
-                if ((dut.u_bilin.u_fb.a1[xb_k] ^ dut.u_bilin.u_fb.a1[xb_k]) !== 64'd0) begin
+            for (xb_k = 0; xb_k < 8192; xb_k = xb_k + 1)
+                if ((dut.u_bilin.u_fb.hi[xb_k] ^ dut.u_bilin.u_fb.hi[xb_k]) !== 64'd0) begin
                     xb_arrX = xb_arrX + 1;
                     if (xb_firstX < 0) xb_firstX = 32768 + xb_k;
-                end
-            for (xb_k = 0; xb_k < 2048; xb_k = xb_k + 1)
-                if ((dut.u_bilin.u_fb.a2[xb_k] ^ dut.u_bilin.u_fb.a2[xb_k]) !== 64'd0) begin
-                    xb_arrX = xb_arrX + 1;
-                    if (xb_firstX < 0) xb_firstX = 36864 + xb_k;
                 end
             $display("[tb_v98_top_seam.v:255] [Xborn] 从机 rvalid=%0d 其中字含X=%0d | fb 写=%0d 拍 其中数据含X=%0d",
                      xb_rvalid, xb_rdataX, xb_wren, xb_wdataX);
