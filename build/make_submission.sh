@@ -40,16 +40,19 @@ declare -A SIM_MAP=(
   [tb_v102_src_life]=tb_src_life
 )
 SIM_PLAIN=(tb_link_monitor tb_zoom_mapper tb_rotate_window)
+# 台架取舍与报告同一把尺：**交付文档引用了它的结论，它就必须在包里**（引用即支撑）。
+# 手写映射只负责把"招牌判据"换成职责名；没进映射的 `tb_vNN_名字` 自动去掉轮次号段。
 SIM_KEEP=("${!SIM_MAP[@]}" "${SIM_PLAIN[@]}")
 
 # ---- 硬剔除：被否决的轮次、探针与构建中间物、零引用 RTL ----
-HARD_DROP_RE='^build/(failed_|red_|multidrive_|exp_|strprobe|uram_probe|micro_rd|ps_obj|snap_|r[0-9]+_isolated|r[0-9]+_exp|build/|vivado_system/|__pycache__/)|^build/(evidence|frozen)_r[0-9]+[^/]*(rejected|notadopted|wip)/|^sim/(probes|results|msim|v98run|xtest|tagchk|syntaxchk|v100run2)/|^src/rtl/(axi/axi_frame_writer|eth/axi_frame_saver|video/frame_buffer_db|video/video_timing_720p)\.v$'
+HARD_DROP_RE='^build/(failed_|red_|multidrive_|exp_|strprobe|uram_probe|micro_rd|ps_obj|snap_|r[0-9]+_isolated|r[0-9]+_exp|build/|vivado_system/|__pycache__/)|^build/(evidence|frozen)_r[0-9]+[^/]*(rejected|notadopted|wip)/|^sim/(probes|msim|v98run|xtest|tagchk|syntaxchk|v100run2)/|^src/rtl/(axi/axi_frame_writer|eth/axi_frame_saver|video/frame_buffer_db|video/video_timing_720p)\.v$'
 PRUNE_ONEOFF=(
   build/tcl/apply_cdc_report.tcl build/tcl/fix_bd_and_top.tcl build/tcl/rebuild_opt.tcl
   build/tcl/rebuild_zoom_out.tcl build/tcl/rebuild_cdc_fix.tcl build/tcl/micro_rd.tcl
   build/tcl/uram_presence.tcl build/tcl/uram_probe.tcl build/tcl/uram_sites.tcl
   build/tcl/ooc_newmods.tcl build/tcl/dfx_runtime.txt build/tcl/retry_open_nr.log
   sim/run_zoom_only.tcl tight_setup_hold_pins.txt
+  build/_scan_align.mjs build/roll_isolated.sh build/cleanup_wip.sh
 )
 
 # ---- 无论有没有被点名都留着：跑起来的那一套 ----
@@ -87,13 +90,20 @@ for n in "${PRUNE_ONEOFF[@]}"; do prune "$n" "一次性脚本"; done
 find . -mindepth 1 2>/dev/null | sed 's|^\./||' | grep -E "$HARD_DROP_RE" |
 while read -r n; do if [ -e "$n" ]; then rm -rf "$n"; echo "被否决轮次/中间物 $n" >> _pruned.txt; fi; done || true
 
-# 2a) 台架白名单
+# 2a) 台架取舍放在 _cited 建好之后（判据与报告同源：文档引用了它的结论才带）
+
+# 台架被引用的形态常常是裸名（"`tb_v98_top_seam` 的 C5c"），不带 .v，所以单独抽一张表；
+# 门禁脚本点名的也算被引用（它在管的事就是这份包能不能自证）。
+{ grep -rhoE "tb_[A-Za-z0-9_]+" "${LIVE_SCOPE[@]}" build/gates.sh build/freeze_evidence.sh sim/run_one.sh 2>/dev/null |
+  sed 's/\.v$//' ; } | sort -u > _cited_tb.txt || true
+
 for f in sim/*.v; do
   if [ -f "$f" ]; then
     b="$(basename "$f" .v)"
     hit=0
     for k in "${SIM_KEEP[@]}"; do if [ "$b" = "$k" ]; then hit=1; fi; done
-    if [ "$hit" = "0" ]; then prune "$f" "回归台架（不支撑交付结论）"; fi
+    if grep -qxF "$b" _cited_tb.txt; then hit=1; fi
+    if [ "$hit" = "0" ]; then prune "$f" "回归台架（交付文档没引用它的结论）"; fi
   fi
 done
 
@@ -110,20 +120,18 @@ for f in src/host/*.mjs; do
 done
 sort -u -o _cited.txt _cited.txt
 
-for p in src/host build sim board data; do
-  if [ -d "$p" ]; then
-    find "$p" -type f 2>/dev/null | while read -r f; do
-      f="${f#./}"
-      if echo "$f" | grep -qE "$KEEP_ALWAYS_RE"; then continue; fi
-      if grep -qxF "$f" _cited.txt; then continue; fi
-      case "$p" in
-        src/host) ;;
-        *) if grep -qxF "$(basename "$f")" _cited.txt; then continue; fi ;;
-      esac
-      rm -f "$f"; echo "未被活文档点名 $f" >> _pruned.txt
-    done || true
-  fi
-done
+# 一条 awk 判完，不逐文件 spawn（Windows 上每个 grep 都要几十毫秒，1500 个文件就是几分钟）
+find src/host build sim board data -type f 2>/dev/null | sed 's|^\./||' > _all.txt || true
+grep -vE "$KEEP_ALWAYS_RE" _all.txt > _cand.txt || true
+sed 's|.*/||' _cited.txt | sort -u > _cited_bases.txt
+awk 'FILENAME=="_cited.txt" {c[$0]=1; next}
+     FILENAME=="_cited_bases.txt" {b[$0]=1; next}
+     { p=$0; n=split(p,a,"/"); bn=a[n]
+       if (p in c) next
+       if (p !~ /^src\/host\// && (bn in b)) next
+       if (p ~ /^src\/host\//) print "未被活文档按路径点名\t" p
+       else print "未被活文档点名\t" p }' _cited.txt _cited_bases.txt _cand.txt > _prune_list.tsv
+while IFS=$'\t' read -r r f; do rm -f "$f"; echo "$r $f" >> _pruned.txt; done < _prune_list.tsv
 
 # 2c) 二进制一律不带，稍后只放回板上这一版
 find . \( -name '*.bit' -o -name '*.xsa' -o -name '*.elf' -o -name '*.dcp' \) -type f 2>/dev/null |
@@ -133,22 +141,40 @@ find build sim board data src/host -type d -empty -delete 2>/dev/null || true
 # ---- 3. 改名：报告展平、文档名小写、台架换名；一份 _map.sed 做全部指路改写 ----
 mkdir -p build/reports build/bitstream
 
-# 台架先换（文件名 + 一条"裸名"映射，让正文里的提及也跟上）
-for old in "${!SIM_MAP[@]}"; do
-  new="${SIM_MAP[$old]}"
-  if [ -f "sim/$old.v" ]; then
-    mv "sim/$old.v" "sim/$new.v"
-    add_mv "sim/$old.v" "sim/$new.v"
-    add_mv "$old" "$new"
+# 3.0 台架换名：手写的招牌判据优先；其余只是**去掉轮次号段**（`tb_v6_cover_gate`→`tb_cover_gate`）。
+#     规则只有一条：包里的台架名不许带 rNN/vNN —— 那是作者本地的时间轴，不是职责。
+declare -A NAME_MAP
+for old in "${!SIM_MAP[@]}"; do NAME_MAP["$old"]="${SIM_MAP[$old]}"; done
+for f in sim/tb_*.v; do
+  if [ ! -f "$f" ]; then continue; fi
+  b="$(basename "$f" .v)"
+  new="${NAME_MAP[$b]:-}"
+  if [ -z "$new" ]; then
+    case "$b" in
+      tb_v[0-9]*_*) new="tb_${b#tb_v*_}" ;;
+      *) new="$b" ;;
+    esac
+    if [ "$new" != "$b" ] && [ -e "sim/$new.v" ]; then new="$b"; fi
+    NAME_MAP["$b"]="$new"
   fi
+  if [ "$b" != "$new" ]; then
+    mv "sim/$b.v" "sim/$new.v"
+    add_mv "sim/$b.v" "sim/$new.v"
+    add_mv "$b" "$new"
+  fi
+done
+
+# 3.0b 板上那一版的落点也换（文档原来指 build/system.bit，那是仓库里的构建输出位置）
+for b in build/system.bit build/system.xsa build/ps_app.elf; do
+  add_mv "$b" "build/bitstream/$(basename "$b")"
 done
 
 # 报告展平：build/**.rpt|txt -> build/reports/[rNN_]名字（名字里带轮次号的换成新台架名）
 while IFS= read -r f; do
   f="${f#./}"
   base="$(basename "$f")"
-  for old in "${!SIM_MAP[@]}"; do
-    if printf '%s' "$base" | grep -q "$old"; then base="$(printf '%s' "$base" | sed "s|$old|${SIM_MAP[$old]}|g")"; fi
+  for old in "${!NAME_MAP[@]}"; do
+    case "$base" in *"$old"*) base="${base//$old/${NAME_MAP[$old]}}" ;; esac
   done
   tag="$(printf '%s' "$f" | grep -oE '(^|[^a-z])r[0-9]+' | grep -oE 'r[0-9]+' | head -1 || true)"
   if [ -n "$tag" ]; then np="build/reports/${tag}_${base}"; else np="build/reports/$base"; fi
@@ -186,8 +212,8 @@ while IFS=$'\t' read -r oe ne; do printf 's|%s|%s|g\n' "$oe" "$ne"; done > _map.
 # 改写只作用于" prose 与脚本"；证据类（build/reports/、report/log/）保持原文
 find . -type f \( -name '*.md' -o -name '*.sh' -o -name '*.tcl' -o -name '*.py' -o -name '*.mjs' \
     -o -name '*.ps1' -o -name '*.bat' -o -name '*.v' -o -name '*.c' -o -name '*.h' \) 2>/dev/null |
-grep -vE '^\./build/reports/|^\./report/log/' |
-while read -r f; do sed -i -f _map.sed "$f"; done || true
+grep -vE '^\./build/reports/|^\./report/log/' > _txt.txt || true
+xargs -r sed -i -f _map.sed < _txt.txt
 
 # 新旧名对照（生成的，所以永远与表一致）
 {
@@ -198,10 +224,13 @@ while read -r f; do sed -i -f _map.sed "$f"; done || true
   echo
   echo '| 包内文件 | 仓库里的名字 | 钉住的结论 |'
   echo '|---|---|---|'
-  for old in "${!SIM_MAP[@]}"; do
-    echo "| \`sim/${SIM_MAP[$old]}.v\` | \`sim/$old.v\` | 见 \`build/reports/\` 里同名前缀的那份 |"
-  done
-  for p in "${SIM_PLAIN[@]}"; do echo "| \`sim/$p.v\` | \`sim/$p.v\`（未改） | 同上 |"; done
+  for old in "${!NAME_MAP[@]}"; do
+    if [ "$old" = "${NAME_MAP[$old]}" ]; then
+      echo "| \`sim/$old.v\` | 同名（本来就按职责命名） | 见 \`build/reports/\` 里带它名字的那份 |"
+    else
+      echo "| \`sim/${NAME_MAP[$old]}.v\` | \`sim/$old.v\` | 见 \`build/reports/\` 里带它名字的那份 |"
+    fi
+  done | sort
 } > sim/NAMES.md
 
 for b in build/system.bit build/system.xsa build/ps_app.elf; do
@@ -226,9 +255,10 @@ DEAD="$(grep -c '死链' _dead.txt 2>/dev/null || true)"; DEAD="${DEAD:-0}"
 if [ "$DEAD" = "0" ]; then DEAD=0; fi
 
 STALE=0
-for old in "${!SIM_MAP[@]}"; do
+for old in "${!NAME_MAP[@]}"; do
+  if [ "$old" = "${NAME_MAP[$old]}" ]; then continue; fi
   n="$( { grep -rl "$old" --include='*.md' --include='*.sh' --include='*.tcl' --include='*.v' . 2>/dev/null |
-          grep -vE '^\./report/log/|^\./build/reports/|^\./sim/NAMES.md|\./sim/\.\./' || true; } | wc -l)"
+          grep -vE '^\./report/log/|^\./build/reports/|^\./sim/NAMES.md' || true; } | wc -l)"
   if [ "$n" != "0" ]; then echo "残留旧台架名 $old：$n 个文件"; STALE=$((STALE+1)); fi
 done
 

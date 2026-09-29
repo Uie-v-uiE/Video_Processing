@@ -1,0 +1,453 @@
+# provenance top_md5=47c59cd3a852 tb_md5=d64b883a6d94 rtl_md5=07fe2f6239e8 date=2026-09-29T10:11:23+08:00 
+
+****** xsim v2025.2.1 (64-bit)
+  **** SW Build 6403652 on Thu Mar 19 19:48:24 GMT 2026
+  **** IP Build 6403511 on Thu Mar 19 12:41:45 MDT 2026
+  **** SharedData Build 6403650 on Thu Mar 19 14:02:13 MDT 2026
+  **** Start of session at: Tue Sep 29 10:11:34 2026
+    ** Copyright 1986-2022 Xilinx, Inc. All Rights Reserved.
+    ** Copyright 2022-2026 Advanced Micro Devices, Inc. All Rights Reserved.
+
+source xsim.dir/snap/xsim_script.tcl
+# xsim {snap} -autoloadwcfg -runall
+Time resolution is 1 ps
+run -all
+unisims_sim ⚠ OSERDESE2 是占位模型（不串行化）⇒ 判据只许读并行像素，不许读 DVI 引脚
+unisims_sim ⚠ OSERDESE2 是占位模型（不串行化）⇒ 判据只许读并行像素，不许读 DVI 引脚
+unisims_sim ⚠ OSERDESE2 是占位模型（不串行化）⇒ 判据只许读并行像素，不许读 DVI 引脚
+unisims_sim ⚠ OSERDESE2 是占位模型（不串行化）⇒ 判据只许读并行像素，不许读 DVI 引脚
+unisims_sim ⚠ OSERDESE2 是占位模型（不串行化）⇒ 判据只许读并行像素，不许读 DVI 引脚
+unisims_sim ⚠ OSERDESE2 是占位模型（不串行化）⇒ 判据只许读并行像素，不许读 DVI 引脚
+unisims_sim ⚠ OSERDESE2 是占位模型（不串行化）⇒ 判据只许读并行像素，不许读 DVI 引脚
+unisims_sim ⚠ OSERDESE2 是占位模型（不串行化）⇒ 判据只许读并行像素，不许读 DVI 引脚
+[tb_v98_top_seam.v:151] [Xborn0] 初始化现场 p3=8003 p2=8002 p1=8001 p0=8000 -> ddr[0]=8003800280018000
+PASS C0a ruler encodes position in the pixel | px_val / decoder / mod-256 signed diff must agree, incl. 0, small values, both edges, both wrap directions
+PASS C0a3 no black cell exists in the pattern | the panel-level ruler equates black with outside-the-picture, so the pattern must not contain black
+PASS C0a2 golden array actually holds it | read back ddr[0] and the last word after init: a correct function is not a correct array
+[tb_v98_top_seam.v:255] [Xborn] 从机 rvalid=0 其中字含X=0 | fb 写=0 拍 其中数据含X=0
+[tb_v98_top_seam.v:257] [Xborn] 阵列（lo 32768 + hi 8192 = 40960 字）里含 X 的字数=40960，首个下标=0
+[tb_v98_top_seam.v:259] [Xborn] 有效拍=1843200：rd_addr 是 X 的=0，fb_rd 是 X 的=1843200
+[tb_v98_top_seam.v:262] [Xborn3] gp(19位几何)=0000000000000000000 inv_used= 256 sx=   0 sy=   0 oob=1 rd_addr=     0
+[tb_v98_top_seam.v:266] [Xborn4] 归属链 mode=00 owner_eth=0 owner_pix=0 src_use=1 eth_link_pix=0 ps_now=0 have_src=0 fb_vis=0 | fb_out=xxxx orig_disp=08a4
+[tb_v98_top_seam.v:271] [Xborn5] mapper fx=00 fy=00 sx=   0 sy=   0 oob=1 | bilin addr_q=     0 fb_word=xxxxxxxxxxxxxxxx tap_r=xxxxxxxx res_q=0xxxx lerp=xxxx v_d2=0 asm_d2=0
+[tb_v98_top_seam.v:277] [Xborn6] w_a=     0 w_b=   128 lane=0 | a_hold=xxxxxxxxxxxxxxxx b_hold=xxxxxxxxxxxxxxxx | p00=xxxx p10=xxxx p01=xxxx p11=xxxx | oob_d2=1 kx=0 ky=0 bilin_en=1
+[Xborn1] rvalid#1 w0=0 beat=0 len=15 rdata=8003800280018000 ddr[0]=8003800280018000
+[Xborn1] rvalid#2 w0=0 beat=1 len=15 rdata=8007800680058004 ddr[1]=8007800680058004
+[tb_v98_top_seam.v:234] [Xborn2] fb写#1 addr=0 data=8003800280018000
+[Xborn1] rvalid#3 w0=0 beat=2 len=15 rdata=800b800a80098008 ddr[2]=800b800a80098008
+[tb_v98_top_seam.v:234] [Xborn2] fb写#2 addr=1 data=8007800680058004
+[Xborn1] rvalid#4 w0=0 beat=3 len=15 rdata=800f800e800d800c ddr[3]=800f800e800d800c
+[tb_v98_top_seam.v:234] [Xborn2] fb写#3 addr=2 data=800b800a80098008
+[Xborn1] rvalid#5 w0=0 beat=4 len=15 rdata=8013801280118010 ddr[4]=8013801280118010
+[Xborn1] rvalid#6 w0=0 beat=5 len=15 rdata=8017801680158014 ddr[5]=8017801680158014
+[tb_v98_top_seam.v:444] DBG2 x_sel=221 y11=15 | 屏上=876e 期望列=221 期望行=007 Δcol=0 Δrow=0
+[tb_v98_top_seam.v:424] GEOM x_d[3]=239 期望src=119 顶层src=120 dx=-1 | de3=1 oob=0 sy=10 y3=15
+[tb_v98_top_seam.v:444] DBG2 x_sel=222 y11=15 | 屏上=876f 期望列=222 期望行=007 Δcol=0 Δrow=0
+[tb_v98_top_seam.v:444] DBG2 x_sel=223 y11=15 | 屏上=876f 期望列=223 期望行=007 Δcol=0 Δrow=0
+[tb_v98_top_seam.v:424] GEOM x_d[3]=241 期望src=120 顶层src=121 dx=-1 | de3=1 oob=0 sy=10 y3=15
+[tb_v98_top_seam.v:424] GEOM x_d[3]=243 期望src=121 顶层src=122 dx=-1 | de3=1 oob=0 sy=10 y3=15
+[tb_v98_top_seam.v:424] GEOM x_d[3]=245 期望src=122 顶层src=123 dx=-1 | de3=1 oob=0 sy=10 y3=15
+[tb_v98_top_seam.v:424] GEOM x_d[3]=247 期望src=123 顶层src=124 dx=-1 | de3=1 oob=0 sy=10 y3=15
+[tb_v98_top_seam.v:424] GEOM x_d[3]=249 期望src=124 顶层src=125 dx=-1 | de3=1 oob=0 sy=10 y3=15
+[tb_v98_top_seam.v:353] DBG 左窗 x=100 y=300 | 顶层源坐标 sx_l=54 sy_l=153 oob=0 | tap_raw=962d 解出(22,45) fb_out=9835 rd_addr=19597
+[tb_v98_top_seam.v:353] DBG 左窗 x=101 y=300 | 顶层源坐标 sx_l=55 sy_l=153 oob=0 | tap_raw=962e 解出(22,46) fb_out=9836 rd_addr=19598
+[tb_v98_top_seam.v:353] DBG 左窗 x=102 y=300 | 顶层源坐标 sx_l=55 sy_l=153 oob=0 | tap_raw=962e 解出(22,46) fb_out=9836 rd_addr=19597
+[tb_v98_top_seam.v:353] DBG 左窗 x=103 y=300 | 顶层源坐标 sx_l=56 sy_l=153 oob=0 | tap_raw=962f 解出(22,47) fb_out=9837 rd_addr=19598
+[tb_v98_top_seam.v:353] DBG 左窗 x=104 y=300 | 顶层源坐标 sx_l=56 sy_l=153 oob=0 | tap_raw=962f 解出(22,47) fb_out=9837 rd_addr=19598
+[tb_v98_top_seam.v:353] DBG 左窗 x=105 y=300 | 顶层源坐标 sx_l=57 sy_l=153 oob=0 | tap_raw=9630 解出(22,48) fb_out=9838 rd_addr=19599
+[tb_v98_top_seam.v:353] DBG 左窗 x=106 y=300 | 顶层源坐标 sx_l=57 sy_l=153 oob=0 | tap_raw=9630 解出(22,48) fb_out=9838 rd_addr=19598
+[tb_v98_top_seam.v:353] DBG 左窗 x=107 y=300 | 顶层源坐标 sx_l=58 sy_l=153 oob=0 | tap_raw=9631 解出(22,49) fb_out=9839 rd_addr=19599
+[tb_v98_top_seam.v:496] PROBE fb_wr_pulses=38400 (一帧要 38400)  copy_hold 拍了 0  u_aw.active=40800 最后到的 row=299
+[tb_v98_top_seam.v:498] DIAG fb_vis=1 owner_eth=0 fill_busy=0 row_busy=0 eth_live=0 tb_ok=0 dbg_src=0300 tap_raw 全黑比例 0/292270
+PASS C0d a real source is on screen | less than half of left-pane samples are black, else nothing was copied
+PASS C0b enough frames ran | at least 3 frames, otherwise every count below is void
+PASS C0c the AXI copy is alive | AXI bursts present, 8-byte aligned, never read outside the PS window
+[tb_v98_top_seam.v:513] OBS C-tap 观测（不判定）：样本 292270 格、偏差非零 291102 格、首格偏差 -112
+[tb_v98_top_seam.v:515] INFO C-tap 样本 292270 格、偏 291102 格、首格偏差 -112（0 才是对的）
+PASS C0f whole fb word space written | de-duplicated write-word index count must cover the full frame once
+[tb_v98_top_seam.v:529] X 读回 0 格，落在列 9999..-1；去重写过的字下标 38400/38400
+[tb_v98_top_seam.v:533] 级数标定：源列 == 第 k 级显示列 >>1 的不符数（样本 270659）
+[tb_v98_top_seam.v:535] k=0 不符 270659
+[tb_v98_top_seam.v:535] k=1 不符 135622
+[tb_v98_top_seam.v:535] k=2 不符 0
+[tb_v98_top_seam.v:535] k=3 不符 135037
+[tb_v98_top_seam.v:535] k=4 不符 270659
+[tb_v98_top_seam.v:535] k=5 不符 270659
+[tb_v98_top_seam.v] OBS C1i 标定级数：几何 0 不符的 k 有 1 个（k=2），该级相位不符 0（其余级：k=2 相位 0）
+PASS C1i read-port phase same stage as src | col0/row0/pair_odd/req_vld must come from the calibrated label stage, not from a comment
+PASS C1g VIEWPORT col: src == x_d[2]>>1 | single viewport: src column == display column >>1 at the calibrated stage (k=2 is the only zero)
+[tb_v98_top_seam.v:541] C1h 期望落在帧底夹紧行的格数 926、落在帧头绕回窗的格数 2778；行不符 0
+PASS C1h VIEWPORT row: src == wrap((y_d[2]+OFF+BILIN)>>1) | row-wise definition now includes the #97 frame-head wrap; floor c1_wrapn proves the wrap window was judged
+[tb_v98_top_seam.v:544] C1g/C1h 样本 270659 格；列不符(旧口径) 135037
+[tb_v98_top_seam.v:545] X 分层：有效拍 3072000 | fb_rd 是 X 的 2460084 | fb_pix_hold 是 X 的 2460085 | fb_out 是 X 的 2460084
+PASS C0e RULER self-consistent | out-of-range bucket must be a subset of the mismatch set
+PASS C1a content-check coverage | in-line left-pane samples below 50k means nothing was measured
+[tb_v98_top_seam.v:551] C1 样本 270659 格（跳过出界/行首尾 21611）；Δcol 首值 0、Δrow 首值 0、跳变 0 次
+[tb_v98_top_seam.v:564]        C1 样本 270659 格（跳过出界/行首尾 21611）；X 格 0；Δcol 不符 0、Δrow 不符 0；Δcol 首值 0、Δrow 首值 0、跳变 0 次
+PASS C1e PRECONDITION no X inside the measurement window | with X present every dcol/drow below is false-green on an empty set (#78)
+PASS C1c content column == display column >> 1 | single-viewport geometry, content-level evidence (was a NOTE before #78)
+[tb_v98_top_seam.v:571] OBS C1d 行方向原始计数（硬判据在它下面一行）：Δrow 不符 0、跨帧恒定 = 1
+PASS C1d content row == display row >> 1 (outside ring warm-up) | row-wise content alignment of the raw tap; warm-up rows are counted, not hidden
+C1d 例外计数：行环热身跳过 0 格（其中可判 0 格）、期望落在帧底夹紧 926 格（照判不跳过）、出界/行首尾跳过 21611 格
+OBS C1d-b (retired): warm-up branch samples = 0 (judged 0, unexplained 0) => 空集，判据搬到 C5c
+ROWMIX values drow=-4..+3 | big+ big- : 0 0 0 0 0 0 0 0 | 0 0
+ROWMIX cols bucket=32 (0..7): 0 0 0 0 0 0 0 0
+ROWMIX cols bucket=32 (8..15): 0 0 0 0 0 0 0 0
+[tb_v98_top_seam.v:573] 观测（老尺子，仅供以后对比）：左窗 n=292270 不符=292270；右窗列不符=304200
+[tb_v98_top_seam.v:579] M2 右窗行偏移（全旁路，今天只报数）：众数=0 变化次数=0 样本=306540
+[tb_v98_top_seam.v:582] Δrow0 : 306540 点
+[tb_v98_top_seam.v:586] 左窗 Δcol2 : 1170 点
+[tb_v98_top_seam.v:586] 左窗 Δcol3 : 1170 点
+[tb_v98_top_seam.v:586] 左窗 Δcol4 : 1170 点
+[tb_v98_top_seam.v:588] 左窗 Δrow-1 : 2610 点
+[tb_v98_top_seam.v:588] 左窗 Δrow0 : 289642 点
+[tb_v98_top_seam.v:589] 左窗 Δcol 超出±5 : 287590 点（量程不够 / 内容根本不是这张图）
+[tb_v98_top_seam.v:590] 左窗 Δrow 超出±5 : 18 点
+[tb_v98_top_seam.v:591] ⇒ 非 0 是**已知的**：`cy_r` 提前 OFF_LINES 行补的是链子内容滞后，全旁路时链子不滞后。
+[tb_v98_top_seam.v:592] V8-4b（单流 + 链前/链后两抽头）之后这一格必须是 0，届时把 M2 转成硬判据。
+[tb_v98_top_seam.v:599] OBS M3 右窗行偏移跨帧是否恒定（不判定，内容期望未修对）：恒定 = 1（1=恒定，0=一帧一变），变化次数 0
+[tb_v98_top_seam.v:601] INFO 统计 frames=6 ar=2400 r=38400 odd=0 outwin=0 n_l=292270 bad_l=292270 n_r=306540 bad_r_col=304200
+P98R 读侧 y_d5=0 读槽=4 | 环出口 tag=(行0,列0) | 写入口同拍 tag=行2
+PROBE P100 x=0 y=0 定义(行0,列0) | 原图(行0,列0) 处理(行2,列0) | oob=0 take_orig=0 sel=8200
+PROBE P100 x=1 y=0 定义(行0,列0) | 原图(行0,列0) 处理(行2,列0) | oob=0 take_orig=0 sel=8200
+PROBE P100 x=2 y=0 定义(行0,列1) | 原图(行0,列1) 处理(行2,列1) | oob=0 take_orig=0 sel=8201
+PROBE P101 链入口 y_d3=0 cy_d3=0 | din tag=(行2,列149) oob_fb=0
+C5HEAD col=300 prow=0 px=8296 源行tag=2 定义=0 | 屏上这一格来自哪一行的判决
+C5HEAD col=512 prow=0 px=8200 源行tag=2 定义=0 | 屏上这一格来自哪一行的判决
+C5HEAD col=900 prow=0 px=82c2 源行tag=2 定义=0 | 屏上这一格来自哪一行的判决
+PROBE P100 x=1021 y=0 定义(行0,列254) | 原图(行0,列254) 处理(行2,列254) | oob=0 take_orig=0 sel=82fe
+PROBE P100 x=1022 y=0 定义(行0,列255) | 原图(行0,列255) 处理(行2,列255) | oob=0 take_orig=0 sel=82ff
+PROBE P100 x=1023 y=0 定义(行0,列255) | 原图(行0,列255) 处理(行2,列255) | oob=0 take_orig=0 sel=82ff
+P98R 读侧 y_d5=1 读槽=5 | 环出口 tag=(行0,列0) | 写入口同拍 tag=行2
+PROBE P100 x=0 y=1 定义(行0,列0) | 原图(行0,列0) 处理(行2,列0) | oob=0 take_orig=0 sel=8200
+PROBE P100 x=1 y=1 定义(行0,列0) | 原图(行0,列0) 处理(行2,列0) | oob=0 take_orig=0 sel=8200
+PROBE P100 x=2 y=1 定义(行0,列1) | 原图(行0,列1) 处理(行2,列1) | oob=0 take_orig=0 sel=8201
+PROBE P101 链入口 y_d3=1 cy_d3=0 | din tag=(行2,列149) oob_fb=0
+C5HEAD col=300 prow=1 px=8296 源行tag=2 定义=0 | 屏上这一格来自哪一行的判决
+C5HEAD col=512 prow=1 px=8200 源行tag=2 定义=0 | 屏上这一格来自哪一行的判决
+C5HEAD col=900 prow=1 px=82c2 源行tag=2 定义=0 | 屏上这一格来自哪一行的判决
+PROBE P100 x=1021 y=1 定义(行0,列254) | 原图(行0,列254) 处理(行2,列254) | oob=0 take_orig=0 sel=82fe
+PROBE P100 x=1022 y=1 定义(行0,列255) | 原图(行0,列255) 处理(行2,列255) | oob=0 take_orig=0 sel=82ff
+PROBE P100 x=1023 y=1 定义(行0,列255) | 原图(行0,列255) 处理(行2,列255) | oob=0 take_orig=0 sel=82ff
+P98R 读侧 y_d5=2 读槽=6 | 环出口 tag=(行1,列0) | 写入口同拍 tag=行3
+PROBE P100 x=0 y=2 定义(行1,列0) | 原图(行1,列0) 处理(行2,列0) | oob=0 take_orig=0 sel=8200
+PROBE P100 x=1 y=2 定义(行1,列0) | 原图(行1,列0) 处理(行2,列0) | oob=0 take_orig=0 sel=8200
+PROBE P100 x=2 y=2 定义(行1,列1) | 原图(行1,列1) 处理(行2,列1) | oob=0 take_orig=0 sel=8201
+PROBE P101 链入口 y_d3=2 cy_d3=1 | din tag=(行3,列149) oob_fb=0
+C5HEAD col=300 prow=2 px=8296 源行tag=2 定义=1 | 屏上这一格来自哪一行的判决
+C5HEAD col=512 prow=2 px=8200 源行tag=2 定义=1 | 屏上这一格来自哪一行的判决
+C5HEAD col=900 prow=2 px=82c2 源行tag=2 定义=1 | 屏上这一格来自哪一行的判决
+PROBE P100 x=1021 y=2 定义(行1,列254) | 原图(行1,列254) 处理(行2,列254) | oob=0 take_orig=0 sel=82fe
+PROBE P100 x=1022 y=2 定义(行1,列255) | 原图(行1,列255) 处理(行2,列255) | oob=0 take_orig=0 sel=82ff
+PROBE P100 x=1023 y=2 定义(行1,列255) | 原图(行1,列255) 处理(行2,列255) | oob=0 take_orig=0 sel=82ff
+P98R 读侧 y_d5=3 读槽=7 | 环出口 tag=(行1,列0) | 写入口同拍 tag=行3
+PROBE P100 x=0 y=3 定义(行1,列0) | 原图(行1,列0) 处理(行2,列0) | oob=0 take_orig=0 sel=8200
+PROBE P100 x=1 y=3 定义(行1,列0) | 原图(行1,列0) 处理(行2,列0) | oob=0 take_orig=0 sel=8200
+PROBE P100 x=2 y=3 定义(行1,列1) | 原图(行1,列1) 处理(行2,列1) | oob=0 take_orig=0 sel=8201
+PROBE P101 链入口 y_d3=3 cy_d3=1 | din tag=(行3,列149) oob_fb=0
+C5HEAD col=300 prow=3 px=8296 源行tag=2 定义=1 | 屏上这一格来自哪一行的判决
+C5HEAD col=512 prow=3 px=8200 源行tag=2 定义=1 | 屏上这一格来自哪一行的判决
+C5HEAD col=900 prow=3 px=82c2 源行tag=2 定义=1 | 屏上这一格来自哪一行的判决
+PROBE P100 x=1021 y=3 定义(行1,列254) | 原图(行1,列254) 处理(行2,列254) | oob=0 take_orig=0 sel=82fe
+PROBE P100 x=1022 y=3 定义(行1,列255) | 原图(行1,列255) 处理(行2,列255) | oob=0 take_orig=0 sel=82ff
+PROBE P100 x=1023 y=3 定义(行1,列255) | 原图(行1,列255) 处理(行2,列255) | oob=0 take_orig=0 sel=82ff
+P98R 读侧 y_d5=4 读槽=0 | 环出口 tag=(行2,列0) | 写入口同拍 tag=行4
+PROBE P100 x=0 y=4 定义(行2,列0) | 原图(行2,列0) 处理(行2,列0) | oob=0 take_orig=0 sel=8200
+PROBE P100 x=1 y=4 定义(行2,列0) | 原图(行2,列0) 处理(行2,列0) | oob=0 take_orig=0 sel=8200
+PROBE P100 x=2 y=4 定义(行2,列1) | 原图(行2,列1) 处理(行2,列1) | oob=0 take_orig=0 sel=8201
+PROBE P101 链入口 y_d3=4 cy_d3=2 | din tag=(行4,列149) oob_fb=0
+C5HEAD col=300 prow=4 px=8296 源行tag=2 定义=2 | 屏上这一格来自哪一行的判决
+C5HEAD col=512 prow=4 px=8200 源行tag=2 定义=2 | 屏上这一格来自哪一行的判决
+C5HEAD col=900 prow=4 px=82c2 源行tag=2 定义=2 | 屏上这一格来自哪一行的判决
+PROBE P100 x=1021 y=4 定义(行2,列254) | 原图(行2,列254) 处理(行2,列254) | oob=0 take_orig=0 sel=82fe
+PROBE P100 x=1022 y=4 定义(行2,列255) | 原图(行2,列255) 处理(行2,列255) | oob=0 take_orig=0 sel=82ff
+PROBE P100 x=1023 y=4 定义(行2,列255) | 原图(行2,列255) 处理(行2,列255) | oob=0 take_orig=0 sel=82ff
+P98R 读侧 y_d5=5 读槽=1 | 环出口 tag=(行2,列0) | 写入口同拍 tag=行4
+PROBE P100 x=0 y=5 定义(行2,列0) | 原图(行2,列0) 处理(行2,列0) | oob=0 take_orig=0 sel=8200
+PROBE P100 x=1 y=5 定义(行2,列0) | 原图(行2,列0) 处理(行2,列0) | oob=0 take_orig=0 sel=8200
+PROBE P100 x=2 y=5 定义(行2,列1) | 原图(行2,列1) 处理(行2,列1) | oob=0 take_orig=0 sel=8201
+PROBE P101 链入口 y_d3=5 cy_d3=2 | din tag=(行4,列149) oob_fb=0
+C5HEAD col=300 prow=5 px=8296 源行tag=2 定义=2 | 屏上这一格来自哪一行的判决
+C5HEAD col=512 prow=5 px=8200 源行tag=2 定义=2 | 屏上这一格来自哪一行的判决
+C5HEAD col=900 prow=5 px=82c2 源行tag=2 定义=2 | 屏上这一格来自哪一行的判决
+PROBE P100 x=1021 y=5 定义(行2,列254) | 原图(行2,列254) 处理(行2,列254) | oob=0 take_orig=0 sel=82fe
+PROBE P100 x=1022 y=5 定义(行2,列255) | 原图(行2,列255) 处理(行2,列255) | oob=0 take_orig=0 sel=82ff
+PROBE P100 x=1023 y=5 定义(行2,列255) | 原图(行2,列255) 处理(行2,列255) | oob=0 take_orig=0 sel=82ff
+P98R 读侧 y_d5=6 读槽=2 | 环出口 tag=(行3,列0) | 写入口同拍 tag=行5
+PROBE P100 x=0 y=6 定义(行3,列0) | 原图(行3,列0) 处理(行3,列0) | oob=0 take_orig=0 sel=8300
+PROBE P100 x=1 y=6 定义(行3,列0) | 原图(行3,列0) 处理(行3,列0) | oob=0 take_orig=0 sel=8300
+PROBE P100 x=2 y=6 定义(行3,列1) | 原图(行3,列1) 处理(行3,列1) | oob=0 take_orig=0 sel=8301
+PROBE P101 链入口 y_d3=6 cy_d3=3 | din tag=(行5,列149) oob_fb=0
+PROBE P100 x=1021 y=6 定义(行3,列254) | 原图(行3,列254) 处理(行3,列254) | oob=0 take_orig=0 sel=83fe
+PROBE P100 x=1022 y=6 定义(行3,列255) | 原图(行3,列255) 处理(行3,列255) | oob=0 take_orig=0 sel=83ff
+PROBE P100 x=1023 y=6 定义(行3,列255) | 原图(行3,列255) 处理(行3,列255) | oob=0 take_orig=0 sel=83ff
+P98R 读侧 y_d5=7 读槽=3 | 环出口 tag=(行3,列0) | 写入口同拍 tag=行5
+PROBE P100 x=0 y=7 定义(行3,列0) | 原图(行3,列0) 处理(行3,列0) | oob=0 take_orig=0 sel=8300
+PROBE P100 x=1 y=7 定义(行3,列0) | 原图(行3,列0) 处理(行3,列0) | oob=0 take_orig=0 sel=8300
+PROBE P100 x=2 y=7 定义(行3,列1) | 原图(行3,列1) 处理(行3,列1) | oob=0 take_orig=0 sel=8301
+PROBE P101 链入口 y_d3=7 cy_d3=3 | din tag=(行5,列149) oob_fb=0
+PROBE P100 x=1021 y=7 定义(行3,列254) | 原图(行3,列254) 处理(行3,列254) | oob=0 take_orig=0 sel=83fe
+PROBE P100 x=1022 y=7 定义(行3,列255) | 原图(行3,列255) 处理(行3,列255) | oob=0 take_orig=0 sel=83ff
+PROBE P100 x=1023 y=7 定义(行3,列255) | 原图(行3,列255) 处理(行3,列255) | oob=0 take_orig=0 sel=83ff
+PROBE P100 x=0 y=8 定义(行4,列0) | 原图(行4,列0) 处理(行4,列0) | oob=0 take_orig=0 sel=8400
+PROBE P100 x=1 y=8 定义(行4,列0) | 原图(行4,列0) 处理(行4,列0) | oob=0 take_orig=0 sel=8400
+PROBE P100 x=2 y=8 定义(行4,列1) | 原图(行4,列1) 处理(行4,列1) | oob=0 take_orig=0 sel=8401
+PROBE P101 链入口 y_d3=8 cy_d3=4 | din tag=(行6,列149) oob_fb=0
+PROBE P100 x=1021 y=8 定义(行4,列254) | 原图(行4,列254) 处理(行4,列254) | oob=0 take_orig=0 sel=84fe
+PROBE P100 x=1022 y=8 定义(行4,列255) | 原图(行4,列255) 处理(行4,列255) | oob=0 take_orig=0 sel=84ff
+PROBE P100 x=1023 y=8 定义(行4,列255) | 原图(行4,列255) 处理(行4,列255) | oob=0 take_orig=0 sel=84ff
+PROBE P100 x=0 y=9 定义(行4,列0) | 原图(行4,列0) 处理(行4,列0) | oob=0 take_orig=0 sel=8400
+PROBE P100 x=1 y=9 定义(行4,列0) | 原图(行4,列0) 处理(行4,列0) | oob=0 take_orig=0 sel=8400
+PROBE P100 x=2 y=9 定义(行4,列1) | 原图(行4,列1) 处理(行4,列1) | oob=0 take_orig=0 sel=8401
+PROBE P101 链入口 y_d3=9 cy_d3=4 | din tag=(行6,列149) oob_fb=0
+PROBE P100 x=1021 y=9 定义(行4,列254) | 原图(行4,列254) 处理(行4,列254) | oob=0 take_orig=0 sel=84fe
+PROBE P100 x=1022 y=9 定义(行4,列255) | 原图(行4,列255) 处理(行4,列255) | oob=0 take_orig=0 sel=84ff
+PROBE P100 x=1023 y=9 定义(行4,列255) | 原图(行4,列255) 处理(行4,列255) | oob=0 take_orig=0 sel=84ff
+PROBE P101 链入口 y_d3=10 cy_d3=5 | din tag=(行7,列149) oob_fb=0
+PROBE P101 链入口 y_d3=11 cy_d3=5 | din tag=(行7,列149) oob_fb=0
+PROBE P98M y_d5=300 定义行=22 | 请求 y_req_row=153 cy_r=153 | 环入口 tag=(行24,列0) 环出口 tag=(行22,列0)
+PROBE P100 x=0 y=300 定义(行22,列0) | 原图(行22,列0) 处理(行22,列0) | oob=0 take_orig=0 sel=9600
+PROBE P100 x=1 y=300 定义(行22,列0) | 原图(行22,列0) 处理(行22,列0) | oob=0 take_orig=0 sel=9600
+PROBE P100 x=2 y=300 定义(行22,列1) | 原图(行22,列1) 处理(行22,列1) | oob=0 take_orig=0 sel=9601
+PROBE P100 x=1021 y=300 定义(行22,列254) | 原图(行22,列254) 处理(行22,列254) | oob=0 take_orig=0 sel=96fe
+PROBE P100 x=1022 y=300 定义(行22,列255) | 原图(行22,列255) 处理(行22,列255) | oob=0 take_orig=0 sel=96ff
+PROBE P100 x=1023 y=300 定义(行22,列255) | 原图(行22,列255) 处理(行22,列255) | oob=0 take_orig=0 sel=96ff
+PROBE P98M y_d5=301 定义行=22 | 请求 y_req_row=153 cy_r=153 | 环入口 tag=(行24,列0) 环出口 tag=(行22,列0)
+PROBE P98M y_d5=302 定义行=23 | 请求 y_req_row=154 cy_r=154 | 环入口 tag=(行25,列0) 环出口 tag=(行23,列0)
+PROBE P98M y_d5=303 定义行=23 | 请求 y_req_row=154 cy_r=154 | 环入口 tag=(行25,列0) 环出口 tag=(行23,列0)
+P98W 写侧 y_d5=588 槽=4 | pix_raw tag=(行40,列0) oob=0 | sy=297 y_d2=588
+PROBE P101 链入口 y_d3=588 cy_d3=294 | din tag=(行40,列149) oob_fb=0
+P98W 写侧 y_d5=589 槽=5 | pix_raw tag=(行40,列0) oob=0 | sy=297 y_d2=589
+PROBE P101 链入口 y_d3=589 cy_d3=294 | din tag=(行40,列149) oob_fb=0
+P98W 写侧 y_d5=590 槽=6 | pix_raw tag=(行41,列0) oob=0 | sy=298 y_d2=590
+PROBE P101 链入口 y_d3=590 cy_d3=295 | din tag=(行41,列149) oob_fb=0
+P98W 写侧 y_d5=591 槽=7 | pix_raw tag=(行41,列0) oob=0 | sy=298 y_d2=591
+PROBE P101 链入口 y_d3=591 cy_d3=295 | din tag=(行41,列149) oob_fb=0
+P98W 写侧 y_d5=592 槽=0 | pix_raw tag=(行42,列0) oob=0 | sy=299 y_d2=592
+PROBE P101 链入口 y_d3=592 cy_d3=296 | din tag=(行42,列149) oob_fb=0
+P98W 写侧 y_d5=593 槽=1 | pix_raw tag=(行42,列0) oob=0 | sy=299 y_d2=593
+PROBE P101 链入口 y_d3=593 cy_d3=296 | din tag=(行42,列149) oob_fb=0
+P98W 写侧 y_d5=594 槽=2 | pix_raw tag=(行43,列0) oob=0 | sy=0 y_d2=594
+PROBE P101 链入口 y_d3=594 cy_d3=297 | din tag=(行43,列149) oob_fb=0
+P98W 写侧 y_d5=595 槽=3 | pix_raw tag=(行43,列0) oob=0 | sy=0 y_d2=595
+PROBE P100 x=0 y=595 定义(行41,列0) | 原图(行41,列0) 处理(行41,列0) | oob=0 take_orig=0 sel=a900
+PROBE P100 x=1 y=595 定义(行41,列0) | 原图(行41,列0) 处理(行41,列0) | oob=0 take_orig=0 sel=a900
+PROBE P100 x=2 y=595 定义(行41,列1) | 原图(行41,列1) 处理(行41,列1) | oob=0 take_orig=0 sel=a901
+PROBE P101 链入口 y_d3=595 cy_d3=297 | din tag=(行43,列149) oob_fb=0
+PROBE P100 x=1021 y=595 定义(行41,列254) | 原图(行41,列254) 处理(行41,列254) | oob=0 take_orig=0 sel=a9fe
+PROBE P100 x=1022 y=595 定义(行41,列255) | 原图(行41,列255) 处理(行41,列255) | oob=0 take_orig=0 sel=a9ff
+PROBE P100 x=1023 y=595 定义(行41,列255) | 原图(行41,列255) 处理(行41,列255) | oob=0 take_orig=0 sel=a9ff
+P98W 写侧 y_d5=596 槽=4 | pix_raw tag=(行0,列0) oob=0 | sy=1 y_d2=596
+PROBE P100 x=0 y=596 定义(行42,列0) | 原图(行42,列0) 处理(行42,列0) | oob=0 take_orig=0 sel=aa00
+PROBE P100 x=1 y=596 定义(行42,列0) | 原图(行42,列0) 处理(行42,列0) | oob=0 take_orig=0 sel=aa00
+PROBE P100 x=2 y=596 定义(行42,列1) | 原图(行42,列1) 处理(行42,列1) | oob=0 take_orig=0 sel=aa01
+PROBE P101 链入口 y_d3=596 cy_d3=298 | din tag=(行0,列149) oob_fb=0
+PROBE P100 x=1021 y=596 定义(行42,列254) | 原图(行42,列254) 处理(行42,列254) | oob=0 take_orig=0 sel=aafe
+PROBE P100 x=1022 y=596 定义(行42,列255) | 原图(行42,列255) 处理(行42,列255) | oob=0 take_orig=0 sel=aaff
+PROBE P100 x=1023 y=596 定义(行42,列255) | 原图(行42,列255) 处理(行42,列255) | oob=0 take_orig=0 sel=aaff
+P98W 写侧 y_d5=597 槽=5 | pix_raw tag=(行0,列0) oob=0 | sy=1 y_d2=597
+PROBE P100 x=0 y=597 定义(行42,列0) | 原图(行42,列0) 处理(行42,列0) | oob=0 take_orig=0 sel=aa00
+PROBE P100 x=1 y=597 定义(行42,列0) | 原图(行42,列0) 处理(行42,列0) | oob=0 take_orig=0 sel=aa00
+PROBE P100 x=2 y=597 定义(行42,列1) | 原图(行42,列1) 处理(行42,列1) | oob=0 take_orig=0 sel=aa01
+PROBE P101 链入口 y_d3=597 cy_d3=298 | din tag=(行0,列149) oob_fb=0
+PROBE P100 x=1021 y=597 定义(行42,列254) | 原图(行42,列254) 处理(行42,列254) | oob=0 take_orig=0 sel=aafe
+PROBE P100 x=1022 y=597 定义(行42,列255) | 原图(行42,列255) 处理(行42,列255) | oob=0 take_orig=0 sel=aaff
+PROBE P100 x=1023 y=597 定义(行42,列255) | 原图(行42,列255) 处理(行42,列255) | oob=0 take_orig=0 sel=aaff
+P98W 写侧 y_d5=598 槽=6 | pix_raw tag=(行1,列0) oob=0 | sy=2 y_d2=598
+PROBE P100 x=0 y=598 定义(行43,列0) | 原图(行43,列0) 处理(行43,列0) | oob=0 take_orig=0 sel=ab00
+PROBE P100 x=1 y=598 定义(行43,列0) | 原图(行43,列0) 处理(行43,列0) | oob=0 take_orig=0 sel=ab00
+PROBE P100 x=2 y=598 定义(行43,列1) | 原图(行43,列1) 处理(行43,列1) | oob=0 take_orig=0 sel=ab01
+PROBE P101 链入口 y_d3=598 cy_d3=299 | din tag=(行1,列149) oob_fb=0
+PROBE P100 x=1021 y=598 定义(行43,列254) | 原图(行43,列254) 处理(行43,列254) | oob=0 take_orig=0 sel=abfe
+PROBE P100 x=1022 y=598 定义(行43,列255) | 原图(行43,列255) 处理(行43,列255) | oob=0 take_orig=0 sel=abff
+PROBE P100 x=1023 y=598 定义(行43,列255) | 原图(行43,列255) 处理(行43,列255) | oob=0 take_orig=0 sel=abff
+P98W 写侧 y_d5=599 槽=7 | pix_raw tag=(行1,列0) oob=0 | sy=2 y_d2=599
+PROBE P100 x=0 y=599 定义(行43,列0) | 原图(行43,列0) 处理(行43,列0) | oob=0 take_orig=0 sel=ab00
+PROBE P100 x=1 y=599 定义(行43,列0) | 原图(行43,列0) 处理(行43,列0) | oob=0 take_orig=0 sel=ab00
+PROBE P100 x=2 y=599 定义(行43,列1) | 原图(行43,列1) 处理(行43,列1) | oob=0 take_orig=0 sel=ab01
+PROBE P101 链入口 y_d3=599 cy_d3=299 | din tag=(行1,列149) oob_fb=0
+PROBE P100 x=1021 y=599 定义(行43,列254) | 原图(行43,列254) 处理(行43,列254) | oob=0 take_orig=0 sel=abfe
+PROBE P100 x=1022 y=599 定义(行43,列255) | 原图(行43,列255) 处理(行43,列255) | oob=0 take_orig=0 sel=abff
+PROBE P100 x=1023 y=599 定义(行43,列255) | 原图(行43,列255) 处理(行43,列255) | oob=0 take_orig=0 sel=abff
+PROBE P100 x=0 y=0 定义(行0,列0) | 原图(行0,列0) 处理(行2,列0) | oob=0 take_orig=0 sel=8200
+PROBE P100 x=1 y=0 定义(行0,列0) | 原图(行0,列0) 处理(行2,列0) | oob=0 take_orig=0 sel=8200
+PROBE P100 x=2 y=0 定义(行0,列1) | 原图(行0,列1) 处理(行2,列1) | oob=0 take_orig=0 sel=8201
+PROBE P101 链入口 y_d3=0 cy_d3=0 | din tag=(行2,列149) oob_fb=0
+PROBE P100 x=1021 y=0 定义(行0,列254) | 原图(行0,列254) 处理(行2,列254) | oob=0 take_orig=0 sel=82fe
+PROBE P100 x=1022 y=0 定义(行0,列255) | 原图(行0,列255) 处理(行2,列255) | oob=0 take_orig=0 sel=82ff
+PROBE P100 x=1023 y=0 定义(行0,列255) | 原图(行0,列255) 处理(行2,列255) | oob=0 take_orig=0 sel=82ff
+PROBE P100 x=0 y=1 定义(行0,列0) | 原图(行0,列0) 处理(行2,列0) | oob=0 take_orig=0 sel=8200
+PROBE P100 x=1 y=1 定义(行0,列0) | 原图(行0,列0) 处理(行2,列0) | oob=0 take_orig=0 sel=8200
+PROBE P100 x=2 y=1 定义(行0,列1) | 原图(行0,列1) 处理(行2,列1) | oob=0 take_orig=0 sel=8201
+PROBE P101 链入口 y_d3=1 cy_d3=0 | din tag=(行2,列149) oob_fb=0
+PROBE P100 x=1021 y=1 定义(行0,列254) | 原图(行0,列254) 处理(行2,列254) | oob=0 take_orig=0 sel=82fe
+PROBE P100 x=1022 y=1 定义(行0,列255) | 原图(行0,列255) 处理(行2,列255) | oob=0 take_orig=0 sel=82ff
+PROBE P100 x=1023 y=1 定义(行0,列255) | 原图(行0,列255) 处理(行2,列255) | oob=0 take_orig=0 sel=82ff
+PROBE P100 x=0 y=2 定义(行1,列0) | 原图(行1,列0) 处理(行2,列0) | oob=0 take_orig=0 sel=8200
+PROBE P100 x=1 y=2 定义(行1,列0) | 原图(行1,列0) 处理(行2,列0) | oob=0 take_orig=0 sel=8200
+PROBE P100 x=2 y=2 定义(行1,列1) | 原图(行1,列1) 处理(行2,列1) | oob=0 take_orig=0 sel=8201
+PROBE P101 链入口 y_d3=2 cy_d3=1 | din tag=(行3,列149) oob_fb=0
+PROBE P100 x=1021 y=2 定义(行1,列254) | 原图(行1,列254) 处理(行2,列254) | oob=0 take_orig=0 sel=82fe
+PROBE P100 x=1022 y=2 定义(行1,列255) | 原图(行1,列255) 处理(行2,列255) | oob=0 take_orig=0 sel=82ff
+PROBE P100 x=1023 y=2 定义(行1,列255) | 原图(行1,列255) 处理(行2,列255) | oob=0 take_orig=0 sel=82ff
+PROBE P100 x=0 y=3 定义(行1,列0) | 原图(行1,列0) 处理(行2,列0) | oob=0 take_orig=0 sel=8200
+PROBE P100 x=1 y=3 定义(行1,列0) | 原图(行1,列0) 处理(行2,列0) | oob=0 take_orig=0 sel=8200
+PROBE P100 x=2 y=3 定义(行1,列1) | 原图(行1,列1) 处理(行2,列1) | oob=0 take_orig=0 sel=8201
+PROBE P101 链入口 y_d3=3 cy_d3=1 | din tag=(行3,列149) oob_fb=0
+PROBE P100 x=1021 y=3 定义(行1,列254) | 原图(行1,列254) 处理(行2,列254) | oob=0 take_orig=0 sel=82fe
+PROBE P100 x=1022 y=3 定义(行1,列255) | 原图(行1,列255) 处理(行2,列255) | oob=0 take_orig=0 sel=82ff
+PROBE P100 x=1023 y=3 定义(行1,列255) | 原图(行1,列255) 处理(行2,列255) | oob=0 take_orig=0 sel=82ff
+PROBE P100 x=0 y=4 定义(行2,列0) | 原图(行2,列0) 处理(行2,列0) | oob=0 take_orig=0 sel=8200
+PROBE P100 x=1 y=4 定义(行2,列0) | 原图(行2,列0) 处理(行2,列0) | oob=0 take_orig=0 sel=8200
+PROBE P100 x=2 y=4 定义(行2,列1) | 原图(行2,列1) 处理(行2,列1) | oob=0 take_orig=0 sel=8201
+PROBE P101 链入口 y_d3=4 cy_d3=2 | din tag=(行4,列149) oob_fb=0
+PROBE P100 x=1021 y=4 定义(行2,列254) | 原图(行2,列254) 处理(行2,列254) | oob=0 take_orig=0 sel=82fe
+PROBE P100 x=1022 y=4 定义(行2,列255) | 原图(行2,列255) 处理(行2,列255) | oob=0 take_orig=0 sel=82ff
+PROBE P100 x=1023 y=4 定义(行2,列255) | 原图(行2,列255) 处理(行2,列255) | oob=0 take_orig=0 sel=82ff
+PROBE P100 x=0 y=5 定义(行2,列0) | 原图(行2,列0) 处理(行2,列0) | oob=0 take_orig=0 sel=8200
+PROBE P100 x=1 y=5 定义(行2,列0) | 原图(行2,列0) 处理(行2,列0) | oob=0 take_orig=0 sel=8200
+PROBE P100 x=2 y=5 定义(行2,列1) | 原图(行2,列1) 处理(行2,列1) | oob=0 take_orig=0 sel=8201
+PROBE P101 链入口 y_d3=5 cy_d3=2 | din tag=(行4,列149) oob_fb=0
+PROBE P100 x=1021 y=5 定义(行2,列254) | 原图(行2,列254) 处理(行2,列254) | oob=0 take_orig=0 sel=82fe
+PROBE P100 x=1022 y=5 定义(行2,列255) | 原图(行2,列255) 处理(行2,列255) | oob=0 take_orig=0 sel=82ff
+PROBE P100 x=1023 y=5 定义(行2,列255) | 原图(行2,列255) 处理(行2,列255) | oob=0 take_orig=0 sel=82ff
+PROBE P100 x=0 y=6 定义(行3,列0) | 原图(行3,列0) 处理(行3,列0) | oob=0 take_orig=0 sel=8300
+PROBE P100 x=1 y=6 定义(行3,列0) | 原图(行3,列0) 处理(行3,列0) | oob=0 take_orig=0 sel=8300
+PROBE P100 x=2 y=6 定义(行3,列1) | 原图(行3,列1) 处理(行3,列1) | oob=0 take_orig=0 sel=8301
+PROBE P101 链入口 y_d3=6 cy_d3=3 | din tag=(行5,列149) oob_fb=0
+PROBE P100 x=1021 y=6 定义(行3,列254) | 原图(行3,列254) 处理(行3,列254) | oob=0 take_orig=0 sel=83fe
+PROBE P100 x=1022 y=6 定义(行3,列255) | 原图(行3,列255) 处理(行3,列255) | oob=0 take_orig=0 sel=83ff
+PROBE P100 x=1023 y=6 定义(行3,列255) | 原图(行3,列255) 处理(行3,列255) | oob=0 take_orig=0 sel=83ff
+PROBE P100 x=0 y=7 定义(行3,列0) | 原图(行3,列0) 处理(行3,列0) | oob=0 take_orig=0 sel=8300
+PROBE P100 x=1 y=7 定义(行3,列0) | 原图(行3,列0) 处理(行3,列0) | oob=0 take_orig=0 sel=8300
+PROBE P100 x=2 y=7 定义(行3,列1) | 原图(行3,列1) 处理(行3,列1) | oob=0 take_orig=0 sel=8301
+PROBE P101 链入口 y_d3=7 cy_d3=3 | din tag=(行5,列149) oob_fb=0
+PROBE P100 x=1021 y=7 定义(行3,列254) | 原图(行3,列254) 处理(行3,列254) | oob=0 take_orig=0 sel=83fe
+PROBE P100 x=1022 y=7 定义(行3,列255) | 原图(行3,列255) 处理(行3,列255) | oob=0 take_orig=0 sel=83ff
+PROBE P100 x=1023 y=7 定义(行3,列255) | 原图(行3,列255) 处理(行3,列255) | oob=0 take_orig=0 sel=83ff
+PROBE P100 x=0 y=8 定义(行4,列0) | 原图(行4,列0) 处理(行4,列0) | oob=0 take_orig=0 sel=8400
+PROBE P100 x=1 y=8 定义(行4,列0) | 原图(行4,列0) 处理(行4,列0) | oob=0 take_orig=0 sel=8400
+PROBE P100 x=2 y=8 定义(行4,列1) | 原图(行4,列1) 处理(行4,列1) | oob=0 take_orig=0 sel=8401
+PROBE P101 链入口 y_d3=8 cy_d3=4 | din tag=(行6,列149) oob_fb=0
+PROBE P100 x=1021 y=8 定义(行4,列254) | 原图(行4,列254) 处理(行4,列254) | oob=0 take_orig=0 sel=84fe
+PROBE P100 x=1022 y=8 定义(行4,列255) | 原图(行4,列255) 处理(行4,列255) | oob=0 take_orig=0 sel=84ff
+PROBE P100 x=1023 y=8 定义(行4,列255) | 原图(行4,列255) 处理(行4,列255) | oob=0 take_orig=0 sel=84ff
+PROBE P100 x=0 y=9 定义(行4,列0) | 原图(行4,列0) 处理(行4,列0) | oob=0 take_orig=0 sel=8400
+PROBE P100 x=1 y=9 定义(行4,列0) | 原图(行4,列0) 处理(行4,列0) | oob=0 take_orig=0 sel=8400
+PROBE P100 x=2 y=9 定义(行4,列1) | 原图(行4,列1) 处理(行4,列1) | oob=0 take_orig=0 sel=8401
+PROBE P101 链入口 y_d3=9 cy_d3=4 | din tag=(行6,列149) oob_fb=0
+PROBE P100 x=1021 y=9 定义(行4,列254) | 原图(行4,列254) 处理(行4,列254) | oob=0 take_orig=0 sel=84fe
+PROBE P100 x=1022 y=9 定义(行4,列255) | 原图(行4,列255) 处理(行4,列255) | oob=0 take_orig=0 sel=84ff
+PROBE P100 x=1023 y=9 定义(行4,列255) | 原图(行4,列255) 处理(行4,列255) | oob=0 take_orig=0 sel=84ff
+PROBE P101 链入口 y_d3=10 cy_d3=5 | din tag=(行7,列149) oob_fb=0
+PROBE P101 链入口 y_d3=11 cy_d3=5 | din tag=(行7,列149) oob_fb=0
+PROBE P98M y_d5=300 定义行=22 | 请求 y_req_row=153 cy_r=153 | 环入口 tag=(行24,列0) 环出口 tag=(行22,列0)
+PROBE P100 x=0 y=300 定义(行22,列0) | 原图(行22,列0) 处理(行22,列0) | oob=0 take_orig=0 sel=9600
+PROBE P100 x=1 y=300 定义(行22,列0) | 原图(行22,列0) 处理(行22,列0) | oob=0 take_orig=0 sel=9600
+PROBE P100 x=2 y=300 定义(行22,列1) | 原图(行22,列1) 处理(行22,列1) | oob=0 take_orig=0 sel=9601
+PROBE P100 x=1021 y=300 定义(行22,列254) | 原图(行22,列254) 处理(行22,列254) | oob=0 take_orig=0 sel=96fe
+PROBE P100 x=1022 y=300 定义(行22,列255) | 原图(行22,列255) 处理(行22,列255) | oob=0 take_orig=0 sel=96ff
+PROBE P100 x=1023 y=300 定义(行22,列255) | 原图(行22,列255) 处理(行22,列255) | oob=0 take_orig=0 sel=96ff
+PROBE P98M y_d5=301 定义行=22 | 请求 y_req_row=153 cy_r=153 | 环入口 tag=(行24,列0) 环出口 tag=(行22,列0)
+PROBE P98M y_d5=302 定义行=23 | 请求 y_req_row=154 cy_r=154 | 环入口 tag=(行25,列0) 环出口 tag=(行23,列0)
+PROBE P98M y_d5=303 定义行=23 | 请求 y_req_row=154 cy_r=154 | 环入口 tag=(行25,列0) 环出口 tag=(行23,列0)
+PROBE P101 链入口 y_d3=588 cy_d3=294 | din tag=(行40,列149) oob_fb=0
+PROBE P101 链入口 y_d3=589 cy_d3=294 | din tag=(行40,列149) oob_fb=0
+PROBE P101 链入口 y_d3=590 cy_d3=295 | din tag=(行41,列149) oob_fb=0
+PROBE P101 链入口 y_d3=591 cy_d3=295 | din tag=(行41,列149) oob_fb=0
+PROBE P100 x=0 y=595 定义(行41,列0) | 原图(行41,列0) 处理(行41,列0) | oob=0 take_orig=0 sel=a900
+PROBE P100 x=1 y=595 定义(行41,列0) | 原图(行41,列0) 处理(行41,列0) | oob=0 take_orig=0 sel=a900
+PROBE P100 x=2 y=595 定义(行41,列1) | 原图(行41,列1) 处理(行41,列1) | oob=0 take_orig=0 sel=a901
+PROBE P100 x=1021 y=595 定义(行41,列254) | 原图(行41,列254) 处理(行41,列254) | oob=0 take_orig=0 sel=a9fe
+PROBE P100 x=1022 y=595 定义(行41,列255) | 原图(行41,列255) 处理(行41,列255) | oob=0 take_orig=0 sel=a9ff
+PROBE P100 x=1023 y=595 定义(行41,列255) | 原图(行41,列255) 处理(行41,列255) | oob=0 take_orig=0 sel=a9ff
+PROBE P100 x=0 y=596 定义(行42,列0) | 原图(行42,列0) 处理(行42,列0) | oob=0 take_orig=0 sel=aa00
+PROBE P100 x=1 y=596 定义(行42,列0) | 原图(行42,列0) 处理(行42,列0) | oob=0 take_orig=0 sel=aa00
+PROBE P100 x=2 y=596 定义(行42,列1) | 原图(行42,列1) 处理(行42,列1) | oob=0 take_orig=0 sel=aa01
+PROBE P100 x=1021 y=596 定义(行42,列254) | 原图(行42,列254) 处理(行42,列254) | oob=0 take_orig=0 sel=aafe
+PROBE P100 x=1022 y=596 定义(行42,列255) | 原图(行42,列255) 处理(行42,列255) | oob=0 take_orig=0 sel=aaff
+PROBE P100 x=1023 y=596 定义(行42,列255) | 原图(行42,列255) 处理(行42,列255) | oob=0 take_orig=0 sel=aaff
+PROBE P100 x=0 y=597 定义(行42,列0) | 原图(行42,列0) 处理(行42,列0) | oob=0 take_orig=0 sel=aa00
+PROBE P100 x=1 y=597 定义(行42,列0) | 原图(行42,列0) 处理(行42,列0) | oob=0 take_orig=0 sel=aa00
+PROBE P100 x=2 y=597 定义(行42,列1) | 原图(行42,列1) 处理(行42,列1) | oob=0 take_orig=0 sel=aa01
+PROBE P100 x=1021 y=597 定义(行42,列254) | 原图(行42,列254) 处理(行42,列254) | oob=0 take_orig=0 sel=aafe
+PROBE P100 x=1022 y=597 定义(行42,列255) | 原图(行42,列255) 处理(行42,列255) | oob=0 take_orig=0 sel=aaff
+PROBE P100 x=1023 y=597 定义(行42,列255) | 原图(行42,列255) 处理(行42,列255) | oob=0 take_orig=0 sel=aaff
+PROBE P100 x=0 y=598 定义(行43,列0) | 原图(行43,列0) 处理(行43,列0) | oob=0 take_orig=0 sel=ab00
+PROBE P100 x=1 y=598 定义(行43,列0) | 原图(行43,列0) 处理(行43,列0) | oob=0 take_orig=0 sel=ab00
+PROBE P100 x=2 y=598 定义(行43,列1) | 原图(行43,列1) 处理(行43,列1) | oob=0 take_orig=0 sel=ab01
+PROBE P100 x=1021 y=598 定义(行43,列254) | 原图(行43,列254) 处理(行43,列254) | oob=0 take_orig=0 sel=abfe
+PROBE P100 x=1022 y=598 定义(行43,列255) | 原图(行43,列255) 处理(行43,列255) | oob=0 take_orig=0 sel=abff
+PROBE P100 x=1023 y=598 定义(行43,列255) | 原图(行43,列255) 处理(行43,列255) | oob=0 take_orig=0 sel=abff
+PROBE P100 x=0 y=599 定义(行43,列0) | 原图(行43,列0) 处理(行43,列0) | oob=0 take_orig=0 sel=ab00
+PROBE P100 x=1 y=599 定义(行43,列0) | 原图(行43,列0) 处理(行43,列0) | oob=0 take_orig=0 sel=ab00
+PROBE P100 x=2 y=599 定义(行43,列1) | 原图(行43,列1) 处理(行43,列1) | oob=0 take_orig=0 sel=ab01
+PROBE P100 x=1021 y=599 定义(行43,列254) | 原图(行43,列254) 处理(行43,列254) | oob=0 take_orig=0 sel=abfe
+PROBE P100 x=1022 y=599 定义(行43,列255) | 原图(行43,列255) 处理(行43,列255) | oob=0 take_orig=0 sel=abff
+PROBE P100 x=1023 y=599 定义(行43,列255) | 原图(行43,列255) 处理(行43,列255) | oob=0 take_orig=0 sel=abff
+C4 idx=0 ang=0 zoom=100% zsel=4 有画面行=780 无画面行=0 **多段行=0** 第1列[0..0] 末列[1023..1023] | angle=0 rot_on=0
+PASS C4a rows judged | this (angle, zoom) cell must actually have content rows, else C4b below means nothing
+PASS C4b one run per row | a rotated rectangle meets every panel row in ONE contiguous run; 2+ runs = #93's stray diagonal bar / left-edge line
+ROWMIX col=356 y11=6 | screen=0000 dec(0,0) exp(3,178) dcol=78 drow=-3 sx=309 sy=0 off=4
+ROWMIX col=357 y11=6 | screen=0000 dec(0,0) exp(3,178) dcol=78 drow=-3 sx=309 sy=0 off=4
+ROWMIX col=358 y11=6 | screen=0000 dec(0,0) exp(3,179) dcol=77 drow=-3 sx=309 sy=1 off=4
+ROWMIX col=359 y11=6 | screen=0000 dec(0,0) exp(3,179) dcol=77 drow=-3 sx=309 sy=1 off=4
+ROWMIX col=360 y11=6 | screen=0000 dec(0,0) exp(3,180) dcol=76 drow=-3 sx=310 sy=1 off=4
+ROWMIX col=361 y11=6 | screen=0000 dec(0,0) exp(3,180) dcol=76 drow=-3 sx=310 sy=1 off=4
+C4 idx=1 ang=45 zoom=100% zsel=4 有画面行=780 无画面行=0 **多段行=0** 第1列[0..176] 末列[635..1023] | angle=45 rot_on=1
+PASS C4a rows judged | this (angle, zoom) cell must actually have content rows, else C4b below means nothing
+PASS C4b one run per row | a rotated rectangle meets every panel row in ONE contiguous run; 2+ runs = #93's stray diagonal bar / left-edge line
+C4 idx=2 ang=90 zoom=100% zsel=4 有画面行=780 无画面行=0 **多段行=0** 第1列[212..212] 末列[811..811] | angle=90 rot_on=1
+PASS C4a rows judged | this (angle, zoom) cell must actually have content rows, else C4b below means nothing
+PASS C4b one run per row | a rotated rectangle meets every panel row in ONE contiguous run; 2+ runs = #93's stray diagonal bar / left-edge line
+C4 idx=3 ang=168 zoom=100% zsel=4 有画面行=780 无画面行=0 **多段行=0** 第1列[0..460] 末列[973..1023] | angle=168 rot_on=1
+PASS C4a rows judged | this (angle, zoom) cell must actually have content rows, else C4b below means nothing
+PASS C4b one run per row | a rotated rectangle meets every panel row in ONE contiguous run; 2+ runs = #93's stray diagonal bar / left-edge line
+C4 idx=4 ang=0 zoom=50% zsel=2 有画面行=480 无画面行=300 **多段行=0** 第1列[256..256] 末列[767..767] | angle=0 rot_on=0
+PASS C4a rows judged | this (angle, zoom) cell must actually have content rows, else C4b below means nothing
+PASS C4b one run per row | a rotated rectangle meets every panel row in ONE contiguous run; 2+ runs = #93's stray diagonal bar / left-edge line
+C4 idx=5 ang=45 zoom=50% zsel=2 有画面行=756 无画面行=24 **多段行=0** 第1列[226..436] 末列[437..799] | angle=45 rot_on=1
+PASS C4a rows judged | this (angle, zoom) cell must actually have content rows, else C4b below means nothing
+PASS C4b one run per row | a rotated rectangle meets every panel row in ONE contiguous run; 2+ runs = #93's stray diagonal bar / left-edge line
+C4 idx=6 ang=90 zoom=50% zsel=2 有画面行=696 无画面行=84 **多段行=0** 第1列[362..362] 末列[661..661] | angle=90 rot_on=1
+PASS C4a rows judged | this (angle, zoom) cell must actually have content rows, else C4b below means nothing
+PASS C4b one run per row | a rotated rectangle meets every panel row in ONE contiguous run; 2+ runs = #93's stray diagonal bar / left-edge line
+C4 idx=7 ang=168 zoom=50% zsel=2 有画面行=584 无画面行=196 **多段行=0** 第1列[230..728] 末列[731..793] | angle=168 rot_on=1
+PASS C4a rows judged | this (angle, zoom) cell must actually have content rows, else C4b below means nothing
+PASS C4b one run per row | a rotated rectangle meets every panel row in ONE contiguous run; 2+ runs = #93's stray diagonal bar / left-edge line
+C4 idx=8 ang=0 zoom=25% zsel=0 有画面行=300 无画面行=480 **多段行=0** 第1列[384..384] 末列[641..641] | angle=0 rot_on=0
+PASS C4a rows judged | this (angle, zoom) cell must actually have content rows, else C4b below means nothing
+PASS C4b one run per row | a rotated rectangle meets every panel row in ONE contiguous run; 2+ runs = #93's stray diagonal bar / left-edge line
+C4 idx=9 ang=45 zoom=25% zsel=0 有画面行=468 无画面行=312 **多段行=0** 第1列[370..496] 末列[475..655] | angle=45 rot_on=1
+PASS C4a rows judged | this (angle, zoom) cell must actually have content rows, else C4b below means nothing
+PASS C4b one run per row | a rotated rectangle meets every panel row in ONE contiguous run; 2+ runs = #93's stray diagonal bar / left-edge line
+C4 idx=10 ang=90 zoom=25% zsel=0 有画面行=440 无画面行=340 **多段行=0** 第1列[438..438] 末列[587..587] | angle=90 rot_on=1
+PASS C4a rows judged | this (angle, zoom) cell must actually have content rows, else C4b below means nothing
+PASS C4b one run per row | a rotated rectangle meets every panel row in ONE contiguous run; 2+ runs = #93's stray diagonal bar / left-edge line
+C4 idx=11 ang=168 zoom=25% zsel=0 有画面行=384 无画面行=396 **多段行=0** 第1列[372..620] 末列[447..653] | angle=168 rot_on=1
+PASS C4a rows judged | this (angle, zoom) cell must actually have content rows, else C4b below means nothing
+PASS C4b one run per row | a rotated rectangle meets every panel row in ONE contiguous run; 2+ runs = #93's stray diagonal bar / left-edge line
+C5  judged=3564 bad=0 | head rows=36 wrong=24 (OFF_LINES=4, col=512)
+PASS C5a judged rows | the 0deg x 100% cell must give >=500 judged rows, else C5b/C5c below mean nothing
+PASS C5b body rows carry their own source row | decoded tag row == panel row/2 below the pipeline head; any off-by-N is the read-side advance (cy_r)
+C5 分列（帧头窗 = 最上面 OFF+2 行）：col300 头 12 格/不符 8、体 1188 格/不符 0 || col512 头 12/8、体 1188/0 || col900 头 12/8、体 1188/0
+FAIL C5c frame head is not the previous frame's tail | first OFF+BILIN output rows must carry their own source row on BOTH sides of the seam
+C6  每行第0格 judged=1200 源列不是0的=0
+PASS C6a line head carries the line's own column 0 | at 0deg x 100% the picture fills the screen, so NO background-based ruler can see a wrapped line head; the tag's column must be 0 (= #97's left band candidate)
+C8  第0列：原图 样本 1178 格、不符 0 格 || 处理 样本 1178 格、不符 0 格
+PASS C8a raw tap's first column of every body row is the row's own column 0 | #10����������������������������������������������������������������������������� 16����������������������������
+PASS C8b proc tap's first column of every body row is the row's own column 0 | ���������������������������������������������C8a����������������������������������������������������
+C9 gray x seam=512: lines-in-window 1200 (de-edges 4200) near-black-cells 0 || darkest col-1=0 rows, brightest col1=0 rows || at seam col511=0 col512=0 col513=0
+PASS C9pre rows judged | this window must have judged nearly the whole frame, else C9a below is a green on an empty set
+PASS C9a no full-height black column with gray on and seam mid | the line the user reported at 23:3x: no column inside the picture may be majority near-black
+PASS C9c columns at the seam are not black either | the user says the line appears where the divider passes; the seam's own columns are the suspect set
+C9b 0.50x gray+blur: lines-in-window 1200 (de-edges 3000) near-black-cells 921600 || whole-dark columns 1022 (border should give ~512)
+PASS C9bpre rows judged | the control window must have judged nearly a whole frame, else C9b means nothing
+PASS C9b detector does see known black columns | pair for C9a: on a cell where a dark column is guaranteed, this same counter must light up
+C9e full-processed x 1.5x x gray: lines-in-window 1200 (de-edges 3000) px 1228800 near-black 0 || darkest col -1 = 0 rows
+PASS C9epre rows judged | this window must have judged nearly the whole frame, else C9e below is a green on an empty set
+PASS C9e no majority-dark column, processed tap full-screen at 1.5x | board shows a full-height near-black column at internal col 128 (display 256) here; ISSUES #103
+C12 osd switch at the panel: rose cells ON=22842 (over 1228800 px) OFF=0
+PASS C12pre the rose probe does see glyphs when OSD is on | pair for C12a: with OSD on, the panel must actually carry glyph cells, else C12a's zero is a blind probe
+PASS C12a osd off removes every glyph cell at the panel | gpio_o[20] must reach u_osd through its own 3-stage chain; ISSUES r83 OSD switch
+C2 table  code inv  nin     nout     inbad viol measl measr geol geor leakl leakr blank invbad | C3 rows empt wbad rbad fmin fmax lmin lmax

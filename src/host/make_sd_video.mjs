@@ -28,7 +28,7 @@ function arg(name, dflt) {
 }
 const has = (name) => process.argv.includes('--' + name);
 
-const inp = arg('in', 'D:/UserData/Downloads/upm.mp4');
+const inp = arg('in', './input.mp4');
 const out = arg('out', './sd_stage');
 const CHUNK = parseInt(arg('chunks', '512'), 10);
 if (!fs.existsSync(inp)) { console.error('找不到输入视频: ' + inp); process.exit(1); }
