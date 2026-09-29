@@ -216,6 +216,7 @@ def collect():
 
 
 SKIP_LIST = []
+DUPS = []
 
 
 def instances(src):
@@ -241,7 +242,7 @@ def instances(src):
 SIM = os.path.join(ROOT, "sim")
 
 
-def check_instances(path, src, mods, problems, want_width=True):
+def check_instances(path, src, mods, problems, want_width=True, dup_hard=False):
     """一个文件里的所有例化 → 追加违规，返回 (例化数, 比过位宽的连接数)。
 
     ①连了不存在的端口名 ②输入悬空 —— 两类都判；③位宽只在 RTL 内部判（`want_width`）：
@@ -265,6 +266,18 @@ def check_instances(path, src, mods, problems, want_width=True):
             continue
         checked += 1
         conns = set(re.findall(r"\.\s*([A-Za-z_]\w*)\s*\(", arg))
+        # 重复命名关联：`mod u (.a(x), .a(y))` 里后一次覆盖前一次，综合只留一条 ⇒ **静默接错**。
+        # `set()` 会把这种重复抹掉（第一版就是这样漏掉 `pl_demo_top` 那两个 `.stage_sel()` 的，#127-1），
+        # 所以这里另数一遍出现次数。默认只报 `DUP`（不进门禁第 14 项的红），
+        # 加 `--dup` 才升为违规 —— 升的那一轮要同时把 RTL 改掉，否则一次改动同时测两件事。
+        seq = re.findall(r"\.\s*([A-Za-z_]\w*)\s*\(", arg)
+        for dup in sorted({n for n in seq if seq.count(n) > 1}):
+            where = "%s:%d  %s %s 端口 .%s() 被连了 %d 次（后一次覆盖前一次 = 静默接错）" % (
+                rel, line, mod, inst, dup, seq.count(dup))
+            if dup_hard:
+                problems.append(where)
+            else:
+                DUPS.append(where)
         for bad in sorted(conns - allp):
             problems.append("%s:%d  %s %s 连了不存在的端口 .%s()" % (rel, line, mod, inst, bad))
         for miss in sorted(ins - conns):
@@ -300,12 +313,13 @@ def walk_files(root):
 def main():
     quiet = "--quiet" in sys.argv
     sim_only = "--audit-sim" in sys.argv
+    dup_hard = "--dup" in sys.argv
     mods = collect()
     problems = []
     checked = wchecked = 0
     if not sim_only:
         for path, src in walk_files(RTL):
-            c, w = check_instances(path, src, mods, problems, want_width=True)
+            c, w = check_instances(path, src, mods, problems, want_width=True, dup_hard=dup_hard)
             checked += c
             wchecked += w
     # 台架也扫：**#88 的根因就在这一格里** —— `#83` 给顶层加的 `bilin_en_axi` 只接进了 `pl_demo_top`
@@ -313,8 +327,13 @@ def main():
     # 整条显示内容在仿真里是 X ⇒ 四条内容判据红了好几天，而症状读起来像"顶层通路坏了"。
     # 台架只判 ①/②（悬空与错名），位宽不判（理由见 check_instances）。
     for path, src in walk_files(SIM):
-        c, _w = check_instances(path, src, mods, problems, want_width=False)
+        c, _w = check_instances(path, src, mods, problems, want_width=False, dup_hard=dup_hard)
         checked += c
+    for d in DUPS:
+        print("DUP " + d)
+    if not quiet and DUPS:
+        print("  DUP = 重复命名关联这一类：现在**不判红**，加 `--dup` 才升为违规。")
+        print("  升的那一轮必须同时把被连两次的端口改掉（#127-1），否则门禁第 14 项会替我记住这笔债。")
     for p in problems:
         print(p)
     if not quiet and SKIP_LIST:
