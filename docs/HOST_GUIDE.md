@@ -25,25 +25,25 @@ xsdb build\tcl\ps_app_reload.tcl
 
 只想看 HDMI 出图、不需要命令的话，第三步可以省。串口是 COM6 / 115200 / 8N1。
 
-## 2. 推流：两条发送端，一条零依赖
+## 2. 推流：Python 是默认，Node 是实验台
 
 | 工具 | 要装什么 | 能做什么 | 什么时候用它 |
 |---|---|---|---|
-| `python3 src/host/udp_push.py` | **只要 Python 3（标准库）** | `--pattern edge` 整屏逐帧黑白交替（判"换帧是否原子"）、`--file F` 推裸 RGB565 帧流、`--pace-mbps` 限速、`--drop-every N` 确定性丢包 | 默认用它：评委/任何人拿到包就能推，不需要 Node；演示"坏帧不上屏"用 `--drop-every` |
-| `node src/host/video_sender.mjs` | Node 18+（实测 v24，只用内置 `node:` 模块） | 上面那些 + 一整套**自带判据的图案**：`bars`（横条纹滚动 + 移动方块拖影 + 左缘奇偶行洋红标记，用于行序错乱）、`frameid`/`wordid`（每帧一个编号的 8 个二值格 ⇒ 拍照就能读出屏上这帧是第几帧）、`grad`、`hold`、`move`、`edge` | 做归因实验时用它；协议与上面完全一致（同一套 `[u32 LE 偏移][载荷]`） |
+| **`python src/host/video_sender.py --demo`** | **只要 Python 3（标准库）**；发自己的视频时才需要 ffmpeg | 先 ping 板子再推；`--input 任意.mp4/mov/avi` 经 ffmpeg 解码并缩放到 PL 画幅 512×300；没有 ffmpeg 就发**内置测试图**（渐变底 + 每帧下移的白线 + 横移红块，用来确认"帧在动、换帧整帧原子"）；`--fps` / `--pace-mbps` 控节奏 | **默认用它**：评委拿到包就能跑；双击根目录的 **`send_demo.bat`** 就是"ping + 发自带测试视频" |
+| `python3 src/host/udp_push.py` | 只要 Python 3（标准库） | `--pattern edge` 整屏逐帧黑白交替（判"换帧是否原子"）、`--file F` 推裸 RGB565 帧流、`--drop-every N` 确定性丢包 | 做**有判据**的推流实验时用它（协议与上面完全一致） |
+| `node src/host/video_sender.mjs` | Node 18+（只用内置 `node:` 模块） | 一整套**自带判据的图案**：`bars`（横条纹滚动 + 移动方块拖影 + 左缘奇偶行洋红标记，用于行序错乱）、`frameid`/`wordid`（每帧一个编号的 8 个二值格 ⇒ 拍照就能读出屏上这帧是第几帧）、`grad`、`hold`、`move`、`edge` | 做归因实验时用它；同一套 `[u32 LE 偏移][载荷]` 协议 |
 
 ```bash
+python src/host/video_sender.py --demo                        # ping + 自带测试图（双击 send_demo.bat 等价）
+python src/host/video_sender.py --input 我的视频.mp4 --fps 30  # 任意片源（需要 ffmpeg）
 python3 src/host/udp_push.py --pattern edge --fps 15 --count 600
-python3 src/host/udp_push.py --file frames.rgb --fps 30 --pace-mbps 15
 python3 src/host/udp_push.py --pattern edge --count 300 --drop-every 500   # 板上必须整帧不上屏
-node src\host\video_sender.mjs --test bars --fps 15
-node src\host\video_sender.mjs --test frameid --fps 15 --count 200   :: 丢帧判据专用
-node src\host\video_sender.mjs --file - < raw.rgb565                 :: 裸流从 stdin 进
+node src\host\video_sender.mjs --test frameid --fps 15 --count 200         # 丢帧判据专用
+node src\host\video_sender.mjs --file - < raw.rgb565                      # 裸流从 stdin 进
 ```
 
-```bat
-node src\host\video_sender.mjs --test bars --fps 15 --ip 192.168.1.10
-```
+分辨率只有一个口径要说清楚：**面板 1024×600，PL 处理画幅 512×300（输出侧 ×2）**，
+所以三个发送端发出去的都是 512×300 的帧；`--raw 1024x600` 这类参数是"源有多大"，不是"板子收多大"。
 
 | 参数（下表是 `video_sender.mjs` 的；`udp_push.py` 的参数用 `--help` 看，命名一致但少几项） | 默认 | 说明 |
 |------|------|------|
