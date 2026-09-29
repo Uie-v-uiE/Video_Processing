@@ -721,6 +721,7 @@ setup 侧 `ExtraTimingOpt` 反而把 `eth_rxc` 从 +0.516 花到 +0.157。两滚
 | `clk_fpga_0`（100 MHz） | +1.643 / +0.051 | **+2.161** / +0.037 | 同上 |
 | 失败 setup/hold 端点 | 0 / 50885 | **0 / 50885** | 同上（"All user specified timing constraints are met"） |
 | BRAM / LUT / FF / DSP | 95 / 14358 / 8075 / 19 | 95 / **14351** / 8075 / 19 | `build/utilization.rpt` |
+| `BUFIO` 用量（`clock_util.rpt` 第一张表） | 1 | **0** | 这是**结构判据**而不是时序判据：拓扑上确实少了一棵树，与 slack 摆幅无关。改前对照是仓库里的 `build/r88_clock_util.rpt`（rNN 命名的对照件，不随包） |
 | **最差那族 hold 的时钟偏斜** | **+1.616 ns**（BUFIO→BUFG 两条树） | **0.013 / 0.032 / 0.037 / 0.262 / 0.349 ns**（同一棵树内） | `build/tcl/hold_paths.tcl` → `build/hold_paths.rpt` |
 
 **这一张表要怎么念**（这是本轮最重要的一句话）：**WHS 没有变好，但"它为什么薄"换了**。

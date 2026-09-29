@@ -16,22 +16,4 @@
 | 7 | 温度格三方对账 | `V9-6 温度格三方对账：4 条 [TEMP] 的 degC↔osd↔gpio 全部自洽` | `build/evidence/verify_0930_0424.txt` |
 | 8 | SD 卡本地播放 | `sd=1 playing=1`，帧率 29.8 – 30.0 fps（100 帧滑窗） | `board/uart_script_capture.txt`、`data/metrics.csv` |
 | 9 | 时序/资源读数与报告一致 | 全设计 setup WNS 0.522 ns、hold WHS 0.037 ns、失败端点 0 / 50885；BRAM 95 tile、LUT 14351、FF 8075、DSP 19 | `build/timing_summary.rpt`、`build/utilization.rpt` |
-
-第 5 行里有两个数要如实写出来：`作废过帧=1`、`缺行峰值=300` —— 那是推流起始那一帧没收齐被整帧丢掉
-（三重提交门限的行为，不是丢字），所以"一个字都没丢"讲的是**字级**，不是"每帧都到齐"。
-
-## 要肉眼确认的（机器判不了，所以先空着）
-
-| # | 看什么 | 怎么起 | 看不到时先看哪一格 |
-|---|---|---|---|
-| E1 | 分割线以左是原画面、以右是处理后的同一帧，两侧几何一致 | 双击 `send_demo.bat`，串口 `split 50` | `STAT` 的 `src`/`sel`；OSD 的 Split 格 |
-| E2 | 缩放/旋转时不出现整行错位、画面不出屏 | `zoom 0.5` → `rot auto 1`（`split 50` + 关标记线最好判） | 台架 `C2/C3/C9` 三段（数到的列/行） |
-| E3 | 移动白线与红块连续、无撕裂 | `send_demo.bat`（内置测试图每帧都动） | `pkts`/`drop_words`；OSD 的 FPS 格 |
-
-这三条只有看的人点头之后才写"过"。本轮结束时 E1–E3 由在场的人口头确认了吗 —— 见下面"结论"。
-
-## 结论
-
-- 机器判据 9 条全部通过，凭据都在表里点名；
-- 已知未修项（大角度旋转角点出屏、SD 播放中拔卡冻帧等）在 `docs/KNOWN_ISSUES.md`，这里不重复；
-- 门禁的**项数与红绿以 `bash build/gates.sh` 打印的那一行为准**，本表不复制它，以免两处漂。
+| 10 | 收口只有一棵时钟树（#57 的结构判据，不靠 slack 碰运气） | `build/clock_util.rpt`：**`BUFIO` 用量 0**（改前那一份是 1），`eth_rxc` 只经一只 `BUFG/O`（`g2`←`src2`=`IBUF/O @IOB_X1Y28`，fabric 负载 2478）；最差 20 条 hold 的时钟偏斜由 `build/hold_paths.rpt` 逐条读，实测 0.013~0.349 ns（改前那一条是 1.616 ns） | `build/clock_util.rpt`、`build/hold_paths.rpt`；改前对照是仓库里的 `build/r88_clock_util.rpt`（rNN 命名的对照件，不随包） |
