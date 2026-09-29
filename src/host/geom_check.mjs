@@ -30,7 +30,7 @@ if (process.argv.includes('--help') || process.argv.includes('-h')) {
   console.log('⚠ 会动板上状态（结尾自己还原，G4 就是钉这件事的）。跑之前确认 hw_server 在、bit 已下载。');
   process.exit(0);
 }
-const XSDB = String(arg('--xsdb', 'D:\\Software\\Vivado\\2025.2.1\\Vitis\\bin\\xsdb.bat'));
+const XSDB = String(arg('--xsdb', process.env.VP_XSDB || 'xsdb.bat'));
 const JPORT = String(arg('--jtag', '3121'));
 const COM = String(arg('--com', 'COM6'));
 const SENDER = 'board/uart_cmd_script.ps1';

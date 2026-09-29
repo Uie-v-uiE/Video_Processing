@@ -12,7 +12,7 @@
 import { execSync, execFileSync } from 'node:child_process';
 import { writeFileSync, unlinkSync } from 'node:fs';
 
-const XSDB = 'D:\\Software\\Vivado\\2025.2.1\\Vitis\\bin\\xsdb.bat';
+const XSDB = process.env.VP_XSDB || 'xsdb.bat';
 const N = Number(process.argv[2] || 40);
 const GAP = Number(process.argv[3] || 25);
 const ADDRS = [0x10000040, 0x10080040, 0x10100040];   // ETH bank0 / ETH bank1 / PS 专用 bank

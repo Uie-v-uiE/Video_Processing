@@ -17,7 +17,7 @@ import { dump } from './repo_path.mjs';
 const W = 512, H = 300, FRAME_BYTES = W * H * 2, HDR = 4, MTU = 1392;
 const WORDS64 = FRAME_BYTES / 8;                 // 38400
 const BANK = 0x10000000;
-const XSDB = String(get('xsdb', 'D:\\Software\\Vivado\\2025.2.1\\Vitis\\bin\\xsdb.bat'));
+const XSDB = String(get('xsdb', process.env.VP_XSDB || 'xsdb.bat'));
 
 function get(n, d) {
   const i = process.argv.indexOf('--' + n);

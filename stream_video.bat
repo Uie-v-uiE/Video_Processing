@@ -4,7 +4,7 @@ REM UDP link. The panel path is 512x300 RGB565, so ffmpeg decodes + scales to ex
 REM pipes raw frames into src/host/video_sender.mjs (mode `--file -`).
 REM
 REM   usage:   stream_video.bat [video.mp4] [fps]
-REM   default: video = D:\UserData\Downloads\a.mp4   fps = 30
+REM   必填: 视频文件路径（本机绝对路径不作为默认值写在脚本里）; fps 默认 30
 REM
 REM Notes worth keeping in mind (all are deliberate):
 REM   * -re makes ffmpeg emit at real time, so the frame rate on the wire IS the number you pass.
@@ -17,7 +17,7 @@ REM   * Exit with Ctrl+C. The board hands the picture back automatically (arbite
 setlocal
 set "VIDEO=%~1"
 set "FPS=%~2"
-if "%VIDEO%"=="" set "VIDEO=D:\UserData\Downloads\a.mp4"
+if "%VIDEO%"=="" (echo FATAL: 要给视频文件：stream_video.bat ^<你的视频.mp4^> [fps] && exit /b 2)
 if "%FPS%"=="" set "FPS=30"
 
 cd /d "%~dp0"
@@ -36,7 +36,7 @@ if errorlevel 1 (
 )
 if not exist "%VIDEO%" (
   echo [ERR] video not found: "%VIDEO%"
-  echo        drop a file on this .bat, or run: stream_video.bat D:\path\to\clip.mp4 30
+  echo        drop a file on this .bat, or run: stream_video.bat <你的视频.mp4> 30
   pause
   exit /b 1
 )

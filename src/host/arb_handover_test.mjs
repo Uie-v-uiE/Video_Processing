@@ -34,7 +34,7 @@ function get(name, def) {
   const nxt = process.argv[i + 1];
   return nxt && !nxt.startsWith('--') ? nxt : true;
 }
-const XSDB  = String(get('xsdb',  'D:\\Software\\Vivado\\2025.2.1\\Vitis\\bin\\xsdb.bat'));
+const XSDB  = String(get('xsdb',  process.env.VP_XSDB || 'xsdb.bat'));
 const PORT  = Number(get('port',  3121));
 const GPIO0 = '0x' + String(get('gpio0', '41200000'));
 const GPIO1 = '0x' + String(get('gpio1', '41210000'));

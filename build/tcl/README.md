@@ -8,7 +8,7 @@
 ## 1. 构建（唯一规范入口）
 
 ```bat
-set VIVADO=D:\Software\Vivado\2025.2.1\Vivado\bin\vivado.bat
+set VIVADO=<Vivado>\bin\vivado.bat
 %VIVADO% -mode batch -source build\tcl\build_system_axigpio.tcl
 ```
 
