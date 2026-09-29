@@ -1,8 +1,24 @@
 # `build/` —— 一条命令复现这一版，外加综合与实现报告
 
-这里只有两样东西：**能跑的构建脚本**（`tcl/` 与几个 `.sh`/`.py`）和**这一版跑出来的报告**
-（`reports/`、`bitstream/`）。报告是 Vivado 自己产出的原文，不做二次加工；脚本是复现路径，
-按下面三步走就能得到同一块位流。工具版本：Vivado / Vitis 2025.2.1，器件 `xc7z020clg484-2`。
+这里只有两类东西：**能跑的构建脚本**与**这一版跑出来的报告**。报告是 Vivado 自己产出的原文，
+不做二次加工；脚本按下面三步走就能得到同一块位流。工具版本：Vivado / Vitis 2025.2.1，
+器件 `xc7z020clg484-2`。
+
+这个目录里具体有什么：
+
+| 路径 | 是什么 |
+|---|---|
+| `tcl/` | 构建与查询脚本，入口是 `tcl/build_system_axigpio.tcl` |
+| `reports/` | 综合与实现报告（时序汇总、资源、功耗、布线状态、方法论、CDC…） |
+| `bitstream/`、`system.bit`、`system.xsa`、`ps_app.elf` | 这一版的位流、XSA 与固件 |
+| `build_ps_app.py` | 不开 IDE 也把 `src/ps` 编成 ELF，并对成品做自检 |
+| `gates.sh`、`board_verify.sh` | 门禁与上板回读（复现的第二、三步） |
+| `check_ports.py`、`check_skill_cards.py`、`freeze_evidence.sh`、`tb98_report.sh` | 上面两个脚本自己要调的辅助脚本 |
+| `evidence/`、`evidence_rNN/`、`frozen_rNN/` | 交付文档按路径点名的凭据（报告与那一跑的原始输出），所以随包 |
+
+仓库里还有一批开发工具（滚一轮对照、注释手术、孤儿 RTL 扫描等）**不随包**：它们不在复现链上，
+文档里提到它们的地方已改成"仓库里的某某（工具，不随包）"，不留假链接。
+
 
 ## 复现（唯一入口）
 

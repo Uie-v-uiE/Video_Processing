@@ -54,6 +54,18 @@ PRUNE_ONEOFF=(
   build/tcl/uram_presence.tcl build/tcl/uram_probe.tcl build/tcl/uram_sites.tcl
   build/tcl/dfx_runtime.txt build/tcl/retry_open_nr.log
   sim/run_zoom_only.tcl tight_setup_hold_pins.txt board/ddr_churn_r33_pair.md
+  # `build/` 在包里只该有两类东西：**可复现的构建脚本**与**综合/实现报告**（用户看包时提的）。
+  # 下面这些是仓里的开发工具，不在复现链上 —— 复现链的名单不是凭印象列的，是从
+  # `gates.sh` / `board_verify.sh` 里 grep 出来的：gates.sh 会调 check_ports.py、freeze_evidence.sh、
+  # gates_cdc_test.sh、tb98_report.sh、board_verify.sh，所以那几个**留**，其余走。
+  build/_scan_align.mjs build/cleanup_wip.sh build/refresh_evidence.sh build/roll_isolated.sh
+  build/trim_comments.py build/orphan_rtl.sh build/rim_gate_ce.sh build/tb98_gate_ce.sh
+)
+# `build/make_submission.sh` **留**：它是"这个包怎么生成的"那一步的脚本（MANIFEST 也点名它），
+# 属于"可复现"，不属于开发工具。
+BUILD_DEV_ONLY=(
+  build/_scan_align.mjs build/cleanup_wip.sh build/refresh_evidence.sh build/roll_isolated.sh
+  build/trim_comments.py build/orphan_rtl.sh build/rim_gate_ce.sh build/tb98_gate_ce.sh
 )
 
 # ---- 无论有没有被点名都留着：跑起来的那一套 ----
@@ -285,6 +297,23 @@ xargs -r sed -i -f _map.sed < _txt.txt
 
 for b in build/system.bit build/system.xsa build/ps_app.elf; do
   if [ -f "$REPO/$b" ]; then cp "$REPO/$b" "build/bitstream/$(basename "$b")"; fi
+done
+
+# ---- 3.9 被剪掉的**仓库工具**，活文档里的指路就地改口 ----
+# 剪掉文件而不改指路 = 亲手造死链接（上一版就是这么被自检拒绝落盘的：25 条里全是这一类）。
+# 改口只动"活文档"，`report/log/` 里的日记保持原样 —— 那里写的是"当时那天跑的是哪个脚本"，
+# 把它改成"仓库里的"等于替史官改写历史。每改一处都记进 _pruned.txt，让这件事能被核对。
+for f in README.md README.en.md report/*.md skill/*.md skill/*/*.md board/*.md sim/*.md \
+         data/metrics.csv build/README.md; do
+  [ -f "$f" ] || continue
+  for t in "${BUILD_DEV_ONLY[@]}"; do
+    bn="$(basename "$t")"
+    if grep -qF -- "$t" "$f" 2>/dev/null; then
+      n="$(grep -cF -- "$t" "$f")"
+      sed -i "s|${t//./\\.}|仓库里的 ${bn}（工具，不随包）|g" "$f"
+      echo "改口 $f: $t → 仓库里的 ${bn}（$n 处）" >> _pruned.txt
+    fi
+  done
 done
 
 # ---- 4. 自检 ----
