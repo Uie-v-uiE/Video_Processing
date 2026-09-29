@@ -141,3 +141,8 @@ build/isolated_*/*.bit
 build/*isolated*/*.bit
 build/isolated_*/*.xsa
 build/*isolated*/*.xsa
+
+# 草稿与原始字节捕获：草稿会被正式报告顶替（draft 不该有凭据身份），
+# 捕获是 board/serial_bytes.ps1 每次跑都重生成的本机产物，不是判据原件（原件在 build/evidence/）
+build/*_draft.txt
+build/serial_bytes_*.txt
