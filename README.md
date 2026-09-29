@@ -50,7 +50,9 @@ bash build/board_verify.sh --battery --geom
   凭据：`build/r75_gates.txt` 与 `build/evidence_r75/`。
 - 板上当前是 **r87**（**未冻结**）：WNS +0.152 ns、失败端点 0 / 50885，LUT 14363（27.00 %）、
   FF 8075（7.59 %）、BRAM 95 tile（67.86 %）、DSP 19（8.64 %）——逐项数值与它们出自哪份报告，
-  统一在 **[data/metrics.csv](data/metrics.csv)**，报告原件在 `build/reports/r87_*.rpt`。
+  统一在 **[data/metrics.csv](data/metrics.csv)**，报告原件在 `build/` 里那一版的
+  `rNN_timing_summary.rpt` / `rNN_utilization.rpt`（提交包按 §3.3.5.4 把它们展平进 `build/reports/`，
+  文件名不变 —— 所以下面表里那一条路径在两处都指同一份）。
   它没冻结的原因写在 [docs/KNOWN_ISSUES.md](docs/KNOWN_ISSUES.md)：顶层台架那 128 条逐像素判定里
   有 1 条是**故意留红**的（`C5c`，对应未修的 #98）。
 - 走势与"为什么某一版被否掉"在 [docs/OPTIMIZATION_LOG.md](docs/OPTIMIZATION_LOG.md)；

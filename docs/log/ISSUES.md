@@ -6059,3 +6059,31 @@ Data Path Delay 7.236 ns (logic 2.467 = 34 %  route 4.769 = 66 %)   Logic Levels
   两种结局都算这条判据在动，不会有一个恒绿的分支。
 
 **没做的事**：没有为了让它绿而去补 `n/a` 分支的凭据；也没有把阈值动过一个字。
+
+## #142（2026-09-29 15:47，交付文档点名的报告路径有一类根本没人判：`build/reports/` 是包里的写法）
+
+**症状**：`data/metrics.csv` 里 8 条"出自哪份报告"全写 `build/reports/rNN_*.rpt`，
+`README.md` 与 `docs/KNOWN_ISSUES.md` 也有 4 处同样写法。但 **仓库里没有 `build/reports/` 这个目录** ——
+它是 `build/make_submission.sh` 在导出时把 `build/**.rpt|txt` 展平出来的（`mkdir -p build/reports` 那一段）。
+⇒ 在 GitHub 那份（§3.3.3.3 要求的主件）里顺着这些引用去找，一条都落不了地。
+
+**为什么没有检查器抓到**（这次是**查了源码**才写下来的，不是猜）：`src/host/doc_currency_check.mjs`
+第 28 行 `const EXT = new Set(['.md', '.mjs', '.sh', '.ps1', '.tcl'])` —— **`.csv` 不在文件集里**，
+所以 `data/metrics.csv` 整个不参与；而 D4a 那一支只判"带目录前缀且以 `.md` 结尾"的指路，
+`.rpt` 天然不匹配。两条合起来，"文档点名的构建产物路径是否存在"这一整类**当前无判据覆盖**，
+这也是 #138（简介里的数不属于它点名的那一版）说的那句"没有一个判据把文档里的数对回它自己点名的报告"
+的另一半：**指路本身也没人对**。
+
+**这一版做了什么**：把仓库侧文档的写法统一回**仓库里真实存在的路径**
+（`build/r87_timing_summary.rpt` 等），并在 `docs/KNOWN_ISSUES.md` 开头加一段口径说明：
+包里的 `build/reports/` 就是同一份文件换了目录，认 md5 不认路径。
+逐条核过：`data/metrics.csv` 现在点名的 6 个不同路径全部 `test -f` 成立
+（`build/evidence/r86_osd_t18_teeth_addr.txt`、`build/evidence/r87_boot_stat_drain.txt`、
+`build/r87_power.rpt`、`build/r87_timing_summary.rpt`、`build/r87_utilization.rpt`、`build/tb_v98_report.txt`）。
+
+**还欠**（记下不遮掩）：
+1. **没有把 `.csv` 加进 D4 的文件集**。这件事该做，但它是一个**新判据**，按本仓规矩要自带一条"能红的对照"
+   （造一条指向不存在文件的 CSV 行、要求它变红）才能进门禁；那一趟没在本轮做，
+   因为本轮的手都在 `dc_fifo` 与 `gates.sh` 上（#139/#141），再加一把尺子会让一次改动同时测三件事。
+   ⇒ 待办：`doc_currency_check` 加 D4b「点名的 `build/` 产物路径必须在盘上」，配 `--self` 反例。
+2. `README.md` 里"报告展平进 `build/reports`"那两句是**讲包里长什么样**，属于合法用法，不改。
