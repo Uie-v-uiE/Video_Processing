@@ -5528,7 +5528,7 @@ WNS 转正后**门禁第 14 项与冻结**都会跟着绿。
 | # | 位置 | 结论 | 现在什么状态 |
 |---|---|---|---|
 | 1 | `src/rtl/top/pl_demo_top.v:27` 与 `:82` | **CONFIRMED 真缺陷**：这两个 `.stage_sel(...)` 挂在**同一个实例**上（该文件只有 `pl_video_top #(...) u_pl` 一个实例，端口表从 20 行铺到 90 行），一个是 `9'd1`、一个是 `9'd0`。重复输入关联在工具里是"看它选哪个"，不是"两边都成立" | **今晚不改**：它在 `pl_demo_top`（PL-only 老演示顶层，被 `build_pl_full.tcl`/`create_project.tcl` 用，**不在交付构建的顶层链上**）⇒ 改它要动 `src/rtl`，会作废正在跑的 `tb_v98_top_seam` 的 `rtl_md5`。修法是一行（删 `:82` 那条，保留 `stage_sel` 那根线）。排进下一轮，并给 `build/check_ports.py` 加一条"**同一实例不许重复关联同一输入**"（门禁第 12/14 项今天查不出它） |
-| 2 | `src/rtl/video/osd_overlay.v:487` | **CANDIDATE（越界读，被门住了）**：`chars[s_line*MAX_CHARS + s_cidx]`，声明是 `[0:N_LINES*MAX_CHARS-1]`（5×32 ⇒ 0..159），而 `s_line` 是 `[2:0]`、`s_cidx` 是 `[4:0]` ⇒ 下标最大 `7*32+31=255`。越界那一读在 xsim 里是 X、在硬件里是地址截断成另一行的字模。今天它不构成屏上缺陷，因为 `pixel_on = s_in_char && …`（`:492`）把非字形区间的像素全部丢掉 ⇒ **读到什么都不画** | 记为"已知被门住的越界读"。要坐实需要一条探针：`if (!s_in_char && (s_line*32+s_cidx) > 159) n++;` 数一个非零的数——**这就是 #127 唯一还没做的凭据**，排进 #106 那一轮 |
+| 2 | `src/rtl/video/osd_overlay.v:487` | **CANDIDATE（越界读，被门住了）**：`chars[s_line*MAX_CHARS + s_cidx]`，声明是 `[0:N_LINES*MAX_CHARS-1]`（5×32 ⇒ 0..159），而 `s_line` 是 `[2:0]`、`s_cidx` 是 `[4:0]` ⇒ 下标最大 `7*32+31=255`。越界那一读在 xsim 里是 X、在硬件里是地址截断成另一行的字模。今天它不构成屏上缺陷，因为 `pixel_on = s_in_char && …`（`:492`）把非字形区间的像素全部丢掉 ⇒ **读到什么都不画** | **08:2x 已坐实（见本节下面的追加段）**：机会计数 190464 拍、最大索引 255，画像素的拍里 0 次 ⇒ 确实是"被门住的越界读"；且门有两道（`in_box` 与 `line < N_LINES` 冗余），只拆一道时探针仍全绿这个事实也记进了凭据 |
 | 3 | `src/rtl/video/frame_buffer_w64.v:64-67` + `src/rtl/process/bilin/fb_bilin.v:45,188` | **CANDIDATE**：读口的 `blank` 只作用在 `rd_data` 上，而 `fb_bilin` 用的是 **`rd_data64`**；`w_b = w_a+128` 再加 1 会到 38528 > `WORDS=38400` ⇒ 读到的是 8192 深 bank 里**从没写过的填充区**（真实数据到 5631）。今天双线性在帧边被 `kx/ky` 折叠丢弃 ⇒ 潜伏，不在屏上 | 同上：先加探针（`dut.u_fb.ridx >= 38400` 计数），有数再谈改 |
 | 4 | `src/rtl/eth/frame_reasm.v:125` | **CANDIDATE**：`wr_addr <= off[18:1]`，`off` 是上位机字头里的 32 位偏移，**从未被钳制**（`:126` 的 `off < FRAME_BYTES` 只护住行位图）。仿真与硬件行为一致（不是 sim≠hw 那一类），但一个畸形的片头能把数据写进帧中间 | 记为"输入不可信，需要一条钳制 + 一条台架判据"；上位机是我自己的工具，所以演示路径上不会触发——但它对外就是网口，该钳 |
 | 5 | `src/rtl/axi/axi_frame_writer_gated.v:146` | **CANDIDATE**：`r_pix` 每个 R 拍加一、没有上限；缓冲侧靠 `widx < WORDS` 丢写，超过 `2^19` 个像素后 `r_pix[18:0]` 回卷 | 需要一条异常 AXI 从机的判据才谈得上"修"；排在 #4 之后 |
@@ -5540,6 +5540,30 @@ WNS 转正后**门禁第 14 项与冻结**都会跟着绿。
 `N_LINES*MAX_CHARS-1` 才是 159），因为它会把"声明宽度"和"实例参数"混着说；
 ② 三条 CANDIDATE 的共同收口形状是**先加探针数一个非零的机会**，再谈修——
 没有那一步，"今天屏上没现象"与"这里真的被门住了"这两种说法没有任何办法区分（`skill/criterion_blind_spot.md`）。
+
+**08:2x 追加：第 2 条按这个方法做完了，而且量出三件我读代码时看不见的事**（台架 `tb_osd_lines` 的 T17/T18，
+凭据 `build/r86_tb_osd_lines_probe.txt` + `build/evidence/r86_osd_t18_teeth_*.txt`；跑法
+`sim/run_one.sh tb_osd_lines` ≈ 12 s、`sim/mut_control.sh tb_osd_lines T18 osd_inchar_all`）：
+
+1. **机会是真的**：把整个有效区（1024×600，`de=1`）走一遍之后，`s_line*MAX_CHARS+s_cidx` 越出数组上界 159
+   共 **190464 拍**，最大索引 **255**（= 位宽允许的上限，与代理算的那个数对上）。而第一版这条判据是**红的**：
+   那时激励只把 `tx/ty` 停在格子里的比对点上，机会计数=0 ⇒ 红得对，它拒绝让 T18 的 0 蒙过去。
+2. **门有两道，而且是冗余的**：`in_char = in_box && (pix_y < CHAR_H) && (line < N_LINES)`（`:97`）——
+   只拆 `in_box` 之后机会计数 190464 **一字不变、T18 仍绿**（`osd_inchar` 那次 MUTATION FAILED，
+   我把它留成凭据而不是删掉：它说明"拆一道门"根本不构成反例）。原因在几何里：`in_box` 已经把
+   `line ≤ N_LINES-1` 蕴含了一次，所以 `line < N_LINES` 是第二道同样的门。
+   要造出"画像素时索引越界"这个状态，得**两道一起拆**（`osd_inchar_all`）⇒ T18 立刻数到 **129024 拍**、
+   并且**只红这一条**（`RESULT … FAIL (1 errors)`）⇒ 这条判据有力，符合"一个变异只该红一条"。
+3. **T18 有一条真实边界，我没掩盖它**：拿 `osd_addr`（把 RTL 的读地址整体 +192）去测，T18 **不红**——
+   因为判据按 `s_line*MC+s_cidx` **自己重算**索引，看不见 RTL 里那条表达式被换掉。今天二者逐字相同
+   （`:487`）所以不失真，但"将来谁改了地址算术，这条抓不到"是事实。修法要先在 RTL 里给读地址起一根线
+   （`wire [15:0] ch_addr = …`）⇒ 动 `src/rtl` 会作废钉着 md5 的门禁第 15/15b 项 ⇒ 排到有构建轮次时再做，
+   已记进任务表（#102 的尾巴）。
+
+顺带两条方法账：① `mut_control.sh` 从"只会一条 mutation"改成 case 选择器（`pipeline | osd_inchar | osd_addr |
+osd_inchar_all`），改完**重跑过**旧那条以证明重构没弄坏它（`build/evidence/r86_mutcontrol_refactor_pipeline.txt`：
+`MUTATION OK`、C10f 仍红在预测那一格）；② 我第一版的 `oob_max` 只在越界分支里更新，于是 FAIL 文案写出
+"最大到过 0"这种自相矛盾的数 —— 现在每拍都跟（`tb_osd_lines.v` 里那条注释记着这次）。
 
 ---
 

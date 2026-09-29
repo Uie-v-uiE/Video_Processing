@@ -64,6 +64,24 @@ module tb_osd_lines;
     );
 
     integer errors = 0, ncell = 0, nvis = 0, nscan = 0;
+
+    // ---- #127 第 2 条 CANDIDATE 的探针（`osd_overlay.v:487` 的 `chars` 越界读）----
+    // 声明是 `[0:N_LINES*MAX_CHARS-1]`，而索引 `s_line*MAX_CHARS + s_cidx` 的位宽允许到
+    // `7*MC + (MC-1)` ⇒ 地址能越过数组上界。RTL 靠 `pixel_on = s_in_char && …` 把非字形区间的像素整段丢掉
+    // （`osd_overlay.v:492`），所以"真的被门住了"与"激励从没走到过越界地址"在屏上**一模一样**。
+    // 只有数出一个非零的**机会**计数，才有资格说前者（`skill/criterion_blind_spot.md`）。
+    // 成对写：T17 = 机会地板（必须 > 0，否则 T18 的 0 是空的）；T18 = 伤害计数（画像素那一拍用了越界索引 ⇒ 必须 0）。
+    integer oob_opp = 0, oob_harm = 0, oob_max = 0, oob_idx = 0;
+    always @(posedge clk) if (rst_n) begin
+        oob_idx = u_osd.s_line * MC + u_osd.s_cidx;
+        // 最大值要**每拍**都跟：只在越界分支里更新的话，"最大到过 0"就分不清"索引从没超过 0"与
+        // "越界从没发生所以这个累加器一直是初值"（写第一版就踩到了，下面的 FAIL 文案因此是错的）。
+        if (oob_idx > oob_max) oob_max = oob_idx;
+        if (oob_idx >= NL * MC) begin
+            oob_opp = oob_opp + 1;
+            if (u_osd.s_in_char) oob_harm = oob_harm + 1;
+        end
+    end
     reg   verbose = 1;   // T11 那条自检要故意比错，安静下来才不污染 PASS/FAIL 行
 
     // Latency 的十进制是**寄存过一拍**的（osd_overlay 里那一级拆分），改完激励要等几拍
@@ -591,6 +609,39 @@ module tb_osd_lines;
         end
         i_en = 1'b1;
 
+        // ---- T17 的激励：把整个有效区走一遍（1024×600，`de=1`，硬件每帧就是这么给的）----
+        // 上面那些判据只把 `tx/ty` 停在**格子里**的比对点上 ⇒ 索引从没越过数组上界（第一次跑就红在 T17，
+        // 而且红得对：机会计数=0 时 T18 的 0 什么都证明不了）。这一趟不做像素比对，只让探针有资格说话。
+        begin : walk17
+            integer wx, wy;
+            verbose = 0;
+            for (wy = 0; wy < 600; wy = wy + 1) begin
+                ty = wy[11:0];
+                for (wx = 0; wx < 1024; wx = wx + 1) begin
+                    tx = wx[11:0]; tde = 1'b1;
+                    @(posedge clk);
+                end
+            end
+            tde = 1'b0; #1;
+            verbose = 1;
+        end
+
+        // ---- T17/T18：#127 第 2 条的"机会计数"探针（越界索引真的发生过吗 / 有没有影响到画出来的像素）----
+        if (oob_opp == 0) begin
+            $display("FAIL T17 全程 0 次越界索引（数组上界 %0d，最大到过 %0d）⇒ T18 的 0 什么都没证明，#127 第 2 条仍未被测过",
+                     NL*MC - 1, oob_max);
+            errors = errors + 1;
+        end else
+            $display("PASS T17 激励把索引推到越界 %0d 拍（最大索引 %0d > 数组上界 %0d）⇒ 机会确实出现过",
+                     oob_opp, oob_max, NL*MC - 1);
+        if (oob_harm != 0) begin
+            $display("FAIL T18 有 %0d 拍在**画像素**（s_in_char=1）时索引越界 ⇒ in_char 那道门失效，屏上会取到别一行的字模",
+                     oob_harm);
+            errors = errors + 1;
+        end else
+            $display("PASS T18 越界的那 %0d 拍里没有一次 s_in_char=1 ⇒ 读到什么都不画，#127 第 2 条是'被门住的越界读'而不是屏上缺陷",
+                     oob_opp);
+
         $display("");
         if (errors == 0) $display("RESULT tb_osd_lines PASS");
         else             $display("RESULT tb_osd_lines FAIL (%0d errors)", errors);
@@ -598,7 +649,9 @@ module tb_osd_lines;
     end
 
     initial begin
-        #20_000_000;
+        // 看门狗只防"挂死"，不是判据。T17 那一趟全有效区扫描要 614400 拍 × 40 ns ≈ 24.6 ms，
+        // 原来这 20 ms 会被自己的激励走完 ⇒ 抬到 80 ms（要防的是"一拍都不动"，不是"跑得久"）。
+        #80_000_000;
         $display("RESULT tb_osd_lines FAIL timeout");
         $finish;
     end

@@ -1,0 +1,14 @@
+== mutation diff（必须恰好 1 对 = 2 行）==
+98c98
+<     wire        in_char = in_box && (pix_y < CHAR_H) && (line < N_LINES);
+---
+>     wire        in_char = (pix_y < CHAR_H);
+mut_src=988f0f49e373
+mut_diff_lines=2
+tb_md5=f3a88d7e89fa
+rtl_md5_real=2b3c5945a9e0
+date=2026-09-29T08:21:20+08:00
+== 控制跑里的 T18 ==
+FAIL T18 有 129024 拍在**画像素**（s_in_char=1）时索引越界 ⇒ in_char 那道门失效，屏上会取到别一行的字模
+RESULT tb_osd_lines FAIL (1 errors)
+MUTATION OK: T18 在修复前的延迟线上报红 ⇒ 这条判据有力。
