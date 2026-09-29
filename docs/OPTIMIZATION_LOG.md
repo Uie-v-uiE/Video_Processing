@@ -523,7 +523,7 @@ BRAM **95 = 67.86 %**、LUT as Logic **10173**、LUT as Memory **4187**、FF **8
 | 顺带修掉的真 bug：满提前一格 | 数据 | 可用深度 DEPTH−1 → DEPTH。**在真实收包链上量到**：同一台架同一 `+GAP0` 压力，CDC 峰值 r85 = 8191/8192 → r88 = **8192/8192**（`build/r88_packer_peak_gap0.txt`） |
 | 资源这一侧：**只量不猜**（#140，ISSUES 同页） | 评估 | 给 `tb_v6_ingress_integrity` 补了一条 `sv_peak` 探针：线速连灌下打包器 FIFO（`{q_addr,q_data,q_keep}` 100bit×512 ≈ 800 个 RAMD64E，是 LUTRAM 4044 里最大的单一消费者）峰值 **512/512 填满** ⇒ **`FW` 降不得**，那 400 个 LUT 换不到东西；`q_addr` 也不能退化成"基址+序号" |
 
-**数字（r88，`build/r88_exp/timing_summary.rpt` / `utilization.rpt`）**
+**数字（r88，`build/evidence/r88exp_timing_summary.rpt` / `utilization.rpt`）**
 
 | 指标 | r87 | r88 | 这一格该怎么读 |
 |---|---|---|---|
@@ -583,7 +583,7 @@ BRAM **95 = 67.86 %**、LUT as Logic **10173**、LUT as Memory **4187**、FF **8
 | r84 | 回滚 `max_fanout` 之后，两刀的贡献才真的分开（`docs/OPTIMIZATION_LOG.md` r84 一节） | **−0.094** | **16** | +0.056 | 95 / 67.86 % | 14360 (26.99 %) | 8073 | 2.205 | `build/r84_gates.txt` |
 | r86 | 诊断计数器的使能改喂"寄存过的事件"（#124）：目标那一族被切断，失败端点 **16 → 2** | **−0.135** | **2** | +0.053 | 95 / 67.86 % | 14358 (26.99 %) | 8075 | 2.205 | `build/r86_gates_final.txt` |
 | r87 | **板上这一版**（第二轮遍历代码 + `link_monitor` 两个事件位补进复位清单 + OS 地址算法改乘加）——**门禁还没跑完，所以这一行只有报告数** | +0.152 | 0 | +0.051 | 95 / 67.86 % | 14363 (27.00 %) | 8075 | 未取 | `build/r87_timing_summary.rpt`、`build/r87_utilization.rpt` |
-| r88 | `dc_fifo` 满判据改用当前写指针（#105 第二刀，`docs/log/ISSUES.md` #139）——**隔离构建 `build/r88_exp/`，门禁 18 项判定全过但 2 项因缺同跑台架凭据未判（#141），所以未采纳、板上仍是 r87** | +0.516 | 0 | +0.051 | 95 / 67.86 % | 14358 (26.99 %) | 8075 | 2.205 | `build/r88_exp/timing_summary.rpt`、`utilization.rpt`、`power.rpt`；路径族凭据 `build/r88_crit_paths.txt`；门禁 `build/r88_gates_partial.txt` |
+| r88 | `dc_fifo` 满判据改用当前写指针（#105 第二刀，`docs/log/ISSUES.md` #139）——**隔离构建 `build/r88_exp/`，门禁 18 项判定全过但 2 项因缺同跑台架凭据未判（#141），所以未采纳、板上仍是 r87** | +0.516 | 0 | +0.051 | 95 / 67.86 % | 14358 (26.99 %) | 8075 | 2.205 | `build/evidence/r88exp_timing_summary.rpt`、`utilization.rpt`、`power.rpt`；路径族凭据 `build/r88_crit_paths.txt`；门禁 `build/r88_gates_partial.txt` |
 
 ### 为什么这张表不能读成"越优化越差"或"越优化越好"
 
