@@ -107,6 +107,17 @@ module tb_v6_ingress_integrity;
         if (cdc_now > cdc_peak) cdc_peak = cdc_now;
     end
 
+    // 同一把尺子量**打包器 FIFO**（`u_sv` 里 `{q_addr,q_data,q_keep}` = 100 bit × 512 格 ≈ 800 个
+    // LUT64E，是全设计 LUTRAM 4044 里最大的单一消费者）。要判"FW 从 9 降到 8 能不能换 400 个 LUT"，
+    // 缺的就是这个峰值占用数（#120 对 CDC 深度做的就是这件事）—— 先量，不动源。
+    // 自限与上面三条同构：单域同拍采样，读侧被 DDR 端口独占挡住的窗口由本台架的 AXI 从机建模。
+    reg  [9:0] sv_peak = 10'd0;
+    reg  [9:0] sv_now;
+    always @(u_sv.wptr or u_sv.rptr) begin
+        sv_now = u_sv.wptr - u_sv.rptr;
+        if (sv_now > sv_peak) sv_peak = sv_now;
+    end
+
     // 统计：reasm 发出了 wr_en 但没进 CDC（被 flush 抢占 / 满）
     always @(posedge gmii_rx_clk or negedge rst_n) begin
         if (!rst_n) begin cdc_ok = 0; cdc_drop = 0; end
@@ -320,6 +331,12 @@ module tb_v6_ingress_integrity;
             $display("FAIL cdc peak probe never saw a non-empty FIFO");
             errors = errors + 1;
         end else $display("PASS cdc peak probe alive");
+        $display("PROBE packer peak_occupancy=%0d words of depth=%0d  （FW=%0d；这一数决定 100bit×512 那 ~800 个 LUTRAM 能不能削 —— 峰值远低于半深才谈得上降 FW）",
+                 sv_peak, (1 << 9), 9);
+        if (sv_peak == 0) begin
+            $display("FAIL packer peak probe never saw a non-empty FIFO (wrong name or no backpressure)");
+            errors = errors + 1;
+        end else $display("PASS packer peak probe alive");
         if (w_ok != TB_WORDS || cdc_drop != 0 || sv_drop != 0) begin
             $display("FAIL ingress loses data");
             errors = errors + 1;

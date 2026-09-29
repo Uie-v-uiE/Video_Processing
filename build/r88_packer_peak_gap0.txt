@@ -1,0 +1,30 @@
+
+****** xsim v2025.2.1 (64-bit)
+  **** SW Build 6403652 on Thu Mar 19 19:48:24 GMT 2026
+  **** IP Build 6403511 on Thu Mar 19 12:41:45 MDT 2026
+  **** SharedData Build 6403650 on Thu Mar 19 14:02:13 MDT 2026
+  **** Start of session at: Tue Sep 29 15:28:12 2026
+    ** Copyright 1986-2022 Xilinx, Inc. All Rights Reserved.
+    ** Copyright 2022-2026 Advanced Micro Devices, Inc. All Rights Reserved.
+
+source xsim.dir/snap/xsim_script.tcl
+# xsim {snap} -testplusarg FULL -testplusarg GAP0 -autoloadwcfg -runall
+Time resolution is 1 ps
+run -all
+mode=FULL payload=1392 pkts=221 words=38400
+drain: waited 2000000 axi cycles, axi_wr=13768
+[tb_v6_ingress_integrity:stage] stage counts: reasm_wr→cdc ok=55061 lost=98539 | cdc_rd=56034 | packer_drop=39092 | axi_wr=13768 (need 38400)
+reasm stats: frames=1 pkts=221 bytes=307200 bad=0 oob=0
+words exact=6182/38400  half(1010/0101)=2526  allzero=24632  other=5060  lanes_bad=113687/153600
+first bad word=3613 got=0000000000000000 expected=0e1d0e1d0e1d0e1d
+tail3: [38397]=0000000000000000 [38398]=0000000000000000 [38399]=0000000000000000
+PROBE cdc peak_occupancy=8192 words of depth=8192  （本次流量形状下的**下界**：读侧 sv_full 阻塞窗口未建模 ⇒ 不是设计界，见文件头 ①②③）
+PASS cdc peak probe alive
+PROBE packer peak_occupancy=512 words of depth=512  （FW=9；这一数决定 100bit×512 那 ~800 个 LUTRAM 能不能削 —— 峰值远低于半深才谈得上降 FW）
+PASS packer peak probe alive
+FAIL ingress loses data
+PASS full frame committed exactly once
+FAIL tb_v6_ingress_integrity errors=1
+$finish called at time : 22516595 ns : File "D:/Xilinx/Prj/pro/Video_Processing/sim/tb_v6_ingress_integrity.v" Line 352
+exit
+INFO: [Common 17-206] Exiting xsim at Tue Sep 29 15:28:18 2026...

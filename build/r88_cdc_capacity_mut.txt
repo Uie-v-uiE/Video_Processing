@@ -1,0 +1,14 @@
+== mutation diff（必须恰好 1 对 = 2 行）==
+43c43
+<     assign wr_full = (wgray == {~rgray_s1[ADDR_W:ADDR_W-1], rgray_s1[ADDR_W-2:0]});
+---
+>     assign wr_full = (wgray_n == {~rgray_s1[ADDR_W:ADDR_W-1], rgray_s1[ADDR_W-2:0]});
+mut_src=522310ba26a2
+mut_diff_lines=2
+tb_md5=6d616ab99287
+rtl_md5_real=41384499f3a9
+date=2026-09-29T15:17:29+08:00
+== 控制跑里的 C1 ==
+FAIL C1 wr_full fires one slot early: accepted 8191 of 8192
+RESULT tb_cdc_capacity FAIL errors=2
+MUTATION OK: C1 在 mutation 'cdc_full_next' 下报红 ⇒ 这条判据有力。

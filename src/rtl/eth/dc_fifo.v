@@ -31,13 +31,16 @@ module dc_fifo #(
     // 指针是 ADDR_W+1 位的二进制，跨域只传**格雷码**版本（相邻两位才可能同时变）；
     // full 用"对端格雷码的最高两位取反、其余相等"判，省掉一次二进制比较。
     // #105 第一刀**已回滚**（2026-09-28 深夜，实测无效）：给 `wr_full` 加 `max_fanout=12` 想让综合
-    //   复制本地缓冲，结果 WNS 从 r81 的 − 0.062 掉到 − 0.192、失败端点 28 → 34（凭据 build/r83_gates.txt
-    //   与 build/timing_summary.rpt）。**说明瓶颈不是扇出，是锥体本身**：14 位加法 → 二进制转格雷 →
-    //   14 位等值比较，全压在写域一拍里。剩下的两条真修法（降深度 / 留一格余量）与为什么不能把满判据
-    //   搬到读域算，写在 `docs/log/OVERNIGHT_LOG.md` 00:56 那一节。
+    //   复制本地缓冲，结果 WNS 从 r81 的 −0.062 掉到 −0.192、失败端点 28 → 34（凭据 build/r83_gates.txt
+    //   与 build/timing_summary.rpt）。⇒ 扇出不是瓶颈。
+    // #105 第二刀（2026-09-29，r88）：满判据从"下一个写指针 wgray_n"改成"**当前**写指针 wgray"，
+    //   和读侧 `rd_empty = (rgray == wgray_s1)` 对称。原来那一式把 14 位加法 + 二进制转格雷 +
+    //   比较整条锥体挂在了 `wr_en → ENARDEN` 上（r87 最差路径 8 级逻辑、0.152 ns，见 build/r87_timing_summary.rpt）；
+    //   现在锥体只剩比较。副作用是满提前一格的毛病一起没了：可用深度从 DEPTH−1 变成 DEPTH，
+    //   由 sim/tb_cdc_capacity 的 C1 钉住（改前 8191、改后 8192）。
     wire [ADDR_W:0] wbin_n  = wbin + 1'b1;
     wire [ADDR_W:0] wgray_n = bin2gray(wbin_n);
-    assign wr_full = (wgray_n == {~rgray_s1[ADDR_W:ADDR_W-1], rgray_s1[ADDR_W-2:0]});
+    assign wr_full = (wgray == {~rgray_s1[ADDR_W:ADDR_W-1], rgray_s1[ADDR_W-2:0]});
 
     // write pointer (async rst)
     always @(posedge wr_clk or negedge wr_rst_n) begin

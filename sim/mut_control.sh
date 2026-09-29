@@ -85,7 +85,17 @@ bilin_ky_fold)
     EXPDIFF=2
     sed -i 's/ ky_use = !bilin_en || sy >= IMG_H-1;/ ky_use = !bilin_en;/' "$P" || exit 1
     ;;
-*)  echo "REFUSE: 不认识 mutation '$MUT'（现有：pipeline | osd_inchar | osd_addr | osd_inchar_all | bilin_ky_fold）。别猜，往下读 case 分支。"; exit 2 ;;
+cdc_full_next)
+    # r88 那一刀（#105 第二刀）的反例：把满判据从**当前**写指针 `wgray` 改回**下一个**写指针 `wgray_n`。
+    # 这正是 2026-09-29 之前的写法：它让 `wr_full` 提前一格落地 ⇒ 深度 8192 只收 8191 个字，
+    # 而那条 14 位加法 + 二进制转格雷的锥体挂到了 `wr_en → BRAM ENARDEN` 上（全设计最差 setup 路径）。
+    # `tb_cdc_capacity` 的 C1 数的就是"第一次报满之前收下了几个字"⇒ 这一改它必须红。
+    # 只此一处、一行：不动 `wbin_n`/`wgray_n` 的定义，也不动读侧，免得一次控制跑同时测两件事。
+    P=rtl_mut/eth/dc_fifo.v
+    EXPDIFF=2
+    sed -i 's/wr_full = (wgray ==/wr_full = (wgray_n ==/' "$P" || exit 1
+    ;;
+*)  echo "REFUSE: 不认识 mutation '$MUT'（现有：pipeline | osd_inchar | osd_addr | osd_inchar_all | bilin_ky_fold | cdc_full_next）。别猜，往下读 case 分支。"; exit 2 ;;
 esac
 # 原件那一侧必须写**绝对**路径：这个脚本前面已经 `cd "$R"` 了，用相对路径会让 diff 找不到原件，
 # 于是把整个 mutant 文件当成"新增"报出 509 行 —— 守卫照样拒绝，但拒绝的原因是路径而不是改动本身（2026-09-29 08:19 实踩）。

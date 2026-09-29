@@ -39,7 +39,7 @@ declare -A SIM_MAP=(
   [tb_v94_zoom_sel]=tb_zoom_sel
   [tb_v102_src_life]=tb_src_life
 )
-SIM_PLAIN=(tb_link_monitor tb_zoom_mapper tb_rotate_window)
+SIM_PLAIN=(tb_link_monitor tb_zoom_mapper tb_rotate_window tb_cdc_capacity)
 # 台架取舍 = 下面这份手写名单 ∪ 被留下的脚本（gates.sh / run_one.sh / mut_control.sh）点名的。
 # 名单里的是**招牌判据**（给新名字）；被脚本点名的按原名带出去（改名会让脚本找不到文件）。
 # 其余回归台架不进包：交付文档里以裸名提到它们，说的是"过程里举过的例子"，不是"包里有这个文件"；

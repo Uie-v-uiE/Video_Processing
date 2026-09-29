@@ -1,0 +1,11 @@
+PROBE cdc peak_occupancy=3 words of depth=8192  （本次流量形状下的**下界**：读侧 sv_full 阻塞窗口未建模 ⇒ 不是设计界，见文件头 ①②③）
+PASS cdc peak probe alive
+PROBE packer peak_occupancy=122 words of depth=512  （FW=9；这一数决定 100bit×512 那 ~800 个 LUTRAM 能不能削 —— 峰值远低于半深才谈得上降 FW）
+PASS packer peak probe alive
+PASS ingress lossless
+PASS partial frame not committed
+PASS tb_v6_ingress_integrity
+INFO: [Common 17-206] Exiting xsim at Tue Sep 29 15:28:04 2026...
+exit
+INFO: [Common 17-206] Exiting xsim at Tue Sep 29 15:28:04 2026...
+VERDICT tb_v6_ingress_integrity: PASS tb_v6_ingress_integrity || FAIL 行数=0 || PASS 行数=5

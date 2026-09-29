@@ -1,0 +1,14 @@
+[tb_cdc_capacity:INFO] depth=8192 data_w=36
+[tb_cdc_capacity:PROBE] first_full_after_accepts=8192 of depth=8192
+PASS C1 boundary: all 8192 slots accepted
+PASS C2 blocked once full
+[tb_cdc_capacity:PROBE] drained=8192 mismatch=0 peak_occ=8191
+PASS C3 drained 8192 words
+PASS C4 every word came back in write order
+PASS C5 pointer wrap covered (32768 words through the 8192 boundary)
+PASS tb_cdc_capacity ALL
+RESULT tb_cdc_capacity PASS
+INFO: [Common 17-206] Exiting xsim at Tue Sep 29 15:17:19 2026...
+exit
+INFO: [Common 17-206] Exiting xsim at Tue Sep 29 15:17:19 2026...
+VERDICT tb_cdc_capacity: RESULT tb_cdc_capacity PASS || FAIL 行数=0 || PASS 行数=6

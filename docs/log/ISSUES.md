@@ -5946,3 +5946,86 @@ D2 点名的冻结目录必须存在、D3 首页念的那一套必须是最新�
 并把"工具置信度 Low""结温是估算不是 XADC 读数""这一版还没过门禁"三句一起写进旁白可说的范围。
 `node src/host/demo_cmds.mjs --emit` 复跑一次：`docs/DEMO_SCRIPT.md` 的 48 条命令（含首尾 `stat` 基线）
 全部被固件解析器接受 ⇒ 演示脚本与命令表没有漂。
+
+## #139（2026-09-29 15:1x，#105 第二刀：满判据从"下一个写指针"改成"当前写指针"，顺手把提前一格的那一个字找回来）
+
+**起因**：#121 把这一族的归因改正之后（瓶颈是**布线**，71 %，不是算术锥体），剩下的问题是
+"锥体那 29 % 要不要动"。r87 最差 setup 路径逐拍读下来（`build/r87_timing_summary.rpt` 第 366 行起）：
+
+```
+Slack (MET) 0.152 ns   u_eth/u_cdc/wbin_reg[0]/C  ->  u_eth/u_cdc/mem_reg_0/ENARDEN
+Data Path Delay 7.236 ns (logic 2.467 = 34 %  route 4.769 = 66 %)   Logic Levels 8 (CARRY4=5 LUT4=2 LUT5=1)
+  wbin_reg[0]/Q -> wgray_reg[4]_i_2/CO[3] -> wgray_reg[8]_i_2/CO[3] -> wgray_reg[13]_i_3/O[1]
+  -> full_d_i_8 -> full_d_i_4 -> full_d_reg_i_2 -> full_d_reg_i_1/CO[0]  (= wr_full, 出模块)
+  -> u_reasm/mem_reg_0_i_1 -> 网络 u_cdc/wr_en (fo=9, 单这一段 route 1.557 ns) -> ENARDEN
+```
+
+前三级 CARRY4 是 `wbin_n = wbin + 1'b1`，第四级往后是 `bin2gray` 与那条 14 位等值比较 ——
+**全部是因为 `wr_full` 拿的是"下一个"写指针**。读侧 `rd_empty = (rgray == wgray_s1)` 用的却是
+**当前**读指针：两侧本来就不对称，而写侧这一式把加法+格雷挂上了 BRAM 使能。
+
+**改法**（`src/rtl/eth/dc_fifo.v:43`，一行）：`wr_full` 的比较对象 `wgray_n` → `wgray`。
+`wgray_n` 仍然要算（指针寄存器 D 端要用），但它从此不在通往 `ENARDEN` 的组合锥体里。
+
+**顺带修掉一个真 bug**：旧式等价于"占用到 DEPTH−1 就报满"⇒ 8192 深的 CDC 实际只能用 8191 格，
+第 8192 个字被当作溢出计入 `drop_words`。新式占用到 DEPTH 才报满，**可用深度多一格**。
+安全性两边同构：报满之后 `wbin` 与 `rbin_s1` 都冻住（读侧不动时 `rgray_s1` 也冻住），
+不会覆盖未读数据；`rgray_s1` 只会滞后 ⇒ 满判据只会偏保守，不会偏松。
+
+**先给判据、再改源**（任务 #100 立的那条规矩）：新建 `sim/tb_cdc_capacity.v`，只例化一只
+`dc_fifo #(.DATA_W(36), .ADDR_W(13))`（与板上同参数），写域 8 ns / 读域 40 ns，五条判据。
+- 改前：`PROBE first_full_after_accepts=8191 of depth=8192` ⇒ **C1 红、C3 红**（`build/r88_cdc_capacity.txt` 之前的那一跑，正文留在下面这条里）
+- 改后：**全绿**（C1 8192、C2 报满后 0 收、C3 排出 8192、C4 逐字对得上、C5 三轮跨 8192 回绕共 32768 字）—— 凭据 `build/r88_cdc_capacity.txt`
+- 变异对照：`bash sim/mut_control.sh tb_cdc_capacity C1 cdc_full_next`（机械把那一行改回 `wgray_n`）
+  ⇒ `FAIL C1 ... accepted 8191 of 8192`、`MUTATION OK` —— 凭据 `build/r88_cdc_capacity_mut.txt`
+- **连带红要写清楚**：这一改同时红了 C1 与 C3（少收一个字既让"满"提前，也让排出字数少一个），
+  不是"一次控制只测一件事"。原因就是同一个，别的判据（C2/C4/C5）在变异下仍然绿 ⇒ C1/C3 之外没有互相遮掩。
+
+**为什么不用现成的 `tb_v6_ingress_integrity`**：它的 `peak_occupancy` 只是 `PROBE`（一行 `$display`），
+不是判据，改前改后都不会红 —— 正是 #127/#128 那一族"没有牙的尺子"。深度压力它测得到，
+"满落在哪一格"它不判。
+
+**还欠**：
+1. **r88 那一轮的真实时序/资源数字还没量**。隔离构建 `build/r88_exp/` 正在跑（`OUT=build/r88_exp bash build/roll_isolated.sh`），
+   跑完拿它的 `timing_summary.rpt`/`utilization.rpt` 对 r87。按规矩 35，**不许从一次构建的 WNS 绝对差宣布收益**；
+   这一刀的凭据是"逻辑级数 8 → 预计 4–5 且终点不再绕出模块"，不是 WNS 那个数。
+2. 那条路径里 **route 仍占 66 %**：`wr_en` 网络 fo=9、单段 1.557 ns。Pblock / 疏解绕线没做。
+3. `docs/PERF_REPORT.md:328` 那句"线速连灌下 CDC 峰值占用 8191/8192"是 r85 那天的历史句，
+   改完源码之后**当前树**量出来会是 8192 —— 那句话要按"rNN 那天测得"的口径钉住日期，别让人拿它当现状。
+4. `tb_cdc_capacity` 进了 `sim/run_sim.tcl` 的 `tb_*.v` 全量 glob，但**没有**单列为门禁项；
+   导出器那边靠 `sim/mut_control.sh` 里那条点名才不会被剔掉。
+
+## #140（2026-09-29 15:28，资源那一侧：先量"打包器 FIFO 到底被用掉多少"，量出来是它不能削）
+
+**问题**：全设计 LUT 的 27.00 %（r87 14363 个）里，`LUT as Distributed RAM = 4044` 占了 28 %，
+而其中最大的单一消费者是 `axi_frame_saver64` 的三兄弟数组 —— `q_addr[31:0]`、`q_data[63:0]`、
+`q_keep[3:0]` 各 512 格 = **100 bit × 512 ≈ 800 个 RAMD64E**。能不能削（`FW` 从 9 降到 8 换回 ~400 个 LUT）
+不取决于推理，取决于**过载时这个 FIFO 的峰值占用**——正是 #120 对 `u_cdc` 做过的那把尺子。
+
+**补尺子**（`sim/tb_v6_ingress_integrity.v`，台架侧，不动源）：照 `cdc_peak` 的同一段结构加一条
+`sv_peak = u_sv.wptr - u_sv.rptr` 的探针 + 一条"探针必须见过非空"的活着判据（①②③ 那三条自限一起抄过来）。
+
+**量出来的数**（同一支台架、同一次编译，两种流量形状）：
+| 跑法 | 打包器峰值 | CDC 峰值 | 该跑的判定 |
+|---|---|---|---|
+| 默认（60 包 / GAP=10230 ≈ 限速 15 MB/s） | **122 / 512** | 3 / 8192 | PASS，零丢（`build/r88_packer_peak_throttled.txt`） |
+| `+FULL +GAP0`（一整帧 221 包 GMII 线速连灌） | **512 / 512（满）** | **8192 / 8192（满）** | 这条本来就是"过载会丢"的诊断跑，不是采纳跑（`build/r88_packer_peak_gap0.txt`） |
+
+**结论一：`FW` 不许降。** 线速连灌下打包器 FIFO 是**被填满**的，和 #120 对 CDC 的判词同一种证据。
+那 ~800 个 LUTRAM 是承重墙，不是余量 —— 降 `FW` 等于砍掉这条链上第二级（也是唯一一级）
+在 CDC 之外的吸收缓冲。**这一条到此为止，不改源**。
+
+**结论二：`q_addr` 也不能退化成"基址 + 序号"。** 读代码判掉的（`src/rtl/eth/axi_frame_saver64.v:90-110`）：
+存进去的是 `pack_base + cur_widx*8` 这个**绝对**地址，而 `pack_base` 会在帧中途随 `!cur_dirty` 换基址
+—— 队列里还有旧条目时换基址，"序号"就对不上。省那 13 位高位要先把提交时序重排，不是"扣一扣"的量级。
+
+**顺带把 #139 那一格在真实链上量到了**：同一支台架、同一个 `+GAP0` 压力，r85 那天 CDC 峰值是
+**8191/8192（满−1）**，今天改完 `wr_full` 之后是 **8192/8192（满）**。⇒ "满判据提前一格、
+第 8192 个字被当作溢出"这件事不是纸面推论，它在收包链上也看得见，而且除了多收一个字之外
+没有改变别的计数（限速那一跑仍然零丢、`cdc peak probe alive` 仍过）。
+
+**资源这一侧还剩什么真有量的余量（记下来，不在本轮做）**：`build/r87_utilization.rpt` §1
+`Unique Control Sets = 330`（可用 13300，用了 2.48 % 的槽位却开出 330 组控制）——
+7 系列一片 SLICE 只容 4 组控制，330 组会把 FF 摊薄到更多片里，这正是 #121 量到
+"最差路径 route 占 71 %" 的一个**结构性成因**。动它是全树复位/使能口径的重构（还要 `check_ports`
+与门禁跟着改），属"下一整轮"，不属"再扣扣"。
