@@ -6349,3 +6349,27 @@ D3 首页念的那一套、D4 文档路径存在性；**没有任何一条把"�
 `tb_icmp_rx_len` 的 H/I/J 三条把"改前改后都静默、都出不去"钉成了判据，所以这一刀不会让它变坏。
 要不要修（把 `next_state` 在 `st_rx_data` 且 `!gmii_rx_dv` 时超时退出）留作单独一轮，
 因为改了会动 ARP/回显的可见行为，需要板上的 ping 与拔线对账一起复验。
+
+## #152（2026-09-29 23:0x，r90 的量账收口：**这笔交换决定不做**，回退用 md5 钉住）
+
+#150 那一刀把要修的东西修掉了：第二滚（`build/isolated_lenm1/`）最差八条里 **9 级的 ICMP 锥整族消失**、
+级数回到 4（`build/isolated_lenm1/crit_paths.txt` 第一行 = `u_iddr_rxd → u_crc_rx/crc_data_reg[7]/D`，4 级）。
+但拆三块剩下的代价没被买回来：`eth_rxc` WNS 只剩 **+0.182 ns**（8 ns 周期的 2.3 %），
+而那条最差路径本身只有 4 级、数据路径延迟 8.741 ns —— **差在布线，不在逻辑深度**
+（同样的 4 级在采纳基线上是 0.476~0.516，`build/crit_paths.txt`）。
+
+**判**：省的是 140 片里的 5 片 RAMB36（这版 BRAM 本来 67.86 % 就没饱和），
+付出的是最快那个域（也是全设计保持时间最薄的那个域）的 setup 余量从 6.5 % 掉到 2.3 %。
+在不缺资源的地方省资源、在最薄的地方削余量，这笔账是反的 ⇒ **不采纳，回退到板上那一份**。
+"要不要资源换时序"的答案就分成两半写进 `docs/OPTIMIZATION_LOG.md` 的 r90 那一节：
+**FF 买级数**划算（已证）；**BRAM 削 setup** 不划算（量过就放下）。
+
+**回退不是"我记得改过什么"，是一条等式**：`find src/rtl -name '*.v' | sort | xargs md5sum | md5sum`
+= `41384499f3a9` = 门禁第 15 项那份报告的 `rtl_md5` = 板上那一跑留档（`build/r89_adopted_tb98.txt`）的 `rtl_md5`。
+三者对得上，说明树里现在这份就是今晚 `RESULT board_verify PASS（判红的步骤：0）` 验过的那一块。
+
+**留下的东西**（这一轮不是白跑的）：`sim/tb_icmp_rx_len.v` 是 `icmp_rx` 的第一把尺子，
+它顺手钉住了两个厂商码的既有形状（`rec_en` 不受长度门控、窗关不上时会挂在 1，见 #151 的畸形包）；
+`build/isolated_0929_2036/`、`build/isolated_0929_2105/`、`build/isolated_lenm1/` 三滚的
+`utilization.rpt`/`timing_summary.rpt`/`crit_paths.txt` 都在仓里，是"量过并且否决"的凭据；
+`build/tcl/crit_path.tcl` 的级数读数是这一判的唯一依据（规矩 35：WNS 的绝对差不能定案）。

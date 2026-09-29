@@ -1,15 +1,10 @@
 `timescale 1ns/1ps
 // Display frame buffer: 64-bit write port (4 RGB565), 16-bit random read. 写 wr_clk / 读 rd_clk 两个域。
 // Read latency = 1 clock (BRAM 输出寄存器 + 块内 lane mux)，与 v6.4 一致。
-// ⚠ 必须按 2 的幂拆块，不能直接声明一个 38400 深的数组：BRAM 推断会把非 2 的幂的深度**向上填充到
-//   2^16** ⇒ 512x300 的帧缓存实测吃掉 128 个 RAMB36（整个 xc7z020 只有 140 个，98.93% 全卡在这）。
-// 拆法走过两代（三个数都在同一台 Vivado 上一次跑出来，凭据 `build/evidence/r90_fb_split_probe.txt`，
-// 源与跑法在 `build/fb_split_probe/`）：
-//   两块 32768 + 8192 ⇒ 覆盖 40960 字，白填 2560 字 = 5 个 tile ⇒ 实测 **80**（v6.5 到 r88 一直如此）
-//   三块 32768 + 4096 + 2048 ⇒ 覆盖 38912 字，白填 512 字 ⇒ 实测 **75**（本文件用的这一版）
-//   四块 32768 + 4096 + 1024 + 512 ⇒ 正好 38400，一块不填 ⇒ 实测 **74**
-//   取三块不取四块：只多省 1 个 tile，却要多一级 64 位读选择 —— 换不到就该收手。
-// 数据量本身要 67 个 tile（512×300×16 bit ÷ 36864），所以剩下的 8 个是"每块都得向上取整到 512 字"的代价。
+// ⚠ 必须按 2 的幂拆成两块，不能直接声明一个 38400 深的数组：BRAM 推断会把非 2 的幂的深度**向上填充到
+//   2^16** ⇒ 512x300 的帧缓存实测吃掉 128 个 RAMB36（整个 xc7z020 只有 140 个，98.93% 全卡在这），而数据量
+//   本身只要 67 个 tile。拆成 32768 + 8192 两块以后实测 80 个，省下的 48 个够放插值行缓存。对照实验见
+//   tmp_ramtest/fbtest.v（v0 单阵列 = 128，v5 分块 = 80），不是猜的。
 module frame_buffer_w64 #(
     parameter W = 512,
     parameter H = 300
@@ -34,53 +29,45 @@ module frame_buffer_w64 #(
         end
     endfunction
 
-    localparam WORDS = (W * H + 3) / 4;                  // 38400 个 64bit 字
-    // 贪心拆：每次取"不超过剩余额的最大 2 的幂"，最后一块向上取整。
-    // 38400 → 32768（余 5632）→ 4096（余 1536）→ 2048，合计 38912。
-    localparam D0    = (1 << (bitsof(WORDS) - 1));       // 32768 = 2^15
-    localparam REM1  = WORDS - D0;                       //  5632
-    localparam D1    = (REM1 == 0) ? 1 : (1 << (bitsof(REM1) - 1));   //  4096 = 2^12
-    localparam REM2  = REM1 - D1;                        //  1536
-    localparam D2    = (REM2 == 0) ? 1 : (1 << bitsof(REM2 - 1));     //  2048 = 2^11
+    localparam WORDS = (W * H + 3) / 4;             // 38400 个 64bit 字
+    localparam D_LO  = (1 << (bitsof(WORDS) - 1));  // 32768 = 2^15
+    localparam REM   = WORDS - D_LO;                // 5632
+    localparam D_HI  = (REM == 0) ? 1 : (1 << bitsof(REM));   // 8192
 
-    (* ram_style = "block" *) reg [63:0] a0 [0:D0-1];
-    (* ram_style = "block" *) reg [63:0] a1 [0:D1-1];
-    (* ram_style = "block" *) reg [63:0] a2 [0:D2-1];
+    (* ram_style = "block" *) reg [63:0] lo [0:D_LO-1];
+    (* ram_style = "block" *) reg [63:0] hi [0:D_HI-1];
 
-    wire [18:0] widx  = wr_addr;
-    wire        w_s1  = (widx >= D0[18:0]);
-    wire        w_s2  = (widx >= (D0[18:0] + D1[18:0]));
+    wire [18:0] widx   = wr_addr;
+    wire        wr_hi  = (widx >= D_LO[19:0]);
+    wire [18:0] w_off  = widx - D_LO[19:0];
 
     always @(posedge wr_clk) begin
-        if (wr_en && widx < WORDS[18:0]) begin
-            if (!w_s1)               a0[widx] <= wr_data;
-            else if (!w_s2)          a1[widx - D0[18:0]] <= wr_data;
-            else                     a2[widx - D0[18:0] - D1[18:0]] <= wr_data;
+        if (wr_en && widx < WORDS[19:0]) begin
+            if (wr_hi) hi[w_off & (D_HI-1)] <= wr_data;
+            else       lo[widx]             <= wr_data;
         end
     end
 
-    // 三块每拍都被读一次，真正的选择由 sel 完成——这样读延迟仍是 1 拍，
+    // 两个块每拍都被读一次，真正的选择由 sel_hi 完成——这样读延迟仍是 1 拍，
     // 且越界一侧的地址用掩码夹住，不会产生 X。
-    wire [18:0] ridx  = rd_addr[18:2];
-    wire        r_s1  = (ridx >= D0[18:0]);
-    wire        r_s2  = (ridx >= (D0[18:0] + D1[18:0]));
+    wire [18:0] ridx   = rd_addr[18:2];
+    wire        rd_hi  = (ridx >= D_LO[19:0]);
+    wire [18:0] r_off  = ridx - D_LO[19:0];
 
-    reg [63:0] q0, q1, q2;
-    reg        sel1, sel2;
+    reg [63:0] q_lo, q_hi;
+    reg        sel_hi;
     reg [1:0]  sel_lane;
     reg        blank;
 
     always @(posedge rd_clk) begin
-        q0 <= a0[ridx & (D0-1)];
-        q1 <= a1[(ridx - D0[18:0]) & (D1-1)];
-        q2 <= a2[(ridx - D0[18:0] - D1[18:0]) & (D2-1)];
-        sel1   <= r_s1;
-        sel2   <= r_s2;
+        q_lo     <= lo[ridx & (D_LO-1)];
+        q_hi     <= hi[r_off & (D_HI-1)];
+        sel_hi   <= rd_hi;
         sel_lane <= rd_addr[1:0];
         blank    <= (rd_addr >= (W*H));             // 越界仍回黑，保持 v6.4 行为
     end
 
-    wire [63:0] rd_q = sel2 ? q2 : (sel1 ? q1 : q0);
+    wire [63:0] rd_q = sel_hi ? q_hi : q_lo;
     reg [15:0]  lane;
     always @(*) begin
         case (sel_lane)

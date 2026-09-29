@@ -60,8 +60,6 @@ module icmp_rx (
     //例如：类型为11且代码为0，表示数据传输过程中超时了，超时的具体原因是TTL值为0，数据报被丢弃。
     reg [15:0] icmp_checksum;  //接收校验和:数据发送到目的地后需要对ICMP数据报文做一个校验，用于检查数据报文是否有错误
     reg [15:0] icmp_data_length;  //data length register
-    reg [15:0] icmp_len_m1;   //len-1 提前寄极：把减法移到不在最坏路径上的一拍
-    reg        in_data_win;   //数据窗旗标，等价于 icmp_rx_cnt < icmp_data_length
     reg [15:0] icmp_rx_cnt;  //接收数据计数
     reg [7:0] icmp_rx_data_d0;
     reg [31:0] reply_checksum_add;
@@ -135,8 +133,6 @@ module icmp_rx (
             reply_checksum_add <= 32'd0;
             icmp_rx_cnt        <= 16'd0;
             icmp_data_length   <= 16'd0;
-            icmp_len_m1        <= 16'd0;
-            in_data_win        <= 1'b0;
 
             rec_en_cnt         <= 2'd0;
             rec_en             <= 1'b0;
@@ -187,11 +183,9 @@ module icmp_rx (
                         if (cnt == 5'd0) ip_head_byte_num <= {gmii_rxd[3:0], 2'd0};
                         else if (cnt == 5'd2) total_length[15:8] <= gmii_rxd;
                         else if (cnt == 5'd3) total_length[7:0] <= gmii_rxd;
-                        else if (cnt == 5'd4) begin
+                        else if (cnt == 5'd4)
                             //有效数据字节长度，（IP首部20个字节，icmp首部8个字节，所以减去28）
                             icmp_data_length <= total_length - 16'd28;
-                            icmp_len_m1      <= total_length - 16'd29;
-                        end
                         else if (cnt == 5'd9) begin
                             if (gmii_rxd != ICMP_TYPE) begin
                                 //如果当前接收的数据不是ICMP协议，停止解析数据                        
@@ -229,9 +223,8 @@ module icmp_rx (
                             icmp_seq[7:0] <= gmii_rxd;
                             //判断ICMP报文类型是否是回显请求
                             if (icmp_type == ECHO_REQUEST) begin
-                                skip_en     <= 1'b1;
-                                cnt         <= 5'd0;
-                                in_data_win <= (icmp_data_length != 16'd0);
+                                skip_en <= 1'b1;
+                                cnt     <= 5'd0;
                             end else begin
                                 //ICMP报文类型错误，停止解析数据
                                 error_en <= 1'b1;
@@ -249,15 +242,14 @@ module icmp_rx (
                         rec_en      <= 1'b1;
 
                         //判断接收到数据的奇偶个数
-                        if (icmp_rx_cnt == icmp_len_m1) begin
+                        if (icmp_rx_cnt == icmp_data_length - 1) begin
                             icmp_rx_data_d0 <= 8'h00;
-                            in_data_win     <= 1'b0;
                             if (icmp_data_length[0])  //判断接收到数据是否为奇数个数
                                 reply_checksum_add <= {8'd0, gmii_rxd} + reply_checksum_add;
                             else
                                 reply_checksum_add <= {icmp_rx_data_d0, gmii_rxd} +
                                     reply_checksum_add;
-                        end else if (in_data_win) begin
+                        end else if (icmp_rx_cnt < icmp_data_length) begin
                             icmp_rx_data_d0 <= gmii_rxd;
                             icmp_rx_cnt     <= icmp_rx_cnt + 16'd1;
                             if (icmp_rx_cnt[0] == 1'b1)
@@ -266,7 +258,7 @@ module icmp_rx (
                             else reply_checksum_add <= reply_checksum_add;
                         end 
 
-                        if (icmp_rx_cnt == icmp_len_m1) begin
+                        if (icmp_rx_cnt == icmp_data_length - 16'd1) begin
                             skip_en      <= 1'b1;  //有效数据接收完成
                             icmp_rx_cnt  <= 16'd0;
                             rec_en_cnt   <= 2'd0;

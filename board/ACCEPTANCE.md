@@ -11,8 +11,8 @@
 | 2 | 串口命令电池（100 条，含该拒的必须拒） | `RESULT PASS uart_cmd_check (100 条命令, 93.3 s)` | `build/evidence/r90_board_verify.txt`、`board/uart_script_capture.txt` |
 | 3 | 几何"最后一跳"：命令 → 像素域真的用了它 | `RESULT PASS geom_check（ok=8 fail=0）`；自动旋转下 inv 493 → 507；收尾 19 个几何位与进来时逐位相同 | 同上 |
 | 4 | 上电默认档位 | `lane23 zsel=4 zman=1 inv=256 x100_actual=100 verdict=OK`（屏上画 1.00×） | `board/uart_script_capture.txt` 的开机回读段 |
-| 5 | 以太推流期间链路健康 | Python 上位机 `--demo --fps 25`：**300 帧 / 12.02 s = 24.97 fps、66300 包**；板上累计 `pkts=496659`、`drop_words=0`、`丢过字=0`、`流活着=1`、屏幕归 ETH | `build/evidence/r90_tx.txt`（发送端）、`build/evidence/r90_health.txt`（`node src/host/health_read.mjs --once` 在推流中读的） |
-| 6 | 链路内时延同源一致 | 屏上 `Latency=6ms` 与回读 `tot/100000=6` 一致（ok） | `build/evidence/r90_health.txt` |
+| 5 | 以太推流期间链路健康 | Python 上位机 `--demo --fps 25`：**451 帧 / 18.05 s = 24.99 fps、99671 包**；推流**之中**读回累计 `pkts=752507`、`drop_words=0`、`丢过字=0`、`缺行峰值=300`、`作废过帧=1`、`stall_ms=0`、`流活着=1` | `build/evidence/r90_tx.txt`（发送端）、`build/evidence/r90_health.txt`（`VP_XSDB=<Vitis>/bin/xsdb.bat node src/host/health_read.mjs --once`） |
+| 6 | 链路内时延同源一致 | `lat.osd_ms_matches_tot → true`（屏上 Latency 格与回读的 tot 同一来源） | `build/evidence/verify_0929_1931.txt`（同一块 bit 的那一跑） |
 | 7 | 温度格三方对账 | `4 条 [TEMP] 的 degC↔osd↔gpio 全部自洽` | `build/evidence/r90_board_verify.txt` |
 | 8 | SD 卡本地播放 | `sd=1 playing=1`，帧率 29.8 – 30.0 fps（100 帧滑窗） | `board/uart_script_capture.txt`、`data/metrics.csv` |
 | 9 | 时序/资源读数与报告一致 | 全设计 setup WNS +0.516 ns、失败端点 0 / 50885；BRAM 95 tile、LUT 14358、FF 8075、DSP 19 | `build/timing_summary.rpt`、`build/utilization.rpt` |

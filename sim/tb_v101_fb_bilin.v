@@ -166,11 +166,8 @@ module tb_v101_fb_bilin;
         errors = 0; guard_bad = 0; nbest = 0;
         for (i = 0; i < IMG_W*IMG_H; i = i + 1) mem[i] = 16'd0;
         // 硬件上电 BRAM = 0；xsim 是 X。不抹平这个差别，"越界抽头 × 权重 0" 就不可能在仿真里成立。
-        // 三块的名字/深度跟着 `frame_buffer_w64` 的拆分走（32768 + 4096 + 2048）；
-        // 这里只是把阵列抹平，判据本身与拆法无关，所以拆法再变也只动这三行。
-        for (i = 0; i < 32768; i = i + 1) dut.u_fb.a0[i] = 64'd0;
-        for (i = 0; i < 4096;  i = i + 1) dut.u_fb.a1[i] = 64'd0;
-        for (i = 0; i < 2048;  i = i + 1) dut.u_fb.a2[i] = 64'd0;
+        for (i = 0; i < 32768; i = i + 1) dut.u_fb.lo[i] = 64'd0;
+        for (i = 0; i < 8192;  i = i + 1) dut.u_fb.hi[i] = 64'd0;
 
         for (i = 0; i < IMG_W*IMG_H; i = i + 4) begin
             w0 = pxy(i % IMG_W,     i / IMG_W);

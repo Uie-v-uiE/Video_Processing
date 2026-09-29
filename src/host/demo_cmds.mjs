@@ -10,7 +10,7 @@
 // 只抽代码块（``` 围栏）里、去掉行首空白后**非空且不以 `#`/`::`/`//` 开头**的行；
 //   代码块之外的一切（说明、表格、md 标题）都不算命令。
 // 明确不算命令的两类（列出来而不是假装通过）：
-//   · `stream_video.bat` 这类 PC 侧动作（不是串口命令）
+//   · `send_demo.bat` 这类 PC 侧动作（不是串口命令）
 //   · 需要按键的（KEY1/KEY2）—— 串口脚本发不出手指
 import { readFileSync, writeFileSync } from 'node:fs';
 import path from 'node:path';
