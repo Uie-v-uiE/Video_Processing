@@ -542,7 +542,7 @@ BRAM **95 = 67.86 %**、LUT as Logic **10173**、LUT as Memory **4187**、FF **8
 
 **门禁（同一份报告集，`bash build/gates.sh build/r88_exp`）**：先跑目录参数时是 18 项判定全过、**2 项 `n/a`**
 （顶层台架 `tb_v98` 与边缘条带 `tb_edge_rim` 都没有"与这一次构建同跑"的 md5 凭据）⇒
-`GATES: PARTIAL`、rc=1（`build/r88_gates_partial.txt`）。把这一版采纳进 `build/` 之后复跑：`GATES: 有红项（判定 20 项）`，红的就是第 15 项里 `C5c` 那一行（`build/evidence/r88_gates.txt`），`freeze_evidence.sh 88` 按规则 REFUSE（`build/evidence/r88_freeze_attempt.txt`）。**板上仍是 r87**（等供电）。
+`GATES: PARTIAL`、rc=1（`build/r88_gates_partial.txt`）。把这一版采纳进 `build/` 之后复跑：`GATES: 有红项（判定 20 项）`，红的就是第 15 项里 `C5c` 那一行（`build/evidence/r88_gates.txt`），`freeze_evidence.sh 88` 按规则 REFUSE（`build/evidence/r88_freeze_attempt.txt`）。**板上已是这一版**（2026-09-29 20:31 上板，`RESULT board_verify PASS`）。
 ⚠ 这一版顺手把**判据本身**修了一处（ISSUES **#141**）：改前 `say()` 只数红绿、`n/a` 四处独立打印，
 于是"两支主台架都没判"的一版会端出 `GATES: ALL PASS`（那份留在 `build/r88_gates_naive.txt`），
 而 `freeze_evidence.sh` 就 grep 这一行。现在 n/a 会被数进结尾、行首也不再是 `ALL PASS` ⇒ 冻结自动拒绝。
@@ -588,8 +588,8 @@ BRAM **95 = 67.86 %**、LUT as Logic **10173**、LUT as Memory **4187**、FF **8
 | r75 | OSD 字格几何从最差那一锥里挪走一拍（#96）；**最近一套全绿且已冻结** | +0.287 | 0 | +0.041 | 97.5 / 69.64 % | 14776 (27.77 %) | 10018 | 2.209 | `build/r75_gates.txt` |
 | r84 | 回滚 `max_fanout` 之后，两刀的贡献才真的分开（`docs/OPTIMIZATION_LOG.md` r84 一节） | **−0.094** | **16** | +0.056 | 95 / 67.86 % | 14360 (26.99 %) | 8073 | 2.205 | `build/r84_gates.txt` |
 | r86 | 诊断计数器的使能改喂"寄存过的事件"（#124）：目标那一族被切断，失败端点 **16 → 2** | **−0.135** | **2** | +0.053 | 95 / 67.86 % | 14358 (26.99 %) | 8075 | 2.205 | `build/r86_gates_final.txt` |
-| r87 | **板上这一版**（第二轮遍历代码 + `link_monitor` 两个事件位补进复位清单 + OS 地址算法改乘加）——**门禁还没跑完，所以这一行只有报告数** | +0.152 | 0 | +0.051 | 95 / 67.86 % | 14363 (27.00 %) | 8075 | 未取 | `build/r87_timing_summary.rpt`、`build/r87_utilization.rpt` |
-| r88 | `dc_fifo` 满判据改用当前写指针（#105 第二刀，`docs/log/ISSUES.md` #139）——**隔离构建 `build/r88_exp/`，门禁 18 项判定全过但 2 项因缺同跑台架凭据未判（#141），所以未采纳、板上仍是 r87** | +0.516 | 0 | +0.051 | 95 / 67.86 % | 14358 (26.99 %) | 8075 | 2.205 | `build/evidence/r88exp_timing_summary.rpt`、`utilization.rpt`、`power.rpt`；路径族凭据 `build/r88_crit_paths.txt`；门禁 `build/r88_gates_partial.txt` |
+| r87 | **当时的板上版**（第二轮遍历代码 + `link_monitor` 两个事件位补进复位清单 + OS 地址算法改乘加）——**门禁还没跑完，所以这一行只有报告数** | +0.152 | 0 | +0.051 | 95 / 67.86 % | 14363 (27.00 %) | 8075 | 未取 | `build/r87_timing_summary.rpt`、`build/r87_utilization.rpt` |
+| r88 | `dc_fifo` 满判据改用当前写指针（#105 第二刀，`docs/log/ISSUES.md` #139）——**隔离构建 `build/r88_exp/`，门禁 18 项判定全过但 2 项因缺同跑台架凭据未判（#141），所以未采纳；板上跑的后来换成了这一版（已上板验完）** | +0.516 | 0 | +0.051 | 95 / 67.86 % | 14358 (26.99 %) | 8075 | 2.205 | `build/evidence/r88exp_timing_summary.rpt`、`utilization.rpt`、`power.rpt`；路径族凭据 `build/r88_crit_paths.txt`；门禁 `build/r88_gates_partial.txt` |
 
 ### 为什么这张表不能读成"越优化越差"或"越优化越好"
 
