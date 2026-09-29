@@ -383,7 +383,7 @@ PS CPU：主循环仅 `uart_poll`，不参与视频搬移。
 | 最差那一族 | `u_cdc/wbin_reg → mem_reg_N/ENARDEN` 占 8 条里 **6 条**（r85 同一把尺子的数），8 级逻辑 | **0 条 / 8**；`eth_rxc` 最差那族降到 **4 级**，最差变成自算 FCS 的 `u_rgmii_rx → u_rx_mac/u_crc_rx` 与 `u_icmp_rx` 的 FSM | 尺子是同一个 `build/tcl/crit_path.tcl`：`build/r88_crit_paths.txt`（r85 那份原样留着给 #121 引用）。改动本体见 `docs/log/ISSUES.md` **#139** |
 | BRAM / LUT / FF / DSP | 95 / 14363 / 8075 / 19 | **95 / 14358（26.99 %）/ 8075 / 19** | −5 个 LUT，就是"没有资源收益"。资源这一轮的产出是**两条否定结论 + 一张归属表**，见 `docs/OPTIMIZATION_LOG.md` |
 | 功耗 | 2.205 W / 52.5 °C | **2.205 W / 52.5 °C**（同一套估算前提，置信度仍 Low） | 逐项相同 ⇒ 这一刀不以功耗为代价，也不宣称省电 |
-| 门禁 | 未跑 | **判定 18 项全过、2 项因缺同跑台架凭据未判 ⇒ `GATES: PARTIAL`、rc=1**（`build/r88_gates_partial.txt`） | ⚠ 这一轮顺手修了门禁自己的一处作用范围漏洞（**#141**）：改前同一份报告会打出 `ALL PASS`（`build/r88_gates_naive.txt`）。补齐两份同跑凭据之后第 15 项会因 C5c（#98 故意留红）**转为判红** ⇒ r88 也不会成为"过门禁的一版"，冻结集继续是 r75 |
+| 门禁 | 未跑 | **20 项全部判定：19 绿 + 1 红（红的就是第 15 项顶层台架里那行 C5c，#98 故意留红） ⇒ `GATES: PARTIAL`、rc=1**（`build/r88_gates_partial.txt`） | ⚠ 这一轮顺手修了门禁自己的一处作用范围漏洞（**#141**）：改前同一份报告会打出 `ALL PASS`（`build/r88_gates_naive.txt`）。补齐两份同跑凭据之后第 15 项会因 C5c（#98 故意留红）**转为判红** ⇒ r88 也不会成为"过门禁的一版"，冻结集继续是 r75 |
 
 **r88 量出来的资源归属**（一次只读 DCP 查询，`build/r88_resource_owners.txt`；这是本仓第一次有"谁占哪一类资源"的实测表）：
 93 块 RAMB36 里 `u_pl/u_bilin` 一家占 **80** —— 就是那帧 512×300×RGB565 显示缓存，

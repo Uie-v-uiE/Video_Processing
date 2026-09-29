@@ -6181,3 +6181,36 @@ r87 时序报告里那句 `u_eth/u_reasm/wr_full` 是 Vivado 按**摆放区域**
 D3 首页念的那一套、D4 文档路径存在性；**没有任何一条把"表里写的条数"对回"它点名的那份报告里数出来的条数"**。
 要加的正是这条：值列写着"条判定/N 条"的行，必须能在它点名的凭据文件里数到同一个数（数不到就红）。
 它和 #118 那条（产物路径存在性）可以一趟做，都要带"能红的对照"。
+
+## #146（2026-09-29 17:5x–18:2x，#121 点名的物理那一侧终于试了一刀：Pblock 把 `u_cdc` 圈回它自己那 9 块 BRAM 旁边 —— **实测不采纳**）
+
+**为什么这一刀值得试**：#140/#141 之后，算术侧用完了，`OPTIMIZATION_LOG` 里"Pblock"那一行从待办被写成
+可开工的规格；缺的输入（拥塞图在这颗器件上读不出来）改用**站点清点**补上：
+`u_cdc` 的 9 块 BRAM 实测在 `RAMB36_X1Y7..RAMB36_X2Y12`（一条两列六行的窄带），
+而它的 239 个控制单元摊到 SLICE X1..38 / Y7..54 —— 存储挤在一角、控制散在几十列之外，
+这正是 r87 那条 `wbin_reg → ENARDEN`（route 66 %）的形状。
+
+**做法**：新建 `src/constraints/pblock_eth_cdc.xdc`（`create_pblock pb_eth_cdc` +
+`resize_pblock -add {SLICE_X0Y6:SLICE_X9Y20}` + `{RAMB36_X1Y6:RAMB36_X2Y13}`，只 used_in_implementation），
+在 `build/tcl/build_system_axigpio.tcl` 里挂上，然后 `OUT=build/r89_exp bash build/roll_isolated.sh`
+——**只读实验**：不动 `src/rtl`（所以 `top_md5`/`rtl_md5` 与 r88 那两份台架凭据仍然配对），不动 `build/`。
+
+**量出来的**（`build/evidence/r89exp_timing_summary.rpt`、`r89exp_utilization.rpt`）：
+
+| | r88（无 Pblock） | r89（圈住 `u_cdc`） |
+|---|---|---|
+| 全设计 WNS | +0.516（最差在 `eth_rxc`） | **+0.363**（仍在 `eth_rxc`） |
+| `clk_fpga_0` / `sys_clk` | +1.643 / +14.621 | +1.861 / +13.808 |
+| `eth_rxc` 最差那条 | `u_cdc` 一族**已不在名单上**（r88 起） | 已不在名单上；新的最差是**打包器** `u_saver/cur_data_reg[36] → q_data RAMA` |
+| Slice LUT | 14358 | 14357 |
+| 失败端点 | 0 / 50885 | 0 / 50885 |
+
+**判词：不采纳。** 三个理由：① 它瞄准的那一族本来就已经不在最差名单里（r88 的功劳），
+所以这刀没有可归属的收益对象；② 唯一可见的变化是 `eth_rxc` 从 +0.516 变 +0.363，
+这**落在 0.4 ns 的实测摆幅之内**，按规矩 35 既不能算坏也不能算好 —— 也就是说"没有任何可主张的改变"；
+③ 代价是真实存在的：一个把整块芯片的一角写死的 Pblock，会让以后每次改动都少一块可摆放的地，
+而且打包器那一条新最差路径就贴着被圈住的区域。**买了风险，没买到东西。**
+
+**处置**：XDC 与构建脚本的挂载**全部回退**（`git checkout HEAD -- build/tcl/build_system_axigpio.tcl`、删掉那份 xdc），
+`build/r89_exp/` 与两份报告留在盘上作反例凭据。
+`OPTIMIZATION_LOG` 里那一行改为"已试、不采纳"，别再当"下一刀"推荐给下一个人。
