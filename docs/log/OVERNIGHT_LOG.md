@@ -5958,13 +5958,17 @@ E1/E2 全绿。所以那次的差 1 不在硬件里，是**我的判据读了 `s
 
 ### 3. 需要你做的三件事（我不能再往下走的，都写清"不成立时说明什么"）
 
-① **眼睛那三条**（#103 与 #102 的最后一半只有屏幕能给）。配方，串口一次一条，每条只问一个事实：
-   `fill` → `th 8` → `pipe 000100000` → `split 31` → `split marker 1`：黑线在不在、宽度跟不跟 zoom 走；
-   再 `src 0` → `split 50` → `split marker 0`：换到原图那一路看同一条位置。
-   如果 `split marker 0` 之后那条竖线消失 ⇒ 它是缝标记（我 `SPLIT 20` 那次就误判过，#100 记着），不是数据通路缺陷。
+① **眼睛那三条**（#103 与 #102 的最后一半只有屏幕能给）：**命令以下面 07:53 那一节的十条为唯一出处**，
+   这里只留口径，免得两份配方各改各的（刚刚就飘过一次：这一节原来写"跟不跟 zoom 走"，可那条序列动的是
+   `split` 而不是 `zoom`，口径写错位就判不了 —— 07:53 一节已按"一次只动一个变量"重排）。
+   三问：缝 31% + 标记开着时，蓝线右侧还有没有紧贴的 1 px 黑线（#103 的签名）；`split marker 0` 之后
+   那条 2 px 蓝线是否整条消失、屏上还留着别的竖线吗；把缝挪到 50% 后，还看得见的那条是**跟缝走**还是
+   **钉在原来那一列**（跟缝走 ⇒ 缝的产物；钉住 ⇒ 真缺陷。我 `SPLIT 20` 那次就误判过，账在 `ISSUES #103`
+   的 09-28 追加段，同一节 07:4x 那条是靠 `split show` 的 `marker=off` 才把"它是标记"这个解释排除掉的）。
    **这些命令的语法不是我猜的**：`src 0`、`pipe 000100000`、`split marker 0`/`split marker 1`、`split 50`
    都在这板子今晚跑过的那 100 条里（逐条 ok，`build/evidence/r86_board_warm.txt`）；
-   `fill` 是 `docs/COMMANDS.md:127` 那条"PS 直接写一张四色诊断帧"，`th 8` / `split 31` 与电池里的 `th 80` / `split 50` 同型。
+   `fill` 是 `docs/COMMANDS.md:127` 那条"PS 直接写一张四色诊断帧"，`th 8` / `split 31` 与电池里的 `th 80` / `split 50` 同型；
+   五个动词的分发表位置：`PIPE` `src/ps/main.c:895`、`TH` `:907`、`SRC` `:917`、`SPLIT`（含 `SHOW`/`marker`）`:1091`/`:1101`、`FILL` `:1359`。
 ② **#118/#126 那一格**：上电默认（自动呼吸 `zman=0`）与文档/演示默认档（手动 1.00× `zman=1`）不一致。
    三个选项写在 `ISSUES #126` 里（改上电默认 / 电池末尾加 `zoom auto` / 操作规程里写明"跑电池前先 `zoom 1.0`"）。
    我今晚一个都没动：改哪个都在改演示契约，那是你的那一格。
@@ -5978,6 +5982,12 @@ E1/E2 全绿。所以那次的差 1 不在硬件里，是**我的判据读了 `s
 - 往 `skill/` 加条目时才发现 `doc_enc_check` 从来没扫过 `skill/`（判据的覆盖范围也会漂，而且它漂的时候不会红）。
 - `git add` 里带了一个不存在的路径 ⇒ 整条 add 静默失败，我按 `git status | head` 只看了前几行没发现；
   补提交在 `9cbe60d`。同族第二个错：两次把 heredoc 提交消息写空（`git commit` 报"empty commit message"）。
+- **同一份配方抄了两遍就开始各飘各的**：06:00 §3 ① 写"黑线宽度跟不跟 zoom 走"，可那段命令动的变量是
+  `split`（31%→50%）不是 `zoom` —— 判据问的不是被拧的那个旋钮，答案就无从解释；又把"`SPLIT 20` 那次误判"
+  记到 `#100` 名下，而它实际在 `ISSUES #103` 的 09-28 追加段（`#100` 是 `dc_fifo` 那一刀）。
+  07:53 新写命令清单时我没有回头改上一节，直到这次通读才发现。**改法**：① 那一节不再重复命令，只指
+  "以 07:53 那九条为唯一出处"，并把两处错就地更正。教训一句话：**加副本的同时就要把老副本改成指针**，
+  否则下一轮读的是老的那份。
 
 ### 07:06 收尾：门禁、导出、板上状态，以及"接下来该干什么"的一句话版
 
@@ -5985,8 +5995,10 @@ E1/E2 全绿。所以那次的差 1 不在硬件里，是**我的判据读了 `s
   **第 15b 项（边缘条带）今天从红转绿**（`build/tb_edge_rim_r86.txt` 的 `rtl_md5` 与现树一致、0 FAIL、四条圈齐），
   所以第 15 项的红现在**只**代表 #98 那个还没修的历史缺陷，不再代表"报告算不算数"。
   凭据 `build/r86_gates.txt`；`freeze_evidence.sh 86` 照规矩拒绝（`build/r86_freeze_attempt.txt`）⇒ 冻结集仍是 r75。
-- **导出包**：`bash build/make_submission.sh` 现在**通过**（918 个文件 / 49 M / 剪掉 587 条 / **死链 0 条**，
-  对齐 commit `6027f02`）。它今天第一次跑是 FAIL 的——3 条死链，逐条改指路而不是往包里塞文件，账在 `ISSUES #129`。
+- **导出包**：`bash build/make_submission.sh` 现在**通过**，判据只有一条 —— 最后一行的**"死链 0 条"**；
+  文件数/剪掉条数/对齐的 commit 都跟着当时的 HEAD 走，所以不在这儿钉死（07:06 那次是 918 / 587 / `6027f02`，
+  写完 07:53 那一节再导一次是 919 / 596 / `cec46f6`；你要复核就重跑那一条命令，它会自己报最新的三个数）。
+  它今天第一次跑是 FAIL 的——3 条死链，逐条改指路而不是往包里塞文件，账在 `ISSUES #129`。
 - **板上状态（07:05 一次 `stat` 读回，只读串口）**：
   `zman=1 pub=0 sd=1 frames=4398 playing=1 mode=0 geom=00400000 osd=1` = 文档默认档，SD 在播、OSD 开着；
   也就是说**你醒来直接做那三条眼睛判据就行**，不需要先重烧或重配（要做黑线那两条，按 §3 的配方一条一条发）。
@@ -6030,13 +6042,18 @@ powershell -ExecutionPolicy Bypass -File board/uart_cap_once.ps1 -Port COM6 -Cmd
 # 问 1：蓝线右侧紧贴着的那条 1 像素黑线还在吗？（在 => #103 没收住，把这份捕获发我）
 powershell -ExecutionPolicy Bypass -File board/uart_cap_once.ps1 -Port COM6 -Cmd "src 0"            -Seconds 3 -Out board\eye_6_src0.txt
 powershell -ExecutionPolicy Bypass -File board/uart_cap_once.ps1 -Port COM6 -Cmd "split marker 0"   -Seconds 4 -Out board\eye_7_marker_off.txt
-# 问 2：那条 2 px 蓝标记整条消失了吗？消失之后屏上还有别的竖线吗？（还有 => 那条才是要判的对象，接着看问 3）
-powershell -ExecutionPolicy Bypass -File board/uart_cap_once.ps1 -Port COM6 -Cmd "split 50"         -Seconds 3 -Out board\eye_8_split50.txt
-# 问 3：还看得见的那条线，是跟着缝从 31% 走到 50%，还是钉在原来那一列？（跟缝走 => 缝的产物；钉住 => 真缺陷，
-#        #102 那天量到的是"钉住、不跟缝"，所以两种答案都各有意义）
-powershell -ExecutionPolicy Bypass -File board/uart_cap_once.ps1 -Port COM6 -Cmd "split show"       -Seconds 3 -Out board\eye_9_splitshow.txt
-# 这一步不是眼睛判据，是**前提**：`split show` 的 `marker=` 栏必须真的写着 off。
-# 少了这一栏的凭据，"它就是标记"这个解释就没被排除（ISSUES #102 追加里 07:4x 那次是靠它锁住前提的）。
+# 问 2：那条 2 px 蓝标记整条消失了吗？消失之后屏上还有别的竖线吗？（还有 ⇒ 那条才是要判的对象，接着看问 3）
+powershell -ExecutionPolicy Bypass -File board/uart_cap_once.ps1 -Port COM6 -Cmd "split show"       -Seconds 3 -Out board\eye_8_show_premise.txt
+# ↑ 这一步不是眼睛判据，是**前提**：`marker=` 栏必须真的写着 off。少了它，"它是标记"这个解释就没被排除
+#   （ISSUES #103 追加段 07:4x 那次就是靠这一栏才锁住前提的）。
+powershell -ExecutionPolicy Bypass -File board/uart_cap_once.ps1 -Port COM6 -Cmd "split 50"         -Seconds 3 -Out board\eye_9_split50.txt
+# 问 3：还看得见的那条线，是跟着缝从 31% 走到 50%，还是钉在原来那一列？（跟缝走 ⇒ 缝的产物；钉住 ⇒ 真缺陷。
+#        #102 那天量到的是"钉住、不跟缝"，所以两种答案都各有意义。）
+powershell -ExecutionPolicy Bypass -File board/uart_cap_once.ps1 -Port COM6 -Cmd "split show"       -Seconds 3 -Out board\eye_10_show_after.txt
+# ↑ 第二个前提：这里必须仍写着 `marker=off`、而 pos 已经变成 ~50%。串口电池里**没有**"`split <n>` 之后
+#   marker 位不变"这条判据（ISSUES.md:4692 计划过、`src/host/uart_cmd_check.mjs:180` 只核对回包文本），
+#   而历史上 `split 20` 真把标记位重新打开过一次（ISSUES.md:4689）⇒ 这一栏就是现场补的那条判据。
+#   如果这里写着 on：问 3 作废，缝挪回去时标记被重新点亮了，你看到的多半又是标记线。
 ```
 
 为什么写成"一发一条"而不是批量 `-Cmds`：`-Cmds` 按 `[,\s]+` 拆，**带参数的命令会被劈成两条**
