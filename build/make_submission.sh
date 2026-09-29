@@ -307,7 +307,9 @@ rm -f _all.txt _cand.txt _cited.txt _cited_bases.txt _dropped_tb.txt _map.sed _m
       _oldnames.txt _prune_list.tsv _script_tb.txt _txt.txt
 
 # ---- 5. 清单 ----
-files="$(find . -type f | wc -l)"
+# 数的是"除了本清单以外"的文件：MANIFEST.txt 是在这一行之后才写出来的，
+# 上一版把它漏在计数外 ⇒ 报 546、落地 547（#106 的第三次同族复发：计数与落地差一个）
+files="$(find . -type f ! -name MANIFEST.txt | wc -l)"
 bytes="$(du -sh . | cut -f1)"
 removed="$(sort -u -o _pruned.txt _pruned.txt; { grep -c '' _pruned.txt || true; })"; removed="${removed:-0}"
 BIT_MD5=""
@@ -352,4 +354,9 @@ if [ "$DEAD" != "0" ] || [ "$STALE" != "0" ] || [ "$ABSN" != "0" ]; then
 fi
 rm -rf "$OUT"
 mv "$TMP" "$OUT"
-echo "-> $OUT"
+landed="$(find "$OUT" -type f | wc -l)"
+if [ "$landed" != "$((files + 1))" ]; then
+  echo "FAIL：MANIFEST 写 $files 个文件，落地数到 $landed（差 1 应该是 MANIFEST.txt 自己，不是就不是）"
+  exit 1
+fi
+echo "-> $OUT（$landed 个文件，与 MANIFEST 的计数一致）"
