@@ -1,5 +1,8 @@
 `timescale 1ns/1ps
 // Sobel edge magnitude (Gx,Gy) on 3x3 window, output white edge on black
+// 定位：四个"窗口级"之一，只被 `process/proc_pipeline.v` 例化（`u_sobel`），`H_ACTIVE` 必须跟顶层一致；
+//         3×3 窗口靠两个行缓存 `lb0`/`lb1`（+ 一个搬原色的 `mc1`，都是 distributed RAM、按 `x_in` 直接索引），
+//         写侧只有 `if (de_in)` 这一道门 ⇒ 行首那一拍的 `x_in` 越界就是 #103 的形状，由 C10f/C10fs 逐条钉住。
 module proc_sobel #(
     parameter H_ACTIVE = 640
 )(

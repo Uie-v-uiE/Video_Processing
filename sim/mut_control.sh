@@ -64,7 +64,7 @@ osd_addr)
     # 但"改了地址算术就抓不到"是这条判据的真实边界 ⇒ 要修得先在 RTL 里给读地址起一根线（动 src/rtl ⇒ 排到有构建轮次时）。
     P=rtl_mut/video/osd_overlay.v
     EXPDIFF=2
-    sed -i 's/chars\[s_line \* MAX_CHARS + s_cidx\]/chars[s_line * MAX_CHARS + s_cidx + 6*MAX_CHARS]/' "$P" || exit 1
+    sed -i 's/wire \[15:0\] ch_addr = s_line \* MAX_CHARS + s_cidx;/wire [15:0] ch_addr = s_line * MAX_CHARS + s_cidx + 6*MAX_CHARS;/' "$P" || exit 1
     ;;
 osd_inchar_all)
     # T18 的真正反例：把 `in_char` 里**两道门一起拆掉**（`in_box` 与 `line < N_LINES`），

@@ -97,6 +97,9 @@ module link_monitor #(
             rows_miss_max<=0; stall_ms<=0;
             gap_last<=0; gap_min<=0; gap_max<=0; gap_sum<=0;
             have_base<=0; gap_valid<=0; full_d<=0; gap_cnt<=0;
+            // 这两个事件寄存器也补进复位（#99）：不加它们功能不差（上电第一拍起就开始跟事件），
+            // 但综合会为它们各自多插一级"不复位"的推断 ⇒ Synth 8-7137 从 19 涨到 21（r86 实测）。
+            drop_ev_d<=0; cdc_rise_d<=0;
         end else begin
             full_d <= cdc_full;
             drop_ev_d   <= cdc_wr_req && cdc_full;

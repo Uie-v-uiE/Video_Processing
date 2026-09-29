@@ -484,7 +484,10 @@ module osd_overlay #(
 
     // 读这一侧全部吃**上一拍算好的格子**（`s_*`）：`chars` 的索引是 移位+或（MAX_CHARS=32），
     // 字形译码是并行 case（R25），`/SCALE` 只有 5 个值 —— 这一侧原本就不深，深的是前一拍的除/模。
-    wire [7:0] ch = chars[s_line * MAX_CHARS + s_cidx];
+    // 读地址**起一根线**（`ISSUES #127`/`#130`）：台架的越界判据要吃这根真信号，而不是自己按同样的式子
+    // 重算一遍 —— 重算式看不见"将来有人改了地址算术"（`sim/mut_control.sh` 的 `osd_addr` 分支实测过这个盲区）。
+    wire [15:0] ch_addr = s_line * MAX_CHARS + s_cidx;
+    wire [7:0] ch = chars[ch_addr];
     wire [5:0] gi = glyph_idx(ch);
     wire [2:0] fx = s_pix_x / SCALE;
     wire [2:0] fy = (s_pix_y < 7*SCALE) ? (s_pix_y / SCALE) : 3'd6;

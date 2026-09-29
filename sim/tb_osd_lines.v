@@ -73,7 +73,7 @@ module tb_osd_lines;
     // 成对写：T17 = 机会地板（必须 > 0，否则 T18 的 0 是空的）；T18 = 伤害计数（画像素那一拍用了越界索引 ⇒ 必须 0）。
     integer oob_opp = 0, oob_harm = 0, oob_max = 0, oob_idx = 0;
     always @(posedge clk) if (rst_n) begin
-        oob_idx = u_osd.s_line * MC + u_osd.s_cidx;
+        oob_idx = u_osd.ch_addr;      // 吃 DUT 那根真地址线（`osd_overlay.v` 的 `ch_addr`）：不再重算
         // 最大值要**每拍**都跟：只在越界分支里更新的话，"最大到过 0"就分不清"索引从没超过 0"与
         // "越界从没发生所以这个累加器一直是初值"（写第一版就踩到了，下面的 FAIL 文案因此是错的）。
         if (oob_idx > oob_max) oob_max = oob_idx;

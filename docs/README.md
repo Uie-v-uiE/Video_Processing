@@ -27,6 +27,7 @@
 | `OPTIMIZATION_LOG.md` | 时序/资源/功耗的优化实验账，含**没采纳**的那些与前后对比 | 采纳与不采纳的判据各有一节 |
 | `COMMANDS.md` | 串口命令口径（动词、参数、回声、拒收条件） | 与固件不一致就是缺陷，`uart_cmd_check.mjs` 会抓 |
 | `COMMAND_PRECEDENCE.md` | 命令之间的**覆盖关系**：哪些组合会静默无效 | 被问"命令冲突"念这份 |
+| `DEFAULTS.md` | 上电默认档是什么、为什么是这一套、怎么自己验（三条独立证据） | 被问"开机画面/默认状态"念这份；行号会漂，先重 grep |
 | `HOST_GUIDE.md` | 上位机：推流、串口、判据工具各用什么 | 只有 Node 与 PowerShell，不需要 Python |
 | `BUILD.md` / `BOARD_PINS.md` | 怎么构建、怎么刷板、引脚与极性 | 刷板是三条命令不是一条；构建入口只有一个 |
 | `DEMO_SCRIPT.md` | 演示动线：每一步敲什么、看见什么算过 | 里面的命令由 `src/host/demo_cmds.mjs` 抽出来逐条上过板，别手抄进别处 |

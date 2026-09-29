@@ -1,5 +1,10 @@
 `timescale 1ns/1ps
 // Built-in color bar + diagonal stripe (RGB565). Synthesis-friendly (no div).
+// 定位（09:4x 重扫后据实改口）：**不在综合树里** —— `src/rtl` 内无人例化它，SRC0 那格在 V9 换成会动的
+//         测试图卡 `video/test_card.v`（见 `top/pl_video_top.v:714` 那句"位置原来是静止彩条"）。
+//         但它**仍被台架用着**：`sim/tb_v81_test_card.v:34` 拿它当"静止对照"的参考实例（`ref_static`），
+//         用来证明"图卡在跨帧变"这件事是真的 ⇒ 要删它得先给那支台架换对照。别按 #93 的删除候选处理。
+//         功能本身：按 `x/y` 画彩条 + 对角带，坐标由例化者的扫描时序给，刻意不用除法 ⇒ 只成连线/移位。
 module color_bar #(
     parameter H_ACTIVE = 640,
     parameter V_ACTIVE = 360

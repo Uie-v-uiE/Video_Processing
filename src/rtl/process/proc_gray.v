@@ -1,5 +1,7 @@
 `timescale 1ns/1ps
 // 级 1 颜色的第一路：RGB565 → 亮度 → 写回三个分量（去色）。proc_pipeline 里占 1 拍，~w_gray 时纯旁路。
+// 定位：只被 `process/proc_pipeline.v` 例化（效果链第一级），全部在 clk_pix 单域、不跨钟；
+//         输入 de_in/din、输出各打一拍 ⇒ 本级贡献 1 拍延迟，链子总延迟由 `proc_pipeline` 的参数记账。
 module proc_gray (
     input  wire        clk,
     input  wire        rst_n,
