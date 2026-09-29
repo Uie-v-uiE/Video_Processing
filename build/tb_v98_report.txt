@@ -1,4 +1,4 @@
-# provenance top_md5=47c59cd3a852 tb_md5=d64b883a6d94 rtl_md5=2b3c5945a9e0 date=2026-09-29T05:16:24+08:00 src=/tmp/kx/tb_v98_top_seam.run/run.log
+# provenance top_md5=47c59cd3a852 tb_md5=d64b883a6d94 rtl_md5=41384499f3a9 date=2026-09-29T15:32:17+08:00 src=/tmp/kx/tb_v98_top_seam.run/run.log
 PASS C0a ruler encodes position in the pixel | px_val / decoder / mod-256 signed diff must agree, incl. 0, small values, both edges, both wrap directions
 PASS C0a3 no black cell exists in the pattern | the panel-level ruler equates black with outside-the-picture, so the pattern must not contain black
 PASS C0a2 golden array actually holds it | read back ddr[0] and the last word after init: a correct function is not a correct array
