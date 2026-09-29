@@ -60,6 +60,12 @@ PRUNE_ONEOFF=(
   # gates_cdc_test.sh、tb98_report.sh、board_verify.sh，所以那几个**留**，其余走。
   build/_scan_align.mjs build/cleanup_wip.sh build/refresh_evidence.sh build/roll_isolated.sh
   build/trim_comments.py build/orphan_rtl.sh build/rim_gate_ce.sh build/tb98_gate_ce.sh
+  # `board/` 同理：留"上板工程 / 运行脚本 / 实测输出"，一次性探针走。
+  # 名单不是凭印象 —— 先查过谁被指路：`rdddr.tcl` 被 BUILD.md 点名、`demo_rehearsal.txt` 被 gates.sh 用、
+  # `pswhy.tcl` / `serial_bytes.ps1` / `uart_*.ps1` / `evidence_r41/` 都有文档指路 ⇒ 全部保留；
+  # 下面这几个没有任何活文档或脚本指着 ⇒ 剪。
+  board/boot27c.tcl board/rdbck.tcl board/ddr_churn_probe.mjs board/cmd_prime_demo.txt
+  board/cmd_r84_osd.txt board/card_v2_preview.png
 )
 # `build/make_submission.sh` **留**：它是"这个包怎么生成的"那一步的脚本（MANIFEST 也点名它），
 # 属于"可复现"，不属于开发工具。
@@ -110,9 +116,9 @@ for n in "${PRUNE_ONEOFF[@]}"; do prune "$n" "一次性脚本"; done
 # **交付文档按路径点名的那些不能剪**：剪掉就等于亲手造出死链接，而包末尾的自检会因此拒绝落盘
 # （2026-09-29 把两类目录一起剪时，`report/commands.md` 指着的 `build/evidence_r75/MANIFEST.md5`
 # 就变死了，39 条死链全是这一类）。所以先读"活文档点哪些目录"，再决定剪谁。
-CRED_DIRS=$( { grep -rhoE 'build/(evidence|frozen)_[A-Za-z0-9_.-]+/' \
+CRED_DIRS=$( { grep -rhoE '(build|board)/(evidence|frozen)_[A-Za-z0-9_.-]+/' \
     report README.md README.en.md skill board/README.md data/metrics.csv 2>/dev/null; } | sort -u )
-for d in build/evidence_* build/frozen_*; do
+for d in build/evidence_* build/frozen_* board/evidence_* board/frozen_*; do
   if [ -d "$d" ]; then
     if printf '%s\n' "$CRED_DIRS" | grep -qF -- "$d/"; then
       echo "保留（交付文档点名要它） $d" >> _pruned.txt
