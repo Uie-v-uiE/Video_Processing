@@ -31,7 +31,7 @@ vivado -mode batch -source build/tcl/scan_jtag.tcl
 # 1) PS 起来（ps7_init + reset system），用 Vitis 的 xsdb 启动器
 <Vitis>/bin/xsdb.bat build/tcl/ps_jtag_boot.tcl
 # 2) 烧 PL，用 Vivado
-vivado -mode batch -source build/tcl/program_pl.tcl
+vivado -mode batch -source build/tcl/program_pl.tcl   # program_pl 认 VP_BIT=<路径>，用来烧"隔离滚一轮"的产物做对照；不设就是 build/system.bit
 # 3) 重载 PS 应用（还是 xsdb 启动器；顺序不能换，PL 没烧之前应用起不来）
 <Vitis>/bin/xsdb.bat build/tcl/ps_app_reload.tcl
 ```

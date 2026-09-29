@@ -91,7 +91,7 @@ run_serial.bat COM5
 2. 网线接 **PL 网口**（非 PS 口）—— 但**要先决定这一轮演哪一幕**：演 SD 回放就得在
    下 bit 之前把网线拔掉（PL 里 `link_active = |s_pkts` 是"自配置以来收过任何一个包"，ARP 就够触发，
    拔线不清零、只有重配清零；判据与改法见 ISSUES #47）
-3. 下载 bit：`vivado -mode batch -source build/tcl/program_pl.tcl`（下 bit 前先 `md5sum` 对 MANIFEST）
+3. 下载 bit：`vivado -mode batch -source build/tcl/program_pl.tcl`（下 bit 前先 `md5sum` 对 MANIFEST）；拿隔离滚的产物做板上对照时可以 `VP_BIT` 指过去，**默认路径不变**，交付件身份仍由 md5 认
 4. PS 应用（**不需要 Vitis、不需要 FSBL**）：`xsdb build/tcl/ps_app_reload.tcl`
    —— 串口应出现 `[BOOT] video_pipeline PL-UDP control plane`；它只做 `rst -processor`，
    所以位流与 GPIO 控制字都不受牵连。反过来 `ps_jtag_boot.tcl` 含 `rst -system`，跑过它就必须重下 bit。
