@@ -5888,3 +5888,35 @@ git 报 *"empty commit message"* 而暂存的文件原样留着——看上去�
 `docs/log/CONTEST_CHECKLIST.md` §4.3 的当日改动（提交见本节之后那一条），以及
 `build/check_skill_cards.py`（新加的技能包自检：六节齐不齐 + README 那行条目数对不对，
 `--self` 两条反例都能红；它跑出 4 张卡缺节，本次逐条补齐，未放宽判据）。
+
+## #137（2026-09-29 13:40，绝对路径这件事从"代码扫到了"升级为"包里不许有"）
+
+今天把交付文档与上位机工具里的本机绝对路径清到底，并且把判据从代码扩到文档：
+
+| 位置 | 原来 | 现在 |
+|---|---|---|
+| `docs/BUILD.md` §1 | 整张表就是"这台机器的路径清单"（Vivado、Vitis、git、仓库根） | 改成"怎么定位"：仓库根由脚本自算、工具链走 `PATH` 或四个环境变量；本节不再出现任何一台机器的路径 |
+| 6 支 `.mjs`（`health_read`/`geom_check`/`ddr_verify`/`arb_handover_test`/`ingress_probe`/`board/ddr_churn_probe`） | 默认值是 `D:\Software\Vivado\2025.2.1\Vitis\bin\xsdb.bat` | `process.env.VP_XSDB \|\| 'xsdb.bat'` —— 与 `build/board_verify.sh` **同一个变量名**（一个东西只有一个说法），不设就假定在 `PATH` 上。六支都过 `node --check` |
+| `stream_video.bat` | 不给视频时**静默改用某个下载目录里的文件** | 明说缺什么并 `exit /b 2`（静默兜到一个不存在/不相干的输入，比报错坏） |
+| `build/tcl/README.md`、`data/measured/board_measure_r0[6-8]*.md` | 命令示例里写死安装路径 | 换成 `<Vivado>\bin\...`、`<仓库根>/...` 占位符 |
+| `build/ps_app.mjs`、`build/_scan_align.mjs`、`sim/run_one.sh`、`sim/mut_control.sh`、`build/board_verify.sh`、`build/roll_isolated.sh` | 工具链默认值 = 本机路径 | 默认空值 + 第一步 `REFUSE` 并念出该设的变量（早上已改，今天补进判据范围） |
+
+**判据**：`build/make_submission.sh` 的绝对路径自检范围从"代码/脚本"扩到 `.md/.csv/.xdc`，
+只排除**记录留档**（`report/log/`，那里的命令行是当时用过的原话，改它=伪造证据）；
+检测式实测过 `D:\` 与 `D:/` 两种斜杠都抓、相对路径不误报。跑出来的收敛过程：9 → 1 → 0。
+
+**顺带两条端口**（"上位机只有 Node"这件事对评委不友好，而 §3.3.5.1 要"他人从零复现"）：
+
+1. `build/build_ps_app.py`：`ps_app.mjs` 的逐条端口（三个 BSP 启动文件、三段归档、成品自检与
+   退出码 2/1/3）。**等价性是量出来的**：`PS_OUT` 指到临时路径重编一遍，与 `build/ps_app.elf`
+   `cmp` 逐字节相同（md5 `d0b07f84a068…`，正是板上那一版）⇒ 端口没改行为，也没动交付件。
+2. `src/host/udp_push.py`：零依赖推流（协议 `[u32 LE 偏移][载荷≤1392 且 8 的倍数]`、按累计字节数匀速、
+   `--drop-every N` 确定性丢包）。本机环回实测：发 2 帧 = 442 包（含主动丢的 1 包），
+   收到 441 包 / 613008 B = 614400 − 1392，头两个偏移 `0` 与 `1392` ⇒ 协议、分片、计数三者对得上。
+   第三条（串口读指标）**不 port**：这台机器的 Python 没有 `pyserial`，而板子自己有 `[STAT]`、`stat` 与 `echo 0|1`，任何串口终端都能读 ⇒ 用一个假依赖去补一个不存在的需求才是错。
+
+**还留着的（有意的，写清楚免得被当成没做）**：包内仍有 25 支 `.mjs` 与 3 支 `.ps1`。它们全部是
+**被交付文档按路径点名的验证工具**（`doc_enc_check`、`doc_currency_check`、`line_cite_check`、
+`ps_hb_check --self`、`uart_cmd_check`、命令电池与串口捕获……）。删掉它们的代价是
+"评委拿到包后无法复跑任何一条文档判据"，而那正是 §3.3.5.5 里 15 分的"可复现性"。
+所以选择是：**留工具 + 在 `HOST_GUIDE` 前提表里明说需要 Node 18+**，而不是留一个好看的空目录。
