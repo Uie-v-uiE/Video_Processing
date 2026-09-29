@@ -86,9 +86,9 @@ sub('data/metrics.csv', 'Slice LUT 占用,资源,14358（26.99 %）,个,实现�
 sub('data/metrics.csv', '实现后动态功耗,资源,2.205,W,', f'实现后动态功耗,资源,{pw},W,', 'csv 功耗')
 
 # ---- 6) board/ACCEPTANCE.md
-tx = rd('build/evidence/r92f_tx.txt').replace('\r', '')
+tx = rd('build/evidence/r92_tx.txt').replace('\r', '')
 m = re.search(r'\[TX\] (\d+) 帧 / ([\d.]+) s = ([\d.]+) fps；共发 ([\d,]+) 包', tx)
-he = rd('build/evidence/r92f_health.txt').replace('\r', '')
+he = rd('build/evidence/r92_health.txt').replace('\r', '')
 pk = re.search(r'0x([0-9a-fA-F]+)\s+pkts', he)
 lat = re.search(r'屏上 Latency=(\d+)ms\s+回读 tot/100000=(\d+)', he)
 verf = 'build/evidence/verify_0930_0424.txt'
@@ -108,10 +108,10 @@ sub('board/ACCEPTANCE.md', '| 9 | 时序/资源读数与报告一致 | 全设计
     'ACCEPT 第 9 行')
 if lat:
     sub('board/ACCEPTANCE.md', '| 6 | 链路内时延同源一致 | 屏上 `Latency=6ms` 与回读 `tot/100000=6` 一致（ok） | `build/evidence/r90_health.txt`（`node src/host/health_read.mjs --once` 在推流中读的） |',
-        f'| 6 | 链路内时延同源一致 | 屏上 `Latency={lat.group(1)}ms` 与回读 `tot/100000={lat.group(2)}` 一致（ok） | `build/evidence/r92f_health.txt`（推流之中读） |',
+        f'| 6 | 链路内时延同源一致 | 屏上 `Latency={lat.group(1)}ms` 与回读 `tot/100000={lat.group(2)}` 一致（ok） | `build/evidence/r92_health.txt`（推流之中读） |',
         'ACCEPT 第 6 行')
 sub('board/ACCEPTANCE.md',
     '| 1 | PS 起来 + PL 烧写 + 应用重载三歩都成功 | `PS7_INIT: ok` / `PROGRAMMED … system.bit` / `DOW: ok` | `build/evidence/r90_flash_1_psboot.txt`、`build/evidence/r90_flash_2_program_log.txt`、`build/evidence/r90_flash_3_app.txt` |',
-    '| 1 | PS 起来 + PL 烧写 + 应用重载三歩都成功 | `DDR_ECHO: 10000000: 5A5AA5A5` / `PROGRAMMED xc7z020_1 <- …\\build\\system.bit` / `RESUME: ok` | `build/evidence/r92f_1_psboot.txt`、`build/evidence/r92f_2_program_log.txt`、`build/evidence/r92f_3_app.txt` |',
+    '| 1 | PS 起来 + PL 烧写 + 应用重载三歩都成功 | `DDR_ECHO: 10000000: 5A5AA5A5` / `PROGRAMMED xc7z020_1 <- …\\build\\system.bit` / `RESUME: ok` | `build/evidence/r92_flash_1_psboot.txt`、`build/evidence/r92_flash_program_log.txt`、`build/evidence/r92_flash_app.txt` |',
     'ACCEPT 第 1 行')
 print("注：ACCEPT 第 3/4/7/8 行仍指 r90 那批凭据（本轮没有重新读回那些数），不改口。")
