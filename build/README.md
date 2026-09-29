@@ -9,12 +9,17 @@
 | 路径 | 是什么 |
 |---|---|
 | `tcl/` | 构建与查询脚本，入口是 `tcl/build_system_axigpio.tcl` |
-| `reports/` | 综合与实现报告（时序汇总、资源、功耗、布线状态、方法论、CDC…） |
-| `bitstream/`、`system.bit`、`system.xsa`、`ps_app.elf` | 这一版的位流、XSA 与固件 |
+| `reports/` | 综合与实现报告（时序汇总、资源、功耗、布线状态、方法论、CDC…）+ 随包的判据报告 |
 | `build_ps_app.py` | 不开 IDE 也把 `src/ps` 编成 ELF，并对成品做自检 |
 | `gates.sh`、`board_verify.sh` | 门禁与上板回读（复现的第二、三步） |
 | `check_ports.py`、`check_skill_cards.py`、`freeze_evidence.sh`、`tb98_report.sh` | 上面两个脚本自己要调的辅助脚本 |
-| `evidence/`、`evidence_rNN/`、`frozen_rNN/` | 交付文档按路径点名的凭据（报告与那一跑的原始输出），所以随包 |
+
+位流、XSA 与固件在仓库里就落在 `build/system.bit` / `build/system.xsa` / `build/ps_app.elf`
+（这三个是构建输出，不进 git）；**提交包里**它们与上板要用的 tcl、串口脚本、实测输出一起放到
+`board/` 那一边（`board/project/`、`board/tcl/`、`board/scripts/`、`board/output/`），
+因为评委在板级目录要找的就是"往板上放什么、怎么放、放完读回来是什么"。
+仓库里那一堆逐轮留档（`build/evidence*/`、`build/frozen*/`、`*_rNN.txt`、探针与扫描的 console）
+都不随包 —— 它们是作者的时间轴；文档里点到它们的地方已改成"仓库留档 <名>（不随包）"，不留假链接。
 
 仓库里还有一批开发工具（滚一轮对照、注释手术、孤儿 RTL 扫描等）**不随包**：它们不在复现链上，
 文档里提到它们的地方已改成"仓库里的某某（工具，不随包）"，不留假链接。

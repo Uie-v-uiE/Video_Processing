@@ -130,7 +130,7 @@ def ffmpeg_pipe(path, fps):
     if not exe:
         return None, "没找到 ffmpeg：可以用 --demo 发内置测试图，或先装 ffmpeg 再发自己的视频。"
     cmd = [exe, "-hide_banner", "-loglevel", "error", "-i", path,
-           "-vf", "scale=%d:%d" % (OUT_W, OUT_H), "-pix_fmt", "rgb565le",
+           "-vf", "scale=%d:%d:force_original_aspect_ratio=decrease,""pad=%d:%d:(ow-iw)/2:(oh-ih)/2" % (OUT_W, OUT_H, OUT_W, OUT_H), "-pix_fmt", "rgb565le",
            "-f", "rawvideo", "-r", "%.6g" % fps, "-"]
     try:
         p = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE)

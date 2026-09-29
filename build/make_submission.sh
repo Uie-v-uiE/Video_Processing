@@ -61,7 +61,7 @@ PRUNE_ONEOFF=(
   build/_scan_align.mjs build/cleanup_wip.sh build/refresh_evidence.sh build/roll_isolated.sh
   build/trim_comments.py build/orphan_rtl.sh build/rim_gate_ce.sh build/tb98_gate_ce.sh
   build/ps_app.mjs build/tag_bench_labels.mjs build/_tmp_isolated_roll.tcl
-  build/r90_phase1.sh build/r90_phase2.sh build/r90_patch_icmp.py
+  build/r90_phase1.sh build/r90_phase2.sh build/r90_phase3.sh build/r90_patch_icmp.py
   # `board/` 同理：留"上板工程 / 运行脚本 / 实测输出"，一次性探针走。
   # 名单不是凭印象 —— 先查过谁被指路：`rdddr.tcl` 被 BUILD.md 点名、`demo_rehearsal.txt` 被 gates.sh 用、
   # `pswhy.tcl` / `serial_bytes.ps1` / `uart_*.ps1` / `evidence_r41/` 都有文档指路 ⇒ 全部保留；
@@ -244,20 +244,21 @@ done
 #       ⚠ 这里不要写成"白名单外一律剪"：上一版那样会把 `build/README.md` 和实现报告一起剪掉，
 #         并把 gates.sh 还要调的 `gates_cdc_test.sh` 剪掉 —— 一次导出就把交付物砍成了空壳（2026-09-29 撞到）。
 for f in build/*.txt build/*.rpt build/*.log build/*.csv; do
-  if [ -f "$f" ]; then
-    bn="$(basename "$f")"
-    case "$bn" in *r[0-9]*) ;; *) continue ;; esac
-    # 例外：台架的判据报告**留着** —— `gates.sh` 第 15/16 项就是照名字找它们的，
-    # 而交付文档里"这一轮的边缘台架读数"点的也是这份；它们不是过程噪声，是判据本身。
-    case "$bn" in tb_edge_rim_r*|tb_v98_report*) continue ;; esac
-    # 另一类多余件是**探针与扫描**的 console：名字里带 probe / _console / sweep_ / repro_ /
-    # contaminated / _old 的全都不随包（用户："除了可复现的构建脚本 + 综合与实现报告，其他多余的都删掉"）。
-    case "$bn" in probe_*|*_console.txt|sweep_*|*contaminated*|*_old.txt|*repro_*|uram_*)
-      BUILD_PRUNED+=("build/$bn"); prune "$f" "探针/扫描的过程输出（不随包）"; continue ;;
-    esac
-    if printf '%s' "$bn" | grep -qE "$IMPL_REPORT_RE"; then continue; fi
-    BUILD_PRUNED+=("build/$bn"); prune "$f" "build 逐轮过程留档（不随包）"
-  fi
+  if [ ! -f "$f" ]; then continue; fi
+  bn="$(basename "$f")"
+  # 例外先判：台架的判据报告**留着** —— `gates.sh` 第 15/16 项就是照名字找它们的，
+  # 而交付文档里"这一轮的边缘台架读数"点的也是这份；它们不是过程噪声，是判据本身。
+  case "$bn" in tb_edge_rim_r*|tb_v98_report.txt) continue ;; esac
+  # 另一类多余件是**探针与扫描**的 console：`probe_*` / `*_console.txt` / `sweep_*` /
+  # `*contaminated*` / `*_old.txt` / `*repro_*` / `uram_*` 都不随包。
+  # ⚠ 这一条必须排在"名字里没有轮次号就跳过"之前：`probe_rot.txt` 不带 rNN，
+  #   排后面等于不剪（第一版就是这么漏掉 8 份探针输出的，2026-09-29 22:27 干跑看到的）。
+  case "$bn" in probe_*|*_console.txt|sweep_*|*contaminated*|*_old.txt|*repro_*|uram_*)
+    BUILD_PRUNED+=("build/$bn"); prune "$f" "探针/扫描的过程输出（不随包）"; continue ;;
+  esac
+  case "$bn" in *r[0-9]*) ;; *) continue ;; esac
+  if printf '%s' "$bn" | grep -qE "$IMPL_REPORT_RE"; then continue; fi
+  BUILD_PRUNED+=("build/$bn"); prune "$f" "build 逐轮过程留档（不随包）"
 done
 for d in build/evidence build/evidence_* build/frozen_* build/isolated_* build/*_probe board/evidence_* board/frozen_*; do
   if [ -d "$d" ]; then PRUNED_DIRS+=("$d"); fi
@@ -333,19 +334,24 @@ while IFS= read -r f; do
 done < <(find build -type f \( -name '*.rpt' -o -name '*.txt' \) 2>/dev/null | grep -v '^./build/reports/' | grep -v '^build/evidence/' | sort)
 
 # 交付文档名小写（§3.3.5.4 字面要求；README/LICENSE/MANIFEST 是指南自己用的大写名，留作例外）
+# ⚠ 除了整条路径，**裸文件名也要一起进映射表**：文档索引里写的是 ``ARCHITECTURE.md`` 这种不带目录的名字，
+#   只映射 `report/ARCHITECTURE.md` 的话，包里的文件已经变成小写、索引却还在指一个大写名 ——
+#   死链自检抓不到它（它不是路径形状），但评委照着翻就是翻不到（2026-09-29 干跑时看到）。
 for f in report/*.md report/log/*.md; do
   if [ -f "$f" ]; then
     b="$(basename "$f")"
     lb="$(printf '%s' "$b" | tr 'A-Z' 'a-z')"
     case "$lb" in readme.md|license|manifest.txt) lb="$b" ;; esac
-    if [ "$b" != "$lb" ]; then mv "$f" "$(dirname "$f")/$lb"; add_mv "$f" "$(dirname "$f")/$lb"; fi
+    if [ "$b" != "$lb" ]; then
+      mv "$f" "$(dirname "$f")/$lb"; add_mv "$f" "$(dirname "$f")/$lb"; add_mv "$b" "$lb"
+    fi
   fi
 done
 for f in board/*.md; do
   if [ -f "$f" ]; then
     b="$(basename "$f")"; lb="$(printf '%s' "$b" | tr 'A-Z' 'a-z')"
     case "$lb" in readme.md) lb="$b" ;; esac
-    if [ "$b" != "$lb" ]; then mv "$f" "$(dirname "$f")/$lb"; add_mv "$f" "$(dirname "$f")/$lb"; fi
+    if [ "$b" != "$lb" ]; then mv "$f" "$(dirname "$f")/$lb"; add_mv "$f" "$(dirname "$f")/$lb"; add_mv "$b" "$lb"; fi
   fi
 done
 
@@ -433,6 +439,16 @@ for d in ${PRUNED_DIRS[@]+"${PRUNED_DIRS[@]}"}; do
   esc="$(printf '%s' "$d" | sed 's|[][\\.*^$&/|]|\\&|g')"
   printf '9998\ts|%s/\\([A-Za-z0-9_.-]*\\)|仓库留档 \\1（归档件，不随包）|g\n' "$esc" >> _prune_map.sed
 done
+# 通用形状规则（排在目录规则之后、逐条名字之前）：**台架改名发生在指路改写里**，
+# 于是 `build/tb_v98_report_contaminated_1245.txt` 到 3.9b 时已经变成
+# `build/tb_video_pipeline_top_report_contaminated_1245.txt`，按仓库原名逐条匹配就漏了它
+# （干跑里那 1 条死链就是这么来的）。按"名字里的过程件特征"再兜一遍，比补一张别名表稳。
+printf '9997\ts|build/[A-Za-z0-9_./-]*contaminated[A-Za-z0-9_./-]*|仓库留档（被污染的旧报告，不随包）|g\n' >> _prune_map.sed
+printf '9997\ts|build/[A-Za-z0-9_./-]*_console\\.[a-z]*|仓库留档（控制台留档，不随包）|g\n' >> _prune_map.sed
+printf '9997\ts|build/[A-Za-z0-9_./-]*probe[A-Za-z0-9_./-]*|仓库留档（探针输出，不随包）|g\n' >> _prune_map.sed
+printf '9997\ts|build/[A-Za-z0-9_./-]*sweep[A-Za-z0-9_./-]*|仓库留档（策略扫描留档，不随包）|g\n' >> _prune_map.sed
+printf '9997\ts|build/[A-Za-z0-9_./-]*repro[A-Za-z0-9_./-]*|仓库留档（复现对照留档，不随包）|g\n' >> _prune_map.sed
+printf '9997\ts|build/[A-Za-z0-9_./-]*uram[A-Za-z0-9_./-]*|仓库留档（URAM 探针留档，不随包）|g\n' >> _prune_map.sed
 sort -rn _prune_map.sed | cut -f2- > _prune_map.sorted.sed && mv _prune_map.sorted.sed _prune_map.sed
 { ls README.md README.en.md data/metrics.csv 2>/dev/null
   ls report/*.md skill/*.md skill/*/*.md board/*.md sim/*.md build/README.md build/tcl/README.md 2>/dev/null; } |

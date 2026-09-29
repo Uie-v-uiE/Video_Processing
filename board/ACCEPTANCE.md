@@ -7,7 +7,7 @@
 
 | # | 判据 | 读数 | 凭据 |
 |---|---|---|---|
-| 1 | PS 起来 + PL 烧写 + 应用重载三歩都成功 | `PS7_INIT: ok` / `PROGRAMMED … system.bit` / `DOW: ok` | `build/evidence/r90_flash_1_psboot.txt`、`_2_program.txt`、`_3_app.txt` |
+| 1 | PS 起来 + PL 烧写 + 应用重载三歩都成功 | `PS7_INIT: ok` / `PROGRAMMED … system.bit` / `DOW: ok` | `build/evidence/r90_flash_1_psboot.txt`、`build/evidence/r90_flash_2_program_pl.txt`、`build/evidence/r90_flash_3_app_reload.txt` |
 | 2 | 串口命令电池（100 条，含该拒的必须拒） | `RESULT PASS uart_cmd_check (100 条命令, 93.3 s)` | `build/evidence/r90_board_verify.txt`、`board/uart_script_capture.txt` |
 | 3 | 几何"最后一跳"：命令 → 像素域真的用了它 | `RESULT PASS geom_check（ok=8 fail=0）`；自动旋转下 inv 493 → 507；收尾 19 个几何位与进来时逐位相同 | 同上 |
 | 4 | 上电默认档位 | `lane23 zsel=4 zman=1 inv=256 x100_actual=100 verdict=OK`（屏上画 1.00×） | `board/uart_script_capture.txt` 的开机回读段 |

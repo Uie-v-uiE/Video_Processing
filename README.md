@@ -77,8 +77,8 @@ VP_XSDB=<Vitis>/bin/xsdb.bat bash build/board_verify.sh --battery --geom
 | `src/host/` | PC 侧上位机与自检脚本（Python 推流、寄存器回读、文档与命令表一致性检查） |
 | `src/constraints/` | 引脚与时序约束 |
 | `sim/` | 台架与 runner；例化整个视频顶层那支是几何与显示的主尺子，`sim/NAMES.md` 给新旧名对照 |
-| `build/` | 可复现的构建脚本（`tcl/`）+ 综合与实现报告（`reports/`）+ 位流，说明见 [build/README.md](build/README.md) |
-| `board/` | 上板工程、运行脚本与实测输出（[board/README.md](board/README.md)、验收表 [board/ACCEPTANCE.md](board/ACCEPTANCE.md)） |
+| `build/` | 可复现的构建脚本（`tcl/`，入口一条命令出位流）+ 综合与实现报告（`reports/`）+ 门禁与上板回读脚本；构建输出（位流/XSA/ELF）也落在这里，说明见 [build/README.md](build/README.md) |
+| `board/` | 上板要用的三样：工程与二进制怎么来、运行脚本（JTAG 三步 + 串口）、跑起来之后读回来的实测输出（[board/README.md](board/README.md)、验收表 [board/ACCEPTANCE.md](board/ACCEPTANCE.md)） |
 | `data/` | `golden/` 参考图、`measured/` 实测数据、[data/metrics.csv](data/metrics.csv) 是唯一那张数字表 |
 | `skill/` | 大模型协作沉淀的技能卡，每张四段：适用场景 / 用法 / 凭据 / 失效条件（条目数以 `skill/README.md` 自己那行为准） |
 | `docs/` | 交付文档：设计说明、优化记录、命令表、复现说明（索引在 [docs/README.md](docs/README.md)） |
