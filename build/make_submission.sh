@@ -137,6 +137,17 @@ awk 'FILENAME=="_cited.txt" {c[$0]=1; next}
        else print "未被活文档点名\t" p }' _cited.txt _cited_bases.txt _cand.txt > _prune_list.tsv
 while IFS=$'\t' read -r r f; do rm -f "$f"; echo "$r $f" >> _pruned.txt; done < _prune_list.tsv
 
+# 2b2) 轮次留档目录里，**只有被按路径点名的**才留。上一版漏了这一层：KEEP_ALWAYS_RE 里的
+#      `MANIFEST` 一条让每个 frozen_rNN/evidence_rNN 都靠一份清单活了下来 ⇒ 包里长出 37 个
+#      归档目录，评委看到的是"仓库垃圾场"而不是"留档"。清单本身不是理由，被文档指过去才是。
+find build -mindepth 2 -type f 2>/dev/null | sed 's|^\./||' |
+grep -E '^build/[a-z]+_r[0-9]' |
+while read -r f; do
+  grep -qxF "$f" _cited.txt || echo "$f"
+done > _round_prune.txt || true
+while read -r f; do rm -f "$f"; echo "轮次目录里未被按路径点名（清单不算理由） $f" >> _pruned.txt; done < _round_prune.txt
+rm -f _round_prune.txt
+find build -mindepth 1 -type d -empty -delete 2>/dev/null || true
 # 2c) 二进制一律不带，稍后只放回板上这一版
 find . \( -name '*.bit' -o -name '*.xsa' -o -name '*.elf' -o -name '*.dcp' \) -type f 2>/dev/null |
 while read -r f; do rm -f "$f"; echo "构建产物（由板上那一版补回） $f" >> _pruned.txt; done || true
