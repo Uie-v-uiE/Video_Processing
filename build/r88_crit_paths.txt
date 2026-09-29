@@ -1,0 +1,13 @@
+# 这一份是 r88（build/r88_exp，bit be753623afb8，2026-09-29 15:35）用 build/tcl/crit_path.tcl 出的表；
+# 上面那行 source 指向的是脚本共用的临时 raw，本次那一份已另存为 build/r88_crit_paths_raw.rpt，
+# 而 build/crit_paths.txt / build/crit_paths_raw.rpt 保持 r85（#121 的证据）原样不动。
+# worst setup paths (source: D:/Xilinx/Prj/pro/Video_Processing/build/crit_paths_raw.rpt)
+# slack | clock_group | data_path_delay | logic_levels | start -> end
+0.516ns | eth_rxc | 8.520ns | 4 | u_eth/u_rgmii/u_rgmii_rx/rxdata_bus[1].u_iddr_rxd/C -> u_eth/u_rx_mac/u_crc_rx/crc_data_reg[26]/D
+0.517ns | eth_rxc | 7.255ns | 4 | u_eth/u_icmp/u_icmp_rx/FSM_onehot_cur_state_reg[4]/C -> u_eth/u_icmp/u_icmp_rx/reply_checksum_add_reg[28]/CE
+0.536ns | eth_rxc | 8.314ns | 4 | u_eth/u_rgmii/u_rgmii_rx/rxdata_bus[1].u_iddr_rxd/C -> u_eth/u_rx_mac/u_crc_rx/crc_data_reg[20]/D
+0.578ns | eth_rxc | 8.283ns | 4 | u_eth/u_rgmii/u_rgmii_rx/rxdata_bus[1].u_iddr_rxd/C -> u_eth/u_rx_mac/u_crc_rx/crc_data_reg[22]/D
+0.593ns | eth_rxc | 7.177ns | 4 | u_eth/u_icmp/u_icmp_rx/FSM_onehot_cur_state_reg[4]/C -> u_eth/u_icmp/u_icmp_rx/reply_checksum_add_reg[16]/CE
+0.603ns | eth_rxc | 7.162ns | 4 | u_eth/u_icmp/u_icmp_rx/FSM_onehot_cur_state_reg[4]/C -> u_eth/u_icmp/u_icmp_rx/reply_checksum_add_reg[0]/CE
+0.603ns | eth_rxc | 7.162ns | 4 | u_eth/u_icmp/u_icmp_rx/FSM_onehot_cur_state_reg[4]/C -> u_eth/u_icmp/u_icmp_rx/reply_checksum_add_reg[1]/CE
+0.603ns | eth_rxc | 7.162ns | 4 | u_eth/u_icmp/u_icmp_rx/FSM_onehot_cur_state_reg[4]/C -> u_eth/u_icmp/u_icmp_rx/reply_checksum_add_reg[2]/CE

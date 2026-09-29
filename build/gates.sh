@@ -137,9 +137,21 @@ for v in wns whs tnsfail whsfail eps bram bramp lut lutp reg dyn crit rerr cdcc;
 done
 [[ "$wns$whs$bramp$lutp" =~ ^[0-9.+\-]+$ ]] || { echo "FATAL 数字字段解析异常: $wns|$whs|$bramp|$lutp"; exit 2; }
 pass=1
+# 这一版之前缺的东西：`say` 只数红绿，而脚本里还有四类"这一项今天没法判"的 `n/a` 分支
+# （历史冻结件不带同一次跑的顶层/RTL md5、读不到 CDC 分组行……）。它们**不判红是对的**，
+# 但结尾那句 `GATES: ALL PASS` 会连着两条 n/a 一起念出去 —— 于是"两支主台架都没跑"的一版
+# 也能拿到 ALL PASS，而 `freeze_evidence.sh` 只 grep 这一行。同一个坑本仓记过五次
+# （判据静默不执行 / 检查器的作用范围会悄悄漂），这次把范围打在结论里。
+NSAY=0
+NNA=0
 say() { # say <名字> <实测> <判据文本> <0/1>
     printf "  %-22s %-12s %-28s %s\n" "$1" "$2" "$3" "$([ "$4" = 1 ] && echo PASS || { echo FAIL; })"
+    NSAY=$((NSAY+1))
     [ "$4" = 1 ] || pass=0
+}
+naa() { # 一条"今天未判"的说明：照旧不判红，但计入结尾的范围声明
+    echo "  n/a  $*"
+    NNA=$((NNA+1))
 }
 echo "门禁清单（逐项，条数以本文件 say 调用为准）："
 say "WNS (ns)"        "$wns"  ">= 0"            $(awk -v v="$wns" 'BEGIN{print (v+0>=0)?1:0}')
@@ -219,7 +231,7 @@ else
         grep -q "violations=0" "$PCF" && say "顶层接线（端口名/悬空输入/位宽）" "$(cat "$PCF")" "violations=0" 1 \
             || say "顶层接线（端口名/悬空输入/位宽）" "$(cat "$PCF")" "violations=0" 0
     else
-        echo "  n/a  顶层接线 —— 该冻结件早于第 14 项，没有对应的 ports_check 凭据（不判红，见上面注释）"
+        naa "顶层接线 —— 该冻结件早于第 14 项，没有对应的 ports_check 凭据（不判红，见上面注释）"
     fi
 fi
 # 14) WNS/WHS 的**归属组**（记录用，绝不判红）—— 2026-09-26 的教训，出处 `docs/OPTIMIZATION_LOG.md` §4。
@@ -236,7 +248,7 @@ GRP=$(awk '
   /^Setup :/ && from!="" && from==to {v=$8; gsub(/ns,?/,"",v); print from"|"v"|"$3"|setup"}
   /^Hold  :/ && from!="" && from==to {v=$8; gsub(/ns,?/,"",v); print from"|"v"||hold"}
 ' "$T")
-[ -n "$GRP" ] || echo "  n/a 读不到 From==To 分组行 ⇒ 这一项未验（不当 0、也不当通过）"
+[ -n "$GRP" ] || naa "读不到 From==To 分组行 ⇒ 这一项未验（不当 0、也不当通过）"
 echo "$GRP" | awk -F'|' -v wns="$wns" '
   $4=="setup" {sup[$1]=$2; sf[$1]=$3; next}
   $4=="hold"  {hol[$1]=$2}
@@ -290,7 +302,7 @@ if [ "$D" = "build" ]; then
         echo "        —— 生成：bash sim/run_one.sh tb_v98_top_seam && bash build/tb98_report.sh"
     fi
 else
-    echo "  n/a  顶层台架 tb_v98 —— 历史冻结件不带与它同一次跑的顶层 md5，不判红（同第 14 项的口径）"
+    naa "顶层台架 tb_v98 —— 历史冻结件不带与它同一次跑的顶层 md5，不判红（同第 14 项的口径）"
 fi
 
 # ---- 15b：#97 边缘条带那把尺子（窗口级的"值"与"陈旧行"，C2/C3/C4 三把位置尺子看不见它）----
@@ -322,7 +334,7 @@ if [ "$D" = "build" ]; then
         echo "        —— 生成：bash sim/run_one.sh tb_edge_rim，再把 prov.txt 与 run.log 的判据行并成一份 build/tb_edge_rim_rNN.txt"
     fi
 else
-    echo "  n/a  边缘条带 tb_edge_rim —— 历史冻结件不带与它同一次跑的 RTL 合指纹，不判红（同第 15 项的口径）"
+    naa "边缘条带 tb_edge_rim —— 历史冻结件不带与它同一次跑的 RTL 合指纹，不判红（同第 15 项的口径）"
 fi
 
 # ---- 16：#94 固件那一半的约定（心跳节拍 / 超时余量 / 收心跳的调用点 / 恢复键）----
@@ -395,4 +407,13 @@ say "排练脚本=讲稿抽取 rehearsal" "差异行=$EMROWS 变异对照=$([ "$
 rm -f /tmp/rehearsal_fresh.txt /tmp/emit_note.$$.txt
 
 echo "端点总数 $eps；CDC 现在按 build/CDC_BASELINE.txt 的**配对集合**判，功耗仍要人比有没有变差。"
-if [ "$pass" = 1 ]; then echo "GATES: ALL PASS"; exit 0; else echo "GATES: 有红项 —— 不采纳，保留上一版"; exit 1; fi
+# 结尾必须把**范围**一起念出来：判定 $NSAY 项、未判 $NNA 项。
+# `GATES: ALL PASS` 这一行只有在"没有一项是因为缺席而没判"时才允许出现 ——
+# `freeze_evidence.sh` 就 grep 这个串，所以有 n/a 时换成 `GATES: PARTIAL`，它自然拒绝冻结这一版。
+if [ "$pass" = 0 ]; then
+    echo "GATES: 有红项（判定 $NSAY 项）—— 不采纳，保留上一版"; exit 1
+elif [ "$NNA" != 0 ]; then
+    echo "GATES: PARTIAL —— 判定 $NSAY 项全过，但有 $NNA 项因缺凭据未判（见上面 n/a 行），这一版不作\"过门禁\""; exit 1
+else
+    echo "GATES: ALL PASS（$NSAY 项全部判定）"; exit 0
+fi

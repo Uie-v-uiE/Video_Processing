@@ -512,6 +512,37 @@ BRAM **95 = 67.86 %**、LUT as Logic **10173**、LUT as Memory **4187**、FF **8
 **本轮还没做的两件**（写在这是为了不让它们被"绿"盖掉）：门禁第 15 项的 `C5c`（#98）仍未修 ⇒ 冻结仍停在 r75；
 `#127` 第 4、5 条 CANDIDATE（`frame_reasm` 偏移无钳、`axi_frame_writer_gated` 的 `r_pix` 回卷）还没配探针。
 
+## r88（2026-09-29 15:1x–15:4x，隔离构建 `build/r88_exp/`）：`u_cdc` 那一族**整族从最差路径里消失**，这是凭据；WNS 那个数不是
+
+**做了什么**（一版构建，源码只动一行）
+
+| 刀 | 类型 | 结果 |
+|---|---|---|
+| `dc_fifo` 满判据 `wgray_n` → `wgray`（#105 第二刀，ISSUES **#139**） | 时序（算术侧） | 最差路径族**整族消失**：同一把尺子（`build/tcl/crit_path.tcl`）r85 那 8 条里 **6 条是 `u_cdc/wbin_reg → mem_reg_N/ENARDEN`**，r88 的 8 条里 **0 条**；`eth_rxc` 最差那族的逻辑级数 7 → **4**。凭据 `build/r88_crit_paths.txt` + 原始 `report_timing` 那份另存 `build/r88_crit_paths_raw.rpt`（r85 的两份原样留给 #121 引用） |
+| 先加判据再动源：新台架 `sim/tb_cdc_capacity`（C1..C5） | 判据强度 | 改前 C1/C3 红（`first_full_after_accepts=8191`）、改后五条全绿（`build/r88_cdc_capacity.txt`）；变异对照 `cdc_full_next` 报 `MUTATION OK`（`build/r88_cdc_capacity_mut.txt`） |
+| 顺带修掉的真 bug：满提前一格 | 数据 | 可用深度 DEPTH−1 → DEPTH。**在真实收包链上量到**：同一台架同一 `+GAP0` 压力，CDC 峰值 r85 = 8191/8192 → r88 = **8192/8192**（`build/r88_packer_peak_gap0.txt`） |
+| 资源这一侧：**只量不猜**（#140，ISSUES 同页） | 评估 | 给 `tb_v6_ingress_integrity` 补了一条 `sv_peak` 探针：线速连灌下打包器 FIFO（`{q_addr,q_data,q_keep}` 100bit×512 ≈ 800 个 RAMD64E，是 LUTRAM 4044 里最大的单一消费者）峰值 **512/512 填满** ⇒ **`FW` 降不得**，那 400 个 LUT 换不到东西；`q_addr` 也不能退化成"基址+序号" |
+
+**数字（r88，`build/r88_exp/timing_summary.rpt` / `utilization.rpt`）**
+
+| 指标 | r87 | r88 | 这一格该怎么读 |
+|---|---|---|---|
+| `eth_rxc` WNS | +0.152 ns | **+0.516 ns** | **不记成收益**：0.4 ns 正是本仓实测过的放置摆幅（#121），这个差落在噪声里。能当凭据的是上一行那句"族消失" |
+| 全设计 WNS / 最差那个时钟组 | **+0.152 ns**，最差在 `eth_rxc`（`u_cdc/wbin_reg → mem_reg_0/ENARDEN`） | **+0.516 ns**，最差**仍然在 `eth_rxc`**（50885 端点、失败 0，报告原话 "All user specified timing constraints are met"） | **不记成收益**：0.4 ns 正是本仓实测过的放置摆幅（#121），+0.364 落在噪声里。能当凭据的是"同一个时钟组里，最差那条**换了归属**"：r88 的 `eth_rxc` 最差是 `u_rgmii_rx → u_rx_mac/u_crc_rx`（自算 FCS 那条链）与 `u_icmp_rx` 的 FSM，全是 4 级逻辑，`u_cdc` 一族已经不在名单上 |
+| 其余时钟组（四个都列，不挑好看的） | `clk_fpga_0` +1.411、`clkout0_1` +1.433、`sys_clk` +14.670 | `clk_fpga_0` +1.643、`clkout0_1` **+1.177**、`sys_clk` +14.621 | `clkout0_1`（30118 个端点，最大那个域）这一版比 r87 **低 0.256 ns** —— 同样在摆幅内，既不报成"修坏了"也不报成收益。`clk_fpga_0` 那条 +1.643 是 r87 就点过名的 `u_pl/u_arb → u_pl/u_bilin/u_fb/…ADDRARDADDR`（route 占 92 %）⇒ 算术的两刀到此为止，剩下的只在物理口径 |
+| 失败 setup / hold 端点 | 0 / 50885 | **0 / 50885**（hold 端点同为 0） | 两版都没违例；"没违例"不等于"有余量" |
+| Slice LUT | 14363（27.00 %） | 14358（26.99 %） | **−5 个**，量级上就是"没有资源收益"。资源这一侧本轮的产出是**一条否定结论**（#140），不是百分比 |
+| Slice 寄存器 / BRAM tile / LUTRAM / 控制组 | 8075 / 95 / 4044 / 330 | **逐项相同** | 满判据不新增任何存储 |
+
+**门禁（同一份报告集，`bash build/gates.sh build/r88_exp`）**：18 项判定全过，但 **2 项 `n/a`**
+（顶层台架 `tb_v98` 与边缘条带 `tb_edge_rim` 都没有"与这一次构建同跑"的 md5 凭据）⇒
+`GATES: PARTIAL`、rc=1，`build/r88_gates_partial.txt`。
+⚠ 这一版顺手把**判据本身**修了一处（ISSUES **#141**）：改前 `say()` 只数红绿、`n/a` 四处独立打印，
+于是"两支主台架都没判"的一版会端出 `GATES: ALL PASS`（那份留在 `build/r88_gates_naive.txt`），
+而 `freeze_evidence.sh` 就 grep 这一行。现在 n/a 会被数进结尾、行首也不再是 `ALL PASS` ⇒ 冻结自动拒绝。
+**补齐两份同跑凭据之后，第 15 项会转为判红**（C5c 那条故意留红的历史缺陷 #98 住在里面），
+所以 r88 也不会变成"过门禁的一版"—— 最新全绿冻结集仍是 r75。
+
 ## 跨全期累计对照（一张表，行内每个数都出自那一轮自己的门禁输出）
 
 选题指南 §3.3.5.3 要"优化过程，含优化前后的性能与资源对比表"。本节就是那张表。
