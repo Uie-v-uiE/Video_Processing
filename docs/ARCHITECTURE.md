@@ -61,7 +61,7 @@ bank，PS 全程不碰这些字节；SD 回放那路由 PS 的 SD 控制器 DMA 
 
 | 时钟 | 频率 | 来源 | 谁用 |
 |------|------|------|------|
-| `sys_clk` | 50 MHz（周期 20 ns，引脚 W17） | 板载振荡器，`src/constraints/rk_zynq7020.xdc:5-6` | MMCM 输入、按键、FPS 计数 |
+| `sys_clk` | 50 MHz（周期 20 ns，引脚 W17） | 板载振荡器，`src/constraints/rk_zynq7020.xdc:5-6` | MMCM 输入、按键、**显示场**计数（OSD 的 `FPS:` 那一格，#157） |
 | `clk_pix` = `clkout0` | 50 MHz | MMCM CLKOUT0 ÷20，`src/rtl/clocks/clk_gen.v:21` | 栅格、映射、特效链、混合、OSD |
 | `clk_pix5x` = `clkout1` | 250 MHz | MMCM CLKOUT1 ÷4，`clk_gen.v:24` | TMDS 串化（`rgb2dvi`） |
 | `clk_200m` = `clkout2` | 200 MHz | MMCM CLKOUT2 ÷5，`clk_gen.v:27` | IDELAYCTRL 参考 |
