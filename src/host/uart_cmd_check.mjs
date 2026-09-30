@@ -272,6 +272,37 @@ function seg(capture, line, i) {
   return { seg: capture.slice(nl + 1, b < 0 ? capture.length : b), at: (b < 0 ? capture.length : b) };
 }
 
+/* #177：演示默认档（唯一出处 docs/DEFAULTS.md 第一节）。`pub` 每帧翻不参与；`frames/playing/sd` 是状态量。
+ * ⚠ 这一段与下面的 `--self` 必须放在**碰串口之前**：判据自己的对照实验不该驱动板子，
+ *   而过去它排在捕获之后 ⇒ `node src/host/uart_cmd_check.mjs --self` 会把 100 条电池重发一遍，
+ *   既占了 COM6，又把我为眼睛判据钉在板上的那一态冲掉（2026-09-30 早上撞的）。
+ * ⚠ 字段名左边必须有 `(^|\s)`：`sel=` 是 `zsel=` 的子串，少了这道边界就拿 `zsel` 的值去比 `sel`
+ *   的期望 ⇒ 默认档自己判红（--self 第一条对照钉的就是这个形状）。 */
+const DEFAULT_TUPLE = [['thr','80'],['src','1'],['zoom','1'],['bilin','1'],['zsel','4'],['zman','1'],
+                       ['sel','000'],['gm','0.00'],['mode','0'],['geom','00400000'],['osd','1']];
+const fieldOf = (s, k) => s.match(new RegExp('(^|\\s)' + k + '=(\\S+)'));
+const endsAtDefault = (s) => DEFAULT_TUPLE.filter(([k, v]) => {
+  const m = fieldOf(s, k); return !m || m[2] !== v;
+});
+if (process.argv.includes('--self')) {
+  const D = 'thr=80 src=1 zoom=1 bilin=1 zsel=4 zman=1 sel=000 gm=0.00 mode=0 geom=00400000 osd=1';
+  const cases = [[D, true, '默认档（zsel 不许冒充 sel）'],
+                 [D.replace('geom=00400000','geom=00400A00'), false, '留住 rot auto + 转速'],
+                 [D.replace('zman=1','zman=0'), false, '缩放被留在自动呼吸'],
+                 [D.replace('thr=80','thr=120'), false, '阈值被改'],
+                 [D.replace(' sel=000',' sel=008'), false, '效果链被留在第 4 级'],
+                 [D.replace('geom=00400000','geom=00000000'), false, '缝被留在 pos=0（bit22 在掩码外的形状，#177b）'],
+                 [D.replace('src=1','src=0'), false, '片源被留在图卡']];
+  let bad = 0;
+  for (const [s, want, why] of cases) {
+    const got = endsAtDefault(s).length === 0;
+    console.log(`  ${got === want ? 'ok  ' : 'BAD '}${why}: 判 ${got}（期望 ${want}）`);
+    if (got !== want) bad++;
+  }
+  console.log(bad ? 'SELF FAIL uart_cmd_check --self' : 'SELF PASS uart_cmd_check --self（七条对照都按期望动）');
+  process.exit(bad ? 1 : 0);
+}
+
 if (DRY) {
   const lines = readFileSync(FILE, 'utf8').split(/\r?\n/).filter(l => l.trim() && !l.trim().startsWith('#'));
   console.log(`[DRY] ${lines.length} 条命令 → ${PS1} -Port ${PORT}；只打印计划，绝不碰串口。`);
@@ -344,11 +375,24 @@ if (stats.length < 2) { console.log('FAIL 没有两条完整的 STAT，初/末�
 else if (stats[0] !== stats[stats.length - 1]) {
   console.log(`FAIL 电池改变了板上状态：初 ${stats[0]} ≠ 末 ${stats[stats.length - 1]}`); fail++;
 } else console.log(`ok   跑完回到初态：${stats[0]}`);
+/* #177：上面那条证的是"电池没改状态"，它**不证**"板子最后停在演示档"；起点被上一次演示钉歪时
+   红的是起点而不是电池（今天 geom_check 的 G4 同族撞了第二次）。补一条与起点无关的判据。 */
+{
+  const last = stats[stats.length - 1];
+  const badF = endsAtDefault(last);
+  if (badF.length) {
+    const shown = badF.map(([k, v]) => { const m = fieldOf(last, k); return `${k}=${m ? m[2] : ';缺失'}≠${v}`; });
+    console.log(`FAIL 电池跑完板子不在演示默认档（docs/DEFAULTS.md 第一节）：` + shown.join('  '));
+    fail++;
+  } else console.log(`ok   末态 = 演示默认档（${DEFAULT_TUPLE.map(([k, v]) => k + '=' + v).join(' ')}）—— 与起点无关（#177）`);
+}
 /* #99 的前提要说出口，不能藏在"回到初态"这四个字里：这条判据证的是**电池不许改变状态**，
  * 它**不**证"初态是演示默认"。r75 那次就是因为初态已被上一轮电池钉在 ETH 上，末态自然相同，
  * 于是这条绿着而电池其实一直在改 mode（同一族：一个从不执行的判据会打 PASS）。
  * 所以这里把初态与文档默认档（手动 1.00x + AUTO 仲裁）比一次，**只报不判**（红绿都不该由
- * 上一次演示留下的状态决定），但必须让明天的人一眼看得见起点是哪一档。 */
+ * 上一次演示留下的状态决定），但必须让明天的人一眼看得见起点是哪一档。
+ * ⚠ 与上面 #177 那条的分工别说反：这一条**报**的是起点（不参与红绿），"终点停在演示默认档"
+ *   那一句现在是真的**判**了 —— 所以"要后者请重跑"那种劝退话已经不需要，末态红就是红。 */
 if (stats.length >= 1) {
   const DEF = 'zsel=4 zman=1';
   const m0 = stats[0].match(/(zsel=\d) (zman=\d)/);
@@ -357,8 +401,7 @@ if (stats.length >= 1) {
   console.log(atDefault
     ? `NOTE 初态 = 文档默认档（${DEF} mode=0 AUTO）⇒ 上面那条"回到初态"是在默认档上证的`
     : `NOTE 初态**不是**文档默认档（读到 ${(m0 ? m0[0] : 'zsel/zman 缺失')} mode=${mode0}；` +
-      `默认 = ${DEF} mode=0）⇒ "回到初态"只证电池没改状态，不证板子现在停在演示档；` +
-      `要后者先敲 \`zoom 1.0\` + \`src auto\` 再重跑本电池`);
+      `默认 = ${DEF} mode=0）⇒ "回到初态"只证电池没改状态；板子最终停在哪一档由上面 #177 那条判`);
 }
 
 /* ---- V9-6：屏上温度那一格的三方对账（驱动读数 ↔ 编码器输出 ↔ 寄存器实值）----

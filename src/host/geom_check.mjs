@@ -23,6 +23,8 @@ import { execSync } from 'node:child_process';
 import { writeFileSync, readFileSync, unlinkSync, existsSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 
+/* 演示默认的 19 位几何字（唯一出处：docs/DEFAULTS.md 第一节 + src/ps/main.c 的 cur_split/rot/… 初值；
+ * 位序与掩码沿用本文件上面的 GEOM_MASK）。#177：G4 判的是"跑完停在这一档"，不再是"与进来时相同"。 */
 const arg = (k, d) => { const i = process.argv.indexOf(k); return i > 0 && process.argv[i + 1] ? process.argv[i + 1] : d; };
 if (process.argv.includes('--help') || process.argv.includes('-h')) {
   console.log('用法：node src/host/geom_check.mjs [--com COM6] [--jtag 3121] [--xsdb <xsdb.bat>]');
@@ -45,7 +47,107 @@ const line = (name, pass, note = '') => {
 /* 19 位几何控制字在 CFG_DATA0 里的掩码（唯一出处 = src/ps/main.c 的 GEOM_MASK，两边同序）：
  * bit31 fit ｜ bit30 marker_off ｜ bit[25:23] auto/follow/swap ｜ bit[22:13] 缝位
  * ｜ bit[12:10] rot_speed ｜ bit9 rot_auto。[8:0] 是效果九位、[29]/[28:26] 是缩放档 ⇒ 不比较。 */
-const GEOM_MASK = (0x80000000 | 0x40000000 | 0x03800000 | 0x001FE000 | 0x00001C00 | 0x00000200) >>> 0;
+const MAINC = String(arg('--main-c', 'src/ps/main.c'));
+/* #177b（2026-09-30，r94）：上面那份掩码过去是**手抄**的 main.c `GEOM_MASK`，而且抄错了 ——
+ *   缝位写成 `0x001FE000`（8 位）而不是 `(0x3FFu << 13)` = `0x007FE000`（10 位），
+ *   于是 cfg 的 bit22/bit21 落在掩码外。症状很具体：`split px 0`（pos=0）与默认档（pos=512 ⇒ bit22）
+ *   **恰好只差这两位** ⇒ 老的 G4 会把"缝钉在屏幕最左边缘"判成"几何位回到默认档"。
+ *   这正是 #117 那一课：**判据看不见的那一位，就等于没有判据**。
+ *   修法不是把手抄那串数补对 —— 只要还是"抄第二份"，位段哪天再变宽就会第二次抄错；
+ *   现在**从唯一出处现算**：读 `src/ps/main.c` 的宏、自己求值 ⇒ PS 的位图一改这里自动跟着改。
+ *   读不到文件 / 宏的形状不认识 ⇒ FATAL 退出，不退回旧常量（沉默地用一份可能过期的掩码，
+ *   比没有判据更糟）。 */
+function macros(path) {
+  const src = readFileSync(path, 'utf8');
+  const defs = {};
+  for (const m of src.matchAll(/^#define\s+([A-Za-z_]\w*)\s+([^\n]*)/gm)) {
+    const body = m[2].replace(/\/\*[\s\S]*?\*\//g, '').trim();
+    if (body && !(m[1] in defs)) defs[m[1]] = body;
+  }
+  return defs;
+}
+/* 只认 C 位图宏里会出现的这几种形状：十/十六进制常数（可带 u 后缀）、`<<`、`&`、`|`、括号、标识符。
+ * 出现别的运算（三元、`(u32)` 强转……）求值器返回 null ⇒ 调用方 FATAL，绝不猜一个数出来。 */
+function evExpr(text, defs, depth) {
+  const d = depth || 0;
+  if (d > 24 || !String(text).trim()) return null;
+  const toks = text.match(/0[xX][0-9a-fA-F]+[uU]*|\b\d+[uU]*|[A-Za-z_]\w*|<<|\||\(|\)|&/g);
+  if (!toks) return null;
+  let i = 0;
+  const peek = () => toks[i];
+  function primary() {
+    if (toks[i] === '(') { i++; const v = orExpr(); if (v === null || toks[i] !== ')') return null; i++; return v; }
+    const t = toks[i++];
+    if (t === undefined) return null;
+    if (/^0[xX]/.test(t)) return parseInt(t.replace(/[uU]+$/, ''), 16) >>> 0;
+    if (/^\d/.test(t)) return parseInt(t.replace(/[uU]+$/, ''), 10) >>> 0;
+    return defs[t] === undefined ? null : evExpr(defs[t], defs, d + 1);
+  }
+  function shift() {
+    let v = primary();
+    if (v === null) return null;
+    while (peek() === '<<') { i++; const s = primary(); if (s === null) return null; v = (v << s) >>> 0; }
+    return v;
+  }
+  function andExpr() {
+    let v = shift();
+    if (v === null) return null;
+    while (peek() === '&') { i++; const s = shift(); if (s === null) return null; v = (v & s) >>> 0; }
+    return v;
+  }
+  function orExpr() {
+    let v = andExpr();
+    if (v === null) return null;
+    while (peek() === '|') { i++; const s = andExpr(); if (s === null) return null; v = (v | s) >>> 0; }
+    return v;
+  }
+  const v = orExpr();
+  return i < toks.length ? null : v;
+}
+const MAIN_DEFS = (() => {
+  try { return macros(MAINC); } catch (e) {
+    console.log(`FATAL 读不到几何位图唯一出处 ${MAINC}（用 --main-c 指路径）：${String(e.message).slice(0, 60)}`);
+    process.exit(2);
+  }
+})();
+const die = (why) => { console.log(`FATAL ${why}`); process.exit(2); };
+const GEOM_MASK = (() => {
+  if (MAIN_DEFS.GEOM_MASK === undefined) die(`${MAINC} 里没有 GEOM_MASK 宏 —— 位图被改名或删了，先对上再判`);
+  const m = evExpr(MAIN_DEFS.GEOM_MASK, MAIN_DEFS, 0);
+  if (m === null) die(`求值不了 GEOM_MASK = "${MAIN_DEFS.GEOM_MASK}"（这个检查器不认识的宏形状）`);
+  return m;
+})();
+/* #177（2026-09-30，r94）：G4 判的是"跑完停在演示默认档"，不再是"与进来时那一束相同"。
+ *   今天撞的形状：我为眼睛判据把板子钉在 `rot auto 1 + src SD`（几何位 0xa00），
+ *   收尾还原到默认反而 diff≠0 —— 红的是"起点不是默认档"，而这句话真正要钉的是终点。
+ *   默认值出处：docs/DEFAULTS.md 第一节（`cur_split` 正中 + marker 画着、rot/fit/自动扫描全关），
+ *   而那份文档的出处就是 main.c 的 `cur_split` 初值 ⇒ 这里**直接读那一行**，连 512 都不手抄。 */
+const GEOM_DEFAULT = (() => {
+  const src = (() => { try { return readFileSync(MAINC, 'utf8'); } catch (e) { return ''; } })();
+  const m = src.match(/static\s+u32\s+cur_split\s*=\s*\(([^)]*)\)/);
+  if (!m) die(`${MAINC} 里找不到 cur_split 的初值 —— 默认档换了写法要同时改这里`);
+  const v = evExpr(m[1], MAIN_DEFS, 0);
+  if (v === null) die(`求值不了 cur_split 初值 = "${m[1]}"`);
+  return v;
+})();
+const endsAtDefault = (w) => w !== null && ((w & GEOM_MASK) >>> 0) === ((GEOM_DEFAULT & GEOM_MASK) >>> 0);
+if (process.argv.includes("--self")) {
+  console.log(`  掩码（从 ${MAINC} 现算）= 0x${GEOM_MASK.toString(16)}，默认档 = 0x${GEOM_DEFAULT.toString(16)}`);
+  const cases = [[GEOM_DEFAULT, true, "末态正好等于默认档"],
+                 [GEOM_DEFAULT | 0x3C0001FF, true, "缩放档[28:26] 与效果九位不在几何掩码里，不参与判"],
+                 [0x30400A00, false, "留住 rot auto + 转速"],
+                 [GEOM_DEFAULT | (1 << 23), false, "留住缝的自动扫描位"],
+                 [GEOM_DEFAULT | (1 << 31), false, "留住 zoom fit"],
+                 [0x00000000, false, "缝被留在 pos=0：与默认档只差 bit22 —— 掩码抄窄一位就看不见（#177b）"]];
+  let bad = 0;
+  for (const [w, want, why] of cases) {
+    const got = endsAtDefault(w);
+    console.log(`  ${got === want ? "ok  " : "BAD "}${why}: 判 ${got}（期望 ${want}）`);
+    if (got !== want) bad++;
+  }
+  console.log(bad ? "SELF FAIL geom_check --self" : "SELF PASS geom_check --self（六条对照都按期望动）");
+  process.exit(bad ? 1 : 0);
+}
 
 /* 屏上 `Zoom:` 那一格的八档分区 —— 与 zoom_ctrl.v 里那七个"相邻两档中点"**同一套数**。
  * 为什么在脚本里再算一遍：这条判据要抓的恰恰是"屏上写的与真正在用的不是一回事"，
@@ -154,9 +256,15 @@ line('G3x 收尾把 fit 关了：lane23.bit19 回 0', !!s3.a && s3.a.zoom_fit ==
 send(['split screen', 'split 50']);
 const c2 = readCfg1();
 const diff = (c2 === null) ? null : (((cfg0 ^ c2) & GEOM_MASK) >>> 0);
-line('G4 整串跑完，CFG_DATA0 的 19 个几何位与进来时逐位相同（电池不许留自动态）',
-     diff === 0, c2 === null ? '读不到 CFG1'
-     : `cfg1 末=0x${c2.toString(16)} diff&掩码=0x${diff.toString(16)}`);
+/* #177（2026-09-30，r94）：原来这条拿"进来时那一束"当基准 ⇒ 它的红绿取决于**上一次谁碰过板子**。
+ *   今天撞了两次：我为了眼睛判据把板子钉在 `rot auto 1 + src SD`（geom 位 0xa00），于是收尾还原到
+ *   默认那一束反而 diff≠0 —— 红的不是"留了自动态"，而是"起点不是默认档"。而这句话真正要钉的是
+ *   **跑完之后板子停在演示默认档**（DEFAULTS 那一套），与起点无关。所以：判据换成对默认值，
+ *   entry 差只当上下文打印（起点≠默认时它仍然有用：告诉你这一跑顺带把哪些位动了）。 */
+line('G4 整串跑完，CFG_DATA0 的 19 个几何位回到演示默认档（不许留自动态；#177 改判默认值而非"与进来时相同"）',
+     endsAtDefault(c2), c2 === null ? '读不到 CFG1'
+     : `末 19 位=0x${(c2 & GEOM_MASK).toString(16)} 默认=0x${(GEOM_DEFAULT & GEOM_MASK).toString(16)}` +
+       `（与进来时差 0x${(diff === null ? 0 : diff).toString(16)}${diff && (cfg0 & GEOM_MASK) !== (GEOM_DEFAULT & GEOM_MASK) ? '；起点本就不是默认档' : ''}）`);
 
 console.log(`\nRESULT ${fail === 0 ? 'PASS' : 'FAIL'} geom_check（ok=${okn} fail=${fail}）`);
 process.exit(fail === 0 ? 0 : 1);

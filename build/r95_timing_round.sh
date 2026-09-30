@@ -67,13 +67,15 @@ roll() {   # $1=目录名 $2=额外环境（逗号分隔 KEY=VAL）
     local name=$1 envs=$2 out
     out=build/isolated_$name
     say "开滚 $name -> $out（$envs）"
-    # 把 KEY=VAL 串变成前缀赋值
-    ( env ${envs//,/ } OUT="$out" bash build/roll_isolated.sh ) >> "$LOG" 2>&1
+    # ⚠ 这里**不能用 `env`**：这台机器的 Git Bash 里 `env A=1 cmd` 会**静默什么都不做**（rc=0、无输出），
+    #   于是两滚都"立刻结束、报告不存在"，而我的读函数诚实地报了 READ_FAILED —— 没编出数字。
+    #   前缀赋值用 eval 走 shell 自己的语法。
+    ( eval "OUT=\"$out\" $envs bash build/roll_isolated.sh" ) >> "$LOG" 2>&1
     local t; t=$(read_timing "$out/timing_summary.rpt")
     if [ -z "$t" ]; then
         say "$name：**读不到 timing_summary 的设计行** —— 不判采纳，先看 $out/build_console.txt 有没有 SYSTEM BUILD DONE"
         echo "$name READ_FAILED" >> "$SUM"
-        return 1
+        return 2
     fi
     set -- $t                       # $1=WNS $2=WHS $3=失败setup $4=失败hold $5=总端点 $6/7=eth_rxc WNS/WHS
     local wns=$1 whs=$2 fep=$3 fep_h=$4 tep=$5
@@ -92,9 +94,21 @@ roll() {   # $1=目录名 $2=额外环境（逗号分隔 KEY=VAL）
 say "基线（r94，正式件 build/system.bit md5=a1465f29c9e4）：WNS $BASE_WNS / WHS $BASE_WHS / 0 / 50883"
 echo "baseline_r94 WNS=$BASE_WNS WHS=$BASE_WHS endpoints=50883 bit=a1465f29c9e4" >> "$SUM"
 
-roll r95_postroute_physopt IMPL_PRPO=1
-A=$?
-roll r95_explor_withhier IMPL_STRATEGY=Performance_ExploreWithHierarchy
-B=$?
-say "两滚结束：phys_opt=$([ $A -eq 0 ] && echo ADOPT || echo DECLINE)，ExploreWithHierarchy=$([ $B -eq 0 ] && echo ADOPT || echo DECLINE)"
+# 滚哪几档由 ROLLS 决定（"名字=环境" 的逗号分隔表）。默认两档是 r95 那一轮；第二拨（r95b）换了名字，
+# 因为 `Performance_ExploreWithHierarchy` **不在这颗器件的流里**（`list_property_value strategy` 里没有它，
+# 工具在 set_property 时就拒了，脚本诚实地记成 NOT_MEASURED 而不是"否决"）。
+# 换上的两档是**照着最差那条路的形状挑的**：它 route 占 60~67 %、高扇出 fo=96/17，
+# 于是 `Performance_NetDelay_high`（按互连延迟驱动布局）与 `Performance_WLBlockPlacementFanoutOpt`
+# （wirelength + 高扇出）是两个正对靶子的 lever。
+for spec in ${ROLLS:-r95_postroute_physopt=IMPL_PRPO=1,r95_explor_withhier=IMPL_STRATEGY=Performance_ExploreWithHierarchy}; do
+    name=${spec%%=*}; envs=${spec#*=}
+    roll "$name" "$envs"
+    eval "V_$name=\$?"
+done
+A=\${V_r95_postroute_physopt:-1}
+B=\${V_r95_explor_withhier:-1}
+# 退出码 0 只表示"达门槛"；非 0 里要**分清"量了并否决"与"根本没量到"**——把读不到报告写成 DECLINE
+# 就是让"没数"长得像"结论"（#163/#164 同一族），第一版这里就是这么错的。
+word() { case "$1" in 0) echo ADOPT;; 2) echo NOT_MEASURED;; *) echo DECLINE;; esac; }
+say "两滚结束：phys_opt=$(word $A)，ExploreWithHierarchy=$(word $B)（NOT_MEASURED=报告没读出来，不是否决）"
 say "DONE —— 谁被采纳由人读 $SUM 那两行来定；不采纳也要把这一节落进 docs/OPTIMIZATION_LOG.md"
