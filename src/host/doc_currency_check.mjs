@@ -158,7 +158,9 @@ const CITE_ART = new RegExp(
 //     `build/wip_*.sh` 清理 #123 删掉的）、`board/uart_*` 系列的调查留痕（与③同族，只是文件名不含 sd_），
 //     以及**历史叙述里那句"当时找错了路径"**（如 `ISSUES.md:435` 讲的 `build/build/system.bit` ——
 //     它点名的是"root 少一级"这个已修缺陷，不是让人去打开这个文件）。
-//     逐条身份（谁指谁、属哪一类）的表在 `docs/D4C_POINTERS.md`，那份表自带"条数只对快照那一分钟负责"的声明。
+//     逐条身份（谁指谁、属哪一类）的表在 `docs/log/D4C_POINTERS.md`，那份表自带"条数只对快照那一分钟负责"的声明。
+//     （它故意留在日记区：那页的内容就是"盘上不存在的路径"清单，放进交付区会被导出器的死链自检整批拒发
+//       —— 2026-09-30 r96 真的踩到过一次：56 条死链全部出自那页，导出器拒绝写包，行为正确，我们不改自检。）
 const DELIVERY = (rel) => HOME.includes(rel) || rel === 'board/README.md'
     || /^docs\/(?!log\/)[\w.-]+\.md$/.test(rel);
 
