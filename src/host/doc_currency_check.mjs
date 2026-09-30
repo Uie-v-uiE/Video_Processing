@@ -43,6 +43,10 @@ const SELF = 'src/host/doc_currency_check.mjs';      // 判据不看自己的例
 // 导出器是**故意**要写 `report/` 的：仓库里叫 docs/，交出去必须是官方结构里的 report/，
 // 它的整个职责就是这两个名字之间的映射。拿"旧目录不许出现"去判它，等于判翻译器"不许提目标语言"。
 const MAPPER = 'build/make_submission.sh';
+// 改名工具也是"翻译器"：它的正文里必然同时出现旧名与新名（`git mv docs/log report/log` 这种就是要它写出来）。
+// 2026-09-30 今晚把 docs/ 改成 report/ 时，这两份新工具第一次被 D4b 判了 6 条红 —— 判据没有错，
+// 被豁免的对象名单少了一类：**凡是以"改名字"为职责的脚本，都在 MAPPER 这一族里**。
+const MAPPERS = [MAPPER, 'build/rename_docs_to_report.sh', 'build/rename_tool_patch.mjs'];
 
 function walk(dir, out) {
     for (const name of readdirSync(dir)) {
@@ -83,7 +87,7 @@ function checkLines(docLines, dirExists, newestGreen) {
     const rows = [];
     const claims = [];
     for (const [rel, lines] of Object.entries(docLines)) {
-        if (rel === SELF) continue;
+        if (rel === SELF || MAPPERS.includes(rel)) continue;
         lines.forEach((l, i) => {
             const at = `${rel}:${i + 1}`;
             if (NOW.test(l) && NUM.test(l))
@@ -168,7 +172,7 @@ function checkPaths(fileLines, exists) {
     const rows = [];
     const adv = [];
     for (const [rel, lines] of Object.entries(fileLines)) {
-        if (rel === SELF || rel === MAPPER) continue;      // 见上面两条豁免的理由
+        if (rel === SELF || MAPPERS.includes(rel)) continue;      // 见上面几条豁免的理由
         const hard = DELIVERY(rel);
         lines.forEach((l, i) => {
             const at = `${rel}:${i + 1}`;
