@@ -120,9 +120,15 @@ module frame_reasm #(
                             if (!have_lo) begin
                                 pix_lo<=p_data; have_lo<=1;
                             end else begin
-                                wr_en<=1;
+                                // #201：`wr_en` 必须和行覆盖统计吃同一个边界。原来这三行是无条件的，
+                                // 而下面那个 `if (off < FRAME_BYTES)` 只管 `row_ok/rows_hit` ⇒ 发包方选的
+                                // 偏移能把字写到帧缓存**之外**（`off[18:1]` 最大 131071，帧只有 153600 字节
+                                // =76800 个字，越界后落在谁身上由下游 `axi_frame_saver64` 的乘法决定，而它
+                                // 自己没有上界检查）。尺子：`sim/tb_reasm_bounds.v` 的 R1，改前红凭据
+                                // `build/r98_201_before.txt`（越界包发了 2 次写、最大字索引 145 > 128）。
                                 wr_data<={p_data,pix_lo};
                                 wr_addr<=off[18:1];
+                                wr_en  <=(off < FRAME_BYTES);
                                 if (off < FRAME_BYTES) begin
                                     if (row_idx < IMG_H && !row_ok[row_idx[8:0]]) begin
                                         row_ok[row_idx[8:0]] <= 1'b1;

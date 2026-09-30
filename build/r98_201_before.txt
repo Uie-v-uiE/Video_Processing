@@ -1,0 +1,23 @@
+# #201 的改前红凭据：新台架 tb_reasm_bounds 跑在**未修改的树**上（r97 之后第一晚，2026-10-01 00:54）
+# 跑法：VP_VIVADO_BIN=<Vivado>/bin bash sim/run_one.sh tb_reasm_bounds
+# 树指纹（norm1，判据不含新模块时的那一版）见下面 prov 行
+fpver=norm1
+top_md5=db6947d245b6
+tb_md5=1c0e848727dc
+rtl_md5=89fca3b7cdb4
+date=2026-10-01T00:54:51+08:00
+
+INFO R1 off=288 越界包：写次数=2（其中越界 2）最大字索引=145 stat_oob_off +2
+FAIL R1 packet whose byte_off is outside the frame buffer must emit zero writes
+PASS R2 the same packet must still be counted in stat_oob_off (no silent drop)
+INFO R3 末字包：写次数=2 最大字索引=127 数据=5678/0000
+PASS R3 last legal word pair (indices 126,127) still writes both words
+INFO R4 整帧：写次数=128 最大字索引=127 frame_done=1 stat_frames=1 stat_bad=0
+PASS R4 a complete frame (64 packets, all 256 bytes) still commits exactly once
+PASS R4a opportunity floor: all 64 packets were accepted (stat_pkts==64, no bad)
+RESULT tb_reasm_bounds FAIL nfail=1
+INFO: [Common 17-206] Exiting xsim at Thu Oct  1 00:54:58 2026...
+
+# 读法：R1 红 = 越界包发出了 2 次写、最大字索引 145 > 128（帧缓存只有 128 个字）；
+# R2 绿 = 越界确实被 stat_oob_off 数到（+2），所以缺陷不是没统计，而是统计了却照写；
+# R3/R4 绿 = 合法边界与整帧提交这两条正常路径今天就是好的，修法不许把它们弄坏。

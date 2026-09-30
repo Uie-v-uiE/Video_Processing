@@ -1,0 +1,31 @@
+# #201 修完之后，所有驱动 frame_reasm 的既有台架必须与修之前同结论（合法片源路径逐字不变）
+--- tb_udp_reasm
+VERDICT tb_udp_reasm: PASS tb_udp_reasm ALL || FAIL 行数=0 || PASS 行数=9
+--- tb_v6_ingress_integrity
+VERDICT tb_v6_ingress_integrity: PASS tb_v6_ingress_integrity || FAIL 行数=0 || PASS 行数=5
+--- tb_v6_cover_gate
+VERDICT tb_v6_cover_gate: PASS tb_v6_cover_gate || FAIL 行数=0 || PASS 行数=6
+--- tb_v6_pingpong
+VERDICT tb_v6_pingpong: PASS tb_v6_pingpong || FAIL 行数=0 || PASS 行数=2
+--- tb_v6_tail_bank
+VERDICT tb_v6_tail_bank: PASS tb_v6_tail_bank || FAIL 行数=0 || PASS 行数=1
+--- tb_v50_rows
+VERDICT tb_v50_rows: PASS tb_v50_rows || FAIL 行数=0 || PASS 行数=3
+--- tb_v50_rows_prod
+VERDICT tb_v50_rows_prod: PASS tb_v50_rows_prod || FAIL 行数=0 || PASS 行数=4
+--- tb_link_monitor
+VERDICT tb_link_monitor: RESULT tb_link_monitor FAIL (1 errors) || FAIL 行数=1 || PASS 行数=41
+--- tb_v795_rx_chain
+VERDICT tb_v795_rx_chain: PASS tb_v795_rx_chain || FAIL 行数=0 || PASS 行数=1
+--- tb_reasm_bounds
+VERDICT tb_reasm_bounds: RESULT tb_reasm_bounds PASS || FAIL 行数=0 || PASS 行数=5
+
+== 归因实验（不是推断，是量过的）==
+tb_link_monitor 的 F2e 在这份复跑里是红的。为确认它不是我这一刀造成的：
+  cp src/rtl/eth/frame_reasm.v /tmp/ ; git checkout HEAD -- src/rtl/eth/frame_reasm.v   # 退回改前（wr_en 无条件）
+  bash sim/run_one.sh tb_link_monitor  →  FAIL F2e ... sum=518 > 2x130（同一条、同一个数），其余 41 条 PASS
+  再把改后的那份放回（grep 'wr_en  <=(off' 命中 1）
+⇒ F2e 与 #201 这一刀无关，它是 #186 那把尺子的**已登记改前红**（任务 #140），修它要在 r98 动 link_monitor 的清零时刻。
+其余驱动 frame_reasm 的台架（tb_udp_reasm 9 条 / tb_v6_ingress_integrity 5 / tb_v6_cover_gate 6 /
+tb_v6_pingpong 2 / tb_v6_tail_bank 1 / tb_v50_rows 3 / tb_v50_rows_prod 4 / tb_v795_rx_chain 1）
+在改后全部与改前同结论（FAIL 行数 0）。新尺子 tb_reasm_bounds 自己 5 条全绿。
