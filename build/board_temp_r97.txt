@@ -1,0 +1,18 @@
+# 板上片上结温（XADC）读数 —— r97 那一版，2026-09-30 22:23
+# 来源：`node src/host/uart_cmd_check.mjs --port COM6`（105 条命令、97.8 s 那一次串口电池）
+# 抓的是板上三件套：system.bit md5=ef03eea4886e · system.xsa md5=a50188e5f789 · ps_app.elf md5=d0b07f84a068
+# 抓的时候 SD 本地播放在跑（末一条 [STAT]：frames=4398 playing=1 src=1），不是空载。
+# 原始捕获文件 board/uart_script_capture.txt 被 .gitignore 挡着（它每次电池都被重写，不进包），
+# 所以这里把那三条与它们的一致性判据抄成随包件 —— 指路必须指到一个真在包里的文件（#172 那一课）。
+
+[TEMP] degC=63.38 raw=0xAAF2 vccint=997mv th=0C over=1 sane=1 osd=63C gpio=0x63
+[TEMP] degC=63.17 raw=0xAAD7 vccint=998mv th=200C over=0 sane=1 osd=63C gpio=0x63
+[TEMP] degC=63.13 raw=0xAAD2 vccint=997mv th=85C over=0 sane=1 osd=63C gpio=0x63
+
+# 四条对账判据（电池里 V9-6 那一条打的）：
+ok   V9-6 温度格三方对账：4 条 [TEMP] 的 degC↔osd↔gpio 全部自洽
+# ⇒ 读数的三个出口（串口十进制、屏上 TEMP 格的 BCD、写进 gpio 的那一位）同拍一致，
+#   所以"屏上写的数"与"串口打印的数"是同一个来源（#66 那一族病的判法）。
+# 口径（被追问就两个都给）：工具实现后估算是 52.5 ℃（`build/power.rpt`，置信度 Low、无仿真活动文件），
+# 板上 XADC 实测是 63 ℃ 级；两者是**独立来源**，本仓库不拿其中一个去"验证"另一个。
+# 用户 2026-09-30 的观察"基本稳定在 64 ℃ 左右"与这里的 63.1 – 63.4 ℃ 同量级（屏上一格就是 63C）。

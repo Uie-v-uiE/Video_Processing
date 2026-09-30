@@ -1697,12 +1697,20 @@ module tb_v98_top_seam;
         //   但拦住不等于判过）。现在真的发一次提交：`eth_commit` = 顶层的 `commit_req`（pl_video_top.v:406），
         //   等 `u_cmt` 走完"消隐开窗 → start_copy → copy_done"，`frame_ready_pix` 那一拍才会把锁存置 1
         //   （#171 之后它是脉冲，不是电平）。等不到就把这一段的状态打出来 —— 红也要红得能读。
-        eth_link = 1'b1;
+        // 归属必须先**真的**交给 ETH：顶层把 `eth_live`/`eth_tb_ok` 直接接到 `src_arb` 的判据上
+        // （pl_video_top.v:402 `eth_mode = owner_eth`，:430 搬运机的 `.enable(eth_mode)`）。
+        // 上一版这里只摆了 `eth_link` ⇒ 仲裁不把屏交给 ETH ⇒ `u_cmt` 起了 `copy_active` 却永远等不到
+        // `copy_done`（今天实测：等满 3,000,000 拍时 `pending=0 copy_active=1`），
+        // 于是 C11pre 红在"前提构造不出来"上——红的是我的激励，不是设计。
+        // 这两位是硬件的**输入口**而不是内部结果，所以拿来造前提是干净的（#187 那一课的对称面）。
+        eth_link = 1'b1; eth_live = 1'b1; eth_tb_ok = 1'b1;
+        repeat (2000) @(negedge axi_clk);          // 先让仲裁把屏交过来，再提交（别在交接中途拍 commit）
         @(negedge axi_clk); eth_commit = 1'b1;
         @(negedge axi_clk); eth_commit = 1'b0;
         for (ii = 0; ii < 3000000 && dut.eth_has_frame !== 1'b1; ii = ii + 1) @(negedge axi_clk);
-        $display("DBG C11pre waited %0d axi cycles: eth_has_frame=%b eth_link_pix=%b u_cmt.pending=%b u_cmt.copy_active=%b",
-                 ii, dut.eth_has_frame, dut.eth_link_pix, dut.u_cmt.pending, dut.u_cmt.copy_active);
+        $display("DBG C11pre waited %0d axi cycles: eth_has_frame=%b eth_link_pix=%b u_cmt.pending=%b u_cmt.copy_active=%b owner_eth=%b row_busy=%b row_done=%b",
+                 ii, dut.eth_has_frame, dut.eth_link_pix, dut.u_cmt.pending, dut.u_cmt.copy_active,
+                 dut.owner_eth, dut.row_busy, dut.row_done);
         line("C11pre frame is latched", dut.eth_has_frame === 1'b1 && dut.eth_link_pix === 1'b1,
              "empty-set guard: a committed frame must be latched before judging whether abort drops it");
         force dut.u_cmt.copy_abort = 1'b1;

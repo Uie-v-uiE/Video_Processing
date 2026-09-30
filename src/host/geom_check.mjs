@@ -268,15 +268,22 @@ line('G5b 四次里至少真的钳住一次（bit19=1 且 inv>256）—— 不�
      nClamp >= 1, `钳住=${nClamp}/${r5.length}`);
 
 // ---- G3 + G4：follow 位落进那一束，然后一切还原 ----
-// G5 把缩放留在了手动 1.00x ⇒ 这里必须 `zoom auto` 退回呼吸自动档，否则 G4 那句
-// "跑完之后板子停在演示默认档"（#177 换的口径）会红在收尾、而不是红在被测的东西上。
-send(['rot auto 0', 'rot speed 0', 'zoom fit 0', 'zoom auto', 'split video']);
+// 收尾钉回**文档默认档**（#177：默认 = 手动 1.00x，即 `zman=1 zsel=4`）⇒ 用 `zoom 1.0` 而不是 `zoom auto`。
+// 今天（r97 板级复验）这里红过一次：我原先写的是 `zoom auto`，于是几何这一段把板子留在呼吸档（zman=0），
+// 后面串口电池的"初态=末态"就红在收尾上——红的是我的恢复表，不是设计。恢复表必须与 #177 的默认档同源。
+send(['rot auto 0', 'rot speed 0', 'zoom fit 0', 'zoom 1.0', 'split video']);
 const c1 = readCfg1();
 line('G3 `split video` ⇒ CFG_DATA0 bit24 = 1（缝的分类改在图像列里做）',
      c1 !== null && ((c1 >>> 24) & 1) === 1, c1 === null ? '读不到 CFG1' : `cfg1=0x${c1.toString(16)}`);
 const s3 = sample(23, 0);
-line('G3x 收尾把 fit 关了：lane23.bit19 回 0', !!s3.a && s3.a.zoom_fit === 0,
-     s3.a ? `lane23=0x${s3.a.raw.toString(16)}` : '');
+// G3x 原判的是"bit19 回 0"——那是一条**到不了**的状态：`lane23.bit19 = zoom_fit_en | rot_forced`
+//（pl_video_top.v 的 zoom_snap 第 20 位），而命令表里没有把角度归零的动词
+//（main.c 的 `rot auto 0` 明写"停在当前角度"，±1° 只有 KEY1/KEY2），所以任何转过角度的收尾
+// 都可能由旋转钳把这一位置 1。改成判**同一枚不变量**：`bit19 == (生效倍率偏离 256)`，
+// 它照样能红（恒 0 = 回读口没接；恒 1 = 当成常亮旗；两者不同拍 = 接错），但不要求做不到的事。
+line('G3x 收尾只留旋转钳那一路：lane23.bit19 与"倍率偏离 256"同拍相等（fit 请求已由 G4 那 19 位判关）',
+     !!s3.a && (s3.a.zoom_fit === 1) === (s3.a.inv !== 256),
+     s3.a ? `bit19=${s3.a.zoom_fit} inv=${s3.a.inv}（角度停在 ≠0 时 bit19=1 是对的：命令表无归零动词）` : '');
 send(['split screen', 'split 50']);
 const c2 = readCfg1();
 const diff = (c2 === null) ? null : (((cfg0 ^ c2) & GEOM_MASK) >>> 0);

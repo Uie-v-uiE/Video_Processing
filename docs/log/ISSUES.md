@@ -7755,3 +7755,66 @@ XADC 实测在 OSD 与 `[STAT]` 里另有一路"——所以两个数并存是**
   故意留红、`docs/KNOWN_ISSUES.md` 第一节公开的那一笔 —— 本轮复查**没有**发现它之外还有第二处绕回。
 - 一句话给下一轮：位置这一族现在的风险不在"还藏着 bug"，而在**三处边界是靠参数/掩码/余量活着的**，
   代码里没有断言；要动画幅或双线性判据的人应当先读这四条。
+
+## r97 刷板 + 板级复验：两处红都是我今天写的恢复表带来的（2026-09-30 22:15–22:25）
+
+刷板三件套照 `docs/BUILD.md §3` / `board/HANDS_ON.md` 0.1 那一步的顺序跑，判定用**每一步自己的成功语**
+（不用退出码，第十八条教训）：
+- `xsdb build/tcl/ps_jtag_boot.tcl` ⇒ `RST_SYSTEM: ok / PS7_INIT: ok / PS7_POST_CONFIG: ok / DDR_ECHO: … 5A5AA5A5`；
+- `vivado -mode batch -source build/tcl/program_pl.tcl` ⇒ `PROGRAMMED xc7z020_1 <- D:/…/build/system.bit`，
+  被烧的那一枚 `md5=ef03eea4886e`（本轮 r97）；
+- `xsdb build/tcl/ps_app_reload.tcl` ⇒ `DOW: ok / CON: ok / RESUME: ok / FLOW_DONE`。
+  凭据留在 `build/r97_flash_1_psboot.txt` / `_2_program.txt` / `_3_app.txt`。
+
+`bash build/board_verify.sh --geom --battery` 第一次跑出来 **nred=2**（`build/evidence/verify_0930_2215.txt`）：
+- `G3x 收尾把 fit 关了：lane23.bit19 回 0` 红，实测 `bit19=1 inv=503`；
+- 电池那条"初态=末态"红，差在 `zman 0 → 1`。
+
+两条**都红在我今天下午为 #175 新写的那段恢复表上**，不是设计：
+1. `zoom fit 0` 之后 `bit19` 仍然可以为 1，因为 `lane23.bit19 = zoom_fit_en | rot_forced`——
+   而**命令表里没有任何把角度归零的动词**（`main.c` 的 `rot auto 0` 回显自己写着"停在当前角度；缩放那一路不变"，
+   ±1° 只有 KEY1/KEY2）。所以任何转过角度的收尾，旋转钳都可以合法地把这一位置 1；
+   把"回 0"写成判据 = **判一个到不了的状态**。已改成判同一枚不变量（`bit19 == (inv ≠ 256)`，
+   仍然能红：恒 0 是回读口没接、恒 1 是当成常亮旗、不同拍是接错），改完 `geom_check` **PASS ok=10 fail=0**。
+   ⇒ 记 **#200（低—中，未修）**：演示中途想"停回正视图"只能按按键逐度回 0；r99 固件批建议加 `rot deg <n>`（或 `rot 0`）。
+2. 我在恢复表里写 `zoom auto` 是想"退回自动态"，但 #177 定的**演示默认档恰恰是手动 1.00x（zman=1）**
+   ⇒ 几何那一段把板子留在呼吸档，紧跟着的电池就在"初态=末态"上红。改成 `zoom 1.0` 之后
+   电池 `RESULT PASS uart_cmd_check（105 条命令，97.8 s）`，而且那条 NOTE 自己变好了：
+   `初态 = 文档默认档（zsel=4 zman=1 mode=0 AUTO）`。
+   ⇒ 教训归到"恢复表必须与默认档同源"：一张表里写"恢复"，就得指着那一版文档默认值生成，不能凭语义感觉。
+
+顺带把温度这条**用户观察**落成了有凭据的数：捕获里三条 `[TEMP] degC=63.38 / 63.17 / 63.13`
+（`raw 0xAAF2/0xAAD7/0xAAD2`、`vccint 997–998 mV`、`osd=63C`、`gpio=0x63`，且电池里 V9-6 那条三方对账为 ok），
+与用户说的"基本稳定在 64 ℃ 左右"同量级；`data/metrics.csv` 新增一行"片上结温（板读 XADC）63.1 – 63.4 ℃"，
+与上一行"结温估算 52.5 ℃（工具，置信度 Low）"并列、明确写**两条独立来源**。
+⚠ 这里我又踩了一次自家老坑：第一次我把证据写成 `board/uart_script_capture.txt`，
+`git ls-files` 一查才知道它被 `.gitignore:133` 挡着（每次电池重写、不进包）⇒ 指路指到一个交付包里不存在的文件，
+正是 #172 那一族。**连着踩第二脚才弄清区别**：我改指 `build/reports/board_temp_r97.txt`，
+而 `.gitignore:25` 忽略的是 `build/reports/` 这一**整个目录**（`git ls-files build/reports | wc -l` = 0）——
+包里的 `build/reports/*.txt` 是导出器在打包时把仓库里 `build/*.txt`/`*.rpt` **展平搬过去**的产物，
+不是仓库里跟踪的件。所以随包件要写在 `build/` 根上：现在是 `build/board_temp_r97.txt`
+（`git add` 成功、`git check-ignore` 退 1 证明它不在忽略名单）。
+⇒ 口径改对一句：**"能被导出"与"被 git 跟踪"是两件事**，指路只能指后者所在的路径。
+
+首页三处数字（`README.md` / `README.en.md` / `board/README.md`）已从 r94 那套换成 r97 实现后报告的值：
+setup WNS **0.720 ns**（125 MHz 收包域，占 8 ns 的 9.0 %）、逐时钟 100 MHz **1.142 ns** / 50 MHz 显示域
+**1.767 ns**、hold 最差 **0.033 ns**（125 MHz）、失败端点 **0 / 50890**、
+LUT **14379（27.03 %）** / FF **8079** / BRAM 95 tile（67.86 %）/ DSP 19、动态功耗 **2.207 W**。
+`metric_recheck` 复跑：判 9 行、红 0；`doc_enc_check`/`doc_currency_check`/`line_cite_check` 三份都干净。
+
+## C11pre 那条红：红的是我的激励，不是设计（2026-09-30 22:07–22:24）
+
+链第①步跑完是 **2 条红**（`C5c` 之外多了一条 `C11pre frame is latched`），DBG 行写得很清楚：
+等满 3,000,000 个 axi 拍之后 `eth_has_frame=0 pending=0 copy_active=1`。读码定位（逐行，不是猜）：
+- 顶层 `pl_video_top.v:402` 是 `eth_mode = owner_eth`，`:430` 把搬运机 `u_row` 的 `.enable(eth_mode)` 交给它；
+  仲裁的判据是 `eth_live & eth_tb_ok`（这两个口在 `tb_v98` 里是可驱动的 reg）。
+- 我今天为 #187 补"自己构造前提"时只摆了 `eth_link=1` ⇒ 仲裁不把屏交给 ETH ⇒ 搬运机根本不使能 ⇒
+  `copy_done` 永不到 ⇒ `frame_ready` 不脉冲 ⇒ 前提永远凑不齐。**这正是"前提构造不出来的判据"，
+  而守卫把它拦住了**——C11/C11b 那两条在旧版是空样本上的 PASS，今天至少不再是无声。
+- 修法：激励里把 `eth_live/eth_tb_ok` 一起钉 1，并先等 2000 拍让仲裁交接，再发 `eth_commit`；
+  DBG 行加了 `owner_eth / row_busy / row_done` 三个字段（顺带避坑：我一开始写 `dut.u_rd.done`——
+  那个实例名不存在，真在顶层的线是 `row_done`，`dut.u_row` 是搬运机；写成 `u_rd` 会让这次复跑在 elaboration 就死）。
+- 复跑已经在后台起（`build/r97b_tb_v98_console.txt`，22:11 起跑，2 h 量级）；跑完再出 `tb98_report` + 门禁，
+  然后才是重导包。**今晚不拿"改了激励"当结论**——要等新那一跑的 C11pre 真的绿。
+- 收获一句：**判据到不了的前提 = 判据的缺陷**；而"到不了"有两种，一种是激励没给够（今天这个），
+  一种是命令表里根本没有那个状态（上面 G3x/#200 那个）。前者修激励，后者改判据，别混。
