@@ -67,11 +67,11 @@ the built-in test video. Commands, registers and every criterion are in
 
 | Metric | Reading | Source |
 |---|---|---|
-| Design-wide setup WNS | **0.522 ns**, failing setup/hold endpoints **0 / 50885** | `build/timing_summary.rpt` |
-| Per-clock setup slack | 125 MHz receive domain **0.522 ns** (6.5 % of its 8 ns period, and the design's worst path); 100 MHz domain **2.161 ns** (21.6 % of 10 ns); 50 MHz display domain **0.885 ns** (4.4 % of 20 ns) | same file, Intra Clock Table |
+| Design-wide setup WNS | **0.553 ns** (board build r94), failing setup/hold endpoints **0 / 50883** | `build/timing_summary.rpt` |
+| Per-clock setup slack | 125 MHz receive domain **0.553 ns** (6.9 % of its 8 ns period, and the design's worst path); 100 MHz domain **0.970 ns** (9.7 %); 50 MHz display domain **1.089 ns** (5.4 %) | same file, Intra Clock Table. The delta versus a previous build is neither gain nor loss - the same path measured a 0.4 ns placement swing between builds |
 | Hold time | worst **0.037 ns** (100 MHz domain), receive domain **0.049**, display domain **0.048** - the thinnest class of margin, quoted **after** the 0.8 ns hold uncertainty this repo imposes | same file |
-| BRAM / LUT / FF / DSP | **95 tiles (67.86 %) / 14351 (26.98 %) / 8075 (7.59 %) / 19 (8.64 %)** | `build/utilization.rpt` |
-| Power | **2.204 W** dynamic, estimated junction temperature **52.5 degC** (tool confidence Low; **an estimate**, no measured current and no SAF file) | `build/power.rpt` |
+| BRAM / LUT / FF / DSP | **95 tiles (67.86 %) / 14374 (27.02 %) / 8074 (7.59 %) / 19 (8.64 %)** | `build/utilization.rpt` |
+| Power | **2.206 W** dynamic, estimated junction temperature **52.5 degC** (tool confidence Low; **an estimate**, no measured current and no SAF file) | `build/power.rpt` |
 | SD local playback | **29.8 - 30.0 fps** (100-frame sliding window, read back from the board) | [data/metrics.csv](data/metrics.csv) |
 | On-board verification | 100-command serial battery PASS, geometry "last hop" 8/8 PASS, `drop_words=0` while streaming | [board/ACCEPTANCE.md](board/ACCEPTANCE.md) |
 

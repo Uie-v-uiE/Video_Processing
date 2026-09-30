@@ -403,3 +403,14 @@ PS CPU：主循环仅 `uart_poll`，不参与视频搬移。
 | 功能（**唯一能判采样点的尺子**：`src/constraints/` 无 `set_input_delay`，报告看不见眼图） | 100 条命令电池 + 推流 0 丢字 | 板上实流量 `--demo --fps 25`：**2501 帧 / 100.05 s = 25.00 fps、552721 包**；推流中 `pkts=184315`、`bytes=390417344`、`drop_words=0`、`丢过字=0`、`stall_ms=0`、`心跳：正常`、`Latency=6ms↔tot/100000=6`；`RESULT PASS uart_cmd_check (100 条命令, 92.9 s)`、`RESULT board_verify PASS（判红的步骤：0）` | 凭据 `build/evidence/r92_flash_*.txt`、`build/evidence/r92_tx.txt`、`build/evidence/r92_health.txt`、`verify_0930_0424.txt`。**E1–E3 眼睛判据仍待**（`board/ACCEPTANCE.md`） |
 | 资源 / 功耗 | 95 tile / 14358 LUT / 8075 FF / 19 DSP；2.205 W、52.5 °C | 95 tile / **14351** / 8075 / 19；**2.204 W**、52.5 °C（估算，置信度 Low） | −7 个 LUT；少一只 BUFIO。功耗与结温按同一套估算前提，不宣称省电 |
 | 门禁 | 20 项判定、1 红（`C5c`/#98） | **20 项判定、1 红**（`build/r92_gates.txt`）：第 16 项边缘条带 `PASS`（`rtl=c8bf35eb19e5` 与树一致），第 15 项的红就是那条一直在的 `C5c`（`tb_v98` 138 行、`nfail=1`，无新增失败） | 与 r88/r90 同形 ⇒ 冻结集继续是 **r75**，采纳凭的是板上那套（0 丢字 + 100 条电池 + 判红步骤 0） |
+### 11.6 r94（2026-09-30 12:1x–12:5x，正式件 `build/system.bit` md5 `a1465f29c9e4`，已烧板）：几何两刀 + 巡检防呆，时序只是"顺手量了一遍"
+
+| 指标 | r92 板上那版（`883dd3b7654d`） | r94 | 该怎么读 |
+|---|---|---|---|
+| 全设计 setup WNS | +0.522（最差在 `eth_rxc`） | **+0.553**（最差仍在 `eth_rxc`，占它 8 ns 周期的 6.9 %） | 0.031 ns **不记收益**：同一条路实测摆过 0.4 ns（规矩 35）。可以当凭据的只有"最差仍在同一条路" |
+| 全设计 hold WHS | +0.037（最差在 100 MHz 域） | **+0.049**（`clk_fpga_0` 与 `eth_rxc` 两格都是 +0.049/+0.060） | 同样**不记收益**；且念 WHS 要先问是哪一格（`eth_rxc` 那一格吃自加的 0.8 ns hold 不确定度，见 `docs/KNOWN_ISSUES.md` 二.1） |
+| 逐时钟 setup | `eth_rxc` +0.522 / `clk_fpga_0` +2.161 / `clkout0_1` +0.885 | +0.553 / **+0.970** / **+1.089** | 两个内时钟各自摆了 1 ns 以上而设计最差只动 0.031 ⇒ **这就是放置噪声的形状**，不是"某一族被改好了" |
+| 失败端点 | 0 / 50885 | **0 / 50883** | 端点总数自己会变（这一版少了 2 个 FF 端点：`zoom_ctrl` 的钳制是组合项，没加寄存器） |
+| 改动本体 | — | `zoom_mapper.v`（#104 旋转支小数位）、`zoom_ctrl.v`+`pl_video_top.v`（#93 旋转态钳进 fit，新端口 `rotate_en`/`rot_forced`）、`eth_udp_video_top.v`（#158 显式传 `FRAME_BYTES`） | 三处都不在关键锥的设计意图里；实测它们**没有把 WNS 拖下去**，仅此而已 |
+| 功能 | `tb_v98` 138 行判据、1 红（`C5c`/#98）；100 条电池全绿 | 快尺子先落地：`tb_zoom_frac`（改前 298 行 FAIL → 改后 128 次逐像素比较 0 失配）、`tb_v94_zoom_sel` T8a~T8f（变异对照恰好红 3 条）、`tb_v100_fit_rot` checks=373 errors=0、`tb_zoom_mapper` PASS；板上 100 条电池全绿（`build/r94_batt.txt`，93.1 s） | 整屏 `tb_v98` 与 `tb_edge_rim` **正在按新树重跑**（`build/r94_bench_chain.log`）；门禁报告落 `build/r94_gates.txt` —— **这一行没落之前，r94 不写"门禁绿"** |
+| 资源 / 功耗 | 95 tile / 14351 LUT / 8075 FF / 19 DSP；2.204 W、52.5 °C | 95 tile（67.86 %）/ **14374**（27.02 %）/ **8074** / 19；**2.206 W**、52.5 °C（估算，置信度 Low） | LUT +23 / FF −1 是这一轮算术改动的净结果；功耗与结温按同一套估算前提，**不宣称省电** |

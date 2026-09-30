@@ -15,7 +15,7 @@
 | 6 | 链路内时延同源一致 | 屏上 `Latency=6ms` 与回读 `tot/100000=6` 一致（ok） | `build/evidence/r92_health.txt` |
 | 7 | 温度格三方对账 | `V9-6 温度格三方对账：4 条 [TEMP] 的 degC↔osd↔gpio 全部自洽` | `build/evidence/verify_0930_0424.txt` |
 | 8 | SD 卡本地播放 | `sd=1 playing=1`，帧率 29.8 – 30.0 fps（100 帧滑窗） | `board/uart_script_capture.txt`、`data/metrics.csv` |
-| 9 | 时序/资源读数与报告一致 | 全设计 setup WNS 0.522 ns、hold WHS 0.037 ns、失败端点 0 / 50885；BRAM 95 tile、LUT 14351、FF 8075、DSP 19 | `build/timing_summary.rpt`、`build/utilization.rpt` |
+| 9 | 时序/资源读数与报告一致（r94 重念）| 全设计 setup WNS 0.553 ns、hold WHS 0.049 ns、失败端点 0 / 50883；BRAM 95 tile、LUT 14374、FF 8074、DSP 19、动态 2.206 W。绝对值与上一版之差**不记收益也不记损失**（规矩 35）| `build/timing_summary.rpt`、`build/utilization.rpt` |
 | 10 | 收口只有一棵时钟树（#57 的结构判据，不靠 slack 碰运气） | `build/clock_util.rpt`：**`BUFIO` 用量 0**（改前那一份是 1），`eth_rxc` 只经一只 `BUFG/O`（`g2`←`src2`=`IBUF/O @IOB_X1Y28`，fabric 负载 2478）；最差 20 条 hold 的时钟偏斜由 `build/hold_paths.rpt` 逐条读，实测 0.013~0.349 ns（改前那一条是 1.616 ns） | `build/clock_util.rpt`、`build/hold_paths.rpt`；改前对照是仓库里的 `build/r88_clock_util.rpt`（rNN 命名的对照件，不随包） |
 
 第 5 行里有两个数要如实写出来：`作废过帧=1`、`缺行峰值=299` —— 那是推流起始那一帧没收齐被整帧丢掉

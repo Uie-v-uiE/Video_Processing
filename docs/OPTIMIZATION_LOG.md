@@ -744,3 +744,38 @@ setup 侧 `ExtraTimingOpt` 反而把 `eth_rxc` 从 +0.516 花到 +0.157。两滚
 **台架与门禁（05:0x–06:0x，`build/r92_gates.txt`，仓库里的件、不随包）**：两份台架都按新 `src/rtl` 重跑完了 —— `tb_edge_rim` 31 条判据 `PASS`（`build/tb_edge_rim_r92.txt`，`rtl=c8bf35eb19e5`）；`tb_v98` 一共 138 行判据，**只有 1 行 FAIL**，而且就是那条一直在的 `C5c`（#98）：`RESULT tb_v98_top_seam FAIL nfail=1` —— **这一刀没有引入新的失败**。报告头三枚 md5 `top=47c59cd3a852` / `tb=d64b883a6d94` / `rtl=c8bf35eb19e5` 与树一致，所以门禁第 15 项原先那条"RTL 合指纹不符"的理由消失了，只剩 `C5c` 本身 ⇒ `GATES: 有红项（判定 20 项）—— 不采纳，保留上一版`。
 这一行与 r88/r90 完全同形：20 项全判定、唯一红项是故意留着的 `C5c`，冻结集继续是 **r75**；这一版被采纳的依据不是那一行绿，而是**板上那一套**（0 丢字 + 100 条电池 + 判红步骤 0 + `BUFIO` 用量 0）。
 **还欠的只剩眼睛**：`board/ACCEPTANCE.md` 的 E1–E3（屏已摆成 `split 50` + 蓝线关 + 片源 ETH 的样子）。
+## r94（2026-09-30 12:1x–12:5x，正式件 `build/system.bit` md5 `a1465f29c9e4`，源树 `rtl_md5=526321488fed`）：几何两刀落地（#104 小数位、#93 旋转态钳进 fit）+ 巡检四条
+
+**这一轮的动机不是时序**，是把账本里"已知没修"的几何两条清掉，顺手把只读巡检查出的一条参数防呆落了。
+
+**改了什么（三处，全在 `src/rtl`）**：
+- `zoom_mapper.v`（#104）：旋转支接回 `>>>16` 之后的 `[15:8]` 当小数，并把纵向 `Y_disp = H/2 − Y_math` 的翻转
+  连着 floor 一起改（小数≠0 时 floor 多减一格、小数取 `256−f`）。
+- `zoom_ctrl.v` + `pl_video_top.v`（#93）：旋转生效时把**实际用的倍率**钳进 `zoom_fit`。钳制做在 `zoom_ctrl` 的
+  `inv_used` 那一个出口（新输入 `rotate_en`、新输出 `rot_forced`），顶层只把 `rot_forced` 并进 OSD 的 `(Fit)`；
+  先在顶层写的那版回退了（`build/r94_top_mux_superceded.patch`），因为它喂不到 `zoom_code` ⇒ 屏上会与取样不一致。
+- `eth_udp_video_top.v`（#158）：`FRAME_BYTES` 以前没传、靠默认 307200 与 `512*300*2` 偶然相等，现在显式
+  `IMG_W*IMG_H*2`。今天的展开值逐字节不变 ⇒ 纯防呆。
+
+**尺子（都带"改前红"）**：`sim/tb_zoom_frac.v` 改前 298 行 FAIL（`build/r94_zoomfrac_console.txt`）→ 改后
+128 次独立逐像素比较 0 失配、99/99 旋转像素带非零小数（`build/r94_zoomfrac_final.txt`，D 汇总行与真实分母
+是这一轮补的：原来 D 只有 FAIL 才打行、H5 把分母写死成 60 而实际跑 99 个像素）。
+`sim/tb_v94_zoom_sel.v` 新增 T8a~T8f：绿在 `build/r94_rotfit_after.txt`；把钳制一项变异关掉后**恰好** T8b/T8c/T8e 红
+（`build/r94_rotfit_mutation.txt`，三条共享同一根因，按规矩列连带红、不削弱判据）。
+回归：`tb_v100_fit_rot` checks=373 errors=0、`tb_zoom_mapper` PASS、端口检查 199 例化 0 违例（`--dup` 也是硬项）。
+
+**构建后实测（只报数，不报"提升"）**：全设计 WNS **+0.553 ns**、WHS **+0.049 ns**、失败端点 **0 / 50883**；
+逐时钟 `clk_fpga_0` +0.970/+0.060、`clkout0_1` +1.089/+0.063、`eth_rxc` +0.553/+0.049、`sys_clk` +14.195/+0.121。
+资源 `Slice Registers 8074`、`LUT as Logic 10187`、`Block RAM Tile 95`、`DSPs 19`；`report_power` 总功耗 2.383 W。
+凭据 `build/timing_summary.rpt`、`build/utilization.rpt`、`build/power.rpt`、构建日志 `build/r94_build_console.txt`（DRC 0 Errors）。
+⚠ 按规矩 **#35**：这些绝对值与 r92 的 +0.522/+0.037 之差**既不算收益也不算损失**（同一条路实测摆过 0.4 ns 的放置抖动），
+本文只留"这一版的数是多少、在哪个文件里"。
+
+**上板（12:5x，顺序是 ps7_init → 配 PL → 重下 app，凭据 `build/r94_flash.log`）**：屏与链路活着，
+100 条串口命令电池全绿（`build/r94_batt.txt`，93.1 s，判红步骤 0），回读初态仍是文档默认档（`zsel=4 zman=1 mode=0`）。
+**屏上摆成了"钳制看得见"的那一态**：SD 回放 + `bilin on` + 手动 1.00x + **`zoom fit 0`** + `rot auto 1 speed 0`
+（`build/r94_eye_state_cap2.txt`，`geom=00400A00` ⇒ 旋转位在跑）。眼睛那三条（45° 时四角是否在框内、
+ZOOM 那格是否标 `(Fit)`、旋转态斜边锯齿与 `rot 0` 相比）**待队员判**，不混进机器判据。
+
+**还欠的**：`tb_v98` 整屏 + `tb_edge_rim` 正在按新树重跑（`build/r94_bench_chain.log`），门禁报告等它结束后落在
+`build/r94_gates.txt`；那一行落上来之前，这一版**不写"门禁绿"**。Pblock / 疏解绕线（§二.1 欠的物理那一侧）这一轮没动。
