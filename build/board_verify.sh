@@ -11,7 +11,9 @@
 # 为什么要这个脚本：这些判据以前是我半夜手敲一串命令跑的，**别人复现不了**（比赛要审"他人能否复现"）。
 # 现在把顺序、判据、以及"每一项看哪一行输出"固定在一个文件里，跑完把日志留在 build/evidence/。
 #
-# 不做什么：不刷板子。三件套（bit/xsa/elf）的下载顺序见 README.md「板上跑法」，
+# 不做什么：不刷板子。三件套（bit/xsa/elf）的下载顺序见 README.md 的"复现三步"第 3 步（xsdb
+# ps_jtag_boot → vivado program_pl → xsdb ps_app_reload）与 docs/BUILD.md §3「上板顺序」（那里还写了为什么跑过
+# ps_jtag_boot 就必须重下 bit），
 # 那一步会动硬件，故意留给人（或我）一条一条确认。脚本开头会把三件 md5 打出来，便于和
 # build/frozen_*/MANIFEST.md 对账。
 set -u
