@@ -14,14 +14,22 @@
 #  4) **导出后自检**：活文档里的路径式指路必须在包内解析得出；被改名台架的旧名与本机绝对路径必须为 0。
 #     任一不过就不落盘。这一条是防我自己。
 #
-# 用法：bash build/make_submission.sh [--dry]
+# 用法：bash build/make_submission.sh [--dry] [--allow-no-gates]
 set -euo pipefail
 
 REPO="$(cd "$(dirname "$0")/.." && pwd)"
 OUT="$(cd "$REPO/.." && pwd)/final_submission"
 TMP="$(mktemp -d "${TMPDIR:-/tmp}/sub.XXXXXX")"
 DRY=0
-if [ "${1:-}" = "--dry" ]; then DRY=1; fi
+# --allow-no-gates：明确接受"诊断用"包（包里没有对应位流的门禁件）。默认**不接受**（F2，见 4x 段）。
+ALLOW_NO_GATES=0
+for _a in "$@"; do
+  case "$_a" in
+    --dry) DRY=1 ;;
+    --allow-no-gates) ALLOW_NO_GATES=1 ;;
+    *) echo "忽略未知参数：$_a（可用：--dry --allow-no-gates）" >&2 ;;
+  esac
+done
 
 # ---- 交付台架：旧名 -> 新名（只列要改的；原名已按职责的不列）----
 declare -A SIM_MAP=(
@@ -533,9 +541,10 @@ removed="$(sort -u -o _pruned.txt _pruned.txt; { grep -c '' _pruned.txt || true;
 BIT_MD5=""
 if [ -f board/project/system.bit ]; then BIT_MD5="$(md5sum board/project/system.bit | cut -c1-12)"; fi
 GATES_FOR_BIT="没有一份门禁报告写着这串 md5 ⇒ 这一版不作交付（诊断用）"
+NO_GATES=1
 if [ -n "$BIT_MD5" ]; then
   hit="$( { grep -rl "$BIT_MD5" build/reports 2>/dev/null || true; } | head -1)"
-  if [ -n "$hit" ]; then GATES_FOR_BIT="$hit"; fi
+  if [ -n "$hit" ]; then GATES_FOR_BIT="$hit"; NO_GATES=0; fi
 fi
 
 cat > MANIFEST.txt <<EOF
@@ -565,6 +574,39 @@ EOF
 
 echo
 echo "导出提交 $COMMIT：$files 个文件 / $bytes，剪掉 $removed 条，死链 $DEAD，旧名残留 $STALE，绝对路径 $ABSN"
+
+# ---- 4x) 两条**内容**判定（2026-09-30 由"检查检查器"那一轮坐实，都是我自己读码确认过的）----
+# F2：以前包里没有对应位流的门禁件时，MANIFEST 会写「这一版不作交付（诊断用）」而脚本 **exit 0**——
+#     交付出去的东西自己声明自己不算交付，比不交更糟（评审第一页就读到）。根因在 gates.sh 只打
+#     mtime、从不把 system.bit 的 md5 打进报告里 ⇒ 这一位永远查不到匹配（r99 补那一刀，这里先拒）。
+# F1：随包的台架/门禁凭据从没被看过内容 ⇒ 一份写着 `RESULT … FAIL nfail=2` 的台架报告照发。
+#     本项目故意留一条红（`C5c`/#98，公开在 docs/KNOWN_ISSUES.md 第一节），所以**不是**"有红就拒"，
+#     而是"红必须在白名单里"——红得对与红得不明不白必须能区分（这条区分本身就是本项目的规矩）。
+KNOWN_RED_RE='^[ ]*FAIL C5c'
+redall=0; redunk=0
+if [ -d build/reports ]; then
+  for _r in build/reports/*.txt; do
+    [ -f "$_r" ] || continue
+    _n="$( { grep -c '^[ ]*FAIL ' "$_r" || true; } )"; redall="$((redall + ${_n:-0}))"
+    _u="$( { grep '^[ ]*FAIL ' "$_r" | grep -vc "$KNOWN_RED_RE" || true; } )"; redunk="$((redunk + ${_u:-0}))"
+  done
+fi
+echo "随包凭据内容判定：FAIL 行共 $redall，其中未声明的红 $redunk（白名单只允许 '$KNOWN_RED_RE'）"
+if [ "$NO_GATES" = "1" ] && [ "$ALLOW_NO_GATES" != "1" ]; then
+  echo "FAIL：找不到与这块位流（$(basename "${BIT_MD5:-?}")）同批的门禁件 ⇒ 不写 $OUT。"
+  echo "      要么先跑出配对的门禁报告（门禁脚本得把 bit 的 md5 打进去，r99 那一刀），"
+  echo "      要么明确接受诊断包：加 --allow-no-gates。"
+  exit 1
+fi
+if [ "$redunk" != "0" ]; then
+  echo "FAIL：随包凭据里有 $redunk 行没声明过的红 ⇒ 不写 $OUT（明细如下，先修它或把它公开进 KNOWN_ISSUES）"
+  for _r in build/reports/*.txt; do
+    [ -f "$_r" ] || continue
+    grep '^[ ]*FAIL ' "$_r" | grep -v "$KNOWN_RED_RE" | sed "s|^|      $(basename "$_r"): |" | head -5 || true
+  done
+  exit 1
+fi
+
 if [ "$DRY" = "1" ]; then echo "DRY RUN：$TMP 留着，自己看过再 rm -rf"; exit 0; fi
 if [ "$DEAD" != "0" ] || [ "$STALE" != "0" ] || [ "$ABSN" != "0" ]; then
   echo "FAIL：死链 $DEAD ／ 旧名残留 $STALE ／ 绝对路径 $ABSN。不写 $OUT。"

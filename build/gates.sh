@@ -37,6 +37,14 @@ if [ -f "$bit" ]; then
     age=$(( $(stat -c %Y "$T") - $(stat -c %Y "$bit") ))
     [ "$age" -lt 0 ] && age=$(( -age ))
     echo "新鲜度：system.bit $(stat -c %y "$bit" | cut -c1-19) / timing $(stat -c %y "$T" | cut -c1-19)"
+    # 身份行（2026-09-30，checker 审计 F2 的根因）：以前门禁件只打 mtime、从不打这三件产物的 md5，
+    # 于是 `build/make_submission.sh` 想按"板上那一版"的身份挑一份门禁报告配对时**永远挑不到**
+    # （它 `grep -q "$BIT12" *gates*.txt` 恒假 ⇒ 交付包自己在 MANIFEST 里写「这一版不作交付」，
+    #  而导出器还是 exit 0）。mtime 只说明"同一天"，md5 才说明"同一套"。
+    echo "身份：system.bit md5=$(md5sum "$bit" | cut -c1-12)"
+    [ -f "$D/system.xsa" ] && echo "      system.xsa md5=$(md5sum "$D/system.xsa" | cut -c1-12)"
+    [ -f "$D/ps_app.elf" ] && echo "      ps_app.elf md5=$(md5sum "$D/ps_app.elf" | cut -c1-12)"
+    [ -f "$D/ps_app.elf" ] || echo "      ps_app.elf 不在 $D（这一版没重编应用 ⇒ 无身份可打）"
     [ "$age" -le 600 ] || echo "        WARN 两者相差 $((age/60)) 分钟 ⇒ 可能不是同一套产物（等构建结束，或按 md5 核对冻结目录）"
     # 另一面：产物之间一致，但**整批都比 RTL 旧** —— 那就是"改完没重跑"，念到的是上一版。
     # （2026-09-24 真踩过：构建还在跑，我先跑了一次门禁，全套报告都是 30 分钟前的、七项全绿。）
