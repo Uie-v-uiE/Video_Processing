@@ -162,9 +162,11 @@ say "BRAM (tile/%)"   "$bram/$bramp%" "<= 97%"    $(awk -v v="$bramp" 'BEGIN{pri
 say "Slice LUT / 占比"  "$lut/$lutp%" "<= 98%"      $(awk -v v="$lutp" 'BEGIN{print (v+0<=98)?1:0}')
 say "Slice 寄存器"     "$reg"  "记录用（无阈值）"   1
 say "Dynamic (W)"     "$dyn"  "与前次同量级"      1
-say "methodology CRIT" "$crit" "== 0"            $([ "$crit" -eq 0 ] && echo 1 || echo 0)
+if [ -f "$M" ]; then say "methodology CRIT" "$crit" "== 0" $([ "$crit" -eq 0 ] && echo 1 || echo 0)
+else naa "methodology CRIT —— $M 不在这套目录里 ⇒ 这一项没门禁（#164：过去空结果被当合法的 0 念成 PASS）"; fi
 say "布线错误网线"      "$rerr" "== 0"            $([ "$rerr" -eq 0 ] && echo 1 || echo 0)
-say "cdc.rpt Critical 行" "$cdcc" "基线 $nbase 行，配对不新增、unsafe 不增长" "$cdc_ok"
+if [ -f "$C" ]; then say "cdc.rpt Critical 行" "$cdcc" "基线 $nbase 行，配对不新增、unsafe 不增长" "$cdc_ok"
+else naa "cdc.rpt Critical 行 —— $C 不在这套目录里 ⇒ 这一项没门禁（#164 同族，空集合不是通过）"; fi
 # 8) 端口宽度不匹配的**端口连接**警告（Synth 8-689）—— #57 的教训：
 #    system_top 里 `wire [5:0] dbg_src` 接在 8 bit 的端口上，综合只给这么一条警告，
 #    lane30 的模式高位就被静默吞掉（读出来永远 0/1），而七项门禁当时全绿。
