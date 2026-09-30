@@ -301,7 +301,7 @@ if [ "$D" = "build" ]; then
         [ -n "$WHY" ] && echo "        ——$WHY"
     else
         say "顶层台架 tb_v98" "缺 build/tb_v98_report.txt" "必须先跑 tb98_report.sh" 0
-        echo "        —— 生成：bash sim/run_one.sh tb_v98_top_seam && bash build/tb98_report.sh"
+        echo "        —— 生成：bash sim/run_one.sh tb_v98_top_seam（从 #166 起：**退出码 3 = 台架判红**，1 = 编译失败，4 = 认不出判定）&& bash build/tb98_report.sh"
     fi
 else
     naa "顶层台架 tb_v98 —— 历史冻结件不带与它同一次跑的顶层 md5，不判红（同第 14 项的口径）"
@@ -333,7 +333,9 @@ if [ "$D" = "build" ]; then
         [ -n "$WHY" ] && echo "        ——$WHY"
     else
         say "边缘条带 tb_edge_rim" "缺 build/tb_edge_rim_rNN.txt" "必须先跑并留凭据" 0
-        echo "        —— 生成：bash sim/run_one.sh tb_edge_rim，再把 prov.txt 与 run.log 的判据行并成一份 build/tb_edge_rim_rNN.txt"
+        echo "        —— 生成：bash sim/run_one.sh tb_edge_rim && ROUND=rNN bash build/rim_report.sh"
+        echo "           ⚠ #179：`ROUND` **必须给** —— 那个脚本自带默认 r90，不给就把今天的数写成一份名字叫 r90 的假凭据，"
+        echo "              而本项按 sort -V 取最新那份，于是读到的是上一轮的件（红在出身，不在设计）。"
     fi
 else
     naa "边缘条带 tb_edge_rim —— 历史冻结件不带与它同一次跑的 RTL 合指纹，不判红（同第 15 项的口径）"

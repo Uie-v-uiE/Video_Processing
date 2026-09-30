@@ -1,0 +1,14 @@
+# 改前（r95 及以前的 run_one.sh 解析形状）对同一份日志的回答：
+VERDICT tb_demo: NO-VERDICT-LINE || FAIL 行数=0  ← 一支真红的台架被报成 0（#166 的机制）
+
+# 改后（sim/run_one.sh --verdict，同一个实现也在真跑结束时用）：
+VERDICT tb_demo: TB RESULT FAIL（tb_demo） || FAIL 行数=1 || PASS 行数=1
+rc=3
+旧: VERDICT: NO-VERDICT-LINE || FAIL 行数=0
+
+# 拿**真红日志**复验（不是合成件）：build/r94_rotfit_mutation.txt 是 r94 变异对照留下的 tb_v94_zoom_sel 那一跑，它当时真的判红
+新: VERDICT tb_v94_zoom_sel: TB RESULT FAIL（tb_v94_zoom_sel） || FAIL 行数=3 || PASS 行数=15 / rc=3
+⚠ 上面这行就是 #166 的原始症状复现：同份日志旧实现念 NO-VERDICT-LINE + FAIL 行数=0（见文件上半），新实现念出 TB RESULT FAIL 与 FAIL 行数=3。
+# #169 的真跑复验：见 build/r96_run_one_compilefail.txt —— 一次 xelab 失败的编译之后，
+#   盘上 prov.txt 与 run.log 仍是**成对的旧件**（cmp 与旧 expect 相同、没有残留 prov.tmp），
+#   而绿的那一跑（build/r96_run_one_green.txt）里 prov.txt 15:27 与 run.log 15:27 同一次 ⇒ 门禁第 15 项的同一次跑是真的。
