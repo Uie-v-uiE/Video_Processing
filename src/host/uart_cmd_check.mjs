@@ -229,7 +229,7 @@ const EXPECT = [
   [/\[SPLIT\] 50% -> pos=512\/1024/],
   [/\[ROT\] speed=0 度\/帧/],
   [/\[GAMMA\] auto：1\.00\.\.3\.00/, /每 2000 ms/],             // 区间与节奏要说出来（否则用户不知道它在动）
-  [/auto 停/, /!\[GAMMA\] auto/],                              // gamma manual：停住，且不许自己又开起来
+  [/auto 停/, /!\[GAMMA] auto：/],   // gamma manual：要说'auto 停了'，而且**不许再打印 auto 那一行**（`!\[GAMMA] auto` 这种写法会被 #165 修好的字面量匹配当成违例 —— 固件正确回声'auto 停了'本来就含 '[GAMMA] auto'，所以反例必须钉到'auto：'那一行的全角冒号上，不是删判据）
   [/\[GAMMA\] off/],                                          // 收尾：γ 复零（关闭 = 逐位旁路，表保留）
   // #99 第二处：`rot auto 1` 会顺带把缩放切到 fit（固件自己说出来），而结尾的 `zoom fit 0` 只关 fit、
   // **不把手动档还回来** ⇒ 初 `zman=1` / 末 `zman=0`。所以这里显式钉回"手动 1.00x"（= 演示默认档）。
@@ -305,8 +305,10 @@ for (let i = 0; i < lines.length; i++) {
    * 而 `!\[CTRL\]` / `!\[GAMMA\] auto` 这种带了转义反斜杠的，找的是字面 "\[CTRL\]"，永远找不到
    * —— 那几条一直在空跑（本文件不动这个机制：把反例修活要连带重订 gamma/rot 那几条的口径，
    *  不是这次"五位退场"的范围，已记进本轮报告）。 */
+  /* #165：反例串过去按**字面量**比较，`/!\[CTRL\]/` 找的是含反斜杠的 "\[CTRL\]" ⇒ 永远找不到，
+   * 那几条"命令收了却不许写寄存器"的判据一直空跑。现在先把转义还原成字面量再比较。 */
   const bad = exp.filter(re => re.source.startsWith('!')
-    ? s.includes(re.source.slice(1)) : !re.test(s));
+    ? s.includes(re.source.slice(1).replace(/\\(.)/g, '$1')) : !re.test(s));
   if (bad.length) { console.log(`FAIL ${String(i + 1).padStart(2)} ${lines[i]}\n     缺/违: ${bad.map(r => r.source).join(' | ')}\n     回声: ${s.trim().split('\n').slice(0, 2).join(' ⏎ ')}`); fail++; }
   else console.log(`ok   ${String(i + 1).padStart(2)} ${lines[i]}`);
 }
@@ -399,6 +401,6 @@ if (stats.length >= 1) {
     }
 }
 
-console.log(`\nRESULT ${fail === 0 ? 'PASS' : 'FAIL'} uart_cmd_check  (${lines.length} 条命令, ${((Date.now() - t0) / 1000).toFixed(1)} s, 捕获 ${OUT})`);
+console.log(`\nRESULT ${fail === 0 ? 'PASS' : 'FAIL'} uart_cmd_check  (${lines.length} 条命令, ${((Date.now() - t0) / 1000).toFixed(1)} s, 捕获 ${REPLAY || OUT})`);
 if (fail) console.log(`     ${fail} 条不满足判据`);
 process.exit(fail === 0 ? 0 : 1);

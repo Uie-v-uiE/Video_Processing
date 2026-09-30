@@ -995,8 +995,8 @@ static int dispatch(char **tk, int nt)
             /* 为什么要把"什么时候才看得出差别"一起印出来：这个开关在**旋转态**与**1.00 倍**下
              * 按构造都不改变任何一个像素（`zoom_mapper.v:73-74` 旋转通路把 frac 钉 0；1:1 时 frac 天生 0），
              * 所以只说"bilin=1"会让人以为开关坏了 —— 那是 ISSUES #86，不是这条命令坏了。 */
-            xil_printf("[BILIN] bilin=%s（gpio_o[19]）；看得出的条件：角度=0 且倍率非整数，"
-                       "例：src 0 → zoom 1.5 → bilin off/on（旋转态与本档 1.00 按构造无差别）\r\n",
+            xil_printf("[BILIN] bilin=%s（gpio_o[19]）；看得出的条件：倍率非整数（旋转态也算 —— r94/#104 起"
+                       "旋转支的小数位真的交给读口了）；例：src 0 → zoom 1.5 → bilin off/on\r\n",
                        cur_bilin ? "on" : "off");
             return 0;
         }

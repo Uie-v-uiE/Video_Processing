@@ -771,7 +771,7 @@ setup 侧 `ExtraTimingOpt` 反而把 `eth_rxc` 从 +0.516 花到 +0.157。两滚
 ⚠ 按规矩 **#35**：这些绝对值与 r92 的 +0.522/+0.037 之差**既不算收益也不算损失**（同一条路实测摆过 0.4 ns 的放置抖动），
 本文只留"这一版的数是多少、在哪个文件里"。
 
-**上板（12:5x，顺序是 ps7_init → 配 PL → 重下 app，凭据 `build/r94_flash.log`）**：屏与链路活着，
+**上板（12:5x，顺序是 ps7_init → 配 PL → 重下 app，凭据 `build/r94_flash.txt`）**：屏与链路活着，
 100 条串口命令电池全绿（`build/r94_batt.txt`，93.1 s，判红步骤 0），回读初态仍是文档默认档（`zsel=4 zman=1 mode=0`）。
 **屏上摆成了"钳制看得见"的那一态**：SD 回放 + `bilin on` + 手动 1.00x + **`zoom fit 0`** + `rot auto 1 speed 0`
 （`build/r94_eye_state_cap2.txt`，`geom=00400A00` ⇒ 旋转位在跑）。眼睛那三条（45° 时四角是否在框内、

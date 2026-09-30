@@ -1,0 +1,19 @@
+== step1 ps_jtag_boot
+RST_SYSTEM: ok
+PS7_INIT: ok
+PS7_POST_CONFIG: ok
+DDR_ECHO: 10000000:   5A5AA5A5
+
+PS BOOT STEP DONE â€? ä¸‹ä¸€æ­? build/tcl/program_pl.tcl é…? PL
+== step2 program_system (bit md5 a1465f29c9e4)
+# puts "PROGRAMMED $dev with $bit"
+PROGRAMMED xc7z020_1 with D:/Xilinx/Prj/pro/Video_Processing/build/system.bit
+== step3 ps_app_reload
+        t (Bits [5]):  0     m (Bits [4:0]): 1f
+
+lr: lr: 0000753c
+
+sp: sp: ffff5d58
+
+RESUME: ok
+FLOW_DONE
