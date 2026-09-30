@@ -89,7 +89,12 @@
    而是把 `dc_fifo` 的满判据从"下一个写指针"改成"当前写指针"（与读侧对称，于是加法+格雷整条锥体
    不再挂在 `ENARDEN` 上；判据、变异对照与"顺带找回被提前一格丢掉的那个字"见 ISSUES **#139**）。
    **还欠的只剩物理那一侧**：这条路径 r87 实测 route 占 **66 %**，Pblock / 疏解绕线没做。
-- **念 WHS 要先问是哪一个数**：本仓对 `eth_rxc` 故意加了 `set_clock_uncertainty -hold 0.800`（r79 起，只加严不放松，`src/constraints/rk_zynq7020.xdc`），所以 **`eth_rxc` 那一格的 `+0.049 ns` 是"按 0.8 ns 要求之后还剩这么多"**，不是"真实余量只有 0.0x"——本轮实测那条路径（`u_eth/u_rx_mac/m_sof_reg → u_eth/u_rx_par/in_pay_reg`）的报告里明写 `clock uncertainty 0.800`，约束确实生效（凭据 `build/clock_uncertainty.rpt`）。**但全设计那一格 `+0.037 ns` 不吃这个口径**：#57 之后最差 min 路径换到了 `clk_fpga_0` 域（`u_pl/u_lat/t_commit_reg[0] → u_pl/u_lat/max_cyc_reg[4]`），同报告里它的 `Requirement: 0.000ns`、没有不确定度那一行。⇒ 跨版比 WHS 之前，先确认比的是**哪一格**、那一格的尺子有没有动过。
+- **念 WHS 要先问是哪一个数，而且"哪一个最差"是跨版会换的**：本仓对 `eth_rxc` 故意加了 `set_clock_uncertainty -hold 0.800`（r79 起，只加严不放松，`src/constraints/rk_zynq7020.xdc`），
+所以 **`eth_rxc` 那一格的余量是"按 0.8 ns 要求之后还剩这么多"**，不是"真实余量只有 0.0x"——凭据 
+`build/clock_uncertainty.rpt`（报告里明写 `clock uncertainty 0.800`，约束确实生效）。**但这一格吃不吃这个口径要每版重看**：r92 的全设计最差 min 路径曾换到 `clk_fpga_0` 域
+（`u_pl/u_lat/t_commit_reg[0] → max_cyc_reg[4]`，`Requirement: 0.000ns`、不带不确定度那一行）；
+r94 实测全设计 WHS **+0.049 ns 又落回 `eth_rxc` 那一格**（`clk_fpga_0` 是 +0.060、`clkout0_1` +0.063，
+`build/timing_summary.rpt` 的 Intra Clock Table）。⇒ **跨版比 WHS 之前，先确认比的是哪一格、那一格的尺子有没有动过**；而"哪一格最差"本身在两版之间就会换，所以它不是设计属性，别当趋势念。
 2. **UltraRAM 换帧缓存这件事不成立也不宣称**。已核实的只有：`ram_style` 给 `ultramark`/`ultraram`
    都被综合判为无效值（`build/` 里那份 uram 探针输出）；**没核实**的是这颗器件有没有 URAM 站点
    —— 三次 Tcl 问法里**阳性对照没过，那个 0 不算结论**。对外只说帧缓存在 BRAM/分布式 RAM。
