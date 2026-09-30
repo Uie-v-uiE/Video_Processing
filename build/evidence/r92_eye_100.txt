@@ -1,0 +1,3 @@
+rot auto 0
+zoom 1.0
+STAT
