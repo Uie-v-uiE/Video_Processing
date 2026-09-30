@@ -447,3 +447,24 @@ PS CPU：主循环仅 `uart_poll`，不参与视频搬移。
 
 **冻结集继续是 r75**：`bash build/freeze_evidence.sh 96` 复读 `GATES: 有红项（判定 20 项）—— 不采纳，保留上一版`，
 编号 96 的那个冻结目录**没有生成**（这一版**被烧进板子并过机器验收**，但没被冻结为一套凭据 —— 两件事分开念）。
+### 11.9 r97（2026-09-30 16:5x–19:52 构建，正式件 `build/system.bit` md5 `ef03eea4886e`、`system.xsa` `a50188e5f789`、`ps_app.elf` `d0b07f84a068`；22:15 烧板，22:15–22:24 机器验收）：三刀都是"读得出来的口径"，功耗与温度第一次并排给出**两条独立来源**
+
+| 项 | r96 | r97 | 出处与读法 |
+|---|---|---|---|
+| 建立时间 | WNS +0.516 ns / 0 失败 | WNS **+0.720 ns** / 失败 setup 端点 **0 / 50890** | `build/timing_summary.rpt`。归属：`u_icmp/u_icmp_tx/tx_data_num_reg[12]/C → data_cnt_reg[12]/CE`，11 级（CARRY4 5 级）、7.049/8 ns。⚠ **两个数的差不算收益**（规矩 35） |
+| 保持时间 | WHS +0.049 ns | WHS **+0.033 ns**（含我自己加的 0.8 ns hold 不确定度，`src/constraints/rk_zynq7020.xdc:50`） | 同上；最差在 `u_eth/u_rx_par/p_sof_reg → u_reasm/have_lo_reg`，1 级 LUT + 0.973 ns 走线 |
+| 脉冲宽度 | WPWS 0.264 | **WPWS 0.264 ns / 0 / 12526 失败** | 250 MHz 串行那一路；本轮第一次把它抄进交付表 |
+| 资源 | 14374 / 8074 / 95 / 19 | **14379 LUT（27.03 %）/ 8079 FF（7.59 %）/ 95 BRAM tile（67.86 %）/ 19 DSP** | `build/utilization.rpt`；LUT 拆给得出：Logic 10193 + Memory 4186（分布式 RAM 4044） |
+| 功耗（**工具估算，非实测**） | 2.206 W / 52.5 °C | **2.207 W / 估算结温 52.5 °C**（置信度 Low，无仿真活动文件） | `build/power.rpt`；前提 Effective TJA 11.5 °C/W、Max Ambient 57.5 °C 是**假定** |
+| 片上温度（**板读，实测**） | 只在串口/屏上读过，没进表 | **63.1 – 63.4 °C**（`[TEMP] degC=63.38/63.17/63.13`，`raw 0xAAF2/0xAAD7/0xAAD2`，`vccint 997–998 mV`，`osd=63C`、`gpio=0x63` 四处同源） | `build/board_temp_r97.txt`（三条读数逐条抄成随包件）+ `data/metrics.csv` 那两行；电池里 V9-6 那条三方对账为 ok |
+| SD 本地播放 | 29.8 – 30.0 fps | 同量级（本轮 SD 在播：`frames=4398 playing=1`） | `data/metrics.csv` |
+| 板级机器判据 | 电池 105 条全绿 | 电池 **105 条 / 97.8 s 全绿**且**初态=末态=文档默认档**；几何 **`geom_check ok=10 fail=0`**，含 `#175` 那条 `G5`（`bit19 == (生效倍率偏离 256)`，样本 4 违例 0）与 `G5b`（**4/4 真的钳住**） | `build/evidence/r97_batt_recheck.txt`、`build/evidence/verify_0930_2215.txt` |
+
+一句必须说的：这一轮的**功耗与温度是两条独立来源**——工具估算 52.5 °C（低置信度）与板上 XADC 实测 63 ℃ 级并存，
+我们不拿一个去"验证"另一个；被追问时的答话是"工具低估、板上实测在此、且屏上那格与串口那行与 GPIO 那一位同源"。
+
+`#175` 为什么值得单独一行：`lane23.bit19` 原来是 `zoom_fit_en` 一个意思，r97 把它接成 **`fit_en | rot_forced`**，
+于是"倍率是被角度钳住的"这件事在**屏上、串口、回读口三处都能读**，
+并且板级判据现在能区分"恒 0（回读口根本没接）"与"恒 1（当成常亮旗）"两种糊法。
+
+（本节的门禁与冻结两行等 `build/r97b_gates.txt` 落地后补，见 §11.9 末尾与 `board/ACCEPTANCE.md` 的 r97 一节。）

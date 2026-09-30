@@ -45,6 +45,23 @@
 读 0）——今天的 `--stream` 是"干净停流交回"，不是 abort 注入，模块级凭据齐而板级这一格空着；
 ② #171 的**顶层**台架判据记为**未判**（守卫 `C11pre` 红，账 #187），要等下一次整屏。
 
+## r97 重跑的那几行（2026-09-30 19:52 构建、22:15 刷板、22:15–22:24 机器验收；位流 `ef03eea4886e`，xsa `a50188e5f789`，elf `d0b07f84a068` 未变）
+
+上表与 r96 那一节的原行**都不覆盖**（历史读数留着），这一节只记 r97 这一版重新建立起来的部分：
+
+| 行 | r97 的读数 | 凭据 |
+|---|---|---|
+| 1 | `RST_SYSTEM: ok` / `PS7_INIT: ok` / `PS7_POST_CONFIG: ok` / `DDR_ECHO: 10000000: 5A5AA5A5` → `PROGRAMMED xc7z020_1 <- D:/…/build/system.bit` → `DOW: ok / CON: ok / RESUME: ok / FLOW_DONE`（只走 JTAG，**没碰 QSPI**） | `build/r97_flash_1_psboot.txt`、`build/r97_flash_2_program.txt`、`build/r97_flash_3_app.txt` |
+| 2 | `RESULT PASS uart_cmd_check（105 条命令, 97.8 s）`，而且**第一次"初态=末态"是绿的**——它同时满足 #177 那条：末态 = 演示默认档 `zman=1 zsel=4 geom=00400000` | `build/evidence/r97_batt_recheck.txt` |
+| 3 | `RESULT PASS geom_check（ok=10 fail=0）`：新增的 `G5`（`bit19 == (生效倍率偏离 256)`，样本 4 违例 0）与 `G5b`（**4/4 真钳住**）都在里面；`G3x` 从"bit19 回 0"改成判同一枚不变量（命令表里**没有把角度归零的动词** ⇒ 旧写法是判一个到不了的状态，见 `#200`） | `build/evidence/verify_0930_2215.txt`（第一次跑出 2 条红的那一份）与随后的 `geom_check` 复跑 |
+| 4 | `#175` 这一格**从"读得到"升级为"能被判"**：屏上 `Zoom` 那格、串口 `[STAT]`、lane23 回读三处现在说的是同一件事；开机档位这一轮落在**文档默认档**（`zman=1 zsel=4`），所以 r96 那行"没有盖章"的口径可以推进到"默认档已盖章，呼吸/自动档另记" | 同上 + `build/board_temp_r97.txt` 里那两条 `[STAT]` |
+| 7 | `V9-6 温度格三方对账：4 条 [TEMP] 的 degC↔osd↔gpio 全部自洽`；**并第一次把板读值抄进交付件**：`degC=63.38 / 63.17 / 63.13`（`raw 0xAAF2/0xAAD7/0xAAD2`、`vccint 997–998 mV`、屏上 `TEMP:63C`、`gpio=0x63`） | `build/board_temp_r97.txt`、`data/metrics.csv`（新增"片上结温（板读 XADC）"那一行） |
+| 9 | 全设计 setup WNS **0.720 ns**、hold WHS **0.033 ns**（含自加的 0.8 ns 不确定度）、失败端点 **0 / 50890**、脉冲 WPWS 0.264 / 0 / 12526；资源 **14379 LUT / 8079 FF / 95 tile / 19 DSP** | `build/timing_summary.rpt`、`build/utilization.rpt` |
+
+**r97 这一版还欠的格，明写着不打勾**：①`#170`/`#171` 的**板级 abort 注入**（拷贝中途被看门狗打断之后撕裂帧不再显示）仍是模块级凭据齐、板级空着；
+②整屏台架的 `C11pre` 守卫——今天查出红因是**我的激励没把屏交给 ETH**（`eth_live/eth_tb_ok` 没钉，`pl_video_top.v:402/430`），修完之后**复跑在飞**，
+所以 r97 的门禁与冻结两行等那一份报告落地再补；③要肉眼与要手的三格（见下一节）仍归用户签。
+
 ## 要肉眼确认的（机器判不了，所以先空着）
 
 | # | 看什么 | 怎么起 | 结果（谁点的头、什么时候） | 看不到时先看哪一格 |
