@@ -7928,3 +7928,53 @@ LUT **14379（27.03 %）** / FF **8079** / BRAM 95 tile（67.86 %）/ DSP 19、�
   窗口级依赖行连续性、15 拍无自校验、图卡蓝通道隐式假设 `V_ACTIVE ≤ 447`；
   与位置那一族的三条同形（`zoom_fit` 的 10 位截断、末行越界读靠折回、`blank` 不覆盖 bilin），
   所以这是一个**模式**而不是六桩巧合：**凡是能算出来的界，都该变成一个台架能重算的数**。
+
+## 收包链这一族也扫了：一条**网络上就能敲出来的 DDR 越界写**（#201，2026-09-30 23:16，我自己逐行核过），另附六条待核候选
+
+方法同前两族：子代理按六种缺陷形状取 `file:line` 原文，我只把**自己重读过的**写成立案，其余明确标"未复核候选"。
+
+### #201（中—高，网络可达；未修）`byte_off` 大的包会在帧缓存**之外**写 DDR
+
+我核过的链路（每一行都自己打开过）：
+
+- `src/rtl/eth/frame_reasm.v:102,105-109`：`off` 是收来的 4 个字节拼出的 **32 位** `byte_off`，没有任何上界钳制；
+- `:123-125`：`wr_en<=1; wr_data<={p_data,pix_lo}; wr_addr<=off[18:1];` —— **这三行在 `:126` 那个 `if (off < FRAME_BYTES)` 之外**；
+  那个边界判断只管行覆盖统计（`row_ok`/`rows_hit`），越界的包另外记 `stat_oob_off`（`:131-132`），**但写照样发**；
+- `src/rtl/eth/eth_udp_video_top.v:239` 把 `wr_en/wr_addr/wr_data` 原样接到 `fb_wr_*`，`src/rtl/top/system_top.v:175-176,294-295` 再送进
+  `src/rtl/eth/axi_frame_saver64.v`；
+- `axi_frame_saver64.v:88` `in_widx = wr_addr[18:2]`、`:110` `q_addr[…] <= pack_base + {10'd0, cur_widx, 3'b000}` ——
+  我把整个文件 grep 过一遍，**没有任何对 `wr_addr` 的上界检查**（没有 `IMG_W/IMG_H/FRAME_BYTES/WORDS/bound/clamp` 任何一条）。
+
+算一下量级：`FRAME_BYTES = IMG_W*IMG_H*2 = 512*300*2 = 307200`（`eth_udp_video_top.v:235`），
+帧缓存本身是 153600 个 16 位像素 ⇒ `wr_addr` 是 19 位像素索引、最大 262143，
+而 `axi_frame_saver64` 把它乘成 8 字节字数加到 `pack_base` 上 ⇒ **越界范围最高约 1.7 倍缓冲区长度的偏移**，
+落点是 DDR 里帧缓存之后的地址。谁能往这个 UDP 口发包，谁就能选这个偏移。
+所以这条与 `#188`（畸形 ICMP 回复）不是一件事：`#188` 是**回复内容**可被敲，这一条是**写地址**可被敲。
+
+**修法方向（一行级，但要配尺子）**：把 `wr_en/wr_addr/wr_data` 那一组挪进 `off < FRAME_BYTES` 里面
+（或者在 `:109` 拼完 `off` 时就钳/丢，并保留 `stat_oob_off` 这个可见性）。
+判据形态：现有小台架 `sim/tb_fb_pingpong.v` 那一路不覆盖收包侧，需要一条"发一个声明 `byte_off ≥ FRAME_BYTES` 的包 ⇒
+`wr_en` 必须**没有**脉冲、`stat_oob_off` 必须 +1"的断言；改前必须红（今天的行为正是"写发了、统计也记了"）。
+排期：与 `#188`/`#141` 同一批（都在收包链上，一次重建、一次复跑）。
+
+### 六条**待我逐行复核**的候选（子代理取回的原文，我没重读 ⇒ 先不立案、不写进交付文档）
+
+1. `icmp_rx.v:188` `icmp_data_length <= total_length - 16'd28` 没有 `>= 28` 的判据，`:245/:261` 用 `length-1`、`length-2` 做等值比较
+   ⇒ 小包时比较目标回绕成 65535；`udp_rx.v:186` 同形。**形状可信、我自己没读那几行**。
+2. 收到的 ICMP/IP 头部校验和**在本仓任何地方都没被读过**（`icmp_rx.v:217-218` 只是锁存），且 `u_arp`/`u_icmp` 的输入是
+   **原始 `gmii_rxd`**（`eth_udp_video_top.v:131,144`）而不是 `u_rx_mac` 的 FCS 判定 ⇒ ARP 来源字段可能来自一帧 CRC 错的包。
+3. `udp_rx_parser.v:134` 的决定点落在 `bcnt == 14 + ihl*4`，而它读的 `b23`（`:137-138`）在 `ihl` 为 1..3 时**尚未在本帧被采集**，
+   且 `b23` 不按帧清零（只在 `:73` 复位）⇒ 可能用上一次的残留。
+4. `frame_reasm.v:155-159` 提交时复位 `cov/row_ok/rows_hit/bad_frame`，**不复位 `pend`**；`link_monitor.v:110-119` 的 `gapclr`
+   清 `gap_*`/`have_base` 但不清 `stall_ms`；`arp_rx.v:157-158` 的 `src_mac/src_ip` 从不清零。
+5. `icmp_tx.v:223/:225` 对同一个数组元素 `ip_head[1]` 的高/低半字分两处写（**位不重叠 ⇒ 不是 last-wins**，但 `:175` 的复位只覆盖 `[31:16]`
+   ⇒ 低半字没有复位值，与 #124"事件寄存器没进复位清单"同族）；`udp_tx.v:292-306` 有同形的两处"减一"，但它的 `tx_start_en` 被钉成 0。
+6. `icmp_tx.v:112` `total_num <= tx_byte_num + 28` 与 `:87` `real_tx_data_num = (tx_data_num >= 18) ? … : 18` 之间，
+   当 `tx_data_num < 18` 时 IP 长度字段与实际发出字节数不一致、补位字节不进 `reply_checksum`。
+
+- RGMII 那一路我特意让它查"有没有运行时能改延迟的口子"，结论**没有**：
+  `rgmii_rx.v:55-58/96-98` 是 `IDELAY_TYPE("FIXED")`，`:62-71/103-112` 把 `CE/INC/CNTVALUEIN/LD/CINVCTRL/REGRST` 全钉 0，
+  数值唯一来源是 `system_top.v:162` 的字面量 `26`（经 `eth_udp_video_top.v:73`→`gmii_to_rgmii.v:29`）⇒
+  **#57 那一次改的是常数，不是可调链路**；也没有 `set_input_delay`（只有 `rk_zynq7020.xdc:20/36/50`）。这与 r91/r92 的记账一致，读一遍更放心。
+- 台架/门禁状态（写这一节时）：整屏复跑仍在第①步（`run.log` 438 行、44 绿、1 红 = 已声明的 `C5c`），
+  `build/r97_closeout.sh` 在等它结束后自动出报告 → 门禁 → 试冻结。**#201 的修复不在今晚做**（链在飞，`src/rtl` 一个字都不动）。
