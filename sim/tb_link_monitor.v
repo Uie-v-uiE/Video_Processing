@@ -1,6 +1,6 @@
 `timescale 1ns/1ps
 // tb_link_monitor —— 例化 frame_reasm + link_monitor（测试时基一份，再用生产 CLK_HZ=125e6 例第二份只问 ms_tick）+ snap_cross，验链路健康自诊断**不误报平安**：丢字、断包、断流、帧间隔、心跳，每一条都要看得见。
-// 判据索引：A 反例（挡住 CDC 写口 ⇒ drop_words 必须非 0；没有 full 时必须恒 0，否则这数字是噪声）· B/B2/B3（两帧正常提交；发布与统计寄存器**分家**判——B2 红=算术坏了、B 红 B2 绿=发布路径坏了，B2-mut 是它自己的反例；缺一个中间包 ⇒ frame_abort 恰好一次、rows_missed=1 并进快照 lane1/lane2；坏包那条上板恒 0 的路）· C 断流后快照必须继续刷新（否则 stall_ms 冻住，OSD 把"线被拔了"显示成"一切正常"）· D 第一个 frame_done 只建立基准，不许把"上电到现在"写进 min/max · E 长间隔饱和 0xFFFF 不许回卷 · F gapclr 只清帧间隔统计、别的计数不动 · snap_cross 不撕裂 + hb_slow（拔线时钟退化工况）+ hb_gone。每条期望值写在各字母段的判行上。
+// 判据索引：A 反例（挡住 CDC 写口 ⇒ drop_words 必须非 0；没有 full 时必须恒 0，否则这数字是噪声）· B/B2/B3（两帧正常提交；发布与统计寄存器**分家**判——B2 红=算术坏了、B 红 B2 绿=发布路径坏了，B2-mut 是它自己的反例；缺一个中间包 ⇒ frame_abort 恰好一次、rows_missed=1 并进快照 lane1/lane2；坏包那条上板恒 0 的路）· C 断流后快照必须继续刷新（否则 stall_ms 冻住，OSD 把"线被拔了"显示成"一切正常"）· D 第一个 frame_done 只建立基准，不许把"上电到现在"写进 min/max · E 长间隔饱和 0xFFFF 不许回卷 · F gapclr 只清帧间隔统计、别的计数不动 · **F2/F2e（#180）gapclr 是电平：举着跨帧边界（F2a–F2d，今天就是绿的，它是地板）与"放开那一拍正好压在记账那一拍"（F2e，用第三台 u_lm_syn 手摆出来，改前红）** · snap_cross 不撕裂 + hb_slow（拔线时钟退化工况）+ hb_gone。每条期望值写在各字母段的判行上。
 // 跑法：bash sim/run_one.sh tb_link_monitor
 module tb_link_monitor;
     localparam integer IMG_W = 8, IMG_H = 4, FRAME_BYTES = 64, PAY = 16;
@@ -40,6 +40,9 @@ module tb_link_monitor;
     // 修法是时基加宽 + 饱和 + 可清零，饱和由 E 段判、清零由 F 段判。
     reg        lm_gapclr = 0;
     wire cdc_wr_req = wr_en | flush;
+
+    // F2e 那一台的输入（声明放在这里：sy_frame 这个 task 在实例之前就要用它们）
+    reg         sy_rst = 0, sy_clr = 0, sy_done = 0;
 
     // ---- #124：参考计数器。判据要问的不是"drop_words 非 0"，而是"它数的次数对不对"。
     //      差别很要命：板上"零丢包"那句话说的是 `drop_words == 0`，而这个寄存器以前只被
@@ -121,6 +124,17 @@ module tb_link_monitor;
         end
     endtask
 
+    // F2e 那一台的手摆帧：frame_done 举一整拍（下一个 posedge 被 link_monitor 采到 = 记账拍），
+    // 之后再空 per-1 拍 ⇒ 两次记账拍之间正好差 per 拍（CLK_HZ=1000 ⇒ 一拍就是一"ms"）
+    task sy_frame;
+        input integer per;
+        begin
+            @(negedge clk); sy_done = 1;
+            @(negedge clk); sy_done = 0;
+            repeat (per - 1) @(negedge clk);
+        end
+    endtask
+
     // ---- 生产时基守门 ----
     // 为了跑得动把 CLK_HZ 改成 1000（一拍一 ms），这正好掩盖过一类致命错：ms_div 写死 16 bit 时装不下 125000、比较恒假
     // ⇒ 真实时钟下 ms_tick 永远不来，ms16/stall/gap/心跳在板上全死。故用**生产参数**再例化一份，只问 ms_tick 响过没有。
@@ -164,6 +178,31 @@ module tb_link_monitor;
         .bus(s_bus), .bus_tog(s_tog), .hb_tog(s_hb),
         .bus_q(d_bus), .hb_gone(d_gone), .hb_slow(d_slow)
     );
+
+    // ---- F2e 用的第三台：输入全部由台架逐拍手摆（不挂 frame_reasm）----
+    // 为什么要单独一台：#180 剩下那一种可达形状是"gapclr 放开的那一拍 == frame_done 被采的那一拍"，
+    // 拿真帧流去等这个对齐要靠抢沿（等不到就是看门狗超时，等到了也不知道是不是同一个沿）；
+    // 这一台把两个输入在同一个 negedge 一起举起 ⇒ 下一个 posedge 一定同时被采。
+    wire [LMW-1:0] sy_bus;
+    wire        sy_tog, sy_hb;
+    link_monitor #(.CLK_HZ(1000), .SETTLE(32), .LIVE_MS(16'd200)) u_lm_syn (
+        .clk(clk), .rst_n(sy_rst),
+        .cdc_wr_req(1'b0), .cdc_full(1'b0),
+        .frame_done(sy_done), .frame_abort(1'b0), .frame_err(1'b0),
+        .rows_missed(16'd0), .in_pkts(32'd0), .in_bytes(32'd0), .gapclr(sy_clr),
+        .lm_bus(sy_bus), .lm_bus_tog(sy_tog), .lm_hb(sy_hb)
+    );
+    wire [15:0] S_LAST = sy_bus[3*32 +: 16];
+    wire [15:0] S_MIN  = sy_bus[4*32 +: 16];
+    wire [15:0] S_MAX  = sy_bus[4*32+16 +: 16];
+    wire [31:0] S_SUM  = sy_bus[5*32 +: 32];
+    wire [4:0]  S_FLAG = sy_bus[7*32 +: 5];
+    // 每一次"记账拍"都打一行改前的寄存器现场：F2e 那条红必须能被读成机理，
+    // 而不是"某处数字对不上"。（这台实例只在 F2e 那一段被手摆，平时安静。）
+    always @(posedge clk) if (sy_rst && sy_done)
+        $display("PROBE sy-edge gapcnt=%0d clr=%b have_base=%b valid=%b min=%0d max=%0d sum=%0d",
+                 u_lm_syn.gap_cnt, sy_clr, u_lm_syn.have_base, u_lm_syn.gap_valid,
+                 u_lm_syn.gap_min, u_lm_syn.gap_max, u_lm_syn.gap_sum);
 
     // B2 的判据本体。写成 `reg + always @*` 而不是 `wire`：反例测试要在仿真期 force 一个假的 `gap_sum` 看它会不会变红，而 `wire` 表达式不随 force 重算 ⇒ 那种写法测不出"判据根本没看 sum"。
     reg b2_ok;
@@ -375,6 +414,109 @@ module tb_link_monitor;
             if (P_GAP_MAX === 16'd0) begin
                 $display("FAIL gap stats never re-calibrated after gapclr"); errors = errors + 1;
             end else $display("PASS interval stats re-calibrate after the clear");
+        end
+
+        // ============ F2 gapclr 举着**跨过整个帧边界**（今天这一支是绿的，它是地板）============
+        // 台账里原先写的症状是"清零被 frame_done 那一拍盖掉 ⇒ gap_min 永远钉在 0"。这一段就是照着
+        // 那句话写的尺子，跑出来**全绿**：清零块（:116）只要 gapclr 还举着就**每一拍重跑**，
+        // 帧边界那一拍即使被 :135 盖回去，下一拍又被清回来 ⇒ 从快照口看不出差别。
+        // 所以 F2a–F2d 留作**地板与对照**（改前后都必须绿；它们防的是"清零把手臂上的别的计数也清了"
+        // 和"间隔计从来就不动"这两种假象），真正的可达标本在下面的 F2e，用第三台手摆。
+        begin : clr_straddle
+            integer k2, mn_s, mx_s, mn_p, mx_p;
+            send_frame(-1, GAP); send_frame(-1, GAP);     // 先把统计立起来（E/F 之后本来就有数）
+            @(negedge clk); lm_gapclr = 1;                // 举住：PS 侧这是一段电平，不是一拍
+            for (k2 = 0; k2 < 3; k2 = k2 + 1) send_frame(-1, GAP);   // 举着期间过了三个帧边界
+            $display("PROBE F2 held over 3 frame edges: valid=%0b min=%0d max=%0d last=%0d sum=%0d have_base=%0b",
+                     P_FLAGS[4], P_GAP_MIN, P_GAP_MAX, P_GAP_LAST, P_GAP_SUM, u_lm.have_base);
+            if (P_FLAGS[4] !== 1'b0) begin
+                $display("FAIL F2a gapclr held across frame edges yet gap_valid still claims ready");
+                errors = errors + 1;
+            end else $display("PASS F2a the clear wins: stats stay not-ready while gapclr is held");
+            if (P_GAP_MIN !== 16'd0 || P_GAP_MAX !== 16'd0 || P_GAP_LAST !== 16'd0
+                || P_GAP_SUM !== 32'd0) begin
+                $display("FAIL F2b published lanes are not really cleared during the hold");
+                errors = errors + 1;
+            end else $display("PASS F2b lane3/4/5 all read zero while gapclr is held");
+            @(negedge clk); lm_gapclr = 0;                // 放开
+            send_frame(-1, GAP);                          // 第一帧只重建基准
+            send_frame(-1, GAP);                          // 第二帧起才量得到间隔
+            mn_s = P_GAP_MIN; mx_s = P_GAP_MAX;
+            $display("PROBE F2 after release: valid=%0b min=%0d max=%0d last=%0d sum=%0d",
+                     P_FLAGS[4], P_GAP_MIN, P_GAP_MAX, P_GAP_LAST, P_GAP_SUM);
+            if (mn_s < 16'd1 || mn_s > mx_s) begin
+                $display("FAIL F2c min=%0d max=%0d after a straddling clear (min pinned at 0 = #180)",
+                         mn_s, mx_s);
+                errors = errors + 1;
+            end else $display("PASS F2c a straddling clear re-calibrates min honestly");
+            // 反配对（正对照）：**同样的帧**，只是清零只举两拍、一次也不跨帧边界 ⇒ min 必须与 max 相等且非 0。
+            // 少了它，F2c 的绿可能只是"这台架的 min 从来就不动"；它同时是 F 段那条的对偶。
+            send_frame(-1, GAP);                          // 让 min/max 先有一次数（下面的清零才谈得上"清掉"）
+            @(negedge clk); lm_gapclr = 1;
+            repeat (2) @(posedge clk);                    // 两拍就放开：这一段里一个帧边界都不过
+            @(negedge clk); lm_gapclr = 0;
+            send_frame(-1, GAP);                          // 第一帧只重建基准
+            send_frame(-1, GAP);                          // 第二帧起才量得到间隔
+            mn_p = P_GAP_MIN; mx_p = P_GAP_MAX;
+            $display("PROBE F2d pulse clear: min=%0d max=%0d last=%0d sum=%0d valid=%0b",
+                     P_GAP_MIN, P_GAP_MAX, P_GAP_LAST, P_GAP_SUM, P_FLAGS[4]);
+            if (mn_p < 16'd1 || mn_p > mx_p) begin
+                $display("FAIL F2d a NON-straddling clear also broke min (=%0d max=%0d) —— 尺子坏了",
+                         mn_p, mx_p);
+                errors = errors + 1;
+            end else $display("PASS F2d control: a short clear leaves min=max=%0d (the meter itself works)", mn_p);
+        end
+
+        // ============ F2e（#180 的**真标本**）放开的这一拍正好压在记账那一拍上 ============
+        // 上面那一段跑出来是**绿的**，而它把我原先记进台账的那句"举着跨帧边界必然撞"**否掉了**：
+        // gapclr 只要还举着，:116 的清零块每一拍都重跑 ⇒ 帧边界那一拍即使被 :135 的 frame_done 支
+        // 盖回去（have_base、gap_min 又被写一次），下一拍就被清回来 ⇒ 从快照口看不出来。
+        // 还剩一种可达形状，而且是**永久的**：放开的时机与某个 frame_done 被采到的那一拍重合。
+        // 那一拍上 :116 写 `gap_sum<=0`、:140 写 `gap_sum <= gap_sum + gap_new`，**后写者赢** ⇒
+        // 清零没生效，lane5 里留着"这次清零之前"的历史 Σ；之后每帧只往上加 ⇒ 上位机那一句
+        // `均值 = lane5/(frames_ok-1)` 从此偏大，而且除了再按一次清零不会自己好。
+        // 可达性（两句都要说）：①bit26 是 PS 的电平（system_top.v:193 → eth_udp_video_top.v:280 三级同步），
+        // 而**今天的 main.c 里 ctrl_write() 整字写回、26 位恒 0** ⇒ 板上这一支今天走不到；
+        // ②即使固件按文档所说用它，也得"放开的这一拍正好压在一帧的记账拍上"（一帧 130 拍 ⇒ 约 1/130）。
+        // 所以这是一条**低severity但永久**的读数债，不是"必然错"。
+        // 用**第三个合成激励的实例**来判（u_lm_syn）：上面那台挂着真 frame_reasm 的帧流，
+        // "放开的那一拍正好是记账的那一拍"这种对齐要靠抢沿，抢不抢得到全看台架自己的相位；
+        // 这一台把 frame_done 与 gapclr 在**同一个 negedge** 一起举起来 ⇒ 下一个 posedge 两件事
+        // 一定同时被采 ⇒ 撞是构造出来的、不是等来的（上一版在这里等真 frame_done，等不到 ⇒ 看门狗超时）。
+        begin : syn_case
+            integer k3;
+            sy_rst = 0;
+            repeat (3) @(negedge clk);
+            sy_rst = 1;
+            // 先走 4 帧建立历史：第一帧只建基准 ⇒ Σ = 3×130 = 390
+            for (k3 = 0; k3 < 4; k3 = k3 + 1) sy_frame(130);
+            $display("PROBE F2 syn pre-history: last=%0d sum=%0d min=%0d max=%0d valid=%0b",
+                     S_LAST, S_SUM, S_MIN, S_MAX, S_FLAG[4]);
+            // A 对照：清零举三拍，这三拍里**一个帧边界都没有** ⇒ 两棵树都必须清干净
+            @(negedge clk); sy_clr = 1;
+            repeat (3) @(posedge clk);
+            @(negedge clk); sy_clr = 0;
+            repeat (127) @(negedge clk);              // 与下一帧拉开一个整周期（sy_frame 的第一拍是"举起"那一拍）
+            for (k3 = 0; k3 < 2; k3 = k3 + 1) sy_frame(130);
+            $display("PROBE F2e A non-straddling clear: last=%0d sum=%0d min=%0d max=%0d valid=%0b",
+                     S_LAST, S_SUM, S_MIN, S_MAX, S_FLAG[4]);
+            if (S_SUM > 32'd261) begin
+                $display("FAIL F2e A control is broken too: sum=%0d after a clean clear (ruler bug, not RTL)",
+                         S_SUM);
+                errors = errors + 1;
+            end else $display("PASS F2e A control: a clean clear leaves sum=%0d (<= 2 x 130)", S_SUM);
+            // B 相撞：清零与 frame_done 同一拍举起、下一拍一起放开 ⇒ 采到的那一拍两件都写 gap_sum
+            @(negedge clk); sy_clr = 1; sy_done = 1;      // 下一个 posedge：gapclr=1 且 frame_done=1
+            @(negedge clk); sy_clr = 0; sy_done = 0;
+            repeat (127) @(negedge clk);                  // 与下一帧拉开：不让"相距一拍"变成另一种标本
+            for (k3 = 0; k3 < 2; k3 = k3 + 1) sy_frame(130);
+            $display("PROBE F2e B released-on-accounting: last=%0d sum=%0d min=%0d max=%0d valid=%0b",
+                     S_LAST, S_SUM, S_MIN, S_MAX, S_FLAG[4]);
+            if (S_SUM > 32'd261) begin
+                $display("FAIL F2e B lane5 kept pre-clear history: sum=%0d > 2x130 (the clear lost the same-cycle race)",
+                         S_SUM);
+                errors = errors + 1;
+            end else $display("PASS F2e B a clear landing on the accounting edge still zeroes lane5");
         end
 
         // ============ D snap_cross：不撕烈 + 心跳超时 ============

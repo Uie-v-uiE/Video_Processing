@@ -1,0 +1,80 @@
+# r97 树（rtl_md5 未改，见下面 prov）上 #180 的**改前红**凭据：尺子 sim/tb_link_monitor.v 的 F2/F2e 段
+# 跑法：bash sim/run_one.sh tb_link_monitor   rc=3（3=判红）
+# 结论：F2a-F2d（gapclr 举着跨整个帧边界）**绿** ⇒ 台账里那句'必然撞'被这条尺子否掉；
+#       唯一永久的可达形状是 F2e：放开的这一拍正好压在记账拍上 ⇒ lane5(Σ间隔) 没被清零，均值从此偏大。
+# 可达性：bit26 今天的 main.c 从不写（ctrl_write 整字写回、26 位恒 0）⇒ 板上走不到；固件按文档用它时约 1/130 命中。
+
+=== prov（编译之前记的指纹）===
+top_md5=9d32e3019891
+tb_md5=09657f02862c
+rtl_md5=45e09e8b3b9d
+date=2026-09-30T20:04:49+08:00
+
+=== console ===
+PASS drop_words starts at 0
+PASS two complete frames commit
+PASS clean frames raise no abort
+PASS gap min=132 last=132 max=132 sum=132 ms
+PASS B2 statistics registers self-consistent (min=last=max=132 sum=132)
+PASS B2-mut forced gap_sum is caught（判据不是假绿）
+PASS stream_live set while flowing
+PASS published byte/pkt counters match reasm
+PASS lane packing has no width error
+PASS lost middle packet aborts the frame exactly once
+PASS rows_miss_max publishes the missing-row count
+PASS frames_bad reaches the snapshot
+PASS aborted frame is not committed
+PASS abort_seen latches
+PASS bad packet raises pkt_err (1)
+PASS negative control: no fifo_full, no drops
+PASS FALSIFIER: drop_words=31 after blocking the CDC port
+PASS cdc_episodes=1
+PASS E1 drop_words == 参考计数 (32)
+PASS E1 cdc_episodes == 参考计数 (1)
+PASS E2 单拍满事件计数一致 (drop=48)
+PASS E2 单拍进满边沿计数一致 (ep=68)
+PASS drop_seen flag latches
+PASS snapshot keeps refreshing while stalled
+PASS stall_ms=597 after 400 ms of silence
+PASS stream_live clears when the stream dies
+PASS a new frame clears stall_ms
+PASS a >65.5 s gap saturates at 0xFFFF instead of wrapping
+PASS gapclr zeroes the interval stats and re-baselines cleanly
+PASS gapclr leaves drop/bad/pkts/bytes alone
+PASS interval stats re-calibrate after the clear
+PROBE F2 held over 3 frame edges: valid=0 min=0 max=0 last=0 sum=0 have_base=0
+PASS F2a the clear wins: stats stay not-ready while gapclr is held
+PASS F2b lane3/4/5 all read zero while gapclr is held
+PROBE F2 after release: valid=1 min=132 max=132 last=132 sum=132
+PASS F2c a straddling clear re-calibrates min honestly
+PROBE F2d pulse clear: min=132 max=132 last=132 sum=132 valid=1
+PASS F2d control: a short clear leaves min=max=132 (the meter itself works)
+PROBE sy-edge gapcnt=0 clr=0 have_base=0 valid=0 min=0 max=0 sum=0
+PROBE sy-edge gapcnt=130 clr=0 have_base=1 valid=0 min=0 max=0 sum=0
+PROBE sy-edge gapcnt=130 clr=0 have_base=1 valid=1 min=130 max=130 sum=130
+PROBE sy-edge gapcnt=130 clr=0 have_base=1 valid=1 min=130 max=130 sum=260
+PROBE F2 syn pre-history: last=130 sum=390 min=130 max=130 valid=1
+PROBE sy-edge gapcnt=128 clr=0 have_base=0 valid=0 min=0 max=0 sum=0
+PROBE sy-edge gapcnt=130 clr=0 have_base=1 valid=0 min=0 max=0 sum=0
+PROBE F2e A non-straddling clear: last=130 sum=130 min=130 max=130 valid=1
+PASS F2e A control: a clean clear leaves sum=130 (<= 2 x 130)
+PROBE sy-edge gapcnt=130 clr=1 have_base=1 valid=1 min=130 max=130 sum=130
+PROBE sy-edge gapcnt=128 clr=0 have_base=1 valid=0 min=0 max=0 sum=260
+PROBE sy-edge gapcnt=130 clr=0 have_base=1 valid=1 min=128 max=128 sum=388
+PROBE F2e B released-on-accounting: last=130 sum=518 min=128 max=130 valid=1
+FAIL F2e B lane5 kept pre-clear history: sum=518 > 2x130 (the clear lost the same-cycle race)
+PASS snap_cross starts with hb_gone=1
+PASS snap_cross captured 100/100 intact snapshots
+PASS hb_slow clear while the heartbeat is at nominal rate
+[tb_link_monitor.v:357] PASS hb_slow asserts when the source clock is degraded (拔线工况)
+[tb_link_monitor.v:360] PASS hb_gone correctly stays clear (它看不见这件事，正是加 hb_slow 的理由)
+PASS hb_gone asserts when the source clock stops
+[tb_link_monitor.v:371] PASS the last snapshot survives the source clock dying (显示端仍能看到数字，比的是停钟前钉住的那 00000000639c0064)
+INFO pubs=330436 frames=19 aborts=3 drops=48 stall=65535
+PASS production timebase: 87 ms_ticks in 10906664 cycles (125000/ms)
+RESULT tb_link_monitor FAIL (1 errors)
+INFO: xsimkernel Simulation Memory Usage: 10584 KB (Peak: 10584 KB), Simulation CPU Usage: 15077 ms
+INFO: [Common 17-206] Exiting xsim at Wed Sep 30 20:05:12 2026...
+INFO: xsimkernel Simulation Memory Usage: 10584 KB (Peak: 10584 KB), Simulation CPU Usage: 15077 ms
+INFO: [Common 17-206] Exiting xsim at Wed Sep 30 20:05:12 2026...
+VERDICT tb_link_monitor: RESULT tb_link_monitor FAIL (1 errors) || FAIL 行数=1 || PASS 行数=41

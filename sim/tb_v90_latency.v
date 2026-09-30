@@ -5,6 +5,9 @@
 //   ② 配对：commit→start→done→显示帧起始走齐了才许出一次读数；顺序错、缺步、上一轮晚到的事件统统不许凑数（宁可 n_meas 不动）。
 //   ③ 不回绕：差值为负/绕了半圈时报 32'hFFFF_FFFF 并置 clamped（钳位），绝不报成一个很小的时延。④ max 只增不减，n_meas 如实数轮次。
 // ⚠ 台架自己也红过两次才修对（原因写在下面 ev()/ev_sof() 旁边）：**量具错了会把发现报成故障**。
+// T17/T18（#185/#186，2026-09-30 落尺）钉的是同一个形状的两半：**同一个 always 块里两个分支写同一个寄存器、
+// 后写者赢**（commit 与一轮收尾同拍 ⇒ 丢掉一整轮），以及**隔了 32 拍再直播读一次输入**（本轮的钳位账
+// 被后来的 commit 改写 ⇒ 该画 `--` 的轮次把 999 画上屏）。两条都是**改前红**，凭据 build/r97_185186_before.txt。
 module tb_v90_latency;
     reg clk = 0, rst_n = 0;
     always #5 clk = ~clk;                 // 100 MHz：一拍 10 ns，与 fclk0 同口径
@@ -50,6 +53,7 @@ module tb_v90_latency;
     integer errors = 0, t1, t2, t3, i, j, mx_keep;
     integer a1, a2, a3, bad, nchk;
     integer n_edge0, npair, nbadpair, nskip;                       // V8-5：T14 用的"翻转次数基线"
+    integer n_before;                                              // T17 用的"这一拍之前数到几轮"
     reg [31:0] big;                        // V8-5：force 拍号时用的临时值
 
     // 0 = 这组含钳位值、判不了；1 = 可信且恒等式成立；2 = 可信但恒等式破了
@@ -297,11 +301,67 @@ module tb_v90_latency;
         chk("T16c 也真的撞到过除法窗口（nskip>0 ⇒ pair_ok 那一位不是装饰）", nskip > 0);
         $display("T16 npair=%0d nskip=%0d nbad=%0d", npair, nskip, nbadpair);
 
+        // ==== T17（#185）：commit 与"一轮收尾"撞在同一个 axi 沿 ⇒ 新一轮不许被自己的清零盖掉 ====
+        // frame_latency.v 的 `if (commit)` 支（:103）写 have_commit=1，收尾支（:130）写 have_commit=0，
+        // 而收尾支写在后面 ⇒ 同拍时**后写者赢**：刚进来的 commit 被当成没来过。可见症状是整整丢一轮
+        //（n_meas 少 1，屏上那一格与 lane24 继续念上一轮的旧数，直到下一次 commit 才又动起来）。
+        // 撞拍不是硬造出来的极端：disp_edge 由三级同步链晚两拍产生，commit 来自 frame_commit_lock
+        //（#171 之后它是单拍脉冲），两条路都落在同一个 100 MHz 域 ⇒ 撞上只是概率问题。
+        wait_cyc(80);
+        ev(0); wait_cyc(300); ev(1); wait_cyc(300); ev(2);      // 先把 have_done 立起来
+        n_before = ncyc;
+        @(negedge clk); sof_tgl = ~sof_tgl;   // N1：同步链从这里开始数两拍 ⇒ 收尾沿落在第三个沿上
+        @(negedge clk); @(negedge clk);       // N2、N3（N3 在 P2 与 P3 之间）
+        commit = 1;                           // P3 = disp_edge 为真的那一拍：故意让 commit 也在这拍
+        @(negedge clk); commit = 0;
+        repeat (6) @(negedge clk);
+        $display("PROBE T17 collide: n_before=%0d n_now=%0d have_commit=%0b have_done=%0b t_commit=%0d",
+                 n_before, ncyc, dut.have_commit, dut.have_done, dut.t_commit);
+        chk("T17a collided commit keeps have_commit set for the new round", dut.have_commit === 1'b1);
+        chk("T17b the collision closed the OLD round once (n_meas +1)", ncyc === n_before + 1);
+        wait_cyc(200); ev(1); wait_cyc(200); ev(2); wait_cyc(200); ev_sof();
+        chk("T17c the collided round still yields its own reading (n_meas +2 total)",
+            ncyc === n_before + 2);
+        // 反配对（正对照）：同样的三轮，只是把显示帧起始错开一拍再打 ⇒ 必须照常出读数。
+        // 没有它，"T17c 少 1"就分不清是 RTL 丢了轮次还是台架的 n_meas 从来就不动。
+        n_before = ncyc;
+        ev(0); wait_cyc(300); ev(1); wait_cyc(300); ev(2); wait_cyc(300); ev_sof();
+        chk("T17d control: the same round without the collision counts (n_meas +1)",
+            ncyc === n_before + 1);
+        $display("PROBE T17d control: n=%0d tot=%0d c1=%0d", ncyc, tot, c1);
+
+        // ==== T18（#186）：lat_sticky 要记住"这一轮钳没钳"，不许在 32 拍之后再直播读一次 ====
+        // :177 `lat_sticky <= (tot_new === CLAMP)` 读的是**除法收尾那一拍**的 tot_new，
+        // 而 tot_new = diff(cyc, t_commit) 里的 t_commit 会被这一轮之后的新 commit 改写 ⇒
+        // 一轮明明被钳位（该画 `--`），收尾时算出来的却只是"这一拍到新 commit 的三十几拍"⇒ sticky=0，
+        // 而 lat_ms 那边照样饱和在 9999 ⇒ 屏上把 999 画上屏。同文件 :90-92 早就立过
+        // "lane24 不许取直播值"的口径，这一条是同一个口径没贯彻到的地方。
+        wait_cyc(80);
+        ev(0); wait_cyc(50); ev(1); wait_cyc(50); ev(2);
+        big = dut.cyc - 32'd1000;                 // 倒挂 ⇒ 这一轮的 diff 为负 ⇒ 收尾时被钳位
+        force dut.cyc = big;
+        @(negedge clk); sof_tgl = ~sof_tgl;       // N1
+        @(negedge clk); @(negedge clk);           // N2、N3 —— 收尾沿在 P3（同步链两拍）
+        @(negedge clk); commit = 1;               // N4 ⇒ P4：除法窗口**之内**的新 commit，改写 t_commit
+        @(negedge clk); commit = 0;
+        release dut.cyc;
+        wait_cyc(60);                             // 除法 32 拍跑完
+        $display("PROBE T18 clamp+mid-div commit: tot=%0d lms=%0d sticky=%0b valid=%0b n=%0d",
+                 tot, lms, lsticky, lvalid, ncyc);
+        chk("T18a a clamped round stays sticky even if a commit lands mid-division", lsticky === 1'b1);
+        chk("T18b the reading itself still saturates at 9999 ms", lms === 16'd9999);
+        // 反配对：下一轮干净 ⇒ sticky 必须回 0。它拦住的是"把 lat_sticky 直接接会话粘滞位 clamped"
+        // 这种修法——那样屏上会永远画 `--`，读数再也不可信（T15d 已经说过两位故意分开）。
+        ev(0); wait_cyc(300); ev(1); wait_cyc(300); ev(2); wait_cyc(300); ev_sof(); wait_cyc(60);
+        chk("T18c next clean round clears sticky (anti-cheat pair for T18a)",
+            lsticky === 1'b0 && lvalid === 1'b1);
+        $display("PROBE T18c clean round: lms=%0d sticky=%0b n=%0d", lms, lsticky, ncyc);
+
         $display("");
-        $display("[tb_v90_latency.v:328] 口径提醒：本模块量的是 PL 内部（commit 之后到该帧开始扫描），单位是 axi 拍数；");
-        $display("[tb_v90_latency.v:329] 上位机编码与网线传输不在内 ⇒ 对外只能说「链路内时延（PL 侧）」，");
-        $display("[tb_v90_latency.v:330] 且第三段（等扫描）的分辨率是一个显示帧 ⇒ 报数必须带 ±1 帧。");
-        $display("[tb_v90_latency.v:331] 换算成时间戳在 src/host/health_read.mjs 里做（1 拍 = 10 ns，一个常量）。");
+        $display("[tb_v90_latency.v:361] 口径提醒：本模块量的是 PL 内部（commit 之后到该帧开始扫描），单位是 axi 拍数；");
+        $display("[tb_v90_latency.v:362] 上位机编码与网线传输不在内 ⇒ 对外只能说「链路内时延（PL 侧）」，");
+        $display("[tb_v90_latency.v:363] 且第三段（等扫描）的分辨率是一个显示帧 ⇒ 报数必须带 ±1 帧。");
+        $display("[tb_v90_latency.v:364] 换算成时间戳在 src/host/health_read.mjs 里做（1 拍 = 10 ns，一个常量）。");
         $display("");
         if (errors == 0) $display("PASS tb_v90_latency");
         else             $display("FAIL tb_v90_latency errors=%0d", errors);

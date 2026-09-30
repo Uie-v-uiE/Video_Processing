@@ -17,6 +17,12 @@ if [ "$TB" = "--verdict" ]; then
     [ -f "$LOG" ] || { echo "CE-FATAL 读不到 $LOG"; exit 2; }
     V=$(grep -a "RESULT $TB" "$LOG" | tail -1)
     [ -n "$V" ] || V=$(grep -aE "^(PASS|FAIL) $TB( ALL)?$" "$LOG" | tail -1)
+    # 第二种收尾**带字段**的那一支（#104 尾账，2026-09-30）：只有 **FAIL** 会带字段
+    #（`FAIL tb_v90_latency errors=3`、超时那一支 `FAIL <tb> timeout`），PASS 一律顶格无后缀 ⇒
+    # 放宽只给 FAIL、且必须紧跟 errors= / timeout 这两个词。为什么不一视同仁地放宽：
+    # 判据行里有 `  PASS tb_x c1` 这种"名字紧跟着别的东西"的形状，放宽到任意后缀会把**一条判据**
+    # 当成本台架的判定（#163 那一课：兜底不许变成"谁都能冒充"）。
+    [ -n "$V" ] || V=$(grep -aE "^FAIL $TB (errors=|timeout)" "$LOG" | tail -1)
     # 第三种形状是 `TB RESULT PASS|FAIL`（tb_v94 那一族，判定行里**没有台架名**）。
     # ⚠ 必须限定"这份日志里出现过本台架的名字"才认它：不加这个限定条件时，一份别人的过期日志
     #   能直接替这支台架答复"通过"（#163 那天我第一次补兜底就犯了这个，比原洞更坏）。

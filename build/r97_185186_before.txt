@@ -1,0 +1,30 @@
+# r97 树（rtl_md5 见下面 prov）上的**改前红**凭据：#185 / #186 两把尺子（T17/T18）
+# 跑法：bash sim/run_one.sh tb_v90_latency   rc=3（3=判红，正是期望的形状）
+# 树指纹（编译之前记的，prov.txt）：
+top_md5=9d32e3019891
+tb_md5=1687895aa708
+rtl_md5=45e09e8b3b9d
+date=2026-09-30T19:51:07+08:00
+
+=== console ===
+PROBE T17 collide: n_before=59 n_now=60 have_commit=0 have_done=0 t_commit=200134815
+  FAIL T17a collided commit keeps have_commit set for the new round
+  FAIL T17c the collided round still yields its own reading (n_meas +2 total)
+PROBE T17d control: n=61 tot=908 c1=302
+PROBE T18 clamp+mid-div commit: tot=4294967295 lms=9999 sticky=0 valid=1 n=62
+  FAIL T18a a clamped round stays sticky even if a commit lands mid-division
+PROBE T18c clean round: lms=0 sticky=0 n=63
+FAIL tb_v90_latency errors=3
+INFO: [Common 17-206] Exiting xsim at Wed Sep 30 19:51:16 2026...
+exit
+INFO: [Common 17-206] Exiting xsim at Wed Sep 30 19:51:16 2026...
+VERDICT tb_v90_latency: FAIL tb_v90_latency errors=3 || FAIL 行数=4 || PASS 行数=0
+
+=== run.log 里 T17/T18 那几条 PROBE（逐轮一行的证据）===
+PROBE T17 collide: n_before=59 n_now=60 have_commit=0 have_done=0 t_commit=200134815
+  FAIL T17a collided commit keeps have_commit set for the new round
+  FAIL T17c the collided round still yields its own reading (n_meas +2 total)
+PROBE T17d control: n=61 tot=908 c1=302
+PROBE T18 clamp+mid-div commit: tot=4294967295 lms=9999 sticky=0 valid=1 n=62
+  FAIL T18a a clamped round stays sticky even if a commit lands mid-division
+PROBE T18c clean round: lms=0 sticky=0 n=63
