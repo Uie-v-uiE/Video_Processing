@@ -108,6 +108,40 @@ const inv_exp_of = (i) => Math.min(1023, Math.round(25600 / ZOOM_X100[i]));
 const near_of = (inv) => ZOOM_X100.map((_, i) => i)
   .reduce((best, i) => (Math.abs(inv - inv_exp_of(i)) < Math.abs(inv - inv_exp_of(best)) ? i : best), 0);
 
+// **判决只写一遍**（r97，#175 的第二半）：JSON 那一支与人读那一支以前各抄了一份期望值算法，
+// 于是"拟合/角度钳"这一支只在 JSON 里生效 —— 屏幕上人读到的还是那句"不一致（inv 红）"，
+// 而同一个工具的两种输出互相打脸（这是"第二手副本"那一族：新增权威实现时旧的那份必须变成指针）。
+// bit19 从 r97 起是 `zoom_fit_en | rot_forced`（RTL：pl_video_top.v 的 dbg_zoom + zoom_snap 的第 20 位）
+// ⇒ 只要这一位是 1，倍率就是**角度**定的，不等于档号是应当的，不能判红。
+function zoomJudge(z) {
+  if (z.zoom_fit) {
+    // 拟合或角度钳：既不该等于档号，也不该被当成"呼吸中随机游走"。
+    // 这里能负责的是三件：量程对、屏上那一格与真值同档、并且它**不会**小于 1.0x
+    //（拟合只会缩小去装旋转后的外框，永远不会放大到画外）。
+    return {
+      rule: 'fit_or_clamp',
+      inv_expected: null,
+      inv_ok: (z.inv_scale >= 256 && z.inv_scale <= 1023),
+      code_ok: (z.zcode === near_of(z.inv_scale)),
+    };
+  }
+  if (z.zman) {
+    const e = inv_exp_of(z.zsel);
+    return {
+      rule: 'manual_tier',
+      inv_expected: e,
+      inv_ok: (z.inv_scale === e),
+      code_ok: (z.zcode === z.zsel),
+    };
+  }
+  return {
+    rule: 'breathing',
+    inv_expected: null,
+    inv_ok: (z.inv_scale >= 128 && z.inv_scale <= 1023),
+    code_ok: (z.zcode === near_of(z.inv_scale)),
+  };
+}
+
 // ---- --selfcheck：译码器自己的判据，不碰板子 ----// 三条：① 逐位独热走查（每个 bit 只许动它该动的字段，硬件里恒 0 的 bit7/bit11..15 一个都不许动）；
 // ② 八个 why 组合对**手抄的语义表**（不从 decode 反推，抄过来就等于自证）；
 // ③ 反向对照：把 why 整体错移一位后必须被 ① 抓到 —— 抓不到就说明这条判据是假的。
@@ -189,6 +223,26 @@ if (get('selfcheck', false) === true) {
   //     也是 lane23 判据里唯一一条**不能靠放松解决**的：式子给 1024，硬件只能到 1023。
   say('S5b 0.25x 的期望被 10 bit 天花板夹住（=1023，不是 1024）',
       inv_exp_of(0) === 1023 && Math.round(25600 / ZOOM_X100[0]) === 1024);
+  // S5c/S5d/S5e/S5f（r97 补，#175 的第二半）：判据**只许 zoomJudge 一处实现**之后，
+  //   这一支自己的四条必须成对 —— 少了反配对，"放松"就成了"永远不判红"。
+  //   板级那一份活标本：旋转钳生效时 zsel=4（手动 1.00x）而 inv=472（屏上 0.50x），
+  //   RTL 从 r97 起把 bit19 报成 `zoom_fit_en | rot_forced` ⇒ 同一个数字，bit19 决定该不该判红。
+  const zc = (o) => zoomJudge({ zoom_fit: 0, zman: 0, zsel: 0, zcode: 0, zoom_active: 0,
+                                zoom_dir: 0, inv_scale: 256, alive: 1, ...o });
+  const s5c = zc({ zoom_fit: 1, zman: 1, zsel: 4, zcode: 2, inv_scale: 472 });
+  say('S5c bit19=1（拟合/角度钳）+ 手动档 4 + inv=472 ⇒ 走 fit_or_clamp 且量程/同档都过（板级那格因此不再假红）',
+      s5c.rule === 'fit_or_clamp' && s5c.inv_ok && s5c.code_ok);
+  const s5d = zc({ zoom_fit: 0, zman: 1, zsel: 4, zcode: 4, inv_scale: 472 });
+  say('S5d 反配对：**同一组数字** bit19=0 ⇒ inv 必须判红（放松是 keyed 在这一位上的，不是永远放松）',
+      s5d.rule === 'manual_tier' && !s5d.inv_ok && s5d.inv_expected === 256);
+  const s5e = zc({ zoom_fit: 0, zman: 1, zsel: 4, zcode: 4, inv_scale: 256 });
+  say('S5e 手动档 4 且 inv 正好 256 ⇒ OK（S5d 的红不是"手动档永远红"）',
+      s5e.rule === 'manual_tier' && s5e.inv_ok && s5e.code_ok);
+  const s5f1 = zc({ zoom_fit: 0, zman: 0, zcode: 2, inv_scale: 472 });
+  const s5f2 = zc({ zoom_fit: 0, zman: 0, zcode: 2, inv_scale: 2000 });
+  const s5f3 = zc({ zoom_fit: 0, zman: 0, zcode: 4, inv_scale: 472 });   // 屏上档与 inv 不同档
+  say('S5f 呼吸中（zman=0）：量程内且同档判 OK、越界（inv=2000）与送错档（zcode=4）各自判红 —— 这一支也不是一条永绿',
+      s5f1.rule === 'breathing' && s5f1.inv_ok && s5f1.code_ok && !s5f2.inv_ok && !s5f3.code_ok);
   console.log(`${n_bad === 0 ? 'PASS' : 'FAIL'} health_read --selfcheck pass=${n_ok} fail=${n_bad}`);
   process.exit(n_bad === 0 ? 0 : 1);
 }
@@ -325,22 +379,7 @@ if (get('json', false) === true) {
       if (w === 0xDEADBEEF) return { raw: w, verdict: 'NO_LANE' };   // 老位流上没有这一口
       const out = { raw: w, ...z, x100_actual: z.alive ? +(25600 / z.inv_scale).toFixed(1) : null };
       if (!z.alive) { out.verdict = 'STALE'; return out; }
-      if (z.zoom_fit) {
-        // V9-2 拟合：倍率由角度定 ⇒ 既不该等于档号，也不该被当成"呼吸中随机游走"。
-        // 这里能负责的是三件：量程对、屏上那一格与真值同档、并且它**不会**小于 1.0x
-        //（拟合只会缩小去装旋转后的外框，永远不会放大到画外）。
-        out.inv_expected = null;
-        out.inv_ok = (z.inv_scale >= 256 && z.inv_scale <= 1023);
-        out.code_ok = (z.zcode === near_of(z.inv_scale));
-      } else if (z.zman) {
-        out.inv_expected = inv_exp_of(z.zsel);
-        out.inv_ok = (z.inv_scale === out.inv_expected);
-        out.code_ok = (z.zcode === z.zsel);
-      } else {
-        out.inv_expected = null;          // 呼吸中：期望值每帧都在变，只对量程负责
-        out.inv_ok = (z.inv_scale >= 128 && z.inv_scale <= 1023);
-        out.code_ok = (z.zcode === near_of(z.inv_scale));
-      }
+      Object.assign(out, zoomJudge(z));   // 期望值只有 zoomJudge 这一处实现（r97，#175 的第二半）
       out.verdict = (out.inv_ok && out.code_ok) ? 'OK' : 'MISMATCH';
       return out;
     })(),
@@ -506,14 +545,18 @@ console.log('');
   else if (!z.alive)
     console.log(`缩放：lane23=0x${(w >>> 0).toString(16).padStart(8, '0')} 像素时基 200 ms 没心跳 ⇒ 这一组是旧值，不下结论（不是通过）`);
   else {
-    const e = z.zman ? inv_exp_of(z.zsel) : null;
-    const invOk = z.zman ? (z.inv_scale === e) : (z.inv_scale >= 128 && z.inv_scale <= 1023);
-    const codeOk = z.zman ? (z.zcode === z.zsel) : (z.zcode === near_of(z.inv_scale));
+    // 期望值与 JSON 那一支**共用 zoomJudge**（r97，#175 的第二半）：以前这里自己抄了一份
+    // "zman 就必须等于档号"的算法，漏掉了拟合/角度钳那一支 ⇒ 同一个工具对人念 MISMATCH、
+    // 对 --json 报 OK，而屏上那一格其实与 inv 自洽（红的是没坏的那条链）。
+    const jd = zoomJudge(z);
+    const RULE_TXT = { fit_or_clamp: ' 拟合/角度钳：倍率由角度定，只卡量程与同档',
+                       manual_tier: null,
+                       breathing: ' 呼吸中，只卡量程' };
     console.log(`  23  0x${(w >>> 0).toString(16).padStart(8, '0')}  缩放：实际 ${(256 / z.inv_scale).toFixed(3)}x` +
-      `（inv=${z.inv_scale}${z.zman ? ` 期望 ${e}` : ' 呼吸中，只卡量程'}）屏上画 ${(ZOOM_X100[z.zcode] / 100).toFixed(2)}x` +
-      ` 档${z.zsel}${z.zsel === z.zcode ? '=' : '≠'}屏${z.zcode} zman=${z.zman} active=${z.zoom_active} dir=${z.zoom_dir}`);
-    console.log('  ⇒ ' + (invOk && codeOk ? '链路末端与屏上同一档 ok'
-      : `不一致（inv ${invOk ? 'ok' : '红'} / 屏上档 ${codeOk ? 'ok' : '红'}）—— 屏上那个倍率不许写进报告`));
+      `（inv=${z.inv_scale}${jd.inv_expected === null ? RULE_TXT.fit_or_clamp && RULE_TXT[jd.rule] : ` 期望 ${jd.inv_expected}`}）屏上画 ${(ZOOM_X100[z.zcode] / 100).toFixed(2)}x` +
+      ` 档${z.zsel}${z.zsel === z.zcode ? '=' : '≠'}屏${z.zcode} zman=${z.zman} active=${z.zoom_active} dir=${z.zoom_dir} fit或钳(bit19)=${z.zoom_fit}`);
+    console.log('  ⇒ ' + (jd.inv_ok && jd.code_ok ? `链路末端与屏上同一档 ok（按 ${jd.rule} 那一支判）`
+      : `不一致（inv ${jd.inv_ok ? 'ok' : '红'} / 屏上档 ${jd.code_ok ? 'ok' : '红'}，按 ${jd.rule} 那一支判）—— 屏上那个倍率不许写进报告`));
   }
 }
 console.log('');

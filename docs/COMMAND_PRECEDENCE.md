@@ -367,7 +367,7 @@ gamma 是链子的第 0 级（`proc_pipeline.v:92-96`，`en=0` 时逐位旁路�
 |---|---|---|
 | 此刻倍率是多少 | 屏上 `Zoom:` 那五位档位（由 `inv_used` 分区得到） | `zoom_ctrl.v:52-67`、`osd_overlay.v:141-155` |
 | 此刻倍率是哪一路给的 | 屏上后缀：`(Fit)` = 角度定的，`(Auto)` = 呼吸在跑，**无后缀** = 手动档**或** `zoom off`（合成式要求 `zoom_run`） | `osd_overlay.v:291-292`；三个旗标的合成 `pl_video_top.v:955-956` |
-| 同上，但不看屏 | lane23 的 `zoom_fit`（bit19）与 `[9:0]`（`inv_used`） | `pl_video_top.v:627-633`；译码 `src/host/health_read.mjs:91-96` |
+| 同上，但不看屏 | lane23 的 `zoom_fit`（bit19，**r97 起念作"请求拟合 或 被旋转钳住"**）与 `[9:0]`（`inv_used`） | 位序唯一出处 `pl_video_top.v:653-662`；译码 `src/host/health_read.mjs:86-98`，**期望值只有一处实现** `:116`（`zoomJudge`，人读那一支与 `--json` 共用它，r97 #175 的第二半） |
 | 请求侧写了什么 | `stat` 的 `zsel=`/`zman=`、`zoom=`；`rot show` 的 `zoom=fit/now` | `main.c:1334-1338`、`990-993` |
 | 屏上此刻是哪一路 | 屏上 `SRC:` 的名字（`{fb_vis, owner_eth}`），尾部 `*` 才表示"被钉住" | `pl_video_top.v:959`、`osd_overlay.v:244-248` |
 | 为什么归这一路 | lane30：`owner_eth`/`eth_live`/`eth_tb_ok`/`why_ps` | `pl_video_top.v:553`、`src_arb.v:35-39`、`62`；译码 `health_read.mjs:70-78` |
