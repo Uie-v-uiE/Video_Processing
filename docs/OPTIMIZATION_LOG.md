@@ -792,7 +792,7 @@ ZOOM 那格是否标 `(Fit)`、旋转态斜边锯齿与 `rot 0` 相比）**待�
 `ROUND=r90` ⇒ 今天这一跑的内容被写成了一份**名字叫 r90、stamp 是 r94** 的件（比"没留件"更坏：那是一条假凭据），
 而门禁按 `sort -V | tail -1` 取到的是 r92 那份 ⇒ 念"报告与树不同源"。红得对，但说的是我的链，不是设计。
 已补 r94 那份件（`ROUND=r94 bash build/rim_report.sh`，md5 取自那一跑自己留下的 `prov.txt`，不是事后重算），
-名字冒充 r90 的那份与 r94 **逐字节相同**（`cmp`），且它在今天之前从未进过 git（`git log -- build/tb_edge_rim_r90.txt` 为空），
+名字冒充 r90 的那份与 r94 **逐字节相同**（`cmp`），且它在今天之前从未进过 git（对该文件名的 `git log` 是空的），
 本轮的 ISSUES **#179** 也记着"r90 那份 rim 报告原本不在盘上"这件事，
 ⇒ 挪出盘留档；链脚本改三处：不给 `ROUND` 就拒绝开跑、第②步把 `ROUND` 传下去、第②步末尾断言
 `tb_edge_rim_${ROUND}.txt` 存在且 `rtl_md5` 等于当前树，否则 `CHAIN_MISSING_ARTIFACT` 退出非零（ISSUES **#179**）。
