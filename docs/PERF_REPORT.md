@@ -414,3 +414,19 @@ PS CPU：主循环仅 `uart_poll`，不参与视频搬移。
 | 改动本体 | — | `zoom_mapper.v`（#104 旋转支小数位）、`zoom_ctrl.v`+`pl_video_top.v`（#93 旋转态钳进 fit，新端口 `rotate_en`/`rot_forced`）、`eth_udp_video_top.v`（#158 显式传 `FRAME_BYTES`） | 三处都不在关键锥的设计意图里；实测它们**没有把 WNS 拖下去**，仅此而已 |
 | 功能 | `tb_v98` 138 行判据、1 红（`C5c`/#98）；100 条电池全绿 | 快尺子先落地：`tb_zoom_frac`（改前 FAIL 行数=298，计数在同一文件 VERDICT 行 → 改后 128 次逐像素比较 0 失配）、`tb_v94_zoom_sel` T8a~T8f（变异对照恰好红 3 条）、`tb_v100_fit_rot` checks=373 errors=0、`tb_zoom_mapper` PASS；板上 100 条电池全绿（`build/r94_batt.txt`，93.1 s） | 整屏 `tb_v98` 与 `tb_edge_rim` **正在按新树重跑**（`build/r94_bench_chain.log`）；门禁报告落 `build/r94_gates.txt` —— **这一行没落之前，r94 不写"门禁绿"** |
 | 资源 / 功耗 | 95 tile / 14351 LUT / 8075 FF / 19 DSP；2.204 W、52.5 °C | 95 tile（67.86 %）/ **14374**（27.02 %）/ **8074** / 19；**2.206 W**、52.5 °C（估算，置信度 Low） | LUT +23 / FF −1 是这一轮算术改动的净结果；功耗与结温按同一套估算前提，**不宣称省电** |
+
+### 11.7 r95（2026-09-30 13:2x–14:2x，隔离构建 `build/isolated_r95_postroute_physopt/`，正式件**未动**）：把"时序还能不能更好"问到工具自己说它跳过
+
+这一节的对象不是"某一版比某一版好"，而是**剩下那一档优化到底会不会干活**。门槛在任何一滚开跑之前就写死了
+（`build/r95_timing_summary.txt` 头部那一戳：WNS ≥ +0.65、WHS ≥ +0.15、失败端点 0、BRAM ≤ 95 tile）。
+
+| 档 | 实测 | 判定 | 为什么这样念 |
+|---|---|---|---|
+| 布线后物理综合（`IMPL_PRPO=1` ⇒ `phys_opt_design -directive AggressiveExplore`） | WNS +0.553 / WHS +0.049 / 失败端点 0 / 50883 / BRAM 95 —— 与 r94 基线**逐位相同** | **量过并否决**，理由是工具自己的规则 | 日志（`build/isolated_r95_postroute_physopt/build_console.txt:2568` 起）写得很直白：`Physical synthesis in post route mode` 之后是 `WNS >= 0.000 ns ⇒ All physical synthesis setup optimizations will be skipped`、`WHS >= 0.000 ns ⇒ Hold fix optimization will be skipped`、`No setup violation found. The netlist was not modified.` ⇒ **这一档在一个没有违例的设计上是结构性空转**，不是"这次运气没轮到它"。所以"还要不要再滚 post-route phys_opt"这个问题到这里可以关掉 |
+| `Performance_ExploreWithHierarchy` | 没有数 | **NOT_MEASURED**（不是"否决"） | 这一档不在这颗器件的流里：工具在 `set_property` 那一步就拒（`BUILD_STRATEGY_REJECTED`）。把"没数"写成"否决"就是让缺证据长得像结论（与 #163/#164 同族） |
+| `Performance_NetDelay_high` / `Performance_WLBlockPlacementFanoutOpt` | **还没量** | 已排队 | 第一拨 r95b 因我自己的脚本 bug 没跑成（`ROLLS` 注释写"逗号分隔"而解析按空白切 ⇒ 两滚并成一滚、策略名被拼长，见 `build/isolated_r95b_netdelay_high/build_console.txt` 结尾）；脚本已修（分号 + `R95_SUM`/`R95_LOG` 可覆盖），并按本仓那条 REFUSE 排在整屏台架之后 —— CPU 抢用会让台架与构建两边都判不准 |
+
+**这两档为什么正对靶子**：§4 量到全设计 WNS 由两条**布线主导**（route 占 60~67 %）的路径轮流决定，其中 `eth_rxc`
+那条的高扇出网络是 fo=96 / 17 —— 按互连延迟驱动布局、以及按线长+高扇出做块放置，是剩下仅有的两个物理 lever。
+按规矩 **#35**，这里所有绝对值 delta 既不记收益也不记损失；本节能主张的只有上面那三行"工具说了什么"。
+

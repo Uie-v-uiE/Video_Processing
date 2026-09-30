@@ -779,3 +779,37 @@ ZOOM 那格是否标 `(Fit)`、旋转态斜边锯齿与 `rot 0` 相比）**待�
 
 **还欠的**：`tb_v98` 整屏 + `tb_edge_rim` 正在按新树重跑（`build/r94_bench_chain.log`），门禁报告等它结束后落在
 `build/r94_gates.txt`；那一行落上来之前，这一版**不写"门禁绿"**。Pblock / 疏解绕线（§二.1 欠的物理那一侧）这一轮没动。
+
+## r95（2026-09-30 13:2x–14:2x，隔离构建 `build/isolated_r95_postroute_physopt/`）：把"时序还能不能更好"问到**工具自己说它不干活**为止
+
+门槛写在任何一滚开跑**之前**（`build/r95_timing_summary.txt` 头部，13:27:55 那一戳）：
+WNS ≥ +0.65、WHS ≥ +0.15、失败 setup/hold 端点 = 0、BRAM ≤ 95 tile；任一条不满足就写"量过并否决"。
+基线是 r94 板上那一版：`baseline_r94 WNS=0.553 WHS=0.049 endpoints=50883 bit=a1465f29c9e4`。
+
+- **A 滚（布线后物理综合，`IMPL_PRPO=1` ⇒ `AggressiveExplore`）：跑是真的跑了，而它的日志本身就是结论。**
+  `build/isolated_r95_postroute_physopt/build_console.txt:2568` 起那几行写得很清楚：
+  `Command: phys_opt_design -directive AggressiveExplore` / `Physical synthesis in post route mode` /
+  `Estimated Timing Summary | WNS= 0.553 | TNS= 0.000 | WHS= 0.049 |` /
+  `Design worst setup slack (WNS) is greater than or equal to 0.000 ns. All physical synthesis setup optimizations will be skipped.` /
+  `Design worst hold slack (WHS) is greater than or equal to 0.000 ns. Hold fix optimization will be skipped.` /
+  `No setup violation found. The netlist was not modified.`
+  ⇒ 这一滚的数（WNS 0.553 / WHS 0.049 / 0 / 50883 / BRAM 95）与基线**逐位相同**，原因不是"这一档没用"，
+  也不是我读错了尺子：**它在一个没有违例的设计上是结构性空转** —— 工具按自己的规则跳过全部优化、不改网表。
+  所以"布线后物理综合"这一档**永远不会**给已过时的本版带来收益；要再收 slack，只剩"改物理（布局布线策略/努力）"
+  或"改 RTL 那条最差路径"两条路，前者见下面 C，后者是 r90/r91 已经量过并否决的那本账。判定记 **DECLINED（结构性空转，凭工具自己那三行）**。
+- **B 滚（`Performance_ExploreWithHierarchy`）：NOT_MEASURED，不是"否决"。** 这一档不在这颗器件的流里
+  （`list_property_value strategy` 里没有它，工具在 `set_property` 那一步就拒 ⇒ `BUILD_STRATEGY_REJECTED`）。
+  把"读不到报告"写成 DECLINE 就是让"没数"长得像"结论"（#163/#164 同一族），所以退出码 2 单独念成 NOT_MEASURED。
+- **C（r95b 第一拨，14:1x–14:2x）：这一拨根本没量到，原因在我自己的脚本。**
+  `build/r95_timing_round.sh` 里 `ROLLS` 的注释写的是"逗号分隔"，而解析用的是 `for spec in ${ROLLS:-…}` ——
+  bash 只按**空白**切词 ⇒ 两滚并成一滚、策略名被拼成
+  `Performance_NetDelay_high,r95b_wlfanout=IMPL_STRATEGY=Performance_WLBlockPlacementFanoutOpt`，
+  工具照例拒绝（尸检：`build/isolated_r95b_netdelay_high/build_console.txt` 最后几行）。
+  已修两件事：① 分隔符改成**分号**（`while IFS= read -r` + 进程替换，这样一个滚还能带多个 `KEY=VAL`）；
+  ② `SUM`/`LOG` 路径可被 `R95_SUM`/`R95_LOG` 覆盖 —— 上一拨它往 r95 的凭据上追加了**第二个门槛头**
+  （就在那份文件 14:14:01 那一段），明天读的人分不清哪几行属于哪个门槛，这是凭据的出身问题，不是排版问题。
+- **待办（已排队）**：`Performance_NetDelay_high` 与 `Performance_WLBlockPlacementFanoutOpt` 这两档是照着最差那条路的
+  形状挑的（route 占 60~67 %、高扇出 fo=96/17），排在**整屏台架链结束之后**再滚 —— 本脚本自己就有一条 REFUSE
+  （检测到 `xsim` 在跑就不启动）：CPU 抢用会让台架与构建两边都判不准，代价比慢半天大。
+- **口径**：按规矩 #35，本节所有绝对值 delta 既不算收益也不算损失；本节能主张的只有"这一档被工具跳过了"这件**规则层面**的事实。
+

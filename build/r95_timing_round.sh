@@ -24,8 +24,10 @@ V=${VP_VIVADO_BIN:-}
 [ -x "$V/xvlog" ] || { echo "REFUSE: 没设 VP_VIVADO_BIN 或里面没有 xvlog（当前 [$V]）"; exit 2; }
 pgrep -fa xsim.exe >/dev/null 2>&1 && { echo "REFUSE: 有 xsim 在跑，先让 r94 的台架链结束（CPU 抢用会让两边都判不准）"; exit 3; }
 
-SUM=build/r95_timing_summary.txt
-LOG=build/r95_timing_round.log
+# 产物路径可以被覆盖：**r95b 那一拨不能往 r95 的凭据上追加**（同一份 summary 里混着两拨门槛，
+# 明天读的人分不清哪两行属于哪个门槛）。默认还是 r95 那两个名字，覆盖用 R95_SUM / R95_LOG。
+SUM=${R95_SUM:-build/r95_timing_summary.txt}
+LOG=${R95_LOG:-build/r95_timing_round.log}
 BASE_WNS=0.553; BASE_WHS=0.049          # r94 板上这一版：build/timing_summary.rpt（12:53 那次构建）
 
 # 采纳门槛：**跑之前**写进 SUMMARY，不是看完数字再挑（r91 就是这么立的）
@@ -94,21 +96,27 @@ roll() {   # $1=目录名 $2=额外环境（逗号分隔 KEY=VAL）
 say "基线（r94，正式件 build/system.bit md5=a1465f29c9e4）：WNS $BASE_WNS / WHS $BASE_WHS / 0 / 50883"
 echo "baseline_r94 WNS=$BASE_WNS WHS=$BASE_WHS endpoints=50883 bit=a1465f29c9e4" >> "$SUM"
 
-# 滚哪几档由 ROLLS 决定（"名字=环境" 的逗号分隔表）。默认两档是 r95 那一轮；第二拨（r95b）换了名字，
-# 因为 `Performance_ExploreWithHierarchy` **不在这颗器件的流里**（`list_property_value strategy` 里没有它，
-# 工具在 set_property 时就拒了，脚本诚实地记成 NOT_MEASURED 而不是"否决"）。
+# 滚哪几档由 ROLLS 决定。**形状：`名字=KEY=VAL[ KEY2=VAL2]`，滚与滚之间用分号。**
+# 上一版这里的注释写的是"逗号分隔"，我照着传了逗号 ⇒ 两滚并成一滚、策略名拼成
+# `Performance_NetDelay_high,r95b_wlfanout=IMPL_STRATEGY=Performance_WLBlockPlacementFanoutOpt`，
+# 工具在 `set_property` 那一步就拒了（r95b 第一跑的实际结局，`build_console.txt` 里那句
+# "Strategy ... is not supported by the flow" 是它的尸检）。脚本当时诚实地记成 BUILD_STRATEGY_REJECTED
+# 而没有编数字 —— 但"没数"和"结论"的区别必须由退出码保住，所以分号这一版是**能跑的形状**，
+# 而 `word()`（下面）把 2 号退出码念成 NOT_MEASURED 而不是 DECLINE。
+# 默认两档是 r95 那一轮；`Performance_ExploreWithHierarchy` **不在这颗器件的流里**
+# （`list_property_value strategy` 没有它 ⇒ 那一档记 NOT_MEASURED）。
 # 换上的两档是**照着最差那条路的形状挑的**：它 route 占 60~67 %、高扇出 fo=96/17，
 # 于是 `Performance_NetDelay_high`（按互连延迟驱动布局）与 `Performance_WLBlockPlacementFanoutOpt`
 # （wirelength + 高扇出）是两个正对靶子的 lever。
-for spec in ${ROLLS:-r95_postroute_physopt=IMPL_PRPO=1,r95_explor_withhier=IMPL_STRATEGY=Performance_ExploreWithHierarchy}; do
-    name=${spec%%=*}; envs=${spec#*=}
-    roll "$name" "$envs"
-    eval "V_$name=\$?"
-done
-A=\${V_r95_postroute_physopt:-1}
-B=\${V_r95_explor_withhier:-1}
-# 退出码 0 只表示"达门槛"；非 0 里要**分清"量了并否决"与"根本没量到"**——把读不到报告写成 DECLINE
+# 退出码 0 只表示"达门槛"；非 0 里要**分清"量了并否决"与"根本没量到"** —— 把读不到报告写成 DECLINE
 # 就是让"没数"长得像"结论"（#163/#164 同一族），第一版这里就是这么错的。
 word() { case "$1" in 0) echo ADOPT;; 2) echo NOT_MEASURED;; *) echo DECLINE;; esac; }
-say "两滚结束：phys_opt=$(word $A)，ExploreWithHierarchy=$(word $B)（NOT_MEASURED=报告没读出来，不是否决）"
-say "DONE —— 谁被采纳由人读 $SUM 那两行来定；不采纳也要把这一节落进 docs/OPTIMIZATION_LOG.md"
+WORDS=""
+while IFS= read -r spec; do
+    [ -n "$spec" ] || continue
+    name=${spec%%=*}; envs=${spec#*=}
+    roll "$name" "$envs"; v=$?
+    WORDS="$WORDS $name=$(word $v)"
+done < <(printf '%s\n' "${ROLLS:-r95_postroute_physopt=IMPL_PRPO=1;r95_explor_withhier=IMPL_STRATEGY=Performance_ExploreWithHierarchy}" | tr ';' '\n')
+say "各滚结束：$WORDS（NOT_MEASURED=报告没读出来，不是否决）"
+say "DONE —— 谁被采纳由人读 $SUM 那几行来定；不采纳也要把这一节落进 docs/OPTIMIZATION_LOG.md"
