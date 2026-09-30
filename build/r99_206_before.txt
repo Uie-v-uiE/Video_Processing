@@ -1,0 +1,28 @@
+# #206 的"改前红"凭据（2026-10-01 07:55 当场跑，未为此改过任何 RTL）
+# 台架：sim/tb_icmp_len_wrap.v    命令：VP_VIVADO_BIN=… bash sim/run_one.sh tb_icmp_len_wrap
+# 树指纹（跑前当场算，norm1）：top=f379805a9490 rtl=9fecdc0bb6ec files=80
+#   ⇒ 这就是 r99 的树（已含 #209/#185/#186 三刀），**没有**为 #206 改过任何东西；
+#     红是从真设计里来的，不是我想象的旧代码（规矩 11）。
+# run_one.sh 退出码 1（判红）；RESULT 行照抄：
+
+PASS R3 legit frame completes | a well-formed echo request (payload 8) must give exactly one rec_pkt_done with 8 bytes; if this is red the STIMULUS is wrong, not the DUT
+FAIL R1 wrapped length must not park the parser | after a bogus IP total_length=20 the 16-bit minus wraps to ~65516; leaving st_rx_data needs skip_en/error_en and st_rx_data never sets error_en
+FAIL R1b only the legit frame emits payload | counted rec_en cycles across the bogus frame AND the following legit one: 8 means only the real payload shipped, >8 means the parked parser ate the next frame
+FAIL R2 next legit frame still answered | the wrapped parser keeps consuming the FOLLOWING frame; a legit ping behind it must still finish with its own id/seq
+RESULT tb_icmp_len_wrap FAIL nfail=3
+
+# 三条红 + 一条绿的形状是有意配对的：
+#   R3（绿）钉"我的激励本身没问题"——合法 echo request（载荷 8 字节）走完整条解析并恰好完成一次；
+#   R1（红）钉"畸形包过去之后解析器仍停在 st_rx_data"；
+#   R1b（红）钉"它把紧跟的**下一整帧**当本帧载荷吐出去了"（跨两帧数 rec_en，期望 8，实测 >8）；
+#   R2（红）钉"跟在后面的合法 ping 得不到应答"（done_total 期望 2，实测停在 1）。
+#   ⚠ 这一版还没打 $display 的现场读数（cur_state / en_bytes / icmp_rx_cnt 的具体值）：
+#     读数行是这次跑完之后加进 tb 的，加完就轮到链的台架窗口，我不与链抢 xsim
+#     （run_one.sh 门口见活的 xsim 就 REFUSE，同一时刻只有一支台架能写自己的 run 目录）。
+#     ⇒ r99 门禁跑完后补一次带读数的改前红复跑，数字要进这份文件或它的后继。
+#
+# 我自己在这支尺子上撞到的两个坑（都写进 tb 的注释里，免得下一支重犯）：
+#   ① `forever if (rec_en) …` 没有控制事件 ⇒ 零延迟死循环，仿真永远走不完（第一版就是这么卡的）；
+#      计数分支必须 `forever @(posedge clk) if (…) …`。
+#   ② 判据里的 `en_bytes == 0` 这种期望在"畸形帧本身没有载荷"时**改前改后都是 0** ⇒ 空转判据；
+#      改成"跨畸形帧 + 紧跟的合法帧一共只许吐 8 字节"，它才真的能红（规矩 4 的零样本分支）。
