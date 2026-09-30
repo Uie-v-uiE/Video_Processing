@@ -2,11 +2,11 @@
 器件与工具链,共用条件,xc7z020clg484-2 / Vivado+Vitis 2025.2.1,—,本表所有行的共用条件：Zynq-7020 CLG484 速度等级 2；工具链是 2025.2 主版本线的补丁版 2025.2.1（指南 §3.3.3.1 推荐 2026.1 或 2025.2；本作品全部脚本可在 2025.2.1 从零复现，见 docs/BUILD.md）,一次声明,build/system.bit
 显示像素时钟,核心,50,MHz,面板 1024×600；H_TOTAL 1344、V_TOTAL 625 ⇒ 场频 59.5 Hz（50 MHz ÷ 1344 ÷ 625，#153：不是 50 Hz）；该时钟由 PL 侧 MMCM 从 50 MHz 输入合成,约束一次生效,src/constraints/ 与 build/timing_summary.rpt
 显示分辨率与场频,核心,1024×600 @59.5,—,双窗输出（左窗原图 / 右窗处理图，由 split 控制字决定缝的位置与哪一侧是处理图）,连续显示,board/VERIFY_r87.md 第 1 行
-全局 setup WNS,核心,0.553,ns,板上这一版（r94）实现完成后 Vivado 报的 Design Timing Summary 第一列；端点总数 50883,一次构建,build/timing_summary.rpt
-全局 setup 失败端点,核心,0,个,同上（0 / 50883）；注意 WNS 的绝对值不作为收益口径，见 docs/KNOWN_ISSUES.md 第二节第 1 条,一次构建,build/timing_summary.rpt
-全局 hold WHS,核心,0.049,ns,同上（失败端点 0 / 50883）；WHS 要先问是哪一格：`eth_rxc` 那一格吃自加的 0.8 ns hold 不确定度，全设计最差这一格在 `clk_fpga_0` 域（见 docs/KNOWN_ISSUES.md 二.1）,一次构建,build/timing_summary.rpt
-Slice LUT 占用,资源,14374（27.02 %）,个,实现后报告（= LUT as Logic 10187 + LUT as Memory 4187）；其中 LUT as Memory 4187（分布式 RAM 4044）⇒ 行缓存与打包 FIFO 走的是 LUTRAM 而不是触发器,一次构建,build/utilization.rpt
-Slice 寄存器占用,资源,8074（7.59 %）,个,实现后报告,一次构建,build/utilization.rpt
+全局 setup WNS,核心,0.720,ns,本轮（r97）实现完成后 Vivado 报的 Design Timing Summary 第一列；端点总数 50890；最差那一格归属 `eth_rxc`（`u_icmp_tx` 的 `tx_data_num → data_cnt/CE`，11 级逻辑含 5 级 CARRY4）,一次构建,build/timing_summary.rpt
+全局 setup 失败端点,核心,0,个,同上（0 / 50890）；注意 WNS 的绝对值不作为收益口径，见 docs/KNOWN_ISSUES.md 第二节第 1 条,一次构建,build/timing_summary.rpt
+全局 hold WHS,核心,0.033,ns,同上（失败端点 0 / 50890；脉冲宽度 WPWS 0.264、失败 0 / 12526）；WHS 要先问是哪一格：r97 全设计最差那一格落在 `eth_rxc`（`u_rx_par/p_sof → u_reasm/have_lo`，1 级 LUT + 0.973 ns 走线），而这一格的余量里含自加的 0.8 ns hold 不确定度（`src/constraints/rk_zynq7020.xdc:50`）⇒ 它不是逻辑深度问题（见 docs/KNOWN_ISSUES.md 二.1）,一次构建,build/timing_summary.rpt
+Slice LUT 占用,资源,14379（27.03 %）,个,实现后报告（= LUT as Logic 10193 + LUT as Memory 4186）；其中 LUT as Distributed RAM 4044 ⇒ 行缓存与打包 FIFO 走的是 LUTRAM 而不是触发器,一次构建,build/utilization.rpt
+Slice 寄存器占用,资源,8079（7.59 %）,个,实现后报告,一次构建,build/utilization.rpt
 Block RAM Tile 占用,资源,95 / 140（67.86 %）,tile,实现后报告；帧缓存由 64-bit 宽 + 乒乓两块拼出，是 BRAM 的主要去向,一次构建,build/utilization.rpt
 DSP48 占用,资源,19 / 220（8.64 %）,个,实现后报告；用在缩放/旋转的坐标乘法与 gamma 计算,一次构建,build/utilization.rpt
 SD 本地播放帧率,实测,29.8 – 30.0,fps,512×300 RGB565 预转换帧序列（板上不做解码）；100 帧滑窗读数；串口 115200-8N1,两个滑窗样本,build/evidence/r87_boot_stat_drain.txt
@@ -24,5 +24,5 @@ ETH 入流 300 秒长跑,实测,0,丢帧 / 坏帧 / 重复帧,同上工况，连
 入流过载点,未定,≥116.7,fps,不限速、目标 120 fps 时仍未丢字（≈36 MB/s 有效载荷、287 Mbps）；**这一版没顶到丢字那一点，所以不给「PL 能扛多少 fps」的数字**,960 帧,docs/PERF_REPORT.md
 端到端时延,核心,33.34,ms,从上位机发出到屏上出现；min/avg/max = 20 / 33.34 / 51 ms，同轮墙钟交付 29.79 fps（≈9.15 MB/s = 73.2 Mbps）；测量起点=上位机发送时刻，终点=示相机位录到该帧上屏,一轮 600 帧,docs/PERF_REPORT.md
 帧间隔抖动,核心,33.33,ms,30 fps 限速工况下 min/avg/max = 22 / 33.33 / 45 ms；抖动上界来自显示扫描与读口调度，不来自调度器,一轮,docs/PERF_REPORT.md
-实现后动态功耗,资源,2.206,W,板上这一版的实现后报告；工具置信度 **Low**（无仿真活动文件输入），被追问要如实说,一次构建,build/power.rpt
+实现后动态功耗,资源,2.207,W,本轮（r97）的实现后报告；工具置信度 **Low**（无仿真活动文件输入），被追问要如实说,一次构建,build/power.rpt
 结温估算,资源,52.5,℃,同上（Effective TJA 11.5 ℃/W、Max Ambient 57.5 ℃ 假定）；这是工具估算，不是板上 XADC 读数；XADC 实测在 OSD 与 [STAT] 里另有一路,一次构建,build/power.rpt
