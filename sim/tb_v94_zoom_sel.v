@@ -236,6 +236,12 @@ module tb_v94_zoom_sel;
             inv_used == 10'd341 && rot_forced == 1'b1);
         chk("T8c OSD code follows the clamp: code(341)=3=0.75x",
             zoom_code == 3'd3);
+        // #176（r96 记为"改前红"）：旋转钳生效时**画面真的被缩到 0.75x**，可 `zoom_active` 比较的是
+        // `inv_scale`（用户那一档 = 256 = INV_LO）⇒ 它报"没在缩放"。lane23 的 bit11 就是这一位，
+        // 于是回读与屏上那一格又各说各话（#52/#59/#66/#93 同一族；OSD 的 `(Fit)` 在 r94 已经并上
+        // `rot_forced`，缺的正是回读口这一位）。改法：`zoom_active` 一律比 `inv_used`。
+        chk("T8g zoom_active follows inv_used (clamped 0.75x = zooming)",
+            zoom_active == 1'b1);
         @(negedge clk); zsel = 3'd2;                  // 0.50x：inv=512，画面比 fit 还小 => 不该被拉回
         wait_change; repeat (6) @(negedge clk);
         chk("T8d rot+0.50x stays 512 (shrinking still works), rot_forced=0",
@@ -248,11 +254,17 @@ module tb_v94_zoom_sel;
         repeat (6) @(negedge clk);
         chk("T8f rotate off restores 128 (reversible, no residue)",
             inv_used == 10'd128 && rot_forced == 1'b0 && inv_scale == 10'd128);
+        // T8g 的反作弊配对：若有人把 #176 修成"zoom_active 恒 1"，T8g 照样绿、这一条替我拦住它。
+        // 1.00x 且没被旋转钳 ⇒ inv_used 真的等于 INV_LO ⇒ 回读位必须是 0（改前改后都必须绿）。
+        @(negedge clk); zsel = 3'd4;
+        wait_change; repeat (6) @(negedge clk);
+        chk("T8h genuine 1.00x reports zoom_active=0 (anti-cheat for T8g)",
+            inv_used == 10'd256 && rot_forced == 1'b0 && zoom_active == 1'b0);
 
         $display("");
-        $display("[tb_v94_zoom_sel.v:253] 口径提醒：这里判的是**档位选择与交接节拍**，画面上像素对不对是 zoom_mapper 的事");
-        $display("[tb_v94_zoom_sel.v:254] （tb_zoom_* 那一套）。八档表与 zoom_code 的中点判据是同一个约定的两端，");
-        $display("[tb_v94_zoom_sel.v:255] T3 就是把这两个约定钉在一起：任何一边被改而另一边没跟上，这一条就红。");
+        $display("[tb_v94_zoom_sel.v:265] 口径提醒：这里判的是**档位选择与交接节拍**，画面上像素对不对是 zoom_mapper 的事");
+        $display("[tb_v94_zoom_sel.v:266] （tb_zoom_* 那一套）。八档表与 zoom_code 的中点判据是同一个约定的两端，");
+        $display("[tb_v94_zoom_sel.v:267] T3 就是把这两个约定钉在一起：任何一边被改而另一边没跟上，这一条就红。");
         $display("TB DONE pass=%0d fail=%0d", pass, fail);
         if (fail != 0) $display("TB RESULT FAIL");
         else $display("TB RESULT PASS");
