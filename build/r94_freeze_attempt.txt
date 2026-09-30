@@ -1,0 +1,5 @@
+REFUSE：build/r94_gates.txt 不是 ALL PASS，不冻结。
+  顶层台架 tb_v98    top=3fe1aab859e7 FAIL行=1 同一次跑且无 FAIL      FAIL
+        ——报告里有 1 行 FAIL 没有 RESULT…PASS 汇总行（台架跑完了、是它自己判红的，先读 FAIL 那几行的数） 
+  边缘条带 tb_edge_rim tb_edge_rim_r94.txt rtl=526321488fed FAIL行=0 同一次跑、无 FAIL、四条圈齐 PASS
+GATES: 有红项（判定 20 项）—— 不采纳，保留上一版
