@@ -220,7 +220,7 @@ fi
 #     历史冻结件里没有 ports_check.txt ⇒ 这一项对它们**跳过而不是判红**：
 #     这一项是拿"当前源码树"跑的，历史包没有对应的树，红一个没有意义的红只会让人去关门禁。
 if [ "$D" = "build" ]; then
-    python build/check_ports.py > build/ports_check.txt 2>&1; PCEXIT=$?
+    python build/check_ports.py --dup > build/ports_check.txt 2>&1; PCEXIT=$?
     PCTXT=$(tail -1 build/ports_check.txt)
     say "顶层接线（端口名/悬空输入/位宽）" "$PCTXT" "violations=0（凭据 build/ports_check.txt，当场跑）" \
         $([ "$PCEXIT" = 0 ] && echo 1 || echo 0)

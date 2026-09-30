@@ -1,0 +1,6 @@
+# ports_dup_ce —— `--dup` 的正对照：同一把尺子，好树必须 0、坏树必须抓到那条重复关联
+# 2026-09-30 12:14:58  临时树=/tmp/ports_dup_ce.2tgyvw
+好树（只有 top_ok）      : CHECK PORTS: instances=1 modules=2 skipped=0 width_compared=3 violations=0 PASS
+坏树（再放进 top_dup）   : CHECK PORTS: instances=2 modules=3 skipped=0 width_compared=7 violations=1 FAIL
+抓到 DUP 那一行=1  好树判 0=1  坏树判红=1
+RESULT PASS ports_dup_ce —— 这条判据能红也能绿
