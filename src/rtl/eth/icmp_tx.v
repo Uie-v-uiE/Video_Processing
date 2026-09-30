@@ -322,7 +322,26 @@ module icmp_tx (
                     gmii_tx_en <= 1'b1;
                     gmii_txd   <= tx_data;
                     tx_bit_sel <= tx_bit_sel + 3'd1;
-                    if (data_cnt < tx_data_num - 16'd1) data_cnt <= data_cnt + 16'd1;
+                    // #188：`tx_data_num` 是 0 的时候（`ping -l 0` 的回复就是这个），下面两处的
+                    //   `tx_data_num - 16'd1 / - 16'd2` 在 16 位里回绕成 65535 / 65534 ⇒
+                    //   第一个条件对 0..65534 恒真，机器一路发 65536 个数据字节，而 `total_num`
+                    //   自己声明的是 28 字节 ⇒ 一个畸形的巨帧，还把 TX mux 占住约 0.52 ms。
+                    //   这一支只处理"零载荷"，把它直接送到补位/结束；**下面那一串一个字没动**，
+                    //   所以任何合法长度（含 8 字节短 ping 的补位内容）走的是原来那条路。
+                    //   尺子：`sim/tb_icmp_ping0.v`（T1 钉这一支；T2/T3/T5 钉"别把合法路径改掉"，
+                    //   改前红凭据 `build/r98_188_before.txt`）。
+                    if (tx_data_num == 16'd0) begin
+                        tx_req <= 1'b0;
+                        if (real_add_cnt < real_tx_data_num - 16'd1)
+                            real_add_cnt <= real_add_cnt + 5'd1;
+                        else begin
+                            skip_en      <= 1'b1;
+                            data_cnt     <= 16'd0;
+                            real_add_cnt <= 5'd0;
+                            tx_bit_sel   <= 3'd0;
+                        end
+                    end
+                    else if (data_cnt < tx_data_num - 16'd1) data_cnt <= data_cnt + 16'd1;
                     else if (data_cnt == tx_data_num - 16'd1) begin
                         //如果发送的有效数据少于18个字节，在后面填补充位
                         //补充的值为最后一次发送的有效数据

@@ -1,0 +1,15 @@
+# #188 的改前红凭据：tb_icmp_ping0 跑在**未修改的 icmp_tx**（HEAD 那一份）上，2026-10-01 01:07
+# 做法：cp 走改后的那份 → git checkout HEAD -- src/rtl/eth/icmp_tx.v → 跑 → 再把改后的放回
+INFO T1 tx_byte_num=0 → 数据态拍数=65536（期望 18）整帧 tx_en 拍数=65590 tx_done=1
+FAIL T1 zero-byte ping reply must emit exactly MIN_DATA_NUM (18) data bytes, not 65536
+PASS T4a T1 really ran: entered the data state and completed the frame once
+INFO T2 tx_byte_num=8 → 数据态拍数=18（期望 18）tx_done=1
+PASS T2 8-byte payload still pads to 18 data bytes
+INFO T5 tx_byte_num=8 补位段长度=10 第一个补位字节=ad 最后一个载荷字节=ad
+PASS T5 padding repeats the last payload byte (a length-only fix must not change content)
+INFO T3 tx_byte_num=56 → 数据态拍数=56（期望 56）tx_done=1
+PASS T3 56-byte payload emits exactly 56 data bytes (no padding, none lost)
+RESULT tb_icmp_ping0 FAIL nfail=1
+INFO: [Common 17-206] Exiting xsim at Thu Oct  1 01:06:26 2026...
+INFO: [Common 17-206] Exiting xsim at Thu Oct  1 01:06:26 2026...
+VERDICT tb_icmp_ping0: RESULT tb_icmp_ping0 FAIL nfail=1 || FAIL 行数=1 || PASS 行数=4
