@@ -4,8 +4,7 @@
 # 编译清单与 run_sim.tcl 同口径：src/rtl 整棵树 + sim/prim 占位件 + sim/tb_*.v。
 # 以前这里是手写的一小串文件，结果是"改了 pl_video_top 想快点看一眼"时 xelab 直接报
 # Cannot find design unit —— 顶层唯一的台架 tb_v6_vblank_copy 根本不在清单里（2026-09-23 撞到）。
-# 工具路径只有一个说法：VP_VIVADO_BIN 指到 <Vivado>/bin（清单见 docs/BUILD.md §1）；找不到就第一步 REFUSE。
-# 工具路径只有一个说法：VP_VIVADO_BIN 指到 <Vivado>/bin（清单见 docs/BUILD.md §1）；找不到就第一步 REFUSE。
+# 工具路径只有一个说法：VP_VIVADO_BIN 指到 <Vivado>/bin（清单见 report/BUILD.md §1）；找不到就第一步 REFUSE。
 # ⚠ 这两道 REFUSE 排在 `--verdict` 分支**之后**：判定解析是纯文本工作，不该要求现场有 Vivado、
 #   也不该因为有别人的 xsim 在跑就不让我离线读一份旧日志（#166 的对照实验因此必须能离线跑）。
 TB=$1
@@ -45,7 +44,7 @@ if [ "$TB" = "--verdict" ]; then
     exit 0
 fi
 V=${VP_VIVADO_BIN:-}
-[ -x "$V/xvlog" ] || { echo "REFUSE: 找不到 xvlog（当前 $V）。设 VP_VIVADO_BIN=<Vivado>/bin 再跑（docs/BUILD.md）"; exit 2; }
+[ -x "$V/xvlog" ] || { echo "REFUSE: 找不到 xvlog（当前 $V）。设 VP_VIVADO_BIN=<Vivado>/bin 再跑（report/BUILD.md）"; exit 2; }
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"   # 仓库根自适应：本文件在 <repo>/sim/（原来写死本机路径）
 R=/tmp/kx/$TB.run
 # ⚠ 2026-09-27 12:48 撞到的一件事：**同一时刻只能有一个 xsim 在写这个目录**。

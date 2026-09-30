@@ -94,14 +94,11 @@ module frame_latency (
             sof_sync <= {sof_sync[1:0], disp_sof_tgl};   // 三级：一级采样、一级稳定、一级给异或（脉冲直接跨域会被吃掉）
 
             // 三个 axi 域事件：只锁拍号，不在这里算账
-            if (commit) begin
-                // 新的一轮：清掉上一轮没配对完的标记 ⇒ 晚到的旧事件凑不出一轮。
-                // （commit_lock 里有 pending 串行化，正常走不到；这条防的是"异常时序下报假数"）
-                t_commit    <= cyc;
-                have_start  <= 1'b0;
-                have_done   <= 1'b0;
-                have_commit <= 1'b1;
-            end
+            // #185：`commit` 这一段原来写在上面（同一块里两处写 `have_commit`，后写者赢），
+            //   于是一次 commit 正好落在"上一轮收尾"那一拍时，:130 的清零会**盖掉**刚锁进来的
+            //   `have_commit=1` ⇒ 这一轮的起点永久丢失（约 1.8e-5 次/秒，演示撞不上、连跑十几小时会撞）。
+            //   现在把它挪到本轮收尾**之后**：收尾分支只读标志（非阻塞读的是旧值），语义不变；
+            //   同拍相撞时由"开新轮"赢——这本来就是对的，因为开新轮已经顺手清了 have_start/have_done。
             if (copy_start && have_commit && !have_start) begin
                 t_start    <= cyc;
                 have_start <= 1'b1;
@@ -129,6 +126,15 @@ module frame_latency (
                 if (n_meas != 16'hFFFF) n_meas <= n_meas + 16'd1;
                 have_commit <= 1'b0; have_start <= 1'b0; have_done <= 1'b0;
             end
+            // ↑ #185：这一段（开新轮）必须在上面那段之后，同拍相撞时新轮才不会被收尾清零吃掉
+            if (commit) begin
+                // 新的一轮：清掉上一轮没配对完的标记 ⇒ 晚到的旧事件凑不出一轮。
+                // （commit_lock 里有 pending 串行化，正常走不到；这条防的是"异常时序下报假数"）
+                t_commit    <= cyc;
+                have_start  <= 1'b0;
+                have_done   <= 1'b0;
+                have_commit <= 1'b1;
+            end
         end
     end
 
@@ -143,6 +149,12 @@ module frame_latency (
     reg  [16:0] rem;
     reg  [31:0] quo;
     reg  [5:0]  dstep;
+    // #186：除法要 32 拍，而收尾那一行原来读的是**当时活的** `tot_new`——若这 32 拍里又开了一轮
+    //   （commit 落在除法中途），`tot_new` 已经是新一轮的数了，于是屏上那一格的"`--` 与否"描述的是
+    //   别的轮。这里在**起除的那一拍**把"本轮是否被钳位"锁下来（`dclamp`），收尾只用它。
+    //   尺子：`sim/tb_v90_latency.v` 的 T18（改前红 `T18a`，反配对 `T18c` 钉"下一轮干净必须回 0"），
+    //   凭据 `build/r97_185186_before.txt`。
+    reg         dclamp;
     wire [17:0] rnext = {rem[16:0], dnd[31]};       // 移进一位后的余数（18 bit 才装得下比较）
     wire [17:0] rsub  = rnext - {1'b0, DIV_MS};     // 减法必须在 18 bit 里做：rnext 可能 ≥ 2^17
     wire        take  = (rnext >= {1'b0, DIV_MS});
@@ -150,12 +162,14 @@ module frame_latency (
     always @(posedge axi_clk or negedge axi_rst_n) begin
         if (!axi_rst_n) begin
             dnd <= 32'd0; rem <= 17'd0; quo <= 32'd0; dstep <= 6'd0; drun <= 1'b0;
+            dclamp <= 1'b0;
             lat_ms <= 16'd0; lat_valid <= 1'b0; lat_sticky <= 1'b0; lat_tog <= 1'b0;
         end else begin
             if (round_end) begin
                 // 新一轮开始除。**上一轮除到一半被打断**是合法的（帧率突变），
                 // 这里直接重起 ⇒ lat_ms 保持上一轮的值不动，绝不写半截数。
                 dnd   <= tot_new;
+                dclamp <= (tot_new === CLAMP);   // #186：把"本轮被钳位与否"随本轮的数一起锁住
                 rem   <= 17'd0;
                 quo   <= 32'd0;
                 dstep <= 6'd0;
@@ -174,7 +188,7 @@ module frame_latency (
                     lat_valid <= 1'b1;
                     // 这一轮自己钳位过 ⇒ 屏上宁可不画。`clamped` 是粘滞的（整个会话的账），
                     // 这里只用**本轮**的判据，否则一次历史倒挂会永久把 Latency 变成 `--`。
-                    lat_sticky <= (tot_new === CLAMP);
+                    lat_sticky <= dclamp;   // #186：用起除那一拍锁下的本轮判据，不用 32 拍之后的活值
                     lat_tog   <= ~lat_tog;
                 end
             end

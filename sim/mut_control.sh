@@ -19,11 +19,11 @@
 # 别再往 pipeline 那条 sed 里塞别的模块的旧写法，那会让一次控制跑同时测两件事。
 # 仓库根自适应：本文件在 <repo>/sim/ 下，所以 .. 就是根（原来两行都是这台机器的绝对路径）
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
-# 工具路径只有一个说法：VP_VIVADO_BIN 指到 <Vivado>/bin（见 docs/BUILD.md「换一台机器」那一节）。
+# 工具路径只有一个说法：VP_VIVADO_BIN 指到 <Vivado>/bin（见 report/BUILD.md「换一台机器」那一节）。
 # 默认值留着是为了本机少敲一步，**不是**"这台机器就是标准"：找不到 xvlog 就明说并退出，
 # 别让人对着一句 "No such file or directory" 去怀疑 RTL。
 V=${VP_VIVADO_BIN:-}
-[ -x "$V/xvlog" ] || { echo "REFUSE: 找不到 xvlog（当前 $V）。设 VP_VIVADO_BIN=<Vivado>/bin 再跑（docs/BUILD.md）"; exit 2; }
+[ -x "$V/xvlog" ] || { echo "REFUSE: 找不到 xvlog（当前 $V）。设 VP_VIVADO_BIN=<Vivado>/bin 再跑（report/BUILD.md）"; exit 2; }
 TB=${1:?用法: mut_control.sh <tb_name> <criterion>}
 CRIT=${2:?用法: mut_control.sh <tb_name> <criterion>}
 R=/tmp/kx/mut_${TB}_${CRIT}_${3:-pipeline}.run
