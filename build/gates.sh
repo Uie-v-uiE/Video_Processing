@@ -288,6 +288,12 @@ if [ "$D" = "build" ]; then
         RFIN=$(grep -ac "^RESULT tb_v98_top_seam FAIL" "$TB98")
         OK=1
         WHY=""
+        # #166：这一项读的就是"判定形状 + FAIL 计数"，而这两件事都由 `sim/run_one.sh --verdict` 定义
+        #       ⇒ 那把尺子自己的五条对照（含"别人的过期日志不许替本台架答复"）不过，本项的判定就不可信：
+        #       症状是"红被念成没数"，而门禁会把整项念成 PASS。让尺子的健康度绑在它支撑的那一项上。
+        if ! bash build/run_one_ce.sh > "/tmp/run_one_ce.gate.$$.txt" 2>&1; then
+            OK=0; WHY="$WHY判定解析器自己的对照不过(#166，见 /tmp/run_one_ce.gate.*) ";
+        fi
         [ "$TOPYES" = "$TOPWANT" ] || { OK=0; WHY="$WHY顶层 md5 不符($TOPYES!=$TOPWANT：改过 pl_video_top，报告与当前树不是同一次跑) "; }
         # 顶层之外的那一路也必须对得上：r72 改的是四个窗口级，`pl_video_top.v` 一个字节没动，
         # 只比顶层 md5 的话 r71 的旧报告能原样冒充今天的凭据（今天就差一点撞上）。

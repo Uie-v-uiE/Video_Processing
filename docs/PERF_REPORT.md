@@ -424,7 +424,7 @@ PS CPU：主循环仅 `uart_poll`，不参与视频搬移。
 |---|---|---|---|
 | 布线后物理综合（`IMPL_PRPO=1` ⇒ `phys_opt_design -directive AggressiveExplore`） | WNS +0.553 / WHS +0.049 / 失败端点 0 / 50883 / BRAM 95 —— 与 r94 基线**逐位相同** | **量过并否决**，理由是工具自己的规则 | 日志（`build/isolated_r95_postroute_physopt/build_console.txt:2568` 起）写得很直白：`Physical synthesis in post route mode` 之后是 `WNS >= 0.000 ns ⇒ All physical synthesis setup optimizations will be skipped`、`WHS >= 0.000 ns ⇒ Hold fix optimization will be skipped`、`No setup violation found. The netlist was not modified.` ⇒ **这一档在一个没有违例的设计上是结构性空转**，不是"这次运气没轮到它"。所以"还要不要再滚 post-route phys_opt"这个问题到这里可以关掉 |
 | `Performance_ExploreWithHierarchy` | 没有数 | **NOT_MEASURED**（不是"否决"） | 这一档不在这颗器件的流里：工具在 `set_property` 那一步就拒（`BUILD_STRATEGY_REJECTED`）。把"没数"写成"否决"就是让缺证据长得像结论（与 #163/#164 同族） |
-| `Performance_NetDelay_high` / `Performance_WLBlockPlacementFanoutOpt` | **还没量** | 已排队 | 第一拨 r95b 因我自己的脚本 bug 没跑成（`ROLLS` 注释写"逗号分隔"而解析按空白切 ⇒ 两滚并成一滚、策略名被拼长，见 `build/isolated_r95b_netdelay_high/build_console.txt` 结尾）；脚本已修（分号 + `R95_SUM`/`R95_LOG` 可覆盖），并按本仓那条 REFUSE 排在整屏台架之后 —— CPU 抢用会让台架与构建两边都判不准 |
+| `Performance_NetDelay_high` / `Performance_WLBlockPlacementFanoutOpt` | **各量过一档**：NetDelay_high WNS **+0.013** / WHS +0.056；WLBlockPlacementFanoutOpt WNS **+0.553** / WHS +0.049（与基线一格不差）；两档都是失败端点 0 / 50883、BRAM 95 tile | **两档都不采纳** | 两份位流的 md5 互不相同、也不同于正式件，且构建日志里 `BUILD_STRATEGY` 念出的就是请求的那一档 ⇒ "策略被应用了"有凭据（不是拿默认流程冒充）。一个方向不利、一个毫无作用 ⇒ **靠工具再压时序这条路到此关闭**：自动能收的（setup/hold 违例）没有可收的东西，剩下的只有改 RTL 那条锥或 Pblock/疏解绕线，而那两条的历史账是 r90 / r91 / 本文 r95 三笔"量过并否决" |
 
 **这两档为什么正对靶子**：§4 量到全设计 WNS 由两条**布线主导**（route 占 60~67 %）的路径轮流决定，其中 `eth_rxc`
 那条的高扇出网络是 fo=96 / 17 —— 按互连延迟驱动布局、以及按线长+高扇出做块放置，是剩下仅有的两个物理 lever。
