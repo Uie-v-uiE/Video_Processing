@@ -1,0 +1,25 @@
+  PASS яяяеяяяЅяяяЋ inv=256(1.0яяягяЃcode=4яяЃdir=0
+  PASS Tяяя‡яяяЁяяяеяяяЇяяяЂяяяйяяяЇ STяяяжяяяђяяяЁяяязяяяјяяяЎяяяияяя­яяя‰
+  PASS T2bяяяјяяязяяяљяяя°яяяжяяяєяяя€яяяжяяя¶яяяіяя‘ 200 яяяеяяяЊяяяЊяяяеяяяїяяяЎяяязяяя·яяя‰
+  PASS T2яяя‡яяяЁяяяеяяя°яяяЇяяяея… [256,512]
+  PASS Tяяя…яяяЈяяядяяяјљinv == яяяеяяяЋяяя—яяяжяяяљяяяџяяяеяяяјяяя” zoom_coяяяжяяя›яяяЊяяядяяяЎяяя·
+  PASS Tяяя‰яяяЁяяяйяґ iяяядяяяЉяяяЌяяяпяяяЌяяя†яяяеяяя№яяя–яя„ 200 яяяйяяяІяяя‰яяядяяяёяяя‚яяяжяяя®яяя‰
+  PASS T5яяя…яяяњяяЁ 0.25яяя€inv=1023яяяеяяя¤яяя‰
+  PASS T5яяя€яяяћяяяеяяяљяяя¬яяяеяяяЏяяя°яяяжяяяј€102яяя’1021яяядяяяЇ 51яяя‰
+  PASS T5cяяяЋяяяея… 0.75xяяя‡яяяияяяЉяяяџяяяияяяёяяяҐ
+  PASS T6aяяя€яяяеяЁ 2яяяпя€inv=12яяя‰
+  PASS T6b enableяяяжяяя‰яяяЁяяяияяяЅяяяљяяћ INV_яяядя” zoom_active=0
+  PASS T7яяяЋ 0.2яяяияяя›яяяјяяяеяяяјяяяЏяяядяяя­яяяЃ280 яяяеяяяїяяя¦
+  PASS T8a no-rotate: inv_scale=inv_used=256, rot_forced=0 (control)
+  PASS T8b rot+1.00x with fit=341: inv_used clamped to 341
+  PASS T8c OSD code follows the clamp: code(341)=3=0.75x
+  PASS T8g zoom_active follows inv_used (clamped 0.75x = zooming)
+  PASS T8d rot+0.50x stays 512 (shrinking still works), rot_forced=0
+  PASS T8e rot+2.00x yields to fit: inv_scale=128 kept, inv_used=341
+  PASS T8f rotate off restores 128 (reversible, no residue)
+  PASS T8h genuine 1.00x reports zoom_active=0 (anti-cheat for T8g)
+TB RESULT PASS
+INFO: [Common 17-206] Exiting xsim at Wed Sep 30 19:33:12 2026...
+exit
+INFO: [Common 17-206] Exiting xsim at Wed Sep 30 19:33:12 2026...
+VERDICT tb_v94_zoom_sel: TB RESULT PASSпј€tb_v94_zoom_selпј‰ || FAIL иЎЊж•°=0 || PASS иЎЊж•°=20

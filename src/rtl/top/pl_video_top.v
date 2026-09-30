@@ -621,14 +621,16 @@ module pl_video_top #(
     //   ① PS 写 zsel=i ⇒ 像素域 inv_scale == TBL[i]；② 屏上 `Zoom:` 那格与同一帧在用的 inv 同档
     //   （PLAN 步 5 的"屏上与回读同源"要求，与 lane24 对照 `Latency:` 是同一手法）。
     // 跨法：总线只在**帧首**变（准静态），发沿在捕获之后再推迟 8 个像素周期 ⇒ 目的域采到的必是完整值；规矩单独成模块 `zoom_snap.v`（tb_v95 逐周期验它的两条不变量），对照是"19 位各自打两拍 ⇒ 读到半新一半旧"（#52/#59）。
-    wire [18:0] z_bus;
+    wire [19:0] z_bus;
     wire        z_bus_tog;
     zoom_snap u_zsnap (
         .pix_clk(clk_pix), .pix_rst_n(rst_pix_n), .frame_start(frame_start),
         .zman(zman_pix), .zsel(zsel_pix), .zoom_code(zoom_code),
         .zoom_active(zoom_active), .zoom_dir(zoom_dir), .inv_scale(inv_used),
+        // #175：旋转钳生效也要能从 lane23 读出来 —— 搭同一条准静态快照，不新增跨域。
+        .rot_forced(rot_forced),
         .bus(z_bus), .bus_tog(z_bus_tog));
-    wire [18:0] z_bus_axi;
+    wire [19:0] z_bus_axi;
     wire        z_pix_gone;
     // 心跳**单独一个触发器**，不共用现成的 sof_tgl —— 这不是洁癖：r54 第一次构建里就是共用了它，于是
     // 那一个发射触发器同时扇出到两组目的域同步器（u_lat 与 u_zoom_axi），cdc.rpt 立刻把整对
@@ -643,7 +645,7 @@ module pl_video_top #(
     // = 像素时基停了，这时 bus_q 里的数还是上一个的，必须让脚本知道它旧。
     // SLOW_MS 这一档**不接出去**：模块里那个 5 ms 的门限是给 1 ms 心跳（eth_rxc）定的，
     // 帧心跳本来就是 16.7 ms，硬接只会常亮一位没意义的慢标志。
-    snap_cross #(.W(19), .DST_HZ(100_000_000), .HB_TO_MS(200)) u_zoom_axi (
+    snap_cross #(.W(20), .DST_HZ(100_000_000), .HB_TO_MS(200)) u_zoom_axi (
         .dst_clk(axi_clk), .dst_rst_n(axi_rst_n),
         .bus(z_bus), .bus_tog(z_bus_tog), .hb_tog(z_hb_tog),
         .bus_q(z_bus_axi), .hb_gone(z_pix_gone), .hb_slow()
@@ -654,7 +656,10 @@ module pl_video_top #(
     //   [10]=zoom_dir [9:0]=inv_used；bit[30:20]=0 留扩展（#84/#85：像素域的信号不许直接塞进这个 axi 口）
     // ⚠ bit19 必须有：判据①在拟合模式下**按构造就不成立**，没有它脚本会把一次正常拟合读成档位错乱 ——
     //   那是"尺子先错"（#68）不是设计错。它取 `split_ctl[18]`（axi 域那份请求位）而**不是**像素域副本 `zoom_fit_en` ⇒ 零新增跨域。
-    assign dbg_zoom = {~z_pix_gone, 11'd0, split_ctl[18], z_bus_axi};
+    // #175：bit19 现在念的是「请没请求拟合 **或** 这一帧被旋转钳住了」——对上位机这是同一件事
+    //   （生效倍率不由八档表决定）。低 19 位一个位都没动 ⇒ 现有解码照旧；钳住的那一位从
+    //   `zoom_snap` 的第 20 位（`rot_forced`）搭同一条快照过来，不新增跨域。
+    assign dbg_zoom = {~z_pix_gone, 11'd0, split_ctl[18] | z_bus_axi[19], z_bus_axi[18:0]};
 
     assign m_axi_arid = 6'd0;
 

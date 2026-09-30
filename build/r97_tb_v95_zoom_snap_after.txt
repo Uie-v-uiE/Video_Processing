@@ -1,0 +1,25 @@
+PASS Z0 reset: bus=0, no edge, bus_q=0
+PASS Z1 20 identical frames produce zero edges
+PASS Z2a zman -> bit18 only
+PASS Z2b zsel=5 -> bits[17:15]
+PASS Z2c zoom_code=7 -> bits[14:12]
+PASS Z2d zoom_active -> bit11
+PASS Z2e zoom_dir -> bit10
+PASS Z2f inv_scale -> bits[9:0]
+PASS Z3 8 real changes produce exactly 8 edges
+PASS Z4 edge lags frame_start by exactly 8 pix clocks
+PASS Z5 no unpublished value ever reached the destination
+PASS Z6 bus_q equals the last published value
+PASS Z7 40 breathing frames -> 40 edges
+PASS Z7b bus_q tracked the newest frame
+PASS Z7c still no torn value
+PASS Z8 heartbeat ticking -> hb_gone released
+PASS Z9a only bit19 moved (frame-boundary capture)
+PASS Z9b a lone rot_forced change = exactly one edge
+PASS Z9c the tearing detector stayed quiet across it
+PASS Z9d clearing rot_forced is reversible, one more edge
+PASS tb_v95_zoom_snap
+INFO: [Common 17-206] Exiting xsim at Wed Sep 30 19:33:28 2026...
+exit
+INFO: [Common 17-206] Exiting xsim at Wed Sep 30 19:33:28 2026...
+VERDICT tb_v95_zoom_snap: PASS tb_v95_zoom_snap || FAIL 行数=0 || PASS 行数=21

@@ -58,8 +58,6 @@ module src_arb #(
             // 000 的意思是"一切正常、是被人钉住的"，那是刚上电时最不该撒的谎。
             why_ps    <= 3'b011;
         end else begin
-            // 每拍寄存**同一组输入**的当前值（只有触发器，没有新判决）⇒ 与 owner_eth 出自同一份事实
-            why_ps <= {force_ps, ~eth_live, ~eth_tb_ok};
             // 计数器只服务"往 PS 让位"这一个方向；ETH 一活就清零（回抢不等）
             if (!eth_wanted) begin
                 if (quiet != 32'hFFFF_FFFF) quiet <= quiet + 32'd1;
@@ -67,6 +65,12 @@ module src_arb #(
 
             // 唯一的赋值点：只有两边都空闲才换主人 ⇒ 不会切断任何一次拷贝
             if (both_idle) begin
+                // #174：`why_ps` 与 `owner_eth` 在**同一个决定点**写，才是"判决那一拍的输入快照"。
+                // 挂在无条件那一支时每拍跟输入刷新 ⇒ 拷贝期间（主人被互锁冻住）翻 `eth_live`，
+                // 屏上/上位机读到的"为什么 PS 拿着"会跟着变，而主人一次都没换。
+                // 台架 `sim/tb_src_arb_why.v`：`W5` 钉这件事（改前红），`W7` 是它的反配对
+                //（真换手那一拍必须重新快照 ⇒ 不许修成"再也不更新"）。
+                why_ps <= {force_ps, ~eth_live, ~eth_tb_ok};
                 if (eth_wanted)             owner_eth <= 1'b1;
                 else if (quiet >= T_OFF_CYC) owner_eth <= 1'b0;
             end

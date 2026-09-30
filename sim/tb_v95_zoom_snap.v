@@ -18,19 +18,21 @@ module tb_v95_zoom_snap;
     reg        zactive = 1'b0;
     reg        zdir = 1'b0;
     reg  [9:0] zinv = 10'd0;
+    reg        rf   = 1'b0;               // #175：旋转钳旗 = 总线的第 20 位（bit19）。默认 0
 
-    wire [18:0] bus;
+    wire [19:0] bus;
     wire        bus_tog;
     zoom_snap u_dut (
         .pix_clk(clk_pix), .pix_rst_n(rst_n), .frame_start(frame_start),
         .zman(zman), .zsel(zsel), .zoom_code(zcode), .zoom_active(zactive),
-        .zoom_dir(zdir), .inv_scale(zinv), .bus(bus), .bus_tog(bus_tog));
+        .zoom_dir(zdir), .inv_scale(zinv),
+        .rot_forced(rf), .bus(bus), .bus_tog(bus_tog));
 
-    // 下游：与硬件同一对参数（W=19 / DST_HZ=100 MHz / HB_TO_MS=200）
-    wire [18:0] bus_q;
+    // 下游：与硬件同一对参数（W=20 / DST_HZ=100 MHz / HB_TO_MS=200）—— #175 起总线多一位
+    wire [19:0] bus_q;
     wire        hb_gone, hb_slow;
     reg         hb_tog = 1'b0;
-    snap_cross #(.W(19), .DST_HZ(100_000_000), .HB_TO_MS(200)) u_x (
+    snap_cross #(.W(20), .DST_HZ(100_000_000), .HB_TO_MS(200)) u_x (
         .dst_clk(clk_axi), .dst_rst_n(rst_n),
         .bus(bus), .bus_tog(bus_tog), .hb_tog(hb_tog),
         .bus_q(bus_q), .hb_gone(hb_gone), .hb_slow(hb_slow));
@@ -40,10 +42,12 @@ module tb_v95_zoom_snap;
     localparam integer FRAME_CY = 24;         // 见文件头的"帧周期压缩"
 
     integer errors = 0, i, f, k;
+    integer e8 = 0;                     // Z8：进这一段时的沿数
+    reg [19:0] v8 = 20'd0;             // Z8：基准帧的整条总线
     integer tog_cnt = 0;                      // 源域发了几个沿
     time    fs_t = 0, tg_t = 0;               // 最近一次采样沿 / 最近一次发沿
     integer lag_min = 1 << 30, lag_max = 0;   // Z4 要的是"正好 8 拍"，两端都卡
-    reg [18:0] seen_vals [0:159];             // 源域**真的发出去过**的值（Z5 的白名单）
+    reg [19:0] seen_vals [0:159];             // 源域**真的发出去过**的值（Z5 的白名单）
     integer    n_seen = 0;
     integer    torn = 0;
 
@@ -74,7 +78,8 @@ module tb_v95_zoom_snap;
             @(posedge clk_pix);                       // ← DUT 在这一拍采到脉冲
             fs_t = $time;
             #1; frame_start = 1'b0;
-            seen_vals[n_seen] = {m, s, c, a, d, v}; n_seen = n_seen + 1;
+            // #175：白名单记的是"源域真的发出去过的整条总线"⇒ 新位也要进，顺序与 DUT 的 in_bus 一致
+            seen_vals[n_seen] = {rf, m, s, c, a, d, v}; n_seen = n_seen + 1;
             hb_tog = ~hb_tog;                         // 硬件里 = sof_tgl，每帧翻一次
             repeat (FRAME_CY - 2) @(posedge clk_pix); // 凑满一帧
         end
@@ -82,7 +87,7 @@ module tb_v95_zoom_snap;
 
     task settle; begin repeat (30) @(posedge clk_axi); end endtask   // 3 级同步 + 采样 + 余量
 
-    function is_published; input [18:0] v;
+    function is_published; input [19:0] v;
         begin
             is_published = 1'b0;
             for (k = 0; k < n_seen; k = k + 1) if (seen_vals[k] === v) is_published = 1'b1;
@@ -97,11 +102,11 @@ module tb_v95_zoom_snap;
         end
 
     initial begin
-        seen_vals[0] = 19'd0; n_seen = 1;             // 复位态
+        seen_vals[0] = 20'd0; n_seen = 1;             // 复位态
         repeat (4) @(posedge clk_axi);
         @(posedge clk_pix); #1; rst_n = 1'b1;
         repeat (4) @(posedge clk_axi);
-        expect("Z0 reset: bus=0, no edge, bus_q=0", bus === 19'd0 && tog_cnt == 0 && bus_q === 19'd0);
+        expect("Z0 reset: bus=0, no edge, bus_q=0", bus === 20'd0 && tog_cnt == 0 && bus_q === 20'd0);
 
         // ---- Z1 全零值连发 20 帧：一个沿都不许有 ----
         for (f = 0; f < 20; f = f + 1) publish(1'b0, 3'd0, 3'd0, 1'b0, 1'b0, 10'd0);
@@ -164,6 +169,22 @@ module tb_v95_zoom_snap;
 
         $display("  stats: edges=%0d published=%0d lag=%0d..%0d ns (want %0d)",
                  tog_cnt, n_seen, lag_min, lag_max, LAG_NS);
+        // ---------- Z8（#175）：六位输入一字不动、只翻旋转钳旗 ----------
+        // 复位到这里 rf 一直是 0 ⇒ 前面所有判据看到的都是 bit19=0。这一条要钉的是：
+        //   ① 新位仍守"帧首整拍换 + 一次变化恰好一个沿"；② 撕烈探测器不许因此误报（白名单已含新位）。
+        //   少了这条，"新位绕过帧首直接挂在组合逻辑上"那种写法能一路绿灯。
+        publish(1'b0, 3'd0, 3'd0, 1'b0, 1'b0, 10'd0);   settle;   // 基准帧：整条总线回到全 0
+        e8 = tog_cnt; v8 = bus;
+        rf = 1'b1;
+        publish(1'b0, 3'd0, 3'd0, 1'b0, 1'b0, 10'd0);   settle;   // 六位与基准一模一样，只有 rf 变了
+        expect("Z9a only bit19 moved (frame-boundary capture)", bus === (v8 | 20'h80000));
+        expect("Z9b a lone rot_forced change = exactly one edge", (tog_cnt - e8) == 1);
+        expect("Z9c the tearing detector stayed quiet across it", torn == 0);
+        rf = 1'b0;
+        publish(1'b0, 3'd0, 3'd0, 1'b0, 1'b0, 10'd0);   settle;   // 撤掉：可逆，且又一个沿
+        expect("Z9d clearing rot_forced is reversible, one more edge",
+               (bus[19] === 1'b0) && ((tog_cnt - e8) == 2) && (torn == 0));
+
         if (errors == 0) $display("PASS tb_v95_zoom_snap");
         else             $display("FAIL tb_v95_zoom_snap errors=%0d", errors);
         $finish;

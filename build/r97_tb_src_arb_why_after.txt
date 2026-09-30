@@ -1,0 +1,15 @@
+  PASS W1a_reset_shape | in reset: owner=0, why_ps=011 (unproven timebase) | 3
+  PASS W1b_first_edge_after_reset | first snapshot sees no stream, timebase ok | 2
+  PASS W2_eth_grabs_when_live | eth_wanted=1 and idle => owner=ETH | 1
+  PASS W3_owner_hands_off_to_ps | quiet hysteresis hands the bus back | 0
+  PASS W3b_reason_at_handover | deciding edge: no stream, timebase ok | 2
+  PASS W4_interlock_holds_mid_copy | mid-copy interlock refuses to flip the owner | 0
+  PASS W5_why_ps_is_a_decision_snapshot | #174 must freeze with the owner (010) | 2
+  PASS W6_eth_retakes_after_copy | ETH retakes the bus once both engines idle | 1
+  PASS W7_reason_moves_at_next_handover | a real handover re-snapshots: 100 = pinned | 4
+checks=9 errors=0
+TB RESULT PASS
+INFO: [Common 17-206] Exiting xsim at Wed Sep 30 19:33:20 2026...
+exit
+INFO: [Common 17-206] Exiting xsim at Wed Sep 30 19:33:20 2026...
+VERDICT tb_src_arb_why: TB RESULT PASS（tb_src_arb_why） || FAIL 行数=0 || PASS 行数=9

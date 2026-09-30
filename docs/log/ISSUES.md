@@ -7182,3 +7182,33 @@ r94/#104 起旋转支的小数位真的交给读口了）"。**app 还没重 bui
 - **顺带记一条验收表的口径**：今天开机那一读处于旋转态 ⇒ **不能用它给"上电默认 1.00x"那一格（第 4 行）盖章**；
   那一格仍然引用旧凭据，补跑要先把旋转钉住（`rot auto 0` 之后读 OSD 的角度格，而不是只发命令）。
   规矩同 #178：**判据自己构造前提**。
+## r97 三刀落地（2026-09-30 19:2x–19:3x，#174 / #175 / #176 + 注释更正 + 我自己那条 #187）
+
+- **#174 `src_arb.v`**：`why_ps` 从无条件那一支搬进 `if (both_idle)`（与 `owner_eth` 同一个决定点）
+  ⇒ 主人不换的期间"为什么 PS 拿着"不再跟着输入抖。**改后绿**：`sim/tb_src_arb_why.v` 9/9
+  （`build/r97_tb_src_arb_why_after.txt`；改前红在 `build/r96_174_before.txt`，同一把尺子、同一条 `W5`）。
+  `W7` 这条反配对仍然绿 ⇒ 修法不是"把 `why_ps` 钉死不动"。
+- **#176 `zoom_ctrl.v`**：`zoom_active` 两处（手动支 `:107`、稳态支 `:135`）都改成比 `inv_used`。
+  **改后绿**：`tb_v94_zoom_sel` 20/20，含正文 `T8g`（钳到 0.75x ⇒ 这一位必须报"在缩放"）
+  与反配对 `T8h`（真 1.00x ⇒ 必须报 0）——两条一起绿才排除"恒 1"那种糊法。
+- **#175 `zoom_snap.v` + `pl_video_top.v`**：快照总线 19 → **20 位**，新位放在**最高位**（`bus[19] = rot_forced`），
+  顶层 `dbg_zoom` 的 bit19 变成 `split_ctl[18] | z_bus_axi[19]` ⇒ **低 19 位一个位都没动**，现有解码照旧；
+  这一位搭同一条准静态快照过域 ⇒ **零新增跨域**（`report_cdc` 的配对集合不会因此多一行）。
+  台架侧：`tb_v95_zoom_snap` 扩到 20 位并补 **Z9a–Z9d**（只翻钳旗也必须"帧首整拍换 + 恰好一个沿 + 撕烈探测器不误报 + 可逆"）
+  ⇒ 21/21 绿（`build/r97_tb_v95_zoom_snap_after.txt`）。
+  ⚠ **这条的鉴别证据是板上一对，不是台架改前红**：新位在旧 RTL 里根本不存在，台架编不过就等于"没测"。
+  改前那一半已经在今天留下了：`build/evidence/verify_0930_1845.txt` 里 `lane23=0x800621d8`
+  （`zsel=4 zcode=2 inv=472 bit19=0`）⇒ `health_read` 念 `MISMATCH`；改后同一状态必须 `bit19=1` 且它落回宽松分支念 `OK`。
+  **这一条今天没验到**（要刷板），记在未账上。
+- **顺带改掉的一条错注释**（`zoom_ctrl.v:67-69`）：原来写"`zoom_fit` 在 0° 给 259 ⇒ 角度正好 0° 也在钳"。
+  顶层递进来的 `rotate_en` 就是 `angle_ctrl.v:18` 的 `rotate_active = (angle != 0)` ⇒ **0° 整支不参与**。
+  这是 #162 量过、注释一直拖到今天才改的那条（任务 #134 的第④项）。
+- **#187（我自己的台架洞）**：`tb_v98` 的 `C11pre` 上一轮红 ⇒ 这一版把前提改成自己构造：
+  摆 `eth_link=1` 之后**真的发一次 `eth_commit`**（= `pl_video_top.v:406` 的 `commit_req`），
+  等 `u_cmt` 走完"开窗 → start_copy → copy_done"那一拍脉冲，最多 300 万 axi 拍，等不到就把
+  `eth_has_frame / eth_link_pix / u_cmt.pending / u_cmt.copy_active` 打出来。
+  **这条今天不算验过**——要等下一次整屏（约 85 分钟）才知道守卫是不是绿。
+- **树的指纹与回归面**：`rtl_md5=45e09e8b3b9d`（`find src/rtl -name '*.v' | sort | xargs md5sum | md5sum`）。
+  五把快尺子全绿：`tb_writer_abort` 12/12、`tb_commit_strobe` 12/12、`tb_v94_zoom_sel` 20/20、
+  `tb_src_arb_why` 9/9、`tb_v95_zoom_snap` 21/21；另外 `tb_zoom_frac`、`tb_zoom_mapper`、`tb_bilin_lerp` 也重跑过没退。
+  顶层台架与边缘条带留给本轮的链（构建完之后 `ROUND=r97`）。

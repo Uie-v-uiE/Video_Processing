@@ -1692,8 +1692,17 @@ module tb_v98_top_seam;
         // 注入走 `force dut.u_cmt.copy_abort`：顶层没暴露 `WD_CYC`，等 20 ms 看门狗不值得；
         // 这一拍会经过 v7.9 那套**翻转式脉冲同步器**（`abort_tgl` → `copy_abort_pix`），
         // 也就是说这条判据同时在检查"脉冲真的跨过来了"，不是直接改像素域的位。
+        // ⚠ 前提必须**自己构造**（#187：上一版这里只把 `eth_link` 摆成 1 就等 12 拍，于是
+        //   `eth_has_frame` 从来没被置起来，C11/C11b 是在空样本上打的 PASS —— 守卫把它们拦住了，
+        //   但拦住不等于判过）。现在真的发一次提交：`eth_commit` = 顶层的 `commit_req`（pl_video_top.v:406），
+        //   等 `u_cmt` 走完"消隐开窗 → start_copy → copy_done"，`frame_ready_pix` 那一拍才会把锁存置 1
+        //   （#171 之后它是脉冲，不是电平）。等不到就把这一段的状态打出来 —— 红也要红得能读。
         eth_link = 1'b1;
-        repeat (12) @(posedge axi_clk);
+        @(negedge axi_clk); eth_commit = 1'b1;
+        @(negedge axi_clk); eth_commit = 1'b0;
+        for (ii = 0; ii < 3000000 && dut.eth_has_frame !== 1'b1; ii = ii + 1) @(negedge axi_clk);
+        $display("DBG C11pre waited %0d axi cycles: eth_has_frame=%b eth_link_pix=%b u_cmt.pending=%b u_cmt.copy_active=%b",
+                 ii, dut.eth_has_frame, dut.eth_link_pix, dut.u_cmt.pending, dut.u_cmt.copy_active);
         line("C11pre frame is latched", dut.eth_has_frame === 1'b1 && dut.eth_link_pix === 1'b1,
              "empty-set guard: a committed frame must be latched before judging whether abort drops it");
         force dut.u_cmt.copy_abort = 1'b1;

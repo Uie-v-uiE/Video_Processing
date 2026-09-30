@@ -15,18 +15,23 @@ module zoom_snap (
     input  wire        zoom_active,   // 这一帧是否在缩放
     input  wire        zoom_dir,      // 呼吸方向（自动档才有意义）
     input  wire [9:0]  inv_scale,     // 真正喂给 zoom_mapper 的 Q8 倒数
-    output reg  [18:0] bus,
+    // #175：旋转钳把生效倍率定在角度上（#93），而 lane23 的 bit19 当时只报"上位机请没请求拟合"⇒
+    //   上位机读到"档 4 而 inv=472"却说不出为什么（今天板上真的这样：`zsel=4 zcode=2 inv=472 bit19=0`）。
+    //   多带这一位**不新增跨域**：它跟着同一条准静态总线、同一个帧首沿过到 axi 域。
+    input  wire        rot_forced,    // 1 = 这一帧生效的倍率是被旋转钳出来的
+    output reg  [19:0] bus,
     output reg         bus_tog
 );
-    // 位序 = lane23 的位序（去掉 axi 侧的 alive 位）：{zman, zsel, zoom_code, active, dir, inv}
-    wire [18:0] in_bus = {zman, zsel, zoom_code, zoom_active, zoom_dir, inv_scale};
+    // 位序 = lane23 的位序（去掉 axi 侧的 alive 位）：{rot_forced, zman, zsel, zoom_code, active, dir, inv}
+    // ⚠ 新增的 `rot_forced` 放在**最高位**：下面 19 位的位置一个字都不动 ⇒ 现有上位机解码全部照旧。
+    wire [19:0] in_bus = {rot_forced, zman, zsel, zoom_code, zoom_active, zoom_dir, inv_scale};
 
     reg       pend;       // 这一帧换了值，等着发沿。不变化时**不发沿**：呼吸档每帧都在动，那属于 zoom_active=1 的正常路径，见文件头 ② 的计数判据
     reg [7:0] dly;        // 帧首脉冲往里走，第 8 拍 = 总线必定稳定的时刻
 
     always @(posedge pix_clk or negedge pix_rst_n) begin
         if (!pix_rst_n) begin
-            bus <= 19'd0; bus_tog <= 1'b0; pend <= 1'b0; dly <= 8'd0;
+            bus <= 20'd0; bus_tog <= 1'b0; pend <= 1'b0; dly <= 8'd0;
         end else begin
             dly <= {dly[6:0], frame_start};
             if (frame_start) begin

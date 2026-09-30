@@ -65,8 +65,10 @@ module zoom_ctrl #(
     // #93：旋转时不许放大到画外 —— 生效倍率取"用户那一档"与"这个角度刚好装得下那一档"里
     //   **画面较小**的那一个（inv 越大画面越小 ⇒ 取较大的 inv）。
     //   代价（写进口径，不藏着）：① 旋转态因此**不提供放大**，1.33x/1.5x/2.0x 三档在旋转时被拉回 fit；
-    //   ② `zoom_fit` 在 0° 因为 ±0.5 LSB 的表余量给的是 259 而不是 256 ⇒ 角度正好 0° 也在钳，
-    //   画面差 1.2 %（6 个源列，肉眼不可分辨）。两条都由 tb_v94_zoom_sel 的 T8 钉住。
+    //   ② **0° 不在钳之内**：顶层递进来的 `rotate_en` 就是 `angle_ctrl.v:18` 的 `rotate_active = (angle != 0)`，
+    //     所以角度正好 0° 时这一支整个不参与（`inv_used == inv_raw`）。这里原先写的是"0° 因为 ±0.5 LSB
+    //     的表余量给 259 ⇒ 也在钳"——那是把 `zoom_fit` 的**输出**当成了生效条件，实测口径见 #162，
+    //     注释一直留到本轮（r97）才改。两条口径都由 tb_v94_zoom_sel 的 T8 钉住（T8a 是"不旋转时一个字都不改"的负对照）。
     wire       rot_clamp = rotate_en && (inv_raw < inv_fit);
     assign inv_used   = rot_clamp ? inv_fit : inv_raw;
     assign rot_forced = rot_clamp;
@@ -104,7 +106,9 @@ module zoom_ctrl #(
                 // 手动档：**与呼吸同一个节拍，只在帧首换** ⇒ 一帧之内不会半屏新一档半屏旧一档。
                 // `dir` 故意不动：从手动切回自动时，从当前 inv 继续朝原方向走（不跳档）。
                 inv_scale   <= tbl(zsel);
-                zoom_active <= (tbl(zsel) != INV_LO);
+                // #176：这一位比较的也必须是一真在用的那一个（`inv_used`），不是用户那一档 ——
+                // 旋转钳生效时"档号 = 1.00x"而画面缩到 0.75x，lane23 的 bit11 就在那里说过谎。
+                zoom_active <= (inv_used != INV_LO);
             end else if (frame_start) begin
                 // 手动档可以把画面停在呼吸带**之外**（2.0x 在下方、0.25x 在上方）。
                 // 切回自动时不许瞬移：原来 `!dir` 那一支在 inv 已经大于 INV_HI 时会写成
@@ -132,7 +136,8 @@ module zoom_ctrl #(
                 end
                 zoom_active <= 1'b1;
             end else begin
-                zoom_active <= (inv_scale != INV_LO);
+                // #176：稳态这一支也一样 ⇒ "有没有在缩放"只看**真正喂给 mapper 的那一个**（`inv_used`）。
+                zoom_active <= (inv_used != INV_LO);
             end
         end
     end
