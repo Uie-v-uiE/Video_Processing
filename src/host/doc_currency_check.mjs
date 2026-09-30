@@ -18,9 +18,10 @@
 //      `build/*gates*.txt` 里**编号最大且写着 GATES: ALL PASS** 的那一套；并且 README.md 里
 //      至少要有这么一句（没有就等于没说）。⇒ 下一次冻结成功时，这一条会自己变红，逼着改首页。
 //
-// 用法：node src/host/doc_currency_check.mjs [--self|--probe]
-//   --self  判据自己的反例（三条各造一条坏输入 + 一条正当的过去式不许误报）
-//   --probe 只报数不判红（用来先看口径会不会咬到正当的历史句）
+// 用法：node src/host/doc_currency_check.mjs [--self|--probe|--list-adv]
+//   --self       判据自己的反例（三条各造一条坏输入 + 一条正当的过去式不许误报）
+//   --probe      只报数不判红（用来先看口径会不会咬到正当的历史句）
+//   --list-adv   把"只报数"那一半逐条打出来（#121：口径必须可复现，纯打印不参与退出码）
 import { readFileSync, readdirSync, statSync } from 'node:fs';
 import path from 'node:path';
 
@@ -139,6 +140,25 @@ const CITE_ART = new RegExp(
 //     它们是评审会照着翻的指路。日记（docs/log/）、RTL/脚本注释里点名的很多是
 //     **当时生成又随后删掉**的中间件（`build/wip_*.sh`、`sim/xsim.log`、某次的 `.log`），
 //     把它们判红等于逼人去改历史记录（#98 那条老规矩）；这一类只报数、不判红。
+//   #121 补的就是"只报数"那一半的分类（2026-09-30 实测 126 条，`--list-adv` 可逐条复现）：
+//     按**出处**分：docs/log/ 的追加式日记 92 条、build/ 与 src/ 与 sim/ 与 board/ 的脚本注释 33 条、
+//                  skill/ 卡片 1 条 —— **交付文档（DELIVERY）里 0 条**，这正是 hard 层的判据范围；
+//     按**被点名的东西**分（类间有重叠）：
+//       ① `.log` 31 条：`.gitignore` 从一开始就把 `*.log` 挡在仓库外（#172 的同一个洞的另一半 ⇒
+//          冻结件必须叫 `.txt`），这些句子指的是"跑完这一步会生成什么"，不是"去看这份凭据"；
+//       ② 旧轮次凭据 `build/rNN_*` 37 条：rNN 收尾后按清理规则删掉的中间件（日记写的是当时的事实）；
+//       ③ `board/sd_*` 14 条：SD 坏点调查期间的诊断留痕，结案时随 #89/#123 一起清；
+//       ④ KU5P 残名 9 条：2026-09-28 KU5P 那棵树整体删除（任务 #89），脚本与日记里的名字是历史；
+//       ⑤ `build/isolated_*` 6 条：隔离滚的产物目录，同样按轮次清理；
+//       ⑥ `build/evidence/` 5 条：这一类要留个心眼 —— 它是**该在盘上的凭据目录**，若哪天指路指向一个
+//          从未生成过的文件名，就该是红的；今天这 5 条都是"当时存在、后被移动"的日记句。
+//     判"能不能删/能不能改名"的依据由此而来：**出处在交付文档里 ⇒ 判红；出处在日记或注释里 ⇒ 只报数**。
+//     谁要复核这条口径，跑 `--list-adv` 数一遍两类出处即可，不必信上面这些数。
+//     剩下没被上面六类盖住的 24 条也各有归属：退役台架与 wip 脚本的名字（P2 那轮 sim/ 剔除 #108、
+//     `build/wip_*.sh` 清理 #123 删掉的）、`board/uart_*` 系列的调查留痕（与③同族，只是文件名不含 sd_），
+//     以及**历史叙述里那句"当时找错了路径"**（如 `ISSUES.md:435` 讲的 `build/build/system.bit` ——
+//     它点名的是"root 少一级"这个已修缺陷，不是让人去打开这个文件）。
+//     逐条身份（谁指谁、属哪一类）的表在 `docs/D4C_POINTERS.md`，那份表自带"条数只对快照那一分钟负责"的声明。
 const DELIVERY = (rel) => HOME.includes(rel) || rel === 'board/README.md'
     || /^docs\/(?!log\/)[\w.-]+\.md$/.test(rel);
 
@@ -313,6 +333,13 @@ if (argv.includes('--self')) {
 
 const { rows, adv, nd, g, n, m } = scanTree();
 console.log(`扫了 ${n} 个文档（D1/D2/D3）+ ${m} 个手写文件（D4）；最新且 ALL PASS 的冻结集 = ${g.name || '（没有）'}`);
+// `--list-adv`：把"只报数不判红"那一半逐条打出来（#121：口径必须能说清，不能只留一句"不算指路错误"）。
+// 纯打印，不参与退出码，也不改任何判据 —— 判据的红绿仍由 rows/hard 决定。
+if (argv.includes('--list-adv')) {
+    for (const a of adv) console.log('  ADV ' + a);
+    console.log(`（adv ${adv.length} 条：以上只报数，不参与退出码）`);
+    process.exit(0);
+}
 if (argv.includes('--probe')) {
     for (const r of rows) console.log('  ' + r);
     console.log(`（probe：以上 ${rows.length} 条只报数，不判红）`);
