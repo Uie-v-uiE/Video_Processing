@@ -871,3 +871,43 @@ WNS ≥ +0.65、WHS ≥ +0.15、失败 setup/hold 端点 = 0、BRAM ≤ 95 tile�
 - 工具改完把门禁重跑了一遍：仍是 `GATES: 有红项（判定 20 项）`、唯一红项 `C5c`（`build/r94_gates.txt`，15:31 那一版）
   ⇒ 这一节的改动**没有**把任何绿项改成红、也没把红改成绿（除了它本来就该修的出身项）。
 
+
+## r96（2026-09-30 17:07–18:5x，正式件 `build/system.bit` md5 `76d6442991e0`，源树 `rtl_md5=fe573f9b2024`，已烧板）：两刀功能修复 + 台架链补齐
+
+**这一轮改的是什么**（不是时序刀，按规矩 #35 只报数、不念收益）：
+
+- **#170** `axi_frame_writer_gated.v`：看门狗 `abort` 之后**在途的读突发必须排空**才允许下一帧起头。
+  旧写法把 abort 当"立即结束"，那些已经发出的 AR 的 R 拍会串进下一帧的写窗口。新增 `drain_left`/`start_hold`
+  一个排空态，`m_axi_rready` 在排空期间继续吃 R、但三个写口都关掉；排空期间上位机又按 start 会被记一笔、
+  排空完成那一拍补起（免得"这一次按了没反应"变成另一种锁死）。
+- **#171** `frame_commit_lock.v` + `pl_video_top.v`：`frame_ready_pix` 从"置 1 后只有异步复位才清"改成
+  **一拍的脉冲**（`r1 ^ r2`），顶层 `eth_has_frame` 的 `else if` 顺序也跟着换 ——
+  旧几何下 `copy_abort_pix` 那一支**永远轮不到**，abort 之后那张撕裂帧照样显示、`status` 里的 `eth_ready` 照样读 1。
+
+**三阶段凭据**（改前红 / 改后绿 / 变异对照）：`sim/tb_writer_abort.v` 12 条（`build/r96_writer_abort_before.txt`
+3 红 → `..._after.txt` 12/12 绿）、`sim/tb_commit_strobe.v` 12 条（before 2 红 → after 12/12；
+把 `frame_commit_lock.v` 单文件退回 HEAD ⇒ **B1/B2/B3/A8/B4 五红**，`build/r96_commit_strobe_mutation.txt`）。
+本轮链的第⓪步把这两把尺子**纳入复跑**（以前它们只有"当天手动跑过一次"这一个凭据）。
+
+**门禁与冻结**：`build/r96_gates.txt` 判定 20 项、1 项红 —— 红的是顶层台架那项，报告里有 2 行 FAIL：
+`C5c`（从 r77 起故意留着的那条）与 `C11pre`（**我今天新加的守卫自己红 ⇒ 见账 #187**：它说明 `C11/C11b`
+是在"帧从没被锁存"的空样本上打的 PASS，所以 #171 的**顶层**判据本轮记为**未判**，模块级证据不受影响）。
+WNS **0.749** / WHS **0.049** / 失败 setup 端点 **0** / 失败 hold 端点 **0**；BRAM **95** tile(67.86 %)、
+Slice LUT **14388**(27.05 %)、FF **8077**、DSP **19**、Dynamic **2.206 W**。
+逐时钟：`eth_rxc 0.749/0.049`（门禁 WNS 的归属）、`clk_fpga_0 1.755/0.051`、`clkout0_1 0.840/0.062`、
+`sys_clk 14.272/0.121`。**这些绝对值不与 r94 的 0.553 比高低**：本轮是功能刀、且 WNS 归属仍在同一组，
+按规矩 #35 一句"变好了"都不许写。能写的只有"0 违例、失败端点 0、这一版被烧进板子并过机器验收"。
+试冻结 `bash build/freeze_evidence.sh 96` **按预期拒绝**（复读 `GATES: 有红项…不采纳`，`build/frozen_r96` 未生成）
+⇒ **冻结集继续是 r75**。
+
+**板级**：JTAG 三步（`build/evidence/r96_flash_1_ps_boot.txt`、`build/evidence/r96_flash_2_program_pl.txt`、
+`build/evidence/r96_flash_3_app_reload.txt`：`PS7_INIT: ok` → `PROGRAMMED xc7z020_1` → `FLOW_DONE`；
+第一步第一次连不上是因为本机没有 hw_server 在听 3121）。机器验收 `build/evidence/verify_0930_1845.txt`：
+`RESULT board_verify PASS（判红的步骤：0）`，串口电池 105 条 / 97.7 s 全过、末态 = 演示默认档 `geom=00400000`；
+`--stream` 九条全绿（接管 365 ms、稳占 22/22 不抖、停流交回 67 ms、再推可逆 182 ms）。
+**欠一格**：停流是干净交回，不是"拷贝中途被看门狗打断"⇒ #170/#171 的板级形态（撕裂帧不再显示、`eth_ready` 读 0）
+留给一次带 `--drop-packet` 的注入演示，不能算今天验过了。
+
+**工具/链的一侧**（与本轮同窗做完）：链产物名改由 `ROUND` 派生、新增第⓪步、加"bit 不比 RTL 新就拒绝起链"的守卫
+（当场用真树验过 rc=1）；`run_one.sh` 的判定解析与退出码（#166/#169）带五条对照（`build/run_one_ce.sh`）；
+`#121` 的 D4c 分类现在可 `--list-adv` 逐条复现；巡检新记 **#180–#186** 七条 + 我自己这条 **#187**。
