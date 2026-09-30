@@ -133,7 +133,14 @@ module frame_commit_lock #(
         if (!pix_rst_n) begin {r2,r1,r0} <= 0; frame_ready_pix <= 0; end
         else begin
             {r2,r1,r0} <= {r1,r0,ready_tog};
-            if (r1 ^ r2) frame_ready_pix <= 1;
+            // #171：这里原来是 `if (r1 ^ r2) frame_ready_pix <= 1;` —— **只置不清**，
+            // 除像素域异步复位之外没人把它落回去 ⇒ 它是个电平，一帧提交之后就永久为真。
+            // 顶层 `pl_video_top` 的 `else if (frame_ready && eth_link_pix) eth_has_frame<=1;`
+            // 因此永远抢在 `else if (copy_abort_pix)` 之前 ⇒ abort 那一支**不可达**，
+            // 撕裂帧照样显示、`status` 里的 `eth_ready` 照样读 1。
+            // 这一位的语义本来就该是"刚提交了一帧"这件事**发生了一拍**，不是"曾经提交过"。
+            // （顶层里 `frame_ready` 只有那一个消费者 —— grep 过，所以改脉冲不牵连别处。）
+            frame_ready_pix <= (r1 ^ r2);
         end
     end
 endmodule

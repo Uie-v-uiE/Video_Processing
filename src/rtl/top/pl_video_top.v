@@ -497,8 +497,13 @@ module pl_video_top #(
 
     always @(posedge clk_pix or negedge rst_pix_n) begin
         if (!rst_pix_n) eth_has_frame <= 1'b0;
-        else if (frame_ready && eth_link_pix) eth_has_frame <= 1'b1;
+        // #171：两支换了顺序 —— abort 排在"刚提交"之前。
+        //   ① `frame_ready` 现在是 `frame_commit_lock` 给的**一拍脉冲**（过去是永久电平，
+        //      所以这一支天天为真、下面那一支根本轮不到）；
+        //   ② 万一提交沿与 abort 沿真的撞在同一拍（看门狗与 copy_done 同时到，毫秒级以下才可能），
+        //      赢的必须是"这一帧不可信"，不是"刚换了一帧"。
         else if (copy_abort_pix) eth_has_frame <= 1'b0;
+        else if (frame_ready && eth_link_pix) eth_has_frame <= 1'b1;
     end
 
     wire [15:0] fb_rd;

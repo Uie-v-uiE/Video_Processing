@@ -110,18 +110,21 @@
   复验（真跑）：`bash sim/run_one.sh tb_ce169_no_such` —— xelab 必然失败，之后盘上 `prov.txt` 与 `run.log`
   仍是**成对的旧件**、没有残留 `prov.tmp`（`build/r96_run_one_compilefail.txt`）。
   旧的自查一行仍然有效：`stat -c "%Y %n" /tmp/kx/<tb>.run/prov.txt /tmp/kx/<tb>.run/run.log`，**prov 比 run.log 新就是脏**。
-- **`#170`/`#171`（高/中，设计）**：`axi_frame_writer_gated.v` 在 abort 之后让 `m_axi_rready` 直接掉 0，
-  在途的读拍会串进下一帧（整帧平移 + 顶部花，且 `outstanding` 从此失配）；`pl_video_top.v` 的 else-if 顺序
-  让"abort 清掉帧已就绪"那一路**不可达** ⇒ 撕裂帧照显示、`eth_ready` 照读 1。
-  **#170 的尺子已就位并拿到改前红**：`sim/tb_writer_abort.v`（只测那一个模块，R 响应器照协议 held 住 `rvalid`）
-  —— 基线四全绿、前提两条成立，而 B3/B5/B6 红：新帧首拍是上一帧的第 4 个字、写了 300 个字而不是 256、
-  整帧偏移 44（凭据 `build/r96_writer_abort_before.txt`，`run_one.sh` rc=3）。
-  修法写在 ISSUES #170 那段（abort → drain 态，收完在途 burst 才允许下一帧起拍）；
-  **#171 的尺子也已就位并拿到改前红**：`sim/tb_commit_strobe.v`（模块级，看门狗用 `WD_CYC=40` **真触发**、不 force）
-  —— 七条地板判据在当前树上全绿，两条关键的红：`frame_ready_pix` 连续亮了 **57 个像素拍**（是电平不是脉冲），
-  而且第二次提交**没有新的上升沿** ⇒ 顶层 `else if (copy_abort_pix)` 那一支永远轮不到
-  （凭据 `build/r96_commit_strobe_before.txt`，rc=3）。修法是把它改成一拍脉冲 + 顶层把 abort 支排到 set 之前。
-  今天不动 `src/rtl` 还有一条硬理由：策略滚正在读这棵树（改了会静默重综合）。
+- **`#170`/`#171`（高/中，设计）—— 两刀都已落地，等 r96 构建 + 上板复验**：
+  `axi_frame_writer_gated.v` 在 abort 之后让 `m_axi_rready` 直接掉 0，在途的读拍会串进下一帧
+  （整帧平移 + 顶部花，且 `outstanding` 从此失配）；`frame_commit_lock.v` 的 `frame_ready_pix` 只置不清，
+  使顶层 `pl_video_top.v` 的 `else if (copy_abort_pix)` 那一支**不可达** ⇒ 撕裂帧照显示、`eth_ready` 照读 1。
+  **改法**：writer 增加排空态（`drain_left = outstanding`，排空期间照接收、**不写**，收完每个 burst 的 `rlast`
+  才允许下一帧起拍；排空途中按下的 `start` 记进 `start_hold`，排空完补一次起拍）；
+  `frame_ready_pix` 改成一拍脉冲，顶层把 abort 支排到 set 之前（同拍撞车时"这一帧不可信"必须赢）。
+  **两把尺子各有改前红 + 变异对照**：
+  `sim/tb_writer_abort.v` 修后 12/12 绿（`build/r96_writer_abort_after.txt`），把 writer 退回 HEAD 那一版
+  ⇒ 恰好 B2/B3/B5/B6 四条红、地板八条绿（`build/r96_writer_abort_mutation.txt`）；
+  `sim/tb_commit_strobe.v` 修后 12/12 绿（`build/r96_commit_strobe_after.txt`），退回 HEAD ⇒ B1/B2/B3/A8/B4 五条红
+  （`build/r96_commit_strobe_mutation.txt`）—— 五条共享同一根因，按规矩列连带红、不削弱判据。
+  ⚠ 现在 `tb_v98` / `tb_edge_rim` 的报告与树不同源（改了 `src/rtl`）⇒ 门禁第 15/16 项会红在出身，
+  这是**待复跑**、不是新缺陷；r96 那一轮构建 + 台架 + 上板会把它带回来。
+  #171 的端到端那一半（"abort 之后 `eth_ready` 该读 0"）仍要在顶层量：r96 给 `tb_v98` 加一条 C 族判据。
 - **`#172`/`#173`（中，交付）—— **本轮已修**：：冻结脚本产的 `rNN_tb_v98_run.log` 被 `.gitignore` 的 `*.log` 挡在仓库外
   （导出器还把 `*.log` 写进死链**免检名单** ⇒ 自检恒绿）；导出器那条"被交付文档点名 ⇒ 保留"是死规则，
   后面无条件 prune，包里的 `_pruned.txt` 会留一行假的"保留"。今天已经踩过同族一次（那份件当初带 `.log` 后缀，被 `.gitignore` 挡在仓库外，改名 `.txt` 才进得去）。

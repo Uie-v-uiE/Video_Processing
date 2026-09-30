@@ -140,8 +140,11 @@ module tb_writer_abort;
         while (wr_seen < 3 && t < 600) begin @(posedge clk); t = t + 1; end
         chk("B1_precondition_inflight", inflight === 1'b1, "bursts still unanswered at the abort moment (must be > 0)", q_w - q_r);
         abort = 1; @(posedge clk); abort = 0; @(posedge clk);
-        chk("B2_master_holds_the_beat", (rvalid_r === 1'b1) && (rready === 1'b0),
-            "after abort: rvalid still up while rready=0 (AXI forbids dropping)", q_w - q_r);
+        // B2 说的是**机制**：还在途的拍不许被挡在门外（挡着 = 它们会等成下一帧的头几拍）。
+        // 第一版写成"必须看到 rvalid=1 且 rready=0"—— 那是**改之前的症状**，修好之后反而红，
+        // 判据写成这样等于把 bug 当成期望（同族教训：期望值要从语义推，不能从当时的现象抄）。
+        chk("B2_no_beat_is_blocked", (!inflight) || (rready === 1'b1),
+            "in-flight beats must keep being accepted; blocking them is what makes #170 leak", q_w - q_r);
 
         base_addr = BASE_B; reset_obs;
         @(posedge clk); start = 1; @(posedge clk); start = 0;

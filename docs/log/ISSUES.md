@@ -6917,3 +6917,29 @@ r94/#104 起旋转支的小数位真的交给读口了）"。**app 还没重 bui
 - **r96 的改法（等策略滚结束才动 `src/rtl`）**：`frame_ready_pix` 改成置起后一拍自动落回（脉冲），
   顶层把 `copy_abort_pix` 那支排到 set 之前（防提交沿与 abort 沿同拍撞车）。
   预期：B1/B2 转绿、A 组七条保持绿；顶层那条"abort 之后 `eth_ready` 该读 0"的端到端判据走 `tb_v98` 的 C 族（r96 整屏那一跑顺手带上）。
+
+## #170 / #171 落地（2026-09-30 16:0x，r96 的 RTL 两刀；两把尺子都是"改前红 → 修 → 变异对照"三段齐）
+
+- **#170 `axi_frame_writer_gated.v`**：abort 不再"关掉接收"，而是进**排空态** ——
+  `drain_left <= outstanding`（发出未收的 burst 数），`m_axi_rready = (active && !sk_full) || dropping`，
+  排空期间照接收、**一个都不写**（`dropping` 同时关掉 `do_direct`/`do_skid`/`sk_drain` 三个写口），
+  每见一个 `rlast` 减一；数到 0 才允许下一帧起拍。排空途中按下的 `start` 记进 `start_hold`，
+  排空完成那一拍补起 —— 不补就会变成"这一次 start 被吞、屏上一直停在旧帧"（那是另一条锁死账）。
+- **#171 `frame_commit_lock.v` + `pl_video_top.v`**：`frame_ready_pix` 从"置 1 不清的电平"改成
+  `frame_ready_pix <= (r1 ^ r2)`（**一拍脉冲**，语义本来就是"刚提交了一帧"这件**事**发生了），
+  顶层那两支换了顺序：`else if (copy_abort_pix)` 在前、`else if (frame_ready && eth_link_pix)` 在后
+  ⇒ 万一提交沿与 abort 沿同拍撞车，赢的是"这一帧不可信"。`frame_ready` 在顶层只有那一个消费者（grep 过），
+  所以改脉冲不牵连别处 —— 这是"改这里安全"的依据，不是"看起来没事"。
+- **三段凭据**（`sim/run_one.sh` 的新退出码在这一步开始真正起作用：判红就是 rc=3，链会停下来而不是静默过）：
+  | 台架 | 修后 | 退回 HEAD 那一版（变异对照） |
+  |---|---|---|
+  | `sim/tb_writer_abort.v` | **12/12 PASS**（`build/r96_writer_abort_after.txt`） | B2/B3/B5/B6 四条红、地板八条绿（`build/r96_writer_abort_mutation.txt`） |
+  | `sim/tb_commit_strobe.v` | **12/12 PASS**（`build/r96_commit_strobe_after.txt`） | B1/B2/B3/A8/B4 五条红（同一根因，列连带红不削弱判据；`build/r96_commit_strobe_mutation.txt`） |
+  回归：`tb_v79_abort_toggle`（v7.9 翻转式脉冲同步器那支）仍 PASS（`build/r96_abort_toggle_regress.txt`）。
+  退回/恢复都是**单文件** `git checkout HEAD -- <那个文件>` + 副本还原，事后 `md5sum` 对过 ⇒ 树上没有第三态。
+- **写判据时又犯的错（记下来是因为它和 #163/#164 同一族）**：`tb_writer_abort` 的 B2 我按**改之前的症状**写
+  （"要看到 `rvalid=1` 且 `rready=0`"）⇒ 修好之后它反倒红。判据要写成机制断言
+  （"在途的拍不许被挡在门外"：`!inflight || rready`），不能抄当时的现象。
+- **本轮的账**：`tb_v98` / `tb_edge_rim` 的报告与树从此不同源（改了 `src/rtl`）⇒ 门禁第 15/16 项红在出身，
+  这是**待复跑**、不是新缺陷；r96 走"构建 → 台架 → 门禁 → 上板 → 重导提交包"一整套。
+  #171 的端到端那一半（abort 之后 `eth_ready` 该读 0）也要在顶层量：r96 给 `tb_v98` 加一条 C 族判据。

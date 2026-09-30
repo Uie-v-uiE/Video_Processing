@@ -103,48 +103,66 @@ module tb_commit_strobe;
         end
     endtask
 
-    integer i, n_start_before;
+    integer i, n_start_before, n_rise_before, n_rise_at;
     initial begin
         repeat (6) @(posedge axi_clk);
         axi_rst_n = 1; pix_rst_n = 1;
         repeat (6) @(posedge axi_clk);
 
-        // ---- 第一次提交：开窗口 ⇒ start_copy ⇒ copy_done ⇒ ready 亮起来 ----
+        // ================= 第一次提交：地板 + 脉冲宽度 =================
+        // ⚠ 采样窗口必须**贴着 copy_done 之后**开：第一版在 12 个像素拍之后才去读电平，
+        //   于是"修成脉冲"之后 A2 反倒红了 —— 修好了却被判成坏，这是最糟的一种假红（尺子的错）。
         blank_safe = 1; repeat (8) @(posedge axi_clk);
         do_commit;
         for (i = 0; i < 16 && n_start < 1; i = i + 1) @(posedge axi_clk);
-        chk("A1_start_copy_issued", n_start >= 1, "start_copy pulses at the window's rising edge", n_start);
+        chk("A1_start_copy_issued", n_start >= 1, "start_copy pulses at the window rising edge", n_start);
         repeat (4) @(posedge axi_clk);
+        n_rise_before = n_ready_rise; max_hi = 0; run_hi = 0;
         pulse_done;
-        repeat (12) @(posedge pix_clk);
-        chk("A2_ready_got_set", frame_ready_pix === 1'b1, "frame_ready_pix reached 1 (floor)", frame_ready_pix);
+        repeat (30) @(posedge pix_clk);
+        chk("A2_commit_raises_ready", n_ready_rise > n_rise_before,
+            "a commit must still raise frame_ready_pix (floor for B1)", n_ready_rise - n_rise_before);
+        chk("B1_ready_is_one_pix_wide", (max_hi >= 1) && (max_hi <= 1),
+            "longest frame_ready_pix run after a commit; >1 = level = #171", max_hi);
 
-        // ---- 第二次提交：起拍 ⇒ **不给 done**，让看门狗溢出 ----
-        n_ready_rise = 0; max_hi = 0; run_hi = 0;
+        // ================= 第二次提交（正常完成）：必须再有一个沿 =================
+        n_start_before = n_start; n_rise_before = n_ready_rise; max_hi = 0; run_hi = 0;
+        do_commit;
+        for (i = 0; i < 24 && n_start == n_start_before; i = i + 1) @(posedge axi_clk);
+        repeat (2) @(posedge axi_clk);
+        pulse_done;
+        repeat (30) @(posedge pix_clk);
+        chk("B2_second_commit_re_rises", n_ready_rise > n_rise_before,
+            "rising edges after the 2nd commit; level semantics show none", n_ready_rise - n_rise_before);
+        chk("B3_second_commit_also_strobe", (max_hi >= 1) && (max_hi <= 1),
+            "2nd commit pulse width in pix cycles", max_hi);
+
+        // ================= 看门狗：起拍后不给 done ⇒ 恰好一次 abort =================
         n_start_before = n_start;
         do_commit;
         for (i = 0; i < 24 && n_start == n_start_before; i = i + 1) @(posedge axi_clk);
-        chk("A3_second_copy_started", n_start >= 2, "second start_copy after window re-opens", n_start);
-        for (i = 0; i < WD + 16; i = i + 1) @(posedge axi_clk);
+        chk("A3_third_copy_started", n_start >= n_start_before + 1,
+            "third start_copy before the watchdog runs out", n_start);
+        n_rise_at = n_ready_rise;
+        for (i = 0; i < WD + 20; i = i + 1) @(posedge axi_clk);
         chk("A4_abort_fired_once", n_abort == 1, "copy_abort pulses exactly once per watchdog", n_abort);
-        chk("A5_abort_clears_active", u.copy_active === 1'b0, "u.copy_active must be 0 after abort", u.copy_active);
-        chk("A7_toggle_matches_abort", (n_tgl == n_abort) && (n_abort == 1),
-            "abort_tgl toggles once per copy_abort (v7.9)", n_tgl);
+        chk("A6_abort_clears_active", u.copy_active === 1'b0, "u.copy_active must be 0 after abort", u.copy_active);
+        chk("A5_toggle_matches_abort", (n_tgl == n_abort) && (n_abort == 1),
+            "abort_tgl toggles once per copy_abort (v7.9 contract)", n_tgl);
+        // 这一路上没有 copy_done ⇒ 不该出现任何"提交沿"（防把 abort 当成换帧成功）
+        chk("A7_no_spurious_commit_edge", n_ready_rise == n_rise_at,
+            "commit edges caused by the watchdog alone (must be 0)", n_ready_rise - n_rise_at);
 
-        // ---- 关键两条：置起必须是**脉冲**，不是一路亮到复位 ----
-        repeat (20) @(posedge pix_clk);
-        chk("B1_ready_is_a_strobe", max_hi <= 1,
-            "longest run of frame_ready_pix in pix cycles; level = #171", max_hi);
-        chk("B2_second_commit_re_rises", n_ready_rise >= 1,
-            "rising edges since 2nd commit; level hides them", n_ready_rise);
-
-        // ---- 地板收尾：abort 之后再提交一次，必须还能走完一遍 ----
-        n_start_before = n_start;
+        // ================= abort 之后还能恢复，而且仍是脉冲 =================
+        n_start_before = n_start; n_rise_before = n_ready_rise; max_hi = 0; run_hi = 0;
         do_commit;
         for (i = 0; i < 24 && n_start == n_start_before; i = i + 1) @(posedge axi_clk);
         pulse_done;
-        repeat (8) @(posedge axi_clk);
-        chk("A6_recovers_after_abort", n_start >= 3, "start_copy still happens after an abort", n_start);
+        repeat (30) @(posedge pix_clk);
+        chk("A8_recovers_after_abort", (n_start >= n_start_before + 1) && (n_ready_rise > n_rise_before),
+            "after an abort the next commit still starts and pulses ready", n_start);
+        chk("B4_still_one_pix_wide_after_abort", (max_hi >= 1) && (max_hi <= 1),
+            "post-abort commit pulse width", max_hi);
 
         $display("checks=%0d errors=%0d", checks, fails);
         if (fails == 0) $display("TB RESULT PASS");

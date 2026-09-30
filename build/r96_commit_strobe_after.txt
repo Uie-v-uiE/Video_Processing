@@ -1,0 +1,18 @@
+  PASS A1_start_copy_issued | start_copy pulses at the window rising edge | 1
+  PASS A2_commit_raises_ready | a commit must still raise frame_ready_pix (floor for B1) | 1
+  PASS B1_ready_is_one_pix_wide | longest frame_ready_pix run after a commit; >1 = level = #171 | 1
+  PASS B2_second_commit_re_rises | rising edges after the 2nd commit; level semantics show none | 1
+  PASS B3_second_commit_also_strobe | 2nd commit pulse width in pix cycles | 1
+  PASS A3_third_copy_started | third start_copy before the watchdog runs out | 3
+  PASS A4_abort_fired_once | copy_abort pulses exactly once per watchdog | 1
+  PASS A6_abort_clears_active | u.copy_active must be 0 after abort | 0
+  PASS A5_toggle_matches_abort | abort_tgl toggles once per copy_abort (v7.9 contract) | 1
+  PASS A7_no_spurious_commit_edge | commit edges caused by the watchdog alone (must be 0) | 0
+  PASS A8_recovers_after_abort | after an abort the next commit still starts and pulses ready | 4
+  PASS B4_still_one_pix_wide_after_abort | post-abort commit pulse width | 1
+checks=12 errors=0
+TB RESULT PASS
+INFO: [Common 17-206] Exiting xsim at Wed Sep 30 16:04:43 2026...
+exit
+INFO: [Common 17-206] Exiting xsim at Wed Sep 30 16:04:43 2026...
+VERDICT tb_commit_strobe: TB RESULT PASS（tb_commit_strobe） || FAIL 行数=0 || PASS 行数=12
