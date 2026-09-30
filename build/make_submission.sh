@@ -384,6 +384,12 @@ while read -r b; do
   fi
 done < _dropped_tb.txt
 
+# #195a：**通配形状**的凭据引用。上面的改名规则是逐条旧路径→新路径，可 `ls -1 build/tb_edge_rim_r*.txt`
+# 这种带星号的引用没有任何一条字面规则能命中，于是只有名字被换了（`tb_edge_rim`→`tb_display_edge_rim`）、
+# 目录还指着 `build/`，而文件已经被 3. 那段展平进 `build/reports/` 了 ⇒ 包里那份入口脚本找不到自己的凭据。
+# 改名规则在同一次 sed 里排在前（按长度），所以这条补的是"改完名之后的形状"；第 4 步会当场数一遍有没有命中。
+printf 's|build/\\(tb_display_edge_rim_r\\)|build/reports/\\1|g\n' >> _map.sed
+
 # 改写只作用于" prose 与脚本"；证据类（build/reports/、report/log/）保持原文
 find . -type f \( -name '*.md' -o -name '*.sh' -o -name '*.tcl' -o -name '*.py' -o -name '*.mjs' \
     -o -name '*.ps1' -o -name '*.bat' -o -name '*.v' -o -name '*.c' -o -name '*.h' -o -name '*.csv' \) 2>/dev/null |
@@ -575,13 +581,33 @@ EOF
 echo
 echo "导出提交 $COMMIT：$files 个文件 / $bytes，剪掉 $removed 条，死链 $DEAD，旧名残留 $STALE，绝对路径 $ABSN"
 
-# ---- 4x) 两条**内容**判定（2026-09-30 由"检查检查器"那一轮坐实，都是我自己读码确认过的）----
-# F2：以前包里没有对应位流的门禁件时，MANIFEST 会写「这一版不作交付（诊断用）」而脚本 **exit 0**——
-#     交付出去的东西自己声明自己不算交付，比不交更糟（评审第一页就读到）。根因在 gates.sh 只打
-#     mtime、从不把 system.bit 的 md5 打进报告里 ⇒ 这一位永远查不到匹配（r99 补那一刀，这里先拒）。
-# F1：随包的台架/门禁凭据从没被看过内容 ⇒ 一份写着 `RESULT … FAIL nfail=2` 的台架报告照发。
-#     本项目故意留一条红（`C5c`/#98，公开在 docs/KNOWN_ISSUES.md 第一节），所以**不是**"有红就拒"，
-#     而是"红必须在白名单里"——红得对与红得不明不白必须能区分（这条区分本身就是本项目的规矩）。
+# ---- 4x) 三条**内容/自洽**判定（2026-09-30 由"检查检查器"那一轮坐实，都是我自己读码确认过的）----
+# #191：以前包里没有对应位流的门禁件时，MANIFEST 会写「这一版不作交付（诊断用）」而脚本 **exit 0**——
+#       交付出去的东西自己声明自己不算交付，比不交更糟（评审第一页就读到）。根因在 gates.sh 只打
+#       mtime、从不把 system.bit 的 md5 打进报告里 ⇒ 这一位永远查不到匹配（本轮补那一刀，这里先拒）。
+# #190：随包的台架/门禁凭据从没被看过内容 ⇒ 一份写着 `RESULT … FAIL nfail=2` 的台架报告照发。
+#       本项目故意留一条红（`C5c`/#98，公开在 docs/KNOWN_ISSUES.md 第一节），所以**不是**"有红就拒"，
+#       而是"红必须在白名单里"——红得对与红得不明不白必须能区分（这条区分本身就是本项目的规矩）。
+# #195a：入口脚本（门禁）在包里是按 **glob** 找凭据的，而本脚本把批判据报告展平进了 `build/reports/`；
+#        改名规则是"逐条旧路径→新路径"，通配形状够不着 ⇒ 名字换了、目录没换，包里那份脚本会在
+#        第 16 项对评审报"缺凭据"。这里把那些 glob 抽出来**在包里数一遍**，数不出东西就是包的缺陷。
+GLOBCHK="${TMPDIR:-/tmp}/sub_glob_$(basename "$TMP").txt"
+: > "$GLOBCHK"
+{ grep -hoE 'ls -1 build/[^" ]*\*[^" ]*' build/gates.sh 2>/dev/null || true; } |
+  sed 's/^ls -1 //' | sort -u |
+while IFS= read -r pat; do
+    [ -n "$pat" ] || continue
+    _n="$( { ls -1 $pat 2>/dev/null || true; } | wc -l )"
+    echo "$_n $pat" >> "$GLOBCHK"
+done || true
+GLOBTESTED="$( { grep -c '' "$GLOBCHK" || true; } )"; GLOBTESTED="${GLOBTESTED:-0}"
+GLOBMISS="$( { awk '$1==0{print $2}' "$GLOBCHK" || true; } | tr '\n' ' ' )"
+echo "包内自洽：入口脚本按 glob 找凭据的引用共核对 $GLOBTESTED 条（核对数为 0 时这一条是空的，别念成绿）"
+if [ -n "$GLOBMISS" ]; then
+  echo "FAIL：包内入口脚本按这些 glob 找不到任何凭据 ⇒ 不写 $OUT：$GLOBMISS"
+  echo "      要么把改名规则补成**路径形状**（3. 那一段末尾的通用规则），要么把这些件放回它点名的目录。"
+  exit 1
+fi
 KNOWN_RED_RE='^[ ]*FAIL C5c'
 redall=0; redunk=0
 if [ -d build/reports ]; then

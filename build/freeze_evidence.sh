@@ -37,57 +37,92 @@ fi
 NG=$(grep -acE ' (PASS|FAIL)$' "$GT")
 
 mkdir -p "$D"
-# 三件成品（位流/xsa/elf）+ 七份 Vivado 报告 + 三份自检 + 台架与门禁
+# 三件成品（位流/xsa/elf）+ Vivado 报告 + 三份自检 + 台架与门禁
 # r77 起多带三件：#97 的边缘条带凭据、它自己的反例、以及"修之前红成什么样"的 C5 基线
 #（少了后两件，冻结件里就只剩"绿"，没有"这条判据曾经红过"——那是 S15/门禁 15b 反复要的东西）。
-for f in system.bit system.xsa ps_app.elf timing_summary.rpt utilization.rpt power.rpt \
-         route_status.rpt methodology.rpt cdc.rpt clock_util.rpt multi_driven.txt \
-         width_warnings.txt ports_check.txt tb_v98_report.txt r${NN}_gates.txt \
-         r${NN}_benches.txt tb_edge_rim_r${NN}.txt rim_gate_ce_r${NN}.txt \
-         tb_v98_c5_baseline.txt; do
-    [ -f "build/$f" ] && cp -f "build/$f" "$D/$f"
+#
+# #192（2026-09-30，反过来查检查器那一轮）：原来"拷哪些件"与"给哪些件算 md5"是**两份分开维护的名单**，
+#   结果是拷进冻结目录 19+6 份、MANIFEST 只盖章 11 份——没盖章的那十四份，被改动、甚至本来就没拷成，
+#   都看不出来（每个 cp 后面还挂着 2>/dev/null，连一句抱怨都没有）。
+#   修法不是把第二份名单补齐（补这一次，下一次加件照样漏），而是**盖章对象 = 目录里实际存在的文件**：
+#   以后谁往这个目录多放一件，它自动进 MANIFEST；少一件也自动看得出来。
+CORE="system.bit system.xsa ps_app.elf"
+FILES="system.bit system.xsa ps_app.elf timing_summary.rpt utilization.rpt power.rpt \
+       route_status.rpt methodology.rpt cdc.rpt clock_util.rpt multi_driven.txt \
+       width_warnings.txt ports_check.txt tb_v98_report.txt r${NN}_gates.txt \
+       r${NN}_benches.txt tb_edge_rim_r${NN}.txt rim_gate_ce_r${NN}.txt \
+       tb_v98_c5_baseline.txt"
+MISS=""
+for f in $FILES; do
+    if [ -f "build/$f" ]; then cp -f "build/$f" "$D/$f"; else MISS="$MISS $f"; fi
+done
+# 三件成品是"这套凭据属于哪一版"的唯一根据，缺一件就没有可冻结的东西（其余缺项记账不拦，
+# 因为历史上有几轮的 cdc.rpt / benches 清单本来就没生成——把它们变成硬门会把冻结变成只能冻结今天）。
+for c in $CORE; do
+    case " $MISS " in *" $c "*) echo "REFUSE：三件成品缺 $c，冻出来的是残缺套，不如不冻"; exit 1;; esac
 done
 # 构建与台架的**原始 console**（今天它们在 /tmp，不在 build/）
-cp -f /tmp/kx/r${NN}_wrap.log        "$D/r${NN}_build_console.txt" 2>/dev/null
-cp -f /tmp/kx/r${NN}_tb98_console.txt "$D/r${NN}_tb98_console.txt" 2>/dev/null
+# #193：以前这五路 cp 也是 `2>/dev/null` 一吞了之——源不在就静默少一件。现在缺项进 MISS，末尾一起念。
+cp_tmp() {
+    if [ -f "$1" ]; then cp -f "$1" "$D/$2"; else MISS="$MISS $2(源 $1 不在)"; fi
+}
+cp_tmp /tmp/kx/r${NN}_wrap.log         "r${NN}_build_console.txt"
+cp_tmp /tmp/kx/r${NN}_tb98_console.txt "r${NN}_tb98_console.txt"
 # #172：这份"逐列原始读数"过去叫 `.log`，而 `.gitignore` 里有 `*.log` ⇒ 它从来没进过 git，
 #   冻结件里那份 `c2_shape.txt` 全靠它、仓库里却没有它（今天同一族已经撞过第二次：
 #   `build/r94_flash.log` 被文档点名却进不了包）。冻结产物一律 `.txt`。
-cp -f /tmp/kx/tb_v98_top_seam.run/run.log "$D/r${NN}_tb_v98_run.txt" 2>/dev/null
-cp -f /tmp/kx/tb_v98_top_seam.run/prov.txt "$D/r${NN}_tb98_prov.txt" 2>/dev/null
+cp_tmp /tmp/kx/tb_v98_top_seam.run/run.log "r${NN}_tb_v98_run.txt"
+cp_tmp /tmp/kx/tb_v98_top_seam.run/prov.txt "r${NN}_tb98_prov.txt"
 # L1 全量回归：门禁第 15 项只盯顶层台架那一份，其余台架红着门禁也能全绿（今天撞见两次），
 # 所以冻结件里必须留"这一版下所有台架各自的结论行"。
-cp -f /tmp/kx/r${NN}_l1.log "$D/r${NN}_l1_regress.txt" 2>/dev/null
-grep -a "^C2SHAPE\|^C2 row\|^C2IBAD\|^C2BLK\|^OBS lastcol\|^ID " \
-     "$D/r${NN}_tb_v98_run.txt" > "$D/r${NN}_c2_shape.txt" 2>/dev/null
+cp_tmp /tmp/kx/r${NN}_l1.log "r${NN}_l1_regress.txt"
+# #193 的另一半：源 run 日志不在时，下面这条 grep 会**写出一个空文件**（重定向先把名字建出来），
+#   而 MANIFEST 照旧点名"逐列读数见 rNN_c2_shape.txt"——指路指到一个空壳，就是"没有凭证的凭证"。
+#   现在抽不出来就把那个空文件删掉，并让 MANIFEST 里那句话改成"这一版没有逐列读数"。
+SHAPE_N=0
+if [ -f "$D/r${NN}_tb_v98_run.txt" ]; then
+    grep -a "^C2SHAPE\|^C2 row\|^C2IBAD\|^C2BLK\|^OBS lastcol\|^ID " \
+         "$D/r${NN}_tb_v98_run.txt" > "$D/r${NN}_c2_shape.txt" 2>/dev/null
+    SHAPE_N="$( { grep -ac '' "$D/r${NN}_c2_shape.txt" || true; } )"; SHAPE_N="${SHAPE_N:-0}"
+    if [ "$SHAPE_N" = "0" ]; then rm -f "$D/r${NN}_c2_shape.txt"; MISS="$MISS r${NN}_c2_shape.txt(逐列标签 0 行)"; fi
+fi
 L1P=0; L1F=0
 [ -f "$D/r${NN}_l1_regress.txt" ] && { L1P=$(grep -ac '^RESULT .* PASS' "$D/r${NN}_l1_regress.txt");
                                        L1F=$(grep -ac '^RESULT .* FAIL' "$D/r${NN}_l1_regress.txt"); }
 GITHEAD=$(git rev-parse --short HEAD 2>/dev/null || echo 未知)
-( cd build
-  md5sum system.bit system.xsa ps_app.elf timing_summary.rpt utilization.rpt power.rpt \
-         route_status.rpt methodology.rpt cdc.rpt tb_v98_report.txt r${NN}_gates.txt 2>/dev/null ) > "$D/MANIFEST.md5"
+# 盖章 = 目录里除了这份清单本身以外的**全部**文件（见上面 #192 的说明）。
+( cd "$D" && find . -type f ! -name 'MANIFEST.md5' | LC_ALL=C sort | sed 's|^\./||' | xargs md5sum ) > "$D/MANIFEST.md5"
+NLANDED="$( { cd "$D" && find . -type f ! -name 'MANIFEST.md5' | grep -c '' || true; } )"; NLANDED="${NLANDED:-0}"
+NSEALED="$( { grep -ac '' "$D/MANIFEST.md5" || true; } )"; NSEALED="${NSEALED:-0}"
+if [ "$NLANDED" != "$NSEALED" ]; then
+    echo "REFUSE：落地 $NLANDED 份、盖章 $NSEALED 份，两个数不相等 ⇒ 盖章这一环没覆盖全部件（#192）"
+    exit 1
+fi
 {
   echo "# r$NN evidence —— 生成于 $(date -Iseconds)   git=$GITHEAD"
   echo "# 指纹：顶层 $TOPWANT / 整个 src/rtl $RTLWANT（门禁第 15 项按这两枚对账）"
-  echo "#"
-  echo "# 板上跑法只有 JTAG：build/tcl/ps_jtag_boot.tcl（先 ps7_init → 编 PL → 下 elf → con）"
+  echo "# 本目录 $NLANDED 份件，MANIFEST 逐份盖章（盖章对象=目录里实际存在的文件，不是另一份名单）"
   echo "# **不写 QSPI/SPI flash**（2025.2.1 的写入路径未验），也不碰 FT2232 EEPROM。"
   echo "#"
+  if [ -n "$MISS" ]; then echo "# 这一版没拷成的件（缺件也是凭据的一部分，不能当成「都齐了」念）：$MISS"; echo "#"; fi
   if [ -f "$D/r${NN}_l1_regress.txt" ]; then
     echo "# 机器判据：门禁 $NG 行明细（$GT）；L1 全量台架 PASS=$L1P FAIL=$L1F（r${NN}_l1_regress.txt）"
   else
     echo "# 机器判据：门禁 $NG 行明细（$GT）；**这一版没有全量 L1**，只有定向清单 r${NN}_benches.txt"
     echo "#            （改动的模块只被那一批台架看着；全量 L1 补跑之后请把它的日志一起放进本目录）"
   fi
-  echo "#           顶层台架逐列读数见 r${NN}_c2_shape.txt（C2SHAPE / C2IBAD / ID / OBS lastcol）"
+  if [ "$SHAPE_N" -gt 0 ]; then
+    echo "#           顶层台架逐列读数 $SHAPE_N 行，见 r${NN}_c2_shape.txt（C2SHAPE / C2IBAD / ID / OBS lastcol）"
+  else
+    echo "#           **这一版没有逐列读数**（源 run 日志不在，或里面没有 C2SHAPE/C2 row/ID 那些标签）"
+  fi
   echo "#"
   echo "# 还欠眼睛/手的（这一版由用户签，见 board/README.md 对应行）："
   echo "#   第 30 项 #92 边缘那条带；第 31 项 #94 拔卡/暂停不丢画/sd remount（要一只手）；"
   echo "#   第 29 项 bilin A/B 的观感；#93 旋转大角度两条（用户 2026-09-26 明确"先放着最后再修"）"
 } >> "$D/MANIFEST.md5"
 rm -rf "$TMP"
-echo "=== $D"
+echo "=== $D（落地 $NLANDED 份 / 盖章 $NSEALED 份）"
 ls -1 "$D" | tr '\n' ' '; echo
 echo "=== MANIFEST.md5 尾部"
-tail -12 "$D/MANIFEST.md5"
+tail -14 "$D/MANIFEST.md5"
