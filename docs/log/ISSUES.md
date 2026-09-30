@@ -7881,7 +7881,7 @@ LUT **14379（27.03 %）** / FF **8079** / BRAM 95 tile（67.86 %）/ DSP 19、�
    并且把**被忽略/未跟踪**的文件单独成一张表（`git status --porcelain --ignored` 能列全）。
 2. 一条真正的还原路径：非跟踪件靠改前打包快照（`tar` 到 /tmp）而不是靠 git。
 3. 一个不变性验证器：比较改前/改后**去掉注释与路径字样之后**的字节，像 `build/trim_comments.py --check` 那样；
-   同时把 `build/make_submission.sh:567` 那句目录对照改准（包里的 `report/` 与 `report/log/` 是两回事）。
+   同时把 `build/make_submission.sh:567` 那句目录对照改准（包里的 `report/` 与它下面的 log 子目录是两回事）。
 
 时间上这一轮不再重启它：今晚的收口（复跑 → 报告 → 门禁 → 试冻结 → 重导包 → 首页与海报数字）优先级更高，
 改名按任务 #145 单独排一整轮。
