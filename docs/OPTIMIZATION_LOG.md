@@ -757,7 +757,7 @@ setup 侧 `ExtraTimingOpt` 反而把 `eth_rxc` 从 +0.516 花到 +0.157。两滚
 - `eth_udp_video_top.v`（#158）：`FRAME_BYTES` 以前没传、靠默认 307200 与 `512*300*2` 偶然相等，现在显式
   `IMG_W*IMG_H*2`。今天的展开值逐字节不变 ⇒ 纯防呆。
 
-**尺子（都带"改前红"）**：`sim/tb_zoom_frac.v` 改前 298 行 FAIL（`build/r94_zoomfrac_console.txt`）→ 改后
+**尺子（都带"改前红"）**：`sim/tb_zoom_frac.v` 改前 FAIL 行数=298（`build/r94_zoomfrac_console.txt`：计数在该文件结尾的 VERDICT 行，正文只贴前 80 行，所以 `grep -c ^FAIL` 只有 79 —— 这不是两份数，是一份数的两个视图）→ 改后
 128 次独立逐像素比较 0 失配、99/99 旋转像素带非零小数（`build/r94_zoomfrac_final.txt`，D 汇总行与真实分母
 是这一轮补的：原来 D 只有 FAIL 才打行、H5 把分母写死成 60 而实际跑 99 个像素）。
 `sim/tb_v94_zoom_sel.v` 新增 T8a~T8f：绿在 `build/r94_rotfit_after.txt`；把钳制一项变异关掉后**恰好** T8b/T8c/T8e 红
