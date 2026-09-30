@@ -901,27 +901,27 @@ module pl_video_top #(
         .de_out(de_o), .hs_out(hs_o), .vs_out(vs_o)
     );
 
-    reg vs_pix_d0, vs_pix_d1;
-    always @(posedge clk_pix) begin
-        vs_pix_d0 <= vs_d11; vs_pix_d1 <= vs_pix_d0;
-    end
-    wire vs_tick = vs_pix_d0 & ~vs_pix_d1;
-    reg [31:0] fps_acc;
-    reg [25:0] sec_div;
-    reg [7:0]  fps_q;
-    (* ASYNC_REG = "TRUE" *) reg vt0, vt1, vt2;
-    always @(posedge sys_clk) {vt2,vt1,vt0} <= {vt1,vt0,vs_tick};
-    wire vs_sys = vt1 & ~vt2;
-    always @(posedge sys_clk or negedge rst_pix_n) begin
-        if (!rst_pix_n) begin
-            sec_div <= 0; fps_acc <= 0; fps_q <= 0;
-        end else if (sec_div == 26'd49_999_999) begin
-            sec_div <= 0; fps_q <= fps_acc[7:0]; fps_acc <= 0;
-        end else begin
-            sec_div <= sec_div + 1'b1;
-            if (vs_sys) fps_acc <= fps_acc + 1'b1;
-        end
-    end
+    // #128：OSD 的 `FPS:` 格改数**写进屏的新帧**。原来这段数的是显示场的 `vs` 下降沿
+    //   （`vs_pix_d0/d1 → vs_tick → 三级同步 → vs_sys`），窗口又是 `sys_clk` 的 1.000 s，
+    //   而面板是 1344×625@50 MHz ⇒ 读数恒在 59/60，与片源是 30 fps、15 fps 还是没片源无关
+    //   （`report/MODULES.md` 早就把这条口径写明了，所以这是改口径，不是抓到的新 bug）。
+    //   现在计数搬到 `clk_pix` 域、判据抽进 `src/rtl/util/shown_rate.v`（三个片源都共用顶层现成的线：
+    //   ETH 的 `frame_ready && eth_link_pix`、PS/SD 的 `pub_consume && pub_pend`、图卡的 `frame_start`），
+    //   窗口常数一字未改（板载 50 MHz ⇒ 正好 1.000 s，依据 `report/ARCHITECTURE.md` 那行）。
+    //   顺带少了一对跨域：原来 `fps_q` 在 sys_clk 里寄存、像素域直读。
+    //   ⚠ `vs_d11` 这个别名留给 `de_d11/hs_d11` 那一行共用，删掉它要把那行一起拆，本刀不顺手做
+    //     （#66 那一族：删东西要单独一轮，别和改口径混在一起）。判据与尺子：`sim/tb_shown_rate.v`（S1..S7）。
+    wire [7:0] fps_q;
+    shown_rate u_fpsr (
+        .clk(clk_pix), .rst_n(rst_pix_n),
+        .frame_start(frame_start),
+        .owner_eth_pix(owner_eth_pix),
+        .fb_vis(fb_vis),
+        .eth_new(frame_ready && eth_link_pix),
+        .pub_consume(pub_consume),
+        .pub_pend(pub_pend),
+        .fps_q(fps_q)
+    );
 
     // （r55）这里原来有一段把 16 位 `eth_pkts` 用两级触发器同步的代码：两级触发器只能跨**单 bit**，
     // 跨总线会读到"每一位各自新旧不一"的中间态，而它同步出来的东西又没有读者 ⇒ 整段删除。数没有丢：

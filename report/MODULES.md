@@ -52,7 +52,7 @@
 | `split_ctrl` | 分割线的**位置**发生器：手动百分比 / 自动扫描 / 跟随画面端点 / 交换两侧 | `pl_video_top.v:950` | `tb_v93_split_ctrl` |
 | `seam_src` | 把缝从显示列搬到图像列：在源坐标那一拍判定这一格属原图还是处理图，线跟着画面转 | `pl_video_top.v:970` | 无独立台架（经 `tb_v98` 的 C1~C3 覆盖） |
 | `split_display` | 逐像素二选一 + 2 图像列宽的标记线 + OOB 涂黑，输出一拍后的 RGB/de | `pl_video_top.v:977` | `tb_v97_seam_scan`（四份配置对照） |
-| `osd_overlay` | 5 行状态叠加（面板/FPS/Src——`FPS` 来自显示场同步计数 `pl_video_top.v:893-910`，不是片源帧率，#157；Pipe/Th/Gamma、Rot/Zoom、Split/Latency、Temp/无信号），5×7 字模 ×3；端口 `osd_en`（0 = 输出逐位等于背景，由 `gpio_o[20]` 反相驱动） | `pl_video_top.v:961` | `tb_osd_lines`（T13 成对）、`tb_v794_osd_glyph`、`tb_v98` 的 C12 |
+| `osd_overlay` | 5 行状态叠加（面板/FPS/Src——`FPS` 数的是**写进屏的新帧**（`src/rtl/util/shown_rate.v`，顶层例化在 `src/rtl/top/pl_video_top.v:915`；#128 改的口径。⚠ 板上那一版 r97 仍是显示场计数 ⇒ 读数还是 59/60，改完要等 r98 上板才算数）；Pipe/Th/Gamma、Rot/Zoom、Split/Latency、Temp/无信号），5×7 字模 ×3；端口 `osd_en`（0 = 输出逐位等于背景，由 `gpio_o[20]` 反相驱动） | `pl_video_top.v:961` | `tb_osd_lines`（T13 成对）、`tb_v794_osd_glyph`、`tb_v98` 的 C12 |
 | `test_card` | 图卡片源：移动块 + 帧号二值格 + 八色彩条，自带"通路在不在刷新"的判读点 | `pl_video_top.v:816` | `tb_v81_test_card`、`tb_v83_card_render` |
 | `color_bar` | 静止彩条（图卡的上一版） | 未例化 | `tb_v81_test_card` 里作对照例化 |
 | `gamma_lut` | 效果链级 0：256 项 8bit 表，PS 逐项目写入；组合读出、不加拍 | `proc_pipeline.v:123` | `tb_v88_gamma` |

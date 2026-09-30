@@ -21,7 +21,7 @@
 |---|---|---|
 | 1 | 只走 JTAG，**三条按顺序**（先起 `hw_server`，否则第一句就是 `Invalid target`）：`xsdb.bat build/tcl/ps_jtag_boot.tcl` → `vivado -mode batch -nojournal -source build/tcl/program_pl.tcl` → `xsdb.bat build/tcl/ps_app_reload.tcl` | 第一条打 `DDR_ECHO: …5A5AA5A5`（它写进 DDR 的就是这个字，`build/tcl/ps_jtag_boot.tcl:72`）+ `PS BOOT STEP DONE`；第二条打 `PROGRAMMED …`（这条**只能**在 Vivado 批处理里跑）；第三条打 `CON: ok`。之后 LED0 以 1.5 Hz 跳、串口出 `[BOOT]`（`main.c:1457`） |
 | 2 | 另开一个终端在 **COM6 115200 8N1**（或 `board/uart_cap_once.ps1 -Port COM6 -Seconds 20`；**开着终端就没法同时用脚本发**，二者只能有一个） | 敲 `stat` 回一行 `[STAT] ctrl thr=… src=… zoom=… bilin=… zsel=… zman=… pub=… sd=… frames=… playing=… sel=… gm=… mode=… geom=…`（字段顺序就是 `main.c:1378`） |
-| 3 | HDMI 接 1024×600 屏 | 屏上五行 OSD（`src/rtl/video/osd_overlay.v:326`–`385`）：L0 `1024X600 FPS:59 SRC:ETH`（**这一格数的是显示场同步**（`pl_video_top.v:893-910` 累加 `vs_tick`，面板 1344×625 @ 50 MHz ⇒ 59.5 场/秒），**不是片源帧率**；源帧率的可信出处是 `data/metrics.csv` 那两行（板上 100 帧滑窗，SD 那一路 29.8–30.0 fps）。把它改成"写进屏的新帧"是已选定但暂缓动工的 B 方案，见 `report/log/ISSUES.md` #157），其中 `SRC:` 写的就是屏上真的那一路（只有 `ETH`/`SD`/`TEST` 三个词，末尾 `*` = 手动锁住） |
+| 3 | HDMI 接 1024×600 屏 | 屏上五行 OSD（`src/rtl/video/osd_overlay.v:326`–`385`）：L0 `1024X600 FPS:59 SRC:ETH`（**板上那一版（r97）这一格数的是显示场同步**，不是片源帧率 ⇒ 演示时 `FPS:59` 是正常的；源帧率的可信出处一直是 `data/metrics.csv` 那两行（板上 100 帧滑窗，SD 那一路 29.8–30.0 fps）。源码已按"B 方案"改成数**写进屏的新帧**（`src/rtl/util/shown_rate.v`，顶层例化 `src/rtl/top/pl_video_top.v:915`，尺子 `sim/tb_shown_rate.v`），**等 r98 上板之后这一格才应读片源帧率**，那之前屏上仍是 59/60 ⇒ 看的人别把它当片源；推导与口径见 `report/log/ISSUES.md` 的 #157/#128 两节），其中 `SRC:` 写的就是屏上真的那一路（只有 `ETH`/`SD`/`TEST` 三个词，末尾 `*` = 手动锁住） |
 | 4 | PC 有线网卡静态 `192.168.1.100/24`，`ping 192.168.1.10` | 0% 丢包 = PL 网络栈活着；不通就别开第 1 幕 |
 | 5 | **先记起点**：敲一次 `stat`，把这一行抄在纸上 | 第 8 幕拿它对账；少了它"跑完回不回得来"就无从判 |
 
