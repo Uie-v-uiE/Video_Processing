@@ -138,6 +138,24 @@ cdc_ok=1
 [ -n "$ugrow" ]   && cdc_ok=0
 [ -n "$ugrow" ]   && echo "        Unsafe 端点增长：$ugrow  ⇒ 这一项判红（#65）"
 
+# #209 加的第二把尺子。只与手写的 CDC_BASELINE.txt（r23 年份）比，会放过"以前报过、后来消失、
+# 现在又长回来"这一类：r98 的 `eth_rxc>clkout0_1` 就同时满足"基线里认识"与"上一版采纳的报告里没有"。
+# 所以对照物再加一份——**上一版被采纳的 cdc.rpt**（冻结目录里那份），本版有而它没有的 Critical 配对判红。
+CDCADOPT=${CDCADOPT:-build/evidence_r75/cdc.rpt}
+if [ -f "$CDCADOPT" ]; then
+    adopt=$(rows "$CDCADOPT" | awk '{print $1}' | sort -u)
+    fresh=$(comm -13 <(printf '%s\n' "$adopt") <(printf '%s\n' "$cur" | awk '{print $1}' | sort -u))
+    if [ -n "$fresh" ]; then
+        cdc_ok=0
+        echo "        比上一版采纳（$CDCADOPT）多出的 Critical 配对：$(printf '%s ' $fresh)  ⇒ 判红（#209）"
+    else
+        echo "        与上一版采纳的 Critical 配对集合一致（对照 $CDCADOPT）"
+    fi
+else
+    echo "        FATAL 取不到采纳版 $CDCADOPT —— 这一项少了一把尺子，不敢判绿"
+    cdc_ok=0
+fi
+
 # 自检：解析不出来的项一律当失败（"检查器自己也要有判据"，见学习文档 §十二）
 for v in wns whs tnsfail whsfail eps bram bramp lut lutp reg dyn crit rerr cdcc; do
     eval "x=\$$v"

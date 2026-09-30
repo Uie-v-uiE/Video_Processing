@@ -370,6 +370,19 @@ module eth_udp_video_top #(
     assign stat_pkts   = s_pkts;
     assign stat_bytes  = s_bytes;
     assign stat_bad    = s_badc;
-    assign link_active = |s_pkts[15:0];
+    // #209（CDC-10 修）：这一位原来是 16 位收包计数的**组合或缩**，却被像素域那三级 ASYNC_REG 链的
+    //   第一拍直接采走（`pl_video_top.v:465-470` 的 `el0`）。计数器进位的那几拍或树会出毛刺，采进去
+    //   就是一次假的"链路掉"；而这一位现在还兼任 #128 的 ETH 门（`pl_video_top.v:920`
+    //   `.eth_new(frame_ready && eth_link_pix)`），假掉线若盖住 `frame_start` 那一拍就少计一帧。
+    //   寄存一拍 ⇒ 跨域变回"触发器→触发器"，同步器吃到的是一拍前就稳定下来的电平。
+    //   ⚠ 判据是**结构**判据，台架判不了这一条：RTL 仿真没有门延迟，`|s_pkts` 在仿真里永不出毛刺。
+    //   改前红凭据 `build/r98_cdc_details.txt`（CDC-10，`u_eth/u_reasm/stat_pkts_reg[9]/C →
+    //   u_pl/el0_reg/D`，深度 3），改后必须看不见 `eth_rxc>clkout0_1` 这条 Critical 行。
+    reg link_active_r;
+    always @(posedge gmii_rx_clk or negedge rst_n) begin
+        if (!rst_n) link_active_r <= 1'b0;
+        else        link_active_r <= |s_pkts[15:0];
+    end
+    assign link_active = link_active_r;
     assign eth_gmii_clk = gmii_rx_clk;
 endmodule

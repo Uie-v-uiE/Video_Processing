@@ -12,6 +12,14 @@ set -u
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 SRC=${1:-/tmp/kx/tb_edge_rim.run/run.log}
 ROUND=${ROUND:-r90}
+# #211：轮次号必须是 `rNN`。r98 那一跑链里传的是裸数字 `98`，于是产出 `tb_edge_rim_98.txt`——
+# 门禁按 `tb_edge_rim_r*.txt` + `sort -V` 取最新，看不见这份新凭据，退回去读了 `tb_edge_rim_r97.txt`，
+# 报出来的是"RTL 不符（报告=45e09e8b3b9d 当前=8fa1b046461a）"这种**看着合理但其实找错文件**的红。
+# 这里宁可拒绝执行：静默把 98 补成 r98 会让调用方的错误继续存在到下一次。
+case "$ROUND" in
+    r[0-9]*) ;;
+    *) echo "FATAL ROUND 必须是 rNN 形状（当前='$ROUND'），否则产出的文件名门禁取不到：见 ISSUES #211"; exit 2;;
+esac
 OUT=$ROOT/build/tb_edge_rim_${ROUND}.txt
 cd "$ROOT" || exit 2
 [ -f "$SRC" ] || { echo "FATAL 读不到 $SRC"; exit 2; }

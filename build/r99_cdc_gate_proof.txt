@@ -1,0 +1,21 @@
+# 门禁第 6 项新增的第二把尺子（ISSUES #209）的对照，2026-10-01 07:25 当场跑，未改 RTL 之前先证明它有牙
+# 规则：本版 cdc.rpt 的 Critical 配对集合，减去**上一版被采纳的** cdc.rpt（build/evidence_r75/cdc.rpt）
+#       的集合；非空即判红。
+# 为什么还要第二把：手写的 build/CDC_BASELINE.txt 是 r23 年份，里面本来就有 eth_rxc>clkout0_1 这一对，
+#   于是"以前报过、后来消失、现在又长回来"这一类对它免疫；而采纳版（r75）与板上那版（r97）都没有它。
+# 取数口径与门禁完全一致：awk '/^Critical/{print $2">"$3, $(NF-4), $(NF-2)}'，配对取第 1 列，sort -u 后 comm -13
+# 列含义：配对(端点数/Unsafe 端点数)
+
+r75 采纳版（对照物）        ：clk_fpga_0>clkout0_1(99/1) sys_clk>eth_rxc(1907/2)
+r97 板上那版                ：clk_fpga_0>clkout0_1(102/1) sys_clk>eth_rxc(1894/2)
+r98 工作树（改前标本）      ：clk_fpga_0>clkout0_1(103/1) eth_rxc>clkout0_1(1/1) sys_clk>eth_rxc(1874/2)
+
+正控（必须为空）：r97 对 r75 的差集 = []              ⇒ 规则能绿，不是"永远红"的挡箭牌
+反例（必须非空）：r98 对 r75 的差集 = [eth_rxc>clkout0_1] ⇒ 规则能红，且红的正是要拦的那一条
+
+# 后续（不许口头宣称，都要由 r99 自己的报告说）：
+#   ① #209 的修法已落地：src/rtl/eth/eth_udp_video_top.v 里 link_active 改由 gmii_rx_clk 域的一个触发器给，
+#      于是 pl_video_top.v:465-470 那三级 ASYNC_REG 链的第一拍不再是"组合或缩的输出口"。
+#   ② r99 的 cdc.rpt 必须同时满足两件事：与 r75 的 Critical 配对差集为空，且 report_cdc -details 里
+#      不再出现 CDC-10（同步器前有组合逻辑）这一条。凭据由 r99 构建后重新生成
+#      （report_cdc -from eth_rxc -to clkout0_1 -details，输出写 Temp 再抄成随包件，不覆写 build/cdc.rpt）。
