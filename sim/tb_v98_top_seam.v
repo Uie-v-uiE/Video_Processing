@@ -1683,6 +1683,27 @@ module tb_v98_top_seam;
         // 顶层真的多跳了那一拍；p_piped 与 p_mixde 差多少 = 链子的 de 与混色级取的标签差几拍。
         $display("P1 chain-blur: arm(x==1023&de)=%0d flush=%0d run@行尾 min=%0d max=%0d | pipe_de=%0d mix_de_d11=%0d (差 %0d)",
                  p_arm, p_flush, p_runmin, p_runmax, p_piped, p_mixde, p_piped - p_mixde);
+        // ---- C11（#171 的端到端那一半）：一次 abort 必须把"这一帧已就绪"丢掉 ----
+        // 口径先说死：**RTL 已经改完了，这里拿不到"改前红"**，所以这一条记为**回归判据**；
+        // #171 的鉴别证据在模块级变异对照里（把 `frame_commit_lock.v` 单文件退回 HEAD，
+        // `sim/tb_commit_strobe.v` 的 B1/B2/B3/B4/A8 五条就红 —— 见 build/r96_commit_strobe_mutation.txt）。
+        // 顶层这一支只有一行换序 + 一行注释，它本身不需要再花一次 75 分钟的整屏跑去"证明能红"；
+        // 但它值得在这里被钉住，因为**上位机看到的那一位**（`status` 里的 `eth_ready`）就是这一条。
+        // 注入走 `force dut.u_cmt.copy_abort`：顶层没暴露 `WD_CYC`，等 20 ms 看门狗不值得；
+        // 这一拍会经过 v7.9 那套**翻转式脉冲同步器**（`abort_tgl` → `copy_abort_pix`），
+        // 也就是说这条判据同时在检查"脉冲真的跨过来了"，不是直接改像素域的位。
+        eth_link = 1'b1;
+        repeat (12) @(posedge axi_clk);
+        line("C11pre frame is latched", dut.eth_has_frame === 1'b1 && dut.eth_link_pix === 1'b1,
+             "empty-set guard: a committed frame must be latched before judging whether abort drops it");
+        force dut.u_cmt.copy_abort = 1'b1;
+        @(posedge axi_clk);
+        release dut.u_cmt.copy_abort;
+        repeat (30) @(posedge axi_clk);
+        line("C11 abort clears the latched frame", dut.eth_has_frame === 1'b0,
+             "after one copy_abort pulse the pixel domain must stop claiming a good ETH frame (#171)");
+        line("C11b eth_ready reads 0 after abort", dut.eth_ready === 1'b0,
+             "the host-side status bit is derived from that latch; reading 1 here means the abort was swallowed");
         if (nfail == 0) $display("RESULT tb_v98_top_seam PASS");
         else            $display("RESULT tb_v98_top_seam FAIL nfail=%0d", nfail);
         $finish;
