@@ -67,13 +67,21 @@ module zoom_mapper #(
 
     wire signed [31:0] sx_c = rot_s1 ? (xr_pix + (IMAGE_W / 2))
                                       : (xs_pix + (IMAGE_W / 2));
-    wire signed [31:0] sy_c = rot_s1 ? ((IMAGE_H / 2) - yr_pix)   // 旋转支要把 y 再翻回来：表是数学坐标（y 向上）
+    // #104：旋转支以前在这里把小数直接丢掉（`frac_x/frac_y` 钉 0），于是 `bilin on` 在旋转态是空头支票。
+    // 接回小数时**纵向那一次翻转必须连着 floor 一起改**：
+    //   Y_disp = C − Y_math，而 Y_math = yr_pix + f/256（`>>>16` 是朝 −∞ 取整，所以 f∈[0,256)）
+    //   ⇒ Y_disp = (C − yr_pix − 1) + (256 − f)/256  当 f≠0；f=0 时就是 C − yr_pix、小数 0。
+    //   只把小数接给 bilin 而不减那一格，就会在旋转态整体错一行（画面上是沿角度方向的一条剪切）。
+    wire [7:0] rot_fx = rot_xs[15:8];
+    wire [7:0] rot_fy = rot_ys[15:8];
+    wire       rot_y_has_frac = (rot_fy != 8'd0);
+    wire signed [31:0] sy_c = rot_s1 ? ((IMAGE_H / 2) - yr_pix - (rot_y_has_frac ? 32'sd1 : 32'sd0))
                                       : (ys_pix + (IMAGE_H / 2));
 
     // floor 与 frac 必须自洽：`>>> 8` 是**朝 −∞** 取整，余下的低 8 位正好是 [0,1) 的小数 ⇒ x_out 与 frac_x
-    // 指的是同一条数轴上的同一格（换成 `/256` + 取余就会在负数上错一格）。
-    wire [7:0] fx = rot_s1 ? 8'h00 : raw_xs[7:0];   // ⚠ 旋转那一支把小数钉成 0 ⇒ `bilin on` 在旋转态是空头（见 ISSUES #104）
-    wire [7:0] fy = rot_s1 ? 8'h00 : raw_ys[7:0];   //   同上：纵向也一样，#104 未修，改这里要先看那一条
+    // 指的是同一条数轴上的同一格（换成 `/256` + 取余就会在负数上错一格）。旋转支同理，只是要取 [15:8]。
+    wire [7:0] fx = rot_s1 ? rot_fx : raw_xs[7:0];
+    wire [7:0] fy = rot_s1 ? (~rot_fy + 8'd1) : raw_ys[7:0];   // 翻转之后小数也翻：256−f（f=0 时按 8 位回绕成 0，正好对）
 
     always @(posedge clk or negedge rst_n) begin
         if (!rst_n) begin

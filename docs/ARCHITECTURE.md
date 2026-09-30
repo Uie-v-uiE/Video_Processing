@@ -122,7 +122,7 @@ lane0~9 是链路健康计数（`src/rtl/eth/link_monitor.v:184-193`），lane23
 | 双线性额外行 `BILIN_ROWS` | 2 显示行（乒乓读口一对结果下一对才读得到），必须为偶数 | `pl_video_top.v:285-292` |
 | 缝判定抽头 `SEAM_TAPS` | `MIX_D + 1 - 3` = 18 | `pl_video_top.v:968` |
 | 缩放范围 | `INV_LO`=256（1.0×）↔ `INV_HI`=512（0.5×），`STEP`=2，三角波按帧走 | `pl_video_top.v:340`、`zoom_ctrl.v:3-8` |
-| 手动档 / 拟合档 | 八档表按 `inv_used` 分界（900/644/427/299/224/182/150）；`fit_en` 时 inv 由角度定 | `src/rtl/process/zoom/zoom_ctrl.v:66-72`、`zoom_fit.v:2-7` |
+| 手动档 / 拟合档 | 八档表按 `inv_used` 分界（900/644/427/299/224/182/150）；`fit_en` 时 inv 由角度定；旋转一开还要把 inv 钳进 fit 那一档（#93：整幅永远在屏内，代价是旋转态不提供放大、手动 1.33x/1.5x/2.0x 被拉回 fit 而档号不丢，且 0° 也在钳 —— `zoom_fit` 的 ±0.5 LSB 表余量让 0° 的 fit=259 而非 256 ⇒ 画面差 1.2 %、约 6 个源列） | `src/rtl/process/zoom/zoom_ctrl.v`（分界与旋转那一钳都在本文件）、`zoom_fit.v:2-7` |
 | 端口 / 地址 | UDP 5001、板 MAC `00:11:22:33:44:55`、IP 192.168.1.10 | `system_top.v:145,158-159` |
 | DDR bank | ETH 乒乓 `0x1000_0000` / `+0x0008_0000`；PS 专用 `0x1010_0000` | `src/rtl/eth/eth_udp_video_top.v:64-65`、`pl_video_top.v:9,15` |
 | 消隐拷贝窗口 | `disp_quiet` 从第 600 行起、末行只到 `x ≤ 1279`；判超用的门限 67200 个 axi 拍 | `pl_video_top.v:415-419,465-470` |

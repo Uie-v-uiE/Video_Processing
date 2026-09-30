@@ -291,6 +291,7 @@ module pl_video_top #(
     wire [9:0] inv_fit;          // V9-2：角度定出来的"刚好装得下"那一档
     wire [9:0] inv_used;         // ← 本文件里"此刻真的在用哪个倍率"的**唯一**读数
     wire       zoom_active, zoom_dir;
+    wire        rot_forced;      // #93：生效倍率是被旋转钳出来的 ⇒ OSD 的 (Fit) 由它参与
     wire [2:0] zoom_code;        // V8-5：OSD 的"最近一档"（八档表在 zoom_ctrl 里，不除）
     zoom_fit #(.IMAGE_W(IMG_W), .IMAGE_H(IMG_H)) u_zfit (
         .clk(clk_pix), .rst_n(rst_pix_n), .angle(angle), .inv_fit(inv_fit)
@@ -299,9 +300,10 @@ module pl_video_top #(
         .clk(clk_pix), .rst_n(rst_pix_n),
         .enable(zoom_run), .frame_start(frame_start),
         .zsel(zsel_pix), .manual(zman_pix),        // V8-8：手动档（同一对同步器带来的两个位）
+        .rotate_en(rotate_active),  // #93：旋转态钳进 fit（钳在 zoom_ctrl 里，不在顶层再 mux）
         .fit_en(zoom_fit_en), .inv_fit(inv_fit),   // V9-2：第三种来源；mux 在 zoom_ctrl 里做，不在这里
         .inv_scale(inv_scale), .inv_used(inv_used),
-        .zoom_active(zoom_active), .zoom_code(zoom_code),
+        .zoom_active(zoom_active), .zoom_code(zoom_code), .rot_forced(rot_forced),
         .dir(zoom_dir)
     );
 
@@ -970,7 +972,7 @@ module pl_video_top #(
         .threshold(th_sync),
         .gamma_disp(gm_disp),
         .zoom_code(zoom_code), .zoom_auto(zoom_run && !zman_pix && !zoom_fit_en),   // V8-8：手动档不许再标 (Auto)
-        .zoom_fit(zoom_fit_en),                    // V9-2：倍率由角度定 ⇒ 标 (Fit)
+        .zoom_fit(zoom_fit_en | rot_forced),   // V9-2：倍率由角度定 ⇒ 标 (Fit)；#93：被旋转钳住时同样标，屏上才讲真话
         .split_pct(split_pct_w[7:0]), .split_auto(gp[10]),
         .lat_ms(lat_ms_pix), .lat_ok(lat_ok_pix),
         .src_eff({fb_vis, owner_eth_pix}),   // 屏幕上真的这一路：CARD / PS / ETH

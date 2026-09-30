@@ -12,15 +12,21 @@ module tb_v94_zoom_sel;
 
     reg clk = 0, rst_n = 0, enable = 0, frame_start = 0, manual = 0;
     reg [2:0] zsel = 3'd0;
+    // #93：把拟合值与旋转标志变成**可驱动的激励**（原来端口上是常量 1'b0/10'd256，钳制那一支永远走不到）
+    reg       rotate_en = 1'b0;
+    reg [9:0] inv_fit_sim = 10'd256;
     wire [9:0] inv_scale;
+    wire [9:0] inv_used;
+    wire       rot_forced;
     wire [2:0] zoom_code;
     wire zoom_active, dir;
 
     zoom_ctrl #(.INV_LO(INV_LO), .INV_HI(INV_HI), .STEP(STEP)) dut (
         .clk(clk), .rst_n(rst_n), .enable(enable),
         .zsel(zsel), .manual(manual), .frame_start(frame_start),
-        .fit_en(1'b0), .inv_fit(10'd256),   // V9-2 的第三种来源：这台台架判的是八档，钉成"不参与"
-        .inv_scale(inv_scale), .inv_used(), // 新出口本台架不读（留空，不接=不判）
+        .rotate_en(rotate_en), .fit_en(1'b0), .inv_fit(inv_fit_sim),   // V9-2 的第三种来源：这台架判的是八档，fit_en 钉成"不参与"
+        .inv_scale(inv_scale), .inv_used(inv_used),   // #93：现在要读它 —— 屏上/lane23/mapper 必须说同一个数
+        .rot_forced(rot_forced),
         .zoom_active(zoom_active), .zoom_code(zoom_code), .dir(dir)
     );
 
@@ -100,7 +106,7 @@ module tb_v94_zoom_sel;
     endtask
 
     initial begin
-        $display("[tb_v94_zoom_sel.v:104] == tb_v94_zoom_sel：八档往返 + 手动/自动交接不瞬移 ==");
+        $display("[tb_v94_zoom_sel.v:109] == tb_v94_zoom_sel：八档往返 + 手动/自动交接不瞬移 ==");
         repeat (4) @(posedge clk);
         rst_n = 1;
         repeat (3) @(posedge clk);
@@ -143,13 +149,13 @@ module tb_v94_zoom_sel;
             @(negedge clk); manual = 1; zsel = i[2:0];
             wait_change;
             if (!wc_ok) begin
-                $display("[tb_v94_zoom_sel.v:147] DBG T3 档 %0d 没等到 inv 变化", i);
+                $display("[tb_v94_zoom_sel.v:152] DBG T3 档 %0d 没等到 inv 变化", i);
                 t3_bad = t3_bad + 1;
             end else begin
                 repeat (2) @(negedge clk);            // code 比 inv 晚一拍
                 if (inv_scale !== exp_inv(i[2:0], x10k(i[2:0])) || zoom_code !== i[2:0]) begin
                     t3_bad = t3_bad + 1;
-                    $display("[tb_v94_zoom_sel.v:153] DBG T3 档 %0d: inv=%0d 期望=%0d code=%0d",
+                    $display("[tb_v94_zoom_sel.v:158] DBG T3 档 %0d: inv=%0d 期望=%0d code=%0d",
                              i, inv_scale, exp_inv(i[2:0], x10k(i[2:0])), zoom_code);
                 end
             end
@@ -216,12 +222,37 @@ module tb_v94_zoom_sel;
         end
         chk("T7 从 0.25x 走回呼吸带：每帧一步、280 帧内进带",
             nstep_bad == 0 && before <= INV_HI);
-        $display("[tb_v94_zoom_sel.v:220] DBG T7 回到 inv=%0d 用了 %0d 步", before, j);
+        $display("[tb_v94_zoom_sel.v:225] DBG T7 回到 inv=%0d 用了 %0d 步", before, j);
+
+        // ---------- T8 #93：旋转态把生效倍率钳进 fit，而 OSD 的档号跟着**同一个数** ----------
+        // a 是负对照（不旋转时一个字都不改，改前改后都必须绿）；b~f 是这一刀的正文，改前必须红。
+        @(negedge clk); enable = 1; manual = 1; zsel = 3'd4; rotate_en = 0; inv_fit_sim = 10'd341;
+        repeat (45) @(negedge clk);          // 手动档只在帧首换 ⇒ 至少跨一个帧节拍（40 拍）
+        chk("T8a no-rotate: inv_scale=inv_used=256, rot_forced=0 (control)",
+            inv_scale == 10'd256 && inv_used == 10'd256 && rot_forced == 1'b0);
+        @(negedge clk); rotate_en = 1;
+        repeat (6) @(negedge clk);
+        chk("T8b rot+1.00x with fit=341: inv_used clamped to 341",
+            inv_used == 10'd341 && rot_forced == 1'b1);
+        chk("T8c OSD code follows the clamp: code(341)=3=0.75x",
+            zoom_code == 3'd3);
+        @(negedge clk); zsel = 3'd2;                  // 0.50x：inv=512，画面比 fit 还小 => 不该被拉回
+        wait_change; repeat (6) @(negedge clk);
+        chk("T8d rot+0.50x stays 512 (shrinking still works), rot_forced=0",
+            inv_scale == 10'd512 && inv_used == 10'd512 && rot_forced == 1'b0);
+        @(negedge clk); zsel = 3'd7;                  // 2.00x：inv=128，放大 => 旋转态让位
+        wait_change; repeat (6) @(negedge clk);
+        chk("T8e rot+2.00x yields to fit: inv_scale=128 kept, inv_used=341",
+            inv_scale == 10'd128 && inv_used == 10'd341 && rot_forced == 1'b1);
+        @(negedge clk); rotate_en = 0;
+        repeat (6) @(negedge clk);
+        chk("T8f rotate off restores 128 (reversible, no residue)",
+            inv_used == 10'd128 && rot_forced == 1'b0 && inv_scale == 10'd128);
 
         $display("");
-        $display("[tb_v94_zoom_sel.v:223] 口径提醒：这里判的是**档位选择与交接节拍**，画面上像素对不对是 zoom_mapper 的事");
-        $display("[tb_v94_zoom_sel.v:224] （tb_zoom_* 那一套）。八档表与 zoom_code 的中点判据是同一个约定的两端，");
-        $display("[tb_v94_zoom_sel.v:225] T3 就是把这两个约定钉在一起：任何一边被改而另一边没跟上，这一条就红。");
+        $display("[tb_v94_zoom_sel.v:253] 口径提醒：这里判的是**档位选择与交接节拍**，画面上像素对不对是 zoom_mapper 的事");
+        $display("[tb_v94_zoom_sel.v:254] （tb_zoom_* 那一套）。八档表与 zoom_code 的中点判据是同一个约定的两端，");
+        $display("[tb_v94_zoom_sel.v:255] T3 就是把这两个约定钉在一起：任何一边被改而另一边没跟上，这一条就红。");
         $display("TB DONE pass=%0d fail=%0d", pass, fail);
         if (fail != 0) $display("TB RESULT FAIL");
         else $display("TB RESULT PASS");

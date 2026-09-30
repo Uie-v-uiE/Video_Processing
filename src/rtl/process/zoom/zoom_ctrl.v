@@ -16,14 +16,20 @@ module zoom_ctrl #(
     //   为什么 mux 在本模块而不是在顶层：这里已经是"倍率的唯一出处"（八档表、呼吸、
     //   zoom_code 的分区比较都在本文件）；顶层再 mux 一次就会出现"屏上那一格与真正在用的
     //   inv 不是一回事"—— 那正是 lane23 两条判据要拦的那类错（#52/#59/#66 同一族）。
-    input  wire        fit_en,
+    // #93：旋转态的"装得下"上界。为什么它是**输入**而不是顶层的第二次 mux：见下面 fit_en
+      //   那一段的同一个理由 —— 倍率的唯一出处只能有一个，否则 `zoom_code`（OSD 那一格）报的是
+      //   用户按下的档、mapper 画的是另一档（#52/#59/#66 那一族）。
+      input  wire        rotate_en,       // 1=旋转真的在生效（顶层把 `rotate_active` 原样递进来）
+      input  wire        fit_en,
     input  wire [9:0]  inv_fit,         // 拟合值（Q8，与 inv_scale 同一个约定）
     input  wire        frame_start,
     output reg  [9:0]  inv_scale,
     output wire [9:0]  inv_used,        // ← 顶层 / OSD / lane23 一律读这一个
     output reg         zoom_active,
     output reg  [2:0]  zoom_code,     // V8-5：OSD 的"最近一档"编号（见下面的表）
-    output reg         dir            // 0: 向缩小走(inv增) 1: 回到1.0x(inv减)
+    output reg         dir,           // 0: 向缩小走(inv增) 1: 回到1.0x(inv减)
+    output wire        rot_forced     // #93：1=这一帧生效的倍率是被旋转钳出来的，不是用户那一档
+                                      //   ⇒ 顶层把它并进 OSD 的 `(Fit)` 标记，屏上才讲真话
 );
     // ---- V8-8：八档"用户能点出来的倍率"表（Q8 倒数尺度，纯常数，不做除法，#58）----
     // 档号与下面 OSD 那张表**同一个约定**：0=0.25 1=0.33 2=0.50 3=0.75 4=1.00 5=1.33 6=1.50 7=2.00。
@@ -55,7 +61,15 @@ module zoom_ctrl #(
     //   —— 在快域里就是 #58 那个 −5.014 ns 的组合除法器。所以这里只把 inv 与**相邻两档的中点**比大小（8 档
     //   ⇒ 7 个常数比较，优先级链），结果寄存一拍再给 OSD ⇒ OSD 的 `chars[]` 那一片只多一个 3 bit 的 case 译码。
     reg [2:0] code_nxt;
-    assign inv_used = fit_en ? inv_fit : inv_scale;
+    wire [9:0] inv_raw = fit_en ? inv_fit : inv_scale;
+    // #93：旋转时不许放大到画外 —— 生效倍率取"用户那一档"与"这个角度刚好装得下那一档"里
+    //   **画面较小**的那一个（inv 越大画面越小 ⇒ 取较大的 inv）。
+    //   代价（写进口径，不藏着）：① 旋转态因此**不提供放大**，1.33x/1.5x/2.0x 三档在旋转时被拉回 fit；
+    //   ② `zoom_fit` 在 0° 因为 ±0.5 LSB 的表余量给的是 259 而不是 256 ⇒ 角度正好 0° 也在钳，
+    //   画面差 1.2 %（6 个源列，肉眼不可分辨）。两条都由 tb_v94_zoom_sel 的 T8 钉住。
+    wire       rot_clamp = rotate_en && (inv_raw < inv_fit);
+    assign inv_used   = rot_clamp ? inv_fit : inv_raw;
+    assign rot_forced = rot_clamp;
     always @(*) begin
         if      (inv_used >= 10'd900) code_nxt = 3'd0;
         else if (inv_used >= 10'd644) code_nxt = 3'd1;

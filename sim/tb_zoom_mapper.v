@@ -16,8 +16,9 @@ module tb_zoom_mapper;
         // 所以钉 manual=0（自动），档号给一个合法值让 `zsel` 那一路不产生 X。
         .zsel(3'd4), .manual(1'b0),
         .frame_start(frame_start),
+        .rotate_en(1'b0),        // #93 那一刀不参与：这台架量的是呼吸，旋转标志钉成 0
         .fit_en(1'b0), .inv_fit(10'd256),   // V9-2：这台台架用 inv_force 直接喂 mapper，缩放来源钉成"非拟合"
-        .inv_scale(inv_scale), .inv_used(), .zoom_active(zoom_active), .dir(dir)
+        .inv_scale(inv_scale), .inv_used(), .zoom_active(zoom_active), .dir(dir), .rot_forced()
     );
 
     reg  [11:0] x_in = 0, y_in = 0;

@@ -228,7 +228,11 @@ module eth_udp_video_top #(
     wire reasm_flush;
     wire reasm_ferr, reasm_fabort;
     wire [15:0] reasm_rows_miss;
-    frame_reasm #(.IMG_W(IMG_W), .IMG_H(IMG_H)) u_reasm (
+    // #158：`FRAME_BYTES` 以前在这里**没传**，用的是 `frame_reasm` 的默认 307200 —— 它只在
+    //   "IMG_W=512 且 IMG_H=300"时与 `IMG_W*IMG_H*2` 偶然相等。字节门是"整帧收完"的唯一判据，
+    //   改分辨率就会让它提前成立（提交半幅黑帧）或永不成立（不出 frame_done）。
+    //   现值 512*300*2=307200 与默认**逐字节相同** ⇒ 这一刀对今天的行为是免费的。
+    frame_reasm #(.IMG_W(IMG_W), .IMG_H(IMG_H), .FRAME_BYTES(IMG_W*IMG_H*2)) u_reasm (
         .clk(gmii_rx_clk), .rst_n(rst_n),
         .p_data(p_data), .p_valid(p_valid),
         .p_sof(p_sof), .p_eof(p_eof), .p_good(p_good),   // ← 这一位从此是**真值**（原来是 1'b1）

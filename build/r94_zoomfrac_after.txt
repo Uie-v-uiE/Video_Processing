@@ -1,0 +1,7 @@
+PASS H0 reference_table_fresh | angle=30 取到 C=222 S=128（Q8，与 DUT 同一张表）
+PASS H5 rot_has_fraction | 99 of 60 pixels carry a non-zero fraction
+[tb_zoom_frac] RESULT tb_zoom_frac PASS errors=0
+INFO: [Common 17-206] Exiting xsim at Wed Sep 30 12:20:31 2026...
+exit
+INFO: [Common 17-206] Exiting xsim at Wed Sep 30 12:20:31 2026...
+VERDICT tb_zoom_frac: [tb_zoom_frac] RESULT tb_zoom_frac PASS errors=0 || FAIL 行数=0 || PASS 行数=2

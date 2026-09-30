@@ -47,9 +47,10 @@ module tb_v100_fit_rot;
     wire [2:0] zcode;
     zoom_ctrl #(.INV_LO(10'd256), .INV_HI(10'd512), .STEP(10'd2)) u_zc (
         .clk(clk), .rst_n(rst_n), .enable(en), .frame_start(frame_start),
-        .zsel(zsel), .manual(manual), .fit_en(fit_en), .inv_fit(inv_fit),
+        .zsel(zsel), .manual(manual), .rotate_en(1'b0),   // #93 不参与：这台架判的是 V9-2 的拟合来源
+        .fit_en(fit_en), .inv_fit(inv_fit),
         .inv_scale(inv_scale), .inv_used(inv_used),
-        .zoom_active(zact), .zoom_code(zcode), .dir(zdir)
+        .zoom_active(zact), .zoom_code(zcode), .dir(zdir), .rot_forced()
     );
 
     // 帧沿要过 3 级同步 + 异或才成为 angle_ctrl 里的那一次推进 ⇒ **检查之前必须等几步**：不等就是最后一次翻转还没

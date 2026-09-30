@@ -90,7 +90,7 @@
 | `sin_rom` / `cos_rom` | 360 项 Q8 三角表（角度 0..359，值是 10 位有符号：`cos(0)=10'sd256`，不是 255） | `zoom_mapper.v:22-23`、`zoom_fit.v:36-37` | — |
 | `rotate_mapper` | 独立的旋转逆映射器 | 未例化（旋转已并进 `zoom_mapper`） | `tb_rotate_mapper` |
 | `zoom_mapper` | 唯一的视口逆映射：缩放 ⊕ 旋转同级，3 级流水，出 `sx,sy,oob,frac_x,frac_y` | `pl_video_top.v:357` | `tb_zoom_mapper`、`tb_v96_zoom_scan` |
-| `zoom_ctrl` | 缩放来源选择与自动呼吸：八档表 + 手动档 + 拟合档，`inv_used` 是唯一读数 | `pl_video_top.v:340` | `tb_v94_zoom_sel`、`tb_v100_fit_rot`、`tb_zoom_mapper` |
+| `zoom_ctrl` | 缩放来源选择与自动呼吸：八档表 + 手动档 + 拟合档，外加旋转态那一钳（#93：生效倍率不许超出 fit ⇒ 整幅在屏内，代价是旋转时不给放大，档号不丢），`inv_used` 是唯一读数、`rot_forced` 只喂 OSD 的 `(Fit)` | `pl_video_top.v:340` | `tb_v94_zoom_sel`（T8a~T8f）、`tb_v100_fit_rot`、`tb_zoom_mapper` |
 | `zoom_fit` | 按角度算出"刚好装得下"的 `inv_fit` | `pl_video_top.v:337` | `tb_v100_fit_rot` |
 | `zoom_snap` | 把像素域真在用的缩放状态打成准静态总线 + 合法跨域沿，供 lane23 回读 | `pl_video_top.v:699` | `tb_v95_zoom_snap` |
 
