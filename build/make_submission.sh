@@ -124,7 +124,10 @@ CRED_DIRS=$( { grep -rhoE '(build|board)/(evidence|frozen)_[A-Za-z0-9_.-]+/' \
 for d in build/evidence_* build/frozen_* board/evidence_* board/frozen_*; do
   if [ -d "$d" ]; then
     if printf '%s\n' "$CRED_DIRS" | grep -qF -- "$d/"; then
-      echo "保留（交付文档点名要它） $d" >> _pruned.txt
+      # #173：这一行以前写"保留"，可下面那圈 `PRUNED_DIRS` 无条件剪掉所有 build/evidence_* ⇒
+      #   目录照样不随包，而包里的 `_pruned.txt` 留着一句假话。决定没变（凭据在仓库里按 md5 认，
+      #   不复制进包），变的只是**说真话**：点名要它 ≠ 随包送它。
+      echo "文档点名但仍不随包（按 §…决定不复制；仓库里按 md5 认） $d" >> _pruned.txt
     else
       prune "$d" "过程留档"
     fi
@@ -477,10 +480,16 @@ echo "  空目录 删=$EMPTY_DEL 余=$EMPTY_LEFT"
 for f in README.md README.en.md report/*.md skill/*.md skill/*/*.md board/*.md sim/*.md build/*.md build/tcl/*.md data/*.csv; do
   if [ -f "$f" ]; then
     d="$(dirname "$f")"
-    grep -oE '(src|sim|build|board|data|skill|report|docs)/[A-Za-z0-9_./-]*[A-Za-z0-9_-]\.[A-Za-z0-9]{1,6}' "$f" 2>/dev/null |
+    # #172：先抹掉 `-log <路径>` 这类**工具自己创建的输出**（`vivado -mode batch -log sim/xsim.log` 那种），
+    #   再抽指路。这不是把 `*.log` 整类放回免检名单 —— 那样就等于把自检买通；
+    #   只有"这条命令要写出来的文件"不算死链，"文档点名的凭据"照样该存在。
+    sed 's/-log[[:space:]]\{1,\}[^[:space:];"`]*/ /g' "$f" 2>/dev/null |
+    grep -oE '(src|sim|build|board|data|skill|report|docs)/[A-Za-z0-9_./-]*[A-Za-z0-9_-]\.[A-Za-z0-9]{1,6}' 2>/dev/null |
     sort -u | while read -r t; do
       case "$t" in *'*'*|*'<'*|*'$'*|*NN*) continue ;; esac
-      case "$t" in *.log|*.out|board/uart_script_capture.txt) continue ;; esac
+      # #172：`*.log` 从免检名单里去掉 —— 它当时是为了绕开"冻结件的逐列读数进不了 git"，
+      #   结果把整条自检买通了。产物一律 .txt 之后，指到 `*.log` 的引用就是真死链，该报。
+      case "$t" in *.out|board/uart_script_capture.txt) continue ;; esac
       if [ -e "$t" ] || [ -e "$d/$t" ]; then continue; fi
       echo "死链 $f -> $t"
     done

@@ -50,13 +50,16 @@ done
 # 构建与台架的**原始 console**（今天它们在 /tmp，不在 build/）
 cp -f /tmp/kx/r${NN}_wrap.log        "$D/r${NN}_build_console.txt" 2>/dev/null
 cp -f /tmp/kx/r${NN}_tb98_console.txt "$D/r${NN}_tb98_console.txt" 2>/dev/null
-cp -f /tmp/kx/tb_v98_top_seam.run/run.log "$D/r${NN}_tb_v98_run.log" 2>/dev/null
+# #172：这份"逐列原始读数"过去叫 `.log`，而 `.gitignore` 里有 `*.log` ⇒ 它从来没进过 git，
+#   冻结件里那份 `c2_shape.txt` 全靠它、仓库里却没有它（今天同一族已经撞过第二次：
+#   `build/r94_flash.log` 被文档点名却进不了包）。冻结产物一律 `.txt`。
+cp -f /tmp/kx/tb_v98_top_seam.run/run.log "$D/r${NN}_tb_v98_run.txt" 2>/dev/null
 cp -f /tmp/kx/tb_v98_top_seam.run/prov.txt "$D/r${NN}_tb98_prov.txt" 2>/dev/null
 # L1 全量回归：门禁第 15 项只盯顶层台架那一份，其余台架红着门禁也能全绿（今天撞见两次），
 # 所以冻结件里必须留"这一版下所有台架各自的结论行"。
 cp -f /tmp/kx/r${NN}_l1.log "$D/r${NN}_l1_regress.txt" 2>/dev/null
 grep -a "^C2SHAPE\|^C2 row\|^C2IBAD\|^C2BLK\|^OBS lastcol\|^ID " \
-     "$D/r${NN}_tb_v98_run.log" > "$D/r${NN}_c2_shape.txt" 2>/dev/null
+     "$D/r${NN}_tb_v98_run.txt" > "$D/r${NN}_c2_shape.txt" 2>/dev/null
 L1P=0; L1F=0
 [ -f "$D/r${NN}_l1_regress.txt" ] && { L1P=$(grep -ac '^RESULT .* PASS' "$D/r${NN}_l1_regress.txt");
                                        L1F=$(grep -ac '^RESULT .* FAIL' "$D/r${NN}_l1_regress.txt"); }
