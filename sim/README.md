@@ -1,7 +1,7 @@
 # 台架（`sim/`）清单与去留
 
 这里不是教程（怎么写台架、判据为什么要能红：见 `skill/criterion_blind_spot.md`、
-`skill/bench_self_inflicted_reds.md`，以及 `docs/AI_COLLABORATION.md` §4 那一串案例）。
+`skill/bench_self_inflicted_reds.md`，以及 `report/AI_COLLABORATION.md` §4 那一串案例）。
 这一页只回答两个问题：**这些 `tb_*.v` 是怎么被跑起来的**，
 以及**哪一个在看着什么**。
 
@@ -18,7 +18,7 @@
   `node src/host/doc_enc_check.mjs --self`）。要求是"每条故意坏掉的输入**只**红在它对应那一格"，
   并且**必须有一条正对照是绿的**——不然一个"永远红"的判据会被误当成有牙。
 
-执行过的记录都在 `docs/log/ISSUES.md`：#103（C10f 红→绿一对）、#124（E1/E2 的 drop 两条红在 134/32、201/48，
+执行过的记录都在 `report/log/ISSUES.md`：#103（C10f 红→绿一对）、#124（E1/E2 的 drop 两条红在 134/32、201/48，
 ep 两条仍绿）、#93（C9 族）、#102（边缘条带四条圈）。
 
 ## 跑法
@@ -64,4 +64,4 @@ ep 两条仍绿）、#93（C9 族）、#102（边缘条带四条圈）。
 
 **必须修的（是注释在骗人，不是台架有问题）：** `sim/run_sim.tcl` 开头声称
 `axi_frame_saver.v` / `axi_frame_writer.v` "各自都有台架"——按现名搜只有带后缀的变体有。
-这类"文档/注释对不上树"的条目统一记在 `docs/log/ISSUES.md` 的注释精简那一类里处理。
+这类"文档/注释对不上树"的条目统一记在 `report/log/ISSUES.md` 的注释精简那一类里处理。

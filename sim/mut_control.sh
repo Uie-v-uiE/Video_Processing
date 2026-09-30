@@ -85,6 +85,15 @@ bilin_ky_fold)
     EXPDIFF=2
     sed -i 's/ ky_use = !bilin_en || sy >= IMG_H-1;/ ky_use = !bilin_en;/' "$P" || exit 1
     ;;
+shown_rate_fields)
+    # #128（OSD 的 `FPS:` 格）的反例：把"新帧判据"整条换成"每一场都算"——那正是老写法数显示场的语义。
+    # 预期**连带红三条**：S1（10）、S2（5）、S3（0）同时变成 20，同一根因 ⇒ 按规矩列出连带红，
+    # 不靠削尺子来让一次控制跑只红一条。S4（图卡=20）在这两种语义下本来就同值，所以它是绿的，
+    # 而它存在的意义恰恰是证明"红不是因为计数器坏了"。
+    P=rtl_mut/util/shown_rate.v
+    EXPDIFF=2           # 只动 new_shown 那一行
+    sed -i 's/wire new_shown = frame_start && (owner_eth_pix.*/wire new_shown = frame_start;/' "$P" || exit 1
+    ;;
 cdc_full_next)
     # r88 那一刀（#105 第二刀）的反例：把满判据从**当前**写指针 `wgray` 改回**下一个**写指针 `wgray_n`。
     # 这正是 2026-09-29 之前的写法：它让 `wr_full` 提前一格落地 ⇒ 深度 8192 只收 8191 个字，

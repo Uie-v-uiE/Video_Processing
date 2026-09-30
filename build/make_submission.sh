@@ -527,7 +527,10 @@ ABS="$( { grep -rnE "D:[/\\]|C:[/\\]|/d/Software|/d/Xilinx" --include='*.sh' --i
           --include='*.mjs' --include='*.ps1' --include='*.bat' --include='*.v' --include='*.c' --include='*.h' \
           --include='*.md' --include='*.xdc' --include='*.csv' \
           --exclude='make_submission.sh' . 2>/dev/null || true; } |
-        grep -vE ':[0-9]+:[[:space:]]*(#|//|\*)' | grep -vE '^\./report/log/' | cut -d: -f1 | sort -u | tr '\n' ' ' || true)"
+        grep -vE ':[0-9]+:[[:space:]]*(#|//|\*)' |
+        grep -vE '^\./report/log/' |
+        grep -vE '[A-Za-z]:[/\\]…' |
+        cut -d: -f1 | sort -u | tr '\n' ' ' || true)"
 ABSN=0
 if [ -n "$ABS" ]; then ABSN="$(printf '%s\n' $ABS | wc -l)"; fi
 
