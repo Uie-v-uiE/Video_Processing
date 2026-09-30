@@ -7,10 +7,10 @@
 
 | 项 | 值 | 出处 |
 |---|---|---|
-| 器件 | Zynq-7020 `xc7z020clg484-2` | `docs/BUILD.md` |
-| 显示输出 | HDMI **1024×600**，像素时钟 50 MHz、`H_TOTAL=1344`/`V_TOTAL=625`（`video_timing_1024x600.v:18-20`）⇒ 场频 **59.5 Hz**。别念成 50 Hz——那是像素时钟的数值，不是刷新率 | `docs/PERF_REPORT.md`、`build/timing_summary.rpt` |
+| 器件 | Zynq-7020 `xc7z020clg484-2` | `report/BUILD.md` |
+| 显示输出 | HDMI **1024×600**，像素时钟 50 MHz、`H_TOTAL=1344`/`V_TOTAL=625`（`video_timing_1024x600.v:18-20`）⇒ 场频 **59.5 Hz**。别念成 50 Hz——那是像素时钟的数值，不是刷新率 | `report/PERF_REPORT.md`、`build/timing_summary.rpt` |
 | PL 处理画幅 | 512×300（RGB565），输出侧 ×2 展开到 1024×600 上屏 | `src/rtl/top/pl_video_top.v` |
-| 片源 | 千兆 RGMII/UDP、SD 卡（FAT32 簇链自研解析）、PL 自绘测试图卡；仲裁与回退在 PL | `docs/ARCHITECTURE.md` |
+| 片源 | 千兆 RGMII/UDP、SD 卡（FAT32 簇链自研解析）、PL 自绘测试图卡；仲裁与回退在 PL | `report/ARCHITECTURE.md` |
 | 上板方式 | **只走 JTAG**：PS 起来 → 烧 PL → 重载应用。本工程的任何脚本都不向 QSPI/SPI flash 写入，也不碰板载 EEPROM | 下面第 2 节的三条命令 |
 | 交付二进制 | `build/system.bit`、`build/system.xsa`、`build/ps_app.elf`（认 md5 不认文件名） | `build/MANIFEST`（导出器按 md5 反查它点名的报告） |
 
@@ -45,7 +45,7 @@ VP_XSDB=<Vitis>/bin/xsdb.bat bash build/board_verify.sh --battery --geom
 它跑四段：开机回读、寄存器/健康位读回、几何"最后一跳"（命令 → 像素域真的用了它）、
 97+ 条串口命令电池（初态与末态必须逐位相同）。任何一段判红就整段停住并打印是哪一段。
 
-推流侧（PC）与串口侧的命令表在 `docs/HOST_GUIDE.md`、`docs/COMMANDS.md`。
+推流侧（PC）与串口侧的命令表在 `report/HOST_GUIDE.md`、`report/COMMANDS.md`。
 两个使用注意点：**串口 COM6 一次只能被一个程序占用**（自己开着终端占着时脚本会拒绝，不是板子坏了）；
 **要看寄存器就先停止推流**，流在跑的时候读到的计数是中间值。
 
@@ -66,5 +66,5 @@ VP_XSDB=<Vitis>/bin/xsdb.bat bash build/board_verify.sh --battery --geom
 几何关系一致；缩放/旋转时画面不出现整行错位；OSD 各格读数与串口读回一致。
 这一类"眼睛判据"的结果只有在看的人点头之后才写进表，不预先打勾。
 
-已知未修的几条限制写在 `docs/KNOWN_ISSUES.md`（大角度旋转时画面角点会出屏、SD 播放中拔卡会冻帧等），
+已知未修的几条限制写在 `report/KNOWN_ISSUES.md`（大角度旋转时画面角点会出屏、SD 播放中拔卡会冻帧等），
 这里不重复，以免两处漂。

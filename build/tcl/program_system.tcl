@@ -1,6 +1,6 @@
 # Program system.bit (PL+PS netlist)
 # root 要回退**两级**（脚本在 build/tcl/ 下）：早先它在 scripts/ 时 ../ 是对的，
-# 搬进 build/tcl/ 后就成了 build/build/xxx —— 只在板前才暴露，见 docs/log/ISSUES.md #22 的补记。
+# 搬进 build/tcl/ 后就成了 build/build/xxx —— 只在板前才暴露，见 report/log/ISSUES.md #22 的补记。
 set root [file normalize [file join [file dirname [info script]] .. ..]]
 set bit [file join $root build system.bit]
 if {![file exists $bit]} {

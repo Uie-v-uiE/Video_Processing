@@ -27,7 +27,7 @@ if {[info exists ::env(SWEEP_STRATS)] && $::env(SWEEP_STRATS) ne ""} {
 }
 set out [file join $root build "sweep_summary_[clock format [clock seconds] -format %Y%m%d_%H%M].txt"]
 # ⚠ 输出文件名带时间戳，**不再覆盖** build/sweep_summary.txt —— 那份是 V7.4 的历史凭据，
-#   `docs/log/CHANGELOG_V7.md:199` 与 `OVERNIGHT_LOG.md:527` 都按名字引它（引的就是"只完成 1/5 策略就中断"这件事）。
+#   `report/log/CHANGELOG_V7.md:199` 与 `OVERNIGHT_LOG.md:527` 都按名字引它（引的就是"只完成 1/5 策略就中断"这件事）。
 set fh [open $out w]
 puts $fh "# 实现策略扫描（同一份网表，逐策略重跑 impl_1）—— [clock format [clock seconds]]"
 puts $fh "# 用法：SWEEP_STRATS=\"A B C\" vivado -mode batch -source build/tcl/sweep_impl_strategy.tcl"

@@ -5,7 +5,7 @@
 # `build/frozen_rNN_*` 与 `build/evidence_rNN` 是 ISSUES / PERF_REPORT / OVERNIGHT_LOG
 # 里点名引用的那一份报告与 md5 清单（"每一条说法都要说出它的凭据是哪一份"）。
 # 删掉一份被引用过的冻结件 = 把那句话变成不可复查的空话（#68 那一族的反面）。
-# 所以这张表的判据是：**凡被 docs/ board/ skill/ 里任何一个文件点到名字的，一律不删**，
+# 所以这张表的判据是：**凡被 report/ board/ skill/ 里任何一个文件点到名字的，一律不删**，
 # 并且把"为什么不删"一起打在清单里 —— 清单本身要能回答"你凭什么说这个是没用的"。
 #
 # 用法：
@@ -51,7 +51,7 @@ cited() {                       # $1 = 路径（整串）与 basename 都查一�
 # 两档口径，不是一条：**构建快照**（frozen_* / evidence_* / failed_* / snap_*）里装的是凭据本身，
 # 所以"有没有被文档点名"才决定删不删；**仿真运行壳**（工具就地生成的工程壳、快照、日志）
 # 按定义可再生，里面不可能有凭据 ⇒ 无条件可删。
-# 为什么不给后者也查引用：`.Xil` 这类名字在 `docs/log/CHANGELOG_V7.md` 里出现过的是
+# 为什么不给后者也查引用：`.Xil` 这类名字在 `report/log/CHANGELOG_V7.md` 里出现过的是
 # "Windows 上连跑三次 synth_design 会撞 .Xil 目录锁"这条**技术注记**，不是凭据引用 ——
 # 拿它当"被引用"就等于永远清不掉，而这正是本脚本要治的那件事。
 junk() {
@@ -107,7 +107,7 @@ selftest() {
     : > "$T/build/frozen_r98_uncited/x.rpt"
     : > "$T/build/evidence_r97/x.rpt"                 # 故意**不**被引用：验的是 KEEP-NEWEST 那条
     : > "$T/sim_work/x.rpt"                           # 运行壳：即使被引用也归可删（第 9 条钉的就是它）
-    echo "凭据见 build/frozen_r99_cited；顺带提一句 sim_work" > "$T/docs/X.md"
+    echo "凭据见 build/frozen_r99_cited；顺带提一句 sim_work" > "$T/report/X.md"
     out=$(CLEANUP_ROOT="$T" CLEANUP_CITEDIR=report bash "$0" 2>&1)
     chk() { echo "$out" | grep -q "$1" || { echo "SELFTEST FAIL $2: 清单里没有这一行 [$1]"; nbad=1; }; }
     chk "KEEP-CITED   build/frozen_r99_cited" 1

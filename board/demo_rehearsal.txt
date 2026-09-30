@@ -1,4 +1,4 @@
-# 由 src/host/demo_cmds.mjs --emit 从 docs/DEMO_SCRIPT.md 抽出，不要手改
+# 由 src/host/demo_cmds.mjs --emit 从 report/DEMO_SCRIPT.md 抽出，不要手改
 stat
 src auto
 play

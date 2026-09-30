@@ -1,4 +1,4 @@
-// build/rename_tool_patch.mjs —— 给"docs/ 改名成 report/"这一轮用：**按行锚点**换掉工具里写死的名字。
+// build/rename_tool_patch.mjs —— 给"report/ 改名成 report/"这一轮用：**按行锚点**换掉工具里写死的名字。
 // 为什么按行锚点而不是整串字面匹配：这些行里嵌的是正则字面量（反斜杠成灾），
 // 整串匹配今晚已经两次因为一个转义不符就 MISS；而行锚点（`const OLD_DIR =` 之类）是稳定可寻的。
 // 规矩沿用今晚那张断言式补丁表：**每条都要命中，且只命中一次，否则一条都不写盘**。
@@ -14,9 +14,9 @@ const L = [
     (l) => l.replace('skill|docs', 'skill|report'),
     'D4c 凭据前缀集合换成 report（这行在 new RegExp 里，锚点用它的名字交替段）'],
   ['src/host/doc_currency_check.mjs', '/^docs\\/', 'docs', (l) => l.replace('docs', 'report'),
-    '交付文档判定：^docs/ → ^report/'],
-  ['src/host/doc_currency_check.mjs', 'HAND_SKIP_PREFIX =', "'docs/study/'",
-    (l) => l.replace("'docs/study/'", "'report/study/'"),
+    '交付文档判定：^report/ → ^report/'],
+  ['src/host/doc_currency_check.mjs', 'HAND_SKIP_PREFIX =', "'report/study/'",
+    (l) => l.replace("'report/study/'", "'report/study/'"),
     '学习件排除目录换成 report/study'],
   // D4b 与 D4a/D4c 用同一套"出处决定严重度"的口径：交付文档里念旧名 ⇒ 判红；
   // 日记/注释里那句"当年那个 report/ 拆成 docs/"是历史叙述，判红等于逼我伪造记录（#172 那一族）。
@@ -24,17 +24,17 @@ const L = [
     (l) => l.replace('rows.push(`${at} D4b 还在指已经删掉的旧目录：${l.trim().slice(0, 70)}`);',
                      '{ const r = `${at} D4b 还在指已经删掉的旧目录：${l.trim().slice(0, 70)}`; if (hard) rows.push(r); else adv.push(r); }'),
     'D4b 改成"交付文档判红、日记与注释只报数"（与 D4a/D4c 同口径）'],
-  ['src/host/doc_currency_check.mjs', "'docs/PERF_REPORT.md', 'docs/BUILD.md'", 'docs',
-    (l) => l.split("'docs/").join("'report/"),
+  ['src/host/doc_currency_check.mjs', "'report/PERF_REPORT.md', 'report/BUILD.md'", 'docs',
+    (l) => l.split("'report/").join("'report/"),
     'D1 盯的清单第一行（含 BUILD/CONTEST 那三项）'],
-  ['src/host/doc_currency_check.mjs', "'docs/DEMO_SCRIPT.md'", 'docs', (l) => l.split("'docs/").join("'report/"),
+  ['src/host/doc_currency_check.mjs', "'report/DEMO_SCRIPT.md'", 'docs', (l) => l.split("'report/").join("'report/"),
     'D1 盯的清单第二行'],
   ['src/host/doc_enc_check.mjs', 'const SCOPE =', "'docs'", 'docs',
     '手写件扫描目录：docs → report'],
   ['src/host/line_cite_check.mjs', 'const DOC_DIRS =', 'docs', (l) => l.split("'docs").join("'report"),
     'D5 扫描目录：docs → report'],
-  ['src/host/line_cite_check.mjs', 'const SKIP_DOCS =', 'docs', (l) => l.split('docs/').join('report/'),
-    'D5 排除：docs/log 与 docs/study → report 同名'],
+  ['src/host/line_cite_check.mjs', 'const SKIP_DOCS =', 'docs', (l) => l.split('report/').join('report/'),
+    'D5 排除：report/log 与 report/study → report 同名'],
   ['src/host/demo_cmds.mjs', 'path.join(ROOT, \'docs\'', 'docs', (l) => l.replace("'docs'", "'report'"),
     '讲稿抽取器读的是 report/DEMO_SCRIPT.md'],
 ];

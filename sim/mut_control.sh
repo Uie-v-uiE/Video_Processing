@@ -112,9 +112,12 @@ find "$R/rtl_mut" -name '*.v' > list.txt
 echo "$ROOT/sim/$TB.v" >> list.txt
 find "$ROOT/sim/prim" -name '*.v' 2>/dev/null >> list.txt
 cygpath -m -f list.txt > files.f
-printf 'mut_src=%s\nmut_diff_lines=%s\ntb_md5=%s\nrtl_md5_real=%s\ndate=%s\n' \
-  "$(md5sum "$P" | cut -c1-12)" "$NCH" "$(md5sum "$ROOT/sim/$TB.v" | cut -c1-12)" \
-  "$(cd "$ROOT" && find src/rtl -name '*.v' | LC_ALL=C sort | xargs md5sum | md5sum | cut -c1-12)" \
+# 两枚台架/RTL 指纹走 #202 那个唯一定义（norm1，去 CR）；mut_src 那枚是变异体自己的临时文件，
+# 按字节算就对了——它不需要跨 checkout 可比，只要这一次跑内自洽。
+FP=$ROOT/build/rtl_fingerprint.sh
+printf 'fpver=norm1\nmut_src=%s\nmut_diff_lines=%s\ntb_md5=%s\nrtl_md5_real=%s\ndate=%s\n' \
+  "$(md5sum "$P" | cut -c1-12)" "$NCH" "$(bash "$FP" "$ROOT/sim/$TB.v" | cut -c1-12)" \
+  "$(bash "$FP" | sed -n 's/^rtl=//p')" \
   "$(date -Iseconds)" | tee prov.txt
 
 $V/xvlog -f files.f > xv.log 2>&1

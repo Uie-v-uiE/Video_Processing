@@ -18,7 +18,7 @@
 #   共同点是**判据读的与被判的是同一个对象**——加判据时先问一句：它读的文件是谁写的、什么时候写。
 #
 # 数字全部来自 Vivado 报告本身，不重新跑构建；退出码：全绿 0，任何一项红 1。
-# 阈值口径与 docs/log/OVERNIGHT_LOG.md §1 的门禁表一致（**不要因为某项红了就改这里的阈值**）。
+# 阈值口径与 report/log/OVERNIGHT_LOG.md §1 的门禁表一致（**不要因为某项红了就改这里的阈值**）。
 set -u
 D=${1:-build}
 pick() { [ -f "$D/$1" ] && echo "$D/$1" || echo "$D/../$1"; }   # 冻结目录里缺的文件回落到 build/
@@ -223,7 +223,7 @@ fi
 #     所以"改了子模块端口、顶层忘了连"这类错 L1 全量 57 条一条都不会红，
 #     只能等 25 分钟的构建 —— 今晚 osd_overlay 换端口就踩在这个空档上。
 #     判据脚本自己有反例：拿两份故意改坏的拷贝跑，必须分别报"连了不存在的端口"和"输入没连"
-#     （见 docs/log/OVERNIGHT_LOG.md §33 与 skill/ 那条"判据要有自己的测试"）。
+#     （见 report/log/OVERNIGHT_LOG.md §33 与 skill/ 那条"判据要有自己的测试"）。
 #     r52 加宽到第三条**位宽**（`dbg_lat` 从 5 口变 6 口时想到的：#57 那类"高位被一根窄线吞掉"
 #     名字对得上、仿真与综合都不报，只有把两头量出来才看得见）。反例两份 + 一份负对照，
 #     凭据 `build/ports_check_width_ce.txt`。
@@ -244,7 +244,7 @@ else
         naa "顶层接线 —— 该冻结件早于第 14 项，没有对应的 ports_check 凭据（不判红，见上面注释）"
     fi
 fi
-# 14) WNS/WHS 的**归属组**（记录用，绝不判红）—— 2026-09-26 的教训，出处 `docs/OPTIMIZATION_LOG.md` §4。
+# 14) WNS/WHS 的**归属组**（记录用，绝不判红）—— 2026-09-26 的教训，出处 `report/OPTIMIZATION_LOG.md` §4。
 #     上表念的是 Design Timing Summary 里那**一个**数，而它由两条互不相干、都属"布线主导"的路径轮流决定：
 #     125 MHz ETH 组（`u_cdc/wbin→BRAM ENARDEN`、`u_lm/ms32→gap_min`）对上 50 MHz 像素组（`u_pipe→u_osd` 字形）。
 #     同一套约束三次构建 WNS = 0.918 / 0.807 / 0.314，只抄那一个数就会误判成"某次改动拖慢了设计"
@@ -283,9 +283,10 @@ echo
 if [ "$D" = "build" ]; then
     TB98=${TB98_REPORT:-build/tb_v98_report.txt}   # 反例脚本用这个变量指到临时报告上
     if [ -f "$TB98" ]; then
-        TOPWANT=$(md5sum src/rtl/top/pl_video_top.v | cut -c1-12)
-        TBWANT=$(md5sum sim/tb_v98_top_seam.v | cut -c1-12)
-        RTLWANT=$(find src/rtl -name '*.v' | LC_ALL=C sort | xargs md5sum | md5sum | cut -c1-12)
+        eval "$(bash build/rtl_fingerprint.sh)"    # fpver/files/top/rtl —— 指纹定义只有一处
+        TOPWANT=$top
+        RTLWANT=$rtl
+        TBWANT=$(bash build/rtl_fingerprint.sh sim/tb_v98_top_seam.v | cut -c1-12)
         TOPYES=$(sed -n 's/.*top_md5=\([0-9a-f]*\).*/\1/p' "$TB98" | head -1)
         TBYES=$(sed -n 's/.* tb_md5=\([0-9a-f]*\).*/\1/p' "$TB98" | head -1)
         RTLYES=$(sed -n 's/.* rtl_md5=\([0-9a-f]*\).*/\1/p' "$TB98" | head -1)
@@ -302,16 +303,36 @@ if [ "$D" = "build" ]; then
         if ! bash build/run_one_ce.sh > "/tmp/run_one_ce.gate.$$.txt" 2>&1; then
             OK=0; WHY="$WHY判定解析器自己的对照不过(#166，见 /tmp/run_one_ce.gate.*) ";
         fi
-        [ "$TOPYES" = "$TOPWANT" ] || { OK=0; WHY="$WHY顶层 md5 不符($TOPYES!=$TOPWANT：改过 pl_video_top，报告与当前树不是同一次跑) "; }
+        # 指纹这把尺子自己也上对照（#202）：换行编码不变性、改内容必须动、扫描面、桥接表逐行复算。
+        if ! bash build/rtl_fingerprint.sh --self > "/tmp/fp_self.gate.$$.txt" 2>&1; then
+            OK=0; WHY="$WHY源码指纹尺子自己的对照不过(#202，见 /tmp/fp_self.gate.*) ";
+        fi
+        MATCH_LOG=""
+        mcheck() { # $1 中文名 $2 kind $3 报告里的值 $4 当前值 $5 路径(可空)
+            # ⚠ $5 必须写成本地默认值：门禁跑在 `set -u` 下，而 "$5" 处在这个函数唯一的
+            #   命令替换里 ⇒ 未报错时只有那个**子 shell** 退出，本项照常把 m 当空串念成"过了"。
+            #   这就是第 15 项的反例 E/F 当场抓到的形状（#203：判据没执行却报 PASS）。
+            local m pw=${5:-}
+            m=$(bash build/rtl_fingerprint.sh --match "$2" "$3" "$4" "$pw")
+            MATCH_LOG="$MATCH_LOG ${m:-ERR}"
+            # 只认 fresh/bridge 两种答案；空串/ERR/no 一律红 —— "尺子没答"不等于"答了且过了"
+            if [ "$m" != "fresh" ] && [ "$m" != "bridge" ]; then
+                OK=0; WHY="$WHY$1 不符(报告=$3 当前=$4 判定=${m:-空}：改过$1，这份报告不算当前树；桥接表里也没有 $3) "
+            fi
+        }
+        mcheck "顶层" file "$TOPYES" "$TOPWANT" src/rtl/top/pl_video_top.v
         # 顶层之外的那一路也必须对得上：r72 改的是四个窗口级，`pl_video_top.v` 一个字节没动，
         # 只比顶层 md5 的话 r71 的旧报告能原样冒充今天的凭据（今天就差一点撞上）。
-        if [ "$RTLYES" != "$RTLWANT" ]; then
-            OK=0; WHY="${WHY}RTL 合指纹不符(${RTLYES:-报告头部没有 rtl_md5 字段——那是加这枚指纹之前的旧报告}!=$RTLWANT：改过 src/rtl 里顶层之外的文件，这份报告不算当前树) ";
-        fi
-        [ "$TBYES" = "$TBWANT" ]   || { OK=0; WHY="$WHY台架 md5 不符($TBYES!=$TBWANT：改过 tb_v98，复跑) "; }
+        mcheck "RTL" rtl "$RTLYES" "$RTLWANT"
+        mcheck "台架" file "$TBYES" "$TBWANT" sim/tb_v98_top_seam.v
         [ "$NFAIL" = "0" ]         || { OK=0; WHY="$WHY报告里有 $NFAIL 行 FAIL "; }
+        # 计数地板（#194 那条"第 14 项只看退出码，instances=0 也绿"的同族）：三枚指纹都**必须被判定过**。
+        # 今天我自己写的 mcheck 少传一个参数，`set -u` 只让命令替换那个子 shell 退出，
+        # RTL 那一枚就这么"没查"而本项照报 PASS —— 是反例 E/F 把它揪出来的，地板让它下次不必等反例。
+        NJ=$(echo $MATCH_LOG | wc -w)
+        [ "$NJ" = "3" ] || { OK=0; WHY="$WHY指纹判定只有 $NJ/3 枚（少一枚就是那一枚根本没执行，不许当过了） "; }
         [ "$DONE" = "1" ]          || { OK=0; WHY="$WHY没有 RESULT…PASS 汇总行（$([ "$RFIN" -gt 0 ] && echo "台架跑完了、是它自己判红的，先读 FAIL 那几行的数" || echo "台架没跑完或中途退出")） "; }
-        say "顶层台架 tb_v98" "top=$TOPYES FAIL行=$NFAIL" "同一次跑且无 FAIL" $OK
+        say "顶层台架 tb_v98" "top=$TOPYES FAIL行=$NFAIL 指纹(norm1):$(echo $MATCH_LOG)" "同一次跑且无 FAIL" $OK
         [ -n "$WHY" ] && echo "        ——$WHY"
     else
         say "顶层台架 tb_v98" "缺 build/tb_v98_report.txt" "必须先跑 tb98_report.sh" 0
@@ -330,20 +351,31 @@ fi
 if [ "$D" = "build" ]; then
     if [ -n "${RIM_REPORT:-}" ]; then RIM=$RIM_REPORT; else RIM=$(ls -1 build/tb_edge_rim_r*.txt 2>/dev/null | sort -V | tail -1); fi
     if [ -n "$RIM" ]; then
-        RTLWANT=$(find src/rtl -name '*.v' | LC_ALL=C sort | xargs md5sum | md5sum | cut -c1-12)
-        TBWANT=$(md5sum sim/tb_edge_rim.v | cut -c1-12)
+        RTLWANT=$(bash build/rtl_fingerprint.sh | sed -n 's/^rtl=//p')
+        TBWANT=$(bash build/rtl_fingerprint.sh sim/tb_edge_rim.v | cut -c1-12)
         RTLYES=$(sed -n 's/^rtl_md5=\([0-9a-f]*\).*/\1/p' "$RIM" | head -1)
         TBYES=$(sed -n 's/^tb_md5=\([0-9a-f]*\).*/\1/p' "$RIM" | head -1)
         NFAIL=$(grep -ac "^FAIL" "$RIM")
         DONE=$(grep -ac "^RESULT tb_edge_rim PASS$" "$RIM")
         FLOOR=$(grep -acE "^PASS R[2-5]" "$RIM")
         OK=1; WHY=""
-        [ "$RTLYES" = "$RTLWANT" ] || { OK=0; WHY="${WHY}RTL 合指纹不符($RTLYES!=$RTLWANT：改过 src/rtl，这份 rim 报告不算当前树) "; }
-        [ "$TBYES" = "$TBWANT" ] || { OK=0; WHY="${WHY}台架 md5 不符($TBYES!=$TBWANT：改过 tb_edge_rim，复跑) "; }
+        RIM_LOG=""
+        rcheck() { # $1 中文名 $2 kind $3 报告值 $4 当前值 $5 路径(可空) —— 同 mcheck，$5 要有默认值
+            local m pw=${5:-}
+            m=$(bash build/rtl_fingerprint.sh --match "$2" "$3" "$4" "$pw")
+            RIM_LOG="$RIM_LOG ${m:-ERR}"
+            if [ "$m" != "fresh" ] && [ "$m" != "bridge" ]; then
+                OK=0; WHY="${WHY}$1 不符(报告=$3 当前=$4 判定=${m:-空}：改过$1，这份 rim 报告不算当前树；桥接表里也没有 $3) "
+            fi
+        }
+        rcheck "RTL" rtl "$RTLYES" "$RTLWANT"
+        rcheck "台架" file "$TBYES" "$TBWANT" sim/tb_edge_rim.v
         [ "$NFAIL" = "0" ] || { OK=0; WHY="${WHY}报告里有 $NFAIL 行 FAIL "; }
         [ "$DONE" = "1" ] || { OK=0; WHY="${WHY}没有 RESULT tb_edge_rim PASS 汇总行 "; }
         [ "$FLOOR" = "4" ] || { OK=0; WHY="${WHY}四条圈只绿了 $FLOOR/4 条（少一条就是那一族的判据没跑或被地板挡下） "; }
-        say "边缘条带 tb_edge_rim" "$(basename "$RIM") rtl=$RTLYES FAIL行=$NFAIL" "同一次跑、无 FAIL、四条圈齐" $OK
+        NJR=$(echo $RIM_LOG | wc -w)
+        [ "$NJR" = "2" ] || { OK=0; WHY="${WHY}指纹判定只有 $NJR/2 枚（少一枚就是那一枚没执行） "; }
+        say "边缘条带 tb_edge_rim" "$(basename "$RIM") rtl=$RTLYES FAIL行=$NFAIL 指纹(norm1):$(echo $RIM_LOG)" "同一次跑、无 FAIL、四条圈齐" $OK
         [ -n "$WHY" ] && echo "        ——$WHY"
     else
         say "边缘条带 tb_edge_rim" "缺 build/tb_edge_rim_rNN.txt" "必须先跑并留凭据" 0
@@ -399,7 +431,7 @@ fi
 rm -f /tmp/cur_self.$$.txt
 
 # ---- 19：演示排练脚本必须等于讲稿抽出来的那一份（2026-09-27 加，起因是今晚自己差点造出来）----
-# `board/demo_rehearsal.txt` 是**照着敲进板子**的那一份，而它是从 `docs/DEMO_SCRIPT.md` 的代码块
+# `board/demo_rehearsal.txt` 是**照着敲进板子**的那一份，而它是从 `report/DEMO_SCRIPT.md` 的代码块
 # 抽出来的（`src/host/demo_cmds.mjs --emit`）。讲稿改了而这份没重抽 ⇒ 排练与演示用的是两套东西，
 # 症状恰好是 #67 那一族（"清单里有、板上没有"）：台上敲一条不存在的写法，或者少演一条改过的。
 # 今晚改讲稿次序（第 9 幕拔卡）时我是**手工**比了一遍才敢说"49/49 那条仍然成立" ——

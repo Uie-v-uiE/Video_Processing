@@ -11,7 +11,7 @@
 #   所以报告的头部钉住 `pl_video_top.v` 与本台架各自的 md5，门禁拿树里的现值比：
 #   对不上就是"改过顶层，这份不算数"（本仓的规矩：认 md5，不认文件名）。
 set -u
-ROOT="$(cd "$(dirname "$0")/.." && pwd)"   # 仓库根自适应（原来写死本机路径，见 docs/BUILD.md §1）
+ROOT="$(cd "$(dirname "$0")/.." && pwd)"   # 仓库根自适应（原来写死本机路径，见 report/BUILD.md §1）
 SRC=${1:-/tmp/kx/tb_v98_top_seam.run/run.log}
 OUT=$ROOT/build/tb_v98_report.txt
 cd "$ROOT" || exit 2
@@ -24,11 +24,14 @@ if [ -f "$PROV" ]; then
     TB=$(sed -n 's/^tb_md5=\(.*\)$/\1/p' "$PROV" | head -1)
     RTL=$(sed -n 's/^rtl_md5=\(.*\)$/\1/p' "$PROV" | head -1)
     WHEN=$(sed -n 's/^date=\(.*\)$/\1/p' "$PROV" | head -1)
+# `fpver` 念出这两枚指纹是**哪一种算法**算的（#202）：没有这一行的 prov 是旧 raw 方言，
+# 由 build/fingerprint_bridge.txt 对账；写 `norm1` 的是去 CR 的内容指纹，门禁直接比。
+FPVER=$(sed -n 's/^fpver=\(.*\)$/\1/p' "$PROV" | head -1); [ -n "$FPVER" ] || FPVER=raw0
 else
-    TOP=UNKNOWN; TB=UNKNOWN; RTL=UNKNOWN; WHEN="无 prov.txt（这份 run 早于出处机制，或不是 run_one.sh 跑的）"
+    TOP=UNKNOWN; TB=UNKNOWN; RTL=UNKNOWN; WHEN="无 prov.txt（这份 run 早于出处机制，或不是 run_one.sh 跑的）"; FPVER=none
 fi
 {
-    echo "# provenance top_md5=$TOP tb_md5=$TB rtl_md5=$RTL date=$WHEN src=$SRC"
+    echo "# provenance fpver=$FPVER top_md5=$TOP tb_md5=$TB rtl_md5=$RTL date=$WHEN src=$SRC"
     grep -a "^\(PASS \|FAIL \|RESULT \|C2 table\|C2 row\|C2BLK\|C2SHAPE\|C2IBAD\|C4 \|C4RUN \|C9\|P1 \|INFO \)" "$SRC"
 } > "$OUT"
 # C9 一族（#103 的尺子）的**原始读数行**必须在报告里：`C9a/C9b/C9e` 那三条

@@ -26,11 +26,11 @@ build/reports/
 build/scripts/
 
 # ===== 本地个人笔记 / 辅助脚本 / 构建日志（不上传） =====
-docs/LEARNING.md
-docs/TCL_GUIDE.md
-docs/PROJECT_LOG.md
-docs/build_logs/
-docs/fix_branches.bat
+report/LEARNING.md
+report/TCL_GUIDE.md
+report/PROJECT_LOG.md
+report/build_logs/
+report/fix_branches.bat
 report/ZOOM_PORT.md
 report/COMPETITION.md
 fix_branches.bat
@@ -102,7 +102,7 @@ build/*.stdout
 # 作者自用学习文档（中文文件名）。比赛指南 §3.3.3.4 要求仓库内文件名纯 ASCII，
 # 所以它**不入库**；写在 .gitignore 而不是 .git/info/exclude，是为了这条排除规则本身可被审查看见、
 # 换机器也不会失效（原来只在 .git/info/exclude 里 = 只存在于这台机器）。
-docs/study/
+report/study/
 
 
 # xsim/vivado 就地生成的工程壳：跑批时留在原地会污染 git status（2026-09-24 加）

@@ -15,14 +15,30 @@ S="$(mktemp -d "${TMPDIR:-/tmp}/fzsb.XXXXXX")"
 trap 'rm -rf "$S"' EXIT
 mkdir -p "$S/build" "$S/src/rtl/top" "$S/src/rtl/process"
 cp "$ROOT/build/freeze_evidence.sh" "$S/build/freeze_evidence.sh" || { echo "FAIL 拷不进冻结脚本"; exit 1; }
-git -C "$ROOT" show HEAD:build/freeze_evidence.sh > "$S/build/freeze_old.sh" 2>/dev/null || { echo "FAIL 取不到 HEAD 版对照"; exit 1; }
+cp "$ROOT/build/rtl_fingerprint.sh" "$S/build/rtl_fingerprint.sh" || { echo "FAIL 拷不进指纹脚本"; exit 1; }
+# 对照的**标本**必须钉在一个固定提交上，不能用 HEAD：#192 修完之后 HEAD 那版已经不写死名单了，
+# 于是 A/C 两段量的就变成"新版 vs 新版"，四条对照当场集体失真（2026-09-30 夜里第二次撞见同一族：
+# 尺子的参照物自己会移动）。88cf452^ 就是那份"拷 19+6、只盖 11"的旧脚本。
+FREEZE_OLD_REF=${FREEZE_OLD_REF:-88cf452^}
+git -C "$ROOT" show "$FREEZE_OLD_REF:build/freeze_evidence.sh" > "$S/build/freeze_old.sh" 2>/dev/null \
+    || { echo "FAIL 取不到 $FREEZE_OLD_REF 版对照"; exit 1; }
 
 printf 'module top; endmodule\n' > "$S/src/rtl/top/pl_video_top.v"
 printf 'module win; endmodule\n' > "$S/src/rtl/process/win.v"
-# 脚本自己算的两枚指纹，按它的算法复算一遍写进假报告，两道硬门才走得通
+# 脚本自己算的两枚指纹，按**它自己的算法**复算一遍写进假报告，两道硬门才走得通。
+# 新旧两版的算法不同：旧版是 `find … | xargs md5sum | md5sum`（MSYS 的 md5sum 会在文件名前加
+# `*` 这个二进制标记），新版只认 `build/rtl_fingerprint.sh` 的 norm1（去 CR、行格式写死）。
+# 所以 A/C 段用旧方言的报告、D 段以后换成新方言的报告 —— 两段各拿自己那一版的凭据。
 TOP=$(md5sum "$S/src/rtl/top/pl_video_top.v" | cut -c1-12)
-RTL=$(cd "$S" && find src/rtl -name '*.v' | LC_ALL=C sort | xargs md5sum | md5sum | cut -c1-12)
-{ echo "PROVENANCE top_md5=$TOP rtl_md5=$RTL tb_md5=deadbeefdead"; echo "RESULT tb_v98_top_seam PASS"; } > "$S/build/tb_v98_report.txt"
+RTL_OLD=$(cd "$S" && find src/rtl -name '*.v' | LC_ALL=C sort | xargs md5sum | md5sum | cut -c1-12)
+RTL_NEW=$(FP_ROOT="$S" bash "$S/build/rtl_fingerprint.sh" | sed -n 's/^rtl=//p')
+fake_report() { printf 'PROVENANCE top_md5=%s rtl_md5=%s tb_md5=deadbeefdead\nRESULT tb_v98_top_seam PASS\n' "$1" "$2" \
+                > "$S/build/tb_v98_report.txt"; }
+# 沙箱不许看见真机的台架运行目录：#193 那一族说"空集上的绿"，而**反过来**也成立——
+# 沙箱里读到 /tmp/kx 那份正在写的 run.log，就会凭空造出逐列读数件，F1/F2 两条对照当场失真。
+mkdir -p "$S/empty_kx"
+export KX_RUN_DIR="$S/empty_kx"
+fake_report "$TOP" "$RTL_OLD"
 for nn in 5 6; do echo "GATES: ALL PASS" > "$S/build/r${nn}_gates.txt"; done
 echo "PASS c1" > "$S/build/r5_benches.txt"; echo "PASS c1" > "$S/build/r6_benches.txt"
 echo "RESULT tb_edge_rim PASS" > "$S/build/tb_edge_rim_r5.txt"
@@ -61,6 +77,12 @@ OLDHITS=$( ( cd "$S/build/evidence_r6" && md5sum -c --quiet MANIFEST.md5 2>&1 ||
 want "C1 旧版看不见这次篡改" 0 "$OLDHITS"
 
 echo "=== D) 新清单：盖章数=落地数，且同一份篡改必须被发现 ==="
+# D0 换算法不等于放行：桥接表里没有的旧方言 raw 必须还是 REFUSE（否则 norm1 就成了"谁都能过"）
+fake_report "$TOP" "$RTL_OLD"
+bash "$S/build/freeze_evidence.sh" 7 > "$S/d0.out" 2>&1; RCX=$?
+want "D0 旧方言不在桥接表里 ⇒ 新脚本 REFUSE" 1 "$RCX"
+want "D0b REFUSE 没留下冻结目录" 0 "$(ls -1 "$S/build" 2>/dev/null | grep -c evidence_r7)"
+fake_report "$TOP" "$RTL_NEW"          # 新算法读自己的方言
 bash "$S/build/freeze_evidence.sh" 5 > /dev/null 2>&1; RCNEW=$?
 NEWLANDED=$(cd "$S/build/evidence_r5" && find . -type f ! -name MANIFEST.md5 | wc -l)
 NEWSEAL=$(grep -c '^[0-9a-f]\{32\}' "$S/build/evidence_r5/MANIFEST.md5")

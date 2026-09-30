@@ -36,7 +36,7 @@
 | 1 | `RST_SYSTEM: ok` / `PS7_INIT: ok` / `PS7_POST_CONFIG: ok` → `PROGRAMMED xc7z020_1 <- build/system.bit` → `FLOW_DONE`（只走 JTAG，不写 QSPI）。**第一次跑第一步连不上**：`CONNECT:` 空 ⇒ 本机没有 hw_server 在听 3121，起了 `Vitis/bin/hw_server.bat` 之后拿到 `tcfchan#0` —— 复现时这一条要先做 | `build/evidence/r96_flash_1_ps_boot.txt`、`r96_flash_2_program_pl.txt`、`r96_flash_3_app_reload.txt` |
 | 2 | `RESULT PASS uart_cmd_check（105 条命令, 97.7 s）`（比 r94 的 100 条多 5 条：#105/#177/#178 那几组新判据）；`RESULT board_verify PASS（判红的步骤：0）` | `build/evidence/verify_0930_1845.txt`、`verify_0930_1845.batt.txt`、`board/uart_script_capture.txt` |
 | 3 | `RESULT PASS geom_check（ok=8 fail=0）`：`G1a zoom fit 1 ⇒ lane23.bit19=1`（`lane23=0x800e4909`）、`G3x` 收尾把 fit 关掉 ⇒ bit19 回 0（`0x800621f4`）、`G4` 跑完整串 19 个几何位回到演示默认档（`geom=00400000`） | `build/evidence/verify_0930_1845.geom.txt` |
-| 4 | **没有盖章**：刷完之后开机读到的是 `zsel=4 zman=1` 而 `inv=265`（几分钟后同一位是 `inv=472`、`zcode=2`）—— 逐位拆开自洽，是 **#93 的旋转钳正在生效**（板子在自动旋转），不是默认档失灵。要补这一格得先把旋转钉住（`rot auto 0` 之后**读 OSD 的角度格**，不能只发命令就算，理由见账 #178/#175） | `build/evidence/verify_0930_1845.txt` 的开机回读段；账 `docs/log/ISSUES.md` 的"#175 又抓到一份活标本" |
+| 4 | **没有盖章**：刷完之后开机读到的是 `zsel=4 zman=1` 而 `inv=265`（几分钟后同一位是 `inv=472`、`zcode=2`）—— 逐位拆开自洽，是 **#93 的旋转钳正在生效**（板子在自动旋转），不是默认档失灵。要补这一格得先把旋转钉住（`rot auto 0` 之后**读 OSD 的角度格**，不能只发命令就算，理由见账 #178/#175） | `build/evidence/verify_0930_1845.txt` 的开机回读段；账 `report/log/ISSUES.md` 的"#175 又抓到一份活标本" |
 | 7 | `V9-6 温度格三方对账：4 条 [TEMP] 的 degC↔osd↔gpio 全部自洽`（在 105 条那一串里跑的） | `build/evidence/verify_0930_1845.batt.txt` |
 | 9 | 全设计 setup WNS **0.749 ns**、hold WHS **0.049 ns**、失败端点 **0 / 50887**（脉冲 WPWS 0.264、失败 0 / 12524）；BRAM **95** tile(67.86 %)、Slice LUT **14388**(27.05 %)、FF **8077**、DSP **19**、动态 **2.206 W**。逐时钟：`eth_rxc 0.749/0.049`（WNS 归属）、`clk_fpga_0 1.755/0.051`、`clkout0_1 0.840/0.062`、`sys_clk 14.272/0.121`。绝对值与 r94 之差**既不记收益也不记损失**（规矩 35）；端点 +4 与 #170 排空态新增的位同量级，这是结构观察不是改进 | `build/timing_summary.rpt`、`build/utilization.rpt`、`build/r96_gates.txt` |
 | 10 | `build/clock_util.rpt`（17:07 本版构建产）**重读到 `BUFIO = 0`**、`BUFGCTRL = 8`；本行原来那组"最差 20 条 hold 偏斜 0.013~0.349 ns"**这一轮没有逐条重读**（那是 r92 那一次的读法，文件也还在盘上） | `build/clock_util.rpt`、`build/hold_paths.rpt` |
@@ -82,5 +82,5 @@
 ## 结论
 
 - 机器判据 10 条全部通过（第 10 条是 #57 的结构判据），凭据都在表里点名；
-- 已知未修项（大角度旋转角点出屏、SD 播放中拔卡冻帧等）在 `docs/KNOWN_ISSUES.md`，这里不重复；
+- 已知未修项（大角度旋转角点出屏、SD 播放中拔卡冻帧等）在 `report/KNOWN_ISSUES.md`，这里不重复；
 - 门禁的**项数与红绿以 `bash build/gates.sh` 打印的那一行为准**，本表不复制它，以免两处漂。

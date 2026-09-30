@@ -1,10 +1,10 @@
 #!/bin/bash
-# build/rename_docs_to_report.sh —— 把仓库里的 docs/ 目录改成 report/，并且**带着还原能力**。
+# build/rename_docs_to_report.sh —— 把仓库里的 report/ 目录改成 report/，并且**带着还原能力**。
 #
 # 为什么要有这个脚本（而不是手工 mv + sed）：今晚已经试过两次，两次都在做到一半时退回，
 # 卡点不是"改不动"，是"改坏了没法证明能全数还原"：
 #   * 我第一次的待改清单是手工拼的（66 个文件），真实数是当场 grep 出来的 129 个 ⇒ "0 处残留"只在子集上成立；
-#   * `git checkout -- .` 救不了**未跟踪与被 .gitignore 挡住**的文件（docs/study/ 31 份本地学习件、
+#   * `git checkout -- .` 救不了**未跟踪与被 .gitignore 挡住**的文件（report/study/ 31 份本地学习件、
 #     board/HANDS_ON.md、build/r94_*.py 那些一次性脚本的注释），而我当时用 `git status` 与
 #     `CURRENCY: 干净` 判"已还原"，两者都只看跟踪件 ⇒ 安全感是假的（第十八条那一族的复发）。
 # 所以这里把三件事写死在一个工具里：①当场枚举（不手工拼）；②改前快照含被忽略件，restore 能全数还原；
@@ -27,12 +27,12 @@ BASE_DOCENC=364      # 基线：改前 doc_enc_check 扫到 364 份手写件；�
 BASE_CITE=91         # 基线：line_cite_check 扫 91 份交付文档
 files_with_docs() {   # 当场枚举：跟踪 + 未跟踪 + 被忽略
     { git ls-files -z; git ls-files -z --others; git ls-files -z --others --ignored --exclude-standard; } |
-    xargs -0 -r grep -l "docs/" 2>/dev/null | sort -u
+    xargs -0 -r grep -l "report/" 2>/dev/null | sort -u
 }
 case "${1:-}" in
 snapshot)
     files_with_docs > "$LIST"; N=$(grep -c '' "$LIST")
-    echo "枚举到带 docs/ 的文件 $N 个（跟踪+未跟踪+被忽略）"
+    echo "枚举到带 report/ 的文件 $N 个（跟踪+未跟踪+被忽略）"
     grep -E '/(study|log)/' "$LIST" | head -3
     tar -cf "$SNAP" -T "$LIST" 2>/dev/null || tar -cf "$SNAP" $(cat "$LIST")
     echo "快照 = $SNAP（$(du -h "$SNAP" | cut -f1)）；restore 能还原包括被忽略的件"
@@ -42,36 +42,36 @@ dry)
     [ -f "$LIST" ] || { echo "先跑 snapshot"; exit 1; }
     tot=0; sk=0
     while IFS= read -r f; do
-        a=$(grep -c "docs/" "$f" 2>/dev/null || true); a=${a:-0}
-        s=$(grep -E "$NARR" "$f" 2>/dev/null | grep -c "docs/" || true); s=${s:-0}
+        a=$(grep -c "report/" "$f" 2>/dev/null || true); a=${a:-0}
+        s=$(grep -E "$NARR" "$f" 2>/dev/null | grep -c "report/" || true); s=${s:-0}
         tot=$((tot + a - s)); sk=$((sk + s))
-        [ "$s" -gt 0 ] && grep -E "$NARR" "$f" | grep -n "docs/" | sed "s|^|$f:|"
+        [ "$s" -gt 0 ] && grep -E "$NARR" "$f" | grep -n "report/" | sed "s|^|$f:|"
     done < "$LIST"
     echo "会重写 $tot 处；跳过含叙事词的行 $sk 处（上面逐行列出，要人工决定措辞）"
     ;;
 apply)
     [ -f "$SNAP" ] || { echo "STOP: 没有快照就不许 apply（还原能力是前提）"; exit 1; }
-    [ -d docs ] || { echo "STOP: docs/ 不存在，可能已经改过了"; exit 1; }
+    [ -d docs ] || { echo "STOP: report/ 不存在，可能已经改过了"; exit 1; }
     echo "-- 1) 翻 D4b：废弃目录名 report -> docs，并把 CITE_MD 的名改成 report"
     node build/rename_tool_patch.mjs || { echo "STOP: 工具补丁没全命中，一个字节都不留"; exit 1; }
-    echo "-- 2) mv 目录（含 docs/log 与 docs/study）"
-    mkdir -p report && mv docs/study report/study 2>/dev/null
-    git mv docs/log report/log && for f in docs/*; do b=$(basename "$f"); [ "$b" = log ] || [ "$b" = study ] || git mv "$f" "report/$b"; done
+    echo "-- 2) mv 目录（含 report/log 与 report/study）"
+    mkdir -p report && mv report/study report/study 2>/dev/null
+    git mv report/log report/log && for f in report/*; do b=$(basename "$f"); [ "$b" = log ] || [ "$b" = study ] || git mv "$f" "report/$b"; done
     find docs -type f 2>/dev/null | head -3 | sed 's/^/     docs 里还剩: /'
     rm -rf docs 2>/dev/null; [ -d docs ] && { echo "STOP: docs 没清空，看上面"; exit 1; } || echo "     docs 已消失 ✓"
-    echo "-- 3) 重写指路 docs/ -> report/（跳过叙事行）"
+    echo "-- 3) 重写指路 report/ -> report/（跳过叙事行）"
     files_with_docs > "$LIST"
     while IFS= read -r f; do
         [ -f "$f" ] || continue
         grep -vE "$NARR" "$f" > /dev/null 2>&1 || continue
-        awk -v narr="$NARR" '{ if ($0 ~ narr) print; else { gsub("docs/", "report/"); print } }' "$f" > "$f.tmp" && mv "$f.tmp" "$f"
+        awk -v narr="$NARR" '{ if ($0 ~ narr) print; else { gsub("report/", "report/"); print } }' "$f" > "$f.tmp" && mv "$f.tmp" "$f"
     done < "$LIST"
     echo "     重写完 $(grep -c '' "$LIST") 个文件"
     ;;
 verify)
     echo "-- 残留（应当只剩叙事行与被跳过的历史句）"
     { git ls-files; git ls-files --others; git ls-files --others --ignored --exclude-standard; } |
-      sort -u | xargs -r grep -n "docs/" 2>/dev/null | grep -vE "$NARR" | head -10
+      sort -u | xargs -r grep -n "report/" 2>/dev/null | grep -vE "$NARR" | head -10
     echo "-- 四个检查器"
     node src/host/doc_enc_check.mjs 2>&1 | tail -1
     node src/host/doc_currency_check.mjs 2>&1 | tail -1

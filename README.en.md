@@ -60,8 +60,8 @@ Host side: [src/host/video_sender.py](src/host/video_sender.py) streams **any vi
 not; every source is scaled to the PL's 512x300 canvas). With the board on your desk,
 **double-click [send_demo.bat](send_demo.bat)** - it pings the board first, then streams
 the built-in test video. Commands, registers and every criterion are in
-[docs/HOST_GUIDE.md](docs/HOST_GUIDE.md), [docs/COMMANDS.md](docs/COMMANDS.md),
-[docs/BUILD.md](docs/BUILD.md) and [board/README.md](board/README.md).
+[report/HOST_GUIDE.md](report/HOST_GUIDE.md), [report/COMMANDS.md](report/COMMANDS.md),
+[report/BUILD.md](report/BUILD.md) and [board/README.md](board/README.md).
 
 ## Key numbers (each one names its report)
 
@@ -76,8 +76,8 @@ the built-in test video. Commands, registers and every criterion are in
 | On-board verification | 100-command serial battery PASS, geometry "last hop" 8/8 PASS, `drop_words=0` while streaming | [board/ACCEPTANCE.md](board/ACCEPTANCE.md) |
 
 Trends, which optimisations were rejected by evidence, and why a raw WNS delta is not
-accepted as a gain are in [docs/OPTIMIZATION_LOG.md](docs/OPTIMIZATION_LOG.md) and
-[docs/PERF_REPORT.md](docs/PERF_REPORT.md). This page deliberately does not copy them -
+accepted as a gain are in [report/OPTIMIZATION_LOG.md](report/OPTIMIZATION_LOG.md) and
+[report/PERF_REPORT.md](report/PERF_REPORT.md). This page deliberately does not copy them -
 the same number written in two places always drifts.
 
 **This page makes no gate-green claim.** Whether a given build passes the gate, how many
@@ -97,11 +97,11 @@ prints (if something fails it says so explicitly instead of rounding it off).
 | `board/` | what runs on the board, how to start it, and what was read back ([board/README.md](board/README.md), [board/ACCEPTANCE.md](board/ACCEPTANCE.md)) |
 | `data/` | `golden/` reference images, `measured/` measurements, and `metrics.csv` as the single number table |
 | `skill/` | skill cards distilled from the LLM collaboration; each card has six fixed parts: trigger, when it does *not* apply, action, completion criterion, expiry boundary, and the real failure it came from |
-| `docs/` | delivery documentation: design, optimisation record, command reference, reproduction guide (index in [docs/README.md](docs/README.md)) |
-| `docs/log/` | append-only working log (issue ledger, overnight log); kept as process evidence, not quoted as conclusions |
+| `report/` | delivery documentation: design, optimisation record, command reference, reproduction guide (index in [report/README.md](report/README.md)) |
+| `report/log/` | append-only working log (issue ledger, overnight log); kept as process evidence, not quoted as conclusions |
 
 The tree is arranged in the shape the contest asks for (`src/ sim/ build/ board/
-data/ skill/ report/`); in the repository the delivery documentation sits in `docs/`
+data/ skill/ report/`); in the repository the delivery documentation sits in `report/`
 and the export step renames it to `report/`, rewriting the cross-references along with
 it. What got pruned, and under which rule, is listed item by item in `_pruned.txt`
 inside the package, and every path quoted by a shipped document is checked at export

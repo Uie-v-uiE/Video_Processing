@@ -45,4 +45,4 @@
   头**。这一页故意不写"现在排到第几条"，那个数每天都不一样。
 
 ## 出处
-`docs/log/OVERNIGHT_LOG.md` §7、§8（另见 `docs/AI_COLLABORATION.md`）。
+`report/log/OVERNIGHT_LOG.md` §7、§8（另见 `report/AI_COLLABORATION.md`）。

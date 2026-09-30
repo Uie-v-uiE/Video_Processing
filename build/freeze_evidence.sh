@@ -2,7 +2,7 @@
 # build/freeze_evidence.sh <NN> —— 把第 NN 次构建的成套凭据收进 build/evidence_rNN/，并生成 MANIFEST.md5。
 #
 # 为什么要有 MANIFEST.md5：现场只认 md5 不认文件名（`build/evidence_r*` 里同名的位流有好几份），
-# 而"板上跑的到底是哪一版"是眼睛判据能不能算数的前提（`docs/DEMO_SCRIPT.md` 第 0 步那条）。
+# 而"板上跑的到底是哪一版"是眼睛判据能不能算数的前提（`report/DEMO_SCRIPT.md` 第 0 步那条）。
 #
 # 两道硬门（"红 = 没做完"，把红的东西冻结下来等于给下一轮留一个"看起来有凭据"的坑）：
 #   1) `build/rNN_gates.txt` 里必须是 `GATES: ALL PASS`；
@@ -19,21 +19,30 @@ case "$NN" in (''|*[!0-9]*) echo "用法: bash build/freeze_evidence.sh <构建�
 D=build/evidence_r$NN
 GT=build/r${NN}_gates.txt
 TMP=$(mktemp -d)
+# 台架/构建的原始 console 所在目录（默认 /tmp/kx）。开这个口子是为了 `freeze_selftest.sh`：
+# 沙箱必须看不见真机那份**正在写**的 run.log，否则它会凭空造出逐列读数件，
+# 把 F1/F2 两条"空文件不许冒充凭据"的对照当场念成假话（2026-09-30 夜里撞见）。
+KX=${KX_RUN_DIR:-/tmp/kx}
 
 if [ ! -f "$GT" ] || ! grep -q "^GATES: ALL PASS" "$GT"; then
     echo "REFUSE：$GT 不是 ALL PASS，不冻结。"
     [ -f "$GT" ] && grep -a "FAIL\|——" "$GT" | head -8
     exit 1
 fi
-TOPWANT=$(md5sum src/rtl/top/pl_video_top.v | cut -c1-12)
+eval "$(bash build/rtl_fingerprint.sh)"          # fpver/files/top/rtl（定义见那个脚本的文件头）
+TOPWANT=$top
+RTLWANT=$rtl
 TOPYES=$(sed -n 's/.*top_md5=\([0-9a-f]*\).*/\1/p' build/tb_v98_report.txt | head -1)
-RTLWANT=$(find src/rtl -name '*.v' | LC_ALL=C sort | xargs md5sum | md5sum | cut -c1-12)
 RTLYES=$(sed -n 's/.* rtl_md5=\([0-9a-f]*\).*/\1/p' build/tb_v98_report.txt | head -1)
-if [ "$TOPYES" != "$TOPWANT" ] || [ "$RTLYES" != "$RTLWANT" ]; then
-    echo "REFUSE：tb_v98 报告(top=$TOPYES rtl=$RTLYES)与当前树(top=$TOPWANT rtl=$RTLWANT)不是同一次跑"
+MT=$(bash build/rtl_fingerprint.sh --match file "$TOPYES" "$TOPWANT" src/rtl/top/pl_video_top.v)
+MR=$(bash build/rtl_fingerprint.sh --match rtl "$RTLYES" "$RTLWANT")
+if [ "$MT" = "no" ] || [ "$MR" = "no" ]; then
+    echo "REFUSE：tb_v98 报告(top=$TOPYES/$MT rtl=$RTLYES/$MR)与当前树(top=$TOPWANT rtl=$RTLWANT，norm1)不是同一次跑"
     echo "        ⇒ 先重跑：bash sim/run_one.sh tb_v98_top_seam && bash build/tb98_report.sh"
     exit 1
 fi
+[ "$MT" = "bridge" ] || [ "$MR" = "bridge" ] && \
+    echo "NOTE：报告头部还是旧 raw 指纹，经 build/fingerprint_bridge.txt 对账到同一份内容"
 NG=$(grep -acE ' (PASS|FAIL)$' "$GT")
 
 mkdir -p "$D"
@@ -66,16 +75,16 @@ done
 cp_tmp() {
     if [ -f "$1" ]; then cp -f "$1" "$D/$2"; else MISS="$MISS $2(源 $1 不在)"; fi
 }
-cp_tmp /tmp/kx/r${NN}_wrap.log         "r${NN}_build_console.txt"
-cp_tmp /tmp/kx/r${NN}_tb98_console.txt "r${NN}_tb98_console.txt"
+cp_tmp "$KX"/r${NN}_wrap.log         "r${NN}_build_console.txt"
+cp_tmp "$KX"/r${NN}_tb98_console.txt "r${NN}_tb98_console.txt"
 # #172：这份"逐列原始读数"过去叫 `.log`，而 `.gitignore` 里有 `*.log` ⇒ 它从来没进过 git，
 #   冻结件里那份 `c2_shape.txt` 全靠它、仓库里却没有它（今天同一族已经撞过第二次：
 #   `build/r94_flash.log` 被文档点名却进不了包）。冻结产物一律 `.txt`。
-cp_tmp /tmp/kx/tb_v98_top_seam.run/run.log "r${NN}_tb_v98_run.txt"
-cp_tmp /tmp/kx/tb_v98_top_seam.run/prov.txt "r${NN}_tb98_prov.txt"
+cp_tmp "$KX"/tb_v98_top_seam.run/run.log "r${NN}_tb_v98_run.txt"
+cp_tmp "$KX"/tb_v98_top_seam.run/prov.txt "r${NN}_tb98_prov.txt"
 # L1 全量回归：门禁第 15 项只盯顶层台架那一份，其余台架红着门禁也能全绿（今天撞见两次），
 # 所以冻结件里必须留"这一版下所有台架各自的结论行"。
-cp_tmp /tmp/kx/r${NN}_l1.log "r${NN}_l1_regress.txt"
+cp_tmp "$KX"/r${NN}_l1.log "r${NN}_l1_regress.txt"
 # #193 的另一半：源 run 日志不在时，下面这条 grep 会**写出一个空文件**（重定向先把名字建出来），
 #   而 MANIFEST 照旧点名"逐列读数见 rNN_c2_shape.txt"——指路指到一个空壳，就是"没有凭证的凭证"。
 #   现在抽不出来就把那个空文件删掉，并让 MANIFEST 里那句话改成"这一版没有逐列读数"。

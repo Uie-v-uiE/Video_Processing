@@ -43,28 +43,28 @@ def sub(fname, old, new, label):
     print(f"OK   {fname:34s} {label}")
 
 # 1) MODULES.md：rgmii_rx 那一行
-sub('docs/MODULES.md', '| `rgmii_rx` | BUFIO/IDDR(`SAME_EDGE_PIPELINED`) + IDELAYE2(FIXED, 参考 200 MHz) |',
+sub('report/MODULES.md', '| `rgmii_rx` | BUFIO/IDDR(`SAME_EDGE_PIPELINED`) + IDELAYE2(FIXED, 参考 200 MHz) |',
     f'| `rgmii_rx` | IDDR(`SAME_EDGE_PIPELINED`) **吃 BUFG**（#57 之后 IO 与 fabric 同一棵树）+ IDELAYE2(FIXED, 参考 200 MHz, `IDELAY_VALUE=26`) |',
     'rgmii_rx 行')
 # 2) ARCHITECTURE.md：输入延迟那一行（值与行号都现取）
-sub('docs/ARCHITECTURE.md', f'| RGMII 输入延迟 | `IDELAY_VALUE` = 15（FIXED 抽头，参考 200 MHz） | `system_top.v:160`、',
+sub('report/ARCHITECTURE.md', f'| RGMII 输入延迟 | `IDELAY_VALUE` = 15（FIXED 抽头，参考 200 MHz） | `system_top.v:160`、',
     f'| RGMII 输入延迟 | `IDELAY_VALUE` = **26**（FIXED 抽头，参考 200 MHz ⇒ 每拍 156 ps；#57 换树之后按 `4.854−3.171=1.683 ns` 补 +11 拍） | `{SYT}:{ide}`、',
     '输入延迟行')
 # 3) PERF_REPORT.md：那句"结构修法仍未做"
-sub('docs/PERF_REPORT.md', 'BUFIO→BUFG 偏斜，结构修法仍未做，需要用户在板前）',
+sub('report/PERF_REPORT.md', 'BUFIO→BUFG 偏斜，结构修法仍未做，需要用户在板前）',
     f'BUFIO→BUFG 偏斜；**结构修法已于 #57 落地**（`{RGX}:{bufg}` 一只 BUFG 同时喂 IDDR 与 fabric，'
     f'`{SYT}:{ide}` 补到 26 拍），最差那族 hold 的偏斜从 1.616 ns 变成同树内的 0.013~0.349 ns，'
     '数字本身仍在 0.8 ns 自加不确定度之下）',
     'PERF 那句"仍未做"')
 # 4) learn/30：三处
-sub('docs/study/learn/30_clocks_hdmi_soc.md', '| `eth_rxc` → `gmii_rx_clk` | 125 MHz | PHY（引脚 Y19），经 IBUF → BUFG + BUFIO 两棵树 |',
+sub('report/study/learn/30_clocks_hdmi_soc.md', '| `eth_rxc` → `gmii_rx_clk` | 125 MHz | PHY（引脚 Y19），经 IBUF → BUFG + BUFIO 两棵树 |',
     '| `eth_rxc` → `gmii_rx_clk` | 125 MHz | PHY（引脚 Y19），经 IBUF → **一只 BUFG**（#57 之后解串器与 fabric 同一棵树）|',
     'learn/30 时钟表')
-sub('docs/study/learn/30_clocks_hdmi_soc.md', '数据在 ILOGIC 里被 **BUFIO** 采',
+sub('report/study/learn/30_clocks_hdmi_soc.md', '数据在 ILOGIC 里被 **BUFIO** 采',
     '数据在 ILOGIC 里被 **BUFG** 采（#57 之前是 BUFIO，那样 IO 与 fabric 分走两条树，偏斜 1.616 ns ⇒ 最差 hold 每次重建掷硬币）',
     'learn/30 采样句')
 # 5) learn/01：项目地图里那条
-sub('docs/study/learn/01_project_map.md', '| RGMII 输入延迟 | `IDELAY_VALUE=15`（FIXED 抽头，200 MHz 参考） | `system_top.v:156` |',
+sub('report/study/learn/01_project_map.md', '| RGMII 输入延迟 | `IDELAY_VALUE=15`（FIXED 抽头，200 MHz 参考） | `system_top.v:156` |',
     f'| RGMII 输入延迟 | `IDELAY_VALUE=26`（FIXED 抽头，200 MHz 参考 ⇒ 156 ps/拍；#57 换树时按 1.683 ns 补 +11 拍） | `{SYT}:{ide}` |',
     'learn/01 地图行')
 print("提示：learn/30 那条“BUFIO 只服务 IO 逻辑”是原理说明（7 系列的事实），不改。")

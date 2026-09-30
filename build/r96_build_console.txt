@@ -2686,7 +2686,7 @@ XSA: D:/Xilinx/Prj/pro/Video_Processing/build/system.xsa
 #     # 为什么必须单�?数：综合的��理�?**保留常量那一侧、忽略逻辑那一価�**�?
 #     # 于是 bit 里那根线恒为 0，�?**仿真按进程后写�?�盖，�?�为看起来完全�?�确**
 #     # —�? 这是"台架全绿、硬件不工作"最省事的一条路�?2026-09-24 就踩圡� border_r 上，
-#     #    �? docs/log/ISSUES.md #61：旗标链的��位�?我同时写进了两个 always 块）�?
+#     #    �? report/log/ISSUES.md #61：旗标链的��位�?我同时写进了两个 always 块）�?
 #     if {[string match "*multi-driven net*" $line]} { incr mcount; lappend mseen [string trim $line] }
 #   }
 #   close $fh

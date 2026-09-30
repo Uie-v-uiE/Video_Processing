@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 # build/r92_doc_fixup.py —— 修我自己刚写进去的两处不合适的东西。
 # (1) 新加的"念 WHS 要带口径"那条插在了编号项 1 与它的续行之间，会把列表打断；挪到 1 的末尾之后。
-# (2) board/README 与 docs/BUILD 里我举例子写了 `build/isolated_xxx/system.bit` 这种**不存在的路径**，
+# (2) board/README 与 report/BUILD 里我举例子写了 `build/isolated_xxx/system.bit` 这种**不存在的路径**，
 #     文档时效检查器（D4b/D4c）就点它——举例不能造假路径，改成"隔离滚一轮的产物"这种说法。
 # 跑法：python build/r92_doc_fixup.py
 import io, os, re
@@ -10,7 +10,7 @@ ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 def rd(p): return io.open(os.path.join(ROOT, p), encoding='utf-8', newline='').read()
 def wr(p, s): io.open(os.path.join(ROOT, p), 'w', encoding='utf-8', newline='').write(s)
 
-K = 'docs/KNOWN_ISSUES.md'
+K = 'report/KNOWN_ISSUES.md'
 t = rd(K)
 i = t.find('- **念 WHS 必须带口径**')
 endmark = '见 `src/constraints/rk_zynq7020.xdc`）'
@@ -40,12 +40,12 @@ if c == 1:
 else:
     print(f"SKIP board/README（匹配 {c} 次）")
 
-D = 'docs/BUILD.md'
+D = 'report/BUILD.md'
 t = rd(D)
 old2 = '拿隔离滚的产物做板上对照时可以 `VP_BIT=<那个目录>/system.bit`'
 new2 = '拿隔离滚的产物做板上对照时可以 `VP_BIT` 指过去'
 c = t.count(old2)
 if c == 1:
-    wr(D, t.replace(old2, new2)); print("OK   docs/BUILD：同上")
+    wr(D, t.replace(old2, new2)); print("OK   report/BUILD：同上")
 else:
-    print(f"SKIP docs/BUILD（匹配 {c} 次）")
+    print(f"SKIP report/BUILD（匹配 {c} 次）")

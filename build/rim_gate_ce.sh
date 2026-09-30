@@ -13,13 +13,13 @@ cd "$(dirname "$0")/.." || exit 2
 TMP=$(mktemp -d)
 trap 'rm -rf "$TMP"' EXIT
 
-RTL=$(find src/rtl -name '*.v' | LC_ALL=C sort | xargs md5sum | md5sum | cut -c1-12)
-TBM=$(md5sum sim/tb_edge_rim.v | cut -c1-12)
+RTL=$(bash build/rtl_fingerprint.sh | sed -n 's/^rtl=//p')
+TBM=$(bash build/rtl_fingerprint.sh sim/tb_edge_rim.v | cut -c1-12)
 REAL=$(ls -1 build/tb_edge_rim_r*.txt 2>/dev/null | sort -V | tail -1)
 [ -n "$REAL" ] || { echo "CE: 盘上没有 build/tb_edge_rim_rNN.txt —— 先跑台架留凭据，反例没法谈正对照"; exit 1; }
 
 head2() { printf 'top_md5=%s\ntb_md5=%s\nrtl_md5=%s\ndate=ce\n' \
-                  "$(md5sum src/rtl/top/pl_video_top.v | cut -c1-12)" "$1" "$2"; }
+                  "$(bash build/rtl_fingerprint.sh | sed -n 's/^top=//p')" "$1" "$2"; }
 
 mk() { # mk <文件> <tb_md5> <rtl_md5> <正文>
     head2 "$2" "$3" > "$1"

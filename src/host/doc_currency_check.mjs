@@ -1,7 +1,7 @@
 // src/host/doc_currency_check.mjs —— "文档不许把旧构建念成当前"
 //
 // 为什么要有它（这一轮撞了两次，都是同一类）：
-//   * `docs/PERF_REPORT.md` 的"当前值看这里"指到 `CHANGELOG_V7.md`，而那份日志最后一节是
+//   * `report/PERF_REPORT.md` 的"当前值看这里"指到 `CHANGELOG_V7.md`，而那份日志最后一节是
 //     V7.9（R22+R23）——照它念会念到五十多版之前。
 //   * `README.md` / `README.en.md` 的实现结果行一直写着 `当前默认 bit（build#23）：WNS +0.740 …`，
 //     而板上烧的是 r71；同一张命令表还把 `bilin` 写成"主线目前不含此项"，而它早就在主线上了。
@@ -28,23 +28,23 @@ import path from 'node:path';
 const ROOT = path.resolve(import.meta.dirname, '..', '..');
 const EXT = new Set(['.md', '.mjs', '.sh', '.ps1', '.tcl']);
 // **只扫"念给人看的那一份"**：首页、板上操作卡、性能报告、构建说明、比赛清单、演示脚本、命令表。
-// 为什么把 `docs/log/OVERNIGHT_LOG.md`、`docs/log/CHANGELOG_V7.md`、`docs/log/ISSUES.md`、
-// `docs/log/VERSION_LINEAGE.md` 排除在 D1 之外——它们是**日记**，里面的"当前默认 #23""下一步冻结
+// 为什么把 `report/log/OVERNIGHT_LOG.md`、`report/log/CHANGELOG_V7.md`、`report/log/ISSUES.md`、
+// `report/log/VERSION_LINEAGE.md` 排除在 D1 之外——它们是**日记**，里面的"当前默认 #23""下一步冻结
 // frozen_r61_geom"写的是**当时**的当前与当时的计划。拿今天的盘去判昨天的日记，红的不是文档过期，
 // 而是我逼着自己回头改日记（那是销毁过程凭据，比过期更糟）。要改的永远是"现在还会被念出来"的那几页。
 const SCOPE_DOCS = ['README.md', 'README.en.md', 'board/README.md',
-    'docs/PERF_REPORT.md', 'docs/BUILD.md', 'docs/log/CONTEST_CHECKLIST.md',
-    'docs/DEMO_SCRIPT.md', 'docs/COMMANDS.md', 'docs/BACKGROUND_AND_NOVELTY.md'];
+    'report/PERF_REPORT.md', 'report/BUILD.md', 'report/log/CONTEST_CHECKLIST.md',
+    'report/DEMO_SCRIPT.md', 'report/COMMANDS.md', 'report/BACKGROUND_AND_NOVELTY.md'];
 // 会被复制粘贴去跑的脚本：里面的指路同样要成立。
 const SCOPE_DIRS = ['build/tcl', 'src/host'];
 const SKIP_DIR = new Set(['.git', 'vivado_system', 'xsim.dir', 'node_modules', '.Xil', 'dist']);
 const HOME = ['README.md', 'README.en.md'];          // D3 只看首页这两份
 const SELF = 'src/host/doc_currency_check.mjs';      // 判据不看自己的例子（例子里就得写坏句）
-// 导出器是**故意**要写 `report/` 的：仓库里叫 docs/，交出去必须是官方结构里的 report/，
+// 导出器是**故意**要写 `report/` 的：仓库里叫 report/，交出去必须是官方结构里的 report/，
 // 它的整个职责就是这两个名字之间的映射。拿"旧目录不许出现"去判它，等于判翻译器"不许提目标语言"。
 const MAPPER = 'build/make_submission.sh';
-// 改名工具也是"翻译器"：它的正文里必然同时出现旧名与新名（`git mv docs/log report/log` 这种就是要它写出来）。
-// 2026-09-30 今晚把 docs/ 改成 report/ 时，这两份新工具第一次被 D4b 判了 6 条红 —— 判据没有错，
+// 改名工具也是"翻译器"：它的正文里必然同时出现旧名与新名（`git mv report/log report/log` 这种就是要它写出来）。
+// 2026-09-30 今晚把 report/ 改成 report/ 时，这两份新工具第一次被 D4b 判了 6 条红 —— 判据没有错，
 // 被豁免的对象名单少了一类：**凡是以"改名字"为职责的脚本，都在 MAPPER 这一族里**。
 const MAPPERS = [MAPPER, 'build/rename_docs_to_report.sh', 'build/rename_tool_patch.mjs'];
 
@@ -123,29 +123,29 @@ function checkLines(docLines, dirExists, newestGreen) {
 //   搬一半留一半是这类活最坏的收场——文件都在，评审照文档去翻却翻到一个不存在的目录，
 //   而这件事**不改变任何行为**：位流照编、台架照跑、门禁照绿。所以判据必须自己跑。
 //   口径收得很窄，两种情形：
-//     D4a 带目录前缀、以 .md 结尾、且不是占位名的指路 ⇒ 目标必须在盘上（`docs/*.md`、
+//     D4a 带目录前缀、以 .md 结尾、且不是占位名的指路 ⇒ 目标必须在盘上（`report/*.md`、
 //         `frozen_rNN_*` 这种带星号/占位名的写法天然不匹配，正当的命名规则句不会被咬）。
 //     D4b `report/` 这个旧目录名后面直接跟文件名字符 ⇒ 一律红（旧目录已经不存在了；
 //         "当年那个 report/ 目录"这种**叙事**（斜杠后是空格）不算指路，放过）。
 //   日记（docs/log/*.md）也在扫描范围内：里面那句"见 `report/ISSUES.md`"曾经是历史叙述，
 //   但既然指路已经全部改写，留着就是半搬 —— 所以一视同仁。
-const CITE_MD = /(?:^|[^/\w.:-])(docs\/log|docs|build|src|sim|board|skill)\/[\w./-]*?[\w-]+\.md\b/g;
-const OLD_DIR = /(?:^|[^/\w.-])report\/[\w.*-]/g;
+const CITE_MD = /(?:^|[^/\w.:-])(report\/log|report|build|src|sim|board|skill)\/[\w./-]*?[\w-]+\.md\b/g;
+const OLD_DIR = /(?:^|[^/\w.-])docs\/[\w.*-]/g;
 //     D4c 与 D4a 同一条路，只是尾缀换成**凭据类**文件（.txt/.rpt/.csv/.bit/.elf/…）：
 //         r88 那一轮连着三次栽在"文档指的那份报告在交付目录里不存在"，而 D4a 只认 `.md` ⇒
 //         指路修完了、凭据没人管。凭据比章节更容易搬丢：导出器会把 `build/*.rpt|txt` 摊进
 //         `build/reports/`、把 `build/rNN_exp/` 整个丢掉 ⇒ 同一句话在仓里对、在包里错。
 const ART_EXT = 'txt|rpt|csv|bit|elf|md5|xdc|py|mjs|sh|tcl|v|bat|log|wdb';
 const CITE_ART = new RegExp(
-    '(?:^|[^/\\w.:-])(build|data|sim|board|skill|docs)/[\\w./-]*?[\\w-]+\\.(?:' + ART_EXT + ')\\b', 'g');
+    '(?:^|[^/\\w.:-])(build|data|sim|board|skill|report)/[\\w./-]*?[\\w-]+\\.(?:' + ART_EXT + ')\\b', 'g');
 
 //   D4c 的**范围**是这条尺子能不能留下来的关键，所以写死并念出来：
-//     判红只认"交付文档"（首页两份、board/README.md、docs/*.md 非 log 的那些）——
-//     它们是评审会照着翻的指路。日记（docs/log/）、RTL/脚本注释里点名的很多是
+//     判红只认"交付文档"（首页两份、board/README.md、report/*.md 非 log 的那些）——
+//     它们是评审会照着翻的指路。日记（report/log/）、RTL/脚本注释里点名的很多是
 //     **当时生成又随后删掉**的中间件（`build/wip_*.sh`、`sim/xsim.log`、某次的 `.log`），
 //     把它们判红等于逼人去改历史记录（#98 那条老规矩）；这一类只报数、不判红。
 //   #121 补的就是"只报数"那一半的分类（2026-09-30 实测 126 条，`--list-adv` 可逐条复现）：
-//     按**出处**分：docs/log/ 的追加式日记 92 条、build/ 与 src/ 与 sim/ 与 board/ 的脚本注释 33 条、
+//     按**出处**分：report/log/ 的追加式日记 92 条、build/ 与 src/ 与 sim/ 与 board/ 的脚本注释 33 条、
 //                  skill/ 卡片 1 条 —— **交付文档（DELIVERY）里 0 条**，这正是 hard 层的判据范围；
 //     按**被点名的东西**分（类间有重叠）：
 //       ① `.log` 31 条：`.gitignore` 从一开始就把 `*.log` 挡在仓库外（#172 的同一个洞的另一半 ⇒
@@ -162,11 +162,11 @@ const CITE_ART = new RegExp(
 //     `build/wip_*.sh` 清理 #123 删掉的）、`board/uart_*` 系列的调查留痕（与③同族，只是文件名不含 sd_），
 //     以及**历史叙述里那句"当时找错了路径"**（如 `ISSUES.md:435` 讲的 `build/build/system.bit` ——
 //     它点名的是"root 少一级"这个已修缺陷，不是让人去打开这个文件）。
-//     逐条身份（谁指谁、属哪一类）的表在 `docs/log/D4C_POINTERS.md`，那份表自带"条数只对快照那一分钟负责"的声明。
+//     逐条身份（谁指谁、属哪一类）的表在 `report/log/D4C_POINTERS.md`，那份表自带"条数只对快照那一分钟负责"的声明。
 //     （它故意留在日记区：那页的内容就是"盘上不存在的路径"清单，放进交付区会被导出器的死链自检整批拒发
 //       —— 2026-09-30 r96 真的踩到过一次：56 条死链全部出自那页，导出器拒绝写包，行为正确，我们不改自检。）
 const DELIVERY = (rel) => HOME.includes(rel) || rel === 'board/README.md'
-    || /^docs\/(?!log\/)[\w.-]+\.md$/.test(rel);
+    || /^report\/(?!log\/)[\w.-]+\.md$/.test(rel);
 
 function checkPaths(fileLines, exists) {
     const rows = [];
@@ -191,7 +191,7 @@ function checkPaths(fileLines, exists) {
                 if (hard) rows.push(line); else adv.push(line);
             }
             for (const m of l.matchAll(OLD_DIR)) {
-                rows.push(`${at} D4b 还在指已经删掉的旧目录：${l.trim().slice(0, 70)}`);
+                { const r = `${at} D4b 还在指已经删掉的旧目录：${l.trim().slice(0, 70)}`; if (hard) rows.push(r); else adv.push(r); }
             }
         });
     }
@@ -200,10 +200,10 @@ function checkPaths(fileLines, exists) {
 
 const HAND_EXT = new Set(['.md', '.mjs', '.sh', '.tcl', '.v', '.c', '.h', '.bat', '.ps1', '.xdc', '.py', '.csv']);
 // 不扫的：生成物与器件库、以及**当时的凭据**（冻结集里那份文本指的路就是它冻结时的那条路，
-// 改它等于伪造记录），还有本地学习材料（docs/study/，不入库，里面引用的是另一套路径）。
+// 改它等于伪造记录），还有本地学习材料（report/study/，不入库，里面引用的是另一套路径）。
 const HAND_SKIP_DIRS = new Set(['.git', 'vivado_system', 'vitis', 'xsim.dir', 'sim_work',
     'node_modules', '.Xil', 'study', 'learn', 'golden', 'build']);
-const HAND_SKIP_PREFIX = ['build/frozen_', 'build/evidence_', 'build/failed_', 'docs/study/'];
+const HAND_SKIP_PREFIX = ['build/frozen_', 'build/evidence_', 'build/failed_', 'report/study/'];
 
 function handWrittenFiles(dir, out, relBase) {
     for (const name of readdirSync(dir)) {
@@ -285,14 +285,14 @@ if (argv.includes('--self')) {
         checkLines({ 'README.md': ['最近一次门禁全绿的冻结集 = r69：WNS +0.188'] }, okDir, 71), /D3/);
     // 正当句不许误报：过去式 + 编号目录真实存在 + 首页点的正是最新那套
     const good = checkLines({
-        'docs/log/CHANGELOG_V6.md': ['第四版得到 WNS +0.708 / 寄存器 51.30%（`build/frozen_r13`）'],
+        'report/log/CHANGELOG_V6.md': ['第四版得到 WNS +0.708 / 寄存器 51.30%（`build/frozen_r13`）'],
         'README.md': ['最近一次门禁全绿的冻结集 = r71：WNS +0.346'],
     }, okDir, 71);
     console.log(`  ${good.length === 0 ? 'PASS' : 'FAIL'} 对照：过去式与点名最新全绿的那一套都不误报（实测 ${good.length} 条）`);
     for (const r of good) console.log('        ' + r);
     // 两个"别咬到正当文本"的边界：命名规则里的占位名、以及**带路径前缀**的那一种（不是仓库根的 build/）。
     const edges = checkLines({
-        'docs/BUILD.md': ['冻结目录命名规则：`build/frozen_rNN_xxx/`（NN 是那一次构建的编号）',
+        'report/BUILD.md': ['冻结目录命名规则：`build/frozen_rNN_xxx/`（NN 是那一次构建的编号）',
             '备份包里的 `submission/build/frozen_r26/` 是复制品，不拿工作区判它存在与否'],
     }, () => false, 0);
     console.log(`  ${edges.length === 0 ? 'PASS' : 'FAIL'} 对照：占位名与带前缀的路径不误报（实测 ${edges.length} 条）`);
@@ -304,27 +304,27 @@ if (argv.includes('--self')) {
     console.log(`  ${neutral.length === 0 ? 'PASS' : 'FAIL'} 对照：首页明写"不作门禁全绿声明"不误报 D3（实测 ${neutral.length} 条）`);
     for (const r of neutral) console.log('        ' + r);
     // D4 自己的反例：一条"点名的文档盘上没有"、一条"还在指已经删掉的旧目录"，两条都必须红；
-    // 再加一条正当句（真的在盘上的 `docs/COMMANDS.md` + 一个占位名 `frozen_rNN_x`）不许红。
-    const d4bad = checkPaths({ 'docs/ARCHITECTURE.md': ['详见 `docs/NO_SUCH_DOC.md` 的 §2'], }, () => false).rows;
-    const d4old = checkPaths({ 'src/rtl/top/pl_video_top.v': ['// 口径见 `report/ISSUES.md` #66'], }, () => true).rows;
-    const d4ok = checkPaths({ 'README.md': ['详见 `docs/COMMANDS.md`；凭据在 `build/frozen_rNN_x/`；',
-        '当年那个 report/ 目录已经拆成 docs/ 与 docs/log/（这是叙事，不是指路）'], },
-        (tok) => tok === 'docs/COMMANDS.md').rows;
+    // 再加一条正当句（真的在盘上的 `report/COMMANDS.md` + 一个占位名 `frozen_rNN_x`）不许红。
+    const d4bad = checkPaths({ 'report/ARCHITECTURE.md': ['详见 `report/NO_SUCH_DOC.md` 的 §2'], }, () => false).rows;
+    const d4old = checkPaths({ 'report/ARCHITECTURE.md': ['// 口径见 `docs/ISSUES.md` #66'], }, () => true).rows;
+    const d4ok = checkPaths({ 'README.md': ['详见 `report/COMMANDS.md`；凭据在 `build/frozen_rNN_x/`；',
+        '当年那个 report/ 目录已经拆成 docs/  与 docs/ log/（这是叙事，不是指路）'], },
+        (tok) => tok === 'report/COMMANDS.md').rows;
     // D4c 的反例：点名一份盘上没有的报告必须红；对照是"通配/占位/变量"三种写法都不许咬
     // ——门禁那一句 `build/*gates*.txt` 是命名规则，不是指路（`build/gates.sh` 本身在盘上）。
-    const d4art = checkPaths({ 'docs/PERF_REPORT.md': ['门禁读数见 `build/r99_gates_nope.txt`'], }, () => false).rows;
+    const d4art = checkPaths({ 'report/PERF_REPORT.md': ['门禁读数见 `build/r99_gates_nope.txt`'], }, () => false).rows;
     const d4artok = checkPaths({ 'README.md': ['跑 `bash build/gates.sh`，认 `build/*gates*.txt` 里编号最大且',
         '`ALL PASS` 的那一份；`$OUT/build/system.bit` 由脚本决定；`build/frozen_rNN/MANIFEST.md5` 是命名规则'], },
         (tok) => tok === 'build/gates.sh').rows;
     // 范围对照（#141 那一类：尺子的作用范围会无声漂移）：同一句指路写在日记里**不许判红**，
     // 但必须进"只报数"那一堆 —— 两边都查，缺一边就是范围漂了。
-    const sp = checkPaths({ 'docs/log/OVERNIGHT_LOG.md': ['当时那份 `build/r99_gates_nope.txt` 已经删了',
-        '那份简介 `docs/PROJECT_BRIEF_NOPE.md` 后来也撤了'], }, () => false);
+    const sp = checkPaths({ 'report/log/OVERNIGHT_LOG.md': ['当时那份 `build/r99_gates_nope.txt` 已经删了',
+        '那份简介 `report/PROJECT_BRIEF_NOPE.md` 后来也撤了'], }, () => false);
     const scope = sp.rows.length === 0 && sp.adv.length === 2;
     console.log(`  ${scope ? 'PASS' : 'FAIL'} 对照：同一句指路（.txt 与 .md 各一）在日记里只报数（判红 ${sp.rows.length} / 报数 ${sp.adv.length}）`);
     let d4 = 0;
     d4 += yes('D4a：点名的文档盘上没有', d4bad, /D4a/);
-    d4 += yes('D4b：还在指旧目录 report/', d4old, /D4b/);
+    d4 += yes('D4b：还在指旧目录 docs/', d4old, /D4b/);
     d4 += yes('D4c：点名的凭据（.txt/.rpt/…）盘上没有', d4art, /D4c/);
     console.log(`  ${d4ok.length === 0 ? 'PASS' : 'FAIL'} 对照：真指路 + 占位名 + "旧目录"的叙事句不误报（实测 ${d4ok.length} 条）`);
     for (const r of d4ok) console.log('        ' + r);

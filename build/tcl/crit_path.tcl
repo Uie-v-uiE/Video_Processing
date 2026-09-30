@@ -13,7 +13,7 @@
 #
 # ⚠ 2026-09-29 重写。旧版第一行是 `open_project D:/Software/Xiaomi_MiMo/...` —— **另一台机器、另一个工程**
 #   的绝对路径，而且 `foreach p \` 那种 `$p` 被吞成了一个反斜杠（多半是哪次 heredoc 事故），
-#   所以它其实从来没跑起来过；`docs/study/` 里三处记着"文件本身已损坏"。现在仓库根自适应、
+#   所以它其实从来没跑起来过；`report/study/` 里三处记着"文件本身已损坏"。现在仓库根自适应、
 #   并且这条脚本自己跑通一次才算数（见文件末的 WROTE/打印）。
 set root [file normalize [file join [file dirname [info script]] .. ..]]
 set impl_dir [file join $root vivado_system zynq_video_sys.runs impl_1]

@@ -26,5 +26,5 @@
 - 台架跑一次很久时，先跑**单元级**的 A/B（本项目 `tb_v103` 一分钟，`tb_v98` 85 分钟）。
 
 ## 出处
-`docs/log/ISSUES.md` #113（八档扫描前 `bilin_en_tb` 是 1 造成 12 条红）；
+`report/log/ISSUES.md` #113（八档扫描前 `bilin_en_tb` 是 1 造成 12 条红）；
 凭据 `build/evidence/r82_tb98_prefix_baseline.txt` 与 `r82_tb98_postfix_console.txt` 的红名单对照。

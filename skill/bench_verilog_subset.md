@@ -70,4 +70,4 @@
 - "打出来的数不动"也可能是激励根本没进那条路（声明了却没进位流）⇒ 先用可达性/端口检查确认信号活着
 
 ## 出处
-一天之内连撞四类方言写法与两类格式符的那一轮（`docs/log/ISSUES.md` #68 的两条追加、`docs/log/OVERNIGHT_LOG.md` §43）；批量注释手术那一段见 `docs/log/ISSUES.md` #106。
+一天之内连撞四类方言写法与两类格式符的那一轮（`report/log/ISSUES.md` #68 的两条追加、`report/log/OVERNIGHT_LOG.md` §43）；批量注释手术那一段见 `report/log/ISSUES.md` #106。

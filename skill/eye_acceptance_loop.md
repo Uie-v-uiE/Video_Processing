@@ -44,4 +44,4 @@
   [S9](frameid_loss_signature.md)）。操作者不在场时不许自代签。
 
 ## 出处
-`docs/log/OVERNIGHT_LOG.md` §80、§82 与 `docs/log/ISSUES.md` #102。
+`report/log/OVERNIGHT_LOG.md` §80、§82 与 `report/log/ISSUES.md` #102。

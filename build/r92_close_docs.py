@@ -8,7 +8,7 @@ ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 def rd(p): return io.open(os.path.join(ROOT, p), encoding='utf-8', newline='').read()
 def wr(p, s): io.open(os.path.join(ROOT, p), 'w', encoding='utf-8', newline='').write(s)
 
-P = 'docs/OPTIMIZATION_LOG.md'
+P = 'report/OPTIMIZATION_LOG.md'
 t = rd(P)
 i = t.find('**还欠的两件**')
 if i < 0:

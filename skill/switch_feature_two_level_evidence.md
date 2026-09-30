@@ -25,4 +25,4 @@
 - 若开关被做进数据通路（多一级 mux/一拍延迟），所有延迟对齐判据都会红，那不是开关是改版。
 
 ## 出处
-`docs/log/ISSUES.md` #112（OSD 总开关）；`sim/tb_osd_lines.v` T13 与 `sim/tb_v98_top_seam.v` C12。
+`report/log/ISSUES.md` #112（OSD 总开关）；`sim/tb_osd_lines.v` T13 与 `sim/tb_v98_top_seam.v` C12。

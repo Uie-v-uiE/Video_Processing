@@ -44,4 +44,4 @@
 - 与 [S9](frameid_loss_signature.md) 的分界：本条管"失败时打什么"，S9 管"整条流丢没丢字"的取证图案。
 
 ## 出处
-`docs/log/ISSUES.md` #50 与 #54。
+`report/log/ISSUES.md` #50 与 #54。

@@ -26,7 +26,7 @@ import { execSync } from 'node:child_process';
 import { writeFileSync, readFileSync, unlinkSync, existsSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 
-/* 演示默认的 19 位几何字（唯一出处：docs/DEFAULTS.md 第一节 + src/ps/main.c 的 cur_split/rot/… 初值；
+/* 演示默认的 19 位几何字（唯一出处：report/DEFAULTS.md 第一节 + src/ps/main.c 的 cur_split/rot/… 初值；
  * 位序与掩码沿用本文件上面的 GEOM_MASK）。#177：G4 判的是"跑完停在这一档"，不再是"与进来时相同"。 */
 const arg = (k, d) => { const i = process.argv.indexOf(k); return i > 0 && process.argv[i + 1] ? process.argv[i + 1] : d; };
 if (process.argv.includes('--help') || process.argv.includes('-h')) {
@@ -123,7 +123,7 @@ const GEOM_MASK = (() => {
 /* #177（2026-09-30，r94）：G4 判的是"跑完停在演示默认档"，不再是"与进来时那一束相同"。
  *   今天撞的形状：我为眼睛判据把板子钉在 `rot auto 1 + src SD`（几何位 0xa00），
  *   收尾还原到默认反而 diff≠0 —— 红的是"起点不是默认档"，而这句话真正要钉的是终点。
- *   默认值出处：docs/DEFAULTS.md 第一节（`cur_split` 正中 + marker 画着、rot/fit/自动扫描全关），
+ *   默认值出处：report/DEFAULTS.md 第一节（`cur_split` 正中 + marker 画着、rot/fit/自动扫描全关），
  *   而那份文档的出处就是 main.c 的 `cur_split` 初值 ⇒ 这里**直接读那一行**，连 512 都不手抄。 */
 const GEOM_DEFAULT = (() => {
   const src = (() => { try { return readFileSync(MAINC, 'utf8'); } catch (e) { return ''; } })();
@@ -249,7 +249,7 @@ line('G2x 全程没有把 zoom 弹出量程', !!s2.b && s2.b.inv >= 256 && s2.b.
      s2.b ? `inv=${s2.b.inv}` : '');
 
 // ---- G5（#175 的机器判据；r97 那一刀把这一位接成了 `zoom_fit_en | rot_forced`）----
-// 先把"请求位"关掉、只留"旋转钳"这一路：`rot auto 1` 的成对语义会顺带开 fit（docs/COMMANDS.md:209-210），
+// 先把"请求位"关掉、只留"旋转钳"这一路：`rot auto 1` 的成对语义会顺带开 fit（report/COMMANDS.md:209-210），
 // 所以顺序是 rot 在前、`zoom fit 0` 在后；再把缩放钉在手动 1.00x（`zoom 1.0` ⇒ `inv_raw` 恒 256）。
 // 这样 lane23.bit19 只剩一个可能来源：`rot_forced`（zoom_snap 的第 20 位）。
 // 判据写成**不变量**而不是"应该等于 1"：`bit19 == (生效倍率偏离 256)` ⇒

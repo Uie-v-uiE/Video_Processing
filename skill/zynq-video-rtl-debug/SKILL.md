@@ -1,6 +1,6 @@
 ---
 name: zynq-video-rtl-debug
-description: Layered (L0-L4) RTL debug and single-variable fix protocol for this workspace's Zynq7020 UDP-to-DDR-to-HDMI video pipeline (src/rtl/**, sim/, build/tcl/, docs/). Use when editing any .v under src/rtl, running xsim testbenches via sim/run_sim.tcl or sim/run_one.sh, rebuilding the bitstream with build/tcl/build_system_axigpio.tcl, or interpreting board results recorded in docs/log/OVERNIGHT_LOG.md and data/measured/. Enforces production-geometry sims, report gates, and "no claim without a file+number".
+description: Layered (L0-L4) RTL debug and single-variable fix protocol for this workspace's Zynq7020 UDP-to-DDR-to-HDMI video pipeline (src/rtl/**, sim/, build/tcl/, report/). Use when editing any .v under src/rtl, running xsim testbenches via sim/run_sim.tcl or sim/run_one.sh, rebuilding the bitstream with build/tcl/build_system_axigpio.tcl, or interpreting board results recorded in report/log/OVERNIGHT_LOG.md and data/measured/. Enforces production-geometry sims, report gates, and "no claim without a file+number".
 ---
 
 # S8 · 上板不亮 / 画面异常时的分层定位（L0–L4）
@@ -11,7 +11,7 @@ description: Layered (L0-L4) RTL debug and single-variable fix protocol for this
 ## 适用场景
 本仓库里任何一次"改 RTL → 上台架 → 出报告 → 上板"的闭环。
 症状：拖影 / 黑横纹 / 卡死 / 左窗不跟随 / 画面 4 幅或窄条 / OSD 数字不对 / JTAG 找不到器件 / ping 不通。
-不适用：画质类判定的收敛（缩放走样、色彩、抖动只能靠眼睛，见 `docs/AI_COLLABORATION.md` §6）；
+不适用：画质类判定的收敛（缩放走样、色彩、抖动只能靠眼睛，见 `report/AI_COLLABORATION.md` §6）；
 布局不是 `src/rtl + sim + build/tcl` 的工程（下面每条路径都是仓库根相对路径，换布局就要全部重指）。
 
 ## 脚本在哪（本目录不放副本）
@@ -32,14 +32,14 @@ description: Layered (L0-L4) RTL debug and single-variable fix protocol for this
 ## 已验证效果与出处（这条分层顺序真的按下去过多少次）
 
 - **L4 的第一格就是被它救回来的**：`ping` 发送=3 / 接收=3 / 丢失=0 与 `DDR_ECHO`、`PROGRAMMED xc7z020_1`
-  三行连起来读，才把"没画面"从"网口坏了"改成"PS 没重起"（`docs/log/OVERNIGHT_LOG.md` §「L4 执行」）。
+  三行连起来读，才把"没画面"从"网口坏了"改成"PS 没重起"（`report/log/OVERNIGHT_LOG.md` §「L4 执行」）。
 - **L1 的一条"没有断言就不算绿"**把整类假绿堵住了：`sim/run_sim.tcl` 不再把 `NO_ASSERT` 计为 pass
-  （`docs/log/OVERNIGHT_LOG.md` R13 第 3 条）——起因是一个什么都不断言的台架可以永远绿。
+  （`report/log/OVERNIGHT_LOG.md` R13 第 3 条）——起因是一个什么都不断言的台架可以永远绿。
 - **机器那一半跑通、并且说得清是谁跑的**：`bash build/board_verify.sh --battery --geom` 退出码 **0**
   （串口电池 99/99、`geom_check ok=8 fail=0`，`build/evidence/verify_0927_2309*.txt`），
   同一轮的位流身份是**它的 md5**而不是文件名（每次上板生成的 flash 日志是工具输出，不入库，所以能带走的是那串 md5）。
 - **它救过最贵的一次是反着用的**：门禁全绿而唯一例化顶层的台架连着红了好几版，因为门禁当时不跑它
-  （`docs/log/ISSUES.md` #88/#78）⇒ "分层"不是走过场，每一层都得有一条真的会红的判据。
+  （`report/log/ISSUES.md` #88/#78）⇒ "分层"不是走过场，每一层都得有一条真的会红的判据。
 
 ## 使用方法：按层推进，每层都要留下一条能复跑的判据
 
@@ -63,7 +63,7 @@ description: Layered (L0-L4) RTL debug and single-variable fix protocol for this
 3. **仿真用生产几何**：512×300 源、1024×600 显示、H=1344 V=625 @50 MHz、1392 B 分包。
    小几何会绿而板上失败——`sim/tb_timing.v` 是 16×8、`sim/tb_v6_pingpong.v` 是 512×60，
    它们的绝对数值只能当"机理形状"用。
-4. **每一轮把假设/改动/仿真结果/板级结果/是否回退写进 `docs/`**，每条说法给出文件与数字；
+4. **每一轮把假设/改动/仿真结果/板级结果/是否回退写进 `report/`**，每条说法给出文件与数字；
    没验的写"没验"。判据级别要如实降级：板上 A/B 没有区分力时，证据只能写到"机理 + 仿真"为止。
 
 ## 失效条件（这几条不要在本文件里再抄一遍，指向它的唯一住处）
@@ -73,8 +73,8 @@ description: Layered (L0-L4) RTL debug and single-variable fix protocol for this
   [S10](../derived_clock_port_mux.md)、[S15](../artifact_freeze_and_freshness.md)、
   [S7](../board_eth_uart.md)；本目录不再各写一遍。
 - **禁止清单仍然有效**（无新证据不得采纳）：V-blank-only allow 当主修、mute 当主修、burst saver、
-  双显示 BRAM（`docs/log/OVERNIGHT_LOG.md` U3：整帧拷贝要吸收的窗口需 ≈84 个 BRAM tile 而全片只有 140
+  双显示 BRAM（`report/log/OVERNIGHT_LOG.md` U3：整帧拷贝要吸收的窗口需 ≈84 个 BRAM tile 而全片只有 140
   ⇒ 加深缓冲结构上不可行）。
 - **同一进程连跑三次 `synth_design`** 会撞 Windows `.Xil` 目录锁并**静默跳过后面的模块**；
   `ERROR: [Common 17-217] Failed to load feature 'core'` 是内存不足，不是 RTL 问题
-  （`docs/log/ISSUES.md` 快速对照）。
+  （`report/log/ISSUES.md` 快速对照）。

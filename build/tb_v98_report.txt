@@ -1,4 +1,4 @@
-# provenance top_md5=68c4f9516313 tb_md5=e0e921c534f2 rtl_md5=fe573f9b2024 date=2026-09-30T17:10:10+08:00 src=/tmp/kx/tb_v98_top_seam.run/run.log
+# provenance fpver=raw0 top_md5=9d32e3019891 tb_md5=9ffbc9f0d4e0 rtl_md5=45e09e8b3b9d date=2026-09-30T22:12:09+08:00 src=/tmp/kx/tb_v98_top_seam.run/run.log
 PASS C0a ruler encodes position in the pixel | px_val / decoder / mod-256 signed diff must agree, incl. 0, small values, both edges, both wrap directions
 PASS C0a3 no black cell exists in the pattern | the panel-level ruler equates black with outside-the-picture, so the pattern must not contain black
 PASS C0a2 golden array actually holds it | read back ddr[0] and the last word after init: a correct function is not a correct array
@@ -170,7 +170,7 @@ PASS C2b col matches definition | each in-window column must decode to the sourc
 PASS C2c edges match definition | measured picture edges == geometric edges (content stage, in columns)
 PASS C3c panel edges match definition | the panel's own first/last non-black column == the geometric edges, same on every row
 P1 chain-blur: arm(x==1023&de)=79200 flush=79200 run@行尾 min=1024 max=1024 | pipe_de=81100800 mix_de_d11=81100800 (差 0)
-FAIL C11pre frame is latched | empty-set guard: a committed frame must be latched before judging whether abort drops it
+PASS C11pre frame is latched | empty-set guard: a committed frame must be latched before judging whether abort drops it
 PASS C11 abort clears the latched frame | after one copy_abort pulse the pixel domain must stop claiming a good ETH frame (#171)
 PASS C11b eth_ready reads 0 after abort | the host-side status bit is derived from that latch; reading 1 here means the abort was swallowed
-RESULT tb_v98_top_seam FAIL nfail=2
+RESULT tb_v98_top_seam FAIL nfail=1

@@ -1,6 +1,6 @@
 // src/host/line_cite_check.mjs —— D5：交付文档里的 `文件.扩展名:行号` 引用，判"语义锚点在不在附近"
 //
-// 为什么要有它（ISSUES #122）：README/docs/skill 里有 200+ 处 `pl_video_top.v:834` 这种引用，
+// 为什么要有它（ISSUES #122）：README/report/skill 里有 200+ 处 `pl_video_top.v:834` 这种引用，
 // 而 `doc_currency_check.mjs` 的 D4 只管**路径存在性**，**行号漂了什么都不会红**：
 // 位流编得出来、台架全过、门禁全绿，文档却指着另一个地方。今晚给 16 个模块头补定位那一批
 // 就实地把若干引用平移了 1~4 行（同一批里还有早就漂了、一直没人核对的老错）。
@@ -23,14 +23,14 @@ import { readFileSync, readdirSync, statSync, existsSync } from 'node:fs';
 import path from 'node:path';
 
 const ROOT = path.resolve(import.meta.dirname, '..', '..');
-const DOC_DIRS = ['.', 'docs', 'docs/log', 'skill', 'board'];
-// **追加式档案不参与核对**（`docs/log/` 的四本日记）：与 `doc_currency_check.mjs` 同一口径——
+const DOC_DIRS = ['.', 'report', 'report/log', 'skill', 'board'];
+// **追加式档案不参与核对**（`report/log/` 的四本日记）：与 `doc_currency_check.mjs` 同一口径——
 // 把过去的记录改成迎合检查器，等于销毁证据；而档案里的假路径（`tb_x.v:123` 那一类是**举例子**）
 // 会被硬错判据抓住，制造一批根本不该存在的"文档 bug"。
-const SKIP_DOCS = ['docs/log/', 'docs/study/'];
+const SKIP_DOCS = ['report/log/', 'report/study/'];
 const CODE_EXT = new Set(['.v', '.c', '.h', '.mjs', '.sh', '.tcl', '.ps1']);
 // 被引文件在这些目录里不存在（生成的、厂商树），引用它们本来就不该判红
-const SKIP_DIR = new Set(['.git', 'vivado_system', 'xsim.dir', 'node_modules', '.Xil', 'dist', 'study', 'docs/study']);
+const SKIP_DIR = new Set(['.git', 'vivado_system', 'xsim.dir', 'node_modules', '.Xil', 'dist', 'study', 'report/study']);
 // 锚点里不算数的词：文件名、常见英文、工具名——它们出现在任何地方都不证明"指对了地方"
 const STOP = new Set(['the', 'and', 'for', 'with', 'this', 'that', 'from', 'then', 'else', 'wire', 'reg',
                       'input', 'output', 'module', 'begin', 'end', 'node', 'bash', 'git', 'docs', 'src',
@@ -221,7 +221,7 @@ const optVal = (name, dflt) => {
   const a = process.argv.find((x) => x.startsWith(name + '='));
   return a ? (Number(a.split('=')[1]) || dflt) : dflt;
 };
-console.log(`D5 引用核对：扫 ${docs.length} 份交付文档（docs/log/ 那四本追加式档案不参与）⇒ 硬错 ${fails.length} 条（文件不在树里 / 行号越过文件末尾）`
+console.log(`D5 引用核对：扫 ${docs.length} 份交付文档（report/log/ 那四本追加式档案不参与）⇒ 硬错 ${fails.length} 条（文件不在树里 / 行号越过文件末尾）`
   + `；锚点命中 ${oks.length} 条；锚点候选 ${soft.length} 条；取不出代码锚点 ${needs.length} 条；厂商树引用 ${skipped} 条不参与`);
 if (fails.length) { console.log('\n--- 硬错（必定是坏引用）---'); fails.slice(0, listN).forEach((f) => console.log('  ' + f)); if (fails.length > listN) console.log(`  …还有 ${fails.length - listN} 条`); }
 if (args.has('--list-soft')) {

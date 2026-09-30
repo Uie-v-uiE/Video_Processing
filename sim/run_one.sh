@@ -78,15 +78,20 @@ printf '%s\n' $SRC | cygpath -m -f - > files.f
 # ⚠ 只有 `top_md5` 是**不够的**（2026-09-26 r72 那天撞见）：那一轮改的是四个窗口级
 #   （`proc_box_blur/sharpen/sobel/morph`），`pl_video_top.v` 一个字节没动 ⇒ 顶层 md5 仍然"对得上"，
 #   而 r71 那份旧报告可以原样冒充"当前这一版台架"。所以再加一枚 `rtl_md5`：整个 `src/rtl` 的合指纹。
-RTLALL=$(cd "$ROOT" && find src/rtl -name '*.v' | LC_ALL=C sort | xargs md5sum | md5sum | cut -c1-12)
+# ⚠ #202（2026-09-30 深夜）：这三枚指纹的**定义**不在这里，只有 `build/rtl_fingerprint.sh` 一处
+#   （去 CR 的内容指纹 `norm1`）。原来这里按磁盘字节算，一次 `git checkout` 改换行编码就把
+#   指纹漂了而设计一字未动 ⇒ 门禁第 15 项把自己刚还原的树念成"报告不算当前树"。
+FP=$ROOT/build/rtl_fingerprint.sh
+RTLALL=$(bash "$FP" | sed -n 's/^rtl=//p')
 # ⚠ #169（2026-09-30）：md5 仍然必须在**编译之前**取（事后补等于把今天的指纹盖在昨天的日志上，
 #   上面那段就是这件事），但**发布**要等到编译真的成功：以前 `prov.txt` 一落地就等着被读，
 #   于是一次 xvlog/xelab 失败的编译会留下"新树指纹 + 旧 run.log 正文"，
 #   而 `build/tb98_report.sh` 会把这对指纹原样盖到旧正文上 ⇒ 门禁第 15 项"报告与当前树同一次跑"就此作废。
 #   现在：先写 prov.tmp，编译两步都过了才 `mv` 成 prov.txt 并**删掉旧 run.log**（要跑就重新生成），
 #   编译失败时盘上留下的还是**成对旧**的 prov.txt + run.log（自洽，冒充不了当前树）。
-{ echo "top_md5=$(md5sum $ROOT/src/rtl/top/pl_video_top.v | cut -c1-12)"
-  echo "tb_md5=$(md5sum $ROOT/sim/$TB.v 2>/dev/null | cut -c1-12)"
+{ echo "fpver=norm1"
+  echo "top_md5=$(bash "$FP" "$ROOT/src/rtl/top/pl_video_top.v" | cut -c1-12)"
+  echo "tb_md5=$(bash "$FP" "$ROOT/sim/$TB.v" 2>/dev/null | cut -c1-12)"
   echo "rtl_md5=$RTLALL"
   echo "date=$(date -Iseconds)"; } > prov.tmp
 $V/xvlog -f files.f > xv.log 2>&1

@@ -23,7 +23,7 @@
    顺序写死成"建台架 → 旧树跑（应当红）→ 改源 → 新树跑（应当绿）→ 变异对照（应当只红那一条）"，
    本仓的现例：`sim/tb_cdc_capacity` 对旧 `dc_fifo` 打 `first_full_after_accepts=8191`（红两条），
    改后五条全绿，`sim/mut_control.sh … cdc_full_next` 再打回旧写法 ⇒ `MUTATION OK`
-   （`docs/log/ISSUES.md` #139，两份凭据 `build/r88_cdc_capacity*.txt`）。
+   （`report/log/ISSUES.md` #139，两份凭据 `build/r88_cdc_capacity*.txt`）。
    ⚠ 连带红要如实列：那一改同时红了 C1 与 C3（同一个根因的两个读数），**不要为了让"一次只红一条"
    而去削弱判据**。
 
@@ -62,4 +62,4 @@
 
 ## 出处
 
-`docs/log/OVERNIGHT_LOG.md` §35（同一份新台架一次凑齐三种假红，硬件其实全对）、§41（"查不到"被自己的阳性对照证伪）、§43（批处理工具的源码回显被当成执行输出），以及 `docs/log/ISSUES.md` #60（一条什么都没判的判据报成 PASS）。
+`report/log/OVERNIGHT_LOG.md` §35（同一份新台架一次凑齐三种假红，硬件其实全对）、§41（"查不到"被自己的阳性对照证伪）、§43（批处理工具的源码回显被当成执行输出），以及 `report/log/ISSUES.md` #60（一条什么都没判的判据报成 PASS）。

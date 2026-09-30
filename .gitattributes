@@ -1,0 +1,20 @@
+# 换行编码钉死：源码与脚本一律 LF，工作树里不再出现"同一次 checkout 把 52/79 份 .v 改成 CRLF"
+# 那种事（`core.autocrlf=true` 且没有本文件时，`git checkout -- src/rtl` 会重写磁盘字节，
+# 内容一字未改而 md5 全漂 —— 2026-09-30 夜里门禁第 15/15b 项就红在这里，详见
+# build/rtl_fingerprint.sh 的文件头与台账 #202）。
+#
+# 只覆盖参与指纹与构建的文件类型；`text` 让 git 自己判文本/二进制，`eol=lf` 规定工作树形状。
+*.v      text eol=lf
+*.sv     text eol=lf
+*.xdc    text eol=lf
+*.c      text eol=lf
+*.h      text eol=lf
+*.sh     text eol=lf
+*.tcl    text eol=lf
+*.py     text eol=lf
+*.mjs    text eol=lf
+# 交付文档与日记也钉住：doc_currency / line_cite 的按行引用不能因为换行符重写而整篇错位
+*.md     text eol=lf
+# ⚠ 不列 *.txt / *.log：`build/evidence*/MANIFEST.md5` 是按**磁盘字节**给 .txt 凭据盖指纹的，
+#   在这里加一条 eol=lf 会让下一次 checkout 把已盖章的台架/门禁件改字节，
+#   于是冻结层凭空红一片。要动这一族得先把盖章口径一起改掉（台账 #202 的同一族）。

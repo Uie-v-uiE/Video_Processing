@@ -45,8 +45,8 @@ VP_XSDB=<Vitis>/bin/xsdb.bat bash build/board_verify.sh --battery --geom
 上位机推流：[src/host/video_sender.py](src/host/video_sender.py) 发**任意视频文件**
 （装了 ffmpeg 就解任意格式，没装就发内置测试图，两者都缩放到 PL 的 512×300 画幅再发）；
 板子在手边时**双击 [send_demo.bat](send_demo.bat)**——它先 ping 板子，再推一段自带测试视频。
-命令表、寄存器映射与逐项判据见 [docs/HOST_GUIDE.md](docs/HOST_GUIDE.md)、
-[docs/COMMANDS.md](docs/COMMANDS.md)、[docs/BUILD.md](docs/BUILD.md)、
+命令表、寄存器映射与逐项判据见 [report/HOST_GUIDE.md](report/HOST_GUIDE.md)、
+[report/COMMANDS.md](report/COMMANDS.md)、[report/BUILD.md](report/BUILD.md)、
 [board/README.md](board/README.md)。
 
 ## 关键数字（每个数点名它的报告）
@@ -62,7 +62,7 @@ VP_XSDB=<Vitis>/bin/xsdb.bat bash build/board_verify.sh --battery --geom
 | 上板校验 | 串口命令电池 100 条通过、几何"最后一跳"8 条判定全过 | [board/ACCEPTANCE.md](board/ACCEPTANCE.md) |
 
 数值走势、哪些优化被证据否掉、以及为什么某些差值不作为收益口径，写在
-[docs/OPTIMIZATION_LOG.md](docs/OPTIMIZATION_LOG.md) 与 [docs/PERF_REPORT.md](docs/PERF_REPORT.md)；
+[report/OPTIMIZATION_LOG.md](report/OPTIMIZATION_LOG.md) 与 [report/PERF_REPORT.md](report/PERF_REPORT.md)；
 本页不复制它们——同一份数字抄在两处一定会漂。
 
 **本页不作门禁全绿声明**：某一版有没有过门禁、过几项、哪一项红，只以
@@ -81,11 +81,11 @@ VP_XSDB=<Vitis>/bin/xsdb.bat bash build/board_verify.sh --battery --geom
 | `board/` | 上板要用的三样：工程与二进制怎么来、运行脚本（JTAG 三步 + 串口）、跑起来之后读回来的实测输出（[board/README.md](board/README.md)、验收表 [board/ACCEPTANCE.md](board/ACCEPTANCE.md)） |
 | `data/` | `golden/` 参考图、`measured/` 实测数据、[data/metrics.csv](data/metrics.csv) 是唯一那张数字表 |
 | `skill/` | 大模型协作沉淀的技能卡，每张四段：适用场景 / 用法 / 凭据 / 失效条件（条目数以 `skill/README.md` 自己那行为准） |
-| `docs/` | 交付文档：设计说明、优化记录、命令表、复现说明（索引在 [docs/README.md](docs/README.md)） |
-| `docs/log/` | 追加式工作记录（问题账、过夜流水）；只作过程留痕，不当结论引用 |
+| `report/` | 交付文档：设计说明、优化记录、命令表、复现说明（索引在 [report/README.md](report/README.md)） |
+| `report/log/` | 追加式工作记录（问题账、过夜流水）；只作过程留痕，不当结论引用 |
 
 目录摆放按比赛要求的形状来（`src/ sim/ build/ board/ data/ skill/ report/`）。仓库里交付文档这一层叫
-`docs/`，导出提交包时改名成 `report/`，文档里的指路跟着一起改；剪掉了什么、按哪条判据剪的，
+`report/`，导出提交包时改名成 `report/`，文档里的指路跟着一起改；剪掉了什么、按哪条判据剪的，
 逐条写在包内 `_pruned.txt`，而包内所有"路径式指路"由导出器自检——指不到就拒绝落盘。
 
 ## 许可

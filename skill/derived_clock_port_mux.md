@@ -53,4 +53,4 @@
 - 与 [S11](pulse_toggle_cdc.md) 的分界：本页只管**同源同相**的分时与预算；跨时钟域的脉冲/握手走 S11。
 
 ## 出处
-`docs/log/ISSUES.md` #76 与 #105（另有 `docs/log/OVERNIGHT_LOG.md` 的对应轮次）。
+`report/log/ISSUES.md` #76 与 #105（另有 `report/log/OVERNIGHT_LOG.md` 的对应轮次）。

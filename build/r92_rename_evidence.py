@@ -23,7 +23,7 @@ for old, new in MAP.items():
     else:
         print(f"SKIP 两个都不存在：{old}")
 
-DOCS = ['board/ACCEPTANCE.md', 'docs/OPTIMIZATION_LOG.md', 'docs/PERF_REPORT.md', 'docs/log/ISSUES.md',
+DOCS = ['board/ACCEPTANCE.md', 'report/OPTIMIZATION_LOG.md', 'report/PERF_REPORT.md', 'report/log/ISSUES.md',
         'data/metrics.csv', 'build/r92_close_docs.py', 'build/r92_doc_refresh.py', 'build/r92_add_clocktree_row.py']
 for p in DOCS:
     fp = os.path.join(ROOT, p)

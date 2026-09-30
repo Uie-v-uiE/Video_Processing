@@ -151,7 +151,7 @@ static u32 cur_split = (512u << SPLIT_POS_SHIFT);   /* 默认缝在正中 = 旧�
  * 而"一个发射触发器扇出到两组目的域"正是 CDC-11 Critical 的签名（#65 与 r54 构建 #34
  * 各为它红过一次门禁）。
  * ⚠ 位图现在有三处读者，改任何一处必须同一次把三处改完：这里的宏、
- *   pl_video_top 的 split_ctl 端口注释、docs/log/ISSUES.md #70 追加。 */
+ *   pl_video_top 的 split_ctl 端口注释、report/log/ISSUES.md #70 追加。 */
 #define ROT_AUTO_BIT    (1u << 9)
 #define ROT_SPEED_SHIFT 10u
 #define ROT_SPEED_MASK  (7u << ROT_SPEED_SHIFT)
@@ -612,7 +612,7 @@ static void print_sel_names(u32 sel)
 /* ================= V8 spec §14：统一文本协议 =================
  * 一行 = 动词 + 至多 3 个参数，大小写不敏感。
  * 老写法（SRC0 / TH80 / ZOOM1 / BILIN0 / FRAME12 / 裸 00111）**继续有效**：
- * `docs/HOST_GUIDE.md`、`docs/DEMO_SCRIPT.md` 和 `build/tcl/set_src.tcl` 都在发它们，
+ * `report/HOST_GUIDE.md`、`report/DEMO_SCRIPT.md` 和 `build/tcl/set_src.tcl` 都在发它们，
  * 换语法不能把这些工具判成"命令没响应"。
  * 老写法是 `strncmp(buf,"TH",2)` 这种前缀匹配，参数是"粘在动词后面"的；新解析器把参数按空白
  * 切开单独取，顺带把 "THE" 也能当 TH 用的那个宽接受集关掉。
@@ -692,7 +692,7 @@ static int tokenize(char *line, char **tk)
  * 好处是不会有一天某条命令**悄悄**变成"看起来收了、其实没人接"。 */
 static void not_wired(const char *verb, const char *missing, const char *step)
 {
-    xil_printf("[CMD] %s 语法已收，硬件未接：缺 %s（规划 %s，见 docs/log/PLAN_V8_SPEC.md 第 3 节）\r\n",
+    xil_printf("[CMD] %s 语法已收，硬件未接：缺 %s（规划 %s，见 report/log/PLAN_V8_SPEC.md 第 3 节）\r\n",
                verb, missing, step);
 }
 

@@ -29,4 +29,4 @@
   激励必须复刻真实栅格：有效列之后地址继续走到 `H_TOTAL-1`。
 
 ## 出处
-`docs/log/ISSUES.md` #103（显示列 320 的黑线）；台架 `sim/tb_v103_pipe_bypass.v` 的 C10d/C10f。
+`report/log/ISSUES.md` #103（显示列 320 的黑线）；台架 `sim/tb_v103_pipe_bypass.v` 的 C10d/C10f。

@@ -103,21 +103,21 @@ MV=""
 add_mv() { if [ "$1" != "$2" ]; then MV="$MV$1"$'\t'"$2"$'\n'; fi; }
 prune() { if [ -e "$1" ]; then rm -rf "$1"; echo "$2 $1" >> _pruned.txt; fi; }
 
-# ---- 1. docs/ -> report/，指路一并改写（只改目录不改指路 = 交一份满篇死链接的包）----
+# ---- 1. report/ -> report/，指路一并改写（只改目录不改指路 = 交一份满篇死链接的包）----
 if [ -d docs ]; then
   mkdir -p report
-  mv docs/*.md report/ 2>/dev/null || true
-  if [ -d docs/log ]; then
+  mv report/*.md report/ 2>/dev/null || true
+  if [ -d report/log ]; then
     mkdir -p report/log
-    for f in docs/log/*.md; do if [ -f "$f" ]; then mv "$f" "report/log/$(basename "$f")"; fi; done
+    for f in report/log/*.md; do if [ -f "$f" ]; then mv "$f" "report/log/$(basename "$f")"; fi; done
   fi
   rm -rf docs
   # `*.csv` 也在改写名单里：`data/metrics.csv` 是"唯一那张数字表"，每行都点名凭据，
-  # 漏改就等于把仓内路径原样搬进包里 ⇒ 评审照表去翻却翻到一个不存在的 `docs/`（D4c 在仓里看得见，在包里看不见）。
+  # 漏改就等于把仓内路径原样搬进包里 ⇒ 评审照表去翻却翻到一个不存在的 `report/`（D4c 在仓里看得见，在包里看不见）。
   { find . -type f \( -name '*.md' -o -name '*.sh' -o -name '*.tcl' -o -name '*.mjs' -o -name '*.py' \
       -o -name '*.v' -o -name '*.c' -o -name '*.h' -o -name '*.bat' -o -name '*.csv' \) -print; echo README.md; echo README.en.md; } |
   while read -r f; do
-    if [ -f "$f" ]; then sed -i 's|\.\./docs/|../report/|g; s|docs/log/|report/log/|g; s|docs/|report/|g' "$f"; fi
+    if [ -f "$f" ]; then sed -i 's|\.\./report/|../report/|g; s|report/log/|report/log/|g; s|report/|report/|g' "$f"; fi
   done
 fi
 
@@ -570,7 +570,7 @@ cat > MANIFEST.txt <<EOF
                                      + tcl|scripts/**（JTAG 与串口脚本）+ output/**（实测输出）
   data/       测试数据与参考结果    <- data/golden/**、data/measured/**
   skill/      技能包                <- skill/**（README.md 是索引）
-  report/     设计报告 + 协作记录   <- 仓库里的 docs/（交付文档），工作记录在 report/log/
+  report/     设计报告 + 协作记录   <- 仓库里的 report/（交付文档），工作记录在 report/log/
 
 板上那一份（位流与固件仓库不跟踪，按 md5 认身份，不靠文件名）：
 $(for f in board/project/*; do if [ -f "$f" ]; then printf '  %-14s md5 %s\n' "$(basename "$f")" "$(md5sum "$f" | cut -c1-12)"; fi; done)  门禁凭据: $GATES_FOR_BIT
@@ -586,7 +586,7 @@ echo "导出提交 $COMMIT：$files 个文件 / $bytes，剪掉 $removed 条，�
 #       交付出去的东西自己声明自己不算交付，比不交更糟（评审第一页就读到）。根因在 gates.sh 只打
 #       mtime、从不把 system.bit 的 md5 打进报告里 ⇒ 这一位永远查不到匹配（本轮补那一刀，这里先拒）。
 # #190：随包的台架/门禁凭据从没被看过内容 ⇒ 一份写着 `RESULT … FAIL nfail=2` 的台架报告照发。
-#       本项目故意留一条红（`C5c`/#98，公开在 docs/KNOWN_ISSUES.md 第一节），所以**不是**"有红就拒"，
+#       本项目故意留一条红（`C5c`/#98，公开在 report/KNOWN_ISSUES.md 第一节），所以**不是**"有红就拒"，
 #       而是"红必须在白名单里"——红得对与红得不明不白必须能区分（这条区分本身就是本项目的规矩）。
 # #195a：入口脚本（门禁）在包里是按 **glob** 找凭据的，而本脚本把批判据报告展平进了 `build/reports/`；
 #        改名规则是"逐条旧路径→新路径"，通配形状够不着 ⇒ 名字换了、目录没换，包里那份脚本会在

@@ -46,4 +46,4 @@
 - 换关键字让症状消失不等于根因走掉：只要还有任务直读模块信号，这条规则就等着被破
 
 ## 出处
-`docs/log/OVERNIGHT_LOG.md` §33 那一轮——判据写出来的第一次运行就把显示标签与 mux 实际选中的那一路钉在一起（实现见 `src/rtl/video/osd_overlay.v` 的入参写法与 `sim/tb_osd_lines.v` T3）。
+`report/log/OVERNIGHT_LOG.md` §33 那一轮——判据写出来的第一次运行就把显示标签与 mux 实际选中的那一路钉在一起（实现见 `src/rtl/video/osd_overlay.v` 的入参写法与 `sim/tb_osd_lines.v` T3）。

@@ -12,7 +12,7 @@
 # 现在把顺序、判据、以及"每一项看哪一行输出"固定在一个文件里，跑完把日志留在 build/evidence/。
 #
 # 不做什么：不刷板子。三件套（bit/xsa/elf）的下载顺序见 README.md 的"复现三步"第 3 步（xsdb
-# ps_jtag_boot → vivado program_pl → xsdb ps_app_reload）与 docs/BUILD.md §3「上板顺序」（那里还写了为什么跑过
+# ps_jtag_boot → vivado program_pl → xsdb ps_app_reload）与 report/BUILD.md §3「上板顺序」（那里还写了为什么跑过
 # ps_jtag_boot 就必须重下 bit），
 # 那一步会动硬件，故意留给人（或我）一条一条确认。脚本开头会把三件 md5 打出来，便于和
 # build/frozen_*/MANIFEST.md 对账。
@@ -22,11 +22,11 @@ ROOT=$PWD
 OUT=build/evidence/verify_$(date +%m%d_%H%M)
 mkdir -p build/evidence
 LOG=$OUT.txt
-# xsdb 只有一个说法：VP_XSDB 指到 <Vitis>/bin/xsdb.bat（默认值只是本机的便利，不是标准，见 docs/BUILD.md）。
+# xsdb 只有一个说法：VP_XSDB 指到 <Vitis>/bin/xsdb.bat（默认值只是本机的便利，不是标准，见 report/BUILD.md）。
 # 外面那一层双引号是必需的：XSDB 之后会被拼进命令行，路径带空格时没引号就断成两条命令——
 # 所以先把**裸路径**放进 VP_XSDB 做存在性检查，再包引号交给 XSDB，不用 eval 去拆。
 VP_XSDB=${VP_XSDB:-}
-[ -f "$VP_XSDB" ] || { echo "REFUSE: 找不到 xsdb（当前 $VP_XSDB）。设 VP_XSDB=<Vitis>/bin/xsdb.bat 再跑（docs/BUILD.md）"; exit 2; }
+[ -f "$VP_XSDB" ] || { echo "REFUSE: 找不到 xsdb（当前 $VP_XSDB）。设 VP_XSDB=<Vitis>/bin/xsdb.bat 再跑（report/BUILD.md）"; exit 2; }
 XSDB="\"$VP_XSDB\""
 # ⚠ 这一版之前脚本**没有总判定**：不管中间红成什么样，最后都是 `exit 0`（而且各步都挂在管道尾巴上，
 #   退出码是 `tail` 的）。2026-09-25 r59a 那次日志里明写着"[ARB] 结论：1 条不通过 ⇒ 判红"，

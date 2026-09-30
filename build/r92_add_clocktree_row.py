@@ -40,7 +40,7 @@ else:
     print("OK   ACCEPTANCE 第 10 行已插入机器判据表")
 
 # 顺手在 r92 那一节的表里补同一把尺子（只补一行，不重排）
-p2 = 'docs/OPTIMIZATION_LOG.md'
+p2 = 'report/OPTIMIZATION_LOG.md'
 t2 = rd(p2)
 anchor = '| BRAM / LUT / FF / DSP | 95 / 14358 / 8075 / 19 | 95 / 14351 / 8075 / 19 |'
 add = (f'| `BUFIO` 用量（`clock_util.rpt` 第一张表） | 1 | **{now}** | 结构判据：拓扑上真的少了一棵树，'

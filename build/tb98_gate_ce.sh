@@ -13,9 +13,9 @@
 set -u
 cd "$(dirname "$0")/.." || exit 2
 TMP=$(mktemp -d)
-TOP=$(md5sum src/rtl/top/pl_video_top.v | cut -c1-12)
-TB=$(md5sum sim/tb_v98_top_seam.v | cut -c1-12)
-RTL=$(find src/rtl -name '*.v' | LC_ALL=C sort | xargs md5sum | md5sum | cut -c1-12)
+TOP=$(bash build/rtl_fingerprint.sh | sed -n 's/^top=//p')
+TB=$(bash build/rtl_fingerprint.sh sim/tb_v98_top_seam.v | cut -c1-12)
+RTL=$(bash build/rtl_fingerprint.sh | sed -n 's/^rtl=//p')
 HDR="# provenance top_md5=$TOP tb_md5=$TB rtl_md5=$RTL date=ce-synthetic src=$TMP"
 GOOD="$TMP/p.txt";     printf '%s\nPASS C1c x\nPASS C3c y\nRESULT tb_v98_top_seam PASS\n' "$HDR" > "$GOOD"
 BADMD5="$TMP/a.txt";   printf '%s\nPASS C1c x\nRESULT tb_v98_top_seam PASS\n' \

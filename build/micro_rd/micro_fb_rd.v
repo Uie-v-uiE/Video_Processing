@@ -5,7 +5,7 @@
 // 为什么单独做这个探针（2026-09-26 凌晨）：
 //   双线性读口调度在旧几何下红过三次（build#14 −1.277、#15 −0.485、#16 换实现策略仍 −0.327），
 //   当时的读出来的一句话是"3.844 ns 里布线占 3.255 ns（84.7%）、逻辑只有 2 级 LUT ⇒
-//   是布局距离 + 80 个 tile 的高扇出，不是逻辑深度"（docs/log/OVERNIGHT_LOG.md R19 / tag v7.8-bilinear-wip）。
+//   是布局距离 + 80 个 tile 的高扇出，不是逻辑深度"（report/log/OVERNIGHT_LOG.md R19 / tag v7.8-bilinear-wip）。
 //   那是**布线**问题 ⇒ `build/tcl/ooc_newmods.tcl` 那种"综合级 OOC 时序"量不出来（它自己就声明
 //   "这里的数字不是门禁"），只有真实 place+route 才算数。
 //   而全流程一次构建 30+ 分钟，拿它试三个方案是浪费 ⇒ 把这**一条路径**单独 place+route。

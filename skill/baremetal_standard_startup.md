@@ -48,4 +48,4 @@
 
 ## 出处
 
-`docs/log/ISSUES.md` #44（一个根因四个症状：CPACR、向量表、各模式栈、MMU 一起没）与 #42（第一条 VFP 指令陷成 Undefined Instruction）。
+`report/log/ISSUES.md` #44（一个根因四个症状：CPACR、向量表、各模式栈、MMU 一起没）与 #42（第一条 VFP 指令陷成 Undefined Instruction）。

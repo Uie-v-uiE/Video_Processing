@@ -26,6 +26,7 @@ else
     exit 3
 fi
 {
+    echo "fpver=$(sed -n 's/^fpver=\(.*\)$/\1/p' "$PROV" | head -1)"
     echo "top_md5=$TOP"
     echo "tb_md5=$TB"
     echo "rtl_md5=$RTL"

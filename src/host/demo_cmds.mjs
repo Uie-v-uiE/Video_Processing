@@ -1,8 +1,8 @@
-// src/host/demo_cmds.mjs —— 把 `docs/DEMO_SCRIPT.md` 代码块里的命令**逐条抽出来**，两个用途：
+// src/host/demo_cmds.mjs —— 把 `report/DEMO_SCRIPT.md` 代码块里的命令**逐条抽出来**，两个用途：
 //   --emit <file>   抽成一份可发的脚本（`board/demo_rehearsal.txt`），板子上逐条跑一遍
 //   --check <capture>  对着串口回包判"演示目录里没有任何一条命令是板子不认的 / 是'硬件待接'"
 //
-// 为什么要它：`docs/DEMO_SCRIPT.md` 顶部写的是"照抄就能演"。这句话要么是被验过的，
+// 为什么要它：`report/DEMO_SCRIPT.md` 顶部写的是"照抄就能演"。这句话要么是被验过的，
 //   要么就是又一份"文档里有、板上没有"（#67 那一族的反面：帮助/清单与硬件不符）。
 //   抽命令这件事交给脚本而不是我手抄，是为了**清单与文档不能各说各话**：
 //   文档改一行，脚本抽出来的就少一行/多一行，`--check` 会拿新的那份去问板子。
@@ -16,7 +16,7 @@ import { readFileSync, writeFileSync } from 'node:fs';
 import path from 'node:path';
 
 const ROOT = path.resolve(import.meta.dirname, '..', '..');
-const DOC = path.join(ROOT, 'docs', 'DEMO_SCRIPT.md');
+const DOC = path.join(ROOT, 'report', 'DEMO_SCRIPT.md');
 const PC_SIDE = /^(run_sender|node |bash |powershell|md5sum|xsdb|vivado|%)/i;
 
 export function extract() {
@@ -40,7 +40,7 @@ if (argv[0] === '--emit') {
     // 不在代码块里）。没有这对基线，"回到初态"就没有可比的两条数 —— 而那正是这一项要判的事。
     const list = ['stat', ...cmds, 'stat'];
     writeFileSync(path.resolve(ROOT, argv[1] || 'board/demo_rehearsal.txt'),
-                  '# 由 src/host/demo_cmds.mjs --emit 从 docs/DEMO_SCRIPT.md 抽出，不要手改\n'
+                  '# 由 src/host/demo_cmds.mjs --emit 从 report/DEMO_SCRIPT.md 抽出，不要手改\n'
                   + list.join('\n') + '\n', { encoding: 'utf8' });
     console.log(`emit ${list.length} 条（含首尾 stat 基线）-> ${argv[1] || 'board/demo_rehearsal.txt'}`);
     process.exit(0);
