@@ -773,12 +773,30 @@ setup 侧 `ExtraTimingOpt` 反而把 `eth_rxc` 从 +0.516 花到 +0.157。两滚
 
 **上板（12:5x，顺序是 ps7_init → 配 PL → 重下 app，凭据 `build/r94_flash.txt`）**：屏与链路活着，
 100 条串口命令电池全绿（`build/r94_batt.txt`，93.1 s，判红步骤 0），回读初态仍是文档默认档（`zsel=4 zman=1 mode=0`）。
+（当天下午这一串**长到 105 条**并再跑一次全绿：#105 补了"写缝位不许清掉 marker 位"的四条，
+#178 把第 83 条 `rot show` 的前提从"借板子上电状态"改成"电池自己 `rot auto 0`"，
+凭据 `build/r95_batt_from_default.txt`（98.0 s，`RESULT PASS`）与它的改前对照 `build/r95_batt_before_178_verdict.txt`。）
 **屏上摆成了"钳制看得见"的那一态**：SD 回放 + `bilin on` + 手动 1.00x + **`zoom fit 0`** + `rot auto 1 speed 0`
 （`build/r94_eye_state_cap2.txt`，`geom=00400A00` ⇒ 旋转位在跑）。眼睛那三条（45° 时四角是否在框内、
 ZOOM 那格是否标 `(Fit)`、旋转态斜边锯齿与 `rot 0` 相比）**待队员判**，不混进机器判据。
 
-**还欠的**：`tb_v98` 整屏 + `tb_edge_rim` 正在按新树重跑（`build/r94_bench_chain.log`），门禁报告等它结束后落在
-`build/r94_gates.txt`；那一行落上来之前，这一版**不写"门禁绿"**。Pblock / 疏解绕线（§二.1 欠的物理那一侧）这一轮没动。
+**还欠的**：Pblock / 疏解绕线（§二.1 欠的物理那一侧）这一轮没动 —— 而 r95 已经把"工具那一档"问到底了（见下面 r95 一节）。
+
+**台架与门禁（14:46 链跑完 + 15:00 补件重跑，`build/r94_gates.txt`，仓库里的件、不随包）**：20 项判定、**唯一红项还是那条故意留着的
+`C5c`**（#98 帧头绕回）：`tb_v98` 整屏 138 行判据里 `FAIL C5c …` 恰好 1 行，其余全过，且报告头 `top=3fe1aab859e7` 与当前树一致
+⇒ 门禁念的是"这一跑自己判红"，不是"报告与树不同源"。`tb_edge_rim` 31 条判据 `PASS`（`build/tb_edge_rim_r94.txt`，
+`rtl_md5=526321488fed` = 树）。与 r88/r90/r92 同形 ⇒ **冻结集继续是 r75**，这一版被采纳的依据仍然是板上那一套
+（0 丢字 + 105 条电池全绿 + 判红步骤 0 + 几何"最后一跳" `geom_check` ok=8 fail=0）。
+⚠ 链刚跑完时门禁是**两条红**：第 16 项读的是 `build/tb_edge_rim_r92.txt`（`rtl=c8bf35eb19e5` ≠ 树）而红 ——
+根因是 `build/r94_bench_chain.sh` 第②步调 `build/rim_report.sh` 时**没传 `ROUND`**，而那个脚本自带默认
+`ROUND=r90` ⇒ 今天这一跑的内容被写成了一份**名字叫 r90、stamp 是 r94** 的件（比"没留件"更坏：那是一条假凭据），
+而门禁按 `sort -V | tail -1` 取到的是 r92 那份 ⇒ 念"报告与树不同源"。红得对，但说的是我的链，不是设计。
+已补 r94 那份件（`ROUND=r94 bash build/rim_report.sh`，md5 取自那一跑自己留下的 `prov.txt`，不是事后重算），
+名字冒充 r90 的那份**逐字节相同**（`cmp`）且从未入库、`docs/D4C_POINTERS.md` 第 60 行本就记着"r90 那份盘上没有"，
+⇒ 挪出盘留档；链脚本改三处：不给 `ROUND` 就拒绝开跑、第②步把 `ROUND` 传下去、第②步末尾断言
+`tb_edge_rim_${ROUND}.txt` 存在且 `rtl_md5` 等于当前树，否则 `CHAIN_MISSING_ARTIFACT` 退出非零（ISSUES **#179**）。
+
+
 
 ## r95（2026-09-30 13:2x–14:2x，隔离构建 `build/isolated_r95_postroute_physopt/`）：把"时序还能不能更好"问到**工具自己说它不干活**为止
 

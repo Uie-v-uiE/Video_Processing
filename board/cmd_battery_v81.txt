@@ -79,6 +79,15 @@ split swap 0
 split marker 0
 split marker 1
 split show
+# ---- #105：写**缝位**不许顺带动 marker 位（结构性判据，r94 之后补的）----
+# 上面那组只证了"marker 自己设得动"；这一组证的是另一件事：`split <n>` 走的是
+# `cur_split = (cur_split & ~SPLIT_POS_MASK) | (px << SPLIT_POS_SHIFT)`，掩码一旦写窄
+# （#177b 刚在检查器里犯过同一个错），缝位写高值就会把相邻的位清掉而回显毫无察觉。
+# 顺序：先把线关掉 → 再写缝位 → `split show` 必须还写着 marker=off → 最后把线还原。
+split marker 0
+split 45
+split show
+split marker 1
 split 150
 split 100
 split show
@@ -93,6 +102,13 @@ split 50
 # 缝位按百分比搬（512/1024 → 256/512 → 399/1024），最后一条 split 50 把缝还回正中。
 # 结尾这条 STAT 才是"末态"：从 V9 起它带 geom=%08x（19 位控制字整字回显），
 # 于是"电池不许改变板上状态"这条判据第一次真的看得见 rot / fit / 缝位。
+# #178（2026-09-30）：下面 `rot show` 那条判据念的是 `auto=0 speed=1` —— `speed=1` 是本串第 21 条
+# 设进去的（这一对合起来才证明"中间那些 split/zoom/gamma 的整字重写没踩到 bit12:10"），
+# 但 `auto=0` 过去**靠的是板子进来的那个状态**。从"眼睛判据那一态"（`rot auto 1`）起跑，
+# 这一条就红了（`build/r95_batt_before_178_verdict.txt` 第 83 条），而硬件什么也没做错 ——
+# 红的又是起点，不是这一跑。判据不许继承起点：这里由电池自己先把 auto 关掉，
+# precondition 变成**构造出来的**（同一课：#177 把"末态"改判默认档）。
+rot auto 0
 rot show
 rot speed 3
 rot speed 9
