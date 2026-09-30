@@ -1,0 +1,16 @@
+# 门禁第 14 项扫描面地板的对照（build/ports_floor_ce.sh，#194 的后半），r98 夜 2026-10-01 01:22
+# 反例跑的就是 gates.sh 第 14 项调的同一份 build/ports_floor.sh，不是在门禁里另抄一遍
+PASS CE P 真机汇总行必须放行（rc=0）FLOOR OK instances=208 width_compared=564（地板 100/280）
+PASS CE A 什么都没查（两个计数为 0）（rc=1）FLOOR BAD instances=0 width_compared=0 低于地板 100/280 ⇒ violations=0 可能是没看而不是没违规
+PASS CE B 汇总行缺字段（取不到数）（rc=1）FLOOR BAD 汇总行里取不到 instances/width_compared（这一项什么都没查）：[CHECK PORTS: 汇总行被改坏了]
+PASS CE C 只塌一半（位宽没比）（rc=1）FLOOR BAD instances=208 width_compared=12 低于地板 100/280 ⇒ violations=0 可能是没看而不是没违规
+CE: 全绿（4 条）
+
+# 真机汇总行（当场跑的 check_ports.py --dup）：
+CHECK PORTS: instances=208 modules=80 skipped=0 width_compared=564 violations=0 PASS
+# 地板判据对这一行的结论：
+FLOOR OK instances=208 width_compared=564（地板 100/280）
+
+# #195b 那一侧的守卫对照（同一句判据，两种输入）：
+GLOBTESTED=0 → FAIL（什么都不查，不出包）
+GLOBTESTED=1 → 放行

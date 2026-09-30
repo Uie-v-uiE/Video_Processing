@@ -232,8 +232,12 @@ fi
 if [ "$D" = "build" ]; then
     python build/check_ports.py --dup > build/ports_check.txt 2>&1; PCEXIT=$?
     PCTXT=$(tail -1 build/ports_check.txt)
-    say "顶层接线（端口名/悬空输入/位宽）" "$PCTXT" "violations=0（凭据 build/ports_check.txt，当场跑）" \
-        $([ "$PCEXIT" = 0 ] && echo 1 || echo 0)
+    # 计数地板（#194 的后半）：这一项原来**只看退出码**，于是"什么都没查"也能绿。地板判据抽在
+    # `build/ports_floor.sh`（反例 `build/ports_floor_ce.sh` 跑的就是那一份，不是我在这里另抄一遍）。
+    FLMSG=$(bash build/ports_floor.sh "$PCTXT"); FLOK=$?
+    say "顶层接线（端口名/悬空输入/位宽）" "$PCTXT｜$FLMSG" \
+        "violations=0 且扫描面不塌（凭据 build/ports_check.txt，当场跑）" \
+        $([ "$PCEXIT" = 0 ] && [ "$FLOK" = 0 ] && echo 1 || echo 0)
     grep -v "^CHECK PORTS\|^  skipped" build/ports_check.txt 2>/dev/null | sed 's/^/        /' | head -8
 else
     PCF=$(pick ports_check.txt)

@@ -342,58 +342,8 @@ def main():
           % (checked, len(mods), len(set(SKIP_LIST)), wchecked, len(problems),
              "PASS" if not problems else "FAIL"))
     return 0 if not problems else 1
-    for base, _d, names in os.walk(RTL):
-        for n in sorted(names):
-            if not n.endswith(".v"):
-                continue
-            path = os.path.join(base, n)
-            rel = os.path.relpath(path, ROOT).replace("\\", "/")
-            src = strip_comments(io.open(path, encoding="utf-8", errors="replace").read())
-            # 本文件的"标识符 → 位宽"表：内部 wire/reg 声明 + 本文件模块自己的端口。
-            decls = decl_widths(src)
-            for mname, (mpath, _mi, _ma, mw) in mods.items():
-                if mpath == path:
-                    for k, v in mw.items():
-                        decls.setdefault(k, v)
-            for mod, inst, arg, line in instances(src):
-                if mod not in mods or mod in SKIP or mod == inst:
-                    continue
-                if mod == n[:-2]:                # 自己例化自己（不该发生，但别当违规报）
-                    continue
-                _p, ins, allp, wids = mods[mod]
-                if ".*" in arg:
-                    continue
-                checked += 1
-                conns = set(re.findall(r"\.\s*([A-Za-z_]\w*)\s*\(", arg))
-                for bad in sorted(conns - allp):
-                    problems.append("%s:%d  %s %s 连了不存在的端口 .%s()" % (rel, line, mod, inst, bad))
-                for miss in sorted(ins - conns):
-                    problems.append("%s:%d  %s %s 的输入 %s 没连（悬空=Z/X）" % (rel, line, mod, inst, miss))
-                # ③ 位宽：Verilog 在这里**静默补零/静默截断**，仿真与综合都不报（#57 就是这么把
-                #    lane30 的模式高位吞掉的）。只判"两头都数得清"的那一类，其余跳过。
-                for chunk in split_top(arg):
-                    m = re.match(r"^\.\s*([A-Za-z_]\w*)\s*\((.*)\)$", chunk.strip(), re.S)
-                    if not m or m.group(1) not in allp:
-                        continue
-                    fw = wids.get(m.group(1))
-                    aw = actual_width(m.group(2), decls)
-                    if not fw or not aw:
-                        continue
-                    wchecked += 1
-                    if fw != aw:
-                        problems.append("%s:%d  %s %s .%s(…) 位宽不符：端口 %d 位，接的是 %d 位"
-                                        "（Verilog 静默补零/截断 ⇒ 高位会被吃掉，见 #57）"
-                                        % (rel, line, mod, inst, m.group(1), fw, aw))
-    for p in problems:
-        print(p)
-    # 跳过的模块要**先**打出来：一个"跳了一半"的检查器报 PASS 是没有意义的（#60 那一课）。
-    # 汇总行故意放在最后一行 —— gates.sh 用 tail -1 取它，别让别的行插到后面。
-    if not quiet and SKIP_LIST:
-        print("  skipped(端口表看不懂/非 ANSI): " + " ".join(sorted(set(SKIP_LIST))))
-    print("CHECK PORTS: instances=%d modules=%d skipped=%d width_compared=%d violations=%d %s"
-          % (checked, len(mods), len(set(SKIP_LIST)), wchecked, len(problems),
-             "PASS" if not problems else "FAIL"))
-    return 0 if not problems else 1
+    # （这里原来还有一份与上面同一个循环的副本，在第一句 return 之后 —— 永不执行。
+    #   #194：写在这段里的判据"加了个寂寞"。删掉；要加判据就加到上面那段活代码里。）
 
 
 if __name__ == "__main__":
