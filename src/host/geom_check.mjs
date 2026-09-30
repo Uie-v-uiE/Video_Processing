@@ -8,12 +8,15 @@
  *   V9 新加了三种像素域行为（自动旋转、按角度定倍率、缝搬进图像列）。
  *   只留回显，它们就是"屏上看着像、机器说不出"那一类 —— 评审问"怎么证明"答不上来。
  *
- * 四条判据（都是"命令 → 读回像素域自己吐出来的数"，不看回显文本）：
+ * 六条判据（都是"命令 → 读回像素域自己吐出来的数"，不看回显文本）：
  *   G1 `zoom fit 1`      ⇒ lane23 的 bit19 = 1，inv_used 落在 [256,512]，且 zcode == 独立复算的最近档
  *   G2 `rot auto 1` 之后  ⇒ **在同一次 halt 里隔 1.2 s 读两次 lane23，两次的 inv 必须不同**
  *                          （CPU 停着 ⇒ 变的只可能是 PL 自己：角度在走、拟合跟着角度走）
+ *   G5/G5b（r97 加，#175）⇒ 关掉 fit 请求、只留自动旋转 + 手动 1.00x：这一位就只剩"被旋转钳住"一个来源，
+ *                          于是判不变量 `bit19 == (inv ≠ 256)`，并要求四次里至少真钳住一次（防空判据）
  *   G3 `split video`      ⇒ CFG_DATA0 的 bit24（= 打包后 gp[11]）为 1
- *   G4 收尾              ⇒ 整串跑完，CFG_DATA0 的 19 个几何位与进来时**逐位相同**（不许留自动态）
+ *   G4 收尾              ⇒ 整串跑完，CFG_DATA0 的 19 个几何位等于**演示默认档**那一束（#177 换的口径：
+ *                          与起点无关；跑完不许留自动态/手动态）
  *
  * 用法：node src/host/geom_check.mjs [--com COM6] [--jtag 3121]
  * 前置：板子上电、r60 那套三件套已下载、hw_server 在跑（同 health_read.mjs）。
@@ -245,8 +248,29 @@ line('G2 开着自动旋转，CPU 停着，1.2 s 之间 inv_used 变了（缩放
 line('G2x 全程没有把 zoom 弹出量程', !!s2.b && s2.b.inv >= 256 && s2.b.inv <= 512,
      s2.b ? `inv=${s2.b.inv}` : '');
 
+// ---- G5（#175 的机器判据；r97 那一刀把这一位接成了 `zoom_fit_en | rot_forced`）----
+// 先把"请求位"关掉、只留"旋转钳"这一路：`rot auto 1` 的成对语义会顺带开 fit（docs/COMMANDS.md:209-210），
+// 所以顺序是 rot 在前、`zoom fit 0` 在后；再把缩放钉在手动 1.00x（`zoom 1.0` ⇒ `inv_raw` 恒 256）。
+// 这样 lane23.bit19 只剩一个可能来源：`rot_forced`（zoom_snap 的第 20 位）。
+// 判据写成**不变量**而不是"应该等于 1"：`bit19 == (生效倍率偏离 256)` ⇒
+// 一次同时杀掉"恒 0（回读口根本没接）"与"恒 1（当成常亮旗）"两种糊法；
+// G5b 再要求四次里**至少真的钳住一次**，否则上面那条是空判据（#60 那一族）。
+send(['rot speed 5', 'rot auto 1', 'zoom 1.0', 'zoom fit 0']);
+const s5x = sample(23, 1200);
+const s5y = sample(23, 1200);
+const r5 = [s5x.a, s5x.b, s5y.a, s5y.b].filter((z) => z && z.alive === 1);
+const bad5 = r5.filter((z) => (z.zoom_fit === 1) !== (z.inv !== 256));
+const nClamp = r5.filter((z) => z.zoom_fit === 1 && z.inv > 256).length;
+line('G5 只留旋转钳（fit 请求已关、手动 1.00x）⇒ lane23.bit19 与"倍率偏离 256"同拍相等',
+     r5.length >= 3 && bad5.length === 0,
+     `样本=${r5.length} 违例=${bad5.length}` + (bad5.length ? `（首个 raw=0x${bad5[0].raw.toString(16)}）` : ''));
+line('G5b 四次里至少真的钳住一次（bit19=1 且 inv>256）—— 不然 G5 是空判据',
+     nClamp >= 1, `钳住=${nClamp}/${r5.length}`);
+
 // ---- G3 + G4：follow 位落进那一束，然后一切还原 ----
-send(['rot auto 0', 'rot speed 0', 'zoom fit 0', 'split video']);
+// G5 把缩放留在了手动 1.00x ⇒ 这里必须 `zoom auto` 退回呼吸自动档，否则 G4 那句
+// "跑完之后板子停在演示默认档"（#177 换的口径）会红在收尾、而不是红在被测的东西上。
+send(['rot auto 0', 'rot speed 0', 'zoom fit 0', 'zoom auto', 'split video']);
 const c1 = readCfg1();
 line('G3 `split video` ⇒ CFG_DATA0 bit24 = 1（缝的分类改在图像列里做）',
      c1 !== null && ((c1 >>> 24) & 1) === 1, c1 === null ? '读不到 CFG1' : `cfg1=0x${c1.toString(16)}`);
