@@ -5,18 +5,22 @@
 
 ## 机器判据（脚本读回来的）
 
+本表**按行记版本**：第 1/2/3/5/9/10 行是 r94（板上那一份位流 `a1465f29c9e4`，源 `rtl_md5=526321488fed`）
+重跑/重念的；第 4/6/7/8 行的读数还是 r92 那一次（同一棵树没变的那些行为，r94 没重跑），补跑排在
+门禁落盘之后。把某一行的数当"这一版验过"之前，先看这一行有没有"r94"字样。
+
 | # | 判据 | 读数 | 凭据 |
 |---|---|---|---|
-| 1 | PS 起来 + PL 烧写 + 应用重载三歩都成功 | `DDR_ECHO: 10000000: 5A5AA5A5` / `PROGRAMMED xc7z020_1`（位流 md5 `883dd3b7654d`）/ `RESUME: ok` | `build/evidence/r92_flash_1_psboot.txt`、`build/evidence/r92_flash_program_log.txt`、`build/evidence/r92_flash_app.txt` |
-| 2 | 串口命令电池（100 条，含该拒的必须拒） | `RESULT PASS uart_cmd_check (100 条命令, 92.9 s)`；`RESULT board_verify PASS（判红的步骤：0）` | `build/evidence/verify_0930_0424.txt`、`board/uart_script_capture.txt` |
-| 3 | 几何"最后一跳"：命令 → 像素域真的用了它 | `RESULT PASS geom_check（ok=8 fail=0）`；ok   跑完回到初态：thr=80 src=1 zoom=1 bilin=1 zsel=4 zman=1 sel=000 gm=0.00 mode=0 geom=00400000 osd=1 | 同上 |
+| 1 | PS 起来 + PL 烧写 + 应用重载三歩都成功（**r94 重跑**）| `DDR_ECHO: 10000000: 5A5AA5A5` / `PROGRAMMED xc7z020_1`（位流 md5 `a1465f29c9e4` = 树上 `build/system.bit`）/ `RESUME: ok` | `build/r94_flash.txt`（三段都在一份里）|
+| 2 | 串口命令电池（100 条，含该拒的必须拒）（**r94 重跑**）| `RESULT PASS uart_cmd_check (100 条命令, 93.1 s)`；`RESULT PASS geom_check（ok=8 fail=0）`；`board_verify` 全量那一串**等 r94 门禁落盘后补跑** | `build/r94_batt.txt`、`build/r94_uart_cap.txt`、`build/r94_geom_check2.txt` |
+| 3 | 几何"最后一跳"：命令 → 像素域真的用了它（**r94 重跑，树上带 #93 那一钳**）| `RESULT PASS geom_check（ok=8 fail=0）`，其中 G1b/G1c/G2 三条量的是"拟合/旋转钳下 `inv_used` 与屏上档号同源自洽"（例：`fit=1` 时 inv=433 ⇒ 屏上 0.50x 档 2）| `build/r94_geom_check2.txt` |
 | 4 | 上电默认档位 | `lane23 zoom → zsel=4 zman=1 inv_scale=256 x100_actual=100`（屏上画 1.00×） | `build/evidence/verify_0930_0424.txt` 的开机回读段 |
-| 5 | 以太推流期间链路健康 | Python 上位机 `--demo --fps 25`：**2501 帧 / 100.05 s = 25.00 fps、共发 552721 包**；推流**之中**读回累计 `pkts=184315`、`bytes=256205760`、`drop_words=0`、`丢过字=0`、`stall_ms=0`、`流活着=1`、屏幕归 ETH、`eth_rxc 心跳：正常` | `build/evidence/r92_tx.txt`（发送端）、`build/evidence/r92_health.txt`（推流中 `health_read.mjs --once` 读的） |
+| 5 | 以太推流期间链路健康（**r94 重跑**）| `--demo --fps 25`：**3001 帧 / 120.05 s = 25.00 fps、共发 663221 包**；推流**之中**读回 `drop_words=0`、`丢过字=0`、`stall_ms=0`、`CDC灌满过=0`、`流活着=1`、`eth_rxc 心跳：正常`（累计 pkts/bytes 见凭据第 8/9 行）| `build/r94_tx_console.txt`（发送端）、`build/r94_health_rotclamp.txt`（推流中读的）|
 | 6 | 链路内时延同源一致 | 屏上 `Latency=6ms` 与回读 `tot/100000=6` 一致（ok） | `build/evidence/r92_health.txt` |
 | 7 | 温度格三方对账 | `V9-6 温度格三方对账：4 条 [TEMP] 的 degC↔osd↔gpio 全部自洽` | `build/evidence/verify_0930_0424.txt` |
 | 8 | SD 卡本地播放 | `sd=1 playing=1`，帧率 29.8 – 30.0 fps（100 帧滑窗） | `board/uart_script_capture.txt`、`data/metrics.csv` |
 | 9 | 时序/资源读数与报告一致（r94 重念）| 全设计 setup WNS 0.553 ns、hold WHS 0.049 ns、失败端点 0 / 50883；BRAM 95 tile、LUT 14374、FF 8074、DSP 19、动态 2.206 W。绝对值与上一版之差**不记收益也不记损失**（规矩 35）| `build/timing_summary.rpt`、`build/utilization.rpt` |
-| 10 | 收口只有一棵时钟树（#57 的结构判据，不靠 slack 碰运气） | `build/clock_util.rpt`：**`BUFIO` 用量 0**（改前那一份是 1），`eth_rxc` 只经一只 `BUFG/O`（`g2`←`src2`=`IBUF/O @IOB_X1Y28`，fabric 负载 2478）；最差 20 条 hold 的时钟偏斜由 `build/hold_paths.rpt` 逐条读，实测 0.013~0.349 ns（改前那一条是 1.616 ns） | `build/clock_util.rpt`、`build/hold_paths.rpt`；改前对照是仓库里的 `build/r88_clock_util.rpt`（rNN 命名的对照件，不随包） |
+| 10 | 收口只有一棵时钟树（#57 的结构判据，不靠 slack 碰运气）（**r94 重念：`build/clock_util.rpt` 是这一版构建产的**）| `build/clock_util.rpt`：**`BUFIO` 用量 0**（改前那一份是 1），`eth_rxc` 只经一只 `BUFG/O`（`g2`←`src2`=`IBUF/O @IOB_X1Y28`，fabric 负载 2478）；最差 20 条 hold 的时钟偏斜由 `build/hold_paths.rpt` 逐条读，实测 0.013~0.349 ns（改前那一条是 1.616 ns） | `build/clock_util.rpt`、`build/hold_paths.rpt`；改前对照是仓库里的 `build/r88_clock_util.rpt`（rNN 命名的对照件，不随包） |
 
 第 5 行里有两个数要如实写出来：`作废过帧=1`、`缺行峰值=299` —— 那是推流起始那一帧没收齐被整帧丢掉
 （三重提交门限的行为，不是丢字），所以"一个字都没丢"讲的是**字级**，不是"每帧都到齐"。
