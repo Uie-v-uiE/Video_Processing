@@ -141,14 +141,14 @@ module tb_writer_abort;
         chk("B1_precondition_inflight", inflight === 1'b1, "bursts still unanswered at the abort moment (must be > 0)", q_w - q_r);
         abort = 1; @(posedge clk); abort = 0; @(posedge clk);
         chk("B2_master_holds_the_beat", (rvalid_r === 1'b1) && (rready === 1'b0),
-            "after abort rvalid must still be asserted while rready is 0 (AXI: the master may not drop it)", q_w - q_r);
+            "after abort: rvalid still up while rready=0 (AXI forbids dropping)", q_w - q_r);
 
         base_addr = BASE_B; reset_obs;
         @(posedge clk); start = 1; @(posedge clk); start = 0;
         t = 0;
         while (!first_seen && t < 3000) begin @(posedge clk); t = t + 1; end
         chk("B3_new_frame_starts_at_own_head", first_data[15:0] == 16'd0,
-            "non-zero = the aborted frame's in-flight beat was written first, so the whole frame is shifted", first_data[15:0]);
+            "non-zero = an in-flight beat of the aborted frame led the new frame", first_data[15:0]);
         t = 0;
         while (!done && t < 8000) begin @(posedge clk); t = t + 1; end
         chk("B4_new_frame_completes", done === 1'b1, "cycles until the new frame reports done", t);

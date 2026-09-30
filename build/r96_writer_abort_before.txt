@@ -3,9 +3,9 @@
   PASS A3_baseline_first_is_head | frame offset carried by the very first write | 0
   PASS A4_baseline_in_order | out-of-order writes in a clean run | 0
   PASS B1_precondition_inflight | bursts still unanswered at the abort moment (must be > 0) | 3
-  PASS B2_master_holds_the_beat | lid must still be asserted while rready is 0 (AXI: the master may not drop it) | 3
+  PASS B2_master_holds_the_beat | after abort: rvalid still up while rready=0 (AXI forbids dropping) | 3
     PROBE order break at write 1: got 0x0004 expected 0x0000 (beat=5)
-  FAIL B3_new_frame_starts_at_own_head | borted frame's in-flight beat was written first, so the whole frame is shifted | 4
+  FAIL B3_new_frame_starts_at_own_head | non-zero = an in-flight beat of the aborted frame led the new frame | 4
     PROBE order break at write 2: got 0x0005 expected 0x0001 (beat=6)
     PROBE order break at write 3: got 0x0006 expected 0x0002 (beat=7)
     PROBE order break at write 4: got 0x0007 expected 0x0003 (beat=8)
@@ -18,7 +18,7 @@
   PASS C2_no_write_after_abort | writes in the 60 cycles right after abort | 0
 checks=12 errors=3
 TB RESULT FAIL
-INFO: [Common 17-206] Exiting xsim at Wed Sep 30 15:42:17 2026...
+INFO: [Common 17-206] Exiting xsim at Wed Sep 30 15:53:13 2026...
 exit
-INFO: [Common 17-206] Exiting xsim at Wed Sep 30 15:42:17 2026...
+INFO: [Common 17-206] Exiting xsim at Wed Sep 30 15:53:13 2026...
 VERDICT tb_writer_abort: TB RESULT FAIL（tb_writer_abort） || FAIL 行数=3 || PASS 行数=9
