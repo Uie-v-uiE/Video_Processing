@@ -1,0 +1,14 @@
+[chain 2026-09-30 17:09:37] ⓪ 模块级台架（tb_writer_abort / tb_commit_strobe / tb_v94_zoom_sel / tb_src_arb_why）
+[chain 2026-09-30 17:09:46]    tb_writer_abort 绿
+[chain 2026-09-30 17:09:54]    tb_commit_strobe 绿
+[chain 2026-09-30 17:10:02]    tb_v94_zoom_sel 判红（rc=3）—— 不断链；读 build/r96_tb_v94_zoom_sel_console.txt 的 FAIL 行
+[chain 2026-09-30 17:10:10]    tb_src_arb_why 判红（rc=3）—— 不断链；读 build/r96_tb_src_arb_why_console.txt 的 FAIL 行
+[chain 2026-09-30 17:10:10] ① tb_v98_top_seam（整屏逐像素 + 旋转维度，这一跑 1~2 小时）
+[chain 2026-09-30 18:40:53] ① 判红（rc=3）—— 不断链，红项交给第③步门禁记账（读 build/r96_tb_v98_console.txt 里的 FAIL 行）
+[chain 2026-09-30 18:40:53] ② tb_edge_rim（边缘条带那一族）
+[chain 2026-09-30 18:41:07] ② 绿
+[chain 2026-09-30 18:41:07] ② 凭据就位：build/tb_edge_rim_r96.txt rtl_md5=fe573f9b2024（= 当前树）
+[chain 2026-09-30 18:41:07] ③ 门禁（20 项）
+[chain 2026-09-30 18:41:14] 门禁退出码 rc=1
+GATES: 有红项（判定 20 项）—— 不采纳，保留上一版
+[chain 2026-09-30 18:41:14] BENCH CHAIN DONE
