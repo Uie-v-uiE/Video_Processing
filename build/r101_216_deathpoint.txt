@@ -1,0 +1,14 @@
+# build/r101_216_deathpoint.txt —— 找 #216 的变哑时刻：板上 r101（bit ddf972657525），15:3x 走完 rst -system → ps7_init → program_pl → ps_app_reload 之后每 20 秒 ping 4 次，共 45 轮。
+# 每行 = 时刻 应答数/4；起始 1/4 是刚配完 PL 那一拍的实测。
+17:32:12 round=1 recv=4/4
+17:32:35 round=2 recv=4/4
+17:32:58 round=3 recv=4/4
+17:33:22 round=4 recv=4/4
+17:33:45 round=5 recv=4/4
+17:34:08 round=6 recv=4/4
+17:34:31 round=7 recv=4/4
+17:34:55 round=8 recv=2/4
+17:35:20 round=9 recv=0/4
+17:35:45 round=10 recv=0/4
+17:36:10 round=11 recv=0/4
+DEATHPOINT LOOP STOPPED BY HAND (取证已完成)
