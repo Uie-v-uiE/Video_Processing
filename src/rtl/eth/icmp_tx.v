@@ -79,6 +79,14 @@ module icmp_tx (
     reg tx_done_t;
     reg [4:0] real_add_cnt;  //以太网数据实际多发的字节数
 
+    // #141（隔离测量轮，只为量收益，不代表采纳）：把 `st_tx_data` 里那三条 16 位减法
+    //   挪到 `tx_data_num` 被写入的那一拍（`pos_start_en && cur_state == st_idle`）预先算好。
+    //   等价性靠两件事担保：`tx_data_num` 只在复位与那一拍被写；而 `st_tx_data` 最早也在
+    //   几十拍之后才进（`sim/tb_icmp_ping0.v` 的 T2/T3/T5 钉"合法路径一字未动"）。
+    reg [15:0] tx_data_num_m1;
+    reg [15:0] tx_data_num_m2;
+    reg [15:0] real_tx_m1;
+
     //wire define                       
     wire pos_start_en;  //开始发送数据上升沿
     wire [15:0] real_tx_data_num;  //实际发送的字节数(以太网最少字节要求)
@@ -104,12 +112,20 @@ module icmp_tx (
         if (!rst_n) begin
             tx_data_num <= 16'd0;
             total_num   <= 16'd0;
+            // 复位值 = 把 `tx_data_num = 0` 代回下面三条减法（16 位里回绕），与改前逐位同值
+            tx_data_num_m1 <= 16'hFFFF;
+            tx_data_num_m2 <= 16'hFFFE;
+            real_tx_m1     <= MIN_DATA_NUM - 16'd1;
         end else begin
             if (pos_start_en && cur_state == st_idle) begin
                 //数据长度
                 tx_data_num <= tx_byte_num;
                 //IP长度：有效数据+IP首部长度(20bytes)+ICMP首部长度(8bytes)
                 total_num   <= tx_byte_num + 16'd28;
+                // #141：这三条就是原来 `st_tx_data` 里现算的三条减法，挪到这一拍
+                tx_data_num_m1 <= tx_byte_num - 16'd1;
+                tx_data_num_m2 <= tx_byte_num - 16'd2;
+                real_tx_m1     <= ((tx_byte_num >= MIN_DATA_NUM) ? tx_byte_num : MIN_DATA_NUM) - 16'd1;
             end 
         end
     end
@@ -332,7 +348,7 @@ module icmp_tx (
                     //   改前红凭据 `build/r98_188_before.txt`）。
                     if (tx_data_num == 16'd0) begin
                         tx_req <= 1'b0;
-                        if (real_add_cnt < real_tx_data_num - 16'd1)
+                        if (real_add_cnt < real_tx_m1)
                             real_add_cnt <= real_add_cnt + 5'd1;
                         else begin
                             skip_en      <= 1'b1;
@@ -341,11 +357,11 @@ module icmp_tx (
                             tx_bit_sel   <= 3'd0;
                         end
                     end
-                    else if (data_cnt < tx_data_num - 16'd1) data_cnt <= data_cnt + 16'd1;
-                    else if (data_cnt == tx_data_num - 16'd1) begin
+                    else if (data_cnt < tx_data_num_m1) data_cnt <= data_cnt + 16'd1;
+                    else if (data_cnt == tx_data_num_m1) begin
                         //如果发送的有效数据少于18个字节，在后面填补充位
                         //补充的值为最后一次发送的有效数据
-                        if (data_cnt + real_add_cnt < real_tx_data_num - 16'd1)
+                        if (data_cnt + real_add_cnt < real_tx_m1)
                             real_add_cnt <= real_add_cnt + 5'd1;
                         else begin
                             skip_en      <= 1'b1;
@@ -355,7 +371,7 @@ module icmp_tx (
                         end
                     end 
 
-                    if (data_cnt == tx_data_num - 16'd2) tx_req <= 1'b0;
+                    if (data_cnt == tx_data_num_m2) tx_req <= 1'b0;
                     
                 end
                 st_crc: begin  //发送CRC校验值
