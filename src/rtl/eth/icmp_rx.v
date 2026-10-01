@@ -48,6 +48,8 @@ module icmp_rx (
     reg [6:0] next_state;
     reg skip_en;  //控制状态跳转使能信号
     reg error_en;  //解析错误使能信号
+    reg data_len_zero;  // #218：IP 总长正好 28 ⇒ 这一包**没有数据段**（`ping -l 0` 就是这种合法包），
+                        //   st_rx_data 不该再等"最后一个字节"（那时 `0-1` 回绕成 0xFFFF，永远等不到）
     reg [4:0] cnt;  //解析数据计数器
     reg [47:0] des_mac;  //目的MAC地址
     reg [15:0] eth_type;  //以太网类型
@@ -99,6 +101,12 @@ module icmp_rx (
             end
             st_rx_data: begin  //接收有效数据
                 if (skip_en) next_state = st_rx_end;
+                // #218：这一态原来只有 `skip_en` 一条出路，而它在数据段里只由"数到声明的最后一个字节"点亮。
+                //   线在数满之前空下来（截断帧，或声明长度比实到大）就永远出不去 ⇒ 这一包之后所有 ICMP
+                //   都不再应答，直到重配 PL（板上实测：build/r101_216_deathpoint.txt）。
+                //   GMII 的定义里 rx_dv 在整个帧内保持为高，所以它掉下来就等价于"这帧结束了"：
+                //   作废这一包（不拉 rec_pkt_done，不给畸形帧生成应答），交给 st_rx_end 收尾回 idle。
+                else if (!gmii_rx_dv) next_state = st_rx_end;
                 else next_state = st_rx_data;
             end
             st_rx_end: begin  //接收结束
@@ -114,6 +122,7 @@ module icmp_rx (
         if (!rst_n) begin
             skip_en            <= 1'b0;
             error_en           <= 1'b0;
+            data_len_zero      <= 1'b0;
             cnt                <= 5'd0;
             des_mac            <= 48'd0;
             eth_type           <= 16'd0;
@@ -195,6 +204,10 @@ module icmp_rx (
                             end else begin
                                 //有效数据字节长度，（IP首部20个字节，icmp首部8个字节，所以减去28）
                                 icmp_data_length <= total_length - 16'd28;
+                                // #218：正好 28 是**合法**包（`ping -l 0`/`ping -s 0`），只是数据段为空。
+                                //   上面那条守卫拦的是 `< 28`（回绕成 ~65516 那一族），这一行接住 `== 28`：
+                                //   记个旗，让 st_rx_data 进去就当拍收束，而不是等 `0-1 = 0xFFFF` 那个字节。
+                                data_len_zero    <= (total_length == 16'd28);
                             end
                         else if (cnt == 5'd9) begin
                             if (gmii_rxd != ICMP_TYPE) begin
@@ -245,7 +258,21 @@ module icmp_rx (
                 end
                 st_rx_data: begin
                     //接收数据           
-                    if (gmii_rx_dv) begin
+                    if (data_len_zero) begin
+                        // #218：IP 总长正好 28（`ping -l 0`）是**合法**包，只是数据段为空。
+                        //   原来这一态唯一的出口是"数到第 len-1 个字节"，而 len=0 时那个比较值回绕成 0xFFFF，
+                        //   于是这一拍之后再也出不去：板上量到的后果是**一条 0 字节请求让应答器永久变哑**
+                        //   （红前凭据 build/r102_218_before.txt 的 K1..K4，逐轮曲线 build/r101_216_deathpoint.txt）。
+                        //   这里进来的这一拍就收束：照旧发一次 rec_pkt_done（它就是应答的触发），
+                        //   长度写 0 ⇒ 发侧按 #188 的口径补到 MIN_DATA_NUM，回复内容不受影响。
+                        skip_en       <= 1'b1;
+                        rec_pkt_done  <= 1'b1;
+                        rec_byte_num  <= 16'd0;
+                        icmp_rx_cnt   <= 16'd0;
+                        rec_en_cnt    <= 2'd0;
+                        rec_en        <= 1'b0;
+                        data_len_zero <= 1'b0;
+                    end else if (gmii_rx_dv) begin
                         rec_en_cnt  <= rec_en_cnt + 2'd1;
                         icmp_rx_cnt <= icmp_rx_cnt + 16'd1;
                         rec_data    <= gmii_rxd;

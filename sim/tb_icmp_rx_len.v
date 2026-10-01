@@ -216,28 +216,49 @@ module tb_icmp_rx_len;
                  "identifier/sequence from the ICMP header: proves the header parse still lines up");
         end
 
-        // 畸形包：声明长度 0、后面却跟着 4 个字节。它钉的是**读出来的**厂商行为，不是我猜的
-        // （猜"rec_en 会静默"被打回来了两次，见 ISSUES #150 —— 锚就是为抓这个准备的）：
-        //   (1) `rec_en <= 1'b1` 在 `if (gmii_rx_dv)` 里是无条件的，不受长度门控 ⇒ 真实字节照样冒出去；
-        //   (2) `rec_en <= 1'b0` 只写在 `st_rx_end` 那一支 ⇒ 窗关不上时 rec_en 一直挂在 1；
-        //   (3) `rec_pkt_done` 不来、`rec_byte_num` 不写（等不到 `cnt == len-1`）；
-        //   (4) 状态机出不去（既有缺陷 #151），所以这一包必须放在最后。
+        // ————— 2026-10-01 #218 把这一段从"钉住厂商楔死"改成"必须走干净" —————
+        // 原来 H3/H4/I/J 四条钉的是**读出来的**楔死行为（见 #151：那时只登记、不修）。
+        // 今天板上量到它的真实代价：一条 `ping -l 0` 之后**所有**后续包都不再应答，直到重配 PL
+        //   （逐轮曲线 build/r101_216_deathpoint.txt）。所以这不再是一个可以"记录在案"的怪癖，是缺陷。
+        // 期望值全部由**定义**推出来，不由当前代码推：声明的数据字节数 = IP 总长 − 28 = 0 ⇒
+        //   这一包没有数据段 ⇒ 必须照样收尾（一次 rec_pkt_done）、必须回到 st_idle、并且不许影响下一个包。
+        // 改前的红：build/r102_218_before.txt（K1/K2/K3/L1/L2 同源于这一个根因，属于连带红，不是五件事）。
         bn_before = rec_byte_num;
         en_cnt = 0; done_cnt = 0; badidx = -1; cap0 = 8'hxx; cap3 = 8'hxx;
-        send_packet(4, 0);
-        repeat (20) @(posedge clk); #1;
-        line("H_decl0_bytes_emitted", (en_cnt >= 4),
-             "rec_en is not length-gated inside st_rx_data, so the four real bytes still pulse out");
-        line("H2_first4_in_order",   (cap0 === pay[0] && cap3 === pay[3]),
-             "the first four pulses carry THIS packet's bytes in order, otherwise the reply payload is wrong");
-        line("H3_decl0_no_pkt_done", (done_cnt === 0),
-             "with declared length 0 the packet never completes: rec_pkt_done stays silent");
-        line("H4_rec_en_hangs_high", (rec_en === 1'b1),
-             "vendor artefact pinned: rec_en is cleared only in st_rx_end, so it hangs high while wedged");
-        line("I_decl0_num_stable", (rec_byte_num === bn_before[15:0]),
-                 "rec_byte_num must not be written by a packet whose declared length is 0");
-        line("J_decl0_stays_wedged", (dut.cur_state !== S_IDLE),
-                 "documented pre-existing wedge: the FSM cannot leave st_rx_data without a last byte");
+        send_packet(4, 0);                       // 声明 0 字节、线上却还流着 4 个字节（-l 0 之后就是 FCS）
+        idle_wait = 0;
+        while (dut.cur_state !== S_IDLE && idle_wait < 60) begin @(posedge clk); #1; idle_wait = idle_wait + 1; end
+        line("K1_decl0_one_done",  (done_cnt === 1),
+                 "declared-0 payload must still complete the packet exactly once (that pulse is the reply trigger)");
+        line("K2_decl0_back_to_idle", (dut.cur_state === S_IDLE && idle_wait < 60),
+                 "FSM must leave st_rx_data when the declared data section is empty (was: wedged forever)");
+        line("K3_decl0_en_not_gated_high", (rec_en === 1'b0),
+                 "rec_en must not hang high: it is a window, and the window has to close");
+
+        // 端到端的那一条 = 板上症状本身：楔死之后，下一个正常包永远解析不出来
+        en_cnt = 0; done_cnt = 0; badidx = -1;
+        send_packet(32, 32);
+        idle_wait = 0;
+        while (dut.cur_state !== S_IDLE && idle_wait < 60) begin @(posedge clk); #1; idle_wait = idle_wait + 1; end
+        line("K4_next_ping_still_works", (done_cnt === 1 && rec_byte_num === 16'd32 && badidx < 0),
+                 "a 0-byte request must not poison the FOLLOWING 32-byte request (board: all later pings went silent)");
+
+        // 声明比实到多（截断包）：数不到 `len-1`，也必须有尽头 —— 这是 K2 的另一半，红得同一个根
+        en_cnt = 0; done_cnt = 0;
+        send_packet(2, 10);                      // 只到 2 个字节，声明 10
+        idle_wait = 0;
+        while (dut.cur_state !== S_IDLE && idle_wait < 60) begin @(posedge clk); #1; idle_wait = idle_wait + 1; end
+        line("L1_truncated_back_to_idle", (dut.cur_state === S_IDLE && idle_wait < 60),
+                 "when the line goes idle before the declared count, the FSM must still escape st_rx_data");
+        en_cnt = 0; done_cnt = 0; badidx = -1;
+        send_packet(20, 20);
+        idle_wait = 0;
+        while (dut.cur_state !== S_IDLE && idle_wait < 60) begin @(posedge clk); #1; idle_wait = idle_wait + 1; end
+        line("L2_after_truncated_next_works", (done_cnt === 1 && rec_byte_num === 16'd20),
+                 "and the next packet must parse — a truncated frame is not a licence to wedge the receiver");
+        // 原来那些"畸形包不写 rec_byte_num"的观察仍然留着，但它不再期望"永远出不去"
+        line("L3_decl0_did_not_fake_a_length", (rec_byte_num === 16'd20),
+                 "rec_byte_num now belongs to the LAST well-formed packet, not to the wedged declared-0 one");
 
         if (errors == 0) $display("[tb_icmp_rx_len.v] RESULT tb_icmp_rx_len PASS errors=0");
         else             $display("[tb_icmp_rx_len.v] RESULT tb_icmp_rx_len FAIL errors=%0d", errors);
