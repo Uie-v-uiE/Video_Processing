@@ -16,6 +16,7 @@ trap 'rm -rf "$S"' EXIT
 mkdir -p "$S/build" "$S/src/rtl/top" "$S/src/rtl/process"
 cp "$ROOT/build/freeze_evidence.sh" "$S/build/freeze_evidence.sh" || { echo "FAIL 拷不进冻结脚本"; exit 1; }
 cp "$ROOT/build/rtl_fingerprint.sh" "$S/build/rtl_fingerprint.sh" || { echo "FAIL 拷不进指纹脚本"; exit 1; }
+cp "$ROOT/build/verify_evidence.sh" "$S/build/verify_evidence.sh" || { echo "FAIL 拷不进凭据校验器"; exit 1; }
 # 对照的**标本**必须钉在一个固定提交上，不能用 HEAD：#192 修完之后 HEAD 那版已经不写死名单了，
 # 于是 A/C 两段量的就变成"新版 vs 新版"，四条对照当场集体失真（2026-09-30 夜里第二次撞见同一族：
 # 尺子的参照物自己会移动）。88cf452^ 就是那份"拷 19+6、只盖 11"的旧脚本。
@@ -84,10 +85,25 @@ want "D0 旧方言不在桥接表里 ⇒ 新脚本 REFUSE" 1 "$RCX"
 want "D0b REFUSE 没留下冻结目录" 0 "$(ls -1 "$S/build" 2>/dev/null | grep -c evidence_r7)"
 fake_report "$TOP" "$RTL_NEW"          # 新算法读自己的方言
 bash "$S/build/freeze_evidence.sh" 5 > /dev/null 2>&1; RCNEW=$?
-NEWLANDED=$(cd "$S/build/evidence_r5" && find . -type f ! -name MANIFEST.md5 | wc -l)
+# 落地数必须按 freeze 自己的口径数：两枚章自己都不盖自己（#148 起了第二枚之后，只排 MANIFEST.md5
+# 就会多算一件，D2 立刻假红——2026-10-01 撞上，这是尺子的范围跟着被测物一起变了）。
+NEWLANDED=$(cd "$S/build/evidence_r5" && find . -type f ! -name MANIFEST.md5 ! -name MANIFEST.content.md5 | wc -l)
 NEWSEAL=$(grep -c '^[0-9a-f]\{32\}' "$S/build/evidence_r5/MANIFEST.md5")
+NEWCSEAL=$(grep -c '^[0-9a-f]\{32\}' "$S/build/evidence_r5/MANIFEST.content.md5" 2>/dev/null || echo 0)
 want "D1 新版跑通" 0 "$RCNEW"
 want "D2 新版盖章=落地" "$NEWLANDED" "$NEWSEAL"
+want "D4 内容章也盖满同一批件" "$NEWLANDED" "$NEWCSEAL"
+# D5/D6 = #148 那把双章尺子有牙的两半，跑在 evidence_r5 的干净副本上（不污染 D3/E/F 用的原件）。
+cp -r "$S/build/evidence_r5" "$S/build/evidence_r9"
+VP="$S/build/evidence_r9/ports_check.txt"
+sed -i 's/$/\r/' "$VP"
+bash "$S/build/verify_evidence.sh" "$S/build/evidence_r9" > "$S/d5.out" 2>&1; RC5=$?
+want "D5 只差 CR（内容没变）：整体仍判 0" 0 "$RC5"
+want "D5b 字节章必须报出这一件" 1 "$(grep -c 'MISMATCH(bytes) ports_check.txt' "$S/d5.out")"
+want "D5c 内容章必须不受影响" 1 "$(grep -c 'MANIFEST.content.md5\[content\] 逐份比了.*不符 0 件' "$S/d5.out")"
+printf ' tampered\n' >> "$VP"
+bash "$S/build/verify_evidence.sh" "$S/build/evidence_r9" > "$S/d6.out" 2>&1; RC6=$?
+want "D6 真改了内容：两枚章都红 ⇒ VERIFY RED(1)" 1 "$RC6"
 printf ' tampered\n' >> "$S/build/evidence_r5/$SPEC"
 NEWHITS=$( ( cd "$S/build/evidence_r5" && md5sum -c --quiet MANIFEST.md5 2>&1 || true ) | grep -c 'FAILED' )
 want "D3 新版看得见这次篡改" 1 "$NEWHITS"

@@ -100,8 +100,12 @@ L1P=0; L1F=0
                                        L1F=$(grep -ac '^RESULT .* FAIL' "$D/r${NN}_l1_regress.txt"); }
 GITHEAD=$(git rev-parse --short HEAD 2>/dev/null || echo 未知)
 # 盖章 = 目录里除了这份清单本身以外的**全部**文件（见上面 #192 的说明）。
-( cd "$D" && find . -type f ! -name 'MANIFEST.md5' | LC_ALL=C sort | sed 's|^\./||' | xargs md5sum ) > "$D/MANIFEST.md5"
-NLANDED="$( { cd "$D" && find . -type f ! -name 'MANIFEST.md5' | grep -c '' || true; } )"; NLANDED="${NLANDED:-0}"
+( cd "$D" && find . -type f ! -name 'MANIFEST.md5' ! -name 'MANIFEST.content.md5' | LC_ALL=C sort | sed 's|^\./||' | xargs md5sum ) > "$D/MANIFEST.md5"
+# #148：同一批文件再盖一枚**内容章**（先剥掉 CR 再取 md5）。字节章管"当时盘上就是这些字节"，内容章管"内容有没有变"：
+# 一次 checkout 把 .txt 翻成 CRLF 只会让前者红、后者仍绿 ⇒ `bash build/verify_evidence.sh <NN>` 能把
+# "换行翻了"和"凭据被改了"分开说（两种情形的反例都在它的 --self 里，S2 钉的就是这件事）。
+( cd "$D" && find . -type f ! -name 'MANIFEST.md5' ! -name 'MANIFEST.content.md5' | LC_ALL=C sort | sed 's|^\./||' | while IFS= read -r f; do printf '%s  %s\n' "$(tr -d '\r' < "$f" | md5sum | cut -c1-32)" "$f"; done ) > "$D/MANIFEST.content.md5"
+NLANDED="$( { cd "$D" && find . -type f ! -name 'MANIFEST.md5' ! -name 'MANIFEST.content.md5' | grep -c '' || true; } )"; NLANDED="${NLANDED:-0}"
 NSEALED="$( { grep -ac '' "$D/MANIFEST.md5" || true; } )"; NSEALED="${NSEALED:-0}"
 if [ "$NLANDED" != "$NSEALED" ]; then
     echo "REFUSE：落地 $NLANDED 份、盖章 $NSEALED 份，两个数不相等 ⇒ 盖章这一环没覆盖全部件（#192）"
