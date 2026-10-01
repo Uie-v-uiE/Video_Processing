@@ -1,7 +1,7 @@
 Copyright 1986-2022 Xilinx, Inc. All Rights Reserved. Copyright 2022-2026 Advanced Micro Devices, Inc. All Rights Reserved.
 ---------------------------------------------------------------------------------------------------------------------------------------------
 | Tool Version : Vivado v.2025.2.1 (win64) Build 6403652 Thu Mar 19 19:48:24 GMT 2026
-| Date         : Thu Oct  1 21:01:35 2026
+| Date         : Fri Oct  2 01:23:47 2026
 | Host         : Uie-laptop running 64-bit major release  (build 9200)
 | Command      : report_timing -delay_type max -nworst 1 -max_paths 8 -file D:/Xilinx/Prj/pro/Video_Processing/build/crit_paths_raw.rpt
 | Design       : system_top
@@ -12,19 +12,19 @@ Copyright 1986-2022 Xilinx, Inc. All Rights Reserved. Copyright 2022-2026 Advanc
 
 Timing Report
 
-Slack (MET) :             0.608ns  (required time - arrival time)
-  Source:                 u_eth/u_icmp/u_icmp_tx/tx_data_num_reg[15]/C
+Slack (MET) :             0.812ns  (required time - arrival time)
+  Source:                 u_eth/u_rx_par/udp_off_reg[1]/C
                             (rising edge-triggered cell FDCE clocked by eth_rxc  {rise@0.000ns fall@4.000ns period=8.000ns})
-  Destination:            u_eth/u_icmp/u_icmp_tx/data_cnt_reg[15]/CE
+  Destination:            u_eth/u_rx_par/p_good_reg/D
                             (rising edge-triggered cell FDCE clocked by eth_rxc  {rise@0.000ns fall@4.000ns period=8.000ns})
   Path Group:             eth_rxc
   Path Type:              Setup (Max at Slow Process Corner)
   Requirement:            8.000ns  (eth_rxc rise@8.000ns - eth_rxc rise@0.000ns)
-  Data Path Delay:        7.197ns  (logic 2.544ns (35.348%)  route 4.653ns (64.652%))
-  Logic Levels:           10  (CARRY4=4 LUT2=1 LUT4=2 LUT5=2 LUT6=1)
-  Clock Path Skew:        0.008ns (DCD - SCD + CPR)
-    Destination Clock Delay (DCD):    4.559ns = ( 12.559 - 8.000 ) 
-    Source Clock Delay      (SCD):    4.893ns
+  Data Path Delay:        6.876ns  (logic 2.965ns (43.118%)  route 3.911ns (56.882%))
+  Logic Levels:           9  (CARRY4=5 LUT2=1 LUT4=1 LUT5=1 LUT6=1)
+  Clock Path Skew:        -0.066ns (DCD - SCD + CPR)
+    Destination Clock Delay (DCD):    4.438ns = ( 12.438 - 8.000 ) 
+    Source Clock Delay      (SCD):    4.846ns
     Clock Pessimism Removal (CPR):    0.342ns
   Clock Uncertainty:      0.035ns  ((TSJ^2 + TIJ^2)^1/2 + DJ) / 2 + PE
     Total System Jitter     (TSJ):    0.071ns
@@ -40,36 +40,35 @@ Slack (MET) :             0.608ns  (required time - arrival time)
     Y19                  IBUF (Prop_ibuf_I_O)         1.430     1.430 r  eth_rxc_IBUF_inst/O
                          net (fo=1, routed)           1.873     3.303    u_eth/u_rgmii/u_rgmii_rx/rgmii_rxc
     BUFGCTRL_X0Y1        BUFG (Prop_bufg_I_O)         0.085     3.388 r  u_eth/u_rgmii/u_rgmii_rx/BUFG_inst/O
-                         net (fo=2478, routed)        1.505     4.893    u_eth/u_icmp/u_icmp_tx/gmii_rx_clk
-    SLICE_X103Y26        FDCE                                         r  u_eth/u_icmp/u_icmp_tx/tx_data_num_reg[15]/C
+                         net (fo=2526, routed)        1.458     4.846    u_eth/u_rx_par/gmii_rx_clk
+    SLICE_X73Y13         FDCE                                         r  u_eth/u_rx_par/udp_off_reg[1]/C
   -------------------------------------------------------------------    -------------------
-    SLICE_X103Y26        FDCE (Prop_fdce_C_Q)         0.348     5.241 r  u_eth/u_icmp/u_icmp_tx/tx_data_num_reg[15]/Q
-                         net (fo=4, routed)           0.889     6.130    u_eth/u_icmp/u_icmp_tx/tx_data_num[15]
-    SLICE_X110Y26        LUT4 (Prop_lut4_I0_O)        0.239     6.369 r  u_eth/u_icmp/u_icmp_tx/real_add_cnt[4]_i_22/O
-                         net (fo=1, routed)           0.474     6.843    u_eth/u_icmp/u_icmp_tx/real_add_cnt[4]_i_22_n_0
-    SLICE_X107Y24        LUT5 (Prop_lut5_I3_O)        0.105     6.948 f  u_eth/u_icmp/u_icmp_tx/real_add_cnt[4]_i_9/O
-                         net (fo=4, routed)           0.122     7.070    u_eth/u_icmp/u_icmp_tx/real_add_cnt[4]_i_9_n_0
-    SLICE_X107Y24        LUT5 (Prop_lut5_I0_O)        0.105     7.175 f  u_eth/u_icmp/u_icmp_tx/data_cnt[15]_i_49/O
-                         net (fo=11, routed)          0.514     7.689    u_eth/u_icmp/u_icmp_tx/data_cnt[15]_i_49_n_0
-    SLICE_X108Y24        LUT2 (Prop_lut2_I1_O)        0.105     7.794 r  u_eth/u_icmp/u_icmp_tx/data_cnt[15]_i_62/O
-                         net (fo=1, routed)           0.401     8.195    u_eth/u_icmp/u_icmp_tx/real_tx_data_num[0]
-    SLICE_X106Y24        CARRY4 (Prop_carry4_CYINIT_CO[3])
-                                                      0.480     8.675 r  u_eth/u_icmp/u_icmp_tx/data_cnt_reg[15]_i_47/CO[3]
-                         net (fo=1, routed)           0.008     8.683    u_eth/u_icmp/u_icmp_tx/data_cnt_reg[15]_i_47_n_0
-    SLICE_X106Y25        CARRY4 (Prop_carry4_CI_CO[3])
-                                                      0.098     8.781 r  u_eth/u_icmp/u_icmp_tx/data_cnt_reg[15]_i_37/CO[3]
-                         net (fo=1, routed)           0.000     8.781    u_eth/u_icmp/u_icmp_tx/data_cnt_reg[15]_i_37_n_0
-    SLICE_X106Y26        CARRY4 (Prop_carry4_CI_O[1])
-                                                      0.265     9.046 r  u_eth/u_icmp/u_icmp_tx/data_cnt_reg[15]_i_35/O[1]
-                         net (fo=4, routed)           0.463     9.509    u_eth/u_icmp/u_icmp_tx/data_cnt_reg[15]_i_35_n_6
-    SLICE_X108Y26        LUT4 (Prop_lut4_I3_O)        0.250     9.759 r  u_eth/u_icmp/u_icmp_tx/data_cnt[15]_i_14/O
-                         net (fo=1, routed)           0.000     9.759    u_eth/u_icmp/u_icmp_tx/data_cnt[15]_i_14_n_0
-    SLICE_X108Y26        CARRY4 (Prop_carry4_S[1]_CO[3])
-                                                      0.444    10.203 f  u_eth/u_icmp/u_icmp_tx/data_cnt_reg[15]_i_4/CO[3]
-                         net (fo=3, routed)           0.854    11.058    u_eth/u_icmp/u_icmp_tx/data_cnt_reg[15]_i_4_n_0
-    SLICE_X107Y28        LUT6 (Prop_lut6_I2_O)        0.105    11.163 r  u_eth/u_icmp/u_icmp_tx/data_cnt[15]_i_1/O
-                         net (fo=16, routed)          0.927    12.090    u_eth/u_icmp/u_icmp_tx/data_cnt0
-    SLICE_X106Y27        FDCE                                         r  u_eth/u_icmp/u_icmp_tx/data_cnt_reg[15]/CE
+    SLICE_X73Y13         FDCE (Prop_fdce_C_Q)         0.379     5.225 r  u_eth/u_rx_par/udp_off_reg[1]/Q
+                         net (fo=11, routed)          0.684     5.908    u_eth/u_rx_par/udp_off_reg_n_0_[1]
+    SLICE_X73Y12         LUT2 (Prop_lut2_I0_O)        0.105     6.013 r  u_eth/u_rx_par/p_data[7]_i_61/O
+                         net (fo=1, routed)           0.000     6.013    u_eth/u_rx_par/p_data[7]_i_61_n_0
+    SLICE_X73Y12         CARRY4 (Prop_carry4_S[1]_CO[3])
+                                                      0.457     6.470 r  u_eth/u_rx_par/p_data_reg[7]_i_45/CO[3]
+                         net (fo=1, routed)           0.000     6.470    u_eth/u_rx_par/p_data_reg[7]_i_45_n_0
+    SLICE_X73Y13         CARRY4 (Prop_carry4_CI_O[1])
+                                                      0.265     6.735 r  u_eth/u_rx_par/p_data_reg[7]_i_44/O[1]
+                         net (fo=4, routed)           0.535     7.270    u_eth/u_rx_par/p_data_reg[7]_i_44_n_6
+    SLICE_X74Y12         CARRY4 (Prop_carry4_DI[0]_O[3])
+                                                      0.653     7.923 r  u_eth/u_rx_par/eof_pend_reg_i_12/O[3]
+                         net (fo=1, routed)           0.779     8.702    u_eth/u_rx_par/eof_pend1[8]
+    SLICE_X75Y13         LUT6 (Prop_lut6_I0_O)        0.257     8.959 r  u_eth/u_rx_par/eof_pend_i_7/O
+                         net (fo=1, routed)           0.000     8.959    u_eth/u_rx_par/eof_pend_i_7_n_0
+    SLICE_X75Y13         CARRY4 (Prop_carry4_S[2]_CO[3])
+                                                      0.332     9.291 r  u_eth/u_rx_par/eof_pend_reg_i_3/CO[3]
+                         net (fo=1, routed)           0.000     9.291    u_eth/u_rx_par/eof_pend_reg_i_3_n_0
+    SLICE_X75Y14         CARRY4 (Prop_carry4_CI_CO[1])
+                                                      0.132     9.423 r  u_eth/u_rx_par/eof_pend_reg_i_2/CO[1]
+                         net (fo=2, routed)           0.353     9.776    u_eth/u_rx_par/eof_pend0
+    SLICE_X74Y16         LUT5 (Prop_lut5_I2_O)        0.275    10.051 r  u_eth/u_rx_par/p_eof_i_2/O
+                         net (fo=2, routed)           0.634    10.684    u_eth/u_rx_mac/p_good_reg
+    SLICE_X78Y17         LUT4 (Prop_lut4_I0_O)        0.110    10.794 r  u_eth/u_rx_mac/p_good_i_1/O
+                         net (fo=1, routed)           0.928    11.722    u_eth/u_rx_par/p_good_reg_2
+    SLICE_X63Y17         FDCE                                         r  u_eth/u_rx_par/p_good_reg/D
   -------------------------------------------------------------------    -------------------
 
                          (clock eth_rxc rise edge)    8.000     8.000 r  
@@ -78,31 +77,31 @@ Slack (MET) :             0.608ns  (required time - arrival time)
     Y19                  IBUF (Prop_ibuf_I_O)         1.364     9.364 r  eth_rxc_IBUF_inst/O
                          net (fo=1, routed)           1.701    11.065    u_eth/u_rgmii/u_rgmii_rx/rgmii_rxc
     BUFGCTRL_X0Y1        BUFG (Prop_bufg_I_O)         0.077    11.142 r  u_eth/u_rgmii/u_rgmii_rx/BUFG_inst/O
-                         net (fo=2478, routed)        1.417    12.559    u_eth/u_icmp/u_icmp_tx/gmii_rx_clk
-    SLICE_X106Y27        FDCE                                         r  u_eth/u_icmp/u_icmp_tx/data_cnt_reg[15]/C
-                         clock pessimism              0.342    12.901    
-                         clock uncertainty           -0.035    12.865    
-    SLICE_X106Y27        FDCE (Setup_fdce_C_CE)      -0.168    12.697    u_eth/u_icmp/u_icmp_tx/data_cnt_reg[15]
+                         net (fo=2526, routed)        1.296    12.438    u_eth/u_rx_par/gmii_rx_clk
+    SLICE_X63Y17         FDCE                                         r  u_eth/u_rx_par/p_good_reg/C
+                         clock pessimism              0.342    12.780    
+                         clock uncertainty           -0.035    12.744    
+    SLICE_X63Y17         FDCE (Setup_fdce_C_D)       -0.210    12.534    u_eth/u_rx_par/p_good_reg
   -------------------------------------------------------------------
-                         required time                         12.697    
-                         arrival time                         -12.090    
+                         required time                         12.534    
+                         arrival time                         -11.722    
   -------------------------------------------------------------------
-                         slack                                  0.608    
+                         slack                                  0.812    
 
-Slack (MET) :             0.697ns  (required time - arrival time)
-  Source:                 u_eth/u_icmp/u_icmp_tx/ip_head_reg[4][1]/C
-                            (rising edge-triggered cell FDSE clocked by eth_rxc  {rise@0.000ns fall@4.000ns period=8.000ns})
-  Destination:            u_eth/u_icmp/u_icmp_tx/check_buffer_reg[19]/D
+Slack (MET) :             1.111ns  (required time - arrival time)
+  Source:                 u_eth/u_icmp/u_icmp_tx/ip_head_reg[4][3]/C
+                            (rising edge-triggered cell FDRE clocked by eth_rxc  {rise@0.000ns fall@4.000ns period=8.000ns})
+  Destination:            u_eth/u_icmp/u_icmp_tx/check_buffer_reg[17]/D
                             (rising edge-triggered cell FDCE clocked by eth_rxc  {rise@0.000ns fall@4.000ns period=8.000ns})
   Path Group:             eth_rxc
   Path Type:              Setup (Max at Slow Process Corner)
   Requirement:            8.000ns  (eth_rxc rise@8.000ns - eth_rxc rise@0.000ns)
-  Data Path Delay:        6.999ns  (logic 2.667ns (38.107%)  route 4.332ns (61.893%))
-  Logic Levels:           11  (CARRY4=6 LUT3=2 LUT4=1 LUT5=1 LUT6=1)
-  Clock Path Skew:        -0.027ns (DCD - SCD + CPR)
-    Destination Clock Delay (DCD):    4.497ns = ( 12.497 - 8.000 ) 
-    Source Clock Delay      (SCD):    4.901ns
-    Clock Pessimism Removal (CPR):    0.377ns
+  Data Path Delay:        6.792ns  (logic 2.913ns (42.886%)  route 3.879ns (57.114%))
+  Logic Levels:           10  (CARRY4=5 LUT3=2 LUT4=1 LUT5=1 LUT6=1)
+  Clock Path Skew:        0.002ns (DCD - SCD + CPR)
+    Destination Clock Delay (DCD):    4.573ns = ( 12.573 - 8.000 ) 
+    Source Clock Delay      (SCD):    4.913ns
+    Clock Pessimism Removal (CPR):    0.342ns
   Clock Uncertainty:      0.035ns  ((TSJ^2 + TIJ^2)^1/2 + DJ) / 2 + PE
     Total System Jitter     (TSJ):    0.071ns
     Total Input Jitter      (TIJ):    0.000ns
@@ -117,40 +116,37 @@ Slack (MET) :             0.697ns  (required time - arrival time)
     Y19                  IBUF (Prop_ibuf_I_O)         1.430     1.430 r  eth_rxc_IBUF_inst/O
                          net (fo=1, routed)           1.873     3.303    u_eth/u_rgmii/u_rgmii_rx/rgmii_rxc
     BUFGCTRL_X0Y1        BUFG (Prop_bufg_I_O)         0.085     3.388 r  u_eth/u_rgmii/u_rgmii_rx/BUFG_inst/O
-                         net (fo=2478, routed)        1.513     4.901    u_eth/u_icmp/u_icmp_tx/gmii_rx_clk
-    SLICE_X98Y32         FDSE                                         r  u_eth/u_icmp/u_icmp_tx/ip_head_reg[4][1]/C
+                         net (fo=2526, routed)        1.525     4.913    u_eth/u_icmp/u_icmp_tx/gmii_rx_clk
+    SLICE_X105Y46        FDRE                                         r  u_eth/u_icmp/u_icmp_tx/ip_head_reg[4][3]/C
   -------------------------------------------------------------------    -------------------
-    SLICE_X98Y32         FDSE (Prop_fdse_C_Q)         0.433     5.334 r  u_eth/u_icmp/u_icmp_tx/ip_head_reg[4][1]/Q
-                         net (fo=4, routed)           0.831     6.165    u_eth/u_icmp/u_icmp_tx/ip_head_reg_n_0_[4][1]
-    SLICE_X97Y28         LUT4 (Prop_lut4_I2_O)        0.105     6.270 r  u_eth/u_icmp/u_icmp_tx/check_buffer[7]_i_29/O
-                         net (fo=1, routed)           0.000     6.270    u_eth/u_icmp/u_icmp_tx/check_buffer[7]_i_29_n_0
-    SLICE_X97Y28         CARRY4 (Prop_carry4_S[1]_CO[3])
-                                                      0.457     6.727 r  u_eth/u_icmp/u_icmp_tx/check_buffer_reg[7]_i_16/CO[3]
-                         net (fo=1, routed)           0.000     6.727    u_eth/u_icmp/u_icmp_tx/check_buffer_reg[7]_i_16_n_0
-    SLICE_X97Y29         CARRY4 (Prop_carry4_CI_CO[3])
-                                                      0.098     6.825 r  u_eth/u_icmp/u_icmp_tx/check_buffer_reg[11]_i_16/CO[3]
-                         net (fo=1, routed)           0.000     6.825    u_eth/u_icmp/u_icmp_tx/check_buffer_reg[11]_i_16_n_0
-    SLICE_X97Y30         CARRY4 (Prop_carry4_CI_O[0])
-                                                      0.180     7.005 r  u_eth/u_icmp/u_icmp_tx/check_buffer_reg[15]_i_16/O[0]
-                         net (fo=3, routed)           0.970     7.975    u_eth/u_icmp/u_icmp_tx/check_buffer_reg[15]_i_16_n_7
-    SLICE_X101Y23        LUT3 (Prop_lut3_I1_O)        0.249     8.224 r  u_eth/u_icmp/u_icmp_tx/check_buffer[11]_i_17/O
-                         net (fo=2, routed)           0.524     8.748    u_eth/u_icmp/u_icmp_tx/check_buffer[11]_i_17_n_0
-    SLICE_X101Y23        LUT5 (Prop_lut5_I4_O)        0.124     8.872 r  u_eth/u_icmp/u_icmp_tx/check_buffer[11]_i_6/O
-                         net (fo=2, routed)           0.609     9.481    u_eth/u_icmp/u_icmp_tx/check_buffer[11]_i_6_n_0
-    SLICE_X100Y27        LUT6 (Prop_lut6_I0_O)        0.267     9.748 r  u_eth/u_icmp/u_icmp_tx/check_buffer[11]_i_10/O
-                         net (fo=1, routed)           0.000     9.748    u_eth/u_icmp/u_icmp_tx/check_buffer[11]_i_10_n_0
-    SLICE_X100Y27        CARRY4 (Prop_carry4_S[1]_CO[3])
-                                                      0.444    10.192 r  u_eth/u_icmp/u_icmp_tx/check_buffer_reg[11]_i_3/CO[3]
-                         net (fo=1, routed)           0.000    10.192    u_eth/u_icmp/u_icmp_tx/check_buffer_reg[11]_i_3_n_0
-    SLICE_X100Y28        CARRY4 (Prop_carry4_CI_CO[3])
-                                                      0.100    10.292 r  u_eth/u_icmp/u_icmp_tx/check_buffer_reg[15]_i_3/CO[3]
-                         net (fo=1, routed)           0.000    10.292    u_eth/u_icmp/u_icmp_tx/check_buffer_reg[15]_i_3_n_0
-    SLICE_X100Y29        CARRY4 (Prop_carry4_CI_CO[3])
-                                                      0.100    10.392 r  u_eth/u_icmp/u_icmp_tx/check_buffer_reg[19]_i_4/CO[3]
-                         net (fo=1, routed)           0.722    11.114    u_eth/u_icmp/u_icmp_tx/check_buffer_reg[19]_i_4_n_0
-    SLICE_X101Y31        LUT3 (Prop_lut3_I0_O)        0.110    11.224 r  u_eth/u_icmp/u_icmp_tx/check_buffer[19]_i_2/O
-                         net (fo=1, routed)           0.676    11.899    u_eth/u_icmp/u_icmp_tx/check_buffer[19]
-    SLICE_X101Y30        FDCE                                         r  u_eth/u_icmp/u_icmp_tx/check_buffer_reg[19]/D
+    SLICE_X105Y46        FDRE (Prop_fdre_C_Q)         0.348     5.261 r  u_eth/u_icmp/u_icmp_tx/ip_head_reg[4][3]/Q
+                         net (fo=4, routed)           0.956     6.216    u_eth/u_icmp/u_icmp_tx/ip_head_reg_n_0_[4][3]
+    SLICE_X103Y43        LUT4 (Prop_lut4_I0_O)        0.240     6.456 r  u_eth/u_icmp/u_icmp_tx/check_buffer[11]_i_30/O
+                         net (fo=1, routed)           0.000     6.456    u_eth/u_icmp/u_icmp_tx/check_buffer[11]_i_30_n_0
+    SLICE_X103Y43        CARRY4 (Prop_carry4_S[0]_CO[3])
+                                                      0.440     6.896 r  u_eth/u_icmp/u_icmp_tx/check_buffer_reg[11]_i_16/CO[3]
+                         net (fo=1, routed)           0.000     6.896    u_eth/u_icmp/u_icmp_tx/check_buffer_reg[11]_i_16_n_0
+    SLICE_X103Y44        CARRY4 (Prop_carry4_CI_O[0])
+                                                      0.180     7.076 r  u_eth/u_icmp/u_icmp_tx/check_buffer_reg[15]_i_16/O[0]
+                         net (fo=3, routed)           0.822     7.899    u_eth/u_icmp/u_icmp_tx/check_buffer_reg[15]_i_16_n_7
+    SLICE_X111Y42        LUT3 (Prop_lut3_I1_O)        0.249     8.148 r  u_eth/u_icmp/u_icmp_tx/check_buffer[11]_i_17/O
+                         net (fo=2, routed)           0.557     8.704    u_eth/u_icmp/u_icmp_tx/check_buffer[11]_i_17_n_0
+    SLICE_X111Y42        LUT5 (Prop_lut5_I4_O)        0.119     8.823 r  u_eth/u_icmp/u_icmp_tx/check_buffer[11]_i_6/O
+                         net (fo=2, routed)           0.481     9.304    u_eth/u_icmp/u_icmp_tx/check_buffer[11]_i_6_n_0
+    SLICE_X109Y42        LUT6 (Prop_lut6_I0_O)        0.267     9.571 r  u_eth/u_icmp/u_icmp_tx/check_buffer[11]_i_10/O
+                         net (fo=1, routed)           0.000     9.571    u_eth/u_icmp/u_icmp_tx/check_buffer[11]_i_10_n_0
+    SLICE_X109Y42        CARRY4 (Prop_carry4_S[1]_CO[3])
+                                                      0.457    10.028 r  u_eth/u_icmp/u_icmp_tx/check_buffer_reg[11]_i_3/CO[3]
+                         net (fo=1, routed)           0.000    10.028    u_eth/u_icmp/u_icmp_tx/check_buffer_reg[11]_i_3_n_0
+    SLICE_X109Y43        CARRY4 (Prop_carry4_CI_CO[3])
+                                                      0.098    10.126 r  u_eth/u_icmp/u_icmp_tx/check_buffer_reg[15]_i_3/CO[3]
+                         net (fo=1, routed)           0.000    10.126    u_eth/u_icmp/u_icmp_tx/check_buffer_reg[15]_i_3_n_0
+    SLICE_X109Y44        CARRY4 (Prop_carry4_CI_O[1])
+                                                      0.265    10.391 r  u_eth/u_icmp/u_icmp_tx/check_buffer_reg[19]_i_4/O[1]
+                         net (fo=1, routed)           0.544    10.935    u_eth/u_icmp/u_icmp_tx/check_buffer_reg[19]_i_4_n_6
+    SLICE_X109Y48        LUT3 (Prop_lut3_I0_O)        0.250    11.185 r  u_eth/u_icmp/u_icmp_tx/check_buffer[17]_i_1/O
+                         net (fo=1, routed)           0.520    11.705    u_eth/u_icmp/u_icmp_tx/check_buffer[17]
+    SLICE_X110Y41        FDCE                                         r  u_eth/u_icmp/u_icmp_tx/check_buffer_reg[17]/D
   -------------------------------------------------------------------    -------------------
 
                          (clock eth_rxc rise edge)    8.000     8.000 r  
@@ -159,29 +155,29 @@ Slack (MET) :             0.697ns  (required time - arrival time)
     Y19                  IBUF (Prop_ibuf_I_O)         1.364     9.364 r  eth_rxc_IBUF_inst/O
                          net (fo=1, routed)           1.701    11.065    u_eth/u_rgmii/u_rgmii_rx/rgmii_rxc
     BUFGCTRL_X0Y1        BUFG (Prop_bufg_I_O)         0.077    11.142 r  u_eth/u_rgmii/u_rgmii_rx/BUFG_inst/O
-                         net (fo=2478, routed)        1.355    12.497    u_eth/u_icmp/u_icmp_tx/gmii_rx_clk
-    SLICE_X101Y30        FDCE                                         r  u_eth/u_icmp/u_icmp_tx/check_buffer_reg[19]/C
-                         clock pessimism              0.377    12.874    
-                         clock uncertainty           -0.035    12.838    
-    SLICE_X101Y30        FDCE (Setup_fdce_C_D)       -0.242    12.596    u_eth/u_icmp/u_icmp_tx/check_buffer_reg[19]
+                         net (fo=2526, routed)        1.431    12.573    u_eth/u_icmp/u_icmp_tx/gmii_rx_clk
+    SLICE_X110Y41        FDCE                                         r  u_eth/u_icmp/u_icmp_tx/check_buffer_reg[17]/C
+                         clock pessimism              0.342    12.915    
+                         clock uncertainty           -0.035    12.879    
+    SLICE_X110Y41        FDCE (Setup_fdce_C_D)       -0.063    12.816    u_eth/u_icmp/u_icmp_tx/check_buffer_reg[17]
   -------------------------------------------------------------------
-                         required time                         12.596    
-                         arrival time                         -11.899    
+                         required time                         12.816    
+                         arrival time                         -11.705    
   -------------------------------------------------------------------
-                         slack                                  0.697    
+                         slack                                  1.111    
 
-Slack (MET) :             0.725ns  (required time - arrival time)
-  Source:                 u_eth/u_rgmii/u_rgmii_rx/rxdata_bus[1].u_iddr_rxd/C
+Slack (MET) :             1.142ns  (required time - arrival time)
+  Source:                 u_eth/u_rgmii/u_rgmii_rx/rxdata_bus[0].u_iddr_rxd/C
                             (rising edge-triggered cell IDDR clocked by eth_rxc  {rise@0.000ns fall@4.000ns period=8.000ns})
-  Destination:            u_eth/u_rx_mac/u_crc_rx/crc_data_reg[22]/D
+  Destination:            u_eth/u_rx_mac/u_crc_rx/crc_data_reg[8]/D
                             (rising edge-triggered cell FDPE clocked by eth_rxc  {rise@0.000ns fall@4.000ns period=8.000ns})
   Path Group:             eth_rxc
   Path Type:              Setup (Max at Slow Process Corner)
   Requirement:            8.000ns  (eth_rxc rise@8.000ns - eth_rxc rise@0.000ns)
-  Data Path Delay:        6.825ns  (logic 1.103ns (16.161%)  route 5.722ns (83.839%))
-  Logic Levels:           4  (LUT2=1 LUT4=1 LUT5=1 LUT6=1)
-  Clock Path Skew:        -0.226ns (DCD - SCD + CPR)
-    Destination Clock Delay (DCD):    4.443ns = ( 12.443 - 8.000 ) 
+  Data Path Delay:        6.569ns  (logic 0.995ns (15.148%)  route 5.574ns (84.852%))
+  Logic Levels:           3  (LUT5=2 LUT6=1)
+  Clock Path Skew:        -0.222ns (DCD - SCD + CPR)
+    Destination Clock Delay (DCD):    4.447ns = ( 12.447 - 8.000 ) 
     Source Clock Delay      (SCD):    5.011ns
     Clock Pessimism Removal (CPR):    0.342ns
   Clock Uncertainty:      0.035ns  ((TSJ^2 + TIJ^2)^1/2 + DJ) / 2 + PE
@@ -198,20 +194,18 @@ Slack (MET) :             0.725ns  (required time - arrival time)
     Y19                  IBUF (Prop_ibuf_I_O)         1.430     1.430 r  eth_rxc_IBUF_inst/O
                          net (fo=1, routed)           1.873     3.303    u_eth/u_rgmii/u_rgmii_rx/rgmii_rxc
     BUFGCTRL_X0Y1        BUFG (Prop_bufg_I_O)         0.085     3.388 r  u_eth/u_rgmii/u_rgmii_rx/BUFG_inst/O
-                         net (fo=2478, routed)        1.623     5.011    u_eth/u_rgmii/u_rgmii_rx/gmii_rx_clk
-    ILOGIC_X1Y41         IDDR                                         r  u_eth/u_rgmii/u_rgmii_rx/rxdata_bus[1].u_iddr_rxd/C
+                         net (fo=2526, routed)        1.623     5.011    u_eth/u_rgmii/u_rgmii_rx/gmii_rx_clk
+    ILOGIC_X1Y42         IDDR                                         r  u_eth/u_rgmii/u_rgmii_rx/rxdata_bus[0].u_iddr_rxd/C
   -------------------------------------------------------------------    -------------------
-    ILOGIC_X1Y41         IDDR (Prop_iddr_C_Q2)        0.448     5.459 f  u_eth/u_rgmii/u_rgmii_rx/rxdata_bus[1].u_iddr_rxd/Q2
-                         net (fo=39, routed)          2.129     7.588    u_eth/u_rgmii/u_rgmii_rx/gmii_rxd[5]
-    SLICE_X84Y33         LUT2 (Prop_lut2_I0_O)        0.154     7.742 f  u_eth/u_rgmii/u_rgmii_rx/FSM_onehot_state[2]_i_3/O
-                         net (fo=1, routed)           0.744     8.486    u_eth/u_rgmii/u_rgmii_rx/FSM_onehot_state[2]_i_3_n_0
-    SLICE_X79Y35         LUT6 (Prop_lut6_I5_O)        0.105     8.591 f  u_eth/u_rgmii/u_rgmii_rx/FSM_onehot_state[2]_i_2/O
-                         net (fo=5, routed)           0.536     9.126    u_eth/u_rgmii/u_rgmii_rx/rxdata_bus[3].u_iddr_rxd_0
-    SLICE_X78Y35         LUT5 (Prop_lut5_I2_O)        0.126     9.252 r  u_eth/u_rgmii/u_rgmii_rx/crc_data[31]_i_3/O
-                         net (fo=33, routed)          1.033    10.286    u_eth/u_rgmii/u_rgmii_rx/u_iddr_rx_ctl_3
-    SLICE_X75Y33         LUT4 (Prop_lut4_I0_O)        0.270    10.556 r  u_eth/u_rgmii/u_rgmii_rx/crc_data[22]_i_1__1/O
-                         net (fo=1, routed)           1.280    11.836    u_eth/u_rx_mac/u_crc_rx/crc_data_reg[31]_0[14]
-    SLICE_X72Y33         FDPE                                         r  u_eth/u_rx_mac/u_crc_rx/crc_data_reg[22]/D
+    ILOGIC_X1Y42         IDDR (Prop_iddr_C_Q2)        0.448     5.459 r  u_eth/u_rgmii/u_rgmii_rx/rxdata_bus[0].u_iddr_rxd/Q2
+                         net (fo=41, routed)          2.386     7.844    u_eth/u_rgmii/u_rgmii_rx/gmii_rxd[4]
+    SLICE_X99Y28         LUT6 (Prop_lut6_I1_O)        0.154     7.998 f  u_eth/u_rgmii/u_rgmii_rx/FSM_onehot_state[2]_i_2/O
+                         net (fo=5, routed)           0.950     8.948    u_eth/u_rgmii/u_rgmii_rx/rxdata_bus[3].u_iddr_rxd_0
+    SLICE_X89Y30         LUT5 (Prop_lut5_I2_O)        0.126     9.074 r  u_eth/u_rgmii/u_rgmii_rx/crc_data[31]_i_3/O
+                         net (fo=33, routed)          0.849     9.923    u_eth/u_rx_mac/u_crc_rx/crc_data_reg[27]_1
+    SLICE_X87Y34         LUT5 (Prop_lut5_I0_O)        0.267    10.190 r  u_eth/u_rx_mac/u_crc_rx/crc_data[8]_i_1__1/O
+                         net (fo=1, routed)           1.389    11.579    u_eth/u_rx_mac/u_crc_rx/p_1_in[8]
+    SLICE_X87Y34         FDPE                                         r  u_eth/u_rx_mac/u_crc_rx/crc_data_reg[8]/D
   -------------------------------------------------------------------    -------------------
 
                          (clock eth_rxc rise edge)    8.000     8.000 r  
@@ -220,30 +214,30 @@ Slack (MET) :             0.725ns  (required time - arrival time)
     Y19                  IBUF (Prop_ibuf_I_O)         1.364     9.364 r  eth_rxc_IBUF_inst/O
                          net (fo=1, routed)           1.701    11.065    u_eth/u_rgmii/u_rgmii_rx/rgmii_rxc
     BUFGCTRL_X0Y1        BUFG (Prop_bufg_I_O)         0.077    11.142 r  u_eth/u_rgmii/u_rgmii_rx/BUFG_inst/O
-                         net (fo=2478, routed)        1.301    12.443    u_eth/u_rx_mac/u_crc_rx/gmii_rx_clk
-    SLICE_X72Y33         FDPE                                         r  u_eth/u_rx_mac/u_crc_rx/crc_data_reg[22]/C
-                         clock pessimism              0.342    12.785    
-                         clock uncertainty           -0.035    12.749    
-    SLICE_X72Y33         FDPE (Setup_fdpe_C_D)       -0.189    12.560    u_eth/u_rx_mac/u_crc_rx/crc_data_reg[22]
+                         net (fo=2526, routed)        1.305    12.447    u_eth/u_rx_mac/u_crc_rx/gmii_rx_clk
+    SLICE_X87Y34         FDPE                                         r  u_eth/u_rx_mac/u_crc_rx/crc_data_reg[8]/C
+                         clock pessimism              0.342    12.789    
+                         clock uncertainty           -0.035    12.753    
+    SLICE_X87Y34         FDPE (Setup_fdpe_C_D)       -0.032    12.721    u_eth/u_rx_mac/u_crc_rx/crc_data_reg[8]
   -------------------------------------------------------------------
-                         required time                         12.560    
-                         arrival time                         -11.836    
+                         required time                         12.721    
+                         arrival time                         -11.579    
   -------------------------------------------------------------------
-                         slack                                  0.725    
+                         slack                                  1.142    
 
-Slack (MET) :             0.732ns  (required time - arrival time)
-  Source:                 u_eth/u_icmp/u_icmp_tx/tx_data_num_reg[15]/C
-                            (rising edge-triggered cell FDCE clocked by eth_rxc  {rise@0.000ns fall@4.000ns period=8.000ns})
-  Destination:            u_eth/u_icmp/u_icmp_tx/data_cnt_reg[0]/CE
-                            (rising edge-triggered cell FDCE clocked by eth_rxc  {rise@0.000ns fall@4.000ns period=8.000ns})
+Slack (MET) :             1.177ns  (required time - arrival time)
+  Source:                 u_eth/u_rgmii/u_rgmii_rx/rxdata_bus[0].u_iddr_rxd/C
+                            (rising edge-triggered cell IDDR clocked by eth_rxc  {rise@0.000ns fall@4.000ns period=8.000ns})
+  Destination:            u_eth/u_rx_mac/u_crc_rx/crc_data_reg[12]/CE
+                            (rising edge-triggered cell FDPE clocked by eth_rxc  {rise@0.000ns fall@4.000ns period=8.000ns})
   Path Group:             eth_rxc
   Path Type:              Setup (Max at Slow Process Corner)
   Requirement:            8.000ns  (eth_rxc rise@8.000ns - eth_rxc rise@0.000ns)
-  Data Path Delay:        7.073ns  (logic 2.544ns (35.968%)  route 4.529ns (64.032%))
-  Logic Levels:           10  (CARRY4=4 LUT2=1 LUT4=2 LUT5=2 LUT6=1)
-  Clock Path Skew:        0.008ns (DCD - SCD + CPR)
-    Destination Clock Delay (DCD):    4.559ns = ( 12.559 - 8.000 ) 
-    Source Clock Delay      (SCD):    4.893ns
+  Data Path Delay:        6.398ns  (logic 0.995ns (15.552%)  route 5.403ns (84.448%))
+  Logic Levels:           3  (LUT4=1 LUT5=1 LUT6=1)
+  Clock Path Skew:        -0.222ns (DCD - SCD + CPR)
+    Destination Clock Delay (DCD):    4.447ns = ( 12.447 - 8.000 ) 
+    Source Clock Delay      (SCD):    5.011ns
     Clock Pessimism Removal (CPR):    0.342ns
   Clock Uncertainty:      0.035ns  ((TSJ^2 + TIJ^2)^1/2 + DJ) / 2 + PE
     Total System Jitter     (TSJ):    0.071ns
@@ -259,36 +253,18 @@ Slack (MET) :             0.732ns  (required time - arrival time)
     Y19                  IBUF (Prop_ibuf_I_O)         1.430     1.430 r  eth_rxc_IBUF_inst/O
                          net (fo=1, routed)           1.873     3.303    u_eth/u_rgmii/u_rgmii_rx/rgmii_rxc
     BUFGCTRL_X0Y1        BUFG (Prop_bufg_I_O)         0.085     3.388 r  u_eth/u_rgmii/u_rgmii_rx/BUFG_inst/O
-                         net (fo=2478, routed)        1.505     4.893    u_eth/u_icmp/u_icmp_tx/gmii_rx_clk
-    SLICE_X103Y26        FDCE                                         r  u_eth/u_icmp/u_icmp_tx/tx_data_num_reg[15]/C
+                         net (fo=2526, routed)        1.623     5.011    u_eth/u_rgmii/u_rgmii_rx/gmii_rx_clk
+    ILOGIC_X1Y42         IDDR                                         r  u_eth/u_rgmii/u_rgmii_rx/rxdata_bus[0].u_iddr_rxd/C
   -------------------------------------------------------------------    -------------------
-    SLICE_X103Y26        FDCE (Prop_fdce_C_Q)         0.348     5.241 r  u_eth/u_icmp/u_icmp_tx/tx_data_num_reg[15]/Q
-                         net (fo=4, routed)           0.889     6.130    u_eth/u_icmp/u_icmp_tx/tx_data_num[15]
-    SLICE_X110Y26        LUT4 (Prop_lut4_I0_O)        0.239     6.369 r  u_eth/u_icmp/u_icmp_tx/real_add_cnt[4]_i_22/O
-                         net (fo=1, routed)           0.474     6.843    u_eth/u_icmp/u_icmp_tx/real_add_cnt[4]_i_22_n_0
-    SLICE_X107Y24        LUT5 (Prop_lut5_I3_O)        0.105     6.948 f  u_eth/u_icmp/u_icmp_tx/real_add_cnt[4]_i_9/O
-                         net (fo=4, routed)           0.122     7.070    u_eth/u_icmp/u_icmp_tx/real_add_cnt[4]_i_9_n_0
-    SLICE_X107Y24        LUT5 (Prop_lut5_I0_O)        0.105     7.175 f  u_eth/u_icmp/u_icmp_tx/data_cnt[15]_i_49/O
-                         net (fo=11, routed)          0.514     7.689    u_eth/u_icmp/u_icmp_tx/data_cnt[15]_i_49_n_0
-    SLICE_X108Y24        LUT2 (Prop_lut2_I1_O)        0.105     7.794 r  u_eth/u_icmp/u_icmp_tx/data_cnt[15]_i_62/O
-                         net (fo=1, routed)           0.401     8.195    u_eth/u_icmp/u_icmp_tx/real_tx_data_num[0]
-    SLICE_X106Y24        CARRY4 (Prop_carry4_CYINIT_CO[3])
-                                                      0.480     8.675 r  u_eth/u_icmp/u_icmp_tx/data_cnt_reg[15]_i_47/CO[3]
-                         net (fo=1, routed)           0.008     8.683    u_eth/u_icmp/u_icmp_tx/data_cnt_reg[15]_i_47_n_0
-    SLICE_X106Y25        CARRY4 (Prop_carry4_CI_CO[3])
-                                                      0.098     8.781 r  u_eth/u_icmp/u_icmp_tx/data_cnt_reg[15]_i_37/CO[3]
-                         net (fo=1, routed)           0.000     8.781    u_eth/u_icmp/u_icmp_tx/data_cnt_reg[15]_i_37_n_0
-    SLICE_X106Y26        CARRY4 (Prop_carry4_CI_O[1])
-                                                      0.265     9.046 r  u_eth/u_icmp/u_icmp_tx/data_cnt_reg[15]_i_35/O[1]
-                         net (fo=4, routed)           0.463     9.509    u_eth/u_icmp/u_icmp_tx/data_cnt_reg[15]_i_35_n_6
-    SLICE_X108Y26        LUT4 (Prop_lut4_I3_O)        0.250     9.759 r  u_eth/u_icmp/u_icmp_tx/data_cnt[15]_i_14/O
-                         net (fo=1, routed)           0.000     9.759    u_eth/u_icmp/u_icmp_tx/data_cnt[15]_i_14_n_0
-    SLICE_X108Y26        CARRY4 (Prop_carry4_S[1]_CO[3])
-                                                      0.444    10.203 f  u_eth/u_icmp/u_icmp_tx/data_cnt_reg[15]_i_4/CO[3]
-                         net (fo=3, routed)           0.854    11.058    u_eth/u_icmp/u_icmp_tx/data_cnt_reg[15]_i_4_n_0
-    SLICE_X107Y28        LUT6 (Prop_lut6_I2_O)        0.105    11.163 r  u_eth/u_icmp/u_icmp_tx/data_cnt[15]_i_1/O
-                         net (fo=16, routed)          0.803    11.966    u_eth/u_icmp/u_icmp_tx/data_cnt0
-    SLICE_X107Y27        FDCE                                         r  u_eth/u_icmp/u_icmp_tx/data_cnt_reg[0]/CE
+    ILOGIC_X1Y42         IDDR (Prop_iddr_C_Q2)        0.448     5.459 r  u_eth/u_rgmii/u_rgmii_rx/rxdata_bus[0].u_iddr_rxd/Q2
+                         net (fo=41, routed)          2.386     7.844    u_eth/u_rgmii/u_rgmii_rx/gmii_rxd[4]
+    SLICE_X99Y28         LUT6 (Prop_lut6_I1_O)        0.154     7.998 f  u_eth/u_rgmii/u_rgmii_rx/FSM_onehot_state[2]_i_2/O
+                         net (fo=5, routed)           0.950     8.948    u_eth/u_rgmii/u_rgmii_rx/rxdata_bus[3].u_iddr_rxd_0
+    SLICE_X89Y30         LUT5 (Prop_lut5_I2_O)        0.126     9.074 r  u_eth/u_rgmii/u_rgmii_rx/crc_data[31]_i_3/O
+                         net (fo=33, routed)          0.884     9.958    u_eth/u_rgmii/u_rgmii_rx/u_iddr_rx_ctl_3
+    SLICE_X85Y32         LUT4 (Prop_lut4_I3_O)        0.267    10.225 r  u_eth/u_rgmii/u_rgmii_rx/crc_data[31]_i_1__1/O
+                         net (fo=32, routed)          1.184    11.409    u_eth/u_rx_mac/u_crc_rx/crc_data_reg[0]_0[0]
+    SLICE_X87Y33         FDPE                                         r  u_eth/u_rx_mac/u_crc_rx/crc_data_reg[12]/CE
   -------------------------------------------------------------------    -------------------
 
                          (clock eth_rxc rise edge)    8.000     8.000 r  
@@ -297,30 +273,30 @@ Slack (MET) :             0.732ns  (required time - arrival time)
     Y19                  IBUF (Prop_ibuf_I_O)         1.364     9.364 r  eth_rxc_IBUF_inst/O
                          net (fo=1, routed)           1.701    11.065    u_eth/u_rgmii/u_rgmii_rx/rgmii_rxc
     BUFGCTRL_X0Y1        BUFG (Prop_bufg_I_O)         0.077    11.142 r  u_eth/u_rgmii/u_rgmii_rx/BUFG_inst/O
-                         net (fo=2478, routed)        1.417    12.559    u_eth/u_icmp/u_icmp_tx/gmii_rx_clk
-    SLICE_X107Y27        FDCE                                         r  u_eth/u_icmp/u_icmp_tx/data_cnt_reg[0]/C
-                         clock pessimism              0.342    12.901    
-                         clock uncertainty           -0.035    12.865    
-    SLICE_X107Y27        FDCE (Setup_fdce_C_CE)      -0.168    12.697    u_eth/u_icmp/u_icmp_tx/data_cnt_reg[0]
+                         net (fo=2526, routed)        1.305    12.447    u_eth/u_rx_mac/u_crc_rx/gmii_rx_clk
+    SLICE_X87Y33         FDPE                                         r  u_eth/u_rx_mac/u_crc_rx/crc_data_reg[12]/C
+                         clock pessimism              0.342    12.789    
+                         clock uncertainty           -0.035    12.753    
+    SLICE_X87Y33         FDPE (Setup_fdpe_C_CE)      -0.168    12.585    u_eth/u_rx_mac/u_crc_rx/crc_data_reg[12]
   -------------------------------------------------------------------
-                         required time                         12.697    
-                         arrival time                         -11.966    
+                         required time                         12.585    
+                         arrival time                         -11.409    
   -------------------------------------------------------------------
-                         slack                                  0.732    
+                         slack                                  1.177    
 
-Slack (MET) :             0.732ns  (required time - arrival time)
-  Source:                 u_eth/u_icmp/u_icmp_tx/tx_data_num_reg[15]/C
-                            (rising edge-triggered cell FDCE clocked by eth_rxc  {rise@0.000ns fall@4.000ns period=8.000ns})
-  Destination:            u_eth/u_icmp/u_icmp_tx/data_cnt_reg[1]/CE
-                            (rising edge-triggered cell FDCE clocked by eth_rxc  {rise@0.000ns fall@4.000ns period=8.000ns})
+Slack (MET) :             1.177ns  (required time - arrival time)
+  Source:                 u_eth/u_rgmii/u_rgmii_rx/rxdata_bus[0].u_iddr_rxd/C
+                            (rising edge-triggered cell IDDR clocked by eth_rxc  {rise@0.000ns fall@4.000ns period=8.000ns})
+  Destination:            u_eth/u_rx_mac/u_crc_rx/crc_data_reg[16]/CE
+                            (rising edge-triggered cell FDPE clocked by eth_rxc  {rise@0.000ns fall@4.000ns period=8.000ns})
   Path Group:             eth_rxc
   Path Type:              Setup (Max at Slow Process Corner)
   Requirement:            8.000ns  (eth_rxc rise@8.000ns - eth_rxc rise@0.000ns)
-  Data Path Delay:        7.073ns  (logic 2.544ns (35.968%)  route 4.529ns (64.032%))
-  Logic Levels:           10  (CARRY4=4 LUT2=1 LUT4=2 LUT5=2 LUT6=1)
-  Clock Path Skew:        0.008ns (DCD - SCD + CPR)
-    Destination Clock Delay (DCD):    4.559ns = ( 12.559 - 8.000 ) 
-    Source Clock Delay      (SCD):    4.893ns
+  Data Path Delay:        6.398ns  (logic 0.995ns (15.552%)  route 5.403ns (84.448%))
+  Logic Levels:           3  (LUT4=1 LUT5=1 LUT6=1)
+  Clock Path Skew:        -0.222ns (DCD - SCD + CPR)
+    Destination Clock Delay (DCD):    4.447ns = ( 12.447 - 8.000 ) 
+    Source Clock Delay      (SCD):    5.011ns
     Clock Pessimism Removal (CPR):    0.342ns
   Clock Uncertainty:      0.035ns  ((TSJ^2 + TIJ^2)^1/2 + DJ) / 2 + PE
     Total System Jitter     (TSJ):    0.071ns
@@ -336,36 +312,18 @@ Slack (MET) :             0.732ns  (required time - arrival time)
     Y19                  IBUF (Prop_ibuf_I_O)         1.430     1.430 r  eth_rxc_IBUF_inst/O
                          net (fo=1, routed)           1.873     3.303    u_eth/u_rgmii/u_rgmii_rx/rgmii_rxc
     BUFGCTRL_X0Y1        BUFG (Prop_bufg_I_O)         0.085     3.388 r  u_eth/u_rgmii/u_rgmii_rx/BUFG_inst/O
-                         net (fo=2478, routed)        1.505     4.893    u_eth/u_icmp/u_icmp_tx/gmii_rx_clk
-    SLICE_X103Y26        FDCE                                         r  u_eth/u_icmp/u_icmp_tx/tx_data_num_reg[15]/C
+                         net (fo=2526, routed)        1.623     5.011    u_eth/u_rgmii/u_rgmii_rx/gmii_rx_clk
+    ILOGIC_X1Y42         IDDR                                         r  u_eth/u_rgmii/u_rgmii_rx/rxdata_bus[0].u_iddr_rxd/C
   -------------------------------------------------------------------    -------------------
-    SLICE_X103Y26        FDCE (Prop_fdce_C_Q)         0.348     5.241 r  u_eth/u_icmp/u_icmp_tx/tx_data_num_reg[15]/Q
-                         net (fo=4, routed)           0.889     6.130    u_eth/u_icmp/u_icmp_tx/tx_data_num[15]
-    SLICE_X110Y26        LUT4 (Prop_lut4_I0_O)        0.239     6.369 r  u_eth/u_icmp/u_icmp_tx/real_add_cnt[4]_i_22/O
-                         net (fo=1, routed)           0.474     6.843    u_eth/u_icmp/u_icmp_tx/real_add_cnt[4]_i_22_n_0
-    SLICE_X107Y24        LUT5 (Prop_lut5_I3_O)        0.105     6.948 f  u_eth/u_icmp/u_icmp_tx/real_add_cnt[4]_i_9/O
-                         net (fo=4, routed)           0.122     7.070    u_eth/u_icmp/u_icmp_tx/real_add_cnt[4]_i_9_n_0
-    SLICE_X107Y24        LUT5 (Prop_lut5_I0_O)        0.105     7.175 f  u_eth/u_icmp/u_icmp_tx/data_cnt[15]_i_49/O
-                         net (fo=11, routed)          0.514     7.689    u_eth/u_icmp/u_icmp_tx/data_cnt[15]_i_49_n_0
-    SLICE_X108Y24        LUT2 (Prop_lut2_I1_O)        0.105     7.794 r  u_eth/u_icmp/u_icmp_tx/data_cnt[15]_i_62/O
-                         net (fo=1, routed)           0.401     8.195    u_eth/u_icmp/u_icmp_tx/real_tx_data_num[0]
-    SLICE_X106Y24        CARRY4 (Prop_carry4_CYINIT_CO[3])
-                                                      0.480     8.675 r  u_eth/u_icmp/u_icmp_tx/data_cnt_reg[15]_i_47/CO[3]
-                         net (fo=1, routed)           0.008     8.683    u_eth/u_icmp/u_icmp_tx/data_cnt_reg[15]_i_47_n_0
-    SLICE_X106Y25        CARRY4 (Prop_carry4_CI_CO[3])
-                                                      0.098     8.781 r  u_eth/u_icmp/u_icmp_tx/data_cnt_reg[15]_i_37/CO[3]
-                         net (fo=1, routed)           0.000     8.781    u_eth/u_icmp/u_icmp_tx/data_cnt_reg[15]_i_37_n_0
-    SLICE_X106Y26        CARRY4 (Prop_carry4_CI_O[1])
-                                                      0.265     9.046 r  u_eth/u_icmp/u_icmp_tx/data_cnt_reg[15]_i_35/O[1]
-                         net (fo=4, routed)           0.463     9.509    u_eth/u_icmp/u_icmp_tx/data_cnt_reg[15]_i_35_n_6
-    SLICE_X108Y26        LUT4 (Prop_lut4_I3_O)        0.250     9.759 r  u_eth/u_icmp/u_icmp_tx/data_cnt[15]_i_14/O
-                         net (fo=1, routed)           0.000     9.759    u_eth/u_icmp/u_icmp_tx/data_cnt[15]_i_14_n_0
-    SLICE_X108Y26        CARRY4 (Prop_carry4_S[1]_CO[3])
-                                                      0.444    10.203 f  u_eth/u_icmp/u_icmp_tx/data_cnt_reg[15]_i_4/CO[3]
-                         net (fo=3, routed)           0.854    11.058    u_eth/u_icmp/u_icmp_tx/data_cnt_reg[15]_i_4_n_0
-    SLICE_X107Y28        LUT6 (Prop_lut6_I2_O)        0.105    11.163 r  u_eth/u_icmp/u_icmp_tx/data_cnt[15]_i_1/O
-                         net (fo=16, routed)          0.803    11.966    u_eth/u_icmp/u_icmp_tx/data_cnt0
-    SLICE_X107Y27        FDCE                                         r  u_eth/u_icmp/u_icmp_tx/data_cnt_reg[1]/CE
+    ILOGIC_X1Y42         IDDR (Prop_iddr_C_Q2)        0.448     5.459 r  u_eth/u_rgmii/u_rgmii_rx/rxdata_bus[0].u_iddr_rxd/Q2
+                         net (fo=41, routed)          2.386     7.844    u_eth/u_rgmii/u_rgmii_rx/gmii_rxd[4]
+    SLICE_X99Y28         LUT6 (Prop_lut6_I1_O)        0.154     7.998 f  u_eth/u_rgmii/u_rgmii_rx/FSM_onehot_state[2]_i_2/O
+                         net (fo=5, routed)           0.950     8.948    u_eth/u_rgmii/u_rgmii_rx/rxdata_bus[3].u_iddr_rxd_0
+    SLICE_X89Y30         LUT5 (Prop_lut5_I2_O)        0.126     9.074 r  u_eth/u_rgmii/u_rgmii_rx/crc_data[31]_i_3/O
+                         net (fo=33, routed)          0.884     9.958    u_eth/u_rgmii/u_rgmii_rx/u_iddr_rx_ctl_3
+    SLICE_X85Y32         LUT4 (Prop_lut4_I3_O)        0.267    10.225 r  u_eth/u_rgmii/u_rgmii_rx/crc_data[31]_i_1__1/O
+                         net (fo=32, routed)          1.184    11.409    u_eth/u_rx_mac/u_crc_rx/crc_data_reg[0]_0[0]
+    SLICE_X87Y33         FDPE                                         r  u_eth/u_rx_mac/u_crc_rx/crc_data_reg[16]/CE
   -------------------------------------------------------------------    -------------------
 
                          (clock eth_rxc rise edge)    8.000     8.000 r  
@@ -374,30 +332,30 @@ Slack (MET) :             0.732ns  (required time - arrival time)
     Y19                  IBUF (Prop_ibuf_I_O)         1.364     9.364 r  eth_rxc_IBUF_inst/O
                          net (fo=1, routed)           1.701    11.065    u_eth/u_rgmii/u_rgmii_rx/rgmii_rxc
     BUFGCTRL_X0Y1        BUFG (Prop_bufg_I_O)         0.077    11.142 r  u_eth/u_rgmii/u_rgmii_rx/BUFG_inst/O
-                         net (fo=2478, routed)        1.417    12.559    u_eth/u_icmp/u_icmp_tx/gmii_rx_clk
-    SLICE_X107Y27        FDCE                                         r  u_eth/u_icmp/u_icmp_tx/data_cnt_reg[1]/C
-                         clock pessimism              0.342    12.901    
-                         clock uncertainty           -0.035    12.865    
-    SLICE_X107Y27        FDCE (Setup_fdce_C_CE)      -0.168    12.697    u_eth/u_icmp/u_icmp_tx/data_cnt_reg[1]
+                         net (fo=2526, routed)        1.305    12.447    u_eth/u_rx_mac/u_crc_rx/gmii_rx_clk
+    SLICE_X87Y33         FDPE                                         r  u_eth/u_rx_mac/u_crc_rx/crc_data_reg[16]/C
+                         clock pessimism              0.342    12.789    
+                         clock uncertainty           -0.035    12.753    
+    SLICE_X87Y33         FDPE (Setup_fdpe_C_CE)      -0.168    12.585    u_eth/u_rx_mac/u_crc_rx/crc_data_reg[16]
   -------------------------------------------------------------------
-                         required time                         12.697    
-                         arrival time                         -11.966    
+                         required time                         12.585    
+                         arrival time                         -11.409    
   -------------------------------------------------------------------
-                         slack                                  0.732    
+                         slack                                  1.177    
 
-Slack (MET) :             0.732ns  (required time - arrival time)
-  Source:                 u_eth/u_icmp/u_icmp_tx/tx_data_num_reg[15]/C
-                            (rising edge-triggered cell FDCE clocked by eth_rxc  {rise@0.000ns fall@4.000ns period=8.000ns})
-  Destination:            u_eth/u_icmp/u_icmp_tx/data_cnt_reg[2]/CE
-                            (rising edge-triggered cell FDCE clocked by eth_rxc  {rise@0.000ns fall@4.000ns period=8.000ns})
+Slack (MET) :             1.177ns  (required time - arrival time)
+  Source:                 u_eth/u_rgmii/u_rgmii_rx/rxdata_bus[0].u_iddr_rxd/C
+                            (rising edge-triggered cell IDDR clocked by eth_rxc  {rise@0.000ns fall@4.000ns period=8.000ns})
+  Destination:            u_eth/u_rx_mac/u_crc_rx/crc_data_reg[17]/CE
+                            (rising edge-triggered cell FDPE clocked by eth_rxc  {rise@0.000ns fall@4.000ns period=8.000ns})
   Path Group:             eth_rxc
   Path Type:              Setup (Max at Slow Process Corner)
   Requirement:            8.000ns  (eth_rxc rise@8.000ns - eth_rxc rise@0.000ns)
-  Data Path Delay:        7.073ns  (logic 2.544ns (35.968%)  route 4.529ns (64.032%))
-  Logic Levels:           10  (CARRY4=4 LUT2=1 LUT4=2 LUT5=2 LUT6=1)
-  Clock Path Skew:        0.008ns (DCD - SCD + CPR)
-    Destination Clock Delay (DCD):    4.559ns = ( 12.559 - 8.000 ) 
-    Source Clock Delay      (SCD):    4.893ns
+  Data Path Delay:        6.398ns  (logic 0.995ns (15.552%)  route 5.403ns (84.448%))
+  Logic Levels:           3  (LUT4=1 LUT5=1 LUT6=1)
+  Clock Path Skew:        -0.222ns (DCD - SCD + CPR)
+    Destination Clock Delay (DCD):    4.447ns = ( 12.447 - 8.000 ) 
+    Source Clock Delay      (SCD):    5.011ns
     Clock Pessimism Removal (CPR):    0.342ns
   Clock Uncertainty:      0.035ns  ((TSJ^2 + TIJ^2)^1/2 + DJ) / 2 + PE
     Total System Jitter     (TSJ):    0.071ns
@@ -413,36 +371,18 @@ Slack (MET) :             0.732ns  (required time - arrival time)
     Y19                  IBUF (Prop_ibuf_I_O)         1.430     1.430 r  eth_rxc_IBUF_inst/O
                          net (fo=1, routed)           1.873     3.303    u_eth/u_rgmii/u_rgmii_rx/rgmii_rxc
     BUFGCTRL_X0Y1        BUFG (Prop_bufg_I_O)         0.085     3.388 r  u_eth/u_rgmii/u_rgmii_rx/BUFG_inst/O
-                         net (fo=2478, routed)        1.505     4.893    u_eth/u_icmp/u_icmp_tx/gmii_rx_clk
-    SLICE_X103Y26        FDCE                                         r  u_eth/u_icmp/u_icmp_tx/tx_data_num_reg[15]/C
+                         net (fo=2526, routed)        1.623     5.011    u_eth/u_rgmii/u_rgmii_rx/gmii_rx_clk
+    ILOGIC_X1Y42         IDDR                                         r  u_eth/u_rgmii/u_rgmii_rx/rxdata_bus[0].u_iddr_rxd/C
   -------------------------------------------------------------------    -------------------
-    SLICE_X103Y26        FDCE (Prop_fdce_C_Q)         0.348     5.241 r  u_eth/u_icmp/u_icmp_tx/tx_data_num_reg[15]/Q
-                         net (fo=4, routed)           0.889     6.130    u_eth/u_icmp/u_icmp_tx/tx_data_num[15]
-    SLICE_X110Y26        LUT4 (Prop_lut4_I0_O)        0.239     6.369 r  u_eth/u_icmp/u_icmp_tx/real_add_cnt[4]_i_22/O
-                         net (fo=1, routed)           0.474     6.843    u_eth/u_icmp/u_icmp_tx/real_add_cnt[4]_i_22_n_0
-    SLICE_X107Y24        LUT5 (Prop_lut5_I3_O)        0.105     6.948 f  u_eth/u_icmp/u_icmp_tx/real_add_cnt[4]_i_9/O
-                         net (fo=4, routed)           0.122     7.070    u_eth/u_icmp/u_icmp_tx/real_add_cnt[4]_i_9_n_0
-    SLICE_X107Y24        LUT5 (Prop_lut5_I0_O)        0.105     7.175 f  u_eth/u_icmp/u_icmp_tx/data_cnt[15]_i_49/O
-                         net (fo=11, routed)          0.514     7.689    u_eth/u_icmp/u_icmp_tx/data_cnt[15]_i_49_n_0
-    SLICE_X108Y24        LUT2 (Prop_lut2_I1_O)        0.105     7.794 r  u_eth/u_icmp/u_icmp_tx/data_cnt[15]_i_62/O
-                         net (fo=1, routed)           0.401     8.195    u_eth/u_icmp/u_icmp_tx/real_tx_data_num[0]
-    SLICE_X106Y24        CARRY4 (Prop_carry4_CYINIT_CO[3])
-                                                      0.480     8.675 r  u_eth/u_icmp/u_icmp_tx/data_cnt_reg[15]_i_47/CO[3]
-                         net (fo=1, routed)           0.008     8.683    u_eth/u_icmp/u_icmp_tx/data_cnt_reg[15]_i_47_n_0
-    SLICE_X106Y25        CARRY4 (Prop_carry4_CI_CO[3])
-                                                      0.098     8.781 r  u_eth/u_icmp/u_icmp_tx/data_cnt_reg[15]_i_37/CO[3]
-                         net (fo=1, routed)           0.000     8.781    u_eth/u_icmp/u_icmp_tx/data_cnt_reg[15]_i_37_n_0
-    SLICE_X106Y26        CARRY4 (Prop_carry4_CI_O[1])
-                                                      0.265     9.046 r  u_eth/u_icmp/u_icmp_tx/data_cnt_reg[15]_i_35/O[1]
-                         net (fo=4, routed)           0.463     9.509    u_eth/u_icmp/u_icmp_tx/data_cnt_reg[15]_i_35_n_6
-    SLICE_X108Y26        LUT4 (Prop_lut4_I3_O)        0.250     9.759 r  u_eth/u_icmp/u_icmp_tx/data_cnt[15]_i_14/O
-                         net (fo=1, routed)           0.000     9.759    u_eth/u_icmp/u_icmp_tx/data_cnt[15]_i_14_n_0
-    SLICE_X108Y26        CARRY4 (Prop_carry4_S[1]_CO[3])
-                                                      0.444    10.203 f  u_eth/u_icmp/u_icmp_tx/data_cnt_reg[15]_i_4/CO[3]
-                         net (fo=3, routed)           0.854    11.058    u_eth/u_icmp/u_icmp_tx/data_cnt_reg[15]_i_4_n_0
-    SLICE_X107Y28        LUT6 (Prop_lut6_I2_O)        0.105    11.163 r  u_eth/u_icmp/u_icmp_tx/data_cnt[15]_i_1/O
-                         net (fo=16, routed)          0.803    11.966    u_eth/u_icmp/u_icmp_tx/data_cnt0
-    SLICE_X107Y27        FDCE                                         r  u_eth/u_icmp/u_icmp_tx/data_cnt_reg[2]/CE
+    ILOGIC_X1Y42         IDDR (Prop_iddr_C_Q2)        0.448     5.459 r  u_eth/u_rgmii/u_rgmii_rx/rxdata_bus[0].u_iddr_rxd/Q2
+                         net (fo=41, routed)          2.386     7.844    u_eth/u_rgmii/u_rgmii_rx/gmii_rxd[4]
+    SLICE_X99Y28         LUT6 (Prop_lut6_I1_O)        0.154     7.998 f  u_eth/u_rgmii/u_rgmii_rx/FSM_onehot_state[2]_i_2/O
+                         net (fo=5, routed)           0.950     8.948    u_eth/u_rgmii/u_rgmii_rx/rxdata_bus[3].u_iddr_rxd_0
+    SLICE_X89Y30         LUT5 (Prop_lut5_I2_O)        0.126     9.074 r  u_eth/u_rgmii/u_rgmii_rx/crc_data[31]_i_3/O
+                         net (fo=33, routed)          0.884     9.958    u_eth/u_rgmii/u_rgmii_rx/u_iddr_rx_ctl_3
+    SLICE_X85Y32         LUT4 (Prop_lut4_I3_O)        0.267    10.225 r  u_eth/u_rgmii/u_rgmii_rx/crc_data[31]_i_1__1/O
+                         net (fo=32, routed)          1.184    11.409    u_eth/u_rx_mac/u_crc_rx/crc_data_reg[0]_0[0]
+    SLICE_X87Y33         FDPE                                         r  u_eth/u_rx_mac/u_crc_rx/crc_data_reg[17]/CE
   -------------------------------------------------------------------    -------------------
 
                          (clock eth_rxc rise edge)    8.000     8.000 r  
@@ -451,31 +391,31 @@ Slack (MET) :             0.732ns  (required time - arrival time)
     Y19                  IBUF (Prop_ibuf_I_O)         1.364     9.364 r  eth_rxc_IBUF_inst/O
                          net (fo=1, routed)           1.701    11.065    u_eth/u_rgmii/u_rgmii_rx/rgmii_rxc
     BUFGCTRL_X0Y1        BUFG (Prop_bufg_I_O)         0.077    11.142 r  u_eth/u_rgmii/u_rgmii_rx/BUFG_inst/O
-                         net (fo=2478, routed)        1.417    12.559    u_eth/u_icmp/u_icmp_tx/gmii_rx_clk
-    SLICE_X107Y27        FDCE                                         r  u_eth/u_icmp/u_icmp_tx/data_cnt_reg[2]/C
-                         clock pessimism              0.342    12.901    
-                         clock uncertainty           -0.035    12.865    
-    SLICE_X107Y27        FDCE (Setup_fdce_C_CE)      -0.168    12.697    u_eth/u_icmp/u_icmp_tx/data_cnt_reg[2]
+                         net (fo=2526, routed)        1.305    12.447    u_eth/u_rx_mac/u_crc_rx/gmii_rx_clk
+    SLICE_X87Y33         FDPE                                         r  u_eth/u_rx_mac/u_crc_rx/crc_data_reg[17]/C
+                         clock pessimism              0.342    12.789    
+                         clock uncertainty           -0.035    12.753    
+    SLICE_X87Y33         FDPE (Setup_fdpe_C_CE)      -0.168    12.585    u_eth/u_rx_mac/u_crc_rx/crc_data_reg[17]
   -------------------------------------------------------------------
-                         required time                         12.697    
-                         arrival time                         -11.966    
+                         required time                         12.585    
+                         arrival time                         -11.409    
   -------------------------------------------------------------------
-                         slack                                  0.732    
+                         slack                                  1.177    
 
-Slack (MET) :             0.732ns  (required time - arrival time)
-  Source:                 u_eth/u_icmp/u_icmp_tx/tx_data_num_reg[15]/C
+Slack (MET) :             1.191ns  (required time - arrival time)
+  Source:                 u_eth/u_icmp/u_icmp_tx/FSM_onehot_cur_state_reg[4]/C
                             (rising edge-triggered cell FDCE clocked by eth_rxc  {rise@0.000ns fall@4.000ns period=8.000ns})
-  Destination:            u_eth/u_icmp/u_icmp_tx/data_cnt_reg[3]/CE
-                            (rising edge-triggered cell FDCE clocked by eth_rxc  {rise@0.000ns fall@4.000ns period=8.000ns})
+  Destination:            u_eth/u_icmp/u_icmp_tx/eth_head_reg[1][0]/CE
+                            (rising edge-triggered cell FDPE clocked by eth_rxc  {rise@0.000ns fall@4.000ns period=8.000ns})
   Path Group:             eth_rxc
   Path Type:              Setup (Max at Slow Process Corner)
   Requirement:            8.000ns  (eth_rxc rise@8.000ns - eth_rxc rise@0.000ns)
-  Data Path Delay:        7.073ns  (logic 2.544ns (35.968%)  route 4.529ns (64.032%))
-  Logic Levels:           10  (CARRY4=4 LUT2=1 LUT4=2 LUT5=2 LUT6=1)
-  Clock Path Skew:        0.008ns (DCD - SCD + CPR)
+  Data Path Delay:        6.441ns  (logic 1.029ns (15.977%)  route 5.412ns (84.024%))
+  Logic Levels:           4  (LUT4=1 LUT5=1 LUT6=2)
+  Clock Path Skew:        -0.165ns (DCD - SCD + CPR)
     Destination Clock Delay (DCD):    4.559ns = ( 12.559 - 8.000 ) 
-    Source Clock Delay      (SCD):    4.893ns
-    Clock Pessimism Removal (CPR):    0.342ns
+    Source Clock Delay      (SCD):    4.970ns
+    Clock Pessimism Removal (CPR):    0.246ns
   Clock Uncertainty:      0.035ns  ((TSJ^2 + TIJ^2)^1/2 + DJ) / 2 + PE
     Total System Jitter     (TSJ):    0.071ns
     Total Input Jitter      (TIJ):    0.000ns
@@ -490,36 +430,20 @@ Slack (MET) :             0.732ns  (required time - arrival time)
     Y19                  IBUF (Prop_ibuf_I_O)         1.430     1.430 r  eth_rxc_IBUF_inst/O
                          net (fo=1, routed)           1.873     3.303    u_eth/u_rgmii/u_rgmii_rx/rgmii_rxc
     BUFGCTRL_X0Y1        BUFG (Prop_bufg_I_O)         0.085     3.388 r  u_eth/u_rgmii/u_rgmii_rx/BUFG_inst/O
-                         net (fo=2478, routed)        1.505     4.893    u_eth/u_icmp/u_icmp_tx/gmii_rx_clk
-    SLICE_X103Y26        FDCE                                         r  u_eth/u_icmp/u_icmp_tx/tx_data_num_reg[15]/C
+                         net (fo=2526, routed)        1.582     4.970    u_eth/u_icmp/u_icmp_tx/gmii_rx_clk
+    SLICE_X108Y35        FDCE                                         r  u_eth/u_icmp/u_icmp_tx/FSM_onehot_cur_state_reg[4]/C
   -------------------------------------------------------------------    -------------------
-    SLICE_X103Y26        FDCE (Prop_fdce_C_Q)         0.348     5.241 r  u_eth/u_icmp/u_icmp_tx/tx_data_num_reg[15]/Q
-                         net (fo=4, routed)           0.889     6.130    u_eth/u_icmp/u_icmp_tx/tx_data_num[15]
-    SLICE_X110Y26        LUT4 (Prop_lut4_I0_O)        0.239     6.369 r  u_eth/u_icmp/u_icmp_tx/real_add_cnt[4]_i_22/O
-                         net (fo=1, routed)           0.474     6.843    u_eth/u_icmp/u_icmp_tx/real_add_cnt[4]_i_22_n_0
-    SLICE_X107Y24        LUT5 (Prop_lut5_I3_O)        0.105     6.948 f  u_eth/u_icmp/u_icmp_tx/real_add_cnt[4]_i_9/O
-                         net (fo=4, routed)           0.122     7.070    u_eth/u_icmp/u_icmp_tx/real_add_cnt[4]_i_9_n_0
-    SLICE_X107Y24        LUT5 (Prop_lut5_I0_O)        0.105     7.175 f  u_eth/u_icmp/u_icmp_tx/data_cnt[15]_i_49/O
-                         net (fo=11, routed)          0.514     7.689    u_eth/u_icmp/u_icmp_tx/data_cnt[15]_i_49_n_0
-    SLICE_X108Y24        LUT2 (Prop_lut2_I1_O)        0.105     7.794 r  u_eth/u_icmp/u_icmp_tx/data_cnt[15]_i_62/O
-                         net (fo=1, routed)           0.401     8.195    u_eth/u_icmp/u_icmp_tx/real_tx_data_num[0]
-    SLICE_X106Y24        CARRY4 (Prop_carry4_CYINIT_CO[3])
-                                                      0.480     8.675 r  u_eth/u_icmp/u_icmp_tx/data_cnt_reg[15]_i_47/CO[3]
-                         net (fo=1, routed)           0.008     8.683    u_eth/u_icmp/u_icmp_tx/data_cnt_reg[15]_i_47_n_0
-    SLICE_X106Y25        CARRY4 (Prop_carry4_CI_CO[3])
-                                                      0.098     8.781 r  u_eth/u_icmp/u_icmp_tx/data_cnt_reg[15]_i_37/CO[3]
-                         net (fo=1, routed)           0.000     8.781    u_eth/u_icmp/u_icmp_tx/data_cnt_reg[15]_i_37_n_0
-    SLICE_X106Y26        CARRY4 (Prop_carry4_CI_O[1])
-                                                      0.265     9.046 r  u_eth/u_icmp/u_icmp_tx/data_cnt_reg[15]_i_35/O[1]
-                         net (fo=4, routed)           0.463     9.509    u_eth/u_icmp/u_icmp_tx/data_cnt_reg[15]_i_35_n_6
-    SLICE_X108Y26        LUT4 (Prop_lut4_I3_O)        0.250     9.759 r  u_eth/u_icmp/u_icmp_tx/data_cnt[15]_i_14/O
-                         net (fo=1, routed)           0.000     9.759    u_eth/u_icmp/u_icmp_tx/data_cnt[15]_i_14_n_0
-    SLICE_X108Y26        CARRY4 (Prop_carry4_S[1]_CO[3])
-                                                      0.444    10.203 f  u_eth/u_icmp/u_icmp_tx/data_cnt_reg[15]_i_4/CO[3]
-                         net (fo=3, routed)           0.854    11.058    u_eth/u_icmp/u_icmp_tx/data_cnt_reg[15]_i_4_n_0
-    SLICE_X107Y28        LUT6 (Prop_lut6_I2_O)        0.105    11.163 r  u_eth/u_icmp/u_icmp_tx/data_cnt[15]_i_1/O
-                         net (fo=16, routed)          0.803    11.966    u_eth/u_icmp/u_icmp_tx/data_cnt0
-    SLICE_X107Y27        FDCE                                         r  u_eth/u_icmp/u_icmp_tx/data_cnt_reg[3]/CE
+    SLICE_X108Y35        FDCE (Prop_fdce_C_Q)         0.433     5.403 f  u_eth/u_icmp/u_icmp_tx/FSM_onehot_cur_state_reg[4]/Q
+                         net (fo=13, routed)          1.422     6.825    u_eth/u_icmp/u_icmp_tx/cur_state[4]
+    SLICE_X109Y35        LUT5 (Prop_lut5_I4_O)        0.119     6.944 r  u_eth/u_icmp/u_icmp_tx/gmii_tx_en_i_3/O
+                         net (fo=2, routed)           0.627     7.571    u_eth/u_icmp/u_icmp_tx/gmii_tx_en_i_3_n_0
+    SLICE_X109Y37        LUT6 (Prop_lut6_I0_O)        0.267     7.838 f  u_eth/u_icmp/u_icmp_tx/ip_head[1][31]_i_3/O
+                         net (fo=18, routed)          0.358     8.195    u_eth/u_icmp/u_icmp_tx/ip_head[1][31]_i_3_n_0
+    SLICE_X113Y38        LUT6 (Prop_lut6_I4_O)        0.105     8.300 r  u_eth/u_icmp/u_icmp_tx/ip_head[1][31]_i_1/O
+                         net (fo=19, routed)          1.526     9.826    u_eth/u_arp/u_arp_rx/eth_head_reg[0][0][0]
+    SLICE_X109Y49        LUT4 (Prop_lut4_I0_O)        0.105     9.931 r  u_eth/u_arp/u_arp_rx/eth_head[5][7]_i_1__0/O
+                         net (fo=48, routed)          1.480    11.410    u_eth/u_icmp/u_icmp_tx/eth_head_reg[0][0]_0[0]
+    SLICE_X110Y50        FDPE                                         r  u_eth/u_icmp/u_icmp_tx/eth_head_reg[1][0]/CE
   -------------------------------------------------------------------    -------------------
 
                          (clock eth_rxc rise edge)    8.000     8.000 r  
@@ -528,31 +452,31 @@ Slack (MET) :             0.732ns  (required time - arrival time)
     Y19                  IBUF (Prop_ibuf_I_O)         1.364     9.364 r  eth_rxc_IBUF_inst/O
                          net (fo=1, routed)           1.701    11.065    u_eth/u_rgmii/u_rgmii_rx/rgmii_rxc
     BUFGCTRL_X0Y1        BUFG (Prop_bufg_I_O)         0.077    11.142 r  u_eth/u_rgmii/u_rgmii_rx/BUFG_inst/O
-                         net (fo=2478, routed)        1.417    12.559    u_eth/u_icmp/u_icmp_tx/gmii_rx_clk
-    SLICE_X107Y27        FDCE                                         r  u_eth/u_icmp/u_icmp_tx/data_cnt_reg[3]/C
-                         clock pessimism              0.342    12.901    
-                         clock uncertainty           -0.035    12.865    
-    SLICE_X107Y27        FDCE (Setup_fdce_C_CE)      -0.168    12.697    u_eth/u_icmp/u_icmp_tx/data_cnt_reg[3]
+                         net (fo=2526, routed)        1.417    12.559    u_eth/u_icmp/u_icmp_tx/gmii_rx_clk
+    SLICE_X110Y50        FDPE                                         r  u_eth/u_icmp/u_icmp_tx/eth_head_reg[1][0]/C
+                         clock pessimism              0.246    12.805    
+                         clock uncertainty           -0.035    12.769    
+    SLICE_X110Y50        FDPE (Setup_fdpe_C_CE)      -0.168    12.601    u_eth/u_icmp/u_icmp_tx/eth_head_reg[1][0]
   -------------------------------------------------------------------
-                         required time                         12.697    
-                         arrival time                         -11.966    
+                         required time                         12.601    
+                         arrival time                         -11.410    
   -------------------------------------------------------------------
-                         slack                                  0.732    
+                         slack                                  1.191    
 
-Slack (MET) :             0.732ns  (required time - arrival time)
-  Source:                 u_eth/u_icmp/u_icmp_tx/tx_data_num_reg[15]/C
+Slack (MET) :             1.191ns  (required time - arrival time)
+  Source:                 u_eth/u_icmp/u_icmp_tx/FSM_onehot_cur_state_reg[4]/C
                             (rising edge-triggered cell FDCE clocked by eth_rxc  {rise@0.000ns fall@4.000ns period=8.000ns})
-  Destination:            u_eth/u_icmp/u_icmp_tx/data_cnt_reg[4]/CE
-                            (rising edge-triggered cell FDCE clocked by eth_rxc  {rise@0.000ns fall@4.000ns period=8.000ns})
+  Destination:            u_eth/u_icmp/u_icmp_tx/eth_head_reg[1][2]/CE
+                            (rising edge-triggered cell FDPE clocked by eth_rxc  {rise@0.000ns fall@4.000ns period=8.000ns})
   Path Group:             eth_rxc
   Path Type:              Setup (Max at Slow Process Corner)
   Requirement:            8.000ns  (eth_rxc rise@8.000ns - eth_rxc rise@0.000ns)
-  Data Path Delay:        7.073ns  (logic 2.544ns (35.968%)  route 4.529ns (64.032%))
-  Logic Levels:           10  (CARRY4=4 LUT2=1 LUT4=2 LUT5=2 LUT6=1)
-  Clock Path Skew:        0.008ns (DCD - SCD + CPR)
+  Data Path Delay:        6.441ns  (logic 1.029ns (15.977%)  route 5.412ns (84.024%))
+  Logic Levels:           4  (LUT4=1 LUT5=1 LUT6=2)
+  Clock Path Skew:        -0.165ns (DCD - SCD + CPR)
     Destination Clock Delay (DCD):    4.559ns = ( 12.559 - 8.000 ) 
-    Source Clock Delay      (SCD):    4.893ns
-    Clock Pessimism Removal (CPR):    0.342ns
+    Source Clock Delay      (SCD):    4.970ns
+    Clock Pessimism Removal (CPR):    0.246ns
   Clock Uncertainty:      0.035ns  ((TSJ^2 + TIJ^2)^1/2 + DJ) / 2 + PE
     Total System Jitter     (TSJ):    0.071ns
     Total Input Jitter      (TIJ):    0.000ns
@@ -567,36 +491,20 @@ Slack (MET) :             0.732ns  (required time - arrival time)
     Y19                  IBUF (Prop_ibuf_I_O)         1.430     1.430 r  eth_rxc_IBUF_inst/O
                          net (fo=1, routed)           1.873     3.303    u_eth/u_rgmii/u_rgmii_rx/rgmii_rxc
     BUFGCTRL_X0Y1        BUFG (Prop_bufg_I_O)         0.085     3.388 r  u_eth/u_rgmii/u_rgmii_rx/BUFG_inst/O
-                         net (fo=2478, routed)        1.505     4.893    u_eth/u_icmp/u_icmp_tx/gmii_rx_clk
-    SLICE_X103Y26        FDCE                                         r  u_eth/u_icmp/u_icmp_tx/tx_data_num_reg[15]/C
+                         net (fo=2526, routed)        1.582     4.970    u_eth/u_icmp/u_icmp_tx/gmii_rx_clk
+    SLICE_X108Y35        FDCE                                         r  u_eth/u_icmp/u_icmp_tx/FSM_onehot_cur_state_reg[4]/C
   -------------------------------------------------------------------    -------------------
-    SLICE_X103Y26        FDCE (Prop_fdce_C_Q)         0.348     5.241 r  u_eth/u_icmp/u_icmp_tx/tx_data_num_reg[15]/Q
-                         net (fo=4, routed)           0.889     6.130    u_eth/u_icmp/u_icmp_tx/tx_data_num[15]
-    SLICE_X110Y26        LUT4 (Prop_lut4_I0_O)        0.239     6.369 r  u_eth/u_icmp/u_icmp_tx/real_add_cnt[4]_i_22/O
-                         net (fo=1, routed)           0.474     6.843    u_eth/u_icmp/u_icmp_tx/real_add_cnt[4]_i_22_n_0
-    SLICE_X107Y24        LUT5 (Prop_lut5_I3_O)        0.105     6.948 f  u_eth/u_icmp/u_icmp_tx/real_add_cnt[4]_i_9/O
-                         net (fo=4, routed)           0.122     7.070    u_eth/u_icmp/u_icmp_tx/real_add_cnt[4]_i_9_n_0
-    SLICE_X107Y24        LUT5 (Prop_lut5_I0_O)        0.105     7.175 f  u_eth/u_icmp/u_icmp_tx/data_cnt[15]_i_49/O
-                         net (fo=11, routed)          0.514     7.689    u_eth/u_icmp/u_icmp_tx/data_cnt[15]_i_49_n_0
-    SLICE_X108Y24        LUT2 (Prop_lut2_I1_O)        0.105     7.794 r  u_eth/u_icmp/u_icmp_tx/data_cnt[15]_i_62/O
-                         net (fo=1, routed)           0.401     8.195    u_eth/u_icmp/u_icmp_tx/real_tx_data_num[0]
-    SLICE_X106Y24        CARRY4 (Prop_carry4_CYINIT_CO[3])
-                                                      0.480     8.675 r  u_eth/u_icmp/u_icmp_tx/data_cnt_reg[15]_i_47/CO[3]
-                         net (fo=1, routed)           0.008     8.683    u_eth/u_icmp/u_icmp_tx/data_cnt_reg[15]_i_47_n_0
-    SLICE_X106Y25        CARRY4 (Prop_carry4_CI_CO[3])
-                                                      0.098     8.781 r  u_eth/u_icmp/u_icmp_tx/data_cnt_reg[15]_i_37/CO[3]
-                         net (fo=1, routed)           0.000     8.781    u_eth/u_icmp/u_icmp_tx/data_cnt_reg[15]_i_37_n_0
-    SLICE_X106Y26        CARRY4 (Prop_carry4_CI_O[1])
-                                                      0.265     9.046 r  u_eth/u_icmp/u_icmp_tx/data_cnt_reg[15]_i_35/O[1]
-                         net (fo=4, routed)           0.463     9.509    u_eth/u_icmp/u_icmp_tx/data_cnt_reg[15]_i_35_n_6
-    SLICE_X108Y26        LUT4 (Prop_lut4_I3_O)        0.250     9.759 r  u_eth/u_icmp/u_icmp_tx/data_cnt[15]_i_14/O
-                         net (fo=1, routed)           0.000     9.759    u_eth/u_icmp/u_icmp_tx/data_cnt[15]_i_14_n_0
-    SLICE_X108Y26        CARRY4 (Prop_carry4_S[1]_CO[3])
-                                                      0.444    10.203 f  u_eth/u_icmp/u_icmp_tx/data_cnt_reg[15]_i_4/CO[3]
-                         net (fo=3, routed)           0.854    11.058    u_eth/u_icmp/u_icmp_tx/data_cnt_reg[15]_i_4_n_0
-    SLICE_X107Y28        LUT6 (Prop_lut6_I2_O)        0.105    11.163 r  u_eth/u_icmp/u_icmp_tx/data_cnt[15]_i_1/O
-                         net (fo=16, routed)          0.803    11.966    u_eth/u_icmp/u_icmp_tx/data_cnt0
-    SLICE_X107Y27        FDCE                                         r  u_eth/u_icmp/u_icmp_tx/data_cnt_reg[4]/CE
+    SLICE_X108Y35        FDCE (Prop_fdce_C_Q)         0.433     5.403 f  u_eth/u_icmp/u_icmp_tx/FSM_onehot_cur_state_reg[4]/Q
+                         net (fo=13, routed)          1.422     6.825    u_eth/u_icmp/u_icmp_tx/cur_state[4]
+    SLICE_X109Y35        LUT5 (Prop_lut5_I4_O)        0.119     6.944 r  u_eth/u_icmp/u_icmp_tx/gmii_tx_en_i_3/O
+                         net (fo=2, routed)           0.627     7.571    u_eth/u_icmp/u_icmp_tx/gmii_tx_en_i_3_n_0
+    SLICE_X109Y37        LUT6 (Prop_lut6_I0_O)        0.267     7.838 f  u_eth/u_icmp/u_icmp_tx/ip_head[1][31]_i_3/O
+                         net (fo=18, routed)          0.358     8.195    u_eth/u_icmp/u_icmp_tx/ip_head[1][31]_i_3_n_0
+    SLICE_X113Y38        LUT6 (Prop_lut6_I4_O)        0.105     8.300 r  u_eth/u_icmp/u_icmp_tx/ip_head[1][31]_i_1/O
+                         net (fo=19, routed)          1.526     9.826    u_eth/u_arp/u_arp_rx/eth_head_reg[0][0][0]
+    SLICE_X109Y49        LUT4 (Prop_lut4_I0_O)        0.105     9.931 r  u_eth/u_arp/u_arp_rx/eth_head[5][7]_i_1__0/O
+                         net (fo=48, routed)          1.480    11.410    u_eth/u_icmp/u_icmp_tx/eth_head_reg[0][0]_0[0]
+    SLICE_X110Y50        FDPE                                         r  u_eth/u_icmp/u_icmp_tx/eth_head_reg[1][2]/CE
   -------------------------------------------------------------------    -------------------
 
                          (clock eth_rxc rise edge)    8.000     8.000 r  
@@ -605,16 +513,16 @@ Slack (MET) :             0.732ns  (required time - arrival time)
     Y19                  IBUF (Prop_ibuf_I_O)         1.364     9.364 r  eth_rxc_IBUF_inst/O
                          net (fo=1, routed)           1.701    11.065    u_eth/u_rgmii/u_rgmii_rx/rgmii_rxc
     BUFGCTRL_X0Y1        BUFG (Prop_bufg_I_O)         0.077    11.142 r  u_eth/u_rgmii/u_rgmii_rx/BUFG_inst/O
-                         net (fo=2478, routed)        1.417    12.559    u_eth/u_icmp/u_icmp_tx/gmii_rx_clk
-    SLICE_X107Y27        FDCE                                         r  u_eth/u_icmp/u_icmp_tx/data_cnt_reg[4]/C
-                         clock pessimism              0.342    12.901    
-                         clock uncertainty           -0.035    12.865    
-    SLICE_X107Y27        FDCE (Setup_fdce_C_CE)      -0.168    12.697    u_eth/u_icmp/u_icmp_tx/data_cnt_reg[4]
+                         net (fo=2526, routed)        1.417    12.559    u_eth/u_icmp/u_icmp_tx/gmii_rx_clk
+    SLICE_X110Y50        FDPE                                         r  u_eth/u_icmp/u_icmp_tx/eth_head_reg[1][2]/C
+                         clock pessimism              0.246    12.805    
+                         clock uncertainty           -0.035    12.769    
+    SLICE_X110Y50        FDPE (Setup_fdpe_C_CE)      -0.168    12.601    u_eth/u_icmp/u_icmp_tx/eth_head_reg[1][2]
   -------------------------------------------------------------------
-                         required time                         12.697    
-                         arrival time                         -11.966    
+                         required time                         12.601    
+                         arrival time                         -11.410    
   -------------------------------------------------------------------
-                         slack                                  0.732    
+                         slack                                  1.191    
 
 
 

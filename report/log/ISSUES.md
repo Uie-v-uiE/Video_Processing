@@ -9658,3 +9658,43 @@ echo request，期望几拍之内回 `st_idle`；现在这版必须判红），�
   规矩还是那条：**改完看 diff 的形状**，别只看工具说干净。
 - 实测（本机跑的）：`metric_recheck` 仍是"判 5 行（红 8）/ 未覆盖 19 行"——那 8 条红是 r104 报告覆盖盘上文件造成的**顺序性红**，
   与这次改动无关；`doc_enc_check` 370 个手写文件干净；`doc_currency_check` 见下一条提交信息。
+
+## 2026-10-02 01:28 **r104 采纳并上板**：门禁 20 项 19 绿 / 1 红（唯一红仍是声明过的 `C5c`）⇒ #141 落板；数字与凭据同步到 r104
+
+- 裁决凭据（`build/r104_gates.txt`，01:15 落盘，48 行）：判定 20 项，红 **只有第 15 项**「顶层台架 tb_v98」，
+  原因行写的是"报告里有 1 行 FAIL"，而那一条 FAIL 逐字是
+  `FAIL C5c frame head is not the previous frame's tail …`（01:15 我自己 grep 出来的）；
+  报告头身份 `system.bit md5=680f38f5794c / system.xsa md5=121b8b652794 / ps_app.elf md5=d0b07f84a068`。
+  台架报告 `build/tb_v98_report.txt`：140 行 `^PASS` + 1 行 `^FAIL` = **141 条**，与 r103 同数（同一把尺子没动）。
+  试冻结照预期 **REFUSE**（`build/r104_freeze_attempt.txt`：不是 ALL PASS 不冻结）⇒ 最新全绿冻结集仍是 `r75_gates.txt`。
+- 采纳动作（01:18 三步 JTAG，绝不写 QSPI/EEPROM）：`ps_jtag_boot`（CONNECT tcfchan#0、RST_SYSTEM ok）→
+  `vivado -mode batch -source build/tcl/program_pl.tcl`（DONE、`PROGRAMMED xc7z020_1`）→
+  `ps_app_reload`（`RESUME: ok`、`FLOW_DONE`）；三段控制台逐段落盘 `build/r104_jtagboot.txt / _program_pl.txt / _appreload.txt`。
+- 板级复验：`board_verify --geom --battery` ⇒ `RESULT board_verify PASS（判红的步骤：0）`、
+  `RESULT PASS geom_check（ok=10 fail=0）`、`RESULT PASS uart_cmd_check（105 条 / 97.3 s）`、V9-6 三方对账 ok。
+  ICMP 三段：普通 **4/4**、`-l 0` **3/3**（#218 那一案）、`-l 32` **4/4**，全部 0 % 丢失、1–2 ms
+  ⇒ 板上那份 `ping 应答器几分钟后变哑`（#216/#188）的阴影**没有回来**。凭据 `build/r104_board_ping.txt`
+  （Vivado/Windows 的 ping 输出是 GBK，落盘前用 `iconv` 转成 UTF-8 —— 否则 `doc_enc` 会当它是坏编码）。
+- 温度凭据补上了（#220 的数据那一半当场就结）：`board_verify` 的跟踪件只写判定小结，逐条 `[TEMP]` 落在那个**不入库**的
+  `board/uart_script_capture.txt` 里 ⇒ 我把这一轮捕获到的 4 条原始回显逐字抄进被跟踪的
+  `build/evidence/r104_temp_lines.txt`（含来源与时刻），`metrics.csv` 那一行同时改成
+  **61.7 – 61.9 ℃（三次读数的极值，不是精度声明）**。#163 剩下的部分是让 `board_verify.sh` 自己留原始回显。
+- 数字同步全部按盘上真实读数改（`metric_recheck` 现在**判 11 行 / 红 0**）：WNS **0.812**（新最差格
+  `u_rx_par/udp_off_reg[1] → p_good_reg/D`，9 级含 5 级 CARRY4）、失败端点 **0 / 50948**、WHS **0.053**
+  但**落点换了**（`clk_fpga_0` 的 BD 交叉开关，0 级逻辑 ⇒ 更不是深度问题）、LUT 14334 / 26.94 %、
+  FF **8127（+48 = 这一刀的代价）**、`LUT as Memory` 4185（r103 是 4186，这一格从 `git show HEAD:` 那一版取，不靠记口数）、
+  动态 2.211 W、估算结温 52.5 ℃（Max Ambient 那一行也从 57.4 跟到 57.5）。两份 README 首页同步到 r104 身份。
+  路径级凭据在采纳前重跑过：`crit_path.tcl` 01:23、`hold_paths.tcl` 01:24（rc=0），所以 `crit_paths.txt` 与
+  `hold_paths.rpt` 讲的是 r104，不是抄上一版。
+- `icmp_tx.v` 的引用按正文逐条重钉（**没有整体 +16**）：`:175→:191`、`:225→:241`（并把"每拍无条件写低半字"改成
+  "每次开播重写低半字"——那句本来就不准）、`:333→:349`；`:239` 那句引的是**改之前**的表达式，它在今天的文件里
+  已经不存在 ⇒ 指到记录旧回绕的注释 `:342`。D5 之后：硬错 0、命中 387→390、候选 95→92。
+- 一条**当场自查抓到的口径错误**（写下来因为它是会重复的那类）：00:46 那节里我写"r104 报告里 `u_icmp_tx`
+  不出现（`grep -c` = 0）"，那是对 `build/timing_summary.rpt` 这份**只列最差若干条**的报告做的 grep；
+  采纳前重生成 `build/crit_paths.txt` 之后，同一族里的 `ip_head_reg[4][3] → check_buffer` 以 **1.111 ns / 10 级**
+  出现在次差位上 ⇒ 那句话的适用范围太窄，容易被读成"这一族整个消失了"。**准确说法**：它不再是全设计最差，
+  且 r100 咬人的那一族这一轮余量为正（1.111 ns）——"余量为正"不等于"改进"。这里不回改 00:46 那一节的原文，
+  按追加式档案的规矩把更正写在本节。
+- 采纳的位流身份（政策：位流与 xsa 随采纳提交）：bit `680f38f5794c`、xsa `121b8b652794`、
+  `top=2bf2ceeede07 / rtl=8997a62b75ba`。**回退到 r103 现在是真能回退的**：`git checkout 54346ae -- src/rtl/eth/icmp_tx.v`
+  加 `git checkout 54346ae -- build/system.bit build/system.xsa`（r103 那两个文件在 `54346ae` 里）。

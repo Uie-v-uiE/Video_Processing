@@ -1,0 +1,6 @@
+# r104 (bit 680f38f5794c / rtl 8997a62b75ba) 板上 [TEMP] 逐条原始回显 摘自 board/uart_script_capture.txt（uart_cmd_check 的捕获件）
+# 采集 2026-10-02 01:22，board_verify --geom --battery 那一次；这一份是为 #220 补的**被跟踪**凭据，逐字未改
+[TEMP] degC=61.98 raw=0xAA3D vccint=997mv th=85C over=0 sane=1 osd=62C gpio=0x62
+[TEMP] degC=61.85 raw=0xAA2B vccint=998mv th=0C over=1 sane=1 osd=62C gpio=0x62
+[TEMP] degC=61.72 raw=0xAA1A vccint=996mv th=200C over=0 sane=1 osd=62C gpio=0x62
+[TEMP] degC=61.89 raw=0xAA30 vccint=998mv th=85C over=0 sane=1 osd=62C gpio=0x62

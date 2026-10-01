@@ -1033,3 +1033,27 @@ Slice LUT **14388**(27.05 %)、FF **8077**、DSP **19**、Dynamic **2.206 W**。
    而 `data/metrics.csv` 上一版还写着"要重读 `build/crit_paths.txt` 才准"。
    本轮把它连同 `setup_paths.rpt` / `hold_paths.rpt` 一起重跑，并且以后每轮采纳前重跑一次（记进台账 #219）。
 
+
+## r104 这一列（2026-10-02 01:2x；只带 #141 那一刀）
+
+| 项 | r103 | r104 | 这一格怎么读 |
+|---|---|---|---|
+| 全设计 setup WNS | 0.608 ns | **0.812 ns** | 换了一族不等于收益：规则 35 说绝对差不算收益或损失；这里能写的事实是"r103 的最差格在 `u_icmp_tx`，r104 的最差格在 `u_rx_par`" |
+| 全设计最差那一格 | `u_icmp_tx/tx_data_num_reg[15] → data_cnt_reg[15]/CE`，10 级、route 64.65 % | `u_eth/u_rx_par/udp_off_reg[1] → p_good_reg/D`，**9 级、其中 CARRY4 占 5 级**，logic 43.1 % / route 56.9 % | 新最差是**算术深度**（UDP 偏移→包有效标志），不是绕线；要再动它得改算法，不是换策略 |
+| 次差（同一份 `crit_paths.txt`） | `ip_head_reg[4][1] → check_buffer` 0.697 ns | 同一族还在，但退到 **1.111 ns / 10 级** | r100 当年就是被这一族以 −0.110 咬掉 ⇒ 这次它余量为正，**这是"没退回上一次的失败"而不是"改进"** |
+| WHS | 0.053 ns | 0.053 ns（**换了落点**：`clk_fpga_0` 的 BD 交叉开关，0 级逻辑） | hold 地板没动；余量里含自加的 0.8 ns 不确定度（`src/constraints/rk_zynq7020.xdc:50` 那一条系列） |
+| 失败端点 | 0 / 50868 | 0 / 50948 | 端点总数增长来自布线器换了实现，不是接口变化 |
+| Slice LUT | 14333（26.94 %） | 14334（26.94 %） | +1 |
+| LUT as Memory | 4186 | 4185 | 从 git 里那一版的 `utilization.rpt` 取的，不靠记口数 |
+| Slice 寄存器 | 8079 | **8127（+48）** | 这一刀的全部代价：三组 16 位"减一后"寄存器；与隔离滚量到的 +48 **一致**（两次独立构建给出同一代价，这才是可写的对照） |
+| 动态功耗 | 2.212 W | 2.211 W | 同量级 |
+| 综合告警名册 | 19 种码 | 19 种码，**逐码计数与 8-7137 的寄存器身份列表都相同** | 见 `report/log/ISSUES.md` 00:59 那一节：这是"没有隐藏代价"的证据，不是"更好" |
+| 门禁 | 19 绿 / 1 红（C5c） | 19 绿 / 1 红（**同一条 C5c**） | 台架判据条数也同为 141（140 PASS + 1 FAIL）⇒ 这一刀没有引入新红，也没有把 C5c 修掉 |
+
+结论三条：① **#141 采纳**——它把 r103 的全设计最差那一族从最差位上挪走了，代价是 +48 触发器，两次构建（隔离与正式）给出的代价一致、且告警名册逐字不变；
+② **时序到头的准确说法**：连续三轮里最差格子换族（`u_icmp_tx` → `u_rx_par`），`eth_rxc` 这一档余量停在 0.5–0.8 ns；
+   BRAM 换 setup（r90）、再滚策略（r91/r95b）、OSD 读侧锥（#105 已量 22 级）都已量过并否决 ⇒ 剩下的空间需要**新的算法级改法**
+   （例如把 `udp_off → p_good` 那 5 级 CARRY4 的算术重排），继续换工具策略不再被视为可收益；
+③ 这一列的每一个数都点名凭据：`build/timing_summary.rpt`、`build/crit_paths.txt`（01:23 重生成）、
+   `build/hold_paths.rpt`（01:24）、`build/utilization.rpt`、`build/power.rpt`、`build/r104_gates.txt`、
+   `build/r104_board_verify_console.txt`、`build/r104_board_ping.txt`、`build/evidence/r104_temp_lines.txt`。

@@ -236,7 +236,7 @@
 - **`#188`（中，输入不可信 ⇒ 回一个畸形大帧）**：`ping -l 0`（Windows）/ `ping -s 0`（Linux）发出的
   echo request 载荷是 0 字节，而 ICMP 收侧的口径就是"IP 总长 − 20 − 8"（`src/rtl/eth/icmp_rx.v:4`、`:266`）⇒
   送给发侧的字节数是 0（`src/rtl/eth/eth_udp_video_top.v:103` 原样搬，无下限）⇒
-  `src/rtl/eth/icmp_tx.v:325` 那句 `data_cnt < tx_data_num - 16'd1` 变成 `0 < 16'hFFFF` **恒真**，
+  `src/rtl/eth/icmp_tx.v:342` 那条注释记着旧写法的回绕（`tx_data_num - 16'd1 / - 16'd2` 在 16 位里回绕成 65535 / 65534）；当时那句 `data_cnt < tx_data_num - 16'd1` 在零载荷下变成 `0 < 16'hFFFF` **恒真**，
   数据状态要数到 65535 才出得去（唯一出口 `skip_en` 在 `data_cnt == tx_data_num - 16'd1` 那一支里）。
   结果：回一个"数据段 65536 字节、IP 头里却写着总长 28"的畸形巨帧，并占住发侧多路选择约 0.52 ms。
   **画面不受影响**（Z7 不经这条通路发 UDP 视频，`:166-168` 那句 `tx_start_en(1'b0)` 就是它），
@@ -254,7 +254,7 @@
   **改前红是量出来的**：0 字节那一档数据态 65536 拍、整帧 `tx_en` 65590 拍——做法是把 `src/rtl/eth/icmp_tx.v`
   临时 `git checkout HEAD --` 退回改前跑一遍再放回（凭据 `build/r98_188_before.txt`）。
   **改后**：18 拍、整帧 72 拍，而 8/56 两档的字节数与补位内容**逐字不变**（18 / ad / ad / 56，
-  凭据 `build/r98_188_after.txt`）。改法是给零载荷单开一支（`src/rtl/eth/icmp_tx.v:333`：落 `tx_req`、
+  凭据 `build/r98_188_after.txt`）。改法是给零载荷单开一支（`src/rtl/eth/icmp_tx.v:349`：落 `tx_req`、
   补位到 18 即结束），`:344/:345/:358` 那三处原来的"减一"一个字没动 ⇒ 合法长度的比较形状与今天一致，
   `#141` 要的时序下沉仍是独立的一刀。两处不许略过的实话：`:358` 那句在 0 载荷时依旧永假（回绕成 65534），
   只是新分支每拍把 `tx_req` 钉 0 才让它不再有意义；以及 `grep -ln icmp_tx sim/*.v` 只命中这份新台架
@@ -311,7 +311,7 @@
 - 现状（2026-10-01 21:2x 更正；上面那句"台架未跑、未修"是 r98 批的残留，已被上一段作废）：
   **机理核实到行 → 台架先红后绿（`tb_zoom_frac` 改前 S3 红＝10 个命中全部取错行，改后 `RESULT tb_zoom_frac PASS errors=0`，
   同族 `tb_zoom_mapper / tb_v94_zoom_sel / tb_v96_zoom_scan` 三份都 PASS、FAIL 行数 0；凭据 `build/r103_tb_*.txt`）→ 已修**；
-  r103 只带这一刀，构建已完成（`bit f8439575eec5`，源树 `top=2bf2ceeede07 / rtl=50586c64bb87`、`--match` 为 fresh），
+  r103 只带这一刀，构建已完成（`bit 680f38f5794c`，源树 `top=2bf2ceeede07 / rtl=8997a62b75ba`、`--match` 为 fresh），
   采纳与上板看本节末的板状态行。
   ⚠ **本条没有板级机器判据**：顶层台架在旋转态只按形状判（C4 那圈），`src/host/geom_check.mjs` 读的是 lane23 控制字，
   两者都不比对逐像素源行 ⇒ 板侧只有眼睛行 E2。**E2 已于 2026-10-01 22:1x 在 r103 上由在场的人重新点过一次**
@@ -505,7 +505,7 @@ md5 `ef03eea4886e`）仍然是会越界写的那一版**；构建与板级复验
     （顶层进实例树的只有 `arp`/`icmp`/`udp_rx_parser`，综合日志也只到 `udp_rx_parser`）⇒ 那是死文件，别"顺手修"。
 - **不成立的三条**（都是别人报给我、我逐行读完推翻的，记下来是为了下一轮不再重复调查）：
   `frame_reasm` 提交时不复位 `pend`（`frame_reasm.v:111` 每次提交都重新赋值）；`icmp_tx` 的半字没有复位值
-  （`icmp_tx.v:175` 复位里就有 `ip_head[1][31:16]`，`:225` 每拍无条件写低半字）；
+  （`icmp_tx.v:191` 复位里就有 `ip_head[1][31:16]`，`:241` 每次开播重写低半字）；
   `total_num` 与实际发出字节数"不一致"（`:55`/`:87`/`:112` 是以太网最小帧补位，补位按规范不计进 IP 长度 ——
   报这条等于要求协议写错）。
 - **改口的一条**：`udp_rx_parser` 会拿上一帧的 `ihl`/`b23` 提前判定 —— **不会**。`bcnt` 与 `accept` 都在帧首清 0
@@ -657,7 +657,7 @@ r94 实测全设计 WHS **+0.049 ns 又落回 `eth_rxc` 那一格**（`clk_fpga_
 - **板上现在是 r103**（2026-10-01 21:33 三步 JTAG：`ps_jtag_boot`→`program_pl`→`ps_app_reload`，
   token 依次是 `DDR_ECHO: 5A5AA5A5`、`PROGRAMMED xc7z020_1 <- …/build/system.bit`、`RESUME: ok / FLOW_DONE`，
   凭据 `build/r103_jtagboot.txt`、`build/r103_program_pl.log`、`build/r103_appreload.txt`；
-  bit `f8439575eec5`、xsa `f9d01c9340be`、`ps_app.elf` 仍是 `d0b07f84a068`——**没重编**：这一轮只动
+  bit `680f38f5794c`、xsa `121b8b652794`、`ps_app.elf` 仍是 `d0b07f84a068`——**没重编**：这一轮只动
   `src/rtl/process/zoom/zoom_mapper.v`，顶层端口一行没改 ⇒ 地址表/GPIO 位宽/中断号全不变；
   树 `top 2bf2ceeede07`（未动）/ `rtl 50586c64bb87`（80 份文件），`--match` 判 fresh）。
   板级复验：`board_verify --geom --battery` **PASS，判红步骤 0**（几何 `RESULT PASS geom_check（ok=10 fail=0）`；
@@ -669,7 +669,7 @@ r94 实测全设计 WHS **+0.049 ns 又落回 `eth_rxc` 那一格**（`clk_fpga_
   「顶层台架 tb_v98」，它的成因就是公开声明过的 `C5c`**——那一跑数到 **140 条 PASS + 1 条 FAIL**
   （`RESULT tb_v98_top_seam FAIL nfail=1`，凭据 `build/tb_v98_report.txt` 头部戳 `top=2bf2ceeede07 / rtl=50586c64bb87`、
   出处时间 20:59:18 是**编译前**由 `sim/run_one.sh` 写的）⇒ **#189 这一刀没有引入任何新的红**。
-  门禁自己戳的身份是 `system.bit md5=f8439575eec5`，与板上那块同源同批。
+  门禁自己戳的身份是 `system.bit md5=680f38f5794c`，与板上那块同源同批。
   试冻结照旧 **REFUSE**（链尾原话"GATES: 有红项（判定 20 项）—— 不采纳，保留上一版"），
   这与 r99–r102 完全一致：**声明过的那条红不消，冻结集就不前移**（现在最新且全绿的冻结集仍是 `r75_gates.txt`）
   ⇒ 说口径的时候别把"采纳这块位流"与"冻结证据集前移"混成一件事。

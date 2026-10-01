@@ -53,7 +53,7 @@ VP_XSDB=<Vitis>/bin/xsdb.bat bash build/board_verify.sh --battery --geom
 
 | 指标 | 读数 | 出处 |
 |---|---|---|
-| 全设计 setup WNS | **0.608 ns**（板上这一版 r103，21:32 三步 JTAG 刷入，`bit f8439575eec5`；门禁 20 项 19 绿 / 1 红，唯一红是声明过的 `C5c`），失败 setup/hold 端点 **0 / 50868** | `build/timing_summary.rpt`、`build/r103_gates.txt` |
+| 全设计 setup WNS | **0.812 ns**（板上这一版 r104，2026-10-02 01:18 三步 JTAG 刷入，`bit 680f38f5794c`；门禁 20 项 19 绿 / 1 红，唯一红是声明过的 `C5c`），失败 setup/hold 端点 **0 / 50948** | `build/timing_summary.rpt`、`build/r104_gates.txt`、`build/r104_board_verify_console.txt` |
 | 逐时钟 setup 余量 | 125 MHz 收包域 `eth_rxc` **0.608 ns**（占它 8 ns 周期的 7.6 %，全设计最差就是它）；100 MHz `clk_fpga_0` **1.035 ns**（10.4 %）；50 MHz 显示域 `clkout0_1` **1.061 ns**（5.3 %）；`sys_clk` **14.849 ns** | 同上，Intra Clock Table 那一段。⚠ 这些绝对值**与上一版的差不作为收益或损失**（同一条路实测摆过 0.4 ns 的放置抖动，规矩 35）|
 | 保持时间 | 最差 **0.053 ns**（125 MHz 收包域 `eth_rxc`），50 MHz 显示域 **0.056**、100 MHz `clk_fpga_0` **0.062**、`sys_clk` **0.134** —— 最薄的一类数；那一格只有 **1 级逻辑、走线占 81.0 %**（`build/hold_paths.rpt` 本轮重生成）。⚠ 口径要说清：这是"**按 r79 加严的 0.8 ns hold 不确定度**要求之后"剩下的量，不是真实余量只有 0.0x | 同上 |
 | BRAM / LUT / FF / DSP | **95 tile（67.86 %）/ 14333（26.94 %）/ 8079（7.59 %）/ 19（8.64 %）** | `build/utilization.rpt` |

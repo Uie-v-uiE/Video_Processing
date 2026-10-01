@@ -1,0 +1,9 @@
+PASS R3 legit frame completes | a well-formed echo request (payload 8) must give exactly one rec_pkt_done with 8 bytes; if this is red the STIMULUS is wrong, not the DUT
+PASS R1 wrapped length must not park the parser | er a bogus IP total_length=20 the 16-bit minus wraps to ~65516; leaving st_rx_data needs skip_en/error_en and st_rx_data never sets error_en
+PASS R1b only the legit frame emits payload | les across the bogus frame AND the following legit one: 8 means only the real payload shipped, >8 means the parked parser ate the next frame
+PASS R2 next legit frame still answered | the wrapped parser keeps consuming the FOLLOWING frame; a legit ping behind it must still finish with its own id/seq
+RESULT tb_icmp_len_wrap PASS
+INFO: [Common 17-206] Exiting xsim at Thu Oct  1 22:50:18 2026...
+exit
+INFO: [Common 17-206] Exiting xsim at Thu Oct  1 22:50:18 2026...
+VERDICT tb_icmp_len_wrap: RESULT tb_icmp_len_wrap PASS || FAIL 行数=0 || PASS 行数=4
