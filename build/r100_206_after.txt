@@ -1,0 +1,11 @@
+# #206 改后凭据（2026-10-01 10:37，树上带 total_length<28 的守卫）
+# 改前红：build/r99_206_before.txt（R1/R1b/R2 三条红，见 report/log/ISSUES.md #206 一节）
+VERDICT tb_icmp_len_wrap: RESULT tb_icmp_len_wrap PASS || FAIL 行数=0 || PASS 行数=4
+VERDICT tb_icmp_ping0: RESULT tb_icmp_ping0 PASS || FAIL 行数=0 || PASS 行数=5
+VERDICT tb_icmp_rx_len: [tb_icmp_rx_len.v] RESULT tb_icmp_rx_len PASS errors=0 || FAIL 行数=0 || PASS 行数=0
+prov:
+fpver=norm1
+top_md5=2bf2ceeede07
+tb_md5=4c61bf88a0d6
+rtl_md5=71faa69be8c9
+date=2026-10-01T10:36:19+08:00
