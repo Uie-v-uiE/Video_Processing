@@ -253,7 +253,7 @@ module pl_video_top #(
     // ⚠ BILIN_ROWS 必须**偶数**（`row0 = ~y[0]` 定成对奇偶，奇数会让一对分属两个源行 ⇒ A/B 错行）。凭据 tb_v89 T1、tb_v101 L3/L6、tb_v98 C1c/C1d/C1h；缝连续性的最终凭据是眼睛（board/README.md 第 12 行）。
     localparam integer BILIN_ROWS = 2;
     // bilin 的运行时 on/off：`gpio_o[19]`（#83）→ 这条 3 级同步 → `bilin_en_pix`。
-    //   为什么走 gpio_o 而不是 cfg1：cfg1 的 32 位已满（docs/COMMANDS.md §5 的位表），那是一次新跨域。
+    //   为什么走 gpio_o 而不是 cfg1：cfg1 的 32 位已满（report/COMMANDS.md §5 的位表），那是一次新跨域。
     //   复位默认取 **1** ⇒ 上电画面与它是 localparam 常量那一版逐位相同（"加了口子但观感不变"可查）。
     (* ASYNC_REG = "TRUE" *) reg be0, be1, be2;
     always @(posedge clk_pix or negedge rst_pix_n) begin
