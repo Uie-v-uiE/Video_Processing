@@ -53,11 +53,11 @@ VP_XSDB=<Vitis>/bin/xsdb.bat bash build/board_verify.sh --battery --geom
 
 | 指标 | 读数 | 出处 |
 |---|---|---|
-| 全设计 setup WNS | **0.384 ns**（板上这一版 r102），失败 setup/hold 端点 **0 / 50868** | `build/timing_summary.rpt` |
-| 逐时钟 setup 余量 | 125 MHz 收包域 **0.506 ns**（占它 8 ns 周期的 6.3 %，全设计最差就是它）；100 MHz 域 **1.509 ns**（15.1 %）；50 MHz 显示域 **2.054 ns**（10.3 %）| 同上，Intra Clock Table 那一段。⚠ 这些绝对值**与上一版的差不作为收益或损失**（同一条路实测摆过 0.4 ns 的放置抖动，规矩 35）|
-| 保持时间 | 最差 **0.028 ns**（100 MHz `clk_fpga_0` 域），125 MHz 收包域 **0.034**、50 MHz 显示域 **0.066** —— 最薄的一类数。⚠ 口径要说清：这是"**按 r79 加严的 0.8 ns hold 不确定度**要求之后"剩下的量，不是真实余量只有 0.0x | 同上 |
-| BRAM / LUT / FF / DSP | **95 tile（67.86 %）/ 14359（26.99 %）/ 8078（7.59 %）/ 19（8.64 %）** | `build/utilization.rpt` |
-| 功耗 | 动态 **2.213 W**、估算结温 **52.6 °C**（工具置信度 Low，**是估算**，没有实测；板上片上 XADC 的读数是另一路，见 `data/metrics.csv` 与串口 `temp`） | `build/power.rpt` |
+| 全设计 setup WNS | **0.608 ns**（本轮 r103 构建；此刻板上还是 r102，刷过之后才改口），失败 setup/hold 端点 **0 / 50868** | `build/timing_summary.rpt` |
+| 逐时钟 setup 余量 | 125 MHz 收包域 `eth_rxc` **0.608 ns**（占它 8 ns 周期的 7.6 %，全设计最差就是它）；100 MHz `clk_fpga_0` **1.035 ns**（10.4 %）；50 MHz 显示域 `clkout0_1` **1.061 ns**（5.3 %）；`sys_clk` **14.849 ns** | 同上，Intra Clock Table 那一段。⚠ 这些绝对值**与上一版的差不作为收益或损失**（同一条路实测摆过 0.4 ns 的放置抖动，规矩 35）|
+| 保持时间 | 最差 **0.053 ns**（125 MHz 收包域 `eth_rxc`），50 MHz 显示域 **0.056**、100 MHz `clk_fpga_0` **0.062**、`sys_clk` **0.134** —— 最薄的一类数；那一格只有 **1 级逻辑、走线占 81.0 %**（`build/hold_paths.rpt` 本轮重生成）。⚠ 口径要说清：这是"**按 r79 加严的 0.8 ns hold 不确定度**要求之后"剩下的量，不是真实余量只有 0.0x | 同上 |
+| BRAM / LUT / FF / DSP | **95 tile（67.86 %）/ 14333（26.94 %）/ 8079（7.59 %）/ 19（8.64 %）** | `build/utilization.rpt` |
+| 功耗 | 动态 **2.212 W**（片上合计 2.389 W）、估算结温 **52.6 °C**（工具置信度 Low，**是估算**，没有实测；板上片上 XADC 的读数是另一路，见 `data/metrics.csv` 与串口 `temp`） | `build/power.rpt` |
 | SD 本地播放 | **29.8 – 30.0 fps**（100 帧滑窗，板上读回） | [data/metrics.csv](data/metrics.csv) |
 | 上板校验 | 串口命令电池 100 条通过、几何"最后一跳"8 条判定全过 | [board/ACCEPTANCE.md](board/ACCEPTANCE.md) |
 

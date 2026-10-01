@@ -998,3 +998,38 @@ Slice LUT **14388**(27.05 %)、FF **8077**、DSP **19**、Dynamic **2.206 W**。
    WNS 从 +0.506（r101）到 +0.384、WHS 从 +0.028 到 +0.052，两端都是 met、失败端点都是 0。
    ⚠ 按本文件一直用的口径：**绝对值的一升一降都不写成收益或损失**，只报"两条都 met、0 失败端点、
    最差那一格的归属换了"这一件事；要谈收益必须同一份网表多滚几轮，那是 #141 已经付过学费的地方。
+
+## r103 这一列（2026-10-01 21:0x，从本轮的 `timing_summary.rpt` / `crit_paths.txt` / `hold_paths.rpt` 逐条读，不抄上一轮）
+
+设计级读数：**WNS +0.608 ns / WHS +0.053 ns / WPWS +0.264 ns，失败端点 0 / 50868**，
+`All user specified timing constraints are met`。逐时钟 setup：`eth_rxc` 0.608（它 8 ns 周期的 7.6 %）<
+`clk_fpga_0` 1.035 < `clkout0_1` 1.061 < `sys_clk` 14.849。凭据：`build/timing_summary.rpt`（21:01 那一分钟出的），
+路径级摘要 `build/crit_paths.txt` 与 `build/setup_paths.rpt` / `build/hold_paths.rpt`（本轮由
+`build/tcl/crit_path.tcl`、`build/tcl/hold_paths.tcl` 各自重跑一次生成——**这两份在 r102 收尾时是 9-29 的旧件**，
+这就是"数字对回报告"必须连凭据一起对的原因）。
+
+| 类型 | slack | 时钟组 | 起 → 止 | 逻辑级数 | 走线占比 | 这一格能动吗 |
+|---|---|---|---|---|---|---|
+| setup | **0.608** | `eth_rxc` | `u_icmp_tx/tx_data_num_reg[15]/C → data_cnt_reg[15]/CE` | **10**（CARRY4=4 LUT2=1 LUT4=2 LUT5=2 LUT6=1） | 64.65 % | **就是 #141 那一族**（应答计数器的并行比较）。上一列里它排第二、这一列它是全设计最差 ⇒ "要不要重提 #141"的门槛变了，但**先决条件没变**：必须同一网表多滚几轮，否则又是归因不清 |
+| setup | 0.697 | `eth_rxc` | `u_icmp_tx/ip_head_reg[4][1]/C → check_buffer_reg[19]/D` | 11（CARRY4=6） | 61.89 % | 同一条 ICMP 发送锥的隔壁一格；CARRY4=6 说明是那条 16 位加法/比较链 |
+| setup | 0.725 | `eth_rxc` | `u_rgmii_rx/rxdata_bus[1].u_iddr_rxd/C → u_crc_rx/crc_data_reg[22]/D` | 4 | **83.84 %** | 收包 CRC 链，走线占九成 ⇒ 布局问题；#57 那一刀已经把这条域的时钟树理顺了，剩下的不在 RTL 里 |
+| setup | 1.035 | `clk_fpga_0` | `u_pl/u_arb/owner_eth_reg/C → u_bilin/u_fb/lo_reg_0_44/ADDRARDADDR[2]` | **1**（LUT3=1） | **93.42 %** | 一级逻辑 + 九成三走线 = **纯拥塞**；而起点正是 #214 那条 `owner_eth`。它的 slack 比 r102 那一格（1.873）低，但**不写成损失**（同一条路摆过 0.4 ns 以上） |
+| setup | 1.061 | `clkout0_1` | `u_split_ctrl/prod/CLK → u_osd/b_reg[2]/D` | **22** | 75.22 % | OSD 蓝通道锥：**上一列 23 级、这一列 22 级**——本轮没动它，级数是布局还给的一格，**不许记成结构收益**。它也不再是全设计最差，所以"#105 那一刀"的紧迫性下降（任务 #88 的排序据此改） |
+| setup | 3.655 | `sys_clk → clkout0_1` | `u_ang/angle_reg[1]/C → u_osd/b_reg[2]/D` | 21 | 69.92 % | 同一个 OSD 锥的角度入口 |
+| **hold** | **0.053** | `eth_rxc` | `u_rx_mac/m_sof_reg/C → u_rx_par/in_pay_reg/D` | 1（LUT6=1） | 81.0 % | 全设计最差 hold。1 级逻辑、走线八成，且含自加 0.8 ns 不确定度 ⇒ **动逻辑没有着力点** |
+| hold | 0.054 | `eth_rxc` | `u_cdc/wgray_reg[13]/C → u_lm/full_d_reg/D` | 2（CARRY4=1 LUT4=1） | 71.7 % | 灰码进 `link_monitor` 的跨域同族（与 r102 那一格同一族） |
+| hold | 0.055 ×3 | `eth_rxc` | `icmp_id_reg[13] → ip_head_reg[6][29]`、`gap_last_reg[11] → lm_bus_reg[107]`、`total_num_reg[2] → ip_head_reg[0][2]` | **0** | 84.8 / 85.7 / 76.6 % | 三条 0 级纯走线 ⇒ 同上 |
+| hold | 0.056 | `clkout0_1` | `u_bilin/j_d2_reg[7]/C → tap_hold_reg/ADDRBWRADDR[12]` | **0** | 52.2 % | bilin 读口地址，BD 之外但同样没有逻辑可减 |
+
+**这一列说满也说实话**：
+1. 前十条窄路径里 **setup 有两条是 1 级/93 %、hold 有六条里五条 ≤1 级且走线 52–86 %** ⇒ "到头"的含义与 r102 一样：
+   **剩下的杠杆在布局/拥塞与实现策略，不在 RTL 逻辑层**。策略扫描已经滚过（r91 判定 hold 不动 ⇒ 量过并放弃），
+   post-route `phys_opt` 在零违规设计上是结构性空转（r94 判定）。
+2. **本轮唯一 RTL 改动是 `zoom_mapper` 的 #189**（16 位判小数 + `256−ceil` 权重 + 删掉下游第二次翻转），
+   它**全部在组合逻辑里**：触发器一字未动（8079 与 r102 完全相同），LUT 反而 −22（14333 vs 14355），
+   BRAM/DSP/分布式 RAM 全部与 r102 相同（95 tile / 19 / 4044）。
+   ⚠ 这句只描述"这一刀的资源代价"，**不构成时序收益的宣称**：绝对值不动口径。
+3. 值得单独立一句的是 **`crit_paths.txt` 这类"路径级"凭据不会自己刷新**：它是 9-29 生成的，
+   而 `data/metrics.csv` 上一版还写着"要重读 `build/crit_paths.txt` 才准"。
+   本轮把它连同 `setup_paths.rpt` / `hold_paths.rpt` 一起重跑，并且以后每轮采纳前重跑一次（记进台账 #219）。
+
