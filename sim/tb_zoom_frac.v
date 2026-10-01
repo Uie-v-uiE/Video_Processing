@@ -162,6 +162,66 @@ module tb_zoom_frac;
         end else
             $display("PASS H5 rot_has_fraction | %0d of %0d rotation pixels carry a non-zero fraction", nfrac, ntot);
 
+        // ————— #189：不是猜"这种像素存在不存在"，是扫出来并数清楚 —————
+        // 病灶：`zoom_mapper.v:75-79` 判"有没有小数"只看 `rot_ys[15:8]`，而真实小数是 `rot_ys[15:0]/65536`。
+        // 当小数落在 `(0, 1/256)` 时它读成"没有小数"⇒ 该减的那一格没减 ⇒ `y_out` 整行取错。
+        // 三条判据各管一件事，缺一条就会变成"看着红但其实什么都没测"：
+        //   S2 扫描**必须真的遇到**足够多这种像素（正对照能动能成立的前提；遇不到就当场判红，不许空过）
+        //   S1 把看到的数量与第一个反例**报出来**（每次跑都打一行，不靠人翻日志）
+        //   S3 这些像素的 `floor_y` 必须等于实数参考（修前必须红，修后必须绿）
+        begin : scan189
+            integer ai, si, ax, ay, tot, nlow, nbad, fb_x, fb_y, fb_ang, fb_inv, fys2, an;
+            real    fr;
+            tot = 0; nlow = 0; nbad = 0; fb_x = -1; fb_y = -1; fb_ang = -1; fb_inv = -1;
+            for (ai = 0; ai < 12; ai = ai + 1) begin
+                an = 9'd20 + ai * 19;                    // 覆盖 20°..248°（表是 Q8，一格≈1.4°）
+                for (si = 0; si < 2; si = si + 1) begin
+                    inv_scale = (si == 0) ? 10'd256 : 10'd299;
+                    rotate_en = 1'b1; angle = an[8:0];
+                    repeat (10) step;                     // 同步表：换角度后要等它换过来
+                    Cv = dut.u_cos.value; Sv = dut.u_sin.value; Ct = Cv; St = Sv;
+                    if (Ct == 256.0 && St == 0.0) begin
+                        $display("FAIL S0 scan189_table_stale | angle=%0d 却取到 C=256/S=0 ⇒ 参考不可信，本轮作废", an);
+                        errors = errors + 1;
+                    end
+                    for (ay = 90; ay < 270; ay = ay + 15) begin
+                        for (ax = 150; ax < 370; ax = ax + 17) begin
+                            if (expect_at(ax[11:0], ay[11:0], 1'b1, inv_scale)) begin
+                                x_in = ax[11:0]; y_in = ay[11:0];
+                                step; step; step;
+                                tot = tot + 1;
+                                fr  = Yr - floor_i(Yr);                 // 显示空间的小数（0 ≤ fr < 1）
+                                // ⚠ 选错端就等于没测：RTL 判的是**数学空间**的小数 f，而这里 Yr 已经翻过号
+                                //   （Y_disp = H/2 − Y_math），所以 f∈(0,1/256) ⇔ fr = 1−f ∈ (255/256, 1)。
+                                //   第一版按 fr < 1/256 筛，扫到 8 个像素、0 个错——那是**筛到了另一头**，
+                                //   不能当成"#189 不存在"的证据（2026-10-01 自己抓到的一次"尺子维度错"）。
+                                if (fr > (255.0 / 256.0) && fr < 1.0) begin
+                                    nlow = nlow + 1;
+                                    fys2 = floor_i(Yr);
+                                    if (y_out !== fys2[11:0]) begin
+                                        nbad = nbad + 1;
+                                        if (fb_x < 0) begin
+                                            fb_x = ax; fb_y = ay; fb_ang = an; fb_inv = inv_scale;
+                                        end
+                                    end
+                                end
+                            end
+                        end
+                    end
+                end
+            end
+            $display("S1 scan189 | 扫了 %0d 个旋转态像素，其中数学空间小数落在 (0,1/256)（显示侧 fr>255/256）的 %0d 个，#189 让它们取错行的 %0d 个；首个反例 x=%0d y=%0d angle=%0d inv=%0d",
+                     tot, nlow, nbad, fb_x, fb_y, fb_ang, fb_inv);
+            if (nlow < 5) begin
+                $display("FAIL S2 scan189_saw_the_case | 只遇到 %0d 个这种像素（<5）⇒ 这条扫描等于没测，不许当通过", nlow);
+                errors = errors + 1;
+            end
+            if (nbad != 0) begin
+                $display("FAIL S3 rot_frac_lowbyte | %0d/%0d 个像素的 floor_y 与实数参考差一格 ⇒ #189 是活缺陷（判小数存在与否必须用 16 位，不是高字节）", nbad, nlow);
+                errors = errors + 1;
+            end
+        end
+
         if (errors == 0) $display("[tb_zoom_frac] RESULT tb_zoom_frac PASS errors=0");
         else             $display("[tb_zoom_frac] RESULT tb_zoom_frac FAIL errors=%0d", errors);
         $finish;

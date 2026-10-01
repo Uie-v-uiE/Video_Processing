@@ -73,15 +73,25 @@ module zoom_mapper #(
     //   ⇒ Y_disp = (C − yr_pix − 1) + (256 − f)/256  当 f≠0；f=0 时就是 C − yr_pix、小数 0。
     //   只把小数接给 bilin 而不减那一格，就会在旋转态整体错一行（画面上是沿角度方向的一条剪切）。
     wire [7:0] rot_fx = rot_xs[15:8];
-    wire [7:0] rot_fy = rot_ys[15:8];
-    wire       rot_y_has_frac = (rot_fy != 8'd0);
+    // #189：判"有没有小数"必须看**完整的 16 位**小数，只看高字节会把 `(0, 1/256)` 读成"没有小数"。
+    //   真小数 f = rot_ys[15:0]/65536，纵向翻号之后显示侧要的是 1−f，用 8 位权重就得表示成
+    //   256 − ceil(f·256)：f∈(0,1/256) 时 ceil 恰为 1 ⇒ 权重 255、并且**必须**减那一格。
+    //   原来两半都错：`rot_y_has_frac` 用高字节 ⇒ 这一族不减格；`~rot_fy+1` 用高字节 ⇒ 权重给成 0。
+    //   症状是沿角度方向的稀疏"错一行"鬼影，实测发生率 ≈ 0.27 %（台架扫 3726 个像素命中 10 个，全错）。
+    wire [15:0] rot_fy16   = rot_ys[15:0];
+    wire        rot_fy_low = (rot_fy16[7:0] != 8'd0);
+    wire [8:0]  rot_fy_ceil = {1'b0, rot_fy16[15:8]} + (rot_fy_low ? 9'd1 : 9'd0);
+    wire [8:0]  rot_fy_9   = 9'd256 - rot_fy_ceil;      // f=0 时 =256 ⇒ 取低 8 位正好是 0
+    wire [7:0]  rot_fy     = rot_fy_9[7:0];
+    wire        rot_y_has_frac = (rot_fy16 != 16'd0);
     wire signed [31:0] sy_c = rot_s1 ? ((IMAGE_H / 2) - yr_pix - (rot_y_has_frac ? 32'sd1 : 32'sd0))
                                       : (ys_pix + (IMAGE_H / 2));
 
     // floor 与 frac 必须自洽：`>>> 8` 是**朝 −∞** 取整，余下的低 8 位正好是 [0,1) 的小数 ⇒ x_out 与 frac_x
     // 指的是同一条数轴上的同一格（换成 `/256` + 取余就会在负数上错一格）。旋转支同理，只是要取 [15:8]。
     wire [7:0] fx = rot_s1 ? rot_fx : raw_xs[7:0];
-    wire [7:0] fy = rot_s1 ? (~rot_fy + 8'd1) : raw_ys[7:0];   // 翻转之后小数也翻：256−f（f=0 时按 8 位回绕成 0，正好对）
+    wire [7:0] fy = rot_s1 ? rot_fy : raw_ys[7:0];   // #189：翻转已经在 `rot_fy` 里做过（256−ceil(f·256)），
+                                                     //   这里再 `~+1` 就是翻两次 ⇒ 会把刚修好的权重重新变成 f 本身
 
     always @(posedge clk or negedge rst_n) begin
         if (!rst_n) begin
