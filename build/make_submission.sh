@@ -534,6 +534,33 @@ ABS="$( { grep -rnE "D:[/\\]|C:[/\\]|/d/Software|/d/Xilinx" --include='*.sh' --i
 ABSN=0
 if [ -n "$ABS" ]; then ABSN="$(printf '%s\n' $ABS | wc -l)"; fi
 
+# ---- #217：台账（report/log/）的指路**只报数**，不判红 ----
+# 上面的死链判据范围是"活文档"（评委照着跑的说明书），日记类不在里面——那里的路径是**当天在仓库里**的名字，
+# 改名与剪枝都留在里面，那是过程记录（同 D1/D4c 划过的边界）。但"不在射程里"和"没人知道有多少"是两回事：
+# 03:36 实测包内 `report/log/*.md` 有 **748 条引用在包内不可解析（547 个唯一目标）**，
+# 而我第一次数出 0 —— 那是我那条命令的引号写坏了。所以这里把数**由工具打出来**，
+# 并且给它一条防空转的方向：这一层如果打 0，说明多半没扫到文件，而不是台账变干净了。
+LOGDEAD=0; LOGFILES=0
+if [ -d report/log ]; then
+  LOGFILES="$(ls report/log/*.md 2>/dev/null | wc -l)"
+  LOGDEAD="$(for g in report/log/*.md; do
+      [ -f "$g" ] || continue
+      grep -oE '(src|sim|build|board|data|skill|report|docs)/[A-Za-z0-9_./-]*[A-Za-z0-9_-]\.[A-Za-z0-9]{1,6}' "$g" 2>/dev/null |
+      sort -u | while read -r t; do
+        case "$t" in *'*'*|*'<'*|*'$'*|*NN*) continue ;; esac
+        case "$t" in *.out|board/uart_script_capture.txt) continue ;; esac
+        [ -e "$t" ] && continue
+        [ -e "report/log/$t" ] && continue
+        echo x
+      done
+    done | wc -l)"
+fi
+echo "台账指路（report/log/，$LOGFILES 份）：包内不可解析 $LOGDEAD 条 —— **只报数不判红**：那里记的是当天在仓库里的路径，"
+echo "  过程记录不参与「包完整性」判据；评委要核对读数请走活文档点名的 build/reports/ 那一份（那条由上面的死链自检与 D6 管）。"
+if [ "${LOGFILES:-0}" -gt 0 ] && [ "${LOGDEAD:-0}" = "0" ]; then
+  echo "  ⚠ 这一层数出 0 是可疑的：台账里从来都有路径引用。先确认 $LOGFILES 这份文件真的被扫到了，别把尺子坏了念成干净。"
+fi
+
 head -25 "$DEADLIST"
 echo "== 自检：死链 $DEAD ／ 旧名残留 $STALE ／ 带绝对路径的脚本 $ABSN${ABS:+ （$ABS）} =="
 
