@@ -128,6 +128,12 @@ function check(linesByFile, wordsByFile, docs) {
         const live = anch.filter((t) => (wordsByFile.get(key) || new Set()).has(t));
         if (live.length === 0) { needs.push(`${rel}:${idx + 1}  ${m[0]}  （句子里没有任何被引文件认识的符号，需人看）`); continue; }
         if (to > tgt.length) { fails.push(`${rel}:${idx + 1}  ${m[0]}  超出文件长度（${tgt.length} 行）`); continue; }
+        const iv = instViol(docLines, idx, m[0], linesByFile);
+        if (iv) {
+          fails.push(`${rel}:${idx + 1}  D5b「例化者」列指错：${m[0]} 第 1 列模块是 ${iv.mod}，`
+            + `被引那一行写的是「${iv.text}」——不是它的例化行`);
+          continue;
+        }
         const r = nearHit(tgt, from, to, live);
         if (r.ok) oks.push(`${rel}:${idx + 1}  ${m[0]}  锚点 ${r.anchor}`);
         else soft.push(`${rel}:${idx + 1}  ${m[0]}  锚点 ${live.slice(0, 3).join('/')}… 不在 ${r.lo}-${r.hi} 行里`);
@@ -143,6 +149,45 @@ function resolveTarget(cited, linesByFile) {
   let hit = null, n = 0;
   for (const k of linesByFile.keys()) if (k === base || k.endsWith('/' + base)) { hit = k; n++; }
   return n === 1 ? hit : (hit || (linesByFile.has(cited) ? cited : null));
+}
+
+// D5b（ISSUES #208 补的那条硬判据）：交付文档里表头写着「例化者」的那一列，
+// 被引行必须以本行第 1 列的模块名打头 —— 那一列的语义就是"它在哪里被例化"，
+// 指到别的代码上就是死引用。为什么这条可以是**硬错**而普通锚点不命中只能算 soft：
+// 列名把语义钉死了（不存在"指的是所在函数开头"那种合理解释），
+// 而它的"改前红"标本就是今晚 `report/MODULES.md` 那 28 条（命中 0 条）。
+function instColOf(docLines, idx) {
+  for (let j = idx; j >= 0 && j > idx - 400; j--) {
+    const l = docLines[j] || '';
+    if (/^\|\s*模块\s*\|/.test(l)) return l.split('|').findIndex((c) => c.trim() === '例化者');
+  }
+  return -1;
+}
+
+function instViol(docLines, idx, citeText, linesByFile) {
+  const line = docLines[idx] || '';
+  if (!line.startsWith('|')) return null;
+  const col = instColOf(docLines, idx);
+  if (col <= 0) return null;
+  const cols = line.split('|');
+  if (cols.length <= col || !cols[col] || cols[col].indexOf(citeText) < 0) return null;
+  const idents = (cols[1] || '').match(/[A-Za-z_][A-Za-z0-9_]*/g) || [];
+  const mod = idents[0];
+  const p = citeText.match(/:(\d+)/);
+  if (!mod || !p) return null;
+  const key = resolveTarget(citeText.split(':')[0], linesByFile);
+  if (!key) return null;
+  const tgt = linesByFile.get(key);
+  const ln = Number(p[1]);
+  if (!tgt || ln > tgt.length) return null;
+  const text = (tgt[ln - 1] || '').trim();
+  // 「例化者」列里带 `→` 的写法是另一种主张："这个包装模块在它自己的文件里例化了哪些子模块"
+  // （`arp` → `arp_rx`/`arp_tx`、`icmp` → `icmp_rx`/`icmp_tx`）。那一半按**前缀**判，
+  // 不然一个正确的行号（`arp.v:46` 正是 `arp_rx #(`）会被我说成错引用；不带箭头的仍按整词判死。
+  const loose = (cols[col] || '').includes('→');
+  const re = new RegExp('^' + mod + (loose ? '' : '\\b'));
+  if (re.test(text)) return null;
+  return { mod, from: ln, text: text.slice(0, 46) };
 }
 
 // 厂商树里的文件名：文档会引 `xsdps.c:156-159` 这种驱动行号，那些文件不在"我写的东西"范围，
@@ -187,6 +232,22 @@ function selfTest(code) {
       if (r.ok === want) pass++;
     }
   }
+  // D5b 自己的对照（#208）：今晚 `report/MODULES.md` 那 28 条死引用里的一个真实标本 ——
+  // `split_ctrl` 的"例化者"列改前写 :950（那是 axi 域的 always 块），改后写 :859（真的是例化行）。
+  // 两条都必须按预期走：错号判红、对号放行；否则这条硬判据就是没牙的。
+  const d5b = ['| 模块 | 职责 | 例化者 |', '|------|------|--------|',
+    '| `split_ctrl` | 分割线位置发生器 | `pl_video_top.v:950` |',
+    '| `split_ctrl` | 分割线位置发生器 | `pl_video_top.v:859` |',
+    // 带箭头的列允许"父 → 子"前缀匹配，但它**仍然要有牙**：指到一个不是 `arp*` 的行必须照样红。
+    '| `arp` → `arp_rx` / `arp_tx` | 包装层 | `arp.v:15` |'];
+  let b5 = 0;
+  for (const [row, wantRed, tag] of [[2, true, '错号 :950 必须红'], [3, false, '对号 :859 必须绿'],
+                                      [4, true, '箭头列指到非 arp* 行 :15 必须红']]) {
+    const cite = [...d5b[row].matchAll(CITE)][0][0];
+    const isRed = instViol(d5b, row, cite, code) !== null;
+    console.log(`  ${isRed === wantRed ? 'PASS' : 'FAIL'} D5b ${tag}：实测${isRed ? '红' : '绿'}`);
+    if (isRed === wantRed) b5++;
+  }
   // 硬错那一层也要能红：两条必定坏的必须被认出来，一条"越过 200 但在长文件里合法"的不许误报。
   // 说清楚强度差别：这里证明的是**判据还在跑**（以及被引文件真的被读进来了）；
   // 它真正的红→绿凭据是今晚那一次——修之前全树报 7 条硬错、逐条改对之后报 0 条（ISSUES #122 收口段）。
@@ -200,7 +261,7 @@ function selfTest(code) {
     console.log(`  ${got === want ? 'PASS' : 'FAIL'} 硬错判据 ${name}：${got === want ? '符合预期' : '不符合预期'}`);
     if (got === want) pass++;
   }
-  return pass === 5 ? 0 : 1;
+  return pass + b5 === 8 ? 0 : 1;
 }
 
 // 每个被引文件"认识的符号"全集：锚点必须先过这一关，才有资格判红（理由见 check 里那段注释）。
