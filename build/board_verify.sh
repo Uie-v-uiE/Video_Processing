@@ -130,6 +130,9 @@ for a in "$@"; do
     *) echo "忽略未知参数：$a（可用：--stream --battery --geom --round=rNN --self --help）" >&2 ;;
   esac
 done
+# 轮号写法归一：`--round=r104` 与 `--round=104` 都得落到 `r104_serial_raw.txt`。
+# 不加这一手，02:41 那次实跑就产出了 `rr104_serial_raw.txt`（我把参数里的 r 又拼了一遍）。
+ROUND=${ROUND#r}
 
 echo "== board_verify $(date '+%F %T') ==" | tee "$LOG"
 echo "工作目录：$ROOT" | tee -a "$LOG"
@@ -156,10 +159,15 @@ echo "-- 1b) 原始串口回显留档（被跟踪的那一份：[TEMP] 逐条，
 # 上面那 4 秒窗口的横幅抓不到它。以前我把这些行从本机捕获里**手抄**进 build/evidence/，
 # 于是交付表里"板上 XADC 温度"这一格的凭据是一份抄件（#220 的数据那一半已用 r104_temp_lines.txt 钉住，
 # 这一半是让工具自己产它 —— 否则复现的人拿不到同一件东西）。
-SERIAL_SECS=${SERIAL_SECS:-14}
+SERIAL_SECS=${SERIAL_SECS:-9}
 RAWW=$OUT.serial.raw
+# ⚠ `[TEMP] degC=…` 不是周期打印：那句 `xil_printf` 在 **temp 命令的处理路**里（`src/ps/main.c:889`），
+#   屏上那一格才是每秒由 `temp_poll` 刷的。所以被动守窗口抓 14 秒**一行 [TEMP] 都不会有**
+#   （02:39 实测：COM6 打得到、`CAPTURED_LEN 0`）—— 判据①的地板必须由**发命令**去兑现。
+#   `-Cmds` 是按空白拆词的，所以这里只给不带空格的单词，逗号分隔；读命令不改板上状态。
 powershell -NoProfile -ExecutionPolicy Bypass -File board/uart_cap_once.ps1 \
-  -Port COM6 -Seconds "$SERIAL_SECS" -Drain -Out "$RAWW" >/dev/null 2>&1
+  -Port COM6 -Seconds "$SERIAL_SECS" -Drain -Cmds "temp,STAT,temp,STAT" -CmdDelay 2 \
+  -Out "$RAWW" >/dev/null 2>&1
 PSRC=$?
 if [ -z "$ROUND" ]; then
   # 没有版本身份就不写 rNN 那份（#179 的教训：脚本自带默认值会把今天的数写成一份名字叫旧轮的假凭据）
