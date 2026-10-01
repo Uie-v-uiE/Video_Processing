@@ -53,7 +53,7 @@ VP_XSDB=<Vitis>/bin/xsdb.bat bash build/board_verify.sh --battery --geom
 
 | 指标 | 读数 | 出处 |
 |---|---|---|
-| 全设计 setup WNS | **0.506 ns**（板上这一版 r101），失败 setup/hold 端点 **0 / 50867** | `build/timing_summary.rpt` |
+| 全设计 setup WNS | **0.384 ns**（板上这一版 r102），失败 setup/hold 端点 **0 / 50868** | `build/timing_summary.rpt` |
 | 逐时钟 setup 余量 | 125 MHz 收包域 **0.506 ns**（占它 8 ns 周期的 6.3 %，全设计最差就是它）；100 MHz 域 **1.509 ns**（15.1 %）；50 MHz 显示域 **2.054 ns**（10.3 %）| 同上，Intra Clock Table 那一段。⚠ 这些绝对值**与上一版的差不作为收益或损失**（同一条路实测摆过 0.4 ns 的放置抖动，规矩 35）|
 | 保持时间 | 最差 **0.028 ns**（100 MHz `clk_fpga_0` 域），125 MHz 收包域 **0.034**、50 MHz 显示域 **0.066** —— 最薄的一类数。⚠ 口径要说清：这是"**按 r79 加严的 0.8 ns hold 不确定度**要求之后"剩下的量，不是真实余量只有 0.0x | 同上 |
 | BRAM / LUT / FF / DSP | **95 tile（67.86 %）/ 14359（26.99 %）/ 8078（7.59 %）/ 19（8.64 %）** | `build/utilization.rpt` |

@@ -67,7 +67,7 @@ the built-in test video. Commands, registers and every criterion are in
 
 | Metric | Reading | Source |
 |---|---|---|
-| Design-wide setup WNS | **0.506 ns** (board build r101), failing setup/hold endpoints **0 / 50867** | `build/timing_summary.rpt` |
+| Design-wide setup WNS | **0.384 ns** (board build r102), failing setup/hold endpoints **0 / 50868** | `build/timing_summary.rpt` |
 | Per-clock setup slack | 125 MHz receive domain **0.506 ns** (6.3 % of its 8 ns period, and the design's worst path); 100 MHz domain **1.509 ns** (15.1 %); 50 MHz display domain **2.054 ns** (10.3 %) | same file, Intra Clock Table. The delta versus a previous build is neither gain nor loss - the same path measured a 0.4 ns placement swing between builds |
 | Hold time | worst **0.028 ns** (100 MHz `clk_fpga_0` domain), 125 MHz receive domain **0.034**, display domain **0.066** - the thinnest class of margin, quoted **after** the 0.8 ns hold uncertainty this repo imposes | same file |
 | BRAM / LUT / FF / DSP | **95 tiles (67.86 %) / 14359 (26.99 %) / 8078 (7.59 %) / 19 (8.64 %)** | `build/utilization.rpt` |

@@ -9231,3 +9231,23 @@ echo request，期望几拍之内回 `st_idle`；现在这版必须判红），�
   r102 采纳、上板；`GATES:` 那句"不采纳"是它对所有红项一律用的固定尾巴，不是本次的新判词。
 - 顺手把 `rc=3` 读对：`run_one.sh:42-43` 的 3 是"判红"，不是第 60 行那个"门口看见别的 xsim"——
   我先前怀疑是自己那些离线台架污染了链子，查过才排除（那两个跑在 `/tmp/mut218/run`，且门禁里指纹三枚都是 fresh）。
+
+## 2026-10-01 20:1x–20:2x **r102 收口**：#218 板上闭环、门禁回到与 r101 同形、一处我自己造的假账已修
+
+- **采纳与上板**：门禁修完桥接行之后是**红 1 / 绿 19**，唯一红 = 第 15 项里那条**公开声明保留**的 `C5c`
+  （与 r101 采纳时逐字同形）。走三步 JTAG（`ps_jtag_boot` → `program_pl` → `ps_app_reload`，
+  凭据 `build/r102_jtagboot.txt` / `build/r102_program_pl.txt` / `build/r102_appreload.txt`，
+  `PROGRAMMED xc7z020_1 <- build/system.bit`）——**不写 QSPI、不碰 EEPROM**。
+- **#218 的板上闭环**（这次是唯一还欠的一档）：普通 `ping -n 4` = **4/4**；`ping -n 3 -l 0` = **3/3，回复"字节=0"**
+  （修前 0/3）；紧接着再 `ping -n 4` = **4/4**（修前从那一刻起永久 0/4）。⇒ "自己不应答 + 毒死后面所有包"两点都在板上消失。
+- **位置复查在 r102 上重做**：`bash build/board_verify.sh --geom --battery` ⇒ `RESULT PASS geom_check（ok=10 fail=0）`
+  ＋ 串口电池 `uart_cmd_check` **105 条全过（97.7 s）**＋ `RESULT board_verify PASS（判红的步骤：0）`
+  （`build/r102_board_verify.txt`）。台架那半边（C 系列 140 PASS / 1 红 = 声明的 C5c）见前面 20:0x 那段。
+- **试冻结**：`bash build/freeze_evidence.sh 102` ⇒ **REFUSE**（`r102_gates.txt` 不是 ALL PASS）。这是**协议要求的样子**，
+  不是故障：只要 C5c 还红着，冻结集就仍停在 r75，别把"没冻上"读成"没做完"。
+- **数字与文档跟着走**：`data/metrics.csv` 六行改到 r102（WNS 0.384 / 端点 50868 / WHS 0.052 且**域归属从
+  `clk_fpga_0` 改回 `eth_rxc`** / LUT 14355·26.98 % / FF 8079 / 2.214 W），`README.md:56`、`README.en.md:70` 同步；
+  `metric_recheck` 由"红 8"回到**红 0**。**两处是我自己差点写错的**：LUT 增减我最初写成"比 r99 少 4"（实为
+  比 r101 少 4、比 r99 多 25），FF 我沿用了旧句"一字未动"（实为 +1）——都在读回时改掉。
+- ⚠ 板上温度这一轮**没有新读数的凭据**：`health_read` 这次没打出 XADC 行，所以我**不更新那一行**，
+  仍留 r101 的 62.6–62.8 ℃ 与你说的"基本稳定在 64 度左右"两个口径，谁问就说是**上一版的读数**。
