@@ -92,6 +92,39 @@ function run(self) {
     if (self) rows.push(['全局 setup WNS', '核心', '+9.999', 'ns', '自检：故意写错的一条', '一次构建', 'build/timing_summary.rpt']);
     const known = new Set(RULES.map(r => r.name));
     let red = 0, judged = 0, other = 0;
+
+    // 首页那两行也一起判（#213）：README 的表格里写着"全设计 setup WNS = 0.720 ns"并点名
+    // `build/timing_summary.rpt`，可**没有任何检查器回去读那份报告**——metrics.csv 有 D6 管，首页没有。
+    // 于是"首页引用的是哪份报告"与"那份报告现在说什么"之间的账是空的，跨版一定会烂。
+    // 复用同一批 RULES 与同一个取数器，不另起一套口径；解析不到行 = 直接判红（不许空转）。
+    const FRONT = [
+        ['README.md', '全设计 setup WNS', '全局 setup WNS'],
+        ['README.en.md', 'Design-wide setup WNS', '全局 setup WNS'],
+    ];
+    let frontParsed = 0, frontRed = 0, fixtureRed = 0;
+    for (const [file, key, ruleName] of FRONT) {
+        if (!fs.existsSync(file)) { console.log(`RED row=${file} 找不到这份首页`); red++; frontRed++; continue; }
+        const ls = fs.readFileSync(file, 'utf8').split(/\r?\n/);
+        let hit = -1;
+        for (let i = 0; i < ls.length; i++) if (ls[i].startsWith('|') && ls[i].includes(key)) { hit = i; break; }
+        if (hit < 0) { console.log(`RED row=${file} 里找不到「${key}」这一行 ⇒ 首页与指标表脱钩`); red++; frontRed++; continue; }
+        const cells = ls[hit].split('|').map((s) => s.trim());
+        const art = cells[cells.length - 2] || '';
+        const rule = RULES.find((r) => r.name === ruleName);
+        const wantFile = { timing: 'timing_summary.rpt', util: 'utilization.rpt', power: 'power.rpt' }[rule.src];
+        frontParsed++;
+        if (!art.includes(wantFile)) {
+            console.log(`RED row=${file}:${hit + 1} 「${key}」点名的是 ${art}，不是 ${wantFile} —— 判据与凭据脱钩`);
+            red++; frontRed++; judged++; continue;
+        }
+        const got = num(cells[2]), exp = rule.get(SRC[rule.src]);
+        const ok = got !== null && exp !== null && exp !== undefined && Math.abs(got - exp) < 1e-6;
+        console.log(`${ok ? 'OK ' : 'RED'} row=${file}:${hit + 1} ${key} 首页=${cells[2]} 报告=${exp}`);
+        if (!ok) { red++; frontRed++; }
+        judged++;
+    }
+    if (frontParsed === 0) { console.log('RED 首页对账一行都没解析到 ⇒ 这一层是空转'); red++; frontRed++; }
+
     for (const f of rows) {
         const name = (f[0] || '').trim();
         const rule = RULES.find(r => r.name === name);
@@ -117,13 +150,17 @@ function run(self) {
                 if (exp2 === null || exp2 === undefined || Math.abs(Number(m[1]) - exp2) > 1e-6) ok = false;
             }
         }
-        if (ok) judged++; else { red++; }
+        if (ok) judged++; else { red++; if (String(f[4] || '').includes('自检：故意写错')) fixtureRed++; }
         console.log(`${ok ? 'OK ' : 'RED'} row=${name} ${detail}`);
     }
     console.log(`== 数字对账：判 ${judged} 行（红 ${red}）／未覆盖 ${other} 行（只报点名 timing/utilization/power 三份报告的行） ==`);
     if (self) {
-        if (red === 1) console.log('SELF: 过 —— 故意写错的那一条正好变红 1 次');
-        else { console.log(`SELF: 不过 —— 期望恰好 1 红，实得 ${red}`); process.exit(1); }
+        // 自检只问"我注入的那一条 fixture 有没有被抓到"：全树其余行本来就跟着新一轮报告走，
+        // 构建一变它们就集体变红（那是正确的红），不该拿"恰好 1 条"当自检期望。
+        const want = rows.filter((r) => String(r[4] || '').includes('自检：故意写错')).length;
+        const got = fixtureRed;
+        if (want === 1 && got === 1) console.log(`SELF: 过 —— 故意写错的那一条正好被抓到 1 次（全树另有 ${red - got} 条真实红，其中首页层 ${frontRed}）`);
+        else { console.log(`SELF: 不过 —— fixture 期望 1 红，实得 ${got}（表里 fixture 行数 ${want}）`); process.exit(1); }
         return;
     }
     if (red) process.exit(1);
