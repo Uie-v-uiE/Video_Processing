@@ -1,0 +1,122 @@
+
+****** xsim v2025.2.1 (64-bit)
+  **** SW Build 6403652 on Thu Mar 19 19:48:24 GMT 2026
+  **** IP Build 6403511 on Thu Mar 19 12:41:45 MDT 2026
+  **** SharedData Build 6403650 on Thu Mar 19 14:02:13 MDT 2026
+  **** Start of session at: Thu Oct  1 19:25:35 2026
+    ** Copyright 1986-2022 Xilinx, Inc. All Rights Reserved.
+    ** Copyright 2022-2026 Advanced Micro Devices, Inc. All Rights Reserved.
+
+source xsim.dir/snap/xsim_script.tcl
+# xsim {snap} -autoloadwcfg -runall
+Time resolution is 1 ps
+run -all
+[tb_icmp_rx_len.v] PASS A_byte_num | rec_byte_num must equal THIS packet's payload length; a length off-by-one lands here
+[tb_icmp_rx_len.v] PASS B_rec_en_count | exactly N rec_en pulses; too few or too many = the last-byte window moved
+[tb_icmp_rx_len.v] PASS C_rec_data_order | each rec_data equals the byte in order; a one-byte shift corrupts the reply payload
+[tb_icmp_rx_len.v] PASS D_checksum_pairs | 16-bit pair accumulate with odd tail in the low half, no fold, must match bit for bit
+[tb_icmp_rx_len.v] PASS E_done_one_pulse | rec_pkt_done fires exactly once per packet (it is what triggers the reply)
+[tb_icmp_rx_len.v] PASS F_back_to_idle | FSM returns to st_idle; a stuck FSM means the last byte was never recognised
+[tb_icmp_rx_len.v] PASS G_id_seq_latched | identifier/sequence from the ICMP header: proves the header parse still lines up
+[tb_icmp_rx_len.v] PASS A_byte_num | rec_byte_num must equal THIS packet's payload length; a length off-by-one lands here
+[tb_icmp_rx_len.v] PASS B_rec_en_count | exactly N rec_en pulses; too few or too many = the last-byte window moved
+[tb_icmp_rx_len.v] PASS C_rec_data_order | each rec_data equals the byte in order; a one-byte shift corrupts the reply payload
+[tb_icmp_rx_len.v] PASS D_checksum_pairs | 16-bit pair accumulate with odd tail in the low half, no fold, must match bit for bit
+[tb_icmp_rx_len.v] PASS E_done_one_pulse | rec_pkt_done fires exactly once per packet (it is what triggers the reply)
+[tb_icmp_rx_len.v] PASS F_back_to_idle | FSM returns to st_idle; a stuck FSM means the last byte was never recognised
+[tb_icmp_rx_len.v] PASS G_id_seq_latched | identifier/sequence from the ICMP header: proves the header parse still lines up
+[tb_icmp_rx_len.v] PASS A_byte_num | rec_byte_num must equal THIS packet's payload length; a length off-by-one lands here
+[tb_icmp_rx_len.v] PASS B_rec_en_count | exactly N rec_en pulses; too few or too many = the last-byte window moved
+[tb_icmp_rx_len.v] PASS C_rec_data_order | each rec_data equals the byte in order; a one-byte shift corrupts the reply payload
+[tb_icmp_rx_len.v] PASS D_checksum_pairs | 16-bit pair accumulate with odd tail in the low half, no fold, must match bit for bit
+[tb_icmp_rx_len.v] PASS E_done_one_pulse | rec_pkt_done fires exactly once per packet (it is what triggers the reply)
+[tb_icmp_rx_len.v] PASS F_back_to_idle | FSM returns to st_idle; a stuck FSM means the last byte was never recognised
+[tb_icmp_rx_len.v] PASS G_id_seq_latched | identifier/sequence from the ICMP header: proves the header parse still lines up
+[tb_icmp_rx_len.v] PASS A_byte_num | rec_byte_num must equal THIS packet's payload length; a length off-by-one lands here
+[tb_icmp_rx_len.v] PASS B_rec_en_count | exactly N rec_en pulses; too few or too many = the last-byte window moved
+[tb_icmp_rx_len.v] PASS C_rec_data_order | each rec_data equals the byte in order; a one-byte shift corrupts the reply payload
+[tb_icmp_rx_len.v] PASS D_checksum_pairs | 16-bit pair accumulate with odd tail in the low half, no fold, must match bit for bit
+[tb_icmp_rx_len.v] PASS E_done_one_pulse | rec_pkt_done fires exactly once per packet (it is what triggers the reply)
+[tb_icmp_rx_len.v] PASS F_back_to_idle | FSM returns to st_idle; a stuck FSM means the last byte was never recognised
+[tb_icmp_rx_len.v] PASS G_id_seq_latched | identifier/sequence from the ICMP header: proves the header parse still lines up
+[tb_icmp_rx_len.v] PASS A_byte_num | rec_byte_num must equal THIS packet's payload length; a length off-by-one lands here
+[tb_icmp_rx_len.v] PASS B_rec_en_count | exactly N rec_en pulses; too few or too many = the last-byte window moved
+[tb_icmp_rx_len.v] PASS C_rec_data_order | each rec_data equals the byte in order; a one-byte shift corrupts the reply payload
+[tb_icmp_rx_len.v] PASS D_checksum_pairs | 16-bit pair accumulate with odd tail in the low half, no fold, must match bit for bit
+[tb_icmp_rx_len.v] PASS E_done_one_pulse | rec_pkt_done fires exactly once per packet (it is what triggers the reply)
+[tb_icmp_rx_len.v] PASS F_back_to_idle | FSM returns to st_idle; a stuck FSM means the last byte was never recognised
+[tb_icmp_rx_len.v] PASS G_id_seq_latched | identifier/sequence from the ICMP header: proves the header parse still lines up
+[tb_icmp_rx_len.v] PASS A_byte_num | rec_byte_num must equal THIS packet's payload length; a length off-by-one lands here
+[tb_icmp_rx_len.v] PASS B_rec_en_count | exactly N rec_en pulses; too few or too many = the last-byte window moved
+[tb_icmp_rx_len.v] PASS C_rec_data_order | each rec_data equals the byte in order; a one-byte shift corrupts the reply payload
+[tb_icmp_rx_len.v] PASS D_checksum_pairs | 16-bit pair accumulate with odd tail in the low half, no fold, must match bit for bit
+[tb_icmp_rx_len.v] PASS E_done_one_pulse | rec_pkt_done fires exactly once per packet (it is what triggers the reply)
+[tb_icmp_rx_len.v] PASS F_back_to_idle | FSM returns to st_idle; a stuck FSM means the last byte was never recognised
+[tb_icmp_rx_len.v] PASS G_id_seq_latched | identifier/sequence from the ICMP header: proves the header parse still lines up
+[tb_icmp_rx_len.v] PASS A_byte_num | rec_byte_num must equal THIS packet's payload length; a length off-by-one lands here
+[tb_icmp_rx_len.v] PASS B_rec_en_count | exactly N rec_en pulses; too few or too many = the last-byte window moved
+[tb_icmp_rx_len.v] PASS C_rec_data_order | each rec_data equals the byte in order; a one-byte shift corrupts the reply payload
+[tb_icmp_rx_len.v] PASS D_checksum_pairs | 16-bit pair accumulate with odd tail in the low half, no fold, must match bit for bit
+[tb_icmp_rx_len.v] PASS E_done_one_pulse | rec_pkt_done fires exactly once per packet (it is what triggers the reply)
+[tb_icmp_rx_len.v] PASS F_back_to_idle | FSM returns to st_idle; a stuck FSM means the last byte was never recognised
+[tb_icmp_rx_len.v] PASS G_id_seq_latched | identifier/sequence from the ICMP header: proves the header parse still lines up
+[tb_icmp_rx_len.v] PASS A_byte_num | rec_byte_num must equal THIS packet's payload length; a length off-by-one lands here
+[tb_icmp_rx_len.v] PASS B_rec_en_count | exactly N rec_en pulses; too few or too many = the last-byte window moved
+[tb_icmp_rx_len.v] PASS C_rec_data_order | each rec_data equals the byte in order; a one-byte shift corrupts the reply payload
+[tb_icmp_rx_len.v] PASS D_checksum_pairs | 16-bit pair accumulate with odd tail in the low half, no fold, must match bit for bit
+[tb_icmp_rx_len.v] PASS E_done_one_pulse | rec_pkt_done fires exactly once per packet (it is what triggers the reply)
+[tb_icmp_rx_len.v] PASS F_back_to_idle | FSM returns to st_idle; a stuck FSM means the last byte was never recognised
+[tb_icmp_rx_len.v] PASS G_id_seq_latched | identifier/sequence from the ICMP header: proves the header parse still lines up
+[tb_icmp_rx_len.v] PASS A_byte_num | rec_byte_num must equal THIS packet's payload length; a length off-by-one lands here
+[tb_icmp_rx_len.v] PASS B_rec_en_count | exactly N rec_en pulses; too few or too many = the last-byte window moved
+[tb_icmp_rx_len.v] PASS C_rec_data_order | each rec_data equals the byte in order; a one-byte shift corrupts the reply payload
+[tb_icmp_rx_len.v] PASS D_checksum_pairs | 16-bit pair accumulate with odd tail in the low half, no fold, must match bit for bit
+[tb_icmp_rx_len.v] PASS E_done_one_pulse | rec_pkt_done fires exactly once per packet (it is what triggers the reply)
+[tb_icmp_rx_len.v] PASS F_back_to_idle | FSM returns to st_idle; a stuck FSM means the last byte was never recognised
+[tb_icmp_rx_len.v] PASS G_id_seq_latched | identifier/sequence from the ICMP header: proves the header parse still lines up
+[tb_icmp_rx_len.v] PASS A_byte_num | rec_byte_num must equal THIS packet's payload length; a length off-by-one lands here
+[tb_icmp_rx_len.v] PASS B_rec_en_count | exactly N rec_en pulses; too few or too many = the last-byte window moved
+[tb_icmp_rx_len.v] PASS C_rec_data_order | each rec_data equals the byte in order; a one-byte shift corrupts the reply payload
+[tb_icmp_rx_len.v] PASS D_checksum_pairs | 16-bit pair accumulate with odd tail in the low half, no fold, must match bit for bit
+[tb_icmp_rx_len.v] PASS E_done_one_pulse | rec_pkt_done fires exactly once per packet (it is what triggers the reply)
+[tb_icmp_rx_len.v] PASS F_back_to_idle | FSM returns to st_idle; a stuck FSM means the last byte was never recognised
+[tb_icmp_rx_len.v] PASS G_id_seq_latched | identifier/sequence from the ICMP header: proves the header parse still lines up
+[tb_icmp_rx_len.v] PASS A_byte_num | rec_byte_num must equal THIS packet's payload length; a length off-by-one lands here
+[tb_icmp_rx_len.v] PASS B_rec_en_count | exactly N rec_en pulses; too few or too many = the last-byte window moved
+[tb_icmp_rx_len.v] PASS C_rec_data_order | each rec_data equals the byte in order; a one-byte shift corrupts the reply payload
+[tb_icmp_rx_len.v] PASS D_checksum_pairs | 16-bit pair accumulate with odd tail in the low half, no fold, must match bit for bit
+[tb_icmp_rx_len.v] PASS E_done_one_pulse | rec_pkt_done fires exactly once per packet (it is what triggers the reply)
+[tb_icmp_rx_len.v] PASS F_back_to_idle | FSM returns to st_idle; a stuck FSM means the last byte was never recognised
+[tb_icmp_rx_len.v] PASS G_id_seq_latched | identifier/sequence from the ICMP header: proves the header parse still lines up
+[tb_icmp_rx_len.v] PASS A_byte_num | rec_byte_num must equal THIS packet's payload length; a length off-by-one lands here
+[tb_icmp_rx_len.v] PASS B_rec_en_count | exactly N rec_en pulses; too few or too many = the last-byte window moved
+[tb_icmp_rx_len.v] PASS C_rec_data_order | each rec_data equals the byte in order; a one-byte shift corrupts the reply payload
+[tb_icmp_rx_len.v] PASS D_checksum_pairs | 16-bit pair accumulate with odd tail in the low half, no fold, must match bit for bit
+[tb_icmp_rx_len.v] PASS E_done_one_pulse | rec_pkt_done fires exactly once per packet (it is what triggers the reply)
+[tb_icmp_rx_len.v] PASS F_back_to_idle | FSM returns to st_idle; a stuck FSM means the last byte was never recognised
+[tb_icmp_rx_len.v] PASS G_id_seq_latched | identifier/sequence from the ICMP header: proves the header parse still lines up
+[tb_icmp_rx_len.v] PASS A_byte_num | rec_byte_num must equal THIS packet's payload length; a length off-by-one lands here
+[tb_icmp_rx_len.v] PASS B_rec_en_count | exactly N rec_en pulses; too few or too many = the last-byte window moved
+[tb_icmp_rx_len.v] PASS C_rec_data_order | each rec_data equals the byte in order; a one-byte shift corrupts the reply payload
+[tb_icmp_rx_len.v] PASS D_checksum_pairs | 16-bit pair accumulate with odd tail in the low half, no fold, must match bit for bit
+[tb_icmp_rx_len.v] PASS E_done_one_pulse | rec_pkt_done fires exactly once per packet (it is what triggers the reply)
+[tb_icmp_rx_len.v] PASS F_back_to_idle | FSM returns to st_idle; a stuck FSM means the last byte was never recognised
+[tb_icmp_rx_len.v] PASS G_id_seq_latched | identifier/sequence from the ICMP header: proves the header parse still lines up
+[tb_icmp_rx_len.v] PASS A_byte_num | rec_byte_num must equal THIS packet's payload length; a length off-by-one lands here
+[tb_icmp_rx_len.v] PASS B_rec_en_count | exactly N rec_en pulses; too few or too many = the last-byte window moved
+[tb_icmp_rx_len.v] PASS C_rec_data_order | each rec_data equals the byte in order; a one-byte shift corrupts the reply payload
+[tb_icmp_rx_len.v] PASS D_checksum_pairs | 16-bit pair accumulate with odd tail in the low half, no fold, must match bit for bit
+[tb_icmp_rx_len.v] PASS E_done_one_pulse | rec_pkt_done fires exactly once per packet (it is what triggers the reply)
+[tb_icmp_rx_len.v] PASS F_back_to_idle | FSM returns to st_idle; a stuck FSM means the last byte was never recognised
+[tb_icmp_rx_len.v] PASS G_id_seq_latched | identifier/sequence from the ICMP header: proves the header parse still lines up
+[tb_icmp_rx_len.v] PASS K1_decl0_one_done | declared-0 payload must still complete the packet exactly once (that pulse is the reply trigger)
+[tb_icmp_rx_len.v] PASS K2_decl0_back_to_idle | FSM must leave st_rx_data when the declared data section is empty (was: wedged forever)
+[tb_icmp_rx_len.v] PASS K3_decl0_en_not_gated_high | rec_en must not hang high: it is a window, and the window has to close
+[tb_icmp_rx_len.v] PASS K4_next_ping_still_works | a 0-byte request must not poison the FOLLOWING 32-byte request (board: all later pings went silent)
+[tb_icmp_rx_len.v] FAIL L1_truncated_back_to_idle | when the line goes idle before the declared count, the FSM must still escape st_rx_data
+[tb_icmp_rx_len.v] FAIL L2_after_truncated_next_works | and the next packet must parse ÿÿ” a truncated frame is not a licence to wedge the receiver
+[tb_icmp_rx_len.v] FAIL L3_decl0_did_not_fake_a_length | rec_byte_num now belongs to the LAST well-formed packet, not to the wedged declared-0 one
+[tb_icmp_rx_len.v] RESULT tb_icmp_rx_len FAIL errors=3
+$finish called at time : 11181 ns : File "C:/Users/wenqu/AppData/Local/Temp/mut218/sim/tb_icmp_rx_len.v" Line 265
+exit
+INFO: [Common 17-206] Exiting xsim at Thu Oct  1 19:25:37 2026...
