@@ -93,7 +93,7 @@ prints (if something fails it says so explicitly instead of rounding it off).
 | `src/host/` | PC-side tools: Python streamer, register reader, documentation consistency checks |
 | `src/constraints/` | pin and timing constraints |
 | `sim/` | testbenches and runners; the one that instantiates the whole video top is the primary geometry/display ruler. `sim/NAMES.md` maps old to new bench names |
-| `build/` | reproducible build scripts (`tcl/`, one command produces the bitstream) plus synthesis/implementation reports (`reports/`), the gate and on-board read-back runners; build outputs (.bit/.xsa/.elf) land here too - see [build/README.md](build/README.md) |
+| `build/` | reproducible build scripts (`tcl/`, one command produces the bitstream) plus synthesis/implementation reports (flat under `build/` in this repo; the exporter flattens the same set into `build/reports/` inside the submission package) and the gate and on-board read-back runners; build outputs (.bit/.xsa/.elf) land here too - see [build/README.md](build/README.md) |
 | `board/` | what runs on the board, how to start it, and what was read back ([board/README.md](board/README.md), [board/ACCEPTANCE.md](board/ACCEPTANCE.md)) |
 | `data/` | `golden/` reference images, `measured/` measurements, and `metrics.csv` as the single number table |
 | `skill/` | skill cards distilled from the LLM collaboration; each card has six fixed parts: trigger, when it does *not* apply, action, completion criterion, expiry boundary, and the real failure it came from |
