@@ -24,6 +24,7 @@
 //   --list-adv   把"只报数"那一半逐条打出来（#121：口径必须可复现，纯打印不参与退出码）
 import { readFileSync, readdirSync, statSync } from 'node:fs';
 import path from 'node:path';
+import { createHash } from 'node:crypto';
 
 const ROOT = path.resolve(import.meta.dirname, '..', '..');
 const EXT = new Set(['.md', '.mjs', '.sh', '.ps1', '.tcl']);
@@ -221,6 +222,56 @@ function handWrittenFiles(dir, out, relBase) {
 
 // `build/*gates*.txt` 两种命名都有（早期 gates_rNN.txt，后来 rNN_gates.txt），
 // 取"编号最大且写着 GATES: ALL PASS"的那一套。文件名里的编号就是它判的那次构建。
+// ---- D1b：把"板上现在跑哪一轮"这句话念回**盘上的产物**（#221 的由来；起因是一句"现在是 r80"）----
+// 基准的来历不是另一句文案，而是 `build/system.bit` 的 md5 → 哪一份 `build/rNN_gates.txt` 戳了同一个 md5
+// （那一份是门禁件自己写的"身份："段，见 `build/gates.sh`）。
+// ⚠ 基准**不能**复用 D3 的"最新且 ALL PASS 的冻结集"：本仓冻结停在 r75，而板上跑的是被采纳的 r104——
+//   采纳与冻结本来就是两件事（`report/KNOWN_ISSUES.md` §20），拿冻结集当"现在"会把每一句诚实的话集体误报。
+// 形状要**相邻**：只说"这行里出现了 现在 也出现了 rNN"不够——正当的历史句长这样：
+// "写这一节那天（2026-09-26）板上是 r80…板上现在跑哪一轮请看 README"，那句"现在"后面跟的是"跑哪一轮"
+// 而不是编号；相邻判据不咬它，而"现在是 r80"咬得住。
+const NOW_MARK = /(板上这一[套版]|板上现在|现在跑的是|当前跑的|the board (?:now )?runs|board currently)/i;
+const ADJ_RNN = /^\s*(?:现在|当前)?\s*(?:是|为|跑的是|=|:)?\s*[（(]?\s*r(\d{2,3})/i;
+function currentBoardRound() {
+    let h = '';
+    try { h = createHash('md5').update(readFileSync(path.join(ROOT, 'build', 'system.bit'))).digest('hex').slice(0, 12); }
+    catch { return { nn: 0, why: '读不到 build/system.bit' }; }
+    let best = 0, name = '';
+    for (const f of readdirSync(path.join(ROOT, 'build'))) {
+        if (!/^r\d+_gates\.txt$/.test(f)) continue;
+        let t;
+        try { t = readFileSync(path.join(ROOT, 'build', f), 'utf8'); } catch { continue; }
+        if (!t.includes('system.bit md5=' + h)) continue;
+        const nn = Number(f.match(/^r(\d+)/)[1]);
+        if (nn > best) { best = nn; name = f; }
+    }
+    return best ? { nn: best, name, bit: h } : { nn: 0, bit: h, why: '没有一份 rNN_gates.txt 戳着这块 bit' };
+}
+// D1b 的扫描面**单独一份**：日记类（report/log/）与两份过程台账（KNOWN_ISSUES / OPTIMIZATION_LOG）不进——
+// 那里成片的"板上已是这一版（rNN）"是带日期的凭据，把它们咬红等于逼人回去改凭据（D4c 那轮划过的同一条边界）。
+const D1B_DOCS = ['README.md', 'README.en.md', 'board/README.md', 'report/PERF_REPORT.md',
+    'report/BUILD.md', 'report/DEMO_SCRIPT.md', 'report/COMMANDS.md', 'report/BACKGROUND_AND_NOVELTY.md',
+    'report/AI_COLLABORATION.md', 'report/LLM_COLLAB.md', 'report/ARCHITECTURE.md', 'report/HOST_GUIDE.md'];
+function d1bScan(docs, cur) {
+    const rows = [];
+    let claims = 0;
+    for (const rel of D1B_DOCS) {
+        const lines = docs[rel];
+        if (!lines) continue;
+        lines.forEach((l, i) => {
+            const m = l.match(NOW_MARK);
+            if (!m) return;
+            const g = l.slice(m.index + m[0].length).match(ADJ_RNN);
+            if (!g) return;                                  // 有标记但相邻处没编号：多半是"跑哪一轮请看…"那种指路句
+            claims++;
+            const nn = Number(g[1]);
+            if (cur.nn > 0 && nn !== cur.nn)
+                rows.push(`${rel}:${i + 1} D1b 说板上现在跑的是 r${nn}，而这块 bit（md5 ${cur.bit}）的门禁身份行指向 r${cur.nn}（${cur.name}）：${l.trim().slice(0, 64)}`);
+        });
+    }
+    return { rows, claims };
+}
+
 function newestGreenSet() {
     let best = 0, name = '';
     const dir = path.join(ROOT, 'build');
@@ -264,8 +315,19 @@ function scanTree() {
     };
     const p = checkPaths(allFiles, exists);
     const nd = Object.keys(allFiles).filter(DELIVERY).length;
-    return { rows: checkLines(docs, has, g.nn).concat(p.rows), adv: p.adv, nd,
-        g, n: Object.keys(docs).length, m: Object.keys(allFiles).length };
+    // D1b：读基准（bit 的身份）→ 扫那 12 份交付文档里的"板态身份句"
+    const d1bDocs = {};
+    for (const rel of D1B_DOCS) {
+        try { d1bDocs[rel] = readFileSync(path.join(ROOT, rel), 'utf8').split('\n'); }
+        catch { /* 缺文件由 D4b 那一条管，这一层不重复报 */ }
+    }
+    const cur = currentBoardRound();
+    const b = d1bScan(d1bDocs, cur);
+    const brows = cur.nn > 0 ? b.rows
+        : [`D1b 判不了：${cur.why}（bit md5=${cur.bit || '读不到'}）⇒ 板态身份句这一层没有基准，不许念成绿的`];
+    return { rows: checkLines(docs, has, g.nn).concat(p.rows, brows), adv: p.adv, nd,
+        g, n: Object.keys(docs).length, m: Object.keys(allFiles).length,
+        d1b: { claims: b.claims, cur, docs: Object.keys(d1bDocs).length } };
 }
 
 const argv = process.argv.slice(2);
@@ -322,6 +384,31 @@ if (argv.includes('--self')) {
         '那份简介 `report/PROJECT_BRIEF_NOPE.md` 后来也撤了'], }, () => false);
     const scope = sp.rows.length === 0 && sp.adv.length === 2;
     console.log(`  ${scope ? 'PASS' : 'FAIL'} 对照：同一句指路（.txt 与 .md 各一）在日记里只报数（判红 ${sp.rows.length} / 报数 ${sp.adv.length}）`);
+    // ---- D1b 的一对（#221）：造回来的必须是**真出过的那句错话**，正当句必须不红 ----
+    // 这里的基准用写死的 104 是故意的：这条对照测的是**比较逻辑与相邻形状**，不是盘上的产物；
+    // 而"盘上到底读不读得到基准"另立一条硬对照（cur0），因为基准读不到时这一层必须红而不是绿。
+    const cur0 = currentBoardRound();
+    const fakeCur = { nn: 104, bit: 'deadbeefcafe', name: 'r104_gates.txt' };
+    n += yes('D1b：把板态身份句念成 r80（基准 r104）',
+        d1bScan({ 'report/AI_COLLABORATION.md': [
+            '板上这一套现在是 r80（`build/system.bit` md5 `1906b6764ae4`，门禁 19/20，唯一红项 = 第 15 项的 `C5c`）'] },
+            fakeCur).rows, /D1b/);
+    n += yes('D1b：英文身份句念错轮号', d1bScan({ 'README.en.md': [
+        'Design-wide setup WNS (the board now runs r91, flashed at 04:10)'] }, fakeCur).rows, /D1b/);
+    const d1bok = d1bScan({
+        'report/AI_COLLABORATION.md': ['写这一节那天（2026-09-26）板上是 r80（`build/system.bit` md5 `1906b6764ae4`）—— 这句**按日期读**，板上现在跑哪一轮请看 `README.md` 首页那一行'],
+        'README.md': ['| 全设计 setup WNS | **0.812 ns**（板上这一版 r104，2026-10-02 01:18 三步 JTAG 刷入，`bit 680f38f5794c`）'],
+        'README.en.md': ['| Design-wide setup WNS | **0.812 ns** (the board now runs r104, flashed at 01:18 on 2026-10-02)'],
+    }, fakeCur).rows;
+    console.log(`  ${d1bok.length === 0 ? 'PASS' : 'FAIL'} 对照：带日期的历史句 + 念对轮号的中英身份句都不误报（实测 ${d1bok.length} 条）`);
+    for (const r of d1bok) console.log('        ' + r);
+    // 相邻性这条边界必须自己站住：光有"现在"而后面接的是指路话 ⇒ 不判（否则每一句"现在跑哪一轮请看…"都会红）
+    const d1badj = d1bScan({ 'README.md': ['板上现在跑哪一轮请看下面那一行（r80 只是历史）'] }, fakeCur).rows;
+    console.log(`  ${d1badj.length === 0 ? 'PASS' : 'FAIL'} 对照：指路句（"现在"后面不接编号）不误报（实测 ${d1badj.length} 条）`);
+    for (const r of d1badj) console.log('        ' + r);
+    const hasBase = cur0.nn > 0;
+    console.log(`  ${hasBase ? 'PASS' : 'FAIL'} D1b 基准读得到（bit md5=${cur0.bit || '读不到'} → ${cur0.name || cur0.why}）`);
+    if (!hasBase) console.log('        —— 基准读不到时真实扫描那一趟会把这一层判红（不许念成绿的），这里只是把原因打出来');
     let d4 = 0;
     d4 += yes('D4a：点名的文档盘上没有', d4bad, /D4a/);
     d4 += yes('D4b：还在指旧目录 docs/', d4old, /D4b/);
@@ -331,14 +418,16 @@ if (argv.includes('--self')) {
     console.log(`  ${d4artok.length === 0 ? 'PASS' : 'FAIL'} 对照：通配/变量/占位名的凭据写法不误报（实测 ${d4artok.length} 条）`);
     for (const r of d4artok) console.log('        ' + r);
 
-    const all = n === 3 && good.length === 0 && edges.length === 0 && d4 === 3
-        && d4ok.length === 0 && d4artok.length === 0 && scope && neutral.length === 0;
-    console.log(`${all ? 'SELF: 全绿' : 'SELF: 有红'}（变异 ${n} + D4 变异 ${d4} 条 + 对照 ${good.length + edges.length + d4ok.length + d4artok.length} 条，范围对照${scope ? '过' : '不过'}）`);
+    const all = n === 5 && good.length === 0 && edges.length === 0 && d4 === 3
+        && d4ok.length === 0 && d4artok.length === 0 && scope && neutral.length === 0
+        && d1bok.length === 0 && d1badj.length === 0 && hasBase;
+    console.log(`${all ? 'SELF: 全绿' : 'SELF: 有红'}（变异 ${n}（含 D1b 身份句 2 条）+ D4 变异 ${d4} 条 + 对照 ${good.length + edges.length + d4ok.length + d4artok.length + d1bok.length + d1badj.length} 条，范围对照${scope ? '过' : '不过'}，D1b 基准${hasBase ? '读得到 r' + cur0.nn : '读不到'}）`);
     process.exit(all ? 0 : 1);
 }
 
-const { rows, adv, nd, g, n, m } = scanTree();
+const { rows, adv, nd, g, n, m, d1b } = scanTree();
 console.log(`扫了 ${n} 个文档（D1/D2/D3）+ ${m} 个手写文件（D4）；最新且 ALL PASS 的冻结集 = ${g.name || '（没有）'}`);
+console.log(`D1b 基准：bit md5=${d1b.cur.bit || '读不到'} → ${d1b.cur.name || d1b.cur.why || '（无）'}；扫 ${d1b.docs} 份交付文档，抓到 ${d1b.claims} 句"板态身份句"（只念相邻带编号的那种，历史句不进射程）`);
 // `--list-adv`：把"只报数不判红"那一半逐条打出来（#121：口径必须能说清，不能只留一句"不算指路错误"）。
 // 纯打印，不参与退出码，也不改任何判据 —— 判据的红绿仍由 rows/hard 决定。
 if (argv.includes('--list-adv')) {
