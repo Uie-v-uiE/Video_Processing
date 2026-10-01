@@ -14,7 +14,12 @@
 // 跑法：
 //   node src/host/line_cite_check.mjs          # 扫全交付文档
 //   node src/host/line_cite_check.mjs --self    # 反向对照： planted 的坏引用必须红、好的不许误报
-//   node src/host/line_cite_check.mjs --list-need 50
+//   node src/host/line_cite_check.mjs --list-soft --list-soft=50   # 锚点候选（不判红，给人排队）
+//   node src/host/line_cite_check.mjs --list-need 50               # 取不出锚点，需人看
+//   node src/host/line_cite_check.mjs --list-echo 20               # D5d 的"转述"那一支（不判红）
+//
+// 判红的三类（退出码只看这些）：引的文件不在树里、行号越过文件末尾、
+// D5b「例化者」列指错、D5d 逐字抄的固件回声与所引那几行对不上（#208 补的两条硬判据）。
 //
 // 范围只管**代码/脚本**行号（.v .c .h .mjs .sh .tcl .ps1）。`.md` 之间的行号引用故意不收：
 // 那是追加式档案（ISSUES/OVERNIGHT_LOG），把过去的记录改成迎合检查器等于销毁证据，
@@ -94,13 +99,65 @@ function nearHit(fileLines, from, to, anchors) {
   return { ok: false, lo, hi };
 }
 
+// D5d（ISSUES #208 的第二半，标本来自 2026-10-02 那批引用核对）：**文档把固件回声逐字抄下来时，
+// 那个回声必须就在被引的那几行里**。为什么这一条可以是硬错而普通锚点不命中只能算 soft：
+// 引号里有 `[TAG]` 形状 ⇒ 这句话主张的是"串口打出来的就是这一串"，逐字抄写不存在
+// "指的是所在函数开头"那种合理解释；而软判据靠的是标识符，回声句里全是命令名与中文，取不出锚点。
+// 两个方向都要能红：抄的句子在这个文件里**别处**找得到 ⇒ 行号指错（硬错）；
+// 整个文件都找不到 ⇒ 可能是转述、也可能来自另一个文件 ⇒ 只列"需人看"，不冒充成"文档错了"。
+// 归一化去掉空白与中英标点：C 里的字符串常量常被硬拆成两行续接，全角半角括号也混着用，
+// 不剥标点就会把"真的抄对了"判成错。
+const ECHO_TAG = /\[[A-Z][A-Z0-9_]{1,7}\]/;
+const QUOTED = [/“([^”]{6,})”/g, /「([^」]{6,})」/g, /`([^`]{6,})`/g];
+// 归一化后至少 12 个字符才算"逐字抄下来的一串"。为什么：`[STAT]` 这种六个字符的是**提到标签**，
+// 不是抄整句（它在文件里出现的位置比引用点远得多，会把好句子判成红）；真回声都带格式串与中文。
+const ECHO_MIN = 12;
+
+// 带列位地取出这一行里"逐字抄的回声"（引号内、含 `[TAG]`、够长）。end = 右引号之后的位置。
+function echoQuoteSpans(line) {
+  const out = [];
+  for (const re of QUOTED) {
+    for (const m of line.matchAll(re)) {
+      if (ECHO_TAG.test(m[1]) && normEcho(m[1]).length >= ECHO_MIN) out.push({ text: m[1], end: m.index + m[0].length });
+    }
+  }
+  return out;
+}
+
+// **配对**：一句"回声写着「…」"只与**紧跟在它后面**的那个引用配对（间隔 ≤4 个字符，容得下 `（` 与空格），
+// 也就是文档的实际写法 `…「回声」`（`main.c:998`）`。为什么不做"最近引用"：表格一行里几列各说各话，
+// 第三列抄的回声会配上第一列的引用，造出假红（第一版实测：6 条"硬错"里 5 条是这个形状，真错只有 1 条）。
+// 配不上就是不判——这条要的是"红一次就是一件真事"，不是覆盖率。
+function assignEchoes(line) {
+  const out = new Map();
+  const cites = [...line.matchAll(CITE)].map((m) => m.index);
+  if (!cites.length) return out;
+  for (const q of echoQuoteSpans(line)) {
+    const nxt = cites.find((c) => c >= q.end && c - q.end <= 4);
+    if (nxt === undefined) continue;
+    if (!out.has(nxt)) out.set(nxt, []);
+    out.get(nxt).push(q.text);
+  }
+  return out;
+}
+
+const normEcho = (s) => s.replace(/[\s（）()〈〉《》「」“”‘’'";:.、，。！？—…·\-/]+/g, '');
+
+// 返回 null（抄对了）/ 'wrong-line'（这个文件别处才是它说的地方）/ 'absent'（文件里根本没这句）
+function echoVerdict(fileText, quote, winText) {
+  const q = normEcho(quote);
+  if (!q) return null;
+  if (normEcho(winText).includes(q)) return null;
+  return normEcho(fileText).includes(q) ? 'wrong-line' : 'absent';
+}
+
 function check(linesByFile, wordsByFile, docs) {
   // hard = 机器能单独判定的那两类（引的文件不在树里 / 行号越过文件末尾）——这些**必定**是坏引用。
   // soft = "锚点不在那几行里"：它**不能**单独判"文档错了"，因为文档常指向"那一处所在的函数开头"
   //   而不是语句本身（第一版实测：把 soft 当红报出 341 条，逐条抽读后大部分是这个形状，不是 341 个文档 bug）。
   //   所以 soft 只作为**排好序的候选清单**输出，不决定退出码，也不进门禁（#122 自己写的警告：
   //   "把本来就已经错的引用改成另一个错的数字，比不动更坏"）。
-  const fails = [], soft = [], needs = [], oks = [];
+  const fails = [], soft = [], needs = [], oks = [], echoNeed = [];
   let skipped = 0;
   for (const doc of docs) {
     const text = readFileSync(doc, 'utf8');
@@ -134,13 +191,36 @@ function check(linesByFile, wordsByFile, docs) {
             + `被引那一行写的是「${iv.text}」——不是它的例化行`);
           continue;
         }
+        // D5d：这一句里逐字抄的固件回声（引号内带 `[TAG]`）必须落在被引的那几行里。
+        //   只看本行，不拼下一行——下一行的引号属于下一句话，跨句配对会造出假红。
+        const tol = from === to ? 2 : 0;
+        const wLo = Math.max(1, from - tol), wHi = Math.min(tgt.length, to + tol);
+        const winTxt = tgt.slice(wLo - 1, wHi).join('\n'), allTxt = tgt.join('\n');
+        for (const q of (assignEchoes(line).get(m.index) || [])) {
+          const v = echoVerdict(allTxt, q, winTxt);
+          if (v === 'wrong-line') {
+            // 提示行优先按**整句**找；退而求其次才按前缀（前缀会在帮助文本里撞词，所以标"约"）
+            const fullQ = normEcho(q);
+            let at = tgt.findIndex((L) => normEcho(L).includes(fullQ)) + 1, approx = '';
+            if (!at) {
+              const head = fullQ.slice(0, 12);
+              at = tgt.findIndex((L) => normEcho(L).includes(head)) + 1;
+              approx = '约';
+            }
+            fails.push(`${rel}:${idx + 1}  D5d 抄的回声不在被引那几行：${m[0]} 引「${q.trim().slice(0, 34)}」`
+              + `，这个文件里它在第 ${at || '?'} 行${approx ? approx + '（按前缀匹配）' : ''}附近`);
+          } else if (v === 'absent') {
+            echoNeed.push(`${rel}:${idx + 1}  ${m[0]}  引号里那句「${q.trim().slice(0, 34)}」在这个文件里找不到`
+              + `（转述？引错了文件？）`);
+          }
+        }
         const r = nearHit(tgt, from, to, live);
         if (r.ok) oks.push(`${rel}:${idx + 1}  ${m[0]}  锚点 ${r.anchor}`);
         else soft.push(`${rel}:${idx + 1}  ${m[0]}  锚点 ${live.slice(0, 3).join('/')}… 不在 ${r.lo}-${r.hi} 行里`);
       }
     });
   }
-  return { fails, soft, needs, oks, skipped };
+  return { fails, soft, needs, oks, skipped, echoNeed };
 }
 
 function resolveTarget(cited, linesByFile) {
@@ -261,7 +341,55 @@ function selfTest(code) {
     console.log(`  ${got === want ? 'PASS' : 'FAIL'} 硬错判据 ${name}：${got === want ? '符合预期' : '不符合预期'}`);
     if (got === want) pass++;
   }
-  return pass + b5 === 8 ? 0 : 1;
+  // D5d 自己的对照（#208 第二半）：标本就是 2026-10-02 那批里的一条真错——文档逐字抄了
+  // `[GAMMA] auto 的 step …` 那句回声，却把行号写成 1186（那里是 split 的掩码运算）。
+  // 行号**在运行时按内容找回**，不写死：写死的 fixture 会像文档一样漂掉，那时这条对照就成了假绿。
+  const mc = code.get('src/ps/main.c');
+  let e5d = 0, d5dRun = 0;
+  if (mc) {
+    const Q = '[GAMMA] auto 的 step 要的是 γ×100 的正整数（20 = 0.20）';   // 引号**内**的那串，与 check() 取到的形状一致
+    const QF = '`[GAMMA] 固件从来不打印这一串中文`';
+    // 用**整句**归一化去找，不用前缀：前缀（`[GAMMA]auto的`）在帮助文本里也出现，会把"唯一"判成不唯一
+    const full = normEcho(Q);
+    const hits = mc.map((L, i) => (normEcho(L).includes(full) ? i + 1 : 0)).filter((n) => n > 0);
+    const at = hits[0] || 0;
+    const far = at + 57 <= mc.length ? at + 57 : 0;
+    if (hits.length === 1 && at && far && !normEcho(mc.slice(far - 3, far + 2).join('\n')).includes(full)) {
+      const win = (n) => mc.slice(Math.max(0, n - 3), n + 2).join('\n');   // 单点引用给 ±2
+      const all = mc.join('\n');
+      const cases = [[`抄对了 + 行号对（main.c:${at}）`, echoVerdict(all, Q, win(at)), null, false],
+                     [`抄对了 + 行号指到 ${far}（真错形状）`, echoVerdict(all, Q, win(far)), 'wrong-line', false],
+                     // 第三条顺带测**取引号**这一步：取不出来的话 fake 是 undefined，脚本会直接崩，
+                     // 而不是悄悄少一条对照（"计数地板"那一族）。
+                     ['文件里没有这句（转述，不许判红）',
+                      echoVerdict(all, echoQuoteSpans('回声写着 ' + QF)[0].text, win(at)), 'absent', false]];
+      for (const [name, got, want] of cases) {
+        d5dRun++;
+        console.log(`  ${got === want ? 'PASS' : 'FAIL'} D5d ${name}：实测 ${got === null ? '放行' : got}`);
+        if (got === want) e5d++;
+      }
+      // 配对本身也要有牙：文档的实际写法是"回声紧跟引用"，配错就等于判错。
+      // A 行 = 应当配上；B 行 = 表格分列写法，**不许**配（第一版的假红全出自这一形状）。
+      const rowA = `必须拒：\`${Q}\`（\`main.c:${at}\`）`;
+      const rowB = `| 5 | \`stop\` → \`play\` | 看到 \`${Q}\` | 出口在 \`main.c:${at}\` |`;
+      const pairA = (() => { const m = assignEchoes(rowA); return m.size === 1 && [...m.values()][0][0] === Q; })();
+      const pairB = assignEchoes(rowB).size === 0;
+      for (const [name, got, want] of [['引用紧跟回声 ⇒ 配对成功', pairA, true],
+                                       ['回声与引用分处两列 ⇒ 不配对（不判）', pairB, true]]) {
+        d5dRun++;
+        console.log(`  ${got === want ? 'PASS' : 'FAIL'} D5d 配对 ${name}`);
+        if (got === want) e5d++;
+      }
+    } else {
+      console.log('  FAIL D5d 对照没跑起来（回声行不唯一或找不到 ⇒ 判据失效要当场暴露）');
+      d5dRun = 1;
+    }
+  } else {
+    console.log('  FAIL D5d 读不到 src/ps/main.c ⇒ 对照不作数');
+    d5dRun = 1;
+  }
+  // 计数地板：8 = 锚点 2 + D5b 3 + 硬错 3；D5d 五条（判 3 + 配对 2）一条都不能少跑。
+  return pass + b5 + e5d === 8 + 5 && d5dRun === 5 ? 0 : 1;
 }
 
 // 每个被引文件"认识的符号"全集：锚点必须先过这一关，才有资格判红（理由见 check 里那段注释）。
@@ -276,14 +404,14 @@ if (args.has('--self')) process.exit(selfTest(loadCode()));
 
 const code = loadCode();
 const docs = mdFiles();
-const { fails, soft, needs, oks, skipped } = check(code, buildWords(code), docs);
+const { fails, soft, needs, oks, skipped, echoNeed } = check(code, buildWords(code), docs);
 const listN = 20;
 const optVal = (name, dflt) => {
   const a = process.argv.find((x) => x.startsWith(name + '='));
   return a ? (Number(a.split('=')[1]) || dflt) : dflt;
 };
-console.log(`D5 引用核对：扫 ${docs.length} 份交付文档（report/log/ 那四本追加式档案不参与）⇒ 硬错 ${fails.length} 条（文件不在树里 / 行号越过文件末尾）`
-  + `；锚点命中 ${oks.length} 条；锚点候选 ${soft.length} 条；取不出代码锚点 ${needs.length} 条；厂商树引用 ${skipped} 条不参与`);
+console.log(`D5 引用核对：扫 ${docs.length} 份交付文档（report/log/ 那四本追加式档案不参与）⇒ 硬错 ${fails.length} 条（文件不在树里 / 行号越过文件末尾 / D5b 例化者列指错 / D5d 逐字抄的回声对不上）`
+  + `；锚点命中 ${oks.length} 条；锚点候选 ${soft.length} 条；取不出代码锚点 ${needs.length} 条；回声转述待人看 ${echoNeed.length} 条；厂商树引用 ${skipped} 条不参与`);
 if (fails.length) { console.log('\n--- 硬错（必定是坏引用）---'); fails.slice(0, listN).forEach((f) => console.log('  ' + f)); if (fails.length > listN) console.log(`  …还有 ${fails.length - listN} 条`); }
 if (args.has('--list-soft')) {
   const n = optVal('--list-soft', 20);
@@ -296,6 +424,12 @@ if (args.has('--list-need')) {
   console.log('\n--- 需人看（句子里没有任何被引文件认识的符号）---');
   needs.slice(0, n).forEach((f) => console.log('  ' + f));
   if (needs.length > n) console.log(`  …还有 ${needs.length - n} 条`);
+}
+if (args.has('--list-echo')) {
+  const n = optVal('--list-echo', 20);
+  console.log('\n--- 回声转述（D5d 里"这个文件根本没有这一句"那一支，**不判红**：可能是转述，也可能引错了文件）---');
+  echoNeed.slice(0, n).forEach((f) => console.log('  ' + f));
+  if (echoNeed.length > n) console.log(`  …还有 ${echoNeed.length - n} 条`);
 }
 console.log('\nD5: ' + (fails.length ? 'RED' : 'CLEAN')
   + `（退出码只由硬错决定；soft ${soft.length} 条是给人排队的候选，拿它批量改行号 = #122 警告的那种坏主意）`);
