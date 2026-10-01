@@ -8775,3 +8775,32 @@ D5b 之所以敢判红，是因为那一列的语义被列名钉死了（「例�
 - 那批 59 条"已验好、可直接落"的续读清单抄进任务 #150 的元数据，不丢在这里等人回忆。
 - 顺手再一次确认：`sim/NAMES.md`、`sim/probes/README.md`、`report/BOARD_PINS.md` 等 6 个 `M`
   **内容逐字节相同、只差换行**（早前那支改引用的脚本重写所致），`rtl_fingerprint` 仍是 r99 那两个值 ⇒ 没人动代码。
+
+## 2026-10-01 09:57 r99 上板与板级复验：机器侧全过，但 **ping 不应答**这条要新立一笔（#216）
+- 链尾：`build/r99_gates.txt` **19 绿 / 1 红**，红的是声明过的 C5c（台架 140 PASS + 1 FAIL，
+  指纹 norm1 fresh，`top=f379805a9490 / rtl=9fecdc0bb6ec`）；新加的第二把 CDC 尺子当场判
+  "与上一版采纳的 Critical 配对集合一致"；`build/r99_freeze_attempt.txt` =
+  **REFUSE：build/r99_gates.txt 不是 ALL PASS，不冻结**（这正是它该有的行为，冻结集仍是 r75）。
+- 上板（只走 JTAG，没写 QSPI、没碰 EEPROM）：三步齐全，
+  `build/r99_flash_1_psboot.txt`（RST_SYSTEM/PS7_INIT/PS7_POST_CONFIG ok，DDR_ECHO 5A5AA5A5）→
+  `build/r99_flash_2_program.txt`（`PROGRAMMED xc7z020_1 <- build/system.bit`，End of startup status: HIGH）→
+  `build/r99_flash_3_app.txt`（RST_PROC/DOW/CON/RESUME ok，FLOW_DONE）。bit md5 `b0f0914becc1`。
+- 板级复验 `build/r99_board_verify_console.txt`：**RESULT board_verify PASS（判红的步骤：0）**，
+  几何 `RESULT PASS geom_check（ok=10 fail=0）`（含 #177/#177b 那两条" END 态"判据 G5/G5b 钳住 4/4、
+  G3/G3x 的 bit19 与 inv 同拍、G4 收尾回到演示默认档），串口电池 `RESULT PASS uart_cmd_check`（105 条 / 98.0 s），
+  里面 V9-6 温度三方对账 `ok`。**位置问题在 r99 上板后也没有回归**（这是"复查修完的位置问题"那一半的板级凭据）。
+- 温度：r99 这一跑 `[TEMP] degC=57.21 / 57.38，raw 0xA7D0 / 0xA7E6，vccint 996 mV，osd=57C，gpio=0x57`
+  ⇒ 四处同源，抄在 `build/board_temp_r99.txt`。**不写成"比 r97 凉了 6 ℃"**：r97 那 63.1–63.4 是连续运行时读的，
+  这次是刚刷完 + 98 秒电池读的，工况不同不可直接比；用户 2026-09-30 的"基本稳定在 64 ℃ 左右"对应长时间演示稳态。
+- **新发现的缺陷 #216（今晚只定罪到"不应答"，不猜根因）**：板子对 `ping` 完全沉默——
+  `ping -n 4 -l 0 192.168.1.10` 与 `ping -n 3 192.168.1.10`（32 字节）**各 3–4 次全部"请求超时"**，
+  上位机自己也报 `[LINK] ping 不通`。同时 **收方向是好的**：推流期间 `health_read` 读到
+  lane8 pkts 0x0000b390 → 0x0000ec8a、lane9 bytes 0x03cf0000 → 0x05046000 都在涨，
+  lane0/1/6（drop_words / bad|err / cdc_episodes）**全 0**，lane30 明确"屏幕归 ETH、`eth_live=1`、时基可信=1、模式=AUTO"
+  ⇒ RGMII 收、重组、仲裁、以及 #209 那一位寄存后的 `eth_live` 都在工作；哑的是 **ICMP/ARP 那一小段收发**
+  （`arp -a` 里 192.168.1.10 → `00-11-22-33-44-55` 有条态目，但不能证明是今晚学的）。
+  本机 NIC 是 192.168.1.100（`ipconfig` 实读），子网没问题。
+  下一步（要人/要一次提权，别乱猜）：① 清掉 ARP 态目再 ping，看能不能**重新学到**那条 MAC
+  ——学得到就是 ICMP 应答侧，学不到就是收 ARP 那一段；② 与 r97 做 A/B（今晚没有留下 r97 的 `.bit`，
+  要 A/B 就得从 `a9ba1f3` 重构建，30 分钟起）；③ 期间**任何文档不许写"板子能 ping 通"**。
+  这条会影响演示第 4 幕的台词，所以先在 `report/DEMO_SCRIPT.md` 与验收表里挂"待判"，不许默默当已验。

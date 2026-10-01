@@ -1,7 +1,7 @@
 Copyright 1986-2022 Xilinx, Inc. All Rights Reserved. Copyright 2022-2026 Advanced Micro Devices, Inc. All Rights Reserved.
 ---------------------------------------------------------------------------------------------------------------------------------------------
 | Tool Version : Vivado v.2025.2.1 (win64) Build 6403652 Thu Mar 19 19:48:24 GMT 2026
-| Date         : Wed Sep 30 19:52:52 2026
+| Date         : Thu Oct  1 08:07:41 2026
 | Host         : Uie-laptop running 64-bit major release  (build 9200)
 | Command      : report_cdc -file D:/Xilinx/Prj/pro/Video_Processing/build/cdc.rpt
 | Design       : system_top
@@ -14,12 +14,13 @@ CDC Report
 
 Severity  Source Clock      Destination Clock  CDC Type                 Exceptions           Endpoints  Safe  Unsafe  Unknown  No ASYNC_REG  
 --------  ----------------  -----------------  -----------------------  -------------------  ---------  ----  ------  -------  ------------  
-Critical  clk_fpga_0        clkout0_1          No Common Primary Clock  Asynch Clock Groups        102   101       1        0             2  
-Critical  sys_clk           eth_rxc            No Common Primary Clock  Asynch Clock Groups       1894  1365       2      527             0  
+Critical  clk_fpga_0        clkout0_1          No Common Primary Clock  Asynch Clock Groups        103   102       1        0             2  
+Critical  sys_clk           eth_rxc            No Common Primary Clock  Asynch Clock Groups       1875  1345       2      528             0  
 Warning   clkout0_1         clk_fpga_0         No Common Primary Clock  Asynch Clock Groups         28    28       0        0             0  
 Warning   eth_rxc           clk_fpga_0         No Common Primary Clock  Asynch Clock Groups        271   271       0        0            14  
 Warning   clk_fpga_0        eth_rxc            No Common Primary Clock  Asynch Clock Groups         15    15       0        0            14  
 Warning   input port clock  sys_clk            No Common Primary Clock  False Path                   2     2       0        0             2  
+Info      eth_rxc           clkout0_1          No Common Primary Clock  Asynch Clock Groups          1     1       0        0             0  
 Info      sys_clk           clkout0_1          Safely Timed             None                       242   242       0        0             0  
-Info      clkout0_1         sys_clk            Safely Timed             None                        20    20       0        0             0  
+Info      clkout0_1         sys_clk            Safely Timed             None                        19    19       0        0             0  
 

@@ -87,7 +87,7 @@
      `frame_ready && eth_link_pix`）；只有图卡档不对 ⇒ `frame_start` 那条支线；三档都对但数字**跳得凶** ⇒
      1.000 s 窗口与源节奏的正常拍频，不是缺陷（面板 1344×625@50 MHz ⇒ 场频 59.5 Hz，见 `data/metrics.csv` 那行）。
      机器那一半的凭据：变异对照 `build/mut_shown_rate_r97.txt`；台架 `sim/tb_shown_rate.v` 的 S1..S7
-     在这一版上板前会单独再跑一次并把控制台抄成随包件（跑完才点名文件，不先写不存在的名字）|
+     已在与 r99 同一棵树上重跑：`RESULT tb_shown_rate PASS`（13 条判据、0 FAIL，控制台 `build/r99_tb_shown_rate_console.txt`）|
 
 这三条只有看的人点头之后才写"过"。**r92/r93：E1、E3 由在场的人口头确认（原话"现在都很正常"，06:2x）；E2 确认（原话"现在画面正常只有一条"，06:5x–07:0x，含 0.50× + 自动旋转与 25 / 29.76 两档推流的对照）⇒ 三条眼睛判据这一轮全部由人点头。**同一时间他还提了一句与判据无关的观感意见（测试图动画"太丑"）——记进任务，不当成红项，也不改动已经验完的那一块位流。
 （本轮已把屏摆成最好判的样子：`split 50` + `split marker 0` + 片源 ETH，命令与板上回读在 `build/evidence/r92_eye_setup.txt` / `build/evidence/r92_eye_capture.txt`。）
