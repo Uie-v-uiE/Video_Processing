@@ -60,10 +60,10 @@
 | `play` / `fill` / `frame N` | 只写 `cur_src`＋发布位（`main.c:1348`、`683-684`、`1228`） | 搬运机 `pl_video_top.v:509`、`641` | `src 0`/`src 1` 钉住期间 | **没有**（§5） |
 | `split <pct>` / `split px <n>` | 清 `SPLIT_AUTO_BIT`、写 `pos_px`（`main.c:1130`、`1140`） | `split_ctrl.v:92` | 无人盖（它自己盖 `auto`） | 说明"manual"（`main.c:1131`、`1143`） |
 | `split auto` | `SPLIT_AUTO_BIT` → `cfg1[23]`（`main.c:1068`） | `split_ctrl.v:92`、`100` | **它盖 `pos_px`** | 半说明（§6） |
-| `split follow 1` / `split video` | `SPLIT_FOLLOW_BIT` → `cfg1[24]`（`main.c:1090`、`1114`） | `split_ctrl.v:33` | 与 `auto` 同时开时新的 `pos` 不动屏 | 说明了"auto 仍开着"（`main.c:1119`） |
-| `split swap 1` | `SPLIT_SWAP_BIT` → `cfg1[25]`（`main.c:1090`） | `split_ctrl.v:103`→`split_display.v:48` | — | 说明了"只换内容，不换缝位"（`main.c:1095`） |
-| `split marker 0` | `SPLIT_MARKOFF_BIT` → `cfg1[30]`（反着写，`main.c:1087-1088`） | `pl_video_top.v:839`→`split_display.v:53-65` | 标记线盖过缝两侧的内容 | 是（那格说明是蓝线） |
-| `split range` / `split speed` | 不存在 | 端点/速度是构建参数（声明 `pl_video_top.v:19-21`，送进 `split_ctrl` 那一处 `:851`） | — | 明确拒绝（`main.c:1150-1152`） |
+| `split follow 1` / `split video` | `SPLIT_FOLLOW_BIT` → `cfg1[24]`（`main.c:1147`、`1114`） | `split_ctrl.v:33` | 与 `auto` 同时开时新的 `pos` 不动屏 | 说明了"auto 仍开着"（`main.c:1119`） |
+| `split swap 1` | `SPLIT_SWAP_BIT` → `cfg1[25]`（`main.c:1147`） | `split_ctrl.v:103`→`split_display.v:48` | — | 说明了"只换内容，不换缝位"（`main.c:1095`） |
+| `split marker 0` | `SPLIT_MARKOFF_BIT` → `cfg1[30]`（反着写，`main.c:1144-1145`） | `pl_video_top.v:839`→`split_display.v:53-65` | 标记线盖过缝两侧的内容 | 是（那格说明是蓝线） |
+| `split range` / `split speed` | 不存在 | 端点/速度是构建参数（声明 `pl_video_top.v:19-21`，送进 `split_ctrl` 那一处 `:851`） | — | 明确拒绝（`main.c:1207-1209`） |
 | `pipe <九位>` | `cur_sel` → `cfg1[8:0]`（`main.c:435`、`202`） | `proc_pipeline.v:49-58` | 缝位决定"看得见几成" | 见 §7 |
 | `pipe` 的 `[6]`（bin_pol） | 同上 | `proc_pipeline.v:131` | **`[5]=0` 时无人读它** | **没有**（§8） |
 | `pipe` 的 `[7]`＋`[8]` 同开 | 同上 | `proc_pipeline.v:56-58`、`proc_morph.v:24` | **两者互相抵消** | **没有**（§8） |
@@ -87,7 +87,7 @@
 2. `!enable`（即 `zoom off`，`zoom_ctrl.v:85-88`）：`inv_scale <= INV_LO`，`INV_LO` 就是 256 = 1.00x
    （实例化时钉在 `pl_video_top.v:281`）。
 3. `manual && frame_start`（`zoom_ctrl.v:89-93`）：`inv_scale <= tbl(zsel)`，八档表在 `zoom_ctrl.v:34-50`。
-4. `frame_start`（`zoom_ctrl.v:94`）：呼吸，在 `[INV_LO..INV_HI]` 里每帧走一步。
+4. `frame_start`（`zoom_ctrl.v:112`）：呼吸，在 `[INV_LO..INV_HI]` 里每帧走一步。
 
 于是判定条件写成一句话就是：
 
@@ -205,7 +205,7 @@ PS 这一路看的是 500 ms 内有没有过发布（`src_life.v:41-47`），而
 | 命令 | 写了什么 | 没写什么 |
 |---|---|---|
 | `src 2` | `cur_src=1` ＋ 踢回放 ＋ **钉模式到 SD**（`main.c:704-706`） | — |
-| `play` | `cur_src=1` ＋ `sd_play(1)`（`main.c:1348-1349`） | 模式 |
+| `play` | `cur_src=1` ＋ `sd_play(1)`（`main.c:1359-1360`） | 模式 |
 | `frame N` | `sd_show()` ＋ `cur_src=1`（`main.c:1227-1228`） | 模式 |
 | `fill` | 写 DDR ＋ `cur_src=1` ＋ 发布一次（`main.c:683-684`） | 模式 |
 
@@ -328,7 +328,7 @@ gamma 是链子的第 0 级（`proc_pipeline.v:92-96`，`en=0` 时逐位旁路�
 `bilin show` 把前两条讲出来了，而且给了一条可复现的对照序列
 （`main.c:960-966`：`src 0` → `zoom 1.5` → `bilin off/on`），第三条没有提。
 另需记一笔：`main.c:1207-1214` 那段注释断言"缺的是 PL 侧没人读 `gpio_o[19]`"（`main.c:1211-1212`），
-这与今天的连线不符（`system_top.v:270` 已经把这一位接进 `pl_video_top`，
+这与今天的连线不符（`system_top.v:276` 已经把这一位接进 `pl_video_top`，
 `pl_video_top.v:251-262` 同步、`fb_bilin` 在读）。同一段注释里那句"上面 801 行 `ci_pre(tk[0], "BILIN")`"
 指的位置也不对了 —— 那条前缀匹配今天在 `main.c:957`。而它下面那条 `not_wired("bilin", …)`
 （`main.c:1222`）按注释自己的说法就永远不会执行。
@@ -346,9 +346,9 @@ gamma 是链子的第 0 级（`proc_pipeline.v:92-96`，`en=0` 时逐位旁路�
 | `pipe` 给 6/7/8 位 | 拒，不做补零解释 | `main.c:541-558`、`876-881` |
 | `src 3` | 拒，并念出 0/1/2 的词表 | `main.c:708-710` |
 | `rot 37` / `rot angle …` | 拒，并说明角度只走按键 | `main.c:1042-1043` |
-| `split range …` / `split speed …` | 拒，并说明端点与速度是构建参数 | `main.c:1150-1152`；参数在 `pl_video_top.v:19-21`（声明）与 `:851`（送进 `split_ctrl`） |
+| `split range …` / `split speed …` | 拒，并说明端点与速度是构建参数 | `main.c:1207-1209`；参数在 `pl_video_top.v:19-21`（声明）与 `:851`（送进 `split_ctrl`） |
 | `osd on/off` | "语法已收，硬件未接"，并说明两条接法各要付什么 | `main.c:1204-1206` |
-| `zoom show` | **不存在**：落到 `ZOOM` 的通用拒绝消息 | `main.c:951-954`（对照 `split show` 在 `main.c:1056`） |
+| `zoom show` | **不存在**：落到 `ZOOM` 的通用拒绝消息 | `main.c:951-954`（对照 `split show` 在 `main.c:1113`） |
 | `gamma auto` 参数越界 | 拒，并把收到的四个数原样念出来 | `main.c:308-313` |
 | `temp th` 参数不是十进制 | 退回 85 并说明 | `main.c:820-824` |
 | 一行超长 / 半行搁置 | 报一条并丢掉，不静默截断 | `main.c:1427-1434`、`1384-1392` |
