@@ -641,11 +641,29 @@ r94 实测全设计 WHS **+0.049 ns 又落回 `eth_rxc` 那一格**（`clk_fpga_
   `u_icmp_tx/ip_head_reg[2][2] → check_buffer_reg[17]`（IP 首部校验和累加）violated **−0.110 ns、1 个失败端点**。
   两件事合起来的诚实读法：这一刀没有可宣称的收益（+0.241 ns 落在同批放置实测摆过的 0.4 ns 之内），
   反而暴露了对打包密度的敏感性。要重做必须连"同一份网表多滚一轮"一起排。r100 不采纳、不刷板。
-- **板上现在是 r102**（bit `bf11b78fe45d`、xsa `4ca70e088fbb`、`ps_app.elf` 仍是 `d0b07f84a068`（**没重编**：
-  这一轮只动了一份 `src/rtl/eth/icmp_rx.v`，顶层端口一行没改 ⇒ 地址表/GPIO 位宽/中断号全不变，
-  重建只会产出同一份字节）；树 `top 2bf2ceeede07`（未动）/ `rtl 7a431249d550`（80 份文件），
-  `board_verify --geom --battery`
-  PASS = 几何 `ok=10 fail=0` + 串口电池 105 条命令全过，判红步骤 0）。上一版 r101 是 bit `ddf972657525`
+- **板上现在是 r103**（2026-10-01 21:33 三步 JTAG：`ps_jtag_boot`→`program_pl`→`ps_app_reload`，
+  token 依次是 `DDR_ECHO: 5A5AA5A5`、`PROGRAMMED xc7z020_1 <- …/build/system.bit`、`RESUME: ok / FLOW_DONE`，
+  凭据 `build/r103_jtagboot.txt`、`build/r103_program_pl.log`、`build/r103_appreload.txt`；
+  bit `f8439575eec5`、xsa `f9d01c9340be`、`ps_app.elf` 仍是 `d0b07f84a068`——**没重编**：这一轮只动
+  `src/rtl/process/zoom/zoom_mapper.v`，顶层端口一行没改 ⇒ 地址表/GPIO 位宽/中断号全不变；
+  树 `top 2bf2ceeede07`（未动）/ `rtl 50586c64bb87`（80 份文件），`--match` 判 fresh）。
+  板级复验：`board_verify --geom --battery` **PASS，判红步骤 0**（几何 `RESULT PASS geom_check（ok=10 fail=0）`；
+  串口电池 105 条 / 97.8 s 全过、跑完回到演示默认档；V9-6 温度格三方对账 `ok`，读数是 62.62–62.85 ℃），
+  ICMP 复验 `ping -n 4` **4/4**、`-l 0` **3/3**、`-l 32` **4/4**（`build/r103_board_ping.txt`；
+  板 IP 的出处是 `src/rtl/eth/arp.v:30` 的 `BOARD_IP`，**不是**任何人记忆里的那个 7.x 地址——我今晚就栽过一次）。
+  ⚠ **本轮上板走在门禁之前**，这是有意选的并行（板级刷写先前已授权 + 刷板可逆），不是把门禁跳过去了：
+  写这一段时 `tb_v98_top_seam` 还在跑（已判 25 条、**0 条 FAIL**，含旋转态的 `C4a/C4b`），门禁还没出，
+  所以这里**故意不点门禁文件的路径**——`doc_currency` 的 D4c 会判"点名的凭据盘上没有"，我刚才就被它抓了一次。
+  **回退路径要说清代价**：r102 那份位流**不在 git 里**（`git log --stat -- build/system.bit` 显示最后一次提交是
+  r101 那一件 `4906115`，抽出来实读 md5 = `ddf972657525`；r102 的 `bf11b78fe45d` 只活在文字凭据里）
+  ⇒ 想回到 r102 得把 `src/rtl/process/zoom/zoom_mapper.v` 取回 #189 之前那一版**再重建一轮**（约 20 分钟），
+  不是抽一份现成 bit。这个缺口本轮就补掉：**r103 的 `system.bit`/`system.xsa` 随本件一起提交**，
+  从此"板上那一版"永远能抽回来（门禁若判红再按上面这条重建，并如实改本节口径）。
+  ⚠ 同样别把"板上是当前树的构建"念成"每一条改动都单独复验过"：**#189 没有板级机器判据**（见第十二节），
+  **#201 那一刀也没有针对它的板级判据**（它随 r99–r103 编进去，没有单独量过）。
+- **上一版 r102**（bit `bf11b78fe45d`、xsa `4ca70e088fbb`、树 `top 2bf2ceeede07` / `rtl 7a431249d550`，
+  `board_verify --geom --battery` PASS = 几何 `ok=10 fail=0` + 串口电池 105 条命令全过，判红步骤 0）已被取代。
+  再上一版 r101 是 bit `ddf972657525`
   （树 `rtl 2bf4eb346f80`），再上一版 r99 是 `b0f0914becc1`，都已被取代。今天 17:3x 为了恢复被 0 字节请求
   楔死的应答器，曾对 r101 走过一遍
   `rst -system → ps7_init → program_pl → ps_app_reload`（凭据 `build/r101_jtagboot_218.txt`、
