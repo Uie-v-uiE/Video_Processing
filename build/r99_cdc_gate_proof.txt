@@ -16,6 +16,10 @@ r98 工作树（改前标本）      ：clk_fpga_0>clkout0_1(103/1) eth_rxc>clko
 # 后续（不许口头宣称，都要由 r99 自己的报告说）：
 #   ① #209 的修法已落地：src/rtl/eth/eth_udp_video_top.v 里 link_active 改由 gmii_rx_clk 域的一个触发器给，
 #      于是 pl_video_top.v:465-470 那三级 ASYNC_REG 链的第一拍不再是"组合或缩的输出口"。
-#   ② r99 的 cdc.rpt 必须同时满足两件事：与 r75 的 Critical 配对差集为空，且 report_cdc -details 里
-#      不再出现 CDC-10（同步器前有组合逻辑）这一条。凭据由 r99 构建后重新生成
+#   ② r99 的 cdc.rpt 必须同时满足两件事：与 r75 的 Critical 配对差集为空，且 `eth_rxc>clkout0_1` 这一对
+#      不再是 Critical（不再有 unsafe 端点）。
+#      ⚠ 原先这里写的是"全局不再出现 CDC-10"——**那个期望写错了**（要求消灭一个类别，而同类在
+#      `u_pl/u_cmt` 处早就存在、跨版都在）。r99 实测：配对差集为空 ✓、eth 那对掉到 Info ✓、
+#      全局 CDC-10 还剩 1 条（`u_cmt`，另立 #214）。凭据见 build/r99_cdc_details.txt。
+#      凭据由 r99 构建后重新生成
 #      （report_cdc -from eth_rxc -to clkout0_1 -details，输出写 Temp 再抄成随包件，不覆写 build/cdc.rpt）。
