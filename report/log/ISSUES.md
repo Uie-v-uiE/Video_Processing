@@ -10039,3 +10039,38 @@ echo request，期望几拍之内回 `st_idle`；现在这版必须判红），�
   3. **E4（旋转角点在屏上有没有被切）**：机器替身 `tb_zoom_fit_corners` 已落地并 PASS，只差你对着屏答一次；配方与"每个'不'意味着什么"在 `board/ACCEPTANCE.md` 的 E4 行。
 - 时序那条腿本轮没有新动作，也不该有：按规矩 35，一次构建的 WNS 绝对差不算收益；#141 已采纳但**重复滚量仍欠**，那是"要不要再花一轮构建去证明同一件事"的决定，不是一笔遗漏。
 - 04:16 self-correction (two of my own mistakes in one minute): (1) the previous commit body typed the export source sha as d7cc42 while the true value is d7ccac3 -- authoritative line: final_submission/MANIFEST.txt, field "source commit"; I do not rewrite pushed history, I state it here. (2) The ISSUES line I meant to add for that was written with printf inside double quotes containing backticks, so the shell ran the quoted words as command substitutions: the appended line came out mangled (the errors "d7cc42: command not found" are that). This is the exact trap recorded at 02:4x today; the rule I keep breaking is that long text must go through a file written by the editor and then be appended by path, never inlined. The mangled line has now been replaced by this one. Package itself is fine: 345 files = 344 + MANIFEST.
+## 2026-10-02 07:5x 早间报回来的「旋转时角周围向左右分散的碎影」归到了那条**故意留红的 `C5c`**；我差点被一条永远走不到的死分支挡住
+
+- **用户原话（逐字，不改写）**：「我看到旋转的视频四个角划过屏幕上面时角周围会有一些向左右分散的同视频角内容一样的颜色在顶部周围」。
+  三条补充观测也是逐字的：「bilinoff 还在，四个角都有，我是开始 rot auto 看到的现象」「停住的时候没有」「bilin on 的时候比较明显，off 的时候几乎看不到」。
+- **排除掉的三条**（都在盘上有凭据）：① 角点出屏——`sim/tb_zoom_fit_corners.v`（`#162`）在 0/30/45/60/90/270 六档 4/4 命中，凭据 `build/r104_tb_zoom_fit_corners_console.txt`；
+  ② `zoom_fit` 与 `angle` 差一整帧——`src/rtl/process/zoom/zoom_fit.v:52-55` 写的是"晚两拍且落在消隐里"；
+  ③ `fb_bilin` 末行末列抽头——`src/rtl/process/bilin/fb_bilin.v:46-54` 钉小数加折回，`#146` 已经把这条断言过。
+- **量出来的那一半**（新落盘的凭据 `build/evidence/r104_c5head_band.txt`）：r104 那次顶层台架的 `C5` 帧头窗 18 行逐格读数——
+  错的 8 格**全**在最上面 6 个显示行里（`OFF_LINES` 4 + `BILIN_ROWS` 2），顶部前 4 行显示的是**源行 2** 的内容而定义要 0/0/1/1（差 1~2 个源行），
+  本体行 1188 格 × 3 列**一格都不错**。⇒ 这一族只在帧头活着，屏上就是**顶上一小条**，不是满屏。
+- **读出来的那一半**（这条**不是量出来的**，写清楚）：帧头那 6 行的请求发自**本帧末尾几行**——
+  `src/rtl/top/pl_video_top.v:280` 的 `y_right_adv` 把读行提前 `OFF+BILIN` 行、`:288` 的 `cy_r` 减一次绕回，而角度是在帧首消隐里锁存的
+  ⇒ 帧头吃的是**上一帧的角度**。角度不变时它退化成上面那 1~2 行的行差、肉眼分不出；转起来时每帧差一个角度步，
+  角点在画面中心外半径约 300 源像素处，3°/帧 ≈ 15 个源像素的位移 ⇒ 看起来就是"角的内容向左右散开"。
+  `src/rtl/video/raw_line_delay.v` 的端口里根本没有角度（只有 `de/x/y`）⇒ **这一带的宽度与角度无关**，只与它有几行有关。
+- **板上做了速度扫描留给眼睛判**：`rot speed` 依次 1→2→4→6→7→6→4→2→1→0，时刻 07:52:53–07:54:38、每档约 7 秒；
+  同一条判据的预测是"碎影随每帧角度步数变大、停住只剩一两行的边缘差"。板子末态 `rot show` 回读 `auto=1 speed=0`，
+  我随后把片源复原成发现时的 `src 1`（`STAT` 回 `mode=1`）并把 `rot speed 3` 留着转，等眼睛答；要收回去是一条 `rot auto 0` + `zoom fit 0` + `zoom 1.0`。
+- **我自己的错，公开记一条**：第一步我先 grep `main.c`，撞见 `src/ps/main.c:1278` 的 `not_wired("bilin", …)`，就准备把用户"bilin on/off 看着不一样"这条观测
+  **当不可信数据**处理（理由写成"BILIN 没接"）。真相是那条分支**永远走不到**：`:991` 的 `ci_pre(tk[0], "BILIN")` 是前缀匹配、先到先赢、块内每条路都 `return 0`，
+  而 `#83` 早把 PL 那一级接上了——`src/rtl/top/system_top.v:276` 把 `gpio_o[19]` 送进 `bilin_en_axi`，`src/rtl/top/pl_video_top.v:255-266` 是那条三级同步，
+  `:712` 交给 `fb_bilin`。教训不是"grep 错了"而是**一个 grep 命中不是结论**，尤其当同一个文件里已经有两句话互相矛盾时（`:1267-1268` 说"PL 侧没人读 gpio_o[19]"，
+  `:1271` 说"读口已经在板上跑起来了"）——那正是 `#66` 那一族"两处各说一遍"的病灶，只是这次病在注释里。
+- **两条顺手记下、不当场动手的**（都要动固件源码 ⇒ 归下一次 app 构建那一批，改了不重 build 就是"文档说 X、板上跑 Y"）：
+  ① `src/ps/main.c:1263-1270` 那段注释里"缺的是 PL 侧没人读 `gpio_o[19]`"已被 `#83` 推翻，同一句里"上面 801 行"的真实位置现在是 `:991`；
+  ② `:1278` 那条死分支本身（连同它引用的 `ISSUES #79 第 5 节`）。已立案，见任务表。
+- **落地的文件**：`build/evidence/r104_c5head_band.txt`（新，逐字摘录加"能证/不能证"两段）、`report/KNOWN_ISSUES.md` §1 补"板级可见性"一条、
+  `board/ACCEPTANCE.md` E4 补原话与三条排除与速度扫描时刻。
+- **跑过的尺子（都是这一轮当场跑的）**：`doc_enc_check` 371 份干净；`line_cite_check` 硬错 0（命中 394／候选 92／取不出锚点 111／回声转述 4／厂商树 1）；
+  `doc_currency_check` CURRENCY 干净（D1b 基准 `bit md5=680f38f5794c → r104_gates.txt`，抓到 2 句板态身份句）；`metric_recheck` 判 37 个数红 0。
+- **这条改变的是 `C5c` 的优先级，不是它的数**：门禁仍是 22 项 = 21 绿 / 1 红（红仍是第 15 项里声明过的 `C5c`），
+  试冻结仍 `REFUSE`，最新全绿冻结集仍是 `build/r75_gates.txt`。演示里"就是要转"，所以这条从"台架上的一条红"升级成"评审可能当场看见的一条红"——
+  §1 里"为什么不修"那句（改前必须红、改后恰好绿那条变异对照还没建）从今天起有了第二个理由：**它还得覆盖"每帧换角 × 帧头"这一格**，
+  那两个维度从来没有被同一条判据同时盖住过（`C5` 只在 0°×100 % 量、`C4` 只判形状不判帧头）。
+
