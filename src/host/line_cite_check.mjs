@@ -272,7 +272,25 @@ function instViol(docLines, idx, citeText, linesByFile) {
 
 // 厂商树里的文件名：文档会引 `xsdps.c:156-159` 这种驱动行号，那些文件不在"我写的东西"范围，
 // 但也不该被判成"文件在树里找不到"——那是我的扫描范围，不是文档的错。
-const VENDOR = new Set();
+// ⚠ 只靠"从 `vitis/` 现派生"是有条件的：**提交包里没有 `vitis/`**，于是包内跑 D5 会把这句正当的厂商引用
+//   判成硬错（03:4x 实测：包内 `report/commands.md:267` 红，而仓库里同一行被跳过、硬错 0）。
+//   ⇒ 下面这份小名单是**交付文档真正点名过的厂商文件**（不是整棵 BSP 的 700 个名字），随判据同文件走，
+//     包内也成立。它不是免检通道：`vendorBuyoff()` 会判红"名单里出现了我自己写的文件"，
+//     所以往里塞 `zoom_mapper.v` 这类第一方文件不会让引用变绿，只会让判据变红（#172 那次 `*.log` 被整类放掉的教训）。
+const VENDOR_SEED = ['xsdps.c'];
+const VENDOR = new Set(VENDOR_SEED);
+
+// 豁免名单的反买通检查：名单里的名字如果能在第一方树里解析到，就是有人在拿豁免通道盖真引用 ⇒ 硬错。
+function vendorBuyoff(code) {
+  const rows = [];
+  const firstParty = new Set();
+  for (const rel of code.keys()) firstParty.add(path.basename(rel));
+  for (const name of VENDOR_SEED) {
+    if (firstParty.has(name))
+      rows.push(`VENDOR_SEED  名单里的 ${name} 在第一方树里存在（src/ 或 sim/ 之类）⇒ 厂商豁免不许盖住我自己写的文件，把它从名单里删掉`);
+  }
+  return rows;
+}
 
 function loadCode() {
   const map = new Map();
@@ -336,6 +354,13 @@ function selfTest(code) {
     ['越过 EOF', resolveTarget('link_monitor.v', code) !== null && 9999 > lm.length, true],
     ['文件不在树里', resolveTarget('no_such_file_zzz.v', code) === null && !VENDOR.has('no_such_file_zzz.v'), true],
     ['同一行号在长文件里合法（不许误报）', 900 > code.get('src/rtl/top/pl_video_top.v').length, false],
+    // 包内没有 `vitis/` 树时，`xsdps.c` 依然必须被认成厂商引用（不判硬错）——
+    // 这一条测的正是提交包那种环境：文件在第一方树里解析不到，而名单里有它。
+    ['厂商兜底：树里没有 xsdps.c 也不算硬错',
+      resolveTarget('xsdps.c', code) === null && VENDOR.has('xsdps.c'), true],
+    // 反买通：名单里出现第一方文件必须当场红（不然谁都能靠加一行把真引用洗绿，同 #172）
+    ['厂商名单不许盖住第一方文件（反买通）',
+      vendorBuyoff(new Map([['src/rtl/eth/xsdps.c', ['// x']]])).length === 1, true],
   ];
   for (const [name, got, want] of hardCases) {
     console.log(`  ${got === want ? 'PASS' : 'FAIL'} 硬错判据 ${name}：${got === want ? '符合预期' : '不符合预期'}`);
@@ -389,7 +414,9 @@ function selfTest(code) {
     d5dRun = 1;
   }
   // 计数地板：8 = 锚点 2 + D5b 3 + 硬错 3；D5d 五条（判 3 + 配对 2）一条都不能少跑。
-  return pass + b5 + e5d === 8 + 5 && d5dRun === 5 ? 0 : 1;
+  // 8 → 10：本轮给厂商豁免加了两条对照（包内兜底 + 反买通），条数涨了就改这里，
+  //  否则新增的对照会被"够数就行"的旧期望静默放过（#194 那一族的计数地板）。
+  return pass + b5 + e5d === 10 + 5 && d5dRun === 5 ? 0 : 1;
 }
 
 // 每个被引文件"认识的符号"全集：锚点必须先过这一关，才有资格判红（理由见 check 里那段注释）。
@@ -404,7 +431,10 @@ if (args.has('--self')) process.exit(selfTest(loadCode()));
 
 const code = loadCode();
 const docs = mdFiles();
-const { fails, soft, needs, oks, skipped, echoNeed } = check(code, buildWords(code), docs);
+const res = check(code, buildWords(code), docs);
+// 反买通那条**必须进硬错集合**（否则"名单被污染"只会打印一行而退出码还是 0）
+res.fails.push(...vendorBuyoff(code));
+const { fails, soft, needs, oks, skipped, echoNeed } = res;
 const listN = 20;
 const optVal = (name, dflt) => {
   const a = process.argv.find((x) => x.startsWith(name + '='));

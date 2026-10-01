@@ -500,7 +500,7 @@ D5OUT=$(node src/host/line_cite_check.mjs 2>&1); D5RC2=$?
 D5TOK=$(printf '%s\n' "$D5OUT" | grep -c '^D5: CLEAN')
 D5HIT=$(printf '%s\n' "$D5OUT" | sed -n '1s/.*命中 \([0-9][0-9]*\) 条.*/\1/p')
 D5CAND=$(printf '%s\n' "$D5OUT" | sed -n '1s/.*候选 \([0-9][0-9]*\) 条.*/\1/p')
-say "文档行号锚点 doc_cite" "命中=${D5HIT:-空} 候选=${D5CAND:-空}" "self 13 条对照全过、硬错 0、命中 >= 300" \
+say "文档行号锚点 doc_cite" "命中=${D5HIT:-空} 候选=${D5CAND:-空}" "self 15 条对照全过（含厂商豁免 2 条）、硬错 0、命中 >= 300" \
     $([ "$D5RC1" = 0 ] && [ "$D5RC2" = 0 ] && [ "$D5TOK" = 1 ] && [ "${D5HIT:-0}" -ge 300 ] && echo 1 || echo 0)
 if [ "$D5RC2" != 0 ]; then
     printf '%s\n' "$D5OUT" | sed -n '/硬错（必定是坏引用）/,$p' | grep '^  ' | sed -n '1,8p' | sed 's/^/        /'

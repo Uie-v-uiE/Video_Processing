@@ -22,7 +22,7 @@
 //   --self       判据自己的反例（三条各造一条坏输入 + 一条正当的过去式不许误报）
 //   --probe      只报数不判红（用来先看口径会不会咬到正当的历史句）
 //   --list-adv   把"只报数"那一半逐条打出来（#121：口径必须可复现，纯打印不参与退出码）
-import { readFileSync, readdirSync, statSync } from 'node:fs';
+import { readFileSync, readdirSync, statSync, existsSync } from 'node:fs';
 import path from 'node:path';
 import { createHash } from 'node:crypto';
 
@@ -235,7 +235,12 @@ const ADJ_RNN = /^\s*(?:现在|当前)?\s*(?:是|为|跑的是|=|:)?\s*[（(]?\s
 function currentBoardRound() {
     let h = '';
     try { h = createHash('md5').update(readFileSync(path.join(ROOT, 'build', 'system.bit'))).digest('hex').slice(0, 12); }
-    catch { return { nn: 0, why: '读不到 build/system.bit' }; }
+    catch {
+        // 分两种：**这棵树根本没有 bit 产物**（提交包就是这样：二进制不随包）⇒ 这一层不可判，明说而不是判红；
+        // 而在仓库里（bit 在、却没有一份门禁件戳它）才是"基准读不到"，必须红——门禁在仓库里跑，牙留在那边。
+        const noBit = !existsSync(path.join(ROOT, 'build', 'system.bit'));
+        return { nn: 0, why: noBit ? '本目录没有 build/system.bit（多半是提交包，不是仓库）' : '读不到 build/system.bit', absent: noBit };
+    }
     let best = 0, name = '';
     for (const f of readdirSync(path.join(ROOT, 'build'))) {
         if (!/^r\d+_gates\.txt$/.test(f)) continue;
@@ -323,7 +328,9 @@ function scanTree() {
     }
     const cur = currentBoardRound();
     const b = d1bScan(d1bDocs, cur);
-    const brows = cur.nn > 0 ? b.rows
+    // 提交包里没有二进制（`build/system.bit` 不存在）⇒ 这一层**不可判**，明写在汇总里而不是判红；
+    // 仓库里（bit 在、却没有门禁件戳它）仍然是红——牙留在门禁跑的那一侧。
+    const brows = (cur.nn > 0 || cur.absent) ? b.rows
         : [`D1b 判不了：${cur.why}（bit md5=${cur.bit || '读不到'}）⇒ 板态身份句这一层没有基准，不许念成绿的`];
     return { rows: checkLines(docs, has, g.nn).concat(p.rows, brows), adv: p.adv, nd,
         g, n: Object.keys(docs).length, m: Object.keys(allFiles).length,
@@ -406,8 +413,10 @@ if (argv.includes('--self')) {
     const d1badj = d1bScan({ 'README.md': ['板上现在跑哪一轮请看下面那一行（r80 只是历史）'] }, fakeCur).rows;
     console.log(`  ${d1badj.length === 0 ? 'PASS' : 'FAIL'} 对照：指路句（"现在"后面不接编号）不误报（实测 ${d1badj.length} 条）`);
     for (const r of d1badj) console.log('        ' + r);
-    const hasBase = cur0.nn > 0;
-    console.log(`  ${hasBase ? 'PASS' : 'FAIL'} D1b 基准读得到（bit md5=${cur0.bit || '读不到'} → ${cur0.name || cur0.why}）`);
+    const hasBase = cur0.nn > 0 || cur0.absent;   // 包里没有二进制 ⇒ 已声明为不可判，这条对照仍算过（仓库里必须有基准）
+    console.log(`  ${hasBase ? 'PASS' : 'FAIL'} D1b 基准：`
+        + (cur0.nn > 0 ? '读得到 r' + cur0.nn + '（' + cur0.name + '）'
+          : cur0.absent ? '本目录无 bit 产物 ⇒ 这一层声明为不判（在仓库里跑时它是硬判据）' : '读不到'));
     if (!hasBase) console.log('        —— 基准读不到时真实扫描那一趟会把这一层判红（不许念成绿的），这里只是把原因打出来');
     let d4 = 0;
     d4 += yes('D4a：点名的文档盘上没有', d4bad, /D4a/);
@@ -427,7 +436,7 @@ if (argv.includes('--self')) {
 
 const { rows, adv, nd, g, n, m, d1b } = scanTree();
 console.log(`扫了 ${n} 个文档（D1/D2/D3）+ ${m} 个手写文件（D4）；最新且 ALL PASS 的冻结集 = ${g.name || '（没有）'}`);
-console.log(`D1b 基准：bit md5=${d1b.cur.bit || '读不到'} → ${d1b.cur.name || d1b.cur.why || '（无）'}；扫 ${d1b.docs} 份交付文档，抓到 ${d1b.claims} 句"板态身份句"（只念相邻带编号的那种，历史句不进射程）`);
+console.log(`D1b 基准：bit md5=${d1b.cur.bit || '读不到'} → ${d1b.cur.name || d1b.cur.why || '（无）'}${d1b.cur.absent ? '（本目录没有 bit 产物 ⇒ 这一层不判；在仓库里跑时它是硬判据）' : ''}；扫 ${d1b.docs} 份交付文档，抓到 ${d1b.claims} 句"板态身份句"（只念相邻带编号的那种，历史句不进射程）`);
 // `--list-adv`：把"只报数不判红"那一半逐条打出来（#121：口径必须能说清，不能只留一句"不算指路错误"）。
 // 纯打印，不参与退出码，也不改任何判据 —— 判据的红绿仍由 rows/hard 决定。
 if (argv.includes('--list-adv')) {
