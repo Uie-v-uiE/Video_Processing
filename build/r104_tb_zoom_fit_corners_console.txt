@@ -1,0 +1,11 @@
+PASS cov angle=0 inv_fit=259 swept=153600 A_corners=4 B_corners=4 A_srcx=0..511 A_srcy=0..299
+PASS cov angle=30 inv_fit=443 swept=153600 A_corners=4 B_corners=0 A_srcx=0..511 A_srcy=0..299
+PASS cov angle=45 inv_fit=492 swept=153600 A_corners=4 B_corners=0 A_srcx=0..511 A_srcy=0..299
+PASS cov angle=60 inv_fit=509 swept=153600 A_corners=4 B_corners=2 A_srcx=0..511 A_srcy=0..299
+PASS cov angle=90 inv_fit=439 swept=153600 A_corners=4 B_corners=0 A_srcx=0..511 A_srcy=0..299
+PASS cov angle=270 inv_fit=439 swept=153600 A_corners=4 B_corners=0 A_srcx=0..511 A_srcy=0..299
+RESULT tb_zoom_fit_corners PASS
+INFO: [Common 17-206] Exiting xsim at Fri Oct  2 01:58:13 2026...
+exit
+INFO: [Common 17-206] Exiting xsim at Fri Oct  2 01:58:13 2026...
+VERDICT tb_zoom_fit_corners: RESULT tb_zoom_fit_corners PASS || FAIL 行数=0 || PASS 行数=6
