@@ -301,7 +301,7 @@ bilin 的**读回**（不是 on/off 本身）            on/off/show 从 r64b �
 **故意不收的两个键**：`src` 的"锁 TEST"这一格仍然不需要心跳（图卡由 PL 自绘，`fb_vis` 那条第一列就是 0）；
 `osd on|off` **这一版接了**（r83）。当时写的那两条代价都不必付：既没动 `osd_overlay` 的输出结构，
 也没加一级输出 mux —— 只在叠层那最后一级把"这一格有没有字"与一个**准静态位**相与
-（`osd_overlay.v:502` 的 `osd_en && pixel_on`），所以 `MIX_D`/`LATENCY` 那两本账一个字没改；
+（`osd_overlay.v:505` 的 `osd_en && pixel_on`），所以 `MIX_D`/`LATENCY` 那两本账一个字没改；
 代价是那一位必须配**自己的一条** 3 级 `ASYNC_REG` 链（`pl_video_top.v:267-279`，与 bilin/geom 同一模子）。
 判据两条：`sim/tb_osd_lines.v` 的 T13（关掉逐位等于背景、开着同一片格子画得出字）+
 `sim/tb_v98_top_seam.v` 的 C12（顶层数叠字格 ON=22842 / OFF=0），板上再拿串口看 `gpio_o` 差 `0x100000`。

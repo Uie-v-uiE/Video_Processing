@@ -277,7 +277,7 @@ DSP 从 14 个增加到 20 个但功耗不变（这几个乘法器只在像素�
 * 顺带被这一块**否掉的第二个假优化**：分组表里 `clkout2`（200 MHz）显示 NA，看着像"又一棵空转的树"。
   查 `clock_util.rpt` 第 5 张表 g6：驱动是 `u_idelay_clkgen/u_bufg_200/O → idelay_clk`，**负载 1**，
   它是 RGMII 那条 IDELAY 的参考时钟（`clk_gen.v:27` 注释 `200 MHz IDELAY ref`）—— 动它就是动采样基准。
-  （`pl_video_top.v:149` 那个 `clk_200m_unused` 是 `u_pl/u_clk` 里的另一路，工具已经把没负载的 BUFG 剪掉了：
+  （`pl_video_top.v:127` 那个 `clk_200m_unused` 是 `u_pl/u_clk` 里的另一路，工具已经把没负载的 BUFG 剪掉了：
   时钟树清单里只有 g0~g7 这 8 棵，没有第二棵 200 MHz。）
 
 ## 7. §5 的采纳规则当时写成过一个脚本（自检已过、两向都有牙；脚本本身是阶段性的，已退役）
@@ -447,7 +447,7 @@ BRAM **95 = 67.86 %**、LUT as Logic **10173**、LUT as Memory **4187**、FF **8
 ## r86（2026-09-29 05:39 实现）：`#124` 那一刀被采纳了，但它买到的是"端点族消失"，不是"WNS 转正"
 
 **这一轮只做了一件事**：`link_monitor` 里 `drop_words`/`cdc_ep` 两个诊断计数器的使能，
-从"组合直接吃 `cdc_wr_req && cdc_full`"改成"事件谓词寄存一拍再吃"（`src/rtl/eth/link_monitor.v:85,102-103,119-120`）。
+从"组合直接吃 `cdc_wr_req && cdc_full`"改成"事件谓词寄存一拍再吃"（`src/rtl/eth/link_monitor.v:85,105-106,122-123`）。
 动机是 `#121` 量的那条最差族：`u_cdc/wbin_reg → u_lm/drop_words_reg[20..27]/CE`，6 级逻辑、route 71 %。
 采纳之前先补了尺子（`tb_link_monitor` 的 E1/E2 精确计数 + 变异对照，见 `#124` 收口段）——
 **这一轮的教训全部在"补尺子"和"读数的强度"上，不在代码本身**。

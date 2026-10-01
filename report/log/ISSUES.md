@@ -9426,3 +9426,39 @@ echo request，期望几拍之内回 `st_idle`；现在这版必须判红），�
   候选 130 条；`node src/host/doc_enc_check.mjs` ⇒ 369 个手写文件全部干净。这份文件里的 soft 名单现在为 0 条。
 - 没做的事：不在这批里动 `pl_video_top.v:251-262`（bilin 那条 3 级同步链今天起于 :255、寄存器在 :258，窗口起点偏早
   4 行但内容仍在同一件事里，且它判的是 hit 不是 candidate）；也不做"批量减 N 行"式的全树重排——那是 #122 明令的坏主意。
+
+## 2026-10-01 23:58 文档同步（#150/#122 第二批）：其余 9 份交付文档的 51 条 soft 引用读到底，落地 17 行；r104 构建把 D6 的 8 行数冲成新账
+
+- 范围与方法：上一批把 `report/COMMAND_PRECEDENCE.md` 读空之后，树里还剩 51 条 soft 候选，分布在
+  KNOWN_ISSUES 14 / ARCHITECTURE 10 / AI_COLLABORATION 9 / DEMO_SCRIPT 7 / DEFAULTS 3 / MODULES 3 / OPTIMIZATION_LOG 3 / COMMANDS 1 / PERF_REPORT 1。
+  这批改用四个并行的判断任务做（tb_v98 那两个小时的窗口期），每个任务的硬边界是**只许改自己那份 .md**，
+  不许碰 `src/rtl`、`sim`、`build`、`src/host`，不许跑 gates/board_verify/uart_cmd/health_read/任何串口与 Vivado，
+  不许 `git add/commit/checkout`——因为在跑的是 2 小时台架 + 之后的正式门禁，任何一手脚误都会烧掉一整轮。
+  另外明确禁止改 `src/rtl/eth/icmp_tx.v` 的行号引用：那个文件正被 r104 裁决，引用得等门禁落定再重钉。
+- **我自己复验过的**（不是借用判词）：落地改动的 17 行**逐行**用 `sed -n` 读过新行号的真实内容——
+  `frame_reasm.v:151-160`（151 `if (p_eof && pkt_active)`、160 `frame_done<=1;`）、`tb_v98_top_seam.v:78`、
+  `tb_edge_rim.v:258`（`integer` 循环变量那条警告）、`gates.sh:240 / 294 / 299-304 / 469-476 / 224-228`、
+  `health_read.mjs:568-569`、`main.c:1544`（`ctrl_apply();`）与 1591-1594（autoplay 那一支）、
+  `pl_video_top.v:984`（`.zoom_auto(zoom_run && !zman_pix && !zoom_fit_en)`）、`osd_overlay.v:505`、
+  `udp_tx.v:44-47`（`ETH_TYPE`/`MIN_DATA_NUM`，`fd98a1f` 砍掉 8 行文件头注释留下的漂移）、
+  `pl_video_top.v:127`（`wire clk_200m_unused;`）、`link_monitor.v:105-106 / 122-123`、
+  `arp_rx.v:103-104` 与 `icmp_rx.v:156-157`（`st_idle` 等 `8'h55` 那两行）；
+  另外抽复验了 7 条判为假阳性的：`link_monitor.v:187-196`（lane0…lane9 逐字）、`system_top.v:145`（UDP_VIDEO_PORT）、
+  `zoom_fit.v:2-7`、`eth_udp_video_top.v:126`（`arp #(`）、`pl_video_top.v:560-562`、`main.c:1042`、`sd_play.c:607`。
+  其余约 27 条"假阳性"是借用四个任务的判词（它们各自引了行内容），我没有逐条重读——**这批的可信度上限到这里为止**。
+- 一个必须记住的修正：`KNOWN_ISSUES.md:492` 那对 `arp_rx.v:121`/`icmp_rx.v:148` 上一轮我判过"是 `st_eth_head` 状态起始、不改"，
+  那句话本身没错（121 确实是 `st_eth_head`），但**它在文档里承担的是另一件事**——正文说的是"厂商状态机的入口态 `st_idle` 等前导码"，
+  所以引错了行。⇒ 症状先怀疑尺子这条又应验了一次：一个引用"在树里存在、也指向一段真代码"并不等于它指向正文说的那段。
+- 三条**推迟**的引用（`KNOWN_ISSUES.md:239 / 257 / 508`，都指向 `src/rtl/eth/icmp_tx.v`）：等 r104 门禁落定再钉，
+  而且**不能按"#141 那一刀净 +16 行"去加减**——实测偏移不均匀（`175→191`、`333→349` 是 +16，而 `:239` 正文说的比较式现在在 360，是 +35），
+  必须逐条按正文重新 grep 定位。这一段已经绑进任务 #161 的采纳分支。
+- 尺子实测（我自己跑的，不是任务转述）：`line_cite_check` **硬错 0**、锚点命中 **352→368**、候选 **130→114**（全树命中 342→344→368 这三跳都有提交记录可查；#98 立案时记的 245 是更早的起点，这批没重测那个值）；
+  `doc_enc_check` 369 个手写文件全部干净；`doc_currency_check` CURRENCY 干净。
+- **D6 现在 8 条红，来源不是这批**：23:26 那次 r104 正式构建把 `timing/utilization/power` 三份报告覆盖成新数，
+  而 `data/metrics.csv` 与 README 首页仍写 r103 ⇒ WNS 0.608↔0.812、失败端点总数 50868↔50948、LUT 14333↔14334、
+  FF 8079↔8127、动态功耗 2.212↔2.211、结温估算 52.6↔52.5。这些正是任务 #161 的数字同步步要做的，
+  按规矩**现在一个都不改**：门禁还没跑，改早了就是"文档跟着未采纳的构建走"。
+- 顺带记下 r104 正式构建报告的形状（是报告的数，不是判据）：WNS **+0.812**、失败 setup/hold 端点 **0**、FF **8127（比 r103 +48）**——
+  与隔离滚那一次的 +48 FF 代价一致。按规则 35 这一差要等同策略基线、且 #141 欠复滚，所以结论只能由 01:2x 的门禁报告给。
+- 提交包**故意没有重导**：`make_submission.sh` 会把 `build/` 里的凭据拷进 `final_submission/`，而台架正在写它们，
+  此刻重导有抓到半份报告的风险 ⇒ 重导排在 #161 的门禁之后一次做。

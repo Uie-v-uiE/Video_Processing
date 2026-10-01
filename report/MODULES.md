@@ -124,7 +124,7 @@
 | `snap_cross` | 「准静态总线 + 跳变沿」跨域器，带心跳丢失/变慢两种上报 | `system_top.v:204`、`pl_video_top.v:648,850,954,850,954` | `tb_link_monitor`、`tb_v95_zoom_snap` |
 | `sync_fifo` | 同钟 FIFO（读出寄存一拍、空满比指针最高位；存储无异步复位 + `ram_style=block`） | `eth_udp_video_top.v:119`（ICMP 载荷） | `tb_sync_fifo` |
 | `crc32_d8` | 反射 CRC-32 逐字节核 | `udp_tx.v`、`gmii_rx_mac.v`、`arp.v`、`icmp.v` | `tb_crc32` |
-| `udp_tx` | 以太/IP/UDP 头的组装与发送（`udp_tx.v:52` 那批常数）；FCS 由外挂的 `crc32_d8` 算、它填进帧尾。Z7 上 `tx_start_en` 恒 0：接着但从不启动 | `eth_udp_video_top.v:163` | `tb_eth_video` |
+| `udp_tx` | 以太/IP/UDP 头的组装与发送（`udp_tx.v:44-47` 那批常数：`ETH_TYPE`、`MIN_DATA_NUM`）；FCS 由外挂的 `crc32_d8` 算、它填进帧尾。Z7 上 `tx_start_en` 恒 0：接着但从不启动 | `eth_udp_video_top.v:163` | `tb_eth_video` |
 | `arp` → `arp_rx` / `arp_tx` | who-has 请求与应答，MAC/IP 由参数给（外部样例那一批，文件头 `arp.v:3,7`） | `eth_udp_video_top.v:126` → `arp.v:46,62` | — |
 | `icmp` → `icmp_rx` / `icmp_tx` | echo reply，载荷走下面的 `sync_fifo`（同一批外部样例） | `eth_udp_video_top.v:140` → `icmp.v:56,76` | — |
 | `udp_rx` | 外部样例的收侧包装层 | 未例化（收侧换成了上面的自研那一对） | `tb_eth_video` 仍直接测它 |
