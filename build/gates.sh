@@ -1,9 +1,11 @@
 #!/bin/bash
 # build/gates.sh —— 一条命令读回门禁清单，并和阈值比。
 #   条数会随教训增长（2026-09-23 那会儿是"七项"；r70 起 **15 项** = 第 15 项顶层台架
-#   `tb_v98` 的报告必须与当前顶层同一次跑，出处 #88/#92；今天再加两项：**16 = PS 心跳与
-#   停心跳的约定**（#94）、**17 = 手写件的编码**（COMMANDS §5 曾被 cp936 打坏一整段）、
-#   **18 = 文档时效**（README/PERF_REPORT 把 build#23 念成"当前默认"整整五十版）
+#   `tb_v98` 的报告必须与当前顶层同一次跑，出处 #88/#92；16 = PS 心跳与停心跳的约定（#94）、
+#   17 = 手写件的编码（COMMANDS §5 曾被 cp936 打坏一整段）、18 = 文档时效（README/PERF_REPORT
+#   把 build#23 念成"当前默认"整整五十版）、**19 = 排练脚本必须等于讲稿抽出来的那一份**、
+#   **20 = 交付文档的行号锚点（D5）**与 **21 = 首页与指标表的数字对账（D6）**（#219：这两把尺子
+#   此前一直是我**手工**跑的，而门禁件上写的"N 项全判定"并不含它们 ⇒ 文档随 RTL 漂移时门禁不红）
 #   ⇒ 这里**不再写死条数**，以本文件里 `say` 的调用次数为准。
 #
 #   bash build/gates.sh                 # 读 build/ 里当前这套报告（= 最近一次构建）
@@ -477,6 +479,42 @@ say "排练脚本=讲稿抽取 rehearsal" "差异行=$EMROWS 变异对照=$([ "$
     $([ "$EMSAME" = 1 ] && [ "$EMMUT" = 1 ] && echo 1 || echo 0)
 [ "$EMSAME" = 1 ] || { echo "        —— 盘上那份是旧的：跑 \`node src/host/demo_cmds.mjs --emit\` 重抽再提交。"; }
 rm -f /tmp/rehearsal_fresh.txt /tmp/emit_note.$$.txt
+
+# ---- 20：交付文档的行号引用必须落在代码锚点上（D5 / D5b / D5d；2026-10-02 加，起因 ISSUES #122 → #208 → #219）----
+# 为什么现在才进门禁：这把尺子 r87 起就在跑，但**一直是我手工跑的**，而 #219 查出门禁件上那句
+# "20 项全判定"里并不含它，也不含 D6 ⇒ "文档同步"的机器部分有个洞：改了 RTL 的行号、没改文档，
+# 门禁不红，要等下一次有人想起来手动跑一下。洞补上之后，首页与 KNOWN_ISSUES 里那句"不含 D5/D6"要跟着改口。
+# ⚠ 计数地板（锚点命中 >= 300）不是装饰：一把**扫不到任何引用**的尺子也报"硬错 0 条"，
+#   那是空转不是绿（同第 14 项 #194 的教训，规矩是"判据不许靠没人反对变绿"）。
+node src/host/line_cite_check.mjs --self > /tmp/d5_self.$$.txt 2>&1; D5RC1=$?
+D5OUT=$(node src/host/line_cite_check.mjs 2>&1); D5RC2=$?
+D5TOK=$(printf '%s\n' "$D5OUT" | grep -c '^D5: CLEAN')
+D5HIT=$(printf '%s\n' "$D5OUT" | sed -n '1s/.*命中 \([0-9][0-9]*\) 条.*/\1/p')
+D5CAND=$(printf '%s\n' "$D5OUT" | sed -n '1s/.*候选 \([0-9][0-9]*\) 条.*/\1/p')
+say "文档行号锚点 doc_cite" "命中=${D5HIT:-空} 候选=${D5CAND:-空}" "self 13 条对照全过、硬错 0、命中 >= 300" \
+    $([ "$D5RC1" = 0 ] && [ "$D5RC2" = 0 ] && [ "$D5TOK" = 1 ] && [ "${D5HIT:-0}" -ge 300 ] && echo 1 || echo 0)
+if [ "$D5RC2" != 0 ]; then
+    printf '%s\n' "$D5OUT" | sed -n '/硬错（必定是坏引用）/,$p' | grep '^  ' | sed -n '1,8p' | sed 's/^/        /'
+fi
+[ "$D5RC1" = 0 ] || { echo "        —— line_cite 的 --self 反例不成立（ planted 的坏引用没红，或好引用被误报）："; sed 's/^/        /' /tmp/d5_self.$$.txt | tail -8; }
+rm -f /tmp/d5_self.$$.txt
+
+# ---- 21：首页与指标表里"点名报告"的每个数，必须等于那份报告现在说的（D6；同上起因 #120/#213/#159）----
+# 这一项进门禁的当口就抓到了真错：首页功耗行还写着 2.212 W / 52.6 °C、占用行写着 14333 / 8079，
+# 而 r104 的 `build/power.rpt` 与 `build/utilization.rpt` 是 2.211 / 52.5 与 14334 / 8127
+# —— r103→r104 那一轮只同步了 `data/metrics.csv`，首页四格漏了（**改前红不是我造的**）。
+node src/host/metric_recheck.mjs --self > /tmp/d6_self.$$.txt 2>&1; D6RC1=$?
+D6OUT=$(node src/host/metric_recheck.mjs 2>&1); D6RC2=$?
+D6RED=$(printf '%s\n' "$D6OUT" | grep -c '^RED')
+D6CNT=$(printf '%s\n' "$D6OUT" | sed -n 's/.*判 \([0-9][0-9]*\) 个数.*/\1/p' | tail -1)
+D6FRONT=$(printf '%s\n' "$D6OUT" | grep -c '^OK  row=README')
+say "数字对账 metric" "判=${D6CNT:-空} 首页=${D6FRONT:-空} 红=$D6RED" "self（csv fixture + 首页假数）全过、红 0、判 >= 30 个数、首页 >= 20 个" \
+    $([ "$D6RC1" = 0 ] && [ "$D6RC2" = 0 ] && [ "$D6RED" = 0 ] && [ "${D6CNT:-0}" -ge 30 ] && [ "${D6FRONT:-0}" -ge 20 ] && echo 1 || echo 0)
+if [ "$D6RC2" != 0 ] || [ "$D6RED" != 0 ]; then
+    printf '%s\n' "$D6OUT" | grep '^RED' | sed -n '1,8p' | sed 's/^/        /'
+fi
+[ "$D6RC1" = 0 ] || { echo "        —— metric_recheck 的 --self 反例不成立（该红的没红，或首页那层在空转）："; sed 's/^/        /' /tmp/d6_self.$$.txt | tail -6; }
+rm -f /tmp/d6_self.$$.txt
 
 echo "端点总数 $eps；CDC 现在按 build/CDC_BASELINE.txt 的**配对集合**判，功耗仍要人比有没有变差。"
 # 结尾必须把**范围**一起念出来：判定 $NSAY 项、未判 $NNA 项。

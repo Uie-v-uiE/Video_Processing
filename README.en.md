@@ -67,11 +67,11 @@ the built-in test video. Commands, registers and every criterion are in
 
 | Metric | Reading | Source |
 |---|---|---|
-| Design-wide setup WNS | **0.812 ns** (the board now runs r104, flashed at 01:18 on 2026-10-02 by the three-step JTAG chain, `bit 680f38f5794c`; the 20-item gate check reads 19 green / 1 red and that single red is the declared `C5c`), failing setup/hold endpoints **0 / 50948** | `build/timing_summary.rpt`, `build/r104_gates.txt`, `build/r104_board_verify_console.txt` |
+| Design-wide setup WNS | **0.812 ns** (the board now runs r104, flashed at 01:18 on 2026-10-02 by the three-step JTAG chain, `bit 680f38f5794c`; the 22-item gate check reads 21 green / 1 red and that single red is the declared `C5c`), failing setup/hold endpoints **0 / 50948** | `build/timing_summary.rpt`, `build/r104_gates.txt`, `build/r104_board_verify_console.txt` |
 | Per-clock setup slack | 125 MHz receive domain `eth_rxc` **0.608 ns** (7.6 % of its 8 ns period, and the design's worst path); 100 MHz `clk_fpga_0` **1.035 ns** (10.4 %); 50 MHz display domain `clkout0_1` **1.061 ns** (5.3 %); `sys_clk` **14.849 ns** | same file, Intra Clock Table. The delta versus a previous build is neither gain nor loss - the same path measured a 0.4 ns placement swing between builds |
 | Hold time | worst **0.053 ns** (125 MHz receive domain `eth_rxc`), display domain **0.056**, 100 MHz `clk_fpga_0` **0.062**, `sys_clk` **0.134** - the thinnest class of margin, and that cell is **1 logic level with 81.0 % route** (`build/hold_paths.rpt`, regenerated this round); quoted **after** the 0.8 ns hold uncertainty this repo imposes | same file |
-| BRAM / LUT / FF / DSP | **95 tiles (67.86 %) / 14333 (26.94 %) / 8079 (7.59 %) / 19 (8.64 %)** | `build/utilization.rpt` |
-| Power | **2.212 W** dynamic (2.389 W total on-chip), estimated junction temperature **52.6 degC** (tool confidence Low; **an estimate**, no measured current and no SAF file; the on-die XADC reading is a separate path - serial `temp` / the OSD cell) | `build/power.rpt` |
+| BRAM / LUT / FF / DSP | **95 tiles (67.86 %) / 14334 (26.94 %) / 8127 (7.64 %) / 19 (8.64 %)** | `build/utilization.rpt` |
+| Power | **2.211 W** dynamic (2.389 W total on-chip), estimated junction temperature **52.5 degC** (tool confidence Low; **an estimate**, no measured current and no SAF file; the on-die XADC reading is a separate path - serial `temp` / the OSD cell) | `build/power.rpt` |
 | SD local playback | **29.8 - 30.0 fps** (100-frame sliding window, read back from the board) | [data/metrics.csv](data/metrics.csv) |
 | On-board verification | 100-command serial battery PASS, geometry "last hop" 8/8 PASS, `drop_words=0` while streaming | [board/ACCEPTANCE.md](board/ACCEPTANCE.md) |
 

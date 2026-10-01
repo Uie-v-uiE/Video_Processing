@@ -70,6 +70,44 @@ function fromPower(p) {
     return { dyn: dyn ? Number(dyn[1]) : null, tj: tj ? Number(tj[1]) : null };
 }
 
+// ---- 首页那一层的取数器（#213 只判 WNS 一格，本轮 #159 扩到四行；见 run() 里的 FRONT）----
+// 与 RULES 共用**同一批报告读数**（fromTiming/fromUtil/fromPower），不另起第二份真值。
+function one(cell, re, g = 1) { const m = cell.match(re); return m ? Number(m[g]) : null; }
+function file_line(e, hit) { return `${e.file}:${hit + 1}`; }
+function grabPairs(cell) {                    // `14333（26.94 %）` 与 `14333 (26.94 %)` 两种括号都认
+    const out = [];
+    for (const m of cell.matchAll(/(\d+)\s*[（(]\s*([\d.]+)\s*%[）)]/g)) out.push([Number(m[1]), Number(m[2])]);
+    return out;
+}
+// 每个 kind 返回 [判点名, 首页读数, 报告读数]；读数抓不到 = null，**null 一律判红**（不许"抓不到就跳过"）
+const KINDS = {
+    wns: (c, s) => [
+        ['WNS(ns)', one(c, /\*\*([0-9]+\.[0-9]+)\s*ns\*\*/), s.wns],
+        ['失败 setup/hold 端点', one(c, /\*\*([0-9]+)\s*\/\s*[0-9]{4,}\*\*/), s.failSetup],
+        ['端点总数', one(c, /\*\*[0-9]+\s*\/\s*([0-9]{4,})\*\*/), s.totalEp],
+    ],
+    util: (c, s) => {
+        const rows = [
+            ['BRAM tile', one(c, /(\d+)\s*tiles?\s*[（(]/), s.bram ? s.bram.use : null],
+            ['BRAM 占比(%)', one(c, /tiles?\s*[（(]\s*([\d.]+)\s*%/, 1), s.bram ? s.bram.pct : null],
+        ];
+        const p = grabPairs(c);               // 括号对里带 tile 那一对已被上面的式子排除
+        const order = [['LUT', 'lut'], ['FF', 'reg'], ['DSP', 'dsp']];
+        for (let i = 0; i < order.length; i++) {
+            const got = p[i] || [null, null];
+            const src = s[order[i][1]];
+            rows.push([order[i][0], got[0], src ? src.use : null]);
+            rows.push([order[i][0] + ' 占比(%)', got[1], src ? src.pct : null]);
+        }
+        rows.push(['括号对数(LUT/FF/DSP)', p.length, order.length]);   // 少一对 = 首页那行的形状变了
+        return rows;
+    },
+    power: (c, s) => [
+        ['动态功耗(W)', one(c, /\*\*([0-9]+\.[0-9]+)\s*W\*\*/), s.dyn],
+        ['估算结温(°C)', one(c, /\*\*([0-9]+\.[0-9]+)\s*(?:°C|degC|℃)\*\*/), s.tj],
+    ],
+};
+
 const RULES = [
     { name: '全局 setup WNS', src: 'timing', get: r => r.wns, note: 'WNS 第一列' },
     { name: '全局 setup 失败端点', src: 'timing', get: r => r.failSetup, also: { in: '测量条件', re: /\/\s*(\d{4,6})/, get: r => r.totalEp, what: '端点总数' } },
@@ -93,36 +131,48 @@ function run(self) {
     const known = new Set(RULES.map(r => r.name));
     let red = 0, judged = 0, other = 0;
 
-    // 首页那两行也一起判（#213）：README 的表格里写着"全设计 setup WNS = 0.720 ns"并点名
-    // `build/timing_summary.rpt`，可**没有任何检查器回去读那份报告**——metrics.csv 有 D6 管，首页没有。
-    // 于是"首页引用的是哪份报告"与"那份报告现在说什么"之间的账是空的，跨版一定会烂。
-    // 复用同一批 RULES 与同一个取数器，不另起一套口径；解析不到行 = 直接判红（不许空转）。
+    // 首页那四行也一起判（#213 起了这个头，本轮 #159 从"两行一个数"扩到"四行 26 个数"）：
+    // README 的表格里写着 WNS、逐资源占用与功耗，并点名 `build/timing_summary.rpt` /
+    // `build/utilization.rpt` / `build/power.rpt`，可**没有任何检查器回去读那三份报告**——
+    // metrics.csv 有 D6 管，首页没有。于是"首页引用的是哪份报告"与"那份报告现在说什么"之间的
+    // 账是空的，跨版一定会烂。⚠ 这条判据的"改前必须红"不用我造：第一次跑就抓到首页功耗行
+    // 写 2.212 W / 52.6 °C 而报告是 2.211 / 52.5，占用行写 14333 / 8079 而报告是 14334 / 8127
+    //（r103→r104 那一轮只同步了 metrics.csv，首页漏了四格）。
+    // 复用同一批报告读数，不另起口径；行找不到、数抓不到、括号对数不对 ⇒ 一律判红（不许空转）。
     const FRONT = [
-        ['README.md', '全设计 setup WNS', '全局 setup WNS'],
-        ['README.en.md', 'Design-wide setup WNS', '全局 setup WNS'],
+        { file: 'README.md', key: '全设计 setup WNS', want: 'timing_summary.rpt', src: 'timing', kind: 'wns' },
+        { file: 'README.md', key: 'BRAM / LUT / FF / DSP', want: 'utilization.rpt', src: 'util', kind: 'util' },
+        { file: 'README.md', key: '功耗', want: 'power.rpt', src: 'power', kind: 'power' },
+        { file: 'README.en.md', key: 'Design-wide setup WNS', want: 'timing_summary.rpt', src: 'timing', kind: 'wns' },
+        { file: 'README.en.md', key: 'BRAM / LUT / FF / DSP', want: 'utilization.rpt', src: 'util', kind: 'util' },
+        { file: 'README.en.md', key: 'Power', want: 'power.rpt', src: 'power', kind: 'power' },
     ];
-    let frontParsed = 0, frontRed = 0, fixtureRed = 0;
-    for (const [file, key, ruleName] of FRONT) {
-        if (!fs.existsSync(file)) { console.log(`RED row=${file} 找不到这份首页`); red++; frontRed++; continue; }
-        const ls = fs.readFileSync(file, 'utf8').split(/\r?\n/);
+    let frontRows = 0, frontParsed = 0, frontRed = 0, frontNums = 0, fixtureRed = 0;
+    for (const e of FRONT) {
+        if (!fs.existsSync(e.file)) { console.log(`RED row=${e.file} 找不到这份首页`); red++; frontRed++; continue; }
+        frontRows++;
+        const ls = fs.readFileSync(e.file, 'utf8').split(/\r?\n/);
         let hit = -1;
-        for (let i = 0; i < ls.length; i++) if (ls[i].startsWith('|') && ls[i].includes(key)) { hit = i; break; }
-        if (hit < 0) { console.log(`RED row=${file} 里找不到「${key}」这一行 ⇒ 首页与指标表脱钩`); red++; frontRed++; continue; }
+        for (let i = 0; i < ls.length; i++) if (ls[i].startsWith('|') && ls[i].includes(e.key)) { hit = i; break; }
+        if (hit < 0) { console.log(`RED row=${e.file} 里找不到「${e.key}」这一行 ⇒ 首页与指标表脱钩`); red++; frontRed++; continue; }
         const cells = ls[hit].split('|').map((s) => s.trim());
         const art = cells[cells.length - 2] || '';
-        const rule = RULES.find((r) => r.name === ruleName);
-        const wantFile = { timing: 'timing_summary.rpt', util: 'utilization.rpt', power: 'power.rpt' }[rule.src];
         frontParsed++;
-        if (!art.includes(wantFile)) {
-            console.log(`RED row=${file}:${hit + 1} 「${key}」点名的是 ${art}，不是 ${wantFile} —— 判据与凭据脱钩`);
+        if (!art.includes(e.want)) {
+            console.log(`RED row=${file_line(e, hit)} 「${e.key}」点名的是 ${art}，不是 ${e.want} —— 判据与凭据脱钩`);
             red++; frontRed++; judged++; continue;
         }
-        const got = num(cells[2]), exp = rule.get(SRC[rule.src]);
-        const ok = got !== null && exp !== null && exp !== undefined && Math.abs(got - exp) < 1e-6;
-        console.log(`${ok ? 'OK ' : 'RED'} row=${file}:${hit + 1} ${key} 首页=${cells[2]} 报告=${exp}`);
-        if (!ok) { red++; frontRed++; }
-        judged++;
+        for (const [what, got, exp] of KINDS[e.kind](cells[2], SRC[e.src])) {
+            frontNums++;
+            const ok = got !== null && got !== undefined && exp !== null && exp !== undefined
+                && Math.abs(got - exp) < 1e-6;
+            console.log(`${ok ? 'OK ' : 'RED'} row=${file_line(e, hit)} ${e.key}/${what} 首页=${got} 报告=${exp}`);
+            if (!ok) { red++; frontRed++; }
+            judged++;
+        }
     }
+    // 计数地板：六行必须**都**找到并解析（少了就是首页改了形状，而这一层正在空转）
+    if (frontRows !== FRONT.length) { console.log(`RED 首页对账只找到 ${frontRows}/${FRONT.length} 份首页行层 ⇒ 这一层不完整`); red++; }
     if (frontParsed === 0) { console.log('RED 首页对账一行都没解析到 ⇒ 这一层是空转'); red++; frontRed++; }
 
     for (const f of rows) {
@@ -153,8 +203,17 @@ function run(self) {
         if (ok) judged++; else { red++; if (String(f[4] || '').includes('自检：故意写错')) fixtureRed++; }
         console.log(`${ok ? 'OK ' : 'RED'} row=${name} ${detail}`);
     }
-    console.log(`== 数字对账：判 ${judged} 行（红 ${red}）／未覆盖 ${other} 行（只报点名 timing/utilization/power 三份报告的行） ==`);
+    console.log(`== 数字对账：判 ${judged} 个数（首页层 ${frontNums} 个／解析到 ${frontParsed}/${FRONT.length} 行；红 ${red}）／csv 未覆盖 ${other} 行（只报点名 timing/utilization/power 三份报告的行） ==`);
     if (self) {
+        // 首页层的反例：把 WNS 那一格的三个数全换成不可能值，三条都必须不认。
+        // 有一条"认了"就说明这一层是靠正则抓不到然后跳过的空转，而不是判据。
+        const fake = KINDS.wns('**9.999 ns**（…），失败 setup/hold 端点 **9 / 999999**', SRC.timing);
+        const caught = fake.filter(([, g, e]) => g !== e).length;
+        if (caught !== fake.length) {
+            console.log(`SELF-front: 不过 —— 造的 ${fake.length} 个首页假数应全被抓到，实得 ${caught}（这一层在空转）`);
+            process.exit(1);
+        }
+        console.log(`SELF-front: 过 —— 造的 ${fake.length} 个首页假数全被抓到`);
         // 自检只问"我注入的那一条 fixture 有没有被抓到"：全树其余行本来就跟着新一轮报告走，
         // 构建一变它们就集体变红（那是正确的红），不该拿"恰好 1 条"当自检期望。
         const want = rows.filter((r) => String(r[4] || '').includes('自检：故意写错')).length;

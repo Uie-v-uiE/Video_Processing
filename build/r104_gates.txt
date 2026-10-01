@@ -20,7 +20,7 @@
   cdc.rpt Critical 行   2            基线 4 行，配对不新增、unsafe 不增长 PASS
   端口宽度警告 8-689 0            == 0（凭据 width_warnings.txt，同一次构建） PASS
   多驱动 net 8-685x   0            == 0（凭据 multi_driven.txt，同一次构建） PASS
-  顶层接线（端口名/悬空输入/位宽） CHECK PORTS: instances=209 modules=80 skipped=0 width_compared=564 violations=0 PASS｜FLOOR OK instances=209 width_compared=564（地板 100/280） violations=0 且扫描面不塌（凭据 build/ports_check.txt，当场跑） PASS
+  顶层接线（端口名/悬空输入/位宽） CHECK PORTS: instances=211 modules=80 skipped=0 width_compared=564 violations=0 PASS｜FLOOR OK instances=211 width_compared=564（地板 100/280） violations=0 且扫描面不塌（凭据 build/ports_check.txt，当场跑） PASS
 分组最差（记录用；判据仍是上表的 WNS/WHS）：
   clk_fpga_0   setup 1.358ns  (失败端点 0)   hold 0.053ns 
   clkfbout     setup NAns     (失败端点 NA)   hold NAns    
@@ -41,8 +41,10 @@
           PASS 变异 no_resume      只红在 A15  实测红=[A15]
           PASS 变异 no_clear       只红在 A16  实测红=[A16]
         SELF: 全绿（当前树 17 条 + 变异对照 10 条）
-  手写件编码 doc_enc 扫了 370 个手写文� 坏行=0 self 抓到 3/3 且全树干净 PASS
+  手写件编码 doc_enc 扫了 371 个手写文� 坏行=0 self 抓到 3/3 且全树干净 PASS
   文档时效 doc_cur   扫了 67 个文档� 红行=0 self 变异 3+对照 2 且全树 0 条 PASS
   排练脚本=讲稿抽取 rehearsal 差异行=0 变异对照=能红 改讲稿不重抽 ⇒ 这一项红；少一行必须判成不同（对照） PASS
+  文档行号锚点 doc_cite 命中=390 候选=92 self 13 条对照全过、硬错 0、命中 >= 300 PASS
+  数字对账 metric    判=37 首页=28 红=0 self（csv fixture + 首页假数）全过、红 0、判 >= 30 个数、首页 >= 20 个 PASS
 端点总数 50948；CDC 现在按 build/CDC_BASELINE.txt 的**配对集合**判，功耗仍要人比有没有变差。
-GATES: 有红项（判定 20 项）—— 不采纳，保留上一版
+GATES: 有红项（判定 22 项）—— 不采纳，保留上一版
