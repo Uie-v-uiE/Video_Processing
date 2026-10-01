@@ -9075,3 +9075,18 @@ echo request，期望几拍之内回 `st_idle`；现在这版必须判红），�
   `node src/host/geom_check.mjs` ⇒ `RESULT PASS geom_check（ok=10 fail=0）`；
   `bash build/board_verify.sh --geom` ⇒ `RESULT board_verify PASS（判红的步骤：0）`，
   控制台分别在 `build/r101_geom_recheck.txt`、`build/r101_board_verify_geom.txt`。
+
+## 2026-10-01 18:5x 文档尾账的处理方式：今天只改**一条**，因为逐条改需要读"这行文档在说什么"
+
+- 把 D5 的 137 条 soft 候选拉出来，先按"锚点实际出现在哪一行"做了一张对照表（脚本只做排队，**不判红**，
+  这是 #122 那条老规矩）。挑 `board/HANDS_ON.md:23` 这一条真的读下去，结果它确实是**错的引用**：
+  那一行说的是"`src 0` 没生效 ⇒ 覆盖位没进去，两笔写在 `main.c:487`–`492`"，而 `main.c:728`–`729` 才是
+  `ctrl_set_src(0);` 与 `ctrl_publish_mode(MODE_TEST, …)` 这两笔；`487`–`492` 落在隔壁的
+  `static int apply_pipe_bits(u32 b, int n)`（`main.c:478` 起）里面，跟 `src` 一点关系没有。已改，
+  并且把"旧引是哪两行、为什么错"一起留在句子里，避免下一次又当成笔误抹掉。
+- **其余 136 条不动**，理由是方法而不是懒：这些候选里混着三种东西——真错引（像上面这条）、
+  文档故意指向"函数开头/注释块"（合法）、以及检查器自己把标识符切窄了（`#208` 那一族）。
+  三者要用**不同的**动作处理，而区分它们必须读那半句文档；按行号整体平移一次，就是把合法引用也改错的一次机会
+  （COMMAND_PRECEDENCE 那次我量过：同一行段里 +34/+20/+32/+56/+25/+69 六种偏移同时存在，没有统一位移可用）。
+- 位置那一半今天新增两份板上凭据（板仍是 **r101**，r102 未上板）：`build/r101_geom_recheck.txt`
+  ⇒ `RESULT PASS geom_check（ok=10 fail=0）`；`build/r101_board_verify_geom.txt` ⇒ `RESULT board_verify PASS（判红的步骤：0）`。
