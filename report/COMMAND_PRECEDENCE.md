@@ -40,36 +40,36 @@
 
 ## 1. 总表：命令 → 写哪个位 → 谁盖谁
 
-控制字只有两只，所有命令都写进这两只（`src/ps/main.c:188-206`）：
+控制字只有两只，所有命令都写进这两只（`src/ps/main.c:219-225`）：
 `gpio_o`（`0x41200000`）与 `gpio_cfg1`（`0x41220000`，RTL 里的 `CFG_DATA0`）。
 物理位到逻辑位的拼接在 `src/rtl/top/system_top.v:248-276`。
 
 | 命令 | PS 影子 → 物理位 | 执行侧的读者 | 谁盖它 | 被盖住时有没有说明 |
 |---|---|---|---|---|
-| `zoom <倍率>` | `cur_zsel`/`cur_zman` → `cfg1[28:26]`/`[29]`（`main.c:942`、`203-204`） | `zoom_ctrl.v:89-93` | `zoom fit 1`、`zoom off` | **没有**（§2） |
-| `zoom auto` | `cur_zman=0`（`main.c:917`） | 同上 | `zoom fit 1`、`zoom off` | **没有**（§2） |
-| `zoom on/off` | `cur_zoom` → `gpio_o[17]`（`main.c:498`、`195`） | `zoom_ctrl.v:85-88` | `zoom fit 1` | **没有**（§2） |
-| `zoom fit 1/0` | `ZOOM_FIT_BIT` → `cfg1[31]`（`main.c:929`） | `zoom_ctrl.v:58`、`80` | 无人盖它（缩放链的最高优先级） | 它盖别人时会说明（`main.c:931-933`） |
-| `rot auto 1` | `ROT_AUTO_BIT` → `cfg1[9]`（`main.c:1016`） | `angle_ctrl.v:43` | 无人盖 | 顺带改 `speed`、`zoom_fit`，**两处都说明**（`main.c:1019-1030`） |
-| `rot speed <0..7>` | `ROT_SPEED_MASK` → `cfg1[12:10]`（`main.c:1002`） | `angle_ctrl.v:43` | `rot auto 0` | **没有**（§3） |
-| `rot <绝对角度>` | 不存在 | — | — | 明确拒绝（`main.c:1042`） |
-| `src 0/1/2` | `cur_mode_ovr` → `gpio_o[24:23]`＋`[22]`（`main.c:489-492`） | `src_mode.v:73-82`→`pl_video_top.v:545` | 长按 KEY1 一次交还；`have_src` 能否决 | 说明了钉住与交还（`main.c:493`） |
+| `zoom <倍率>` | `cur_zsel`/`cur_zman` → `cfg1[28:26]`/`[29]`（`main.c:976`、`224-225`） | `zoom_ctrl.v:89-93` | `zoom fit 1`、`zoom off` | **没有**（§2） |
+| `zoom auto` | `cur_zman=0`（`main.c:951`） | 同上 | `zoom fit 1`、`zoom off` | **没有**（§2） |
+| `zoom on/off` | `cur_zoom` → `gpio_o[17]`（`main.c:519`、`215`） | `zoom_ctrl.v:85-88` | `zoom fit 1` | **没有**（§2） |
+| `zoom fit 1/0` | `ZOOM_FIT_BIT` → `cfg1[31]`（`main.c:963`） | `zoom_ctrl.v:64`、`96` | 无人盖它（缩放链的最高优先级） | 它盖别人时会说明（`main.c:965-967`） |
+| `rot auto 1` | `ROT_AUTO_BIT` → `cfg1[9]`（`main.c:1073`） | `angle_ctrl.v:43` | 无人盖 | 顺带改 `speed`、`zoom_fit`，**两处都说明**（`main.c:1076-1087`） |
+| `rot speed <0..7>` | `ROT_SPEED_MASK` → `cfg1[12:10]`（`main.c:1059`） | `angle_ctrl.v:43` | `rot auto 0` | **没有**（§3） |
+| `rot <绝对角度>` | 不存在 | — | — | 明确拒绝（`main.c:1099`） |
+| `src 0/1/2` | `cur_mode_ovr` → `gpio_o[24:23]`＋`[22]`（`main.c:510-513`） | `src_mode.v:73-82`→`pl_video_top.v:569` | 长按 KEY1 一次交还；`have_src` 能否决 | 说明了钉住与交还（`main.c:514`） |
 | `src auto` | 同上，码=AUTO | `src_mode.v:79-81`（连按键环一起清） | — | 是 |
 | `src 3` | 不存在 | — | — | 明确拒绝（`main.c:708-710`） |
-| `SRC0/SRC1`（`src_sel`） | `cur_src` → `gpio_o[16]`（`main.c:478`、`194`） | 显示侧 `pl_video_top.v:545`；搬运机 `pl_video_top.v:641` | **显示侧：任何非 AUTO 的 mode 都让它失效**；搬运机那一路的闸门是 `owner_eth` 而不是 mode | **没有**（§4、§5） |
+| `SRC0/SRC1`（`src_sel`） | `cur_src` → `gpio_o[16]`（`main.c:499`、`214`） | 显示侧 `pl_video_top.v:569`；搬运机 `pl_video_top.v:641` | **显示侧：任何非 AUTO 的 mode 都让它失效**；搬运机那一路的闸门是 `owner_eth` 而不是 mode | **没有**（§4、§5） |
 | `play` / `fill` / `frame N` | 只写 `cur_src`＋发布位（`main.c:1348`、`683-684`、`1228`） | 搬运机 `pl_video_top.v:509`、`641` | `src 0`/`src 1` 钉住期间 | **没有**（§5） |
-| `split <pct>` / `split px <n>` | 清 `SPLIT_AUTO_BIT`、写 `pos_px`（`main.c:1130`、`1140`） | `split_ctrl.v:92` | 无人盖（它自己盖 `auto`） | 说明"manual"（`main.c:1131`、`1143`） |
-| `split auto` | `SPLIT_AUTO_BIT` → `cfg1[23]`（`main.c:1068`） | `split_ctrl.v:92`、`100` | **它盖 `pos_px`** | 半说明（§6） |
+| `split <pct>` / `split px <n>` | 清 `SPLIT_AUTO_BIT`、写 `pos_px`（`main.c:1197`、`1187`） | `split_ctrl.v:92` | 无人盖（它自己盖 `auto`） | 说明"manual"（`main.c:1200`、`1188`） |
+| `split auto` | `SPLIT_AUTO_BIT` → `cfg1[23]`（`main.c:1125`） | `split_ctrl.v:92`、`100` | **它盖 `pos_px`** | 半说明（§6） |
 | `split follow 1` / `split video` | `SPLIT_FOLLOW_BIT` → `cfg1[24]`（`main.c:1147`、`1114`） | `split_ctrl.v:33` | 与 `auto` 同时开时新的 `pos` 不动屏 | 说明了"auto 仍开着"（`main.c:1119`） |
-| `split swap 1` | `SPLIT_SWAP_BIT` → `cfg1[25]`（`main.c:1147`） | `split_ctrl.v:103`→`split_display.v:48` | — | 说明了"只换内容，不换缝位"（`main.c:1095`） |
-| `split marker 0` | `SPLIT_MARKOFF_BIT` → `cfg1[30]`（反着写，`main.c:1144-1145`） | `pl_video_top.v:839`→`split_display.v:53-65` | 标记线盖过缝两侧的内容 | 是（那格说明是蓝线） |
+| `split swap 1` | `SPLIT_SWAP_BIT` → `cfg1[25]`（`main.c:1147`） | `split_ctrl.v:103`→`split_display.v:47` | — | 说明了"只换内容，不换缝位"（`main.c:1095`） |
+| `split marker 0` | `SPLIT_MARKOFF_BIT` → `cfg1[30]`（反着写，`main.c:1144-1145`） | `pl_video_top.v:868`→`split_display.v:63-65` | 标记线盖过缝两侧的内容 | 是（那格说明是蓝线） |
 | `split range` / `split speed` | 不存在 | 端点/速度是构建参数（声明 `pl_video_top.v:19-21`，送进 `split_ctrl` 那一处 `:851`） | — | 明确拒绝（`main.c:1207-1209`） |
-| `pipe <九位>` | `cur_sel` → `cfg1[8:0]`（`main.c:435`、`202`） | `proc_pipeline.v:49-58` | 缝位决定"看得见几成" | 见 §7 |
+| `pipe <九位>` | `cur_sel` → `cfg1[8:0]`（`main.c:456`、`223`） | `proc_pipeline.v:49-58` | 缝位决定"看得见几成" | 见 §7 |
 | `pipe` 的 `[6]`（bin_pol） | 同上 | `proc_pipeline.v:131` | **`[5]=0` 时无人读它** | **没有**（§8） |
 | `pipe` 的 `[7]`＋`[8]` 同开 | 同上 | `proc_pipeline.v:56-58`、`proc_morph.v:24` | **两者互相抵消** | **没有**（§8） |
-| `th <0..255>` | `cur_thr` → `gpio_o[15:8]`（`main.c:472`、`194`） | `proc_binary.v:22`、`proc_morph.v:34` | `[5]`/`[7]`/`[8]` 全 0 时没有读者 | **没有**（§8） |
+| `th <0..255>` | `cur_thr` → `gpio_o[15:8]`（`main.c:493`、`214`） | `proc_binary.v:22`、`proc_morph.v:34` | `[5]`/`[7]`/`[8]` 全 0 时没有读者 | **没有**（§8） |
 | `gamma <γ>` | `cur_gamma` ＋ `CFG_DATA1` 表窗口 | `proc_pipeline.v:92-96`（级 0） | 只在"处理图"那一侧可见 | **没有**（§7） |
-| `bilin on/off` | `cur_bilin` → `gpio_o[19]`（`main.c:537`、`196`） | `pl_video_top.v:251-262`→`fb_bilin.v:51-54` | 旋转态、整数倍率、画面末行末列 | 说了两个条件（§9） |
+| `bilin on/off` | `cur_bilin` → `gpio_o[19]`（`main.c:558`、`216`） | `pl_video_top.v:251-262`→`fb_bilin.v:51-54` | 旋转态、整数倍率、画面末行末列 | 说了两个条件（§9） |
 | `osd on/off` | 不写任何位 | — | — | 明说"语法已收、硬件未接"（`main.c:1204-1206`） |
 | 裸五位串 / `pipe 00111` | 不写任何位（`main.c:461-467`） | — | — | 回一句等价的九位 |
 
@@ -78,7 +78,7 @@
 ## 2. 缩放：四个来源，一条有先后的链
 
 命令表看起来是三个来源（呼吸 / 手动档 / 按角度拟合），但执行侧实际是**四个输入、一条 if-else 链**。
-第四个是 `zoom on|off`（`gpio_o[17]`，`main.c:498`），它在链里排在手动档之前。
+第四个是 `zoom on|off`（`gpio_o[17]`，`main.c:519`），它在链里排在手动档之前。
 
 `src/rtl/process/zoom/zoom_ctrl.v:80-94` 的分支顺序就是优先级顺序：
 
@@ -92,13 +92,13 @@
 于是判定条件写成一句话就是：
 
 - **`zoom fit=1` 时，`zoom 1.5` 会被接受但不生效** —— `cur_zsel=6`、`cur_zman=1` 都真写进了
-  `cfg1[28:26]`/`[29]`（`main.c:942` 与 `main.c:203-204`），同步链也把它们送到了像素域
+  `cfg1[28:26]`/`[29]`（`main.c:976` 与 `main.c:224-225`），同步链也把它们送到了像素域
   （`pl_video_top.v:202`），但 `inv_used` 走的是 `inv_fit` 那一支（`zoom_ctrl.v:58`）。
   它不是丢了：`zoom fit 0` 之后的下一个帧首，手动档就接管（`zoom_ctrl.v:89`）。
 - **`zoom off` 时，`zoom <倍率>` 与 `zoom auto` 都不生效**，屏上恒为 1.00x（`zoom_ctrl.v:85-88`）。
-  上电默认 `cur_zoom=1`（`main.c:167`），所以这条平时撞不到；一旦谁为了演示按过 `zoom off`，
+  上电默认 `cur_zoom=1`（`main.c:173`），所以这条平时撞不到；一旦谁为了演示按过 `zoom off`，
   后面所有 `zoom` 数值命令都只改影子。
-- **`zoom off` 关不掉拟合**：`fit_en` 排在 `!enable` 之前（`zoom_ctrl.v:80` vs `:85`），
+- **`zoom off` 关不掉拟合**：`fit_en` 排在 `!enable` 之前（`zoom_ctrl.v:96` vs `:101`），
   所以 `zoom off` ＋ `zoom fit 1` 的屏上是"跟着角度缩放的画面"，而不是"不缩放"。
 - **三条命令的合成结果只有一个读数**：`inv_used`（`pl_video_top.v:275` 就把它命名为
   "本文件里此刻真的在用哪个倍率的唯一读数"）。屏上 `Zoom:` 那一格的档位号也是从 `inv_used` 分区来的
@@ -106,37 +106,37 @@
 
 回声的问题在于它把"请求成功"说成"生效"：
 
-- `zoom 1.5` 的固定回声是"[ZOOM] 1.5 → 最近档 1.50x（八档…；回自动用 zoom auto）"（`main.c:944-947`）。
+- `zoom 1.5` 的固定回声是"[ZOOM] 1.5 → 最近档 1.50x（八档…；回自动用 zoom auto）"（`main.c:978-981`）。
   fit 开着时这句的两个半句都不成立：1.50x 此刻不在用，`zoom auto` 也不会让画面动起来。
-- `ctrl_apply` 那行 `zoom_step=%d %s (%s)`（`main.c:216-217`）在 fit 开着时会印成 `1.50x (手动)`。
-  这一行的原意（`main.c:214-215` 的注释）是"切回手动就会用哪一档"，但它印出来的字面就是"手动"，
+- `ctrl_apply` 那行 `zoom_step=%d %s (%s)`（`main.c:237-238`）在 fit 开着时会印成 `1.50x (手动)`。
+  这一行的原意（`main.c:235-236` 的注释）是"切回手动就会用哪一档"，但它印出来的字面就是"手动"，
   而 fit 那一支被省略了 —— 这是本文件里唯一一处**回声主动说谎**（另外几处只是不说）。
-- `zoom fit 0` 的收尾半句是"关掉之后回到手动档/呼吸自动档"，取自 `cur_zman`（`main.c:931-933`）。
+- `zoom fit 0` 的收尾半句是"关掉之后回到手动档/呼吸自动档"，取自 `cur_zman`（`main.c:965-967`）。
   如果同时 `zoom off`，实际回到的是 1.00x（`zoom_ctrl.v:85`），既不是手动档也不是呼吸。
 
 ---
 
 ## 3. 旋转：`rot auto` 与缩放拟合是绑定的，`rot speed` 不是自足的
 
-`rot` 只有三个入口：`rot auto [0|1]`、`rot speed <0..7>`、`rot show`（`main.c:989-1044`）。
-**没有 `rot <角度>`**，注释里写明了为什么不做一个 9 位角度写窗口（`main.c:985-987`），
-拒绝消息也会把这句话说出来（`main.c:1042-1043`）。角度只有 KEY1/KEY2 的 ±1° 这一个来源
+`rot` 只有三个入口：`rot auto [0|1]`、`rot speed <0..7>`、`rot show`（`main.c:1046-1101`）。
+**没有 `rot <角度>`**，注释里写明了为什么不做一个 9 位角度写窗口（`main.c:1042-1044`），
+拒绝消息也会把这句话说出来（`main.c:1099-1100`）。角度只有 KEY1/KEY2 的 ±1° 这一个来源
 （`src/rtl/process/rotate/angle_ctrl.v:39-42`）。
 
 耦合与优先级有四处：
 
-- `rot auto 1` 顺带做两件事：`speed` 为 0 时提到 2（`main.c:1017-1022`），
-  `zoom_fit` 没开时把它开起来（`main.c:1024-1030`）。两件事**都在回声里明说**，
+- `rot auto 1` 顺带做两件事：`speed` 为 0 时提到 2（`main.c:1074-1079`），
+  `zoom_fit` 没开时把它开起来（`main.c:1081-1087`）。两件事**都在回声里明说**，
   并且给出避开的方法（"不想这样就先 `zoom fit 0` 再 `rot auto 1`"）。这是全文件里做得最标准的一处。
-- `rot auto 0` 只清 `ROT_AUTO_BIT`，**不动缩放那一路**（`main.c:1036-1037`），这一点也明说了。
+- `rot auto 0` 只清 `ROT_AUTO_BIT`，**不动缩放那一路**（`main.c:1093-1094`），这一点也明说了。
   也就是说 `rot auto 1` 不是可逆的：开的时候绑上了 fit，关的时候 fit 留着。
 - `rot speed <n>` 在 `rot auto 0` 时不产生任何画面差别：`angle_ctrl` 的步进条件是
   `auto_en && fs_edge && (speed != 0)`（`angle_ctrl.v:43`）。回声只印
-  "[ROT] speed=n 度/帧"（`main.c:1004`），不说 auto 现在是关的。
+  "[ROT] speed=n 度/帧"（`main.c:1061`），不说 auto 现在是关的。
 - 在 `angle_ctrl` 内部，按键的 ±1° 排在自动步进之前（`angle_ctrl.v:39-44` 是同一串 if-else 的前两支），
   所以按住键的那一帧，帧首步进被按键顶掉。这是设计意图，不需要回显。
 
-`rot show` 印的是 `auto`、`speed`、以及 fit 位（`main.c:990-993`），三个都取自 PS 影子 `cur_split`；
+`rot show` 印的是 `auto`、`speed`、以及 fit 位（`main.c:1047-1050`），三个都取自 PS 影子 `cur_split`；
 它**不含角度**，而固件里也没有角度的串口读口（`stat` 的字段表见 `main.c:1378-1386`，
 几何控制字 `geom=` 也不含角度）。要看真实角度只能读屏上 `Rot:` 那一格
 （`src/rtl/video/osd_overlay.v:284-286`）。
@@ -150,7 +150,7 @@
 **第一层：模式（`mode`）** —— 来源有两个，互相能盖。
 
 - 命令侧：`src 0/1/2` → `cur_mode_ovr` → `gpio_o[24:23]` 加一次 `[22]` 翻转
-  （`main.c:489-492`，两笔写的先后顺序的理由写在 `main.c:482-486`）。
+  （`main.c:510-513`，两笔写的先后顺序的理由写在 `main.c:503-507`）。
 - 按键侧：长按 KEY1 一次 → `ltog` → 模式环走一格（`pl_video_top.v:144-146`、`src_mode.v:83-87`）。
 - 谁赢：覆盖期间长按**只交还控制权，不多走一步**（`src_mode.v:85` 的 `if (ov_en) ov_en <= 0`），
   所以命令赢在第一笔，按键赢在"一次就能解除"。生效模式是一个触发器
@@ -173,13 +173,13 @@
   `eth_live & eth_tb_ok` 那个自动判据（`:51`），但换手仍然只在两个引擎都空闲时发生（`:69-72`），
   往 PS 让位还要等 20 ms 静默（`pl_video_top.v:376`）。
 
-**第三层：帧缓存可见性（`fb_vis`）** —— `pl_video_top.v:545`：
+**第三层：帧缓存可见性（`fb_vis`）** —— `pl_video_top.v:569`：
 
 ```
 fb_vis = (mode_card ? 1'b0 : (mode_eth | mode_ps) ? 1'b1 : src_use) && have_src;
 ```
 
-这一行就是 `src_sel`（`gpio_o[16]`，也就是老写法 `SRC0`/`SRC1` 写的位，`main.c:478`）
+这一行就是 `src_sel`（`gpio_o[16]`，也就是老写法 `SRC0`/`SRC1` 写的位，`main.c:499`）
 **唯一的读者**：只有 AUTO 模式才轮到它说话。模式一旦钉住，`src_sel` 在显示侧就没有票了
 （它在搬运机那边还剩一个作用，见 `pl_video_top.v:641`）。
 
@@ -188,7 +188,7 @@ PS 这一路看的是 500 ms 内有没有过发布（`src_life.v:41-47`），而
 每 100 ms 替它报一次心跳（`main.c:239-248`）。心跳停了才会把画面交回仲裁（`main.c:252-257`）。
 
 屏上 `SRC:` 那一格画的是第三层与第二层的合成结果，不是模式：
-`src_eff = {fb_vis, owner_eth_pix}`（`pl_video_top.v:959`）→ 11 印 `ETH`、10 印 `SD`、其余印 `TEST`
+`src_eff = {fb_vis, owner_eth_pix}`（`pl_video_top.v:988`）→ 11 印 `ETH`、10 印 `SD`、其余印 `TEST`
 （`osd_overlay.v:244-246`），模式非 AUTO 时只在名字后加一个 `*`（`osd_overlay.v:248`）。
 
 `stat` 里与片源有关的是两个字段，**都是 PS 影子**：`src=` 是 `cur_src`（bit16 那个位），
@@ -215,12 +215,12 @@ PS 这一路看的是 500 ms 内有没有过发布（`src_life.v:41-47`），而
   仲裁没把屏交给 ETH 时才被消费：`pub_consume = frame_start && src_use && !owner_eth_pix`
   （`pl_video_top.v:509`）；PS 那一台搬运机也直接被禁用（`pl_video_top.v:641`）。
   屏上是冻结的最后一帧，外加 "ETH IS NO SIGNAL" 那一格（判据 `pl_video_top.v:465`）。
-- 钉 TEST 时 `fb_vis` 被强制成 0（`pl_video_top.v:545`），DDR 里那张画和发布都真发生了，
+- 钉 TEST 时 `fb_vis` 被强制成 0（`pl_video_top.v:569`），DDR 里那张画和发布都真发生了，
   只是显示侧不看它。
 
 回声方面：`play` 那句是 "[SD] playing (stop / play 0 结束; ETH 有流时会自动让位)"（`main.c:1351`）。
 它只覆盖了 AUTO 模式下的交接，既没说"模式现在是钉住的"，也没覆盖钉 TEST 的情形。
-`fill` 完全没有自己的回声（只有 `ctrl_apply` 的 `[CTRL]` 行，`main.c:211`）。
+`fill` 完全没有自己的回声（只有 `ctrl_apply` 的 `[CTRL]` 行，`main.c:232`）。
 
 ---
 
@@ -232,14 +232,14 @@ PS 这一路看的是 500 ms 内有没有过发布（`src_life.v:41-47`），而
 `raw_sel = auto_en ? swp : pos_px`（`split_ctrl.v:92`），
 输出再夹进当前端点（`split_ctrl.v:100`）。所以 auto 开着的时候 `pos_px` 那位还留着，
 但**不是此刻的缝**。反过来 `split <pct>` 与 `split px <n>` 会顺手把 auto 清掉
-（`main.c:1130`、`main.c:1140`），回声带 "(manual)"（`main.c:1131`、`main.c:1143`），
+（`main.c:1197`、`main.c:1187`），回声带 "(manual)"（`main.c:1200`、`main.c:1188`），
 所以顺序不同结果不同：`split 30` → `split auto` 里那个 30 只当成扫描的起点
 （`split_ctrl.v:74` 在手工模式下把 `swp` 跟住 `pos_px`，为的就是打开 auto 那一瞬间不跳位）；
 `split auto` → `split 30` 则扫描被关掉。
 
 **（b）`follow` 盖的是"这个数字是什么单位"。** PL 里
 `wire [16:0] W = follow ? SRC_W17 : DISP_W17;`（`split_ctrl.v:33`），
-固件这一侧镜像同一个判据（`main.c:1054`：`w = follow ? SPLIT_SRC_W : SPLIT_DISP_W`）。
+固件这一侧镜像同一个判据（`main.c:1111`：`w = follow ? SPLIT_SRC_W : SPLIT_DISP_W`）。
 于是同一个 `split 60` 有两种物理位置：显示列空间是第 614 列，画面列空间是第 307 列。
 `split show` 会念出当前空间（`main.c:1059`），屏上 `Split:` 那一格念的是百分比而不是列
 （`osd_overlay.v:296-298`）。
@@ -252,14 +252,14 @@ PS 这一路看的是 500 ms 内有没有过发布（`src_life.v:41-47`），而
 **（c）字段宽度盖住"100%"。** `pos_px` 只有 10 位（`cfg1[22:13]`），屏幕宽 1024，
 所以 1024 这个值装不下，`1024<<13` 会串进 `auto` 那一位（`main.c:119-130` 把两种历史症状都写了）。
 现在的处置是写口之前夹到 1023 并把"夹过"这件事交给调用方印
-（`split_pos_clamp`，`main.c:159-163`；三处写口分别带 `main.c:1120`、`1133`、`1146` 的尾巴），
+（`split_pos_clamp`，`main.c:165-169`；三处写口分别带 `main.c:1177`、`1190`、`1203` 的尾巴），
 回声里的百分比由**存进去的值**反算（`main.c:1141-1146`），所以 100% 会念成 99%。
 
 **（d）`marker` 与 `swap` 是内容级的事。** 标记线位在 `cfg1[30]`，语义反着写
-（1 = 关，`main.c:1087-1088`；执行侧 `split_marker_on = ~gp[13]`，`pl_video_top.v:839`），
-而它在混色级排在内容之前：`if (sep && de)` 直接画蓝（`split_display.v:53-65`）。
-`swap` 只翻 `raw_on_left`（`split_ctrl.v:103`），不改缝位（回声明说，`main.c:1095`）。
-follow 打开时"哪一格算缝的左侧"改由源头那一拍判定（`seam_src`，`pl_video_top.v:849-853`，
+（1 = 关，`main.c:1144-1145`；执行侧 `split_marker_on = ~gp[13]`，`pl_video_top.v:868`），
+而它在混色级排在内容之前：`if (sep && de)` 直接画蓝（`split_display.v:63-65`）。
+`swap` 只翻 `raw_on_left`（`split_ctrl.v:103`），不改缝位（回声明说，`main.c:1152`）。
+follow 打开时"哪一格算缝的左侧"改由源头那一拍判定（`seam_src`，`pl_video_top.v:877-882`，
 `split_display.v:44`、`48`），这条写口的注释说清了它是 V9-1 才真的换判据空间的
 （`main.c:1093`）。
 
@@ -268,7 +268,7 @@ follow 打开时"哪一格算缝的左侧"改由源头那一拍判定（`seam_sr
 ## 7. 分割线位置决定整条效果链可见不可见
 
 缝两侧的像素来自同一份源坐标、两个抽头：`orig_pix`（链子之前）与 `proc_pix`（链子之后），
-选择器是 `sel = oob ? 黑 : (take_orig ? orig : proc)`（`split_display.v:49`）。
+选择器是 `sel = oob ? 黑 : (take_orig ? orig : proc)`（`split_display.v:48`）。
 gamma 是链子的第 0 级（`proc_pipeline.v:92-96`，`en=0` 时逐位旁路），
 `th`/`pipe` 都在它后面（`proc_pipeline.v:131`、`137`）。
 
@@ -345,7 +345,7 @@ gamma 是链子的第 0 级（`proc_pipeline.v:92-96`，`en=0` 时逐位旁路�
 | 裸五位串（`00111`）、`pipe 00111` | 一个位都不写，回一句等价的九位 | `main.c:457-468`、`871` |
 | `pipe` 给 6/7/8 位 | 拒，不做补零解释 | `main.c:541-558`、`876-881` |
 | `src 3` | 拒，并念出 0/1/2 的词表 | `main.c:708-710` |
-| `rot 37` / `rot angle …` | 拒，并说明角度只走按键 | `main.c:1042-1043` |
+| `rot 37` / `rot angle …` | 拒，并说明角度只走按键 | `main.c:1099-1100` |
 | `split range …` / `split speed …` | 拒，并说明端点与速度是构建参数 | `main.c:1207-1209`；参数在 `pl_video_top.v:19-21`（声明）与 `:851`（送进 `split_ctrl`） |
 | `osd on/off` | "语法已收，硬件未接"，并说明两条接法各要付什么 | `main.c:1204-1206` |
 | `zoom show` | **不存在**：落到 `ZOOM` 的通用拒绝消息 | `main.c:951-954`（对照 `split show` 在 `main.c:1113`） |
@@ -369,7 +369,7 @@ gamma 是链子的第 0 级（`proc_pipeline.v:92-96`，`en=0` 时逐位旁路�
 | 此刻倍率是哪一路给的 | 屏上后缀：`(Fit)` = 角度定的，`(Auto)` = 呼吸在跑，**无后缀** = 手动档**或** `zoom off`（合成式要求 `zoom_run`） | `osd_overlay.v:291-292`；三个旗标的合成 `pl_video_top.v:955-956` |
 | 同上，但不看屏 | lane23 的 `zoom_fit`（bit19，**r97 起念作"请求拟合 或 被旋转钳住"**）与 `[9:0]`（`inv_used`） | 位序唯一出处 `pl_video_top.v:653-662`；译码 `src/host/health_read.mjs:86-98`，**期望值只有一处实现** `:116`（`zoomJudge`，人读那一支与 `--json` 共用它，r97 #175 的第二半） |
 | 请求侧写了什么 | `stat` 的 `zsel=`/`zman=`、`zoom=`；`rot show` 的 `zoom=fit/now` | `main.c:1334-1338`、`990-993` |
-| 屏上此刻是哪一路 | 屏上 `SRC:` 的名字（`{fb_vis, owner_eth}`），尾部 `*` 才表示"被钉住" | `pl_video_top.v:959`、`osd_overlay.v:244-248` |
+| 屏上此刻是哪一路 | 屏上 `SRC:` 的名字（`{fb_vis, owner_eth}`），尾部 `*` 才表示"被钉住" | `pl_video_top.v:988`、`osd_overlay.v:244-248` |
 | 为什么归这一路 | lane30：`owner_eth`/`eth_live`/`eth_tb_ok`/`why_ps` | `pl_video_top.v:553`、`src_arb.v:35-39`、`62`；译码 `health_read.mjs:70-78` |
 | 模式请求 | `stat` 的 `mode=`（AUTO/ETH/TEST/SD 的**编码**，不是词） | `main.c:1341`、编码表 `main.c:59-62` |
 | 此刻生效的是哪几级效果 | `pipe show` 念名字；屏上 `Pipe:` 念成对编码 | `main.c:568-578`、`osd_overlay.v:129-138` |
@@ -377,7 +377,7 @@ gamma 是链子的第 0 级（`proc_pipeline.v:92-96`，`en=0` 时逐位旁路�
 | 缝在哪个坐标空间 | `split show` 的"画面列/显示列"与 `pos=<n>/<W>` | `main.c:1056-1064`；空间的唯一判据 `split_ctrl.v:33` |
 | 缝是不是在被自动扫 | `split show` 的 `auto/manual`；屏上 `Split:` 后面的 `(Auto)` | `main.c:1061`、`osd_overlay.v:299` |
 | 几何控制字整字（含 fit 位） | `stat` 的 `geom=%08x`（PS 影子），bit31 = zoom_fit | `main.c:1378-1386`、`main.c:152` |
-| 此刻的角度 | **只有屏上 `Rot:` 那一格**；固件没有角度读口 | `osd_overlay.v:284-286`；对照 `main.c:990-993`、`1334-1342` |
+| 此刻的角度 | **只有屏上 `Rot:` 那一格**；固件没有角度读口 | `osd_overlay.v:284-286`；对照 `main.c:1047-1050`、`1403-1411` |
 | 温度/延时的屏上格 | `temp` 那一行末尾同时给 `degC`/`osd`/`gpio` 三种写法 | `main.c:855-857` |
 
 把上面这些串成一次自查的最小序列（每条都能独立判红绿，都不需要眼睛看屏幕的只有 lane23/lane30 那两个）：
@@ -395,7 +395,7 @@ node src/host/health_read.mjs    执行侧：lane23（倍率与 fit）、lane30�
 ## 12. 建议改代码的地方（本轮不改）
 
 改法统一遵循同一条已在本仓成文的规矩：**状态改了就要说出来**
-（先例是 `main.c:1019-1030` 的 `rot auto 1` 与 `main.c:1119` 的 `split screen`：
+（先例是 `main.c:1076-1087` 的 `rot auto 1` 与 `main.c:1173-1177` 的 `split screen`：
 既说出顺带改了什么，也说出怎么避开）。下面每一条都只加回声，不改任何位的写法，
 因此不影响 elf/bit 的配套关系，也不新增跨域。
 
@@ -410,7 +410,7 @@ node src/host/health_read.mjs    执行侧：lane23（倍率与 fit）、lane30�
 | 7 | `pipe` 含 `[6]` 而 `[5]=0` | `print_sel_names` 把 `bin_pol` 列为"生效" | "bin_pol 是 binary 的修饰位，`[5]=0` 时无人读它（`proc_pipeline.v:131`）⇒ 要它就用 `001100000` 这种 `[5][6]` 同开的写法" |
 | 8 | `pipe` 含 `[7]`＋`[8]` | 列出 `erode dilate`，画面上两个都没做 | "腐蚀与膨胀同开＝明确旁路（开/闭要两遍窗口，`proc_morph.v:22-24`）⇒ 屏上 `Pipe:` 第五格会是 0，以那一格为准" |
 | 9 | `th <n>` 而 binary/erode/dilate 全 0 | 只报 `[CTRL] thr=n` | "（这一位只被 binary 与 morph 读；现在这两位都没开 ⇒ `th` 不会改变画面，开一个：`pipe 000001000`）" |
-| 10 | 任何让屏上几乎全是原图的缝位（`split ≥ 99%`） | 效果链照旧回显"开着" | 在 `split` 的回声尾部加一句"处理图只剩一列 ⇒ 想看清 `pipe`/`gamma` 把缝放回中间（`split 50`）"；判据就是 `split_display.v:49` 那一次选择 |
+| 10 | 任何让屏上几乎全是原图的缝位（`split ≥ 99%`） | 效果链照旧回显"开着" | 在 `split` 的回声尾部加一句"处理图只剩一列 ⇒ 想看清 `pipe`/`gamma` 把缝放回中间（`split 50`）"；判据就是 `split_display.v:48` 那一次选择 |
 | 11 | `bilin show` 的条件句 | 只讲旋转态与整数倍率 | 补第三条：源画面最后一列/最后一行按构造退化成最近邻（`fb_bilin.v:51-54`） |
 | 12 | 没有 `zoom show` | `zoom show` 落到通用拒绝（`main.c:951-954`） | 要么补一条与 `split show` 同形的回显（念 fit/zman/zsel/`zoom_en` 四个来源与合成结果），要么在拒绝消息里明说"缩放的状态读 `stat` 的 zsel/zman ＋ `rot show` 的 `zoom=` 半句" |
 | 13 | `main.c:1207-1214` 与 `main.c:1222` | 注释断言"PL 没人读 `gpio_o[19]`"，与 `system_top.v:270`、`pl_video_top.v:251-262` 矛盾；`main.c:1222` 那条 `not_wired("bilin", …)` 走不到 | 改注释并删掉走不到的那一行；这属于文档性腐烂，不改变行为，但会把下一个查 bilin 的人引到 PL 侧去 |
