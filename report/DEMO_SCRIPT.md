@@ -118,7 +118,7 @@ temp
 temp th 60
 temp
 ```
-**看见什么算过**：`temp` 回 `[TEMP] degC=… raw=0x… vccint=…mv th=…C over=0 sane=1 osd=…C gpio=0x…`（`main.c:855`）—— 一行里驱动读数 / 屏上那三个字符 / 写进 PL 的值三方一致；`temp th 60` 之后**再敲一次 `temp`** 才有 `th=60C over=1`（阈值是比出来的，不是抄来的）；屏上 L3 的 `Latency:` 在有可信测量时是毫秒数。
+**看见什么算过**：`temp` 回 `[TEMP] degC=… raw=0x… vccint=…mv th=…C over=0 sane=1 osd=…C gpio=0x…`（`main.c:889`）—— 一行里驱动读数 / 屏上那三个字符 / 写进 PL 的值三方一致；`temp th 60` 之后**再敲一次 `temp`** 才有 `th=60C over=1`（阈值是比出来的，不是抄来的）；屏上 L3 的 `Latency:` 在有可信测量时是毫秒数。
 **不通过分别说明什么**：屏上那一格是 `--` → "没有可信测量"，**不是** 0，不许现场说成 0（`osd_overlay.v:43` 的 `lat_ok`）；出现 `[TEMP!]`（`main.c:859`）→ 这一格的数不许写进报告；`temp th 60` 只回 `[TEMP] th=60C` → 正常，`over` 要下一次 `temp`（`main.c:825`）。⚠ **不要说"屏上那一格会变色"**：`osd_overlay` 只有一个 8 位 BCD 的 `temp_disp` 输入（`osd_overlay.v:53`），PL 侧没有任何温度告警通路，过阈值只体现在串口那一个 `over=`。
 
 ## 8. 复位对账（约 20 s）—— 这一串同时是"板子已经不干净了"的兜底

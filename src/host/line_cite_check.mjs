@@ -141,7 +141,7 @@ function assignEchoes(line) {
   return out;
 }
 
-const normEcho = (s) => s.replace(/[\s（）()〈〉《》「」“”‘’'";:.、，。！？—…·\-/]+/g, '');
+const normEcho = (s) => s.replace(/[\s（）()〈〉《》「」“”‘’"'`;:.、，。！？—…·\-/]+/g, '');
 
 // 返回 null（抄对了）/ 'wrong-line'（这个文件别处才是它说的地方）/ 'absent'（文件里根本没这句）
 function echoVerdict(fileText, quote, winText) {
