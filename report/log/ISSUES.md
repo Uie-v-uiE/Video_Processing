@@ -8889,3 +8889,22 @@ D5b 之所以敢判红，是因为那一列的语义被列名钉死了（「例�
   然后重落守卫（`a6ae6ed`，这次逐条 `git show HEAD:文件 | grep` 复认过）。
   ⇒ 规矩要加一条：**凡是"改了 RTL"的提交，落地后立刻 `git show HEAD:<每个文件> | grep <本次引入的新标识符>` 复认**，
     `staged=N` 的计数不算证明（与 #194 那句"判据没执行与判据判红是两件事"同形）。
+
+## 2026-10-01 14:50 **r101 采纳并上板**：#206 守卫 + 四条注释，门禁 19 绿/1 红（只有声明过的 C5c）
+- 与 r100 的差别只有一件事：**这一轮不带 #141**。构建 13:00→13:20（20 分钟），
+  `build/r101_gates.txt` **19 绿 / 1 红**，唯一红是顶层台架那 1 行 FAIL（= 公开的 C5c，
+  `RESULT tb_v98_top_seam FAIL nfail=1`、`PASS 行数=140`、指纹 `top=2bf2ceeede07` fresh）；
+  试冻结照旧 REFUSE（冻结集仍 r75）。⇒ 与 r97/r99 同一档可采纳状态。
+- 上板只走 JTAG（`build/r101_flash_{1,2,3}*.txt`）：`RST_SYSTEM/PS7_INIT/POST_CONFIG ok` + `DDR_ECHO 5A5AA5A5`
+  → `PROGRAMMED xc7z020_1 <- build/system.bit`（bit **`ddf972657525`**）→ `RST_PROC/DOW/CON/RESUME ok` + `FLOW_DONE`。
+  板级复验 `build/r101_board_verify_console.txt`：**RESULT board_verify PASS（判红 0 步）**、
+  `RESULT PASS geom_check（ok=10 fail=0）`、`RESULT PASS uart_cmd_check (105 条, 97.2 s)` ⇒ 位置那一族在 r101 上仍无回归。
+- 数字（都按报告重读、`metric_recheck` 判 11 行红 0）：WNS **0.506** / 0 失败 / 50867，逐时钟 收包 0.506、100 MHz 1.509、显示 2.054、`sys_clk` 14.971；
+  WHS **0.028**，且**最差那一格换了域**（从 r99 的 `eth_rxc` 换到 100 MHz `clk_fpga_0`；收包 0.034、显示 0.066）；WPWS 0.264；
+  LUT **14359（26.99 %）**、FF **8078（7.59 %）一字未动**、BRAM/DSP/功耗/估算结温与 r99 同。
+  ⚠ 规矩 35：0.284 → 0.506 **不写成收益**（同批放置摆过 0.4 ns），只写"仍收敛、瓶颈换没换域要说清"。
+- 板读结温这次是 **62.62 / 62.78 ℃**（raw 0xAA90/0xAAA5、vccint 998 mV、屏上 63C、gpio 0x63 四处同源，
+  凭据 `build/board_temp_r101.txt`）——比 r99 那次"刚刷完 + 98 秒"的 57.2–57.4 ℃ 高，
+  与用户"长时间演示稳在 64 左右"目测同量级；**这三组数的差别说明的是工况，不是谁改凉了**。
+- 还欠：#216（板子对 ping 不应答，收方向健康；清 ARP 需要提权）、E5 三档 `FPS:` 的眼睛判据、
+  #150 尾巴剩下的 139 条 soft 候选（其中 49 条是"检查器形状"不是文档错）、#148/#141/#205。

@@ -67,10 +67,10 @@ the built-in test video. Commands, registers and every criterion are in
 
 | Metric | Reading | Source |
 |---|---|---|
-| Design-wide setup WNS | **0.284 ns** (board build r99), failing setup/hold endpoints **0 / 50867** | `build/timing_summary.rpt` |
-| Per-clock setup slack | 125 MHz receive domain **0.284 ns** (3.6 % of its 8 ns period, and the design's worst path); 100 MHz domain **1.117 ns** (11.2 %); 50 MHz display domain **1.317 ns** (6.6 %) | same file, Intra Clock Table. The delta versus a previous build is neither gain nor loss - the same path measured a 0.4 ns placement swing between builds |
-| Hold time | worst **0.051 ns** (125 MHz receive domain - that cell is `u_eth/u_lm/full_d_reg`'s own-clock path), 100 MHz domain **0.060**, display domain **0.064** - the thinnest class of margin, quoted **after** the 0.8 ns hold uncertainty this repo imposes | same file |
-| BRAM / LUT / FF / DSP | **95 tiles (67.86 %) / 14330 (26.94 %) / 8078 (7.59 %) / 19 (8.64 %)** | `build/utilization.rpt` |
+| Design-wide setup WNS | **0.506 ns** (board build r101), failing setup/hold endpoints **0 / 50867** | `build/timing_summary.rpt` |
+| Per-clock setup slack | 125 MHz receive domain **0.506 ns** (6.3 % of its 8 ns period, and the design's worst path); 100 MHz domain **1.509 ns** (15.1 %); 50 MHz display domain **2.054 ns** (10.3 %) | same file, Intra Clock Table. The delta versus a previous build is neither gain nor loss - the same path measured a 0.4 ns placement swing between builds |
+| Hold time | worst **0.028 ns** (100 MHz `clk_fpga_0` domain), 125 MHz receive domain **0.034**, display domain **0.066** - the thinnest class of margin, quoted **after** the 0.8 ns hold uncertainty this repo imposes | same file |
+| BRAM / LUT / FF / DSP | **95 tiles (67.86 %) / 14359 (26.99 %) / 8078 (7.59 %) / 19 (8.64 %)** | `build/utilization.rpt` |
 | Power | **2.213 W** dynamic, estimated junction temperature **52.6 degC** (tool confidence Low; **an estimate**, no measured current and no SAF file; the on-die XADC reading is a separate path - serial `temp` / the OSD cell) | `build/power.rpt` |
 | SD local playback | **29.8 - 30.0 fps** (100-frame sliding window, read back from the board) | [data/metrics.csv](data/metrics.csv) |
 | On-board verification | 100-command serial battery PASS, geometry "last hop" 8/8 PASS, `drop_words=0` while streaming | [board/ACCEPTANCE.md](board/ACCEPTANCE.md) |
