@@ -17,5 +17,5 @@
 #
 kind=rtl  legacy_raw=45e09e8b3b9d  norm1=438f72a4e150  files=79  from=git:a9ba1f3:src/rtl  path=none
 kind=file legacy_raw=9d32e3019891  norm1=db6947d245b6  from=git:a9ba1f3:src/rtl/top/pl_video_top.v  path=src/rtl/top/pl_video_top.v
-kind=file legacy_raw=9ffbc9f0d4e0  norm1=7a9839c61c5a  from=git:HEAD:sim/tb_v98_top_seam.v  path=sim/tb_v98_top_seam.v
-kind=file legacy_raw=f8e0583ccb17  norm1=872c331f67f1  from=git:HEAD:sim/tb_edge_rim.v  path=sim/tb_edge_rim.v
+kind=file legacy_raw=9ffbc9f0d4e0  norm1=7a9839c61c5a  from=git:9c6fc74:sim/tb_v98_top_seam.v  path=sim/tb_v98_top_seam.v
+kind=file legacy_raw=f8e0583ccb17  norm1=872c331f67f1  from=git:9c6fc74:sim/tb_edge_rim.v  path=sim/tb_edge_rim.v
