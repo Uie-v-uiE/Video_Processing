@@ -410,7 +410,7 @@ const optVal = (name, dflt) => {
   const a = process.argv.find((x) => x.startsWith(name + '='));
   return a ? (Number(a.split('=')[1]) || dflt) : dflt;
 };
-console.log(`D5 引用核对：扫 ${docs.length} 份交付文档（report/log/ 那四本追加式档案不参与）⇒ 硬错 ${fails.length} 条（文件不在树里 / 行号越过文件末尾 / D5b 例化者列指错 / D5d 逐字抄的回声对不上）`
+console.log(`D5 引用核对：扫 ${docs.length} 份交付文档（report/log 与 report/study 的追加式/笔记档案不参与）⇒ 硬错 ${fails.length} 条（文件不在树里 / 行号越过文件末尾 / D5b 例化者列指错 / D5d 逐字抄的回声对不上）`
   + `；锚点命中 ${oks.length} 条；锚点候选 ${soft.length} 条；取不出代码锚点 ${needs.length} 条；回声转述待人看 ${echoNeed.length} 条；厂商树引用 ${skipped} 条不参与`);
 if (fails.length) { console.log('\n--- 硬错（必定是坏引用）---'); fails.slice(0, listN).forEach((f) => console.log('  ' + f)); if (fails.length > listN) console.log(`  …还有 ${fails.length - listN} 条`); }
 if (args.has('--list-soft')) {
