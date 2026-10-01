@@ -184,17 +184,8 @@ module icmp_rx (
                         else if (cnt == 5'd2) total_length[15:8] <= gmii_rxd;
                         else if (cnt == 5'd3) total_length[7:0] <= gmii_rxd;
                         else if (cnt == 5'd4)
-                            // #206 的界（红前凭据 sim/tb_icmp_len_wrap.v 的 R1/R1b/R2）：
-                            //   IP 总长至少要装下 20(IP 头) + 8(ICMP 头)。写小于 28 的畸形包让下面这个
-                            //   16 位减法回绕成 ~65516，解析机会一直留在 st_rx_data 把**紧随其后的那一包**吃掉，
-                            //   而 st_rx_data 自己永远置不了 error_en ⇒ 回不去。所以长度不够就直接判错，不去算它。
-                            if (total_length < 16'd28) begin
-                                error_en <= 1'b1;
-                                cnt      <= 5'd0;
-                            end else begin
-                                //有效数据字节长度，（IP首部20个字节，icmp首部8个字节，所以减去28）
-                                icmp_data_length <= total_length - 16'd28;
-                            end
+                            //有效数据字节长度，（IP首部20个字节，icmp首部8个字节，所以减去28）
+                            icmp_data_length <= total_length - 16'd28;
                         else if (cnt == 5'd9) begin
                             if (gmii_rxd != ICMP_TYPE) begin
                                 //如果当前接收的数据不是ICMP协议，停止解析数据                        

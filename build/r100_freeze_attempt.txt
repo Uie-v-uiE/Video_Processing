@@ -1,0 +1,7 @@
+REFUSE：build/r100_gates.txt 不是 ALL PASS，不冻结。
+  WNS (ns)               -0.110       >= 0                         FAIL
+  失败 setup 端点    1            == 0                         FAIL
+  顶层台架 tb_v98    top=2bf2ceeede07 FAIL行=1 指纹(norm1):fresh fresh fresh 同一次跑且无 FAIL      FAIL
+        ——源码指纹尺子自己的对照不过(#202，见 /tmp/fp_self.gate.*) 报告里有 1 行 FAIL 没有 RESULT…PASS 汇总行（台架没跑完或中途退出） 
+  边缘条带 tb_edge_rim tb_edge_rim_r100.txt rtl=71faa69be8c9 FAIL行=0 指纹(norm1):fresh fresh 同一次跑、无 FAIL、四条圈齐 PASS
+GATES: 有红项（判定 20 项）—— 不采纳，保留上一版

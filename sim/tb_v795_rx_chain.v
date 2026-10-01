@@ -2,7 +2,7 @@
 // tb_v795_rx_chain —— #38 第 2 步「接顶层之前」的判据：自研 gmii_rx_mac（V7.9.5 起自己算 FCS）
 // + 自研 udp_rx_parser（带目的端口过滤），从 GMII 字节流验到 p_data/p_sof/p_eof/p_good 与三个统计脉冲。
 // 为什么单独写这一台：tb_udp_parser.v 的判据是照期望值手算的，而 udp_rx_parser 从未被任何顶层例化过
-//   ⇒ 这个模块的真实行为一直没被人看过一眼（判据盲区记 report/log/ISSUES.md #38）。
+//   ⇒ 这个模块的真实行为一直没被人看过一眼（判据盲区记 docs/log/ISSUES.md #38）。
 // 帧由 TB 用独立实现的标准 CRC-32 造（口径同 tb_v795_rx_fcs 的 T0）⇒ "好帧/坏帧"是真好坏。
 // 跑法：bash sim/run_one.sh tb_v795_rx_chain
 module tb_v795_rx_chain;

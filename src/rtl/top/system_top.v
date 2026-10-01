@@ -110,7 +110,7 @@ module system_top (
         if (!(&phy_rst_cnt)) phy_rst_cnt <= phy_rst_cnt + 1'b1;
     end
     assign eth_rst_n = phy_rst_cnt[23];
-    // 本工程的数据面不碰 MDIO（`report/BOARD_PINS.md:62` 就是这么记的：RGMII 走 16-27，MDIO 52-53 不用），
+    // 本工程的数据面不碰 MDIO（`docs/BOARD_PINS.md:62` 就是这么记的：RGMII 走 16-27，MDIO 52-53 不用），
     // PHY 的工作模式由板上 strap 定 ⇒ MDIO 高阻、MDC 钉 0。综合报 `Synth 8-3917 port eth_mdc driven by
     // constant 0` 是**陈述而不是缺陷**；要真做 PHY 寄存器读写得另起一个位时序机，那一版再来消它。
     assign eth_mdio  = 1'bz;
