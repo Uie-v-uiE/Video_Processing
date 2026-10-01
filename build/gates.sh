@@ -427,9 +427,12 @@ node src/host/doc_enc_check.mjs --self > /tmp/docenc_self.$$.txt 2>&1; DOCRC1=$?
 # ⚠ 退出码**不能从管道里取**：`SUM=$(node … | head -1); RC=$?` 拿到的是 `head` 的 0，
 #   于是判据红着这一项也绿（第 18 项今天就是这么被抓出来的——见下面那条双向验证）。
 DOCOUT=$(node src/host/doc_enc_check.mjs 2>&1); DOCRC2=$?
-DOCSUM=$(printf '%s\n' "$DOCOUT" | head -1)
+# ⚠ `cut -c` 是**按字节**切的，中文标题被从中间切断就会在门禁件里留下半个 UTF-8 序列——
+#   那份 `rNN_gates.txt` 从此被 grep 当二进制文件（本轮就撞上一次：`grep -a` 才读得出来），
+#   而交付包里凡是"看起来像二进制"的凭据都没法用文本工具复核。切完再让 iconv 把尾巴那截废字节丢掉。
+DOCSUM=$(printf '%s\n' "$DOCOUT" | head -1 | cut -c1-24 | iconv -f UTF-8 -t UTF-8//IGNORE)
 DOCRED=$(printf '%s\n' "$DOCOUT" | tail -n +2 | grep -c .)
-say "手写件编码 doc_enc" "$(printf '%s' "$DOCSUM" | cut -c1-24) 坏行=$DOCRED" "self 抓到 3/3 且全树干净" \
+say "手写件编码 doc_enc" "$DOCSUM 坏行=$DOCRED" "self 抓到 3/3 且全树干净" \
     $([ "$DOCRC1" = 0 ] && [ "$DOCRC2" = 0 ] && echo 1 || echo 0)
 if [ "$DOCRC2" != 0 ]; then
     printf '%s\n' "$DOCOUT" | sed -n '2,9p' | sed 's/^/        /'
@@ -444,9 +447,9 @@ rm -f /tmp/docenc_self.$$.txt
 # ⇒ 下一次冻结成功时这一项会自己红，逼着回头改首页（今天不写下来，明天就会再忘一次）。
 node src/host/doc_currency_check.mjs --self > /tmp/cur_self.$$.txt 2>&1; CURRC1=$?
 CUROUT=$(node src/host/doc_currency_check.mjs 2>&1); CURRC2=$?
-CURSUM=$(printf '%s\n' "$CUROUT" | head -1)
+CURSUM=$(printf '%s\n' "$CUROUT" | head -1 | cut -c1-20 | iconv -f UTF-8 -t UTF-8//IGNORE)
 CURROWS=$(printf '%s\n' "$CUROUT" | grep -c ' D[123] ')
-say "文档时效 doc_cur" "$(printf '%s' "$CURSUM" | cut -c1-20) 红行=$CURROWS" "self 变异 3+对照 2 且全树 0 条" \
+say "文档时效 doc_cur" "$CURSUM 红行=$CURROWS" "self 变异 3+对照 2 且全树 0 条" \
     $([ "$CURRC1" = 0 ] && [ "$CURRC2" = 0 ] && echo 1 || echo 0)
 if [ "$CURRC2" != 0 ]; then
     printf '%s\n' "$CUROUT" | grep ' D[123] ' | sed -n '1,8p' | sed 's/^/        /'
