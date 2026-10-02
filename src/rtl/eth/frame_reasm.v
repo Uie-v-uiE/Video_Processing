@@ -72,13 +72,28 @@ module frame_reasm #(
     wire last_pkt = pend_sat | (pend_end & p_valid);
 
     // per-row coverage this frame
-    reg [IMG_H-1:0] row_ok;
+    // per-row coverage this frame, stored in 5 x 64-bit banks (IMG_H=300 <= 320).
+    // Why banks: the "this byte starts a new row" term used to be the CE driver of ALL 300
+    // coverage FFs plus the 16 rows_hit FFs (r106 post-route report: fo=316, and that last hop
+    // alone cost 1.980 ns of the 6.879 ns data path, route share 81.2 %). Each bank now takes
+    // <= 64 loads and the row counter's enable takes 16. Bound: 5 x 64 = 320 rows -- a bigger
+    // IMG_H must add banks AND widen rbank; the guard above endmodule says so in simulation.
+    reg [63:0] rok0, rok1, rok2, rok3, rok4;
     reg [15:0]      rows_hit;
 
     // byte_off → row: row = byte_off / (IMG_W*2). Must NOT use off[16:1] (a 16-bit pixel index
     // truncates ~172/300 rows → frame_done never → SRC1 black).
     localparam integer ROW_STRIDE = IMG_W * 2;
     wire [31:0] row_idx = off / ROW_STRIDE;
+    wire [8:0]  ridx  = row_idx[8:0];
+    wire [2:0]  rbank = ridx[8:6];
+    wire [5:0]  roff  = ridx[5:0];
+    wire        row_covered =
+          (rbank == 3'd0) ? rok0[roff]
+        : (rbank == 3'd1) ? rok1[roff]
+        : (rbank == 3'd2) ? rok2[roff]
+        : (rbank == 3'd3) ? rok3[roff]
+        :                    rok4[roff];
 
     // 4-byte little-endian offset, complete in the S_OFF3 cycle
     wire [31:0] hdr = {p_data, off[23:0]};
@@ -92,7 +107,7 @@ module frame_reasm #(
             frame_abort<=0; rows_missed<=0;
             stat_frames<=0; stat_pkts<=0; stat_bytes<=0;
             stat_bad<=0; stat_oob_off<=0;
-            row_ok<=0; rows_hit<=0;
+            rok0<=0; rok1<=0; rok2<=0; rok3<=0; rok4<=0; rows_hit<=0;
         end else begin
             wr_en<=0; flush<=0; frame_done<=0; frame_err<=0; frame_abort<=0;
 
@@ -111,7 +126,7 @@ module frame_reasm #(
                             pend      <= (hdr >= FRAME_BYTES) ? SAT : hdr[CW-1:0];
                             if (hdr < 32'd4) begin
                                 cov<=0;
-                                row_ok<=0;
+                                rok0<=0; rok1<=0; rok2<=0; rok3<=0; rok4<=0;
                                 rows_hit<=0;
                                 bad_frame<=0;
                             end
@@ -121,7 +136,7 @@ module frame_reasm #(
                                 pix_lo<=p_data; have_lo<=1;
                             end else begin
                                 // #201：`wr_en` 必须和行覆盖统计吃同一个边界。原来这三行是无条件的，
-                                // 而下面那个 `if (off < FRAME_BYTES)` 只管 `row_ok/rows_hit` ⇒ 发包方选的
+                                // 而下面那个 `if (off < FRAME_BYTES)` 只管 `rok0..rok4/rows_hit` ⇒ 发包方选的
                                 // 偏移能把字写到帧缓存**之外**（`off[18:1]` 最大 131071，帧只有 153600 字节
                                 // =76800 个字，越界后落在谁身上由下游 `axi_frame_saver64` 的乘法决定，而它
                                 // 自己没有上界检查）。尺子：`sim/tb_reasm_bounds.v` 的 R1，改前红凭据
@@ -130,8 +145,12 @@ module frame_reasm #(
                                 wr_addr<=off[18:1];
                                 wr_en  <=(off < FRAME_BYTES);
                                 if (off < FRAME_BYTES) begin
-                                    if (row_idx < IMG_H && !row_ok[row_idx[8:0]]) begin
-                                        row_ok[row_idx[8:0]] <= 1'b1;
+                                    if (row_idx < IMG_H && !row_covered) begin
+                                        if (rbank == 3'd0) rok0[roff] <= 1'b1;
+                                        if (rbank == 3'd1) rok1[roff] <= 1'b1;
+                                        if (rbank == 3'd2) rok2[roff] <= 1'b1;
+                                        if (rbank == 3'd3) rok3[roff] <= 1'b1;
+                                        if (rbank == 3'd4) rok4[roff] <= 1'b1;
                                         rows_hit <= rows_hit + 16'd1;
                                     end
                                 end else
@@ -159,7 +178,7 @@ module frame_reasm #(
                     if (rows_hit >= IMG_H[15:0] && bytes_ok && !bad_frame) begin
                         frame_done<=1;
                         cov<=0;
-                        row_ok<=0;
+                        rok0<=0; rok1<=0; rok2<=0; rok3<=0; rok4<=0;
                         rows_hit<=0;
                         bad_frame<=0;
                         stat_frames<=stat_frames+1;
@@ -189,4 +208,11 @@ module frame_reasm #(
             end
         end
     end
+// 界（#146 那一族的写法）：bank 数写死在 5。IMG_H 一旦超过 5*64，行覆盖就记丢、
+// frame_done 永不成立（画面是黑纹而不是报错）。台架里当场喊；综合忽略 initial。
+initial begin
+    if (IMG_H > 5 * 64)
+        $error("frame_reasm: IMG_H=%0d exceeds 5 x 64 row-coverage banks (320); add banks and widen rbank", IMG_H);
+end
+
 endmodule
