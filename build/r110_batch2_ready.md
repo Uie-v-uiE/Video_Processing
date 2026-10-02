@@ -174,3 +174,24 @@ pristine 0 ERROR / patched 0 ERROR（自测抓到并修掉两处我自己的缺�
 但**本轮真正落进树里的只有刀 1(#174) 与刀 4①(独热化)**：#177 死代码、#158 死口/截断行判据、刀 0(#182) 都没落
 （刀 0 有意延后，理由见任务 #183）。这两句会在构建控制台里被当成"本轮内容"念出来 ⇒ 链子跑完后把它们改成实际清单，
 并把 #177/#158 明写在"仍待下一捆"。文案与事实分开这件事本仓犯过不止一次（#221 那条"现在是 rNN 读不出来"是同族）。
+
+## 早上接手清单（02:5x 写，链子还在跑；若我在中途被 20 轮上限暂停，就按这张表手动走完）
+链子输出：`build/r110_chain_console.txt`（尾巴有"链结束"），分步件 `build/r110_build_console.txt`、
+`build/r110_lane_after.txt`（链子自己的车道，会覆盖我那份？不会——我那份已改名 `r110_lane_precut.txt`）、
+`build/r110_tb98_console.txt`、`build/r110_gates.txt`。
+1. **先读抓手**：`bash build/r110_verdict.sh` → 看 `rows_hit` 的 CE 那族最后一跳的 fo 是否离开 316。
+   仍 316 ⇒ `git checkout -- src/rtl/eth/frame_reasm.v`（只退刀 4，刀 1 保留），**下一轮重新构建**；
+   最差族换人 ⇒ 首页归属句整句重写，且不许把这轮的绝对差算成收益（规矩 35/46）。
+2. **读台架**：`build/r110_tb98_console.txt` 里 `RESULT tb_v98_top_seam FAIL nfail=1` 且 `^FAIL` 只有 C5c；
+   四条 C12 按**整句**匹配（`C12a head request beat uses` 等，token 撞名的事见 #239）。
+3. **门禁要"写回再跑"**：`cp /tmp/kx/g_r110*.txt build/r110_gates.txt` 之后**再跑两遍**，
+   两跑逐字节一致才算数（D1c 读的是盘上那份，教训 #242 第 1 条）。期望 24 项 = 23 绿 / 1 红。
+4. **数字改口**：`node build/rotate_from_metric.mjs --apply` 先搬机械的那一部分（实测约 31 条），
+   剩下的照 `build/r109_rotation_worklist.md` 的形状逐条列规则（身份句、门禁项数四处、hold 落点半句、代价句），
+   收尾必须 `metric_recheck` 红 0、`doc_currency` rc=0、`line_cite` 硬错 0；
+   模块引用若因行位移红，跑 `bash build/reanchor_modules.sh`（它会按 D5b 的红单自己定位）。
+5. **采纳一笔**（含 `build/system.bit`/`.xsa` 的 r110 版本 + 文档 + 车道/台架/门禁件），然后三步链刷板（不设 VP_BIT）→
+   `board_verify --geom --battery --round=r110` → 把刷板时刻与新 bit md5 回填首页 → 第二笔提交 → 试冻结 →
+   **最后**才 `bash build/make_submission.sh`，并且数盘上 `../final_submission` 的文件数与 MANIFEST 对（别数 `../submission`，那是 r88 旧备份，见 #241）。
+6. 全程：验证回退用 `git status` 不用 md5（CRLF 归一会造假信号，#243）；构建/台架在飞不动 `src/rtl`/`sim`；
+   不起第二支 xsim；GitHub 偶发 443 reset ⇒ 重试而不是改结构。
