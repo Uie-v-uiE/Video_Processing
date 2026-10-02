@@ -18,7 +18,7 @@
 set -euo pipefail
 
 REPO="$(cd "$(dirname "$0")/.." && pwd)"
-OUT="$(cd "$REPO/.." && pwd)/final_submission"
+OUT="${VP_SUB_OUT:-$(cd "$REPO/.." && pwd)/final_submission}"   # 目标被别的进程占住句柄时可换目录导出（见 ISSUES #231 尾账）
 TMP="$(mktemp -d "${TMPDIR:-/tmp}/sub.XXXXXX")"
 DRY=0
 # --allow-no-gates：明确接受"诊断用"包（包里没有对应位流的门禁件）。默认**不接受**（F2，见 4x 段）。
