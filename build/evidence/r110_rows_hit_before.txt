@@ -36,3 +36,8 @@ PATHS printed: 5  (floor: 0 means report_timing gave nothing for this cone)
 #   逐网络那行里 off_reg[11]_rep_n_0 的 fo=109、单这根网络 1.511 ns（见 build/evidence/r109_hold_owner.txt 第二节）。
 #   ⇒ 与 r107 那把的条件不同：那一次 fo=316 且分组后级数掉了；这一次只剩 6 级、大头是距离，
 #     所以刀 4 的两个候选（再分组 vs 物理就近）**必须各滚一轮**（#223），而且先量收益上限再决定动不动。
+
+## 追加（2026-10-03 02:3x，落刀前）：判据原件已固化，构建覆盖也不怕
+`build/evidence/r109_setup_paths_baseline.rpt` = r109 那份 `setup_paths.rpt` 的逐字节副本（md5 见本轮提交），
+`build/evidence/r109_hold_paths_baseline.rpt` 同理。r110 构建会把 `build/setup_paths.rpt` 覆盖成 r110 的，
+所以"fo 离开 316"这句必须对着这两份基线读，不是对着记忆读（规矩 46：现在的基线必须是一件原件，不能是冻结集）。
