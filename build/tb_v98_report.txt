@@ -1,4 +1,4 @@
-# provenance fpver=norm1 top_md5=2bf2ceeede07 tb_md5=1c0c56bae0e0 rtl_md5=31e35f481032 date=2026-10-02T18:37:47+08:00 src=/tmp/kx/tb_v98_top_seam.run/run.log
+# provenance fpver=norm1 top_md5=56c269602e18 tb_md5=1c918c92200f rtl_md5=65f311fe99a4 date=2026-10-03T00:16:24+08:00 src=/tmp/kx/tb_v98_top_seam.run/run.log
 PASS C0a ruler encodes position in the pixel | px_val / decoder / mod-256 signed diff must agree, incl. 0, small values, both edges, both wrap directions
 PASS C0a3 no black cell exists in the pattern | the panel-level ruler equates black with outside-the-picture, so the pattern must not contain black
 PASS C0a2 golden array actually holds it | read back ddr[0] and the last word after init: a correct function is not a correct array
@@ -66,6 +66,7 @@ PASS C9b detector does see known black columns | pair for C9a: on a cell where a
 C9e full-processed x 1.5x x gray: lines-in-window 1200 (de-edges 3000) px 1228800 near-black 0 || darkest col -1 = 0 rows
 PASS C9epre rows judged | this window must have judged nearly the whole frame, else C9e below is a green on an empty set
 PASS C9e no majority-dark column, processed tap full-screen at 1.5x | board shows a full-height near-black column at internal col 128 (display 256) here; ISSUES #103
+C12 osd switch at the panel: rose cells ON=22716 (over 1228800 px) OFF=0
 PASS C12pre the rose probe does see glyphs when OSD is on | pair for C12a: with OSD on, the panel must actually carry glyph cells, else C12a's zero is a blind probe
 PASS C12a osd off removes every glyph cell at the panel | gpio_o[20] must reach u_osd through its own 3-stage chain; ISSUES r83 OSD switch
 C2 table  code inv  nin     nout     inbad viol measl measr geol geor leakl leakr blank invbad | C3 rows empt wbad rbad fmin fmax lmin lmax
@@ -190,4 +191,9 @@ P1 chain-blur: arm(x==1023&de)=79200 flush=79200 run@行尾 min=1024 max=1024 | 
 PASS C11pre frame is latched | empty-set guard: a committed frame must be latched before judging whether abort drops it
 PASS C11 abort clears the latched frame | after one copy_abort pulse the pixel domain must stop claiming a good ETH frame (#171)
 PASS C11b eth_ready reads 0 after abort | the host-side status bit is derived from that latch; reading 1 here means the abort was swallowed
+C12 rot: cmp=5 bad=0 steps=6 | frozen: cmp=4 bad=0 | angle now=18
+PASS C12pre both phases judged real frames | coverage floor: head-vs-body compared on >=4 rotating and >=3 frozen frames, else C12a/b are greens on an empty set
+PASS C12c rotating stimulus really steps the angle | positive control / the ruler's own teeth: if the angle never moved, C12a would be trivially green
+PASS C12a head request beat uses the frame's own angle | #167: display rows 0..5 are fetched from the previous frame's wrapped request rows; those beats and this frame's body beats must see ONE angle
+PASS C12b frozen-angle control is coherent too | same two windows with speed=0: a red here would be a bench phase artifact, not the design
 RESULT tb_v98_top_seam FAIL nfail=1

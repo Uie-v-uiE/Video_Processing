@@ -1,7 +1,7 @@
 Copyright 1986-2022 Xilinx, Inc. All Rights Reserved. Copyright 2022-2026 Advanced Micro Devices, Inc. All Rights Reserved.
 -------------------------------------------------------------------------------------------------------------------------------------------------
 | Tool Version     : Vivado v.2025.2.1 (win64) Build 6403652 Thu Mar 19 19:48:24 GMT 2026
-| Date             : Fri Oct  2 18:30:41 2026
+| Date             : Sat Oct  3 00:02:46 2026
 | Host             : Uie-laptop running 64-bit major release  (build 9200)
 | Command          : report_power -file D:/Xilinx/Prj/pro/Video_Processing/build/power.rpt
 | Design           : system_top
@@ -30,11 +30,11 @@ Table of Contents
 ----------
 
 +--------------------------+--------------+
-| Total On-Chip Power (W)  | 2.389        |
+| Total On-Chip Power (W)  | 2.391        |
 | Design Power Budget (W)  | Unspecified* |
 | Power Budget Margin (W)  | NA           |
-| Dynamic (W)              | 2.212        |
-| Device Static (W)        | 0.177        |
+| Dynamic (W)              | 2.214        |
+| Device Static (W)        | 0.178        |
 | Effective TJA (C/W)      | 11.5         |
 | Max Ambient (C)          | 57.4         |
 | Junction Temperature (C) | 52.6         |
@@ -52,23 +52,23 @@ Table of Contents
 +--------------------------+-----------+----------+-----------+-----------------+
 | On-Chip                  | Power (W) | Used     | Available | Utilization (%) |
 +--------------------------+-----------+----------+-----------+-----------------+
-| Clocks                   |     0.045 |       10 |       --- |             --- |
-| Slice Logic              |     0.031 |    27754 |       --- |             --- |
-|   LUT as Logic           |     0.023 |    10174 |     53200 |           19.12 |
+| Clocks                   |     0.044 |       10 |       --- |             --- |
+| Slice Logic              |     0.031 |    27743 |       --- |             --- |
+|   LUT as Logic           |     0.023 |    10177 |     53200 |           19.13 |
 |   LUT as Distributed RAM |     0.005 |     4044 |     17400 |           23.24 |
-|   CARRY4                 |     0.002 |     1137 |     13300 |            8.55 |
-|   Register               |    <0.001 |     8168 |    106400 |            7.68 |
-|   F7/F8 Muxes            |    <0.001 |     1238 |     53200 |            2.33 |
-|   LUT as Shift Register  |    <0.001 |      142 |     17400 |            0.82 |
+|   CARRY4                 |     0.002 |     1141 |     13300 |            8.58 |
+|   Register               |    <0.001 |     8162 |    106400 |            7.67 |
+|   F7/F8 Muxes            |    <0.001 |     1252 |     53200 |            2.35 |
+|   LUT as Shift Register  |    <0.001 |      141 |     17400 |            0.81 |
 |   Others                 |     0.000 |      350 |       --- |             --- |
-| Signals                  |     0.054 |    20985 |       --- |             --- |
-| Block RAM                |     0.174 |       95 |       140 |           67.86 |
+| Signals                  |     0.056 |    20961 |       --- |             --- |
+| Block RAM                |     0.174 |     95.5 |       140 |           68.21 |
 | MMCM                     |     0.212 |        2 |         4 |           50.00 |
 | DSPs                     |     0.008 |       19 |       220 |            8.64 |
 | I/O                      |     0.156 |       27 |       200 |           13.50 |
 | PS7                      |     1.533 |        1 |       --- |             --- |
-| Static Power             |     0.177 |          |           |                 |
-| Total                    |     2.389 |          |           |                 |
+| Static Power             |     0.178 |          |           |                 |
+| Total                    |     2.391 |          |           |                 |
 +--------------------------+-----------+----------+-----------+-----------------+
 
 
@@ -78,7 +78,7 @@ Table of Contents
 +-----------+-------------+-----------+-------------+------------+-------------+-------------+------------+
 | Source    | Voltage (V) | Total (A) | Dynamic (A) | Static (A) | Powerup (A) | Budget (A)  | Margin (A) |
 +-----------+-------------+-----------+-------------+------------+-------------+-------------+------------+
-| Vccint    |       1.000 |     0.323 |       0.299 |      0.025 |       NA    | Unspecified | NA         |
+| Vccint    |       1.000 |     0.325 |       0.300 |      0.025 |       NA    | Unspecified | NA         |
 | Vccaux    |       1.800 |     0.139 |       0.120 |      0.018 |       NA    | Unspecified | NA         |
 | Vcco33    |       3.300 |     0.046 |       0.045 |      0.001 |       NA    | Unspecified | NA         |
 | Vcco25    |       2.500 |     0.000 |       0.000 |      0.000 |       NA    | Unspecified | NA         |
@@ -161,14 +161,14 @@ Table of Contents
 +----------------------------+-----------+
 | Name                       | Power (W) |
 +----------------------------+-----------+
-| system_top                 |     2.212 |
+| system_top                 |     2.214 |
 |   u_bd                     |     1.544 |
 |     design_1_i             |     1.543 |
 |       axi_gp0_ic           |     0.005 |
 |       axi_gpio_1           |     0.002 |
 |       axi_gpio_2           |     0.001 |
 |       processing_system7_0 |     1.534 |
-|   u_eth                    |     0.055 |
+|   u_eth                    |     0.054 |
 |     u_arp                  |     0.003 |
 |       u_arp_rx             |     0.002 |
 |       u_arp_tx             |     0.001 |
@@ -184,12 +184,12 @@ Table of Contents
 |     u_saver                |     0.012 |
 |   u_idelay_clkgen          |     0.106 |
 |   u_lm_axi                 |     0.002 |
-|   u_pl                     |     0.485 |
+|   u_pl                     |     0.488 |
 |     u_ang                  |     0.003 |
 |     u_aw                   |     0.001 |
-|     u_bilin                |     0.167 |
+|     u_bilin                |     0.168 |
 |       u_fb                 |     0.157 |
-|       u_lerp               |     0.004 |
+|       u_lerp               |     0.005 |
 |     u_clk                  |     0.107 |
 |     u_dvi                  |     0.134 |
 |       u_ser0               |     0.034 |
@@ -205,8 +205,8 @@ Table of Contents
 |       u_sharp              |     0.003 |
 |       u_sobel              |     0.003 |
 |     u_raw                  |     0.005 |
-|     u_row                  |     0.004 |
-|     u_split_ctrl           |     0.002 |
+|     u_row                  |     0.005 |
+|     u_split_ctrl           |     0.003 |
 |     u_zfit                 |     0.002 |
 |     u_zmap                 |     0.006 |
 +----------------------------+-----------+

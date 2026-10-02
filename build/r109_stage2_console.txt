@@ -1,0 +1,14 @@
+[stage2 00:07:31] 快车道（分钟级，逐刀等价性）
+[stage2 00:16:16] 快车道 rc=3 绿=27 红=1 挡=0
+LANE-SUMMARY ran=28/28 green=27 red=1 refuse=0 no-verdict/other=0 wall=525s (00:16:16)
+[stage2 00:16:16] 顶层台架 tb_v98_top_seam（实测约 127 分钟，一轮只付这一次）—— C5c 与新增的 C12a/C12b/C12c/C12pre 都在这一份 log 里
+[stage2 02:07:51] 顶层台架 rc=3（0=绿 3=判红 2=REFUSE 4=认不出判定）
+[stage2 02:07:51] tb98_report rc=0
+[stage2 02:07:51] 边缘条带台架 + 报告
+[stage2 02:08:13] rim rc=0
+[stage2 02:08:14] rim_report rc=0
+[stage2 02:08:14] 门禁（两步：先 /tmp 再 cp 到位，#229）
+[stage2 02:08:50] 门禁 rc=1 —— 绿=20 红=4
+[stage2 02:09:24] 门禁第二跑 rc=1 绿=20 红=4
+[stage2 02:09:24] 两跑逐字节一致
+[stage2 02:09:24] 阶段结束（采纳判读看 build/r109_lane_after.txt / r109_tb98_console.txt / r109_gates.txt 与 build/r109_clk01_probe_console.txt）

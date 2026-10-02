@@ -1,7 +1,7 @@
 Copyright 1986-2022 Xilinx, Inc. All Rights Reserved. Copyright 2022-2026 Advanced Micro Devices, Inc. All Rights Reserved.
 ---------------------------------------------------------------------------------------------------------------------------------------------
 | Tool Version : Vivado v.2025.2.1 (win64) Build 6403652 Thu Mar 19 19:48:24 GMT 2026
-| Date         : Fri Oct  2 18:30:33 2026
+| Date         : Sat Oct  3 00:02:38 2026
 | Host         : Uie-laptop running 64-bit major release  (build 9200)
 | Command      : report_methodology -file D:/Xilinx/Prj/pro/Video_Processing/build/methodology.rpt
 | Design       : system_top
@@ -23,14 +23,14 @@ Table of Contents
           Floorplan: impl_1
       Design limits: <entire design considered>
              Max checks: <unlimited>
-             Checks found: 445
+             Checks found: 446
 +-----------+----------+-----------------------------------------------------------+--------+
 | Rule      | Severity | Description                                               | Checks |
 +-----------+----------+-----------------------------------------------------------+--------+
 | DPIR-1    | Warning  | Asynchronous driver check                                 | 2      |
 | LUTAR-1   | Warning  | LUT drives async reset alert                              | 1      |
 | SYNTH-5   | Warning  | Mapped onto distributed RAM because of timing constraints | 336    |
-| SYNTH-6   | Warning  | Timing of a RAM block might be sub-optimal                | 97     |
+| SYNTH-6   | Warning  | Timing of a RAM block might be sub-optimal                | 98     |
 | TIMING-9  | Warning  | Unknown CDC Logic                                         | 1      |
 | TIMING-10 | Warning  | Missing property on synchronizer                          | 1      |
 | TIMING-18 | Warning  | Missing input or output delay                             | 7      |
@@ -2202,25 +2202,30 @@ Related violations: <none>
 
 SYNTH-6#93 Warning
 Timing of a RAM block might be sub-optimal  
-The timing for the instance u_pl/u_raw/g_ring.mem_reg_0, implemented as a RAM block, might be sub-optimal as no output register was merged into the block.
+The timing for the instance u_pl/u_osd/ch_r_reg, implemented as a RAM block, might be sub-optimal as no output register was merged into the block.
 Related violations: <none>
 
 SYNTH-6#94 Warning
 Timing of a RAM block might be sub-optimal  
-The timing for the instance u_pl/u_raw/g_ring.mem_reg_1, implemented as a RAM block, might be sub-optimal as no output register was merged into the block.
+The timing for the instance u_pl/u_raw/g_ring.mem_reg_0, implemented as a RAM block, might be sub-optimal as no output register was merged into the block.
 Related violations: <none>
 
 SYNTH-6#95 Warning
 Timing of a RAM block might be sub-optimal  
-The timing for the instance u_pl/u_raw/g_ring.mem_reg_2, implemented as a RAM block, might be sub-optimal as no output register was merged into the block.
+The timing for the instance u_pl/u_raw/g_ring.mem_reg_1, implemented as a RAM block, might be sub-optimal as no output register was merged into the block.
 Related violations: <none>
 
 SYNTH-6#96 Warning
 Timing of a RAM block might be sub-optimal  
-The timing for the instance u_pl/u_raw/g_ring.mem_reg_3, implemented as a RAM block, might be sub-optimal as no output register was merged into the block.
+The timing for the instance u_pl/u_raw/g_ring.mem_reg_2, implemented as a RAM block, might be sub-optimal as no output register was merged into the block.
 Related violations: <none>
 
 SYNTH-6#97 Warning
+Timing of a RAM block might be sub-optimal  
+The timing for the instance u_pl/u_raw/g_ring.mem_reg_3, implemented as a RAM block, might be sub-optimal as no output register was merged into the block.
+Related violations: <none>
+
+SYNTH-6#98 Warning
 Timing of a RAM block might be sub-optimal  
 The timing for the instance u_pl/u_raw/g_ring.mem_reg_4, implemented as a RAM block, might be sub-optimal as no output register was merged into the block.
 Related violations: <none>

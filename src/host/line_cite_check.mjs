@@ -330,16 +330,20 @@ function selfTest(code) {
       if (r.ok === want) pass++;
     }
   }
-  // D5b 自己的对照（#208）：今晚 `report/MODULES.md` 那 28 条死引用里的一个真实标本 ——
-  // `split_ctrl` 的"例化者"列改前写 :950（那是 axi 域的 always 块），改后写 :859（真的是例化行）。
-  // 两条都必须按预期走：错号判红、对号放行；否则这条硬判据就是没牙的。
+  // D5b 自己的对照（#208）：一个真实标本 —— `report/MODULES.md` 的"例化者"列曾经指着 axi 域那一段。
+  // ⚠ 行号**按内容现算**，不许写死（规矩 43）：今晚 r109 在 pl_video_top.v 里插了 26 行，
+  //   原来那个"对号 :859"的固定标本就自己过期了 —— 尺子的 fixture 跟着源码漂，是它自己红、不是设计红。
+  const pvTop = readFileSync('src/rtl/top/pl_video_top.v', 'utf8').split(/\r?\n/);
+  const GOOD = pvTop.findIndex(l => /^\s*split_ctrl\s+([A-Za-z_]\w*\s*\(|#\()/.test(l)) + 1;
+  const BAD = GOOD + 1;                        // 例化的下一行是端口映射，必定不是"第 1 列=模块名"那行
+  if (GOOD <= 1) { console.log('  FAIL D5b 对照找不到 split_ctrl 的例化行 —— fixture 失效，停手'); }
   const d5b = ['| 模块 | 职责 | 例化者 |', '|------|------|--------|',
-    '| `split_ctrl` | 分割线位置发生器 | `pl_video_top.v:950` |',
-    '| `split_ctrl` | 分割线位置发生器 | `pl_video_top.v:859` |',
+    `| \`split_ctrl\` | 分割线位置发生器 | \`pl_video_top.v:${BAD}\` |`,
+    `| \`split_ctrl\` | 分割线位置发生器 | \`pl_video_top.v:${GOOD}\` |`,
     // 带箭头的列允许"父 → 子"前缀匹配，但它**仍然要有牙**：指到一个不是 `arp*` 的行必须照样红。
     '| `arp` → `arp_rx` / `arp_tx` | 包装层 | `arp.v:15` |'];
   let b5 = 0;
-  for (const [row, wantRed, tag] of [[2, true, '错号 :950 必须红'], [3, false, '对号 :859 必须绿'],
+  for (const [row, wantRed, tag] of [[2, true, `错号 :${BAD} 必须红`], [3, false, `对号 :${GOOD} 必须绿`],
                                       [4, true, '箭头列指到非 arp* 行 :15 必须红']]) {
     const cite = [...d5b[row].matchAll(CITE)][0][0];
     const isRed = instViol(d5b, row, cite, code) !== null;

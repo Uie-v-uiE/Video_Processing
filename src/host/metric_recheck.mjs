@@ -100,7 +100,7 @@ const KINDS = {
     ],
     util: (c, s) => {
         const rows = [
-            ['BRAM tile', one(c, /(\d+)\s*tiles?\s*[（(]/), s.bram ? s.bram.use : null],
+            ['BRAM tile', one(c, /([0-9]+(?:\.[0-9]+)?)\s*tiles?\s*[（(]/), s.bram ? s.bram.use : null],
             ['BRAM 占比(%)', one(c, /tiles?\s*[（(]\s*([\d.]+)\s*%/, 1), s.bram ? s.bram.pct : null],
         ];
         const p = grabPairs(c);               // 括号对里带 tile 那一对已被上面的式子排除
