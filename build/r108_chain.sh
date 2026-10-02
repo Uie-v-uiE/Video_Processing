@@ -12,12 +12,22 @@
 set -u
 cd "$(dirname "$0")/.."
 V=${VP_VIVADO_BIN:-/d/Software/Vivado/2025.2.1/Vivado/bin}
+export VP_VIVADO_BIN="$V"   # 不导出的话 nohup/子 shell 里 run_one.sh 会报「找不到 xvlog」并把每支台架顶成 rc=2
 NN=108
 say() { printf '[chain %s] %s\n' "$(date +%H:%M:%S)" "$*"; }
 
 # ---- 0. 门口守卫：这一刀必须在树上，且基线探针必须已经落盘 ----
-node build/r108_apply_csum.mjs --check > "/tmp/kx/r108_check.txt" 2>&1 \
-    || { say "断链：apply --check 没过（/tmp/kx/r108_check.txt）—— 树上不是这一刀"; exit 1; }
+# --check 认的是**改前**形状，所以补丁打上之后它必然 REFUSE —— 那才是对的状态。三种情况分开判：
+node build/r108_apply_csum.mjs --check > "/tmp/kx/r108_check.txt" 2>&1
+if [ $? = 0 ]; then
+    node build/r108_apply_csum.mjs >> /tmp/kx/r108_check.txt 2>&1 \
+        || { say "断链：--check 说能打、真打却失败"; exit 1; }
+    say "链子自己把这一刀打下了树（见 /tmp/kx/r108_check.txt）"
+elif grep -q "这一版补丁打过了" /tmp/kx/r108_check.txt; then
+    say "守卫：这一刀已在树上（apply --check 判的是改前形状，它 REFUSE 是对的）"
+else
+    say "断链：树上不是这一刀（/tmp/kx/r108_check.txt）"; exit 1
+fi
 grep -q "cnt == 5'd4" src/rtl/eth/icmp_tx.v \
     || { say "断链：src/rtl/eth/icmp_tx.v 里没有拆开的第 4 拍"; exit 1; }
 [ -f build/r${NN}_cone_before.txt ] \

@@ -1,0 +1,19 @@
+[chain 18:10:31] 守卫：这一刀已在树上（apply --check 判的是改前形状，它 REFUSE 是对的）
+  树指纹：bae683e99620cf14886b8c3c38cf0776 *src/rtl/eth/icmp_tx.v
+  树指纹：79404c8ce9a1f2ee98149359cab33e07 *src/rtl/eth/frame_reasm.v
+[chain 18:10:31] 守卫通过，开始构建（只带 icmp_tx 校验和拆两拍这一刀）
+[chain 18:30:57] 构建完成，开始只读时序探针
+[chain 18:31:57] crit_path rc=0
+[chain 18:32:53] hold_paths rc=0
+[chain 18:33:46] 锥探针（改后）rc=0 -> build/r108_cone_after.txt
+[chain 18:33:47] 锥级对账落 build/r108_cone_verdict.txt
+[chain 18:33:47] 扇出判据落 build/r108_fanout_verdict.txt
+[chain 18:33:47] 顶层台架（约 100 分钟，链子里唯一在跑的 xsim）
+[chain 18:33:47] 顶层台架 rc=2（3=判红 0=绿）
+[chain 18:33:47] tb98_report rc=0
+[chain 18:33:47] tb_icmp_ping0 rc=2
+[chain 18:33:47] tb_v795_rx_chain rc=2
+[chain 18:33:48] 边缘条带台架 rc=2
+[chain 18:33:48] rim_report rc=0
+[chain 18:34:22] 门禁 rc=1 —— 绿=18 红=4 末行：GATES: 有红项（判定 22 项）—— 不采纳，保留上一版
+[chain 18:34:22] 链结束（采纳与文档同步要人看 build/r108_cone_verdict.txt 与门禁之后再做）

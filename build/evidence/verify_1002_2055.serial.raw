@@ -1,0 +1,5 @@
+[TEMP] degC=61.40 raw=0xA9F1 vccint=999mv th=85C over=0 sane=1 osd=61C gpio=0x61
+[STAT] ctrl thr=80 src=1 zoom=1 bilin=1 zsel=4 zman=1 pub=0 sd=1 frames=4398 playing=1 sel=000 gm=0.00 (PL owns UDP datapath) mode=0 geom=00400000 osd=1
+[TEMP] degC=61.26 raw=0xA9DF vccint=996mv th=85C over=0 sane=1 osd=61C gpio=0x61
+[STAT] ctrl thr=80 src=1 zoom=1 bilin=1 zsel=4 zman=1 pub=1 sd=1 frames=4398 playing=1 sel=000 gm=0.00 (PL owns UDP datapath) mode=0 geom=00400000 osd=1
+

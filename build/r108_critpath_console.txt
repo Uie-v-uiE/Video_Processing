@@ -1,0 +1,113 @@
+
+****** Vivado v2025.2.1 (64-bit)
+  **** SW Build 6403652 on Thu Mar 19 19:48:24 GMT 2026
+  **** IP Build 6403511 on Thu Mar 19 12:41:45 MDT 2026
+  **** SharedData Build 6403650 on Thu Mar 19 14:02:13 MDT 2026
+  **** Start of session at: Fri Oct  2 18:30:58 2026
+    ** Copyright 1986-2022 Xilinx, Inc. All Rights Reserved.
+    ** Copyright 2022-2026 Advanced Micro Devices, Inc. All Rights Reserved.
+
+source build/tcl/crit_path.tcl
+# set root [file normalize [file join [file dirname [info script]] .. ..]]
+# set impl_dir [file join $root vivado_system zynq_video_sys.runs impl_1]
+# set dcp ""
+# foreach p [list [file join $impl_dir system_top_routed.dcp] \
+#                [file join $impl_dir system_top_demaged_routed.dcp]] {
+#     if {[file exists $p]} { set dcp $p; break }
+# }
+# if {$dcp eq ""} { puts "NO_DCP（在 $impl_dir �? *routed*.dcp 没有；构建还在跑？）"; exit 1 }
+# puts "DCP: $dcp"
+DCP: D:/Xilinx/Prj/pro/Video_Processing/vivado_system/zynq_video_sys.runs/impl_1/system_top_routed.dcp
+# open_checkpoint $dcp
+Command: open_checkpoint D:/Xilinx/Prj/pro/Video_Processing/vivado_system/zynq_video_sys.runs/impl_1/system_top_routed.dcp
+
+Starting open_checkpoint Task
+
+Time (s): cpu = 00:00:00 ; elapsed = 00:00:00.056 . Memory (MB): peak = 330.742 ; gain = 4.133
+INFO: [Device 21-403] Loading part xc7z020clg484-2
+Netlist sorting complete. Time (s): cpu = 00:00:01 ; elapsed = 00:00:00.530 . Memory (MB): peak = 820.621 ; gain = 0.000
+INFO: [Netlist 29-17] Analyzing 2875 Unisim elements for replacement
+INFO: [Netlist 29-28] Unisim Transformation completed in 4 CPU seconds
+INFO: [Project 1-479] Netlist was created with Vivado 2025.2.1
+INFO: [Project 1-570] Preparing netlist for logic optimization
+Read ShapeDB Complete: Time (s): cpu = 00:00:00 ; elapsed = 00:00:00.244 . Memory (MB): peak = 965.934 ; gain = 7.453
+INFO: [Timing 38-478] Restoring timing data from binary archive.
+INFO: [Timing 38-479] Binary timing data restore complete.
+INFO: [Project 1-856] Restoring constraints from binary archive.
+INFO: [Project 1-853] Binary constraint restore complete.
+INFO: [Designutils 20-5722] Start Reading Physical Databases.
+Reading placement.
+Read Netlist Cache: Time (s): cpu = 00:00:00 ; elapsed = 00:00:00.036 . Memory (MB): peak = 1593.242 ; gain = 0.000
+Reading placer database...
+Read Device Cache: Time (s): cpu = 00:00:00 ; elapsed = 00:00:00.023 . Memory (MB): peak = 1593.242 ; gain = 0.000
+Read PlaceDB: Time (s): cpu = 00:00:00 ; elapsed = 00:00:00 . Memory (MB): peak = 1593.242 ; gain = 0.000
+Read placeStorage: Time (s): cpu = 00:00:01 ; elapsed = 00:00:01 . Memory (MB): peak = 1596.430 ; gain = 3.188
+Read PulsedLatchDB: Time (s): cpu = 00:00:00 ; elapsed = 00:00:00 . Memory (MB): peak = 1596.430 ; gain = 0.000
+Reading routing.
+Read RouteStorage: Time (s): cpu = 00:00:01 ; elapsed = 00:00:00.437 . Memory (MB): peak = 1611.070 ; gain = 14.641
+Read Physdb Files: Time (s): cpu = 00:00:02 ; elapsed = 00:00:02 . Memory (MB): peak = 1611.070 ; gain = 17.828
+Restored from archive | CPU: 2.000000 secs | Memory: 0.000000 MB |
+Finished XDEF File Restore: Time (s): cpu = 00:00:02 ; elapsed = 00:00:02 . Memory (MB): peak = 1611.070 ; gain = 17.828
+Netlist sorting complete. Time (s): cpu = 00:00:00 ; elapsed = 00:00:00.021 . Memory (MB): peak = 1635.027 ; gain = 0.000
+INFO: [Project 1-111] Unisim Transformation Summary:
+  A total of 1035 instances were transformed.
+  RAM128X1D => RAM128X1D (MUXF7(x2), RAMD64E(x4)): 336 instances
+  RAM64M => RAM64M (RAMD64E(x4)): 651 instances
+  RAM64X1D => RAM64X1D (RAMD64E(x2)): 48 instances
+
+INFO: [Project 1-604] Checkpoint was created with Vivado v2025.2.1 (64-bit) build 6403652
+open_checkpoint: Time (s): cpu = 00:00:42 ; elapsed = 00:00:42 . Memory (MB): peak = 1643.070 ; gain = 1325.656
+# set raw [file join $root build crit_paths_raw.rpt]
+# report_timing -delay_type max -nworst 1 -max_paths 8 -file $raw
+INFO: [Timing 38-91] UpdateTimingParams: Speed grade: -2, Delay Type: max.
+INFO: [Timing 38-191] Multithreading enabled for timing update using a maximum of 2 CPUs
+INFO: [Timing 38-78] ReportTimingParams: -max_paths 8 -nworst 1 -delay_type max -sort_by slack.
+report_timing: Time (s): cpu = 00:00:26 ; elapsed = 00:00:14 . Memory (MB): peak = 1702.773 ; gain = 59.703
+# set out [file join $root build crit_paths.txt]
+# set fh [open $out w]
+# puts $fh "# worst setup paths (source: $raw)"
+# puts $fh "# slack | clock_group | data_path_delay | logic_levels | start -> end"
+# set f [open $raw r]
+# set lines [read $f]
+# close $f
+# set slack ""
+# set grp ""
+# set src ""
+# set dst ""
+# set lv ""
+# set dly ""
+# set have 0
+# foreach line [split $lines \n] {
+#     set t [string trim $line]
+#     if {[regexp {^Slack .*:\s*(-?[0-9.]+ns)} $t -> v]} {
+#         if {$have} {
+#             puts $fh "$slack | [string trim $grp] | $dly | $lv | $src -> $dst"
+#         }
+#         set have 1; set slack $v; set grp ""; set src ""; set dst ""; set lv ""; set dly ""
+#         continue
+#     }
+#     if {[regexp {^Source:\s*(\S+)}      $t -> v]} { set src $v }
+#     if {[regexp {^Destination:\s*(\S+)} $t -> v]} { set dst $v }
+#     if {[regexp {^Path Group:\s*(\S+)}  $t -> v]} { set grp $v }
+#     if {[regexp {^Logic Levels:\s*(\d+)} $t -> v]} { set lv $v }
+#     if {[regexp {^Data Path Delay:\s*(\S+)} $t -> v]} { set dly $v }
+# }
+# if {$have} { puts $fh "$slack | [string trim $grp] | $dly | $lv | $src -> $dst" }
+# close $fh
+# puts "WROTE: $out"
+WROTE: D:/Xilinx/Prj/pro/Video_Processing/build/crit_paths.txt
+# set f [open $out r]
+# while {[gets $f line] >= 0} { puts "  $line" }
+  # worst setup paths (source: D:/Xilinx/Prj/pro/Video_Processing/build/crit_paths_raw.rpt)
+  # slack | clock_group | data_path_delay | logic_levels | start -> end
+  0.721ns | eth_rxc | 6.839ns | 4 | u_eth/u_rgmii/u_rgmii_rx/u_iddr_rx_ctl/C -> u_eth/u_icmp/u_icmp_rx/des_mac_reg[42]/CE
+  0.721ns | eth_rxc | 6.839ns | 4 | u_eth/u_rgmii/u_rgmii_rx/u_iddr_rx_ctl/C -> u_eth/u_icmp/u_icmp_rx/des_mac_reg[43]/CE
+  0.721ns | eth_rxc | 6.839ns | 4 | u_eth/u_rgmii/u_rgmii_rx/u_iddr_rx_ctl/C -> u_eth/u_icmp/u_icmp_rx/des_mac_reg[44]/CE
+  0.721ns | eth_rxc | 6.839ns | 4 | u_eth/u_rgmii/u_rgmii_rx/u_iddr_rx_ctl/C -> u_eth/u_icmp/u_icmp_rx/des_mac_reg[46]/CE
+  0.742ns | eth_rxc | 6.785ns | 4 | u_eth/u_rgmii/u_rgmii_rx/u_iddr_rx_ctl/C -> u_eth/u_icmp/u_icmp_rx/des_mac_reg[26]/CE
+  0.742ns | eth_rxc | 6.785ns | 4 | u_eth/u_rgmii/u_rgmii_rx/u_iddr_rx_ctl/C -> u_eth/u_icmp/u_icmp_rx/des_mac_reg[30]/CE
+  0.742ns | eth_rxc | 6.785ns | 4 | u_eth/u_rgmii/u_rgmii_rx/u_iddr_rx_ctl/C -> u_eth/u_icmp/u_icmp_rx/des_mac_reg[38]/CE
+  0.742ns | eth_rxc | 6.785ns | 4 | u_eth/u_rgmii/u_rgmii_rx/u_iddr_rx_ctl/C -> u_eth/u_icmp/u_icmp_rx/des_mac_reg[3]/CE
+# close $f
+# exit 0
+INFO: [Common 17-206] Exiting Vivado at Fri Oct  2 18:31:57 2026...

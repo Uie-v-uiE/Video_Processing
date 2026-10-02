@@ -12,6 +12,7 @@
 set -u
 cd "$(dirname "$0")/.."
 V=${VP_VIVADO_BIN:-/d/Software/Vivado/2025.2.1/Vivado/bin}
+export VP_VIVADO_BIN="$V"   # 不导出的话 nohup/子 shell 里 run_one.sh 会报「找不到 xvlog」并把每支台架顶成 rc=2
 NN=107
 say() { printf '[chain %s] %s\n' "$(date +%H:%M:%S)" "$*"; }
 
