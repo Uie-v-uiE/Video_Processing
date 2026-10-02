@@ -53,13 +53,13 @@ VP_XSDB=<Vitis>/bin/xsdb.bat bash build/board_verify.sh --battery --geom
 
 | 指标 | 读数 | 出处 |
 |---|---|---|
-| 全设计 setup WNS | **0.713 ns**（板上这一版 r110（bit `2bf95588978f`，刷板时刻待回填）；门禁 24 项 23 绿 / 1 红，唯一红是声明过的 `C5c`），失败 setup/hold 端点 **0 / 51013** | `build/timing_summary.rpt`、`build/r109_gates.txt`、`build/r109_board_verify_console.txt` |
+| 全设计 setup WNS | **0.713 ns**（板上这一版 r110，2026-10-03 07:51 三步 JTAG 刷入，`bit 2bf95588978f`；门禁 24 项 23 绿 / 1 红，唯一红是声明过的 `C5c`），失败 setup/hold 端点 **0 / 51013** | `build/timing_summary.rpt`、`build/r110_gates.txt`、`build/r110_board_verify_console.txt` |
 | 逐时钟 setup 余量 | 125 MHz 收包域 `eth_rxc` **0.713 ns**（占它 8 ns 周期的 8.912 %，**绝对 WNS 全设计最差就是它**）；100 MHz `clk_fpga_0` **1.186 ns**（11.86 %）；50 MHz 显示域 `clkout0_1` **3.799 ns**（18.995 %）；`sys_clk` **15.157 ns**（周期 20 ns，这一档最宽） | `build/timing_summary.rpt`，Intra Clock Table 那一段。⚠ 两个口径都要说：**绝对 WNS 看 `eth_rxc`，相对余量最紧的是 `clkout0_1`（18.995 %，r110 把行覆盖使能独热化之后）**。⚠ r108 把 `u_icmp_tx` 那条 IP 首部校验和锥摊成两拍之后，**这一族自己**同端点对从 0.725 走到 1.081 ns（两端夹逼的读数见 `build/r108_cone_verdict.txt`），全设计最差换成了 `u_rgmii_rx/u_iddr_rx_ctl → u_icmp_rx/des_mac_reg[*]/CE` 那条 4 级路——它 logic 只占 15.7 %、route 占 84.3 %，而且**时钟网络本身就要掉 SCD 5.008 / DCD 4.493 ns**（8 ns 周期里的一半）。这条就是本设计"极致"的位置：收包域的 setup 余量已被时钟树插入延迟与自加的不确定度定死，再砍 RTL 逻辑的收益上限趋近于零。绝对值与上一版的差仍**不作为收益或损失**（规矩 35）|
 | 保持时间 | 全设计最差那一格在 `eth_rxc`（125 MHz 收包域，落点 u_eth/u_rx_mac/u_crc_rx/crc_data_reg[17]/C → crc_data_reg[25]/D）**0.042 ns**，这一格是 **1 级逻辑（LUT6=1）**、走线占这条数据路径延迟的 **80.93 %**（`build/hold_paths.rpt`，本轮 r109 布线后重生成）；其余逐时钟 WHS：100 MHz `clk_fpga_0` **0.069 ns**、50 MHz 显示域 `clkout0_1` **0.068 ns**、`sys_clk` **0.121 ns** —— 最薄的一类数。⚠ 口径要说清：这是"**按 r79 加严的 0.8 ns hold 不确定度**要求之后"剩下的量，不是真实余量只有 0.0x。⚠ **归属又动了，而且是本轮的代价**：r107 是 `wgray_reg[6] → full_d_reg` 0.050 ns，r108 同一格换到 `rgray_s1_reg[7]`、薄到 **0.035 ns**（本仓库至今最薄的一条）。它是灰码同步器 → 链路监测那一路，灰码每步只翻一位、语义上不会因hold而读到"半个数"，但它是"全设计最差那一格"的主人，所以这一行按规矩 46 带归属判据、并把数字如实写薄 | `build/timing_summary.rpt`（Intra Clock Table 的 WHS 列）、`build/hold_paths.rpt` |
 | BRAM / LUT / FF / DSP | **95.5 tile（68.21 %）/ 14119（26.54 %）/ 8154（7.66 %）/ 19（8.64 %）**（r110 这一刀的代价与收益：行覆盖使能独热化让 `u_reasm` 自己少 66 个 LUT／18 个寄存器（OOC 两腿实测，`build/evidence/r110_attrib.txt`），全设计 14362→14119／8162→8154；差额里归不到这把刀的那部分不写成收益） | `build/utilization.rpt` |
 | 功耗 | 动态 **2.214 W**（片上合计 2.391 W）、估算结温 **52.6 °C**（工具置信度 Low，**是估算**，没有实测；板上片上 XADC 的读数是另一路，见 `data/metrics.csv` 与串口 `temp`） | `build/power.rpt` |
 | SD 本地播放 | **29.8 – 30.0 fps**（100 帧滑窗，板上读回） | [data/metrics.csv](data/metrics.csv) |
-| 上板校验 | 串口命令电池 **105 条**通过、几何"最后一跳"**10 条**判定全过（`build/r109_board_verify_console.txt`，`RESULT board_verify PASS（判红的步骤：0）`；`drop_words=0` 是本轮 health 读回，彼时未推流） | [board/ACCEPTANCE.md](board/ACCEPTANCE.md) |
+| 上板校验 | 串口命令电池 **105 条**通过、几何"最后一跳"**10 条**判定全过（`build/r110_board_verify_console.txt`，`RESULT board_verify PASS（判红的步骤：0）`；`drop_words=0` 是本轮 health 读回，彼时未推流） | [board/ACCEPTANCE.md](board/ACCEPTANCE.md) |
 
 数值走势、哪些优化被证据否掉、以及为什么某些差值不作为收益口径，写在
 [report/OPTIMIZATION_LOG.md](report/OPTIMIZATION_LOG.md) 与 [report/PERF_REPORT.md](report/PERF_REPORT.md)；
