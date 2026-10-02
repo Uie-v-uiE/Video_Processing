@@ -129,3 +129,13 @@ hold 侧今天不动：WHS 0.049 的归属又换了（`u_rx_mac/u_crc_rx/crc_dat
 `build/tb98_report.sh:35` 的打印白名单加 `C13 `（保留 `C12 `，老家还在用）；`$display` 那两行读数前缀同批改 `C13 rot:` / `C13 frozen:`。
 ⚠ 条数不变 ⇒ "整屏判据条数"那一格不许跟着动（规矩 47：项数本身是被判的数）。
 落刀后先在**未打刀**的树上跑一次 `sim/mut_control.sh` 或任一快车道支，确认没有脚本按 `^C12a` 找新家的读数行。
+
+## 刀 2 的前置复核（2026-10-03 01:1x 重跑 grep，链子在飞、只读）
+按名字数"命中几个文件"（`grep -rl "\b名字\b" src/rtl src/ps sim`）：
+`fifo_tx_data`=1、`fifo_rec_en`=1、`pct_q`=1 ⇒ 只有声明它的那个文件自己提它，**无人消费成立**；
+`icmp_tx_data`=2、`udp_tx_data`=2 ⇒ 恰好 eth_ctrl.v（端口）+ eth_udp_video_top.v（空接），删两头不会打断别处；
+**但 `tx_data`=7、`tx_req`=7、`rec_en`=8、`rec_data`=8 —— 这四个是通用名，别的模块（udp/icmp 收发链）也在用。**
+⇒ 落刀**必须按文件收窄**（`sed -i` 只作用于 `src/rtl/eth/eth_ctrl.v` 与 `src/rtl/eth/eth_udp_video_top.v` 两份件、
+且只删端口声明/空接那几行），**不许全仓按名字删**（这是本仓记过的那条"name-lists leak"）。
+删完的对照仍按本文件第 刀2 节的四步：② 综合日志里 `Synth 8-3848 fifo_tx_data` 与 `Synth 8-3332 pct_q_reg__*` 消失、
+`Synth 8-xxxx` **种类数不增**；③ Slice Registers 降；④ 快车道与本轮同绿同红（既存红仍只有 `tb_link_monitor` 的 F2e）。
