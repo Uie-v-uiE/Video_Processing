@@ -266,15 +266,20 @@ module icmp_tx (
                 end
                 st_check_sum: begin  //IP首部校验
                     cnt <= cnt + 5'd1;
+                    // r108（路线图 §7.2）：原来这一拍要加 10 个 16 位项，综合摆出 5 级 CARRY4——r106 报告里
+                    // 那条 10 级 / 0.741 ns 的路就是这个锥。摊成两拍各 5 项：和不截断（10 项 ≤ 655350，20 位
+                    // 够，目标寄存器 32 位），折叠次序一字不改，代价是这个状态多占一拍。
                     if (cnt == 5'd0) begin
                         check_buffer <= ip_head[0][31:16] + ip_head[0][15:0] + ip_head[1][31:16] +
-                            ip_head[1][15:0] + ip_head[2][31:16] + ip_head[2][15:0] + ip_head[3][
-                            31:16] + ip_head[3][15:0] + ip_head[4][31:16] + ip_head[4][15:0];
-                    end else if (cnt == 5'd1)  //可能出现进位,累加一次
+                            ip_head[1][15:0] + ip_head[2][31:16];
+                    end else if (cnt == 5'd1) begin
+                        check_buffer <= check_buffer + ip_head[2][15:0] + ip_head[3][31:16] +
+                            ip_head[3][15:0] + ip_head[4][31:16] + ip_head[4][15:0];
+                    end else if (cnt == 5'd2)  //可能出现进位,累加一次
                         check_buffer <= check_buffer[31:16] + check_buffer[15:0];
-                    else if (cnt == 5'd2) begin  //可能再次出现进位,累加一次
+                    else if (cnt == 5'd3) begin  //可能再次出现进位,累加一次
                         check_buffer <= check_buffer[31:16] + check_buffer[15:0];
-                    end else if (cnt == 5'd3) begin  //按位取反 
+                    end else if (cnt == 5'd4) begin  //按位取反
                         skip_en          <= 1'b1;
                         cnt              <= 5'd0;
                         ip_head[2][15:0] <= ~check_buffer[15:0];
