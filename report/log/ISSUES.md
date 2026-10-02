@@ -11051,3 +11051,18 @@ C12a/b/c 的第一次读数都还没有），r109 因此**不采纳、不刷板�
    判读只认台架 RESULT **之后**重写的那一份，且时间戳必须比 `build/r109_tb98_console.txt` 新。
 今晚的处置：不跑导出器（本来也排在采纳之后），板子保持 r108 = 文档态，r109 的位流仍留在
 `vivado_system/zynq_video_sys.runs/impl_1/system_top.bit`（md5 同一个），没有丢。
+
+## #241 仓库外面并存着**两个**提交目录：`../submission`（r88 时代的旧备份）与 `../final_submission`（今天导的那份）——交错了就是交旧 bit
+立案日期：2026-10-03 02:3x（采纳 r109 后重导提交包时读实）。
+盘上事实（都是当场 md5 / 文件数，不是推测）：
+- `../submission/build/system.bit` = **1818ce4be15e**，日期 2026-09-29 11:53；它自己那份 MANIFEST 念得出
+  "它的门禁凭据：**没有一份门禁报告写着这块 bit**" ⇒ 那句话本来就是身份对不上的信号；
+- `../final_submission/build/system.bit` = **21227687e925**（= 板上这一块 = 采纳笔 `d8182b9` 里那一块），
+  MANIFEST 点名 `ps_app.elf md5 d0b07f84a068`、`system.xsa md5 2acafd40f559`、门禁凭据 `build/reports/reports_gates.txt`；
+  文件数按规矩 50 是**数盘上**得到的：`find final_submission -type f | wc -l` = **392**，与导出器自报一致；
+- 我第一次数错了目录（数到 `../submission` 得到 935），差点把这写成"导出器少写了一半文件"——
+  这条记录同时也是给我自己的量法提醒：**计数之前先确认数的是哪个目录**（`build/make_submission.sh:21` 的目标是
+  `${VP_SUB_OUT:-../final_submission}`，`../submission` 是任务 #80 那阵子手工留下的备份，导出器**不**写它）。
+风险与处置：明天打包/上传时若有人按目录名字就近选 `submission/`，交出去的是 r88 的位流与旧文档 ⇒ 与首页说的 r109 不同源。
+建议（要用户点头，因为那是手工备份目录，不是我该擅自删的东西）：把 `../submission` 改名成 `../submission_legacy_r88_DO_NOT_SUBMIT`，
+或者在 `report/CONTEST_CHECKLIST.md` 里写死一句"只交 `final_submission/`，另一份是历史备份"。
