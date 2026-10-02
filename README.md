@@ -54,7 +54,7 @@ VP_XSDB=<Vitis>/bin/xsdb.bat bash build/board_verify.sh --battery --geom
 | 指标 | 读数 | 出处 |
 |---|---|---|
 | 全设计 setup WNS | **0.812 ns**（板上这一版 r104，2026-10-02 01:18 三步 JTAG 刷入，`bit 680f38f5794c`；门禁 22 项 21 绿 / 1 红，唯一红是声明过的 `C5c`），失败 setup/hold 端点 **0 / 50948** | `build/timing_summary.rpt`、`build/r104_gates.txt`、`build/r104_board_verify_console.txt` |
-| 逐时钟 setup 余量 | 125 MHz 收包域 `eth_rxc` **0.608 ns**（占它 8 ns 周期的 7.6 %，全设计最差就是它）；100 MHz `clk_fpga_0` **1.035 ns**（10.4 %）；50 MHz 显示域 `clkout0_1` **1.061 ns**（5.3 %）；`sys_clk` **14.849 ns** | 同上，Intra Clock Table 那一段。⚠ 这些绝对值**与上一版的差不作为收益或损失**（同一条路实测摆过 0.4 ns 的放置抖动，规矩 35）|
+| 逐时钟 setup 余量 | 125 MHz 收包域 `eth_rxc` **0.812 ns**（占它 8 ns 周期的 10.2 %，全设计最差就是它）；100 MHz `clk_fpga_0` **1.358 ns**（13.6 %）；50 MHz 显示域 `clkout0_1` **2.674 ns**（13.4 %）；`sys_clk` **15.036 ns** | 同上，Intra Clock Table 那一段。⚠ 这一行是 **2026-10-02 补的同步**：r104 采纳时我只把上一行 WNS 与 `metrics.csv` 换了数、**这一行漏成 r103 的 0.608/1.035/1.061/14.849**（首页因此自相矛盾了两天，D6 当时也不判这一行）。绝对值与上一版的差仍**不作为收益或损失**（规矩 35；理由今早已改写，见 `report/KNOWN_ISSUES.md` 时序一节）|
 | 保持时间 | 最差 **0.053 ns**（125 MHz 收包域 `eth_rxc`），50 MHz 显示域 **0.056**、100 MHz `clk_fpga_0` **0.062**、`sys_clk` **0.134** —— 最薄的一类数；那一格只有 **1 级逻辑、走线占 81.0 %**（`build/hold_paths.rpt` 本轮重生成）。⚠ 口径要说清：这是"**按 r79 加严的 0.8 ns hold 不确定度**要求之后"剩下的量，不是真实余量只有 0.0x | 同上 |
 | BRAM / LUT / FF / DSP | **95 tile（67.86 %）/ 14334（26.94 %）/ 8127（7.64 %）/ 19（8.64 %）** | `build/utilization.rpt` |
 | 功耗 | 动态 **2.211 W**（片上合计 2.389 W）、估算结温 **52.5 °C**（工具置信度 Low，**是估算**，没有实测；板上片上 XADC 的读数是另一路，见 `data/metrics.csv` 与串口 `temp`） | `build/power.rpt` |
@@ -84,9 +84,14 @@ VP_XSDB=<Vitis>/bin/xsdb.bat bash build/board_verify.sh --battery --geom
 | `report/` | 交付文档：设计说明、优化记录、命令表、复现说明（索引在 [report/README.md](report/README.md)） |
 | `report/log/` | 追加式工作记录（问题账、过夜流水）；只作过程留痕，不当结论引用 |
 
-目录摆放按比赛要求的形状来（`src/ sim/ build/ board/ data/ skill/ report/`）。仓库里交付文档这一层叫
-`report/`，导出提交包时改名成 `report/`，文档里的指路跟着一起改；剪掉了什么、按哪条判据剪的，
-逐条写在包内 `_pruned.txt`，而包内所有"路径式指路"由导出器自检——指不到就拒绝落盘。
+目录摆放按比赛要求的形状来（`src/ sim/ build/ board/ data/ skill/ report/`）。交付文档这一层仓库里就叫
+`report/`；导出提交包时改的是**文件名**（按比赛要求写成纯英文小写：`BUILD.md` → `build.md`、`KNOWN_ISSUES.md` → `known_issues.md`），
+文档里的指路跟着一起改；剪掉了什么、按哪条判据剪的，逐条写在包内 `_pruned.txt`，
+而包内所有"路径式指路"由导出器自检——指不到就拒绝落盘。
+**哪些尺子能在提交包里面直接跑**（不是只在仓库里）：`doc_enc_check`、`line_cite_check`（D5）、`doc_currency_check`（D1–D4b）、
+`metric_recheck`（D6）这四把只读文本与报告，包内实测 **2026-10-02 09:2x 全部 rc=0、硬错 0**；
+其中 D1b 那一层在包里会自己念"本目录没有 bit 产物 ⇒ 这一层不判"——那是**声明不可判**，不是绿。
+跑不了的只有需要串口/板子的 `ps_hb_check`、`board_verify` 与需要 RTL 源重跑的台架，它们要回仓库跑。
 
 ## 许可
 
