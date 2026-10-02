@@ -11019,3 +11019,17 @@ C12a/b/c 的第一次读数都还没有），r109 因此**不采纳、不刷板�
 本轮只立案不改 RTL（链子在飞）。
 顺手记一条量法教训：**`report_timing` 逐跳段的 fo 只在完整报告里，摘要那几行（Logic Levels / Data Path Delay）读不出扇出**。
 我之前两次抄这族路径都只抄了头几行，于是把"route 82 %"当成了唯一抓手，丢了 316 这个更硬的事实。
+
+## #239 我自己把 C12 这个标签**用了两家**（r83 的 OSD 总开关 vs #167 的每帧换角）—— 判读必须按整句、不能按 token
+立案日期：2026-10-03（读 `sim/tb_v98_top_seam.v` 的 C12 段时发现；链子在飞，不改 sim）。
+事实：`line()` 调用里 `C12pre` 与 `C12a` 各出现两次，语义无关 ——
+  老家（r83/#136）：`C12pre the rose probe does see glyphs when OSD is on`（:1689）、`C12a osd off removes every glyph cell at the panel`（:1691）；
+  新家（#167 两端夹逼）：`C12pre both phases judged real frames`（:1860）、`C12c rotating stimulus really steps the angle`（:1862）、
+  `C12a head request beat uses the frame's own angle`（:1864）、`C12b frozen-angle control is coherent too`（:1866）。
+门禁侧**不受影响**（`build/tb98_report.sh:35` 那个 `C12 ` 是**打印白名单**不是放行红名单，我一开始担心它把新红吞掉，读实后排除），
+判红仍是"FAIL 行只许那一条 C5c"⇒ 新家若红，NFAIL 自然变 2、门禁自然红，方向是保守的。
+受影响的只有**人读**与"按 token grep"的脚本：`grep '^FAIL C12a'` 抓不到是哪一家。⇒ 规矩 47 的形状版：
+**标签的唯一性属于判据本身**；两条判据共用一个 token，等于把两条压成一条可寻址的尺子。
+修法（排到下一次能动 sim 的轮，r110 刀 7）：新家整体改名 `C13`（`C13pre/C13a/C13b/C13c` 四条），
+`build/tb98_report.sh:35` 的打印白名单同批改加 `C13 `，"整屏判据条数"那一格的分子不动（条数不变）。
+在那之前，采纳判读一律按**整句**匹配（见 `build/r109_adoption_checklist.md` 追加的那节）。

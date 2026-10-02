@@ -46,3 +46,14 @@
 - app 侧那条 #167 修复**未上板**：这台机器没有 `arm-none-eabi-gcc`，ELF 没重建（ISSUES #234/#235）。
 - `tb_link_monitor` 还没接进门禁（等 F2e 修绿，接成第 25 项时再一起改口）。
 - #102 的 raw 抽头半、#127 四条 CANDIDATE 探针、#128 尾账、#82 文档瘦身、#115 海报：仍在账上。
+
+## 追加（2026-10-03）：#167 那四条新判据怎么读才不会读错家（ISSUES #239）
+C12 这个 token 现在有两家共用，**不许按 token grep**。按整句：
+  grep -a 'C12pre both phases judged real frames'   build/r109_tb98_console.txt   → 期望 PASS（c12_rot_cmp>=4 且 c12_fz_cmp>=3）
+  grep -a 'C12c rotating stimulus really steps'     build/r109_tb98_console.txt   → 期望 PASS（c12_rot_step>=3，这是正对照）
+  grep -a 'C12a head request beat uses'             build/r109_tb98_console.txt   → 期望 PASS；**红 ⇒ 换角拍点没挪对，回退 src/rtl/top/pl_video_top.v 那一处**
+  grep -a 'C12b frozen-angle control'               build/r109_tb98_console.txt   → 期望 PASS（钉角对照也自洽）
+读数行（分母）：`C12 rot: cmp=.. bad=.. steps=.. | frozen: cmp=.. bad=.. | angle now=..` —— 这一行不在报告里就是
+`build/tb98_report.sh:35` 的打印白名单漏了 `C12 `（今天已补），补前那份报告只有结论没有数。
+老家的两条（`C12pre the rose probe…`、`C12a osd off removes every glyph cell…`）判的是 OSD 总开关，与这一刀无关，
+但它们的红/绿也计入 NFAIL/NPASS —— 所以"FAIL 行数=1"这条断言成立时，四家都是绿的。

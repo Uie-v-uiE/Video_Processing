@@ -121,3 +121,11 @@ hold 侧今天不动：WHS 0.049 的归属又换了（`u_rx_mac/u_crc_rx/crc_dat
 板子 AP 不可达（`DAP status 0xF0000021`，ISSUES #235）⇒ 需要**断电重上**；恢复后按
 `ps_jtag_boot.tcl` → `program_pl.tcl` → `ps_app_reload.tcl` 三道走，逐道看 token，尤其 `DOW:` 必须是 `ok`。
 在板子回来之前：`board_verify`、串口电池、`cmd_overflow_probe`、以及所有眼睛判据都挂在欠账里，不许念成完成。
+
+## 刀 7（纯标签，不动逻辑）：把 #167 那四条从 `C12*` 改叫 `C13*`，消掉与 r83 老家的 token 撞名
+凭据与理由在 ISSUES #239：`sim/tb_v98_top_seam.v` 里 `C12pre`/`C12a` 各有两条语义无关的判据（:1689/:1691 老家的 OSD 总开关，
+:1860/:1862/:1864/:1866 新家的每帧换角）。门禁方向是保守的（红就变 NFAIL=2），但"按 token grep"已经不可用。
+改法三处一起：`line("C12pre both…")→C13pre`、`C12c→C13c`、`C12a head request…→C13a`、`C12b frozen-angle…→C13b`；
+`build/tb98_report.sh:35` 的打印白名单加 `C13 `（保留 `C12 `，老家还在用）；`$display` 那两行读数前缀同批改 `C13 rot:` / `C13 frozen:`。
+⚠ 条数不变 ⇒ "整屏判据条数"那一格不许跟着动（规矩 47：项数本身是被判的数）。
+落刀后先在**未打刀**的树上跑一次 `sim/mut_control.sh` 或任一快车道支，确认没有脚本按 `^C12a` 找新家的读数行。
