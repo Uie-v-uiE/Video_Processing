@@ -101,11 +101,19 @@ prints (if something fails it says so explicitly instead of rounding it off).
 | `report/log/` | append-only working log (issue ledger, overnight log); kept as process evidence, not quoted as conclusions |
 
 The tree is arranged in the shape the contest asks for (`src/ sim/ build/ board/
-data/ skill/ report/`); in the repository the delivery documentation sits in `report/`
-and the export step renames it to `report/`, rewriting the cross-references along with
-it. What got pruned, and under which rule, is listed item by item in `_pruned.txt`
+data/ skill/ report/`). The delivery documentation already lives in `report/` in the
+repository; what the export step renames is the **file names** (pure lower-case English,
+as the rules ask: `BUILD.md` → `build.md`, `KNOWN_ISSUES.md` → `known_issues.md`), and the
+cross-references inside the documents are rewritten along with them. What got pruned, and
+under which rule, is listed item by item in `_pruned.txt`
 inside the package, and every path quoted by a shipped document is checked at export
 time - if one does not resolve, the package is not written.
+**Which checkers actually run inside the package**: `doc_enc_check`, `line_cite_check` (D5),
+`doc_currency_check` (D1-D4b) and `metric_recheck` (D6) only read text and reports, and measured
+2026-10-02 09:2x all four exit 0 inside the package with 0 hard errors. D1b announces there that it
+cannot judge (no bitstream ships), which is a declared "not judged", not a pass. Anything needing the
+serial port or the board (`ps_hb_check`, `board_verify`) or a re-run of the RTL benches only works in
+the repository.
 
 ## License
 
