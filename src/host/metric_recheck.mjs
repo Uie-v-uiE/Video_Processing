@@ -134,6 +134,31 @@ const KINDS = {
         //  这一行根本动不了；报告新增一个有时序的时钟域、或首页少点一个名，它都抓不住。）
         const inReport = Object.keys(s.periods || {}).length;
         rows.push(['时钟名个数', names.filter((n) => c.includes('`' + n + '`')).length, inReport]);
+        // 首页这一行还写了**百分数**（"占它 8 ns 周期的 10.2 %"），以前没人回读它：
+        // 分子是逐时钟 slack、分母是那个时钟的周期，两个数报告里都有（Intra Clock Table + Clock Summary），
+        // 所以这句话完全可判。这正是 #12 那条注释警告过的形状——百分数的分母不许人脑补。
+        // 判法：允许四舍五入到一位小数的误差（±0.05），超出就是红，红的时候念出真值。
+        for (const n of names) {
+            // 取"这个时钟名到下一个时钟名之间"那段，而不是按分隔符切：中文首页用「；」，英文那行用「;」，
+            // 第一版按「；」切 ⇒ 英文整格是一整段，`sys_clk` 吃到了 eth_rxc 的 10.2 %、`clk_fpga_0` 也吃到
+            // 10.2 %，**凭空造出两条红**（#8 那一课：先怀疑尺子，别先怀疑被测物）。
+            const i = c.indexOf('`' + n + '`');
+            let j = c.length;
+            for (const m of names) { const k = c.indexOf('`' + m + '`'); if (k > i && k < j) j = k; }
+            const seg = i < 0 ? '' : c.slice(i, j);
+            const slack = s.periods && s.periods[n] ? s.periods[n].wns : null;
+            const per = s.per && s.per[n] ? s.per[n].period : null;
+            const qm = seg.match(/(?:占它|of its)\s*([0-9]+(?:\.[0-9]+)?)\s*ns/);
+            if (qm) rows.push(['周期[' + n + ']', Number(qm[1]), per]);
+            const pm = seg.match(/\*\*[0-9.]+\s*ns\*\*[^%]{0,24}?([0-9]+(?:\.[0-9]+)?)\s*%/);
+            if (pm) {
+                const ratio = (slack !== null && per) ? (slack / per) * 100 : null;
+                const claimed = Number(pm[1]);
+                const exp = ratio === null ? null
+                    : (Math.abs(ratio - claimed) <= 0.05 ? claimed : Number(ratio.toFixed(3)));
+                rows.push(['余量%[' + n + ']', claimed, exp]);
+            }
+        }
         return rows;
     },
     // 逐时钟 hold（WHS）那一行（2026-10-02 加）：与上一行同族，r104 采纳时同样漏了同步，而它比 setup
@@ -325,6 +350,19 @@ function run(self) {
         const whsGoodN = wdiff(whsGood), whsOwnN = wdiff(whsWrongOwner);
         // 解析器自己要有地板：真实报告读不出逐时钟数（今天命中 0 次那一版）就是这一层在空转。
         const nRep = Object.keys(SRC.timing.periods || {}).length;
+        // 百分数那一半的对照：正常 0 红、改错一个数能红、报告读不到周期时必须红
+        // （分母没了这句就没有凭据，绝不许"抓不到就不判"——#12 注释里那个 12 % 的教训）。
+        const pctSrc = { periods: fakeSrc.periods, per: { eth_rxc: { period: 8 }, clk_fpga_0: { period: 10 }, clkout0_1: { period: 20 } } };
+        const pctCell = '`eth_rxc` **0.812 ns**（占它 8 ns 周期的 10.2 %）；`clk_fpga_0` **1.358 ns**（13.6 %）；`clkout0_1` **2.674 ns**（13.4 %）；`sys_clk` **15.036 ns**';
+        const pctBadCell = pctCell.replace('13.4 %', '10.0 %');
+        const okRow = ([, g, e]) => g !== null && e !== null && Math.abs(g - e) < 1e-6;
+        const pctN = KINDS.clocks(pctCell, pctSrc).filter((r) => !okRow(r)).length;
+        const pctBadN = KINDS.clocks(pctBadCell, pctSrc).filter((r) => !okRow(r)).length;
+        const pctNoPerN = KINDS.clocks(pctCell, { periods: fakeSrc.periods }).filter((r) => !okRow(r)).length;
+        // 形状对照：英文版那行用 ASCII 分号，必须**照样**按时钟归位（第一版就是在这里凭空造出两条红）。
+        const pctEnCell = '`eth_rxc` **0.812 ns** (10.2 % of its 8 ns period, the design worst); `clk_fpga_0` **1.358 ns** (13.6 %); `clkout0_1` **2.674 ns** (13.4 %); `sys_clk` **15.036 ns**';
+        const pctEnN = KINDS.clocks(pctEnCell, pctSrc).filter((r) => !okRow(r)).length;
+        const pctEnBadN = KINDS.clocks(pctEnCell.replace('13.6 %', '19.9 %'), pctSrc).filter((r) => !okRow(r)).length;
         // 本轮新加的两格射程都要有牙（#194：死分支与"没有计数的判据"都算检查器缺陷）：
         //   · Clock Summary 解析地板：真实报告里至少读到 4 个时钟的周期，否则"显示像素时钟"那行是空转。
         //   · 取数断掉要**能**红：如果规则在缺数据的报告上返回不了 null，那"不许 SKIP"那一格就是死代码。
@@ -334,7 +372,9 @@ function run(self) {
         const nullReachable = !pixRule || pixRule.get({ per: {} }) === null;
         const unitOk = goodN === 0 && badN >= 1 && shortN >= 1 && repShortN >= 1 && nRep >= 4
             && whsGoodN === 0 && whsOwnN >= 1
-            && nPer >= 4 && pixReal === 50 && nullReachable;
+            && nPer >= 4 && pixReal === 50 && nullReachable
+            && pctN === 0 && pctBadN >= 1 && pctNoPerN >= 1 && pctEnN === 0 && pctEnBadN >= 1;
+        console.log(`  ${unitOk ? 'PASS' : 'FAIL'} 自检·余量百分数：中文行正常 0 不符（实得 ${pctN}）｜改错一个能红（${pctBadN}）｜读不到周期能红（${pctNoPerN}，分母没有就不许判绿）｜英文分号行正常 0 不符（实得 ${pctEnN}）｜英文行改错能红（实得 ${pctEnBadN}）`);
         console.log(`  ${unitOk ? 'PASS' : 'FAIL'} 自检·逐时钟行：正常 0 不符（实得 ${goodN}）｜首页改回 r103 那个数能红（实得 ${badN}）｜首页少一个名能红（实得 ${shortN}）｜报告少一个时钟域能红（实得 ${repShortN}）｜真实报告解析到 ${nRep} 个逐时钟数（地板 4）`);
         console.log(`  ${unitOk ? 'PASS' : 'FAIL'} 自检·逐时钟 hold 行：正常 0 不符（实得 ${whsGoodN}）｜四个数全对但"最差那一格"指错域能红（实得 ${whsOwnN}）`);
         console.log(`  ${unitOk ? 'PASS' : 'FAIL'} 自检·Clock Summary 行：真实报告解析到 ${nPer} 个时钟周期（地板 4）｜显示像素时钟对回 ${pixReal}（期望 50）｜报告缺数据时取数能返回 null（否则"不许 SKIP"是死代码）${nullReachable ? '' : ' —— 不成立'}`);
