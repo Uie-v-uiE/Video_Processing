@@ -1238,6 +1238,31 @@ module tb_v98_top_seam;
         end
     endfunction
 
+    // ---- C12（任务 #167 的两端夹逼：把「每帧换角 × 帧头 6 行」这一族盖进同一条判据）----
+    //   只吃 DUT 自己的信号（`dut.angle`/`dut.de`/`dut.y`/`dut.x`/`dut.y_req_row`），不在台架外面
+    //   重算正/逆映射（2026-10-01 23:15 我在 RTL 外面建模判"角点出屏"报了假阳性，错在约定不一致）。
+    //   判的一件事：**屏上第 0..5 行的内容被请求的那一拍**用的角度，与**它显示所在那一帧的主体拍**
+    //   用的角度是不是同一个值。r109 之前不是同一个（`angle_ctrl` 挂在 `frame_start`，而帧头的内容来自
+    //   上一帧的绕回请求行 —— 见 `src/rtl/top/pl_video_top.v` 的 #167 那一段与 E4r 的眼睛读数）。
+    localparam [11:0] C12_IMGH = SRC_H;              // 300：与顶层 `y_req_row >= IMG_H` 同一个界
+    integer c12_k = 0, c12_cmp = 0, c12_bad = 0, c12_step = 0;
+    integer c12_rot_cmp = 0, c12_rot_bad = 0, c12_rot_step = 0;
+    integer c12_fz_cmp = 0, c12_fz_bad = 0;
+    reg [8:0] c12_head = 9'h1FF, c12_body = 9'h1FF, c12_fs = 9'h1FF, c12_fs_prev = 9'h1FF;
+    reg c12_head_ok = 1'b0;      // 第一帧还没有"上一帧的绕回行"可参考 ⇒ 不许拿哨兵值去比（#163 那一族）
+    reg c12_on = 1'b0;
+    always @(posedge dut.clk_pix) if (c12_on && dut.de === 1'b1) begin
+        if (dut.y_req_row >= C12_IMGH && dut.x == 12'd512) begin
+            c12_head    = dut.angle;      // 绕回请求行的行中段：这几拍取的内容喂的是**下一帧**第 0..5 行
+            c12_head_ok = 1'b1;
+        end
+        if (dut.y == 12'd100 && dut.x == 12'd512 && c12_head_ok === 1'b1) begin
+            c12_body = dut.angle;         // 本帧主体（第 100 行同一列）
+            c12_cmp  = c12_cmp + 1;
+            if (c12_head !== c12_body) c12_bad = c12_bad + 1;
+        end
+    end
+
     task line(input [8*96-1:0] tag, input ok, input [8*170-1:0] txt);
         begin
             if (!ok) nfail = nfail + 1;
@@ -1806,6 +1831,40 @@ module tb_v98_top_seam;
              "after one copy_abort pulse the pixel domain must stop claiming a good ETH frame (#171)");
         line("C11b eth_ready reads 0 after abort", dut.eth_ready === 1'b0,
              "the host-side status bit is derived from that latch; reading 1 here means the abort was swallowed");
+        // ---- C12（任务 #167）：先"每帧换角"，再用"钉住角度"作对照，四条各打一行 ----
+        //   相位一：`rot_auto=1`、`speed=3 度/帧`（顶层 gp[14] 与 gp[17:15]，pl_video_top.v:176-177）；
+        //   相位二：同一个采样结构，只把 `speed` 钉成 0 ⇒ 两窗必然相等，红就只能落在"换角"这一件事上。
+        //   ⚠ 激励位是本仓已有的**运行时口子**（串口 `rot auto 1` / `rot speed <n>` 走的同一批位），
+        //      不是台架私造的旁路；`dut.angle` 由 angle_ctrl 自己走，台架不 force（force 会把这一刀掩盖掉）。
+        c12_cmp = 0; c12_bad = 0; c12_step = 0; c12_head_ok = 1'b0;
+        c12_on = 1'b1;
+        split_ctl_tb[14] = 1'b1;                    // rot_auto
+        split_ctl_tb[17:15] = 3'd3;                 // 每帧 3 度
+        c12_fs_prev = dut.angle;
+        for (c12_k = 0; c12_k < 7; c12_k = c12_k + 1) begin
+            @(posedge dut.frame_start);
+            c12_fs = dut.angle;
+            if (c12_fs !== c12_fs_prev) c12_step = c12_step + 1;
+            c12_fs_prev = c12_fs;
+        end
+        c12_on = 1'b0;
+        c12_rot_cmp = c12_cmp; c12_rot_bad = c12_bad; c12_rot_step = c12_step;
+        c12_cmp = 0; c12_bad = 0; c12_head_ok = 1'b0; c12_on = 1'b1;
+        split_ctl_tb[17:15] = 3'd0;                 // 钉住角度：自动还开着，但一步不走
+        for (c12_k = 0; c12_k < 5; c12_k = c12_k + 1) @(posedge dut.frame_start);
+        c12_on = 1'b0;
+        split_ctl_tb[14] = 1'b0;                    // 还回去：不许把旋转自动留给后面的复跑
+        c12_fz_cmp = c12_cmp; c12_fz_bad = c12_bad;
+        $display("C12 rot: cmp=%0d bad=%0d steps=%0d | frozen: cmp=%0d bad=%0d | angle now=%0d",
+                 c12_rot_cmp, c12_rot_bad, c12_rot_step, c12_fz_cmp, c12_fz_bad, dut.angle);
+        line("C12pre both phases judged real frames", (c12_rot_cmp >= 4) && (c12_fz_cmp >= 3),
+             "coverage floor: head-vs-body compared on >=4 rotating and >=3 frozen frames, else C12a/b are greens on an empty set");
+        line("C12c rotating stimulus really steps the angle", c12_rot_step >= 3,
+             "positive control / the ruler's own teeth: if the angle never moved, C12a would be trivially green");
+        line("C12a head request beat uses the frame's own angle", c12_rot_bad == 0,
+             "#167: display rows 0..5 are fetched from the previous frame's wrapped request rows; those beats and this frame's body beats must see ONE angle");
+        line("C12b frozen-angle control is coherent too", c12_fz_bad == 0,
+             "same two windows with speed=0: a red here would be a bench phase artifact, not the design");
         if (nfail == 0) $display("RESULT tb_v98_top_seam PASS");
         else            $display("RESULT tb_v98_top_seam FAIL nfail=%0d", nfail);
         $finish;

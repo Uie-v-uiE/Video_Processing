@@ -181,6 +181,12 @@ module tb_v100_fit_rot;
         $display("== tb_v100_fit_rot: checks=%0d errors=%0d ==", checks, errors);
         if (errors == 0) $display("V100 PASS");
         else             $display("V100 FAIL");
+        // 统一收尾 token（#166 那一族，2026-10-02 补）：这一支以前只打 `V100 PASS/FAIL`，
+        // 而 `sim/run_one.sh --verdict` 认的是 `RESULT <tb> …` / `PASS|FAIL <tb>` 三种形状 —— 都不匹配时
+        // 它按"没判定"退出 4。快车道（`build/timing_lane.sh`）把这读成 **NO-VERDICT**，
+        // 而"没数"不是结论（#163/#166：红、没数、没跑必须长得不一样）。判定内容与上面两行同源。
+        if (errors == 0) $display("RESULT tb_v100_fit_rot PASS checks=%0d", checks);
+        else             $display("RESULT tb_v100_fit_rot FAIL errors=%0d", errors);
         $finish;
     end
 endmodule

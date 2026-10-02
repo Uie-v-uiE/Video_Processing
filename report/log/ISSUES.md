@@ -10735,3 +10735,91 @@ ICMP 4/4 与零长度 3/3（`build/r107_board_ping.txt`，GBK→UTF-8 转码后�
   上一轮的日志同样是 PASS=157 / FAIL=1，光看它就能把上一轮的证据当这一轮的。
   ③ `adopt_after_chain.sh` 的门禁断言放宽成"红只允许 台架声明红 + 未同步的文档两类"，因为采纳前台页必然还没换数——
   这次它照样拦住了 rc=2 那一跑（红数 4 > 3），没有刷板。
+
+**#167 的眼睛半已定（2026-10-02 21:5x，板上 r108）**：用户复看原话"旋转角在顶部还是有分散的细线"，
+紧接着按 `rot auto 1 speed 0`（角度停住）答"**停下的时候没有**"。⇒ 归因落定：这不是纯 C5c 帧头绕回
+（那一族静止角也该有），而是**每帧换角与帧头那 OFF+2 行的交互**——判据要做成两端：
+换角维度（每帧变角）+ 帧头窗，且**冻结角度必须干净作对照**，否则这条判据盖不住现象、修了也看不出来。
+凭据：`board/ACCEPTANCE.md` E4r 行；机器侧同一轮台架唯一红仍是 `FAIL C5c`（`build/r108_tb98_console.txt`）。
+
+
+## #232（2026-10-02 22:5x–23:2x，批次轮 r109 的准备：把"逐刀付几小时台架"这件事本身当成缺陷修掉）
+
+**用户这条要求是流程缺陷，不是偏好**："所有任务一起开吧…仿真每次都要仿真那么久吗…能不能时间短点…
+不要一个一个搞那种好几个小时的仿真了"。过去 8 轮（r101→r108）每轮的结构都是
+构建 20 分钟 + `tb_v98_top_seam` 约 100 分钟 + 门禁 + 上板，而**判决**其实来自只读探针
+（同一端点对的 slack/级数/route 占比）与单元台架的等价性；顶层台架那 100 分钟只在**采纳前**才必要。
+⇒ 本轮起把流程拆成两段，并**先量出分界线**再写清单（不凭台架名字猜）。
+
+**量到的分界线（凭据 `build/r109_lane_before.txt` 第一跑）**：单元/窗口级台架实测 **15~19 秒一支**
+（`tb_icmp_*`/`tb_udp_*`/`tb_head_rot_displace`/`tb_v100_*`/`tb_zoom_*`/`tb_fb_rd5x`/`tb_bilin_lerp` 等 17 支
+全部在 17 分钟内含编译跑完），而**凡例化 `pl_video_top` 的那几支本身就是顶层台架**：
+`tb_v98_c8_edge_column` 单支跑到 15 分钟仍未收尾，我把那一跑停掉了（`taskkill //F //IM xsim.exe //T` 之后
+再杀 `xsimk.exe`，否则下一支会被 `run_one.sh` 的"已有 xsim 在跑"挡成 rc=2）。
+重查边界只要一条命令：`grep -l pl_video_top sim/tb_*.v` ⇒
+`tb_commit_strobe / tb_shown_rate / tb_v89_align / tb_v98_c8_edge_column / tb_v98_top_seam / tb_v99_unisim_sim /
+tb_v6_vblank_copy / tb_v81_test_card / tb_v82_src_mode` 全部排除在快车道之外。
+**快车道的绿不代替门禁**：它不产 `build/tb_v98_report.txt`，所以脚本末行明说"采纳前必须再跑一次顶层台架"。
+
+**新工具与两个 Tcl 语法账**（`build/tcl/probe_clk_worst.tcl`，只读、~3 分钟、不重构建）：
+`crit_path.tcl` 排的是**全设计**最差，所以"相对余量最紧的那个时钟"（`clkout0_1`，20 ns 周期、余量 5.65 %）
+从来不出现在它里面 —— 要砍它就得先问它自己的最差路径。第一跑连撞两条 Vivado 12-1365：
+`-of_objects [get_clocks X]` **同时**与 `-delay_type` 和 `-max_paths` 互斥（我两次都在猜命令行写法，
+正是本仓那条"不许猜在线命令语法"的规矩该管的）。可用形状是本仓 `clock_uncertainty.tcl:38-41` 已有的
+`-from/-to [get_clocks X]`，它给出的正是我要的**同时钟内**路径。
+这条刀之所以能落地，是因为脚本自己有计数地板：`REFUSE: report_timing wrote nothing (ERROR …)` ——
+**地板把一次"空读数"变成了红**，而不是打一行"Slack 没有"就绿着走（rule 46 的形状）。
+
+**量到的 #105 解剖（`build/probe_clk_r109clk01.rpt`，r108 的 DCP，本轮构建前唯一基线）**：
+`clkout0_1` 最差 8 条**同一族**：起点全是 `u_pl/u_split_ctrl/prod/CLK`（乘法的 DSP48 PREG——
+也就是说 r60 那一级 `pct_q` 已被综合折进 DSP 输出寄存器，"源头寄存"这一招对这一族**已经用掉了**），
+终点 `u_pl/u_osd/{r,g,b}_reg[*]/D`，**1.130 ns / 23 级**（CARRY4=2 LUT6=12 MUXF7=1）、
+logic 4.147 ns（22.5 %）route 14.298 ns（77.5 %）。逐跳读出来链是
+`prod → split_pct_w → u_split_ctrl 装配 → u_lat_x → u_split_ctrl → u_osd/chars[2] → glyph_idx → 颜色`。
+⇒ 真正可砍的是 **`osd_overlay` 的装配段与读侧选择在同一个 `always @(*)` 里**：
+`chars[]` 不是寄存器，是 160 格的大组合 mux，而读侧 `chars[ch_addr]` 又从这个 mux 上再选一次
+⇒ "值 → 十进制拆位 → 全表装配 → 选中格 → 字模 → 选行 → 颜色"是一条链。
+修法（r109 这一刀）：把喂给装配段的**显示用的数**在源头各寄存一拍（`angle/fps/threshold/gamma_disp/split_pct/lat_*/temp_disp`，
+约 60 个 FF，与 r60 那句"这个数只是屏上给人读的一格，晚一拍完全不可见"同一手法、同一理由），
+并把 `chars` 的读侧起点从"本拍装配"改成"上一拍装配"。判据 = `tb_osd_lines` + `tb_v794_osd_glyph`
+（都在快车道里，秒级），收益 = 构建后 `probe_clk_worst.tcl` 重跑同一条 `-from/-to clkout0_1` 比**级数与 route 占比**
+（rule 35：绝对 WNS 的差不算收益）。
+
+**#167 的机理今天从代码读实了（眼睛那一半 E4r 已记在 `board/ACCEPTANCE.md`）**：
+`angle_ctrl.v:43-44` 把换角钉在 `fs_edge` 上，而 `fs_edge` 来自 `frame_start`，`frame_start` 落在
+**第一个有效像素**（`video_timing.v:68`），不是消隐；同时读侧提前量是 `y_right_adv = y + pipe_off_rows + BILIN_ROWS`
+（`pl_video_top.v:280`），屏上第 0..5 行的内容**是在上一帧的第 594..599 行被请求的**（`cy_r` 的取模绕回，`pl_video_top.v:288`）。
+⇒ 帧头那 6 行用的是**上一帧的角度**、本帧其余用新角度 ⇒ "每帧换角才有顶部细线、冻住角度就干净"，与 E4r 逐字对上。
+修法：`rot_fs_tog` 的翻转拍点从 `frame_start` 挪到**绕回请求那一拍的边界**（显示行 594 的第一像素），
+这样"帧头内容的请求拍"与"本帧主体的请求拍"吃同一个角度；CDC 结构一字不动（还是那一个发射触发器 +
+`angle_ctrl` 里的三级同步，#65/CDC-11 的形态不复发）。
+尺子（任务 #167 要的两端夹逼，进 `tb_v98_top_seam`，三条各打一行）：
+`C12a` 每帧换角（`split_ctl_tb[14]=1`、`[17:15]=k`）⇒ 帧头请求拍的角度必须等于主体请求拍的角度；
+`C12b` 冻结角度对照（speed=0）⇒ 恒等；
+`C12c` **阳性对照**：同一个跑里把旧拍点（`frame_start`）再量一遍 ⇒ 必须**不相等**，
+这一条证明尺子能动，也把"为什么要挪拍点"钉进凭据，不用额外构建就能拿到"改前红"。
+
+**#176 的门禁那一半已落地（`build/gates.sh` 第 22/23 项，实测 `GATES: 有红项（判定 24 项）`，
+红的那一条是既存的声明项 顶层台架 C5c）**：两条都带射程地板而不是数量地板 ——
+`pipe_len`：逐条 `ok` 行数 ≥26 **且等于**它散文里自报的"26 条现编用例"（一行判据的两个操作数来自不同来源），
+外加 `--self` 全绿条数 ≥20；`temp_formula`：`PASS` 行 ≥6 且其中"变异对照" ≥3、`FAIL` 行必须 0
+（它的三条内建变异本来就能改退出码，`process.exit(all ? 0 : 1)`）。
+**首页那句"门禁 22 项 21 绿 / 1 红"本轮故意还没改**（#229：门禁条数本身就是被判的数），
+改口与计数轮换放在**采纳那一笔提交**，四处：`README.md:56`、`README.en.md` 同形状行、
+`report/BACKGROUND_AND_NOVELTY.md:31`、`:80`，同一提交内重跑 `doc_currency`。
+
+**#232 续（23:2x，快车道第一跑被我自己写错的那把尺子念成"20 支判红"）**：
+车道第一跑（清单剪掉顶层台架之后）报 `LANE 结论：20 支判红`，而同一份文件里 `tb_link_monitor` 才是唯一一条真红
+（既存的 F2e，任务 #174）。逐行读出来 20 条的正文全是 `确认可以中断再：taskkill …` —— 那是
+`sim/run_one.sh` 的**"已经有 xsim 在跑"那一支**，它 `exit 3`，而**"判红"也是 3**。
+我按退出码分家，就把"被挡在门外"读成了"设计判红"。两个根子叠在一起：
+① 我停第一个车道实例用的是 TaskStop，**它没有杀掉 MSYS 的 bash 循环**（本仓记忆里早写着 `pkill -f` 也挡不住），
+   那个实例从第 18 支继续往下跑，与我新起的那支互相挡门；
+② 我的车道脚本只认退出码，不认判定文本 —— 而 `run_one.sh` 自己末行是 `VERDICT <tb>: …`，
+   **有没有这一行**就是"跑过并判了"与"根本没跑"的分界。
+修法（都在 `build/timing_lane.sh`）：门口先 `tasklist` 验一遍没有活的 xsim，有就整条车道 `LANE-REFUSE`（exit 2）；
+分家按 `rc=3 且有 VERDICT 行 → RED`、`rc=3 且没有 VERDICT 行 → BLOCKED`（计入 refuse，绝不进 red）。
+这条与 #163/#166/#194 是同一课的第五种形状：**红、没数、没跑必须长得不一样**；
+而"停掉一个后台链"要停的是它整个进程树（`taskkill //F //PID <winpid> //T`，winpid 从 `ps -W` 的第 4 列取），
+不是那个任务 id。凭据：`build/r109_lane_before.txt`（第一跑，保留原样，它就是这把坏尺子的活标本）
+与 `build/r109_lane_base.txt`（修好之后的改前基线）。

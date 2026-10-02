@@ -487,7 +487,20 @@ module osd_overlay #(
     // 读地址**起一根线**（`ISSUES #127`/`#130`）：台架的越界判据要吃这根真信号，而不是自己按同样的式子
     // 重算一遍 —— 重算式看不见"将来有人改了地址算术"（`sim/mut_control.sh` 的 `osd_addr` 分支实测过这个盲区）。
     wire [15:0] ch_addr = s_line * MAX_CHARS + s_cidx;
-    wire [7:0] ch = chars[ch_addr];
+    // ---- #105 的这一刀（r109）：把"选中哪一格"提前一拍算好并**寄存这一格字符** ----
+    //   原来 `ch = chars[ch_addr]` 吃的是**本拍刚装配出来**的 `chars`：`chars` 不是寄存器，是 160 格的
+    //   大组合 mux（装配段是 `always @(*)`），于是"值 → 十进制拆位 → 全表装配 → 选中格 → 字模 → 选行 →
+    //   颜色"串成**一条**组合链 —— 这就是 `clkout0_1` 最差那 8 条同族路径（凭据
+    //   `build/probe_clk_r109clk01.rpt`：`u_split_ctrl/prod`(乘法的 DSP PREG) → … → `u_osd/chars[2]` →
+    //   `glyph_idx[4]` → `u_osd/{r,g,b}_reg`，**23 级**、route 占 77.5 %、logic 只占 22.5 %）。
+    //   现在寄存器边界落在**装配段与译码段之间**：地址用与被寄存的 `s_*` **同源同拍**的那一对
+    //   （`line`/`cidx` 未寄存版），所以一拍之后 `ch` 与 `s_line/s_cidx/s_pix_x/s_pix_y/s_in_char`
+    //   仍然是同一次光栅位置 —— 屏上内容一个字不变（`de_out <= s_de` 那一句早就说明格子与背景本来就
+    //   一起晚一拍）。代价 8 个 FF；`ch_addr` 一字未动，台架那根越界线照旧吃得到。
+    wire [15:0] ch_addr_pre = line * MAX_CHARS + cidx;
+    reg  [7:0]  ch_r;
+    always @(posedge clk) ch_r <= chars[ch_addr_pre];
+    wire [7:0] ch = ch_r;
     wire [5:0] gi = glyph_idx(ch);
     wire [2:0] fx = s_pix_x / SCALE;
     wire [2:0] fy = (s_pix_y < 7*SCALE) ? (s_pix_y / SCALE) : 3'd6;

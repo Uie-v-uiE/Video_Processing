@@ -229,13 +229,9 @@ module pl_video_top #(
         .frame_start(frame_start), .frame_done(frame_done)
     );
 
-    // 自动旋转的节拍：帧首翻转位（像素域产生，angle_ctrl 里同步）。
+    // 自动旋转的节拍：**翻转拍点不在这里**（见下面 `rot_fs_tog` 那一段，r109 的 #167 那一刀）。
     // ⚠ **单独一个发射触发器**，不共用现成的 sof_tgl / z_hb_tog：同一个翻转位扇出到两组目的域
     //   同步器 = CDC-11 Critical 的签名，本文件里已为这件事红过两次（#65、r54 构建 #34）。
-    always @(posedge clk_pix or negedge rst_pix_n) begin
-        if (!rst_pix_n) rot_fs_tog <= 1'b0;
-        else if (frame_start) rot_fs_tog <= ~rot_fs_tog;
-    end
 
     wire [7:0]  pipe_off_rows;   // 效果链自己声明的"内容滞后几行"（u_pipe 的输出口）
     // ---- r59b-1（#73）：整屏一个视口 ----
@@ -286,6 +282,36 @@ module pl_video_top #(
     //   侧每拍摆的 `sy(r−2)`）：本式比旧窗早两行，帧头 0..7 才逐格等于定义 `prow>>1`。**减一次就够**：
     //   `y_req_row` 最大 302 ⇒ 不需要除法器/取模（#58）。凭据 tb_v98 的 C5c/C5b；C1h 跟着本式改 ⇒ 不能当尺子。
     wire [11:0] cy_r = (y_req_row >= IMG_H) ? (y_req_row - IMG_H) : y_req_row;
+
+    // ---- #167 的这一刀（r109，任务 #167/#88）：把换角的**翻转拍点**从"帧首"挪到"绕回开始前的那一拍" ----
+    //   `frame_start` 落在**第一个有效像素**上（`video_timing.v:68`），而屏上最上面那 6 个显示行
+    //   （`OFF_LINES + BILIN_ROWS`）的内容是在**上一帧**的绕回请求行取回来的：上面两条式子给出的
+    //   `y_req_row >= IMG_H` 从显示行 594 就开始成立 ⇒ 挂在 `frame_start` 换角，等于"帧头 6 行吃上一帧
+    //   的角度、其余吃这一帧的"，每帧换角时这几行就整体错开一档。眼睛那一半已经对上：
+    //   `board/ACCEPTANCE.md` 的 **E4r**（动起来才有顶部分散细线、角度停住就干净），
+    //   而 `sim/tb_head_rot_displace.v` 量的是这一档错开的**大小**（k=1..7 度每帧的位移表）。
+    //   翻拍点因此挪到**最后一个不绕回的行（今天=593）的行尾消隐**：那一刻本帧要显示的行全部请求完了，
+    //   而下一帧帧头的请求还没开始 ⇒ 帧头与主体吃到同一个角度。`de` 掉下去到第 594 行第一个像素之间
+    //   是整段行消隐（1344−1024=320 拍），`angle_ctrl` 里那三级同步完全赶得上。
+    //   CDC 结构一字未动：仍然只有**一个**发射触发器 `rot_fs_tog` + angle_ctrl 内部的同步器
+    //   （#65/CDC-11 那个"同一翻转位扇出两组目的域"的形态不复发），变的只是它在像素域被翻起来的那一拍。
+    wire [11:0] img_h_12    = IMG_H;                     // 与上面 `y_req_row >= IMG_H` 同一个界，不另算
+    wire        wrap_row_now  = (y_req_row >= img_h_12);                       // 本行的请求已经绕回
+    wire [12:0] adv_row_next  = y_right_adv + 13'd1;                            // 下一行的请求行 *2
+    wire [11:0] req_row_next  = adv_row_next[12:1];
+    wire        wrap_row_next = (req_row_next >= img_h_12);                     // 下一行就要绕回
+    reg         fs_de_d;
+    always @(posedge clk_pix or negedge rst_pix_n) begin
+        if (!rst_pix_n) begin
+            rot_fs_tog <= 1'b0;
+            fs_de_d    <= 1'b0;
+        end else begin
+            fs_de_d <= de;
+            // 只在"最后一个不绕回的行"的行尾翻一次：行 593 落 `!de` 时 `now=0 && next=1`；
+            // 行 594..624（绕回行与场消隐）`now=1` 全部被这一项挡住 ⇒ 每帧恰好一次，不多翻。
+            if (fs_de_d && !de && wrap_row_next && !wrap_row_now) rot_fs_tog <= ~rot_fs_tog;
+        end
+    end
 
     wire [9:0] inv_scale;
     wire [9:0] inv_fit;          // V9-2：角度定出来的"刚好装得下"那一档

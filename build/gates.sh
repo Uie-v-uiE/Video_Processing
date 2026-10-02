@@ -542,8 +542,40 @@ fi
 [ "$D6RC1" = 0 ] || { echo "        —— metric_recheck 的 --self 反例不成立（该红的没红，或首页那层在空转）："; sed 's/^/        /' /tmp/d6_self.$$.txt | tail -6; }
 rm -f /tmp/d6_self.$$.txt
 
-echo "端点总数 $eps；CDC 现在按 build/CDC_BASELINE.txt 的**配对集合**判，功耗仍要人比有没有变差。"
-# 结尾必须把**范围**一起念出来：判定 $NSAY 项、未判 $NNA 项。
+# ---- 22：命令长度口径那把**纯静态**尺子（#176 的第一半，起因 ISSUES #226）----
+# 为什么要进门禁：它守的是 r58 那条口径（`pipe` 只有九位那一档写寄存器、五位一个位都不写），
+# 而 #226 实测它 rc=0、自带 --self，却**没有任何人调用** ⇒ 命令表漂走这条口径时门禁照样全绿。
+# 两条射程地板（rule 46：一个形状行的两个操作数必须来自不同来源）：
+#   ① 逐条 `ok` 的行数 >= 26；② 这个行数必须**等于**它自己在散文里自报的"XX 条现编用例"那个数
+#   —— 行数是我数的、自报数是尺子写的，两者不等就说明有一边在虚报射程（#225 那一课的形状）。
+node src/host/pipe_len_check.mjs > /tmp/pl_run.$$.txt 2>&1; PL_RC1=$?
+node src/host/pipe_len_check.mjs --self > /tmp/pl_self.$$.txt 2>&1; PL_RC2=$?
+PL_OK=$(grep -c '^  *ok ' /tmp/pl_run.$$.txt)
+PL_N=$(sed -n 's/.*：\([0-9][0-9]*\) 条现编用例.*/\1/p' /tmp/pl_run.$$.txt | tail -1)
+PL_SUM=$(grep -c '^PIPE_LEN PASS' /tmp/pl_run.$$.txt)
+PL_SELFN=$(sed -n 's/.*SELF: 全绿（\([0-9][0-9]*\) 条）.*/\1/p' /tmp/pl_self.$$.txt | tail -1)
+say "命令长度口径 pipe_len" "逐条ok=${PL_OK} 自报=${PL_N:-空} 收尾PASS=${PL_SUM} self全绿条数=${PL_SELFN:-空} rc=${PL_RC1}/${PL_RC2}" \
+    "run rc=0、--self rc=0、收尾 PIPE_LEN PASS=1、逐条 ok >= 26 且等于自报条数、self 条数 >= 20" \
+    $([ "$PL_RC1" = 0 ] && [ "$PL_RC2" = 0 ] && [ "$PL_SUM" = 1 ] && [ "$PL_OK" -ge 26 ] && [ "$PL_OK" = "${PL_N:-0}" ] && [ "${PL_SELFN:-0}" -ge 20 ] && echo 1 || echo 0)
+[ "$PL_RC1" = 0 ] || { echo "        —— pipe_len_check 本体红："; tail -6 /tmp/pl_run.$$.txt | sed 's/^/        /'; }
+[ "$PL_RC2" = 0 ] || { echo "        —— pipe_len_check 的 --self 反例不成立："; tail -6 /tmp/pl_self.$$.txt | sed 's/^/        /'; }
+rm -f /tmp/pl_run.$$.txt /tmp/pl_self.$$.txt
+
+# ---- 23：结温公式常数那把**纯静态**尺子（#176 的第二半，同上起因 #226）----
+# 它的三条内建变异对照就是它的自检（`process.exit(all ? 0 : 1)`：任何一条变异没能把偏差拉开就 rc=1），
+# 所以这里判的是**条数**而不是另开一个 --self 入口：PASS 行 >= 6 且其中"变异对照" >= 3、FAIL 行必须 0
+#（"全绿但没有对照"与"读不到常数也绿"是 #194/#195b 那一族，行数就是它的牙）。
+node src/host/temp_formula_check.mjs > /tmp/tf_run.$$.txt 2>&1; TF_RC1=$?
+TF_PASS=$(grep -c '^PASS ' /tmp/tf_run.$$.txt)
+TF_MUT=$(grep -c '^PASS 变异对照 ' /tmp/tf_run.$$.txt)
+TF_FAIL=$(grep -c '^FAIL ' /tmp/tf_run.$$.txt)
+say "结温公式 temp_formula" "PASS=${TF_PASS} 变异对照=${TF_MUT} FAIL行=${TF_FAIL} rc=${TF_RC1}" \
+    "rc=0、FAIL 行=0、PASS >= 6、其中变异对照 >= 3（少了任何一条都说明这把握尺子可能空转）" \
+    $([ "$TF_RC1" = 0 ] && [ "$TF_FAIL" = 0 ] && [ "$TF_PASS" -ge 6 ] && [ "$TF_MUT" -ge 3 ] && echo 1 || echo 0)
+[ "$TF_RC1" = 0 ] || { echo "        —— temp_formula_check 红/读不到固件常数："; tail -8 /tmp/tf_run.$$.txt | sed 's/^/        /'; }
+rm -f /tmp/tf_run.$$.txt
+
+echo "端点总数 $eps；CDC 现在按 build/CDC_BASELINE.txt 的**配对集合**判，功耗仍要人比有没有变差。"# 结尾必须把**范围**一起念出来：判定 $NSAY 项、未判 $NNA 项。
 # `GATES: ALL PASS` 这一行只有在"没有一项是因为缺席而没判"时才允许出现 ——
 # `freeze_evidence.sh` 就 grep 这个串，所以有 n/a 时换成 `GATES: PARTIAL`，它自然拒绝冻结这一版。
 if [ "$pass" = 0 ]; then
