@@ -73,7 +73,7 @@ the built-in test video. Commands, registers and every criterion are in
 | BRAM / LUT / FF / DSP | **95.5 tiles (68.21 %) / 14362 (27.00 %) / 8162 (7.67 %) / 19 (8.64 %)** (the price of the r109 cut: +2 LUT and -6 registers versus r108 - the OSD read side now costs one register stage instead of a 23-level combinational cone) | `build/utilization.rpt` |
 | Power | **2.214 W** dynamic (2.391 W total on-chip), estimated junction temperature **52.6 degC** (tool confidence Low; **an estimate**, no measured current and no SAF file; the on-die XADC reading is a separate path - serial `temp` / the OSD cell) | `build/power.rpt` |
 | SD local playback | **29.8 - 30.0 fps** (100-frame sliding window, read back from the board) | [data/metrics.csv](data/metrics.csv) |
-| On-board verification | 100-command serial battery PASS, geometry "last hop" 8/8 PASS, `drop_words=0` while streaming | [board/ACCEPTANCE.md](board/ACCEPTANCE.md) |
+| On-board verification | 105-command serial battery PASS, geometry "last hop" 10/10 PASS (`build/r109_board_verify_console.txt`, `RESULT board_verify PASS`, 0 red steps; `drop_words=0` read back this round with no stream running) | [board/ACCEPTANCE.md](board/ACCEPTANCE.md) |
 
 Trends, which optimisations were rejected by evidence, and why a raw WNS delta is not
 accepted as a gain are in [report/OPTIMIZATION_LOG.md](report/OPTIMIZATION_LOG.md) and

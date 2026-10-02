@@ -59,7 +59,7 @@ VP_XSDB=<Vitis>/bin/xsdb.bat bash build/board_verify.sh --battery --geom
 | BRAM / LUT / FF / DSP | **95.5 tile（68.21 %）/ 14362（27.00 %）/ 8162（7.67 %）/ 19（8.64 %）**（r109 这一刀的代价：比 r108 多 2 个 LUT、少 6 个寄存器——OSD 读侧寄存一拍，把那条 23 级的组合锥换成一级读 + 一级 mux） | `build/utilization.rpt` |
 | 功耗 | 动态 **2.214 W**（片上合计 2.391 W）、估算结温 **52.6 °C**（工具置信度 Low，**是估算**，没有实测；板上片上 XADC 的读数是另一路，见 `data/metrics.csv` 与串口 `temp`） | `build/power.rpt` |
 | SD 本地播放 | **29.8 – 30.0 fps**（100 帧滑窗，板上读回） | [data/metrics.csv](data/metrics.csv) |
-| 上板校验 | 串口命令电池 100 条通过、几何"最后一跳"8 条判定全过 | [board/ACCEPTANCE.md](board/ACCEPTANCE.md) |
+| 上板校验 | 串口命令电池 **105 条**通过、几何"最后一跳"**10 条**判定全过（`build/r109_board_verify_console.txt`，`RESULT board_verify PASS（判红的步骤：0）`；`drop_words=0` 是本轮 health 读回，彼时未推流） | [board/ACCEPTANCE.md](board/ACCEPTANCE.md) |
 
 数值走势、哪些优化被证据否掉、以及为什么某些差值不作为收益口径，写在
 [report/OPTIMIZATION_LOG.md](report/OPTIMIZATION_LOG.md) 与 [report/PERF_REPORT.md](report/PERF_REPORT.md)；
