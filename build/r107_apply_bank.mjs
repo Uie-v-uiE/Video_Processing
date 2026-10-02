@@ -1,6 +1,6 @@
 import fs from 'node:fs';
 const P = 'src/rtl/eth/frame_reasm.v';
-const O = P;   // 原地打补丁：原文在 git 里，回退就是 git checkout 这一个文件
+const O = process.argv.includes('--check') ? null : P;   // --check 只验锚点，不落盘；正式打是原地改，回退 = git checkout 这一个文件
 let t = fs.readFileSync(P, 'utf8');
 if (t.includes('rok0')) { console.log('REFUSE: 这一版补丁已经打过了（文件里已有 rok0）'); process.exit(1); }
 const before = t.length;
@@ -51,5 +51,5 @@ end
 endmodule`, 1);
 if (/row_ok\s*<=|row_ok\[/.test(t)) { console.log('REFUSE: 代码里还有 row_ok 引用'); process.exit(1); }
 if (t.length <= before) { console.log('REFUSE: 打完补丁反而变短，插入没生效'); process.exit(1); }
-fs.writeFileSync(O, t);
+if (O) fs.writeFileSync(O, t); else console.log('CHECK：锚点全对，未写盘（正式打补丁去掉 --check）');
 console.log(`OK  替换 ${n} 处，${before} -> ${t.length} 字节，行数 ${t.split(/\r?\n/).length}`);
