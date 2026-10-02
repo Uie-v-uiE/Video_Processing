@@ -75,3 +75,20 @@ r109 的读实（`build/evidence/r109_hold_owner.txt` 第一节）：WHS 0.049 �
 同一段还写明：今晚板子被恢复到 **r108**（文档态，`build/system_r108_restore.bit` 走 VP_BIT 刷入 + board_verify PASS geom 10/0），
 而 `build/system.bit` 已被 r109 构建覆盖 ⇒ **采纳那笔必须同时把 r109 的位流落回 `build/system.bit`/`.xsa` 并提交**，
 否则导出器打进去的位流与首页不同源（#240）。
+
+## 追加四（01:6x）：三种判读结果各走哪条路（提前定好，凌晨不做临场设计）
+1) **四句全绿 + 门禁两跑逐字节一致（唯一红 C5c）** ⇒ 采纳：
+   按 `build/r109_rotation_worklist.md` 一次改完（44 条数字 + 门禁 22→24 四处 + hold 落点半句 + MODULES 重锚），
+   `build/system.bit`/`.xsa` 里已是 r109 ⇒ 连同文档一笔提交；然后三步链刷板（**不设 VP_BIT**，默认就刷 build/system.bit）、
+   `board_verify --geom --battery --round=r109`、取刷板时刻与新 bit md5 回填首页身份那半句（第二笔提交）、
+   试冻结、`make_submission.sh`（数盘上文件，别读它的 stdout，规矩 50）、推送。
+2) **只有 `C12a head request beat uses` 红**（换角拍点没挪对）⇒ 回退 `src/rtl/top/pl_video_top.v` 那一处（保留 OSD 那一刀），
+   `git checkout -- src/rtl/top/pl_video_top.v`，然后 **必须重构建**（位流变了，20 分钟）再走 r110 的链子；
+   首页数字里与那一刀有关的两格（`clkout0_1` 4.094/20.47 % 若受影响）重读原件，不许沿用本轮读数。
+   ⚠ 这一条同时意味着任务 #167 的第二条尺子（C12 那四条）留在树上判红 —— 尺子没错、DUT 没修好，红就是结论。
+3) **`C12pre`/`C12c` 红**（分母不够：cmp/steps 太小）⇒ 是**台架自己没测到**，不是设计红。
+   先读 `C12 rot:` 那行读数与激励（`split_ctl_tb[14]`、`[17:15]=3'd3`），按规矩 46"先怀疑尺子的维度"处理，
+   判读结论只写"本轮不采纳、原因在激励覆盖"，**不改期望值**。
+另外一条与判读无关的既有事实（今晚读实，写进 #240）：断电重上后 `build/system.bit` 是未采纳的 r109，
+而板子被我恢复到 r108 文档态（`build/restore_documented_bit.sh --dry` 能自己认出这套关系）。
+所以判读期间**不要跑 `make_submission.sh`**，也不要 `board_verify --round=r108`（会覆盖已封存的 r108 原始回显）。
