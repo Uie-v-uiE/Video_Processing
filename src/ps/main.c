@@ -1504,7 +1504,15 @@ static void rx_fill(void)
         XTime_GetTime(&rx_t);                    /* 每收一个字节都重设时基（残包判据的起点） */
         if (ch == '\r') ch = '\n';               /* CR 与 CRLF 都只留一个行尾 */
         if (ch == '\n') {
-            if (cmd_len > 0) { cmd_buf[cmd_len++] = '\n'; }
+            /* ⚠ #167（r109 批次）：这一支以前**只判 `cmd_len > 0`**，而上面把 CR 折成了 LF ⇒
+            *   一行 "CRLF" 会走**两次**"追加行尾"。载荷支有界（`cmd_len < CMD_BUF-1`），换行支没界：
+            *   127 个载荷字节 + CRLF 时，第一次写 `cmd_buf[127]`（合法，最后一格）`cmd_len=128`，
+            *   第二次写 `cmd_buf[128]` —— **越界一字节**，`cmd_len` 变 129，
+            *   之后派发那两个 `for (i < cmd_len)` 会读到数组外一格：症状是用户明明发完了一整行，
+            *   固件却回一句"line unfinished（残包）"把它丢掉 + 多打一条提示。
+            *   现在换行支也判界（`cmd_len < CMD_BUF`）：行满就**不再追加**，多出来的那个行尾被丢掉，
+            *   派发读到的永远是数组内的字节。板级指纹见 `board/cmd_overflow_probe.sh` 的 O1/O2。 */
+            if (cmd_len > 0 && cmd_len < CMD_BUF) { cmd_buf[cmd_len++] = '\n'; }
             if (cmd_echo) xil_printf("\r\n");     /* 行尾也回显：看不见回车也算一种"没反应" */
         } else {
             if (cmd_len < CMD_BUF - 1) {
