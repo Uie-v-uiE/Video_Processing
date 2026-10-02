@@ -310,14 +310,25 @@ function d1bScan(docs, cur) {
 const GATES_CLAIM = /门禁\s*(\d{1,3})\s*项\s*(\d{1,3})\s*绿\s*\/\s*(\d{1,3})\s*红|the\s+(\d{1,3})-item gate check reads\s+(\d{1,3})\s+green\s*\/\s*(\d{1,3})\s+red/g;
 function gatesTally(text) {
     const ls = String(text).replace(/\r/g, '').split('\n');
-    let pass = 0, fail = 0, judged = 0;
+    let pass = 0, fail = 0, judged = 0, passOther = 0, failOther = 0, self = 'absent';
     for (const l of ls) {
         const t = l.trim().split(/\s+/).pop();
-        if (t === 'PASS') pass++; else if (t === 'FAIL') fail++;
+        const ok = t === 'PASS', bad = t === 'FAIL';
+        if (!ok && !bad) continue;
+        // #229：这一项自己就是被这句话描述的对象之一。把"文档时效"那一格算进绿/红数，
+        // 这句话就有**两个自洽解**（21 绿/1 红 与 20 绿/2 红 互推彼此），连着跑两次会在两者之间跳。
+        // 所以判据改成按"除本项外"的读数 + 本项假定为绿（唯一自洽点）；本项若因别的行而红，
+        // 编码/行号/数字对账各自是**独立的门禁项**（第 19/20/21 项），不会在这里被藏住。
+        const isSelf = /文档时效|doc_cur/.test(l);
+        if (isSelf) { self = ok ? 'pass' : 'fail'; continue; }
+        if (ok) { pass++; passOther++; } else { fail++; failOther++; }
     }
     const v = ls.map((l) => l.match(/判定\s*(\d+)\s*项/)).find((m) => m);
     if (v) judged = Number(v[1]);
-    return { pass, fail, judged };
+    return { pass, fail, judged, passOther, failOther, self };
+}
+function d1cBasis(t) {
+    return { judged: t.judged, pass: t.passOther + 1, fail: t.failOther };
 }
 function d1cScan(docs, cur, tally) {
     const rows = [];
@@ -333,11 +344,11 @@ function d1cScan(docs, cur, tally) {
                 claims++;
                 const adj = new RegExp('r' + cur.nn + '\\b').test(l) || NOW_MARK.test(l);
                 if (!adj) { skipped++; continue; }
-                const bad = [];
-                if (Number(items) !== tally.judged) bad.push(`判定项数首页=${items} 门禁件=${tally.judged}`);
+                const b = d1cBasis(tally), bad = [];
+                if (Number(items) !== b.judged) bad.push(`判定项数首页=${items} 门禁件=${b.judged}`);
                 if (Number(items) !== Number(g) + Number(r)) bad.push(`首页自相矛盾=${g}+${r}≠${items}`);
-                if (Number(g) !== tally.pass) bad.push(`绿首页=${g} 门禁件=${tally.pass}`);
-                if (Number(r) !== tally.fail) bad.push(`红首页=${r} 门禁件=${tally.fail}`);
+                if (Number(g) !== b.pass) bad.push(`绿首页=${g} 基准=${b.pass}（除本项外的 ${tally.passOther} 格 + 本项按绿算）`);
+                if (Number(r) !== b.fail) bad.push(`红首页=${r} 基准=${b.fail}`);
                 if (bad.length)
                     rows.push(`${rel}:${i + 1} D1c 那句门禁读数与 ${cur.name} 对不上（${bad.join('；')}）：${l.trim().slice(0, 60)}`);
             }
@@ -500,7 +511,17 @@ if (argv.includes('--self')) {
     for (const r of d1badj) console.log('        ' + r);
     // ---- D1c 的一对（#224 同族）：那句"门禁 N 项 X 绿 / Y 红"必须对回基准门禁件 ----
     // 三条都要有牙：改绿数能红、改项数能红（中英式各一次），而念对的与带日期的历史句都不许红。
-    const t104 = { judged: 22, pass: 21, fail: 1 };
+    // #229：基准件的读数由**同一个 gatesTally** 解析，不在 fixture 里手搓数字——手搓的对象
+    // 会绕过"除本项外"那一段，等于把新加的语义排除在自测之外（这一版自测就是这么当场抓到我的）。
+    const fixtureGates = (judged, passOther, failOther, selfState) => {
+        const ls = [];
+        for (let i = 0; i < passOther; i++) ls.push('  设计项' + i + '  读数  期望 PASS');
+        for (let i = 0; i < failOther; i++) ls.push('  设计项F' + i + '  读数  期望 FAIL');
+        if (selfState !== 'absent') ls.push('  文档时效 doc_cur  读数  期望 ' + (selfState === 'pass' ? 'PASS' : 'FAIL'));
+        ls.push('GATES: 有红项（判定 ' + judged + ' 项）');
+        return gatesTally(ls.join('\n'));
+    };
+    const t104 = fixtureGates(22, 20, 1, 'pass');
     n += yes('D1c：把 21 绿念成 19 绿（基准 22 项／21 绿／1 红）',
         d1cScan({ 'README.md': ['| 全设计 setup WNS | **0.812 ns**（板上这一版 r104；门禁 22 项 19 绿 / 1 红，唯一红是 `C5c`）'] },
             fakeCur, t104).rows, /D1c/);
@@ -515,9 +536,19 @@ if (argv.includes('--self')) {
     console.log(`  ${d1cokPass ? 'PASS' : 'FAIL'} 对照：念对的中英句不误报、带日期的历史句只数不判`
         + `（判红 ${d1cok.rows.length} 期望 0｜命中 ${d1cok.claims} 期望 3｜历史豁免 ${d1cok.skipped} 期望 1）`);
     for (const r of d1cok.rows) console.log('        ' + r);
+    // 固定点这一支（#229 的正身）：基准件里"文档时效"那一格是 FAIL（上一轮因为这句话没对上而红），
+    // 只要**除本项外**是 20 绿/1 红，这句念 21 绿/1 红就不许再红——否则它会在 21/1 与 20/2 之间
+    // 来回跳（连着跑两次门禁实测到的正是这个振荡，两个解各自自洽）。
+    const fpScan = d1cScan({ 'README.md': ['板上这一版 r104，门禁 22 项 21 绿 / 1 红，唯一红是 `C5c`'] },
+        fakeCur, fixtureGates(22, 20, 1, 'fail'));
+    const fpOk = fpScan.rows.length === 0 && fpScan.claims === 1;
+    console.log(`  ${fpOk ? 'PASS' : 'FAIL'} 对照·固定点：基准件本项那格 FAIL 也不把这句话判红（除本项外 20 绿/1 红 ⇒ 21 绿/1 红自洽）（实测判红 ${fpScan.rows.length} 期望 0｜命中 ${fpScan.claims} 期望 1）`);
+    // 反买通：固定点不能变成"永远说绿"。除本项外多一个红，这句话就必须红。
+    n += yes('D1c 反买通：除本项外多一个红（19 绿/2 红）而首页仍念 21 绿/1 红 ⇒ 必须红', d1cScan({
+        'README.md': ['板上这一版 r104，门禁 22 项 21 绿 / 1 红'] }, fakeCur, fixtureGates(22, 19, 2, 'pass')).rows, /D1c/);
     // 自相矛盾的那一支单独测：项数 ≠ 绿+红 时必须红，哪怕绿红两个数都与门禁件对不上也无所谓（先报矛盾）
     n += yes('D1c：首页自己前后不一（22 项 / 21 绿 / 2 红）', d1cScan({ 'README.md': [
-        '板上这一版 r104，门禁 22 项 21 绿 / 2 红'] }, fakeCur, { judged: 23, pass: 21, fail: 2 }).rows, /D1c/);
+        '板上这一版 r104，门禁 22 项 21 绿 / 2 红'] }, fakeCur, fixtureGates(23, 20, 2, 'pass')).rows, /D1c/);
     // 地板对照：基准读得到、文档里一句"N 项 X 绿 / Y 红"都没有 ⇒ 必须报"这一层没接上"，不许静默 0 条
     n += yes('D1c：那一行改了形状（一句都没抓到）⇒ 报空转而不是 0 条', d1cScan({
         'README.md': ['| 全设计 setup WNS | **0.812 ns**（板上这一版 r104；门禁清单见 `build/r104_gates.txt`）'] },
@@ -545,18 +576,18 @@ if (argv.includes('--self')) {
     for (const r of nsFar.concat(nsOff)) console.log('        ' + r);
     console.log(`  ${nsPred ? 'PASS' : 'FAIL'} 对照：谓词与 D2 的占位豁免都对（D2 用的就是这两个式子：noShip 命中/不命中各一次，NN 只咬占位名）`);
 
-    const all = n === 9 && good.length === 0 && edges.length === 0 && d4 === 3
+    const all = n === 10 && good.length === 0 && edges.length === 0 && d4 === 3
         && d4ok.length === 0 && d4artok.length === 0 && scope && neutral.length === 0
-        && d1bok.length === 0 && d1badj.length === 0 && hasBase && d1cokPass
+        && d1bok.length === 0 && d1badj.length === 0 && hasBase && d1cokPass && fpOk
         && nsOn.length === 0 && nsOff.length === 1 && nsFar.length === 1 && nsPred;
-    console.log(`${all ? 'SELF: 全绿' : 'SELF: 有红'}（变异 ${n}（含 D1b 身份句 2 条 + D1c 门禁读数句 4 条）+ D4 变异 ${d4} 条 + 对照 ${good.length + edges.length + d4ok.length + d4artok.length + d1bok.length + d1badj.length} 条，范围对照${scope ? '过' : '不过'}，D1b 基准${hasBase ? '读得到 r' + cur0.nn : '读不到'}）`);
+    console.log(`${all ? 'SELF: 全绿' : 'SELF: 有红'}（变异 ${n}（含 D1b 身份句 2 条 + D1c 门禁读数句 5 条：改绿数／改项数／反买通／自相矛盾／形状空转）+ D4 变异 ${d4} 条 + 对照 ${good.length + edges.length + d4ok.length + d4artok.length + d1bok.length + d1badj.length} 条，范围对照${scope ? '过' : '不过'}，D1b 基准${hasBase ? '读得到 r' + cur0.nn : '读不到'}）`);
     process.exit(all ? 0 : 1);
 }
 
 const { rows, adv, nd, g, n, m, d1b, d1c } = scanTree();
 console.log(`扫了 ${n} 个文档（D1/D2/D3）+ ${m} 个手写文件（D4）；最新且 ALL PASS 的冻结集 = ${g.name || '（没有）'}`);
 console.log(`D1b 基准：bit md5=${d1b.cur.bit || '读不到'} → ${d1b.cur.name || d1b.cur.why || '（无）'}${d1b.cur.absent ? '（本目录没有 bit 产物 ⇒ 这一层不判；在仓库里跑时它是硬判据）' : ''}；扫 ${d1b.docs} 份交付文档，抓到 ${d1b.claims} 句"板态身份句"（只念相邻带编号的那种，历史句不进射程）`);
-console.log(`D1c 基准：${d1c.file || '（没有基准件 ⇒ 这一层不判）'} 行尾 PASS=${d1c.tally ? d1c.tally.pass : '不判'} / FAIL=${d1c.tally ? d1c.tally.fail : '不判'} / 判定项数=${d1c.tally ? d1c.tally.judged : '不判'}；抓到 ${d1c.claims} 句"门禁 N 项 X 绿 / Y 红"（相邻才判，历史句 ${d1c.skipped} 句只数不判）`);
+console.log(`D1c 基准：${d1c.file || '（没有基准件 ⇒ 这一层不判）'} 行尾 PASS=${d1c.tally ? d1c.tally.pass : '不判'} / FAIL=${d1c.tally ? d1c.tally.fail : '不判'} / 判定项数=${d1c.tally ? d1c.tally.judged : '不判'}；比对基准按"除本项外"算（除本项 PASS=${d1c.tally ? d1cBasis(d1c.tally).pass : '不判'} FAIL=${d1c.tally ? d1cBasis(d1c.tally).fail : '不判'}，本项在基准件里是 ${d1c.tally ? d1c.tally.self : '不判'}）；抓到 ${d1c.claims} 句"门禁 N 项 X 绿 / Y 红"（相邻才判，历史句 ${d1c.skipped} 句只数不判）`);
 // `--list-adv`：把"只报数不判红"那一半逐条打出来（#121：口径必须能说清，不能只留一句"不算指路错误"）。
 // 纯打印，不参与退出码，也不改任何判据 —— 判据的红绿仍由 rows/hard 决定。
 if (argv.includes('--list-adv')) {

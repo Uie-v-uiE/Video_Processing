@@ -1,4 +1,4 @@
-# provenance fpver=norm1 top_md5=2bf2ceeede07 tb_md5=36d0de483e6d rtl_md5=8997a62b75ba date=2026-10-01T23:27:45+08:00 src=/tmp/kx/tb_v98_top_seam.run/run.log
+# provenance fpver=norm1 top_md5=2bf2ceeede07 tb_md5=1c0c56bae0e0 rtl_md5=359be31de751 date=2026-10-02T12:33:43+08:00 src=/tmp/kx/tb_v98_top_seam.run/run.log
 PASS C0a ruler encodes position in the pixel | px_val / decoder / mod-256 signed diff must agree, incl. 0, small values, both edges, both wrap directions
 PASS C0a3 no black cell exists in the pattern | the panel-level ruler equates black with outside-the-picture, so the pattern must not contain black
 PASS C0a2 golden array actually holds it | read back ddr[0] and the last word after init: a correct function is not a correct array
@@ -80,6 +80,9 @@ PASS C3b panel rows judged | C3 must actually have content rows to judge, else t
 PASS C2a bg black | no content in background / no black hole inside the picture
 PASS C2b col matches definition | each in-window column must decode to the source column the definition asks for
 PASS C2c edges match definition | measured picture edges == geometric edges (content stage, in columns)
+PASS C8cpre sampled | the raw-tap ruler must judge a real pile of cells in the SAME window C2/C7 use (skipÿÿÿåÿÿÿ¹ÿÿÿ´ÿÿÿçÿÿÿÿÿÿ–ÿÿÿ¦ÿÿ–)
+PASS C8c raw tap matches definition | the RAW tap (not the seam-selected one) must decode to the source col+row the definition asks, all 8 zoom steps
+PASS C8cself expectation degenerates at 256 and moves at 1023 | exp_col(x,256)==x>>1 and exp_row(y,256)==y>>1 (the 1.00x identity C5b already proved on the panel), while the 1023 step must differ on most columns
 PASS C3c panel edges match definition | the panel's own first/last non-black column == the geometric edges, same on every row
 PASS C2d coverage | zoom-out codes must actually have background columns to judge
 C2 row    1  776    81796   166012      0    0   344   681  344  681    -1    -1     0    0 |  380  400   0   0  344  344  681  681
@@ -93,6 +96,8 @@ PASS C3b panel rows judged | C3 must actually have content rows to judge, else t
 PASS C2a bg black | no content in background / no black hole inside the picture
 PASS C2b col matches definition | each in-window column must decode to the source column the definition asks for
 PASS C2c edges match definition | measured picture edges == geometric edges (content stage, in columns)
+PASS C8cpre sampled | the raw-tap ruler must judge a real pile of cells in the SAME window C2/C7 use (skipÿÿÿåÿÿÿ¹ÿÿÿ´ÿÿÿçÿÿÿÿÿÿ–ÿÿÿ¦ÿÿ–)
+PASS C8c raw tap matches definition | the RAW tap (not the seam-selected one) must decode to the source col+row the definition asks, all 8 zoom steps
 PASS C3c panel edges match definition | the panel's own first/last non-black column == the geometric edges, same on every row
 PASS C2d coverage | zoom-out codes must actually have background columns to judge
 C2 row    2  512   123904   123904      0    0   256   767  256  767    -1    -1     0    0 |  480  300   0   0  256  256  767  767
@@ -106,6 +111,8 @@ PASS C3b panel rows judged | C3 must actually have content rows to judge, else t
 PASS C2a bg black | no content in background / no black hole inside the picture
 PASS C2b col matches definition | each in-window column must decode to the source column the definition asks for
 PASS C2c edges match definition | measured picture edges == geometric edges (content stage, in columns)
+PASS C8cpre sampled | the raw-tap ruler must judge a real pile of cells in the SAME window C2/C7 use (skipÿÿÿåÿÿÿ¹ÿÿÿ´ÿÿÿçÿÿÿÿÿÿ–ÿÿÿ¦ÿÿ–)
+PASS C8c raw tap matches definition | the RAW tap (not the seam-selected one) must decode to the source col+row the definition asks, all 8 zoom steps
 PASS C3c panel edges match definition | the panel's own first/last non-black column == the geometric edges, same on every row
 PASS C2d coverage | zoom-out codes must actually have background columns to judge
 C2 row    3  341   186340    61468      0    0   128   897  128  897    -1    -1     0    0 |  632  148   0   0  128  128  897  897
@@ -119,6 +126,8 @@ PASS C3b panel rows judged | C3 must actually have content rows to judge, else t
 PASS C2a bg black | no content in background / no black hole inside the picture
 PASS C2b col matches definition | each in-window column must decode to the source column the definition asks for
 PASS C2c edges match definition | measured picture edges == geometric edges (content stage, in columns)
+PASS C8cpre sampled | the raw-tap ruler must judge a real pile of cells in the SAME window C2/C7 use (skipÿÿÿåÿÿÿ¹ÿÿÿ´ÿÿÿçÿÿÿÿÿÿ–ÿÿÿ¦ÿÿ–)
+PASS C8c raw tap matches definition | the RAW tap (not the seam-selected one) must decode to the source col+row the definition asks, all 8 zoom steps
 PASS C3c panel edges match definition | the panel's own first/last non-black column == the geometric edges, same on every row
 PASS C2d coverage | zoom-out codes must actually have background columns to judge
 C2 row    4  256   247808        0      0    0     0  1023    0 1023    -1    -1     0    0 |  780    0   0   0    0    0 1023 1023
@@ -132,6 +141,8 @@ PASS C3b panel rows judged | C3 must actually have content rows to judge, else t
 PASS C2a bg black | no content in background / no black hole inside the picture
 PASS C2b col matches definition | each in-window column must decode to the source column the definition asks for
 PASS C2c edges match definition | measured picture edges == geometric edges (content stage, in columns)
+PASS C8cpre sampled | the raw-tap ruler must judge a real pile of cells in the SAME window C2/C7 use (skipÿÿÿåÿÿÿ¹ÿÿÿ´ÿÿÿçÿÿÿÿÿÿ–ÿÿÿ¦ÿÿ–)
+PASS C8c raw tap matches definition | the RAW tap (not the seam-selected one) must decode to the source col+row the definition asks, all 8 zoom steps
 PASS C3c panel edges match definition | the panel's own first/last non-black column == the geometric edges, same on every row
 C2 row    5  192   247808        0      0    0     0  1023    0 1023    -1    -1     0    0 |  780    0   0   0    0    0 1023 1023
 C2SHAPE code=5 inv=192 inbad=0 badpairs=0 firstpair=-1 lastpair=-1 dm1=0 dp1=0 dother=0
@@ -144,6 +155,8 @@ PASS C3b panel rows judged | C3 must actually have content rows to judge, else t
 PASS C2a bg black | no content in background / no black hole inside the picture
 PASS C2b col matches definition | each in-window column must decode to the source column the definition asks for
 PASS C2c edges match definition | measured picture edges == geometric edges (content stage, in columns)
+PASS C8cpre sampled | the raw-tap ruler must judge a real pile of cells in the SAME window C2/C7 use (skipÿÿÿåÿÿÿ¹ÿÿÿ´ÿÿÿçÿÿÿÿÿÿ–ÿÿÿ¦ÿÿ–)
+PASS C8c raw tap matches definition | the RAW tap (not the seam-selected one) must decode to the source col+row the definition asks, all 8 zoom steps
 PASS C3c panel edges match definition | the panel's own first/last non-black column == the geometric edges, same on every row
 C2 row    6  171   247808        0      0    0     0  1023    0 1023    -1    -1     0    0 |  780    0   0   0    0    0 1023 1023
 C2SHAPE code=6 inv=171 inbad=0 badpairs=0 firstpair=-1 lastpair=-1 dm1=0 dp1=0 dother=0
@@ -156,6 +169,8 @@ PASS C3b panel rows judged | C3 must actually have content rows to judge, else t
 PASS C2a bg black | no content in background / no black hole inside the picture
 PASS C2b col matches definition | each in-window column must decode to the source column the definition asks for
 PASS C2c edges match definition | measured picture edges == geometric edges (content stage, in columns)
+PASS C8cpre sampled | the raw-tap ruler must judge a real pile of cells in the SAME window C2/C7 use (skipÿÿÿåÿÿÿ¹ÿÿÿ´ÿÿÿçÿÿÿÿÿÿ–ÿÿÿ¦ÿÿ–)
+PASS C8c raw tap matches definition | the RAW tap (not the seam-selected one) must decode to the source col+row the definition asks, all 8 zoom steps
 PASS C3c panel edges match definition | the panel's own first/last non-black column == the geometric edges, same on every row
 C2 row    7  128   247808        0      0    0     0  1023    0 1023    -1    -1     0    0 |  780    0   0   0    0    0 1023 1023
 C2SHAPE code=7 inv=128 inbad=0 badpairs=0 firstpair=-1 lastpair=-1 dm1=0 dp1=0 dother=0
@@ -168,6 +183,8 @@ PASS C3b panel rows judged | C3 must actually have content rows to judge, else t
 PASS C2a bg black | no content in background / no black hole inside the picture
 PASS C2b col matches definition | each in-window column must decode to the source column the definition asks for
 PASS C2c edges match definition | measured picture edges == geometric edges (content stage, in columns)
+PASS C8cpre sampled | the raw-tap ruler must judge a real pile of cells in the SAME window C2/C7 use (skipÿÿÿåÿÿÿ¹ÿÿÿ´ÿÿÿçÿÿÿÿÿÿ–ÿÿÿ¦ÿÿ–)
+PASS C8c raw tap matches definition | the RAW tap (not the seam-selected one) must decode to the source col+row the definition asks, all 8 zoom steps
 PASS C3c panel edges match definition | the panel's own first/last non-black column == the geometric edges, same on every row
 P1 chain-blur: arm(x==1023&de)=79200 flush=79200 run@è¡Œå°¾ min=1024 max=1024 | pipe_de=81100800 mix_de_d11=81100800 (å·® 0)
 PASS C11pre frame is latched | empty-set guard: a committed frame must be latched before judging whether abort drops it
