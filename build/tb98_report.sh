@@ -32,11 +32,17 @@ else
 fi
 {
     echo "# provenance fpver=$FPVER top_md5=$TOP tb_md5=$TB rtl_md5=$RTL date=$WHEN src=$SRC"
-    grep -a "^\(PASS \|FAIL \|RESULT \|C2 table\|C2 row\|C2BLK\|C2SHAPE\|C2IBAD\|C4 \|C4RUN \|C9\|P1 \|INFO \)" "$SRC"
+    grep -a "^\(PASS \|FAIL \|RESULT \|C2 table\|C2 row\|C2BLK\|C2SHAPE\|C2IBAD\|C4 \|C4RUN \|C9\|C12 \|P1 \|INFO \)" "$SRC"
 } > "$OUT"
 # C9 一族（#103 的尺子）的**原始读数行**必须在报告里：`C9a/C9b/C9e` 那三条
 # 判据的绿与红全靠那几个数（窗内整行、de 沿、近黑格、最暗列），只留 PASS 行等于
 # 让下一个人没法复核。以前白名单里没有 C9 ⇒ 报告里只有结论没有数。
+# ⚠ 同一课今天又用了一次（r109 的 C12，任务 #167 那条两端夹逼）：`C12 rot: cmp/bad/steps` 与
+#   `C12 frozen: cmp/bad` 那一行是 C12a/C12b/C12c/C12pre 四条判据的**分母**——
+#   没有它，"比较做了 4 帧还是 0 帧"在报告里读不出来，阳性对照就成了只有结论的绿。
+#   （白名单另外还有已知的缺口：`C5HEAD`/`C6 ` /`C8 ` 这些既有读数行也不在里面。
+#    今天只补我这把新尺子需要的那一条，别的等与 D6 一起判的时候再说，免得顺手改了
+#    一份被数字对账读的报告的形状。）
 #
 # 空报告不许算绿：跑挂了的台架可能一条 PASS 都没打出来，那时 `RESULT` 那一行也不会有 ⇒
 # 门禁判"必须有 RESULT ... PASS 且没有任何 FAIL 行"，两条都在报告正文上。
