@@ -1,0 +1,32 @@
+# r108 锥级 A/B 的**改前基线**：在 r107 的 system_top_routed.dcp 上跑的 build/tcl/probe_cone_slack.tcl（2026-10-02 16:02 本地）
+# 为什么现在就要跑：r108 一旦构建就会覆盖这份 DCP，改前读数再也问不回来（规矩 42：先只读执行、再写）。
+# 两端集合：VP_FROM=u_eth/u_icmp/u_icmp_tx/ip_head_reg*  VP_TO=u_eth/u_icmp/u_icmp_tx/check_buffer_reg*
+LABEL: r108before
+DCP: D:/Xilinx/Prj/pro/Video_Processing/vivado_system/zynq_video_sys.runs/impl_1/system_top_routed.dcp
+SETS from=133 to=44  (a 0 here means the pattern matched nothing -- the probe would then prove nothing)
+  Slack (MET) :             0.725ns  (required time - arrival time)
+  Source:                 u_eth/u_icmp/u_icmp_tx/ip_head_reg[4][19]/C
+  Destination:            u_eth/u_icmp/u_icmp_tx/check_buffer_reg[17]/D
+  Data Path Delay:        7.170ns  (logic 2.805ns (39.119%)  route 4.365ns (60.881%))
+  Logic Levels:           9  (CARRY4=4 LUT3=2 LUT4=1 LUT5=1 LUT6=1)
+  Slack (MET) :             1.224ns  (required time - arrival time)
+  Source:                 u_eth/u_icmp/u_icmp_tx/ip_head_reg[4][19]/C
+  Destination:            u_eth/u_icmp/u_icmp_tx/check_buffer_reg[15]/D
+  Data Path Delay:        6.686ns  (logic 2.624ns (39.249%)  route 4.062ns (60.751%))
+  Logic Levels:           8  (CARRY4=3 LUT3=2 LUT4=1 LUT5=1 LUT6=1)
+  Slack (MET) :             1.298ns  (required time - arrival time)
+  Source:                 u_eth/u_icmp/u_icmp_tx/ip_head_reg[4][19]/C
+  Destination:            u_eth/u_icmp/u_icmp_tx/check_buffer_reg[18]/D
+  Data Path Delay:        6.610ns  (logic 2.743ns (41.499%)  route 3.867ns (58.501%))
+  Logic Levels:           9  (CARRY4=4 LUT3=2 LUT4=1 LUT5=1 LUT6=1)
+  Slack (MET) :             1.353ns  (required time - arrival time)
+  Source:                 u_eth/u_icmp/u_icmp_tx/ip_head_reg[4][19]/C
+  Destination:            u_eth/u_icmp/u_icmp_tx/check_buffer_reg[16]/D
+  Data Path Delay:        6.557ns  (logic 2.740ns (41.791%)  route 3.817ns (58.209%))
+  Logic Levels:           9  (CARRY4=4 LUT3=2 LUT4=1 LUT5=1 LUT6=1)
+  Slack (MET) :             1.410ns  (required time - arrival time)
+  Source:                 u_eth/u_icmp/u_icmp_tx/ip_head_reg[4][19]/C
+  Destination:            u_eth/u_icmp/u_icmp_tx/check_buffer_reg[19]/D
+  Data Path Delay:        6.531ns  (logic 2.493ns (38.170%)  route 4.038ns (61.830%))
+  Logic Levels:           9  (CARRY4=4 LUT3=2 LUT4=1 LUT5=1 LUT6=1)
+PATHS printed: 5  (floor: 0 means report_timing gave nothing for this cone)

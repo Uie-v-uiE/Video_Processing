@@ -1,0 +1,52 @@
+r107 那一刀的族级判据（只读探针 build/tcl/probe_reasm_fanout.tcl 跑在 system_top_routed.dcp 上，2026-10-02 15:55 本地）
+口径：量的是**同一条起点/终点对**（u_reasm/off_reg[12]/C -> rows_hit_reg[*]/CE）改前改后各是多少，
+     不是全局 WNS 的差值（规矩 35：绝对 WNS 差不算收益也不算损失；这里两头的路径身份是配对的，所以可比）。
+集合地板（探针自己打印的）：SETS from=1 to=16 —— to=16 正是 rows_hit 的位数，说明名字没写错、A 段不是空转。
+
+--- r106 基准（build/r106_critpath_console.txt 第 103..108 行：最差 8 条里这一族占 6 条）---
+  0.723ns | eth_rxc | 6.879ns | 5 级 | off_reg[12]/C -> rows_hit_reg[10..15]/CE，route 占 81.25 %
+
+--- r107 实测：A 段（探针按同一族两端夹住再问一次）---
+Slack (MET) :             2.006ns  (required time - arrival time)
+Data Path Delay:        5.707ns  (logic 1.068ns (18.713%)  route 4.639ns (81.287%))
+Logic Levels:           4  (LUT6=3 MUXF7=1)
+Slack (MET) :             2.006ns  (required time - arrival time)
+Data Path Delay:        5.707ns  (logic 1.068ns (18.713%)  route 4.639ns (81.287%))
+Logic Levels:           4  (LUT6=3 MUXF7=1)
+Slack (MET) :             2.006ns  (required time - arrival time)
+Data Path Delay:        5.707ns  (logic 1.068ns (18.713%)  route 4.639ns (81.287%))
+Logic Levels:           4  (LUT6=3 MUXF7=1)
+  三条的终点分别是 rows_hit_reg[0]/[1]/[4] 的 CE（同一族，起点都是 off_reg[12]/C）
+
+--- r107 实测：B 段（这一族内部扇出前 6；CELLS=1646，NETS=1857 是这段的计数地板）---
+CELLS in this family: 1646
+fo=  552  u_eth/u_reasm/off_reg[11]_rep__0_0
+fo=  552  u_eth/u_reasm/gmii_rx_clk
+fo=  370  u_eth/u_reasm/st_reg_n_0_[2]
+fo=  328  u_eth/u_reasm/hdr[10]
+fo=  317  u_eth/u_reasm/rows_hit[15]_i_1_n_0
+fo=  314  u_eth/u_reasm/<const1>
+NETS counted in B: 1857  (floor: 0 means B idled)
+
+--- 全设计读数（build/timing_summary.rpt / utilization.rpt，本轮 15:44 生成）---
+| Block RAM Tile | 95 | 0 | 0 | 140 | 67.86 |
+| DSPs | 19 | 0 | 0 | 220 | 8.64 |
+| Slice LUTs | 14323 | 0 | 0 | 53200 | 26.92 |
+| Slice Registers | 8156 | 0 | 0 | 106400 | 7.67 |
+clk_fpga_0          1.229        0.000                      0                15727        0.057        0.000                      0                15727        3.870        0.000                       0                  4377  
+eth_rxc             0.725        0.000                      0                 4829        0.050        0.000                      0                 4829        3.500        0.000                       0                  2551  
+sys_clk            14.906        0.000                      0                  193        0.120        0.000                      0                  193        7.000        0.000                       0                   141  
+  clkout0_1         1.224        0.000                      0                30179        0.059        0.000                      0                30179        8.870        0.000                       0                  5514  
+
+--- 判读（采纳要等门禁与台架，见 build/r107_chain_console.txt）---
+  1) 这一族：0.723 ns（当时全设计最差、最差 8 条占 6 条）-> 2.006 ns，5 级 -> 4 级，r107 的十个最差里已经没有 u_reasm；
+  2) 全设计 WNS 0.725 ns 现在由**另一条锥**持有，正是 r108 那一刀的目标（差分预验见 build/evidence/r108_csum_diff.txt）：
+0.725ns | eth_rxc | 7.170ns | 9 | u_eth/u_icmp/u_icmp_tx/ip_head_reg[4][19]/C -> u_eth/u_icmp/u_icmp_tx/check_buffer_reg[17]/D
+  3) 代价：Slice LUT 与 r106 逐字相同（14323），寄存器 8149 -> 8156（+7），BRAM/DSP 不动；
+     绝对 WNS 的 0.723 -> 0.725 按规矩 35 **不写成收益**，能写的是第 1、2 条这种瓶颈换了主人。
+
+--- 记一件工具侧的事（这一版探针的第二跑才是干净的）---
+  探针第一版把中文写在 puts 的**标签**里，Vivado 的 Tcl 按系统代码页读这份 UTF-8 脚本，
+  结果那一行的 [llength $pairs] 没被求值、把 1857 个网络整个倒进输出（第一版这份文件因此有一条脏行）。
+  对策已落地：build/tcl/probe_reasm_fanout.tcl 的运行时 puts 标签全改 ASCII（中文只留在注释里，
+  注释不参与求值，坏也只坏显示）。这与台架判据标签改 ASCII（task 55）是同一族的坑。
