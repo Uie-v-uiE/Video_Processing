@@ -95,8 +95,14 @@ function checkLines(docLines, dirExists, newestGreen) {
                 rows.push(`${at} D1 把带编号的旧构建说成"当前/默认"：${l.trim().slice(0, 80)}`);
             for (const m of l.matchAll(CITED)) {
                 const tok = m[2];
-                if (citable(tok) && !dirExists(tok))
-                    rows.push(`${at} D2 点名的目录盘上没有：build/${tok}`);
+                // 占位/变量写法不咬（与 D4a/D4c 同一条豁免，#121 当年给 D4 补的那条这里一直缺着）：
+                // `build/evidence_rNN` 是命名规则、不是指路——`bash build/gates.sh build/evidence_rNN`
+                // 这种示例行若被咬红，下一轮就会被逼成"把示例改成真实轮号"那种假动作。
+                if (/NN|\$/.test(tok)) continue;
+                if (citable(tok) && !dirExists(tok)) {
+                    const r = `${at} D2 点名的目录盘上没有：build/${tok}`;
+                    if (noShip(l)) { nNOSHIP++; } else { rows.push(r); }
+                }
             }
             const g = l.match(GREEN);
             if (g && HOME.includes(rel)) claims.push({ at, nn: Number(g[2]) });
@@ -169,6 +175,19 @@ const CITE_ART = new RegExp(
 const DELIVERY = (rel) => HOME.includes(rel) || rel === 'board/README.md'
     || /^report\/(?!log\/)[\w.-]+\.md$/.test(rel);
 
+// #222 的路由二：**同一行自带"这件东西故意不随包"的声明**时，D2/D4a/D4c/D4b 把它降级为"只报数"。
+// 为什么必须有这条豁免：交付文档会点两件真实存在、但**按设计不进口**的东西——
+//   ① `board/uart_script_capture.txt`（`uart_cap_once.ps1`/`board_verify.sh` 每次重写的本机捕获，
+//      被 `.gitignore` 挡住；随包的是它的被跟踪替身 `build/evidence/rNN_serial_raw.txt`），
+//   ② 仓库里的历史冻结集目录（`build/frozen_rNN_*`，包内只带被采纳的那一份报告）。
+// 不豁免的两种代价都更坏：要么把真话从文档里删掉（#122 警告过的那种"改文档迁就尺子"），
+// 要么让包里那把尺子永远红着（评审看到的就只剩"红"这一个信号）。
+// ⚠ 豁免的形状是**写死的短表**，并且必须与指路 token **同一行**——买通它的唯一办法是当着读者写下
+//   "这东西不随包"，而那句话本身就是给人核对的真话；放行条数会打印出来，不许静默吞掉（#217 同族）。
+const NOSHIP_MARK = ['不随包', '不在本包内', '已被 `.gitignore` 挡住'];
+const noShip = (l) => NOSHIP_MARK.some((k) => l.includes(k));
+let nNOSHIP = 0;
+
 function checkPaths(fileLines, exists) {
     const rows = [];
     const adv = [];
@@ -177,22 +196,25 @@ function checkPaths(fileLines, exists) {
         const hard = DELIVERY(rel);
         lines.forEach((l, i) => {
             const at = `${rel}:${i + 1}`;
+            const ns = noShip(l);                     // 这一行自带"不随包"声明吗（见 NOSHIP_MARK 那段）
+            const put = (r) => {
+                if (!hard) { adv.push(r); return; }
+                if (ns) { nNOSHIP++; adv.push(r + '（同行已声明不随包 ⇒ 只报数）'); } else rows.push(r);
+            };
             for (const m of l.matchAll(CITE_MD)) {
                 const tok = m[0].replace(/^[^a-z]/, '');
                 if (tok.includes('NN') || tok.includes('$')) continue;
                 if (exists(tok)) continue;
-                const row = `${at} D4a 点名的文档盘上没有：${tok}`;
-                if (hard) rows.push(row); else adv.push(row);
+                put(`${at} D4a 点名的文档盘上没有：${tok}`);
             }
             for (const m of l.matchAll(CITE_ART)) {
                 const tok = m[0].replace(/^[^a-z]/, '');
                 if (tok.includes('NN') || tok.includes('$') || tok.includes('*')) continue;
                 if (exists(tok)) continue;
-                const line = `${at} D4c 点名的凭据盘上没有：${tok}`;
-                if (hard) rows.push(line); else adv.push(line);
+                put(`${at} D4c 点名的凭据盘上没有：${tok}`);
             }
             for (const m of l.matchAll(OLD_DIR)) {
-                { const r = `${at} D4b 还在指已经删掉的旧目录：${l.trim().slice(0, 70)}`; if (hard) rows.push(r); else adv.push(r); }
+                put(`${at} D4b 还在指已经删掉的旧目录：${l.trim().slice(0, 70)}`);
             }
         });
     }
@@ -426,10 +448,20 @@ if (argv.includes('--self')) {
     for (const r of d4ok) console.log('        ' + r);
     console.log(`  ${d4artok.length === 0 ? 'PASS' : 'FAIL'} 对照：通配/变量/占位名的凭据写法不误报（实测 ${d4artok.length} 条）`);
     for (const r of d4artok) console.log('        ' + r);
+    // ---- #222 的三条对照：豁免只能由**同一行的声明**换来，隔行不行、没声明更不行 ----
+    const nsOn = checkPaths({ 'board/README.md': ['凭据 `board/uart_script_capture.txt`（本机捕获，已被 `.gitignore` 挡住，不随包）'], }, () => false).rows;
+    const nsOff = checkPaths({ 'board/README.md': ['凭据 `board/uart_script_capture.txt`'], }, () => false).rows;
+    const nsFar = checkPaths({ 'board/README.md': ['凭据 `board/uart_script_capture.txt` 的读数见下一行', '下一行写着不随包'] }, () => false).rows;
+    const nsPred = noShip('点名 `x`（不随包）') && !noShip('点名 `x`') && !/NN|\$/.test('evidence_r75') && /NN/.test('evidence_rNN');
+    console.log(`  ${nsOn.length === 0 && nsOff.length === 1 && nsFar.length === 1 ? 'PASS' : 'FAIL'}`
+        + ` 对照：同行声明才放行（有声明红 ${nsOn.length} 期望 0｜无声明红 ${nsOff.length} 期望 1｜隔行红 ${nsFar.length} 期望 1）`);
+    for (const r of nsFar.concat(nsOff)) console.log('        ' + r);
+    console.log(`  ${nsPred ? 'PASS' : 'FAIL'} 对照：谓词与 D2 的占位豁免都对（D2 用的就是这两个式子：noShip 命中/不命中各一次，NN 只咬占位名）`);
 
     const all = n === 5 && good.length === 0 && edges.length === 0 && d4 === 3
         && d4ok.length === 0 && d4artok.length === 0 && scope && neutral.length === 0
-        && d1bok.length === 0 && d1badj.length === 0 && hasBase;
+        && d1bok.length === 0 && d1badj.length === 0 && hasBase
+        && nsOn.length === 0 && nsOff.length === 1 && nsFar.length === 1 && nsPred;
     console.log(`${all ? 'SELF: 全绿' : 'SELF: 有红'}（变异 ${n}（含 D1b 身份句 2 条）+ D4 变异 ${d4} 条 + 对照 ${good.length + edges.length + d4ok.length + d4artok.length + d1bok.length + d1badj.length} 条，范围对照${scope ? '过' : '不过'}，D1b 基准${hasBase ? '读得到 r' + cur0.nn : '读不到'}）`);
     process.exit(all ? 0 : 1);
 }
@@ -453,5 +485,7 @@ for (const r of rows.slice(0, 40)) console.log('  ' + r);
 if (rows.length > 40) console.log(`  …另外 ${rows.length - 40} 条`);
 console.log(`D4c 范围：交付文档 ${nd} 份判红；其余 ${m - nd} 份点名凭据 ${adv.length} 条只报数`
     + '（日记与注释里那些"当时存在、随后删掉"的中间件不算指路错误 —— 见脚本头部）');
+console.log(`  同行写了"不随包/已被 .gitignore 挡住"这类声明而放行的指路：${nNOSHIP} 条`
+    + '（豁免只降级为"只报数"，条数念出来，不许静默吞掉 —— #217 同族）');
 console.log(rows.length ? `CURRENCY: ${rows.length} 条过期指路` : 'CURRENCY: 干净');
 process.exit(rows.length ? 1 : 0);

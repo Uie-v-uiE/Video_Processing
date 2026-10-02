@@ -53,9 +53,9 @@ VP_XSDB=<Vitis>/bin/xsdb.bat bash build/board_verify.sh --battery --geom
 
 | 判据 | 读回来的值 | 凭据 |
 |---|---|---|
-| 串口命令电池 | `RESULT PASS uart_cmd_check (100 条命令, 93.3 s)` | `build/board_verify` 那一跑的日志与 `board/uart_script_capture.txt` |
-| 几何自动化最后一跳 | `RESULT PASS geom_check（ok=8 fail=0）`；`zoom fit` 置位/复零、自动旋转下缩放跟着角度走（inv 493 → 507）、收尾 19 个几何位与进来时逐位相同 | 同上 |
-| 片源与播放状态 | `[STAT] src=1 … sd=1 frames=4398 playing=1`（SD 在播，PL 拥有 UDP 通路） | `board/uart_script_capture.txt` |
+| 串口命令电池 | `RESULT PASS uart_cmd_check  (105 条命令, 97.3 s, 捕获 board/uart_script_capture.txt)`——那句里的 `board/uart_script_capture.txt` 是**工具本机重写的那份，已被 `.gitignore` 挡住、不随包**；随包复核用右边这份被跟踪的总判定 | `build/r104_board_verify_console.txt`（r104，2026-10-02 01:18 那一跑；`RESULT board_verify PASS（判红的步骤：0）`） |
+| 几何自动化最后一跳 | `RESULT PASS geom_check（ok=10 fail=0）`；`zoom fit` 置位/复零、自动旋转下缩放跟着角度走、收尾那 19 个几何位与进来时逐位相同 | 同上 |
+| 片源与播放状态 | `[STAT] ctrl thr=80 src=1 zoom=1 bilin=1 zsel=4 zman=1 … sd=1 frames=4398 playing=1`（SD 在播，PL 拥有 UDP 通路） | 逐字回读 `build/evidence/r104_serial_raw.txt`（被跟踪、随包） |
 | 缩放档位自洽 | `lane23 zoom → zsel=4 zcode=4 inv_scale=256 x100_actual=100 verdict=OK` | 同上（开机回读段） |
 | 温度三方对账 | `V9-6 温度格三方对账：4 条 [TEMP] 的 degC↔osd↔gpio 全部自洽` | 同上 |
 | SD 本地播放帧率 | **29.8 – 30.0 fps**（100 帧滑窗，板上读回） | `data/metrics.csv` 那两行 |

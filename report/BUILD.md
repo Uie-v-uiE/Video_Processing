@@ -69,7 +69,7 @@ set VIVADO=<Vivado>\bin\vivado.bat
 
 :: 读回门禁（项数以 `build/gates.sh` 自己打印的为准：2026-09-27 晚上是 19 项，今天 07:5x 起 20 项（新增 15b = 边缘条带 `tb_edge_rim` 的凭据与反例，见 `build/rim_gate_ce.sh`））（也可复核任一组成套冻结件）
 bash build/gates.sh
-bash build/gates.sh build/evidence_r75
+bash build/gates.sh build/evidence_rNN
 
 :: 只跑一个台架（比全量回归快得多，改完 RTL 的第一道关）
 bash sim/run_one.sh tb_osd_lines
