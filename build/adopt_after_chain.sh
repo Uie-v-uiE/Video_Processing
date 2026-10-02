@@ -20,12 +20,16 @@ die() { say "断链：$*"; exit 1; }
 [ -f "$X" ] || die "找不到 xsdb（设 VP_XSDB=<Vitis>/bin/xsdb.bat，当前 $X）"
 
 # ---- 1. 等链子结束 ----
+# ⚠ 标记不止一个来源（r109 撞上的）：整轮链 `build/rNN_chain.sh` 打的是"链结束"，
+#   而**补救阶段** `build/rNN_stage2.sh` 打的是"阶段结束"。上一版这里只认"链结束"，
+#   于是台架明明跑完了、这一支还是会等满 100 分钟再 die —— 所以两个文件、两个标记都认。
 for i in $(seq 1 200); do
-    grep -q "链结束" "build/r${NN}_chain_console.txt" 2>/dev/null && break
+    grep -qs "链结束\|阶段结束" "build/r${NN}_chain_console.txt" "build/r${NN}_stage2_console.txt" && break
     sleep 30
 done
-grep -q "链结束" "build/r${NN}_chain_console.txt" 2>/dev/null || die "等不到链子结束（>100 分钟）"
-say "链子结束，开始断言"
+grep -qs "链结束\|阶段结束" "build/r${NN}_chain_console.txt" "build/r${NN}_stage2_console.txt" \
+    || die "等不到链子/阶段结束（>100 分钟）：build/r${NN}_chain_console.txt 与 build/r${NN}_stage2_console.txt 里都没有结束标记"
+say "链子/阶段结束，开始断言"
 
 # ---- 2. 断言一：顶层台架的红必须恰好是那一条声明过的 C5c ----
 RUNLOG=/tmp/kx/$TB.run/run.log
@@ -52,9 +56,13 @@ say "台架断言通过：PASS=$NPASS，FAIL=1 且就是 C5c"
 [ -f "build/r${NN}_gates.txt" ] || die "没有 build/r${NN}_gates.txt"
 G=$(grep -c ' PASS$' "build/r${NN}_gates.txt"); GBAD=$(grep -c ' FAIL$' "build/r${NN}_gates.txt")
 # 采纳前台页与 metrics.csv 还没换数，D1c/D6 必然红 —— 那是"还没同步"，不是"判据不过"。
-# 同步之后必须收敛成 21 绿 / 1 红（那一步由人在门禁两步重跑时确认）。
+# ⚠ **这里不写死"21 绿 / 1 红"**（上一版写死了）：门禁条数会随教训涨（r109 起是 **24 项**，
+#   第 22/23 项是新接的 pipe_len / temp_formula），写死就会在下一轮自己把自己判死。
+#   同步之后要收敛成什么，由这份件自己算：**红 1（声明过的 C5c）、绿 = 判定条数 - 1**，
+#   而首页那句"门禁 N 项 …"由 D1c 逐条对回本件（#229 的两个自洽解就在这）。
 BADNAMES=$(grep ' FAIL$' "build/r${NN}_gates.txt" | sed 's/^ *//' | cut -d' ' -f1-2 | paste -sd'|' -)
-say "门禁当前绿=$G 红=$GBAD，红项=$BADNAMES"
+NSAY=$(( G + GBAD ))
+say "门禁当前绿=$G 红=$GBAD（判定 $NSAY 项），红项=$BADNAMES；同步后应剩 绿=$((NSAY - 1)) / 红=1"
 [ "$GBAD" -le 3 ] || die "门禁红数=$GBAD（>3 就不是'台架 + 未同步的文档'这一组了）"
 case "$BADNAMES" in
     *数字对账*|*文档时效*) : ;;   # 允许：还没换数的文档项
