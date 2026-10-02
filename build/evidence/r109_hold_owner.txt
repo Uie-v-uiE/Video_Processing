@@ -1,0 +1,42 @@
+# r109 hold 归属与 setup 最差族的逐网络走线（采纳那笔的 hold 行、下一刀的靶，都从这两份件抄，不是我算的）
+# 来源：build/hold_paths.rpt 与 build/setup_paths.rpt（build/r109_holdpath_console.txt / r109_critpath_console.txt 生成的同一轮）
+
+## 一、设计最差 hold（WHS）现在属于谁
+Slack (MET) :             0.049ns  (arrival time - required time)
+  Source:                 u_eth/u_rx_mac/u_crc_rx/crc_data_reg[17]/C
+  Destination:            u_eth/u_rx_mac/u_crc_rx/crc_data_reg[25]/D
+  Path Type:              Hold (Min at Fast Process Corner)
+  Data Path Delay:        0.975ns  (logic 0.186ns (19.070%)  route 0.789ns (80.930%))
+  Logic Levels:           1  (LUT6=1)
+  —— 时钟域：                         net (fo=2563, routed)        0.582     1.548    u_eth/u_rx_mac/u_crc_rx/gmii_rx_clk
+  —— 口径变化：r108 那一版的这条是 u_eth/u_lm/full_d_reg/D（3 级、route 60.7 %）⇒ **归属又换人了**，
+     首页 hold 那行必须重写归属句，不能只换数字（rule 46：'最差那一格在 X'是一句归属判据，D6 判它）。
+
+## 二、setup 最差族（下一刀的靶）：6 级、route 占 82 %，扇出这根网络 fo=109
+Slack (MET) :             0.605ns  (required time - arrival time)
+  Source:                 u_eth/u_reasm/off_reg[11]_rep/C
+  Destination:            u_eth/u_reasm/rows_hit_reg[2]/CE
+  Data Path Delay:        6.997ns  (logic 1.242ns (17.750%)  route 5.755ns (82.250%))
+  Logic Levels:           6  (LUT5=1 LUT6=3 MUXF7=1 MUXF8=1)
+                         net (fo=1, routed)           1.873     3.303    u_eth/u_rgmii/u_rgmii_rx/rgmii_rxc
+                         net (fo=2563, routed)        1.464     4.852    u_eth/u_reasm/gmii_rx_clk
+                         net (fo=109, routed)         1.511     6.742    u_eth/u_reasm/off_reg[11]_rep_n_0
+                         net (fo=1, routed)           0.000     6.847    u_eth/u_reasm/rows_hit[15]_i_119_n_0
+                         net (fo=1, routed)           0.000     7.046    u_eth/u_reasm/rows_hit_reg[15]_i_87_n_0
+                         net (fo=1, routed)           0.911     8.042    u_eth/u_reasm/rows_hit_reg[15]_i_39_n_0
+                         net (fo=1, routed)           0.817     9.123    u_eth/u_reasm/rows_hit[15]_i_16_n_0
+                         net (fo=1, routed)           0.732     9.960    u_eth/u_reasm/rows_hit[15]_i_7_n_0
+  —— 读法：off_reg[11]_rep 已被综合复制（寄存器名带 _rep 就是复制体的证据），fo=109 的那根网络自己就吃掉 1.511 ns；
+     剩下 6 级里 MUXF7/MUXF8 是 16 位位图的比较树 ⇒ r107 那把（位图分组降扇出）还有第二次可用，
+     但 route 占 82 % 说明**物理侧（就近放置/Pblock）才是大头**，这一条与 #179 的否决理由是同一课。
+     ⚠ 本文件第一版这一句里那个寄存器名是被 shell 吃掉的：我在双引号字符串里写了反引号 ⇒
+       它被当成命令替换执行（bash 报了 `off_reg[11]_rep: command not found`），文件里留下一个空洞。
+       这是本仓记忆里已写过的那一条我今天又撞了一次（"双引号里的反引号会执行"）——
+       证据文件里写寄存器名一律用**裸名**或单引号，别用反引号。
+
+## 三、逐时钟 setup（首页那三格的分子，直接抄 Intra Clock Table）
+clk_fpga_0          1.238        0.000                      0                15727        0.052        0.000                      0                15727        3.870        0.000                       0                  4377  
+eth_rxc             0.605        0.000                      0                 4853        0.049        0.000                      0                 4853        3.500        0.000                       0                  2563  
+sys_clk            15.289        0.000                      0                  193        0.121        0.000                      0                  193        7.000        0.000                       0                   141  
+  clkout0_1         4.094        0.000                      0                30179        0.053        0.000                      0                30179        8.870        0.000                       0                  5508  
+sys_clk       clkout0_1           4.518        0.000                      0                  231        0.177        0.000                      0                  231  

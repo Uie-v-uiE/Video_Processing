@@ -33,6 +33,20 @@
 4. ⚠ 链子在飞期间**不许再起第二支 xsim**（r109 的台架阶段就是这么丢掉 127 分钟的，ISSUES #234）。
    拷贝树预验（`build/f2e_preverify.sh` 这一类）只能排在链子起飞之前，或"阶段结束"之后。
 
+## 刀 4（新浮出来的靶，读数是 r109 自己的）：`rows_hit` 位图的 CE 广播 + 物理侧
+凭据 `build/evidence/r109_hold_owner.txt` 第二节：全设计最差 setup 现在是
+`u_eth/u_reasm/off_reg[11]_rep/C → u_eth/u_reasm/rows_hit_reg[2]/CE`，**0.605 ns / 6 级 / route 82.25 %**，
+其中 `off_reg[11]_rep_n_0` 这一根网络 `fo=109` 自己就吃 **1.511 ns**；
+`Logic Levels` 里出现 `MUXF7=1 MUXF8=1` ⇒ 那 6 级是 16 位位图的比较树。
+可做的两件事（**只做一件，一轮一个变量**，规矩 #223）：
+① 再削一次扇出：r107 那把（位图分组）对 `row_ok` 有效（`fo` 316 → 552/317 那一族重排），这里可对 `rows_hit` 的 CE 用同款；
+   但要先量 `rows_hit` 现在是否已经分过组（`grep -n "rows_hit" src/rtl/eth/frame_reasm.v` 读使能项的形状）。
+② 物理侧：route 占 82 % 说明大头是**距离/拥塞**，不是算术 ⇒ Pblock/就近放置这一族（r87 实测 route 66 % 那次记过口径）。
+   ⚠ 这一条属于路线图 §11.3"约束/策略放最后"，且必须与 ① 分开单独滚，否则收益归不了属。
+hold 侧今天不动：WHS 0.049 的归属又换了（`u_rx_mac/u_crc_rx/crc_data_reg[17] → [25]`，1 级、route 80.9 %，
+`gmii_rx_clk` 域），而 r108 的口径句写的是 `u_eth/u_lm/full_d_reg/D` ⇒ 采纳那笔的首页 hold 行要重写**归属句**而不是只换数字
+（rule 46：D6 判的就是那句归属）。
+
 ## 板子那一半（与刀无关，但挡住采纳）
 板子 AP 不可达（`DAP status 0xF0000021`，ISSUES #235）⇒ 需要**断电重上**；恢复后按
 `ps_jtag_boot.tcl` → `program_pl.tcl` → `ps_app_reload.tcl` 三道走，逐道看 token，尤其 `DOW:` 必须是 `ok`。

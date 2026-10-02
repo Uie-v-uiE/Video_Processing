@@ -1,0 +1,50 @@
+# r109 数字轮换清单（D6 在采纳**之前**念到的 44 条 stale，全部是首页/csv 还写着 r108 的数）
+# 生成：node src/host/metric_recheck.mjs  时刻：2026-10-03 00:25:08  —— 这是预备表，采纳那一笔必须**重跑一次**再按新表逐条改
+# 规矩：#229/#226 —— 门禁条数从 22 改成 24 要和每一句念它的文案同一笔提交改完（README.md:56 / README.en.md:70 / BACKGROUND_AND_NOVELTY.md:31/:80）
+RED row=README.md:56 全设计 setup WNS/WNS(ns) 首页=0.721 报告=0.605
+RED row=README.md:57 逐时钟 setup 余量/setup[eth_rxc] 首页=0.721 报告=0.605
+RED row=README.md:57 逐时钟 setup 余量/setup[clk_fpga_0] 首页=1.524 报告=1.238
+RED row=README.md:57 逐时钟 setup 余量/setup[clkout0_1] 首页=1.13 报告=4.094
+RED row=README.md:57 逐时钟 setup 余量/setup[sys_clk] 首页=14.324 报告=15.289
+RED row=README.md:57 逐时钟 setup 余量/余量%[eth_rxc] 首页=9 报告=7.563
+RED row=README.md:57 逐时钟 setup 余量/余量%[clk_fpga_0] 首页=15.2 报告=12.38
+RED row=README.md:57 逐时钟 setup 余量/余量%[clkout0_1] 首页=5.65 报告=20.47
+RED row=README.md:58 保持时间/whs[eth_rxc] 首页=0.035 报告=0.049
+RED row=README.md:58 保持时间/whs[clk_fpga_0] 首页=0.053 报告=0.052
+RED row=README.md:58 保持时间/whs[clkout0_1] 首页=0.06 报告=0.053
+RED row=README.md:58 保持时间/whs[sys_clk] 首页=0.159 报告=0.121
+RED row=README.md:59 BRAM / LUT / FF / DSP/BRAM tile 首页=95 报告=95.5
+RED row=README.md:59 BRAM / LUT / FF / DSP/BRAM 占比(%) 首页=67.86 报告=68.21
+RED row=README.md:59 BRAM / LUT / FF / DSP/LUT 首页=14360 报告=14362
+RED row=README.md:59 BRAM / LUT / FF / DSP/LUT 占比(%) 首页=26.99 报告=27
+RED row=README.md:59 BRAM / LUT / FF / DSP/FF 首页=8168 报告=8162
+RED row=README.md:59 BRAM / LUT / FF / DSP/FF 占比(%) 首页=7.68 报告=7.67
+RED row=README.md:60 功耗/动态功耗(W) 首页=2.212 报告=2.214
+RED row=README.en.md:70 Design-wide setup WNS/WNS(ns) 首页=0.721 报告=0.605
+RED row=README.en.md:71 Per-clock setup slack/setup[eth_rxc] 首页=0.721 报告=0.605
+RED row=README.en.md:71 Per-clock setup slack/setup[clk_fpga_0] 首页=1.524 报告=1.238
+RED row=README.en.md:71 Per-clock setup slack/setup[clkout0_1] 首页=1.13 报告=4.094
+RED row=README.en.md:71 Per-clock setup slack/setup[sys_clk] 首页=14.324 报告=15.289
+RED row=README.en.md:71 Per-clock setup slack/余量%[eth_rxc] 首页=9 报告=7.563
+RED row=README.en.md:71 Per-clock setup slack/余量%[clk_fpga_0] 首页=15.2 报告=12.38
+RED row=README.en.md:71 Per-clock setup slack/余量%[clkout0_1] 首页=5.65 报告=20.47
+RED row=README.en.md:72 Hold time/whs[eth_rxc] 首页=0.035 报告=0.049
+RED row=README.en.md:72 Hold time/whs[clk_fpga_0] 首页=0.053 报告=0.052
+RED row=README.en.md:72 Hold time/whs[clkout0_1] 首页=0.06 报告=0.053
+RED row=README.en.md:72 Hold time/whs[sys_clk] 首页=0.159 报告=0.121
+RED row=README.en.md:73 BRAM / LUT / FF / DSP/BRAM tile 首页=95 报告=95.5
+RED row=README.en.md:73 BRAM / LUT / FF / DSP/BRAM 占比(%) 首页=67.86 报告=68.21
+RED row=README.en.md:73 BRAM / LUT / FF / DSP/LUT 首页=14360 报告=14362
+RED row=README.en.md:73 BRAM / LUT / FF / DSP/LUT 占比(%) 首页=26.99 报告=27
+RED row=README.en.md:73 BRAM / LUT / FF / DSP/FF 首页=8168 报告=8162
+RED row=README.en.md:73 BRAM / LUT / FF / DSP/FF 占比(%) 首页=7.68 报告=7.67
+RED row=README.en.md:74 Power/动态功耗(W) 首页=2.212 报告=2.214
+RED row=全局 setup WNS csv=0.721 report=0.605
+RED row=全局 hold WHS csv=0.035 report=0.049
+RED row=Slice LUT 占用 csv=14360（26.99 %） report=14362 | 占用百分数: csv=26.99 report=27
+RED row=Slice 寄存器占用 csv=8168（7.68 %） report=8162 | 占用百分数: csv=7.68 report=7.67
+RED row=Block RAM Tile 占用 csv=95 / 140（67.86 %） report=95.5 | 瓦片占用百分数: csv=67.86 report=68.21 | 可用瓦片数: csv=140 report=140
+RED row=实现后动态功耗 csv=2.212 report=2.214
+
+# 汇总行：
+== 数字对账：判 68 个数（首页层 58 个／解析到 10/10 行；红 44）／csv 认领 10/10 行／其余 18 行不点名这三份报告 ==
