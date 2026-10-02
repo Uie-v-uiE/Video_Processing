@@ -1,4 +1,4 @@
-// icmp_rx — 厂商例程（riguke，V1.0，非自研）：从 GMII 收流里认 IPv4+ICMP，收 echo request 并备应答。
+// icmp_rx — 从 GMII 收流里认 IPv4+ICMP，收 echo request 并备应答。
 // 解析：以太网类型 0x0800 → 由 byte14 低 4 位 IHL 跳过 IP 头 → 协议字段 1=ICMP 才继续；icmp_type/
 // code 只是记账（11/0 = TTL 超时丢弃），真正回填用的是 identifier、sequence 与 payload。
 // 载荷字节数 = IP 总长 − 20(IP 头) − 8(ICMP 头)；rec_en 逐字节出、rec_pkt_done 打一拍。

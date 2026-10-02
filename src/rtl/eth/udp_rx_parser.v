@@ -30,6 +30,8 @@ module udp_rx_parser #(
     reg [15:0] bcnt;       // byte index in frame
     reg [15:0] udp_off;    // start of UDP header
     reg [15:0] udp_len;    // UDP length field
+    reg [15:0] pay_start;  // udp_off+8：与 udp_off **同拍**寄存，把加器挪出 p_good 的锥
+    reg [15:0] pay_end;    // udp_off+udp_len-1：与 udp_len 低字节同拍寄存（同一手法）
     reg [15:0] pay_cnt;
     reg        accept;
     reg        in_pay;
@@ -45,13 +47,14 @@ module udp_rx_parser #(
     // 本拍的字节是不是这一包的最后一个载荷字节（按 udp_len 口径，不含 FCS 与填充）。
     // 需要它是因为厂商风格的 s_eof 与最后一个字节同拍，那一拍 eof_pend 还来不及置上。
     // 声明必须放在上面这几个 reg **之后**：xvlog 不允许标识符先用后声明。
-    wire last_pay_now = accept && s_valid && (bcnt >= (udp_off + 16'd8)) &&
-                        (bcnt == (udp_off + udp_len - 16'd1));
+    wire last_pay_now = accept && s_valid && (bcnt >= pay_start) && (bcnt == pay_end);
 
     always @(posedge clk or negedge rst_n) begin
         if (!rst_n) begin
             bcnt <= 16'd0;
             udp_off <= 16'd0;
+            pay_start <= 16'd0;
+            pay_end   <= 16'd0;
             udp_len <= 16'd0;
             pay_cnt <= 16'd0;
             accept <= 1'b0;
@@ -133,6 +136,7 @@ module udp_rx_parser #(
                 // 所以只污染统计、不影响画面）。判据：tb_v795_rx_chain 的 C1"不误报丢弃"。
                 if ((ihl != 4'd0) && bcnt == (16'd14 + {10'd0, ihl, 2'b00})) begin
                     udp_off <= bcnt;
+                    pay_start <= bcnt + 16'd8;   // 这一拍的 bcnt 就是 udp_off，尾界同理提前算
                     // verify IPv4/UDP/no-frag using stored fields
                     if (proto_chk == 16'h0800 && b14[7:4] == 4'h4 && b23 == 8'd17 &&
                         {b20, b21} == 16'h0000)
@@ -154,6 +158,8 @@ module udp_rx_parser #(
                 if (bcnt == udp_off + 16'd2 && accept) dport[15:8] <= s_data;
                 if (bcnt == udp_off + 16'd4 && accept) udp_len[15:8] <= s_data;
                 if (bcnt == udp_off + 16'd5 && accept) udp_len[7:0]  <= s_data;
+                if (bcnt == udp_off + 16'd5 && accept)
+                    pay_end <= udp_off + {udp_len[15:8], s_data} - 16'd1;  // 尾界提前一拍算完
 
                 // payload starts at udp_off+8
                 if (accept && bcnt == udp_off + 16'd7) begin
@@ -163,17 +169,17 @@ module udp_rx_parser #(
                 // V7.9.5（#38 第 2 步）：**载荷按 UDP 长度字段收尾**，不能一路发到帧尾 ——
                 // 原来的写法 `bcnt >= udp_off+8` 会把帧尾那 4 个 FCS 字节也当载荷吐出去
                 // （32 字节的载荷吐出 36 个），接上 frame_reasm 就是每包多 4 字节的确定性错位。
-                if (accept && (bcnt >= udp_off + 16'd8) &&
-                    (bcnt < (udp_off + udp_len))) begin
+                if (accept && (bcnt >= pay_start) &&
+                    (bcnt <= pay_end)) begin
                     p_data  <= s_data;
                     p_valid <= 1'b1;
-                    if (bcnt == udp_off + 16'd8) p_sof <= 1'b1;
+                    if (bcnt == pay_start) p_sof <= 1'b1;
                     pay_cnt <= pay_cnt + 16'd1;
                     in_pay  <= 1'b1;
                     // 最后一个载荷字节：先**记账**，不当场发 p_eof —— 因为 FCS 的判定要等帧结束
                     // 那一拍（m_good/m_bad 与 m_eof 同拍）才知道。早发就得猜，猜错就是
                     // "把坏包当好包提交"，那是最坏的一种错。
-                    if (bcnt == (udp_off + udp_len - 16'd1)) begin
+                    if (bcnt == pay_end) begin
                         eof_pend  <= 1'b1;
                         pay_len_q <= pay_cnt + 16'd1;
                     end

@@ -1,4 +1,4 @@
-// icmp_tx — 厂商例程（riguke，V1.0，非自研）：拼一帧 ICMP 回显应答（ping reply）发给对端。
+// icmp_tx — 拼一帧 ICMP 回显应答（ping reply）发给对端。
 // 帧：前导码 8B → 以太网头 14B（类型 0x0800）→ IPv4 头 20B（版本/IHL 0x45、DF=010、TTL=0x80、
 // 协议字段 1=ICMP）→ ICMP 8B（type=0 回显应答、code=0、identifier、sequence、checksum）→ 数据，
 // 不足 46B 补齐。IP 首部校验和与 ICMP 校验和都在本模块内算（一补数累加、进位再累两次、取反）：

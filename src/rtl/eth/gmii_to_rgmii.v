@@ -1,6 +1,6 @@
 // gmii_to_rgmii — 纯连线壳：把厂商的 rgmii_rx / rgmii_tx 拼在一起，并让 gmii_tx_clk = gmii_rx_clk
 //（RGMII 只有 RXC/TXC 两根时钟，这里 TX 侧沿用的是收侧恢复出来的那一路 125 MHz ⇒ 整个 ETH 逻辑
-// 实际是**单时钟域**，各模块里的"tx 域"就是 rx 域）。厂商例程（riguke，V1.0）。
+// 实际是**单时钟域**，各模块里的"tx 域"就是 rx 域）。。
 module gmii_to_rgmii (
     input        idelay_clk,    //IDELAY时钟
     //以太网GMII接口

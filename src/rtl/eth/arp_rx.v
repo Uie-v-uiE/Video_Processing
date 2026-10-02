@@ -1,4 +1,4 @@
-// arp_rx — 厂商例程（riguke，V1.0，非自研）：从 GMII 收流里认 ARP 帧，取出对端的 MAC/IP。
+// arp_rx — 从 GMII 收流里认 ARP 帧，取出对端的 MAC/IP。
 // 判据：以太网类型 0x0806 且目的 MAC 等于本机 MAC 或广播；arp_rx_type 0=请求 1=应答；
 // src_mac/src_ip 取的是**发送方**的 SHA/SPA（不是目标字段），命中时 arp_rx_done 打一拍。
 // 时钟域：clk = gmii_rx_clk（125 MHz）。本模块不看错误标志——RGMII 没有 RX_ER 通道，帧级判定在

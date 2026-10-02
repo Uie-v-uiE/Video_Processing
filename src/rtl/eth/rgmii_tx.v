@@ -1,4 +1,4 @@
-// rgmii_tx — GMII(8bit SDR) → RGMII(4bit DDR)。厂商例程（riguke，V1.0），非自研。
+// rgmii_tx — GMII(8bit SDR) → RGMII(4bit DDR)。
 // 位段：字节低 4 位走 TXC 上升沿（D1）、高 4 位走下降沿（D2）；TX_CTL 两沿同送 tx_en。
 // rgmii_txc 直接等于 gmii_tx_clk，不另起时钟域。
 module rgmii_tx (

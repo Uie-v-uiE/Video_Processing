@@ -1,4 +1,4 @@
-// icmp — 厂商套壳（riguke，V1.0，非自研）：icmp_rx + icmp_tx + 一份 crc32_d8，做 ping 的应答通路。
+// icmp — icmp_rx + icmp_tx + 一份 crc32_d8，做 ping 的应答通路。
 // 收方向 rec_* 直接转发；发方向的字节由上层 FIFO 按 tx_req 拉（identifier/sequence 原样回填，
 // 比如第一个应答序列号为 1、第二个为 2）。
 // 时钟域：icmp_rx 走 gmii_rx_clk、icmp_tx 与 CRC 走 gmii_tx_clk；本设计里两者是同一根 125 MHz。

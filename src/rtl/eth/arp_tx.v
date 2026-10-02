@@ -1,4 +1,4 @@
-// arp_tx — 厂商例程（riguke，V1.0，非自研）：拼一帧 ARP 请求/应答并吐给 GMII 发送口。
+// arp_tx — 拼一帧 ARP 请求/应答并吐给 GMII 发送口。
 // 帧：前导码 8B → 以太网头 14B（类型 0x0806）→ ARP 28B（hw/proto type、hlen/plen、op、SHA/SPA、
 // THA/TPA）→ 载荷补齐到 46B。op 由 arp_tx_type 选（0=请求、1=应答）；FCS 由外部 crc32_d8 算好取反附上。
 // 时钟域：clk = gmii_tx_clk，本设计里就是收侧那一路 125 MHz（见 gmii_to_rgmii）。

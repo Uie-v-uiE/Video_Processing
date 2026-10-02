@@ -1,5 +1,5 @@
 // crc32_d8 — 一次一字节（8 bit）的以太网 CRC32 核，收/发两侧共用同一份、同一套约定。
-// 厂商例程（riguke，V1.0）。约定：crc_data 复位为全 1，每字节异或前先**位反转**（data_t），
+// 约定：crc_data 复位为全 1，每字节异或前先**位反转**（data_t），
 // crc_next 是"下一拍的值"（发送侧才用它拼 FCS，收侧只看 crc_data 的残值）。
 // CRC 覆盖范围由例化者决定：发送侧喂"线上正在出的字节"（eth_udp_video_top 的 crc_d8），收侧喂整帧 DA..FCS[3]。
 module crc32_d8 (

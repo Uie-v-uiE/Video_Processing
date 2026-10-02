@@ -1,4 +1,4 @@
-// eth_ctrl — 厂商例程（riguke，V1.0）的发送仲裁：ARP/UDP/ICMP 三路共用一根 GMII 发送口，
+// eth_ctrl — 发送仲裁：ARP/UDP/ICMP 三路共用一根 GMII 发送口，
 // protocol_sw 选 2'b00=ARP、2'b01=UDP、2'b10=ICMP；收侧只做 icmp_rec/udp_rec → rec_* 的二选一转发。
 // 时钟域：整块跑在 clk=gmii_rx_clk（125 MHz）。这不是漏了同步——RGMII 下 gmii_tx_clk 就是 gmii_rx_clk
 // 本身（见 gmii_to_rgmii 的 assign），所以三路发送字节与本域同拍，全 ETH 逻辑实际是单时钟域。

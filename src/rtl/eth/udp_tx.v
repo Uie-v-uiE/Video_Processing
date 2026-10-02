@@ -1,4 +1,4 @@
-// udp_tx — 厂商例程（riguke，V1.0，非自研）：逐字节拼一帧 Ethernet + IPv4 + UDP 再吐给 GMII 发送口。
+// udp_tx — 逐字节拼一帧 Ethernet + IPv4 + UDP 再吐给 GMII 发送口。
 // 帧布局在 tx_data/eth_head/ip_head 里按偏移填：前导码 8B → DA/SA/类型 14B → IP 头 20B → UDP 头 8B →
 // 载荷；最小帧 64B ⇒ 载荷不足 46-20-8=18 字节时补齐。IP 首部校验和在本机内算（一补数累加两次进位），
 // UDP 校验和恒 0（IPv4 下即"不计算"）。FCS 由外部 crc32_d8 算，本模块只发 crc_en/crc_clr 并取反拼上。

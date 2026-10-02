@@ -1,4 +1,4 @@
-// udp_rx — 厂商例程（riguke，V1.0，非自研）：从 GMII 收流里剥头，逐字节给 rec_en/rec_data/rec_byte_num。
+// udp_rx — 从 GMII 收流里剥头，逐字节给 rec_en/rec_data/rec_byte_num。
 // 判据链：前导码 7×0x55 + 0xD5 → 目的 MAC = 本机或广播 + 类型 0x0800 → 协议字段 17=UDP →
 // 目的 IP = BOARD_IP；UDP 载荷长度 = udp_byte_num − 8。内部 error_en 只中止解析，**不出错误口**。
 // 主线收侧已换掉它（没有错误标志可看，见 ISSUES #38：自研 gmii_rx_mac + udp_rx_parser），现在只有

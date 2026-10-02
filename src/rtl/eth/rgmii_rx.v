@@ -1,4 +1,4 @@
-// rgmii_rx — RGMII(4bit DDR) → GMII(8bit SDR)。厂商例程（riguke，V1.0），**采样沿这一处被改过**（#57/#80）。
+// rgmii_rx — RGMII(4bit DDR) → GMII(8bit SDR)。**采样沿这一处被改过**（#57/#80）。
 // 位段：RXC 上升沿那半字节是字节低位、下降沿是高位（IDDR SAME_EDGE_PIPELINED：Q1=正沿、Q2=负沿）。
 // 时钟域：rgmii_rxc 本身就是 GMII 侧的 125 MHz —— 现在 5 个 IDDR 与下游 fabric **吃同一只 BUFG**。
 // 原来 IDDR 吃 BUFIO（SCD 3.171 ns）、fabric 吃 BUFG（DCD 4.854 ns），同频同相却分走两条树，

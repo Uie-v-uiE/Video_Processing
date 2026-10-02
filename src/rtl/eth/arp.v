@@ -1,4 +1,4 @@
-// arp — 厂商套壳（riguke，V1.0，非自研）：arp_rx + arp_tx + 一份 crc32_d8。
+// arp — arp_rx + arp_tx + 一份 crc32_d8。
 // 时钟域：arp_rx 走 gmii_rx_clk、arp_tx 与 CRC 走 gmii_tx_clk，CRC 的输入就是线上正在出的 gmii_txd
 //（crc_d8 = gmii_txd），所以本模块发出去的 FCS 只覆盖 ARP 帧（ARP 不经 IP，没有伪头校验和）。
 module arp (
