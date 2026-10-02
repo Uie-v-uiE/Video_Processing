@@ -10537,3 +10537,38 @@ D1c 会把首页那句"门禁 22 项 21 绿 / 1 红"与 `rNN_gates.txt` 的行�
 （`README.md:56`、`README.en.md:70` 同形状句、`report/BACKGROUND_AND_NOVELTY.md:31`、`:80`），
 一次提交内跑 `doc_currency` 确认不红。新加的两项各带计数地板（rc=0 **且**输出里有 PASS 行），
 并先给 `temp_formula_check` 补一个能改退出码的 `--self` 入口（它现在只有内建变异）。
+
+---
+
+## #227（2026-10-02 13:0x，总体过一轮·第四批）：把 r106 综合日志的**警告**逐条读完——三类死代码，都不是功能缺陷，但其中一类的"为什么"以前没人写过
+
+**为什么要做这一批**：门禁里读警告的只有两条（`Synth 8-689` 端口位宽 = 0、CDC 不新增 Critical），
+其余 WARNING 是"看得见但没人判"。趁台架在飞（不许动 `src/rtl`）把 `build/r106_build_console.txt`
+的警告面过一遍。先说结论：**没有发现功能问题**；发现的是三类死代码/哑路径，以及一条值得钉下来的口径。
+
+**① `WARNING: [Synth 8-3848] Net fifo_tx_data in module eth_udp_video_top does not have driver.**
+`[src/rtl/eth/eth_udp_video_top.v:114]` — 这条**今天仍然在报**（不是历史遗留的转述）。查到底：
+`fifo_tx_data` 只出现两次（114 声明、219 接进 `eth_ctrl` 的 `.tx_data`），而 `eth_ctrl.v:57-58` 是
+`assign icmp_tx_data = icmp_tx_req_d0 ? tx_data : 8'd0;` / `assign udp_tx_data = udp_tx_req_d0 ? tx_data : 8'd0;`
+—— 这两个输出口在顶层**都没接**（`eth_udp_video_top.v:214`、`:218` 都是 `.icmp_tx_data(),` / `.udp_tx_data(),`）。
+⇒ `eth_ctrl` 那条"按字节从 FIFO 取数去发"的通路是**厂商样板留下的残肢**：`tx_data` 悬空、`tx_req`/`rec_en`/`rec_data`
+接到没人消费的线上。今天无害（真正发 ARP/ICMP 的是 `u_arp_tx`/`u_icmp`，收包走 `u_rx_par`→`u_reasm`），
+但它会让读 `eth_ctrl` 的人以为发送字节从这里来。**立案 #177（清理候选，不在时序轮里做）**。
+
+**② `udp_tx` 的 7 个 one-hot 状态触发器被判 unused 删除** —— 这一条**不是 bug，是设计意图**，
+而意图写在代码里：`eth_udp_video_top.v:166` 是 `.tx_start_en(1'b0), // 与今天一致：Z7 不发 UDP`，
+上一行 158 的注释已经把判据指到 `tb_v795_rx_chain C1..C5`。⇒ FSM 永不离开 idle，综合把整组状态 FF 收掉，
+`udp_gmii_tx_en` 恒 0，发送复用器实际只走 ARP/ICMP。**交付文档口径核对过**：`README.md:15` 写的是
+"RGMII **收** UDP 视频流"，没有宣称"PL 发 UDP"⇒ 文档与 RTL 在这点上不矛盾。
+
+**③ `split_ctrl` 的 `pct_q` 被判删掉 14 个时序元件**：`src/rtl/video/split_ctrl.v:124-129` 是
+`reg [11:0] pct_q; pct_q <= {4'd0, pct};` —— 高 4 位**由构造恒 0**，综合顺带把比较/算术里推不出的更高位也收了。
+这和 #146 那一族是同一件事：**界是真的，但没写成断言**，于是它以"综合日志里的一串 unused"的形式存在。
+留在 #177 的清单里（窄化寄存器位宽或补一条"界"断言，二选一，别两个都做）。
+
+**没发现问题的两项**（免得下一个人重复查）：
+- 综合日志里 `latch` 只有 5 处命中，全是 `Wrote/Read PulsedLatchDB`（Vivado 自己的数据库 I/O），
+  **没有一条"inferred latch"** ⇒ 没有组合环或漏赋初值。
+- `WARNING: [Synth 8-3917] design system_top has port eth_mdc driven by constant 0`（报两次）：
+  MDIO 时钟不驱动是**板级事实**（PHY 由硬件 strap 配），不是接错；但它是"顶层端口被常数驱动"这一类，
+  如果哪天要上 MDIO 读寄存器，这里就是入口。
