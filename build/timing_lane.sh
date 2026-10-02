@@ -37,6 +37,8 @@ LANE=(
   # 其它分钟级安全网（在途读 / 仲裁 / 抽头调度 / 链路监视 / CDC / 心跳 / 时序 / 分割控制）
   tb_writer_abort tb_src_arb_why tb_tap_sched tb_link_monitor
   tb_cdc_capacity tb_ps_publish tb_timing tb_v93_split_ctrl
+  # 按键→角度链（#247：上电那一度的机理， characterization 型判据）
+  tb_v111_key_boot
 )
 [ "${1:-}" = "--list" ] && { printf '%s\n' "${LANE[@]}"; exit 0; }
 

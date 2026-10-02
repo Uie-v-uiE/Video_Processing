@@ -94,6 +94,12 @@ module frame_reasm #(
         : (rbank == 3'd2) ? rok2[roff]
         : (rbank == 3'd3) ? rok3[roff]
         :                    rok4[roff];
+    // 独热化（r110 刀 4① / ISSUES #238）：公共的"新行"拆成每 bank 一根使能网。
+    // ⚠ 必须放在 row_covered 的定义**之后**：拷贝树自测里我把它插在定义之前，
+    //    xvlog 直接 [VRFC 10-3380] identifier 'row_covered' is used before its declaration（pristine 0 错 vs patched 2 错）。
+    wire        new_row_w = (row_idx < IMG_H) && !row_covered;
+    // rbank<=4 由 row_idx<IMG_H(=300) 保证（ridx<=299 ⇒ rbank=ridx[8:6]<=4）；>=5 时 new_row_w 本已为 0。
+    wire [4:0]  bank_one  = new_row_w ? (5'b00001 << rbank) : 5'b00000;
 
     // 4-byte little-endian offset, complete in the S_OFF3 cycle
     wire [31:0] hdr = {p_data, off[23:0]};
@@ -145,14 +151,12 @@ module frame_reasm #(
                                 wr_addr<=off[18:1];
                                 wr_en  <=(off < FRAME_BYTES);
                                 if (off < FRAME_BYTES) begin
-                                    if (row_idx < IMG_H && !row_covered) begin
-                                        if (rbank == 3'd0) rok0[roff] <= 1'b1;
-                                        if (rbank == 3'd1) rok1[roff] <= 1'b1;
-                                        if (rbank == 3'd2) rok2[roff] <= 1'b1;
-                                        if (rbank == 3'd3) rok3[roff] <= 1'b1;
-                                        if (rbank == 3'd4) rok4[roff] <= 1'b1;
-                                        rows_hit <= rows_hit + 16'd1;
-                                    end
+                                    if (bank_one[0]) rok0[roff] <= 1'b1;
+                                    if (bank_one[1]) rok1[roff] <= 1'b1;
+                                    if (bank_one[2]) rok2[roff] <= 1'b1;
+                                    if (bank_one[3]) rok3[roff] <= 1'b1;
+                                    if (bank_one[4]) rok4[roff] <= 1'b1;
+                                    if (|bank_one) rows_hit <= rows_hit + 16'd1;
                                 end else
                                     stat_oob_off<=stat_oob_off+1;
                                 have_lo<=0;

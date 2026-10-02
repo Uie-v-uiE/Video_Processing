@@ -135,7 +135,7 @@ module link_monitor #(
             if (frame_done) begin
                 stall_ms  <= 0;
                 // 第一个 frame_done 只建立基准，从第二个起才有 last/min/max（否则 min 被"上电到现在"污染）
-                if (have_base) begin
+                if (gapclr) begin gap_last<=0; gap_min<=0; gap_max<=0; gap_sum<=0; gap_valid<=0; end else if (have_base) begin
                     gap_last <= gap_new;
                     gap_sum  <= gap_sum + {16'd0, gap_new};
                     if (!gap_valid) begin
