@@ -1,0 +1,6 @@
+r104 板上 #102 眼睛判的置态回读（2026-10-02 08:4x，串口逐条 -Cmd，捕获逐字）
+命令序列（照 report/DEMO_SCRIPT.md 第 4 幕与 main.c 的词表：src 0=图卡 1=网络 2=SD）：
+  src 0 / rot auto 0 / zoom fit 0 / bilin on / split 50 / split marker 0 / zoom 0.5
+此刻板上位流 = r104：build/system.bit md5 前 12 位 = 680f38f5794c（对 build/r104_gates.txt 的身份行）
+[STAT] ctrl thr=80 src=0 zoom=1 bilin=1 zsel=2 zman=1 pub=1 sd=1 frames=4398 playing=1 sel=000 gm=0.00 (PL owns UDP datapath) mode=2 geom=40400800 osd=1
+
