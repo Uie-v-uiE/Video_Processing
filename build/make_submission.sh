@@ -223,16 +223,57 @@ if [ -n "$BIT12" ]; then
 fi
 if [ -n "$GBIT" ]; then mkdir -p build/reports; cp "$GBIT" build/reports/gates.txt; echo "带上板上那一版的门禁件 $(basename "$GBIT") -> build/reports/gates.txt" >> _pruned.txt; fi
 
-# 2d-1) 板级实测输出：只搬 board/ACCEPTANCE.md 按路径点名的那几份，并把轮次号从包内名字里去掉
+# 2d-1) 板级实测输出：把**交付文档按路径点名的**那几份搬进包内板级目录，并把轮次号从包内名字里去掉。
+#   ⚠ 2026-10-02 修：这里原来只扫 `board/ACCEPTANCE.md` 一个文件，而 2d-4 那一圈无条件删掉
+#   `build/evidence/` 整目录 ⇒ 凡是只被 README / README.en / report/*.md 点名的凭据，
+#   **文件被删、指路却留下**（当天实测：包内 README 引用 `r104_holdrow_stale_red.txt`，
+#   而 `board/output/` 里 15 份没有它，末尾的死链自检还报 0 —— 那条自检照"斜杠形状"抓，
+#   这条引用到那时已经不是斜杠形状了）。所以判据换成"哪份文档有资格让凭据随包"：
+#   **交付文档全体的路径式点名**，但 `report/log/`（过程台账）除外——那一层导出器自己声明
+#   "包内不可解析只报数、不参与包完整性"，让它决定谁随包会把 766 条历史引用一起拖进来。
 mkdir -p board/output
-for f in $(grep -ohE 'build/evidence/[A-Za-z0-9_.-]+' board/ACCEPTANCE.md 2>/dev/null | sort -u); do
+# 扫描面可由 SUB_EVIDENCE_DOCS 覆盖——**只为让这条地板能被同一段代码证明会红**
+# （规矩 38(c)：反例必须跑门禁自己跑的那条路，不能另写一份小复现）。平时不设就用默认的全交付文档。
+EV_DOCS="${SUB_EVIDENCE_DOCS:-$(find . -name '*.md' -not -path './report/log/*' 2>/dev/null | sort)}"
+# 扫描面的**形状**地板：README、README.en、ACCEPTANCE 这三份必须在射程里。
+# 今天那个洞的准确形状就是"只扫 ACCEPTANCE"——它不从引用数上看得出来（少扫的文件根本没进引用集），
+# 只有从"扫了哪几份文档"这个独立分母才看得出来（规矩 23(c)：分母不许由被检的那条分支算）。
+for must in ./README.md ./README.en.md ./board/ACCEPTANCE.md; do
+  printf '%s\n' "$EV_DOCS" | grep -qx "$must" || { echo "REFUSE：板级凭据的扫描面缺了 $must（今日洞的形状）" >&2; exit 1; }
+done
+EV_CITED=$(grep -ohE 'build/evidence/[A-Za-z0-9_.-]+' $EV_DOCS 2>/dev/null | sort -u)
+EV_PRESENT=0; EV_MOVED=0; EV_CLASH=""
+for f in $EV_CITED; do
   if [ -f "$f" ]; then
+    EV_PRESENT=$((EV_PRESENT + 1))
     nb="$(printf '%s' "$(basename "$f")" | sed -E 's/^r[0-9]+[a-z]?_//; s/_r[0-9]+//')"
+    # 去轮次号之后撞名 ⇒ **退让而不是覆盖**：先试原名（带着轮次号，仍然是个好读的名字），
+    # 两边都一样才真冲突——那种情况记下来让下面那条地板拒绝落盘。
+    # 今天第一次跑到这里就是撞在 `artifact_md5.txt` 上（`r85_…` 与另一轮的 `…_artifact_md5.txt`
+    # 去掉编号后同名），按旧写法后一份会**静默覆盖**前一份，包里少一份凭据而计数看不出来。
+    if [ -e "board/output/$nb" ]; then
+      alt="$(basename "$f")"
+      if [ -e "board/output/$alt" ]; then EV_CLASH="$EV_CLASH $f"; continue; fi
+      echo "板级凭据去轮次号会撞名，这一份保留原名 $f -> board/output/$alt" >> _pruned.txt
+      nb="$alt"
+    fi
+    if [ -e "board/output/$nb" ]; then EV_CLASH="$EV_CLASH $f"; continue; fi
+    # 撞名不是小事：两份留档去掉轮次号后同名 ⇒ 后一份**静默覆盖**前一份，包里就少一份凭据。
+    if [ -e "board/output/$nb" ]; then EV_CLASH="$EV_CLASH $f->$nb"; continue; fi
     mv "$f" "board/output/$nb"
     add_mv "$f" "board/output/$nb"
+    EV_MOVED=$((EV_MOVED + 1))
     echo "板级实测输出搬进包内板级目录 $f -> board/output/$nb" >> _pruned.txt
   fi
 done
+# 射程地板（2026-10-02 与上面那条范围修同批）：**交付文档点了几份、盘上有几份、包里就得有几份**。
+# 少了就是这一层在漏 —— 今天那个洞的形状正是"点名 29 份、只搬 15 份、剩下 14 份被整目录删掉，
+# 而引用还被改成了不带目录的样子，死链自检照斜杠形状抓不到"。撞名也算漏，单独念出来。
+if [ "$EV_MOVED" != "$EV_PRESENT" ]; then
+  echo "REFUSE：板级凭据随包不完整 —— 点名且盘上 $EV_PRESENT 份，搬进包 $EV_MOVED 份；撞名被跳过：${EV_CLASH:-无}" >&2
+  exit 1
+fi
+echo "板级凭据随包：交付文档点名 $(printf '%s\n' $EV_CITED | grep -c .) 份 / 盘上 $EV_PRESENT 份 / 搬进包 $EV_MOVED 份（撞名 ${EV_CLASH:-0}）"
 
 # 2d-2) 上板要用的 tcl 与串口脚本归到 board/（工程名在导出时改，仓库里的名字是工作日志引用的）
 mkdir -p board/tcl board/scripts
