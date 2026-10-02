@@ -10101,3 +10101,38 @@ echo request，期望几拍之内回 `st_idle`；现在这版必须判红），�
   `doc_currency_check` `CURRENCY: 干净`；`metric_recheck` 判 37 个数（首页层 28）红 0。
   数没动：门禁仍 22 项 = 21 绿 / 1 红（红仍是声明过的 `C5c`）、试冻结仍 `REFUSE`、全绿集仍是 `build/r75_gates.txt`。
 
+## 2026-10-02 08:4x 位置那一批判据的证据**按 RTL 恒等**沿用到 r104（这条是查出来的，不是假定）；#167 的尺子落地；时序 A/B 在飞
+
+- **要复查的问题**：板上这一版是 r104（`bit 680f38f5794c`），而位置那一族判据在盘上的判定原文**跨了两轮**——
+  先看清楚哪些是 r104 的、哪些还是 r103 的（我第一版草稿把 `tb_edge_rim` 也说成"只有 r103"，是错的，
+  `ls build/` 数到 `build/tb_edge_rim_r104.txt` 且里面戳着 `rtl_md5=8997a62b75ba` ⇒ 它就是在当前位流的树上跑的）：
+  - **r104 树上跑的**：`build/tb_edge_rim_r104.txt`（边缘/行首那一族）、`build/r104_tb_zoom_fit_corners_console.txt`（#162 角点）、
+    顶层 `build/tb_v98_report.txt`（含那条故意留红的 `C5c`）。
+  - **盘上的原文还是 r103 那一次的**：`build/r103_tb_zoom_frac.txt`（#189 的逐像素那一半）、
+    `build/r103_tb_zoom_mapper.txt`、`build/r103_tb_v94_zoom_sel.txt`、`build/r103_tb_v96_zoom_scan.txt`。
+  ⇒ "位置修复在当前位流上还算不算数"这句要么证、要么改口，不能假定。
+- **证法（一条命令，读的是 git）**：`git diff --name-only 54346ae HEAD -- src/rtl` ⇒ 输出只有 `src/rtl/eth/icmp_tx.v`。
+  `54346ae` 是 r103 的采纳提交，`HEAD` 是 r104 采纳之后的树，两版之间**几何那一路一个字节都没动**
+  （`zoom_mapper.v` / `zoom_fit.v` / `fb_bilin.v` / `proc_pipeline.v` / `raw_line_delay.v` / `pl_video_top.v` 全在 diff 之外）
+  ⇒ 上面那四份 r103 原文**按被测源恒等**沿用到 r104。这不等于"以后每轮都可以不重跑"：
+  哪一轮真改了几何那一路，这批就得重跑，而重跑的代价（顶层台架 ≈2 h）已经写在 task 74/167 里。
+- 顺手把同一条恒等用在别处：今天那条时序 A/B（`build/r105_ab_rolls.sh`）之所以能做**单变量**对照，依据就是同一个 diff——
+  `pre` 档 = `git show 54346ae:src/rtl/eth/icmp_tx.v`（norm md5 `6e91edb0305b`）装回树里就正好是 r103 那一版，其余源不用动。
+  装树/核对/还原这条通道先 `DRY=1` 跑过（跑完 `git status` 对 `src/rtl` 为空），才敢拿去滚。
+- **本轮新落的尺子**：`sim/tb_head_rot_displace.v`（#167 的映射那一半）＋凭据 `build/r105_tb_head_rot_displace.txt`
+  ⇒ 提交 `7f6ce31`；重跑命令与"它只例化 `zoom_fit`+`zoom_mapper`、不碰顶层，因此与门禁第 15 项的 `tb_md5` 等式无关"
+  写进 `report/KNOWN_ISSUES.md` 第一节 ⇒ 提交 `8873df4`。读数：屏顶那一带带着上一帧映射时，k=1/2/7 度每帧的位移
+  最大 **5/9/31** 个源像素（平均 2.7/5.5/20.3），越界位翻转 14/22/66 格；k=0 三个角度各扫两遍逐位相同
+  （1112/1366/1018 个有效格）⇒ "眼睛在宽窄这一档饱和"从推测变成有数可引，而我手算的 36 改成实测 31。
+- **还在飞的一件事**：时序 A/B 四-roll（post/pre 各两轮），08:27:01 起飞；第一轮到 08:48 还没收尾
+  （比过去几轮的 13~15 分钟长——中间我插了一次全树 xvlog 编译与一轮 xsim，抢了 CPU）。
+  **结果没落地之前不写任何时序结论**；判读阈值事先写在 task 171 与那条提交正文里：极差 ≥0.4 ns，
+  或 post 的最小值 ≤ pre 的最大值 ⇒ `#141` 那 +0.204 **仍不成立为收益**。
+- **两格眼睛活现在板上摆着，等人看**（都是只读命令置态，我随时能收回去）：
+  ① E4 原本那半：板子冻在某个角度（08:28:51 冻的 `rot auto 0`），要念的是屏上 `ROT:` 那格的度数 + 四角在不在屏内 + 左缘有没有沿对角的宽彩条。
+  ② `#102` 的眼睛路径：`src 0`（图卡）+ `rot auto 0` + `zoom fit 0` + `bilin on` + `split 50` + `split marker 0` + `zoom 0.5`，
+     置态回读落盘 `build/evidence/r104_z05_left_edge_state.txt`（`STAT` 回 `zsel=2 zman=1`）；
+     要看的是画面左缘有没有一条"从视频里切出来的"细线、它在 0.5×／0.75×／1.00× 三档宽度变不变。
+     ⚠ 这一档的机器判据**还没建**（task 74：`C8` 只在 1.00× 判第 0 列，`C2/C7` 从不判第 0 列），
+     所以眼睛的答复只能定"这一档有没有现象"，不能写成"已验"。
+
