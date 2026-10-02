@@ -53,7 +53,13 @@ function fromTiming(p) {
         const r = line.match(/^\s*(\S+)\s+(-?[0-9.]+)\s+(-?[0-9.]+)\s+(\d+)\s+(\d+)\s+(-?[0-9.]+)/);
         if (r) periods[r[1]] = { wns: Number(r[2]), whs: Number(r[6]) };
     }
-    return { wns: Number(m[1]), failSetup: Number(m[3]), totalEp: Number(m[4]), whs: Number(m[5]), periods };
+    const per = {};
+    const cs = (t.split('| Clock Summary')[1] || '').split('Clock Groups')[0].split('Intra Clock Table')[0];
+    for (const line of cs.split('\n')) {
+        const p = line.match(/^\s*(\S+)\s+\{[^}]*\}\s+([0-9.]+)\s+([0-9.]+)/);
+        if (p) per[p[1]] = { period: Number(p[2]), freq: Number(p[3]) };
+    }
+    return { wns: Number(m[1]), failSetup: Number(m[3]), totalEp: Number(m[4]), whs: Number(m[5]), periods, per };
 }
 function fromUtil(p) {
     const t = fs.readFileSync(p, 'utf8');
@@ -152,6 +158,7 @@ const KINDS = {
 };
 
 const RULES = [
+    { name: '显示像素时钟', src: 'timing', get: r => (r.per && r.per.clkout0_1) ? r.per.clkout0_1.freq : null, note: 'Clock Summary 里 MMCM 那一输出的 Frequency' },
     { name: '全局 setup WNS', src: 'timing', get: r => r.wns, note: 'WNS 第一列' },
     { name: '全局 setup 失败端点', src: 'timing', get: r => r.failSetup, also: { in: '测量条件', re: /\/\s*(\d{4,6})/, get: r => r.totalEp, what: '端点总数' } },
     { name: '全局 hold WHS', src: 'timing', get: r => r.whs, note: 'WHS 第一列' },
@@ -171,7 +178,9 @@ function run(self) {
     let rows = readRows(fs.readFileSync(CSV, 'utf8'));
     rows.shift();                                            // 表头
     if (self) rows.push(['全局 setup WNS', '核心', '+9.999', 'ns', '自检：故意写错的一条', '一次构建', 'build/timing_summary.rpt']);
-    const known = new Set(RULES.map(r => r.name));
+    // 第二条 fixture 测的是"点了报告、却没人认领"这一格（旧写法只 other++，静默）：
+    // 删掉下面那个 orphan 判红，这条 fixture 就不红了 ⇒ 它就是那一格的"改前必须红"。
+    if (self) rows.push(['自检：没有规则认领的一行', '核心', '+1.000', 'MHz', '自检：故意写错的一条', '一次构建', 'build/timing_summary.rpt']);
     let red = 0, judged = 0, other = 0;
 
     // 首页那五行也一起判（#213 起了这个头，#159 扩到"四行 26 个数"，本轮 #224 补到每份五行：
@@ -223,11 +232,30 @@ function run(self) {
     if (frontRows !== FRONT.length) { console.log(`RED 首页对账只找到 ${frontRows}/${FRONT.length} 份首页行层 ⇒ 这一层不完整`); red++; }
     if (frontParsed === 0) { console.log('RED 首页对账一行都没解析到 ⇒ 这一层是空转'); red++; frontRed++; }
 
+    // 三条把这一层的"射程"自己念出来（#194/#219 同族：计数不落地，尺子就能空转）：
+    //   ① `judged` 以前只在绿行累加 ⇒ 一轮构建把 csv 判红 7 条，汇总行就"少了 7 个被判的数"，
+    //      看起来像射程缩了、其实是红了。判过就计数，红绿都算。
+    //   ② 报告里取不到数以前是 `SKIP` + 静默计入"未覆盖" ⇒ 解析断一行等于把那行的账抹掉，
+    //      现在它是红（并且点名是哪一个规则断了）。
+    //   ③ csv 里点了三份报告之一、却没有任何规则认领 ⇒ 以前只是 `other++`。这种行**就是**
+    //      "首页/指标表引用了报告但没人回头读"的那个洞（#213 立案的原因），现在逐行判红。
+    const NAMED = /timing_summary\.rpt|utilization\.rpt|power\.rpt/;
+    let csvNamed = 0, csvClaimed = 0;
     for (const f of rows) {
         const name = (f[0] || '').trim();
-        const rule = RULES.find(r => r.name === name);
-        if (!rule) { if (name && known.has(name)) { /* 不会到这里 */ } other++; continue; }
         const art = (f[6] || '');
+        const named = NAMED.test(art);
+        if (named) csvNamed++;
+        const rule = RULES.find(r => r.name === name);
+        if (rule) csvClaimed++;
+        if (!rule) {
+            if (named) {
+                console.log(`RED  row=${name}  引用了 ${art}，但没有任何规则认领这一行 ⇒ 这个数没人对账`);
+                red++; judged++;
+                if (String(f[4] || '').includes('自检：故意写错')) fixtureRed++;
+            } else other++;
+            continue;
+        }
         const wantFile = { timing: 'timing_summary.rpt', util: 'utilization.rpt', power: 'power.rpt' }[rule.src];
         if (!art.includes(wantFile)) {
             console.log(`RED  row=${name}  点名的是 ${art}，不是 ${wantFile} —— 判据与凭据脱钩`);
@@ -235,7 +263,11 @@ function run(self) {
         }
         const got = num(f[2]);
         const exp = rule.get(SRC[rule.src]);
-        if (exp === null || exp === undefined) { console.log(`SKIP row=${name} 报告里取不到数`); other++; continue; }
+        if (exp === null || exp === undefined) {
+            console.log(`RED  row=${name}  报告里取不到数（规则「${rule.name}」的取数断了）—— 不许 SKIP`);
+            red++; judged++; continue;
+        }
+        judged++;
         let ok = got !== null && Math.abs(got - exp) < 1e-6;
         let detail = `csv=${f[2]} report=${exp}`;
         for (const a of [rule.also, rule.also2]) {
@@ -248,10 +280,17 @@ function run(self) {
                 if (exp2 === null || exp2 === undefined || Math.abs(Number(m[1]) - exp2) > 1e-6) ok = false;
             }
         }
-        if (ok) judged++; else { red++; if (String(f[4] || '').includes('自检：故意写错')) fixtureRed++; }
+        if (!ok) { red++; if (String(f[4] || '').includes('自检：故意写错')) fixtureRed++; }
         console.log(`${ok ? 'OK ' : 'RED'} row=${name} ${detail}`);
     }
-    console.log(`== 数字对账：判 ${judged} 个数（首页层 ${frontNums} 个／解析到 ${frontParsed}/${FRONT.length} 行；红 ${red}）／csv 未覆盖 ${other} 行（只报点名 timing/utilization/power 三份报告的行） ==`);
+    // 认领地板：点名三份报告的 csv 行必须**全部**有规则认领，且这一层至少判到 8 行。
+    // 没有这条地板，"删掉一个规则"或"改了一个指标名"都会让射程缩掉而没人喊。
+    if (csvNamed !== csvClaimed) {
+        console.log(`RED  csv 点名三份报告 ${csvNamed} 行，规则只认领 ${csvClaimed} 行 ⇒ 有引用没人对账`);
+        red++;
+    }
+    if (csvClaimed < 8) { console.log(`RED  csv 侧只认领到 ${csvClaimed} 行（地板 8）⇒ 这一层在空转`); red++; }
+    console.log(`== 数字对账：判 ${judged} 个数（首页层 ${frontNums} 个／解析到 ${frontParsed}/${FRONT.length} 行；红 ${red}）／csv 认领 ${csvClaimed}/${csvNamed} 行／其余 ${other} 行不点名这三份报告 ==`);
     if (self) {
         // 首页层的反例：把 WNS 那一格的三个数全换成不可能值，三条都必须不认。
         // 有一条"认了"就说明这一层是靠正则抓不到然后跳过的空转，而不是判据。
@@ -286,12 +325,21 @@ function run(self) {
         const whsGoodN = wdiff(whsGood), whsOwnN = wdiff(whsWrongOwner);
         // 解析器自己要有地板：真实报告读不出逐时钟数（今天命中 0 次那一版）就是这一层在空转。
         const nRep = Object.keys(SRC.timing.periods || {}).length;
+        // 本轮新加的两格射程都要有牙（#194：死分支与"没有计数的判据"都算检查器缺陷）：
+        //   · Clock Summary 解析地板：真实报告里至少读到 4 个时钟的周期，否则"显示像素时钟"那行是空转。
+        //   · 取数断掉要**能**红：如果规则在缺数据的报告上返回不了 null，那"不许 SKIP"那一格就是死代码。
+        const nPer = Object.keys(SRC.timing.per || {}).length;
+        const pixRule = RULES.find((r) => r.name === '显示像素时钟');
+        const pixReal = pixRule ? pixRule.get(SRC.timing) : null;
+        const nullReachable = !pixRule || pixRule.get({ per: {} }) === null;
         const unitOk = goodN === 0 && badN >= 1 && shortN >= 1 && repShortN >= 1 && nRep >= 4
-            && whsGoodN === 0 && whsOwnN >= 1;
+            && whsGoodN === 0 && whsOwnN >= 1
+            && nPer >= 4 && pixReal === 50 && nullReachable;
         console.log(`  ${unitOk ? 'PASS' : 'FAIL'} 自检·逐时钟行：正常 0 不符（实得 ${goodN}）｜首页改回 r103 那个数能红（实得 ${badN}）｜首页少一个名能红（实得 ${shortN}）｜报告少一个时钟域能红（实得 ${repShortN}）｜真实报告解析到 ${nRep} 个逐时钟数（地板 4）`);
         console.log(`  ${unitOk ? 'PASS' : 'FAIL'} 自检·逐时钟 hold 行：正常 0 不符（实得 ${whsGoodN}）｜四个数全对但"最差那一格"指错域能红（实得 ${whsOwnN}）`);
-        if (want === 1 && got === 1 && unitOk) console.log(`SELF: 过 —— 故意写错的那一条正好被抓到 1 次（全树另有 ${red - got} 条真实红，其中首页层 ${frontRed}）`);
-        else { console.log(`SELF: 不过 —— fixture 期望 1 红，实得 ${got}（表里 fixture 行数 ${want}）；逐时钟行自检 ${unitOk ? '过' : '不过'}`); process.exit(1); }
+        console.log(`  ${unitOk ? 'PASS' : 'FAIL'} 自检·Clock Summary 行：真实报告解析到 ${nPer} 个时钟周期（地板 4）｜显示像素时钟对回 ${pixReal}（期望 50）｜报告缺数据时取数能返回 null（否则"不许 SKIP"是死代码）${nullReachable ? '' : ' —— 不成立'}`);
+        if (want === 2 && got === want && unitOk) console.log(`SELF: 过 —— 两条 fixture（写错的数 / 没人认领的引用）正好被抓到 ${got} 次（全树另有 ${red - got} 条真实红，其中首页层 ${frontRed}）`);
+        else { console.log(`SELF: 不过 —— fixture 期望 2 红，实得 ${got}（表里 fixture 行数 ${want}）；逐时钟行自检 ${unitOk ? '过' : '不过'}`); process.exit(1); }
         return;
     }
     if (red) process.exit(1);

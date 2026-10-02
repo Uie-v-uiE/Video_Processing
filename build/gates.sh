@@ -527,8 +527,12 @@ D6FRONT=$(printf '%s\n' "$D6OUT" | grep -c '^OK  row=README')
 # 计数会随版本涨，所以这里钉的是**形状**：setup 那一格与 hold 的归属那一格，中英各一条，共 >= 2。
 D6CLK=$(printf '%s\n' "$D6OUT" | grep -c 'setup\[eth_rxc\]')
 D6OWN=$(printf '%s\n' "$D6OUT" | grep -c '最差那一格的 WHS')
-say "数字对账 metric" "判=${D6CNT:-空} 首页=${D6FRONT:-空} 逐时钟=${D6CLK:-空}/归属=${D6OWN:-空} 红=$D6RED" "self（csv fixture + 首页假数 + 逐时钟/归属对照）全过、红 0、判 >= 30 个数、首页 >= 20 个、逐时钟 setup 与 hold 归属各 >= 2 条（射程地板）" \
-    $([ "$D6RC1" = 0 ] && [ "$D6RC2" = 0 ] && [ "$D6RED" = 0 ] && [ "${D6CNT:-0}" -ge 30 ] && [ "${D6FRONT:-0}" -ge 20 ] && [ "${D6CLK:-0}" -ge 2 ] && [ "${D6OWN:-0}" -ge 2 ] && echo 1 || echo 0)
+# csv 认领 X/Y：点名了三份报告之一的行有 Y 行、被规则认领的有 X 行。X<Y ⇒ 有一条引用没人回头读
+# （本轮总体过一轮时抓到的形状：`显示像素时钟` 点了 timing_summary.rpt，而 RULES 里没有它的规则）。
+D6PAIR=$(printf '%s\n' "$D6OUT" | sed -n 's|.*csv 认领 \([0-9]*\)/\([0-9]*\) 行.*|\1 \2|p' | tail -1)
+D6CLAIM=${D6PAIR%% *}; D6NAMED=${D6PAIR##* }
+say "数字对账 metric" "判=${D6CNT:-空} 首页=${D6FRONT:-空} 逐时钟=${D6CLK:-空}/归属=${D6OWN:-空} csv认领=${D6CLAIM:-空}/${D6NAMED:-空} 红=$D6RED" "self（csv 两条 fixture + 首页假数 + 逐时钟/归属/Clock Summary 对照）全过、红 0、判 >= 30 个数、首页 >= 20 个、逐时钟 setup 与 hold 归属各 >= 2 条、csv 认领两半相等且 >= 8（射程地板）" \
+    $([ "$D6RC1" = 0 ] && [ "$D6RC2" = 0 ] && [ "$D6RED" = 0 ] && [ "${D6CNT:-0}" -ge 30 ] && [ "${D6FRONT:-0}" -ge 20 ] && [ "${D6CLK:-0}" -ge 2 ] && [ "${D6OWN:-0}" -ge 2 ] && [ -n "$D6CLAIM" ] && [ "$D6CLAIM" = "$D6NAMED" ] && [ "$D6CLAIM" -ge 8 ] && echo 1 || echo 0)
 if [ "$D6RC2" != 0 ] || [ "$D6RED" != 0 ]; then
     printf '%s\n' "$D6OUT" | grep '^RED' | sed -n '1,8p' | sed 's/^/        /'
 fi
