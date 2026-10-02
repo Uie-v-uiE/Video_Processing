@@ -299,6 +299,58 @@ function d1bScan(docs, cur) {
     return { rows, claims };
 }
 
+// ---- D1c：首页/交付文档里那句"门禁 N 项 X 绿 / Y 红"必须对回**那一轮的门禁件本身**（#224 同族）----
+// 为什么单独一层：D1b 只判"板上现在跑哪一轮"这个**轮号**，D6 只判**报告里的数**；
+// 而"门禁 22 项 21 绿 / 1 红"这句既不在 timing_summary 里、也不是轮号，谁都管不到 ——
+// 它偏偏是讲稿里会被念出来的一句。基准 = D1b 已经认出来的那一份 `build/rNN_gates.txt`
+// （由 `build/system.bit` 的 md5 反查得到），读法是"行尾那个字段"，不是 grep 全文
+// （同一行里 `FAIL行=0` 这种测量列会被 grep 数成红项——这仓库栽过第六次的那一族）。
+// 只判**相邻**的那句：这一句里出现当前轮号、或带"板上这一版/现在"这类现在时标记；
+// 否则算历史句（"写那一节那天板上是 r80…"），只数不判。
+const GATES_CLAIM = /门禁\s*(\d{1,3})\s*项\s*(\d{1,3})\s*绿\s*\/\s*(\d{1,3})\s*红|the\s+(\d{1,3})-item gate check reads\s+(\d{1,3})\s+green\s*\/\s*(\d{1,3})\s+red/g;
+function gatesTally(text) {
+    const ls = String(text).replace(/\r/g, '').split('\n');
+    let pass = 0, fail = 0, judged = 0;
+    for (const l of ls) {
+        const t = l.trim().split(/\s+/).pop();
+        if (t === 'PASS') pass++; else if (t === 'FAIL') fail++;
+    }
+    const v = ls.map((l) => l.match(/判定\s*(\d+)\s*项/)).find((m) => m);
+    if (v) judged = Number(v[1]);
+    return { pass, fail, judged };
+}
+function d1cScan(docs, cur, tally) {
+    const rows = [];
+    let claims = 0, skipped = 0;
+    if (!tally || !tally.judged) return { rows, claims, skipped };
+    for (const rel of D1B_DOCS) {
+        const lines = docs[rel];
+        if (!lines) continue;
+        lines.forEach((l, i) => {
+            for (const m of l.matchAll(GATES_CLAIM)) {
+                // 一个正则两组分支：命中哪一组就取哪三个捕获（前三个属于中文式，后三个属于英文式）
+                const items = m[1] || m[4], g = m[2] || m[5], r = m[3] || m[6];
+                claims++;
+                const adj = new RegExp('r' + cur.nn + '\\b').test(l) || NOW_MARK.test(l);
+                if (!adj) { skipped++; continue; }
+                const bad = [];
+                if (Number(items) !== tally.judged) bad.push(`判定项数首页=${items} 门禁件=${tally.judged}`);
+                if (Number(items) !== Number(g) + Number(r)) bad.push(`首页自相矛盾=${g}+${r}≠${items}`);
+                if (Number(g) !== tally.pass) bad.push(`绿首页=${g} 门禁件=${tally.pass}`);
+                if (Number(r) !== tally.fail) bad.push(`红首页=${r} 门禁件=${tally.fail}`);
+                if (bad.length)
+                    rows.push(`${rel}:${i + 1} D1c 那句门禁读数与 ${cur.name} 对不上（${bad.join('；')}）：${l.trim().slice(0, 60)}`);
+            }
+        });
+    }
+    // 射程地板（规矩 46 那一族）：基准件读到了、却一句都没抓到 ⇒ 这一层在空转，不是"没有可判的"。
+    // 首页那一行必然写着"门禁 N 项 X 绿 / Y 红"，形状变了就该由这里说"这一层没接上"，
+    // 而不是安静地报 0 条——"0 条"与"根本没跑"在输出上长得一模一样。
+    if (tally && tally.judged && claims === 0)
+        rows.push(`D1c 空转：基准件 ${cur.name} 读到了（判定 ${tally.judged} 项），但 12 份交付文档里一句"门禁 N 项 X 绿 / Y 红"都没抓到 ⇒ 那行的形状变了，这一层没接上`);
+    return { rows, claims, skipped };
+}
+
 function newestGreenSet() {
     let best = 0, name = '';
     const dir = path.join(ROOT, 'build');
@@ -354,9 +406,20 @@ function scanTree() {
     // 仓库里（bit 在、却没有门禁件戳它）仍然是红——牙留在门禁跑的那一侧。
     const brows = (cur.nn > 0 || cur.absent) ? b.rows
         : [`D1b 判不了：${cur.why}（bit md5=${cur.bit || '读不到'}）⇒ 板态身份句这一层没有基准，不许念成绿的`];
-    return { rows: checkLines(docs, has, g.nn).concat(p.rows, brows), adv: p.adv, nd,
+    // D1c：同一份基准件（那一轮的门禁清单）再念一句"门禁 N 项 X 绿 / Y 红"对不对得上。
+    // 基准读不到（提交包没有 bit，或仓库里 bit 没有门禁件戳它）⇒ 这一层与 D1b 同进同退，不判也不假绿。
+    let tally = null, c = { rows: [], claims: 0, skipped: 0 };
+    if (cur.nn > 0) {
+        try { tally = gatesTally(readFileSync(path.join(ROOT, 'build', cur.name), 'utf8')); }
+        catch { tally = null; }
+        c = d1cScan(d1bDocs, cur, tally);
+    }
+    const crows = (cur.nn > 0 && tally) ? c.rows
+        : (cur.absent ? [] : ['D1c 判不了：基准门禁件读不到（' + (cur.why || '没有 ' + (cur.name || 'rNN_gates.txt')) + '）⇒ 那句"N 项 X 绿 / Y 红"没有凭据可比']);
+    return { rows: checkLines(docs, has, g.nn).concat(p.rows, brows, crows), adv: p.adv, nd,
         g, n: Object.keys(docs).length, m: Object.keys(allFiles).length,
-        d1b: { claims: b.claims, cur, docs: Object.keys(d1bDocs).length } };
+        d1b: { claims: b.claims, cur, docs: Object.keys(d1bDocs).length },
+        d1c: { claims: c.claims, skipped: c.skipped, tally, file: cur.name || '' } };
 }
 
 const argv = process.argv.slice(2);
@@ -435,6 +498,30 @@ if (argv.includes('--self')) {
     const d1badj = d1bScan({ 'README.md': ['板上现在跑哪一轮请看下面那一行（r80 只是历史）'] }, fakeCur).rows;
     console.log(`  ${d1badj.length === 0 ? 'PASS' : 'FAIL'} 对照：指路句（"现在"后面不接编号）不误报（实测 ${d1badj.length} 条）`);
     for (const r of d1badj) console.log('        ' + r);
+    // ---- D1c 的一对（#224 同族）：那句"门禁 N 项 X 绿 / Y 红"必须对回基准门禁件 ----
+    // 三条都要有牙：改绿数能红、改项数能红（中英式各一次），而念对的与带日期的历史句都不许红。
+    const t104 = { judged: 22, pass: 21, fail: 1 };
+    n += yes('D1c：把 21 绿念成 19 绿（基准 22 项／21 绿／1 红）',
+        d1cScan({ 'README.md': ['| 全设计 setup WNS | **0.812 ns**（板上这一版 r104；门禁 22 项 19 绿 / 1 红，唯一红是 `C5c`）'] },
+            fakeCur, t104).rows, /D1c/);
+    n += yes('D1c：英文式把项数念成 23（基准 22）', d1cScan({ 'README.en.md': [
+        'the 23-item gate check reads 22 green / 1 red (the board now runs r104)'] }, fakeCur, t104).rows, /D1c/);
+    const d1cok = d1cScan({
+        'README.md': ['| 全设计 setup WNS | **0.812 ns**（板上这一版 r104；门禁 22 项 21 绿 / 1 红，唯一红是 `C5c`）'],
+        'README.en.md': ['(the board now runs r104; the 22-item gate check reads 21 green / 1 red)'],
+        'report/AI_COLLABORATION.md': ['写这一节那天（2026-09-26）板上是 r80，门禁 19 项 18 绿 / 1 红 —— 这句按日期读'],
+    }, fakeCur, t104);
+    const d1cokPass = d1cok.rows.length === 0 && d1cok.claims === 3 && d1cok.skipped === 1;
+    console.log(`  ${d1cokPass ? 'PASS' : 'FAIL'} 对照：念对的中英句不误报、带日期的历史句只数不判`
+        + `（判红 ${d1cok.rows.length} 期望 0｜命中 ${d1cok.claims} 期望 3｜历史豁免 ${d1cok.skipped} 期望 1）`);
+    for (const r of d1cok.rows) console.log('        ' + r);
+    // 自相矛盾的那一支单独测：项数 ≠ 绿+红 时必须红，哪怕绿红两个数都与门禁件对不上也无所谓（先报矛盾）
+    n += yes('D1c：首页自己前后不一（22 项 / 21 绿 / 2 红）', d1cScan({ 'README.md': [
+        '板上这一版 r104，门禁 22 项 21 绿 / 2 红'] }, fakeCur, { judged: 23, pass: 21, fail: 2 }).rows, /D1c/);
+    // 地板对照：基准读得到、文档里一句"N 项 X 绿 / Y 红"都没有 ⇒ 必须报"这一层没接上"，不许静默 0 条
+    n += yes('D1c：那一行改了形状（一句都没抓到）⇒ 报空转而不是 0 条', d1cScan({
+        'README.md': ['| 全设计 setup WNS | **0.812 ns**（板上这一版 r104；门禁清单见 `build/r104_gates.txt`）'] },
+        fakeCur, t104).rows, /D1c 空转/);
     const hasBase = cur0.nn > 0 || cur0.absent;   // 包里没有二进制 ⇒ 已声明为不可判，这条对照仍算过（仓库里必须有基准）
     console.log(`  ${hasBase ? 'PASS' : 'FAIL'} D1b 基准：`
         + (cur0.nn > 0 ? '读得到 r' + cur0.nn + '（' + cur0.name + '）'
@@ -458,17 +545,18 @@ if (argv.includes('--self')) {
     for (const r of nsFar.concat(nsOff)) console.log('        ' + r);
     console.log(`  ${nsPred ? 'PASS' : 'FAIL'} 对照：谓词与 D2 的占位豁免都对（D2 用的就是这两个式子：noShip 命中/不命中各一次，NN 只咬占位名）`);
 
-    const all = n === 5 && good.length === 0 && edges.length === 0 && d4 === 3
+    const all = n === 9 && good.length === 0 && edges.length === 0 && d4 === 3
         && d4ok.length === 0 && d4artok.length === 0 && scope && neutral.length === 0
-        && d1bok.length === 0 && d1badj.length === 0 && hasBase
+        && d1bok.length === 0 && d1badj.length === 0 && hasBase && d1cokPass
         && nsOn.length === 0 && nsOff.length === 1 && nsFar.length === 1 && nsPred;
-    console.log(`${all ? 'SELF: 全绿' : 'SELF: 有红'}（变异 ${n}（含 D1b 身份句 2 条）+ D4 变异 ${d4} 条 + 对照 ${good.length + edges.length + d4ok.length + d4artok.length + d1bok.length + d1badj.length} 条，范围对照${scope ? '过' : '不过'}，D1b 基准${hasBase ? '读得到 r' + cur0.nn : '读不到'}）`);
+    console.log(`${all ? 'SELF: 全绿' : 'SELF: 有红'}（变异 ${n}（含 D1b 身份句 2 条 + D1c 门禁读数句 4 条）+ D4 变异 ${d4} 条 + 对照 ${good.length + edges.length + d4ok.length + d4artok.length + d1bok.length + d1badj.length} 条，范围对照${scope ? '过' : '不过'}，D1b 基准${hasBase ? '读得到 r' + cur0.nn : '读不到'}）`);
     process.exit(all ? 0 : 1);
 }
 
-const { rows, adv, nd, g, n, m, d1b } = scanTree();
+const { rows, adv, nd, g, n, m, d1b, d1c } = scanTree();
 console.log(`扫了 ${n} 个文档（D1/D2/D3）+ ${m} 个手写文件（D4）；最新且 ALL PASS 的冻结集 = ${g.name || '（没有）'}`);
 console.log(`D1b 基准：bit md5=${d1b.cur.bit || '读不到'} → ${d1b.cur.name || d1b.cur.why || '（无）'}${d1b.cur.absent ? '（本目录没有 bit 产物 ⇒ 这一层不判；在仓库里跑时它是硬判据）' : ''}；扫 ${d1b.docs} 份交付文档，抓到 ${d1b.claims} 句"板态身份句"（只念相邻带编号的那种，历史句不进射程）`);
+console.log(`D1c 基准：${d1c.file || '（没有基准件 ⇒ 这一层不判）'} 行尾 PASS=${d1c.tally ? d1c.tally.pass : '不判'} / FAIL=${d1c.tally ? d1c.tally.fail : '不判'} / 判定项数=${d1c.tally ? d1c.tally.judged : '不判'}；抓到 ${d1c.claims} 句"门禁 N 项 X 绿 / Y 红"（相邻才判，历史句 ${d1c.skipped} 句只数不判）`);
 // `--list-adv`：把"只报数不判红"那一半逐条打出来（#121：口径必须能说清，不能只留一句"不算指路错误"）。
 // 纯打印，不参与退出码，也不改任何判据 —— 判据的红绿仍由 rows/hard 决定。
 if (argv.includes('--list-adv')) {

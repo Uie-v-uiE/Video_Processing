@@ -448,18 +448,23 @@ rm -f /tmp/docenc_self.$$.txt
 node src/host/doc_currency_check.mjs --self > /tmp/cur_self.$$.txt 2>&1; CURRC1=$?
 CUROUT=$(node src/host/doc_currency_check.mjs 2>&1); CURRC2=$?
 CURSUM=$(printf '%s\n' "$CUROUT" | head -1 | cut -c1-20 | iconv -f UTF-8 -t UTF-8//IGNORE)
-CURROWS=$(printf '%s\n' "$CUROUT" | grep -cE ' D[123]b? ')
+CURROWS=$(printf '%s\n' "$CUROUT" | grep -cE ' D[123][bc]? ')
 # D1b 的空转地板：这一层判的是"板态身份句念的轮号 == 这块 bit 的门禁身份行"。
 # 交付文档里**至少**要有中英各一句这样的身份句（README 首页那两行），抓到 0 句就说明
 # 要么句子被改成了别的写法、要么形状漂了——两种都是尺子在空转（#194/#219 同族）。
+# D1c 是 2026-10-02（#224）新加的一层：那句"门禁 N 项 X 绿 / Y 红"对回基准门禁件本身。
+# 加一层就要同时把**数红行的模式**改宽（`D[123]b?` 不含 c ⇒ 新的 D1c 红行会不进射程，
+# 这正是规矩 41(c) 说的那种"加了子规则字母却没改计数模式"）。
 CURCLAIMS=$(printf '%s\n' "$CUROUT" | sed -n 's/.*抓到 \([0-9][0-9]*\) 句.*/\1/p' | head -1)
-say "文档时效 doc_cur" "$CURSUM 红行=$CURROWS 身份句=${CURCLAIMS:-空}" \
-    "self 变异 5（含 D1b 身份句 2）+ 对照 4 全过 + 不随包豁免的三条对照全过、全树 0 条、身份句抓到 >= 2" \
-    $([ "$CURRC1" = 0 ] && [ "$CURRC2" = 0 ] && [ "${CURCLAIMS:-0}" -ge 2 ] && echo 1 || echo 0)
+CURCLAIMSC=$(printf '%s\n' "$CUROUT" | grep '^D1c 基准' | sed -n 's/.*抓到 \([0-9][0-9]*\) 句.*/\1/p')
+say "文档时效 doc_cur" "$CURSUM 红行=$CURROWS 身份句=${CURCLAIMS:-空} 门禁读数句=${CURCLAIMSC:-空}" \
+    "self 变异 9（D1b 身份句 2 + D1c 门禁读数句 4）+ 对照 4 全过 + 不随包豁免的三条对照全过、全树 0 条、身份句抓到 >= 2、门禁读数句抓到 >= 2" \
+    $([ "$CURRC1" = 0 ] && [ "$CURRC2" = 0 ] && [ "${CURCLAIMS:-0}" -ge 2 ] && [ "${CURCLAIMSC:-0}" -ge 2 ] && echo 1 || echo 0)
 if [ "$CURRC2" != 0 ]; then
-    printf '%s\n' "$CUROUT" | grep -E ' D[123]b? ' | sed -n '1,8p' | sed 's/^/        /'
+    printf '%s\n' "$CUROUT" | grep -E ' D[123][bc]? ' | sed -n '1,8p' | sed 's/^/        /'
 fi
 [ "${CURCLAIMS:-0}" -ge 2 ] || echo "        —— D1b 只抓到 ${CURCLAIMS:-0} 句板态身份句（地板 2）：这一层正在空转，去 README 首页看那两行还在不在。"
+[ "${CURCLAIMSC:-0}" -ge 2 ] || echo "        —— D1c 只抓到 ${CURCLAIMSC:-0} 句门禁读数句（地板 2）：中英首页那句“门禁 N 项 X 绿 / Y 红”改了写法或没进射程。"
 [ "$CURRC1" = 0 ] || { echo "        —— doc_currency 的 --self 反例不成立（该红的没红）："; sed 's/^/        /' /tmp/cur_self.$$.txt; }
 rm -f /tmp/cur_self.$$.txt
 
