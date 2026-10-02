@@ -139,3 +139,17 @@ hold 侧今天不动：WHS 0.049 的归属又换了（`u_rx_mac/u_crc_rx/crc_dat
 且只删端口声明/空接那几行），**不许全仓按名字删**（这是本仓记过的那条"name-lists leak"）。
 删完的对照仍按本文件第 刀2 节的四步：② 综合日志里 `Synth 8-3848 fifo_tx_data` 与 `Synth 8-3332 pct_q_reg__*` 消失、
 `Synth 8-xxxx` **种类数不增**；③ Slice Registers 降；④ 快车道与本轮同绿同红（既存红仍只有 `tb_link_monitor` 的 F2e）。
+
+## 落刀入口改口（2026-10-03 01:2x）：刀 1 与刀 4① 不再手改，走 `build/r110_apply_cuts.sh`
+凭据 `build/evidence/r110_apply_cuts_proof.txt`：拷贝树里三条全 APPLIED、缩进保住、xvlog 差分对照
+pristine 0 ERROR / patched 0 ERROR（自测抓到并修掉两处我自己的缺陷：`row_covered` 用在其声明前、放宽比较后丢缩进）。
+树空下来之后的顺序（**不要手改 src/rtl**，手改会让 MUST/LEFTOVER 这套后验失去对象）：
+1. `bash build/r110_apply_cuts.sh --check` —— 三条都要 CHECK-OK；任一 ANCHOR-* 就是树变了，重读源码改脚本，不放宽锚点；
+2. `VP_I_KNOW=1 bash build/r110_apply_cuts.sh --apply` —— 这一步会自己检查"没有 vivado/xsim 在飞 + 两份 RTL 在 git 里干净"，
+   所以链子在飞时它 REFUSE 是**正确行为**，不要用 `VP_ALLOW_BUSY=1` 绕过（那个开关只给拷贝树自测）；
+3. `git diff` 读一眼两处改动，`bash sim/run_one.sh tb_link_monitor`（约 40 秒，F2e 整支必须绿）；
+4. `bash build/timing_lane.sh`（约 9 分钟）拿刀 4 的功能等价凭据：与 r109 基线比，**只许 `tb_link_monitor` 那支从红变绿**，
+   其余 27 支逐支同绿；出现新红 ⇒ 独热刀改变了行为，按 `git checkout -- src/rtl/eth/frame_reasm.v` 退回；
+5. 只有第 4 步干净才 `bash build/r110_chain.sh`（它先 `pre_readings.sh` 再构建；一轮只付一次 127 分钟顶层台架）；
+6. 采纳判读仍看 `build/r109_adoption_checklist.md`（把 r109 换 r110）：四句**整句**匹配、门禁两跑逐字节一致、
+   首页数字全部从原件重读；收益判据 = 那条终点 CE 的驱动网 fo 离开 316，**没离开就回退这一刀**。
