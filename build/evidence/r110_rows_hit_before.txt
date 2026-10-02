@@ -1,0 +1,38 @@
+# 刀 4 的改前读数（下一轮那把 rows_hit CE 广播刀的基线）——生成 2026-10-03 00:37:05
+# 来源：build/tcl/probe_cone_slack.tcl 跑 r109 的 system_top_routed.dcp，控制台 build/r110_probe_cone_console.txt，明细 build/probe_cone_r110rows_hit_before.rpt
+# ⚠ 第一跑的 REFUSE 是我的模式写错了：VP_FROM=u_eth/u_reasm/off_reg（少结尾星号）⇒ SETS from=0，脚本按地板拒绝打印空判定；
+#   这条坑 probe_cone_slack.tcl 文件头写着（2-D 数组寄存器要 off_reg* 而不是 off_reg），我今天又撞了一次、被自己的地板拦住。
+LABEL: r110rows_hit_before
+SETS from=45 to=74  (a 0 here means the pattern matched nothing -- the probe would then prove nothing)
+  Slack (MET) :             0.605ns  (required time - arrival time)
+  Source:                 u_eth/u_reasm/off_reg[11]_rep/C
+  Destination:            u_eth/u_reasm/rows_hit_reg[2]/CE
+  Data Path Delay:        6.997ns  (logic 1.242ns (17.750%)  route 5.755ns (82.250%))
+  Logic Levels:           6  (LUT5=1 LUT6=3 MUXF7=1 MUXF8=1)
+  Slack (MET) :             0.605ns  (required time - arrival time)
+  Source:                 u_eth/u_reasm/off_reg[11]_rep/C
+  Destination:            u_eth/u_reasm/rows_hit_reg[3]/CE
+  Data Path Delay:        6.997ns  (logic 1.242ns (17.750%)  route 5.755ns (82.250%))
+  Logic Levels:           6  (LUT5=1 LUT6=3 MUXF7=1 MUXF8=1)
+  Slack (MET) :             0.605ns  (required time - arrival time)
+  Source:                 u_eth/u_reasm/off_reg[11]_rep/C
+  Destination:            u_eth/u_reasm/rows_hit_reg[4]/CE
+  Data Path Delay:        6.997ns  (logic 1.242ns (17.750%)  route 5.755ns (82.250%))
+  Logic Levels:           6  (LUT5=1 LUT6=3 MUXF7=1 MUXF8=1)
+  Slack (MET) :             0.605ns  (required time - arrival time)
+  Source:                 u_eth/u_reasm/off_reg[11]_rep/C
+  Destination:            u_eth/u_reasm/rows_hit_reg[5]/CE
+  Data Path Delay:        6.997ns  (logic 1.242ns (17.750%)  route 5.755ns (82.250%))
+  Logic Levels:           6  (LUT5=1 LUT6=3 MUXF7=1 MUXF8=1)
+  Slack (MET) :             0.666ns  (required time - arrival time)
+  Source:                 u_eth/u_reasm/off_reg[11]_rep/C
+  Destination:            u_eth/u_reasm/rows_hit_reg[0]/CE
+  Data Path Delay:        6.963ns  (logic 1.242ns (17.838%)  route 5.721ns (82.162%))
+  Logic Levels:           6  (LUT5=1 LUT6=3 MUXF7=1 MUXF8=1)
+PATHS printed: 5  (floor: 0 means report_timing gave nothing for this cone)
+
+# 读法：45 个起点 × 74 个终点这一族**同一条锥**（终点 [2]/[3]/[4]/[5] 的 CE 读数逐字相同）：
+#   0.605 ns / 6 级（LUT5=1 LUT6=3 MUXF7=1 MUXF8=1）/ logic 17.75 % 而 route 82.25 %；
+#   逐网络那行里 off_reg[11]_rep_n_0 的 fo=109、单这根网络 1.511 ns（见 build/evidence/r109_hold_owner.txt 第二节）。
+#   ⇒ 与 r107 那把的条件不同：那一次 fo=316 且分组后级数掉了；这一次只剩 6 级、大头是距离，
+#     所以刀 4 的两个候选（再分组 vs 物理就近）**必须各滚一轮**（#223），而且先量收益上限再决定动不动。
