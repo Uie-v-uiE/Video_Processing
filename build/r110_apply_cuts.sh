@@ -38,7 +38,7 @@ fi
 
 # anchor_replace FILE IF_TEXT TARGET_LINES PATCH_LINES NAME
 anchor_replace() {
-    local f=$1 IF=$2 T=$3 P=$4 NAME=$5
+    local f=$1 IF=$2 T=$3 P=$4 NAME=$5 KIND=${6:-grow} MUST=${7:-} MUSTNOT=${8:-}
     APPLY=$APPLY node -e '
 const [f,IF,T,P,NAME]=process.argv.slice(1);
 const fs=require("fs");
@@ -68,12 +68,20 @@ const term=lines[k].endsWith("\r\n") ? "\r\n" : "\n";         // 沿用命中那
 const before=lines.slice(0,k).join(""), after=lines.slice(k+need).join("");
 const PL=P.replace(/\\n/g,"\n").split("\n");
 const out=before + PL.map(l=>l+term).join("") + after;
-if(out.length<=s.length){ console.log(NAME+" NO-GROWTH: 打完刀没变长（可能吞了尾巴）"); process.exit(2); }
+// 期望的形状由调用方给（第一版只有"必须变长"，那是**插入刀**的尺度；刀 4b 是把 8 行换成 6 行，
+// 正确的尺子是"变短 + 旧守卫整段消失 + 新形状六条都在"—— 尺子的维度对不上时先怀疑尺子，不改判据迁就）
+const KIND=process.argv[6]||"grow";
+const MUST=(process.argv[7]||"").split(";").filter(x=>x!=="");
+const MUSTNOT=(process.argv[8]||"").split(";").filter(x=>x!=="");
+if(KIND==="grow" && out.length<=s.length){ console.log(NAME+" NO-GROWTH: 插入刀打完没变长（可能吞了尾巴）"); process.exit(2); }
+if(KIND==="shrink" && out.length>=s.length){ console.log(NAME+" NO-SHRINK: 替换刀打完没变短（旧形状可能没被换掉）"); process.exit(2); }
+for(const x of MUST){ if(out.indexOf(x)<0){ console.log(NAME+" MISSING: 打完刀找不到应该出现的 \""+x.slice(0,40)+"\""); process.exit(2); } }
+for(const x of MUSTNOT){ if(out.indexOf(x)>=0){ console.log(NAME+" LEFTOVER: 打完刀旧形状 \""+x.slice(0,40)+"\" 还在"); process.exit(2); } }
 if(out[out.length-1]!==s[s.length-1]){ console.log(NAME+" TAIL-DRIFT: 文件最后一个字符变了"); process.exit(2); }
 const grow=out.length-s.length;
 if(process.env.APPLY==="1"){ fs.writeFileSync(f,out); console.log(NAME+" APPLIED +"+grow+" 字节 行尾="+(term==="\r\n"?"CRLF":"LF")); }
 else console.log(NAME+" CHECK-OK 唯一命中@第"+(k+1)+"行，替换后 +"+grow+" 字节 行尾="+(term==="\r\n"?"CRLF":"LF"));
-' "$f" "$IF" "$T" "$P" "$NAME"
+' "$f" "$IF" "$T" "$P" "$NAME" "$KIND" "$MUST" "$MUSTNOT"
 }
 
 fail=0
@@ -84,7 +92,7 @@ if [ "$WHICH" = "all" ] || [ "$WHICH" = "1" ]; then
     LM_IF="stall_ms  <= 0;"
     LM_T="if (have_base) begin"
     LM_P="if (gapclr) begin gap_last<=0; gap_min<=0; gap_max<=0; gap_sum<=0; gap_valid<=0; end else if (have_base) begin"
-    anchor_replace "$RTL_LM" "$LM_IF" "$LM_T" "$LM_P" "刀1" || fail=1
+    anchor_replace "$RTL_LM" "$LM_IF" "$LM_T" "$LM_P" "刀1" grow "if (gapclr) begin gap_last<=0;" "" || fail=1
 fi
 
 # ---------------- 刀 4①：new_row 独热化（每 bank 一根使能网，rows_hit 的 CE 只吃 5 输入或） ----------------
@@ -99,7 +107,7 @@ if [ "$WHICH" = "all" ] || [ "$WHICH" = "4" ]; then
     RS_IF="reg [15:0]      rows_hit;"
     RS_T="    wire        row_covered ="
     RS_P="    // 独热化（r110 刀 4① / ISSUES #238）：公共的\"新行\"拆成每 bank 一根使能网。\n    wire        new_row_w = (row_idx < IMG_H) && !row_covered;\n    // rbank<=4 由 row_idx<IMG_H(=300) 保证（ridx<=299 ⇒ rbank=ridx[8:6]<=4）；>=5 时 new_row_w 本已为 0。\n    wire [4:0]  bank_one  = new_row_w ? (5'b00001 << rbank) : 5'b00000;\n    wire        row_covered ="
-    anchor_replace "$RTL_RS" "$RS_IF" "$RS_T" "$RS_P" "刀4a" || fail=1
+    anchor_replace "$RTL_RS" "$RS_IF" "$RS_T" "$RS_P" "刀4a" grow "wire [4:0]  bank_one" "" || fail=1
 
     RS_IF2="if (off < FRAME_BYTES) begin"
     RS_T2="                                    if (row_idx < IMG_H && !row_covered) begin
@@ -111,7 +119,7 @@ if [ "$WHICH" = "all" ] || [ "$WHICH" = "4" ]; then
                                         rows_hit <= rows_hit + 16'd1;
                                     end"
     RS_P2="                                    if (bank_one[0]) rok0[roff] <= 1'b1;\n                                    if (bank_one[1]) rok1[roff] <= 1'b1;\n                                    if (bank_one[2]) rok2[roff] <= 1'b1;\n                                    if (bank_one[3]) rok3[roff] <= 1'b1;\n                                    if (bank_one[4]) rok4[roff] <= 1'b1;\n                                    if (|bank_one) rows_hit <= rows_hit + 16'd1;"
-    anchor_replace "$RTL_RS" "$RS_IF2" "$RS_T2" "$RS_P2" "刀4b" || fail=1
+    anchor_replace "$RTL_RS" "$RS_IF2" "$RS_T2" "$RS_P2" "刀4b" shrink "if (bank_one[4]) rok4[roff]" "if (row_idx < IMG_H && !row_covered) begin" || fail=1
 fi
 
 echo "== 结论 =="
