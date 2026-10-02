@@ -10706,3 +10706,14 @@ B 段 `CELLS=1646 / NETS=1857`。采纳仍未定，要等 `tb_v98_top_seam` 与�
 logic 44.840 % / route 55.160 %、同域检查、uncertainty 0.800（本仓库自加的严口径，不是真实余量只有 0.05）。
 全局数 0.051 -> 0.050 看着没动，**只看全局会漏掉换主人这件事**（规矩 46 的归属判据在文档侧的对应物）。
 首页 hold 行必须按新主人重写，不能只换数字。
+
+**r107 采纳账（本节闭环）**：`bit 1f90c795e7e3`、`xsa 8f2e2c9255e9`，17:52 三步 JTAG 上板
+（tokens DDR_ECHO 5A5AA5A5 / PROGRAMMED xc7z020_1 / RESUME: ok / FLOW_DONE；不写 QSPI）。
+`board_verify --geom --battery --round=r107` **PASS**（geom ok=10 fail=0、105 条命令 97.8 s、
+V9-6 三方对账 ok，XADC 60.59/60.68 ℃、vccint 998 mV、OSD 61C、gpio 0x61），
+ICMP 4/4 与零长度 3/3（`build/r107_board_ping.txt`，GBK→UTF-8 转码后才算被跟踪件）；
+门禁连跑两次逐字节相同：**22 项 = 21 绿 / 1 红**，唯一红是声明过的 `C5c`。
+本轮唯一一条**真红**是我自己的链子脚本：`ROUND=$NN`（应写 `r$NN`）把 rim_report 顶成 rc=2 FATAL，
+门禁那一项于是去读了 r106 的旧 rim 件、按"指纹 no fresh"判红——两条链子（r107/r108）一并改对。
+另记一条自指基线的收敛代价：文档时效项第一次跑判红，因为 D1c 的基准件正是本次要写的
+`r107_gates.txt`；第二次跑才绿（与 `build/evidence/r106_gates_firstselfred.txt` 同一族）。

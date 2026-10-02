@@ -73,7 +73,7 @@ bash build/tb98_report.sh > "build/r${NN}_tb98report_console.txt" 2>&1; say "tb9
 bash sim/run_one.sh tb_icmp_ping0 > "build/r${NN}_bench_tb_icmp_ping0.txt" 2>&1; say "tb_icmp_ping0 rc=$?"
 bash sim/run_one.sh tb_v795_rx_chain > "build/r${NN}_bench_tb_v795_rx_chain.txt" 2>&1; say "tb_v795_rx_chain rc=$?"
 bash sim/run_one.sh tb_edge_rim > "build/r${NN}_rim_console.txt" 2>&1; say "边缘条带台架 rc=$?"
-ROUND=$NN bash build/rim_report.sh > "build/r${NN}_rimreport_console.txt" 2>&1; say "rim_report rc=$?"
+ROUND=r$NN bash build/rim_report.sh > "build/r${NN}_rimreport_console.txt" 2>&1; say "rim_report rc=$?"
 
 # ---- 5. 门禁：两步（先 /tmp 再 cp，D1b/D1c 读的就是这份）----
 bash build/gates.sh > "/tmp/kx/g_r${NN}.txt" 2>&1; G=$?

@@ -48,7 +48,7 @@ say "顶层台架 rc=$R（3=判红 0=绿；C8c 八档读数在同一份 log 里�
 bash build/tb98_report.sh > "build/r${NN}_tb98report_console.txt" 2>&1; say "tb98_report rc=$?"
 
 bash sim/run_one.sh tb_edge_rim > "build/r${NN}_rim_console.txt" 2>&1; say "边缘条带台架 rc=$?"
-ROUND=$NN bash build/rim_report.sh > "build/r${NN}_rimreport_console.txt" 2>&1; say "rim_report rc=$?"
+ROUND=r$NN bash build/rim_report.sh > "build/r${NN}_rimreport_console.txt" 2>&1; say "rim_report rc=$?"
 
 # 门禁：两步。先 /tmp，跑完再 cp 到位（D1b/D1c 读的就是这份，边写边读会读到截断的）
 bash build/gates.sh > "/tmp/kx/g_r${NN}.txt" 2>&1; G=$?

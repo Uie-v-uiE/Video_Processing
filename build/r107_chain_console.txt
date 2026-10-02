@@ -1,0 +1,12 @@
+[chain 15:26:10] 构建开始（只带 frame_reasm 分组这一刀）
+[chain 15:45:18] 构建完成，开始只读时序探针
+[chain 15:45:59] crit_path rc=0
+[chain 15:46:39] hold_paths rc=0
+[chain 15:46:39] 扇出判据落 build/r107_fanout_verdict.txt
+[chain 15:46:39] 顶层台架（约 100 分钟，链子里唯一在跑的 xsim）
+[chain 17:43:37] 顶层台架 rc=3（3=判红 0=绿；C8c 八档读数在同一份 log 里）
+[chain 17:43:37] tb98_report rc=0
+[chain 17:44:07] 边缘条带台架 rc=0
+[chain 17:44:07] rim_report rc=2
+[chain 17:44:44] 门禁 rc=1 —— 绿=18 红=4 末行：GATES: 有红项（判定 22 项）—— 不采纳，保留上一版
+[chain 17:44:44] 链结束（采纳与文档同步要人看 build/r107_fanout_verdict.txt 与门禁之后再做）

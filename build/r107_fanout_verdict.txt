@@ -1,0 +1,29 @@
+# r107 扇出刀判据（#121/#175）：看这一族的 route 占比与那根使能网络的 fo，不看绝对 WNS 差值
+## crit_paths.txt 前 10 条
+# worst setup paths (source: D:/Xilinx/Prj/pro/Video_Processing/build/crit_paths_raw.rpt)
+# slack | clock_group | data_path_delay | logic_levels | start -> end
+0.725ns | eth_rxc | 7.170ns | 9 | u_eth/u_icmp/u_icmp_tx/ip_head_reg[4][19]/C -> u_eth/u_icmp/u_icmp_tx/check_buffer_reg[17]/D
+0.855ns | eth_rxc | 7.014ns | 6 | u_eth/u_rgmii/u_rgmii_rx/rxdata_bus[1].u_iddr_rxd/C -> u_eth/u_icmp/u_icmp_rx/cnt_reg[4]/D
+0.876ns | eth_rxc | 6.989ns | 6 | u_eth/u_rgmii/u_rgmii_rx/rxdata_bus[1].u_iddr_rxd/C -> u_eth/u_icmp/u_icmp_rx/cnt_reg[3]/D
+0.957ns | eth_rxc | 6.910ns | 9 | u_eth/u_rgmii/u_rgmii_rx/rxdata_bus[0].u_iddr_rxd/C -> u_eth/u_icmp/u_icmp_rx/reply_checksum_add_reg[31]/D
+1.022ns | eth_rxc | 6.743ns | 4 | u_eth/u_rgmii/u_rgmii_rx/rxdata_bus[2].u_iddr_rxd/C -> u_eth/u_arp/u_arp_rx/skip_en_reg/D
+1.056ns | eth_rxc | 6.810ns | 8 | u_eth/u_rgmii/u_rgmii_rx/rxdata_bus[0].u_iddr_rxd/C -> u_eth/u_icmp/u_icmp_rx/reply_checksum_add_reg[27]/D
+1.113ns | eth_rxc | 6.757ns | 9 | u_eth/u_rgmii/u_rgmii_rx/rxdata_bus[0].u_iddr_rxd/C -> u_eth/u_icmp/u_icmp_rx/reply_checksum_add_reg[29]/D
+1.142ns | eth_rxc | 6.723ns | 7 | u_eth/u_rgmii/u_rgmii_rx/rxdata_bus[0].u_iddr_rxd/C -> u_eth/u_icmp/u_icmp_rx/reply_checksum_add_reg[23]/D
+## 全局读数（timing_summary Design Timing Summary）
+      0.725        0.000                      0                51005        0.050        0.000                      0                51005        0.264        0.000                       0                 12602  
+## 最差那条路的 logic/route 分配与逐网络走线（fo= 就是扇出）
+  Data Path Delay:        7.170ns  (logic 2.805ns (39.119%)  route 4.365ns (60.881%))
+  Logic Levels:           9  (CARRY4=4 LUT3=2 LUT4=1 LUT5=1 LUT6=1)
+                         net (fo=1, routed)           1.873     3.303    u_eth/u_rgmii/u_rgmii_rx/rgmii_rxc
+                         net (fo=2551, routed)        1.576     4.964    u_eth/u_icmp/u_icmp_tx/gmii_rx_clk
+                         net (fo=4, routed)           1.037     6.380    u_eth/u_icmp/u_icmp_tx/p_0_in3_in[3]
+                         net (fo=1, routed)           0.000     6.485    u_eth/u_icmp/u_icmp_tx/check_buffer[11]_i_30_n_0
+                         net (fo=1, routed)           0.000     6.925    u_eth/u_icmp/u_icmp_tx/check_buffer_reg[11]_i_16_n_0
+                         net (fo=3, routed)           0.804     7.989    u_eth/u_icmp/u_icmp_tx/check_buffer_reg[15]_i_16_n_4
+                         net (fo=2, routed)           0.720     8.966    u_eth/u_icmp/u_icmp_tx/check_buffer[15]_i_18_n_0
+                         net (fo=2, routed)           0.434     9.526    u_eth/u_icmp/u_icmp_tx/check_buffer[15]_i_7_n_0
+                         net (fo=1, routed)           0.000     9.809    u_eth/u_icmp/u_icmp_tx/check_buffer[15]_i_11_n_0
+                         net (fo=1, routed)           0.000    10.249    u_eth/u_icmp/u_icmp_tx/check_buffer_reg[15]_i_3_n_0
+                         net (fo=1, routed)           0.703    11.216    u_eth/u_icmp/u_icmp_tx/check_buffer_reg[19]_i_4_n_6
+                         net (fo=1, routed)           0.668    12.134    u_eth/u_icmp/u_icmp_tx/check_buffer[17]

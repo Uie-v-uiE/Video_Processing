@@ -1,10 +1,10 @@
 # worst setup paths (source: D:/Xilinx/Prj/pro/Video_Processing/build/crit_paths_raw.rpt)
 # slack | clock_group | data_path_delay | logic_levels | start -> end
-0.723ns | eth_rxc | 6.879ns | 5 | u_eth/u_reasm/off_reg[12]/C -> u_eth/u_reasm/rows_hit_reg[10]/CE
-0.723ns | eth_rxc | 6.879ns | 5 | u_eth/u_reasm/off_reg[12]/C -> u_eth/u_reasm/rows_hit_reg[11]/CE
-0.723ns | eth_rxc | 6.879ns | 5 | u_eth/u_reasm/off_reg[12]/C -> u_eth/u_reasm/rows_hit_reg[12]/CE
-0.723ns | eth_rxc | 6.879ns | 5 | u_eth/u_reasm/off_reg[12]/C -> u_eth/u_reasm/rows_hit_reg[13]/CE
-0.723ns | eth_rxc | 6.879ns | 5 | u_eth/u_reasm/off_reg[12]/C -> u_eth/u_reasm/rows_hit_reg[14]/CE
-0.723ns | eth_rxc | 6.879ns | 5 | u_eth/u_reasm/off_reg[12]/C -> u_eth/u_reasm/rows_hit_reg[15]/CE
-0.741ns | eth_rxc | 7.187ns | 10 | u_eth/u_icmp/u_icmp_tx/ip_head_reg[2][31]/C -> u_eth/u_icmp/u_icmp_tx/check_buffer_reg[17]/D
-0.756ns | eth_rxc | 6.813ns | 5 | u_eth/u_reasm/off_reg[12]/C -> u_eth/u_reasm/rows_hit_reg[8]/CE
+0.725ns | eth_rxc | 7.170ns | 9 | u_eth/u_icmp/u_icmp_tx/ip_head_reg[4][19]/C -> u_eth/u_icmp/u_icmp_tx/check_buffer_reg[17]/D
+0.855ns | eth_rxc | 7.014ns | 6 | u_eth/u_rgmii/u_rgmii_rx/rxdata_bus[1].u_iddr_rxd/C -> u_eth/u_icmp/u_icmp_rx/cnt_reg[4]/D
+0.876ns | eth_rxc | 6.989ns | 6 | u_eth/u_rgmii/u_rgmii_rx/rxdata_bus[1].u_iddr_rxd/C -> u_eth/u_icmp/u_icmp_rx/cnt_reg[3]/D
+0.957ns | eth_rxc | 6.910ns | 9 | u_eth/u_rgmii/u_rgmii_rx/rxdata_bus[0].u_iddr_rxd/C -> u_eth/u_icmp/u_icmp_rx/reply_checksum_add_reg[31]/D
+1.022ns | eth_rxc | 6.743ns | 4 | u_eth/u_rgmii/u_rgmii_rx/rxdata_bus[2].u_iddr_rxd/C -> u_eth/u_arp/u_arp_rx/skip_en_reg/D
+1.056ns | eth_rxc | 6.810ns | 8 | u_eth/u_rgmii/u_rgmii_rx/rxdata_bus[0].u_iddr_rxd/C -> u_eth/u_icmp/u_icmp_rx/reply_checksum_add_reg[27]/D
+1.113ns | eth_rxc | 6.757ns | 9 | u_eth/u_rgmii/u_rgmii_rx/rxdata_bus[0].u_iddr_rxd/C -> u_eth/u_icmp/u_icmp_rx/reply_checksum_add_reg[29]/D
+1.142ns | eth_rxc | 6.723ns | 7 | u_eth/u_rgmii/u_rgmii_rx/rxdata_bus[0].u_iddr_rxd/C -> u_eth/u_icmp/u_icmp_rx/reply_checksum_add_reg[23]/D
