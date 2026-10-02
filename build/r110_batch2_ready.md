@@ -153,3 +153,18 @@ pristine 0 ERROR / patched 0 ERROR（自测抓到并修掉两处我自己的缺�
 5. 只有第 4 步干净才 `bash build/r110_chain.sh`（它先 `pre_readings.sh` 再构建；一轮只付一次 127 分钟顶层台架）；
 6. 采纳判读仍看 `build/r109_adoption_checklist.md`（把 r109 换 r110）：四句**整句**匹配、门禁两跑逐字节一致、
    首页数字全部从原件重读；收益判据 = 那条终点 CE 的驱动网 fo 离开 316，**没离开就回退这一刀**。
+
+## 刀 2 的逐行清单（2026-10-03 02:0x 读实到行，落刀时照这张表删，不凭记忆）
+`src/rtl/eth/eth_ctrl.v`：端口 :23 `icmp_rec_en`、:24 `icmp_rec_data`、:25 `icmp_tx_req`、:26 `icmp_tx_data`、
+:33 `udp_rec_data`、:34 `udp_rec_en`、:35 `udp_tx_req`、:36 `udp_tx_data`、:38 `tx_data`、:39 `tx_req`、:40 `rec_en`、:41 `rec_data`；
+内部 :52/:53 `*_tx_req_d0`、:56 `assign tx_req`、:57/:58 两条 `assign *_tx_data`、:61-70 那个只给 `*_d0` 用的 always 块、
+:71-86 的 `rec_en/rec_data` always 块（**整块删**，它只被 :17-22 那对端口消费）。
+⚠ 删端口的前提是"例化者唯一"：上面这条 grep 就是那一刀的证据，落刀前重跑一次，若多出别的例化者就停下重读。
+`src/rtl/eth/eth_udp_video_top.v`：删 :114-116 三行 `fifo_tx_data`/`fifo_tx_req`/`fifo_rec_en`/`fifo_rec_data` 声明、
+例化里 `.icmp_tx_data()`(:214) 与 `.udp_tx_data()`(:218) 两行、`.tx_data(fifo_tx_data) .tx_req(fifo_tx_req)`(:219-220)、
+`.rec_en(fifo_rec_en) .rec_data(fifo_rec_data)`(:221)，**并同笔删掉 :217 那句"这条 rec 转发路径无人消费"的注释**（路径没了还留话就是自相矛盾）；
+`.udp_rec_data(p_data) .udp_rec_en(p_valid)` 那对也一起删（它喂的正是被删的内部端口）。
+`src/rtl/video/split_ctrl.v`：`reg [11:0] pct_q` → `reg [7:0] pct_q` + `assign shown_pct = {4'd0, pct_q}`。
+证明顺序不变：① 逐名 grep 命中数=预期；② 综合日志 `Synth 8-3848 fifo_tx_data`、`Synth 8-3332 pct_q_reg__*` 消失且
+`Synth 8-xxxx` **种类数不增**；③ `build/utilization.rpt` 的 Slice Registers 下降（预期 −14 上下， udp_tx 的 7 个 FSM 寄存器**不许动**）；
+④ 快车道与本轮同绿同红。**落刀后用拷贝树 xvlog + `xelab eth_udp_video_top` 差分**（端口删了但例化里还留着具名连接，只有 elaboration 抓得到，xvlog 单文件解析抓不到）——这一条是今晚 `build/r110_apply_cuts.sh` 拷贝树自测学到的：刀 4 第一版就是被 xvlog 的 `VRFC 10-3380` 抓出来的。
