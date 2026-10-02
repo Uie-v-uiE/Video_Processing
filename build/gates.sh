@@ -517,8 +517,13 @@ D6OUT=$(node src/host/metric_recheck.mjs 2>&1); D6RC2=$?
 D6RED=$(printf '%s\n' "$D6OUT" | grep -c '^RED')
 D6CNT=$(printf '%s\n' "$D6OUT" | sed -n 's/.*判 \([0-9][0-9]*\) 个数.*/\1/p' | tail -1)
 D6FRONT=$(printf '%s\n' "$D6OUT" | grep -c '^OK  row=README')
-say "数字对账 metric" "判=${D6CNT:-空} 首页=${D6FRONT:-空} 红=$D6RED" "self（csv fixture + 首页假数）全过、红 0、判 >= 30 个数、首页 >= 20 个" \
-    $([ "$D6RC1" = 0 ] && [ "$D6RC2" = 0 ] && [ "$D6RED" = 0 ] && [ "${D6CNT:-0}" -ge 30 ] && [ "${D6FRONT:-0}" -ge 20 ] && echo 1 || echo 0)
+# 下面两条是**射程地板**，不是数量地板：今天这两行首页 stale（逐时钟 setup、逐时钟 hold）恰恰是
+# "总数 >= 30"抓不到的——总数只说"我判了很多数"，不说"逐时钟那两行进没进射程"。
+# 计数会随版本涨，所以这里钉的是**形状**：setup 那一格与 hold 的归属那一格，中英各一条，共 >= 2。
+D6CLK=$(printf '%s\n' "$D6OUT" | grep -c 'setup\[eth_rxc\]')
+D6OWN=$(printf '%s\n' "$D6OUT" | grep -c '最差那一格的 WHS')
+say "数字对账 metric" "判=${D6CNT:-空} 首页=${D6FRONT:-空} 逐时钟=${D6CLK:-空}/归属=${D6OWN:-空} 红=$D6RED" "self（csv fixture + 首页假数 + 逐时钟/归属对照）全过、红 0、判 >= 30 个数、首页 >= 20 个、逐时钟 setup 与 hold 归属各 >= 2 条（射程地板）" \
+    $([ "$D6RC1" = 0 ] && [ "$D6RC2" = 0 ] && [ "$D6RED" = 0 ] && [ "${D6CNT:-0}" -ge 30 ] && [ "${D6FRONT:-0}" -ge 20 ] && [ "${D6CLK:-0}" -ge 2 ] && [ "${D6OWN:-0}" -ge 2 ] && echo 1 || echo 0)
 if [ "$D6RC2" != 0 ] || [ "$D6RED" != 0 ]; then
     printf '%s\n' "$D6OUT" | grep '^RED' | sed -n '1,8p' | sed 's/^/        /'
 fi

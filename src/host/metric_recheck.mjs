@@ -43,10 +43,15 @@ function fromTiming(p) {
     const blk = t.split('Design Timing Summary')[1] || '';
     const m = blk.match(/WNS\(ns\)[^\n]*\n[^\n]*\n\s*(-?[0-9.]+)\s+(-?[0-9.]+)\s+(\d+)\s+(\d+)\s+(-?[0-9.]+)/);
     if (!m) throw new Error('timing_summary.rpt 里读不到 Design Timing Summary 那一行');
-    // 周期也一起读：百分数的分母必须来自报告，不能由人脑补（今天那个 12 % 就是这么来的）
+    // 逐时钟 WNS/WHS 也一起读：百分数的分母必须来自报告，不能由人脑补（今天那个 12 % 就是这么来的）。
+    // 报告里这张 `Intra Clock Table` 的**数据行没有竖线**，是空格对齐的 ⇒ 按块切（Intra→Inter）再按
+    // 字段数判：一行要有 时钟名 WNS TNS 失败数 总数 WHS 六个字段才收，只有 WPWS 的那几行（clkfbout…）
+    // 天然被拒。（此前这里用的是一条要求行首有 `|` 的正则，对这份报告**命中 0 次**、四个时钟全读成 null。）
+    const intra = (t.split('| Intra Clock Table')[1] || '').split('Inter Clock Table')[0];
     const periods = {};
-    for (const r of t.matchAll(/\|\s*(\S+)\s+(-?[0-9.]+)\s+0\.000\s+\d+\s+\d+\s+(-?[0-9.]+)/g)) {
-        periods[r[1]] = { wns: Number(r[2]), whs: Number(r[3]) };
+    for (const line of intra.split('\n')) {
+        const r = line.match(/^\s*(\S+)\s+(-?[0-9.]+)\s+(-?[0-9.]+)\s+(\d+)\s+(\d+)\s+(-?[0-9.]+)/);
+        if (r) periods[r[1]] = { wns: Number(r[2]), whs: Number(r[6]) };
     }
     return { wns: Number(m[1]), failSetup: Number(m[3]), totalEp: Number(m[4]), whs: Number(m[5]), periods };
 }
@@ -70,7 +75,8 @@ function fromPower(p) {
     return { dyn: dyn ? Number(dyn[1]) : null, tj: tj ? Number(tj[1]) : null };
 }
 
-// ---- 首页那一层的取数器（#213 只判 WNS 一格，本轮 #159 扩到四行；见 run() 里的 FRONT）----
+// ---- 首页那一层的取数器（#213 只判 WNS 一格，#159 扩到四行，本轮再扩到**每份首页五行**：
+//      WNS / 逐时钟 setup / 逐时钟 hold / 占用 / 功耗。逐时钟两行是 2026-10-02 补的，见 KINDS.clocks|whs）----
 // 与 RULES 共用**同一批报告读数**（fromTiming/fromUtil/fromPower），不另起第二份真值。
 function one(cell, re, g = 1) { const m = cell.match(re); return m ? Number(m[g]) : null; }
 function file_line(e, hit) { return `${e.file}:${hit + 1}`; }
@@ -106,6 +112,43 @@ const KINDS = {
         ['动态功耗(W)', one(c, /\*\*([0-9]+\.[0-9]+)\s*W\*\*/), s.dyn],
         ['估算结温(°C)', one(c, /\*\*([0-9]+\.[0-9]+)\s*(?:°C|degC|℃)\*\*/), s.tj],
     ],
+    // 逐时钟 setup 余量那一行（2026-10-02 加，起因是 r104 采纳时首页只换了 WNS 行，
+    // 这一行整行留着 r103 的四个数、自相矛盾了两天而没人抓住 ⇒ 这一行进尺子的射程）。
+    // 报告侧的数就是 fromTiming 里那张 `periods`（Intra Clock Table 每行的 WNS 列），不另起第二份真值。
+    clocks: (c, s) => {
+        const names = ['eth_rxc', 'clk_fpga_0', 'clkout0_1', 'sys_clk'];
+        const rows = [];
+        for (const n of names) {
+            const m = c.match(new RegExp('`' + n + '`[^*]*\\*\\*([0-9]+\\.[0-9]+)\\s*ns\\*\\*'));
+            const p = s.periods && s.periods[n] ? s.periods[n].wns : null;
+            rows.push(['setup[' + n + ']', m ? Number(m[1]) : null, p]);
+        }
+        // 形状也要判：首页点名的时钟个数要对回**报告里真有 WNS 的那几个**，不是对回这份硬编码名单。
+        // （前一版写成 `names.filter(...).length` 对 `names.length`，两边是同一个数组 ⇒ 永远 4 比 4、
+        //  这一行根本动不了；报告新增一个有时序的时钟域、或首页少点一个名，它都抓不住。）
+        const inReport = Object.keys(s.periods || {}).length;
+        rows.push(['时钟名个数', names.filter((n) => c.includes('`' + n + '`')).length, inReport]);
+        return rows;
+    },
+    // 逐时钟 hold（WHS）那一行（2026-10-02 加）：与上一行同族，r104 采纳时同样漏了同步，而它比 setup
+    // 那一行更阴——全设计 WHS 的绝对值（0.053）恰好等于 r103 里 `eth_rxc` 那一格的数，所以"首页与
+    // `metrics.csv` 的 WHS 对得上"这条直觉**完全掩盖**了"最差那一格已经换到 `clk_fpga_0`"。
+    // 所以除了四个数各自对回报告，还要判**归属**：点名那一格的报告 WHS 必须等于报告里的最小 WHS。
+    whs: (c, s) => {
+        const names = ['eth_rxc', 'clk_fpga_0', 'clkout0_1', 'sys_clk'];
+        const rows = [];
+        for (const n of names) {
+            const m = c.match(new RegExp('`' + n + '`[^*]*\\*\\*([0-9]+\\.[0-9]+)\\s*ns\\*\\*'));
+            const p = s.periods && s.periods[n] ? s.periods[n].whs : null;
+            rows.push(['whs[' + n + ']', m ? Number(m[1]) : null, p]);
+        }
+        rows.push(['时钟名个数', names.filter((n) => c.includes('`' + n + '`')).length, Object.keys(s.periods || {}).length]);
+        const w = c.match(/(?:最差|worst)[^`]*`([A-Za-z0-9_]+)`/);
+        const claimed = w && s.periods && s.periods[w[1]] ? s.periods[w[1]].whs : null;
+        const vals = Object.values(s.periods || {}).map((o) => o.whs).filter((v) => typeof v === 'number');
+        rows.push(['最差那一格的 WHS', claimed, vals.length ? Math.min(...vals) : null]);
+        return rows;
+    },
 };
 
 const RULES = [
@@ -131,7 +174,8 @@ function run(self) {
     const known = new Set(RULES.map(r => r.name));
     let red = 0, judged = 0, other = 0;
 
-    // 首页那四行也一起判（#213 起了这个头，本轮 #159 从"两行一个数"扩到"四行 26 个数"）：
+    // 首页那五行也一起判（#213 起了这个头，#159 扩到"四行 26 个数"，本轮 #224 补到每份五行：
+    //   逐时钟 setup 与逐时钟 hold 是刚被抓出来的两行 stale；现在的条数由脚本自己念，不在注释里钉死）：
     // README 的表格里写着 WNS、逐资源占用与功耗，并点名 `build/timing_summary.rpt` /
     // `build/utilization.rpt` / `build/power.rpt`，可**没有任何检查器回去读那三份报告**——
     // metrics.csv 有 D6 管，首页没有。于是"首页引用的是哪份报告"与"那份报告现在说什么"之间的
@@ -141,9 +185,13 @@ function run(self) {
     // 复用同一批报告读数，不另起口径；行找不到、数抓不到、括号对数不对 ⇒ 一律判红（不许空转）。
     const FRONT = [
         { file: 'README.md', key: '全设计 setup WNS', want: 'timing_summary.rpt', src: 'timing', kind: 'wns' },
+        { file: 'README.md', key: '逐时钟 setup 余量', want: 'timing_summary.rpt', src: 'timing', kind: 'clocks' },
+        { file: 'README.md', key: '保持时间', want: 'timing_summary.rpt', src: 'timing', kind: 'whs' },
         { file: 'README.md', key: 'BRAM / LUT / FF / DSP', want: 'utilization.rpt', src: 'util', kind: 'util' },
         { file: 'README.md', key: '功耗', want: 'power.rpt', src: 'power', kind: 'power' },
         { file: 'README.en.md', key: 'Design-wide setup WNS', want: 'timing_summary.rpt', src: 'timing', kind: 'wns' },
+        { file: 'README.en.md', key: 'Per-clock setup slack', want: 'timing_summary.rpt', src: 'timing', kind: 'clocks' },
+        { file: 'README.en.md', key: 'Hold time', want: 'timing_summary.rpt', src: 'timing', kind: 'whs' },
         { file: 'README.en.md', key: 'BRAM / LUT / FF / DSP', want: 'utilization.rpt', src: 'util', kind: 'util' },
         { file: 'README.en.md', key: 'Power', want: 'power.rpt', src: 'power', kind: 'power' },
     ];
@@ -218,8 +266,32 @@ function run(self) {
         // 构建一变它们就集体变红（那是正确的红），不该拿"恰好 1 条"当自检期望。
         const want = rows.filter((r) => String(r[4] || '').includes('自检：故意写错')).length;
         const got = fixtureRed;
-        if (want === 1 && got === 1) console.log(`SELF: 过 —— 故意写错的那一条正好被抓到 1 次（全树另有 ${red - got} 条真实红，其中首页层 ${frontRed}）`);
-        else { console.log(`SELF: 不过 —— fixture 期望 1 红，实得 ${got}（表里 fixture 行数 ${want}）`); process.exit(1); }
+        // 逐时钟那一行是这一层新加的形状，它不在 csv 里、没法用上面那条 fixture 测牙，
+        // 所以就地用两段假首页 + 三份假报告读数验它"能红也能绿"（规矩：检查器自己带对照）。
+        const fakeSrc = { periods: { eth_rxc: { wns: 0.812 }, clk_fpga_0: { wns: 1.358 }, clkout0_1: { wns: 2.674 }, sys_clk: { wns: 15.036 } } };
+        const goodCell = '`eth_rxc` **0.812 ns**；`clk_fpga_0` **1.358 ns**；`clkout0_1` **2.674 ns**；`sys_clk` **15.036 ns**';
+        const badCell = goodCell.replace('**2.674 ns**', '**1.061 ns**');          // 就是 r103 那一版留在首页的错数
+        const shortCell = goodCell.replace('；`sys_clk` **15.036 ns**', '');         // 首页少点一个名 = 形状变了
+        // 报告侧能动的对照：假报告少一个时钟域（新增/删除时钟域是构建侧的事，不该只由首页一侧决定）
+        const threeSrc = { periods: { eth_rxc: { wns: 0.812 }, clk_fpga_0: { wns: 1.358 }, clkout0_1: { wns: 2.674 } } };
+        const diff = (cell, src) => KINDS.clocks(cell, src).filter(([, g, e]) => g !== e).length;
+        const badN = diff(badCell, fakeSrc), shortN = diff(shortCell, fakeSrc), goodN = diff(goodCell, fakeSrc);
+        const repShortN = diff(goodCell, threeSrc);
+        // 逐时钟 hold 那一行的对照，重点是**归属**这一维：四个数都对、只把"最差那一格"指错域，
+        // 正是今天首页那条 stale 行的形状（它指 `eth_rxc`，而 r104 最小 WHS 在 `clk_fpga_0`）。
+        const whsSrc = { periods: { clk_fpga_0: { whs: 0.053 }, eth_rxc: { whs: 0.056 }, clkout0_1: { whs: 0.068 }, sys_clk: { whs: 0.121 } } };
+        const whsGood = '最差那一格在 `clk_fpga_0`；`clk_fpga_0` **0.053 ns**；`eth_rxc` **0.056 ns**；`clkout0_1` **0.068 ns**；`sys_clk` **0.121 ns**';
+        const whsWrongOwner = whsGood.replace('最差那一格在 `clk_fpga_0`', '最差那一格在 `eth_rxc`');
+        const wdiff = (cell) => KINDS.whs(cell, whsSrc).filter(([, g, e]) => g !== e).length;
+        const whsGoodN = wdiff(whsGood), whsOwnN = wdiff(whsWrongOwner);
+        // 解析器自己要有地板：真实报告读不出逐时钟数（今天命中 0 次那一版）就是这一层在空转。
+        const nRep = Object.keys(SRC.timing.periods || {}).length;
+        const unitOk = goodN === 0 && badN >= 1 && shortN >= 1 && repShortN >= 1 && nRep >= 4
+            && whsGoodN === 0 && whsOwnN >= 1;
+        console.log(`  ${unitOk ? 'PASS' : 'FAIL'} 自检·逐时钟行：正常 0 不符（实得 ${goodN}）｜首页改回 r103 那个数能红（实得 ${badN}）｜首页少一个名能红（实得 ${shortN}）｜报告少一个时钟域能红（实得 ${repShortN}）｜真实报告解析到 ${nRep} 个逐时钟数（地板 4）`);
+        console.log(`  ${unitOk ? 'PASS' : 'FAIL'} 自检·逐时钟 hold 行：正常 0 不符（实得 ${whsGoodN}）｜四个数全对但"最差那一格"指错域能红（实得 ${whsOwnN}）`);
+        if (want === 1 && got === 1 && unitOk) console.log(`SELF: 过 —— 故意写错的那一条正好被抓到 1 次（全树另有 ${red - got} 条真实红，其中首页层 ${frontRed}）`);
+        else { console.log(`SELF: 不过 —— fixture 期望 1 红，实得 ${got}（表里 fixture 行数 ${want}）；逐时钟行自检 ${unitOk ? '过' : '不过'}`); process.exit(1); }
         return;
     }
     if (red) process.exit(1);
