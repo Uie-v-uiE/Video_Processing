@@ -1023,6 +1023,68 @@ module tb_v98_top_seam;
         end
     end
 
+    // ---- C8c（#102 的机器那一半，2026-10-02 从副本台架并回来）：**原图抽头**在八档、整行所有列上
+    //   都得解出定义要的坐标。为什么 C2/C7 绿着还不够：它们比的是 `u_split.sel`（缝选中的那一路 =
+    //   此刻屏上那一路），而 P100 量到的两条病灶都在**没被屏选中的原图抽头**上（消隐期地址读回来的格子）。
+    //   C8 确实判 `orig_pix`，但窗只有 `x==0`、且只在 1.00x 那一档（`c5_on`）⇒ 0.5x/0.25x 的第 0 列
+    //   与其余各列的原图抽头，今天一个数都没有。这一条把两件事一起扩：**同一拍、同一个采样窗、
+    //   同一份逆映射表**（与 C2/C7 逐字符同窗），比 orig_pix 的列与行两半位，八档全扫。
+    //   期望值不引用任何顶层补偿项（与 C7 同一条规矩）。tag 是 mod 128/256 的（`px_val` 就这么编），
+    //   所以比"小偏移"用 dsub，与 C8/C7 同一把尺。
+    //   ⚠ 副本里我写过一句"自证在里面（inv=256 必须与 C8a 同结论）"，**那时候代码里并没有这条**
+    //   （规矩 25：注释里的工作 around / 声称就是缺陷报告）。并回来时把它补成真的：下面 C8cself 那条
+    //   只算尺子自己的期望函数——inv=256 必须退化成 `>>1`（列与行各一次），而 inv=1023 必须与它不同，
+    //   否则"八档全绿"可能只是期望函数根本没跟着表走。
+    integer c8c_n [0:7], c8c_bad [0:7], c8c_skip [0:7], c8c_dump [0:7];
+    integer c8c_i, c8c_np, c8c_f, c8c_l, c8c_q;
+    integer c8c_ec, c8c_er2, c8c_dc, c8c_dr2;
+    integer c8c_sb1, c8c_sb2, c8c_sb3;
+    reg [511:0] c8c_bv [0:7];
+    initial begin
+        for (c8c_i = 0; c8c_i < 8; c8c_i = c8c_i + 1) begin
+            c8c_n[c8c_i]=0; c8c_bad[c8c_i]=0; c8c_skip[c8c_i]=0; c8c_dump[c8c_i]=0;
+            c8c_bv[c8c_i]=512'd0;
+        end
+        c8c_sb1=0; c8c_sb2=0; c8c_sb3=0;
+        for (c8c_q = 0; c8c_q < 512; c8c_q = c8c_q + 1) begin
+            if (c2_exp_col(c8c_q, 256) !== (c8c_q >> 1)) c8c_sb1 = c8c_sb1 + 1;
+            if (c2_exp_col(c8c_q, 1023) === c2_exp_col(c8c_q, 256)) c8c_sb2 = c8c_sb2 + 1;
+        end
+        for (c8c_q = 0; c8c_q < SRC_H; c8c_q = c8c_q + 1)
+            if (c2_exp_row(c8c_q, 256) !== (c8c_q >> 1)) c8c_sb3 = c8c_sb3 + 1;
+    end
+
+    always @(posedge dut.clk_pix) begin
+        if (c2_on && dut.de_d[dut.MIX_D] && dut.y_d[dut.MIX_D] >= C2_YLO
+            && dut.y_d[dut.MIX_D] <= C2_YHI) begin
+            c8c_n[c2_k] = c8c_n[c2_k] + 1;
+            c8c_ec = c2_exp_col(dut.u_split.x_sel, C2_TBL(c2_k));
+            if (c8c_ec < 0 || c8c_ec > 511) begin
+                c8c_skip[c2_k] = c8c_skip[c2_k] + 1;      // 定义说这一格在画面外：不比内容，但必须数出来
+            end else begin
+                c8c_er2 = c2_exp_row(dut.y_d[dut.MIX_D], C2_TBL(c2_k));
+                if (c8c_er2 < 0 || c8c_er2 > (SRC_H-1)) begin
+                    c8c_skip[c2_k] = c8c_skip[c2_k] + 1;  // 纵向跑出采样带，同上不参与判定
+                end else begin
+                    c8c_dc  = dsub(mem_col(dut.u_split.orig_pix), c8c_ec[7:0]);
+                    c8c_dr2 = dsub(mem_row(dut.u_split.orig_pix), c8c_er2[6:0]);
+                    if (c8c_dc != 0 || c8c_dr2 != 0) begin
+                        c8c_bad[c2_k] = c8c_bad[c2_k] + 1;
+                        c8c_bv[c2_k][dut.u_split.x_sel >> 1] = 1'b1;
+                        if (c8c_dump[c2_k] < 3) begin
+                            c8c_dump[c2_k] = c8c_dump[c2_k] + 1;
+                            $display("C8CBAD code=%0d x=%0d y=%0d orig=%h 解出=(列%0d,行%0d) 定义=(列%0d,行%0d) dcol=%0d drow=%0d oob=%b oob_out=%b proc=%h sx=%0d sy=%0d",
+                                     c2_k, dut.u_split.x_sel, dut.y_d[dut.MIX_D], dut.u_split.orig_pix,
+                                     mem_col(dut.u_split.orig_pix), mem_row(dut.u_split.orig_pix),
+                                     c8c_ec[7:0], c8c_er2[6:0], c8c_dc, c8c_dr2,
+                                     dut.oob, dut.oob_out, dut.u_split.proc_pix, dut.sx, dut.sy);
+                        end
+                    end
+                end
+            end
+        end
+    end
+
     // `OFF_LINES` 从**被测对象**取，不抄字面量（#68 那条老规矩：抄来的数会变成"我相信我自己"）。
     initial c5_off = dut.u_pipe.OFF_LINES;
 
@@ -1663,6 +1725,29 @@ module tb_v98_top_seam;
             line("C2c edges match definition", c2_leakl[c2_k] < 0 && c2_measl[c2_k] == c2_geol[c2_k]
                  && c2_measr[c2_k] == c2_geor[c2_k],
                  "measured picture edges == geometric edges (content stage, in columns)");
+            // ---- C8c：同一批采样点上的**原图抽头**（#102 机器那一半），坏格也按列对记形状 ----
+            c8c_np = 0; c8c_f = -1; c8c_l = -1;
+            for (c8c_q = 0; c8c_q < 512; c8c_q = c8c_q + 1)
+                if (c8c_bv[c2_k][c8c_q]) begin
+                    c8c_np = c8c_np + 1;
+                    if (c8c_f < 0) c8c_f = c8c_q;
+                    c8c_l = c8c_q;
+                end
+            $display("C8c rawtap  code=%0d inv=%0d n=%0d skip=%0d bad=%0d badpairs=%0d firstpair=%0d lastpair=%0d",
+                     c2_k, C2_TBL(c2_k), c8c_n[c2_k], c8c_skip[c2_k], c8c_bad[c2_k], c8c_np, c8c_f, c8c_l);
+            line("C8cpre sampled", c8c_n[c2_k] > 20000 && (c8c_n[c2_k] - c8c_skip[c2_k]) > 20000,
+                 "the raw-tap ruler must judge a real pile of cells in the SAME window C2/C7 use (skip = 定义说在画面外/带外)");
+            line("C8c raw tap matches definition", c8c_bad[c2_k] == 0,
+                 "the RAW tap (not the seam-selected one) must decode to the source col+row the definition asks, all 8 zoom steps");
+            // C8cself：尺子自己的期望函数（只算一次，八档共用）。这一条**不碰 DUT**，
+            // 它防的是"八档全绿其实是因为期望函数不跟着逆映射表动"这种最阴的空转（规矩 30(a)/46(a)）。
+            if (c2_k == 0) begin
+                $display("C8cself ruler  inv256列不合>>1的=%0d/512  inv256行不合>>1的=%0d/%0d  1023与256相同的列=%0d/512（必须 0/0/大）",
+                         c8c_sb1, c8c_sb3, SRC_H, 512 - c8c_sb2);
+                line("C8cself expectation degenerates at 256 and moves at 1023",
+                     c8c_sb1 == 0 && c8c_sb3 == 0 && (512 - c8c_sb2) > 200,
+                     "exp_col(x,256)==x>>1 and exp_row(y,256)==y>>1 (the 1.00x identity C5b already proved on the panel), while the 1023 step must differ on most columns");
+            end
             // 面板级同一件事：屏上画面的左右沿必须落在定义说的那两列，而且**逐行一致**
             //（fmin!=fmax 就是"这一行的边在抖"，那是另一种病，不许用区间糊过去）。
             line("C3c panel edges match definition", c3_fmin[c2_k] == c3_fmax[c2_k]
