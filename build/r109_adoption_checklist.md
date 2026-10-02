@@ -35,6 +35,10 @@
    **眼睛判据（旋转动起来顶部还有没有分散细线）必须由用户做**，我不能代判；板子没回来就写"欠"。
 5. 试冻结 `build/freeze_evidence.sh`（大概仍 REFUSE，全绿集还是 r75 —— 如实记）；
    重导提交包 `bash build/make_submission.sh`（若目录句柄被占，用 `VP_SUB_OUT` 换路径 + **数盘上文件数**验收，rule 50）。
+   ⚠ 验收算式（2026-10-03 读 `build/make_submission.sh:613-615` 定死，别再自己"发现"一个 off-by-one）：
+   导出器数的是**写 MANIFEST 之前**、且**排除 MANIFEST.txt 自己**的文件数（`find . -type f ! -name MANIFEST.txt | wc -l`），
+   所以正确关系是 **盘上文件数 = MANIFEST 里那个「文件数」+ 1**。本刻实测：盘上 384、MANIFEST 写 383 ⇒ 一致
+   （`_pruned.txt` 已经算在 383 里，它不是差项；#106 那次修的正是这类"报的数与落地差 N"）。
 6. 提交 + 推送，然后立刻开下一批（#174 + #177 + #158，见 `build/r109_batch2_ready.md`）。
 
 ## 三、明确不算完成的事（免得把"做了很多"当成"做完了"）
