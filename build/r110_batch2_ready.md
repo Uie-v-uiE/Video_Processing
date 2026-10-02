@@ -3,6 +3,16 @@
 这一页的存在理由：用户要求"所有任务一起开、别一个一个搞几小时仿真"。所以第二捆里每一刀都**已经在不花构建的前提下验过**，
 落刀之后只需要一次构建 + 一次顶层台架（一轮只付那 127 分钟一次）。
 
+## 刀 0（**最先做**，因为它决定后面几刀的证据可不可信）：修回我把 `osd_addr` 变异弄钝的那处回归
+r109 的 #105 那一刀把 OSD 读侧改成 `ch_addr_pre = line*MAX_CHARS + cidx` → `ch_r <= chars[ch_addr_pre]`，
+`ch_addr` 从此只供台架判越界、**不再决定画出来的是什么**。后果：`sim/mut_control.sh` 的 `osd_addr` 分支
+（sed 改 `ch_addr` 那一行、`EXPDIFF=2`）现在"只改判据的眼睛、不改 DUT 的画"，而且 sed 仍能匹配 ⇒ **脚本不报警，只有人会漏**。
+详见 ISSUES #237。修法是两边重新同源并各配一支变异：
+- `sim/tb_osd_lines.v:76` 再引出 `oob_idx2 = u_osd.ch_addr_pre;`，T17/T18 要求两根都在范围内；
+- `sim/mut_control.sh` 把 `osd_addr` 拆成 `osd_addr_judge`（只改 `ch_addr` ⇒ 判据必须抓到）与
+  `osd_addr_draw`（改 `ch_addr_pre` ⇒ 必须红 T17），各给 `EXPDIFF`，并改掉旧注释里"仍然 0 是限度"的说法。
+落完这一刀再谈下面的刀 1..6 —— 否则后面任何"变异对照通过"都建立在一把已经失效的尺子上。
+
 ## 刀 1：#174 `gapclr` 与 `frame_done` 同拍竞争（已差分预验，凭据 `build/evidence/r174_f2e_preverify.txt`）
 - 位置：`src/rtl/eth/link_monitor.v`，记账块（今天 `:137` 起的 `if (frame_done) begin stall_ms <= 0; if (have_base) begin …`）。
 - 改法：`if (frame_done) begin stall_ms <= 0; if (gapclr) begin gap_last<=0; gap_min<=0; gap_max<=0; gap_sum<=0; gap_valid<=0; end else if (have_base) begin …`
