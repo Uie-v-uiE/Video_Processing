@@ -57,3 +57,21 @@ C12 这个 token 现在有两家共用，**不许按 token grep**。按整句：
 `build/tb98_report.sh:35` 的打印白名单漏了 `C12 `（今天已补），补前那份报告只有结论没有数。
 老家的两条（`C12pre the rose probe…`、`C12a osd off removes every glyph cell…`）判的是 OSD 总开关，与这一刀无关，
 但它们的红/绿也计入 NFAIL/NPASS —— 所以"FAIL 行数=1"这条断言成立时，四家都是绿的。
+
+## 追加二（2026-10-03）：门禁句 22→24 的四处已 grep 定位；hold 那一行要改的是**落点**不是域名
+`grep -rn "22 项\|22 items"` 命中恰好四处（与计划一致，没有第五处）：
+`README.md:56`、`README.en.md:70`、`report/BACKGROUND_AND_NOVELTY.md:31`、`report/BACKGROUND_AND_NOVELTY.md:80`。
+另：首页保持时间那行 `README.md:58` 现在写的是"全设计最差那一格在 `eth_rxc`（… 落点 `u_eth/u_cdc/rgray_s1_reg…`）"。
+r109 的读实（`build/evidence/r109_hold_owner.txt` 第一节）：WHS 0.049 的**域名仍是 eth_rxc/gmii_rx_clk**，
+但**落点换成** `u_eth/u_rx_mac/u_crc_rx/crc_data_reg[17]/C → crc_data_reg[25]/D`（1 级、route 80.9 %）⇒
+按规矩 46，"最差那一格在 X"是归属判据：这次**域名那句可以留、落点半句必须重写**，且要与 D6 判的六十八个数同一笔提交换。
+首页 WNS 那行今天读的是 **r108 / bit 25bf35a9900e / 0.721 ns**（板上是 r108，不是记忆里写的 r107）——
+采纳那笔换数前先用 `build/r109_timing_summary` 一类原件重读，不许从 README 抄 README。
+
+## 追加三（2026-10-03 01:5x）：门禁那份件的**出生时间**必须晚于台架 RESULT（ISSUES #240）
+盘上已经有一份 `build/r109_gates.txt`（00:06 写的，bit md5=21227687e925），但那是**台架之前**跑的半成品，
+它给 D1b 的身份判据提供了放行 ⇒ 判读时不许用它。规则：采纳只认 `build/r109_gates.txt` 里时间戳**比
+`build/r109_tb98_console.txt` 新**的那一份，而且两跑逐字节一致；`[ "$F" -nt "$G" ]` 这一步不许省。
+同一段还写明：今晚板子被恢复到 **r108**（文档态，`build/system_r108_restore.bit` 走 VP_BIT 刷入 + board_verify PASS geom 10/0），
+而 `build/system.bit` 已被 r109 构建覆盖 ⇒ **采纳那笔必须同时把 r109 的位流落回 `build/system.bit`/`.xsa` 并提交**，
+否则导出器打进去的位流与首页不同源（#240）。

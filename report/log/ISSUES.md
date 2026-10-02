@@ -11033,3 +11033,21 @@ C12a/b/c 的第一次读数都还没有），r109 因此**不采纳、不刷板�
 修法（排到下一次能动 sim 的轮，r110 刀 7）：新家整体改名 `C13`（`C13pre/C13a/C13b/C13c` 四条），
 `build/tb98_report.sh:35` 的打印白名单同批改加 `C13 `，"整屏判据条数"那一格的分子不动（条数不变）。
 在那之前，采纳判读一律按**整句**匹配（见 `build/r109_adoption_checklist.md` 追加的那节）。
+
+## #240 交付位流的位置 `build/system.bit` 会被**下一轮的构建**覆盖，而"板上那一版"要到采纳才换 ⇒ 采纳之前跑 `make_submission.sh` 会把未采纳的位流打进包里
+立案日期：2026-10-03 01:5x（断电重上后恢复板子时读实）。
+事实（都当场 md5 过）：
+- `build/system.bit` 现在 = **21227687e925** = r109 的位流（00:01 构建落盘时覆盖的；`git status` 里它是 ` M`）；
+- 板上这一晚是 **25bf35a9900e** = r108（从 `git show fffc187:build/system.bit` 取回、写进 `build/system_r108_restore.bit`、
+  用 `VP_BIT` 走 `program_pl` 刷进去的；凭据 `build/r109_restore_r108_console.txt`、`build/r109_restore_board_verify_console.txt`）；
+- `build/make_submission.sh:217/:367/:458` 认的就是 `build/system.bit` ⇒ **导出的是 r109，文档说的是 r108**。
+为什么现有尺子拦不住：D1b 判的是"有没有一份 rNN_gates.txt 戳着这块 bit"，而 `build/r109_gates.txt`（00:06 写的那一份，
+在台架**之前**跑的）恰好戳着 21227687e925 ⇒ 它会给未采纳的位流放行。这正是规矩 47 说的那种"项数/身份本身是被判的数"，
+判据被一份半成品喂饱了。
+修法（排到采纳之后单独一刀，不动采纳那笔）：
+1) `make_submission.sh` 加一条前置：被打包的 `build/system.bit` 的 md5 必须等于**首页那一句点名的 rNN 的 gates 件**里戳着的 md5，
+   且那份 gates 必须是两跑逐字节一致的采纳件；对不上就 REFUSE（不是警告）。
+2) 顺手把"00:06 那份 `build/r109_gates.txt` 不是采纳门禁"写进 r109 的采纳判读（`build/r109_adoption_checklist.md` 追加三）：
+   判读只认台架 RESULT **之后**重写的那一份，且时间戳必须比 `build/r109_tb98_console.txt` 新。
+今晚的处置：不跑导出器（本来也排在采纳之后），板子保持 r108 = 文档态，r109 的位流仍留在
+`vivado_system/zynq_video_sys.runs/impl_1/system_top.bit`（md5 同一个），没有丢。
