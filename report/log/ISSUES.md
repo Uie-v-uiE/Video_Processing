@@ -10510,3 +10510,30 @@ LUT/FF 四格、功耗两格），`doc_currency` 另有 4 条 D1b/D1c 红说的�
   现在都是 `OK 8/8` —— 这句周期以前也没人回读。
 - 现在这把握尺子共判 **68** 个数（首页层 58、csv 认领 10/10），全树 **43** 条红（比修归位前少 1 条——那条是假红）。
 
+
+---
+
+## #226（2026-10-02 12:5x，总体过一轮·第三批）：两把**纯静态**尺子不在门禁 22 项里（pipe_len_check 与 temp_formula_check），今天各自跑过都是绿的
+
+**怎么撞出来的**：把 `src/host/` 的尺子清单和 `build/gates.sh` 实际调用的清单对了一遍。
+`gates.sh` 只调 6 把（demo_cmds / doc_currency / doc_enc / line_cite / metric_recheck / ps_hb_check）；
+`src/host/` 下有 25 个 .mjs。其中要 COM6 的那一批（`geom_check`、`uart_cmd_check`、`health_read`、
+`lane30_watch`、`ddr_verify`）**本来就不该**进无人值守门禁——它们属于 `board_verify` 那一侧，这条不是问题。
+问题是另外两把：它们既不碰板子、又不碰串口，却也没人调用。
+
+**实测（本机直跑，不是借用别人的读数）**：
+- `node src/host/pipe_len_check.mjs` → rc=0，末行
+  `PIPE_LEN PASS（位号四份一致 + 26 条现编用例只有九位那条写寄存器 + 两处口径同一句 + RTL 里没有五位残留）`，
+  并且它**自带 `--self`**（580 行）。这把尺子守的是 r58 那条口径："接受或拒绝必须显式、五位一个位都不写"
+  ——正是用户手册里"我得敲满 8 位才生效"那件事的机器判据。
+- `node src/host/temp_formula_check.mjs` → rc=0，`PASS temp_formula_check`，内建两条变异对照
+  （忘了减 273.15 会偏 273.1 °C；常数 503.975 少写一个 5 会偏 268.4 °C）。守的是 OSD 结温公式的常数。
+
+**于是这两把尺子坏了不会有人知道**：RTL 或 PS 的命令表一旦漂走 `pipe` 的长度口径，门禁仍然全绿。
+立案为任务 **#176**，并且**这一轮不当场加项**——理由不是懒，是**门禁条数本身是被判的数**：
+D1c 会把首页那句"门禁 22 项 21 绿 / 1 红"与 `rNN_gates.txt` 的行数对账。当场把 gates 改成 24 项，
+就会让 r106 的门禁实跑多出一类**与本轮改动无关**的红，把"唯一红是声明过的 C5c"这条验收口径弄脏。
+正确顺序是：r106 采纳与文档同步那一轮，把 `22→24` 与**四处文案**一起改
+（`README.md:56`、`README.en.md:70` 同形状句、`report/BACKGROUND_AND_NOVELTY.md:31`、`:80`），
+一次提交内跑 `doc_currency` 确认不红。新加的两项各带计数地板（rc=0 **且**输出里有 PASS 行），
+并先给 `temp_formula_check` 补一个能改退出码的 `--self` 入口（它现在只有内建变异）。
