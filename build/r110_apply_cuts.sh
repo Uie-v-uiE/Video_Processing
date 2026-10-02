@@ -29,11 +29,15 @@ APPLY=
 if [ "$MODE" = "--apply" ]; then
     APPLY=1
     [ "${VP_I_KNOW:-}" = 1 ] || { echo "APPLY-REFUSE: 要落刀请显式 VP_I_KNOW=1（本脚本会改 src/rtl）"; exit 2; }
-    tasklist 2>/dev/null | grep -qi "vivado\.exe" && { echo "APPLY-REFUSE: vivado.exe 活着 —— 构建/探针在飞"; exit 2; }
-    tasklist 2>/dev/null | grep -qi "xsim\.exe"   && { echo "APPLY-REFUSE: xsim.exe 活着 —— 台架链在飞"; exit 2; }
+    if [ "${VP_ALLOW_BUSY:-}" = 1 ]; then
+        echo "WARN SANDBOX-override 生效：跳过 xsim/vivado 活性检查 —— **这只给拷贝树的自测用，真树落刀时不要设它**"
+    else
+        tasklist 2>/dev/null | grep -qi "vivado\.exe" && { echo "APPLY-REFUSE: vivado.exe 活着 —— 构建/探针在飞"; exit 2; }
+        tasklist 2>/dev/null | grep -qi "xsim\.exe"   && { echo "APPLY-REFUSE: xsim.exe 活着 —— 台架链在飞"; exit 2; }
+    fi
     dirty=$(git status --porcelain -- "$RTL_LM" "$RTL_RS")
     [ -z "$dirty" ] || { echo "APPLY-REFUSE: 这两份 RTL 不干净，退回能力未证实："; echo "$dirty"; exit 2; }
-    echo "PRE-OK 树空、两份 RTL 在 git 里干净（`git checkout -- <file>` 是真退路）"
+    echo "PRE-OK 树空、两份 RTL 在 git 里干净（'git checkout -- <file>' 是真退路）"
 fi
 
 # anchor_replace FILE IF_TEXT TARGET_LINES PATCH_LINES NAME
@@ -65,8 +69,11 @@ const k=hits[0];
 const j=lines.slice(0,k).join("").length;                     // 命中处起始字节
 if(j < i0){ console.log(NAME+" ANCHOR-ORDER: target 在 if 锚点**之前**出现（说明我抄的这段形状换了位置）"); process.exit(2); }
 const term=lines[k].endsWith("\r\n") ? "\r\n" : "\n";         // 沿用命中那一行自己的行尾
+// 缩进自适应：比较放宽成"两侧去空白"之后，**写回**必须把命中行的缩进带回来（拷贝树自测抓到刀1把
+// `                if (have_base) begin` 换成顶格的 `if (gapclr) begin …` —— 语法没问题但白吃一次 diff/行位移）。
+const indent=(lines[k].match(/^[ \t]*/)||[""])[0];
+const PL=P.replace(/\\n/g,"\n").split("\n").map(l=>/^[ \t]/.test(l)||l==="" ? l : indent+l);
 const before=lines.slice(0,k).join(""), after=lines.slice(k+need).join("");
-const PL=P.replace(/\\n/g,"\n").split("\n");
 const out=before + PL.map(l=>l+term).join("") + after;
 // 期望的形状由调用方给（第一版只有"必须变长"，那是**插入刀**的尺度；刀 4b 是把 8 行换成 6 行，
 // 正确的尺子是"变短 + 旧守卫整段消失 + 新形状六条都在"—— 尺子的维度对不上时先怀疑尺子，不改判据迁就）
@@ -105,8 +112,8 @@ fi
 #   **必须离开 316** 才算数；没离开就回退，不许改判据迁就它（#223 一轮一变量）。
 if [ "$WHICH" = "all" ] || [ "$WHICH" = "4" ]; then
     RS_IF="reg [15:0]      rows_hit;"
-    RS_T="    wire        row_covered ="
-    RS_P="    // 独热化（r110 刀 4① / ISSUES #238）：公共的\"新行\"拆成每 bank 一根使能网。\n    wire        new_row_w = (row_idx < IMG_H) && !row_covered;\n    // rbank<=4 由 row_idx<IMG_H(=300) 保证（ridx<=299 ⇒ rbank=ridx[8:6]<=4）；>=5 时 new_row_w 本已为 0。\n    wire [4:0]  bank_one  = new_row_w ? (5'b00001 << rbank) : 5'b00000;\n    wire        row_covered ="
+    RS_T="        :                    rok4[roff];"
+    RS_P="        :                    rok4[roff];\n    // 独热化（r110 刀 4① / ISSUES #238）：公共的\"新行\"拆成每 bank 一根使能网。\n    // ⚠ 必须放在 row_covered 的定义**之后**：拷贝树自测里我把它插在定义之前，\n    //    xvlog 直接 [VRFC 10-3380] identifier 'row_covered' is used before its declaration（pristine 0 错 vs patched 2 错）。\n    wire        new_row_w = (row_idx < IMG_H) && !row_covered;\n    // rbank<=4 由 row_idx<IMG_H(=300) 保证（ridx<=299 ⇒ rbank=ridx[8:6]<=4）；>=5 时 new_row_w 本已为 0。\n    wire [4:0]  bank_one  = new_row_w ? (5'b00001 << rbank) : 5'b00000;"
     anchor_replace "$RTL_RS" "$RS_IF" "$RS_T" "$RS_P" "刀4a" grow "wire [4:0]  bank_one" "" || fail=1
 
     RS_IF2="if (off < FRAME_BYTES) begin"
