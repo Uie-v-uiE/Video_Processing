@@ -10902,3 +10902,34 @@ C12a/b/c 的第一次读数都还没有），r109 因此**不采纳、不刷板�
 打刀那一腿 F2e A/B 与 F2a–F2d 全绿 —— 实测正是 `base红=1(F2e-B=1) → cut红=0(F2e-B=0)`，
 红的条数只少它自己。⇒ 这一刀与 #177 死代码排同一批进构建；门禁那半（把 `tb_link_monitor` 接成第 25 项）
 **等 F2e 修绿之后**再做，那时不需要白名单。
+
+## #235（2026-10-03 00:1x，#167 的越界把板子推到"AP 不可达"：从"命令通道钉死"升级成"要断电"）
+
+**读到什么**（逐条都是实测输出，不是推断）：
+- 00:13:13 与 00:13:29，`board/serial_bytes.ps1` 发 `STAT` 与 `split show` ⇒ `BYTES: 0`（串口**一个字节都不回**）。
+  00:05 之前它至少还回 `[CMD!] dropped 17 trailing byte(s)`（#233 记的那一步），现在连那句都没有了。
+- 00:13:52 我第一次跑 `xsdb build/tcl/ps_app_reload.tcl`：脚本打出 `RESUME: Already running` 与
+  `pc: 00009ed4`，我把 `tail -12` 当成了"没报错"——**这是我的读数错误**：`DOW:` 那一行在窗口外面。
+- 00:14:50 我按脚本文件头自己的判据补了一次"边听边重下"（`uart_cap_once.ps1 -Seconds 26` 纯听 + 同时重下）：
+  `RST_PROC: ok`，然后
+  `DOW: Memory write error at 0x0. Cannot flush CPU cache. APB AP transaction error, DAP status 0xF0000021`，
+  `PC_BEFORE_CON: pc: N/A`、`cpsr: N/A` ⇒ **ELF 根本没写进去**，26 秒的串口捕获只有 2 字节（空）。
+  这条 `0xF0000021` 就是本仓记忆里那条"PS 被楔住"的签名（AP 事务错误、寄存器读不回）。
+
+**分级怎么改**：#167 原本写"边界不安全但可恢复"；#233 我改成"一发钉死命令通道"；今天这一场的最终状态是
+**整个 AP 不可达、只能断电重上**（板载 USB-JTAG 还在、`connect` 成功，但 AP 事务失败 ⇒ 与记忆里
+"JTAG 全 0 = 板子侧，断电重上后走 ps7_init → program_pl → reload"是同一形状）。
+沿用的因果假设（**标注为假设，不当结论**）：那条 127 字节 + CRLF 先写越界到 `cmd_buf[128]`，
+邻着的是 `int cmd_len`（`main.c:313`），之后 `cmd_len` 一直大于数组 ⇒ 残包支清不掉；
+再往后主循环里某一处把这条坏状态传播到总线/外设访问，最后 AP 也起不来。
+要证这条链，需要 `cmd_len` 与相邻 `.bss` 符号的映射表（`build/ps_app.mjs --map` 之类），本轮**没有做**，
+所以这里只钉"观测顺序"：`命令通道钉死（00:0x）` → `串口零字节（00:13:13）` → `AP 不可达（00:14:50）`，
+中间没有任何我主动做的事。
+
+**给下一程的硬话**：① 恢复要人手 —— **断电重上**；恢复顺序按记忆里那条走
+`xsdb build/tcl/ps_jtag_boot.tcl` → `vivado -source build/tcl/program_pl.tcl` → `xsdb build/tcl/ps_app_reload.tcl`，
+三道各自的 token 是 `DDR_ECHO … 5A5AA5A5` / `PROGRAMMED xc7z020_1` / `RESUME: ok` + `DOW: ok`
+（**`DOW:` 必须是 ok，`pc` 必须能读回来**；这次就是被 `tail` 截掉了这一行才差点误判）。
+② 板子不在的时候不许念任何板级结论：`board_verify`、`cmd_overflow_probe`、眼睛判据全部要等它回来。
+③ 我这轮两次读数失误是同一课：**长输出要用判据点名的那几行去读，不要用 `tail` 的窗口去猜**
+（#230/#231 那族"看错了行"的第六次）。
