@@ -12799,3 +12799,17 @@ JTAG 侧证据：`targets` 显示两个 A9 核都 **(Running)** ⇒ PS 没死，
 ⇒ 规矩：给后台链/多次调用用的环境变量要么写在同一条命令里（`VP_XSDB=... node ...` 前缀式），
 要么由脚本自己 `export`（`board_verify.sh` 就是这么活下来的）。
 另外 `node` 眼里的 `/tmp/...` 是 `C:\tmp\...`（MSYS 的 /tmp 不是 node 的 /tmp）⇒ 凭据一律写到仓库内路径。
+
+### #318 r116 夜：`frames_bad=1` 用**回刷 r114 做 A/B** 查清了归属；顺带把"读不出来的字段"显式化（02:21）
+
+同一台板、同一个 app、同一份推流（512×300@60 / 50 s / 3001 帧 / 663,221 包），
+先 `VP_BIT=build/evidence/r114_bit/system.bit` 回刷 r114、读两次，再刷回 r116、读两次：
+**四个读数逐格相同**（`eth_live=1 owner_eth=1 drop_words=0 pkt_err=0 frames_bad=1 drop_seen=0`）。
+⇒ `frames_bad=1` 是 r114 就有一次性计数，**不能记到本轮采样点头上**；
+⇒ 板侧结论：r116（窗 + τ=31）与已被证明能跑的 r114 在真实流量下**不可区分**。
+
+两条工具账：① 内联 `node -e` 里的正则被 shell 吃掉一层转义，三个计数器全打成 `?`
+—— 看着像"板子没这个计数器"，其实是尺子坏了 ⇒ 落成 `build/r116_ab_summary.mjs`，
+读不到的键打 `ABSENT`，**读不出来必须说读不出来**；
+② `build/r116_bit_cycle.sh` 把"rst -system → ps_jtag_boot → program_pl(VP_BIT) → ps_app_reload → 带流读两次"
+做成一条命令，A/B 只要跑两遍，不用手拼（#315/#316 两条坑都在里面）。
