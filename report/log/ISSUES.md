@@ -12530,3 +12530,36 @@ FANAB 行混进这一轮的凭据头——那是"凭据里混进别一轮的数"
 硬凑一个能跑但看不到改动的 bench 就是恒绿尺子（附录 1：零样本不许算通过），
 所以 C2 的 G7 替身改成**网表机制凭据**（MMCM 在位、IDDR 仍 5 颗、BUFG 仍是同一只）+ S1 的 hold 判据 + 板侧 1000M 实流量；
 并且这条替尺**自带正对照**：拿主树 DCP 跑必须 RED（那里没有 MMCM），拿副本树 DCP 跑必须 GREEN。
+
+### #304 A1 真去取数了，结果推翻了我自己写在候选约束里的数：±0.500 是 RTL8211F 表里 `TskewT` 那一行，不是收口该用的窗（2026-10-03 23:44）
+
+**先前怎么写的**：`src/constraints/r114_io_async.xdc:39-43` 用 `set_input_delay -max 0.500 / -min -0.500`，
+文件里的理由是"RGMII 规范允许的对齐误差 ±500 ps"，并且承认"本机 PDF 解析不出来，所以引的是数值本身而不是我读过 PDF"。
+`debt_ledger.md` 也跟着说输出侧"缺来源数字"。
+
+**今晚怎么拿到的**：`Read` 工具读 PDF 要 `pdftoppm`（poppler），本机没装 ⇒ 渲染路线不通；
+但**文本抽取路线**通：`pip install pypdf`（本机 python 3.12 有 pip）后按页抽文本。
+手册就在本机：`D:/Xilinx/Resource/ZYNQ7020/Board_Resource/芯片手册/C187932_以太网芯片_RTL8211F-CG_规格书….PDF`（69 页，JATR-8275-15 Rev 1.4）。
+命中页 = PDF 第 67 页（手册页码 60）的 **Table 60 "RGMII Timing Parameters"**。
+
+**读数（原文照抄）**：`TsetupR` 1.0 / 2 / – ns、`TholdR` 1.0 / 2 / – ns（发射端内部延迟集成时）；
+`TskewR` **1 / 1.8 / 2.6 ns**（PCB 延迟模式，并明确要求时钟比数据多走 >1.5、<2.0 ns）；
+`TskewT` **−0.5 / 0 / +0.5 ns**（发射端*没有*内部延迟时的**输出**偏差）；`Tcyc@1000M` 7.2/8/8.8；`tR/tF` max 0.75。
+
+⇒ **我用错了行**：±0.5 是"发射端输出偏差"那一行的数，FPGA 作为**接收端**的窗应来自 `TsetupR/TholdR` 或 `TskewR`。
+换成真数（min 1.000 / max 2.600）重算 `docs/timing/rgmii_window_model.md` §1 那条路：
+arrival = 1.000 + 1.321 + 0.655 = 2.976；required = 5.008 + 0.835 + 0.155 = 5.998 ⇒ **WHS(I/O) ≈ −3.02**
+（比 ±0.5 时的 −2.885、模型 b 的 −2.522 都更负）。新候选件 `src/constraints/r115_io_window_candidate.xdc`（**不加载**）写的就是这组并集数。
+
+**为什么取并集而不是"PHY 延迟开着/没开着"**：RTL8211F 的 `TXDLY/RXDLY` 与 `RXD1/RXD0` 复用
+（原理图 `ZYNQ7020-F+V1.1原理图.pdf` 第 8 页引脚表 `23 TXDLY/RXD1`、`24 RXDLY/RXD0`），
+复位时被怎么拉、寄存器 0x11 现值——本机都读不到（app 无 MDIO 读命令、无 `arm-none-eabi-gcc` ⇒ #131/#170）。
+所以选**两个方向都更严**的那一组；这不是保守，是"不猜"。
+
+**顺带一条自己的账（编号撞名）**：同一把"把捕获沿提前"的刀，`docs/timing/cut_ledger.tsv` 与本轮判定文档叫它 **C3**，
+而 `build/r115_capture_clock_plan.md` 叫它 **C2**、丢弃副本树也因此叫 `c2_scratch_1003`。
+两套 C 编号在同一个仓库里并存是我造的混乱（#239 的撞名是同族），已在 `rgmii_window_model.md` 顶部钉住别名并声明**以 cut_ledger 为准**。
+
+**A1 这一节的账要如实结**：Xilinx 的 UG903/906/949/904/382/482 今晚仍然没取到（本机无随附文档、渲染路线缺 poppler），
+所以本轮依旧没有任何"官方建议"字样的结论；但"本机 PDF 读不到"这句已经被证伪了一半——
+**读不到的是渲染，不是文本**。下一轮要么装 poppler 要么继续用 pypdf，别再拿"取不到"当不做的理由。
