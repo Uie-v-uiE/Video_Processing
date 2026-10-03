@@ -11881,3 +11881,38 @@ Vivado 按系统码页读 .tcl 会吞字符"（这条规矩确实存在、也确
 
 **留这一条的理由**：误诊本身也要入账。删 CJK 注释这件事最后没被证明有害也没被证明必要，
 我不把它写成"根因"，只写成"我改过、且不是根因"。
+
+### #278 变体 A（只给上升沿的 ±0.5 ns 窗）跑完：沿的条数**不是**原因（2026-10-03 16:47）
+
+**这是 #275 里我自己排的那个判别实验**：同一份 `system_top_opt.dcp`、同一套 place → phys_opt → route，
+唯一变量是候选约束**去掉 `-clock_fall` 那两条**（件 `src/constraints/r114_io_variantA_rise_only.xdc`，
+控制台 `build/evidence/r114_io_variantA_console2.txt`）。
+
+**尺子先自证**：这一滚里"不加约束"那一滚第三次逐位复现正式构建 —— `IHEAD|base_route|wns=0.445|whs=0.050|fail_setup=0|fail_hold=0`。
+同时上一版 `exc_rows=0` 是我解析错（`report_exceptions` 的表体行首是位置号，不是类型词），
+按实测形状重数之后是 **13 行**，而 `datapath_only_hits` 仍然 **0** ⇒ #276 那条结论不变。
+
+**B 滚读数（逐字抄自控制台）**：
+
+```
+IHEAD|io_route|wns=0.424|whs=-2.885|fail_setup=0|fail_hold=5|fields=12
+IROW|io_route|clk=eth_rxc|kind=setup|period=8.000|slack=0.424|state=MET|levels=11|route_pct=58.114|dest=u_eth/u_icmp/u_icmp_tx/check_buffer_reg[18]/D
+IROW|io_route|clk=eth_rxc|kind=hold|period=8.000|slack=-2.885|state=VIOLATED|levels=2|route_pct=0.000|dest=u_eth/u_rgmii/u_rgmii_rx/u_iddr_rx_ctl/D
+IROW|io_route|clk=clk_fpga_0|kind=hold|period=10.000|slack=0.058|state=MET|levels=1|route_pct=54.780|...
+IROW|io_route|clk=clkout0_1|kind=hold|period=20.000|slack=0.064|state=MET|levels=0|route_pct=65.067|...
+IROW|io_route|clk=sys_clk|kind=hold|period=20.000|slack=0.133|state=MET|levels=2|route_pct=55.837|...
+DEBT|io_after_route|no_in=0|no_out=6|fp_in=2|fp_out=6|exc_rows=13|datapath_only_hits=0
+```
+
+**判定（这一条要按"两个候选完全相同"来读）**：把 `-clock_fall` 那两条删掉之后，**每一个数都和两沿那一版一模一样**
+（0.424 / −2.885 / 5 个失败端点、连落点都是同一颗 `u_iddr_rx_ctl/D`，levels=2、走线 0.000 %）。
+两种解释二选一即可成立，而今天的数据只支持第一个：
+
+1. `set_input_delay -clock eth_rxc` 本来就对**该钟的所有工作沿**生效，我那条 `-clock_fall` 的补充是重复写法
+   （⇒ "两沿写重了"这个猜测被否掉，窗本身没写宽）；
+2. 于是红的那 5 格不是"窗太悲观"造出来的，而是**采样位置本来就站在眼心外面**：r92 那颗 IDELAY（VALUE=26）
+   是在没有任何片外窗建模的前提下调到"屏上看着对"的位置。
+
+⇒ **#275 里排的第二档（`IDELAY_VALUE` 扫值，在带窗口径下找眼心）才是这一刀的正解**，沿的条数这条路已经排除。
+输入侧欠账两次都确实清掉了（`no_in` 5 → 0），输出侧 6 个端口仍按纪律不动（缺规范原文，见 §二.2）。
+候选约束文件仍然**不接进构建**，板上还是 r113。
