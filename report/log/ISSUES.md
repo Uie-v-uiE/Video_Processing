@@ -12509,3 +12509,24 @@ FANAB 行混进这一轮的凭据头——那是"凭据里混进别一轮的数"
 
 另：`/tmp/kx/r115_noise/noise.txt` 是 `/tmp` 里的临时件，审计拿不到 ⇒ 现已复制成被跟踪件
 `build/evidence/r115_noise_verdict.txt`（B4 噪声底的正式凭据；文档里的 /tmp 路径仍保留，指向同一次跑的原始快照）。
+
+### #303 C2 第一次落刀在综合就死：`MMCME2_BASE` 的端口我按记忆写成 `PWRONINT`，而**仓里就有一份能跑的写法**（`src/rtl/clocks/clk_gen.v:48` 的 `.PWRDWN`）（2026-10-03 23:36）
+
+副本树第一滚 4 分钟就失败：
+`ERROR: [Synth 8-11365] for the instance 'u_mmcm_rx' of module 'MMCME2_BASE' … named port connection 'PWRONINT' does not exist`
+后面 `IDELAYCTRL / rgmii_rx / gmii_to_rgmii / eth_udp_video_top / system_top` 全是级联的 `[Synth 8-6156]`，
+真正的信息只有第一行（同族教训：看日志要看**第一条** ERROR，不看最后一条）。
+
+`PWRONINT` 是 `MMCME2_ADV` 的端口，`MMCME2_BASE` 的是 `PWRDWN`——
+而这件事**本机就有权威答案**：`src/rtl/clocks/clk_gen.v` 里那只跑通了、上过板的 MMCM 就写着 `.PWRDWN (1'b0)`。
+我先凭 ISE/记忆写完才去查，等于把"形状要量不许猜"这条又犯了一遍（#301 那三处同一族）。
+另外我一开始还想 grep `unisim_comp.v` 来确认端口，结果行号取不到、`sed` 报错——
+**最近的正确出处是仓里已经在跑的同一类例化**，不是安装目录里的大文件。
+
+同一笔还查出一件对这一刀有决定意义的**覆盖缺口**（写进 `build/tcl/probe_rgmii_capture_clock.tcl` 文件头）：
+`sim/prim/` 只有 `MMCME2_BASE.v` 与 `unisims_sim.v`，**没有 IDDR / IDELAYE2 / IDELAYCTRL 占位件**，
+而那只 MMCM 占位件自己写明"**不能验相位（PHASE 一律 0）**"。
+⇒ 这一刀改的正是采样相位 ⇒ **现有仿真台架看不见它**。
+硬凑一个能跑但看不到改动的 bench 就是恒绿尺子（附录 1：零样本不许算通过），
+所以 C2 的 G7 替身改成**网表机制凭据**（MMCM 在位、IDDR 仍 5 颗、BUFG 仍是同一只）+ S1 的 hold 判据 + 板侧 1000M 实流量；
+并且这条替尺**自带正对照**：拿主树 DCP 跑必须 RED（那里没有 MMCM），拿副本树 DCP 跑必须 GREEN。
