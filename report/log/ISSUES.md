@@ -11500,3 +11500,22 @@ C12a/b/c 的第一次读数都还没有），r109 因此**不采纳、不刷板�
    并把 `FANOUT_ERR` 与报告头 20 行念出来（`build/tcl/probe_timing_roster.tcl`、`build/tcl/mf114_roll.tcl` 两处同改，
    后者如果也拿空集跑，`set_max_fanout` 会加在空集合上、两滚"一样"就是假的 ⇒ 那边有 `MF-REFUSE` 兜）。
    下一次 Vivado 窗口（顶层台架跑完）重问一次，D6 才有意义；这条在重问之前**保持红**，不许为了绿而豁免。
+
+### #262 第三处"其他地方"：`dc_fifo` 两级格雷码指针的捕获寄存器**没打 `ASYNC_REG`**（TIMING-9/10 那两条终于有了名字）
+   尺子：`build/scan_async_reg_coverage.py`（件 `build/evidence/r113_async_reg_scan.txt`，
+   跑法 `python build/scan_async_reg_coverage.py src/rtl`，自对照 `--self` 五条）。结论：
+   整棵树里"源寄存器与捕获寄存器时钟不同"的只有两颗，**两颗都没打属性**：
+   `src/rtl/eth/dc_fifo.v:82 rgray_s0 (wr_clk) <- rgray (rd_clk)`、
+   `src/rtl/eth/dc_fifo.v:89 wgray_s0 (rd_clk) <- wgray (wr_clk)` ⇒ A2 RED（这条红是真的，不改口径）。
+   要修的是**两拍都打**（`rgray_s0/rgray_s1`、`wgray_s0/wgray_s1`）——`angle_ctrl` 的 `fs_s` 就是这个写法（打了属性的对照就在同一棵树里）。
+   为什么值得修：官方口径（UG949 CDC 一节 + `ASYNC_REG` 属性）是"没打属性的同步链，工具可以挪位/复制，
+   亚稳态传播窗口就没保证"；而 `dc_fifo` 是 SD↔AXI 与 ETH 两侧的**空满标志源头**，
+   指针被挪 = 空满判断错 = 丢帧/写穿。这条与 #256/#52/#65 是同一个"属性/上电"家族，之前只留在
+   "报告里有两条 warning"这一句上，没名字也没人跟。⇒ r114 一并做（与 #259 那把 I/O 尺子同轮，改的是 RTL 属性，需一次构建）。
+2. **这把尺子自己废过两回，都写在文件头当反面教材**（别第三次犯）：
+   v1 把"任何两条相邻非阻塞赋值"当同步链 ⇒ 60 颗里 57 颗是流水线，批量造假；
+   v2 方向对了但 `反斜杠 b` 被 heredoc 退化成退格符 ⇒ `begin/end` 计数恒 0、always 块范围塌成一行 ⇒
+   真树 pairs=0，而 **fixture 全是单行块、五条对照照样全过**——这一次是 A1 计数地板把空转照出来的，
+   也是"对照过了不等于尺子能用"的最新实例。数组（`(* ram_style= "block" *) reg [63:0] lo [0:D-1];`）
+   必须排除：宽度括号在名字**前**、深度括号在名字后，第一版按"名字后两个括号"认 ⇒ 五颗数组读出被误报。
+   地板也不许是猜的：A1 的 2 来自实测件，另加 A5 直接钉 `rgray_s0/wgray_s0` 两个名字。
