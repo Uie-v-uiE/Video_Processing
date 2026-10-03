@@ -11397,3 +11397,30 @@ C12a/b/c 的第一次读数都还没有），r109 因此**不采纳、不刷板�
    武装门（#247）留着不撤——它挡的是另一类（配置时真按住键），但**不许再把它写成那一度的解药**。
    顺带立案的同类风险（待查，别忘）：`sys_rst_n` 恒 1 意味着**整个 sys_clk 域**里所有 `if (!rst_n)` 都是死支 ⇒
    下一轮要一次全局扫："代码想要复位值 1 而网表 INIT=0"的寄存器还有几颗（`probe_ff_init.tcl` 扩成清单即可）。
+
+### #257 #256 那条"待查"已经查完：全局扫了一把，按顶层分树，账清成两棵
+   件：`build/evidence/r113_dead_reset_scan.txt`；尺子：`build/scan_dead_reset_init.py`（源码侧、只读，跑法
+   `python build/scan_dead_reset_init.py src/rtl system_top,pl_demo_top`，自对照 `... --self` 四条）。
+   网表那一侧另有一把：`build/check_powup_init.sh`（问 `get_property INIT`，5 条判据 + 5 条对照；
+   拿 r112 的**真**探针文本喂进去判红，`build/evidence/r113_ff_init.txt` 里 INIT=1'b0 ⇒ W1/W2/W3 RED、
+   W4（angle 那颗复位值本来就是 0）与 W5（计数地板）GREEN —— 反向对照能动，才许它念绿）。
+
+1. **板上这一棵树（system_top，也就是位流真正的那一棵）已经干净**：死复位 4 对
+   （`pl_video_top.sys_rst_n` → `key_debounce.rst_n`×2（u_k1/u_k2）、`key_long.rst_n`（u_k1l）、`angle_ctrl.rst_n`（u_ang）），
+   其中"复位分支想要 1"的寄存器 4 颗，**r113 之后 4/4 都有声明初值**（init_miss=0）。
+   这一域的其余寄存器（cnt/acnt/armed/fired/tog/angle/fs_s…）复位值本来就是 0，与上电 INIT=0 同向 ⇒ 不是债。
+2. **另一棵树（`pl_demo_top`，纯 PL 演示顶层，只被 `build_bitstream.tcl`/`build_pl_full.tcl`/`create_project.tcl`/`synth_pl_only.tcl` 用）还剩一颗**：
+   `snap_cross` 的 `hb_gone` —— 复位分支写 1'b1，但没有声明初值 ⇒ 在那一棵树里它上电是 0（"心跳没消失"）。
+   这条**不影响当前位流**：system_top 那棵树里 snap_cross 的 `dst_rst_n` 接的是 `rst_pix_n = sys_rst_n & locked`
+   与 `fclk0_rst_n`（PS 真复位），是活复位。所以它是演示顶层的潜伏债，记在这里，**r114 补一颗声明初值就完**
+   （与 #256 同一族修法；今天构建在飞 ⇒ 不动 `src/rtl`）。
+3. **这把尺子自己的三个假案，都写成对照钉死了**（不是我一次写对，是它三次骗我）：
+   ① 第一版按**模块名**全局合并 dead 集 ⇒ `pl_demo_top` 的 `.axi_rst_n(1'b1)` 把 system_top 那棵树也染成"死"，
+      冒出 53 对假死复位。现在按顶层分树，两棵各念各的。
+   ② 带参数的例化用正则认，`key_debounce #(.CNT_MAX(1_000_000)) u_k2 (` 在参数表第一个右括号就截断
+      ⇒ `instances=1`（真数 2）。改成手工平衡括号扫描，实例数才对得上；`walk_instances` 另加地板 10。
+   ③ 一条 `reg` 语句里多个声明子（`reg key_sync0 = 1'b1, key_sync1 = 1'b1;`）只认最后一个 ⇒ 把已经修好的
+      `key_stable`（在端口表里声明带初值）误报成"没初值"。现在逐子认、先剥注释。
+   这三条的共同点就是规矩 46/48 那一课：**能念 CLEAN 的尺子必须自己能动**——`--self` 的第四条对照就是
+   端到端造一棵"顶层把复位口接成 1'b1 + 子模块那颗想要 1 且没初值"的假树，必须抓到，抓不到就判 FAIL。
+
