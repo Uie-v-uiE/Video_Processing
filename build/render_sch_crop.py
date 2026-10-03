@@ -13,7 +13,9 @@ import sys
 
 import pypdfium2 as pdfium
 
-PDF = r"D:/Xilinx/Resource/ZYNQ7020/Board_Resource/ZYNQ7020-F+V1.1原理图.pdf"
+PDF = os.environ.get("VP_PDF", "")  # 原理图 PDF 在本机的位置，交付包里不写死
+if not PDF:
+    raise SystemExit("需要环境变量 VP_PDF（原理图 PDF 的路径）")
 page = int(sys.argv[1])
 x0, y0, x1, y1 = [float(v) for v in sys.argv[2:6]]
 name = sys.argv[6]
