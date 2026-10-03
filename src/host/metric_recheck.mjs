@@ -35,7 +35,15 @@ function readRows(txt) {                     // 只处理我认识的行名，�
     return rows;
 }
 
-function num(s) { const m = String(s).match(/-?\d+(?:\.\d+)?/); return m ? Number(m[0]) : null; }
+function num(s) { const m = String(s).split(MINUS).join('-').match(/-?\d+(?:\.\d+)?/); return m ? Number(m[0]) : null; }
+
+// r116 起，首页那几行的 slack 可能是**负**的（第一次给 RGMII 输入绑窗之后，`eth_rxc` 的 setup/hold
+// 两格就是负的，而且这是本轮唯一真实的红）。旧写法只认 `[0-9]+\\.[0-9]+` ⇒ 负数一律读成 null，
+// 而 null 在这个尺子里是"判红"——于是**文档写对了也红**，这是尺子的射程缺了符号这一维（#321）。
+// 中文文档里用的是 U+2212（−），英文文档里可能用 ASCII hyphen，两者都要能吃进去再交给 Number()，
+// 否则 `Number('−0.846')` 是 NaN，会比读不到更难查。
+const MINUS = '−';
+function sgn(s) { return s === null || s === undefined ? null : Number(String(s).split(MINUS).join('-')); }
 
 // ---- 报告侧的读数（每个提取器都说清它读的是哪一行，判红时要能指着看）
 function fromTiming(p) {
@@ -84,7 +92,7 @@ function fromPower(p) {
 // ---- 首页那一层的取数器（#213 只判 WNS 一格，#159 扩到四行，本轮再扩到**每份首页五行**：
 //      WNS / 逐时钟 setup / 逐时钟 hold / 占用 / 功耗。逐时钟两行是 2026-10-02 补的，见 KINDS.clocks|whs）----
 // 与 RULES 共用**同一批报告读数**（fromTiming/fromUtil/fromPower），不另起第二份真值。
-function one(cell, re, g = 1) { const m = cell.match(re); return m ? Number(m[g]) : null; }
+function one(cell, re, g = 1) { const m = cell.match(re); return m ? sgn(m[g]) : null; }
 function file_line(e, hit) { return `${e.file}:${hit + 1}`; }
 function grabPairs(cell) {                    // `14333（26.94 %）` 与 `14333 (26.94 %)` 两种括号都认
     const out = [];
@@ -94,7 +102,7 @@ function grabPairs(cell) {                    // `14333（26.94 %）` 与 `14333
 // 每个 kind 返回 [判点名, 首页读数, 报告读数]；读数抓不到 = null，**null 一律判红**（不许"抓不到就跳过"）
 const KINDS = {
     wns: (c, s) => [
-        ['WNS(ns)', one(c, /\*\*([0-9]+\.[0-9]+)\s*ns\*\*/), s.wns],
+        ['WNS(ns)', one(c, new RegExp('\\*\\*([' + '[-' + MINUS + ']?[0-9]+\\.[0-9]+)\\s*ns\\*\\*')), s.wns],
         ['失败 setup/hold 端点', one(c, /\*\*([0-9]+)\s*\/\s*[0-9]{4,}\*\*/), s.failSetup],
         ['端点总数', one(c, /\*\*[0-9]+\s*\/\s*([0-9]{4,})\*\*/), s.totalEp],
     ],
@@ -125,9 +133,9 @@ const KINDS = {
         const names = ['eth_rxc', 'clk_fpga_0', 'clkout0_1', 'sys_clk'];
         const rows = [];
         for (const n of names) {
-            const m = c.match(new RegExp('`' + n + '`[^*]*\\*\\*([0-9]+\\.[0-9]+)\\s*ns\\*\\*'));
+            const m = c.match(new RegExp('`' + n + '`[^*]*\\*\\*(' + '[-' + MINUS + ']?[0-9]+\\.[0-9]+)\\s*ns\\*\\*'));
             const p = s.periods && s.periods[n] ? s.periods[n].wns : null;
-            rows.push(['setup[' + n + ']', m ? Number(m[1]) : null, p]);
+            rows.push(['setup[' + n + ']', m ? sgn(m[1]) : null, p]);
         }
         // 形状也要判：首页点名的时钟个数要对回**报告里真有 WNS 的那几个**，不是对回这份硬编码名单。
         // （前一版写成 `names.filter(...).length` 对 `names.length`，两边是同一个数组 ⇒ 永远 4 比 4、
@@ -150,10 +158,10 @@ const KINDS = {
             const per = s.per && s.per[n] ? s.per[n].period : null;
             const qm = seg.match(/(?:占它|of its)\s*([0-9]+(?:\.[0-9]+)?)\s*ns/);
             if (qm) rows.push(['周期[' + n + ']', Number(qm[1]), per]);
-            const pm = seg.match(/\*\*[0-9.]+\s*ns\*\*[^%]{0,24}?([0-9]+(?:\.[0-9]+)?)\s*%/);
+            const pm = seg.match(new RegExp('\\*\\*[-' + MINUS + ']?[0-9.]+\\s*ns\\*\\*[^%]{0,24}?([-' + MINUS + ']?[0-9]+(?:\\.[0-9]+)?)\\s*%'));
             if (pm) {
                 const ratio = (slack !== null && per) ? (slack / per) * 100 : null;
-                const claimed = Number(pm[1]);
+                const claimed = sgn(pm[1]);
                 const exp = ratio === null ? null
                     : (Math.abs(ratio - claimed) <= 0.05 ? claimed : Number(ratio.toFixed(3)));
                 rows.push(['余量%[' + n + ']', claimed, exp]);
@@ -169,9 +177,9 @@ const KINDS = {
         const names = ['eth_rxc', 'clk_fpga_0', 'clkout0_1', 'sys_clk'];
         const rows = [];
         for (const n of names) {
-            const m = c.match(new RegExp('`' + n + '`[^*]*\\*\\*([0-9]+\\.[0-9]+)\\s*ns\\*\\*'));
+            const m = c.match(new RegExp('`' + n + '`[^*]*\\*\\*(' + '[-' + MINUS + ']?[0-9]+\\.[0-9]+)\\s*ns\\*\\*'));
             const p = s.periods && s.periods[n] ? s.periods[n].whs : null;
-            rows.push(['whs[' + n + ']', m ? Number(m[1]) : null, p]);
+            rows.push(['whs[' + n + ']', m ? sgn(m[1]) : null, p]);
         }
         rows.push(['时钟名个数', names.filter((n) => c.includes('`' + n + '`')).length, Object.keys(s.periods || {}).length]);
         const w = c.match(/(?:最差|worst)[^`]*`([A-Za-z0-9_]+)`/);
@@ -217,6 +225,51 @@ function run(self) {
     // 写 2.212 W / 52.6 °C 而报告是 2.211 / 52.5，占用行写 14333 / 8079 而报告是 14334 / 8127
     //（r103→r104 那一轮只同步了 metrics.csv，首页漏了四格）。
     // 复用同一批报告读数，不另起口径；行找不到、数抓不到、括号对数不对 ⇒ 一律判红（不许空转）。
+    // ---- 符号这一维的自带对照（G10「每条新增门禁自己也要有一个测试」+ rule 46「必须有能红的对照」）----
+    // r116 之前这份尺子只认 `[0-9]+\\.[0-9]+`，负 slack 一律读成 null；而 null 在这里是"判红"，
+    // 于是**首页把 −0.846 写对了也照样红**、写错了也是同样红——符号这一维根本没有射程（#321）。
+    // 这里用一份合成读数（不是真实报告）跑两遍：已知绿的负数必须解析成对的数、已知红的负数必须仍然红。
+    // 任何一边失效 ⇒ 这一层就是空转，直接算红并计数（不许"对照跑不过就跳过"）。
+    {
+        const rep = {
+            wns: -0.846, failSetup: 5, totalEp: 51140, whs: -0.870,
+            periods: {
+                eth_rxc: { wns: -0.846, whs: -0.870 }, clk_fpga_0: { wns: 2.009, whs: 0.053 },
+                clkout0_1: { wns: 3.885, whs: 0.059 }, sys_clk: { wns: 15.174, whs: 0.222 },
+            },
+            per: { eth_rxc: { period: 8 }, clk_fpga_0: { period: 10 }, clkout0_1: { period: 20 }, sys_clk: { period: 20 } },
+        };
+        const clockCell = (vEth, vFpga, vPix, vSys, pEth, pFpga, pPix, pSys) =>
+            '125 MHz 收包域 `eth_rxc` **' + vEth + ' ns**（占它 8 ns 周期的 ' + pEth + ' %）；'
+            + '100 MHz `clk_fpga_0` **' + vFpga + ' ns**（占它 10 ns 周期的 ' + pFpga + ' %）；'
+            + '50 MHz 显示域 `clkout0_1` **' + vPix + ' ns**（占它 20 ns 周期的 ' + pPix + ' %）；'
+            + '`sys_clk` **' + vSys + ' ns**（占它 20 ns 周期的 ' + pSys + ' %）';
+        const holdCell = '全设计最差那一格在 `eth_rxc`，**' + MINUS + '0.870 ns**；'
+            + '`clk_fpga_0` **0.053 ns**；`clkout0_1` **0.059 ns**；`sys_clk` **0.222 ns**';
+        const fixtures = [
+            ['wns/good', KINDS.wns('| x | **' + MINUS + '0.846 ns**（失败 setup/hold 端点 **5 / 51140**） | r |', rep), true],
+            ['wns/bad', KINDS.wns('| x | **' + MINUS + '9.999 ns**（失败 setup/hold 端点 **5 / 51140**） | r |', rep), false],
+            ['clocks/good', KINDS.clocks(clockCell(MINUS + '0.846', '2.009', '3.885', '15.174', MINUS + '10.57', '20.09', '19.43', '75.87'), rep), true],
+            ['clocks/bad', KINDS.clocks(clockCell(MINUS + '0.846', '2.009', '3.885', '15.174', '10.57', '20.09', '19.43', '75.87'), rep), false],
+            ['whs/good', KINDS.whs(holdCell, rep), true],
+            ['whs/bad', KINDS.whs(holdCell.replace(MINUS + '0.870', MINUS + '0.871'), rep), false],
+        ];
+        let signChecked = 0, signBad = 0;
+        for (const [tag, rows, shouldBeGreen] of fixtures) {
+            if (!rows.length) { console.log(`SELFSIGN-RED ${tag} 一行都没判出来（fixture 形状与取数器脱钩）`); signChecked++; signBad++; continue; }
+            const greens = rows.filter(([, g, e]) => g !== null && e !== null && Math.abs(g - e) < 1e-6).length;
+            const allGreen = greens === rows.length;
+            const ok = shouldBeGreen ? allGreen : !allGreen;
+            console.log(`SELFSIGN ${tag} rows=${rows.length} green=${greens}/${rows.length} expect=${shouldBeGreen ? 'all-green' : 'some-red'} verdict=${ok ? 'OK' : 'RED'}`);
+            signChecked++;
+            if (!ok) signBad++;
+            judged += rows.length;
+        }
+        if (signChecked !== fixtures.length) { console.log(`SELFSIGN-RED 只跑了 ${signChecked}/${fixtures.length} 条符号对照`); red++; }
+        if (signBad) { console.log(`SELFSIGN-COVERAGE 符号对照有 ${signBad} 条不达预期 ⇒ 这一层没有射程`); red += signBad; }
+        else console.log(`SELFSIGN-SUMMARY 判 ${signChecked} 条（负数可读=绿、负数写错=红），红 0`);
+    }
+
     const FRONT = [
         { file: 'README.md', key: '全设计 setup WNS', want: 'timing_summary.rpt', src: 'timing', kind: 'wns' },
         { file: 'README.md', key: '逐时钟 setup 余量', want: 'timing_summary.rpt', src: 'timing', kind: 'clocks' },

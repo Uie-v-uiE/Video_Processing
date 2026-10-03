@@ -130,3 +130,25 @@ r116 的变化与**仍然欠的那一半**：
    （setup 那边 τ ≤ 21.8 不动）⇒ 既然换不来绿，就不去碰 H1，代价写在 §7.5 表里。
 3. **输出侧那 6 个端口的债要谁签**：要么补一份可引用的 DVI/HDMI 窗口数（外部资料），
    要么由用户批准把它们声明为异步/不检查（那是 H1 的放宽，要进松动台账）。夜里两样都没有 ⇒ 债继续挂着。
+
+### §2 追加的追加（r116 构建回来后，02:57 实测）：债的数字落地，且"没有来源"这一句现在有了出处
+
+`build/evidence/r116/r116_check_timing.txt`（`check_timing -verbose`，正式构建那份）：
+
+| 类别 | r115 基线 | **r116 实测** | 读数口径 |
+| --- | --- | --- | --- |
+| `unconstrained_internal_endpoints` | 0 | **0** | H5 的第一个数 |
+| `no_input_delay` 里"没有任何 input delay 的端口" | 5（HIGH） | **0** | 本轮关掉的那 5 个 |
+| `no_input_delay` 里"有既有 false_path 覆盖" | 2（MEDIUM） | **2**（`key1_n`/`key2_n`） | **既有例外，本轮没动**（§3 的"当初理由"待复核） |
+| `no_output_delay` 里"没有任何 output delay 的端口" | 6（HIGH） | **6**（`led[0] led[1] tmds_clk_p tmds_data_p[0..2]`） | H5 的第二个数 = **非 0 ⇒ 本轮按字面判红** |
+| `no_output_delay` 里"有既有 false_path 覆盖" | 6（MEDIUM） | **6** | 同上，动它=放宽 |
+| `report_methodology` 的 `TIMING-18` | 7 条 | **2 条**（`led[0]`/`led[1]`） | **第二把尺子（checks 口径），不与端口数相减**；`Checks found` 446→**441**，类数仍 3 |
+
+**"本机没有 DVI/HDMI 窗口数"这一句从断言升级成了查过的否定**：把 `D:/Xilinx/Resource/Reference Material/6-Xilinx Zynq系列部分官方手册/ug471_7Series_SelectIO.pdf`
+（7-series SelectIO 官方手册，188 页）整本按页抽文本扫过（脚本 `/tmp/tmds_scan.py`，命中页 7/95/100/103/185），
+TMDS 那一节（正文第 95 页）只给 **I/O 标准与属性**（`Table 1-52 Allowed Attributes of the TMDS I/O Standard`、
+50 Ω 上拉到 3.3 V、`TMDS_33` 只在 HR bank、VCCO 3.3 V），**没有任何接收端 setup/hold 窗口或 UI 数**；
+其余命中页是属性表与 DC 特性表。⇒ 这一族数在**本机**确实不存在，要它必须来自外部规范或你的批准；
+我不拿"看起来宽松"的数凑绿灯（H1/§0 的伪装形状）。在线两次尝试（03 日夜里与本次）也没拿到可引用的一页，
+能查到的都是接收器/重定时器芯片的数据手册（例如 TI DS34RT5110、ADI AD8190）而不是 DVI  sink 的窗口表。
+

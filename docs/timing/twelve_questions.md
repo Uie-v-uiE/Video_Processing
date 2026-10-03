@@ -53,7 +53,7 @@
 **10. 有没有哪句话我用了板级口吻但实际没上板？**
 没有。本轮全部是网表/报告层读数，文档里凡涉及行为一律不带"板上验证过"的口气；
 `src/ps` 一字未动（本机无 `arm-none-eabi-gcc`，改了也只能是 source-only，H6）。
-唯一与板有关的现况陈述仍是 r114 那条（bit `7142a1fbf082`、board_verify 21:34 PASS），本轮**没有**新刷板。
+r116 已刷板并板级复验：bit `bb2fb707aebc`，01:37 三步链，01:50 `board_verify --geom --battery` PASS 判红步骤 0，02:14 起带真实流量（147 Mbps）两次读数 `drop_words=0`/`pkt_err=0`，并用回刷 r114 做 A/B 证明 `frames_bad=1` 与本轮无关（`build/evidence/r116_board/`、ISSUES #318）。仍未做的板级判据：E6 的键值现况要在 r116 上重判（那是眼睛判，属于队员）。
 还欠着的眼睛判据：`board/ACCEPTANCE.md` E6 在 r114 上标"待重判"。
 
 **11. 剩余红路径的根因标签是不是每个都挂上了？有没有"未知原因但绿了"？**

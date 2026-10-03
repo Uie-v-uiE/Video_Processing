@@ -265,6 +265,19 @@ if {[info exists ::env(IMPL_STRATEGY)] && $::env(IMPL_STRATEGY) ne ""} {
   }
 }
 puts "BUILD_STRATEGY [get_property STRATEGY [get_runs impl_1]]"
+# r117（C9 复制刀）：与 IMPL_STRATEGY 同一个规矩——**默认不设就是不挂**，设了就把挂的东西打进日志，
+# 产物自己带出身。为什么必须走环境变量而不是直接改这一行：r116 那一版位流的复现路径不能被事后改写。
+# 挂的是 place_design 之后的 TCL.POST：快车道滚（build/evidence/r117_repl3/B_console.txt）就是在
+# place 之后、route 之前做的这一次强制复制，把同一个动作放在官方 run 的同一个位置才是单变量。
+if {[info exists ::env(IMPL_POST_PLACE_HOOK)] && $::env(IMPL_POST_PLACE_HOOK) ne ""} {
+  if {[catch {set_property STEPS.PLACE_DESIGN.TCL.POST $::env(IMPL_POST_PLACE_HOOK) [get_runs impl_1]} e]} {
+    puts "BUILD_HOOK_REJECTED $::env(IMPL_POST_PLACE_HOOK) : $e"
+    exit 1
+  }
+  puts "BUILD_POST_PLACE_HOOK $::env(IMPL_POST_PLACE_HOOK)"
+} else {
+  puts "BUILD_POST_PLACE_HOOK none"
+}
 # 布线后物理综合（post-route phys_opt）：默认**关**（不设变量就是 r64b 那一档流程，逐位同源的对照）。
 # 为什么单独开一档试：`report/OPTIMIZATION_LOG.md` §4 量到全设计 WNS 由两条**布线主导**（route 占 60~67 %）的
 # 路径轮流决定，其中 eth 那条的高扇出网络 fo=96 / 17 正好是 phys_opt 的靶子；而它**不动网表**只动物理结果，

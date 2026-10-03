@@ -43,19 +43,19 @@
 
 ---
 
-# r116 版门禁判定（01:3x；构建在飞，依赖读数的格标【待】）
+# r116 版门禁判定（03:1x 填齐；构建 01:34 回来、板 01:37 刷、台架与门禁 03:0x 在飞）
 
-| 门 | 内容 | r116 状态 |
+| 门 | 内容 | r116 状态（每一项都指到件） |
 | --- | --- | --- |
-| **G1** | 所有域 rel_margin ≥ 基线 | 【待 `r116_roster_diff.txt`】 |
-| **G2** | 两类"没覆盖"计数不许变大 | `io_unconstrained_ports` 预期 **11 → 6**（变小 ✅），`unconstrained_endpoints` 保持 0【待】 |
-| **G3** | 松动台账为空 | ✅ **0 条**（本轮连"能抬 0.8 ns 的放宽"都没做，理由见附录 3 第 4 问） |
-| **G4** | 每域"到没到极限"逐域判定 | ✅ **本轮从"未测"变成有判定**：`docs/timing/limit_audit_r116.md`。结论是**三域不说这句话、一域明说没到**：`sys_clk` 74.4 % 不是瓶颈；`clkout0_1` 主导项是 22 级逻辑＝功能面；`eth_rxc` I/O 那 5 格有不等式；**`clk_fpga_0` 未到极限**（1 级逻辑 / 93.6 % 布线 ⇒ 是"离得远"），预验脚本已就位 |
-| **G5** | 机制侧读数（不能只看 slack） | 刀 1：`V1` 要求 5 条路从 `Slack: inf / Path Group: (none)` 变有限 + 出现 `Input Delay:` 行【待】；刀 2：`IDELAY_VALUE` 逐档 `get_property` 回读 0/4/…/31 全部对上 ✅（件 `probe3_console.txt`，机制确实动了） |
-| **G6** | 噪声底 / 反事实 | `noise_ns=0.000`（r115 钉）；刀 2 的收益是**同 DCP 同尺逐档**，不是跨构建差 ⇒ 不需要反事实（rule 35 也不许拿它当 WNS 收益） |
-| **G7** | 每条新判据能变红 | 本轮未新增门禁项；新增工具 `r117_fb_pblock_fastlane.sh` 自带 P1 机制判据（`PB_RESIZE rc` + `PB_CELLS>0`），空集直接 `exit 4` |
-| **G8** | 指纹先打、构建中不改源 | ✅ `rtl=07570b1ac1b4` 于 01:13:24 打（`r116_tree_fp.txt`），此后 `src/` 未再动（构建在飞期间只写 `docs/`） |
-| **G9** | 告警/方法学计数只算成本 | 【待构建后 `report_methodology`】；预期新增 `TIMING-15`（真 I/O hold 违例），**记为成本** |
-| **G10** | 未经板验不写板级口吻 | ✅ 本轮全部新结论是报告/规格书/原理图口吻；V6【待刷板】 |
-| **G11** | 不把已判负的刀再记一次收益 | ✅ 复制驱动（#288）、MMCM 相移（r115 §7.3）、Pblock-on-eth（r113）本轮都没有被重新记成收益；刀 2 只记 **+0.315 ns 的 I/O 族内收益**，不外推到 WNS |
-| **G12** | "极限"这句话的强度 | 见附录 3 第 12 问：**I/O 那 5 格只满足 §7 的 L1+L2，L3 未独立复现** ⇒ 交付文里写"0…31 全档实测 + 分量不等式两把尺互证的无解"，**不写"已证明是器件边界"**（那句要等 BUFIO 快角 DCD 量回来） |
+| **G1** | 所有域 rel_margin ≥ 基线 | ❌ **按字面红**：`eth_rxc` 两格变小（setup 9.24→−10.57 %、hold 0.65→−10.88 %），件 `build/evidence/r116_roster_diff.txt`（`judged=6 pairs=8 result=RED`）。**这一条我没有话术**：变小的那两格是本轮第一次被检查的 5 个 I/O 端点（绑窗前它们是 `Slack: inf`），G1 与 H5 在这里天然冲突——不绑窗就 H5 红、绑了就 G1 红，两条都写出来才是本轮的产出物。其余三域**一格没掉**：`clk_fpga_0` 18.50→19.76 %（+6.8 %）、`clkout0_1` 18.15→18.49 %（+1.9 %）、`sys_clk` 持平；四域 hold 逐格不动 ⇒ **没有任何域被"搬"过来**（`ROSTERDIFF-COST` 只点 `eth_rxc` 两格，`GAIN` 点两格） |
+| **G2** | 两类"没覆盖"计数不许变大 | ✅ `unconstrained_internal_endpoints` **0→0**；`no_input_delay` 里真正没约束的端口 **5→0**（另有 2 个输入是既有 false_path 覆盖，本轮没动）；`no_output_delay` 里 **6→6**（`led[0..1]`、`tmds_clk_p`、`tmds_data_p[0..2]`——**这一族数字非 0  ⇒ H5 按字面判红**，见 §6.4 的两条出口）；第二把尺子 `report_methodology` 的 `TIMING-18` 从 **7→2**（checks 口径，不与端口数相减）。件 `build/evidence/r116/r116_check_timing.txt`、`build/methodology.rpt` vs `git show HEAD:build/methodology.rpt` |
+| **G3** | 松动台账为空 | ✅ **0 条数据行**，且两条"看起来该放松"的都在台账注释里点明没放松：`eth_rxc` 的 0.800 hold 带与输入窗双重计（去掉能把 −0.870 抬到约 −0.385，仍不是绿 ⇒ 不换）、`r114_io_async.xdc` 那个用错行的 ±0.500 窗没进工程 |
+| **G4** | 每域"到没到极限"逐域判定 | ✅ 从"未测"变成**逐域有件**（`docs/timing/limit_audit_r116.md` + 交付侧 `report/TIMING_GLOBAL.md` 第 6 节）：`sys_clk` 74.38 % 不是瓶颈；`clkout0_1` 主导项是 22 级逻辑（9 级 CARRY4）＝功能面授权之外；`eth_rxc` I/O 那 5 格有不相交区间 + 角间差不等式；**`clk_fpga_0`：02:49 的量把根因从"两端离得远"改成 FANOUT（一根 239 引脚网吃 5.690 ns），03:01 的快车道单变量滚量到一把**赢**的刀**（+0.033/+0.187/+0.298，代价 +10 只 FF，别的域一格不动，件 `build/evidence/r117_repl3/B_console.txt`）⇒ 落地入口 `build/tcl/r117_post_place_hook.tcl` |
+| **G5** | 机制侧读数（不能只看 slack） | ✅ 刀 1：5 条路从 `Slack: inf / Path Group: (none)` 变**有限**并出现 `Input Delay: 1.200 / 2.800 ns` 行（`build/evidence/r116/r116_io_{HOLD,SETUP}.rpt`，且 `Path Type` 分别是 `Hold (Min at Slow)` / `Setup (Max at Fast)`——I/O 路与片内路的角分配是反的，这条已写进窗模型）；刀 2：`IDELAY_VALUE` 逐档回读 0/4/…/31 全对上（`probe3_console.txt`） |
+| **G6** | 噪声底 / 反事实 | `noise_ns=0.000`（r115 两次空白滚逐位复现）。**本轮新增一条同尺反事实**：对照滚 A（不加 phys_opt）逐格复现 r116 正式名册（件 `build/evidence/r117_fb_pblock/A/roll_console.txt` 的 `ROW` 行 vs `build/evidence/r116_after_roster.txt`）⇒ 复制滚 B 与它的差可以直接归因给那一刀（H3） |
+| **G7** | 每条新判据能变红 | ✅ 本轮新增的是尺子而不是门禁项：`metric_recheck` 补**符号维**（首页第一次写负 slack，旧式子读不出负数 ⇒ 写对也红、写错也红，射程为零，#321）；自带 6 条合成对照（`SELFSIGN-SUMMARY 判 6 条：负数可读=绿、负数写错=红，红 0`），且 `--self` 原有两条 fixture 仍恰好红 2 次 |
+| **G8** | 指纹先打、构建中不改源 | ✅ `rtl=07570b1ac1b4` 于 01:13:24 打（`build/evidence/r116_tree_fp.txt`），构建期间 `src/` 未动；改口的交付文档在构建之后（不属构建期源改动）。构建在飞期间**没有编辑任何正在被后台执行的脚本**：`r116_stage2.sh` 只读、新刀一律另起文件名（`repl117_roll3.tcl` 而不是改 `roll2`） |
+| **G9** | 告警/方法学计数只算成本 | ✅ **实例 446→441、类数仍 3**（TIMING-9/10/18），没有新增类 ⇒ 计数是降的；预期会出现的 `TIMING-15` 没来（工具把 I/O 违例归到既有 `TIMING-18` 之外的 `report_timing`，摘要里没新增类）。比较次数念出来：`judged=6 pairs=8`（名册）、`判 115 个数`（metric_recheck）、`CURRENCY 6 条`（指路）——三个 N 各有自己的行，见 `build/evidence/r116_roster_diff.txt`、`node src/host/metric_recheck.mjs` 末行、`node src/host/doc_currency_check.mjs` 末行 |
+| **G10** | 未经板验不写板级口吻 | ✅ 板级话只有一句、且有件：01:37 刷入、01:50 `board_verify --geom --battery` PASS 判红步骤 0、02:14 带流 `drop_words=0`/`pkt_err=0`、回刷 r114 做 A/B（#318）。其余全部是报告/规格书口吻；`src/ps` 一字未动 ⇒ 没有任何 ELF 层面的承诺 |
+| **G11** | 不把已判负的刀再记一次收益 | ✅ 复制驱动 #288（那是 **`eth_rxc` 域**的高扇出驱动，与本轮 `clk_fpga_0` 那根 239 引脚网**不是同一根网**，所以 C9 不是重复记账——这一点在 cut_ledger 的两行里分别点名了目标网）、MMCM 相移（r115 §7.3）、Pblock（r113 + 本轮 `PB_EXISTING_BOX=` 空自拒）都没有被重新记成收益 |
+| **G12** | "极限"这句话的强度 | 见附录 3 第 12 问：**L1 有件（逐段分解 + route 0.000 %）；L2 有 4 条独立负结果（tap 全档、MMCM、Pblock、统一带子）；L3 有件（差分只红在被新检查的那两格，其余三域持平或变好）** ⇒ 允许写"这一格在当前结构下不存在能同时满足两条检查的采样点"。仍然**不许**写的两句：① "已证明是板上真实的差额"（窗模型自身还有 `TskewR` 那行的残余风险，§6 写着）；② "BUFIO 换树也关不掉"（那条路的快角 DCD 还没量，第 7 节给了它 40 秒的前置探针） |

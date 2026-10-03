@@ -12813,3 +12813,57 @@ JTAG 侧证据：`targets` 显示两个 A9 核都 **(Running)** ⇒ PS 没死，
 读不到的键打 `ABSENT`，**读不出来必须说读不出来**；
 ② `build/r116_bit_cycle.sh` 把"rst -system → ps_jtag_boot → program_pl(VP_BIT) → ps_app_reload → 带流读两次"
 做成一条命令，A/B 只要跑两遍，不用手拼（#315/#316 两条坑都在里面）。
+
+### #319 r116 夜：我把"记忆里应该支持的选项"当成了事实，代价是两次 8 分钟的空滚（02:39 / 02:48）
+
+`build/tcl/repl117_roll.tcl` 与 `repl117_roll2.tcl` 都给 `phys_opt_design` 传了 `-skeleton_clustering`，
+2025.2.1 的答语是 `ERROR: [Common 17-170] Unknown option` ⇒ **复制根本没发生**。
+如果我当时把那次滚的读数抄进文档，写进去的就是"复制刀没有收益"，而真相是"我打错了一个选项名"。
+⇒ 提示词 A2 那条 40 秒的 `help` 探针不是礼仪，是防这个的；规矩补一句：
+**任何带选项的新滚，先把 `help <命令>` 的选项集落进同一个件目录，再让判定器把用到的选项逐个对回那份清单**。
+本轮已经落成 `build/evidence/r117_d0/nethelp_console.txt`（`PO_OPTION_COUNT=31`，
+present=1 的有 -force_replication_on_nets / -fanout_opt / -critical_cell_opt / -placement_opt / -retime / -directive，
+present=0 的有 -skeleton_clustering / -rewire / -replication_count / -cell_opt / -shift_registers）。
+第三次尝试 `repl117_roll3.tcl` 只用实测存在的选项，并在脚本里带一条机制地板：
+`R3_REPLICA_CELLS==0 且 pins 不变 ⇒ 打 MECHANISM_INERT`，不许写成"没有收益"。
+（同一条坑在 r114 也栽过一次——那次是 `-filter` 读空集；两次都是**尺子坏了却像设计坏了**。）
+
+### #320 r116 夜：`get_nets -of <驱动引脚>` 与报告里的段名不是同一个对象，选错了复制目标
+
+r116 名册里 clk_fpga_0 的最差 setup 路（件 `build/evidence/r117_d0/worst_clk_fpga_0_setup.rpt`）逐段是：
+```
+SLICE_X43Y79 FDCE (Prop_fdce_C_Q) 0.379   u_pl/u_arb/owner_eth_reg/Q
+             net (fo=269, routed) 5.690   u_pl/u_row/hi_reg_0[0]      <- 整条路 7.355 ns 里的大头
+SLICE_X88Y7  LUT6 (Prop_lut6_I3_O) 0.105  u_pl/u_row/hi_reg_4_i_1
+             net (fo=2, routed)   1.181   u_pl/u_bilin/u_fb/hi_reg_8_0[0]
+RAMB36_X3Y1  RAMB36E1 (Setup_ramb36e1_CLKARDCLK_WEA[0]) -0.476
+```
+而 `get_nets -of [get_pins u_pl/u_arb/owner_eth_reg/Q]` 给的是 `u_pl/u_arb/dbg_src[0]`，**7 个引脚**。
+两个读数不可能同时成立；`get_nets -of [get_pins u_pl/u_row/hi_reg_4_i_1/I3]`（从**负载侧**问）
+和按字面名问，两者一致给 `u_pl/u_row/hi_reg_0[0]`，239 个引脚、全部在 `u_pl/u_row` 里、
+铺在 99 个不同 tile（件 `nethelp_console.txt` 的 `AGREE load_vs_name=1` / `HIERGROUP u_pl/u_row = 239` /
+`LOAD_TILE_UNIQUE=99`）。⇒ roll2 本来要把复制压在一根 7 引脚的网上，机制即便触发也不打那条 5.690 ns。
+规矩（写进 roll3 的前置）：**选目标网必须两路独立取名并要求同名，且必须与报告自己打印的段名一致**；
+`get_nets -of <引脚>` 单点取名不算证据。仍未解释的是"驱动侧为什么给出另一根网"，
+本轮不猜成因，只把两条读数都留在件里，下一轮用 `get_property DRIVER` 一句话能判。
+顺带纠正 `docs/timing/limit_audit_r116.md` 里我自己写错的一处诊断：那条最差路的终点
+`u_pl/u_bilin/u_fb/hi_reg_8` 的 `REF_NAME` 是 **RAMB36E1**（不是 LUTRAM），
+而且它的主项是**广播网 + 跨半片布线**（FANOUT/ROUTE），不是"目的端离得远所以画个 pblock"——
+审计里那句"杠杆是只圈 u_fb 的 pblock"方向是错的：框住目的地不会把源拉过来。
+
+### #321 r116 夜：`metric_recheck` 的首页取数器**读不出负数**，于是"文档写对了也红、写错了也红"（03:02 修）
+
+提示词 §7 允许"剩余红路径被证明是器件边界"这一支，r116 第一次让首页的 headline slack 变成**负数**（`eth_rxc` −0.846 / −0.870）。
+这时才暴露：`src/host/metric_recheck.mjs` 首页那一层的四个取数式全写成 `[0-9]+\.[0-9]+`，**没有符号位**，
+而这份尺子的规矩是"读不到 = null = 判红"（那是 #194/#219 为了防空转定的，方向没错）。
+后果有两种，且**两种都长成红**，所以没有任何一条读数能把它们区分开：
+① 首页把 −0.846 写对了 ⇒ 读成 null ⇒ 红；② 首页写 0.846（丢了负号）⇒ 也红。
+这就是 rule 46 那一类："一条判据若正例与反例给同一个答案，它就没有射程。"
+⇒ 补法：加 `sgn()` 把 U+2212（中文文档用的那个减号）折成 ASCII 再交给 `Number()`，
+   四个式子放进可选符号位 `[-−]?`；并加**六条合成对照**（wns/clocks/whs 各一对：已知绿的负数必须全绿、
+   已知错的负数必须仍红），它们跑在真实运行里（不只 `--self`），计数打成 `SELFSIGN-SUMMARY 判 6 条…红 0`。
+实测（03:02）：`SELFSIGN-SUMMARY 判 6 条（负数可读=绿、负数写错=红），红 0`，
+`--self` 原有两条 fixture 仍恰好红 2 次（新代码没有把老对照弄钝）。
+顺带这次的改动把"该改哪些数"变成了机器清单：一次正常跑给出 **23 条 RED**，每条都带 `文件:行` 与
+（首页值, 报告值）——改口轮就照这张单子走，不靠我记（规矩 44：基线必须是件，不是记忆）。
+件：本条改动 + `node src/host/metric_recheck.mjs` 的 RED 清单（03:02 那次跑的输出已抄进 `docs/timing/ROUND_r116.md` 第六节）。

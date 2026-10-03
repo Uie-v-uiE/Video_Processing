@@ -1,0 +1,10 @@
+[fbpb 02:23:07] 滚 A (mode=none) 起跑
+[fbpb 02:29:19] 滚 A rc=1 ROLLDONE=0
+[fbpb 02:29:20] 滚 B (mode=pblock) 起跑
+[fbpb 02:29:54] 滚 B rc=1 ROLLDONE=0
+[fbpb 02:29:54] 域 clk_fpga_0  A=[clk_fpga_0 100.000]  B=[]
+[fbpb 02:29:55] 域 eth_rxc  A=[eth_rxc 125.000]  B=[]
+[fbpb 02:29:55] 域 clkout0_1  A=[clkout0_1 50.000]  B=[]
+[fbpb 02:29:56] 域 sys_clk  A=[sys_clk 50.000]  B=[]
+[fbpb 02:29:56] MECHANISM:  / 
+[fbpb 02:29:56] 判读：P2/P3 由上面四行逐域念；两滚都要有 ROLLDONE，缺一个就是尺子的账不是设计的账

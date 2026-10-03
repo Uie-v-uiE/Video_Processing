@@ -1,7 +1,26 @@
 # r116 结果（最后一轮 · 全局时钟名册 · 写给早上看的你）
 
-写这份文件的时刻：2026-10-04 01:2x，构建在飞（01:13 起飞，预计 03:1x 完）。
-**所有标 `【构建后填】` 的格子现在是空的，不是绿的**；这份文件的作用是把"已经量到的"和"还要等的"分开摆清楚。
+写这份文件的时刻：2026-10-04 **02:57**。构建已经回来（01:13 起飞、01:34 出位流 `bb2fb707aebc`），
+板子已经刷过并带真实流量复验过（01:37 三步链、01:50 `board_verify` PASS、02:14–02:21 带流 A/B 对照）。
+第三节 V1..V6 现在**全部是实测读数**，没有空格；顶层台架与门禁在 03:0x 之后回来，落点写在本页第六节。
+
+## 零、一句话结果（红的那半句排在前面，不藏）
+
+* **本轮按字面判定是红的两条**：G1 —— `eth_rxc` 两格相对余量比基线小（0.739→−0.846、0.052→−0.870）；
+  H5 —— 输出侧还有 **6 个端口**没有被时序检查覆盖（`led[0..1]`、`tmds_clk_p`、`tmds_data_p[0..2]`）。
+  这两条我都没有用"看起来完成了"的话盖过去：G1 的红**就是这 5 个端点第一次被检查**（绑窗前它们是
+  `Slack: inf`，"没检查"不等于"满足"，那是 H5 明令禁止的读法）；H5 的红需要**外部资料或你的批准**才能关
+  （第五节第一条）。
+* 除此之外**没有任何东西变差**：另外三个域 setup/hold 八格里七格逐格不动、`clk_fpga_0` 与 `clkout0_1`
+  的相对余量各 +6.8 % / +1.9 %；资源一格不差；`report_methodology` 类计数不增、实例 446→441；
+  **松动台账 0 条**（H1/G3）。
+* `eth_rxc` 那 5 格已被**证明**是这一代器件/结构下的边界，不是"还没找到点"：
+  tap 全档扫描给出不相交区间（hold 要 τ ≥ 44.8、setup 要 τ ≤ 21.8、合法 0…31），
+  根因是两只钟的角间差 3.411 ns 而数据只有 0.467 ns（第一节第 5、6 行）。
+* 板侧：同一台板、同一份 147 Mbps 真实流量，**回刷 r114 做 A/B**，四个读数逐格相同
+  （`drop_words=0`、`pkt_err=0`、`frames_bad=1` 不增长）⇒ r116 与已被证明能跑的 r114 在板级**不可区分**。
+
+---
 
 ---
 
@@ -33,11 +52,11 @@
 
 | 判据 | 要看到什么 | 现在 |
 | --- | --- | --- |
-| V1 机制 | 5 个输入路径出现**有限** slack + `Input Delay:` 行 | 【构建后填】 |
-| V2 债 | `check_timing` 不再点名 `eth_rx*`；未约束端口 11 → 6 | 【构建后填】 |
-| V3 收益 | I/O 族最差格从 DCP 实测的 −1.185（tap26）挪到 ≈ −0.87（tap31） | 【构建后填】 |
-| V4 名册 | 四域 setup/hold 逐格差分，其它三域不许从 MET 掉进违例 | 【构建后填】 |
-| V5 代价 | 资源行 / 告警名册 / `report_methodology` 类计数不增加 | 【构建后填】 |
+| V1 机制 | 5 个输入路径出现**有限** slack + `Input Delay:` 行 | ✅ **过了**：`r116_io_HOLD.rpt` 第一格 `Slack (VIOLATED) -0.870ns`、`Path Type: Hold (Min at Slow Process Corner)`、`Input Delay: 1.200ns`、`Data Path Delay 3.928ns (logic 100.000% route 0.000%)`；`r116_io_SETUP.rpt` 第一格 `-0.846ns`、`Setup (Max at Fast Process Corner)`、`Input Delay: 2.800ns`。件 `build/evidence/r116/r116_io_{HOLD,SETUP}.rpt`。**"有限"是这条判据的全部内容**——绑窗之前这些路是 `Slack: inf / Path Group: (none)`（无检查），现在它们第一次被检查、第一次给出可读的数 |
+| V2 债 | `check_timing` 不再点名 `eth_rx*`；未约束端口 11 → 6 | ✅ **过了，且两个数分开念**（提示词附录 1 的量纲红线）：`unconstrained_internal_endpoints = **0**`；`no_input_delay` 里"没有任何 input delay 的端口"= **0**（另有 2 个输入端口是**既有** false_path 覆盖的，MEDIUM，本轮没动它）；`no_output_delay` 从 11 个里的 5 个降到 **6 个**（`led[0] led[1] tmds_clk_p tmds_data_p[0..2]`，另有 6 个输出端口同样是既有 false_path 覆盖）。件 `build/evidence/r116/r116_check_timing.txt`。⚠ `report_methodology` 的同一族只报 **TIMING-18 = 2**（`led[0]`/`led[1]`）——**这是第二把尺子（checks/pins 口径），不与 6 相减**；两把尺子的数都写在件里 |
+| V3 收益 | I/O 族最差格从 DCP 实测的 −1.185（tap26）挪到 ≈ −0.87（tap31） | ✅ **预测逐格命中**：正式构建实测 hold **−0.870**（预测 −0.870）、setup **−0.846**；四根数据线的 setup 分别是 −0.846/−0.835/−0.833/−0.813（件 `build/evidence/r116_after.txt` 的 `eth_rxc` 段）。⇒ DCP 上扫出来的那条曲线（`HOLD=−2.822+0.0630τ`）在真构建里对到了小数第三位，这是本轮模型最大的可信度证据 |
+| V4 名册 | 四域 setup/hold 逐格差分，其它三域不许从 MET 掉进违例 | ✅ **其它三域一格没掉**：`clk_fpga_0 1.850→1.976`（相对余量 18.50→19.76 %）、`clkout0_1 3.630→3.698`（18.15→18.49 %）、`sys_clk 14.876→14.876`、hold 三域 0.053/0.059/0.222 **逐格不动**。❌ **唯一变差的是 `eth_rxc` 两格**（0.739→−0.846、0.052→−0.870）——它不是被搬走的负裕量，是**第一次被检查的那 5 个 I/O 端点**；名册差分按字面判 **RED**（`judged=6 pairs=8 result=RED`，件 `build/evidence/r116_roster_diff.txt`）。同一条差分里 `D6_fanout_inventory` 也红：A 侧那份没有扇出节 ⇒ **尺子口径**问题，不是设计问题（#291/#293 那一族，已登记） |
+| V5 代价 | 资源行 / 告警名册 / `report_methodology` 类计数不增加 | ✅ **资源逐字中性**：`Slice LUTs 14154`、`Slice Registers 8188`、`Slice 5051`、`LUT as Memory 4185`、`BUFGCTRL 8`、`CARRY4 1147` 与 HEAD（r114）那份**一格不差**（件 `build/utilization.rpt` 盘上 vs `git show HEAD:build/utilization.rpt`；综合网表本来就该逐字节不变，因为新 XDC 是 `used_in_synthesis false`）。✅ **告警按类不增加**：类仍是 3 类（TIMING-9/10/18），实例 `Checks found: 446 → **441**`，其中 `TIMING-18` 从 **7 → 2**（少掉的 5 条就是这轮第一次被检查的 5 个 RGMII 输入）。件 `build/methodology.rpt` vs `git show HEAD:build/methodology.rpt` |
 | V6 板侧 | ✅ **过了，但不是零样本过的**：01:37 三步刷板（bit `bb2fb707aebc`）→ 01:50 `board_verify --geom --battery` **PASS，判红步骤 0**（geom 10/0、105 条串口命令全过、`drop_words=0`）。⚠ 但那次 `drop_words=0` 是在 **`eth_live=0`（没有流）** 时读的 ⇒ 零样本通过，不算数。02:14 补一次**带流**的：`video_sender --demo --fps 60 --pace-mbps 0`（512×300 RGB565 ≈ **147 Mbps**，50 s / 3001 帧 / 66.3 万包）跑着读两次 ⇒ `eth_live=1 owner_eth=1`、**`drop_words=0`、`pkt_err=0`、`flags.drop_seen=0`** 两次都一样；`frames_bad=1` 在两次读数里**都不增长**（是历史/链路建立期的一次性计数，不是本采样点造成的，见下条未定）。件：`build/evidence/r116_board/health_t12.json`、`health_t34.json`、`sender_live4.log` |
 
 **采纳规则（写在 `build/r116_batch_plan.md`，不许事后改口径）**：全绿才当演示位；
@@ -136,3 +155,39 @@ SETUP 要 D_fast ≤ 4 + C_fast − 0.035 − 0.259 − 2.8 = 1.556 → τ ≤ 8
    但**没有把 RX 打到线速**。所以 V6 证的是"真实流量下不丢字"，不证"线速下不丢字"。
    要压到线速需要更大的画幅或更高的 fps（`--fps` 是上限，源是 512×300）⇒ 这一条写在明处，
    不许把 147 Mbps 的绿念成 1000M 的绿。
+
+## 六、03:1x 追加：尺子先修，交付数字改口，第三刀已排上链
+
+三件事按顺序做完了，都不是"读数"而是"让下一轮读数可信"：
+
+1. **`metric_recheck` 读不出负数**（#321）。本轮第一次让首页的 headline slack 变成负的（−0.846 / −0.870），
+   而首页那一层四个取数式全写成 `[0-9]+\.[0-9]+`，负数读成 null，而 null 在这把尺里就是红 ⇒
+   **写对了也红、写错了也红 = 这一维没有射程**（rule 46 那一类）。补了 `sgn()`（U+2212 折成 ASCII）
+   + 四个式子加符号位 + **六条合成对照**（wns/clocks/whs 各一对：已知绿的负数必须全绿、已知错的必须仍红），
+   跑在正常模式里并计数：`SELFSIGN-SUMMARY 判 6 条（负数可读=绿、负数写错=红），红 0`；
+   `--self` 原有两条 fixture 仍恰好红 2 次（没把老对照弄钝）。
+2. **交付数字改口**：首页两份 + `data/metrics.csv` 三行全部换到 r116 实测值，
+   `node src/host/metric_recheck.mjs` 从 **23 条红 → 红 0**（判 115 个数：首页层 61 个、解析到 10/10 行）。
+   改口用脚本 `build/r116_rotate_en.py`（按行首标签定位、整行重写、命中数≠1 就 REFUSE），
+   中途踩到两条自己的坑：CSV 一行里写了 ASCII 逗号 ⇒ 字段数从 7 变 8，"凭据列"读成"一次构建"；
+   以及交付文档**不许**引用 `docs/`（那是本地工作区，不随包）⇒ 首页里三处 `docs/timing/…` 引用
+   改指 `report/TIMING_GLOBAL.md` 第 6/7 节，那两节现在是真写了（406 行，含逐域极限审计与下一刀的数值靶子）。
+   件：`node src/host/doc_currency_check.mjs` 从 14 → 6 条（剩下 4 条就是还没落地的 `build/r116_gates.txt`，两条是别的路径），
+   门禁落地后这一层会自己收敛。
+3. **第三刀（C9）已经从"排期"变成"量到的赢"**：02:49 的 D0 探针把根因从"两端离得远"改成
+   **FANOUT**（一根 239 引脚的网吃 5.690 ns，载荷铺在 99 个 tile，件 `build/evidence/r117_d0/`），
+   03:01 的快车道单变量滚量到 +0.033 / +0.187 / +0.298（三域 setup），代价 +10 只 FF，
+   `eth_rxc` 与四域 hold 一格不动（件 `build/evidence/r117_repl3/B_console.txt`）。
+   采纳入口 `build/tcl/r117_post_place_hook.tcl` + 构建脚本的 `IMPL_POST_PLACE_HOOK` 环境变量
+   （默认不设＝不挂，r116 的复现路径不改写；钩子属性名先用只读探针在真实工程上验过，
+   件 `build/evidence/r117/prop_probe.txt`，因为提示词 A2 那条规矩我今晚已经违反过一次 #319）。
+   **03:15 起飞 `build/r117_chain.sh`**：它先等 r116 的门禁件落地（`build/*.rpt` 是同一批被跟踪产物，
+   不能两版混着读），再打指纹 → 正式构建 → 名册/差分/快车道 → 判读 → 门禁两跑。
+   预登记的判据四条（A1 机制 pins_after≪239 且 replica_cells≥1，否则 MECHANISM_INERT；
+   A2 `clk_fpga_0` rel_margin ≥ 19.76 %；A3 其余三域不许变小；A4 FF 增量 ≤ 15 且无 `Place 30-439`）
+   写在链脚本头部，不接受事后改口径。
+
+**这一页早上看起来的样子**：如果 r117 的四条判据全过并已刷板复验，板上位流就是 r117 那一颗，
+本页第一节到第五节讲的"极限判据"不变（那一族没被这一刀碰到，`eth_rxc` 两格在滚 B 里逐格相同）；
+如果链子中断（构建/门禁/板级任一环节），板上仍是 r116 `bb2fb707aebc`，
+而 C9 的赢面与落地入口都已在这一页和第 6.2 节留痕，早上只要决定要不要花那一轮。
