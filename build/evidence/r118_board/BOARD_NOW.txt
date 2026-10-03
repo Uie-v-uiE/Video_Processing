@@ -1,0 +1,3 @@
+板上现在 = r118（刷入 2026-10-04 04:49:50，bit_cycle rc=0 board_verify rc=0）
+B1 严格名册：B1 pairs_compared=8 losses=0 verdict=GREEN
+刷板前那一次门禁：绿=21 红=3（其中 2 条是文档时效，改口后由最终两跑复验）

@@ -18,13 +18,15 @@ import io, os, re, sys
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 os.chdir(ROOT)
 SUM = "build/timing_summary.rpt"
-ROSTER = os.environ.get("VP_FILL_ROSTER", "build/evidence/r117_after_roster_probefmt.txt")
+ROSTER = os.environ.get("VP_FILL_ROSTER", "build/evidence/r118_after_roster_probefmt.txt")
 UTIL = "build/utilization.rpt"
 BITMD5 = os.environ.get("VP_FILL_BIT", "build/evidence/r118_bit_md5.txt")
 HOLD = "build/hold_paths.rpt"
 TPL = "build/r117_doc_templates.txt"
 MINUS = u"\u2212"
-APPLY = "--apply" in sys.argv
+# 2026-10-04 04:57: `--apply` 这一支在"同一文件多行"时会把文件写空（快照存成元组 + 逐次重读盘丢改动），
+# 已停用；改口请走 build/r118_rotate.py（它自己累加每个文件的快照，并带"行数不变"地板与写完回读）。
+APPLY = False
 
 
 def read(p):

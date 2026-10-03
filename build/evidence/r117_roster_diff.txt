@@ -1,0 +1,3 @@
+ROSTERDIFF-SHAPE clocks_A=[clk_fpga_0 clkout0_1 eth_rxc sys_clk ] clocks_B=[clk_fpga_0 clkfbout clkfbout_1 clkout0_1 clkout1_1 clkout2 eth_rxc sys_clk ] fanout_rows=0/0
+ROSTERDIFF-SHAPE 口径：两侧要同一把生成器——时钟名单要一致、扇出节要同有同无（不同口径相减出来的不是代价，是尺子断）
+ROSTERDIFF-SUMMARY a=build/evidence/r114_after_roster.txt b=build/evidence/r117_after_roster.txt result=REFUSE

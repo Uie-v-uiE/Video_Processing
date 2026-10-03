@@ -13030,3 +13030,24 @@ r117 官方构建的差分（件 `build/evidence/r117_roster_diff_vs_r114.txt`�
 ② 逐时钟那一行的**出处列必须点名 `build/timing_summary.rpt`**，只列名册件会被判"判据与凭据脱钩"。
 ⇒ 规矩：**改口脚本落地前先 `--check`，再在带备份的拷贝上 `--apply`，跑一遍 `metric_recheck`，
 看的是"解析到 N/N 行"与红行的名字，而不是"脚本自己说写了 10 行"。**
+
+
+### #330 我把 `README.md` **第二次**写成 0 行——同一个 bug 我"修过"却没修掉（04:58 回退 + 停用 --apply）
+
+#329 记的元组 bug 我当天就发现了，也写了补丁，但那条补丁命令里第三个锚点断言失败 ⇒ **前两处替换根本没落盘**，
+而我只看到 `COMPILE-OK` 就以为修完了。04:57 我用 `build/r117_fill_docs.py --apply` 直接改口，
+同一个截断路径把 98 行的首页写成 **0 行**（`git checkout` 回来，`wc -l` 核过）。
+
+三条规矩补硬（这次是真落到代码里，不是只写在文档里）：
+1. **一条命令里多处 python 替换，断言失败必须让整条命令非零退出**——我原来用 `&&` 串到 `py_compile`，
+   但替换脚本自己 `assert` 后仍然打印了后面的 `COMPILE-OK`（因为它是另一个进程），判读时被误读成"补丁成功"。
+   ⇒ 以后补丁脚本必须先跑完并打印 `PATCH-ALL-OK`，后续命令用 `grep -q PATCH-ALL-OK` 之类**断言字面标记**再走。
+2. **`--apply` 这种"往交付文档写多行"的路径要么带行数地板、要么停用**：现在 `r117_fill_docs.py` 的
+   `APPLY = False`，改口只走 `build/r118_rotate.py`（它按文件累加快照、写前断言行数不变、写完逐行回读）。
+3. **MSYS 的 `/tmp` 不等于 Python 眼里的 `/tmp`**（环境账里那条 Vivado /tmp 同族）：
+   `node … > /tmp/kx/mr2.txt` 写完，`io.open("/tmp/kx/mr2.txt")` 报 `FileNotFoundError` ⇒
+   tail2 两次"尺子没过"其实是**尺子的输出文件没读到**，不是文档没过。这条要写进所有"shell 落文件、python 读文件"的脚本。
+
+顺带把状态说清（不装作已同步）：板上 = **r118**（`cd04907e1369`，04:49:50，`board_verify` rc=0），
+名册 B1 = **8 对逐位复现 r114**（`build/evidence/r118_strict_b1.txt`），而首页那两行还挂着 r116 的数——
+我在两行末尾各加了一句同步状态声明，`metric_recheck` / `doc_currency` 会照实判红，这是**准确的红**，不是圆场。
