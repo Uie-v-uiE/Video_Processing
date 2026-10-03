@@ -12217,3 +12217,34 @@ METH_SUMMARY checks_found=446
 在这一家的落地。`--self` 实测 **6/6 全过**，同一对真名册重念：
 `clk_fpga_0/setup:1.135->1.495(相对余量+31.7%) clkout0_1/hold:0.059->0.062(相对余量+6.9%) eth_rxc/setup:0.445->0.452(相对余量+1.6%)`。
 文件头那句"四条对照"也一起改成"六条"（口径与代码同一笔改，#242/D1c 的教训）。
+
+### #290 r114 构建实测：`ASYNC_REG` 上了网表（0→56 颗），但 **TIMING-10 计数一点没动**——我预先登记的这条判据被数据判错了（2026-10-03 19:05）
+
+r114 正式构建 18:43 起飞、18:59 出 `system_top_routed.dcp`，位流身份 `7142a1fbf082`。三读数（件 `build/evidence/r114_async_netlist_pre_console.txt` vs `build/r114_async_netlist_console.txt`、`build/timing_summary.rpt`、`build/methodology.rpt`）：
+
+* **这一刀本身是打上去了的**：`u_eth/u_cdc` 底下 `*gray*` 匹配 116 个对象、其中 FF 84 颗，
+  带 `ASYNC_REG` 的从改前 **0** 颗变成 **56** 颗（= `wgray_s0/s1`、`rgray_s0/s1` 四条向量 × 14 位，正好是声明的那四颗）。
+  ⇒ 网表侧判据的前一半成立。
+* **`report_methodology` 的 TIMING-10 还是 1 条、`Checks found` 还是 446**（与 `build/evidence/r113_methodology_baseline.rpt` 逐格相同）。
+  而 `build/r114_chain.sh` 与 `build/r114_adopt_checklist.md` 里我写的是"post 必须念出 count 离开 1"。
+  ⇒ **这条期望是错的**，不是"修没修上"：属性确实进了网表，工具的那条告警却没走。
+  两种可能都没排除：① 它指的是**另一对**同步器（`TIMING-10#1` 的正文是 `Related violations: <none>`，
+  报告自己**不点名对象**，所以我现在无法从已有件里判它指谁）；② 它要的是**源头**那一对
+  （`wgray_reg`/`rgray_reg` 也在 84 颗里、也没带属性）。
+  收口办法不是改判据、是**再问一次工具**：跑一次新鲜的 `report_cdc -details`
+  （注意 `build/cdc_details.rpt` 现在还是 9 月 25 日那份旧的，**不能当本轮凭据**），把它点名的跨域对与 56 颗并排比。
+* **头条动了**：全设计 WNS 0.445 → **0.739**、WHS 0.050 → 0.052、两端都 0 个失败端点；
+  现在最差那条在 `eth_rxc` 域里的 `u_icmp_tx/ip_head_reg[4][16] → check_buffer_reg[19]`（11 级、6×CARRY4、route 58.4 %），
+  也就是 §3 里追了好几轮的那条 `rows_hit` CE 广播锥**不再是最差**了。
+
+口径（这条最重要，别把它写成"收益"）：`ASYNC_REG` 是**放置指令**（要求同步链同 SLICE），
+所以它会挪全局放置 ⇒ WNS 的这一跳是"网表被重摆"的副产品，按 rule 35 与 #288 的同一把尺子念：
+**判收益要看名册八对逐格差分**（链子后面会出 `r114_after` 的 roster），头条绝对差不算收益也不算损失。
+"属性级改动 ⇒ 预期时序中性"这句我自己也写错了：属性不改逻辑，但它改放置，放置就不中性。
+
+留两条待办（都不许提前写成结论）：
+
+1. 新鲜 `report_cdc -details` 之后才能决定 TIMING-10 这条判据的去留：要么它指的是别的对（那这条判据与本刀无关，应删），
+   要么要补源头那一对（那是**第二刀**，得自己带改前红）。
+2. 名册差分若显示别的域被挤（#288 就是被这一条否决的），这一版的采纳结论要跟着改——
+   现在（19:10）链子在跑快车道，判读还没做。
