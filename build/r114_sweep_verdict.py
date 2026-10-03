@@ -33,7 +33,11 @@ for line in txt.splitlines():
         d = dict(p.split("=", 1) for p in line.split("|")[1:] if "=" in p)
         rows[(d["tap"], d["clk"], d["kind"])] = d
     elif line.startswith("HOLDWorst|"):
-        d = dict(p.split("=", 1) for p in line.split("|")[1:] if "=" in p)
+        # 真件形状是 `HOLDWorst|0|slacks=...|dests=...`（**第二个字段是裸的档位、没有 `tap=`**，
+        # 而 fixture 当时写成了 `tap=13` —— 这条错是 fixture 太"配合脚本"造成的，规矩：对照必须抄真实形状）
+        parts = line.split("|")
+        d = dict(p.split("=", 1) for p in parts[2:] if "=" in p)
+        d["tap"] = parts[1]
         holdw[d["tap"]] = d
     elif line.startswith("SWEEP|") and "phase=open" in line:
         t = line.split("|")[1].split("=")[1]
@@ -70,7 +74,10 @@ for t in sorted(head):
         cs, ch = fl(su["slack"]), fl(ho["slack"])
         if su["state"] != "MET" or ho["state"] != "MET":
             s3 = False
-        if cs is not None and cs < 0.9 * bs:
+        # 90 % 这条只拿来管**别的地方**（S3 的语义是"别把别的域挤了"）；
+        # eth_rxc 自己是这一刀要修的对象，它的 setup 掉多少由 S2 与读数本身负责，
+        # 否则每个档都会因为"目标域本来就会变"而被 S3 判红 —— 那是把两件事混成一条（规矩：一条判据一个维度）。
+        if c != "eth_rxc" and cs is not None and cs < 0.9 * bs:
             s3 = False
         detail.append("%s %.3f/%.3f(基线 %.3f/%.3f)" % (c, cs if cs is not None else -1,
                       ch if ch is not None else -1, bs, bh))

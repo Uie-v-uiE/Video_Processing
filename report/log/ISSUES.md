@@ -11943,3 +11943,44 @@ DEBT|io_after_route|no_in=0|no_out=6|fp_in=2|fp_out=6|exc_rows=13|datapath_only_
 它现在的作用是把这条错误重现出来（负对照）。
 **待办的连带修正**：扇出复制那一滚（`build/r114_replication_ab.sh` + `mf114_roll.tcl`）必须重跑一次——
 之前那次 `MF-REFUSE` 不是"这一刀没打到东西"，是尺子断了；#276/#278 的结论不受影响（它们不依赖 `eq`）。
+
+### #280 扫档把"少给几拍延迟"这条路判死了：0/13/26/31 四档 WHS = −4.522 / −3.703 / −2.885 / −2.570（2026-10-03 17:29）
+
+**实验**（任务 #193）：`build/tcl/r114_idelay_sweep.tcl` 每档重开同一份 `system_top_opt.dcp`、
+`set_property IDELAY_VALUE <档> [get_cells -hier -filter {REF_NAME == IDELAYE2}]`（5 颗一次改全，读回逐颗打印）、
+再 source 候选约束、place→phys_opt→route。件 `build/evidence/r114_idelay_sweep_console.txt`，
+判定 `python build/r114_sweep_verdict.py` → `SWEEP_WINNERS=NONE`、`SWEEP_VERDICT=NO_TAP_FIXES_HOLD`。
+
+| tap | eth_rxc setup / hold | 全设计 WNS / WHS / fail_hold | 其余三域 setup / hold |
+|---|---|---|---|
+| 0 | 0.243 / **−4.522** | 0.243 / −4.522 / 5 | 1.155·4.161·13.996 / 0.058·0.064·0.133 |
+| 13 | 0.243 / **−3.703** | 0.243 / −3.703 / 5 | 1.155·4.161·13.996 / 0.058·0.064·0.133 |
+| 26（现值） | 0.424 / **−2.885** | 0.424 / −2.885 / 5 | 1.155·4.206·14.109 / 0.058·0.064·0.133 |
+| 31（最大档） | 0.424 / **−2.570** | 0.424 / −2.570 / 5 | 同上 |
+
+**读数说明的三件事**：
+1. **线性、且到顶也不够**：0→31 档只买到 1.95 ns（≈ 63 ps/tap，与手册的 78 ps/tap 同一量级），
+   要把 −2.570 抬到 0 还差 ≈ +41 档——超出 0..31 的量程 ⇒ 失败**不是**"延迟给少了"，
+   ISSUES #275 里那个"再调调 IDELAY"的猜想被自己的数据否掉（这是这条账存在的全部理由）。
+2. **其余三域逐档几乎不动**（1.155 / 4.16~4.21 / 13.99~14.11 与 hold 0.058 / 0.064 / 0.133）
+   ⇒ 这一刀没有去挤别人，红的全部在 `eth_rxc` 自己的片外接口上；
+   所以问题在**窗的方向**，不在 fabric、不在布线、不在别的时间域。
+3. **反证在板上**：这块板在 ETH 片源下是真能收 1 Gbps 流的（r113 的 29.8–30.0 fps 读回、`board_verify` 105 条全过）
+   ⇒ "数据与 RXC 同沿对齐 ±0.5 ns"这一模型（模型 a）与硬件事实矛盾；能同时满足"板子能收"与"工具判红"的
+   只有一个模型：**RTL8211F 的 RGMII RX 内部延迟是开着的**，RXD/RX_CTL 被 PHY 推到 RXC 沿**之后**约 2 ns
+   （模型 b）。⇒ 变体 B `src/constraints/r114_io_variantB_phy_delay.xdc` 把窗写成 `-max 2.500 -min 1.500`，
+   在 0/8/13 三档上重扫（这一版若某一档 setup/hold 同时非负，才是真眼心）。
+
+**顺手记两条工具账（都是我自己造的）**：
+* 判据脚本的 fixture 当初写成 `HOLDWorst|tap=13|...`，而**真件**是 `HOLDWorst|13|slacks=...`（第二字段是裸档位、
+  没有 `tap=`）⇒ 脚本对着 fixture 全绿、第一份真件就 `KeyError: 'tap'`。规矩：fixture 必须抄真实产物的形状，
+  不能按脚本想要的形状写（这条与 #271 的 `rep` 转义、#272 的"地板读了改之前的内容"同族）。
+* 判据 S3 原来把"目标域自己的 setup 掉下来"也算成"挤了别处"，于是每个档都必红——一条判据只能管一个维度，
+  已改成 90 % 规则**只作用于非目标域**（`eth_rxc` 由 S2 判）。改后三条对照仍 0/1/1（绿、挤别域、仍然红）。
+* 另一条：`report_timing -file /tmp/kx/...` 在 Vivado 侧的 `/tmp` 不是 bash 的 `/tmp`（五份 `HOLDWorst` 全空、
+  报 [Common 17-37] Directory does not exist）⇒ 扫档脚本改成一律写 `$out`（仓库内目录）。
+
+**没走通的那条路，如实记下**：最硬的证据本该是**直接读 PHY 的 RGMII 延迟寄存器**（MDIO）。但
+`src/ps/main.c` 里没有 mdio 读命令、`report/COMMANDS.md` 也没有这一行，而本机没有 arm-none-eabi 工具链
+⇒ ELF 不可重建（#131/#170 那条老边界）。所以这一判只能用"文档 + 原理图脚带 + 时序反证"来收，
+不能用"我读了寄存器"来宣称。

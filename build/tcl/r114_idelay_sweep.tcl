@@ -16,6 +16,8 @@
 set root [file normalize [file join [file dirname [info script]] .. ..]]
 set dcp [file join $root "vivado_system/zynq_video_sys.runs/impl_1/system_top_opt.dcp"]
 set xdc [file join $root "src/constraints/r114_io_async.xdc"]
+if {[info exists ::env(IO_XDC)]} { set xdc $::env(IO_XDC) }
+puts "SWEEP|xdc=$xdc"
 if {![file exists $dcp]} { puts "REFUSE: no opt dcp"; exit 1 }
 if {![file exists $xdc]} { puts "REFUSE: no candidate xdc"; exit 1 }
 set out "/tmp/kx/r114sweep"
@@ -25,8 +27,10 @@ set taps {0 13 31}
 if {[info exists ::env(SWEEP_TAPS)]} { set taps [split $::env(SWEEP_TAPS) ,] }
 set headlines {eth_rxc clk_fpga_0 clkout0_1 sys_clk}
 
+set out_dir $out
 proc holdrow {tag} {
-    set f "/tmp/kx/r114sweep/hold_${tag}.rpt"
+    global out_dir
+    set f "$out_dir/hold_${tag}.rpt"
     file delete -force $f
     set e ""
     catch {report_timing -delay_type min -nworst 3 -max_paths 3 -from eth_rxc -to eth_rxc -file $f} e
