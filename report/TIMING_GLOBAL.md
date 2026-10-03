@@ -444,7 +444,7 @@ UG472（114 页）的 BUFIO 一节都是定性叙述（"BUFIO 只驱动 I/O 钟�
 B3 资源中性 / B4 发布门 24 项红数 == 1 且两跑逐字节一致；全过才上板，任一不过板子回刷 r114。
 判读与板侧读数：`build/r118_verdict.txt`、`build/evidence/r118_strict_b1.txt`、
 `build/r118_gates.txt`、`build/evidence/r118_board/BOARD_NOW.txt`（本轮结果句在首页那一行与
-`docs/timing/ROUND_r118.md（docs/ 目录不随提交包，件在仓库内）`）。
+`build/r118_verdict.txt`）。
 
 **这一节之后，"到极限"这句话在这颗 -2 器件上的完整形状是**：
 ① 四个域的逐格状态全部有归属判据；② 非放宽的物理杠杆（复制广播网、Pblock、BRAM 换 setup、
