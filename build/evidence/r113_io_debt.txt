@@ -36,11 +36,11 @@ IODEBT-PORT eth_txd          output  bits=4   FALSEPATH
 IODEBT-PORT eth_mdc          output  bits=1   BARE
 IODEBT-PORT eth_mdio         inout   bits=1   BARE
 IODEBT-PORT eth_rst_n        output  bits=1   FALSEPATH
-IODEBT I1_in_reconcile        src_bits=5             report=5 GREEN
-IODEBT I2_falsepath_in        src_bits=2             report=2 GREEN
+IODEBT I1_in_reconcile        src_in_pins=5          report=5 GREEN
+IODEBT I2_falsepath_in        src_in_fp_pins=2       report=2 GREEN
 IODEBT I3_output_covered      bare_out_ports=7       want=0 RED
 IODEBT I4_baseline_no_growth  report=in_bare:5,in_fp:2,out_bare:6,out_fp:6 must_not_exceed=5,2,6,6 GREEN
 IODEBT I5_scope_floor         user_bits=26 ports=15  bits>=20 report 4/4 GREEN
 IODEBT I6_exempt_integrity    exempt=4               no_reason=none ghost=none GREEN
-IODEBT I7_source_vs_report_gap gap_out_bare=6         must_equal=6 GREEN
+IODEBT I7_unit_reconcile      src_pins=5/2/12/7 src_ports=2/2/7/4 report=5/2/6/6 one_unit_must_match(in_bare/in_fp/out_bare/out_fp) RED
 IODEBT-SUMMARY report=build/evidence/r112_bit/timing_summary.rpt src_in_bare=5 src_in_fp=2 src_out_bare=12 src_out_fp=7 rep_in_bare=5 rep_in_fp=2 rep_out_bare=6 rep_out_fp=6 user_bits=26 judged=7 bare_in=[eth_rx_ctl eth_rxd] bare_out=[led tmds_clk_p tmds_clk_n tmds_data_p tmds_data_n eth_mdc eth_mdio] result=RED

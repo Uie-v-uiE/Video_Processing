@@ -26,7 +26,8 @@ RTL = "src/rtl/top/system_top.v"
 XDCS = ["src/constraints/rk_zynq7020.xdc", "src/constraints/clock_groups_impl.xdc"]
 # 基线端：r112 归档件（bit 897fa9d93956）实测的四个数；改基线要在同一笔里说明为什么
 BASELINE = {"in_bare": 5, "in_fp": 2, "out_bare": 6, "out_fp": 6}
-GAP_OUT_BARE = 6   # 源码端比报告端多出来的裸输出位数（TMDS/LED/MDIO 那 6 位），差的解释见 #259
+# （原来这里还有一条 GAP_OUT_BARE = 6："源码位数 12 减报告 6 等于 6"——那是**位数减端口对象数**的量纲错，
+#  差值被钉成常量后它永远绿，什么也没对账。现在由 I7_unit_reconcile 取代：必须存在一个单位让四个桶全等于报告。）
 # 豁免表随尺子走（规矩 44）。每条格式：端口名模式|理由（不许"临时/先这样"这类空话）
 EXEMPT = [
     ("DDR_*", "连到 BD 里的 processing system（PS 硬块），Vivado 不把 PS 硬块引脚当用户 fabric 的 I/O 检查"),
@@ -148,9 +149,9 @@ def run(sumf, xdc_list=None, exempt_extra=None, baseline=None):
     judged = []
     def j(tag, got, want, ok):
         judged.append((tag, got, want, "GREEN" if ok else "RED"))
-    j("I1_in_reconcile", "src_bits=%d" % c["in_bare"], "report=%s" % rep["in_bare"],
+    j("I1_in_reconcile", "src_in_pins=%d" % c["in_bare"], "report=%s" % rep["in_bare"],
       c["in_bare"] == rep["in_bare"])
-    j("I2_falsepath_in", "src_bits=%d" % c["in_fp"], "report=%s" % rep["in_fp"],
+    j("I2_falsepath_in", "src_in_fp_pins=%d" % c["in_fp"], "report=%s" % rep["in_fp"],
       c["in_fp"] == rep["in_fp"])
     bare_out = [nm for nm, d, b, st in rows if st == "BARE" and d != "input"]
     j("I3_output_covered", "bare_out_ports=%d" % len(bare_out), "want=0", len(bare_out) == 0)
@@ -165,12 +166,26 @@ def run(sumf, xdc_list=None, exempt_extra=None, baseline=None):
                                                 for nm in all_names)]
     j("I6_exempt_integrity", "exempt=%d" % len(exempts), "no_reason=%s ghost=%s" %
       (",".join(bad) or "none", ",".join(ghost) or "none"), not bad and not ghost)
-    # I7：源码端把 12 位输出判成 BARE，而报告只数到 6 ⇒ 这两套口径之间有 6 位的差。
-    #   差本身不是错误（工具会把"时钟在锥上贯通"的引脚少算），但**不解释就不可接受**：
-    #   这条判据钉住差值，差值一旦变（新接口进来 / 口径又被我改错）就红，逼人来对一次名字。
-    #   权威名单要靠 `check_timing -verbose` 问 Vivado（构建在飞，本轮先记账，见 #259）。
-    gap = c["out_bare"] - (rep["out_bare"] or 0)
-    j("I7_source_vs_report_gap", "gap_out_bare=%d" % gap, "must_equal=%d" % GAP_OUT_BARE, gap == GAP_OUT_BARE)
+    # I7：两边的**单位**必须能对上，否则这条判据就是拿位数减端口对象数（原来的写法正是这样，
+    #   还把差值钉成常量 6 ⇒ 它绿得毫无意义：一个我自己造出来的量纲差，被当成"已对账"）。
+    #   现在改成正经的两读法：把源码侧按 pins（位数=引脚数）与 ports（顶层端口对象数）各算一遍，
+    #   只要**存在一个单位**让四个桶全等于报告里的四个数，I7 才绿；两个单位都对不上就红，
+    #   并明确写出"要先问 check_timing -verbose"（#259 欠的就是那份带名字的清单）。
+    src = {"pins": (c["in_bare"], c["in_fp"], c["out_bare"], c["out_fp"])}
+    src_ports = dict(in_bare=0, in_fp=0, out_bare=0, out_fp=0)
+    for nm, d, b, st in rows:
+        if st in ("BARE", "FALSEPATH", "TIMED"):
+            key = ("in_" if d == "input" else "out_") + ("bare" if st == "BARE" else "fp")
+            if st in ("BARE", "FALSEPATH"):
+                src_ports[key] += 1
+    src["ports"] = (src_ports["in_bare"], src_ports["in_fp"], src_ports["out_bare"], src_ports["out_fp"])
+    rep4 = tuple(rep[k] for k in BASELINE)
+    ok_units = [u for u in ("pins", "ports") if all(rep[k] is not None for k in BASELINE)
+                and src[u] == rep4]
+    j("I7_unit_reconcile", "src_pins=%s src_ports=%s report=%s" %
+      ("/".join(str(x) for x in src["pins"]), "/".join(str(x) for x in src["ports"]),
+       "/".join("NA" if x is None else str(x) for x in rep4)),
+      "one_unit_must_match(in_bare/in_fp/out_bare/out_fp)", bool(ok_units))
     verdict = "GREEN" if all(x[3] == "GREEN" for x in judged) else "RED"
     summary = ("IODEBT-SUMMARY report=%s src_in_bare=%d src_in_fp=%d src_out_bare=%d src_out_fp=%d "
                "rep_in_bare=%s rep_in_fp=%s rep_out_bare=%s rep_out_fp=%s "
@@ -225,7 +240,29 @@ def main():
         ok = v5["judged"][5][3] == "RED"
         print("SELF mutation_ghost_exempt %s result=%s" % (v5["judged"][5], "PASS" if ok else "FAIL"))
         r |= 0 if ok else 1
-        print("SELF check_io_timing_coverage judged=5 result=%s" % ("PASS" if r == 0 else "FAIL"))
+        # 对照 6：真件上 I7 必须红——**单位对不上就是没对账**，不许把它糊成绿
+        ok = base["judged"][6][3] == "RED"
+        print("SELF control_unit_unresolved_on_real %s result=%s" % (base["judged"][6], "PASS" if ok else "FAIL"))
+        r |= 0 if ok else 1
+        # 对照 7（正对照，必须能绿）：造一份"四个桶 = 源码侧 pins 读数"的报告 ⇒ I7 必须绿。
+        #   没有这一条，I7 就退化成了"永远红的装饰"（规矩：能判红的判据也要能判绿）。
+        cc = base["counts"]
+        fake = "/tmp/kx/iodebt_fake_summary.rpt"
+        io.open(fake, "w", encoding="utf-8", newline="\n").write(
+            "5. checking no_input_delay (%d)\n"
+            " There are %d input ports with no input delay specified. (HIGH)\n"
+            " There are %d input ports with no input delay but user has a false path constraint. (MEDIUM)\n"
+            "6. checking no_output_delay (%d)\n"
+            " There are %d ports with no output delay specified. (HIGH)\n"
+            " There are %d ports with no output delay but user has a false path\n"
+            % (cc["in_bare"] + cc["in_fp"], cc["in_bare"], cc["in_fp"],
+               cc["out_bare"] + cc["out_fp"], cc["out_bare"], cc["out_fp"]))
+        v7 = run(fake)
+        ok = v7["judged"][6][3] == "GREEN"
+        print("SELF control_unit_reconcile_positive %s result=%s" % (v7["judged"][6], "PASS" if ok else "FAIL"))
+        r |= 0 if ok else 1
+        print("SELF check_io_timing_coverage judged=%d controls=7 result=%s"
+              % (len(base["judged"]), "PASS" if r == 0 else "FAIL"))
         return r
 
     sumf = argv[0] if argv else "build/evidence/r112_bit/timing_summary.rpt"
