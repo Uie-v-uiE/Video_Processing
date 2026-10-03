@@ -1,0 +1,52 @@
+warning: in the working copy of 'build/r117_doc_templates.txt', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'build/utilization.rpt', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'data/metrics.csv', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'build/evidence/r118_board/dc.txt', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'build/evidence/r118_board/dc4.txt', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'build/evidence/r118_board/dc6.txt', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'build/evidence/r118_board/dc7.txt', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'build/evidence/r118_board/dc8.txt', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'build/evidence/r118_board/dc9.txt', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'build/evidence/r118_board/g1.txt', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'build/evidence/r118_board/g2.txt', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'build/evidence/r118_board/g3.txt', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'build/evidence/r118_board/h1.txt', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'build/evidence/r118_board/h2.txt', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'build/evidence/r118_board/h3.txt', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'build/evidence/r118_board/k1.txt', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'build/evidence/r118_board/k2.txt', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'build/evidence/r118_board/k3.txt', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'build/evidence/r118_board/m1.txt', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'build/evidence/r118_board/m2.txt', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'build/evidence/r118_board/m3.txt', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'build/evidence/r118_board/mr.txt', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'build/evidence/r118_board/n1.txt', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'build/evidence/r118_board/n2.txt', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'build/evidence/r118_board/n3.txt', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'build/evidence/r118_board/p1.txt', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'build/evidence/r118_board/p2.txt', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'build/evidence/r118_board/p3.txt', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'build/evidence/r118_board/sub7.txt', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'build/r118_console.txt', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'build/r118_finish_console.txt', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'build/r118_gates.txt', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'build/r118_gates_final.txt', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'build/r118_post_readings_console.txt', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'build/r118_verdict.txt', LF will be replaced by CRLF the next time Git touches it
+Exception in thread Thread-5 (_readerthread):
+Traceback (most recent call last):
+  File "D:\DevEnv\Python\Lib\threading.py", line 1075, in _bootstrap_inner
+    self.run()
+  File "D:\DevEnv\Python\Lib\threading.py", line 1012, in run
+    self._target(*self._args, **self._kwargs)
+  File "D:\DevEnv\Python\Lib\subprocess.py", line 1599, in _readerthread
+    buffer.append(fh.read())
+                  ^^^^^^^^^
+UnicodeDecodeError: 'gbk' codec can't decode byte 0x80 in position 22: illegal multibyte sequence
+COMMIT paths exist=30 missing=report/ACCEPTANCE.md
+COMMIT staged=49
+Traceback (most recent call last):
+  File "D:\Xilinx\Prj\pro\Video_Processing\build\r118_commit.py", line 61, in <module>
+    print(r.stdout.strip() or r.stderr.strip())
+          ^^^^^^^^^^^^^^
+AttributeError: 'NoneType' object has no attribute 'strip'

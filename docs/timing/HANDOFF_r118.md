@@ -83,3 +83,10 @@ python build/r118_commit.py && git push origin main    # 提交 + 推送（信�
      与 `python build/r118_commit.py && git push`。
 * 别把这条当成"门禁松一下就能过"：改的是**正则对 Markdown 粗体的容忍度**，改完 D1b 仍然会抓到 2 句并逐句核对轮号；
   #325 那一族的教训正是"形状变了 = 尺子断"，所以这里要修的是形状识别，而不是把地板 2 调小。
+
+## 七、06:17 收口完成
+
+身份句去掉粗体后 D1b 抓到 2 句、D1c 抓到 2 句且与门禁件吻合：
+`doc_currency` = **CURRENCY: 干净**，`build/gates.sh` 定版两跑 = **23 绿 / 1 红**（唯一红 = 声明过的 `C5c`）且逐字节一致
+（件 `build/r118_gates.txt`、`build/r118_gates_final.txt`），首页/英文首页/`metrics.csv` 已是 r118 的官方读数，提交包重导。
+账记 `report/log/ISSUES.md` #331。
