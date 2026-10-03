@@ -1,0 +1,84 @@
+PS7_INIT_FILE: D:/Xilinx/Prj/pro/Video_Processing/build/ps7_init.tcl
+CONNECT: tcfchan#0
+RST_SYSTEM: ok
+PS7_INIT: ok
+PS7_POST_CONFIG: ok
+DDR_ECHO: 10000000:   5A5AA5A5
+
+PS BOOT STEP DONE â€? ä¸‹ä¸€æ­? build/tcl/program_pl.tcl é…? PL
+
+****** Vivado v2025.2.1 (64-bit)
+  **** SW Build 6403652 on Thu Mar 19 19:48:24 GMT 2026
+  **** IP Build 6403511 on Thu Mar 19 12:41:45 MDT 2026
+  **** SharedData Build 6403650 on Thu Mar 19 14:02:13 MDT 2026
+  **** Start of session at: Sat Oct  3 21:31:36 2026
+    ** Copyright 1986-2022 Xilinx, Inc. All Rights Reserved.
+    ** Copyright 2022-2026 Advanced Micro Devices, Inc. All Rights Reserved.
+
+source build/tcl/program_pl.tcl
+# set root [file normalize [file join [file dirname [info script]] .. ..]]
+# set bit  [file join $root build system.bit]
+# if {[info exists ::env(VP_BIT)] && $::env(VP_BIT) ne ""} { set bit [file normalize $::env(VP_BIT)] }
+# if {![file exists $bit]} { puts "NO BIT $bit"; exit 1 }
+# open_hw_manager
+open_hw_manager: Time (s): cpu = 00:00:11 ; elapsed = 00:00:07 . Memory (MB): peak = 544.719 ; gain = 225.930
+# connect_hw_server -allow_non_jtag
+INFO: [Labtools 27-2285] Connecting to hw_server url TCP:localhost:3121
+INFO: [Labtools 27-3415] Connecting to cs_server url TCP:localhost:0
+INFO: [Labtools 27-3417] Launching cs_server...
+INFO: [Labtools 27-2221] Launch Output:
+
+
+******** Xilinx cs_server v2025.2.0
+  ****** Build date   : Nov 14 2025-07:16:52
+    **** Build number : 2025.2.1763075812
+      ** Copyright 2017-2022 Xilinx, Inc. All Rights Reserved.
+      ** Copyright 2022-2026 Advanced Micro Devices, Inc. All Rights Reserved.
+
+
+
+# puts "URL=[current_hw_server]"
+URL=localhost:3121
+# open_hw_target
+INFO: [Labtoolstcl 44-466] Opening hw_target localhost:3121/xilinx_tcf/Xilinx/0ABC01A
+# puts "=== DEVICES ==="
+=== DEVICES ===
+# foreach d [get_hw_devices] { puts "  [get_property NAME $d] PART=[get_property PART $d]" }
+  arm_dap_0 PART=arm_dap
+  xc7z020_1 PART=xc7z020
+# set dev [lindex [get_hw_devices -filter {PART =~ "xc7z020*"}] 0]
+# if {$dev eq ""} { puts "NO xc7z020 IN CHAIN"; close_hw_target; exit 1 }
+# current_hw_device $dev
+# refresh_hw_device -update_hw_probes false $dev
+INFO: [Labtools 27-1435] Device xc7z020 (JTAG device index = 1) is not programmed (DONE status = 0).
+# set_property PROGRAM.FILE $bit $dev
+# program_hw_devices $dev
+INFO: [Labtools 27-3164] End of startup status: HIGH
+# puts "PROGRAMMED $dev <- $bit"
+PROGRAMMED xc7z020_1 <- D:/Xilinx/Prj/pro/Video_Processing/build/system.bit
+# close_hw_target
+INFO: [Labtoolstcl 44-464] Closing hw_target localhost:3121/xilinx_tcf/Xilinx/0ABC01A
+# close_hw_manager
+# exit 0
+INFO: [Common 17-206] Exiting Vivado at Sat Oct  3 21:31:53 2026...
+ELF: D:/Xilinx/Prj/pro/Video_Processing/build/ps_app.elf
+RST_PROC: ok
+DOW: ok
+PC_BEFORE_CON: pc: 000000cc
+
+CON: ok
+pc: pc: 00007544
+
+cpsr: cpsr: 2003005f
+       n (Bits [31]):  0      z (Bits [30]):  0      c (Bits [29]):  1
+       v (Bits [28]):  0      q (Bits [27]):  0  it (Bits [15:25]):  0
+       j (Bits [24]):  0  ge (Bits [19:16]):  3       e (Bits [9]):  0
+        a (Bits [8]):  0       i (Bits [7]):  0       f (Bits [6]):  1
+        t (Bits [5]):  0     m (Bits [4:0]): 1f
+
+lr: lr: 0000753c
+
+sp: sp: ffff5d58
+
+RESUME: ok
+FLOW_DONE

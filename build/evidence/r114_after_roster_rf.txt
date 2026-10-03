@@ -1,0 +1,37 @@
+ROSTER|setup|clk=clk_fpga_0|period=10.000|slack=1.850ns  (required time - arrival time)|margin_pct=18.50|levels=1  (LUT3=1)|route_pct=93.584|dest=u_pl/u_bilin/u_fb/lo_reg_0_16/WEA[0]
+ROSTER|hold|clk=clk_fpga_0|period=10.000|slack=0.053ns  (arrival time - required time)|margin_pct=0.53|levels=1  (LUT5=1)|route_pct=43.472|dest=u_bd/design_1_i/axi_gp0_ic/s00_couplers/auto_pc/inst/gen_axilite.gen_b2s_conv.axilite_b2s/RD.r_channel_0/rd_data_fifo_0/memory_reg[31][9]_srl32/D
+ROSTER|setup|clk=sys_clk|period=20.000|slack=14.876ns  (required time - arrival time)|margin_pct=74.38|levels=8  (CARRY4=3 LUT2=1 LUT5=2 LUT6=2)|route_pct=74.015|dest=u_pl/u_ang/angle_reg[3]/D
+ROSTER|hold|clk=sys_clk|period=20.000|slack=0.222ns  (arrival time - required time)|margin_pct=1.11|levels=0|route_pct=50.893|dest=u_pl/u_k2/cnt_reg[8]/D
+ROSTER|setup|clk=eth_rxc|period=8.000|slack=0.739ns  (required time - arrival time)|margin_pct=9.24|levels=11  (CARRY4=6 LUT3=1 LUT4=3 LUT5=1)|route_pct=58.447|dest=u_eth/u_icmp/u_icmp_tx/check_buffer_reg[19]/D
+ROSTER|hold|clk=eth_rxc|period=8.000|slack=0.052ns  (arrival time - required time)|margin_pct=0.65|levels=1  (LUT3=1)|route_pct=56.480|dest=u_eth/u_lm/full_d_reg/D
+ROSTER|setup|clk=clkfbout|period=20.000|slack=NOWRITE|margin_pct=NA|levels=NA|route_pct=NA|dest=NA
+ROSTER|hold|clk=clkfbout|period=20.000|slack=NOWRITE|margin_pct=NA|levels=NA|route_pct=NA|dest=NA
+ROSTER|setup|clk=clkout2|period=5.000|slack=NOWRITE|margin_pct=NA|levels=NA|route_pct=NA|dest=NA
+ROSTER|hold|clk=clkout2|period=5.000|slack=NOWRITE|margin_pct=NA|levels=NA|route_pct=NA|dest=NA
+ROSTER|setup|clk=clkfbout_1|period=20.000|slack=NOWRITE|margin_pct=NA|levels=NA|route_pct=NA|dest=NA
+ROSTER|hold|clk=clkfbout_1|period=20.000|slack=NOWRITE|margin_pct=NA|levels=NA|route_pct=NA|dest=NA
+ROSTER|setup|clk=clkout0_1|period=20.000|slack=3.630ns  (required time - arrival time)|margin_pct=18.15|levels=14  (CARRY4=3 DSP48E1=1 LUT2=1 LUT3=1 LUT4=3 LUT5=3 LUT6=2)|route_pct=59.150|dest=u_pl/u_osd/ch_r_reg/ADDRARDADDR[6]
+ROSTER|hold|clk=clkout0_1|period=20.000|slack=0.059ns  (arrival time - required time)|margin_pct=0.29|levels=0|route_pct=62.683|dest=u_pl/u_pipe/u_sobel/no_right_r_reg[1]/D
+ROSTER|setup|clk=clkout1_1|period=4.000|slack=NOWRITE|margin_pct=NA|levels=NA|route_pct=NA|dest=NA
+ROSTER|hold|clk=clkout1_1|period=4.000|slack=NOWRITE|margin_pct=NA|levels=NA|route_pct=NA|dest=NA
+FANOUT|fo=60|net=report_high_fanout_nets
+FANOUT|fo=2546|net=u_eth/u_rgmii/u_rgmii_rx/gmii_rx_clk
+FANOUT|fo=2412|net=u_idelay_clkgen/u_mmcm_0
+FANOUT|fo=2109|net=u_pl/u_clk/u_mmcm_0
+FANOUT|fo=1836|net=u_bd/bbstub_FCLK_RESET0_N
+FANOUT|fo=1165|net=u_eth/u_saver/wptr_reg[5]
+FANOUT|fo=603|net=u_eth/u_saver/wptr_reg[3]
+FANOUT|fo=601|net=u_eth/u_saver/wptr_reg[4]
+FANOUT|fo=598|net=u_eth/u_saver/wptr_reg[0]_rep_n_0
+FANOUT|fo=598|net=u_eth/u_saver/wptr_reg[1]_rep_n_0
+FANOUT|fo=598|net=u_eth/u_saver/wptr_reg[2]_rep_n_0
+FANOUT|fo=566|net=u_eth/u_saver/wptr_reg[0]_rep__0_n_0
+FANOUT|fo=566|net=u_eth/u_saver/wptr_reg[1]_rep__0_n_0
+FANOUT|fo=566|net=u_eth/u_saver/wptr_reg[2]_rep__0_n_0
+FANOUT|fo=566|net=u_eth/u_saver/wptr_reg[3]_rep_n_0
+FANOUT|fo=566|net=u_eth/u_saver/wptr_reg[4]_rep_n_0
+FANOUT|fo=548|net=u_pl/u_pipe/xd_reg[12][0]_0
+FANOUT|fo=548|net=u_pl/u_pipe/xd_reg[12][1]_0
+FANOUT|fo=548|net=u_pl/u_pipe/xd_reg[12][2]_0
+FANOUT|fo=548|net=u_pl/u_pipe/xd_reg[12][3]_0
+DESIGN|wns=0.739|whs=0.052

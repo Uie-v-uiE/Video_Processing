@@ -9,8 +9,8 @@
 # 数据来源：`build/tcl/probe_timing_roster.tcl`（只读开 routed dcp，几分钟，不重建）。
 # 用法：
 #   bash build/timing_roster_diff.sh build/evidence/r113_before_roster.txt build/evidence/r113_after_roster.txt
-#   bash build/timing_roster_diff.sh --self      # 八条对照：坏的要红、要好的要绿、GAIN 行的形状要算一条，
-#                                                # 两侧口径不一致时必须 REFUSE（不许出裁决）
+#   bash build/timing_roster_diff.sh --self      # 十一条对照：坏的要红、好的要绿、GAIN 行的形状要算一条、
+#                                                # 两侧口径不一致要 REFUSE、两侧都 NOWRITE 不许当成丢读数
 set -u
 LOST_PCT=${LOST_PCT:-25}          # 相对余量掉多少百分比算代价（同域内 slack/period 之比）
 FLOOR_PAIRS=${FLOOR_PAIRS:-8}     # 至少要配上的 (时钟,类型) 对数：4 个域 × setup/hold
@@ -72,11 +72,20 @@ if [ "${1:-}" = "--self" ]; then
     else
         say "SELF control_gain_line_shape got=$gl PASS"
     fi
-    # 7) A 侧的 slack 带上散文（= 拿另一把生成器的名册来相减）⇒ 必须 REFUSE，不许出裁决
-    a=$(mk | sed 's/slack=0.445|/slack=0.445ns  (required time - arrival time)|/'); chk "$base" "$a" REFUSE control_shape_gate || r=1
+    # 7) 同一把生成器的探针名册**本来就带散文与 NOWRITE 行** ⇒ 不许因此拒绝比较（假拒绝挡掉正当实验，
+    #    这是我自己第一版闸门犯过的错，见文件内注）：只把 slack 写成散文、数值不变 ⇒ 必须照常 GREEN
+    a=$(mk | sed 's/slack=0.445|/slack=0.445ns  (required time - arrival time)|/'); chk "$base" "$a" GREEN control_prose_allowed || r=1
+    # 7b) B 侧扇出节整节缺失（= 另一把生成器，`roster_from_summary.sh` 那种）⇒ 必须 REFUSE
+    a=$(mk | grep -av '^FANOUT|'); chk "$base" "$a" REFUSE control_fanout_parity || r=1
     # 8) B 侧整路钟不见（名单不一致）⇒ 必须 REFUSE（这既不是代价也不是收益，是两侧不是一个口径）
     a=$(printf '%s\n' "$base" | grep -av 'clk=sys_clk'); chk "$base" "$a" REFUSE control_clock_inventory || r=1
-    [ $r -eq 0 ] && say "SELF timing_roster_diff 对照 8/8 全过 PASS" || say "SELF timing_roster_diff FAIL"
+    # 9) 两侧都 NOWRITE（MMCM 反馈钟/辅助输出本来就没有 endpoint）⇒ 不许当成"读数变空"
+    both=$(printf '%s\n' "$base" | grep -av '^DESIGN|')$'\n'"ROSTER|setup|clk=clkfbout|period=20.000|slack=NOWRITE|margin_pct=NA|levels=NA|route_pct=NA|dest=NA"
+    both="$both"$'\n'"ROSTER|hold|clk=clkfbout|period=20.000|slack=NOWRITE|margin_pct=NA|levels=NA|route_pct=NA|dest=NA"
+    printf '%s\n' "$base" > /dev/null; chk "$both" "$both" GREEN control_both_nowrite || r=1
+    # 10) A 有读数、B 变 NOWRITE ⇒ 必须红（这才是 D5 该抓的那一类）
+    a=$(printf '%s\n' "$base" | sed 's/slack=0.050|/slack=NOWRITE|/'); chk "$base" "$a" RED control_a_has_b_empty || r=1
+    [ $r -eq 0 ] && say "SELF timing_roster_diff 对照 11/11 全过 PASS" || say "SELF timing_roster_diff FAIL"
     exit $r
 fi
 
@@ -91,21 +100,16 @@ B=${2:-}
 # 由 `roster_from_summary.sh` 生成的干净名册 ⇒ D3 一口气数出 big_loss=8、D6 念 fanout_rows=0，
 # 看着像"别的域被挤坏了"，其实两侧根本不是一个口径。件（已改名，别再当裁决读）
 # build/evidence/r114_roster_diff_shape_mismatch_DO_NOT_READ_AS_VERDICT.txt。
-# 所以现在先验形状：slack/margin_pct 必须是纯数，两边时钟名单必须一致；不然是 REFUSE 而不是裁决。
-bad_shape=0
-for f in "$A" "$B"; do
-    while IFS= read -r ln; do
-        s=$(printf '%s\n' "$ln" | sed -n 's/.*|slack=\([^|]*\)|.*/\1/p')
-        m=$(printf '%s\n' "$ln" | sed -n 's/.*|margin_pct=\([^|]*\)|.*/\1/p')
-        printf '%s' "$s" | grep -qE '^-?[0-9]+\.?[0-9]*$' || bad_shape=$((bad_shape+1))
-        printf '%s' "$m" | grep -qE '^-?[0-9]+\.?[0-9]*$' || bad_shape=$((bad_shape+1))
-    done < <(grep -a '^ROSTER|' "$f")
-done
+# 闸门只管**口径**（时钟名单 + 扇出节的有无），**不管 slack 字段长什么样**：探针那份本来就带散文
+# （`slack=1.850ns  (required time - arrival time)`）与 `NOWRITE` 行，awk 取前导数就够用。
+# 第一版我把"必须纯数"也写进闸门，结果把**合法的同口径配对**一起判成 REFUSE——
+# "假拒绝挡掉正当实验"是 [[env-vivado-tcl-pblock-traps]] 里 `get_property RANGE` 那一课，又踩了一遍。
 clks_a=$(grep -a '^ROSTER|' "$A" | sed -n 's/^ROSTER|[a-z]*|clk=\([^|]*\)|.*/\1/p' | sort -u | tr '\n' ' ')
 clks_b=$(grep -a '^ROSTER|' "$B" | sed -n 's/^ROSTER|[a-z]*|clk=\([^|]*\)|.*/\1/p' | sort -u | tr '\n' ' ')
-if [ "$bad_shape" -ne 0 ] || [ "$clks_a" != "$clks_b" ]; then
-    printf 'ROSTERDIFF-SHAPE bad_numeric_fields=%s clocks_A=[%s] clocks_B=[%s]\n' "$bad_shape" "$clks_a" "$clks_b"
-    echo 'ROSTERDIFF-SHAPE 口径：两侧必须同一把生成器、同一套时钟名单（不同口径相减出来的不是代价，是尺子断）'
+fo_a=$(grep -ac '^FANOUT|' "$A"); fo_b=$(grep -ac '^FANOUT|' "$B")
+if [ "$clks_a" != "$clks_b" ] || { [ "$fo_a" -gt 0 ] && [ "$fo_b" -eq 0 ]; } || { [ "$fo_a" -eq 0 ] && [ "$fo_b" -gt 0 ]; }; then
+    printf 'ROSTERDIFF-SHAPE clocks_A=[%s] clocks_B=[%s] fanout_rows=%s/%s\n' "$clks_a" "$clks_b" "$fo_a" "$fo_b"
+    echo 'ROSTERDIFF-SHAPE 口径：两侧要同一把生成器——时钟名单要一致、扇出节要同有同无（不同口径相减出来的不是代价，是尺子断）'
     echo "ROSTERDIFF-SUMMARY a=$A b=$B result=REFUSE"
     exit 3
 fi
@@ -130,7 +134,19 @@ for c in $clks; do
         pairs=$((pairs+1))
         sa=$(field "$ra" slack); sb=$(field "$rb" slack)
         pa=$(field "$ra" margin_pct); pb=$(field "$rb" margin_pct)
-        if [ "$sb" = "NOWRITE" ] || [ -z "$sb" ]; then empty_b=$((empty_b+1)); fi
+        # D5 的口径修正（2026-10-03 20:2x，r114 名册第一次按同口径配对跑出来才发现）：
+        # 以前只要 **B 侧**这一格是 NOWRITE/空就计数，可 MMCM 的反馈钟与辅助输出（clkfbout/clkfbout_1/
+        # clkout1_1/clkout2）本来就**两侧都**NOWRITE（这些钟没有 endpoint 是正常的），于是合法配对
+        # 被念成 `empty_in_B=8 RED`。真正要抓的是"A 有读数、B 变成空"＝改后丢了可读的东西。
+        case "$sa" in
+            ''|NOWRITE) a_has=0 ;;
+            *) case "$sa" in [0-9]*) a_has=1 ;; -[0-9]*) a_has=1 ;; *) a_has=0 ;; esac ;;
+        esac
+        case "$sb" in
+            ''|NOWRITE) b_has=0 ;;
+            *) case "$sb" in [0-9]*) b_has=1 ;; -[0-9]*) b_has=1 ;; *) b_has=0 ;; esac ;;
+        esac
+        if [ "$a_has" = 1 ] && [ "$b_has" = 0 ]; then empty_b=$((empty_b+1)); fi
         # 从 MET 变成违例（只算 setup 的新违例；hold 的负值同判）
         neg=$(awk -v x="$sb" 'BEGIN{ if (x+0 < 0) print 1; else print 0 }')
         wasneg=$(awk -v x="$sa" 'BEGIN{ if (x+0 < 0) print 1; else print 0 }')

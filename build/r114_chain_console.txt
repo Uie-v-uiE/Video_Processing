@@ -24,3 +24,12 @@ SCAN_SUMMARY roots=2 want1_total=9 init_miss_total=0 result=CLEAN
 [chain 19:14:55] 快车道 rc=0 绿=31 红=0 挡=0
 LANE-SUMMARY ran=31/31 green=31 red=0 refuse=0 no-verdict/other=0 wall=564s (19:14:55)
 [chain 19:14:55] 顶层台架（实测约 70–128 分钟，一轮只付这一次）
+[chain 21:13:36] tb_v98 rc=3
+[chain 21:13:37] tb98_report rc=0
+[chain 21:13:57] rim rc=0
+[chain 21:13:57] rim_report rc=0
+[chain 21:13:57] 门禁（先 /tmp 再 cp，两跑要逐字节一致）
+[chain 21:15:13] 门禁两跑**不一致**（D1c 读的是盘上那份，见 #242 第 1 条）——写回后再跑一遍
+[chain 21:15:13] 绿=21 红=3
+[chain 21:15:14] 尺子复跑：SYNCREG-SUMMARY root=src/rtl pairs=2 missing=0 ghosts=0 edges=2 result=GREEN | SCAN_SUMMARY roots=2 want1_total=9 init_miss_total=0 result=CLEAN
+[chain 21:15:14] 链结束：判读抓手 = ①两把静态尺子 pre/post 都绿 ②名册八对逐格差分（其它域不许从 MET 掉进违例）③TIMING-10 计数离开 1

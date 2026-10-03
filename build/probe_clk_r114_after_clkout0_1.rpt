@@ -1,0 +1,463 @@
+Copyright 1986-2022 Xilinx, Inc. All Rights Reserved. Copyright 2022-2026 Advanced Micro Devices, Inc. All Rights Reserved.
+------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+| Tool Version : Vivado v.2025.2.1 (win64) Build 6403652 Thu Mar 19 19:48:24 GMT 2026
+| Date         : Sat Oct  3 19:04:44 2026
+| Host         : Uie-laptop running 64-bit major release  (build 9200)
+| Command      : report_timing -delay_type max -nworst 1 -max_paths 4 -from [get_clocks -quiet clkout0_1] -to [get_clocks -quiet clkout0_1] -file D:/Xilinx/Prj/pro/Video_Processing/build/probe_clk_r114_after_clkout0_1.rpt
+| Design       : system_top
+| Device       : 7z020-clg484
+| Speed File   : -2  PRODUCTION 1.12 2019-11-22
+| Design State : Routed
+------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+
+Timing Report
+
+Slack (MET) :             3.630ns  (required time - arrival time)
+  Source:                 u_pl/x_d_reg[20][3]/C
+                            (rising edge-triggered cell FDCE clocked by clkout0_1  {rise@0.000ns fall@10.000ns period=20.000ns})
+  Destination:            u_pl/u_osd/ch_r_reg/ADDRARDADDR[6]
+                            (rising edge-triggered cell RAMB18E1 clocked by clkout0_1  {rise@0.000ns fall@10.000ns period=20.000ns})
+  Path Group:             clkout0_1
+  Path Type:              Setup (Max at Slow Process Corner)
+  Requirement:            20.000ns  (clkout0_1 rise@20.000ns - clkout0_1 rise@0.000ns)
+  Data Path Delay:        15.834ns  (logic 6.468ns (40.850%)  route 9.366ns (59.150%))
+  Logic Levels:           22  (CARRY4=9 LUT2=1 LUT3=2 LUT4=5 LUT6=4 MUXF7=1)
+  Clock Path Skew:        0.048ns (DCD - SCD + CPR)
+    Destination Clock Delay (DCD):    4.448ns = ( 24.448 - 20.000 ) 
+    Source Clock Delay      (SCD):    4.742ns
+    Clock Pessimism Removal (CPR):    0.342ns
+  Clock Uncertainty:      0.094ns  ((TSJ^2 + DJ^2)^1/2) / 2 + PE
+    Total System Jitter     (TSJ):    0.071ns
+    Discrete Jitter          (DJ):    0.175ns
+    Phase Error              (PE):    0.000ns
+
+    Location             Delay type                Incr(ns)  Path(ns)    Netlist Resource(s)
+  -------------------------------------------------------------------    -------------------
+                         (clock clkout0_1 rise edge)
+                                                      0.000     0.000 r  
+    W17                                               0.000     0.000 r  sys_clk (IN)
+                         net (fo=0)                   0.000     0.000    sys_clk
+    W17                  IBUF (Prop_ibuf_I_O)         1.415     1.415 r  sys_clk_IBUF_inst/O
+                         net (fo=1, routed)           1.873     3.288    sys_clk_IBUF
+    BUFGCTRL_X0Y4        BUFG (Prop_bufg_I_O)         0.085     3.373 r  sys_clk_IBUF_BUFG_inst/O
+                         net (fo=186, routed)         1.550     4.923    u_pl/u_clk/sys_clk_IBUF_BUFG
+    MMCME2_ADV_X1Y0      MMCME2_ADV (Prop_mmcme2_adv_CLKIN1_CLKOUT0)
+                                                     -3.232     1.691 r  u_pl/u_clk/u_mmcm/CLKOUT0
+                         net (fo=1, routed)           1.597     3.288    u_pl/u_clk/clkout0
+    BUFGCTRL_X0Y0        BUFG (Prop_bufg_I_O)         0.085     3.373 r  u_pl/u_clk/u_bufg_pix/O
+                         net (fo=5515, routed)        1.369     4.742    u_pl/clk_pix
+    SLICE_X52Y68         FDCE                                         r  u_pl/x_d_reg[20][3]/C
+  -------------------------------------------------------------------    -------------------
+    SLICE_X52Y68         FDCE (Prop_fdce_C_Q)         0.348     5.090 r  u_pl/x_d_reg[20][3]/Q
+                         net (fo=5, routed)           0.389     5.479    u_pl/u_osd/s_pix_x_reg[0]_3[0]
+    SLICE_X53Y69         CARRY4 (Prop_carry4_S[0]_CO[3])
+                                                      0.680     6.159 r  u_pl/u_osd/s_pix_x_reg[0]_i_2/CO[3]
+                         net (fo=1, routed)           0.000     6.159    u_pl/u_osd/s_pix_x_reg[0]_i_2_n_0
+    SLICE_X53Y70         CARRY4 (Prop_carry4_CI_O[0])
+                                                      0.180     6.339 f  u_pl/u_osd/s_pix_x_reg[0]_i_38/O[0]
+                         net (fo=23, routed)          0.955     7.294    u_pl/u_osd/lx[7]
+    SLICE_X58Y73         LUT3 (Prop_lut3_I1_O)        0.249     7.543 r  u_pl/u_osd/s_pix_x[0]_i_51/O
+                         net (fo=4, routed)           0.485     8.028    u_pl/u_osd/s_pix_x[0]_i_51_n_0
+    SLICE_X57Y72         LUT4 (Prop_lut4_I3_O)        0.105     8.133 r  u_pl/u_osd/ch_r_reg_i_776/O
+                         net (fo=1, routed)           0.000     8.133    u_pl/u_osd/ch_r_reg_i_776_n_0
+    SLICE_X57Y72         CARRY4 (Prop_carry4_S[0]_CO[3])
+                                                      0.440     8.573 r  u_pl/u_osd/ch_r_reg_i_656/CO[3]
+                         net (fo=1, routed)           0.000     8.573    u_pl/u_osd/ch_r_reg_i_656_n_0
+    SLICE_X57Y73         CARRY4 (Prop_carry4_CI_O[2])
+                                                      0.200     8.773 r  u_pl/u_osd/ch_r_reg_i_402/O[2]
+                         net (fo=2, routed)           0.811     9.584    u_pl/u_osd/ch_r_reg_i_402_n_5
+    SLICE_X58Y73         LUT3 (Prop_lut3_I1_O)        0.264     9.848 r  u_pl/u_osd/ch_r_reg_i_152/O
+                         net (fo=2, routed)           0.497    10.345    u_pl/u_osd/ch_r_reg_i_152_n_0
+    SLICE_X56Y74         LUT4 (Prop_lut4_I3_O)        0.283    10.628 r  u_pl/u_osd/ch_r_reg_i_156/O
+                         net (fo=1, routed)           0.000    10.628    u_pl/u_osd/ch_r_reg_i_156_n_0
+    SLICE_X56Y74         CARRY4 (Prop_carry4_S[1]_CO[3])
+                                                      0.457    11.085 r  u_pl/u_osd/ch_r_reg_i_44/CO[3]
+                         net (fo=1, routed)           0.008    11.093    u_pl/u_osd/ch_r_reg_i_44_n_0
+    SLICE_X56Y75         CARRY4 (Prop_carry4_CI_O[1])
+                                                      0.265    11.358 r  u_pl/u_osd/ch_r_reg_i_404/O[1]
+                         net (fo=3, routed)           0.524    11.883    u_pl/u_osd/ch_r_reg_i_404_n_6
+    SLICE_X54Y74         LUT2 (Prop_lut2_I0_O)        0.250    12.133 r  u_pl/u_osd/ch_r_reg_i_667/O
+                         net (fo=1, routed)           0.000    12.133    u_pl/u_osd/ch_r_reg_i_667_n_0
+    SLICE_X54Y74         CARRY4 (Prop_carry4_S[1]_CO[3])
+                                                      0.444    12.577 r  u_pl/u_osd/ch_r_reg_i_403/CO[3]
+                         net (fo=1, routed)           0.008    12.585    u_pl/u_osd/ch_r_reg_i_403_n_0
+    SLICE_X54Y75         CARRY4 (Prop_carry4_CI_O[0])
+                                                      0.178    12.763 r  u_pl/u_osd/ch_r_reg_i_158/O[0]
+                         net (fo=39, routed)          0.611    13.373    u_pl/u_osd/ch_r_reg_i_404_0[0]
+    SLICE_X55Y75         LUT4 (Prop_lut4_I2_O)        0.238    13.611 r  u_pl/u_osd/ch_r_reg_i_409/O
+                         net (fo=1, routed)           0.000    13.611    u_pl/u_osd/ch_r_reg_i_409_n_0
+    SLICE_X55Y75         CARRY4 (Prop_carry4_S[1]_CO[1])
+                                                      0.408    14.019 r  u_pl/u_osd/ch_r_reg_i_160/CO[1]
+                         net (fo=38, routed)          1.220    15.239    u_pl/u_osd/ch_r_reg_i_410_0[0]
+    SLICE_X63Y83         LUT4 (Prop_lut4_I3_O)        0.289    15.528 r  u_pl/u_osd/ch_r_reg_i_52/O
+                         net (fo=139, routed)         1.168    16.697    u_pl/u_eff/ch_r_reg_i_113_2
+    SLICE_X51Y85         LUT4 (Prop_lut4_I2_O)        0.294    16.991 r  u_pl/u_eff/ch_r_reg_i_528/O
+                         net (fo=2, routed)           0.530    17.521    u_pl/u_eff/ch_r_reg_i_528_n_0
+    SLICE_X51Y85         LUT6 (Prop_lut6_I0_O)        0.267    17.788 f  u_pl/u_eff/ch_r_reg_i_567/O
+                         net (fo=1, routed)           0.482    18.270    u_pl/u_eff/ch_r_reg_i_567_n_0
+    SLICE_X50Y83         LUT6 (Prop_lut6_I0_O)        0.105    18.375 f  u_pl/u_eff/ch_r_reg_i_309/O
+                         net (fo=1, routed)           0.000    18.375    u_pl/u_eff/ch_r_reg_i_309_n_0
+    SLICE_X50Y83         MUXF7 (Prop_muxf7_I1_O)      0.178    18.553 f  u_pl/u_eff/ch_r_reg_i_112/O
+                         net (fo=1, routed)           0.564    19.117    u_pl/u_ang/ch_r_reg_5
+    SLICE_X59Y81         LUT6 (Prop_lut6_I4_O)        0.241    19.358 r  u_pl/u_ang/ch_r_reg_i_33/O
+                         net (fo=1, routed)           0.451    19.809    u_pl/u_split_ctrl/ch_r_reg_9
+    SLICE_X58Y83         LUT6 (Prop_lut6_I4_O)        0.105    19.914 r  u_pl/u_split_ctrl/ch_r_reg_i_6/O
+                         net (fo=1, routed)           0.661    20.576    u_pl/u_osd/ADDRARDADDR[2]
+    RAMB18_X3Y34         RAMB18E1                                     r  u_pl/u_osd/ch_r_reg/ADDRARDADDR[6]
+  -------------------------------------------------------------------    -------------------
+
+                         (clock clkout0_1 rise edge)
+                                                     20.000    20.000 r  
+    W17                                               0.000    20.000 r  sys_clk (IN)
+                         net (fo=0)                   0.000    20.000    sys_clk
+    W17                  IBUF (Prop_ibuf_I_O)         1.349    21.349 r  sys_clk_IBUF_inst/O
+                         net (fo=1, routed)           1.701    23.050    sys_clk_IBUF
+    BUFGCTRL_X0Y4        BUFG (Prop_bufg_I_O)         0.077    23.127 r  sys_clk_IBUF_BUFG_inst/O
+                         net (fo=186, routed)         1.384    24.511    u_pl/u_clk/sys_clk_IBUF_BUFG
+    MMCME2_ADV_X1Y0      MMCME2_ADV (Prop_mmcme2_adv_CLKIN1_CLKOUT0)
+                                                     -2.915    21.596 r  u_pl/u_clk/u_mmcm/CLKOUT0
+                         net (fo=1, routed)           1.454    23.050    u_pl/u_clk/clkout0
+    BUFGCTRL_X0Y0        BUFG (Prop_bufg_I_O)         0.077    23.127 r  u_pl/u_clk/u_bufg_pix/O
+                         net (fo=5515, routed)        1.321    24.448    u_pl/u_osd/clk_pix
+    RAMB18_X3Y34         RAMB18E1                                     r  u_pl/u_osd/ch_r_reg/CLKARDCLK
+                         clock pessimism              0.342    24.790    
+                         clock uncertainty           -0.094    24.696    
+    RAMB18_X3Y34         RAMB18E1 (Setup_ramb18e1_CLKARDCLK_ADDRARDADDR[6])
+                                                     -0.490    24.206    u_pl/u_osd/ch_r_reg
+  -------------------------------------------------------------------
+                         required time                         24.206    
+                         arrival time                         -20.576    
+  -------------------------------------------------------------------
+                         slack                                  3.630    
+
+Slack (MET) :             3.975ns  (required time - arrival time)
+  Source:                 u_pl/u_zfit/inv_fit_reg[2]/C
+                            (rising edge-triggered cell FDCE clocked by clkout0_1  {rise@0.000ns fall@10.000ns period=20.000ns})
+  Destination:            u_pl/u_zmap/y_out_reg[8]/D
+                            (rising edge-triggered cell FDCE clocked by clkout0_1  {rise@0.000ns fall@10.000ns period=20.000ns})
+  Path Group:             clkout0_1
+  Path Type:              Setup (Max at Slow Process Corner)
+  Requirement:            20.000ns  (clkout0_1 rise@20.000ns - clkout0_1 rise@0.000ns)
+  Data Path Delay:        15.521ns  (logic 6.333ns (40.804%)  route 9.188ns (59.196%))
+  Logic Levels:           14  (CARRY4=3 DSP48E1=1 LUT2=1 LUT3=1 LUT4=3 LUT5=3 LUT6=2)
+  Clock Path Skew:        -0.200ns (DCD - SCD + CPR)
+    Destination Clock Delay (DCD):    4.358ns = ( 24.358 - 20.000 ) 
+    Source Clock Delay      (SCD):    4.816ns
+    Clock Pessimism Removal (CPR):    0.258ns
+  Clock Uncertainty:      0.094ns  ((TSJ^2 + DJ^2)^1/2) / 2 + PE
+    Total System Jitter     (TSJ):    0.071ns
+    Discrete Jitter          (DJ):    0.175ns
+    Phase Error              (PE):    0.000ns
+
+    Location             Delay type                Incr(ns)  Path(ns)    Netlist Resource(s)
+  -------------------------------------------------------------------    -------------------
+                         (clock clkout0_1 rise edge)
+                                                      0.000     0.000 r  
+    W17                                               0.000     0.000 r  sys_clk (IN)
+                         net (fo=0)                   0.000     0.000    sys_clk
+    W17                  IBUF (Prop_ibuf_I_O)         1.415     1.415 r  sys_clk_IBUF_inst/O
+                         net (fo=1, routed)           1.873     3.288    sys_clk_IBUF
+    BUFGCTRL_X0Y4        BUFG (Prop_bufg_I_O)         0.085     3.373 r  sys_clk_IBUF_BUFG_inst/O
+                         net (fo=186, routed)         1.550     4.923    u_pl/u_clk/sys_clk_IBUF_BUFG
+    MMCME2_ADV_X1Y0      MMCME2_ADV (Prop_mmcme2_adv_CLKIN1_CLKOUT0)
+                                                     -3.232     1.691 r  u_pl/u_clk/u_mmcm/CLKOUT0
+                         net (fo=1, routed)           1.597     3.288    u_pl/u_clk/clkout0
+    BUFGCTRL_X0Y0        BUFG (Prop_bufg_I_O)         0.085     3.373 r  u_pl/u_clk/u_bufg_pix/O
+                         net (fo=5515, routed)        1.443     4.816    u_pl/u_zfit/clk_pix
+    SLICE_X81Y82         FDCE                                         r  u_pl/u_zfit/inv_fit_reg[2]/C
+  -------------------------------------------------------------------    -------------------
+    SLICE_X81Y82         FDCE (Prop_fdce_C_Q)         0.348     5.164 r  u_pl/u_zfit/inv_fit_reg[2]/Q
+                         net (fo=3, routed)           1.147     6.311    u_pl/u_zfit/Q[2]
+    SLICE_X56Y81         LUT5 (Prop_lut5_I0_O)        0.242     6.553 r  u_pl/u_zfit/bus[19]_i_12/O
+                         net (fo=1, routed)           0.000     6.553    u_pl/u_zctrl/bus_reg[19]_i_2_0[1]
+    SLICE_X56Y81         CARRY4 (Prop_carry4_S[1]_CO[3])
+                                                      0.457     7.010 r  u_pl/u_zctrl/bus_reg[19]_i_3/CO[3]
+                         net (fo=1, routed)           0.000     7.010    u_pl/u_zctrl/bus_reg[19]_i_3_n_0
+    SLICE_X56Y82         CARRY4 (Prop_carry4_CI_CO[0])
+                                                      0.216     7.226 r  u_pl/u_zctrl/bus_reg[19]_i_2/CO[0]
+                         net (fo=10, routed)          0.821     8.047    u_pl/u_ang/bus_reg[19][0]
+    SLICE_X52Y79         LUT2 (Prop_lut2_I1_O)        0.309     8.356 r  u_pl/u_ang/bus[19]_i_1/O
+                         net (fo=8, routed)           0.882     9.238    u_pl/u_zfit/rot_forced
+    SLICE_X56Y80         LUT4 (Prop_lut4_I3_O)        0.127     9.365 r  u_pl/u_zfit/bus[5]_i_1/O
+                         net (fo=13, routed)          1.027    10.392    u_pl/u_zmap/B[5]
+    DSP48_X2Y32          DSP48E1 (Prop_dsp48e1_B[5]_P[1])
+                                                      3.239    13.631 f  u_pl/u_zmap/rot_ys/P[1]
+                         net (fo=1, routed)           0.806    14.437    u_pl/u_zmap/rot_ys_n_104
+    SLICE_X35Y80         LUT4 (Prop_lut4_I1_O)        0.105    14.542 f  u_pl/u_zmap/frac_y[2]_i_5/O
+                         net (fo=8, routed)           0.856    15.398    u_pl/u_zmap/frac_y[2]_i_5_n_0
+    SLICE_X37Y76         LUT5 (Prop_lut5_I4_O)        0.105    15.503 r  u_pl/u_zmap/frac_y[1]_i_2/O
+                         net (fo=6, routed)           0.719    16.222    u_pl/u_zmap/frac_y[1]_i_2_n_0
+    SLICE_X35Y67         LUT3 (Prop_lut3_I2_O)        0.105    16.327 r  u_pl/u_zmap/y_out[3]_i_10/O
+                         net (fo=1, routed)           0.000    16.327    u_pl/u_zmap/y_out[3]_i_10_n_0
+    SLICE_X35Y67         CARRY4 (Prop_carry4_S[0]_O[3])
+                                                      0.503    16.830 f  u_pl/u_zmap/y_out_reg[3]_i_3/O[3]
+                         net (fo=2, routed)           0.646    17.476    u_pl/u_zmap/sy_c00_in[3]
+    SLICE_X38Y64         LUT5 (Prop_lut5_I1_O)        0.257    17.733 f  u_pl/u_zmap/oob_i_8/O
+                         net (fo=1, routed)           0.335    18.068    u_pl/u_zmap/oob_i_8_n_0
+    SLICE_X38Y65         LUT6 (Prop_lut6_I2_O)        0.105    18.173 r  u_pl/u_zmap/oob_i_2/O
+                         net (fo=1, routed)           0.947    19.120    u_pl/u_zmap/oob_i_2_n_0
+    SLICE_X34Y65         LUT6 (Prop_lut6_I0_O)        0.105    19.225 f  u_pl/u_zmap/oob_i_1/O
+                         net (fo=35, routed)          0.627    19.852    u_pl/u_zmap/oob_i_1_n_0
+    SLICE_X37Y66         LUT4 (Prop_lut4_I3_O)        0.110    19.962 r  u_pl/u_zmap/y_out[8]_i_1/O
+                         net (fo=1, routed)           0.375    20.337    u_pl/u_zmap/y_out[8]_i_1_n_0
+    SLICE_X41Y65         FDCE                                         r  u_pl/u_zmap/y_out_reg[8]/D
+  -------------------------------------------------------------------    -------------------
+
+                         (clock clkout0_1 rise edge)
+                                                     20.000    20.000 r  
+    W17                                               0.000    20.000 r  sys_clk (IN)
+                         net (fo=0)                   0.000    20.000    sys_clk
+    W17                  IBUF (Prop_ibuf_I_O)         1.349    21.349 r  sys_clk_IBUF_inst/O
+                         net (fo=1, routed)           1.701    23.050    sys_clk_IBUF
+    BUFGCTRL_X0Y4        BUFG (Prop_bufg_I_O)         0.077    23.127 r  sys_clk_IBUF_BUFG_inst/O
+                         net (fo=186, routed)         1.384    24.511    u_pl/u_clk/sys_clk_IBUF_BUFG
+    MMCME2_ADV_X1Y0      MMCME2_ADV (Prop_mmcme2_adv_CLKIN1_CLKOUT0)
+                                                     -2.915    21.596 r  u_pl/u_clk/u_mmcm/CLKOUT0
+                         net (fo=1, routed)           1.454    23.050    u_pl/u_clk/clkout0
+    BUFGCTRL_X0Y0        BUFG (Prop_bufg_I_O)         0.077    23.127 r  u_pl/u_clk/u_bufg_pix/O
+                         net (fo=5515, routed)        1.231    24.358    u_pl/u_zmap/clk_pix
+    SLICE_X41Y65         FDCE                                         r  u_pl/u_zmap/y_out_reg[8]/C
+                         clock pessimism              0.258    24.616    
+                         clock uncertainty           -0.094    24.522    
+    SLICE_X41Y65         FDCE (Setup_fdce_C_D)       -0.210    24.312    u_pl/u_zmap/y_out_reg[8]
+  -------------------------------------------------------------------
+                         required time                         24.312    
+                         arrival time                         -20.337    
+  -------------------------------------------------------------------
+                         slack                                  3.975    
+
+Slack (MET) :             4.222ns  (required time - arrival time)
+  Source:                 u_pl/x_d_reg[20][3]/C
+                            (rising edge-triggered cell FDCE clocked by clkout0_1  {rise@0.000ns fall@10.000ns period=20.000ns})
+  Destination:            u_pl/u_osd/ch_r_reg/ADDRARDADDR[7]
+                            (rising edge-triggered cell RAMB18E1 clocked by clkout0_1  {rise@0.000ns fall@10.000ns period=20.000ns})
+  Path Group:             clkout0_1
+  Path Type:              Setup (Max at Slow Process Corner)
+  Requirement:            20.000ns  (clkout0_1 rise@20.000ns - clkout0_1 rise@0.000ns)
+  Data Path Delay:        15.241ns  (logic 6.154ns (40.377%)  route 9.087ns (59.623%))
+  Logic Levels:           21  (CARRY4=9 LUT2=1 LUT3=2 LUT4=6 LUT6=3)
+  Clock Path Skew:        0.048ns (DCD - SCD + CPR)
+    Destination Clock Delay (DCD):    4.448ns = ( 24.448 - 20.000 ) 
+    Source Clock Delay      (SCD):    4.742ns
+    Clock Pessimism Removal (CPR):    0.342ns
+  Clock Uncertainty:      0.094ns  ((TSJ^2 + DJ^2)^1/2) / 2 + PE
+    Total System Jitter     (TSJ):    0.071ns
+    Discrete Jitter          (DJ):    0.175ns
+    Phase Error              (PE):    0.000ns
+
+    Location             Delay type                Incr(ns)  Path(ns)    Netlist Resource(s)
+  -------------------------------------------------------------------    -------------------
+                         (clock clkout0_1 rise edge)
+                                                      0.000     0.000 r  
+    W17                                               0.000     0.000 r  sys_clk (IN)
+                         net (fo=0)                   0.000     0.000    sys_clk
+    W17                  IBUF (Prop_ibuf_I_O)         1.415     1.415 r  sys_clk_IBUF_inst/O
+                         net (fo=1, routed)           1.873     3.288    sys_clk_IBUF
+    BUFGCTRL_X0Y4        BUFG (Prop_bufg_I_O)         0.085     3.373 r  sys_clk_IBUF_BUFG_inst/O
+                         net (fo=186, routed)         1.550     4.923    u_pl/u_clk/sys_clk_IBUF_BUFG
+    MMCME2_ADV_X1Y0      MMCME2_ADV (Prop_mmcme2_adv_CLKIN1_CLKOUT0)
+                                                     -3.232     1.691 r  u_pl/u_clk/u_mmcm/CLKOUT0
+                         net (fo=1, routed)           1.597     3.288    u_pl/u_clk/clkout0
+    BUFGCTRL_X0Y0        BUFG (Prop_bufg_I_O)         0.085     3.373 r  u_pl/u_clk/u_bufg_pix/O
+                         net (fo=5515, routed)        1.369     4.742    u_pl/clk_pix
+    SLICE_X52Y68         FDCE                                         r  u_pl/x_d_reg[20][3]/C
+  -------------------------------------------------------------------    -------------------
+    SLICE_X52Y68         FDCE (Prop_fdce_C_Q)         0.348     5.090 r  u_pl/x_d_reg[20][3]/Q
+                         net (fo=5, routed)           0.389     5.479    u_pl/u_osd/s_pix_x_reg[0]_3[0]
+    SLICE_X53Y69         CARRY4 (Prop_carry4_S[0]_CO[3])
+                                                      0.680     6.159 r  u_pl/u_osd/s_pix_x_reg[0]_i_2/CO[3]
+                         net (fo=1, routed)           0.000     6.159    u_pl/u_osd/s_pix_x_reg[0]_i_2_n_0
+    SLICE_X53Y70         CARRY4 (Prop_carry4_CI_O[0])
+                                                      0.180     6.339 f  u_pl/u_osd/s_pix_x_reg[0]_i_38/O[0]
+                         net (fo=23, routed)          0.955     7.294    u_pl/u_osd/lx[7]
+    SLICE_X58Y73         LUT3 (Prop_lut3_I1_O)        0.249     7.543 r  u_pl/u_osd/s_pix_x[0]_i_51/O
+                         net (fo=4, routed)           0.485     8.028    u_pl/u_osd/s_pix_x[0]_i_51_n_0
+    SLICE_X57Y72         LUT4 (Prop_lut4_I3_O)        0.105     8.133 r  u_pl/u_osd/ch_r_reg_i_776/O
+                         net (fo=1, routed)           0.000     8.133    u_pl/u_osd/ch_r_reg_i_776_n_0
+    SLICE_X57Y72         CARRY4 (Prop_carry4_S[0]_CO[3])
+                                                      0.440     8.573 r  u_pl/u_osd/ch_r_reg_i_656/CO[3]
+                         net (fo=1, routed)           0.000     8.573    u_pl/u_osd/ch_r_reg_i_656_n_0
+    SLICE_X57Y73         CARRY4 (Prop_carry4_CI_O[2])
+                                                      0.200     8.773 r  u_pl/u_osd/ch_r_reg_i_402/O[2]
+                         net (fo=2, routed)           0.811     9.584    u_pl/u_osd/ch_r_reg_i_402_n_5
+    SLICE_X58Y73         LUT3 (Prop_lut3_I1_O)        0.264     9.848 r  u_pl/u_osd/ch_r_reg_i_152/O
+                         net (fo=2, routed)           0.497    10.345    u_pl/u_osd/ch_r_reg_i_152_n_0
+    SLICE_X56Y74         LUT4 (Prop_lut4_I3_O)        0.283    10.628 r  u_pl/u_osd/ch_r_reg_i_156/O
+                         net (fo=1, routed)           0.000    10.628    u_pl/u_osd/ch_r_reg_i_156_n_0
+    SLICE_X56Y74         CARRY4 (Prop_carry4_S[1]_CO[3])
+                                                      0.457    11.085 r  u_pl/u_osd/ch_r_reg_i_44/CO[3]
+                         net (fo=1, routed)           0.008    11.093    u_pl/u_osd/ch_r_reg_i_44_n_0
+    SLICE_X56Y75         CARRY4 (Prop_carry4_CI_O[1])
+                                                      0.265    11.358 r  u_pl/u_osd/ch_r_reg_i_404/O[1]
+                         net (fo=3, routed)           0.524    11.883    u_pl/u_osd/ch_r_reg_i_404_n_6
+    SLICE_X54Y74         LUT2 (Prop_lut2_I0_O)        0.250    12.133 r  u_pl/u_osd/ch_r_reg_i_667/O
+                         net (fo=1, routed)           0.000    12.133    u_pl/u_osd/ch_r_reg_i_667_n_0
+    SLICE_X54Y74         CARRY4 (Prop_carry4_S[1]_CO[3])
+                                                      0.444    12.577 r  u_pl/u_osd/ch_r_reg_i_403/CO[3]
+                         net (fo=1, routed)           0.008    12.585    u_pl/u_osd/ch_r_reg_i_403_n_0
+    SLICE_X54Y75         CARRY4 (Prop_carry4_CI_O[0])
+                                                      0.178    12.763 r  u_pl/u_osd/ch_r_reg_i_158/O[0]
+                         net (fo=39, routed)          0.611    13.373    u_pl/u_osd/ch_r_reg_i_404_0[0]
+    SLICE_X55Y75         LUT4 (Prop_lut4_I2_O)        0.238    13.611 r  u_pl/u_osd/ch_r_reg_i_409/O
+                         net (fo=1, routed)           0.000    13.611    u_pl/u_osd/ch_r_reg_i_409_n_0
+    SLICE_X55Y75         CARRY4 (Prop_carry4_S[1]_CO[1])
+                                                      0.408    14.019 r  u_pl/u_osd/ch_r_reg_i_160/CO[1]
+                         net (fo=38, routed)          1.220    15.239    u_pl/u_osd/ch_r_reg_i_410_0[0]
+    SLICE_X63Y83         LUT4 (Prop_lut4_I3_O)        0.289    15.528 f  u_pl/u_osd/ch_r_reg_i_52/O
+                         net (fo=139, routed)         1.168    16.697    u_pl/u_eff/ch_r_reg_i_113_2
+    SLICE_X51Y85         LUT4 (Prop_lut4_I2_O)        0.294    16.991 f  u_pl/u_eff/ch_r_reg_i_528/O
+                         net (fo=2, routed)           0.362    17.353    u_pl/u_eff/ch_r_reg_i_528_n_0
+    SLICE_X51Y85         LUT4 (Prop_lut4_I3_O)        0.267    17.620 f  u_pl/u_eff/ch_r_reg_i_268/O
+                         net (fo=1, routed)           0.794    18.414    u_pl/u_eff/ch_r_reg_i_268_n_0
+    SLICE_X54Y85         LUT6 (Prop_lut6_I5_O)        0.105    18.519 r  u_pl/u_eff/ch_r_reg_i_94/O
+                         net (fo=1, routed)           0.332    18.850    u_pl/u_eff/ch_r_reg_i_94_n_0
+    SLICE_X57Y84         LUT6 (Prop_lut6_I5_O)        0.105    18.955 f  u_pl/u_eff/ch_r_reg_i_27/O
+                         net (fo=1, routed)           0.335    19.290    u_pl/u_eff/ch_r_reg_i_27_n_0
+    SLICE_X58Y84         LUT6 (Prop_lut6_I3_O)        0.105    19.395 r  u_pl/u_eff/ch_r_reg_i_5/O
+                         net (fo=1, routed)           0.588    19.983    u_pl/u_osd/ADDRARDADDR[3]
+    RAMB18_X3Y34         RAMB18E1                                     r  u_pl/u_osd/ch_r_reg/ADDRARDADDR[7]
+  -------------------------------------------------------------------    -------------------
+
+                         (clock clkout0_1 rise edge)
+                                                     20.000    20.000 r  
+    W17                                               0.000    20.000 r  sys_clk (IN)
+                         net (fo=0)                   0.000    20.000    sys_clk
+    W17                  IBUF (Prop_ibuf_I_O)         1.349    21.349 r  sys_clk_IBUF_inst/O
+                         net (fo=1, routed)           1.701    23.050    sys_clk_IBUF
+    BUFGCTRL_X0Y4        BUFG (Prop_bufg_I_O)         0.077    23.127 r  sys_clk_IBUF_BUFG_inst/O
+                         net (fo=186, routed)         1.384    24.511    u_pl/u_clk/sys_clk_IBUF_BUFG
+    MMCME2_ADV_X1Y0      MMCME2_ADV (Prop_mmcme2_adv_CLKIN1_CLKOUT0)
+                                                     -2.915    21.596 r  u_pl/u_clk/u_mmcm/CLKOUT0
+                         net (fo=1, routed)           1.454    23.050    u_pl/u_clk/clkout0
+    BUFGCTRL_X0Y0        BUFG (Prop_bufg_I_O)         0.077    23.127 r  u_pl/u_clk/u_bufg_pix/O
+                         net (fo=5515, routed)        1.321    24.448    u_pl/u_osd/clk_pix
+    RAMB18_X3Y34         RAMB18E1                                     r  u_pl/u_osd/ch_r_reg/CLKARDCLK
+                         clock pessimism              0.342    24.790    
+                         clock uncertainty           -0.094    24.696    
+    RAMB18_X3Y34         RAMB18E1 (Setup_ramb18e1_CLKARDCLK_ADDRARDADDR[7])
+                                                     -0.490    24.206    u_pl/u_osd/ch_r_reg
+  -------------------------------------------------------------------
+                         required time                         24.206    
+                         arrival time                         -19.983    
+  -------------------------------------------------------------------
+                         slack                                  4.222    
+
+Slack (MET) :             4.339ns  (required time - arrival time)
+  Source:                 u_pl/x_d_reg[20][3]/C
+                            (rising edge-triggered cell FDCE clocked by clkout0_1  {rise@0.000ns fall@10.000ns period=20.000ns})
+  Destination:            u_pl/u_osd/ch_r_reg/ADDRARDADDR[4]
+                            (rising edge-triggered cell RAMB18E1 clocked by clkout0_1  {rise@0.000ns fall@10.000ns period=20.000ns})
+  Path Group:             clkout0_1
+  Path Type:              Setup (Max at Slow Process Corner)
+  Requirement:            20.000ns  (clkout0_1 rise@20.000ns - clkout0_1 rise@0.000ns)
+  Data Path Delay:        15.124ns  (logic 6.138ns (40.583%)  route 8.986ns (59.417%))
+  Logic Levels:           21  (CARRY4=9 LUT2=1 LUT3=2 LUT4=4 LUT5=1 LUT6=4)
+  Clock Path Skew:        0.048ns (DCD - SCD + CPR)
+    Destination Clock Delay (DCD):    4.448ns = ( 24.448 - 20.000 ) 
+    Source Clock Delay      (SCD):    4.742ns
+    Clock Pessimism Removal (CPR):    0.342ns
+  Clock Uncertainty:      0.094ns  ((TSJ^2 + DJ^2)^1/2) / 2 + PE
+    Total System Jitter     (TSJ):    0.071ns
+    Discrete Jitter          (DJ):    0.175ns
+    Phase Error              (PE):    0.000ns
+
+    Location             Delay type                Incr(ns)  Path(ns)    Netlist Resource(s)
+  -------------------------------------------------------------------    -------------------
+                         (clock clkout0_1 rise edge)
+                                                      0.000     0.000 r  
+    W17                                               0.000     0.000 r  sys_clk (IN)
+                         net (fo=0)                   0.000     0.000    sys_clk
+    W17                  IBUF (Prop_ibuf_I_O)         1.415     1.415 r  sys_clk_IBUF_inst/O
+                         net (fo=1, routed)           1.873     3.288    sys_clk_IBUF
+    BUFGCTRL_X0Y4        BUFG (Prop_bufg_I_O)         0.085     3.373 r  sys_clk_IBUF_BUFG_inst/O
+                         net (fo=186, routed)         1.550     4.923    u_pl/u_clk/sys_clk_IBUF_BUFG
+    MMCME2_ADV_X1Y0      MMCME2_ADV (Prop_mmcme2_adv_CLKIN1_CLKOUT0)
+                                                     -3.232     1.691 r  u_pl/u_clk/u_mmcm/CLKOUT0
+                         net (fo=1, routed)           1.597     3.288    u_pl/u_clk/clkout0
+    BUFGCTRL_X0Y0        BUFG (Prop_bufg_I_O)         0.085     3.373 r  u_pl/u_clk/u_bufg_pix/O
+                         net (fo=5515, routed)        1.369     4.742    u_pl/clk_pix
+    SLICE_X52Y68         FDCE                                         r  u_pl/x_d_reg[20][3]/C
+  -------------------------------------------------------------------    -------------------
+    SLICE_X52Y68         FDCE (Prop_fdce_C_Q)         0.348     5.090 r  u_pl/x_d_reg[20][3]/Q
+                         net (fo=5, routed)           0.389     5.479    u_pl/u_osd/s_pix_x_reg[0]_3[0]
+    SLICE_X53Y69         CARRY4 (Prop_carry4_S[0]_CO[3])
+                                                      0.680     6.159 r  u_pl/u_osd/s_pix_x_reg[0]_i_2/CO[3]
+                         net (fo=1, routed)           0.000     6.159    u_pl/u_osd/s_pix_x_reg[0]_i_2_n_0
+    SLICE_X53Y70         CARRY4 (Prop_carry4_CI_O[0])
+                                                      0.180     6.339 f  u_pl/u_osd/s_pix_x_reg[0]_i_38/O[0]
+                         net (fo=23, routed)          0.955     7.294    u_pl/u_osd/lx[7]
+    SLICE_X58Y73         LUT3 (Prop_lut3_I1_O)        0.249     7.543 r  u_pl/u_osd/s_pix_x[0]_i_51/O
+                         net (fo=4, routed)           0.485     8.028    u_pl/u_osd/s_pix_x[0]_i_51_n_0
+    SLICE_X57Y72         LUT4 (Prop_lut4_I3_O)        0.105     8.133 r  u_pl/u_osd/ch_r_reg_i_776/O
+                         net (fo=1, routed)           0.000     8.133    u_pl/u_osd/ch_r_reg_i_776_n_0
+    SLICE_X57Y72         CARRY4 (Prop_carry4_S[0]_CO[3])
+                                                      0.440     8.573 r  u_pl/u_osd/ch_r_reg_i_656/CO[3]
+                         net (fo=1, routed)           0.000     8.573    u_pl/u_osd/ch_r_reg_i_656_n_0
+    SLICE_X57Y73         CARRY4 (Prop_carry4_CI_O[2])
+                                                      0.200     8.773 r  u_pl/u_osd/ch_r_reg_i_402/O[2]
+                         net (fo=2, routed)           0.811     9.584    u_pl/u_osd/ch_r_reg_i_402_n_5
+    SLICE_X58Y73         LUT3 (Prop_lut3_I1_O)        0.264     9.848 r  u_pl/u_osd/ch_r_reg_i_152/O
+                         net (fo=2, routed)           0.497    10.345    u_pl/u_osd/ch_r_reg_i_152_n_0
+    SLICE_X56Y74         LUT4 (Prop_lut4_I3_O)        0.283    10.628 r  u_pl/u_osd/ch_r_reg_i_156/O
+                         net (fo=1, routed)           0.000    10.628    u_pl/u_osd/ch_r_reg_i_156_n_0
+    SLICE_X56Y74         CARRY4 (Prop_carry4_S[1]_CO[3])
+                                                      0.457    11.085 r  u_pl/u_osd/ch_r_reg_i_44/CO[3]
+                         net (fo=1, routed)           0.008    11.093    u_pl/u_osd/ch_r_reg_i_44_n_0
+    SLICE_X56Y75         CARRY4 (Prop_carry4_CI_O[1])
+                                                      0.265    11.358 r  u_pl/u_osd/ch_r_reg_i_404/O[1]
+                         net (fo=3, routed)           0.524    11.883    u_pl/u_osd/ch_r_reg_i_404_n_6
+    SLICE_X54Y74         LUT2 (Prop_lut2_I0_O)        0.250    12.133 r  u_pl/u_osd/ch_r_reg_i_667/O
+                         net (fo=1, routed)           0.000    12.133    u_pl/u_osd/ch_r_reg_i_667_n_0
+    SLICE_X54Y74         CARRY4 (Prop_carry4_S[1]_CO[3])
+                                                      0.444    12.577 r  u_pl/u_osd/ch_r_reg_i_403/CO[3]
+                         net (fo=1, routed)           0.008    12.585    u_pl/u_osd/ch_r_reg_i_403_n_0
+    SLICE_X54Y75         CARRY4 (Prop_carry4_CI_O[0])
+                                                      0.178    12.763 r  u_pl/u_osd/ch_r_reg_i_158/O[0]
+                         net (fo=39, routed)          0.611    13.373    u_pl/u_osd/ch_r_reg_i_404_0[0]
+    SLICE_X55Y75         LUT4 (Prop_lut4_I2_O)        0.238    13.611 r  u_pl/u_osd/ch_r_reg_i_409/O
+                         net (fo=1, routed)           0.000    13.611    u_pl/u_osd/ch_r_reg_i_409_n_0
+    SLICE_X55Y75         CARRY4 (Prop_carry4_S[1]_CO[1])
+                                                      0.408    14.019 r  u_pl/u_osd/ch_r_reg_i_160/CO[1]
+                         net (fo=38, routed)          1.220    15.239    u_pl/u_osd/ch_r_reg_i_410_0[0]
+    SLICE_X63Y83         LUT4 (Prop_lut4_I3_O)        0.289    15.528 f  u_pl/u_osd/ch_r_reg_i_52/O
+                         net (fo=139, routed)         0.869    16.397    u_pl/u_eff/ch_r_reg_i_113_2
+    SLICE_X55Y83         LUT5 (Prop_lut5_I2_O)        0.278    16.675 r  u_pl/u_eff/ch_r_reg_i_625/O
+                         net (fo=1, routed)           0.631    17.306    u_pl/u_eff/ch_r_reg_i_625_n_0
+    SLICE_X55Y83         LUT6 (Prop_lut6_I1_O)        0.267    17.573 r  u_pl/u_eff/ch_r_reg_i_360/O
+                         net (fo=1, routed)           0.229    17.802    u_pl/u_eff/ch_r_reg_i_360_n_0
+    SLICE_X55Y82         LUT6 (Prop_lut6_I3_O)        0.105    17.907 r  u_pl/u_eff/ch_r_reg_i_135/O
+                         net (fo=1, routed)           0.766    18.673    u_pl/u_eff/ch_r_reg_i_135_n_0
+    SLICE_X60Y80         LUT6 (Prop_lut6_I2_O)        0.105    18.778 f  u_pl/u_eff/ch_r_reg_i_40/O
+                         net (fo=1, routed)           0.464    19.242    u_pl/u_eff/ch_r_reg_i_40_n_0
+    SLICE_X60Y84         LUT6 (Prop_lut6_I0_O)        0.105    19.347 r  u_pl/u_eff/ch_r_reg_i_8/O
+                         net (fo=1, routed)           0.520    19.867    u_pl/u_osd/ADDRARDADDR[0]
+    RAMB18_X3Y34         RAMB18E1                                     r  u_pl/u_osd/ch_r_reg/ADDRARDADDR[4]
+  -------------------------------------------------------------------    -------------------
+
+                         (clock clkout0_1 rise edge)
+                                                     20.000    20.000 r  
+    W17                                               0.000    20.000 r  sys_clk (IN)
+                         net (fo=0)                   0.000    20.000    sys_clk
+    W17                  IBUF (Prop_ibuf_I_O)         1.349    21.349 r  sys_clk_IBUF_inst/O
+                         net (fo=1, routed)           1.701    23.050    sys_clk_IBUF
+    BUFGCTRL_X0Y4        BUFG (Prop_bufg_I_O)         0.077    23.127 r  sys_clk_IBUF_BUFG_inst/O
+                         net (fo=186, routed)         1.384    24.511    u_pl/u_clk/sys_clk_IBUF_BUFG
+    MMCME2_ADV_X1Y0      MMCME2_ADV (Prop_mmcme2_adv_CLKIN1_CLKOUT0)
+                                                     -2.915    21.596 r  u_pl/u_clk/u_mmcm/CLKOUT0
+                         net (fo=1, routed)           1.454    23.050    u_pl/u_clk/clkout0
+    BUFGCTRL_X0Y0        BUFG (Prop_bufg_I_O)         0.077    23.127 r  u_pl/u_clk/u_bufg_pix/O
+                         net (fo=5515, routed)        1.321    24.448    u_pl/u_osd/clk_pix
+    RAMB18_X3Y34         RAMB18E1                                     r  u_pl/u_osd/ch_r_reg/CLKARDCLK
+                         clock pessimism              0.342    24.790    
+                         clock uncertainty           -0.094    24.696    
+    RAMB18_X3Y34         RAMB18E1 (Setup_ramb18e1_CLKARDCLK_ADDRARDADDR[4])
+                                                     -0.490    24.206    u_pl/u_osd/ch_r_reg
+  -------------------------------------------------------------------
+                         required time                         24.206    
+                         arrival time                         -19.867    
+  -------------------------------------------------------------------
+                         slack                                  4.339    
+
+
+
+

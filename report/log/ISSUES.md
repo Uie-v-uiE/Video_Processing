@@ -12299,3 +12299,60 @@ r114 正式构建 18:43 起飞、18:59 出 `system_top_routed.dcp`，位流身�
   它是**放置指令**（要求同步链放进同一 SLICE），所以全局放置被挪动，slack 一定跟着变。
   中性的是**资源**与**告警类别**，不是 slack。裁决仍按 #288/#291 的口径：同生成器的名册八对差分，
   头条绝对差不算收益（等台架跑完用 `probe_timing_roster.tcl` 出 `_rf` 那份再判）。
+
+### #293 r114 名册差分（同口径配对）**六条全绿、16 对**；为了让它绿，我又修了两把自己尺子的射程（一条是我几小时前刚写的）（2026-10-03 20:30）
+
+台架与 rim 跑完后，按 #291 定的正确配对量了一次：
+A = `build/evidence/r113_after_roster_rf.txt`（上板那版，`probe_timing_roster.tcl` + 扇出名册），
+B = 本轮新出的 `build/evidence/r114_after_roster_rf.txt`（同一把探针、同一份 `report_high_fanout_nets`），
+件 `build/evidence/r114_roster_diff.txt`：
+
+```
+D1_no_new_violation new=0 GREEN   D2_pairs_compared pairs=16 GREEN   D3_margin_cost big_loss=0 GREEN
+D4_hold_covered hold_pairs=8 GREEN  D5_no_empty_readings empty_in_B=0 GREEN  D6_fanout_inventory fanout_rows=20 GREEN
+```
+
+代价与收益都要念（这才是"别一根筋"的那张表）：**变差的两格**是 `clkout0_1/setup 4.467→3.630 ns`
+（相对余量 22.34 %→18.15 %，掉 18.8 %，在 25 % 门槛以内）与 `clk_fpga_0/hold 0.056→0.053`（−5.4 %）；
+**变好的**是 `eth_rxc/setup 0.445→0.739`、`clk_fpga_0/setup 1.135→1.850`、`sys_clk/hold 0.133→0.222`、
+`sys_clk/setup 14.463→14.876`。没有一路从 MET 掉进违例，也没有一路掉过门槛 ⇒ **本轮名册判据成立**。
+`clkout0_1` 那一格 18.8 % 的下降要留在采纳句里念出来，不许只写"六条全绿"。
+
+判据能读出来之前，先把尺子的两处射程修掉（两处都是**我自己**造的）：
+
+1. 几小时前我为 #291 写的形状闸门写**过头**了：它要求 `slack` 必须是纯数，可探针那份名册本来就带
+   `1.850ns  (required time - arrival time)` 这种散文和 `NOWRITE` 行 ⇒ 拿合法的同口径配对去减也被判 REFUSE。
+   这与 `get_property RANGE` 那次是同一类错（**假拒绝挡掉正当实验**）。现在闸门只管两件事：
+   时钟名单一致 + 扇出节同有同无。配套对照两条：散文 slack ⇒ 必须照常 GREEN（`control_prose_allowed`）、
+   扇出节一侧缺失 ⇒ REFUSE（`control_fanout_parity`）。
+2. `D5_no_empty_readings` 以前只看 B 侧是不是空 ⇒ MMCM 的 `clkfbout`/`clkfbout_1`/`clkout1_1`/`clkout2`
+   **两侧都** NOWRITE（这些钟没有 endpoint 是正常的）被数成 `empty_in_B=8 RED`。
+   现在它抓的是真正的那一类：**A 有读数、B 变空**。两条对照（both-NOWRITE ⇒ GREEN、A 有 B 空 ⇒ RED）。
+   `--self` 从 5 条一路加到 **11/11**。
+
+### #294 r114 采纳：两刀上板（bit `7142a1fbf082`，21:31 三步链）、门禁收敛到 24 项 23 绿 / 1 红；`ASYNC_REG` 的收益不记在本刀名下（2026-10-03 21:5x）
+
+一轮走完的账（件都在 `build/` 与 `build/evidence/`，采纳快照 `build/evidence/r114_bit/` 13 个文件 + MANIFEST）：
+
+* **进构建的两刀**：`dc_fifo` 四颗格雷码寄存器的 `(* ASYNC_REG = "TRUE" *)`（#262）与 `snap_cross.hb_gone`
+  声明初值（#257 尾）。尺子 pre/post 都绿：`SYNCREG-SUMMARY … result=GREEN`（pairs=2 missing=0）、
+  `SCAN_SUMMARY … result=CLEAN`（init_miss_total=0）；网表侧 `u_cdc` 下带属性的 FF **0 → 56 颗**（#287/#290）。
+* **不进构建的四刀，都是量过否掉的**：RGMII 输入窗三份 XDC（#275/#282/#285：一挂窗 `eth_rxc` min = −2.885）、
+  四条 `set_max_delay -datapath_only`（#276：叠异步组上零新异常行）、复制驱动（#288：机制动了 +0.456 ns
+  但 `eth_rxc` hold 掉 29 % 被名册差分否决）、Pblock（r113 已否）。
+* **门禁**：`build/r114_gates.txt` = 24 项 **23 绿 / 1 红**，两跑逐字节一致；唯一红是声明过的 `C5c`。
+  收敛过程值得记：改口之前 21 绿 / 3 红 → 换数后 22 绿 / 2 红（`doc_currency` 的 `身份句抓到 >= 2` 这条
+  **射程地板**先把我的新写法判红，因为我那句"尚未刷板"不再是它认得的"板上这一版 rNN"形状）→ 刷板改口后
+  23 绿 / 1 红。教训口径：改口不是把数字换对就完，**句子形状也在判据射程里**（rule 47 的另一面）。
+* **板级**：三步 JTAG 21:31:28 / 21:31:35 / 21:31:53，21:31:59 齐，`board_verify --geom --battery` 21:34
+  **PASS（判红步骤 0）**，geom 10/0、串口电池 105 条命令全过、`[TEMP]` 四方对账自洽（件
+  `build/evidence/r114_board_verify_console.txt`、`verify_1003_2132.*`）。**眼睛判据 E6 在 r114 上还没重判**
+  （`board/ACCEPTANCE.md` 已改成"待队员在 r114 上重判"，r113 那次 15:19 读 0 只算历史）。
+* **头条那 +0.294 ns 不算这一刀的收益**（#290/#292/#293）：`ASYNC_REG` 是放置指令，网表被重摆之后
+  最差那条从 `rows_hit` 一族换成了 `u_icmp_tx` 校验和锥（`ip_head_reg[4][16] → check_buffer_reg[19]`，
+  11 级、6×CARRY4、route 58.447 %），代价是 `clkout0_1` setup 相对余量掉 18.8 %、`clk_fpga_0` hold −5.4 %，
+  都在预登记的 25 % 门槛内 ⇒ 名册 16 对六条全绿。**收益记给"结构账变干净"（属性上了网表），不记给 slack。**
+
+还欠着的（下一轮 r115 的清单在 `build/r115_capture_clock_plan.md`）：① E6 眼睛重判；
+② `set_clock_uncertainty` 那条带要不要给到全部时钟（#265，`build/uncertainty_uniform_ab.sh` 真件未跑）；
+③ TIMING-10 那 1 条到底指谁（要新鲜的 `report_cdc -details`，#290）；④ #194 捕获钟那一刀（正式一轮）。
