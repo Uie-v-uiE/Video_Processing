@@ -13007,3 +13007,26 @@ r117 官方构建的差分（件 `build/evidence/r117_roster_diff_vs_r114.txt`�
    （机制 0→310 颗 replica，代价落在最紧的域），当时靠名册差分判红；这次如果只读 D3 的 GREEN 就会放过去。
    ⇒ 规矩补硬：**差分件念出来时必须同时念"比较了几对 / 其中几对在跌"**，
    只念 result=GREEN 不算把差分念完（与规矩 47"射程要数比较次数"同族）。
+
+
+### #329 改口脚本第一版会把 `README.md` 写成 **0 行**——是"先在拷贝上彩排"救的（04:26）
+
+`build/r117_fill_docs.py` 的 `--apply` 有两个 bug，都是**彩排**抓出来的（同一轮真跑就会直接把首页写坏）：
+
+1. **同一个文件多行时逐次 `read(path)` 会丢掉前面的改动**：我把快照存在 `byfile[path]`，
+   但每一行都重新读盘（盘上还没写）⇒ 只有最后一行存活。第一次彩排报 `wrote=10 mismatch=8`。
+2. 修 1 的时候我手滑把快照存成元组 `byfile[path] = (snap, [])` ⇒ 写盘那步
+   `"\n".join(ls)` 抛 `TypeError: sequence item 0: expected str instance, list found`，
+   而 `io.open(path, "w")` **已经把文件截成 0 行才抛**——`README.md` 当场变空文件。
+   因为彩排第一件事就是 `cp README.md /tmp/b1`，一条 `cp` 回来；`git status` 随后确认三家文档干净。
+   ⇒ 补硬：**任何"往交付文档写多行"的脚本，写盘前必须先断言"整文件行数不变"**
+   （我在第二版里加了 `len(ls) != len(read(path)) ⇒ die(aborting before any write)`，
+   并且把"先全部算好、再一次性写"的顺序固定下来），
+   而且**彩排必须用真实件 + 备份 + 恢复 + `git status` 四步**，不许拿真文档直接试。
+
+顺带两条被彩排暴露的**形状依赖**（不是 bug，是尺子的射程，记下来免得再踩）：
+① `metric_recheck` 认的是 `失败 setup/hold 端点 **A / B**` 这种"一个粗体里两个数"的形状，
+我把它拆成 `**{sfail} / {hfail}**（总端点 {stot}）` 之后它读成 `首页=null` ⇒ 文档改对了、尺子瞎了（#325 同族）；
+② 逐时钟那一行的**出处列必须点名 `build/timing_summary.rpt`**，只列名册件会被判"判据与凭据脱钩"。
+⇒ 规矩：**改口脚本落地前先 `--check`，再在带备份的拷贝上 `--apply`，跑一遍 `metric_recheck`，
+看的是"解析到 N/N 行"与红行的名字，而不是"脚本自己说写了 10 行"。**

@@ -156,6 +156,9 @@ for need in ("g_judged", "g_green", "g_red", "flash_time", "bv_time", "bv_verdic
     if need not in V:
         die("missing --set key " + need + " (these must be read off that run's artifact)")
 
+V["whs_owner"] = min((k for k in V if k.endswith("_hold")), key=lambda k: V[k]).rsplit("_hold", 1)[0]
+V["wns_owner"] = min((k for k in V if k.endswith("_setup")), key=lambda k: V[k]).rsplit("_setup", 1)[0]
+V["rel_owner"] = min((k for k in V if k.endswith("_setup_pct")), key=lambda k: V[k]).rsplit("_setup_pct", 1)[0]
 V["wns_s"] = sgn(V["wns"])
 V["whs_s"] = sgn(V["whs"])
 for k in list(V):
@@ -198,20 +201,23 @@ for path, prefix, tpl in specs:
 if missing:
     die("unfilled placeholders: " + ", ".join(sorted(missing)))
 
-written, checked = 0, 0
+def subst(tpl):
+    out = tpl
+    for k, v in sorted(V.items(), key=lambda x: -len(x[0])):
+        out = out.replace("{" + k + "}", str(v))
+    return out
+
+checked = 0
 byfile = {}
 for path, ln, tpl in plan:
-    new = tpl
-    for k, v in sorted(V.items(), key=lambda x: -len(x[0])):
-        new = new.replace("{" + k + "}", str(v))
-    old = read(path)[ln - 1]
+    new = subst(tpl)
+    old = (byfile[path][0] if path in byfile else read(path))
+    snap = list(old)
     checked += 1
-    print("ROW %s:%d OLD=%s" % (path, ln, old[:60].encode("ascii", "replace").decode()))
+    print("ROW %s:%d OLD=%s" % (path, ln, snap[ln - 1][:60].encode("ascii", "replace").decode()))
     print("ROW %s:%d NEW=%s" % (path, ln, new[:60].encode("ascii", "replace").decode()))
-    if APPLY:
-        ls = read(path)
-        ls[ln - 1] = new
-        byfile[path] = ls
+    snap[ln - 1] = new
+    byfile[path] = (snap, [])
 if not APPLY:
     print("FILL-CHECK rows=%d placeholders_filled=%d (no write)" % (checked, len(V)))
     raise SystemExit(0)
@@ -219,9 +225,7 @@ for path, ls in byfile.items():
     io.open(path, "w", encoding="utf-8", newline="\n").write("\n".join(ls) + "\n")
 bad = 0
 for path, ln, tpl in plan:
-    new = tpl
-    for k, v in sorted(V.items(), key=lambda x: -len(x[0])):
-        new = new.replace("{" + k + "}", str(v))
+    new = subst(tpl)
     if read(path)[ln - 1] != new:
         bad += 1
         print("FILL-VERIFY-MISMATCH %s:%d" % (path, ln))
