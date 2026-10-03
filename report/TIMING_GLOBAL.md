@@ -97,7 +97,7 @@ sys_clk    setup 14.463 -> 14.463 hold 0.133 -> 0.133
 | `TIMING-9` / `TIMING-10` | 1 / 1 | "Unknown CDC logic" 与 "Missing property on synchronizer"：`ASYNC_REG` 少在一处 ⇒ 这跟今天那笔**根因**（#256：这一域根本没复位）是同一族的结构账 |
 | `DPIR-1` / `LUTAR-1` | 2 / 1 | 异步驱动 / LUT 驱动异步复位：都是"复位网真不真的可靠"的问题，与 #256 同族 |
 | `SYNTH-5` / `SYNTH-6` | **336 / 98** | "因为时序约束才映射成分布式 RAM"——这条我之前一直没管：它说明**BRAM/LUTRAM 的选型在被约束牵着走**（本仓库 BRAM 已经 95.5/140 tile，LUTRAM 4044 个），要单独量一次，不能当噪声 |
-| 自加不确定度 | hold 侧 **0.8 ns**（`set_clock_uncertainty` 的策略） | 报出来的 WHS 0.050 是"按这个严口径"剩下的量，念数字时必须带着这句 |
+| 自加不确定度 | **不对称**：全工程只有一行 `set_clock_uncertainty -hold 0.800 [get_clocks eth_rxc]`（`src/constraints/rk_zynq7020.xdc:50`），其余三域一条都没有 | ⇒ **名册里那四个 WHS 不是同一把尺量出来的**：eth_rxc 的 0.050 已经扣掉自加的 0.800，而 clk_fpga_0 的 0.056 / clkout0_1 的 0.059 / sys_clk 的 0.133 **一分没扣**。所以"四域 hold 余量差不多"这句话是**约束口径造出来的假象**，不是设计的事实；纯算术先念一句：0.056−0.800、0.059−0.800、0.133−0.800 全为负。这不是"板子 hold 坏了"——是**没测过**。量它的尺子已落地：`build/uncertainty_uniform_ab.sh` + `build/tcl/probe_uncertainty_uniform.tcl`（只读开 routed dcp，同一 0.800 带给每个时钟，逐域念 before/after；判据 U1 逐时钟行数地板、U2 四域不许缺数、U3 带子真落上（applied≥1 且至少一域 after<before）、U4 设计级 setup 与归档 `timing_summary` 的 WNS 对齐（不同源）、U5 负数计数与点名一致、U6 eth_rxc 的 before 与归档 WHS 对齐——对不上就是读错了 dcp）。尺子自带 `--self` **六条对照**（1 绿 + 5 处各红一条），第一次跑就把它自己的 `substr` 取偏一位照成"good 也红"，改完才绿 ⇒ 见 #265。**还没跑真件**（要等台架与前面的实验把机器让出来），所以这一行现在只到"口径不对称"这一句，不许写成"四域 hold 其实都违例" |
 
 ### 4b. r114 的补法（按端口分组，约束的**形式**与数字的**出处**都写死，不靠我拍脑袋）
 | 端口组 | 该给什么约束（形式） | 数字从哪里量/查（不许编） | 补完之后谁来判 |
