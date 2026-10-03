@@ -38,6 +38,27 @@
 ⇒ 三滚实测证明：同一份 `opt.dcp` 重跑 place+route **逐位复现**（不是骰子），所以这几个数是**一轮改网表的确定性重排**，
 **四域要一起念**——只念"全局 WNS 掉了"或者只念"显示域涨了"都是半句话。
 
+### 2b. r113 对 r112 的名册差分（实测，`build/evidence/r113_roster_diff.txt`）
+这一行就是"全局"该有的说法，不是我抄的一个 WNS 数：**八个 (域,类型) 对逐位相同**。
+```
+clk_fpga_0 setup 1.135 -> 1.135   hold 0.056 -> 0.056
+clkout0_1  setup 4.467 -> 4.467   hold 0.059 -> 0.059
+eth_rxc    setup 0.445 -> 0.445   hold 0.050 -> 0.050
+sys_clk    setup 14.463 -> 14.463 hold 0.133 -> 0.133
+```
+两端的来源是**不同**的：改前那侧由 `build/roster_from_summary.sh` 从归档的 r112 `timing_summary.rpt` 长回来，
+改后那侧由 `build/tcl/probe_timing_roster.tcl` 直接问 r113 的 routed dcp（B 侧 slack 带着
+`(required time - arrival time)` 后缀、还带级数/route%/终点，A 侧是纯数字 —— 形状不同，才不是把同一个文件读两遍）。
+**为什么该相同**：#256 那把修复只改 FF 的 INIT 属性，不改网表结构（同一批 FDRE、同一些连接），
+而这台工具的放置/布线是确定性的（#254 已实证：同一份 opt.dcp 重跑逐位复现正式构建的数字）⇒
+时序一位不动，只有位流内容变了（`build/system.bit` md5 从 `897fa9d93956` 变成 `b94f4da6cdff`）。
+所以这一轮的口径是：**功能修复，时序中性**——四个域、setup 与 hold 两边都是这个结论，不是只看头条。
+
+差分六条里唯一红的是 `D6_fanout_inventory`（`fanout_rows=0`）。这条红的是**我的工具**，不是设计：
+`report_design_analysis -fanout -limit 12 -interval 4` 在那个版本上什么都没写出来，而下游数到 0 行就判红 ——
+这正是计数地板该有的样子（空产物不许伪装成"这一版没有高扇出"）。探针已改成最素的调用并把
+`FANOUT_ERR` / 报告头 20 行念出来；下一次 Vivado 窗口（顶层台架跑完之后）重问一次，D6 才会真的有意义。
+
 ## 3. 下一刀为什么不再切逻辑，以及"全局"怎么切
 - `eth_rxc` 那条的 6.089 ns 走线里，第一跳 `p_eof`（**fo=8**）就吃 **2.141 ns**：起点 `SLICE_X57Y34`、终点整片 `rows_hit` 在 `X28~X31` ⇒ 距离。
   换实现指令（`place_design -directive Explore`）**一格不差**；Pblock 那块因进位链半内半外**没做成单变量**（1716 里 255 出块）。

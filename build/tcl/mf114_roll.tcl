@@ -28,9 +28,13 @@ puts "ROLL mode=$mode limit=$lim dcp=$dcp out=$out"
 open_checkpoint $dcp
 
 # 名册：布线前先把扇出排行问出来（两边都问，这样 A 也留下一份"抓手名册"给 diff 用）
+#   ⚠ 用最素的调用：`report_design_analysis -fanout -limit/-interval` 在 r113 首跑里**什么文件都没写**
+#     （`build/tcl/probe_timing_roster.tcl` 那次 FANOUT_ROWS=0，被名册差分的 D6 抓住）。
+#     这一处如果也写成空集，`set_max_fanout` 就会加在空集合上，两滚"一样"是假的 ⇒ 下面有 MF-REFUSE。
 set frpt [file join $out fanout_before.rpt]
-catch {report_design_analysis -fanout -limit 20 -interval 5 -quiet -file $frpt} ferr
-puts "FANOUT_RPT=$frpt exists=[file exists $frpt]"
+file delete -force $frpt
+catch {report_design_analysis -fanout -quiet -file $frpt} ferr
+puts "FANOUT_ERR=$ferr EXISTS=[file exists $frpt]"
 
 # 被点名的广播：从 `report_design_analysis -fanout` 的**文本**里挑（不猜 get_nets -filter 的属性名——
 #   属性名猜错会让集合变空，而空集跑出来的"两滚一样"是假对照，规矩 46）。
@@ -81,7 +85,7 @@ report_timing -delay_type min -nworst 1 -max_paths 4 -file [file join $out hold_
 report_utilization -file [file join $out util.rpt]
 report_route_status -file [file join $out route_status.rpt]
 set frpt2 [file join $out fanout_after.rpt]
-catch {report_design_analysis -fanout -limit 20 -interval 5 -quiet -file $frpt2} ferr2
+catch {report_design_analysis -fanout -quiet -file $frpt2} ferr2
 
 # 目标族的直接读数（eth_rxc 那条 CE 广播锥）——它动了没有是这一刀的收益侧，名册是代价侧
 set tos [get_cells -quiet {u_eth/u_reasm/rows_hit_reg[*]}]

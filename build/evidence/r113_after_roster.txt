@@ -1,0 +1,17 @@
+ROSTER|setup|clk=clk_fpga_0|period=10.000|slack=1.135ns  (required time - arrival time)|margin_pct=11.35|levels=1  (LUT3=1)|route_pct=|dest=u_pl/u_bilin/u_fb/lo_reg_0_24/ADDRARDADDR[3]
+ROSTER|hold|clk=clk_fpga_0|period=10.000|slack=0.056ns  (arrival time - required time)|margin_pct=0.56|levels=1  (LUT5=1)|route_pct=|dest=u_bd/design_1_i/axi_gpio_2/U0/ip2bus_wrack_i_D1_reg/D
+ROSTER|setup|clk=sys_clk|period=20.000|slack=14.463ns  (required time - arrival time)|margin_pct=72.31|levels=4  (CARRY4=1 LUT6=3)|route_pct=|dest=u_pl/u_ang/angle_reg[6]/D
+ROSTER|hold|clk=sys_clk|period=20.000|slack=0.133ns  (arrival time - required time)|margin_pct=0.67|levels=2  (CARRY4=1 LUT2=1)|route_pct=|dest=u_pl/u_k1/acnt_reg[3]/D
+ROSTER|setup|clk=eth_rxc|period=8.000|slack=0.445ns  (required time - arrival time)|margin_pct=5.56|levels=4  (LUT3=2 LUT5=1 LUT6=1)|route_pct=|dest=u_eth/u_reasm/rows_hit_reg[12]/CE
+ROSTER|hold|clk=eth_rxc|period=8.000|slack=0.050ns  (arrival time - required time)|margin_pct=0.62|levels=1  (LUT6=1)|route_pct=|dest=u_eth/u_lm/full_d_reg/D
+ROSTER|setup|clk=clkfbout|period=20.000|slack=NOWRITE|margin_pct=NA|levels=|route_pct=|dest=
+ROSTER|hold|clk=clkfbout|period=20.000|slack=NOWRITE|margin_pct=NA|levels=|route_pct=|dest=
+ROSTER|setup|clk=clkout2|period=5.000|slack=NOWRITE|margin_pct=NA|levels=|route_pct=|dest=
+ROSTER|hold|clk=clkout2|period=5.000|slack=NOWRITE|margin_pct=NA|levels=|route_pct=|dest=
+ROSTER|setup|clk=clkfbout_1|period=20.000|slack=NOWRITE|margin_pct=NA|levels=|route_pct=|dest=
+ROSTER|hold|clk=clkfbout_1|period=20.000|slack=NOWRITE|margin_pct=NA|levels=|route_pct=|dest=
+ROSTER|setup|clk=clkout0_1|period=20.000|slack=4.467ns  (required time - arrival time)|margin_pct=22.34|levels=18  (CARRY4=8 LUT2=3 LUT3=3 LUT5=1 LUT6=2 RAMD64E=1)|route_pct=|dest=u_pl/u_pipe/u_gray/dout_reg[2]/D
+ROSTER|hold|clk=clkout0_1|period=20.000|slack=0.059ns  (arrival time - required time)|margin_pct=0.29|levels=0|route_pct=|dest=u_pl/u_morph/mc1_reg_0_63_12_14/RAMA/WADR2
+ROSTER|setup|clk=clkout1_1|period=4.000|slack=NOWRITE|margin_pct=NA|levels=|route_pct=|dest=
+ROSTER|hold|clk=clkout1_1|period=4.000|slack=NOWRITE|margin_pct=NA|levels=|route_pct=|dest=
+DESIGN|wns=0.445|whs=0.050

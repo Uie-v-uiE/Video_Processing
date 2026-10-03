@@ -82,16 +82,29 @@ catch {
 puts "DESIGN|wns=$wns|whs=$whs"
 
 # Design-wide fanout list: the documented global lever for a route-dominated broadcast is MAX_FANOUT /
-#   QoR "propagate max fanout" suggestions -- and you cannot pick a number without naming the nets.
+#   QoR "propagate max fanout" suggestions (UG949 timing closure; AMD adaptive-support article 9410) --
+#   and you cannot pick a number without naming the nets.
+#   ⚠ 第一版这里加了 `-limit 12 -interval 4`，结果**文件根本没写出来**（r113 首跑：FANOUT_ROWS=0，
+#     差分那侧 D6 判红）。所以现在用最素的调用，并且把错误文本与报告头 20 行念出来 ——
+#     "命令跑成功但产物是空的"这件事必须自己说，不许靠下游猜。
 set frpt [file join $root "build/roster_${label}_fanout.rpt"]
 file delete -force $frpt
-catch {report_design_analysis -fanout -limit 12 -interval 4 -quiet -file $frpt} ferr
+catch {report_design_analysis -fanout -quiet -file $frpt} ferr
+puts "FANOUT_ERR=$ferr"
+puts "FANOUT_EXISTS=[file exists $frpt]"
 set shown 0
 if {[file exists $frpt]} {
     set fh [open $frpt r]; set txt [read $fh]; close $fh
-    foreach line [split $txt "\n"] {
+    set lines [split $txt "\n"]
+    set i 0
+    foreach ln $lines {
+        if {$i < 20} { puts "FANOUT_HEAD|$ln"; incr i } else { break }
+    }
+    foreach line $lines {
         set t [string trim $line]
-        if {[regexp {^([0-9]+)\s+([A-Za-z_/][\w/\[\].]*)$} $t -> fo cell]} {
+        if {[regexp {^([0-9]+)\s+([A-Za-z_/][\w/\[\].-]*)} $t -> fo cell]} {
+            if {$fo > 50} { puts "FANOUT|fo=$fo|cell=$cell"; incr shown }
+        } elseif {[regexp {\s([0-9]+)\s+([A-Za-z_/][\w/\[\].-]*)\s*$} $t -> fo cell]} {
             if {$fo > 50} { puts "FANOUT|fo=$fo|cell=$cell"; incr shown }
         }
         if {$shown >= 12} { break }

@@ -11483,3 +11483,20 @@ C12a/b/c 的第一次读数都还没有），r109 因此**不采纳、不刷板�
 4. **断链的价值**：这一关放在构建后、台架前是对的。它确实拦下了一版"不能上板"的位流；
    这次拦错的方向是"误报"，代价是 9 分钟的判断而不是 100 分钟的台架——比反过来（放一版没修上的上去）便宜得多。
    续跑走 `build/r113_chain2.sh`（吃已归档的探针文本重判，不重开 Vivado），身份 bit=**b94f4da6cdff**。
+
+### #261 r113 对 r112 的名册差分：八个 (域,类型) 逐位相同 ⇒ 这轮是"功能修复、时序中性"；唯一那条红是工具自己的
+   件：`build/evidence/r113_roster_diff.txt`（改前 `r113_before_roster.txt` 由 `build/roster_from_summary.sh`
+   从归档的 r112 `timing_summary.rpt` 长回来；改后 `r113_after_roster.txt` 由 `build/tcl/probe_timing_roster.tcl`
+   直接问 r113 的 routed dcp）。16 行名册、8 对全配：
+   `clk_fpga_0 1.135/0.056`、`clkout0_1 4.467/0.059`、`eth_rxc 0.445/0.050`、`sys_clk 14.463/0.133` **一字节都没动**。
+1. 这条"没动"是有物理理由的：#256 的修复只改 FF 的 `INIT` 属性，不改网表结构（同一批 FDRE、同一些连接），
+   而这台工具的放置/布线是确定性的（#254 实证过：同一份 `opt.dcp` 重跑逐位复现正式构建的数字）。
+   位流内容确实变了：`build/system.bit` md5 `897fa9d93956` → **`b94f4da6cdff`**。
+   ⚠ 口径：这不是"收益"，rule 35 一样适用 —— 它是**代价为零**的证据。上一轮我差点把这种"没动"写成"白改"，
+   但这一轮的收益本来就不在时序上，而在上电语义上。
+2. **唯一红的一条 `D6_fanout_inventory` 红在我的工具，不红在设计**：
+   `report_design_analysis -fanout -limit 12 -interval 4` 什么都没写出来 ⇒ `FANOUT_ROWS=0` ⇒ 差分判红。
+   这正是计数地板要抓的形状（空产物不许伪装成"这一版没有高扇出"）。探针已改成最素的调用，
+   并把 `FANOUT_ERR` 与报告头 20 行念出来（`build/tcl/probe_timing_roster.tcl`、`build/tcl/mf114_roll.tcl` 两处同改，
+   后者如果也拿空集跑，`set_max_fanout` 会加在空集合上、两滚"一样"就是假的 ⇒ 那边有 `MF-REFUSE` 兜）。
+   下一次 Vivado 窗口（顶层台架跑完）重问一次，D6 才有意义；这条在重问之前**保持红**，不许为了绿而豁免。
