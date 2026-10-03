@@ -105,7 +105,7 @@ sys_clk    setup 14.463 -> 14.463 hold 0.133 -> 0.133
 ### 4b. r114 的补法（按端口分组，约束的**形式**与数字的**出处**都写死，不靠我拍脑袋）
 | 端口组 | 该给什么约束（形式） | 数字从哪里量/查（不许编） | 补完之后谁来判 |
 |---|---|---|---|
-| TMDS 六路输出（`tmds_clk_p/n`、`tmds_data_p/n[2:0]`） | 源同步输出：`set_output_delay -clock <输出时钟> -setup/-hold [get_ports {tmds_*}]`，时钟取**驱动这些数据的那颗**（像素时钟 / 其 5× 串化时钟），而不是 sys_clk | 面板端采样窗 = TMDS 接收端的 setup/hold；DVI/HDMI 源同步惯例是"数据沿对齐时钟沿、余量以 UI 计"，具体 ps 要查**这块面板/接收芯片的手册** + 本板走线等长实测（原理图与管脚表在 `D:\Xilinx\Resource\ZYNQ7020\Board_Resource`）。查不到就退一步：写 `set_max_delay -datapath_only`（限偏斜而不是定死窗），并把为什么这样写在 XDC 注释里 | `build/check_io_timing_coverage.py` 的 I3（不许有裸输出）+ I1/I2（对账仍要成立） |
+| TMDS 六路输出（`tmds_clk_p/n`、`tmds_data_p/n[2:0]`） | 源同步输出：`set_output_delay -clock <输出时钟> -setup/-hold [get_ports {tmds_*}]`，时钟取**驱动这些数据的那颗**（像素时钟 / 其 5× 串化时钟），而不是 sys_clk | 面板端采样窗 = TMDS 接收端的 setup/hold；DVI/HDMI 源同步惯例是"数据沿对齐时钟沿、余量以 UI 计"，具体 ps 要查**这块面板/接收芯片的手册** + 本板走线等长实测（原理图与管脚表在 厂商随板资料（原理图与管脚表，ZYNQ7020 那套），交付包里没有它——本机路径不能当指路）。查不到就退一步：写 `set_max_delay -datapath_only`（限偏斜而不是定死窗），并把为什么这样写在 XDC 注释里 | `build/check_io_timing_coverage.py` 的 I3（不许有裸输出）+ I1/I2（对账仍要成立） |
 | `led[1:0]` | 慢速推挽输出，不对外定时序 ⇒ `set_false_path -to [get_ports {led[*]}]` **并写明理由**（灯由人眼读，没有建立/保持窗） | 不需要数字，需要那句理由（写进 XDC 与本文，才算"显式豁免"） | 同上（FALSEPATH 那一档，且豁免表要带理由） |
 | `eth_mdc` / `eth_mdio` | MDIO 是 bit-bang 管理口，与 GTXCLK/RXC 无关 ⇒ `set_false_path`（或按 2.5 MHz 上限给一对 `set_max_delay`），理由要写 | Realtek RTL8211F 数据手册的 MDIO 时序（本板 PHY 就是 RTL8211F，见 `report/HOST_GUIDE.md` 第 14 行） | 同上 |
 | RGMII 收口 5 个裸输入（`eth_rx_ctl`、`eth_rxd[3:0]`） | 这一路**已经**是真物理事件，别再拖：`set_input_delay -clock eth_rxc -min/-max` 按 PHY 的 DDR 窗算，中心对齐用 `-clock_fall` 那一套 | RTL8211F 手册的 RGMII RX 表（数据相对 RXC 双沿的 setup/hold ps 值）+ 板级走线延迟；本仓已实测过"RGMII 是 DDR 采样、#57 之后没有 IDELAY 采样窗可言"，所以值给得讲道理比给个大值重要 | `build/timing_roster_diff.sh` 的 D1/D3（补完约束不许把别的域挤坏）+ 名册逐域念一遍 |
@@ -208,7 +208,7 @@ hold 0.050/0.056/0.059/0.133），与本文第 2 节的表同源同数，逐条�
 - [Clock Skew in Synchronous Interface Timing（MathWorks 源同步窗与偏斜的关系）](https://www.mathworks.com/help/signal-integrity/ug/synchronous-interface-timing.html)
 - [HDMI/DVI Intra-pair and Inter-pair skew（TI E2E：TMDS 对间/对内偏斜口径）](https://e2e.ti.com/support/interface-group/interface/f/interface-forum/267205/hdmi-dvi-intra-pair-and-inter-pair-skew)
 - [RGMII — PG051 Tri-Mode Ethernet MAC（官方：RGMII 收发时序行为）](https://docs.amd.com/r/en-US/pg051-tri-mode-eth-mac/RGMII)
-- [6.2.5 RGMII Transmit（Altera TSE 手册同一口径的对照写法）](https://docs.altera.com/r/docs/813669/26.1/triple-speed-ethernet-ip-user-guide-agilextm-3-and-agilextm-5-fpgas-and-socs/rgmii-transmit)
+- 6.2.5 RGMII Transmit —— Altera Triple-Speed Ethernet IP User Guide（文档号 813669、rev 26.1）里同一口径的对照写法；跨厂商手册只作对照，正文里不放该站 URL：导出器的死链自检会把 URL 中段当成仓内相对路径（本项目没有那个目录），要核的人按文档号检索
 - [Timing Closure - Suggestions for high fanout signals（AMD 自适应支持 9410）](https://adaptivesupport.amd.com/s/article/9410)
 - [Top 5 Timing Closure Techniques（Xilinx 官方 PDF）](https://www.xilinx.com/publications/prod_mktg/club_vivado/presentation-2015/paris/Xilinx-TimingClosure.pdf)
 - [UltraFast Design Methodology Guide 全文 PDF（ug949）](https://www.mouser.com/pdfDocs/ug949-vivado-design-methodology.pdf)

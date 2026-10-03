@@ -12,7 +12,7 @@
 set -u
 cd "$(dirname "$0")/.."
 mkdir -p /tmp/kx
-V=${VP_VIVADO_BIN:-/d/Software/Vivado/2025.2.1/Vivado/bin}
+V=${VP_VIVADO_BIN:?VP_VIVADO_BIN 必须给（本机 Vivado 的 bin 目录，写法见 report/BUILD.md；不把某台机器的路径写死进交付脚本）}
 ROUND=${ROUND:-r113}
 FLOOR=${FLOOR:-20}
 OUT="build/evidence/${ROUND}_ff_init_probe.txt"
