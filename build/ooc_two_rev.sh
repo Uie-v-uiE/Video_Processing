@@ -30,9 +30,16 @@ run() {   # $1=腿目录
     grep -aE "Slice LUTs|Slice Registers" "$d/util.rpt" | head -2
 }
 echo "# OOC 归因  模块=$TOP  改前=$REVA  改后=工作树（$PATHV）  标签=$TAG"
-A=$(run A); B=$(run B); printf '%s\n%s\n' "$A" "$B"
-LA=$(echo "$A" | awk '/LUTs/{print $3}'); LB=$(echo "$B" | awk '/LUTs/{print $3}')
-RA=$(echo "$A" | awk '/Registers/{print $3}'); RB=$(echo "$B" | awk '/Registers/{print $3}')
-for x in "$LA" "$LB" "$RA" "$RB"; do [ -n "$x" ] || { echo "OOC FAIL: 数字没解析出来（形状变了，别蒙）"; exit 1; }; done
+run A; run B
+# 取数只从 **util.rpt 的行**取（不从被 sed 改过的摘要行取——上一版就是这么炸的：
+# `awk '/LUTs/{print $3}'` 拿到的是 `LUTs*`，第 37 行的算术直接语法错）。
+gn() { awk -F'|' -v re="$2" '$0 ~ re { c=$3; gsub(/[^0-9]/,"",c); if (c!="") { print c; exit } }' "$1"; }
+LA=$(gn "$W/A/run/util.rpt" "Slice LUTs"); LB=$(gn "$W/B/run/util.rpt" "Slice LUTs")
+RA=$(gn "$W/A/run/util.rpt" "Slice Registers"); RB=$(gn "$W/B/run/util.rpt" "Slice Registers")
+for x in "$LA" "$LB" "$RA" "$RB"; do
+  case "$x" in ""|*[!0-9]*) echo "OOC-FAIL: 取数不是纯数字（'$x'）—— 报告形状变了，别算差"; exit 1;; esac
+done
+echo "OOC $TOP 改前: LUT=$LA FF=$RA     改后: LUT=$LB FF=$RB"
 echo "OOC-DELTA $TOP: LUT $LA→$LB（$((LB-LA))）  FF $RA→$RB（$((RB-RA))）"
 echo "口径：OOC 的绝对数不等于设计内该层的数（设计里有跨层优化与复制），这里只念**同一把刀自己的差**。"
+echo "设计内逐层数另走 build/tcl/probe_util_hier.tcl（report_utilization -hierarchical）。"
