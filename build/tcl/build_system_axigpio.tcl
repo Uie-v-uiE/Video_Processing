@@ -28,9 +28,28 @@ set_property used_in_implementation true $cgxdc
 # r116: RGMII 收口 5 个输入的**有出处输入窗**（H5 的债，只加严不放宽：这 5 个端口从来没被检查过）。
 # 与 clock_groups 一样**只在实现阶段生效** —— 输入窗不影响综合网表，这样"网表逐字节不变、
 # 只有实现阶段的检查变多"本身就是一个对照（任何资源/告警差异都不该出现，出现了就是我这刀的问题）。
-set iwxdc [add_files -fileset constrs_1 -norecurse [file join $root src constraints r116_rgmii_input_window.xdc]]
-set_property used_in_synthesis false $iwxdc
-set_property used_in_implementation true $iwxdc
+#
+# ⚠ 03:44 改口（r116 的门禁读数逼出来的决定，不是把约束改掉换绿灯）：
+#   绑上这个窗之后，仓库自己的**发布门禁** `build/gates.sh` 有 4 项机械判红
+#   （WNS ≥ 0、失败 setup 端点 == 0、WHS ≥ 0、失败 hold 端点 == 0），
+#   而它末尾那句写死的是"有红项 ⇒ 不采纳，保留上一版"。也就是说：
+#   **这个设计只有在"RGMII 输入不被检查"的前提下才过发布门禁**。这不是话术，是两件事实：
+#     ① 约束本身是对的（RTL8211F-CG 规格书 Table 60 发射端两行 + 原理图 strap：min 1.200 / max 2.800）；
+#     ② 这一族在合法 0…31 全档内**关不掉**（hold 要 τ ≥ 44.8、setup 要 τ ≤ 21.8，
+#        根因是两只钟的角间差 3.411 ns vs 数据 0.467 ns）——见
+#        docs/timing/rgmii_window_model.md §7.5 与 docs/timing/limit_audit_r116.md。
+#   所以默认**不加载**（回到 r114 的约束集），把它留在仓里当**候选件 + 全份证明**；
+#   要复现 r116 那一版（带窗、5 个 I/O 端点红）只要：`VP_R116_IO_WINDOW=1` 再构建一次。
+#   撤销的不是"约束的正确性"，是"把它带进发布物"这个动作；下一刀（把 IDDR 捕获钟换成短钟，
+#   report/TIMING_GLOBAL.md 第 7 节）落地之后，这个窗应当重新加载。
+if {[info exists ::env(VP_R116_IO_WINDOW)] && $::env(VP_R116_IO_WINDOW) eq "1"} {
+  set iwxdc [add_files -fileset constrs_1 -norecurse [file join $root src constraints r116_rgmii_input_window.xdc]]
+  set_property used_in_synthesis false $iwxdc
+  set_property used_in_implementation true $iwxdc
+  puts "VP_R116_IO_WINDOW loaded（RGMII 输入窗已进实现，预计 5 个 I/O 端点会红）"
+} else {
+  puts "VP_R116_IO_WINDOW off（RGMII 输入窗留在候选件 src/constraints/r116_rgmii_input_window.xdc，原因见上方注释）"
+}
 
 create_bd_design design_1
 create_bd_cell -type ip -vlnv xilinx.com:ip:processing_system7:5.5 processing_system7_0

@@ -17,7 +17,7 @@
 | 模块 | 职责 | 例化者 | 台架 |
 |------|------|--------|------|
 | `system_top` | 板上顶层：PS Block Design + PL ETH + PL 视频三者的连线，lane 读回口在这一层 | 综合顶层 | 无（第 14 项 `check_ports.py` 判接线） |
-| `pl_video_top` | 显示主通路：栅格、几何、帧缓存读写、两条抽头、混合、OSD、TMDS、仲裁与观测 | `system_top.v:248`、`pl_demo_top.v:20` | `tb_v98_top_seam`（唯一例化它的台架，门禁第 15 项认其报告） |
+| `pl_video_top` | 显示主通路：栅格、几何、帧缓存读写、两条抽头、混合、OSD、TMDS、仲裁与观测 | `system_top.v:258`、`pl_demo_top.v:20` | `tb_v98_top_seam`（唯一例化它的台架，门禁第 15 项认其报告） |
 | `pl_demo_top` | 无 PS 的纯 PL 演示顶层（GPIO 全钉常量） | 未例化，且不在构建清单里 | — |
 
 ## clocks/
@@ -121,7 +121,7 @@
 | `ddr_bank_commit` | 换 bank 必须等本帧数据全部穿过 CDC，之后发 `commit_pulse` + 完成基址 | `eth_udp_video_top.v:330` | `tb_v6_pingpong`、`tb_v6_tail_bank` |
 | `link_monitor` | 链路健康计数：丢字、坏包、缺行、断流 ms、帧间隔 min/last/max/Σ，打包 10 条 lane + 心跳 | `eth_udp_video_top.v:284` | `tb_link_monitor` |
 | `eth_ctrl` | 发送侧仲裁与 GMII 出口复用（ARP/ICMP/UDP 三路） | `eth_udp_video_top.v:206` | **没有台架例化本层**（原来那支单测随 KU5P 那棵树一并撤出，2026-09-28）⇒ 它的行为只由顶层台架端到端覆盖，本行的"验证"栏因此是空的。它的用户收发口在本层无下游：`fifo_tx_*`/`fifo_rec_*` 只在 `:111-113` 声明、`:218-219` 连线 |
-| `snap_cross` | 「准静态总线 + 跳变沿」跨域器，带心跳丢失/变慢两种上报 | `system_top.v:204`、`pl_video_top.v:674,876,980` | `tb_link_monitor`、`tb_v95_zoom_snap` |
+| `snap_cross` | 「准静态总线 + 跳变沿」跨域器，带心跳丢失/变慢两种上报 | `system_top.v:214`、`pl_video_top.v:674,876,980` | `tb_link_monitor`、`tb_v95_zoom_snap` |
 | `sync_fifo` | 同钟 FIFO（读出寄存一拍、空满比指针最高位；存储无异步复位 + `ram_style=block`） | `eth_udp_video_top.v:119`（ICMP 载荷） | `tb_sync_fifo` |
 | `crc32_d8` | 反射 CRC-32 逐字节核 | `udp_tx.v`、`gmii_rx_mac.v`、`arp.v`、`icmp.v` | `tb_crc32` |
 | `udp_tx` | 以太/IP/UDP 头的组装与发送（`udp_tx.v:44-47` 那批常数：`ETH_TYPE`、`MIN_DATA_NUM`）；FCS 由外挂的 `crc32_d8` 算、它填进帧尾。Z7 上 `tx_start_en` 恒 0：接着但从不启动 | `eth_udp_video_top.v:163` | `tb_eth_video` |
