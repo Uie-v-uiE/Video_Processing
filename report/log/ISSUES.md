@@ -11363,3 +11363,37 @@ C12a/b/c 的第一次读数都还没有），r109 因此**不采纳、不刷板�
     复原后 `sed -n '11332,11333p'` 可验、`doc_enc_check` 386 个文件全干净；
   ② 在**双引号**的 printf 参数里写了反引号 ⇒ 被当成命令替换执行（`place_design: command not found`），
     那行说明里的命令名被吞——正是记忆里那条"双引号里的反引号会执行"，这次是我自己又踩。
+
+### #256 上电那一度：根因**量出来了**（这一域根本没有复位），而且 r112 那把武装门没打中它
+用户这句追问把方向掰回来了："为啥现在你刷上 elf 之后 rot 就是 1 而不是 0" —— 之前我一直挂在"上电那 20 ms 线上是低的"，
+而那个前提从来没被证明过（原理图反而否掉它：4.7 kΩ 上拉 + 100 nF，跨过 1.65 V 门限只要约 0.7 ms）。这次先问硬件真值。
+
+1. **网表实测量（不是推测）**：`build/tcl/probe_ff_init.tcl` → `build/evidence/r113_ff_init.txt`（综合后 + 布线后各一遍，每遍 `COMPARED=96`）：
+   `u_pl/u_k1/key_stable_reg`、`key_sync0_reg`、`key_sync1_reg` 全是 **FDRE、INIT=1'b0**，而 RTL 想要的是 **1（松着）**；
+   `u_pl/u_ang/angle_reg[*]` 是 FDRE INIT=1'b0（这个与想要的一致）。
+   为什么没有复位：`src/rtl/top/system_top.v:250` 给 `u_pl` 的 `sys_rst_n` **恒接 `1'b1`** ⇒
+   `key_debounce.v` 里 `if (!rst_n) key_stable <= 1'b1;` 是**死支**，综合把复位连同那个"1"一起吃掉了。
+2. **机制（一次性拷贝树三腿对照，`build/evidence/r113_powup_verdict.txt` + `build/evidence/pu113/`）**：
+   线上一直是高的（没人碰键），**是寄存器在说谎**：它上电是 0 = "按着"。去抖窗（20 ms）走完把真实电平确认成 1，
+   这一沿在下游 `key_long` 里就是"松手"，而它那儿的计数早已 ≠0 ⇒ 补发一枚 `short_pulse` ⇒ `angle` 0→1。
+   `angle_reg` 的 INIT=0 顺带解释了**为什么每次都是 1、不是 2 或 3**：重配置一次 PL = 清零 + 白送一度；
+   而**重载 ELF 不复位这一域**（`sys_rst_n` 是常量），所以你看到的还是上一次配置留下的那个 1。
+   | 腿 | 代码 | 结果 |
+   |---|---|---|
+   | r110（板上那版） | 无武装门 | **inc=1、angle=1**（20090 ns 那一沿）⇒ 红 |
+   | r112（武装门版） | 有 `armed` | **同样 inc=1、angle=1**（20110 ns）⇒ **武装门没打中这个因** |
+   | fix（声明带初值） | `key_stable = 1'b1` 等 | inc=0、angle=0 ⇒ 绿 |
+3. **修法与它的硬件凭据**：把上电语义写进声明（`key_stable`/`key_sync0`/`key_sync1`/`key_prev` = `1'b1`）。
+   ⚠ 关键一问不是"台架认不认"而是"**带着 `rst_n=1'b1` 再综合，那个 1 还进不进位流**"：
+   `build/tcl/probe_init_tied_rst.tcl` → `build/evidence/r113_init_tied_rst.txt` 量到 **FDRE INIT=1'b1 ×4、`RESULT probe_init_tied PASS`**。
+   （另一遍 `probe_init_after_synth.tcl` 是 OOC 自由输入的口径，量到 FDPE INIT=1'b1 —— 两遍都对，但**只有带常量复位那遍**才算板上条件。）
+4. **入库尺子**：`sim/tb_v113_key_powup.v`（已进车道，`build/timing_lane.sh` 31 支）——整支**不碰 rst_n**、键恒"松着"，
+   P0/P0b 判"上电值必须是 1 而不是 X/0"，A1..A4 判"不碰键不许发事件、角度保持 0、长按位不动"，B1/B2 是**能动对照**（真按一次必须恰好 +1，否则 A 组的绿是死绿）。
+   跑起来：`RESULT tb_v113_key_powup PASS checks=8`；`tb_v111_key_boot` 仍 PASS（无回归）。
+   ⚠ 变异对照（`build/evidence/pu113/mut_no_initializer.txt` + `MUT_NOTE.txt`）红的是 **P0/P0b + B1/B2**（把初值删掉，仿真里露成 X），
+   A1/A2 反而"绿"——**仿真里的"没修"是 X，硬件里的"没修"是 INIT=0**，所以 A1/A2 的改前红只能来自按实测值注入的那两跑。这条差别写死，免得下次拿 X 冒充硬件。
+5. **口径更正**：#247/#249 与 `report/KNOWN_ISSUES.md` 第 20 条里"机理已证、**成因未定**"要改成
+   "成因已定位（这一域无复位 ⇒ FF 上电值 ≠ 代码想要的复位值），修复已入库，板上复验待 r113 采纳 + E6 眼睛判"；
+   武装门（#247）留着不撤——它挡的是另一类（配置时真按住键），但**不许再把它写成那一度的解药**。
+   顺带立案的同类风险（待查，别忘）：`sys_rst_n` 恒 1 意味着**整个 sys_clk 域**里所有 `if (!rst_n)` 都是死支 ⇒
+   下一轮要一次全局扫："代码想要复位值 1 而网表 INIT=0"的寄存器还有几颗（`probe_ff_init.tcl` 扩成清单即可）。

@@ -1,0 +1,47 @@
+# 上电那一度：根因**量出来了**，而且 r112 的武装门没打中它（三腿对照 + 网实测量）
+
+## 1. 网实测量（不是推测）：`build/evidence/r113_ff_init.tcl` → `build/evidence/r113_ff_init.txt`
+`vivado_system/.../synth_1/system_top.dcp` 与 `impl_1/system_top_routed.dcp` 各量一遍（每遍 `COMPARED=96` 行）：
+
+| 寄存器 | 类型 | 位流上电值 INIT | RTL 里想要的复位值 | 差 |
+|---|---|---|---|---|
+| `u_pl/u_k1/key_stable_reg` | **FDRE**（没有 CLR/PRE） | **1'b0** | 1（=松着） | ⚠ 反了 |
+| `u_pl/u_k1/key_sync0_reg` / `key_sync1_reg` | FDRE | 1'b0 | 1 | ⚠ 反了 |
+| `u_pl/u_k1/armed_reg`（r112 才有）、`acnt`、`cnt` | FDRE | 1'b0 | 0 | 一致 |
+| `u_pl/u_k1l/fired_reg`、`cnt_reg` | FDRE | 1'b0 | 0 | 一致 |
+| `u_pl/u_ang/angle_reg[*]`、`fs_s_reg[*]` | FDRE | 1'b0 | 0 | 一致 |
+
+为什么没有复位：`src/rtl/top/system_top.v:250` 把 `u_pl` 的 `sys_rst_n` **恒接 `1'b1`** ⇒
+`key_debounce.v` 里 `if (!rst_n) key_stable <= 1'b1;` 是死支 ⇒ 综合把复位摘掉（FDRE 而不是 FDCE），
+于是"松着"这个上电语义**从没进过位流**。（`NO_CELL u_pl/u_k1/key_prev_reg` = 那个按下沿脉冲 `p1` 没人用，整条被优化掉，与代码注释一致。）
+
+## 2. 三腿对照台架（`build/evidence/pu113/`，一次性拷贝树，不入库；跑法记在下面第 4 节）
+两条腿在同一份 TB 里，**唯一差别 = 有没有真的复过一次位**；A 腿按上面量到的位流值注入（仿真默认 X，硬件是 0，
+不注入就是拿 X 当上电——第一版就是这么被自己的地板抓走的）。
+
+| 腿 | 版本 | A（板上接线：`rst_n` 恒 1） | B（走过一次复位） |
+|---|---|---|---|
+| 1 | **r110**（现在板上的那版） | **inc=1、angle=1**（事件在 20090 ns ≈ 20 ms 确认沿）⇒ `RESULT FAIL errors=2` | inc=0、angle=0 |
+| 2 | **r112**（带武装门，链子刚跑完的那版） | **inc=1、angle=1**（20110 ns）⇒ 同样红 ⇒ **武装门没打中这个因** | inc=0、angle=0 |
+| 3 | **fix**（把上电值写进声明：`key_stable = 1'b1` 等） | **inc=0、angle=0** ⇒ `RESULT tb_powup PASS` | inc=0、angle=0 |
+
+## 3. 这三行合起来回答"为啥刷完 elf 屏上 rot 是 1 而不是 0"
+1. 按键脚一直是高的（4.7 kΩ 上拉），**是寄存器在说谎**：它上电是 0 = "按着"。20 ms 后去抖确认真实的"松着"，
+   这一沿在 `key_long` 里就是**一次松手**，而它的计数早已 ≠0 ⇒ 补发一枚 `short_pulse` ⇒ `angle` 从 0 走到 1。
+2. 同一个量法还解释了**为什么正好是 1、不是 2 或 3**：`angle_reg` 自己也是 FDRE INIT=0 ⇒
+   **每配置一次 PL 就"清零 + 白送一度"**。刷 ELF 不复位这一域（`sys_rst_n` 恒 1），所以你看到的还是上一次配置留下的那个 1。
+3. 所以我先前挂在"上电那 20 ms 线上是低的"那条解释（#247/#249 的措辞）与 r112 的武装门**都不是这个症状的因**：
+   线上从来没低过，是复位值从没生效。这条按"我之前判错、已由台架更正"登记（ISSUES #256）。
+4. 修法（腿 3 已经绿过）：把上电语义写进声明（`key_stable`/`key_sync0`/`key_sync1`/`key_prev` = 1'b1），
+   让位流带着它，而不是依赖一条被摘掉的复位。⚠ 还要用 OOC 综合复核一次"声明初值真进了 FF INIT"
+   （`build/tcl/ooc_util_probe.tcl` 那条路），因为台架认不等于综合认。
+
+## 4. 复现命令（一次性，非车道）
+```
+V=<Vivado>/bin; for d in r110 r112 fix; do cd /tmp/kx/pu113/$d; cp ../tb_powup.v .
+  printf '%s\n' key_debounce.v key_long.v angle_ctrl.v tb_powup.v > files.f
+  # r110 加 -d HARNESS_INIT0 -d NO_ARMED；r112 加 -d HARNESS_INIT0；fix 不加（它自带 =1'b1）
+  $V/xvlog <defines> -f files.f; $V/xelab tb_powup -s snap; $V/xsim snap -R -nolog; done
+```
+拷贝树的三份模块 = `git show 71f6279:src/rtl/util/key_debounce.v`（r110）/ 工作树（r112）/ 工作树+四处声明初值（fix）。
+⚠ 我这版 TB 的判据标签是 `[8*40:1]`，CJK 长了会被**从左截掉**（"FAIL A1" 那种），正式入库那版要加宽或印短 id（记忆规矩 13）。

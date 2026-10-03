@@ -1,0 +1,8 @@
+INFO: [VRFC 10-2263] Analyzing Verilog file "C:/Users/wenqu/AppData/Local/Temp/kx/pu113/r112/key_debounce.v" into library work
+INFO: [VRFC 10-311] analyzing module key_debounce
+INFO: [VRFC 10-2263] Analyzing Verilog file "C:/Users/wenqu/AppData/Local/Temp/kx/pu113/r112/key_long.v" into library work
+INFO: [VRFC 10-311] analyzing module key_long
+INFO: [VRFC 10-2263] Analyzing Verilog file "C:/Users/wenqu/AppData/Local/Temp/kx/pu113/r112/angle_ctrl.v" into library work
+INFO: [VRFC 10-311] analyzing module angle_ctrl
+INFO: [VRFC 10-2263] Analyzing Verilog file "C:/Users/wenqu/AppData/Local/Temp/kx/pu113/r112/tb_powup.v" into library work
+INFO: [VRFC 10-311] analyzing module tb_powup

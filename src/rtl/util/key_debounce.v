@@ -3,12 +3,18 @@
 // 长按那一支在 key_long。
 //
 // 上电武装门（r112 / ISSUES #247）：复位释放**之后**必须先连续"看见松着"满一个窗口，才开始确认按下。
-//   为什么要有这一条：`key_stable` 的复位值是 1（松着）。如果复位释放那一刻线上还是低（成因待定，
-//   见 #249），去抖器会把它确认成一次按下，随后线回高就是一次松手 ⇒ `key_long` 发一枚 short_pulse
-//   ⇒ 角度白加 1°。这与 #52（长按同步链复位值与源头不一致 ⇒ 上电白送一次长按）是**同一个形态**：
-//   事件型信号在复位释放附近被当成真事件。
-//   门只吞"从没被看见松开过"那一次；一旦开过门，之后的每一次按下/松开照旧（台架 A6 钉这条）。
-//   线要是上电就被按住不动：门不开、这次长按也不生效——那是有意的，与"开机不能自己改状态"一致。
+//   它挡的是"配置那一刻线上真的低"（例如有人按住键刷 PL）那一类；
+//   ⚠ 它**不是**"上电就是 1 度"的解药——那一病的因在下面的位流初值（r113 / #256），
+//     台架实测：带武装门的 r112 代码在真值上电下仍然白送一枚短按（`build/evidence/r113_powup_verdict.txt`）。
+//
+// 位流初值（r113 / ISSUES #256 = 根因）：`system_top.v` 把这一域的 `sys_rst_n` 恒接 `1'b1`
+//   ⇒ 下面那些 `if (!rst_n) ... <= 1'b1;` 全是**死支**：综合把复位摘成 FDRE，网实测到
+//   `key_stable_reg`/`key_sync0_reg`/`key_sync1_reg` 的上电值是 **1'b0**（两份 dcp 各量一遍，
+//   `build/evidence/r113_ff_init.txt`）。于是"线上松着、寄存器说按着"，20 ms 后确认那一沿 = 一次松手
+//   ⇒ 下游 `key_long` 白补一枚 `short_pulse` ⇒ 屏上 `ROT:` 就是 1°；而 `angle_reg` 的 INIT=0
+//   解释了为什么每次配置都正好是 1（不是 2、3）。
+//   ⇒ 修法是把上电语义**写进声明**（Vivado 认成 FF 的 INIT，xsim 也认，台架与硬件同源），
+//     不依赖一条根本不存在的复位。将来若真给这一域接上 POR，这里与 `if(!rst_n)` 两处同向，不用改。
 module key_debounce #(
     parameter CNT_MAX = 1_000_000
 )(
@@ -16,13 +22,13 @@ module key_debounce #(
     input  wire rst_n,
     input  wire key_n,
     output reg  pulse,
-    output reg  key_stable  // 1 = released, 0 = pressed
+    output reg  key_stable = 1'b1  // 1 = released, 0 = pressed —— 这个初值就是位流上电值，见文件头 r113
 );
     reg [20:0] cnt;
     reg [20:0] acnt;        // 连续"看见松着"的计数（武装用）
     reg        armed;       // 0 = 还没被证明"曾经松开过"
-    reg key_sync0, key_sync1;
-    reg key_prev;
+    reg key_sync0 = 1'b1, key_sync1 = 1'b1;   // 上电=松着（与 if(!rst_n) 那条同向）
+    reg key_prev  = 1'b1;
 
     always @(posedge clk or negedge rst_n) begin
         if (!rst_n) begin

@@ -39,6 +39,9 @@ LANE=(
   tb_cdc_capacity tb_ps_publish tb_timing tb_v93_split_ctrl
   # 按键→角度链（#247：上电那一度的机理， characterization 型判据）
   tb_v111_key_boot
+  # #256 根因：这一域没有复位（system_top.v 把 sys_rst_n 恒接 1）⇒ 上电值必须来自声明初值。
+  #   这一支整支不碰 rst_n，按板上真接线跑；改前三腿对照见 build/evidence/r113_powup_verdict.txt。
+  tb_v113_key_powup
   # ICMP 发送字节指纹（r112 校验和累加器 32→20 的等价尺子，逐字节比）
   tb_v112_tx_bytes
 )
