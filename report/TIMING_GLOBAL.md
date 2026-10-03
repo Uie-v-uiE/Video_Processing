@@ -21,7 +21,7 @@
 
 ## 2. r112 这一版的**全设计**读数（一次构建，四域同表）
 件：`build/timing_summary.rpt`（Intra Clock Table）、`build/setup_paths.rpt`、`build/hold_paths.rpt`、
-`build/r112_reasm_probe.txt`（族级）、`build/r113_roll_ABC_verdict.txt`（物理侧三滚）。
+`build/r112_reasm_probe.txt`（族级）、`build/evidence/r113_roll_ABC_verdict.txt`（物理侧三滚）。
 
 | 时钟 | 周期 | WNS | 相对余量 | WHS | 端点数 | 最差那一格的形状 |
 |---|---|---|---|---|---|---|
