@@ -33,6 +33,19 @@
 - 网对象只认**裸分层路径**（`get_nets -quiet a/b/c`）；`-filter "NAME == {…}"` / `FULL_NAME` / `-hier`+短名三种形式实测恒空。
   ⇒ `build/tcl/mf114_roll.tcl` 的取网逻辑按这条重写，并在取回后再做一次 `NAME` 字面相等核对。
 
+## A1 的取文档通道：23:44 打通了**一半**，而且这一半就把候选约束的数改了
+
+| 想拿的东西 | 状态 | 实际做法与结果 |
+| --- | --- | --- |
+| Xilinx UG903/906/949/904/382/482 | **仍未取到** | 本机 Vivado 安装里 `data/docs`、`help` 目录都不存在、`find -maxdepth 4 -iname "UG*.pdf"` 为空（22:56 实测）；`Read` 工具读 PDF 要 `pdftoppm`（poppler），本机没装 ⇒ 官方 UG 这一路今晚没走通。所以本轮**没有任何一句"官方建议"**。 |
+| PHY 侧的 RGMII 窗口数（这是 H5 那笔债真正缺的东西） | **取到了**，而且来源是本机文件 | 本机 `D:/Xilinx/Resource/ZYNQ7020/Board_Resource/芯片手册/C187932_以太网芯片_RTL8211F-CG_规格书….PDF`（69 页，Track ID JATR-8275-15 Rev 1.4）。通道：`pip install pypdf` + 按页文本抽取（`Read` 的渲染路线不可用，不等于"读不到 PDF"）。读数落在 **Table 60，手册页 60 = PDF 第 67 页**：`TsetupR`/`TholdR` min 1.0 / typ 2 ns，`TskewR` 1.0/1.8/2.6 ns（并要求 PCB 把时钟走线比数据多 1.5–2.0 ns），`Tcyc@1000M` 7.2/8/8.8 ns，`tR/tF` max 0.75 ns。 |
+| 板子站在哪种模式（内部延迟 vs PCB 延迟） | **没读到，不许猜** | 原理图 `ZYNQ7020-F+V1.1原理图.pdf` 第 8 页的引脚表显示 `23 TXDLY/RXD1`、`24 RXDLY/RXD0`（ strap 与数据线复用）；寄存器 0x11 的当前值本机读不到（无 MDIO 读命令 + 无 `arm-none-eabi-gcc` ⇒ #131/#170）。⇒ 新候选约束取**两种模式的并集** min 1.000 / max 2.600，见 `src/constraints/r115_io_window_candidate.xdc`。 |
+| DVI/HDMI 侧 TMDS 输出窗口数 | **未取到** | 输出侧 6 个端口继续挂账，**没有来源就不写数**（这一条不许用"看起来宽松"的数字凑）。 |
+
+**这一节存在的意义**：A1 不是形式——正是这次取数把 `r114_io_async.xdc:39-43` 的 ±0.500 判成**用错了行**
+（±0.5 是同一张表里 `TskewT`：发射端**没有**内部延迟时的输出偏差），并直接改掉了下一轮候选约束的数。
+"空壳页面不等于文档不存在"这句在本机成立的方向是：**渲染路线打不开，就换文本抽取路线**，别把工具缺失当资料缺失。
+
 ## A3 产出物的支撑
 
 `docs/timing/debt_ledger.md` 的每一项都带 `文件:行`，行号是 22:54 用上面第二条那样的一次 grep 复核过的，不是记忆。

@@ -60,5 +60,36 @@ foreach {dt tag} {max setup min hold} {
 # 设计级 hold 头条（S1 的 WHS 与 I/O 失败端点数从这里取，名册差分也用它）
 report_timing_summary -delay_type min -file [file join $out summary_hold.txt]
 report_timing_summary -delay_type max -file [file join $out summary_setup.txt]
+# ---- 附加读数：把窗换成手册 Table 60 的真数（-min 1.000 / -max 2.600）再报一次 ----
+# 为什么还要这一段：这一滚是**带着 ±0.500 的窗**布的线（那个数后来被查明用错了行，见
+# docs/timing/rgmii_window_model.md §6：±0.5 是 TskewT 的行，收口该用 TsetupR/TholdR=1.0 或 TskewR=1~2.6）。
+# 布线已经是既成事实，不能拿它冒充"按真窗布过"，所以这里只把它当**同一块布局下的第二把尺子**读，
+# 并在文档里标"读数在 ±0.5 窗的布局上、按真窗重报"。两条读数都要，不许只念好看的那条。
+set tw_ports [get_ports -quiet {eth_rxd[*] eth_rx_ctl}]
+puts "TW_PORTS=[llength $tw_ports] ; 0 means empty set - treat as failure, not as no-constraint"
+if {[llength $tw_ports] > 0} {
+    # `set_input_delay` 不写 `-add_delay` 时就是**替换**同一 (clock, port, edge) 的既有值 ⇒ 不需要 remove。
+    # 四条都要打印 catch 的 rc：命令失败与"约束没生效"必须能分开（附录 1：空集/静默失败要能看见）。
+    set e no-error
+    catch {set_input_delay -clock eth_rxc -min 1.000 $tw_ports} e
+    puts "TW-SET-MIN-RISE rc=$e"
+    set e no-error
+    catch {set_input_delay -clock eth_rxc -max 2.600 $tw_ports} e
+    puts "TW-SET-MAX-RISE rc=$e"
+    set e no-error
+    catch {set_input_delay -clock eth_rxc -clock_fall -min 1.000 $tw_ports} e
+    puts "TW-SET-MIN-FALL rc=$e"
+    set e no-error
+    catch {set_input_delay -clock eth_rxc -clock_fall -max 2.600 $tw_ports} e
+    puts "TW-SET-MAX-FALL rc=$e"
+    report_timing -delay_type min -from [get_clocks eth_rxc] -to [get_clocks eth_rxc] \
+        -nworst 1 -max_paths 3 -file [file join $out rt_true_window_hold.txt]
+    report_timing -delay_type max -from [get_clocks eth_rxc] -to [get_clocks eth_rxc] \
+        -nworst 1 -max_paths 3 -file [file join $out rt_true_window_setup.txt]
+    report_timing_summary -delay_type min -file [file join $out summary_hold_true_window.txt]
+    puts "TW_DONE"
+} else {
+    puts "TW-SKIP 端口集合空 ⇒ 这一段的读数不存在"
+}
 puts "PROBEDONE"
 exit 0
