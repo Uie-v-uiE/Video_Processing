@@ -182,6 +182,21 @@ Data Path Delay   :  3.613 ns  (logic 100.000% route 0.000%)
 * 结构改动的证伪成本实测：一次副本树构建 22:54→23:53（含我第一次写错 MMCM 端口的失败滚，#303）≈ **19 分钟**，
   比"改完进主树再等台架"便宜一个数量级——这条纪律留着。
 
+### 7.1 G4 顺手量到了（这一刀还有**告警成本**，不只是没收益）
+
+同一支只读探针出了 `report_methodology`（件 `build/evidence/r115_c2_scratch/methodology.txt`）：
+
+```
+Checks found: 451 = 2 + 1 + 336 + 98 + 1 + 1 + 5 + 7      （基线是 446 = 2+1+336+98+1+1+7）
+新增的一类：TIMING-15  Warning  Large hold violation  5 条
+```
+
+⇒ **警告类别数 7 → 8（+1 类、+5 条）**，正是那 5 个 I/O hold 失败端点自己报出来的。按本轮口径（规矩 35：告警类别数算成本），
+这一刀是"**机制动了、收益没拿到、成本先到**"的典型：G4 也是红的（对候选而言）。
+另一条交叉核对很值钱：**`TIMING-18`（Missing input or output delay）仍是 7，没有跟着 `io_unconstrained_ports` 从 11 掉到 6**。
+⇒ 再一次印证附录 1 的量纲红线：`check_timing` 数端口、`report_methodology` 数 checks/pins，**两个数永远不能互相扣减**，
+"债务降低了"只能引用 `check_timing` 那一侧（S4 用的就是它）。
+
 ## 8. 读数落在哪
 
 跑完的原始件在副本树里（`c2_scratch_1003/build/…`），摘出来的关键读数与被跟踪的差分一起复制进
