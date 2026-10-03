@@ -11984,3 +11984,25 @@ DEBT|io_after_route|no_in=0|no_out=6|fp_in=2|fp_out=6|exc_rows=13|datapath_only_
 `src/ps/main.c` 里没有 mdio 读命令、`report/COMMANDS.md` 也没有这一行，而本机没有 arm-none-eabi 工具链
 ⇒ ELF 不可重建（#131/#170 那条老边界）。所以这一判只能用"文档 + 原理图脚带 + 时序反证"来收，
 不能用"我读了寄存器"来宣称。
+
+### #281 更正 #280 第 3 条：我把 SD 的 fps 当成 ETH 能收流的反证了（2026-10-03 17:32，我自己的错，当日就撤）
+
+`report/log/ISSUES.md` #280 第 3 条里那句"**反证在板上**：这块板在 ETH 片源下是真能收 1 Gbps 流的
+（r113 的 29.8–30.0 fps 读回…）"**不成立**：`data/metrics.csv` 那格 **29.8–30.0 fps 是 SD 本地播放**的读数
+（100 帧滑窗、板上读回），与 ETH 收流无关，拿它当 ETH 的证据是我抄数时把两格混成了一格。
+
+**今天真正在盘的机读快照甚至朝着反方向**：`board_verify` 那一次的 lane30 是
+`{"eth_tb_ok":1,"eth_live":0,"why_no_stream":1,...}`（件 `build/evidence/r113_serial_raw.txt` 与
+`build/evidence/verify_1003_1435.health.json`）—— 上位机当时没推流，所以"ETH 能收"这件事今天**没有机读凭据**，
+只有多轮之前的眼睛签收。
+
+**所以 #280 的推理链改成这样读**（结论不变、证据等级降下来）：模型 (b)（PHY 的 RGMII RX 内部延迟打开、
+数据落在 RXC 沿之后约 2 ns）目前是一个**可判的假设**，不是已被板上事实反证出来的结论。判它的就是正在跑的
+变体 B 那一滚（`src/constraints/r114_io_variantB_phy_delay.xdc`，窗 `-max 2.500 -min 1.500`，三档 0/8/13，
+件 `build/evidence/r114_sweepB_console.txt`）：**要某一档让 `eth_rxc` 的 setup 与 hold 同时非负才算立住**；
+跑不出来就把模型 (b) 一起否掉，剩下唯一诚实的说法是"这块板的收口对齐方式我还没量到"——
+届时的正解是去读 PHY 寄存器（本机没有 arm-none-eabi 工具链 ⇒ 得先补 app 的构建能力，#131/#170），
+而不是去挪窗宽凑一个绿。
+
+**为什么值得单开一条而不是偷偷改**：这条账的用处不在 #280 对不对，而在"我下一次还会不会把隔壁那一格读数
+借来当证据"。规矩：抄数要抄**同一格**，跨格借证据必须在那一格自己的凭据里能找到。
