@@ -121,6 +121,39 @@ RGMII 的接口行为以 AMD PG051 的 RGMII 章为准。
 ⚠ 这一节的 ps 数字**一个都没往 XDC 里写**——因为都要先读手册与本板走线实测（今天构建/台架在飞，
 r114 第一件事就是量它们）。写形式与出处，是为了不让下一步变成"随手填个 2 ns"。
 
+### 4c. 异步时钟组把四条跨域路**从所有尺子的射程里拿走了**（这一处最像"其他地方"，也最没人管）
+
+实读（两个独立来源，不是我的叙述）：
+- `src/constraints/clock_groups_impl.xdc:28-31` 只有一条命令：`set_clock_groups -asynchronous` 三组
+  （`eth_rxc` / `clk_fpga_0` / `sys_clk` 及其 `-include_generated_clocks` 生成钟）。
+  ⇒ **组与组之间的路径完全不做时序分析**，这是官方允许的写法（也解释了为什么 `timing_summary` 的
+  Inter Clock Table 只剩 `sys_clk↔clkout0_1` 一对，231 + 19 端点——那一对在同一组**内**，仍然被分析）。
+- `build/cdc.rpt`（`report_cdc`，12:04 那份）里只有那一对：`Safely Timed`，Unsafe 0，No ASYNC_REG 0。
+  ⇒ 也就是说**被组排除掉的那四条跨域路，`report_cdc` 一条都没念**——不是它们安全，是它们不在射程里。
+
+XDC 头部（第 19-24 行）把这四条写成"跨域数据由结构保证，不靠时序分析"：
+`dc_fifo` 格雷码 + 2FF（eth_rxc↔clk_fpga_0 视频流）、翻转 + 3FF 边沿检测（`ddr_bank_commit` 帧事件）、
+3 级像素 + 3FF（`frame_commit_lock` 消隐窗）、3FF 控制字（`effect_ctrl`，实例 `u_eff`）。
+四个模块都在树上（`src/rtl/eth/dc_fifo.v`、`src/rtl/eth/ddr_bank_commit.v`、
+`src/rtl/video/frame_commit_lock.v`、`src/rtl/process/effect_ctrl.v`）。
+
+**欠的账有两条，都不许用"结构保证"这句话抵掉**：
+1. **没有任何一条 `set_max_delay -datapath_only`**（全 `src/constraints/` 里 `set_max_delay` 命中 0）。
+   组排除把时序检查拿走的同时，也把**布线 skew 的上限**一起拿走了：工具可以把格雷码指针的两级 FF
+   放到对角两端，到达时刻差想多大就多大。官方口径是给同步器补一条**有出处的** `set_max_delay -datapath_only`
+   （数值口径按目的时钟周期与建立时间推，不许随手填 ns），把"结构保证"变成"有界保证"。
+2. **#262 那四颗同步器（`rgray_s0/s1`、`wgray_s0/s1`）没有 `ASYNC_REG`**。
+   这两条是同一个洞的两半：属性让工具把两级 FF 关进同一 slice，`-datapath_only` 让跨域到达差有界——
+   少任何一半，"亚稳态传播窗口有保证"这句话都不成立。
+   ⚠ 顺序不能反：**先**加属性与 max_delay，**再**谈这四条路的时序数字变了没有；
+   组排除下的路径本来就不进 WNS，所以"改了 WNS 没动"是预期，不是证据（rule 35 的另一面）。
+
+**r114 怎么量（判据要能红，零样本分支不算数）**：写一把只读尺子列出"声明为异步的组对之间的所有跨域寄存器路径"
+（`get_cells -hier -filter {PRIMITIVE_TYPE =~ CMEM.*}` 那种猜法一律不许用；用网表的时钟域属性逐条认），
+条数必须 ≥ 4 才允许出结论；每条要求 (a) 目的两级 FF 都带 `ASYNC_REG`、(b) 有一条覆盖它的 `set_max_delay -datapath_only`，
+两个维度**同现在一条判据里**（#44 那一课）。这把尺子**还没写**（写的时候按 `build/` 现有命名与对照规矩起，
+落地即把件路径补进本节与 #266 —— 现在不点名，因为 `doc_currency` 的 D4c 会抓"指着盘上不存在的东西"）。
+
 ## 5. 把"别一根筋"落成工具（2026-10-03 已落地，件与对照都在盘上）
 每次构建后出**名册差分**，不再手写"全局 WNS 从 X 到 Y"：
 ```

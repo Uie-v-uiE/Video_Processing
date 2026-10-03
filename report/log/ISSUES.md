@@ -11609,3 +11609,30 @@ C12a/b/c 的第一次读数都还没有），r109 因此**不采纳、不刷板�
    行数地板之外还牵连 U5，因为删行也删掉了点名行）。
 4. **排期**：`build/r113_after_mf_uncertainty.sh` 等 `build/evidence/r114_mf/verdict.txt` 出现且机器空，
    再起这一支（与 #264 的两支串成一条，避免两个 Vivado 抢内存）。真件读数出来后回写本条与 `TIMING_GLOBAL` 第 4 节。
+
+### #266 异步时钟组把四条跨域路从**所有尺子的射程**里拿走了：`report_cdc` 念 0 条不等于安全
+
+2026-10-03 13:3x。两个独立来源对读：`src/constraints/clock_groups_impl.xdc:28-31`（唯一的
+`set_clock_groups -asynchronous`，三组：`eth_rxc` / `clk_fpga_0` / `sys_clk` 及其 `-include_generated_clocks` 生成钟）
+与 `build/cdc.rpt`（12:04 那份，只有 `sys_clk↔clkout0_1` 一对，`Safely Timed` 231+19 端点、Unsafe 0、No ASYNC_REG 0）。
+
+1. **为什么 `report_cdc` 只有两行**：被组排除的跨组路径根本不做时序分析，`report_cdc` 也就**不念它们**——
+   那两行是同一组**内**的一对（生成钟在组内，仍然分析）。这解释了 `timing_summary` 的 Inter Clock Table
+   为什么只剩一对，也说明**"CDC 报告干净"这句话的射程只有组内**。这一条属于规矩 47 的"检查器范围会悄悄漂移"，
+   而且是**约束自己把范围关掉**的那种漂移。
+2. **XDC 头部（19-24 行）写的四条"结构保证"**：`dc_fifo` 格雷码 + 2FF、`ddr_bank_commit` 翻转 + 3FF、
+   `frame_commit_lock` 3 级像素 + 3FF、`effect_ctrl`（实例 `u_eff`）3FF 控制字。四个模块都在树上
+   （`src/rtl/eth/dc_fifo.v`、`src/rtl/eth/ddr_bank_commit.v`、`src/rtl/video/frame_commit_lock.v`、
+   `src/rtl/process/effect_ctrl.v`）。
+   ⚠ "结构保证"这句话**抵不掉两条账**：
+   * 全 `src/constraints/` 里 `set_max_delay` / `datapath_only` 命中 **0** ⇒ 组排除把时序检查拿走的同时，
+     也把**跨域布线 skew 的上限**一起拿走了（工具可以把格雷码两级 FF 放到对角两端，到达差想多大多大）。
+     官方口径是给同步器补一条**有出处的** `set_max_delay -datapath_only`，把"结构保证"变成"有界保证"。
+   * #262 那四颗同步器（`rgray_s0/s1`、`wgray_s0/s1`）还没有 `ASYNC_REG`。两条是同一个洞的两半：
+     属性把两级 FF 关进同一 slice，max_delay 让到达差有界，少一半都不算"亚稳态窗口有保证"。
+3. **顺序不能反**：先加属性与 max_delay，再谈这四条路的时序数字——组排除下的路径本来就不进 WNS，
+   所以"改了 WNS 没动"是**预期**而不是证据（rule 35 的另一面；别用它当"这刀白挨了"的结论）。
+4. **判据要先能红再上**（零样本分支不算数，#148 那一课）：计划的尺子是
+   逐条认出"声明为异步的组对之间的跨域寄存器路径"（不许猜属性名，按网表时钟域逐条认），
+   条数地板 ≥4，每条要求 (a) 目的两级 FF 都带 `ASYNC_REG` 与 (b) 有一条覆盖它的 `set_max_delay -datapath_only`
+   **同时成立**（两维同现，#44 那一课）。件 `build/async_crossing_check.sh` **还没写**，所以这一条现在只是立案。
