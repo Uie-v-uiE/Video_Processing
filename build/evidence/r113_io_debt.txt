@@ -43,4 +43,6 @@ IODEBT I4_baseline_no_growth  report=in_bare:5,in_fp:2,out_bare:6,out_fp:6 must_
 IODEBT I5_scope_floor         user_bits=26 ports=15  bits>=20 report 4/4 GREEN
 IODEBT I6_exempt_integrity    exempt=4               no_reason=none ghost=none GREEN
 IODEBT I7_unit_reconcile      src_pins=5/2/12/7 src_ports=2/2/7/4 report=5/2/6/6 one_unit_must_match(in_bare/in_fp/out_bare/out_fp) RED
-IODEBT-SUMMARY report=build/evidence/r112_bit/timing_summary.rpt src_in_bare=5 src_in_fp=2 src_out_bare=12 src_out_fp=7 rep_in_bare=5 rep_in_fp=2 rep_out_bare=6 rep_out_fp=6 user_bits=26 judged=7 bare_in=[eth_rx_ctl eth_rxd] bare_out=[led tmds_clk_p tmds_clk_n tmds_data_p tmds_data_n eth_mdc eth_mdio] result=RED
+IODEBT I8_methodology_inputs  src=[eth_rx_ctl eth_rxd[0] eth_rxd[1] eth_rxd[2] eth_rxd[3]] meth=[eth_rx_ctl eth_rxd[0] eth_rxd[1] eth_rxd[2] eth_rxd[3]] identical-name-sets and meth>=1 GREEN
+IODEBT I9_methodology_outputs named=2 ghost=none unnamed_residual=10 no ghost names GREEN
+IODEBT-SUMMARY report=build/evidence/r112_bit/timing_summary.rpt src_in_bare=5 src_in_fp=2 src_out_bare=12 src_out_fp=7 rep_in_bare=5 rep_in_fp=2 rep_out_bare=6 rep_out_fp=6 user_bits=26 judged=9 meth_in=5 meth_out=2 resid_out=[eth_mdc eth_mdio tmds_clk_n tmds_clk_p tmds_data_n[0] tmds_data_n[1] tmds_data_n[2] tmds_data_p[0] tmds_data_p[1] tmds_data_p[2]] bare_in=[eth_rx_ctl eth_rxd] bare_out=[led tmds_clk_p tmds_clk_n tmds_data_p tmds_data_n eth_mdc eth_mdio] result=RED

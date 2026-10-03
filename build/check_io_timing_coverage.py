@@ -28,6 +28,10 @@ XDCS = ["src/constraints/rk_zynq7020.xdc", "src/constraints/clock_groups_impl.xd
 BASELINE = {"in_bare": 5, "in_fp": 2, "out_bare": 6, "out_fp": 6}
 # （原来这里还有一条 GAP_OUT_BARE = 6："源码位数 12 减报告 6 等于 6"——那是**位数减端口对象数**的量纲错，
 #  差值被钉成常量后它永远绿，什么也没对账。现在由 I7_unit_reconcile 取代：必须存在一个单位让四个桶全等于报告。）
+METH = os.environ.get("IODEBT_METH", "build/methodology.rpt")
+# 第三个来源：report_methodology 的 TIMING-18 **明细**会自己点名引脚（2026-10-03 实测：
+#   eth_rx_ctl + eth_rxd[0..3] 五个输入、led[0]/led[1] 两个输出），这是 check_timing 那种"只给计数"
+#   拿不到的东西，所以输入侧能做**名字级**对账，输出侧能做"点名集合是不是我分类的子集"。
 # 豁免表随尺子走（规矩 44）。每条格式：端口名模式|理由（不许"临时/先这样"这类空话）
 EXEMPT = [
     ("DDR_*", "连到 BD 里的 processing system（PS 硬块），Vivado 不把 PS 硬块引脚当用户 fabric 的 I/O 检查"),
@@ -104,6 +108,19 @@ def match_any(nm, pats):
             return True
     return False
 
+def methodology_names(path):
+    """TIMING-18 明细里点名的引脚 -> (输入列表, 输出列表)。文件不在就返回空（由判据负责红）。"""
+    ins, outs = [], []
+    if not os.path.exists(path):
+        return ins, outs
+    for kind, pin in re.findall(r"An (input|output) delay is missing on (\S+) relative", read(path)):
+        (ins if kind == "input" else outs).append(pin)
+    return ins, outs
+
+def pin_names(nm, bits):
+    return [nm] if bits == 1 else ["%s[%d]" % (nm, i) for i in range(bits)]
+
+
 def classify(xdc_list=None, exempt_extra=None):
     xdc_list = xdc_list or XDCS
     idl, odt, clk, fp = xdc_names(xdc_list)
@@ -142,8 +159,9 @@ def classify(xdc_list=None, exempt_extra=None):
         rows.append((nm, d, bits, st))
     return rows, c, exempts
 
-def run(sumf, xdc_list=None, exempt_extra=None, baseline=None):
+def run(sumf, xdc_list=None, exempt_extra=None, baseline=None, methf=None):
     baseline = baseline or BASELINE
+    methf = methf or METH
     rows, c, exempts = classify(xdc_list, exempt_extra)
     rep = report_counts(sumf) if os.path.exists(sumf) else {k: None for k in BASELINE}
     judged = []
@@ -186,13 +204,25 @@ def run(sumf, xdc_list=None, exempt_extra=None, baseline=None):
       ("/".join(str(x) for x in src["pins"]), "/".join(str(x) for x in src["ports"]),
        "/".join("NA" if x is None else str(x) for x in rep4)),
       "one_unit_must_match(in_bare/in_fp/out_bare/out_fp)", bool(ok_units))
+    mi, mo = methodology_names(methf)
+    src_in_pins = sorted(p for nm, d, b, st in rows if st == "BARE" and d == "input" for p in pin_names(nm, b))
+    src_out_pins = sorted(p for nm, d, b, st in rows if st == "BARE" and d != "input" for p in pin_names(nm, b))
+    # I8：输入侧**名字级**三源对账（源码位展开 == methodology 点名的引脚），少一个名字就红，不许靠计数蒙对
+    j("I8_methodology_inputs", "src=[%s] meth=[%s]" % (" ".join(src_in_pins), " ".join(sorted(mi))),
+      "identical-name-sets and meth>=1", sorted(mi) == src_in_pins and len(mi) >= 1)
+    # I9：输出侧只做子集判（methodology 点名的每个引脚都必须落在我判 BARE 的输出里）；
+    #   没被它点名的那几个（TMDS/MDIO 那 10 个引脚）是**留给 -verbose 的开放项**，念出来不判绿也不假判红
+    ghosts = [x for x in mo if x not in src_out_pins]
+    resid = [x for x in src_out_pins if x not in mo]
+    j("I9_methodology_outputs", "named=%d ghost=%s unnamed_residual=%d" % (len(mo), ",".join(ghosts) or "none", len(resid)),
+      "no ghost names", not ghosts)
     verdict = "GREEN" if all(x[3] == "GREEN" for x in judged) else "RED"
     summary = ("IODEBT-SUMMARY report=%s src_in_bare=%d src_in_fp=%d src_out_bare=%d src_out_fp=%d "
                "rep_in_bare=%s rep_in_fp=%s rep_out_bare=%s rep_out_fp=%s "
-               "user_bits=%d judged=%d bare_in=[%s] bare_out=[%s] result=%s"
+               "user_bits=%d judged=%d meth_in=%d meth_out=%d resid_out=[%s] bare_in=[%s] bare_out=[%s] result=%s"
                % (sumf, c["in_bare"], c["in_fp"], c["out_bare"], c["out_fp"],
                   rep["in_bare"], rep["in_fp"], rep["out_bare"], rep["out_fp"],
-                  c["user_bits"], len(judged),
+                  c["user_bits"], len(judged), len(mi), len(mo), " ".join(resid),
                   " ".join(nm for nm, d, b, st in rows if st == "BARE" and d == "input"),
                   " ".join(nm for nm, d, b, st in rows if st == "BARE" and d != "input"),
                   verdict))
@@ -261,7 +291,24 @@ def main():
         ok = v7["judged"][6][3] == "GREEN"
         print("SELF control_unit_reconcile_positive %s result=%s" % (v7["judged"][6], "PASS" if ok else "FAIL"))
         r |= 0 if ok else 1
-        print("SELF check_io_timing_coverage judged=%d controls=7 result=%s"
+        # 对照 8：把 methodology 的一条输入点名删掉 ⇒ I8 必须红（名字级对账不许靠计数蒙对）
+        mt = read(METH).replace("An input delay is missing on eth_rxd[2] relative", "An input delay is missing on eth_rxd[2]", 1)
+        m8 = "/tmp/kx/iodebt_meth_noinput.rpt"
+        io.open(m8, "w", encoding="utf-8", newline="\n").write(mt)
+        v8 = run(sumf, methf=m8)
+        ok = v8["judged"][7][3] == "RED"
+        print("SELF control_missing_meth_name %s result=%s" % (v8["judged"][7], "PASS" if ok else "FAIL"))
+        r |= 0 if ok else 1
+        # 对照 9：给 methodology 塞一个本设计里不存在的引脚名 ⇒ I9 必须红（幽灵点名）
+        m9 = read(METH).replace("An output delay is missing on led[0] relative",
+                                "An output delay is missing on not_a_pin[9] relative", 1)
+        p9 = "/tmp/kx/iodebt_meth_ghost.rpt"
+        io.open(p9, "w", encoding="utf-8", newline="\n").write(m9)
+        v9 = run(sumf, methf=p9)
+        ok = v9["judged"][8][3] == "RED"
+        print("SELF control_ghost_meth_name %s result=%s" % (v9["judged"][8], "PASS" if ok else "FAIL"))
+        r |= 0 if ok else 1
+        print("SELF check_io_timing_coverage judged=%d controls=9 result=%s"
               % (len(base["judged"]), "PASS" if r == 0 else "FAIL"))
         return r
 

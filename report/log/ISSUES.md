@@ -11669,6 +11669,28 @@ C12a/b/c 的第一次读数都还没有），r109 因此**不采纳、不刷板�
    相减才有问题。所以记进方法：**判据里凡是相减，先问被减数与减数是不是同一个量纲**；
    这也是 #263/#264 那一族（形状与名字要量不许猜）的量纲版。
 
+### #269 I/O 这把尺子升级到**名字级**：methodology 的明细能点出 7 个引脚，开放项从"差 6 位"变成"有名字的 10 个引脚"
+
+2026-10-03 13:5x。不用等 `check_timing -verbose` 也能拿到名字——`build/methodology.rpt` 的 TIMING-18 **明细**
+（第 2243-2276 行）自己写着引脚名：
+
+1. **点到的 7 个**：输入 `eth_rx_ctl`、`eth_rxd[0]`…`eth_rxd[3]`；输出 `led[0]`、`led[1]`。
+   输入那五个与我源码展开的裸输入引脚集合**逐名相同** ⇒ 新增判据 `I8_methodology_inputs` GREEN
+   ——这是名字级对账，不是"5 == 5"的计数撞对（后者正是 #267 那种假绿）。
+2. **新增 `I9_methodology_outputs`**：methodology 点名的输出引脚必须落在我判 BARE 的输出里 ⇒ GREEN
+   （`led[0]/led[1]` 在），同时把开放项**改写成有名字的一行**：`tmds_clk_p`、`tmds_clk_n`、
+   `tmds_data_p[2:0]`、`tmds_data_n[2:0]`、`eth_mdc`、`eth_mdio`（8+1+1 = 10 个引脚）
+   **不在 TIMING-18 的名单里**。于是 r114 要问的问题变了：不是"三个数为什么差 6"，
+   而是"这 10 个引脚被工具放进哪个桶、为什么既不在 TIMING-18 也不在 `with a timing clock defined`（那条念 0）"。
+   这条**不判绿也不假判红**（residual 只念出来），因为答案还没有；有答案之前 I7 保持红。
+3. **尺子自己的对照加到 9 条**，实测 9/9：删掉 methodology 一个输入点名 ⇒ I8 红；
+   塞一个本设计不存在的引脚名 ⇒ I9 红；再加既存的 I1/I2 两条变异、I6 两条反买通、I7 一红一绿。
+   件重生成 `build/evidence/r113_io_debt.txt`（现在三条红/绿的新形状：I3 红、I7 红、I8/I9 绿）。
+4. **顺手记下工具的两种口径会互相矛盾**：`check_timing` 的 `no_output_delay (12)` = HIGH 6 + MEDIUM 6，
+   而 methodology 明细只点 2 个输出引脚名。同名不同数、同数不同名，都出现在**同一版构建的三份报告里**
+   （`build/timing_summary.rpt`、`build/methodology.rpt`、源码端口表）⇒ 这类"多源不同名"的账，
+   只有把名字逐条钉上才算闭合，钉不上就必须留红（本条的 I7 就是那个红）。
+
 ### #268 约束侧清单自己先闭合：`report_methodology` 里还有一类 TIMING-18（7 条）我抄漏了
 
 2026-10-03 13:4x，件 `build/methodology.rpt`（12:05 那份，本轮构建）。
