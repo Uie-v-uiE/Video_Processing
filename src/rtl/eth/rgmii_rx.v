@@ -9,6 +9,18 @@
 //   拍数只有一个出处：顶层 `system_top.v` 传下来的 `IDELAY_VALUE`（原来 15，现在是 15+11 = 26）。
 //   这一处不在时序报告的管辖内（`src/constraints/` 里没有任何 `set_input_delay`）⇒ 报告只能证明
 //   内部路径变好，采样点落没落在眼里必须由 1000M 实流量的 `bad`/`drop_words` 判。
+// ⚠⚠ 上面那句前提（"没有 set_input_delay"）在 2026-10-03 被今天的工作改掉了，别再照它推理：
+//   候选窗 `src/constraints/r114_io_async.xdc`（±0.500 ns，RGMII 规范给的沿对齐公差）+ 变体 B
+//   （沿后 1.5–2.5 ns）都在快车道上量过了（件 build/evidence/r114_io_roll_console5.txt、
+//   r114_idelay_sweep_console.txt、r114_sweepB_console.txt；结论 ISSUES #282/#285）：
+//     · 窗一建起来，`eth_rxc` 的 hold 立刻 -2.885 / 5 个失败端点，落点就是本模块的 u_iddr_rx_ctl/D；
+//     · 报告里 DCD = 5.008 ns（正是第 4 行那只 BUFG），SCD = 0 ⇒ 当年"搬进 BUFG 消偏斜"这一步
+//       在**没有片外窗**的口径下看着像修好了，窗建好后它变成"捕获沿比数据晚到 ~5 ns"的净损失；
+//     · 数据侧没有出口：IDELAY 从 26 加到最大 31 档只买到 0.43 ns（实测斜率 ≈63 ps/tap），
+//       而要把 hold 抬到 0 需要 ≈2.7 ns ⇒ 能动的只有捕获钟（ISSUES #285 的两条候选、任务 #194）。
+//   还有一处对不上、我没有解释、只登记不圆场：第 8 行按 200 MHz 参考钟算的 156 ps/tap，
+//   与实测斜率 ≈63 ps/tap（报告里 IDELAYE2 的 2.292 ns / 26 档 ≈ 88 ps/tap）三种数互不一致。
+//   ⇒ 谁要再按"拍数 = 1.683 ns / 156 ps"推采样点，先把这条量清楚（未定，不当结论用）。
 module rgmii_rx (
     input idelay_clk,  //200Mhz时钟，IDELAY时钟
 

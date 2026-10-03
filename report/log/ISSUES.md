@@ -12042,3 +12042,46 @@ DEBT|io_after_route|no_in=0|no_out=6|fp_in=2|fp_out=6|exc_rows=13|datapath_only_
 **还欠的一条硬证据**（不假装已做）：PHY 的 RX 内部延迟到底开没开——本机没有 arm-none-eabi 工具链、
 `main.c` 里也没有 MDIO 读命令 ⇒ 读不到 PHY 寄存器（#131/#170）。所以 (b) 只是"更吻合的两个假设之一"，
 真正的判据是上面那一刀能不能把 hold 关住；关不住就还得回到原理图/规格书里找 RXDLY 的脚带接法。
+
+### #285 那份 hold 报告的算术把病因指到**捕获钟的网络延迟**上（DCD 5.008 ns），不是 PHY 延迟、也不是 IDELAY 档位（2026-10-03 18:09）
+
+把 #282 那句"缺的 0.5 ns 在时钟路上"落到数字上。件 `build/evidence/r114_sweepB/rt_tap0_*` 与
+`/tmp/kx/r114io/rt_io_route_eth_rxc_hold.rpt`（变体 A/B 的 hold 落点完全同一条路径），报告原文里可读的量是：
+
+```
+Slack (VIOLATED) :        -2.885ns  (arrival time - required time)
+  Source:      eth_rx_ctl (input port clocked by eth_rxc {rise@0.000 fall@4.000 period=8.000})
+  Destination: u_eth/u_rgmii/u_rgmii_rx/u_iddr_rx_ctl/D  (rising edge-triggered cell IDDR clocked by eth_rxc)
+  Requirement: 0.000ns (eth_rxc fall@4.000ns - eth_rxc fall@4.000ns)
+  Data Path Delay: 3.613ns (logic 3.613ns(100%) route 0.000ns(0%))   Logic Levels: 2 (IBUF=1 IDELAYE2=1)
+  Input Delay: -0.500ns
+  Clock Path Skew: 5.008ns (DCD - SCD - CPR)
+     Destination Clock Delay (DCD): 5.008ns = ( 9.008 - 4.000 )
+     Source Clock Delay (SCD):      0.000ns
+  Clock Uncertainty: 0.835ns（含用户给的 -hold 0.800）
+  逐项：4.000(落沿) + (-0.500 输入延迟) + IBUF 1.321 + IDELAYE2 2.292 = 7.113ns 到达
+```
+
+**算式对上了**：required = 捕获沿到达 = 4.000 + DCD 5.008 = 9.008，再加不确定度 0.835 ⇒ 9.843；
+arrival 7.113 ⇒ slack = 7.113 − 9.843 = **−2.730**（报告写 −2.885。**差的 0.155 ns 我没有逐项拆开**——要拆开得先确认这条 min 检查用的是同沿还是次沿，
+   报告里 Requirement 那行写的是 `fall@4.000 - fall@4.000`，而 Destination 是 rising-edge 的 IDDR，
+   这中间的对应关系我没读到能立住的解释。方向与量级不受影响，但这条差额按未定记）。要补的是 **≈2.7 ns 的数据到达**，而 IDELAY 从 26 档加到最大 31 档只买到
+0.43 ns（#282 实测 63 ps/tap），片外窗又被规范钉在 ±0.5（模型 b 的 +2.0 已在 #282 试过、仍然 −2.5）。
+⇒ **数据侧确实没有出口**；有出口的是那个 **DCD = 5.008 ns**。
+
+**为什么 DCD 这么大**：r92/#57 那一刀为了消掉 BUFIO(SCD 3.171) 与 BUFG(DCD 4.854) 之间 1.616 ns 的树偏斜，
+把 5 个 IDDR 从 BUFIO 搬进了 BUFG（`src/rtl/eth/rgmii_rx.v:3-8` 的注释就是当时的判断）。搬完之后**没有人再给
+片外数据写到达窗**，于是这条 4.8~5.0 ns 的捕获钟延迟只体现在"数据与钟同树"的错觉里，WHS 报出 0.050 这种
+看着像设计值的数。今天窗一建起来，同一只 BUFG 就变成"捕获沿比数据晚 5 ns 到"的净损失。
+
+**所以 #194 要做的不是"把钟提前 0.5 ns"，而是二选一，且都要重跑 r92 那笔账**：
+- ① **回到 IOB 专用钟**：IDDR 吃 BUFIO/`IBUFG`-like 的 pad 钟（DCD 掉到 ~1 ns 量级），fabric 侧改用同区 BUFR
+  （7 系列 BUFIO/BUFR 是成对要求，这正是 r92 放弃它的原因）；
+- ② **留在 BUFG，但把窗改成"数据落在捕获钟之后"**：只有当 PHY 侧 RX 内部延迟 ≥ 2 ns 且 fabric 不再加
+  IDELAY（tap→0）时才成立，与 r92 之后的 IDELAY=26 相反。
+
+**判别实验（已排，判据先写死）**：在**同一份带窗约束**下各跑一滚快车道（②不需要改 RTL：`set_property
+IDELAY_VALUE 0` + 模型 (b) 的窗已经扫过，−2.522 就是它的读数 ⇒ **②已被今天的数据否掉**）；
+①需要改 `rgmii_rx.v` 的钟网结构 ⇒ 必须走正式一轮构建 + 台架 + 名册差分，判据仍是
+`eth_rxc` hold ≥ 0 / `fail_hold = 0`，且其余三域不许比 #282 的表格差。
+今天能收口的只有"②否掉、①成为唯一候选、并且把 r92 那笔判断的前提（无窗建模）写进它的注释里"。
