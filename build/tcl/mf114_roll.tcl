@@ -26,7 +26,9 @@
 #   正式构建里 `system_top_physopt.dcp` 存在 ⇒ 官方流程本来就跑 phys_opt，A 滚因此不是"半个流程"）。
 #   不碰任何被跟踪件，也不碰 runs 目录的产物；全部落 $MF_OUT。
 # ⚠ 计数地板：认到的高扇出网数 0 ⇒ MF-REFUSE exit 4（"空集"会伪装成"加了也看不出差别"，规矩 46）。
-# ⚠ 网名里的 `[n]` 是 get_nets 的 GLOB 类字符 ⇒ 一律 `-filter {NAME == {…}}` 做字符串相等（**`eq` 在本版本会报 [Common 17-263] 语法错**，见 2026-10-03 的实测）。
+# ⚠ 网对象的找回只认 `get_nets -quiet <分层路径>` 这一种形式，并且找回后再做一次 NAME 字面相等核对
+#   （`-filter "NAME == {…}"` / `FULL_NAME` / `-hier + 短名` 三种形式在 2026-10-03 实测**全部恒空**，
+#   凭据 build/evidence/probe_mf114_netname_console.txt；上一版就是栽在这里，41 行名册一行都没认下来）。
 # 运行时 puts 标签一律 ASCII（Vivado Tcl 的 CJK puts 会污染 grep 与命令替换，栽过两次）。
 set root [file normalize [file join [file dirname [info script]] .. ..]]
 set dcp  [file join $root "vivado_system/zynq_video_sys.runs/impl_1/system_top_opt.dcp"]
@@ -53,42 +55,73 @@ if {[file exists $frpt]} {
     }
 }
 
-# ---- 候选网：位置无关地解析（列序没实测过 ⇒ 只认"第一个整数 token + 第一个含 / 或 _ 的名字 token"） ----
+# ---- 候选网：按**实测形状**解析（2026-10-03 18:11 那份真报告钉住的三列布局，
+#      凭据 build/evidence/probe_mf114_netname_console.txt 的 FANOUT_HEAD 行）：
+#        | u_eth/u_rgmii/u_rgmii_rx/gmii_rx_clk |   2546 | BUFG |
+#   上一版是"位置无关地扫 token"，结果把报告头的 `| Command : report_high_fanout_nets ...
+#   -fanout_greater_than 200 ... |` 也读成了一条网（fo=200 net=report_high_fanout_nets）。
+#   现在只认"trim 后以 | 开头、以 | 结尾、切出正好 3 格、第 2 格是纯整数"的行 ⇒ 表头与 Command 行天然出局。
 proc fan_rows {path minfo} {
     set rows {}
     if {![file exists $path]} { return $rows }
     set fh [open $path r]; set txt [read $fh]; close $fh
     foreach line [split $txt "\n"] {
         set t [string trim $line]
-        if {$t eq ""} { continue }
-        set fo ""
-        set nm ""
-        foreach tok [split $t] {
-            if {[string is integer -strict $tok]} {
-                if {$fo eq "" && $tok >= $minfo} { set fo $tok }
-            } elseif {$nm eq "" && ([string first "/" $tok] >= 0 || [string first "_" $tok] >= 0)} {
-                set nm $tok
-            }
-        }
-        if {$fo ne "" && $nm ne ""} { lappend rows [list $fo $nm] }
+        if {[string index $t 0] ne "|" || [string index $t end] ne "|"} { continue }
+        set cells {}
+        foreach c [split $t "|"] { lappend cells [string trim $c] }
+        if {[llength $cells] != 5} { continue }          ;# 首尾各一个空格子 ⇒ 3 数据格 = 5 段
+        lassign [lreplace $cells 0 0] nm fo drv
+        if {$nm eq "" || $fo eq ""} { continue }
+        if {![string is integer -strict $fo]} { continue }  ;# 表头行 "Fanout" 在这里出局
+        if {$fo < $minfo} { continue }
+        if {[string first " " $nm] >= 0} { continue }       ;# 网名不含空格 ⇒ 含空格的是散文行
+        lappend rows [list $fo $nm $drv]
     }
     return $rows
 }
+
+# ---- 网对象怎么找：三条都量过（probe_mf114_netname_console.txt），只有 F0 能用 ----
+#   F2 `-filter "NAME == {全名}"` **恒 0**，哪怕 get_property NAME 打出来的就是那一串全名；
+#   F3 `-filter "FULL_NAME == {全名}"` 也 0（网的 FULL_NAME 属性在这份 dcp 里是**空**）；
+#   F4 `-hier -filter "NAME == {短名}"` 同样 0。
+#   能用的只有 F0：`get_nets -quiet <分层路径>`——带 `/` 的模式按路径匹配，`[n]` 也没被当字符类
+#   （A[2] 那条找回的对象 NAME 就是字面量 `u_pl/u_bilin/A[2]`），负对照 NO_SUCH_NET 回 0。
+#   ⚠ 但"找回来 1 个"不等于"找回来的是**那一个**"⇒ 拿回对象后再做一次字符串相等核对，
+#     核对不过的逐条点名（rule 46：计数要说清是"比过的"还是"过了的"）。
+proc net_by_name {nm} {
+    set c [get_nets -quiet $nm]
+    if {[llength $c] != 1} { return {} }
+    if {[string compare [get_property NAME $c] $nm] != 0} { return {} }
+    return $c
+}
 set targets {}
+set n_skipped_clock 0
+set n_skipped_name 0
 foreach row [fan_rows $frpt $minfo] {
-    lassign $row fo nm
-    set n [get_nets -quiet -filter "NAME == {$nm}"]
-    if {[llength $n] > 0} {
-        lappend targets $nm
-        puts "CAND fo=$fo net=$nm hit=[llength $n]"
-        puts "MFROW|fo=$fo|net=$nm"
-    } else {
-        puts "CAND-SKIP fo=$fo net=$nm (no net with this exact NAME)"
+    lassign $row fo nm drv
+    # BUFG/MMCM 驱动的网是时钟网：复制驱动对它们不是抓手（而且会让整条 phys_opt 命令一起失败），
+    # 只留在名册里做差分，不进 B 滚的变量。
+    if {$drv eq "BUFG" || $drv eq "BUFH" || [string match "*MMCM*" $drv] || [string match "*PLL*" $drv]} {
+        incr n_skipped_clock
+        puts "MFROW|fo=$fo|net=$nm|drv=$drv|role=roster_only_clock_net"
+        continue
     }
+    if {[llength [net_by_name $nm]] == 0} {
+        incr n_skipped_name
+        puts "CAND-SKIP fo=$fo net=$nm (get_nets 按路径没找回、或找回的对象 NAME 字面不等)"
+        continue
+    }
+    lappend targets $nm
+    puts "MFROW|fo=$fo|net=$nm|drv=$drv|role=target"
 }
 set nb [llength $targets]
-puts "BIG_NETS=$nb (from $frpt)"
-if {$nb == 0} { puts "MF-REFUSE: 扇出名册里没认出任何 fo>=$minfo 的网（报告形状或工具版本不符，这一滚没有变量可加）"; exit 4 }
+puts "BIG_NETS=$nb roster_skipped_clock=$n_skipped_clock roster_skipped_name=$n_skipped_name (from $frpt)"
+if {$nb == 0} { puts "MF-REFUSE: 名册有行但一个网对象都没认下来（断的是对象查找/驱动类型，不是报告排版）"; exit 4 }
+
+# 干跑开关：MF_DRY=1 时只量"名册解析 + 网对象能不能找回"这一层就收工（约 2 分钟），
+# 不烧两滚各 8~10 分钟。上一轮的 MF-REFUSE 就是这一层断的，先用最便宜的一次构建验它。
+if {[info exists ::env(MF_DRY)] && $::env(MF_DRY) eq "1"} { puts "DRYDONE targets=$nb"; exit 0 }
 
 # ---- 两滚共同的第一步 ----
 set t0 [clock seconds]
@@ -96,8 +129,16 @@ place_design
 puts "PLACE_WALL=[expr ([clock seconds]-$t0)/60]m"
 
 # ---- 唯一的变量：布线前这一次 phys_opt 带不带 -force_replication_on_nets ----
+# ⚠ 网对象在 place 之后**重新**按名字取一次（放线可能重命名），取不到的逐条点名并报数——
+#   "B 滚 nets=0" 与 "B 滚根本没跑" 必须能分开（rule 46：计数要说清是比过的还是过了的）。
 set netobjs {}
-foreach nm $targets { set netobjs [concat $netobjs [get_nets -quiet -filter "NAME == {$nm}"]] }
+set miss_after_place {}
+foreach nm $targets {
+    set c [net_by_name $nm]
+    if {[llength $c] == 0} { lappend miss_after_place $nm } else { set netobjs [concat $netobjs $c] }
+}
+puts "NETOBJS got=[llength $netobjs] missing_after_place=[llength $miss_after_place]"
+foreach nm $miss_after_place { puts "NETOBJ-MISS net=$nm" }
 if {$mode eq "repl"} {
     if {[llength $netobjs] == 0} { puts "MF-REFUSE: 名字认到了但网对象集合是空"; exit 4 }
     if {[catch {phys_opt_design -force_replication_on_nets $netobjs} e]} {
@@ -108,9 +149,12 @@ if {$mode eq "repl"} {
     if {[catch {phys_opt_design} e]} { puts "MF-REFUSE: control-roll phys_opt failed: $e"; exit 4 }
     puts "MF_APPLIED none (control roll: plain phys_opt_design)"
 }
-# 机制到底动没动：help 说复制对象带 _replica ⇒ 数得出来（正对照不许恒等）
-set reps [get_cells -hier -filter {NAME =~ *_replica*} -quiet]
+# 机制到底动没动：help 说复制对象带 _replica ⇒ 数得出来（正对照不许恒等）。
+# 两种数法都念：`NAME =~` 过滤器在别的属性上恒空过（ nets 的 NAME 就是那个形状），所以不能只信它。
+set reps [get_cells -quiet -hier *_replica*]
+set reps_f [get_cells -quiet -hier -filter {NAME =~ *_replica*}]
 puts "REPLICA_CELLS=[llength $reps]"
+puts "REPLICA_CELLS_FILTER=[llength $reps_f]"
 foreach r [lrange $reps 0 9] { puts "REPLICA|$r" }
 
 set t1 [clock seconds]

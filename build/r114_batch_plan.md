@@ -93,3 +93,37 @@
 红就退回 BUFG，并把"BUFG + 真窗关不住"记成实测结论。前置债：`main.c` 没有 MDIO 读命令 + 本机无 arm-none-eabi ⇒
 读不到 PHY 的 RXDLY 寄存器（#131/#170），所以这一判只能靠时序实验或原理图脚带，不许用"我记得 PHY 延迟是开的"。
 `r114_io_async.xdc` / `r114_io_variantB_phy_delay.xdc` 都不进构建（核对过 add_files 只有两份现行 XDC）。
+
+## 十一、扇出复制那一刀的尺子修复（2026-10-03 18:25，ISSUES #286）
+
+§三 那一刀在 18:11 那一次不是"这一刀没打到东西"，是**尺子断在对象查找层**：名册 41 行全部解析成功、
+`get_nets` 一个都没找回（三种 `-filter` 形式在网对象上实测恒空，只有不带 `-hier` 的分层路径写法可用）。
+现在（同一份 `system_top_opt.dcp`，只读）：
+
+* 名册行按实测三列形状解析，表头/`Command` 散文行出局；
+* 找回后**再核对一次 NAME 字面相等**，核对不过逐条点名计数；
+* BUFG/BUFH/MMCM/PLL 驱动的钟网只进名册（差分用）、不进 B 滚变量；
+* 新增 `MF_DRY=1` 干跑档：2 分钟先验"解析 + 找回"这一层，实测
+  `build/evidence/r114_mf_dry_console.txt` ⇒ `BIG_NETS=39 roster_skipped_clock=1 roster_skipped_name=0`。
+* 判据口径修正：网对象**没有** `FANOUT` 属性（实测为空），`get_pins -of` 的数与报告差很远 ⇒
+  扇出读数只认 `report_high_fanout_nets` 一家；V2b 的来源是复制单元（cell 对象）、V2c 的来源是布线前后
+  两份报告的名册差分——两个来源仍在，但**不是**"三种独立读数"，别再这么写。
+
+## 十二、r114 正式轮的范围（今天收口的口径，动手前先照着念）
+
+飞过的三刀里只有两刀进构建：`dc_fifo` 四颗格雷码寄存器的 `ASYNC_REG`（#262，尺子 A2 已由 RED 转 GREEN）
+与 `snap_cross.hb_gone` 声明初值（#257 尾，`scan_dead_reset_init` 由 init_miss=1 转 0，且该模块不在出货网表里）。
+**不进**的：`r114_io_async.xdc` 与两份变体（#275/#282/#285：窗一建起来 `eth_rxc` hold 就 −2.885，
+这是"约束把没建模的片外窗暴露出来"，不是可直接采纳的修法）；四条 `set_max_delay -datapath_only`
+（#276：叠在 `set_clock_groups -asynchronous` 上不产生新异常行 ⇒ #191 改判成"排除范围的决定"，要单独一轮）；
+复制驱动那一刀要等 §十一 之后的 A/B 真裁决（`MECHANISM_INERT` / `ADOPT_CANDIDATE` / `DECLINE`）。
+⇒ r114 正式轮的判据仍是**名册八对逐格差分**（两刀都是属性/初值级，预期时序中性），
+下一把真正的时序刀是 #194（捕获钟），它需要一次自己的正式轮，且判据已写死在 §十。
+
+## 十三、复制驱动 A/B 的真裁决（2026-10-03 18:39，件 `build/evidence/r114_mf/verdict.txt`，ISSUES #288）
+
+`MF-SUMMARY mech=2/2 gain=0.456 cost_red=1 lut_delta=31 verdict=**DECLINE**`。
+机制确实能动（复制单元 0→296、`u_pl/u_clk/u_mmcm_0` 扇出 −58），目标族也确实抬了（0.445→0.901），
+但名册差分（8 对）里 `eth_rxc/hold` 从 0.050 掉到 0.035（相对余量 −29 %）⇒ D3 红 ⇒ 不采纳。
+否决的理由与 §十/§十二 是同一条：这个域的 hold 今天刚被量出"挂上真实窗就是 −2.885"，
+所以它现在的余量读数本来就不作数，不能再削。⇒ **这一刀不进 r114 构建**（也没进：构建 18:43 起飞，只带两刀）。

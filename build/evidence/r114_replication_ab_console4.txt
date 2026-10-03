@@ -1,0 +1,28 @@
+[mf 18:24:05] roll none -> /tmp/kx/mf114/A
+[mf 18:31:41] roll repl -> /tmp/kx/mf114/B
+[mf 18:39:37] roster_A fanout_rows=40
+[mf 18:39:37] roster_B fanout_rows=40
+MFDIFF V1_both_rolls          A=2 B=2                        want 1/1 RED
+MFDIFF V2_variable_applied    B_nets=39 A_control=seen       B_nets>=1 且 A 明确没加 GREEN
+MFDIFF V2b_replicas_moved     A_replica=0 B_replica=296      B>A GREEN
+[mf 18:39:38] A after-fanout rows=40
+[mf 18:39:38] B after-fanout rows=40
+MFDIFF V2c_fanout_dropped     net=u_pl/u_clk/u_mmcm_0 drop=58 至少一个网扇出下降 GREEN
+MFDIFF V3_family_gain         A=0.445 B=0.901 d=0.456        gain>=+0.100ns GREEN
+MFDIFF V4_roster_no_cost      diff_rows=8 red=1              red=0 且 rows>=8 RED
+MFDIFF V5_lut_cost            A=14154 B=14185 d=31           abs<=600 GREEN
+[mf 18:39:46] 判读落 build/evidence/r114_mf/verdict.txt
+ROSTERDIFF-ROW sys_clk/hold slack 0.133->0.133 margin_pct 0.67->0.67
+ROSTERDIFF-HEADLINE wns ->（绝对差不算收益也不算损失，rule 35）
+ROSTERDIFF D1_no_new_violation    new=0              expect=0 GREEN
+ROSTERDIFF D2_pairs_compared      pairs=8            floor>=8 GREEN
+ROSTERDIFF D3_margin_cost         big_loss=1         lost>25%的域数=0 RED
+ROSTERDIFF D4_hold_covered        hold_pairs=4       want>=2 GREEN
+ROSTERDIFF D5_no_empty_readings   empty_in_B=0       expect=0 GREEN
+ROSTERDIFF D6_fanout_inventory    fanout_rows=40     want>=1 GREEN
+ROSTERDIFF-COST 变差的域: clkout0_1/setup:4.467->4.222(相对余量-5.5%) eth_rxc/hold:0.050->0.035(相对余量-29.0%) sys_clk/setup:14.463->14.262(相对余量-1.4%)
+ROSTERDIFF-GAIN 变好的域: clk_fpga_0/setup:+-31.7%绝对 clkout0_1/hold:+-6.9%绝对 eth_rxc/setup:+-1.6%绝对
+ROSTERDIFF-SUMMARY a=build/evidence/r114_mf/roster_A.txt b=build/evidence/r114_mf/roster_B.txt judged=6 pairs=8 result=RED
+MF-SUMMARY mech=2/2 gain=0.456 cost_red=1 lut_delta=31 verdict=DECLINE
+# 口径：先证机制能动（V2b 复制对象数、V2c 网扇出，两个不同来源），再谈收益（V3 目标族）与代价（V4 逐时钟名册、V5 资源）；
+# 头条 WNS 的绝对差不算收益也不算损失（rule 35）。机制没动 ⇒ 这一刀没打到东西，不许写成"时序收益不成立"。

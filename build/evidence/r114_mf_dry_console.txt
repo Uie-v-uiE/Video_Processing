@@ -1,0 +1,189 @@
+
+****** Vivado v2025.2.1 (64-bit)
+  **** SW Build 6403652 on Thu Mar 19 19:48:24 GMT 2026
+  **** IP Build 6403511 on Thu Mar 19 12:41:45 MDT 2026
+  **** SharedData Build 6403650 on Thu Mar 19 14:02:13 MDT 2026
+  **** Start of session at: Sat Oct  3 18:23:18 2026
+    ** Copyright 1986-2022 Xilinx, Inc. All Rights Reserved.
+    ** Copyright 2022-2026 Advanced Micro Devices, Inc. All Rights Reserved.
+
+source build/tcl/mf114_roll.tcl
+# set root [file normalize [file join [file dirname [info script]] .. ..]]
+# set dcp  [file join $root "vivado_system/zynq_video_sys.runs/impl_1/system_top_opt.dcp"]
+# if {![file exists $dcp]} { puts "REFUSE: no such dcp: $dcp"; exit 1 }
+# if {[info exists ::env(MF_MODE)]} { set mode $::env(MF_MODE) } else { set mode none }
+# if {[info exists ::env(MF_OUT)]}  { set out  $::env(MF_OUT)  } else { set out [file join $root "build/tmp_r114_roll"] }
+# if {[info exists ::env(MF_MINFO)]} { set minfo $::env(MF_MINFO) } else { set minfo 200 }
+# if {$mode eq "mf"} { set mode repl }
+# file mkdir $out
+# puts "ROLL mode=$mode minfo=$minfo dcp=$dcp out=$out"
+ROLL mode=none minfo=200 dcp=D:/Xilinx/Prj/pro/Video_Processing/vivado_system/zynq_video_sys.runs/impl_1/system_top_opt.dcp out=C:/Users/wenqu/AppData/Local/Temp/kx/mf114/DRY
+# open_checkpoint $dcp
+Command: open_checkpoint D:/Xilinx/Prj/pro/Video_Processing/vivado_system/zynq_video_sys.runs/impl_1/system_top_opt.dcp
+
+Starting open_checkpoint Task
+
+Time (s): cpu = 00:00:00 ; elapsed = 00:00:00.043 . Memory (MB): peak = 327.895 ; gain = 0.090
+INFO: [Device 21-403] Loading part xc7z020clg484-2
+Netlist sorting complete. Time (s): cpu = 00:00:00 ; elapsed = 00:00:00.320 . Memory (MB): peak = 823.629 ; gain = 0.000
+INFO: [Netlist 29-17] Analyzing 2897 Unisim elements for replacement
+INFO: [Netlist 29-28] Unisim Transformation completed in 2 CPU seconds
+INFO: [Project 1-479] Netlist was created with Vivado 2025.2.1
+INFO: [Project 1-570] Preparing netlist for logic optimization
+Read ShapeDB Complete: Time (s): cpu = 00:00:00 ; elapsed = 00:00:00.205 . Memory (MB): peak = 966.555 ; gain = 5.312
+INFO: [Timing 38-478] Restoring timing data from binary archive.
+INFO: [Timing 38-479] Binary timing data restore complete.
+INFO: [Project 1-856] Restoring constraints from binary archive.
+INFO: [Project 1-853] Binary constraint restore complete.
+INFO: [Designutils 20-5722] Start Reading Physical Databases.
+Reading placement.
+Read Netlist Cache: Time (s): cpu = 00:00:00 ; elapsed = 00:00:00.002 . Memory (MB): peak = 1504.125 ; gain = 0.000
+Reading placer database...
+Read Device Cache: Time (s): cpu = 00:00:00 ; elapsed = 00:00:00.018 . Memory (MB): peak = 1504.125 ; gain = 0.000
+Read PlaceDB: Time (s): cpu = 00:00:00 ; elapsed = 00:00:00 . Memory (MB): peak = 1504.125 ; gain = 0.000
+Read placeStorage: Time (s): cpu = 00:00:00 ; elapsed = 00:00:00.111 . Memory (MB): peak = 1504.125 ; gain = 0.000
+Read PulsedLatchDB: Time (s): cpu = 00:00:00 ; elapsed = 00:00:00 . Memory (MB): peak = 1504.125 ; gain = 0.000
+Reading routing.
+Read RouteStorage: Time (s): cpu = 00:00:00 ; elapsed = 00:00:00.011 . Memory (MB): peak = 1504.125 ; gain = 0.000
+Read Physdb Files: Time (s): cpu = 00:00:00 ; elapsed = 00:00:00.160 . Memory (MB): peak = 1504.125 ; gain = 0.000
+Restored from archive | CPU: 0.000000 secs | Memory: 0.000000 MB |
+Finished XDEF File Restore: Time (s): cpu = 00:00:00 ; elapsed = 00:00:00.227 . Memory (MB): peak = 1504.125 ; gain = 0.000
+Netlist sorting complete. Time (s): cpu = 00:00:00 ; elapsed = 00:00:00.022 . Memory (MB): peak = 1504.125 ; gain = 0.000
+INFO: [Project 1-111] Unisim Transformation Summary:
+  A total of 1035 instances were transformed.
+  RAM128X1D => RAM128X1D (MUXF7(x2), RAMD64E(x4)): 336 instances
+  RAM64M => RAM64M (RAMD64E(x4)): 651 instances
+  RAM64X1D => RAM64X1D (RAMD64E(x2)): 48 instances
+
+INFO: [Project 1-604] Checkpoint was created with Vivado v2025.2.1 (64-bit) build 6403652
+open_checkpoint: Time (s): cpu = 00:00:32 ; elapsed = 00:00:31 . Memory (MB): peak = 1504.125 ; gain = 1186.051
+# set frpt [file join $out fanout_before.rpt]
+# file delete -force $frpt
+# set ferr no-error
+# catch {report_high_fanout_nets -quiet -max_nets 40 -fanout_greater_than $minfo -file $frpt} ferr
+# puts "FANOUT_ERR=$ferr EXISTS=[file exists $frpt]"
+FANOUT_ERR=C:/Users/wenqu/AppData/Local/Temp/kx/mf114/DRY/fanout_before.rpt EXISTS=1
+# if {[file exists $frpt]} {
+#     set fh0 [open $frpt r]; set h0 [read $fh0]; close $fh0
+#     set hi 0
+#     foreach hl [split $h0 "\n"] {
+#         if {$hi < 25} { puts "FANOUT_HEAD|$hl"; incr hi } else { break }
+#     }
+# }
+FANOUT_HEAD|Copyright 1986-2022 Xilinx, Inc. All Rights Reserved. Copyright 2022-2026 Advanced Micro Devices, Inc. All Rights Reserved.
+FANOUT_HEAD|-------------------------------------------------------------------------------------------------------------------------------------------------------------
+FANOUT_HEAD|| Tool Version : Vivado v.2025.2.1 (win64) Build 6403652 Thu Mar 19 19:48:24 GMT 2026
+FANOUT_HEAD|| Date         : Sat Oct  3 18:23:51 2026
+FANOUT_HEAD|| Host         : Uie-laptop running 64-bit major release  (build 9200)
+FANOUT_HEAD|| Command      : report_high_fanout_nets -quiet -max_nets 40 -fanout_greater_than 200 -file C:/Users/wenqu/AppData/Local/Temp/kx/mf114/DRY/fanout_before.rpt
+FANOUT_HEAD|| Design       : system_top
+FANOUT_HEAD|| Device       : xc7z020
+FANOUT_HEAD|| Design State : Optimized
+FANOUT_HEAD|-------------------------------------------------------------------------------------------------------------------------------------------------------------
+FANOUT_HEAD|
+FANOUT_HEAD|High Fan-out Nets Information
+FANOUT_HEAD|
+FANOUT_HEAD|1. Summary
+FANOUT_HEAD|----------
+FANOUT_HEAD|
+FANOUT_HEAD|+--------------------------------------+--------+-------------+
+FANOUT_HEAD|| Net Name                             | Fanout | Driver Type |
+FANOUT_HEAD|+--------------------------------------+--------+-------------+
+FANOUT_HEAD|| u_eth/u_rgmii/u_rgmii_rx/gmii_rx_clk |   2546 | BUFG        |
+FANOUT_HEAD|| u_idelay_clkgen/u_mmcm_0             |   2412 | LUT2        |
+FANOUT_HEAD|| u_pl/u_clk/u_mmcm_0                  |   2109 | LUT1        |
+FANOUT_HEAD|| u_bd/bbstub_FCLK_RESET0_N            |   1836 | LUT1        |
+FANOUT_HEAD|| u_eth/u_saver/wptr_reg[5]            |   1165 | FDCE        |
+FANOUT_HEAD|| u_eth/u_saver/wptr_reg[3]            |    603 | FDCE        |
+# proc fan_rows {path minfo} {
+#     set rows {}
+#     if {![file exists $path]} { return $rows }
+#     set fh [open $path r]; set txt [read $fh]; close $fh
+#     foreach line [split $txt "\n"] {
+#         set t [string trim $line]
+#         if {[string index $t 0] ne "|" || [string index $t end] ne "|"} { continue }
+#         set cells {}
+#         foreach c [split $t "|"] { lappend cells [string trim $c] }
+#         if {[llength $cells] != 5} { continue }          ;# 首尾各一�?空格�? �? 3 数据�? = 5 �?
+#         lassign [lreplace $cells 0 0] nm fo drv
+#         if {$nm eq "" || $fo eq ""} { continue }
+#         if {![string is integer -strict $fo]} { continue }  ;# 表头�? "Fanout" 在这里出局
+#         if {$fo < $minfo} { continue }
+#         if {[string first " " $nm] >= 0} { continue }       ;# 网名不含空格 �? �?空格的是散文�?
+#         lappend rows [list $fo $nm $drv]
+#     }
+#     return $rows
+# }
+# proc net_by_name {nm} {
+#     set c [get_nets -quiet $nm]
+#     if {[llength $c] != 1} { return {} }
+#     if {[string compare [get_property NAME $c] $nm] != 0} { return {} }
+#     return $c
+# }
+# set targets {}
+# set n_skipped_clock 0
+# set n_skipped_name 0
+# foreach row [fan_rows $frpt $minfo] {
+#     lassign $row fo nm drv
+#     # BUFG/MMCM 驱动的网�?时钟网：复制驱动对它�?不是抓手（而且会�?�整�? phys_opt 命令一起失败）�?
+#     # �?留在名册里做�?分，不进 B 滚的变量�?
+#     if {$drv eq "BUFG" || $drv eq "BUFH" || [string match "*MMCM*" $drv] || [string match "*PLL*" $drv]} {
+#         incr n_skipped_clock
+#         puts "MFROW|fo=$fo|net=$nm|drv=$drv|role=roster_only_clock_net"
+#         continue
+#     }
+#     if {[llength [net_by_name $nm]] == 0} {
+#         incr n_skipped_name
+#         puts "CAND-SKIP fo=$fo net=$nm (get_nets 按路径没找回、或找回的�?�象 NAME 字面不等)"
+#         continue
+#     }
+#     lappend targets $nm
+#     puts "MFROW|fo=$fo|net=$nm|drv=$drv|role=target"
+# }
+MFROW|fo=2546|net=u_eth/u_rgmii/u_rgmii_rx/gmii_rx_clk|drv=BUFG|role=roster_only_clock_net
+MFROW|fo=2412|net=u_idelay_clkgen/u_mmcm_0|drv=LUT2|role=target
+MFROW|fo=2109|net=u_pl/u_clk/u_mmcm_0|drv=LUT1|role=target
+MFROW|fo=1836|net=u_bd/bbstub_FCLK_RESET0_N|drv=LUT1|role=target
+MFROW|fo=1165|net=u_eth/u_saver/wptr_reg[5]|drv=FDCE|role=target
+MFROW|fo=603|net=u_eth/u_saver/wptr_reg[3]|drv=FDCE|role=target
+MFROW|fo=601|net=u_eth/u_saver/wptr_reg[4]|drv=FDCE|role=target
+MFROW|fo=598|net=u_eth/u_saver/wptr_reg[0]_rep_n_0|drv=FDCE|role=target
+MFROW|fo=598|net=u_eth/u_saver/wptr_reg[1]_rep_n_0|drv=FDCE|role=target
+MFROW|fo=598|net=u_eth/u_saver/wptr_reg[2]_rep_n_0|drv=FDCE|role=target
+MFROW|fo=566|net=u_eth/u_saver/wptr_reg[0]_rep__0_n_0|drv=FDCE|role=target
+MFROW|fo=566|net=u_eth/u_saver/wptr_reg[1]_rep__0_n_0|drv=FDCE|role=target
+MFROW|fo=566|net=u_eth/u_saver/wptr_reg[2]_rep__0_n_0|drv=FDCE|role=target
+MFROW|fo=566|net=u_eth/u_saver/wptr_reg[3]_rep_n_0|drv=FDCE|role=target
+MFROW|fo=566|net=u_eth/u_saver/wptr_reg[4]_rep_n_0|drv=FDCE|role=target
+MFROW|fo=548|net=u_pl/u_pipe/xd_reg[12][0]_0|drv=FDCE|role=target
+MFROW|fo=548|net=u_pl/u_pipe/xd_reg[12][1]_0|drv=FDCE|role=target
+MFROW|fo=548|net=u_pl/u_pipe/xd_reg[12][2]_0|drv=FDCE|role=target
+MFROW|fo=548|net=u_pl/u_pipe/xd_reg[12][3]_0|drv=FDCE|role=target
+MFROW|fo=548|net=u_pl/u_pipe/xd_reg[12][4]_0|drv=FDCE|role=target
+MFROW|fo=548|net=u_pl/u_pipe/xd_reg[12][5]_0|drv=FDCE|role=target
+MFROW|fo=407|net=u_pl/u_pipe/xd_reg[8][2]_0|drv=FDCE|role=target
+MFROW|fo=407|net=u_pl/u_pipe/xd_reg[8][1]_0|drv=FDCE|role=target
+MFROW|fo=407|net=u_pl/u_pipe/xd_reg[8][0]_0|drv=FDCE|role=target
+MFROW|fo=407|net=u_pl/u_pipe/xd_reg[8][5]_0|drv=FDCE|role=target
+MFROW|fo=407|net=u_pl/u_pipe/xd_reg[8][4]_0|drv=FDCE|role=target
+MFROW|fo=407|net=u_pl/u_pipe/xd_reg[8][3]_0|drv=FDCE|role=target
+MFROW|fo=304|net=u_eth/u_reasm/rok4[51]_i_1_n_0|drv=LUT3|role=target
+MFROW|fo=269|net=u_pl/u_arb/dbg_src[0]|drv=FDCE|role=target
+MFROW|fo=255|net=u_eth/u_lm/upd|drv=FDCE|role=target
+MFROW|fo=254|net=u_lm_axi/bus_edge|drv=LUT2|role=target
+MFROW|fo=224|net=u_pl/u_bilin/j_d3_reg[4]_rep__0_0[1]|drv=FDCE|role=target
+MFROW|fo=224|net=u_pl/u_bilin/j_d3_reg[4]_rep__1_0[1]|drv=FDCE|role=target
+MFROW|fo=224|net=u_pl/u_bilin/j_d3_reg[4]_rep__2_0[1]|drv=FDCE|role=target
+MFROW|fo=224|net=u_pl/u_bilin/A[2]|drv=FDCE|role=target
+MFROW|fo=224|net=u_pl/u_bilin/ADDRD[2]|drv=FDCE|role=target
+MFROW|fo=224|net=u_pl/u_bilin/j_d3_reg[4]_rep__0_0[2]|drv=FDCE|role=target
+MFROW|fo=224|net=u_pl/u_bilin/j_d3_reg[4]_rep__1_0[2]|drv=FDCE|role=target
+MFROW|fo=224|net=u_pl/u_bilin/j_d3_reg[4]_rep__2_0[2]|drv=FDCE|role=target
+MFROW|fo=224|net=u_pl/u_bilin/A[3]|drv=FDCE|role=target
+# set nb [llength $targets]
+# puts "BIG_NETS=$nb roster_skipped_clock=$n_skipped_clock roster_skipped_name=$n_skipped_name (from $frpt)"
+BIG_NETS=39 roster_skipped_clock=1 roster_skipped_name=0 (from C:/Users/wenqu/AppData/Local/Temp/kx/mf114/DRY/fanout_before.rpt)
+# if {$nb == 0} { puts "MF-REFUSE: 名册有�?�但一�?网�?�象都没认下来（�?的是对象查找/驱动类型，不�?报告排版�?"; exit 4 }
+# if {[info exists ::env(MF_DRY)] && $::env(MF_DRY) eq "1"} { puts "DRYDONE targets=$nb"; exit 0 }
+DRYDONE targets=39
+INFO: [Common 17-206] Exiting Vivado at Sat Oct  3 18:23:51 2026...

@@ -12085,3 +12085,135 @@ IDELAY_VALUE 0` + 模型 (b) 的窗已经扫过，−2.522 就是它的读数 �
 ①需要改 `rgmii_rx.v` 的钟网结构 ⇒ 必须走正式一轮构建 + 台架 + 名册差分，判据仍是
 `eth_rxc` hold ≥ 0 / `fail_hold = 0`，且其余三域不许比 #282 的表格差。
 今天能收口的只有"②否掉、①成为唯一候选、并且把 r92 那笔判断的前提（无窗建模）写进它的注释里"。
+
+### #286 扇出那一滚的 `MF-REFUSE` 是**我的尺子断在对象查找**，不是报告排版：三种 `-filter` 形式在网对象上恒空（2026-10-03 18:23）
+
+先念一句我自己的错：#279 末尾我写的待办是"之前那次 `MF-REFUSE` 不是'这一刀没打到东西'，是尺子断了"——
+方向对了，但**断在哪一层是猜的**。滚脚本里那句 REFUSE 文案写的是"报告形状或工具版本不符"，
+而 18:11 那一次名册行**全部解析成功**（`fo=` 与 `net=` 都念出来了），失败发生在下一步：`get_nets` 一个对象都没找回。
+⇒ 文案与归因都改了。
+⚠ 凭据口径说实话：那 41 行 `CAND-SKIP` 打在 `/tmp/kx/mf114/A/roll_console.txt`，**这份已经被 18:24 的重跑覆盖**
+（探针/滚的输出路径写死 ⇒ 上一份唯一快照自己抹掉自己，与 #287 第 3 条同一个毛病，我又踩了一次）。
+现在盘上能查的是：`build/evidence/r114_replication_ab_console3.txt` 留着那一次 `roll none 没跑完 rc=4` 的行，
+`build/evidence/probe_mf114_netname_console.txt` 留着同一批网名在四种查找形式下的读数（下表），
+"41 行"这个数只能算我当时从那份现在已不存在的文件里念到的，别当实测值引用。
+
+只读探针 `build/tcl/probe_mf114_netname.tcl`（件 `build/evidence/probe_mf114_netname_console.txt`，
+同一份 `system_top_opt.dcp`，四种查找形式并排量，负对照 `NO_SUCH_NET_should_be_zero`）：
+
+| 形式 | gmii_rx_clk | wptr_reg[5] | rok4[51]_i_1_n_0 | u_pl/u_bilin/A[2] | 负对照 |
+|---|---|---|---|---|---|
+| F0 `get_nets -quiet <分层路径>` | **1** | **1** | **1** | **1** | 0 |
+| F1 `get_nets -quiet -hier <全名>` | 0 | 0 | 0 | 0 | 0 |
+| F2 `-filter "NAME == {全名}"` | 0 | 0 | 0 | 0 | 0 |
+| F3 `-filter "FULL_NAME == {全名}"` | 0 | 0 | 0 | 0 | 0 |
+| F4 `-hier -filter "NAME == {短名}"` | 0 | 0 | 0 | 0 | 0 |
+
+F2/F4 恒空**不是名字对不上**：F0 找回的那个对象，`get_property NAME` 打出来正是
+`u_eth/u_rgmii/u_rgmii_rx/gmii_rx_clk`（`FULL_NAME` 是**空**）。也就是说 nets 的 `NAME` 属性值
+与 `-filter NAME ==` 的比较对象不是一回事，而 `get_nets -hier gmii_rx_cl*` 通配能回 21 个——
+**只有不带 `-hier` 的分层路径写法可用**。这一条推翻了我原先"FULL_NAME 才是全名"的假设（又一次"形状要量不许猜"）。
+
+顺带三条射程事实（同一份探针）：
+
+1. `get_property FANOUT [get_nets …]` **返回空** ⇒ "网对象自己带扇出读数"这个第二来源不存在，
+   V2c 的两个来源只能是"复制出来的单元数（cell 对象）"与"布线前后两份扇出报告的名册（报告文本）"，
+   不能再宣称有第三种。
+2. `get_nets -quiet *`（不带 `-hier`）只回 **1000** 个网 ⇒ 顶层网；拿它做全设计扇出扫描会得到
+   `ge200=0` 这种**假干净**（探针实测 `fanout_prop_nonempty=0 ge200=0`），差点被念成"没有高扇出网"。
+3. `get_pins -of <net>` 的数与报告的 Fanout 差得很远（`wptr_reg[5]`：报告 1165、`PINS_ALL` 238；
+   `u_pl/u_bilin/A[2]`：报告 224、`LOADS_IN` 0）⇒ **别拿它当扇出的分母**，扇出读数只认
+   `report_high_fanout_nets` 这一家，差分也必须在两滚各自的那一份里读。
+
+尺子修法（都在 `build/tcl/mf114_roll.tcl`，同一次改）：名册行改按**实测形状**解析
+（`| 名字 | 整数 | 驱动类型 |` 正好三段，表头/`Command` 行/散文行天然出局——旧的 token 扫法
+把报告头 `| Command : report_high_fanout_nets … -fanout_greater_than 200 … |` 读成了一条
+`fo=200 net=report_high_fanout_nets` 的假网）；查找换成 F0 并**找回后再做一次 NAME 字面相等核对**，
+核对不过的逐条点名计数；驱动类型为 BUFG/BUFH/MMCM/PLL 的钟网**只进名册不进 B 滚变量**
+（复制钟驱动不是抓手，还会让整条 `phys_opt_design` 一起失败）。
+新增 `MF_DRY=1` 干跑档：只花 2 分钟量"解析 + 对象找回"这一层，实测
+`build/evidence/r114_mf_dry_console.txt` 念 `BIG_NETS=39 roster_skipped_clock=1 roster_skipped_name=0`
+且 `DRYDONE` ⇒ 再烧两滚各 8~10 分钟之前先过这一关（这一层的成本分界以前没人量过）。
+
+还欠着的口径：目标名单里留着 `u_idelay_clkgen/u_mmcm_0`(LUT2, fo=2412)、`u_pl/u_clk/u_mmcm_0`(LUT1, fo=2109)、
+`u_bd/bbstub_FCLK_RESET0_N`(LUT1, fo=1836) 这三根——驱动类型是 LUT 但**名字像钟/复位**，
+是否属于"能安全复制的对象"没有凭据。所以这一滚的结论必须连 V4（逐时钟名册差分）一起念，
+只报 V3 的收益不报 V4 的代价就是又一次"一根筋"。
+
+### #287 `ASYNC_REG` 这一刀的**网表侧**凭据建起来了（改前实测：84 颗格雷码 FF、0 颗带属性、TIMING-10 = 1）（2026-10-03 18:36）
+
+§一 那一刀原来只有一把文本尺子（`build/scan_async_reg_coverage.py`，改前 A2 RED 件 `build/evidence/r113_async_reg_scan.txt`）。
+文本绿不等于工具认账，所以新建只读探针 `build/tcl/probe_r114_async_netlist.tcl`，件 `build/evidence/r114_async_netlist_pre_console.txt`
+（问的是**现在盘上那份 r113 routed dcp**——构建一跑就会被覆盖，这一份是改前唯一快照）：
+
+```
+ASYNCNET_CELLS gray_cells=116 gray_ff=84 marked_true=0
+FFLINE cell=u_eth/u_cdc/rgray_reg[0] ref=FDCE ASYNC_REG=
+ALT_LOOKUP s0_reg_style=28 s1_reg_style=28
+METHROW check=TIMING-10 sev=Warning count=1
+METH_SUMMARY checks_found=446
+```
+
+三条新事实（都是量出来的，不是推的）：
+
+1. **改前的网表读数是 0/84** ⇒ 这一刀有了一条"改前必须红"的**网表侧**判据（构建后期望 `marked_true` 离开 0、
+   `report_methodology` 的 TIMING-10 从 1 条走掉）。基线快照另钉一份：`build/evidence/r113_methodology_baseline.rpt`
+   （SUMMARY 行 + `Checks found: 446`），构建覆盖 `build/methodology.rpt` 之后还有得对照。
+2. RTL 里 `wgray_s0/s1`、`rgray_s0/s1` 四条向量在网表里是**带位下标的 `*_reg[N]`**，
+   而且 `u_cdc` 底下同时住着 `wgray_reg`/`rgray_reg` 与 `wgray_s0_reg`/`…_s1_reg` 两族（`116` 个匹配对象里 84 颗是 FF）；
+   我第一版把路径写死成 `u_eth/u_cdc/wgray_s0_reg` 直接 `found=0`（件同名控制台的 18:34 那次运行）。
+   ⇒ 判据改成"在 `u_cdc` 底下把所有带 gray 的 FF 问出来，逐颗念属性"，
+   并且 **`n=0` 念成"名字猜错"、不念成"属性丢了"**（两个数分开报，rule 46）。
+3. 又一条工具形状：`get_cells` **只收一个位置参数模式**，
+   `get_cells a* b*` 报 `[Common 17-165] Too many positional options`。
+   同时这一条也暴露我自己的一个老毛病复发：探针的输出路径写死（`..._pre_console.txt`），
+   第二次运行把第一次那份**唯一**快照盖掉了——被我在注释里点名为凭据的那一行因此消失（rule 17）。
+   现在注释改口成"那次运行的件已被同路径覆盖 ⇒ 持久记录写在这里"，不装作还在。
+
+顺带把链子的第一判据接上：`build/r114_chain.sh` 的 ①/③ 两段就是"两把文本尺子 pre+post 都绿 +
+这把网表尺子 pre/post 各一次"，红的就断链（不付 70–128 分钟台架的钱）。xsdb 的默认值也一次性写进链子
+（`D:/Software/Vivado/2025.2.1/Vitis/bin/xsdb.bat`，盘上验过存在），免得 #273 那种"到 board_verify 才 REFUSE"再来一次。
+
+### #288 复制驱动那一刀量到底了：**机制能动、目标族 +0.456 ns、但代价落在 `eth_rxc` 的 hold 上 ⇒ DECLINE**（2026-10-03 18:39）
+
+§三 那一刀第一次拿到**真裁决**（件 `build/evidence/r114_mf/verdict.txt`；两滚同一份 `system_top_opt.dcp`，
+唯一变量是布线前 `phys_opt_design` 带不带 `-force_replication_on_nets`）：
+
+| 判据 | 读数 | 判定 |
+|---|---|---|
+| V1 两滚跑完 | A/B 各一次 ROLLDONE | GREEN |
+| V2 变量真落上 | B `MF_APPLIED nets=39`；A `MF_APPLIED none` | GREEN |
+| V2b 机制（来源 1：复制出来的单元） | `REPLICA_CELLS` A=0 → B=**296** | GREEN |
+| V2c 机制（来源 2：布线前后扇出名册） | `u_pl/u_clk/u_mmcm_0` 扇出降 **58** | GREEN |
+| V3 目标族（`p_eof → rows_hit[*]` 那条 CE 广播锥） | 0.445 → **0.901**（+0.456 ns） | GREEN |
+| V4 逐时钟名册差分（8 对） | D1 新违例 0、D3 **big_loss=1**（`eth_rxc/hold 0.050→0.035`，相对余量 −29.0 %）；另有 `clkout0_1/setup −5.5 %`、`sys_clk/setup −1.4 %` | **RED** |
+| V5 资源代价 | Slice LUTs 14154 → 14185（+31） | GREEN |
+| 结论 | `MF-SUMMARY mech=2/2 gain=0.456 cost_red=1 lut_delta=31 verdict=DECLINE` | — |
+
+**为什么这一刀必须放弃，而不是"收益这么大先收下"**：它买到的 +0.456 ns 与被它拿走的东西在**同一个域**——
+`eth_rxc` 的 setup 从 0.445 抬到 0.452（几乎没动，因为最差那条被搬去了别的族的影子？不：V3 那条 0.445 本来就是
+`eth_rxc/setup` 族），而同域 hold 从 0.050 掉到 0.035。今天 #285 已经量明：**这个域的 hold 根本没有余量可言**
+——一挂上真实的 RGMII 输入窗，它就是 −2.885 ns、5 个端点全在 `u_iddr_rx_ctl/D`。在一个"约束还没建全、
+余量读数已经不可信"的域上再削掉 29 % 的相对余量，等于把 r62/#57 那次"WHS 在 ±1 ps 上掷硬币"重新请回来。
+⇒ 判据不许反着写：这不是"WNS 没动所以不算收益"（rule 35 禁止的口径），是**名册差分看见的代价**否决的。
+
+还欠着两条老实话：
+
+1. V2c 那根下降的网是 `u_pl/u_clk/u_mmcm_0`——正是 §十一 里我点名"驱动类型是 LUT 但名字像钟"的三根之一。
+   它的扇出降了 58，说明**这一刀的机制确实打到了钟分布网上**，但"复制 MMCM/LUT 驱动的钟网"是不是好事**没有凭据**；
+   如果将来重开这一刀，得先把这三根从目标名单里剔出去再量一次，否则连"收益来自哪里"都说不清。
+2. 快车道两滚各自只花 6–8 分钟（A：place 2m + route 4m；B：place 1m + route 4m），
+   比一次正式构建（60 min）+ 台架（70–128 min）便宜两个数量级 ⇒ 这类"物理杠杆值不值"的问题**以后一律先在快车道量**。
+
+### #289 名册差分把"变好的域"印成 `+-31.7%绝对`：双符号 + 错单位，补了一条**形状对照**（2026-10-03 18:43）
+
+`build/timing_roster_diff.sh` 的 COST 行写 `相对余量-X%`、GAIN 行写 `+${dl}%绝对`，而 `dl` 本身在收益时是**负数**
+⇒ 印出 `clk_fpga_0/setup:+-31.7%绝对`。两个错：符号重复；这个数是"相对余量的变化百分比"，
+与 COST 同口径，却标成"绝对"（读者会拿它跟 slack 的 ns 差去对，正好是 rule 35 要避免的那种误读）。
+第一条真读数就是 §#288 那份 `verdict.txt`（18:39 那次运行还带着这个毛病）。
+
+修法：GAIN 与 COST 对称成 `slack_a->slack_b(相对余量+X%)`，X 取正；并给尺子加**第 6 条对照**——
+"收益行的形状"本身是判据（不许出现 `+-`、单位必须是 `相对余量+`），这是 rule 39（标签/单位是判据的一部分）
+在这一家的落地。`--self` 实测 **6/6 全过**，同一对真名册重念：
+`clk_fpga_0/setup:1.135->1.495(相对余量+31.7%) clkout0_1/hold:0.059->0.062(相对余量+6.9%) eth_rxc/setup:0.445->0.452(相对余量+1.6%)`。
+文件头那句"四条对照"也一起改成"六条"（口径与代码同一笔改，#242/D1c 的教训）。

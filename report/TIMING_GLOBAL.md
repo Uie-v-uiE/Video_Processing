@@ -224,6 +224,35 @@ hold 0.050/0.056/0.059/0.133），与本文第 2 节的表同源同数，逐条�
 属于必须单独一轮、带名册差分去做的决定，不能靠叠约束顺手完成。
 
 
+## 4e. 2026-10-03 实测：高扇出广播"复制驱动"这一刀量到底了——**机制能动、目标族 +0.456 ns、代价落在 `eth_rxc` 的 hold ⇒ 放弃**（件 `build/evidence/r114_mf/verdict.txt`）
+
+第 3 节说的"下一刀不切逻辑、切广播"到这里有了真裁决。两滚同一份 `system_top_opt.dcp`，
+唯一变量 = 布线前那次 `phys_opt_design` 带不带 `-force_replication_on_nets`（目标名单 =
+`report_high_fanout_nets` 里 fo≥200 且**驱动不是 BUFG/BUFH/MMCM/PLL** 的 39 根网）：
+
+| 判据（顺序 = 先证机制能动，再谈收益与代价） | A 滚（不加） | B 滚（加） | 判定 |
+|---|---|---|---|
+| 复制出来的单元数 | 0 | **296** | 机制动了（来源 1） |
+| 名册里至少一根网扇出下降 | — | `u_pl/u_clk/u_mmcm_0` −58 | 机制动了（来源 2） |
+| 目标族最差 slack（`p_eof → rows_hit[*]` 的 CE 锥） | 0.445 | **0.901** | +0.456 ns |
+| `eth_rxc` hold | 0.050 | **0.035** | 相对余量 −29.0 % ⇒ **红** |
+| `clkout0_1` setup / `sys_clk` setup | 4.467 / 14.463 | 4.222 / 14.262 | −5.5 % / −1.4 % |
+| Slice LUTs | 14154 | 14185 | +31（便宜） |
+
+结论按名册差分下，不按头条：**这一刀被 `eth_rxc` 的 hold 否决**。理由是今天同一张表上的另一处读数——
+第 4d 节量到"挂上真实 RGMII 到达窗之后，这个域的 hold 是 −2.885 ns、5 个端点全在 `u_iddr_rx_ctl/D`"，
+也就是它的 hold 余量本来就不作数；在一个约束还没建全的域上再削掉三成相对余量，
+等于把 #57/r62 那次"WHS 在 ±1 ps 上掷硬币"重新请回来（见 ISSUES #288）。
+
+三条可复用的口径：
+
+* **"WNS 没动"不是证据**（rule 35）；这一刀 WNS 与目标族都动了、还被否决，靠的正是逐域差分。
+* 复制驱动**不是免费的**：+31 LUT 是小头，代价体现在别的域的 slack 上，所以判据必须成对（收益 + 代价）。
+* 这类物理杠杆值不值，**先在快车道量**：两滚共 ~13 分钟（place 1–2 min + route 4 min 各一遍），
+  比正式一轮构建 + 顶层台架便宜两个数量级（ISSUES #288 第 2 条）。
+* 待办（不许写成已做）：V2c 那根下降的网是名字像钟的 `u_pl/u_clk/u_mmcm_0`。重开这一刀之前，
+  要先把这类"驱动是 LUT 但住在钟分布上"的网剔出目标名单再量一遍，否则说不清收益来自哪里。
+
 ## 参考（官方与论坛，2026-10-03 查）
 - [Timing Closure — UG949 UltraFast Design Methodology Guide](https://docs.amd.com/r/en-US/ug949-vivado-design-methodology/Timing-Closure)
 - [Additional Uncertainty — UG949（不确定度那一节；⚠ 页名可查、正文要 JS 我抓不到，所以本文只引页名不引原句）](https://docs.amd.com/r/en-US/ug949-vivado-design-methodology/Additional-Uncertainty)

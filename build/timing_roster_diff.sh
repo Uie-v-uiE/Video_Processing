@@ -9,7 +9,8 @@
 # 数据来源：`build/tcl/probe_timing_roster.tcl`（只读开 routed dcp，几分钟，不重建）。
 # 用法：
 #   bash build/timing_roster_diff.sh build/evidence/r113_before_roster.txt build/evidence/r113_after_roster.txt
-#   bash build/timing_roster_diff.sh --self      # 四条对照：尺子必须既能让坏的判红、也能让好的判绿
+#   bash build/timing_roster_diff.sh --self      # 六条对照：尺子必须既能让坏的判红、也能让好的判绿，
+#                                                # 而且 GAIN 行的形状（符号/单位）本身是一条对照
 set -u
 LOST_PCT=${LOST_PCT:-25}          # 相对余量掉多少百分比算代价（同域内 slack/period 之比）
 FLOOR_PAIRS=${FLOOR_PAIRS:-8}     # 至少要配上的 (时钟,类型) 对数：4 个域 × setup/hold
@@ -53,7 +54,22 @@ if [ "${1:-}" = "--self" ]; then
     a=$(mk | sed -e 's/slack=0.445|margin_pct=5.56/slack=0.900|margin_pct=11.25/' -e 's/slack=1.135|margin_pct=11.35/slack=1.600|margin_pct=16.00/'); chk "$base" "$a" GREEN control_all_improve || r=1
     # 5) 名册残缺（只配到 2 对）⇒ 必须红：空转的尺子不许念绿
     a=$(printf '%s\n' "$base" | head -3); chk "$base" "$a" RED control_scope_floor || r=1
-    [ $r -eq 0 ] && say "SELF timing_roster_diff 对照 5/5 全过 PASS" || say "SELF timing_roster_diff FAIL"
+    # 6) **收益行的形状**也是判据（rule 39：标签与单位是判据的一部分）：
+    #    `+-31.7%绝对` 那种"双符号 + 错单位"复现出来就判红。这条是 2026-10-03 复制驱动 A/B
+    #    第一次念出 GAIN 行才发现的（ISSUES #289）。
+    mkdir -p /tmp/kx
+    gfix=$(printf '%s\n' "$base" | sed -e 's/slack=0.445|margin_pct=5.56/slack=0.900|margin_pct=11.25/' \
+                                     -e 's/slack=1.135|margin_pct=11.35/slack=1.600|margin_pct=16.00/')
+    printf '%s\n' "$base" > /tmp/kx/rd_a.txt; printf '%s\n' "$gfix" > /tmp/kx/rd_b.txt
+    gl=$(bash build/timing_roster_diff.sh /tmp/kx/rd_a.txt /tmp/kx/rd_b.txt 2>/dev/null | grep -a '^ROSTERDIFF-GAIN' | head -1)
+    if printf '%s' "$gl" | grep -q -- '+-'; then
+        say "SELF control_gain_line_shape got=$gl want=无双符号 FAIL"; r=1
+    elif ! printf '%s' "$gl" | grep -q '相对余量+'; then
+        say "SELF control_gain_line_shape got=$gl want=单位写成 相对余量+ FAIL"; r=1
+    else
+        say "SELF control_gain_line_shape got=$gl PASS"
+    fi
+    [ $r -eq 0 ] && say "SELF timing_roster_diff 对照 6/6 全过 PASS" || say "SELF timing_roster_diff FAIL"
     exit $r
 fi
 
@@ -95,7 +111,14 @@ for c in $clks; do
         if [ "$worse" = 1 ]; then loss_list="$loss_list ${c}/$k:${sa}->${sb}(相对余量-${dl}%)"; fi
         if [ "$dl" != "NA" ]; then
             better=$(awk -v d="$dl" 'BEGIN{ if (d+0 < 0) print 1; else print 0 }')
-            [ "$better" = 1 ] && gain_list="$gain_list ${c}/$k:+${dl}%绝对"
+            # ⚠ 这里以前印的是 `+${dl}%绝对`：dl 本身是负数 ⇒ 印出 `+-31.7%`（双符号），
+            #   而且这个数是**相对余量的变化百分比**，与 COST 那一行的口径一模一样，
+            #   却标成"绝对"（2026-10-03 r114 复制驱动 A/B 第一次念出来才发现，ISSUES #289）。
+            #   现在与 COST 对称：`slack_a->slack_b(相对余量+X%)`，X 取正。
+            if [ "$better" = 1 ]; then
+                gp=$(awk -v d="$dl" 'BEGIN{ printf "%.1f", 0-(d+0) }')
+                gain_list="$gain_list ${c}/$k:${sa}->${sb}(相对余量+${gp}%)"
+            fi
         fi
         printf 'ROSTERDIFF-ROW %s/%s slack %s->%s margin_pct %s->%s\n' "$c" "$k" "$sa" "$sb" "$pa" "$pb"
     done

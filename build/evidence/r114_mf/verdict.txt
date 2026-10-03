@@ -1,0 +1,44 @@
+[mf 18:39:37] ==== r114 复制驱动 A/B 判读 ====
+[A] # puts "BIG_NETS=$nb roster_skipped_clock=$n_skipped_clock roster_skipped_name=$n_skipped_name (from $frpt)"
+[A] BIG_NETS=39 roster_skipped_clock=1 roster_skipped_name=0 (from C:/Users/wenqu/AppData/Local/Temp/kx/mf114/A/fanout_before.rpt)
+[A] # puts "PLACE_WALL=[expr ([clock seconds]-$t0)/60]m"
+[A] PLACE_WALL=2m
+[A] #     puts "MF_APPLIED nets=[llength $netobjs] (phys_opt -force_replication_on_nets)"
+[A] #     puts "MF_APPLIED none (control roll: plain phys_opt_design)"
+[A] MF_APPLIED none (control roll: plain phys_opt_design)
+[A] # puts "REPLICA_CELLS=[llength $reps]"
+[A] REPLICA_CELLS=0
+[A] # puts "ROUTE_WALL=[expr ([clock seconds]-$t1)/60]m"
+[A] ROUTE_WALL=4m
+[B] # puts "BIG_NETS=$nb roster_skipped_clock=$n_skipped_clock roster_skipped_name=$n_skipped_name (from $frpt)"
+[B] BIG_NETS=39 roster_skipped_clock=1 roster_skipped_name=0 (from C:/Users/wenqu/AppData/Local/Temp/kx/mf114/B/fanout_before.rpt)
+[B] # puts "PLACE_WALL=[expr ([clock seconds]-$t0)/60]m"
+[B] PLACE_WALL=1m
+[B] #     puts "MF_APPLIED nets=[llength $netobjs] (phys_opt -force_replication_on_nets)"
+[B] #     puts "MF_APPLIED none (control roll: plain phys_opt_design)"
+[B] MF_APPLIED nets=39 (phys_opt -force_replication_on_nets)
+[B] # puts "REPLICA_CELLS=[llength $reps]"
+[B] REPLICA_CELLS=296
+[B] # puts "ROUTE_WALL=[expr ([clock seconds]-$t1)/60]m"
+[B] ROUTE_WALL=4m
+ROSTERDIFF-ROW clk_fpga_0/setup slack 1.135->1.495 margin_pct 11.35->14.95
+ROSTERDIFF-ROW clk_fpga_0/hold slack 0.056->0.056 margin_pct 0.56->0.56
+ROSTERDIFF-ROW clkout0_1/setup slack 4.467->4.222 margin_pct 22.34->21.11
+ROSTERDIFF-ROW clkout0_1/hold slack 0.059->0.062 margin_pct 0.29->0.31
+ROSTERDIFF-ROW eth_rxc/setup slack 0.445->0.452 margin_pct 5.56->5.65
+ROSTERDIFF-ROW eth_rxc/hold slack 0.050->0.035 margin_pct 0.62->0.44
+ROSTERDIFF-ROW sys_clk/setup slack 14.463->14.262 margin_pct 72.31->71.31
+ROSTERDIFF-ROW sys_clk/hold slack 0.133->0.133 margin_pct 0.67->0.67
+ROSTERDIFF-HEADLINE wns ->（绝对差不算收益也不算损失，rule 35）
+ROSTERDIFF D1_no_new_violation    new=0              expect=0 GREEN
+ROSTERDIFF D2_pairs_compared      pairs=8            floor>=8 GREEN
+ROSTERDIFF D3_margin_cost         big_loss=1         lost>25%的域数=0 RED
+ROSTERDIFF D4_hold_covered        hold_pairs=4       want>=2 GREEN
+ROSTERDIFF D5_no_empty_readings   empty_in_B=0       expect=0 GREEN
+ROSTERDIFF D6_fanout_inventory    fanout_rows=40     want>=1 GREEN
+ROSTERDIFF-COST 变差的域: clkout0_1/setup:4.467->4.222(相对余量-5.5%) eth_rxc/hold:0.050->0.035(相对余量-29.0%) sys_clk/setup:14.463->14.262(相对余量-1.4%)
+ROSTERDIFF-GAIN 变好的域: clk_fpga_0/setup:+-31.7%绝对 clkout0_1/hold:+-6.9%绝对 eth_rxc/setup:+-1.6%绝对
+ROSTERDIFF-SUMMARY a=build/evidence/r114_mf/roster_A.txt b=build/evidence/r114_mf/roster_B.txt judged=6 pairs=8 result=RED
+MF-SUMMARY mech=2/2 gain=0.456 cost_red=1 lut_delta=31 verdict=DECLINE
+# 口径：先证机制能动（V2b 复制对象数、V2c 网扇出，两个不同来源），再谈收益（V3 目标族）与代价（V4 逐时钟名册、V5 资源）；
+# 头条 WNS 的绝对差不算收益也不算损失（rule 35）。机制没动 ⇒ 这一刀没打到东西，不许写成"时序收益不成立"。
