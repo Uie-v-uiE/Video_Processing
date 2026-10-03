@@ -412,3 +412,44 @@ UG472（114 页）的 BUFIO 一节都是定性叙述（"BUFIO 只驱动 I/O 钟�
 - [Allow Register Replication — UG949](https://docs.amd.com/r/en-US/ug949-vivado-design-methodology/Allow-Register-Replication)
 - [Replicate High Fanout Net Drivers — UG949](https://docs.amd.com/r/en-US/ug949-vivado-design-methodology/Replicate-High-Fanout-Net-Drivers)
 - [MicroZed Chronicles: Baseline Timing Closure（第三方实践帖）](https://www.adiuvoengineering.com/post/microzed-chronicles-baseline-timing-closure)
+
+## 9. r117 / r118（2026-10-04 04:00–05:00）：全局名册上最后两把非放宽的物理刀，各自量到判语
+
+**r117 = τ=31 + C9（对 239 引脚广播网强制复制）**，输入窗按发布门退回候选件（原因写在
+`build/tcl/build_system_axigpio.tcl` 的约束加载处：绑窗后 4 条发布硬门判红，而仓库自己的门禁结论是
+"有红项 ⇒ 不采纳，保留上一版"；约束原件与全部证明留在 `src/constraints/r116_rgmii_input_window.xdc`，
+`VP_R116_IO_WINDOW=1` 一条命令复现）。对照 = **r114 官方名册**，且必须同生成器配对
+（件 `build/evidence/r114_after_roster_probefmt.txt` → `build/evidence/r117_roster_diff_vs_r114.txt`；
+拿 `roster_from_summary.sh` 那份去减探针那份会被口径闸门判 REFUSE，账在 `report/log/ISSUES.md` #326）。
+
+| 域 / 格 | r114 | r117 | 判语 |
+| --- | --- | --- | --- |
+| `clk_fpga_0` setup | 1.850 ns（18.50 %） | **2.104 ns（21.04 %）** | 赢；机制同步成立（239→1 引脚、10 颗 replica，`impl_1/runme.log` 与 `build/r117_a1_read.sh` 两处出水口） |
+| `clkout0_1` setup | 3.630 ns（18.15 %） | **3.353 ns（16.77 %）** | 跌 |
+| `eth_rxc` setup | 0.739 ns（9.24 %） | **0.615 ns（7.69 %）** | 跌，且这是全设计绝对最紧那一格 |
+| `eth_rxc` hold | 0.052 ns | **0.044 ns** | 跌，且这是全设计最薄那一格 |
+| `sys_clk` setup | 14.876 ns | **14.815 ns** | 跌 |
+
+⇒ **C9 判负**（`build/r117_verdict_declined.txt`）：起飞前预登记的是严格口径"任何一格 rel_margin 不许变小"，
+四格跌就判负；`build/timing_roster_diff.sh` 的 D3 门槛是"掉 25 % 以上的域数"，对同一份数据给 `result=GREEN`。
+**两把尺子判语不一致这件事没有靠改宽任何一方来消除**（#328），而是把严格那把独立成可指路的件
+`build/evidence/r118_strict_b1.txt`。这与 r115 那一夜 C1 复制刀的形状完全相同（`report/log/ISSUES.md` #288）：
+机制动了，代价落在最紧的域上 ⇒ 不做。
+
+**r118 = 只带 τ=31**（`IDELAY_VALUE` 26→31，r116 在同一份已布线 DCP 上把 0…31 扫满量出来的收口眼心；
+`HOLD(τ) = −2.822 + 0.0630τ`、`SETUP(τ) = +2.005 − 0.0920τ`，`min(hold,setup)` 最大点在 τ=31，
+比出货值 τ=26 抬 +0.315 ns，件 `build/evidence/r115_window/probe3_console.txt`）。
+这一刀的收益**不在片内 slack 上**（τ 只动 I/O 单元的抽头），所以判据不能写成"WNS 变好"（规矩 35），
+而是四条：B1 严格名册对 r114 逐格不劣化 / B2 机构中性（本版故意不挂复制钩子）/
+B3 资源中性 / B4 发布门 24 项红数 == 1 且两跑逐字节一致；全过才上板，任一不过板子回刷 r114。
+判读与板侧读数：`build/r118_verdict.txt`、`build/evidence/r118_strict_b1.txt`、
+`build/r118_gates.txt`、`build/evidence/r118_board/BOARD_NOW.txt`（本轮结果句在首页那一行与
+`docs/timing/ROUND_r118.md（docs/ 目录不随提交包，件在仓库内）`）。
+
+**这一节之后，"到极限"这句话在这颗 -2 器件上的完整形状是**：
+① 四个域的逐格状态全部有归属判据；② 非放宽的物理杠杆（复制广播网、Pblock、BRAM 换 setup、
+策略扫描、同 DCP 重滚、灰码 ASYNC_REG、τ 扫档）已经逐把量过并给出赢/判负；
+③ 唯一还能改变结论的只剩**架构那一刀**（IDDR 吃短捕获钟 + 一级同步 FIFO 再进 BUFG 流水线），
+它的门槛与代价面在第 7 节，动手前还欠一个 40 秒只读实测（BUFIO 快/慢角 DCD，#323）；
+④ `eth_rxc` 的收口 I/O 在当前结构下被证明关不掉（0…31 全档区间不相交），本版不为它建窗 ⇒
+那 5 个端点是**未检查**，而"未检查 ≠ 满足"必须写在首页那一行里（H5）。
