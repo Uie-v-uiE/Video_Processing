@@ -19,6 +19,10 @@
 - [ ] **④ 门禁两跑逐字节一致** → `build/r113_gates.txt`。预期：C5c（声明过的既存红）+
       `doc_currency`/`metric_recheck`（改口之前必然红）⇒ 改口之后必须回到只剩 C5c。
 - [ ] **⑤ 数字与凭据改口**：`node build/rotate_from_metric.mjs --apply` +
+      预跑（12:49，`--check`，未写盘）：机械那半**可改 33 条 / 拒 9 条**，读到的就是 r113 的报告
+      （WNS 0.445、端点 51135、LUT 14154/26.61 %、FF 8188/7.7 %、Dynamic 2.213 W）；
+      那 9 条被拒的是首页四行的复合物理形状（`认不出的红行形状`），由手写那 35 条覆盖
+      （`node build/r113_rotate_docs.mjs --check` 已验：35 条各命中 1 次、拒 0）。**两条都要在门禁之后跑**。
       `node build/r112_rotate_docs.mjs --apply`（这支要为 r113 再补两条规则：门禁条数那句、
       刷板时间那句），然后 `metric_recheck`/`doc_currency`/`line_cite_check` 红 0。
       ⚠ 改口完必须**写回盘上那份 `rNN_gates.txt` 再跑一次门禁**才收敛（#242/D1c 那一课）。
