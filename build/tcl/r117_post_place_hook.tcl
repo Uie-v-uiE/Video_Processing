@@ -37,9 +37,15 @@ if {[llength $byname] == 0 || [llength $byload] == 0 || $nb ne $nl} {
     error "R117HOOK-REFUSE net identity failed (byname=$nb byload=$nl) -- cut C9 cannot be attributed"
 }
 
-set e no-error
-catch {phys_opt_design -force_replication_on_nets $byname} e
+# FIX 2026-10-04 04:01 (ISSUES #327): the first version of these two lines read
+#   set e no-error ; catch {phys_opt_design ...} e ; if {$e ne "no-error"} { error ... }
+# Tcl's `catch var` puts the RETURN CODE in var (0 on success), not a sentinel string, so the
+# successful phys_opt run looked like a failure and `error` killed the whole official impl run --
+# after the cut had already worked (runme.log: pins_before=239 -> pins_after=1, replica_cells=10).
+# A bookkeeping bug in a checker must not be allowed to destroy the thing it measures, so the
+# idiom is now the documented one: capture rc and msg separately and gate on rc.
+set rc [catch {phys_opt_design -force_replication_on_nets $byname} emsg]
 set pins_after [expr {[llength [get_nets -quiet $nb]] ? [llength [get_pins -quiet -of [get_nets -quiet $nb]]] : 0}]
 set reps [llength [get_cells -quiet -hier *replica*]]
-puts "R117HOOK phystopt_rc=$e net=$nb pins_after=$pins_after replica_cells=$reps"
-if {$e ne "no-error"} { error "R117HOOK-FAILED phys_opt_design: $e" }
+puts "R117HOOK phystopt_rc=$rc msg=$emsg net=$nb pins_after=$pins_after replica_cells=$reps"
+if {$rc != 0} { error "R117HOOK-FAILED phys_opt_design rc=$rc: $emsg" }

@@ -12954,3 +12954,29 @@ N=0 就是这一层没接上，不能把它读成"没有可判的"。
 `pairs=16 fanout_rows=20 D6 GREEN`，而 `D1/D3` 那 2 格红是 r116 **已知**的输入窗代价，不是新引入的。
 另一条顺手量到的：只过滤 `^ROSTER|` 会把 FANOUT 节整节丢掉 ⇒ `D6_fanout_inventory RED（fanout_rows=0）`，
 所以"留不留 FANOUT 行"本身就是一个口径决定，必须两侧一致。
+
+
+### #327 钩子把 Tcl `catch` 的**返回码**当哨兵字符串用 ⇒ 一次**成功的**切割被读成失败，`error` 把官方 impl run 打死了（04:01 发现，04:02 修）
+
+`build/tcl/r117_post_place_hook.tcl` 第一版：
+```tcl
+set e no-error
+catch {phys_opt_design -force_replication_on_nets $byname} e
+if {$e ne "no-error"} { error "R117HOOK-FAILED phys_opt_design: $e" }
+```
+Tcl 的 `catch … var` 把**返回码**（成功 = `0`）写进 var，不是把我预设的哨兵留着。
+于是 `$e` 变成 `"0"` ⇒ 条件成立 ⇒ `error` ⇒ `sourcing script ... failed` ⇒ `impl_1` 整条 run 退出（04:00:34）。
+
+**最贵的地方不是 bug，是它杀错了对象**：`impl_1/runme.log:514/571` 两行原文说明切割本身**已经成立**——
+`R117HOOK byname=u_pl/u_row/hi_reg_0[0] byload=同名 pins_before=239` →
+`R117HOOK ... pins_after=1 replica_cells=10`。也就是说尺子把被量的东西量对了，然后把自己的载体打死了。
+⇒ 补硬的规矩（写进我自己）：**检查器/钩子里"成功与否"的判据必须用 `[catch {…} msg]` 的返回码，
+把消息单独取一个变量**；任何"我自己造的哨兵字符串"都不许和 `catch` 共用一个变量名。
+附带一条与 #319/#320 同族的账：**A1 的出水口**——post-place 钩子跑在 run 自己的进程里，
+`puts` 落在 `impl_1/runme.log`，而链子 grep 的是顶层 `build/r117_build_console.txt`；
+只读顶层就会把"机制动了"读成 `MECHANISM_INERT`。所以 `build/r117_a1_read.sh` 两处都读，
+并把"引脚折叠数 == replica 颗数"这条闭合等式自己算一遍（对不上就不许写收益、也不许写 INERT）。
+
+重来时我只重跑**实现段**（`build/tcl/r117_resume_impl.tcl` + `build/r117c_chain.sh`）：
+综合网表没被这个 bug 碰过（`impl_1/system_top_opt.dcp` 03:58 那份就是本轮要的），
+约束、part、策略、钩子路径一律不动。前两次的链子原件都留在盘上，判据 A1..A5 一字未改。

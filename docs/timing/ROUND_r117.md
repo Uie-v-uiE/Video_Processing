@@ -61,6 +61,24 @@ r116 的门禁两跑回来是 **24 项 = 17 绿 / 6 红**（件 `build/r116_gate
 `noise_ns = 0.000`（r115 标定：同一份 `opt.dcp` 空白重跑逐位复现），所以三格 setup 的移动都大于噪声底，可称收益；
 而 A 滚逐格等于官方 r116 名册 ⇒ "跨构建"在这里不是骰子（H3）。
 
+## 二之二、官方构建里已经拿到的一半证据（04:00:34 那一次被打死的 run）
+
+第一版官方链（`build/r117b_chain.sh`）在 04:00:34 被**我自己的钩子记账 bug** 打死
+（`catch` 的返回码被我当哨兵字符串用 ⇒ 一次**成功的** `phys_opt_design` 被判成失败 ⇒ `error` 杀掉 run，
+账记在 `report/log/ISSUES.md` #327）。但被打死之前，那两行 `impl_1/runme.log` 原文已经把 **A1 机制**
+问回来了，而且是**官方构建自己的 opt.dcp**上问的：
+
+```
+R117HOOK byname=u_pl/u_row/hi_reg_0[0] byload=u_pl/u_row/hi_reg_0[0] pins_before=239
+R117HOOK ... pins_after=1 replica_cells=10
+```
+
+⇒ 这根 239 引脚的广播网在官方树上确实折成 1 引脚、确实长出 10 颗 replica（闭合等式的两边都在）。
+重跑只重启实现段（`build/tcl/r117_resume_impl.tcl`，`system_top_opt.dcp` 是 03:58 那一份、综合网表没被碰过），
+判据 A1..A5 一字未改。另外一条与 #319/#320 同族的工具账：**A1 的出水口有兩個**——钩子跑在 run 自己的进程里，
+`puts` 落在 `impl_1/runme.log` 而不是顶层控制台，只读顶层会把"机制动了"读成 `MECHANISM_INERT`，
+所以正式判读用 `build/r117_a1_read.sh`（两处都读 + 自己算闭合等式）。
+
 ## 三、判据（起飞前登记在 `build/r117b_chain.sh` 头部，不接受事后改口径）
 
 * **A1 机制**：构建日志 `R117HOOK ... pins_after ≪ 239` 且 `replica_cells ≥ 1`；不满足就打
