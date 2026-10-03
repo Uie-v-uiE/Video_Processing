@@ -142,30 +142,38 @@ if bad:
     raise SystemExit(4)
 
 # ---- 3) 三道尺子，过了才落 marker ----
-mr = subprocess.run(["node", "src/host/metric_recheck.mjs"], capture_output=True, text=True)
-reds = [l for l in mr.stdout.splitlines() if l.startswith("RED ")]
-shape = re.search(r"解析到\s*(\d+)/(\d+)\s*行", mr.stdout)
-dc = subprocess.run(["node", "src/host/doc_currency_check.mjs"], capture_output=True, text=True)
-cur = [l for l in dc.stdout.splitlines() if "CURRENCY" in l or "抓到" in l]
-print("RULER metric_recheck 解析=%s 红=%d" % (shape.group(0) if shape else "读不到行", len(reds)))
-for l in reds[:8]:
-    print("   " + l[:150])
-for l in cur:
-    print("RULER doc_currency " + l[:150])
-ok = (not reds) and ("CURRENCY: 干净" in dc.stdout or True) and shape and shape.group(1) == shape.group(2)
-# 唯一允许暂时红的一层：D1c 的"绿/红计数句 vs 门禁件"——因为首页写的是**改口之后那一次**的读数，
-# 而现在盘上还是改口前那一次。其它任何一条过期指路/脱钩都不许放过。
-rowlines = [l.strip() for l in dc.stdout.splitlines()
-            if l.startswith("  ") and not l.strip().startswith("同行写了") and not l.strip().startswith("ADV ")]
-allow = [l for l in rowlines if ("D1c" in l and "空转" not in l and "没接上" not in l)]
-block = [l for l in rowlines if "D1c" not in l]
+# MSYS 的 /tmp 不是 Python 的 /tmp，且 text=True 会被 cp936 解码打断（#330 第 3 条）：
+# 所以尺子输出落进仓库内目录，再用 utf-8 + errors=replace 读回来。
+TMP = 'build/evidence/r118_board'
+subprocess.run('node src/host/metric_recheck.mjs > ' + TMP + '/mr.txt 2>&1', shell=True)
+subprocess.run('node src/host/doc_currency_check.mjs > ' + TMP + '/dc.txt 2>&1', shell=True)
+mr_out = read(TMP + '/mr.txt')
+dc_out = read(TMP + '/dc.txt')
+reds = [l for l in mr_out.splitlines() if l.startswith('RED ')]
+shape_ok = False
+for l in mr_out.splitlines():
+    if '解析到' in l and '/' in l:
+        p = l[l.index('/') - 3:].split('/')
+        a = ''.join(ch for ch in p[0] if ch.isdigit())
+        b = ''
+        for ch in p[1]:
+            if ch.isdigit(): b += ch
+            else: break
+        shape_ok = bool(a) and a == b
+        print('RULER 解析=%s/%s' % (a, b))
+        break
+rows = [l.strip() for l in dc_out.splitlines() if l.startswith('  ') and not l.strip().startswith('同行写了') and not l.strip().startswith('ADV ')]
+allow = [l for l in rows if ('D1c' in l and '空转' not in l and '没接上' not in l)]
+block_rows = [l for l in rows if l not in allow]
+print('RULER metric 红=%d doc_currency 行=%d 允许=%d 阻塞=%d' % (len(reds), len(rows), len(allow), len(block_rows)))
+for l in (reds[:6] + block_rows[:4]):
+    print('   ' + l[:150])
 if allow:
-    print("NOTE D1c 计数暂时不吻合（写的是最终那一次），tail 重跑门禁后必须复验：%s" % allow[0][:120])
-ok = (not reds) and (not block) and bool(shape) and shape.group(1) == shape.group(2)
+    print('NOTE D1c 计数暂时不吻合（首页写的是最终那一次），最终两跑必须复验：' + allow[0][:120])
+ok = (not reds) and (not block_rows) and shape_ok
 if ok:
-    io.open(MARKER, "w", encoding="utf-8").write(
-        "rotated %s gates=%s judged=%d green=%d red=%d\n" % (bt, GATES, judged, green, red))
-    print("MARKER-WRITTEN 后续自动化（最终门禁 + 重导包 + 提交）可以接手")
+    io.open(MARKER, 'w', encoding='utf-8').write('rotated ' + bt + ' gates=' + GATES)
+    print('MARKER-WRITTEN')
 else:
-    print("MARKER-DEFERRED 尺子还有红项或形状没接上——不自往下走")
+    print('MARKER-DEFERRED 尺子还有红项或形状没接上')
 raise SystemExit(0 if ok else 5)

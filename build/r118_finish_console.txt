@@ -1,0 +1,14 @@
+[fin 04:45:26] r118 位流已存档 md5=cd04907e1369；起飞：三步 JTAG 刷板 + 50 s 真实流量 + 两次健康读数
+[fin 04:49:50] bit_cycle rc=0 board_verify rc=0；件 build/evidence/r118_board/BOARD_NOW.txt
+[fin 04:49:50] 改口：首页/英文首页/metrics 从件里取数；写进文档的门禁读数 = 24 项 23 绿 / 1 红，由下面的最终两跑验证（不符则 D1c 自己判红）
+[fin 04:49:51] rotate rc=1 CLAIM �������ж�=24 ��=21 ��=3 �� д���ĵ����ж�=24 ��=23 ��=1���� tail �����Ž���֤�������� D1c �к죩 BOARD-SIDE ����=r118 bit=cd04907e1369 ˢ��=2026-10-04 04:49:50 ����=PASS ROTATE-APPLY wrote=10 mismatch=0 
+[fin 04:49:51] 停：改口没过三道尺子（件 build/evidence/r118_board/rotate_console.txt）；不跑最终门禁、不提交
+[tail 04:51:29] rotate rc=1 
+[tail 04:51:29] 停：改口没过尺子，不跑最终门禁、不提交
+[t2 04:53:19] 停：尺子没过，不落 marker、不跑最终门禁
+[t2 04:57:54] 停：尺子没过，不落 marker、不跑最终门禁
+[t3 05:02:33] 最终门禁两跑（文档已冻结）
+[t3 05:03:57] 最终门禁 rcA=$A rcB=$B 两跑=$ID 绿=$G 红=$R 红项：$(grep -a " FAIL$" /tmp/kx/fA.txt | tr "
+" "|")
+[t3 05:03:57] 门禁不吻合：回退首页三件套，不改口不提交（板上仍是 r118，读数以件为准）
+[t3 05:03:57] TAIL3 END (reverted)

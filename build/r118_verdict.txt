@@ -1,0 +1,15 @@
+R118 date=2026-10-04 04:41:00 bit=cd04907e1369 config=hook=off io_window=off tau=31
+R118 B1_strict B1 pairs_compared=8 losses=0 verdict=GREEN
+B1 clk_fpga_0/hold r114=0.053 r118=0.053 d=+0.000 SAME
+B1 clk_fpga_0/setup r114=1.850 r118=1.850 d=+0.000 SAME
+B1 clkout0_1/hold r114=0.059 r118=0.059 d=+0.000 SAME
+B1 clkout0_1/setup r114=3.630 r118=3.630 d=+0.000 SAME
+B1 eth_rxc/hold r114=0.052 r118=0.052 d=+0.000 SAME
+B1 eth_rxc/setup r114=0.739 r118=0.739 d=+0.000 SAME
+B1 sys_clk/hold r114=0.222 r118=0.222 d=+0.000 SAME
+B1 sys_clk/setup r114=14.876 r118=14.876 d=+0.000 SAME
+B1 pairs_compared=8 losses=0 verdict=GREEN
+R118 B2_hook_absent=0（应为 0）
+R118 B3_util | Slice LUTs                 | 14154 |     0 |          0 |     53200 | 26.61 | | Slice Registers            |  8188 |     0 |          0 |    106400 |  7.70 | | Slice Registers                            | 8188 |     0 |          0 |    106400 |  7.70 | | Block RAM Tile    | 95.5 |     0 |          0 |       140 | 68.21 | 
+R118 B3_place30439=0
+R118 D3_loose ROSTERDIFF D3_margin_cost         big_loss=0         lost>25%的域数=0 GREEN ROSTERDIFF-SUMMARY a=build/evidence/r114_after_roster_probefmt.txt b=build/evidence/r118_after_roster_probefmt.txt judged=6 pairs=16 result=GREEN 
