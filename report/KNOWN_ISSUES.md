@@ -649,11 +649,19 @@ md5 `ef03eea4886e`）仍然是会越界写的那一版**；构建与板级复验
 - **修它要动什么（已改，待随 r113 上板）**：真正对症的是**把上电语义写进声明**——
   `key_debounce` 的 `key_stable`/`key_sync0`/`key_sync1`/`key_prev` 直接 `= 1'b1`，
   并带着"`rst_n` 恒 1"再综合一次量到 `FDRE INIT=1'b1`（`build/evidence/r113_init_tied_rst.txt`）⇒ 位流真的带上了。
+  **r113 这一版全设计网表也量到了**：`build/evidence/r113_ff_init_probe.txt` 里
+  `u_pl/u_k1/key_stable_reg`/`key_sync0_reg`/`key_sync1_reg` 与 `u_pl/u_k2/key_stable_reg` 全是 **INIT=1'b1**
+  （尺子 `build/check_powup_init.sh` 五条判据全绿，件 `build/r113_powup_rejudge.txt`；身份 bit `b94f4da6cdff`）。
+  同一把尺子吃 r112 未修那份探针文本判红（W1/W2/W3），所以这条绿不是尺子空转。
+  ⚠ 网表里 `key_prev_reg` **不存在**（r112 未修那份同样 NO_CELL）——这颗"上一拍"早就被综合折掉了，
+  写这句话是为了不让人下次再把"少一颗名字"当成"没修上"（#260）。
   尺子：`sim/tb_v113_key_powup.v`（整支不碰复位，车道 31 支之一，`RESULT ... PASS checks=8`）。
   另有一把**上电武装门**（r112 的 `armed`）：它挡的是"配置那一刻真按住键"那一类，**留着但不算这一度的解药**——
   三腿台架实测带它的 r112 代码仍然白送一度（`build/evidence/r113_powup_verdict.txt`）。
-  再剩一条结构性欠账（#256 第 5 点）：`sys_rst_n` 恒 1 让整个 sys_clk 域的所有 `if (!rst_n)` 都是死支，
-  要一次全局扫"代码想要 1、网表 INIT=0"的寄存器还有几颗。
+  再剩一条结构性欠账（#256 第 5 点）**已经扫完（#257）**：尺子 `build/scan_dead_reset_init.py` 沿实例化树传死复位、
+  按顶层分树。板上这一棵（`system_top`）4 对死复位（`sys_rst_n` → `key_debounce`×2 / `key_long` / `angle_ctrl`），
+  其中"复位分支想要 1"的 4 颗在 r113 之后 **4/4 都有声明初值 ⇒ 这一棵树没有欠账**；
+  另一棵 `pl_demo_top`（纯 PL 演示顶层，不在当前位流里）还剩一颗 `snap_cross.hb_gone`，r114 补声明初值。
 - **判定实验（也是复现方法）**：`board/ACCEPTANCE.md` 的 **E6** 格——冷上电 + 只跑三步链 + 不碰键，
   看屏 `ROT:` 读几；再做一次"上电后先按住 KEY1 直到链跑完再松手"作为对照。每种读数各意味着什么都写在里面。
   这条**需要队员做一次**，因为机器今天读不到角度。

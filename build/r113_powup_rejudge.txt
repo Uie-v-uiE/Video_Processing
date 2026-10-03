@@ -1,0 +1,7 @@
+POWUP round=r113 stage=synth ff_lines=96 probed=/tmp/kx/powup_stdin.txt
+POWUP W1_key_stable              1'b1           expect=1'b1 GREEN
+POWUP W2_sync_prev               2/2            all_found=1'b1 folded=key_prev_reg GREEN
+POWUP W3_k2_stable               1'b1           expect=1'b1 GREEN
+POWUP W4_angle_control           1'b0           expect=1'b0 GREEN
+POWUP W5_scope_floor             FF=96 CMP=96   floor>=20 GREEN
+POWUP-SUMMARY round=r113 judged=5 result=GREEN

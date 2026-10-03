@@ -39,10 +39,11 @@ if [ "${1:-}" = "--self" ]; then
             "COMPARED=12"
     }
     bad() { good | sed "s/u_k1\/key_stable_reg TYPE=FDRE INIT=1'b1/u_k1\/key_stable_reg TYPE=FDRE INIT=1'b0/"; }
-    chk_self() { # $1=日志 $2=期望 $3=标签 $4=期望读到的 FF 行数（管道没送进去时这条必须红，见 #256 工具账）
-        local f=/tmp/kx/powup_fixture.txt out got nfl
+    chk_self() { # $1=日志 $2=期望 $3=标签 $4=期望读到的 FF 行数（管道没送进去时这条必须红，见 #256 工具账）$5=这一趟的计数地板
+        local f=/tmp/kx/powup_fixture.txt out got nfl fl
+        fl=${5:-$FLOOR}
         printf '%s\n' "$1" > "$f"
-        out=$(bash build/check_powup_init.sh --parse < "$f" 2>/dev/null)
+        out=$(FLOOR=$fl bash build/check_powup_init.sh --parse < "$f" 2>/dev/null)
         got=$(printf '%s\n' "$out" | grep -a '^POWUP-SUMMARY' | tail -1 | sed 's/.*result=//' | tr -d '\r')
         nfl=$(printf '%s\n' "$out" | grep -a '^POWUP round=' | head -1 | sed -E 's/.*ff_lines=([0-9]+).*/\1/')
         printf '%s\n' "$out" | grep -a '^POWUP ' | sed 's/^/    SELFDETAIL /'
@@ -63,7 +64,12 @@ if [ "${1:-}" = "--self" ]; then
     chk_self "$(good | sed "s/u_ang\/angle_reg\[0\] TYPE=FDRE INIT=1'b0/u_ang\/angle_reg[0] TYPE=FDRE INIT=1'b1/")" \
              "RED" "mutation_angle_control" "$n_good_cells" || r=1
     chk_self "$(good | sed 's/STAGE synth/STAGE impl/')" "RED" "wrong_stage_only" "0" || r=1
-    [ $r -eq 0 ] && say "SELF powup_init_check 对照 5/5 全过 PASS" || say "SELF powup_init_check FAIL"
+    # 第五条/第六条：网表里 `key_prev` 这颗**本来就不存在**（r112 未修那份也是 NO_CELL，综合把"上一拍"折进了
+    # 别的逻辑）。尺子不许把这种长期形状当成"没修上"，但也不许放过"存在却是 0"的那一天。
+    chk_self "$(good | grep -v 'u_k1/key_prev_reg')" "GREEN" control_folded_prev_ok  "11" "11" || r=1
+    chk_self "$(good | sed "s/u_k1\/key_prev_reg TYPE=FDRE INIT=1'b1/u_k1\/key_prev_reg TYPE=FDRE INIT=1'b0/")" \
+             "RED" mutation_prev_present_zero "$n_good_cells" || r=1
+    [ $r -eq 0 ] && say "SELF powup_init_check 对照 7/7 全过 PASS" || say "SELF powup_init_check FAIL"
     exit $r
 fi
 
@@ -119,15 +125,21 @@ else
     line W1_key_stable "NO_CELL" "cell_missing" RED
 fi
 
-# 2) 同模块里另外三颗"代码想要 1"的寄存器（同步器 + key_prev），方向必须一致
-N1=0; N1T=0
+# 2) 同模块里"代码想要 1"的同步器/历史位：凡是网表里**真存在**的那几颗，INIT 必须全是 1。
+#    地板从"必须有 3 颗"改成"至少 2 颗"，并把缺席的那颗念成 FOLDED —— 理由不是"想变绿"，
+#    是实测：`key_prev_reg` 在 **r112 那份未修的网表里就已经 NO_CELL**（对照 `build/evidence/r113_ff_init.txt`），
+#    也就是综合早就把这颗"上一拍"折进别的逻辑里了，它不是我加声明初值加出来的。
+#    原判据把"3 颗都在"当默认事实，是**我对网表的过期假设**（规矩 16：判据的期望要对着件重推，不能对着记忆）。
+#    真正的方向性检查保留：存在的那几颗必须是 1；而 W6 另钉"哪天 key_prev 又出现在网表里，它必须是 1'b1"。
+N1=0; N1T=0; FOLDED=""
 for c in key_sync0_reg key_sync1_reg key_prev_reg; do
-    has "u_pl/u_k1/$c" || continue
+    if ! has "u_pl/u_k1/$c"; then FOLDED="$FOLDED $c"; continue; fi
     N1T=$((N1T+1))
     [ "$(prop "u_pl/u_k1/$c")" = "1'b1" ] && N1=$((N1+1))
 done
-[ "$N1T" -ge 3 ] && [ "$N1" -eq "$N1T" ] \
-    && line W2_sync_prev "$N1/$N1T" "all=1'b1" GREEN || line W2_sync_prev "$N1/$N1T" "want_3_of_3" RED
+[ "$N1T" -ge 2 ] && [ "$N1" -eq "$N1T" ] \
+    && line W2_sync_prev "$N1/$N1T" "all_found=1'b1 folded=$(printf '%s' "$FOLDED" | tr -d ' ')" GREEN \
+    || line W2_sync_prev "$N1/$N1T" "want_found>=2 folded=$(printf '%s' "$FOLDED" | tr -d ' ')" RED
 
 # 3) k2 那一颗同族（两个键都要对，不能只修被看着的那一个）
 V3=$(prop "u_pl/u_k2/key_stable_reg")
