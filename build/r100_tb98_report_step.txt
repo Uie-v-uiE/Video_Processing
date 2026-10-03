@@ -1,0 +1,4 @@
+WROTE /d/Xilinx/Prj/pro/Video_Processing/build/tb_v98_report.txt  (172 行) top_md5=2bf2ceeede07 rtl_md5=71faa69be8c9 tb_md5=36d0de483e6d
+PASS C2c edges match definition | measured picture edges == geometric edges (content stage, in columns)
+PASS C3c panel edges match definition | the panel's own first/last non-black column == the geometric edges, same on every row
+P1 chain-blur: arm(x==1023&de)=79200 flush=79200 run@行尾 min=1024 max=1024 | pipe_de=81100800 mix_de_d11=81100800 (差 0)

@@ -1,0 +1,1 @@
+REFUSE: 找不到 xvlog（当前 ）。设 VP_VIVADO_BIN=<Vivado>/bin 再跑（report/BUILD.md）

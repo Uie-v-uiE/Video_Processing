@@ -1,0 +1,4 @@
+WROTE /d/Xilinx/Prj/pro/Video_Processing/build/tb_v98_report.txt  (173 行) top_md5=3fe1aab859e7 rtl_md5=526321488fed tb_md5=d64b883a6d94
+PASS C3c panel edges match definition | the panel's own first/last non-black column == the geometric edges, same on every row
+P1 chain-blur: arm(x==1023&de)=79200 flush=79200 run@行尾 min=1024 max=1024 | pipe_de=81100800 mix_de_d11=81100800 (差 0)
+RESULT tb_v98_top_seam FAIL nfail=1

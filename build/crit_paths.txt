@@ -1,10 +1,10 @@
 # worst setup paths (source: D:/Xilinx/Prj/pro/Video_Processing/build/crit_paths_raw.rpt)
 # slack | clock_group | data_path_delay | logic_levels | start -> end
-0.605ns | eth_rxc | 6.997ns | 6 | u_eth/u_reasm/off_reg[11]_rep/C -> u_eth/u_reasm/rows_hit_reg[2]/CE
-0.605ns | eth_rxc | 6.997ns | 6 | u_eth/u_reasm/off_reg[11]_rep/C -> u_eth/u_reasm/rows_hit_reg[3]/CE
-0.605ns | eth_rxc | 6.997ns | 6 | u_eth/u_reasm/off_reg[11]_rep/C -> u_eth/u_reasm/rows_hit_reg[4]/CE
-0.605ns | eth_rxc | 6.997ns | 6 | u_eth/u_reasm/off_reg[11]_rep/C -> u_eth/u_reasm/rows_hit_reg[5]/CE
-0.666ns | eth_rxc | 6.963ns | 6 | u_eth/u_reasm/off_reg[11]_rep/C -> u_eth/u_reasm/rows_hit_reg[0]/CE
-0.666ns | eth_rxc | 6.963ns | 6 | u_eth/u_reasm/off_reg[11]_rep/C -> u_eth/u_reasm/rows_hit_reg[12]/CE
-0.666ns | eth_rxc | 6.963ns | 6 | u_eth/u_reasm/off_reg[11]_rep/C -> u_eth/u_reasm/rows_hit_reg[13]/CE
-0.666ns | eth_rxc | 6.963ns | 6 | u_eth/u_reasm/off_reg[11]_rep/C -> u_eth/u_reasm/rows_hit_reg[14]/CE
+0.445ns | eth_rxc | 7.225ns | 4 | u_eth/u_rx_par/p_eof_reg/C -> u_eth/u_reasm/rows_hit_reg[12]/CE
+0.445ns | eth_rxc | 7.225ns | 4 | u_eth/u_rx_par/p_eof_reg/C -> u_eth/u_reasm/rows_hit_reg[13]/CE
+0.445ns | eth_rxc | 7.225ns | 4 | u_eth/u_rx_par/p_eof_reg/C -> u_eth/u_reasm/rows_hit_reg[14]/CE
+0.445ns | eth_rxc | 7.225ns | 4 | u_eth/u_rx_par/p_eof_reg/C -> u_eth/u_reasm/rows_hit_reg[15]/CE
+0.549ns | eth_rxc | 7.119ns | 4 | u_eth/u_rx_par/p_eof_reg/C -> u_eth/u_reasm/rows_hit_reg[0]/CE
+0.549ns | eth_rxc | 7.119ns | 4 | u_eth/u_rx_par/p_eof_reg/C -> u_eth/u_reasm/rows_hit_reg[1]/CE
+0.549ns | eth_rxc | 7.119ns | 4 | u_eth/u_rx_par/p_eof_reg/C -> u_eth/u_reasm/rows_hit_reg[2]/CE
+0.549ns | eth_rxc | 7.119ns | 4 | u_eth/u_rx_par/p_eof_reg/C -> u_eth/u_reasm/rows_hit_reg[3]/CE

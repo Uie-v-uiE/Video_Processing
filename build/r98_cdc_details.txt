@@ -1,0 +1,26 @@
+Copyright 1986-2022 Xilinx, Inc. All Rights Reserved. Copyright 2022-2026 Advanced Micro Devices, Inc. All Rights Reserved.
+---------------------------------------------------------------------------------------------------------------------------------------------
+| Tool Version : Vivado v.2025.2.1 (win64) Build 6403652 Thu Mar 19 19:48:24 GMT 2026
+| Date         : Thu Oct  1 01:59:29 2026
+| Host         : Uie-laptop running 64-bit major release  (build 9200)
+| Command      : report_cdc -from eth_rxc -to clkout0_1 -details -file C:/Users/wenqu/AppData/Local/Temp/cdc_r98_details.txt
+| Design       : system_top
+| Device       : 7z020-clg484
+| Speed File   : -2  PRODUCTION 1.12 2019-11-22
+| Design State : Routed
+---------------------------------------------------------------------------------------------------------------------------------------------
+
+CDC Report
+
+ID      Severity  Count  Description
+------  --------  -----  --------------------------------------------------
+CDC-10  Critical      1  Combinational logic detected before a synchronizer
+
+Source Clock: eth_rxc
+Destination Clock: clkout0_1
+CDC Type: No Common Primary Clock
+
+Row  ID      Severity  Description                                         Depth  Exception            Source (From)                     Destination (To)
+---  ------  --------  --------------------------------------------------  -----  -------------------  --------------------------------  ----------------
+  1  CDC-10  Critical  Combinational logic detected before a synchronizer      3  Asynch Clock Groups  u_eth/u_reasm/stat_pkts_reg[9]/C  u_pl/el0_reg/D
+

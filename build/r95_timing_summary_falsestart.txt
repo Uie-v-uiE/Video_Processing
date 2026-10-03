@@ -1,0 +1,9 @@
+# r95 采纳门槛（写在任何一滚开跑之前，2026-09-30 13:25:56）
+#   全设计 WNS >= +0.65 ns   （比 r94 的 +0.553 好出一个**明显大于 0.4 ns 摆幅**的量）
+#   全设计 WHS >= +0.15 ns   （历史六版在 +0.012..+0.060 之间跳，带内不算数）
+#   失败 setup/hold 端点 = 0；且 BRAM 不得 > 95 tile（#4 那档门禁上限）
+#   三条任何一条不满足 => 不采纳，写'量过并否决'
+
+baseline_r94 WNS=0.553 WHS=0.049 endpoints=50883 bit=a1465f29c9e4
+r95_postroute_physopt READ_FAILED
+r95_explor_withhier READ_FAILED

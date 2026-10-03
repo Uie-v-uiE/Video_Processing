@@ -1,0 +1,10 @@
+[r95 2026-09-30 15:01:03] 基线（r94，正式件 build/system.bit md5=a1465f29c9e4）：WNS 0.553 / WHS 0.049 / 0 / 50883
+[r95 2026-09-30 15:01:03] 开滚 r95b_netdelay_high -> build/isolated_r95b_netdelay_high（IMPL_STRATEGY=Performance_NetDelay_high）
+[r95 2026-09-30 15:32:11] r95b_netdelay_high：WNS 0.013 / WHS 0.056 / 失败 setup 0、hold 0（共 50883）/ eth_rxc 0.013 / 0.059 / BRAM 95 tile
+[r95 2026-09-30 15:32:11] r95b_netdelay_high 判定：DECLINE（门槛见本文件顶部）
+[r95 2026-09-30 15:32:11] 开滚 r95b_wlfanout -> build/isolated_r95b_wlfanout（IMPL_STRATEGY=Performance_WLBlockPlacementFanoutOpt）
+[r95 2026-09-30 15:56:57] r95b_wlfanout：WNS 0.553 / WHS 0.049 / 失败 setup 0、hold 0（共 50883）/ eth_rxc 0.553 / 0.049 / BRAM 95 tile
+[r95 2026-09-30 15:56:57] r95b_wlfanout 判定：DECLINE（门槛见本文件顶部）
+[r95 2026-09-30 15:56:57] 各滚结束： r95b_netdelay_high=DECLINE r95b_wlfanout=DECLINE（NOT_MEASURED=报告没读出来，不是否决）
+[r95 2026-09-30 15:56:57] DONE —— 谁被采纳由人读 build/r95b_timing_summary.txt 那几行来定；不采纳也要把这一节落进 report/OPTIMIZATION_LOG.md
+r95b rc=0

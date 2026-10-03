@@ -1,0 +1,10 @@
+# worst setup paths (source: D:/Xilinx/Prj/pro/Video_Processing/build/crit_paths_raw.rpt)
+# slack | clock_group | data_path_delay | logic_levels | start -> end
+0.182ns | eth_rxc | 8.741ns | 4 | u_eth/u_rgmii/u_rgmii_rx/rxdata_bus[1].u_iddr_rxd/C -> u_eth/u_rx_mac/u_crc_rx/crc_data_reg[7]/D
+0.551ns | eth_rxc | 8.398ns | 4 | u_eth/u_rgmii/u_rgmii_rx/rxdata_bus[1].u_iddr_rxd/C -> u_eth/u_rx_mac/u_crc_rx/crc_data_reg[0]/CE
+0.551ns | eth_rxc | 8.398ns | 4 | u_eth/u_rgmii/u_rgmii_rx/rxdata_bus[1].u_iddr_rxd/C -> u_eth/u_rx_mac/u_crc_rx/crc_data_reg[8]/CE
+0.564ns | eth_rxc | 7.414ns | 1 | u_eth/u_reasm/st_reg[2]/C -> u_eth/u_reasm/row_ok_reg[59]/D
+0.598ns | eth_rxc | 7.342ns | 1 | u_eth/u_reasm/st_reg[2]/C -> u_eth/u_reasm/row_ok_reg[7]/D
+0.600ns | eth_rxc | 7.342ns | 1 | u_eth/u_reasm/st_reg[2]/C -> u_eth/u_reasm/row_ok_reg[9]/D
+0.642ns | eth_rxc | 8.308ns | 4 | u_eth/u_rgmii/u_rgmii_rx/rxdata_bus[1].u_iddr_rxd/C -> u_eth/u_rx_mac/u_crc_rx/crc_data_reg[10]/CE
+0.642ns | eth_rxc | 8.308ns | 4 | u_eth/u_rgmii/u_rgmii_rx/rxdata_bus[1].u_iddr_rxd/C -> u_eth/u_rx_mac/u_crc_rx/crc_data_reg[18]/CE

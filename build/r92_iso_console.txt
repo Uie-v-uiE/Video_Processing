@@ -1,0 +1,8 @@
+产物目录：build/isolated_r92_bufig（build/ 里那套不动）
+MULTI_DRIVEN count=0 -> D:/Xilinx/Prj/pro/Video_Processing/build/isolated_r92_bufig/multi_driven.txt
+# foreach t [lrange $mseen 0 5] { puts "  MULTIDRIVE: $t" }
+# foreach s [lrange $wseen 0 5] { puts "  WIDTH: $s" }
+# puts "SYSTEM BUILD DONE"
+SYSTEM BUILD DONE
+INFO: [Common 17-206] Exiting Vivado at Wed Sep 30 04:20:34 2026...
+ROLL DONE -> build/isolated_r92_bufig（build/isolated_r92_bufig/system.bit md5=1af8b4a14d72）
