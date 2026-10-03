@@ -1,0 +1,150 @@
+
+****** Vivado v2025.2.1 (64-bit)
+  **** SW Build 6403652 on Thu Mar 19 19:48:24 GMT 2026
+  **** IP Build 6403511 on Thu Mar 19 12:41:45 MDT 2026
+  **** SharedData Build 6403650 on Thu Mar 19 14:02:13 MDT 2026
+  **** Start of session at: Sun Oct  4 00:08:42 2026
+    ** Copyright 1986-2022 Xilinx, Inc. All Rights Reserved.
+    ** Copyright 2022-2026 Advanced Micro Devices, Inc. All Rights Reserved.
+
+source build/tcl/r115_option_a_probe.tcl
+# set root [file normalize [file join [file dirname [info script]] .. ..]]
+# set dcp  [file normalize [file join $root .. c2_scratch_1003 vivado_system zynq_video_sys.runs impl_1 system_top_routed.dcp]]
+# set out  [file join $root build evidence r115_c2_scratch]
+# if {![file exists $dcp]} { puts "REFUSE no dcp $dcp"; exit 1 }
+# file mkdir $out
+# open_checkpoint $dcp
+Command: open_checkpoint D:/Xilinx/Prj/pro/c2_scratch_1003/vivado_system/zynq_video_sys.runs/impl_1/system_top_routed.dcp
+
+Starting open_checkpoint Task
+
+Time (s): cpu = 00:00:00 ; elapsed = 00:00:00.053 . Memory (MB): peak = 332.367 ; gain = 5.574
+INFO: [Device 21-403] Loading part xc7z020clg484-2
+Netlist sorting complete. Time (s): cpu = 00:00:01 ; elapsed = 00:00:00.267 . Memory (MB): peak = 821.211 ; gain = 0.000
+INFO: [Netlist 29-17] Analyzing 2898 Unisim elements for replacement
+INFO: [Netlist 29-28] Unisim Transformation completed in 1 CPU seconds
+INFO: [Project 1-479] Netlist was created with Vivado 2025.2.1
+INFO: [Project 1-570] Preparing netlist for logic optimization
+Read ShapeDB Complete: Time (s): cpu = 00:00:01 ; elapsed = 00:00:00.165 . Memory (MB): peak = 967.160 ; gain = 8.250
+INFO: [Timing 38-478] Restoring timing data from binary archive.
+INFO: [Timing 38-479] Binary timing data restore complete.
+INFO: [Project 1-856] Restoring constraints from binary archive.
+INFO: [Project 1-853] Binary constraint restore complete.
+INFO: [Designutils 20-5722] Start Reading Physical Databases.
+Reading placement.
+Read Netlist Cache: Time (s): cpu = 00:00:00 ; elapsed = 00:00:00.032 . Memory (MB): peak = 1597.469 ; gain = 0.000
+Reading placer database...
+Read Device Cache: Time (s): cpu = 00:00:00 ; elapsed = 00:00:00.020 . Memory (MB): peak = 1597.469 ; gain = 0.000
+Read PlaceDB: Time (s): cpu = 00:00:00 ; elapsed = 00:00:00 . Memory (MB): peak = 1597.469 ; gain = 0.000
+Read placeStorage: Time (s): cpu = 00:00:01 ; elapsed = 00:00:00.920 . Memory (MB): peak = 1597.469 ; gain = 0.000
+Read PulsedLatchDB: Time (s): cpu = 00:00:00 ; elapsed = 00:00:00 . Memory (MB): peak = 1597.469 ; gain = 0.000
+Reading routing.
+Read RouteStorage: Time (s): cpu = 00:00:00 ; elapsed = 00:00:00.336 . Memory (MB): peak = 1612.129 ; gain = 14.660
+Read Physdb Files: Time (s): cpu = 00:00:01 ; elapsed = 00:00:01 . Memory (MB): peak = 1612.129 ; gain = 14.660
+Restored from archive | CPU: 1.000000 secs | Memory: 0.000000 MB |
+Finished XDEF File Restore: Time (s): cpu = 00:00:01 ; elapsed = 00:00:01 . Memory (MB): peak = 1612.129 ; gain = 14.660
+Netlist sorting complete. Time (s): cpu = 00:00:00 ; elapsed = 00:00:00.015 . Memory (MB): peak = 1636.168 ; gain = 0.000
+INFO: [Project 1-111] Unisim Transformation Summary:
+  A total of 1035 instances were transformed.
+  RAM128X1D => RAM128X1D (MUXF7(x2), RAMD64E(x4)): 336 instances
+  RAM64M => RAM64M (RAMD64E(x4)): 651 instances
+  RAM64X1D => RAM64X1D (RAMD64E(x2)): 48 instances
+
+INFO: [Project 1-604] Checkpoint was created with Vivado v2025.2.1 (64-bit) build 6403652
+open_checkpoint: Time (s): cpu = 00:00:29 ; elapsed = 00:00:27 . Memory (MB): peak = 1644.215 ; gain = 1326.867
+# set ports [get_ports -quiet {eth_rxd[*] eth_rx_ctl}]
+# set gclk  [get_clocks -quiet mmcm_clk0]
+# set mclk  [get_clocks -quiet eth_rxc]
+# puts "OBJS ports=[llength $ports] mmcm_clk0=[llength $gclk] eth_rxc=[llength $mclk]"
+OBJS ports=5 mmcm_clk0=1 eth_rxc=1
+# if {[llength $ports] == 0 || [llength $gclk] == 0 || [llength $mclk] == 0} {
+#     puts "REFUSE: 有�?�象取不到（空集不�?�当 0 甡��?"; exit 4
+# }
+# proc rep {tag f dt} {
+#     file delete -force $f
+#     report_timing -delay_type $dt -from [get_ports -quiet {eth_rxd[*] eth_rx_ctl}] \
+#         -to [get_clocks mmcm_clk0] -nworst 1 -max_paths 2 -file $f
+#     set h [open $f r]; set t [read $h]; close $h
+#     set s [regexp -all -inline {Slack \([A-Z]+\) :\s+\S+} $t]
+#     puts "STAGE $tag slack=[join $s { ; }]"
+#     foreach ln [split $t "\n"] {
+#         if {[regexp {^\s+(Requirement|Clock Path Skew|Clock Uncertainty|Data Path Delay|Slack):} $ln]} {
+#             puts "STAGE $tag | [string trim $ln]"
+#         }
+#     }
+# }
+# rep L0 [file join $out oa_L0_built_window.txt] min
+INFO: [Timing 38-91] UpdateTimingParams: Speed grade: -2, Delay Type: min.
+INFO: [Timing 38-191] Multithreading enabled for timing update using a maximum of 2 CPUs
+INFO: [Timing 38-78] ReportTimingParams: -from_pins  -to_pins  -max_paths 2 -nworst 1 -delay_type min -sort_by slack.
+report_timing: Time (s): cpu = 00:00:18 ; elapsed = 00:00:10 . Memory (MB): peak = 1702.855 ; gain = 58.641
+STAGE L0 slack=Slack (VIOLATED) :        -2.126ns ; Slack (VIOLATED) :        -2.125ns
+STAGE L0 | Requirement:            -1.000ns  (mmcm_clk0 rise@3.000ns - eth_rxc fall@4.000ns)
+STAGE L0 | Data Path Delay:        3.613ns  (logic 3.613ns (100.000%)  route 0.000ns (0.000%))
+STAGE L0 | Clock Path Skew:        5.919ns (DCD - SCD - CPR)
+STAGE L0 | Clock Uncertainty:      0.166ns  ((TSJ^2 + DJ^2)^1/2) / 2 + PE
+STAGE L0 | Requirement:            -1.000ns  (mmcm_clk0 rise@3.000ns - eth_rxc fall@4.000ns)
+STAGE L0 | Data Path Delay:        3.617ns  (logic 3.617ns (100.000%)  route 0.000ns (0.000%))
+STAGE L0 | Clock Path Skew:        5.922ns (DCD - SCD - CPR)
+STAGE L0 | Clock Uncertainty:      0.166ns  ((TSJ^2 + DJ^2)^1/2) / 2 + PE
+# puts "L1: 换真�? min 1.000 / max 2.600（两沿）"
+L1: 换真�? min 1.000 / max 2.600（两沿）
+# foreach {o v} {-min 1.000 -max 2.600} {
+#     set e no-error
+#     catch {set_input_delay -clock eth_rxc     $o $v $ports} e; puts "L1-RISE$o rc=$e"
+#     set e no-error
+#     catch {set_input_delay -clock eth_rxc -clock_fall $o $v $ports} e; puts "L1-FALL$o rc=$e"
+# }
+L1-RISE-min rc=
+L1-FALL-min rc=
+L1-RISE-max rc=
+L1-FALL-max rc=
+# rep L1 [file join $out oa_L1_true_window.txt] min
+INFO: [Timing 38-91] UpdateTimingParams: Speed grade: -2, Delay Type: min.
+INFO: [Timing 38-191] Multithreading enabled for timing update using a maximum of 2 CPUs
+INFO: [Timing 38-78] ReportTimingParams: -from_pins  -to_pins  -max_paths 2 -nworst 1 -delay_type min -sort_by slack.
+STAGE L1 slack=Slack (VIOLATED) :        -0.626ns ; Slack (VIOLATED) :        -0.625ns
+STAGE L1 | Requirement:            -1.000ns  (mmcm_clk0 rise@3.000ns - eth_rxc fall@4.000ns)
+STAGE L1 | Data Path Delay:        3.613ns  (logic 3.613ns (100.000%)  route 0.000ns (0.000%))
+STAGE L1 | Clock Path Skew:        5.919ns (DCD - SCD - CPR)
+STAGE L1 | Clock Uncertainty:      0.166ns  ((TSJ^2 + DJ^2)^1/2) / 2 + PE
+STAGE L1 | Requirement:            -1.000ns  (mmcm_clk0 rise@3.000ns - eth_rxc fall@4.000ns)
+STAGE L1 | Data Path Delay:        3.617ns  (logic 3.617ns (100.000%)  route 0.000ns (0.000%))
+STAGE L1 | Clock Path Skew:        5.922ns (DCD - SCD - CPR)
+STAGE L1 | Clock Uncertainty:      0.166ns  ((TSJ^2 + DJ^2)^1/2) / 2 + PE
+# puts "L2: 给派生钟�? hold 不确定度（一条命令一�?对象，绝不并名）"
+L2: 给派生钟�? hold 不确定度（一条命令一�?对象，绝不并名）
+# set e no-error
+# catch {set_clock_uncertainty -hold 0.800 $gclk} e
+# puts "L2-SET gclk rc=$e"
+L2-SET gclk rc=
+# rep L2 [file join $out oa_L2_true_window_plus_unc.txt] min
+INFO: [Timing 38-91] UpdateTimingParams: Speed grade: -2, Delay Type: min.
+INFO: [Timing 38-191] Multithreading enabled for timing update using a maximum of 2 CPUs
+INFO: [Timing 38-78] ReportTimingParams: -from_pins  -to_pins  -max_paths 2 -nworst 1 -delay_type min -sort_by slack.
+STAGE L2 slack=Slack (VIOLATED) :        -1.426ns ; Slack (VIOLATED) :        -1.425ns
+STAGE L2 | Requirement:            -1.000ns  (mmcm_clk0 rise@3.000ns - eth_rxc fall@4.000ns)
+STAGE L2 | Data Path Delay:        3.613ns  (logic 3.613ns (100.000%)  route 0.000ns (0.000%))
+STAGE L2 | Clock Path Skew:        5.919ns (DCD - SCD - CPR)
+STAGE L2 | Clock Uncertainty:      0.966ns  ((TSJ^2 + DJ^2)^1/2) / 2 + PE + UU
+STAGE L2 | Requirement:            -1.000ns  (mmcm_clk0 rise@3.000ns - eth_rxc fall@4.000ns)
+STAGE L2 | Data Path Delay:        3.617ns  (logic 3.617ns (100.000%)  route 0.000ns (0.000%))
+STAGE L2 | Clock Path Skew:        5.922ns (DCD - SCD - CPR)
+STAGE L2 | Clock Uncertainty:      0.966ns  ((TSJ^2 + DJ^2)^1/2) / 2 + PE + UU
+# rep L2s [file join $out oa_L2_setup.txt] max
+INFO: [Timing 38-91] UpdateTimingParams: Speed grade: -2, Delay Type: max.
+INFO: [Timing 38-191] Multithreading enabled for timing update using a maximum of 2 CPUs
+INFO: [Timing 38-78] ReportTimingParams: -from_pins  -to_pins  -max_paths 2 -nworst 1 -delay_type max -sort_by slack.
+STAGE L2s slack=Slack (VIOLATED) :        -0.972ns ; Slack (VIOLATED) :        -0.961ns
+STAGE L2s | Requirement:            3.000ns  (mmcm_clk0 fall@7.000ns - eth_rxc fall@4.000ns)
+STAGE L2s | Data Path Delay:        3.146ns  (logic 3.146ns (100.000%)  route 0.000ns (0.000%))
+STAGE L2s | Clock Path Skew:        1.942ns (DCD - SCD + CPR)
+STAGE L2s | Clock Uncertainty:      0.166ns  ((TSJ^2 + DJ^2)^1/2) / 2 + PE
+STAGE L2s | Requirement:            3.000ns  (mmcm_clk0 fall@7.000ns - eth_rxc fall@4.000ns)
+STAGE L2s | Data Path Delay:        3.135ns  (logic 3.135ns (100.000%)  route 0.000ns (0.000%))
+STAGE L2s | Clock Path Skew:        1.942ns (DCD - SCD + CPR)
+STAGE L2s | Clock Uncertainty:      0.166ns  ((TSJ^2 + DJ^2)^1/2) / 2 + PE
+# puts "OADOONE"
+OADOONE
+# exit 0
+INFO: [Common 17-206] Exiting Vivado at Sun Oct  4 00:09:22 2026...
