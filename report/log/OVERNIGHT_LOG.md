@@ -6127,3 +6127,27 @@ powershell -ExecutionPolicy Bypass -File board/uart_cap_once.ps1 -Port COM6 -Cmd
 
 **当前状态一句话**：板上仍是 r87（未冻结、且 r87 自己没有门禁输出）；r88 建出来了、18 项判定全过、
 2 项因缺同跑台架凭据未判 ⇒ `GATES: PARTIAL`，**未采纳、未上板**；最新全绿冻结集继续是 r75。
+
+
+## 2026-10-03 12:30（r113 在飞）：追问"别一根筋 + 为什么刷完 elf 就是 1 度"的两笔账
+- **那 1 度的根因量到了，并且已经在全设计网表里量到修复生效**：`system_top.v:250` 把 `sys_rst_n` 恒接
+  `1'b1` ⇒ 这一域每一条 `if (!rst_n)` 都是死支 ⇒ FF 上电值只剩位流 INIT（实测 r112 未修那份
+  `u_pl/u_k1/key_stable_reg` 是 `FDRE INIT=1'b0`，代码想要的是 1）。修法是把这些"想要 1"的寄存器写成
+  **声明初值**（唯一能穿过死支复位、进到 FF INIT 的写法）。r113 修完后同一把尺子量到全是 `INIT=1'b1`
+  （`build/evidence/r113_ff_init_probe.txt` + 判定 `build/r113_powup_rejudge.txt`，身份 bit `b94f4da6cdff`）。
+  机理链：上电说谎"按着" ⇒ 真实电平是高 ⇒ 去抖确认到的第一个跳变是"松手" ⇒ `key_long` 补一枚短按
+  ⇒ `angle` +1 ⇒ 每次配置（刷板流程里含 `program_pl`）恰好 +1°。软件那条路排除（`CFG_DATA0=0x30400000`
+  ⇒ 自动旋转位与速度都是 0）。r112 那把"武装门"**不是这一度的解药**，已改口、不撤。
+- **链子在那一关自己断过一次**，断的是我对网表的过期假设（`key_prev_reg` 早就被综合折掉，
+  r112 未修那份同样 NO_CELL，不是"没修上"）：见 #260。教训写进尺子的注释与对照，不写在记忆里。
+- **全局侧落成三把件**：`probe_timing_roster.tcl`（逐时钟逐类型 + 级数/route%/扇出 + `report_qor_suggestions`）、
+  `roster_from_summary.sh`（改前那侧从归档报告长回来，因为 routed dcp 每次构建被覆盖）、
+  `timing_roster_diff.sh`（D1..D6：任何域从 MET 掉进违例判红、任何域相对余量掉过 25 % 判红、配对地板…）。
+  本轮实测结论（`build/evidence/r113_roster_diff.txt`）：**八个 (域,类型) 逐位相同**，
+  两份报告逐行只差 Date 行 ⇒ 这一轮是"功能修复、时序中性"，代价为零（#261）。
+- **又挖出一处"其他地方"（#259）**：I/O 约束两端对账尺子 `build/check_io_timing_coverage.py` 点出
+  7 个用户输出端口对外**零声明**（TMDS 8 位里的 6 位、`led`、`eth_mdc`、`eth_mdio`），
+  且源码端与报告端差的那 6 位钉成了一条判据（I7）等 `check_timing -verbose` 来解释。r114 的活。
+- **状态一句话**：板子仍是 r110（带那一度的缺陷）。r113 已过构建 + 上电值 + 31/31 快车道，
+  顶层台架 12:26 起飞（70–128 分钟），之后门禁 → 改口 → 采纳笔 → 三步 JTAG 刷板 → `board_verify` →
+  **E6 是你的眼睛**（冷上电不碰键，`ROT:` 该读 0）。
