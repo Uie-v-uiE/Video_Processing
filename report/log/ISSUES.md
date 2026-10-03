@@ -12867,3 +12867,16 @@ RAMB36_X3Y1  RAMB36E1 (Setup_ramb36e1_CLKARDCLK_WEA[0]) -0.476
 顺带这次的改动把"该改哪些数"变成了机器清单：一次正常跑给出 **23 条 RED**，每条都带 `文件:行` 与
 （首页值, 报告值）——改口轮就照这张单子走，不靠我记（规矩 44：基线必须是件，不是记忆）。
 件：本条改动 + `node src/host/metric_recheck.mjs` 的 RED 清单（03:02 那次跑的输出已抄进 `docs/timing/ROUND_r116.md` 第六节）。
+
+### #322 r116 夜：我自己给的根因标签**不在附录 2 的枚举里** ⇒ 按标签统计的判定器会静默漏计（03:20）
+
+提示词 C 节写得很硬："根因标签**只能**从附录 2 的枚举里原样选取……不许自造同义词——否则判定器按标签统计时会静默漏计"。
+我回头查 `docs/timing/cut_ledger.tsv`，两刀都是自造词：C7 写成 `IO_UNCONSTRAINED`（枚举里是 `UNCONSTRAINED`）、
+C8 写成 `IDELAY_EYE_CENTER`（该取 `IODELAY-STD`）；`twelve_questions.md` 的 r116 那版更糟，造了
+`IO_CLOCK_CORNER_SPREAD` 与 `PLACEMENT_DISTANCE_NOT_AT_LIMIT` 两个——**第二个还带着一个错误的解释**（"距离"），
+而 02:49 的量证明可动的是那根 239 引脚的广播网（`FANOUT`）。
+⇒ 这类错不会让任何东西变红：它只是让"本轮按标签数了几刀"这个数从出生起就是错的（#52 那一族）。
+修法与凭据：改成枚举原词，**改完把列数逐行断言一遍**（TSV 少一个制表符就整表错位），
+并打印 distinct 标签集合当件：现在是 `CLKTOPO / FANOUT / IODELAY-STD / ROUTE / SKEW-UNC / UNCONSTRAINED / XDC-ORDER`，
+七个全在枚举里；历史自造词留在本条里而不是删掉（否则下一轮看不出我改过口径）。
+规矩补一句：**新条目的标签要在写下的当下对回枚举**，而不是等审计来找。

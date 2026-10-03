@@ -149,6 +149,22 @@ r116 的变化与**仍然欠的那一半**：
 TMDS 那一节（正文第 95 页）只给 **I/O 标准与属性**（`Table 1-52 Allowed Attributes of the TMDS I/O Standard`、
 50 Ω 上拉到 3.3 V、`TMDS_33` 只在 HR bank、VCCO 3.3 V），**没有任何接收端 setup/hold 窗口或 UI 数**；
 其余命中页是属性表与 DC 特性表。⇒ 这一族数在**本机**确实不存在，要它必须来自外部规范或你的批准；
-我不拿"看起来宽松"的数凑绿灯（H1/§0 的伪装形状）。在线两次尝试（03 日夜里与本次）也没拿到可引用的一页，
+我不拿"看起来宽松"的数凑绿灯（H1/§0 的伪装形状）。
+
+**03:19 把"外部也查过"这半句做实（三次在线尝试的具体去处与为什么不能用，不再重复查）**：
+① [DVI Test & Measurement Guide Rev.1（26 页，已存 `D:/Xilinx/Prj/pro/dvi_tm_guide.pdf`，抽文本件
+`build/evidence/r117/dvi_guide_scan.txt`）](https://educypedia.org/library/DVI_TM_guide_REV1.pdf)——
+它讲**怎么测**（第 5 页原文 "the eye pattern masks of the DVI specification are essential"、
+第 9 页列离散抖动频率 0.5…4.4 MHz、第 12 页把 swing/jitter/rise time/skew 列为四项关键量），
+但**没有把接收端 setup/hold 的 UI 数印出来**（那串数在 DVI 规范本体里，本机与网上这次都没拿到正文）；
+② [Tektronix TDSDVI 一致性测试在线帮助](https://download.tek.com/manual/077002203web.pdf) 与
+③ [TI DS34RT5110](https://www.mouser.lt/datasheet/2/405/1/ds34rt5110-3375311.pdf) /
+[ADI AD8190](https://www.analog.com/AD8190/datasheet) /
+[AD9397](https://www.ic-components.ee/files/b5/AD9397KSTZ-100.pdf) 都是**重定时器/开关/编码器芯片**的
+手册，它们给的是自己那对脚的 skew/jitter 预算，不是"面板作为 sink 需要什么窗口"；
+后两者按 `set_output_delay` 的口径要换算成 UI 才能用，而换算规则（哪个沿是参考沿、跨 chip 的传播算谁的）
+我没有可引用的出处 ⇒ **拿来填数就是我批评过的"用看起来宽松的数凑绿灯"**。
+⇒ 结论不变但依据更硬：**这一族数要么由用户提供规范正文，要么由用户批准"不检查"（=放宽，进松动台账）**；
+下一轮不要再花第三次在线检索，直接把这两条路摆给用户。在线两次尝试（03 日夜里与本次）也没拿到可引用的一页，
 能查到的都是接收器/重定时器芯片的数据手册（例如 TI DS34RT5110、ADI AD8190）而不是 DVI  sink 的窗口表。
 

@@ -85,6 +85,7 @@ L1 的分段占比我手里有分解读数（最差的 eth_rxc 那族 route 占 
 若差分显示某个**与 I/O 无关**的域变差，那一定是实现阶段的重排副作用，不是这两刀的直接效果——这一条判法写在 `build/r116_batch_plan.md` V4。
 
 **2. 本轮的 WNS 变化，D1 反事实跑了几次？噪声底是多少？**
+答：噪声底 `noise_ns = 0.000`（r115 两次空白滚逐位复现）。本轮同尺反事实 **2 次**：① 对照滚 A 从 `impl_1/system_top_opt.dcp` 重跑 place+route，**逐格复现 r116 正式名册**（件 `build/evidence/r117_fb_pblock/A/roll_console.txt` 的 `ROW` 行 vs `build/evidence/r116_after_roster.txt`）⇒ 这台工具的跨构建差不是骰子；② 复制滚 B 与 A 只差一个变量（`phys_opt_design -force_replication_on_nets`），所以 +0.033 / +0.187 / +0.298 直接归因给那一刀（件 `build/evidence/r117_repl3/B_console.txt`）。
 本轮**不拿 WNS 变化当收益**（rule 35）。刀 2 的收益是**同一只已布线 DCP 上、同一把尺、逐档扫出来的**
 （`probe3_console.txt`：τ 26→31 让最差格从 −1.185 到 −0.870，+0.315 ns），
 它不需要反事实，因为它不是跨构建比较。噪声底 r115 已钉：`noise_ns = 0.000`（空白滚逐格复现基线名册）。
@@ -104,15 +105,17 @@ L1 的分段占比我手里有分解读数（最差的 eth_rxc 那族 route 占 
 
 **5. `unconstrained_endpoints` / `io_unconstrained_ports` 现在是多少？**
 r115 是 `0 / 11`。本轮刀 1 专门打这 11 里的 5 个 ⇒ 预期 `0 / 6`【待 `r116_check_timing.txt`】。
-**这轮结束仍不会是 0**：输出侧 6 个端口（TMDS×4 + LED×2）缺的是**外部规范数**，
+**实测（件 `build/evidence/r116/r116_check_timing.txt`）：`unconstrained_internal_endpoints = 0`；真正没有 input delay 的输入端口 = 0（5→0，另有 2 个是既有 false_path 覆盖、本轮没动）；没有 output delay 的输出端口 = **6**（`led[0..1]`、`tmds_clk_p`、`tmds_data_p[0..2]`）⇒ 第二数非 0 ⇒ H5 按字面判红。**这 6 个端口缺的是**外部规范数**，
 本机板级资料没有、两次在线取原文没拿到可引用的一页 ⇒ 按"没有来源就不写数"，H5 这一条**本轮判不满**，
 这是事实不是遗漏，写在 `debt_ledger.md` §2 追加节。
 
 **6. `report_methodology` 警告类别计数增加了吗？**
+答：**没增**：类仍是 3（TIMING-9/10/18），实例 `Checks found` 446→**441**，其中 `TIMING-18` 从 7→**2**（少掉的 5 条就是这轮第一次被检查的 5 个 RGMII 输入）。件 `build/methodology.rpt` vs `git show HEAD:build/methodology.rpt`。按 G4 这只当成本，本轮成本是**降**的；⚠ 它同时是第二把尺子（checks 口径 2 ≠ 端口口径 6），两数永不相减。
 基线 446 = 2+1+336+98+1+1+7；r115 候选滚曾出现新类 `TIMING-15 Large hold violation 5`。
 本轮绑窗后**预期会出现 TIMING-15**（I/O hold 违例是真违例）⇒ 记为**成本**，不算收益【待构建后 `report_methodology`】。
 
 **7. 判定器"做了多少次比较"？**
+答（三个 N 各有各的行，不互相冒充）：名册差分 `judged=6 / pairs=8`（`build/evidence/r116_roster_diff.txt` 的 `ROSTERDIFF-SUMMARY`）；数字对账 `判 115 个数（首页层 61 个／解析到 10/10 行）` + `SELFSIGN-SUMMARY 判 6 条`（`node src/host/metric_recheck.mjs`）；指路对账 `CURRENCY 6 条`（`node src/host/doc_currency_check.mjs`）。
 `r115_roster_build.py --self` 5/5、`timing_roster_diff.sh --self` 11/11、`r115_round_roster.py --self` 3/3 都在 r115 跑绿；
 本轮 `comparisons_made` 由差分件自己打印【待】。**新增的尺子 `build/r115_fanout_cmp.py` 本轮没用上**（复制驱动判负）。
 
@@ -130,11 +133,10 @@ r115 是 `0 / 11`。本轮刀 1 专门打这 11 里的 5 个 ⇒ 预期 `0 / 6`�
 在 V6 里标成【待刷板】。`src/ps` 一个字没改（本机无 `arm-none-eabi-gcc`）。
 
 **11. 剩余红路径的根因标签都挂上了吗？**
-本轮新增的红（预期 5 个 I/O 端点）根因标签是 **`IO_CLOCK_CORNER_SPREAD`**，
+本轮新增的红（实测 5 个 I/O 端点，`−0.846 / −0.870`）根因标签按附录 2 的枚举取 **`CLKTOPO`**（主项是两只钟的角间插入延迟差 3.411 ns；"I/O 标准/参考沿选错"那一维由 `IODELAY-STD` 覆盖，且它在 §6.1 里是**被排除**的候选而不是标签），
 它带的是不等式（§7.5(4) 的联合条件 `0.029·C_slow + 0.063·ΔC ≤ 0.214`）而不是"未知"。
 其余三域：`sys_clk` 无红；`clkout0_1` 的主导项是 22 级逻辑（功能面）；
-`clk_fpga_0` **有红吗？没有**——它是 18.5 % 绿的，但**判"未到极限"**（1 级/93.6 % 布线），
-标签 `PLACEMENT_DISTANCE_NOT_AT_LIMIT`。**"绿但不是极限"和"红但是极限"必须分开说**，这是本轮审计的核心。
+`clk_fpga_0` **没有红**（19.76 % 绿的），但 02:49 起它被判"未到极限"，标签取枚举里的 **`FANOUT`**（件 `build/evidence/r117_d0/`：一根 239 引脚的网 `u_pl/u_row/hi_reg_0[0]` 吃 5.690 ns，占那条路 route 6.871 ns 的大头）。⚠ 本页 01:3x 那一版写的 `PLACEMENT_DISTANCE_NOT_AT_LIMIT` **是自造词、不在附录 2 的枚举里**，按 C 节的规矩改口；而且"距离"那个解释也被 02:49 的读数推翻——真正可动的是复制那根广播网（r117 的 C9）。**"绿但不是极限"和"红但是极限"必须分开说**，这是本轮审计的核心。
 
 **12. 我写下哪句"极限"其实只满足了 §7 的两条？**
 `eth_rxc` 的 I/O 那 5 格：L1（逐域判定）✅、L2（杠杆全枚举并量过：数据延时/相位/带子/策略/复制）✅、
