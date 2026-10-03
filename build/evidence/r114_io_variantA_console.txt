@@ -1,0 +1,118 @@
+
+****** Vivado v2025.2.1 (64-bit)
+  **** SW Build 6403652 on Thu Mar 19 19:48:24 GMT 2026
+  **** IP Build 6403511 on Thu Mar 19 12:41:45 MDT 2026
+  **** SharedData Build 6403650 on Thu Mar 19 14:02:13 MDT 2026
+  **** Start of session at: Sat Oct  3 16:23:37 2026
+    ** Copyright 1986-2022 Xilinx, Inc. All Rights Reserved.
+    ** Copyright 2022-2026 Advanced Micro Devices, Inc. All Rights Reserved.
+
+source build/tcl/r114_io_roll_one.tcl
+# set root [file normalize [file join [file dirname [info script]] .. ..]]
+# set out "/tmp/kx/r114io"
+# if {[info exists ::env(IO_OUT)]} { set out $::env(IO_OUT) }
+# if {![info exists ::env(IO_TMP)]} { set ::env(IO_TMP) $out }
+# file mkdir $out
+# set dcp [file join $root "vivado_system/zynq_video_sys.runs/impl_1/system_top_opt.dcp"]
+# if {![file exists $dcp]} { puts "REFUSE: no opt dcp: $dcp"; exit 1 }
+# set xdc $::env(IO_XDC)
+# if {![file exists $xdc]} { puts "REFUSE: no candidate xdc: $xdc"; exit 1 }
+# set headlines {eth_rxc clk_fpga_0 clkout0_1 sys_clk}
+# proc debt {} {
+#     #     "There are 5 input ports with no input delay specified. (HIGH)"
+#     #     "There are 6 ports with no output delay specified. (HIGH)"
+#     #     "There are 2 input ports with no input delay but user has a false path constraint. (MEDIUM)"
+#     #     "There are 6 ports with no output delay but user has a false path constraint (MEDIUM)"
+#     global ::env
+#     set tmp [file join $::env(IO_TMP) "debt_[clock clicks -milliseconds].rpt"]
+#     file delete -force $tmp
+#     set e ""
+#     catch {check_timing -verbose -file $tmp} e
+#     set hi_in -1; set hi_out -1; set md_in -1; set md_out -1
+#     if {[file exists $tmp]} {
+#         set fh [open $tmp r]; set t [read $fh]; close $fh
+#         if {[regexp {There are (\d+) input ports with no input delay specified} $t -> n]} { set hi_in $n }
+#         if {[regexp {There are (\d+) ports with no output delay specified} $t -> n]} { set hi_out $n }
+#         if {[regexp {There are (\d+) input ports with no input delay but user has a false path} $t -> n]} { set md_in $n }
+#         if {[regexp {There are (\d+) ports with no output delay but user has a false path} $t -> n]} { set md_out $n }
+#     }
+#     set exc NA; set dm NA; set grp NA
+#     set ef [file join $::env(IO_TMP) "exc_[clock clicks -milliseconds].rpt"]
+#     file delete -force $ef
+#     set e4 ""
+#     catch {report_exceptions -file $ef} e4
+#     if {[file exists $ef]} {
+#         set fh2 [open $ef r]; set et [read $fh2]; close $fh2
+#         set exc [llength [regexp -all -inline -- {(?m)^\d+\s+\S} $et]]
+#         set dm [llength [regexp -all -inline -- {-datapath_only} $et]]
+#         set grp [llength [regexp -all -inline {clock_groups} $et]]
+#     }
+#     return "no_in=$hi_in|no_out=$hi_out|fp_in=$md_in|fp_out=$md_out|exc_rows=$exc|datapath_only_hits=$dm|clock_group_rows=$grp|rc_msg=$e$e4"
+# }
+# proc roster {tag outdir} {
+#     foreach c $::headlines {
+#         if {[get_clocks -quiet $c] eq ""} { puts "IROW|$tag|clk=$c|MISSING"; continue }
+#         set per [get_property PERIOD [get_clocks $c]]
+#         foreach kind {setup hold} {
+#             set dt max
+#             if {$kind eq "hold"} { set dt min }
+#             set f [file join $outdir "rt_${tag}_${c}_${kind}.rpt"]
+#             file delete -force $f
+#             catch {report_timing -delay_type $dt -nworst 1 -max_paths 1 -from $c -to $c -file $f} err
+#             set slack NA; set st NA; set levels NA; set route NA; set dest NA
+#             if {[file exists $f]} {
+#                 set fh [open $f r]; set txt [read $fh]; close $fh
+#                 if {[regexp {Slack\s+\((MET|VIOLATED)\)\s*:\s*(-?[0-9]+\.[0-9]+)\s*ns} $txt -> a b]} { set st $a; set slack $b }
+#                 if {[regexp {Logic Levels:\s+(\d+)} $txt -> L]} { set levels $L }
+#                 if {[regexp {route\s+([0-9.]+)ns\s*\(\s*([0-9.]+)%\s*\)} $txt -> r p]} { set route $p }
+#                 if {[regexp {Destination:\s+(\S+)} $txt -> d]} { set dest $d }
+#             }
+#             puts "IROW|$tag|clk=$c|kind=$kind|period=$per|slack=$slack|state=$st|levels=$levels|route_pct=$route|dest=$dest"
+#         }
+#     }
+#     #   WNS(ns) TNS(ns) TNS Failing Endpoints TNS Total Endpoints WHS(ns) THS(ns) THS Failing ...
+#     set f [file join $outdir "sum_${tag}.rpt"]
+#     file delete -force $f
+#     catch {report_timing_summary -file $f -max_paths 1} e
+#     set wns NA; set whs NA; set fin NA; set fip NA; set lines 0
+#     if {[file exists $f]} {
+#         set fh [open $f r]; set txt [read $fh]; close $fh
+#         set rows [split $txt "
+# "]
+#         set hdr -1
+#         for {set i 0} {$i < [llength $rows]} {incr i} {
+#             if {[string first "WNS(ns)" [lindex $rows $i]] >= 0} { set hdr $i; break }
+#         }
+#         if {$hdr >= 0} {
+#             set vrow ""
+#             for {set j [expr {$hdr + 1}]} {$j < [llength $rows]} {incr j} {
+#                 set l [string trim [lindex $rows $j]]
+#                 if {$l eq "" || [string match "-*" $l]} { continue }
+#                 set vrow $l; break
+#             }
+#             set flds [regexp -all -inline {\S+} $vrow]
+#             set lines [llength $flds]
+#             if {[llength $flds] >= 8} {
+#                 set wns [lindex $flds 0]; set fin [lindex $flds 2]
+#                 set whs [lindex $flds 4]; set fip [lindex $flds 6]
+#             }
+#         }
+#     }
+#     puts "IHEAD|$tag|wns=$wns|whs=$whs|fail_setup=$fin|fail_hold=$fip|fields=$lines"
+# }
+# puts "ROLL|mode=base|open=$dcp"
+ROLL|mode=base|open=D:/Xilinx/Prj/pro/Video_Processing/vivado_system/zynq_video_sys.runs/impl_1/system_top_opt.dcp
+# open_checkpoint $dcp
+Command: open_checkpoint D:/Xilinx/Prj/pro/Video_Processing/vivado_system/zynq_video_sys.runs/impl_1/system_top_opt.dcp
+
+Starting open_checkpoint Task
+
+Time (s): cpu = 00:00:00 ; elapsed = 00:00:00.037 . Memory (MB): peak = 334.074 ; gain = 6.207
+INFO: [Device 21-403] Loading part xc7z020clg484-2
+Netlist sorting complete. Time (s): cpu = 00:00:01 ; elapsed = 00:00:00.319 . Memory (MB): peak = 820.691 ; gain = 0.000
+INFO: [Netlist 29-17] Analyzing 2897 Unisim elements for replacement
+INFO: [Netlist 29-28] Unisim Transformation completed in 1 CPU seconds
+INFO: [Project 1-479] Netlist was created with Vivado 2025.2.1
+INFO: [Project 1-570] Preparing netlist for logic optimization
+Read ShapeDB Complete: Time (s): cpu = 00:00:00 ; elapsed = 00:00:00.232 . Memory (MB): peak = 964.883 ; gain = 5.125
+INFO: [Timing 38-478] Restoring timing data from binary archive.

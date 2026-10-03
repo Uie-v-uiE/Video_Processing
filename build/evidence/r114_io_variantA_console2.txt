@@ -1,0 +1,1470 @@
+
+****** Vivado v2025.2.1 (64-bit)
+  **** SW Build 6403652 on Thu Mar 19 19:48:24 GMT 2026
+  **** IP Build 6403511 on Thu Mar 19 12:41:45 MDT 2026
+  **** SharedData Build 6403650 on Thu Mar 19 14:02:13 MDT 2026
+  **** Start of session at: Sat Oct  3 16:24:05 2026
+    ** Copyright 1986-2022 Xilinx, Inc. All Rights Reserved.
+    ** Copyright 2022-2026 Advanced Micro Devices, Inc. All Rights Reserved.
+
+source build/tcl/r114_io_roll_one.tcl
+# set root [file normalize [file join [file dirname [info script]] .. ..]]
+# set out "/tmp/kx/r114io"
+# if {[info exists ::env(IO_OUT)]} { set out $::env(IO_OUT) }
+# if {![info exists ::env(IO_TMP)]} { set ::env(IO_TMP) $out }
+# file mkdir $out
+# set dcp [file join $root "vivado_system/zynq_video_sys.runs/impl_1/system_top_opt.dcp"]
+# if {![file exists $dcp]} { puts "REFUSE: no opt dcp: $dcp"; exit 1 }
+# set xdc $::env(IO_XDC)
+# if {![file exists $xdc]} { puts "REFUSE: no candidate xdc: $xdc"; exit 1 }
+# set headlines {eth_rxc clk_fpga_0 clkout0_1 sys_clk}
+# proc debt {} {
+#     #     "There are 5 input ports with no input delay specified. (HIGH)"
+#     #     "There are 6 ports with no output delay specified. (HIGH)"
+#     #     "There are 2 input ports with no input delay but user has a false path constraint. (MEDIUM)"
+#     #     "There are 6 ports with no output delay but user has a false path constraint (MEDIUM)"
+#     global ::env
+#     set tmp [file join $::env(IO_TMP) "debt_[clock clicks -milliseconds].rpt"]
+#     file delete -force $tmp
+#     set e ""
+#     catch {check_timing -verbose -file $tmp} e
+#     set hi_in -1; set hi_out -1; set md_in -1; set md_out -1
+#     if {[file exists $tmp]} {
+#         set fh [open $tmp r]; set t [read $fh]; close $fh
+#         if {[regexp {There are (\d+) input ports with no input delay specified} $t -> n]} { set hi_in $n }
+#         if {[regexp {There are (\d+) ports with no output delay specified} $t -> n]} { set hi_out $n }
+#         if {[regexp {There are (\d+) input ports with no input delay but user has a false path} $t -> n]} { set md_in $n }
+#         if {[regexp {There are (\d+) ports with no output delay but user has a false path} $t -> n]} { set md_out $n }
+#     }
+#     set exc NA; set dm NA; set grp NA
+#     set ef [file join $::env(IO_TMP) "exc_[clock clicks -milliseconds].rpt"]
+#     file delete -force $ef
+#     set e4 ""
+#     catch {report_exceptions -file $ef} e4
+#     if {[file exists $ef]} {
+#         set fh2 [open $ef r]; set et [read $fh2]; close $fh2
+#         set exc [llength [regexp -all -inline -- {(?m)^\d+\s+\S} $et]]
+#         set dm [llength [regexp -all -inline -- {-datapath_only} $et]]
+#         set grp [llength [regexp -all -inline {clock_groups} $et]]
+#     }
+#     return "no_in=$hi_in|no_out=$hi_out|fp_in=$md_in|fp_out=$md_out|exc_rows=$exc|datapath_only_hits=$dm|clock_group_rows=$grp|rc_msg=$e$e4"
+# }
+# proc roster {tag outdir} {
+#     foreach c $::headlines {
+#         if {[get_clocks -quiet $c] eq ""} { puts "IROW|$tag|clk=$c|MISSING"; continue }
+#         set per [get_property PERIOD [get_clocks $c]]
+#         foreach kind {setup hold} {
+#             set dt max
+#             if {$kind eq "hold"} { set dt min }
+#             set f [file join $outdir "rt_${tag}_${c}_${kind}.rpt"]
+#             file delete -force $f
+#             catch {report_timing -delay_type $dt -nworst 1 -max_paths 1 -from $c -to $c -file $f} err
+#             set slack NA; set st NA; set levels NA; set route NA; set dest NA
+#             if {[file exists $f]} {
+#                 set fh [open $f r]; set txt [read $fh]; close $fh
+#                 if {[regexp {Slack\s+\((MET|VIOLATED)\)\s*:\s*(-?[0-9]+\.[0-9]+)\s*ns} $txt -> a b]} { set st $a; set slack $b }
+#                 if {[regexp {Logic Levels:\s+(\d+)} $txt -> L]} { set levels $L }
+#                 if {[regexp {route\s+([0-9.]+)ns\s*\(\s*([0-9.]+)%\s*\)} $txt -> r p]} { set route $p }
+#                 if {[regexp {Destination:\s+(\S+)} $txt -> d]} { set dest $d }
+#             }
+#             puts "IROW|$tag|clk=$c|kind=$kind|period=$per|slack=$slack|state=$st|levels=$levels|route_pct=$route|dest=$dest"
+#         }
+#     }
+#     #   WNS(ns) TNS(ns) TNS Failing Endpoints TNS Total Endpoints WHS(ns) THS(ns) THS Failing ...
+#     set f [file join $outdir "sum_${tag}.rpt"]
+#     file delete -force $f
+#     catch {report_timing_summary -file $f -max_paths 1} e
+#     set wns NA; set whs NA; set fin NA; set fip NA; set lines 0
+#     if {[file exists $f]} {
+#         set fh [open $f r]; set txt [read $fh]; close $fh
+#         set rows [split $txt "
+# "]
+#         set hdr -1
+#         for {set i 0} {$i < [llength $rows]} {incr i} {
+#             if {[string first "WNS(ns)" [lindex $rows $i]] >= 0} { set hdr $i; break }
+#         }
+#         if {$hdr >= 0} {
+#             set vrow ""
+#             for {set j [expr {$hdr + 1}]} {$j < [llength $rows]} {incr j} {
+#                 set l [string trim [lindex $rows $j]]
+#                 if {$l eq "" || [string match "-*" $l]} { continue }
+#                 set vrow $l; break
+#             }
+#             set flds [regexp -all -inline {\S+} $vrow]
+#             set lines [llength $flds]
+#             if {[llength $flds] >= 8} {
+#                 set wns [lindex $flds 0]; set fin [lindex $flds 2]
+#                 set whs [lindex $flds 4]; set fip [lindex $flds 6]
+#             }
+#         }
+#     }
+#     puts "IHEAD|$tag|wns=$wns|whs=$whs|fail_setup=$fin|fail_hold=$fip|fields=$lines"
+# }
+# puts "ROLL|mode=base|open=$dcp"
+ROLL|mode=base|open=D:/Xilinx/Prj/pro/Video_Processing/vivado_system/zynq_video_sys.runs/impl_1/system_top_opt.dcp
+# open_checkpoint $dcp
+Command: open_checkpoint D:/Xilinx/Prj/pro/Video_Processing/vivado_system/zynq_video_sys.runs/impl_1/system_top_opt.dcp
+
+Starting open_checkpoint Task
+
+Time (s): cpu = 00:00:00 ; elapsed = 00:00:00.039 . Memory (MB): peak = 330.684 ; gain = 3.543
+INFO: [Device 21-403] Loading part xc7z020clg484-2
+Netlist sorting complete. Time (s): cpu = 00:00:00 ; elapsed = 00:00:00.322 . Memory (MB): peak = 819.758 ; gain = 0.000
+INFO: [Netlist 29-17] Analyzing 2897 Unisim elements for replacement
+INFO: [Netlist 29-28] Unisim Transformation completed in 2 CPU seconds
+INFO: [Project 1-479] Netlist was created with Vivado 2025.2.1
+INFO: [Project 1-570] Preparing netlist for logic optimization
+Read ShapeDB Complete: Time (s): cpu = 00:00:00 ; elapsed = 00:00:00.190 . Memory (MB): peak = 964.184 ; gain = 5.770
+INFO: [Timing 38-478] Restoring timing data from binary archive.
+INFO: [Timing 38-479] Binary timing data restore complete.
+INFO: [Project 1-856] Restoring constraints from binary archive.
+INFO: [Project 1-853] Binary constraint restore complete.
+INFO: [Designutils 20-5722] Start Reading Physical Databases.
+Reading placement.
+Read Netlist Cache: Time (s): cpu = 00:00:00 ; elapsed = 00:00:00.002 . Memory (MB): peak = 1500.539 ; gain = 0.000
+Reading placer database...
+Read Device Cache: Time (s): cpu = 00:00:00 ; elapsed = 00:00:00.018 . Memory (MB): peak = 1500.539 ; gain = 0.000
+Read PlaceDB: Time (s): cpu = 00:00:00 ; elapsed = 00:00:00 . Memory (MB): peak = 1500.539 ; gain = 0.000
+Read placeStorage: Time (s): cpu = 00:00:00 ; elapsed = 00:00:00.103 . Memory (MB): peak = 1500.539 ; gain = 0.000
+Read PulsedLatchDB: Time (s): cpu = 00:00:00 ; elapsed = 00:00:00.001 . Memory (MB): peak = 1500.539 ; gain = 0.000
+Reading routing.
+Read RouteStorage: Time (s): cpu = 00:00:00 ; elapsed = 00:00:00.010 . Memory (MB): peak = 1500.539 ; gain = 0.000
+Read Physdb Files: Time (s): cpu = 00:00:00 ; elapsed = 00:00:00.147 . Memory (MB): peak = 1500.539 ; gain = 0.000
+Restored from archive | CPU: 0.000000 secs | Memory: 0.000000 MB |
+Finished XDEF File Restore: Time (s): cpu = 00:00:00 ; elapsed = 00:00:00.208 . Memory (MB): peak = 1500.539 ; gain = 0.000
+Netlist sorting complete. Time (s): cpu = 00:00:00 ; elapsed = 00:00:00.018 . Memory (MB): peak = 1500.539 ; gain = 0.000
+INFO: [Project 1-111] Unisim Transformation Summary:
+  A total of 1035 instances were transformed.
+  RAM128X1D => RAM128X1D (MUXF7(x2), RAMD64E(x4)): 336 instances
+  RAM64M => RAM64M (RAMD64E(x4)): 651 instances
+  RAM64X1D => RAM64X1D (RAMD64E(x2)): 48 instances
+
+INFO: [Project 1-604] Checkpoint was created with Vivado v2025.2.1 (64-bit) build 6403652
+open_checkpoint: Time (s): cpu = 00:00:31 ; elapsed = 00:00:30 . Memory (MB): peak = 1500.539 ; gain = 1184.129
+INFO: [Timing 38-35] Done setting XDC timing constraints.
+check_timing: Time (s): cpu = 00:00:16 ; elapsed = 00:00:10 . Memory (MB): peak = 1599.637 ; gain = 99.098
+INFO: [Timing 38-91] UpdateTimingParams: Speed grade: -2, Delay Type: min_max.
+INFO: [Timing 38-191] Multithreading enabled for timing update using a maximum of 2 CPUs
+INFO: [Timing 38-35] Done setting XDC timing constraints.
+# puts "DEBT|base|[debt]"
+DEBT|base|no_in=5|no_out=6|fp_in=2|fp_out=6|exc_rows=13|datapath_only_hits=0|clock_group_rows=0|rc_msg=
+# roster base $out
+INFO: [Vivado 12-2286] Implicit search of objects for pattern 'eth_rxc' matched to 'clock' objects.
+Resolution: To avoid ambiguous patterns, provide proper objects using get commands e.g. [get_nets xyz].
+INFO: [Vivado 12-2286] Implicit search of objects for pattern 'eth_rxc' matched to 'clock' objects.
+Resolution: To avoid ambiguous patterns, provide proper objects using get commands e.g. [get_nets xyz].
+INFO: [Timing 38-91] UpdateTimingParams: Speed grade: -2, Delay Type: max.
+INFO: [Timing 38-191] Multithreading enabled for timing update using a maximum of 2 CPUs
+INFO: [Timing 38-78] ReportTimingParams: -from_pins  -to_pins  -max_paths 1 -nworst 1 -delay_type max -sort_by slack.
+IROW|base|clk=eth_rxc|kind=setup|period=8.000|slack=2.391|state=MET|levels=9|route_pct=45.230|dest=u_eth/u_icmp/u_icmp_tx/check_buffer_reg[16]/D
+INFO: [Vivado 12-2286] Implicit search of objects for pattern 'eth_rxc' matched to 'clock' objects.
+Resolution: To avoid ambiguous patterns, provide proper objects using get commands e.g. [get_nets xyz].
+INFO: [Vivado 12-2286] Implicit search of objects for pattern 'eth_rxc' matched to 'clock' objects.
+Resolution: To avoid ambiguous patterns, provide proper objects using get commands e.g. [get_nets xyz].
+INFO: [Timing 38-91] UpdateTimingParams: Speed grade: -2, Delay Type: min.
+INFO: [Timing 38-191] Multithreading enabled for timing update using a maximum of 2 CPUs
+INFO: [Timing 38-78] ReportTimingParams: -from_pins  -to_pins  -max_paths 1 -nworst 1 -delay_type min -sort_by slack.
+IROW|base|clk=eth_rxc|kind=hold|period=8.000|slack=-0.763|state=VIOLATED|levels=0|route_pct=33.151|dest=u_eth/gc1_reg/D
+INFO: [Vivado 12-2286] Implicit search of objects for pattern 'clk_fpga_0' matched to 'clock' objects.
+Resolution: To avoid ambiguous patterns, provide proper objects using get commands e.g. [get_nets xyz].
+INFO: [Vivado 12-2286] Implicit search of objects for pattern 'clk_fpga_0' matched to 'clock' objects.
+Resolution: To avoid ambiguous patterns, provide proper objects using get commands e.g. [get_nets xyz].
+INFO: [Timing 38-91] UpdateTimingParams: Speed grade: -2, Delay Type: max.
+INFO: [Timing 38-191] Multithreading enabled for timing update using a maximum of 2 CPUs
+INFO: [Timing 38-78] ReportTimingParams: -from_pins  -to_pins  -max_paths 1 -nworst 1 -delay_type max -sort_by slack.
+IROW|base|clk=clk_fpga_0|kind=setup|period=10.000|slack=4.219|state=MET|levels=15|route_pct=42.035|dest=u_pl/u_lat/max_cyc_reg[0]/CE
+INFO: [Vivado 12-2286] Implicit search of objects for pattern 'clk_fpga_0' matched to 'clock' objects.
+Resolution: To avoid ambiguous patterns, provide proper objects using get commands e.g. [get_nets xyz].
+INFO: [Vivado 12-2286] Implicit search of objects for pattern 'clk_fpga_0' matched to 'clock' objects.
+Resolution: To avoid ambiguous patterns, provide proper objects using get commands e.g. [get_nets xyz].
+INFO: [Timing 38-91] UpdateTimingParams: Speed grade: -2, Delay Type: min.
+INFO: [Timing 38-191] Multithreading enabled for timing update using a maximum of 2 CPUs
+INFO: [Timing 38-78] ReportTimingParams: -from_pins  -to_pins  -max_paths 1 -nworst 1 -delay_type min -sort_by slack.
+IROW|base|clk=clk_fpga_0|kind=hold|period=10.000|slack=0.037|state=MET|levels=0|route_pct=33.151|dest=u_bd/design_1_i/axi_gpio_1/U0/gpio_core_1/Not_Dual.INPUT_DOUBLE_REGS3/syncstages_ff_reg[1][0]/D
+INFO: [Vivado 12-2286] Implicit search of objects for pattern 'clkout0_1' matched to 'clock' objects.
+Resolution: To avoid ambiguous patterns, provide proper objects using get commands e.g. [get_nets xyz].
+INFO: [Vivado 12-2286] Implicit search of objects for pattern 'clkout0_1' matched to 'clock' objects.
+Resolution: To avoid ambiguous patterns, provide proper objects using get commands e.g. [get_nets xyz].
+INFO: [Timing 38-91] UpdateTimingParams: Speed grade: -2, Delay Type: max.
+INFO: [Timing 38-191] Multithreading enabled for timing update using a maximum of 2 CPUs
+INFO: [Timing 38-78] ReportTimingParams: -from_pins  -to_pins  -max_paths 1 -nworst 1 -delay_type max -sort_by slack.
+IROW|base|clk=clkout0_1|kind=setup|period=20.000|slack=6.669|state=MET|levels=21|route_pct=55.022|dest=u_pl/u_osd/ch_r_reg/ADDRARDADDR[4]
+INFO: [Vivado 12-2286] Implicit search of objects for pattern 'clkout0_1' matched to 'clock' objects.
+Resolution: To avoid ambiguous patterns, provide proper objects using get commands e.g. [get_nets xyz].
+INFO: [Vivado 12-2286] Implicit search of objects for pattern 'clkout0_1' matched to 'clock' objects.
+Resolution: To avoid ambiguous patterns, provide proper objects using get commands e.g. [get_nets xyz].
+INFO: [Timing 38-91] UpdateTimingParams: Speed grade: -2, Delay Type: min.
+INFO: [Timing 38-191] Multithreading enabled for timing update using a maximum of 2 CPUs
+INFO: [Timing 38-78] ReportTimingParams: -from_pins  -to_pins  -max_paths 1 -nworst 1 -delay_type min -sort_by slack.
+IROW|base|clk=clkout0_1|kind=hold|period=20.000|slack=0.037|state=MET|levels=0|route_pct=33.151|dest=u_pl/ac1_reg/D
+INFO: [Vivado 12-2286] Implicit search of objects for pattern 'sys_clk' matched to 'clock' objects.
+Resolution: To avoid ambiguous patterns, provide proper objects using get commands e.g. [get_nets xyz].
+INFO: [Vivado 12-2286] Implicit search of objects for pattern 'sys_clk' matched to 'clock' objects.
+Resolution: To avoid ambiguous patterns, provide proper objects using get commands e.g. [get_nets xyz].
+INFO: [Timing 38-91] UpdateTimingParams: Speed grade: -2, Delay Type: max.
+INFO: [Timing 38-191] Multithreading enabled for timing update using a maximum of 2 CPUs
+INFO: [Timing 38-78] ReportTimingParams: -from_pins  -to_pins  -max_paths 1 -nworst 1 -delay_type max -sort_by slack.
+IROW|base|clk=sys_clk|kind=setup|period=20.000|slack=15.486|state=MET|levels=6|route_pct=61.503|dest=u_pl/u_ang/angle_reg[6]/D
+INFO: [Vivado 12-2286] Implicit search of objects for pattern 'sys_clk' matched to 'clock' objects.
+Resolution: To avoid ambiguous patterns, provide proper objects using get commands e.g. [get_nets xyz].
+INFO: [Vivado 12-2286] Implicit search of objects for pattern 'sys_clk' matched to 'clock' objects.
+Resolution: To avoid ambiguous patterns, provide proper objects using get commands e.g. [get_nets xyz].
+INFO: [Timing 38-91] UpdateTimingParams: Speed grade: -2, Delay Type: min.
+INFO: [Timing 38-191] Multithreading enabled for timing update using a maximum of 2 CPUs
+INFO: [Timing 38-78] ReportTimingParams: -from_pins  -to_pins  -max_paths 1 -nworst 1 -delay_type min -sort_by slack.
+IROW|base|clk=sys_clk|kind=hold|period=20.000|slack=0.037|state=MET|levels=0|route_pct=33.151|dest=u_pl/u_ang/fs_s_reg[1]/D
+INFO: [Timing 38-91] UpdateTimingParams: Speed grade: -2, Delay Type: min_max.
+INFO: [Timing 38-191] Multithreading enabled for timing update using a maximum of 2 CPUs
+IHEAD|base|wns=2.391|whs=-0.763|fail_setup=0|fail_hold=4710|fields=12
+# place_design
+Command: place_design
+Attempting to get a license for feature 'Implementation' and/or device 'xc7z020'
+INFO: [Common 17-349] Got license for feature 'Implementation' and/or device 'xc7z020'
+INFO: [Common 17-83] Releasing license: Implementation
+INFO: [DRC 23-27] Running DRC with 2 threads
+INFO: [Vivado_Tcl 4-198] DRC finished with 0 Errors
+INFO: [Vivado_Tcl 4-199] Please refer to the DRC report (report_drc) for more information.
+Running DRC as a precondition to command place_design
+INFO: [DRC 23-27] Running DRC with 2 threads
+INFO: [Vivado_Tcl 4-198] DRC finished with 0 Errors, 42 Warnings
+INFO: [Vivado_Tcl 4-199] Please refer to the DRC report (report_drc) for more information.
+INFO: [Place 30-611] Multithreading enabled for place_design using a maximum of 2 CPUs
+
+Starting Placer Task
+
+Phase 1 Placer Initialization
+
+Phase 1.1 Placer Initialization Netlist Sorting
+Netlist sorting complete. Time (s): cpu = 00:00:00 ; elapsed = 00:00:00.018 . Memory (MB): peak = 1654.547 ; gain = 0.000
+Phase 1.1 Placer Initialization Netlist Sorting | Checksum: c5575ad0
+
+Time (s): cpu = 00:00:00 ; elapsed = 00:00:00.026 . Memory (MB): peak = 1654.547 ; gain = 0.000
+Netlist sorting complete. Time (s): cpu = 00:00:00 ; elapsed = 00:00:00.018 . Memory (MB): peak = 1654.547 ; gain = 0.000
+
+Phase 1.2 IO Placement/ Clock Placement/ Build Placer Device
+Phase 1.2 IO Placement/ Clock Placement/ Build Placer Device | Checksum: 1e184a056
+
+Time (s): cpu = 00:00:05 ; elapsed = 00:00:04 . Memory (MB): peak = 1654.570 ; gain = 0.023
+
+Phase 1.3 Build Placer Netlist Model
+Phase 1.3 Build Placer Netlist Model | Checksum: 1650da7f8
+
+Time (s): cpu = 00:00:23 ; elapsed = 00:00:17 . Memory (MB): peak = 1771.730 ; gain = 117.184
+
+Phase 1.4 Constrain Clocks/Macros
+Phase 1.4 Constrain Clocks/Macros | Checksum: 1650da7f8
+
+Time (s): cpu = 00:00:23 ; elapsed = 00:00:18 . Memory (MB): peak = 1771.730 ; gain = 117.184
+Phase 1 Placer Initialization | Checksum: 1650da7f8
+
+Time (s): cpu = 00:00:23 ; elapsed = 00:00:18 . Memory (MB): peak = 1771.730 ; gain = 117.184
+
+Phase 2 Global Placement
+
+Phase 2.1 Floorplanning
+Phase 2.1 Floorplanning | Checksum: 1e3b49b0c
+
+Time (s): cpu = 00:00:32 ; elapsed = 00:00:23 . Memory (MB): peak = 1771.730 ; gain = 117.184
+
+Phase 2.2 Update Timing before SLR Path Opt
+Phase 2.2 Update Timing before SLR Path Opt | Checksum: 15c598828
+
+Time (s): cpu = 00:00:39 ; elapsed = 00:00:27 . Memory (MB): peak = 1771.730 ; gain = 117.184
+
+Phase 2.3 Post-Processing in Floorplanning
+Phase 2.3 Post-Processing in Floorplanning | Checksum: 15c598828
+
+Time (s): cpu = 00:00:39 ; elapsed = 00:00:28 . Memory (MB): peak = 1771.730 ; gain = 117.184
+
+Phase 2.4 Global Place Phase1
+Phase 2.4 Global Place Phase1 | Checksum: 1c55cf8f9
+
+Time (s): cpu = 00:01:17 ; elapsed = 00:00:53 . Memory (MB): peak = 1771.730 ; gain = 117.184
+
+Phase 2.5 Global Place Phase2
+
+Phase 2.5.1 UpdateTiming Before Physical Synthesis
+Phase 2.5.1 UpdateTiming Before Physical Synthesis | Checksum: 1c55cf8f9
+
+Time (s): cpu = 00:01:21 ; elapsed = 00:00:55 . Memory (MB): peak = 1771.730 ; gain = 117.184
+
+Phase 2.5.2 Physical Synthesis In Placer
+INFO: [Physopt 32-1035] Found 0 LUTNM shape to break, 966 LUT instances to create LUTNM shape
+INFO: [Physopt 32-1044] Break lutnm for timing: one critical 0, two critical 0, total 0, new lutff created 0
+INFO: [Physopt 32-1138] End 1 Pass. Optimized 436 nets or LUTs. Breaked 0 LUT, combined 436 existing LUTs and moved 0 existing LUT
+INFO: [Physopt 32-1132] Very high fanout net 'u_eth/u_saver/wptr_reg[5]' is not considered as a candidate in VHFN optimization. The fanout considered for this optimization is changed from 1165 to 238 due to a timing constraint or macro primitives that prevent optimization on all of the loads. To force replication, set the FORCE_MAX_FANOUT property on the net to a number less than 238.
+INFO: [Physopt 32-65] No nets found for high-fanout optimization.
+INFO: [Physopt 32-232] Optimized 0 net. Created 0 new instance.
+INFO: [Physopt 32-775] End 1 Pass. Optimized 0 net or cell. Created 0 new cell, deleted 0 existing cell and moved 0 existing cell
+INFO: [Physopt 32-670] No setup violation found.  DSP Register Optimization was not performed.
+INFO: [Physopt 32-670] No setup violation found.  Shift Register to Pipeline Optimization was not performed.
+INFO: [Physopt 32-670] No setup violation found.  Shift Register Optimization was not performed.
+INFO: [Physopt 32-670] No setup violation found.  BRAM Register Optimization was not performed.
+INFO: [Physopt 32-670] No setup violation found.  URAM Register Optimization was not performed.
+INFO: [Physopt 32-949] No candidate nets found for dynamic/static region interface net replication
+INFO: [Physopt 32-775] End 1 Pass. Optimized 0 net or cell. Created 0 new cell, deleted 0 existing cell and moved 0 existing cell
+Netlist sorting complete. Time (s): cpu = 00:00:00 ; elapsed = 00:00:00.011 . Memory (MB): peak = 1771.730 ; gain = 0.000
+
+Summary of Physical Synthesis Optimizations
+============================================
+
+
+-----------------------------------------------------------------------------------------------------------------------------------------------------------
+|  Optimization                                     |  Added Cells  |  Removed Cells  |  Optimized Cells/Nets  |  Dont Touch  |  Iterations  |  Elapsed   |
+-----------------------------------------------------------------------------------------------------------------------------------------------------------
+|  LUT Combining                                    |            0  |            436  |                   436  |           0  |           1  |  00:00:01  |
+|  Retime                                           |            0  |              0  |                     0  |           0  |           1  |  00:00:00  |
+|  Very High Fanout                                 |            0  |              0  |                     0  |           0  |           1  |  00:00:00  |
+|  DSP Register                                     |            0  |              0  |                     0  |           0  |           0  |  00:00:00  |
+|  Shift Register to Pipeline                       |            0  |              0  |                     0  |           0  |           0  |  00:00:00  |
+|  Shift Register                                   |            0  |              0  |                     0  |           0  |           0  |  00:00:00  |
+|  BRAM Register                                    |            0  |              0  |                     0  |           0  |           0  |  00:00:00  |
+|  URAM Register                                    |            0  |              0  |                     0  |           0  |           0  |  00:00:00  |
+|  Dynamic/Static Region Interface Net Replication  |            0  |              0  |                     0  |           0  |           1  |  00:00:00  |
+|  Total                                            |            0  |            436  |                   436  |           0  |           4  |  00:00:01  |
+-----------------------------------------------------------------------------------------------------------------------------------------------------------
+
+
+Phase 2.5.2 Physical Synthesis In Placer | Checksum: 143940158
+
+Time (s): cpu = 00:01:26 ; elapsed = 00:00:58 . Memory (MB): peak = 1771.730 ; gain = 117.184
+Phase 2.5 Global Place Phase2 | Checksum: 14a9091ac
+
+Time (s): cpu = 00:01:27 ; elapsed = 00:00:59 . Memory (MB): peak = 1771.730 ; gain = 117.184
+Phase 2 Global Placement | Checksum: 14a9091ac
+
+Time (s): cpu = 00:01:27 ; elapsed = 00:00:59 . Memory (MB): peak = 1771.730 ; gain = 117.184
+
+Phase 3 Detail Placement
+
+Phase 3.1 Commit Multi Column Macros
+Phase 3.1 Commit Multi Column Macros | Checksum: e3ac2d60
+
+Time (s): cpu = 00:01:31 ; elapsed = 00:01:02 . Memory (MB): peak = 1771.730 ; gain = 117.184
+
+Phase 3.2 Commit Most Macros & LUTRAMs
+Phase 3.2 Commit Most Macros & LUTRAMs | Checksum: e68b58da
+
+Time (s): cpu = 00:01:40 ; elapsed = 00:01:08 . Memory (MB): peak = 1771.730 ; gain = 117.184
+
+Phase 3.3 Area Swap Optimization
+Phase 3.3 Area Swap Optimization | Checksum: c46fe9cd
+
+Time (s): cpu = 00:01:40 ; elapsed = 00:01:08 . Memory (MB): peak = 1771.730 ; gain = 117.184
+
+Phase 3.4 Pipeline Register Optimization
+Phase 3.4 Pipeline Register Optimization | Checksum: 8f50a346
+
+Time (s): cpu = 00:01:40 ; elapsed = 00:01:08 . Memory (MB): peak = 1771.730 ; gain = 117.184
+
+Phase 3.5 Small Shape Detail Placement
+Phase 3.5 Small Shape Detail Placement | Checksum: 112e5ff20
+
+Time (s): cpu = 00:01:46 ; elapsed = 00:01:14 . Memory (MB): peak = 1771.730 ; gain = 117.184
+
+Phase 3.6 Re-assign LUT pins
+Phase 3.6 Re-assign LUT pins | Checksum: bab1493d
+
+Time (s): cpu = 00:01:48 ; elapsed = 00:01:16 . Memory (MB): peak = 1771.730 ; gain = 117.184
+
+Phase 3.7 Pipeline Register Optimization
+Phase 3.7 Pipeline Register Optimization | Checksum: 18f4afa5d
+
+Time (s): cpu = 00:01:48 ; elapsed = 00:01:16 . Memory (MB): peak = 1771.730 ; gain = 117.184
+Phase 3 Detail Placement | Checksum: 18f4afa5d
+
+Time (s): cpu = 00:01:48 ; elapsed = 00:01:16 . Memory (MB): peak = 1771.730 ; gain = 117.184
+
+Phase 4 Post Placement Optimization and Clean-Up
+
+Phase 4.1 Post Commit Optimization
+INFO: [Timing 38-35] Done setting XDC timing constraints.
+
+Phase 4.1.1 Post Placement Optimization
+Post Placement Optimization Initialization | Checksum: 1d1474981
+
+Phase 4.1.1.1 BUFG Insertion
+
+Starting Physical Synthesis Task
+
+Phase 1 Physical Synthesis Initialization
+INFO: [Physopt 32-721] Multithreading enabled for phys_opt_design using a maximum of 2 CPUs
+INFO: [Physopt 32-619] Estimated Timing Summary | WNS=1.320 | TNS=0.000 |
+Phase 1 Physical Synthesis Initialization | Checksum: 20e8cd867
+
+Time (s): cpu = 00:00:01 ; elapsed = 00:00:00.849 . Memory (MB): peak = 1795.758 ; gain = 0.000
+INFO: [Place 46-33] Processed net u_idelay_clkgen/u_mmcm_0, BUFG insertion was skipped due to placement/routing conflicts.
+INFO: [Place 46-33] Processed net u_pl/u_clk/u_mmcm_0, BUFG insertion was skipped due to placement/routing conflicts.
+INFO: [Place 46-33] Processed net u_bd/bbstub_FCLK_RESET0_N, BUFG insertion was skipped due to placement/routing conflicts.
+INFO: [Place 46-56] BUFG insertion identified 3 candidate nets. Inserted BUFG: 0, Replicated BUFG Driver: 0, Skipped due to Placement/Routing Conflicts: 3, Skipped due to Timing Degradation: 0, Skipped due to netlist editing failed: 0.
+Ending Physical Synthesis Task | Checksum: 27f275baf
+
+Time (s): cpu = 00:00:02 ; elapsed = 00:00:02 . Memory (MB): peak = 1795.758 ; gain = 0.000
+Phase 4.1.1.1 BUFG Insertion | Checksum: 1d1474981
+
+Time (s): cpu = 00:02:05 ; elapsed = 00:01:28 . Memory (MB): peak = 1795.758 ; gain = 141.211
+
+Phase 4.1.1.2 Post Placement Timing Optimization
+INFO: [Place 30-746] Post Placement Timing Summary WNS=1.320. For the most accurate timing information please run report_timing.
+Phase 4.1.1.2 Post Placement Timing Optimization | Checksum: 1a0bd4bce
+
+Time (s): cpu = 00:02:06 ; elapsed = 00:01:28 . Memory (MB): peak = 1795.758 ; gain = 141.211
+
+Time (s): cpu = 00:02:06 ; elapsed = 00:01:28 . Memory (MB): peak = 1795.758 ; gain = 141.211
+Phase 4.1 Post Commit Optimization | Checksum: 1a0bd4bce
+
+Time (s): cpu = 00:02:06 ; elapsed = 00:01:28 . Memory (MB): peak = 1795.758 ; gain = 141.211
+
+Phase 4.2 Post Placement Cleanup
+Phase 4.2 Post Placement Cleanup | Checksum: 1a0bd4bce
+
+Time (s): cpu = 00:02:06 ; elapsed = 00:01:28 . Memory (MB): peak = 1795.758 ; gain = 141.211
+
+Phase 4.3 Placer Reporting
+
+Phase 4.3.1 Print Estimated Congestion
+INFO: [Place 30-612] Post-Placement Estimated Congestion 
+ ____________________________________________________
+|           | Global Congestion | Short Congestion  |
+| Direction | Region Size       | Region Size       |
+|___________|___________________|___________________|
+|      North|                1x1|                2x2|
+|___________|___________________|___________________|
+|      South|                1x1|                2x2|
+|___________|___________________|___________________|
+|       East|                1x1|                1x1|
+|___________|___________________|___________________|
+|       West|                1x1|                1x1|
+|___________|___________________|___________________|
+
+Phase 4.3.1 Print Estimated Congestion | Checksum: 1a0bd4bce
+
+Time (s): cpu = 00:02:06 ; elapsed = 00:01:28 . Memory (MB): peak = 1795.758 ; gain = 141.211
+Phase 4.3 Placer Reporting | Checksum: 1a0bd4bce
+
+Time (s): cpu = 00:02:07 ; elapsed = 00:01:28 . Memory (MB): peak = 1795.758 ; gain = 141.211
+
+Phase 4.4 Final Placement Cleanup
+Netlist sorting complete. Time (s): cpu = 00:00:00 ; elapsed = 00:00:00.019 . Memory (MB): peak = 1795.758 ; gain = 0.000
+
+Time (s): cpu = 00:02:07 ; elapsed = 00:01:29 . Memory (MB): peak = 1795.758 ; gain = 141.211
+Phase 4 Post Placement Optimization and Clean-Up | Checksum: d06d9eb4
+
+Time (s): cpu = 00:02:07 ; elapsed = 00:01:29 . Memory (MB): peak = 1795.758 ; gain = 141.211
+Ending Placer Task | Checksum: cd90a4ac
+
+Time (s): cpu = 00:02:07 ; elapsed = 00:01:29 . Memory (MB): peak = 1795.758 ; gain = 141.211
+32 Infos, 0 Warnings, 0 Critical Warnings and 0 Errors encountered.
+place_design completed successfully
+place_design: Time (s): cpu = 00:02:11 ; elapsed = 00:01:31 . Memory (MB): peak = 1795.758 ; gain = 173.207
+# phys_opt_design
+Command: phys_opt_design
+Attempting to get a license for feature 'Implementation' and/or device 'xc7z020'
+INFO: [Common 17-349] Got license for feature 'Implementation' and/or device 'xc7z020'
+
+Starting Initial Update Timing Task
+
+Time (s): cpu = 00:00:15 ; elapsed = 00:00:10 . Memory (MB): peak = 1814.301 ; gain = 18.543
+INFO: [Vivado_Tcl 4-2279] Estimated Timing Summary | WNS= 1.320 | TNS= 0.000 | 
+INFO: [Vivado_Tcl 4-383] Design worst setup slack (WNS) is greater than or equal to 0.000 ns. All physical synthesis setup optimizations will be skipped.
+INFO: [Vivado_Tcl 4-232] No setup violation found. The netlist was not modified.
+INFO: [Common 17-83] Releasing license: Implementation
+5 Infos, 0 Warnings, 0 Critical Warnings and 0 Errors encountered.
+phys_opt_design completed successfully
+phys_opt_design: Time (s): cpu = 00:00:16 ; elapsed = 00:00:10 . Memory (MB): peak = 1814.301 ; gain = 18.543
+# route_design
+Command: route_design
+Attempting to get a license for feature 'Implementation' and/or device 'xc7z020'
+INFO: [Common 17-349] Got license for feature 'Implementation' and/or device 'xc7z020'
+
+
+Starting Routing Task
+INFO: [Route 35-254] Multithreading enabled for route_design using a maximum of 2 CPUs
+
+Phase 1 Build RT Design
+Checksum: PlaceDB: 22b58639 ConstDB: 0 ShapeSum: 94e1ab83 RouteDB: 15f972f0
+Post Restoration Checksum: NetGraph: 1bbf97d3 | NumContArr: f41ff663 | Constraints: c2a8fa9d | Timing: c2a8fa9d
+Phase 1 Build RT Design | Checksum: 295318370
+
+Time (s): cpu = 00:00:53 ; elapsed = 00:00:41 . Memory (MB): peak = 1915.445 ; gain = 83.898
+
+Phase 2 Router Initialization
+
+Phase 2.1 Fix Topology Constraints
+Phase 2.1 Fix Topology Constraints | Checksum: 295318370
+
+Time (s): cpu = 00:00:53 ; elapsed = 00:00:41 . Memory (MB): peak = 1915.445 ; gain = 83.898
+
+Phase 2.2 Pre Route Cleanup
+Phase 2.2 Pre Route Cleanup | Checksum: 295318370
+
+Time (s): cpu = 00:00:53 ; elapsed = 00:00:41 . Memory (MB): peak = 1915.445 ; gain = 83.898
+ Number of Nodes with overlaps = 0
+
+Phase 2.3 Update Timing
+Phase 2.3 Update Timing | Checksum: 38d74b602
+
+Time (s): cpu = 00:01:16 ; elapsed = 00:00:57 . Memory (MB): peak = 1998.055 ; gain = 166.508
+INFO: [Route 35-416] Intermediate Timing Summary | WNS=1.292  | TNS=0.000  | WHS=-1.019 | THS=-4341.379|
+
+
+Phase 2.4 Soft Constraint Pins - Fast Budgeting
+Phase 2.4 Soft Constraint Pins - Fast Budgeting | Checksum: 2d0abde36
+
+Time (s): cpu = 00:01:23 ; elapsed = 00:01:01 . Memory (MB): peak = 2109.875 ; gain = 278.328
+
+Router Utilization Summary
+  Global Vertical Routing Utilization    = 0 %
+  Global Horizontal Routing Utilization  = 0 %
+  Routable Net Status*
+  *Does not include unroutable nets such as driverless and loadless.
+  Run report_route_status for detailed report.
+  Number of Failed Nets               = 20890
+    (Failed Nets is the sum of unrouted and partially routed nets)
+  Number of Unrouted Nets             = 20889
+  Number of Partially Routed Nets     = 1
+  Number of Node Overlaps             = 0
+
+Phase 2 Router Initialization | Checksum: 36cbea8b7
+
+Time (s): cpu = 00:01:23 ; elapsed = 00:01:01 . Memory (MB): peak = 2109.875 ; gain = 278.328
+
+Phase 3 Global Routing
+Phase 3 Global Routing | Checksum: 36cbea8b7
+
+Time (s): cpu = 00:01:23 ; elapsed = 00:01:01 . Memory (MB): peak = 2109.875 ; gain = 278.328
+
+Phase 4 Initial Routing
+
+Phase 4.1 Initial Net Routing Pass
+Phase 4.1 Initial Net Routing Pass | Checksum: 1edf12e9f
+
+Time (s): cpu = 00:01:55 ; elapsed = 00:01:22 . Memory (MB): peak = 2130.488 ; gain = 298.941
+Phase 4 Initial Routing | Checksum: 1edf12e9f
+
+Time (s): cpu = 00:01:55 ; elapsed = 00:01:22 . Memory (MB): peak = 2130.488 ; gain = 298.941
+INFO: [Route 35-580] Design has 133 pins with tight setup and hold constraints.
+
+The top 5 pins with tight setup and hold constraints:
+
++====================+===================+===============================================+
+| Launch Setup Clock | Launch Hold Clock | Pin                                           |
++====================+===================+===============================================+
+| eth_rxc            | eth_rxc           | u_eth/u_icmp/u_icmp_tx/check_buffer_reg[18]/D |
+| eth_rxc            | eth_rxc           | u_eth/u_icmp/u_icmp_tx/check_buffer_reg[19]/D |
+| eth_rxc            | eth_rxc           | u_eth/u_reasm/rok3_reg[22]/D                  |
+| eth_rxc            | eth_rxc           | u_eth/u_reasm/rok3_reg[21]/D                  |
+| eth_rxc            | eth_rxc           | u_eth/u_reasm/rok3_reg[19]/D                  |
++--------------------+-------------------+-----------------------------------------------+
+
+File with complete list of pins: tight_setup_hold_pins.txt
+
+
+Phase 5 Rip-up And Reroute
+
+Phase 5.1 Global Iteration 0
+ Number of Nodes with overlaps = 2255
+ Number of Nodes with overlaps = 167
+ Number of Nodes with overlaps = 20
+ Number of Nodes with overlaps = 1
+ Number of Nodes with overlaps = 0
+INFO: [Route 35-416] Intermediate Timing Summary | WNS=0.420  | TNS=0.000  | WHS=N/A    | THS=N/A    |
+
+Phase 5.1 Global Iteration 0 | Checksum: 264278cb7
+
+Time (s): cpu = 00:05:17 ; elapsed = 00:03:46 . Memory (MB): peak = 2622.691 ; gain = 791.145
+Phase 5 Rip-up And Reroute | Checksum: 264278cb7
+
+Time (s): cpu = 00:05:17 ; elapsed = 00:03:46 . Memory (MB): peak = 2622.691 ; gain = 791.145
+
+Phase 6 Delay and Skew Optimization
+
+Phase 6.1 Delay CleanUp
+
+Phase 6.1.1 Update Timing
+Phase 6.1.1 Update Timing | Checksum: 1f05fce6d
+
+Time (s): cpu = 00:05:19 ; elapsed = 00:03:47 . Memory (MB): peak = 2622.691 ; gain = 791.145
+INFO: [Route 35-416] Intermediate Timing Summary | WNS=0.432  | TNS=0.000  | WHS=N/A    | THS=N/A    |
+
+Phase 6.1 Delay CleanUp | Checksum: 1f05fce6d
+
+Time (s): cpu = 00:05:19 ; elapsed = 00:03:47 . Memory (MB): peak = 2622.691 ; gain = 791.145
+
+Phase 6.2 Clock Skew Optimization
+Phase 6.2 Clock Skew Optimization | Checksum: 1f05fce6d
+
+Time (s): cpu = 00:05:20 ; elapsed = 00:03:48 . Memory (MB): peak = 2622.691 ; gain = 791.145
+Phase 6 Delay and Skew Optimization | Checksum: 1f05fce6d
+
+Time (s): cpu = 00:05:20 ; elapsed = 00:03:48 . Memory (MB): peak = 2622.691 ; gain = 791.145
+
+Phase 7 Post Hold Fix
+
+Phase 7.1 Hold Fix Iter
+INFO: [Route 35-416] Intermediate Timing Summary | WNS=0.432  | TNS=0.000  | WHS=-0.050 | THS=-0.050 |
+
+Phase 7.1 Hold Fix Iter | Checksum: 2ca4e107e
+
+Time (s): cpu = 00:06:14 ; elapsed = 00:04:43 . Memory (MB): peak = 3326.992 ; gain = 1495.445
+
+Phase 7.2 Non Free Resource Hold Fix Iter
+Phase 7.2 Non Free Resource Hold Fix Iter | Checksum: 1f487e069
+
+Time (s): cpu = 00:06:14 ; elapsed = 00:04:43 . Memory (MB): peak = 3326.992 ; gain = 1495.445
+Phase 7 Post Hold Fix | Checksum: 1f487e069
+
+Time (s): cpu = 00:06:14 ; elapsed = 00:04:43 . Memory (MB): peak = 3326.992 ; gain = 1495.445
+
+Phase 8 Route finalize
+
+Router Utilization Summary
+  Global Vertical Routing Utilization    = 8.29895 %
+  Global Horizontal Routing Utilization  = 9.55172 %
+  Routable Net Status*
+  *Does not include unroutable nets such as driverless and loadless.
+  Run report_route_status for detailed report.
+  Number of Failed Nets               = 0
+    (Failed Nets is the sum of unrouted and partially routed nets)
+  Number of Unrouted Nets             = 0
+  Number of Partially Routed Nets     = 0
+  Number of Node Overlaps             = 0
+
+Phase 8 Route finalize | Checksum: 1f487e069
+
+Time (s): cpu = 00:06:14 ; elapsed = 00:04:43 . Memory (MB): peak = 3326.992 ; gain = 1495.445
+
+Phase 9 Verifying routed nets
+
+ Verification completed successfully
+Phase 9 Verifying routed nets | Checksum: 1f487e069
+
+Time (s): cpu = 00:06:14 ; elapsed = 00:04:43 . Memory (MB): peak = 3326.992 ; gain = 1495.445
+
+Phase 10 Depositing Routes
+Phase 10 Depositing Routes | Checksum: 1513a60c7
+
+Time (s): cpu = 00:06:20 ; elapsed = 00:04:48 . Memory (MB): peak = 3326.992 ; gain = 1495.445
+
+Phase 11 Post Process Routing
+Phase 11 Post Process Routing | Checksum: 1513a60c7
+
+Time (s): cpu = 00:06:20 ; elapsed = 00:04:48 . Memory (MB): peak = 3326.992 ; gain = 1495.445
+
+Phase 12 Post Router Timing
+
+Phase 12.1 Update Timing
+Phase 12.1 Update Timing | Checksum: 1513a60c7
+
+Time (s): cpu = 00:06:22 ; elapsed = 00:04:50 . Memory (MB): peak = 3326.992 ; gain = 1495.445
+INFO: [Route 35-57] Estimated Timing Summary | WNS=0.432  | TNS=0.000  | WHS=0.050  | THS=0.000  |
+
+INFO: [Route 35-327] The final timing numbers are based on the router estimated timing analysis. For a complete and accurate timing signoff, please run report_timing_summary.
+Phase 12 Post Router Timing | Checksum: 1513a60c7
+
+Time (s): cpu = 00:06:23 ; elapsed = 00:04:50 . Memory (MB): peak = 3326.992 ; gain = 1495.445
+Total Elapsed time in route_design: 289.841 secs
+
+Phase 13 Post-Route Event Processing
+Phase 13 Post-Route Event Processing | Checksum: 1270f2cbb
+
+Time (s): cpu = 00:06:23 ; elapsed = 00:04:50 . Memory (MB): peak = 3326.992 ; gain = 1495.445
+INFO: [Route 35-16] Router Completed Successfully
+Ending Routing Task | Checksum: 1270f2cbb
+
+Time (s): cpu = 00:06:23 ; elapsed = 00:04:50 . Memory (MB): peak = 3326.992 ; gain = 1495.445
+
+Routing Is Done.
+INFO: [Common 17-83] Releasing license: Implementation
+11 Infos, 0 Warnings, 0 Critical Warnings and 0 Errors encountered.
+route_design completed successfully
+route_design: Time (s): cpu = 00:06:23 ; elapsed = 00:04:51 . Memory (MB): peak = 3326.992 ; gain = 1512.691
+check_timing: Time (s): cpu = 00:00:22 ; elapsed = 00:00:12 . Memory (MB): peak = 3326.992 ; gain = 0.000
+INFO: [Timing 38-91] UpdateTimingParams: Speed grade: -2, Delay Type: min_max.
+INFO: [Timing 38-191] Multithreading enabled for timing update using a maximum of 2 CPUs
+INFO: [Timing 38-35] Done setting XDC timing constraints.
+# puts "DEBT|base_after_route|[debt]"
+DEBT|base_after_route|no_in=5|no_out=6|fp_in=2|fp_out=6|exc_rows=13|datapath_only_hits=0|clock_group_rows=0|rc_msg=
+# roster base_route $out
+INFO: [Vivado 12-2286] Implicit search of objects for pattern 'eth_rxc' matched to 'clock' objects.
+Resolution: To avoid ambiguous patterns, provide proper objects using get commands e.g. [get_nets xyz].
+INFO: [Vivado 12-2286] Implicit search of objects for pattern 'eth_rxc' matched to 'clock' objects.
+Resolution: To avoid ambiguous patterns, provide proper objects using get commands e.g. [get_nets xyz].
+INFO: [Timing 38-91] UpdateTimingParams: Speed grade: -2, Delay Type: max.
+INFO: [Timing 38-191] Multithreading enabled for timing update using a maximum of 2 CPUs
+INFO: [Timing 38-78] ReportTimingParams: -from_pins  -to_pins  -max_paths 1 -nworst 1 -delay_type max -sort_by slack.
+IROW|base_route|clk=eth_rxc|kind=setup|period=8.000|slack=0.445|state=MET|levels=4|route_pct=84.276|dest=u_eth/u_reasm/rows_hit_reg[12]/CE
+INFO: [Vivado 12-2286] Implicit search of objects for pattern 'eth_rxc' matched to 'clock' objects.
+Resolution: To avoid ambiguous patterns, provide proper objects using get commands e.g. [get_nets xyz].
+INFO: [Vivado 12-2286] Implicit search of objects for pattern 'eth_rxc' matched to 'clock' objects.
+Resolution: To avoid ambiguous patterns, provide proper objects using get commands e.g. [get_nets xyz].
+INFO: [Timing 38-91] UpdateTimingParams: Speed grade: -2, Delay Type: min.
+INFO: [Timing 38-191] Multithreading enabled for timing update using a maximum of 2 CPUs
+INFO: [Timing 38-78] ReportTimingParams: -from_pins  -to_pins  -max_paths 1 -nworst 1 -delay_type min -sort_by slack.
+IROW|base_route|clk=eth_rxc|kind=hold|period=8.000|slack=0.050|state=MET|levels=3|route_pct=56.165|dest=u_eth/u_lm/full_d_reg/D
+INFO: [Vivado 12-2286] Implicit search of objects for pattern 'clk_fpga_0' matched to 'clock' objects.
+Resolution: To avoid ambiguous patterns, provide proper objects using get commands e.g. [get_nets xyz].
+INFO: [Vivado 12-2286] Implicit search of objects for pattern 'clk_fpga_0' matched to 'clock' objects.
+Resolution: To avoid ambiguous patterns, provide proper objects using get commands e.g. [get_nets xyz].
+INFO: [Timing 38-91] UpdateTimingParams: Speed grade: -2, Delay Type: max.
+INFO: [Timing 38-191] Multithreading enabled for timing update using a maximum of 2 CPUs
+INFO: [Timing 38-78] ReportTimingParams: -from_pins  -to_pins  -max_paths 1 -nworst 1 -delay_type max -sort_by slack.
+IROW|base_route|clk=clk_fpga_0|kind=setup|period=10.000|slack=1.135|state=MET|levels=1|route_pct=93.875|dest=u_pl/u_bilin/u_fb/lo_reg_0_24/ADDRARDADDR[3]
+INFO: [Vivado 12-2286] Implicit search of objects for pattern 'clk_fpga_0' matched to 'clock' objects.
+Resolution: To avoid ambiguous patterns, provide proper objects using get commands e.g. [get_nets xyz].
+INFO: [Vivado 12-2286] Implicit search of objects for pattern 'clk_fpga_0' matched to 'clock' objects.
+Resolution: To avoid ambiguous patterns, provide proper objects using get commands e.g. [get_nets xyz].
+INFO: [Timing 38-91] UpdateTimingParams: Speed grade: -2, Delay Type: min.
+INFO: [Timing 38-191] Multithreading enabled for timing update using a maximum of 2 CPUs
+INFO: [Timing 38-78] ReportTimingParams: -from_pins  -to_pins  -max_paths 1 -nworst 1 -delay_type min -sort_by slack.
+IROW|base_route|clk=clk_fpga_0|kind=hold|period=10.000|slack=0.056|state=MET|levels=1|route_pct=42.251|dest=u_bd/design_1_i/axi_gpio_2/U0/ip2bus_wrack_i_D1_reg/D
+INFO: [Vivado 12-2286] Implicit search of objects for pattern 'clkout0_1' matched to 'clock' objects.
+Resolution: To avoid ambiguous patterns, provide proper objects using get commands e.g. [get_nets xyz].
+INFO: [Vivado 12-2286] Implicit search of objects for pattern 'clkout0_1' matched to 'clock' objects.
+Resolution: To avoid ambiguous patterns, provide proper objects using get commands e.g. [get_nets xyz].
+INFO: [Timing 38-91] UpdateTimingParams: Speed grade: -2, Delay Type: max.
+INFO: [Timing 38-191] Multithreading enabled for timing update using a maximum of 2 CPUs
+INFO: [Timing 38-78] ReportTimingParams: -from_pins  -to_pins  -max_paths 1 -nworst 1 -delay_type max -sort_by slack.
+IROW|base_route|clk=clkout0_1|kind=setup|period=20.000|slack=4.467|state=MET|levels=18|route_pct=67.202|dest=u_pl/u_pipe/u_gray/dout_reg[2]/D
+INFO: [Vivado 12-2286] Implicit search of objects for pattern 'clkout0_1' matched to 'clock' objects.
+Resolution: To avoid ambiguous patterns, provide proper objects using get commands e.g. [get_nets xyz].
+INFO: [Vivado 12-2286] Implicit search of objects for pattern 'clkout0_1' matched to 'clock' objects.
+Resolution: To avoid ambiguous patterns, provide proper objects using get commands e.g. [get_nets xyz].
+INFO: [Timing 38-91] UpdateTimingParams: Speed grade: -2, Delay Type: min.
+INFO: [Timing 38-191] Multithreading enabled for timing update using a maximum of 2 CPUs
+INFO: [Timing 38-78] ReportTimingParams: -from_pins  -to_pins  -max_paths 1 -nworst 1 -delay_type min -sort_by slack.
+IROW|base_route|clk=clkout0_1|kind=hold|period=20.000|slack=0.059|state=MET|levels=0|route_pct=59.244|dest=u_pl/u_morph/mc1_reg_0_63_12_14/RAMA/WADR2
+INFO: [Vivado 12-2286] Implicit search of objects for pattern 'sys_clk' matched to 'clock' objects.
+Resolution: To avoid ambiguous patterns, provide proper objects using get commands e.g. [get_nets xyz].
+INFO: [Vivado 12-2286] Implicit search of objects for pattern 'sys_clk' matched to 'clock' objects.
+Resolution: To avoid ambiguous patterns, provide proper objects using get commands e.g. [get_nets xyz].
+INFO: [Timing 38-91] UpdateTimingParams: Speed grade: -2, Delay Type: max.
+INFO: [Timing 38-191] Multithreading enabled for timing update using a maximum of 2 CPUs
+INFO: [Timing 38-78] ReportTimingParams: -from_pins  -to_pins  -max_paths 1 -nworst 1 -delay_type max -sort_by slack.
+IROW|base_route|clk=sys_clk|kind=setup|period=20.000|slack=14.463|state=MET|levels=5|route_pct=71.209|dest=u_pl/u_ang/angle_reg[6]/D
+INFO: [Vivado 12-2286] Implicit search of objects for pattern 'sys_clk' matched to 'clock' objects.
+Resolution: To avoid ambiguous patterns, provide proper objects using get commands e.g. [get_nets xyz].
+INFO: [Vivado 12-2286] Implicit search of objects for pattern 'sys_clk' matched to 'clock' objects.
+Resolution: To avoid ambiguous patterns, provide proper objects using get commands e.g. [get_nets xyz].
+INFO: [Timing 38-91] UpdateTimingParams: Speed grade: -2, Delay Type: min.
+INFO: [Timing 38-191] Multithreading enabled for timing update using a maximum of 2 CPUs
+INFO: [Timing 38-78] ReportTimingParams: -from_pins  -to_pins  -max_paths 1 -nworst 1 -delay_type min -sort_by slack.
+IROW|base_route|clk=sys_clk|kind=hold|period=20.000|slack=0.133|state=MET|levels=2|route_pct=55.837|dest=u_pl/u_k1/acnt_reg[3]/D
+INFO: [Timing 38-91] UpdateTimingParams: Speed grade: -2, Delay Type: min_max.
+INFO: [Timing 38-191] Multithreading enabled for timing update using a maximum of 2 CPUs
+IHEAD|base_route|wns=0.445|whs=0.050|fail_setup=0|fail_hold=0|fields=12
+# if {![info exists ::env(IO_TMP)]} { set ::env(IO_TMP) $out }
+# file mkdir $out/base
+# catch {write_checkpoint -force $out/base/routed.dcp} ew
+INFO: [Timing 38-480] Writing timing data to binary archive.
+Wrote PlaceDB: Time (s): cpu = 00:00:00 ; elapsed = 00:00:00 . Memory (MB): peak = 3326.992 ; gain = 0.000
+Wrote PulsedLatchDB: Time (s): cpu = 00:00:00 ; elapsed = 00:00:00 . Memory (MB): peak = 3326.992 ; gain = 0.000
+Writing XDEF routing.
+Writing XDEF routing logical nets.
+Write ShapeDB Complete: Time (s): cpu = 00:00:01 ; elapsed = 00:00:00.186 . Memory (MB): peak = 3326.992 ; gain = 0.000
+Writing XDEF routing special nets.
+Wrote RouteStorage: Time (s): cpu = 00:00:03 ; elapsed = 00:00:00.665 . Memory (MB): peak = 3326.992 ; gain = 0.000
+Wrote PlaceStorage: Time (s): cpu = 00:00:03 ; elapsed = 00:00:02 . Memory (MB): peak = 3326.992 ; gain = 0.000
+Wrote Netlist Cache: Time (s): cpu = 00:00:00 ; elapsed = 00:00:00.059 . Memory (MB): peak = 3326.992 ; gain = 0.000
+Wrote Device Cache: Time (s): cpu = 00:00:00 ; elapsed = 00:00:00.020 . Memory (MB): peak = 3326.992 ; gain = 0.000
+Write Physdb Complete: Time (s): cpu = 00:00:06 ; elapsed = 00:00:03 . Memory (MB): peak = 3326.992 ; gain = 0.000
+INFO: [Common 17-1381] The checkpoint 'C:/Users/wenqu/AppData/Local/Temp/kx/r114io1/base/routed.dcp' has been generated.
+# close_project
+# puts "ROLL|mode=io|open=$dcp"
+ROLL|mode=io|open=D:/Xilinx/Prj/pro/Video_Processing/vivado_system/zynq_video_sys.runs/impl_1/system_top_opt.dcp
+# open_checkpoint $dcp
+Command: open_checkpoint D:/Xilinx/Prj/pro/Video_Processing/vivado_system/zynq_video_sys.runs/impl_1/system_top_opt.dcp
+
+Starting open_checkpoint Task
+
+Time (s): cpu = 00:00:00 ; elapsed = 00:00:00 . Memory (MB): peak = 3326.992 ; gain = 0.000
+Netlist sorting complete. Time (s): cpu = 00:00:00 ; elapsed = 00:00:00.324 . Memory (MB): peak = 3326.992 ; gain = 0.000
+INFO: [Netlist 29-17] Analyzing 2897 Unisim elements for replacement
+INFO: [Netlist 29-28] Unisim Transformation completed in 2 CPU seconds
+INFO: [Project 1-479] Netlist was created with Vivado 2025.2.1
+INFO: [Project 1-570] Preparing netlist for logic optimization
+Read ShapeDB Complete: Time (s): cpu = 00:00:00 ; elapsed = 00:00:00.197 . Memory (MB): peak = 3326.992 ; gain = 0.000
+INFO: [Timing 38-478] Restoring timing data from binary archive.
+INFO: [Timing 38-479] Binary timing data restore complete.
+INFO: [Project 1-856] Restoring constraints from binary archive.
+INFO: [Project 1-853] Binary constraint restore complete.
+INFO: [Designutils 20-5722] Start Reading Physical Databases.
+Reading placement.
+Read Netlist Cache: Time (s): cpu = 00:00:00 ; elapsed = 00:00:00.003 . Memory (MB): peak = 3326.992 ; gain = 0.000
+Reading placer database...
+Read Device Cache: Time (s): cpu = 00:00:00 ; elapsed = 00:00:00.018 . Memory (MB): peak = 3326.992 ; gain = 0.000
+Read PlaceDB: Time (s): cpu = 00:00:00 ; elapsed = 00:00:00 . Memory (MB): peak = 3326.992 ; gain = 0.000
+Read placeStorage: Time (s): cpu = 00:00:00 ; elapsed = 00:00:00.105 . Memory (MB): peak = 3326.992 ; gain = 0.000
+Read PulsedLatchDB: Time (s): cpu = 00:00:00 ; elapsed = 00:00:00 . Memory (MB): peak = 3326.992 ; gain = 0.000
+Reading routing.
+Read RouteStorage: Time (s): cpu = 00:00:00 ; elapsed = 00:00:00.010 . Memory (MB): peak = 3326.992 ; gain = 0.000
+Read Physdb Files: Time (s): cpu = 00:00:00 ; elapsed = 00:00:00.152 . Memory (MB): peak = 3326.992 ; gain = 0.000
+Restored from archive | CPU: 0.000000 secs | Memory: 0.000000 MB |
+Finished XDEF File Restore: Time (s): cpu = 00:00:00 ; elapsed = 00:00:00.154 . Memory (MB): peak = 3326.992 ; gain = 0.000
+Netlist sorting complete. Time (s): cpu = 00:00:00 ; elapsed = 00:00:00.019 . Memory (MB): peak = 3326.992 ; gain = 0.000
+INFO: [Project 1-111] Unisim Transformation Summary:
+  A total of 1035 instances were transformed.
+  RAM128X1D => RAM128X1D (MUXF7(x2), RAMD64E(x4)): 336 instances
+  RAM64M => RAM64M (RAMD64E(x4)): 651 instances
+  RAM64X1D => RAM64X1D (RAMD64E(x2)): 48 instances
+
+INFO: [Project 1-604] Checkpoint was created with Vivado v2025.2.1 (64-bit) build 6403652
+open_checkpoint: Time (s): cpu = 00:00:18 ; elapsed = 00:00:19 . Memory (MB): peak = 3326.992 ; gain = 0.000
+# set src_err ""
+# catch {source $xdc} src_err
+## set_input_delay -clock eth_rxc -max  0.500 [get_ports {eth_rxd[*] eth_rx_ctl}]
+INFO: [Timing 38-35] Done setting XDC timing constraints.
+## set_input_delay -clock eth_rxc -min -0.500 [get_ports {eth_rxd[*] eth_rx_ctl}]
+## set_max_delay -datapath_only -from [get_clocks eth_rxc] -to [get_clocks clk_fpga_0] 10.000
+## set_max_delay -datapath_only -from [get_clocks clk_fpga_0] -to [get_clocks eth_rxc] 8.000
+## set_max_delay -datapath_only -from [get_clocks clk_fpga_0] -to [get_clocks clkout0_1] 20.000
+## set_max_delay -datapath_only -from [get_clocks clkout0_1] -to [get_clocks clk_fpga_0] 10.000
+# puts "XDC_SOURCE|rc_msg=$src_err"
+XDC_SOURCE|rc_msg=
+check_timing: Time (s): cpu = 00:00:14 ; elapsed = 00:00:08 . Memory (MB): peak = 3326.992 ; gain = 0.000
+INFO: [Timing 38-91] UpdateTimingParams: Speed grade: -2, Delay Type: min_max.
+INFO: [Timing 38-191] Multithreading enabled for timing update using a maximum of 2 CPUs
+INFO: [Timing 38-35] Done setting XDC timing constraints.
+# puts "DEBT|io_before|[debt]"
+DEBT|io_before|no_in=0|no_out=6|fp_in=2|fp_out=6|exc_rows=13|datapath_only_hits=0|clock_group_rows=0|rc_msg=
+# roster io_pre $out
+INFO: [Vivado 12-2286] Implicit search of objects for pattern 'eth_rxc' matched to 'clock' objects.
+Resolution: To avoid ambiguous patterns, provide proper objects using get commands e.g. [get_nets xyz].
+INFO: [Vivado 12-2286] Implicit search of objects for pattern 'eth_rxc' matched to 'clock' objects.
+Resolution: To avoid ambiguous patterns, provide proper objects using get commands e.g. [get_nets xyz].
+INFO: [Timing 38-91] UpdateTimingParams: Speed grade: -2, Delay Type: max.
+INFO: [Timing 38-191] Multithreading enabled for timing update using a maximum of 2 CPUs
+INFO: [Timing 38-78] ReportTimingParams: -from_pins  -to_pins  -max_paths 1 -nworst 1 -delay_type max -sort_by slack.
+IROW|io_pre|clk=eth_rxc|kind=setup|period=8.000|slack=1.249|state=MET|levels=2|route_pct=0.000|dest=u_eth/u_rgmii/u_rgmii_rx/rxdata_bus[0].u_iddr_rxd/D
+INFO: [Vivado 12-2286] Implicit search of objects for pattern 'eth_rxc' matched to 'clock' objects.
+Resolution: To avoid ambiguous patterns, provide proper objects using get commands e.g. [get_nets xyz].
+INFO: [Vivado 12-2286] Implicit search of objects for pattern 'eth_rxc' matched to 'clock' objects.
+Resolution: To avoid ambiguous patterns, provide proper objects using get commands e.g. [get_nets xyz].
+INFO: [Timing 38-91] UpdateTimingParams: Speed grade: -2, Delay Type: min.
+INFO: [Timing 38-191] Multithreading enabled for timing update using a maximum of 2 CPUs
+INFO: [Timing 38-78] ReportTimingParams: -from_pins  -to_pins  -max_paths 1 -nworst 1 -delay_type min -sort_by slack.
+IROW|io_pre|clk=eth_rxc|kind=hold|period=8.000|slack=-0.763|state=VIOLATED|levels=0|route_pct=33.151|dest=u_eth/gc1_reg/D
+INFO: [Vivado 12-2286] Implicit search of objects for pattern 'clk_fpga_0' matched to 'clock' objects.
+Resolution: To avoid ambiguous patterns, provide proper objects using get commands e.g. [get_nets xyz].
+INFO: [Vivado 12-2286] Implicit search of objects for pattern 'clk_fpga_0' matched to 'clock' objects.
+Resolution: To avoid ambiguous patterns, provide proper objects using get commands e.g. [get_nets xyz].
+INFO: [Timing 38-91] UpdateTimingParams: Speed grade: -2, Delay Type: max.
+INFO: [Timing 38-191] Multithreading enabled for timing update using a maximum of 2 CPUs
+INFO: [Timing 38-78] ReportTimingParams: -from_pins  -to_pins  -max_paths 1 -nworst 1 -delay_type max -sort_by slack.
+IROW|io_pre|clk=clk_fpga_0|kind=setup|period=10.000|slack=4.219|state=MET|levels=15|route_pct=42.035|dest=u_pl/u_lat/max_cyc_reg[0]/CE
+INFO: [Vivado 12-2286] Implicit search of objects for pattern 'clk_fpga_0' matched to 'clock' objects.
+Resolution: To avoid ambiguous patterns, provide proper objects using get commands e.g. [get_nets xyz].
+INFO: [Vivado 12-2286] Implicit search of objects for pattern 'clk_fpga_0' matched to 'clock' objects.
+Resolution: To avoid ambiguous patterns, provide proper objects using get commands e.g. [get_nets xyz].
+INFO: [Timing 38-91] UpdateTimingParams: Speed grade: -2, Delay Type: min.
+INFO: [Timing 38-191] Multithreading enabled for timing update using a maximum of 2 CPUs
+INFO: [Timing 38-78] ReportTimingParams: -from_pins  -to_pins  -max_paths 1 -nworst 1 -delay_type min -sort_by slack.
+IROW|io_pre|clk=clk_fpga_0|kind=hold|period=10.000|slack=0.037|state=MET|levels=0|route_pct=33.151|dest=u_bd/design_1_i/axi_gpio_1/U0/gpio_core_1/Not_Dual.INPUT_DOUBLE_REGS3/syncstages_ff_reg[1][0]/D
+INFO: [Vivado 12-2286] Implicit search of objects for pattern 'clkout0_1' matched to 'clock' objects.
+Resolution: To avoid ambiguous patterns, provide proper objects using get commands e.g. [get_nets xyz].
+INFO: [Vivado 12-2286] Implicit search of objects for pattern 'clkout0_1' matched to 'clock' objects.
+Resolution: To avoid ambiguous patterns, provide proper objects using get commands e.g. [get_nets xyz].
+INFO: [Timing 38-91] UpdateTimingParams: Speed grade: -2, Delay Type: max.
+INFO: [Timing 38-191] Multithreading enabled for timing update using a maximum of 2 CPUs
+INFO: [Timing 38-78] ReportTimingParams: -from_pins  -to_pins  -max_paths 1 -nworst 1 -delay_type max -sort_by slack.
+IROW|io_pre|clk=clkout0_1|kind=setup|period=20.000|slack=6.669|state=MET|levels=21|route_pct=55.022|dest=u_pl/u_osd/ch_r_reg/ADDRARDADDR[4]
+INFO: [Vivado 12-2286] Implicit search of objects for pattern 'clkout0_1' matched to 'clock' objects.
+Resolution: To avoid ambiguous patterns, provide proper objects using get commands e.g. [get_nets xyz].
+INFO: [Vivado 12-2286] Implicit search of objects for pattern 'clkout0_1' matched to 'clock' objects.
+Resolution: To avoid ambiguous patterns, provide proper objects using get commands e.g. [get_nets xyz].
+INFO: [Timing 38-91] UpdateTimingParams: Speed grade: -2, Delay Type: min.
+INFO: [Timing 38-191] Multithreading enabled for timing update using a maximum of 2 CPUs
+INFO: [Timing 38-78] ReportTimingParams: -from_pins  -to_pins  -max_paths 1 -nworst 1 -delay_type min -sort_by slack.
+IROW|io_pre|clk=clkout0_1|kind=hold|period=20.000|slack=0.037|state=MET|levels=0|route_pct=33.151|dest=u_pl/ac1_reg/D
+INFO: [Vivado 12-2286] Implicit search of objects for pattern 'sys_clk' matched to 'clock' objects.
+Resolution: To avoid ambiguous patterns, provide proper objects using get commands e.g. [get_nets xyz].
+INFO: [Vivado 12-2286] Implicit search of objects for pattern 'sys_clk' matched to 'clock' objects.
+Resolution: To avoid ambiguous patterns, provide proper objects using get commands e.g. [get_nets xyz].
+INFO: [Timing 38-91] UpdateTimingParams: Speed grade: -2, Delay Type: max.
+INFO: [Timing 38-191] Multithreading enabled for timing update using a maximum of 2 CPUs
+INFO: [Timing 38-78] ReportTimingParams: -from_pins  -to_pins  -max_paths 1 -nworst 1 -delay_type max -sort_by slack.
+IROW|io_pre|clk=sys_clk|kind=setup|period=20.000|slack=15.486|state=MET|levels=6|route_pct=61.503|dest=u_pl/u_ang/angle_reg[6]/D
+INFO: [Vivado 12-2286] Implicit search of objects for pattern 'sys_clk' matched to 'clock' objects.
+Resolution: To avoid ambiguous patterns, provide proper objects using get commands e.g. [get_nets xyz].
+INFO: [Vivado 12-2286] Implicit search of objects for pattern 'sys_clk' matched to 'clock' objects.
+Resolution: To avoid ambiguous patterns, provide proper objects using get commands e.g. [get_nets xyz].
+INFO: [Timing 38-91] UpdateTimingParams: Speed grade: -2, Delay Type: min.
+INFO: [Timing 38-191] Multithreading enabled for timing update using a maximum of 2 CPUs
+INFO: [Timing 38-78] ReportTimingParams: -from_pins  -to_pins  -max_paths 1 -nworst 1 -delay_type min -sort_by slack.
+IROW|io_pre|clk=sys_clk|kind=hold|period=20.000|slack=0.037|state=MET|levels=0|route_pct=33.151|dest=u_pl/u_ang/fs_s_reg[1]/D
+INFO: [Timing 38-91] UpdateTimingParams: Speed grade: -2, Delay Type: min_max.
+INFO: [Timing 38-191] Multithreading enabled for timing update using a maximum of 2 CPUs
+IHEAD|io_pre|wns=1.249|whs=-0.763|fail_setup=0|fail_hold=4715|fields=12
+# place_design
+Command: place_design
+Attempting to get a license for feature 'Implementation' and/or device 'xc7z020'
+INFO: [Common 17-349] Got license for feature 'Implementation' and/or device 'xc7z020'
+INFO: [Common 17-83] Releasing license: Implementation
+INFO: [DRC 23-27] Running DRC with 2 threads
+INFO: [Vivado_Tcl 4-198] DRC finished with 0 Errors
+INFO: [Vivado_Tcl 4-199] Please refer to the DRC report (report_drc) for more information.
+Running DRC as a precondition to command place_design
+INFO: [DRC 23-27] Running DRC with 2 threads
+INFO: [Vivado_Tcl 4-198] DRC finished with 0 Errors, 42 Warnings
+INFO: [Vivado_Tcl 4-199] Please refer to the DRC report (report_drc) for more information.
+INFO: [Place 30-611] Multithreading enabled for place_design using a maximum of 2 CPUs
+
+Starting Placer Task
+
+Phase 1 Placer Initialization
+
+Phase 1.1 Placer Initialization Netlist Sorting
+Netlist sorting complete. Time (s): cpu = 00:00:00 ; elapsed = 00:00:00.019 . Memory (MB): peak = 3326.992 ; gain = 0.000
+Phase 1.1 Placer Initialization Netlist Sorting | Checksum: c5575ad0
+
+Time (s): cpu = 00:00:00 ; elapsed = 00:00:00.026 . Memory (MB): peak = 3326.992 ; gain = 0.000
+Netlist sorting complete. Time (s): cpu = 00:00:00 ; elapsed = 00:00:00.019 . Memory (MB): peak = 3326.992 ; gain = 0.000
+
+Phase 1.2 IO Placement/ Clock Placement/ Build Placer Device
+Phase 1.2 IO Placement/ Clock Placement/ Build Placer Device | Checksum: 1e184a056
+
+Time (s): cpu = 00:00:06 ; elapsed = 00:00:04 . Memory (MB): peak = 3326.992 ; gain = 0.000
+
+Phase 1.3 Build Placer Netlist Model
+Phase 1.3 Build Placer Netlist Model | Checksum: 1d7caf82e
+
+Time (s): cpu = 00:00:24 ; elapsed = 00:00:18 . Memory (MB): peak = 3326.992 ; gain = 0.000
+
+Phase 1.4 Constrain Clocks/Macros
+Phase 1.4 Constrain Clocks/Macros | Checksum: 1d7caf82e
+
+Time (s): cpu = 00:00:24 ; elapsed = 00:00:19 . Memory (MB): peak = 3326.992 ; gain = 0.000
+Phase 1 Placer Initialization | Checksum: 1d7caf82e
+
+Time (s): cpu = 00:00:24 ; elapsed = 00:00:19 . Memory (MB): peak = 3326.992 ; gain = 0.000
+
+Phase 2 Global Placement
+
+Phase 2.1 Floorplanning
+Phase 2.1 Floorplanning | Checksum: 224fd41e1
+
+Time (s): cpu = 00:00:33 ; elapsed = 00:00:24 . Memory (MB): peak = 3326.992 ; gain = 0.000
+
+Phase 2.2 Update Timing before SLR Path Opt
+Phase 2.2 Update Timing before SLR Path Opt | Checksum: 19ba64ccf
+
+Time (s): cpu = 00:00:40 ; elapsed = 00:00:28 . Memory (MB): peak = 3326.992 ; gain = 0.000
+
+Phase 2.3 Post-Processing in Floorplanning
+Phase 2.3 Post-Processing in Floorplanning | Checksum: 19ba64ccf
+
+Time (s): cpu = 00:00:40 ; elapsed = 00:00:29 . Memory (MB): peak = 3326.992 ; gain = 0.000
+
+Phase 2.4 Global Place Phase1
+Phase 2.4 Global Place Phase1 | Checksum: 1c55cf8f9
+
+Time (s): cpu = 00:01:17 ; elapsed = 00:00:53 . Memory (MB): peak = 3326.992 ; gain = 0.000
+
+Phase 2.5 Global Place Phase2
+
+Phase 2.5.1 UpdateTiming Before Physical Synthesis
+Phase 2.5.1 UpdateTiming Before Physical Synthesis | Checksum: 1c55cf8f9
+
+Time (s): cpu = 00:01:25 ; elapsed = 00:00:58 . Memory (MB): peak = 3326.992 ; gain = 0.000
+
+Phase 2.5.2 Physical Synthesis In Placer
+INFO: [Physopt 32-1035] Found 0 LUTNM shape to break, 966 LUT instances to create LUTNM shape
+INFO: [Physopt 32-1044] Break lutnm for timing: one critical 0, two critical 0, total 0, new lutff created 0
+INFO: [Physopt 32-1138] End 1 Pass. Optimized 436 nets or LUTs. Breaked 0 LUT, combined 436 existing LUTs and moved 0 existing LUT
+INFO: [Physopt 32-1132] Very high fanout net 'u_eth/u_saver/wptr_reg[5]' is not considered as a candidate in VHFN optimization. The fanout considered for this optimization is changed from 1165 to 238 due to a timing constraint or macro primitives that prevent optimization on all of the loads. To force replication, set the FORCE_MAX_FANOUT property on the net to a number less than 238.
+INFO: [Physopt 32-65] No nets found for high-fanout optimization.
+INFO: [Physopt 32-232] Optimized 0 net. Created 0 new instance.
+INFO: [Physopt 32-775] End 1 Pass. Optimized 0 net or cell. Created 0 new cell, deleted 0 existing cell and moved 0 existing cell
+INFO: [Physopt 32-670] No setup violation found.  DSP Register Optimization was not performed.
+INFO: [Physopt 32-670] No setup violation found.  Shift Register to Pipeline Optimization was not performed.
+INFO: [Physopt 32-670] No setup violation found.  Shift Register Optimization was not performed.
+INFO: [Physopt 32-670] No setup violation found.  BRAM Register Optimization was not performed.
+INFO: [Physopt 32-670] No setup violation found.  URAM Register Optimization was not performed.
+INFO: [Physopt 32-949] No candidate nets found for dynamic/static region interface net replication
+INFO: [Physopt 32-775] End 1 Pass. Optimized 0 net or cell. Created 0 new cell, deleted 0 existing cell and moved 0 existing cell
+Netlist sorting complete. Time (s): cpu = 00:00:00 ; elapsed = 00:00:00.019 . Memory (MB): peak = 3326.992 ; gain = 0.000
+
+Summary of Physical Synthesis Optimizations
+============================================
+
+
+-----------------------------------------------------------------------------------------------------------------------------------------------------------
+|  Optimization                                     |  Added Cells  |  Removed Cells  |  Optimized Cells/Nets  |  Dont Touch  |  Iterations  |  Elapsed   |
+-----------------------------------------------------------------------------------------------------------------------------------------------------------
+|  LUT Combining                                    |            0  |            436  |                   436  |           0  |           1  |  00:00:01  |
+|  Retime                                           |            0  |              0  |                     0  |           0  |           1  |  00:00:00  |
+|  Very High Fanout                                 |            0  |              0  |                     0  |           0  |           1  |  00:00:00  |
+|  DSP Register                                     |            0  |              0  |                     0  |           0  |           0  |  00:00:00  |
+|  Shift Register to Pipeline                       |            0  |              0  |                     0  |           0  |           0  |  00:00:00  |
+|  Shift Register                                   |            0  |              0  |                     0  |           0  |           0  |  00:00:00  |
+|  BRAM Register                                    |            0  |              0  |                     0  |           0  |           0  |  00:00:00  |
+|  URAM Register                                    |            0  |              0  |                     0  |           0  |           0  |  00:00:00  |
+|  Dynamic/Static Region Interface Net Replication  |            0  |              0  |                     0  |           0  |           1  |  00:00:00  |
+|  Total                                            |            0  |            436  |                   436  |           0  |           4  |  00:00:02  |
+-----------------------------------------------------------------------------------------------------------------------------------------------------------
+
+
+Phase 2.5.2 Physical Synthesis In Placer | Checksum: 143940158
+
+Time (s): cpu = 00:01:35 ; elapsed = 00:01:05 . Memory (MB): peak = 3326.992 ; gain = 0.000
+Phase 2.5 Global Place Phase2 | Checksum: 14a9091ac
+
+Time (s): cpu = 00:01:37 ; elapsed = 00:01:07 . Memory (MB): peak = 3326.992 ; gain = 0.000
+Phase 2 Global Placement | Checksum: 14a9091ac
+
+Time (s): cpu = 00:01:37 ; elapsed = 00:01:07 . Memory (MB): peak = 3326.992 ; gain = 0.000
+
+Phase 3 Detail Placement
+
+Phase 3.1 Commit Multi Column Macros
+Phase 3.1 Commit Multi Column Macros | Checksum: e3ac2d60
+
+Time (s): cpu = 00:01:45 ; elapsed = 00:01:12 . Memory (MB): peak = 3326.992 ; gain = 0.000
+
+Phase 3.2 Commit Most Macros & LUTRAMs
+Phase 3.2 Commit Most Macros & LUTRAMs | Checksum: e68b58da
+
+Time (s): cpu = 00:02:01 ; elapsed = 00:01:23 . Memory (MB): peak = 3326.992 ; gain = 0.000
+
+Phase 3.3 Area Swap Optimization
+Phase 3.3 Area Swap Optimization | Checksum: c46fe9cd
+
+Time (s): cpu = 00:02:02 ; elapsed = 00:01:24 . Memory (MB): peak = 3326.992 ; gain = 0.000
+
+Phase 3.4 Pipeline Register Optimization
+Phase 3.4 Pipeline Register Optimization | Checksum: 8f50a346
+
+Time (s): cpu = 00:02:02 ; elapsed = 00:01:24 . Memory (MB): peak = 3326.992 ; gain = 0.000
+
+Phase 3.5 Small Shape Detail Placement
+Phase 3.5 Small Shape Detail Placement | Checksum: 112e5ff20
+
+Time (s): cpu = 00:02:11 ; elapsed = 00:01:34 . Memory (MB): peak = 3326.992 ; gain = 0.000
+
+Phase 3.6 Re-assign LUT pins
+Phase 3.6 Re-assign LUT pins | Checksum: bab1493d
+
+Time (s): cpu = 00:02:15 ; elapsed = 00:01:38 . Memory (MB): peak = 3326.992 ; gain = 0.000
+
+Phase 3.7 Pipeline Register Optimization
+Phase 3.7 Pipeline Register Optimization | Checksum: 18f4afa5d
+
+Time (s): cpu = 00:02:15 ; elapsed = 00:01:38 . Memory (MB): peak = 3326.992 ; gain = 0.000
+Phase 3 Detail Placement | Checksum: 18f4afa5d
+
+Time (s): cpu = 00:02:15 ; elapsed = 00:01:38 . Memory (MB): peak = 3326.992 ; gain = 0.000
+
+Phase 4 Post Placement Optimization and Clean-Up
+
+Phase 4.1 Post Commit Optimization
+INFO: [Timing 38-35] Done setting XDC timing constraints.
+
+Phase 4.1.1 Post Placement Optimization
+Post Placement Optimization Initialization | Checksum: 1d1474981
+
+Phase 4.1.1.1 BUFG Insertion
+
+Starting Physical Synthesis Task
+
+Phase 1 Physical Synthesis Initialization
+INFO: [Physopt 32-721] Multithreading enabled for phys_opt_design using a maximum of 2 CPUs
+INFO: [Physopt 32-619] Estimated Timing Summary | WNS=1.320 | TNS=0.000 |
+Phase 1 Physical Synthesis Initialization | Checksum: 20e8cd867
+
+Time (s): cpu = 00:00:02 ; elapsed = 00:00:01 . Memory (MB): peak = 3326.992 ; gain = 0.000
+INFO: [Place 46-33] Processed net u_idelay_clkgen/u_mmcm_0, BUFG insertion was skipped due to placement/routing conflicts.
+INFO: [Place 46-33] Processed net u_pl/u_clk/u_mmcm_0, BUFG insertion was skipped due to placement/routing conflicts.
+INFO: [Place 46-33] Processed net u_bd/bbstub_FCLK_RESET0_N, BUFG insertion was skipped due to placement/routing conflicts.
+INFO: [Place 46-56] BUFG insertion identified 3 candidate nets. Inserted BUFG: 0, Replicated BUFG Driver: 0, Skipped due to Placement/Routing Conflicts: 3, Skipped due to Timing Degradation: 0, Skipped due to netlist editing failed: 0.
+Ending Physical Synthesis Task | Checksum: 27f275baf
+
+Time (s): cpu = 00:00:03 ; elapsed = 00:00:02 . Memory (MB): peak = 3326.992 ; gain = 0.000
+Phase 4.1.1.1 BUFG Insertion | Checksum: 1d1474981
+
+Time (s): cpu = 00:02:36 ; elapsed = 00:01:53 . Memory (MB): peak = 3326.992 ; gain = 0.000
+
+Phase 4.1.1.2 Post Placement Timing Optimization
+INFO: [Place 30-746] Post Placement Timing Summary WNS=1.320. For the most accurate timing information please run report_timing.
+Phase 4.1.1.2 Post Placement Timing Optimization | Checksum: 1a0bd4bce
+
+Time (s): cpu = 00:02:36 ; elapsed = 00:01:53 . Memory (MB): peak = 3326.992 ; gain = 0.000
+
+Time (s): cpu = 00:02:36 ; elapsed = 00:01:53 . Memory (MB): peak = 3326.992 ; gain = 0.000
+Phase 4.1 Post Commit Optimization | Checksum: 1a0bd4bce
+
+Time (s): cpu = 00:02:36 ; elapsed = 00:01:53 . Memory (MB): peak = 3326.992 ; gain = 0.000
+
+Phase 4.2 Post Placement Cleanup
+Phase 4.2 Post Placement Cleanup | Checksum: 1a0bd4bce
+
+Time (s): cpu = 00:02:37 ; elapsed = 00:01:54 . Memory (MB): peak = 3326.992 ; gain = 0.000
+
+Phase 4.3 Placer Reporting
+
+Phase 4.3.1 Print Estimated Congestion
+INFO: [Place 30-612] Post-Placement Estimated Congestion 
+ ____________________________________________________
+|           | Global Congestion | Short Congestion  |
+| Direction | Region Size       | Region Size       |
+|___________|___________________|___________________|
+|      North|                1x1|                2x2|
+|___________|___________________|___________________|
+|      South|                1x1|                2x2|
+|___________|___________________|___________________|
+|       East|                1x1|                1x1|
+|___________|___________________|___________________|
+|       West|                1x1|                1x1|
+|___________|___________________|___________________|
+
+Phase 4.3.1 Print Estimated Congestion | Checksum: 1a0bd4bce
+
+Time (s): cpu = 00:02:37 ; elapsed = 00:01:54 . Memory (MB): peak = 3326.992 ; gain = 0.000
+Phase 4.3 Placer Reporting | Checksum: 1a0bd4bce
+
+Time (s): cpu = 00:02:37 ; elapsed = 00:01:54 . Memory (MB): peak = 3326.992 ; gain = 0.000
+
+Phase 4.4 Final Placement Cleanup
+Netlist sorting complete. Time (s): cpu = 00:00:00 ; elapsed = 00:00:00.020 . Memory (MB): peak = 3326.992 ; gain = 0.000
+
+Time (s): cpu = 00:02:37 ; elapsed = 00:01:54 . Memory (MB): peak = 3326.992 ; gain = 0.000
+Phase 4 Post Placement Optimization and Clean-Up | Checksum: d06d9eb4
+
+Time (s): cpu = 00:02:37 ; elapsed = 00:01:54 . Memory (MB): peak = 3326.992 ; gain = 0.000
+Ending Placer Task | Checksum: cd90a4ac
+
+Time (s): cpu = 00:02:37 ; elapsed = 00:01:54 . Memory (MB): peak = 3326.992 ; gain = 0.000
+32 Infos, 0 Warnings, 0 Critical Warnings and 0 Errors encountered.
+place_design completed successfully
+place_design: Time (s): cpu = 00:02:40 ; elapsed = 00:01:56 . Memory (MB): peak = 3326.992 ; gain = 0.000
+# phys_opt_design
+Command: phys_opt_design
+Attempting to get a license for feature 'Implementation' and/or device 'xc7z020'
+INFO: [Common 17-349] Got license for feature 'Implementation' and/or device 'xc7z020'
+
+Starting Initial Update Timing Task
+
+Time (s): cpu = 00:00:15 ; elapsed = 00:00:10 . Memory (MB): peak = 3326.992 ; gain = 0.000
+INFO: [Vivado_Tcl 4-2279] Estimated Timing Summary | WNS= 1.320 | TNS= 0.000 | 
+INFO: [Vivado_Tcl 4-383] Design worst setup slack (WNS) is greater than or equal to 0.000 ns. All physical synthesis setup optimizations will be skipped.
+INFO: [Vivado_Tcl 4-232] No setup violation found. The netlist was not modified.
+INFO: [Common 17-83] Releasing license: Implementation
+5 Infos, 0 Warnings, 0 Critical Warnings and 0 Errors encountered.
+phys_opt_design completed successfully
+phys_opt_design: Time (s): cpu = 00:00:16 ; elapsed = 00:00:10 . Memory (MB): peak = 3326.992 ; gain = 0.000
+# route_design
+Command: route_design
+Attempting to get a license for feature 'Implementation' and/or device 'xc7z020'
+INFO: [Common 17-349] Got license for feature 'Implementation' and/or device 'xc7z020'
+
+
+Starting Routing Task
+INFO: [Route 35-254] Multithreading enabled for route_design using a maximum of 2 CPUs
+
+Phase 1 Build RT Design
+Checksum: PlaceDB: 22b58639 ConstDB: 0 ShapeSum: 94e1ab83 RouteDB: 15f972f0
+Post Restoration Checksum: NetGraph: 1bbf97d3 | NumContArr: f41ff663 | Constraints: c2a8fa9d | Timing: c2a8fa9d
+Phase 1 Build RT Design | Checksum: 295318370
+
+Time (s): cpu = 00:00:59 ; elapsed = 00:00:46 . Memory (MB): peak = 3326.992 ; gain = 0.000
+
+Phase 2 Router Initialization
+
+Phase 2.1 Fix Topology Constraints
+Phase 2.1 Fix Topology Constraints | Checksum: 295318370
+
+Time (s): cpu = 00:00:59 ; elapsed = 00:00:46 . Memory (MB): peak = 3326.992 ; gain = 0.000
+
+Phase 2.2 Pre Route Cleanup
+Phase 2.2 Pre Route Cleanup | Checksum: 295318370
+
+Time (s): cpu = 00:00:59 ; elapsed = 00:00:46 . Memory (MB): peak = 3326.992 ; gain = 0.000
+ Number of Nodes with overlaps = 0
+
+Phase 2.3 Update Timing
+Phase 2.3 Update Timing | Checksum: 32637619a
+
+Time (s): cpu = 00:01:26 ; elapsed = 00:01:04 . Memory (MB): peak = 3326.992 ; gain = 0.000
+INFO: [Route 35-416] Intermediate Timing Summary | WNS=1.292  | TNS=0.000  | WHS=-1.365 | THS=-4348.110|
+
+
+Phase 2.4 Soft Constraint Pins - Fast Budgeting
+Phase 2.4 Soft Constraint Pins - Fast Budgeting | Checksum: 360710d74
+
+Time (s): cpu = 00:01:36 ; elapsed = 00:01:10 . Memory (MB): peak = 3326.992 ; gain = 0.000
+
+Router Utilization Summary
+  Global Vertical Routing Utilization    = 0 %
+  Global Horizontal Routing Utilization  = 0 %
+  Routable Net Status*
+  *Does not include unroutable nets such as driverless and loadless.
+  Run report_route_status for detailed report.
+  Number of Failed Nets               = 20890
+    (Failed Nets is the sum of unrouted and partially routed nets)
+  Number of Unrouted Nets             = 20889
+  Number of Partially Routed Nets     = 1
+  Number of Node Overlaps             = 0
+
+Phase 2 Router Initialization | Checksum: 302e9351d
+
+Time (s): cpu = 00:01:37 ; elapsed = 00:01:11 . Memory (MB): peak = 3326.992 ; gain = 0.000
+
+Phase 3 Global Routing
+Phase 3 Global Routing | Checksum: 302e9351d
+
+Time (s): cpu = 00:01:37 ; elapsed = 00:01:11 . Memory (MB): peak = 3326.992 ; gain = 0.000
+
+Phase 4 Initial Routing
+
+Phase 4.1 Initial Net Routing Pass
+Phase 4.1 Initial Net Routing Pass | Checksum: 2701e0717
+
+Time (s): cpu = 00:02:23 ; elapsed = 00:01:40 . Memory (MB): peak = 3326.992 ; gain = 0.000
+Phase 4 Initial Routing | Checksum: 2701e0717
+
+Time (s): cpu = 00:02:23 ; elapsed = 00:01:40 . Memory (MB): peak = 3326.992 ; gain = 0.000
+INFO: [Route 35-580] Design has 138 pins with tight setup and hold constraints.
+
+The top 5 pins with tight setup and hold constraints:
+
++====================+===================+=====================================================+
+| Launch Setup Clock | Launch Hold Clock | Pin                                                 |
++====================+===================+=====================================================+
+| eth_rxc            | eth_rxc           | u_eth/u_icmp/u_icmp_tx/check_buffer_reg[18]/D       |
+| eth_rxc            | eth_rxc           | u_eth/u_rgmii/u_rgmii_rx/u_iddr_rx_ctl/D            |
+| eth_rxc            | eth_rxc           | u_eth/u_rgmii/u_rgmii_rx/rxdata_bus[2].u_iddr_rxd/D |
+| eth_rxc            | eth_rxc           | u_eth/u_rgmii/u_rgmii_rx/rxdata_bus[1].u_iddr_rxd/D |
+| eth_rxc            | eth_rxc           | u_eth/u_rgmii/u_rgmii_rx/rxdata_bus[3].u_iddr_rxd/D |
++--------------------+-------------------+-----------------------------------------------------+
+
+File with complete list of pins: tight_setup_hold_pins.txt
+
+
+Phase 5 Rip-up And Reroute
+
+Phase 5.1 Global Iteration 0
+ Number of Nodes with overlaps = 2268
+ Number of Nodes with overlaps = 102
+ Number of Nodes with overlaps = 14
+ Number of Nodes with overlaps = 2
+ Number of Nodes with overlaps = 2
+ Number of Nodes with overlaps = 2
+ Number of Nodes with overlaps = 0
+INFO: [Route 35-416] Intermediate Timing Summary | WNS=0.305  | TNS=0.000  | WHS=N/A    | THS=N/A    |
+
+Phase 5.1 Global Iteration 0 | Checksum: 24c862605
+
+Time (s): cpu = 00:06:26 ; elapsed = 00:04:24 . Memory (MB): peak = 3326.992 ; gain = 0.000
+Phase 5 Rip-up And Reroute | Checksum: 24c862605
+
+Time (s): cpu = 00:06:26 ; elapsed = 00:04:24 . Memory (MB): peak = 3326.992 ; gain = 0.000
+
+Phase 6 Delay and Skew Optimization
+
+Phase 6.1 Delay CleanUp
+
+Phase 6.1.1 Update Timing
+Phase 6.1.1 Update Timing | Checksum: 1bf354367
+
+Time (s): cpu = 00:06:28 ; elapsed = 00:04:26 . Memory (MB): peak = 3326.992 ; gain = 0.000
+INFO: [Route 35-416] Intermediate Timing Summary | WNS=0.437  | TNS=0.000  | WHS=N/A    | THS=N/A    |
+
+Phase 6.1 Delay CleanUp | Checksum: 1bf354367
+
+Time (s): cpu = 00:06:28 ; elapsed = 00:04:26 . Memory (MB): peak = 3326.992 ; gain = 0.000
+
+Phase 6.2 Clock Skew Optimization
+Phase 6.2 Clock Skew Optimization | Checksum: 1bf354367
+
+Time (s): cpu = 00:06:29 ; elapsed = 00:04:26 . Memory (MB): peak = 3326.992 ; gain = 0.000
+Phase 6 Delay and Skew Optimization | Checksum: 1bf354367
+
+Time (s): cpu = 00:06:29 ; elapsed = 00:04:26 . Memory (MB): peak = 3326.992 ; gain = 0.000
+
+Phase 7 Post Hold Fix
+
+Phase 7.1 Hold Fix Iter
+INFO: [Route 35-416] Intermediate Timing Summary | WNS=0.437  | TNS=0.000  | WHS=-2.885 | THS=-14.979|
+
+
+Phase 7.1.1 Lut RouteThru Assignment for hold
+Phase 7.1.1 Lut RouteThru Assignment for hold | Checksum: 1bd991e79
+
+Time (s): cpu = 00:08:14 ; elapsed = 00:05:47 . Memory (MB): peak = 3926.117 ; gain = 599.125
+Phase 7.1 Hold Fix Iter | Checksum: 1bd991e79
+
+Time (s): cpu = 00:08:14 ; elapsed = 00:05:47 . Memory (MB): peak = 3926.117 ; gain = 599.125
+
+Phase 7.2 Additional Hold Fix
+INFO: [Route 35-416] Intermediate Timing Summary | WNS=0.437  | TNS=0.000  | WHS=-2.885 | THS=-14.344|
+
+Phase 7.2 Additional Hold Fix | Checksum: 2535d61f3
+
+Time (s): cpu = 00:10:00 ; elapsed = 00:07:12 . Memory (MB): peak = 3962.418 ; gain = 635.426
+
+Phase 7.3 Non Free Resource Hold Fix Iter
+Phase 7.3 Non Free Resource Hold Fix Iter | Checksum: 244b2619c
+
+Time (s): cpu = 00:10:03 ; elapsed = 00:07:14 . Memory (MB): peak = 3962.418 ; gain = 635.426
+Phase 7 Post Hold Fix | Checksum: 244b2619c
+
+Time (s): cpu = 00:10:03 ; elapsed = 00:07:14 . Memory (MB): peak = 3962.418 ; gain = 635.426
+
+Phase 8 Route finalize
+
+Router Utilization Summary
+  Global Vertical Routing Utilization    = 8.20436 %
+  Global Horizontal Routing Utilization  = 9.48572 %
+  Routable Net Status*
+  *Does not include unroutable nets such as driverless and loadless.
+  Run report_route_status for detailed report.
+  Number of Failed Nets               = 0
+    (Failed Nets is the sum of unrouted and partially routed nets)
+  Number of Unrouted Nets             = 0
+  Number of Partially Routed Nets     = 0
+  Number of Node Overlaps             = 0
+
+Phase 8 Route finalize | Checksum: 244b2619c
+
+Time (s): cpu = 00:10:04 ; elapsed = 00:07:14 . Memory (MB): peak = 3962.418 ; gain = 635.426
+
+Phase 9 Verifying routed nets
+
+ Verification completed successfully
+Phase 9 Verifying routed nets | Checksum: 244b2619c
+
+Time (s): cpu = 00:10:04 ; elapsed = 00:07:14 . Memory (MB): peak = 3962.418 ; gain = 635.426
+
+Phase 10 Depositing Routes
+Phase 10 Depositing Routes | Checksum: 2a57d3eed
+
+Time (s): cpu = 00:10:11 ; elapsed = 00:07:20 . Memory (MB): peak = 3962.418 ; gain = 635.426
+
+Phase 11 Post Process Routing
+Phase 11 Post Process Routing | Checksum: 2a57d3eed
+
+Time (s): cpu = 00:10:11 ; elapsed = 00:07:21 . Memory (MB): peak = 3962.418 ; gain = 635.426
+
+Phase 12 Post Router Timing
+
+Phase 12.1 Update Timing
+Phase 12.1 Update Timing | Checksum: 2a57d3eed
+
+Time (s): cpu = 00:10:15 ; elapsed = 00:07:23 . Memory (MB): peak = 3962.418 ; gain = 635.426
+INFO: [Route 35-57] Estimated Timing Summary | WNS=0.437  | TNS=0.000  | WHS=-2.885 | THS=-14.344|
+
+WARNING: [Route 35-328] Router estimated timing not met.
+Resolution: For a complete and accurate timing signoff, report_timing_summary must be run after route_design. Alternatively, route_design can be run with the -timing_summary option to enable a complete timing signoff at the end of route_design.
+Phase 12 Post Router Timing | Checksum: 2a57d3eed
+
+Time (s): cpu = 00:10:15 ; elapsed = 00:07:23 . Memory (MB): peak = 3962.418 ; gain = 635.426
+Total Elapsed time in route_design: 442.925 secs
+
+Phase 13 Post-Route Event Processing
+Phase 13 Post-Route Event Processing | Checksum: c37a4724
+
+Time (s): cpu = 00:10:16 ; elapsed = 00:07:23 . Memory (MB): peak = 3962.418 ; gain = 635.426
+INFO: [Route 35-16] Router Completed Successfully
+Ending Routing Task | Checksum: c37a4724
+
+Time (s): cpu = 00:10:16 ; elapsed = 00:07:23 . Memory (MB): peak = 3962.418 ; gain = 635.426
+
+Routing Is Done.
+INFO: [Common 17-83] Releasing license: Implementation
+11 Infos, 1 Warnings, 0 Critical Warnings and 0 Errors encountered.
+route_design completed successfully
+route_design: Time (s): cpu = 00:10:17 ; elapsed = 00:07:24 . Memory (MB): peak = 3962.418 ; gain = 635.426
+check_timing: Time (s): cpu = 00:00:23 ; elapsed = 00:00:13 . Memory (MB): peak = 3962.418 ; gain = 0.000
+INFO: [Timing 38-91] UpdateTimingParams: Speed grade: -2, Delay Type: min_max.
+INFO: [Timing 38-191] Multithreading enabled for timing update using a maximum of 2 CPUs
+INFO: [Timing 38-35] Done setting XDC timing constraints.
+report_exceptions: Time (s): cpu = 00:00:09 ; elapsed = 00:00:05 . Memory (MB): peak = 3962.418 ; gain = 0.000
+# puts "DEBT|io_after_route|[debt]"
+DEBT|io_after_route|no_in=0|no_out=6|fp_in=2|fp_out=6|exc_rows=13|datapath_only_hits=0|clock_group_rows=0|rc_msg=
+# roster io_route $out
+INFO: [Vivado 12-2286] Implicit search of objects for pattern 'eth_rxc' matched to 'clock' objects.
+Resolution: To avoid ambiguous patterns, provide proper objects using get commands e.g. [get_nets xyz].
+INFO: [Vivado 12-2286] Implicit search of objects for pattern 'eth_rxc' matched to 'clock' objects.
+Resolution: To avoid ambiguous patterns, provide proper objects using get commands e.g. [get_nets xyz].
+INFO: [Timing 38-91] UpdateTimingParams: Speed grade: -2, Delay Type: max.
+INFO: [Timing 38-191] Multithreading enabled for timing update using a maximum of 2 CPUs
+INFO: [Timing 38-78] ReportTimingParams: -from_pins  -to_pins  -max_paths 1 -nworst 1 -delay_type max -sort_by slack.
+IROW|io_route|clk=eth_rxc|kind=setup|period=8.000|slack=0.424|state=MET|levels=11|route_pct=58.114|dest=u_eth/u_icmp/u_icmp_tx/check_buffer_reg[18]/D
+INFO: [Vivado 12-2286] Implicit search of objects for pattern 'eth_rxc' matched to 'clock' objects.
+Resolution: To avoid ambiguous patterns, provide proper objects using get commands e.g. [get_nets xyz].
+INFO: [Vivado 12-2286] Implicit search of objects for pattern 'eth_rxc' matched to 'clock' objects.
+Resolution: To avoid ambiguous patterns, provide proper objects using get commands e.g. [get_nets xyz].
+INFO: [Timing 38-91] UpdateTimingParams: Speed grade: -2, Delay Type: min.
+INFO: [Timing 38-191] Multithreading enabled for timing update using a maximum of 2 CPUs
+INFO: [Timing 38-78] ReportTimingParams: -from_pins  -to_pins  -max_paths 1 -nworst 1 -delay_type min -sort_by slack.
+IROW|io_route|clk=eth_rxc|kind=hold|period=8.000|slack=-2.885|state=VIOLATED|levels=2|route_pct=0.000|dest=u_eth/u_rgmii/u_rgmii_rx/u_iddr_rx_ctl/D
+INFO: [Vivado 12-2286] Implicit search of objects for pattern 'clk_fpga_0' matched to 'clock' objects.
+Resolution: To avoid ambiguous patterns, provide proper objects using get commands e.g. [get_nets xyz].
+INFO: [Vivado 12-2286] Implicit search of objects for pattern 'clk_fpga_0' matched to 'clock' objects.
+Resolution: To avoid ambiguous patterns, provide proper objects using get commands e.g. [get_nets xyz].
+INFO: [Timing 38-91] UpdateTimingParams: Speed grade: -2, Delay Type: max.
+INFO: [Timing 38-191] Multithreading enabled for timing update using a maximum of 2 CPUs
+INFO: [Timing 38-78] ReportTimingParams: -from_pins  -to_pins  -max_paths 1 -nworst 1 -delay_type max -sort_by slack.
+IROW|io_route|clk=clk_fpga_0|kind=setup|period=10.000|slack=1.155|state=MET|levels=1|route_pct=93.860|dest=u_pl/u_bilin/u_fb/lo_reg_0_24/ADDRARDADDR[3]
+INFO: [Vivado 12-2286] Implicit search of objects for pattern 'clk_fpga_0' matched to 'clock' objects.
+Resolution: To avoid ambiguous patterns, provide proper objects using get commands e.g. [get_nets xyz].
+INFO: [Vivado 12-2286] Implicit search of objects for pattern 'clk_fpga_0' matched to 'clock' objects.
+Resolution: To avoid ambiguous patterns, provide proper objects using get commands e.g. [get_nets xyz].
+INFO: [Timing 38-91] UpdateTimingParams: Speed grade: -2, Delay Type: min.
+INFO: [Timing 38-191] Multithreading enabled for timing update using a maximum of 2 CPUs
+INFO: [Timing 38-78] ReportTimingParams: -from_pins  -to_pins  -max_paths 1 -nworst 1 -delay_type min -sort_by slack.
+IROW|io_route|clk=clk_fpga_0|kind=hold|period=10.000|slack=0.058|state=MET|levels=1|route_pct=54.780|dest=u_bd/design_1_i/axi_gpio_1/U0/gpio_core_1/Not_Dual.ALLIN1_ND.READ_REG_GEN[29].reg1_reg[29]/D
+INFO: [Vivado 12-2286] Implicit search of objects for pattern 'clkout0_1' matched to 'clock' objects.
+Resolution: To avoid ambiguous patterns, provide proper objects using get commands e.g. [get_nets xyz].
+INFO: [Vivado 12-2286] Implicit search of objects for pattern 'clkout0_1' matched to 'clock' objects.
+Resolution: To avoid ambiguous patterns, provide proper objects using get commands e.g. [get_nets xyz].
+INFO: [Timing 38-91] UpdateTimingParams: Speed grade: -2, Delay Type: max.
+INFO: [Timing 38-191] Multithreading enabled for timing update using a maximum of 2 CPUs
+INFO: [Timing 38-78] ReportTimingParams: -from_pins  -to_pins  -max_paths 1 -nworst 1 -delay_type max -sort_by slack.
+IROW|io_route|clk=clkout0_1|kind=setup|period=20.000|slack=4.206|state=MET|levels=23|route_pct=57.758|dest=u_pl/u_osd/ch_r_reg/ADDRARDADDR[7]
+INFO: [Vivado 12-2286] Implicit search of objects for pattern 'clkout0_1' matched to 'clock' objects.
+Resolution: To avoid ambiguous patterns, provide proper objects using get commands e.g. [get_nets xyz].
+INFO: [Vivado 12-2286] Implicit search of objects for pattern 'clkout0_1' matched to 'clock' objects.
+Resolution: To avoid ambiguous patterns, provide proper objects using get commands e.g. [get_nets xyz].
+INFO: [Timing 38-91] UpdateTimingParams: Speed grade: -2, Delay Type: min.
+INFO: [Timing 38-191] Multithreading enabled for timing update using a maximum of 2 CPUs
+INFO: [Timing 38-78] ReportTimingParams: -from_pins  -to_pins  -max_paths 1 -nworst 1 -delay_type min -sort_by slack.
+IROW|io_route|clk=clkout0_1|kind=hold|period=20.000|slack=0.064|state=MET|levels=0|route_pct=65.067|dest=u_pl/u_sobel/lb0_reg_768_831_0_2/RAMA/WADR1
+INFO: [Vivado 12-2286] Implicit search of objects for pattern 'sys_clk' matched to 'clock' objects.
+Resolution: To avoid ambiguous patterns, provide proper objects using get commands e.g. [get_nets xyz].
+INFO: [Vivado 12-2286] Implicit search of objects for pattern 'sys_clk' matched to 'clock' objects.
+Resolution: To avoid ambiguous patterns, provide proper objects using get commands e.g. [get_nets xyz].
+INFO: [Timing 38-91] UpdateTimingParams: Speed grade: -2, Delay Type: max.
+INFO: [Timing 38-191] Multithreading enabled for timing update using a maximum of 2 CPUs
+INFO: [Timing 38-78] ReportTimingParams: -from_pins  -to_pins  -max_paths 1 -nworst 1 -delay_type max -sort_by slack.
+IROW|io_route|clk=sys_clk|kind=setup|period=20.000|slack=14.109|state=MET|levels=5|route_pct=72.040|dest=u_pl/u_ang/angle_reg[6]/D
+INFO: [Vivado 12-2286] Implicit search of objects for pattern 'sys_clk' matched to 'clock' objects.
+Resolution: To avoid ambiguous patterns, provide proper objects using get commands e.g. [get_nets xyz].
+INFO: [Vivado 12-2286] Implicit search of objects for pattern 'sys_clk' matched to 'clock' objects.
+Resolution: To avoid ambiguous patterns, provide proper objects using get commands e.g. [get_nets xyz].
+INFO: [Timing 38-91] UpdateTimingParams: Speed grade: -2, Delay Type: min.
+INFO: [Timing 38-191] Multithreading enabled for timing update using a maximum of 2 CPUs
+INFO: [Timing 38-78] ReportTimingParams: -from_pins  -to_pins  -max_paths 1 -nworst 1 -delay_type min -sort_by slack.
+IROW|io_route|clk=sys_clk|kind=hold|period=20.000|slack=0.133|state=MET|levels=2|route_pct=55.837|dest=u_pl/u_k1/acnt_reg[3]/D
+INFO: [Timing 38-91] UpdateTimingParams: Speed grade: -2, Delay Type: min_max.
+INFO: [Timing 38-191] Multithreading enabled for timing update using a maximum of 2 CPUs
+IHEAD|io_route|wns=0.424|whs=-2.885|fail_setup=0|fail_hold=5|fields=12
+# if {![info exists ::env(IO_TMP)]} { set ::env(IO_TMP) $out }
+# file mkdir $out/io
+# catch {write_checkpoint -force $out/io/routed.dcp} ew2
+INFO: [Timing 38-480] Writing timing data to binary archive.
+Wrote PlaceDB: Time (s): cpu = 00:00:00 ; elapsed = 00:00:00 . Memory (MB): peak = 3962.418 ; gain = 0.000
+Wrote PulsedLatchDB: Time (s): cpu = 00:00:00 ; elapsed = 00:00:00 . Memory (MB): peak = 3962.418 ; gain = 0.000
+Writing XDEF routing.
+Writing XDEF routing logical nets.
+Write ShapeDB Complete: Time (s): cpu = 00:00:01 ; elapsed = 00:00:00.175 . Memory (MB): peak = 3962.418 ; gain = 0.000
+Writing XDEF routing special nets.
+Wrote RouteStorage: Time (s): cpu = 00:00:02 ; elapsed = 00:00:00.679 . Memory (MB): peak = 3962.418 ; gain = 0.000
+Wrote PlaceStorage: Time (s): cpu = 00:00:03 ; elapsed = 00:00:02 . Memory (MB): peak = 3962.418 ; gain = 0.000
+Wrote Netlist Cache: Time (s): cpu = 00:00:00 ; elapsed = 00:00:00.052 . Memory (MB): peak = 3962.418 ; gain = 0.000
+Wrote Device Cache: Time (s): cpu = 00:00:00 ; elapsed = 00:00:00.015 . Memory (MB): peak = 3962.418 ; gain = 0.000
+Write Physdb Complete: Time (s): cpu = 00:00:06 ; elapsed = 00:00:03 . Memory (MB): peak = 3962.418 ; gain = 0.000
+INFO: [Common 17-1381] The checkpoint 'C:/Users/wenqu/AppData/Local/Temp/kx/r114io1/io/routed.dcp' has been generated.
+write_checkpoint: Time (s): cpu = 00:00:08 ; elapsed = 00:00:05 . Memory (MB): peak = 3962.418 ; gain = 0.000
+# puts "IO_ROLL_DONE"
+IO_ROLL_DONE
+INFO: [Common 17-206] Exiting Vivado at Sat Oct  3 16:42:38 2026...
