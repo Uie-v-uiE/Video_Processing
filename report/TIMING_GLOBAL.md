@@ -197,6 +197,9 @@ hold 0.050/0.056/0.059/0.133），与本文第 2 节的表同源同数，逐条�
 
 ## 参考（官方与论坛，2026-10-03 查）
 - [Timing Closure — UG949 UltraFast Design Methodology Guide](https://docs.amd.com/r/en-US/ug949-vivado-design-methodology/Timing-Closure)
+- [Additional Uncertainty — UG949（不确定度那一节；⚠ 页名可查、正文要 JS 我抓不到，所以本文只引页名不引原句）](https://docs.amd.com/r/en-US/ug949-vivado-design-methodology/Additional-Uncertainty)
+- [Relaxing the Setup Requirement While Keeping Hold Unchanged — UG949（setup 松、hold 不松的正确做法，同一族）](https://docs.amd.com/r/en-US/ug949-vivado-design-methodology/Relaxing-the-Setup-Requirement-While-Keeping-Hold-Unchanged)
+- [Specifying Boundary Timing Constraints in Vivado（Abbey 的 I/O 边界约束写法）](https://blog.abbey1.org.uk/index.php/technology/specifying-boundary-timing-constraints-in-vivado)
 - [IO Timing constraints for source synchronous interface（AMD 论坛）](https://adaptivesupport.amd.com/s/question/0D52E00006hpUNiSAM/io-timing-constraints-for-source-synchronous-interface?language=en_US)
 - [Demystifying I/O Timing Constraints（BLT）](https://bltinc.com/2025-05-13/demystifying-i-o-timing-constraints/)
 - [Xilinx Design Constraints / FPGA Design with Vivado Lab 5（官方课程：输入输出延迟怎么给）](https://xilinx.github.io/xup_fpga_vivado_flow/lab5.html)
