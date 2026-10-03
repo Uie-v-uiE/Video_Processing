@@ -11,8 +11,8 @@
 set -u
 cd "$(dirname "$0")/.."
 V=${VP_VIVADO_BIN:-/d/Software/Vivado/2025.2.1/Vivado/bin}
-export VP_VIVADO_BIN="$V"
-export VP_XSDB=${VP_XSDB:-"D:/Software/Vivado/2025.2.1/Vitis/bin/xsdb.bat"}
+export VP_VIVADO_BIN="${VP_VIVADO_BIN:?需要显式给 Vivado bin 目录}"
+export VP_XSDB=${VP_XSDB:?需要显式给 xsdb.bat 路径（机器相关，不写死）}
 NN=116
 say() { printf '[chain %s] %s\n' "$(date +%H:%M:%S)" "$*"; }
 [ -f "$V/vivado.bat" ] || { say "REFUSE: 没有 Vivado（VP_VIVADO_BIN='$V'）"; exit 2; }

@@ -12,7 +12,7 @@
 # 最终门禁不是"1 红且两跑逐字节一致"就不提交、不重导包后的提交动作。
 set -u
 cd "$(dirname "$0")/.."
-export VP_XSDB=${VP_XSDB:-"D:/Software/Vivado/2025.2.1/Vitis/bin/xsdb.bat"}
+export VP_XSDB=${VP_XSDB:?需要显式给 xsdb.bat 路径（机器相关，不写死）}
 D=build/evidence/r118_board
 mkdir -p "$D" build/evidence/r118_bit
 say(){ printf '[fin %s] %s\n' "$(date +%H:%M:%S)" "$*" | tee -a build/r118_finish_console.txt; }

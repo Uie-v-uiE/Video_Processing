@@ -7,7 +7,7 @@ import re
 
 import pypdfium2 as pdfium
 
-BASE = "D:/Xilinx/Resource/Reference Material/6-Xilinx Zynq系列部分官方手册"
+BASE = os.environ.get("VP_MANUAL_DIR", "")  # 机器相关：手册目录用环境变量给，不写死
 FILES = [os.path.join(BASE, n) for n in ("ug471_7Series_SelectIO.pdf", "ug472_7Series_Clocking.pdf")]
 # 数字 + 单位（ns/ps），且这一行或相邻两行里有 clock/skew/delay/buffer 才要
 NUMPS = re.compile(r"\b\d{1,5}(?:\.\d+)?\s*(?:ns|ps)\b", re.I)

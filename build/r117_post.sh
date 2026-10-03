@@ -8,7 +8,7 @@
 set -u
 cd "$(dirname "$0")/.."
 V=${VP_VIVADO_BIN:-/d/Software/Vivado/2025.2.1/Vivado/bin}
-export VP_VIVADO_BIN="$V"
+export VP_VIVADO_BIN="${VP_VIVADO_BIN:?需要显式给 Vivado bin 目录}"
 say(){ printf '[r117post %s] %s\n' "$(date +%H:%M:%S)" "$*" | tee -a build/r117_post_console.txt; }
 
 for i in $(seq 1 400); do

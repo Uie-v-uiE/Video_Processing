@@ -10,7 +10,7 @@
 set -u
 cd "$(dirname "$0")/.."
 V=${VP_VIVADO_BIN:-/d/Software/Vivado/2025.2.1/Vivado/bin}
-export VP_XSDB=${VP_XSDB:-"D:/Software/Vivado/2025.2.1/Vitis/bin/xsdb.bat"}
+export VP_XSDB=${VP_XSDB:?需要显式给 xsdb.bat 路径（机器相关，不写死）}
 X="$VP_XSDB"
 LBL=${1:?用法: bit_cycle <标签> [位流]}
 BIT=${2:-}

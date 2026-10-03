@@ -24,12 +24,12 @@
 set -u
 cd "$(dirname "$0")/.."
 V=${VP_VIVADO_BIN:-/d/Software/Vivado/2025.2.1/Vivado/bin}
-export VP_VIVADO_BIN="$V"
-export VP_XSDB=${VP_XSDB:-"D:/Software/Vivado/2025.2.1/Vitis/bin/xsdb.bat"}
+export VP_VIVADO_BIN="${VP_VIVADO_BIN:?需要显式给 Vivado bin 目录}"
+export VP_XSDB=${VP_XSDB:?需要显式给 xsdb.bat 路径（机器相关，不写死）}
 NN=117
 say(){ printf '[r117b %s] %s\n' "$(date +%H:%M:%S)" "$*" | tee -a build/r117b_console.txt; }
 # 钩子用 Windows 风格绝对路径：MSYS 的 /d/... Vivado 不认（第一版这里也可能踩到，所以先换成 D:/）
-export IMPL_POST_PLACE_HOOK="D:/Xilinx/Prj/pro/Video_Processing/build/tcl/r117_post_place_hook.tcl"
+export IMPL_POST_PLACE_HOOK="$(pwd -W)/build/tcl/r117_post_place_hook.tcl"
 unset VP_R116_IO_WINDOW          # 显式不加载输入窗（默认就是不加载，这里写出来是给自己看的）
 sleep 20                          # 让上一版链子的 Vivado 进程与工程锁彻底退掉
 

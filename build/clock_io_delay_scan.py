@@ -16,7 +16,7 @@ import sys
 
 import pypdfium2 as pdfium
 
-BASE = "D:/Xilinx/Resource/Reference Material/6-Xilinx Zynq系列部分官方手册"
+BASE = os.environ.get("VP_MANUAL_DIR", "")  # 机器相关：手册目录用环境变量给，不写死
 DEFAULT = [
     os.path.join(BASE, "ug472_7Series_Clocking.pdf"),
     os.path.join(BASE, "ug471_7Series_SelectIO.pdf"),
