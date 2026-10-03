@@ -28,28 +28,54 @@ puts "ROLL mode=$mode limit=$lim dcp=$dcp out=$out"
 open_checkpoint $dcp
 
 # 名册：布线前先把扇出排行问出来（两边都问，这样 A 也留下一份"抓手名册"给 diff 用）
-#   ⚠ 用最素的调用：`report_design_analysis -fanout -limit/-interval` 在 r113 首跑里**什么文件都没写**
-#     （`build/tcl/probe_timing_roster.tcl` 那次 FANOUT_ROWS=0，被名册差分的 D6 抓住）。
-#     这一处如果也写成空集，`set_max_fanout` 就会加在空集合上，两滚"一样"是假的 ⇒ 下面有 MF-REFUSE。
+#   MEASURED 2026-10-03（build/evidence/r113_help_fanout_console.txt）：`report_design_analysis` **没有 -fanout 模式**，
+#     所以前两版这里写出来的文件是空的（r113 首跑 FANOUT_ROWS=0，被名册差分 D6 抓住）。
+#     正确的命令是 `report_high_fanout_nets`（Report/Timing 类，可对已实现设计跑），这里用 -file/-max_nets/
+#     -fanout_greater_than/-quiet。文本列序还没实测 ⇒ 解析不认列位置，只认"第一个整数 token + 第一个含 / 或 _ 的
+#     名字 token"，并且把报告头 25 行原样念出来留证。
 set frpt [file join $out fanout_before.rpt]
 file delete -force $frpt
-catch {report_design_analysis -fanout -quiet -file $frpt} ferr
+set minfo 200
+if {[info exists ::env(MF_MINFO)]} { set minfo $::env(MF_MINFO) }
+set ferr no-error
+catch {report_high_fanout_nets -quiet -max_nets 40 -fanout_greater_than $minfo -file $frpt} ferr
 puts "FANOUT_ERR=$ferr EXISTS=[file exists $frpt]"
+if {[file exists $frpt]} {
+    set fh [open $frpt r]; set htxt [read $fh]; close $fh
+    set hi 0
+    foreach hl [split $htxt "\n"] {
+        if {$hi < 25} { puts "FANOUT_HEAD|$hl"; incr hi } else { break }
+    }
+}
 
-# 被点名的广播：从 `report_design_analysis -fanout` 的**文本**里挑（不猜 get_nets -filter 的属性名——
-#   属性名猜错会让集合变空，而空集跑出来的"两滚一样"是假对照，规矩 46）。
-#   每行找"第一个整数 >= 200 且后面跟着一个层次名"的候选，再拿 get_nets / get_pins 认一次，
-#   认得到的才进集合。
+# 被点名的广播：从报告文本里挑（不猜 get_nets -filter 的属性名——属性名猜错会让集合变空，
+#   而空集跑出来的"两滚一样"是假对照，规矩 46）。名字里带 [n] 位下标，那是 GLOB 类字符，
+#   所以认名字一律用 `-filter {NAME eq ...}` 做字符串相等，不用裸 pattern。
 set targets {}
 if {[file exists $frpt]} {
     set fh [open $frpt r]; set txt [read $fh]; close $fh
     foreach line [split $txt "\n"] {
         set t [string trim $line]
-        if {![regexp {^([0-9]+)\s+([A-Za-z_/][A-Za-z0-9_/]*)} $t -> fo nm]} { continue }
-        if {$fo < 200} { continue }
-        set n [get_nets -quiet $nm]
-        if {[llength $n] == 0} { set n [get_pins -quiet $nm] }
-        if {[llength $n] > 0 } { lappend targets $nm; puts "CAND fo=$fo obj=$nm" }
+        if {$t eq ""} { continue }
+        set fo ""
+        set nm ""
+        foreach tok [split $t] {
+            if {[string is integer -strict $tok]} {
+                if {$fo eq "" && $tok >= $minfo} { set fo $tok }
+            } elseif {$nm eq "" && ([string first "/" $tok] >= 0 || [string first "_" $tok] >= 0)} {
+                set nm $tok
+            }
+        }
+        if {$fo eq "" || $nm eq ""} { continue }
+        set n [get_nets -quiet -filter "NAME eq {$nm}"]
+        if {[llength $n] == 0} { set n [get_pins -quiet -filter "NAME eq {$nm}"] }
+        if {[llength $n] > 0} {
+            lappend targets $nm
+            puts "CAND fo=$fo obj=$nm hit=[llength $n]"
+            puts "MFROW|fo=$fo|net=$nm"
+        } else {
+            puts "CAND-SKIP fo=$fo obj=$nm (no net/pin with this exact NAME)"
+        }
     }
 }
 set nb [llength $targets]
@@ -57,8 +83,15 @@ puts "BIG_NETS=$nb (from $frpt)"
 if {$nb == 0} { puts "MF-REFUSE: 扇出名册里没认出任何 fo>=200 的对象（报告形状或工具版本不符，这一滚没有变量可加）"; exit 4 }
 
 if {$mode eq "mf"} {
-    set objs [concat [get_nets -quiet $targets] [get_pins -quiet $targets]]
-    puts "MF_OBJS nets=[llength [get_nets -quiet $targets]] pins=[llength [get_pins -quiet $targets]]"
+    set objs {}
+    set nn 0
+    set pn 0
+    foreach nm $targets {
+        set n [get_nets -quiet -filter "NAME eq {$nm}"]
+        if {[llength $n] > 0} { incr nn } else { set n [get_pins -quiet -filter "NAME eq {$nm}"]; incr pn [llength $n] }
+        set objs [concat $objs $n]
+    }
+    puts "MF_OBJS nets=$nn pins=$pn total=[llength $objs]"
     if {[llength $objs] == 0} { puts "MF-REFUSE: 名字认到了但对象集合是空"; exit 4 }
     if {[catch {set_max_fanout $lim $objs} e]} { puts "MF-REFUSE: set_max_fanout failed: $e"; exit 4 }
     puts "MF_APPLIED objs=[llength $objs] limit=$lim"
@@ -85,7 +118,26 @@ report_timing -delay_type min -nworst 1 -max_paths 4 -file [file join $out hold_
 report_utilization -file [file join $out util.rpt]
 report_route_status -file [file join $out route_status.rpt]
 set frpt2 [file join $out fanout_after.rpt]
-catch {report_design_analysis -fanout -quiet -file $frpt2} ferr2
+set ferr2 no-error
+catch {report_high_fanout_nets -quiet -max_nets 40 -fanout_greater_than $minfo -file $frpt2} ferr2
+puts "FANOUT2_ERR=$ferr2 EXISTS=[file exists $frpt2]"
+if {[file exists $frpt2]} {
+    set fh2 [open $frpt2 r]; set t2 [read $fh2]; close $fh2
+    foreach line [split $t2 "\n"] {
+        set t [string trim $line]
+        if {$t eq ""} { continue }
+        set fo ""
+        set nm ""
+        foreach tok [split $t] {
+            if {[string is integer -strict $tok]} {
+                if {$fo eq "" && $tok >= $minfo} { set fo $tok }
+            } elseif {$nm eq "" && ([string first "/" $tok] >= 0 || [string first "_" $tok] >= 0)} {
+                set nm $tok
+            }
+        }
+        if {$fo ne "" && $nm ne ""} { puts "MFROWAFTER|fo=$fo|net=$nm" }
+    }
+}
 
 # 目标族的直接读数（eth_rxc 那条 CE 广播锥）——它动了没有是这一刀的收益侧，名册是代价侧
 set tos [get_cells -quiet {u_eth/u_reasm/rows_hit_reg[*]}]

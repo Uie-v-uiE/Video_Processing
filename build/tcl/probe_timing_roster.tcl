@@ -50,7 +50,11 @@ foreach c $all {
                 }
                 if {[string match "Logic Levels*" $t]} { set levels [string trim [lindex [split $t ":"] 1]] }
                 if {$route eq "" && [string match "Data Path Delay*" $t]} {
-                    if {[regexp {route\s+([0-9.]+)ns\s+([0-9.]+)%} $t -> rns rpct]} { set route $rpct }
+                    # MEASURED shape: `Data Path Delay:  3.498ns  (logic 0.655ns (18.725%)  route 2.843ns (81.275%))`
+                    #   -- the percentage sits INSIDE parentheses, so the first version of this line
+                    #   #   {route\s+([0-9.]+)ns\s+([0-9.]+)%} never matched and every ROSTER row carried an
+                    #   #   EMPTY route_pct (r113 after-roster rows show `route_pct=`). Match the parens.
+                    if {[regexp {route\s+([0-9.]+)ns\s*\(\s*([0-9.]+)%\s*\)} $t -> rns rpct]} { set route $rpct }
                 }
                 if {$dest eq "" && [string match "Destination:*" $t]} {
                     set dest [string trim [lindex [split $t ":"] 1]]
@@ -58,6 +62,12 @@ foreach c $all {
             }
         }
         if {$slack eq ""} { set slack NOWRITE }
+        # A missing column must read NA, not empty: the diff tool's D5 asks for "no empty readings", and a
+        #   blank silently means both "this clock has no path" and "my regex missed a real report line" --
+        #   those two are different claims and have to look different on disk.
+        if {$levels eq ""} { set levels NA }
+        if {$route eq ""} { set route NA }
+        if {$dest eq ""} { set dest NA }
         set pct "NA"
         if {$per > 0 && $slack ne "NOWRITE"} {
             set sv 0.0
@@ -84,12 +94,24 @@ puts "DESIGN|wns=$wns|whs=$whs"
 # Design-wide fanout list: the documented global lever for a route-dominated broadcast is MAX_FANOUT /
 #   QoR "propagate max fanout" suggestions (UG949 timing closure; AMD adaptive-support article 9410) --
 #   and you cannot pick a number without naming the nets.
-#   ⚠ 第一版这里加了 `-limit 12 -interval 4`，结果**文件根本没写出来**（r113 首跑：FANOUT_ROWS=0，
-#     差分那侧 D6 判红）。所以现在用最素的调用，并且把错误文本与报告头 20 行念出来 ——
-#     "命令跑成功但产物是空的"这件事必须自己说，不许靠下游猜。
+#   MEASURED 2026-10-03 (build/evidence/r113_help_fanout_console.txt, from this very Vivado 2025.2.1):
+#     * `help report_design_analysis` has NO -fanout mode. Its modes are -complexity / -congestion / -timing /
+#       -routes / -logic_level_distribution / -routed_vs_estimated / -qor_summary; the only fanout-ish option
+#       is -av_fanout_greater_than (a Rent-exponent analysis threshold, not a net list).
+#       That is why the first two roster runs wrote an EMPTY file: the command I guessed did not exist, the
+#       catch swallowed it, and D6 went red on MY tool while the design was innocent.
+#     * The right command is `report_high_fanout_nets` (categories Report, Timing; works on an implemented
+#       design), options used here: -file / -max_nets / -fanout_greater_than / -quiet.
+#   Because the COLUMN ORDER of that text report has not been measured yet, rows are parsed position-free:
+#     the fanout is the first strictly-integer token >= MINFO, the name is the first token that is not a
+#     number and contains a hierarchy character. Whatever the parser does, the raw report head is printed as
+#     FANOUT_HEAD so the shape is on the record, and FANOUT_ROWS counts rows PARSED (0 stays visible/red).
 set frpt [file join $root "build/roster_${label}_fanout.rpt"]
 file delete -force $frpt
-catch {report_design_analysis -fanout -quiet -file $frpt} ferr
+set minfo 60
+if {[info exists ::env(VP_MINFO)]} { set minfo $::env(VP_MINFO) }
+set ferr "no-error"
+catch {report_high_fanout_nets -quiet -max_nets 40 -fanout_greater_than $minfo -file $frpt} ferr
 puts "FANOUT_ERR=$ferr"
 puts "FANOUT_EXISTS=[file exists $frpt]"
 set shown 0
@@ -98,16 +120,29 @@ if {[file exists $frpt]} {
     set lines [split $txt "\n"]
     set i 0
     foreach ln $lines {
-        if {$i < 20} { puts "FANOUT_HEAD|$ln"; incr i } else { break }
+        if {$i < 30} { puts "FANOUT_HEAD|$ln"; incr i } else { break }
     }
     foreach line $lines {
         set t [string trim $line]
-        if {[regexp {^([0-9]+)\s+([A-Za-z_/][\w/\[\].-]*)} $t -> fo cell]} {
-            if {$fo > 50} { puts "FANOUT|fo=$fo|cell=$cell"; incr shown }
-        } elseif {[regexp {\s([0-9]+)\s+([A-Za-z_/][\w/\[\].-]*)\s*$} $t -> fo cell]} {
-            if {$fo > 50} { puts "FANOUT|fo=$fo|cell=$cell"; incr shown }
+        if {$t eq ""} { continue }
+        set fo ""
+        set nm ""
+        foreach tok [split $t] {
+            if {[string is integer -strict $tok]} {
+                if {$fo eq "" && $tok >= $minfo} { set fo $tok }
+            } elseif {$nm eq "" && ([string first "/" $tok] >= 0 || [string first "_" $tok] >= 0)} {
+                set nm $tok
+            }
         }
-        if {$shown >= 12} { break }
+        if {$fo ne "" && $nm ne ""} {
+            # No get_nets existence check here on purpose: net names carry [n] bit indices, which are GLOB
+            #   classes for get_nets, so an unescaped lookup would reject the very biggest broadcasts and
+            #   quietly return FANOUT_ROWS=0 again. The probe only inventories; resolution with a bracket-safe
+            #   -filter NAME eq happens in build/tcl/mf114_roll.tcl, where an empty set must stop the roll.
+            puts "FANOUT|fo=$fo|net=$nm"
+            incr shown
+            if {$shown >= 20} { break }
+        }
     }
 }
 # QoR suggestions: UG949's own workflow is "ask the tool, then review the list" -- this is the *global*

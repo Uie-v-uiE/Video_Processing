@@ -62,10 +62,15 @@ done
 bash build/roster_from_summary.sh "$OUTDIR/A_timing_summary.rpt" > "$OUTDIR/roster_A.txt" 2>&1
 bash build/roster_from_summary.sh "$OUTDIR/B_timing_summary.rpt" > "$OUTDIR/roster_B.txt" 2>&1
 # 扇出名册也补进去：`timing_roster_diff.sh` 的 D6 判的是"抓手名册不许为空"，
-#   而 roster_from_summary 只从时序报告长行（扇出不在里面）⇒ 这一列由滚自己的 fanout_after.rpt 供。
+#   而 roster_from_summary 只从时序报告长行（扇出不在里面）⇒ 这一列由滚自己的机器行供。
+#   ⚠ 改读 MFROW/MFROWAFTER（滚脚本自己解析 report_high_fanout_nets 后打的行）而不是再去 grep 报告原文：
+#     `report_design_analysis -fanout` 这个模式**在本工具里根本不存在**（实测见
+#     build/evidence/r113_help_fanout_console.txt），前两版直接 grep 的是永远不存在的文件，
+#     于是 A/B 两侧的扇出名册都空 -> D6 假红、而"两滚一样"也会因为空集合变成假对照（规矩 46）。
 for d in A B; do
-    grep -aoE '^ *[0-9]{3,} +[A-Za-z_/][A-Za-z0-9_/]*' "/tmp/kx/mf114/$d/fanout_after.rpt" 2>/dev/null \
-      | awk '{printf "FANOUT|fo=%s|obj=%s\n", $1, $2}' >> "$OUTDIR/roster_$d.txt"
+    grep -a '^MFROWAFTER|' "/tmp/kx/mf114/$d/roll_console.txt" 2>/dev/null \
+      | sed 's/^MFROWAFTER|fo=/FANOUT|fo=/' >> "$OUTDIR/roster_$d.txt"
+    say "roster_$d fanout_rows=$(grep -ac '^FANOUT|' "$OUTDIR/roster_$d.txt")"
 done
 VERDICT="$OUTDIR/verdict.txt"
 {

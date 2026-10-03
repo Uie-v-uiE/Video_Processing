@@ -10,6 +10,7 @@
 2. **判"是不是布线/距离问题"看比例，不看感觉**：`Data Path Delay` 那行的 logic/route 百分比 + `Logic Levels`。
    route>80 %、级数≤4 的路，拆逻辑救不了；该动的是**扇出复制**、**控制集/寄存器复制**、**floorplan**（UG949 的 Timing Closure 章、
    Xilinx 官方文章 9410《Suggestions for high fanout signals》列的就是这几类手段与 `MAX_FANOUT`/`report_qor_suggestions` 这条路）。
+   问"哪些网该复制"用 `report_high_fanout_nets`（本工具实测：`report_design_analysis` **没有** `-fanout` 模式，见第 5 节）。
    ⚠ 扇出高不一定被工具自动复制（stackexchange 那一条就是"很高的扇出没被复制"），所以要显式给约束并**量结果**。
 3. **让工具给建议，别只靠自己盯**：`report_qor_suggestions`（只读）+ 需要时 `source qor_suggestions.rpt` 到一次**隔离**构建里量收益。
 4. **约束缺口会伪装成"时序没问题"**：`check_timing` 的 `no_input_delay` / `no_output_delay` 意味着那些端口被当成理想时刻，
@@ -129,6 +130,19 @@ hold 0.050/0.056/0.059/0.133），与本文第 2 节的表同源同数，逐条�
 其中真值钉的是 eth_rxc period=**8.000 ns**（125 MHz RGMII）。
 这里也各踩过一刀：diff 的对照第一次写反了 A/B（三条"该红"的绿了），转换脚本周期列取错一格
 （取成波形下降沿，margin 全成两倍而三条地板照样绿）——两条都改成了**必须动**的对照，见 #258。
+
+**D6 那根红已经量到根（#263）**，这一条值得单独留在方法里：`report_design_analysis` 在本工具里
+**没有 `-fanout` 模式**（实测：`build/evidence/r113_help_fanout_console.txt`），设计级高扇出名册要用
+`report_high_fanout_nets -file … -max_nets … -fanout_greater_than …`。前两版探针调了不存在的模式，
+`catch` 把错误吞了、报告文件没写、行数为 0 ⇒ 差分那侧只能判红。
+问出这件事只花 40 秒：一个**不开设计**的 batch 里 `help <命令名>`，就能拿到官方选项表——
+"报告形状要量不许猜"由此有了一条便宜到没有借口的执行方式。
+同一把尺子上还挂着两处形状错，一并改了：`route_pct` 恒空（真实行里百分数在**括号内**，
+`Data Path Delay: 3.498ns (logic … route 2.843ns (81.275%))`，而我写的模式要 `ns` 后直接跟百分号），
+以及 `get_nets` 认带 `[n]` 位下标的网名时 `[` `]` 是 **GLOB 类字符**（`rok4[51]_i_1_n_0` 这种最该被抓的广播
+会被裸 pattern 判成不存在 ⇒ 集合空、假对照；一律用 `-filter {NAME eq {…}}`）。
+补差分的重跑入口是 `build/r113_roster_refanout.sh`（只读、产物带 `_rf` 后缀不覆盖上一份快照；
+台架 xsim 在飞时 REFUSE——这台机 15.7 G 内存，开 routed dcp 会挤它）。
 
 接线进门禁会改"门禁 N 项"那四处句子的条数 ⇒ 必须与那些句子**同一笔**改（#242/D1c 那一课），
 所以这三把暂时只进链子与本文，不进门禁计数。

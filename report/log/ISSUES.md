@@ -11519,3 +11519,33 @@ C12a/b/c 的第一次读数都还没有），r109 因此**不采纳、不刷板�
    也是"对照过了不等于尺子能用"的最新实例。数组（`(* ram_style= "block" *) reg [63:0] lo [0:D-1];`）
    必须排除：宽度括号在名字**前**、深度括号在名字后，第一版按"名字后两个括号"认 ⇒ 五颗数组读出被误报。
    地板也不许是猜的：A1 的 2 来自实测件，另加 A5 直接钉 `rgray_s0/wgray_s0` 两个名字。
+
+### #263 D6 那根红的根因量出来了：我调的是一个**不存在的命令模式**（工具侧三处形状债一起还）
+
+2026-10-03 13:0x，凭据 `build/evidence/r113_help_fanout_console.txt`（`help` 只问选项、不开设计，40 秒跑完，
+可以在台架在飞的时候跑——这正是"报告形状要量不许猜"这条规矩的便宜执行方式）。
+
+1. **实测**：`report_design_analysis` 在 2025.2.1 里**没有 `-fanout` 模式**。它的模式是
+   `-complexity / -congestion / -timing / -routes / -logic_level_distribution / -routed_vs_estimated / -qor_summary`，
+   唯一带 fanout 字样的选项是 `-av_fanout_greater_than`（那是 Rent 指数的分析阈值，不是网络清单）。
+   设计级高扇出名册的正确命令是 `report_high_fanout_nets`（Report/Timing 类，可对已实现设计跑；
+   本次用 `-file / -max_nets / -fanout_greater_than / -quiet`）。
+   ⇒ 前两版探针（`-fanout -limit 12 -interval 4`，再 `-fanout` 裸调）都是**命令不存在 → catch 吞掉 → 报告文件没写 →
+   行数 0**，于是名册差分 `D6_fanout_inventory` 判红。设计无罪，红在尺子上；`build/evidence/r113_roster_diff.txt`
+   里 D1..D5 全绿就是这件事的旁证（八对读数逐位相同，见 [[project-r110-round-state]]）。
+2. **同一把尺子上还挂着另外两处形状错**，一并改：
+   - `route_pct` 恒空：真实行是 `Data Path Delay: 3.498ns (logic 0.655ns (18.725%) route 2.843ns (81.275%))`，
+     百分数在**括号里**，而我写的模式要 `ns` 之后直接跟百分号 ⇒ 永不匹配，
+     `build/evidence/r113_after_roster.txt` 每一行的 `route_pct=` 都是空的（而五个计数地板全绿——
+     又一次"症状活过了 fix"，规矩 46 的旁支：形状行的两个操作数必须来自不同源）。
+   - 空白列与"这族没有路"撞成同一个读数：现在缺列一律写 `NA`，`NOWRITE` 只用于 slack。
+   - `get_nets` 认名字时 `[n]` 是 **GLOB 类字符**：`rok4[51]_i_1_n_0` 这种最该被抓的广播名会被裸 pattern 判成"不存在"，
+     集合就空了 ⇒ 滚脚本一律用 `-filter {NAME eq {...}}` 做字符串相等，探针侧干脆不做存在性检查（只做名册），
+     并在 `MF-REFUSE`（空集 exit 4）那侧兜住假对照。
+3. **改口面**（都不进门禁，先当差分工具用；理由仍是"门禁 N 项"那四处句子要同一笔改）：
+   `build/tcl/probe_timing_roster.tcl`、`build/tcl/mf114_roll.tcl`、`build/r114_maxfanout_ab.sh`（改读
+   `MFROW/MFROWAFTER` 机器行，不再 grep 一个永不存在的文件）、新增
+   `build/r113_roster_refanout.sh`（重跑一次探针出 D6 的真读数；不覆盖上一份快照，产物带 `_rf` 后缀；
+   xsim 在飞时 REFUSE——这台机只有 15.7 G 内存，开 routed dcp 会挤台架）。
+   **这一支还没跑**，所以 D6 现在仍是红的，红在 `build/evidence/r113_roster_diff.txt` 里；
+   等 r113 的顶层台架跑完再起，跑完把 `r113_roster_diff_rf.txt` 的结论回写到这里。

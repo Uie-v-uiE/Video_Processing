@@ -1,0 +1,1038 @@
+
+****** Vivado v2025.2.1 (64-bit)
+  **** SW Build 6403652 on Thu Mar 19 19:48:24 GMT 2026
+  **** IP Build 6403511 on Thu Mar 19 12:41:45 MDT 2026
+  **** SharedData Build 6403650 on Thu Mar 19 14:02:13 MDT 2026
+  **** Start of session at: Sat Oct  3 13:02:46 2026
+    ** Copyright 1986-2022 Xilinx, Inc. All Rights Reserved.
+    ** Copyright 2022-2026 Advanced Micro Devices, Inc. All Rights Reserved.
+
+source build/tcl/probe_help_fanout.tcl
+# puts "HELP_BEGIN"
+HELP_BEGIN
+# catch {help report_design_analysis} herr
+# puts "HELP_ERR_RDA=$herr"
+HELP_ERR_RDA=report_design_analysis
+
+Description: 
+Report Design Analysis
+
+Syntax: 
+report_design_analysis  [-file <arg>] [-csv <arg>] [-append] [-return_string]
+                        [-complexity] [-cells <args>] [-bounding_boxes <args>]
+                        [-hierarchical_depth <arg>] [-rent_greater_than <arg>]
+                        [-instances_greater_than <arg>]
+                        [-instances_lesser_than <arg>]
+                        [-av_fanout_greater_than <arg>] [-congestion]
+                        [-min_congestion_level <arg>] [-timing] [-setup]
+                        [-hold] [-show_all] [-full_logical_pin]
+                        [-routed_vs_estimated] [-logic_level_distribution]
+                        [-logic_level_dist_paths <arg>] [-min_level <arg>]
+                        [-max_level <arg>] [-return_timing_paths]
+                        [-of_timing_paths <args>] [-max_paths <arg>] [-extend]
+                        [-routes] [-end_point_clocks <args>]
+                        [-logic_levels <arg>] [-qor_summary] [-json <arg>]
+                        [-name <arg>] [-no_pr_attribute] [-quiet] [-verbose]
+
+Usage: 
+  Name                         Description
+  ----------------------------------------
+  [-file]                      Filename to output results to. (send output to
+                               console if -file is not used)
+  [-csv]                       Write detailed tables to the CSV filename 
+                               specified
+  [-append]                    Append the results to file, don't overwrite 
+                               the results file
+  [-return_string]             Return report as string
+  [-complexity]                Finds the interconnection complexity (Rent) of
+                               the design
+  [-cells]                     Report analysis information for given list of 
+                               cells
+  [-bounding_boxes]            Report interconnection complexity (Rent) for 
+                               given list of bounding boxes
+                               Default: empty
+  [-hierarchical_depth]        Hierarchical depth option for -complexity
+                               Default: 1
+  [-rent_greater_than]         Threshold for Rent for a module to report 
+                               complexity
+                               Default: 0.6
+  [-instances_greater_than]    Threshold for minimum number of instances for 
+                               a module to report complexity
+                               Default: 15000
+  [-instances_lesser_than]     Threshold for maximum number of instances for 
+                               a module to report complexity
+                               Default: 1000000
+  [-av_fanout_greater_than]    Threshold for minimum average fanout for a 
+                               module to report complexity
+                               Default: 3.0
+  [-congestion]                Reports congestion of the design
+  [-min_congestion_level]      Minimum congestion level for reporting router 
+                               congestion, integer value between 3 and 8
+                               Default: 5
+  [-timing]                    Reports characteristics of critical path
+  [-setup]                     Reports characteristics of critical SETUP path
+  [-hold]                      Reports characteristics of critical HOLD path
+  [-show_all]                  Adds more characteristics to the timing 
+                               characteristics report
+  [-full_logical_pin]          Display hierarchical pin names in the report
+  [-routed_vs_estimated]       Reports relevant characteristics of critical 
+                               path in estimated mode
+  [-logic_level_distribution]  Reports logic level distribution
+  [-logic_level_dist_paths]    Number of critical paths for analyzing logic 
+                               level distribution used along with 
+                               -logic_level_distribution
+                               Default: 1000
+  [-min_level]                 Group all paths with logic levels 
+                               <min_level-1> and below into a single bin, 
+                               value passed must be at least 1
+                               Default: Not Used
+  [-max_level]                 Group all paths with logic levels 
+                               <max_level+1> and above into a single bin, 
+                               where <max_level> must be the greater of zero 
+                               or <min_level + 1> if -min_level is used
+                               Default: Not Used
+  [-return_timing_paths]       Returns timing path objects
+  [-of_timing_paths]           Reports characteristics for these paths
+  [-max_paths]                 Number of paths to consider for -timing option
+                               Default: 1
+  [-extend]                    Reports characteristics of worst path before 
+                               the start point of critical path and worst 
+                               path after the end of the critical path
+  [-routes]                    Reports distribution with respect to Routes 
+                               instead of logic levels
+  [-end_point_clocks]          Returns timing path objects filtered by 
+                               endpoint clock names as passed to this option
+  [-logic_levels]              Returns timing path objects bucketed under the
+                               bin name as passed to this option
+  [-qor_summary]               Design Flow summary
+  [-json]                      Write the report in JSON format to the 
+                               filename specified
+  [-name]                      Output the results to GUI panel with this name
+  [-no_pr_attribute]           Report without PR attributes
+  [-quiet]                     Ignore command errors
+  [-verbose]                   Suspend message limits during command 
+                               execution
+
+Categories: 
+Report, Timing
+
+Description:
+
+  Provides timing data on critical path characteristics and complexity of the
+  design to help identify and analyze problem areas that are subject to
+  timing closure issues and routing congestion. For more information on this
+  command refer to the Vivado Design Suite User Guide: Design Analysis and
+  Closure Techniques (UG906).
+
+  The report_design_analysis command currently has three modes of operation:
+
+   *  Timing: reports timing and physical characteristics of timing paths.
+
+   *  Complexity: analyzes the design for routing complexity and LUT
+      distribution.
+
+   *  Congestion: analyzes the design for routing congestion.
+
+  In timing mode, the command calls the static timing engine to analyze
+  critical path data and report the characteristics of each path. The path
+  characteristics include important elements such as clock skew, placement
+  obstacles such as crossing clock regions, and physical constraints such as
+  Pblocks and LOCs. The list of paths can be extended to include a number of
+  top critical paths or specific paths can be analyzed by providing timing
+  path objects to the command. The reports can also be extended to show the
+  paths preceding and following the critical path.
+
+  The following are definitions of the characteristics of the paths reported
+  in timing mode:
+
+   *  PATH_TYPE: Either SETUP or HOLD.
+
+   *  REQUIREMENT: Delay requirement from static timing analysis.
+
+   *  PATH DELAY: Data path delay from static timing analysis.
+
+   *  LOGIC DELAY: The portion of the PATH DELAY attributed to logic on the
+      path.
+
+   *  NET DELAY: The portion of the PATH DELAY attributed to wires on the
+      path. Note that the net delay is based on the estimated or actual
+      routing delay as specified by the set_delay_model command.
+
+   *  CLOCK SKEW: Difference in delay between the source and destination
+      clocks.
+
+   *  SLACK: Path timing slack from static timing analysis.
+
+   *  CLOCK PAIR CLASSIFICATION: Timed, Timed (unsafe), and Max Delay
+      Datapath only. Helps identify the constraining methodology used on the
+      timing path.
+
+   *  TIMING EXCEPTION: The timing exceptions, for example, set_false_path or
+      set_multicycle_path are assigned to the path.
+
+   *  LOGIC LEVELS: Number of logic levels between the source and
+      destination, reported when the -logic_level_distribution is specified.
+
+   *  LOGICAL PATH: Shorthand notation showing the ordered list of cells in
+      the path including thestart point and end point.
+
+      Note: For Partial Reconfiguration (PR) designs, the logical path is
+      appended to identify the cell as belonging to a reconfigurable
+      partition (:RP#), or to the static region of the design (:S). A
+      translation table at the bottom of the report maps :RP# to a specific
+      reconfigurable partition.
+
+   *  START POINT CLOCK: The clock domain of the start point of the path.
+
+   *  END POINT CLOCK: The clock domain of the end point of the path.
+
+   *  START POINT PIN PRIMITIVE: The library cell and pin of the start point
+      of the path.
+
+   *  END POINT PIN PRIMITIVE: The library cell and pin of the end point of
+      the path.
+
+   *  START POINT PIN: The instance and pin name of the start point.
+
+   *  END POINT PIN: The instance and pin name of the end point.
+
+   *  COMB DSP: Number of combinational DSP blocks in the path.
+
+   *  DOA REG: Number of DOA registers on the path.
+
+   *  DOB REG: Number of DOB registers on the path.
+
+   *  MREG: Number of MREG registers on the path.
+
+   *  PREG: Number of PREG registers on the path.
+
+   *  Block RAM CROSSINGS: Number of block RAM columns traversed by the path.
+
+   *  DSP CROSSINGS: Number of DSP block columns traversed by the path.
+
+   *  IO CROSSINGS: Number of IO columns traversed by the path.
+
+   *  CONFIG CROSSINGS: Number of CONFIG tile traversed by the path.
+
+   *  SLR CROSSINGS: Number of SLRs traversed by the path.
+
+   *  BOUNDING BOX SIZE: The rectangular area covered by the critical path,
+      measured in RPM GRID unitswhich are based on the device RPM_X
+      (horizontal) and RPM_Y (vertical) sitecoordinates. Because different
+      sites (for example, slices, DSP, block RAM) have differentsizes, each
+      site has unique RPM_X and RPM_Y properties to pin-point the location
+      within the device.
+
+   *  CLOCK REGION DISTANCE: An ordered pair showing the number of clock
+      regions traversed in the horizontal and vertical directions from path
+      startpoint to endpoint. Minimizing clock region crossings can improve
+      critical path delay and clock skew.
+
+       -  Example 1: A critical path begins in clock region X1Y1 and ends in
+          clock region X3Y3, resulting in a CLOCK_REGION_DISTANCE of (2, 2).
+
+       -  Example 2: a critical path begins in clock region X2Y1 and ends in
+          X0Y0, resulting in a CLOCK_REGION_DISTANCE of (-2, -1).
+
+   *  PBLOCKS: Number of Pblocks traversed by the path.
+
+   *  HIGH FANOUT: The greatest fanout of a net in the path.
+
+   *  CUMULATIVE FANOUT: The total fanout on the path.
+
+   *  DONT TOUCH: Number of cells in the path with DONT_TOUCH value of TRUE.
+      A value of TRUE for DONT_TOUCH on a cell prevents it from being
+      optimized, disabling potentially beneficial optimizations such as
+      phys_opt_design replication.
+
+   *  MARK DEBUG: Number of cells in the path with a MARK_DEBUG value of
+      TRUE. By default a net with MARK_DEBUG has DONT_TOUCH set to TRUE which
+      disables optimization on that net. The DONT_TOUCH can be set to FALSE
+      to enable optimization and potentially improve timing.
+
+   *  FIXED LOC: Number of placed cells in the path with an IS_LOC_FIXED
+      value of TRUE. FIXED cells cannot be moved by either place_design or
+      phys_opt_design.
+
+   *  FIXED ROUTE: Number of routed nets in the path with IS_ROUTE_FIXED
+      value of TRUE. FIXED routes cannot be ripped up and rerouted by
+      route_design.
+
+   *  HOLD FIX DETOUR: The amount of routing detour provided to fix hold
+      timing to post-route criticalpaths.
+
+   *  COMBINED LUT PAIRS: Number of LUT cells in the path that have been
+      combined with other LUT cells into the same LUT BEL to use both the O6
+      and O5 outputs. LUT cells that have been combined with LUTNM, HLUTNM,
+      or SOFT_HLUTNM can be uncombined and re-placed by setting their HLUTNM
+      properties to an empty string. This allows exploring LUTcombining and
+      un-combining effects on timing and congestion reduction.
+
+   *  The following fields are reported for Partial Reconfiguration (PR)
+      designs. Refer to the Vivado Design Suite User Guide: Dynamic Function
+      eXchange (UG909) for more information.
+
+       -  PR PATH TYPE: Specifies the path as being completely in the static
+          region,completely in a reconfigurable partition (RP), or as
+          crossing the boundary between regions. The delay elements for the
+          timing path are also broken down between the regions.
+
+       -  STATIC CROSSINGS: Reports the number of times a reconfigurable
+          partition (RP) path crosses into the static region.
+
+       -  RP CROSSINGS: Reports the number of times a static region path
+          crosses into are configurable partition (RP) region.
+
+       -  BOUNDARY FANOUT: Reports the fanout of a boundary path at the PPLOC
+          to the downstream loads.
+
+  In complexity mode, the command performs complexity analysis of the current
+  design and reports the Rent Exponent which is a measure of complexity, the
+  Average Fanout, and a Primitive Histogram. The analysis can be performed on
+  the top-level design or recursively on hierarchical levels of the design,
+  with the ability to control the level of recursion.
+
+  The following are definitions of the characteristics reported in complexity
+  mode:
+
+   *  Rent: The Rent exponent, as defined by Rent's rule, is a measure of
+      interconnect complexity in a netlist. Higher Rent indicates higher
+      complexity and greater difficulty to avoid routing congestion. Most
+      designs have a Rent in the 0.5 to 0.6 range. A Rent value of 0.65 is
+      considered high and 0.85 is considered very high.
+
+   *  Average Fanout: This is the average fanout of a logic cell in the
+      design, excluding global buffers. Higher average fanout may result in
+      more difficulty for placement and routing. While absolute values may
+      not predict difficultly, relative values between designs or between
+      hierarchical levels may be more indicative.
+
+   *  Primitive Histogram: This displays the totals of certain primitive
+      types used in the design. A high Rent may be caused by a predominance
+      of LUT6 cells. If there are many more LUT6 than other size LUTs, the
+      Rent may be reduced by adopting a more area-focused synthesis strategy.
+
+  Tip: The complexity characteristics cannot predict routing congestion
+  always but it pinpoint problem areas when congestion issues occur.
+
+  In congestion mode, the command analyzes the design and provides metrics to
+  help you alleviate routing congestion. Using the results from the
+  report_design_analysis command, you can change placement to avoid specific
+  routing hot spots.
+
+  The command returns the file created, or returns the analysis results to
+  the Tcl console, or returns an error if it fails.
+
+Arguments:
+
+  -file <arg> - (Optional) Write the analysis results into the specified
+  file. The specified file will be overwritten if one already exists unless
+  -append is also specified.
+
+  -csv <arg> - (Optional) Write a CSV file that shows the timing paths and
+  analysis features. The specified file will be overwritten if one already
+  exists.
+
+  Note: If the path is not specified as part of the file name for either
+  -file or -csv, the file will be written into the current working directory
+  that can be identified using the [pwd] Tcl command.
+
+  -append - (Optional) Append the output of the command to the specified file
+  rather than overwriting it.
+
+  Note: The -append option can only be used with the -file option.
+
+  -return_string - (Optional) Directs the output to a Tcl string rather than
+  to the standard output. The Tcl string can be captured by a variable
+  definition and parsed or otherwise processed.
+
+  Note: This argument cannot be used with the -file option.
+
+  -complexity - (Optional) Perform complexity analysis of the design and
+  report the Rent Exponent, Average Fanout, and Primitive Histogram.
+
+  Tip: The -complexity option can result in a high compile time for large
+  designs. Use with -cells,
+  -hierarchical_depth,-instances_greater_than,-instances_lesser_than and
+  -av_fanout_greater_than to lower compile time.
+
+  -cells <arg> - (Optional) Specify the cells to use when reporting design
+  analysis. Cells should be hierarchical modules of the design. Use this
+  option to specify a cell other than the top cell for analysis. Cells can be
+  specified by name, or as objects returned by the get_cells command. Cannot
+  be used with -hierarchical_depth.
+
+  -bounding_boxes <args> - (Optional) Specify regions of the device to
+  analyze for complexity. This limits the area and reduces the time required
+  for analysis. The argument is specified as a pair of device tiles
+  representing the "lower-left:upper-right" corners of the bounding box.
+  Multiple windows can be specified as follows:
+
+    -bounding_boxes { "CLE_M_X21Y239:CLEL_R_X28Y254" \
+       "CLEL_R_X18Y171:CLE_M_X26Y186" }
+
+  Important: A space is required between the `{` and the start of the
+  bounding box as shown above.
+
+  -hierarchical_depth <arg> - (Optional) Specify that the complexity analysis
+  should be performed on the hierarchy of the design, rather than just the
+  top-level of the design, or the specified cell. In this case, the hierarchy
+  of the design or cell is examined to the specified depth. The default
+  setting is 1. Requires the -complexity option.
+
+  -rent_greater_than <arg> - (Optional) Specify the minimum value of Rent to
+  be reported. Only valid when used with -complexity. Default value is 0.6.
+
+  -instances_greater_than <arg> - (Optional) Specify the minimum threshold
+  for the number of instances in a hierarchy in order to perform a Rent
+  calculation. Small modules are typically good to ignore as they do rarely
+  translate to congestion. Higher values lower compile time. Only valid when
+  used with -complexity. Default value is 15000.
+
+  -instances_lesser_than <arg> - (Optional) Specify the maximum threshold for
+  the number of instances in a hierarchy in order to perform a Rent
+  calculation. Use with -instances_greater_than to create a range of values.
+  Lower values lower compile time. Only valid when used with -complexity.
+  Default value is 100000.
+
+  -av_fanout_greater_than <arg> - (Optional) Specify the minimum threshold of
+  average fanout within a hierarchical module in order to perform a Rent
+  calculation. Higher values lower compile time. Only valid when used with
+  -complexity. Default is 3.0.
+
+  -congestion - (Optional) Reports the vertical and horizontal routing
+  congestion of the placed design on a per tile basis. This option can only
+  be run after implementation, or after place_design. Congestion analysis is
+  performed on the whole design, even if -cells is specified for complexity
+  analysis.
+
+  -min_congestion_level <arg> - (Optional) Specifies the minimum congestion
+  level to show congestion in the design. The minimum supported value is 3 as
+  the report does not have any information on congestion windows under level
+  3. The default value is 5 if the option is not specified.
+
+  -timing - (Optional) Runs design analysis in timing mode, to report setup
+  and hold characteristics of critical paths. This is the default analysis
+  run by the report_design_analysis command when no other options are
+  specified.
+
+  Tip: The -timing option can be specified with -setup, -hold,
+  -of_timing_paths, -max_paths, and -extend, but can not be used with -cells
+  or -hierarchical_depth.
+
+  -setup - (Optional) Limit the reporting scope to only setup path
+  characteristics. Requires the -timing option.
+
+  -hold - (Optional) Limit the reporting scope to only hold path
+  characteristics. Requires the -timing option.
+
+  Important: When -hold is used with the -extend option this generates two
+  side-by-side reports: the setup report showing the worst setup paths on the
+  left, and the corresponding hold report for those paths on the right. This
+  shows hold characteristics side-by-side with the setup characteristics of
+  the same start and endpoints to make it easier to see if hold and setup
+  fixing are affecting one another.
+
+  -show_all - (Optional) Adds more characteristics to the timing
+  characteristics report.
+
+  -full_logical_pin - (Optional) Output the full hierarchical pin name in the
+  design analysis report.
+
+  -routed_vs_estimated - (Optional) Reports the estimated vs. actual routed
+  delays side-by-side for the same path.
+
+  Important: This requires the set_delay_model -interconnect to be set to
+  actual to provide both the estimated and actual delays.
+
+  -logic_level_distribution - (Optional) Reports logic-level distribution of
+  the -timing report to help identify the longer paths in the design. The
+  logic levels distribution is runtime intensive so it is not reported by
+  default.
+
+  Tip: Remember that -logic_level_distribution is performed on critical
+  timing paths identified by the -timing option. If the purpose of analysis
+  is to identify all of the paths with the greatest number of logic levels in
+  the design, you can use -of_timing_paths with the get_timing_paths command
+  to define the timing paths of interest. In addition, you can use the
+  LOGIC_LEVELS property on timing paths to obtain this information.
+
+  -logic_level_dist_paths <arg> - (Optional) This option can be specified
+  with -logic_level_distribution to specify the number of critical paths for
+  analyzing logic level distribution. Specified as a value greater than or
+  equal to 1. The default is 1000 paths.
+
+  -min_level <arg> - (Optional) Group all timing paths with logic levels, or
+  routes, less than the value specified into a single bin. When specified,
+  the <arg> value passed must be at least 1.
+
+  -max_level <arg> - (Optional) Group all timing paths with logic levels, or
+  routes, greater than the value specified into a single bin. When specified,
+  the <arg> value must be greater than the value of -min_level, or can be
+  zero.
+
+  -return_timing_paths - (Optional) This must be used with the
+  -end_point_clock and -logic_levels options. Directs the
+  report_design_analysis command to return timing_path objects as well as the
+  analysis report. The timing_path objects can be passed to other analysis
+  commands that take timing paths such as report_timing, or even passed to
+  the -of_timing_paths option of a second report_design_analysis command.
+
+  Tip: If -return_timing_paths is specified, -timing is disabled so that no
+  timing results are returned. If no timing paths match the specified
+  options, the command returns the message No timing paths returned.
+
+  -of_timing_paths <args> - (Optional) Specify a list of timing path objects
+  for analysis. Requires the -timing option. The command will report
+  characteristics of the specified paths instead of the most critical paths.
+  You can use the get_timing_paths command to provide the timing path objects
+  for -of_timing_paths.
+
+  -max_paths <arg> - Specify the number of paths to report for critical path
+  analysis. The default number of critical paths analyzed is 1. Note, the
+  number of paths returned is affected by other options such as
+  -end_point_clock, which can reduce the number of paths returned due to the
+  specified clock.
+
+  -extend - (Optional) Perform an extended setup analysis of the critical
+  paths. The hold analysis is not performed. Requires the -timing option.
+  Three paths are reported for an extended analysis:
+
+   *  The path ending at critical path start point.
+
+   *  The critical path.
+
+   *  The path starting at critical path endpoint.
+
+  -routes - (Optional) Reports the path distribution with respect to the
+  number of routes per end point clock instead of logic levels. When it is
+  used with the -of_timing_objects option, the get_timing_paths command must
+  be run with the -routable_nets option.
+
+  -end_point_clocks <arg> - (Optional) Takes a list of clocks that can be
+  specified by name or by using get_clocks. Limits the timing paths under
+  consideration to only the ones in the specified clock group.
+
+  -logic_levels <arg> - (Optional) Filters timing paths by the specified
+  number of logic levels. You can specify one logic level and it can be used
+  with -end_point_clocks to further limit timing paths based on the clock
+  domain.
+
+  -qor_summary - (Optional) Include a summary of the QoR for the design.
+
+  -json <arg> - (Optional) Writes the QoR summary in JSON format where <arg>
+  is the name of the JSON file. The generated JSON file overwrites an
+  existing JSON files with the same name.
+
+  Note: The -json option can only be used with the-qor_summary, -complexity,
+  and-logic_level_distribution switches. In addition, switches that shape the
+  data for each report section are also valid.
+
+  -name <arg> - (Optional) The name of the Design Analysis Report view to
+  display in the tool GUI mode. If the name has already been used in an open
+  Report view, that view will be closed and a new report opened.
+
+  -no_pr_attribute - (Optional) Report the design analysis without partial
+  reconfiguration (PR) attributes. For Partial Reconfiguration (PR) designs,
+  the logical path is defined as belonging to a reconfigurable partition
+  (:RP#), or to the static region of the design (:S), as well as whether the
+  path is completely in the PR region or S region or crosses between the
+  regions.
+
+  -quiet - (Optional) Execute the command quietly, returning no messages from
+  the command. The command also returns TCL_OK regardless of any errors
+  encountered during execution.
+
+  Note: Any errors encountered on the command-line, while launching the
+  command, will be returned. Only errors occurring inside the command will be
+  trapped.
+
+  -verbose - (Optional) Temporarily override any message limits and return
+  all messages from this command.
+
+  Note: Message limits can be defined with the set_msg_config command.
+
+Examples:
+
+  Perform a complexity analysis of the two specified cells.
+
+    report_design_analysis -complexity -cells {cpuEngine fftEngine}
+
+  Perform complexity analysis of the specified bounding boxes.
+
+    report_design_analysis -complexity \
+    -bounding_boxes { "CLE_M_X21Y239:CLEL_R_X28Y254" "CLEL_R_X18Y171:CLE_M_X26Y186" }
+
+  Get an extended analysis of the worst critical path from the Block RAMs in
+  the design.
+
+    report_design_analysis -timing -of_timing_paths \
+    [get_timing_paths -from [all_rams]]
+
+  Perform complexity analysis for the specified cell, to a depth of two
+  hierarchical levels, and performs timing and congestion analysis on the
+  design.
+
+    report_design_analysis -complexity -hierarchical_depth 2 -timing -setup \
+    -hold -max_paths 10 -logic_level_distribution -logic_level_dist_paths 20 -congestion
+
+  Use the report_design_analysis command to return the timing paths with the
+  specified end point clock and logic levels, and pass those paths to the
+  report_timing command for analysis.
+
+    report_timing -of_objects [report_design_analysis -end_point_clock cpuClk \
+    -logic_levels 10 -timing -return_timing_paths]
+
+  The following example generates a logic level report with levels 0-1
+  grouped in a bin, 10 and greater grouped in another bin, and a bin for each
+  individual number in between.
+
+    report_design_analysis -logic_level_distribution -min_level 2 -max_level 9
+
+  The following example generates a QoR summary report in both JSON format.
+
+    report_design_analysis -qor_summary -json rda_qor.json
+
+  The following example generates a logic level distribution report in JSON
+  format. It is limited to the 1000 worst timing paths.
+
+    report_design_analysis -logic_level_distribution -json rda_qor.json \
+     -logic_level_distribution_paths 1000
+
+  The following example generates a complexity report that is limited to
+  hierarchies containing instances greater than 20000 and less than 50000
+  with an average fanout of 3.5.
+
+    report_design_analysis -complexity -instances_greater_than 20000 \
+    -instaces_lesser_than 50000 -av_fanout_greater_than 3.5
+
+See Also:
+
+   *  config_design_analysis
+   *  get_cells
+   *  get_timing_paths
+   *  place_design
+   *  report_timing
+   *  report_timing_summary
+   *  set_delay_model
+   *  set_false_path
+   *  set_multicycle_path
+
+# puts "HELP_HFN_BEGIN"
+HELP_HFN_BEGIN
+# catch {help report_high_fanout_nets} hfnerr
+# puts "HELP_ERR_HFN=$hfnerr"
+HELP_ERR_HFN=report_high_fanout_nets
+
+Description: 
+Report high fanout nets
+
+Syntax: 
+report_high_fanout_nets  [-file <arg>] [-format <arg>] [-append] [-ascending]
+                         [-timing] [-histogram] [-load_types] [-clock_regions]
+                         [-slr] [-max_nets <arg>] [-fanout_greater_than <arg>]
+                         [-fanout_lesser_than <arg>] [-name <arg>]
+                         [-cells <args>] [-clocks <args>] [-return_string]
+                         [-quiet] [-verbose]
+
+Returns: 
+Report
+
+Usage: 
+  Name                    Description
+  -----------------------------------
+  [-file]                 Filename to output results to. (send output to 
+                          console if -file is not used)
+  [-format]               Specifies how to format the report: text, xml. 
+                          Default is 'text'. Only applies if -file is used. 
+                          If xml output is used, -append is not allowed.
+                          Default: text
+  [-append]               Append to existing file
+  [-ascending]            Report nets in ascending order
+  [-timing]               Report worst slack and worst delay values on nets
+  [-histogram]            Report histogram for high fanout nets
+  [-load_types]           Report load  details
+  [-clock_regions]        Report clock region wise load distribution
+  [-slr]                  Report SLR wise load distribution
+  [-max_nets]             Number of nets for which report is to be generated
+                          Default: 10
+  [-fanout_greater_than]  Report nets that have fanout greater than the 
+                          specified integer, default 0
+                          Default: 0
+  [-fanout_lesser_than]   Report nets that have fanout less than the 
+                          specified integer, default INT_MAX
+                          Default: INT_MAX
+  [-name]                 Output the results to GUI panel with this name
+  [-cells]                Report the nets of the specified cells
+  [-clocks]               Report the nets of the specified clocks
+  [-return_string]        Return report as string
+  [-quiet]                Ignore command errors
+  [-verbose]              Suspend message limits during command execution
+
+Categories: 
+Report, Timing
+
+Description:
+
+  Report the fanout of nets in the design, starting with the highest fanout
+  nets, and working down. Options allow you to control various aspects of the
+  report.
+
+  This command can be run on an implemented design, or on the synthesized
+  netlist. However, the results will be more complete on the implemented
+  design.
+
+  The command returns the fanout report of nets in the design, or returns an
+  error if it fails.
+
+Arguments:
+
+  -file <arg> - (Optional) Write the report into the specified file. The
+  specified file will be overwritten if one already exists, unless -append is
+  also specified.
+
+  Note: If the path is not specified as part of the file name, the file will
+  be written into the current working directory, or the directory from which
+  the tool was launched.
+
+  -format [ text | xml ] - (Optional) The default format of the output report
+  is text. You can also output an XML report. XML output is only valid when
+  -file is specified, and cannot be used with -append.
+
+  -append - (Optional) Append the output of the command to the specified file
+  rather than overwriting it.
+
+  Note: The -append option can only be used with the -file option.
+
+  -ascending - (Optional) Report nets in ascending order.
+
+  -timing - (Optional) Add timing data to the report to display the worst
+  slack (WNS) and worst delay on high fanout nets.
+
+  Note: The -timing option will slow the run time of report_high_fanout_nets,
+  and is not supported for use with -histogram.
+
+  -histogram - (Optional) Format the report as a histogram showing the number
+  of fanouts, and the number and percentage of nets with that many fanouts in
+  the design.
+
+  Note: This option cannot be used with the following options: -ascending,
+  -timing, -load_types, -clock_regions, -slr, -max_nets,
+  -fanout_greater_than, and -fanout_lesser_than.
+
+  -load_types - (Optional) Reports the various load types on the net sorted
+  in two different ways: by load types (data/clock/set/reset...) and by
+  device resource at which loads are placed (Slices/IO...). When
+  report_high_fanout_nets is run on the unplaced synthesized design only the
+  load type is reported.
+
+  -clock_regions - (Optional) Report the load distribution across clock
+  regions. This option can only be used after placement, and reports the
+  clock regions the various loads on the net are located in.
+
+  -slr - (Optional) Report the load distribution across SLRs. This option can
+  only be used after placement, and reports the SLRs that various loads on
+  the net are located in, after placement.
+
+  Note: The -load_types, -slr, and -clock_regions options cannot be used
+  together.
+
+  -max_nets <arg> - (Optional) Number of nets to report. Default: 10
+
+  -fanout_greater_than <arg> - (Optional) Report only nets that have fanout
+  greater than the specified limit. The value can be specified as an integer,
+  with a default value of 0.
+
+  -fanout_lesser_than <arg> - (Optional) Report only nets that have fanout
+  less than the specified limit. The value can be specified as an integer,
+  with a default value of INT_MAX.
+
+  -name <arg> - (Optional) The name of the High Fanout Nets Report view to
+  display in the Vivado IDE when run in GUI mode. If the name has already
+  been used in an open Report view, that view will be closed and a new report
+  opened.
+
+  -cells <args> - (Optional) Report the nets attached to the specified cell
+  instances in the design. Cells can be passed by name, or as cell objects
+  returned by the get_cells command.
+
+  -clocks <args> - (Optional) Report the nets of the specified clocks. The
+  clocks can be passed by name, or as clock objects returned by the
+  get_clocks command.
+
+  -return_string - (Optional) Directs the output to a Tcl string rather than
+  to the standard output. The Tcl string can be captured by a variable
+  definition and parsed or otherwise processed.
+
+  Note: This argument cannot be used with the -file option.
+
+  -quiet - (Optional) Execute the command quietly, returning no messages from
+  the command. The command also returns TCL_OK regardless of any errors
+  encountered during execution.
+
+  Note: Any errors encountered on the command-line, while launching the
+  command, will be returned. Only errors occurring inside the command will be
+  trapped.
+
+  -verbose - (Optional) Temporarily override any message limits and return
+  all messages from this command.
+
+  Note: Message limits can be defined with the set_msg_config command.
+
+Examples:
+
+  The following example reports the fanout of nets for the specified clocks:
+
+    report_high_fanout_nets -clocks [get_clocks gt*] 
+    
+
+  The following example reports the nets with fanouts less than 10 loads, and
+  returns the results to a string stored as a Tcl variable:
+
+    set myRep [report_high_fanout_nets -fanout_lesser_than 10 -return_string] 
+    
+
+See Also:
+
+   *  get_cells
+
+# puts "HELP_QOR_BEGIN"
+HELP_QOR_BEGIN
+# catch {help report_qor_suggestions} qerr
+# puts "HELP_ERR_QOR=$qerr"
+HELP_ERR_QOR=report_qor_suggestions
+
+Description: 
+Recommend QoR Suggestions
+
+Syntax: 
+report_qor_suggestions  [-file <arg>] [-csv_output_dir <arg>] [-name <arg>]
+                        [-append] [-return_string] [-max_strategies <arg>]
+                        [-max_paths <arg>] [-no_split]
+                        [-report_all_suggestions] [-cells <args>]
+                        [-of_objects <args>] [-checks <args>]
+                        [-ruledecks <args>] [-quiet] [-verbose]
+
+Usage: 
+  Name                       Description
+  --------------------------------------
+  [-file]                    Filename to output results to. (send output to 
+                             console if -file is not used)
+  [-csv_output_dir]          Output Dir
+  [-name]                    Output the results to GUI panel with this name
+  [-append]                  Append the results to file, don't overwrite the 
+                             results file
+  [-return_string]           Return report as string
+  [-max_strategies]          Number of strategies to suggest
+                             Default: 3
+  [-max_paths]               Number of paths to consider for suggestion 
+                             analysis
+                             Default: 100
+  [-no_split]                Report without spliting the lines in tables
+  [-report_all_suggestions]  Report all suggestions
+  [-cells]                   Report QOR suggestions for a given cell
+  [-of_objects]              List of QoR suggestion objects
+  [-checks]                  QoR suggestion checks to generate
+  [-ruledecks]               QoR ruledecks whose checks to generate
+  [-quiet]                   Ignore command errors
+  [-verbose]                 Suspend message limits during command execution
+
+Categories: 
+Feasibility, Report, Timing, Object
+
+Description:
+
+  Report design and tool option recommendations related to improving the
+  quality of results (QoR). The report looks at timing constraints, netlist
+  characteristics, failing timing paths, and congestion information to
+  determine suggestions that can enhance the QoR. The report can be generated
+  after synthesis, or after any implementation step, but requires a design to
+  be open.
+
+  The report_qor_suggestions command creates QoR suggestion objects related
+  to the suggestions identified. These suggestion objects can be enabled for
+  use by the Vivado tools to improve the quality of synthesis and
+  implementation results. Some of these suggestions can be automatically
+  applied, and some may require more manual intervention to implement design
+  changes, or write Tcl design constraints.
+
+  Suggestion objects can be obtained using the get_qor_suggestions command.
+  The QoR objects have properties that define what step they are
+  APPLICABLE_FOR, if they are ENABLED to be used, if they can be
+  automatically applied (AUTO), or what step the suggestions was
+  GENERATED_AT. A suggestion must be ENABLED and the APPLICABLE_FOR synthesis
+  or implementation step run in order for a suggestion to be applied to the
+  design.
+
+  You can write the suggestions from the design into an RQS file using the
+  write_qor_suggestions command. After resetting the design flow to the
+  appropriate step, you can read suggestions back into the design using the
+  read_qor_suggestions command, and then run the synthesis or implementation
+  step to apply the enabled suggestions.
+
+  The recommended method for working with QoR suggestions is:
+
+   *  Run the report to create recommendations (report_qor_suggestions)
+
+   *  Write the suggestions to an RQS file on disk (write_qor_suggestions).
+
+   *  Reset the design to the appropriate step.
+
+   *  Read the RQS file into the design to restore the suggestions
+      (read_qor_suggestions).
+
+   *  Run the synthesis or implementation step to apply the suggestion
+      (synth_design, opt_design).
+
+  For strategy suggestions, a machine learning based analysis is conducted
+  and the best 3 strategies are reported. This analysis is only conducted on
+  a routed design that has been implemented with
+
+   *  the Default or Explore directive for opt_design and
+
+   *  place_design, phys_opt_design, and route_design must have the directive
+      set to Default or Explore. Mix and match of directives is not allowed
+      within these commands.
+
+  Strategy suggestions do not apply to synthesis. Unlike the non-strategy
+  suggestions, only one strategy suggestion can be applied to each run.
+
+  The recommended method for working with QoR strategy suggestions is:
+
+   *  Run the report to create strategies and other
+      recommendations(report_qor_suggestions).
+
+   *  Write the suggestions to a directory disk. There is one RQS file per
+      strategy (write_qor_suggestions -strategy_dir).
+
+   *  Update all the directive settings to -directive RQS for opt_design,
+      place_design, phys_opt_design, and route_design commands.
+
+   *  For each run, read one RQS file into the design. This will contain the
+      strategy suggestion and all exported non-strategy
+      suggestions(read_qor_suggestions).
+
+   *  Run the implementation step from the opt_design command to apply the
+      strategy and all the design suggestions.
+
+  Custom QoR checks allow users to create a check that can be used in Report
+  QoR Suggestions by referencing a Tcl script and setting various properties
+  on the check object. This allows Report QoR Suggestions to access the check
+  which can then can be used in flows such as Auto RQS flow, Intelligent
+  Design Runs, and standard runs. Users can also leverage a Tcl package
+  provided by RQS to easy access to various data points in the tools. For
+  more information search for create_qor_check Tcl command.
+
+Arguments:
+
+  -append - (Optional) Append the output of the command to the specified file
+  rather than overwriting it.
+
+  Note: The -append option can only be used with the -file option.
+
+  -cells <arg> - (Optional) Report QoR suggestions for the specified
+  hierarchical cells and all data paths passing through them.
+
+  -checks <arg> - (Optional) Runs specified checks only. These can be factory
+  or custom checks. When specified, the default checks are not run. Can be
+  combined with -ruledecks. Ensure that all checks specified are valid
+  qor_check objects.
+
+  -csv_output_dir - Directory to write supporting CSV files. CSV files are
+  not available for all suggestions. CSV files contain:
+
+   *  Timing path details and show suggestions that are applicable to the
+      timing path.
+
+   *  Cells and nets with DONT_TOUCH properties
+
+  -file <arg> - (Optional) Write the QoR report into the specified file. The
+  specified file will be overwritten if one already exists, unless -append is
+  also specified.
+
+  Note: If the path is not specified as part of the file name for either
+  -file or -csv, the file will be written into the current working directory
+  that can be identified using the [pwd] Tcl command.
+
+  -max_strategies <args> - (Optional) Specify the maximum number of ML
+  strategies returned. The algorithm may generate less than the maximum
+  specified number if not enough suitable strategies are identified. Default
+  is 3.
+
+  -max_paths <arg> - (Optional) Specify the number of critical paths to
+  analyze. The default is the 100 worst timing paths per timing group. Timing
+  paths that have a WNS > 0.000 are ignored unless -report_all_suggestions is
+  set.
+
+  -no_split - (Optional) Do not split the lines in the table when generating
+  the report.
+
+  -name <arg> - (Optional) The name of the view to display in the Vivado IDE
+  when run in GUI mode. Only one QoR suggestion report can be opened in the
+  Vivado tool at one time. This makes it different from most other available
+  reports. If there is already an open report in the Report view, that report
+  closes and a new report is opened.
+
+  Note: This argument cannot be used with the -file option.
+
+  -of_objects <args> - (Optional) Report existing suggestions defined by the
+  specified list of QoR objects as returned by the get_qor_suggestions
+  command. When -of_objects is specified, the report does not analyze the
+  design to identify new suggestions, it merely reports the specified
+  existing suggestion objects.
+
+  -report_all_suggestions - (Optional) Relaxes the criteria that suppresses
+  suggestions.
+
+   *  Utilization suggestions do not need to save a critical resource
+
+   *  Congestion suggestions are offered on designs when timing is closed
+
+   *  Timing suggestions on paths that have a WNS < +0.500
+
+  -quiet - (Optional) Execute the command quietly, returning no messages from
+  the command. The command also returns TCL_OK regardless of any errors
+  encountered during execution.
+
+  Note: Any errors encountered on the command-line, while launching the
+  command, will be returned. Only errors occurring inside the command will be
+  trapped.
+
+  -ruledecks <arg> - (Optional) Runs qor checks contained within specified 
+  ruledecks only. These can be factory or custom ruledecks. When specified, 
+  the default checks are not run. It can be combined with -checks. Ensure 
+  that all ruledecks specified are valid qor_ruledeck objects.
+
+  -return_string - (Optional) Direct the output to a Tcl string rather than
+  to the standard output. The Tcl string can be captured by a variable
+  definition and parsed or otherwise processed.
+
+  -verbose - (Optional) Temporarily override any message limits and return
+  all messages from this command.
+
+  Note: Message limits can be defined with the set_msg_config command.
+
+Examples:
+
+  Report suggestions after analyzing the worst 10 paths.
+
+    report_qor_suggestions -max_paths 10
+
+  Report existing suggestions in the design from a prior run of
+  report_qor_suggestions.
+
+    report_qor_suggestions -of_objects [get_qor_suggestions]
+
+See Also:
+
+   *  get_qor_suggestions
+   *  read_qor_suggestions
+   *  report_qor_assessment
+   *  write_qor_suggestions
+   *  create_qor_check
+   *  create_qor_ruledeck
+
+# puts "HELP_DONE=1"
+HELP_DONE=1
+# exit 0
+INFO: [Common 17-206] Exiting Vivado at Sat Oct  3 13:02:49 2026...
