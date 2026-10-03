@@ -1,0 +1,410 @@
+scanning D:/Xilinx/Resource/Reference Material/6-Xilinx Zynq系列部分官方手册\ug472_7Series_Clocking.pdf
+==============================================================================
+FILE ug472_7Series_Clocking.pdf pages=114
+-- PDF page 3 (命中 1 行) --
+   | Table 1-1 and Figure 2-1. Revised some of the Global Clock Buffers descriptions. Revised
+   | the description under Figure 2-17. Updated the I/O Clock Buffer—BUFIO section.
+   | Updated Figure 2-20. Updated the Regional Clock Buffer—BUFR section. Updated the
+-- PDF page 7 (命中 3 行) --
+   | Clock-Capable I/O. . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . 49
+   | I/O Clock Buffer—BUFIO . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . 49
+   | BUFIO Primitive . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . 50
+   | BUFIO Use Models . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . 50
+   | Regional Clock Buffer—BUFR . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . 52
+-- PDF page 9 (命中 2 行) --
+   | Single Buffer per Clock Region . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . 106
+   | Driving Multiple BUFIOs . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . 106
+   | Driving Multiple BUFRs . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . 107
+   | Multiple Buffers Per Clock Region . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . 107
+   | Driving Multiple BUFRs (with Divide) and BUFIO . . . . . . . . . . . . . . . . . . . . . . . . . . . 107
+   | Driving Multiple BUFRs (With and Without Divide) . . . . . . . . . . . . . . . . . . . . . . . . . . 109
+-- PDF page 14 (命中 3 行) --
+   | regional and I/O clocks to span up to three vertically adjacent clock regions.
+   | • The I/O clock buffer (BUFIO) drives the I/O clock tree, providing access to clock all
+   | sequential I/O resources in the same I/O bank.
+   | Advanced SelectIO Logic Resources chapter in UG471, 7 Series FPGAs SelectIO Resources
+   | User Guide), the BUFIO and BUFR clock buffers allow source-synchronous systems to
+   | cross clock domains without using additional logic resources.
+   | driven using the multi-clock region buffer (BUFMR) when used with the associated
+   | BUFR or BUFIO.
+   | • Up to four unique I/O clocks and four unique regional clocks can be supported in one
+-- PDF page 17 (命中 4 行) --
+   | through the HROW to every clocking point in the region. BUFGs and BUFHs share routing
+   | tracks in the HROW. The I/O buffers (BUFIO) and regional clock buffers (BUFR) are
+   | located inside the I/O banks. The BUFIO only drives I/O clocking resources while the
+   | BUFR drives I/O resources and logic resources. The BUFMR enables multi-region chaining
+   | of BUFIOs and BUFRs. The clock-capable inputs connect external clocks to clocking
+   | resources on the device. Certain resources can connect to regions above and below through
+   | BUFR
+   | BUFIO
+   | CC
+-- PDF page 18 (命中 1 行) --
+   | Four BUFRs
+   | Four BUFIOs
+   | Two BUFMRs (MRCC pins only)
+-- PDF page 20 (命中 6 行) --
+   | Figure 1-5 shows a more detailed diagram of the I/O clocking resources and connectivity.
+   | Each I/O bank contains four BUFIOs and four BUFRs. Each of these clock buffers can be
+   | driven by a specific clock-capable input clock pin pair or can be driven directly by a
+   | MRCCs, support a multi-region clocking scheme. An MRCC pin pair can drive a specific
+   | BUFMR, which in turn can drive BUFIOs and BUFRs in the same and adjacent regions
+   | facilitating multi-region/bank interfaces. Similarly, a GT quad can also drive the BUFMRs.
+   | The MMCM<3:0> outputs have a dedicated high-performance differential path to the
+   | BUFRs and BUFIOs. This feature is also referred to as high-performance clocks (HPC).
+   | Although all 7 series devices have the same fundamental architecture, there are some
+   | X-Ref Target - Figure 1-5
+   | Figure 1-5: BUFR/BUFMR/BUFIO Clock Region Detail
+   | UG472_c1_34_020712
+   | BUFH
+   | BUFR BUFIO
+   | BUFR BUFIO
+   | BUFMR
+-- PDF page 21 (命中 5 行) --
+   | Key Differences from Virtex-6 FPGAs
+   | • The 7 series FPGAs basic BUFIO clocking functions have not changed with the
+   | exception that the BUFIO now only spans a single bank. Direct clocking of adjacent
+   | banks is replaced by a new clock buffer. There are now four BUFIOs per bank. Similar
+   | to the BUFIO evolution, the basic purpose of the BUFR has not changed. However,
+   | now the BUFR only directly spans a single clock region. There are now four BUFRs
+   | • The 7 series FPGAs introduced a new buffer type: BUFMR/BUFMRCE. The BUFMR/
+   | BUFMRCEs drive BUFIOs and/or BUFRs in the same and vertically adjacent regions.
+   | They also provide the same multi-clock region/multi-bank clock routing available in
+-- PDF page 22 (命中 12 行) --
+   | 7 series FPGAs clocking features. Features and functions such as DCM_SP,
+   | DCM_CLKGEN, BUFIO2, BUFIO2_2CLK, BUFIO2FB, BUFPLL, and BUFPLL_MCB
+   | are not directly supported in 7 series devices.
+   | FPGA PLLs, the 7 series FPGAs PLLs add power down, input clock switching, and
+   | cascading to adjacent CMTs. The PLLs do not have a direct connection to the BUFIO
+   | or BUFR.
+   | • In the 7 series FPGAs, there is no direct replacement for the BUFIO2 and
+   | BUFIO2_2CLK primitives. Use the BUFIO and BUFR instead with the recommended
+   | connections to drive the ILOGIC and OLOGIC.
+   | • The Spartan-6 FPGA BUFIO2 dedicated input routing from GCLKs to the CMT and
+   | global clock buffers are no longer supported. To migrate to the 7 series FPGAs, use the
+   | • There is no direct equivalent in the 7 series FPGAs to the Spartan-6 FPGA BUFPLL. To
+   | migrate, use the BUFIO and BUFR with the recommended connections to the ILOGIC
+   | and OLOGIC. The high-performance clock routing from MMCME2 CLKOUT[0:3]
+   | Consult the UG586: Memory Interface Solutions User Guide.
+   | • In the 7 series FPGAs, the BUFIO2FB primitive is no longer required. For MMCM and
+   | PLL feedback connections the CLKFBIN can be directly connected to global clock
+   | by this resource.
+   | • The 7 series FPGAs new buffers, BUFMR/BUFMRCE, drive BUFIOs and/or BUFRs in
+   | the same and vertically adjacent clock regions. When used with a BUFIO or BUFR,
+   | BUFMR/BUFMRCE allow MRCC inputs to access BUFIO and BUFR in adjacent clock
+   | regions. BUFMRCE has a selectable synchronous or asynchronous switching feature.
+   | • A new primitive for Spartan-6 FPGA design migration is the BUFR. When used in
+   | conjunction with BUFIO the BUFRs functionality replaces the BUFIO2,
+   | BUFIO2_2CLK, and BUFPLL capabilities. There are four BUFRs in each clock region.
+   | Send Feedback
+-- PDF page 23 (命中 5 行) --
+   | 7 Series FPGAs Clocking Differences from Previous FPGA Generations
+   | • Another new primitive for Spartan-6 FPGA design migration is the BUFIO. When
+   | used with the BUFR, the BUFIO functionality replaces the BUFIO2, BUFIO2_2CLK,
+   | and BUFPLL capabilities. There are four BUFIOs per bank.
+   | • Instead of two DCMs and one PLL in the Spartan-6 architecture, the 7 series FPGAs
+   | routing connection to the BUFPLL is replaced by the HPC connection from the
+   | MMCMs to the BUFIO/BUFR using CLKOUT[0:3]. A more extensive DRP is also
+   | available.
+   | • Using the PLL is no longer the recommended CMT function for general-purpose
+   | high-speed I/O clocking. The PLL does not have a direct connection to the BUFIO or
+   | BUFR. CLKOUT0 feedback is no longer supported. Use the MMCM for high-speed
+-- PDF page 24 (命中 5 行) --
+   | drive:
+   | • Four BUFIOs
+   | • Four BUFRs
+   | drive:
+   | • Four BUFIOs
+   | • Four BUFRs
+   | • BUFHs
+   | BUFIO
+   | Within the same clock region,
+   | BUFIOs are driven by:
+   | • MRCCs (dedicated 1:1)
+   | above
+   | When used within the same clock region, BUFIOs
+   | drive:
+-- PDF page 25 (命中 1 行) --
+   | clock regions above and below, BUFMRs drive:
+   | • BUFIOs
+   | • BUFRs
+-- PDF page 26 (命中 1 行) --
+   | can drive:
+   | • BUFIO (MMCM)
+   | • BUFR (MMCM)
+-- PDF page 30 (命中 2 行) --
+   | startup.
+   | The main purpose of the BUFR and BUFIO combination is to support source-synchronous
+   | interfaces. When an interface is placed into a single region, the BUFIO clocks the
+   | high-speed side of the SelectIOs and the BUFR clocks the deserialized/serialized side at a
+-- PDF page 31 (命中 1 行) --
+   | below in the same column. SRCCs can drive:
+   | • Regional clocks lines (BUFR, BUFH, BUFIO) within the same clock region
+   | • CMTs in the same clock region and adjacent clock regions.
+-- PDF page 33 (命中 9 行) --
+   | • A specific clock-capable pin pair connects to a specific BUFR
+   | and BUFIO. Therefore it is not recommended to manually
+   | LOC the BUFR/BUFIO.
+   | • There are four clock-capable inputs and four BUFRs per
+   | • A specific clock-capable pin pair connects to a specific BUFR
+   | and BUFIO. Therefore it is not recommended to manually
+   | LOC the BUFR/BUFIO.
+   | • There are four clock-capable inputs, four BUFRs, and two
+   | (50 I/Os)
+   | Clock-capable input> BUFIO > I/O clock tree
+   | • The clock-capable input must be placed in same clock
+   | region as the BUFIO and I/O flip-flops it will be driving.
+   | • A specific clock-capable pin pair connects to a specific BUFR
+   | and BUFIO. Therefore it is not recommended to manually
+   | LOC the BUFR/BUFIO.
+   | • There are four clock-capable inputs and four BUFIOs per
+   | clock region.
+-- PDF page 34 (命中 8 行) --
+   | clock regions(7)
+   | Clock-capable input > BUFMR >BUFIOs > I/O clock tree(8)
+   | • Sequential I/Os and BUFIOs must be placed in the same
+   | clock region as the clock-capable input, or in immediately
+   | adjacent clock regions above or below.
+   | • The BUFMR must be used to access BUFIOs and I/O clocks
+   | in the same clock region and adjacent clock regions.
+   | • A specific clock-capable pin pair connects to a specific BUFR
+   | and BUFIO. Therefore it is not recommended to manually
+   | LOC the BUFR/BUFIO.
+   | • There are four clock-capable inputs, four BUFIOs, and two
+   | BUFMRs per clock region.
+   | global clock lines in that adjacent clock region.
+   | 8. If a memory interface is placed in the same bank or region that the BUFRs/BUFIOs reside in, the connectivity from the BUFMR to
+   | those BUFHs/BUFIOs in that bank or region might be restricted.
+   | Table 2-1: Clock-Capable Input Placement Rules (Cont’d)
+-- PDF page 48 (命中 1 行) --
+   | • Clock-Capable I/O
+   | • I/O Clock Buffer—BUFIO
+   | • Regional Clock Buffer—BUFR
+-- PDF page 49 (命中 10 行) --
+   | dedicated clock-capable I/O sites in every bank. When used as clock inputs, clock-capable
+   | pins can drive BUFIO, BUFMR, and BUFR. Each I/O column supports regional clock
+   | buffers (BUFR). There are two I/O columns in each device.
+   | A CCIO can drive any BUFR in the region, but only dedicated CCs can drive specific
+   | BUFIOs and MRCCs can drive BUFMRs in a 1:1 relationship. This means that a CCIO has
+   | only a single connection to a specific BUFIO or BUFMR.
+   | I/O Clock Buffer—BUFIO
+   | The I/O clock buffer (BUFIO) is a clock buffer available in 7 series devices. The BUFIO
+   | drives a dedicated clock net within the I/O bank, independent of the global clocking
+   | resources. Thus, BUFIOs are ideally suited for source-synchronous data capture
+   | (forwarded/receiver clock distribution). BUFIOs are driven by clock-capable I/Os located
+   | in the same bank, by the HPC from the MMCM, or by the BUFMRs in the same and
+   | adjacent regions. In a clock region, there are four BUFIOs per bank. Each BUFIO can drive
+   | a single I/O clock network in the same region/bank. BUFIOs cannot drive logic resources
+   | (CLB, block RAM, DSP, etc.) because the I/O clock network only reaches the I/O column in
+   | Buffer—BUFMR/BUFMRCE.
+   | BUFIOs are driven by:
+   | • SRCCs and MRCCs in the same clock region
+-- PDF page 50 (命中 9 行) --
+   | Chapter 2: Clock Routing Resources
+   | BUFIO Primitive
+   | BUFIO is a clock in, clock out buffer. There is a phase delay between input and output.
+   | Figure 2-19 shows the BUFIO. Table 2-6 lists the BUFIO ports. A location constraint is
+   | available for BUFIO.
+   | BUFIO Use Models
+   | In Figure 2-20, a BUFIO is used to drive the I/O logic using the clock-capable I/O. This
+   | implementation is ideal in source-synchronous applications where a forwarded clock is
+   | X-Ref Target - Figure 2-19
+   | Figure 2-19: BUFIO Primitive
+   | Table 2-6: BUFIO Port List and Definitions
+   | Port Name Type Width Definition
+   | I Input 1 Clock input port
+   | BUFIO
+   | ug472_c1_19_061310
+-- PDF page 51 (命中 4 行) --
+   | X-Ref Target - Figure 2-20
+   | Figure 2-20: BUFIO Driving I/O Logic
+   | I/O
+   | I/O
+   | BUFIO
+   | BUFIO
+   | BUFR
+   | N
+   | Not all available BUFIOs and
+   | BUFRs are shown.
+-- PDF page 52 (命中 1 行) --
+   | the global clock tree. Each BUFR can drive the four regional clock nets in the region it is
+   | located. Unlike BUFIOs, BUFRs can drive the I/O logic and logic resources (CLB, block
+   | RAM, etc.). BUFRs can be driven by clock-capable pins, local interconnect, and the
+-- PDF page 54 (命中 2 行) --
+   | BUFRs are ideal for source-synchronous applications requiring clock domain crossing or
+   | serial-to-parallel conversion. Unlike BUFIOs, BUFRs are capable of clocking logic
+   | resources in the FPGAs other than the IOBs. Figure 2-23 is a BUFR design example.
+   | I/O
+   | BUFIO
+   | Clock Capable I/O
+-- PDF page 55 (命中 4 行) --
+   | Multi-Region Clock Buffer—BUFMR/BUFMRCE
+   | The BUFMR replaces the multi-region/bank support for BUFR and BUFIO available in
+   | previous Virtex architectures. There are two BUFMRs in every bank and each buffer can be
+   | pin name for both the P and N pins of the pin pair (for example: IO_L12P_T1_MRCC_12 or
+   | IO_L12N_T1_MRCC_12). The BUFMRs drive the BUFIOs and/or BUFRs in the same region/
+   | banks and in the regions/banks above and below. BUFR and BUFIO primitives must be
+   | separately instantiated. When using BUFR dividers (not in bypass), the BUFMR must be
+   | enable (CE). Deasserting CE stops the output clock. BUFMRs must drive BUFRs and
+   | BUFIOs to route to the same region/bank and adjacent regions/banks. BUFMRs are
+   | driven by the MRCCs or the GT clocks in the same region.
+-- PDF page 56 (命中 5 行) --
+   | Chapter 2: Clock Routing Resources
+   | To use BUFMR or BUFMRCE with BUFIOs, the interface pins must fit within three banks.
+   | Similarly, if used with BUFRs, the logic must fit in up to three regions (if three BUFRs are
+   | used). If a memory interface is placed in the same bank or region that the BUFRs/BUFIOs
+   | reside in, the connectivity from the BUFMR to those BUFHs/BUFIOs in that bank or region
+   | might be restricted. Figure 2-25 shows the topology of the BUFMRCE.
+   | purpose of CE on the BUFMRCE is to provide a synchronous, phase-aligned clock to the
+   | BUFRs and BUFIOs. For more details on the use of BUFMR in driving BUFRs and BUFIOs,
+   | see Appendix A, Multi-Region Clocking.
+   | BUFMRCE
+   | BUFIO
+   | Region/Bank
+-- PDF page 59 (命中 2 行) --
+   | 7 series FPGAs contain four HPCs per I/O bank. These clocks are a direct short differential
+   | connection to BUFIOs and BUFRs in the I/O. Therefore, these clocks exhibit very low jitter
+   | and minimal duty-cycle distortion. In the I/O columns, the HPC connects to the BUFIO/
+   | BUFRs and drives the I/O logic. Since the CMT column is co-located next to the I/O
+-- PDF page 62 (命中 1 行) --
+   | Certain clocking resources cannot cross the boundaries between SLRs. CCIOs cannot drive
+   | CMTs or BUFGs in another SLR. Similarly, the BUFMR cannot drive BUFRs and BUFIOs in
+   | adjacent SLRs. BUFGs and CMTs cannot be cascaded across the interposer. These
+-- PDF page 66 (命中 1 行) --
+   | supported by the MMCM are:
+   | • Direct HPC to BUFR or BUFIO using CLKOUT[0:3]
+   | • Inverted clock outputs (CLKOUT[0:3]B)
+-- PDF page 78 (命中 1 行) --
+   | with a proper feedback configuration.
+   | Direct HPC connections to BUFR/BUFIO are only supported on CLKOUT[0:3]. See
+   | CLKOUT[0:6] – Output Clocks.
+-- PDF page 82 (命中 1 行) --
+   | be phase aligned.
+   | When used with BUFR or BUFIO, only the MMCM can directly connect to the HPC from
+   | the clock outputs CLKOUT0 through CLKOUT3. Additionally, CLKOUT0 through
+-- PDF page 103 (命中 2 行) --
+   | drive interconnect and I/O logic in more than one clock region. The 7 series FPGAs
+   | BUFMR/BUFMRCE primitives enable clock-capable input pins to drive BUFIOs and
+   | BUFRs in the region same region the input resides as well as the regions above and below.
+   | This appendix details using the BUFIO and BUFR clock buffers to drive clock signals
+   | across multiple clock regions.
+-- PDF page 104 (命中 2 行) --
+   | using any other primitives, a clock signal entering the device on a CCIO pin can only drive
+   | the BUFRs and/or BUFIOs within the same region. Some design require the incoming
+   | clock signal to clock interconnect logic (such as slice flip-flops, block RAM and DSP slices)
+   | The BUFMR primitive is a multi-region clock buffer that allows clock signals to access
+   | BUFRs and BUFIOs in regions above and below the region where the clock signal enters
+   | the device. BUFMRs can span more than one clock region (Figure A-3). There are two
+-- PDF page 105 (命中 4 行) --
+   | Use Cases
+   | Every BUFMR is capable of driving the BUFRs and BUFIOs in the same region and the
+   | regions directly above and below. BUFMRs are driven by CCIO or gigabit-transceiver (GT)
+   | When using BUFMRs to drive logic in multiple regions, group the logic being driven by
+   | the multiple BUFRs or BUFIOs into (up to three) subsets, each with a separate BUFR or
+   | BUFIO. Use the Vivado design tools to floorplan and constrain the design so that logic is
+   | assigned to the individual BUFRs and BUFIOs.
+   | For illustration purposes, the following clocking schemes use an MRCC as the input;
+-- PDF page 106 (命中 8 行) --
+   | Single Buffer per Clock Region
+   | Driving Multiple BUFIOs
+   | When driving only I/O logic across three clock regions, the BUFMR can drive three
+   | BUFIOs. Although BUFRs can perform this function, BUFIOs supply the highest
+   | performance operation and drive dedicated clock nets within the I/O column. Group the
+   | I/O logic by the three BUFIOs into three separate subsets, each is clocked by its own
+   | BUFIO (Figure A-4).
+   | X-Ref Target - Figure A-4
+   | Figure A-4: Driving Multiple BUFIOs
+   | BUFMR
+   | MRCC
+   | BUFIO
+   | I/O Logic
+   | BUFIO
+   | I/O Logic
+   | BUFIO
+   | I/O Logic
+-- PDF page 107 (命中 4 行) --
+   | Multiple Buffers Per Clock Region
+   | Driving Multiple BUFRs (with Divide) and BUFIO
+   | When driving the ISERDES/OSERDES CLK and CLKDIV pins, use BUFIOs in conjunction
+   | with BUFRs that have their divide capability activated. The BUFIO drives a clean,
+   | low-skew clock to the CLK port of the ISERDES/OSERDES and the BUFR drives the
+   | slower CLKDIV input. For example in Figure A-6, when a 250 MHz input clock comes in to
+   | the FPGA on a MRCC pin, the BUFIO drives the CLK input at the full rate of 250 MHz and
+   | the BUFR with BUFR_DIVIDE=2 drives the CLKDIV inputs at the half rate of 125 MHz.
+-- PDF page 108 (命中 4 行) --
+   | X-Ref Target - Figure A-6
+   | Figure A-6: Driving Multiple BUFRs (With Divide) and BUFIO
+   | BUFMRCE
+   | MRCC
+   | BUFIO
+   | BUFR
+   | Clock Region Boundary
+   | BUFIO
+   | BUFR
+   | CLKDIV
+   | BUFIO
+   | BUFR
+-- PDF page 109 (命中 1 行) --
+   | Driving Multiple BUFRs (With and Without Divide)
+   | Similar to the example in Figure A-6, if the BUFIOs are not available (used for another
+   | purpose), the CLK inputs of the ISERDES/OSERDES can be driven by BUFRs (see
+-- PDF page 111 (命中 4 行) --
+   | SelectIO Logic
+   | BUFIO/BUFR
+   | BUFIO/BUFR
+   | Any I/O Clock
+   | CC
+   | BUFR BUFIO
+   | BUFR BUFIO
+   | GT Quad
+-- PDF page 112 (命中 4 行) --
+   | SelectIO Logic
+   | BUFIO/BUFR
+   | BUFIO/BUFR
+   | Any I/O Clock
+   | BUFMR
+   | BUFIO
+   | BUFR BUFIO
+   | Left Side Clock
+-- PDF page 114 (命中 4 行) --
+   | SelectIO Logic
+   | BUFIO/BUFR
+   | BUFIO/BUFR
+   | Any I/O Clock
+   | BUFMR
+   | BUFIO
+   | BUFR BUFIO
+   | GT Quad
+scanning D:/Xilinx/Resource/Reference Material/6-Xilinx Zynq系列部分官方手册\ug471_7Series_SelectIO.pdf
+==============================================================================
+FILE ug471_7Series_SelectIO.pdf pages=188
+-- PDF page 135 (命中 1 行) --
+   | Clock Input from Clock Buffer - CLKIN
+   | The CLKIN input is driven from clock buffers (BUFIO, BUFG or BUFR). This clock is then
+   | delayed by a value set to ODELAY_VALUE and output though the DATAOUT and output
+-- PDF page 152 (命中 1 行) --
+   | CLKDIV in Figure 3-6 were inverted by the designer at the ISERDESE2 inputs, then
+   | although the clocking arrangement is an allowed BUFIO/BUFR configuration, the clocks
+   | would still be out of phase. This also prohibits using DYNCLKINVSEL and
+-- PDF page 153 (命中 5 行) --
+   | interface type are:
+   | • CLK driven by BUFIO, CLKDIV driven by BUFR
+   | • CLK driven by MMCM or PLL, CLKDIV driven by CLKOUT[0:6] of same MMCM or
+   | CLKDIV must be driven by a BUFG as well. Alternatively, the MMCM can drive the
+   | ISERDESE2 though a BUFIO and BUFR.
+   | MEMORY Interface Type
+   | interface type are:
+   | • CLK driven by BUFIO, OCLK driven by BUFIO, and CLKDIV driven by BUFR
+   | • CLK driven by MMCM or PLL, OCLK driven by MMCM or PLL, and CLKDIV driven
+   | X-Ref Target - Figure 3-6
+   | Figure 3-6: Clocking Arrangement Using BUFIO and BUFR
+   | BUFIO
+   | Clock
+-- PDF page 154 (命中 2 行) --
+   | Chapter 3: Advanced SelectIO Logic Resources
+   | • CLK and CLKB are driven by a BUFIO. OCLK and OCLKB are driven by a BUFIO that is
+   | phase shifted by 90°. The two BUFIOs are driven from a single MMCM.
+   | • CLK and CLKB are driven by a BUFG. OCLK and OCLKB are driven by a BUFG that is
+-- PDF page 166 (命中 1 行) --
+   | arrangements for the OSERDESE2 are:
+   | • CLK driven by BUFIO, CLKDIV driven by BUFR
+   | • CLK and CLKDIV driven by CLKOUT[0:6] of the same MMCM or PLL

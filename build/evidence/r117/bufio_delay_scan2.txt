@@ -1,0 +1,6 @@
+==============================================================================
+FILE ug471_7Series_SelectIO.pdf pages=188
+PAGES_WITH_CANDIDATES=0
+==============================================================================
+FILE ug472_7Series_Clocking.pdf pages=114
+PAGES_WITH_CANDIDATES=0

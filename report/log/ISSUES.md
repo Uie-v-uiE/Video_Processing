@@ -12880,3 +12880,14 @@ C8 写成 `IDELAY_EYE_CENTER`（该取 `IODELAY-STD`）；`twelve_questions.md` 
 并打印 distinct 标签集合当件：现在是 `CLKTOPO / FANOUT / IODELAY-STD / ROUTE / SKEW-UNC / UNCONSTRAINED / XDC-ORDER`，
 七个全在枚举里；历史自造词留在本条里而不是删掉（否则下一轮看不出我改过口径）。
 规矩补一句：**新条目的标签要在写下的当下对回枚举**，而不是等审计来找。
+
+### #323 r117 前：想给"换短钟能省多少"找一个手册出处，本机两本官方手册都没筛出来（03:38）
+
+第 7 节那段推导吊在"专用走线 ≈ 0.5/0.2 ns"一个**假设**上。为了不永远用假设说话，先把本机 PDF 扫了两遍：
+`build/clock_io_delay_scan.py`（按 "bufio" 命中，全部是 UG472 的定性句）与 `build/clock_io_delay_scan2.py`
+（换条件："同一行有 数字+ns/ps" 且该页有 I/O 钟语境 ⇒ UG471 188 页 + UG472 114 页 **命中 0 页**）。
+件：`build/evidence/r117/bufio_delay_scan.txt`、`.../bufio_delay_scan2.txt`。
+⇒ 我把话停在**"没筛出来"**，不写成"手册里没有"（表体常把单位放表头，逐行筛法本来就容易漏 ⇒ 这是筛子的边界，
+不是文档的边界；同一类教训是 `report_methodology` 的告警数不能当 WNS 的代理 #290）。
+结论与规矩：那个 0.5/0.2 ns **仍是假设**，只能靠实测（`ILOGIC IDDR/C` 的到达时间，40 s 只读探针）关闭；
+在那个数回来之前，第 7 节的可关区间只作为"值不值得动"的依据，**不作为"已证明"的话写进交付**。
