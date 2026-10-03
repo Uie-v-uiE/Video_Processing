@@ -11549,3 +11549,36 @@ C12a/b/c 的第一次读数都还没有），r109 因此**不采纳、不刷板�
    xsim 在飞时 REFUSE——这台机只有 15.7 G 内存，开 routed dcp 会挤台架）。
    **这一支还没跑**，所以 D6 现在仍是红的，红在 `build/evidence/r113_roster_diff.txt` 里；
    等 r113 的顶层台架跑完再起，跑完把 `r113_roster_diff_rf.txt` 的结论回写到这里。
+
+### #264 下一刀换成了**实测存在的杠杆**：`set_max_fanout` 在本工具不存在，复制驱动靠 `phys_opt_design`
+
+2026-10-03 13:1x–13:2x，凭据 `build/evidence/r113_help_fanout2_console.txt`、
+`build/evidence/r113_help_fanout3_console.txt`（都是不开设计的 `help` 探针，各约 40 秒，台架在飞也能跑）。
+
+1. **差点交出去的假结论**：我给 r114 准备的单变量 A/B 写的是 `set_max_fanout $lim $objs`——
+   这条命令在本工具里**根本没有**：`help set_max_fanout` 回
+   `ERROR: [Common 17-25] No topics matched 'set_max_fanout'`。名字是我凭 ISE 时代的记忆写的。
+   原来的写法里那条命令包在 `catch` 里 ⇒ 两滚都会"跑完但变量没加上"，差分出来就是一张**假的"没差别"**。
+   同一探针顺带否掉另外两个我打算用的名字：`create_qor_suggestion`、`get_properties` 也不存在。
+2. **真正的杠杆**（读的是本机 `help phys_opt_design` 原文，不是二手帖）：
+   `-fanout_opt` = "Do cell-duplication based optimization on high-fanout timing critical nets"，
+   `-force_replication_on_nets <args>` = "Force replication optimization on nets"，
+   `-critical_cell_opt` = "Replicates cells on timing critical nets…"；
+   help 还明说复制出来的对象名带 `_replica` ⇒ **"机制动没动"是可数的**，正对照才立得住（规矩 45/46）。
+   `MAX_FANOUT` 属性那条路**还没验**（要开设计跑 `list_property`），所以文档里不许写成"已按官方 MAX_FANOUT 做"。
+3. **改口落地**（都不进门禁计数，先当差分/实验工具用）：
+   - `build/tcl/mf114_roll.tcl` 重写：两滚都 `place_design → phys_opt_design → route_design`，
+     唯一变量是 B 多带 `-force_replication_on_nets`；候选网名一律 `-filter {NAME eq {…}}` 认（方括号是 GLOB 类字符），
+     每滚打 `REPLICA_CELLS=`、`MFROW|`、`MFROWAFTER|` 机器行，空集仍 `MF-REFUSE exit 4`。
+   - 新增 `build/r114_replication_ab.sh`：判读顺序改成**先证机制能动再谈收益**——
+     V2b 复制对象数 B>A、V2c 名册里至少一根网扇出下降（两个不同来源），
+     任一红 ⇒ `verdict=MECHANISM_INERT`（"这一刀没打到东西"，不许写成"时序收益不成立"）；
+     机制绿之后才由 V3 目标族收益 / V4 逐时钟名册差分 D1..D6 / V5 资源代价决定采纳候选。
+     尺子自带 `--self` 三条对照（行数地板、点名 `rok4[51]_i_1_n_0` 下降 203 的正对照、恒等表 0 的负对照）**实测全绿**。
+   - 旧路径 `build/r114_maxfanout_ab.sh` 改成**三行转接**（`exec bash build/r114_replication_ab.sh`）：
+     排期脚本 `build/r113_after_chain_experiments.sh` 正在后台等链子、按旧名调用，而规矩是
+     "不许改一个后台实例还在执行的脚本"，所以换新文件而不是改名。
+     ⚠ 那支排期脚本里 13:12 写下的 say 文案仍写着"set_max_fanout 单变量 A/B"——那是**起飞前的旧标签**，
+     读日志时按本条为准；等它下一轮重起时再改文案（现在改就是改正在执行的脚本）。
+   - `report/TIMING_GLOBAL.md` 第 3 节候选①改写成实测杠杆与判据顺序，参考清单补 UG904/UG912/UG949 三页
+     （⚠ 这三页要 JS 渲染，我抓不到正文，引用只作官方口径指路；旗标原文来自本机 `help`）。

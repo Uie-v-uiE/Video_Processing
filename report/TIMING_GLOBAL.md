@@ -69,8 +69,21 @@ sys_clk    setup 14.463 -> 14.463 hold 0.133 -> 0.133
 - `eth_rxc` 那条的 6.089 ns 走线里，第一跳 `p_eof`（**fo=8**）就吃 **2.141 ns**：起点 `SLICE_X57Y34`、终点整片 `rows_hit` 在 `X28~X31` ⇒ 距离。
   换实现指令（`place_design -directive Explore`）**一格不差**；Pblock 那块因进位链半内半外**没做成单变量**（1716 里 255 出块）。
 - 所以候选只剩两类，都要按全局判据交账：
-  ① **`MAX_FANOUT` / QoR 建议**（官方 9410 那条路）：目标是 `rok4[51]_i_1_n_0` **fo=305** 与 `u_reasm/wr_en_reg_1` **fo=547** 这两根广播。
-     它是**约束级**改动（不动 RTL），代价面是复制出来的 cell 会挤占别人 ⇒ 必须看 `report_utilization`、`report_route_status` 与**其余三域**有没有变差；
+  ① **扇出复制（官方 9410 那条路）**：目标是 `rok4[51]_i_1_n_0` **fo=305** 与 `u_reasm/wr_en_reg_1` **fo=547** 这两根广播。
+     ⚠ **杠杆的名字是量出来的，不是猜的**（2026-10-03 实测，`build/evidence/r113_help_fanout2_console.txt`）：
+     `set_max_fanout` 在本工具里**不存在**（`help` 回 `ERROR: [Common 17-25] No topics matched`），
+     `create_qor_suggestion`、`get_properties` 同样不存在（`build/evidence/r113_help_fanout3_console.txt`）。
+     同一份 help 里真正写着的是 `phys_opt_design` 的三个旗标：
+     `-fanout_opt`（"Do cell-duplication based optimization on high-fanout timing critical nets"）、
+     `-force_replication_on_nets`（"Force replication optimization on nets"）、
+     `-critical_cell_opt`（"Replicates cells on timing critical nets…"），
+     而且 help 明说复制对象名字带 `_replica` ⇒ **"机制动没动"是数得出来的**（正对照必须能红）。
+     A/B 因此定成：两滚都 `place_design → phys_opt_design → route_design`，
+     **唯一变量**是 B 那滚的 phys_opt 多带 `-force_replication_on_nets {那些网}`
+     （入口 `build/r114_replication_ab.sh`，尺子自带 3 条对照 `--self` 全绿；
+     `MAX_FANOUT` 属性那条路还没验（要开设计 `list_property`），所以现在**不许**写成"已按官方 MAX_FANOUT 做"）。
+     它是**实现级**改动（不动 RTL），代价面是复制出来的 cell 会挤占别人 ⇒ 必须看 `report_utilization`、`report_route_status`
+     与**其余三域**有没有变差（名册差分 D1..D6）；
   ② 修 Pblock 表达式（把共享进位链的 `u_eth/u_rx_mac` 一起收进来）再滚一次；只允许"加不加这块 Pblock"一个变量（#223）。
 - ⚠ 明确不做：`#179`（icmp_rx 校验和，70.5 % route，量过收益上限低）、`#141`（BRAM 换 setup，量过被否）、
   `#105` 尾账那类"再插一级"——都是在已经 route 主导的锥上磨逻辑。
@@ -161,4 +174,8 @@ hold 0.050/0.056/0.059/0.133），与本文第 2 节的表同源同数，逐条�
 - [Top 5 Timing Closure Techniques（Xilinx 官方 PDF）](https://www.xilinx.com/publications/prod_mktg/club_vivado/presentation-2015/paris/Xilinx-TimingClosure.pdf)
 - [UltraFast Design Methodology Guide 全文 PDF（ug949）](https://www.mouser.com/pdfDocs/ug949-vivado-design-methodology.pdf)
 - [Very high fanout net not being replicated by Vivado（Electronics Stack Exchange）](https://electronics.stackexchange.com/questions/472393/very-high-fanout-net-not-being-replicated-by-vivado)
+- [phys_opt_design — UG904 Vivado Implementation（官方文档页；⚠ 本页要 JS 渲染，我抓不到正文，三个复制旗标的原文是从本机 `help phys_opt_design` 读的）](https://docs.amd.com/r/en-US/ug904-vivado-implementation/phys_opt_design)
+- [MAX_FANOUT — UG912 Vivado Properties（属性那一侧的官方口径；同上抓不到正文，且这条在本工具里还没实测，所以不写成已用）](https://docs.amd.com/r/en-US/ug912-vivado-properties/MAX_FANOUT)
+- [Allow Register Replication — UG949](https://docs.amd.com/r/en-US/ug949-vivado-design-methodology/Allow-Register-Replication)
+- [Replicate High Fanout Net Drivers — UG949](https://docs.amd.com/r/en-US/ug949-vivado-design-methodology/Replicate-High-Fanout-Net-Drivers)
 - [MicroZed Chronicles: Baseline Timing Closure（第三方实践帖）](https://www.adiuvoengineering.com/post/microzed-chronicles-baseline-timing-closure)

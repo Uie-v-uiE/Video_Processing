@@ -34,9 +34,13 @@
       理由与活着的证据写在脚本头部）：
       1) `build/r113_roster_refanout.sh` → `build/evidence/r113_roster_diff_rf.txt`：
          把 D6 那根**工具红**换成有凭据的读数（根因见 #263：本工具没有 `report_design_analysis -fanout` 模式）。
-      2) `build/r114_maxfanout_ab.sh` → `build/evidence/r114_mf/verdict.txt`：
-         同一份 `opt.dcp` 滚两遍，A 不加 / B 加 `set_max_fanout`，
-         判据 = 目标族自己动多少（V3）**且**逐时钟名册差分 D1..D6 全绿（V4）——只看这两条才叫"考虑全局"。
+      2) `build/r114_replication_ab.sh`（旧路径 `build/r114_maxfanout_ab.sh` 现在是转接，因为排期脚本按旧名调用）
+         → `build/evidence/r114_mf/verdict.txt`：
+         同一份 `opt.dcp` 滚两遍，两滚都 `place → phys_opt → route`，**唯一变量**是 B 的 phys_opt 多带
+         `-force_replication_on_nets {那几根广播网}`（实测：`set_max_fanout` 在本工具不存在，#264）。
+         判据顺序是"先证机制能动再看收益"：V2b 复制对象数（`_replica`）必须 B>A、V2c 名册里至少一根网的扇出下降
+         （两个不同来源），之后才由 V3 目标族收益 + V4 逐时钟名册差分全绿 + V5 资源代价决定
+         `ADOPT_CANDIDATE` / `DECLINE` / `MECHANISM_INERT`。
       这两支**不阻塞 ⑥**：⑥ 采纳的是已经量完的 r113；⑦ 产出的是 r114 的下一刀该不该切扇出复制。
 
 ## 这一轮还欠的（别当成已完成）
