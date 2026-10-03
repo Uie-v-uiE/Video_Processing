@@ -12637,3 +12637,89 @@ L0 构建时的约束 → L1 换手册 Table 60 的真窗（min 1.000 / max 2.60
 另记一条本机工具账（小事但会咬人）：`python -c "print(...)"` 把含中文/`−`(U+2212) 的内容打到控制台会
 `UnicodeEncodeError: 'gbk' codec can't encode`，而**文件本身是好的**（`io.open(...,encoding='utf-8')` 读写都正常）。
 ⇒ 校验脚本别把 CJK 打屏，只打计数/ASCII；要看内容用 `Read` 工具。（`python - <<'PY'` 更糟：脚本源本身就被按系统代码页解码，含中文直接 SyntaxError。）
+
+### #307 r116 夜：`build/tcl/*.tcl` 里**注释**的中文也能把 Vivado 的 Tcl 解析打断（旧规矩只挡住了 `puts` 标签）（2026-10-04 00:40）
+
+现象：`build/tcl/r115_window_true_probe.tcl` 在 `rowline` 里死掉，报错把整个 `foreach` 体贴出来当
+"命令"，位置是"body line 5"——那一行是一句中文注释。文件其余部分（含更长的中文头注）都跑过去了，
+只有 proc 体内这一处炸。
+
+根因口径：Vivado 的 Tcl 解释器按**系统码页**读 `.tcl`，UTF-8 中文被按 GBK 拆成双字节时，
+某个尾字节会吃掉紧随其后的 ASCII（`{`、`"`、`#` 都可能），于是"注释"变成了语法的一部分。
+`puts` 标签那条老规矩（件在 r110 前后）只挡住了**运行时输出**这一半，没挡住**解析**这一半。
+
+处理：这一支探针整份改成 ASCII（含注释），并在文件头写下为什么；改完 `NONASCII=0` 实测过
+（`python -c` 逐字节数 >127 的个数，件 `build/evidence/r115_window/console.txt` 同目录）。
+**规矩升级**：`build/tcl/*.tcl` 全文 ASCII，中文只允许出现在 `.md`/`.v`/`.xdc` 这些不被 Tcl 解释器读的文件里。
+（`.xdc` 是否也危险？**未量**——本轮的窗 XDC 里有中文注释，它在构建里被 `read_xdc` 读过，
+构建日志会告诉我们有没有事；在拿到那个读数之前，不要把这条推广成"XDC 可以放中文"。）
+
+### #308 r116 夜：`set_input_delay` 把 `-min` 与 `-max` 写在**同一条命令**里，报错却怪端口列表 —— 两次探针（12 分钟）白烧（2026-10-04 00:52）
+
+```
+set_input_delay -clock eth_rxc -min 5.200 -max 6.800 [get_ports {eth_rxd[*] eth_rx_ctl}]
+ERROR: [Common 17-165] Too many positional options when parsing
+       'eth_rxd[3] eth_rxd[2] eth_rxd[1] eth_rxd[0] eth_rx_ctl'
+```
+
+读法上的坑：它点名端口，我就去查端口列表（花了一轮去怀疑 `-min -2.800` 这种负数被当成开关、
+又花一轮怀疑 `source` vs `read_xdc`，`read_xdc -unmerged` 还撞出一个不存在的选项）。
+真正的原因是 **`-min` 与 `-max` 必须各写一条命令**（r114 那份候选 XDC 本来就是两条一行，
+是我今天"顺手合并"把它写坏的）。⇒ 报错文本里被点名的对象**不一定是过错方**；
+下一次先照抄仓里能跑的那份写法（这条与 #303 是同一课，我又忘了一次）。
+
+### #309 r116 夜：Table 60 的**行名是 PHY 视角**，我把同一张表用错过三次；strap 今天从原理图读实了（2026-10-04 00:35）
+
+三次用错行（每一次都写进过文档，每一次都被下一次推翻）：
+
+1. `±0.500`（r114 候选窗）= **`TskewT`**，那一行原文是 "**without** delay integrated"，
+   是发射端**没有**内部延时的输出偏差 ⇒ 与我们的收口无关（#304 已登记）。
+2. `min 1.000 / max 2.600`（今天 23:44 的"并集"）= **`TskewR`** 那一行。但 `TskewR` 的原文是
+   "Data to Clock **Input** Skew Time at **receiver** (with **PCB** delay integrated)"，注脚
+   "PC board design will require delay of greater than 1.5ns and less than 2.0ns"——
+   讲的是 **PHY 的接收端**（= 我们 TXD/TXC 那一侧）要求板子给 TXC 多走 1.5–2.0 ns，
+   不是我们收口上的数据散布。
+3. 今天 00:16 我在 §7.3 里把 (2) 登记成"模型风险、待核"，但没有换掉它。
+
+现在两件事同时到位：
+
+* **strap 读实**（不再靠猜）：原理图第 8 页 `PHY1_RXD0 —R57 4.7K→ PHY1_IODVDD`、
+  `PHY1_RXD1 —R59 4.7K→ PHY1_IODVDD`（PHY2 同接法 R72/R73），图件
+  `build/evidence/r115_sch_p8/rxd_area.png` / `phy2_straps.png`；
+  规格书 Table 10（PDF p23）给 `RXD0=RXDLY`、`RXD1=TXDLY`，Table 11 给
+  `1: Add 2ns delay to RXC for RXD latching (via 4.7k-ohm to DVDD_RG)` ⇒ **RXDLY 是开的，延时在钟上**。
+* **行用对**：管我们收口的是**发射端**两行 `TsetupT` / `TholdT`（min 1.2 / typ 2），
+  两者相加 = 半周期 4 ns ⇒ 提前量 ∈ **[1.2, 2.8] ns**，且工具的边配对（setup 查 rise→fall、
+  hold 查同一沿）要求 offset 从**发射沿**量起 ⇒ 正确的窗是 `set_input_delay -min 1.200 / -max 2.800`。
+  抄件 `build/evidence/r115_rtl8211f_delay_source.txt`（整页原文，含数值行）。
+
+顺带一条**没有圆场**的对不上：原理图便签写 `PHY1 ADDR 001`，但按 `RXD3=PHYAD0`（上拉=1）、
+`RXCK=PHYAD1`（上拉=1）、`RXCTL=PHYAD2`（下拉=0）读出来是 `0b011`。地址位序或便签口径我没查实，
+它不影响延时结论（延时只看 RXD0/RXD1 两颗电阻），所以只登记不推断。
+
+### #310 r116 夜：`set_property IDELAY_VALUE` 在**已布线 DCP** 上有效 ⇒ 整条 tap 扫描不用花构建（2026-10-04 01:06）
+
+`build/tcl/r115_window_probe3.tcl` 里 `set_property IDELAY_VALUE $t $cells` 五颗 IDELAYE2 全部改成功，
+`get_property` 回读逐档对上（0/4/8/…/26/31），紧接的 `report_timing` 读数随之移动
+（hold 斜率 **+63.0 ps/拍**、setup **−92.0 ps/拍**，件 `build/evidence/r115_window/probe3_console.txt`）。
+
+为什么这条值钱：r114 那一轮为了同一件事（找眼心）付了一次构建 + 一次快车道扫档；
+今天 0…31 全范围 10 个档 + 两种带子配置只花了 **8 分钟只读会话**。
+⇒ 以后"IDELAY/相位/窗"这类**只改约束或只改 IO 原语参数**的问题，先在 DCP 上量满，再决定要不要构建。
+⚠ 边界要说清楚：这条路**不能**改网表（加 FF、换钟树、改 RTL 参数被综合烧进网表的那种），
+那些仍然必须走构建；`IDELAY_VALUE` 恰好是布线后还留在 cell 属性上、且时序模型按它查表的那一类。
+
+### #311 r116 夜：#194 那一刀到此收口——**不是"没找到点"，是"两个区间不相交"**（极限判据第一次真满足）（2026-10-04 01:10）
+
+带窗实测（0.800 带保留）：`HOLD(τ) = −2.822 + 0.0630τ` 要 ≥ 0 ⇒ **τ ≥ 44.8**；
+`SETUP(τ) = +2.005 − 0.0920τ` 要 ≥ 0 ⇒ **τ ≤ 21.8**；合法区间只有 `τ ∈ [0, 31]` ⇒ 不相交。
+去掉 0.800 带也只是把下界挪到 32.1，仍然与 21.8 不相交 ⇒ **换带子救不了，换点更救不了**。
+
+分量层的同一件事：hold 查慢角 DCD **5.008**、setup 查快角 DCD **1.597**，
+钟网络的角间差 **3.411 ns** 远大于数据路径的 **0.467 ns**；
+同时满足需要 `D_slow/D_fast ≥ 1.72`，而 IDELAY 主导的路径实测只有 `3.613/3.146 = 1.15`
+（IDELAY 是模拟延迟线，几乎不随工艺角缩放）。
+
+⇒ 这一族的出口只有一个：**把到 IDDR 的钟做短、并且让它的角间差小下来**（要 `C_slow − C_fast` 从
+3.411 降到 ≈ ≤1.2 才可能有解）。下一轮第一件要量的事是 **BUFIO 的快角 DCD**（r92 只有慢角 3.171 这个数），
+不是"再试一次 BUFIO"。本轮两刀（窗 + τ=31）在 01:13 进构建，判读见 `build/evidence/r116/`。

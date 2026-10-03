@@ -1,0 +1,240 @@
+
+****** Vivado v2025.2.1 (64-bit)
+  **** SW Build 6403652 on Thu Mar 19 19:48:24 GMT 2026
+  **** IP Build 6403511 on Thu Mar 19 12:41:45 MDT 2026
+  **** SharedData Build 6403650 on Thu Mar 19 14:02:13 MDT 2026
+  **** Start of session at: Sun Oct  4 00:57:16 2026
+    ** Copyright 1986-2022 Xilinx, Inc. All Rights Reserved.
+    ** Copyright 2022-2026 Advanced Micro Devices, Inc. All Rights Reserved.
+
+source build/tcl/r115_window_probe2.tcl
+# set root [file normalize [file join [file dirname [info script]] .. ..]]
+# set dcp [file normalize [file join $root vivado_system zynq_video_sys.runs impl_1 system_top_routed.dcp]]
+# set out [file join $root build evidence r115_window]
+# if {![file exists $dcp]} { puts "REFUSE no dcp $dcp"; exit 1 }
+# file mkdir $out
+# open_checkpoint $dcp
+Command: open_checkpoint D:/Xilinx/Prj/pro/Video_Processing/vivado_system/zynq_video_sys.runs/impl_1/system_top_routed.dcp
+
+Starting open_checkpoint Task
+
+Time (s): cpu = 00:00:00 ; elapsed = 00:00:00.048 . Memory (MB): peak = 332.082 ; gain = 5.254
+INFO: [Device 21-403] Loading part xc7z020clg484-2
+Netlist sorting complete. Time (s): cpu = 00:00:01 ; elapsed = 00:00:00.381 . Memory (MB): peak = 820.328 ; gain = 0.000
+INFO: [Netlist 29-17] Analyzing 2897 Unisim elements for replacement
+INFO: [Netlist 29-28] Unisim Transformation completed in 1 CPU seconds
+INFO: [Project 1-479] Netlist was created with Vivado 2025.2.1
+INFO: [Project 1-570] Preparing netlist for logic optimization
+Read ShapeDB Complete: Time (s): cpu = 00:00:00 ; elapsed = 00:00:00.151 . Memory (MB): peak = 966.980 ; gain = 7.879
+INFO: [Timing 38-478] Restoring timing data from binary archive.
+INFO: [Timing 38-479] Binary timing data restore complete.
+INFO: [Project 1-856] Restoring constraints from binary archive.
+INFO: [Project 1-853] Binary constraint restore complete.
+INFO: [Designutils 20-5722] Start Reading Physical Databases.
+Reading placement.
+Read Netlist Cache: Time (s): cpu = 00:00:00 ; elapsed = 00:00:00.031 . Memory (MB): peak = 1596.957 ; gain = 0.000
+Reading placer database...
+Read Device Cache: Time (s): cpu = 00:00:00 ; elapsed = 00:00:00.018 . Memory (MB): peak = 1596.957 ; gain = 0.000
+Read PlaceDB: Time (s): cpu = 00:00:00 ; elapsed = 00:00:00 . Memory (MB): peak = 1596.957 ; gain = 0.000
+Read placeStorage: Time (s): cpu = 00:00:01 ; elapsed = 00:00:00.821 . Memory (MB): peak = 1596.957 ; gain = 0.000
+Read PulsedLatchDB: Time (s): cpu = 00:00:00 ; elapsed = 00:00:00 . Memory (MB): peak = 1596.957 ; gain = 0.000
+Reading routing.
+Read RouteStorage: Time (s): cpu = 00:00:00 ; elapsed = 00:00:00.350 . Memory (MB): peak = 1612.820 ; gain = 15.863
+Read Physdb Files: Time (s): cpu = 00:00:01 ; elapsed = 00:00:01 . Memory (MB): peak = 1612.820 ; gain = 15.863
+Restored from archive | CPU: 1.000000 secs | Memory: 0.000000 MB |
+Finished XDEF File Restore: Time (s): cpu = 00:00:01 ; elapsed = 00:00:01 . Memory (MB): peak = 1612.820 ; gain = 15.863
+Netlist sorting complete. Time (s): cpu = 00:00:00 ; elapsed = 00:00:00.013 . Memory (MB): peak = 1635.977 ; gain = 0.000
+INFO: [Project 1-111] Unisim Transformation Summary:
+  A total of 1035 instances were transformed.
+  RAM128X1D => RAM128X1D (MUXF7(x2), RAMD64E(x4)): 336 instances
+  RAM64M => RAM64M (RAMD64E(x4)): 651 instances
+  RAM64X1D => RAM64X1D (RAMD64E(x2)): 48 instances
+
+INFO: [Project 1-604] Checkpoint was created with Vivado v2025.2.1 (64-bit) build 6403652
+open_checkpoint: Time (s): cpu = 00:00:29 ; elapsed = 00:00:27 . Memory (MB): peak = 1644.051 ; gain = 1325.895
+# set ports [get_ports -quiet {eth_rxd[*] eth_rx_ctl}]
+# set clk   [get_clocks -quiet eth_rxc]
+# puts "WP2_OBJS ports=[llength $ports] clocks=[llength $clk]"
+WP2_OBJS ports=5 clocks=1
+# if {[llength $ports] != 5 || [llength $clk] != 1} { puts "REFUSE object counts"; exit 4 }
+# proc rep2 {tag} {
+#     global out ports clk
+#     foreach {dt suf} {min HOLD max SETUP} {
+#         set f [file join $out "w2_${tag}_${suf}.txt"]
+#         file delete -force $f
+#         report_timing -delay_type $dt -from $ports -to $clk -nworst 1 -max_paths 1 -file $f
+#         set h [open $f r]; set t [read $h]; close $h
+#         set s [regexp -all -inline {Slack(?: \([A-Z]+\))?\s*:\s+\S+} $t]
+#         set r [regexp -all -inline {Requirement:\s+\S+ns\s+\([^\)]*\)} $t]
+#         puts "W2STAGE $tag $suf slack=[join $s { }] req=[join $r { }]"
+#     }
+# }
+# proc setw {tag mn mx fall} {
+#     global out
+#     set f [file join $out "w2_${tag}.xdc"]
+#     set h [open $f w]
+#     foreach {o v} [list -min $mn -max $mx] {
+#         puts $h "set_input_delay -clock eth_rxc $o $v \[get_ports {eth_rxd\[*\] eth_rx_ctl}\]"
+#     }
+#     if {$fall} {
+#         foreach {o v} [list -min $mn -max $mx] {
+#             puts $h "set_input_delay -clock eth_rxc -clock_fall $o $v -add_delay \[get_ports {eth_rxd\[*\] eth_rx_ctl}\]"
+#         }
+#     }
+#     close $h
+#     set body [read [open $f r]]
+#     close [open $f r]
+#     puts "W2XDC $tag lines=[llength [split [string trim $body] \n]]"
+#     set e no-error
+#     catch {source $f} e
+#     puts "W2SET $tag rc=$e"
+# }
+# proc taps {tag} {
+#     global out
+#     set cells [get_cells -quiet {u_eth/u_rgmii/u_rgmii_rx/u_delay_rx_ctrl \
+#                                  u_eth/u_rgmii/u_rgmii_rx/rxdata_bus\[*\].u_delay_rxd}]
+#     puts "TAP $tag cells=[llength $cells]"
+#     if {[llength $cells] != 5} { puts "TAP $tag REFUSE cell count"; return }
+#     foreach t $tag {
+#         set e no-error
+#         catch {set_property IDELAY_VALUE $t $cells} e
+#         puts "TAP set=$t rc=$e readback=[get_property IDELAY_VALUE [lindex $cells 0]]"
+#         if {[string match "ERROR*" $e]} continue
+#         rep2 "tap$t"
+#     }
+# }
+# rep2 W0_none
+INFO: [Timing 38-91] UpdateTimingParams: Speed grade: -2, Delay Type: min.
+INFO: [Timing 38-191] Multithreading enabled for timing update using a maximum of 2 CPUs
+INFO: [Timing 38-78] ReportTimingParams: -from_pins  -to_pins  -max_paths 1 -nworst 1 -delay_type min -sort_by slack.
+report_timing: Time (s): cpu = 00:00:18 ; elapsed = 00:00:10 . Memory (MB): peak = 1704.730 ; gain = 60.680
+W2STAGE W0_none HOLD slack=Slack:                    inf req=
+INFO: [Timing 38-91] UpdateTimingParams: Speed grade: -2, Delay Type: max.
+INFO: [Timing 38-191] Multithreading enabled for timing update using a maximum of 2 CPUs
+INFO: [Timing 38-78] ReportTimingParams: -from_pins  -to_pins  -max_paths 1 -nworst 1 -delay_type max -sort_by slack.
+W2STAGE W0_none SETUP slack=Slack:                    inf req=
+# setw W1 -2.800 -1.200 0
+W2XDC W1 lines=2
+## set_input_delay -clock eth_rxc -min -2.800 [get_ports {eth_rxd[*] eth_rx_ctl}]
+## set_input_delay -clock eth_rxc -max -1.200 [get_ports {eth_rxd[*] eth_rx_ctl}]
+W2SET W1 rc=
+# rep2 W1_rise_neg
+INFO: [Timing 38-91] UpdateTimingParams: Speed grade: -2, Delay Type: min.
+INFO: [Timing 38-191] Multithreading enabled for timing update using a maximum of 2 CPUs
+INFO: [Timing 38-78] ReportTimingParams: -from_pins  -to_pins  -max_paths 1 -nworst 1 -delay_type min -sort_by slack.
+W2STAGE W1_rise_neg HOLD slack=Slack (VIOLATED) :        -5.185ns req=Requirement:            0.000ns  (eth_rxc rise@0.000ns - eth_rxc rise@0.000ns)
+INFO: [Timing 38-91] UpdateTimingParams: Speed grade: -2, Delay Type: max.
+INFO: [Timing 38-191] Multithreading enabled for timing update using a maximum of 2 CPUs
+INFO: [Timing 38-78] ReportTimingParams: -from_pins  -to_pins  -max_paths 1 -nworst 1 -delay_type max -sort_by slack.
+W2STAGE W1_rise_neg SETUP slack=Slack (MET) :             3.614ns req=Requirement:            4.000ns  (eth_rxc fall@4.000ns - eth_rxc rise@0.000ns)
+# setw W2 5.200 6.800 0
+W2XDC W2 lines=2
+## set_input_delay -clock eth_rxc -min 5.200 [get_ports {eth_rxd[*] eth_rx_ctl}]
+## set_input_delay -clock eth_rxc -max 6.800 [get_ports {eth_rxd[*] eth_rx_ctl}]
+W2SET W2 rc=
+# rep2 W2_rise_pos
+INFO: [Timing 38-91] UpdateTimingParams: Speed grade: -2, Delay Type: min.
+INFO: [Timing 38-191] Multithreading enabled for timing update using a maximum of 2 CPUs
+INFO: [Timing 38-78] ReportTimingParams: -from_pins  -to_pins  -max_paths 1 -nworst 1 -delay_type min -sort_by slack.
+W2STAGE W2_rise_pos HOLD slack=Slack (MET) :             2.815ns req=Requirement:            0.000ns  (eth_rxc rise@0.000ns - eth_rxc rise@0.000ns)
+INFO: [Timing 38-91] UpdateTimingParams: Speed grade: -2, Delay Type: max.
+INFO: [Timing 38-191] Multithreading enabled for timing update using a maximum of 2 CPUs
+INFO: [Timing 38-78] ReportTimingParams: -from_pins  -to_pins  -max_paths 1 -nworst 1 -delay_type max -sort_by slack.
+W2STAGE W2_rise_pos SETUP slack=Slack (VIOLATED) :        -4.386ns req=Requirement:            4.000ns  (eth_rxc fall@4.000ns - eth_rxc rise@0.000ns)
+# setw W3 5.200 6.800 1
+W2XDC W3 lines=4
+## set_input_delay -clock eth_rxc -min 5.200 [get_ports {eth_rxd[*] eth_rx_ctl}]
+## set_input_delay -clock eth_rxc -max 6.800 [get_ports {eth_rxd[*] eth_rx_ctl}]
+## set_input_delay -clock eth_rxc -clock_fall -min 5.200 -add_delay [get_ports {eth_rxd[*] eth_rx_ctl}]
+## set_input_delay -clock eth_rxc -clock_fall -max 6.800 -add_delay [get_ports {eth_rxd[*] eth_rx_ctl}]
+W2SET W3 rc=
+# rep2 W3_both_pos
+INFO: [Timing 38-91] UpdateTimingParams: Speed grade: -2, Delay Type: min.
+INFO: [Timing 38-191] Multithreading enabled for timing update using a maximum of 2 CPUs
+INFO: [Timing 38-78] ReportTimingParams: -from_pins  -to_pins  -max_paths 1 -nworst 1 -delay_type min -sort_by slack.
+W2STAGE W3_both_pos HOLD slack=Slack (MET) :             2.815ns req=Requirement:            0.000ns  (eth_rxc rise@0.000ns - eth_rxc rise@0.000ns)
+INFO: [Timing 38-91] UpdateTimingParams: Speed grade: -2, Delay Type: max.
+INFO: [Timing 38-191] Multithreading enabled for timing update using a maximum of 2 CPUs
+INFO: [Timing 38-78] ReportTimingParams: -from_pins  -to_pins  -max_paths 1 -nworst 1 -delay_type max -sort_by slack.
+W2STAGE W3_both_pos SETUP slack=Slack (VIOLATED) :        -4.386ns req=Requirement:            4.000ns  (eth_rxc rise@8.000ns - eth_rxc fall@4.000ns)
+# setw W4 -2.800 -1.200 1
+W2XDC W4 lines=4
+## set_input_delay -clock eth_rxc -min -2.800 [get_ports {eth_rxd[*] eth_rx_ctl}]
+## set_input_delay -clock eth_rxc -max -1.200 [get_ports {eth_rxd[*] eth_rx_ctl}]
+## set_input_delay -clock eth_rxc -clock_fall -min -2.800 -add_delay [get_ports {eth_rxd[*] eth_rx_ctl}]
+## set_input_delay -clock eth_rxc -clock_fall -max -1.200 -add_delay [get_ports {eth_rxd[*] eth_rx_ctl}]
+W2SET W4 rc=
+# rep2 W4_both_neg
+INFO: [Timing 38-91] UpdateTimingParams: Speed grade: -2, Delay Type: min.
+INFO: [Timing 38-191] Multithreading enabled for timing update using a maximum of 2 CPUs
+INFO: [Timing 38-78] ReportTimingParams: -from_pins  -to_pins  -max_paths 1 -nworst 1 -delay_type min -sort_by slack.
+W2STAGE W4_both_neg HOLD slack=Slack (VIOLATED) :        -5.185ns req=Requirement:            0.000ns  (eth_rxc rise@0.000ns - eth_rxc rise@0.000ns)
+INFO: [Timing 38-91] UpdateTimingParams: Speed grade: -2, Delay Type: max.
+INFO: [Timing 38-191] Multithreading enabled for timing update using a maximum of 2 CPUs
+INFO: [Timing 38-78] ReportTimingParams: -from_pins  -to_pins  -max_paths 1 -nworst 1 -delay_type max -sort_by slack.
+W2STAGE W4_both_neg SETUP slack=Slack (MET) :             3.614ns req=Requirement:            4.000ns  (eth_rxc rise@8.000ns - eth_rxc fall@4.000ns)
+# taps {0 8 16 20 26 31}
+TAP 0 8 16 20 26 31 cells=5
+TAP set=0 rc= readback=0
+INFO: [Timing 38-91] UpdateTimingParams: Speed grade: -2, Delay Type: min.
+INFO: [Timing 38-191] Multithreading enabled for timing update using a maximum of 2 CPUs
+INFO: [Timing 38-78] ReportTimingParams: -from_pins  -to_pins  -max_paths 1 -nworst 1 -delay_type min -sort_by slack.
+W2STAGE tap0 HOLD slack=Slack (VIOLATED) :        -6.822ns req=Requirement:            0.000ns  (eth_rxc rise@0.000ns - eth_rxc rise@0.000ns)
+INFO: [Timing 38-91] UpdateTimingParams: Speed grade: -2, Delay Type: max.
+INFO: [Timing 38-191] Multithreading enabled for timing update using a maximum of 2 CPUs
+INFO: [Timing 38-78] ReportTimingParams: -from_pins  -to_pins  -max_paths 1 -nworst 1 -delay_type max -sort_by slack.
+W2STAGE tap0 SETUP slack=Slack (MET) :             6.005ns req=Requirement:            4.000ns  (eth_rxc rise@8.000ns - eth_rxc fall@4.000ns)
+TAP set=8 rc= readback=8
+INFO: [Timing 38-91] UpdateTimingParams: Speed grade: -2, Delay Type: min.
+INFO: [Timing 38-191] Multithreading enabled for timing update using a maximum of 2 CPUs
+INFO: [Timing 38-78] ReportTimingParams: -from_pins  -to_pins  -max_paths 1 -nworst 1 -delay_type min -sort_by slack.
+W2STAGE tap8 HOLD slack=Slack (VIOLATED) :        -6.318ns req=Requirement:            0.000ns  (eth_rxc rise@0.000ns - eth_rxc rise@0.000ns)
+INFO: [Timing 38-91] UpdateTimingParams: Speed grade: -2, Delay Type: max.
+INFO: [Timing 38-191] Multithreading enabled for timing update using a maximum of 2 CPUs
+INFO: [Timing 38-78] ReportTimingParams: -from_pins  -to_pins  -max_paths 1 -nworst 1 -delay_type max -sort_by slack.
+W2STAGE tap8 SETUP slack=Slack (MET) :             5.270ns req=Requirement:            4.000ns  (eth_rxc rise@8.000ns - eth_rxc fall@4.000ns)
+TAP set=16 rc= readback=16
+INFO: [Timing 38-91] UpdateTimingParams: Speed grade: -2, Delay Type: min.
+INFO: [Timing 38-191] Multithreading enabled for timing update using a maximum of 2 CPUs
+INFO: [Timing 38-78] ReportTimingParams: -from_pins  -to_pins  -max_paths 1 -nworst 1 -delay_type min -sort_by slack.
+W2STAGE tap16 HOLD slack=Slack (VIOLATED) :        -5.815ns req=Requirement:            0.000ns  (eth_rxc rise@0.000ns - eth_rxc rise@0.000ns)
+INFO: [Timing 38-91] UpdateTimingParams: Speed grade: -2, Delay Type: max.
+INFO: [Timing 38-191] Multithreading enabled for timing update using a maximum of 2 CPUs
+INFO: [Timing 38-78] ReportTimingParams: -from_pins  -to_pins  -max_paths 1 -nworst 1 -delay_type max -sort_by slack.
+W2STAGE tap16 SETUP slack=Slack (MET) :             4.534ns req=Requirement:            4.000ns  (eth_rxc rise@8.000ns - eth_rxc fall@4.000ns)
+TAP set=20 rc= readback=20
+INFO: [Timing 38-91] UpdateTimingParams: Speed grade: -2, Delay Type: min.
+INFO: [Timing 38-191] Multithreading enabled for timing update using a maximum of 2 CPUs
+INFO: [Timing 38-78] ReportTimingParams: -from_pins  -to_pins  -max_paths 1 -nworst 1 -delay_type min -sort_by slack.
+W2STAGE tap20 HOLD slack=Slack (VIOLATED) :        -5.563ns req=Requirement:            0.000ns  (eth_rxc rise@0.000ns - eth_rxc rise@0.000ns)
+INFO: [Timing 38-91] UpdateTimingParams: Speed grade: -2, Delay Type: max.
+INFO: [Timing 38-191] Multithreading enabled for timing update using a maximum of 2 CPUs
+INFO: [Timing 38-78] ReportTimingParams: -from_pins  -to_pins  -max_paths 1 -nworst 1 -delay_type max -sort_by slack.
+W2STAGE tap20 SETUP slack=Slack (MET) :             4.166ns req=Requirement:            4.000ns  (eth_rxc rise@8.000ns - eth_rxc fall@4.000ns)
+TAP set=26 rc= readback=26
+INFO: [Timing 38-91] UpdateTimingParams: Speed grade: -2, Delay Type: min.
+INFO: [Timing 38-191] Multithreading enabled for timing update using a maximum of 2 CPUs
+INFO: [Timing 38-78] ReportTimingParams: -from_pins  -to_pins  -max_paths 1 -nworst 1 -delay_type min -sort_by slack.
+W2STAGE tap26 HOLD slack=Slack (VIOLATED) :        -5.185ns req=Requirement:            0.000ns  (eth_rxc rise@0.000ns - eth_rxc rise@0.000ns)
+INFO: [Timing 38-91] UpdateTimingParams: Speed grade: -2, Delay Type: max.
+INFO: [Timing 38-191] Multithreading enabled for timing update using a maximum of 2 CPUs
+INFO: [Timing 38-78] ReportTimingParams: -from_pins  -to_pins  -max_paths 1 -nworst 1 -delay_type max -sort_by slack.
+W2STAGE tap26 SETUP slack=Slack (MET) :             3.614ns req=Requirement:            4.000ns  (eth_rxc rise@8.000ns - eth_rxc fall@4.000ns)
+TAP set=31 rc= readback=31
+INFO: [Timing 38-91] UpdateTimingParams: Speed grade: -2, Delay Type: min.
+INFO: [Timing 38-191] Multithreading enabled for timing update using a maximum of 2 CPUs
+INFO: [Timing 38-78] ReportTimingParams: -from_pins  -to_pins  -max_paths 1 -nworst 1 -delay_type min -sort_by slack.
+W2STAGE tap31 HOLD slack=Slack (VIOLATED) :        -4.870ns req=Requirement:            0.000ns  (eth_rxc rise@0.000ns - eth_rxc rise@0.000ns)
+INFO: [Timing 38-91] UpdateTimingParams: Speed grade: -2, Delay Type: max.
+INFO: [Timing 38-191] Multithreading enabled for timing update using a maximum of 2 CPUs
+INFO: [Timing 38-78] ReportTimingParams: -from_pins  -to_pins  -max_paths 1 -nworst 1 -delay_type max -sort_by slack.
+W2STAGE tap31 SETUP slack=Slack (MET) :             3.154ns req=Requirement:            4.000ns  (eth_rxc rise@8.000ns - eth_rxc fall@4.000ns)
+# set f [file join $out w2_summary_final.txt]
+# file delete -force $f
+# report_timing_summary -file $f
+INFO: [Timing 38-91] UpdateTimingParams: Speed grade: -2, Delay Type: min_max.
+INFO: [Timing 38-191] Multithreading enabled for timing update using a maximum of 2 CPUs
+# puts "WP2DONE"
+WP2DONE
+# exit 0
+INFO: [Common 17-206] Exiting Vivado at Sun Oct  4 00:57:59 2026...

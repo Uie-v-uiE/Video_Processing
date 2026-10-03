@@ -25,6 +25,13 @@ set cgxdc [add_files -fileset constrs_1 -norecurse [file join $root src constrai
 set_property used_in_synthesis false $cgxdc
 set_property used_in_implementation true $cgxdc
 
+# r116: RGMII 收口 5 个输入的**有出处输入窗**（H5 的债，只加严不放宽：这 5 个端口从来没被检查过）。
+# 与 clock_groups 一样**只在实现阶段生效** —— 输入窗不影响综合网表，这样"网表逐字节不变、
+# 只有实现阶段的检查变多"本身就是一个对照（任何资源/告警差异都不该出现，出现了就是我这刀的问题）。
+set iwxdc [add_files -fileset constrs_1 -norecurse [file join $root src constraints r116_rgmii_input_window.xdc]]
+set_property used_in_synthesis false $iwxdc
+set_property used_in_implementation true $iwxdc
+
 create_bd_design design_1
 create_bd_cell -type ip -vlnv xilinx.com:ip:processing_system7:5.5 processing_system7_0
 set ps [get_bd_cells processing_system7_0]

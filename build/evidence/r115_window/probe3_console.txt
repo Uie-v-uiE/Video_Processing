@@ -1,0 +1,242 @@
+
+****** Vivado v2025.2.1 (64-bit)
+  **** SW Build 6403652 on Thu Mar 19 19:48:24 GMT 2026
+  **** IP Build 6403511 on Thu Mar 19 12:41:45 MDT 2026
+  **** SharedData Build 6403650 on Thu Mar 19 14:02:13 MDT 2026
+  **** Start of session at: Sun Oct  4 01:05:51 2026
+    ** Copyright 1986-2022 Xilinx, Inc. All Rights Reserved.
+    ** Copyright 2022-2026 Advanced Micro Devices, Inc. All Rights Reserved.
+
+source build/tcl/r115_window_probe3.tcl
+# set root [file normalize [file join [file dirname [info script]] .. ..]]
+# set dcp [file normalize [file join $root vivado_system zynq_video_sys.runs impl_1 system_top_routed.dcp]]
+# set out [file join $root build evidence r115_window]
+# if {![file exists $dcp]} { puts "REFUSE no dcp $dcp"; exit 1 }
+# open_checkpoint $dcp
+Command: open_checkpoint D:/Xilinx/Prj/pro/Video_Processing/vivado_system/zynq_video_sys.runs/impl_1/system_top_routed.dcp
+
+Starting open_checkpoint Task
+
+Time (s): cpu = 00:00:00 ; elapsed = 00:00:00.049 . Memory (MB): peak = 331.062 ; gain = 3.422
+INFO: [Device 21-403] Loading part xc7z020clg484-2
+Netlist sorting complete. Time (s): cpu = 00:00:00 ; elapsed = 00:00:00.254 . Memory (MB): peak = 820.945 ; gain = 0.000
+INFO: [Netlist 29-17] Analyzing 2897 Unisim elements for replacement
+INFO: [Netlist 29-28] Unisim Transformation completed in 1 CPU seconds
+INFO: [Project 1-479] Netlist was created with Vivado 2025.2.1
+INFO: [Project 1-570] Preparing netlist for logic optimization
+Read ShapeDB Complete: Time (s): cpu = 00:00:01 ; elapsed = 00:00:00.150 . Memory (MB): peak = 966.422 ; gain = 7.430
+INFO: [Timing 38-478] Restoring timing data from binary archive.
+INFO: [Timing 38-479] Binary timing data restore complete.
+INFO: [Project 1-856] Restoring constraints from binary archive.
+INFO: [Project 1-853] Binary constraint restore complete.
+INFO: [Designutils 20-5722] Start Reading Physical Databases.
+Reading placement.
+Read Netlist Cache: Time (s): cpu = 00:00:00 ; elapsed = 00:00:00.055 . Memory (MB): peak = 1593.762 ; gain = 0.000
+Reading placer database...
+Read Device Cache: Time (s): cpu = 00:00:00 ; elapsed = 00:00:00.033 . Memory (MB): peak = 1593.762 ; gain = 0.000
+Read PlaceDB: Time (s): cpu = 00:00:00 ; elapsed = 00:00:00 . Memory (MB): peak = 1593.762 ; gain = 0.000
+Read placeStorage: Time (s): cpu = 00:00:01 ; elapsed = 00:00:01 . Memory (MB): peak = 1596.492 ; gain = 2.730
+Read PulsedLatchDB: Time (s): cpu = 00:00:00 ; elapsed = 00:00:00 . Memory (MB): peak = 1596.492 ; gain = 0.000
+Reading routing.
+Read RouteStorage: Time (s): cpu = 00:00:01 ; elapsed = 00:00:00.478 . Memory (MB): peak = 1611.172 ; gain = 14.680
+Read Physdb Files: Time (s): cpu = 00:00:02 ; elapsed = 00:00:02 . Memory (MB): peak = 1611.172 ; gain = 17.410
+Restored from archive | CPU: 2.000000 secs | Memory: 0.000000 MB |
+Finished XDEF File Restore: Time (s): cpu = 00:00:02 ; elapsed = 00:00:02 . Memory (MB): peak = 1611.172 ; gain = 17.414
+Netlist sorting complete. Time (s): cpu = 00:00:00 ; elapsed = 00:00:00.021 . Memory (MB): peak = 1635.078 ; gain = 0.000
+INFO: [Project 1-111] Unisim Transformation Summary:
+  A total of 1035 instances were transformed.
+  RAM128X1D => RAM128X1D (MUXF7(x2), RAMD64E(x4)): 336 instances
+  RAM64M => RAM64M (RAMD64E(x4)): 651 instances
+  RAM64X1D => RAM64X1D (RAMD64E(x2)): 48 instances
+
+INFO: [Project 1-604] Checkpoint was created with Vivado v2025.2.1 (64-bit) build 6403652
+open_checkpoint: Time (s): cpu = 00:00:29 ; elapsed = 00:00:26 . Memory (MB): peak = 1643.148 ; gain = 1325.402
+# set ports [get_ports -quiet {eth_rxd[*] eth_rx_ctl}]
+# set clk   [get_clocks -quiet eth_rxc]
+# puts "WP3_OBJS ports=[llength $ports] clocks=[llength $clk]"
+WP3_OBJS ports=5 clocks=1
+# if {[llength $ports] != 5 || [llength $clk] != 1} { puts "REFUSE object counts"; exit 4 }
+# set cells [get_cells -quiet u_eth/u_rgmii/u_rgmii_rx/*u_delay*]
+# puts "WP3_IDDR_IDELAY cells=[llength $cells]"
+WP3_IDDR_IDELAY cells=5
+# if {[llength $cells] != 5} { puts "REFUSE idelay cell count"; exit 4 }
+# proc rep3 {tag} {
+#     global out ports clk
+#     foreach {dt suf} {min HOLD max SETUP} {
+#         set f [file join $out "w3_${tag}_${suf}.txt"]
+#         file delete -force $f
+#         report_timing -delay_type $dt -from $ports -to $clk -nworst 1 -max_paths 1 -file $f
+#         set h [open $f r]; set t [read $h]; close $h
+#         set s [regexp -all -inline {Slack(?: \([A-Z]+\))?\s*:\s+\S+} $t]
+#         set d [regexp -all -inline {Data Path Delay:\s+\S+} $t]
+#         set k [regexp -all -inline {Clock Path Skew:\s+\S+} $t]
+#         set c [regexp -all -inline {Clock Uncertainty:\s+\S+} $t]
+#         puts "W3S $tag $suf [join $s { }] [join $d { }] [join $k { }] [join $c { }]"
+#     }
+# }
+# proc setwin {mn mx} {
+#     global out
+#     set f [file join $out w3_win.xdc]
+#     set h [open $f w]
+#     puts $h "set_input_delay -clock eth_rxc -min $mn \[get_ports {eth_rxd\[*\] eth_rx_ctl}\]"
+#     puts $h "set_input_delay -clock eth_rxc -max $mx \[get_ports {eth_rxd\[*\] eth_rx_ctl}\]"
+#     puts $h "set_input_delay -clock eth_rxc -clock_fall -min $mn -add_delay \[get_ports {eth_rxd\[*\] eth_rx_ctl}\]"
+#     puts $h "set_input_delay -clock eth_rxc -clock_fall -max $mx -add_delay \[get_ports {eth_rxd\[*\] eth_rx_ctl}\]"
+#     close $h
+#     set e no-error
+#     catch {source $f} e
+#     puts "W3WIN mn=$mn mx=$mx rc=$e"
+# }
+# setwin 1.200 2.800
+## set_input_delay -clock eth_rxc -min 1.200 [get_ports {eth_rxd[*] eth_rx_ctl}]
+## set_input_delay -clock eth_rxc -max 2.800 [get_ports {eth_rxd[*] eth_rx_ctl}]
+## set_input_delay -clock eth_rxc -clock_fall -min 1.200 -add_delay [get_ports {eth_rxd[*] eth_rx_ctl}]
+## set_input_delay -clock eth_rxc -clock_fall -max 2.800 -add_delay [get_ports {eth_rxd[*] eth_rx_ctl}]
+W3WIN mn=1.200 mx=2.800 rc=
+# foreach t {0 4 8 12 16 20 24 26 28 31} {
+#     set e no-error
+#     catch {set_property IDELAY_VALUE $t $cells} e
+#     set rb [get_property IDELAY_VALUE [lindex $cells 0]]
+#     rep3 "tap$t"
+#     puts "W3TAP set=$t rb=$rb rc=$e"
+# }
+INFO: [Timing 38-91] UpdateTimingParams: Speed grade: -2, Delay Type: min.
+INFO: [Timing 38-191] Multithreading enabled for timing update using a maximum of 2 CPUs
+INFO: [Timing 38-78] ReportTimingParams: -from_pins  -to_pins  -max_paths 1 -nworst 1 -delay_type min -sort_by slack.
+report_timing: Time (s): cpu = 00:00:20 ; elapsed = 00:00:11 . Memory (MB): peak = 1703.859 ; gain = 60.711
+W3S tap0 HOLD Slack (VIOLATED) :        -2.822ns Data Path Delay:        1.976ns Clock Path Skew:        5.008ns Clock Uncertainty:      0.835ns
+INFO: [Timing 38-91] UpdateTimingParams: Speed grade: -2, Delay Type: max.
+INFO: [Timing 38-191] Multithreading enabled for timing update using a maximum of 2 CPUs
+INFO: [Timing 38-78] ReportTimingParams: -from_pins  -to_pins  -max_paths 1 -nworst 1 -delay_type max -sort_by slack.
+W3S tap0 SETUP Slack (MET) :             2.005ns Data Path Delay:        0.754ns Clock Path Skew:        1.597ns Clock Uncertainty:      0.035ns
+W3TAP set=0 rb=0 rc=
+INFO: [Timing 38-91] UpdateTimingParams: Speed grade: -2, Delay Type: min.
+INFO: [Timing 38-191] Multithreading enabled for timing update using a maximum of 2 CPUs
+INFO: [Timing 38-78] ReportTimingParams: -from_pins  -to_pins  -max_paths 1 -nworst 1 -delay_type min -sort_by slack.
+W3S tap4 HOLD Slack (VIOLATED) :        -2.570ns Data Path Delay:        2.228ns Clock Path Skew:        5.008ns Clock Uncertainty:      0.835ns
+INFO: [Timing 38-91] UpdateTimingParams: Speed grade: -2, Delay Type: max.
+INFO: [Timing 38-191] Multithreading enabled for timing update using a maximum of 2 CPUs
+INFO: [Timing 38-78] ReportTimingParams: -from_pins  -to_pins  -max_paths 1 -nworst 1 -delay_type max -sort_by slack.
+W3S tap4 SETUP Slack (MET) :             1.638ns Data Path Delay:        1.122ns Clock Path Skew:        1.597ns Clock Uncertainty:      0.035ns
+W3TAP set=4 rb=4 rc=
+INFO: [Timing 38-91] UpdateTimingParams: Speed grade: -2, Delay Type: min.
+INFO: [Timing 38-191] Multithreading enabled for timing update using a maximum of 2 CPUs
+INFO: [Timing 38-78] ReportTimingParams: -from_pins  -to_pins  -max_paths 1 -nworst 1 -delay_type min -sort_by slack.
+W3S tap8 HOLD Slack (VIOLATED) :        -2.318ns Data Path Delay:        2.480ns Clock Path Skew:        5.008ns Clock Uncertainty:      0.835ns
+INFO: [Timing 38-91] UpdateTimingParams: Speed grade: -2, Delay Type: max.
+INFO: [Timing 38-191] Multithreading enabled for timing update using a maximum of 2 CPUs
+INFO: [Timing 38-78] ReportTimingParams: -from_pins  -to_pins  -max_paths 1 -nworst 1 -delay_type max -sort_by slack.
+W3S tap8 SETUP Slack (MET) :             1.270ns Data Path Delay:        1.490ns Clock Path Skew:        1.597ns Clock Uncertainty:      0.035ns
+W3TAP set=8 rb=8 rc=
+INFO: [Timing 38-91] UpdateTimingParams: Speed grade: -2, Delay Type: min.
+INFO: [Timing 38-191] Multithreading enabled for timing update using a maximum of 2 CPUs
+INFO: [Timing 38-78] ReportTimingParams: -from_pins  -to_pins  -max_paths 1 -nworst 1 -delay_type min -sort_by slack.
+W3S tap12 HOLD Slack (VIOLATED) :        -2.066ns Data Path Delay:        2.732ns Clock Path Skew:        5.008ns Clock Uncertainty:      0.835ns
+INFO: [Timing 38-91] UpdateTimingParams: Speed grade: -2, Delay Type: max.
+INFO: [Timing 38-191] Multithreading enabled for timing update using a maximum of 2 CPUs
+INFO: [Timing 38-78] ReportTimingParams: -from_pins  -to_pins  -max_paths 1 -nworst 1 -delay_type max -sort_by slack.
+W3S tap12 SETUP Slack (MET) :             0.902ns Data Path Delay:        1.858ns Clock Path Skew:        1.597ns Clock Uncertainty:      0.035ns
+W3TAP set=12 rb=12 rc=
+INFO: [Timing 38-91] UpdateTimingParams: Speed grade: -2, Delay Type: min.
+INFO: [Timing 38-191] Multithreading enabled for timing update using a maximum of 2 CPUs
+INFO: [Timing 38-78] ReportTimingParams: -from_pins  -to_pins  -max_paths 1 -nworst 1 -delay_type min -sort_by slack.
+W3S tap16 HOLD Slack (VIOLATED) :        -1.815ns Data Path Delay:        2.983ns Clock Path Skew:        5.008ns Clock Uncertainty:      0.835ns
+INFO: [Timing 38-91] UpdateTimingParams: Speed grade: -2, Delay Type: max.
+INFO: [Timing 38-191] Multithreading enabled for timing update using a maximum of 2 CPUs
+INFO: [Timing 38-78] ReportTimingParams: -from_pins  -to_pins  -max_paths 1 -nworst 1 -delay_type max -sort_by slack.
+W3S tap16 SETUP Slack (MET) :             0.534ns Data Path Delay:        2.226ns Clock Path Skew:        1.597ns Clock Uncertainty:      0.035ns
+W3TAP set=16 rb=16 rc=
+INFO: [Timing 38-91] UpdateTimingParams: Speed grade: -2, Delay Type: min.
+INFO: [Timing 38-191] Multithreading enabled for timing update using a maximum of 2 CPUs
+INFO: [Timing 38-78] ReportTimingParams: -from_pins  -to_pins  -max_paths 1 -nworst 1 -delay_type min -sort_by slack.
+W3S tap20 HOLD Slack (VIOLATED) :        -1.563ns Data Path Delay:        3.235ns Clock Path Skew:        5.008ns Clock Uncertainty:      0.835ns
+INFO: [Timing 38-91] UpdateTimingParams: Speed grade: -2, Delay Type: max.
+INFO: [Timing 38-191] Multithreading enabled for timing update using a maximum of 2 CPUs
+INFO: [Timing 38-78] ReportTimingParams: -from_pins  -to_pins  -max_paths 1 -nworst 1 -delay_type max -sort_by slack.
+W3S tap20 SETUP Slack (MET) :             0.166ns Data Path Delay:        2.594ns Clock Path Skew:        1.597ns Clock Uncertainty:      0.035ns
+W3TAP set=20 rb=20 rc=
+INFO: [Timing 38-91] UpdateTimingParams: Speed grade: -2, Delay Type: min.
+INFO: [Timing 38-191] Multithreading enabled for timing update using a maximum of 2 CPUs
+INFO: [Timing 38-78] ReportTimingParams: -from_pins  -to_pins  -max_paths 1 -nworst 1 -delay_type min -sort_by slack.
+W3S tap24 HOLD Slack (VIOLATED) :        -1.311ns Data Path Delay:        3.487ns Clock Path Skew:        5.008ns Clock Uncertainty:      0.835ns
+INFO: [Timing 38-91] UpdateTimingParams: Speed grade: -2, Delay Type: max.
+INFO: [Timing 38-191] Multithreading enabled for timing update using a maximum of 2 CPUs
+INFO: [Timing 38-78] ReportTimingParams: -from_pins  -to_pins  -max_paths 1 -nworst 1 -delay_type max -sort_by slack.
+W3S tap24 SETUP Slack (VIOLATED) :        -0.202ns Data Path Delay:        2.962ns Clock Path Skew:        1.597ns Clock Uncertainty:      0.035ns
+W3TAP set=24 rb=24 rc=
+INFO: [Timing 38-91] UpdateTimingParams: Speed grade: -2, Delay Type: min.
+INFO: [Timing 38-191] Multithreading enabled for timing update using a maximum of 2 CPUs
+INFO: [Timing 38-78] ReportTimingParams: -from_pins  -to_pins  -max_paths 1 -nworst 1 -delay_type min -sort_by slack.
+W3S tap26 HOLD Slack (VIOLATED) :        -1.185ns Data Path Delay:        3.613ns Clock Path Skew:        5.008ns Clock Uncertainty:      0.835ns
+INFO: [Timing 38-91] UpdateTimingParams: Speed grade: -2, Delay Type: max.
+INFO: [Timing 38-191] Multithreading enabled for timing update using a maximum of 2 CPUs
+INFO: [Timing 38-78] ReportTimingParams: -from_pins  -to_pins  -max_paths 1 -nworst 1 -delay_type max -sort_by slack.
+W3S tap26 SETUP Slack (VIOLATED) :        -0.386ns Data Path Delay:        3.146ns Clock Path Skew:        1.597ns Clock Uncertainty:      0.035ns
+W3TAP set=26 rb=26 rc=
+INFO: [Timing 38-91] UpdateTimingParams: Speed grade: -2, Delay Type: min.
+INFO: [Timing 38-191] Multithreading enabled for timing update using a maximum of 2 CPUs
+INFO: [Timing 38-78] ReportTimingParams: -from_pins  -to_pins  -max_paths 1 -nworst 1 -delay_type min -sort_by slack.
+W3S tap28 HOLD Slack (VIOLATED) :        -1.059ns Data Path Delay:        3.739ns Clock Path Skew:        5.008ns Clock Uncertainty:      0.835ns
+INFO: [Timing 38-91] UpdateTimingParams: Speed grade: -2, Delay Type: max.
+INFO: [Timing 38-191] Multithreading enabled for timing update using a maximum of 2 CPUs
+INFO: [Timing 38-78] ReportTimingParams: -from_pins  -to_pins  -max_paths 1 -nworst 1 -delay_type max -sort_by slack.
+W3S tap28 SETUP Slack (VIOLATED) :        -0.570ns Data Path Delay:        3.330ns Clock Path Skew:        1.597ns Clock Uncertainty:      0.035ns
+W3TAP set=28 rb=28 rc=
+INFO: [Timing 38-91] UpdateTimingParams: Speed grade: -2, Delay Type: min.
+INFO: [Timing 38-191] Multithreading enabled for timing update using a maximum of 2 CPUs
+INFO: [Timing 38-78] ReportTimingParams: -from_pins  -to_pins  -max_paths 1 -nworst 1 -delay_type min -sort_by slack.
+W3S tap31 HOLD Slack (VIOLATED) :        -0.870ns Data Path Delay:        3.928ns Clock Path Skew:        5.008ns Clock Uncertainty:      0.835ns
+INFO: [Timing 38-91] UpdateTimingParams: Speed grade: -2, Delay Type: max.
+INFO: [Timing 38-191] Multithreading enabled for timing update using a maximum of 2 CPUs
+INFO: [Timing 38-78] ReportTimingParams: -from_pins  -to_pins  -max_paths 1 -nworst 1 -delay_type max -sort_by slack.
+W3S tap31 SETUP Slack (VIOLATED) :        -0.846ns Data Path Delay:        3.606ns Clock Path Skew:        1.597ns Clock Uncertainty:      0.035ns
+W3TAP set=31 rb=31 rc=
+# set e no-error
+# catch {set_clock_uncertainty -hold 0.000 $clk} e
+# puts "W3BANDBLANK rc=$e"
+W3BANDBLANK rc=
+# foreach t {0 12 26 31} {
+#     catch {set_property IDELAY_VALUE $t $cells} e
+#     rep3 "noband_tap$t"
+#     puts "W3TAP noband set=$t rb=[get_property IDELAY_VALUE [lindex $cells 0]]"
+# }
+INFO: [Timing 38-91] UpdateTimingParams: Speed grade: -2, Delay Type: min.
+INFO: [Timing 38-191] Multithreading enabled for timing update using a maximum of 2 CPUs
+INFO: [Timing 38-78] ReportTimingParams: -from_pins  -to_pins  -max_paths 1 -nworst 1 -delay_type min -sort_by slack.
+W3S noband_tap0 HOLD Slack (VIOLATED) :        -2.022ns Data Path Delay:        1.976ns Clock Path Skew:        5.008ns Clock Uncertainty:      0.035ns
+INFO: [Timing 38-91] UpdateTimingParams: Speed grade: -2, Delay Type: max.
+INFO: [Timing 38-191] Multithreading enabled for timing update using a maximum of 2 CPUs
+INFO: [Timing 38-78] ReportTimingParams: -from_pins  -to_pins  -max_paths 1 -nworst 1 -delay_type max -sort_by slack.
+W3S noband_tap0 SETUP Slack (MET) :             2.005ns Data Path Delay:        0.754ns Clock Path Skew:        1.597ns Clock Uncertainty:      0.035ns
+W3TAP noband set=0 rb=0
+INFO: [Timing 38-91] UpdateTimingParams: Speed grade: -2, Delay Type: min.
+INFO: [Timing 38-191] Multithreading enabled for timing update using a maximum of 2 CPUs
+INFO: [Timing 38-78] ReportTimingParams: -from_pins  -to_pins  -max_paths 1 -nworst 1 -delay_type min -sort_by slack.
+W3S noband_tap12 HOLD Slack (VIOLATED) :        -1.266ns Data Path Delay:        2.732ns Clock Path Skew:        5.008ns Clock Uncertainty:      0.035ns
+INFO: [Timing 38-91] UpdateTimingParams: Speed grade: -2, Delay Type: max.
+INFO: [Timing 38-191] Multithreading enabled for timing update using a maximum of 2 CPUs
+INFO: [Timing 38-78] ReportTimingParams: -from_pins  -to_pins  -max_paths 1 -nworst 1 -delay_type max -sort_by slack.
+W3S noband_tap12 SETUP Slack (MET) :             0.902ns Data Path Delay:        1.858ns Clock Path Skew:        1.597ns Clock Uncertainty:      0.035ns
+W3TAP noband set=12 rb=12
+INFO: [Timing 38-91] UpdateTimingParams: Speed grade: -2, Delay Type: min.
+INFO: [Timing 38-191] Multithreading enabled for timing update using a maximum of 2 CPUs
+INFO: [Timing 38-78] ReportTimingParams: -from_pins  -to_pins  -max_paths 1 -nworst 1 -delay_type min -sort_by slack.
+W3S noband_tap26 HOLD Slack (VIOLATED) :        -0.385ns Data Path Delay:        3.613ns Clock Path Skew:        5.008ns Clock Uncertainty:      0.035ns
+INFO: [Timing 38-91] UpdateTimingParams: Speed grade: -2, Delay Type: max.
+INFO: [Timing 38-191] Multithreading enabled for timing update using a maximum of 2 CPUs
+INFO: [Timing 38-78] ReportTimingParams: -from_pins  -to_pins  -max_paths 1 -nworst 1 -delay_type max -sort_by slack.
+W3S noband_tap26 SETUP Slack (VIOLATED) :        -0.386ns Data Path Delay:        3.146ns Clock Path Skew:        1.597ns Clock Uncertainty:      0.035ns
+W3TAP noband set=26 rb=26
+INFO: [Timing 38-91] UpdateTimingParams: Speed grade: -2, Delay Type: min.
+INFO: [Timing 38-191] Multithreading enabled for timing update using a maximum of 2 CPUs
+INFO: [Timing 38-78] ReportTimingParams: -from_pins  -to_pins  -max_paths 1 -nworst 1 -delay_type min -sort_by slack.
+W3S noband_tap31 HOLD Slack (VIOLATED) :        -0.070ns Data Path Delay:        3.928ns Clock Path Skew:        5.008ns Clock Uncertainty:      0.035ns
+INFO: [Timing 38-91] UpdateTimingParams: Speed grade: -2, Delay Type: max.
+INFO: [Timing 38-191] Multithreading enabled for timing update using a maximum of 2 CPUs
+INFO: [Timing 38-78] ReportTimingParams: -from_pins  -to_pins  -max_paths 1 -nworst 1 -delay_type max -sort_by slack.
+W3S noband_tap31 SETUP Slack (VIOLATED) :        -0.846ns Data Path Delay:        3.606ns Clock Path Skew:        1.597ns Clock Uncertainty:      0.035ns
+W3TAP noband set=31 rb=31
+# puts "WP3DONE"
+WP3DONE
+# exit 0
+INFO: [Common 17-206] Exiting Vivado at Sun Oct  4 01:06:32 2026...

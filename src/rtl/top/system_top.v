@@ -158,8 +158,18 @@ module system_top (
         .BOARD_MAC(48'h00_11_22_33_44_55),
         .BOARD_IP({8'd192,8'd168,8'd1,8'd10}),
         // #57：IDDR 与 fabric 同吃 BUFG 之后，采样沿往后推 1.683 ns（BUFIO→BUFG 之差），
-        // 数据侧要补同样的量：200 MHz 参考 ⇒ 156 ps/拍 ⇒ +10.8 拍，取 15+11=26（0~31 之内）
-        .IDELAY_VALUE(26)
+        // 数据侧要补同样的量：200 MHz 参考 ⇒ 156 ps/拍 ⇒ +10.8 拍，取 15+11=26（0~31 之内）。
+        // r116 把它改成 31，理由不是那段算术而是**工具在真窗下的实测曲线**：
+        //   窗 = src/constraints/r116_rgmii_input_window.xdc（RTL8211F RXDLY 开着 ⇒ 数据沿落在
+        //   它自己的捕获沿前 [1.2, 2.8] ns）；在这份窗下把 IDELAY_VALUE 从 0 扫到 31（只读，
+        //   set_property 在已布线 DCP 上有效，件 build/evidence/r115_window/probe3_console.txt）：
+        //     hold  −2.822 → −0.870（+63 ps/拍），setup +2.005 → −0.846（−92 ps/拍）
+        //   ⇒ 两条曲线的交点在 tap 31（0.155 ns/拍 的斜率差解出 31.1），也就是
+        //      min(hold, setup) 的最大值；tap 26 的 min 是 −1.185，tap 31 是 −0.870。
+        //   ⚠ 这一族**在 0~31 全范围内都关不掉**：hold 查慢角（钟网络 5.008）、setup 查快角（1.597），
+        //      钟网络的角间差 3.4 ns 远大于数据路径的 0.47 ns ⇒ 需要 D_slow/D_fast ≥ 1.45 而
+        //      IDELAY 主导的路径只有 1.15。这是"极限判据"的内容，不是"再找个点"。
+        .IDELAY_VALUE(31)
     ) u_eth (
         .rgmii_rxc(eth_rxc),
         .rst_n(eth_rst_n & mmcm_locked),
