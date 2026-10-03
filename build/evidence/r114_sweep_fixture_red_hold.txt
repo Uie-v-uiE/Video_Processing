@@ -1,0 +1,12 @@
+SWEEP|tap=13|phase=open
+SWEEP|tap=13|cells=5|read_back=13,13,13,13,13
+SWEEPHEAD|tap=13|wns=0.430|whs=-1.200|fail_setup=0|fail_hold=7|fields=12
+SWEEPROW|tap=13|clk=eth_rxc|kind=setup|period=20.000|slack=0.430|state=MET|dest=x/D
+SWEEPROW|tap=13|clk=eth_rxc|kind=hold|period=20.000|slack=-1.200|state=VIOLATED|dest=x/D
+SWEEPROW|tap=13|clk=clk_fpga_0|kind=setup|period=20.000|slack=1.150|state=MET|dest=x/D
+SWEEPROW|tap=13|clk=clk_fpga_0|kind=hold|period=20.000|slack=0.058|state=MET|dest=x/D
+SWEEPROW|tap=13|clk=clkout0_1|kind=setup|period=20.000|slack=4.300|state=MET|dest=x/D
+SWEEPROW|tap=13|clk=clkout0_1|kind=hold|period=20.000|slack=0.064|state=MET|dest=x/D
+SWEEPROW|tap=13|clk=sys_clk|kind=setup|period=20.000|slack=14.109|state=MET|dest=x/D
+SWEEPROW|tap=13|clk=sys_clk|kind=hold|period=20.000|slack=0.133|state=MET|dest=x/D
+HOLDWorst|tap=13|slacks=-1.200|dests=a/D,b/D,c/D|rc=
