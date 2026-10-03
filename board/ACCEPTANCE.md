@@ -90,12 +90,12 @@
      机器那一半的凭据：变异对照 `build/mut_shown_rate_r97.txt`；台架 `sim/tb_shown_rate.v` 的 S1..S7
      已在与 r99 同一棵树上重跑：`RESULT tb_shown_rate PASS`（13 条判据、0 FAIL，控制台 `build/r99_tb_shown_rate_console.txt`）|
 | E6 | **（#247 立案 → #256 定位根因 → #260 网表实测）上电那一度**：断电重上电、跑完三步 JTAG 链之后，**谁都不碰按键**，屏上 `ROT:` 那一格应当读 **0**。
-     现状（r110 那版 bit `2bf95588978f`，**既没有**武装门**也没有**声明初值）应当读 **1** ⇒ 这一格读 1 就是"寄存器上电说谎"的现场证据（网表实测 `u_pl/u_k1/key_stable_reg` 在 r112 未修那份是 `FDRE INIT=1'b0`，件 `build/evidence/r113_ff_init.txt`；r113 修完那份全是 `INIT=1'b1`，件 `build/evidence/r113_ff_init_probe.txt` + 判定 `build/r113_powup_rejudge.txt`）|
+     现状（板上已是 **r113**（bit `b94f4da6cdff`，2026-10-03 14:32 三步 JTAG 刷入）**既带**武装门**也带**声明初值）应当读 **0**——**但 E6 这一判还没做**（要冷上电 ≥10 s）；上一版 r110（bit `2bf95588978f`，两样都没有）读 **1** 已是历史记录 ⇒ 这一格读 1 就是"寄存器上电说谎"的现场证据（网表实测 `u_pl/u_k1/key_stable_reg` 在 r112 未修那份是 `FDRE INIT=1'b0`，件 `build/evidence/r113_ff_init.txt`；r113 修完那份全是 `INIT=1'b1`，件 `build/evidence/r113_ff_init_probe.txt` + 判定 `build/r113_powup_rejudge.txt`）|
      前置：板子断电 ≥10 s（让 4.7 kΩ/100 nF 那两只脚彻底放掉），上电后只跑
      `build/tcl/ps_jtag_boot.tcl` → `program_pl.tcl` → `ps_app_reload.tcl`（`bash build/board_verify.sh --round=rNN` 之前那三步），
      **全程不碰 KEY1/KEY2**，然后只看屏第二行的 `ROT:` 那一格。要顺手分开两种解释，再做一次：
      上电后**先按住 KEY1 不放**直到链子跑完再松手（这一次应当读到 1 度——它是"按住被认成一次短按"的正常路径）|
-     *待队员判*（板上是 r110/r112 那两版时读 1 属预期；刷上 **r113**（带声明初值，网表已实测 `INIT=1'b1`）之后**必须读 0**；串口读不到角度，`status` 口那 9 位在 `system_top` 没有读者，见 #247/#185）|
+     *待队员判*（板上已经是 **r113**（bit `b94f4da6cdff`，14:32 刷入，带声明初值，网表已实测 `INIT=1'b1`）⇒ 现在读 1 **不再属预期**、必须读 0；r110/r112 那两版读 1 属预期，那是历史；串口读不到角度，`status` 口那 9 位在 `system_top` 没有读者，见 #247/#185）|
      各"不"分别意味着什么（这一版按**量到的机理**重写，旧口径里"武装门就是正解"那句已经不成立）：
      **冷上电读 0、按住那一次也读 0** ⇒ 两件事都在位：上电值不再说谎（#256 的修复），配置那一刻真按住也被武装门吞掉（#247 的意图）——这就是 r113 应有的样子；
      **冷上电仍读 1** ⇒ 那次低电平是**真的**（位流 INIT 已经量到 1'b1，说谎这条路已被排除）⇒ 回到 #249 的成因清单（人手/振动/上一次会话残留），并且要再量一次网表确认刷进去的确实是 r113 那块 bit（`md5sum build/system.bit` 对 `build/r113_gates.txt` 的身份行）；

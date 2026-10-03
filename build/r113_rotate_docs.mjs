@@ -18,7 +18,12 @@ const RULES = [
     '板上这一版 r110，2026-10-03 07:51 三步 JTAG 刷入，`bit 2bf95588978f`',
     '板上这一版 r113（bit `b94f4da6cdff`，刷板时刻待回填）', 1],
   ['README.md', '全设计 setup WNS',
-    '\\| 全设计 setup WNS \\| \\*\\*0\\.713 ns\\*\\*', '\\| 全设计 setup WNS \\| **0.445 ns**', 1],
+    // src 是**正则**所以行首的竖线要写 `\\|`；rep 是**字面量**，写 `\\|` 会原样产出 `\|`。
+    // 第一版这里错在 rep 也带了反斜杠：`git show HEAD~3:README.md` 那行行首是 `| 全设计`，
+    // 采纳笔 HEAD 里变成 `\| 全设计` ⇒ `src/host/metric_recheck.mjs:238` 用 `startsWith('|')` 找首页行，
+    // 于是这一格从"被对账"变成"判红"（门禁 metric 那 2 条红就是它，不是数字错）。已用
+    // `build/r113_fill_flash2.mjs` 把文档纠回，这里改的是**病的来源**。
+    '\\| 全设计 setup WNS \\| \\*\\*0\\.713 ns\\*\\*', '| 全设计 setup WNS | **0.445 ns**', 1],
   ['README.md', '端点总数（WNS 行）', '失败 setup/hold 端点 \\*\\*0 / 51013\\*\\*',
     '失败 setup/hold 端点 **0 / 51135**', 1],
   ['README.md', '逐时钟 eth_rxc 数与百分数',
@@ -53,7 +58,7 @@ const RULES = [
     'the board now runs r110, flashed at 07:51 on 2026-10-03 by the three-step JTAG chain, `bit 2bf95588978f`',
     'the board now runs r113 (bit `b94f4da6cdff`, flash time to be filled)', 1],
   ['README.en.md', 'design-wide setup WNS',
-    '\\| Design-wide setup WNS \\| \\*\\*0\\.713 ns\\*\\*', '\\| Design-wide setup WNS \\| **0.445 ns**', 1],
+    '\\| Design-wide setup WNS \\| \\*\\*0\\.713 ns\\*\\*', '| Design-wide setup WNS | **0.445 ns**', 1],
   ['README.en.md', 'endpoint count (WNS row)', 'failing setup/hold endpoints \\*\\*0 / 51013\\*\\*',
     'failing setup/hold endpoints **0 / 51135**', 1],
   ['README.en.md', 'per-clock eth_rxc',
@@ -170,6 +175,15 @@ for (const [f, name, src, rep, want] of RULES) {
     if (APPLY) cache[f] = cache[f].replace(re, rep);
     hit++;
     console.log(`OK   ${name}  ×${n}`);
+}
+// 落盘前的**形状地板**（今天这一课加的）：任何一条规则的 rep 只要把行首写成 `\\|`，
+// `startsWith('|')` 那一层（metric_recheck 首页行定位）就会静默丢掉这一格 ⇒ 这里直接判红，
+// 不让它靠"命中次数对"过关。命中次数只对**改之前**的形状负责，改之后的形状没人看过。
+if (bad === 0) for (const [f, s] of Object.entries(cache)) {
+  const stray = s.split(/\r?\n/).filter((l) => l.startsWith('\\|'));
+  if (stray.length) { console.log(`REFUSE 形状：${f} 落盘内容里有 ${stray.length} 行行首是 \\|（表格行会被尺子丢掉）：${stray[0].slice(0, 40)}`); bad++; }
+  const bstar = s.split(/\r?\n/).filter((l) => l.includes('\\*')).length;
+  if (bstar) { console.log(`REFUSE 形状：${f} 落盘内容里有 ${bstar} 行带 \\*（rep 里误当正则转义了）`); bad++; }
 }
 if (APPLY && bad === 0) for (const f of Object.keys(cache)) { writeFileSync(f, cache[f]); console.log(`WROTE ${f}`); }
 else if (APPLY) console.log('NO-WRITE 有规则被拒，整批不落盘（半套改口比不改更坏）');
