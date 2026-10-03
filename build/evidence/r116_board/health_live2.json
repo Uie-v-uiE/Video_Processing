@@ -1,0 +1,3 @@
+[HEALTH] xsdb(cur) 退出码 1：Command failed: "xsdb.bat" D:\Xilinx\Prj\pro\Video_Processing\data\measured\health_cur.tcl > "D:\Xilinx\Prj\pro\Video_Processing\data\measur
+[HEALTH] 读不到 GPIO_0 的当前值，拒绝继续（否则会踩掉 src_sel/特效/阈值）。
+[HEALTH] 先确认 JTAG 与 hw_server 可用：xsdb 里 mrd 0x41200000

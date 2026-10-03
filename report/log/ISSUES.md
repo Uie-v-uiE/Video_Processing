@@ -12778,3 +12778,24 @@ JTAG 侧证据：`targets` 显示两个 A9 核都 **(Running)** ⇒ PS 没死，
    不能让 `TypeError` 冒充判据（崩溃不是红，是"这一条没测"）；
 3. `adopt_after_chain.sh` 之所以没踩这个坑，是因为采纳时台架已停、app 不在跑——**这个前提要写进脚本注释**，
    不然下一次"手工补刷"还会撞。
+
+### #316 r116 夜：`drop_words=0` 第一次是**零样本通过**（`eth_live=0`），带流重测才作数（02:14）
+
+`board_verify` 在 01:50 判 PASS 并打印 `drop_words → 0`，但它读的那一刻 `src_state.eth_live=0`、
+`why="没有流"` ⇒ 这个 0 是"没流量所以不可能丢"的 0（老规矩：零样本分支会假装绿）。
+带流重测：`video_sender --demo --seconds 50 --fps 60 --pace-mbps 0`（≈147 Mbps）跑着读两次
+⇒ `eth_live=1 owner_eth=1`、`drop_words=0`、`pkt_err=0`、`drop_seen=0` 两次一致；
+`frames_bad=1` 两次**都不增长** ⇒ 不是本采样点正在造成的，但归属没查（要 r114 回刷做对照）。
+
+⇒ 两条规矩进文档：① **凡是"计数器=0"的板侧判据，必须同一份读数里带 `eth_live=1`**，否则不算测过；
+② 147 Mbps 的绿不许念成 1000M 线速的绿（发送端帧率是上限，源只有 512×300）。
+
+### #317 r116 夜：`export VP_XSDB=... && nohup ... &` 把 export 关进了子 shell，白跑三次读数（02:13）
+
+`health_read.mjs` 的 xsdb 路径是 `process.env.VP_XSDB || 'xsdb.bat'`，而 PATH 里没有 `xsdb.bat`
+⇒ 报 `[HEALTH] xsdb(cur) 退出码 1`。我前两次以为"板子/JTAG 坏了"，其实：
+① `export A=1 && cmd &` 里 `&` 把**整个 `export && cmd` 列表**放进后台子 shell，后面的 `node` 拿不到变量；
+② 更根本的是**每次 Bash 调用都是新 shell**，上一条里 export 的环境不会带过来。
+⇒ 规矩：给后台链/多次调用用的环境变量要么写在同一条命令里（`VP_XSDB=... node ...` 前缀式），
+要么由脚本自己 `export`（`board_verify.sh` 就是这么活下来的）。
+另外 `node` 眼里的 `/tmp/...` 是 `C:\tmp\...`（MSYS 的 /tmp 不是 node 的 /tmp）⇒ 凭据一律写到仓库内路径。
