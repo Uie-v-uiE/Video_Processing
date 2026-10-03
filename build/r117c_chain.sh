@@ -10,7 +10,7 @@
 # impl_1/runme.log，不在顶层控制台，所以这里两份都读（件 build/r117_a1_read.sh，#327）。
 set -u
 cd "$(dirname "$0")/.."
-V=${VP_VIVADO_BIN:-/d/Software/Vivado/2025.2.1/Vivado/bin}
+V=${VP_VIVADO_BIN:?需要显式给 Vivado bin 目录（机器相关，不写死）}
 export VP_VIVADO_BIN="${VP_VIVADO_BIN:?需要显式给 Vivado bin 目录}"
 export VP_XSDB=${VP_XSDB:?需要显式给 xsdb.bat 路径（机器相关，不写死）}
 export VP_XPR="$(ls -1 vivado_system/*.xpr 2>/dev/null | head -1)"

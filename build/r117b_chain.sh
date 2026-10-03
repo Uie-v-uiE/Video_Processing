@@ -23,7 +23,7 @@
 #   A5 发布门 24 项的红数必须回到 **1**（只有声明过的 C5c），否则这一版不采纳、板子回刷 r114
 set -u
 cd "$(dirname "$0")/.."
-V=${VP_VIVADO_BIN:-/d/Software/Vivado/2025.2.1/Vivado/bin}
+V=${VP_VIVADO_BIN:?需要显式给 Vivado bin 目录（机器相关，不写死）}
 export VP_VIVADO_BIN="${VP_VIVADO_BIN:?需要显式给 Vivado bin 目录}"
 export VP_XSDB=${VP_XSDB:?需要显式给 xsdb.bat 路径（机器相关，不写死）}
 NN=117
