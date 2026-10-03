@@ -58,14 +58,31 @@
 | `SYNTH-5` / `SYNTH-6` | **336 / 98** | "因为时序约束才映射成分布式 RAM"——这条我之前一直没管：它说明**BRAM/LUTRAM 的选型在被约束牵着走**（本仓库 BRAM 已经 95.5/140 tile，LUTRAM 4044 个），要单独量一次，不能当噪声 |
 | 自加不确定度 | hold 侧 **0.8 ns**（`set_clock_uncertainty` 的策略） | 报出来的 WHS 0.050 是"按这个严口径"剩下的量，念数字时必须带着这句 |
 
-## 5. 把"别一根筋"落成工具（新规矩，写在这里等着实现）
-每次构建后自动出**名册差分**（不再手写"全局 WNS 从 X 到 Y"）：
+## 5. 把"别一根筋"落成工具（2026-10-03 已落地，件与对照都在盘上）
+每次构建后出**名册差分**，不再手写"全局 WNS 从 X 到 Y"：
 ```
-build/tcl/probe_timing_roster.tcl   # 每域最差 3 族：起点/终点/级数/route%/最大 fo；只读，开 routed dcp
-build/timing_roster_diff.sh A.txt B.txt  # 逐条对齐，任何一族变差都点名；比较次数==被对齐条数（数得出才许出结论）
+build/tcl/probe_timing_roster.tcl        # 改后那一版：逐时钟逐域的最差族（级数 / route% / 终点），只读开 routed dcp
+build/roster_from_summary.sh <报告>      # 改前那一版：从归档的 timing_summary.rpt 的 Intra Clock Table 长回名册
+build/timing_roster_diff.sh A.txt B.txt  # 逐域配对比较，任何一族变差都点名
 ```
-判据三句话：①改的那族自己动了多少；②**其余三域与它们的最差族有没有变差**；③资源/拥塞（`route_status`、`utilization`）与
-失败端点数。三条缺一不写首页。接线进门禁会改"门禁 N 项"那四处句子的条数 ⇒ 必须与那些句子**同一笔**改（#242/D1c 那一课）。
+差分那把判六条（`ROSTERDIFF D1..D6`）：D1 没有域从 MET 掉进违例；D2 **配上的 (域,类型) 对数 ≥ 8**（数得出才许出结论）；
+D3 没有任何域的**相对余量**掉过 25 %（这就是"别的域被改了而头条没动"那一类）；D4 setup 与 hold 两个维度都必须在
+同一条判据里被配上（#44 那一课：两维必须同现）；D5 改后名册不许有空读数；D6 扇出清单至少有一行（不然抓手名册是空的）。
+头条 WNS 的绝对差只念不判（rule 35）。
+
+改前那把从报告长回来是必须的——`impl_1/*_routed.dcp` **一次构建就被覆盖**（r108 就吃过这个亏，#230），
+而 `timing_summary.rpt` 每轮都归档。r112 的基线名册已落 `build/evidence/r113_before_roster.txt`
+（四域八行：eth_rxc 0.445/5.56 %、clk_fpga_0 1.135/11.35 %、clkout0_1 4.467/22.34 %、sys_clk 14.463/72.31 %，
+hold 0.050/0.056/0.059/0.133），与本文第 2 节的表同源同数，逐条钉住。
+
+三把尺子各自的对照都跑过（`--self`）：roster_diff 5/5（一模一样必须绿、**非头条域**掉进违例必须红、
+相对余量掉三成必须红、全域变好必须绿、名册残缺必须红）；roster_from_summary 2/2，
+其中真值钉的是 eth_rxc period=**8.000 ns**（125 MHz RGMII）。
+这里也各踩过一刀：diff 的对照第一次写反了 A/B（三条"该红"的绿了），转换脚本周期列取错一格
+（取成波形下降沿，margin 全成两倍而三条地板照样绿）——两条都改成了**必须动**的对照，见 #258。
+
+接线进门禁会改"门禁 N 项"那四处句子的条数 ⇒ 必须与那些句子**同一笔**改（#242/D1c 那一课），
+所以这三把暂时只进链子与本文，不进门禁计数。
 
 ## 参考（官方与论坛，2026-10-03 查）
 - [Timing Closure — UG949 UltraFast Design Methodology Guide](https://docs.amd.com/r/en-US/ug949-vivado-design-methodology/Timing-Closure)
