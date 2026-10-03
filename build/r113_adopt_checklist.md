@@ -26,6 +26,14 @@
       `node build/r113_rotate_docs.mjs --apply`（这支是 r112 那把的副本，已为 r113 改好身份句；再补两条规则：
       门禁条数那句、刷板时间那句），然后 `metric_recheck`/`doc_currency`/`line_cite_check` 红 0。
       ⚠ 改口完必须**写回盘上那份 `rNN_gates.txt` 再跑一次门禁**才收敛（#242/D1c 那一课）。
+      ⚠ 同一笔还要做两件首页的事（做了就必须同步改 `r113_rotate_docs.mjs` 里对应规则，否则 `--check` 会拒）：
+      (a) 首页"逐时钟 setup 余量"那一行现在**只念 setup**，采纳时要补四域 **WHS 与相对余量**
+          （数据源 `build/evidence/r113_after_roster.txt`，八对读数：eth_rxc 0.445/0.050、clk_fpga_0 1.135/0.056、
+          clkout0_1 4.467/0.059、sys_clk 14.463/0.133），并把"绝对 WNS 差不算收益"那句留在旁边；
+      (b) 本轮新落的四把尺子要在 README 的"怎么量的"段点名：名册差分 `build/timing_roster_diff.sh`（D1..D6）、
+          I/O 欠账 `build/check_io_timing_coverage.py`（I1..I9，其中 I7/I3 仍红）、
+          `ASYNC_REG` 扫描 `build/scan_async_reg_coverage.py`（A2 仍红）、
+          hold 同口径体检 `build/uncertainty_uniform_ab.sh`（真件还没跑，念"没测过"不许念"违例"）。
 - [ ] **⑥ 采纳笔（含 bit/xsa）→ 三步 JTAG 刷板 → `board_verify --geom --battery --round=r113` → 眼睛判据 E6**
       （E6 = 冷上电、不碰任何键，`ROT:` 必须显示 **0**；这一条是你的眼睛，我念不了）。
       之后：试冻结 → `make_submission.sh`（按盘上文件数验收，不读它的 stdout）→ push。
