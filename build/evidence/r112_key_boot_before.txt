@@ -1,0 +1,16 @@
+[tb_v111_key_boot.v:69] INFO B ÿÿÿåÿÿÿ¨ÿÿÿ˜ï¼šangle=0 rotate_active=0 ltog=0 k1_up=1 short_pulse ç´¯è®¡=0
+[tb_v111_key_boot.v:69] INFO ÿÿÿŒ‰ 0.ÿÿÿåÿÿÿŠÿÿÿ—ï¼šangle=0 rotate_active=0 ltog=0 k1_up=1 short_pulse ç´¯è®¡=0
+[tb_v111_key_boot.v:69] INFO Dÿÿÿ¾ÿÿÿäÿÿÿÿÿÿÿÿ‰ ÿÿÿåÿÿÿŠÿÿÿ—ï¼šangle=0 rotate_active=0 ltog=0 k1_up=1 short_pulse ç´¯è®¡=0
+[tb_v111_key_boot.v:69] INFO Aÿÿÿ®ÿÿÿèÿÿÿ½ 1.ÿÿÿåÿÿÿŠÿÿÿ—ï¼šangle=0 rotate_active=0 ltog=0 k1_up=0 short_pulse ç´¯è®¡=0
+[tb_v111_key_boot.v:69] INFO ÿÿÿçÿÿÿ›ÿÿÿ˜ÿÿÿæÿÿÿ‰ÿÿÿ‰ï¼šangle=1 rotate_active=1 ltog=0 k1_up=1 short_pulse ç´¯è®¡=1
+  FAIL A2ÿÿÿŠÿÿÿéÿÿÿ¬ÿÿÿÿÿÿåÿ³**ÿÿÿèÿ¸**ÿÿÿçÿÿÿŒÿÿÿˆÿÿÿåÿÿÿºÿÿÿŒr112ÿÿÿ¦ÿÿÿéÿÿÿ¹ÿÿÿÿÿÿéÿÿÿ»ÿÿÿ‰
+  FAIL A3ÿÿÿ’ angÿÿÿåÿÿÿ¡ÿÿÿÿÿ ÿÿÿˆÿÿÿæÿÿÿŠÿÿÿ„ÿÿÿŠÿÿÿåÿÿÿ˜¯ 1 ÿÿ¦'ÿÿÿæÿÿÿ¿ÿÿÿŒÿÿÿæÿÿÿšÿÿÿ‰
+[tb_v111_key_boot.v:69] INFO ÿÿÿ†ÿÿÿ‰ÿÿÿåÿÿÿ¼ˆauto_enÿÿÿÿÿº ÿÿÿ‰ï¼šangle=1 rotate_active=1 ltog=0 k1_up=1 short_pulse ç´¯è®¡=1
+  FAIL ÿÿÿåÿÿÿ²¿ + auto_en=ÿÿÿ‡ÿÿÿ§ÿÿÿ¦ÿÿÿæÿÿÿ¼ÿÿÿ”ÿÿÿçÿÿÿ²ÿÿÿšÿÿÿäÿÿÿ»ÿÿÿˆÿÿÿåÿÿÿºÿÿÿ‰
+[tb_v111_key_boot.v:69] INFO ÿÿÿæÿÿÿ½ÿÿÿ¨ÿÿÿéÿÿÿŒÿÿÿˆÿÿÿïÿÿÿÿÿÿ»ÿÿÿéÿ£ 1ÿ—DBÿÿÿ‰ï¼šangle=0 rotate_active=0 ltog=1 k1_up=0 short_pulse ç´¯è®¡=0
+[tb_v111_key_boot.v:69] INFO ÿÿÿÿÿÿ‹ï¼šangle=0 rotate_active=0 ltog=1 k1_up=1 short_pulse ç´¯è®¡=0
+FAIL tb_v111_key_boot errors=3
+INFO: [Common 17-206] Exiting xsim at Sat Oct  3 08:04:17 2026...
+exit
+INFO: [Common 17-206] Exiting xsim at Sat Oct  3 08:04:17 2026...
+VERDICT tb_v111_key_boot: FAIL tb_v111_key_boot errors=3 || FAIL è¡Œæ•°=4 || PASS è¡Œæ•°=0

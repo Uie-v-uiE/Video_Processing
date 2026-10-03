@@ -72,7 +72,12 @@ module icmp_tx (
     reg trig_tx_en;
     reg skip_en;  //控制状态跳转使能信号
     reg [4:0] cnt;
-    reg [31:0] check_buffer;  //ip首部校验和
+    // r112：32→20 位。这个累加器只装"十个 16 位项之和"，上界 = 10 × 65535 = 655350 < 2^20，
+    //   所以 bit31:20 恒 0，宽度不参与任何一位信息——但**参与进位链**：r110 全设计最差那条
+    //   `ip_head_reg[4][18] → check_buffer_reg[17]/D` 是 10 级 / 6 个 CARRY4、route 61.3 %，
+    //   32 位进位链里有 12 位在为恒零的半截买单。凭据：`sim/tb_v112_tx_bytes.v` 把发出去的 72 个字节
+    //   逐字节打全，改前/改后必须完全相同（`build/evidence/r112_tx_bytes_{base,cut}.txt`）。
+    reg [19:0] check_buffer;  //ip首部校验和
     reg [31:0] check_buffer_icmp;  //ip首部校验和
     reg [1:0] tx_bit_sel;
     reg [15:0] data_cnt;  //发送数据个数计数器
@@ -276,9 +281,9 @@ module icmp_tx (
                         check_buffer <= check_buffer + ip_head[2][15:0] + ip_head[3][31:16] +
                             ip_head[3][15:0] + ip_head[4][31:16] + ip_head[4][15:0];
                     end else if (cnt == 5'd2)  //可能出现进位,累加一次
-                        check_buffer <= check_buffer[31:16] + check_buffer[15:0];
+                        check_buffer <= check_buffer[19:16] + check_buffer[15:0];
                     else if (cnt == 5'd3) begin  //可能再次出现进位,累加一次
-                        check_buffer <= check_buffer[31:16] + check_buffer[15:0];
+                        check_buffer <= check_buffer[19:16] + check_buffer[15:0];
                     end else if (cnt == 5'd4) begin  //按位取反
                         skip_en          <= 1'b1;
                         cnt              <= 5'd0;

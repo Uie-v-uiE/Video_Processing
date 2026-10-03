@@ -39,6 +39,8 @@ LANE=(
   tb_cdc_capacity tb_ps_publish tb_timing tb_v93_split_ctrl
   # 按键→角度链（#247：上电那一度的机理， characterization 型判据）
   tb_v111_key_boot
+  # ICMP 发送字节指纹（r112 校验和累加器 32→20 的等价尺子，逐字节比）
+  tb_v112_tx_bytes
 )
 [ "${1:-}" = "--list" ] && { printf '%s\n' "${LANE[@]}"; exit 0; }
 
