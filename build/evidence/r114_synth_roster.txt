@@ -1,0 +1,27 @@
+# r114 综合告警名册（种类数与身份都要与 r113 那份比，不许增加）
+    101 Synth 8-7129
+     98 Synth 8-7052
+     94 Synth 8-6157
+     94 Synth 8-6155
+     70 Synth 8-6014
+     21 Synth 8-3332
+     19 Synth 8-7137
+     10 Synth 8-589
+      6 Synth 8-802
+      6 Synth 8-7071
+      6 Synth 8-3354
+      2 Synth 8-7023
+      2 Synth 8-3917
+      1 Synth 8-7079
+      1 Synth 8-7078
+      1 Synth 8-7075
+      1 Synth 8-689
+      1 Synth 8-6859
+      1 Synth 8-4446
+      1 Synth 8-3848
+      1 Synth 8-10929
+## 资源行
+| Slice LUTs                 | 14154 |     0 |          0 |     53200 | 26.61 |
+| Slice Registers            |  8188 |     0 |          0 |    106400 |  7.70 |
+| Slice Registers                            | 8188 |     0 |          0 |    106400 |  7.70 |
+| Block RAM Tile    | 95.5 |     0 |          0 |       140 | 68.21 |
