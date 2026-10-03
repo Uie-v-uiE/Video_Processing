@@ -23,12 +23,21 @@
       （WNS 0.445、端点 51135、LUT 14154/26.61 %、FF 8188/7.7 %、Dynamic 2.213 W）；
       那 9 条被拒的是首页四行的复合物理形状（`认不出的红行形状`），由手写那 35 条覆盖
       （`node build/r113_rotate_docs.mjs --check` 已验：35 条各命中 1 次、拒 0）。**两条都要在门禁之后跑**。
-      `node build/r112_rotate_docs.mjs --apply`（这支要为 r113 再补两条规则：门禁条数那句、
-      刷板时间那句），然后 `metric_recheck`/`doc_currency`/`line_cite_check` 红 0。
+      `node build/r113_rotate_docs.mjs --apply`（这支是 r112 那把的副本，已为 r113 改好身份句；再补两条规则：
+      门禁条数那句、刷板时间那句），然后 `metric_recheck`/`doc_currency`/`line_cite_check` 红 0。
       ⚠ 改口完必须**写回盘上那份 `rNN_gates.txt` 再跑一次门禁**才收敛（#242/D1c 那一课）。
 - [ ] **⑥ 采纳笔（含 bit/xsa）→ 三步 JTAG 刷板 → `board_verify --geom --battery --round=r113` → 眼睛判据 E6**
       （E6 = 冷上电、不碰任何键，`ROT:` 必须显示 **0**；这一条是你的眼睛，我念不了）。
       之后：试冻结 → `make_submission.sh`（按盘上文件数验收，不读它的 stdout）→ push。
+- [ ] **⑦ 排在链子后面的两支全局实验**（`build/r113_after_chain_experiments.sh`，13:12 起飞等待，
+      等的是"出口件 `build/r113_gates.txt` 出现" **且**"没有 xsim/vivado 在飞"两条同时成立；
+      理由与活着的证据写在脚本头部）：
+      1) `build/r113_roster_refanout.sh` → `build/evidence/r113_roster_diff_rf.txt`：
+         把 D6 那根**工具红**换成有凭据的读数（根因见 #263：本工具没有 `report_design_analysis -fanout` 模式）。
+      2) `build/r114_maxfanout_ab.sh` → `build/evidence/r114_mf/verdict.txt`：
+         同一份 `opt.dcp` 滚两遍，A 不加 / B 加 `set_max_fanout`，
+         判据 = 目标族自己动多少（V3）**且**逐时钟名册差分 D1..D6 全绿（V4）——只看这两条才叫"考虑全局"。
+      这两支**不阻塞 ⑥**：⑥ 采纳的是已经量完的 r113；⑦ 产出的是 r114 的下一刀该不该切扇出复制。
 
 ## 这一轮还欠的（别当成已完成）
 - `pl_demo_top` 那棵树里 `snap_cross.hb_gone` 还是"想要 1 而没初值"（#257 第 2 条）⇒ r114 补一颗声明初值；
