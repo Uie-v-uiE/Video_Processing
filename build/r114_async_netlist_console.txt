@@ -1,0 +1,103 @@
+
+****** Vivado v2025.2.1 (64-bit)
+  **** SW Build 6403652 on Thu Mar 19 19:48:24 GMT 2026
+  **** IP Build 6403511 on Thu Mar 19 12:41:45 MDT 2026
+  **** SharedData Build 6403650 on Thu Mar 19 14:02:13 MDT 2026
+  **** Start of session at: Sat Oct  3 19:04:45 2026
+    ** Copyright 1986-2022 Xilinx, Inc. All Rights Reserved.
+    ** Copyright 2022-2026 Advanced Micro Devices, Inc. All Rights Reserved.
+
+source build/tcl/probe_r114_async_netlist.tcl
+# set root [file normalize [file join [file dirname [info script]] .. ..]]
+# set dcp [file join $root "vivado_system/zynq_video_sys.runs/impl_1/system_top_routed.dcp"]
+# if {[info exists ::env(VP_DCP)]} { set dcp $::env(VP_DCP) }
+# if {![file exists $dcp]} { puts "REFUSE: no dcp: $dcp"; exit 1 }
+# set label "na"
+# if {[info exists ::env(VP_LABEL)]} { set label $::env(VP_LABEL) }
+# open_checkpoint $dcp
+Command: open_checkpoint D:/Xilinx/Prj/pro/Video_Processing/vivado_system/zynq_video_sys.runs/impl_1/system_top_routed.dcp
+
+Starting open_checkpoint Task
+
+Time (s): cpu = 00:00:00 ; elapsed = 00:00:00.048 . Memory (MB): peak = 333.195 ; gain = 5.699
+INFO: [Device 21-403] Loading part xc7z020clg484-2
+Netlist sorting complete. Time (s): cpu = 00:00:00 ; elapsed = 00:00:00.263 . Memory (MB): peak = 821.043 ; gain = 0.000
+INFO: [Netlist 29-17] Analyzing 2897 Unisim elements for replacement
+INFO: [Netlist 29-28] Unisim Transformation completed in 1 CPU seconds
+INFO: [Project 1-479] Netlist was created with Vivado 2025.2.1
+INFO: [Project 1-570] Preparing netlist for logic optimization
+Read ShapeDB Complete: Time (s): cpu = 00:00:00 ; elapsed = 00:00:00.159 . Memory (MB): peak = 965.137 ; gain = 7.328
+INFO: [Timing 38-478] Restoring timing data from binary archive.
+INFO: [Timing 38-479] Binary timing data restore complete.
+INFO: [Project 1-856] Restoring constraints from binary archive.
+INFO: [Project 1-853] Binary constraint restore complete.
+INFO: [Designutils 20-5722] Start Reading Physical Databases.
+Reading placement.
+Read Netlist Cache: Time (s): cpu = 00:00:00 ; elapsed = 00:00:00.031 . Memory (MB): peak = 1591.680 ; gain = 0.000
+Reading placer database...
+Read Device Cache: Time (s): cpu = 00:00:00 ; elapsed = 00:00:00.018 . Memory (MB): peak = 1591.680 ; gain = 0.000
+Read PlaceDB: Time (s): cpu = 00:00:00 ; elapsed = 00:00:00 . Memory (MB): peak = 1591.680 ; gain = 0.000
+Read placeStorage: Time (s): cpu = 00:00:01 ; elapsed = 00:00:00.839 . Memory (MB): peak = 1594.871 ; gain = 3.191
+Read PulsedLatchDB: Time (s): cpu = 00:00:00 ; elapsed = 00:00:00 . Memory (MB): peak = 1594.871 ; gain = 0.000
+Reading routing.
+Read RouteStorage: Time (s): cpu = 00:00:00 ; elapsed = 00:00:00.332 . Memory (MB): peak = 1611.043 ; gain = 16.172
+Read Physdb Files: Time (s): cpu = 00:00:01 ; elapsed = 00:00:01 . Memory (MB): peak = 1611.043 ; gain = 19.363
+Restored from archive | CPU: 1.000000 secs | Memory: 0.000000 MB |
+Finished XDEF File Restore: Time (s): cpu = 00:00:01 ; elapsed = 00:00:01 . Memory (MB): peak = 1611.043 ; gain = 19.391
+Netlist sorting complete. Time (s): cpu = 00:00:00 ; elapsed = 00:00:00.013 . Memory (MB): peak = 1634.523 ; gain = 0.000
+INFO: [Project 1-111] Unisim Transformation Summary:
+  A total of 1035 instances were transformed.
+  RAM128X1D => RAM128X1D (MUXF7(x2), RAMD64E(x4)): 336 instances
+  RAM64M => RAM64M (RAMD64E(x4)): 651 instances
+  RAM64X1D => RAM64X1D (RAMD64E(x2)): 48 instances
+
+INFO: [Project 1-604] Checkpoint was created with Vivado v2025.2.1 (64-bit) build 6403652
+open_checkpoint: Time (s): cpu = 00:00:28 ; elapsed = 00:00:26 . Memory (MB): peak = 1642.594 ; gain = 1322.492
+# puts "ASYNCNET label=$label dcp=$dcp state=[get_property STATE [current_design]]"
+ASYNCNET label=na dcp=D:/Xilinx/Prj/pro/Video_Processing/vivado_system/zynq_video_sys.runs/impl_1/system_top_routed.dcp state=
+# set gray [get_cells -quiet u_eth/u_cdc/*gray*]
+# set n [llength $gray]
+# set ffs {}
+# foreach c $gray {
+#     if {[string match "FD*" [get_property REF_NAME $c]]} { lappend ffs $c }
+# }
+# set nf [llength $ffs]
+# set marked 0
+# foreach c $ffs {
+#     set p [get_property ASYNC_REG $c]
+#     if {$p eq "TRUE" || $p eq "1" || $p eq "true"} { incr marked }
+# }
+# puts "ASYNCNET_CELLS gray_cells=$n gray_ff=$nf marked_true=$marked (n=0 �?名字/层�?�猜错，不是属性丢�?)"
+ASYNCNET_CELLS gray_cells=116 gray_ff=84 marked_true=56 (n=0 �?名字/层�?�猜错，不是属性丢�?)
+# foreach c [lrange $ffs 0 5] {
+#     puts "FFLINE cell=$c ref=[get_property REF_NAME $c] ASYNC_REG=[get_property ASYNC_REG $c]"
+# }
+FFLINE cell=u_eth/u_cdc/rgray_reg[0] ref=FDCE ASYNC_REG=
+FFLINE cell=u_eth/u_cdc/rgray_reg[10] ref=FDCE ASYNC_REG=
+FFLINE cell=u_eth/u_cdc/rgray_reg[11] ref=FDCE ASYNC_REG=
+FFLINE cell=u_eth/u_cdc/rgray_reg[12] ref=FDCE ASYNC_REG=
+FFLINE cell=u_eth/u_cdc/rgray_reg[13] ref=FDCE ASYNC_REG=
+FFLINE cell=u_eth/u_cdc/rgray_reg[1] ref=FDCE ASYNC_REG=
+# set alt1 [get_cells -quiet u_eth/u_cdc/*s0_reg*]
+# set alt2 [get_cells -quiet u_eth/u_cdc/*s1_reg*]
+# puts "ALT_LOOKUP s0_reg_style=[llength $alt1] s1_reg_style=[llength $alt2] (RTL 里那两个名字的带位写法找回几�?)"
+ALT_LOOKUP s0_reg_style=28 s1_reg_style=28 (RTL 里那两个名字的带位写法找回几�?)
+# set mout [file join $root "build/probe_asyncnet_${label}.rpt"]
+# catch {report_methodology -quiet -file $mout} errm
+# puts "METH_ERR=$errm EXISTS=[file exists $mout]"
+METH_ERR=0 EXISTS=1
+# if {[file exists $mout]} {
+#     set fh [open $mout r]; set txt [read $fh]; close $fh
+#     set total ""
+#     foreach line [split $txt "\n"] {
+#         if {[regexp {Checks found:\s+(\d+)} $line -> n]} { set total $n }
+#         if {[regexp {\|\s*TIMING-10\s*\|\s*([^|]+)\|\s*([^|]+)\|\s*(\d+)\s*\|} $line -> sev desc cnt]} {
+#             puts "METHROW check=TIMING-10 sev=[string trim $sev] count=$cnt"
+#         }
+#     }
+#     puts "METH_SUMMARY checks_found=$total"
+# }
+METHROW check=TIMING-10 sev=Warning count=1
+METH_SUMMARY checks_found=446
+# exit 0
+INFO: [Common 17-206] Exiting Vivado at Sat Oct  3 19:05:30 2026...

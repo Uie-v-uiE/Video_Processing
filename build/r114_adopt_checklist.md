@@ -19,6 +19,13 @@
       收益口径**不是**头条 WNS：这两刀的预期是"时序中性 + 结构账变干净"，
       所以判据是名册八对逐格差分（对照 `build/evidence/r114_before.txt` 与 `r113_setup_paths_baseline.rpt`）
       + 综合告警名册不新增类（`build/evidence/r114_synth_roster.txt`）。WNS 的绝对差既不算收益也不算损失（rule 35）。
+      ⚠ **配对必须是同一把生成器**（#291 踩过）：B 侧要等 `xsim` 跑完再用 `build/tcl/probe_timing_roster.tcl`
+      开 routed dcp 出 `build/evidence/r114_after_roster_rf.txt`，与 `build/evidence/r113_after_roster_rf.txt`
+      （上板那版，同探针 + 同扇出名册）相减。**不许**拿 `roster_from_summary.sh` 那份只有 4 路钟的干净名册
+      去减探针那份 8 路钟的名册——“少一路钟”会被数成代价（`D3 big_loss=8` 那份反例留在
+      `build/evidence/r114_roster_diff_shape_mismatch_DO_NOT_READ_AS_VERDICT.txt`）。
+      `timing_roster_diff.sh` 现在自己会 REFUSE（`--self` 8/8），别绕过这道闸。
+      0.445→0.739 是 `ASYNC_REG` 挪了放置的副产品（#290），不是这一刀的收益。
 - [ ] **④ 门禁两跑逐字节一致** → `build/r114_gates.txt`（24 项，项数没变 ⇒ 不动"门禁 N 项"那四处句子）。
       预期：既存声明红 C5c + `doc_currency`/`metric_recheck` 在改口之前必然红 ⇒ 改口之后必须回到只剩 C5c。
 - [ ] **⑤ 数字与凭据改口**：先 `node build/rotate_from_metric.mjs --check`（机械那半），

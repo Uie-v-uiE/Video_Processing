@@ -12248,3 +12248,34 @@ r114 正式构建 18:43 起飞、18:59 出 `system_top_routed.dcp`，位流身�
    要么要补源头那一对（那是**第二刀**，得自己带改前红）。
 2. 名册差分若显示别的域被挤（#288 就是被这一条否决的），这一版的采纳结论要跟着改——
    现在（19:10）链子在跑快车道，判读还没做。
+
+### #291 名册差分的操作数不是一个口径：拿两把不同生成器的名册相减，D3 会数出 `big_loss=8` 这种**假代价**（2026-10-03 19:24）
+
+我在等顶层台架的时候想先把 r114 的名册差分读出来，做法是
+`build/timing_roster_diff.sh build/evidence/r113_after_roster.txt build/evidence/r114_after_roster.txt`，
+念出来是 `D3_margin_cost big_loss=8 RED` + `D6_fanout_inventory fanout_rows=0 RED`。
+**这两个红都不是设计红，是我的尺子断在"操作数形状"**（rule 51 的老配方：相减之前要确认两个操作数同一单位，
+这次要加一句——还要**同一个生成器**）：
+
+* `r113_after_roster.txt` 是 `build/tcl/probe_timing_roster.tcl` 开的 DCP 出的，字段里带原文散文
+  （`slack=1.135ns  (required time - arrival time)`、`levels=1  (LUT3=1)`、有 `FANOUT|` 行），
+  而且它认到 **8 路钟**（含 `clkfbout`、`clkfbout_1`、`clkout1_1`、`clkout2` 这些 MMCM 派生钟）。
+* `r114_after_roster.txt` 是我现用 `build/roster_from_summary.sh` 从 `timing_summary.rpt` 的
+  Intra Clock Table 抽的，字段是干净数字、**只有 4 路钟**、没有 `FANOUT|` 行。
+* 于是 `D3` 里"这一路在 B 找不到"被累加进 `big_loss`（MISSING 与"掉过 25 %"共用一个计数器），
+  四路多余的钟 × setup/hold = 8；`D6` 的 `fanout_rows=0` 也是同一件事的另一面（B 侧根本没有那一节）。
+  那份产物我没删，改名留在盘上当反例：
+  `build/evidence/r114_roster_diff_shape_mismatch_DO_NOT_READ_AS_VERDICT.txt`。
+
+修法（`build/timing_roster_diff.sh`，一次改到位并自带能红的对照）：
+
+1. 相减之前先验形状：**`slack`/`margin_pct` 必须是纯数**、**两侧时钟名单必须完全一致**，
+   任一不成立就 `ROSTERDIFF-SHAPE` 点名两侧名单并 `result=REFUSE`（退出码 3）——
+   REFUSE 不是裁决，"少一路钟"要么是生成器不同、要么是真被删，两种都不该被念成代价。
+2. 原来的第 5 条对照（`head -3` 把整路删掉）在新闸门下会变成 REFUSE 而不是 RED ⇒
+   换成"只删 `sys_clk` 的 hold 那一行"（名单还在、配对从 8 掉到 7 ⇒ 走 D2 的地板），
+   再补两条对照：散文 slack ⇒ REFUSE、整路钟缺失 ⇒ REFUSE。`--self` 实测 **8/8**。
+3. 本轮正确的配对是**同生成器**那一对：B 侧等台架跑完（`xsim` 在飞时不开 DCP，这台机器 15.7 G）
+   用 `probe_timing_roster.tcl` 出 `r114_after_roster_rf.txt`，与 `build/evidence/r113_after_roster_rf.txt`
+   （r113 上板那版，同一把探针 + 同一份扇出名册）相减。在那之前，本轮**没有**名册裁决可读——
+   头条 WNS 0.445→0.739 只是"网表被重摆"的副产品（#290），按 rule 35 不许当收益。
