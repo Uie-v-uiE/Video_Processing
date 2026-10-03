@@ -12758,3 +12758,23 @@ IDDR 的捕获沿被提前 ⇒ 它与 BUFG 域之间出现 ~3.07 ns 发射/捕�
 ⇒ 三条纪律：① 不许拿 −0.87 冒充眼心；② 板侧 `bad`/`drop_words` 是唯一裁判；
 ③ 想真量眼心要把 5 颗 IDELAYE2 从 `FIXED` 换成 `VAR_LOAD`（或加一条写通路），串口逐档加载 + 1000M 实流量看计数
 —— 那是 r117 的候选，且**先配台架/板级判据再动 RTL**（老规矩：先有能红的尺子）。
+
+### #315 r116 夜：实验刷板把控制台弄哑了，**根因是"app 在跑的时候重刷 PL"**，恢复只用 JTAG 不用手（01:49）
+
+现象：三步链自己报全绿（`ps_jtag_boot` 有 DDR_ECHO、`program_pl` 有 PROGRAMMED、`ps_app_reload` 有 FLOW_DONE），
+但之后 `stat`/`help` **一个字节都不回**（COM6 能打开、`BytesToRead=0`，所以不是被别的终端占住），
+`board_verify` 因此红 3 条，其中一条还是 `uart_cmd_check.mjs` 里 `s.match` 收到 `undefined` 的**尺子崩溃**。
+
+JTAG 侧证据：`targets` 显示两个 A9 核都 **(Running)** ⇒ PS 没死，是**在跑一个对着已经换掉的 PL 空转的 app**。
+这正是环境账里那条老坑（"app 在锤 AXI 时重编 PL 会把 PS 楔住"）的软版本。
+
+恢复（**不需要断电**，比已经预授权的刷板动作更小）：
+`build/tcl/r116_jtag_recover.tcl` 的 `rst -system` → 再跑 `ps_jtag_boot → program_pl → ps_app_reload`
+⇒ 串口立刻回 1428 字节（help 全文），板子重新可验。件 `build/r116_recover_console.txt`。
+
+三条要改的（本轮就改）：
+1. 实验刷板脚本要在 `program_pl` **之前**先 `rst -system`（或先 halt APU），不能假设"三步链自己会带好"；
+2. `board_verify` 的 `endsAtDefault()` 在拿到空串时必须判"没抓到 STAT"并**干净退出**，
+   不能让 `TypeError` 冒充判据（崩溃不是红，是"这一条没测"）；
+3. `adopt_after_chain.sh` 之所以没踩这个坑，是因为采纳时台架已停、app 不在跑——**这个前提要写进脚本注释**，
+   不然下一次"手工补刷"还会撞。

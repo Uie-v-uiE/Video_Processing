@@ -297,9 +297,14 @@ function seg(capture, line, i) {
 const DEFAULT_TUPLE = [['thr','80'],['src','1'],['zoom','1'],['bilin','1'],['zsel','4'],['zman','1'],
                        ['sel','000'],['gm','0.00'],['mode','0'],['geom','00400000'],['osd','1']];
 const fieldOf = (s, k) => s.match(new RegExp('(^|\\s)' + k + '=(\\S+)'));
-const endsAtDefault = (s) => DEFAULT_TUPLE.filter(([k, v]) => {
-  const m = fieldOf(s, k); return !m || m[2] !== v;
-});
+/** 空/未定义的抓取**不是"默认档不一致"**，是"根本没抓到"——以前这里直接 s.match 抛 TypeError，
+ *  把"这一条没测成"伪装成一次崩溃退出（ISSUES #315 第 2 条）。 */
+const endsAtDefault = (s) => {
+  if (typeof s !== 'string' || s.trim() === '') return null;
+  return DEFAULT_TUPLE.filter(([k, v]) => {
+    const m = fieldOf(s, k); return !m || m[2] !== v;
+  });
+};
 if (process.argv.includes('--self')) {
   const D = 'thr=80 src=1 zoom=1 bilin=1 zsel=4 zman=1 sel=000 gm=0.00 mode=0 geom=00400000 osd=1';
   const cases = [[D, true, '默认档（zsel 不许冒充 sel）'],
@@ -308,14 +313,18 @@ if (process.argv.includes('--self')) {
                  [D.replace('thr=80','thr=120'), false, '阈值被改'],
                  [D.replace(' sel=000',' sel=008'), false, '效果链被留在第 4 级'],
                  [D.replace('geom=00400000','geom=00000000'), false, '缝被留在 pos=0（bit22 在掩码外的形状，#177b）'],
-                 [D.replace('src=1','src=0'), false, '片源被留在图卡']];
+                 [D.replace('src=1','src=0'), false, '片源被留在图卡'],
+                 ['', false, '空抓取（板子没回话）不许被当成"末态就是默认档"（#315）'],
+                 ['   ', false, '只有空白的抓取同上']];
   let bad = 0;
   for (const [s, want, why] of cases) {
-    const got = endsAtDefault(s).length === 0;
+    // null = 根本没抓到 STAT。它**不是**"回到默认档"，所以 got 必须是 false（判不出来就是没过）。
+    const d0 = endsAtDefault(s);
+    const got = d0 !== null && d0.length === 0;
     console.log(`  ${got === want ? 'ok  ' : 'BAD '}${why}: 判 ${got}（期望 ${want}）`);
     if (got !== want) bad++;
   }
-  console.log(bad ? 'SELF FAIL uart_cmd_check --self' : 'SELF PASS uart_cmd_check --self（七条对照都按期望动）');
+  console.log(bad ? 'SELF FAIL uart_cmd_check --self（九条里有一条不按期望动）' : 'SELF PASS uart_cmd_check --self（九条对照都按期望动）');
   process.exit(bad ? 1 : 0);
 }
 
@@ -396,7 +405,12 @@ else if (stats[0] !== stats[stats.length - 1]) {
 {
   const last = stats[stats.length - 1];
   const badF = endsAtDefault(last);
-  if (badF.length) {
+  if (badF === null) {
+    // #315：以前这里直接 badF.length 抛 TypeError —— 崩溃会被读成"这一版红得莫名其妙"，
+    // 而真相是"这一条根本没测成"。判红，并把原因说出口。
+    console.log('FAIL 末态那条 [STAT] 根本没抓到（板子没回话/串口被占/应用没跑）—— 这一条**没测**，按红算');
+    fail++;
+  } else if (badF.length) {
     const shown = badF.map(([k, v]) => { const m = fieldOf(last, k); return `${k}=${m ? m[2] : ';缺失'}≠${v}`; });
     console.log(`FAIL 电池跑完板子不在演示默认档（report/DEFAULTS.md 第一节）：` + shown.join('  '));
     fail++;
