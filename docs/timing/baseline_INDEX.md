@@ -38,6 +38,12 @@
 
 ## B2/B3 名册（基线工件，此后所有差值只许引用这一份）
 
+⚠ **md5 的口径**：上面所有哈希都是**工作树磁盘字节**的哈希。仓库的 `.gitattributes` 故意不覆盖 `*.txt`/`*.tsv`
+（理由写在它文件头：`MANIFEST.md5` 按磁盘字节盖章，加 `eol=lf` 会让下一次 checkout 改已盖印章的件的字节——台账 #202 同族），
+而 `git add` 时报了 "LF will be replaced by CRLF the next time Git touches it" ⇒ **换一台机器 checkout 后这些哈希会变**。
+所以这份索引的凭据按"同一棵树上的磁盘状态"引用；名册本身是**可重算的**：
+只要 `timing_summary.txt` 与 `check_timing_verbose.txt` 两份源件在，重新跑一遍生成器就能拿回同一张表（列语义已钉死在尺子里）。
+
 `docs/timing/roster_baseline.tsv` — md5 **`039c16e373e562016b2edbea02925efc`**，2026-10-03 22:45:09 由
 `python build/r115_roster_build.py build/evidence/r115_base/timing_summary.txt build/evidence/r115_base/check_timing_verbose.txt docs/timing/roster_baseline.tsv baseline` 生成（8 行 = 8 个时钟域）。
 判定器的对照端是它，**不是"我记得基线是多少"**；也不许把"当前值"换成刚生成的集合（B3）。
