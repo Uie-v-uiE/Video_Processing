@@ -109,3 +109,24 @@ Setup/Hold 两列都写 `clock_group` ⇒ 这两对**被整体排除**，没有�
   它里面的 `| Command :` 是 `report_timing`，不是 `check_timing`（22:59 实测）。
   本轮所有 I/O 债务的读数一律取自 `check_timing_verbose.txt`（它的 Command 行是 `check_timing -verbose`）。
   改名/重出这件事归到探针脚本 `build/tcl/r115_baseline_probe.tcl`，不在文档里含糊过去。
+
+## §2 追加（r116，2026-10-04 01:20）：11 个未约束端口里，**5 个今天进构建了**
+
+`docs/timing/debt_ledger.md` §2 原来记的是"RGMII 收口 5 个输入 + 输出侧 6 个端口 = 11 个，全部零声明"。
+r116 的变化与**仍然欠的那一半**：
+
+| 端口 | r115 之前 | r116 | 数从哪儿来 |
+| --- | --- | --- | --- |
+| `eth_rxd[3:0]`、`eth_rx_ctl` | 无 `set_input_delay`（`check_timing` HIGH 缺口点名） | **进构建**：`src/constraints/r116_rgmii_input_window.xdc`，min 1.200 / max 2.800（+ `-clock_fall` 对），`used_in_synthesis false` | 规格书 Table 60 `TsetupT/TholdT min 1.2 typ 2`（**发射端**两行 = 我们的收口）+ Table 10/11 与原理图 R57/R59 上拉 ⇒ RXDLY 开着、2 ns 加在 RXC 上；抄件 `build/evidence/r115_rtl8211f_delay_source.txt` |
+| `tmds_clk_p`、`tmds_data_p[0..2]`、`led[0..1]` | 无 `set_output_delay` | **仍然零声明** | 要接收端（面板/HDMI 接收器）或 DVI/HDMI 规范的窗口数；本机板级资料没有，两次在线取原文没拿到可引用的一页 ⇒ **没有来源就不写数** |
+
+三条要说在前面的：
+
+1. **这一笔不是"绿了"**：绑上窗之后这一族在 0…31 全范围内都关不掉（§7.5(4) 的不等式），
+   所以 `check_timing` 的缺口从 11 变 6，同时 `report_timing_summary` 会多出 5 个**有限**的违例端点。
+   "缺口变小 + 红变可见"是这一笔的全部含义。
+2. **没有放宽任何东西**：`loosen_ledger.tsv` 本轮仍然 0 条。`eth_rxc` 上那条 0.800 的 `-hold` 不确定度
+   与输入窗**双重计**同一条保护带，去掉它能把 hold 从 −1.185 抬到 −0.385，但**仍然不是绿**
+   （setup 那边 τ ≤ 21.8 不动）⇒ 既然换不来绿，就不去碰 H1，代价写在 §7.5 表里。
+3. **输出侧那 6 个端口的债要谁签**：要么补一份可引用的 DVI/HDMI 窗口数（外部资料），
+   要么由用户批准把它们声明为异步/不检查（那是 H1 的放宽，要进松动台账）。夜里两样都没有 ⇒ 债继续挂着。
