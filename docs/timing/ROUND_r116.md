@@ -14,7 +14,7 @@
 | 3 | **工具的边配对被读实**：IDDR 的 D 脚 setup 查 `rise→fall`（Requirement 4.000）、hold 查同一沿（0.000）⇒ 负数写法与整周期平移写法都是它的镜像 | `build/evidence/r115_window/probe2_console.txt` 四组 W1..W4 |
 | 4 | **`IDELAY_VALUE` 0…31 全档扫满**：`HOLD=−2.822+0.0630τ`、`SETUP=+2.005−0.0920τ` ⇒ 交点 τ=31.1，**tap 31 是 min(hold,setup) 的最大点**，比出货值 tap 26 抬 **+0.315 ns** | `build/evidence/r115_window/probe3_console.txt`（`set_property IDELAY_VALUE` 在已布线 DCP 上有效，见 ISSUES #310） |
 | 5 | **这一族的极限被写成不等式**（不是"没找到点"）：hold 要 τ ≥ 44.8、setup 要 τ ≤ 21.8，合法区间 0…31 ⇒ **不相交**；去掉与窗双重计的 0.800 hold 带也只是 44.8→32.1，仍不相交 | `docs/timing/rgmii_window_model.md` §7.5(4) |
-| 6 | **根因定位到钟网络的角间差**：hold 查慢角 DCD **5.008**、setup 查快角 DCD **1.597**，差 **3.411 ns**，而数据路径角间差只有 **0.467 ns**；同时满足要 `D_slow/D_fast ≥ 1.72`，IDELAY 主导的路径实测只有 **1.15** | 同上（分量都抄自报告本身） |
+| 6 | **根因定位到钟网络的角间差**：hold 查慢角 DCD **5.008**、setup 查快角 DCD **1.597**，差 **3.411 ns**，而数据路径角间差只有 **0.467 ns**；同时满足要 `D_slow/D_fast ≥ 1.73`（带子保留）/ ≥ 1.45（去带），IDELAY 主导的路径实测只有 **1.15** | 同上（分量都抄自报告本身） |
 
 一句话：**`eth_rxc` 这一族在今天的结构（IDDR 与 4835 端点的 125 MHz 流水线共用一只 BUFG）下，
 物理上不存在能同时满足两条检查的采样点**；能动的三样（数据延时、相位、不确定度带）都量过、都关不掉。
