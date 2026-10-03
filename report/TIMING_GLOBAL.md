@@ -93,6 +93,12 @@ sys_clk    setup 14.463 -> 14.463 hold 0.133 -> 0.133
 | `eth_mdc` / `eth_mdio` | MDIO 是 bit-bang 管理口，与 GTXCLK/RXC 无关 ⇒ `set_false_path`（或按 2.5 MHz 上限给一对 `set_max_delay`），理由要写 | Realtek RTL8211F 数据手册的 MDIO 时序（本板 PHY 就是 RTL8211F，见 `report/HOST_GUIDE.md` 第 14 行） | 同上 |
 | RGMII 收口 5 个裸输入（`eth_rx_ctl`、`eth_rxd[3:0]`） | 这一路**已经**是真物理事件，别再拖：`set_input_delay -clock eth_rxc -min/-max` 按 PHY 的 DDR 窗算，中心对齐用 `-clock_fall` 那一套 | RTL8211F 手册的 RGMII RX 表（数据相对 RXC 双沿的 setup/hold ps 值）+ 板级走线延迟；本仓已实测过"RGMII 是 DDR 采样、#57 之后没有 IDELAY 采样窗可言"，所以值给得讲道理比给个大值重要 | `build/timing_roster_diff.sh` 的 D1/D3（补完约束不许把别的域挤坏）+ 名册逐域念一遍 |
 | `eth_tx_*` 那一组现在的 `set_false_path` | **保留但要重新论证**：RGMII 发送是源同步（PHY 用 FPGA 给的 GTXCLK 采数据），"假路"其实是在说"我不检查芯片到 PHY 这一段" | 查 PHY 手册的 RGMII TX 窗，若能查就把它改成 `set_output_delay`（对齐到 eth_tx_clk），查不到就在注释里写"已知未验证"并留成账 | 同上 |
+候选值的现状（**不许直接抄进 XDC**，只当线索）：第三方一篇 RGMII 综述给的窗是
+发送侧 setup/hold 各 1.2 ns、接收侧各 1.0 ns，并说"时钟延迟 90° 由 PHY 内部（RGMII-ID）或 FPGA 延迟单元做，
+旧版 v1.3 才用约 1.8 ns 的铜皮偏斜"。这两个数是**二手表值**，本板的 PHY 是 RTL8211F，
+必须以它的手册表 + 本板走线实测为准（`#57` 之后收侧是 IDDR + `IDELAY_VALUE=26`，那个 tap 数本身就是我们量出来的物证）；
+写成一句可核对的话：**每个数要么来自手册/测量，要么在 XDC 注释里写明是估计并给区间**。
+
 两个官方/权威口径支持这一步：UG949 的 timing closure 要求**每个 I/O 要么有延迟约束、要么有写明理由的豁免**；
 源同步接口的约束写法见 AMD 论坛那篇《IO Timing constraints for source synchronous interface》，
 入门到落地版可读 Xilinx 官方课程 Lab5 与 BLT 的《Demystifying I/O Timing Constraints》，
