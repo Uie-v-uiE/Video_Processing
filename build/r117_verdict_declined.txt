@@ -1,0 +1,14 @@
+R117 判定（链子在 04:16 被我停掉，理由见下；数全部来自已落盘的件）
+R117 date=2026-10-04 04:16 bit=beda9298331d config=io_window=off+hook=on+tau=31
+R117 A1_mechanism R117HOOK phystopt_rc=0 msg= net=u_pl/u_row/hi_reg_0[0] pins_after=1 replica_cells=10
+R117 A2/A3 差分对 r114（同生成器 16 对）:
+ROSTERDIFF-ROW clk_fpga_0/setup slack 1.850ns  (required tROSTERDIFF-ROW clk_fpga_0/setup slack 1.850ns  (required time - arrival time)->2.104ns  (required time - arrival time) margin_pct 18.50->21.04
+ROSTERDIFF-ROW clk_fpga_0/hold slack 0.053ns  (arrival time - required time)->0.053ns  (arrival time - required time) margin_pct 0.53->0.53
+ROSTERDIFF-ROW clkout0_1/setup slack 3.630ns  (required time - arrival time)->3.353ns  (required time - arrival time) margin_pct 18.15->16.77
+ROSTERDIFF-ROW clkout0_1/hold slack 0.059ns  (arrival time - required time)->0.059ns  (arrival time - required time) margin_pct 0.29->0.29
+ROSTERDIFF-ROW eth_rxc/setup slack 0.739ns  (required time - arrival time)->0.615ns  (required time - arrival time) margin_pct 9.24->7.69
+ROSTERDIFF-ROW eth_rxc/hold slack 0.052ns  (arrival time - required time)->0.044ns  (arrival time - required time) margin_pct 0.65->0.55
+ROSTERDIFF-ROW sys_clk/setup slack 14.876ns  (required time - arrival time)->14.815ns  (required time - arrival time) margin_pct 74.38->74.08
+ROSTERDIFF-ROW sys_clk/hold slack 0.222ns  (arrival time - required time)->0.222ns  (arrival time - required time) margin_pct 1.11->1.11
+R117 判定 = DECLINED：预登记判据 A2/A3 是严格口径（任何一格 rel_margin 不许变小），实测 clk_fpga_0 setup 1.850->2.104 但 clkout0_1 3.630->3.353、eth_rxc 0.739->0.615 与 hold 0.052->0.044、sys_clk 14.876->14.815 四格变小 ⇒ 按 H7 回滚这一处切割。timing_roster_diff.sh 的 D3 用的是 25% 门槛、给 GREEN，两把尺子对同一份数据给不同判语这件事记 ISSUES #328（判据阈值不一致＝口径债，不是我的选择）。
+R117 后续 = r118 只带 tau=31（不挂复制钩子、不加载输入窗），判据 B1 用同一条严格口径；计划与件 build/r118_chain.sh
