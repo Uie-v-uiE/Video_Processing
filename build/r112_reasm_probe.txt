@@ -1,0 +1,263 @@
+
+****** Vivado v2025.2.1 (64-bit)
+  **** SW Build 6403652 on Thu Mar 19 19:48:24 GMT 2026
+  **** IP Build 6403511 on Thu Mar 19 12:41:45 MDT 2026
+  **** SharedData Build 6403650 on Thu Mar 19 14:02:13 MDT 2026
+  **** Start of session at: Sat Oct  3 08:58:32 2026
+    ** Copyright 1986-2022 Xilinx, Inc. All Rights Reserved.
+    ** Copyright 2022-2026 Advanced Micro Devices, Inc. All Rights Reserved.
+
+source build/tcl/probe_reasm_fanout_r112.tcl
+# set root [file normalize [file join [file dirname [info script]] .. ..]]
+# set dcp  [file join $root "vivado_system/zynq_video_sys.runs/impl_1/system_top_routed.dcp"]
+# if {![file exists $dcp]} { puts "REFUSE: no such dcp: $dcp"; exit 1 }
+# puts "DCP: $dcp"
+DCP: D:/Xilinx/Prj/pro/Video_Processing/vivado_system/zynq_video_sys.runs/impl_1/system_top_routed.dcp
+# open_checkpoint $dcp
+Command: open_checkpoint D:/Xilinx/Prj/pro/Video_Processing/vivado_system/zynq_video_sys.runs/impl_1/system_top_routed.dcp
+
+Starting open_checkpoint Task
+
+Time (s): cpu = 00:00:00 ; elapsed = 00:00:00.066 . Memory (MB): peak = 330.488 ; gain = 5.312
+INFO: [Device 21-403] Loading part xc7z020clg484-2
+Netlist sorting complete. Time (s): cpu = 00:00:00 ; elapsed = 00:00:00.324 . Memory (MB): peak = 817.836 ; gain = 0.000
+INFO: [Netlist 29-17] Analyzing 2897 Unisim elements for replacement
+INFO: [Netlist 29-28] Unisim Transformation completed in 2 CPU seconds
+INFO: [Project 1-479] Netlist was created with Vivado 2025.2.1
+INFO: [Project 1-570] Preparing netlist for logic optimization
+Read ShapeDB Complete: Time (s): cpu = 00:00:00 ; elapsed = 00:00:00.232 . Memory (MB): peak = 964.965 ; gain = 7.305
+INFO: [Timing 38-478] Restoring timing data from binary archive.
+INFO: [Timing 38-479] Binary timing data restore complete.
+INFO: [Project 1-856] Restoring constraints from binary archive.
+INFO: [Project 1-853] Binary constraint restore complete.
+INFO: [Designutils 20-5722] Start Reading Physical Databases.
+Reading placement.
+Read Netlist Cache: Time (s): cpu = 00:00:00 ; elapsed = 00:00:00.035 . Memory (MB): peak = 1591.668 ; gain = 0.000
+Reading placer database...
+Read Device Cache: Time (s): cpu = 00:00:00 ; elapsed = 00:00:00.025 . Memory (MB): peak = 1591.668 ; gain = 0.000
+Read PlaceDB: Time (s): cpu = 00:00:00 ; elapsed = 00:00:00 . Memory (MB): peak = 1591.668 ; gain = 0.000
+Read placeStorage: Time (s): cpu = 00:00:01 ; elapsed = 00:00:01 . Memory (MB): peak = 1593.922 ; gain = 2.254
+Read PulsedLatchDB: Time (s): cpu = 00:00:00 ; elapsed = 00:00:00 . Memory (MB): peak = 1593.922 ; gain = 0.000
+Reading routing.
+Read RouteStorage: Time (s): cpu = 00:00:01 ; elapsed = 00:00:00.448 . Memory (MB): peak = 1610.582 ; gain = 16.660
+Read Physdb Files: Time (s): cpu = 00:00:02 ; elapsed = 00:00:02 . Memory (MB): peak = 1610.582 ; gain = 18.914
+Restored from archive | CPU: 2.000000 secs | Memory: 0.000000 MB |
+Finished XDEF File Restore: Time (s): cpu = 00:00:02 ; elapsed = 00:00:02 . Memory (MB): peak = 1610.582 ; gain = 18.914
+Netlist sorting complete. Time (s): cpu = 00:00:00 ; elapsed = 00:00:00.018 . Memory (MB): peak = 1633.984 ; gain = 0.000
+INFO: [Project 1-111] Unisim Transformation Summary:
+  A total of 1035 instances were transformed.
+  RAM128X1D => RAM128X1D (MUXF7(x2), RAMD64E(x4)): 336 instances
+  RAM64M => RAM64M (RAMD64E(x4)): 651 instances
+  RAM64X1D => RAM64X1D (RAMD64E(x2)): 48 instances
+
+INFO: [Project 1-604] Checkpoint was created with Vivado v2025.2.1 (64-bit) build 6403652
+open_checkpoint: Time (s): cpu = 00:00:38 ; elapsed = 00:00:34 . Memory (MB): peak = 1642.039 ; gain = 1324.828
+# set tos [get_cells -quiet {u_eth/u_reasm/rows_hit_reg[*]}]
+# puts "  SETS to(rows_hit)=[llength $tos] (expected = rows_hit width; 0 means a wrong name)"
+  SETS to(rows_hit)=16 (expected = rows_hit width; 0 means a wrong name)
+# foreach frompat {u_eth/u_rx_par/p_eof_reg {u_eth/u_reasm/off_reg\[12\]}} {
+#     set tag [string map {/ _ \[ _ \] _} $frompat]
+#     set froms [get_cells -quiet $frompat]
+#     puts "=== A\[$tag\] $frompat -> u_eth/u_reasm/rows_hit_reg\[*\] ==="
+#     puts "  SETS from=[llength $froms]"
+#     if {[llength $froms] == 0 || [llength $tos] == 0} { puts "  SKIP A\[$tag\]: empty collection"; continue }
+#     set rpt [file join $root "build/r112_probe_reasm_$tag.rpt"]
+#     report_timing -from $froms -to $tos -delay_type max -nworst 1 -max_paths 3 -file $rpt
+#     set fh [open $rpt r]; set txt [read $fh]; close $fh
+#     foreach line [split $txt "\n"] {
+#         set t [string trim $line]
+#         if {[string match "Slack*" $t] || [string match "Data Path Delay*" $t] \
+#             || [string match "Logic Levels*" $t] || [string match "Source:*" $t] \
+#             || [string match "Destination:*" $t] || [string match "Path Group:*" $t]} {
+#             puts "  $t"
+#         }
+#     }
+#     puts "  RPT: $rpt"
+# }
+=== A[u_eth_u_rx_par_p_eof_reg] u_eth/u_rx_par/p_eof_reg -> u_eth/u_reasm/rows_hit_reg[*] ===
+  SETS from=1
+INFO: [Timing 38-91] UpdateTimingParams: Speed grade: -2, Delay Type: max.
+INFO: [Timing 38-191] Multithreading enabled for timing update using a maximum of 2 CPUs
+INFO: [Timing 38-78] ReportTimingParams: -from_pins  -to_pins  -max_paths 3 -nworst 1 -delay_type max -sort_by slack.
+report_timing: Time (s): cpu = 00:00:24 ; elapsed = 00:00:13 . Memory (MB): peak = 1696.141 ; gain = 54.102
+  Slack (MET) :             0.445ns  (required time - arrival time)
+  Source:                 u_eth/u_rx_par/p_eof_reg/C
+  Destination:            u_eth/u_reasm/rows_hit_reg[12]/CE
+  Path Group:             eth_rxc
+  Data Path Delay:        7.225ns  (logic 1.136ns (15.724%)  route 6.089ns (84.276%))
+  Logic Levels:           4  (LUT3=2 LUT5=1 LUT6=1)
+  Slack (MET) :             0.445ns  (required time - arrival time)
+  Source:                 u_eth/u_rx_par/p_eof_reg/C
+  Destination:            u_eth/u_reasm/rows_hit_reg[13]/CE
+  Path Group:             eth_rxc
+  Data Path Delay:        7.225ns  (logic 1.136ns (15.724%)  route 6.089ns (84.276%))
+  Logic Levels:           4  (LUT3=2 LUT5=1 LUT6=1)
+  Slack (MET) :             0.445ns  (required time - arrival time)
+  Source:                 u_eth/u_rx_par/p_eof_reg/C
+  Destination:            u_eth/u_reasm/rows_hit_reg[14]/CE
+  Path Group:             eth_rxc
+  Data Path Delay:        7.225ns  (logic 1.136ns (15.724%)  route 6.089ns (84.276%))
+  Logic Levels:           4  (LUT3=2 LUT5=1 LUT6=1)
+  RPT: D:/Xilinx/Prj/pro/Video_Processing/build/r112_probe_reasm_u_eth_u_rx_par_p_eof_reg.rpt
+=== A[u_eth_u_reasm_off_reg\_12\_] u_eth/u_reasm/off_reg\[12\] -> u_eth/u_reasm/rows_hit_reg[*] ===
+  SETS from=0
+  SKIP A[u_eth_u_reasm_off_reg\_12\_]: empty collection
+# puts "=== B top-6 fanout nets inside u_eth/u_reasm ==="
+=== B top-6 fanout nets inside u_eth/u_reasm ===
+# set cells [get_cells -quiet u_eth/u_reasm/*]
+# puts "  CELLS in u_reasm: [llength $cells]"
+  CELLS in u_reasm: 1377
+# array set best ""
+# foreach c $cells {
+#     foreach p [get_pins -of_objects $c] {
+#         set n [get_nets -of_objects $p]
+#         if {$n eq ""} continue
+#         if {[info exists best($n)]} continue
+#         set best($n) [llength [get_pins -of_objects $n]]
+#     }
+# }
+WARNING: [Vivado 12-1023] No nets matched for command 'get_nets -of_objects {u_eth/u_reasm/cov_reg[12]_i_2/CO[2]}'.
+WARNING: [Vivado 12-1023] No nets matched for command 'get_nets -of_objects {u_eth/u_reasm/cov_reg[12]_i_2/CO[1]}'.
+WARNING: [Vivado 12-1023] No nets matched for command 'get_nets -of_objects {u_eth/u_reasm/cov_reg[12]_i_2/CO[0]}'.
+WARNING: [Vivado 12-1023] No nets matched for command 'get_nets -of_objects {u_eth/u_reasm/cov_reg[16]_i_2/CO[2]}'.
+WARNING: [Vivado 12-1023] No nets matched for command 'get_nets -of_objects {u_eth/u_reasm/cov_reg[16]_i_2/CO[1]}'.
+WARNING: [Vivado 12-1023] No nets matched for command 'get_nets -of_objects {u_eth/u_reasm/cov_reg[16]_i_2/CO[0]}'.
+WARNING: [Vivado 12-1023] No nets matched for command 'get_nets -of_objects {u_eth/u_reasm/cov_reg[18]_i_7/CO[3]}'.
+WARNING: [Vivado 12-1023] No nets matched for command 'get_nets -of_objects {u_eth/u_reasm/cov_reg[18]_i_7/CO[2]}'.
+WARNING: [Vivado 12-1023] No nets matched for command 'get_nets -of_objects {u_eth/u_reasm/cov_reg[18]_i_7/CO[1]}'.
+WARNING: [Vivado 12-1023] No nets matched for command 'get_nets -of_objects {u_eth/u_reasm/cov_reg[18]_i_7/CO[0]}'.
+WARNING: [Vivado 12-1023] No nets matched for command 'get_nets -of_objects {u_eth/u_reasm/cov_reg[18]_i_7/O[3]}'.
+WARNING: [Vivado 12-1023] No nets matched for command 'get_nets -of_objects {u_eth/u_reasm/cov_reg[18]_i_7/O[2]}'.
+WARNING: [Vivado 12-1023] No nets matched for command 'get_nets -of_objects {u_eth/u_reasm/cov_reg[4]_i_2/CO[2]}'.
+WARNING: [Vivado 12-1023] No nets matched for command 'get_nets -of_objects {u_eth/u_reasm/cov_reg[4]_i_2/CO[1]}'.
+WARNING: [Vivado 12-1023] No nets matched for command 'get_nets -of_objects {u_eth/u_reasm/cov_reg[4]_i_2/CO[0]}'.
+WARNING: [Vivado 12-1023] No nets matched for command 'get_nets -of_objects {u_eth/u_reasm/cov_reg[8]_i_2/CO[2]}'.
+WARNING: [Vivado 12-1023] No nets matched for command 'get_nets -of_objects {u_eth/u_reasm/cov_reg[8]_i_2/CO[1]}'.
+WARNING: [Vivado 12-1023] No nets matched for command 'get_nets -of_objects {u_eth/u_reasm/cov_reg[8]_i_2/CO[0]}'.
+WARNING: [Vivado 12-1023] No nets matched for command 'get_nets -of_objects {u_eth/u_reasm/off_reg[11]_i_2/CO[2]}'.
+WARNING: [Vivado 12-1023] No nets matched for command 'get_nets -of_objects {u_eth/u_reasm/off_reg[11]_i_2/CO[1]}'.
+WARNING: [Vivado 12-1023] No nets matched for command 'get_nets -of_objects {u_eth/u_reasm/off_reg[11]_i_2/CO[0]}'.
+WARNING: [Vivado 12-1023] No nets matched for command 'get_nets -of_objects {u_eth/u_reasm/off_reg[15]_i_3/CO[2]}'.
+WARNING: [Vivado 12-1023] No nets matched for command 'get_nets -of_objects {u_eth/u_reasm/off_reg[15]_i_3/CO[1]}'.
+WARNING: [Vivado 12-1023] No nets matched for command 'get_nets -of_objects {u_eth/u_reasm/off_reg[15]_i_3/CO[0]}'.
+WARNING: [Vivado 12-1023] No nets matched for command 'get_nets -of_objects {u_eth/u_reasm/off_reg[19]_i_2/CO[2]}'.
+WARNING: [Vivado 12-1023] No nets matched for command 'get_nets -of_objects {u_eth/u_reasm/off_reg[19]_i_2/CO[1]}'.
+WARNING: [Vivado 12-1023] No nets matched for command 'get_nets -of_objects {u_eth/u_reasm/off_reg[19]_i_2/CO[0]}'.
+WARNING: [Vivado 12-1023] No nets matched for command 'get_nets -of_objects {u_eth/u_reasm/off_reg[23]_i_3/CO[2]}'.
+WARNING: [Vivado 12-1023] No nets matched for command 'get_nets -of_objects {u_eth/u_reasm/off_reg[23]_i_3/CO[1]}'.
+WARNING: [Vivado 12-1023] No nets matched for command 'get_nets -of_objects {u_eth/u_reasm/off_reg[23]_i_3/CO[0]}'.
+WARNING: [Vivado 12-1023] No nets matched for command 'get_nets -of_objects {u_eth/u_reasm/off_reg[27]_i_2/CO[2]}'.
+WARNING: [Vivado 12-1023] No nets matched for command 'get_nets -of_objects {u_eth/u_reasm/off_reg[27]_i_2/CO[1]}'.
+WARNING: [Vivado 12-1023] No nets matched for command 'get_nets -of_objects {u_eth/u_reasm/off_reg[27]_i_2/CO[0]}'.
+WARNING: [Vivado 12-1023] No nets matched for command 'get_nets -of_objects {u_eth/u_reasm/off_reg[31]_i_3/CO[3]}'.
+WARNING: [Vivado 12-1023] No nets matched for command 'get_nets -of_objects {u_eth/u_reasm/off_reg[31]_i_3/CO[2]}'.
+WARNING: [Vivado 12-1023] No nets matched for command 'get_nets -of_objects {u_eth/u_reasm/off_reg[31]_i_3/CO[1]}'.
+WARNING: [Vivado 12-1023] No nets matched for command 'get_nets -of_objects {u_eth/u_reasm/off_reg[31]_i_3/CO[0]}'.
+WARNING: [Vivado 12-1023] No nets matched for command 'get_nets -of_objects {u_eth/u_reasm/off_reg[3]_i_2/CO[2]}'.
+WARNING: [Vivado 12-1023] No nets matched for command 'get_nets -of_objects {u_eth/u_reasm/off_reg[3]_i_2/CO[1]}'.
+WARNING: [Vivado 12-1023] No nets matched for command 'get_nets -of_objects {u_eth/u_reasm/off_reg[3]_i_2/CO[0]}'.
+WARNING: [Vivado 12-1023] No nets matched for command 'get_nets -of_objects {u_eth/u_reasm/off_reg[7]_i_3/CO[2]}'.
+WARNING: [Vivado 12-1023] No nets matched for command 'get_nets -of_objects {u_eth/u_reasm/off_reg[7]_i_3/CO[1]}'.
+WARNING: [Vivado 12-1023] No nets matched for command 'get_nets -of_objects {u_eth/u_reasm/off_reg[7]_i_3/CO[0]}'.
+WARNING: [Vivado 12-1023] No nets matched for command 'get_nets -of_objects {u_eth/u_reasm/pend_reg[12]_i_2/CO[2]}'.
+WARNING: [Vivado 12-1023] No nets matched for command 'get_nets -of_objects {u_eth/u_reasm/pend_reg[12]_i_2/CO[1]}'.
+WARNING: [Vivado 12-1023] No nets matched for command 'get_nets -of_objects {u_eth/u_reasm/pend_reg[12]_i_2/CO[0]}'.
+WARNING: [Vivado 12-1023] No nets matched for command 'get_nets -of_objects {u_eth/u_reasm/pend_reg[16]_i_2/CO[2]}'.
+WARNING: [Vivado 12-1023] No nets matched for command 'get_nets -of_objects {u_eth/u_reasm/pend_reg[16]_i_2/CO[1]}'.
+WARNING: [Vivado 12-1023] No nets matched for command 'get_nets -of_objects {u_eth/u_reasm/pend_reg[16]_i_2/CO[0]}'.
+WARNING: [Vivado 12-1023] No nets matched for command 'get_nets -of_objects {u_eth/u_reasm/pend_reg[18]_i_6/CO[3]}'.
+WARNING: [Vivado 12-1023] No nets matched for command 'get_nets -of_objects {u_eth/u_reasm/pend_reg[18]_i_6/CO[2]}'.
+WARNING: [Vivado 12-1023] No nets matched for command 'get_nets -of_objects {u_eth/u_reasm/pend_reg[18]_i_6/CO[1]}'.
+WARNING: [Vivado 12-1023] No nets matched for command 'get_nets -of_objects {u_eth/u_reasm/pend_reg[18]_i_6/CO[0]}'.
+WARNING: [Vivado 12-1023] No nets matched for command 'get_nets -of_objects {u_eth/u_reasm/pend_reg[18]_i_6/O[3]}'.
+WARNING: [Vivado 12-1023] No nets matched for command 'get_nets -of_objects {u_eth/u_reasm/pend_reg[18]_i_6/O[2]}'.
+WARNING: [Vivado 12-1023] No nets matched for command 'get_nets -of_objects {u_eth/u_reasm/pend_reg[4]_i_2/CO[2]}'.
+WARNING: [Vivado 12-1023] No nets matched for command 'get_nets -of_objects {u_eth/u_reasm/pend_reg[4]_i_2/CO[1]}'.
+WARNING: [Vivado 12-1023] No nets matched for command 'get_nets -of_objects {u_eth/u_reasm/pend_reg[4]_i_2/CO[0]}'.
+WARNING: [Vivado 12-1023] No nets matched for command 'get_nets -of_objects {u_eth/u_reasm/pend_reg[8]_i_2/CO[2]}'.
+WARNING: [Vivado 12-1023] No nets matched for command 'get_nets -of_objects {u_eth/u_reasm/pend_reg[8]_i_2/CO[1]}'.
+WARNING: [Vivado 12-1023] No nets matched for command 'get_nets -of_objects {u_eth/u_reasm/pend_reg[8]_i_2/CO[0]}'.
+WARNING: [Vivado 12-1023] No nets matched for command 'get_nets -of_objects {u_eth/u_reasm/pkt_pay_reg[0]_i_2/CO[2]}'.
+WARNING: [Vivado 12-1023] No nets matched for command 'get_nets -of_objects {u_eth/u_reasm/pkt_pay_reg[0]_i_2/CO[1]}'.
+WARNING: [Vivado 12-1023] No nets matched for command 'get_nets -of_objects {u_eth/u_reasm/pkt_pay_reg[0]_i_2/CO[0]}'.
+WARNING: [Vivado 12-1023] No nets matched for command 'get_nets -of_objects {u_eth/u_reasm/pkt_pay_reg[12]_i_1/CO[2]}'.
+WARNING: [Vivado 12-1023] No nets matched for command 'get_nets -of_objects {u_eth/u_reasm/pkt_pay_reg[12]_i_1/CO[1]}'.
+WARNING: [Vivado 12-1023] No nets matched for command 'get_nets -of_objects {u_eth/u_reasm/pkt_pay_reg[12]_i_1/CO[0]}'.
+WARNING: [Vivado 12-1023] No nets matched for command 'get_nets -of_objects {u_eth/u_reasm/pkt_pay_reg[16]_i_1/CO[2]}'.
+WARNING: [Vivado 12-1023] No nets matched for command 'get_nets -of_objects {u_eth/u_reasm/pkt_pay_reg[16]_i_1/CO[1]}'.
+WARNING: [Vivado 12-1023] No nets matched for command 'get_nets -of_objects {u_eth/u_reasm/pkt_pay_reg[16]_i_1/CO[0]}'.
+WARNING: [Vivado 12-1023] No nets matched for command 'get_nets -of_objects {u_eth/u_reasm/pkt_pay_reg[20]_i_1/CO[2]}'.
+WARNING: [Vivado 12-1023] No nets matched for command 'get_nets -of_objects {u_eth/u_reasm/pkt_pay_reg[20]_i_1/CO[1]}'.
+WARNING: [Vivado 12-1023] No nets matched for command 'get_nets -of_objects {u_eth/u_reasm/pkt_pay_reg[20]_i_1/CO[0]}'.
+WARNING: [Vivado 12-1023] No nets matched for command 'get_nets -of_objects {u_eth/u_reasm/pkt_pay_reg[24]_i_1/CO[2]}'.
+WARNING: [Vivado 12-1023] No nets matched for command 'get_nets -of_objects {u_eth/u_reasm/pkt_pay_reg[24]_i_1/CO[1]}'.
+WARNING: [Vivado 12-1023] No nets matched for command 'get_nets -of_objects {u_eth/u_reasm/pkt_pay_reg[24]_i_1/CO[0]}'.
+WARNING: [Vivado 12-1023] No nets matched for command 'get_nets -of_objects {u_eth/u_reasm/pkt_pay_reg[28]_i_1/CO[3]}'.
+WARNING: [Vivado 12-1023] No nets matched for command 'get_nets -of_objects {u_eth/u_reasm/pkt_pay_reg[28]_i_1/CO[2]}'.
+WARNING: [Vivado 12-1023] No nets matched for command 'get_nets -of_objects {u_eth/u_reasm/pkt_pay_reg[28]_i_1/CO[1]}'.
+WARNING: [Vivado 12-1023] No nets matched for command 'get_nets -of_objects {u_eth/u_reasm/pkt_pay_reg[28]_i_1/CO[0]}'.
+WARNING: [Vivado 12-1023] No nets matched for command 'get_nets -of_objects {u_eth/u_reasm/pkt_pay_reg[4]_i_1/CO[2]}'.
+WARNING: [Vivado 12-1023] No nets matched for command 'get_nets -of_objects {u_eth/u_reasm/pkt_pay_reg[4]_i_1/CO[1]}'.
+WARNING: [Vivado 12-1023] No nets matched for command 'get_nets -of_objects {u_eth/u_reasm/pkt_pay_reg[4]_i_1/CO[0]}'.
+WARNING: [Vivado 12-1023] No nets matched for command 'get_nets -of_objects {u_eth/u_reasm/pkt_pay_reg[8]_i_1/CO[2]}'.
+WARNING: [Vivado 12-1023] No nets matched for command 'get_nets -of_objects {u_eth/u_reasm/pkt_pay_reg[8]_i_1/CO[1]}'.
+WARNING: [Vivado 12-1023] No nets matched for command 'get_nets -of_objects {u_eth/u_reasm/pkt_pay_reg[8]_i_1/CO[0]}'.
+WARNING: [Vivado 12-1023] No nets matched for command 'get_nets -of_objects {u_eth/u_reasm/rows_hit_reg[12]_i_2/CO[2]}'.
+WARNING: [Vivado 12-1023] No nets matched for command 'get_nets -of_objects {u_eth/u_reasm/rows_hit_reg[12]_i_2/CO[1]}'.
+WARNING: [Vivado 12-1023] No nets matched for command 'get_nets -of_objects {u_eth/u_reasm/rows_hit_reg[12]_i_2/CO[0]}'.
+WARNING: [Vivado 12-1023] No nets matched for command 'get_nets -of_objects {u_eth/u_reasm/rows_hit_reg[15]_i_4/CO[3]}'.
+WARNING: [Vivado 12-1023] No nets matched for command 'get_nets -of_objects {u_eth/u_reasm/rows_hit_reg[15]_i_4/CO[2]}'.
+WARNING: [Vivado 12-1023] No nets matched for command 'get_nets -of_objects {u_eth/u_reasm/rows_hit_reg[15]_i_4/CO[1]}'.
+WARNING: [Vivado 12-1023] No nets matched for command 'get_nets -of_objects {u_eth/u_reasm/rows_hit_reg[15]_i_4/CO[0]}'.
+WARNING: [Vivado 12-1023] No nets matched for command 'get_nets -of_objects {u_eth/u_reasm/rows_hit_reg[15]_i_4/O[3]}'.
+WARNING: [Vivado 12-1023] No nets matched for command 'get_nets -of_objects {u_eth/u_reasm/rows_hit_reg[4]_i_2/CO[2]}'.
+WARNING: [Vivado 12-1023] No nets matched for command 'get_nets -of_objects {u_eth/u_reasm/rows_hit_reg[4]_i_2/CO[1]}'.
+WARNING: [Vivado 12-1023] No nets matched for command 'get_nets -of_objects {u_eth/u_reasm/rows_hit_reg[4]_i_2/CO[0]}'.
+WARNING: [Vivado 12-1023] No nets matched for command 'get_nets -of_objects {u_eth/u_reasm/rows_hit_reg[8]_i_2/CO[2]}'.
+WARNING: [Vivado 12-1023] No nets matched for command 'get_nets -of_objects {u_eth/u_reasm/rows_hit_reg[8]_i_2/CO[1]}'.
+WARNING: [Vivado 12-1023] No nets matched for command 'get_nets -of_objects {u_eth/u_reasm/rows_hit_reg[8]_i_2/CO[0]}'.
+INFO: [Common 17-14] Message 'Vivado 12-1023' appears 100 times and further instances of the messages will be disabled. Use the Tcl command set_msg_config to change the current settings.
+# set pairs {}
+# foreach n [array names best] { lappend pairs [list $best($n) $n] }
+# set pairs [lsort -decreasing -integer -index 0 $pairs]
+# set i 0
+# foreach pr $pairs {
+#     if {$i >= 6} break
+#     puts "  fo=[format %5d [lindex $pr 0]]  [lindex $pr 1]"
+#     incr i
+# }
+  fo=  547  u_eth/u_reasm/wr_en_reg_1
+  fo=  547  u_eth/u_reasm/gmii_rx_clk
+  fo=  314  u_eth/u_reasm/<const1>
+  fo=  305  u_eth/u_reasm/rok4[51]_i_1_n_0
+  fo=  214  u_eth/u_reasm/<const0>
+  fo=  133  u_eth/u_reasm/hdr[10]
+# puts "  NETS counted in B: [llength $pairs]  (floor: 0 means B idled)"
+  NETS counted in B: 1593  (floor: 0 means B idled)
+# puts "=== C placement spread ==="
+=== C placement spread ===
+# set pf [get_cells -quiet u_eth/u_rx_par/p_eof_reg]
+# set pr [get_pins -quiet u_eth/u_rx_par/p_eof_reg/Q]
+# set net [get_nets -of_objects $pr]
+# puts "  p_eof_reg SITE = [get_property SITE $pf]"
+  p_eof_reg SITE = SLICE_X57Y34
+# puts "  p_eof net PINS = [llength [get_pins -of_objects $net]]"
+  p_eof net PINS = 8
+# set sites {}
+# foreach c [get_cells -quiet {u_eth/u_reasm/rows_hit_reg[*]}] {
+#     lappend sites [get_property SITE $c]
+# }
+# puts "  rows_hit sites = $sites"
+  rows_hit sites = SLICE_X31Y33 SLICE_X28Y35 SLICE_X28Y35 SLICE_X28Y36 SLICE_X28Y36 SLICE_X28Y36 SLICE_X28Y36 SLICE_X31Y33 SLICE_X31Y33 SLICE_X31Y33 SLICE_X28Y34 SLICE_X28Y34 SLICE_X28Y34 SLICE_X28Y34 SLICE_X28Y35 SLICE_X28Y35
+# set rpsites {}
+# foreach c [get_cells -quiet {u_eth/u_rx_par/*_reg*}] {
+#     if {[llength $rpsites] >= 400} break
+#     lappend rpsites [get_property SITE $c]
+# }
+# puts "  rx_par site samples ([llength $rpsites]) head = [lrange $rpsites 0 7]"
+  rx_par site samples (185) head = SLICE_X65Y34 SLICE_X55Y29 SLICE_X55Y34 SLICE_X55Y33 SLICE_X55Y32 SLICE_X55Y31 SLICE_X55Y30 SLICE_X67Y30
+# set rxcells [get_cells -quiet u_eth/u_rx_par/*]
+# puts "  CELLS in u_rx_par: [llength $rxcells]"
+  CELLS in u_rx_par: 343
+# exit 0
+INFO: [Common 17-206] Exiting Vivado at Sat Oct  3 08:59:24 2026...

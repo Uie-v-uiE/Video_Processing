@@ -1,0 +1,137 @@
+--- build/tcl/pb113_roll.tcl	2026-10-03 09:06:43.715425800 +0800
++++ build/tcl/pb113_roll2.tcl	2026-10-03 09:28:39.956938100 +0800
+@@ -1,57 +1,80 @@
+-# build/tcl/pb113_roll.tcl —— r113 物理单变量实验的一"滚"（#253/#252 的 ②）
+-#
+-#   PB_MODE=none   PB_OUT=/tmp/kx/pb113/A  vivado -mode batch -nojournal -source build/tcl/pb113_roll.tcl
+-#   PB_MODE=pblock PB_OUT=/tmp/kx/pb113/B  ...
+-#
+-# 为什么要它：这一族（`p_eof → u_reasm/rows_hit_reg[*]/CE`）三次构建读出 2.006 / >1.174 / 0.445 ns，
+-#   逻辑级数一直是 4，route 一直占 81~84 %，而 r110→r112 之间它的 RTL 一个字节没动（#253）⇒
+-#   这不是算术问题，是**距离**问题：起点 SLICE_X57Y34（u_rx_par，343 cells，落在 X55~X67），
+-#   终点整片 rows_hit 在 SLICE_X28Y34~X31Y35（u_reasm，1377 cells）。凭据 `build/r112_reasm_probe.txt`。
+-# 纪律（#223）：**只动一个变量** = 有没有那块 Pblock。两个 roll 都从同一份
+-#   `vivado_system/zynq_video_sys.runs/impl_1/system_top_opt.dcp` 起跑，都用裸 `place_design`/`route_design`
+-#   （不带 directive，两边一致），都**跳过 phys_opt**（#94 已量过：零违反设计上 post-route phys_opt 结构性空转，
+-#   两 roll 一起省掉不改变对照）。
+-# 不写盘上任何被跟踪件：产物全部落 $PB_OUT（默认 /tmp/kx/pb113/）。构建产物（runs 目录里的 dcp/bit）一个字节的碰不到。
+-# ⚠ 计数地板：Pblock 里 cell 数或 site 数为 0 ⇒ PB-REFUSE 并 exit 4 —— 不然"空 Pblock"会伪装成"加了 Pblock 也没差别"。
+-# 运行时 puts 标签一律 ASCII（Vivado Tcl 的 CJK puts 会污染 grep 与命令替换，已栽过）。
++# build/tcl/pb113_roll2.tcl —— 与 pb113_roll.tcl 同一件事，只多一个"site 矩形写法自取"的小循环。
++#   为什么要 v2：`get_site_types` 在这个 Vivado 里**不存在**（凭据 /tmp/kx/sitetypes.txt：
++#   `invalid command name "get_site_types"`），所以 7 系的 Pblock 矩形到底该写
++#   CLBLM_L_X40Y20:CLBLM_R_X66Y52 还是 SLICE_X40Y20:SLICE_X66Y52，我不靠猜——
++#   逐个 `catch` 试，第一个不报错的就用，并把"用了哪个"打进日志（这条本身是判据的一部分）。
++#   ⚠ 不直接改 pb113_roll.tcl：roll A 正在执行那份件（#251 的教训：别动在飞的那份）。
++# 其余口径与 pb113_roll.tcl 完全一致：同一份 opt.dcp、裸 place/route、跳过 phys_opt、产物只落 $PB_OUT。
+ set root [file normalize [file join [file dirname [info script]] .. ..]]
+ set dcp  [file join $root "vivado_system/zynq_video_sys.runs/impl_1/system_top_opt.dcp"]
+ if {![file exists $dcp]} { puts "REFUSE: no such dcp: $dcp"; exit 1 }
+-# ⚠ 第一版在这里写的是 `set mode [expr {info exists ::env(PB_MODE) ? ... : "none"}]`，
+-#   Vivado 的 Tcl 直接报 `invalid bareword "info" in expression` 就退出了（凭据：
+-#   build/evidence/r113_pblock_ab.txt 里那条 ABORT——地板抓到了断链，没有伪造对照）。改成 if/else。
+ if {[info exists ::env(PB_MODE)]} { set mode $::env(PB_MODE) } else { set mode none }
+ if {[info exists ::env(PB_OUT)]}  { set out  $::env(PB_OUT)  } else { set out [file join $root "build/tmp_r113_roll"] }
+ file mkdir $out
+-puts "ROLL mode=$mode dcp=$dcp out=$out"
++puts "ROLL2 mode=$mode dcp=$dcp out=$out"
+ open_checkpoint $dcp
+ 
+ if {$mode eq "pblock"} {
+     create_pblock PB_ETH
+     set pb [get_pblocks PB_ETH]
+     set targets [get_cells -quiet [list u_eth/u_rx_par u_eth/u_reasm]]
+-    puts "PB_TARGETS=[llength $targets] (expect 2: rx_par + reasm; 0 means a wrong name)"
++    puts "PB_TARGETS=[llength $targets] (expect 2)"
+     if {[llength $targets] == 0} { puts "PB-REFUSE: empty target collection"; exit 4 }
+     add_cells_to_pblock $pb $targets
+-    # 矩形挑在两个模块之间偏 rx_par 一侧：X40~X66（rows_hit 现在在 X28~X31，硬把它们拽到收包这一侧）。
+-    # 列 27 × 行 33 ≈ 891 个 slice ≈ 7100 logic cells 容量，要装的是 343+1377=1720 cells。
+-    if {[catch {resize_pblock $pb -add {CLBLM_L_X40Y20:CLBLM_R_X66Y52}} e]} {
+-        puts "PB-REFUSE: resize failed: $e"; exit 4
++    set ok ""
++    foreach cand {SLICE_X40Y20:SLICE_X66Y52
++                  CLBLM_L_X40Y20:CLBLM_R_X66Y52
++                  SLICEL_X40Y20:SLICEM_X66Y52
++                  CLBLL_L_X40Y20:CLBLM_R_X66Y52} {
++        if {![catch {resize_pblock $pb -add $cand}]} { set ok $cand; break }
++        puts "PB_TRY_REJECTED $cand"
+     }
+-    puts "PB_CELLS=[llength [get_cells -quiet -of_objects $pb]]"
+-    puts "PB_RANGE=[get_property RANGE $pb]"
+-    # PB_SITES 只**报数不当门**：`get_sites -of_objects` 对 pblock 的支持我还没实测过，
+-    # 拿它当硬地板会把一次合法的实验误判成"空 Pblock"（假拒绝）。真正的地板是 PB_CELLS 和 RANGE。
+-    puts "PB_SITES=[llength [get_sites -quiet -of_objects $pb]] (advisory)"
+-    if {[llength [get_cells -quiet -of_objects $pb]] == 0} { puts "PB-REFUSE: pblock holds 0 cells"; exit 4 }
+-    if {[get_property RANGE $pb] eq ""} { puts "PB-REFUSE: pblock has no RANGE (resize didn't take)"; exit 4 }
++    if {$ok eq ""} { puts "PB-REFUSE: 四种矩形写法全被拒"; exit 4 }
++    puts "PB_RANGE_USED $ok"
++    puts "PB_CELLS=[llength [get_cells -quiet -of_objects $pb]] (这是**被加进去的实例数**，不是叶子数)"
++    # ⚠ 上一版在这里用 `[get_property RANGE $pb] eq ""` 当硬地板，结果**误拒**了一次合法的实验：
++    #   这个属性在 2025.2.1 上是空串（凭据 /tmp/kx/pb113/B_roll_console.txt 的 `PB_RANGE=` 空行 +
++    #   `PB-REFUSE: pblock has no RANGE`，而 resize 本身是成功的，工具只提示"范围已按 tile 对齐"）。
++    #   教训与 #12 同族：**检查器自己的存在性测试要用真的取得到的东西喂它**，属性名猜错就等于把真状态当假状态。
++    #   现在改成量"真生效"：place 之后数目标里每个有 SITE 的 cell 是否落在 Pblock 的 site 集内。
++    set psites [get_sites -quiet -of_objects $pb]
++    puts "PB_SITES=[llength $psites]"
++    foreach s $psites { set INSITE($s) 1 }
++    set XLO 38; set XHI 68; set YLO 18; set YHI 54   ;# 40~66/20~52 按 tile 对齐后的放宽窗（方法 2 才用）
+ }
+ 
++# 变量放在环境里，一个脚本能跑任意"单变量滚"：
++#   PB_MODE=none/pblock   加不加那块 Pblock（roll A / roll B）
++#   PLACE_DIR / ROUTE_DIR 实现指令名，空 = 裸命令（roll C：只换指令，不动 Pblock）
++#   ⚠ roll B 实测**没做成单变量**：`Place 30-439` 警告 carry chain 半在块内半在块外，
++#      我的落点地板量到 `PB_CONTAIN total=1716 inside=1461` ⇒ 255 个 cell 跑到块外，
++#      脚本按 REFUSE 交红（凭据 /tmp/kx/pb113/B_roll_console.txt）。这块 Pblock 的**表达式**不成立，
++#      不等于"Pblock 这条路不成立"——要修就得把共享 carry chain 的 `u_rx_mac` 一起收进来（下一滚）。
++if {[info exists ::env(PLACE_DIR)] && $::env(PLACE_DIR) ne ""} { set pd $::env(PLACE_DIR) } else { set pd "" }
++if {[info exists ::env(ROUTE_DIR)] && $::env(ROUTE_DIR) ne ""} { set rd $::env(ROUTE_DIR) } else { set rd "" }
++puts "VARS place_directive={$pd} route_directive={$rd} pblock={$mode}"
++
+ set t0 [clock seconds]
+-place_design
++if {$pd eq ""} { place_design } else { place_design -directive $pd }
+ puts "PLACE_WALL=[expr ([clock seconds]-$t0)/60]m"
++if {$mode eq "pblock"} {
++    set tot 0; set inside 0; set bad ""
++    foreach c [get_cells -hier -quiet -filter "NAME =~ u_eth/u_reasm/* || NAME =~ u_eth/u_rx_par/*"] {
++        set s [get_property SITE $c]
++        if {$s eq ""} continue
++        incr tot
++        if {[info exists INSITE($s)]} { incr inside; continue }
++        if {[llength $psites] == 0 && [regexp {_X(\d+)Y(\d+)$} $s -> x y]
++            && $x >= $XLO && $x <= $XHI && $y >= $YLO && $y <= $YHI} { incr inside; continue }
++        if {[llength $bad] < 6} { lappend bad "$c=$s" }
++    }
++    puts "PB_METHOD sites_membership=[expr {[llength $psites] > 0 ? 1 : 0}]"
++    puts "PB_CONTAIN total=$tot inside=$inside outside_list=[join $bad ,]"
++    if {$tot == 0} { puts "PB-REFUSE: 目标里一个带 SITE 的 cell 都没数到（探针空转，不许当通过）"; exit 4 }
++    if {$inside != $tot} { puts "PB-REFUSE: Pblock 没真兜住（$tot 个里 [expr {$tot-$inside}] 个在外）"; exit 4 }
++}
+ set t1 [clock seconds]
+-route_design
++if {$rd eq ""} { route_design } else { route_design -directive $rd }
+ puts "ROUTE_WALL=[expr ([clock seconds]-$t1)/60]m"
+ 
+ report_timing_summary -file [file join $out timing_summary.rpt]
+@@ -59,7 +82,6 @@
+ report_utilization -file [file join $out util.rpt]
+ report_route_status -file [file join $out route_status.rpt]
+ 
+-# 族级读数（这一刀的判据本身，不是全局 WNS）
+ set tos [get_cells -quiet {u_eth/u_reasm/rows_hit_reg[*]}]
+ set froms [get_cells -quiet u_eth/u_rx_par/p_eof_reg]
+ puts "FAM_SETS from=[llength $froms] to=[llength $tos]"
+@@ -69,8 +91,6 @@
+ } else {
+     puts "FAM-SKIP: empty collection (family.rpt not written)"
+ }
+-
+-# 落点跨度（同一个变量下要看得见"距离有没有真的缩短"）
+ puts "SITE p_eof_reg = [get_property SITE [get_cells -quiet u_eth/u_rx_par/p_eof_reg]]"
+ set sites {}
+ foreach c [get_cells -quiet {u_eth/u_reasm/rows_hit_reg[*]}] { lappend sites [get_property SITE $c] }
+# 注：roll A 用 v1（build/tcl/pb113_roll.tcl），roll B/C 用 v2（本 diff 的 + 侧）。
+#   v2 相对 v1 **被执行到的**命令只差 place_design 的 -directive（与 route 那一行同理）；其余增行全在 pblock 分支与 VARS 标签行里。
+#   ⚠ 这份 diff 在我 09:4x 又改过 roll2 之后重跑过一次——引用 diff 件必须看它自己的生成时间，别拿旧的当现在的。

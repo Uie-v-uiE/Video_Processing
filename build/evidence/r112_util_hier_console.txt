@@ -1,0 +1,118 @@
+
+****** Vivado v2025.2.1 (64-bit)
+  **** SW Build 6403652 on Thu Mar 19 19:48:24 GMT 2026
+  **** IP Build 6403511 on Thu Mar 19 12:41:45 MDT 2026
+  **** SharedData Build 6403650 on Thu Mar 19 14:02:13 MDT 2026
+  **** Start of session at: Sat Oct  3 09:12:39 2026
+    ** Copyright 1986-2022 Xilinx, Inc. All Rights Reserved.
+    ** Copyright 2022-2026 Advanced Micro Devices, Inc. All Rights Reserved.
+
+source build/tcl/probe_util_hier.tcl
+# set root [file normalize [file join [file dirname [info script]] .. ..]]
+# set dcp  [file join $root "vivado_system/zynq_video_sys.runs/impl_1/system_top_routed.dcp"]
+# set rpt  [file join $root "build/util_hier_probe.rpt"]
+# if {![file exists $dcp]} { puts "REFUSE: no dcp $dcp"; exit 1 }
+# open_checkpoint $dcp
+Command: open_checkpoint D:/Xilinx/Prj/pro/Video_Processing/vivado_system/zynq_video_sys.runs/impl_1/system_top_routed.dcp
+
+Starting open_checkpoint Task
+
+Time (s): cpu = 00:00:00 ; elapsed = 00:00:00.079 . Memory (MB): peak = 325.512 ; gain = 0.000
+INFO: [Device 21-403] Loading part xc7z020clg484-2
+Netlist sorting complete. Time (s): cpu = 00:00:00 ; elapsed = 00:00:00.410 . Memory (MB): peak = 818.871 ; gain = 0.000
+INFO: [Netlist 29-17] Analyzing 2897 Unisim elements for replacement
+INFO: [Netlist 29-28] Unisim Transformation completed in 2 CPU seconds
+INFO: [Project 1-479] Netlist was created with Vivado 2025.2.1
+INFO: [Project 1-570] Preparing netlist for logic optimization
+Read ShapeDB Complete: Time (s): cpu = 00:00:01 ; elapsed = 00:00:00.250 . Memory (MB): peak = 964.418 ; gain = 7.523
+INFO: [Timing 38-478] Restoring timing data from binary archive.
+INFO: [Timing 38-479] Binary timing data restore complete.
+INFO: [Project 1-856] Restoring constraints from binary archive.
+INFO: [Project 1-853] Binary constraint restore complete.
+INFO: [Designutils 20-5722] Start Reading Physical Databases.
+Reading placement.
+Read Netlist Cache: Time (s): cpu = 00:00:00 ; elapsed = 00:00:00.053 . Memory (MB): peak = 1593.855 ; gain = 0.000
+Reading placer database...
+Read Device Cache: Time (s): cpu = 00:00:00 ; elapsed = 00:00:00.032 . Memory (MB): peak = 1593.855 ; gain = 0.000
+Read PlaceDB: Time (s): cpu = 00:00:00 ; elapsed = 00:00:00 . Memory (MB): peak = 1593.855 ; gain = 0.000
+Read placeStorage: Time (s): cpu = 00:00:01 ; elapsed = 00:00:02 . Memory (MB): peak = 1596.992 ; gain = 3.137
+Read PulsedLatchDB: Time (s): cpu = 00:00:00 ; elapsed = 00:00:00 . Memory (MB): peak = 1596.992 ; gain = 0.000
+Reading routing.
+Read RouteStorage: Time (s): cpu = 00:00:01 ; elapsed = 00:00:00.542 . Memory (MB): peak = 1612.539 ; gain = 15.547
+Read Physdb Files: Time (s): cpu = 00:00:02 ; elapsed = 00:00:02 . Memory (MB): peak = 1612.539 ; gain = 18.684
+Restored from archive | CPU: 2.000000 secs | Memory: 0.000000 MB |
+Finished XDEF File Restore: Time (s): cpu = 00:00:02 ; elapsed = 00:00:02 . Memory (MB): peak = 1612.539 ; gain = 18.684
+Netlist sorting complete. Time (s): cpu = 00:00:00 ; elapsed = 00:00:00.017 . Memory (MB): peak = 1635.941 ; gain = 0.000
+INFO: [Project 1-111] Unisim Transformation Summary:
+  A total of 1035 instances were transformed.
+  RAM128X1D => RAM128X1D (MUXF7(x2), RAMD64E(x4)): 336 instances
+  RAM64M => RAM64M (RAMD64E(x4)): 651 instances
+  RAM64X1D => RAM64X1D (RAMD64E(x2)): 48 instances
+
+INFO: [Project 1-604] Checkpoint was created with Vivado v2025.2.1 (64-bit) build 6403652
+open_checkpoint: Time (s): cpu = 00:00:45 ; elapsed = 00:00:41 . Memory (MB): peak = 1643.973 ; gain = 1326.621
+# puts "DCP_MTIME [clock format [file mtime $dcp] -format %F_%T]"
+DCP_MTIME %F_08:42:25
+# report_utilization -hierarchical -hierarchical_depth 3 -file $rpt
+# if {![file exists $rpt]} { puts "REFUSE: report_utilization wrote nothing"; exit 1 }
+# puts "WROTE $rpt"
+WROTE D:/Xilinx/Prj/pro/Video_Processing/build/util_hier_probe.rpt
+# set fh [open $rpt r]
+# set txt [read $fh]
+# close $fh
+# set want 0
+# foreach line [split $txt "\n"] {
+#     set t [string trim $line]
+#     if {[regexp {(u_reasm|u_icmp|u_osd|u_lm|u_crc_rx)} $t]} { set want 1 }
+#     if {$want} { puts "HIER> [string range $t 0 118]" }
+#     if {$want && $t eq ""} { set want 0 }
+# }
+HIER> |     u_icmp       |                       icmp |        785 |        785 |       0 |    0 |  675 |      0 |      0 |  
+HIER> |       u_icmp_rx  |                    icmp_rx |        248 |        248 |       0 |    0 |  281 |      0 |      0 |  
+HIER> |       u_icmp_tx  |                    icmp_tx |        506 |        506 |       0 |    0 |  362 |      0 |      0 |  
+HIER> |     u_lm         |               link_monitor |        210 |        210 |       0 |    0 |  539 |      0 |      0 |  
+HIER> |     u_reasm      |                frame_reasm |        668 |        668 |       0 |    0 |  546 |      0 |      0 |  
+HIER> |     u_rgmii      |              gmii_to_rgmii |         74 |         74 |       0 |    0 |    0 |      0 |      0 |  
+HIER> |       u_rgmii_rx |                   rgmii_rx |         74 |         74 |       0 |    0 |    0 |      0 |      0 |  
+HIER> |     u_rx_mac     |                gmii_rx_mac |         53 |         53 |       0 |    0 |   64 |      0 |      0 |  
+HIER> |     u_rx_par     |              udp_rx_parser |        127 |        127 |       0 |    0 |  141 |      0 |      0 |  
+HIER> |     u_saver      |          axi_frame_saver64 |       1250 |        322 |     928 |    0 |  242 |      0 |      0 |  
+HIER> |   u_lm_axi       |                 snap_cross |        106 |        106 |       0 |    0 |  287 |      0 |      0 |  
+HIER> |   u_pl           |               pl_video_top |       9593 |       6398 |    3116 |   79 | 3608 |     84 |      4 |  
+HIER> |     (u_pl)       |               pl_video_top |       3139 |        165 |    2912 |   62 |  297 |      0 |      0 |  
+HIER> |     u_ang        |                 angle_ctrl |        330 |        330 |       0 |    0 |   12 |      0 |      0 |  
+HIER> |     u_arb        |                    src_arb |         51 |         51 |       0 |    0 |   36 |      0 |      0 |  
+HIER> |     u_aw         |         axi_frame_writer64 |        115 |        115 |       0 |    0 |  192 |      0 |      0 |  
+HIER> |     u_bar        |                  test_card |        289 |        289 |       0 |    0 |   98 |      0 |      0 |  
+HIER> |     u_bilin      |                   fb_bilin |       1155 |       1154 |       0 |    1 |  342 |     80 |      2 |  
+HIER> |       (u_bilin)  |                   fb_bilin |         57 |         56 |       0 |    1 |  317 |      0 |      2 |  
+HIER> |       u_fb       |           frame_buffer_w64 |        340 |        340 |       0 |    0 |    1 |     80 |      0 |  
+HIER> |       u_lerp     |                 bilin_lerp |        759 |        759 |       0 |    0 |   24 |      0 |      0 |  
+HIER> |     u_eff        |                effect_ctrl |        134 |        134 |       0 |    0 |  102 |      0 |      0 |  
+HIER> |     u_fpsr       |                 shown_rate |         84 |         84 |       0 |    0 |   43 |      0 |      0 |  
+HIER> |     u_lat        |              frame_latency |        321 |        321 |       0 |    0 |  544 |      0 |      0 |  
+HIER> |     u_lat_x      | snap_cross__parameterized2 |        189 |        189 |       0 |    0 |   49 |      0 |      0 |  
+HIER> |     u_osd        |                osd_overlay |        456 |        456 |       0 |    0 |   68 |      0 |      1 |  
+HIER> |     u_pipe       |              proc_pipeline |       1780 |       1671 |      96 |   13 |  990 |      0 |      0 |  
+HIER> |       (u_pipe)   |              proc_pipeline |         30 |         17 |       0 |   13 |  240 |      0 |      0 |  
+HIER> |       u_bin      |                proc_binary |        120 |        120 |       0 |    0 |   17 |      0 |      0 |  
+HIER> |       u_blur     |              proc_box_blur |        441 |        441 |       0 |    0 |  199 |      0 |      0 |  
+HIER> |       u_gamma    |                  gamma_lut |        191 |         95 |      96 |    0 |    1 |      0 |      0 |  
+HIER> |       u_morph    |                 proc_morph |        151 |        151 |       0 |    0 |  126 |      0 |      0 |  
+HIER> |       u_sharp    |               proc_sharpen |        383 |        383 |       0 |    0 |  183 |      0 |      0 |  
+HIER> |       u_sobel    |                 proc_sobel |        411 |        411 |       0 |    0 |  191 |      0 |      0 |  
+HIER> |     u_row        |     axi_frame_writer_gated |        436 |        328 |     108 |    0 |  247 |      0 |      0 |  
+HIER> |     u_split_ctrl |                 split_ctrl |        345 |        345 |       0 |    0 |   43 |      0 |      0 |  
+HIER> |     u_split_x    | snap_cross__parameterized1 |         55 |         55 |       0 |    0 |   24 |      0 |      0 |  
+HIER> |     u_t          |      video_timing_1024x600 |         96 |         96 |       0 |    0 |   51 |      0 |      0 |  
+HIER> |       u_t        |               video_timing |         96 |         96 |       0 |    0 |   51 |      0 |      0 |  
+HIER> |     u_zctrl      |                  zoom_ctrl |         75 |         75 |       0 |    0 |   15 |      0 |      0 |  
+HIER> |     u_zfit       |                   zoom_fit |         53 |         53 |       0 |    0 |   10 |      0 |      0 |  
+HIER> |     u_zmap       |                zoom_mapper |        304 |        304 |       0 |    0 |   63 |      0 |      0 |  
+HIER> |       (u_zmap)   |                zoom_mapper |        288 |        288 |       0 |    0 |   63 |      0 |      0 |  
+HIER> |     u_zoom_axi   | snap_cross__parameterized0 |         34 |         34 |       0 |    0 |   52 |      0 |      0 |  
+HIER> +------------------+----------------------------+------------+------------+---------+------+------+--------+--------+--
+HIER> * Note: The sum of lower-level cells may be larger than their parent cells total, due to cross-hierarchy LUT combining
+HIER> 
+# exit 0
+INFO: [Common 17-206] Exiting Vivado at Sat Oct  3 09:13:25 2026...
