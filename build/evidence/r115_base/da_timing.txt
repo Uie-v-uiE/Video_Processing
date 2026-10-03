@@ -1,0 +1,55 @@
+Copyright 1986-2022 Xilinx, Inc. All Rights Reserved. Copyright 2022-2026 Advanced Micro Devices, Inc. All Rights Reserved.
+---------------------------------------------------------------------------------------------------------------------------------------------
+| Tool Version : Vivado v.2025.2.1 (win64) Build 6403652 Thu Mar 19 19:48:24 GMT 2026
+| Date         : Sat Oct  3 22:20:56 2026
+| Host         : Uie-laptop running 64-bit major release  (build 9200)
+| Command      : report_design_analysis -timing -file D:/Xilinx/Prj/pro/Video_Processing/build/evidence/r115_base/da_timing.txt
+| Design       : system_top
+| Device       : xc7z020
+| Design State : Routed
+---------------------------------------------------------------------------------------------------------------------------------------------
+
+Report Design Analysis
+
+Table of Contents
+-----------------
+1. Setup Path Characteristics 1-1
+
+1. Setup Path Characteristics 1-1
+---------------------------------
+
++---------------------------+--------------------------------------------------------------------------------------------------+
+|      Characteristics      |                                              Path #1                                             |
++---------------------------+--------------------------------------------------------------------------------------------------+
+| Requirement               | 8.000                                                                                            |
+| Path Delay                | 7.066                                                                                            |
+| Logic Delay               | 2.936(42%)                                                                                       |
+| Net Delay                 | 4.130(58%)                                                                                       |
+| Clock Skew                | -0.123                                                                                           |
+| Slack                     | 0.739                                                                                            |
+| Clock Uncertainty         | 0.035                                                                                            |
+| Clock Pair Classification | Timed                                                                                            |
+| Clock Delay Group         | Same Clock                                                                                       |
+| Logic Levels              | 11                                                                                               |
+| Routes                    | 10                                                                                               |
+| Logical Path              | FDRE/C-(3)-LUT3-(2)-LUT4-CARRY4-CARRY4-CARRY4-LUT4-(2)-LUT5-CARRY4-CARRY4-CARRY4-LUT3-(1)-FDCE/D |
+| Start Point Clock         | eth_rxc                                                                                          |
+| End Point Clock           | eth_rxc                                                                                          |
+| DSP Block                 | None                                                                                             |
+| RAM Registers             | None-None                                                                                        |
+| IO Crossings              | 0                                                                                                |
+| Config Crossings          | 0                                                                                                |
+| SLR Crossings             | 0                                                                                                |
+| PBlocks                   | 0                                                                                                |
+| High Fanout               | 3                                                                                                |
+| ASYNC REG                 | 0                                                                                                |
+| Dont Touch                | 0                                                                                                |
+| Mark Debug                | 0                                                                                                |
+| Start Point Pin Primitive | FDRE/C                                                                                           |
+| End Point Pin Primitive   | FDCE/D                                                                                           |
+| Start Point Pin           | ip_head_reg[4][16]/C                                                                             |
+| End Point Pin             | check_buffer_reg[19]/D                                                                           |
++---------------------------+--------------------------------------------------------------------------------------------------+
+* Bounding box calculated as % of dimensions for the target device (308, 299)
+
+

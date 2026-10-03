@@ -166,6 +166,14 @@ report_timing -delay_type max -nworst 1 -max_paths 8 -file [file join $out setup
 report_timing -delay_type min -nworst 1 -max_paths 4 -file [file join $out hold_paths.rpt]
 report_utilization -file [file join $out util.rpt]
 report_route_status -file [file join $out route_status.rpt]
+# r115 加的两行（提示词 §4 E1 的名册有 13 列，其中两列来自 check_timing；
+# 没有这两行，任何快车道滚都造不出一张合法名册，只能造出一张"少列的表"——那是假的基线。
+# -verbose 是指定的口径：只有它把没约束的端口逐条点名（§2 A3 要求逐端口归因）。
+catch {check_timing -verbose -file [file join $out check_timing_verbose.txt]} ce
+puts "CHECKTIMING_ERR=$ce EXISTS=[file exists [file join $out check_timing_verbose.txt]]"
+# §7 L1 的延迟分解要用级数分布，两滚都留一份（不是只给 B）。
+catch {report_design_analysis -logic_level_distribution -file [file join $out da_levels.rpt]} dl
+puts "DA_LEVELS_ERR=$dl EXISTS=[file exists [file join $out da_levels.rpt]]"
 set frpt2 [file join $out fanout_after.rpt]
 set ferr2 no-error
 catch {report_high_fanout_nets -quiet -max_nets 40 -fanout_greater_than $minfo -file $frpt2} ferr2

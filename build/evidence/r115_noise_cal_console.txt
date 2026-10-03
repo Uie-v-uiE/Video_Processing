@@ -1,0 +1,13 @@
+[noise 22:31:50] dcp md5=4c895816c4f2  tree fp=fpver=norm1 files=80 top=56c269602e18 rtl=3969247aaf7f 
+[noise 22:31:50] 空白滚 n1 起跑
+[noise 22:38:11] 空白滚 n1 rc=0
+[noise 22:38:11] 空白滚 n2 起跑
+[noise 22:43:06] 空白滚 n2 rc=0
+NOISE N1_both_rolls          n1=2 n2=2                          want 1/1 RED
+NOISE N2_same_inputs         dcp_md5=4c895816c4f2 fp_equal=no   两滚同一份 dcp 同一棵树 RED
+NOISE N3_headline_equal      A=[0.739 0.052 0 0] B=[0.739 0.052 0 0] 逐位相等则 noise_ns=0 GREEN
+NOISE N4_worst_identity      A=[] B=[]                          最差路径身份也要相等 RED
+NOISE N5_vs_official         roll=[0.739 0.052 0 0] official_r114=[0.739 0.052 0 0] 只念不判（H3 跨构建不可比） INFO
+NOISE-SUMMARY noise_ns=0.000 cmp=equal identity=equal dcp_md5=4c895816c4f2 fp=fpver=norm1 files=80 top=56c269602e18 rtl=3969247aaf7f 
+# 口径：noise_ns 之后所有"收益"必须严格大于它才许叫收益（提示词 §3 B4/§4 D）。这个标定每个项目只做一次。
+[noise 22:43:07] 噪声底 noise_ns=0.000（件 /tmp/kx/r115_noise/noise.txt）

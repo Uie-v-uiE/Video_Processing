@@ -1,0 +1,12 @@
+ROLL mode=none minfo=200 dcp=D:/Xilinx/Prj/pro/Video_Processing/vivado_system/zynq_video_sys.runs/impl_1/system_top_opt.dcp out=C:/Users/wenqu/AppData/Local/Temp/kx/r115_fan/A
+BIG_NETS=39 roster_skipped_clock=1 roster_skipped_name=0 (from C:/Users/wenqu/AppData/Local/Temp/kx/r115_fan/A/fanout_before.rpt)
+PLACE_WALL=1m
+NETOBJS got=39 missing_after_place=0
+MF_APPLIED none (control roll: plain phys_opt_design)
+REPLICA_CELLS=0
+REPLICA_CELLS_FILTER=0
+ROUTE_WALL=3m
+CHECKTIMING_ERR= EXISTS=1
+DA_LEVELS_ERR=C:/Users/wenqu/AppData/Local/Temp/kx/r115_fan/A/da_levels.rpt EXISTS=1
+FANOUT2_ERR=C:/Users/wenqu/AppData/Local/Temp/kx/r115_fan/A/fanout_after.rpt EXISTS=1
+ROLLDONE mode=none

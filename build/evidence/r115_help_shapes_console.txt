@@ -1,0 +1,922 @@
+
+****** Vivado v2025.2.1 (64-bit)
+  **** SW Build 6403652 on Thu Mar 19 19:48:24 GMT 2026
+  **** IP Build 6403511 on Thu Mar 19 12:41:45 MDT 2026
+  **** SharedData Build 6403650 on Thu Mar 19 14:02:13 MDT 2026
+  **** Start of session at: Sat Oct  3 22:28:17 2026
+    ** Copyright 1986-2022 Xilinx, Inc. All Rights Reserved.
+    ** Copyright 2022-2026 Advanced Micro Devices, Inc. All Rights Reserved.
+
+source build/tcl/r115_help_shapes.tcl
+# foreach c {
+#     report_timing_summary report_timing report_io report_exceptions report_high_fanout_nets
+#     report_methodology report_cdc report_design_analysis report_clock_interaction
+#     report_clock_networks report_clock_utilization report_utilization report_route_status
+#     check_timing create_clock create_generated_clock set_input_delay set_output_delay
+#     set_clock_groups set_clock_uncertainty set_max_delay set_data_check set_bus_skew
+#     set_false_path set_multicycle_path report_qor_suggestions create_pblock
+#     phys_opt_design place_design route_design report_timing -help
+# } {
+#     set name [lindex [split $c " "] 0]
+#     set e none
+#     set code [catch {help $name} h]
+#     puts "HELPCMD name=$name code=$code"
+#     if {$code == 0} {
+#         foreach ln [split $h "\n"] {
+#             set t [string trim $ln]
+#             if {$t eq ""} continue
+#             if {[string match "-*" $t] || [string match "*--*" $t]} { puts "OPT|$name|$t" }
+#         }
+#     } else {
+#         puts "OPT-NONE $name err=$h"
+#     }
+# }
+HELPCMD name=report_timing_summary code=0
+OPT|report_timing_summary|------------------------------------
+OPT|report_timing_summary|-delay_type max)
+OPT|report_timing_summary|-delay_type min)
+OPT|report_timing_summary|-datasheet option is specified.
+OPT|report_timing_summary|-check_timing_verbose - (Optional) Outputs a verbose timing summary report.
+OPT|report_timing_summary|-delay_type <arg> - (Optional) Specifies the delay type to analyze when
+OPT|report_timing_summary|-no_detailed_paths - (Optional) Does not report the full timing path for
+OPT|report_timing_summary|-setup - (Optional) Checks for setup violations and same as specifying
+OPT|report_timing_summary|-delay_type max.
+OPT|report_timing_summary|-hold - (Optional) Checks for hold violations and same as specifying
+OPT|report_timing_summary|-delay_type min.
+OPT|report_timing_summary|-max_paths <arg> - (Optional) Specifies the maximum number of paths to
+OPT|report_timing_summary|-nworst <arg> - (Optional) Specifies the number of timing paths to output
+OPT|report_timing_summary|-unique_pins - (Optional) Specifies only report timing paths through each
+OPT|report_timing_summary|-inter_slr <args> (Optional) Reports the timing paths based on the
+OPT|report_timing_summary|-path_type <arg> - (Optional) Specifies the path data to output in the
+OPT|report_timing_summary|-no_reused_label - (Optional) Disables reuse information reporting in
+OPT|report_timing_summary|-input_pins - (Optional) Shows input pins in the timing path report. For
+OPT|report_timing_summary|-no_pr_attribute <arg> - (Optional) For Partial Reconfiguration (PR)
+OPT|report_timing_summary|-no_pblock - (Optional) Does not report the Pblock information when there
+OPT|report_timing_summary|-routable_nets - (Optional) Reports the number of routable nets traversed
+OPT|report_timing_summary|-slack_lesser_than <arg> - (Optional) Reports timing on paths with a
+OPT|report_timing_summary|-report_unconstrained - (Optional) Reports timing on unconstrained paths in
+OPT|report_timing_summary|-significant_digits <arg> - (Optional) Specifies the number of significant
+OPT|report_timing_summary|-no_header - (Optional) Does not add header information to the report. This
+OPT|report_timing_summary|-file <arg> - (Optional) Write the report into the specified file. This
+OPT|report_timing_summary|-append - (Optional) Appends the output of the command to the specified
+OPT|report_timing_summary|-name <arg> - (Optional) Specifies the name of the results set for the GUI.
+OPT|report_timing_summary|-return_string - (Optional) Directs the output to a Tcl string rather than
+OPT|report_timing_summary|-warn_on_violation - (Optional) Specifies that Vivado Design Suite
+OPT|report_timing_summary|-datasheet - (Optional) Generates data sheet information to add to the
+OPT|report_timing_summary|-cells <arg> - (Option) Generates the timing summary report on the
+OPT|report_timing_summary|-rpx <arg> - (Optional) Specifies the file name and path of the report file
+OPT|report_timing_summary|-quiet - (Optional) Execute the command quietly, returning no messages from
+OPT|report_timing_summary|-verbose - (Optional) Temporarily override any message limits and return
+OPT|report_timing_summary|-report_unconstrained -max_paths 2 -nworst 1 -significant_digits 2 \
+OPT|report_timing_summary|-input_pins -name {timing_6}
+HELPCMD name=report_timing code=0
+OPT|report_timing|---------------------------------------
+OPT|report_timing|-delay_type max)
+OPT|report_timing|-delay_type min)
+OPT|report_timing|-from <args> - (Optional) Specifies starting points of the timing paths to
+OPT|report_timing|-rise_from <args> - (Optional) Similar to the -from option, but it
+OPT|report_timing|-fall_from <args> - (Optional) Similar to the -from option, but it
+OPT|report_timing|-to <args> - (Optional) Specifes endpoints or destination objects of timing
+OPT|report_timing|-rise_to <args> - (Optional) Similar to the -to option, but it considers
+OPT|report_timing|-fall_to <args> - (Optional) Similar to the -to option, but it considers
+OPT|report_timing|-through <args> - (Optional) Considers only paths through the specified
+OPT|report_timing|-rise_through <args> - (Optional) Similar to the -through option, but
+OPT|report_timing|-fall_through <args> - (Optional) Similar to the -through option, but
+OPT|report_timing|-delay_type <arg> - (Optional) Specifies the type of delay to analyze when
+OPT|report_timing|-setup - (Optional) Check for setup violations. This is same as specifying
+OPT|report_timing|-delay_type max.
+OPT|report_timing|-hold - (Optional) Check for hold violations. This is same as specifying
+OPT|report_timing|-delay_type min.
+OPT|report_timing|-max_paths <arg> - (Optional) The maximum number of paths to output when
+OPT|report_timing|-nworst <arg> - (Optional) The number of timing paths per endpoint to
+OPT|report_timing|-unique_pins - (Optional) Show only one timing path for each unique set of
+OPT|report_timing|-path_type <arg> - (Optional) Specify the path data to output in the timing
+OPT|report_timing|-input_pins - (Optional) Show input pins in the timing path report. For use
+OPT|report_timing|-no_header - (Optional) Do not write a header to the report.
+OPT|report_timing|-no_reused_label - (Optional) Disable the reporting of reuse information in
+OPT|report_timing|-slack_lesser_than <arg> - (Optional) Report timing on paths with a
+OPT|report_timing|-slack_greater_than to provide a range of slack values of specific
+OPT|report_timing|-slack_greater_than <arg> - (Optional) Report timing on paths with a
+OPT|report_timing|-slack_lesser_than to provide a range of slack values of specific interest.
+OPT|report_timing|-group <args> - (Optional) Report timing for paths in the specified path
+OPT|report_timing|-of_objects, which also specifies timing path objects.
+OPT|report_timing|-sort_by [ slack | group ] - (Optional) Sort timing paths in the report by
+OPT|report_timing|-no_report_unconstrained - (Optional) Do not report timing on unconstrained
+OPT|report_timing|-user_ignored - (Optional) Report only the paths that are ignored by timing
+OPT|report_timing|-of_objects <args> - (Optional) Report timing on the specified timing path
+OPT|report_timing|-to, or -through options which are also used to identify timing paths to
+OPT|report_timing|-delay_type, which all also define a delay type. The -of_objects option
+OPT|report_timing|-significant_digits <arg> - (Optional) The number of significant digits in
+OPT|report_timing|-column_style [ variable_width | anchor_left | fixed_width ] - (Optional)
+OPT|report_timing|-file <arg> - (Optional) Write the report into the specified file. The
+OPT|report_timing|-append - (Optional) Appends the output of the command to the specified
+OPT|report_timing|-name <arg> - (Optional) Specifies the name of the results set for the GUI.
+OPT|report_timing|-no_pr_attribute <arg> - (Optional) This option disables the standard
+OPT|report_timing|-no_pblock - (Optional) Does not report the Pblock information when there
+OPT|report_timing|-routable_nets - (Optional) Reports the number of routable nets traversed
+OPT|report_timing|-inter_slr <args> (Optional) Reports the timing paths based on the SLR
+OPT|report_timing|-return_string - (Optional) Directs the output to a Tcl string rather than
+OPT|report_timing|-warn_on_violation - (Optional) Specifies that Vivado Design Suite
+OPT|report_timing|-cells <arg> - (Option) Generates the timing report on the specified
+OPT|report_timing|-rpx <arg> - (Optional) Specifies the file name and path of the report file
+OPT|report_timing|-quiet - (Optional) Execute the command quietly, returning no messages from
+OPT|report_timing|-verbose - (Optional) Temporarily override any message limits and return
+OPT|report_timing|-through { count_3  count_4 } \
+OPT|report_timing|-to done -path_type summary -file C:/Data/timing1.txt
+HELPCMD name=report_io code=0
+OPT|report_io|-----------------------------
+OPT|report_io|-file is not used.
+OPT|report_io|-file <arg> - (Optional) Write the report into the specified file.
+OPT|report_io|-name <arg> - (Optional) The name to assign to the reported results when
+OPT|report_io|-append - (Optional) Append the output of the command to the specified file
+OPT|report_io|-format [ xml | text ] - (Optional) Specifies the format of the output as
+OPT|report_io|-return_string - (Optional) Directs the output to a Tcl string rather than
+OPT|report_io|-quiet - (Optional) Execute the command quietly, returning no messages from
+OPT|report_io|-verbose - (Optional) Temporarily override any message limits and return
+HELPCMD name=report_exceptions code=0
+OPT|report_exceptions|---------------------------------------
+OPT|report_exceptions|-from <args> - (Optional) A list of start points on the timing path to
+OPT|report_exceptions|-rise_from <args> - (Optional) A list of the start points on the timing
+OPT|report_exceptions|-fall_from <args> - (Optional) A list of the start points on the timing
+OPT|report_exceptions|-from/-through/-to command line options. The specified patterns can be
+OPT|report_exceptions|-to <args> - (Optional) A list of the end points for the timing path to
+OPT|report_exceptions|-rise_to <args> - (Optional) A list of the end points on the timing path to
+OPT|report_exceptions|-fall_to <args> - (Optional) A list of the end points on the timing path to
+OPT|report_exceptions|-through <args> - (Optional) A list of pins, cell, or nets through which
+OPT|report_exceptions|-rise_through <args> - (Optional) A list of pins, cell, or nets through
+OPT|report_exceptions|-fall_through <args> - (Optional) Specifies the list of pins, cell, or nets
+OPT|report_exceptions|-ignored - (Optional) Report timing path exceptions in the current design
+OPT|report_exceptions|-scope_override - (Optional) Report scoped timing path exceptions in the
+OPT|report_exceptions|-summary - (Optional) Report a summary of all timing exceptions.
+OPT|report_exceptions|-coverage - (Optional) Report the coverage of all timing exceptions.
+OPT|report_exceptions|-from/-through/-to options.
+OPT|report_exceptions|-ignored_objects - (Optional) Report the start points and endpoint objects
+OPT|report_exceptions|-count_objects - (Optional) Returns the number of objects in the exceptions
+OPT|report_exceptions|-write_valid_exceptions - (Optional) Write only the valid timing exceptions
+OPT|report_exceptions|-write_merged_exceptions - (Optional) Write the merged timing exceptions.
+OPT|report_exceptions|-no_header - (Optional) Do not write a header to the report.
+OPT|report_exceptions|-file <arg> - (Optional) Write the report into the specified file. By
+OPT|report_exceptions|-append - (Optional) Append the output of the command to the specified file
+OPT|report_exceptions|-return_string - (Optional) Directs the output to a Tcl string rather than
+OPT|report_exceptions|-name <arg> - (Optional) The name of the report view to display in the AMD
+OPT|report_exceptions|-quiet - (Optional) Execute the command quietly, returning no messages from
+OPT|report_exceptions|-verbose - (Optional) Temporarily override any message limits and return
+HELPCMD name=report_high_fanout_nets code=0
+OPT|report_high_fanout_nets|-----------------------------------
+OPT|report_high_fanout_nets|-file <arg> - (Optional) Write the report into the specified file. The
+OPT|report_high_fanout_nets|-format [ text | xml ] - (Optional) The default format of the output report
+OPT|report_high_fanout_nets|-file is specified, and cannot be used with -append.
+OPT|report_high_fanout_nets|-append - (Optional) Append the output of the command to the specified file
+OPT|report_high_fanout_nets|-ascending - (Optional) Report nets in ascending order.
+OPT|report_high_fanout_nets|-timing - (Optional) Add timing data to the report to display the worst
+OPT|report_high_fanout_nets|-histogram - (Optional) Format the report as a histogram showing the number
+OPT|report_high_fanout_nets|-timing, -load_types, -clock_regions, -slr, -max_nets,
+OPT|report_high_fanout_nets|-fanout_greater_than, and -fanout_lesser_than.
+OPT|report_high_fanout_nets|-load_types - (Optional) Reports the various load types on the net sorted
+OPT|report_high_fanout_nets|-clock_regions - (Optional) Report the load distribution across clock
+OPT|report_high_fanout_nets|-slr - (Optional) Report the load distribution across SLRs. This option can
+OPT|report_high_fanout_nets|-max_nets <arg> - (Optional) Number of nets to report. Default: 10
+OPT|report_high_fanout_nets|-fanout_greater_than <arg> - (Optional) Report only nets that have fanout
+OPT|report_high_fanout_nets|-fanout_lesser_than <arg> - (Optional) Report only nets that have fanout
+OPT|report_high_fanout_nets|-name <arg> - (Optional) The name of the High Fanout Nets Report view to
+OPT|report_high_fanout_nets|-cells <args> - (Optional) Report the nets attached to the specified cell
+OPT|report_high_fanout_nets|-clocks <args> - (Optional) Report the nets of the specified clocks. The
+OPT|report_high_fanout_nets|-return_string - (Optional) Directs the output to a Tcl string rather than
+OPT|report_high_fanout_nets|-quiet - (Optional) Execute the command quietly, returning no messages from
+OPT|report_high_fanout_nets|-verbose - (Optional) Temporarily override any message limits and return
+HELPCMD name=report_methodology code=0
+OPT|report_methodology|---------------------------------
+OPT|report_methodology|-name <arg> - (Optional) The name to assign to the results when run in GUI
+OPT|report_methodology|-cells <arg> - (Optional) Specify the cells to use when running
+OPT|report_methodology|-checks <args> - (Optional) A list of rule checks to run the methodology
+OPT|report_methodology|-file <arg> - (Optional) Write the methodology report into the specified
+OPT|report_methodology|-append is also specified.
+OPT|report_methodology|-append - (Optional) Append the output of the command to the specified file
+OPT|report_methodology|-return_string - (Optional) Directs the output to a Tcl string rather than
+OPT|report_methodology|-rpx <arg> - (Optional) Specify the file name and path of an Xilinx report
+OPT|report_methodology|-waived - (Optional) Causes only the methodology checks waived by the
+OPT|report_methodology|-no_waivers - (Optional) Ignore the waivers defined by the create_waivers
+OPT|report_methodology|-slack_lesser_than <arg> - (Optional) Only report SYNTH methodology
+OPT|report_methodology|-merge_exceptions [ auto | true | false ] - (Optional) Allow or prevent the
+OPT|report_methodology|-quiet - (Optional) Execute the command quietly, returning no messages from
+OPT|report_methodology|-verbose - (Optional) Temporarily override any message limits and return
+HELPCMD name=report_cdc code=0
+OPT|report_cdc|---------------------------------------
+OPT|report_cdc|-from <args> - (Optional) Report clock domain crossing from the specified
+OPT|report_cdc|-to <args> - (Optional) Report clock domain crossing into the specified
+OPT|report_cdc|-cells <arg> - (Option) Generate the report on the specified hierarchical
+OPT|report_cdc|-details - (Optional) Provide a detailed report on the timing paths. The
+OPT|report_cdc|-summary - (Optional) This is the default report returned for the design.
+OPT|report_cdc|-all_checks_per_endpoint - (Optional) Report all violations for each
+OPT|report_cdc|-severity [ Critical | Warning | Info ] - (Optional) Report only the CDC
+OPT|report_cdc|-no_header - (Optional) Eliminate the report header from the results. This
+OPT|report_cdc|-return_string.
+OPT|report_cdc|-show_waiver - (Optional) Used with the -details argument, this option adds
+OPT|report_cdc|-no_waiver - (Optional) Ignore the waivers defined by the create_waivers
+OPT|report_cdc|-waived - (Optional) Causes only the CDC paths waived by the create_waiver
+OPT|report_cdc|-file <arg> - (Optional) Write the report into the specified file.
+OPT|report_cdc|-append - (Optional) Append the output of the command to the specified file
+OPT|report_cdc|-return_string - (Optional) Directs the output to a Tcl string rather than
+OPT|report_cdc|-name <arg> - (Optional) The name of the Clock Domain Crossing report view
+OPT|report_cdc|-quiet - (Optional) Execute the command quietly, returning no messages from
+OPT|report_cdc|-verbose - (Optional) Temporarily override any message limits and return
+HELPCMD name=report_design_analysis code=0
+OPT|report_design_analysis|----------------------------------------
+OPT|report_design_analysis|-logic_level_distribution
+OPT|report_design_analysis|-  Example 1: A critical path begins in clock region X1Y1 and ends in
+OPT|report_design_analysis|-  Example 2: a critical path begins in clock region X2Y1 and ends in
+OPT|report_design_analysis|-  PR PATH TYPE: Specifies the path as being completely in the static
+OPT|report_design_analysis|-  STATIC CROSSINGS: Reports the number of times a reconfigurable
+OPT|report_design_analysis|-  RP CROSSINGS: Reports the number of times a static region path
+OPT|report_design_analysis|-  BOUNDARY FANOUT: Reports the fanout of a boundary path at the PPLOC
+OPT|report_design_analysis|-file <arg> - (Optional) Write the analysis results into the specified
+OPT|report_design_analysis|-append is also specified.
+OPT|report_design_analysis|-csv <arg> - (Optional) Write a CSV file that shows the timing paths and
+OPT|report_design_analysis|-file or -csv, the file will be written into the current working directory
+OPT|report_design_analysis|-append - (Optional) Append the output of the command to the specified file
+OPT|report_design_analysis|-return_string - (Optional) Directs the output to a Tcl string rather than
+OPT|report_design_analysis|-complexity - (Optional) Perform complexity analysis of the design and
+OPT|report_design_analysis|-hierarchical_depth,-instances_greater_than,-instances_lesser_than and
+OPT|report_design_analysis|-av_fanout_greater_than to lower compile time.
+OPT|report_design_analysis|-cells <arg> - (Optional) Specify the cells to use when reporting design
+OPT|report_design_analysis|-bounding_boxes <args> - (Optional) Specify regions of the device to
+OPT|report_design_analysis|-bounding_boxes { "CLE_M_X21Y239:CLEL_R_X28Y254" \
+OPT|report_design_analysis|-hierarchical_depth <arg> - (Optional) Specify that the complexity analysis
+OPT|report_design_analysis|-rent_greater_than <arg> - (Optional) Specify the minimum value of Rent to
+OPT|report_design_analysis|-instances_greater_than <arg> - (Optional) Specify the minimum threshold
+OPT|report_design_analysis|-instances_lesser_than <arg> - (Optional) Specify the maximum threshold for
+OPT|report_design_analysis|-av_fanout_greater_than <arg> - (Optional) Specify the minimum threshold of
+OPT|report_design_analysis|-complexity. Default is 3.0.
+OPT|report_design_analysis|-congestion - (Optional) Reports the vertical and horizontal routing
+OPT|report_design_analysis|-min_congestion_level <arg> - (Optional) Specifies the minimum congestion
+OPT|report_design_analysis|-timing - (Optional) Runs design analysis in timing mode, to report setup
+OPT|report_design_analysis|-of_timing_paths, -max_paths, and -extend, but can not be used with -cells
+OPT|report_design_analysis|-setup - (Optional) Limit the reporting scope to only setup path
+OPT|report_design_analysis|-hold - (Optional) Limit the reporting scope to only hold path
+OPT|report_design_analysis|-show_all - (Optional) Adds more characteristics to the timing
+OPT|report_design_analysis|-full_logical_pin - (Optional) Output the full hierarchical pin name in the
+OPT|report_design_analysis|-routed_vs_estimated - (Optional) Reports the estimated vs. actual routed
+OPT|report_design_analysis|-logic_level_distribution - (Optional) Reports logic-level distribution of
+OPT|report_design_analysis|-logic_level_dist_paths <arg> - (Optional) This option can be specified
+OPT|report_design_analysis|-min_level <arg> - (Optional) Group all timing paths with logic levels, or
+OPT|report_design_analysis|-max_level <arg> - (Optional) Group all timing paths with logic levels, or
+OPT|report_design_analysis|-return_timing_paths - (Optional) This must be used with the
+OPT|report_design_analysis|-end_point_clock and -logic_levels options. Directs the
+OPT|report_design_analysis|-of_timing_paths <args> - (Optional) Specify a list of timing path objects
+OPT|report_design_analysis|-max_paths <arg> - Specify the number of paths to report for critical path
+OPT|report_design_analysis|-end_point_clock, which can reduce the number of paths returned due to the
+OPT|report_design_analysis|-extend - (Optional) Perform an extended setup analysis of the critical
+OPT|report_design_analysis|-routes - (Optional) Reports the path distribution with respect to the
+OPT|report_design_analysis|-end_point_clocks <arg> - (Optional) Takes a list of clocks that can be
+OPT|report_design_analysis|-logic_levels <arg> - (Optional) Filters timing paths by the specified
+OPT|report_design_analysis|-qor_summary - (Optional) Include a summary of the QoR for the design.
+OPT|report_design_analysis|-json <arg> - (Optional) Writes the QoR summary in JSON format where <arg>
+OPT|report_design_analysis|-name <arg> - (Optional) The name of the Design Analysis Report view to
+OPT|report_design_analysis|-no_pr_attribute - (Optional) Report the design analysis without partial
+OPT|report_design_analysis|-quiet - (Optional) Execute the command quietly, returning no messages from
+OPT|report_design_analysis|-verbose - (Optional) Temporarily override any message limits and return
+OPT|report_design_analysis|-bounding_boxes { "CLE_M_X21Y239:CLEL_R_X28Y254" "CLEL_R_X18Y171:CLE_M_X26Y186" }
+OPT|report_design_analysis|-hold -max_paths 10 -logic_level_distribution -logic_level_dist_paths 20 -congestion
+OPT|report_design_analysis|-logic_levels 10 -timing -return_timing_paths]
+OPT|report_design_analysis|-logic_level_distribution_paths 1000
+OPT|report_design_analysis|-instaces_lesser_than 50000 -av_fanout_greater_than 3.5
+HELPCMD name=report_clock_interaction code=0
+OPT|report_clock_interaction|----------------------------------
+OPT|report_clock_interaction|-delay_type max)
+OPT|report_clock_interaction|-delay_type min)
+OPT|report_clock_interaction|-from <args> - (Optional) The source clocks of the clock pairs relationship
+OPT|report_clock_interaction|-to <args> - (Optional) The destination clocks of the clock pairs
+OPT|report_clock_interaction|-delay_type <arg> - (Optional) Specifies the type of delay to analyze when
+OPT|report_clock_interaction|-setup - (Optional) Check for setup violations. This is the same as
+OPT|report_clock_interaction|-hold - (Optional) Check for hold violations. This is the same as
+OPT|report_clock_interaction|-significant_digits <arg> - (Optional) The number of significant digits in
+OPT|report_clock_interaction|-no_header - (Optional) Do not write a header to the report.
+OPT|report_clock_interaction|-file <arg> - (Optional) Write the report into the specified file. Unless
+OPT|report_clock_interaction|-append - (Optional) Append the output of the command to the specified file
+OPT|report_clock_interaction|-name <arg> - (Optional) The name of the Clock Interaction Report view to
+OPT|report_clock_interaction|-return_string - (Optional) Directs the output to a Tcl string rather than
+OPT|report_clock_interaction|-cells <arg> - (Option) Generate the report for the specified hierarchical
+OPT|report_clock_interaction|-quiet - (Optional) Execute the command quietly, returning no messages from
+OPT|report_clock_interaction|-verbose - (Optional) Temporarily override any message limits and return
+OPT|report_clock_interaction|-significant_digits 3 -name "results_1"
+OPT|report_clock_interaction|-return_string]
+HELPCMD name=report_clock_networks code=0
+OPT|report_clock_networks|-----------------------------------
+OPT|report_clock_networks|-endpoints_only option
+OPT|report_clock_networks|-name argument is specified, provides a hierarchical tree view of the clock
+OPT|report_clock_networks|-return_string, or -name arguments are specified.
+OPT|report_clock_networks|-file <arg> - (Optional) Write the clock network report into the specified
+OPT|report_clock_networks|-append is also specified.
+OPT|report_clock_networks|-append - (Optional) Append the output of the command to the specified file
+OPT|report_clock_networks|-name <arg> - (Optional) Specifies the name of the results to output to the
+OPT|report_clock_networks|-return_string - (Optional) Directs the output to a Tcl string. The Tcl
+OPT|report_clock_networks|-endpoints_only - (Optional) Report the clock network endpoints; bucketed
+OPT|report_clock_networks|-levels <arg> - (Optional) Expands the clock network through the specified
+OPT|report_clock_networks|-endpoints_only option.
+OPT|report_clock_networks|-expand_buckets - (Optional) Expand the clock network report to expand all
+OPT|report_clock_networks|-suppress_endpoints [ clock | nonclock ] - (Optional) Suppress reported
+OPT|report_clock_networks|-clocks <args> - (Optional) Specify the clock objects to include in the
+OPT|report_clock_networks|-unconstrained_roots <args> - (Optional) For UltraScale devices, and device
+OPT|report_clock_networks|-quiet - (Optional) Execute the command quietly, returning no messages from
+OPT|report_clock_networks|-verbose - (Optional) Temporarily override any message limits and return
+HELPCMD name=report_clock_utilization code=0
+OPT|report_clock_utilization|--------------------------------
+OPT|report_clock_utilization|-file <arg> - (Optional) Write the report into the specified file. The
+OPT|report_clock_utilization|-append - (Optional) Append the output of the command to the specified file
+OPT|report_clock_utilization|-write_xdc <filename> - (Optional) Output XDC location constraints for the
+OPT|report_clock_utilization|-cells <arg> - (Option) The details of the report will be based on the
+OPT|report_clock_utilization|-clock_roots_only - (Optional) For UltraScale, and device architectures
+OPT|report_clock_utilization|-return_string - (Optional) Direct the output to a Tcl string rather than
+OPT|report_clock_utilization|-name <arg> - (Optional) The name of the Clock Utilization report view to
+OPT|report_clock_utilization|-quiet - (Optional) Execute the command quietly, returning no messages from
+OPT|report_clock_utilization|-verbose - (Optional) Temporarily override any message limits and return
+HELPCMD name=report_utilization code=0
+OPT|report_utilization|------------------------------------------------
+OPT|report_utilization|-name arguments, the report generates in the standard output.
+OPT|report_utilization|-hierarchical or -name, it reports resource utilization for each hierarchy
+OPT|report_utilization|-append - (Optional) Append the output of the command to the specified file
+OPT|report_utilization|-cells <arg> - (Optional) Report the resources utilized by one or more
+OPT|report_utilization|-evaluate_pblock <arg> - (Optional) Performs a what-if analysis on the
+OPT|report_utilization|-exclude_child_pblocks - (Optional) Report utilization of the specified
+OPT|report_utilization|-pblocks excluding any nested Pblocks. This reduces the utilization of the
+OPT|report_utilization|-exclude_non_assigned - (Optional) Exclude non-assigned cells from the
+OPT|report_utilization|-file <arg> - (Optional) Write the report into the specified file. If you
+OPT|report_utilization|-hierarchical - (Optional) Reports the utilization of the device
+OPT|report_utilization|-hierarchical_depth <arg> - (Optional) Specifies the depth of the hierarchy
+OPT|report_utilization|-hierarchical_min_primitive_count <arg> - (Optional) Specifies the minimum
+OPT|report_utilization|-hierarchical_percentages - (Optional) Specifies that utilization data in
+OPT|report_utilization|-slr - (Optional) Reports the utilization for each separate SLR in devices
+OPT|report_utilization|-name <arg> - (Optional) Specifies the name of the results to output to the
+OPT|report_utilization|-no_primitives - (Optional) Remove the Primitives section from the report.
+OPT|report_utilization|-omit_locs - (Optional) Omit the Fixed column from the report. The Fixed
+OPT|report_utilization|-pblocks <arg> - (Optional) Report the resources utilized by a Pblock.
+OPT|report_utilization|-packthru - (Optional) Reports LUTs used for route through purposes. This
+OPT|report_utilization|-return_string - (Optional) Directs the output to a Tcl string rather than
+OPT|report_utilization|-spreadsheet_file <arg> - (Optional) Export utilization tables to the
+OPT|report_utilization|-spreadsheet_table <arg> - (Optional) Specify a utilization table to export
+OPT|report_utilization|-spreadsheet_depth <arg> - (Optional) Specifies the hierarchical depth,
+OPT|report_utilization|-spreadsheet_file.
+OPT|report_utilization|-quiet - (Optional) Execute the command quietly, returning no messages from
+OPT|report_utilization|-verbose - (Optional) Temporarily override any message limits and return
+OPT|report_utilization|-spreadsheet_table "Clocking - BUFGCTRL"
+OPT|report_utilization|puts "Reporting Pblock: $x ----------------------------------"
+HELPCMD name=report_route_status code=0
+OPT|report_route_status|---------------------------------
+OPT|report_route_status|-route_type type
+OPT|report_route_status|-of_objects is used)
+OPT|report_route_status|-return_nets - (Optional) Returns a list of nets that can be processed by
+OPT|report_route_status|-list_all_nets, -dump_routes, -has_routing, -boolean_check or
+OPT|report_route_status|-file arguments.
+OPT|report_route_status|-return_string - (Optional) Directs the output to a Tcl string rather than
+OPT|report_route_status|-file <arg> - (Optional) Write the report into the specified file. The
+OPT|report_route_status|-append - (Optional) Append the output of the command to the specified file
+OPT|report_route_status|-of_objects <args> - (Optional) Report the full routing tree for the
+OPT|report_route_status|-route_type <arg> - (Optional) Only show routes with the specified route
+OPT|report_route_status|-list_all_nets - (Optional) Report summary route status for every net in
+OPT|report_route_status|-show_all - (Optional) Report all relevant pins for routes marked as
+OPT|report_route_status|-dump_routes - (Optional) Report the full routing tree for every routed net
+OPT|report_route_status|-has_routing - (Optional) Returns false (0) if the design is unrouted, and
+OPT|report_route_status|-boolean_check <arg> - (Optional) Returns 1 if the specified design
+OPT|report_route_status|-ignore_cache - (Optional) By default the report_route_status command is
+OPT|report_route_status|-quiet - (Optional) Execute the command quietly, returning no messages from
+OPT|report_route_status|-verbose - (Optional) Temporarily override any message limits and return
+OPT|report_route_status|-to_load - (Optional) Show just one branch of the given route from the driver
+OPT|report_route_status|-with_intent_codes - (Optional) Show the intent code for each node.
+HELPCMD name=check_timing code=0
+OPT|check_timing|---------------------------------
+OPT|check_timing|-min or -max allows the tool to assume both min and max delays, and so
+OPT|check_timing|-file <arg> - (Optional) Write the results to the specified file on disk.
+OPT|check_timing|-append - Append the results to the specified file. As a default the
+OPT|check_timing|-no_header - (Optional) Do not write the standard header to the report.
+OPT|check_timing|-loop_limit <arg> - (Optional) The number of loops to identify and report
+OPT|check_timing|-name <arg> - (Optional) Creates the named report in the Timing Results
+OPT|check_timing|-override_defaults <args> - (Optional) Override the default timing checks
+OPT|check_timing|-include <args> - (Optional) Run the specified checks in addition to the
+OPT|check_timing|-exclude <args> - (Optional) Exclude the specified checks from the default
+OPT|check_timing|-return_string - (Optional) Directs the output to a Tcl string rather than
+OPT|check_timing|-rpx <arg> - (Optional) Specify the file name and path of the report file
+OPT|check_timing|-cells <arg> - (Option) Perform the timing checks for the specified
+OPT|check_timing|-quiet - (Optional) Execute the command quietly, returning no messages from
+OPT|check_timing|-verbose - (Optional) Return more detailed results from the checks that are
+HELPCMD name=create_clock code=0
+OPT|create_clock|------------------------
+OPT|create_clock|-period      Clock period: Value > 0
+OPT|create_clock|-period <arg> - (Required) Specifies the clock period of the clock object
+OPT|create_clock|-name <arg> - (Optional) The name of the clock object to be created. If the
+OPT|create_clock|-waveform <arg1 arg2 ...> - (Optional) The rising and falling edge times of
+OPT|create_clock|-add - (Optional) Define multiple clocks on the same source for
+OPT|create_clock|-quiet - (Optional) Execute the command quietly, returning no messages from
+OPT|create_clock|-verbose - (Optional) Temporarily override any message limits and return
+OPT|create_clock|-waveform definition, although it is specified as arg2, it occurs first in
+HELPCMD name=create_generated_clock code=0
+OPT|create_generated_clock|-----------------------------
+OPT|create_generated_clock|-name and <object> to be specified, and supports the use of -source and/or
+OPT|create_generated_clock|-master_clock to further identify the clock to rename when multiple clocks
+OPT|create_generated_clock|-name <arg> - (Optional) The name of the generated clock to create on the
+OPT|create_generated_clock|-source <arg> - (Optional) The pin or port of the master clock from which
+OPT|create_generated_clock|-edges <arg> - (Optional) Specifies the edges of the master clock to use in
+OPT|create_generated_clock|-divide_by <arg> - (Optional) Divide the frequency of the master clock by
+OPT|create_generated_clock|-multiply_by <arg> - (Optional) Multiply the frequency of the master clock
+OPT|create_generated_clock|-combinational - (Optional) Calculate the generated clock latency by
+OPT|create_generated_clock|-duty_cycle <arg> - (Optional) The duty cycle of the generated clock
+OPT|create_generated_clock|-multiply_by argument. The value is specified as a percentage from 0.0 to
+OPT|create_generated_clock|-invert - (Optional) Create a generated clock with the phase inverted from
+OPT|create_generated_clock|-edge_shift <arg> - (Optional) Shift the edges of the generated clock by
+OPT|create_generated_clock|-add - (Optional) Define multiple clocks on the same source for
+OPT|create_generated_clock|-master_clock <arg> - (Optional) If there are multiple clocks found on the
+OPT|create_generated_clock|-quiet - (Optional) Execute the command quietly, returning no messages from
+OPT|create_generated_clock|-verbose - (Optional) Temporarily override any message limits and return
+OPT|create_generated_clock|-edge_shift {0 -1.0 -2.0} CMB/CLKOUT
+OPT|create_generated_clock|-master_clock to identify which clock to use, using -add to assign the
+OPT|create_generated_clock|-divide_by 2 -add -name gen_CLKA [get_pins flop_Q]
+OPT|create_generated_clock|-divide_by 2 -add -name gen_CLKB [get_pins flop_Q]
+HELPCMD name=set_input_delay code=0
+OPT|set_input_delay|----------------------------------------
+OPT|set_input_delay|-clock <arg> - (Optional) Indicates that the input delay is relative to the
+OPT|set_input_delay|-clock_fall argument can be used to indicate that the falling edge should
+OPT|set_input_delay|-reference_pin <arg> - (Optional) Specifies that the delay is relative to
+OPT|set_input_delay|-clock_fall - (Optional) Specifies that the delay is relative to a falling
+OPT|set_input_delay|-rise - (Optional) Specifies the input delay applies to rising transitions
+OPT|set_input_delay|-fall - (Optional) Specifies the input delay applied to falling transitions
+OPT|set_input_delay|-max - (Optional) Indicates the input delay specified is only used when
+OPT|set_input_delay|-min - (Optional) Indicates the input delay specified is only used when
+OPT|set_input_delay|-add_delay - (Optional) Add the specified delay constraint to the port, to
+OPT|set_input_delay|-network_latency_included - (Optional) Indicates that the clock network
+OPT|set_input_delay|-source_latency_included - (Optional) Indicates that the source latency of
+OPT|set_input_delay|-quiet - (Optional) Execute the command quietly, returning no messages from
+OPT|set_input_delay|-verbose - (Optional) Temporarily override any message limits and return
+HELPCMD name=set_output_delay code=0
+OPT|set_output_delay|----------------------------------------
+OPT|set_output_delay|-clock <arg> - (Optional) Indicates that the delay is relative to the
+OPT|set_output_delay|-reference_pin <arg> - (Optional) Specifies that the delay is relative to
+OPT|set_output_delay|-clock_fall - (Optional) Specifies that the delay is relative to a falling
+OPT|set_output_delay|-rise - (Optional) Specifies that the delay is for a rising edge.
+OPT|set_output_delay|-fall - (Optional) Specifies that the delay is for a falling edge
+OPT|set_output_delay|-max - (Optional) Specifies that the delay specified should be treated as a
+OPT|set_output_delay|-min - (Optional) Specifies that the delay specified should be treated as a
+OPT|set_output_delay|-add_delay - (Optional) Add the specified delay constraint to the port, to
+OPT|set_output_delay|-network_latency_included - (Optional) Indicates that the clock network
+OPT|set_output_delay|-source_latency_included - (Optional) Specifies that the source latency of
+OPT|set_output_delay|-quiet - (Optional) Execute the command quietly, returning no messages from
+OPT|set_output_delay|-verbose - (Optional) Temporarily override any message limits and return
+OPT|set_output_delay|-network_latency_included [get_ports]
+HELPCMD name=set_clock_groups code=0
+OPT|set_clock_groups|------------------------------------
+OPT|set_clock_groups|-name <group_name> - (Optional) Name of the clock group to be created. A
+OPT|set_clock_groups|-logically_exclusive - (Optional) The specified clocks are logically
+OPT|set_clock_groups|-physically_exclusive - (Optional) The specified clocks are physically
+OPT|set_clock_groups|-asynchronous - (Optional) The specified clocks are asynchronous to one
+OPT|set_clock_groups|-group <args> - (Optional) The list of clocks to be included in the clock
+OPT|set_clock_groups|-quiet - (Optional) Execute the command quietly, returning no messages from
+OPT|set_clock_groups|-verbose - (Optional) Temporarily override any message limits and return
+OPT|set_clock_groups|-group [get_clocks -include_generated_clocks sync_clk]  -asynchronous
+HELPCMD name=set_clock_uncertainty code=0
+OPT|set_clock_uncertainty|--------------------------
+OPT|set_clock_uncertainty|-setup - (Optional) The specified clock uncertainty is applied during setup
+OPT|set_clock_uncertainty|-hold - (Optional) The specified clock uncertainty is applied during hold
+OPT|set_clock_uncertainty|-from <source_clock_name> - (Optional) Specify inter-clock uncertainty
+OPT|set_clock_uncertainty|-rise_from <source_clock_name> - (Optional) Specify inter-clock uncertainty
+OPT|set_clock_uncertainty|-fall_from <source_clock_name> - (Optional) Specify inter-clock uncertainty
+OPT|set_clock_uncertainty|-to <destination_clock_name> - (Optional) Specify inter-clock uncertainty
+OPT|set_clock_uncertainty|-rise_to <destination_clock_name> - (Optional) Specify inter-clock
+OPT|set_clock_uncertainty|-fall_to <destination_clock_name> - (Optional) Specify inter-clock
+OPT|set_clock_uncertainty|-quiet - (Optional) Execute the command quietly, returning no messages from
+OPT|set_clock_uncertainty|-verbose - (Optional) Temporarily override any message limits and return
+HELPCMD name=set_max_delay code=0
+OPT|set_max_delay|-----------------------------
+OPT|set_max_delay|-from/-to, or -from/-through/-to path definition.
+OPT|set_max_delay|-rise - (Optional) Apply the delay value to the rising edge of the timing
+OPT|set_max_delay|-fall - (Optional) Apply the delay value to the falling edge of the timing
+OPT|set_max_delay|-reset_path - (Optional) Indicates that existing rising or falling edge false path
+OPT|set_max_delay|-from <value> - (Optional) A list of path start points or clocks. A valid
+OPT|set_max_delay|-rise_from <element_name> - (Optional) The max delay applied to paths
+OPT|set_max_delay|-fall_from <element_name> - (Optional) The max delay applied to paths
+OPT|set_max_delay|-to <element_name> - (Optional) A list of path endpoints or clocks. A valid
+OPT|set_max_delay|-rise_to <element_name> - (Optional) The max delay applied to paths with
+OPT|set_max_delay|-fall_to <element_name> - (Optional) The max delay applied to paths with
+OPT|set_max_delay|-through <element_name> - (Optional) A list of through pins, cells, or nets.
+OPT|set_max_delay|-rise_through <element_name> - (Optional) The max delay applied to paths
+OPT|set_max_delay|-fall_through <element_name> - (Optional) The max delay applied to paths
+OPT|set_max_delay|-datapath_only - (Optional) Exclude clock skew and jitter from the delay
+OPT|set_max_delay|-from option to define the startpoint for the path. The hold check for the
+OPT|set_max_delay|-datapath_only option.
+OPT|set_max_delay|-quiet - (Optional) Execute the command quietly, returning no messages from
+OPT|set_max_delay|-verbose - (Optional) Temporarily override any message limits and return
+HELPCMD name=set_data_check code=0
+OPT|set_data_check|-------------------------
+OPT|set_data_check|-from <value> - (Optional) Data-to-data check for the specified pin or
+OPT|set_data_check|-to <value> - (Optional) Data-to-data check for the specified pin or port.
+OPT|set_data_check|-rise_from <value> - (Optional) Data-to-data check from the rising edge of
+OPT|set_data_check|-fall_from <value> - (Optional) Data-to-data check from the falling edge of
+OPT|set_data_check|-rise_to <value> - (Optional) Data-to-data check to the rising edge of the
+OPT|set_data_check|-fall_to <value> - (Optional) Data-to-data check to the falling edge of the
+OPT|set_data_check|-setup <value> - (Optional) Perform only the setup data check. The default
+OPT|set_data_check|-hold <value> - (Optional) Perform the hold data check. The default is to
+OPT|set_data_check|-clock <value> - (Optional) Specify the clock domain at the related pin or
+OPT|set_data_check|-quiet - (Optional) Execute the command quietly, returning no messages from
+OPT|set_data_check|-verbose - (Optional) Temporarily override any message limits and return
+HELPCMD name=set_bus_skew code=0
+OPT|set_bus_skew|----------------------------
+OPT|set_bus_skew|-to, or some form such as -fall_from or -rise_to. You can optionally
+OPT|set_bus_skew|-from <args> - (Optional) The starting points of the timing paths to set
+OPT|set_bus_skew|-rise_from <args> - (Optional) Set bus skew on the timing paths with rising
+OPT|set_bus_skew|-fall_from <args> - (Optional) Set bus skew on the timing paths with
+OPT|set_bus_skew|-to <args> - (Optional) The endpoints, or destination objects of timing
+OPT|set_bus_skew|-rise_to <args> - (Optional) Set bus skew on the timing paths with rising
+OPT|set_bus_skew|-fall_to <args> - (Optional) Set bus skew on the timing paths with falling
+OPT|set_bus_skew|-through <args> - (Optional) Set bus skew only on paths through the
+OPT|set_bus_skew|-rise_through <args> - (Optional) Set bus skew on the timing paths with
+OPT|set_bus_skew|-fall_through <args> - (Optional) Set bus skew on the timing paths with
+OPT|set_bus_skew|-quiet - (Optional) Execute the command quietly, returning no messages from
+OPT|set_bus_skew|-verbose - (Optional) Temporarily override any message limits and return
+OPT|set_bus_skew|-to [get_pins gray_coded_write_ptr[*]/D] 2.5
+HELPCMD name=set_false_path code=0
+OPT|set_false_path|----------------------------
+OPT|set_false_path|-setup - (Optional) Eliminate setup timing analysis for specified timing
+OPT|set_false_path|-hold - (Optional) Eliminate hold timing analysis for specified timing paths.
+OPT|set_false_path|-rise - (Optional) Eliminate rising delays for the specified timing paths.
+OPT|set_false_path|-fall - (Optional) Eliminate falling delays for the specified timing paths.
+OPT|set_false_path|-reset_path - (Optional) Reset the timing path before setting false path.
+OPT|set_false_path|-from <element_name> - (Optional) List of path origins or clocks. A valid
+OPT|set_false_path|-rise_from <element_name> - (Optional) Apply to paths rising from the list
+OPT|set_false_path|-fall_from <element_name> - (Optional) Apply to paths falling from the list
+OPT|set_false_path|-to <element_name> - (Optional) List of path endpoints or clocks
+OPT|set_false_path|-rise_to <element_name> - (Optional) Apply to paths with rise transition at
+OPT|set_false_path|-fall_to <element_name> - (Optional) Apply to paths with fall transition at
+OPT|set_false_path|-through <element_name> - (Optional) List of through pins, cells or nets
+OPT|set_false_path|-rise_through <element_name> - (Optional) Apply to paths rising through
+OPT|set_false_path|-fall_through <element_name> - (Optional) Apply to paths falling through
+OPT|set_false_path|-quiet - (Optional) Execute the command quietly, returning no messages from
+OPT|set_false_path|-verbose - (Optional) Temporarily override any message limits and return
+OPT|set_false_path|-to [get_clocks DRPCLK_OUT]
+HELPCMD name=set_multicycle_path code=0
+OPT|set_multicycle_path|------------------------------
+OPT|set_multicycle_path|-to {usbEngine1/u1/u2/sizd_c_reg[12]/D}
+OPT|set_multicycle_path|-to {usbEngine1/u1/u2/sizd_c_reg[12]/D} -hold
+OPT|set_multicycle_path|-setup - (Optional) Apply the path multiplier to the setup check, which
+OPT|set_multicycle_path|-hold - (Optional) Apply the path multiplier only to the hold check, to
+OPT|set_multicycle_path|-rise - (Optional) Apply the multiplier specifically to rising edge delays
+OPT|set_multicycle_path|-fall - (Optional) Apply the multiplier specifically to falling edge delays
+OPT|set_multicycle_path|-start - (Optional) By default, the setup path multiplier is defined with
+OPT|set_multicycle_path|-end - (Optional) By default, the hold path multiplier is defined with
+OPT|set_multicycle_path|-reset_path - (Optional) Reset the specified path before applying the
+OPT|set_multicycle_path|-from <args> - (Optional) A list of start points on the path that will be
+OPT|set_multicycle_path|-rise_from <args> - (Optional) A list of the start points on the
+OPT|set_multicycle_path|-fall_from <args> - (Optional) A list of the start points on the
+OPT|set_multicycle_path|-to <args> - (Optional) A list of the end points on the path that will be
+OPT|set_multicycle_path|-rise_to <args> - (Optional) A list of the end points on the rising-edge
+OPT|set_multicycle_path|-fall_to <args> - (Optional) A list of the end points on the falling-edge
+OPT|set_multicycle_path|-through <args> - (Optional) A list of pins, cell, or nets through which
+OPT|set_multicycle_path|-rise_through <args> - (Optional) A list of pins, cell, or nets through
+OPT|set_multicycle_path|-fall_through <args> - (Optional) Specifies the list of pins, cell, or nets
+OPT|set_multicycle_path|-quiet - (Optional) Execute the command quietly, returning no messages from
+OPT|set_multicycle_path|-verbose - (Optional) Temporarily override any message limits and return
+OPT|set_multicycle_path|-to [get_pins data1_reg/D]
+OPT|set_multicycle_path|-to [get_pins data1_reg/D]
+HELPCMD name=report_qor_suggestions code=0
+OPT|report_qor_suggestions|--------------------------------------
+OPT|report_qor_suggestions|-append - (Optional) Append the output of the command to the specified file
+OPT|report_qor_suggestions|-cells <arg> - (Optional) Report QoR suggestions for the specified
+OPT|report_qor_suggestions|-checks <arg> - (Optional) Runs specified checks only. These can be factory
+OPT|report_qor_suggestions|-csv_output_dir - Directory to write supporting CSV files. CSV files are
+OPT|report_qor_suggestions|-file <arg> - (Optional) Write the QoR report into the specified file. The
+OPT|report_qor_suggestions|-file or -csv, the file will be written into the current working directory
+OPT|report_qor_suggestions|-max_strategies <args> - (Optional) Specify the maximum number of ML
+OPT|report_qor_suggestions|-max_paths <arg> - (Optional) Specify the number of critical paths to
+OPT|report_qor_suggestions|-no_split - (Optional) Do not split the lines in the table when generating
+OPT|report_qor_suggestions|-name <arg> - (Optional) The name of the view to display in the Vivado IDE
+OPT|report_qor_suggestions|-of_objects <args> - (Optional) Report existing suggestions defined by the
+OPT|report_qor_suggestions|-report_all_suggestions - (Optional) Relaxes the criteria that suppresses
+OPT|report_qor_suggestions|-quiet - (Optional) Execute the command quietly, returning no messages from
+OPT|report_qor_suggestions|-ruledecks <arg> - (Optional) Runs qor checks contained within specified
+OPT|report_qor_suggestions|-return_string - (Optional) Direct the output to a Tcl string rather than
+OPT|report_qor_suggestions|-verbose - (Optional) Temporarily override any message limits and return
+HELPCMD name=create_pblock code=0
+OPT|create_pblock|-----------------------
+OPT|create_pblock|-quiet - (Optional) Execute the command quietly, returning no messages from
+OPT|create_pblock|-verbose - (Optional) Temporarily override any message limits and return
+OPT|create_pblock|-add_primitives -clear_locs
+HELPCMD name=phys_opt_design code=0
+OPT|phys_opt_design|-----------------------------------------
+OPT|phys_opt_design|-directive ExploreWithHoldFix option.
+OPT|phys_opt_design|-fanout_opt - (Optional) Performs delay-driven optimization on high-fanout
+OPT|phys_opt_design|-placement_opt - (Optional) Moves cells to reduce delay on timing-critical
+OPT|phys_opt_design|-memory_rewire_opt - (Optional) Performs rewiring of critical signals to
+OPT|phys_opt_design|-routing_opt - (Optional) Performs routing optimization on timing-critical
+OPT|phys_opt_design|-slr_crossing_opt - (Optional) Performs post-place or post-route
+OPT|phys_opt_design|-restruct_opt - (Optional) Advanced LUT restructure optimization to reduce
+OPT|phys_opt_design|-insert_negative_edge_ffs - (Optional) Inserts negative edge triggered FFs
+OPT|phys_opt_design|-interconnect_retime - (Optional) Performs interconnect retiming to improve
+OPT|phys_opt_design|-lut_opt - (Optional) Performs LUT movement/replication to improve critical
+OPT|phys_opt_design|-casc_opt- (Optional) Performs LUT cascade optimization for creating new
+OPT|phys_opt_design|-critical_cell_opt - (Optional) Replicates cells on timing critical nets to
+OPT|phys_opt_design|-dsp_register_opt - (Optional) Improves critical path delay by moving
+OPT|phys_opt_design|-bram_register_opt - (Optional) Improves critical path delay by moving
+OPT|phys_opt_design|-uram_register_opt - (Optional) Improves critical path delay by moving
+OPT|phys_opt_design|-bram_enable_opt - (Optional) The block RAM enable optimization improves
+OPT|phys_opt_design|-shift_register_opt - (Optional) Performs shift register optimization to
+OPT|phys_opt_design|-hold_fix - (Optional) Performs optimizations to insert data path delay to
+OPT|phys_opt_design|-aggressive_hold_fix - (Optional) Performs optimizations to insert data
+OPT|phys_opt_design|-retime - (Optional) Re-time registers forward through combinational logic
+OPT|phys_opt_design|-force_replication_on_nets <args> - (Optional) Forces the drivers of the
+OPT|phys_opt_design|-directive <arg> - (Optional) Directs the mode of physical optimization
+OPT|phys_opt_design|-critical_pin_opt - For LUT inputs, this optimization performs remapping of
+OPT|phys_opt_design|-clock_opt - (Optional) Perform clock skew optimization during post-route
+OPT|phys_opt_design|-path_groups <args> - (Optional) Perform optimizations on the specified
+OPT|phys_opt_design|-tns_cleanup - (Optional) This option can be used with the
+OPT|phys_opt_design|-slr_crossing_opt option. This performs a Total Negative Slack (TNS)
+OPT|phys_opt_design|-sll_reg_hold_fix - (Optional) Performs SLL register hold fix optimization.
+OPT|phys_opt_design|-quiet - (Optional) Execute the command quietly, returning no messages from
+OPT|phys_opt_design|-verbose - (Optional) Temporarily override any message limits and return
+OPT|phys_opt_design|-critical_pin_opt
+HELPCMD name=place_design code=0
+OPT|place_design|--------------------------------
+OPT|place_design|-directive <arg> - (Optional) Direct placement to achieve specific design
+OPT|place_design|-no_psip, -net_delay_weight, -quiet and -verbose. Refer to the Vivado
+OPT|place_design|-subdirective <arg> - (Optional) Affects specific placer phases. The
+OPT|place_design|-no_psip, -clock_vtree_type, -quiet and -verbose. The subdirective option
+OPT|place_design|-no_timing_driven - (Optional) Disables the default timing driven placement
+OPT|place_design|-eco - (Optional) Run the placer in ECO mode. New cells added to the design
+OPT|place_design|-timing_summary - (Optional) Report the post-placement worst negative slack
+OPT|place_design|-unplace - (Optional) Unplace all the instances which are not locked by
+OPT|place_design|-no_psip - (Optional) Disable PSIP (Physical Synthesis In Placer)
+OPT|place_design|-psip_options - (Optional) Specify a list of optimizations to switch on
+OPT|place_design|-net_delay_weight - (Optional) Increases estimated delay of high fanout and
+OPT|place_design|-clock_vtree_type <arg> - (Optional) Specifies the type of clock tree which
+OPT|place_design|-quiet - (Optional) Execute the command quietly, returning no messages from
+OPT|place_design|-verbose - (Optional) Temporarily override any message limits and return
+HELPCMD name=route_design code=0
+OPT|route_design|-max_delay <arg> -min_delay <arg> [-timing_summary] [-finalize]
+OPT|route_design|--------------------------------
+OPT|route_design|-max_delay           Use with -pins option to specify the max_delay
+OPT|route_design|-min_delay           Use with -pins option to specify the max_delay
+OPT|route_design|-unroute <arg> - (Optional) Unroute nets in the design. If no arguments are
+OPT|route_design|-release_memory - (Optional) Free router memory resources for subsequent
+OPT|route_design|-nets <args> - (Optional) Route or unroute only the specified net objects.
+OPT|route_design|-physical_nets, or -pins specified. Use -delay to find a route with the
+OPT|route_design|-physical_nets - (Optional) Route or unroute only logic zero and logic one
+OPT|route_design|-pins <args> - (Optional) Route or unroute to the specified pins, which
+OPT|route_design|-directive <arg> - (Optional) Direct routing to achieve specific design
+OPT|route_design|-tns_cleanup - (Optional) By default, to reduce runtime, the router focuses
+OPT|route_design|-no_timing_driven - (Optional) Disables the default timing driven routing
+OPT|route_design|-preserve - (Optional) Existing completed routes will be preserved and not
+OPT|route_design|-delay - (Optional) Can only be used in combination with the -nets or -pins
+OPT|route_design|-auto_delay - (Optional) Can only be used in combination with the -nets or
+OPT|route_design|-pins options. It is recommended to use the -auto_delay option on a placed
+OPT|route_design|-max_delay <arg> - (Optional) Can only be used with -pins. Directs the
+OPT|route_design|-delay option is implied.
+OPT|route_design|-min_delay <arg> - (Optional) Can only be used with -pins. Directs the
+OPT|route_design|-delay option is implied.
+OPT|route_design|-timing_summary - (Optional) By default, the router outputs a final timing
+OPT|route_design|-finalize - (Optional) When routing interactively you can specify
+OPT|route_design|-ultrathreads - (Optional) Reduces router runtime at the expense of
+OPT|route_design|-eco - (Optional) Run router in incremental mode when there is an eco
+OPT|route_design|-no_psir - (Optional) Disables Physical Synthesis In Router (PSIR)
+OPT|route_design|-quiet - (Optional) Execute the command quietly, returning no messages from
+OPT|route_design|-verbose - (Optional) Temporarily override any message limits and return
+HELPCMD name=report_timing code=0
+OPT|report_timing|---------------------------------------
+OPT|report_timing|-delay_type max)
+OPT|report_timing|-delay_type min)
+OPT|report_timing|-from <args> - (Optional) Specifies starting points of the timing paths to
+OPT|report_timing|-rise_from <args> - (Optional) Similar to the -from option, but it
+OPT|report_timing|-fall_from <args> - (Optional) Similar to the -from option, but it
+OPT|report_timing|-to <args> - (Optional) Specifes endpoints or destination objects of timing
+OPT|report_timing|-rise_to <args> - (Optional) Similar to the -to option, but it considers
+OPT|report_timing|-fall_to <args> - (Optional) Similar to the -to option, but it considers
+OPT|report_timing|-through <args> - (Optional) Considers only paths through the specified
+OPT|report_timing|-rise_through <args> - (Optional) Similar to the -through option, but
+OPT|report_timing|-fall_through <args> - (Optional) Similar to the -through option, but
+OPT|report_timing|-delay_type <arg> - (Optional) Specifies the type of delay to analyze when
+OPT|report_timing|-setup - (Optional) Check for setup violations. This is same as specifying
+OPT|report_timing|-delay_type max.
+OPT|report_timing|-hold - (Optional) Check for hold violations. This is same as specifying
+OPT|report_timing|-delay_type min.
+OPT|report_timing|-max_paths <arg> - (Optional) The maximum number of paths to output when
+OPT|report_timing|-nworst <arg> - (Optional) The number of timing paths per endpoint to
+OPT|report_timing|-unique_pins - (Optional) Show only one timing path for each unique set of
+OPT|report_timing|-path_type <arg> - (Optional) Specify the path data to output in the timing
+OPT|report_timing|-input_pins - (Optional) Show input pins in the timing path report. For use
+OPT|report_timing|-no_header - (Optional) Do not write a header to the report.
+OPT|report_timing|-no_reused_label - (Optional) Disable the reporting of reuse information in
+OPT|report_timing|-slack_lesser_than <arg> - (Optional) Report timing on paths with a
+OPT|report_timing|-slack_greater_than to provide a range of slack values of specific
+OPT|report_timing|-slack_greater_than <arg> - (Optional) Report timing on paths with a
+OPT|report_timing|-slack_lesser_than to provide a range of slack values of specific interest.
+OPT|report_timing|-group <args> - (Optional) Report timing for paths in the specified path
+OPT|report_timing|-of_objects, which also specifies timing path objects.
+OPT|report_timing|-sort_by [ slack | group ] - (Optional) Sort timing paths in the report by
+OPT|report_timing|-no_report_unconstrained - (Optional) Do not report timing on unconstrained
+OPT|report_timing|-user_ignored - (Optional) Report only the paths that are ignored by timing
+OPT|report_timing|-of_objects <args> - (Optional) Report timing on the specified timing path
+OPT|report_timing|-to, or -through options which are also used to identify timing paths to
+OPT|report_timing|-delay_type, which all also define a delay type. The -of_objects option
+OPT|report_timing|-significant_digits <arg> - (Optional) The number of significant digits in
+OPT|report_timing|-column_style [ variable_width | anchor_left | fixed_width ] - (Optional)
+OPT|report_timing|-file <arg> - (Optional) Write the report into the specified file. The
+OPT|report_timing|-append - (Optional) Appends the output of the command to the specified
+OPT|report_timing|-name <arg> - (Optional) Specifies the name of the results set for the GUI.
+OPT|report_timing|-no_pr_attribute <arg> - (Optional) This option disables the standard
+OPT|report_timing|-no_pblock - (Optional) Does not report the Pblock information when there
+OPT|report_timing|-routable_nets - (Optional) Reports the number of routable nets traversed
+OPT|report_timing|-inter_slr <args> (Optional) Reports the timing paths based on the SLR
+OPT|report_timing|-return_string - (Optional) Directs the output to a Tcl string rather than
+OPT|report_timing|-warn_on_violation - (Optional) Specifies that Vivado Design Suite
+OPT|report_timing|-cells <arg> - (Option) Generates the timing report on the specified
+OPT|report_timing|-rpx <arg> - (Optional) Specifies the file name and path of the report file
+OPT|report_timing|-quiet - (Optional) Execute the command quietly, returning no messages from
+OPT|report_timing|-verbose - (Optional) Temporarily override any message limits and return
+OPT|report_timing|-through { count_3  count_4 } \
+OPT|report_timing|-to done -path_type summary -file C:/Data/timing1.txt
+help
+
+Description: 
+Display help for one or more topics
+
+Syntax: 
+help  [-category <arg>] [-args] [-syntax] [-long] [-prop <arg>] [-class <arg>]
+      [-message <arg>] [-quiet] [-verbose] [<pattern_or_object>]
+
+Usage: 
+  Name                   Description
+  ----------------------------------
+  [-category]            Search for topics in the specified category
+  [-args]                Display arguments description
+  [-syntax]              Display syntax description
+  [-long]                Display long help description
+  [-prop]                Display property help for matching property names
+                         Default: *
+  [-class]               Display object type help
+  [-message]             Display information about the message with the given 
+                         message. Every message delivered by the tool has a 
+                         unique global message ID that consists of an 
+                         application sub-system code and a message identifier. 
+                         Example: -message {Common 17-8}.
+  [-quiet]               Ignore command errors
+  [-verbose]             Suspend message limits during command execution
+  [<pattern_or_object>]  Display help for topics that match the specified 
+                         pattern
+                         Default: *
+
+Categories: 
+Project
+
+Description:
+
+  Returns a long description of the specified Tcl command; or a list of
+  available AMD Tcl command categories; or a list of commands matching a
+  specific pattern.
+
+  The default help command without any arguments returns a list of Tcl
+  command categories that can be further explored. Command categories are
+  groups of commands performing a specific function, like File I/O commands
+  for instance.
+
+  Available options for the help command can return just the command syntax
+  for a quick reminder of how the command should be structured; the command
+  syntax and a brief description of each argument; or the long form of the
+  command with more detailed descriptions and examples of the command.
+
+  To limit the memory usage of the AMD Vivado Design Suite, some features of
+  the tool are only loaded into memory when that feature set is used. To
+  access the complete list of Tcl commands and help text associated with a
+  given feature, you must load the feature into memory using the
+  load_features command.
+
+  The help command can also return any available information related to
+  various properties assignable to design objects. Use the -prop and -class
+  options to return help information for properties.
+
+  This command returns the specified help text, or an error.
+
+Arguments:
+
+  -category <arg> - (Optional) Get a list of the commands grouped under the
+  specified command category.
+
+  -args - (Optional) Get abbreviated help text for the specified command. The
+  default is to return the extended help for the specified command. Use this
+  argument to keep it brief.
+
+  -syntax - (Optional) Returns only the syntax line for the command as a
+  quick reminder of the proper form for using the command.
+
+  -long - (Optional) Returns the extended help description for the command,
+  including the syntax, a brief description of the arguments, and a more
+  detailed description of the command with examples. This is the default
+  setting for the help command.
+
+  -prop <arg> - (Optional) Return the specified property of an object class,
+  or the properties assigned to a specific object in the current design.
+
+  Note: This option requires the use of -class, or the specification of a
+  single design object.
+
+  -class <arg> - (Optional) Return information related to the specified class
+  of objects.
+
+  -message <arg> - (Optional) Return information related to the specified
+  message. Messages are specified in the form of a unique global message ID,
+  that consists of an application sub-system code and a message identifier:
+  "Common 17-24", or {Common 17-24}. Refer to the set_msg_config command for
+  more information.
+
+  -quiet - (Optional) Execute the command quietly, returning no messages from
+  the command. The command also returns TCL_OK regardless of any errors
+  encountered during execution.
+
+  Note: Any errors encountered on the command-line, while launching the
+  command, will be returned. Only errors occurring inside the command will be
+  trapped.
+
+  -verbose - (Optional) Temporarily override any message limits and return
+  all messages from this command.
+
+  Note: Message limits can be defined with the set_msg_config command.
+
+  <pattern_or_object> - (Optional) Returns information related to the
+  specified command, or a list of commands that match the specified pattern.
+
+  Note: A Vivado first class object, like a cell or site, must be specified
+  when used with -class and -prop to return information about properties.
+
+Examples: The following example returns a list of AMD Tcl command categories:
+
+    help
+
+  This example loads the simulator feature of the Vivado Design Suite, and
+  then returns a list of Tcl commands in the simulation and waveform
+  categories:
+
+    load_features simulator
+    help -category simulation
+    help -category waveform
+
+  Returns a list of all commands matching the specified search pattern:
+
+    help *file*
+
+  This list can be used to quickly locate a command for a specific purpose,
+  such as remove_files or delete_files.
+
+  The following help command returns a long description of the remove_files
+  command and its arguments:
+
+    help remove_files
+
+  Note: You can also use the -args option to get a brief description of the
+  command.
+
+  This example defines a procedure called short, and returns the -args form
+  of help for the specified command:
+
+    proc short cmdName {help -args $cmdName}
+
+  Note: You can add this procedure to your init.tcl file to load this command
+  every time the tool is launched. Refer to Chapter 1, Introduction of the
+  Vivado Design Suite Tcl Command Reference (UG835) for more information on
+  the init.tcl file.
+
+  The following examples show how to obtain help for properties of design
+  objects, or a class of design objects:
+
+    help -class cell -prop NAME
+    help -prop NAME [get_cells cpuEngine]
+
+  Note: In the preceding example, the first command returns general
+  information related to the NAME property, while the second command also
+  returns the value of the NAME property on the specified design object.
+
+See Also:
+
+   *  get_cells
+
+   *  list_features
+
+   *  list_property
+
+   *  load_features
+
+   *  report_property
+
+   *  set_msg_config
+HELPCMD name=-help code=0
+OPT|-help|----------------------------------
+OPT|-help|-category <arg> - (Optional) Get a list of the commands grouped under the
+OPT|-help|-args - (Optional) Get abbreviated help text for the specified command. The
+OPT|-help|-syntax - (Optional) Returns only the syntax line for the command as a
+OPT|-help|-long - (Optional) Returns the extended help description for the command,
+OPT|-help|-prop <arg> - (Optional) Return the specified property of an object class,
+OPT|-help|-class <arg> - (Optional) Return information related to the specified class
+OPT|-help|-message <arg> - (Optional) Return information related to the specified
+OPT|-help|-quiet - (Optional) Execute the command quietly, returning no messages from
+OPT|-help|-verbose - (Optional) Temporarily override any message limits and return
+# foreach pair {report_timing_summary -unique_pins} {
+#     puts "CHECK_PAIR $pair"
+# }
+CHECK_PAIR report_timing_summary
+CHECK_PAIR -unique_pins
+# puts "HELPSHAPES_DONE"
+HELPSHAPES_DONE
+# exit 0
+INFO: [Common 17-206] Exiting Vivado at Sat Oct  3 22:28:19 2026...

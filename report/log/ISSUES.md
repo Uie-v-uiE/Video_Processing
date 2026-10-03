@@ -12386,3 +12386,103 @@ D4_hold_covered hold_pairs=8 GREEN  D5_no_empty_readings empty_in_B=0 GREEN  D6_
 **是否真吃进去**改从 `report_timing` 的 `Clock Uncertainty:` 行读（域内 min 路径一条即可），
 before/after 各读一次；setup 侧继续用 `U4` 那个"设计级 setup 不许动"的对照。
 改完再跑才是这笔体检的真件。今天不抢这一步：现在是深夜，草率重写会把一条防线换成一条假绿。
+
+### #296 r115 名册生成器：列语义改对之后，`--self` 的期望值必须**由夹具自己算**（`both_NA=3` 那次假红），而且我发现一条"写了没接线"的对照（2026-10-03 22:45）
+
+现象：把 `unconstrained_endpoints` 换成 check_timing 自己的那一行（设计级一个数）、把 I/O 债换成端口数之后，
+`--self` 的第四条对照红了：`want=GREEN/both_NA=3 got=…both_NA=2`。
+
+这不是判定器变差，是**我把常数字写在了对照里**：老夹具里 `unconstrained_endpoints` 也填 NA，
+列语义换掉以后那一格变成数字 0，NA 的个数自然从 3 掉到 2。写死数字的对照在尺子改口径时必须跟着改，
+否则下一轮我一改列就会先看到一条"红"，而那条红讲的是我自己的事。
+
+改法（`build/r115_roster_build.py:selftest`）：
+1. 差分器逐项比较的列清单升成模块级常量 `METRICS`，对照里 `exp_na`/`exp_cmp` **从夹具行和 `METRICS` 算出来**；
+2. 除了计数，还要求"被数进 both_NA 的行**就是** clkfbout 那两列"（`rows=[('clkfbout','rel_margin_setup'),('clkfbout','rel_margin_hold')]`）——
+   只数个数不数身份，计数器在别处偷偷走也照样绿（G9 的那条教训）；
+3. 顺手接上一条**写了但没进 cases 的死夹具**：`grew`（某个域 `io_unconstrained_ports` 11→13）之前只创建了文件、没跑，
+   ⇒ 现在它是一条必须能红的 G2 对照。`--self` 从 4 条变 **5 条，全 PASS、SELFRESULT GREEN**。
+
+口径记法：判定器的期望值要么来自工件，要么来自可计算的式子；**写死一个我自己改过的数字 = 把尺子的账变成设计的账**（同族：#293 的 D5/形状闸、规矩 44）。
+
+### #297 B4 噪声底 = **0.000 ns**，量出来了（两空白滚逐位相同）；但它只对"同一份 DCP 的快车道滚"成立（2026-10-03 22:43）
+
+`build/r115_noise_cal.sh` 从 `impl_1/system_top_opt.dcp`（md5 `4c895816c4f2`）用 `mode=none` 连滚两遍
+（n1 22:31→22:38 = 6.4 min，n2 →22:43），四条判定 N1/N2/N3/N4 全绿：
+
+```
+NOISE-SUMMARY noise_ns=0.000 cmp=equal identity=equal dcp_md5=4c895816c4f2 fp=…rtl=3969247aaf7f
+```
+
+N3 是头条四个数（WNS/WHS/两个失败端点数）逐位相等，N4 还额外要求**最差路径的身份**（起点/终点单元名）相等
+——数字相同但路径换了，也不许写成"噪声为 0"。
+
+这条地板的意义与限制要一起说：
+- 意义：之后任何"收益"必须**严格大于 0**；"看起来是进步"不再能替代重跑（H3）。
+- 限制：它量的是"同一份网表、同一棵树上重跑 place+route 的散布"，**不是**跨构建的散布。
+  N5 那一行（roll=[0.739 0.052 0 0] vs official r114=[0.739 0.052 0 0]）脚本自己标了"只念不判"：
+  两者相等是好事，但拿它当"复现了正式构建"的证据就跨了构建口径（#253/#254 那笔账的另一半）。
+
+### #298 r115 FANOUT 双滚的驱动脚本 **0 秒全红**：重定向比 Tcl 的 `file mkdir` 早一步（尺子的账，不是设计的账）（2026-10-03 22:54）
+
+第一版 `build/r115_fanout_ab.sh` 只 `mkdir -p "$W" "$EV"`，然后 `> "$W/$d/roll_console.txt` 起跑 ⇒
+两个滚在 2 秒内全红（F1…F6 六条 RED，place30439=0 那种"看起来什么都没发生"的红）。根因是 bash 的重定向
+**先于**Vivado 执行脚本里的 `file mkdir $out`；上一版的空白滚没暴露它，是因为 `r115_noise_cal.sh` 自己建了 `$W/n1`、`$W/n2`。
+修：滚循环里 `mkdir -p "$W/$d"`，并在开头 `: > "$W/driver.log"`（`line()` 改成 tee，`tee -a` 会把上一秒那次失败的
+FANAB 行混进这一轮的凭据头——那是"凭据里混进别一轮的数"的另一种形状）。第二版 A 滚 22:54→23:01 = 7.5 min 跑通。
+
+同一笔改动顺手把名册缺的两列补进滚里：`check_timing -verbose` 与 `report_design_analysis -logic_level_distribution`。
+**没有这两行，快车道造不出合法名册**（提示词的 13 列里 `unconstrained_endpoints`/`io_unconstrained_ports` 就来自 check_timing），
+只能造出一张少列的表——那是假的基线，比没有基线更危险。
+
+### #299 基线探针把 `report_timing` 的输出写成 `check_timing.txt`：**文件名与内容不符**（写进索引而不是悄悄改名）（2026-10-03 22:59）
+
+`build/evidence/r115_base/check_timing.txt` 里面的 `| Command :` 行是 `report_timing`，不是 `check_timing`。
+发现方式是写 `docs/timing/baseline_INDEX.md` 时按"每份工件的 producing command 从件内取"这条规矩逐件读头部
+（老规矩：**引用一个工件前先打开它**，别拿文件名当内容）。
+- 处置：索引里这一行带 ⚠ 明写"文件名与内容不符"；本轮**所有 I/O 债务读数只取 `check_timing_verbose.txt`**（它的 Command 行是对的）；
+  `build/tcl/r115_baseline_probe.tcl` 的这处输出名下一轮修（今晚不重跑整套探针：那是 22 份报告、约 2 分钟 GPU，但会让今晚所有已引用的 md5 变成"上一批"）。
+- 为什么不直接改名：改名会让"我引用过的件"的 md5 路径全部对不上，而那些 md5 已经写进 `baseline_INDEX.md` 和名册注释。
+  **让错的名字带着一条 ⚠ 活着，比让正确的名字带着断掉的引用活着**（同族：#169/#202 的冻结件换名教训）。
+
+### #300 扇出对照器第一版把表体列取错（`[0]/[1]` 应为 `[1]/[2]`），`--self` 立刻咬红；真件计数地板 60 行（2026-10-03 22:53）
+
+`build/r115_fanout_cmp.py` 按 `| name | 2546 | BUFG |` 这一行读，但 `report_high_fanout_nets` 的**行首就有竖线**，
+`split("|")` 的第 0 段是空串 ⇒ 名字在 `[1]`、扇出在 `[2]`。第一版取 `[0]/[1]` 的结果是 `NOOVERLAP a=0 b=0`（把每张表都读成空表）。
+四条 `--self` 对照里两条当场 FAIL（`drop_and_equal` 与 `identical`），修完全绿；
+再用真件做计数地板：`python build/r115_fanout_cmp.py build/evidence/r115_base/high_fanout.txt …` → `cmp=60 lower=0 equal=60`
+（自己跟自己比必须 `lower=0`，这是"机制未触发"那一侧的对照，规矩 46）。
+
+同一条为什么值得立案：**空表在差分器里长得和"没有差别"一模一样**（`NOOVERLAP` 与 `lower=0` 必须分开输出，
+我在 `cmp_()` 里就按这两种 token 分开写了）。这正是附录 1 那条"凡空集必须有正对照并打印 rc"的又一次兑现。
+
+### #301 r115 夜：C1（复制驱动）机制真的动了（0→310 颗 `_replica`），但名册判它红——四格代价落在最紧的域上；同一条滚顺带证明"空白滚 == 正式构建名册"（2026-10-03 23:12）
+
+**做了什么**：`build/r115_fanout_ab.sh` 从同一份 `system_top_opt.dcp`（md5 `4c895816c4f2`）跑两滚，
+唯一变量 = 布线前那次 `phys_opt_design` 带不带 `-force_replication_on_nets`（名册里 39 根扇出 > 200 的网，
+时钟网只进名册不进变量）。
+
+**读数**（`build/evidence/r115_fanout_ab/verdict_header.txt` + `roster_diff.txt`）：
+
+- F3 机制：`REPLICA_CELLS` A=0 → B=**310** ⇒ 不是 `MECHANISM_INERT`，这把刀真的动了，可以谈收益/代价。
+- F5 名册：8 域 × 4 列 = 32 次比较里 **4 格红**（`noise_ns=0.000` 之下任何非零差都是真的）：
+  `eth_rxc` setup 0.092375→0.083125（WNS 0.739→0.665）、`eth_rxc` hold 0.006500→0.004250、
+  `sys_clk` setup 0.743800→0.738600、`clk_fpga_0` hold 0.005300→0.004200。
+  同时它确实抬高了 `clk_fpga_0` setup（0.185→0.1959）与 `clkout0_1` setup（0.1815→0.195）。
+- F7 代价：FF 8188→8463（+275）、LUT 9969→10004（+35）。
+
+**判定**：**C1 拒绝**，不进任何正式构建。这是提示词 §1 H2/§4 G1 要抓的那个形状——
+"头条 WNS 变好/变差"不参与裁决，**按域归一化的相对余量**才参与；这一把用 WNS 讲是 0.739→0.665（更难看），
+用名册讲是"两个域换来、三个格子变差，且变差的正好是最紧的 eth_rxc"。**结论不是"复制没用"，而是"在 eth_rxc 没有可信 hold 余量之前，复制的代价由它付"** ⇒ 顺序换成 C3（捕获钟）在前。
+
+**同一条滚的意外收获（可当凭据用）**：A 滚（不加任何变量）的名册与 `docs/timing/roster_baseline.tsv`
+**逐格相同**（32 次比较全绿、8 格双侧 NA）⇒ 快车道在这棵树上**复现正式构建的逐域名册**。
+这既支撑"F5 那 4 格是刀造成的"，也给 H3 划了边界：仍是"同 DCP 可比"，跨构建依旧只念不判。
+
+**三把尺子当场被证不成立并修好（都是我的账，不是设计的账）**：
+1. `grep -ac ROLLDONE` 数到 2：批处理模式会**回显脚本自身**那一行（`# puts "ROLLDONE …"`）⇒ 必须锚 `^ROLLDONE`。
+2. `report_route_status` 的**文件里没有 "successful" 这个词**（它是净计数表）⇒ G5 判据改成
+   "routing errors = 0 且 全布 == 可布 且 > 0"，另加 `Place 30-439` 计数（实测两滚都 0）。
+3. `report_utilization` 里**没有 `^ *CLB Logic Cells` 这一行**（今天第三次犯"按记忆的形状 grep"）⇒
+   改用 `Register as Flip Flop` / `LUT as Logic` 两行（awk -F'|' 取第 3 段），两个操作数来自两份不同 util.rpt。
+   同族教训：规矩 46"形状要量不许猜"、#293、#298。

@@ -1,0 +1,8 @@
+# r115 FANOUT A/B 件 —— dcp md5=4c895816c4f2 tree fp=fpver=norm1 files=80 top=56c269602e18 rtl=3969247aaf7f   噪声底 noise_ns=0.000（/tmp/kx/r115_noise/noise.txt）
+FANAB F1_both_rolls            A=1 B=1                                  want 1/1 GREEN
+FANAB F2_same_inputs           dcp_md5=4c895816c4f2 dcp_line_equal=yes  两滚同一份 dcp 同一棵树 fp GREEN
+FANAB F3_mechanism             A=0 B=310                                _replica 变多 ⇒ 机制动了 GREEN
+FANAB F4_fanout_dropped        cmp=3 lower=1 equal=0 higher=2 u_pl/u_clk/u_mmcm_0:2109->2062 B 滚同名网扇出应低于 A 滚 GREEN
+FANAB F5_roster_diff           ROSTERDIFF-SUMMARY comparisons_made=32 both_NA=8 red=4 verdict=RED A vs B 逐域 G1+G2（noise_ns=0.000） RED
+FANAB F6_route_status          A[err=0 full/rout=20882/20882] B[err=0 full/rout=21197/21197] place30439=0 err=0 且 fully==routable 且无 Place 30-439 GREEN
+FANAB F7_utilization           FF A=8188 B=8463 (+275) LUT A=9969 B=10004 (+35) 增量按实例归因：复制驱动必吃 FF/LUT INFO
