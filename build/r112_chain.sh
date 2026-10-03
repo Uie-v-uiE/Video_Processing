@@ -49,7 +49,7 @@ say "只读探针（全局最差 / hold / 每时钟 / 锥）"
 VP_LABEL=r112_after bash build/pre_readings.sh r112_after > "build/r${NN}_post_readings_console.txt" 2>&1
 say "改后读数 rc=$? —— 与 build/evidence/r112_before.txt / r110_setup_paths_baseline.rpt 逐条对着念"
 
-say "快车道（31 支，分钟级）"
+say "快车道（30 支，分钟级）"
 bash build/timing_lane.sh > "build/r${NN}_lane_after.txt" 2>&1; L=$?
 say "快车道 rc=$L 绿=$(grep -c 'LANE GREEN' "build/r${NN}_lane_after.txt") 红=$(grep -c 'LANE RED' "build/r${NN}_lane_after.txt") 挡=$(grep -c 'LANE BLOCKED' "build/r${NN}_lane_after.txt")"
 grep -a "LANE-SUMMARY" "build/r${NN}_lane_after.txt"
