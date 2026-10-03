@@ -110,6 +110,26 @@ if {[file exists $frpt]} {
         if {$shown >= 12} { break }
     }
 }
+# QoR suggestions: UG949's own workflow is "ask the tool, then review the list" -- this is the *global*
+#   suggestion roster (MAX_FANOUT propagation, clock-buffer/hold fixes, etc.). It is captured as rows so a
+#   round's plan can be driven by the tool's list instead of only by my reading of the worst path.
+#   Both commands are wrapped: if this Vivado build lacks them the probe says so instead of dying.
+set srpt [file join $root "build/roster_${label}_qor.rpt"]
+file delete -force $srpt
+catch {report_qor_suggestions -max_candidates 12 -file $srpt} serr
+catch {write_qor_suggestions -force -file [file join $root "build/roster_${label}_qor.rqs"]} werr
+puts "QOR_ERR=$serr WRITE_ERR=$werr EXISTS=[file exists $srpt]"
+if {[file exists $srpt]} {
+    set fh [open $srpt r]; set txt [read $fh]; close $fh
+    foreach line [split $txt "\n"] {
+        set t [string trim $line]
+        # 机器行只挑"建议"那一类：形如 `Suggestion #1: ...` / `... MAX_FANOUT ...`
+        if {[regexp {^Suggestion.*} $t m]} { puts "QORSUG|$m" }
+        if {[regexp {^(.*MAX_FANOUT.*)$} $t m]} { puts "QORHINT|$m" }
+    }
+}
+puts "QOR_DONE=1"
+
 puts "FANOUT_ROWS=$shown"
 puts "ROSTER_ROWS=$nrows"
 exit 0

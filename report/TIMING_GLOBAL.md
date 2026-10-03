@@ -60,6 +60,11 @@ sys_clk    setup 14.463 -> 14.463 hold 0.133 -> 0.133
 `FANOUT_ERR` / 报告头 20 行念出来；下一次 Vivado 窗口（顶层台架跑完之后）重问一次，D6 才会真的有意义。
 
 ## 3. 下一刀为什么不再切逻辑，以及"全局"怎么切
+   工具自己那份**建议名册**也要念：`probe_timing_roster.tcl` 现在除了扇出，还跑
+   `report_qor_suggestions -max_candidates 12` + `write_qor_suggestions`，把 `QORSUG|…` / `QORHINT|…` 落成行
+   （UG949 的流程就是"先问工具，再逐条审"）。命令都包在 catch 里：这个版本没有它就明说 `QOR_ERR=`，
+   而不是让探针死在半路。**下一刀的候选顺序 = 工具建议名册 ∪ 扇出/放置抓手，再按域排代价**，
+   而不是"哪条最疼改哪条"。
 - `eth_rxc` 那条的 6.089 ns 走线里，第一跳 `p_eof`（**fo=8**）就吃 **2.141 ns**：起点 `SLICE_X57Y34`、终点整片 `rows_hit` 在 `X28~X31` ⇒ 距离。
   换实现指令（`place_design -directive Explore`）**一格不差**；Pblock 那块因进位链半内半外**没做成单变量**（1716 里 255 出块）。
 - 所以候选只剩两类，都要按全局判据交账：
