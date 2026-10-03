@@ -41,6 +41,7 @@
 | §4 E3 松动台账 | [`loosen_ledger.tsv`](loosen_ledger.tsv) | ✅ **空**（夜里没有批准人可问 ⇒ 一条都不松，见 H1/G3） |
 | §4 E2 + G1..G12 判定表 | [`gates_G1_G12.md`](gates_G1_G12.md) | ✅ 逐条填完：**本轮 RED**（G1 四格红 ⇒ C1 那把刀拒绝；G4 明写"未测"不当绿） |
 | 附录 3 交付前 12 问 | [`twelve_questions.md`](twelve_questions.md) | ✅ 12 条都有答案，无留空 |
+| §4 C2 的测量（SKEW-UNC / #265） | [`uncertainty_hold_ab.md`](uncertainty_hold_ab.md) | ✅ **量完了**：只有 eth_rxc 带 `Clock Uncertainty: 0.800`，其余三域报告里**没有那一行**；统一加严后 WHS −0.747 / 25,742 失败端点 ⇒ 名册 hold 列是两把尺子。**未采纳**（读数会变难看，需要用户点头） |
 
 ## 与既有工件的关系（不重复造轮子）
 

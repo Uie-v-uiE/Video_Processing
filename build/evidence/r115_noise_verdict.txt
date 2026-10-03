@@ -1,0 +1,2 @@
+NOISE-SUMMARY noise_ns=0.000 cmp=equal identity=equal dcp_md5=4c895816c4f2 fp=fpver=norm1 files=80 top=56c269602e18 rtl=3969247aaf7f 
+# 口径：noise_ns 之后所有"收益"必须严格大于它才许叫收益（提示词 §3 B4/§4 D）。这个标定每个项目只做一次。

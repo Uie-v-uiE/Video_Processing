@@ -10,7 +10,10 @@
 #   而 `report/TIMING_GLOBAL.md` §2/§3 量到的事实是那一族的 route 占 84~94 %、级数只有 4~6 ⇒
 #   LOGIC 标签的刀没有物理依据，FANOUT 标签的刀有官方依据（UG949 + AMD 自适应支持文章 9410）。
 #   上一轮（r114）这一滚死在"网对象取不到"（MF-REFUSE exit 4），尺子已按实测形状修好并干跑验过
-#   （凭据 build/evidence/r114_mf_dry_console.txt），今晚是它第一次真正能跑。
+#   （凭据 build/evidence/r114_mf_dry_console.txt），今晚是**这支脚本**第一次真正跑通。
+# ⚠ 但别把这一跑读成"复制驱动第一次被试"：同一杠杆在 r114 已由 `build/r114_replication_ab.sh` 判负
+#   （ISSUES #288：机制 0→296、`eth_rxc` hold 0.050→0.035）。两支尺子 agree 只加**可信度**，不加**样本数**
+#   ⇒ §7 L2 的"3 条互相独立候选"不许把它数成两条。
 #
 # 判定（一条一行，判定在最后一列；计数是"做过多少次比较"，G9）：
 #   F1 两滚都跑到 ROLLDONE
