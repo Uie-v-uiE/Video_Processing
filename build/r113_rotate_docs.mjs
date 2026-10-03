@@ -122,6 +122,42 @@ const RULES = [
   ['data/metrics.csv', 'FF 行的本轮账', '实现后报告（本轮 r110 比 r109 少 8 个；',
     '实现后报告（本轮 r112 比 r110 多 34 个（+46 来自两只 key_debounce 的武装门、−12 来自累加器位宽，'
     + '−12 与 32→20 逐位对得上）；再往前 r110 比 r109 少 8 个；', 1],
+  // ---- #270：首页"保持时间"那一行（中英各 7 条）。此前它对两个脚本都是隐形的：
+  //      `metric_recheck` 只对到 metrics.csv 的那份拷贝，逐时钟 WHS 与归属整句没有任何规则。
+  //      真值来源：build/timing_summary.rpt 的 Intra Clock Table（0.050/0.056/0.059/0.133）、
+  //      build/hold_paths.rpt 第一条（u_cdc/rgray_s1_reg[1]/C → u_lm/full_d_reg/D、3 级、route 56.165 %）。
+  ['README.md', 'hold 行落点与最差数（规矩 46 整段重写）',
+    '落点 u_eth/u_rx_mac/u_crc_rx/crc_data_reg\\[17\\]/C → crc_data_reg\\[25\\]/D）\\*\\*0\\.042 ns\\*\\*',
+    '落点 u_eth/u_cdc/rgray_s1_reg[1]/C → u_eth/u_lm/full_d_reg/D）**0.050 ns**', 1],
+  ['README.md', 'hold 行级数', '\\*\\*1 级逻辑（LUT6=1）\\*\\*', '**3 级逻辑（CARRY4=2 LUT6=1）**', 1],
+  ['README.md', 'hold 行走线占比', '走线占这条数据路径延迟的 \\*\\*80\\.93 %\\*\\*',
+    '走线占这条数据路径延迟的 **56.165 %**', 1],
+  ['README.md', 'hold 行逐时钟 clk_fpga_0 WHS', '\\*\\*0\\.069 ns\\*\\*', '**0.056 ns**', 1],
+  ['README.md', 'hold 行逐时钟 clkout0_1 WHS', '\\*\\*0\\.068 ns\\*\\*', '**0.059 ns**', 1],
+  ['README.md', 'hold 行逐时钟 sys_clk WHS', '`sys_clk` \\*\\*0\\.121 ns\\*\\*', '`sys_clk` **0.133 ns**', 1],
+  ['README.md', 'hold 行"本轮代价"归属整句（这一轮没换族）',
+    '⚠ \\*\\*归属又动了，而且是本轮的代价\\*\\*：r107 是 `wgray_reg\\[6\\] → full_d_reg` 0\\.050 ns，'
+    + 'r108 同一格换到 `rgray_s1_reg\\[7\\]`、薄到 \\*\\*0\\.035 ns\\*\\*（本仓库至今最薄的一条）。',
+    '⚠ **这一轮归属没换族，数随实现动**：最差那一格仍是灰码同步器 → 链路监测那一路'
+    + '（`u_cdc/rgray_s1_reg[1] → u_lm/full_d_reg`，0.050 ns）。历史最薄仍是 r108 的 **0.035 ns**'
+    + '（那一版同一目的地由 `rgray_s1_reg[7]` 驱动），r110 落在 crc 家族 0.042 ns。', 1],
+  ['README.en.md', 'hold row landing point and worst number',
+    'landing point u_eth/u_rx_mac/u_crc_rx/crc_data_reg\\[17\\]/C -> crc_data_reg\\[25\\]/D\\) at \\*\\*0\\.042 ns\\*\\*',
+    'landing point u_eth/u_cdc/rgray_s1_reg[1]/C -> u_eth/u_lm/full_d_reg/D) at **0.050 ns**', 1],
+  ['README.en.md', 'hold row logic levels', '\\*\\*1 logic level \\(LUT6=1\\)\\*\\*',
+    '**3 logic levels (CARRY4=2 LUT6=1)**', 1],
+  ['README.en.md', 'hold row route share', 'routing taking \\*\\*80\\.93 %\\*\\*', 'routing taking **56.165 %**', 1],
+  ['README.en.md', 'hold row per-clock clk_fpga_0 WHS', '\\*\\*0\\.069 ns\\*\\*', '**0.056 ns**', 1],
+  ['README.en.md', 'hold row per-clock clkout0_1 WHS', '\\*\\*0\\.068 ns\\*\\*', '**0.059 ns**', 1],
+  ['README.en.md', 'hold row per-clock sys_clk WHS', '`sys_clk` \\*\\*0\\.121 ns\\*\\*', '`sys_clk` **0.133 ns**', 1],
+  ['README.en.md', 'hold row ownership sentence rewritten',
+    'The ownership moved again and that is this rounds cost: r107 had `wgray_reg\\[6\\] -> full_d_reg` at '
+    + '0\\.050 ns, r108 has the same destination driven from `rgray_s1_reg\\[7\\]` at \\*\\*0\\.035 ns\\*\\*, '
+    + 'the thinnest figure in this repos history.',
+    'This round the ownership did not change family; only the number moved with implementation: the worst cell '
+    + 'is still the grey-code synchroniser into the link monitor (`u_cdc/rgray_s1_reg[1] -> u_lm/full_d_reg`, '
+    + '0.050 ns). The thinnest figure on record stays r108 at **0.035 ns** (that build drove the same destination '
+    + 'from `rgray_s1_reg[7]`); r110 sat in the crc family at 0.042 ns.', 1],
 ];
 
 let bad = 0, hit = 0;
