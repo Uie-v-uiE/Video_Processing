@@ -1,0 +1,46 @@
+IODEBT-PORT DDR_cas_n        inout   bits=1   PS_INTERNAL
+IODEBT-PORT DDR_cke          inout   bits=1   PS_INTERNAL
+IODEBT-PORT DDR_ck_n         inout   bits=1   PS_INTERNAL
+IODEBT-PORT DDR_ck_p         inout   bits=1   PS_INTERNAL
+IODEBT-PORT DDR_cs_n         inout   bits=1   PS_INTERNAL
+IODEBT-PORT DDR_odt          inout   bits=1   PS_INTERNAL
+IODEBT-PORT DDR_ras_n        inout   bits=1   PS_INTERNAL
+IODEBT-PORT DDR_reset_n      inout   bits=1   PS_INTERNAL
+IODEBT-PORT DDR_we_n         inout   bits=1   PS_INTERNAL
+IODEBT-PORT DDR_ba           inout   bits=3   PS_INTERNAL
+IODEBT-PORT DDR_addr         inout   bits=15  PS_INTERNAL
+IODEBT-PORT DDR_dq           inout   bits=32  PS_INTERNAL
+IODEBT-PORT DDR_dm           inout   bits=4   PS_INTERNAL
+IODEBT-PORT DDR_dqs_n        inout   bits=4   PS_INTERNAL
+IODEBT-PORT DDR_dqs_p        inout   bits=4   PS_INTERNAL
+IODEBT-PORT FIXED_IO_ddr_vrn inout   bits=1   PS_INTERNAL
+IODEBT-PORT FIXED_IO_ddr_vrp inout   bits=1   PS_INTERNAL
+IODEBT-PORT FIXED_IO_mio     inout   bits=54  PS_INTERNAL
+IODEBT-PORT FIXED_IO_ps_clk  inout   bits=1   PS_INTERNAL
+IODEBT-PORT FIXED_IO_ps_porb inout   bits=1   PS_INTERNAL
+IODEBT-PORT FIXED_IO_ps_srstb inout   bits=1   PS_INTERNAL
+IODEBT-PORT sys_clk          input   bits=1   CLOCK_SRC
+IODEBT-PORT key1_n           input   bits=1   FALSEPATH
+IODEBT-PORT key2_n           input   bits=1   FALSEPATH
+IODEBT-PORT led              output  bits=2   BARE
+IODEBT-PORT tmds_clk_p       output  bits=1   BARE
+IODEBT-PORT tmds_clk_n       output  bits=1   BARE
+IODEBT-PORT tmds_data_p      output  bits=3   BARE
+IODEBT-PORT tmds_data_n      output  bits=3   BARE
+IODEBT-PORT eth_rxc          input   bits=1   CLOCK_SRC
+IODEBT-PORT eth_rx_ctl       input   bits=1   BARE
+IODEBT-PORT eth_rxd          input   bits=4   BARE
+IODEBT-PORT eth_tx_clk       output  bits=1   FALSEPATH
+IODEBT-PORT eth_tx_ctl       output  bits=1   FALSEPATH
+IODEBT-PORT eth_txd          output  bits=4   FALSEPATH
+IODEBT-PORT eth_mdc          output  bits=1   BARE
+IODEBT-PORT eth_mdio         inout   bits=1   BARE
+IODEBT-PORT eth_rst_n        output  bits=1   FALSEPATH
+IODEBT I1_in_reconcile        src_bits=5             report=5 GREEN
+IODEBT I2_falsepath_in        src_bits=2             report=2 GREEN
+IODEBT I3_output_covered      bare_out_ports=7       want=0 RED
+IODEBT I4_baseline_no_growth  report=in_bare:5,in_fp:2,out_bare:6,out_fp:6 must_not_exceed=5,2,6,6 GREEN
+IODEBT I5_scope_floor         user_bits=26 ports=15  bits>=20 report 4/4 GREEN
+IODEBT I6_exempt_integrity    exempt=4               no_reason=none ghost=none GREEN
+IODEBT I7_source_vs_report_gap gap_out_bare=6         must_equal=6 GREEN
+IODEBT-SUMMARY report=build/evidence/r112_bit/timing_summary.rpt src_in_bare=5 src_in_fp=2 src_out_bare=12 src_out_fp=7 rep_in_bare=5 rep_in_fp=2 rep_out_bare=6 rep_out_fp=6 user_bits=26 judged=7 bare_in=[eth_rx_ctl eth_rxd] bare_out=[led tmds_clk_p tmds_clk_n tmds_data_p tmds_data_n eth_mdc eth_mdio] result=RED

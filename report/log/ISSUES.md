@@ -11443,4 +11443,26 @@ C12a/b/c 的第一次读数都还没有），r109 因此**不采纳、不刷板�
 3. **另有一条控制本身是假绿**：变异对照用 `/dev/stdin` 喂被改坏的副本，结果 8→0（整份没读进去）也算"少了一行"而通过。
    改成写临时文件 + 期望**恰好** 8→6（只少那个时钟的两行）。空转的对照比没有对照更危险，因为它会让人以为尺子有牙。
 
+### #259 I/O 约束欠账第一次被点了名：屏（TMDS）、LED、MDIO 对外**没有任何时序声明**
+   尺子：`build/check_io_timing_coverage.py`（源码端口表 + XDC 推状态，与归档 `timing_summary.rpt` 的 check_timing
+   对账；件：`build/evidence/r113_io_debt.txt`，跑法 `python build/check_io_timing_coverage.py build/evidence/r112_bit/timing_summary.rpt`，
+   自对照 `--self` 五条全过）。这一把不是把 r112 的红抄一遍，它做的是**两端对账**：
+1. **输入侧对得上**（这才是"数得出才许出结论"）：源码端数出裸输入 5 位（`eth_rx_ctl` + `eth_rxd[3:0]`）
+   与报告 `no_input_delay HIGH=5` 相等；假路输入 2 位（`key1_n`/`key2_n`）与报告 MEDIUM=2 相等 ⇒ I1/I2 GREEN。
+   这一路的账我早就知道（RGMII 采样窗），现在它有了名字与尺子。
+2. **输出侧是新账，而且是红的**：源码端 7 个用户输出端口什么都没给——
+   `tmds_clk_p`、`tmds_clk_n`、`tmds_data_p[2:0]`、`tmds_data_n[2:0]`、`led[1:0]`、`eth_mdc`、`eth_mdio`
+   ⇒ I3 RED。**含义**：屏上那一路（HDMI/TMDS 到面板）与 LED 现在报的"MET"**不包含**芯片到面板那一段；
+   MDIO 是 bit-bang 的慢口，按惯例可以假路，但**今天没人写下来**。这就是用户问的"其他地方的时序"，
+   此前我只在文档里抄过一次计数。
+3. **两端口径的差也被钉成一条**（I7）：源码端判 BARE 的 12 位里，报告只数到 6 ⇒ 差 6 位。
+   差本身可以解释（工具把"时钟在输出锥上贯通"的引脚少算，TMDS 那 8 位走 clk_pix/clkout2），
+   但**没问过就不算解释**：I7 钉住差值 =6，一旦变（新接口进来、或我把口径改错）就红。
+   权威名单要靠 `check_timing -verbose` 问 Vivado（今天构建在飞 ⇒ 不开第二个 Vivado），r114 补齐。
+4. **r114 要做的事，按官方口径**（UG949：每个 I/O 要么有延迟约束，要么有**写明理由**的 false_path/max_delay）：
+   ① 问出权威名单（-verbose），把 I7 的差解释掉或改对；② 给 TMDS 写 `set_output_delay`——
+   先量（HDMI 面板是 sink，TMDS 规范里数据相对 clock 的 0.26/0.28 UI 窗，加上板级走线 delay 要在报告里念出来），
+   或者按"面板内部再采样"的事实写 `set_false_path -to` 并把理由写进 XDC 注释；③ LED/MDIO 各给一条带理由的声明。
+   ⚠ 这把尺子**暂时不进门禁**：现在接进去会让门禁多一条真红，而"门禁 N 项"那四处句子必须同一笔改（#242/D1c）。
+   它先进 `build/timing_lane.sh` 之外的名册步骤（每轮跑一次，念出来，红就记在这一节里）。
 
