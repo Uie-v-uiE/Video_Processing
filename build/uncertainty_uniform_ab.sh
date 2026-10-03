@@ -160,10 +160,18 @@ if [ -z "$CON" ]; then
     if tasklist 2>/dev/null | grep -qiE '^xsimk?\.exe'; then
         printf '[unc] REFUSE: 台架 xsim 还在跑（开 routed dcp 会挤它）\n'; exit 2
     fi
-    CON=build/evidence/r113_uncertainty_console.txt
+    # ⚠ 输出件名**按轮号走**，不许写死上一轮的名字：2026-10-03 21:56 这一跑就是把
+    #   `build/evidence/r113_uncertainty_console.txt` 原地覆盖了（那份从来没进 git、也没被任何文档引用，
+    #   所以没有丢失凭据——但同一个毛病今天已经栽第三次，见 ISSUES #295 第 3 条）。
+    UNC_NN=${VP_UNC_NN:-$(date +%Y%m%d_%H%M)}
+    CON=build/evidence/r${UNC_NN}_uncertainty_console.txt
+    if [ -f "$CON" ] && git ls-files --error-unmatch "$CON" >/dev/null 2>&1; then
+        printf '[unc] REFUSE: %s 是被跟踪的上一轮快照，不给覆盖（换 VP_UNC_NN）
+' "$CON"; exit 2
+    fi
     VP_BAND=$BAND "$V/vivado.bat" -mode batch -nojournal -source build/tcl/probe_uncertainty_uniform.tcl > "$CON" 2>&1
     printf '[unc] probe rc=%s\n' "$?"
-    cp -f "$CON" "build/evidence/r113_uncertainty_raw.txt" 2>/dev/null || true
+    cp -f "$CON" "build/evidence/r${UNC_NN}_uncertainty_raw.txt" 2>/dev/null || true
 fi
 grep -a '^UNC|' "$CON"
 judge "$CON"

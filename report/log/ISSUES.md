@@ -12356,3 +12356,33 @@ D4_hold_covered hold_pairs=8 GREEN  D5_no_empty_readings empty_in_B=0 GREEN  D6_
 还欠着的（下一轮 r115 的清单在 `build/r115_capture_clock_plan.md`）：① E6 眼睛重判；
 ② `set_clock_uncertainty` 那条带要不要给到全部时钟（#265，`build/uncertainty_uniform_ab.sh` 真件未跑）；
 ③ TIMING-10 那 1 条到底指谁（要新鲜的 `report_cdc -details`，#290）；④ #194 捕获钟那一刀（正式一轮）。
+
+### #295 同一条不确定度带能不能给到四个时钟：**探针自己把正当实验挡死了**（量到的三条工具形状，#265 仍未收口）（2026-10-03 22:0x）
+
+链子与板都收完之后跑这支"最后一笔全局体检"，`probe rc=4`，判定件 `build/evidence/r114_uncertainty_shape_console.txt`
+与 `build/evidence/r114_uncertainty_ab_console.txt`。红**全在工具口径上，不在设计上**，三条实测：
+
+1. `set_clock_uncertainty` **不返回对象列表**：探针第 40 行
+   `set nset [llength [set_clock_uncertainty -hold $BAND [get_clocks *]]]` 念回 `UNC_APPLIED=0` 而 `UNC_ERR=0`
+   ——命令成功了、返回却是空，于是守卫 `if {$nset == 0} exit 4` 把一次正当的体检判成"没有变量"。
+   这与 #286/#289 同族：**报告的返回值是路径字符串、约束命令的返回值不是对象**，两者都不能拿来当"落上了几条"的证据。
+2. **时钟对象根本没有不确定度属性**：`list_property [get_clocks clk_fpga_0]` 实测只有
+   `CLASS FILE_NAME INPUT_JITTER IS_GENERATED IS_PROPAGATED IS_USER_GENERATED IS_VIRTUAL LINE_NUMBER MODULE NAME
+   PERIOD SOURCE_PINS SYSTEM_JITTER WAVEFORM WEIGHT`，`*UNCERT*` 匹配为空，
+   拿它去 `get_property` 直接 `ERROR: [Common 17-54] The object 'clock' does not have a property '*UNCERT*'`。
+   ⇒ 探针第 45 行那句 `get_property HOLD_UNCERTAINTY` 永远读不回东西，U3 的"写了但工具没吃 = 假绿"防线
+   本身就是不可满足的。**唯一的读回路是报告文本里那行 `Clock Uncertainty: 0.800ns`**（今天已经在 RGMII 的
+   hold 报告里反复见过这个形状，件 `build/evidence/r114_sweepB/rt_tap0_eth_rxc_hold.rpt`）。
+3. 又一次"输出路径写死把上一轮件原地覆盖"（今天第三次，rule 17）：这支脚本把探针输出写进
+   `build/evidence/r113_uncertainty_console.txt`。事后查过：**那份从来没进过 git、也没有任何文档引用它**
+   （`git log --all --` 该路径为空、`grep -rn r113_uncertainty build/*.md report/*.md` 为空），
+   所以没有凭据丢失——并且那份文件现在已改名成 `build/evidence/r114_uncertainty_probe_failedrun_console.txt`：
+   它**内容是今晚那次 rc=4 的失败跑**，再挂 r113 的名字就是一件假标签的凭据（差点被我当 r113 的件提交进去）。
+但我不打算用"这次没丢"当借口：脚本已改成按轮号命名
+   （`VP_UNC_NN`）并且**遇到被跟踪的同名件就 REFUSE**；`--self` 改完仍要过。
+
+结论与下一步（#265 保持"没测过"，不许念成"四域余量不可比已证实"，也不许念成"违例"）：
+探针要按 1/2 两条实测形状重写两处——`UNC_APPLIED` 用"我给了几个钟"计数、
+**是否真吃进去**改从 `report_timing` 的 `Clock Uncertainty:` 行读（域内 min 路径一条即可），
+before/after 各读一次；setup 侧继续用 `U4` 那个"设计级 setup 不许动"的对照。
+改完再跑才是这笔体检的真件。今天不抢这一步：现在是深夜，草率重写会把一条防线换成一条假绿。

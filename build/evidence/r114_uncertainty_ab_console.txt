@@ -1,0 +1,9 @@
+[unc] probe rc=4
+UNCCHK U1_rows_pers_domain    rows=NA                                  floor>=4 RED
+UNCCHK U2_headline_complete   missing= eth_rxc clk_fpga_0 clkout0_1 sys_clk 四域都要有数 RED
+UNCCHK U3_band_applied        applied=0 moved=0 readback=none          applied>=1 且 moved>=1 RED
+UNCCHK U4_setup_isolated      probe= ref_wns=0.739 absd=8.261          absd<=0.001ns RED
+UNCCHK U6_same_design         probe_eth_rxc_whs=NA ref_whs=0.052 absd=8.948 absd<=0.001ns RED
+UNCCHK U5_neg_consistency     counted=0 printed=0                      两数相等 GREEN
+UNCCHK-SUMMARY src=build/evidence/r113_uncertainty_console.txt band=0.800 neg_domains=0 result=RED
+# 口径：after 是"同一悲观带下的 what-if"（没重跑布线），负余量是发现、不是红；红只允许出现在工具/口径上。
