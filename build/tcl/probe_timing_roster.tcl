@@ -138,7 +138,7 @@ if {[file exists $frpt]} {
             # No get_nets existence check here on purpose: net names carry [n] bit indices, which are GLOB
             #   classes for get_nets, so an unescaped lookup would reject the very biggest broadcasts and
             #   quietly return FANOUT_ROWS=0 again. The probe only inventories; resolution with a bracket-safe
-            #   -filter NAME eq happens in build/tcl/mf114_roll.tcl, where an empty set must stop the roll.
+            #   the `==` operator (NOT `eq`, which is a syntax error here) happens in build/tcl/mf114_roll.tcl, where an empty set must stop the roll.
             puts "FANOUT|fo=$fo|net=$nm"
             incr shown
             if {$shown >= 20} { break }

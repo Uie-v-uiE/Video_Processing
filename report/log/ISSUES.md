@@ -11916,3 +11916,30 @@ DEBT|io_after_route|no_in=0|no_out=6|fp_in=2|fp_out=6|exc_rows=13|datapath_only_
 ⇒ **#275 里排的第二档（`IDELAY_VALUE` 扫值，在带窗口径下找眼心）才是这一刀的正解**，沿的条数这条路已经排除。
 输入侧欠账两次都确实清掉了（`no_in` 5 → 0），输出侧 6 个端口仍按纪律不动（缺规范原文，见 §二.2）。
 候选约束文件仍然**不接进构建**，板上还是 r113。
+
+### #279 工具形状：`-filter {… eq …}` 在本版本是语法错，而 `-quiet` 把它伪装成"0 个对象"（2026-10-03 16:57）
+
+**症状（三处，各自都有件）**：
+* `build/tcl/probe_r114_objects.tcl` 第一次跑：`ODDRCELL_COUNT=0` ⇒ 我当时写下"TMDS 不是 ODDR 驱动的"（**这一条我只撤到"未证实"，没有反证**：换 `==` 之后 ODDR 到底有几颗还没重新量，下一支探针补，见文末）；
+* `build/tcl/probe_r114_idelay_prop.tcl`：`IDELAY_BY_REF=0`；
+* `build/tcl/mf114_roll.tcl`（扇出复制那一滚）一直 `MF-REFUSE ... 名册没认出网` ⇒ 我把它记成"这一刀没打到东西"，
+  还把那条结论写进了名册差分与 r114 计划。
+
+**真实原因**：Vivado 2025.2.1 的 `-filter` 表达式里 **`eq` 不是合法操作符**，会报
+`ERROR: [Common 17-263] There was a syntax error while parsing filter expression: 'REF_NAME eq IDELAYE2' at position '9'`
+（件 `build/evidence/r114_idelay_prop_console4.txt`）。合法的是 `==`（字符串相等）与 `=~`（GLOB 匹配）。
+而我把查询写成 `get_* -quiet -filter {... eq ...}` ⇒ **-quiet 把语法错的错误吞掉、只留下空集合**，
+于是"我的过滤器坏了"看起来完全等于"设计里没有这些对象"。同一份 dcp 用 `==` 立刻数出 5 颗 IDELAYE2
+（件 `build/evidence/r114_idelay_set_console.txt`）。
+
+**为什么这条要单独立账**：它推翻的是**判断**不是笔误。上面三条"0"我都当成事实写进了文档与计划，
+其中"扇出复制那一刀没打到东西"直接决定了 r114 的物理实验排序。⇒ 规矩要加一条：
+`-quiet` 之后的**空集合不许单独成立**，必须同时给一个非空对照（同一查询换个操作符/换个已知存在的对象名），
+或者把错误串原样念出来（`catch` 里把 `$::errorInfo`/rc 打印出来，我这里就是 `filter_rc=`）。
+
+**已改**：`mf114_roll.tcl`（2 处代码 + 1 处注释）、`probe_io_debt_verbose.tcl`、`probe_r114_objects.tcl`、
+`r114_io_roll.tcl`、`r114_io_roll_one.tcl`、`probe_timing_roster.tcl` 的注释全部换成 `==`；
+六份文件 `info complete` 自检 6/6。探针文件 `probe_r114_idelay_prop.tcl` **故意留着 `eq` 那一行**，
+它现在的作用是把这条错误重现出来（负对照）。
+**待办的连带修正**：扇出复制那一滚（`build/r114_replication_ab.sh` + `mf114_roll.tcl`）必须重跑一次——
+之前那次 `MF-REFUSE` 不是"这一刀没打到东西"，是尺子断了；#276/#278 的结论不受影响（它们不依赖 `eq`）。

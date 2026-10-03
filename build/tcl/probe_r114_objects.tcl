@@ -30,7 +30,7 @@ foreach p {tmds_clk_p tmds_clk_n eth_tx_clk eth_tx_ctl {led[0]} {eth_rxd[0]} eth
 # The scan is deliberately narrow: every `-hier` query here is answered by a -filter, because an unfiltered
 # `get_pins -hier` over this netlist (14154 LUT / 8188 FF) turns a 3 minute probe into a 20 minute one.
 set n 0
-foreach c [get_cells -quiet -hier -filter {REF_NAME eq ODDR}] {
+foreach c [get_cells -quiet -hier -filter {REF_NAME == ODDR}] {
     set nm [get_property NAME $c]
     if {$n < 200 && ([string match *tmds* $nm] || [string match *tx_clk* $nm] || [string match *txd* $nm])} {
         puts "ODDRCELL|name=$nm"

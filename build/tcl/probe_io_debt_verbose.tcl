@@ -125,7 +125,7 @@ if {$one_pin ne ""} {
 puts "MAXFAN|pin_props=[join $pinhits ,]"
 # current value on the two known broadcast nets, so "did the lever move it" is a count not a feeling
 foreach nm {rok4[51]_i_1_n_0} {
-    set nn [get_nets -quiet -filter [list NAME eq $nm]]
+    set nn [get_nets -quiet -filter [list NAME == $nm]]
     if {$nn eq ""} { puts "MAXFAN|net=$nm|MISSING" } else {
         puts "MAXFAN|net=$nm|FANOUT_CURRENT=([get_property FANOUT $nn])|MAX_FANOUT_PROP=([catch {get_property MAX_FANOUT $nn} v; set v])"
     }

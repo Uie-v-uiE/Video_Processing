@@ -26,7 +26,7 @@
 #   正式构建里 `system_top_physopt.dcp` 存在 ⇒ 官方流程本来就跑 phys_opt，A 滚因此不是"半个流程"）。
 #   不碰任何被跟踪件，也不碰 runs 目录的产物；全部落 $MF_OUT。
 # ⚠ 计数地板：认到的高扇出网数 0 ⇒ MF-REFUSE exit 4（"空集"会伪装成"加了也看不出差别"，规矩 46）。
-# ⚠ 网名里的 `[n]` 是 get_nets 的 GLOB 类字符 ⇒ 一律 `-filter {NAME eq {…}}` 做字符串相等。
+# ⚠ 网名里的 `[n]` 是 get_nets 的 GLOB 类字符 ⇒ 一律 `-filter {NAME == {…}}` 做字符串相等（**`eq` 在本版本会报 [Common 17-263] 语法错**，见 2026-10-03 的实测）。
 # 运行时 puts 标签一律 ASCII（Vivado Tcl 的 CJK puts 会污染 grep 与命令替换，栽过两次）。
 set root [file normalize [file join [file dirname [info script]] .. ..]]
 set dcp  [file join $root "vivado_system/zynq_video_sys.runs/impl_1/system_top_opt.dcp"]
@@ -77,7 +77,7 @@ proc fan_rows {path minfo} {
 set targets {}
 foreach row [fan_rows $frpt $minfo] {
     lassign $row fo nm
-    set n [get_nets -quiet -filter "NAME eq {$nm}"]
+    set n [get_nets -quiet -filter "NAME == {$nm}"]
     if {[llength $n] > 0} {
         lappend targets $nm
         puts "CAND fo=$fo net=$nm hit=[llength $n]"
@@ -97,7 +97,7 @@ puts "PLACE_WALL=[expr ([clock seconds]-$t0)/60]m"
 
 # ---- 唯一的变量：布线前这一次 phys_opt 带不带 -force_replication_on_nets ----
 set netobjs {}
-foreach nm $targets { set netobjs [concat $netobjs [get_nets -quiet -filter "NAME eq {$nm}"]] }
+foreach nm $targets { set netobjs [concat $netobjs [get_nets -quiet -filter "NAME == {$nm}"]] }
 if {$mode eq "repl"} {
     if {[llength $netobjs] == 0} { puts "MF-REFUSE: 名字认到了但网对象集合是空"; exit 4 }
     if {[catch {phys_opt_design -force_replication_on_nets $netobjs} e]} {

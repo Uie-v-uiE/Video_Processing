@@ -18,7 +18,7 @@
 #   * `report_methodology` 没有 `-rules`，只有 `-checks`（第一支探针死在 `Unknown option '-rules'`）。
 #   * `get_false_paths` **不存在**（探针死在 line 55，件 build/evidence/r114_objects_probe_console.txt 尾部）
 #     ⇒ 这里数异常一律用 `get_timing_exceptions`，并按 TYPE 分类打印。
-# ⚠ 运行时标签 ASCII；网名里 [n] 是 GLOB 类字符 ⇒ 需要点名的地方用 `-filter {NAME eq {…}}`。
+# ⚠ 运行时标签 ASCII；网名里 [n] 是 GLOB 类字符 ⇒ 需要点名的地方用 `-filter {NAME == {…}}`（`eq` 会报 [Common 17-263]）。
 set root [file normalize [file join [file dirname [info script]] .. ..]]
 set out "/tmp/kx/r114io"
 if {[info exists ::env(IO_OUT)]} { set out $::env(IO_OUT) }
