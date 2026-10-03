@@ -196,6 +196,31 @@ hold 0.050/0.056/0.059/0.133），与本文第 2 节的表同源同数，逐条�
 接线进门禁会改"门禁 N 项"那四处句子的条数 ⇒ 必须与那些句子**同一笔**改（#242/D1c 那一课），
 所以这三把暂时只进链子与本文，不进门禁计数。
 
+## 4d. 2026-10-03 实测：把"真实到达窗"写进约束之后，全局名册第一次说实话（件 `build/evidence/r114_io_roll_console5.txt`）
+
+同一份 `system_top_opt.dcp` 起两滚 place→phys_opt→route，**唯一变量**是候选约束
+`src/constraints/r114_io_async.xdc`（RGMII 收口 ±0.500 ns，上升沿 + 下降沿）。A 滚逐位复现正式构建
+（`WNS 0.445 / WHS 0.050 / 失败端点 0`，逐钟八格全 MET）⇒ 这一滚的可信度不靠"看起来一样"。B 滚：
+
+| 域 | setup A→B | hold A→B | 读数 |
+|---|---|---|---|
+| `eth_rxc` | 0.445 → 0.424 | 0.050 → **−2.885** | 5 个失败 hold 端点，落点 `u_iddr_rx_ctl/D`，**route 0.000 %** |
+| `clk_fpga_0` | 1.135 → 1.155 | 0.056 → 0.058 | 未受伤 |
+| `clkout0_1` | 4.467 → 4.206 | 0.059 → 0.064 | 未受伤 |
+| `sys_clk` | 14.463 → 14.109 | 0.133 → 0.133 | 未受伤 |
+
+两件事必须一起说：**输入侧欠账清了**（`check_timing` 的 HIGH 无输入延迟端口 5 → 0），
+**旧的那个 0.050 从来不是设计值**——它是"RXD/RX_CTL 与 RXC 同时到达"这个隐含假设给的。
+落点 2 级逻辑、走线 0 % ⇒ 不是布线挤的，是片外窗与 IDDR 采样沿的关系本来就没对上（r92 的 IDELAY 是在
+**没有约束建模**的前提下调到"屏上看着对"的）。所以这一刀的正确读法不是"hold 变差了 2.9 ns"，
+而是"口径改了，账才第一次算对"；修法排在下一步（单变量：只给上升沿 / `IDELAY_VALUE` 扫档），见 ISSUES #275。
+
+同一天另一条实测（ISSUES #276）：`set_max_delay -datapath_only` 叠在 `set_clock_groups -asynchronous` 之上
+**不落进 `report_exceptions`**（A/B 两滚表体都是 13 行，`-datapath_only` 出现 0 次）⇒ 四条跨域界一条都没生效。
+"给同步器一条带理由的界"要动的是**排除口径本身**（那一对钟要不要继续整组互相排除），会改 WNS 的算法范围，
+属于必须单独一轮、带名册差分去做的决定，不能靠叠约束顺手完成。
+
+
 ## 参考（官方与论坛，2026-10-03 查）
 - [Timing Closure — UG949 UltraFast Design Methodology Guide](https://docs.amd.com/r/en-US/ug949-vivado-design-methodology/Timing-Closure)
 - [Additional Uncertainty — UG949（不确定度那一节；⚠ 页名可查、正文要 JS 我抓不到，所以本文只引页名不引原句）](https://docs.amd.com/r/en-US/ug949-vivado-design-methodology/Additional-Uncertainty)

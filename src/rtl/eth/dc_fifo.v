@@ -20,7 +20,11 @@ module dc_fifo #(
     (* ram_style = "block" *) reg [DATA_W-1:0] mem [0:DEPTH-1];
 
     reg [ADDR_W:0] wbin, wgray, rbin, rgray;
-    reg [ADDR_W:0] wgray_s0, wgray_s1, rgray_s0, rgray_s1;
+    // 跨域捕获链打 ASYNC_REG（ISSUES #262 / UG949 的 CDC 一节）：这四颗是格雷码指针在**对方**时钟域的第一/第二拍，
+    // 不打属性工具可以挪位、复制、甚至把它们拆到不同 SLR 相邻区，亚稳态传播窗口就没保证（report_methodology 的
+    // TIMING-10 就是冲这个来的）。s1 与 s0 同域、按扫描器的定义不算"跨域捕获"，但官方口径是让整条链待在一起，
+    // 所以四颗一起标。尺子：build/scan_async_reg_coverage.py（改前 A2 RED missing=2，件 build/evidence/r113_async_reg_scan.txt）
+    (* ASYNC_REG = "TRUE" *) reg [ADDR_W:0] wgray_s0, wgray_s1, rgray_s0, rgray_s1;
 
     function [ADDR_W:0] bin2gray;
         input [ADDR_W:0] b;

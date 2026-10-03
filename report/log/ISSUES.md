@@ -11825,3 +11825,59 @@ grep 成 `build/evidence/r113_temp_lines.txt`（6 条，极值 61.15–61.71 ℃
 **已同步的地方**：`board/ACCEPTANCE.md` 的 E6 现状半句与"待队员判"标签、`report/KNOWN_ISSUES.md` 那条
 "需要队员做一次"改成"已做过 + 为什么必须是人眼"。#247/#256/#260/#261 这一族到此闭合；
 `#185`（角度机读口）作为观测性账继续挂着。
+
+### #275 快车道把"真实到达窗"这一刀的量测出来了：eth_rxc 的 hold 一直是**理想到达**换来的（2026-10-03 16:15）
+
+**做的一件事**：`build/tcl/r114_io_roll.tcl` 从同一份 `vivado_system/zynq_video_sys.runs/impl_1/system_top_opt.dcp`
+起两滚（place → phys_opt → route，命令完全一致），**唯一变量**是 B 滚多 source 了候选约束
+`src/constraints/r114_io_async.xdc`（RGMII 收口 ±0.500 ns 到达窗，上升沿 + 下降沿各一组）。
+件：`build/evidence/r114_io_roll_console5.txt`。
+
+**A/B 前先证尺子可信**：A 滚（不加约束）跑完是 `IHEAD|base_route|wns=0.445|whs=0.050|fail_setup=0|fail_hold=0`
+—— 与正式构建 r113 的头条**逐位相同**，逐钟八格也都 MET（`eth_rxc 0.445/0.050、clk_fpga_0 1.135/0.056、
+clkout0_1 4.467/0.059、sys_clk 14.463/0.133`）。所以 B 滚的差别是约束造成的，不是放置骰子（#253/#254 那条路数）。
+
+**B 滚读数（关键）**：
+- setup 侧几乎没动：`eth_rxc` 0.445 → **0.424**（−0.021），其余三域 1.135→1.155 / 4.467→4.206 / 14.463→14.109，
+  全设计失败 setup 端点仍 **0**。
+- hold 侧塌了：`IHEAD|io_route|whs=-2.885|fail_hold=5`，落点是 `u_eth/u_rgmii/u_rgmii_rx/u_iddr_rx_ctl/D`
+  （2 级逻辑、**route 0.000 %**）——也就是这条不是布线挤的，是**片外到达窗与 IDDR 采样沿的关系本来就不成立**。
+- 输入侧欠账确实清了：`check_timing` 的 `no_input_delay` HIGH 从 **5 → 0**（`DEBT|io_after_route|no_in=0`），
+  输出侧 6 个端口按纪律没动（TMDS/LED 的对外窗要面板/规范数，本机取不到原文 ⇒ 挂着，不编数）。
+
+**结论（不软化）**：此前一路报出来的 WHS 0.050 是"RXD/RX_CTL 与 RXC 同时到达"这个**隐含假设**换来的。
+把 ±500 ps 的规范窗写实之后，同一份网表在同一个工具下 hold 直接 −2.885、5 个端点失败 ⇒
+r92 那把 IDELAY（VALUE=26）在**没有约束建模**的情况下被调到了"屏幕看着对"的位置，但它并没有把采样点
+放进 DDR 两沿的眼心。**这不是回归，是旧读数的口径本来就不成立**（规矩 35：一个绝对差不算收益也不算回归；
+这里立住的是"同一份网表、两个口径"的差分）。
+
+**下一步（已排，不需要再论证要不要做）**：在快车道上做两个单变量：① 只给上升沿（去掉 `-clock_fall` 那两条）
+看 fail_hold 是否归零——如果是，说明这块板的 PHY 没有开内部 2 ns 延迟、数据只在上升沿有效；
+② `IDELAY_VALUE` 扫三档（现值 ±8 taps）在**带窗**的口径下找眼心。两个都要写进名册差分，不许只念头条 WNS。
+
+### #276 `set_max_delay -datapath_only` 写在 `set_clock_groups -asynchronous` 之上**不落表**：四条界一条都没生效（2026-10-03）
+
+候选约束里给四条跨域路写了 `set_max_delay -datapath_only`（eth_rxc↔clk_fpga_0、clk_fpga_0↔clkout0_1）。
+`report_exceptions` 自己写的表体行数：**A 滚 13 行、B 滚 13 行**（件
+`C:/Users/wenqu/AppData/Local/Temp/kx/r114io/exc_179101*.rpt`，四份分别是 base/base_after/io_before/io_after），
+`-datapath_only` 这个词在两份表里出现 **0** 次。⇒ 那对被 `set_clock_groups` 整组排除的钟，
+再挂 max_delay 不会产生可数的例外；UG949 的"给同步器一条带理由的界"这件事**不能靠叠加例外完成**。
+
+**含义**：#266 的正解是"要么把那一对从 group 排除里拿出来、改用 per-path 的 max_delay/bus_skew，要么承认这四条路
+就是不做时序分析、只在结构上保证"——这是**口径决策**，会动 WNS 的算法范围，必须单独一轮带尺子做
+（现有名册差分 D1..D6 正好能盯"别的域有没有被挤"）。这一条不能被我今天顺手做掉，也不许写成"已补上界"。
+
+### #277 我自己在这三滚上烧的时间，真实原因是 Tcl 的 `-` 前缀参数（误诊记录，2026-10-03）
+
+探针/滚动脚本连续三次死在 `proc debt` 里。我**第一次的判断是错的**：我以为原因是"proc 体内写了 CJK 注释，
+Vivado 按系统码页读 .tcl 会吞字符"（这条规矩确实存在、也确实有件），于是先把 11 行注释删掉——
+删完照样死。真实报错是
+`bad option "-datapath_only": must be -all, -about, ...` 出自
+`regexp -all -inline {-datapath_only} $et`：**模式串以 `-` 开头时必须写 `--` 先终止选项解析**。
+同一类错还有一次：`get_false_paths` / `get_timing_exceptions` / `get_clock_groups` **都不是本工具的命令**
+（`info commands` 实测只有 `report_exceptions`；件 `build/evidence/r114_cmds_console.txt`），
+而我把它们包在 `catch` 里，于是"命令不存在"被打印成 `exc=0` ——**一个断掉的解析器伪装成"0 条例外"**，
+正是规矩 46 说的那种假绿。两处都已改（`--` + 表体行按实测形状 `^\d+\s+\S` 数，正控制在 tclsh 里跑出 13 行）。
+
+**留这一条的理由**：误诊本身也要入账。删 CJK 注释这件事最后没被证明有害也没被证明必要，
+我不把它写成"根因"，只写成"我改过、且不是根因"。

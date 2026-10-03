@@ -53,3 +53,23 @@
 * 不改正在被后台实例执行的脚本（要改就复制新名字）；构建在飞时不动 `src/rtl`、`src/constraints`；
 * 门禁项数一旦变（把上面任何尺子接进门禁），必须与"门禁 N 项"那四处句子**同一笔**改（#242/D1c）；
 * 采纳笔要含 bit/xsa，刷板后跑 `board_verify --geom --battery --round=r114`，眼睛判据仍归用户。
+
+## 八、2026-10-03 16:15 的实测状态（这一节的每一条都有件，不覆盖上面的计划文本）
+
+* §一.1 `ASYNC_REG`：**已落源码**（`src/rtl/eth/dc_fifo.v:23` 四颗一起打属性），尺子
+  `build/scan_async_reg_coverage.py` 从 A2 RED(missing=2) 变 GREEN(missing=0, ghost=0)；
+  属性只影响实现阶段的挪位/复制，正式名册还要等一轮构建才念得出变化（不许提前念收益）。
+* §一.2 四条 `set_max_delay -datapath_only`：**测了，没生效**（ISSUES #276）⇒ 这一刀从"补约束"改判成
+  "改排除口径"，需要单独一轮，见 §六之后的那条决定项。
+* §二.1 三个来源一个名字集：**`check_timing -verbose` 的权威名单已问到**
+  （件 `build/check_timing_verbose.rpt`：HIGH 输入 5 = `eth_rx_ctl` + `eth_rxd[0..3]`；
+  HIGH 输出 6 = `led[0..1]` + `tmds_clk_p` + `tmds_data_p[0..2]`；MEDIUM 输入 2 = 两把键；MEDIUM 输出 6 =
+  `eth_rst_n/eth_tx_ctl/eth_txd[0..3]`）。
+* §二.2 输入侧约束：**写了也量了** —— 加上 ±0.5 ns 的规范窗之后输入欠账 5→0，
+  但 `eth_rxc` 的 hold 变成 −2.885 / 5 个失败端点（ISSUES #275）⇒ **候选文件不许接进构建**
+  （`build/tcl/build_system_axigpio.tcl` 目前只加 `rk_zynq7020.xdc` 与 `clock_groups_impl.xdc`，已核对），
+  下一步先做两个单变量：只给上升沿、以及 `IDELAY_VALUE` 扫档。
+  输出侧（TMDS/LED）仍缺规范原文出处，如实挂着，不编数。
+* §五 `snap_cross.hb_gone` 声明初值：**已落**，`build/scan_dead_reset_init.py` 从 init_miss=1 变 0
+  （`result=CLEAN`，件 `build/evidence/r114_dead_reset_scan.txt`）；该模块不在当前位流那棵树里 ⇒ 时序无感，
+  只算补上"复位分支说的值与上电值一致"这条结构欠账（没有专属台架，如实写明）。

@@ -1,0 +1,106 @@
+
+****** Vivado v2025.2.1 (64-bit)
+  **** SW Build 6403652 on Thu Mar 19 19:48:24 GMT 2026
+  **** IP Build 6403511 on Thu Mar 19 12:41:45 MDT 2026
+  **** SharedData Build 6403650 on Thu Mar 19 14:02:13 MDT 2026
+  **** Start of session at: Sat Oct  3 15:38:56 2026
+    ** Copyright 1986-2022 Xilinx, Inc. All Rights Reserved.
+    ** Copyright 2022-2026 Advanced Micro Devices, Inc. All Rights Reserved.
+
+source build/tcl/probe_r114_objects.tcl
+# set root [file normalize [file join [file dirname [info script]] .. ..]]
+# set dcp [file join $root "vivado_system/zynq_video_sys.runs/impl_1/system_top_routed.dcp"]
+# if {![file exists $dcp]} { puts "REFUSE: no such dcp: $dcp"; exit 1 }
+# open_checkpoint $dcp
+Command: open_checkpoint D:/Xilinx/Prj/pro/Video_Processing/vivado_system/zynq_video_sys.runs/impl_1/system_top_routed.dcp
+
+Starting open_checkpoint Task
+
+Time (s): cpu = 00:00:00 ; elapsed = 00:00:00.052 . Memory (MB): peak = 330.129 ; gain = 3.340
+INFO: [Device 21-403] Loading part xc7z020clg484-2
+Netlist sorting complete. Time (s): cpu = 00:00:00 ; elapsed = 00:00:00.266 . Memory (MB): peak = 819.742 ; gain = 0.000
+INFO: [Netlist 29-17] Analyzing 2897 Unisim elements for replacement
+INFO: [Netlist 29-28] Unisim Transformation completed in 2 CPU seconds
+INFO: [Project 1-479] Netlist was created with Vivado 2025.2.1
+INFO: [Project 1-570] Preparing netlist for logic optimization
+Read ShapeDB Complete: Time (s): cpu = 00:00:00 ; elapsed = 00:00:00.157 . Memory (MB): peak = 966.324 ; gain = 7.000
+INFO: [Timing 38-478] Restoring timing data from binary archive.
+INFO: [Timing 38-479] Binary timing data restore complete.
+INFO: [Project 1-856] Restoring constraints from binary archive.
+INFO: [Project 1-853] Binary constraint restore complete.
+INFO: [Designutils 20-5722] Start Reading Physical Databases.
+Reading placement.
+Read Netlist Cache: Time (s): cpu = 00:00:00 ; elapsed = 00:00:00.031 . Memory (MB): peak = 1593.156 ; gain = 0.000
+Reading placer database...
+Read Device Cache: Time (s): cpu = 00:00:00 ; elapsed = 00:00:00.018 . Memory (MB): peak = 1593.156 ; gain = 0.000
+Read PlaceDB: Time (s): cpu = 00:00:00 ; elapsed = 00:00:00 . Memory (MB): peak = 1593.156 ; gain = 0.000
+Read placeStorage: Time (s): cpu = 00:00:01 ; elapsed = 00:00:00.831 . Memory (MB): peak = 1596.074 ; gain = 2.918
+Read PulsedLatchDB: Time (s): cpu = 00:00:00 ; elapsed = 00:00:00 . Memory (MB): peak = 1596.074 ; gain = 0.000
+Reading routing.
+Read RouteStorage: Time (s): cpu = 00:00:00 ; elapsed = 00:00:00.380 . Memory (MB): peak = 1610.211 ; gain = 14.137
+Read Physdb Files: Time (s): cpu = 00:00:01 ; elapsed = 00:00:01 . Memory (MB): peak = 1610.211 ; gain = 17.055
+Restored from archive | CPU: 1.000000 secs | Memory: 0.000000 MB |
+Finished XDEF File Restore: Time (s): cpu = 00:00:01 ; elapsed = 00:00:01 . Memory (MB): peak = 1610.211 ; gain = 17.055
+Netlist sorting complete. Time (s): cpu = 00:00:00 ; elapsed = 00:00:00.013 . Memory (MB): peak = 1633.941 ; gain = 0.000
+INFO: [Project 1-111] Unisim Transformation Summary:
+  A total of 1035 instances were transformed.
+  RAM128X1D => RAM128X1D (MUXF7(x2), RAMD64E(x4)): 336 instances
+  RAM64M => RAM64M (RAMD64E(x4)): 651 instances
+  RAM64X1D => RAM64X1D (RAMD64E(x2)): 48 instances
+
+INFO: [Project 1-604] Checkpoint was created with Vivado v2025.2.1 (64-bit) build 6403652
+open_checkpoint: Time (s): cpu = 00:00:28 ; elapsed = 00:00:27 . Memory (MB): peak = 1642.000 ; gain = 1323.797
+# puts "CLOCKS_LIST=[join [get_property NAME [get_clocks -quiet *]] ,]"
+CLOCKS_LIST=clk_fpga_0,sys_clk,eth_rxc,clkfbout,clkout2,clkfbout_1,clkout0_1,clkout1_1
+# foreach p {tmds_clk_p tmds_clk_n eth_tx_clk eth_tx_ctl {led[0]} {eth_rxd[0]} eth_rx_ctl} {
+#     set po [get_ports -quiet $p]
+#     if {$po eq ""} { puts "PORT|name=$p|MISSING"; continue }
+#     puts "PORT|name=[get_property NAME $po]|dir=[get_property DIR $po]|LOC=[get_property LOC $po]|SLEW=[get_property SLEW $po]|IOSTANDARD=[get_property IOSTANDARD $po]"
+#     set drivers ""
+#     catch {set drivers [get_property NAME [get_pins -quiet -of_objects [get_nets -quiet -of_objects $po]]]} ed
+#     puts "  DRIVERS=$drivers"
+# }
+PORT|name=tmds_clk_p|dir=|LOC=IOB_X1Y22|SLEW=|IOSTANDARD=TMDS_33
+  DRIVERS=u_pl/tmds_clk_p
+PORT|name=tmds_clk_n|dir=|LOC=IOB_X1Y21|SLEW=|IOSTANDARD=TMDS_33
+  DRIVERS=u_pl/tmds_clk_n
+PORT|name=eth_tx_clk|dir=|LOC=IOB_X1Y35|SLEW=SLOW|IOSTANDARD=LVCMOS33
+  DRIVERS=eth_tx_clk_OBUF_inst/O
+PORT|name=eth_tx_ctl|dir=|LOC=IOB_X1Y33|SLEW=SLOW|IOSTANDARD=LVCMOS33
+  DRIVERS=eth_tx_ctl_OBUF_inst/O
+PORT|name=led[0]|dir=|LOC=IOB_X1Y11|SLEW=SLOW|IOSTANDARD=LVCMOS33
+  DRIVERS=led_OBUF[0]_inst/O
+PORT|name=eth_rxd[0]|dir=|LOC=IOB_X1Y42|SLEW=|IOSTANDARD=LVCMOS33
+  DRIVERS=eth_rxd_IBUF[0]_inst/I
+PORT|name=eth_rx_ctl|dir=|LOC=IOB_X1Y37|SLEW=|IOSTANDARD=LVCMOS33
+  DRIVERS=eth_rx_ctl_IBUF_inst/I
+# set n 0
+# foreach c [get_cells -quiet -hier -filter {REF_NAME eq ODDR}] {
+#     set nm [get_property NAME $c]
+#     if {$n < 200 && ([string match *tmds* $nm] || [string match *tx_clk* $nm] || [string match *txd* $nm])} {
+#         puts "ODDRCELL|name=$nm"
+#         # the C pin of the ODDR that launches the clock output is what a generated clock must hang on
+#         foreach q [get_pins -quiet -of_objects $c] {
+#             if {[get_property DIRECTION $q] ne "I"} { continue }
+#             if {![string match */C [file tail $q]]} { continue }
+#             set net [get_nets -quiet -of_objects $q]
+#             set clks ""
+#             if {$net ne ""} { set clks [get_property NAME [get_clocks -quiet -of_objects $net]] }
+#             puts "  ODDRC|pin=$q|net=[expr {$net eq "" ? "none" : [get_property NAME $net]}]|clocks=[join $clks ,]"
+#         }
+#     }
+#     set n [expr {$n + 1}]
+# }
+# puts "ODDRCELL_COUNT=$n"
+ODDRCELL_COUNT=0
+# foreach c [get_cells -quiet -hier -filter {NAME =~ *tx_clk*}] {
+#     puts "TXCLK_CELL|name=[get_property NAME $c]|ref=[get_property REF_NAME $c]"
+# }
+TXCLK_CELL|name=eth_tx_clk_OBUF_inst|ref=OBUF
+invalid command name "get_false_paths"
+    while executing
+"get_false_paths -quiet"
+    invoked from within
+"set fp [get_false_paths -quiet]"
+    (file "build/tcl/probe_r114_objects.tcl" line 55)
+INFO: [Common 17-206] Exiting Vivado at Sat Oct  3 15:39:25 2026...
