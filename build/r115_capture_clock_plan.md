@@ -33,6 +33,22 @@ rising-edge IDDR 的对应关系我没读实（arrival/required 还差 0.155 ns 
 排法说明：**C1 的预测是负的**，所以它不该先做——先做那个能关住的（C2），除非 C2 的时钟组重算把别的域挤坏。
 这条排序本身就是"别一根筋"：C2 的风险全在代价面（跨域关系），所以判据必须先有（下面第三节）。
 
+## 二·补：00:08 用**已量到的分量**重排两条路（C2 已被实测判负，别再挪相）
+
+把 §一 的分量代回去（`arrival = input_delay_min + IBUF 1.321 + IDELAYE2(tap26) 2.293`；
+`required = DCD + 不确定度 0.835 + IDDR hold 0.155`），两条路在**真窗（min 1.000）**下的预测是：
+
+| 路 | DCD 取多少（有出处） | 预测 WHS(I/O) | 代价面（也是量出来的） |
+| --- | --- | --- | --- |
+| 现状（BUFG 5.008） | 件 `r114_sweepB/rt_tap0_eth_rxc_hold.rpt` 的分解 | **−1.38**（自校验：同一套分量代 ±0.5 档得 −2.884，与实测 −2.885 逐位对上） | H5 的 5 个端口永远是"没建窗" |
+| **MMCM 负相移（原 C2，现已判负）** | 实测只买到 +0.759，其中 ~0.67 是 UU 脱离覆盖面（`build/evidence/r115_c2_scratch/io_probe_console.txt`） | 仍 **−2.126**（终态实测） | 多一只 MMCM（2/4→3/4），且**静默削弱三条点名 eth_rxc 的约束** |
+| **BUFIO 直接喂 IDDR（回到原 C1）** | BUFIO 那棵树 SCD ≈ 3.171（r91/#57 量的同一形状） ⇒ 若 DCD 同量级，gain ≈ 1.84 | **≈ +0.46** ⇒ 真窗下**唯一有余**的一条 | IDDR 与 fabric 又分两棵树 ⇒ r92 的 1.616 ns 偏斜会回来；GMII fabric 跨区（这正是 r92 放弃 BUFIO 的原因）。**修法必须是"IDDR 用 BUFIO + 第一级就落在同一 IO 区"**，不是简单换个缓冲 |
+
+⇒ 下一轮的候选不再是"再挪一点相"，而是这条 **BUFIO + 同区第一级**的路；
+它的前置是**三条点名 `eth_rxc` 的约束先改成覆盖派生/新结构的对象**（`set_clock_uncertainty`、`set_clock_groups`、
+`set_input_delay -clock`；一条命令一个对象），否则量出来的"收益"里会混进约束覆盖面丢失（00:01 已经栽过一次）。
+`-include_generated_clocks` 的写法与"一个取不到的名字会让整条命令空转"的旧账都在 `src/constraints/clock_groups_impl.xdc:1-13`。
+
 ## 三、这一刀的尺子（先配能红的，再落刀；红绿凭据都进 `build/evidence/`）
 
 1. **改前必须红**（已有，不用再造）：同一份窗 XDC 下 `eth_rxc` min = −2.885 / tap31 仍 −2.570
