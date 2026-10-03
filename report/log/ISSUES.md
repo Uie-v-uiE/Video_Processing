@@ -12563,3 +12563,36 @@ arrival = 1.000 + 1.321 + 0.655 = 2.976；required = 5.008 + 0.835 + 0.155 = 5.9
 **A1 这一节的账要如实结**：Xilinx 的 UG903/906/949/904/382/482 今晚仍然没取到（本机无随附文档、渲染路线缺 poppler），
 所以本轮依旧没有任何"官方建议"字样的结论；但"本机 PDF 读不到"这句已经被证伪了一半——
 **读不到的是渲染，不是文本**。下一轮要么装 poppler 要么继续用 pypdf，别再拿"取不到"当不做的理由。
+
+### #305 C3/MMCM 那一刀量完就死了，但它顺手抓出一件**会静默削弱约束**的事（00:01，副本树 `c2_scratch_1003`）
+
+预登记的判据（`docs/timing/rgmii_window_model.md` §4）逐条读数，件 `build/evidence/r115_c2_scratch/`：
+
+- **S2 机制 GREEN**：副本树网表 `mmcm=1 / iddr=5 / bufg=1`，主树同一把尺子 `mmcm=0` **且正对照当场红**（`VP_C2_WANT=red` 那条要求"主树必须红"，不红就 `exit 3`）。
+- **S4 GREEN**：`io_unconstrained_ports 11 → 6`，`unconstrained_endpoints` 仍 0 ⇒ 窗确实把 5 个输入端口纳入了检查。
+- **S1 RED**：终态 `WNS 0.954 / WHS −2.126 / THS −10.552 / 5 个 hold 失败端点`（r114 同窗是 0.437 / −2.885 / −14.344 / 5）。**只买到 +0.759 ns，窗没关住**。
+- **S3 判不了**（INFO 而不是红）：fabric 搬到了派生钟 `mmcm_clk0`，名册按名字配对 ⇒ 2 个 presence 变化、6 个 margin 红。**配对失效不等于 G1 红**，脚本按约定没替它圆场。
+
+**为什么只有 0.759 ——两条都写在报告里（`io_probe_console.txt`）**：
+
+```
+Requirement       : -1.000 ns (mmcm_clk0 rise@3.000ns - eth_rxc fall@4.000ns)   ← −225° 被归一化成 +3.000
+Clock Uncertainty :  0.166 ns ((TSJ^2 + DJ^2)^1/2) / 2 + PE                     ← 没有 UU 项了！
+```
+
+1. `CLKOUT0_PHASE = -225°` 在工具里等价于 `+135°` ⇒ 派生钟波形是 `rise@3.000`。物理采样点没变（mod 8 ns 同一点），
+   但 STA 换了**参考沿对**（`eth_rxc fall@4.000 → mmcm_clk0 rise@3.000`，Requirement 成了 −1.000）。
+   ⇒ "**负相移买不到提前**"这个假设被证伪：它只是换了检查用的那对沿。
+2. **更要紧**：`set_clock_uncertainty -hold 0.800 [get_clocks eth_rxc]`（`rk_zynq7020.xdc:50`）**不再覆盖这个域**——
+   终点已经是 `mmcm_clk0`，那条读数里的 `UU` 消失了（同一条路 r114 是 `0.835 … + UU`，件 `r114_sweepB/rt_tap0_eth_rxc_hold.rpt`）。
+   ⇒ 那 +0.759 ns 里约 0.67 ns 是**约束作用范围被削弱**换来的，不是物理改善。
+   我没有写任何放松约束的命令，它自己发生了：**只要新建/改名一只钟，所有点名旧钟的约束都要重查覆盖面**
+   （`set_clock_uncertainty`、`set_clock_groups`、`set_input_delay -clock`、IDELAY/参考钟关系）。
+   这条清单是本轮最值钱的产出，写进 `rgmii_window_model.md` §7。
+
+**处置**：C3 判负（`cut_ledger.tsv` 已改 `rejected-measured`），不进主树、不采纳、不刷板；
+主树 `src/` 一字未动（板上仍是 r114 `7142a1fbf082`）。下一轮的两条路（要么把三条约束改成 `-include_generated_clocks`，
+要么回到 BUFIO/BUFR 那一族）都写在那一页；**不许**再拿"再挪一点相"当抓手，这条已经被量掉了。
+
+副产读数（记账用）：`MMCME2_ADV` 占用从 **2/4 (50 %) → 3/4 (75 %)**、LUT +5、FF 不变（`build/utilization.rpt` 两边对读）
+⇒ 这条结构刀的资源代价几乎为零，死因是机制不是代价。副本树一次构建实测 **19 分钟**（含我第一次把端口写错的失败滚，#303）。

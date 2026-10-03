@@ -1,0 +1,292 @@
+Copyright 1986-2022 Xilinx, Inc. All Rights Reserved. Copyright 2022-2026 Advanced Micro Devices, Inc. All Rights Reserved.
+------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+| Tool Version : Vivado v.2025.2.1 (win64) Build 6403652 Thu Mar 19 19:48:24 GMT 2026
+| Date         : Sun Oct  4 00:01:29 2026
+| Host         : Uie-laptop running 64-bit major release  (build 9200)
+| Command      : report_timing -delay_type max -from [get_ports -quiet {{eth_rxd[*]} eth_rx_ctl}] -to [get_clocks -quiet mmcm_clk0] -nworst 1 -max_paths 6 -file D:/Xilinx/Prj/pro/Video_Processing/build/evidence/r115_c2_scratch/io_setup_true_window.txt
+| Design       : system_top
+| Device       : 7z020-clg484
+| Speed File   : -2  PRODUCTION 1.12 2019-11-22
+| Design State : Routed
+------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+
+Timing Report
+
+Slack (VIOLATED) :        -0.972ns  (required time - arrival time)
+  Source:                 eth_rxd[0]
+                            (input port clocked by eth_rxc  {rise@0.000ns fall@4.000ns period=8.000ns})
+  Destination:            u_eth/u_rgmii/u_rgmii_rx/rxdata_bus[0].u_iddr_rxd/D
+                            (rising edge-triggered cell IDDR clocked by mmcm_clk0  {rise@-5.000ns fall@-1.000ns period=8.000ns})
+  Path Group:             mmcm_clk0
+  Path Type:              Setup (Max at Fast Process Corner)
+  Requirement:            3.000ns  (mmcm_clk0 fall@7.000ns - eth_rxc fall@4.000ns)
+  Data Path Delay:        3.146ns  (logic 3.146ns (100.000%)  route 0.000ns (0.000%))
+  Logic Levels:           2  (IBUF=1 IDELAYE2=1)
+  Input Delay:            2.600ns
+  Clock Path Skew:        1.942ns (DCD - SCD + CPR)
+    Destination Clock Delay (DCD):    1.942ns = ( 8.942 - 7.000 ) 
+    Source Clock Delay      (SCD):    0.000ns = ( 4.000 - 4.000 ) 
+    Clock Pessimism Removal (CPR):    0.000ns
+  Clock Uncertainty:      0.166ns  ((TSJ^2 + DJ^2)^1/2) / 2 + PE
+    Total System Jitter     (TSJ):    0.071ns
+    Discrete Jitter          (DJ):    0.118ns
+    Phase Error              (PE):    0.097ns
+
+    Location             Delay type                Incr(ns)  Path(ns)    Netlist Resource(s)
+  -------------------------------------------------------------------    -------------------
+                         (clock eth_rxc fall edge)    4.000     4.000 f  
+                         input delay                  2.600     6.600    
+    W20                                               0.000     6.600 r  eth_rxd[0] (IN)
+                         net (fo=0)                   0.000     6.600    eth_rxd[0]
+    W20                  IBUF (Prop_ibuf_I_O)         0.449     7.049 r  eth_rxd_IBUF[0]_inst/O
+                         net (fo=1, routed)           0.000     7.049    u_eth/u_rgmii/u_rgmii_rx/rgmii_rxd[0]
+    IDELAY_X1Y42         IDELAYE2 (Prop_idelaye2_IDATAIN_DATAOUT)
+                                                      2.697     9.746 r  u_eth/u_rgmii/u_rgmii_rx/rxdata_bus[0].u_delay_rxd/DATAOUT
+                         net (fo=1, routed)           0.000     9.746    u_eth/u_rgmii/u_rgmii_rx/rgmii_rxd_delay_0
+    ILOGIC_X1Y42         IDDR                                         r  u_eth/u_rgmii/u_rgmii_rx/rxdata_bus[0].u_iddr_rxd/D
+  -------------------------------------------------------------------    -------------------
+
+                         (clock mmcm_clk0 fall edge)
+                                                      7.000     7.000 f  
+    Y19                                               0.000     7.000 f  eth_rxc (IN)
+                         net (fo=0)                   0.000     7.000    eth_rxc
+    Y19                  IBUF (Prop_ibuf_I_O)         0.266     7.266 f  eth_rxc_IBUF_inst/O
+                         net (fo=1, routed)           0.440     7.707    u_eth/u_rgmii/u_rgmii_rx/rgmii_rxc
+    MMCME2_ADV_X1Y0      MMCME2_ADV (Prop_mmcme2_adv_CLKIN1_CLKOUT0)
+                                                      0.050     7.757 f  u_eth/u_rgmii/u_rgmii_rx/u_mmcm_rx/CLKOUT0
+                         net (fo=1, routed)           0.529     8.285    u_eth/u_rgmii/u_rgmii_rx/mmcm_clk0
+    BUFGCTRL_X0Y1        BUFG (Prop_bufg_I_O)         0.026     8.311 f  u_eth/u_rgmii/u_rgmii_rx/BUFG_inst/O
+                         net (fo=2546, routed)        0.631     8.942    u_eth/u_rgmii/u_rgmii_rx/gmii_rx_clk
+    ILOGIC_X1Y42         IDDR                                         f  u_eth/u_rgmii/u_rgmii_rx/rxdata_bus[0].u_iddr_rxd/C
+                         clock pessimism              0.000     8.942    
+                         clock uncertainty           -0.166     8.776    
+    ILOGIC_X1Y42         IDDR (Setup_iddr_C_D)       -0.002     8.774    u_eth/u_rgmii/u_rgmii_rx/rxdata_bus[0].u_iddr_rxd
+  -------------------------------------------------------------------
+                         required time                          8.774    
+                         arrival time                          -9.746    
+  -------------------------------------------------------------------
+                         slack                                 -0.972    
+
+Slack (VIOLATED) :        -0.961ns  (required time - arrival time)
+  Source:                 eth_rxd[3]
+                            (input port clocked by eth_rxc  {rise@0.000ns fall@4.000ns period=8.000ns})
+  Destination:            u_eth/u_rgmii/u_rgmii_rx/rxdata_bus[3].u_iddr_rxd/D
+                            (rising edge-triggered cell IDDR clocked by mmcm_clk0  {rise@-5.000ns fall@-1.000ns period=8.000ns})
+  Path Group:             mmcm_clk0
+  Path Type:              Setup (Max at Fast Process Corner)
+  Requirement:            3.000ns  (mmcm_clk0 fall@7.000ns - eth_rxc fall@4.000ns)
+  Data Path Delay:        3.135ns  (logic 3.135ns (100.000%)  route 0.000ns (0.000%))
+  Logic Levels:           2  (IBUF=1 IDELAYE2=1)
+  Input Delay:            2.600ns
+  Clock Path Skew:        1.942ns (DCD - SCD + CPR)
+    Destination Clock Delay (DCD):    1.942ns = ( 8.942 - 7.000 ) 
+    Source Clock Delay      (SCD):    0.000ns = ( 4.000 - 4.000 ) 
+    Clock Pessimism Removal (CPR):    0.000ns
+  Clock Uncertainty:      0.166ns  ((TSJ^2 + DJ^2)^1/2) / 2 + PE
+    Total System Jitter     (TSJ):    0.071ns
+    Discrete Jitter          (DJ):    0.118ns
+    Phase Error              (PE):    0.097ns
+
+    Location             Delay type                Incr(ns)  Path(ns)    Netlist Resource(s)
+  -------------------------------------------------------------------    -------------------
+                         (clock eth_rxc fall edge)    4.000     4.000 f  
+                         input delay                  2.600     6.600    
+    V20                                               0.000     6.600 r  eth_rxd[3] (IN)
+                         net (fo=0)                   0.000     6.600    eth_rxd[3]
+    V20                  IBUF (Prop_ibuf_I_O)         0.438     7.038 r  eth_rxd_IBUF[3]_inst/O
+                         net (fo=1, routed)           0.000     7.038    u_eth/u_rgmii/u_rgmii_rx/rgmii_rxd[3]
+    IDELAY_X1Y39         IDELAYE2 (Prop_idelaye2_IDATAIN_DATAOUT)
+                                                      2.697     9.735 r  u_eth/u_rgmii/u_rgmii_rx/rxdata_bus[3].u_delay_rxd/DATAOUT
+                         net (fo=1, routed)           0.000     9.735    u_eth/u_rgmii/u_rgmii_rx/rgmii_rxd_delay_3
+    ILOGIC_X1Y39         IDDR                                         r  u_eth/u_rgmii/u_rgmii_rx/rxdata_bus[3].u_iddr_rxd/D
+  -------------------------------------------------------------------    -------------------
+
+                         (clock mmcm_clk0 fall edge)
+                                                      7.000     7.000 f  
+    Y19                                               0.000     7.000 f  eth_rxc (IN)
+                         net (fo=0)                   0.000     7.000    eth_rxc
+    Y19                  IBUF (Prop_ibuf_I_O)         0.266     7.266 f  eth_rxc_IBUF_inst/O
+                         net (fo=1, routed)           0.440     7.707    u_eth/u_rgmii/u_rgmii_rx/rgmii_rxc
+    MMCME2_ADV_X1Y0      MMCME2_ADV (Prop_mmcme2_adv_CLKIN1_CLKOUT0)
+                                                      0.050     7.757 f  u_eth/u_rgmii/u_rgmii_rx/u_mmcm_rx/CLKOUT0
+                         net (fo=1, routed)           0.529     8.285    u_eth/u_rgmii/u_rgmii_rx/mmcm_clk0
+    BUFGCTRL_X0Y1        BUFG (Prop_bufg_I_O)         0.026     8.311 f  u_eth/u_rgmii/u_rgmii_rx/BUFG_inst/O
+                         net (fo=2546, routed)        0.631     8.942    u_eth/u_rgmii/u_rgmii_rx/gmii_rx_clk
+    ILOGIC_X1Y39         IDDR                                         f  u_eth/u_rgmii/u_rgmii_rx/rxdata_bus[3].u_iddr_rxd/C
+                         clock pessimism              0.000     8.942    
+                         clock uncertainty           -0.166     8.776    
+    ILOGIC_X1Y39         IDDR (Setup_iddr_C_D)       -0.002     8.774    u_eth/u_rgmii/u_rgmii_rx/rxdata_bus[3].u_iddr_rxd
+  -------------------------------------------------------------------
+                         required time                          8.774    
+                         arrival time                          -9.735    
+  -------------------------------------------------------------------
+                         slack                                 -0.961    
+
+Slack (VIOLATED) :        -0.958ns  (required time - arrival time)
+  Source:                 eth_rxd[1]
+                            (input port clocked by eth_rxc  {rise@0.000ns fall@4.000ns period=8.000ns})
+  Destination:            u_eth/u_rgmii/u_rgmii_rx/rxdata_bus[1].u_iddr_rxd/D
+                            (rising edge-triggered cell IDDR clocked by mmcm_clk0  {rise@-5.000ns fall@-1.000ns period=8.000ns})
+  Path Group:             mmcm_clk0
+  Path Type:              Setup (Max at Fast Process Corner)
+  Requirement:            3.000ns  (mmcm_clk0 fall@7.000ns - eth_rxc fall@4.000ns)
+  Data Path Delay:        3.133ns  (logic 3.133ns (100.000%)  route 0.000ns (0.000%))
+  Logic Levels:           2  (IBUF=1 IDELAYE2=1)
+  Input Delay:            2.600ns
+  Clock Path Skew:        1.942ns (DCD - SCD + CPR)
+    Destination Clock Delay (DCD):    1.942ns = ( 8.942 - 7.000 ) 
+    Source Clock Delay      (SCD):    0.000ns = ( 4.000 - 4.000 ) 
+    Clock Pessimism Removal (CPR):    0.000ns
+  Clock Uncertainty:      0.166ns  ((TSJ^2 + DJ^2)^1/2) / 2 + PE
+    Total System Jitter     (TSJ):    0.071ns
+    Discrete Jitter          (DJ):    0.118ns
+    Phase Error              (PE):    0.097ns
+
+    Location             Delay type                Incr(ns)  Path(ns)    Netlist Resource(s)
+  -------------------------------------------------------------------    -------------------
+                         (clock eth_rxc fall edge)    4.000     4.000 f  
+                         input delay                  2.600     6.600    
+    W21                                               0.000     6.600 r  eth_rxd[1] (IN)
+                         net (fo=0)                   0.000     6.600    eth_rxd[1]
+    W21                  IBUF (Prop_ibuf_I_O)         0.436     7.036 r  eth_rxd_IBUF[1]_inst/O
+                         net (fo=1, routed)           0.000     7.036    u_eth/u_rgmii/u_rgmii_rx/rgmii_rxd[1]
+    IDELAY_X1Y41         IDELAYE2 (Prop_idelaye2_IDATAIN_DATAOUT)
+                                                      2.697     9.733 r  u_eth/u_rgmii/u_rgmii_rx/rxdata_bus[1].u_delay_rxd/DATAOUT
+                         net (fo=1, routed)           0.000     9.733    u_eth/u_rgmii/u_rgmii_rx/rgmii_rxd_delay_1
+    ILOGIC_X1Y41         IDDR                                         r  u_eth/u_rgmii/u_rgmii_rx/rxdata_bus[1].u_iddr_rxd/D
+  -------------------------------------------------------------------    -------------------
+
+                         (clock mmcm_clk0 fall edge)
+                                                      7.000     7.000 f  
+    Y19                                               0.000     7.000 f  eth_rxc (IN)
+                         net (fo=0)                   0.000     7.000    eth_rxc
+    Y19                  IBUF (Prop_ibuf_I_O)         0.266     7.266 f  eth_rxc_IBUF_inst/O
+                         net (fo=1, routed)           0.440     7.707    u_eth/u_rgmii/u_rgmii_rx/rgmii_rxc
+    MMCME2_ADV_X1Y0      MMCME2_ADV (Prop_mmcme2_adv_CLKIN1_CLKOUT0)
+                                                      0.050     7.757 f  u_eth/u_rgmii/u_rgmii_rx/u_mmcm_rx/CLKOUT0
+                         net (fo=1, routed)           0.529     8.285    u_eth/u_rgmii/u_rgmii_rx/mmcm_clk0
+    BUFGCTRL_X0Y1        BUFG (Prop_bufg_I_O)         0.026     8.311 f  u_eth/u_rgmii/u_rgmii_rx/BUFG_inst/O
+                         net (fo=2546, routed)        0.631     8.942    u_eth/u_rgmii/u_rgmii_rx/gmii_rx_clk
+    ILOGIC_X1Y41         IDDR                                         f  u_eth/u_rgmii/u_rgmii_rx/rxdata_bus[1].u_iddr_rxd/C
+                         clock pessimism              0.000     8.942    
+                         clock uncertainty           -0.166     8.776    
+    ILOGIC_X1Y41         IDDR (Setup_iddr_C_D)       -0.002     8.774    u_eth/u_rgmii/u_rgmii_rx/rxdata_bus[1].u_iddr_rxd
+  -------------------------------------------------------------------
+                         required time                          8.774    
+                         arrival time                          -9.733    
+  -------------------------------------------------------------------
+                         slack                                 -0.958    
+
+Slack (VIOLATED) :        -0.938ns  (required time - arrival time)
+  Source:                 eth_rxd[2]
+                            (input port clocked by eth_rxc  {rise@0.000ns fall@4.000ns period=8.000ns})
+  Destination:            u_eth/u_rgmii/u_rgmii_rx/rxdata_bus[2].u_iddr_rxd/D
+                            (rising edge-triggered cell IDDR clocked by mmcm_clk0  {rise@-5.000ns fall@-1.000ns period=8.000ns})
+  Path Group:             mmcm_clk0
+  Path Type:              Setup (Max at Fast Process Corner)
+  Requirement:            3.000ns  (mmcm_clk0 fall@7.000ns - eth_rxc fall@4.000ns)
+  Data Path Delay:        3.112ns  (logic 3.112ns (100.000%)  route 0.000ns (0.000%))
+  Logic Levels:           2  (IBUF=1 IDELAYE2=1)
+  Input Delay:            2.600ns
+  Clock Path Skew:        1.942ns (DCD - SCD + CPR)
+    Destination Clock Delay (DCD):    1.942ns = ( 8.942 - 7.000 ) 
+    Source Clock Delay      (SCD):    0.000ns = ( 4.000 - 4.000 ) 
+    Clock Pessimism Removal (CPR):    0.000ns
+  Clock Uncertainty:      0.166ns  ((TSJ^2 + DJ^2)^1/2) / 2 + PE
+    Total System Jitter     (TSJ):    0.071ns
+    Discrete Jitter          (DJ):    0.118ns
+    Phase Error              (PE):    0.097ns
+
+    Location             Delay type                Incr(ns)  Path(ns)    Netlist Resource(s)
+  -------------------------------------------------------------------    -------------------
+                         (clock eth_rxc fall edge)    4.000     4.000 f  
+                         input delay                  2.600     6.600    
+    U20                                               0.000     6.600 r  eth_rxd[2] (IN)
+                         net (fo=0)                   0.000     6.600    eth_rxd[2]
+    U20                  IBUF (Prop_ibuf_I_O)         0.416     7.016 r  eth_rxd_IBUF[2]_inst/O
+                         net (fo=1, routed)           0.000     7.016    u_eth/u_rgmii/u_rgmii_rx/rgmii_rxd[2]
+    IDELAY_X1Y40         IDELAYE2 (Prop_idelaye2_IDATAIN_DATAOUT)
+                                                      2.697     9.712 r  u_eth/u_rgmii/u_rgmii_rx/rxdata_bus[2].u_delay_rxd/DATAOUT
+                         net (fo=1, routed)           0.000     9.712    u_eth/u_rgmii/u_rgmii_rx/rgmii_rxd_delay_2
+    ILOGIC_X1Y40         IDDR                                         r  u_eth/u_rgmii/u_rgmii_rx/rxdata_bus[2].u_iddr_rxd/D
+  -------------------------------------------------------------------    -------------------
+
+                         (clock mmcm_clk0 fall edge)
+                                                      7.000     7.000 f  
+    Y19                                               0.000     7.000 f  eth_rxc (IN)
+                         net (fo=0)                   0.000     7.000    eth_rxc
+    Y19                  IBUF (Prop_ibuf_I_O)         0.266     7.266 f  eth_rxc_IBUF_inst/O
+                         net (fo=1, routed)           0.440     7.707    u_eth/u_rgmii/u_rgmii_rx/rgmii_rxc
+    MMCME2_ADV_X1Y0      MMCME2_ADV (Prop_mmcme2_adv_CLKIN1_CLKOUT0)
+                                                      0.050     7.757 f  u_eth/u_rgmii/u_rgmii_rx/u_mmcm_rx/CLKOUT0
+                         net (fo=1, routed)           0.529     8.285    u_eth/u_rgmii/u_rgmii_rx/mmcm_clk0
+    BUFGCTRL_X0Y1        BUFG (Prop_bufg_I_O)         0.026     8.311 f  u_eth/u_rgmii/u_rgmii_rx/BUFG_inst/O
+                         net (fo=2546, routed)        0.631     8.942    u_eth/u_rgmii/u_rgmii_rx/gmii_rx_clk
+    ILOGIC_X1Y40         IDDR                                         f  u_eth/u_rgmii/u_rgmii_rx/rxdata_bus[2].u_iddr_rxd/C
+                         clock pessimism              0.000     8.942    
+                         clock uncertainty           -0.166     8.776    
+    ILOGIC_X1Y40         IDDR (Setup_iddr_C_D)       -0.002     8.774    u_eth/u_rgmii/u_rgmii_rx/rxdata_bus[2].u_iddr_rxd
+  -------------------------------------------------------------------
+                         required time                          8.774    
+                         arrival time                          -9.712    
+  -------------------------------------------------------------------
+                         slack                                 -0.938    
+
+Slack (VIOLATED) :        -0.934ns  (required time - arrival time)
+  Source:                 eth_rx_ctl
+                            (input port clocked by eth_rxc  {rise@0.000ns fall@4.000ns period=8.000ns})
+  Destination:            u_eth/u_rgmii/u_rgmii_rx/u_iddr_rx_ctl/D
+                            (rising edge-triggered cell IDDR clocked by mmcm_clk0  {rise@-5.000ns fall@-1.000ns period=8.000ns})
+  Path Group:             mmcm_clk0
+  Path Type:              Setup (Max at Fast Process Corner)
+  Requirement:            3.000ns  (mmcm_clk0 fall@7.000ns - eth_rxc fall@4.000ns)
+  Data Path Delay:        3.108ns  (logic 3.108ns (100.000%)  route 0.000ns (0.000%))
+  Logic Levels:           2  (IBUF=1 IDELAYE2=1)
+  Input Delay:            2.600ns
+  Clock Path Skew:        1.942ns (DCD - SCD + CPR)
+    Destination Clock Delay (DCD):    1.942ns = ( 8.942 - 7.000 ) 
+    Source Clock Delay      (SCD):    0.000ns = ( 4.000 - 4.000 ) 
+    Clock Pessimism Removal (CPR):    0.000ns
+  Clock Uncertainty:      0.166ns  ((TSJ^2 + DJ^2)^1/2) / 2 + PE
+    Total System Jitter     (TSJ):    0.071ns
+    Discrete Jitter          (DJ):    0.118ns
+    Phase Error              (PE):    0.097ns
+
+    Location             Delay type                Incr(ns)  Path(ns)    Netlist Resource(s)
+  -------------------------------------------------------------------    -------------------
+                         (clock eth_rxc fall edge)    4.000     4.000 f  
+                         input delay                  2.600     6.600    
+    V19                                               0.000     6.600 r  eth_rx_ctl (IN)
+                         net (fo=0)                   0.000     6.600    eth_rx_ctl
+    V19                  IBUF (Prop_ibuf_I_O)         0.411     7.011 r  eth_rx_ctl_IBUF_inst/O
+                         net (fo=1, routed)           0.000     7.011    u_eth/u_rgmii/u_rgmii_rx/rgmii_rx_ctl
+    IDELAY_X1Y37         IDELAYE2 (Prop_idelaye2_IDATAIN_DATAOUT)
+                                                      2.697     9.708 r  u_eth/u_rgmii/u_rgmii_rx/u_delay_rx_ctrl/DATAOUT
+                         net (fo=1, routed)           0.000     9.708    u_eth/u_rgmii/u_rgmii_rx/rgmii_rx_ctl_delay
+    ILOGIC_X1Y37         IDDR                                         r  u_eth/u_rgmii/u_rgmii_rx/u_iddr_rx_ctl/D
+  -------------------------------------------------------------------    -------------------
+
+                         (clock mmcm_clk0 fall edge)
+                                                      7.000     7.000 f  
+    Y19                                               0.000     7.000 f  eth_rxc (IN)
+                         net (fo=0)                   0.000     7.000    eth_rxc
+    Y19                  IBUF (Prop_ibuf_I_O)         0.266     7.266 f  eth_rxc_IBUF_inst/O
+                         net (fo=1, routed)           0.440     7.707    u_eth/u_rgmii/u_rgmii_rx/rgmii_rxc
+    MMCME2_ADV_X1Y0      MMCME2_ADV (Prop_mmcme2_adv_CLKIN1_CLKOUT0)
+                                                      0.050     7.757 f  u_eth/u_rgmii/u_rgmii_rx/u_mmcm_rx/CLKOUT0
+                         net (fo=1, routed)           0.529     8.285    u_eth/u_rgmii/u_rgmii_rx/mmcm_clk0
+    BUFGCTRL_X0Y1        BUFG (Prop_bufg_I_O)         0.026     8.311 f  u_eth/u_rgmii/u_rgmii_rx/BUFG_inst/O
+                         net (fo=2546, routed)        0.631     8.942    u_eth/u_rgmii/u_rgmii_rx/gmii_rx_clk
+    ILOGIC_X1Y37         IDDR                                         f  u_eth/u_rgmii/u_rgmii_rx/u_iddr_rx_ctl/C
+                         clock pessimism              0.000     8.942    
+                         clock uncertainty           -0.166     8.776    
+    ILOGIC_X1Y37         IDDR (Setup_iddr_C_D)       -0.002     8.774    u_eth/u_rgmii/u_rgmii_rx/u_iddr_rx_ctl
+  -------------------------------------------------------------------
+                         required time                          8.774    
+                         arrival time                          -9.708    
+  -------------------------------------------------------------------
+                         slack                                 -0.934    
+
+
+
+

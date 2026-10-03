@@ -135,7 +135,54 @@ tap 26 的实测斜率 ≈63 ps/tap（`build/evidence/r114_idelay_sweep_console.
 需要 DVI/HDMI 接收端或面板的窗口数，本机板级资料（用户手册 + 原理图）里没有这一项。
 **没有来源就不写数**，这一条继续留在 `debt_ledger.md`，不许用"看起来宽松"的数字凑。
 
-## 7. 读数落在哪
+## 7. 副本树跑完了：这一刀**不成立**，而且它顺手暴露了一件更值钱的事（00:01）
+
+件：`build/evidence/r115_c2_scratch/`（`verdict_header.txt` 的 C2V 行、`io_probe_console.txt` 的逐段读数、
+`probe_console.txt` 的 CLKROW、`roster_diff_vs_baseline.txt`）。副本树 = `D:/Xilinx/Prj/pro/c2_scratch_1003`，
+**主树 `src/` 一字未动**（板上仍是 r114）。
+
+| 判据 | 结果 | 读数 |
+| --- | --- | --- |
+| **S2 机制** | **GREEN** | 副本树 `mmcm=1 iddr=5 bufg=1`，主树同一把尺子 `mmcm=0` 且**正对照当场红**（`probe_rgmii_capture_clock.tcl` 的 `VP_C2_WANT=red` 那条）⇒ 尺子看得见这一刀 |
+| **S4 债务方向** | **GREEN** | `io_unconstrained_ports 11 → 6`、`unconstrained_endpoints` 仍 0（窗真的把 5 个输入端口纳入了覆盖） |
+| **S1 关住窗** | **RED** | 终态 `WNS 0.954 / TNS 0 / WHS −2.126 / THS −10.552 / 失败 hold 端点 5`（件 `c2_scratch_1003/build/timing_summary.rpt` 第一行）。与 r114 同窗终态（0.437 / −2.885 / −14.344 / 5）比，**hold 只买到 +0.759 ns**，窗**没关住** |
+| **S3 名册** | **判不了（INFO）** | fabric 从 `eth_rxc` 搬到了派生钟 `mmcm_clk0` ⇒ 名册的按名配对出现 2 个 presence 变化、6 个 margin 红。**这不叫 G1 红，这叫配对失效**（脚本按 §4 的约定没有替它圆场） |
+| **S5 钟身份** | INFO | `CLKROW` 里新增 `mmcm_clk0`（period 8.000）与 `mmcm_fb`，`generated=1` 的共 7 只 |
+
+### 为什么只买到 0.759 ——两条都在报告里，不是解释出来的
+
+`io_probe_console.txt` 里那条 I/O hold（±0.5 窗，5 条全是同一族）：
+
+```
+Requirement       : -1.000 ns  (mmcm_clk0 rise@3.000ns - eth_rxc fall@4.000ns)
+Clock Path Skew   :  5.919 ns  (DCD - SCD - CPR)
+Clock Uncertainty :  0.166 ns  ((TSJ^2 + DJ^2)^1/2) / 2 + PE      ← 注意：没有 UU 项
+Data Path Delay   :  3.613 ns  (logic 100.000% route 0.000%)
+```
+
+1. **`CLKOUT0_PHASE = -225°` 被工具归一化成 `rise@3.000`**（−225° ≡ +135°，mod 8 ns）。
+   物理采样点等价（−5 ns 与 +3 ns 是同一个网格点），但 STA 现在拿的是
+   `eth_rxc fall@4.000 → mmcm_clk0 rise@3.000` 这**一对沿**（Requirement = −1.000），
+   于是"提前 5 ns"在检查里变成了"换了一条参考沿"，净收益只剩 0.759。
+2. **更要紧的：那 0.800 的 hold 不确定度**悄悄**脱离了这一族**。
+   对照 r114 同一条路（件 `build/evidence/r114_sweepB/rt_tap0_eth_rxc_hold.rpt`）：
+   `Clock Uncertainty: 0.835ns (… + UU)`，UU 就是 `rk_zynq7020.xdc:50` 那 0.800；
+   现在终点钟是 `mmcm_clk0`，那行只剩 0.166 且**没有 UU** ⇒ `set_clock_uncertainty -hold [get_clocks eth_rxc]`
+   **不再覆盖这个域**。也就是说这一刀在"hold 变好"的 0.759 ns 里，有 ~0.67 ns 是**约束作用范围被削弱**换来的，
+   不是物理改善。按 H1 的口径这属于"缩小约束作用范围"，**必须进松动台账并要批准人**——
+   而它是在我完全没打算放松约束的情况下**自动发生**的。
+
+### 这一页的最终结论（写死，供下一轮直接用）
+
+* **C3/CLKTOPO（MMCM 负相移）判负**：窗没关住（S1 红），且顺带把一条不确定度带踢出了覆盖面 ⇒ 不进主树、不采纳。
+* **下一轮真正的抓手不是"再挪一点相"**：要么把 `set_clock_uncertainty`/时钟组**逐条**改成覆盖派生钟
+  （`-include_generated_clocks`，一条命令一个对象，绝不并名），要么回到 **BUFIO/BUFR 那一族**（计划文件里的 C1，
+  预测仍差 ~0.9 ns——但至少它不会造出新的钟对象去拆既有约束的台）。**这条"改钟名会波及所有点名该钟的约束"的清单**
+  是本轮最值钱的产出，已记 ISSUES #305。
+* 结构改动的证伪成本实测：一次副本树构建 22:54→23:53（含我第一次写错 MMCM 端口的失败滚，#303）≈ **19 分钟**，
+  比"改完进主树再等台架"便宜一个数量级——这条纪律留着。
+
+## 8. 读数落在哪
 
 跑完的原始件在副本树里（`c2_scratch_1003/build/…`），摘出来的关键读数与被跟踪的差分一起复制进
 `build/evidence/r115_c2_scratch/`。**负结果也写在这一页的末尾**（提示词 §7 L2：负结果是本轮的产出物）。
