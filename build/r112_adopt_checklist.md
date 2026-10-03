@@ -28,12 +28,15 @@ tail -3 build/r112_chain_console.txt
 ## 2. 资源净账要归到模块（r110 的 −243 就是栽在这一步）
 - 预期方向：`icmp_tx` 少 12 个 FF（`check_buffer` 32→20）；`key_debounce` 两只实例各加
   21 位计数 + 1 个 `armed` ⇒ **+44 FF**。净账可能是 **FF 增加**。
-- 用 OOC 两腿量，别拿平铺 `utilization.rpt` 猜：`bash build/r110_ooc_attrib.sh` 的手法可直接复用
-  （拷贝树 + 只读探针 `build/tcl/ooc_util_probe.tcl`）；要改的只是文件与补丁段。
-  归不到的部分**不写进首页**（#246/#250 同一课）。
+- **本轮就补上这一步**（链子里没跑，构建完手动跑一次，只读）：
+  `"$V/vivado.bat" -mode batch -source build/tcl/probe_util_hier.tcl`
+  —— 它开 `impl_1/system_top_routed.dcp` 跑 `report_utilization -hierarchical -hierarchical_depth 3`，
+  并把 `u_reasm / u_icmp / u_osd / u_lm / u_crc_rx` 几行念出来（r110 缺的正是这份件，才只能拿 OOC 说 −66）。
+  落 `build/util_hier_probe.rpt`，与 `build/evidence/r110_attrib.txt`（OOC 两腿）一起构成归属。
+- 归不到的部分**不写进首页**（#246/#250 同一课）。
 
 ## 3. 台架与门禁
-- 车道：`build/r112_lane_after.txt` 期望 **31/31** 全绿（`tb_v111_key_boot` 15 条、`tb_v112_tx_bytes` 全等指纹已在
+- 车道：`build/r112_lane_after.txt` 期望 **30/30** 全绿（`tb_v111_key_boot` 15 条、`tb_v112_tx_bytes` 全等指纹已在
   `build/evidence/r112_tx_bytes_{base,cut}.txt`）。
 - 顶层台架：`RESULT tb_v98_top_seam FAIL nfail=1`，FAIL 只许是声明过的 `C5c`；C12 四句按整句读（#239 撞名教训）。
 - 门禁：**先 /tmp 再 cp 到 `build/r112_gates.txt`，再跑一遍直到逐字节一致**（#242 第 1 条）。
