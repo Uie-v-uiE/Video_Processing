@@ -38,6 +38,8 @@
 | §4 C 切割清单 | [`cut_ledger.tsv`](cut_ledger.tsv) | ✅ 每条一个附录 2 的根因标签 |
 | §4 D 打分与排序 | [`score.md`](score.md) | ✅ |
 | §4 E1 本轮花名册 | [`roster_round115.tsv`](roster_round115.tsv) | ✅ 8 行、32 次比较（24 数值 + 8 双侧 NA）、**4 红**（生成器 `build/r115_round_roster.py`，`--self` 3 条对照） |
+| §7 L1/L2/L3 逐域极限判定（G4） | [`limit_audit_r116.md`](limit_audit_r116.md) | ✅ r116 写完：四域逐域判"顶住的是逻辑还是布线"；`clk_fpga_0` 判**未到极限**（1 级逻辑 / 93.6 % 布线），预验脚本 `build/r117_fb_pblock_fastlane.sh` |
+| r116 结果页（早上先看这份） | [`ROUND_r116.md`](ROUND_r116.md) | ✅ 结构就位；V1..V6 逐格标 `【构建后填】`，没有一格被提前涂绿 |
 | §4 E3 松动台账 | [`loosen_ledger.tsv`](loosen_ledger.tsv) | ✅ **空**（夜里没有批准人可问 ⇒ 一条都不松，见 H1/G3） |
 | §4 E2 + G1..G12 判定表 | [`gates_G1_G12.md`](gates_G1_G12.md) | ✅ 逐条填完：**本轮 RED**（G1 四格红 ⇒ C1 那把刀拒绝；G4 明写"未测"不当绿） |
 | 附录 3 交付前 12 问 | [`twelve_questions.md`](twelve_questions.md) | ✅ 12 条都有答案，无留空 |
