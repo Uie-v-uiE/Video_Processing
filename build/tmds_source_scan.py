@@ -4,7 +4,9 @@ import os
 # 它是 docs/timing/debt_ledger.md §2 里那句"查过的否定"的凭据生成器：正文第 95 页只给
 # I/O 标准与属性（Table 1-52、50Ω 上拉、TMDS_33 限 HR bank / VCCO 3.3V），没有任何 setup/hold 或 UI 数。
 import pypdfium2 as pdfium
-p = "D:/Xilinx/Resource/Reference Material/6-Xilinx Zynq系列部分官方手册/ug471_7Series_SelectIO.pdf"
+p = os.environ.get("VP_P", "")  # 机器相关路径改由环境变量给（原来是写死的 D:/Xilinx/Resource/Reference Material/6-Xilinx Zynq系列部分官方手册/ug471_7Series_SelectIO.pdf）
+if not p:
+    raise SystemExit("需要环境变量 VP_P（这台机器上的资源目录，交付包里不该写死）")
 doc = pdfium.PdfDocument(p)
 print("PAGES=", len(doc))
 hits = []
