@@ -56,7 +56,7 @@ for (const p of tracked) { const n = newPath(p); if (n !== p) moves.push({ from:
 
 // ② 裸基名改口的歧义检查：同名基名对应多个旧路径 ⇒ 不改裸基名，只改全路径
 const byBase = new Map();
-for (const m of moves) byBase.set(path.basename(m.from), [...(byBase.get(path.basename(m.from)) || []), m.from]);
+for (const m of moves) byBase.set(path.basename(m.from), [...(byBase.get(path.basename(m.from)) || []), m]);
 const ambiguous = [...byBase].filter(([, v]) => v.length > 1);
 const safeBase = new Map([...byBase].filter(([, v]) => v.length === 1).map(([b, v]) => [b, v[0]]));
 
