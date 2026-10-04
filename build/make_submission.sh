@@ -522,7 +522,10 @@ printf 's|docs/walkthrough/\\([A-Za-z0-9_.-]*\\)\\.md|学习文档 \\1.md（本�
 # 技能包 2026-10-04 重建（28 张平铺卡 → `skills/<组>/<条目>/SKILL.md`）之前的旧条目名还留在
 # `report/*.md` 与协作记录里。包里**翻不到**的那些就地降级成文字，剩下的仍是指向真实条目的路径。
 # 名单由"包内实际有没有这个文件"现算，不写死 ⇒ 条目以后再加/再改名，这一层自己跟着变（射程不漂）。
-SKILL_CITED="$( { grep -rhoE 'skills/[A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+\.(md|sh|mjs|py)' --include='*.md' . 2>/dev/null || true; } | sort -u )"
+# ⚠ 这条正则是**射程本身**，只能按形状数、不能按层数写死：上一版写成 `skills/<一段>/<一段>.ext`，
+#   于是三层深的 `skills/pitfalls/<条目>/SKILL.md` 全都不匹配 —— 现测"被引用的技能路径共数 18 个"，
+#   而交付文档里点到 skills 的路径有 117 处 ⇒ 这一层几乎空转（少报方向，见台账 #373 的同类教训）。
+SKILL_CITED="$( { grep -rhoE 'skills/[A-Za-z0-9_./-]+\.(md|sh|mjs|py)' --include='*.md' . 2>/dev/null || true; } | sort -u )"
 SKILL_FIX_N=0
 while IFS= read -r p; do
   [ -n "$p" ] || continue
