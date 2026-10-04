@@ -9,20 +9,20 @@
 
 - 结论只以代码为出处，格式是 `文件:行号`。RTL 与固件两头都要指：固件那一头决定"写了哪个位"，
   RTL 那一头决定"这个位此刻有没有被选中"。只有固件那一头的结论不算结论。
-- "静默"与"有回显"分开写。本仓已有的规矩是**不许收了却什么都不做**（`src/ps/main.c:590-593` 的 token 上限
-  注释、`src/ps/main.c:1149` 的拒绝分支都按这条写），所以凡是"被盖住且回声没说明"的那几条都在最后一节列成待改清单。
+- "静默"与"有回显"分开写。本仓已有的规矩是**不许收了却什么都不做**（`src/host/ps/main.c:590-593` 的 token 上限
+  注释、`src/host/ps/main.c:1149` 的拒绝分支都按这条写），所以凡是"被盖住且回声没说明"的那几条都在最后一节列成待改清单。
   本轮只登记，不动代码。
 - 本文不替代 `report/commands.md`（命令口径表）。本文只管"命令同时有效时谁赢"。两份文档对不上的地方在
   第 13 节点名，以代码为准。
 
-一个贯穿全文的区分：`stat` 打出来的每一个字段都是 **PS 侧的影子**（`src/ps/main.c:1403-1411`），
+一个贯穿全文的区分：`stat` 打出来的每一个字段都是 **PS 侧的影子**（`src/host/ps/main.c:1403-1411`），
 它证明"固件请求了这个值"，证明不了"像素域正在用这个值"。请求侧与执行侧的对账见第 11 节。
 
 正文里的出处用短文件名（在本仓 `src/` 下每个名字都只有一份），完整路径是：
 
 | 短名 | 完整路径 | 短名 | 完整路径 |
 |---|---|---|---|
-| `main.c` | `src/ps/main.c` | `pl_video_top.v` | `src/rtl/top/pl_video_top.v` |
+| `main.c` | `src/host/ps/main.c` | `pl_video_top.v` | `src/rtl/top/pl_video_top.v` |
 | `system_top.v` | `src/rtl/top/system_top.v` | `src_mode.v` | `src/rtl/util/src_mode.v` |
 | `src_arb.v` | `src/rtl/util/src_arb.v` | `src_life.v` | `src/rtl/util/src_life.v` |
 | `zoom_ctrl.v` | `src/rtl/process/zoom/zoom_ctrl.v` | `zoom_fit.v` | `src/rtl/process/zoom/zoom_fit.v` |
@@ -40,7 +40,7 @@
 
 ## 1. 总表：命令 → 写哪个位 → 谁盖谁
 
-控制字只有两只，所有命令都写进这两只（`src/ps/main.c:219-225`）：
+控制字只有两只，所有命令都写进这两只（`src/host/ps/main.c:219-225`）：
 `gpio_o`（`0x41200000`）与 `gpio_cfg1`（`0x41220000`，RTL 里的 `CFG_DATA0`）。
 物理位到逻辑位的拼接在 `src/rtl/top/system_top.v:248-276`。
 

@@ -770,7 +770,7 @@ cat > MANIFEST.txt <<EOF
 
 目录对照（选题指南 §3.3.5.4 推荐结构 -> 本仓库）
   README.md   项目简介 + 复现步骤   <- README.md（中）/ README_EN.md（英）
-  src/        设计源码              <- src/rtl/**（PL）+ src/ps/**（裸机固件）+ src/host/**（PC 侧）
+  src/        设计源码              <- src/rtl/**（PL）+ src/host/ps/**（裸机固件）+ src/host/**（PC 侧）
   sim/        仿真脚本与结果        <- 支撑交付结论的台架 + run_one.sh/run_sim.tcl + mut_control.sh
                                       名字对照见 build/sim/names.md，判据报告在 build/reports/
   build/      可复现构建 + 实现报告 <- tcl/build_system_axigpio.tcl（一条命令出位流）

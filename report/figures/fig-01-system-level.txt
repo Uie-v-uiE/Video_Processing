@@ -18,8 +18,8 @@ N2  u_idelay_clkgen       INT    sys_clk→clk_200m            src/rtl/top/syste
 N3  u_eth                 INT    eth_rxc(125M)+axi_clk       src/rtl/top/system_top.v:154  eth_udp_video_top
 N4  u_lm_axi              INT    eth_rxc→fclk0               src/rtl/top/system_top.v:214  snap_cross
 N5  u_pl                  INT    clk_pix(50M)+axi_clk+sys    src/rtl/top/system_top.v:258  pl_video_top
-P1  main.c                FW     PS（跑在 N1 的 PS7 上）      src/ps/main.c
-P2  sd_play.c             FW     PS（跑在 N1 的 PS7 上）      src/ps/sd_play.c
+P1  main.c                FW     PS（跑在 N1 的 PS7 上）      src/host/ps/main.c
+P2  sd_play.c             FW     PS（跑在 N1 的 PS7 上）      src/host/ps/sd_play.c
 X1  video_sender.py       EXT    PC                          src/host/video_sender.py
 X2  health_read.mjs       EXT    PC（经 xsdb/JTAG）           src/host/health_read.mjs
 X3  eth_rxc               EXT    PHY2 RGMII（片外）            src/rtl/top/system_top.v:34
@@ -44,7 +44,7 @@ E10 N5   N1   m_axi_ar/r（AXI3 读，64bit）→ M_AXI_HP0                D   s
 E11 N1   X4   DDR_addr/DDR_dq（PS 的 DDR 控制器）                     D   src/rtl/top/system_top.v:76
 E12 N1   N5   fclk0（FCLK_CLK0）+ fclk0_rst_n                        K   src/rtl/top/system_top.v:261
 E13 N1   N3   fclk0 + fclk0_rst_n（axi_clk/axi_rst_n）               K   src/rtl/top/system_top.v:176
-E14 P1   N1   写 AXI GPIO 三个从设备（0x41200000/0x41210000/0x41220000） C src/ps/main.c:48
+E14 P1   N1   写 AXI GPIO 三个从设备（0x41200000/0x41210000/0x41220000） C src/host/ps/main.c:48
        N1   P1   读 GPIO_1 那条 32 位 lane                            C   src/rtl/top/system_top.v:247
 E15 N1   N5   gpio_o[31:0]（阈值/src/发布位/模式码/lane 号）           C   src/rtl/top/system_top.v:264
 E16 N1   N5   gpio_cfg1_o[31:0]（九位 stage_sel + 19 位几何字 + 缩放档） C src/rtl/top/system_top.v:264

@@ -279,9 +279,9 @@
   docs/log/overnight_log.md:5890  [D4c]  → build/tcl/_tmp_isolated_roll.tcl  → 归类1  → 来源是追加式日记 docs/log/ —— 拿今天的盘判昨天的日记，红的是历史记录本身，规矩不许
       原文: - 顺手删掉一个我早前测试留下的 `build/tcl/_tmp_isolated_roll.tcl`（正式脚本的副本就是会漂，
   docs/log/plan_v8_spec.md:15  [D4c]  → board/sd_hotspot_fixed.txt  → 归类1  → 来源是追加式日记 docs/log/ —— 拿今天的盘判昨天的日记，红的是历史记录本身，规矩不许
-      原文: | 回落检测：SD 读失败 | **已实现**（整卡 4398 帧能播完，#50 已结案） | `src/ps/sd_play.c`；`board/sd_hotspot_fixed.txt` |
+      原文: | 回落检测：SD 读失败 | **已实现**（整卡 4398 帧能播完，#50 已结案） | `src/host/ps/sd_play.c`；`board/sd_hotspot_fixed.txt` |
   docs/log/plan_v8_spec.md:59  [D4c]  → board/uart_cmd_check_r44.txt  → 归类1  → 来源是追加式日记 docs/log/ —— 拿今天的盘判昨天的日记，红的是历史记录本身，规矩不许
-      原文: | **1** | **命令层统一**（spec §14 语法），零 RTL 风险 | `src/ps/main.c`（解析器 + 别名表）、`report/host_guide.md` | ✅ 2026-09-24 17:0x：`node src/host/uart_cmd_check.mjs` **32 条逐条对回声 + 反例 + 收尾回
+      原文: | **1** | **命令层统一**（spec §14 语法），零 RTL 风险 | `src/host/ps/main.c`（解析器 + 别名表）、`report/host_guide.md` | ✅ 2026-09-24 17:0x：`node src/host/uart_cmd_check.mjs` **32 条逐条对回声 + 反例 + 收尾回
   docs/log/version_lineage.md:165  [D4c]  → sim/tb_v80_ku5p_cmd.v  → 归类1  → 来源是追加式日记 docs/log/ —— 拿今天的盘判昨天的日记，红的是历史记录本身，规矩不许
       原文: | KU5P 子工程（R31 命令通道） | 从"只会上报"变成**双向**：`ku5p_cmd.v`(端口 5002, `CLR/SNAP/SPD<n>`) + 遥测载荷 v0x01→**v0x02**（36→42 字节）。台架级，未上板 | `ku5p/README.md` §1/§8/§9；`sim/tb_v80_ku5p_cmd.
 

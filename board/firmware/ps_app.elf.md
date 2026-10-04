@@ -20,16 +20,16 @@
   （`build/evidence/r106_gates_firstselfred.txt:5`、`build/evidence/r113_board_verify_console.txt:6` 等，本轮逐条打开核对）。
 - 构建入口只产 bit 与 xsa：`build/tcl/README.md:17` 原话「跑完再 `node build/ps_app.mjs` 出 `build/ps_app.elf`」
   ⇒ ELF 与位流是**两个独立步骤**，位流换了一版不等于 ELF 换过。
-- **ELF 落后于源码**：`git diff --stat 9488cb5 HEAD -- src/ps/` 本轮实测 =
-  `src/ps/main.c | 20 ++++--`、`src/ps/sd_play.c | 6 +++---`、`src/ps/sd_play.h | 2 +-`（3 files changed, 18 insertions(+), 10 deletions(-)）。
+- **ELF 落后于源码**：`git diff --stat 9488cb5 HEAD -- src/host/ps/` 本轮实测 =
+  `src/host/ps/main.c | 20 ++++--`、`src/host/ps/sd_play.c | 6 +++---`、`src/host/ps/sd_play.h | 2 +-`（3 files changed, 18 insertions(+), 10 deletions(-)）。
   其中一笔是 **#167 的 `cmd_buf` 越界修复**（提交 `61d1a2c`，2026-10-02 23:58）。该提交正文自己写着：
   「**ELF 没重建**：这台机器找不到 `arm-none-eabi-gcc`……⇒ 板上还是 r108 那版 app，这条修复**未上板、未验证**，不进任何交付口径」。
   旁证：`build/evidence/r109_cmdbound_wedge.txt:3`「板上跑的仍是 r108 那一版 app（ELF md5 d0b07f84a068）——本条修复未上板」。
 
 ⇒ **结论：`build/ps_app.elf` 的来源未固化。**
-它对应的是 `src/ps @ 9488cb5`，不是当前 `src/ps`；仓库里没有任何一份"哪一轮编出这颗 ELF"的构建件
+它对应的是 `src/host/ps @ 9488cb5`，不是当前 `src/host/ps`；仓库里没有任何一份"哪一轮编出这颗 ELF"的构建件
 （`build/provenance.md` 还不存在，见 Q-P16a-4），也没有 PS 侧源码指纹
-（`build/rtl_fingerprint.sh:26-31` 的 `rtl=` 只走 `find src/rtl -name '*.v'`，**不含 `src/ps`**）。
+（`build/rtl_fingerprint.sh:26-31` 的 `rtl=` 只走 `find src/rtl -name '*.v'`，**不含 `src/host/ps`**）。
 
 ## 2. 再生成命令：两条都在仓库里，但本轮**一条都没跑**
 

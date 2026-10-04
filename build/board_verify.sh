@@ -165,7 +165,7 @@ echo "-- 1b) 原始串口回显留档（被跟踪的那一份：[TEMP] 逐条，
 # 这一半是让工具自己产它 —— 否则复现的人拿不到同一件东西）。
 SERIAL_SECS=${SERIAL_SECS:-9}
 RAWW=$OUT.serial.raw
-# ⚠ `[TEMP] degC=…` 不是周期打印：那句 `xil_printf` 在 **temp 命令的处理路**里（`src/ps/main.c:889`），
+# ⚠ `[TEMP] degC=…` 不是周期打印：那句 `xil_printf` 在 **temp 命令的处理路**里（`src/host/ps/main.c:889`），
 #   屏上那一格才是每秒由 `temp_poll` 刷的。所以被动守窗口抓 14 秒**一行 [TEMP] 都不会有**
 #   （02:39 实测：COM6 打得到、`CAPTURED_LEN 0`）—— 判据①的地板必须由**发命令**去兑现。
 #   `-Cmds` 是按空白拆词的，所以这里只给不带空格的单词，逗号分隔；读命令不改板上状态。

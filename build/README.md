@@ -10,7 +10,7 @@
 |---|---|
 | `tcl/` | 构建与查询脚本，入口是 `tcl/build_system_axigpio.tcl` |
 | `reports/` | 综合与实现报告（时序汇总、资源、功耗、布线状态、方法论、CDC…）+ 随包的判据报告 |
-| `build_ps_app.py` | 不开 IDE 也把 `src/ps` 编成 ELF，并对成品做自检 |
+| `build_ps_app.py` | 不开 IDE 也把 `src/host/ps` 编成 ELF，并对成品做自检 |
 | `gates.sh`、`board_verify.sh` | 门禁与上板回读（复现的第二、三步） |
 | `check_ports.py`、`check_skill_cards.py`、`freeze_evidence.sh`、`tb98_report.sh` | 上面两个脚本自己要调的辅助脚本 |
 

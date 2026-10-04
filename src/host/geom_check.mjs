@@ -30,7 +30,7 @@ import { execSync } from 'node:child_process';
 import { writeFileSync, readFileSync, unlinkSync, existsSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 
-/* 演示默认的 19 位几何字（唯一出处：report/defaults.md 第一节 + src/ps/main.c 的 cur_split/rot/… 初值；
+/* 演示默认的 19 位几何字（唯一出处：report/defaults.md 第一节 + src/host/ps/main.c 的 cur_split/rot/… 初值；
  * 位序与掩码沿用本文件上面的 GEOM_MASK）。#177：G4 判的是"跑完停在这一档"，不再是"与进来时相同"。 */
 const arg = (k, d) => { const i = process.argv.indexOf(k); return i > 0 && process.argv[i + 1] ? process.argv[i + 1] : d; };
 if (process.argv.includes('--help') || process.argv.includes('-h')) {
@@ -51,17 +51,17 @@ const line = (name, pass, note = '') => {
   else { fail++; console.log(`FAIL ${name}${note ? '  ' + note : ''}`); }
 };
 
-/* 19 位几何控制字在 CFG_DATA0 里的掩码（唯一出处 = src/ps/main.c 的 GEOM_MASK，两边同序）：
+/* 19 位几何控制字在 CFG_DATA0 里的掩码（唯一出处 = src/host/ps/main.c 的 GEOM_MASK，两边同序）：
  * bit31 fit ｜ bit30 marker_off ｜ bit[25:23] auto/follow/swap ｜ bit[22:13] 缝位
  * ｜ bit[12:10] rot_speed ｜ bit9 rot_auto。[8:0] 是效果九位、[29]/[28:26] 是缩放档 ⇒ 不比较。 */
-const MAINC = String(arg('--main-c', 'src/ps/main.c'));
+const MAINC = String(arg('--main-c', 'src/host/ps/main.c'));
 /* #177b（2026-09-30，r94）：上面那份掩码过去是**手抄**的 main.c `GEOM_MASK`，而且抄错了 ——
  *   缝位写成 `0x001FE000`（8 位）而不是 `(0x3FFu << 13)` = `0x007FE000`（10 位），
  *   于是 cfg 的 bit22/bit21 落在掩码外。症状很具体：`split px 0`（pos=0）与默认档（pos=512 ⇒ bit22）
  *   **恰好只差这两位** ⇒ 老的 G4 会把"缝钉在屏幕最左边缘"判成"几何位回到默认档"。
  *   这正是 #117 那一课：**判据看不见的那一位，就等于没有判据**。
  *   修法不是把手抄那串数补对 —— 只要还是"抄第二份"，位段哪天再变宽就会第二次抄错；
- *   现在**从唯一出处现算**：读 `src/ps/main.c` 的宏、自己求值 ⇒ PS 的位图一改这里自动跟着改。
+ *   现在**从唯一出处现算**：读 `src/host/ps/main.c` 的宏、自己求值 ⇒ PS 的位图一改这里自动跟着改。
  *   读不到文件 / 宏的形状不认识 ⇒ FATAL 退出，不退回旧常量（沉默地用一份可能过期的掩码，
  *   比没有判据更糟）。 */
 function macros(path) {

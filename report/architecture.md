@@ -94,11 +94,11 @@ ETH 侧 `rst_n = eth_rst_n & mmcm_locked`（`system_top.v:163`），`eth_rst_n` 
 
 数据面全在 PL：收包、拼帧、写 DDR、读回、帧缓存、几何、特效、混合、OSD、TMDS。
 PS 做三件事：发命令、读计数、把 SD 卡上的帧 DMA 进自己那块 DDR（零拷贝，写完只翻一次发布位，
-`src/ps/sd_play.c:13-20`）。PS 不中转任何 ETH 视频字节。
+`src/host/ps/sd_play.c:13-20`）。PS 不中转任何 ETH 视频字节。
 
 | 通道 | 地址 | 方向 | 内容 |
 |------|------|------|------|
-| `axi_gpio_0`（`gpio_o`） | `0x41200000` | PS→PL | 阈值 `[15:8]`、`src_sel[16]`、`zoom_en[17]`、发布位 `[18]`、双线性 `[19]`、OSD 关 `[20]`（**反相**，1 = 关掉叠层；r83）`pl_video_top.v:267-279` 那一条独立 3 级链）、片源模式码 `[24:23]`+翻转 `[22]`、lane 选择 `[31:27]`（`src/ps/main.c:47`、`system_top.v:261-289`） |
+| `axi_gpio_0`（`gpio_o`） | `0x41200000` | PS→PL | 阈值 `[15:8]`、`src_sel[16]`、`zoom_en[17]`、发布位 `[18]`、双线性 `[19]`、OSD 关 `[20]`（**反相**，1 = 关掉叠层；r83）`pl_video_top.v:267-279` 那一条独立 3 级链）、片源模式码 `[24:23]`+翻转 `[22]`、lane 选择 `[31:27]`（`src/host/ps/main.c:47`、`system_top.v:261-289`） |
 | `axi_gpio_2` 通道 1 | `0x41220000` | PS→PL | 九位 `stage_sel[8:0]`、几何控制字 `[22:13]`/`[25:23]`/`[9]`/`[12:10]`/`[30]`/`[31]`、缩放档 `[28:26]`、手动旗标 `[29]`（`main.c:71-72`、`system_top.v:265-272`） |
 | `axi_gpio_2` 通道 2 | `0x41220000 + 0x08` | PS→PL | gamma 表窗口 `{en,wr,data[29:22],idx[21:14]}` + 只给 OSD 的 `gamma_disp`/温度（`main.c:79-96`、`pl_video_top.v:32-34`） |
 | `axi_gpio_1`（`GPIO_1_tri_i`） | `0x41210000` | PL→PS | 32 位状态窗口，**命令写 gpio_o、状态读这一只**（`build/tcl/build_system_axigpio.tcl:189,202`） |

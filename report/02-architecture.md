@@ -4,7 +4,7 @@
 数据面整条在 PL：收包、拼帧、写 DDR、读回、帧缓存、几何（缩放/旋转）、效果链、逐像素混合、
 OSD、TMDS 编码（`report/architecture.md` §3）。PS 只做三件事：发命令、读计数、把 SD 卡上的帧
 DMA 进它自己那块 DDR——写完只翻一次发布位，零拷贝，不中转 ETH 视频字节
-（`src/ps/main.c` 文件头、`report/architecture.md` §3）。
+（`src/host/ps/main.c` 文件头、`report/architecture.md` §3）。
 
 为什么这样切：把实时数据面放 PL 换来的是流水线确定的延迟与接近 0 的 CPU 占用；
 控制面留 PS 才体现软硬件协同（对比与结论记于 `report/ps_vs_pl.md` §3）。
@@ -34,9 +34,9 @@ SD 卡 ─► PS sd_play.c DMA ─► 写进 PS 专用 bank，翻发布位 gpio_
 再叠 osd_overlay、编 rgb2dvi 出 TMDS。
 ```
 缓冲/地址的口径：ETH 走 DDR 乒乓两块 `0x1000_0000` / `+0x0008_0000`，SD/FILL 走第三个 bank
-`0x1010_0000`（`src/ps/main.c` 文件头第 19 行、第 41–46 行注释；`report/architecture.md` §4）。
+`0x1010_0000`（`src/host/ps/main.c` 文件头第 19 行、第 41–46 行注释；`report/architecture.md` §4）。
 三个 bank 地址分开是因为早期 SD 与乒乓第 0 块重叠导致"两个片源打架"，是板级实测结论
-（`src/ps/main.c` 第 41–45 行注释）。拷贝只在消隐窗口内做、赶不上就整笔作废保留上一帧，
+（`src/host/ps/main.c` 第 41–45 行注释）。拷贝只在消隐窗口内做、赶不上就整笔作废保留上一帧，
 由 `frame_commit_lock` 把关（职责记于 `report/modules.md`，通路记于 `report/architecture.md` §1）。
 
 ## 时钟域清单（只列名字与来源文件）
@@ -59,4 +59,4 @@ SD 卡 ─► PS sd_play.c DMA ─► 写进 PS 专用 bank，翻发布位 gpio_
 - `report/ps_vs_pl.md`
 - `report/modules.md`
 - `src/rtl/top/system_top.v`
-- `src/ps/main.c`
+- `src/host/ps/main.c`

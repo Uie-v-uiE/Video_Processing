@@ -12,7 +12,7 @@
 | 激励 | 手工串口命令 `sd remount`，随后 `stat` 只读回读；更早一次是**物理拔卡**（用户的手） | `build/evidence/r75_sd_remount_before.txt:2-4`（`>> sd remount`）、`:5`（失败行）、`:6`（`>> stat`） |
 | 输入规格 | SD 卡上的裸帧序列 512×300 RGB565（板上不解码）；卡不在座 = 无输入 | `data/measured/README.md`、`report/log/issues.md:3616-3618`（用户实测三步：拔网线 / 拔 SD / 插回） |
 | 时钟与功耗模式 | 同 `card-board-serial-and-jtag.md` 的卡 A1（`clkout0_1` 20 ns 显示域、`eth_rxc` 8 ns 收包域）；功耗档 `【待补】` | `report/timing/roster_baseline.tsv` |
-| 软件版本 | r75（件名与台账同轮）；**位流 md5 未写进这份捕获件** ⇒ `【待补】`。固件那条"只能断电重插"的提示语本身在 `src/ps/sd_play.c`/`main.c` 里，`issues.md:3813` 给了改前/改后两份件 | `issues.md:3614`（立案日期 2026-09-26 17:1x，板 r70） |
+| 软件版本 | r75（件名与台账同轮）；**位流 md5 未写进这份捕获件** ⇒ `【待补】`。固件那条"只能断电重插"的提示语本身在 `src/host/ps/sd_play.c`/`main.c` 里，`issues.md:3813` 给了改前/改后两份件 | `issues.md:3614`（立案日期 2026-09-26 17:1x，板 r70） |
 | 仪器量程 | 只有串口回显（115200-8N1）与固件自报的 `[STAT]` 位；**没有总线分析仪/示波器**，所以"≤0.5 s 落到 SRC:TEST"这类时间判据没有独立仪器校 | `board/HANDS_ON.md（不随包）:116`（那句 0.5 s 出自治具/文档，不是仪器量） |
 
 异常前后原样（整份件只有 10 行，全抄）：

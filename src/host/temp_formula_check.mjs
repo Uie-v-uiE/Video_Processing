@@ -16,7 +16,7 @@
  */
 import { readFileSync } from 'node:fs';
 
-const SRC = 'src/ps/main.c';
+const SRC = 'src/host/ps/main.c';
 const verbose = process.argv.includes('--verbose');
 
 /* 1) 从固件源码里读出实现（只认这两个函数体里的三个常数，改了写法就必须同步改这里 —— 这是故意的）。

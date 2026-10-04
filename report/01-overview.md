@@ -4,7 +4,7 @@
 一块 Zynq-7020（器件 `xc7z020clg484-2`，出处 `build/utilization.rpt` 报告头那一行
 `| Device       : xc7z020clg484-2`）上的实时视频图像处理通路。几何、滤波、显示全部在 PL 完成；
 PS 只发命令、读计数、把 SD 卡上的帧 DMA 进自己那块 DDR，不中转 ETH 视频字节
-（`report/architecture.md` §3；`src/ps/main.c` 文件头第 2 行「PS control plane + SD 卡本地回放。
+（`report/architecture.md` §3；`src/host/ps/main.c` 文件头第 2 行「PS control plane + SD 卡本地回放。
 UDP 视频数据通路仍然整个在 PL」）。
 
 ## 输入 → 处理 → 输出（一句话）
@@ -46,7 +46,7 @@ PERF 记录，未与当前位流对账。
 - `report/architecture.md`
 - `report/background_and_novelty.md`
 - `report/demo_script.md`
-- `src/ps/main.c`
+- `src/host/ps/main.c`
 - `src/rtl/video/osd_overlay.v`
 - `data/metrics.csv`
 - `build/utilization.rpt`

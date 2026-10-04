@@ -22,7 +22,7 @@ test card; `src_arb` arbitrates the three sources and a long key press switches 
 
 ### Directories
 
-src/ —— 80 .v files in `src/rtl/`, PS-side C in `src/ps/`, 9 .xdc files in `src/constraints/` (2 loaded, 7 candidates/experiments), 26 .mjs and 3 .py host tools in `src/host/`  
+src/ —— 80 .v files in `src/rtl/`, PS-side C in `src/host/ps/`, 9 .xdc files in `src/constraints/` (2 loaded, 7 candidates/experiments), 26 .mjs and 3 .py host tools in `src/host/`  
 sim/ —— 84 .v files (81 of them `tb_*.v`); the runner line under the table in `sim/README.md`  
 build/ —— 7 flow-entry TCL scripts, the checkers, and 7 raw tool reports under `build/report/`  
 board/ —— on-board project, the three-step JTAG flashing scripts and measured output (serial captures, board verify)  

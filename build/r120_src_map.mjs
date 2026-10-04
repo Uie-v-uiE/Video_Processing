@@ -1,13 +1,13 @@
 #!/usr/bin/env node
 // build/r120_src_map.mjs —— 生成 `report/src-map.md`（源码地图），只做"能从盘上直接读出来"的四列
 //
-// 用途：把 `src/rtl/**.v` 与 `src/ps/**.{c,h}` 逐个列成一张可对账的表，供接手的人定位文件。
+// 用途：把 `src/rtl/**.v` 与 `src/host/ps/**.{c,h}` 逐个列成一张可对账的表，供接手的人定位文件。
 // 前置条件：在仓库根运行；不需要工具链，纯读文件。
 // 产出物：stdout 一份 markdown（重定向进 `report/src-map.md`）；不写任何文件。
 // 失败时先看哪里：某行"头注"列为空 ⇒ 那个文件首行不是 `//` 注释，是文件本身没写头注（照实留空，不替它编）。
 //
 // 四列全部现算，不import任何人工汇总：路径 | 声明的 module/顶层符号 | 行数 | 文件头注第一行（逐字）
-// 计数地板：文件数必须 = `git ls-files src/rtl src/ps` 里源码文件数，对不上直接 REFUSE。
+// 计数地板：文件数必须 = `git ls-files src/rtl src/host/ps` 里源码文件数，对不上直接 REFUSE。
 import fs from 'node:fs';
 import path from 'node:path';
 import { execFileSync } from 'node:child_process';

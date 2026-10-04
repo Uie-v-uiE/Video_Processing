@@ -75,13 +75,13 @@
 - **现象（含证据）**：`report/log/issues.md` 的 #233 记着 23:46~23:56 那一段：发过一条 **127 载荷字节 + CRLF** 之后，
   连发的每条 `STAT`（6 字节）都被回成 `[CMD!] dropped 17 trailing byte(s): line unfinished for 3000 ms`，静默 15 秒仍如此；
   #235 把症状从"命令通道钉死"升级为"AP 不可达 ⇒ 要断电"。
-  **本次实测（把"修没修上"钉死）**：`src/ps/main.c` 的换行支现在带界（本次 `grep -n cmd_len` 命中第 1515 行
+  **本次实测（把"修没修上"钉死）**：`src/host/ps/main.c` 的换行支现在带界（本次 `grep -n cmd_len` 命中第 1515 行
   `if (cmd_len > 0 && cmd_len < CMD_BUF)`，`:1518` 的载荷支也是 `cmd_len < CMD_BUF - 1`），
   而 `md5sum build/ps_app.elf` = `d0b07f84a068`，`git log -1 --format=%ci -- build/ps_app.elf` 显示这份 ELF 的
-  最后一次提交是 **2026-09-29 11:50**，`src/ps/main.c` 的 #167 那一刀提交是 **2026-10-02 23:58**；
+  最后一次提交是 **2026-09-29 11:50**，`src/host/ps/main.c` 的 #167 那一刀提交是 **2026-10-02 23:58**；
   `build/r118_gates.txt` 的身份行同样写着 `ps_app.elf md5=d0b07f84a068`
   ⇒ **板上那一版早于修复四天多，这条在交付的位流/固件组合上是活的**。
-- **原因假设（可被判别）**：`cmd_buf[CMD_BUF]`（`src/ps/main.c` 本次实测 `#define CMD_BUF 128` 在第 311 行、数组在第 312 行）
+- **原因假设（可被判别）**：`cmd_buf[CMD_BUF]`（`src/host/ps/main.c` 本次实测 `#define CMD_BUF 128` 在第 311 行、数组在第 312 行）
   紧邻 `static int cmd_len`（第 313 行）；越界写的第一落点就是 `cmd_len` 自己的低字节 ⇒ `cmd_len` 变成比数组还大的值，
   残包支的 `keep` 计算取不到有效边界，通道一直当残包。**可判别处**：若根因确是这条邻接，那么
   (a) 把界判加回换行支后 `board/cmd_overflow_probe.sh` 的 O2（127 字节界外）应当**不再**污染 O3（事后那条 `STAT`）；
@@ -209,7 +209,7 @@
 ### A10 · SD 固件四条未修（#196–#199）+ 命令表里没有把旋转角度归零的动词（#200）
 
 - **现象（含证据）**：`report/known_issues.md` §14 逐条给了行号：
-  #196 卡里的数据能决定往 `Meta[4096]` 尾后多写一字节（`src/ps/sd_play.c` 里 `>` 漏等号）；
+  #196 卡里的数据能决定往 `Meta[4096]` 尾后多写一字节（`src/host/ps/sd_play.c` 里 `>` 漏等号）；
   #197 被拒绝的 `play` 并不中性——先 `ctrl_set_src(1)` 才判 `sd_play(1)` 成不成，屏会切到"没有帧可播"那一路；
   #198 每帧重走一遍目录（缓存守卫 `open_idx` 只写不读），串口喂狗只在搬运循环里 ⇒ 未覆盖窗口是"一段目录扫描"；
   #199 同一句 `stopped at frame N` 在两处指不同的帧；
@@ -527,7 +527,7 @@
   `node src/host/doc_currency_check.mjs`、`node src/host/metric_recheck.mjs`、
   `python build/check_io_timing_coverage.py build/timing_summary.rpt`、
   `python build/check_ports.py --dup`、`node build/r119_window_check.mjs --self`、
-  `grep -n link_monitor build/gates.sh`、`grep -n cmd_len src/ps/main.c`、`grep -n gapclr src/rtl/eth/link_monitor.v`
+  `grep -n link_monitor build/gates.sh`、`grep -n cmd_len src/host/ps/main.c`、`grep -n gapclr src/rtl/eth/link_monitor.v`
 - 打开读过的文件（绝对路径 = 仓库根 `D:/Xilinx/Prj/pro/Video_Processing/` 下）：
   `report/known_issues.md`、`report/log/issues.md`（#216/#218 一节、#233/#235 一节、C5c 两节、F2e 一节、#259/#269 两节）、
   `board/README.md`、`board/acceptance.md`、`report/build.md`、`build/README.md`、`sim/README.md`、

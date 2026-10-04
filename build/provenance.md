@@ -60,7 +60,7 @@ diff /tmp/fp_run1.txt build/evidence/r118_tree_fp.txt   # rc=0 ⇒ 与 r118 采�
 （`build/tcl/build_system_axigpio.tcl:19-26`），两个候选件按 `VP_R116_IO_WINDOW` /
 `VP_R119_TMDS_WINDOW` 开关加载且默认关（同文件 `:45-70`）。
 
-**指纹的射程要说清**：这把尺子量的是 80 份 `src/rtl/*.v`。它**不覆盖** BD 配置、`src/ps` 固件源码、
+**指纹的射程要说清**：这把尺子量的是 80 份 `src/rtl/*.v`。它**不覆盖** BD 配置、`src/host/ps` 固件源码、
 构建脚本本身、工具版本。所以"指纹相同"只等于"PL 的 RTL 相同"，不等于"这一版整套可复现"。
 构建脚本这一维本轮就出现了真实缺口：`build/tcl/build_system_axigpio.tcl` 的字节数与内容在 r118
 之后被改过（今天 09:25，工作区状态 `M`，未提交），改的是新增 `VP_R119_TMDS_WINDOW` 那一档默认关的分支

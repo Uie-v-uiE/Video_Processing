@@ -90,7 +90,7 @@ elf 与 bit 不同龄 ⇒ 本轮的板级结论只能盖到"bit r118 + elf r101 
 共同条件（**逐件差异列在下面**）：激励 = `board_verify.sh` 里"边听边抓"那一步（`--round=rNN`），
 串口 115200-8N1、COM6 只读、抓取窗口 5 s；输入规格 = 当时上位机是否在推流**逐件不同**；
 时钟/功耗模式 = 同卡 A1；软件版本 = 该 rNN 的 `build/system.bit` md5（认 md5 不认文件名，见 `board/README.md` 第 1 节）；
-仪器量程 = 固件自打的 `[TEMP]`（XADC raw + 定点 degC + vccint mV）与 `[STAT]`（`src/ps/main.c` 的状态行）。
+仪器量程 = 固件自打的 `[TEMP]`（XADC raw + 定点 degC + vccint mV）与 `[STAT]`（`src/host/ps/main.c` 的状态行）。
 
 | 件 | 日期(mtime) | 行数 | [TEMP] | [STAT] | sha256 前 8 | 与别件能不能直接比 |
 | --- | --- | --- | --- | --- | --- | --- |

@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 /*
- * build/ps_app.mjs —— 不用 Vitis IDE，直接把 src/ps 编成可在板上跑的 ELF。
+ * build/ps_app.mjs —— 不用 Vitis IDE，直接把 src/host/ps 编成可在板上跑的 ELF。
  *
  * 为什么要脚本化：交付要求"从零复现"，而"在 IDE 里手工点 New Platform / New Application"
  * 不属于能复现的步骤。另外这个 app 只需要 PS 侧的 xparameters（UART/SD/DDR/GLOBALTIMER），
@@ -60,7 +60,7 @@ if (process.argv.includes('--clean') && fs.existsSync(OBJ)) fs.rmSync(OBJ, { rec
 fs.mkdirSync(OBJ, { recursive: true });
 
 const srcs = fs.readdirSync(SRC).filter(f => /\.(c|S)$/.test(f)).sort();
-if (!srcs.length) { console.log('FATAL: src/ps 下没有 .c'); process.exit(2); }
+if (!srcs.length) { console.log('FATAL: src/host/ps 下没有 .c'); process.exit(2); }
 const lds = path.join(SRC, 'lscript_ocm.ld');
 need(lds, 'linker script');
 
@@ -115,7 +115,7 @@ console.log('LD  ps_app.elf');
  * 结果是"链接成功"但镜像是空的。
  */
 run([...CFLAGS, ...objs, '-Wl,--gc-sections', '-Wl,-n', '-Wl,--no-warn-mismatch',
-     /* 入口在链接脚本里（src/ps/lscript_ocm.ld 的 ENTRY(_boot)）：boot.S 的 _boot 设完
+     /* 入口在链接脚本里（src/host/ps/lscript_ocm.ld 的 ENTRY(_boot)）：boot.S 的 _boot 设完
       * VBAR/各模式栈/CPACR+FPEXC/MMU 之后自己 b _start。
       * 试过命令行 -Wl,-e,_boot —— 被脚本里的 ENTRY 顶掉，readelf 的入口悄悄变成 0x0，
       * 一声不响；所以入口只从脚本走，这里不传 -e（下面的 ENTRY 等值校验就是它的哨兵）。 */

@@ -391,7 +391,7 @@ function selfTest(code) {
   // D5d 自己的对照（#208 第二半）：标本就是 2026-10-02 那批里的一条真错——文档逐字抄了
   // `[GAMMA] auto 的 step …` 那句回声，却把行号写成 1186（那里是 split 的掩码运算）。
   // 行号**在运行时按内容找回**，不写死：写死的 fixture 会像文档一样漂掉，那时这条对照就成了假绿。
-  const mc = code.get('src/ps/main.c');
+  const mc = code.get('src/host/ps/main.c');
   let e5d = 0, d5dRun = 0;
   if (mc) {
     const Q = '[GAMMA] auto 的 step 要的是 γ×100 的正整数（20 = 0.20）';   // 引号**内**的那串，与 check() 取到的形状一致
@@ -432,7 +432,7 @@ function selfTest(code) {
       d5dRun = 1;
     }
   } else {
-    console.log('  FAIL D5d 读不到 src/ps/main.c ⇒ 对照不作数');
+    console.log('  FAIL D5d 读不到 src/host/ps/main.c ⇒ 对照不作数');
     d5dRun = 1;
   }
   // 计数地板：8 = 锚点 2 + D5b 3 + 硬错 3；D5d 五条（判 3 + 配对 2）一条都不能少跑。

@@ -20,7 +20,7 @@ PL 侧从 DDR 读帧、按 9 级效果链（灰度、模糊、锐化、Sobel、�
 
 ### 目录
 
-src/ —— `src/rtl/` 80 个 .v、`src/ps/` PS 侧 C、`src/constraints/` 9 份 .xdc（在用 2 份，其余 7 份是候选/实验件）、`src/host/` 26 支 .mjs 与 3 支 .py 上位机工具  
+src/ —— `src/rtl/` 80 个 .v、`src/host/ps/` PS 侧 C、`src/constraints/` 9 份 .xdc（在用 2 份，其余 7 份是候选/实验件）、`src/host/` 26 支 .mjs 与 3 支 .py 上位机工具  
 sim/ —— 84 份 .v（其中 81 支 `tb_*.v`），跑法见 `sim/README.md` 表格下方那一行  
 build/ —— 7 份流程入口 TCL、检查器与 `build/report/` 下 7 份工具原始报告  
 board/ —— 上板工程、三步 JTAG 烧写脚本与实测输出（串口留档、板级校验读数）  

@@ -47,7 +47,7 @@ import { execFileSync } from 'node:child_process';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 
-const C_SRC = 'src/ps/main.c';
+const C_SRC = 'src/host/ps/main.c';
 const RTL_PIPE = 'src/rtl/process/proc_pipeline.v';
 const RTL_CTRL = 'src/rtl/process/effect_ctrl.v';
 const RTL_TOPS = ['src/rtl/top/pl_video_top.v', 'src/rtl/top/system_top.v', 'src/rtl/top/pl_demo_top.v'];

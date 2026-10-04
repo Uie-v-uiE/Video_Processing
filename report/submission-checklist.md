@@ -7,7 +7,7 @@
 | # | 交付项 | 位置 | 状态 | 复核命令 |
 | --- | --- | --- | --- | --- |
 | 1 | 工程本体（RTL） | `src/rtl/` 80 个 `.v` | PASS | `git ls-files src/rtl \| wc -l` |
-| 2 | 工程本体（PS 固件源码） | `src/ps/` 3 个 `.c/.h` | PASS（**ELF 不可重建**：本机无 `arm-none-eabi-gcc`，见 `report/build-notes.md`） | `git ls-files src/ps` |
+| 2 | 工程本体（PS 固件源码） | `src/host/ps/` 3 个 `.c/.h` | PASS（**ELF 不可重建**：本机无 `arm-none-eabi-gcc`，见 `report/build-notes.md`） | `git ls-files src/host/ps` |
 | 3 | 约束 | `src/constraints/` | PASS | `git ls-files src/constraints` |
 | 4 | 台架 / 仿真 | `sim/` 137 个跟踪文件 | PASS | `git ls-files sim \| wc -l` |
 | 5 | 构建脚本与报告原件 | `build/`（脚本 + `build/evidence/` 凭据） | PASS | `git ls-files build \| wc -l` |

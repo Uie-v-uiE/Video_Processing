@@ -13622,3 +13622,29 @@ C4 原来只要求 `build/report/` 里有名字带 util / timing 的件——一
 现跑：`C4b cmp=18 符合（归档件=7 资源行 5/5 时序行 4/4 原始件横幅=6/7 每份都有脚本能重出） PASS`。
 能红的对照（夹具在 /tmp，跑完即删）：`git init` 一棵小树，`utilization.rpt` 少 `| DSPs |` 那一行
 ⇒ `C4b 资源行缺:DSP FAIL rc=1`；只补那一行 ⇒ `PASS rc=0`。两次唯一变量就是那一行。
+
+### #363 §1.2 的 PS 侧归档落刀：`src/ps/` → `src/host/ps/`，以及两处我自己踩的形状
+现跑读数：`node build/deliver_spec_check.mjs` 的 C1-2 从
+`FAIL PS/上位机源文件不在 src/host=4 目录=ps 例:src/ps/lscript_ocm.ld,src/ps/main.c,src/ps/sd_play.c`
+变成 `PASS 符合（RTL=80 在 src/rtl，PS/上位机=33 在 src/host）`；`src/` 现在只有
+`constraints/ host/ rtl/` 三个子目录。
+- **迁移工具的射程只到"改引用"**：`build/r122_ps_relocate.mjs --apply` 打的是
+  `WROTE ... 待改文件=57 旧名总数=111 ... src/host/ps=未迁`——那一列是**盘上事实**，
+  它不会替我做 `git mv`。所以 `--apply` 之后树是**断的**（57 份文件指向不存在的目录），
+  必须由我接着搬。下次跑它之前先把这条读进脑子，别看见 `PASS` 就以为迁完。
+- **我自己写的搬移循环漏了前缀**：`git mv "$f" "src/host/${f#src/ps/}"` 少了 `ps/`，
+  四个源文件全落进 `src/host/` 根；补做的第二条循环又把 `src/host/README.md`（§1.4 那份交付文档）
+  搬进了 `src/host/ps/`。两次都在同回合用 `git status --short | grep -E 'src/'` 看出来并回滚，
+  现在 `src/host/README.md` 在原位、`src/host/ps/` 里是 `main.c sd_play.c sd_play.h lscript_ocm.ld README.md` 五件。
+  教训照旧：**循环里的目标名要打印出来核对，destination exists 时 `git mv` 会直接拒绝并留下半成品**。
+- `src/ps/README.md` 跟着搬成 `src/host/ps/README.md`，内容重写：它原来那张 EMIO 位表还写着
+  "`[4:0] effect_en`（bit0=最左）"是活的，而 `src/host/ps/main.c:55` 明写这五位已退役 ⇒ 旧表是**错的活文档**。
+  新表逐位点名 `main.c` 的行号（55/57/59/62/63/64），DDR 那半句原来含"与 RTL 写基址同表"，
+  我在 `src/rtl/eth/*.v` 与 `src/rtl/top/*.v` 里 grep `10100000|10080000` **0 命中** ⇒ 那句话删掉，
+  只留 `main.c:46` 的 `FRAME_ADDR` 与 `:19` 的注释。这份文件是仓库里**唯一**写着 Vitis BSP 要
+  `lwip / xuartps / xgpio` 的件（`git grep -l lwip -- '*.md'` 只命中它），所以删不得，只能改对。
+  本机没有 `arm-none-eabi-gcc` ⇒ 重编 ELF 的步骤在包内**不可跑**，文末按事实声明并给出
+  `build/r118_gates_final.txt` 的 `ps_app.elf md5=d0b07f84a068`（本轮未重编的凭据）。
+- 尺子复跑：`node src/host/line_cite_check.mjs` ⇒ `D5: CLEAN`（硬错 0，锚点命中 867）；
+  `C-PATHS ... 判(指向 src/ 的字面量)=149 解析不到=0`；残留 `src/ps/` 字样 19 份文件全在
+  冻结件 / 证据件 / 迁移工具自己的用例 / `report/log/` 追加式日记里（D5 与 C-PATHS 都不判它们）。
