@@ -62,7 +62,7 @@
   读 **0 度** ⇒ 武装门真把配置那一刻的手按吞掉了（#247 的意图成立）。两档都是有效读数，**只有"读不出来"才算没做**。
 - **否意味着查什么**：读 1 时接着查 `src/rtl/util/key_debounce.v` 的 `armed/acnt` 与 A 腿台架 `sim/tb_v113_key_powup.v`；
   若 `Src` 那一格也同时变了 ⇒ 那次低电平跨过了 0.6 s 长按阈值，成因在"按住"一侧而不是毛刺一侧（C 腿形状）。
-  出处：`board/acceptance.md:96-105`、`board/signoff.md` E6b（现在 = `NOT_MEASURED`，原件自己写着"这一条只登记未判"）。
+  出处：`board/acceptance.md:95-105`、`board/signoff.md` E6b（现在 = `NOT_MEASURED`，原件自己写着"这一条只登记未判"）。
 
 ## 第 3 轮（3 个）
 

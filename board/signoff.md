@@ -74,7 +74,7 @@
 - 观察项：刷完之后不碰任何命令，开机默认档是不是文档默认档（1.00×）。
 - 前置状态（含回读到的值）：板上 = r118（S1）、`uart_stat.txt` 与 `uart_stat2.txt` 回读 `[STAT] … zsel=4 zman=1 … geom=00400000 osd=1`。
 - 具体动作：读 `build/evidence/r118_board/board_verify_console.txt:19` 的 `lane23 zoom` JSON；或串口发一条 `STAT`。
-- 我看到/读到的原文：`board_verify_console.txt:19` = `  lane23 zoom → {"raw":2147893504,"alive":1,"zoom_fit":0,"zman":1,"zsel":4,"zcode":4,"zoom_active":0,"zoom_dir":0,"inv_scale":256,"x100_actual":100,"rule":"manual_tier","inv_expected":256,"inv_ok":true,"code_ok":true,"verdict":"OK"}`；`build/evidence/r118_eyes/uart_stat.txt:1` = `[STAT] ctrl thr=80 src=1 zoom=1 bilin=1 zsel=4 zman=1 pub=1 sd=1 frames=4398 playing=1 sel=000 gm=0.00 (PL owns UDP datapath) mode=0 geom=00400000 osd=1`。这一格在 `board/acceptance.md:19`（r94 那一行）与 `:39`（r96"没有盖章"那一行）历史上漂过两次，本版这三次回读彼此一致 ⇒ 以本件为准，历史两行不覆盖。
+- 我看到/读到的原文：`board_verify_console.txt:19` = `  lane23 zoom → {"raw":2147893504,"alive":1,"zoom_fit":0,"zman":1,"zsel":4,"zcode":4,"zoom_active":0,"zoom_dir":0,"inv_scale":256,"x100_actual":100,"rule":"manual_tier","inv_expected":256,"inv_ok":true,"code_ok":true,"verdict":"OK"}`；`build/evidence/r118_eyes/uart_stat.txt:1` = `[STAT] ctrl thr=80 src=1 zoom=1 bilin=1 zsel=4 zman=1 pub=1 sd=1 frames=4398 playing=1 sel=000 gm=0.00 (PL owns UDP datapath) mode=0 geom=00400000 osd=1`。这一格在 `board/acceptance.md:35`（r94 那一行）与 `:39`（r96"没有盖章"那一行）历史上漂过两次，本版这三次回读彼此一致 ⇒ 以本件为准，历史两行不覆盖。
 - 判定：PASS
 
 ### S7 带真实流量时的收包链零丢字（板上这一版那一次带流跑）
@@ -98,7 +98,7 @@
 - 观察项：OSD 的 `Latency` 那一格与 JTAG 回读的 `tot/100000` 是不是同源。
 - 前置状态（含回读到的值）：S7 的两次带流读数 `eth_live=1`；空闲那一读 `eth_live=0`。
 - 具体动作：读 `board_verify_console.txt:20` 与 `health_r118build_a.json`/`_b.json` 里的 `lat.osd_ms_matches_tot`。
-- 我看到/读到的原文：`board_verify_console.txt:20` = `  lat.osd_ms_matches_tot → true`；A 件 = `"osd_ms_matches_tot":true`（`tot_ms":10.356`、`osd_ms":10`）；B 件 = `"osd_ms_matches_tot":true`（`tot_ms":5.888`、`osd_ms":5`）。`board/acceptance.md:21` 那一行（屏上 `Latency=6ms` ↔ `tot/100000=6`）的凭据是 `build/evidence/r92_health.txt`，属 r92，不借给本版。
+- 我看到/读到的原文：`board_verify_console.txt:20` = `  lat.osd_ms_matches_tot → true`；A 件 = `"osd_ms_matches_tot":true`（`tot_ms":10.356`、`osd_ms":10`）；B 件 = `"osd_ms_matches_tot":true`（`tot_ms":5.888`、`osd_ms":5`）。`board/acceptance.md:37` 那一行（屏上 `Latency=6ms` ↔ `tot/100000=6`）的凭据是 `build/evidence/r92_health.txt`，属 r92，不借给本版。
 - 判定：PASS
 
 ### S10 温度格三方对账（驱动读数 ↔ 屏上三字符 ↔ 写进 PL 的 gpio）
@@ -191,15 +191,15 @@
 - 观察项：50/50 分区下左右两侧的同一物体是否对得上（不左右错开、不上下错位）。
 - 前置状态（含回读到的值）：`build/evidence/r92_eye_capture2.txt:3` 回读 `[STAT] ctrl thr=80 src=1 zoom=1 bilin=1 zsel=4 zman=1 pub=0 sd=1 frames=4398 playing=1 … geom=40400000 osd=1`；`:12` 回读 `[SPLIT] 50% -> pos=512/1024（显示列；manual；屏上 Split 格应显示 50%）`；`:15` 回读 `[SPLIT] marker=0（那条 2 像素蓝线）`；`:17` 回读 `[SPLIT] pos=512/1024（显示列） = 50% manual marker=off`。
 - 具体动作：双击 `send_demo.bat` 推流 → 串口依次 `split manual`、`split 50`、`split marker 0`、`split show`，然后**同屏一次看两侧**（不是分次切换），看的前提是 `split show` 回显 `marker=off`。
-- 我看到/读到的原文：`board/acceptance.md:69` 的"结果"列 = `**过（2026-09-30 06:2x，在场的人原话"现在都很正常"）**：右半的白线与红块和左半对得上`。板上那一刻是 **r92**，本版 r118 没有把这一格重判过（眼睛项不能自己判）。
+- 我看到/读到的原文：`board/acceptance.md:89` 的"结果"列 = `**过（2026-09-30 06:2x，在场的人原话"现在都很正常"）**：右半的白线与红块和左半对得上`。板上那一刻是 **r92**，本版 r118 没有把这一格重判过（眼睛项不能自己判）。
 - 判定：PASS（这条只能由人的眼睛判，机器无法复现：签收人=在场队员，判读时间 2026-09-30 06:2x，当时板上是 r92；板上这一版**没有重判过**，所以它不构成板上这一版已验证）
 
 ### E2 缩放 + 自动旋转时不出现整行错位、画面不出屏
 
 - 观察项：`zoom 0.5` + `rot auto 1` 下，屏上有没有整行错位、有没有左右错开的水平界线。
-- 前置状态（含回读到的值）：`board/acceptance.md:70` 记 r93 那两次的状态回读件 `build/evidence/r93_e2b_capture.txt`、`build/evidence/r93_ab_state_capture.txt`；10-01 那一次的状态件是 `build/r95_eye_park.txt`（末态 `geom=00400A00` ⇒ rot auto=1、speed=2、fit=0）。
+- 前置状态（含回读到的值）：`board/acceptance.md:90` 记 r93 那两次的状态回读件 `build/evidence/r93_e2b_capture.txt`、`build/evidence/r93_ab_state_capture.txt`；10-01 那一次的状态件是 `build/r95_eye_park.txt`（末态 `geom=00400A00` ⇒ rot auto=1、speed=2、fit=0）。
 - 具体动作：`split 50` + `split marker 0`（关掉辅助叠加层才好判）→ `zoom 0.5` → `rot auto 1`；对照做法是**只改推流节奏**（25 fps ↔ 29.76 fps 各看一遍同一格）。
-- 我看到/读到的原文：`board/acceptance.md:70` = `**过（2026-09-30 06:5x–07:0x，在场的人原话"现在画面正常只有一条"）**`；同格另引 2026-10-01 22:1x 那句 = `1 rot 在走 zoom 是 0.52 没有 3 没有`，且该格自己写明 `0.52` 这个数字**在屏上找不到能显示它的格子**（`Rot:` 印十进制度数、`Zoom:` 只有八档标签）⇒ 它不当倍率读数用；问"有没有整行错位/沿角度的细鬼影"答**没有**，问"`split 50` 缝两侧同一行有没有上下错开"答**没有**。该格还如实留了两条限定：① 当时标记线有没有关没问到 ⇒"缝两侧"那一判是在标记状态未证下给的；② #189 的发生率台架量到 ≈0.27 % ⇒ 这一格"过"的意义是"没看到错位"，不是"逐行验过"（逐行那部分靠 `sim/tb_zoom_frac.v` 的 S1/S2/S3，件 `build/r103_tb_zoom_frac.txt`）。
+- 我看到/读到的原文：`board/acceptance.md:90` = `**过（2026-09-30 06:5x–07:0x，在场的人原话"现在画面正常只有一条"）**`；同格另引 2026-10-01 22:1x 那句 = `1 rot 在走 zoom 是 0.52 没有 3 没有`，且该格自己写明 `0.52` 这个数字**在屏上找不到能显示它的格子**（`Rot:` 印十进制度数、`Zoom:` 只有八档标签）⇒ 它不当倍率读数用；问"有没有整行错位/沿角度的细鬼影"答**没有**，问"`split 50` 缝两侧同一行有没有上下错开"答**没有**。该格还如实留了两条限定：① 当时标记线有没有关没问到 ⇒"缝两侧"那一判是在标记状态未证下给的；② #189 的发生率台架量到 ≈0.27 % ⇒ 这一格"过"的意义是"没看到错位"，不是"逐行验过"（逐行那部分靠 `sim/tb_zoom_frac.v` 的 S1/S2/S3，件 `build/r103_tb_zoom_frac.txt`）。
 - 判定：PASS（这条只能由人的眼睛判，机器无法复现：签收人=在场队员，判读时间 2026-09-30 06:5x–07:0x 与 2026-10-01 22:1x，当时板上是 r92/r93 与 r103；板上这一版**没有重判过**，所以它不构成板上这一版已验证；带上面两条限定）
 
 ### E3 移动白线与红块连续、无撕裂
@@ -207,7 +207,7 @@
 - 观察项：内置测试图每帧都在动，动的时候有没有撕裂/断线。
 - 前置状态（含回读到的值）：同 E1（`build/evidence/r92_eye_capture2.txt` 的 `src=1`、`pos=512/1024`、`marker=off`、`zsel=4` 那一组回读）。
 - 具体动作：`send_demo.bat` 推流（测试图每帧都动），盯着右半的白线与红块看一段。
-- 我看到/读到的原文：`board/acceptance.md:71` 的"结果"列 = `**过（同上，原话"现在都很正常"）**`，"同上"指向 E1 那一组屏上状态回读。板上那一刻是 r92。
+- 我看到/读到的原文：`board/acceptance.md:91` 的"结果"列 = `**过（同上，原话"现在都很正常"）**`，"同上"指向 E1 那一组屏上状态回读。板上那一刻是 r92。
 - 判定：PASS（这条只能由人的眼睛判，机器无法复现：签收人=在场队员，判读时间 2026-09-30 06:2x，当时板上是 r92；板上这一版**没有重判过**，所以它不构成板上这一版已验证）
 
 ### E4a 旋转 + 拟合时四个角不戳出屏幕（45°/60° 那一半）
@@ -254,7 +254,7 @@
 
 - 观察项：断电重上电、只跑三步 JTAG 链、全程不碰按键之后，屏第二行 `ROT:` 读几度。
 - 前置状态（含回读到的值）：板子断电 ≥10 s 冷上电；`build/evidence/r118_eyes/state.txt:8-10` 记三步 `rc=0` 与各自的原文读数（`DDR_ECHO 10000000: 5A5AA5A5` / `PROGRAMMED xc7z020_1 <- build/system.bit` / `DOW ok`）；`state.txt:16-17` 记刷进去的位流 `md5sum build/system.bit = cd04907e1369da35d21c4090d552f5ee == build/evidence/r118_bit/system.bit`；`uart_stat.txt:1` 与 `uart_stat2.txt:1-2` 回读 `… osd=1`（`state.txt:18-20` 解释这一位为什么重要：OSD 叠加开着，`ROT:` 那一格才会被画出来）。
-- 具体动作：按 `board/acceptance.md:94-97` 写好的前置走一遍（断电 ≥10 s → 只跑 `ps_jtag_boot.tcl` → `program_pl.tcl` → `ps_app_reload.tcl` → 全程不碰 KEY1/KEY2），然后**只看屏第二行 `ROT:` 那一格**（串口读不到角度，见 `report/log/issues.md:11816-11818`）。
+- 具体动作：按 `board/acceptance.md:95-97` 写好的前置走一遍（断电 ≥10 s → 只跑 `ps_jtag_boot.tcl` → `program_pl.tcl` → `ps_app_reload.tcl` → 全程不碰 KEY1/KEY2），然后**只看屏第二行 `ROT:` 那一格**（串口读不到角度，见 `report/log/issues.md:11816-11818`）。
 - 我看到/读到的原文：`board/acceptance.md:98` = `**过（2026-10-04 07:52 前，队员原话「0度」）**；条件按本节前置逐条满足…`；同一句在 `report/log/issues.md:13092` 记成 = `队员 2026-10-04 07:5x 在 r118 上判，原话「0度」`；更早一次（板上 r113，bit `b94f4da6cdff`）的原话是 `report/log/issues.md:11812` = `**原话**：「是0已经修复了」`。
 - 判定：PASS（这条只能由人的眼睛判：签收人=队员，判读时间 2026-10-04 07:5x，当时板上是板上这一版；机器那一半的网表实测 `build/evidence/r113_ff_init_probe.txt` + 判定 `build/r113_powup_rejudge.txt` 证的是成因，不代替眼睛）
 

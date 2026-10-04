@@ -45,14 +45,14 @@ sed -n '1,20p' report/declarations.md   # 权威块；上表每个值都要能�
 | C1 | 市电插座 | 板卡 **DC 电源座**（板载，12 V） | 【待你补：适配器型号/插头/电流额定值】 | 单向 供电 | 板载从 12 V 生成；**限流值【待你补】**（仓库里没有任何一处写过适配器额定电流） | 不涉及（两芯/三芯由适配器定，【待你补】） | **缺 2**（线材、供电限流） | `report/build.md:90`「12V 电源」；`report/study/05_验证与上板/03_上板流程与踩坑.md:114`「12 V 供电」 |
 | C2 | PC 的 USB-A 口 | 板载 **USB-C**（板载桥 = FTDI FT4232：通道 A = JTAG/SWD DAP，通道 B = UART ⇒ Windows 的 **COM6**） | USB-C 线（长度/是否带屏蔽【待你补】） | 双向 | USB 总线 5 V；**板是否从 USB 取电没有记录 ⇒【待你补】** | PC 与板经 USB 屏蔽层共地（**这条是推断，不是测量 ⇒【待你补】**） | **缺 2**（线材规格、供电口径） | `report/study/05_验证与上板/03_上板流程与踩坑.md:115`「FTDI FT4232（JTAG + 一个 VCP = COM6 @115200），USB-C 到板」；`report/log/overnight_log.md:976`（`COM6` ← `FTDIBUS\VID_0403+PID_6010+0ABC01B`，通道 B） |
 | C3 | 板卡 **HDMI OUT 座** | 显示器/面板 HDMI IN（1024×600 面板） | HDMI 线（版本/长度【待你补】） | 单向 板→屏 | 面板独立供电（**电压与适配器【待你补】**） | 屏与板是否共地【待你补】 | **缺 3**（线材、面板供电、共地） | `report/build.md:90`；TMDS 8 根差分脚的封装位置：`report/board_pins.md:46-52` + `src/constraints/rk_zynq7020.xdc:12-19`（IOSTANDARD `TMDS_33`） |
-| C4 | PC 有线网卡（静态 `192.168.1.100/24`） | 板卡 **PL 侧 RJ45（PHY2，Realtek RTL8211F）**，**不是 PS 网口** | 【待你补：线类别/是否直连自动交叉】（仓库只写了"网线直连千兆"） | 双向 | 不涉及（PHY 由板供电） | 不涉及 | **缺 1**（线材规格） | `data/measured/board_measure_r08.md:4`「PC 网卡 `192.168.1.100` ↔ 板子 **PL 侧** RJ45 `192.168.1.10`（直连千兆）」；`report/host_guide.md:15-16`；RGMII 17 根脚的封装位置 `report/board_pins.md:24-38` + `src/constraints/rk_zynq7020.xdc:20-34`；协议参数（UDP 5001、板卡 MAC，见下面那个参数块）`report/architecture.md:126` |
+| C4 | PC 有线网卡（静态 `192.168.1.100/24`） | 板卡 **PL 侧 RJ45（PHY2，Realtek RTL8211F）**，**不是 PS 网口** | 【待你补：线类别/是否直连自动交叉】（仓库只写了"网线直连千兆"） | 双向 | 不涉及（PHY 由板供电） | 不涉及 | **缺 1**（线材规格） | `data/measured/board_measure_r08.md:4`「PC 网卡 `192.168.1.100` ↔ 板子 **PL 侧** RJ45 `192.168.1.10`（直连千兆）」；`report/host_guide.md:17-16`；RGMII 17 根脚的封装位置 `report/board_pins.md:24-38` + `src/constraints/rk_zynq7020.xdc:20-34`；协议参数（UDP 5001、板卡 MAC，见下面那个参数块）`report/architecture.md:128` |
 | C5 | 板载 **SD 卡槽（PS 侧 SD0，MIO 按 BD 预设）** | 同一槽插入的 microSD 卡 | 不涉及（板载槽） | 单向 读（卡→板） | 板载 3.3 V（**卡槽限流没有记录 ⇒【待你补】**） | 板地 | **缺 1**（供电口径） | `report/board_pins.md:63`「QSPI / SD0 按 BD 预设」；文件系统与内容口径：README.md 的「项目简介（这个系统做什么）」一节（原引内容在本版 README 已无对应段落）「SD 卡本地播放（FAT32 簇链自研解析，不依赖文件系统库）」，帧序列由 `node src/host/make_sd_video.mjs --in <mp4> --out E:` 生成（这一步要本机有 ffmpeg/ffprobe）；**卡的品牌/容量/速度等级【待你补】** |
 | C6 | 板载按键 **KEY1/KEY2**（`key1_n` W18 / `key2_n` V14，低有效） | PL 输入 | 不涉及（板载） | 单向 按下→PL | 板侧上拉：**KEY 那两只脚的 RC = 4.7 kΩ + 100 nF**（唯一出处见右列；**元件位号与供电轨【待你补】**——注意它与下面 PHY strap 那只 4.7 kΩ 不是同一处电路，别混用） | 板地 | **齐**（供电那一件写成"上拉取值 + 位号缺"） | `report/board_pins.md:13-14`、`src/constraints/rk_zynq7020.xdc:8-9`；RC 口径：`board/acceptance.md` 的 E6 那一行「板子断电 ≥10 s（让 4.7 kΩ/100 nF 那两只脚彻底放掉）」讲的就是 KEY 那两只脚；对照：`report/timing/round_r116.md:31` 的 4.7K 上拉讲的是 **PHY2 的 RXDLY/TXDLY strap**，不是按键 |
 | C7 | PL 输出 **led[0]** V15 / **led[1]** V13 | 板载 LED | 不涉及 | 单向 板→眼 | 板载 | 板地 | **齐**（限流电阻值在原理图，本仓库未抄） | `report/board_pins.md:15-16`、`src/constraints/rk_zynq7020.xdc:10-11`；语义：`src/rtl/top/pl_video_top.v:1038-1039`「正常 = 1.5 Hz 心跳；发生过拷贝超出 V-blank 窗口 = 6 Hz 快闪」、`report/commands.md:22` |
 | C8 | 板载 **MDIO**（`eth_mdc` AB20 / `eth_mdio` AB19）↔ PHY2 | 同一 PHY | 不涉及 | 双向 | 板载 | 板地 | **齐**（本工程数据面不用它：`report/board_pins.md:62`「ENET0 RGMII … MDIO 52–53（本工程数据面不用）」） | `report/board_pins.md:36-37` |
-| C9 | PC 网卡的 ARP/ICMP 可达性（管理面，不是线） | 板 PL 协议栈 `192.168.1.10` | 同 C4 | 双向 | — | — | — | `report/host_guide.md:16`「`ping 192.168.1.10` 能通再推流 —— 通不通由 PL 里的 ICMP 应答决定，所以这一步同时验了位流」 |
+| C9 | PC 网卡的 ARP/ICMP 可达性（管理面，不是线） | 板 PL 协议栈 `192.168.1.10` | 同 C4 | 双向 | — | — | — | `report/host_guide.md:17`「`ping 192.168.1.10` 能通再推流 —— 通不通由 PL 里的 ICMP 应答决定，所以这一步同时验了位流」 |
 
-C4 与 C9 用到的板侧固定参数（写死在 PL 的协议栈里，出处 `report/architecture.md:126`）：
+C4 与 C9 用到的板侧固定参数（写死在 PL 的协议栈里，出处 `report/architecture.md:128`）：
 
 ```text
 MAC 00:11:22:33:44:55    UDP 视频端口 5001    板 IP 192.168.1.10 / 掩码 24
@@ -141,7 +141,7 @@ BOM 的位置：本仓库**没有**独立的 BOM 文件（`find . -iname "*bom*"
 
 | 步骤 | 为什么是风险 | 本项目的处置 | 需要谁的批准 |
 |---|---|---|---|
-| 向 QSPI/SPI flash 写入 | 会把"只能 JTAG 复现"变成"启动介质决定板上跑什么"，且擦除不可逆 | **本工程从不做**。口径：README.md 的「上板与验证」一节（原引内容在本版 README 已无对应段落）「上板（只走 JTAG，本工程不向 QSPI/SPI flash 写入）」、`report/demo_script.md:28` | 不需要（被永久排除）；若将来要做，先由队伍批准并单开一轮 |
+| 向 QSPI/SPI flash 写入 | 会把"只能 JTAG 复现"变成"启动介质决定板上跑什么"，且擦除不可逆 | **本工程从不做**。口径：README.md 的「上板与验证」一节（原引内容在本版 README 已无对应段落）「上板（只走 JTAG，本工程不向 QSPI/SPI flash 写入）」、`report/demo_script.md:31` | 不需要（被永久排除）；若将来要做，先由队伍批准并单开一轮 |
 | 写板载 FT2232 EEPROM（改 USB 序列号） | 写坏了适配器就废了 | **不做**。背景：两块板的 FT2232 被写成同一个序列号 `0ABC01`，`hw_server` 只出一个 target，表现为"两块板抢端口"（`report/log/overnight_log.md:966-984`）。给出的办法是**一次只插一块板的 USB-C**，不是动 EEPROM（同文 989 行那句"10 秒判别实验"） | 同上 |
 | 断电重上电（冷上电） | 不可远程做，必须人手；而且是**唯一**有记录的 AP 不可达恢复手段 | 只作为恢复步骤写进文档：`report/log/issues.md` 的 #235「恢复要人手 —— 断电重上」、`board/acceptance.md` 的 E6（冷上电 ≥10 s 的条件） | 队伍（人必须在板前） |
 | 给板子上电 / 拔插 SD 卡与网线 | 物理动作，脚本做不到 | 全部写成"由人执行 + 回读"步骤（`board/README.md` §2 与 `board/acceptance.md`） | 队伍 |

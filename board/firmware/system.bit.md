@@ -54,7 +54,7 @@ vivado -mode batch -source build/tcl/program_pl.tcl        # README.md 的「上
 
 - 只走 **JTAG**：`build/tcl/program_pl.tcl:15-28`（`open_hw_manager` → `connect_hw_server` →
   在链上按 `PART =~ "xc7z020*"` 选器件 → `set_property PROGRAM.FILE` → `program_hw_devices`）。
-  **不写 QSPI/SPI flash**（README.md 的「上板与验证」一节，原引内容在本版 README 已无对应段落；另 `report/demo_script.md:28`）。
+  **不写 QSPI/SPI flash**（README.md 的「上板与验证」一节，原引内容在本版 README 已无对应段落；另 `report/demo_script.md:31`）。
 - 可以指到别处的位流做 A/B 对照：`VP_BIT=<路径>`（`build/tcl/program_pl.tcl:10-12`；
   实例：`build/r117_board.sh:13` 那句 `VP_BIT=build/evidence/r116_bit/system.bit bash build/r116_bit_cycle.sh r116back`）。
 - **易失**：断电就没了，重上电后 PL 是空的。⇒ 冷上电后必须重跑这一条。
@@ -78,5 +78,5 @@ P16a 交付物写的是"板上镜像 + 每个镜像一张来源卡"。仓库里�
 （`build/system.bit` 与 `build/evidence/r118_bit/system.bit`），再加第三份同名文件会撞上
 `report/build.md:200-201` 记过的事故（「同名不同内容今晚发生过两次」、规矩 2「下板之前先 md5sum 对 MANIFEST」）。
 ⇒ 本目录只放来源卡 + 指回权威路径；提交包里二进制由导出器展平到 `board/project/`
-（口径：`build/README.md:17-20`）。
+（口径：`build/README.md:20-20`）。
 **是否要改为在 `board/firmware/` 放实体拷贝**，进 `report/questions-for-team.md`（Q-P16a-6）等你定。

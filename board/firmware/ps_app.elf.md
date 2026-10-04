@@ -91,7 +91,7 @@ Python 那条路线的退出码分三档（2 = 输入不在 / 1 = 编译链接�
 powershell -NoProfile -ExecutionPolicy Bypass -File board/uart_cap_once.ps1 -Port COM6 -Seconds 20
 ```
 
-（本轮**没有执行**：这次运行不许开串口。命令与判据出处 `report/build.md:128`、`board/README.md:49-50`。）
+（本轮**没有执行**：这次运行不许开串口。命令与判据出处 `report/build.md:128`、`board/README.md:81-50`。）
 
 ## 5. 一句话给接手的人
 

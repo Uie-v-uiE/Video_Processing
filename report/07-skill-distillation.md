@@ -43,7 +43,7 @@
 | --- | --- | --- | --- |
 | 文本检查脚本的确定性（同一输入两次跑逐字节一致） | `node src/host/doc_enc_check.mjs` ×2、`node src/host/line_cite_check.mjs` ×2 | `skills/evals/raw/doc_enc_pass1.txt`、`doc_enc_pass2.txt`、`line_cite_pass1.txt`、`line_cite_pass2.txt`（`cmp -s` 逐字节一致）—— 这四份是当时留在旧包 `evals/raw/` 的原始件，2026-10-04 c7b325f 重建技能包时连同 `evals/` 一层撤下、**现不存在**，本行只报当时的留档名不指路 | 已复跑 |
 | 技能包装配检查 G1–G12 真的会判未通过（旧包 12 项；现役那支判 53 项）| `node skills/scripts/check/gates.mjs`（现不存在）→ 现役 `node skills/_meta/check-skill-package.mjs skills` | 当时旧包 `gates.mjs` 的首轮输出（件现不存在，本行只报数不指路）：G1 违规=13、G6 越界=3、G7 表列与实际不同源、G8 死链=4 —— 四条全部可复现，随后逐条判"确实存在 / 是检查脚本自己的维度错" | 已复跑（含未通过项） |
-| 索引由目录生成、手改会被抓 | `node skills/_meta/build-index.mjs skills --check`（旧名 `gen_index.mjs --check`，件现不存在，本行只报旧名）| 与写入后的 README 比对；不一致 exit 1 | 已复跑：本轮 `INDEX 条目=49 类别=10 索引行=49 需改写=no PASS`，rc=0 |
+| 索引由目录生成、手改会被抓 | `node skills/_meta/build-index.mjs skills --check`（旧名 `gen_index.mjs --check`，件现不存在，本行只报旧名）| 与写入后的 README 比对；不一致 exit 1 | 已复跑：这次实跑 `INDEX 条目=49 类别=10 索引行=49 需改写=no PASS`，rc=0 |
 | 判定标准 selftest 正反例 | `bash skills/scripts/selftest/run_all.sh` | 该脚本此刻不存在 ⇒ `NOT_MEASURED` | 未复跑（被点的脚本不在盘上） |
 
 上表第 2 行的处置过程本身就是一条自我纠错的记录：G1 把赛题自己规定的 `README.md` / `SKILL.md` 大写名当成违规、

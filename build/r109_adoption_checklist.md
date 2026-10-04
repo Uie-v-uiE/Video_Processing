@@ -60,7 +60,7 @@ C12 这个 token 现在有两家共用，**不许按 token grep**。按整句：
 
 ## 追加二（2026-10-03）：门禁句 22→24 的四处已 grep 定位；hold 那一行要改的是**落点**不是域名
 `grep -rn "22 项\|22 items"` 命中恰好四处（与计划一致，没有第五处）：
-README.md 的「限制与未通过项」一节、`README_EN.md:70`、`report/background_and_novelty.md:31`、`report/background_and_novelty.md:80`。
+README.md 的「限制与未通过项」一节、`README_EN.md:70`、`report/background_and_novelty.md:31`、`report/background_and_novelty.md:117`。
 另：首页保持时间那行（README.md 关键数字表中「保持时间」那一行）现在写的是"全设计最差那一格在 `eth_rxc`（… 落点 `u_eth/u_cdc/rgray_s1_reg…`）"。
 r109 的读实（`build/evidence/r109_hold_owner.txt` 第一节）：WHS 0.049 的**域名仍是 eth_rxc/gmii_rx_clk**，
 但**落点换成** `u_eth/u_rx_mac/u_crc_rx/crc_data_reg[17]/C → crc_data_reg[25]/D`（1 级、route 80.9 %）⇒

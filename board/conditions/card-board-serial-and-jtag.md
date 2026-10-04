@@ -28,7 +28,7 @@ elf 与 bit 不同龄 ⇒ 本轮的板级结论只能盖到"bit r118 + elf r101 
 
 | 格 | 值 | 凭据 |
 | --- | --- | --- |
-| 激励 | 队员**断电 ≥10 s 冷上电**，之后只跑三步 JTAG 链 `ps_jtag_boot.tcl → program_pl.tcl → ps_app_reload.tcl`，全程不碰 KEY1/KEY2；随后只看屏第二行 `ROT:` 那一格 | `build/evidence/r118_eyes/state.txt:6-10`（逐步 rc 与 token）；判据条件原文 `board/acceptance.md:94-97` |
+| 激励 | 队员**断电 ≥10 s 冷上电**，之后只跑三步 JTAG 链 `ps_jtag_boot.tcl → program_pl.tcl → ps_app_reload.tcl`，全程不碰 KEY1/KEY2；随后只看屏第二行 `ROT:` 那一格 | `build/evidence/r118_eyes/state.txt:6-10`（逐步 rc 与 token）；判据条件原文 `board/acceptance.md:95-97` |
 | 输入规格 | 无推流、无按键；只看屏 + 一次 `STAT` 串口只读 | `build/evidence/r118_eyes/uart_stat.txt:1` |
 | 时钟与功耗模式 | 同卡 A1；上电态（`FDRE` 初值）是这一格的观察对象，r118 带 `ASYNC_REG` 放置指令（不改上电值的逻辑） | `board/acceptance.md:93`、`build/evidence/r113_ff_init_probe.txt`（`INIT=1'b1` 网表实测） |
 | 软件版本 | 刷进 PL 的位流 `md5sum build/system.bit = cd04907e1369da35d21c4090d552f5ee`，与 `build/evidence/r118_bit/system.bit` 及 `board_now.txt` 的 r118 身份行一致 | `state.txt:12`、`build/evidence/r118_board/board_now.txt:1` |

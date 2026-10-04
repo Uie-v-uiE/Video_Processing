@@ -23,24 +23,24 @@ README.md 关键数字表中「BRAM / LUT / FF / DSP」那一行 FF 首页=8168 
 README.md 关键数字表中「BRAM / LUT / FF / DSP」那一行 FF 占比(%) 首页=7.68 报告=7.67
 README.md 关键数字表中「功耗」那一行 动态功耗(W) 首页=2.212 报告=2.214
 README_EN.md:70 Design-wide setup WNS/WNS(ns) 首页=0.721 报告=0.605
-README_EN.md:71 Per-clock setup slack/setup[eth_rxc] 首页=0.721 报告=0.605
-README_EN.md:71 Per-clock setup slack/setup[clk_fpga_0] 首页=1.524 报告=1.238
-README_EN.md:71 Per-clock setup slack/setup[clkout0_1] 首页=1.13 报告=4.094
-README_EN.md:71 Per-clock setup slack/setup[sys_clk] 首页=14.324 报告=15.289
-README_EN.md:71 Per-clock setup slack/余量%[eth_rxc] 首页=9 报告=7.563
-README_EN.md:71 Per-clock setup slack/余量%[clk_fpga_0] 首页=15.2 报告=12.38
-README_EN.md:71 Per-clock setup slack/余量%[clkout0_1] 首页=5.65 报告=20.47
+README_EN.md:50 Per-clock setup slack/setup[eth_rxc] 首页=0.721 报告=0.605
+README_EN.md:50 Per-clock setup slack/setup[clk_fpga_0] 首页=1.524 报告=1.238
+README_EN.md:50 Per-clock setup slack/setup[clkout0_1] 首页=1.13 报告=4.094
+README_EN.md:50 Per-clock setup slack/setup[sys_clk] 首页=14.324 报告=15.289
+README_EN.md:50 Per-clock setup slack/余量%[eth_rxc] 首页=9 报告=7.563
+README_EN.md:50 Per-clock setup slack/余量%[clk_fpga_0] 首页=15.2 报告=12.38
+README_EN.md:50 Per-clock setup slack/余量%[clkout0_1] 首页=5.65 报告=20.47
 README_EN.md:72 Hold time/whs[eth_rxc] 首页=0.035 报告=0.049
 README_EN.md:72 Hold time/whs[clk_fpga_0] 首页=0.053 报告=0.052
 README_EN.md:72 Hold time/whs[clkout0_1] 首页=0.06 报告=0.053
 README_EN.md:72 Hold time/whs[sys_clk] 首页=0.159 报告=0.121
-README_EN.md:73 BRAM / LUT / FF / DSP/BRAM tile 首页=95 报告=95.5
-README_EN.md:73 BRAM / LUT / FF / DSP/BRAM 占比(%) 首页=67.86 报告=68.21
-README_EN.md:73 BRAM / LUT / FF / DSP/LUT 首页=14360 报告=14362
-README_EN.md:73 BRAM / LUT / FF / DSP/LUT 占比(%) 首页=26.99 报告=27
-README_EN.md:73 BRAM / LUT / FF / DSP/FF 首页=8168 报告=8162
-README_EN.md:73 BRAM / LUT / FF / DSP/FF 占比(%) 首页=7.68 报告=7.67
-README_EN.md:74 Power/动态功耗(W) 首页=2.212 报告=2.214
+README_EN.md:52 BRAM / LUT / FF / DSP/BRAM tile 首页=95 报告=95.5
+README_EN.md:52 BRAM / LUT / FF / DSP/BRAM 占比(%) 首页=67.86 报告=68.21
+README_EN.md:52 BRAM / LUT / FF / DSP/LUT 首页=14360 报告=14362
+README_EN.md:52 BRAM / LUT / FF / DSP/LUT 占比(%) 首页=26.99 报告=27
+README_EN.md:52 BRAM / LUT / FF / DSP/FF 首页=8168 报告=8162
+README_EN.md:52 BRAM / LUT / FF / DSP/FF 占比(%) 首页=7.68 报告=7.67
+README_EN.md:53 Power/动态功耗(W) 首页=2.212 报告=2.214
 全局 setup WNS csv=0.721 report=0.605
 全局 hold WHS csv=0.035 report=0.049
 Slice LUT 占用 csv=14360（26.99 %） report=14362 | 占用百分数: csv=26.99 report=27
@@ -53,7 +53,7 @@ Block RAM Tile 占用 csv=95 / 140（67.86 %） report=95.5 | 瓦片占用百分
   eth_rxc      0.605 ns /  8.0 ns =  7.56 %
   sys_clk     15.289 ns / 20.0 ns = 76.44 %
   clkout0_1    4.094 ns / 20.0 ns = 20.47 %
-  （这几行就是首页第 57 行与 README_EN.md:71 那三格的新值；D6 对 ns 与百分数**两头都判**，±0.05 容差）
+  （这几行就是首页第 57 行与 README_EN.md:50 那三格的新值；D6 对 ns 与百分数**两头都判**，±0.05 容差）
 
 ## 三、身份句与门禁条数（同一笔提交，#229）
   板上这一版改成 r109 + 三步 JTAG 刷入时刻 + bit md5 前 12 位（**刷板之后**再取，不许提前写）；

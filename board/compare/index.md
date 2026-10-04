@@ -36,14 +36,14 @@
 
 ## 300 s 长跑那一格（V12 抓到的口径混写）
 
-`report/perf_report.md:197-199` 写的是"9000 帧 / 1,989,000 个 UDP 包 / 5.02 分钟，
+`report/perf_report.md:205-199` 写的是"9000 帧 / 1,989,000 个 UDP 包 / 5.02 分钟，
 `drop_words`、`cdc_episodes`、`frames_bad` 三个计数器全程增量为 0，**帧间隔** `min/avg/max = 20 / 33.34 / 51 ms`"
 —— V12 的差值把它逐字段核上了（`pkts` 增量正好 1,989,000、三个增量 0、`gap_min/gap_max` = 20/51）。
 
 但 `data/metrics.csv:25` 那一行把同一个 **33.34 ms 挂到了"端到端时延"**上，还补了"终点 = 示相机位录到该帧上屏"。
 两件实物都不支持那个终点：① 33.34 是 `gap_sum/gap_segments = 300057/8999`（件内自报 `avg_gap_ms=33.3434`），
 是**帧间隔**不是时延；② 仓库里**没有任何示相机/采集卡导出件**（`find` 全仓只有 `skill/references/verdict-line-must-print-scope/SKILL.md` 一个文件名撞了"scope"）；
-③ `report/perf_report.md:190-192` 自己写着真时延那一行"数字等那一轮读完再往这行填"，凭据是 `sim/tb_v90_latency.v` + r52 冻结目录。
+③ `report/perf_report.md:198-192` 自己写着真时延那一行"数字等那一轮读完再往这行填"，凭据是 `sim/tb_v90_latency.v` + r52 冻结目录。
 ⇒ 处置：`端到端时延` 在 `board/raw-vs-golden.md` 记 **A6 = `NOT_MEASURED`**（缺"起点=发送时刻、终点=屏上出现"的可复核件），
 33.34 ms 只在"帧间隔"这一行出现；两行不合并（铁律 4：同一指标换口径另起一行）。不改 `data/metrics.csv`（禁区），只登记。
 
