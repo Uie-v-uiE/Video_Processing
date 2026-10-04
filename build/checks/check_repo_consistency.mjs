@@ -197,8 +197,16 @@ if (process.argv.includes('--self')) { process.exit(selftestC2()); }
   else {
     const list = r.out.split(/\r?\n/).filter(Boolean);
     const bad = list.filter(p => p.split('/').some(seg => !/^[A-Za-z0-9._-]+$/.test(seg) || /[A-Z\u4e00-\u9fff]/.test(seg)));
-    const exempt = bad.filter(p => /(^|\/)(README|LICENSE|NOTICE)(\.md)?$/.test(p));
-    row('C4', '文件名纯小写 ASCII', `跟踪文件=${list.length} 违规=${bad.length - exempt.length} 点名豁免=${exempt.length}${bad.length - exempt.length ? ' 例:' + bad.filter(x => !exempt.includes(x)).slice(0, 3).join(' | ') : ''}`, list.length === 0 ? 'NOT_MEASURED' : (bad.length - exempt.length === 0 ? 'PASS' : 'FAIL'));
+    // 豁免名单 = **条文或工具格式自己点名的名字**，不是"我们习惯这么写"：
+    //   README.md / README_EN.md / LICENSE / NOTICE.md ← §0.4 与 §3.5 逐字写出的文件名
+    //   SKILL.md                                      ← §5.3 交付的"技能包"条目外壳名，技能加载器只认这个拼写
+    // §0.3 要禁的是中文、空格与特殊字符（本行的 ASCII 段检查照旧生效），不是这四个名字本身。
+    const NAMES = ['README.md', 'README_EN.md', 'LICENSE', 'NOTICE.md', 'SKILL.md'];
+    const exempt = bad.filter(p => NAMES.includes(p.split('/').pop()));
+    const byName = {};
+    for (const p of exempt) { const b = p.split('/').pop(); byName[b] = (byName[b] || 0) + 1; }
+    // 反买通：豁免只可能来自这 5 个名字，且逐个点名计数；名单外的大写名一律留在违规里
+    row('C4', '文件名纯小写 ASCII', `跟踪文件=${list.length} 违规=${bad.length - exempt.length} 点名豁免=${exempt.length}[${Object.entries(byName).map(([k, v]) => k + '=' + v).join(',')}] 名单上限=${NAMES.length} 名${bad.length - exempt.length ? ' 例:' + bad.filter(x => !exempt.includes(x)).slice(0, 3).join(' | ') : ''}`, list.length === 0 ? 'NOT_MEASURED' : (bad.length - exempt.length === 0 ? 'PASS' : 'FAIL'));
   }
 }
 // C5 许可合规：调用 P20 机检（带超时；超时＝NOT_MEASURED，绝不因为"没跑完"就当通过）
