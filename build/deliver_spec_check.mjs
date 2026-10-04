@@ -72,6 +72,24 @@ if (want('C1-1')) {
   const out = active.filter(f => !f.startsWith('src/constraints/'));
   say('C1-1', 'xdc-under-src-constraints', active.length, `活动 xdc=${active.length} 在 src/constraints=${inPlace.length} 不在=${out.length}[${out.slice(0, 3).join(',')}] 过程凭据里的 xdc=${frozen}(不计)`, active.length === 0 ? 'NOT_MEASURED' : (out.length ? 'FAIL' : 'PASS'));
 }
+// ---- C1-2 §1.2 源码归档位置：RTL 在 src/rtl，PS 侧与上位机在 src/host
+//      顶层八目录之外的**子目录**不会被 C0-4 看到，所以这一条单独量：
+//      凡是固件/上位机的源文件落在 src/ 的其他子目录里就是偏差，点名不圆场。
+if (want('C1-2')) {
+  const srcAll = under('src');
+  const rtl = srcAll.filter(f => /\.(v|sv|vhd|vhdl)$/.test(f) && f.startsWith('src/rtl/'));
+  const rtlOutside = srcAll.filter(f => /\.(v|sv|vhd|vhdl)$/.test(f) && !f.startsWith('src/rtl/'));
+  const isSrc = (f) => /\.(c|h|cpp|py|mjs|ld)$/.test(f) && f.startsWith('src/') && !f.startsWith('src/rtl/') && !f.startsWith('src/constraints/');
+  const inHost = srcAll.filter(f => isSrc(f) && f.startsWith('src/host/'));
+  const outside = srcAll.filter(f => isSrc(f) && !f.startsWith('src/host/'));
+  const dirs = [...new Set(outside.map(f => f.split('/')[1]))];
+  const p = [];
+  if (rtlOutside.length) p.push(`RTL 不在 src/rtl=${rtlOutside.length}[${rtlOutside.slice(0, 3).join(',')}]`);
+  if (outside.length) p.push(`PS/上位机源文件不在 src/host=${outside.length} 目录=${dirs.join(',')} 例:${outside.slice(0, 3).join(',')}`);
+  say('C1-2', 'src-placement-per-1.2', rtl.length + rtlOutside.length + inHost.length + outside.length,
+    p.join('、') || `符合（RTL=${rtl.length} 在 src/rtl，PS/上位机=${inHost.length} 在 src/host）`,
+    (rtl.length + inHost.length) === 0 ? 'NOT_MEASURED' : (p.length ? 'FAIL' : 'PASS'));
+}
 // ---- C1-3 上位机双实现 + 双击入口 + 两类工具
 if (want('C1-3')) {
   const host = under('src/host');
@@ -241,9 +259,9 @@ if (want('C5')) {
   const missTri = tri.filter(([, re]) => !re.test(ct)).map(([n]) => n);
   const p = [...empty.map(d => d + ' 空'), ...(renamed ? [renamed] : []), ...(missFour.length ? ['skills/README 缺:' + missFour.join(',')] : []),
     ...(missRep.length ? ['report 缺章节:' + missRep.join(',')] : []),
-    ...(cmpTables < Number(process.env.VP_C5_TABLES || 1) ? [`带单位数字的前后对比表只数到 ${cmpTables} 张（地板 ${process.env.VP_C5_TABLES || 1}，§5.4 要求优化前后对比）`] : []),
-    ...(failRows < Number(process.env.VP_C5_FAILS || 1) ? [`带读数的失败/否决条目只数到 ${failRows} 份（地板 ${process.env.VP_C5_FAILS || 1}，§5.4 要求失败分析）`] : []),
-    ...(collab.length < Number(process.env.VP_C5_COLLAB || 3) ? [`协作记录文件只有 ${collab.length} 份（地板 ${process.env.VP_C5_COLLAB || 3}）`] : []),
+    ...(cmpTables < Number(process.env.VP_C5_TABLES || 30) ? [`带单位数字的前后对比表只数到 ${cmpTables} 张（地板 ${process.env.VP_C5_TABLES || 30}，§5.4 要求优化前后对比）`] : []),
+    ...(failRows < Number(process.env.VP_C5_FAILS || 8) ? [`带读数的失败/否决条目只数到 ${failRows} 份（地板 ${process.env.VP_C5_FAILS || 8}，§5.4 要求失败分析）`] : []),
+    ...(collab.length < Number(process.env.VP_C5_COLLAB || 9) ? [`协作记录文件只有 ${collab.length} 份（地板 ${process.env.VP_C5_COLLAB || 9}）`] : []),
     ...(missTri.length ? ['协作记录缺三段:' + missTri.join(',')] : [])];
   say('C5', 'dirs-skills-readme-report', need.length + four.length + rneed.length + 4,
     p.join('、') || `符合（对比表 ${cmpTables} 张／含失败读数 ${failRows} 份／协作记录 ${collab.length} 份三段齐）`,
