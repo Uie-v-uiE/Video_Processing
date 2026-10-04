@@ -136,6 +136,43 @@ if (want('C1-5')) {
   }
   say('C1-5', 'script-header-comments', runnable.length + fixt.length, `脚本=${runnable.length} 缺要素=${noHead} 自我描述=${selfDesc} 夹具期望件不计=${fixt.length}${ex.length ? ' 例:' + ex.join(',') : ''}`, runnable.length === 0 ? 'NOT_MEASURED' : (noHead || selfDesc ? 'FAIL' : 'PASS'));
 }
+// ---- C-PATHS §6.2「路径与仓库实际一致」的机械版：脚本里指向源码目录的输入路径必须在盘上
+// 只判 `src/` 开头的字面量：build/ data/ 下大量路径是脚本**自己要产出的件**，
+// 用"必须已存在"去判它们会淹死在假红里（本轮实测：全目录形状数到 258 条读不到，
+// 逐条看几乎全是 `build/frozen_rNN_`、`src/dst` 这类模板串与夹具名）。
+// 模板串（含 NN $ < > * % {）不计并打印条数；一条都没判到 ⇒ NOT_MEASURED，不许当"没毛病"。
+if (want('C-PATHS')) {
+  // 自检/探针/改口器的正文里**必须**写着不存在的假路径（那是它们的用例），按形状豁免并念出条数；
+  // 豁免名单住在尺子里且打印命中数，防止被随手扩大（rule 44 的反买通同族）。
+  const SKIP_RE = /selftest|probe|fix_dangling|ps_relocate|orphan_rtl|ports_dup_ce|repin_modules|rtl_fingerprint|check_repo_consistency/;
+  const scripts = tracked.filter(f => /\.(py|mjs|sh|tcl|bat|cmd|ps1)$/.test(f)
+    && !/^build\/(evidence|frozen_|report|runs)/.test(f) && !/\/(fixtures?|expected)\//.test(f)
+    && !f.startsWith('report/log/'));
+  const judged = scripts.filter(f => !SKIP_RE.test(path.basename(f)));
+  const exempt = scripts.length - judged.length;
+  const LIT = /(?:\.\.\/)*(?:src|sim|build|data|skills|board|report)\/[\w.\-\/]*\.(?:v|sv|md|csv|txt|py|mjs|sh|tcl|bat|cmd|ps1|xdc|xci|json|rpt|html|png|mem|ld|h|c|elf|bit|xsa|out|mm|xva)/g;
+  // 行级豁免（按形状，不按名单）：注释行与"用例/断言"行里的路径是**被讨论的对象**，不是这脚本要读的文件。
+  const CASE_LINE = /(^\s*(\/\/|#|\*|---|<!--))|===|!==|\bassert\b|用例|SELF|vendorBuyoff|expect/;
+  const bad = []; let tpl = 0, n = 0, caseSkipped = 0;
+  for (const f of judged) {
+    const lines = read(f).split(/\r?\n/);
+    for (const l of lines) {
+      const ms = l.match(LIT) || [];
+      if (!ms.length) continue;
+      if (CASE_LINE.test(l)) { caseSkipped += ms.length; continue; }
+      for (const m of ms) {
+        if (/NN|\$|<|>|\*|%|\{/.test(m)) { tpl++; continue; }
+        if (!/^(?:\.\.\/)*src\//.test(m)) continue;
+        n++;
+        const cands = [path.resolve(ROOT, path.dirname(f), m), path.resolve(ROOT, m)];
+        if (!cands.some(p => fs.existsSync(p))) bad.push(`${m}  <- ${f}`);
+      }
+    }
+  }
+  say('C-PATHS', 'script-src-paths-resolve', n,
+    `脚本=${judged.length} 判(指向 src/ 的字面量)=${n} 解析不到=${bad.length} 模板串不计=${tpl} 用例与注释行不计=${caseSkipped} 自检探针类文件不计=${exempt} 例:${bad.slice(0, 3).join(' | ')}`,
+    n === 0 ? 'NOT_MEASURED' : (bad.length ? 'FAIL' : 'PASS'));
+}
 // ---- C2-1 sim 只留 .v（+ 本要求自带的 README.md）
 if (want('C2-1')) {
   const sim = under('sim');
