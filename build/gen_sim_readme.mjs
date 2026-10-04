@@ -71,7 +71,8 @@ if (APPLY) {
   if (rl.length !== files.length || stillMissing.length) { console.log(`表格行=${rl.length} 台架=${files.length} 未列=${stillMissing.length} FAIL`); process.exit(1); }
   console.log(`WROTE sim/README.md 行=${back.split(/\r?\n/).length} 表格行=${rl.length} 未列=0 PASS`);
 } else {
-  console.log(`CHECK 未写；现文件行=${cur.split(/\r?\n/).length} 将写行=${body.split(/?
-/).length} ${bad ? 'FAIL' : 'PASS'}`);
+  // 两个操作数同一单位：都数 split 出来的行数。原来一边是现文件的行数、一边是 rows.length+4 的手算，
+  // 于是 88 对 85 的差看着像"文档少了三行"，实际是量纲错（规矩 51 的第二次命中）。
+  console.log(`CHECK 未写；现文件行=${cur.split(/\r?\n/).length} 将写行=${body.split(/\r?\n/).length} ${bad ? 'FAIL' : 'PASS'}`);
 }
 process.exit(bad ? 1 : 0);
