@@ -1,15 +1,15 @@
-C0-3 file-names-ascii-lowercase cmp=3612 违例=271 中文或空格=0 说明件豁免=21 例:NOTICE.md,README.en.md,board/ACCEPTANCE.md,board/VERIFY_r87.md FAIL
-C0-4 top-level-structure cmp=18 多余=6[/NOTICE.md,/README.en.md,docs,scripts,submit,/tight_setup_hold_pins.txt] 缺目录=0[]  双击入口豁免=1 FAIL
+C0-3 file-names-ascii-lowercase cmp=3616 违例=0 中文或空格=0 说明件豁免=70 例: PASS
+C0-4 top-level-structure cmp=13 多余=0[] 缺目录=0[]  双击入口豁免=1 PASS
 C1-1 xdc-under-src-constraints cmp=12 xdc=12 在 src/constraints=9 其它位置=3 FAIL
 C1-3 host-dual-impl-entries cmp=29 py=2 mjs=25 同名成对=1[video_sender] bat=1 sh=104 一键测试工具缺双实现 FAIL
 C1-4 host-readme-3-sections cmp=0 文件不存在 NOT_MEASURED
-C1-5 script-header-comments cmp=324 脚本=324 缺要素=251 自我描述=0 例:board/boot27c.tcl,board/cmd_overflow_probe.sh,board/ddr_churn_probe.mjs FAIL
-C2-1 sim-only-v-files cmp=137 sim 文件=137 非 .v 且非 README=49 例:sim/NAMES.md,sim/mut_control.sh,sim/probes/README.md,sim/probes/probe.tcl FAIL
-C2-3 tb-header-three-sections cmp=87 tb=87 不合格=83 例:sim/prim/MMCME2_BASE.v:2,sim/prim/unisims_sim.v:3,sim/probes/dpfb.v:3 FAIL
-C2-4 sim-readme-table-bidirectional cmp=90 tb=87 未列=87 幻影=3 运行命令行=有 FAIL
+C1-5 script-header-comments cmp=325 脚本=325 缺要素=251 自我描述=0 例:board/boot27c.tcl,board/cmd_overflow_probe.sh,board/ddr_churn_probe.mjs FAIL
+C2-1 sim-only-v-files cmp=85 sim 文件=85 非 .v 且非 README=0 例: PASS
+C2-3 tb-header-three-sections cmp=84 tb=84 不合格=80 例:sim/prim/mmcme2_base.v:2,sim/prim/unisims_sim.v:3,sim/tb_bilin_lerp.v:2 FAIL
+C2-4 sim-readme-table-bidirectional cmp=87 tb=84 未列=84 幻影=3 运行命令行=有 FAIL
 C3 root-readme-shape cmp=14 条目无数字=1、缺目录说明行、中英小节数不等 9vs5、根 README 493 行 超一页 FAIL
 C4 build-tcl-and-reports cmp=107 缺脚本=add_sources.tcl,build.tcl,synth.tcl,impl.tcl,report.tcl,gen_bit.tcl、头注释缺要素=87、build/report/ 空、tcl 件数=107 过程脚本应移出提交目录（资源件=0 时序件=0） FAIL
 C5 dirs-skills-readme-report cmp=15 符合 PASS
 C6 license-file cmp=1 识别为 MIT PASS
-C7 style-red-lines cmp=217 交付文档=217 人称=28 程度副词或TBD=13 emoji=64 勾叉=3 箭头(只报数)=123 例:NOTICE.md,board/signoff.md,build/frozen_r59b1_viewport/MANIFEST.md,build/runs/ledger.md FAIL
-DELIVER-SPEC 判 14 项 跟踪文件=3612 红=11 未测=1 FAIL
+C7 style-red-lines cmp=218 交付文档=218 人称=30 程度副词或TBD=13 emoji=64 勾叉=3 箭头(只报数)=124 例:board/signoff.md,build/frozen_r59b1_viewport/manifest.md,build/runs/ledger.md,report/07-skill-distillation.md FAIL
+DELIVER-SPEC 判 14 项 跟踪文件=3616 红=8 未测=1 FAIL
