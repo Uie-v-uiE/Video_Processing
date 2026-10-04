@@ -3,7 +3,7 @@
 //
 // 设计约束：
 //  · 只读，不改任何文件；判定 token 放每行最后一个字段；每条打印分母；缺输入一律 NOT_MEASURED（绝不判通过）。
-//  · 能复用就别重造：C4/C6/C12 直接调用技能包门禁（gates.mjs / gen_index.mjs），C5 调用 P20 的卫生机检。
+//  · 能复用就别重造：C6 调 `skills/_meta/build-index.mjs skills --check`、C12 调 `skills/_meta/run-all-checks.mjs skills`（现役件；旧包 gates.mjs/gen_index.mjs 已随 2026-10-04 c7b325f 重建删除），C5 调用 P20 的卫生机检。
 //  · 每条红项都要能指出"缺什么"，不许只说"不通过"。
 // 退出码：0=无红 1=有红 2=有未测且无红 3=前置不满足
 import fs from 'node:fs';
@@ -220,7 +220,7 @@ if (process.argv.includes('--self')) { process.exit(selftestC2()); }
 }
 // C6 索引一致（调用 gen_index --check）
 {
-  const s = sh('node', ['skills/scripts/check/gen_index.mjs', '--check']);
+  const s = sh('node', ['skills/_meta/build-index.mjs', 'skills', '--check']);
   row('C6', '技能包索引一致', `rc=${s.ok ? 0 : 1} ${s.out.trim().split(/\r?\n/).pop() || ''}`, s.ok ? 'PASS' : 'FAIL');
 }
 // C7 状态一致：README 一览表的"验证状态"与条目 §7 的内容不许互相打脸
@@ -287,15 +287,18 @@ if (process.argv.includes('--self')) { process.exit(selftestC2()); }
 }
 // C12 技能包四要素齐全：复用 P09 的 G1–G12
 {
-  const s = sh('node', ['skills/scripts/check/gates.mjs']);
+  const s = sh('node', ['skills/_meta/run-all-checks.mjs', 'skills']);
   const out = s.out || '';
   // 只数 `G<数字> ` 开头的判据行：原来用"整行以 PASS 结尾"来数，把 gates.mjs 自己的汇总行也算成一项 ⇒ 报出"绿=13"。
   // 条目数本身是被判的数（D1c 那一族），所以这里再加一条对账：绿+红+未测 必须 == 12，否则本项不可信。
-  const gl = out.split(/\r?\n/).filter(l => /^G[0-9]+ /.test(l));
+  // 只数 `M<数字> `/`S<数字> ` 开头的判据行（现役 run-all-checks 打 M1–M3 + S1–S6 共 9 行，
+  // 自己那句汇总是 `ALL-CHECKS 判 9 项`）；旧包 gates.mjs 的 12 条 G 行随 c7b325f 重建一起没了，
+  // 这里的形状是**量出来的**，不是照抄旧常数——照抄会让这条永远 NOT_MEASURED。
+  const gl = out.split(/\r?\n/).filter(l => /^[MS][0-9]+ /.test(l));
   const green = gl.filter(l => l.endsWith('PASS')).length, red = gl.filter(l => l.endsWith('FAIL')).length, nm = gl.filter(l => l.endsWith('NOT_MEASURED')).length;
   const recon = green + red + nm;
-  row('C12', '技能包门禁（G1–G12 调用）', `绿=${green} 红=${red} 未测=${nm} 判据行=${gl.length} 加总对账=${recon}/12`,
-      gl.length !== 12 || recon !== 12 ? 'NOT_MEASURED' : (s.ok && red === 0 && nm === 0 ? 'PASS' : red ? 'FAIL' : 'NOT_MEASURED'));
+  row('C12', '技能包门禁（run-all-checks 的 M1–M3 与 S1–S6）', `绿=${green} 红=${red} 未测=${nm} 判据行=${gl.length} 加总对账=${recon}/9`,
+      gl.length !== 9 || recon !== 9 ? 'NOT_MEASURED' : (s.ok && red === 0 && nm === 0 ? 'PASS' : red ? 'FAIL' : 'NOT_MEASURED'));
 }
 
 // 行已在 row() 里即时打印，这里不重打（重打会让分母看起来翻倍）
