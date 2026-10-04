@@ -18,4 +18,6 @@ ONE-CLICK dry-run=true clip=data/inputs/wordid_512x300.rgb565 存在=是 frames=
 rc=0
 
 两条都不碰网络与板卡：四步全部明写 NOT_MEASURED，判定词在行尾（三态：PASS/FAIL/NOT_MEASURED）。
-真实一轮需要板卡在线（ping 192.168.1.10 + xsdb 连 hw_server:3121），那一步的凭据是 data/measured/one_click_*.out。
+真实一轮需要板卡在线（ping 192.168.1.10 + xsdb 连 hw_server:3121）。那一轮的原始回读会写到 data/measured/one_click_*.out，
+但仓库里现在没有这样一件（`git ls-files data/measured | grep -c one_click` = 0）⇒ 板上真跑过一整轮四步这件事**未实测**，
+本件只证明两个入口可运行、且 --dry-run 下每一步都明写 NOT_MEASURED。

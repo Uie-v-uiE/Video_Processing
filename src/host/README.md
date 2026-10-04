@@ -10,7 +10,7 @@
 
 - 双击入口：仓库根 `run_test.bat`（调 Node 侧）。跨平台入口：`bash run_test.sh`（调 Python 侧，参数原样转给脚本）。
 - 命令行：`node src/host/one_click_test.mjs` 或 `python src/host/one_click_test.py`；通用发送工具是 `src/host/video_sender.mjs` / `video_sender.py` / `udp_push.py`。
-- 跑完应看到：`[1/4] PING`、`[2/4] CONNECT`、`[3/4] SEND`、`[4/4] COLLECT` 四行读数（判定词 `PASS`/`FAIL`/`NOT_MEASURED` 在每行末尾）+ 一行 `ONE-CLICK` 总结论，退出码 0；`xsdb` 的原始回读留在 `data/measured/one_click_*.out`。
+- 跑完应看到：`[1/4] PING`、`[2/4] CONNECT`、`[3/4] SEND`、`[4/4] COLLECT` 四行读数（判定词 `PASS`/`FAIL`/`NOT_MEASURED` 在每行末尾）+ 一行 `ONE-CLICK` 总结论，退出码 0；`xsdb` 的原始回读留在 `data/measured/one_click_*.out`（该件要板上真跑一轮才生成，仓库里没有这一件）。
 - 通路口径（不是网络读回）：板侧固件没有 UDP 回包，"连接"与"回收"读的都是 AXI GPIO 的 lane —— lane 号写 GPIO_0 的 bit[31:27]、值从 GPIO_1 读，与 `health_read.mjs` 同一套；lane8=收到的 UDP 包数、lane9=有效字节数、lane0=drop_words、lane1=frames_bad|bad_pkts。
 
 ## 命令行语法参数表
