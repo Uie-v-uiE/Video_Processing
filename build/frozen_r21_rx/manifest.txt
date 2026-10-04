@@ -18,7 +18,7 @@
 #   sim/tb_v795_rx_fcs.v     —— FCS 那一级（5 条，含"量具自校"与反向断言）
 #   sim/tb_v795_rx_chain.v   —— 成对（C1 好帧逐字节、C2 翻位必须闭合判坏、C3 错端口过滤、
 #                               C4 短帧也必须闭合、C5 两帧连发计数各自归位）
-#   L1 43/43                 —— sim/results/regression_v79_r30.txt
+#   L1 43/43                 —— build/sim/results/regression_v79_r30.txt
 #   顶层接线本身没有台架例化 ⇒ 端口存在性由这次 synth/impl 通过来证明（口径见学习文档 §0）
 # 板上还没验（这一步要人看）：
 #   ① 正常推流：画面与 #19 无差别，health 的 bad 应稳定为 0；

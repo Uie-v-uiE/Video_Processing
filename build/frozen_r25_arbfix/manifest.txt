@@ -20,7 +20,7 @@
 #   Slice LUT 7475(14.05%) / Slice 寄存器 5936 / BRAM 90.5 tile(64.64%) /
 #   Dynamic 2.150 W / 0 布线错误 / methodology 0 CRITICAL / cdc Critical 行 3（同 #24，不新增）
 #   与 #24 比：端点 23682→23674（−8：撤掉两处 3FF、加了 owner 那一级）；WNS/WHS 的绝对差当噪声看。
-# L1 回归：44/44 PASS，日志 `sim/results/regression_v79_r33.txt`（构建与冻结之后重跑，源码与冻结件同一份）。
+# L1 回归：44/44 PASS，日志 `build/sim/results/regression_v79_r33.txt`（构建与冻结之后重跑，源码与冻结件同一份）。
 # 台架：`sim/tb_v796_src_arb.v` 23 条，其中 E 段 7 条就是本板级错的复现与回归
 #   （eth_live 恒 1、只落 eth_tb_ok ⇒ 必须让位；恢复后立刻抢回）。
 #

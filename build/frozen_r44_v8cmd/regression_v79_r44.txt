@@ -6,8 +6,8 @@
 # Start of session at: Thu Sep 24 16:23:50 2026
 # Process ID         : 7332
 # Current directory  : D:/Xilinx/Prj/pro/Video_Processing
-# Command line       : vivado.exe -mode batch -nojournal -log sim/results/log_r44_l1.txt -source build/sim/run_sim.tcl
-# Log file           : D:/Xilinx/Prj/pro/Video_Processing/sim/results/log_r44_l1.txt
+# Command line       : vivado.exe -mode batch -nojournal -log build/sim/results/log_r44_l1.txt -source build/sim/run_sim.tcl
+# Log file           : D:/Xilinx/Prj/pro/Video_Processing/build/sim/results/log_r44_l1.txt
 # Journal file       : 
 # Running On         : Uie-laptop
 # Platform           : Windows Server 2016 or Windows 10

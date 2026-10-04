@@ -281,7 +281,7 @@ PS CPU：主循环仅 `uart_poll`，不参与视频搬移。
   仿真标定：端口被独占 134400 拍（两个完整消隐窗口）仍 100% 落位，268800 拍才按预算失败。
 
 ### 10.4 验证
-- 28 个 testbench 全 PASS（`sim/results/regression_v6.txt`，在打包后的仓库目录内跑的）。
+- 28 个 testbench 全 PASS（`build/sim/results/regression_v6.txt`，在打包后的仓库目录内跑的）。
 - 板级：`node measure_v63.mjs --fps {15,30,60}`，原始输出见
   `data/measured/board_measure_*.txt`。
 

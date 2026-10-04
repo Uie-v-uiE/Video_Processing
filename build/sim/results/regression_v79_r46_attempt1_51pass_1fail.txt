@@ -6,8 +6,8 @@
 # Start of session at: Thu Sep 24 18:57:57 2026
 # Process ID         : 6296
 # Current directory  : D:/Xilinx/Prj/pro/Video_Processing
-# Command line       : vivado.exe -mode batch -nojournal -log sim/results/regression_v79_r46.txt -source build/sim/run_sim.tcl
-# Log file           : D:/Xilinx/Prj/pro/Video_Processing/sim/results/regression_v79_r46.txt
+# Command line       : vivado.exe -mode batch -nojournal -log build/sim/results/regression_v79_r46.txt -source build/sim/run_sim.tcl
+# Log file           : D:/Xilinx/Prj/pro/Video_Processing/build/sim/results/regression_v79_r46.txt
 # Journal file       : 
 # Running On         : Uie-laptop
 # Platform           : Windows Server 2016 or Windows 10

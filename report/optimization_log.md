@@ -131,7 +131,7 @@ set_clock_groups -asynchronous \
 ### 结果
 - 时序不降反升：WNS +0.373 → **+0.675 ns**（0 违例）；Registers 49.52%、BRAM 138.5/140。
 - 入包写吞吐上限：≈20 MB/s → ≈400 MB/s（握手决定），对 15 MB/s 有 26× 余量。
-- 回归：28/28 PASS（v6.4 在同一份仓库目录里重跑，`sim/results/regression_v6.txt`）。
+- 回归：28/28 PASS（v6.4 在同一份仓库目录里重跑，`build/sim/results/regression_v6.txt`）。
 - V6.4 板级验收：1396 B 分包下两个 bank 命中率 **100.0%**、每帧空洞 **0**（v6.3 同条件下是 99.9% / 222 个 16bit 字）。
 
 ### 判据方法（本版新增，可复用）
