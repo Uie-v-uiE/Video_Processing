@@ -65,7 +65,7 @@ SIM_PLAIN=(tb_link_monitor tb_zoom_mapper tb_rotate_window tb_cdc_capacity tb_ic
 SIM_KEEP=("${!SIM_MAP[@]}" "${SIM_PLAIN[@]}")
 
 # ---- 硬剔除：被否决的轮次、探针与构建中间物、零引用 RTL ----
-HARD_DROP_RE='^build/(failed_|red_|multidrive_|exp_|strprobe|uram_probe|micro_rd|ps_obj|snap_|r[0-9]+_|build/|vivado_system/|__pycache__/)|^sim/(probes|msim|v98run|xtest|tagchk|syntaxchk|v100run2)/|^src/rtl/(axi/axi_frame_writer|eth/axi_frame_saver|video/frame_buffer_db|video/video_timing_720p)\.v$'
+HARD_DROP_RE='^build/(failed_|red_|multidrive_|exp_|strprobe|uram_probe|micro_rd|ps_obj|snap_|r[0-9]+_|build/|vivado_system/|__pycache__/)|^docs/walkthrough/|^sim/(probes|msim|v98run|xtest|tagchk|syntaxchk|v100run2)/|^src/rtl/(axi/axi_frame_writer|eth/axi_frame_saver|video/frame_buffer_db|video/video_timing_720p)\.v$'
 PRUNE_ONEOFF=(
   build/tcl/apply_cdc_report.tcl build/tcl/fix_bd_and_top.tcl build/tcl/rebuild_opt.tcl
   build/tcl/rebuild_zoom_out.tcl build/tcl/rebuild_cdc_fix.tcl build/tcl/micro_rd.tcl
@@ -427,6 +427,18 @@ for b in build/system.bit build/system.xsa build/ps_app.elf; do
 done
 
 # 报告展平：build/**.rpt|txt -> build/reports/[rNN_]名字（名字里带轮次号的换成新台架名）
+# ⚠ `build/report/`（单数）这一层**原位不动**：它是 §4.4 点名的交付层，仓库里、包里、两份 README 里
+#   指的是同一个路径。以前没有这条排除，包里 `build/report/power.rpt` 被搬成 `build/reports/power.rpt`，
+#   而首页写的是 `build/report/{timing_summary,utilization,power}.rpt` —— 花括号缩写没有任何一条
+#   逐路径改名规则能命中（改名规则是字面旧路径→新路径），于是评委一进包点首页第一条凭据就撞空
+#   （2026-10-04 实测：`死链 README.md -> build/report/power.rpt` 中英各 3 条，台账 #368）。
+#   同一列还有个哑 bug：`grep -v '^./build/reports/'` 永不生效（find 输出不带 `./`），这里一并改成字面 `^build/reports/`。
+FLAT_KEEP_N="$(find build/report -type f \( -name '*.rpt' -o -name '*.txt' \) 2>/dev/null | wc -l | tr -d ' ')"
+if [ "$FLAT_KEEP_N" -lt 1 ]; then
+  echo "REFUSE：暂存区里 build/report/ 一份 .rpt 都没有 ⇒ 首页 §4.4 那三条凭据指路没有目标，包不落盘" >&2
+  exit 1
+fi
+FLAT_MOVE_N=0
 while IFS= read -r f; do
   f="${f#./}"
   base="$(basename "$f")"
@@ -488,6 +500,34 @@ done < _dropped_tb.txt
 # 目录还指着 `build/`，而文件已经被 3. 那段展平进 `build/reports/` 了 ⇒ 包里那份入口脚本找不到自己的凭据。
 # 改名规则在同一次 sed 里排在前（按长度），所以这条补的是"改完名之后的形状"；第 4 步会当场数一遍有没有命中。
 printf 's|build/\\(tb_display_edge_rim_r\\)|build/reports/\\1|g\n' >> _map.sed
+# 同一族第二种形状：交付文档点名的**门禁凭据**是 `build/rNN_gates.txt`，而 `HARD_DROP_RE` 里
+# `^build/r[0-9]+_` 把整条 rNN_ 前缀剪掉（那些是逐轮过程件），随包的那一份在下面 4x 段被复制成
+# `build/reports/gates.txt` ⇒ 不补这条规则，首页"板上现在跑的是 rNN：门禁 24 项 23 绿 / 1 红"那句的
+# 凭据在包里就是空的（仓库里必须继续写 `build/r118_gates.txt`，那是盘上真文件，D4b 认它）。
+printf 's|build/r[0-9][0-9]*_gates_final\\.txt|build/reports/gates.txt|g\n' >> _map.sed
+printf 's|build/r[0-9][0-9]*_gates\\.txt|build/reports/gates.txt|g\n' >> _map.sed
+
+# 学习文档（`docs/walkthrough/`）**不随包**是队伍定的规矩，但协作记录/待办台账里成段抄着它们的路径
+# ⇒ 上面 HARD_DROP 剪掉文件之后，那些路径就成了"照着翻翻不到"的空链接。这一条把路径形状换成
+# 文字形状（和上面"仓库回归台架 X（不在本包内）"同一族）：**只改包里的指法，不改仓库里的原文**，
+# 因为台账那句是"当时读的是哪一篇"的凭据。
+printf 's|docs/walkthrough/\\([A-Za-z0-9_.-]*\\)\\.md|学习文档 \\1.md（本地留档，不随本包）|g\n' >> _map.sed
+
+# 技能包 2026-10-04 重建（28 张平铺卡 → `skills/<组>/<条目>/SKILL.md`）之前的旧条目名还留在
+# `report/*.md` 与协作记录里。包里**翻不到**的那些就地降级成文字，剩下的仍是指向真实条目的路径。
+# 名单由"包内实际有没有这个文件"现算，不写死 ⇒ 条目以后再加/再改名，这一层自己跟着变（射程不漂）。
+SKILL_CITED="$( { grep -rhoE 'skills/[A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+\.(md|sh|mjs|py)' --include='*.md' . 2>/dev/null || true; } | sort -u )"
+SKILL_FIX_N=0
+while IFS= read -r p; do
+  [ -n "$p" ] || continue
+  _pl="$(printf '%s' "$p" | tr 'A-Z' 'a-z')"
+  if [ ! -e "$p" ] && [ ! -e "$_pl" ]; then
+    printf 's|%s|技能包旧条目 %s（重建前的名字，未随本包；现有条目索引见 skills/README.md）|g\n' \
+      "$p" "$(basename "$(dirname "$p")")/$(basename "$p")" >> _map.sed
+    SKILL_FIX_N=$((SKILL_FIX_N + 1))
+  fi
+done < <(printf '%s\n' "$SKILL_CITED")
+echo "旧技能条目名就地降级 $SKILL_FIX_N 个（被引用的技能路径共数 $(printf '%s\n' "$SKILL_CITED" | grep -c . ) 个）" >> _pruned.txt
 
 # 改写只作用于" prose 与脚本"；证据类（build/reports/、report/log/）保持原文
 find . -type f \( -name '*.md' -o -name '*.sh' -o -name '*.tcl' -o -name '*.py' -o -name '*.mjs' \
