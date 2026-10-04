@@ -41,10 +41,12 @@
   `skill/templates/project-skeleton/project-skeleton.md`（114 行，插 8 项目录）——为过 G6。
 
 ### push 状态
-`git push origin HEAD:main` 成功：`f5897d7..384a0b3`。
-**本轮没有设置过任何代理**：`git config --get http.proxy` 与 `--get https.proxy` 都返回空（直连即可，
-队伍给的 7897 端口本轮未使用，因此也无需"取消"——若后续改用代理，会以逐命令 `-c http.proxy=…` 方式使用，
-不留持久配置，并在结束时打印这两条查询结果为空作为凭据）。
+`git push origin HEAD:main` 成功：`f5897d7..384a0b3`（10:47 本机，直连即可，未用代理）。
+`384a0b3..157d332`（10:47 之后，直连）。`157d332..ab640e9`（**10:31 UTC / 12:31 本机：直连被 `Recv failure: Connection was reset` 拒绝，
+改用逐命令代理 `git -c http.proxy=http://127.0.0.1:7897 -c https.proxy=… push` 成功**）。
+**代理只在那一条命令里生效，没有写进任何 git 配置**：紧随其后 `git config --get http.proxy`、
+`--get https.proxy`、`--global --get http.proxy` 三条都返回空（原文已贴进当轮输出）⇒ 队伍要求的"用完取消"没有遗留项可取消。
+本轮没有设置过任何持久代理，也未改 `git config` 的任何键（P23 禁止改配置，未越线）。
 
 ## 二、派出的子任务（P23 第 4 节：作者与审计分离）
 
@@ -54,7 +56,7 @@
 `p16a-board`、`p16b-compare`、`p16c-signoff`、`p17-data`、`p18a-report`、`p18b-results`、`p18c-failures`、
 `p19-novelty`、`p20-licenses`、`p22-collab-archive`。
 统一约束（写在每条提示词里）：不改 `src/` 行为、不放宽判据、不删已入库件、不跑构建/台架/串口/刷板、
-不 commit/push、需要队伍答的进 `docs/questions-for-team-P<nn>.md` 并在正文留 `【队伍未确认】`。
+不 commit/push、需要队伍答的进 `docs/questions-for-team-p<nn>.md` 并在正文留 `【队伍未确认】`。
 
 ## 三、我没有做、也不假装做过的事
 

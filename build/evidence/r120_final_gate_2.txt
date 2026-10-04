@@ -1,0 +1,13 @@
+C1 声明唯一权威源 判 1 项 缺 docs/declarations.md（P20 产出），另出现 2025.2.1 的文件数=55 NOT_MEASURED
+C2 指标数字指得到证据 判 2 项 行=28 全指到=22 缺或无路径=6 例:器件与工具链|Slice LUT 占用|整屏逐像素判据 FAIL
+C3 文档内路径存活 判 3 项 扫=263 份 检查路径引用=1906 死引用=64 例:docs/interface-table.md → docs/src-map.md | report/log/ISSUES.md → src/dst | report/log/ISSUES.md → docs/PERF_REPORT.md FAIL
+C4 文件名纯小写 ASCII 判 4 项 跟踪文件=3418 违规=230 点名豁免=18 例:README.en.md | board/ACCEPTANCE.md | board/VERIFY_r87.md FAIL
+C5 许可与卫生机检 判 5 项 被调脚本 60 s 未返回 ⇒ 记未测（同时说明该脚本可能扫了 vivado_system/ 等生成目录，要收紧射程） NOT_MEASURED
+C6 技能包索引一致 判 6 项 rc=0 gen_index --check 条目=25 判 25 项 一致=yes PASS PASS
+C7 验证状态三处一致 判 7 项 对=25 冲突=0 PASS
+C8 未决项汇总一致 判 8 项 正文标记总数=1273 【待验证】=132 【未核实】=90 【队伍未确认】=23 NOT_MEASURED=624 【待你补】=34 【未实测】=163 【填入】=207 汇总表行=0 未认领的标记类=0 FAIL
+C9 A/B/C 路径复现演练 判 9 项 PASS=46 FAIL=13 未测=23 FAIL
+C10 证据时间线自洽 判 10 项 两件齐=是 读数件→判读件 先后=正确 PASS
+C11 失败与未测记录可见 判 11 项 已登记候选件=4/4 内含失败/未测字样=28 PASS
+C12 技能包门禁（G1–G12 调用） 判 12 项 绿=7 红=4 未测=1 FAIL
+GATES 终审 C1–C12：判定 12 项 绿=4 红=6 未测=2 有红项，不得提交 FAIL
