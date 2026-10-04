@@ -24,6 +24,12 @@ set -euo pipefail
 REPO="$(cd "$(dirname "$0")/.." && pwd)"
 OUT="${VP_SUB_OUT:-$(cd "$REPO/.." && pwd)/final_submission}"   # 目标被别的进程占住句柄时可换目录导出（见 ISSUES #231 尾账）
 TMP="$(mktemp -d "${TMPDIR:-/tmp}/sub.XXXXXX")"
+# 拒绝落盘时 $OUT 里留的是**上一版**：上一版看起来就是一份交付物，这是最坏的一种假绿
+# （2026-10-04 实测：`final_submission/` 还是 08:13 从 ef68bb3 导的 519 个文件，根上写着 README.en.md）。
+# 所以开局就把"当前这个目录是谁"念出来，别等交付时才发现包是陈的。
+if [ -f "$OUT/MANIFEST.txt" ]; then
+  echo "注意 $OUT 现在是上一版（$(head -2 "$OUT/MANIFEST.txt" | tr '\n' ' ')）——本轮若拒绝落盘，这个目录不算本轮交付"
+fi
 DRY=0
 # --allow-no-gates：明确接受"诊断用"包（包里没有对应位流的门禁件）。默认**不接受**（F2，见 4x 段）。
 ALLOW_NO_GATES=0
