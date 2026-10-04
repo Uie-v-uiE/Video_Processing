@@ -1,4 +1,8 @@
 # Create Vivado project for Zynq7020 video pipeline (Vivado 2025.2.x)
+# 作用: 从零建 zynq_video_pipeline 工程并导入 RTL 与约束；pl 模式只挂顶层，system 模式建 PS7+互连 BD 再包 wrapper
+# 前置条件: 仓库根下 src/rtl 各子目录与 src/constraints/rk_zynq7020.xdc 齐全；system 分支另需 processing_system7:5.5 与 axi_interconnect:2.1 这两个 IP 可用
+# 产出物: vivado/zynq_video_pipeline.xpr（-force 重建，路径由脚本 puts PROJECT: 念出）；system 模式另有 design_1.bd 与 design_1_wrapper.v
+# 关键参数: argv0（-tclargs）= pl|system，默认 pl，决定 top 是 pl_demo_top 还是 system_top；器件写死 xc7z020clg484-2；无 env 读取
 # Usage:
 #   vivado -mode batch -source tcl/create_project.tcl -tclargs pl
 #   vivado -mode batch -source tcl/create_project.tcl -tclargs system

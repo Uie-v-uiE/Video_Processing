@@ -1,4 +1,8 @@
 # ooc_newmods.tcl — 新模块的 out-of-context 综合 + **真实时序**预检。
+# 作用: 对 link_monitor / snap_cross / osd_overlay 三个新模块各做一次 OOC 综合，带 3 ns 输入延迟后打 report_timing，抓结构性长链
+# 前置条件: 仓库根下 src/rtl/eth/link_monitor.v、src/rtl/eth/snap_cross.v、src/rtl/video/osd_overlay.v 三个源在；vivado -mode batch 可用（工程 vivado_ooc/ooc_check 由本脚本 -force 重建）
+# 产出物: build/ooc_util.rpt（report_utilization）+ 每模块一段 ==== OOC <m> ==== 与其 Slack 行（默认落 build/ooc_newmods.log，由跑法的 -log 决定）
+# 关键参数: 环境变量 OOC_ONLY=模块名 ⇒ 只跑那一个（Windows 同进程连跑三次 synth_design 会撞 .Xil 锁）；无命令行参数；器件 xc7z020clg484-2、周期 8.0/20.0 ns 写死
 #
 # 为什么值得单独有这么一个脚本：V7.6 第一次全流程 L3 里 WNS 掉到 −6.765（19 个
 # 违例端点），根因是 OSD 里 32bit 十进制除法拉出的 45 级组合链。发现它要花一次

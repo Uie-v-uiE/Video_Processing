@@ -1,4 +1,8 @@
 # build/tcl/r114_io_roll.tcl —— r114 I/O + 异步界那一刀的快车道单变量 A/B（一次进程里跑两滚）
+# 作用: 同一份 system_top_opt.dcp 连跑 base 与 io 两滚 place/phys_opt/route，唯一变量是多了 src/constraints/r114_io_async.xdc，比较两滚的逐域 slack 与约束欠账
+# 前置条件: 仓库根下 vivado_system/zynq_video_sys.runs/impl_1/system_top_opt.dcp 与 src/constraints/r114_io_async.xdc 都在（任一缺 ⇒ puts REFUSE 并 exit 1）；一滚约 7–9 分钟
+# 产出物: $IO_OUT 下逐滚的 rt_<tag>_<clk>_<setup|hold>.rpt、sum_<tag>.rpt 与 base/routed.dcp、io/routed.dcp；stdout 的 ROLL| / DEBT| / IROW| / IHEAD| / XDC_SOURCE| / IO_ROLL_DONE 行
+# 关键参数: 环境变量 IO_OUT（输出目录，默认 /tmp/kx/r114io）、IO_TMP（check_timing 与 report_exceptions 的临时件目录，未设时脚本把它置成 IO_OUT）；无命令行参数
 #
 #   IO_OUT=/tmp/kx/r114io  vivado -mode batch -nojournal -source build/tcl/r114_io_roll.tcl
 #

@@ -1,6 +1,10 @@
 # Synthesize + implement + bitstream
 # Usage: vivado -mode batch -source tcl/build_bitstream.tcl
 # Optional arg: pl|system (default pl)
+# 作用: 在已建好的 zynq_video_pipeline 工程上跑 synth_1 与 impl_1（到 write_bitstream），再把比特流归档进 build/
+# 前置条件: vivado/zynq_video_pipeline.xpr 已由 create_project.tcl 建好；src/rtl 与 src/constraints 未动
+# 产出物: build/video_pipeline.bit（mode=system 时另有 build/system.xsa）；比特流原件仍在 vivado/zynq_video_pipeline.runs/impl_1/
+# 关键参数: argv0 = pl|system（默认 pl，决定 top 取 pl_demo_top 还是 system_top）；两支 run 都是 -jobs 4，无 env 读取
 
 set mode "pl"
 if {[llength $argv] > 0} { set mode [lindex $argv 0] }

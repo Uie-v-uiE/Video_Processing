@@ -1,4 +1,8 @@
 # 只读：量 8 个 TMDS 输出脚（含 LED）的 clock-to-pin "Data Path Delay"，先按原件形状解析
+# 作用: 对 10 个输出脚（tmds_* 八条 + led[0] + led[1]）各取 max/min 一条路径，正则抠出 Data Path Delay 打成 PIN| 行
+# 前置条件: 仓库根下 vivado_system/zynq_video_sys.runs/impl_1/system_top_routed.dcp 存在（缺 ⇒ puts PROBE-REFUSE 并 exit 3），vivado_system/ 可写临时报告
+# 产出物: stdout 的 PIN| <port> | <max|min> | data_path_delay=<n>ns 行与一行 CLKINFO| clkout1_1 period=…；临时报告 vivado_system/.r119_tmp.rpt 每轮删除，不归档
+# 关键参数: 无命令行参数、无 env 读取；DCP 路径、端口名册与临时报告名都写死在本文件
 # 形状凭据：build/evidence/r119_shape_*.txt 第 22 行原文
 #   `  Data Path Delay:        2.033ns  (logic 2.032ns (99.951%)  route 0.001ns (0.049%))`
 set dcp "vivado_system/zynq_video_sys.runs/impl_1/system_top_routed.dcp"

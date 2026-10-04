@@ -14,7 +14,10 @@ const run = (c) => { try { return execSync(c, { cwd: ROOT, encoding: 'utf8', max
 
 const EXT_RE = /\.(mjs|py|tcl|sh)$/;
 const HAS_KEY = /(用途|作用|输入|输出|退出码|usage|purpose|exit code|outputs?)/i;
-const list = only.length ? only : (run('git ls-files') || '').split('\n').filter((f) => EXT_RE.test(f) && !f.startsWith('build/evidence'));
+const list = (only.length ? only : (run('git ls-files') || '').split('\n'))
+  .filter((f) => EXT_RE.test(f) && !f.startsWith('build/evidence'))
+  // 夹具与期望产物**不盖章**：它们要被生成器逐字节比对，加四行注释就会让自测红
+  .filter((f) => !/\/(fixtures?|expected)\//.test(f) || only.length > 0);
 if (!only.length && list.length === 0) { console.log('STAMP 判 0 项 NOT_MEASURED git 不可用'); process.exit(2); }
 
 const stripMarker = (l) => l.replace(/^\s*(#+|\/\/+|<!--|rem\s?|\*<?)\s?/i, '').trim();

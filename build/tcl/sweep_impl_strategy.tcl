@@ -1,4 +1,8 @@
 # build/tcl/sweep_impl_strategy.tcl — 实现策略扫描（同一份网表，逐个策略重跑实现并汇总时序）
+# 作用: 在 vivado_system 工程上逐个实现策略 reset+launch impl_1（到 write_bitstream），汇总每策略的 WNS/WHS/失败端点/是否全满足/功耗
+# 前置条件: build_system_axigpio.tcl 已跑过一次，仓库根下 vivado_system/zynq_video_sys.xpr 存在（缺 ⇒ puts MISSING 并 exit 1）；只重跑 impl_1，不重建 BD、不重跑综合
+# 产出物: build/sweep_summary_<YYYYmmdd_HHmm>.txt（带时间戳，不覆盖历史那份）与 build/sweep_<策略>_timing.rpt；日志名由跑法里的 -log build/sweep.log 给定
+# 关键参数: 环境变量 SWEEP_STRATS（逗号或空格分隔的策略名，覆盖默认 5 个 Performance_*/Performance_BalanceSLRs）；无命令行参数；-jobs 4，收尾把 impl_1 的 strategy 恢复成扫描前的值
 #
 #   vivado -mode batch -nojournal -log build/sweep.log -source build/tcl/sweep_impl_strategy.tcl
 #

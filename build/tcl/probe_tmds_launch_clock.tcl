@@ -1,4 +1,8 @@
 # build/tcl/probe_tmds_launch_clock.tcl — 只读探针：TMDS 输出是由**哪条时钟**发出的
+# 作用: 对每个 TMDS 输出脚（外加 led[0] 做正对照）跑一次 -to 端点路径报告，从报告文本里念出 Clock:/Source:/Destination: 那几行，绕开 port 上的 CLOCK 属性
+# 前置条件: 环境变量 VP_DCP 指向一个存在的 checkpoint（用法里是 vivado_system/zynq_video_sys.runs/impl_1/system_top_opt.dcp），在仓库根起 vivado -mode batch；缺或不存在 ⇒ puts PROBE-REFUSE 并 exit 3
+# 产出物: stdout 每端口一行 LAUNCH2| <port> | <时钟行拼接> 加收尾 PROBE2-DONE；中间件 build/evidence/r119_launch_tmp.rpt 读完即删，不留下
+# 关键参数: 环境变量 VP_DCP（必填，唯一的输入）；无命令行参数；端口名册与临时报告名写死在本文件
 #
 # 为什么还要第二次探针：第一次（probe_tmds_clocks.tcl，件 build/evidence/r119_tmds_clock_probe.txt）
 # 读到 `PORT| tmds_* | clock=` **全空**，而 `CLOCK` 这个属性在 **port 对象**上本来就不是"驱动时钟"

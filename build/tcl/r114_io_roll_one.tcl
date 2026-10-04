@@ -1,4 +1,8 @@
 # build/tcl/r114_io_roll_one.tcl —— 单滚版：只跑"带某一份候选 XDC"这一滚（base 已量过并逐位复现正式数）。
+# 作用: 与 r114_io_roll.tcl 同一套 place/phys_opt/route 读数，但候选约束改从环境变量 IO_XDC 取，换一份 XDC 不必改脚本（代码里仍先跑 base 滚再跑 io 滚）
+# 前置条件: 仓库根下 vivado_system/zynq_video_sys.runs/impl_1/system_top_opt.dcp 存在，且 IO_XDC 指到一份存在的候选 xdc（任一缺 ⇒ puts REFUSE 并 exit 1）；一滚约 7–9 分钟
+# 产出物: $IO_OUT 下逐滚的 rt_<tag>_<clk>_<setup|hold>.rpt、sum_<tag>.rpt 与 base/routed.dcp、io/routed.dcp；stdout 的 ROLL| / DEBT| / IROW| / IHEAD| / XDC_SOURCE| / IO_ROLL_DONE 行
+# 关键参数: 环境变量 IO_XDC（候选 XDC 路径，直接取不设默认）、IO_OUT（默认 /tmp/kx/r114io）、IO_TMP（临时件目录，未设时置成 IO_OUT）；无命令行参数
 #   用法：IO_XDC=<绝对路径> IO_OUT=/tmp/kx/r114io1 IO_TMP=/tmp/kx/r114io1 vivado -mode batch -nojournal -source build/tcl/r114_io_roll_one.tcl
 #   为什么还要一份新脚本而不是改 r114_io_roll.tcl：那份的 console4/5 已经进了账，改它会让"哪个件是哪支脚本跑的"这条对不上。
 #

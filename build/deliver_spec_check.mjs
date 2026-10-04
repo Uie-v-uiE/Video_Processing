@@ -105,13 +105,18 @@ if (want('C1-4')) {
 // ---- C1-5 脚本头注释只写 用途/输入输出/退出码
 if (want('C1-5')) {
   const scripts = tracked.filter(f => /\.(mjs|py|tcl|sh)$/.test(f) && !f.startsWith('build/evidence'));
+  // 夹具里的脚本是"被逐字节比对的期望产物"，不是给人跑的入口：给它们加头注释会让
+  // 生成器与期望件不再逐字节相同（本轮真实踩到：contract-to-host 的 S1 因此红）。
+  // 豁免打在尺子里并念出条数，不静默吞掉（#341 同族）。
+  const fixt = scripts.filter(f => /\/(fixtures?|expected)\//.test(f));
+  const runnable = scripts.filter(f => !/\/(fixtures?|expected)\//.test(f));
   let noHead = 0, selfDesc = 0; const ex = [];
-  for (const f of scripts) {
+  for (const f of runnable) {
     const t = read(f), head = t.split(/\r?\n/).slice(0, 12).join('\n');
     if (!/(用途|作用|输入|输出|退出码|usage|purpose|exit code|outputs?)/i.test(head)) { noHead++; if (ex.length < 3) ex.push(f); }
     if (/本文件是|该文件是|This file is a/i.test(head)) selfDesc++;
   }
-  say('C1-5', 'script-header-comments', scripts.length, `脚本=${scripts.length} 缺要素=${noHead} 自我描述=${selfDesc}${ex.length ? ' 例:' + ex.join(',') : ''}`, scripts.length === 0 ? 'NOT_MEASURED' : (noHead || selfDesc ? 'FAIL' : 'PASS'));
+  say('C1-5', 'script-header-comments', runnable.length + fixt.length, `脚本=${runnable.length} 缺要素=${noHead} 自我描述=${selfDesc} 夹具期望件不计=${fixt.length}${ex.length ? ' 例:' + ex.join(',') : ''}`, runnable.length === 0 ? 'NOT_MEASURED' : (noHead || selfDesc ? 'FAIL' : 'PASS'));
 }
 // ---- C2-1 sim 只留 .v（+ 本要求自带的 README.md）
 if (want('C2-1')) {

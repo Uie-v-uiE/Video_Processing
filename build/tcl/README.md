@@ -16,7 +16,7 @@ set VIVADO=<Vivado>\bin\vivado.bat
 `build/system.xsa` → 顺手落四份报告（`timing_summary.rpt` / `utilization.rpt` /
 `methodology.rpt` / `cdc.rpt`）。跑完再 `node build/ps_app.mjs` 出 `build/ps_app.elf`。
 
-⚠ **两个"根目录少解析一层"的陷阱脚本**：`build_system.tcl`、`build_pl_full.tcl` 用
+警告：**两个"根目录少解析一层"的陷阱脚本**：`build_system.tcl`、`build_pl_full.tcl` 用
 `[file dirname [info script]] ..`（少一层 `..`），`add_files` 指向 `build/src/...` 而**报错之后仍然 exit 0**
 （ISSUES #22 / #41 记过两次）。同一类 bug 在 `create_project.tcl`、`synth_pl_only.tcl` 里也还在。
 ⇒ 要构建只认 `build_system_axigpio.tcl`；跑完必须自己去 `build/` 里核对报告的时间戳，
@@ -33,7 +33,7 @@ set VIVADO=<Vivado>\bin\vivado.bat
 | `scan_jtag.tcl` | JTAG 链扫不到时用（**跑法是 `vivado -mode batch -source build/tcl/scan_jtag.tcl`，不是 xsdb** —— 它用的是 `open_hw_manager`/`open_hw_target` 这套硬件管理命令，xsdb 里不存在，会一头撞上 `invalid command name "open_hw_manager"`）。DAP 全 0 或 `No devices detected` 就是板子侧的事，见 `report/build.md` |
 | `build/board_verify.sh` | 刷完之后"机器能判的那一半"验收（有 `RESULT … PASS/FAIL nred=` 总判定，#69） |
 
-⚠ `program_board.tcl` 属 V7 那条纯 PL 流程（下载 `output/video_pipeline.bit`），那个 bit 已从仓库删除
+警告：`program_board.tcl` 属 V7 那条纯 PL 流程（下载 `output/video_pipeline.bit`），那个 bit 已从仓库删除
 ⇒ 这条路径现在**跑不通**，留着只为对照旧文档里的数字。
 
 ## 3. 报告与探针（按需，都不改设计）

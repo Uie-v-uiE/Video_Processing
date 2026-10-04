@@ -1,4 +1,8 @@
 # build/tcl/r115_c2_io_probe.tcl —— 把 C2 之后那条 I/O hold 路**逐段**问出来（S1 为什么还差 −2.126）
+# 作用: 在 C2 副本树的已布线 DCP 上，对 eth_rxd[*]/eth_rx_ctl → mmcm_clk0 的 hold 路按 ±0.500 窗与 Table 60 真窗各报一次，并抠出 Slack 与逐段延迟行
+# 前置条件: 仓库根同级的副本树 c2_scratch_1003 里 vivado_system/zynq_video_sys.runs/impl_1/system_top_routed.dcp 存在（缺 ⇒ puts REFUSE 并 exit 1）；端口或 mmcm_clk0 取到空集 ⇒ puts REFUSE 并 exit 4
+# 产出物: build/evidence/r115_c2_scratch/io_hold_built_window.txt、io_hold_true_window.txt、io_setup_true_window.txt；stdout 的 IO_PORTS= / IO-STAGE / IO-<tag>|Slack… / TW-SET-* rc= / IODONE 行
+# 关键参数: 无命令行参数、无 env 读取；真窗数值写死（set_input_delay -min 1.000 / -max 2.600，正负沿各一条），查询对象名册也写死在本文件
 #
 # 23:56 的判定（件 build/evidence/r115_c2_scratch/ 的 C2V 行）：
 #   S2 机制 GREEN（副本树 mmcm=1 / iddr=5 / bufg=1，主树 mmcm=0 且正对照当场红）

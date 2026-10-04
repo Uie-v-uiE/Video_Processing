@@ -1,4 +1,8 @@
 # build/tcl/c2_scratch_probe.tcl —— 读 C2 证伪件的那一滚产物（丢弃副本树，不碰主树）
+# 作用: 打开 C2 副本树里**已布线完成**的 DCP，把时钟名册与全套时序/资源/方法学报告落到证据目录
+# 前置条件: 仓库根同级的副本树 c2_scratch_1003 已实现完成，其 vivado_system/zynq_video_sys.runs/impl_1/system_top_routed.dcp 存在（缺 ⇒ puts REFUSE 并 exit 1）
+# 产出物: build/evidence/r115_c2_scratch/ 下的 timing_summary.txt、check_timing_verbose.txt、clock_networks.txt、clock_utilization.txt、utilization.txt、methodology.txt、exceptions.txt、rt_eth_rxc_setup|hold.txt、summary_hold|setup.txt 与 true_window 三件
+# 关键参数: 无命令行参数、无 env 读取；DCP 与输出目录都由本文件位置推死（注释里的 VP_VIVADO_BIN 只是跑法给的 vivado 路径）
 #
 # 跑法（在**主仓库根**下）：
 #   VP_VIVADO_BIN=/d/Software/Vivado/2025.2.1/Vivado/bin \
