@@ -55,12 +55,12 @@
 3. **抗乱序、抗丢包的 offset 拼帧**：每包自带帧内偏移，比"要求按序到达"更适合尽力而为的以太网；
    配三重提交门限（行覆盖位图 ∧ 字节预算 ∧ 无坏包标记），使"丢一包 + 一包重复偏移"这种
    **能被累计字节数伪装成完整**的帧不会上屏。证据：`sim/tb_v6_cover_gate.v`、`report/log/V6_ROOT_CAUSE.md`、
-   `skill/udp_offset_reasm.md`。
+   `skill/runtime/udp-offset-reasm/SKILL.md`。
 4. **消隐期内原子提交的 DDR 乒乓 + 拷贝看门狗**：显示侧永远只读一整帧；拷贝赶不上消隐窗口就
    整笔作废并保留上一帧（宁可不动，不可撕裂）。看门狗跨时钟域用翻转式脉冲同步器（#36 的修法），
    判据是相位扫描 30/30。证据：`sim/tb_v79_abort_toggle.v`、`sim/tb_v5_vblast.v`、`report/ARCHITECTURE.md`。
 5. **一条可复用的设计规则：窗口类滤波必须做在目标域**。否则旋转与平滑互相打架（转的时候模糊跟着抖）。
-   规则被固化为技能条目与台架：`sim/tb_rotate_window.v`、`skill/rotate_window_target_domain.md`。
+   规则被固化为技能条目与台架：`sim/tb_rotate_window.v`、`skill/pitfalls/rotate-window-target-domain/SKILL.md`。
 6. **多片源仲裁，而且"谁拥有屏幕"是可机器判定的**。三路（网流 / SD 裸帧 / PL 自生图卡）共用同一台
    DDR→帧缓存搬运机；判据不是"曾经收过包"（那是粘性命，ARP 就触发、拔线不回 0），而是
    "最近真有帧 **且** 量它的那个时钟还准"——后者是板上测出来的物理事实（RTL8211 断链时不停 RXC

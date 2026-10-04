@@ -11,7 +11,7 @@
 | 设计条目 | 设计原文位置 |
 | --- | --- |
 | 单条任务八步闭环（取证→产出→自测→自审→处置→记录→提交→继续） | `prompts-used.md` §D 栏点名的 `skill_prompts/23-unattended-run-protocol.md`（第 2 节，本机文档目录，**不随包**） |
-| 自审必须换身份（作者不许给自己放行；审计子代理只读） | 同上第 4 节；技能包侧成文为 `skill/read_only_review_agent.md`（44 行） |
+| 自审必须换身份（作者不许给自己放行；审计子代理只读） | 同上第 4 节；技能包侧成文为 `skill/prompts/read-only-review-agent/SKILL.md`（44 行） |
 | 一次批量最多 4–5 个文件 | 同上第 3 节末段；本任务的派发词写的是"4–6 个文件为宜" |
 | 后台链跑着时不许编辑它正在执行的脚本 | 同上第 5 节第一条 |
 | 四件运行交付物（`RUN_REPORT/UNATTENDED/questions-for-team/run-queue`） | 同上第 6 节；本仓库落地口径写在 `docs/unattended.md:1-6`（改名声明） |

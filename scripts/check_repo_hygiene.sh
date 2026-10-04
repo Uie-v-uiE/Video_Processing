@@ -99,28 +99,33 @@ uniq_head() { printf '%s' "$1" | tr ' ' '\n' | LC_ALL=C grep -v '^$' | LC_ALL=C 
 # ---------------------------------------------------------------- C1 命名
 EXEMPT_NAMES=' README.md README.en.md LICENSE NOTICE Makefile .gitignore .gitattributes '
 c1() { # c1 <pathlist>
-    local list="$1" total=0 nonascii=0 upper=0 illegal=0 exempt=0 bad=0 ex="" used=""
-    while IFS= read -r p; do
-        [ -z "$p" ] && continue
-        local parts n i comp last
-        IFS='/' read -r -a parts <<< "$p"
-        n=${#parts[@]}; last=$((n-1))
-        for ((i=0;i<n;i++)); do
-            comp="${parts[$i]}"; [ -z "$comp" ] && continue
-            total=$((total+1))
-            if [ "$i" -eq "$last" ]; then
-                case "$EXEMPT_NAMES" in *" $comp "*) exempt=$((exempt+1)); used="$used $comp"; continue ;; esac
-            fi
-            if printf '%s' "$comp" | LC_ALL=C grep -q '[^ -~]'; then nonascii=$((nonascii+1)); bad=$((bad+1)); ex="$ex $p"; continue; fi
-            if ! printf '%s' "$comp" | LC_ALL=C grep -qE '^[A-Za-z0-9._-]+$'; then illegal=$((illegal+1)); bad=$((bad+1)); ex="$ex $p"; continue; fi
-            if printf '%s' "$comp" | LC_ALL=C grep -qE '[A-Z]'; then upper=$((upper+1)); bad=$((bad+1)); ex="$ex $p"; fi
-        done
-    done < "$list"
-    C1N=$total
-    if [ "$total" -eq 0 ]; then C1V="NOT_MEASURED"; C1D="路径清单为空，读不到输入"
-    elif [ "$bad" -eq 0 ]; then C1V="PASS"; C1D="违规 0；豁免点名$(uniq_head "$used")共 $exempt 处"
+    # 原实现为每个"路径成分"派生 3 个 grep（3632 条路径 ≈ 3 万次进程），一台 Windows 上跑不完 ⇒ 曾让终审 C5 只能记 NOT_MEASURED。
+    # 现在把同样的三段判断搬进一次 awk：判定顺序、豁免名单、计数口径逐字不变（`[^ -~]` 在 LC_ALL=C 下按字节算，与原来 grep 一致）。
+    local list="$1"
+    local RES NONASCII UPPER ILLEGAL EXEMPTN TOTAL BAD
+    local USED EX
+    RES=$(mktemp)
+    LC_ALL=C awk -v exl="$EXEMPT_NAMES" '
+        BEGIN{ FS="/"; total=0; nonascii=0; upper=0; illegal=0; exemptn=0; bad=0; used=""; ex="" }
+        { last=NF; for (i=1;i<=NF;i++) { c=$i; if (c=="") continue; total++;
+            if (i==last && index(exl, " " c " ")>0) { exemptn++; used=used" "c; continue }
+            if (c ~ /[^ -~]/)                 { nonascii++; bad++; ex=ex" "$0; continue }
+            if (c !~ /^[A-Za-z0-9._-]+$/)     { illegal++; bad++; ex=ex" "$0; continue }
+            if (c ~ /[A-Z]/)                  { upper++; bad++; ex=ex" "$0 }
+        } }
+        END{ printf "%d %d %d %d %d %d\n", total, bad, nonascii, upper, illegal, exemptn;
+             printf "%s\n", used; printf "%s\n", ex }
+    ' "$list" > "$RES" 2>/dev/null
+    read -r TOTAL BAD NONASCII UPPER ILLEGAL EXEMPTN <<< "$(sed -n '1p' "$RES")"
+    USED=$(sed -n '2p' "$RES"); EX=$(sed -n '3p' "$RES")
+    rm -f "$RES"
+    TOTAL=${TOTAL:-0}; BAD=${BAD:-0}; NONASCII=${NONASCII:-0}; UPPER=${UPPER:-0}
+    ILLEGAL=${ILLEGAL:-0}; EXEMPTN=${EXEMPTN:-0}
+    C1N=$TOTAL
+    if [ "$TOTAL" -eq 0 ]; then C1V="NOT_MEASURED"; C1D="路径清单为空，读不到输入"
+    elif [ "$BAD" -eq 0 ]; then C1V="PASS"; C1D="违规 0；豁免点名$(uniq_head "$USED")共 $EXEMPTN 处"
     else C1V="FAIL"
-         C1D="违规成分 $bad（非 ASCII $nonascii / 大写 $upper / 空格或其它非法字符 $illegal）；豁免点名：$(printf '%s' "$used" | tr ' ' '\n' | LC_ALL=C sort -u | LC_ALL=C grep -v '^$' | tr '\n' ' ')共 $exempt 处——理由=§3.3.5.4 要求全小写，但 README/LICENSE/NOTICE/.gitignore 是评委与 Git 平台按**文件名**识别的惯例名，改名等于取消识别；批准人【队伍未确认】；样例：$(uniq_head "$ex")"
+         C1D="违规成分 $BAD（非 ASCII $NONASCII / 大写 $UPPER / 空格或其它非法字符 $ILLEGAL）；豁免点名：$(printf '%s' "$USED" | tr ' ' '\n' | LC_ALL=C sort -u | LC_ALL=C grep -v '^$' | tr '\n' ' ')共 $EXEMPTN 处——理由=§3.3.5.4 要求全小写，但 README/LICENSE/NOTICE/.gitignore 是评委与 Git 平台按**文件名**识别的惯例名，改名等于取消识别；批准人【队伍未确认】；样例：$(uniq_head "$EX")"
     fi
     return 0
 }

@@ -1,7 +1,7 @@
 # 台架（`sim/`）清单与去留
 
-这里不是教程（怎么写台架、判据为什么要能红：见 `skill/criterion_blind_spot.md`、
-`skill/bench_self_inflicted_reds.md`，以及 `report/AI_COLLABORATION.md` §4 那一串案例）。
+这里不是教程（怎么写台架、判据为什么要能红：见 `skill/pitfalls/criterion-blind-spot/SKILL.md`、
+`skill/references/bench-self-inflicted-reds/SKILL.md`，以及 `report/AI_COLLABORATION.md` §4 那一串案例）。
 这一页只回答两个问题：**这些 `tb_*.v` 是怎么被跑起来的**，
 以及**哪一个在看着什么**。
 

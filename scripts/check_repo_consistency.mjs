@@ -68,23 +68,26 @@ if (!SELF) {
       const want = auth('part').toUpperCase().replace(/[-_]/g, '');
       const devRe = /[Xx][Cc]7[Zz][0-9]{2}[A-Za-z]{2,3}[0-9]{2,3}[A-Za-z]*-?[0-9][A-Za-z]?/g;
       const verRe = /(?:Vivado|Vitis)[^\n]{0,8}(?:v\.|版本)?[ ]?20[0-9]{2}\.[0-9]+(?:\.[0-9]+)?/g;
-      let same = 0, conflict = [], verSame = 0, verBad = [];
+      let same = 0, conflict = [], verSame = 0, verBad = [], quoted = 0;
       for (const f of mdFiles()) {
         if (f === 'docs/declarations.md') continue;
         const t = read(f) || '';
+        // 引文豁免：`skill/evals/records/` 存的是"陌生人演练/第三方审计的原话"，里面出现"2024.2（不是本包的 2025.2.1）"
+        // 这类对照句是**被审对象说的话**，不是本仓库另立权威。豁免只开这一个目录，且把豁免条数打出来（静默跳过=没有尺子）。
+        const isQuote = /^skill\/evals\/records\//.test(f);
         for (const m of t.matchAll(devRe)) {
           const n = m[0].toUpperCase().replace(/[-_]/g, '');
-          if (n === want) same++; else conflict.push(`${f}:${m[0]}`);
+          if (n === want) same++; else if (isQuote) quoted++; else conflict.push(`${f}:${m[0]}`);
         }
         for (const m of t.matchAll(verRe)) {
           const num = (m[0].match(/20[0-9]{2}\.[0-9]+(?:\.[0-9]+)?/) || [])[0];
-          if (num === auth('vivado')) verSame++; else verBad.push(`${f}:${m[0]}`);
+          if (num === auth('vivado')) verSame++; else if (isQuote) quoted++; else verBad.push(`${f}:${m[0]}`);
         }
       }
       const badN = conflict.length + verBad.length;
       const made = same + verSame + badN;
       row('C1', '声明唯一权威源',
-          `权威=${keys.join('/')} 比过=${made} 同值抄写=${same}+${verSame} 器件冲突=${conflict.length}${conflict.length ? ' 例:' + conflict.slice(0, 2).join(',') : ''} 版本冲突=${verBad.length}${verBad.length ? ' 例:' + verBad.slice(0, 2).join(',') : ''}`,
+          `权威=${keys.join('/')} 比过=${made} 同值抄写=${same}+${verSame} 器件冲突=${conflict.length}${conflict.length ? ' 例:' + conflict.slice(0, 2).join(',') : ''} 版本冲突=${verBad.length}${verBad.length ? ' 例:' + verBad.slice(0, 2).join(',') : ''} 引文豁免=${quoted}`,
           made === 0 ? 'NOT_MEASURED' : (badN === 0 ? 'PASS' : 'FAIL'));
     }
   }
@@ -286,8 +289,13 @@ if (process.argv.includes('--self')) { process.exit(selftestC2()); }
 {
   const s = sh('node', ['skill/scripts/check/gates.mjs']);
   const out = s.out || '';
-  const green = (out.match(/ PASS$/gm) || []).length, red = (out.match(/ FAIL$/gm) || []).length, nm = (out.match(/ NOT_MEASURED$/gm) || []).length;
-  row('C12', '技能包门禁（G1–G12 调用）', `绿=${green} 红=${red} 未测=${nm}`, s.ok && red === 0 && nm === 0 ? 'PASS' : red ? 'FAIL' : 'NOT_MEASURED');
+  // 只数 `G<数字> ` 开头的判据行：原来用"整行以 PASS 结尾"来数，把 gates.mjs 自己的汇总行也算成一项 ⇒ 报出"绿=13"。
+  // 条目数本身是被判的数（D1c 那一族），所以这里再加一条对账：绿+红+未测 必须 == 12，否则本项不可信。
+  const gl = out.split(/\r?\n/).filter(l => /^G[0-9]+ /.test(l));
+  const green = gl.filter(l => l.endsWith('PASS')).length, red = gl.filter(l => l.endsWith('FAIL')).length, nm = gl.filter(l => l.endsWith('NOT_MEASURED')).length;
+  const recon = green + red + nm;
+  row('C12', '技能包门禁（G1–G12 调用）', `绿=${green} 红=${red} 未测=${nm} 判据行=${gl.length} 加总对账=${recon}/12`,
+      gl.length !== 12 || recon !== 12 ? 'NOT_MEASURED' : (s.ok && red === 0 && nm === 0 ? 'PASS' : red ? 'FAIL' : 'NOT_MEASURED'));
 }
 
 // 行已在 row() 里即时打印，这里不重打（重打会让分母看起来翻倍）

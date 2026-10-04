@@ -137,7 +137,7 @@ set_clock_groups -asynchronous \
 ### 判据方法（本版新增，可复用）
 `src/host/video_sender.mjs --test frameid` + `ddr_verify.mjs --frameid`
 + `ddr_stale.mjs`（包内相位 / 游程长度 / 粒度三维展开），一条命令
-`node measure_v63.mjs --fps N`。**必须发完再回读**。详见 `skill/frameid_loss_signature.md`。
+`node measure_v63.mjs --fps N`。**必须发完再回读**。详见 `skill/pitfalls/frameid-loss-signature/SKILL.md`。
 
 ### 本版变更文件
 `src/rtl/eth/{frame_reasm,eth_udp_video_top,axi_frame_saver64}.v`
@@ -148,7 +148,7 @@ set_clock_groups -asynchronous \
 `sim/tb_eth_video.v`（修好第三版就失效的参数引用）、
 `build/tcl/{build_v6,program_pl,ps_jtag_boot,set_src}.tcl`、`build/*.{bit,xsa,rpt}`、
 `report/log/V6_ROOT_CAUSE.md`、`report/log/V6_BOARD_MEASUREMENT.md`、`report/AI_COLLABORATION.md`、
-`skill/zynq-video-rtl-debug/*`、`skill/frameid_loss_signature.md`
+`skill/zynq-video-rtl-debug/*`、`skill/pitfalls/frameid-loss-signature/SKILL.md`
 
 ---
 
