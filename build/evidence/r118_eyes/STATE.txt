@@ -1,0 +1,19 @@
+# build/evidence/r118_eyes/STATE.txt -- E6 re-judgement attempt, state handed to the eyes.
+# Written 2026-10-04 07:5x by the agent; the READ is the user's and is recorded in ACCEPTANCE, not here.
+#
+# Sequence (exactly the ACCEPTANCE E6 preamble, lines 94-97):
+#   user power-cycled the board (>=10 s off, cold) -> nobody touched KEY1/KEY2 ->
+#   step1 build/tcl/ps_jtag_boot.tcl   rc=0  RST_SYSTEM ok / PS7_INIT ok / PS7_POST_CONFIG ok / DDR_ECHO 10000000: 5A5AA5A5   (step1_boot.txt)
+#   step2 build/tcl/program_pl.tcl     rc=0  PROGRAMMED xc7z020_1 <- build/system.bit                                   (step2_program_pl.txt)
+#   step3 build/tcl/ps_app_reload.tcl  rc=0  DOW ok / PC_BEFORE_CON 000000cc (identical to 17 earlier passing logs) / pc 00007cee / cpsr 2003007f (step3_app.txt)
+# bit identity: md5sum build/system.bit = cd04907e1369da35d21c4090d552f5ee == build/evidence/r118_bit/system.bit == the r118 bit BOARD_NOW.txt names.
+#
+# Board alive afterwards (serial, COM6, read-only STAT, uart_stat.txt / uart_stat2.txt):
+#   [STAT] ... src=1 zoom=1 bilin=1 zsel=4 zman=1 pub=1 sd=1 frames=4398 playing=1 sel=000 gm=0.00 mode=0 geom=00400000 osd=1
+#   two STAT 3 s apart: frames=4398 -> frames=4398 (no host video running, so nothing new is written),
+#   and osd=1 -- the OSD overlay bit is set, which is what the ROT cell is drawn by.
+#
+# Note on the earlier refusal this morning: at 07:39 the same step1 died inside `targets -set 1`
+# (hw_server's view of the chain was still stale right after the power cycle) and r116_bit_cycle.sh
+# then printed "REFUSE DDR_ECHO 没过". The chain re-enumerated as 1=APU / 2=ARM#0 / 3=ARM#1 / 4=xc7z020
+# (probe_target_select.tcl run, all selection forms rc=0) and step1 now passes unmodified.

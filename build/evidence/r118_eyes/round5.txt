@@ -1,0 +1,9 @@
+
+
+## 五、08:1x 之后补的两件事（眼睛那一读 + 位流身份）
+
+1. **E6 在 r118 上判过了**：冷上电（≥10 s）+ 只跑三步链 + 不碰 KEY1/KEY2，`ROT:` 读 **0**（队员 07:5x 原话「0度」）。
+   这一版的预期本来就是 0（`ASYNC_REG` 只是放置指令，不碰上电值那条逻辑），所以这一读把 r118 的"片内中性"从名册那一侧补到了板的一侧。件 `build/evidence/r118_eyes/`。
+2. **B1 名册逐位相同不等于"提交物身份相同"**：`git show HEAD:build/system.bit | md5sum` 量到 HEAD 里还是 r116 那块 ⇒ r118 的采纳笔漏了位流与报告（ISSUES #332）。
+   补完之后 HEAD 与工作区对同一块 `cd04907e1369…` 逐位相同，读回件 `build/evidence/r118_eyes/head_bit_md5.txt`。
+3. 门禁的最终形状没有因为这两件事改变：**23 绿 / 1 红**（唯一红 = 声明过的 `C5c`），两跑逐字节一致（`build/evidence/r118_board/g2c.txt`、`g3c.txt`、`gatesc_summary.txt`）。

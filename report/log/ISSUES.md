@@ -13071,3 +13071,39 @@ D1b 就是取不到 ⇒ `claims=0` ⇒ 它自带的"≥2"射程地板把整项�
 （唯一红 = 声明过的 `C5c`），`CURRENCY: 干净`。
 教训归到 #325 那一族：**被尺子点名的句子，它的排版形状也是判据的一部分**；
 差别只是这次被抓到的是"红得没道理"，而 #325 那次差点漏掉的是"绿得没道理"。
+
+### #332 r118 的"采纳笔"其实没把位流与报告提交进去（HEAD 里那块 bit 仍是 r116 的），是 `git show HEAD:build/system.bit | md5sum` 抓出来的
+
+**怎么发现的**：E6 要在 r118 上重判，我先做上板前置（三步链），顺手要确认"盘上的 bit 就是板上那块"，于是没有只读 `build/evidence/r118_board/commit8.txt` 的自述，而是直接
+`git show HEAD:build/system.bit | md5sum` ⇒ **`bb2fb707aebc…`（r116 那块）**，而工作区 `build/system.bit` 是 `cd04907e1369…`（r118，与 `build/evidence/r118_bit/system.bit` 逐位相同）。
+`git log --oneline -- build/system.bit` 的最后一支停在 `cd33367`（r116 收口），也就是说 r118 那两支提交（`1601548`/`5fb0740`）只带了文档，**没带 bit / xsa / `build/*.rpt` / `tight_setup_hold_pins.txt` / `build/tb_v98_report.txt`**——这些现在全以"未提交的工作区改动"悬着。
+
+**为什么当时没看出来**：`build/evidence/r118_board/commit8.txt`（未跟踪，今天补看的）里三行就是全过程：
+`COMMIT paths exist=30 missing=report/ACCEPTANCE.md` ⇒ 路径清单里写了一个不存在的 `report/ACCEPTANCE.md`（它一直在 `board/ACCEPTANCE.md`），
+`COMMIT staged=4` ⇒ `git add` 是原子的，一条路径不存在就整批不暂存，只留下 4 条本来就已暂存的；
+`AttributeError: 'NoneType' object has no attribute 'strip'` ⇒ 打印子进程 stdout 时又踩了 `text=True` + cp936 解码崩溃那条（#330 同一族），脚本死在这里，**但它死之前那一步已经"看起来成功了"**，所以我把它当完成了。
+根子上是 **rule 42 的复发**：r102 那次是"声称的位流从来没进过 git"，这次的差别只在于**我以为那条规矩已经变成了脚本**——脚本在，可是它对自己的产物只打印、不核对。
+
+**这一条的修法（已做，不写"下次注意"）**：
+1. 采纳笔必须把 `build/system.bit`、`build/system.xsa`、`build/*.rpt`、`tight_setup_hold_pins.txt`、`build/tb_v98_report.txt` 一起提交（本笔就是这么做的）；
+2. 提交之后**读回 HEAD** 验身份，而不是读工作区：`git show HEAD:build/system.bit | md5sum` 必须等于 `BOARD_NOW.txt` 点名的那块（本轮 = `cd04907e1369da35d21c4090d552f5ee`）；
+3. 清单里的每条路径先做"存在性计数"再 `git add`，缺一条就 REFUSE 整批（`missing=` 那一行本来就有，只是没人把它当退出码用）。
+
+**顺带把 E6 的那一读记在这里**（正文与件在 `board/ACCEPTANCE.md` 的 E6 格和 `build/evidence/r118_eyes/`）：队员 2026-10-04 07:5x 在 r118 上判，原话「0度」，
+条件=断电 ≥10 s 冷上电、只跑三步 JTAG 链、全程不碰 KEY1/KEY2。对照组（上电后按住 KEY1 到链跑完，应当读 1）仍未做，需要再断一次电，所以那一格只登记"未判"。
+另一个只在今天出现的坑：早上 07:39 那一次 `ps_jtag_boot.tcl` 死在 `targets -set 1`（`tid2ctx`），因为冷上电后 hw_server 还没重新枚举链路；
+等到它枚举成 `1=APU / 2=ARM#0 / 3=ARM#1 / 4=xc7z020` 之后，**原脚本一字未改就过了**（只读探针 `build/tcl/probe_target_select.tcl`，五种选择写法全部 rc=0）。
+⇒ "冷上电后第一步就 REFUSE"不等于板子或脚本坏了，先重连一次看枚举表，再决定要不要动脚本。
+
+### #333 我为了保险做的那份 `ISSUES_before332.md` 备份，被 D5 当成"交付文档"扫了一遍并且判红——检查器的射程会自动把我新造的文件算进去
+
+**现场**：07:5x 我要往 `report/log/ISSUES.md` 追加 #332，先按纪律留了一份"改前快照" `build/evidence/r118_eyes/ISSUES_before332.md`（事后证明这份快照是**纯前缀**：`bak == git show HEAD` 逐字符成立、`cur.startswith(head)` 成立、`git diff --numstat` 是 `23 0`，所以它唯一的用处就是当对照，用完就该删）。
+下一轮门禁（`build/evidence/r118_board/g1b.txt`）从 23 绿/1 红变成 **21 绿/3 红**，两条新红都来自这份备份：
+- `文档行号锚点 doc_cite`：备份里那些"当时对的行号"随正文移动而越过了目标文件末尾（`pl_video_top.v:1067` 而文件只有 1051 行 ⇒ "文件不在树里/行号越过末尾"算硬错），于是 D5 判红；
+- `文档时效 doc_cur` 接着被**连带**判红——不是句子坏了，而是 D1c 拿的基准件 `build/r118_gates.txt` 恰好是这次 3 红的运行，首页那句 23/1 就对不上（#330 那条自指死锁的另一种打开方式：**我造的脏数据先红一项，再顺着基准件把第二项也拖红**）。
+
+**归到已有规矩的那一半**：射程自动扩大（rule 35 那条"检查器的 SCOPE 会悄悄漂"）。D5 的扫描集是"仓库里所有 `.md`"，所以我随手写在 `build/evidence/**` 的一份历史快照**就是**交付文档，它带着注定过期的行号，就一定会红。
+**这一条没有现成规矩盖住的那一半**：一个"只读保险"动作可以制造判红，而且判红的位置离动作很远（备份在 `build/evidence/`，红在门禁的第 14/18 项）。
+
+**改了什么（不动地板）**：备份删掉之前先把它证明成纯前缀（上面那三条等式），删完再单跑两支尺子确认 `D5: CLEAN（硬错 0）`；随后门禁重跑（件 `build/evidence/r118_board/g1c.txt`、`build/evidence/r118_board/g2c.txt`、`build/evidence/r118_board/g3c.txt` 与汇总 `build/evidence/r118_board/gatesc_summary.txt`：第一次仍读着旧的基准件 ⇒ 22 绿/2 红，定版之后两跑 **23 绿/1 红**且逐字节一致）。
+**往前的纪律**：给"会被扫描的文件"留快照时，落到 `*.txt`（不在 D5/D1 的扫描形状里）或直接靠 git（HEAD 本身就是那份快照，验证方法就是 `git show HEAD:<path>` 逐字符比），**不要在仓库里造一份带旧行号的 `.md`**。

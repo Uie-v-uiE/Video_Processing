@@ -6151,3 +6151,26 @@ powershell -ExecutionPolicy Bypass -File board/uart_cap_once.ps1 -Port COM6 -Cmd
 - **状态一句话**：板子仍是 r110（带那一度的缺陷）。r113 已过构建 + 上电值 + 31/31 快车道，
   顶层台架 12:26 起飞（70–128 分钟），之后门禁 → 改口 → 采纳笔 → 三步 JTAG 刷板 → `board_verify` →
   **E6 是你的眼睛**（冷上电不碰键，`ROT:` 该读 0）。
+
+
+## 2026-10-04 08:0x 早间单（这一节给你醒来读：此刻板上是哪块 / 机器证到哪一步 / 这一夜的两条工具账 / 还欠什么）
+
+**板上现在 = r118**（bit `cd04907e1369da35d21c4090d552f5ee`，04:49:50 刷入；本版自己的板级复验 = `build/evidence/r118_board/board_verify_console.txt` 的 `RESULT board_verify PASS（判红的步骤：0）`、`geom_check ok=10 fail=0`、`drop_words → 0`、`uart_cmd_check 105 条命令`；上一版 r116 才有那两次 01:50/02:14 的带流重读与回刷 r114 的 A/B 对照，件 `build/evidence/r116_board/`、ISSUES #318——**现行句的基线必须是本版的件**，#332 同一族）。
+这一轮只带一刀 = RGMII 收口眼心 **τ=31**（`IDDELAY_VALUE` 26→31；0…31 全档带窗实测的件 = `build/evidence/r115_window/probe3_console.txt`，两个角的原始报告 = `build/evidence/r116/r116_io_HOLD.rpt` 与 `build/evidence/r116/r116_io_SETUP.rpt`）。
+B1 严格名册：**8 对 (域,类型) 逐位复现 r114** ⇒ 片内中性，收益在片外那 +0.315 ns（`build/evidence/r118_strict_b1.txt`）。
+
+**这一夜量过并且判负的两把刀**（都不是"没做"，是"做了、有件、按名册否掉"）：
+- C9 强制复制那根 239 引脚广播网（`u_pl/u_row/hi_reg_0[0]`，吃 5.690 ns 路由）：快车道 +0.033/+0.187/+0.298 看着赢，官方构建 `build/evidence/r117_after.txt` + 同生成器名册 `build/evidence/r117_after_roster_probefmt.txt` 量到 `clk_fpga_0` 1.850→2.104 **但含最紧两格在内四格跌** ⇒ 严格名册判负，钩子不进默认构建（`docs/timing/cut_ledger.tsv`、`report/TIMING_GLOBAL.md` §9）。
+- RGMII 输入窗（RTL8211F 的 1.2/2.8 ns）：0…31 全档无解 + 钟角间差 3.411 ns ⇒ 器件边界，挂上就红 4 条硬门 ⇒ 退回候选件 `VP_R116_IO_WINDOW=1`，代价是首页明写"这 5 个 I/O 端点仍未被约束覆盖"（H5：没查 ≠ 达标）。
+放软约束的账本这一夜**仍是 0 条**；每一处修法都改的是形状/管道，没有一处改的是判据。
+
+**两条工具账（这是我自己的错，写清楚免得下次再犯）**：
+- **#331**：我把首页身份句加了 Markdown 粗体，`ADJ_RNN` 跨不过 `**` ⇒ 门禁第 18 项把"抓不到句子"判成红。修的是文档形状，地板没动。
+- **#332**：r118 那支"采纳笔"**只带了文档，没带位流与报告**——`git show HEAD:build/system.bit | md5sum` 读出 `bb2fb707aebc`（还是 r116 那块）。根因三条：路径清单写了不存在的 `report/ACCEPTANCE.md`（它一直在 `board/`）、`git add` 原子性让整批只暂存了 4 条、打印子进程 stdout 时又踩 `text=True` + cp936 崩溃。⇒ 规矩补一条：**提交之后读回 HEAD 验身份，不读工作区**。
+
+**眼睛那一半今天补齐了一条**：E6（上电那一度）在 r118 上重判，队员 07:5x 原话「**0度**」，条件=断电 ≥10 s 冷上电、只跑三步 JTAG 链、全程不碰 KEY1/KEY2；件 `build/evidence/r118_eyes/`。
+对照那一半（按住 KEY1 跑链子应读 1）**仍未做**，需要你再断一次电，所以它只登记"未判"。
+顺带一条操作账：冷上电后第一步 `targets -set 1` 会死在 `tid2ctx`，那是 hw_server 还没重新枚举链路；等它枚举成 `1=APU/2=ARM#0/3=ARM#1/4=xc7z020`，**原脚本一字未改就过了**（只读探针 `build/tcl/probe_target_select.tcl`）。
+
+**还欠的（都不该由我替你决定）**：6 个输出端口（`led[0..1]`、`tmds_clk_p`、`tmds_data_p[0..2]`）要外部 DVI/HDMI 窗口数或你点头改判 false-path（#188/#191）；换短钟那一刀（#194）要先量 BUFIO 快/慢支的插入延迟（#323：本机 UG471/UG472 两遍没筛出可引用的数，所以 0.5/0.2 ns 仍标"假设"）；角度机读口（#185）落了 E6 就能自动化。
+门禁的项数与红绿以 `bash build/gates.sh` 打印的那一行为准，本节不复制它（第 18 项会把自己判红，见 #330/e2d78e1）。

@@ -1,0 +1,7 @@
+# build/evidence/r118_eyes/head_bit_md5.txt -- read-back of the COMMITTED tree, not the worktree.
+written=2026-10-04 08:05:51
+commit=d420db6
+git show HEAD:build/system.bit | md5sum => cd04907e1369da35d21c4090d552f5ee *-
+worktree build/system.bit            => cd04907e1369da35d21c4090d552f5ee
+r118 identity per build/evidence/r118_bit/system.bit =>
+cd04907e1369da35d21c4090d552f5ee *build/evidence/r118_bit/system.bit
