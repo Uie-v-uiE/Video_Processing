@@ -117,7 +117,7 @@
 | 字段 | 内容 |
 | --- | --- |
 | 轮次 | r94（2026-09-30 12:1x–15:0x，正式件 `build/system.bit` md5 `a1465f29c9e4`） |
-| 改动 | ① `src/rtl/process/zoom/zoom_mapper.v`（#104）：旋转支接回 `>>>16` 之后的 `[15:8]` 当小数，并把纵向 `Y_disp = H/2 − Y_math` 的翻转连着 floor 一起改。② `src/rtl/zoom_ctrl.v（不存在）` + 顶层（#93）：旋转生效时把**实际用的倍率**钳进 `zoom_fit`，钳制做在 `zoom_ctrl` 的 `inv_used` 出口（新增输入 `rotate_en`、输出 `rot_forced`）——先在顶层写的那版**回退了**（`build/r94_top_mux_superceded.patch`），因为它喂不到 `zoom_code` ⇒ 屏上会与取样不一致。③ `src/rtl/eth/eth_udp_video_top.v`（#158）：`FRAME_BYTES` 由"靠默认值偶然相等"改成显式 `IMG_W*IMG_H*2`（今天的展开值逐字节不变 ⇒ 纯防呆） |
+| 改动 | ① `src/rtl/process/zoom/zoom_mapper.v`（#104）：旋转支接回 `>>>16` 之后的 `[15:8]` 当小数，并把纵向 `Y_disp = H/2 − Y_math` 的翻转连着 floor 一起改。② `src/rtl/process/zoom/zoom_ctrl.v` + 顶层（#93）：旋转生效时把**实际用的倍率**钳进 `zoom_fit`，钳制做在 `zoom_ctrl` 的 `inv_used` 出口（新增输入 `rotate_en`、输出 `rot_forced`）——先在顶层写的那版**回退了**（`build/r94_top_mux_superceded.patch`），因为它喂不到 `zoom_code` ⇒ 屏上会与取样不一致。③ `src/rtl/eth/eth_udp_video_top.v`（#158）：`FRAME_BYTES` 由"靠默认值偶然相等"改成显式 `IMG_W*IMG_H*2`（今天的展开值逐字节不变 ⇒ 纯防呆） |
 | 源码指纹 | `rtl=526321488fed`（`build/r94_gates.txt`，且 = `tb_edge_rim_r94.txt` 的 `rtl_md5`）；本轮**动机不是时序**（ISSUES #162 原话） |
 | 各域 setup/hold 最差值与失败端点 | `eth_rxc` **0.553 / 0.049**（= 全设计 WNS/WHS）；`clk_fpga_0` **0.970 / 0.060**；`clkout0_1` **1.089 / 0.063**；`sys_clk` **14.195 / 0.121**。失败 setup/hold 端点 **0 / 0**，总端点 50883；WPWS 0.264 |
 | 资源 LUT/FF/BRAM/DSP 与增量归属 | LUT as Logic `10187`、`Slice Registers 8074`、BRAM `95` tile、DSP `19`、总功耗 2.383 W（`report_power`）。与 r92 的差（LUT/FF 各 −7/−1 量级）**未归属到具体刀** ⇒ 首页不写（T3） |
@@ -147,7 +147,7 @@
 | 字段 | 内容 |
 | --- | --- |
 | 轮次 | r96（2026-09-30 17:07–18:5x 构建，正式件 `build/system.bit` md5 `76d6442991e0`，22:15 前的板上版） |
-| 改动 | ① `src/rtl/eth/axi_frame_writer_gated.v（不存在）`（#170）：看门狗 `abort` 之后**在途的读突发必须排空**才允许下一帧起头（新增 `drain_left`/`start_hold` 一个排空态；`m_axi_rready` 排空期间继续吃 R、三个写口关掉）。② `src/rtl/top/pl_video_top.v` + `frame_commit_lock.v`（#171）：`frame_ready_pix` 从"置 1 后只有异步复位才清"改成**一拍脉冲**（`r1 ^ r2`），顶层 `eth_has_frame` 的 `else if` 顺序跟着换 —— 旧几何下 `copy_abort_pix` 那一支**永远轮不到** |
+| 改动 | ① `src/rtl/axi/axi_frame_writer_gated.v`（#170）：看门狗 `abort` 之后**在途的读突发必须排空**才允许下一帧起头（新增 `drain_left`/`start_hold` 一个排空态；`m_axi_rready` 排空期间继续吃 R、三个写口关掉）。② `src/rtl/top/pl_video_top.v` + `frame_commit_lock.v`（#171）：`frame_ready_pix` 从"置 1 后只有异步复位才清"改成**一拍脉冲**（`r1 ^ r2`），顶层 `eth_has_frame` 的 `else if` 顺序跟着换 —— 旧几何下 `copy_abort_pix` 那一支**永远轮不到** |
 | 源码指纹 | `rtl=fe573f9b2024`（`build/r96_gates.txt` 边缘条带行） |
 | 各域 setup/hold 最差值与失败端点 | `eth_rxc` **0.749 / 0.049**（门禁 WNS 归属）；`clk_fpga_0` **1.755 / 0.051**；`clkout0_1` **0.840 / 0.062**；`sys_clk` **14.272 / 0.121**。失败 setup/hold **0 / 0**，总端点 50887；WPWS 0.264 |
 | 资源 LUT/FF/BRAM/DSP 与增量归属 | LUT `14388`（27.05 %）、FF `8077`、BRAM `95` tile（67.86 %）、DSP `19`、Dynamic `2.206 W`。端点 +4 与 #170 排空态新增的位**同量级** ⇒ 这是结构观察不是改进；LUT 增量**未归属**（该轮未出逐层件） |

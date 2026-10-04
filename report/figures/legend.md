@@ -29,7 +29,7 @@
   `report/modules.md` 第 1 节）**不进框图**，只在 `fig-01-system-level.txt` 末尾"未画进图的东西"一节里点名列出。
 - 不许用模块名当框名：一个模块可能有多只实例（`key_debounce` 有 `u_k1`/`u_k2`，`snap_cross` 全工程五只），
   只有实例名能对到线上。
-- 不许把未实现的功能写进图或 `report/20-principle.md（未写）`。本轮两张图的 grep 未命中数 = 0（见第 4 节的实跑输出）。
+- 不许把未实现的功能写进图或承担"设计原理"那一格的 `report/architecture.md`（装配位 `20-principle.md` 未写）。本轮两张图的 grep 未命中数 = 0（见第 4 节的实跑输出）。
 
 ## 3. 边（连线）的图例
 
@@ -89,7 +89,7 @@ node src/host/line_cite_check.mjs          # 交付文档里的 `文件:行` 引
 node src/host/doc_enc_check.mjs            # 手写文档的编码（本目录的 .txt 不在扫描扩展名里）
 ```
 
-跑法与期望输出见 `docs/walkthrough/hands-on.md`；本目录两份 `.txt` 不含 `.md` 扩展名，
+跑法与期望输出见 `report/70-reproduce.md`；本目录两份 `.txt` 不含 `.md` 扩展名，
 所以它们里面的引用**不被**第 20 项自动核对 ⇒ `report/20-principle.md（未写）` 与
 `report/claims-vs-evidence.md`（这两份是 `.md`）里重复引用时会被扫到，因此每条锚点本轮都逐条实读回原行。
 诚实的口径：**`.txt` 图正本里的行号是本轮逐条 `sed -n 'Np'` 读出来的，但没有机器门禁长期盯着它们**，

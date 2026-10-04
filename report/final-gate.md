@@ -3,7 +3,7 @@
 ## 怎么跑（仓库根，两条命令）
 
 ```bash
-node skills/scripts/check/gates.mjs --full        # 技能包 G1–G12（只判 skills/）
+node skills/_meta/run-all-checks.mjs skills      # 技能包自证：三条元检查 + 六把脚本尺子的 --self（只判 skills/）
 node build/checks/check_repo_consistency.mjs --list   # 全仓终审 C1–C12；--list 把 C3 死引用明细打全
 ```
 

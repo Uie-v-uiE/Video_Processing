@@ -171,11 +171,11 @@ C--…-2026-10-04-3d601c82/…         HUMAN_TURNS 6    PROMPT_MARKERS_HIT -
 ## E 栏 · 事后提炼的模板（4 条）与它们的对应关系
 
 模板文件本身在 `skills/prompts/*/SKILL.md`（本任务边界：只引用、不修改）。
-它们的**来源账**已经成文：`skills/prompts/_proposed-sources.md`（结论一句话 | 来源 | 核对日期 | 用在哪个条目）。
+它们的**来源账**已经成文：`skills/prompts/_proposed-sources.md`（结论一句话 | 来源 | 核对日期 | 用在哪个条目）—— 该件是 2026-10-04 c7b325f 重建技能包前的旧包名、**现不存在**，本行只报当时成文的名不指路。
 
 | 模板（E 栏） | 提炼自哪些**当时**的东西 | 对应关系的证据 |
 | --- | --- | --- |
-| `criterion-before-code` | A/B 栏没有一条与之逐字对应的提示词；它对应的是**做法**——先造能红的判据再改代码，实践轨迹是 `report/log/issues.md` #127/#128（判据没牙那一族）与 #316（零样本通过） | `skills/prompts/_proposed-sources.md` 各行的"用在哪个条目"列；本档案侧指针：`corrections.md` C1（合成对照六条）、C5（十条畸形对照） `[推断]` |
+| `criterion-before-code` | A/B 栏没有一条与之逐字对应的提示词；它对应的是**做法**——先造能红的判据再改代码，实践轨迹是 `report/log/issues.md` #127/#128（判据没牙那一族）与 #316（零样本通过） | `skills/prompts/_proposed-sources.md`（旧包名，**现不存在**，只报当时出处）各行的"用在哪个条目"列；本档案侧指针：`corrections.md` C1（合成对照六条）、C5（十条畸形对照） `[推断]` |
 | `hw-sw-partition` | 当时的原文 = A 栏 `H04`（2026-09-22 08:56，讲第一版 PS 以太网/第二版 PL 以太网的那段口语）与 `H55`/`H56`（报名简介长文）；仓库侧落点 `report/ps_vs_pl.md`、`report/architecture.md` §3 | `_proposed-sources.md` 前四行逐条点名了这两个 `report/` 文件与 mtime `[推断]` |
 | `report-to-bottleneck` | 当时的原文 = **C 栏**那份 `timing-global-round-prompt.md`（轮次提示词），不是 D 栏 | `build/r116_batch_plan.md:5`（点名 C 栏文件）+ `_proposed-sources.md` 里 `report/timing_global.md` §1/§2 各行 |
 | `single-variable-ab` | 当时的做法 = A 栏 `H142`（"先深度彻底优化一次时序和资源"那一段）与 B 栏 10-04 01:3x 那批 P15/P16 派发；仓库侧落点 `report/timing/README.md` 噪声底一节、`report/log/issues.md` #306/#311 | `_proposed-sources.md` 后三行（噪声底、同一 `opt.dcp` 逐位复现、复制类手段可数） `[推断]` |

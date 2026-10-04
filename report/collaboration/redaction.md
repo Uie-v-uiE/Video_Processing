@@ -119,7 +119,7 @@ done
 | 分组 | 文件数 | 代表位置 | 谁能处置 |
 | --- | --- | --- | --- |
 | 工具生成件（控制台原始捕获） | 32 | `build/evidence/pu113/r110_xvlog.txt`（4 处）、`build/evidence/r114_mf/a_roll_console.txt`（5 处）等 | 按 `build/checks/check_repo_hygiene.sh:284` 的 C2b 口径：**仓库留档不脱敏，成包时由导出器剔除**（P20 既有决定） |
-| **手写件（C2a 射程）** | 4 | `build/r116_batch_plan.md:5`、`report/log/issues.md:11862`、`skills/prompts/_proposed-sources.md:61`、`skills/_meta/sources.md:152` | **不在本任务边界内**（我只允许在 `report/collaboration/` 下新建文件，不许改 `skills/`、`report/` 其它文件、`docs/`）⇒ 移交队伍；计数与授权问题记在 `README.md` §5 的 Q7，位置逐条就是本行这四个 `文件:行` |
+| **手写件（C2a 射程）** | 4 | `build/r116_batch_plan.md:5`、`report/log/issues.md:11862`、`skills/prompts/_proposed-sources.md:61`、`skills/_meta/sources.md:152` | **不在本任务边界内**（我只允许在 `report/collaboration/` 下新建文件，不许改 `skills/`、`report/` 其它文件、`docs/`）⇒ 移交队伍；计数与授权问题记在 `README.md` §5 的 Q7，位置逐条就是本行这四个 `文件:行`（其中 `skills/prompts/_proposed-sources.md` 与 `skills/_meta/sources.md` 是 2026-10-04 c7b325f 重建前的旧包件名、**现不存在**；本行是当时扫到的位置读数，只报数不指路）|
 | 未跟踪 | 1 | 上面 36 个里 1 个未入库（成包时不随包） | 队伍决定 |
 
 ⇒ **判据 4 的两面读法必须写清**（不自夸）：

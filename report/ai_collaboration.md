@@ -28,7 +28,7 @@
 2. **不许动的东西**：点名哪些文件/判据/基线在这一轮里是冻结的；
 3. **必须拿出的证据**：要它交出哪一个读数、哪一次变异、哪一份盘上文件才算回答完。
 
-三段各防一种跑偏：第 1 段防"合理的时间类解释"——手里没有几何量时，猜测会持续往时序方向长（并发挤超时、控制器停在半趟传输、PHY 把 RXC 拉慢、簇链越界），而 #50 那一次的根因是空间的一条：FAT32 目录项偏移 20 的 16 位小端高簇字被按大端拼，转折点是给失败分支加上"想去的位置 + 它是怎么算出来的 + 合法边界 + 当场分类"这四行几何量，第一次跑就打出 `lba=536959104 clus=16778886 OUT-OF-RANGE`（`report/log/issues.md:703` 起的 #50，那四行仪器与读数在 797-811，机制更正与"按住内核"那条在 772-780；做法已进 `skills/pitfalls/failing-read-prints-geometry/SKILL.md`）；第 2 段防"顺手改宽"——一次改多件事之后任何数都无法归因；第 3 段防"看起来完成了"——"绿着错"在本仓库已经成了一条单独的族（`skills/pitfalls/criterion-blind-spot/SKILL.md`）。
+三段各防一种跑偏：第 1 段防"合理的时间类解释"——手里没有几何量时，猜测会持续往时序方向长（并发挤超时、控制器停在半趟传输、PHY 把 RXC 拉慢、簇链越界），而 #50 那一次的根因是空间的一条：FAT32 目录项偏移 20 的 16 位小端高簇字被按大端拼，转折点是给失败分支加上"想去的位置 + 它是怎么算出来的 + 合法边界 + 当场分类"这四行几何量，第一次跑就打出 `lba=536959104 clus=16778886 OUT-OF-RANGE`（`report/log/issues.md:703` 起的 #50，那四行仪器与读数在 797-811，机制更正与"按住内核"那条在 772-780；做法当时写进旧包平铺卡 `skills/pitfalls/failing-read-prints-geometry/SKILL.md`，该卡没升格为通用条目、2026-10-04 c7b325f 之后**现不存在**，可复跑的落点就是上面那四行仪器与读数）；第 2 段防"顺手改宽"——一次改多件事之后任何数都无法归因；第 3 段防"看起来完成了"——"绿着错"在本仓库已经成了一条单独的族（现在这一族的成文位置是 `skills/verify/mutation-controlled-coverage`（治"某判据从来没红过"）；当时写成的旧包平铺卡 `skills/pitfalls/criterion-blind-spot/SKILL.md` 在 2026-10-04 c7b325f 重建后**现不存在**）。
 
 下面五条模板是实际在用的形状，可以直接抄。
 
@@ -233,7 +233,7 @@
 - 读数的**限定条件**是判据的一部分：`health_read.mjs:568-569` 在 `slow=1` 那一档直接把 `stall_ms` 降格成"序指标，不是毫秒"；`--gapclr` 只归零帧间隔那三条 lane，其余 lane 仍是自启动以来（`health_read.mjs:14`、`issues.md:4021` 的 `gap_max` 终身保持语义）。换一个工程，这些限定要重新量，不能沿用。
 
 **已经在 `skills/` 里作为可复用条目的（只指路，正文以 `skills/` 那一份为准，本文不复制、也不引它的行号——那目录此刻正在重写）：**
-`skills/pitfalls/criterion-blind-spot/SKILL.md`（"绿着错"那一族，§4 案例 A/B/C/E 是它的现场）、`skills/prompts/llm-fpga-debug-workflow/SKILL.md`、`skills/prompts/eye-acceptance-loop/SKILL.md`（"我发命令、人看屏"那一半的操作规程，§5 与 §6 第 4 笔的落点）、`skills/pitfalls/frameid-loss-signature/SKILL.md`、`skills/pitfalls/artifact-freeze-and-freshness/SKILL.md`、`skills/pitfalls/failing-read-prints-geometry/SKILL.md`、`skills/pitfalls/cdc-pair-baseline-gate/SKILL.md`、`skills/references/bench-self-inflicted-reds/SKILL.md`、`skills/pitfalls/derived-clock-port-mux/SKILL.md`、`skills/pitfalls/arbiter-pending-pulse/SKILL.md`、`skills/runtime/zynq-ddr-bandwidth/SKILL.md`、`skills/zynq-video-rtl-debug/`。
+`skills/pitfalls/criterion-blind-spot/SKILL.md`（"绿着错"那一族，§4 案例 A/B/C/E 是它的现场）、`skills/prompts/llm-fpga-debug-workflow/SKILL.md`、`skills/prompts/eye-acceptance-loop/SKILL.md`（"我发命令、人看屏"那一半的操作规程，§5 与 §6 第 4 笔的落点）、`skills/pitfalls/frameid-loss-signature/SKILL.md`、`skills/pitfalls/artifact-freeze-and-freshness/SKILL.md`、`skills/pitfalls/failing-read-prints-geometry/SKILL.md`、`skills/pitfalls/cdc-pair-baseline-gate/SKILL.md`、`skills/references/bench-self-inflicted-reds/SKILL.md`、`skills/pitfalls/derived-clock-port-mux/SKILL.md`、`skills/pitfalls/arbiter-pending-pulse/SKILL.md`、`skills/runtime/zynq-ddr-bandwidth/SKILL.md`、`skills/zynq-video-rtl-debug/`。（以上条目名都是 2026-10-04 c7b325f 重建之前的旧包写法，**现不存在**，本行只报当时落过的名不指路；现役 49 条的索引在 `skills/README.md`，按症状找条目用 `skills/references/symptom-router/SKILL.md`。）
 
 ---
 

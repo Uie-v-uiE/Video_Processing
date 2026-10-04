@@ -224,7 +224,7 @@ grep -n "file dirname \[info script\]" build/tcl/build_system*.tcl build/tcl/cre
 
 后果（逐条有实体，不是推断）：`add_files` 指向 `build/src/…`（不存在）；
 `file mkdir $outdir` 会凭空造出 `build/build/`（**这个空目录现在还在盘上**，本次 `ls -la build/build/`
-只有 `.` 与 `..`，mtime 2026-09-26 02:54）；`build_system.tcl` 那一份还会去找 `build/build/system.bit`。
+只有 `.` 与 `..`，mtime 2026-09-26 02:54）；`build_system.tcl` 那一份还会去找 `build/build/system.bit`（这条拼错的路径不存在，说的是当年 root 少一级的拼法，不是让人去翻这份件）。
 台账 `report/log/issues.md` 把这一族记在 **#22**，并把"扫描要按类别而不是按我今天看到的那串字符"
 记在 **#41**（#41 同时修掉了 3 支**下板**脚本，构建侧这几支**故意留着不动**，因为
 `report/log/changelog_v7.md` 与 ISSUES 若干条目按名字指它们 —— 见 `build/tcl/README.md:3-6`）。

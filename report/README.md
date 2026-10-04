@@ -103,7 +103,7 @@
 |---|---|
 | `ai_collaboration.md`、`llm_collab.md` | 协作过程与几个具体案例（含被证伪的判断）与工作流设计 |
 | `collaboration/` | 用过的提示词原文（`prompts-used.md`）、更正轨迹（`corrections.md`）、逐会话档案（`sessions/`）|
-| `../skills/`（索引 `../skills/README.md`）| 沉淀的技能卡（每张八节外壳）；出处登记在 `../skills/_meta/sources.md`，事故记录在 `../skills/pitfalls/` |
+| `../skills/`（索引 `../skills/README.md`）| 沉淀的技能卡（每张八节外壳）；出处登记在 `../skills/_meta/entry-map.md`（每条写明它长自哪一类观察；旧名 `sources.md` 在 2026-10-04 c7b325f 重建后**现不存在**），事故记录在 `../skills/pitfalls/` |
 | `log/` | 追加式工作记录（问题账 `issues.md`、过夜流水 `overnight_log.md`、版本谱系 `version_lineage.md`、赛题核对表 `contest_checklist.md`）。**只作过程留痕，不当结论引用** |
 | `study/` | 面向接手人的学习文档与英文海报占位。**本地留档，不随包**（见 `../.gitignore` 与 `../report/README.md` 最后一行）|
 
@@ -128,7 +128,7 @@ AI_COLLABORATION,LLM_COLLAB}.md \
  report/interface-table.md report/repro-check.md \
  data/README.md data/metrics.csv build/reports/index.md build/sim/names.md \
  board/{README,HANDS_ON,hardware_setup,ACCEPTANCE,signoff,raw-vs-golden}.md \
- report/README.md skills/README.md skills/_meta/sources.md README.md README_EN.md; do
+ report/README.md skills/README.md skills/_meta/entry-map.md README.md README_EN.md; do
   test -e "$f" && echo "EXISTS $f" || echo "ABSENT $f"
 done
 # ② 未决项计数是否与本导航/90 一致（逐类现算，口径见 90-open-items.md 第 1 节）

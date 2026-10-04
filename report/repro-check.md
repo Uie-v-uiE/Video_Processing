@@ -76,7 +76,7 @@ Linux 分支：S1/S8 的 Linux 形状（`ls /dev/ttyUSB*` 等）**【未在 Linu
 | A3 | `node src/host/line_cite_check.mjs` | `src/host/line_cite_check.mjs:15` | `D5: CLEAN` | 旧 README 时 `扫 210 份 ⇒ 硬错 0；锚点命中 1051`；新 README 落盘后复跑 `扫 226 份 ⇒ 硬错 0；锚点命中 1088`，rc=0 | PASS |
 | A4 | `bash build/sim/run_one.sh --verdict tb_v98_top_seam build/tb_v98_report.txt` | `build/sim/run_one.sh:11`（离线解析分支） | `VERDICT … \|\| FAIL 行数=N \|\| PASS 行数=M` | `RESULT tb_v98_top_seam FAIL nfail=1 \|\| FAIL 行数=1 \|\| PASS 行数=161`，rc=3（**判红**，红的是声明过的 `C5c`） | PASS（尺子可用；设计侧那一红见 §3 的红项 R2） |
 | A5 | `node build/r119_window_check.mjs` | 该文件 `:22-23`（`跑法：node build/r119_window_check.mjs`） | 末行 `GATES r119 窗件：判定 10 项 红=0 未测=0 PASS` | 同左，W1–W10 逐行 PASS；rc=0 | PASS |
-| A6 | `node skills/scripts/check/gates.mjs` | 该文件头 `用法：node skills/scripts/check/gates.mjs [--json] [--only G7,G9]` | 末行 `GATES 技能包：判定 12 项 …` | `判定 12 项 绿=9 红=2 未测=1 —— 有红项，不提交 FAIL`，rc=1；红 = G2（3 个 `skills/scripts/*` 目录缺 `SKILL.md`）与 G10（本队专有名未标注 9 个），未测 = G11（缺 `skills/scripts/selftest/run_all.sh`） | PASS（尺子跑通）＋ **skill 装配侧 FAIL**（射程只在 `skills/`，不判工程；P04/P09 在写） |
+| A6 | `node skills/scripts/check/gates.mjs` | 该文件头 `用法：node skills/scripts/check/gates.mjs [--json] [--only G7,G9]` | 末行 `GATES 技能包：判定 12 项 …` | `判定 12 项 绿=9 红=2 未测=1 —— 有红项，不提交 FAIL`，rc=1；红 = G2（3 个 `skills/scripts/*` 目录缺 `SKILL.md`）与 G10（本队专有名未标注 9 个），未测 = G11（缺 `skills/scripts/selftest/run_all.sh`） | PASS（尺子跑通）＋ **skill 装配侧 FAIL**（射程只在 `skills/`，不判工程；P04/P09 在写）＋ 本行点名的 `gates.mjs` 与 `run_all.sh` 是 2026-10-04 c7b325f 重建前的旧包件名、**现不存在**，这一列只报当时的实跑读数不指路（今天的等价命令 `node skills/_meta/check-skill-package.mjs skills` 判 `红=0 未测=0`）|
 | A7 | `cat build/r118_gates_final.txt \| tail -2` | `build/gates.sh:11` | 门禁那一行 | `GATES: 有红项（判定 24 项）—— 不采纳，保留上一版`；另 `grep -c 'PASS$'` = **23**、`grep -c 'FAIL$'` = **1**（红那行是 `:34` 顶层台架 `tb_v98`） | PASS |
 | A8 | `cat build/evidence/r118_board/board_now.txt` | `build/r118_chain.sh:104-108` | 板上版本确认 | 第 1 行 `板上现在 = r118（刷入 2026-10-04 04:49:50，bit_cycle rc=0 board_verify rc=0）` | PASS |
 
@@ -112,8 +112,8 @@ Linux 分支：S1/S8 的 Linux 形状（`ls /dev/ttyUSB*` 等）**【未在 Linu
 |---|---|---|---|---|
 | M1 | `node src/host/metric_recheck.mjs` | 红 0 | 终态 rc=0，判 117 个数、首页层 63 个、解析到 10/10 行、红 0（过程那次红 4 见 R8） | PASS |
 | M2 | `node src/host/line_cite_check.mjs` | `D5: CLEAN` | 终态 rc=0：`扫 226 份交付文档 ⇒ 硬错 0 条；锚点命中 1088 条`（新 README 的行号引用全被 D5 认下：本会话把 `build/sim/run_one.sh:2/:11/:46`、`build/gates.sh:11/:582-586`、`build/board_verify.sh:4-16`、`build/r116_bit_cycle.sh:4`、`build/tcl/*.tcl:3`、`build/tb98_report.sh:4`、`metric_recheck.mjs:274-278` 等新引用写进 README/repro-check） | PASS |
-| M3 | `node skills/scripts/golden_compare/golden_compare.mjs --golden build/cdc_baseline.txt … --tolerance 0 --out-dir <临时目录>`（整串逐字抄自该文件头"复跑（仓库根，正例基线…）"那 3 行） | 末行 `GOLDEN … 判 N 项 未判 0 项 红 0 项 PASS` | `判 18 项 未判 0 项 红 0 项 PASS`，rc=0；产物只落 `--out-dir`（脚本拒绝写工程目录） | PASS |
-| M4 | `node src/host/report_metrics/…` 那把（`skills/scripts/report_metrics/report_metrics.mjs`） | `--help` 用法 | **未跑**：它要 `--out-dir` 且属于 P04 那一轮正在改的脚本 ⇒ 只指路不列为步骤 | NOT_MEASURED |
+| M3 | `node skills/scripts/golden_compare/golden_compare.mjs --golden build/cdc_baseline.txt … --tolerance 0 --out-dir <临时目录>`（整串逐字抄自该文件头"复跑（仓库根，正例基线…）"那 3 行） | 末行 `GOLDEN … 判 N 项 未判 0 项 红 0 项 PASS` | `判 18 项 未判 0 项 红 0 项 PASS`，rc=0；产物只落 `--out-dir`（脚本拒绝写工程目录）；`golden_compare.mjs` 是 2026-10-04 c7b325f 重建前的旧包件名、**现不存在**，本行只报当时读数不指路——现役等价件是 `skills/scripts/golden-compare-tool/scripts/compare.mjs`，命令行已换成 `node compare.mjs <actual> <golden> [--tol N] [--exempt 文件]`，本轮实跑它的 `--self` 末行 `判 10 项：红=0 未测=0 夹具=8 …PASS` | PASS |
+| M4 | `node src/host/report_metrics/…` 那把（当时叫 `skills/scripts/report_metrics/report_metrics.mjs`，2026-10-04 c7b325f 重建技能包后**现不存在**；现役件 `skills/scripts/metrics-collector/scripts/collect.mjs`，用法是 `node collect.mjs <报告目录> [--out metrics.csv] [--report metrics.md] [--spec <file>]`） | 用法行 | **未跑**：当时那把要 `--out-dir` 且属于 P04 那一轮正在改的脚本 ⇒ 只指路不列为步骤；现役件本轮只跑过 `--self`（末行 `判 10 项：红=0 夹具=4 名册=15 …PASS`），没跑过真报告目录 | NOT_MEASURED |
 | M5 | `bash build/sim/run_one.sh --verdict …`（同 A4） | 计数行 | 161/1 | PASS |
 
 ### 2.6 语法检查与上位机 help（旁证，不是交付步骤）
@@ -134,7 +134,7 @@ Linux 分支：S1/S8 的 Linux 形状（`ls /dev/ttyUSB*` 等）**【未在 Linu
 | R4 | **README 依赖的文档里有死命令** | `report/build.md` §2 的 `run_sender.bat` / `run_video.bat` / `run_serial.bat`（本会话 `ls src/host/*.bat` ⇒ **No such file**，`git ls-files src/host \| grep -i bat` 空）**与** §1 的 `python3 src/host/udp_push.py`（S3 实测本机无 `python3`） | 这些命令**一律没写进 README**（见 §5 排除清单）；要不要改那份文档 ⇒ **Q-P12-8** |
 | R5 | **门禁条数三个说法** | `data/metrics.csv:16`「门禁自检项 … 22 项」／`build/r118_gates_final.txt` 末行「判定 24 项」／`build/gates.sh:5-10` 逐条历史（"七项 → 15 → 19 → 21 ⇒ 不再写死条数"） | 不是同一把尺子的同一时刻：README §1/§6 只念脚本自己打印那一行，不复制条数；`metrics.csv` 那一格属同类漂（与 R2 同族），一并发 **Q-P12-2** |
 | R6 | **顶层台架耗时两档** | `data/metrics.csv:15` 末列「一次台架（约 108 分钟）」**vs** `build/tb98_report.sh:7`「一次要跑 40+ 帧 ≈ 75 分钟」 | README §6 两档都点名、不相加不相减 ⇒ **Q-P12-7** |
-| R7 | **skill 装配门禁现在就是红的** | `node skills/scripts/check/gates.mjs` 本会话输出：G2 不合=13（`skills/scripts/{contract_gen,golden_compare,regmap_check}` 等缺 `SKILL.md`）、G10 未标注=9、G11 `NOT_MEASURED`（缺 `skills/scripts/selftest/run_all.sh`） | 射程只在 `skills/`，与工程复现无关；README §6 A6 明写"别把它念成设计坏了"；P04/P09 在写 ⇒ 不列为本任务红项，但**如实登记** |
+| R7 | **skill 装配门禁现在就是红的** | `node skills/scripts/check/gates.mjs` 本会话输出：G2 不合=13（`skills/scripts/{contract_gen,golden_compare,regmap_check}` 等缺 `SKILL.md`）、G10 未标注=9、G11 `NOT_MEASURED`（缺 `skills/scripts/selftest/run_all.sh`） | 射程只在 `skills/`，与工程复现无关；README §6 A6 明写"别把它念成设计坏了"；P04/P09 在写 ⇒ 不列为本任务红项，但**如实登记**；本行的 `gates.mjs`、`run_all.sh` 与 `skills/scripts/{contract_gen,golden_compare,regmap_check}` 都是 2026-10-04 c7b325f 重建前的旧包名、**现不存在**，只报当时读数 |
 | R8 | **本任务自己造成的回归（已被机器抓到并修好）**：README §1 初版把四行合并成"全设计 setup / hold + 资源"两行后，D6 尺子立刻红 4 条 | 实跑记录 `node src/host/metric_recheck.mjs` ⇒ rc=**1**，末行 `== 数字对账：判 86 个数（首页层 32 个／解析到 6/10 行；红 4）…`；四条红逐字：`RED row=README.md 里找不到「全设计 setup WNS」这一行 ⇒ 首页与指标表脱钩`（另三条同形：`逐时钟 setup 余量`、`保持时间`、`BRAM / LUT / FF / DSP`）。根因在 `src/host/metric_recheck.mjs:274-278` 的 `FRONT` 名单按**行名 + 括号形状 + "占它 X ns 周期的 Y %"**读首页 | **已回改 README §1**：恢复四个行名与 `功耗` 行的形状（数字逐条对回 `build/timing_summary.rpt` 的 Intra Clock Table 与 Clock Summary），复跑 ⇒ rc=**0**、`判 117 个数（首页层 63 个／解析到 10/10 行；红 0）`。README §1 表下加了一段"这四个行名会被机器读"的警告。**没有**改尺子、**没有**放宽名单（P23 禁止项） |
 
 | R9 | **门禁 24 项里现在有两项红，第二项是 `doc_cur`（第一轮之后新出现，不是本文件造成的）** | 本轮 `bash build/gates.sh` 第 34 行 `顶层台架 tb_v98 top=56c269602e18 FAIL行=1 … FAIL`（= 声明过的 `C5c`）+ 第 47 行 `文档时效 doc_cur 扫了 130 个文档 红行=0 身份句=1 门禁读数句=1 … FAIL`；而**归档基准件** `build/r118_gates_final.txt:47` 同一项是 `… 红行=0 身份句=2 门禁读数句=2 … PASS`。两半根因：① §1 那两句锚点被上一轮改成散文（归 R10）；② `src/host/doc_currency_check.mjs:140` 的 `OLD_DIR = /(?:^\|[^/\w.-])docs\/[\w.*-]/g` 把仓库根 `docs/` **一律**当"已删掉的旧目录"，可本轮 `docs/` 真实存在且入库（`git ls-files docs/timing/` = 19 件），于是并发轮次新写的 6 份交付文档里指向**盘上存在文件**的 188 条 `docs/…` 全被判红（按文件归属见 §8.2 A11） | 红项**保留**：不改 `report/`、不改 `src/`、不放宽 `OLD_DIR`；README 名下那 12 条按尺子自己认可的写法归零（同一行写"不随包"，实证是 `build/make_submission.sh:107-114` 的 `rm -rf docs` ⇒ 放行条数从 15 涨到 18）；要队伍裁的三件事 ⇒ `report/questions-for-team-p12.md` Q-P12-11、Q-P12-12 |
@@ -185,9 +185,9 @@ Linux 分支：S1/S8 的 Linux 形状（`ls /dev/ttyUSB*` 等）**【未在 Linu
 
 | 命令 | 本轮状态与原因 |
 |---|---|
-| `node skills/scripts/report_metrics/report_metrics.mjs --timing … --utilization … --out-dir <临时目录>` | **仍 NOT_MEASURED**：不在本轮白名单里，且这把脚本在 P04 的射程内正在被改；README §7 那一行保持"只给跑法出处" |
+| `node skills/scripts/metrics-collector/scripts/collect.mjs <报告目录> [--out …] [--report …]`（旧名 `report_metrics.mjs --timing/--utilization/--out-dir` 那串开关在 c7b325f 重建后**现不存在**，命令行形状已换） | **仍 NOT_MEASURED**：不在本轮白名单里，且这把脚本在 P04 的射程内正在被改；README §7 那一行保持"只给跑法出处" |
 | `node src/host/doc_enc_check.mjs --self`、`demo_cmds.mjs --emit`、`pipe_len_check.mjs`、`temp_formula_check.mjs`、`metric_recheck.mjs --self`、`doc_currency_check.mjs --self` | 本轮**没独立跑**；但 `bash build/gates.sh` 的第 17–22 项自己跑了其中几把（末行读数见 §8.2 A9：`doc_enc 扫了 567/569 个手写文 坏行=0 self 抓到 3/3`、`pipe_len 逐条ok=26 自报=26`、`temp_formula PASS=10 变异对照=3`、`doc_cite 命中=1121`）⇒ **只算旁证**，不算"我把 README 里那一条跑过" |
-| `bash build/rtl_fingerprint.sh`（裸形）、`bash build/sim/run_one.sh --verdict tb_v98_top_seam build/tb_v98_report.txt`（A1/A4）、`node skills/scripts/check/gates.mjs`（A6 全量那一形） | **本轮 NOT_MEASURED**（本轮白名单没列它们；第一轮跑过并留了原文摘要在 §2.2）。要测过就算：仓库根逐字敲这一条，把末行贴回 §2.2 对应行 |
+| `bash build/rtl_fingerprint.sh`（裸形）、`bash build/sim/run_one.sh --verdict tb_v98_top_seam build/tb_v98_report.txt`（A1/A4）、`node skills/_meta/check-skill-package.mjs skills`（A6 那一形；旧包的 `gates.mjs` 现不存在，只报旧名） | **本轮 NOT_MEASURED**（本轮白名单没列它们；第一轮跑过并留了原文摘要在 §2.2）。要测过就算：仓库根逐字敲这一条，把末行贴回 §2.2 对应行 |
 | B1/B2/B3/B4/B6（真仿真、快车道、顶层台架、一条命令出位流、PS 固件构建） | 任务书禁止（会跑构建/仿真，且 B4 会原地覆盖已采纳凭据 ⇒ `build/provenance.md` 第 7 节本身就把那一格判成 FAIL）⇒ 全部保留 `NOT_MEASURED`，README 每行都带这句 |
 | C1/C2/C3/C4（刷板、`board_verify --battery --geom`、三步 JTAG、推流） | 任务书禁止（禁碰 COM6 与板子、禁跑 `xsdb`）⇒ `NOT_MEASURED`；本轮只跑了同族的**离线**兄弟 `bash build/run_one_ce.sh`（S10，PASS） |
 | `bash build/make_submission.sh` | **绝对禁止**（会重写提交目录）⇒ 未跑；本轮核对过 README 只在"证据引用"位置提到它 3 次（`:8`、`:78`、`:114`），**没有**把它写成任何一条步骤（`grep -n make_submission README.md` 可复跑） |
@@ -212,7 +212,7 @@ Linux 分支：S1/S8 的 Linux 形状（`ls /dev/ttyUSB*` 等）**【未在 Linu
 2. `Read build/provenance.md`（全文）
 3. `Read build/README.md`（全文）、`Read report/build.md`（全文）、`Read report/reproduce/README.md`（全文）
 4. `head -45` 五支脚本用法头（`build/gates.sh`、`build/board_verify.sh`、`build/sim/run_one.sh`、`build/r116_bit_cycle.sh`、`build/tb98_report.sh`）
-5. `head -40 skills/scripts/check/gates.mjs`、`head -40 build/r119_window_check.mjs`
+5. `head -40 skills/scripts/check/gates.mjs`（旧包件，2026-10-04 c7b325f 后**现不存在**；今天读同一层是 `head -40 skills/_meta/check-skill-package.mjs`）、`head -40 build/r119_window_check.mjs`
 6. `uname -a` / `node --version` / `git --version` / `python --version` / `python3 --version` / `python -c "import serial"` / `command -v arm-none-eabi-gcc` / `command -v vivado`
 7. `test -f` 安装件：`<Vivado>/bin/vivado.bat`、`<Vitis>/bin/xsdb.bat`、`<Vitis>/bin/hw_server.bat`、`<Vitis>/gnu/.../arm-none-eabi-gcc.exe`、`<Vivado>/data/parts/installed_devices.txt（不随包）`
 8. `grep -o "xc7z020[a-z0-9]*" …/installed_devices.txt | sort -u`
@@ -221,7 +221,7 @@ Linux 分支：S1/S8 的 Linux 形状（`ls /dev/ttyUSB*` 等）**【未在 Linu
 11. `powershell.exe -NoProfile -Command "Get-PnpDevice -PresentOnly | Where-Object {…}"`（只枚举，不开串口）
 12. `bash -n` 七支脚本
 13. `test -f` 两批 README 引用件（合计 60 余条路径）
-14. `node skills/scripts/check/gates.mjs`
+14. `node skills/scripts/check/gates.mjs`（旧包件名，2026-10-04 c7b325f 重建后**现不存在**；今天同一条动作是 `node skills/_meta/check-skill-package.mjs skills`）
 15. `node build/r119_window_check.mjs`
 16. `bash build/rtl_fingerprint.sh` 与 `bash build/rtl_fingerprint.sh --self`
 17. `bash build/run_one_ce.sh`
@@ -230,7 +230,7 @@ Linux 分支：S1/S8 的 Linux 形状（`ls /dev/ttyUSB*` 等）**【未在 Linu
 20. `node src/host/line_cite_check.mjs`
 21. `bash build/board_verify.sh --self`
 22. `python src/host/video_sender.py --help`（含 `PYTHONIOENCODING=utf-8` 对照）、`python -c "import sys,locale;…"`
-23. `node skills/scripts/golden_compare/golden_compare.mjs …（正例基线那一串，--out-dir 指临时目录）`
+23. `node skills/scripts/golden_compare/golden_compare.mjs …（正例基线那一串，--out-dir 指临时目录）`（旧包件名，**现不存在**；现役件是 `skills/scripts/golden-compare-tool/scripts/compare.mjs`）
 24. `cat/tail/head` 归档件：`build/r118_gates_final.txt`、`build/r118_gates.txt`（含 `cmp`）、`build/evidence/r118_board/board_now.txt`、
     `bitcycle_console.txt`、`board_verify_console.txt`、`build/timing_summary.rpt`（Design Timing Summary 段）、
     `build/evidence/r110_notadopted/r110_lane_after.txt`、`build/evidence/r118_tree_fp.txt`、`report/log/contest_checklist.md`、`docs/*`
@@ -270,10 +270,10 @@ Linux 分支：S1/S8 的 Linux 形状（`ls /dev/ttyUSB*` 等）**【未在 Linu
 | A7 | `cat build/r118_gates_final.txt \| tail -2`、`grep -n doc_cur build/r118_gates_final.txt` | 末行 `GATES: 有红项（判定 24 项）—— 不采纳，保留上一版`；基准件第 47 行 `文档时效 doc_cur … 身份句=2 门禁读数句=2 … PASS` ⇒ **归档那一跑里 doc_cur 是绿的**，本轮的红是新出现的 | PASS |
 | **A9** | `bash build/gates.sh`（**输出落临时目录**，脚本头 `:14-20` 明令不许重定向进 `build/`） | **本轮跑了 6 次**，逐次：① 改 README 之前：rc=1，红 **2** 项 = `:34 顶层台架 tb_v98 … FAIL行=1 … FAIL` + `:47 文档时效 doc_cur 扫了 130 个文档 红行=0 身份句=1 门禁读数句=1 … FAIL`；②③ 改完 §1/§2 之后连跑两次：**逐字节一致**（`cmp` 无输出，md5 同为 `8ce67e5b468460331754196fb8ffa37a`），doc_cur 那行变 `红行=1 身份句=2 门禁读数句=2`；④⑤ 全部改完后再连跑两次：rc=1/1、**每一项的判定字段与数字全同**，但两跑**不再逐字节一致**——唯一差异在第 46 行 `手写件编码 doc_enc 扫了 567 个手写文` vs `569`（并发轮次在两次跑之间新写了 2 个手写件），md5 `16f323088aedeb36ddc683c4e9d47d86` vs `56b0ab5bb1434eeba6b1ab620aa100bd` ⇒ 记 §3 R15。最后一次跑的**末 6 行原样**：`  文档行号锚点 doc_cite 命中=1121 候选=419 self 15 条对照全过（含厂商豁免 2 条）、硬错 0、命中 >= 300 PASS` / `  数字对账 metric    判=117 首页=63 逐时钟=2/归属=2/百分数=8 csv认领=10/10 红=0 self（…）全过、红 0、判 >= 30 个数、首页 >= 20 个、… PASS` / `  命令长度口径 pipe_len 逐条ok=26 自报=26 收尾PASS=1 self全绿条数=27 rc=0/0 run rc=0、--self rc=0、… PASS` / `  结温公式 temp_formula PASS=10 变异对照=3 FAIL行=0 rc=0 rc=0、… PASS` / `端点总数 51135；CDC 现在按 build/cdc_baseline.txt 的**配对集合**判，功耗仍要人比有没有变差。# 结尾必须把**范围**一起念出来：判定 24 项、未判 0 项。` / `GATES: 有红项（判定 24 项）—— 不采纳，保留上一版` | PASS（尺子跑通；**判定侧红 2 项如实保留**：`C5c` 声明过的 + `doc_cur`，后者见 §3 R9） |
 | A9-旁证 | `md5sum build/ports_check.txt`（跑前/跑后）、`git status --porcelain build/ports_check.txt` | 同值 `09bd398acd567aff83e5b09ef0f576ee`、`git status` 空 ⇒ `gates.sh` 在仓库根那一跑的**唯一落笔**是这一个文件，且不脏树（内容为 `CHECK PORTS: … violations=0 PASS`） | PASS |
-| A10 | `node skills/scripts/check/gen_index.mjs --check` | `gen_index --check 条目=25 判 25 项 一致=yes PASS`，rc=0 | PASS |
+| A10 | `node skills/scripts/check/gen_index.mjs --check` | `gen_index --check 条目=25 判 25 项 一致=yes PASS`，rc=0（`gen_index.mjs` 是 2026-10-04 c7b325f 重建前的旧包件名、**现不存在**，本行只报当时读数；现役等价命令 `node skills/_meta/build-index.mjs skills --check` 本轮实跑 `INDEX 条目=49 类别=10 索引行=49 需改写=no PASS`）| PASS |
 | A11 | `node src/host/doc_currency_check.mjs` | rc=**1**；`扫了 130 个文档（D1/D2/D3）+ 778 个手写文件（D4）`、`D1b … 抓到 2 句"板态身份句"`、`D1c … 抓到 2 句"门禁 N 项 X 绿 / Y 红"`、`CURRENCY: 188 条过期指路`；本轮 README 自己名下 **0 条**（`grep -c "  README.md:"` = 0，改前 12 条）；`--probe` 那一份的按文件归属：`report/90-open-items.md` 62、`report/40-optimization.md` 55、`report/comparison-notes.md` 35、`report/50-results.md` 18、`report/60-failure-analysis.md` 8、`report/70-reproduce.md` 3（**全是未入库的并发件**，本任务禁区） | **FAIL**（命令能跑、判定红；红不在 README 上 ⇒ §3 R9） |
 | A12 | `node build/checks/check_repo_consistency.mjs`（任务书点名的"全仓 C3 行"） | rc=1；`C3 文档内路径存活 判 3 项 扫=266 份 检查路径引用=2000 死引用=66 例（路径按略写：这三条是**当轮工具输出的转述**，指的是那一轮的文件名，不是本文件的指路）docs/… → docs/…interface-table 那类 \| report/… → src/… \| report/… → docs/…perf_report.md FAIL`；总行 `GATES 终审 C1–C12：判定 12 项 绿=5 红=5 未测=2 有红项，不得提交 FAIL`（红：C3、C4、C9、C12 + 终审本身；C9 `PASS=46 FAIL=13 未测=23`；C1/C5 `NOT_MEASURED`）⇒ **66 条死引用不含 README**：本轮把 C3 自己的正则原样复制过来只判 `README.md`，`total=88 dead=0` | PASS（就"README 无死引用"这一问）；全仓 C3 仍 **FAIL**（别的轮次的文件，禁区，不改） |
-| A1/A4/A6 | `bash build/rtl_fingerprint.sh`（裸形）、`bash build/sim/run_one.sh --verdict …`、`node skills/scripts/check/gates.mjs` | **本轮没独立跑**（不在这轮白名单里）。同族证据：A9 里 `gates.sh` 自己调了 `rtl_fingerprint --self`、`run_one_ce.sh`、`doc_enc --self`、`demo_cmds --emit <临时目录>`、`metric_recheck`、`line_cite_check`；第一轮也留了记录（A1 `files=80 top=56c269602e18 rtl=07570b1ac1b4`、A4 `FAIL 行数=1 / PASS 行数=161` rc=3、A6 `判定 12 项 绿=9 红=2 未测=1` rc=1） | **NOT_MEASURED**（本轮）——"被 `gates.sh` 顺带跑过"不等于我复跑了这三条命令本身（P00 铁律 3）；要测过就算：在仓库根逐字敲这三条并把末行贴回本行 |
+| A1/A4/A6 | `bash build/rtl_fingerprint.sh`（裸形）、`bash build/sim/run_one.sh --verdict …`、`node skills/_meta/check-skill-package.mjs skills` | **本轮没独立跑**（不在这轮白名单里）。同族证据：A9 里 `gates.sh` 自己调了 `rtl_fingerprint --self`、`run_one_ce.sh`、`doc_enc --self`、`demo_cmds --emit <临时目录>`、`metric_recheck`、`line_cite_check`；第一轮也留了记录（A1 `files=80 top=56c269602e18 rtl=07570b1ac1b4`、A4 `FAIL 行数=1 / PASS 行数=161` rc=3、A6 `判定 12 项 绿=9 红=2 未测=1` rc=1；A6 那一对数是旧包 `gates.mjs` 的读数，件**现不存在**） | **NOT_MEASURED**（本轮）——"被 `gates.sh` 顺带跑过"不等于我复跑了这三条命令本身（P00 铁律 3）；要测过就算：在仓库根逐字敲这三条并把末行贴回本行 |
 
 ### 8.3 结构计数与判据①③的机器核对（本轮）
 

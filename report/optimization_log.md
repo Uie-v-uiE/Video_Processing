@@ -137,7 +137,7 @@ set_clock_groups -asynchronous \
 ### 判据方法（本版新增，可复用）
 `src/host/video_sender.mjs --test frameid` + `ddr_verify.mjs --frameid`
 + `ddr_stale.mjs`（包内相位 / 游程长度 / 粒度三维展开），一条命令
-`node measure_v63.mjs --fps N`。**必须发完再回读**。详见 `skills/pitfalls/frameid-loss-signature/SKILL.md`。
+`node measure_v63.mjs --fps N`。**必须发完再回读**。这条做法当时写成旧包平铺卡 `skills/pitfalls/frameid-loss-signature/SKILL.md`，2026-10-04 c7b325f 重建技能包时没升格为通用条目、**现不存在**（本行只报当时的落点名，不指路）；可复跑的落点就是上面这几条命令与 `report/log/v6_root_cause.md`。
 
 ### 本版变更文件
 `src/rtl/eth/{frame_reasm,eth_udp_video_top,axi_frame_saver64}.v`
@@ -148,7 +148,7 @@ set_clock_groups -asynchronous \
 `sim/tb_eth_video.v`（修好第三版就失效的参数引用）、
 `build/tcl/{build_v6,program_pl,ps_jtag_boot,set_src}.tcl`、`build/*.{bit,xsa,rpt}`、
 `report/log/v6_root_cause.md`、`report/log/v6_board_measurement.md`、`report/ai_collaboration.md`、
-`skills/zynq-video-rtl-debug/*`、`skills/pitfalls/frameid-loss-signature/SKILL.md`
+`skills/zynq-video-rtl-debug/*`、`skills/pitfalls/frameid-loss-signature/SKILL.md`（这两个是 2026-10-04 c7b325f 重建前的旧包名，**现不存在**；本行是当时那一版的变更清单，只报数不指路）
 
 ---
 

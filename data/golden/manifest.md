@@ -8,7 +8,7 @@
 - **管**：`data/golden/` 目录下除本文件之外的每一个普通文件（本轮实测 13 个：11 张 PNG + 1 个 `.mem`
   + 1 份 `README.md`）。
   范围写成可判的条件而不是靠人记：`find data/golden -type f ! -name manifest.md`。
-- **不管**：`data/measured/`（板端实测留档，是**实测侧**不是参考侧，口径见 `docs/data-format.md（未写）` §4）
+- **不管**：`data/measured/`（板端实测留档，是**实测侧**不是参考侧，口径见 `data/measured/README.md`）
   与 `data/metrics.csv`（那是首页数字的唯一来源，由 `src/host/metric_recheck.mjs` 逐行对回报告，
   本清单不重复管它，也不许把它当参考结果）。
 - **本目录的真实定位**（读 `data/golden/README.md` 原文，不是推测）：

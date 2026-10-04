@@ -11,7 +11,7 @@
 | 设计条目 | 设计原文位置 |
 | --- | --- |
 | 单条任务八步闭环（取证→产出→自测→自审→处置→记录→提交→继续） | `prompts-used.md` §D 栏点名的 `skill_prompts/23-unattended-run-protocol.md`（第 2 节，本机文档目录，**不随包**） |
-| 自审必须换身份（作者不许给自己放行；审计子代理只读） | 同上第 4 节；技能包侧成文为 `skills/prompts/read-only-review-agent/SKILL.md`（44 行） |
+| 自审必须换身份（作者不许给自己放行；审计子代理只读） | 同上第 4 节；技能包侧当时成文为 `skills/prompts/read-only-review-agent/SKILL.md`（44 行）—— 该卡是 2026-10-04 c7b325f 重建前的旧包名、**现不存在**，同一族现在的成文位置是 `skills/prompts/review-adversarially/SKILL.md` |
 | 一次批量最多 4–5 个文件 | 同上第 3 节末段；本任务的派发词写的是"4–6 个文件为宜" |
 | 后台链跑着时不许编辑它正在执行的脚本 | 同上第 5 节第一条 |
 | 四件运行交付物（`RUN_REPORT/UNATTENDED/questions-for-team/run-queue`） | 同上第 6 节；本仓库落地口径写在 `report/unattended.md:1-6`（改名声明） |
@@ -129,9 +129,9 @@ ZERO_WRITE 60 IN_4_TO_6 17 (=13.4 %) OVER_8 11
    `meta.json` 做外连接才暴露（命令在 `sessions/s05…md` §7）。
 2. **`skills/evals/records/` 的份数在我写作期间从 0 变成 2**：11:5x 我 `ls` 得空目录，
    12:3x 复跑得 `audit-2026-10-04.md`、`stranger-run-2026-10-04.md` 两份（P09 第 3/4 步的演练/审计表）。
-   复算之后仍然成立的那半句是：**这两份都不带 `skills/evals/README.md` §3 规定的 9 个字段**
+   复算之后仍然成立的那半句是：**这两份都不带 `skills/evals/README.md`（旧包名，c7b325f 重建后**现不存在**）§3 规定的 9 个字段**
    （`grep -c "被测条目"` 对两份都 = 0），也**没有一处引用会话登记号**（`grep -rIn "S0[1-5]\|sessionId\|jsonl"` = 0）。
-   另外技能索引生成器 `skills/scripts/check/gen_index.mjs:72-74` 会把"已复跑(见 evals/records/…)"写成状态值
+   另外技能索引生成器 `skills/scripts/check/gen_index.mjs:72-74`（旧包件名，**现不存在**；现役的是 `skills/_meta/build-index.mjs`）会把"已复跑(见 evals/records/…)"写成状态值
    ⇒ 凡是走到那一支的条目，其引用的记录必须逐条存在，否则"已复跑"就是空指。
    **这条是"照抄子 agent 自报会漏"的直接样本**：如果我沿用 11:5x 的读数写"目录为空"，现在就是假话；
    所以 `README.md` §4 把两次读数都记下（缺口 G6）。

@@ -68,11 +68,11 @@ PL 逻辑钟 100 MHz（`clk_fpga_0`）、以太网收包域 125 MHz（`eth_rxc`�
 
 | 行名（会被机器读） | 读数 | 来源 |
 | --- | --- | --- |
-| 全设计 setup WNS | WNS **0.739 ns**、WHS **0.052 ns**，失败 setup/hold 端点 **0 / 51135**（两个方向都是 0；本版不带 RGMII 收口输入窗 ⇒ 那 5 个 I/O 端点当前未检查，未检查不等于满足） | `build/timing_summary.rpt:151`（本会话打开核对）、`data/metrics.csv` 第 4–6 行 |
-| 逐时钟 setup 余量 | 125 MHz 收包域 `eth_rxc` **0.739 ns**（占它 8 ns 周期的 9.24 %，全设计最紧的一格）；100 MHz `clk_fpga_0` **1.850 ns**（占它 10 ns 周期的 18.5 %）；50 MHz 显示域 `clkout0_1` **3.630 ns**（占它 20 ns 周期的 18.15 %）；`sys_clk` **14.876 ns**（占它 20 ns 周期的 74.38 %，最宽的一档） | `build/timing_summary.rpt`（Intra Clock Table + Clock Summary 两段） |
-| 保持时间 | 全设计最差那一格在 `eth_rxc`，**0.052 ns**；逐时钟 WHS：`clk_fpga_0` **0.053 ns**、`clkout0_1` **0.059 ns**、`sys_clk` **0.222 ns**、`eth_rxc` **0.052 ns**。警告： 只有 `eth_rxc` 带着 r79 加严的 0.800 ns hold 不确定度，其余三个域的报告里没有那一行 ⇒ 这四个数只许两两比同域，跨域比"谁更薄"要等不确定度带补齐 | `build/timing_summary.rpt`（Intra Clock Table 的 WHS 列）、`build/hold_paths.rpt`、`build/clock_uncertainty.rpt` |
-| BRAM / LUT / FF / DSP | BRAM **95.5 tile（68.21 %）**/ 140、LUT **14154（26.61 %）**、FF **8188（7.70 %）**、DSP **19（8.64 %）**/ 220 | `build/utilization.rpt`、`data/metrics.csv` 第 7–10 行 |
-| 功耗 | 动态 **2.213 W**（片上合计 2.391 W）、估算结温 **52.6 °C**，工具置信度 **Low** ⇒ **这是估算，不是实测** | `build/power.rpt`；`data/metrics.csv` 第 20–21 行 |
+| 全设计 setup WNS | WNS **0.739 ns**、WHS **0.052 ns**，失败 setup/hold 端点 **0 / 51135**（两个方向都是 0；本版不带 RGMII 收口输入窗 ⇒ 那 5 个 I/O 端点当前未检查，未检查不等于满足） | `build/report/timing_summary.rpt:151`（本会话打开核对）、`data/metrics.csv` 第 4–6 行 |
+| 逐时钟 setup 余量 | 125 MHz 收包域 `eth_rxc` **0.739 ns**（占它 8 ns 周期的 9.24 %，全设计最紧的一格）；100 MHz `clk_fpga_0` **1.850 ns**（占它 10 ns 周期的 18.5 %）；50 MHz 显示域 `clkout0_1` **3.630 ns**（占它 20 ns 周期的 18.15 %）；`sys_clk` **14.876 ns**（占它 20 ns 周期的 74.38 %，最宽的一档） | `build/report/timing_summary.rpt`（Intra Clock Table + Clock Summary 两段） |
+| 保持时间 | 全设计最差那一格在 `eth_rxc`，**0.052 ns**；逐时钟 WHS：`clk_fpga_0` **0.053 ns**、`clkout0_1` **0.059 ns**、`sys_clk` **0.222 ns**、`eth_rxc` **0.052 ns**。警告： 只有 `eth_rxc` 带着 r79 加严的 0.800 ns hold 不确定度，其余三个域的报告里没有那一行 ⇒ 这四个数只许两两比同域，跨域比"谁更薄"要等不确定度带补齐 | `build/report/timing_summary.rpt`（Intra Clock Table 的 WHS 列）、`build/hold_paths.rpt`、`build/clock_uncertainty.rpt` |
+| BRAM / LUT / FF / DSP | BRAM **95.5 tile（68.21 %）**/ 140、LUT **14154（26.61 %）**、FF **8188（7.70 %）**、DSP **19（8.64 %）**/ 220 | `build/report/utilization.rpt`、`data/metrics.csv` 第 7–10 行 |
+| 功耗 | 动态 **2.213 W**（片上合计 2.391 W）、估算结温 **52.6 °C**，工具置信度 **Low** ⇒ **这是估算，不是实测** | `build/report/power.rpt`；`data/metrics.csv` 第 20–21 行 |
 
 结论：片内路径已收敛（WNS 0.739 ns / TNS 0 ns / 失败端点 0）；报告可由上面三条命令重跑复现，
 `report.tcl` 重跑产物与 `build/*.rpt` 官方件只差 Date 与 `-file` 两行，其余逐字节相同

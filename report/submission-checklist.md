@@ -20,7 +20,7 @@
 | 12 | 源码地图 | `report/src-map.md`（83 个源文件 × 4 列，逐文件现算） | PASS（头注列为空 0 个） | `node build/r120_src_map.mjs \| tail -1` |
 | 13 | 接口表 / 契约 | `report/interface-table.md` | PASS（寄存器位序与 `src/host` 契约对账在 `skills/scripts/regmap_check/`） | `head -3 report/interface-table.md` |
 | 14 | 复现说明与演练记录 | `report/70-reproduce.md`、`report/reproduce/README.md`、`report/repro-check.md` | **FAIL**：A/B/C 三条路径逐条跑下来的实跑结果是 `PASS=91 FAIL=30 未测=32`（终审 C9）。缺的是将 30 条 FAIL 逐条归因（命令写错 / 前置缺失 / 需要板子或工具链），不是把表改绿 | `node build/checks/check_repo_consistency.mjs \| grep '^C9 '` |
-| 15 | 技能包（§3.3.5.2 四类内容） | `skills/` 58 个条目目录 + `skills/README.md` 生成索引 | PASS（技能包门禁 G1–G12 全绿；`skills/scripts/selftest/run_all.sh` 判 40 项 6/6 绿） | `node skills/scripts/check/gates.mjs \| tail -1` |
+| 15 | 技能包（§3.3.5.2 四类内容） | `skills/` 49 个条目目录 + `skills/README.md` 生成索引 | PASS（本轮实跑 `node skills/_meta/run-all-checks.mjs skills` ⇒ `ALL-CHECKS 判 9 项 自测件=6 红=0 未测=0 PASS`；旧包的 `gates.mjs` 与 `run_all.sh` 两个件名在 2026-10-04 c7b325f 重建技能包后**现不存在**，本行只报旧名不指路） | `node skills/_meta/check-skill-package.mjs skills \| tail -1` |
 | 16 | 技能包验证记录 | `skills/evals/`（协议、两跑原始件、`records/` 陌生人演练与第三方审计） | PASS（存在且可读）；**但**各条目 §7 多数仍是 `【待验证】`（缺"同一模板连跑 3 次"的复跑） | `ls skills/evals skills/evals/records` |
 | 17 | 大模型协作记录 | `report/collaboration/`（会话登记卡 + 纠错轨迹 + 提示词分栏 + 成本统计 + 脱敏台账） | PASS（原始会话导出**不随包**，随包的是登记卡与摘要，理由写在 README §2） | `ls report/collaboration` |
 | 18 | 许可与再分发 | `LICENSE`（候选协议，见 Q-P20-1）、第三方条款登记 | **FAIL**：`report/` 与未落地的 provenance-and-licenses 一页（P20 截停）；协议本身待队伍定 | `ls report/; ls docs/provenance*  2>&1` |

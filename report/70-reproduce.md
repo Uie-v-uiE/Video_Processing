@@ -106,7 +106,7 @@ bash -n build/gates.sh build/board_verify.sh build/sim/run_one.sh build/sim/mut_
 | 5.6 | `python build/check_io_timing_coverage.py build/timing_summary.rpt` | 同上 | 无 | 九行 `IODEBT I1..I9 … GREEN/RED` + 末行 `result=` | **FAIL（真实红，不是脚本坏）**：本次 `I3_output_covered bare_out_ports=7 want=0 RED`、`I7 … RED`、`result=RED`，rc=1。含义见 `report/60-failure-analysis.md` A6 |
 | 5.7 | `python build/check_ports.py --dup` | 同上 | 无 | 一行汇总 `instances=… width_compared=… violations=0 PASS` | **PASS**：本次 `instances=222 modules=80 skipped=0 width_compared=562 violations=0 PASS`，rc=0。（它同时解释了 5.1 为什么我不动盘：这条命令的产物就是被门禁读走的那份文件）|
 | 5.8 | `node build/r119_window_check.mjs --self` 与 `node build/r119_window_check.mjs` | 同上 | 前者不需输入件；后者需 `build/evidence/r119_pin_skew_probe2.txt` | `--self`：造的每条畸形都**各自**动红，缺输入报 `NOT_MEASURED` 而不是绿 | **PASS**：本次 `--self` → `造 10 条畸形动红 10 条；缺输入 2 条报 NOT_MEASURED 2 条 PASS`，rc=0 |
-| 5.9 | `node skills/scripts/check/gates.mjs`（技能包装配门禁）| 同上 | 无 | 每条一行、判定在最后一列；末行三态计数 | **FAIL（真实红）**：本次 rc=1，`判定 12 项 绿=9 红=2 未测=1 —— 有红项，不提交`；红在 `G2`（13 例缺 `SKILL.md`）与 `G10`（9 个专有名未标注），未测在 `G11`（缺 `skills/scripts/selftest/run_all.sh`）。见 `report/60-failure-analysis.md` A14 |
+| 5.9 | `node skills/_meta/check-skill-package.mjs skills`（技能包装配门禁；旧包的 `gates.mjs` 在 2026-10-04 c7b325f 重建后**现不存在**，本行只报旧名不指路）| 同上 | 无 | 每条一行、判定在最后一列；末行三态计数 | **PASS**：本轮 rc=0，末行 `判 53 项：条目=49 索引=50 红=0 未测=0 PASS`。旧包那一版的 12 项读数（绿=9 红=2 未测=1；红在 `G2` 缺壳与 `G10` 专有名，未测在 `G11` 缺 selftest）是重建前的凭据，逐字见 `report/60-failure-analysis.md` A14；`G11` 那一维今天的等价命令是 `node skills/_meta/check-selftest.mjs`，本轮实跑末行 `SKILL-SELFTEST 判 16 项 不符=0 PASS` |
 | 5.10 | `bash build/gates.sh build/evidence_rNN`（复核某一套冻结件）| 同上 | 那目录里成套报告 | 同一份判据打在**那一版**产物上 | `NOT_MEASURED`（同 5.1，且它会读冻结目录里缺的文件时回落到 `build/`）|
 | 5.11 | `bash build/make_submission.sh`（导出提交包）| `<仓库根>` / Git Bash | 门禁全绿才该导（`#240`：采纳之前跑它会把**未采纳**的位流打进包）| 包落在**仓库外**的目录；`_pruned.txt` 逐条写剪了什么；包内所有"路径式指路"自检，指不到就拒绝落盘 | `NOT_MEASURED`（禁跑；且今天门禁有红项，照做也导不出）|
 
@@ -178,7 +178,7 @@ bash -n build/gates.sh build/board_verify.sh build/sim/run_one.sh build/sim/mut_
 | `node src/host/line_cite_check.mjs` | 0 | `D5: CLEAN（退出码只由硬错决定…）`；`扫 209 份交付文档 … 硬错 0 条；锚点命中 1051 条；候选 384 条` |
 | `node src/host/doc_currency_check.mjs` | 0 | `CURRENCY: 干净`；`D1b 基准：bit md5=cd04907e1369 → r118_gates.txt`；`D1c 基准：r118_gates.txt 行尾 PASS=22 / FAIL=1 / 判定项数=24` |
 | `node src/host/metric_recheck.mjs` | 0 | `== 数字对账：判 114 个数（首页层 60 个／解析到 10/10 行；红 0）／csv 认领 10/10 行／其余 18 行不点名这三份报告 ==` |
-| `node skills/scripts/check/gates.mjs` | **1** | `GATES 技能包：判定 12 项 绿=9 红=2 未测=1 —— 有红项，不提交 FAIL`；红项 `G2 … 不合=13`、`G10 … 未标注=9`；未测 `G11 … 缺 skills/scripts/selftest/run_all.sh`；`G9 降级标记计数 判 86 项 总309 填入=190 待验证=48 未核实=10 未实测=61` |
+| `node skills/scripts/check/gates.mjs` | **1** | `GATES 技能包：判定 12 项 绿=9 红=2 未测=1 —— 有红项，不提交 FAIL`；红项 `G2 … 不合=13`、`G10 … 未标注=9`；未测 `G11 … 缺 skills/scripts/selftest/run_all.sh`；`G9 降级标记计数 判 86 项 总309 填入=190 待验证=48 未核实=10 未实测=61`（本节是 §5/§9 那一次实跑的逐字转录：被点的 `gates.mjs` 与 `run_all.sh` 都是 2026-10-04 c7b325f 重建前的旧包件，**现不存在**，只报当时读数不指路；今天复跑等价命令 `node skills/_meta/check-skill-package.mjs skills` 得 `判 53 项：条目=49 索引=50 红=0 未测=0 PASS`）|
 | `python build/check_io_timing_coverage.py build/timing_summary.rpt` | **1** | `IODEBT I3_output_covered bare_out_ports=7 want=0 RED`；`IODEBT I7_unit_reconcile … RED`；`IODEBT-SUMMARY … judged=9 … result=RED` |
 | `python build/check_ports.py --dup` | 0 | `CHECK PORTS: instances=222 modules=80 skipped=0 width_compared=562 violations=0 PASS` |
 | `node build/r119_window_check.mjs --self` | 0 | `对照总结：造 10 条畸形动红 10 条；缺输入 2 条报 NOT_MEASURED 2 条 PASS` |

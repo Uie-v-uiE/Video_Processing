@@ -273,16 +273,16 @@
 
 ### A14 · 技能包装配门禁实跑 2 红 1 未测（本次实测）
 
-- **现象（含证据）**：**本次实测** `node skills/scripts/check/gates.mjs` 退出码 **1**，末行
+- **现象（含证据）**：**本次实测**（当时跑的是旧包的 `gates.mjs`，该件在 2026-10-04 c7b325f 重建技能包后**现不存在**，下面引的是它当时的原文，只报数不指路）`node skills/scripts/check/gates.mjs` 退出码 **1**，末行
   `GATES 技能包：判定 12 项 绿=9 红=2 未测=1 —— 有红项，不提交`。红项两条：
   `G2 条目外壳与 name … 判 38 项 不合=13 例:skills/scripts/contract_gen:缺 SKILL.md … FAIL`；
   `G10 本队专有名 … 名单=78 命中=24 未标注=9 例:proc_pipeline zoom_snap system_top FAIL`。
-  未测一条：`G11 脚本 selftest 可跑 … 判 0 项 缺 skills/scripts/selftest/run_all.sh NOT_MEASURED`。
+  未测一条：`G11 脚本 selftest 可跑 … 判 0 项 缺 skills/scripts/selftest/run_all.sh NOT_MEASURED`。（这一行引的是当时旧件的原样输出，`run_all.sh` 与 `gates.mjs` 都**现不存在**；今天的等价件是 `node skills/_meta/check-selftest.mjs`，本轮实跑末行 `SKILL-SELFTEST 判 16 项 不符=0 PASS`。）
 - **原因假设（可被判别）**：不是尺子坏，是**装配确实没完成**——`report/run-queue.md` 的 P04/P07/P09 三行状态
   本次实读分别是"进行中 / 部分 / 进行中（12 项里 6 绿）"。
   **可判别处**：若 G2 的红是"这些目录本来就不该有 SKILL.md"（脚本目录不是技能条目），那正确处置是把它列进豁免名单并写明理由，
   而不是补 13 份空壳外壳——这两种处置会给出完全不同的下一轮，所以判据本身能把它分开。
-- **判别方法**：跑 `node skills/scripts/check/gates.mjs --only G2,G10,G11` 逐条看例；
+- **判别方法**：跑 `node skills/_meta/check-skill-package.mjs skills`（一个条目一行、判定在最后一个字段；本轮实跑末行 `判 53 项：条目=49 索引=50 红=0 未测=0 PASS`）逐条看例——旧包的 `--only G2,G10,G11` 那把没有等价开关，件现不存在；
   对 G10 的 9 个未标注专有名，判据是"换成 `【填入】` 或明写'示例取值，需按自身工程替换'之后还红不红"。
 - **计划与成本**：归 P04/P09（`report/run-queue.md` 队列里的未决任务），不是本文能收的。
   在 D 节把它列成"本文指得到的红"，因为赛题的"技能包"那一格（15 分）直接受它影响。
@@ -436,7 +436,7 @@
 
 ### B13 · 技能条目的"基线 vs 用它之后"效果对比（15 分那一格的正面凭据）
 
-- **现象（缺口）**：**本次实测** `node skills/scripts/check/gates.mjs` 的 G9 行打印
+- **现象（缺口）**：**本次实测**（旧包 `gates.mjs` 当时的原文，件**现不存在**，只报数不指路）`node skills/scripts/check/gates.mjs` 的 G9 行打印
   `降级标记计数 判 86 项 总309 …`，而 `skills/README.md` 本次实读第 297 行自己写着
   "效果对比多数来自历史件而非本轮重跑，逐条标注在各条目 §7 内（含 `【未实测】`/`【待验证】`）"；
   `skills/prompts/*` 四个模板的 §7 本次实读逐条写着"需同一提示词连跑 3 次……目前 0 次，**还差 3 次**"。
@@ -523,7 +523,7 @@
   `find`（`run_*.bat`）、`which`（vivado/xsdb/arm-none-eabi-gcc）、`node --version`、`python --version`、
   `python3 --version`、`bash --version`、`git --version`、`bash -n`（六支入口脚本）、
   `md5sum build/system.bit`、`md5sum build/ps_app.elf`、`git log -1 --format=%ci -- build/ps_app.elf`、
-  `node skills/scripts/check/gates.mjs`、`node src/host/doc_enc_check.mjs`、`node src/host/line_cite_check.mjs`、
+  `node skills/scripts/check/gates.mjs`（旧包件，2026-10-04 c7b325f 重建后**现不存在**；这一串是当时真实跑过的命令名）、`node src/host/doc_enc_check.mjs`、`node src/host/line_cite_check.mjs`、
   `node src/host/doc_currency_check.mjs`、`node src/host/metric_recheck.mjs`、
   `python build/check_io_timing_coverage.py build/timing_summary.rpt`、
   `python build/check_ports.py --dup`、`node build/r119_window_check.mjs --self`、

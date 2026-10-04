@@ -34,16 +34,16 @@
 ## B. 如何验证有效
 
 口径：**同一模型、同一上下文、同一工具版本，绕过/使用技能包各跑一次**（借 §3.1.5.2 的基线口径），
-被控制的变量在记录里列全。协议与字段见 `skills/evals/README.md`，陌生人可照跑的复跑步骤见
-`skills/evals/runbook.md`。
+被控制的变量在记录里列全。协议与字段见 `skills/_meta/distillation-process.md` 第二节（四道门），陌生人可照跑的复跑命令见
+`skills/_meta/validation.md`（旧名 `evals/README.md`、`evals/runbook.md` 在 2026-10-04 c7b325f 重建技能包后**现不存在**，本行只报旧名不指路）。
 
 本章只写**实际做过**的运行，三态分开计数：
 
 | 验证 | 命令 | 证据 | 状态 |
 | --- | --- | --- | --- |
-| 文本尺子的确定性（同一输入两次跑逐字节一致） | `node src/host/doc_enc_check.mjs` ×2、`node src/host/line_cite_check.mjs` ×2 | `skills/evals/raw/doc_enc_pass1.txt`、`doc_enc_pass2.txt`、`line_cite_pass1.txt`、`line_cite_pass2.txt`（`cmp -s` 逐字节一致） | 已复跑 |
-| 装配门禁 G1–G12 真的会红 | `node skills/scripts/check/gates.mjs` | 首轮输出：G1 违规=13、G6 越界=3、G7 表列与实际不同源、G8 死链=4 —— 四条全部可复现，随后逐条判定"确实存在 / 是我的尺子维度错" | 已复跑（含红项） |
-| 索引由目录生成、手改会被抓 | `node skills/scripts/check/gen_index.mjs --check` | 与写入后的 README 比对；不一致 exit 1 | 待验证（要等条目全部到位后跑一次 --check 才算过） |
+| 文本尺子的确定性（同一输入两次跑逐字节一致） | `node src/host/doc_enc_check.mjs` ×2、`node src/host/line_cite_check.mjs` ×2 | `skills/evals/raw/doc_enc_pass1.txt`、`doc_enc_pass2.txt`、`line_cite_pass1.txt`、`line_cite_pass2.txt`（`cmp -s` 逐字节一致）—— 这四份是当时留在旧包 `evals/raw/` 的原始件，2026-10-04 c7b325f 重建技能包时连同 `evals/` 一层撤下、**现不存在**，本行只报当时的留档名不指路 | 已复跑 |
+| 装配门禁 G1–G12 真的会红（旧包 12 项；现役那把判 53 项）| `node skills/scripts/check/gates.mjs`（现不存在）→ 现役 `node skills/_meta/check-skill-package.mjs skills` | 当时旧包 `gates.mjs` 的首轮输出（件现不存在，本行只报数不指路）：G1 违规=13、G6 越界=3、G7 表列与实际不同源、G8 死链=4 —— 四条全部可复现，随后逐条判定"确实存在 / 是我的尺子维度错" | 已复跑（含红项） |
+| 索引由目录生成、手改会被抓 | `node skills/_meta/build-index.mjs skills --check`（旧名 `gen_index.mjs --check`，件现不存在，本行只报旧名）| 与写入后的 README 比对；不一致 exit 1 | 已复跑：本轮 `INDEX 条目=49 类别=10 索引行=49 需改写=no PASS`，rc=0 |
 | 判据 selftest 正反例 | `bash skills/scripts/selftest/run_all.sh` | 该脚本此刻不存在 ⇒ `NOT_MEASURED` | 待验证 |
 
 上面第 2 行的处置结果本身是一次自我纠错的现场：G1 把赛题自己规定的 `README.md` / `SKILL.md` 大写名当成违规、
@@ -61,7 +61,7 @@ G8 把 `{a,b}.tcl` 这种简写记法当路径。**修法是把尺子的量纲�
 | 平台相关 | 器件家族（7 系列 ↔ UltraScale+ ↔ Versal）、端口类型（TMDS_33 / 差分 / LVCMOS）、驱动形态（BD 的 AXI GPIO ↔ MIO）、缓存层级（PS 的 SLC/OCM ↔ 纯 PL） | 各条目第 3 节 + 第 8 节"迁移要改哪几处" |
 | 版本相关 | Vivado/Vitis 2025.2.1 的报告字段位置、`report_methodology` 的 SUMMARY 形状、xsim 的 SystemVerilog 子集 | 各条目第 4 节写明版本，第 3 节写明"报告字段漂了就重新量形状" |
 
-不写"适用于所有 AMD 器件"这样的话。迁移证据目前**没有**跨板卡记录：`skills/evals/migration/` 是空目录
+不写"适用于所有 AMD 器件"这样的话。迁移证据目前**没有**跨板卡记录：当时留作迁移证据的 `skills/evals/migration/` 在 2026-10-04 c7b325f 重建技能包时连同 `evals/` 一层撤下，**现不存在**
 （`ls` 可核），这里如实写"当前不具备迁移条件 + 需要什么"，而不是声称里面已写了什么。
 需要的是第二块板卡（KU5P 第二块板在手，但仓库里的 KU5P 工程已按 2026-09-28 的决定删除）
 或第二个可套用的子功能（例如把 `skills/prompts/criterion-before-code` 用在一个从未走过该流程的子功能上）。
@@ -73,13 +73,13 @@ G8 把 `{a,b}.tcl` 这种简写记法当路径。**修法是把尺子的量纲�
 - 智能体工作流：本次交付本身由一个主 agent + 若干**只看文件、不共享上下文**的子 agent 完成，
   每个子 agent 的产物落进自己的目录（`skills/pitfalls/`、`skills/prompts/`、`skills/templates/`、
   `skills/runtime/`、`skills/scripts/`、`submit/`），主 agent 负责装配与门禁；
-  子 agent 的自述一律当**待复核的断言**处理——这正是 `skills/scripts/check/gates.mjs` 存在的原因。
+  子 agent 的自述一律当**待复核的断言**处理——这正是 `skills/_meta/check-skill-package.mjs` 存在的原因（旧包里那把叫 `gates.mjs`，件现不存在）。
 - 审计：第三方 AI 的审计提示词原样存在 `skills/prompts/`（见其中"交给审计员的提示词"那一节），
   审计报告回来后逐条判"确实存在 / 不成立 / 需裁决"，修完必须重跑 G1–G12。
 
 ## 本章依据的产物
 
 `report/log/issues.md`、`report/log/overnight_log.md`、`report/timing/round_r117.md`、`report/timing/round_r118.md`、
-`report/timing_global.md`、`build/tcl/r117_post_place_hook.tcl`、`skills/README.md`、`skills/_meta/naming-and-format.md`、
-`skills/_meta/sources.md`、`skills/evals/README.md`、`skills/evals/runbook.md`、`skills/evals/raw/`、
-`skills/scripts/check/gates.mjs`、`skills/scripts/check/gen_index.mjs`
+`report/timing_global.md`、`build/tcl/r117_post_place_hook.tcl`、`skills/README.md`、`skills/_meta/writer-contract.md`（旧名 `naming-and-format.md`）、
+`skills/_meta/entry-map.md`（旧名 `sources.md`）、`skills/_meta/distillation-process.md`（旧名 `evals/README.md`）、`skills/_meta/validation.md`（旧名 `evals/runbook.md`）、旧包 `evals/raw/` 那批原始件——括号里这些旧名在 2026-10-04 c7b325f 重建技能包后**现不存在**，本行只报当时依据的名不指路、
+`skills/_meta/check-skill-package.mjs`、`skills/_meta/build-index.mjs`（旧名 `gates.mjs`、`gen_index.mjs` 现不存在，只报旧名）
