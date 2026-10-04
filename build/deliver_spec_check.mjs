@@ -193,15 +193,22 @@ if (want('C-LEN')) {
     return out;
   };
   const CAP = Number(process.env.VP_CLEN_CAP || 45);
-  const over = []; let tableRows = 0, cmp = 0;
+  const DEEP = Number(process.env.VP_CLEN_DEEP || 160);
+  const over = []; let tableRows = 0, cmp = 0, guides = 0, chapters = 0;
   for (const f of present) {
     const t = read(f), ls = t.split(/\r?\n/);
     const p = proseLines(t), tb = ls.filter(l => /^\s*\|/.test(l)).length;
-    cmp += 2; tableRows += tb;
-    if (p.length > CAP) over.push(`${f} 散文=${p.length}（上限 ${CAP}，表格 ${tb} 行不计）`);
+    // 两档（自己记过的规矩：条款之间打架时按"它保护什么"拆硬门与建议，不做一次mass-edit）：
+    //   `<目录>/README.md` = 目录导览，§7.6 的"半页"就是给它的 ⇒ 硬门 CAP；
+    //   再往下的 README = §5.4 点名要的章节正文（复现说明、协作记录…），
+    //   给一个宽得多的地板 DEEP，超了照样红，但不逼把命令逐字抄写成表格外的短句。
+    const isGuide = f.split('/').length === 2;
+    const cap = isGuide ? CAP : DEEP;
+    cmp += 2; tableRows += tb; isGuide ? guides++ : chapters++;
+    if (p.length > cap) over.push(`${f} 散文=${p.length}（${isGuide ? '导览' : '章节'}上限 ${cap}，表格 ${tb} 行不计）`);
   }
   say('C-LEN', 'sub-readme-length', cmp,
-    `子 README=${present.length} 逐个判散文行数≤${CAP} 超=(${over.join(' ; ') || '无'}) 表格行合计=${tableRows}（§2.4/§0.4 强制的表不算长度）`,
+    `子 README=${present.length}（导览 ${guides} 上限 ${CAP}／章节 ${chapters} 上限 ${DEEP}）超=(${over.join(' ; ') || '无'}) 表格行合计=${tableRows}（§2.4/§0.4 强制的表不算长度）`,
     present.length === 0 ? 'NOT_MEASURED' : (over.length ? 'FAIL' : 'PASS'));
   if (process.argv.includes('--len-list')) for (const f of present) console.log(`  ${f} 散文=${proseLines(read(f)).length} 总行=${read(f).split(/\r?\n/).length}`);
 }
