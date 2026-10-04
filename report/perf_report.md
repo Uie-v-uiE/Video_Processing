@@ -1,16 +1,16 @@
 # 性能与资源报告（第三版 / 第四版 V6.x / 逐批次历史读数）
 
-> **这份文件的读法**：下面各节的数字都是**各自那一版当时**的测量值，保留它们是为了看
-> "同一指标在不同版本上的走势"，**不要当成当前值引用**。当前值不在这里复制，只给指路，
-> 指路的对象都跟着构建走、不需要有人记得回来更新这份文档：
->   ① 每一批成套留档的清单——三件套 md5 加那一轮的 `timing_summary`/`utilization`/`power`/`route_status`/`methodology`/`cdc` 报告，
->      例如第 75 批的留档目录 `build/evidence_r75/`（里面的 md5 清单件与那六份报告同目录）；
->   ② 那一轮的发布前检查原始输出，文件名形如 `build/r118_gates.txt`（项数与阈值以 `build/gates.sh` 自己打印的为准）；
->   ③ 走势与"这一版为什么被采纳/否掉"记在 `report/log/overnight_log.md` 的对应小节，问题账在 `report/log/issues.md`。
-> 早期这里写的指路是"`report/log/changelog_v7.md` 的「五版累计」表与 V7.9 检查表"，那句话已经过期——
-> 那份 CHANGELOG 的最后一节停在 V7.9，而板子早已走到第 70、71 批，照它念会念到五十多版之前的数字。
-> 演示口径在 `report/demo_script.md`（它的第 0 步末尾那条"只认 md5"就是"屏上跑的是哪一版"的判据）。
-> 同一份数字抄在第二个地方就会漂移，所以这里只给指路、不复制数值。
+> **这份文件的读法**：下面各节的数字都是**历史各轮留下的读数**，用途是看同一个指标在不同版本上的
+> **走势对比**；这些数字**不要当成当前值引用**。当前值只以两处为准：`data/metrics.csv` 与本轮的
+> `build/report/*.rpt`（`timing_summary`、`utilization`、`power`、`route_status`、`methodology`、
+> `cdc`、`clock_util` 七份，跟着构建重新生成，不需要有人回来更新这一页）。
+> 重跑这一组报告：`vivado -mode batch -source build/report.tcl`。
+> 每一批的发布前检查原始输出按构建轮次留名（文件名形如 `build/r118_gates.txt`），项数与阈值以
+> `build/gates.sh` 自己打印的那一行为准；走势与"这一版为什么被采纳／否掉"记在
+> `report/log/overnight_log.md` 与 `report/log/issues.md`。更早那份跨版本累计表在
+> `report/log/changelog_v7.md`，最后一节是 V7.9，而 V7.9 之后的构建不在里面 ⇒ 照它念会念到几十版
+> 之前的数字，所以它不是当前值的来源。演示口径在 `report/demo_script.md`（它的第 0 步末尾那条
+> "只认 md5"用来确认屏上跑的是哪一版）；抄在第二个地方就会漂移，所以这里只给指路、不复制数值。
 
 > 版本：v3 · PL UDP offload + 右屏无极缩放 + 目标域效果 + 时序收敛  
 > 板卡：RK-ZYNQ7020-F（XC7Z020-CLG484-2）· Vivado 2025.2.1  

@@ -42,7 +42,7 @@
 `set_clock_groups -asynchronous` 把三组钟互相排除，代价与因此留下的未覆盖项见
 `report/timing_global.md` §4c。
 
-`NA` 的口径在 `report/timing/debt_ledger.md` §1 已经写过并固定了读法：
+`NA` 的口径写在 `report/timing/debt_ledger.md` §1，读法在那里已经定死：
 "NA 是『这一族没有同沿路径』，不是『我读不到』"。所以这四行这里只报"清单里没有它们的
 setup/hold 行"，不报"这四颗钟没问题"——两者的区别见第 7 节。
 
@@ -63,7 +63,7 @@ setup/hold 行"，不报"这四颗钟没问题"——两者的区别见第 7 节
 （两个生成器的输出相减会被 `build/timing_roster_diff.sh` 判为无效对照并拒绝，
 `report/timing_global.md` §9、`report/log/issues.md` #326）。
 
-## 4. 这一版的收益在片外那一侧：+0.315 ns，而且它是"违例变小"
+## 4. 这一版动的在片外那一侧：0.315 ns，而两档读数都还是违例
 
 - **是哪一侧的量**：RGMII 收口"片外数据到达时刻 vs IDDR 捕获沿"那一侧的窗余量，
   **不是**片内任何一格 slack。件 `build/evidence/r115_window/probe3_console.txt`：
@@ -72,9 +72,10 @@ setup/hold 行"，不报"这四颗钟没问题"——两者的区别见第 7 节
   两条实测直线 `HOLD(τ) = −2.822 + 0.0630τ`、`SETUP(τ) = +2.005 − 0.0920τ`
   写在 `report/timing/round_r118.md` §一，也记在 `report/timing/cut_ledger.tsv` 的 C8 行——
   该行的"预期收益"格原文是 `+0.315(最差格 -1.185 -> -0.870，同一把尺子同一只 DCP 实测)`；
-  那个文件里的"尺子"指测量脚本。
-- **两条读数都带 `Slack (VIOLATED)`**（件里那四行原文），所以这一格的诚实写法是
-  "在这一族被检查的窗上，最差那一档从 −1.185 抬到 −0.870"，**不是** "+0.315 ns 时序收益"。
+  这句原文里的"尺子"指的就是这套测量脚本——两次读数出自同一份已布线 dcp、同一支脚本。
+- **两条读数都带 `Slack (VIOLATED)`**（件里那四行原文），所以这一格能写的是
+  "在这一族被检查的窗上，最差那一档从 −1.185 抬到 −0.870"，**不能**写成 "+0.315 ns 时序收益"：
+  两档都还是违例，抬起来的是违例的幅度，不是余量。
 - **而且它当前不在被约束的接口上**：本版不加载那个输入窗（第 6 节），所以这 0.315 ns 落在一个
   现在没有被约束建模的接口上。这也是这一处的通过条件不能写成"WNS 变好"的原因：τ 只动抽头
   （这条要求在 `report/timing/round_r118.md` §一末登记过）。
@@ -96,7 +97,7 @@ setup/hold 行"，不报"这四颗钟没问题"——两者的区别见第 7 节
 | `eth_rxc` hold | 0.052 ns | 0.044 ns | 跌，且这是全设计最小的一格 |
 | `sys_clk` setup | 14.876 ns | 14.815 ns | 跌 |
 
-机制**没有可疑**：`impl_1/runme.log` 与 `build/r117_a1_read.sh` 两处输出都记到
+机制对得上两处输出：`impl_1/runme.log` 与 `build/r117_a1_read.sh` 都记到
 `u_pl/u_row/hi_reg_0[0]` 从 239 引脚折到 1、长出 10 颗 replica（`report/timing/round_r117.md` §二之二
 把 `R117HOOK … pins_before=239 / pins_after=1 replica_cells=10` 两行原文抄在里面，
 那一版的位流是 `beda9298331d`）。
@@ -106,15 +107,15 @@ setup/hold 行"，不报"这四颗钟没问题"——两者的区别见第 7 节
 `build/r117_verdict_declined.txt`，登记行 `report/timing/cut_ledger.tsv` 的 C9 行末列
 `declined(official r117: clk_fpga_0 1.850->2.104 wins but clkout0_1/eth_rxc/sys_clk four cells lose …)`。
 
-**两套测量脚本对同一份数据给了不同结论**，这件事没有靠改宽任何一方来消除：
+**两套测量脚本对同一份数据给了不同结论**，两边都没有改宽：
 `build/timing_roster_diff.sh` 的 D3 门槛是"相对余量掉 25 % 以上的域数"，对复制实验版那组数给
-`result=GREEN`；严格那套给 LOSS×4。账记在 `report/log/issues.md` #328，处置是把严格条件
-**独立成可指路的件** `build/evidence/r118_strict_b1.txt`，交付承诺按它判
-（`report/timing_global.md` §9 第 4 段）。形状与更早一次夜间改动里的 C1 复制相同
+`result=GREEN`；严格那套给 LOSS×4。这一处分歧记在 `report/log/issues.md` #328，处置是把严格条件
+**单独写成一份可指路的件** `build/evidence/r118_strict_b1.txt`，交付承诺按它判
+（`report/timing_global.md` §9 第 4 段）。形状与基线那一版那次的 C1 复制相同
 （`report/log/issues.md` #288、`report/timing_global.md` §4e：机制动了、目标族 +0.456 ns，
 代价是 `eth_rxc` hold 0.050→0.035 ⇒ 放弃）。
 
-## 6. RGMII 输入窗：0…31 全档无解 ⇒ 退回候选件，代价明写
+## 6. RGMII 输入窗：0…31 全档无解 ⇒ 退回候选件，代价写在下面
 
 - **为什么退回**：绑上窗之后 `build/gates.sh` 的四条发布硬条件（WNS ≥ 0、失败 setup 端点 == 0、
   WHS ≥ 0、失败 hold 端点 == 0）机械判为未通过，而脚本结尾写死"有未通过项 ⇒ 不采纳，保留上一版"。
@@ -123,9 +124,9 @@ setup/hold 行"，不报"这四颗钟没问题"——两者的区别见第 7 节
   `build/tcl/build_system_axigpio.tcl:28-52`，加载分支打印
   `VP_R116_IO_WINDOW loaded（…预计 5 个 I/O 端点会红）`，默认分支打印
   `VP_R116_IO_WINDOW off（RGMII 输入窗留在候选件 src/constraints/r116_rgmii_input_window.xdc…）`）。
-  这一处**不是放宽**：`report/timing/loosen_ledger.tsv` 里的数据行是 0，那份记录表的两处登记
-  （表头注释与 `report/timing_global.md` §8）写的都是"放宽类改动 0 条数据行"，
-  其中表头注释那一条来自更早的一次夜间改动。撤掉的是"这一版新增的约束"，
+  这一处**不是放宽**：`report/timing/loosen_ledger.tsv` 里的数据行是 0，那份记录表的表头注释与
+  `report/timing_global.md` §8 两处写的都是"放宽类改动 0 条数据行"（表头注释那一条是更早一轮留下的）。
+  撤掉的是"这一版新增的约束"，
   上一版本来也没有它（`report/timing/round_r117.md` §〇）。
 - **为什么它无解**：`report/log/issues.md` #311 的两条区间——
   hold 要 τ ≥ 44.8、setup 要 τ ≤ 21.8，合法 τ 只有 0…31 ⇒ 不相交；去掉那条 0.800 的带只把下界挪到
@@ -136,8 +137,8 @@ setup/hold 行"，不报"这四颗钟没问题"——两者的区别见第 7 节
   **没有被任何输入延迟约束覆盖**。`report/timing/debt_ledger.md` §2 把那 5 个名字点得很清楚，
   并且写着现行 `eth_rxc` 的 WHS 0.052 是"假设数据恰好在时钟沿到达"量出来的**片内**数，
   不含 PHY→FPGA 走线与 PHY 内部延迟那一段。所以第 2 节那格的读法是"片内这一族 MET"，
-  **不是**"收口达标"：没被检查不等于达标（`report/timing_global.md` §9 第 ④ 条、
-  `report/timing/round_r118.md` §四末列出的"不许写的第三句"）。
+  **不是**"收口达标"：本版不加载输入窗，这 5 个端点未参与任何输入延迟检查
+  （`report/timing_global.md` §9 第 ④ 条、`report/timing/round_r118.md` §四末同一条）。
   `build/r118_gates_final.txt` 的 check_timing 一侧也没有替这 5 个端点说"通过"：那一版未通过的
   是另一项——顶层仿真台架 `sim/tb_v98_top_seam.v` 自己的 C5c 判为未通过（帧首若干行在分割线两侧仍带
   上一帧的内容，件 `build/tb_v98_report.txt` 的 `FAIL C5c …` 行与末行
