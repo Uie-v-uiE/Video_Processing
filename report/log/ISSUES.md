@@ -13236,4 +13236,34 @@ A 类 814 份与 B 类残留 2 份**没有动**，原因是：
 两者交集 18 ⇒ 200 + 42 − 18 = **224**，与尺子逐位吻合。差集来源是 `build/evidence/<大写目录>` 这一层，
 说明"只看文件名"的直觉会漏掉目录级违规——这条也正是 C4 判据写成"逐段检查"的原因。
 
+### #338 第三方审计抓到我自己写的尺子里 12 处"空集/全 0 判绿"与 6 处过期口径；改判据时我又把绿的判成红
+
+审计（`skill/evals/records/audit-2026-10-04.md`，逐条处置表在同一份里）实跑 78 个文件后，判据可骗过性一类**逐条成立**：
+`gates.mjs` 的 G7（空表 + 空条目判 PASS）/G8（反引号路径白名单不含 `skill/` ⇒ 指路不存在检不出）/G9（判定值是硬编码 `'PASS'`）/
+G10（名单为空判 PASS；命中项 `path.basename(x ? '' : '')` 恒空串，红了找不到在哪）、
+`gen_index.mjs --check`（条目=0 判 PASS + exit 0，且与 `check/SKILL.md` 自己写的"空表不算通过"矛盾）、
+我新写的 `scripts/check_repo_consistency.mjs` 里 C2/C4/C5/C7/C8/C9/C10 **七处**（其中 C7 的正则与生成表的反引号格式不匹配 ⇒
+"README 状态 ↔ 条目 §7"这条**从未生效过**；C8 名为"汇总一致"却从不比对；C9 只数 `" PASS"` 不看 FAIL；
+C10 缺文件时 `0<=0` 判绿），以及 `build/r119_window_check.mjs` 的 W7–W10 对**全 0 读数**判 PASS、W6 接受"裸 add_files"当已把门。
+五把 P04 脚本尺子（`golden_compare`/`report_metrics`/`regmap_check`/`contract_gen`/`repro_check`）
+对"结构完整但全 0"的输入同样判绿，`repro_check.mjs:315` 还是 `(x?'PASS':'PASS')` 的死三元 + `:303` 的 `bad += 0` 空操作——
+这几把归 P04 那一路修，我没有顺手改（列进红项与 `docs/questions-for-team.md`）。
+
+**修法与读数**（全部实跑，件 `build/evidence/r120_gates_skill_a.txt` 与 `_b.txt`，两跑逐字节一致）：
+空集/全 0 一律加地板或降成 `NOT_MEASURED`；G8 白名单加 `skill/` 之后**当场抓到 5 条死链**
+（README→已退役的 `_MANIFEST.md`、`dma-cache-coherency`→不存在的 `pitfalls/axi-dma-and-memory/`、
+`sources.md`→3 份不存在的 `_proposed-sources.md`、`report_metrics.mjs`→自身尚未写的 `SKILL.md`）；
+G10 逐行补 10 处"本仓示例取值"标注后由红转绿（**改的是内容标注，不是判据**）。
+
+**这一条里我自己的第二个错（更要紧）**：为了修 W6 那个"裸 add_files 也算把门"的洞，
+我把判据收紧成"同一行必须出现开关名"，结果**把真实形状判成红**——
+构建脚本的实际形状是 `if {$::env(VP_R119_TMDS_WINDOW) eq "1"} {` 开一块、块内单独一行 `add_files`，
+开关名不在那一行上。当场 `判定 10 项 红=1`。第二版改成"从引用行往上找 6 行看是否在开关块里"，
+`--self` 再加一条全 0 读数对照（`W10b`），才回到 `红=0 / 11 条畸形各自动红 / 2 条缺输入报 NOT_MEASURED`。
+⇒ **规矩补一条**：改判据（哪怕是"变严"）之后必须立刻跑真件 + 跑 `--self`；
+"变严"不是安全动作，它会用假红掩盖真问题，而假红逼我去放宽时就正好把洞放回去。
+
+**同类第三处**：`sources.md` 里"合并动作由 G8 执行"这句是**假归因**（合并由 `build/r119_merge_sources.py` 做，
+G8 只管"外链要有台账行"），也是审计没抓到、我改它时自己读出来的 ⇒ 归因句也要指得到能证伪的地方。
+
 

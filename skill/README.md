@@ -246,3 +246,89 @@
 
 工程自身的入口是仓库根 `README.md`；判据与数字的流水在 `report/log/OVERNIGHT_LOG.md`、
 `report/log/ISSUES.md`；协作轨迹与自我纠错在 `report/AI_COLLABORATION.md`。
+
+
+## 一览表（生成区）
+
+<!-- BEGIN GENERATED INDEX -->
+
+<!-- 由 skill/scripts/check/gen_index.mjs 生成，共 25 条；条目增删后必须重跑，不要手抄 -->
+
+| 条目路径 | 类别 | 一句话用途 | 适用场景关键词 | 失效条件关键词 | 验证状态 |
+| --- | --- | --- | --- | --- | --- |
+| `skill/pitfalls/assertion-not-in-any-file/SKILL.md` | pitfalls | 没有件的那句话，降级成假设。 | 当一句话里有"已验证/已通过/已修/补进了第 N 节"，而同一段里… | 不适用：对方（或你自己）明确写了"未验证/未实测"的条目——那已经… | 待验证 |
+| `skill/pitfalls/checker-ran-on-nothing/SKILL.md` | pitfalls | 把"没判"从"通过"里分出来。 | 当聚合脚本打印 `ALL PASS` / `PASS`，而其中某几… | 不适用：判据已经打印了**分母**（例如结论行自带"判定 N 项 … | 待验证 |
+| `skill/pitfalls/console-codepage-verdict-shift/SKILL.md` | pitfalls | 先分"编码坏了"还是"行为坏了"。 | 当控制台/日志里一句中文变成"一大长串空白"或乱码，而你正要据此下… | 不适用：坏的是设计行为本身（屏上现象、数值错），不是渲染——那按现… | 待验证 |
+| `skill/pitfalls/exit-zero-nothing-written/SKILL.md` | pitfalls | 退出码不算证据，产物才算。 | 当构建/生成脚本 `exit 0`，但你点名的输出文件时间戳或 m… | 不适用：脚本本身正确非零退出并把错误打全——那是失败分叉，不是本条。 | 待验证 |
+| `skill/pitfalls/report-field-parse-breaks/SKILL.md` | pitfalls | 报告形状变了，先修解析器再说结论。 | 当解析脚本打印"读不到 / FATAL / KeyError"，而… | 不适用：报告确实没生成（文件不存在/0 字节）——那是产物缺失，见… | 待验证 |
+| `skill/pitfalls/tcl-query-empty-means-broken-ruler/SKILL.md` | pitfalls | 空集合先怀疑尺子，别当设计结论。 | 当探针/脚本打出 `*=0`、`COUNT=0`、`NO=0`、名… | 不适用：查询没有 `-quiet`、错误原文已经打在控制台上——那… | 待验证 |
+| `skill/pitfalls/who-else-writes-this-artifact/SKILL.md` | pitfalls | 先问这份件是谁写的，再读它的结论。 | 当一份 `run.log` / 控制台文件里出现两个时间段的行、或… | 不适用：产物由带锁的单写者工具生成（例如每次跑新建一个带时间戳的运… | 待验证 |
+| `skill/pitfalls/win-bash-path-split/SKILL.md` | pitfalls | 同一台机上，路径与参数有三种视图。 | 当 Tcl/批处理工具报 `Directory … does no… | 不适用：纯 Linux/WSL 环境（`/tmp` 只有一份视图）… | 待验证 |
+| `skill/prompts/criterion-before-code/SKILL.md` | prompts | 让 agent 先造出一条能红的判据，再允许它改代码。 | 当协作 agent 提出"我改这几行就好了"，而盘上没有任何一条读… | 已有一条被反例证明能红的判据、且这次只是执行：直接进入改动与复跑，… | 待验证 |
+| `skill/prompts/hw-sw-partition/SKILL.md` | prompts | 用一段提示词把算法切成有依据、有代价、有待实测项的 PS/PL 划分表。 | 当题目要求写"软硬件划分依据"，而你手上只有一段自然语言算法描述、… | 划分已定且只验功能：用门禁/台架类工作流，不要用本模板重开架构辩论… | 待验证 |
+| `skill/prompts/report-to-bottleneck/SKILL.md` | prompts | 让 agent 从报告里定位真瓶颈，并交出逐时钟域花名册与下一刀候选。 | 当 `build/`（或你的报告归档目录）里存在时序汇总、资源利用… | 盘上没有报告文件，只有口头描述或别人的截图：此时任何 slack … | 待验证 |
+| `skill/prompts/single-variable-ab/SKILL.md` | prompts | 把一轮改动做成唯一变量的 A/B，并先证机制动了。 | 当你手上有 2 个以上想试的改动，而构建窗口只够跑一两轮时。 | 本轮真的只有一个候选、且它已经有同变量的两跑凭据：直接判读，别再要… | 待验证 |
+| `skill/references/build-report-field-map/SKILL.md` | references | 报告字段 → 行号与列号，逐行有出处。 | 当你要新写或修一支读 `.rpt` 的解析脚本，需要一份"哪一行第… | **本层不是判据**：任何结论都不能靠本页自称成立，只能靠 `ev… | 待验证 |
+| `skill/references/checker-convention-shapes/SKILL.md` | references | 判据的形状约定，一张表查完。 | 当你要新写一支判据脚本，需要与本仓已有脚本对齐 token、退出码… | **本层不是判据**：任何结论都不能靠本页自称成立，只能靠 `ev… | 待验证 |
+| `skill/references/tool-version-drift/SKILL.md` | references | 版本相关事实，逐行绑版本。 | 当一条 Tcl/工具命令报 `Unknown option`、`i… | **本层不是判据**：本页只回答"是什么、去哪确认"；结论由 `e… | 待验证 |
+| `skill/runtime/dma-cache-coherency/SKILL.md` | runtime | 给 PS↔PL 共享内存的搬运写封装，并按机制定位一致性故障。 | 当同一地址重复回读出现多个不同值，而写入者只应当写一次时。 | **本工程 PL 侧没有例化任何 DMA IP**：BD 里只有 … | 待验证 |
+| `skill/runtime/host-bindings-and-reports/SKILL.md` | runtime | 主机侧读数按契约表建，报告数字按原件进表。 | 当同一份位图/协议需要被"设备侧 + 台架 + 主机脚本"三个读者… | 不适用"从契约表自动产出主机侧绑定代码"的生成器路线：**本工程没… | 待验证 |
+| `skill/runtime/pl-load-verify/SKILL.md` | runtime | 分层证明 PL 已配置且地址通路真的读得回来。 | 当 `program_hw_devices` / 工具链跑完没有报… | 不适用 Linux 侧固件加载形态（`fpga-mgr` / de… | 待验证 |
+| `skill/runtime/register-map/SKILL.md` | runtime | 把 PS↔PL 控制面的位序、偏移、副作用立成一张可对账的表。 | 当"往某个地址写了值，硬件毫无反应"，而编译与工具链都没有报错时。 | 不适用 Linux 用户态 `mmap`/`/dev/mem`/`… | 待验证 |
+| `skill/scripts/check/SKILL.md` | scripts | 生成索引并跑技能包的十二项装配门禁。 | 刚加/删/改过一个 `skill/**/SKILL.md`，需要确… | 想验**设计**（时序/资源/板级）：那是 `build/gate… | 待验证 |
+| `skill/templates/interface-contract/SKILL.md` | templates | 把两侧接口的每个位域与副作用钉成一张表，让联调靠表不靠记忆。 | 当"命令发了没反应"或"读回来的不是写进去的"这类现象出现，而两侧… | 两侧之间只有一条标准总线且无自定义位域（如纯 AXI-Lite 挂… | 待验证 |
+| `skill/templates/project-skeleton/SKILL.md` | templates | 用一张目录树把可交付仓库的骨架立起来，并留好目录对照表。 | 当仓库刚建、`src/ sim/ build/ report/` … | 仓库组织已稳定且这次只改内容：改 `report-forms/` … | 待验证 |
+| `skill/templates/report-forms/SKILL.md` | templates | 把读数填进四张固定表头的表，并让每个数旁边跟着它的出处。 | 当报告里开始出现数字，而没人能立刻说出"这个数出自哪份文件"时。 | 还没有可信读数，只有估算：先按 `../script-templa… | 待验证 |
+| `skill/templates/script-template/SKILL.md` | templates | 一支自带反例、退出码分得清"红"与"没数"的判据脚本骨架。 | 当你已经手工跑过某条检查两三次，想把它变成"一条命令 + 一份留档… | 你要的是报告表格的表头与填写口径：用 `../report-for… | 待验证 |
+| `skill/zynq-video-rtl-debug/SKILL.md` | entry | 上板不亮或画面异常时，按 L0→L4 一层一层往下判，每层留一条能复跑的判据。 | 本仓库里任何一次"改 RTL → 上台架 → 出报告 → 上板"的… | **换工具版本 / 换器件 / 两套 FT2232 撞号 / 参数… | 待验证 |
+
+<!-- END GENERATED INDEX -->
+
+## 验证状态口径（各类别）
+
+以下文字来自各类别此前的 `_MANIFEST.md`。该文件已退役：
+它的索引行与 `scripts/check/gen_index.mjs` 生成的表重复（覆盖关系已实测：三份共 30 条路径行，生成表覆盖 30/30（当时的表是 25 条：30 里含 5 条"同目录参考页"行，它们不各占一行表行）），
+而手写第二份索引必然与生成表漂移，赛题 3.3.5.4 也要求文件名纯小写 ASCII。
+### 类别 `pitfalls`（原 `_MANIFEST.md` 的口径说明，2026-10-04 迁入）
+
+口径说明（一行）：本表只用 `待验证`——这 8 条里 `checker-ran-on-nothing`、`report-field-parse-breaks`、`who-else-writes-this-artifact`、
+`assertion-not-in-any-file`、`console-codepage-verdict-shift`、`win-bash-path-split`、`tcl-query-empty-means-broken-ruler` 的 §7 都写了我这一轮真跑过的命令与实际输出摘要，
+但本任务只允许在 `skill/pitfalls/`、`skill/references/` 下建文件，没有 `evals/` 目录可指，所以不填 `已复跑(见 evals/…)`；
+其中"基线 vs 用它之后"的**效果对比**多数来自历史件而非本轮重跑，逐条标注在各条目 §7 内（含 `【未实测】`/`【待验证】`）。
+候选来源表（给 `_meta/sources.md` 的行）在 `skill/pitfalls/_proposed-sources.md`。
+
+### 类别 `prompts`（原 `_MANIFEST.md` 的口径说明，2026-10-04 迁入）
+
+- `验证状态` 的三取值：`已复跑(见 evals/…)` / `待验证` / `不适用`。
+  本目录**没有一条**能写成"已复跑"：四个模板都要求"同一模板连跑 3 次"并把 3 次输出文件名写进
+  `evals/` 引用，而本次会话未跑任何 agent 会话、也没有 `evals/` 目录的写入授权 ⇒ 全部 `待验证`，
+  每个条目第 7 节各自写明"还差 3 次"。
+- `待验证` 不等于"没有证据"：四个条目第 7 节各自点名了仓库里真实存在、且本次真的打开过的文件与 mtime
+  （例如 `report/PS_VS_PL.md` 2026-10-01 08:06、`report/TIMING_GLOBAL.md` 2026-10-04 04:49、
+  `sim/mut_control.sh` 2026-10-01 07:40、`build/r114_replication_ab.sh` 2026-10-03 13:20）。
+  缺的是"这个模板本身被跑过几次"的对照，不是底层事实的出处。
+- 赛题点名的两个工作流 = `hw-sw-partition`（算法描述 → 软硬件划分）与
+  `report-to-bottleneck`（综合/实现报告 → 定位瓶颈）；另外两条（`criterion-before-code`、
+  `single-variable-ab`）由本仓库真实记录支撑，出处逐行写在 `_proposed-sources.md`。
+
+### 类别 `references`（原 `_MANIFEST.md` 的口径说明，2026-10-04 迁入）
+
+口径说明（一行）：三页的每条行都点名了我这一轮**真的打开过**的文件与行号（件 / 代码 / 台账 / 实跑命令），
+其中 `build-report-field-map` 与 `tool-version-drift` 两页还含我这一轮实跑的输出摘要（`awk` 字段表、`grep -h "Tool Version" … | tr -s ' ' | sort -u` 只剩 1 行、`grep -ac "CRITICAL WARNING"` = 0、`node --version` = `v24.21.0`）。
+状态仍统一填 `待验证` 的理由与该类别退役前的手写清单同口径（该清单已并入本文件，见下）：本任务不允许在 `skill/` 之外建目录，没有 `evals/…` 可指，因此不填 `已复跑(见 evals/…)`；
+每页里没测过的格子按原样写着 `空（未同时见过两个版本）`、`【未核实】`、`【未实测】`，不做填充。
+候选来源表（给 `_meta/sources.md` 的行）在 `skill/references/_proposed-sources.md`。
+
+### 类别 `templates`（原 `_MANIFEST.md` 的口径说明，2026-10-04 迁入）
+
+- `验证状态` 只允许三值。`不适用` 用在"模板正文文件本身"（它是被实例化的载体，不是待复跑的技能条目）。
+- 四个条目的 `SKILL.md` 都是 `待验证`：P03 的验收方式是"**空目录演练**——复制进新目录、只改 `【填入】` 槽位、
+  跑到产出报告归档"。本次授权范围只在 `skill/prompts/` 与 `skill/templates/` 内写文件，
+  未在第二个目录真跑过 ⇒ 各条目第 7 节都明写"模板未经空目录验证"，不宣称"可直接使用"。
+- 唯一一次本次实跑是脚本模板自身的判据跑（`skill/templates/script-template/script-template.sh`）：
+  - `bash -n` ⇒ 无输出（语法通过）；
+  - 不带槽位直接跑 ⇒ `REFUSE: 没设报告目录（当前 REPORT_DIR=）`，`rc=3`；
+  - `bash script-template.sh --self` ⇒ `SELF: 全绿（7 条）`，`rc=0`（正例 + 6 条反例，含"负裕量必须判红"
+    "读不到那一行 ⇒ PARTIAL""射程地板""缺报告 ⇒ REFUSE""空正则 ⇒ REFUSE""探测不到可执行文件 ⇒ REFUSE"）。
+  这三条的输出摘要与命令一起写在 `script-template/SKILL.md` 第 7 节；因为当时 `skill/evals/records/` 还是空目录，
+  表里仍按 `待验证` 的口径登记，不冒充"已复跑（见 evals/…）"。

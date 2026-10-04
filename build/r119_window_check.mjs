@@ -117,9 +117,17 @@ function run(xdcPath, metricsPath, probePath, tclPath, skewPath) {
   else {
     judged++;
     const base = path.basename(xdcPath).replace('.xdc', '');
-    const mentions = tcl.split(/\r?\n/).filter(l => l.includes(base));
-    const gated = mentions.length > 0 && mentions.every(l => /VP_R119_TMDS_WINDOW|env\(/.test(l) || l.trim().startsWith('#') || l.includes('add_files'));
-    out.push(`W6 默认不加载         判 ${judged} 项 引用行=${mentions.length} 全在开关块内=${gated ? '是' : '否'} ${gated ? 'PASS' : 'FAIL'}`);
+    const tclLines = tcl.split(/\r?\n/);
+    const at = tclLines.map((l, i) => ({ l, i })).filter(o => o.l.includes(base));
+    // 审计指出：原来 `l.includes('add_files')` 单独就满足"在开关块内"（裸 add_files 会判绿）。
+    // 我第一版收紧成"同一行要有开关名"结果把真实形状误判成红（真实形状是 if 开一块、块内一行 add_files）。
+    // 正确做法：从引用行往上找 6 行，看它是否落在带开关名的块里；裸 add_files 仍然不算把门。
+    const inSwitchBlock = (idx) => {
+      for (let k = Math.max(0, idx - 6); k <= idx; k++) if (/VP_R119_TMDS_WINDOW|env\(/.test(tclLines[k])) return true;
+      return false;
+    };
+    const gated = at.length > 0 && at.every(o => inSwitchBlock(o.i));
+    out.push(`W6 默认不加载         判 ${judged} 项 引用行=${at.length} 全在开关块内=${gated ? '是' : '否'} ${gated ? 'PASS' : 'FAIL'}`);
   }
 
   // --- W7–W10 成品离散（与规范同量纲的那一问）---
@@ -142,12 +150,17 @@ function run(xdcPath, metricsPath, probePath, tclPath, skewPath) {
     const pairs = [['tmds_clk_p', 'tmds_clk_n'], ['tmds_data_p[0]', 'tmds_data_n[0]'], ['tmds_data_p[1]', 'tmds_data_n[1]'], ['tmds_data_p[2]', 'tmds_data_n[2]']];
 
     // W10 计数地板先算，供 W7/W8/W9 用（缺 lane 时三条一起 NOT_MEASURED，不许"少一条也算过"）
+    // 第三方审计（2026-10-04）指出的两个洞，这里一起补：
+    //   ① 地板原来只数"读到了没有"，**全 0 读数**也能过 ⇒ 现在要求读数 > 0（clock-to-pin 不可能为 0）。
+    //   ② 打印的"钟道=两角齐"与 floorOk 用的不是同一件事（一个查 clk_p 的 min，一个查 clk_n）⇒ 统一到 clk_p 两角。
     judged++;
-    const haveMax = lanes.filter(l => Number.isFinite(t.max[l])).length;
-    const haveMin = lanes.filter(l => Number.isFinite(t.min[l])).length;
-    const havePair = pairs.filter(([a, b]) => Number.isFinite(t.max[a]) && Number.isFinite(t.max[b])).length;
-    const floorOk = haveMax === 3 && haveMin === 3 && havePair === 4 && Number.isFinite(t.max['tmds_clk_p']) && Number.isFinite(t.min['tmds_clk_n']);
-    out.push(`W10 lane 计数地板     判 ${judged} 项 数据道max=${haveMax}/3 min=${haveMin}/3 P-N对=${havePair}/4 钟道=${Number.isFinite(t.max['tmds_clk_p']) && Number.isFinite(t.min['tmds_clk_p']) ? '两角齐' : '缺'} ${floorOk ? 'PASS' : 'FAIL'}`);
+    const haveMax = lanes.filter(l => Number.isFinite(t.max[l]) && t.max[l] > 0).length;
+    const haveMin = lanes.filter(l => Number.isFinite(t.min[l]) && t.min[l] > 0).length;
+    const havePair = pairs.filter(([a, b]) => Number.isFinite(t.max[a]) && Number.isFinite(t.max[b]) && t.max[a] > 0 && t.max[b] > 0).length;
+    const clkBoth = Number.isFinite(t.max['tmds_clk_p']) && t.max['tmds_clk_p'] > 0 && Number.isFinite(t.min['tmds_clk_p']) && t.min['tmds_clk_p'] > 0;
+    const zeroSeen = Object.values(t.max).concat(Object.values(t.min)).filter(v => v === 0).length;
+    const floorOk = haveMax === 3 && haveMin === 3 && havePair === 4 && clkBoth;
+    out.push(`W10 lane 计数地板     判 ${judged} 项 数据道max=${haveMax}/3 min=${haveMin}/3 P-N对=${havePair}/4 钟道=${clkBoth ? '两角齐' : '缺'} 全零读数=${zeroSeen} ${floorOk && zeroSeen === 0 ? 'PASS' : 'FAIL'}`);
 
     const interOf = (corner) => {
       const c = t[corner]['tmds_clk_p'];
@@ -201,6 +214,8 @@ function selftest() {
     ['W8', { xdc: OK, probe: GOODPROBE, tcl: GOODTCL, skew: GOODKEW.replace('PIN| tmds_data_p[2] | min | data_path_delay=1.010ns', 'PIN| tmds_data_p[2] | min | data_path_delay=5.300ns') }],
     ['W9', { xdc: OK, probe: GOODPROBE, tcl: GOODTCL, skew: GOODKEW.replace('PIN| tmds_data_n[1] | max | data_path_delay=2.030ns', 'PIN| tmds_data_n[1] | max | data_path_delay=2.900ns') }],
     ['W10', { xdc: OK, probe: GOODPROBE, tcl: GOODTCL, skew: GOODKEW.split('\n').filter(l => !l.includes('tmds_data_p[2]')).join('\n') }],
+    // 审计指出的洞：地板原来只数"读到了没有"，**全 0 读数**（结构完整但数值为零）能一路判绿 ⇒ 加这一条对照。
+    ['W10b', { xdc: OK, probe: GOODPROBE, tcl: GOODTCL, skew: GOODKEW.replace(/data_path_delay=[0-9.]+ns/g, 'data_path_delay=0.000ns') }],
     ['NM', { xdc: OK, probe: null, tcl: GOODTCL, skew: GOODKEW }],
     ['NMS', { xdc: OK, probe: GOODPROBE, tcl: GOODTCL, skew: null }],
   ];
@@ -212,7 +227,7 @@ function selftest() {
     if (c.skew === null) fs.rmSync(sf, { force: true }); else fs.writeFileSync(sf, c.skew);
     const { out } = run(xf, mf, pf, tf, sf);
     const want = (id === 'NM' || id === 'NMS') ? 'NOT_MEASURED' : 'FAIL';
-    const key = id === 'NM' ? 'W4' : id === 'NMS' ? 'W10' : id;
+    const key = id === 'NM' ? 'W4' : (id === 'NMS' || id === 'W10b') ? 'W10' : id;
     const hit = out.find(l => l.startsWith(key + ' '));
     const got = hit ? hit.trim().split(/\s+/).pop() : '无该行';
     if (want === 'NOT_MEASURED') { if (got === want) nmok++; } else if (got === want) moved++;

@@ -58,7 +58,7 @@ const part = read('report/BUILD.md');
     const pathRe = /((?:build|docs|report|board|data|src|sim|scripts)\/[^\s,;]+|README\.md)/g;
     let ok = 0, miss = [];
     for (const l of rows) { const c = l.match(pathRe) || []; if (c.length) (c.every(x => exists(x)) ? ok++ : miss.push(l.split(',')[0])); else miss.push('(无路径)' + l.split(',')[0]); }
-    row('C2', '指标数字指得到证据', `行=${rows.length} 全指到=${ok} 缺或无路径=${miss.length}${miss.length ? ' 例:' + miss.slice(0, 3).join('|') : ''}`, miss.length === 0 ? 'PASS' : 'FAIL');
+    row('C2', '指标数字指得到证据', `行=${rows.length} 全指到=${ok} 缺或无路径=${miss.length}${miss.length ? ' 例:' + miss.slice(0, 3).join('|') : ''}`, rows.length === 0 ? 'NOT_MEASURED' : (miss.length === 0 ? 'PASS' : 'FAIL'));
   }
 }
 // C3 路径存活：文档里写的相对路径必须存在
@@ -85,7 +85,7 @@ const part = read('report/BUILD.md');
     const list = r.out.split(/\r?\n/).filter(Boolean);
     const bad = list.filter(p => p.split('/').some(seg => !/^[A-Za-z0-9._-]+$/.test(seg) || /[A-Z\u4e00-\u9fff]/.test(seg)));
     const exempt = bad.filter(p => /(^|\/)(README|LICENSE|NOTICE)(\.md)?$/.test(p));
-    row('C4', '文件名纯小写 ASCII', `跟踪文件=${list.length} 违规=${bad.length - exempt.length} 点名豁免=${exempt.length}${bad.length - exempt.length ? ' 例:' + bad.filter(x => !exempt.includes(x)).slice(0, 3).join(' | ') : ''}`, bad.length - exempt.length === 0 ? 'PASS' : 'FAIL');
+    row('C4', '文件名纯小写 ASCII', `跟踪文件=${list.length} 违规=${bad.length - exempt.length} 点名豁免=${exempt.length}${bad.length - exempt.length ? ' 例:' + bad.filter(x => !exempt.includes(x)).slice(0, 3).join(' | ') : ''}`, list.length === 0 ? 'NOT_MEASURED' : (bad.length - exempt.length === 0 ? 'PASS' : 'FAIL'));
   }
 }
 // C5 许可合规：调用 P20 机检（带超时；超时＝NOT_MEASURED，绝不因为"没跑完"就当通过）
@@ -97,7 +97,9 @@ const part = read('report/BUILD.md');
     else {
       const out = s.out || '';
       const reds = (out.match(/\bFAIL$/gm) || []).length, nm = (out.match(/\bNOT_MEASURED$/gm) || []).length;
-      row('C5', '许可与卫生机检', `红=${reds} 未测=${nm} 输出行数=${out.split(/\r?\n/).length}`, s.ok && reds === 0 ? 'PASS' : reds ? 'FAIL' : 'NOT_MEASURED');
+      const olines = out.split(/\r?\n/).filter(l => / (PASS|FAIL|NOT_MEASURED)$/.test(l)).length;
+      // 审计指出的洞：被调脚本"零输出 + rc=0"原来判 PASS ⇒ 加输出地板：至少要看到 6 行判定行才认为它真的跑了。
+      row('C5', '许可与卫生机检', `红=${reds} 未测=${nm} 判定行=${olines}`, olines < 6 ? 'NOT_MEASURED' : (s.ok && reds === 0 ? 'PASS' : reds ? 'FAIL' : 'NOT_MEASURED'));
     }
   }
 }
@@ -113,10 +115,13 @@ const part = read('report/BUILD.md');
   else {
     let checked = 0, conflict = [];
     for (const l of rd.split(/\r?\n/)) {
-      const m = l.match(/\|\s*([a-z0-9_./-]+\/SKILL\.md)\s*\|.*\|\s*(待验证|已复跑[^|]*|不适用)\s*\|/);
+      const m = l.match(/\|\s*`?((?:skill\/)?[a-z0-9_./-]+\/SKILL\.md)`?\s*\|.*\|\s*(待验证|已复跑[^|]*|不适用)\s*\|/);
+      // 审计指出的洞：生成表每行的路径外面包着反引号，原正则的字符类里没有 ` ⇒ 一条都匹配不上，checked 恒 0，
+      // 这条"README 状态 ↔ 条目 §7"的判据从未生效（现在字符类容反引号，并容 `skill/` 前缀）。
       if (!m) continue;
-      const sk = read('skill/' + m[1]);
-      if (sk === null) { conflict.push(`${m[1]} 文件不存在`); continue; }
+      let rel2 = m[1].startsWith('skill/') ? m[1] : 'skill/' + m[1];
+      const sk = read(rel2);
+      if (sk === null) { conflict.push(`${rel2} 文件不存在`); continue; }
       checked++;
       const s7 = (sk.split(/## 7\. 已验证的效果/)[1] || '').split(/## 8\./)[0];
       if (/已复跑/.test(m[2]) && !/【待验证】|【未实测】|NOT_MEASURED/.test(s7) === false) conflict.push(`${m[1]} 表=已复跑 但 §7 仍带未验证标记`);
@@ -132,23 +137,31 @@ const part = read('report/BUILD.md');
   for (const f of mdFiles()) { const t = read(f) || ''; for (const k of marks) { const n = (t.match(new RegExp(k.replace(/[【】]/g, x => '\\' + x), 'g')) || []).length; if (n) { counts[k] = (counts[k] || 0) + n; total += n; } } }
   const open = read('report/90-open-items.md');
   const rows = open === null ? -1 : open.split(/\r?\n/).filter(l => /^\|\s*\d+\s*\|/.test(l)).length;
-  row('C8', '未决项汇总一致', `正文标记总数=${total} ${Object.entries(counts).map(([k, v]) => k + '=' + v).join(' ')} 汇总表行=${rows < 0 ? '缺 report/90-open-items.md' : rows}`,
-    rows < 0 ? 'NOT_MEASURED' : (rows > 0 ? 'PASS' : 'FAIL'));
+  // 审计指出的洞：原来只要 `rows > 0` 就判 PASS，正文标记与汇总表从不比对（名字叫"汇总一致"却不比）。
+  // 现在要求：正文里每一类出现过的标记，汇总表里必须至少有一行认领它；缺类就 FAIL 并把类名念出来。
+  const missingCls = open === null ? [] : Object.keys(counts).filter(k => !open.includes(k));
+  row('C8', '未决项汇总一致', `正文标记总数=${total} ${Object.entries(counts).map(([k, v]) => k + '=' + v).join(' ')} 汇总表行=${rows < 0 ? '缺 report/90-open-items.md' : rows} 未认领的标记类=${missingCls.length}`,
+    rows < 0 ? 'NOT_MEASURED' : (rows > 0 && missingCls.length === 0 ? 'PASS' : 'FAIL'));
 }
 // C9 复现演练
 {
   const rc = read('docs/repro-check.md');
   if (rc === null) row('C9', 'A/B/C 路径复现演练', '缺 docs/repro-check.md（P12）', 'NOT_MEASURED');
   else {
-    const nm = (rc.match(/NOT_MEASURED/g) || []).length, pass = (rc.match(/ PASS/g) || []).length;
-    row('C9', 'A/B/C 路径复现演练', `PASS=${pass} 未测=${nm}`, pass > 0 ? 'PASS' : 'NOT_MEASURED');
+    const nm = (rc.match(/NOT_MEASURED/g) || []).length, pass = (rc.match(/ PASS/g) || []).length, fail = (rc.match(/\bFAIL\b/g) || []).length;
+    // 审计指出的洞：原来只数 " PASS" 出现次数，满篇 FAIL 只要有一处 " PASS" 就绿。
+    // 现在：有 FAIL 就判不了绿；一条 PASS 都没有 ⇒ NOT_MEASURED。
+    row('C9', 'A/B/C 路径复现演练', `PASS=${pass} FAIL=${fail} 未测=${nm}`, fail > 0 ? 'FAIL' : (pass > 0 ? 'PASS' : 'NOT_MEASURED'));
   }
 }
 // C10 时间线自洽：本轮读数件不应早于其声称的来源件（只查 r119 一族，其余 NOT_MEASURED）
 {
   const t = p => exists(p) ? fs.statSync(P(p)).mtimeMs : 0;
-  const ok = t('build/evidence/r119_pin_skew_probe2.txt') <= t('build/evidence/r119_window_check.txt');
-  row('C10', '证据时间线自洽', `读数件→判读件 先后=${ok ? '正确' : '颠倒'}`, ok ? 'PASS' : 'FAIL');
+  const both = exists('build/evidence/r119_pin_skew_probe2.txt') && exists('build/evidence/r119_window_check.txt');
+  const ok = both && t('build/evidence/r119_pin_skew_probe2.txt') <= t('build/evidence/r119_window_check.txt');
+  // 审计指出的洞：t() 对缺失件返回 0，两份都不存在时 `0 <= 0` 判 PASS。现在先要求两件都在盘上。
+  row('C10', '证据时间线自洽', `两件齐=${both ? '是' : '否'} 读数件→判读件 先后=${both ? (ok ? '正确' : '颠倒') : '无从判'}`,
+    both ? (ok ? 'PASS' : 'FAIL') : 'NOT_MEASURED');
 }
 // C11 失败可见
 {
