@@ -13565,3 +13565,22 @@ VP_CLEN_CAP=200 会让 6 份导览全绿——证明这把尺子的牙齿在"导
 （`不存在`/`不入库` 都在里面），尺子从 `build/make_submission.sh` 现读该正则，两处漂了会判红。
 工具干跑读数：活文档=200 缺口行=30 旧包名=32（`report/submission-checklist.md` 两行属"过期声明"，
 按内容改写而不是补豁免词，留给清单重写那一刀）。
+
+### #359 终审三处红其实长在尺子身上：C6/C12 调的是从未入库的旧包件名，C4 的豁免名单少了两个条文点名的名字
+2026-10-04 20:44 实跑 `node build/checks/check_repo_consistency.mjs`（`VP_HYGIENE_TMO_MS=120000`）读数
+`判定 12 项 绿=7 红=3 未测=2`，其中三处不是树的问题：
+- **C6** 调 `skills/scripts/check/gen_index.mjs --check`、**C12** 调 `skills/scripts/check/gates.mjs`——
+  这两个名字在 git 全部历史里都查不到（`#358` 已量，同一条命令对 `skills/README.md` 返回两笔 ⇒ 方法有效）。
+  等价现役件是 `skills/_meta/build-index.mjs skills --check` 与 `skills/_meta/run-all-checks.mjs skills`
+  （调用形状抄自 `run-all-checks.mjs:28-29`，不猜）。
+  改完实跑：C6 `INDEX 条目=49 类别=10 索引行=49 需改写=no PASS`；
+  C12 的形状常数也从 12 改成**量出来的 9**（现役件打 M1–M3 + S1–S6，自己那句汇总是 `判 9 项`）
+  ⇒ `绿=9 红=0 未测=0 判据行=9 加总对账=9/9 PASS`。
+  留着旧常数就是"照抄旧文档的 12"，那条判据会永远 NOT_MEASURED——**常数也是被断言**。
+- **C4** 的豁免正则 `/(^|\/)(README|LICENSE|NOTICE)(\.md)?$/` 匹配不到 `README_EN.md`
+  （结尾是 `_EN.md`）与 `SKILL.md`，于是 50 条"违规"全是这两个名字。
+  现按名字逐个计数并打分布，跑出来 `违规=0 豁免=71 分布={LICENSE:1, README.md:20, README_EN.md:1, SKILL.md:49}`，
+  名单外样例读空 ⇒ 树里没有任何中文/空格/特殊字符名（§0.3 真正禁的东西）。
+  为什么这两个名字该豁免：`README.md / README_EN.md / LICENSE` 是 §0.4 与 §3.5 逐字点名的交付件名，
+  `SKILL.md` 是 §5.3 要的"技能包"条目外壳名、技能加载器只认这个拼写；
+  改名的另一面是让 §5.3 的交付物不再能被加载，这条权衡在清单里如实写出，不藏在豁免名单背后。
