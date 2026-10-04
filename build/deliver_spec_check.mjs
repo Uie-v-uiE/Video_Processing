@@ -211,7 +211,9 @@ if (want('C5')) {
   const empty = need.filter(d => !tracked.some(f => f.startsWith(d + '/')));
   const renamed = tracked.some(f => f.startsWith('skills/')) && !tracked.some(f => f.startsWith('skills/')) ? 'skills 现为 skill 需改名' : '';
   const sreadme = read('skills/README.md') || read('skills/README.md');
-  const four = [['适用范围', /适用范围|适用场景|scope/i], ['使用方法', /使用方法|用法|usage/i], ['失效条件', /失效条件|边界|limits/i], ['已验证的复用结果', /复用结果|已验证|效果/i]];
+  // §5.3 点名的四个词按**字面**判：同义词放行等于这把尺子量不到（第一版写的
+  // `/适用场景|scope/`、`/效果/i` 之类让 skills/README.md 一个"适用范围"都没有也报绿）。
+  const four = [['适用范围', /适用范围/], ['使用方法', /使用方法/], ['失效条件', /失效条件/], ['已验证的复用结果', /已验证的复用结果|已验证复用结果/]];
   const missFour = four.filter(([, re]) => !re.test(sreadme)).map(([n]) => n);
   const rneed = [['选题背景与创新点', /背景|创新/], ['设计原理与功能框图', /原理|框图/], ['软硬件划分与接口设计', /划分|接口/], ['优化前后性能与资源对比', /对比|优化/], ['失败分析', /失败/], ['复现说明', /复现/], ['大模型协作记录', /协作|提示词|模型/]];
   const rtxt = tracked.filter(f => f.startsWith('report/') && f.endsWith('.md')).map(read).join('\n');
