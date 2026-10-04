@@ -51,6 +51,24 @@ if {[info exists ::env(VP_R116_IO_WINDOW)] && $::env(VP_R116_IO_WINDOW) eq "1"} 
   puts "VP_R116_IO_WINDOW off（RGMII 输入窗留在候选件 src/constraints/r116_rgmii_input_window.xdc，原因见上方注释）"
 }
 
+# 6b) HDMI **源端（TP1）** 对外窗（2026-10-04 取到数之后新加的候选件，默认同样不加载）
+#   数字与出处：钟↔数据 = 0.20 Tcharacter（HDMI 1.4 §4.2.4 Table 4-24，1.3/1.1 同值；
+#   逐条判定与"哪些只能作第三方代理"写在 report/io/hdmi_cts_source_window.md）。
+#   当前档 50 MHz 像素钟 ⇒ 半窗 ±4.000 ns；参考时钟对象由 pin 反查得到（clkout1_1，件 build/evidence/r119_ser_clock_probe.txt）。
+#   为什么默认关：**新增约束必须先用一轮构建量名册**（别域不许变差），量过之前带进发布物就是用声明代替测量。
+#   开法：VP_R119_TMDS_WINDOW=1 再构建一次。
+#   注意：这里**不放** Tcl 守卫到 .xdc 里——2026-10-04 实测 Vivado 解析 .xdc 时对 `if`/`puts` 报
+#   Designutils 20-1307 并整块跳过（件 build/evidence/r119_xdc_loads_probe2.txt），守卫会静默失效；
+#   数字推导、参考钟身份、射程这三件事由只读尺子 build/r119_window_check.mjs 判（--self 有 6 条能红的对照）。
+if {[info exists ::env(VP_R119_TMDS_WINDOW)] && $::env(VP_R119_TMDS_WINDOW) eq "1"} {
+  set hwxdc [add_files -fileset constrs_1 -norecurse [file join $root src constraints r119_hdmi_source_window.xdc]]
+  set_property used_in_synthesis false $hwxdc
+  set_property used_in_implementation true $hwxdc
+  puts "VP_R119_TMDS_WINDOW loaded（HDMI 源端 TP1 窗已进实现；这一轮的量还没做，别念成已采纳）"
+} else {
+  puts "VP_R119_TMDS_WINDOW off（候选件 src/constraints/r119_hdmi_source_window.xdc，缺的是一次量名册的构建）"
+}
+
 create_bd_design design_1
 create_bd_cell -type ip -vlnv xilinx.com:ip:processing_system7:5.5 processing_system7_0
 set ps [get_bd_cells processing_system7_0]

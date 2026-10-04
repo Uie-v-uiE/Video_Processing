@@ -68,6 +68,10 @@ VP_XSDB=<Vitis>/bin/xsdb.bat bash build/board_verify.sh --battery --geom
 **本页不作门禁全绿声明**：某一版有没有过门禁、过几项、哪一项红，只以
 `bash build/gates.sh` 打印的那一行为准（红项存在时它会明说"有红项"，不会含糊）。
 
+## 提交阅读路径（`submit/`）
+
+交付文档的重构阅读路径在 [`submit/README.md`](submit/README.md)：八章设计报告、复现说明、以及"推荐结构 → 本仓库位置"的目录对照说明（赛题 §3.3.5.4 对采用其他组织方式的队伍的那句要求）。它**不复制任何数字**——数字只在 `data/metrics.csv` 与门禁那一行里读。
+
 ## 目录
 
 | 目录 | 内容 |

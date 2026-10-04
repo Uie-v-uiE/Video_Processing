@@ -150,3 +150,7 @@ build/serial_bytes_*.txt
 # 上手卡（HANDS_ON）留在本机给上板的人自己看，不进 git、不进提交包：
 # 交付件里 board/README.md 已经写了"上板工程 / 运行脚本 / 实测输出"三块，两张卡会让评审重复读。
 board/HANDS_ON.md
+
+# 2026-10-04（P11 学习文档线）：项目拆解学习文档只留本机，不上传 GitHub、不进提交包。
+# 与 report/study/ 同一条口径：写在 .gitignore 里让这条排除规则本身可被审查看见。
+docs/walkthrough/

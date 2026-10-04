@@ -13107,3 +13107,59 @@ D1b 就是取不到 ⇒ `claims=0` ⇒ 它自带的"≥2"射程地板把整项�
 
 **改了什么（不动地板）**：备份删掉之前先把它证明成纯前缀（上面那三条等式），删完再单跑两支尺子确认 `D5: CLEAN（硬错 0）`；随后门禁重跑（件 `build/evidence/r118_board/g1c.txt`、`build/evidence/r118_board/g2c.txt`、`build/evidence/r118_board/g3c.txt` 与汇总 `build/evidence/r118_board/gatesc_summary.txt`：第一次仍读着旧的基准件 ⇒ 22 绿/2 红，定版之后两跑 **23 绿/1 红**且逐字节一致）。
 **往前的纪律**：给"会被扫描的文件"留快照时，落到 `*.txt`（不在 D5/D1 的扫描形状里）或直接靠 git（HEAD 本身就是那份快照，验证方法就是 `git show HEAD:<path>` 逐字符比），**不要在仓库里造一份带旧行号的 `.md`**。
+
+### #334 探针自己两次读空：`PORT| … | clock=` 与 `PERF.ACTUAL_PERIOD` —— 都是"我按记忆里的属性名问工具"造成的，不是设计没有时钟
+
+**现场（2026-10-04 09:0x，为了给那 6 个输出脚配 HDMI 源端窗）**：
+
+1. 第一支只读探针 `build/tcl/probe_tmds_clocks.tcl` 里我写了 `get_property PERF.ACTUAL_PERIOD [get_clocks …]`
+   ⇒ `ERROR: [Common 17-54] The object 'clock' does not have a property 'PERF.ACTUAL_PERIOD'`，
+   而且**这一条报错把整支脚本杀在第一个 clock 上**，所以 `PORT|` 那一段一行都没打出来
+   （件 `build/evidence/r119_tmds_clock_probe.txt` 尾部）。改成 `PERIOD` 并给每个属性读法套 `catch` 之后，
+   8 条时钟全部读出来了：`clk_fpga_0 10.000 / sys_clk 20.000 / eth_rxc 8.000 / clkfbout 20.000 /
+   clkout2 5.000 / clkfbout_1 20.000 / clkout0_1 20.000 / clkout1_1 4.000`（同一份 `opt.dcp`，只读）。
+2. 同一个脚本读 `get_property CLOCK [get_ports tmds_*]` ⇒ **十个端口全部 `clock=` 空**。
+   这**不是**"TMDS 输出没有时钟"，而是 `CLOCK` 这个属性在 port 对象上不是"驱动时钟"的意思
+   （那是 pin/net 一层的概念）。如果我就此写"输出脚无时钟 ⇒ 只能 set_max_delay 或干脆不管"，
+   就是把工具的沉默当证据——本仓库已经为这一族错过三次（Vivado Tcl 的 `-filter` 在 net/cell `NAME` 上读空那一族）。
+3. 于是换问法：不猜属性，改问工具自己的路径报告——第二支 `build/tcl/probe_tmds_launch_clock.tcl`
+   对每个端口做一次 `report_timing -to <port> -setup -max_paths 1`，读报告头里的
+   `Clock / Source Clock / Path Group` 行（件 `build/evidence/r119_tmds_launch_probe.txt`）。
+   只有这条报告能说出"这颗输出是被哪条时钟发出的"，约束里的 `-clock` 才允许写它的名字。
+
+**归到已有规矩**：这就是"报告字段要先量形状再解析"（P04 铁律 9）在**属性名**上的同一件事：
+属性名、列序、字段位置都属于"工具的形状"，只能量，不能凭记忆。
+**这一条里新的一半**：探针**报错会把自己打死**，而打死之后留下的"缺行"看起来像"没有这个东西"。
+所以只读探针的规矩要加一句：**任何一次 `get_property` 都要 `catch` 住并把读失败原样打出来**，
+宁可打印 `PROP_ERR:…` 也不许让整支脚本退出——退出 = 后面几层一个都没测 = `NOT_MEASURED`，
+而 `NOT_MEASURED` 和"没有"在文档里是两句完全不同的话。
+
+### #335 `.xdc` 里写 Tcl 守卫会被解析器整块跳过；而"把规范 skew 当 set_output_delay 窗"是量纲错
+
+**症状（两件，同一轮里各自独立发生）**：
+1. `src/constraints/r119_hdmi_source_window.xdc` 第一版在里面写了 `if {[llength [get_clocks -quiet …]] == 0} { error … }`
+   与 `puts`，`read_xdc` 报三行 `CRITICAL WARNING: [Designutils 20-1307] Command 'if'/'puts' is not supported in the xdc constraint file.`
+   ——**但 rc=0，约束文件继续"加载成功"**，守卫根本没执行（件 `build/evidence/r119_xdc_loads_probe2.txt`）。
+2. 改成纯 SDC 之后窗真的挂上了（`Path Group` 从 `(none)` 变成有钟），但**两条数据道立刻判红**：
+   相对片内串行钟 `clkout1_1` 是 −3.482/−3.458/−3.474 ns（件 `_probe3.txt`）；
+   换成打在钟脚上的 20 ns 参考钟是 −4.897/−4.873/−4.890 ns（件 `_probe4_pinclk.txt`，
+   工具自己打印 `Requirement: 4.000ns (r119b_tmclk rise@20.000ns - clkout1_1 rise@16.000ns)`）。
+
+**根因（第 2 件是概念错，不是设计错）**：HDMI 源端 TP1 那条 `Inter-Pair Skew … max | 0.20 Tcharacter`
+是**两个输出脚到达时刻之差的上限**（单边离散量），而 `set_output_delay` 的语义是"外部接收器在参考沿附近采样"的窗。
+边沿对齐的 TMDS 输出被当成同步采样对象，工具就把 4 ns 的钟周期当采样要求 ⇒ 必然造违例。
+规范本体也没给"钟↔数据 setup/hold 窗"这个参数（HDMI 1.3 第 45 页原文：眼图掩码
+"specifies the clock to data jitter indirectly"）。
+
+**判别动作**：不做任何设计改动，只把问法换成与规范同量纲的那一句——
+在**已布线**成品上量 `tmds_clk_p` 与 `tmds_data_p[0..2]`（含各自 `_n`）的 clock-to-pin 到达时刻离散，
+对回 0.20 `Tcharacter`（4.000 ns）与 0.15 `Tbit`（0.300 ns）。
+探针 `build/tcl/probe_tmds_pin_skew.tcl`（逐脚打印 `data arrival time`，读不到打印 `NOT_MEASURED`）。
+
+**新立的规矩（两件都要记）**：
+- **约束文件只写 SDC 子集**：守卫、计算、打印一律放回 Tcl 脚本（或构建脚本的开关块）；
+  想要"读不到就停"，用尺子（`build/r119_window_check.mjs`，`--self` 有 6 条能红的对照）在构建之外判。
+- **把外部规范的数搬进 SDC 之前，先问它的量纲**：是"窗"（setup/hold）还是"离散上限"（skew）还是"波形质量"（眼/抖动/占空比/沿）。
+  只有第一类能直接用 `set_input_delay/set_output_delay`；第二类要问 pin-to-pin 离散；第三类 SDC 里根本没有容器，只能仿真与仪器。
+  挂错容器得到的红不是设计不合格的证据，放宽它也不是满足规范——**这条与"两个被相减的数必须同单位"是同一条规矩在约束侧的形态**。
+

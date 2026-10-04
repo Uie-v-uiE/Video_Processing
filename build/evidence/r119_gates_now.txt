@@ -1,0 +1,13 @@
+G1 命名纯 ASCII 小写               判 83 项 违规=0 扫=83 PASS
+G2 条目外壳与 name                 判 31 项 不合=7 例:skill/templates/interface-contract:缺 SKILL.md skill/scripts/golden_compare:缺 SKILL.md skill/scripts/report_metrics:缺 SKILL.md FAIL
+G3 description 形状             判 24 项 硬错=0 PASS
+G4 八节外壳                       判 24 项 条目=24 八节齐且有序 PASS
+G5 无 TODO/第二份 README          判 71 项 残留=0 念出豁免=1（_meta/naming-and-format.md 是判据定义处） PASS
+G6 长度与按需分层                    判 71 项 越界=1 例:skill/templates/project-skeleton/project-skeleton.md >100 行无目录 FAIL
+G7 索引双向一致                     判 45 项 表列=21 实际=24 死行=0 漏条=3 FAIL
+G8 链接与指路可解析                   判 894 项 死链=0 无台账外链=0 PASS
+G9 降级标记计数                     判 71 项 总242 填入=173 待验证=32 未核实=6 未实测=31 分布在 36 个文件 PASS
+G10 本队专有名                      判 10 项 名单=78 命中=10 未标注=7 例:system_top axi_frame_writer axi_frame_writer64 FAIL
+G11 脚本 selftest 可跑             判 0 项 缺 skill/scripts/selftest/run_all.sh NOT_MEASURED
+G12 编码与截断字节                    判 71 项 坏=0 PASS
+GATES 技能包：判定 12 项 绿=7 红=4 未测=1 —— 有红项，不提交 FAIL

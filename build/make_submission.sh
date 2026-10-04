@@ -90,7 +90,7 @@ BUILD_DEV_ONLY=(
 DOC_EXCLUDE=(report/log/CONTEST_CHECKLIST.md)
 
 # ---- 无论有没有被点名都留着：跑起来的那一套 ----
-KEEP_ALWAYS_RE='\.(sh|tcl|py|ps1|bat|xdc|f|v|c|h)$|^src/(rtl|ps|constraints)/|^data/golden/|MANIFEST|README'
+KEEP_ALWAYS_RE='\.(sh|tcl|py|ps1|bat|xdc|f|v|c|h)$|^src/(rtl|ps|constraints)/|^data/golden/|MANIFEST|README|^submit/|^skill/'
 
 cd "$REPO"
 COMMIT="$(git rev-parse --short HEAD)"
