@@ -63,7 +63,7 @@ setup/hold 行"，不报"这四颗钟没问题"——两者的区别见第 7 节
 （两个生成器的输出相减会被 `build/timing_roster_diff.sh` 判为无效对照并拒绝，
 `report/timing_global.md` §9、`report/log/issues.md` #326）。
 
-## 4. 这一版动的在片外那一侧：0.315 ns，而两档读数都还是违例
+## 4. 这一版动的是片外那一侧：0.315 ns，而两档读数都还是违例
 
 - **是哪一侧的量**：RGMII 收口"片外数据到达时刻 vs IDDR 捕获沿"那一侧的窗余量，
   **不是**片内任何一格 slack。件 `build/evidence/r115_window/probe3_console.txt`：
@@ -163,18 +163,18 @@ setup/hold 行"，不报"这四颗钟没问题"——两者的区别见第 7 节
    `report/timing_global.md` §4 "自加不确定度"那一行写的就是这个不对称），其余三域一分没扣。
    ⇒ 第 2 节那四个 hold 数（0.052 / 0.053 / 0.059 / 0.222）只可同域比较，不可跨域比大小；
    "四域 hold 余量差不多"是约束写法造出来的形状，不是设计事实。
-   把同一 0.800 带给每个钟量一次的结果是**测量、不是采纳**：
+   把同一 0.800 带给每个钟量过一次，那一次只是量，没有被采纳：
    全设计 WHS −0.747 / 25,742 失败端点（`report/log/issues.md` #302）。
 3. **板侧那 5 个端点的真实差额没有数。** 结论不能写成"板上真实 hold 差额就是 −0.870"：
    窗模型自身还有 `TskewR` 那一行可能被混用的残余风险
-   （`report/timing/rgmii_window_model.md` §6/§7.5，登记句在 `report/timing/round_r117.md` §四
-   与 `report/timing/round_r118.md` §四末"不许写的两句"）。也不能写"换短钟也关不掉"——
+   （`report/timing/rgmii_window_model.md` §6/§7.5，这一条也记在 `report/timing/round_r117.md` §四
+   与 `report/timing/round_r118.md` §四末）。也不能写"换短钟也关不掉"——
    BUFIO 的快角 DCD 还没实测（`report/log/issues.md` #323：本机两本官方手册按
-   "同一行既有数字又落在钟语境里"筛，命中 0 页；这句只到"没筛出来"）。
+   "同一行既有数字又落在钟语境里"筛，命中 0 页 ⇒ 手册里没有这个数，只能说到"没查到"）。
 
 ## 8. "到极限"这句话能说到哪一步
 
-能说的范围以指得出件为限（`report/timing_global.md` §9 末与 `report/timing/round_r118.md` §四给的是
+能说的范围只到指得出件的那一步（`report/timing_global.md` §9 末与 `report/timing/round_r118.md` §四给的是
 同一段）：四个域逐格要么为正、要么被证明了关不掉；非放宽的物理手段（策略扫描、同 dcp 重跑
 放置布线、Pblock、BRAM 换 setup、复制广播网 C9、灰码 `ASYNC_REG`、τ 扫档）已逐一量过并给出赢或
 不采纳的结论；唯一还能改变结论的是架构那一处（IDDR 吃短捕获钟 + 一级同步 FIFO 再进 BUFG 流水线），

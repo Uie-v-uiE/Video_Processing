@@ -11,7 +11,7 @@
    ② 同一指标**换过版本就全部列出**（含更差的那几批），不许只挑最好的一行。
    ③ **"计数器 = 0"的板侧读数必须同一份读数里带 `eth_live=1`**，否则数值填 `—`、类别填"未报"
      （出处 `report/log/issues.md:12782` 的 #316 第①条）。
-   ④ 每个数旁边写清**它是哪一批构建/哪一次板级会话**的读数；跨批次相减得来的差只念不判
+   ④ 每个数旁边写清**它是哪一批构建/哪一次板级读数**；跨批次相减得来的差只念不判
      （出处 `board/acceptance.md:24` 里登记的那条阅读规则）。
 3. **本表不改 `data/metrics.csv`**（禁区）。需要引它的数值时**逐字引 + 注明出处行的行号**，
    并且每次引用前后各跑一次那条数字对账（第 6 节），确认没有把它的未通过项带出来。
@@ -44,7 +44,7 @@
 | 逐时钟 setup 余量（板上这一版） | 核心 | eth_rxc 0.739 / clk_fpga_0 1.850 / clkout0_1 3.630 / sys_clk 14.876 | ns | ②小数三位 ③对象=各时钟域内路径 ⑤四域周期 8 / 10 / 20 / 20 ns ⑥静态；余量占比 9.24 % / 18.5 % / 18.15 % / 74.38 %（分子=该域 WNS、分母=该域周期，两个数都来自同一份报告，不许人脑补分母——出处 `src/host/metric_recheck.mjs:146-148` 那段注释记录的 12 % 除错周期的教训） | 一次布线后报告 | `build/timing_summary.rpt`、`build/evidence/p16c/metric_recheck_before.txt` |
 | 逐时钟 hold 余量（板上这一版） | 核心 | eth_rxc 0.052 / clk_fpga_0 0.053 / clkout0_1 0.059 / sys_clk 0.222 | ns | 同上六件；`eth_rxc` 那一格是**加过 0.800 ns hold 不确定度之后**剩下的量，`clk_fpga_0` 那一格是同沿 min 检查的裸余量 ⇒ 两格不可直接比大小（`board/README.md:22-27` 明写这条，出处 `build/clock_uncertainty.rpt`） | 一次布线后报告 | `build/timing_summary.rpt`、`build/clock_uncertainty.rpt` |
 | 脉冲宽度 WPWS / 失败端点 | 核心 | 0.264 / 0 of 12634 | ns / 个 | ②小数三位 ③时钟组检查，与输入帧率无关 ⑤全部时钟域 ⑥静态；`data/metrics.csv` 没有单独这一行，数值直接取报告表体第 9–12 列 | 一次布线后报告 | `build/timing_summary.rpt` |
-| 收口 I/O 端点的检查覆盖 | 核心 | 5 个端点未检查 | 个 | ①共用 ③对象=`eth_rxd[3:0]`+`eth_rx_ctl`；本版无 `set_input_delay` 窗 ⇒ **未检查不等于满足**（H5）；带窗那一版的完整证明留在 `report/timing_global.md` 第 6 节 | 一次布线后报告 | `build/timing_summary.rpt`、`src/constraints/r116_rgmii_input_window.xdc`、`build/evidence/r115_window/probe3_console.txt` |
+| 收口 I/O 端点的检查覆盖 | 核心 | 5 个端点未检查 | 个 | ①共用 ③对象=`eth_rxd[3:0]`+`eth_rx_ctl`；本版未加 RGMII 收口输入窗 ⇒ **这 5 个 I/O 端点未参与检查**（H5）；带窗那一版的完整证明留在 `report/timing_global.md` 第 6 节 | 一次布线后报告 | `build/timing_summary.rpt`、`src/constraints/r116_rgmii_input_window.xdc`、`build/evidence/r115_window/probe3_console.txt` |
 | 显示像素时钟 | 核心 | 50 | MHz | ①共用 ②工具从 Clock Summary 读出的 Frequency 列 ③对象=PL 侧 MMCM 的那一路输出 ④2025.2.1 ⑤`clkout0_1` 周期 20.000 ns ⑥静态；由 `src/host/metric_recheck.mjs` 的 `显示像素时钟` 规则对回报告（本次核对打印 `OK  row=显示像素时钟 csv=50 report=50`） | 约束一次生效 | `build/timing_summary.rpt`、`build/evidence/p16c/metric_recheck_before.txt` |
 | 显示分辨率与场频 | 核心 | 1024×600 @ 59.5 | — | ①共用 + 面板 1024×600 ②`H_TOTAL=1344`、`V_TOTAL=625` ⇒ 50 MHz ÷ 1344 ÷ 625 = 59.5 Hz（不是 50 Hz，出处 `board/README.md:16`）③双窗输出（左窗原图 / 右窗处理图，缝位由 `split` 控制字决定）④2025.2.1 ⑤50 MHz 像素域 ⑥无 DVFS；`data/metrics.csv:4` 逐字同值 | 连续显示 | `board/README.md`、`data/metrics.csv` |
 | Slice LUT 占用（读数取自第 112 批，构建 = 本版） | 资源 | 14154（26.61 %） | 个 | ①共用 ②报告直接计数，可用 53200 ③对象=实现后整设计 ④2025.2.1 ⑤与时钟无关 ⑥静态；逐批走势（全部列出，不挑最小）：第 94 批 14374 → 第 96 批 14388 → 第 97 批 14379 → 第 103 批 14333 → 第 104 批 14334 → 第 106/109 批 14323 → 第 110 批 −243 → 第 112 批 14154 附近 → 本版报告 14154。`data/metrics.csv:8` 逐字念这一串差值并自己声明"这些差都是从各批报告相减得来的，不是重跑的" | 一次构建（实现后报告） | `build/utilization.rpt`、`data/metrics.csv` |
@@ -59,17 +59,17 @@
 | 片上结温（板读 XADC，第 110 / 104 / 97 批） | 实测 | 60.63 – 60.68 / 61.72 – 61.98 / 63.13 – 63.38 | ℃ | 三批各 2 / 4 / 3 条 `[TEMP]`；第 97 批那一次明写"抓的时候 SD 本地播放在跑，不是空载"（`build/board_temp_r97.txt:5`）⇒ **工况不同，三行不可比**，`data/metrics.csv:29` 自己就写了"差属工况与热身差异、别当收益或回归" | 各一次串口电池 | `build/evidence/r110_serial_raw.txt`、`build/evidence/r104_temp_lines.txt`、`build/board_temp_r97.txt` |
 | 时钟结构：BUFIO 用量 | 核心 | 0 | 只 | ①共用 ②`report_clock_networks` 的直接计数 ③对象=已布线网表 ④2025.2.1 ⑤覆盖 8 条时钟（`build/clock_util.rpt:59-66` 的 g0..g7）⑥静态；改前那一份是 1（`board/acceptance.md:25`）；`BUFGCTRL = 8`（`:43`）；这一条是 #57 的**结构**判定条件，不靠 slack 碰运气 | 一次构建 | `build/clock_util.rpt` |
 | 时钟结构：`eth_rxc` 的 BUFG 负载 | 核心 | 2544 | 个 | 同上六件；本版 `build/clock_util.rpt:61` 的 `2544`；第 94 批那一行念的是 2478（`board/acceptance.md:25`）⇒ 逐批读数，不同源不比较 | 一次构建 | `build/clock_util.rpt` |
-| 最差 20 条 hold 路径的时钟偏斜 | 未报 | — | — | 这一格有读数出口（`build/hold_paths.rpt`），但**本版没有逐条重读**：`board/acceptance.md:58` 自己写明"这一轮没有逐条重读（那是第 92 批那一次的读法，文件也还在盘上）" ⇒ 按"读不到不等于 PASS"填 `—`；缺它这行数字不能和第 94 批那一轮的 0.013~0.349 ns 比 | 待复测 | `build/hold_paths.rpt`、`build/r88_clock_util.rpt` |
+| 最差 20 条 hold 路径的时钟偏斜 | 未报 | — | — | 这一格有读数出口（`build/hold_paths.rpt`），但**本版没有逐条重读**：`board/acceptance.md:58` 自己写明"这一轮没有逐条重读（那是第 92 批那一次的读法，文件也还在盘上）" ⇒ 没有逐条读数就填 `—`，不记成通过；缺它这行数字不能和第 94 批那一轮的 0.013~0.349 ns 比 | 待复测 | `build/hold_paths.rpt`、`build/r88_clock_util.rpt` |
 | ETH 入流零丢包（演示工况，上位机侧那一轮） | 实测 | 0 | 丢帧 / 坏帧 | ①共用 ②PL 收包链自己数的计数（不是上位机推的数）③512×300 RGB565、限速 15 MB/s、目标 30 fps ④【待补】（`report/perf_report.md` 那一节只给工况表行，没钉那一批的 `build/system.bit`/`build/ps_app.elf` md5 ⇒ 缺它，这行的 0 不能和板上任何一版的 0 比，只能和同一篇 PERF 报告里的其它行比） ⑤`eth_rxc` 125 MHz ⑥无 DVFS；`report/perf_report.md:173` 表行 = `30 fps、限速 15 MB/s（演示工况） \| 600 \| 600.0 \| **0** \| **0** \| 0 \| 33.33 ms \| **30.007**` | 一轮 600 帧 | `report/perf_report.md`、`data/metrics.csv` |
 | ETH 入流零丢字（本版，带真实流量） | 实测 | 0 | 丢字 / 坏包 | ①共用 ②lane 读回的 JSON 字段 ③512×300 RGB565 @60 fps 不限速 ≈147 Mbps（`build/evidence/r118_board/bitcycle_console.txt` 的起流行原文：`4) 起流 50 s（512x300@60 ≈ 147 Mbps，不限速）`；发送端那两行日志（`[TX] -> 192.168.1.10:5001  512x300 RGB565 @60fps  pace=0.0 MB/s`、`3001 帧 / 50.02 s = 60.00 fps`）属上位机侧未随包件，本行以 console 与下面两份 JSON 为准）④`ps_app.elf d0b07f84` ⑤`eth_rxc` 125 MHz，同一份读数里 `eth_live=1 owner_eth=1` ⑥无 DVFS；警告 147 Mbps 的通过**不许念成 1000M 线速的通过**（发送端帧率是上限，源只有 512×300；出处 `report/log/issues.md:12790` 第②条） | 同一会话内两次读数 | `build/evidence/r116_board/health_r118build_a.json`、`build/evidence/r116_board/health_r118build_b.json`、`build/evidence/r118_board/bitcycle_console.txt` |
-| ETH 入流零丢字（本版，空闲态） | 未报 | — | 丢字 | 同一判定条件的另一份读数，`build/evidence/r118_board/board_verify_console.txt:21` 印 `drop_words → 0`，但同一份读数的 `:18` 是 `"eth_live":0 … "why":"没有流"` ⇒ **零样本通过**，按本表口径③不填 0，填 `—`；缺 `eth_live=1` 这一格不能和上一行的带流读数并列成"两个 0" | 待复测（要带流重读） | `build/evidence/r118_board/board_verify_console.txt`、`report/log/issues.md` |
+| ETH 入流零丢字（本版，空闲态） | 未报 | — | 丢字 | 同一判定条件的另一份读数，`build/evidence/r118_board/board_verify_console.txt:21` 印 `drop_words → 0`，但同一份读数的 `:18` 是 `"eth_live":0 … "why":"没有流"` ⇒ **那一次没有流，这个 0 是零样本上取的**，按口径③不填 0，填 `—`；缺 `eth_live=1` 这一格不能和上一行的带流读数并列成"两个 0" | 待复测（要带流重读） | `build/evidence/r118_board/board_verify_console.txt`、`report/log/issues.md` |
 | ETH 入流 300 秒长跑 | 实测 | 0 | 丢帧 / 坏帧 / 重复帧 | 六件同"演示工况"那行（④同样【待补】，缺它这行的 300 s 长跑归不到任何一块位流名下）；连续 300 s，实测量 29.99 fps、帧间隔平均 33.34 ms（`report/perf_report.md:178` 表行） | 9000 帧 / 300 s | `report/perf_report.md`、`data/metrics.csv` |
 | 入流过载点 | 未定 | ≥ 116.7 | fps | 六件同上（④【待补】⇒ 这个"≥116.7 fps 未丢字"不能与任何带位流身份的批次互证）；不限速、目标 120 fps 时仍未丢字（≈36 MB/s 有效载荷、287 Mbps）；**这一版没顶到丢字那一点 ⇒ 不给"PL 能扛多少 fps"的数字**（`report/perf_report.md:187-181`、`data/metrics.csv:24`） | 960 帧 | `report/perf_report.md` |
 | UDP 入口负载 | 口径 | 9.2 | MB/s | ①共用 ②`512×300×2 B × 30 fps` 的**计算值**（≈74 Mbps）③输入规格就在算式里 ④⑤⑥**不适用**（这是一行算式不是一次测量，给它填 ④⑤⑥ 只会让人以为它与实测行同口径）；`data/metrics.csv:13` 逐字：**这是负载口径不是实测带宽**，实测吞吐的读数出口在 OSD 第三行与 lane23 回读；同一张表的显示读那一行是 `≈18.3 MB/s`（`report/perf_report.md:158`） | 一次计算 | `report/perf_report.md`、`data/metrics.csv` |
 | 端到端时延（上位机发出 ↔ 屏上出现） | 核心 | 33.34 | ms | ①共用 ②min/avg/max 三位（20 / 33.34 / 51 ms）③30 fps 限速一轮 ④同一轮墙钟交付 29.79 fps ⑤`eth_rxc` 125 MHz + 显示 50 MHz ⑥无 DVFS；测量起点=上位机发送时刻，终点=示相机位录到该帧上屏（`data/metrics.csv:25`） | 一轮 600 帧 | `report/perf_report.md`、`data/metrics.csv` |
 | 端到端时延（屏上那一格 ↔ 回读计数，同源一致） | 实测 | true | 判定条件 | ①共用（板上本版）②`lat.osd_ms_matches_tot` 是一个布尔判定 ③空闲与带流两种状态各读过（带流两次：`tot_ms 10.356/osd_ms 10`、`tot_ms 5.888/osd_ms 5`）④`ps_app.elf d0b07f84` ⑤时延计数的 `ns_per_cycle=10`（100 MHz 域）⑥无 DVFS；`board/acceptance.md:37` 那一行（`Latency=6ms` ↔ `tot/100000=6`）的凭据是第 92 批的件，不借给本版 | 三次读数（1 次空闲 + 2 次带流） | `build/evidence/r118_board/board_verify_console.txt`、`build/evidence/r116_board/health_r118build_a.json` |
 | 帧间隔抖动 | 核心 | 33.33 | ms | ①共用 ②min/avg/max = 22 / 33.33 / 45 ms ③30 fps 限速工况 ④【待补】（同一轮没钉位流身份 ⇒ 这个抖动数不能和 v118 的任何读数并列成"同一版"） ⑤`eth_rxc` 125 MHz ⑥无 DVFS；抖动上界来自显示扫描与读口调度，不来自调度器（`data/metrics.csv:26`） | 一轮 | `report/perf_report.md`、`data/metrics.csv` |
-| SD 本地播放帧率（第 87 批那一轮） | 实测 | 29.8 – 30.0 | fps | ①共用 ②100 帧滑窗读数，给到三位小数 ③512×300 RGB565 预转换帧序列（板上不做解码），SD 卡 FAT32 ④【待补】（`build/evidence/r87_boot_stat_drain.txt` 没有钉 `ps_app.elf` 的 md5 ⇒ 缺它这行不能和本版 r118 的 SD 读数比，只能当第 87 批那一版的独立读数） ⑤显示 50 MHz ⑥无 DVFS；串口 115200-8N1；`build/evidence/r87_boot_stat_drain.txt:4-5` 逐字见下面这段原文 | 两个滑窗样本 | `build/evidence/r87_boot_stat_drain.txt`、`data/metrics.csv` |
+| SD 本地播放帧率（第 87 批那一轮） | 实测 | 29.8 – 30.0 | fps | ①共用 ②100 帧滑窗读数，给到三位小数 ③512×300 RGB565 预转换帧序列（板上不做解码），SD 卡 FAT32 ④【待补】（`build/evidence/r87_boot_stat_drain.txt` 没有钉 `ps_app.elf` 的 md5 ⇒ 缺它这行不能和本版的 SD 读数比，只能当第 87 批那一版的独立读数） ⑤显示 50 MHz ⑥无 DVFS；串口 115200-8N1；`build/evidence/r87_boot_stat_drain.txt:4-5` 逐字见下面这段原文 | 两个滑窗样本 | `build/evidence/r87_boot_stat_drain.txt`、`data/metrics.csv` |
 
 `build/evidence/r87_boot_stat_drain.txt` 第 4–5 行原文（帧率那两格的出处）：
 
@@ -88,7 +88,7 @@
 | 整屏逐像素判据（`data/metrics.csv` 那一行） | 核心 | 141 | 条 | **逐字引 `data/metrics.csv:15`**：`与 r104 同一批的顶层台架（build/tb_v98_report.txt 头部 # provenance fpver=norm1 top_md5=2bf2ceeede07 tb_md5=36d0de483e6d rtl_md5=8997a62b75ba，编译时戳、日期 2026-10-02 01:15）；141 = 该文件里 ^PASS 行数 140 加 ^FAIL 行数 1`；警告 它点名的就是上一行那份文件，而文件的 provenance 串与条数都已经换过（本版 162 / `top_md5=56c269602e18`）⇒ 这一格是**指标表与报告不同源**的实物证据，见第 5 节 G1 | 一次台架（约 108 分钟） | `data/metrics.csv`、`build/tb_v98_report.txt` |
 | 发布前检查项数（本版） | 自检 | 24 | 项 | ①**不适用**（这是检查器的射程，不是硬件量）②项数 + 通过/未通过计数 ③一条命令跑：`bash build/gates.sh`，覆盖时序/资源/端口宽度/CDC/文档编码与时效 + 两个钉 md5 的整屏台架 + 排练=讲稿抽取 + 检查器自带的变异对照 ④`build/gates.sh` 当前版 ⑤⑥**不适用**（同一行⑤⑥对一把只读文本的检查脚本没有含义）；`build/r118_gates.txt:53` 逐字 = `判定 24 项、未判 0 项`；`:54` = `GATES: 有红项（判定 24 项）—— 不采纳，保留上一版`；`build/evidence/r118_board/gatesd_summary.txt:1` = `GATESD done id=identical green=23 red=1`。**项数逐批全列**：第 104 批 = 判定 20 项（`build/r104_gates.txt`）→ 本版 24 项 | 每批构建后一次（发布前要求两跑逐字节一致） | `build/r118_gates.txt`、`build/evidence/r118_board/gatesd_summary.txt`、`build/r104_gates.txt` |
 | 发布前检查项数（`data/metrics.csv` 那一行） | 自检 | 22 | 项 | **逐字引 `data/metrics.csv:14`**：`门禁自检项,自检,22,项,…**第 20 项 = 行号锚点（D5 line_cite_check）、第 21 项 = 数字对账（D6 metric_recheck）**…`；本版件印的是 **24 项** ⇒ 该行是第 104 批时代的射程，见第 5 节 G1。缺"哪些项在射程里"这半，22/24 这两个数不能互相替换着念 | 每批构建后一次 | `data/metrics.csv`、`build/r118_gates.txt` |
-| 数字对账射程（`src/host/metric_recheck.mjs`，D6） | 自检 | 114 | 个数 | ①**不适用**（同上）②被判的数的条数（首页层 60 / csv 层 54）③输入=三份报告 + `data/metrics.csv` + 两份首页 ④`src/host/metric_recheck.mjs` 当前版 ⑤— ⑥—；本次核对的原文汇总见下面这段输出（红 0、`rc=0`） | 本表编写前后各跑 1 次（正跑 + `--self` 由发布前检查跑） | `build/evidence/p16c/metric_recheck_before.txt`、`build/gates.sh` |
+| 数字对账射程（`src/host/metric_recheck.mjs`，D6） | 自检 | 114 | 个数 | ①**不适用**（同上）②被判的数的条数（首页层 60 / csv 层 54）③输入=三份报告 + `data/metrics.csv` + 两份首页 ④`src/host/metric_recheck.mjs` 当前版 ⑤— ⑥—；对账的原文汇总见下面这段输出（未通过项 0、`rc=0`） | 文档编写前后各跑 1 次（正跑 + `--self` 由发布前检查跑） | `build/evidence/p16c/metric_recheck_before.txt`、`build/gates.sh` |
 
 `build/evidence/p16c/metric_recheck_before.txt` 的汇总行原文：
 
@@ -112,8 +112,8 @@ OK 行 70 条、RED 行 0 条、rc=0
 
 ## 2. 逐批次对照（同一指标的逐批读数，一张表看清"没挑最好的一行"）
 
-列名 `r87…r118` 是构建批次号，与各批件名（`build/r118_gates.txt` 这种）同源；"板上签收过"那一列
-给的是这一行读数的出处件。
+表头的 `r87…r118` 是构建批次号，写法与各批件名（`build/r118_gates.txt` 这种）同源，最后一列 `r118（本版）`
+就是板上这一版；表里每一行的最后一列"出处"给的是那一格读数的凭据件。
 
 | 指标 | r87 | r92 | r94 | r96 | r97 | r101 | r103 | r104 | r108 | r110 | r113 | r118（本版） | 出处 |
 |---|---|---|---|---|---|---|---|---|---|---|---|---|---|
@@ -149,9 +149,9 @@ for doc in report/measurements.md board/signoff.md report/acceptance-recipes.md 
 done
 ```
 
-本次核对的实际输出（件 `build/evidence/p16c/evidence_existence.txt`，逐条分桶都在里面）：
+核对的实际输出（件 `build/evidence/p16c/evidence_existence.txt`，逐条分桶都在里面）：
 
-**A. 只看本表的"证据文件"列**（逐格抽出、去掉 `:行号` 后 `test -f`）：
+**A. 只看这张表的"证据文件"列**（逐格抽出、去掉 `:行号` 后 `test -f`）：
 
 ```bash
 awk -F'|' '/^\| /{ n=NF-1; if(n>=7) print $n }' report/measurements.md \
@@ -164,7 +164,7 @@ echo "证据文件列逐格点名=$tot 缺=$miss 唯一=$(sort -u /tmp/ev2.txt |
 
 实得：`证据文件列逐格点名=122 缺=0 唯一=48`（48 个唯一路径逐个 `test -f` 全命中）
 ⇒ **命中率 122/122 = 100 %，指到目录或空指的行数 = 0**。
-这一版文档把两处裸文件名写成完整路径（多出的一条是
+正文里两处裸文件名写成完整路径之后（多出的一条是
 `build/evidence/r118_board/board_verify_console.txt`），按同一条命令复跑给 `点名=123 缺=0 唯一=48`；
 要盯的是"缺=0"与下面的 A 桶恒为 0，不是点名总数。
 
@@ -178,32 +178,33 @@ echo "证据文件列逐格点名=$tot 缺=$miss 唯一=$(sort -u /tmp/ev2.txt |
 | `board/signoff-questions.md` | 20 | 18 | **0** | 0 | 2 |
 
 B 桶是通配/占位写法（`rNN_*`、`<本轮>/…` 这类配方正文里教的形状），C 桶是只说"这一族件放在哪"的目录句；
-两桶的逐条清单原样列在件 `build/evidence/p16c/evidence_existence.txt` 里，本文不复述目录名——
-复述会把它们变成新的点名，清点就永远在数自己。
+两桶的逐条清单原样列在件 `build/evidence/p16c/evidence_existence.txt` 里。正文只给计数、不重列目录名——
+每多点名一次，下一跑的"点名"两个数就自己涨一次。
 
-警告 **这四行的数是这一次核对的快照，而且清点把自己也算进射程**（同类事故登记在 `report/log/issues.md` 的 #333：
+警告 **这四行的数是核对当时的一次快照，而点名清单本身也在射程里**（同类事故记在 `report/log/issues.md` 的 #333：
 "射程会自动把新造的文件算进去"）。往这几份文档里多写一条点名路径，下一跑的"点名/命中"就会变——
 那不是回归；要盯的是 **A 桶恒为 0** 与 **第 ① 段那 122/0/48**。
 
-一条需要如实写出来的复跑结果：本表把若干裸文件名改成完整路径之后，上面那条四文档命令对
+复跑的结果同样要写出来：把若干裸文件名写成完整路径之后，上面那条四文档命令对
 `report/measurements.md` 给的是 `点名=64 命中=61 A=1 B=0 C=2`。A 桶那 1 条是
 `board/uart_script_capture.txt`——上位机侧的串口捕获件，`.gitignore:134` 命中、从未入库，
-所以"快照那次它真实存在"依赖的是当时那台机器的工作区，在干净检出里它必然缺。
+它只在当时那台机器的工作区里真实存在，在干净检出里必然缺。
 `board/signoff.md`（A=2）与 `report/acceptance-recipes.md`（A=2）同理，都属同一族未随包件。
-本表第 0 节第①条"必须此刻真实存在"对这一族路径不成立，登记在此而不是删掉引用。
+第 0 节第①条"必须此刻真实存在"对这一族路径不成立 ⇒ 这一族逐个写明，引用不删。
 
 ## 4. 与 `data/metrics.csv` 的关系
 
-- **本表没有改它**：那一份 CSV 属禁改文件，本表只逐字引用它的行。
+- **`data/metrics.csv` 没有被这张表改动**：那一份 CSV 属禁改文件，这里只逐字引用它的行。
   核对方式 = 第 6 节那条数字对账在文档编写前后各跑一次；**实际跑出的是三个读数**：
   `判 114 个数…红 0`/`rc=0` → `判 86 个数…红 4`/`rc=1` → `判 117 个数…红 0`/`rc=0`。
-  中间那次未通过**不是这几份文档造成的**（`src/host/metric_recheck.mjs` 只读 `data/metrics.csv`
-  加三份 `.rpt` 加两份 `README`，见 `src/host/metric_recheck.mjs:50,73,86,211,287,289`），
-  而是同一仓库里另一个写入者在这两次跑之间连续重写 `README.md`（14278 B → 45715 B，mtime 一直变动）；
+  中间那次的 4 条未通过项逐条都指在 `README.md` 首页的行名上（`RED row=README.md 里找不到「全设计 setup WNS」这一行`
+  那四条，见 `report/repro-check.md` 的 R8 行）：`src/host/metric_recheck.mjs` 只读 `data/metrics.csv`
+  加三份 `.rpt` 加两份 `README`（见 `src/host/metric_recheck.mjs:50,73,86,211,287,289`），
+  而这两次跑之间 `README.md` 正被连续重写（14278 B → 45715 B，mtime 一直变动），改的是首页那四行的形状；
   逐条归因写在 `board/signoff.md` 第 4 节 L14，四份原始输出在 `build/evidence/p16c/`
   （`build/evidence/p16c/metric_recheck_before.txt`、`build/evidence/p16c/metric_recheck_after.txt`、
   `build/evidence/p16c/metric_recheck_final.txt`、`build/evidence/p16c/metric_recheck_final2.txt`）。
-  警告 首页层从 60 个数变成 63 个数也是这条重写带来的：**分母自己动了**，所以本表引用首页时只引那一格说了什么，
+  警告 同一次重写里首页层被读的数从 60 个变成 63 个：**分母自己动了**，所以引用首页时只引那一格说了什么，
   不把行号当锚用。
 - **逐字引用格式**：先给 `data/metrics.csv` 这个路径，再在它后面接冒号与那一行的行号；引号里就是那一行原文。
   第 1 节里凡是"逐字引"三个字出现的地方都给了行号
@@ -211,24 +212,24 @@ B 桶是通配/占位写法（`rNN_*`、`<本轮>/…` 这类配方正文里教�
 - 数字对账的射程：**只有点名那三份报告的行会被判**（`build/timing_summary.rpt`、`build/utilization.rpt`、
   `build/power.rpt`），`src/host/metric_recheck.mjs:320` 的 `NAMED` 正则决定射程；
   其余行被计成 `其余 18 行不点名这三份报告`。
-  ⇒ 第 5 节那三条差异全落在射程外，**对账不会替它报未通过**，所以手工登记。
+  ⇒ 第 5 节那三条差异全落在射程外，**对账不会替它报未通过**，所以在第 5 节逐条写明。
 
-## 5. 本表登记到的三条"指标表 ↔ 报告"不同源（都是文档侧，不是功能侧）
+## 5. 三条"指标表 ↔ 报告"不同源（都在文档侧，不是功能侧）
 
 | # | 差异 | 两边原文 | 数字对账为什么没抓 | 后续 |
 |---|---|---|---|---|
-| G1 | `data/metrics.csv:15` 写"整屏逐像素判据 141 条"，而它点名的 `build/tb_v98_report.txt` 现在数出 **162**（161 `^PASS` + 1 `^FAIL`），provenance 也从 `top_md5=2bf2ceeede07 / date=2026-10-02 01:15` 换成 `top_md5=56c269602e18`（新串完整原文见第 1 节那两行与 `build/tb_v98_report.txt:1`） | 见第 1 节那两行 | 该行"证据文件"列点名的是 `build/tb_v98_report.txt`，不在 `NAMED` 正则里 ⇒ 算"不点名这三份报告" | 交裁决（问题清单第 2 轮 Q4）；`data/metrics.csv` 不动 |
-| G2 | `data/metrics.csv:14` 写门禁"22 项"，本版件 `build/r118_gates.txt:53` 印"判定 24 项、未判 0 项" | 同上 | 同上（该行点名 `build/gates.sh`） | 与 G1 一并交裁决 |
-| G3 | `data/metrics.csv:28` 写 `Max Ambient 57.5 ℃`，`build/power.rpt:38` 现在印 `57.4` | 同上 | `fromPower()` 只取 `Dynamic (W)` 与 `Junction Temperature (C)` 两格 ⇒ 这一格不在射程 | 与 G1 一并交裁决；顺带记：想让这类数有人读，就得在 `src/host/metric_recheck.mjs` 的 power 规则里**加**一格（不许减下限） |
+| G1 | `data/metrics.csv:15` 写"整屏逐像素判据 141 条"，而它点名的 `build/tb_v98_report.txt` 现在数出 **162**（161 `^PASS` + 1 `^FAIL`），provenance 也从 `top_md5=2bf2ceeede07 / date=2026-10-02 01:15` 换成 `top_md5=56c269602e18`（新串完整原文见第 1 节那两行与 `build/tb_v98_report.txt:1`） | 见第 1 节那两行 | 该行"证据文件"列点名的是 `build/tb_v98_report.txt`，不在 `NAMED` 正则里 ⇒ 算"不点名这三份报告" | `data/metrics.csv` 不动（禁改文件）；两处数由谁统一留给项目侧定（问题清单第 2 轮 Q4 已列） |
+| G2 | `data/metrics.csv:14` 写"22 项"（发布前检查项数），本版件 `build/r118_gates.txt:53` 印"判定 24 项、未判 0 项" | 同上 | 同上（该行点名 `build/gates.sh`） | 与 G1 一并定 |
+| G3 | `data/metrics.csv:28` 写 `Max Ambient 57.5 ℃`，`build/power.rpt:38` 现在印 `57.4` | 同上 | `fromPower()` 只取 `Dynamic (W)` 与 `Junction Temperature (C)` 两格 ⇒ 这一格不在射程 | 与 G1 一并定；顺带记：想让这类数有人读，就得在 `src/host/metric_recheck.mjs` 的 power 规则里**加**一格（不许减下限） |
 
 ## 6. 复跑（第三方照抄就能复核）
 
 ```bash
-# 1) 时序/资源/功耗三个数对回报告（本表第 1 节的核心行）
+# 1) 时序/资源/功耗三个数对回报告（第 1 节的核心行）
 node src/host/metric_recheck.mjs | tail -3
-# 2) 整屏逐像素判据的条数与那条故意留红的 C5c
+# 2) 整屏逐像素判据的条数，与那条一直保留的未通过项 C5c
 grep -c '^PASS' build/tb_v98_report.txt; grep -n '^FAIL' build/tb_v98_report.txt
-# 3) 发布前检查一把跑（项数与红绿以它打印的那一行为准，本表不复制）
+# 3) 发布前检查一把跑（项数与通过/未通过以它打印的那一行为准，这里不复制）
 bash build/gates.sh | tail -3
 # 4) 板上板级一把跑（要板子在场、COM6 空闲；本仓库只走 JTAG，不写 QSPI）
 VP_XSDB=<Vitis>/bin/xsdb.bat bash build/board_verify.sh --battery --geom
