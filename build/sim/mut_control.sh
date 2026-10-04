@@ -21,8 +21,8 @@
 # 判定：控制跑里这条判据必须报红 ⇒ 它测得到那一族；仍然 PASS ⇒ MUTATION FAILED（判据没有力）。
 # 每条 mutation 都要单独写 case 分支并给出"改动行数"上界（对不上就拒绝继续）——
 # 别再往 pipeline 那条 sed 里塞别的模块的旧写法，那会让一次控制跑同时测两件事。
-# 仓库根自适应：本文件在 <repo>/sim/ 下，所以 .. 就是根（原来两行都是这台机器的绝对路径）
-ROOT="$(cd "$(dirname "$0")/.." && pwd)"
+# 仓库根自适应：本文件在 <repo>/build/sim/ 下（交付重排时从 <repo>/sim/ 搬来，往上要退两级），所以 ../.. 才是根
+ROOT="$(cd "$(dirname "$0")/../.." && pwd)"
 # 工具路径只有一个说法：VP_VIVADO_BIN 指到 <Vivado>/bin（见 report/build.md「换一台机器」那一节）。
 # 默认值留着是为了本机少敲一步，**不是**"这台机器就是标准"：找不到 xvlog 就明说并退出，
 # 别让人对着一句 "No such file or directory" 去怀疑 RTL。

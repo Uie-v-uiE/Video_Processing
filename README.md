@@ -22,7 +22,7 @@ PL 侧从 DDR 读帧、按 9 级效果链（灰度、模糊、锐化、Sobel、�
 
 src/ —— `src/rtl/` 80 个 .v、`src/host/ps/` PS 侧 C、`src/constraints/` 9 份 .xdc（在用 2 份，其余 7 份是候选/实验件）、`src/host/` 26 支 .mjs 与 3 支 .py 上位机工具  
 sim/ —— 84 份 .v（其中 81 支 `tb_*.v`），跑法见 `sim/README.md` 表格下方那一行  
-build/ —— 7 份流程入口 TCL、检查器与 `build/report/` 下 7 份工具原始报告  
+build/ —— 7 份流程入口 TCL、检查器与 `build/report/` 下 7 份工具原始报告（"发布门禁 24 项 23 绿 / 1 红"这一句的凭据是 `build/r118_gates.txt`）  
 board/ —— 上板工程、三步 JTAG 烧写脚本与实测输出（串口留档、板级校验读数）  
 data/ —— 测试数据与参考结果：`data/inputs/` 8 份输入序列、`data/golden/` 参考图、`data/metrics.csv` 28 行指标  
 skills/ —— 49 条 SKILL.md 技能包，README 写适用范围/使用方法/失效条件/已验证的复用结果  
@@ -59,6 +59,11 @@ node src/host/video_sender.mjs --test bars          # 通用推流；任意片�
 
 预期现象：屏幕出现滚动条纹与右移黄色方块，OSD 第 2 行帧率格落到 29–30，
 `lane8` 收包计数增量等于发出的包数（差额 0）。JTAG 三步链见 `board/README.md`。
+
+板上现在跑的是 r118：发布门禁 24 项 23 绿 / 1 红，唯一红是声明过的 C5c 顶层台架自判
+（凭据 `build/r118_gates.txt` 的身份行 `system.bit md5=cd04907e1369`，两份逐字节一致的定版件在
+`build/r118_gates_final.txt` 与 `build/evidence/r118_board/`）。这一版不作"全套门禁全绿"的说法；
+门禁全绿 = r75（盘上最新且每项都判绿的那一套冻结件 `build/r75_gates.txt`），板上现在跑的是 r118 那一版。
 
 ### 时序说明
 

@@ -13648,3 +13648,41 @@ C4 原来只要求 `build/report/` 里有名字带 util / timing 的件——一
 - 尺子复跑：`node src/host/line_cite_check.mjs` ⇒ `D5: CLEAN`（硬错 0，锚点命中 867）；
   `C-PATHS ... 判(指向 src/ 的字面量)=149 解析不到=0`；残留 `src/ps/` 字样 19 份文件全在
   冻结件 / 证据件 / 迁移工具自己的用例 / `report/log/` 追加式日记里（D5 与 C-PATHS 都不判它们）。
+
+### #364 交付重排把台架入口的仓库根算短了一级：`bash build/sim/run_one.sh` 在 HEAD 上根本跑不起来
+现测：`VP_VIVADO_BIN=D:/Software/Vivado/2025.2.1/Vivado/bin bash build/sim/run_one.sh tb_edge_rim`
+⇒ `bash: …/build/build/rtl_fingerprint.sh: No such file or directory` + `XVLOG FAILED` + `rc=1`（第一次还被
+`| tail` 把退出码吃成 0，重跑用 `RC=$?` 才看见真值）。根因是笔 `90b0391`（顶层目录归并 545 个文件）把
+`sim/run_one.sh` 搬进 `build/sim/`，可 `ROOT="$(cd "$(dirname "$0")/.." && pwd)"` 原样跟着搬 ——
+文件深了一层，`..` 就短了一层。同一形状的另一支是 `build/sim/mut_control.sh`。
+两支都改成 `../..` 并把注释里的"本文件在 <repo>/sim/"改成实际位置；`build/` 根上那 90 支脚本的 `..` 本来就是根，
+`git grep` 数过 92 处只有这两处在二级目录里。
+改完实跑：`RESULT tb_edge_rim PASS`、`VERDICT tb_edge_rim: … || FAIL 行数=0 || PASS 行数=31`、`rc=0`。
+**为什么这条值得立案**：§6.2 要求文档里每条命令真实可执行，而 `sim/README.md` 表格下方那一行、
+`report/reproduce/README.md` 阶段 2 的用法头抄的都是这一支 —— 脚本自己把入口写死了位置，
+挪目录时没人替它重算，`bash -n` 也照样绿。**下一次任何"整目录搬家"必须连 `dirname` 的层数一起改，
+并把 `echo "$ROOT"` 打进一次真实调用看它落在哪。**
+
+### #365 `build/rim_report.sh` 的轮次号默认值是上一轮的：`ROUND=${ROUND:-r90}` 把新跑的件写成 `tb_edge_rim_r90.txt`
+现测：跑完 `bash build/rim_report.sh` 打印 `WROTE …/build/tb_edge_rim_r90.txt (57 行) rtl_md5=07570b1ac1b4`。
+`rtl_md5` 是**今天的**，文件名却是 **r90** —— 门禁那一行取 `ls build/tb_edge_rim_r*.txt | sort -V | tail -1`，
+`r90` 排在 `r116` 前面 ⇒ 这次重跑对门禁不可见，等于白跑。已 `mv` 成 `build/tb_edge_rim_r118.txt`
+（板上与仓库都是 r118，本轮没动 RTL，按"台架/文档改动刷新同一 rNN"记）。
+本机盘上原来那份未入库的 `tb_edge_rim_r90.txt` 被覆盖（`git log -- 该文件` 空 ⇒ 从没进过 git，历史读不到）。
+**规矩**：工具里凡是**输出文件名**的默认值都是"每一轮要重给"的变量，和产物路径同一族；
+调用它必须 `ROUND=rNN bash build/rim_report.sh`。脚本第 19-21 行已经有 `rNN` 形状守卫，缺的是"默认值不该是上一轮"这一条。
+
+### #366 首页那两句"板态身份句 / 门禁读数句"被文档瘦身波删掉，D1b/D1c 两层当场空转（现补回并实测抓到 2/2）
+今早门禁是 23 绿 / 1 红，下午同一棵树跑出门禁 `文档时效 doc_cur` 变红，红行只有两句话：
+`D1b 只抓到 1 句板态身份句（地板 2）`、`D1c 只抓到 1 句门禁读数句（地板 2）`，外加
+`README.md D3 首页既没有"门禁全绿 = rNN"（最新那一套是 r75），也没有明写"不作门禁全绿声明"`。
+原因不是尺子坏，是笔 `54026e7` 之前的文档瘦身把中英首页那两句删了 —— 这正是"文档形状是尺子的射程"那一族：
+**改文案可以让一层判据静默停摆**，而且停摆的方向是"少报"，不会自己叫。
+补回的是 `README.md` 目录行 + 复现步骤末两句：`板上现在跑的是 r118：发布门禁 24 项 23 绿 / 1 红…`、
+`门禁全绿 = r75（…冻结件 build/r75_gates.txt）`。现跑 `node src/host/doc_currency_check.mjs` ⇒
+`D1b … 抓到 2 句`、`D1c 基准 r118_gates.txt 行尾 PASS=22/FAIL=1/判定 24；按"除本项外"算 ⇒ 23/1；抓到 2 句`、
+没有 D3 红行，`CURRENCY: 49 条过期指路`（从 51 降 2，降的是这次删掉的旧名指路）。
+另记一笔今天量到的红：`顶层台架 tb_v98` 与 `边缘条带 tb_edge_rim` 两项的"台架 不符"不是 RTL 变了
+（`rtl=07570b1ac1b4` 与留档件逐字符相同），是 §2.3 的 tb 头三段批量落进 `sim/*.v` 之后 **tb 自己变了**；
+rim 那一半本轮已用修好的入口重跑并出新件 `build/tb_edge_rim_r118.txt`（`RESULT … PASS`、FAIL 行 0），
+顶层那一半要重跑 `tb_v98_top_seam`（实测约 108 分钟）才能重新绑上 —— 不把它写成绿的，留给下一轮构建日。

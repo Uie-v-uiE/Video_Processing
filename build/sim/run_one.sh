@@ -45,7 +45,7 @@ if [ "$TB" = "--verdict" ]; then
 fi
 V=${VP_VIVADO_BIN:-}
 [ -x "$V/xvlog" ] || { echo "REFUSE: 找不到 xvlog（当前 $V）。设 VP_VIVADO_BIN=<Vivado>/bin 再跑（report/build.md）"; exit 2; }
-ROOT="$(cd "$(dirname "$0")/.." && pwd)"   # 仓库根自适应：本文件在 <repo>/sim/（原来写死本机路径）
+ROOT="$(cd "$(dirname "$0")/../.." && pwd)"   # 仓库根自适应：本文件在 <repo>/build/sim/（交付重排时从 <repo>/sim/ 搬来，往上要退两级）
 R=/tmp/kx/$TB.run
 # ⚠ 2026-09-27 12:48 撞到的一件事：**同一时刻只能有一个 xsim 在写这个目录**。
 #   第二次 `run_one.sh` 并不会让第一次停下 —— 前一个 xsim/xsimk 还活着，继续往同一个
