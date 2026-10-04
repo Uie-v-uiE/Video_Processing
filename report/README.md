@@ -125,7 +125,7 @@ for f in report/{10-background,20-principle,30-partition-if,40-optimization,50-r
 BACKGROUND_AND_NOVELTY,BUILD,PERF_REPORT,OPTIMIZATION_LOG,KNOWN_ISSUES,TIMING_GLOBAL,\
 comparison-notes,COMMANDS,COMMAND_PRECEDENCE,DEFAULTS,HOST_GUIDE,BOARD_PINS,DEMO_SCRIPT,\
 AI_COLLABORATION,LLM_COLLAB}.md \
- docs/claims-vs-evidence.md docs/interface-table.md docs/repro-check.md \
+ docs/interface-table.md docs/repro-check.md \
  data/README.md data/metrics.csv build/reports/index.md sim/NAMES.md \
  board/{README,HANDS_ON,hardware_setup,ACCEPTANCE,signoff,raw-vs-golden}.md \
  submit/README.md skill/README.md skill/_meta/sources.md README.md README.en.md; do
