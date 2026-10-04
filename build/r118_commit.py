@@ -45,7 +45,7 @@ msg = "\n".join([
 ])
 io.open("/tmp/kx/msg_r118.txt", "w", encoding="utf-8").write(msg)
 
-paths = ["README.md", "readme.en.md", "data/metrics.csv", "report/timing_global.md", "report/log/issues.md",
+paths = ["README.md", "README_EN.md", "data/metrics.csv", "report/timing_global.md", "report/log/issues.md",
          "report/known_issues.md", "report/acceptance.md", "board/acceptance.md",
          "docs/timing", "build/r118_chain.sh", "build/r118_finish.sh", "build/r118_commit.py",
          "build/r118_rotate.py", "build/r118_console.txt", "build/r118_finish_console.txt",

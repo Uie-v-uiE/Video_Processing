@@ -7,12 +7,12 @@
 3. **更正后的结论与影响范围**（含"这条更正还欠什么"）
 
 取证范围：本仓库已入库的成文轨迹（`report/log/issues.md`、`report/timing/debt_ledger.md`）
-+ 我在本次 P22 取证过程中**自己新发生**的两条（C7 grep 误读、C8 我写的锚点失效）。
++ 本次 P22 取证过程中**新发生**的两条（C7 grep 误读、C8 写下的锚点失效）。
 会话侧指针一律用 `S01 + 北京时间段 + 人工轮次区间`（轮次表在 `sessions/s01…md` 与 `../metrics.md` §2；
 人工轮次编号 `H01…H226` 由同一条命令按时间序生成，命令见 `../metrics.md` §2）。
 
 > **本文件的写法本身受 C3 约束**：`report/` 在门禁的扫描射程内，所以
-> ① 我不写任何"代码文件:超范围行号"形式的引用（C3 里那条把 D5 拖红的具体锚点，我在 §C3 用文字描述而不复制其形式）；
+> ① 本文件不写任何"代码文件:超范围行号"形式的引用（C3 里那条把 D5 拖红的具体锚点，§C3 用文字描述而不复制其形式）；
 > ② 写入前后各跑一次 `node src/host/doc_enc_check.mjs` 与 `node src/host/line_cite_check.mjs`（读数见 §5）。
 
 ---
@@ -51,7 +51,7 @@ node src/host/metric_recheck.mjs 2>&1 | grep -i SELFSIGN-SUMMARY
   当晚一次正常跑给出 23 条 `RED` 清单（`report/log/issues.md:12867-12868`）；
   **本次复跑同一命令的 `^RED` 行数是 4**（`node src/host/metric_recheck.mjs 2>&1 | grep -c "^RED"` = 4）
   ⇒ 差额不是矛盾，是改口轮已经走完（`report/timing/round_r116.md` 第六节是那 23 条的去处）。
-- 由此产生的技能条目：`skill/pitfalls/report-field-parse-breaks/SKILL.md:70`、`:110`（`:110` 直接点名 #321）。
+- 由此产生的技能条目：`skills/pitfalls/report-field-parse-breaks/SKILL.md:70`、`:110`（`:110` 直接点名 #321）。
 
 ---
 
@@ -96,11 +96,11 @@ d420db6 r118 的位流与实现报告第一次真正进 git（#332），并补�
 - 影响范围：所有"采纳笔"（位流、`.xsa`、`build/*.rpt`、`build/report/`、台架报告）。
   这是 rule 42 的**复发**（`report/log/issues.md:13085` 自陈：我以为那条规矩已经变成了脚本，
   可是脚本对自己的产物只打印、不核对）⇒ 光有脚本不等于有判据。
-- 由此产生的技能条目：`skill/pitfalls/exit-zero-nothing-written/SKILL.md:89`、`:109`（`:109` 点名 #332）。
+- 由此产生的技能条目：`skills/pitfalls/exit-zero-nothing-written/SKILL.md:89`、`:109`（`:109` 点名 #332）。
 
 ---
 
-## C3 · 我为了保险留的那份 `.md` 备份，把远端门禁自己拖红了
+## C3 · 为保险留的那份 `.md` 备份，把远端门禁自己拖红了
 
 **① 错误断言原文**（条目 #333，起于 `report/log/issues.md:13098`；`:13100`、`:13105-13106`）
 
@@ -144,8 +144,8 @@ ls build/evidence/r118_eyes/ISSUES_before332.md
 - **对本次交付的直接约束**：我这 7 个文件全在 `report/collaboration/`（射程内），
   所以写入前基线 `扫了 534 个手写文件：全部干净` / `D5: CLEAN 硬错 0`，
   写入后复跑读数见 §5；两份读数的差值只允许来自"文件数变多"，不允许出现硬错。
-- 由此产生的技能条目：`skill/pitfalls/assertion-not-in-any-file/SKILL.md:95`（点名 #333）、
-  `skill/pitfalls/checker-ran-on-nothing/SKILL.md:84`、`:95`。
+- 由此产生的技能条目：`skills/pitfalls/assertion-not-in-any-file/SKILL.md:95`（点名 #333）、
+  `skills/pitfalls/checker-ran-on-nothing/SKILL.md:84`、`:95`。
 
 ---
 
@@ -184,8 +184,8 @@ grep -an "^LAUNCH|" build/evidence/r119_tmds_launch_probe.txt   # 换问法之�
 - 影响范围：本仓库已为同族错过三次（`-filter` 在 net/cell `NAME` 上读空那一族，`:13124`）；
   约束文件里 `-clock` 的写法必须先有 `report_timing` 的 `Source Clock` 行作凭据。
 - 落点：`report/timing/debt_ledger.md:188-197`（窗数到手、参考钟来自只读反证件）。
-- **缺口（如实）**：`skill/` 里**没有任何条目引用 #334**（`grep -rIn "#334" skill/` 本次实跑 = 0 命中）；
-  最接近的一条是 `skill/pitfalls/tcl-query-empty-means-broken-ruler/SKILL.md:104`，
+- **缺口（如实）**：`skills/` 里**没有任何条目引用 #334**（`grep -rIn "#334" skills/` 本次实跑 = 0 命中）；
+  最接近的一条是 `skills/pitfalls/tcl-query-empty-means-broken-ruler/SKILL.md:104`，
   它的证据列表点名 #279/#286/#319/#320 而没有 #334 ⇒ 见 §6 未闭合项 U3。
 
 ---
@@ -235,7 +235,7 @@ grep -an "GATES|CTRL" build/evidence/r119_window_check.txt           # 换同量
   两个候选件默认不加载（开关 `VP_R119_TMDS_WINDOW=1`），去留是**队伍裁决项**（`report/timing/debt_ledger.md:211-212`）。
   这笔债现在拆成两笔且都不能用"窗已过"来抵：① 板级走线/连接器离散未量（规范对象是 Source Connector，
   本表只覆盖 FPGA 内部到封装脚）；② 眼图/抖动/占空比/上升下降未量（SDC 无容器）。见 `:209-210`。
-- **缺口（如实）**：`grep -rIn "#335" skill/` 本次实跑 = 0 命中 ⇒ 没有技能条目引用这条，见 §6 未闭合项 U3。
+- **缺口（如实）**：`grep -rIn "#335" skills/` 本次实跑 = 0 命中 ⇒ 没有技能条目引用这条，见 §6 未闭合项 U3。
 
 ---
 
@@ -309,13 +309,13 @@ python -c "d=open('build/evidence/r119_tmds_launch_probe.txt','rb').read();
   只跑 `grep -c` 不能区分二者 ⇒ 凡"查不到"的断言，要么补 `grep -a` + `head`，要么补一次字节级解码检查。
 - 影响范围：这条与本仓库 #307/#330/#316 那一族（中文按字节截断会让整份证据文件对 `grep` 呈"二进制"，
   看起来就像"没记录"）同因；本档案内所有"查不到"式断言都按这条补了判别命令（C4、C5、C6 各条都给了行号实读）。
-- 落点：本条只落在这里（**没有**对应技能条目，也**不**新建 `skill/` 内容——本任务边界禁止改 `skill/`）。
+- 落点：本条只落在这里（**没有**对应技能条目，也**不**新建 `skills/` 内容——本任务边界禁止改 `skills/`）。
 
 ---
 
 ## C8 · 我自己写下的三个锚点，在写作期间失效了（被引用的证据件被原地改小）
 
-**① 错误断言原文**（本文件早先版本，我在 §C5 与 §C6 的"判别实验"里写）
+**① 错误断言原文**（本文件早先版本，§C5 与 §C6 的"判别实验"里写）
 
 > 件 `build/evidence/r119_window_check.txt:12` = `GATES r119 窗件：判定 10 项 红=0 未测=0 PASS`，
 > `:13-22` 是十条合成畸形对照（每条期望 FAIL 且实读 FAIL），`:24` = `对照总结：造 10 条畸形动红 10 条；缺输入 2 条报 NOT_MEASURED 2 条 PASS`
@@ -370,8 +370,8 @@ sed -n '11p' build/evidence/r119_window_check.txt        # GATES 那一行在这
 | --- | --- | --- | --- |
 | U1 | `report/ai_collaboration.md` §4 的 13 例（A–M，行 `:101`–`:224`）与 `report/llm_collab.md` 的 6 例（例 1–例 6，行 `:15`–`:194`） | 这 19 例各有"错误结论 + 更正"两半，但**本次没有逐条重跑其判别实验**（每条都要开它点名的件、有的还要重跑构建/仿真）。本档案不替它们背书 | 判 `NOT_MEASURED`，分母 19；要成对需逐条复算 |
 | U2 | 任务派发词里"主 agent 批量派发子 agent，**批次过大曾导致中途丢文件**"这句话 | 只有断言，没有凭据。本次在冻结窗口内实算：`Agent` 调用 128 次 vs 子会话导出 127 份，差的那 **1** 条经定性是**参数校验失败即重发**（`Error: Agent tool parameter validation failed: params/mode …`，21 秒后重发成功），不是丢文件 | 判 FAIL（作为事实）；已在 `workflow.md` §4 标为**借用断言**。若队伍另有凭据（某轮 `git status` 少文件的现场记录），给出来我再成对 |
-| U3 | #334、#335 与 `skill/` 的双向引用 | `grep -rIn "#334" skill/` 与 `"#335"` 本次实跑均为 **0 命中** ⇒ 协作记录→技能这一侧接不上；本任务边界禁止改 `skill/`，所以我只能点名缺口 | 判 FAIL（缺口，非我可闭合）；见 `README.md` §4 |
-| U4 | `skill/evals/records/` 在我 11:5x 检查时是**空目录**（`ls` 实跑 0 份），12:3x 复跑已有 **2 份** | 那 2 份是 P09 的演练/审计表，**不带** `skill/evals/README.md` §3 的 9 字段（`被测条目` 命中 0），也**不引用任何会话登记号** ⇒ 所有"会话结论 → evals 记录"的引用仍然**无处可指**，本档案因此不能声称与 evals 双向闭合 | 判 `NOT_MEASURED`（读不到"双跑记录"这种输入）；逐条缺口在 `README.md` §4（G1/G2/G6） |
+| U3 | #334、#335 与 `skills/` 的双向引用 | `grep -rIn "#334" skills/` 与 `"#335"` 本次实跑均为 **0 命中** ⇒ 协作记录→技能这一侧接不上；本任务边界禁止改 `skills/`，所以我只能点名缺口 | 判 FAIL（缺口，非我可闭合）；见 `README.md` §4 |
+| U4 | `skills/evals/records/` 在我 11:5x 检查时是**空目录**（`ls` 实跑 0 份），12:3x 复跑已有 **2 份** | 那 2 份是 P09 的演练/审计表，**不带** `skills/evals/README.md` §3 的 9 字段（`被测条目` 命中 0），也**不引用任何会话登记号** ⇒ 所有"会话结论 → evals 记录"的引用仍然**无处可指**，本档案因此不能声称与 evals 双向闭合 | 判 `NOT_MEASURED`（读不到"双跑记录"这种输入）；逐条缺口在 `README.md` §4（G1/G2/G6） |
 
 ## 7. 本文件的成对计数（分母）
 

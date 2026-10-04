@@ -19,7 +19,7 @@
       收益口径**不是**头条 WNS：这两刀的预期是"时序中性 + 结构账变干净"，
       所以判据是名册八对逐格差分（对照 `build/evidence/r114_before.txt` 与 `r113_setup_paths_baseline.rpt`）
       + 综合告警名册不新增类（`build/evidence/r114_synth_roster.txt`）。WNS 的绝对差既不算收益也不算损失（rule 35）。
-      ⚠ **配对必须是同一把生成器**（#291 踩过）：B 侧要等 `xsim` 跑完再用 `build/tcl/probe_timing_roster.tcl`
+      警告：**配对必须是同一把生成器**（#291 踩过）：B 侧要等 `xsim` 跑完再用 `build/tcl/probe_timing_roster.tcl`
       开 routed dcp 出 `build/evidence/r114_after_roster_rf.txt`，与 `build/evidence/r113_after_roster_rf.txt`
       （上板那版，同探针 + 同扇出名册）相减。**不许**拿 `roster_from_summary.sh` 那份只有 4 路钟的干净名册
       去减探针那份 8 路钟的名册——“少一路钟”会被数成代价（`D3 big_loss=8` 那份反例留在
@@ -29,10 +29,10 @@
 - [ ] **④ 门禁两跑逐字节一致** → `build/r114_gates.txt`（24 项，项数没变 ⇒ 不动"门禁 N 项"那四处句子）。
       预期：既存声明红 C5c + `doc_currency`/`metric_recheck` 在改口之前必然红 ⇒ 改口之后必须回到只剩 C5c。
 - [ ] **⑤ 数字与凭据改口**：先 `node build/rotate_from_metric.mjs --check`（机械那半），
-      ⚠ 资源三行**不用改**：r114 实测 LUT 14154 / FF 8188 / BRAM 95.5 与 r113 逐字相同（#292），
+      警告：资源三行**不用改**：r114 实测 LUT 14154 / FF 8188 / BRAM 95.5 与 r113 逐字相同（#292），
       要改的只有 WNS 0.445→0.739、WHS 0.050→0.052、位流身份、刷板时间、结温，以及下面四点。
       再手写那半——需要新建 `build/r114_rotate_docs.mjs`（`r113_rotate_docs.mjs` 的副本，改身份句 + 本轮数），
-      `--check` 必须**每条命中 1、拒 0** 才 `--apply`。⚠ #270 那一课的口径：`--check` 只证明写下的规则都命中，
+      `--check` 必须**每条命中 1、拒 0** 才 `--apply`。警告：#270 那一课的口径：`--check` 只证明写下的规则都命中，
       不证明覆盖 ⇒ 拿"本轮变了哪些数"逐条反查文档里每一处。本轮已知必须动的四处：
       1) 首页身份句（中英各一份）+ `data/metrics.csv` 的 WNS/WHS/util/power/结温行；
       2) `report/timing_global.md` §4 表里 `TIMING-9 / TIMING-10` 那一行的读数（改前 1 / 1，件 `r113_methodology_baseline.rpt`）；

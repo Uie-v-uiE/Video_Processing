@@ -1,7 +1,7 @@
 # 复现：构建 → 台架 → 门禁 → 上板复验
 
 这一页只放**逐字抄自脚本自己用法头**的命令，每条后面点名它出自哪一支脚本的哪一行。
-我在头里没找到的命令一律标 **`【未核实】`** 并说明找过哪里——不为凑齐四阶段补一条"看起来对"的命令。
+脚本头里没找到的命令一律标 **`【未核实】`** 并说明找过哪里——不为凑齐四阶段补一条"看起来对"的命令。
 
 ## 0. 前置：工具怎么定位（本节不写任何一台机器的绝对路径）
 
@@ -16,7 +16,7 @@
 `build/tcl/*.tcl` 用 `[file dirname [info script]] .. ..`（`build/tcl/build_system_axigpio.tcl:2`）。
 `report/build.md` §1 把这条做成了可跑的对照：拿一个不存在的 `VP_VIVADO_BIN` 去跑
 `bash build/roll_isolated.sh`，拒绝发生在 `mkdir`/`sed` **之前**，`rc=2`。
-⚠ `VP_XSDB` 要**显式赋值**（别把 `export` 关进子 shell），否则 `board_verify.sh` 一进来就 REFUSE
+警告 `VP_XSDB` 要**显式赋值**（别把 `export` 关进子 shell），否则 `board_verify.sh` 一进来就 REFUSE
 一步不走——`report/log/issues.md` #317 记的正是这个形状。
 
 ---
@@ -109,7 +109,7 @@ bash build/gates.sh build/frozen_r19_arb   # 读某一组成套冻结件
 
 可选变量 `CDCBASE`（`:96`，默认 `build/cdc_baseline.txt`）：CDC 那条判据拿它当**配对集合**基线。
 
-⚠ 脚本头部第 14–20 行专写了一条**自毁陷阱**：不要把它的输出直接重定向成它自己要读的那份
+警告 脚本头部第 14–20 行专写了一条**自毁陷阱**：不要把它的输出直接重定向成它自己要读的那份
 `build/rNN_gates.txt`——`>` 会在第一项判据跑之前就把那个文件截断，而第 18 项恰恰要拿
 "盘上最新且 ALL PASS 的那一份"当基准。它给的正确姿势是两步：先重定向到临时目录里的一份、
 跑完之后再 `cp` 到位（要留旧份就先留备份）。
@@ -126,7 +126,7 @@ GATES: 有红项（判定 $NSAY 项）—— 不采纳，保留上一版
 保留上一版`，倒数第二行把范围一起念出来"判定 24 项、未判 0 项"；24 项 = 23 绿 / 1 红，
 唯一红是声明过的 `C5c`；两跑逐字节一致的凭据是 `build/evidence/r118_board/g2c.txt`、`g3c.txt`、
 `gatesc_summary.txt`（`GATESC done id=identical green=23 red=1`）。
-⚠ 采纳判据（`report/timing/round_r118.md` §二 B4：红数 == 1 且两跑一致）与脚本那句"不采纳"
+警告 采纳判据（`report/timing/round_r118.md` §二 B4：红数 == 1 且两跑一致）与脚本那句"不采纳"
 是两条不同口径的句子，要一起念——理由在 `report/06-validation.md` §3。
 **读不到输入时不该看成通过**，脚本自己给的四种形状：缺报告 → `FATAL 缺报告：…` 且 `exit 2`（`:31-33`）；
 解析不到数字 → `FATAL 解析不到 $v —— 报告格式变了？不要拿空值当 0 判绿` 且 `exit 2`（`:161-166`，
@@ -230,7 +230,7 @@ E6 的对照那一半登记为**未判**。屏幕读数不属于机器判据，�
 并把"复现时这一条要先做"钉在表里；② 刚断电重上电时链子可能还没重枚举 ⇒ 第一步死在 `targets -set 1`，
 `build/r116_bit_cycle.sh` 会打 `REFUSE DDR_ECHO 没过`（现场记录与恢复过程在
 `build/evidence/r118_eyes/state.txt` 末段那三行注释）；③ 门禁的输出别重定向回它自己要读的那份
-`rNN_gates.txt`（阶段 3 的 ⚠）。
+`rNN_gates.txt`（阶段 3 的 警告）。
 
 ## 本章依据的产物
 - 五支脚本的用法头与被引行：`build/tcl/build_system_axigpio.tcl`（`:1-7`、`:2`、`:45`、`:247`、

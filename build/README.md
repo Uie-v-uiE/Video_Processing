@@ -222,7 +222,7 @@ grep -n "file dirname \[info script\]" build/tcl/build_system*.tcl build/tcl/cre
 | `build/tcl/synth_pl_only.tcl:3` | `… ..` | `build/` |
 | `build/tcl/build_bitstream.tcl:8` | `… ..` | `build/` |
 
-后果（逐条有实体，不是我推的）：`add_files` 指向 `build/src/…`（不存在）；
+后果（逐条有实体，不是推断）：`add_files` 指向 `build/src/…`（不存在）；
 `file mkdir $outdir` 会凭空造出 `build/build/`（**这个空目录现在还在盘上**，本次 `ls -la build/build/`
 只有 `.` 与 `..`，mtime 2026-09-26 02:54）；`build_system.tcl` 那一份还会去找 `build/build/system.bit`。
 台账 `report/log/issues.md` 把这一族记在 **#22**，并把"扫描要按类别而不是按我今天看到的那串字符"

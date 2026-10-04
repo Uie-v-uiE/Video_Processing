@@ -54,15 +54,15 @@ sub('README.md', '**95 tile（67.86 %）/ 14358（26.99 %）/ 8075（7.59 %）/ 
     f'**95 tile（67.86 %）/ {lut_n}（{lut_pct} %）/ 8075（7.59 %）/ 19（8.64 %）**', '资源行')
 sub('README.md', '| 功耗 | 动态 **2.205 W**', f'| 功耗 | 动态 **{pw} W**', '功耗行')
 
-# ---- 3) readme.en.md
-sub('readme.en.md', '| Design-wide setup WNS | **+0.516 ns**, failing setup/hold endpoints **0 / 50885** |',
+# ---- 3) README_EN.md
+sub('README_EN.md', '| Design-wide setup WNS | **+0.516 ns**, failing setup/hold endpoints **0 / 50885** |',
     f'| Design-wide setup WNS | **{DES[0]} ns**, failing setup/hold endpoints **0 / 50885** |', 'EN WNS')
-sub('readme.en.md', "| Per-clock setup slack | 125 MHz receive domain **+0.516 ns** (6.5 % of its 8 ns period, and the design's worst path); 100 MHz domain **+1.643 ns** (16 % of 10 ns); 50 MHz display domain **+1.177 ns** (5.9 % of 20 ns) |",
+sub('README_EN.md', "| Per-clock setup slack | 125 MHz receive domain **+0.516 ns** (6.5 % of its 8 ns period, and the design's worst path); 100 MHz domain **+1.643 ns** (16 % of 10 ns); 50 MHz display domain **+1.177 ns** (5.9 % of 20 ns) |",
     f"| Per-clock setup slack | 125 MHz receive domain **{eth[0]} ns** (6.5 % of its 8 ns period, and the design's worst path); 100 MHz domain **{fpg[0]} ns** (21.6 % of 10 ns); 50 MHz display domain **{pix[0]} ns** (4.4 % of 20 ns) |", 'EN 逐时钟')
-sub('readme.en.md', '| Hold time | **+0.051 ns** in all three domains - this is the thinnest margin, not the setup number above |',
+sub('README_EN.md', '| Hold time | **+0.051 ns** in all three domains - this is the thinnest margin, not the setup number above |',
     f'| Hold time | worst **{DES[1]} ns** (100 MHz domain), receive domain **{eth[1]}**, display domain **{pix[1]}** - the thinnest class of margin, quoted **after** the 0.8 ns hold uncertainty this repo imposes |', 'EN hold')
-sub('readme.en.md', '14358 (26.99 %)', f'{lut_n} ({lut_pct} %)', 'EN 资源')
-sub('readme.en.md', '**2.205 W**', f'**{pw} W**', 'EN 功耗')
+sub('README_EN.md', '14358 (26.99 %)', f'{lut_n} ({lut_pct} %)', 'EN 资源')
+sub('README_EN.md', '**2.205 W**', f'**{pw} W**', 'EN 功耗')
 
 # ---- 4) board/README.md
 old_para = ('时钟域的分工要说清楚，否则"余量 0.5 ns"会被读错：**全设计最差那条 setup 在 125 MHz 收包域，\n'

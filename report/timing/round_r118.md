@@ -31,7 +31,7 @@
 | **B4** | 发布门：判定 24 项里红数 **== 1**（只有声明过的 `C5c`），且门禁两跑逐字节一致 | `build/r118_gates.txt` |
 | 采纳 | 四条全过 ⇒ 刷 r118 + `board_verify --geom --battery --round=r118`；任一不过 ⇒ **板子回刷 r114**，r118 记"量过并否决" | `build/evidence/r118_board/board_now.txt` |
 
-⚠ B1 用的是**严格那把**尺子，不是 `build/timing_roster_diff.sh` 的 D3（D3 的门槛是"掉 25 % 以上的域数"）。
+警告 B1 用的是**严格那把**尺子，不是 `build/timing_roster_diff.sh` 的 D3（D3 的门槛是"掉 25 % 以上的域数"）。
 同一份数据两把尺子可以给不同判语，这件事记在 `report/log/issues.md` **#328**；我没有改宽任何一方，
 而是把严格判据独立成件，交付承诺按它判。
 

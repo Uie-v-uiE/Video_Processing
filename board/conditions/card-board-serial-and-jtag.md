@@ -110,7 +110,7 @@ elf 与 bit 不同龄 ⇒ 本轮的板级结论只能盖到"bit r118 + elf r101 
 | `board/uart_capture.txt（不随包）` | 2026-09-29 07:05 | 7 | 0 | 1 | `511b3e50` | 单条 `stat` 的手动抓取，窗口与轮次身份 `【待补】` |
 | `board/uart_script_capture.txt` | 2026-10-04 04:49 | 364 | 8 | 3 | `cc3c165a` | 105 条命令电池的原始捕获（r118 那一跑，`board_verify_console.txt:63` 点名它） |
 
-注：`r116_serial_raw.txt` 的 sha256 前 8 我这一轮**没有**单独复算（它只有 2 字节，登记行数以 `wc -c`=2 为准）；
+注：`r116_serial_raw.txt` 的 sha256 前 8 这一轮**没有**单独复算（它只有 2 字节，登记行数以 `wc -c`=2 为准）；
 需要摘要时按 `board/logs/index.md` 的复算命令跑即可。这一行是本目录里唯一一条"登记了但摘要未复算"的行，
 所以它的判定 = `NOT_MEASURED`（缺摘要核验），不是 `PASS`。
 

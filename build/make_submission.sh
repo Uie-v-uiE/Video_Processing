@@ -6,7 +6,7 @@
 # make_submission.sh — 从当前 git 跟踪集导出选题指南 §3.3.5.4 那份目录（final_submission/）。
 #
 # 四条判据，每条都是为了处理"仓库里合理、交出去不合理"：
-#  1) **按引用留凭据**：build/ 与 sim/ 跟踪了上千个文件。被交付文档、两份 README、skill/、板级
+#  1) **按引用留凭据**：build/ 与 sim/ 跟踪了上千个文件。被交付文档、两份 README、skills/、板级
 #     操作卡点名的才带；评委复核任何数字走的都是文档里那条指路，没被点名的留档在包里只是噪声。
 #  2) **被否决的轮次不进包**（HARD_DROP）：failed_/red_/rejected/notadopted/_wip/aborted 这些目录
 #     即使被文档点名也不带——文档还指着它们，就说明该改的是文档，不是把它们塞进包。
@@ -94,7 +94,7 @@ BUILD_DEV_ONLY=(
 DOC_EXCLUDE=(report/log/contest_checklist.md)
 
 # ---- 无论有没有被点名都留着：跑起来的那一套 ----
-KEEP_ALWAYS_RE='\.(sh|tcl|py|ps1|bat|xdc|f|v|c|h)$|^src/(rtl|ps|constraints)/|^data/golden/|MANIFEST|README|^submit/|^skill/'
+KEEP_ALWAYS_RE='\.(sh|tcl|py|ps1|bat|xdc|f|v|c|h)$|^src/(rtl|ps|constraints)/|^data/golden/|MANIFEST|README|^submit/|^skills/'
 
 cd "$REPO"
 COMMIT="$(git rev-parse --short HEAD)"
@@ -109,7 +109,7 @@ prune() { if [ -e "$1" ]; then rm -rf "$1"; echo "$2 $1" >> _pruned.txt; fi; }
 
 # ---- 0. 活文档射程：由 find 现算，不留手写名单 ----
 # 手写名单会随目录长出新子树而**静默变窄**，而窄掉的那一层不会报错（规矩 47：射程漂移是无声的）：
-#   · 技能包本轮改成 `skill/<类别>/<条目>/SKILL.md`（三级），旧名单只写了两级 ⇒ 58 个条目全掉出射程；
+#   · 技能包本轮改成 `skills/<类别>/<条目>/SKILL.md`（三级），旧名单只写了两级 ⇒ 58 个条目全掉出射程；
 #   · `docs/` 重新成为交付层（那两次 docs→report 改名轮都退回了，见 report/log/issues.md），
 #     而旧名单里根本没有它 ⇒ 126 条"死链"的形状就是"文件在包里、指路在文档里、射程里没有它"。
 # 所以射程只由一条 find 算出，并打印**逐层计数**：某层归零即判这一层没扫成，不判这一层干净。
@@ -124,15 +124,16 @@ LIVE_N="$(grep -c '' _live_docs.txt)"
 ALL_CSV_N="$(find . -type f -name '*.csv' 2>/dev/null | wc -l)"
 KEPT_CSV_N="$( { grep -c '\.csv$' _live_docs.txt || true; } )"; KEPT_CSV_N="${KEPT_CSV_N:-0}"
 SCOPE_ROWS=""
-for L in report docs skill board sim data submit; do
+for L in $(find . -mindepth 1 -maxdepth 1 -type d 2>/dev/null | sed 's|^./||' | sort); do
   n="$( { grep -c "^$L/" _live_docs.txt || true; } )"; n="${n:-0}"
   SCOPE_ROWS="$SCOPE_ROWS $L=$n"
-  if [ "$n" = "0" ] && [ -d "$L" ]; then
+  md="$( { find "$L" -type f -name '*.md' 2>/dev/null; find "$L" -type f -name '*.csv' 2>/dev/null; } | wc -l )"; md="${md:-0}"
+  if [ "$n" = "0" ] && [ "$md" != "0" ]; then
     echo "REFUSE：活文档射程里 $L/ 一层数到 0，而包内有这个目录 ⇒ 这是射程漂移，不是那一层没有文档" >&2
     exit 1
   fi
 done
-for must in README.md readme.en.md report/README.md skill/README.md report/src-map.md report/README.md; do
+for must in README.md README_EN.md report/README.md skills/README.md report/src-map.md report/README.md; do
   if ! grep -qxF "$must" _live_docs.txt; then
     echo "REFUSE：射程里缺必看入口 $must（评委照着翻的第一批文件）" >&2
     exit 1
@@ -159,7 +160,7 @@ for n in "${PRUNE_ONEOFF[@]}"; do prune "$n" "一次性脚本"; done
 # （2026-09-29 把两类目录一起剪时，`report/commands.md` 指着的 `build/evidence_r75/manifest.md5`
 # 就变死了，39 条死链全是这一类）。所以先读"活文档点哪些目录"，再决定剪谁。
 CRED_DIRS=$( { grep -rhoE '(build|board)/(evidence|frozen)_[A-Za-z0-9_.-]+/' \
-    report README.md readme.en.md skill board/README.md data/metrics.csv 2>/dev/null; } | sort -u )
+    report README.md README_EN.md skill board/README.md data/metrics.csv 2>/dev/null; } | sort -u )
 for d in build/evidence_* build/frozen_* board/evidence_* board/frozen_*; do
   if [ -d "$d" ]; then
     if printf '%s\n' "$CRED_DIRS" | grep -qF -- "$d/"; then
@@ -182,7 +183,7 @@ while read -r n; do if [ -e "$n" ]; then rm -rf "$n"; echo "被否决轮次/中�
 # 引用面 = 活文档全体 + 台账（`report/log/`，它的引用不算"包里必须有"，但它确实点了名，留着更稳）
 # + 根上两份 README + `submit/`（评审阅读路径）+ `docs/`（本轮重新成为交付层；旧名单没有它，
 # 于是只被 docs 点名的件会被判成"没人要"而剪掉 ⇒ 包内少文件、文档里留指路，两头都错）。
-LIVE_SCOPE=(report docs submit README.md readme.en.md skill board data/metrics.csv)
+LIVE_SCOPE=(report docs submit README.md README_EN.md skill board data/metrics.csv)
 { grep -rhoE "[A-Za-z0-9_./-]+\.[A-Za-z0-9]{1,5}" "${LIVE_SCOPE[@]}" 2>/dev/null | sed 's|^\./||'; } > _cited.txt || true
 { grep -rhoE "src/host/[A-Za-z0-9_.-]+\.mjs" build/*.sh 2>/dev/null; } >> _cited.txt || true
 sort -u -o _cited.txt _cited.txt
@@ -194,23 +195,29 @@ for f in src/host/*.mjs; do
 done
 sort -u -o _cited.txt _cited.txt
 
-# 2a) 台架取舍 = 手写名单 ∪ 被留下的脚本点名的（gates.sh 要对它算 md5，指着不存在的文件就是包的缺陷）。
-#     其余一律不带：交付文档里以裸名提到它们，说的是"过程里举过的例子"，不是"包里该有这个文件"。
+# 2a) 台架取舍 = `sim/README.md` 表格里列出的（§2.4 那张表由台架文件头现生成，列到就必须随包，
+#     否则包里那张表指着一个包里不存在的 .v ⇒ 死链，而这条门自己会拒绝落盘）
+#     ∪ 手写名单 ∪ 被留下的脚本点名的（gates.sh 要对它算 md5，指着不存在的文件就是包的缺陷）。
 : > _dropped_tb.txt
 { grep -rhoE "tb_[A-Za-z0-9_]+" build/gates.sh build/freeze_evidence.sh build/sim/run_one.sh build/sim/mut_control.sh 2>/dev/null |
   sed 's/\.v$//' ; } | sort -u > _script_tb.txt || true
+{ grep -oE '^\|[[:space:]]*`?[a-z0-9_-]+\.v' sim/README.md 2>/dev/null | sed 's/^[^a-z]*//; s/\.v$//' | sort -u > _table_tb.txt || true; }
+if [ ! -s _table_tb.txt ]; then echo "REFUSE：sim/README.md 表格一格台架名都没数到 ⇒ 这张表没生成，台架取舍没有依据" >&2; exit 1; fi
 for f in sim/*.v; do
   if [ -f "$f" ]; then
     b="$(basename "$f" .v)"
     hit=0
     for k in "${SIM_KEEP[@]}"; do if [ "$b" = "$k" ]; then hit=1; fi; done
     if grep -qxF "$b" _script_tb.txt; then hit=1; fi
+    if grep -qxF "$b" _table_tb.txt; then hit=1; fi
     if [ "$hit" = "0" ]; then
       prune "$f" "回归台架（不随包，文档里的裸名提及指的是仓库）"
       echo "$b" >> _dropped_tb.txt
     fi
   fi
 done
+
+echo "台架取舍 表格列=$(grep -c '' _table_tb.txt) 脚本点名=$(grep -c '' _script_tb.txt) 随包=$( { find sim -maxdepth 1 -name '*.v' | wc -l; } ) 剔=$( { [ -f _dropped_tb.txt ] && grep -c '' _dropped_tb.txt || echo 0; } )"
 
 # 一条 awk 判完，不逐文件 spawn（Windows 上每个 grep 都要几十毫秒，1500 个文件就是几分钟）
 find src/host build sim board data -type f 2>/dev/null | sed 's|^\./||' > _all.txt || true
@@ -275,7 +282,7 @@ EV_DOCS="${SUB_EVIDENCE_DOCS:-$(find . -name '*.md' -not -path './report/log/*' 
 # 扫描面的**形状**地板：README、README.en、ACCEPTANCE 这三份必须在射程里。
 # 今天那个洞的准确形状就是"只扫 ACCEPTANCE"——它不从引用数上看得出来（少扫的文件根本没进引用集），
 # 只有从"扫了哪几份文档"这个独立分母才看得出来（规矩 23(c)：分母不许由被检的那条分支算）。
-for must in ./README.md ./readme.en.md ./board/acceptance.md; do
+for must in ./README.md ./README_EN.md ./board/acceptance.md; do
   printf '%s\n' "$EV_DOCS" | grep -qx "$must" || { echo "REFUSE：板级凭据的扫描面缺了 $must（今日洞的形状）" >&2; exit 1; }
 done
 EV_CITED=$(grep -ohE 'build/evidence/[A-Za-z0-9_.-]+' $EV_DOCS 2>/dev/null | sort -u)
@@ -428,7 +435,7 @@ done < <(find build -type f \( -name '*.rpt' -o -name '*.txt' \) 2>/dev/null | g
 #   死链自检抓不到它（它不是路径形状），但评委照着翻就是翻不到（2026-09-29 干跑时看到）。
 # ⚠ 名单也要由 find 现算：上一版写死 `report/*.md report/log/*.md board/*.md`，于是
 #   `report/timing/round_r117.md` 这类**大写名进了包、指路也没换**——小写化这一层对新加的 docs 层
-#   什么都没做（同一族的射程漂移）。`skill/**/SKILL.md` 是**故意不进**这张表的：§3.3.5.2 点名的
+#   什么都没做（同一族的射程漂移）。`skills/**/SKILL.md` 是**故意不进**这张表的：§3.3.5.2 点名的
 #   条目外壳就叫 `SKILL.md`，把它小写化等于自己造死链接；大写路径的整体处置是待决项 Q-P21-2。
 LOWER_SRC="$( { find report docs board -name '*.md' 2>/dev/null; } | sed 's|^\./||' | sort )"
 LOWER_N="$(printf '%s\n' "$LOWER_SRC" | grep -c . || true)"
@@ -600,7 +607,7 @@ for f in $(live_docs); do
     # 同行声明词的过滤也走同一处 sed（**整行删掉再抽路径**）：命中词与路径在同一条句子里，
     #   说明这一行的那个名字本来就没打算让评委去翻。
     sed -e 's/-log[[:space:]]\{1,\}[^[:space:];"`]*/ /g' -e "/$SKIP_RE/d" "$f" 2>/dev/null |
-    grep -oE '(src|sim|build|board|data|skill|report|docs)/[A-Za-z0-9_./-]*[A-Za-z0-9_-]\.[A-Za-z0-9]{1,6}' 2>/dev/null |
+    grep -oE '(src|sim|build|board|data|skills?|report|docs)/[A-Za-z0-9_./-]*[A-Za-z0-9_-]\.[A-Za-z0-9]{1,6}' 2>/dev/null |
     sort -u | while read -r t; do
       case "$t" in *'*'*|*'<'*|*'$'*|*NN*) continue ;; esac
       # #172：`*.log` 从免检名单里去掉 —— 它当时是为了绕开"冻结件的逐列读数进不了 git"，
@@ -655,7 +662,7 @@ ABS_FIXTURE="${ABS_FIXTURE:-0}"
 ENTRY_SCANNED=0
 ABSN_ENTRY=0
 ABS_ENTRY=""
-for g in README.md readme.en.md report/70-reproduce.md report/build.md build/tcl/README.md \
+for g in README.md README_EN.md report/70-reproduce.md report/build.md build/tcl/README.md \
          report/repro-check.md report/acceptance-recipes.md report/declarations.md report/submission-checklist.md \
          $(ls submit/reproduce/*.md 2>/dev/null); do
   if [ ! -f "$g" ]; then continue; fi
@@ -674,7 +681,7 @@ NARR_SCANNED=0
 for g in $(live_docs); do
   case "$g" in *.md|*.csv) ;; *) continue ;; esac
   if [ ! -f "$g" ]; then continue; fi
-  case " README.md readme.en.md report/70-reproduce.md report/build.md build/tcl/README.md report/repro-check.md report/acceptance-recipes.md report/declarations.md report/submission-checklist.md " in
+  case " README.md README_EN.md report/70-reproduce.md report/build.md build/tcl/README.md report/repro-check.md report/acceptance-recipes.md report/declarations.md report/submission-checklist.md " in
     *" $g "*) continue ;;
   esac
   case "$g" in submit/reproduce/*) continue ;; esac
@@ -748,7 +755,7 @@ cat > MANIFEST.txt <<EOF
 生成脚本: build/make_submission.sh（可重跑；四条判据写在脚本头部）
 
 目录对照（选题指南 §3.3.5.4 推荐结构 -> 本仓库）
-  README.md   项目简介 + 复现步骤   <- README.md（中）/ readme.en.md（英）
+  README.md   项目简介 + 复现步骤   <- README.md（中）/ README_EN.md（英）
   src/        设计源码              <- src/rtl/**（PL）+ src/ps/**（裸机固件）+ src/host/**（PC 侧）
   sim/        仿真脚本与结果        <- 支撑交付结论的台架 + run_one.sh/run_sim.tcl + mut_control.sh
                                       名字对照见 build/sim/names.md，判据报告在 build/reports/
@@ -757,7 +764,7 @@ cat > MANIFEST.txt <<EOF
   board/      工程/脚本/实测输出    <- project/**（板上那一版 .bit/.elf/.xsa）
                                      + tcl|scripts/**（JTAG 与串口脚本）+ output/**（实测输出）
   data/       测试数据与参考结果    <- data/golden/**、data/measured/**
-  skill/      技能包                <- skill/**（README.md 是索引；条目外壳按 §3.3.5.2 就叫 SKILL.md）
+  skills/      技能包                <- skills/**（README.md 是索引；条目外壳按 §3.3.5.2 就叫 SKILL.md）
   report/     设计报告 + 协作记录   <- 仓库里的 report/（交付文档），工作记录在 report/log/
   ——  以下两层是"其他组织方式"的一部分，对照说明同样写在 README.md / report/README.md：
   docs/       度量、名册与逐轮台账  <- 仓库里的 docs/（含 docs/timing/ 的逐时钟名册）；

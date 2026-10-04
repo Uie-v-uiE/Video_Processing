@@ -101,5 +101,5 @@ def rotate(path, table):
 
 
 if __name__ == '__main__':
-    print('readme.en.md', rotate('readme.en.md', EN))
+    print('README_EN.md', rotate('README_EN.md', EN))
     print('metrics.csv', rotate('data/metrics.csv', CSV))

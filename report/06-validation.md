@@ -24,7 +24,7 @@
   `RESULT tb_v98_top_seam FAIL nfail=1`；判据名去掉重复之后是 **47** 个
   （同文件 `grep "^PASS" | 取第 2 列 | sort -u`）。整屏台架之外，`sim/` 下 `tb_*.v` 共 **81** 支
   （本次 `ls sim/tb_*.v | wc -l` 数出）。
-  ⚠ `data/metrics.csv` 的"整屏逐像素判据 141 条"钉的是 r104 那一跑（它自己写明
+  警告 `data/metrics.csv` 的"整屏逐像素判据 141 条"钉的是 r104 那一跑（它自己写明
   `141 = 该文件里 ^PASS 行数 140 加 ^FAIL 行数 1`，头部 `top_md5=2bf2ceeede07`），
   与本轮那一份头部 `top_md5=56c269602e18` 不同源 ⇒ **计数跨轮不可比**，以当前件为准。
 - 唯一那条 FAIL 是 `FAIL C5c frame head is not the previous frame's tail …`，

@@ -138,7 +138,7 @@ V7 的老写法（`SRC0` `TH80` `ZOOM1` `BILIN1` `FRAME12`）仍然收；裸五�
 |------|--------|----------|
 | `src/host/udp_push.py` | 零依赖推流（协议、限速、确定性丢包）；`--pattern edge` 是"换帧原子性"的现场判据 | 手工；`report/host_guide.md` §2 的第一条 |
 | `build/build_ps_app.py` | 不用 IDE 把 `src/ps` 编成 ELF，并做**成品自检**（入口 = `_boot`、`_vector_table` 必须在 0x0、`.text` 体积下界、七个符号必须在）；退出码 2/1/3 分别指"输入不在/编译失败/成品不可执行" | `report/build.md` §1；与 Node 版孪生工具（仓库里 `ps_app.mjs`）产出**逐字节相同**（md5 `d0b07f84a068…`，即板上那一版）|
-| `doc_enc_check.mjs` | 手写文件（`.md .v .c .h .mjs .sh .ps1 .tcl`，范围 `report/board/src/sim/tools/build/tcl` **与 `skill/`**——后者是 2026-09-29 补进来的，之前那 29 个给评委读的文件从没被扫过）必须 UTF-8 无 BOM、无 CR 混排、无替换符/私用区 | `build/gates.sh` |
+| `doc_enc_check.mjs` | 手写文件（`.md .v .c .h .mjs .sh .ps1 .tcl`，范围 `report/board/src/sim/tools/build/tcl` **与 `skills/`**——后者是 2026-09-29 补进来的，之前那 29 个给评委读的文件从没被扫过）必须 UTF-8 无 BOM、无 CR 混排、无替换符/私用区 | `build/gates.sh` |
 | `doc_currency_check.mjs` | 文档里点名的 `build/frozen_rNN/` 必须盘上真有、旧编号不许写成"当前默认" | `build/gates.sh` |
 | `line_cite_check.mjs` | 交付文档里的 `文件.v:NNN` 引用：**硬错（决定退出码）= 文件不在树里 / 行号越过文件末尾 / D5b「例化者」列指错 / D5d 逐字抄的固件回声与所引那几行对不上**；"锚点不在那几行"（`--list-soft`）与"这句在该文件里找不到、像转述"（`--list-echo`）只列清单不判红。`--self` 13 条对照：#122 那个真实事故、D5b 三条、D5d 五条（三条判定 + 两条配对形状）、硬错三条 | **暂时不在门禁里**（排在 `#159`：D5/D6 接进门禁要与 D6 一起改，而门禁正被本轮构建链排队执行，不许中途换尺子）；能红的对照已就位——实测"把一个引用的行号改错 ⇒ 全树只多一条红、soft 不动"。历史上用它把 7 处硬错清零 |
 | `demo_cmds.mjs` | 演示脚本里的命令块逐条对固件解析器（不碰板子） | `build/gates.sh` |

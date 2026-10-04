@@ -33,7 +33,7 @@ $ node board/ddr_churn_probe.mjs 60 25
 （本段是从同一轮会话的 stdout 转录的，因为采完红之后要把板子留在可看的绿色状态；
   复现只需按上面两条命令再跑一次，探针本身不做任何写操作。）
 
-【反例：判据不敏感（把我自己骗过一次的那次测量，保留下来当反面教材）】
+【反例：判据不敏感（把本轮骗过一次的那次测量，保留下来当反面教材）】
 $ node src/host/ddr_verify.mjs          # 修复前的 elf 也报全绿
 [bank0] base=0x10000000 good=76800 bad=0 coverage=100.0%
 [bank1] base=0x10080000 good=76800 bad=0 coverage=100.0%

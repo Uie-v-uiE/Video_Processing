@@ -43,7 +43,7 @@
 
 | name | 这条解决什么 | 长自哪一类观察 |
 |---|---|---|
-| bench-expectations-first | 先按现代码推期望、在**未改**树上跑绿 | 两次"改前红"其实是我猜错期望，DUT 是无辜的 |
+| bench-expectations-first | 先按现代码推期望、在**未改**树上跑绿 | 两次"改前红"其实是猜错期望，DUT 是无辜的 |
 | golden-reference-compare | 黄金参考比对的容差、豁免、空集规则 | 豁免名单按被测信号 key ⇒ 把别的用例买通了；零样本分支真空通过 |
 | checker-selftest | 每个检查器自带 --self 与变异对照 | 收紧判据后没重跑真件；`--self` 全绿而真实行为红（夹具绕过了提取层） |
 | three-state-verdicts | PASS/FAIL/NOT_MEASURED 与计数地板 | "没扫到"被写成通过，是本项目最大的一族账 |

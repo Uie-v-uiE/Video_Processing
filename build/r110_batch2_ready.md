@@ -3,7 +3,7 @@
 这一页的存在理由：用户要求"所有任务一起开、别一个一个搞几小时仿真"。所以第二捆里每一刀都**已经在不花构建的前提下验过**，
 落刀之后只需要一次构建 + 一次顶层台架（一轮只付那 127 分钟一次）。
 
-## 刀 0（**最先做**，因为它决定后面几刀的证据可不可信）：修回我把 `osd_addr` 变异弄钝的那处回归
+## 刀 0（**最先做**，因为它决定后面几刀的证据可不可信）：修回把 `osd_addr` 变异弄钝的那处回归
 r109 的 #105 那一刀把 OSD 读侧改成 `ch_addr_pre = line*MAX_CHARS + cidx` → `ch_r <= chars[ch_addr_pre]`，
 `ch_addr` 从此只供台架判越界、**不再决定画出来的是什么**。后果：`build/sim/mut_control.sh` 的 `osd_addr` 分支
 （sed 改 `ch_addr` 那一行、`EXPDIFF=2`）现在"只改判据的眼睛、不改 DUT 的画"，而且 sed 仍能匹配 ⇒ **脚本不报警，只有人会漏**。
@@ -19,7 +19,7 @@ r109 的 #105 那一刀把 OSD 读侧改成 `ch_addr_pre = line*MAX_CHARS + cidx
   —— 与 `:110` 已有的"清 > 帧边界 > 滴答"优先级对齐；跨零点那一条完成的间隔**丢弃**，下一个 `frame_done` 重建基准。
 - 预验读数：未打刀那腿 `FAIL F2e B … sum=518 > 2x130`（且只有这一条红）；打刀那腿 F2e A/B 与 F2a–F2d 全绿。
 - 落刀后：`bash build/sim/run_one.sh tb_link_monitor`（约 38 秒）必须全绿；然后重跑 `build/f2e_preverify.sh` 只是留凭据，不再需要。
-- ⚠ 不要"顺手"改期望值：F2e A 那条对照就是防这条刀把判据改宽的（规矩 30/44）。
+- 警告：不要"顺手"改期望值：F2e A 那条对照就是防这条刀把判据改宽的（规矩 30/44）。
 
 ## 刀 2：#177 死代码一轮（删完要证"输出不变"，逐端口面已在任务 #177 里查到底）
 - `src/rtl/eth/eth_ctrl.v`：删厂商残肢 —— 端口 `tx_data`/`tx_req`/`rec_en`/`rec_data`/`icmp_tx_data`/`udp_tx_data`
@@ -40,7 +40,7 @@ r109 的 #105 那一刀把 OSD 读侧改成 `ch_addr_pre = line*MAX_CHARS + cidx
 1. 落三刀 → `bash build/timing_lane.sh`（约 9 分钟）先拿等价性；
 2. `bash build/r110_chain.sh`（照 `build/r109_chain.sh` 抄，NN=110）：构建 → 探针（含 `probe_clk_worst.tcl` 两个时钟）→ 快车道 → 顶层台架 → 边缘条带 → 门禁两跑；
 3. 采纳判读走 `build/r109_adoption_checklist.md` 那张表，只把 r109 换成 r110；
-4. ⚠ 链子在飞期间**不许再起第二支 xsim**（r109 的台架阶段就是这么丢掉 127 分钟的，ISSUES #234）。
+4. 警告：链子在飞期间**不许再起第二支 xsim**（r109 的台架阶段就是这么丢掉 127 分钟的，ISSUES #234）。
    拷贝树预验（`build/f2e_preverify.sh` 这一类）只能排在链子起飞之前，或"阶段结束"之后。
 
 ## 刀 4（新浮出来的靶，读数是 r109 自己的）：`rows_hit` 位图的 CE 广播 + 物理侧
@@ -48,8 +48,8 @@ r109 的 #105 那一刀把 OSD 读侧改成 `ch_addr_pre = line*MAX_CHARS + cidx
 `u_eth/u_reasm/off_reg[11]_rep/C → u_eth/u_reasm/rows_hit_reg[2]/CE`，**0.605 ns / 6 级 / route 82.25 %**，
 其中 `off_reg[11]_rep_n_0` 这一根网络 `fo=109` 自己就吃 **1.511 ns**；
 `Logic Levels` 里出现 `MUXF7=1 MUXF8=1` ⇒ 那 6 级是 16 位位图的比较树。
-可做的两件事（**只做一件，一轮一个变量**，规矩 #223）—— 2026-10-03 读实整段 `build/setup_paths.rpt:15-61` 后，两件事的形状都比我原先写的更具体，
-更正与逐跳数据在凭据文件的**第四节**（我之前那句"MUXF7/MUXF8 是 16 位位图的比较树"是猜的，错了：那是 5×64 位图**读侧 mux**）：
+可做的两件事（**只做一件，一轮一个变量**，规矩 #223）—— 2026-10-03 读实整段 `build/setup_paths.rpt:15-61` 后，两件事的形状都比原先写的更具体，
+更正与逐跳数据在凭据文件的**第四节**（之前那句"MUXF7/MUXF8 是 16 位位图的比较树"是猜的，错了：那是 5×64 位图**读侧 mux**）：
 ① ~~再削一次扇出（对 `rows_hit` 的 CE 用 r107 同款）~~ —— **已否**：那根使能网今天仍 `fo=316`，与 r106 抱怨的数字逐字相同，
    说明"分 5 组"只切开了各组的 `rbank==k` 与项，公共的 `new_row` 被综合又提回一根广播网 ⇒ 同款第二把**不成立**。
    可落的是换形状：把 `new_row` 打成**独热**（`rok_and_k = new_row & (rbank == 3'dk)`，五根独立网、每根 fo≈64），
@@ -57,7 +57,7 @@ r109 的 #105 那一刀把 OSD 读侧改成 `ch_addr_pre = line*MAX_CHARS + cidx
    判据 = fo 必须离开 316，否则这一刀没有抓手（不改期望值、不顺手放宽）。
 ② 物理侧：起点 X23Y22、终点 X28Y68 —— **46 行的纵向距离**就是最后那跳 1.784 ns 的直接来源，整族 route 82.25 %。
    ⇒ Pblock/就近放置这一族（r87 实测 route 66 % 那次记过口径）。
-   ⚠ 这一条属于路线图 §11.3"约束/策略放最后"，且必须与 ① 分开单独滚，否则收益归不了属。
+   警告：这一条属于路线图 §11.3"约束/策略放最后"，且必须与 ① 分开单独滚，否则收益归不了属。
 **先做哪一个**：① 是 RTL 单点、可在快车道逐刀验等价（位图与计数器行为不许变，`sim/tb_reasm_bounds.v` 的 R1 与
 `tb_udp_reasm` 都在射程内），且它同时消掉 fo=316 与它自己那 1.784 ns；② 不动逻辑、只动约束，收益在**下一刀**才能归属。
 按"一轮一个变量"与 §11.3，**r110 落 ①**，② 留给它自己的那一滚（与策略扫描同批）。
@@ -91,7 +91,7 @@ hold 侧今天不动：WHS 0.049 的归属又换了（`u_rx_mac/u_crc_rx/crc_dat
 （`dv_d1 && !de_in && run != 0` 也算行尾），四家同改、再配变异对照；
 **若 T2 根本红不起来**（激励插不进短行 / 上游根本不产生）⇒ 这一条**保持"条件可达、未立案"**，
 只把 T1/T3 作为回归判据留下，不改 RTL（这就是"不许把猜测升格成缺陷"，也是 #222/#158 的一贯口径）。
-⚠ 与 r109 的 C12 同一姿势：两端夹逼 + 阳性对照 + 比较次数地板，三条都要**各打一行**。
+警告：与 r109 的 C12 同一姿势：两端夹逼 + 阳性对照 + 比较次数地板，三条都要**各打一行**。
 
 ## 刀 6（任务 #102 那一格"只缺 raw 抽头半"）：把**内容 tag** 级的第 0 列判据从 1.00× 扩到 0.5× / 0.75×
 今天的射程长这样（读 `sim/tb_v98_top_seam.v` 与 `sim/tb_v96_zoom_scan.v` 读出来的，不是推测）：
@@ -113,7 +113,7 @@ hold 侧今天不动：WHS 0.049 的归属又换了（`u_rx_mac/u_crc_rx/crc_dat
 3. 牙（阳性对照，**必须在未改的树上就能红一次**）：`build/sim/mut_control.sh` 里加一支 `raw_tap_clamp` ——
    把 #102 第一刀那个"消隐期读地址钳 0"改回"钳到上一行"（或直接把 `u_raw` 的读地址 +1），
    变异后**只该红 C10a 一条**（连带 C10pre 不许动）；红两条以上就是判据共享根因，要在报告里点名连带。
-   ⚠ 这条对照**先跑、拿到红，再谈任何 RTL**（#158/#222 的口径：先有数得出机会的尺子）。
+   警告：这条对照**先跑、拿到红，再谈任何 RTL**（#158/#222 的口径：先有数得出机会的尺子）。
 4. 成本：这一刀不加帧、不加循环 ⇒ 顶层台架那 127 分钟不变；变异对照走单文件回退 + 只跑 `tb_v98` 一次，
    如果只想知道"尺子有没有牙"，可以先在 `tb_edge_rim`（30 秒级）上做同款 tag 比对再升格。
 
@@ -127,7 +127,7 @@ hold 侧今天不动：WHS 0.049 的归属又换了（`u_rx_mac/u_crc_rx/crc_dat
 :1860/:1862/:1864/:1866 新家的每帧换角）。门禁方向是保守的（红就变 NFAIL=2），但"按 token grep"已经不可用。
 改法三处一起：`line("C12pre both…")→C13pre`、`C12c→C13c`、`C12a head request…→C13a`、`C12b frozen-angle…→C13b`；
 `build/tb98_report.sh:35` 的打印白名单加 `C13 `（保留 `C12 `，老家还在用）；`$display` 那两行读数前缀同批改 `C13 rot:` / `C13 frozen:`。
-⚠ 条数不变 ⇒ "整屏判据条数"那一格不许跟着动（规矩 47：项数本身是被判的数）。
+警告：条数不变 ⇒ "整屏判据条数"那一格不许跟着动（规矩 47：项数本身是被判的数）。
 落刀后先在**未打刀**的树上跑一次 `build/sim/mut_control.sh` 或任一快车道支，确认没有脚本按 `^C12a` 找新家的读数行。
 
 ## 刀 2 的前置复核（2026-10-03 01:1x 重跑 grep，链子在飞、只读）
@@ -142,7 +142,7 @@ hold 侧今天不动：WHS 0.049 的归属又换了（`u_rx_mac/u_crc_rx/crc_dat
 
 ## 落刀入口改口（2026-10-03 01:2x）：刀 1 与刀 4① 不再手改，走 `build/r110_apply_cuts.sh`
 凭据 `build/evidence/r110_apply_cuts_proof.txt`：拷贝树里三条全 APPLIED、缩进保住、xvlog 差分对照
-pristine 0 ERROR / patched 0 ERROR（自测抓到并修掉两处我自己的缺陷：`row_covered` 用在其声明前、放宽比较后丢缩进）。
+pristine 0 ERROR / patched 0 ERROR（自测抓到并修掉两处本轮的缺陷：`row_covered` 用在其声明前、放宽比较后丢缩进）。
 树空下来之后的顺序（**不要手改 src/rtl**，手改会让 MUST/LEFTOVER 这套后验失去对象）：
 1. `bash build/r110_apply_cuts.sh --check` —— 三条都要 CHECK-OK；任一 ANCHOR-* 就是树变了，重读源码改脚本，不放宽锚点；
 2. `VP_I_KNOW=1 bash build/r110_apply_cuts.sh --apply` —— 这一步会自己检查"没有 vivado/xsim 在飞 + 两份 RTL 在 git 里干净"，
@@ -159,7 +159,7 @@ pristine 0 ERROR / patched 0 ERROR（自测抓到并修掉两处我自己的缺�
 :33 `udp_rec_data`、:34 `udp_rec_en`、:35 `udp_tx_req`、:36 `udp_tx_data`、:38 `tx_data`、:39 `tx_req`、:40 `rec_en`、:41 `rec_data`；
 内部 :52/:53 `*_tx_req_d0`、:56 `assign tx_req`、:57/:58 两条 `assign *_tx_data`、:61-70 那个只给 `*_d0` 用的 always 块、
 :71-86 的 `rec_en/rec_data` always 块（**整块删**，它只被 :17-22 那对端口消费）。
-⚠ 删端口的前提是"例化者唯一"：上面这条 grep 就是那一刀的证据，落刀前重跑一次，若多出别的例化者就停下重读。
+警告：删端口的前提是"例化者唯一"：上面这条 grep 就是那一刀的证据，落刀前重跑一次，若多出别的例化者就停下重读。
 `src/rtl/eth/eth_udp_video_top.v`：删 :114-116 三行 `fifo_tx_data`/`fifo_tx_req`/`fifo_rec_en`/`fifo_rec_data` 声明、
 例化里 `.icmp_tx_data()`(:214) 与 `.udp_tx_data()`(:218) 两行、`.tx_data(fifo_tx_data) .tx_req(fifo_tx_req)`(:219-220)、
 `.rec_en(fifo_rec_en) .rec_data(fifo_rec_data)`(:221)，**并同笔删掉 :217 那句"这条 rec 转发路径无人消费"的注释**（路径没了还留话就是自相矛盾）；
@@ -175,9 +175,9 @@ pristine 0 ERROR / patched 0 ERROR（自测抓到并修掉两处我自己的缺�
 （刀 0 有意延后，理由见任务 #183）。这两句会在构建控制台里被当成"本轮内容"念出来 ⇒ 链子跑完后把它们改成实际清单，
 并把 #177/#158 明写在"仍待下一捆"。文案与事实分开这件事本仓犯过不止一次（#221 那条"现在是 rNN 读不出来"是同族）。
 
-## 早上接手清单（02:5x 写，链子还在跑；若我在中途被 20 轮上限暂停，就按这张表手动走完）
+## 早上接手清单（02:5x 写，链子还在跑；若中途被 20 轮上限暂停，就按这张表手动走完）
 链子输出：`build/r110_chain_console.txt`（尾巴有"链结束"），分步件 `build/r110_build_console.txt`、
-`build/r110_lane_after.txt`（链子自己的车道，会覆盖我那份？不会——我那份已改名 `r110_lane_precut.txt`）、
+`build/r110_lane_after.txt`（链子自己的车道，会覆盖这一份？不会——这一份已改名 `r110_lane_precut.txt`）、
 `build/r110_tb98_console.txt`、`build/r110_gates.txt`。
 1. **先读抓手**：`bash build/r110_verdict.sh` → 看 `rows_hit` 的 CE 那族最后一跳的 fo 是否离开 316。
    仍 316 ⇒ `git checkout -- src/rtl/eth/frame_reasm.v`（只退刀 4，刀 1 保留），**下一轮重新构建**；

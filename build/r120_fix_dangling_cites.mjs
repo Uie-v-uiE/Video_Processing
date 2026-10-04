@@ -46,7 +46,7 @@ const MARK = [
   ['docs/walkthrough/README.md', '不随包'], ['docs/walkthrough/_progress.md', '不随包'],
   ['docs/walkthrough/_sources.md', '不随包'], ['docs/walkthrough/clocking-and-reset.md', '不随包'],
   ['docs/walkthrough/glossary.md', '不随包'], ['docs/walkthrough/system-overview.md', '不随包'],
-  ['skill/scripts/_out/base/metrics.md', '不随包'], ['skill/scripts/_out/b110/metrics.md', '不随包'],
+  ['skills/scripts/_out/base/metrics.md', '不随包'], ['skills/scripts/_out/b110/metrics.md', '不随包'],
   ['build/checks/my_gate.sh', '示例'], ['report/metrics_table.md', '示例'],
   ['report/register_contract.md', '示例'], ['src/xaxidma_hw.h', '示例'],
   ['src/xintc_l.h', '示例'], ['src/arm/cortexa9/xil_cache.c', '示例'],
@@ -56,7 +56,7 @@ const MARK = [
 // 射程与导出器同源：所有 *.md（除 report/log、build/reports、report/study、docs/walkthrough）+ 两份根 README
 const files = execFileSync('git', ['-c', 'core.quotePath=false', 'ls-files', '*.md'], { cwd: ROOT, encoding: 'utf8' })
   .split(/\r?\n/).filter(s => s && !/^report\/log\//.test(s) && !/^build\/reports\//.test(s))
-  .concat(['README.md', 'readme.en.md'].filter(f => fs.existsSync(P(f))));
+  .concat(['README.md', 'README_EN.md'].filter(f => fs.existsSync(P(f))));
 const uniq = [...new Set(files)];
 const hits = {}; let changed = 0, linesTotal = 0;
 for (const f of uniq) {

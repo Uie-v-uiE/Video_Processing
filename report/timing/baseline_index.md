@@ -17,7 +17,7 @@
 | `timing_summary_hold.txt` | 66a8089d2ee972bc46b1f6d03043636b | `report_timing_summary -hold` |
 | `timing_summary_verbose.txt` | d43135520fd351d7c930a7fd868ab700 | `report_timing_summary -verbose` |
 | `check_timing_verbose.txt` | 550b45d95449e31ac6465cd0f7fc68be | `check_timing -verbose`（**I/O 债务的权威名单就这一份**） |
-| `check_timing.txt` ⚠ | ff0582cd7cd3e1a6165a59ef6889ef37 | 件内 Command 行写的是 **`report_timing`**，不是 `check_timing` ⇒ **文件名与内容不符**（工具侧的账，见 debt_ledger §6 与 ISSUES） |
+| `check_timing.txt` 警告 | ff0582cd7cd3e1a6165a59ef6889ef37 | 件内 Command 行写的是 **`report_timing`**，不是 `check_timing` ⇒ **文件名与内容不符**（工具侧的账，见 debt_ledger §6 与 ISSUES） |
 | `setup_nworst.txt` | 227c29b99e085b08419e2081d996a36c | `report_timing -nworst … -unique_pins`（setup） |
 | `hold_nworst.txt` | 91e7c265d4c206c53e8b4805097c46fc | 同上（hold） |
 | `methodology.txt` | 795ae11a98e6b20e0d7f558022d3af4e | `report_methodology` |
@@ -38,7 +38,7 @@
 
 ## B2/B3 名册（基线工件，此后所有差值只许引用这一份）
 
-⚠ **md5 的口径**：上面所有哈希都是**工作树磁盘字节**的哈希。仓库的 `.gitattributes` 故意不覆盖 `*.txt`/`*.tsv`
+警告 **md5 的口径**：上面所有哈希都是**工作树磁盘字节**的哈希。仓库的 `.gitattributes` 故意不覆盖 `*.txt`/`*.tsv`
 （理由写在它文件头：`MANIFEST.md5` 按磁盘字节盖章，加 `eol=lf` 会让下一次 checkout 改已盖印章的件的字节——台账 #202 同族），
 而 `git add` 时报了 "LF will be replaced by CRLF the next time Git touches it" ⇒ **换一台机器 checkout 后这些哈希会变**。
 所以这份索引的凭据按"同一棵树上的磁盘状态"引用；名册本身是**可重算的**：

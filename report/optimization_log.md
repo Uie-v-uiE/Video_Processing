@@ -137,7 +137,7 @@ set_clock_groups -asynchronous \
 ### 判据方法（本版新增，可复用）
 `src/host/video_sender.mjs --test frameid` + `ddr_verify.mjs --frameid`
 + `ddr_stale.mjs`（包内相位 / 游程长度 / 粒度三维展开），一条命令
-`node measure_v63.mjs --fps N`。**必须发完再回读**。详见 `skill/pitfalls/frameid-loss-signature/SKILL.md`。
+`node measure_v63.mjs --fps N`。**必须发完再回读**。详见 `skills/pitfalls/frameid-loss-signature/SKILL.md`。
 
 ### 本版变更文件
 `src/rtl/eth/{frame_reasm,eth_udp_video_top,axi_frame_saver64}.v`
@@ -148,7 +148,7 @@ set_clock_groups -asynchronous \
 `sim/tb_eth_video.v`（修好第三版就失效的参数引用）、
 `build/tcl/{build_v6,program_pl,ps_jtag_boot,set_src}.tcl`、`build/*.{bit,xsa,rpt}`、
 `report/log/v6_root_cause.md`、`report/log/v6_board_measurement.md`、`report/ai_collaboration.md`、
-`skill/zynq-video-rtl-debug/*`、`skill/pitfalls/frameid-loss-signature/SKILL.md`
+`skills/zynq-video-rtl-debug/*`、`skills/pitfalls/frameid-loss-signature/SKILL.md`
 
 ---
 
@@ -192,7 +192,7 @@ build#14/#15/#16 分别 −1.277 / −0.485 / −0.327 ⇒ 那条路被 `build/m
 ### 3. 两处"空转"的资源，量出来了但还没动（各自的正确顺序）
 * 死模块 `src/rtl/process/bilin/{fb_rd5x,tap_sched}.v`：`sim/*.v` 与 `src/rtl/**` 里已无任何活引用
   （只在历史日志中出现）⇒ 建议移入 `docs archive/`，出构建 glob。
-  ⚠ 曾猜"它们制造了综合警告噪声"，**量过是错的**：整份 `r63c_build.log` 里 `Synth 8-3332` 只有 7 条，
+  警告 曾猜"它们制造了综合警告噪声"，**量过是错的**：整份 `r63c_build.log` 里 `Synth 8-3332` 只有 7 条，
   全是某个 FSM 的不可达状态，与这两个模块无关 ⇒ 移它们的收益只剩"少一个会让后人误以为必须有 250 MHz 快域的入口"。
 * ~~250 MHz 时钟树空转~~ —— **这条已经作废，而且作废得有名有据**（2026-09-26 自查，#79 之后的第二次"先看分布再改尺子"）。
   我写的"`fabric` 负载 0 ⇒ 可去掉一路 MMCM 输出 + 一只 BUFG"读的是 `clock_util.rpt` 第 6 张表 g4 那一行的**第一个 0**：
@@ -245,7 +245,7 @@ DSP 从 14 个增加到 20 个但功耗不变（这几个乘法器只在像素�
    不是本地改动的函数。⇒ "改了 A 组、B 组的数也跟着动"既不是异常，也不是"没问题"，而是要如实记下的成本。
 4. **不结论（守住口径）**：0.314 仍 ≥ 0、失败端点 0，门禁 PASS；这一节的产出是"下一刀往哪看"，不是"必须现在动"。
    真要动，两把刀：
-   * (a) 让 `link_monitor` 的 gap 统计不再在一拍里做"减法 + 饱和 + 比较"。⚠ 它是**仪表**：任何流水化都要先证明
+   * (a) 让 `link_monitor` 的 gap 统计不再在一拍里做"减法 + 饱和 + 比较"。警告 它是**仪表**：任何流水化都要先证明
      `frame_done` 与 `ms_tick` 同拍时不会系统性少 1 ms（30 fps 源的帧周期 ≈ 33 个 ms 刻度，与 1 ms 分频**可能锁相**，
      不是"十万分之一"的巧合可以糊过去的量），而 R08–R10 的拔线/gapclr 对账就是它现有的凭据，不能悄悄换掉。
    * (b) 零 RTL 改动的物理刀：**布线后物理综合**没开 —— 凭据是 `vivado_system/zynq_video_sys.runs/impl_1/`
@@ -273,7 +273,7 @@ DSP 从 14 个增加到 20 个但功耗不变（这几个乘法器只在像素�
   r63b  eth_rxc 0.918 ← / clkout0_1 1.306 / clk_fpga_0 1.906        （跑过，一致）
   ```
   读不到分组行时打印 `n/a … 这一项未验`，不把空表当通过；跨时钟组的路径（`From!=To`）不在这一块里，
-  真由跨组决定 WNS 时会打 `⚠ 门禁 WNS 不来自任何 From==To 组`。
+  真由跨组决定 WNS 时会打 `警告 门禁 WNS 不来自任何 From==To 组`。
 * 顺带被这一块**否掉的第二个假优化**：分组表里 `clkout2`（200 MHz）显示 NA，看着像"又一棵空转的树"。
   查 `clock_util.rpt` 第 5 张表 g6：驱动是 `u_idelay_clkgen/u_bufg_200/O → idelay_clk`，**负载 1**，
   它是 RGMII 那条 IDELAY 的参考时钟（`clk_gen.v:27` 注释 `200 MHz IDELAY ref`）—— 动它就是动采样基准。
@@ -405,7 +405,7 @@ DSP 从 14 个增加到 20 个但功耗不变（这几个乘法器只在像素�
 |---|---|---|
 | ~~把 `u_cdc` 的深度降下来~~ **已作废（02:53 量过）** | `build/evidence/r85_cdc_gap0_run.txt`：GMII 线速连灌时 `u_cdc` 峰值占用 **8191/8192（满−1）**、`lost=98544`；限速 15 MB/s 那档只有 **3/8192** 且零丢。⇒ 这 8192 格是**被填满到只差一格**的，它是这条链上唯一的吸收缓冲，降到 1024 会把过载余量砍掉 8 倍，直接危及"116.7 fps 不丢字"那句板上真数 | 不做了（换不到东西）。详见 ISSUES **#120** |
 | ~~把打包器 FIFO 的 `FW` 从 9 降到 8（换回约 400 个 LUT）~~ **已作废（15:28 量过，#140）** | 同一支台架补一条 `sv_peak` 探针后量得：GMII 线速连灌（`+FULL +GAP0`）时 `u_sv` 的 {`q_addr`,`q_data`,`q_keep`}（100 bit × 512 ≈ 800 个 RAMD64E，是 `LUT as Distributed RAM` 4044 里最大的单一消费者）峰值 **512/512 —— 填满**；限速 15 MB/s 那一档只有 122/512 且零丢。⇒ 和 `u_cdc` 同一种证据：它是过载时唯一还在吸收的第二级缓冲，削深度换不到东西 | 不做了。凭据 `build/r88_packer_peak_gap0.txt`、`build/r88_packer_peak_throttled.txt`；`q_addr` 也不能退化成"基址+序号"（`pack_base` 会帧中途换基址），详见 ISSUES **#140** |
-| ~~`dc_fifo` 满判据改"已经满"（#105 第二刀）~~ **已落地（r88 候选，15:1x）** | 改的就是这一行原来建议的事：满判据从 `wgray_n`（下一个写指针）换成 `wgray`（当前写指针），与读侧 `rd_empty` 对称 ⇒ 14 位加法 + 二进制转格雷整条锥体从 `wr_en → ENARDEN` 上摘掉，逻辑级数从 r87 的 8 级降；顺带把"提前一格"吃掉的那一个字找回来（可用深度 DEPTH−1 → DEPTH） | **先有尺子再动源**：`sim/tb_cdc_capacity` 的 C1 改前红（8191/8192）、改后绿（8192/8192），变异对照 `cdc_full_next` 报 `MUTATION OK`；真实收包链上同一 `+GAP0` 压力的 CDC 峰值也从 r85 的 8191 变成 **8192**。⚠ 按规矩 35 **不拿 WNS 绝对差当收益**；#121 那句降级仍然成立 —— 这一刀只碰那 29 % 的算术侧，**route 66–71 % 没动**，主方向还是 Pblock/疏解绕线。凭据 `build/r88_cdc_capacity.txt`、`build/r88_cdc_capacity_mut.txt`，详见 ISSUES **#139/#121** |
+| ~~`dc_fifo` 满判据改"已经满"（#105 第二刀）~~ **已落地（r88 候选，15:1x）** | 改的就是这一行原来建议的事：满判据从 `wgray_n`（下一个写指针）换成 `wgray`（当前写指针），与读侧 `rd_empty` 对称 ⇒ 14 位加法 + 二进制转格雷整条锥体从 `wr_en → ENARDEN` 上摘掉，逻辑级数从 r87 的 8 级降；顺带把"提前一格"吃掉的那一个字找回来（可用深度 DEPTH−1 → DEPTH） | **先有尺子再动源**：`sim/tb_cdc_capacity` 的 C1 改前红（8191/8192）、改后绿（8192/8192），变异对照 `cdc_full_next` 报 `MUTATION OK`；真实收包链上同一 `+GAP0` 压力的 CDC 峰值也从 r85 的 8191 变成 **8192**。警告 按规矩 35 **不拿 WNS 绝对差当收益**；#121 那句降级仍然成立 —— 这一刀只碰那 29 % 的算术侧，**route 66–71 % 没动**，主方向还是 Pblock/疏解绕线。凭据 `build/r88_cdc_capacity.txt`、`build/r88_cdc_capacity_mut.txt`，详见 ISSUES **#139/#121** |
 | `split_display.v:5` 空参数声明 `#()()` | `Synth 8-9397`（只有 SystemVerilog 允许） | 删一对括号；纯语法，风险最低 |
 | `split_ctrl.v:53-54` 整型常量位宽 | `Synth 8-9694` invalid size | 看清那两个常量本意再改，可能是真笔误 |
 | `src_mode.v:72` 通配 `===` 被替换成 `==` | `Synth 8-589` | 要么写 `==` 要么写明为什么要四态比较 |
@@ -543,7 +543,7 @@ BRAM **95 = 67.86 %**、LUT as Logic **10173**、LUT as Memory **4187**、FF **8
 **门禁（同一份报告集，`bash build/gates.sh build/r88_exp`）**：先跑目录参数时是 18 项判定全过、**2 项 `n/a`**
 （顶层台架 `tb_v98` 与边缘条带 `tb_edge_rim` 都没有"与这一次构建同跑"的 md5 凭据）⇒
 `GATES: PARTIAL`、rc=1（`build/r88_gates_partial.txt`）。把这一版采纳进 `build/` 之后复跑：`GATES: 有红项（判定 20 项）`，红的就是第 15 项里 `C5c` 那一行（`build/evidence/r88_gates.txt`），`freeze_evidence.sh 88` 按规则 REFUSE（`build/evidence/r88_freeze_attempt.txt`）。**板上已是这一版**（2026-09-29 20:31 上板，`RESULT board_verify PASS`）。
-⚠ 这一版顺手把**判据本身**修了一处（ISSUES **#141**）：改前 `say()` 只数红绿、`n/a` 四处独立打印，
+警告 这一版顺手把**判据本身**修了一处（ISSUES **#141**）：改前 `say()` 只数红绿、`n/a` 四处独立打印，
 于是"两支主台架都没判"的一版会端出 `GATES: ALL PASS`（那份留在 `build/r88_gates_naive.txt`），
 而 `freeze_evidence.sh` 就 grep 这一行。现在 n/a 会被数进结尾、行首也不再是 `ALL PASS` ⇒ 冻结自动拒绝。
 **补齐两份同跑凭据之后，第 15 项会转为判红**（C5c 那条故意留红的历史缺陷 #98 住在里面），
@@ -768,7 +768,7 @@ setup 侧 `ExtraTimingOpt` 反而把 `eth_rxc` 从 +0.516 花到 +0.157。两滚
 逐时钟 `clk_fpga_0` +0.970/+0.060、`clkout0_1` +1.089/+0.063、`eth_rxc` +0.553/+0.049、`sys_clk` +14.195/+0.121。
 资源 `Slice Registers 8074`、`LUT as Logic 10187`、`Block RAM Tile 95`、`DSPs 19`；`report_power` 总功耗 2.383 W。
 凭据 `build/timing_summary.rpt`、`build/utilization.rpt`、`build/power.rpt`、构建日志 `build/r94_build_console.txt`（DRC 0 Errors）。
-⚠ 按规矩 **#35**：这些绝对值与 r92 的 +0.522/+0.037 之差**既不算收益也不算损失**（同一条路实测摆过 0.4 ns 的放置抖动），
+警告 按规矩 **#35**：这些绝对值与 r92 的 +0.522/+0.037 之差**既不算收益也不算损失**（同一条路实测摆过 0.4 ns 的放置抖动），
 本文只留"这一版的数是多少、在哪个文件里"。
 
 **上板（12:5x，顺序是 ps7_init → 配 PL → 重下 app，凭据 `build/r94_flash.txt`）**：屏与链路活着，
@@ -787,7 +787,7 @@ ZOOM 那格是否标 `(Fit)`、旋转态斜边锯齿与 `rot 0` 相比）**待�
 ⇒ 门禁念的是"这一跑自己判红"，不是"报告与树不同源"。`tb_edge_rim` 31 条判据 `PASS`（`build/tb_edge_rim_r94.txt`，
 `rtl_md5=526321488fed` = 树）。与 r88/r90/r92 同形 ⇒ **冻结集继续是 r75**，这一版被采纳的依据仍然是板上那一套
 （0 丢字 + 105 条电池全绿 + 判红步骤 0 + 几何"最后一跳" `geom_check` ok=8 fail=0）。
-⚠ 链刚跑完时门禁是**两条红**：第 16 项读的是 `build/tb_edge_rim_r92.txt`（`rtl=c8bf35eb19e5` ≠ 树）而红 ——
+警告 链刚跑完时门禁是**两条红**：第 16 项读的是 `build/tb_edge_rim_r92.txt`（`rtl=c8bf35eb19e5` ≠ 树）而红 ——
 根因是 `build/r94_bench_chain.sh` 第②步调 `build/rim_report.sh` 时**没传 `ROUND`**，而那个脚本自带默认
 `ROUND=r90` ⇒ 今天这一跑的内容被写成了一份**名字叫 r90、stamp 是 r94** 的件（比"没留件"更坏：那是一条假凭据），
 而门禁按 `sort -V | tail -1` 取到的是 r92 那份 ⇒ 念"报告与树不同源"。红得对，但说的是我的链，不是设计。
@@ -835,7 +835,7 @@ WNS ≥ +0.65、WHS ≥ +0.15、失败 setup/hold 端点 = 0、BRAM ≤ 95 tile�
   ⇒ "策略真的被应用了"这件事有凭据，不是拿默认流程冒充）：
   | 档 | WNS / WHS | 失败端点 | BRAM | 判定 |
   |---|---|---|---|---|
-  | `Performance_NetDelay_high` | **+0.013 / +0.056** | 0 / 50883 | 95 | **不采纳**：方向明显不利（比基线低 0.54 ns，已超出 0.4 ns 的放置摆幅，所以这句至少不是"噪声里挑好的看"） |
+  | `Performance_NetDelay_high` | **+0.013 / +0.056** | 0 / 50883 | 95 | **不采纳**：方向不利（比基线低 0.54 ns，已超出 0.4 ns 的放置摆幅，所以这句至少不是"噪声里挑好的看"） |
   | `Performance_WLBlockPlacementFanoutOpt` | **+0.553 / +0.049** | 0 / 50883 | 95 | **不采纳**：数与 r94 基线**一格不差**（位流却不同）⇒ 这一档对这两个靶子网络没有作用；按 #35 不把它念成"打平"，只念"没达门槛" |
   ⇒ **"时序还能不能靠工具再压"这个问题到此可以关掉**：能自动收的（setup 违例、hold 违例）没有可收的东西，
   换布局布线策略努力的两档各测过一次、都不达门槛，剩下的只有"改 RTL 那条锥"或"Pblock/绕线疏解"两条手工路，
@@ -918,7 +918,7 @@ Slice LUT **14388**(27.05 %)、FF **8077**、DSP **19**、Dynamic **2.206 W**。
 
 | 项 | r96 | r97 | 怎么念这两个数 |
 |---|---|---|---|
-| 全局 setup WNS | +0.516 ns | **+0.720 ns** | 归属从 `u_cdc` 一族搬到了 **`u_icmp/u_icmp_tx`**：`tx_data_num_reg[12]/C → data_cnt_reg[12]/CE`，11 级逻辑（CARRY4 占 5 级），7.049/8 ns。⚠ **绝对值差不作为收益**（规矩 35：同源对照实测过 0.4 ns 的放置抖动），能说的只有"这一轮的最差路径归谁" |
+| 全局 setup WNS | +0.516 ns | **+0.720 ns** | 归属从 `u_cdc` 一族搬到了 **`u_icmp/u_icmp_tx`**：`tx_data_num_reg[12]/C → data_cnt_reg[12]/CE`，11 级逻辑（CARRY4 占 5 级），7.049/8 ns。警告 **绝对值差不作为收益**（规矩 35：同源对照实测过 0.4 ns 的放置抖动），能说的只有"这一轮的最差路径归谁" |
 | 全局 hold WHS | +0.049 ns | **+0.033 ns** | 最差在 `u_eth/u_rx_par/p_sof_reg → u_reasm/have_lo_reg`：1 级 LUT + 0.973 ns 走线。这个数里**含我自己加的 0.8 ns hold 不确定度**（`src/constraints/rk_zynq7020.xdc:50`），所以它不是"真实余量只剩 0.033" |
 | 失败端点 | 0 / 50883 | **0 / 50890** | 端点总数随逻辑变化，0 违例这条没变 |
 | 脉冲宽度 WPWS | — | 0.264 ns，0 / 12526 失败 | 250 MHz 那一路（TMDS 串行）的宽度判据，本轮第一次抄进交付表 |
@@ -963,7 +963,7 @@ Slice LUT **14388**(27.05 %)、FF **8077**、DSP **19**、Dynamic **2.206 W**。
 | 门禁 | 19 绿 / 1 红（声明的 C5c） | **19 绿 / 1 红（同一条 C5c；台架 140 PASS + 1 FAIL，指纹 fresh）** ⇒ 试冻结按设计 REFUSE，冻结集仍是 r75 |
 | 这一轮改了什么 | — | #209（`link_active` 在 eth 域寄存一拍，`eth_rxc>clkout0_1` 从 Critical 降到 Info）、#128（`FPS:` 格改数写进屏的新帧，新模块 `shown_rate.v`）、#185/#186（`frame_latency` 同拍写竞争与粘滞位取直播值）、#188（`icmp_tx` 零载荷单独一支）、#201（`frame_reasm` 的 `wr_en` 边界） |
 
-⚠ 读法照规矩 35：WNS 从 0.720 掉到 0.284 **这个绝对差本身既不是收益也不是损失**——两版都 0 失败端点、
+警告 读法照规矩 35：WNS 从 0.720 掉到 0.284 **这个绝对差本身既不是收益也不是损失**——两版都 0 失败端点、
 最差那一格两版都归属 `u_icmp_tx` 的那族 12 级路径。本轮真正的时序结论是"仍然收敛、瓶颈没换地方"；
 下一刀若要做就是 #141（把 `icmp_tx` 里三处 16 位减法寄存一拍，等价性已论证，先隔离构建量 WNS 与 FF 增减再决定采纳）。
 
@@ -996,7 +996,7 @@ Slice LUT **14388**(27.05 %)、FF **8077**、DSP **19**、Dynamic **2.206 W**。
    要重提必须先解决"收益会不会挪到隔壁路径"这个量法问题（多滚几轮），不然又是一次归因不清的采纳。
 4. 本轮（r102）唯一的 RTL 改动是 `icmp_rx` 的状态机出路，**它没有把设计推近任何一条边界**：
    WNS 从 +0.506（r101）到 +0.384、WHS 从 +0.028 到 +0.052，两端都是 met、失败端点都是 0。
-   ⚠ 按本文件一直用的口径：**绝对值的一升一降都不写成收益或损失**，只报"两条都 met、0 失败端点、
+   警告 按本文件一直用的口径：**绝对值的一升一降都不写成收益或损失**，只报"两条都 met、0 失败端点、
    最差那一格的归属换了"这一件事；要谈收益必须同一份网表多滚几轮，那是 #141 已经付过学费的地方。
 
 ## r103 这一列（2026-10-01 21:0x，从本轮的 `timing_summary.rpt` / `crit_paths.txt` / `hold_paths.rpt` 逐条读，不抄上一轮）
@@ -1028,7 +1028,7 @@ Slice LUT **14388**(27.05 %)、FF **8077**、DSP **19**、Dynamic **2.206 W**。
 2. **本轮唯一 RTL 改动是 `zoom_mapper` 的 #189**（16 位判小数 + `256−ceil` 权重 + 删掉下游第二次翻转），
    它**全部在组合逻辑里**：触发器一字未动（8079 与 r102 完全相同），LUT 反而 −22（14333 vs 14355），
    BRAM/DSP/分布式 RAM 全部与 r102 相同（95 tile / 19 / 4044）。
-   ⚠ 这句只描述"这一刀的资源代价"，**不构成时序收益的宣称**：绝对值不动口径。
+   警告 这句只描述"这一刀的资源代价"，**不构成时序收益的宣称**：绝对值不动口径。
 3. 值得单独立一句的是 **`crit_paths.txt` 这类"路径级"凭据不会自己刷新**：它是 9-29 生成的，
    而 `data/metrics.csv` 上一版还写着"要重读 `build/crit_paths.txt` 才准"。
    本轮把它连同 `setup_paths.rpt` / `hold_paths.rpt` 一起重跑，并且以后每轮采纳前重跑一次（记进台账 #219）。

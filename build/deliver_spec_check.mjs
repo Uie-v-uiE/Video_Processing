@@ -60,7 +60,7 @@ if (want('C0-4')) {
     && !/^\/(send_demo|run[_-]?\w*)\.(bat|cmd|sh)$/.test(t));
   const rootEntries = [...top].filter(t => /^\/(send_demo|run[_-]?\w*)\.(bat|cmd|sh)$/.test(t));
   const missing = [...allowDirs].filter(d => !top.has(d));
-  const renamed = top.has('skill') ? 'skill/ 需改名 skills/' : '';
+  const renamed = top.has('skill') ? 'skills/ 需改名 skills/' : '';
   say('C0-4', 'top-level-structure', top.size, `多余=${extra.length}[${extra.slice(0, 8).join(',')}] 缺目录=${missing.length}[${missing.join(',')}] ${renamed} 双击入口豁免=${rootEntries.length}`, extra.length || missing.length ? 'FAIL' : 'PASS');
 }
 // ---- C1-1 约束在 src/constraints（过程凭据里的实验用 .xdc 单列，不混进"活动约束集"）
@@ -161,7 +161,7 @@ if (want('C2-4')) {
 }
 // ---- C3 根 README：两节 + 亮点带数 + 目录说明 + 时序 + 中英对应 + 切换链接
 if (want('C3')) {
-  const cn = read('README.md'), en = read('README_EN.md') || read('readme.en.md');
+  const cn = read('README.md'), en = read('README_EN.md') || read('README_EN.md');
   const p = [];
   const sec = (t) => (t.match(/^##\s+\S/gim) || []).length;
   if (!cn) p.push('README.md 缺');
@@ -177,7 +177,7 @@ if (want('C3')) {
     if (!/20\d\d\.\d/i.test(cn)) p.push('未声明工具版本');
     if (!/README_EN\.md|README\.en\.md/i.test(cn)) p.push('缺另一版切换链接');
   }
-  if (!en) p.push('README_EN.md 缺(现名 readme.en.md)');
+  if (!en) p.push('README_EN.md 缺(现名 README_EN.md)');
   else if (cn && Math.abs(sec(en) - sec(cn)) > 1) p.push(`中英小节数不等 ${sec(cn)}vs${sec(en)}`);
   if (cn.split(/\r?\n/).length > 90) p.push(`根 README ${cn.split(/\r?\n/).length} 行 超一页`);
   say('C3', 'root-readme-shape', (cn ? sec(cn) : 0) + (en ? sec(en) : 0), p.join('、') || '符合', p.length ? 'FAIL' : 'PASS');
@@ -209,8 +209,8 @@ if (want('C4')) {
 if (want('C5')) {
   const need = ['board', 'data', 'skills', 'report'];
   const empty = need.filter(d => !tracked.some(f => f.startsWith(d + '/')));
-  const renamed = tracked.some(f => f.startsWith('skill/')) && !tracked.some(f => f.startsWith('skills/')) ? 'skills 现为 skill 需改名' : '';
-  const sreadme = read('skills/README.md') || read('skill/README.md');
+  const renamed = tracked.some(f => f.startsWith('skills/')) && !tracked.some(f => f.startsWith('skills/')) ? 'skills 现为 skill 需改名' : '';
+  const sreadme = read('skills/README.md') || read('skills/README.md');
   const four = [['适用范围', /适用范围|适用场景|scope/i], ['使用方法', /使用方法|用法|usage/i], ['失效条件', /失效条件|边界|limits/i], ['已验证的复用结果', /复用结果|已验证|效果/i]];
   const missFour = four.filter(([, re]) => !re.test(sreadme)).map(([n]) => n);
   const rneed = [['选题背景与创新点', /背景|创新/], ['设计原理与功能框图', /原理|框图/], ['软硬件划分与接口设计', /划分|接口/], ['优化前后性能与资源对比', /对比|优化/], ['失败分析', /失败/], ['复现说明', /复现/], ['大模型协作记录', /协作|提示词|模型/]];

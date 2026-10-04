@@ -14,7 +14,7 @@
 | K05 | `data/golden/rot_090.png` | 同上 | 3302 | `36a4c648` | OK | 同上 | 卡 D1 |
 | K06 | `data/golden/rot_180.png` | 同上 | 4851 | `a986777a` | OK | 同上 | 卡 D1 |
 | K07 | `data/golden/rot_270.png` | 同上 | 3277 | `5db133be` | OK | 同上 | 卡 D1 |
-| K08 | `data/golden/proc_00111.png` | 同上 | 8916 | `7d5b4479` | OK | ⚠ 文件名那五位是**旧效果位口径**，现行 `pipe` 控制字是九位 ⇒ 不许按字面读成当前 `stage_sel` | 卡 D1 |
+| K08 | `data/golden/proc_00111.png` | 同上 | 8916 | `7d5b4479` | OK | 警告：文件名那五位是**旧效果位口径**，现行 `pipe` 控制字是九位 ⇒ 不许按字面读成当前 `stage_sel` | 卡 D1 |
 | K09 | `data/golden/proc_10000.png` | 同上 | 3523 | `283215d0` | OK | 同上一行 | 卡 D1 |
 | K10 | `data/golden/proc_all.png` | 同上 | 4613 | `dd57c368` | OK | 同上 | 卡 D1 |
 | K11 | `data/golden/dual_preview.png` | 同上 | 10721 | `585b81d9` | OK | 8 bit/通道 RGB，**1280×360**（左右并排各 640×360） | 卡 D1 |
@@ -40,7 +40,7 @@ awk '/^\|[ ]*data\/golden\//{split($0,a,"|");gsub(/^[ \t]+|[ \t]+$/,"",a[2]);gsu
 | --- | --- | --- | --- | --- | --- |
 | K14 | `board/card_v2_preview.png` | 2026-09-25 16:00 | 5622 | `src/host/card_preview.mjs`（写 `<prefix>_f*.png` / `<prefix>_strip.png`；入库说明见 commit `30df9bf`，2026-09-24，"取景器 tb_v83/card_preview（一分钟看图，省一轮 40 分钟构建）"） | 卡 C2（同类：host 渲染，非板读） |
 
-⚠ 这一件是**图卡的样子**，不是**屏上显示的样子**：`card_preview.mjs` 走的是 host 侧渲染路径，
+警告：这一件是**图卡的样子**，不是**屏上显示的样子**：`card_preview.mjs` 走的是 host 侧渲染路径，
 和 PL 里 `test_card` 的算术不是同一条（所以它只能当"设计者预览"，不能当板上输出与 `data/golden/` 的中介）。
 
 ## 3. 仿真波形导出（唯一的"波形"类）

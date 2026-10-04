@@ -14,7 +14,7 @@
   `judged=本体行 3564 格不符 0 ｜ head rows=帧头窗 36 格 不符 24 ｜ OFF_LINES=4`，
   分列行是"三个采样列各「头 12 格／不符 8」，三个采样列各「体 1188 格／不符 0」"；
   `report/known_issues.md` §一 第 1 条把同一件事念成"错的 8 格全在最上面 6 个显示行
-  （`OFF_LINES` 4 加 `BILIN_ROWS` 2）……本体行一格都不错"。⚠ 版本戳：那份逐格件引的顶层台架是
+  （`OFF_LINES` 4 加 `BILIN_ROWS` 2）……本体行一格都不错"。警告 版本戳：那份逐格件引的顶层台架是
   `top_md5=2bf2ceeede07`（r104），与 `report/06-validation.md` §2 那份 161 行的 `56c269602e18` 不同一次跑。
   后果的**大小**另有机器尺子 `sim/tb_head_rot_displace.v`（读数 `build/r105_tb_head_rot_displace.txt` 的
   `RESULT tb_head_rot_displace PASS cells=49152 pairs=12 k=1..7`，同一件头部写着
@@ -118,7 +118,7 @@
   （`src/constraints/rk_zynq7020.xdc:50`；`report/timing_global.md` §4"自加不确定度"那一行）。
 - **已证明什么**：把同一 0.800 带给每个钟量一次的结果是**全设计 WHS −0.747 / 25,742 失败端点**，
   这条读数在 `report/log/issues.md` #302（标题就写着"第一次被量出来……**测量，不采纳**"）。
-  ⚠ 两处件的时刻不同：`report/timing_global.md` §4 那一行末写的"还没跑真件"是 r114 时的话，
+  警告 两处件的时刻不同：`report/timing_global.md` §4 那一行末写的"还没跑真件"是 r114 时的话，
   #302 是 r115 夜的真件读数——引用时挑对，别把旧句当现状。
 - **还没证明什么**：其余三域在统一口径下的 hold 余量到底是多少（名册里 0.053 / 0.059 / 0.222
   这三格**一分没扣** ⇒ 跨域比大小没有意义，`report/05-timing.md` §7 第 2 条就是这么写的）。

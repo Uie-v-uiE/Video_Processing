@@ -13,7 +13,7 @@
 | `system.xsa` | **6d9cc73d** | 与 bit 同一次导出（RTL 动过 ⇒ 与 r54 的 662c0d5f 不同，符合预期） |
 | `ps_app.elf` | **812790ec** | **与 r54 逐字节相同**：这一版 PS 侧零改动，故意沿用，便于把差异全部归到 PL |
 
-⚠ 后台任务通知把 build #36 报成 "exit code 1" —— 那是 `grep -c` 找不到匹配时的返回码，不是构建失败。
+警告：后台任务通知把 build #36 报成 "exit code 1" —— 那是 `grep -c` 找不到匹配时的返回码，不是构建失败。
 判据看日志末行 `SYSTEM BUILD DONE` 与 `^ERROR` 计数（本仓库的老坑，见 `skill/`）。
 
 ## 门禁十四项：ALL PASS（凭据 `gates_r55.txt`，当场跑）

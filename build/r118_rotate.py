@@ -32,7 +32,7 @@ def lines(p):
 
 
 os.makedirs(BACKUP, exist_ok=True)
-for p in ("README.md", "readme.en.md", "data/metrics.csv"):
+for p in ("README.md", "README_EN.md", "data/metrics.csv"):
     shutil.copy2(p, os.path.join(BACKUP, os.path.basename(p)))
 print("BACKUP -> %s" % BACKUP)
 

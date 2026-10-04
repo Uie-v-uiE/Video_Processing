@@ -8,10 +8,10 @@
 
 ```
 xsdb build/tcl/ps_jtag_boot.tcl   → PS7_INIT 用 BD 生成的 ps7_init.tcl
-                                    DDR_ECHO: 10000000: 5A5AA5A5  ✓
+                                    DDR_ECHO: 10000000: 5A5AA5A5  PASS
 vivado -mode batch -source build/tcl/program_pl.tcl
-                                    PROGRAMMED xc7z020_1 ← build/system.bit  ✓
-xsdb build/tcl/set_src.tcl         GPIO 0x41200000 = 0x00010000  ✓
+                                    PROGRAMMED xc7z020_1 ← build/system.bit  PASS
+xsdb build/tcl/set_src.tcl         GPIO 0x41200000 = 0x00010000  PASS
 ping -n 4 192.168.1.10             有回包（TTL=128, 1 ms）⇒ ARP/ICMP 在新 bit 上正常
 ```
 

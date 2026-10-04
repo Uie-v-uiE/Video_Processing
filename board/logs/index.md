@@ -1,7 +1,7 @@
 # `board/logs/` · 实测日志索引件（不复制大文件）
 
 本目录只放**索引**：登记真实路径 + 采集日期 + 对应构建指纹 + 摘要 + 该件旁边是哪张采集条件卡。
-每一件都还在原位置（`build/`、`board/`、`data/`），本仓库不允许我改动它们（P00 铁律 6）。
+每一件都还在原位置（`build/`、`board/`、`data/`），本仓库不允许改动它们（P00 铁律 6）。
 
 复算命令（任一行都能一条命令验回来；`sha8` = `sha256sum` 前 8 位，`wc -l` = 行数）：
 
@@ -82,7 +82,7 @@ for f in <表里的路径>; do printf "%s | %s | lines=%s | sha8=%s\n" "$f" \
 | L39 | `report/timing/roster_baseline.tsv`、`build/evidence/r116_roster_e1.tsv` | 2026-10-03 22:45 / 2026-10-04 03:27 | 名册头两行自报 src_reports | `comparisons_made=32 both_NA=8 red=2 verdict=RED`（`board/compare/roster-diff-baseline-vs-r116e1.txt`） | 卡 C3 |
 | L40 | `build/cdc_baseline.txt`、`build/frozen_r23_srcseen/cdc.rpt` | 2026-09-25 16:00 | r23 冻结件（bit md5 `18443ffd`，见基线头 `:2`） | `GOLDEN … 判 18 项 未判 0 项 红 0 项 PASS`（`board/compare/cdc-golden_compare-console.txt`） | 卡 C3 |
 
-## 7. 我没登记的（缺口，如实列出）
+## 7. 未登记的（缺口，如实列出）
 
 1. **板级抓帧件**（屏上实际显示的 512×300 或 1024×600 抓帧）：**仓库里没有**。
    `data/measured/` 里的 DDR 回读是**自描述图案（frameid/wordid）**，不是图卡内容 ⇒ 任何与 `data/golden/` 的逐像素比对现在无法进行。

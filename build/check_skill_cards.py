@@ -8,7 +8,7 @@
 判据三条，任一不满足就退非 0：
   1) 每张卡片（标题形如 `# S12 …`）必须有完整的六节：触发 / 不适用 / 动作 / 完成判据 / 失效边界 / 出处。
      前五节回答"下次遇到这个症状该怎么办"，第六节指回一次真实失败 —— 缺任何一节，这张卡就不可复用。
-  2) `skill/README.md` 里"目录里现在有 N 项编号条目"那一句的 N，必须等于盘上实际数出来的条数。
+  2) `skills/README.md` 里"目录里现在有 N 项编号条目"那一句的 N，必须等于盘上实际数出来的条数。
      全仓库只有那一行允许写这个数，所以它必须被机器核着，否则就是"文档说的与跑的不一样"。
   3) 每张卡片正文不超过 120 行（超长的卡通常是在复述过程而不是在沉淀方法）。
 
@@ -63,9 +63,9 @@ def check(root):
     if os.path.isfile(idx):
         m = COUNT_RE.search(io.open(idx, encoding="utf-8").read())
         if not m:
-            errs.append("skill/README.md 找不到「目录里现在有 N 项编号条目」这一行")
+            errs.append("skills/README.md 找不到「目录里现在有 N 项编号条目」这一行")
         elif int(m.group(1)) != len(ids):
-            errs.append("skill/README.md 写 %s 项，盘上是 %d 项" % (m.group(1), len(ids)))
+            errs.append("skills/README.md 写 %s 项，盘上是 %d 项" % (m.group(1), len(ids)))
     return found, errs
 
 

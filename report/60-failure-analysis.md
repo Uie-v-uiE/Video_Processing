@@ -39,7 +39,7 @@
   若冻住角度后错格数**不降**，则本假设不成立，得回去查 `raw_line_delay` 的抽头相位。
 - **判别方法（谁在什么条件下做什么能看到分晓）**：任何有 `VP_VIVADO_BIN` 的人跑
   `bash build/sim/run_one.sh tb_v98_top_seam` 读 `C5c` 那一行。
-  ⚠ 仓库里的台架名是 `tb_v98_top_seam`；`report/known_issues.md` §1"复现"那行写的 `tb_video_pipeline_top`
+  警告 仓库里的台架名是 `tb_v98_top_seam`；`report/known_issues.md` §1"复现"那行写的 `tb_video_pipeline_top`
   是**提交包里的改名**（映射见 `build/sim/names.md` 与 `build/make_submission.sh` 的 `NAME_MAP`），
   在仓库根照抄那条命令会"找不到台架"（本次实测：`sim/tb_video_pipeline_top.v` 不存在）。该冲突登记在 `report/70-reproduce.md` 第 6 节。
   再跑 `bash build/sim/run_one.sh tb_head_rot_displace`
@@ -182,7 +182,7 @@
 
 - **现象（含证据）**：`src/rtl/eth/eth_udp_video_top.v` 把**原始** `gmii_rx_dv`/`gmii_rxd` 交给 `u_arp`/`u_icmp`，
   而同一份顶层已经产出带 `m_good`/`m_bad` 的干净流给视频那条路（行号与逐行推演在 `report/known_issues.md` §17）。
-- **原因假设（可被判别）**：一条 FCS 错但 PHY 仍然上送到 RGMII 的帧，能污染"我们回包/发包的目的 MAC/IP"。
+- **原因假设（可被判别）**：一条 FCS 错但 PHY 仍然上送到 RGMII 的帧，能污染"本包回包/发包的目的 MAC/IP"。
   **可判别处**：这不是推测，是**读码可复核**的连线事实；真正未定的是发生率那一半——见 B1。
   修法**不是把两根线换过去**：厂商状态机入口等 `8'h55` 前导码，而干净流里前导码已被剥掉，直接改接会让它永远出不了 idle
   （这一句在 `known_issues.md` 里是逐行读实的）。
@@ -259,7 +259,7 @@
   **本次实测**：`build/timing_summary.rpt` 现在是 `WNS 0.739 / WHS 0.052 / 0 / 51135`，
   `build/power.rpt` 现在写着 `Total On-Chip Power (W) 2.391`；
   `node src/host/metric_recheck.mjs` 本次 rc=0、判 114 个数红 0，但它的取数名单（本次实读脚本 `:274-283`）
-  只有 `README.md` 与 `readme.en.md` 的五对键 + `data/metrics.csv` ⇒ `board/README.md` 那两行**不在任何尺子射程内**。
+  只有 `README.md` 与 `README_EN.md` 的五对键 + `data/metrics.csv` ⇒ `board/README.md` 那两行**不在任何尺子射程内**。
 - **原因假设（可被判别）**：那两行是 r97 那一轮的读数（同一串数在 `board/acceptance.md` 的 r97 一节逐字出现），
   而它点名的报告每轮被覆写 ⇒ 文档念旧数、指针指新件。
   **可判别处**：这条不需要争论——`md5`/`grep` 一比就分晓。它是 A13 的形状（点名会被覆写的报告 + 无对账层），
@@ -273,19 +273,19 @@
 
 ### A14 · 技能包装配门禁实跑 2 红 1 未测（本次实测）
 
-- **现象（含证据）**：**本次实测** `node skill/scripts/check/gates.mjs` 退出码 **1**，末行
+- **现象（含证据）**：**本次实测** `node skills/scripts/check/gates.mjs` 退出码 **1**，末行
   `GATES 技能包：判定 12 项 绿=9 红=2 未测=1 —— 有红项，不提交`。红项两条：
-  `G2 条目外壳与 name … 判 38 项 不合=13 例:skill/scripts/contract_gen:缺 SKILL.md … FAIL`；
+  `G2 条目外壳与 name … 判 38 项 不合=13 例:skills/scripts/contract_gen:缺 SKILL.md … FAIL`；
   `G10 本队专有名 … 名单=78 命中=24 未标注=9 例:proc_pipeline zoom_snap system_top FAIL`。
-  未测一条：`G11 脚本 selftest 可跑 … 判 0 项 缺 skill/scripts/selftest/run_all.sh NOT_MEASURED`。
+  未测一条：`G11 脚本 selftest 可跑 … 判 0 项 缺 skills/scripts/selftest/run_all.sh NOT_MEASURED`。
 - **原因假设（可被判别）**：不是尺子坏，是**装配确实没完成**——`report/run-queue.md` 的 P04/P07/P09 三行状态
   本次实读分别是"进行中 / 部分 / 进行中（12 项里 6 绿）"。
   **可判别处**：若 G2 的红是"这些目录本来就不该有 SKILL.md"（脚本目录不是技能条目），那正确处置是把它列进豁免名单并写明理由，
   而不是补 13 份空壳外壳——这两种处置会给出完全不同的下一轮，所以判据本身能把它分开。
-- **判别方法**：跑 `node skill/scripts/check/gates.mjs --only G2,G10,G11` 逐条看例；
+- **判别方法**：跑 `node skills/scripts/check/gates.mjs --only G2,G10,G11` 逐条看例；
   对 G10 的 9 个未标注专有名，判据是"换成 `【填入】` 或明写'示例取值，需按自身工程替换'之后还红不红"。
 - **计划与成本**：归 P04/P09（`report/run-queue.md` 队列里的未决任务），不是本文能收的。
-  我在 D 节把它列成"本文指得到的红"，因为赛题的"技能包"那一格（15 分）直接受它影响。
+  在 D 节把它列成"本文指得到的红"，因为赛题的"技能包"那一格（15 分）直接受它影响。
 
 ### A15 · 交付文档点名的三支上位机脚本不存在（本次实测）
 
@@ -304,9 +304,9 @@
 
 > 这一组的每一条都不许写成"没问题"，也不许写成"有问题"。四件仍然齐全，只是"现象"一栏是**缺口本身**。
 
-### B1 · 带错 FCS 的帧能不能上到 RGMII（PHY 会不会替我们丢掉）
+### B1 · 带错 FCS 的帧能不能上到 RGMII（PHY 会不会自行丢掉）
 
-- **现象（缺口）**：#205 的后果读实了，发生率**没测**：`report/known_issues.md` 明写"PHY 会不会替我们丢掉这类帧本轮没测
+- **现象（缺口）**：#205 的后果读实了，发生率**没测**：`report/known_issues.md` 明写"PHY 会不会自行丢掉这类帧本轮没测
   （板上没有可靠注错手段，与'`bad` 只有台架证据'那条债同源）"。
 - **原因假设（可被判别）**：若 RTL8211F 在 MAC 侧就把 FCS 错帧丢掉，`#205` 的可达概率≈0（分级应降为低）；
   若它透传（有些 strap 配置会），则一条空口可写的 ARP 表污染是**可达的**。两种假设给出不同的修法优先级。
@@ -436,15 +436,15 @@
 
 ### B13 · 技能条目的"基线 vs 用它之后"效果对比（15 分那一格的正面凭据）
 
-- **现象（缺口）**：**本次实测** `node skill/scripts/check/gates.mjs` 的 G9 行打印
+- **现象（缺口）**：**本次实测** `node skills/scripts/check/gates.mjs` 的 G9 行打印
   `降级标记计数 判 86 项 总309 …`，而 `skills/README.md` 本次实读第 297 行自己写着
   "效果对比多数来自历史件而非本轮重跑，逐条标注在各条目 §7 内（含 `【未实测】`/`【待验证】`）"；
-  `skill/prompts/*` 四个模板的 §7 本次实读逐条写着"需同一提示词连跑 3 次……目前 0 次，**还差 3 次**"。
+  `skills/prompts/*` 四个模板的 §7 本次实读逐条写着"需同一提示词连跑 3 次……目前 0 次，**还差 3 次**"。
 - **原因假设（可被判别）**：这不是假设而是**没做**：判据是"同一模板连跑 3 次的产出差异"，
   跑完就有数，跑不出来就只能保持"未测试"。
-- **判别方法**：谁在任意题目上按 `skill/prompts/*/SKILL.md` 的 §5 连跑 3 次，把三次的表头一致性与
-  "是否只念全局 WNS"记进 `skill/evals/records/`。
-  **本次实测**：`skill/evals/records/` 是**空目录**（`ls` 零条目）⇒ P18c 第 1 步要检索的"records 的红项"根本不存在，
+- **判别方法**：谁在任意题目上按 `skills/prompts/*/SKILL.md` 的 §5 连跑 3 次，把三次的表头一致性与
+  "是否只念全局 WNS"记进 `skills/evals/records/`。
+  **本次实测**：`skills/evals/records/` 是**空目录**（`ls` 零条目）⇒ P18c 第 1 步要检索的"records 的红项"根本不存在，
   这一格必须明写"指不到"。
 - **计划与成本**：3 次会话/条 × 4 条模板 ≈ 每条半小时，是本文里最便宜就能补上"效果"那一栏的一件事。
 
@@ -510,7 +510,7 @@
    已闭环的例子（#94 拔卡冻帧、#103 黑线、#216/#218 ping 应答器变哑）留在 `report/known_issues.md` §4 与本文 A1/A2 的对照位，
    不在这里重新宣称。
 4. **本文的严重度没有下调**：A3 那条按 #235 的最终状态写成"要断电"，不写成"可恢复"；
-   A13 那条即使它难看（是我们自己文档里的抄件）也照写。
+   A13 那条即使它难看（是本包文档里的抄件）也照写。
 5. **未列出的失败不等于没有**：`report/log/issues.md` 本次实测有 **394** 个标题段
    （`grep -c '^### #'` = 133 与 `grep -c '^## '` = 261 之和），最大编号 **#337**
    （`grep -oE '^### #[0-9]+'` 取最大值）。本文只收"能被判别"的那些；纯过程性红项（我自己写错命令、尺子先错那一族）在
@@ -519,11 +519,11 @@
 ## 取证清单（本文写之前真实打开/跑过的东西）
 
 - 只读探测（本次实跑，命令与输出摘要在正文各处标注 `本次实测`）：
-  `ls`（`report/`、`board/`、`build/evidence/`、`sim/`、`skill/`、`skill/evals/records/`、`data/golden/`）、
+  `ls`（`report/`、`board/`、`build/evidence/`、`sim/`、`skills/`、`skills/evals/records/`、`data/golden/`）、
   `find`（`run_*.bat`）、`which`（vivado/xsdb/arm-none-eabi-gcc）、`node --version`、`python --version`、
   `python3 --version`、`bash --version`、`git --version`、`bash -n`（六支入口脚本）、
   `md5sum build/system.bit`、`md5sum build/ps_app.elf`、`git log -1 --format=%ci -- build/ps_app.elf`、
-  `node skill/scripts/check/gates.mjs`、`node src/host/doc_enc_check.mjs`、`node src/host/line_cite_check.mjs`、
+  `node skills/scripts/check/gates.mjs`、`node src/host/doc_enc_check.mjs`、`node src/host/line_cite_check.mjs`、
   `node src/host/doc_currency_check.mjs`、`node src/host/metric_recheck.mjs`、
   `python build/check_io_timing_coverage.py build/timing_summary.rpt`、
   `python build/check_ports.py --dup`、`node build/r119_window_check.mjs --self`、

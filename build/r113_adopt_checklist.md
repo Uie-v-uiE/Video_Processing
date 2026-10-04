@@ -25,8 +25,8 @@
       （`node build/r113_rotate_docs.mjs --check` 已验：35 条各命中 1 次、拒 0）。**两条都要在门禁之后跑**。
       `node build/r113_rotate_docs.mjs --apply`（这支是 r112 那把的副本，已为 r113 改好身份句；再补两条规则：
       门禁条数那句、刷板时间那句），然后 `metric_recheck`/`doc_currency`/`line_cite_check` 红 0。
-      ⚠ 改口完必须**写回盘上那份 `rNN_gates.txt` 再跑一次门禁**才收敛（#242/D1c 那一课）。
-      ⚠ **#270 预先把的刀**：`r113_rotate_docs.mjs` 里**没有一条**规则覆盖首页"保持时间"那一行，
+      警告：改口完必须**写回盘上那份 `rNN_gates.txt` 再跑一次门禁**才收敛（#242/D1c 那一课）。
+      警告：**#270 预先把的刀**：`r113_rotate_docs.mjs` 里**没有一条**规则覆盖首页"保持时间"那一行，
       而 `metric_recheck` 也只对到 `data/metrics.csv` 的 `0.042 → 0.050`——逐时钟 WHS
       （r113 真值 0.050 / 0.056 / 0.059 / 0.133）与"最差那一格 1 级 / route 80.93 % / crc 家族、
       归属本轮又动了"那句整段，**两个脚本都看不见**（件：`build/timing_summary.rpt` Intra Clock Table、
@@ -35,7 +35,7 @@
       三个逐时钟 WHS、归属整句重写），`--check` 必须从 35 条变成 **49 条、每条命中 1、拒 0**，
       再 `--apply`。教训口径：`--check` 只证明"写下的规则都命中"，**不证明覆盖**；
       每轮采纳前拿"本轮变了哪些数"去反查"这些数在文档里的每一处都有规则吗"。
-      ⚠ 同一笔还要做两件首页的事（做了就必须同步改 `r113_rotate_docs.mjs` 里对应规则，否则 `--check` 会拒）：
+      警告：同一笔还要做两件首页的事（做了就必须同步改 `r113_rotate_docs.mjs` 里对应规则，否则 `--check` 会拒）：
       (a) 首页"逐时钟 setup 余量"那一行现在**只念 setup**，采纳时要补四域 **WHS 与相对余量**
           （数据源 `build/evidence/r113_after_roster.txt`，八对读数：eth_rxc 0.445/0.050、clk_fpga_0 1.135/0.056、
           clkout0_1 4.467/0.059、sys_clk 14.463/0.133），并把"绝对 WNS 差不算收益"那句留在旁边；
@@ -44,7 +44,7 @@
           `ASYNC_REG` 扫描 `build/scan_async_reg_coverage.py`（A2 仍红）、
           hold 同口径体检 `build/uncertainty_uniform_ab.sh`（真件还没跑，念"没测过"不许念"违例"）。
 - [ ] **⑥ 采纳笔（含 bit/xsa）→ 三步 JTAG 刷板 → `board_verify --geom --battery --round=r113` → 眼睛判据 E6**
-      （E6 = 冷上电、不碰任何键，`ROT:` 必须显示 **0**；这一条是你的眼睛，我念不了）。
+      （E6 = 冷上电、不碰任何键，`ROT:` 必须显示 **0**；这一条是你的眼睛，念不了）。
       之后：试冻结 → `make_submission.sh`（按盘上文件数验收，不读它的 stdout）→ push。
 - [ ] **⑦ 排在链子后面的两支全局实验**（`build/r113_after_chain_experiments.sh`，13:12 起飞等待，
       等的是"出口件 `build/r113_gates.txt` 出现" **且**"没有 xsim/vivado 在飞"两条同时成立；

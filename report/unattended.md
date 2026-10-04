@@ -16,7 +16,7 @@
 | 已布线成品的逐脚 clock-to-pin 离散 | `build/tcl/probe_tmds_pin_skew.tcl` 打在 `system_top_routed.dcp` | `r119_pin_skew_probe2.txt`（互对最差 0.065 ns、对内 0.001 ns）；失败的第一版 `r119_pin_skew_probe.txt` 一并保留 |
 | 窗件尺子 | `node build/r119_window_check.mjs` 与 `--self` | `build/evidence/r119_window_check.txt`：判 10 项红 0；`--self` 十条畸形各自动红、两条缺输入报 `NOT_MEASURED`；两跑逐字节一致 |
 | 仓库门禁 | `bash build/gates.sh` × 2 | 两跑逐字节一致；判定 24 项、23 绿、**1 红 = 已声明的 C5c**（顶层台架 `tb_v98` FAIL 行=1） |
-| 技能包门禁 | `node skill/scripts/check/gen_index.mjs` + `gates.mjs` | 最近一次：判定 12 项 = 9 绿、**2 红（G2 缺壳、G10 专有名未标注）**、1 未测（G11 selftest） |
+| 技能包门禁 | `node skills/scripts/check/gen_index.mjs` + `gates.mjs` | 最近一次：判定 12 项 = 9 绿、**2 红（G2 缺壳、G10 专有名未标注）**、1 未测（G11 selftest） |
 | 敏感信息扫描 | `git grep -lI -e <用户名> -e <本机名>` 全仓 / 只看向导类文件 | 结果记进 ISSUES #336：工具产出原件 814 份含 `Host :`/临时绝对路径；手写文档 2 份含临时路径 |
 | 位流身份读回 | `md5sum build/system.bit` = `cd04907e1369…`（与 r118 记录一致） | 支撑 `system_top_routed.dcp` 与板上位流同轮的**推断**（目录与时间戳对应，非工具指纹绑定） |
 
@@ -30,15 +30,15 @@
   `board/acceptance.md`（E4 眼睛签收按队员原话补记）、`README.md`、`.gitignore`、`build/make_submission.sh`。
 - `b1424cd`：`submit/`（README + 八章 + reproduce/）、`report/run-queue.md`、`report/questions-for-team.md`。
 - `384a0b3`：`report/run-queue.md`、`report/questions-for-team.md`、`report/log/issues.md`（#336）、
-  `skill/_meta/entry-template.md` 的本机绝对路径脱敏。
-- 未提交（agent 半成品，故意留在工作树）：`skill/` 各类目新条目、`scripts/`、`data/` 新目录、
+  `skills/_meta/entry-template.md` 的本机绝对路径脱敏。
+- 未提交（agent 半成品，故意留在工作树）：`skills/` 各类目新条目、`scripts/`、`data/` 新目录、
   `board/` 新文档、`docs/` 各章、`report/` 各新章节、`build/` 新工件。
-- 删除动作（有证明才删）：四份 `skill/{pitfalls,prompts,references,templates}/_MANIFEST.md`。
+- 删除动作（有证明才删）：四份 `skills/{pitfalls,prompts,references,templates}/_MANIFEST.md`。
   删除前核对：三份共 30 条路径行**全部被生成索引覆盖（未覆盖 = 0）**，其"口径说明"文字已整体迁入
   `skills/README.md` 正文区（生成块之外）。理由：`_MANIFEST.md` 违反 3.3.5.4 的小写命名，且手写第二份索引必然与
   `gen_index.mjs` 漂移（G1 因此判红 3 项 → 现 0 项）。
-- 追加目录：`skill/_meta/sources.md`（178 行，插 4 项目录）、
-  `skill/templates/project-skeleton/project-skeleton.md`（114 行，插 8 项目录）——为过 G6。
+- 追加目录：`skills/_meta/sources.md`（178 行，插 4 项目录）、
+  `skills/templates/project-skeleton/project-skeleton.md`（114 行，插 8 项目录）——为过 G6。
 
 ### push 状态
 `git push origin HEAD:main` 成功：`f5897d7..384a0b3`（10:47 本机，直连即可，未用代理）。
@@ -73,11 +73,11 @@
 | 命令 | 用途 | 件 |
 | --- | --- | --- |
 | `node build/r119_window_check.mjs`（两跑 diff） | 窗件 + 成品离散读数，本轮补回 5 份输入的 md5 头 | `build/evidence/r120_window_check.txt` |
-| `node skill/scripts/check/retire_flat.mjs` → `--apply` | 旧扁平卡删除前的映射/八节/出处证明，与之后的退役 | 输出转录在提交说明；映射表 `build/evidence/r120_migration_map.txt` |
+| `node skills/scripts/check/retire_flat.mjs` → `--apply` | 旧扁平卡删除前的映射/八节/出处证明，与之后的退役 | 输出转录在提交说明；映射表 `build/evidence/r120_migration_map.txt` |
 | `node build/r120_rotate_skill_refs.mjs`（`--check`→`--apply`→再 `--check`） | 指路改口四条规则，改前 165 处、改后 0 处（幂等） | 本文件即其效果见证 |
-| `node skill/scripts/check/gen_index.mjs` + `--check` | 技能包索引重写与一致校验（条目 58） | 同上 |
-| `node skill/scripts/check/gates.mjs --full` ×2 | 技能包 12 项门禁，两跑逐字节一致 | `build/evidence/r120_gates_skill_a.txt`、`..._b.txt` |
-| `bash skill/scripts/selftest/run_all.sh` | 6 把脚本尺子 40 条对照（含反例与缺件 NOT_MEASURED） | `build/evidence/r120_selftest.txt` |
+| `node skills/scripts/check/gen_index.mjs` + `--check` | 技能包索引重写与一致校验（条目 58） | 同上 |
+| `node skills/scripts/check/gates.mjs --full` ×2 | 技能包 12 项门禁，两跑逐字节一致 | `build/evidence/r120_gates_skill_a.txt`、`..._b.txt` |
+| `bash skills/scripts/selftest/run_all.sh` | 6 把脚本尺子 40 条对照（含反例与缺件 NOT_MEASURED） | `build/evidence/r120_selftest.txt` |
 | `node build/checks/check_repo_consistency.mjs --self` | 终审 C2/C3 的 10 条对照（每条都能动） | 输出转录在提交说明 |
 | `node build/checks/check_repo_consistency.mjs --list` | 全仓终审 C1–C12 定版读数 | `build/evidence/r120_final_gate.txt` |
 | `node build/r120_src_map.mjs` | 源码地图现算（盘上文件数 vs `git ls-files` 对账） | `report/src-map.md` |

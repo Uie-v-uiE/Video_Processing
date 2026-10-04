@@ -30,6 +30,6 @@ if [ "$R2" = 1 ] && [ "$ID" = identical ]; then
 else
     echo NOT_YET: 门禁红数或两跑不吻合，回退首页并保留标记之外的一切
     rm -f build/r117_docrotated.marker
-    git checkout -- README.md readme.en.md data/metrics.csv
+    git checkout -- README.md README_EN.md data/metrics.csv
     echo FINAL-END-REVERTED
 fi

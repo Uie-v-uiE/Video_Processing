@@ -21,7 +21,7 @@ say '最终门禁 rcA=$A rcB=$B 两跑=$ID 绿=$G 红=$R 红项：$(grep -a " FA
 " "|")'
 if [ "$R" != 1 ] || [ "$ID" != identical ]; then
     say '门禁不吻合：回退首页三件套，不改口不提交（板上仍是 r118，读数以件为准）'
-    git checkout -- README.md readme.en.md data/metrics.csv
+    git checkout -- README.md README_EN.md data/metrics.csv
     say 'TAIL3 END (reverted)'; exit 5
 fi
 cp -f /tmp/kx/fA.txt build/r118_gates_final.txt

@@ -3,7 +3,7 @@
 本文件是**器件型号与工具版本的唯一权威源**。赛题 §3.3.3.1 允许 2026.1（推荐）或 2025.2，
 用其他版本须在报告里说明并保证脚本可复现；§3.3.3.2 要求声明器件型号。
 其余文档出现这些值时，都必须能在下面这张块里对上同一个值——
-`build/checks/check_repo_hygiene.sh` 的 C3 判据逐处比对，**取值不同才算红**，同值的抄写只登记条数（改抄写为引用要动 `report/` 与 `skill/`，属另一轮）。
+`build/checks/check_repo_hygiene.sh` 的 C3 判据逐处比对，**取值不同才算红**，同值的抄写只登记条数（改抄写为引用要动 `report/` 与 `skills/`，属另一轮）。
 
 <!-- BEGIN-AUTHORITATIVE -->
 part: xc7z020clg484-2
@@ -27,8 +27,8 @@ board: RK-ZYNQ7020-F
 
 ## 这份声明与"版本相关事实"的关系
 
-- 工具**行为**随版本变化的条目集中在 `skill/references/tool-version-drift/SKILL.md`，
-  那份表逐行绑版本；本文件只回答"我们用的是哪一版"。
+- 工具**行为**随版本变化的条目集中在 `skills/references/tool-version-drift/SKILL.md`，
+  那份表逐行绑版本；本文件只回答"交付包用的是哪一版"。
 - 板卡的电气/管脚事实不在这里，见 `report/board_pins.md` 与 `board/hardware_setup.md`。
 - 复现步骤（评委按哪条命令跑）在 `report/70-reproduce.md`；本文件不替代它。
 

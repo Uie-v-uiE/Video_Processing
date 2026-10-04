@@ -81,5 +81,5 @@ tail -3 build/r112_chain_console.txt
 - 顺序（不变）：台架 → 门禁两跑逐字节一致（先 /tmp 再 cp 回 `build/r112_gates.txt`）→ `--apply` 两遍改口 → `metric_recheck`/`doc_currency`/`line_cite_check` 三把尺子红 0
   → 采纳笔（含 `src/rtl` 两文件、两份新台架、`build/system.bit`/`.xsa`、全套 r112 报告与 `build/evidence/*`）→ 三步 JTAG 刷板
   → `bash build/board_verify.sh --geom --battery --round=r112`（要 `VP_XSDB`）→ E6 交眼睛 → 试冻结 → `make_submission.sh`（数盘上文件）→ 推送。
-- ⚠ 期间**不碰 `src/rtl` 与 `sim/`**；`report/modules.md` 的「例化者」若因行漂红，跑 `bash build/reanchor_modules.sh`。
+- 警告：期间**不碰 `src/rtl` 与 `sim/`**；`report/modules.md` 的「例化者」若因行漂红，跑 `bash build/reanchor_modules.sh`。
 

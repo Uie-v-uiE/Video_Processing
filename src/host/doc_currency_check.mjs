@@ -7,7 +7,7 @@
 // 为什么要有它（这一轮撞了两次，都是同一类）：
 //   * `report/perf_report.md` 的"当前值看这里"指到 `changelog_v7.md`，而那份日志最后一节是
 //     V7.9（R22+R23）——照它念会念到五十多版之前。
-//   * `README.md` / `readme.en.md` 的实现结果行一直写着 `当前默认 bit（build#23）：WNS +0.740 …`，
+//   * `README.md` / `README_EN.md` 的实现结果行一直写着 `当前默认 bit（build#23）：WNS +0.740 …`，
 //     而板上烧的是 r71；同一张命令表还把 `bilin` 写成"主线目前不含此项"，而它早就在主线上了。
 //   这类错的讨厌之处和坏字一样：**它不改变任何行为**。位流照编、台架照跑、门禁照绿，
 //   坏的是"念给评审听的那一句"。所以判据必须自己跑 ⇒ `build/gates.sh` 第 18 项。
@@ -18,7 +18,7 @@
 //      编号的构建目录是历史凭据，只能以过去式出现；"当前"那一句必须点名**门禁全绿那一套**。
 //   D2 文档里点名的 `build/frozen_*` / `build/evidence_*` 目录必须真的在盘上。
 //      冻结件被移动或改名之后，文档里的"复核一条命令"就变成一条跑不通的命令。
-//   D3 首页（README.md / readme.en.md）里"门禁全绿 = rNN"这一句点名的那一套，必须等于
+//   D3 首页（README.md / README_EN.md）里"门禁全绿 = rNN"这一句点名的那一套，必须等于
 //      `build/*gates*.txt` 里**编号最大且写着 GATES: ALL PASS** 的那一套；并且 README.md 里
 //      至少要有这么一句（没有就等于没说）。⇒ 下一次冻结成功时，这一条会自己变红，逼着改首页。
 //
@@ -37,13 +37,13 @@ const EXT = new Set(['.md', '.mjs', '.sh', '.ps1', '.tcl']);
 // `report/log/version_lineage.md` 排除在 D1 之外——它们是**日记**，里面的"当前默认 #23""下一步冻结
 // frozen_r61_geom"写的是**当时**的当前与当时的计划。拿今天的盘去判昨天的日记，红的不是文档过期，
 // 而是我逼着自己回头改日记（那是销毁过程凭据，比过期更糟）。要改的永远是"现在还会被念出来"的那几页。
-const SCOPE_DOCS = ['README.md', 'readme.en.md', 'board/README.md',
+const SCOPE_DOCS = ['README.md', 'README_EN.md', 'board/README.md',
     'report/perf_report.md', 'report/build.md', 'report/log/contest_checklist.md',
     'report/demo_script.md', 'report/commands.md', 'report/background_and_novelty.md'];
 // 会被复制粘贴去跑的脚本：里面的指路同样要成立。
 const SCOPE_DIRS = ['build/tcl', 'src/host'];
 const SKIP_DIR = new Set(['.git', 'vivado_system', 'xsim.dir', 'node_modules', '.Xil', 'dist']);
-const HOME = ['README.md', 'readme.en.md'];          // D3 只看首页这两份
+const HOME = ['README.md', 'README_EN.md'];          // D3 只看首页这两份
 const SELF = 'src/host/doc_currency_check.mjs';      // 判据不看自己的例子（例子里就得写坏句）
 // 导出器是**故意**要写 `report/` 的：仓库里叫 report/，交出去必须是官方结构里的 report/，
 // 它的整个职责就是这两个名字之间的映射。拿"旧目录不许出现"去判它，等于判翻译器"不许提目标语言"。
@@ -113,7 +113,7 @@ function checkLines(docLines, dirExists, newestGreen) {
         });
     }
     if (newestGreen > 0) {
-        const home = claims.filter(c => c.at.startsWith('README.md') || c.at.startsWith('readme.en.md'));
+        const home = claims.filter(c => c.at.startsWith('README.md') || c.at.startsWith('README_EN.md'));
         // 首页有两种**都算诚实**的写法：① 念"门禁全绿 = rNN"，那 rNN 必须等于盘上最新且 ALL PASS 的那一套；
         // ② 干脆不念版本号，明写"不作门禁全绿声明"，让读者自己去跑 `build/gates.sh`（交付件口吻用的就是这条）。
         // 两种都没有才算红 —— 因为"沉默"既可能是有意的（②），也可能是忘了（那就是 #88 那一类：门禁绿不绿没人说）。
@@ -157,7 +157,7 @@ const CITE_ART = new RegExp(
 //     把它们判红等于逼人去改历史记录（#98 那条老规矩）；这一类只报数、不判红。
 //   #121 补的就是"只报数"那一半的分类（2026-09-30 实测 126 条，`--list-adv` 可逐条复现）：
 //     按**出处**分：report/log/ 的追加式日记 92 条、build/ 与 src/ 与 sim/ 与 board/ 的脚本注释 33 条、
-//                  skill/ 卡片 1 条 —— **交付文档（DELIVERY）里 0 条**，这正是 hard 层的判据范围；
+//                  skills/ 卡片 1 条 —— **交付文档（DELIVERY）里 0 条**，这正是 hard 层的判据范围；
 //     按**被点名的东西**分（类间有重叠）：
 //       ① `.log` 31 条：`.gitignore` 从一开始就把 `*.log` 挡在仓库外（#172 的同一个洞的另一半 ⇒
 //          冻结件必须叫 `.txt`），这些句子指的是"跑完这一步会生成什么"，不是"去看这份凭据"；
@@ -280,7 +280,7 @@ function currentBoardRound() {
 }
 // D1b 的扫描面**单独一份**：日记类（report/log/）与两份过程台账（KNOWN_ISSUES / OPTIMIZATION_LOG）不进——
 // 那里成片的"板上已是这一版（rNN）"是带日期的凭据，把它们咬红等于逼人回去改凭据（D4c 那轮划过的同一条边界）。
-const D1B_DOCS = ['README.md', 'readme.en.md', 'board/README.md', 'report/perf_report.md',
+const D1B_DOCS = ['README.md', 'README_EN.md', 'board/README.md', 'report/perf_report.md',
     'report/build.md', 'report/demo_script.md', 'report/commands.md', 'report/background_and_novelty.md',
     'report/ai_collaboration.md', 'report/llm_collab.md', 'report/architecture.md', 'report/host_guide.md'];
 function d1bScan(docs, cur) {
@@ -500,12 +500,12 @@ if (argv.includes('--self')) {
         d1bScan({ 'report/ai_collaboration.md': [
             '板上这一套现在是 r80（`build/system.bit` md5 `1906b6764ae4`，门禁 19/20，唯一红项 = 第 15 项的 `C5c`）'] },
             fakeCur).rows, /D1b/);
-    n += yes('D1b：英文身份句念错轮号', d1bScan({ 'readme.en.md': [
+    n += yes('D1b：英文身份句念错轮号', d1bScan({ 'README_EN.md': [
         'Design-wide setup WNS (the board now runs r91, flashed at 04:10)'] }, fakeCur).rows, /D1b/);
     const d1bok = d1bScan({
         'report/ai_collaboration.md': ['写这一节那天（2026-09-26）板上是 r80（`build/system.bit` md5 `1906b6764ae4`）—— 这句**按日期读**，板上现在跑哪一轮请看 `README.md` 首页那一行'],
         'README.md': ['| 全设计 setup WNS | **0.812 ns**（板上这一版 r104，2026-10-02 01:18 三步 JTAG 刷入，`bit 680f38f5794c`）'],
-        'readme.en.md': ['| Design-wide setup WNS | **0.812 ns** (the board now runs r104, flashed at 01:18 on 2026-10-02)'],
+        'README_EN.md': ['| Design-wide setup WNS | **0.812 ns** (the board now runs r104, flashed at 01:18 on 2026-10-02)'],
     }, fakeCur).rows;
     console.log(`  ${d1bok.length === 0 ? 'PASS' : 'FAIL'} 对照：带日期的历史句 + 念对轮号的中英身份句都不误报（实测 ${d1bok.length} 条）`);
     for (const r of d1bok) console.log('        ' + r);
@@ -529,11 +529,11 @@ if (argv.includes('--self')) {
     n += yes('D1c：把 21 绿念成 19 绿（基准 22 项／21 绿／1 红）',
         d1cScan({ 'README.md': ['| 全设计 setup WNS | **0.812 ns**（板上这一版 r104；门禁 22 项 19 绿 / 1 红，唯一红是 `C5c`）'] },
             fakeCur, t104).rows, /D1c/);
-    n += yes('D1c：英文式把项数念成 23（基准 22）', d1cScan({ 'readme.en.md': [
+    n += yes('D1c：英文式把项数念成 23（基准 22）', d1cScan({ 'README_EN.md': [
         'the 23-item gate check reads 22 green / 1 red (the board now runs r104)'] }, fakeCur, t104).rows, /D1c/);
     const d1cok = d1cScan({
         'README.md': ['| 全设计 setup WNS | **0.812 ns**（板上这一版 r104；门禁 22 项 21 绿 / 1 红，唯一红是 `C5c`）'],
-        'readme.en.md': ['(the board now runs r104; the 22-item gate check reads 21 green / 1 red)'],
+        'README_EN.md': ['(the board now runs r104; the 22-item gate check reads 21 green / 1 red)'],
         'report/ai_collaboration.md': ['写这一节那天（2026-09-26）板上是 r80，门禁 19 项 18 绿 / 1 红 —— 这句按日期读'],
     }, fakeCur, t104);
     const d1cokPass = d1cok.rows.length === 0 && d1cok.claims === 3 && d1cok.skipped === 1;

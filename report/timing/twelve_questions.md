@@ -15,7 +15,7 @@
 **3. 我引用的每个数字，紧跟的是哪个工件、指纹对不对？**
 判定表逐格带件路径（`report/timing/gates_g1_g12.md`）；基线 22 份报告的 md5 与 producing command 在
 `report/timing/baseline_index.md`。**一处不自对**：`build/evidence/r115_base/check_timing.txt` 文件名与内容不符
-（里面是 `report_timing`），已按 ⚠ 行写明，本轮 I/O 债的读数一律只取 `check_timing_verbose.txt`（ISSUES #299）。
+（里面是 `report_timing`），已按 警告 行写明，本轮 I/O 债的读数一律只取 `check_timing_verbose.txt`（ISSUES #299）。
 设计指纹在每次起跑**前**取（H4）：`fpver=norm1 files=80 top=56c269602e18 rtl=3969247aaf7f`，`dcp md5=4c895816c4f2`。
 
 **4. 松动台账是不是空的？不空的话每条的非时序证据是什么？**
@@ -60,7 +60,7 @@ r116 已刷板并板级复验：bit `bb2fb707aebc`，01:37 三步链，01:50 `bo
 本轮红项两类都挂了标签：G1 的 4 格 = `FANOUT`（C1 自身的代价，刀已拒）；H5 的 11 端口 = `UNCONSTRAINED`（C4）。
 有一条**对象未明**的挂在债务里而不是绿灯里：`TIMING-10` 还剩 1 条"Missing property on synchronizer"，
 它**不是**格雷码链（`ASYNC_REG` 落地 0→56 颗之后该计数一点没动，ISSUES #290）——标签 `ASYNC`，进下一轮候选。
-"未知原因但绿了"：没有；但有一条"未测却容易被当绿"的（G4 methodology），我在表里明写未测。
+"未知原因但绿了"：没有；但有一条"未测却容易被当绿"的（G4 methodology），表里明写未测。
 
 **12. 我这轮写下的"极限/完成/无风险"里，哪一句其实只满足了 §7 的两条？**
 我**没有**写"到极限"。本轮真实的一句话是：**收敛 0 ns（没有任何切割被采纳），未证明到极限**。
@@ -71,7 +71,7 @@ L1 的分段占比我手里有分解读数（最差的 eth_rxc 那族 route 占 
 
 （L1 那半句的分段读数是 `Data Path Delay: 7.066ns (logic 2.936ns 41.553% route 4.130ns 58.447%)` 与
 `Logic Levels: 11 (CARRY4=6 …)`，出自件 `build/evidence/r115_base/check_timing.txt` 的第一条路径
-——⚠ 那份文件**实为 `report_timing`**（见 debt_ledger §6 与 ISSUES #299），所以这里点名它时按"内容"而不是按"文件名口径"引用；
+——警告 那份文件**实为 `report_timing`**（见 debt_ledger §6 与 ISSUES #299），所以这里点名它时按"内容"而不是按"文件名口径"引用；
 级数分布另有 `build/evidence/r115_base/da_levels.txt`。）
 
 ---
@@ -110,7 +110,7 @@ r115 是 `0 / 11`。本轮刀 1 专门打这 11 里的 5 个 ⇒ 预期 `0 / 6`�
 这是事实不是遗漏，写在 `debt_ledger.md` §2 追加节。
 
 **6. `report_methodology` 警告类别计数增加了吗？**
-答：**没增**：类仍是 3（TIMING-9/10/18），实例 `Checks found` 446→**441**，其中 `TIMING-18` 从 7→**2**（少掉的 5 条就是这轮第一次被检查的 5 个 RGMII 输入）。件 `build/methodology.rpt` vs `git show HEAD:build/methodology.rpt`。按 G4 这只当成本，本轮成本是**降**的；⚠ 它同时是第二把尺子（checks 口径 2 ≠ 端口口径 6），两数永不相减。
+答：**没增**：类仍是 3（TIMING-9/10/18），实例 `Checks found` 446→**441**，其中 `TIMING-18` 从 7→**2**（少掉的 5 条就是这轮第一次被检查的 5 个 RGMII 输入）。件 `build/methodology.rpt` vs `git show HEAD:build/methodology.rpt`。按 G4 这只当成本，本轮成本是**降**的；警告 它同时是第二把尺子（checks 口径 2 ≠ 端口口径 6），两数永不相减。
 基线 446 = 2+1+336+98+1+1+7；r115 候选滚曾出现新类 `TIMING-15 Large hold violation 5`。
 本轮绑窗后**预期会出现 TIMING-15**（I/O hold 违例是真违例）⇒ 记为**成本**，不算收益【待构建后 `report_methodology`】。
 
@@ -136,7 +136,7 @@ r115 是 `0 / 11`。本轮刀 1 专门打这 11 里的 5 个 ⇒ 预期 `0 / 6`�
 本轮新增的红（实测 5 个 I/O 端点，`−0.846 / −0.870`）根因标签按附录 2 的枚举取 **`CLKTOPO`**（主项是两只钟的角间插入延迟差 3.411 ns；"I/O 标准/参考沿选错"那一维由 `IODELAY-STD` 覆盖，且它在 §6.1 里是**被排除**的候选而不是标签），
 它带的是不等式（§7.5(4) 的联合条件 `0.029·C_slow + 0.063·ΔC ≤ 0.214`）而不是"未知"。
 其余三域：`sys_clk` 无红；`clkout0_1` 的主导项是 22 级逻辑（功能面）；
-`clk_fpga_0` **没有红**（19.76 % 绿的），但 02:49 起它被判"未到极限"，标签取枚举里的 **`FANOUT`**（件 `build/evidence/r117_d0/`：一根 239 引脚的网 `u_pl/u_row/hi_reg_0[0]` 吃 5.690 ns，占那条路 route 6.871 ns 的大头）。⚠ 本页 01:3x 那一版写的 `PLACEMENT_DISTANCE_NOT_AT_LIMIT` **是自造词、不在附录 2 的枚举里**，按 C 节的规矩改口；而且"距离"那个解释也被 02:49 的读数推翻——真正可动的是复制那根广播网（r117 的 C9）。**"绿但不是极限"和"红但是极限"必须分开说**，这是本轮审计的核心。
+`clk_fpga_0` **没有红**（19.76 % 绿的），但 02:49 起它被判"未到极限"，标签取枚举里的 **`FANOUT`**（件 `build/evidence/r117_d0/`：一根 239 引脚的网 `u_pl/u_row/hi_reg_0[0]` 吃 5.690 ns，占那条路 route 6.871 ns 的大头）。警告 本页 01:3x 那一版写的 `PLACEMENT_DISTANCE_NOT_AT_LIMIT` **是自造词、不在附录 2 的枚举里**，按 C 节的规矩改口；而且"距离"那个解释也被 02:49 的读数推翻——真正可动的是复制那根广播网（r117 的 C9）。**"绿但不是极限"和"红但是极限"必须分开说**，这是本轮审计的核心。
 
 **12. 我写下哪句"极限"其实只满足了 §7 的两条？**
 `eth_rxc` 的 I/O 那 5 格：L1（逐域判定）✅、L2（杠杆全枚举并量过：数据延时/相位/带子/策略/复制）✅、

@@ -43,7 +43,7 @@ HAND_EXT = {'.md', '.mjs', '.sh', '.tcl', '.v', '.c', '.h', '.bat', '.ps1', '.xd
 HAND_SKIP_DIRS = {'.git', 'vivado_system', 'vitis', 'xsim.dir', 'sim_work',
                   'node_modules', '.Xil', 'study', 'learn', 'golden', 'build'}
 HAND_SKIP_PREFIX = ['build/frozen_', 'build/evidence_', 'build/failed_', 'report/study/']
-HOME = ['README.md', 'readme.en.md']
+HOME = ['README.md', 'README_EN.md']
 SELF = 'src/host/doc_currency_check.mjs'
 MAPPER = 'build/make_submission.sh'
 

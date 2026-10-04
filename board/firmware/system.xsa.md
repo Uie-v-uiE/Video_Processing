@@ -21,7 +21,7 @@
 | 独立第二次读数 | `build/evidence/r118_board/board_verify_console.txt:5`：`build/system.xsa  md5=934ebdba  2026-10-04 04:37`（与上面同一颗，由 `build/board_verify.sh:140-143` 打印） |
 | 门禁/判读 | `build/r118_gates.txt`（判定 24 项、有红项 = 声明过的 `C5c`）、`build/evidence/r118_strict_b1.txt` |
 
-⚠ `build/provenance.md` 仍不存在（P15a 待开，`report/run-queue.md:25`）⇒ 本轮次指到上表的真实件。
+警告：`build/provenance.md` 仍不存在（P15a 待开，`report/run-queue.md:25`）⇒ 本轮次指到上表的真实件。
 见 `report/questions-for-team.md`（Q-P16a-4）。
 
 ## 2. 里面到底有什么（本轮实测，只读解压、不写盘）
@@ -54,7 +54,7 @@
 
 - **在别人的干净克隆上**：盘上没有那份旧文件 ⇒ 走 ③ ⇒ 自动从 r118 的 xsa 解出当前版本 ⇒ 正确。
 - **在本机这一份工作位上**：盘上有 2026-09-23 那份 ⇒ 走 ② ⇒ **PS 初始化用的是八天前的那份脚本**。
-  这一步会不会真的改变板上行为，我没有测（本轮不开板、不跑链），**判 NOT_MEASURED**，
+  这一步会不会真的改变板上行为，没有测（本轮不开板、不跑链），**判 NOT_MEASURED**，
   但它是一个可当场判定的不一致，不能写成"现在应该是当前 xsa 的那份"。
 
 回读动作（任何人 5 秒判掉这一格，纯本地、不碰板）：

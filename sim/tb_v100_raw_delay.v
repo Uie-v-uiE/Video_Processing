@@ -55,7 +55,7 @@ module tb_v100_raw_delay;
     integer rr, kk, chk_from;
     // 上一拍喂进去的那一格（在下一个 negedge 检查它）
     // ⚠ 相位：输入在 negedge 驱动、DUT 在**下一个 posedge** 吃 ⇒ 每个样本的检查放在再下一个 negedge。
-    //   第一版就是在这一点上把自己的相位差一格读成"硬件差一格"（`skill/bench_self_inflicted_reds.md` 签名二）。
+    //   第一版就是在这一点上把自己的相位差一格读成"硬件差一格"（`skills/bench_self_inflicted_reds.md` 签名二）。
     integer p_row;
     reg [7:0] p_col;
     reg       p_valid;

@@ -11,7 +11,7 @@
 2. **顶层台架** `build/r109_tb98_console.txt` + `build/tb_v98_report.txt`（由 `build/tb98_report.sh` 写，白名单已补 `C12 `）
    必须逐条读：`FAIL` 行**只有** `C5c`（声明过的那条）；`C12a / C12b / C12c / C12pre` 四条各打一行；
    `C12 rot: cmp=? bad=? steps=?` 那行的 `steps>=3`（阳性对照）与 `cmp>=4`（分母）是 C12a 的牙，缺一个就是空判据。
-   ⚠ C12a 若还红 ⇒ 换角拍点没挪对，**这一刀回退**（`rot_fs_tog` 那一处），其余两刀可留但要单独再判。
+   警告：C12a 若还红 ⇒ 换角拍点没挪对，**这一刀回退**（`rot_fs_tog` 那一处），其余两刀可留但要单独再判。
 3. **时序读数** `build/evidence/r109_clk01_after.txt`（对照 `..._before.txt`）
    `clkout0_1` 已由 1.130/23 级/route 77.5 % 变成 4.094/21 级/route 62.8 %（相对余量 5.65 % → 20.5 %）。
    采纳那一步不再重跑它；但**首页逐时钟那三格要按新 `build/timing_summary.rpt` 重读**（D6 会判，别抄）。
@@ -26,16 +26,16 @@
    恢复顺序：`ps_jtag_boot.tcl` → `program_pl.tcl` → `ps_app_reload.tcl`，
    每道的 token：`DDR_ECHO … 5A5AA5A5` / `PROGRAMMED xc7z020_1` / `DOW: ok` + `RESUME: ok`（**`DOW:` 必须逐行看，不许 tail**）。
 2. **门禁条数与每一句念它的文案同笔改口**（#229/#176）：22 → **24**，四处——
-   `README.md:56`、`readme.en.md` 同形状行、`report/background_and_novelty.md:31`、`:80`；
+   `README.md:56`、`README_EN.md` 同形状行、`report/background_and_novelty.md:31`、`:80`；
    同一笔提交里重跑 `node src/host/doc_currency.mjs` 确认不红。
 3. 首页与 `data/metrics.csv` 的数字全部**从件里重读**（WNS 0.605、逐时钟四格、WHS 0.049、
    LUT 14362 / FF 8162、BRAM 95.5、功耗、身份行"板上这一版 r109 + bit md5 + 刷入时刻"），
    然后 `node src/host/metric_recheck.mjs` 要 红 0。
 4. `report/log/issues.md` 落 #236（这一轮的采纳判读），`board/acceptance.md` 记 E 系列：
-   **眼睛判据（旋转动起来顶部还有没有分散细线）必须由用户做**，我不能代判；板子没回来就写"欠"。
+   **眼睛判据（旋转动起来顶部还有没有分散细线）必须由用户做**，不能代判；板子没回来就写"欠"。
 5. 试冻结 `build/freeze_evidence.sh`（大概仍 REFUSE，全绿集还是 r75 —— 如实记）；
    重导提交包 `bash build/make_submission.sh`（若目录句柄被占，用 `VP_SUB_OUT` 换路径 + **数盘上文件数**验收，rule 50）。
-   ⚠ 验收算式（2026-10-03 读 `build/make_submission.sh:613-615` 定死，别再自己"发现"一个 off-by-one）：
+   警告：验收算式（2026-10-03 读 `build/make_submission.sh:613-615` 定死，别再自己"发现"一个 off-by-one）：
    导出器数的是**写 MANIFEST 之前**、且**排除 MANIFEST.txt 自己**的文件数（`find . -type f ! -name MANIFEST.txt | wc -l`），
    所以正确关系是 **盘上文件数 = MANIFEST 里那个「文件数」+ 1**。本刻实测：盘上 384、MANIFEST 写 383 ⇒ 一致
    （`_pruned.txt` 已经算在 383 里，它不是差项；#106 那次修的正是这类"报的数与落地差 N"）。
@@ -60,7 +60,7 @@ C12 这个 token 现在有两家共用，**不许按 token grep**。按整句：
 
 ## 追加二（2026-10-03）：门禁句 22→24 的四处已 grep 定位；hold 那一行要改的是**落点**不是域名
 `grep -rn "22 项\|22 items"` 命中恰好四处（与计划一致，没有第五处）：
-`README.md:56`、`readme.en.md:70`、`report/background_and_novelty.md:31`、`report/background_and_novelty.md:80`。
+`README.md:56`、`README_EN.md:70`、`report/background_and_novelty.md:31`、`report/background_and_novelty.md:80`。
 另：首页保持时间那行 `README.md:58` 现在写的是"全设计最差那一格在 `eth_rxc`（… 落点 `u_eth/u_cdc/rgray_s1_reg…`）"。
 r109 的读实（`build/evidence/r109_hold_owner.txt` 第一节）：WHS 0.049 的**域名仍是 eth_rxc/gmii_rx_clk**，
 但**落点换成** `u_eth/u_rx_mac/u_crc_rx/crc_data_reg[17]/C → crc_data_reg[25]/D`（1 级、route 80.9 %）⇒
@@ -85,10 +85,10 @@ r109 的读实（`build/evidence/r109_hold_owner.txt` 第一节）：WHS 0.049 �
 2) **只有 `C12a head request beat uses` 红**（换角拍点没挪对）⇒ 回退 `src/rtl/top/pl_video_top.v` 那一处（保留 OSD 那一刀），
    `git checkout -- src/rtl/top/pl_video_top.v`，然后 **必须重构建**（位流变了，20 分钟）再走 r110 的链子；
    首页数字里与那一刀有关的两格（`clkout0_1` 4.094/20.47 % 若受影响）重读原件，不许沿用本轮读数。
-   ⚠ 这一条同时意味着任务 #167 的第二条尺子（C12 那四条）留在树上判红 —— 尺子没错、DUT 没修好，红就是结论。
+   警告：这一条同时意味着任务 #167 的第二条尺子（C12 那四条）留在树上判红 —— 尺子没错、DUT 没修好，红就是结论。
 3) **`C12pre`/`C12c` 红**（分母不够：cmp/steps 太小）⇒ 是**台架自己没测到**，不是设计红。
    先读 `C12 rot:` 那行读数与激励（`split_ctl_tb[14]`、`[17:15]=3'd3`），按规矩 46"先怀疑尺子的维度"处理，
    判读结论只写"本轮不采纳、原因在激励覆盖"，**不改期望值**。
 另外一条与判读无关的既有事实（今晚读实，写进 #240）：断电重上后 `build/system.bit` 是未采纳的 r109，
-而板子被我恢复到 r108 文档态（`build/restore_documented_bit.sh --dry` 能自己认出这套关系）。
+而板子恢复到 r108 文档态（`build/restore_documented_bit.sh --dry` 能自己认出这套关系）。
 所以判读期间**不要跑 `make_submission.sh`**，也不要 `board_verify --round=r108`（会覆盖已封存的 r108 原始回显）。

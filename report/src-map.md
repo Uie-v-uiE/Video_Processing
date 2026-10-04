@@ -5,7 +5,7 @@
 ## 这四列能回答什么、不能回答什么
 
 - **能**：某个模块在哪个文件、文件多大、作者自己在头注里写的第一句是什么（逐字搬运，不改写）。
-- **不能**：数据流顺序、时钟域归属、寄存器位序——那些分别在各文档里有权威口径，本表不复制，复制就会有两份真相。指路：数据通路看 `report/architecture.md`，时钟域看 `report/board_pins.md` 与 `report/build.md`，寄存器看 `skill/runtime/register-map/SKILL.md`，台架对应关系看 `sim/README.md`。
+- **不能**：数据流顺序、时钟域归属、寄存器位序——那些分别在各文档里有权威口径，本表不复制，复制就会有两份真相。指路：数据通路看 `report/architecture.md`，时钟域看 `report/board_pins.md` 与 `report/build.md`，寄存器看 `skills/runtime/register-map/SKILL.md`，台架对应关系看 `sim/README.md`。
 - 头注列为空的有 0 个文件（照实留空，不替它补句子）。
 
 | 路径 | 声明的 module | 行数 | 文件头注第一行（逐字） |
@@ -13,7 +13,7 @@
 | `src/ps/main.c` | `（无 module：C/H 或纯 include）` | 1619 | PS control plane + SD 卡本地回放。UDP 视频数据通路仍然整个在 PL（rtl/eth 目录）。 |
 | `src/ps/sd_play.c` | `（无 module：C/H 或纯 include）` | 882 | SD 卡本地视频回放：裸机 FAT32 只读 + XSdPs，不依赖 FatFs / 任何文件系统库。 |
 | `src/ps/sd_play.h` | `（无 module：C/H 或纯 include）` | 68 | SD 卡本地回放的 PS 侧接口（见 sd_play.c 与 report/log/overnight_log.md §P1）。 |
-| `src/rtl/axi/axi_frame_writer.v` | axi_frame_writer | 169 | AXI3 HP0 整帧取数（64bit、最多 16 拍/突发）。⚠ **本树无人例化**：现役两代是 |
+| `src/rtl/axi/axi_frame_writer.v` | axi_frame_writer | 169 | AXI3 HP0 整帧取数（64bit、最多 16 拍/突发）。警告 **本树无人例化**：现役两代是 |
 | `src/rtl/axi/axi_frame_writer64.v` | axi_frame_writer64 | 116 | AXI3 HP read: DDR frame -> 64-bit BRAM writes, with overlapped bursts |
 | `src/rtl/axi/axi_frame_writer_gated.v` | axi_frame_writer_gated | 191 | axi_frame_writer_gated：pl_video_top 里的 u_row —— 显示帧缓存的逐行搬运机：从 HP0 把 DDR 里刚提交 |
 | `src/rtl/clocks/clk_gen.v` | clk_gen | 58 | MMCM: 50 MHz -> 50 MHz pixel + 250 MHz 5x + 200 MHz IDELAY ref |
@@ -77,13 +77,13 @@
 | `src/rtl/util/src_life.v` | src_life | 59 | src_life —— "此刻到底还有没有片源"这件事的**活判据**（ISSUES #94）。时钟域：clk_pix，单域，零新增异步配对。 |
 | `src/rtl/util/src_mode.v` | src_mode | 104 | src_mode：长按事件（sys_clk 域的翻转位）+ 串口覆盖命令 → 片源模式，输出本域的四态格雷码寄存器 mode。 |
 | `src/rtl/video/color_bar.v` | color_bar | 71 | Built-in color bar + diagonal stripe (RGB565). Synthesis-friendly (no div). |
-| `src/rtl/video/frame_buffer.v` | frame_buffer | 34 | 整帧双端口 BRAM（顺序写、随机读）。⚠ **本树无人例化**：现役显示帧缓存是 frame_buffer_w64 |
-| `src/rtl/video/frame_buffer_db.v` | frame_buffer_db | 68 | 乒乓帧缓存。⚠ **本树无人例化**：乒乓改在 DDR bank 层做（ddr_bank_commit + frame_reasm）， |
+| `src/rtl/video/frame_buffer.v` | frame_buffer | 34 | 整帧双端口 BRAM（顺序写、随机读）。警告 **本树无人例化**：现役显示帧缓存是 frame_buffer_w64 |
+| `src/rtl/video/frame_buffer_db.v` | frame_buffer_db | 68 | 乒乓帧缓存。警告 **本树无人例化**：乒乓改在 DDR bank 层做（ddr_bank_commit + frame_reasm）， |
 | `src/rtl/video/frame_buffer_w64.v` | frame_buffer_w64, integer | 83 | Display frame buffer: 64-bit write port (4 RGB565), 16-bit random read. 写 wr_clk / 读 rd_clk 两个域。 |
 | `src/rtl/video/frame_commit_lock.v` | frame_commit_lock | 147 | frame_commit_lock —— 把"提交一帧"锁到显示消隐窗口里再搬（两个时钟域：axi_clk 搬、pix_clk 判窗口）。 |
 | `src/rtl/video/frame_latency.v` | frame_latency | 198 | frame_latency：把"一帧提交 → 这一帧开始被扫描"分成三段量（c1 commit→copy_start、c2 copy_start→copy_done、 |
 | `src/rtl/video/gamma_lut.v` | gamma_lut | 54 | 级 0：Gamma 查找表 —— 256 项 8-bit 表，PS 通过第二个控制字的通道 2 逐项写入。时钟域：像素域，读写都在 |
-| `src/rtl/video/line_cache.v` | line_cache | 29 | 简单双端口行缓存（一 clk 写、另一 clk 读）。⚠ **本树无人例化**：效果链里三行窗口用的是 |
+| `src/rtl/video/line_cache.v` | line_cache | 29 | 简单双端口行缓存（一 clk 写、另一 clk 读）。警告 **本树无人例化**：效果链里三行窗口用的是 |
 | `src/rtl/video/osd_overlay.v` | osd_overlay | 526 | osd_overlay：像素通路的最后一级，把 5 行状态文字叠在画面上（尺寸/FPS/片源、Pipe/Th/Gamma、 |
 | `src/rtl/video/raw_line_delay.v` | raw_line_delay, integer | 100 | raw_line_delay —— 把一路像素流整体延后 N 个显示行的行环形缓存（V8-4b，ISSUES #62 / #68）。单像素时钟，读写同拍。 |
 | `src/rtl/video/seam_src.v` | seam_src | 51 | V9-1：把"缝"从**显示列**搬到**图像列** —— 分割线长在画面上，跟着旋转一起转（用户要的是"蓝线放在视频 |
@@ -92,6 +92,6 @@
 | `src/rtl/video/test_card.v` | test_card, disc | 201 | test_card —— 第三源（TEST）的"会动的画面"。时钟域：像素时钟。四样判读点：① 游动亮球 + 三段拖影 |
 | `src/rtl/video/video_timing.v` | video_timing | 73 | 320x180 or 640x360 video timing generator |
 | `src/rtl/video/video_timing_1024x600.v` | video_timing_1024x600 | 28 | 1024x600 @ ~60Hz, pixel clock 50 MHz (spec 50.25MHz, 0.5% ok) |
-| `src/rtl/video/video_timing_720p.v` | video_timing_720p | 27 | 720p 时序发生器。⚠ **本树无人例化**：现役面板是 1024x600@50 MHz（video_timing_1024x600）。 |
+| `src/rtl/video/video_timing_720p.v` | video_timing_720p | 27 | 720p 时序发生器。警告 **本树无人例化**：现役面板是 1024x600@50 MHz（video_timing_1024x600）。 |
 
 MAP 生成 文件=83 头注缺=0 判 83 项 PASS

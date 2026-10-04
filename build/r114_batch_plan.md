@@ -27,7 +27,7 @@
 * 判据顺序已改成"先证机制能动再谈收益"：V2b `_replica` 对象数 B>A、V2c 名册里至少一根网扇出下降（两个不同来源），
   任一红 ⇒ `MECHANISM_INERT`（这一刀没打到东西），**不许**写成"时序收益不成立"；机制绿后才看 V3 目标族 / V4 名册差分 / V5 资源。
 * 尺子自带 `--self` 三条对照，实测 3/3（件 `build/evidence/r114_mf/` 与 `verdict.txt`，跑完回填）。
-* ⚠ 杠杆的名字是量出来的：`set_max_fanout` 在本工具不存在（#264）；`MAX_FANOUT` **属性**那条路还没验过（要开设计 `list_property`），
+* 警告：杠杆的名字是量出来的：`set_max_fanout` 在本工具不存在（#264）；`MAX_FANOUT` **属性**那条路还没验过（要开设计 `list_property`），
   所以不许提前写成"已按官方 MAX_FANOUT 做"。
 
 ## 四、结构那一刀（fo=305 的 CE 广播，#187 尾）

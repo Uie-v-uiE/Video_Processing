@@ -60,11 +60,11 @@ grep -c '^| S0' README.md         # 5（§2A 表行）
 | 时序极限支线 r115–r118 | S01 的 10-03 20:00 → 10-04 05:00 段；S05 行 102 之前的 09-30/10-01 批次；**轮次提示词原文 = C 栏文件**（S04-c 现场） | `docs/timing/*`（`ROUND_r116/117/118.md`、`debt_ledger.md`、`cut_ledger.tsv`）、`report/timing_global.md`、`build/evidence/r11[5-8]*/**` |
 | 板级人眼签收（E6 那一格） | S01 的 `H225`（10-04 07:38）→ `H226`（07:51，原文只有「0度」） | `board/acceptance.md:92`（**原话记录，本任务不得改写**）、`build/evidence/r118_eyes/**`、`build/evidence/r118_board/**` |
 | r119 输出侧窗（6 个输出脚那笔债） | S01 的 10-04 09:0x–09:4x 段（纯无人值守，人工轮次为 0） | `report/timing/debt_ledger.md:172-212`、`report/io/hdmi_cts_source_window.md`、`src/constraints/r119_hdmi_source_window.xdc`、`build/evidence/r119_*.txt`、`report/log/issues.md` #334/#335 |
-| P01–P09 技能包（骨架/提示词/模板/脚本/踩坑/参考/runtime/evals/装配门禁） | S05 行 102–112（2026-10-04T00:41–00:43Z 那一批，`PROMPTFILE` 列点名 `00/02/03/04/05/06/07/11` 号提示词） | `skill/*`（含 `skill/pitfalls/**` 14 条、`skill/references/**` 3 条、`skill/runtime/**` 4 条）；**注意**：`git ls-files skill` = 32 已跟踪 / 96 未跟踪 ⇒ 成品多数还没入库（`workflow.md` §7 第 3 条） |
+| P01–P09 技能包（骨架/提示词/模板/脚本/踩坑/参考/runtime/evals/装配门禁） | S05 行 102–112（2026-10-04T00:41–00:43Z 那一批，`PROMPTFILE` 列点名 `00/02/03/04/05/06/07/11` 号提示词） | `skills/*`（含 `skills/pitfalls/**` 14 条、`skills/references/**` 3 条、`skills/runtime/**` 4 条）；**注意**：`git ls-files skill` = 32 已跟踪 / 96 未跟踪 ⇒ 成品多数还没入库（`workflow.md` §7 第 3 条） |
 | P11 学习文档 | S05 行 107（`6057efcd9eb1`，写过 11 个文件） | `docs/walkthrough/*`（`.gitignore` 已列 ⇒ **不随包**） |
 | P12–P21 仓库与交付文档 | S05 行 113–127（10-04 01:23–03:44Z，含每分钟 6 场并发峰值那一批） | `README.md`、`docs/*`、`report/*`、`build/checks/check_repo_hygiene.sh`、`submit/*` |
 | **P22 本档案** | S05 冻结段之外的 10 场之一（派发 `2026-10-04T03:44:38Z`，`SUB_ID 34dbd560d14…`；见 `prompts-used.md` §B2） | `report/collaboration/*`（本目录 11 个 `.md`） |
-| 队伍提示词集成文（P00–P23，31 份） | S04-d（本机文档目录，**不随包**） | 被 B 栏派发按路径引用（`prompts-used.md` §D）；本仓库侧的成品化结果在 `skill/prompts/*/SKILL.md`（4 条模板，E 栏） |
+| 队伍提示词集成文（P00–P23，31 份） | S04-d（本机文档目录，**不随包**） | 被 B 栏派发按路径引用（`prompts-used.md` §D）；本仓库侧的成品化结果在 `skills/prompts/*/SKILL.md`（4 条模板，E 栏） |
 
 ## 3. 本档案对仓库门禁的影响（实跑读数，判 4 项）
 
@@ -80,37 +80,37 @@ grep -c '^| S0' README.md         # 5（§2A 表行）
 | 时刻 | `git status --porcelain report/collaboration` | 含义 |
 | --- | --- | --- |
 | 12:2x（我写完前 10 个文件时） | `?? report/collaboration/` | 全部新建，无 `M`/`D` |
-| 12:5x（收尾复跑） | `M` × 5（`corrections/metrics/redaction/workflow/s05`）+ `?? README.md` | ⇒ 我这 10 个文件在 **12:39 被另一支兄弟子会话的装配提交**收了进去：`1c4e26b 装配 P13–P17 已落地的交付件并修「成对」缺口：… report/40·50·60·90·README·comparison-notes·collaboration …`；我在那之后的修订（C8 等）就显示成 `M` |
+| 12:5x（收尾复跑） | `M` × 5（`corrections/metrics/redaction/workflow/s05`）+ `?? README.md` | ⇒ 这 10 个文件在 **12:39 被另一支兄弟子会话的装配提交**收了进去：`1c4e26b 装配 P13–P17 已落地的交付件并修「成对」缺口：… report/40·50·60·90·README·comparison-notes·collaboration …`；那之后的修订（C8 等）就显示成 `M` |
 
 ⇒ 三条实话：**① 我自己没有执行过任何 `git add`/`commit`/`push`**（本任务边界禁止，我也没做）；
 **② 我的交付物被同批并发任务连带提交了**，提交里包含的是我当时**还没写完**的版本（`README.md` 反而没进那次提交）；
 **③ 因此"以 HEAD 为准读这份档案"会读到旧版** ⇒ 队伍收尾时需要再提交一次本目录（或在装配提交里点名 `report/collaboration/**`）。
 这条也写进 `workflow.md` §6 作为分母漂移的第三个实例。
 
-## 4. 与 `skill/evals/records/` 的双向引用：**没有闭合**（如实列缺口）
+## 4. 与 `skills/evals/records/` 的双向引用：**没有闭合**（如实列缺口）
 
 实跑清点（**两次读数都记下来**，因为这个目录在我写作期间被兄弟子会话改写过）：
 
 ```bash
-ls skill/evals/records/ | wc -l                 # 11:5x 读数 0；12:3x 复跑读数 2
-ls skill/evals/                                 # records/ migration/ raw/ README.md runbook.md
-ls skill/evals/migration/ | wc -l               # 0（仍是空目录）
-grep -c "被测条目" skill/evals/records/*.md      # 两份都是 0 ⇒ 不是 evals/README.md §3 规定的 9 字段记录
-grep -rIn "S0[1-5]\|sessionId\|jsonl" skill/evals/records/ | wc -l   # 0 ⇒ 没有任何一条引用会话登记号
+ls skills/evals/records/ | wc -l                 # 11:5x 读数 0；12:3x 复跑读数 2
+ls skills/evals/                                 # records/ migration/ raw/ README.md runbook.md
+ls skills/evals/migration/ | wc -l               # 0（仍是空目录）
+grep -c "被测条目" skills/evals/records/*.md      # 两份都是 0 ⇒ 不是 evals/README.md §3 规定的 9 字段记录
+grep -rIn "S0[1-5]\|sessionId\|jsonl" skills/evals/records/ | wc -l   # 0 ⇒ 没有任何一条引用会话登记号
 grep -c "已复跑" skills/README.md                 # 5（都在"为什么不能写已复跑"的语境里，见 :296/:302/:303/:318/:334）
-grep -rIn "#334" skill/ | wc -l                 # 0
-grep -rIn "#335" skill/ | wc -l                 # 1（唯一一处不在技能条目正文里，在 records/audit-2026-10-04.md:16）
-grep -rIl -e '#321' -e '#332' -e '#333' skill/ | wc -l   # 7 个文件
+grep -rIn "#334" skills/ | wc -l                 # 0
+grep -rIn "#335" skills/ | wc -l                 # 1（唯一一处不在技能条目正文里，在 records/audit-2026-10-04.md:16）
+grep -rIl -e '#321' -e '#332' -e '#333' skills/ | wc -l   # 7 个文件
 #   即 pitfalls/{assertion-not-in-any-file,checker-ran-on-nothing,exit-zero-nothing-written,report-field-parse-breaks}/SKILL.md
 #     + pitfalls/_proposed-sources.md + runtime/host-bindings-and-reports/SKILL.md + _meta/sources.md
 ```
 
 | 缺口 | 具体（按 12:3x 的复跑状态） | 影响 | 谁能补 |
 | --- | --- | --- | --- |
-| G1 | `skill/evals/records/` 在我 11:5x 检查时是**空目录**，12:3x 复跑已有 **2 份**（`audit-2026-10-04.md`、`stranger-run-2026-10-04.md`，P09 第 3/4 步的演练与审计表）。但这两份**都不带 `skill/evals/README.md` §3 那 9 个字段**（`被测条目` 命中 0），也就是**不是"双跑增益记录"**那一种 | 判据 8 要的"evals 记录引用会话编号"这一类对象**目前一份都没有**；目录不再是空的，但空的不是同一件事 | 队伍跑双跑后由 P08 落记录（`skill/evals/README.md` §1/§3 已定义格式） |
+| G1 | `skills/evals/records/` 在我 11:5x 检查时是**空目录**，12:3x 复跑已有 **2 份**（`audit-2026-10-04.md`、`stranger-run-2026-10-04.md`，P09 第 3/4 步的演练与审计表）。但这两份**都不带 `skills/evals/README.md` §3 那 9 个字段**（`被测条目` 命中 0），也就是**不是"双跑增益记录"**那一种 | 判据 8 要的"evals 记录引用会话编号"这一类对象**目前一份都没有**；目录不再是空的，但空的不是同一件事 | 队伍跑双跑后由 P08 落记录（`skills/evals/README.md` §1/§3 已定义格式） |
 | G2 | 反向也一样：现有 2 份记录里**没有一处**引用会话登记号或 `sessionId`（`grep -rIn "S0[1-5]\|sessionId\|jsonl"` = 0 命中） | 双向引用在两个方向上都还没建立 | 同 G1 |
-| G3 | #334 在 `skill/` 里 **0 引用**（最接近的一条 `skill/pitfalls/tcl-query-empty-means-broken-ruler/SKILL.md:104` 只点名 #279/#286/#319/#320）；#335 只有 **1 引用**且落在审计记录 `skill/evals/records/audit-2026-10-04.md:16`，**不在任何技能条目正文里** | 协作记录→技能这一侧对这两条断链（#334 完全断，#335 半断） | 需要改 `skill/` ⇒ **不在我的边界内**，已进 §5 Q6 |
-| G4 | #321/#332/#333 有引用（7 个文件），但形态多是"本仓 #333"这种**只写编号不写文件:行**（例如 `skill/pitfalls/assertion-not-in-any-file/SKILL.md:95`） | 可核但需二次跳转 | 队伍决定是否统一成 `report/log/issues.md:13098` 全路径形式 |
+| G3 | #334 在 `skills/` 里 **0 引用**（最接近的一条 `skills/pitfalls/tcl-query-empty-means-broken-ruler/SKILL.md:104` 只点名 #279/#286/#319/#320）；#335 只有 **1 引用**且落在审计记录 `skills/evals/records/audit-2026-10-04.md:16`，**不在任何技能条目正文里** | 协作记录→技能这一侧对这两条断链（#334 完全断，#335 半断） | 需要改 `skills/` ⇒ **不在我的边界内**，已进 §5 Q6 |
+| G4 | #321/#332/#333 有引用（7 个文件），但形态多是"本仓 #333"这种**只写编号不写文件:行**（例如 `skills/pitfalls/assertion-not-in-any-file/SKILL.md:95`） | 可核但需二次跳转 | 队伍决定是否统一成 `report/log/issues.md:13098` 全路径形式 |
 | G5 | `sessions/` 里 S02、S04-a、S04-b 三场的**任务号未映射**（`metrics.md` §5 第 6 条：缺落点凭据） | 索引表有 3 个洞 | 队伍若知道那 17 秒与 10-01 下午做过什么，补一句话即可 |
 | G6 | 我自己在 11:5x 把 `records/` 读成 0，12:3x 变 2 ⇒ **本档案里任何"共几份"的断言都带检查时刻**（这条不是队伍的缺口，是写作纪律的实证） | 若不写时刻，读者会以为两处数字矛盾 | 已在 `workflow.md` §6 记为同一现象的第二例 |
 
@@ -126,7 +126,7 @@ grep -rIl -e '#321' -e '#332' -e '#333' skill/ | wc -l   # 7 个文件
 | Q3 | 是否允许导出文件随包（体积 445.7 MiB + 105.7 MiB） | 不可逆动作（提交即入库） | 包体爆炸或隐私外泄 | 默认不随包，标 **【队伍未确认】** |
 | Q4 | P23 第 6 节的 `RUN_REPORT.md`/`UNATTENDED.md` 与我"只能在 `report/collaboration/` 下建文件"的边界冲突，用 `README.md` §6/§7 替代是否可接受 | 交付物归位是队伍决定 | 本任务没有独立的运行台账文件 | `workflow.md` §3 W7，标 **【队伍未确认】** |
 | Q5 | §4 的 G1/G2（evals 记录为空）要不要由我在本目录补一份"记录模板 + 空实值"？ | 补模板容易被读成"记录已存在"，是 P22 明令的造假形态 | 缺口继续挂着 | 本文件 §4 只列缺口不补，标 **【队伍未确认】** |
-| Q6 | #334/#335 缺技能引用（G3），是否授权改 `skill/` | 我的边界禁止改 `skill/` | 断链保留 | 本文件 §4 G3，标 **【队伍未确认】** |
+| Q6 | #334/#335 缺技能引用（G3），是否授权改 `skills/` | 我的边界禁止改 `skills/` | 断链保留 | 本文件 §4 G3，标 **【队伍未确认】** |
 | Q7 | §3 里仓库级 C2 读数没拿到（脚本超时被切），要不要我限时重跑或改用 `--scope` 子集 | 影响"未处置命中数 = 0"这句话的口径范围 | 判据 4 只能按"本目录 11 个文件"口径成立 | `redaction.md` §4 末的"两面读法"，标 **【队伍未确认】** |
 | Q8 | `report/collaboration/` 这 11 个文件里有 4 处依赖**本机才拿得到**的原件（导出、`skill_prompts/`、轮次提示词、`meta.json` 原文），成包时是否显式附一份"第三方无法复现清单" | 涉及可公开范围 | 评委可能按"应可复现"来读这些条目 | `redaction.md` §6 已有该清单，是否随包另附 **【队伍未确认】** |
 
@@ -168,7 +168,7 @@ grep -ro "【队伍未确认】" .       | wc -l         # 14
 `sessions/s01…md`、`sessions/s02…md`、`sessions/s03…md`、`sessions/s04…md`、`sessions/s05…md`
 （S05 的 127 行表格由脚本注入，生成命令写在 S05 §7；注入前后都跑了 `doc_enc_check`）。
 
-**没有做**：`git add`、`git commit`、`git push`（边界禁止）；修改 `skill/`、`report/` 其它文件、
+**没有做**：`git add`、`git commit`、`git push`（边界禁止）；修改 `skills/`、`report/` 其它文件、
 `docs/`、`board/acceptance.md`、`src/`、`build/`、`sim/`、`data/`（边界禁止，且 §4b 那 4 处用户名命中就落在禁止区内 ⇒ 移交）。
 
 ## 7. P22 质量判据 1–7 自检（判定放最后一个字段，逐条打印分母）
@@ -181,7 +181,7 @@ grep -ro "【队伍未确认】" .       | wc -l         # 14
 | 4 | `redaction.md` 行数与脱敏扫描命中数一致；未处置命中数 = 0 | 本目录 11 个 `.md` 按 §1 模式表 `grep -rE` | 9 行台账；本目录命中 **0**；仓库既有命中（36 文件/4 个手写件）**我没能动** ⇒ 按全仓库口径这一条是红的，已点名 | **PASS**（本目录口径，判 9 类）**/ FAIL**（全仓库口径，红项 = 4 个手写件 4 行，见 §4b 与 Q7） |
 | 5 | `workflow.md` 每一步在 `sessions/` 或 `build/` 日志里找得到对应记录；找不到数 = 0 或已标"设计未落地" | `workflow.md` §8 对照表 | 6 节全部有指针；找不到数 = **0**；另有 2 条显式标"设计未落地"（W3 第四件、W4 分组复算） | **PASS**（判 6 项） |
 | 6 | `prompts-used.md` 原文与模板分栏，混用条目数 = 0 | 该文件 §F 的 4 条 grep | 五栏 A/B/C/D/E 独立；混标 **0**；软对应 3 条已就地标 `[推断]` | **PASS**（判 4 项；模板对应关系完整率 1/4 是已知缺口，不掩盖） |
-| 7 | 与 `skill/evals/records/` 双向引用完整：引用不到的会话/条目列出并补齐或删除 | §4 的 5 条 grep | `records/` = 0 份 ⇒ G1/G2 结构性断链；G3 两条纠错无技能引用；G4/G5 另有 2 类缺口 ⇒ **未闭合，已列 5 条缺口，未假装补齐** | **FAIL**（判 5 项缺口，补齐需越界或需双跑数据） |
+| 7 | 与 `skills/evals/records/` 双向引用完整：引用不到的会话/条目列出并补齐或删除 | §4 的 5 条 grep | `records/` = 0 份 ⇒ G1/G2 结构性断链；G3 两条纠错无技能引用；G4/G5 另有 2 类缺口 ⇒ **未闭合，已列 5 条缺口，未假装补齐** | **FAIL**（判 5 项缺口，补齐需越界或需双跑数据） |
 
 ## 8. 判据 2 的逐条存在性核对命令（原样可跑）
 

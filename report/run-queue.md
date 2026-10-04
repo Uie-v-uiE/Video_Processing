@@ -10,15 +10,15 @@
 
 | 任务 | 目标文件（点名范围） | 依赖 | 状态 |
 | --- | --- | --- | --- |
-| P01 骨架 | `skills/README.md`、`skill/_meta/*` | — | 已交付（索引由 `skill/scripts/check/gen_index.mjs` 生成） |
-| P02 提示词工作流 | `skill/prompts/*` | P01 | 已交付 8 条（4 支模板 + 本轮迁入的 `eye-acceptance-loop`、`llm-fpga-debug-workflow`、`read-only-review-agent`、`round-work-loop`）；全部 `待验证`——每条都还欠"同一模板连跑 3 次"的 evals 记录 |
-| P03 案例模板 | `skill/templates/*` | P01 | 已交付 4 条；**均未经空目录演练**（各条目 §7 明写"模板未经空目录验证"，不宣称可直接使用） |
-| P04 校验脚本 | `skill/scripts/*`、`skill/scripts/selftest/run_all.sh` | P01 | 已交付：5 份脚本外壳（`contract_gen`/`golden_compare`/`regmap_check`/`report_metrics`/`repro_check`）+ `selftest/run_all.sh`（判 40 项、6 行各一判据、`pass=6 fail=0 nm=0`），G11 从"未测"转 PASS，件 `build/evidence/r120_selftest.txt` |
-| P05 踩坑清单 | `skill/pitfalls/*` | P01 | 已交付 24 条（原 8 条 + 迁入 16 张扁平卡）；旧卡已按 `retire_flat.mjs` 证明"映射/八节/出处逐条覆盖"后删除 |
-| P06 参考层 | `skill/references/*` | P01 | 已交付 7 条（原 3 页 + 迁入 4 页：`bench-verilog-subset`、`bench-self-inflicted-reds`、`verdict-line-must-print-scope`、`wns-logic-vs-route-lever`） |
-| P07 runtime | `skill/runtime/*` | P01 | 已交付 8 条：原有 4 条壳齐（`register-map`、`pl-load-verify`、`dma-cache-coherency`、`host-bindings-and-reports`）+ 迁入 4 条（`atomic-register-window-readback`、`board-eth-uart`、`udp-offset-reasm`、`zynq-ddr-bandwidth`）；G2 现在 `条目=59 全合` |
-| P08 验证与增益 | `skill/evals/*` | P04/P05 | 部分交付（`evals/runbook.md` + `raw/` 两跑原始件 + `records/` 陌生人演练与第三方审计各一份）；**缺的是"同一模板连跑 3 次"的增益对照**，各条目 §7 一律 `【待验证】`，不念成已验证 |
-| P09 装配与门禁 … | … | 已交付：**技能包门禁 12 项全绿、无未测**，两跑逐字节一致（`build/evidence/r120_gates_skill_a.txt` / `..._b.txt`）；索引 `gen_index --check` 条目=58 一致=yes；陌生人演练与第三方审计两份记录在 `skill/evals/records/`，其红项按原话入档 |
+| P01 骨架 | `skills/README.md`、`skills/_meta/*` | — | 已交付（索引由 `skills/scripts/check/gen_index.mjs` 生成） |
+| P02 提示词工作流 | `skills/prompts/*` | P01 | 已交付 8 条（4 支模板 + 本轮迁入的 `eye-acceptance-loop`、`llm-fpga-debug-workflow`、`read-only-review-agent`、`round-work-loop`）；全部 `待验证`——每条都还欠"同一模板连跑 3 次"的 evals 记录 |
+| P03 案例模板 | `skills/templates/*` | P01 | 已交付 4 条；**均未经空目录演练**（各条目 §7 明写"模板未经空目录验证"，不宣称可直接使用） |
+| P04 校验脚本 | `skills/scripts/*`、`skills/scripts/selftest/run_all.sh` | P01 | 已交付：5 份脚本外壳（`contract_gen`/`golden_compare`/`regmap_check`/`report_metrics`/`repro_check`）+ `selftest/run_all.sh`（判 40 项、6 行各一判据、`pass=6 fail=0 nm=0`），G11 从"未测"转 PASS，件 `build/evidence/r120_selftest.txt` |
+| P05 踩坑清单 | `skills/pitfalls/*` | P01 | 已交付 24 条（原 8 条 + 迁入 16 张扁平卡）；旧卡已按 `retire_flat.mjs` 证明"映射/八节/出处逐条覆盖"后删除 |
+| P06 参考层 | `skills/references/*` | P01 | 已交付 7 条（原 3 页 + 迁入 4 页：`bench-verilog-subset`、`bench-self-inflicted-reds`、`verdict-line-must-print-scope`、`wns-logic-vs-route-lever`） |
+| P07 runtime | `skills/runtime/*` | P01 | 已交付 8 条：原有 4 条壳齐（`register-map`、`pl-load-verify`、`dma-cache-coherency`、`host-bindings-and-reports`）+ 迁入 4 条（`atomic-register-window-readback`、`board-eth-uart`、`udp-offset-reasm`、`zynq-ddr-bandwidth`）；G2 现在 `条目=59 全合` |
+| P08 验证与增益 | `skills/evals/*` | P04/P05 | 部分交付（`evals/runbook.md` + `raw/` 两跑原始件 + `records/` 陌生人演练与第三方审计各一份）；**缺的是"同一模板连跑 3 次"的增益对照**，各条目 §7 一律 `【待验证】`，不念成已验证 |
+| P09 装配与门禁 … | … | 已交付：**技能包门禁 12 项全绿、无未测**，两跑逐字节一致（`build/evidence/r120_gates_skill_a.txt` / `..._b.txt`）；索引 `gen_index --check` 条目=58 一致=yes；陌生人演练与第三方审计两份记录在 `skills/evals/records/`，其红项按原话入档 |
 | P11 学习文档 | `docs/walkthrough/*`（**不随包**，`.gitignore` 已列） | P13/P15b | 11 个文件已交付，5 篇因缺前置未写 |
 | P13 `src/` … | … | 部分（`report/interface-table.md` 已落 1509 行；`report/src-map.md` 本轮由 `build/r120_src_map.mjs` 现算生成，83 文件 × 4 列；`docs/src-audit.md（未写）` 未出；契约头改动受 B1 约束） |
 | P14 `sim/` … | … | 部分（`sim/README.md` 已落；`sim/regress/`、`docs/verification-claim.md（未写）` 未出 ⇒ "验证声明"只能停在"逐台架判据 + 门禁"这一档） |
@@ -35,7 +35,7 @@
 | P18c 失败·复现·未决 … | … | 已交付（`60-failure-analysis.md`、`70-reproduce.md`、`90-open-items.md`、`report/README.md`）；90 的表体行随每轮装配漂移，最后一轮 `gen_index` 后需再对一次 C8 |
 | P19 背景与创新点 … | … | 未落地（`10-background.md`、`prior-art-search.md`、`novelty-claims.md`、`report/claims-vs-evidence.md` 未写；立意与主张强度本就依赖 Q-P19-1/Q-P19-2 的队伍回答） |
 | P10 报告里技能包两章 | `report/07-skill-distillation.md`（submit 侧）与 P22 配对 | P08/P09/P22 | 部分（`report/07-skill-distillation.md` 已成文） |
-| P22 协作记录归档 … | … | 已交付（`report/collaboration/` 11 份：5 张会话登记卡含 127 行子会话表、纠错轨迹、提示词分栏、工作流差异、成本统计、脱敏台账）；与 `skill/evals/records/` 的双向引用缺口 6 条登记为 Q-P22-3 |
+| P22 协作记录归档 … | … | 已交付（`report/collaboration/` 11 份：5 张会话登记卡含 127 行子会话表、纠错轨迹、提示词分栏、工作流差异、成本统计、脱敏台账）；与 `skills/evals/records/` 的双向引用缺口 6 条登记为 Q-P22-3 |
 | P20 许可与声明 … | … | 部分（`LICENSE` 在、`build/checks/check_repo_hygiene.sh` 在、`report/declarations.md` 本轮落地；**`report/` 本轮落地**：16 行第三方件，其中 12 行标 `未核`，风险最高的是第 12 行（厂商资料抄件与原理图裁图在跟踪集内）与第 13 行（`src/rtl/eth` 25 个文件无版权头、逐文件"逐字／改造"没有登记表）⇒ 处置写成 Q-P23-1；provenance 逐轮指纹页仍未单独成页；卫生机检整脚本 >300 s 未跑完 ⇒ 终审 C5 记 NOT_MEASURED，慢点定位到 C5 断链层，见 ISSUES #339 末段） |
 | P21 提交前终审 … | … | 已交付（尺子 + 矩阵三份：`report/submission-checklist.md`、`report/final-gate.md`、`report/known-limitations.md`；定版读数件 `build/evidence/r120_final_gate.txt` = 绿 8 / 红 3 / 未测 1） |
 

@@ -40,7 +40,7 @@ module tb_v97_seam_scan;
 
     integer errors = 0;
 
-    // 判据标签用 ASCII：见 skill/bench_self_inflicted_reds.md 末尾关于 gbk 控制台的那一条
+    // 判据标签用 ASCII：见 skills/bench_self_inflicted_reds.md 末尾关于 gbk 控制台的那一条
     task expect(input [639:0] name, input cond);
         begin
             if (cond !== 1'b1) begin

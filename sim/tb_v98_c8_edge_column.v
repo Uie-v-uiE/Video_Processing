@@ -1444,7 +1444,7 @@ module tb_v98_c8_edge_column;
         // ⚠ 这一条原来写的是 `... 恒定 = %0s ...", m2_mode, (m2_varies==0)?"是":"否", n_r` ——
         //   三元式里两个字符串字面量在 Verilog 里会**折成较短操作数的位宽**（实测：整行输出成乱码，
         //   连前面的 `%0d` 都被带歪），所以这里一律改成数字 + 单独一句中文说明。
-        //   见 `skill/bench_verilog_subset.md` 第 9 类。
+        //   见 `skills/bench_verilog_subset.md` 第 9 类。
         $display("[tb_v98_top_seam.v:579] M2 右窗行偏移（全旁路，今天只报数）：众数=%0d 变化次数=%0d 样本=%0d",
                  m2_mode, m2_varies, n_r);
         for (i0 = 0; i0 < 14; i0 = i0 + 1)
@@ -1461,7 +1461,7 @@ module tb_v98_c8_edge_column;
         $display("[tb_v98_top_seam.v:592] V8-4b（单流 + 链前/链后两抽头）之后这一格必须是 0，届时把 M2 转成硬判据。");
         // ⚠ 原来这一条写成 `line("M3 ...", m2_varies == 0 || 1'b1, ...)` —— 那个 `|| 1'b1`
         //   使它**永远不可能红**，是仓库自己定的规矩里明令禁止的"假判据"（见
-        //   `skill/bench_self_inflicted_reds.md`）。今天右窗的内容期望还没修对（见上面 C1/C2 那段），
+        //   `skills/bench_self_inflicted_reds.md`）。今天右窗的内容期望还没修对（见上面 C1/C2 那段），
         //   所以这里**没有任何一条**关于行偏移的判据能成立 ⇒ 老老实实只报数，
         //   等 C1/C2 的前置条件（两个自相矛盾的计数器先一致）满足后，再把"跨帧恒定 + 恒等于 +OFF_LINES"
         //   一起转成硬判据 —— 那时它才有可能是红的。

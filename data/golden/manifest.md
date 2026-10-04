@@ -11,9 +11,9 @@
 - **不管**：`data/measured/`（板端实测留档，是**实测侧**不是参考侧，口径见 `docs/data-format.md（未写）` §4）
   与 `data/metrics.csv`（那是首页数字的唯一来源，由 `src/host/metric_recheck.mjs` 逐行对回报告，
   本清单不重复管它，也不许把它当参考结果）。
-- **本目录的真实定位**（读 `data/golden/README.md` 原文，不是我的推测）：
+- **本目录的真实定位**（读 `data/golden/README.md` 原文，不是推测）：
   这 13 个数据件是**人眼比对的参照物**，全仓库没有任何 `.v`/`.mjs`/`.sh` 读它们
-  （该 README 给的核实命令我也重跑过，输出在 §6 第 4 条）。
+  （该 README 给的核实命令也重跑过，输出在 §6 第 4 条）。
   所以这份 manifest 现在的作用是**把"谁在什么时候是什么形状"钉住**，
   一旦将来有脚本要拿它们当自动比对基准，摘要核验已经先在那儿等着了。
 
@@ -36,7 +36,7 @@
 | 主摘要 | 规范化之后取 sha256 | 不可变的判据：跨行尾/跨平台仍然可比 |
 | 副摘要 | 磁盘原始字节取 sha256 | 记录登记当日的字节形状；二进制容器的真实身份 |
 
-⚠ **规范化不是可逆的，对二进制容器它甚至可能把两个不同内容映成同一个字节串**。
+警告：**规范化不是可逆的，对二进制容器它甚至可能把两个不同内容映成同一个字节串**。
 本轮实测到它就发生作用了：12 个 PNG 里有 11 个 `主摘要 ≠ 副摘要`（PNG 流里天然含 `0x0D 0x0A` 与行尾空格形状），
 只有 `README.md` 两个相同。所以对 PNG/GZ 这类容器，**判定"内容变了没有"以副摘要为准**，主摘要负责
 "行尾换了也不许红"；两个方向不一致时按 §7 的分支处置，不许自己挑一个顺眼的当结论。
@@ -68,13 +68,13 @@ for(const f of process.argv.slice(1)){const b=fs.readFileSync(f),n=norm(b);
 | --- | --- | --- | --- | --- | --- |
 | data/golden/README.md | `4bfcd0e4bd9545bc2fd7946cb6a6a1487a4897fdc425269d21fbcd85b13fe5ff` | 本队手写说明卡；首次入库 `8e03330`（2026-09-28），最后改动 `884c896`（2026-10-01），`git log --format=%h -1 -- <文件>` 可复算 | 文本，无量化口径 | 2026-10-04 | 自产文档（不进任何比对表） |
 | data/golden/src.png | `73c82e13801ff5d0d6a266a5e0575d231cf5167e52fdadc8abb21e94976bf036` | 早期 host 侧预览工具的输出，**该工具不在树里**（`data/golden/README.md` 欠账 1 原文）；最早可观察到的存在 = 首次入库 `fc314bb`（2026-09-18）。⇒ 含糊项，见 §8 | 实测 IHDR：8 bit/通道 RGB、colortype=2（无 alpha、无调色板）、640×360。渲染侧定点位数【未核实】 | 2026-10-04 | 合成（软件渲染，非拍摄；产生程序缺失 ⇒ 不可一键复现） |
-| data/golden/rot_000.png | `73c82e13801ff5d0d6a266a5e0575d231cf5167e52fdadc8abb21e94976bf036` | 同上（`fc314bb` 入库）。⚠ 主/副摘要与 `src.png` **逐字相同**：0° 档就是源图本体，两个文件是同一份字节（实测：`cmp data/golden/src.png data/golden/rot_000.png` 无输出） | 同 `src.png` | 2026-10-04 | 合成（同 `src.png`；与 src.png 是重复件） |
+| data/golden/rot_000.png | `73c82e13801ff5d0d6a266a5e0575d231cf5167e52fdadc8abb21e94976bf036` | 同上（`fc314bb` 入库）。警告：主/副摘要与 `src.png` **逐字相同**：0° 档就是源图本体，两个文件是同一份字节（实测：`cmp data/golden/src.png data/golden/rot_000.png` 无输出） | 同 `src.png` | 2026-10-04 | 合成（同 `src.png`；与 src.png 是重复件） |
 | data/golden/rot_030.png | `97bf6fcae5a3a55a38cc5e6b225a2df2430c4132357b4c52d409a7b7d71af5ff` | 同 `src.png`（`fc314bb`）⇒ 含糊项 | 8 bit/通道 RGB，640×360；旋转插值的算术口径【未核实】 | 2026-10-04 | 合成（软件渲染） |
 | data/golden/rot_045.png | `b8fe4fc553fac44167cb001c2824c48f4362ae4c52807af30bf2967e953ac850` | 同上 ⇒ 含糊项 | 同上 | 2026-10-04 | 合成（软件渲染） |
 | data/golden/rot_090.png | `36a4c648eef277fa9ad056855b8942d7f54a1987160d8a7f70c36123aaefa7f9` | 同上 ⇒ 含糊项 | 同上 | 2026-10-04 | 合成（软件渲染） |
 | data/golden/rot_180.png | `a986777adde1c4b78d058051893337d8260033626e508f405f9875b351dc7379` | 同上 ⇒ 含糊项 | 同上 | 2026-10-04 | 合成（软件渲染） |
 | data/golden/rot_270.png | `5db133be7767bebcfdac90aba457ac61941f92ed1f62c7b204f96ef82f39ba43` | 同上 ⇒ 含糊项 | 同上 | 2026-10-04 | 合成（软件渲染） |
-| data/golden/proc_00111.png | `7d5b4479718539df2094892953fbacec6bf8ac71bf1545f8e1213e995bbef101` | 同上 ⇒ 含糊项。⚠ 文件名里那五位数字是**旧效果位口径**，现行 `pipe` 控制字是九位（`data/golden/README.md` 原文警告），不许按字面读成当前 `stage_sel` | 8 bit/通道 RGB，640×360；各位对应哪种算术【未核实】 | 2026-10-04 | 合成（软件渲染） |
+| data/golden/proc_00111.png | `7d5b4479718539df2094892953fbacec6bf8ac71bf1545f8e1213e995bbef101` | 同上 ⇒ 含糊项。警告：文件名里那五位数字是**旧效果位口径**，现行 `pipe` 控制字是九位（`data/golden/README.md` 原文警告），不许按字面读成当前 `stage_sel` | 8 bit/通道 RGB，640×360；各位对应哪种算术【未核实】 | 2026-10-04 | 合成（软件渲染） |
 | data/golden/proc_10000.png | `283215d0f6ed2b59f98c719078d23c6ea3f9afd5246fb1d149eea3bbf2f1d746` | 同上 ⇒ 含糊项（五位数字口径同上一行） | 同上 | 2026-10-04 | 合成（软件渲染） |
 | data/golden/proc_all.png | `dd57c368c4e35626d8431d8e527fc4a4a1c118c94d4e78e3215550963f298cf8` | 同上 ⇒ 含糊项 | 同上 | 2026-10-04 | 合成（软件渲染） |
 | data/golden/dual_preview.png | `585b81d9ed5a9854199908095370e952373005af621c3adf39db916c9f1a9b39` | 同上 ⇒ 含糊项。`data/golden/README.md` 明写它"与 `split_display` 的显示方式同类，但不是同一套算术产出" | 8 bit/通道 RGB，**1280×360**（实测 IHDR，左右并排各 640×360） | 2026-10-04 | 合成（软件渲染） |

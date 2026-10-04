@@ -1,5 +1,5 @@
 #!/bin/bash
-# build/gates_cdc_test.sh —— **门禁第 6 项自己的判据**（"检查器也要有反例"，见 skill/ 与学习文档 §十二）。
+# build/gates_cdc_test.sh —— **门禁第 6 项自己的判据**（"检查器也要有反例"，见 skills/ 与学习文档 §十二）。
 #
 #   bash build/gates_cdc_test.sh
 #

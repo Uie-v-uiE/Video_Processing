@@ -2,7 +2,7 @@
 
 ## 30 秒接入
 
-1. 把整个目录放进你的工程（常见位置：仓库根的 `skill/`，或 agent 的技能目录 `.qoder/skills/`）。
+1. 把整个目录放进你的工程（常见位置：仓库根的 `skills/`，或 agent 的技能目录 `.qoder/skills/`）。
    它不依赖任何脚本被"安装"，纯文本 + 零依赖 Node 件。
 2. 让 agent 先读 `README.md`（索引）与 `references/symptom-router/SKILL.md`（分派表）。
 3. 之后按需加载：索引里挑一条 → 读它的 `SKILL.md` → 只有需要细节时才打开该条目下的

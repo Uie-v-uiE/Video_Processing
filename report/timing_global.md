@@ -11,7 +11,7 @@
    route>80 %、级数≤4 的路，拆逻辑救不了；该动的是**扇出复制**、**控制集/寄存器复制**、**floorplan**（UG949 的 Timing Closure 章、
    Xilinx 官方文章 9410《Suggestions for high fanout signals》列的就是这几类手段与 `MAX_FANOUT`/`report_qor_suggestions` 这条路）。
    问"哪些网该复制"用 `report_high_fanout_nets`（本工具实测：`report_design_analysis` **没有** `-fanout` 模式，见第 5 节）。
-   ⚠ 扇出高不一定被工具自动复制（stackexchange 那一条就是"很高的扇出没被复制"），所以要显式给约束并**量结果**。
+   警告 扇出高不一定被工具自动复制（stackexchange 那一条就是"很高的扇出没被复制"），所以要显式给约束并**量结果**。
 3. **让工具给建议，别只靠自己盯**：`report_qor_suggestions`（只读）+ 需要时 `source qor_suggestions.rpt` 到一次**隔离**构建里量收益。
 4. **约束缺口会伪装成"时序没问题"**：`check_timing` 的 `no_input_delay` / `no_output_delay` 意味着那些端口被当成理想时刻，
    工具根本不优化它们（UG903/UG949 都是这个口径）；`report_methodology` 的 TIMING-9/10（CDC 未识别、同步器缺属性）
@@ -70,7 +70,7 @@ sys_clk    setup 14.463 -> 14.463 hold 0.133 -> 0.133
   换实现指令（`place_design -directive Explore`）**一格不差**；Pblock 那块因进位链半内半外**没做成单变量**（1716 里 255 出块）。
 - 所以候选只剩两类，都要按全局判据交账：
   ① **扇出复制（官方 9410 那条路）**：目标是 `rok4[51]_i_1_n_0` **fo=305** 与 `u_reasm/wr_en_reg_1` **fo=547** 这两根广播。
-     ⚠ **杠杆的名字是量出来的，不是猜的**（2026-10-03 实测，`build/evidence/r113_help_fanout2_console.txt`）：
+     警告 **杠杆的名字是量出来的，不是猜的**（2026-10-03 实测，`build/evidence/r113_help_fanout2_console.txt`）：
      `set_max_fanout` 在本工具里**不存在**（`help` 回 `ERROR: [Common 17-25] No topics matched`），
      `create_qor_suggestion`、`get_properties` 同样不存在（`build/evidence/r113_help_fanout3_console.txt`）。
      同一份 help 里真正写着的是 `phys_opt_design` 的三个旗标：
@@ -85,7 +85,7 @@ sys_clk    setup 14.463 -> 14.463 hold 0.133 -> 0.133
      它是**实现级**改动（不动 RTL），代价面是复制出来的 cell 会挤占别人 ⇒ 必须看 `report_utilization`、`report_route_status`
      与**其余三域**有没有变差（名册差分 D1..D6）；
   ② 修 Pblock 表达式（把共享进位链的 `u_eth/u_rx_mac` 一起收进来）再滚一次；只允许"加不加这块 Pblock"一个变量（#223）。
-- ⚠ 明确不做：`#179`（icmp_rx 校验和，70.5 % route，量过收益上限低）、`#141`（BRAM 换 setup，量过被否）、
+- 警告 明确不做：`#179`（icmp_rx 校验和，70.5 % route，量过收益上限低）、`#141`（BRAM 换 setup，量过被否）、
   `#105` 尾账那类"再插一级"——都是在已经 route 主导的锥上磨逻辑。
 
 ## 4. 约束侧欠账（这些是"其他地方的时序"，此前我没当真）
@@ -93,7 +93,7 @@ sys_clk    setup 14.463 -> 14.463 hold 0.133 -> 0.133
 |---|---|---|
 | `no_input_delay` | **5 个输入端口 HIGH**（另有 2 个已被 false path 覆盖 MEDIUM） | 这 5 个口的到达时刻被当理想 ⇒ 工具不优化、也不报违例。要么给 `set_input_delay`（RGMII 那一路是 **同步采样**，`#57` 之后没有 IDELAY 采样窗可言，值要给得讲道理），要么写 `set_false_path -to` 并说明**为什么**是假路。不许留着当"未知" |
 | `no_output_delay` | **6 个输出端口 HIGH**（+6 个 MEDIUM 有 false path） | 屏（TMDS）与 SDC/LED 那几路对外没有负载模型 ⇒ 现在报的"MET"不含这一段。要么给 50/60 MHz 像素时钟下的板级窗（先量再写），要么显式豁免并留理由 |
-| ↑ 以上两条**现已点名**（`build/check_io_timing_coverage.py`，件 `build/evidence/r113_io_debt.txt`） | 输入侧源码数出 5 个引脚（`eth_rx_ctl` + `eth_rxd[3:0]`），报告念 5；输出侧被点名的裸端口是 **7 个**（= 12 个引脚）：`tmds_clk_p`、`tmds_clk_n`、`tmds_data_p[2:0]`、`tmds_data_n[2:0]`、`led[1:0]`、`eth_mdc`、`eth_mdio`，报告念 6 | 这就是"其他地方"。屏那一路现在报的 MET **不含芯片到面板那一段**，而 MDIO/LED 连"我是假路"这句话都没写过。⚠ 这一行原来那句"源码端 12 位与报告端 6 位差的那 6 位钉在判据 I7 里等解释"是**我自己的量纲错**：源码侧累加的是**引脚数**、`check_timing` 那句念的是**端口数**，拿前者减后者再把差值钉成常量 6，等于把我的量纲错当成"已对账"（输入侧那个 5=5 也只在"工具按引脚数"这一假设下成立）。判据已换成 `I7_unit_reconcile`：源码侧按 pins 与 ports 各算一遍，**必须存在一种单位**让四个桶同时等于报告，否则红——真件现在判红（pins=5/2/12/7、ports=2/2/7/4、报告=5/2/6/6，两种都不吻合），正对照能绿，尺子 `--self` 7/7（#267）。权威名单仍要靠 `check_timing -verbose` 问 Vivado ⇒ 记 #259，r114 补 |
+| ↑ 以上两条**现已点名**（`build/check_io_timing_coverage.py`，件 `build/evidence/r113_io_debt.txt`） | 输入侧源码数出 5 个引脚（`eth_rx_ctl` + `eth_rxd[3:0]`），报告念 5；输出侧被点名的裸端口是 **7 个**（= 12 个引脚）：`tmds_clk_p`、`tmds_clk_n`、`tmds_data_p[2:0]`、`tmds_data_n[2:0]`、`led[1:0]`、`eth_mdc`、`eth_mdio`，报告念 6 | 这就是"其他地方"。屏那一路现在报的 MET **不含芯片到面板那一段**，而 MDIO/LED 连"我是假路"这句话都没写过。警告 这一行原来那句"源码端 12 位与报告端 6 位差的那 6 位钉在判据 I7 里等解释"是**我自己的量纲错**：源码侧累加的是**引脚数**、`check_timing` 那句念的是**端口数**，拿前者减后者再把差值钉成常量 6，等于把我的量纲错当成"已对账"（输入侧那个 5=5 也只在"工具按引脚数"这一假设下成立）。判据已换成 `I7_unit_reconcile`：源码侧按 pins 与 ports 各算一遍，**必须存在一种单位**让四个桶同时等于报告，否则红——真件现在判红（pins=5/2/12/7、ports=2/2/7/4、报告=5/2/6/6，两种都不吻合），正对照能绿，尺子 `--self` 7/7（#267）。权威名单仍要靠 `check_timing -verbose` 问 Vivado ⇒ 记 #259，r114 补 |
 | `TIMING-9` / `TIMING-10` | 1 / 1（r114 复测**仍是 1 / 1**，`Checks found` 仍 446，件 `build/evidence/r113_methodology_baseline.rpt` 对 `build/methodology.rpt`） | "Unknown CDC logic" 与 "Missing property on synchronizer"。**这一格的本轮结论是把我原来的期望打掉了**：#262 那把 `ASYNC_REG` 确实上了网表（`u_cdc` 底下 84 颗灰码 FF 里 **0 → 56 颗**带属性，件 `build/evidence/r114_async_netlist_pre_console.txt` 与 `build/r114_async_netlist_console.txt`），可 TIMING-10 一条没少，而且它的正文是 `Related violations: <none>`——**不点名对象**。⇒ 不能拿这个计数当"属性上没上"的代理；剩下那 1 条要么指另一对同步器、要么要求源头那一对（`wgray_reg`/`rgray_reg` 也还没带属性），要新鲜 `report_cdc -details` 点名才能定（`build/cdc_details.rpt` 现在是 9 月 25 日那份，不能当本轮凭据）。另记一句归因：缺属性（#262）与"这一域没复位"（#256）是**两笔不同的账**，原来这行把它们写成同族是含糊的 |
 | `TIMING-18`（**此前漏在表外**） | **7** | 这就是 `report_methodology` 自己给 #259 那笔 I/O 欠账记的号（"Missing input or output delay"）。它是**第三个独立来源**：`check_timing` 念 5 输入 + 6 输出（HIGH），我的源码侧尺子念 2 个裸输入端口 / 7 个裸输出端口（= 5 + 12 个引脚），而 `report_methodology` 念 7 —— 三个数各是真的，**单位不一样**，谁也不许替谁解释。r114 的 `check_timing -verbose` 名单要一次把这三个数对到同一套名字上（#267/#259） |
 | `TIMING-18` 的**明细**（第三个来源，能点名） | 工具自己念出 7 个引脚：输入 `eth_rx_ctl`、`eth_rxd[0..3]`；输出 `led[0]`、`led[1]`（件 `build/methodology.rpt`，尺子 `build/check_io_timing_coverage.py` 的 I8/I9，读数 `build/evidence/r113_io_debt.txt`） | 这把尺子现在能做**名字级**对账：I8 判【源码展开的裸输入引脚集合 == methodology 点名的输入集合】⇒ **GREEN（五个名字逐一对上，不是计数撞对）**；I9 判【methodology 点名的输出引脚必须落在我判 BARE 的输出里】⇒ GREEN。同时开放项从“差 6 位”变成**有名字的 10 个引脚**：`tmds_clk_p`、`tmds_clk_n`、`tmds_data_p[2:0]`、`tmds_data_n[2:0]`、`eth_mdc`、`eth_mdio`（8+1+1）—— methodology **没点名**它们 ⇒ r114 要问的不是“差几个”，而是“这 10 个落在哪个桶、为什么不在 TIMING-18 里”。尺子自带 9 条对照（删一个点名 ⇒ I8 红；塞幽灵名 ⇒ I9 红；其余 7 条既存）实测 9/9 |
@@ -113,7 +113,7 @@ sys_clk    setup 14.463 -> 14.463 hold 0.133 -> 0.133
 候选值的现状（**不许直接抄进 XDC**，只当线索）：第三方一篇 RGMII 综述给的窗是
 发送侧 setup/hold 各 1.2 ns、接收侧各 1.0 ns，并说"时钟延迟 90° 由 PHY 内部（RGMII-ID）或 FPGA 延迟单元做，
 旧版 v1.3 才用约 1.8 ns 的铜皮偏斜"。这两个数是**二手表值**，本板的 PHY 是 RTL8211F，
-必须以它的手册表 + 本板走线实测为准（`#57` 之后收侧是 IDDR + `IDELAY_VALUE=26`，那个 tap 数本身就是我们量出来的物证）；
+必须以它的手册表 + 本板走线实测为准（`#57` 之后收侧是 IDDR + `IDELAY_VALUE=26`，那个 tap 数本身就是量出来的物证）；
 写成一句可核对的话：**每个数要么来自手册/测量，要么在 XDC 注释里写明是估计并给区间**。
 
 两个官方/权威口径支持这一步：UG949 的 timing closure 要求**每个 I/O 要么有延迟约束、要么有写明理由的豁免**；
@@ -121,7 +121,7 @@ sys_clk    setup 14.463 -> 14.463 hold 0.133 -> 0.133
 入门到落地版可读 Xilinx 官方课程 Lab5 与 BLT 的《Demystifying I/O Timing Constraints》，
 最小输出延迟为什么要单独算见 Abbey 那篇《Explaining Minimum Output Delays》；
 RGMII 的接口行为以 AMD PG051 的 RGMII 章为准。
-⚠ 这一节的 ps 数字**一个都没往 XDC 里写**——因为都要先读手册与本板走线实测（今天构建/台架在飞，
+警告 这一节的 ps 数字**一个都没往 XDC 里写**——因为都要先读手册与本板走线实测（今天构建/台架在飞，
 r114 第一件事就是量它们）。写形式与出处，是为了不让下一步变成"随手填个 2 ns"。
 
 ### 4c. 异步时钟组把四条跨域路**从所有尺子的射程里拿走了**（这一处最像"其他地方"，也最没人管）
@@ -148,7 +148,7 @@ XDC 头部（第 19-24 行）把这四条写成"跨域数据由结构保证，�
 2. **#262 那四颗同步器（`rgray_s0/s1`、`wgray_s0/s1`）没有 `ASYNC_REG`**。
    这两条是同一个洞的两半：属性让工具把两级 FF 关进同一 slice，`-datapath_only` 让跨域到达差有界——
    少任何一半，"亚稳态传播窗口有保证"这句话都不成立。
-   ⚠ 顺序不能反：**先**加属性与 max_delay，**再**谈这四条路的时序数字变了没有；
+   警告 顺序不能反：**先**加属性与 max_delay，**再**谈这四条路的时序数字变了没有；
    组排除下的路径本来就不进 WNS，所以"改了 WNS 没动"是预期，不是证据（rule 35 的另一面）。
 
 **r114 怎么量（判据要能红，零样本分支不算数）**：写一把只读尺子列出"声明为异步的组对之间的所有跨域寄存器路径"
@@ -365,7 +365,7 @@ SETUP 要 D_fast ≤ 4 + C_fast − 0.035 − 0.259 − 2.8 = 1.556 → τ ≤ 8
 `build/evidence/r117/bufio_delay_scan2.txt`，扫描器 `build/clock_io_delay_scan.py` / `..._scan2.py`）**：
 UG472（114 页）的 BUFIO 一节都是定性叙述（"BUFIO 只驱动 I/O 钟资源"、"给 ISERDES/OSERDES 的 CLK 提供低偏差钟"），
 没给插入延迟的 ns/ps 数；UG471（188 页）+ UG472 按"同一行既有 `数字+ns/ps` 又落在钟语境里"筛 ⇒ **命中 0 页**。
-⚠ 这句只到"没筛出来"，**不许写成"手册里没有"**：表体常把单位放在表头，逐行筛法本来就容易漏
+警告 这句只到"没筛出来"，**不许写成"手册里没有"**：表体常把单位放在表头，逐行筛法本来就容易漏
 （同一类教训：告警计数不能当 WNS 的代理，ISSUES #290）。⇒ 那个 0.5/0.2 ns 在这页里始终是**假设**，
 只用来回答"值不值得动"，不用来支撑任何"已证明"的说法；关闭它的唯一办法还是上面那 40 秒实测。
 
@@ -392,7 +392,7 @@ UG472（114 页）的 BUFIO 一节都是定性叙述（"BUFIO 只驱动 I/O 钟�
 
 ## 参考（官方与论坛，2026-10-03 查）
 - [Timing Closure — UG949 UltraFast Design Methodology Guide](https://docs.amd.com/r/en-US/ug949-vivado-design-methodology/Timing-Closure)
-- [Additional Uncertainty — UG949（不确定度那一节；⚠ 页名可查、正文要 JS 我抓不到，所以本文只引页名不引原句）](https://docs.amd.com/r/en-US/ug949-vivado-design-methodology/Additional-Uncertainty)
+- [Additional Uncertainty — UG949（不确定度那一节；警告 页名可查、正文要 JS 我抓不到，所以本文只引页名不引原句）](https://docs.amd.com/r/en-US/ug949-vivado-design-methodology/Additional-Uncertainty)
 - [Relaxing the Setup Requirement While Keeping Hold Unchanged — UG949（setup 松、hold 不松的正确做法，同一族）](https://docs.amd.com/r/en-US/ug949-vivado-design-methodology/Relaxing-the-Setup-Requirement-While-Keeping-Hold-Unchanged)
 - [Specifying Boundary Timing Constraints in Vivado（Abbey 的 I/O 边界约束写法）](https://blog.abbey1.org.uk/index.php/technology/specifying-boundary-timing-constraints-in-vivado)
 - [IO Timing constraints for source synchronous interface（AMD 论坛）](https://adaptivesupport.amd.com/s/question/0D52E00006hpUNiSAM/io-timing-constraints-for-source-synchronous-interface?language=en_US)
@@ -407,7 +407,7 @@ UG472（114 页）的 BUFIO 一节都是定性叙述（"BUFIO 只驱动 I/O 钟�
 - [Top 5 Timing Closure Techniques（Xilinx 官方 PDF）](https://www.xilinx.com/publications/prod_mktg/club_vivado/presentation-2015/paris/Xilinx-TimingClosure.pdf)
 - [UltraFast Design Methodology Guide 全文 PDF（ug949）](https://www.mouser.com/pdfDocs/ug949-vivado-design-methodology.pdf)
 - [Very high fanout net not being replicated by Vivado（Electronics Stack Exchange）](https://electronics.stackexchange.com/questions/472393/very-high-fanout-net-not-being-replicated-by-vivado)
-- [phys_opt_design — UG904 Vivado Implementation（官方文档页；⚠ 本页要 JS 渲染，我抓不到正文，三个复制旗标的原文是从本机 `help phys_opt_design` 读的）](https://docs.amd.com/r/en-US/ug904-vivado-implementation/phys_opt_design)
+- [phys_opt_design — UG904 Vivado Implementation（官方文档页；警告 本页要 JS 渲染，我抓不到正文，三个复制旗标的原文是从本机 `help phys_opt_design` 读的）](https://docs.amd.com/r/en-US/ug904-vivado-implementation/phys_opt_design)
 - [MAX_FANOUT — UG912 Vivado Properties（属性那一侧的官方口径；同上抓不到正文，且这条在本工具里还没实测，所以不写成已用）](https://docs.amd.com/r/en-US/ug912-vivado-properties/MAX_FANOUT)
 - [Allow Register Replication — UG949](https://docs.amd.com/r/en-US/ug949-vivado-design-methodology/Allow-Register-Replication)
 - [Replicate High Fanout Net Drivers — UG949](https://docs.amd.com/r/en-US/ug949-vivado-design-methodology/Replicate-High-Fanout-Net-Drivers)

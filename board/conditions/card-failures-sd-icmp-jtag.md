@@ -93,9 +93,9 @@ stat
 ```
 - 00:13:13 与 00:13:29，`board/serial_bytes.ps1` 发 `STAT` 与 `split show` ⇒ `BYTES: 0`（串口**一个字节都不回**）。
   00:05 之前它至少还回 `[CMD!] dropped 17 trailing byte(s)`（#233 记的那一步），现在连那句都没有了。
-- 00:13:52 我第一次跑 `xsdb build/tcl/ps_app_reload.tcl`：脚本打出 `RESUME: Already running` 与
-  `pc: 00009ed4`，我把 `tail -12` 当成了"没报错"——**这是我的读数错误**：`DOW:` 那一行在窗口外面。
-- 00:14:50 我按脚本文件头自己的判据补了一次"边听边重下"（`uart_cap_once.ps1 -Seconds 26` 纯听 + 同时重下）：
+- 00:13:52 第一次跑 `xsdb build/tcl/ps_app_reload.tcl`：脚本打出 `RESUME: Already running` 与
+  `pc: 00009ed4`，`tail -12` 被当成了"没报错"——**这是读数错误**：`DOW:` 那一行在窗口外面。
+- 00:14:50 按脚本文件头自己的判据补了一次"边听边重下"（`uart_cap_once.ps1 -Seconds 26` 纯听 + 同时重下）：
   `RST_PROC: ok`，然后
   `DOW: Memory write error at 0x0. Cannot flush CPU cache. APB AP transaction error, DAP status 0xF0000021`，
   `PC_BEFORE_CON: pc: N/A`、`cpsr: N/A` ⇒ **ELF 根本没写进去**，26 秒的串口捕获只有 2 字节（空）。

@@ -22,7 +22,7 @@
 | 上位机 OS / Shell | Windows（Git Bash 跑 `.sh`，`cmd //c` 调 `.bat`） | `report/study/05_验证与上板/03_上板流程与踩坑.md:121-123` |
 | Node（判据工具用） | v24（本机 `node --version` 实测 `v24.21.0`，2026-10-04） | 口径出处 `report/build.md:15` |
 
-⚠ **P16a 铁律 1 要求的单一权威声明文件 `report/declarations.md` 在本仓库还不存在**
+警告：**P16a 铁律 1 要求的单一权威声明文件 `report/declarations.md` 在本仓库还不存在**
 （`ls docs/` 实测：只有 `questions-for-team.md`、`run-queue.md`、`timing/`、`walkthrough/`；
 `find . -iname "*declaration*"` 命中 0 个）。它由 P20 点名（`report/run-queue.md:39`），本轮未开。
 所以本文件暂以上表三处为声明源，**上表任何一处与 `report/declarations.md` 将来不一致时以那份为准**；
@@ -66,7 +66,7 @@ ls report/declarations.md 2>&1        # 现在必须是 "No such file"；哪天�
 | C6/C7/C8 | 0 |
 | **合计** | **9 项缺** + 1 项（C5 卡型号）+ C7 限流电阻值 = **11 处 `【待你补】`**（逐条见 `report/questions-for-team.md` Q-P16a-1 的 a…k） |
 
-> 为什么这 9 项不能由我填：P16a 第 2 步「接线表与供电参数（给我逐项的值，缺的写 `【待你补】`）」
+> 为什么这 9 项不能自填：P16a 第 2 步「接线表与供电参数（给我逐项的值，缺的写 `【待你补】`）」
 > 与停止条件「接线或供电参数拿不到就留 `【待你补】`，绝不猜引脚、绝不猜电压」。
 > 仓库里能 grep 到的只有"12 V / USB-C / 千兆直连"这一层，没有适配器额定电流、没有线材规格、没有面板型号。
 
@@ -100,7 +100,7 @@ BOM 的位置：本仓库**没有**独立的 BOM 文件（`find . -iname "*bom*"
 - 从原理图裁出来的图件在仓库内（随包性由导出器判）：`build/evidence/r115_sch_p8/`
   本轮实测有 4 个文件：`phy2_straps.png`、`rxd_area.png`、`strap_rxdly_1.png`、`strap_txdly_1.png`。
 - PHY 时序参数抄件：`build/evidence/r115_rtl8211f_delay_source.txt`（Table 60 那一组，出处 `report/timing/rgmii_window_model.md:90`）。
-- ⚠ **原理图 PDF 与 PHY 规格书都不在仓库内**（在板卡资料目录，路径含机器字样 ⇒ 按 `report/build.md:16-20`
+- 警告：**原理图 PDF 与 PHY 规格书都不在仓库内**（在板卡资料目录，路径含机器字样 ⇒ 按 `report/build.md:16-20`
   的规矩不写进交付文档）。陌生人拿不到 ⇒ 已在 `report/questions-for-team.md`（Q-P16a-2）问：
   是否允许随包 / 是否给公开下载链接。**在此之前，第 8 页的那两处读数只能按"引文 + 裁图"复原，不能按原图复原。**
 
@@ -139,7 +139,7 @@ BOM 的位置：本仓库**没有**独立的 BOM 文件（`find . -iname "*bom*"
 
 ---
 
-## 6. 我这次为了写本文件真跑过的只读探测（不含板级动作）
+## 6. 本轮为了写本文件真跑过的只读探测（不含板级动作）
 
 | 命令 | 输出摘要（原样） | 它钉住了哪句话 |
 |---|---|---|

@@ -13,7 +13,7 @@
 // 能判的是**这句话里必然出现的标识符**（`SPLIT_SPEED`、`osd_en`、`u_pipe`…）有没有落在被引的那几行里
 // （区间引用 0 容忍、单点 ±2，理由写在 nearHit 上面）。
 // 锚点在 ⇒ 引用至少没有指到十万八千里外；锚点取不出来 ⇒ **单独列成"需人看"清单**，绝不静默通过
-// （"空判据恒绿"那一族，见 skill/criterion_blind_spot.md）。
+// （"空判据恒绿"那一族，见 skills/criterion_blind_spot.md）。
 //
 // 跑法：
 //   node src/host/line_cite_check.mjs          # 扫全交付文档

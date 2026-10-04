@@ -36,7 +36,7 @@ Agent Skills 规范（SKILL.md + YAML 头、`scripts`/`references`/`assets` 三�
 ## 结构约定（借 Agent Skills / superpowers 的形状，再按赛题 §3.3.5.2 补齐四问）
 
 ```
-skill/
+skills/
 ├── README.md              # 索引：一行一条，写"什么时候用"，不写做法
 ├── _meta/                 # 规范、接入指南、验证方法、机器判据（这一份就在这里）
 ├── <类别>/<条目名>/SKILL.md

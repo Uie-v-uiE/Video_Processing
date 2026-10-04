@@ -48,7 +48,7 @@
   叠层开关 `osd_en` 反相由 `gpio_o[20]` 驱动，复位即"有 OSD"（`src/ps/main.c` 第 11 行、第 53–57 行）。
 - 代价：字格几何含非 2 幂的除/模（`/31`、`/18`、`%18`），组合链级数因此偏高；`FPS:` 那一格的口径
   历史上从"显示场计数"改数"写进屏的新帧"（`src/rtl/util/shown_rate.v`），改口径与上板版本要对齐
-  （`report/architecture.md` §2 表末、`report/demo_script.md` §0 第 3 步的 ⚠ 注）。
+  （`report/architecture.md` §2 表末、`report/demo_script.md` §0 第 3 步的 警告 注）。
 - 依据：`sim/tb_osd_lines.v` 的 T13（关掉逐位等于背景）、`sim/tb_v794_osd_glyph.v`（字格）——
   凭据三处记于 `report/demo_script.md` 开头段。
 

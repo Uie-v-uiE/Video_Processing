@@ -11,7 +11,7 @@
 
 - 一发一条：`powershell -ExecutionPolicy Bypass -File board/uart_cap_once.ps1 -Port COM6 -Cmd "<命令>" -Seconds 3 -Out build/evidence/v_<编号>.txt`
 - **带参数的命令不能走 `-Cmds`**（它按空格拆词，`"ROT SHOW"` 会变成两条）。
-- 读"开机状态"必须加 `-Drain`（不清缓冲会读到上一次会话的尾巴 —— 今天我就这样读到过一条假的 `pub=1`）。
+- 读"开机状态"必须加 `-Drain`（不清缓冲会读到上一次会话的尾巴 —— 今天就这样读到过一条假的 `pub=1`）。
 - COM6 被别的终端占着会报 `UnauthorizedAccessException`：先关那个终端。
 - 屏上判据优先于串口回显：回显只证明 PS 写了，屏上那五行是 PL 自己画的。
 - **想让中文提示看得懂**：控制台先敲 `chcp 65001`（或换 UTF-8 终端 + 中文字体）。今天"回一长串空白"
@@ -44,9 +44,9 @@
 | 8 | `pipe show` | `[PIPE] sel=… 生效: …` 按**名字**列出到底开着哪几级 | 名字表与屏上 `Pipe:` 编码不一致 ⇒ `pipe_len_check.mjs` 该红 |
 | 9 | `pipe 00111` | **整句拒收**，且原样回这句：`[PIPE] 只收 **九位**（…）。你给的这串是五位的老位序，等价的九位是：pipe 011010000` | 若它被静默补零收下 ⇒ 老 bug 复活（曾导致"命令收了、意思变了"） |
 | 10 | `pipe 000000000` | 全旁路，画面等于原图 | 与第 6 条合看：能对称地来回切，才算通路正常 |
-| 11 | `th 8` / `th 255` | 二值化边缘随阈值明显变粗/变细；`th 300` 要**拒** | 拒收文案没了 ⇒ 命令层回退 |
+| 11 | `th 8` / `th 255` | 二值化边缘随阈值变粗/变细；`th 300` 要**拒** | 拒收文案没了 ⇒ 命令层回退 |
 | 12 | `gamma 1.8` → `gamma off` → `gamma auto 1.0 3.0` → `gamma manual` | 只作用于**右窗**；off 之后逐位等于输入；auto 会来回扫、`gamma show` 念当前 g/区间/步长 | 左窗跟着变 ⇒ 窗口切错（`split show` 看缝位） |
-| 13 | `bilin off` / `bilin on` | 右窗缩放边缘在锯齿/平滑之间现场切换（配合 `zoom 2` 最明显） | 无差别 ⇒ 读口没吃到这一位（`stat` 的 `bilin=` 会跟着动，别看它就算过） |
+| 13 | `bilin off` / `bilin on` | 右窗缩放边缘在锯齿/平滑之间现场切换（配合 `zoom 2`） | 无差别 ⇒ 读口没吃到这一位（`stat` 的 `bilin=` 会跟着动，别看它就算过） |
 
 ## 四、几何：缩放 / 旋转 / 分割缝
 
@@ -57,7 +57,7 @@
 | 18 | `split 30` → `split px 200` → `split 100` | 蓝线跟着走；`split 100` 必须**夹到 1023 并说出来** | 悄悄写 1024 ⇒ 越界（历史上出过 `pos=1024/1024` 的假回显） |
 | 19 | `split swap 1` / `swap 0` | 只换**左右内容**，缝位不动 | 缝位动了 ⇒ 位段串了（同一控制字里 14 位 + 5 位） |
 | 20 | `split follow 1` + `split auto` | 扫描端点变成"画面两端"，线长在画面上跟着转；`follow 0` 是屏幕左右 | 两种说法没区别 ⇒ follow 位没生效 |
-| 21 | `split screen` / `split video` | 缝在屏幕里扫 / 在画面里扫，两种观感明显不同 | — |
+| 21 | `split screen` / `split video` | 缝在屏幕里扫 / 在画面里扫，两种观感不同 | — |
 | 22 | `split manual` | 停在当前 pos，屏上 `Split` 格不再标 Auto | — |
 
 ## 五、#102 还欠你的三条（这一步顺手做完）
@@ -85,7 +85,7 @@
 
 ## 八、收尾（把结果留在仓库里）
 
-- 捕获都放 `build/evidence/v_<编号>.txt`，判完连同"哪几条不对"一起告我；我按结果决定要不要再上一版。
-- 全绿的话我这边接着做的是：两份整屏台架报告（正在跑，`tb_v98_top_seam` ≈11:35、`tb_edge_rim` ≈12:23）→ `build/gates.sh` → `freeze_evidence.sh 87` → 更新 `PERF_REPORT` / `CONTEST_CHECKLIST` / `board/README` 版本卡 → `make_submission.sh`。
+- 捕获都放 `build/evidence/v_<编号>.txt`，判完连同"哪几条不对"一起回报；按结果决定要不要再上一版。
+- 全绿的话接着做的是：两份整屏台架报告（正在跑，`tb_v98_top_seam` ≈11:35、`tb_edge_rim` ≈12:23）→ `build/gates.sh` → `freeze_evidence.sh 87` → 更新 `PERF_REPORT` / `CONTEST_CHECKLIST` / `board/README` 版本卡 → `make_submission.sh`。
 - 有一格**注定还是红的**，别当新问题：门禁第 15 项里的 `C5c`（=`#98` 帧头绕回，历史缺陷）。它红 ⇒ 冻结集仍是 r75。
 

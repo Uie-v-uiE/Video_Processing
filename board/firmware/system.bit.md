@@ -24,7 +24,7 @@
 | 采用工件存档 | `build/evidence/r118_bit/system.bit` + `build/evidence/r118_bit/md5.txt`（本轮实测两者与 `build/system.bit` 同一个 md5：`cd04907e1369da35d21c4090d552f5ee`） |
 | 板上身份（最后一次记录） | `build/evidence/r118_board/board_now.txt`：「板上现在 = r118（刷入 2026-10-04 04:49:50，bit_cycle rc=0 board_verify rc=0）」；眼睛签收与刷入三步 rc 在 `build/evidence/r118_eyes/`（`step2_program_pl.txt` 的 `PROGRAMMED xc7z020_1 <- build/system.bit`） |
 
-⚠ **`build/provenance.md`（P16a 质量判据 2 要求指过去的那一份）现在还不存在**
+警告：**`build/provenance.md`（P16a 质量判据 2 要求指过去的那一份）现在还不存在**
 —— 它由 P15a 点名、`report/run-queue.md:25` 标"待开"。所以本卡把"哪一轮"指到**真实存在的轮次件**
 （上表 8 行），而不是写一个指向缺失文件的链接。已进 `report/questions-for-team.md`（Q-P16a-4）。
 

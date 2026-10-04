@@ -21,7 +21,7 @@
 ## 二、还差的（三项，都不是设计问题，是我这边的管道）
 
 1. **首页/英文首页/`data/metrics.csv` 的逐时钟数字还没换成 r118 那一版**。现在这两行末尾各挂了一句
-   "同步状态声明"（README.md:56、readme.en.md:70），明写板上是 r118、本行数仍属 r116 的件 —— 这是**准确的红**：
+   "同步状态声明"（README.md:56、README_EN.md:70），明写板上是 r118、本行数仍属 r116 的件 —— 这是**准确的红**：
    `metric_recheck` / `doc_currency` 会照实判红（已推的提交 `b5a774b`）。
 2. **改口之后的最终门禁两跑**（B4 的最后一条）与**提交包重导**没跑完。
 3. 一个未落地的小修：`build/r118_rotate.py` 的"尺子输出文件"用了 `/tmp/kx/...`，
@@ -42,7 +42,7 @@ python build/r118_commit.py && git push origin main    # 提交 + 推送（信�
 ```
 
 如果第 1 步的尺子还报"解析到 5/10 行"，那是 `README.md` 被写坏的形状信号（#329/#330 同一个 bug 家族），
-先 `git checkout -- README.md readme.en.md data/metrics.csv` 回到 `b5a774b`，再只走 `r118_rotate.py` 这一支改口。
+先 `git checkout -- README.md README_EN.md data/metrics.csv` 回到 `b5a774b`，再只走 `r118_rotate.py` 这一支改口。
 
 ## 四、只有你能做的两条（机器判不了）
 
@@ -101,6 +101,6 @@ python build/r118_commit.py && git push origin main    # 提交 + 推送（信�
 * **一处身份债补上了（ISSUES #332）**：`git show HEAD:build/system.bit | md5sum` 量出来 HEAD 里那块还是 **r116 的 `bb2fb707aebc`** —— r118 那两支提交只带了文档，bit / xsa / `build/*.rpt` / `build/report/` / `build/tb_v98_report.txt` 全悬在工作区。
   根因三条都写在 #332 里（路径清单写了不存在的 `report/acceptance.md` ⇒ `git add` 原子失败只暂存 4 条 ⇒ 打印子进程输出时又踩 cp936 解码崩溃）。
   **本节之后的规矩**：提交完必须**读回 HEAD** 验位流身份，不许只读工作区。
-* **另一处工具账（ISSUES #333）**：我为追加 #332 留的那份 `ISSUES_before332.md` 备份被 D5 当成交付文档扫，连带把 D1c 也拖红（23/1 → 21/3）。备份证明成"纯前缀"之后删掉；纪律是**快照不要落成仓库里的 `.md`**。
+* **另一处工具账（ISSUES #333）**：为追加 #332 留的那份 `ISSUES_before332.md` 备份被 D5 当成交付文档扫，连带把 D1c 也拖红（23/1 → 21/3）。备份证明成"纯前缀"之后删掉；纪律是**快照不要落成仓库里的 `.md`**。
 * **门禁的实际形状（件 `build/evidence/r118_board/`）**：`g1b` 22 绿/2 红（基准件是旧的）→ 删备份 → `g1c` 22 绿/2 红（D1c 仍读着旧基准）→ 定版 → **`g2c`/`g3c` 23 绿/1 红且逐字节一致**（唯一红 = 声明过的 `C5c`，`build/tb_v98_report.txt` 里那条 `FAIL C5c …` + `RESULT tb_v98_top_seam FAIL nfail=1`），`doc_currency` 打印 **CURRENCY: 干净**。
 * **交付侧**：首页三件套已是 r118 的官方读数，并且**这次位流与实现报告一起进 git**（身份由 `git show HEAD:build/system.bit | md5sum` 读回验证，件 `build/evidence/r118_eyes/head_bit_md5.txt`）；提交包按 #332 的规矩在提交之后重导。

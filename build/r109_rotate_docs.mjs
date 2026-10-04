@@ -13,7 +13,7 @@ const APPLY = process.argv.includes("--apply");
 const R = [];
 const add=(file,from,to,why)=>R.push({file,from,to,why});
 
-const CN="README.md", EN="readme.en.md", CSV="data/metrics.csv", BN="report/background_and_novelty.md";
+const CN="README.md", EN="README_EN.md", CSV="data/metrics.csv", BN="report/background_and_novelty.md";
 
 /* ---------- README.md（首页） ---------- */
 add(CN,"**0.721 ns**（板上这一版 r108，2026-10-02 20:54 三步 JTAG 刷入，`bit 25bf35a9900e`；门禁 22 项 21 绿 / 1 红",
@@ -32,7 +32,7 @@ add(CN,"**95 tile（67.86 %）/ 14360（26.99 %）/ 8168（7.68 %）/ 19（8.64 
 add(CN,"（r108 那一刀的代价：比 r107 多 37 个 LUT、12 个寄存器——把一拍 10 项加法摊成两拍各 5 项要额外的状态与选择逻辑）","（r109 这一刀的代价：比 r108 多 2 个 LUT、少 6 个寄存器——OSD 读侧寄存一拍，把那条 23 级的组合锥换成一级读 + 一级 mux）","代价句");
 add(CN,"动态 **2.212 W**（片上合计 2.389 W）","动态 **2.214 W**（片上合计 2.391 W）","功耗两格");
 
-/* ---------- readme.en.md（英文对照） ---------- */
+/* ---------- README_EN.md（英文对照） ---------- */
 add(EN,"**0.721 ns** (the board now runs r108, flashed at 20:54 on 2026-10-02 by the three-step JTAG chain, `bit 25bf35a9900e`; the 22-item gate check reads 21 green / 1 red",
         "**0.605 ns** (the board now runs r109, flashed at 02:10 on 2026-10-03 by the three-step JTAG chain, `bit 21227687e925`; the 24-item gate check reads 23 green / 1 red","EN 身份+WNS+门禁");
 add(EN,"`build/r108_gates.txt`, `build/r108_board_verify_console.txt`","`build/r109_gates.txt`, `build/r109_board_verify_console.txt`","EN 出处两件");

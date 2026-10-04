@@ -102,7 +102,7 @@ module tb_osd_lines;
     // 声明是 `[0:N_LINES*MAX_CHARS-1]`，而索引 `s_line*MAX_CHARS + s_cidx` 的位宽允许到
     // `7*MC + (MC-1)` ⇒ 地址能越过数组上界。RTL 靠 `pixel_on = s_in_char && …` 把非字形区间的像素整段丢掉
     // （`osd_overlay.v:492`），所以"真的被门住了"与"激励从没走到过越界地址"在屏上**一模一样**。
-    // 只有数出一个非零的**机会**计数，才有资格说前者（`skill/criterion_blind_spot.md`）。
+    // 只有数出一个非零的**机会**计数，才有资格说前者（`skills/criterion_blind_spot.md`）。
     // 成对写：T17 = 机会地板（必须 > 0，否则 T18 的 0 是空的）；T18 = 伤害计数（画像素那一拍用了越界索引 ⇒ 必须 0）。
     integer oob_opp = 0, oob_harm = 0, oob_max = 0, oob_idx = 0;
     always @(posedge clk) if (rst_n) begin

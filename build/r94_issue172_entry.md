@@ -9,7 +9,7 @@
   `build/evidence_*`。决定本身不变（凭据留在仓库、按 md5 认，不复制进包），改的是**说真话**：
   现在写 `文档点名但仍不随包（按 §…决定不复制；仓库里按 md5 认）`。
 - **对照（两半都有）**：
-  - 阴性：去掉整类免检之后第一次 `--dry` 立刻抓到一条**真死链** —— `skill/zynq-video-rtl-debug/SKILL.md -> sim/xsim.log`
+  - 阴性：去掉整类免检之后第一次 `--dry` 立刻抓到一条**真死链** —— `skills/zynq-video-rtl-debug/SKILL.md -> sim/xsim.log`
     （`build/r94_export_dry.txt`）。它是 Vivado 命令里的 `-log <输出文件>`，属于"工具自己创建的文件"，不是凭据。
   - 处置不是把 `*.log` 放回免检名单，而是**只把 `-log <路径>` 这种输出目标剔出抽取范围**
     （`sed 's/-log[[:space:]]\{1,\}[^[:space:];"`]*/ /g'`）：整类 `*.log` 的指路仍然照样要求存在。

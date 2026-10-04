@@ -19,7 +19,7 @@
 所以 #194 的"把 IDDR 的捕获钟提前"方向成立，而且成立的方式与 F5 一致：DCD 越大，required 越晚，slack 越负。
 
 **未定（写清楚，不许混进判据）**：#285 那份报告里 `Requirement: 0.000 (fall@4.000 − fall@4.000)` 与
-rising-edge IDDR 的对应关系我没读实（arrival/required 还差 0.155 ns 没逐项拆开）。
+rising-edge IDDR 的对应关系没读实（arrival/required 还差 0.155 ns 没逐项拆开）。
 这不影响方向（F4 是实验平移，不依赖这套解释），但影响**数值目标**，所以 r115 第一步要把这个拆开。
 
 ## 二、三个候选，按"预测能不能关住"排序（预测都标预测）

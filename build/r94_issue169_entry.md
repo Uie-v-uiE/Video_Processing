@@ -48,7 +48,7 @@
 
 ## #164 收口（2026-09-30 13:3x，r94 当场落地）：门禁在报告缺席时不再念 PASS，改念 n/a 并把范围念出来
 
-- **机理复核（不是我猜的）**：`build/gates.sh` 的 `pick()` 只给 T/U/P/R 四份做了"缺文件就 FATAL"，
+- **机理复核（不是猜的）**：`build/gates.sh` 的 `pick()` 只给 T/U/P/R 四份做了"缺文件就 FATAL"，
   `methodology.rpt` 与 `cdc.rpt` **不在名单里**；而 `rows()`/`grep -ac` 都带着 `2>/dev/null`，
   空结果经 `${crit:-0}` 变成**合法的 0** ⇒ 那两项**在文件缺席时报 PASS**。
 - **改前对照（可复现）**：`build/gates_probe_164b/sub/` 只放那四份报告，跑 `bash build/gates.sh 那个目录` ⇒

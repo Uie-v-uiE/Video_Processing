@@ -19,8 +19,8 @@
 
 | 时钟 | 周期 ns | 来源（**谁 create 的**） | Intra Clock 端点数 | 出处 |
 | --- | --- | --- | --- | --- |
-| `sys_clk` | 20.000 | 我在 xdc 手写：`rk_zynq7020.xdc:6` | 323 | 名册 `report/timing/roster_baseline.tsv` |
-| `eth_rxc` | 8.000 | 我在 xdc 手写：`rk_zynq7020.xdc:36` | 4,835 | 同上 |
+| `sys_clk` | 20.000 | xdc 里手写：`rk_zynq7020.xdc:6` | 323 | 名册 `report/timing/roster_baseline.tsv` |
+| `eth_rxc` | 8.000 | xdc 里手写：`rk_zynq7020.xdc:36` | 4,835 | 同上 |
 | `clk_fpga_0` | 10.000 | **PS7 IP 自己** create（FCLKCLK[0]），不在我的 xdc 里（grep 全仓 xdc 无此行） | 15,721 | 同上 |
 | `clkout0_1` | 20.000 | MMCM 输出（CLKOUT0） | 30,179 | 同上 |
 | `clkout1_1` | 4.000 | MMCM 输出（CLKOUT1，TMDS 250 MHz） | 无 intra 路径行 | 同上（NA 是"这一族没有同沿路径"，不是"我读不到"） |
@@ -73,7 +73,7 @@ PHY 到底站在哪一边**仍然没读出来**（TXDLY/RXDLY 与 RXD1/RXD0 复�
 | 约束 | 位置 | 当初理由 | 理由是否可查 |
 | --- | --- | --- | --- |
 | `set_false_path -to eth_rst_n` | `rk_zynq7020.xdc:55` | `eth_rst_n` 是**输出**（上电复位计数器驱动），只能是终点；原 `-from` 版本每次综合报 [Constraints 18-513] 空约束，已删 | ✅ 同文件 `:51-54` 注释 |
-| `set_false_path -to eth_tx_clk/-to eth_tx_ctl/-to eth_txd[*]` | `:56-58` | 文件里**没有**写当初理由（只有 RGMII 发送侧由 IDELAY/OSERDES 对齐这一句在别处） | ⚠ **待复核债务**（不补约束、不删，见 H1） |
+| `set_false_path -to eth_tx_clk/-to eth_tx_ctl/-to eth_txd[*]` | `:56-58` | 文件里**没有**写当初理由（只有 RGMII 发送侧由 IDELAY/OSERDES 对齐这一句在别处） | 警告 **待复核债务**（不补约束、不删，见 H1） |
 | `set_false_path -from key1_n/-from key2_n` | `:59-60` | 按键是异步输入，去抖链自己做跨域；上电那一拍的初值问题在 r113 修（声明初值），尺子是 `sim/tb_v113_key_powup.v` + `build/check_powup_init.sh` | ✅ 尺子在仓里；眼睛那一格 `board/acceptance.md` E6 在 r114 上标的是**待重判**，不算已验 |
 | `set_clock_uncertainty -hold 0.800 [get_clocks eth_rxc]` | `:50` | 给 hold **加**要求（方向与放松相反）：#46 量到 BUFIO/BUFG 两棵树差 1.616 ns，工具每次垫的量随机 ⇒ 垫成设计值 | ✅ 同文件 `:37-49` 注释（0.5→0.8 的加码过程也写着） |
 | `set_clock_groups -asynchronous` 三组 | `clock_groups_impl.xdc:28-31` | 三组互异步的理由 + 四条跨域路径各自的结构保证（dc_fifo 格雷码 / 翻转+3FF / 3 级像素+3FF / 3FF 控制字）都写在该文件 `:19-23`，历史假违例（缺 `-include_generated_clocks` ⇒ WNS≈−6.7）写在 `:16-17` | ✅ 逐条写了 |
@@ -117,7 +117,7 @@ r116 的变化与**仍然欠的那一半**：
 
 | 端口 | r115 之前 | r116 | 数从哪儿来 |
 | --- | --- | --- | --- |
-| `eth_rxd[3:0]`、`eth_rx_ctl` | 无 `set_input_delay`（`check_timing` HIGH 缺口点名） | **进构建**：`src/constraints/r116_rgmii_input_window.xdc`，min 1.200 / max 2.800（+ `-clock_fall` 对），`used_in_synthesis false` | 规格书 Table 60 `TsetupT/TholdT min 1.2 typ 2`（**发射端**两行 = 我们的收口）+ Table 10/11 与原理图 R57/R59 上拉 ⇒ RXDLY 开着、2 ns 加在 RXC 上；抄件 `build/evidence/r115_rtl8211f_delay_source.txt` |
+| `eth_rxd[3:0]`、`eth_rx_ctl` | 无 `set_input_delay`（`check_timing` HIGH 缺口点名） | **进构建**：`src/constraints/r116_rgmii_input_window.xdc`，min 1.200 / max 2.800（+ `-clock_fall` 对），`used_in_synthesis false` | 规格书 Table 60 `TsetupT/TholdT min 1.2 typ 2`（**发射端**两行 = 本板的收口）+ Table 10/11 与原理图 R57/R59 上拉 ⇒ RXDLY 开着、2 ns 加在 RXC 上；抄件 `build/evidence/r115_rtl8211f_delay_source.txt` |
 | `tmds_clk_p`、`tmds_data_p[0..2]`、`led[0..1]` | 无 `set_output_delay` | **仍然零声明** | 要接收端（面板/HDMI 接收器）或 DVI/HDMI 规范的窗口数；本机板级资料没有，两次在线取原文没拿到可引用的一页 ⇒ **没有来源就不写数** |
 
 三条要说在前面的：

@@ -28,7 +28,7 @@
 2. **不许动的东西**：点名哪些文件/判据/基线在这一轮里是冻结的；
 3. **必须拿出的证据**：要它交出哪一个读数、哪一次变异、哪一份盘上文件才算回答完。
 
-三段各防一种跑偏：第 1 段防"合理的时间类解释"——手里没有几何量时，猜测会持续往时序方向长（并发挤超时、控制器停在半趟传输、PHY 把 RXC 拉慢、簇链越界），而 #50 那一次的根因是空间的一条：FAT32 目录项偏移 20 的 16 位小端高簇字被按大端拼，转折点是给失败分支加上"想去的位置 + 它是怎么算出来的 + 合法边界 + 当场分类"这四行几何量，第一次跑就打出 `lba=536959104 clus=16778886 OUT-OF-RANGE`（`report/log/issues.md:703` 起的 #50，那四行仪器与读数在 797-811，机制更正与"按住内核"那条在 772-780；做法已进 `skill/pitfalls/failing-read-prints-geometry/SKILL.md`）；第 2 段防"顺手改宽"——一次改多件事之后任何数都无法归因；第 3 段防"看起来完成了"——"绿着错"在本仓库已经成了一条单独的族（`skill/pitfalls/criterion-blind-spot/SKILL.md`）。
+三段各防一种跑偏：第 1 段防"合理的时间类解释"——手里没有几何量时，猜测会持续往时序方向长（并发挤超时、控制器停在半趟传输、PHY 把 RXC 拉慢、簇链越界），而 #50 那一次的根因是空间的一条：FAT32 目录项偏移 20 的 16 位小端高簇字被按大端拼，转折点是给失败分支加上"想去的位置 + 它是怎么算出来的 + 合法边界 + 当场分类"这四行几何量，第一次跑就打出 `lba=536959104 clus=16778886 OUT-OF-RANGE`（`report/log/issues.md:703` 起的 #50，那四行仪器与读数在 797-811，机制更正与"按住内核"那条在 772-780；做法已进 `skills/pitfalls/failing-read-prints-geometry/SKILL.md`）；第 2 段防"顺手改宽"——一次改多件事之后任何数都无法归因；第 3 段防"看起来完成了"——"绿着错"在本仓库已经成了一条单独的族（`skills/pitfalls/criterion-blind-spot/SKILL.md`）。
 
 下面五条模板是实际在用的形状，可以直接抄。
 
@@ -142,7 +142,7 @@
 
 ### G. 文档与注释把过期念成当前
 
-① **断言**（四条，写下那天都是真话）：`build/gates.sh:240` 写着"`pl_video_top` / `system_top` 没有任何台架例化（今晚 grep 确认）"——那句里的 `pl_video_top` 那一半今天已经不成立（唯一例化它的正是 `sim/tb_v98_top_seam.v`，见 #88 结案），而它作为一条"为什么要有这一项"的理由继续躺在门禁脚本里；`README.md` / `readme.en.md` 的实现结果行一直写着"当前默认 bit（build#23）：WNS +0.740"，而板上烧的是 r71（`src/host/doc_currency_check.mjs:6-7` 记的原文），同一处还把 `bilin` 写成"主线目前不含此项"；`report/commands.md` 第 4 行写"**当下这块 bit（r62 …）**"，而板上是 r75（overnight_log.md:5134-5143）；第一版"哪些模块冗余"用 grep 找"模块名后跟左括号"，把 `icmp_tx` 判成没人例化——它其实就在 `icmp.v` 里。
+① **断言**（四条，写下那天都是真话）：`build/gates.sh:240` 写着"`pl_video_top` / `system_top` 没有任何台架例化（今晚 grep 确认）"——那句里的 `pl_video_top` 那一半今天已经不成立（唯一例化它的正是 `sim/tb_v98_top_seam.v`，见 #88 结案），而它作为一条"为什么要有这一项"的理由继续躺在门禁脚本里；`README.md` / `README_EN.md` 的实现结果行一直写着"当前默认 bit（build#23）：WNS +0.740"，而板上烧的是 r71（`src/host/doc_currency_check.mjs:6-7` 记的原文），同一处还把 `bilin` 写成"主线目前不含此项"；`report/commands.md` 第 4 行写"**当下这块 bit（r62 …）**"，而板上是 r75（overnight_log.md:5134-5143）；第一版"哪些模块冗余"用 grep 找"模块名后跟左括号"，把 `icmp_tx` 判成没人例化——它其实就在 `icmp.v` 里。
 ② **为什么像对**：四条在写下那天都是真话，而且**都不改变任何行为**——位流照编、台架照跑、门禁照绿，坏的是念给评审听的那一句。`icmp_tx` 那条更阴：行首的直接例化整行漏掉，注释里提一个名字反倒假命中。
 ③ **判法各不相同**：例化与否换成拿综合日志当 oracle（`INFO: [Synth 8-6157] synthesizing module 'X'` 只对从顶层可达的模块出，`build/orphan_rtl.sh:1-12`），并加两条自反例：在位流里的模块不许出现在表上、**空日志必须拒绝出表**（否则"集合为空"会被读成"这些模块全没用"）；文档过期只能靠机器跑判据。本文件自己也在这条上摔过：旧版第 8 行写着"该机无 python"，而 overnight_log.md:1648 早就更正过（本机有 3.12，只是交付件要求零依赖）——这一版删掉了那句。
 ④ **进规则/脚本**：`src/host/doc_currency_check.mjs` 三条判据进门禁第 18 项（gates.sh:354-370）——D1 不许把带编号的旧构建说成"当前/默认"；D2 点名的 `build/frozen_*`/`evidence_*` 目录必须在盘上；D3 首页"门禁全绿 = rNN"必须等于 `build/*gates*.txt` 里编号最大且写着 `GATES: ALL PASS` 的那一套（下一次冻结成功时它会自己变红，逼着改首页）。`--self` 带 3 条变异 + 2 条对照。**口径边界与判据本身同等重要**：日记类文件（`issues.md`/`overnight_log.md`/`changelog_v7.md`/`version_lineage.md`）不在 D1 范围内——拿今天的盘去判昨天的日记，红的不是文档过期，而是逼人回头改凭据（doc_currency_check.mjs:29-36）；同一族里那一轮还明确**留下了一条不改**的判定：`board/README.md` 里那处 r32 的诊断被认成"语义①——那一份确实是 r32 那天测的"（overnight_log.md:5141）。宽一寸，判据就会把正当的过去式咬成红，然后被人关掉。
@@ -232,8 +232,8 @@
 - "眼睛那一格"由人签（`board/README.md` 第 11 组）不是流程缺陷：图卡那一路今天确实没有面板级判据（`fb_vis` 在台架里恒为 1）。凡是只有台架数、没有板上那一眼的结论，对外表述必须停在"通过 L1/门禁"这一档。
 - 读数的**限定条件**是判据的一部分：`health_read.mjs:568-569` 在 `slow=1` 那一档直接把 `stall_ms` 降格成"序指标，不是毫秒"；`--gapclr` 只归零帧间隔那三条 lane，其余 lane 仍是自启动以来（`health_read.mjs:14`、`issues.md:4021` 的 `gap_max` 终身保持语义）。换一个工程，这些限定要重新量，不能沿用。
 
-**已经在 `skill/` 里作为可复用条目的（只指路，正文以 `skill/` 那一份为准，本文不复制、也不引它的行号——那目录此刻正在重写）：**
-`skill/pitfalls/criterion-blind-spot/SKILL.md`（"绿着错"那一族，§4 案例 A/B/C/E 是它的现场）、`skill/prompts/llm-fpga-debug-workflow/SKILL.md`、`skill/prompts/eye-acceptance-loop/SKILL.md`（"我发命令、人看屏"那一半的操作规程，§5 与 §6 第 4 笔的落点）、`skill/pitfalls/frameid-loss-signature/SKILL.md`、`skill/pitfalls/artifact-freeze-and-freshness/SKILL.md`、`skill/pitfalls/failing-read-prints-geometry/SKILL.md`、`skill/pitfalls/cdc-pair-baseline-gate/SKILL.md`、`skill/references/bench-self-inflicted-reds/SKILL.md`、`skill/pitfalls/derived-clock-port-mux/SKILL.md`、`skill/pitfalls/arbiter-pending-pulse/SKILL.md`、`skill/runtime/zynq-ddr-bandwidth/SKILL.md`、`skill/zynq-video-rtl-debug/`。
+**已经在 `skills/` 里作为可复用条目的（只指路，正文以 `skills/` 那一份为准，本文不复制、也不引它的行号——那目录此刻正在重写）：**
+`skills/pitfalls/criterion-blind-spot/SKILL.md`（"绿着错"那一族，§4 案例 A/B/C/E 是它的现场）、`skills/prompts/llm-fpga-debug-workflow/SKILL.md`、`skills/prompts/eye-acceptance-loop/SKILL.md`（"我发命令、人看屏"那一半的操作规程，§5 与 §6 第 4 笔的落点）、`skills/pitfalls/frameid-loss-signature/SKILL.md`、`skills/pitfalls/artifact-freeze-and-freshness/SKILL.md`、`skills/pitfalls/failing-read-prints-geometry/SKILL.md`、`skills/pitfalls/cdc-pair-baseline-gate/SKILL.md`、`skills/references/bench-self-inflicted-reds/SKILL.md`、`skills/pitfalls/derived-clock-port-mux/SKILL.md`、`skills/pitfalls/arbiter-pending-pulse/SKILL.md`、`skills/runtime/zynq-ddr-bandwidth/SKILL.md`、`skills/zynq-video-rtl-debug/`。
 
 ---
 
@@ -246,8 +246,8 @@
 5. **按名字猜工具的作用，把一台"读板子的实测仪器"当成文本统计脚本跑了。** 代价：它自己灌了一股流量、在 `board/evidence_metrics/` 落下一份**没有计划、没有出处**的"实测"。被什么判掉：跑完第一件事是 `git status`（有没有被跟踪文件被改写）+ 一条 `stat` 把板上状态读回来（还是不是演示默认档）；那份无出处的产物删掉而不是留下。规则：**先读工具自己的头部注释再跑它**——这个仓库里确实有几支 `src/host/*` 会占 COM6、会改写留档。
 6. **检查跑了、结果也看见了，却还是把东西提交了。** `doc_currency_check` 当场报"1 条过期指路"，而我把它和 `git commit` 用 `;` 串在一起 ⇒ 它只是"被看见"，没有"把关"；那条假指路（我自己写的例子 `report/` + 一个假文件名）因此在仓库里活了一次提交。规则：**以把关为目的的检查必须用 `&&` 串在被它守护的动作之前**，或者显式读退出码——"我看见它红了"与"它挡住了这次提交"是两件事，后者才叫门禁（同一族的反面案例是 #117：汇总写着 2 条红，而我 `grep ^FAIL` 只看到 1 条，差的那条要靠 `--replay` 才露出来）。
 7. **批量补丁脚本自己报"applied 5"，而它只落了 4 处改动。** 脚本按"文件"分条暂存替换结果，同一个文件有两条替换时，第二条是用**重新读进来的原文**算的 ⇒ 第一条被覆盖。这次丢的是新加案例的标题计数（案例插进去了、"九→十一"没改），如果不是**跑完逐条 grep 复核每一条改动**就看不见——而"applied N"这行看起来完全像是成功了。规则：**同文件多条替换必须在同一份字符串上链式 replace**；跑完按清单逐条验证（新 token 用 `grep -Fc`），别信脚本自己报的数字。
-8. **判据的覆盖范围也是一个会漂的常量，而它漂的时候不会红。** 往 `skill/` 加了一条新技能（S29）之后才想起来核对：
-   `src/host/doc_enc_check.mjs` 的 `SCOPE` 里**没有 `skill/`** ⇒ 门禁第 17 项连续多天打印"手写文件全部干净"，
+8. **判据的覆盖范围也是一个会漂的常量，而它漂的时候不会红。** 往 `skills/` 加了一条新技能（S29）之后才想起来核对：
+   `src/host/doc_enc_check.mjs` 的 `SCOPE` 里**没有 `skills/`** ⇒ 门禁第 17 项连续多天打印"手写文件全部干净"，
    却从来没看过那 29 个**给评委读**的文件。补进范围后扫描数 314 → 343，一条红都没有——
    而"过去没坏"恰恰**不是**"判据有力"的证据（同一族的另一面：`doc_currency_check` 的 D4 只管路径存在性，
    所以 200 多处行号引用漂了几天也没有任何东西变红，见 `#122` 与 §4 案例 G）。

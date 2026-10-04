@@ -71,6 +71,7 @@ if (APPLY) {
   if (rl.length !== files.length || stillMissing.length) { console.log(`表格行=${rl.length} 台架=${files.length} 未列=${stillMissing.length} FAIL`); process.exit(1); }
   console.log(`WROTE sim/README.md 行=${back.split(/\r?\n/).length} 表格行=${rl.length} 未列=0 PASS`);
 } else {
-  console.log(`CHECK 未写；现文件行=${cur.split(/\r?\n/).length} 将写行=${rows.length + 4} ${bad ? 'FAIL' : 'PASS'}`);
+  console.log(`CHECK 未写；现文件行=${cur.split(/\r?\n/).length} 将写行=${body.split(/?
+/).length} ${bad ? 'FAIL' : 'PASS'}`);
 }
 process.exit(bad ? 1 : 0);
