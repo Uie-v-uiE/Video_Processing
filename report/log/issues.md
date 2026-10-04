@@ -13551,3 +13551,17 @@ C7 现在按"这个字符串在文件里出现过"判红 ⇒ 量的是提及。�
 `report/reproduce/README.md` 151 落在章节门内不判红（160）。
 两档上限都可覆写（VP_CLEN_CAP / VP_CLEN_DEEP），对照：VP_CLEN_CAP=25 会把 board(25) 之外再逼出红，
 VP_CLEN_CAP=200 会让 6 份导览全绿——证明这把尺子的牙齿在"导览"那一档上。
+
+### #358 技能包那批"规划名"从未被 git 跟踪：这条事实要用 `git log --all -- <名>` 现测，不能靠"重建时删掉了"这句印象
+上一轮两个代理都在按"旧包件名在 c7b325f 重建时被删"处理 `skills/scripts/check/gates.mjs`、
+`skills/scripts/selftest/run_all.sh`、`skills/evals/records/` 这一批指路。现测：
+`git log --all --format="%h" -- <这些路径>` **全部读空**，而同一条命令对 `skills/README.md`
+返回 2f601aa 与 fbf624d 两笔 ⇒ 方法有效、读空是真的。
+⇒ 事实是"那批名字只存在于当时磁盘上，从未进过 git"，不是"曾入库后被删"。
+差别有后果：豁免句若写"重建前入库的旧件"，读的人去 `git log` 查会查不到，
+就等于文档里留了一句无法核对的话。新句由 `build/r122_skills_cite_exempt.mjs` 统一追加：
+「该名只存在于当时磁盘上的技能包，从未被 git 跟踪：`git log --all -- 该名` 读空；
+那些件现不存在，本行只报当时的快照数不指路」——词表用导出器 `SKIP_RE` 的同一套
+（`不存在`/`不入库` 都在里面），尺子从 `build/make_submission.sh` 现读该正则，两处漂了会判红。
+工具干跑读数：活文档=200 缺口行=30 旧包名=32（`report/submission-checklist.md` 两行属"过期声明"，
+按内容改写而不是补豁免词，留给清单重写那一刀）。
