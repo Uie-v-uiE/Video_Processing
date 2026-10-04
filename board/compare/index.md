@@ -29,7 +29,7 @@
 | V06 | `ddr-stale-15fps-dump.txt` | 板上 DDR 回读（frameid 图案）↔ 发送端图案定义 | 两 bank × 六带 = 12 带 + 帧号分布 2 行 | 命中 100.0 %、6 带全 0.0 %、连续丢 2 lane | **PASS（有条件）**：见"取样口径"行 |
 | V07 | `ddr-stale-wordid-dump.txt` | 板上 DDR 回读（wordid 图案，`data/measured/ddr_dump.out`）↔ 图案定义 | 1 bank 段 × 六带 | 命中 100.0 %、六带全 0.0 % | **PASS（有条件）**：**只有单帧**（所有 lane 帧号 = 0），证明落位不证明连续无损 |
 | V08 | `metric-recheck.txt` | `data/metrics.csv` + 根 README 首页 ↔ 它们各自点名的报告 | 判 114 个数（首页层 60、csv 认领 10/10 行） | 红 0；**其余 18 行不在该尺射程内** | **PASS**（射程内）／其余 18 行 **NOT_MEASURED** |
-| V09 | `temp-formula-check.txt` | 固件定点式（`src/ps/main.c` 现读常数）↔ BSP 浮点参考式 | 全 65536 码 + 4 锚点 + 3 变异对照 | 温度最大偏差 3 ‰°C（容差 5 ‰°C） | **PASS** |
+| V09 | `temp-formula-check.txt` | 固件定点式（`src/host/ps/main.c` 现读常数）↔ BSP 浮点参考式 | 全 65536 码 + 4 锚点 + 3 变异对照 | 温度最大偏差 3 ‰°C（容差 5 ‰°C） | **PASS** |
 | V10 | `golden-digest-verify.txt` | `data/golden/` 13 件磁盘字节 ↔ `manifest.md` 登记值 | 13 行 | OK 13 / FAIL 0 | **PASS**（参考件本身未被改动） |
 | V11 | `tb98-count-vs-metrics-claim.txt` | `data/metrics.csv:15` 的"141 条"↔ 盘上台架件的 `^PASS+^FAIL` | 现算 161 + 1 = 162；`grep -rl` 该 CSV 点名的指纹 = **0 件** | 摘要不符 | **NOT_MEASURED**（基准件已被覆盖；不许拿 162 冒充 141，也不许拿 141 当本轮数） |
 | V12 | `soak300-lane-delta.txt` | `board/evidence_r41/metrics_r41_soak300.json` 的 `before`/`after` 两组 lane 回读 ↔ `report/perf_report.md` §6b 那句话 | 14 个字段做差；件内自带 `metrics` 块另给 8 个反推量（`avg_gap_ms`/`fps_from_gap`/`fps_wall`/`verdict_no_word_lost`） | `drop_words`/`cdc_episodes`/`pkt_err`/`frames_bad` 增量 = 0/0/0/0；`pkts` 增量 1,989,000（与报告那句逐字相符）；`frames_bad` 的 before 是 **1261 不是 0** | **PASS（对报告那句）**＋**一行必须纠正的口径发现**：见下面"300 s 长跑那一格" |
