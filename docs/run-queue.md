@@ -4,7 +4,7 @@
 本仓库采用**小写文件名**（赛题 3.3.5.4 的硬性命名要求优先于提示词里的示例大小写，
 差异记录在 `docs/unattended.md` 顶部），内容结构逐条照 P23。
 
-来源：`C:/Users/wenqu/Documents/Qoder/2026-10-04-3d601c82/skill_prompts/README.md` 的建议顺序
+来源：队伍的提示词集 `skill_prompts/README.md`（在本机文档目录里，**不随包**）的建议顺序
 （工程支线 P13→P14→P15a→P15b→P15c→P17→P16a→P16b→P16c→P12；技能支线 P00→P01→P05→P04→P02→P07→P03→P06→P08→P09；
 收尾 P11→P18a→P18b→P18c→P19→P22→P10→P20→P21）。
 

@@ -14,5 +14,6 @@
 | Q-P16a-1 | 接线表与供电参数里 agent 读不到的项（外设供电、线材、限流） | P16a 铁律：接线类内容只能由队伍给，不许推测引脚/电压 | `board/hardware_setup.md` 对应行写 `【待你补】` 并进未决项 | 见 `docs/questions-for-team-P16a.md` |
 | Q-P20-1 | 根协议选 MIT 还是 Apache-2.0；开源仓库现在公开还是提交后公开 | P20 第 2 步第 2 问；影响专利条款表述与脱敏紧迫度 | `LICENSE` 暂不放全文，先登记候选与差异说明 | 见 `docs/questions-for-team-P20.md` |
 | Q-P16c-1 | 哪些验收项必须你亲自签（眼睛/手感类） | 只有你能签；agent 代签等于伪造验收 | 需要人眼的项一律 `NOT_MEASURED` 并列出等你 | 见 `docs/questions-for-team-P16c.md` |
+| Q-P20-2 | 仓库里 814 份**工具产出原件**带着本机名（Vivado 报告头 `Host :`、仿真日志的临时绝对路径），怎么处理？（ISSUES #336 给了三选一：接受并说明理由 / 只对新产出脱敏 / 改写历史+强推收回） | 它们既是凭据本身（改了就断 md5 绑定与尺子的同源判定），又已在公开历史里——只有队伍能决定"证据完整性"与"主机信息最小化"哪个优先 | 现在按 (a) 处理：不动历史，新写文档已清零；若选 (b)/(c) 要重跑全部证据配对与门禁 | `report/log/ISSUES.md` #336、`scripts/check_repo_hygiene.sh` 的声明一致性一项 |
 | Q-P21-1 | 交付快照以哪个 commit 为准、是否记录仓库哈希 | P21 第 3 步第 1 问 | 终审矩阵的"快照"一格留空 | 待 P21 开跑时写 |
 | Q-P04-1 | 黄金参考的权威产生方式（软件模型 / 旧版 RTL / 手工向量）与容差口径 | P04 第 2 步第 2 问，决定比对可信度上限 | `skill/scripts/golden_compare/` 只交脚本骨架 + fixture，不声称增益 | 见 `docs/questions-for-team-P04.md` |
