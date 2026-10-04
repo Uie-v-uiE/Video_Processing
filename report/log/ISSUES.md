@@ -13263,7 +13263,52 @@ G10 逐行补 10 处"本仓示例取值"标注后由红转绿（**改的是内�
 ⇒ **规矩补一条**：改判据（哪怕是"变严"）之后必须立刻跑真件 + 跑 `--self`；
 "变严"不是安全动作，它会用假红掩盖真问题，而假红逼我去放宽时就正好把洞放回去。
 
-**同类第三处**：`sources.md` 里"合并动作由 G8 执行"这句是**假归因**（合并由 `build/r119_merge_sources.py` 做，
+**同类第三处**：`sources.md` 里"合并动作由 G8 执行"这句是**假归因**（合并由 `build/evidence/r119_merge_sources.py` 做，
 G8 只管"外链要有台账行"），也是审计没抓到、我改它时自己读出来的 ⇒ 归因句也要指得到能证伪的地方。
+
+### #339 终审 C1/C2/C3 三条红里，两条是**尺子自己的量纲错**，一条是真缺口；顺带记录 git 对非 ASCII 路径的八进制转义陷阱
+
+件：`build/evidence/r120_repo_gates_draft.txt`（`node scripts/check_repo_consistency.mjs --list` 的输出）；
+对照例：`node scripts/check_repo_consistency.mjs --self`（C2 造 6 例 + C3 造 4 例，逐条 `对照成立`，末行 `判 10 项 PASS`）。
+
+**逐条读数（改前 → 改后，都是同一条命令现算的）**
+
+| 判据 | 改前 | 改后 | 错在哪 |
+| --- | --- | --- | --- |
+| C2 指标行指得到证据 | `行=28 全指到=22 缺或无路径=6` FAIL | `行=28 全指到=28 缺或无路径=0` PASS | 取路径的正则用 `[^\s,;]+`，把 `` ` ``、`）`、`，` 全吞进"文件名"，于是 `build/x.rpt（本轮实测）` 被当成一个不存在的文件 ⇒ **红的是尺子，不是数据**（p18c 报"真缺路径 0 处"，我复刻它的正则复核后才改） |
+| C3 文档内路径存活 | `扫=266 检查=2002 死引用=66` FAIL | `扫=258 检查=1190 死引用=6 豁免=碎片94/运行期11/台账203` FAIL（剩 6 条是真缺口） | 三处射程错：① `board/README`、`src/dst` 这类行文碎片被当路径（只带扩展名或以 `/` 结尾才算）；② `*.log`/`*.dcp`/`impl_1/` 按仓库规矩就不在盘上，要求它存在＝用错量纲；③ **学习文档 `report/study/` 被 .gitignore 排除、从没进过 git，也就永远不进提交包**，却参与了"路径必须存活"的判据（66 条里 55 条在这一类） |
+| C1 声明唯一权威源 | `NOT_MEASURED`（缺 `docs/declarations.md`）；一旦有权威文件就判"别处提到版本号＝FAIL" | 改成**取值不同才算红**、同值抄写只登记条数 | 原判据禁止任何文档引用版本，与 §3.3.3.1"报告要写明版本"直接打架；权威源规则要判的是"冲突"，不是"出现"。权威块已落在 `docs/declarations.md`，六个字段逐条带复核命令与本轮实跑输出 |
+
+**git 的八进制转义陷阱（新教训，值得单独记）**：第一版"排除被 ignore 的文件"用
+`git ls-files --others --ignored --exclude-standard` 换行分隔读进 Set，再拿 `report/study/…` 去查——
+**中文目录名被 git 转义成 `"report/study/02_\346\236\266\346\236\204/…"`**，Set 永远查不中，
+排除规则**静默失效**，C3 的 `扫=` 从 266 只降到 258 而不是降到学习文档之外。
+改法：加 `-z` 并按 `\u0000` 切分（顺带 `-c core.quotePath=false`）。
+**通用规矩（新）**：任何"过滤/排除"层都必须打印**它滤掉了多少条**（本轮 `豁免=碎片94/运行期11/台账203` 就是这一层），
+否则一条不匹配的排除规则看起来和生效时一模一样。
+
+**顺带纠正 p22 的一条报告**：它说 `build/evidence/r119_window_check.txt` 被"从 24 行改成 11 行"，怀疑是并发写者覆盖了凭据。
+按 `git show <rev>:该件` 逐版查：`8627be5` 那份 26 行、`ab640e9` 那份 11 行 ⇒ **缩小是我自己那一次提交做的**（把 W1–W6 扩成 W1–W10 时把开头的出处头删了），
+不是别人覆盖。真正的缺陷是**读数件丢了"我读了哪五份件"**：现在 `build/r119_window_check.mjs` 每次跑先打 5 行 `HEAD <件> <md5>`
+（md5 现算、先归一 CRLF），再打 10 行判据；两跑逐字节一致，`--self` 仍是 11 条畸形各红各的 + 2 条缺输入 NOT_MEASURED。
+
+**仍欠（不在本轮修）**：`scripts/check_repo_hygiene.sh` 的 C5 断链层对每个 token 派生 4 个进程
+（`sed` 两次 + `grep -q` 两次，249/254/255/260 行），全仓 `*.md` 跑一次 ≥240 s，
+所以终审 C5 的 60 s 超时只能记 `NOT_MEASURED`。修法是把这几个判断搬进一次 awk，
+判定不变、分母不变——**先给 C5 一份能红能绿的对照再动它**，不在门禁正在用的时候顺手改。
+
+### #340 被 150 回合上限截停的 agent 留下 6 个**空目录**；技能包迁移的类别归属改由一张分派表唯一决定
+
+`find skill -type d -empty` 实测抓到 `skill/evals/migration/` 与 `skill/pitfalls/` 下 6 个
+（`ab-revert-control-run`、`arbiter-pending-pulse`、`cdc-pair-baseline-gate`、
+`combinational-block-misses-task-reads`、`pulse-toggle-cdc`、`sim-hw-divergence-array-writes`）。
+空目录 git 根本不跟踪 ⇒ **克隆之后它们不存在**，而 `gates.mjs` G2 在本地把它们报成"缺 SKILL.md"的红项，
+两地的结论看着不一样。处置：G2 报红是对的（条目没成形就是没完成），但**不能靠目录存在来记工作进度**；
+迁移进度只由 `build/evidence/r120_migration_map.txt` 那张 27 行分派表 + `retire_flat.mjs` 的 `MAP|` 行决定。
+
+同一轮把类别归属从"每个 agent 自己判断"改成"分派表唯一决定"（pitfalls 16 / runtime 4 / prompts 3 / references 4），
+理由是并发写者各按各的理解建目录，会出现同一事实两家都有条目（#239 撞名那一族）。
+旧卡的删除仍是不可逆动作：`retire_flat.mjs` 先证 C1/C2/C3（映射、八节、**出处逐条覆盖**）全绿，
+再由主 agent 跑 `--apply` 一次删 27 张，删完立刻 `gen_index.mjs` 重写索引并复跑 G1–G12。
 
 

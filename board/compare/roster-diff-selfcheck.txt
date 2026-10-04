@@ -1,0 +1,10 @@
+# CMD: python build/r115_roster_build.py --self
+# RUN_AT: 2026-10-04 11:56:31
+# rc 记在最后；判定 token 在本目录 index.md 的“判定”列（脚本原样输出，未手工填表）
+SELF identical_must_be_green want=GREEN got=GREEN red=[] PASS
+SELF injected_hold_loss_must_be_red want=RED got=RED red=[('eth_rxc', 'rel_margin_hold')] PASS
+SELF io_debt_grew_must_be_red want=RED got=RED red=[('eth_rxc', 'io_unconstrained_ports')] PASS
+SELF dropped_clock_must_be_red want=RED got=RED red=[('sys_clk', 'presence')] PASS
+SELF both_NA_must_be_green_and_counted want=GREEN/both_NA=2/cmp=12 got=both_NA=2/cmp=12 rows=[('clkfbout', 'rel_margin_setup'), ('clkfbout', 'rel_margin_hold')] PASS
+SELFRESULT GREEN
+rc=0

@@ -1,0 +1,173 @@
+==============================================================================
+FIG-02  模块级功能框图（图源文件，纯文本 = 唯一正本）
+------------------------------------------------------------------------------
+覆盖：两颗真在跑的容器内部的**全部实例**——
+  · `u_pl` = `pl_video_top` 的 32 只实例（显示通路）
+  · `u_eth` = `eth_udp_video_top` 的 14 只实例（收包→写 DDR 链）
+  分母出处：`docs/walkthrough/subsystem-map.md` 第 5 节（32 只）与第 4 节（14 只）。
+口径：
+  * 节点 name = **实例名**（不是模块名），因为 `key_debounce` 有 `u_k1`/`u_k2` 两只、
+    `snap_cross` 全工程有五只，只有实例名能定位到线上。
+  * 每条边写信号名（位宽）+ 出处行；只有源码里真连着的线才画。
+  * 边型 D/C/K/X 与 `◆` 跨域标记：见 `legend.md`。
+  * 域缩写：PIX = `clk_pix` 50 MHz；AXI = `axi_clk` = `fclk0` 100 MHz；
+    RX = `eth_rxc` = `gmii_rx_clk` 125 MHz；SYS = `sys_clk` 50 MHz；
+    COMB = 组合/无时钟；5X = `clk_pix5x` 250 MHz。
+==============================================================================
+
+[节点表 · u_eth（14 只，RX/AXI 两域）]
+id    name        module                    域    出处
+a1    u_rgmii     gmii_to_rgmii             RX    src/rtl/eth/eth_udp_video_top.v:73
+a2    u_rx_mac    gmii_rx_mac               RX    src/rtl/eth/eth_udp_video_top.v:186
+a3    u_rx_par    udp_rx_parser             RX    src/rtl/eth/eth_udp_video_top.v:197
+a4    u_reasm     frame_reasm               RX    src/rtl/eth/eth_udp_video_top.v:235
+a5    u_cdc       dc_fifo                   RX→AXI src/rtl/eth/eth_udp_video_top.v:298
+a6    u_saver     axi_frame_saver64         AXI   src/rtl/eth/eth_udp_video_top.v:354
+a7    u_commit    ddr_bank_commit           RX→AXI src/rtl/eth/eth_udp_video_top.v:332
+a8    u_lm        link_monitor              RX    src/rtl/eth/eth_udp_video_top.v:286
+a9    u_ctrl      eth_ctrl                  RX    src/rtl/eth/eth_udp_video_top.v:206
+a10   u_udp_tx    udp_tx                    RX    src/rtl/eth/eth_udp_video_top.v:163
+a11   u_crc_tx    crc32_d8                  RX    src/rtl/eth/eth_udp_video_top.v:180
+a12   u_arp       arp                       RX    src/rtl/eth/eth_udp_video_top.v:129
+a13   u_icmp      icmp                      RX    src/rtl/eth/eth_udp_video_top.v:142
+a14   u_icmp_fifo sync_fifo                 RX    src/rtl/eth/eth_udp_video_top.v:119
+
+[节点表 · u_pl（32 只，PIX/AXI/SYS 三域）]
+id    name        module                    域    出处
+b1    u_clk       clk_gen                   SYS→PIX src/rtl/top/pl_video_top.v:128
+b2    u_k1        key_debounce              SYS   src/rtl/top/pl_video_top.v:136
+b3    u_k2        key_debounce              SYS   src/rtl/top/pl_video_top.v:139
+b4    u_k1l       key_long                  SYS   src/rtl/top/pl_video_top.v:148
+b5    u_mode      src_mode                  SYS+PIX src/rtl/top/pl_video_top.v:157
+b6    u_ang       angle_ctrl                SYS   src/rtl/top/pl_video_top.v:183
+b7    u_eff       effect_ctrl               AXI→PIX src/rtl/top/pl_video_top.v:198
+b8    u_t         video_timing_1024x600     PIX   src/rtl/top/pl_video_top.v:226
+b9    u_zfit      zoom_fit                  PIX   src/rtl/top/pl_video_top.v:322
+b10   u_zctrl     zoom_ctrl                 PIX   src/rtl/top/pl_video_top.v:325
+b11   u_zmap      zoom_mapper               PIX   src/rtl/top/pl_video_top.v:343
+b12   u_arb       src_arb                   AXI   src/rtl/top/pl_video_top.v:421
+b13   u_cmt       frame_commit_lock         PIX→AXI src/rtl/top/pl_video_top.v:430
+b14   u_row       axi_frame_writer_gated    AXI   src/rtl/top/pl_video_top.v:454
+b15   u_pub       ps_publish                AXI→PIX src/rtl/top/pl_video_top.v:564
+b16   u_life      src_life                  PIX   src/rtl/top/pl_video_top.v:588
+b17   u_lat       frame_latency             AXI   src/rtl/top/pl_video_top.v:624
+b18   u_zsnap     zoom_snap                 PIX   src/rtl/top/pl_video_top.v:652
+b19   u_zoom_axi  snap_cross                PIX→AXI src/rtl/top/pl_video_top.v:674
+b20   u_aw        axi_frame_writer64        AXI   src/rtl/top/pl_video_top.v:694
+b21   u_bilin     fb_bilin                  PIX（写侧 AXI 直通） src/rtl/top/pl_video_top.v:734
+b22   u_bar       test_card                 PIX   src/rtl/top/pl_video_top.v:759
+b23   u_raw       raw_line_delay            PIX   src/rtl/top/pl_video_top.v:788
+b24   u_pipe      proc_pipeline             PIX   src/rtl/top/pl_video_top.v:800
+b25   u_split_x   snap_cross                AXI→PIX src/rtl/top/pl_video_top.v:876
+b26   u_split_ctrl split_ctrl               PIX   src/rtl/top/pl_video_top.v:885
+b27   u_seam_src  seam_src                  PIX   src/rtl/top/pl_video_top.v:904
+b28   u_split     split_display             PIX   src/rtl/top/pl_video_top.v:911
+b29   u_fpsr      shown_rate                PIX   src/rtl/top/pl_video_top.v:941
+b30   u_lat_x     snap_cross                PIX→AXI src/rtl/top/pl_video_top.v:980
+b31   u_osd       osd_overlay               PIX   src/rtl/top/pl_video_top.v:999
+b32   u_dvi       rgb2dvi                   PIX+5X src/rtl/top/pl_video_top.v:1026
+
+[u_pl 内部还有 4 只子实例（本图不另画框，职责归父框）]
+  u_bilin 里：u_fb = frame_buffer_w64（src/rtl/process/bilin/fb_bilin.v:65）、
+              u_lerp = bilin_lerp（同文件 :172）
+  u_pipe 里：u_gamma/u_gray/u_inv/u_blur/u_sharp/u_sobel/u_bin/u_morph
+              （src/rtl/process/proc_pipeline.v:102,109,113,119,125,132,140,146）
+  u_zmap 里：u_sin = sin_rom、u_cos = cos_rom（src/rtl/process/zoom/zoom_mapper.v:22,23）
+  u_dvi 里：u_enc_b/g/r + u_ser0/1/2/ser_clk（src/rtl/hdmi/rgb2dvi.v:22,26,30,35,39,43,49）
+
+[边表 · 收包到 DDR（u_eth）】
+from to  信号（位宽）                                        型  出处
+a1   a2   gmii_rxd[7:0] + gmii_rx_dv                          D   src/rtl/eth/eth_udp_video_top.v:75
+a2   a3   rx_m_data/rx_m_valid/rx_m_good（整包字节 + 好坏旗标）    D   src/rtl/eth/eth_udp_video_top.v:199
+a3   a4   p_data/p_sof/p_eof/p_good（过滤后的 UDP 载荷）          D   src/rtl/eth/eth_udp_video_top.v:238
+a4   a5   cdc_wr + cdc_data[35:0]（{flush,addr[18:0],data[15:0]}） D src/rtl/eth/eth_udp_video_top.v:300
+a5   a6   fifo_dout[35:0] →（本层打包）sav_en/sav_a/sav_d[63:0]  D◆  src/rtl/eth/eth_udp_video_top.v:357
+a6   —    m_axi_awaddr/awlen/wdata[63:0]/wstrb/bvalid            D   src/rtl/eth/eth_udp_video_top.v:360
+a4   a7   frame_done（提交候选）                                C   src/rtl/eth/eth_udp_video_top.v:337
+a7   —    ddr_commit_base[31:0] + ddr_commit_pulse             C◆  src/rtl/eth/eth_udp_video_top.v:346
+a2   a8   包计数（pkts/bytes/bad）                             D   src/rtl/eth/eth_udp_video_top.v:286
+a4   a8   frame_done + frame_abort + rows_missed[15:0]        D   src/rtl/eth/eth_udp_video_top.v:289
+a8   —    lm_bus[319:0] + lm_bus_tog + lm_hb                   D◆  src/rtl/eth/eth_udp_video_top.v:292（连到 system_top 的 u_lm_axi）
+a9   a10  发送侧三路复用（ARP/ICMP/UDP 任一）                   C   src/rtl/eth/eth_udp_video_top.v:206
+a10  —    Z7 上 tx_start_en 钉 1'b0 ⇒ 本设计只回 ARP/ICMP，不发 UDP  C src/rtl/eth/eth_udp_video_top.v:166
+a12  a9   arp_gmii_tx_en/arp_gmii_txd                         D   src/rtl/eth/eth_udp_video_top.v:132
+a13  a9   icmp_gmii_tx_en/icmp_gmii_txd                       D   src/rtl/eth/eth_udp_video_top.v:145
+a10  a9   udp_gmii_txd                                        D   src/rtl/eth/eth_udp_video_top.v:176
+a11  a10  FCS 填帧尾                                           D   src/rtl/eth/eth_udp_video_top.v:180
+a14  a13  icmp_fifo（载荷缓冲，DATA_W 8/ADDR_W 11）             D   src/rtl/eth/eth_udp_video_top.v:121
+a13  a14  icmp_rec_en/icmp_rec_data                            D   src/rtl/eth/eth_udp_video_top.v:121
+
+[边表 · 显示通路（u_pl）]
+from to  信号（位宽）                                          型  出处
+b8   b11  cx[11:0] = x>>1（src/rtl/top/pl_video_top.v:242）、cy_r（提前 OFF_LINES+BILIN_ROWS 行，:276） D src/rtl/top/pl_video_top.v:228
+b10  b11  inv_scale（inv_used[9:0]）                           D   src/rtl/top/pl_video_top.v:345
+b6   b11  angle[8:0] + rot_on                                  D   src/rtl/top/pl_video_top.v:345
+b9   b10  inv_fit（按角度算"装得下"）                            D   src/rtl/top/pl_video_top.v:322
+b11  b21  sx[11:0]/sy[11:0]/oob + zfrac_x/zfrac_y（Q8 小数）      D   src/rtl/top/pl_video_top.v:347
+b14  b21  row_wr_en + row_wr_addr[18:0] + row_wr_data[63:0]（ETH 路） D src/rtl/top/pl_video_top.v:716
+b20  b21  fill_wr_*（PS 路，:700）→ 由 eth_mode 二选一（:716-718）   D src/rtl/top/pl_video_top.v:718
+b12  b14  enable/start/base_addr（eth_mode = owner_eth，src/rtl/top/pl_video_top.v:428） C src/rtl/top/pl_video_top.v:456
+b12  b20  enable/frame_start（PS 路取反的那一支）                  C   src/rtl/top/pl_video_top.v:696
+b13  b14  allow_copy / copy_abort（消隐窗口 + 看门狗）              C   src/rtl/top/pl_video_top.v:459
+b14  b12  row_busy（搬运机忙不忙，喂 u_arb 的换手判据）              C   src/rtl/top/pl_video_top.v:424
+b8   b13  de + vsync（喂 blank_safe = disp_quiet，src/rtl/top/pl_video_top.v:400） C src/rtl/top/pl_video_top.v:434
+b11  b22  sx/sy（图卡吃**同一份**源坐标，.x(sx)/.y(sy)）             D   src/rtl/top/pl_video_top.v:761
+b21  b23  pix_raw[15:0] + oob_raw（{oob_raw,pix_raw} 17 位入环）    D   src/rtl/top/pl_video_top.v:791
+b21  b24  din = pix_raw，de_in/x_in/y_in 取自第 3 级打拍            D   src/rtl/top/pl_video_top.v:808
+b7   b24  sel_sync[8:0] + th_sync[7:0] + gamma_*（同步后的控制字）   C   src/rtl/top/pl_video_top.v:802
+b24  b28  pipe_dout[15:0]（处理抽头，先打一拍成 pipe_dout_q）         D   src/rtl/top/pl_video_top.v:923
+b23  b28  raw_ring →（15 拍 skid）→ orig_disp[15:0]（原图抽头）       D   src/rtl/top/pl_video_top.v:848
+b26  b28  split_eff[11:0] + split_raw_left（缝位，显示列）            C   src/rtl/top/pl_video_top.v:921
+b27  b28  seam_src_orig / seam_src_mark（缝落在图像列的判定）         C   src/rtl/top/pl_video_top.v:922
+b28  b31  r[7:0]/g[7:0]/b[7:0] + hs_in(hs_o)/vs_in(vs_o)           D   src/rtl/top/pl_video_top.v:1020
+b29  b31  fps_q[7:0]（"写进屏的新帧"计数）                          D   src/rtl/top/pl_video_top.v:1006
+b7   b31  sel_sync/th_sync/gm_disp（OSD 的 Pipe/Th/Gamma 三格）      C   src/rtl/top/pl_video_top.v:1007
+b31  b32  r_osd/g_osd/b_osd + hs_osd/vs_osd/de_osd                 D   src/rtl/top/pl_video_top.v:1022
+b32  —    tmds_clk_p/n + tmds_data_p/n（3 对 + 时钟对）             D   src/rtl/top/pl_video_top.v:1031
+b2   b4   k1_up（消抖后的稳定电平）→ 长按/短按两语义                  C   src/rtl/top/pl_video_top.v:149
+b4   b5   ltog（长按翻转位，ov_tog）                                C◆  src/rtl/top/pl_video_top.v:159
+b5   b16  mode_eth/mode_ps（四态片源码）                            C   src/rtl/top/pl_video_top.v:590
+b12  b5   owner_eth_pix（AUTO 下用它挑下一态）                       C   src/rtl/top/pl_video_top.v:159
+b25  b26  split_ctl[18:0]（19 位几何字，整束过一次 snap_cross）       C◆  src/rtl/top/pl_video_top.v:876
+b7   b18  像素域在用的缩放状态 → lane23 总线                          D   src/rtl/top/pl_video_top.v:652
+b18  b19  准静态总线 + 心跳触发器                                    D◆  src/rtl/top/pl_video_top.v:674
+b17  b30  dbg_lat[6*32-1:0]（时延三段 + 自洽快照 lat_arm）            D◆  src/rtl/top/pl_video_top.v:980
+b15  b16  pub_consume（PS 发布→消费一次）                            C   src/rtl/top/pl_video_top.v:559
+b16  b22  have_src/src_use → fb_vis（没片源就落图卡）                 C   src/rtl/top/pl_video_top.v:595
+b12  b29  owner_eth_pix + fb_vis + eth_new + pub_consume/pub_pend   C   src/rtl/top/pl_video_top.v:944
+
+[ASCII 骨架 · 只显示主脊（其余边以边表为准）]
+
+  u_eth（RX=125 MHz）
+    u_rgmii ==> u_rx_mac ==> u_rx_par ==> u_reasm ─┬─ ==> u_cdc ◆ ==> u_saver ──(AXI3 写)──> DDR
+                                                   ├──> u_commit ◆─> ddr_commit_base/pulse ─┐
+                                                   └──> u_lm ──(320b+tog)◆──> lm_bus ───────┤ system_top 的 u_lm_axi
+    u_ctrl <== u_arp / u_icmp(⇄u_icmp_fifo) / u_udp_tx(←u_crc_tx)                            │
+                                                                                            │
+  u_pl（PIX=50 MHz，除标注外）                                                               │
+    u_t ──(x,y,de)──┬──────────────────────────────────────────────┐                        │
+                  ├─ cx,cy_r ──> u_zmap <─(inv_used)─ u_zctrl <─ inv_fit ─ u_zfit           │
+                  │                │  (sx,sy,oob,frac)             ^                        │
+                  │                v                               │ u_ang(angle)           │
+                  │        u_bilin（内含 u_fb/u_lerp）<──(AXI 读整帧)─ u_row / u_aw <-- DDR <-┘
+                  │                │ pix_raw          ↑ enable/allow_copy（u_arb/u_cmt 给）
+                  ├────────────────┴───────┬─────────┘
+                  │                        │
+                  v 原图抽头                v 处理抽头
+              u_raw（4 行环）           u_pipe（15 拍，内含 8 级）
+                  └───────────┬───────────┘
+                              v
+                    u_split（缝：u_split_ctrl + u_seam_src）
+                              v
+                    u_osd（+ u_fpsr） ==> u_dvi ==> tmds_*（面板）
+
+  控制侧（AXI→PIX，全部经同步器，无一条组合跨域）：
+    PS 的 3 个 GPIO ─> u_eff（三对 ASYNC_REG，:198）─> u_pipe/u_osd
+    PS 的 19 位几何字 ─> u_split_x ◆ ─> u_split_ctrl
+    PS 的 ps_publish 翻转位 ─> u_pub ◆ ─> u_life / u_b16
+    u_arb 的 owner_eth（AXI 域）─> 3 级同步成 owner_eth_pix（:520）─> 片源选择
+
+  跨域点（`◆`）合计 8 处，全部点名在边表里；每一处的形态（格雷码 FIFO /
+  toggle+准静态总线 / 翻转位异拍 / 电平 3 级）在 `docs/walkthrough/clocking-and-reset.md` 第 3 节成表，
+  本节不复制那张表。
+==============================================================================

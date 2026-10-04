@@ -1,0 +1,38 @@
+# CMD: python build/r115_roster_build.py --diff docs/timing/roster_baseline.tsv docs/timing/roster_round116.tsv  （输入形状错：round 件的前 13 列是 A 侧）
+# RUN_AT: 2026-10-04 11:56:30
+# rc 记在最后；判定 token 在本目录 index.md 的“判定”列（脚本原样输出，未手工填表）
+ROSTERDIFF clock	metric	base	round	delta	verdict
+ROSTERDIFF clk_fpga_0	rel_margin_setup	0.185000	0.185000	+0.000000	GREEN
+ROSTERDIFF clk_fpga_0	rel_margin_hold	0.005300	0.005300	+0.000000	GREEN
+ROSTERDIFF clk_fpga_0	unconstrained_endpoints	0.000000	0.000000	+0.000000	GREEN
+ROSTERDIFF clk_fpga_0	io_unconstrained_ports	11.000000	11.000000	+0.000000	GREEN
+ROSTERDIFF clkfbout	rel_margin_setup	NA	NA	NA	NA
+ROSTERDIFF clkfbout	rel_margin_hold	NA	NA	NA	NA
+ROSTERDIFF clkfbout	unconstrained_endpoints	0.000000	0.000000	+0.000000	GREEN
+ROSTERDIFF clkfbout	io_unconstrained_ports	11.000000	11.000000	+0.000000	GREEN
+ROSTERDIFF clkfbout_1	rel_margin_setup	NA	NA	NA	NA
+ROSTERDIFF clkfbout_1	rel_margin_hold	NA	NA	NA	NA
+ROSTERDIFF clkfbout_1	unconstrained_endpoints	0.000000	0.000000	+0.000000	GREEN
+ROSTERDIFF clkfbout_1	io_unconstrained_ports	11.000000	11.000000	+0.000000	GREEN
+ROSTERDIFF clkout0_1	rel_margin_setup	0.181500	0.181500	+0.000000	GREEN
+ROSTERDIFF clkout0_1	rel_margin_hold	0.002950	0.002950	+0.000000	GREEN
+ROSTERDIFF clkout0_1	unconstrained_endpoints	0.000000	0.000000	+0.000000	GREEN
+ROSTERDIFF clkout0_1	io_unconstrained_ports	11.000000	11.000000	+0.000000	GREEN
+ROSTERDIFF clkout1_1	rel_margin_setup	NA	NA	NA	NA
+ROSTERDIFF clkout1_1	rel_margin_hold	NA	NA	NA	NA
+ROSTERDIFF clkout1_1	unconstrained_endpoints	0.000000	0.000000	+0.000000	GREEN
+ROSTERDIFF clkout1_1	io_unconstrained_ports	11.000000	11.000000	+0.000000	GREEN
+ROSTERDIFF clkout2	rel_margin_setup	NA	NA	NA	NA
+ROSTERDIFF clkout2	rel_margin_hold	NA	NA	NA	NA
+ROSTERDIFF clkout2	unconstrained_endpoints	0.000000	0.000000	+0.000000	GREEN
+ROSTERDIFF clkout2	io_unconstrained_ports	11.000000	11.000000	+0.000000	GREEN
+ROSTERDIFF eth_rxc	rel_margin_setup	0.092375	0.092375	+0.000000	GREEN
+ROSTERDIFF eth_rxc	rel_margin_hold	0.006500	0.006500	+0.000000	GREEN
+ROSTERDIFF eth_rxc	unconstrained_endpoints	0.000000	0.000000	+0.000000	GREEN
+ROSTERDIFF eth_rxc	io_unconstrained_ports	11.000000	11.000000	+0.000000	GREEN
+ROSTERDIFF sys_clk	rel_margin_setup	0.743800	0.743800	+0.000000	GREEN
+ROSTERDIFF sys_clk	rel_margin_hold	0.011100	0.011100	+0.000000	GREEN
+ROSTERDIFF sys_clk	unconstrained_endpoints	0.000000	0.000000	+0.000000	GREEN
+ROSTERDIFF sys_clk	io_unconstrained_ports	11.000000	11.000000	+0.000000	GREEN
+ROSTERDIFF-SUMMARY comparisons_made=32 both_NA=8 red=0 verdict=GREEN
+rc=0

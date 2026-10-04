@@ -24,6 +24,7 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import os from 'node:os';
+import crypto from 'node:crypto';
 
 const ROOT = process.cwd();
 const XDC = 'src/constraints/r119_hdmi_source_window.xdc';
@@ -244,6 +245,17 @@ function selftest() {
 
 if (process.argv.includes('--self')) { process.exit(selftest()); }
 const res = run(XDC, METRICS, PROBE, BUILD_TCL, SKEW);
+// 旁证头：这份读数的每个数字都来自下面 5 件，md5 现算（先归一 CRLF，换行差异不得改变指纹）
+const INPUTS = [XDC, METRICS, PROBE, BUILD_TCL, SKEW];
+const md5 = f => {
+  const p = path.isAbsolute(f) ? f : path.join(ROOT, f);
+  if (!fs.existsSync(p)) return 'ABSENT';
+  return crypto.createHash('md5').update(fs.readFileSync(p, 'utf8').replace(/\r\n/g, '\n')).digest('hex').slice(0, 12);
+};
+let absent = 0;
+console.log('HEAD 输入件指纹（现算，非手抄）');
+for (const f of INPUTS) { const h = md5(f); if (h === 'ABSENT') absent++; console.log(`HEAD ${f} ${h}`); }
+console.log(`HEAD 读数器=node${process.version} 输入件=${INPUTS.length} 缺件=${absent} 判 ${INPUTS.length} 项`);
 res.out.forEach(l => console.log(l));
 const last = res.out[res.out.length - 1];
 process.exit(last.endsWith('PASS') ? 0 : last.endsWith('NOT_MEASURED') ? 2 : 1);

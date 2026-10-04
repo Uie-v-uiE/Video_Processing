@@ -142,6 +142,9 @@ for d in build/evidence_* build/frozen_* board/evidence_* board/frozen_*; do
   fi
 done
 for f in "${DOC_EXCLUDE[@]}"; do prune "$f" "赛程对照（工作记录，不随包）"; done
+# 学习文档（0 基础讲解、英文海报稿）按队伍 2026-10-04 的指令**不上传**：它们在 .gitignore 里
+# （所以从来没进过 git），但导出器是从工作树复制的，不在这里剪掉就会随包送出去。
+prune "report/study" "学习文档（用户指令：不上传）"
 find . -mindepth 1 2>/dev/null | sed 's|^\./||' | grep -E "$HARD_DROP_RE" |
 while read -r n; do if [ -e "$n" ]; then rm -rf "$n"; echo "被否决轮次/中间物 $n" >> _pruned.txt; fi; done || true
 

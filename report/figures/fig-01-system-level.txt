@@ -1,0 +1,105 @@
+==============================================================================
+FIG-01  系统级功能框图（图源文件，纯文本 = 唯一正本）
+------------------------------------------------------------------------------
+口径（违反任何一条就把这张图作废）：
+  * 每个节点的 name 必须在 `src/` 里 grep 到：内部框用**实例名**（其次模块名），
+    外部框用**顶层端口名**或 `src/` 下真实存在的主机/固件脚本文件名。
+  * 外部框（`EXT`）画的是**芯片外的东西**，用 `.-.` 边框，不参与"实现了什么"的主张。
+  * 边只画我在本仓库源码里读到的连线；每条边点名信号名（位宽）与出处行。
+  * 边型：D=数据流  C=控制/命令（含翻转位）  K=时钟/复位  X=跨时钟域点（`◆` 标在边上）
+    完整图例见同目录 `legend.md`。
+  * 本图不含任何"规划中"的框：未实现的块一律不画（本轮 grep 未命中数 = 0）。
+==============================================================================
+
+[节点表]
+id  name                  kind   时钟域                      出处（grep 命中处）
+N1  u_bd                  INT    fclk0(100M)/PS              src/rtl/top/system_top.v:75   design_1_wrapper
+N2  u_idelay_clkgen       INT    sys_clk→clk_200m            src/rtl/top/system_top.v:121  clk_gen
+N3  u_eth                 INT    eth_rxc(125M)+axi_clk       src/rtl/top/system_top.v:154  eth_udp_video_top
+N4  u_lm_axi              INT    eth_rxc→fclk0               src/rtl/top/system_top.v:214  snap_cross
+N5  u_pl                  INT    clk_pix(50M)+axi_clk+sys    src/rtl/top/system_top.v:258  pl_video_top
+P1  main.c                FW     PS（跑在 N1 的 PS7 上）      src/ps/main.c
+P2  sd_play.c             FW     PS（跑在 N1 的 PS7 上）      src/ps/sd_play.c
+X1  video_sender.py       EXT    PC                          src/host/video_sender.py
+X2  health_read.mjs       EXT    PC（经 xsdb/JTAG）           src/host/health_read.mjs
+X3  eth_rxc               EXT    PHY2 RGMII（片外）            src/rtl/top/system_top.v:34
+X4  DDR_dq                EXT    DDR3（片外）                  src/rtl/top/system_top.v:16
+X5  tmds_clk_p            EXT    HDMI 面板（片外）              src/rtl/top/system_top.v:30
+X6  key1_n                EXT    板上按键（片外）                src/rtl/top/system_top.v:27
+X7  sys_clk               EXT    板载 50 MHz 晶振（片外）         src/rtl/top/system_top.v:26
+
+[边表]   from  to    信号（位宽）                                   型  出处
+E1  X1   X3   UDP:5001 帧（片外以太网）                              D   src/rtl/top/system_top.v:145
+E2  X3   N3   eth_rxc / eth_rx_ctl / eth_rxd（5 线 RGMII）           D   src/rtl/top/system_top.v:174
+E3  N3   X3   eth_tx_clk / eth_tx_ctl / eth_txd（4 线 RGMII）        D   src/rtl/top/system_top.v:182
+E4  N3   N5   fb_wr_en+fb_wr_addr[18:0]+fb_wr_data[15:0]             D   src/rtl/top/system_top.v:304
+       注：这一束在 N5 内部**没有消费者**（`pl_video_top.v` 里 `eth_wr_en` 只出现在端口声明处），
+           现役入 DDR 的正路是 E9（u_eth 自己当 AXI 主设备）。画出来是因为线真的存在。
+E5  N3   N5   eth_gmii_clk（= 收侧恢复的 125 MHz）                    K   src/rtl/top/system_top.v:303
+E6  N3   N5   eth_frame / eth_ddr_base[31:0] / eth_commit            D   src/rtl/top/system_top.v:310
+E7  N3   N4   lm_bus[319:0] + lm_bus_tog + lm_hb                     D   src/rtl/top/system_top.v:202
+E8  N4   N1   lm_rd[31:0] → GPIO_1_tri_i（PL→PS 状态窗口）            C   src/rtl/top/system_top.v:247
+E9  N3   N1   m_axi_aw/w/b（AXI3 写，64bit）→ M_AXI_HP0              D   src/rtl/top/system_top.v:193
+E10 N5   N1   m_axi_ar/r（AXI3 读，64bit）→ M_AXI_HP0                D   src/rtl/top/system_top.v:298
+E11 N1   X4   DDR_addr/DDR_dq（PS 的 DDR 控制器）                     D   src/rtl/top/system_top.v:76
+E12 N1   N5   fclk0（FCLK_CLK0）+ fclk0_rst_n                        K   src/rtl/top/system_top.v:261
+E13 N1   N3   fclk0 + fclk0_rst_n（axi_clk/axi_rst_n）               K   src/rtl/top/system_top.v:176
+E14 P1   N1   写 AXI GPIO 三个从设备（0x41200000/0x41210000/0x41220000） C src/ps/main.c:48
+       N1   P1   读 GPIO_1 那条 32 位 lane                            C   src/rtl/top/system_top.v:247
+E15 N1   N5   gpio_o[31:0]（阈值/src/发布位/模式码/lane 号）           C   src/rtl/top/system_top.v:264
+E16 N1   N5   gpio_cfg1_o[31:0]（九位 stage_sel + 19 位几何字 + 缩放档） C src/rtl/top/system_top.v:264
+E17 N1   N5   gpio_cfg2_o[31:0]（gamma 窗口 + OSD 两格显示值）          C   src/rtl/top/system_top.v:276
+E18 N1   N5   gpio_o[26] → gapclr_sel（喂 N3，把帧间隔统计归零）        C   src/rtl/top/system_top.v:203
+E19 N1   N3   eth_rst_n（sys_clk 域 24 位计数器的 bit23）              K   src/rtl/top/system_top.v:112
+E20 X2   N1   经 JTAG/xsdb 读写同三个从设备（不加第四个通道）           C   src/host/health_read.mjs:6
+E21 X6   N5   key1_n / key2_n（长按换片源、短按 ±1°）                  C   src/rtl/top/system_top.v:294
+E22 N5   X5   tmds_clk_p/n + tmds_data_p/n（TMDS 3 对 + 时钟对）       D   src/rtl/top/system_top.v:296
+E23 X7   N2   sys_clk → clk_200m（只给 N3 的 IDELAYCTRL 当参考）        K   src/rtl/top/system_top.v:121
+E24 X7   N5   sys_clk → 片内第二只 MMCM（clk_pix/clk_pix5x）           K   src/rtl/top/pl_video_top.v:128
+
+X 标记（跨时钟域点，共 4 处，逐条有件）：
+◆1 N3 内部：eth_rxc → axi_clk 只过 `dc_fifo` 的格雷码指针（src/rtl/eth/eth_udp_video_top.v:298）
+◆2 N3→N4：320 位快照 + toggle（`snap_cross`，src/rtl/top/system_top.v:214）
+◆3 N1→N5：AXI GPIO 的准静态电平 / 翻转位（`effect_ctrl` 与三条独立同步链，src/rtl/top/pl_video_top.v:198）
+◆4 N5→N4 方向不存在：lane 读回口 N4→N1 是 fclk0 域组合选择（src/rtl/top/system_top.v:237），零新增跨域
+
+[ASCII 骨架]（形状；连线语义以边表为准）
+
+        .-=-=-=-=-=-=-=-=- PC 上位机 =-=-=-=-=-=-=-=-=-.
+        .- video_sender.py -..- health_read.mjs (JTAG) -.
+        `----+------------------------------------+-----'
+             | UDP:5001 (E1)                      | 读写同三个 GPIO (E20)
+             v                                    v
+   .-=-=-=-=-片外 PHY-=-.                          +------------------+
+   .- eth_rxc/ctl/xd -..- eth_txd/ctl/clk -.(E2/E3) |  u_bd            |
+   `---------+-------------------------------------+--┐ design_1_     |
+             | RGMII 125 MHz                        | wrapper        |
+             v                                     |  PS7 + 3×AXI   |
+   +-----------------+   m_axi_aw/w/b (E9)◆1       |  GPIO + HP0    |
+   | u_eth            |---------------------------->|  DDR 控制器    |
+   | eth_udp_video_top|   eth_rst_n (E19)  fclk0(E13)|                |
+   +---+---+---+------+<----------------------------+----+----+-------+
+       |   |   |  fb_wr_* (E4，N5 内无消费者)              |    |
+       |   |   +-------------------------------------------|    | gpio_o (E15)
+       |   | lm_bus+tog+hb (E7)◆2                          |    | gpio_cfg1 (E16)
+       |   v                                               |    | gpio_cfg2 (E17)
+       | +-----------+  lm_rd 32b (E8)                     |    | gapclr (E18)
+       | | u_lm_axi  |-------------------------------------+    |
+       | |snap_cross |  (→ GPIO_1_tri_i，PS 轮询读)              |
+       | +-----------+                                          |
+       | eth_frame/base/commit (E6)  eth_gmii_clk (E5)          | m_axi_ar/r (E10)
+       v                                                        v
+   +--------------------------------------------------------------+
+   | u_pl   pl_video_top（显示通路：详见 FIG-02）                    |
+   +---+------------------+------------------+-------------+------+
+       | tmds_* (E22)     | sys_clk (E24)    | key1_n/key2_n (E21) | led
+       v                  v                  v                     v
+   .- 片外 HDMI 面板 -.(E11: DDR_dq 经 u_bd)  .- 板上按键 -.   .- LED -.
+   .- tmds_clk_p -....- tmds_data_p -.        .- key1_n -.
+
+   未画进图的东西（有意不画，不是遗漏）：
+     * `pl_demo_top`、`udp_rx`、`fb_rd5x`、`tap_sched`、`rotate_mapper`、`line_cache`、
+       `frame_buffer`、`frame_buffer_db`、`color_bar`、`axi_frame_writer`、`axi_frame_saver`、
+       `axi_frame_saver_burst`、`video_timing_720p`（13 个）在现役综合树里**未被例化**，
+       清单的机器口径见 `build/orphan_rtl.sh:2-13` 与 `report/MODULES.md` 第 1 节 ⇒ 不进框图。
+==============================================================================

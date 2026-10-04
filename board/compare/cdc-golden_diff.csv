@@ -1,0 +1,10 @@
+key,value,golden,produced,delta,within_tolerance
+clk_fpga_0>clkout0_1,endpoints,17,17,0,yes
+clk_fpga_0>clkout0_1,unsafe,1,1,0,yes
+eth_rxc>clk_fpga_0,endpoints,272,272,0,yes
+eth_rxc>clk_fpga_0,unsafe,1,1,0,yes
+eth_rxc>clkout0_1,endpoints,51,51,0,yes
+eth_rxc>clkout0_1,unsafe,1,1,0,yes
+sys_clk>eth_rxc,endpoints,1909,1909,0,yes
+sys_clk>eth_rxc,unsafe,2,2,0,yes
+verdict,PASS,judged,18,not_measured,0,fail,0

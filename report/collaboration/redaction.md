@@ -119,7 +119,7 @@ done
 | 分组 | 文件数 | 代表位置 | 谁能处置 |
 | --- | --- | --- | --- |
 | 工具生成件（控制台原始捕获） | 32 | `build/evidence/pu113/r110_xvlog.txt`（4 处）、`build/evidence/r114_mf/A_roll_console.txt`（5 处）等 | 按 `scripts/check_repo_hygiene.sh:284` 的 C2b 口径：**仓库留档不脱敏，成包时由导出器剔除**（P20 既有决定） |
-| **手写件（C2a 射程）** | 4 | `build/r116_batch_plan.md:5`、`report/log/ISSUES.md:11862`、`skill/prompts/_proposed-sources.md:61`、`skill/_meta/sources.md:152` | **不在本任务边界内**（我只允许在 `report/collaboration/` 下新建文件，不许改 `skill/`、`report/` 其它文件、`docs/`）⇒ 移交队伍，逐条给行号，见 `README.md` §6 的 R2/R3 |
+| **手写件（C2a 射程）** | 4 | `build/r116_batch_plan.md:5`、`report/log/ISSUES.md:11862`、`skill/prompts/_proposed-sources.md:61`、`skill/_meta/sources.md:152` | **不在本任务边界内**（我只允许在 `report/collaboration/` 下新建文件，不许改 `skill/`、`report/` 其它文件、`docs/`）⇒ 移交队伍；计数与授权问题记在 `README.md` §5 的 Q7，位置逐条就是本行这四个 `文件:行` |
 | 未跟踪 | 1 | 上面 36 个里 1 个未入库（成包时不随包） | 队伍决定 |
 
 ⇒ **判据 4 的两面读法必须写清**（不自夸）：
@@ -132,9 +132,12 @@ done
 
 **一条证据都没有删。** 可核对的反证有三条：
 
-1. 本档案的 11 个 `.md`（= P22 点名的 7 件，其中 `sessions/` 展开成 5 张卡）全部是**新建**
-   （`git status --porcelain report/collaboration` 只输出一行 `?? report/collaboration/`，
-   没有任何 `M`/`D`；命令见 `README.md` §3）。
+1. 本档案的 11 个 `.md`（= P22 点名的 7 件，其中 `sessions/` 展开成 5 张卡）**全部是新建文件**，
+   我对它们**没有做过任何删除或改写既有证据的动作**。
+   需要如实补一句状态变化：12:2x 时 `git status --porcelain report/collaboration` 是 `?? report/collaboration/`；
+   12:39 另一支兄弟子会话的装配提交 `1c4e26b` 把其中 10 个文件连带入了库，
+   于是我在那之后的修订在 12:5x 显示成 5 个 `M` + `?? README.md`（逐条见 `README.md` §3 末的两时刻表）。
+   **我自己没有执行 `add`/`commit`/`push`**。
 2. §3 的凭据类命中全是 0 ⇒ 不存在"因为敏感所以只能删"的对象。
 3. 唯一的"隐去"是把两份**不随包**的原件留在本机（导出与文档工作区），
    并为它们登记了 SHA-256 与逐行统计——这是**指针 + 摘要**，不是删除。

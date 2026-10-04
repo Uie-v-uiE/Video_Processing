@@ -1,0 +1,28 @@
+# P16c 证据存在性清点（配方 docs/acceptance-recipes.md R9；命令与该配方两段逐字相同；本会话 2026-10-04 最后一次跑）
+# 分桶：A=真指路且不在盘上（必须 0）；B=写法（通配/占位）；C=目录写法（不是某行的证据取值）
+
+## 1 指标表的 证据文件 列逐格验
+  逐格点名=122 缺=0 唯一=48
+
+## 2 四份文档全文分桶
+docs/measurements.md 点名=56 命中=55 A(真缺)=0 B(写法)=0 C(目录)=1
+  C build/evidence/p16c/
+board/signoff.md 点名=53 命中=50 A(真缺)=0 B(写法)=0 C(目录)=3
+  C board/
+  C build/evidence/
+  C build/evidence/r116_board/
+docs/acceptance-recipes.md 点名=38 命中=32 A(真缺)=0 B(写法)=4 C(目录)=2
+  B board/uart_*.txt
+  C build/
+  B build/evidence/<本轮>/…
+  B build/evidence/rNN_serial_raw.txt
+  B build/tb_edge_rim_r*.txt
+  C report/log/
+board/signoff-questions.md 点名=20 命中=18 A(真缺)=0 B(写法)=0 C(目录)=2
+  C build/
+  C src/constraints/
+
+## 3 三条尺子（本会话最后一次）
+line_cite(D5): D5: CLEAN（退出码只由硬错决定；soft 408 条是给
+doc_enc: 扫了 542 个手写文件：全部干净
+metric_recheck(D6): == 数字对账：判 117 个数（首页层 63 个／解析到 10/10 行；红 0）／csv 认领 10/10 行／其余 18 行不点名这三份报告 ==

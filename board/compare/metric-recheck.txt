@@ -1,0 +1,81 @@
+# CMD: node src/host/metric_recheck.mjs
+# RUN_AT: 2026-10-04 11:56:54
+SELFSIGN wns/good rows=3 green=3/3 expect=all-green verdict=OK
+SELFSIGN wns/bad rows=3 green=2/3 expect=some-red verdict=OK
+SELFSIGN clocks/good rows=13 green=13/13 expect=all-green verdict=OK
+SELFSIGN clocks/bad rows=13 green=12/13 expect=some-red verdict=OK
+SELFSIGN whs/good rows=6 green=6/6 expect=all-green verdict=OK
+SELFSIGN whs/bad rows=6 green=5/6 expect=some-red verdict=OK
+SELFSIGN-SUMMARY 判 6 条（负数可读=绿、负数写错=红），红 0
+OK  row=README.md:56 全设计 setup WNS/WNS(ns) 首页=0.739 报告=0.739
+OK  row=README.md:56 全设计 setup WNS/失败 setup/hold 端点 首页=0 报告=0
+OK  row=README.md:56 全设计 setup WNS/端点总数 首页=51135 报告=51135
+OK  row=README.md:57 逐时钟 setup 余量/setup[eth_rxc] 首页=0.739 报告=0.739
+OK  row=README.md:57 逐时钟 setup 余量/setup[clk_fpga_0] 首页=1.85 报告=1.85
+OK  row=README.md:57 逐时钟 setup 余量/setup[clkout0_1] 首页=3.63 报告=3.63
+OK  row=README.md:57 逐时钟 setup 余量/setup[sys_clk] 首页=14.876 报告=14.876
+OK  row=README.md:57 逐时钟 setup 余量/时钟名个数 首页=4 报告=4
+OK  row=README.md:57 逐时钟 setup 余量/周期[eth_rxc] 首页=8 报告=8
+OK  row=README.md:57 逐时钟 setup 余量/余量%[eth_rxc] 首页=9.24 报告=9.24
+OK  row=README.md:57 逐时钟 setup 余量/余量%[clk_fpga_0] 首页=18.5 报告=18.5
+OK  row=README.md:57 逐时钟 setup 余量/余量%[clkout0_1] 首页=18.15 报告=18.15
+OK  row=README.md:57 逐时钟 setup 余量/余量%[sys_clk] 首页=74.38 报告=74.38
+OK  row=README.md:58 保持时间/whs[eth_rxc] 首页=0.052 报告=0.052
+OK  row=README.md:58 保持时间/whs[clk_fpga_0] 首页=0.053 报告=0.053
+OK  row=README.md:58 保持时间/whs[clkout0_1] 首页=0.059 报告=0.059
+OK  row=README.md:58 保持时间/whs[sys_clk] 首页=0.222 报告=0.222
+OK  row=README.md:58 保持时间/时钟名个数 首页=4 报告=4
+OK  row=README.md:58 保持时间/最差那一格的 WHS 首页=0.052 报告=0.052
+OK  row=README.md:59 BRAM / LUT / FF / DSP/BRAM tile 首页=95.5 报告=95.5
+OK  row=README.md:59 BRAM / LUT / FF / DSP/BRAM 占比(%) 首页=68.21 报告=68.21
+OK  row=README.md:59 BRAM / LUT / FF / DSP/LUT 首页=14154 报告=14154
+OK  row=README.md:59 BRAM / LUT / FF / DSP/LUT 占比(%) 首页=26.61 报告=26.61
+OK  row=README.md:59 BRAM / LUT / FF / DSP/FF 首页=8188 报告=8188
+OK  row=README.md:59 BRAM / LUT / FF / DSP/FF 占比(%) 首页=7.7 报告=7.7
+OK  row=README.md:59 BRAM / LUT / FF / DSP/DSP 首页=19 报告=19
+OK  row=README.md:59 BRAM / LUT / FF / DSP/DSP 占比(%) 首页=8.64 报告=8.64
+OK  row=README.md:59 BRAM / LUT / FF / DSP/括号对数(LUT/FF/DSP) 首页=3 报告=3
+OK  row=README.md:60 功耗/动态功耗(W) 首页=2.213 报告=2.213
+OK  row=README.md:60 功耗/估算结温(°C) 首页=52.6 报告=52.6
+OK  row=README.en.md:70 Design-wide setup WNS/WNS(ns) 首页=0.739 报告=0.739
+OK  row=README.en.md:70 Design-wide setup WNS/失败 setup/hold 端点 首页=0 报告=0
+OK  row=README.en.md:70 Design-wide setup WNS/端点总数 首页=51135 报告=51135
+OK  row=README.en.md:71 Per-clock setup slack/setup[eth_rxc] 首页=0.739 报告=0.739
+OK  row=README.en.md:71 Per-clock setup slack/setup[clk_fpga_0] 首页=1.85 报告=1.85
+OK  row=README.en.md:71 Per-clock setup slack/setup[clkout0_1] 首页=3.63 报告=3.63
+OK  row=README.en.md:71 Per-clock setup slack/setup[sys_clk] 首页=14.876 报告=14.876
+OK  row=README.en.md:71 Per-clock setup slack/时钟名个数 首页=4 报告=4
+OK  row=README.en.md:71 Per-clock setup slack/周期[eth_rxc] 首页=8 报告=8
+OK  row=README.en.md:71 Per-clock setup slack/余量%[eth_rxc] 首页=9.24 报告=9.24
+OK  row=README.en.md:71 Per-clock setup slack/余量%[clk_fpga_0] 首页=18.5 报告=18.5
+OK  row=README.en.md:71 Per-clock setup slack/余量%[clkout0_1] 首页=18.15 报告=18.15
+OK  row=README.en.md:71 Per-clock setup slack/余量%[sys_clk] 首页=74.38 报告=74.38
+OK  row=README.en.md:72 Hold time/whs[eth_rxc] 首页=0.052 报告=0.052
+OK  row=README.en.md:72 Hold time/whs[clk_fpga_0] 首页=0.053 报告=0.053
+OK  row=README.en.md:72 Hold time/whs[clkout0_1] 首页=0.059 报告=0.059
+OK  row=README.en.md:72 Hold time/whs[sys_clk] 首页=0.222 报告=0.222
+OK  row=README.en.md:72 Hold time/时钟名个数 首页=4 报告=4
+OK  row=README.en.md:72 Hold time/最差那一格的 WHS 首页=0.052 报告=0.052
+OK  row=README.en.md:73 BRAM / LUT / FF / DSP/BRAM tile 首页=95.5 报告=95.5
+OK  row=README.en.md:73 BRAM / LUT / FF / DSP/BRAM 占比(%) 首页=68.21 报告=68.21
+OK  row=README.en.md:73 BRAM / LUT / FF / DSP/LUT 首页=14154 报告=14154
+OK  row=README.en.md:73 BRAM / LUT / FF / DSP/LUT 占比(%) 首页=26.61 报告=26.61
+OK  row=README.en.md:73 BRAM / LUT / FF / DSP/FF 首页=8188 报告=8188
+OK  row=README.en.md:73 BRAM / LUT / FF / DSP/FF 占比(%) 首页=7.7 报告=7.7
+OK  row=README.en.md:73 BRAM / LUT / FF / DSP/DSP 首页=19 报告=19
+OK  row=README.en.md:73 BRAM / LUT / FF / DSP/DSP 占比(%) 首页=8.64 报告=8.64
+OK  row=README.en.md:73 BRAM / LUT / FF / DSP/括号对数(LUT/FF/DSP) 首页=3 报告=3
+OK  row=README.en.md:74 Power/动态功耗(W) 首页=2.213 报告=2.213
+OK  row=README.en.md:74 Power/估算结温(°C) 首页=52.6 报告=52.6
+OK  row=显示像素时钟 csv=50 report=50
+OK  row=全局 setup WNS csv=0.739 report=0.739
+OK  row=全局 setup 失败端点 csv=0 report=0
+OK  row=全局 hold WHS csv=0.052 report=0.052
+OK  row=Slice LUT 占用 csv=14154（26.61 %） report=14154 | 占用百分数: csv=26.61 report=26.61
+OK  row=Slice 寄存器占用 csv=8188（7.70 %） report=8188 | 占用百分数: csv=7.70 report=7.7
+OK  row=Block RAM Tile 占用 csv=95.5 / 140（68.21 %） report=95.5 | 瓦片占用百分数: csv=68.21 report=68.21 | 可用瓦片数: csv=140 report=140
+OK  row=DSP48 占用 csv=19 / 220（8.64 %） report=19 | DSP 占用百分数: csv=8.64 report=8.64
+OK  row=实现后动态功耗 csv=2.213 report=2.213
+OK  row=结温估算 csv=52.6 report=52.6
+== 数字对账：判 114 个数（首页层 60 个／解析到 10/10 行；红 0）／csv 认领 10/10 行／其余 18 行不点名这三份报告 ==
+rc=0

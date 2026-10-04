@@ -168,7 +168,7 @@
 
 - 观察项：屏幕刷新率那一格改成"数写进屏的新帧"这件事，机器那一半有没有凭据。
 - 前置状态（含回读到的值）：`board/ACCEPTANCE.md:91` 记的件是 `build/r99_tb_shown_rate_console.txt` 与 `build/mut_shown_rate_r97.txt`（两份都还在盘上）。
-- 具体动作：`grep -c "^PASS\|^FAIL" build/r99_tb_shown_rate_console.txt`；或复跑 `bash sim/run_tb.sh tb_shown_rate`（跑法见 `report/BUILD.md`）。
+- 具体动作：`grep -c "^PASS\|^FAIL" build/r99_tb_shown_rate_console.txt`；或复跑 `bash sim/run_one.sh tb_shown_rate`（跑法见 `report/BUILD.md`）。
 - 我看到/读到的原文：`board/ACCEPTANCE.md:91` = `RESULT tb_shown_rate PASS（13 条判据、0 FAIL，控制台 build/r99_tb_shown_rate_console.txt）`——那是 **r99 那一棵树**上的重跑；r118 树上我没有重跑过这一支台架。
 - 判定：PASS（读数属 r99，本版未重跑，已在 measurements.md 逐轮列出）
 

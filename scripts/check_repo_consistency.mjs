@@ -11,6 +11,8 @@ import path from 'node:path';
 import { execFileSync } from 'node:child_process';
 
 const ROOT = process.cwd();
+const SELF = process.argv.includes('--self');   // --self 只跑 C2 的对照例，不做全仓扫描（免得自检本身要读 3000+ 份文件）
+const LIST = process.argv.includes('--list');    // --list 把 C3 的死引用明细打全（判定不变）
 const P = (...a) => path.join(ROOT, ...a);
 const J = [];
 let judged = 0;
@@ -23,59 +25,163 @@ function sh(cmd, args, tmo = 90000) {
 }
 
 const MD_SCOPE = ['README.md', 'docs', 'report', 'submit', 'board', 'skill'];
+// 交付宇宙 = 未被 .gitignore 排除的文件。学习文档（report/study/ 等）按用户指令本就不入库，
+// 让它们参与"路径必须存活"的判据会把尺子的射程指向一个根本不随包的对象集（改前 C3 的 66 条里 55 条是这一类）。
+let IGNORED = new Set();
+try {
+  // `-z` 与 core.quotePath=false 是必需的：学习文档目录名是中文，默认输出会被 git 八进制转义，
+  // 那样 Set 永远查不中，被排除的对象集照样参与判据（第一版就栽在这里）。
+  IGNORED = new Set(execFileSync('git', ['-c', 'core.quotePath=false', 'ls-files', '--others', '--ignored',
+    '--exclude-standard', '-z'], { cwd: ROOT, encoding: 'utf8', maxBuffer: 64e6 }).split('\u0000').filter(Boolean));
+} catch { IGNORED = new Set(); }
 function mdFiles() {
   const out = [];
   const walk = (rel) => {
     const abs = P(rel);
     if (!fs.existsSync(abs)) return;
     const st = fs.statSync(abs);
-    if (st.isFile()) { if (rel.endsWith('.md')) out.push(rel); return; }
+    if (st.isFile()) { const fwd = rel.split(path.sep).join('/'); if (rel.endsWith('.md') && !IGNORED.has(fwd)) out.push(fwd); return; }
     for (const e of fs.readdirSync(abs)) { if (e === 'node_modules' || e.startsWith('.')) continue; walk(path.join(rel, e)); }
   };
   MD_SCOPE.forEach(walk);
-  return out;
+  return out.map(f => f.split(path.sep).join('/'));   // 判定不变，只将路径统一成正斜杠，好与 git 的视图对齐
 }
 
-// C1 单一事实源：器件/版本只允许一处权威，其余引用
+// C1 单一事实源：器件/版本只允许一处权威。
+// 判据是"**别处出现了与权威不同的值**"才算红；同值的抄写只登记条数（改抄写为引用要动整批文档，是另一轮的事）。
+// 改前这条把"任何别处提到 2025.2.1"都判红，等于禁止文档引用版本号——那是量错维度，也必然与 §3.3.3.1 冲突。
 const decl = read('docs/declarations.md');
 const part = read('report/BUILD.md');
-{
-  const canon = { dev: 'xc7z020clg484-2', ver: '2025.2.1', build: '6403652' };
-  const hits = {};
-  for (const k in canon) hits[k] = mdFiles().filter(f => (read(f) || '').includes(canon[k])).length;
-  if (decl === null) row('C1', '声明唯一权威源', `缺 docs/declarations.md（P20 产出），另出现 ${canon.ver} 的文件数=${hits.ver}`, 'NOT_MEASURED');
+if (!SELF) {
+  if (decl === null) row('C1', '声明唯一权威源', '缺 docs/declarations.md（P20 产出）', 'NOT_MEASURED');
   else {
-    const others = mdFiles().filter(f => f !== 'docs/declarations.md' && /xc7[a-z0-9]+|Vivado[^\n]{0,20}20\d\d\.\d/.test(read(f) || ''));
-    row('C1', '声明唯一权威源', `权威=${path.basename(decl ? 'docs/declarations.md' : '')} 出现该型号/版本的文件数=${hits.ver} 含器件或版本的其它文件=${others.length}`, others.length === 0 ? 'PASS' : 'FAIL');
+    const blk = decl.split('<!-- BEGIN-AUTHORITATIVE -->')[1]?.split('<!-- END-AUTHORITATIVE -->')[0] || '';
+    const auth = k => (blk.match(new RegExp('^' + k + ':[ \\t]*(.+)$', 'm')) || [])[1]?.trim() || '';
+    const keys = ['part', 'vivado', 'vivado_build', 'os', 'node', 'board'];
+    const missing = keys.filter(k => !auth(k));
+    if (missing.length) row('C1', '声明唯一权威源', `权威块缺字段=${missing.join(',')}（缺字段则整条不可判）`, 'NOT_MEASURED');
+    else {
+      const want = auth('part').toUpperCase().replace(/[-_]/g, '');
+      const devRe = /[Xx][Cc]7[Zz][0-9]{2}[A-Za-z]{2,3}[0-9]{2,3}[A-Za-z]*-?[0-9][A-Za-z]?/g;
+      const verRe = /(?:Vivado|Vitis)[^\n]{0,8}(?:v\.|版本)?[ ]?20[0-9]{2}\.[0-9]+(?:\.[0-9]+)?/g;
+      let same = 0, conflict = [], verSame = 0, verBad = [];
+      for (const f of mdFiles()) {
+        if (f === 'docs/declarations.md') continue;
+        const t = read(f) || '';
+        for (const m of t.matchAll(devRe)) {
+          const n = m[0].toUpperCase().replace(/[-_]/g, '');
+          if (n === want) same++; else conflict.push(`${f}:${m[0]}`);
+        }
+        for (const m of t.matchAll(verRe)) {
+          const num = (m[0].match(/20[0-9]{2}\.[0-9]+(?:\.[0-9]+)?/) || [])[0];
+          if (num === auth('vivado')) verSame++; else verBad.push(`${f}:${m[0]}`);
+        }
+      }
+      const badN = conflict.length + verBad.length;
+      const made = same + verSame + badN;
+      row('C1', '声明唯一权威源',
+          `权威=${keys.join('/')} 比过=${made} 同值抄写=${same}+${verSame} 器件冲突=${conflict.length}${conflict.length ? ' 例:' + conflict.slice(0, 2).join(',') : ''} 版本冲突=${verBad.length}${verBad.length ? ' 例:' + verBad.slice(0, 2).join(',') : ''}`,
+          made === 0 ? 'NOT_MEASURED' : (badN === 0 ? 'PASS' : 'FAIL'));
+    }
   }
 }
+// C2 的取路径逻辑单独成函数，好让 --self 能喂假象（改前正则会把 `）`、反引号吞进路径名，
+// 把"指得到"的行判成红——那是尺子的维度错，不是被量对象的错）
+const C2_RE = /((?:build|docs|report|board|data|src|sim|scripts)\/[^\s,;`)\]（）、。，；：]+|README\.md)/g;
+function c2Judge(rows, has) {
+  let ok = 0; const miss = [];
+  for (const l of rows) {
+    const c = (l.match(C2_RE) || []).map(x => x.replace(/[.,;:]+$/, ''));
+    if (c.length) (c.every(x => has(x)) ? ok++ : miss.push(l.split(',')[0]));
+    else miss.push('(无路径)' + l.split(',')[0]);
+  }
+  return { ok, miss };
+}
+const C3_RE = /(?:^|[\s`(（|])((?:build|docs|report|submit|board|data|src|sim|scripts|skill)\/[A-Za-z0-9_.\-\[\]*]{2,120})(?=[\s)|,，。；;：:]|$)/g;
+// 两条射程修正（都是尺子自己的维度错，不是被量对象变好了）：
+//  ① 只判"像一个文件"的串（带扩展名）或"像一个目录"的串（以 / 结尾）。改前 `board/README`、`src/dst`
+//     这类行文碎片被当成路径引用，虚报死引用；
+//  ② 运行期产物（*.log / *.dcp / impl_1/ / *.runs/）按仓库规矩本就不入库，要求它在盘上＝用错量纲。
+const C3_HASFILE = /\.[A-Za-z][A-Za-z0-9]{1,6}$/;
+const C3_RUNTIME = /(\.log|\.dcp|impl_1\/|\.runs\/|runme|vivado_system\/|__pycache__\/)/;
+// 过程台账（report/log/）里的引用是"当时那一步看到的文件名"，改名轮之后必然对不上；
+// 导出器的死链自检也按 #217 的同一条口径排除这一层，这里保持一致并把豁免数打出来（不是静默跳过）。
+function c3Judge(t, relFile, has) {
+  let total = 0, dead = [], skipFrag = 0, skipRun = 0, skipLedger = 0;
+  const re = new RegExp(C3_RE.source, 'g');
+  let m2;
+  while ((m2 = re.exec(t))) {
+    const c = m2[1].replace(/[.。，;)]+$/, '');
+    if (/[*\[\]]/.test(c) || /rNN|<|>|\bdemo\b/.test(c)) continue;
+    if (!C3_HASFILE.test(c) && !c.endsWith('/')) { skipFrag++; continue; }
+    if (C3_RUNTIME.test(c)) { skipRun++; continue; }
+    if (/^report\/log\//.test(relFile)) { skipLedger++; continue; }
+    total++; if (!has(c)) dead.push(`${relFile} → ${c}`);
+  }
+  return { total, dead, skipFrag, skipRun, skipLedger };
+}
+function selftestC2() {
+  const has = f => f === 'build/x.rpt';
+  const cases = [
+    ['A 正常行指得到', ['性能,吞吐,100MB,build/x.rpt'], { ok: 1, miss: 0 }],
+    ['B 真缺件必须红', ['性能,吞吐,100MB,build/gone.rpt'], { ok: 0, miss: 1 }],
+    ['C 全角括号与反引号不得算进路径（改前正是这里判错）', ['性能,吞吐,100MB,`build/x.rpt`（本轮实测）'], { ok: 1, miss: 0 }],
+    ['D 没有路径的行', ['性能,吞吐,100MB,见正文'], { ok: 0, miss: 1 }],
+    ['E 行尾点号不算进文件名', ['性能,吞吐,100MB,build/x.rpt.'], { ok: 1, miss: 0 }],
+    ['F 全角逗号后面的正文不得吞进路径', ['性能,吞吐,100MB,build/x.rpt，见该目录'], { ok: 1, miss: 0 }]
+  ];
+  let bad = 0;
+  for (const [name, rows, want] of cases) {
+    const r = c2Judge(rows, has);
+    const got = { ok: r.ok, miss: r.miss.length };
+    const pass = got.ok === want.ok && got.miss === want.miss;
+    if (!pass) bad++;
+    console.log(`CTRL ${name} 期望=${want.ok}/${want.miss} 实读=${got.ok}/${got.miss} ${pass ? '对照成立' : '对照不成立'}`);
+  }
+  console.log(`C2 自检：造 ${cases.length} 例 不符=${bad} 判 ${cases.length} 项 ${bad === 0 ? 'PASS' : 'FAIL'}`);
+  // C3 的对照例：碎片串必须被豁免、真缺的 .md 必须红、运行期件与台账各自只走自己那一支
+  const has3 = f => f === 'docs/real.md';
+  const c3cases = [
+    ['G 行文碎片不算路径', '见 board/README 那一节', 'docs/x.md', { total: 0, dead: 0, skipFrag: 1 }],
+    ['H 真缺的文件必须红', '对照 docs/gone.md 与 docs/real.md', 'docs/x.md', { total: 2, dead: 1, skipFrag: 0 }],
+    ['I 运行期产物走豁免', '日志在 sim/a.log 里', 'docs/x.md', { total: 0, dead: 0, skipRun: 1 }],
+    ['J 台账只走台账', '当时读的是 docs/gone.md', 'report/log/ISSUES.md', { total: 0, dead: 0, skipLedger: 1 }]
+  ];
+  let bad3 = 0;
+  for (const [name, text, rel, want] of c3cases) {
+    const r = c3Judge(text, rel, has3);
+    const got = { total: r.total, dead: r.dead.length, skipFrag: r.skipFrag, skipRun: r.skipRun, skipLedger: r.skipLedger };
+    const okk = Object.keys(want).every(k => got[k] === want[k]);
+    if (!okk) bad3++;
+    console.log(`CTRL ${name} 期望=${JSON.stringify(want)} 实读=${JSON.stringify(got)} ${okk ? '对照成立' : '对照不成立'}`);
+  }
+  console.log(`C3 自检：造 ${c3cases.length} 例 不符=${bad3} 判 ${cases.length + c3cases.length} 项 ${bad === 0 && bad3 === 0 ? 'PASS' : 'FAIL'}`);
+  return (bad === 0 && bad3 === 0) ? 0 : 1;
+}
+if (process.argv.includes('--self')) { process.exit(selftestC2()); }
+
 // C2 数字可追：metrics.csv 每行点名的证据文件必须存在（与仓库 D6 的 metric_recheck 互补：这里只查"指得到"，不查数值）
 {
   const m = read('data/metrics.csv');
   if (m === null) row('C2', '指标数字指得到证据', '缺 data/metrics.csv', 'NOT_MEASURED');
   else {
     const rows = m.split(/\r?\n/).slice(1).filter(l => l.trim());
-    const pathRe = /((?:build|docs|report|board|data|src|sim|scripts)\/[^\s,;]+|README\.md)/g;
-    let ok = 0, miss = [];
-    for (const l of rows) { const c = l.match(pathRe) || []; if (c.length) (c.every(x => exists(x)) ? ok++ : miss.push(l.split(',')[0])); else miss.push('(无路径)' + l.split(',')[0]); }
+    const { ok, miss } = c2Judge(rows, exists);
     row('C2', '指标数字指得到证据', `行=${rows.length} 全指到=${ok} 缺或无路径=${miss.length}${miss.length ? ' 例:' + miss.slice(0, 3).join('|') : ''}`, rows.length === 0 ? 'NOT_MEASURED' : (miss.length === 0 ? 'PASS' : 'FAIL'));
   }
 }
-// C3 路径存活：文档里写的相对路径必须存在
+// C3 路径存活：文档里写的相对路径必须存在（判据定义与对照例在文件上半部，与 --self 共用）
 {
   const files = mdFiles();
-  const re = /(?:^|[\s`(（|])((?:build|docs|report|submit|board|data|src|sim|scripts|skill)\/[A-Za-z0-9_.\-\[\]*]{2,120})(?=[\s)|,，。；;：:]|$)/g;
-  let total = 0, dead = [];
+  const agg = { total: 0, dead: [], skipFrag: 0, skipRun: 0, skipLedger: 0 };
   for (const f of files) {
-    const t = read(f) || ''; let m2;
-    while ((m2 = re.exec(t))) {
-      const c = m2[1].replace(/[.。，;)]+$/, '');
-      if (/[*\[\]]/.test(c) || /rNN|<|>|\bdemo\b/.test(c)) continue;
-      total++; if (!exists(c)) dead.push(`${f} → ${c}`);
-    }
-    re.lastIndex = 0;
+    const r = c3Judge(read(f) || '', f, exists);
+    agg.total += r.total; agg.dead.push(...r.dead);
+    agg.skipFrag += r.skipFrag; agg.skipRun += r.skipRun; agg.skipLedger += r.skipLedger;
   }
-  row('C3', '文档内路径存活', `扫=${files.length} 份 检查路径引用=${total} 死引用=${dead.length}${dead.length ? ' 例:' + dead.slice(0, 3).join(' | ') : ''}`, total > 0 && dead.length === 0 ? 'PASS' : dead.length ? 'FAIL' : 'NOT_MEASURED');
+  if (LIST) agg.dead.forEach(d => console.log('DEAD ' + d));   // --list 只把明细打全，判定与分母不变
+  row('C3', '文档内路径存活', `扫=${files.length} 份 检查路径引用=${agg.total} 死引用=${agg.dead.length}${agg.dead.length ? ' 例:' + agg.dead.slice(0, 3).join(' | ') : ''} 豁免=碎片${agg.skipFrag}/运行期${agg.skipRun}/台账${agg.skipLedger}`,
+      agg.total > 0 && agg.dead.length === 0 ? 'PASS' : agg.dead.length ? 'FAIL' : 'NOT_MEASURED');
 }
 // C4 命名合规（调用技能包 G1 的等价逻辑，但范围是全仓跟踪文件）
 {

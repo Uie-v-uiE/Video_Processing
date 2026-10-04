@@ -98,13 +98,25 @@ print('ACTIVITY_RECORDS',len(tss),'SPAN',tss[0],tss[-1],'ACTIVE_MIN',round(act/6
 PY
 ```
 
-实际输出（本档案的数字来源，逐行对应下表）：
+实际输出（**下面两块是我真跑两次分开的脚本得到的原样终端输出**；上面那段合并脚本是我把它们并成一次
+的可复跑版本，**我没有把它当成已执行过**——复跑它应当重现这两块的每一个数字）。
 
 ```
-LINES_WITH_TS_BEFORE_CUT 226 25053 25053 760 75
-REPEAT_CALLS 397 GROUPS 255 GROUPS_AFTER_ERROR 60
-ACTIVITY_RECORDS 78416 SPAN 2026-09-21T14:34:44 2026-10-04T03:43:38 ACTIVE_MIN 13847.5
+# 跑 A（轮次 / 工具调用 / 失败 / 重试 / 墙钟 / 冻结记录数）
+CUTOFF 2026-10-04T03:44:00
+LINES_BEFORE_CUT 99531
+HUMAN_TURNS 226 first 2026-09-21T14:34:44 last 2026-10-03T23:51:22
+TOOL_USE 25053 TOOL_RESULT 25053 IS_ERROR_RESULTS 760
+REPEAT_CALLS_TOTAL(重试口径A: 同 promptId 同工具同输入的第2次及以后) 397
+REPEAT_GROUPS(口径A 去重后组数) 255
+REPEAT_GROUPS_AFTER_ERROR(失败后重试组数) 60
+ACTIVE_RECORDS 78416 SPAN 2026-09-21T14:34:44 -> 2026-10-04T03:43:38
+ACTIVE_MINUTES_gap20min 13847.5 = 230.79 h
+
+# 跑 B（上下文压缩边界，同一输入文件、同一 CUT）
+COMPACT_BOUNDARY_before_cutoff 75 ALL 75
 ```
+
 
 | 指标 | 值 | 分母/口径 |
 | --- | --- | --- |
@@ -120,12 +132,15 @@ ACTIVITY_RECORDS 78416 SPAN 2026-09-21T14:34:44 2026-10-04T03:43:38 ACTIVE_MIN 1
 ## 3. 子会话侧（`LOG-SUB-127`）
 
 ```bash
-# 与 sessions/s05-…md §7 同一段代码；输入 = LOG-MAIN + 127 份 agent-*.jsonl
-# 输出（本次实测）：
+# 输入 = LOG-MAIN（取 128 条 Agent 派发的 toolUseId/时刻/正文）+ 127 份 agent-*.jsonl
+# 冻结常数 CUT 同 §0；列口径同 sessions/s05-…md §4
+# S05 那张 127 行表格由同一段口径的脚本生成（脚本本体未入库，原因见 s05 §7）
+# 输出（本次实测，原样）：
 #   SUBAGENT_FILES_TOTAL_ON_DISK 137
-#   SUBAGENT_FILES_STARTED_BEFORE_CUTOFF 127  STARTED_AFTER_CUTOFF_EXCLUDED 10
+#   SUBAGENT_FILES_STARTED_BEFORE_CUTOFF 127 STARTED_AFTER_CUTOFF_EXCLUDED 10
 #   SUM bytes=110853285 lines=28227 tooluse=9093 iserr=190
 #   BY_AGENTTYPE {'Explore': 29, 'general-purpose': 98}
+#   ROWS_WITH_EXPLICIT_P_TOKEN 10  ROWS_WITH_PROMPTFILE_REF 6  ROWS_WITHOUT_DISPATCH_MATCH 0
 ```
 
 | 指标 | 值 | 口径 |

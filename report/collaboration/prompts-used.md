@@ -175,10 +175,10 @@ C--…-2026-10-04-3d601c82/…         HUMAN_TURNS 6    PROMPT_MARKERS_HIT -
 
 | 模板（E 栏） | 提炼自哪些**当时**的东西 | 对应关系的证据 |
 | --- | --- | --- |
-| `criterion-before-code` | A/B 栏没有一条与之逐字对应的提示词；它对应的是**做法**——先造能红的判据再改代码，实践轨迹是 `report/log/ISSUES.md` #127/#128（判据没牙那一族）与 #316（零样本通过） | `skill/prompts/_proposed-sources.md` 各行的"用在哪个条目"列；本档案侧指针：`corrections.md` C1（合成对照六条）、C5（十条畸形对照） |
-| `hw-sw-partition` | 当时的原文 = A 栏 `H04`（2026-09-22 08:56，讲第一版 PS 以太网/第二版 PL 以太网的那段口语）与 `H55`/`H56`（报名简介长文）；仓库侧落点 `report/PS_VS_PL.md`、`report/ARCHITECTURE.md` §3 | `_proposed-sources.md` 前四行逐条点名了这两个 `report/` 文件与 mtime |
+| `criterion-before-code` | A/B 栏没有一条与之逐字对应的提示词；它对应的是**做法**——先造能红的判据再改代码，实践轨迹是 `report/log/ISSUES.md` #127/#128（判据没牙那一族）与 #316（零样本通过） | `skill/prompts/_proposed-sources.md` 各行的"用在哪个条目"列；本档案侧指针：`corrections.md` C1（合成对照六条）、C5（十条畸形对照） `[推断]` |
+| `hw-sw-partition` | 当时的原文 = A 栏 `H04`（2026-09-22 08:56，讲第一版 PS 以太网/第二版 PL 以太网的那段口语）与 `H55`/`H56`（报名简介长文）；仓库侧落点 `report/PS_VS_PL.md`、`report/ARCHITECTURE.md` §3 | `_proposed-sources.md` 前四行逐条点名了这两个 `report/` 文件与 mtime `[推断]` |
 | `report-to-bottleneck` | 当时的原文 = **C 栏**那份 `timing-global-round-prompt.md`（轮次提示词），不是 D 栏 | `build/r116_batch_plan.md:5`（点名 C 栏文件）+ `_proposed-sources.md` 里 `report/TIMING_GLOBAL.md` §1/§2 各行 |
-| `single-variable-ab` | 当时的做法 = A 栏 `H142`（"先深度彻底优化一次时序和资源"那一段）与 B 栏 10-04 01:3x 那批 P15/P16 派发；仓库侧落点 `docs/timing/README.md` 噪声底一节、`report/log/ISSUES.md` #306/#311 | `_proposed-sources.md` 后三行（噪声底、同一 `opt.dcp` 逐位复现、复制类手段可数） |
+| `single-variable-ab` | 当时的做法 = A 栏 `H142`（"先深度彻底优化一次时序和资源"那一段）与 B 栏 10-04 01:3x 那批 P15/P16 派发；仓库侧落点 `docs/timing/README.md` 噪声底一节、`report/log/ISSUES.md` #306/#311 | `_proposed-sources.md` 后三行（噪声底、同一 `opt.dcp` 逐位复现、复制类手段可数） `[推断]` |
 
 **这一栏的诚实声明**：上面四条"对应关系"里，**只有 `report-to-bottleneck ↔ C 栏文件`这一条是硬证据**
 （盘上有点名行）。其余三条是**按主题与时间对齐**得出的 ⇒ 全部标 `[推断]`，
@@ -193,7 +193,7 @@ cd <仓库根>/report/collaboration
 # 判 4 项：五类物件是否各有独立小标题、是否有条目同时挂在两栏
 grep -n '^## [A-F] 栏' prompts-used.md | wc -l                       # 期望 6（A/B/C/D/E/F）
 grep -c '事后成文' prompts-used.md                                    # D 栏定性，>0
-grep -c '\[推断\]' prompts-used.md                                    # 未闭合的对应关系计数 = 3
+grep -c '\[推断\]' prompts-used.md                                    # 实测 5 = E 栏表内 3 行 + E 栏末段说明 1 + §F 判定行 1
 grep -n 'P00–P23' prompts-used.md | head -3                           # D 栏只出现在"事后成文"语境
 ```
 

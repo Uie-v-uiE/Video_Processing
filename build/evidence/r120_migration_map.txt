@@ -1,0 +1,48 @@
+r120 技能包扁平卡退役映射（唯一分派表，2026-10-04 定）
+=====================================================
+
+用途：`skill/<snake>.md` 共 27 张旧卡 → `skill/<类别>/<kebab>/SKILL.md` 八节外壳条目。
+本表是**分派的唯一事实源**：批处理 agent 只能按这里给的路径建目录，不得自择类别。
+判据出处：`skill/scripts/check/gates.mjs` 的 G1/G2/G3/G4/G6/G9/G10/G12 与
+`skill/scripts/check/retire_flat.mjs` 的 C1–C5（C3 要求旧卡每条出处串在新条目里逐字可见）。
+
+类别口径（来自 `skill/README.md`「验证状态口径」四节 + 已入库条目的先例）：
+- pitfalls = 会重复踩的失效模式/错法，正文含"怎么认出它"的签名；
+- runtime = 与本板/本工程运行时接口绑定的事实与操作程序；
+- references = 查阅型表（字段、形状、签名清单、杠杆对照）；
+- prompts = 交给 agent 的提示词/协作工作流模板；
+- templates = 换名即用的骨架；scripts = 可执行脚本本身。
+
+| # | 旧卡 | 目标条目 | 类别 | 一句话理由 |
+|---|---|---|---|---|
+| 1 | ab_revert_control_run.md | pitfalls/ab-revert-control-run | pitfalls | 目录已建（空）；新红了先怀疑自己 |
+| 2 | arbiter_pending_pulse.md | pitfalls/arbiter-pending-pulse | pitfalls | 目录已建（空）；仲裁漏脉冲的错法 |
+| 3 | cdc_pair_baseline_gate.md | pitfalls/cdc-pair-baseline-gate | pitfalls | 目录已建（空）；门禁基线写法错 |
+| 4 | combinational_block_misses_task_reads.md | pitfalls/combinational-block-misses-task-reads | pitfalls | 目录已建（空）；@(*) 不递归进任务 |
+| 5 | pulse_toggle_cdc.md | pitfalls/pulse-toggle-cdc | pitfalls | 目录已建（空）；电平同步器修不了窄脉冲 |
+| 6 | sim_hw_divergence_array_writes.md | pitfalls/sim-hw-divergence-array-writes | pitfalls | 目录已建（空）；仿真给"没有"、硬件给"别的格子" |
+| 7 | artifact_freeze_and_freshness.md | pitfalls/artifact-freeze-and-freshness | pitfalls | 证据没成套/过期的失效模式 |
+| 8 | criterion_blind_spot.md | pitfalls/criterion-blind-spot | pitfalls | 判据结构性红不了的错法 |
+| 9 | derived_clock_port_mux.md | pitfalls/derived-clock-port-mux | pitfalls | 分时读口的算账前置，先错后纠 |
+| 10 | failing_read_prints_geometry.md | pitfalls/failing-read-prints-geometry | pitfalls | 失败分支不报几何量 ⇒ 归因错 |
+| 11 | frameid_loss_signature.md | pitfalls/frameid-loss-signature | pitfalls | "在哪一级丢数据"的判别签名 |
+| 12 | metrics_gap_sum.md | pitfalls/metrics-gap-sum | pitfalls | 分子分母不同批事件的表错 |
+| 13 | prove_change_is_free_by_bitstream_header.md | pitfalls/prove-change-is-free-by-bitstream-header | pitfalls | 用推理当"免费"的错法 |
+| 14 | rotate_window_target_domain.md | pitfalls/rotate-window-target-domain | pitfalls | 邻域滤波做在逆映射之前 |
+| 15 | switch_feature_two_level_evidence.md | pitfalls/switch-feature-two-level-evidence | pitfalls | 只给模块内证据、接线不可达 |
+| 16 | baremetal_standard_startup.md | pitfalls/baremetal-standard-startup | pitfalls | 改入口符号牵动整条启动链的坑 |
+| 17 | atomic_register_window_readback.md | runtime/atomic-register-window-readback | runtime | 控制面多字读回的接口事实 |
+| 18 | board_eth_uart.md | runtime/board-eth-uart | runtime | 板载桥/双网口的现场定义 |
+| 19 | udp_offset_reasm.md | runtime/udp-offset-reasm | runtime | 上位机推流落位协议 |
+| 20 | zynq_ddr_bandwidth.md | runtime/zynq-ddr-bandwidth | runtime | 外部存储带宽账（本 SoC） |
+| 21 | eye_acceptance_loop.md | prompts/eye-acceptance-loop | prompts | 把"看一眼"变成给协作方的提问模板 |
+| 22 | llm_fpga_debug_workflow.md | prompts/llm-fpga-debug-workflow | prompts | agent 结论可追溯的工作流模板 |
+| 23 | read_only_review_agent.md | prompts/read-only-review-agent | prompts | 只读代理通读找 bug 的模板 |
+| 24 | bench_self_inflicted_reds.md | references/bench-self-inflicted-reds | references | 十个签名的对照表 |
+| 25 | bench_verilog_subset.md | references/bench-verilog-subset | references | 仿真器方言子集查阅表 |
+| 26 | verdict_line_must_print_scope.md | references/verdict-line-must-print-scope | references | 结论行形状约定，与 checker-convention-shapes 同族 |
+| 27 | wns_logic_vs_route_lever.md | references/wns-logic-vs-route-lever | references | logic/route 占比 → 杠杆对照表 |
+
+不可逆动作的分工：agent 只建新条目，**不删旧卡**；旧卡删除由主 agent 在
+`node skill/scripts/check/retire_flat.mjs` 全绿后用 `--apply` 执行（一次删 27 张，
+删后立即 `node skill/scripts/check/gen_index.mjs` 重写索引并复跑 G1–G12）。

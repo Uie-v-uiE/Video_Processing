@@ -7,7 +7,7 @@
 3. **更正后的结论与影响范围**（含"这条更正还欠什么"）
 
 取证范围：本仓库已入库的成文轨迹（`report/log/ISSUES.md`、`docs/timing/debt_ledger.md`）
-+ 我在本次 P22 取证过程中**自己新发生**的一条（C7）。
++ 我在本次 P22 取证过程中**自己新发生**的两条（C7 grep 误读、C8 我写的锚点失效）。
 会话侧指针一律用 `S01 + 北京时间段 + 人工轮次区间`（轮次表在 `sessions/s01…md` 与 `../metrics.md` §2；
 人工轮次编号 `H01…H226` 由同一条命令按时间序生成，命令见 `../metrics.md` §2）。
 
@@ -214,9 +214,17 @@ grep -an "GATES|CTRL" build/evidence/r119_window_check.txt           # 换同量
 本次实跑：`_probe2.txt:50-52` 是三条 `20-1307`；`_probe3.txt:113/117/121` = `−3.482/−3.458/−3.474ns`
 （`Path Group: clkout1_1`）；`_probe4_pinclk.txt:113/118/123` = `−4.897/−4.873/−4.890ns`
 （`Path Group: r119b_tmclk`，工具自报 `Requirement: 4.000…`）；
-换问法后的件 `build/evidence/r119_window_check.txt:12` = `GATES r119 窗件：判定 10 项 红=0 未测=0 PASS`，
-`:13-22` 是十条合成畸形对照（每条期望 FAIL 且实读 FAIL），`:24` = `对照总结：造 10 条畸形动红 10 条；缺输入 2 条报 NOT_MEASURED 2 条 PASS`
-⇒ 判据有牙这件事是被反例证明的，不是被"绿了"证明的。
+换问法后的件 `build/evidence/r119_window_check.txt:11`（当前行数 11）=
+`GATES r119 窗件：判定 10 项 红=0 未测=0 PASS`。
+
+**这个件在写作期间被原地重写了一次，必须记下来**：
+`11:5x` 我读它是 **24 行**，除 GATES 那行外还有 `:13`–`:22` 十条 `CTRL Wx 期望=FAIL 实读=FAIL`
+与 `:24` 的 `对照总结：造 10 条畸形动红 10 条；缺输入 2 条报 NOT_MEASURED 2 条 PASS`；
+`12:4x` 复跑 `wc -l` 得 **11 行**，那 13 行对照记录**已经不在这个件里**了（`grep -an "CTRL" …` 无输出）。
+⇒ 我当时写下的 `:12`/`:13-22`/`:24` 三个锚点在收尾时已全部越界 ⇒ 本次改成 `:11` 并在 C8 里单独立条。
+"十条畸形各自动红"这件事现在的可核出处是 `docs/timing/debt_ledger.md:208`
+（"件 `build/evidence/r119_window_check.txt`（`--self` 十条畸形各自动红；缺读数件报 `NOT_MEASURED`）"）
+与 `report/log/ISSUES.md` 里 #335 的记述，而**不是**那份已被改小的件本身。
 
 **③ 更正后的结论与影响范围**
 
@@ -254,7 +262,7 @@ grep -an "GATES|CTRL" build/evidence/r119_window_check.txt           # 换同量
 - 量纲判别（实测）：窗真挂上后两条数据道立刻判红，数值见 §C5 的 `_probe3.txt:113` 与 `_probe4_pinclk.txt:113`；
   换成同量纲的问法（在已布线成品逐脚量 clock-to-pin 到达时刻离散）后，
   互对最差 **0.065 ns**（上限 0.20 `Tcharacter` = 4.000 ns）、对内最差 **0.001 ns**（上限 0.15 `Tbit` = 0.300 ns），
-  件 `build/evidence/r119_window_check.txt:12`（判 10 项红 0 未测 0）。
+  件 `build/evidence/r119_window_check.txt:11`（判 10 项红 0 未测 0；行号成因见 §C5 末与 §C8）。
 - 本次复算：`grep -an "GATES" build/evidence/r119_window_check.txt` ⇒ 仍是 `判定 10 项 红=0 未测=0 PASS`。
 
 **③ 更正后的结论与影响范围**
@@ -305,6 +313,46 @@ python -c "d=open('build/evidence/r119_tmds_launch_probe.txt','rb').read();
 
 ---
 
+## C8 · 我自己写下的三个锚点，在写作期间失效了（被引用的证据件被原地改小）
+
+**① 错误断言原文**（本文件早先版本，我在 §C5 与 §C6 的"判别实验"里写）
+
+> 件 `build/evidence/r119_window_check.txt:12` = `GATES r119 窗件：判定 10 项 红=0 未测=0 PASS`，
+> `:13-22` 是十条合成畸形对照（每条期望 FAIL 且实读 FAIL），`:24` = `对照总结：造 10 条畸形动红 10 条；缺输入 2 条报 NOT_MEASURED 2 条 PASS`
+
+这三行锚点来自我 **11:5x** 那次 `head -20` + `grep -n` 的读数（当时该件确有 24 行）。
+
+**② 判别实验**
+
+```bash
+wc -l build/evidence/r119_window_check.txt
+grep -an "CTRL\|对照总结" build/evidence/r119_window_check.txt
+sed -n '12p' build/evidence/r119_window_check.txt        # 空
+sed -n '11p' build/evidence/r119_window_check.txt        # GATES 那一行在这里
+```
+
+本次实跑：`11 build/evidence/r119_window_check.txt`；`grep -an "CTRL"` **无输出**；`:12` 空行；
+`:11` = `GATES r119 窗件：判定 10 项 红=0 未测=0 PASS`。⇒ 三个锚点**全部越界**。
+
+**③ 更正后的结论与影响范围**
+
+- 更正：本文件里该件的引用统一改为 `:11`（已改，见 §C5 末段与 §C6 第二条判别动作）；
+  "十条畸形各自动红"这句话改由**已成文且没被改小**的出处承载：`docs/timing/debt_ledger.md:208`
+  与 `report/log/ISSUES.md` #335（`:13137` 起）。
+- 成因不是我看错，而是**这份件在 11:5x→12:4x 之间被同一天的另一支子会话原地重写并改小了**
+  （13 行对照记录从件里消失）。按 P22 铁律 7"已归档的记录不再原地修改；更正以追加条目形式写"，
+  这件事在本仓库里是**一次真实的不可变性破坏**，而且它破坏的正是我引用的凭据。
+  我没有去复原它（越界：不许改 `build/`），只做三件事：**换锚点、记下两次读数、把可核出处换成追加式档案**。
+- 影响范围（可推广的规矩，不写"下次注意"）：
+  ① 本档案凡引用 `build/evidence/**` 这类"会被同一批任务改写"的件，都必须带**复核时刻**；
+  ② 优先引用**追加式**档案（`report/log/ISSUES.md`、`docs/timing/debt_ledger.md`）作主锚点，
+     把件本身作辅证 —— 因为前者只增不删，实测 `ISSUES.md` 从 13,165 行长到 13,269 行期间，
+     我引用的 `:12854/:13075/:13098/:13111/:13137` 五个锚点**逐条仍然命中**（复核见 `README.md` §8）；
+  ③ 引用之前必须**再跑一次**行号读取，而不是相信十分钟前的 `head`（这正是 #333"射程会漂"的同一族：
+     这次漂的不是行号，是文件本身）。
+
+---
+
 ## 5. 本文件对门禁的影响（写入前 / 写入后各一次，判 2 项）
 
 | 尺子 | 写入前基线 | 写入后 | 判定 |
@@ -323,10 +371,11 @@ python -c "d=open('build/evidence/r119_tmds_launch_probe.txt','rb').read();
 | U1 | `report/AI_COLLABORATION.md` §4 的 13 例（A–M，行 `:101`–`:224`）与 `report/LLM_COLLAB.md` 的 6 例（例 1–例 6，行 `:15`–`:194`） | 这 19 例各有"错误结论 + 更正"两半，但**本次没有逐条重跑其判别实验**（每条都要开它点名的件、有的还要重跑构建/仿真）。本档案不替它们背书 | 判 `NOT_MEASURED`，分母 19；要成对需逐条复算 |
 | U2 | 任务派发词里"主 agent 批量派发子 agent，**批次过大曾导致中途丢文件**"这句话 | 只有断言，没有凭据。本次在冻结窗口内实算：`Agent` 调用 128 次 vs 子会话导出 127 份，差的那 **1** 条经定性是**参数校验失败即重发**（`Error: Agent tool parameter validation failed: params/mode …`，21 秒后重发成功），不是丢文件 | 判 FAIL（作为事实）；已在 `workflow.md` §4 标为**借用断言**。若队伍另有凭据（某轮 `git status` 少文件的现场记录），给出来我再成对 |
 | U3 | #334、#335 与 `skill/` 的双向引用 | `grep -rIn "#334" skill/` 与 `"#335"` 本次实跑均为 **0 命中** ⇒ 协作记录→技能这一侧接不上；本任务边界禁止改 `skill/`，所以我只能点名缺口 | 判 FAIL（缺口，非我可闭合）；见 `README.md` §4 |
-| U4 | `skill/evals/records/` 为空目录（`ls` 实跑 0 份） | 所有"会话结论 → evals 记录"的引用**都无处可指**；本档案因此不能声称与 evals 双向闭合 | 判 `NOT_MEASURED`（读不到输入）；见 `README.md` §4 |
+| U4 | `skill/evals/records/` 在我 11:5x 检查时是**空目录**（`ls` 实跑 0 份），12:3x 复跑已有 **2 份** | 那 2 份是 P09 的演练/审计表，**不带** `skill/evals/README.md` §3 的 9 字段（`被测条目` 命中 0），也**不引用任何会话登记号** ⇒ 所有"会话结论 → evals 记录"的引用仍然**无处可指**，本档案因此不能声称与 evals 双向闭合 | 判 `NOT_MEASURED`（读不到"双跑记录"这种输入）；逐条缺口在 `README.md` §4（G1/G2/G6） |
 
 ## 7. 本文件的成对计数（分母）
 
-`判 7 条成对（C1–C7）`：C1 #321 · C2 #332 · C3 #333 · C4 #334 · C5 #335 · C6 debt_ledger 两节 · C7 本次现场。
-每条三件齐全，"判别实验"一节里的**每一个**文件与行号都在本次打开过（清单见 `README.md` §5）。
-未成对另计 4 条（U1–U4），不与上面混入同一分母。
+`判 8 条成对（C1–C8）`：C1 #321 · C2 #332 · C3 #333 · C4 #334 · C5 #335 · C6 debt_ledger 两节 ·
+C7 本次现场的 grep 误读 · C8 我自己写下的锚点失效（件被原地改小）。
+每条三件齐全，"判别实验"一节里的**每一个**文件与行号都在收尾时重跑过一次存在性核对
+（43 个锚点、0 个越界，命令与读数见 `README.md` §8）。未成对另计 4 条（U1–U4），不与上面混入同一分母。
