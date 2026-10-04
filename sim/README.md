@@ -1,3 +1,52 @@
+# `sim/` —— 81 支 RTL 台架的跑法与清单
+
+台架回答的是"这一支 RTL 在仿真里有没有按定义行事"，不看板子、不看时序。清单里每行给四件事：
+台架文件名、被测模块、覆盖点、以及**台架自己会打印什么**——最后那列是原话的形状（判定词在末行），
+不是复述，失败时按它对号。
+
+## 跑一支
+
+在**仓库根**执行。前置条件是 `VP_VIVADO_BIN` 指到 Vivado 的 `bin` 目录（指不到第一步就拒绝启动，退出码 2），
+并且同一时刻只有一个 xsim 在跑（脚本在门口拒绝第二个，避免两跑的行混进同一份日志）：
+
+```bash
+bash build/sim/run_one.sh tb_crc32        # 单支台架：xvlog → xelab → xsim，判定词在末行
+```
+
+涉及以太网收发的三支（`tb_icmp_len_wrap.v`、`tb_icmp_rx_len.v`、`tb_v795_rx_chain.v`）在文件头钉的板侧参数是：
+
+```text
+BOARD_MAC = 00:11:22:33:44:55   UDP_PORT = 16'd5001
+```
+
+| 要看的东西 | 在哪里 |
+|---|---|
+| 判定 | 末行以 `VERDICT <tb>:` 开头，随后是那条台架判定，再带两个计数（失败行数、通过行数）|
+| 退出码 | 0 通过／1 编译或例化失败／2 拒绝启动（没给工具目录、或已有 xsim 在跑）／3 有判据没过／4 台架一条判定都没打 |
+| 全部原始输出 | `/tmp/kx/<tb>.run/run.log`（屏幕只回放含 FAIL、PASS、INFO、PROBE、DIAG 的前 80 行） |
+| 这跑的是哪一棵源树 | 同目录 `prov.txt`：顶层、本台架、整棵 `src/rtl` 三枚校验和加时刻，逐支在**编译之前**取 |
+
+## 一次跑完 81 支
+
+```bash
+vivado -mode batch -nojournal -log sim/xsim.log -source build/sim/run_sim.tcl
+# SIM_TB=tb_crc32,tb_timing 只跑点名的几支；SIM_ONLY=1 只编译；SIM_VERBOSE=1 打整段流水；SIM_ARGS 传 plusargs
+```
+
+每支台架出一行 `RESULT <tb> …`；编译失败打 `XVLOG FAILED` 并以 1 退出，某支例化失败打
+`RESULT <tb> ELAB_FAIL` 而不中断其余。这条链编译整棵 `src/rtl` 加 `sim/tb_*.v` 加 `sim/prim`
+的行为模型，要跑几分钟；逐支那一条只为一眼看清某个模块。
+
+## 三条口径
+
+- 这张表由 `build/gen_sim_readme.mjs` 从各台架文件头部三段注释生成；改了注释之后重跑
+  `node build/gen_sim_readme.mjs --apply` 才同步。交付检查项 `C2-4` 判的是"表里第一格的名字与
+  `sim/` 下的台架文件双向一致"，所以**第一格不许改**。
+- 文件名里的 `v98`、`v103` 这类前缀是历史迭代编号，不承担信息；判据看的是"被测模块 + 覆盖点"两格。
+  导出交付包时的改名对照见 `build/sim/names.md`。
+- 台架通过不等于板上通过：这一层证的是 RTL 行为，板级读数与还需要人眼确认的项目在
+  `board/acceptance.md`。
+
 | 文件名 | 被测模块 | 功能 | 预期结果 |
 | --- | --- | --- | --- |
 | `tb_bilin_lerp.v` | bilin_lerp | 被测模块 `bilin_lerp`（RGB565 四抽头双线性插值算术核）；覆盖点＝fx/fy 全零与四角同色的恒等… | 逐段打印 `[tb_bilin_lerp.v:<行号>] PASS…；失败时 对应段打印 `FAIL 判据N ...` 并附 pix/期望值或… |
@@ -9,7 +58,7 @@
 | `tb_fb_rd5x.v` | fb_rd5x | 被测模块 `fb_rd5x`（5 槽帧缓存读口，IMG_W=512、IMG_H=300）；覆盖点＝输出像素与请求的配准… | 逐条打印 `[CHK] <判据名> : OK`，并带 `[INFO]…；失败时 对应条目打 `: BAD` 并 errors 加一（错值处有 `[DIAG]… |
 | `tb_fb_roundtrip.v` | frame_buffer_w64 | 被测模块 `frame_buffer_w64`（W=512、H=300，PX=153600 像素 / WORDS=38400… | 打印 `写入完成 38400 字 + 2 次越界写，t=<时刻>`…；失败时 打印错位处 `MISMATCH(流水) p=<n> got=<h>… |
 | `tb_head_rot_displace.v` | zoom_fit + zoom_mapper | 被测模块 `zoom_fit + zoom_mapper`（IMAGE_W=512、IMAGE_H=300，mapper 的… | 打印 `PASS D1 k=0 对照 ang=<角> inv=<inv_fit>…；失败时 打印 `FAIL D1 same-angle sweeps differ… |
-| `tb_icmp_len_wrap.v` | icmp_rx | 被测模块 `icmp_rx`（BOARD_MAC=00:11:22:33:44:55… | 打印 `PASS R3 legit frame completes / ...`…；失败时 对应条目改打 `FAIL <名字> / <说明>` 并把 nfail 加一… |
+| `tb_icmp_len_wrap.v` | icmp_rx | 被测模块 `icmp_rx`（BOARD_MAC 见下一节那三行参数… | 打印 `PASS R3 legit frame completes / ...`…；失败时 对应条目改打 `FAIL <名字> / <说明>` 并把 nfail 加一… |
 | `tb_icmp_ping0.v` | icmp_tx | 被测模块 `icmp_tx`（ICMP 回应的 GMII 发送器）；覆盖点＝tx_byte_num=0（`ping -l 0`… | 逐条打印 `PASS T1 zero-byte ping reply must…；失败时 对应条目改打 `FAIL <条目名>` 且 errors 加一（T1 红 =… |
 | `tb_icmp_rx_len.v` | icmp_rx | echo request 载荷长度的边界逐字节收取—— rec_byte_num、rec_en 次数、字节顺序、校验和成对累加… | 每条打 `[tb_icmp_rx_len.v] PASS <标签> /…；失败时 对应条打 `[tb_icmp_rx_len.v] FAIL <标签> /… |
 | `tb_link_monitor.v` | link_monitor | 链路健康自诊断不误报平安——丢字与参考计数逐字相等、断帧与坏包、断流后快照继续刷新、 帧间隔 min/last/max/sum… | 每段各打一条 PASS（`PASS drop_words starts at 0`…；失败时 红话自带读数，如 `FAIL FALSIFIER: CDC port… |
@@ -82,6 +131,4 @@
 | `tb_zoom_frac.v` | zoom_mapper | 缩放支与旋转支的 x_out/y_out 与 frac_x/frac_y 是否描述同一格、旋转态到底有没有非零小数，以及… | 打 `PASS H0 reference_table_fresh / angle=30…；失败时 逐点打 `FAIL D<n>… |
 | `tb_zoom_mapper.v` | zoom_ctrl | mapper 的恒等与 0.5x 边界格及其 oob 旗标、rot_en=1 且 angle=0 的 恒等，ctrl… | expect_xy 静默（它只在失配时打印），末行 `PASS…；失败时 失配的 那个点打 `FAIL <tag> got (<xo>,<yo>)… |
 
-```bash
-bash build/sim/run_one.sh tb_crc32        # 单支台架：xvlog → xelab → xsim，判定词在末行
-```
+清单之外没有别的口径：某支台架怎么判、判据几跳，写在该文件头注释里，与本表同一处来源。

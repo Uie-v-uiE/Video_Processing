@@ -157,7 +157,7 @@ C8 未决项汇总一致 判 8 项 正文标记总数=1270 【待验证】=132 �
 
 | 编号 | 标记类型 | 所在文件与行 | 内容一句话 | 需要我做什么/需要什么条件 | 影响哪个评测项 | 状态 |
 |---|---|---|---|---|---|---|
-| 26 | NOT_MEASURED | `build/checks/check_repo_consistency.mjs:46`（判据）＋本轮 C1 行原文 `缺 report/declarations.md（P20 产出），另出现 2025.2.1 的文件数=55`；我 `test -e report/declarations.md` = **不存在** | "器件与工具版本只允许一处权威"这条判据**从未生效过**：权威件没落地，其余 55 份含 `2025.2.1` 的文档无人比对（根 `README.md:54` 那节自称"全仓唯一权威声明"，与 C1 要的 `report/declarations.md` 是两个落点） | P20 那一轮把 `report/declarations.md` 落出来（器件/版本/构建号 + 逐条出处），并定它与根 README §2 谁引用谁；`docs/` 本轮禁区 ⇒ 未做。**`data/README.md` 同样不存在**（它被 `report/README.md:23` 点名，属编号 6 那批死引用） | 文档质量与可复现性(15) | 需批准 + 跑一条命令 |
+| 26 | NOT_MEASURED | `build/checks/check_repo_consistency.mjs:46`（判据）＋本轮 C1 行原文 `缺 report/declarations.md（P20 产出），另出现 2025.2.1 的文件数=55`；我 `test -e report/declarations.md` = **不存在** | "器件与工具版本只允许一处权威"这条判据**从未生效过**：权威件没落地，其余 55 份含 `2025.2.1` 的文档无人比对（根 README.md 的「环境」一节，原引内容在本版 README 已无对应段落：那节自称"全仓唯一权威声明"，与 C1 要的 `report/declarations.md` 是两个落点） | P20 那一轮把 `report/declarations.md` 落出来（器件/版本/构建号 + 逐条出处），并定它与根 README §2 谁引用谁；`docs/` 本轮禁区 ⇒ 未做。**`data/README.md` 同样不存在**（它被 `report/README.md:23` 点名，属编号 6 那批死引用） | 文档质量与可复现性(15) | 需批准 + 跑一条命令 |
 | 27 | 未决项（无标记，来自 C9） | `report/repro-check.md`（存在）＋本轮 C9 行原文 `PASS=46 FAIL=13 未测=23` | 三条路径的复现演练仍带 **13 条 FAIL**：`check_repo_consistency.mjs:154` 的规矩是"有 FAIL 就不许绿"⇒ 这 13 条是"第三方照做会撞上的坑"，不是尺子坏了 | 逐条分诊：属于"本轮禁跑（构建/上板）"的保留红并写清禁跑理由；属于真断链的按第 2D 节那五条一样开授权。需要一次有构建窗口的复现演练才能收 | 文档质量与可复现性(15) | 待并发收口 |
 
 ### 2F · `report/60-failure-analysis.md` 的 A/B 逐条动作与成本（该文件 §D1 要求在此集中登记）

@@ -35,7 +35,7 @@
 | 29 片上结温（板读 XADC） | 板上那一版换成 **r109 + 新 bit md5 + 刷入时刻**，读数**必须刷完重取**，不许沿用 61.3–61.4 | — |
 
 ## 四、数字之外必须同笔做的三件事（规矩 229/46/47）
-1. **门禁项数**四处：`README.md:56`、`README_EN.md:70`、`report/background_and_novelty.md:31`、`:80` 全部 22→**24**、21→**23**。
+1. **门禁项数**四处：README.md 的「限制与未通过项」一节、`README_EN.md:70`、`report/background_and_novelty.md:31`、`:80` 全部 22→**24**、21→**23**。
 2. **modules.md 的 8 条行号引用**重锚：r109 两处 RTL 改动造成行位移（`osd_overlay.v` 与 `pl_video_top.v`），
    按 `line_cite` 自己报的红单逐条改，改到它绿为止；不猜偏移量（#236 记过一次猜错方向）。
 3. **位流落回交付位置**（#240）：`build/system.bit`/`build/system.xsa` 里现在是未采纳的 r109（`21227687e925`）⇒

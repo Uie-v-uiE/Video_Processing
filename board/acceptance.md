@@ -1,114 +1,120 @@
-# 板上验收表（交付这一版）
+# 板上验收表
 
-一张表说清"这一版在真板子上被验过什么"。每行都点名它的凭据；**没验到的写在最后一节，不打勾**。
-上板方式只走 JTAG（`ps_jtag_boot → program_pl → ps_app_reload`），本工程不向 QSPI/SPI flash 写入。
+这张表说清"这一版在真板子上被验过什么、哪几格还没验"。每行都点名它的凭据；
+没验到的写在最后一节，不写成通过。上板只走 JTAG（`build/tcl/ps_jtag_boot.tcl` 起 PS、
+`build/tcl/program_pl.tcl` 烧 PL、`build/tcl/ps_app_reload.tcl` 重载应用），本工程不向 QSPI/SPI flash 写入。
 
-## 机器判据（脚本读回来的）
+板上当前版本：r118，位流 `build/system.bit` 的 md5 前 12 位 = `cd04907e1369`
+（身份行在 `build/evidence/r118_board/board_now.txt`，同一版的板级读数在 `build/evidence/r118_board/board_verify_console.txt`）。
 
-本表**按行记版本**：第 1/2/3/5/9/10 行是 r94（板上那一份位流 `a1465f29c9e4`，源 `rtl_md5=526321488fed`）
-重跑/重念的；第 4/6/7/8 行的读数还是 r92 那一次（同一棵树没变的那些行为，r94 没重跑），补跑排在
-门禁落盘之后。把某一行的数当"这一版验过"之前，先看这一行有没有"r94"字样。
-**r96（位流 `76d6442991e0`，源 `rtl_md5=fe573f9b2024`）已经把第 1/2/3/7/9/10 行重跑或重念过**，
-逐条读数与凭据在下面"r96 重跑的那几行"一节；第 4 行**没有**被 r96 盖章，理由也写在那一节。
+## 怎么读这张表
 
-| # | 判据 | 读数 | 凭据 |
+- 机器那一半由一条命令跑完：`VP_XSDB=<Vitis>/bin/xsdb.bat bash build/board_verify.sh --battery --geom`
+  （在仓库根执行，板子要已经供好电、三步 JTAG 链已经跑完、串口 COM6 空着）。它读回来的每个数都点名一份凭据件。
+- 同一个检查项在不同版本上各跑过一次，所以下面按版本分三张表，版本用**位流的 md5 前 12 位**称呼，
+  不用内部轮次号。想核对"某一行的数属于哪一版"，看该版那张表的抬头。
+- 表里 `RESULT …`、`[STAT] …` 这类反引号内容是工具或固件的原样输出，逐字抄，不改写。
+
+| 版本（按位流） | 配套身份 | 这张表覆盖了哪些行 |
+|---|---|---|
+| 位流 `a1465f29c9e4` | 源树 `526321488fed` | 第一张表的 1/2/3/5/9/10 行在它上面重跑或重念过；4/6/7/8 行的读数还是更早一版的（那几行的凭据是 `build/evidence/r92_health.txt` 一类的旧件） |
+| 位流 `76d6442991e0` | 源树 `fe573f9b2024` | 重跑/重念 1/2/3/7/9/10 行；**第 4 行没有确认**，理由写在第二张表那一行 |
+| 位流 `ef03eea4886e` | xsa `a50188e5f789`、elf `d0b07f84a068` 未变 | 重跑 1/2/3/4/7/9 行；串口命令批量测试与几何那一跳第一次每一项都通过 |
+| 位流 `cd04907e1369`（当前板上） | 见上面那条身份行 | 机器那一半没重跑；E4、E6 两格在这版上由人重判过 |
+
+第一张表里第 4/6/7/8 行的读数属于更早那一版；要在本版重新确认它们，跑一遍上面那条命令即可，
+新落盘的凭据件由脚本自己命名（`build/evidence/verify_<日期>_<时刻>.txt`，脚本写文件，不随包）。
+
+## 机器那一半（第一张表：位流 `a1465f29c9e4`）
+
+| # | 检查项 | 读数 | 凭据 |
 |---|---|---|---|
-| 1 | PS 起来 + PL 烧写 + 应用重载三歩都成功（**r94 重跑**）| `DDR_ECHO: 10000000: 5A5AA5A5` / `PROGRAMMED xc7z020_1`（位流 md5 `a1465f29c9e4` = 树上 `build/system.bit`）/ `RESUME: ok` | `build/r94_flash.txt`（三段都在一份里）|
-| 2 | 串口命令电池（100 条，含该拒的必须拒）（**r94 重跑**）| `RESULT PASS uart_cmd_check (100 条命令, 93.1 s)`；`RESULT PASS geom_check（ok=8 fail=0）`；`board_verify` 全量那一串**等 r94 门禁落盘后补跑** | `build/r94_batt.txt`、`build/r94_uart_cap.txt`、`build/r94_geom_check2.txt` |
-| 3 | 几何"最后一跳"：命令 → 像素域真的用了它（**r94 重跑，树上带 #93 那一钳**）| `RESULT PASS geom_check（ok=8 fail=0）`，其中 G1b/G1c/G2 三条量的是"拟合/旋转钳下 `inv_used` 与屏上档号同源自洽"（例：`fit=1` 时 inv=433 ⇒ 屏上 0.50x 档 2）| `build/r94_geom_check2.txt` |
+| 1 | PS 起来、PL 烧写、应用重载三步都成功 | `DDR_ECHO: 10000000: 5A5AA5A5` / `PROGRAMMED xc7z020_1`（位流 md5 `a1465f29c9e4` = 树上 `build/system.bit`）/ `RESUME: ok` | `build/r94_flash.txt`（三段都在一份里）|
+| 2 | 串口命令批量测试（一次性跑上百条命令，逐条比对期望回显） | `RESULT PASS uart_cmd_check (100 条命令, 93.1 s)`；`RESULT PASS geom_check（ok=8 fail=0）`；这一版的整链总判定在刷板之后补跑 | `build/r94_batt.txt`、`build/r94_uart_cap.txt`、`build/r94_geom_check2.txt` |
+| 3 | 几何"最后一跳"：命令发下去之后，像素域真的用了它 | `RESULT PASS geom_check（ok=8 fail=0）`，其中 G1b/G1c/G2 三条量的是"拟合/旋转钳下 `inv_used` 与屏上档号同源自洽"（例：`fit=1` 时 inv=433 ⇒ 屏上 0.50x 档 2）| `build/r94_geom_check2.txt` |
 | 4 | 上电默认档位 | `lane23 zoom → zsel=4 zman=1 inv_scale=256 x100_actual=100`（屏上画 1.00×） | `build/evidence/verify_0930_0424.txt` 的开机回读段 |
-| 5 | 以太推流期间链路健康（**r94 重跑**）| `--demo --fps 25`：**3001 帧 / 120.05 s = 25.00 fps、共发 663221 包**；推流**之中**读回 `drop_words=0`、`丢过字=0`、`stall_ms=0`、`CDC灌满过=0`、`流活着=1`、`eth_rxc 心跳：正常`（累计 pkts/bytes 见凭据第 8/9 行）| `build/r94_tx_console.txt`（发送端）、`build/r94_health_rotclamp.txt`（推流中读的）|
+| 5 | 以太推流期间链路健康 | `--demo --fps 25`：**3001 帧 / 120.05 s = 25.00 fps、共发 663221 包**；推流**之中**读回 `drop_words=0`、`丢过字=0`、`stall_ms=0`、`CDC灌满过=0`、`流活着=1`、`eth_rxc 心跳：正常`（累计包数与字节数见第 8/9 行）| `build/r94_tx_console.txt`（发送端）、`build/r94_health_rotclamp.txt`（推流中读的）|
 | 6 | 链路内时延同源一致 | 屏上 `Latency=6ms` 与回读 `tot/100000=6` 一致（ok） | `build/evidence/r92_health.txt` |
 | 7 | 温度格三方对账 | `V9-6 温度格三方对账：4 条 [TEMP] 的 degC↔osd↔gpio 全部自洽` | `build/evidence/verify_0930_0424.txt` |
-| 8 | SD 卡本地播放 | `sd=1 playing=1`，帧率 29.8 – 30.0 fps（100 帧滑窗） | `board/uart_script_capture.txt`、`data/metrics.csv` |
-| 9 | 时序/资源读数与报告一致（r94 重念）| 全设计 setup WNS 0.553 ns、hold WHS 0.049 ns、失败端点 0 / 50883；BRAM 95 tile、LUT 14374、FF 8074、DSP 19、动态 2.206 W。绝对值与上一版之差**不记收益也不记损失**（规矩 35）| `build/timing_summary.rpt`、`build/utilization.rpt` |
-| 10 | 收口只有一棵时钟树（#57 的结构判据，不靠 slack 碰运气）（**r94 重念：`build/clock_util.rpt` 是这一版构建产的**）| `build/clock_util.rpt`：**`BUFIO` 用量 0**（改前那一份是 1），`eth_rxc` 只经一只 `BUFG/O`（`g2`←`src2`=`IBUF/O @IOB_X1Y28`，fabric 负载 2478）；最差 20 条 hold 的时钟偏斜由 `build/hold_paths.rpt` 逐条读，实测 0.013~0.349 ns（改前那一条是 1.616 ns） | `build/clock_util.rpt`、`build/hold_paths.rpt`；改前对照是仓库里的 `build/r88_clock_util.rpt`（rNN 命名的对照件，不随包） |
+| 8 | SD 卡本地播放 | `sd=1 playing=1`，帧率 29.8 – 30.0 fps（100 帧滑窗） | 工具本机那份串口捕获不随包，随包复核看 `data/metrics.csv` 那两行 |
+| 9 | 时序/资源读数与报告一致 | 全设计 setup WNS 0.553 ns、hold WHS 0.049 ns、失败端点 0 / 50883；BRAM 95 tile、LUT 14374、FF 8074、DSP 19、动态 2.206 W。两版之间绝对值之差按构建波动处理，既不记成改进也不记成退步 | `build/timing_summary.rpt`、`build/utilization.rpt` |
+| 10 | 收口只有一棵时钟树（结构上的事，不靠时序余量碰运气） | `build/clock_util.rpt`：**`BUFIO` 用量 0**（改前那一份是 1），`eth_rxc` 只经一只 `BUFG/O`（`g2`←`src2`=`IBUF/O @IOB_X1Y28`，fabric 负载 2478）；最差 20 条 hold 的时钟偏斜由 `build/hold_paths.rpt` 逐条读，实测 0.013~0.349 ns（改前那一条是 1.616 ns） | `build/clock_util.rpt`、`build/hold_paths.rpt`；改前对照是仓库里的 `build/r88_clock_util.rpt`（件名带历史轮次号，不随包） |
 
 第 5 行里有两个数要如实写出来：`作废过帧=1`、`缺行峰值=299` —— 那是推流起始那一帧没收齐被整帧丢掉
 （三重提交门限的行为，不是丢字），所以"一个字都没丢"讲的是**字级**，不是"每帧都到齐"。
 
-## r96 重跑的那几行（2026-09-30 17:07 构建、18:45 刷板与验收；位流 `76d6442991e0`，源 `rtl_md5=fe573f9b2024`）
+## 机器那一半（第二张表：位流 `76d6442991e0`，2026-09-30 构建当天刷板验收）
 
-上表的原行**不覆盖**（留作历史读数），这一节只记 r96 这一版被重新建立起来的部分：
+前一张表的原行**不覆盖**（留作历史读数），这一张只记这一版被重新建立起来的部分：
 
-| 行 | r96 的读数 | 凭据 |
+| 行 | 读数 | 凭据 |
 |---|---|---|
-| 1 | `RST_SYSTEM: ok` / `PS7_INIT: ok` / `PS7_POST_CONFIG: ok` → `PROGRAMMED xc7z020_1 <- build/system.bit` → `FLOW_DONE`（只走 JTAG，不写 QSPI）。**第一次跑第一步连不上**：`CONNECT:` 空 ⇒ 本机没有 hw_server 在听 3121，起了 `Vitis/bin/hw_server.bat` 之后拿到 `tcfchan#0` —— 复现时这一条要先做 | `build/evidence/r96_flash_1_ps_boot.txt`、`r96_flash_2_program_pl.txt`、`r96_flash_3_app_reload.txt` |
-| 2 | `RESULT PASS uart_cmd_check（105 条命令, 97.7 s）`（比 r94 的 100 条多 5 条：#105/#177/#178 那几组新判据）；`RESULT board_verify PASS（判红的步骤：0）` | `build/evidence/verify_0930_1845.txt`、`verify_0930_1845.batt.txt`、`board/uart_script_capture.txt` |
+| 1 | `RST_SYSTEM: ok` / `PS7_INIT: ok` / `PS7_POST_CONFIG: ok`，再 `PROGRAMMED xc7z020_1 <- build/system.bit`，收尾 `FLOW_DONE`（只走 JTAG，不写 QSPI）。**第一次跑第一步连不上**：`CONNECT:` 空 ⇒ 本机没有 hw_server 在听 3121，起了 `Vitis/bin/hw_server.bat` 之后拿到 `tcfchan#0` —— 复现时这一条要先做 | `build/evidence/r96_flash_1_ps_boot.txt`、`build/evidence/r96_flash_2_program_pl.txt`、`build/evidence/r96_flash_3_app_reload.txt` |
+| 2 | `RESULT PASS uart_cmd_check（105 条命令, 97.7 s）`（比上一版的 100 条多 5 条，多出来的是新增的判定条件）；`RESULT board_verify PASS（判红的步骤：0）` | `build/evidence/verify_0930_1845.txt`、`build/evidence/verify_0930_1845.batt.txt`、串口那份原始回显（工具本机重写、不随包） |
 | 3 | `RESULT PASS geom_check（ok=8 fail=0）`：`G1a zoom fit 1 ⇒ lane23.bit19=1`（`lane23=0x800e4909`）、`G3x` 收尾把 fit 关掉 ⇒ bit19 回 0（`0x800621f4`）、`G4` 跑完整串 19 个几何位回到演示默认档（`geom=00400000`） | `build/evidence/verify_0930_1845.geom.txt` |
-| 4 | **没有盖章**：刷完之后开机读到的是 `zsel=4 zman=1` 而 `inv=265`（几分钟后同一位是 `inv=472`、`zcode=2`）—— 逐位拆开自洽，是 **#93 的旋转钳正在生效**（板子在自动旋转），不是默认档失灵。要补这一格得先把旋转钉住（`rot auto 0` 之后**读 OSD 的角度格**，不能只发命令就算，理由见账 #178/#175） | `build/evidence/verify_0930_1845.txt` 的开机回读段；账 `report/log/issues.md` 的"#175 又抓到一份活标本" |
-| 7 | `V9-6 温度格三方对账：4 条 [TEMP] 的 degC↔osd↔gpio 全部自洽`（在 105 条那一串里跑的） | `build/evidence/verify_0930_1845.batt.txt` |
-| 9 | 全设计 setup WNS **0.749 ns**、hold WHS **0.049 ns**、失败端点 **0 / 50887**（脉冲 WPWS 0.264、失败 0 / 12524）；BRAM **95** tile(67.86 %)、Slice LUT **14388**(27.05 %)、FF **8077**、DSP **19**、动态 **2.206 W**。逐时钟：`eth_rxc 0.749/0.049`（WNS 归属）、`clk_fpga_0 1.755/0.051`、`clkout0_1 0.840/0.062`、`sys_clk 14.272/0.121`。绝对值与 r94 之差**既不记收益也不记损失**（规矩 35）；端点 +4 与 #170 排空态新增的位同量级，这是结构观察不是改进 | `build/timing_summary.rpt`、`build/utilization.rpt`、`build/r96_gates.txt` |
-| 10 | `build/clock_util.rpt`（17:07 本版构建产）**重读到 `BUFIO = 0`**、`BUFGCTRL = 8`；本行原来那组"最差 20 条 hold 偏斜 0.013~0.349 ns"**这一轮没有逐条重读**（那是 r92 那一次的读法，文件也还在盘上） | `build/clock_util.rpt`、`build/hold_paths.rpt` |
+| 4 | **没有确认**：刷完之后开机读到的是 `zsel=4 zman=1` 而 `inv=265`（几分钟后同一位是 `inv=472`、`zcode=2`）—— 逐位拆开自洽，是旋转钳正在生效（板子当时在自动旋转），不是默认档失灵。要补这一格得先把旋转钉住：`rot auto 0` 之后**还要读屏上 `ROT:` 那一格的角度**，不能只发命令就算（过程记录见 `report/log/issues.md` 的 #178/#175） | `build/evidence/verify_0930_1845.txt` 的开机回读段 |
+| 7 | `V9-6 温度格三方对账：4 条 [TEMP] 的 degC↔osd↔gpio 全部自洽`（在那 105 条里跑的） | `build/evidence/verify_0930_1845.batt.txt` |
+| 9 | 全设计 setup WNS **0.749 ns**、hold WHS **0.049 ns**、失败端点 **0 / 50887**（脉冲 WPWS 0.264、失败 0 / 12524）；BRAM **95** tile(67.86 %)、Slice LUT **14388**(27.05 %)、FF **8077**、DSP **19**、动态 **2.206 W**。逐时钟：`eth_rxc 0.749/0.049`（WNS 归属）、`clk_fpga_0 1.755/0.051`、`clkout0_1 0.840/0.062`、`sys_clk 14.272/0.121`。两版之间绝对值之差不记收益也不记损失；端点数 +4 与那一轮排空态新增的位同量级，这是结构观察，不是改进 | `build/timing_summary.rpt`、`build/utilization.rpt`、`build/r96_gates.txt` |
+| 10 | `build/clock_util.rpt`（本版构建产）**重读到 `BUFIO = 0`**、`BUFGCTRL = 8`；本行原来那组"最差 20 条 hold 偏斜 0.013~0.349 ns"**这一版没有逐条重读**（那是更早一版的读法，文件还在盘上） | `build/clock_util.rpt`、`build/hold_paths.rpt` |
 
-**r96 这一版还欠两格，不打勾**：① #170/#171 的**板级**形态（拷贝中途被看门狗打断之后，撕裂帧不再显示、`eth_ready`
-读 0）——今天的 `--stream` 是"干净停流交回"，不是 abort 注入，模块级凭据齐而板级这一格空着；
-② #171 的**顶层**台架判据记为**未判**（守卫 `C11pre` 红，账 #187），要等下一次整屏。
+这一版还欠两格，不打勾：① 拷贝中途被看门狗打断之后，撕裂帧不再显示、`eth_ready` 读 0 ——
+那一轮的 `--stream` 是"干净停流交回"，不是 abort 注入，仿真台架那部分凭据齐而板级这一格空着；
+② 整屏台架的前置守卫记为**未判**（未通过的原因见 `report/log/issues.md` 的 #187），要等下一次整屏。
 
-## r97 重跑的那几行（2026-09-30 19:52 构建、22:15 刷板、22:15–22:24 机器验收；位流 `ef03eea4886e`，xsa `a50188e5f789`，elf `d0b07f84a068` 未变）
+## 机器那一半（第三张表：位流 `ef03eea4886e`）
 
-上表与 r96 那一节的原行**都不覆盖**（历史读数留着），这一节只记 r97 这一版重新建立起来的部分：
+前两张表的原行同样**不覆盖**，这一张只记这一版重新建立起来的部分：
 
-| 行 | r97 的读数 | 凭据 |
+| 行 | 读数 | 凭据 |
 |---|---|---|
-| 1 | `RST_SYSTEM: ok` / `PS7_INIT: ok` / `PS7_POST_CONFIG: ok` / `DDR_ECHO: 10000000: 5A5AA5A5` → `PROGRAMMED xc7z020_1 <- D:/…/build/system.bit` → `DOW: ok / CON: ok / RESUME: ok / FLOW_DONE`（只走 JTAG，**没碰 QSPI**） | `build/r97_flash_1_psboot.txt`、`build/r97_flash_2_program.txt`、`build/r97_flash_3_app.txt` |
-| 2 | `RESULT PASS uart_cmd_check（105 条命令, 97.8 s）`，而且**第一次"初态=末态"是绿的**——它同时满足 #177 那条：末态 = 演示默认档 `zman=1 zsel=4 geom=00400000` | `build/evidence/r97_batt_recheck.txt` |
-| 3 | `RESULT PASS geom_check（ok=10 fail=0）`：新增的 `G5`（`bit19 == (生效倍率偏离 256)`，样本 4 违例 0）与 `G5b`（**4/4 真钳住**）都在里面；`G3x` 从"bit19 回 0"改成判同一枚不变量（命令表里**没有把角度归零的动词** ⇒ 旧写法是判一个到不了的状态，见 `#200`） | `build/evidence/verify_0930_2215.txt`（第一次跑出 2 条红的那一份）与随后的 `geom_check` 复跑 |
-| 4 | `#175` 这一格**从"读得到"升级为"能被判"**：屏上 `Zoom` 那格、串口 `[STAT]`、lane23 回读三处现在说的是同一件事；开机档位这一轮落在**文档默认档**（`zman=1 zsel=4`），所以 r96 那行"没有盖章"的口径可以推进到"默认档已盖章，呼吸/自动档另记" | 同上 + `build/board_temp_r97.txt` 里那两条 `[STAT]` |
+| 1 | `RST_SYSTEM: ok` / `PS7_INIT: ok` / `PS7_POST_CONFIG: ok` / `DDR_ECHO: 10000000: 5A5AA5A5`，再 `PROGRAMMED xc7z020_1 <- build/system.bit`，收尾 `DOW: ok / CON: ok / RESUME: ok / FLOW_DONE`（只走 JTAG，**没碰 QSPI**） | `build/r97_flash_1_psboot.txt`、`build/r97_flash_2_program.txt`、`build/r97_flash_3_app.txt` |
+| 2 | `RESULT PASS uart_cmd_check（105 条命令, 97.8 s）`，而且**第一次"初态=末态"对上**——它同时满足那条要求：末态 = 演示默认档 `zman=1 zsel=4 geom=00400000` | `build/evidence/r97_batt_recheck.txt` |
+| 3 | `RESULT PASS geom_check（ok=10 fail=0）`：新增的 `G5`（`bit19 == (生效倍率偏离 256)`，样本 4 违例 0）与 `G5b`（**4/4 真钳住**）都在里面；`G3x` 从"bit19 回 0"改成判同一枚不变量（命令表里**没有把角度归零的动词** ⇒ 旧写法判的是一个到不了的状态，理由见 `report/log/issues.md` 的 #200） | `build/evidence/verify_0930_2215.txt`（第一次跑出 2 条不通过的那一份）与随后的 `geom_check` 复跑 |
+| 4 | 从"读得到"升级为"能被判"：屏上 `Zoom` 那格、串口 `[STAT]`、lane23 回读三处现在说的是同一件事；开机档位这一次落在**文档默认档**（`zman=1 zsel=4`），所以上一张表第 4 行那句"没有确认"可以推进到"默认档已确认，呼吸/自动档另记" | 同上 + `build/board_temp_r97.txt` 里那两条 `[STAT]` |
 | 7 | `V9-6 温度格三方对账：4 条 [TEMP] 的 degC↔osd↔gpio 全部自洽`；**并第一次把板读值抄进交付件**：`degC=63.38 / 63.17 / 63.13`（`raw 0xAAF2/0xAAD7/0xAAD2`、`vccint 997–998 mV`、屏上 `TEMP:63C`、`gpio=0x63`） | `build/board_temp_r97.txt`、`data/metrics.csv`（新增"片上结温（板读 XADC）"那一行） |
 | 9 | 全设计 setup WNS **0.720 ns**、hold WHS **0.033 ns**（含自加的 0.8 ns 不确定度）、失败端点 **0 / 50890**、脉冲 WPWS 0.264 / 0 / 12526；资源 **14379 LUT / 8079 FF / 95 tile / 19 DSP** | `build/timing_summary.rpt`、`build/utilization.rpt` |
 
-**r97 这一版还欠的格，明写着不打勾**：①`#170`/`#171` 的**板级 abort 注入**（拷贝中途被看门狗打断之后撕裂帧不再显示）仍是模块级凭据齐、板级空着；
-②整屏台架的 `C11pre` 守卫——今天查出红因是**激励侧没把屏交给 ETH**（`eth_live/eth_tb_ok` 没钉，`pl_video_top.v:114-115` 是这两位进顶层的口、`:396` 是交给仲裁器的那一跳、`:402`/`:430` 才是"这一拍搬运机归谁"与行写使能），修完之后**复跑在飞**，
-所以 r97 的门禁与冻结两行等那一份报告落地再补；③要肉眼与要手的三格（见下一节）仍归用户签。
+这一版还欠的格，明写着不打勾：① 板级的 abort 注入（拷贝中途被看门狗打断之后撕裂帧不再显示）
+仍是仿真台架凭据齐、板级空着；② 整屏台架的前置守卫查出的原因是**激励侧没把屏交给 ETH**
+（`eth_live`/`eth_tb_ok` 没钉；`src/rtl/top/pl_video_top.v:114-115` 是这两位进顶层的口、`:396` 是交给仲裁器的那一跳、
+`:402`/`:430` 才是"这一拍搬运机归谁"与行写使能），修完之后的复跑当时还在飞，
+所以这一版的发布前检查与版本归档两行等那一份报告落地再补；③ 要肉眼与要手的三格（见下一节）仍归人判。
 
-## 要肉眼确认的（机器判不了，所以先空着）
+## 需要人眼确认的（检查脚本判不了，所以先空着）
 
-| # | 看什么 | 怎么起 | 结果（谁点的头、什么时候） | 看不到时先看哪一格 |
+这一节的每一条都只能由看着屏幕的人确认；写"过"的都必须记是谁看的、在什么状态下看的。
+
+| # | 看什么 | 怎么起（命令与板态） | 谁判的、判成什么 | 看不到时先查哪里 |
 |---|---|---|---|---|
-| E1 | 分割线以左是原画面、以右是处理后的同一帧，两侧几何一致 | 双击 `send_demo.bat`，串口 `split 50` | **过（2026-09-30 06:2x，在场的人原话"现在都很正常"）**：右半的白线与红块和左半对得上 | 当时屏上：`--demo --fps 25` 推流中、`src=1`（PL 拥有 UDP 通路）、`split 50` ⇒ `pos=512/1024 manual`、`marker=off`、`zsel=4`（1.00×）、`bilin=1`。回读 `build/evidence/r92_eye_capture2.txt` |
-| E2 | 缩放/旋转时不出现整行错位、画面不出屏 | `zoom 0.5` → `rot auto 1`（`split 50` + 关标记线最好判）| **过（2026-09-30 06:5x–07:0x，在场的人原话"现在画面正常只有一条"）**：0.50× + 自动旋转下无整行错位、无左右错开的水平界线；此前他报过一次"隔一段距离的两条白线"，用**只改推流节奏**做了对照（29.76 fps 一条、复推 25 fps 仍一条）⇒ **未复现**，判为切换瞬间的暂态，不记缺陷；下次再看到要说清屏幕高度、以及是否随缩放档变化。<br>**2026-10-01 22:1x 在 r103 上重新点过一次（这一格现在验的是 #189 修完之后）**：在场的人原话"**1 rot 在走 zoom 是 0.52 没有 3 没有**"——即 `ROT:` 格在走，`0.52` 这个数字**在屏上找不到能显示它的格子**（`src/rtl/video/osd_overlay.v:288-295`：`Rot:` 那格印的是十进制度数 0..359 带 `°`，`Zoom:` 那格只有八档标签 `0.25/0.33/0.50/0.75/1.00/1.33/1.50/2.00x`，全树搜 `0.52x` 只在 `src/rtl/process/zoom/zoom_ctrl.v:59` 的一句**注释**里出现（那句讲的正是"分区源拿错就会屏上写 1.00x、画面上是 0.52x"），不是任何一格的标签）⇒ **已回问出处，未证实之前不当倍率读数用**，也不写"这正是 #189 的工况"这种话；问"有没有整行错位/沿角度的细鬼影"答**没有**，问"`split 50` 缝两侧同一行有没有上下错开"答**没有** ⇒ **过**。警告：两点如实保留：① 当时**标记线有没有关**未问到，所以"缝两侧"那一判是在标记状态未证下给的；② #189 的发生率台架量到 ≈ 0.27 %（3726 个旋转态像素命中 10 个），**这种稀疏度本来就不保证肉眼抓得到**，所以这一格"过"的意义是"没看到错位"，**不是**"逐行验过"——逐行那部分靠 `sim/tb_zoom_frac.v` 的 S1/S2/S3（本轮 21:1x 同族四份台架判定原文随件在 `build/r103_tb_*.txt`）。状态回读 `build/evidence/r93_e2b_capture.txt`、`build/evidence/r93_ab_state_capture.txt`（r93 那两次）；台架对应 `C2/C3/C9` 三段 + 旋转支小数位 `tb_zoom_frac` |
-| E3 | 移动白线与红块连续、无撕裂 | `send_demo.bat`（内置测试图每帧都动） | **过（同上，原话"现在都很正常"）** | 当时屏上：`--demo --fps 25` 推流中、`src=1`（PL 拥有 UDP 通路）、`split 50` ⇒ `pos=512/1024 manual`、`marker=off`、`zsel=4`（1.00×）、`bilin=1`。回读 `build/evidence/r92_eye_capture2.txt` |
-| E4 | **（r94/#93）** 旋转一开整幅就在屏内：45°/60° 时四个角都不戳出屏幕，左缘不再有沿对角的宽彩条与细线 |
-     `src 2` + `bilin on` + 手动 `zoom 1.0` + **`zoom fit 0`** + `rot auto 1 speed 0`（钳制要在"拟合关着"时才看得见）——
-     **屏已经摆在这一态**（`build/r95_eye_park.txt` 末态 `geom=00400A00` ⇒ rot auto=1、speed=2、fit=0，画面正在走）；
-     要停住判四角：串口 `rot auto 0` 就冻在**当前角度**（串口读不到角度，看屏上 `ROT:` 那一格），再按 KEY1/KEY2 走 ±1° |
-     **过（"四角在不在屏内"这一半 2026-10-04 08:3x 由队员判完，原话「现在屏幕没问题了四角都在屏幕内」**；板上 r118，bit `cd04907e1369`，判法就是本行左列那套：`src 2` 图卡 + `zoom fit` + `rot auto` 走到 45/60 档看四角）**（原先待判的是这一半。2026-10-02 早间新报的那条**顶部碎影不是出屏**，已归到 `#98` 的 `C5c`，见下面这段）<br>**2026-10-02 07:5x 顶部碎影——用户原话逐字**：「我看到旋转的视频四个角划过屏幕上面时角周围会有一些向左右分散的同视频角内容一样的颜色在顶部周围」；三条补充观测：「bilinoff 还在，四个角都有，我是开始 rot auto 看到的现象」「停住的时候没有」「bilin on 的时候比较明显，off 的时候几乎看不到」。<br>已排除的三条：① 角点出屏（`sim/tb_zoom_fit_corners.v` 在 0/30/45/60/90/270 六档 4/4 命中，`build/r104_tb_zoom_fit_corners_console.txt`）；② `zoom_fit` 与 `angle` 差一整帧（`zoom_fit.v:52-55`：输出晚两拍、且落在消隐里）；③ `fb_bilin` 末行末列抽头（`:46-54` 钉小数加折回，`#146` 已断言过）。<br>归到 `C5c` 帧头窗，逐格凭据 `build/evidence/r104_c5head_band.txt`：错的 8 格全在最上面 6 个显示行（`OFF_LINES` 4 加 `BILIN_ROWS` 2），顶部前 4 行显示源行 2 而定义要 0/0/1/1；本体行一格都不错。**bilin 那次 A/B 是可信的**：`gpio_o[19]` 经 `pl_video_top.v:255-266` 的三级同步进 `fb_bilin.bilin_en`（`#83` 已落地，`system_top.v:276` 是接线处）。板上做了速度扫描 1→2→4→6→7→6→4→2→1→0（07:52:53–07:54:38，每档约 7 秒）留给眼睛判"碎影随不随每帧角度步数变大"；`src 2` + `bilin on` + `zoom fit` 随 `rot auto 1` 一起开，末态 `rot show` 回读 `auto=1 speed=0`。<br>**08:0x 眼睛答回来了（两条原话）**：问"碎影是不是只贴在屏幕最上面那一条（约 6 行以内）、不管角转到屏上哪儿"⇒「角在顶部的时候才会有」；问扫的那轮 `rot speed` 1→2→4→6→7→6→4→2→1→0 里它随不随速度变宽变乱 ⇒「没有，跟速度看不出差」。<br>这两条一起把成因**收窄**了：第一条与"错只发生在屏顶那 6 行"对得上（`build/evidence/r104_c5head_band.txt` 量的正是这个窗口，本体行一格都不错）；第二条否掉的不是机制，而是那句**定量预测**——1°/帧在角点半径约 297 源像素处已经是约 5 个源像素的位移、早就过可见阈，所以"宽窄"这一档眼睛本来就分不出来；它真正分辨得开的是"有没有每帧换角"（0 与 ≥1 两档，正对应「停住的时候没有」与「角在顶部的时候才会有」）。⇒ 位移随角度步数这条关系交给机器量（任务表里那条「给 #98 补第二条尺子」），不该让眼睛判宽窄。<br>**这一格原本那半仍未判**（45°/60° 时四角在不在屏内、左缘有没有沿对角的宽彩条）。板子按你说的收回文档默认态：`rot auto 0` + `rot speed 0` + `zoom fit 0` + `zoom 1.0`，末态 `STAT` 回 `zsel=4 zman=1 bilin=1 geom=00400000`（今天接手时是 `geom=00400A00`，那时板子是转着的），回读落盘 `build/evidence/r104_rotfringe_state.txt` | 屏上 `ROT:` 那格在不在走、`(Fit)` 亮不亮（**屏上应当亮**：r94 把 OSD 的 `(Fit)` 接到了 `zoom_fit_en \| rot_forced`；
-     而 lane23 的 bit19 在这一态仍报 0，那是回读口的口径欠账 #175，不是屏上错了）|
-| E4r | **（r108 复看，登记原话，不当新增红）** 旋转时**屏幕顶部仍有分散的细线**；与已声明的 `C5c`（帧头那 OFF+2 行显示上一帧的尾）同族——本轮台架唯一那条红就是它，今天 08:1x 也已把这格做成板级可见 | 驱动串口设态、你只看两件事：**`rot auto 1 speed 0`**（角度停住）顶部还有没有细线；再 **`rot auto 1 speed 2`** 看它是不是只贴在**最上面几行** | **已答（2026-10-02 21:5x，板上 r108，bit 25bf35a9900e）：`speed 0` 角度停住时顶部干净，动起来才有 ⇒ 这是「每帧换角 × 帧头 6 行」的交互，不是纯帧头绕回**（#98 的读侧那一刀不足以盖住它，#167 要的两端对照就此定下） |
-| E5 | **（r99/#128）** OSD 的 `FPS:` 这一格数的是**写进屏的新帧**，不再是显示场同步：同一块板上，
-     15 fps 推流应读 ≈15、30 fps 应读 ≈30、图卡那一路应读 ≈59（旧那一版 r97 三档都读 59/60，
-     这是改动**前**的实测基线，所以只有 15 与 30 两档能分辨改没改成）|
-     串口 `src 1`（钉住网络那一路）→ 上位机 `python src/host/video_sender.py --demo --fps 15` → 看屏 L0；
-     再把命令换成 `--fps 30` 看同一格；最后串口 `src 0`（钉图卡）看它回到 ≈59。
-     警告：串口既没有 `[LINK]` 回包也没有 `FPS` 的数字回读（`src/host/ps/main.c` 里没有任何 fps 读者，实测 grep）
-     ⇒ 这一格**只能看屏**；屏幕读数不属于机器判据，也不进门禁 |
-     **过**（用户 2026-10-01 15:3x 在 r101 上目视三档，原话"第一个我看了和你说的都符合"；| 每"不通"各意味着什么：15 与 30 两档**仍读 59/60** ⇒ #128 没落地（不是屏坏），
-     回看 `src/rtl/util/shown_rate.v` 那三个源输入在这一态是不是真在跳（ETH 那一路是
-     `frame_ready && eth_link_pix`）；只有图卡档不对 ⇒ `frame_start` 那条支线；三档都对但数字**跳得凶** ⇒
-     1.000 s 窗口与源节奏的正常拍频，不是缺陷（面板 1344×625@50 MHz ⇒ 场频 59.5 Hz，见 `data/metrics.csv` 那行）。
-     机器那一半的凭据：变异对照 `build/mut_shown_rate_r97.txt`；台架 `sim/tb_shown_rate.v` 的 S1..S7
-     已在与 r99 同一棵树上重跑：`RESULT tb_shown_rate PASS`（13 条判据、0 FAIL，控制台 `build/r99_tb_shown_rate_console.txt`）|
-| E6 | **（#247 立案 → #256 定位根因 → #260 网表实测）上电那一度**：断电重上电、跑完三步 JTAG 链之后，**谁都不碰按键**，屏上 `ROT:` 那一格应当读 **0**。
-     现状（板上现在是 **r118**（bit `cd04907e1369`，2026-10-04 04:45 起飞三步 JTAG 链刷入，板级复验读数见 `build/evidence/r118_board/board_now.txt`（04:49:50 刷入，`board_verify --geom --battery` rc=0、判红步骤 0，同一份 `build/evidence/r118_board/board_verify_console.txt` 里 `drop_words → 0`、原始串口回显 4 行含 2 条 `[TEMP]` 落 `build/evidence/r118_serial_raw.txt`）；**01:50 那次 PASS 与 02:14 那次带 147 Mbps 真实流量的两次重读（`drop_words=0`、`pkt_err=0`，与回刷 r114 的 A/B 四个读数逐格相同）量的是上一版 r116，件 `build/evidence/r116_board/`、ISSUES #318——那两句不给 r118 借用（#332 同一族：现行句的基线必须是本版的件）**）；这一版**既带**武装门**也带**声明初值，另外多了 #262 的 `ASYNC_REG`（放置指令，不改上电值那条逻辑），所以**预期仍读 0**。**这一格已在 r118 上重判（2026-10-04 07:5x，读 0；判法与件见下一格）**：更早一次判过的是 r113（队员 2026-10-03 15:19，原话「是0已经修复了」，条件=冷上电、只跑三步链、不碰按键）；上一版 r110（bit `2bf95588978f`，两样都没有）读 **1** 已是历史记录 ⇒ 这一格读 1 就是"寄存器上电说谎"的现场证据（网表实测 `u_pl/u_k1/key_stable_reg` 在 r112 未修那份是 `FDRE INIT=1'b0`，件 `build/evidence/r113_ff_init.txt`；r113 修完那份全是 `INIT=1'b1`，件 `build/evidence/r113_ff_init_probe.txt` + 判定 `build/r113_powup_rejudge.txt`）|
-     前置：板子断电 ≥10 s（让 4.7 kΩ/100 nF 那两只脚彻底放掉），上电后只跑
-     `build/tcl/ps_jtag_boot.tcl` → `program_pl.tcl` → `ps_app_reload.tcl`（`bash build/board_verify.sh --round=rNN` 之前那三步），
-     **全程不碰 KEY1/KEY2**，然后只看屏第二行的 `ROT:` 那一格。要顺手分开两种解释，再做一次：
-     上电后**先按住 KEY1 不放**直到链子跑完再松手（这一次应当读到 1 度——它是"按住被认成一次短按"的正常路径）|
-     **过（2026-10-04 07:52 前，队员原话「0度」）**；条件按本节前置逐条满足：板子断电 ≥10 s 冷上电、之后只跑 `ps_jtag_boot.tcl`→`program_pl.tcl`→`ps_app_reload.tcl` 三步、全程没人碰 KEY1/KEY2，看的就是屏第二行 `ROT:` 那一格。三步的 rc 与读数落在 `build/evidence/r118_eyes/`（`state.txt` 汇总 + `step1_boot.txt` 的 `DDR_ECHO: 10000000: 5A5AA5A5`、`step2_program_pl.txt` 的 `PROGRAMMED xc7z020_1 <- build/system.bit`、`step3_app.txt` 的 `DOW: ok`、`uart_stat.txt` 的 `[STAT] … osd=1`），刷进 PL 的那块位流按 `md5sum build/system.bit` = `cd04907e1369da35d21c4090d552f5ee` 对回 `build/evidence/r118_bit/system.bit` 与 `build/evidence/r118_board/board_now.txt` 点名的 r118 身份行。**对照那一半仍未做**：上电后按住 KEY1 到链子跑完再松手、那一读应当是 1 度——它需要你再断一次电，所以这一条只登记"未判"，不写成过，也不影响上面这一读的结论*（板上现在是 **r118**（bit `cd04907e1369`，04:45 刷入）；r113 那一次判过是读 0（15:19，网表实测 `INIT=1'b1`，件 `build/evidence/r113_ff_init_probe.txt`）⇒ 现在读 1 **不再属预期**、必须读 0；r110/r112 那两版读 1 属预期，那是历史；串口读不到角度，`status` 口那 9 位在 `system_top` 没有读者，见 #247/#185）|
-     各"不"分别意味着什么（这一版按**量到的机理**重写，旧口径里"武装门就是正解"那句已经不成立）：
-     **冷上电读 0、按住那一次也读 0** ⇒ 两件事都在位：上电值不再说谎（#256 的修复），配置那一刻真按住也被武装门吞掉（#247 的意图）——这就是 r113 应有的样子；
-     **冷上电仍读 1** ⇒ 那次低电平是**真的**（位流 INIT 已经量到 1'b1，说谎这条路已被排除）⇒ 回到 #249 的成因清单（人手/振动/上一次会话残留），并且要再量一次网表确认刷进去的确实是 r113 那块 bit（`md5sum build/system.bit` 对 `build/r113_gates.txt` 的身份行）；
-     **冷上电 0、按住那一次读 1** ⇒ 与那一度无关，是武装门没吞住（看 `src/rtl/util/key_debounce.v` 的 `armed/acnt` 与 A 腿 `sim/tb_v113_key_powup.v`），属于"开机不许自己改状态"那条独立判据；
-     **冷上电读 1 且 `Src` 那格也变了** ⇒ 那次低电平跨过了 0.6 s 长按阈值，成因在**按住**一侧而不是毛刺一侧（C 腿的形状）；
-     两个键共用同一份模块（KEY2 的 −1° 吃 `u_k2` 的按下沿 `p2`，`pulse` 也要 `key_stable` 跳变才发，
-     所以这一支**同样**被初值与这道门管住；`u_k2/key_stable_reg` 的 INIT 也已经在同一份探针文本里量到 1'b1）|
+| E1 | 分割线以左是原画面、以右是处理后的同一帧，两侧几何一致 | 双击 `send_demo.bat`（推内置测试图），串口 `split 50` | **由在场的人目视确认**（原话"现在都很正常"）：右半的白线与红块和左半对得上。这条不是脚本判的，检查脚本读不到画面 | 当时屏上：`--demo --fps 25` 推流中、`src=1`（PL 拥有 UDP 通路）、`split 50` ⇒ `pos=512/1024 manual`、`marker=off`、`zsel=4`（1.00×）、`bilin=1`。回读 `build/evidence/r92_eye_capture2.txt` |
+| E2 | 缩放/旋转时不出现整行错位、画面不出屏 | `zoom 0.5` 再 `rot auto 1`（配 `split 50` + `split marker 0` 最好判）| **由在场的人目视确认**（原话"现在画面正常只有一条"）：0.50× + 自动旋转下无整行错位、无左右错开的水平界线。此前他报过一次"隔一段距离的两条白线"，用**只改推流节奏**做了对照（29.76 fps 一条、复推 25 fps 仍一条）⇒ **未复现**，判为切换瞬间的暂态，不记缺陷；下次再看到要说清屏幕高度、以及是否随缩放档变化。<br>另一版（那一次留的台架控制台是 `build/r103_tb_` 开头的那几份）上重新点过一次，这一格当时验的是旋转钳修完之后：在场的人原话"**1 rot 在走 zoom 是 0.52 没有 3 没有**"——即 `ROT:` 格在走，而 `0.52` 这个数字**在屏上找不到能显示它的格子**（`src/rtl/video/osd_overlay.v:288-295`：`Rot:` 那格印的是十进制度数 0..359 带 `°`，`Zoom:` 那格只有八档标签 `0.25/0.33/0.50/0.75/1.00/1.33/1.50/2.00x`，全树搜 `0.52x` 只在 `src/rtl/process/zoom/zoom_ctrl.v:59` 的一句**注释**里出现（那句讲的正是"分区源拿错就会屏上写 1.00x、画面上是 0.52x"），不是任何一格的标签）⇒ **已回问出处，未证实之前不当倍率读数用**，也不写"这正是那一条的工况"。问"有没有整行错位/沿角度的细鬼影"答**没有**，问"`split 50` 缝两侧同一行有没有上下错开"答**没有** ⇒ **过**。两点如实保留：① 当时**标记线有没有关**未问到，所以"缝两侧"那一判是在标记状态未证下给的；② 那一条的发生率台架量到 ≈ 0.27 %（3726 个旋转态像素命中 10 个），**这种稀疏度本来就不保证肉眼抓得到**，所以这一格"过"的意义是"没看到错位"，**不是**"逐行验过"——逐行那部分靠 `sim/tb_zoom_frac.v` 的 S1/S2/S3。状态回读 `build/evidence/r93_e2b_capture.txt`、`build/evidence/r93_ab_state_capture.txt`；台架对应 `C2/C3/C9` 三段 + 旋转支小数位 `tb_zoom_frac` | 先确认标记线与分割线的状态（`split marker 0` 之后再判缝两侧同一行）；若只在切换瞬间出现，用推流节奏做对照（慢一档与快一档各看一次），仍复现才记缺陷；逐行那部分不靠眼睛，看 `sim/tb_zoom_frac.v` 的 S1/S2/S3 |
+| E3 | 移动白线与红块连续、无撕裂 | `send_demo.bat`（内置测试图每帧都动） | **由在场的人目视确认**（原话"现在都很正常"） | 当时屏上：`--demo --fps 25` 推流中、`src=1`（PL 拥有 UDP 通路）、`split 50` ⇒ `pos=512/1024 manual`、`marker=off`、`zsel=4`（1.00×）、`bilin=1`。回读 `build/evidence/r92_eye_capture2.txt` |
+| E4 | 旋转一开整幅就在屏内：45°/60° 时四个角都不戳出屏幕，左缘不再有沿对角的宽彩条与细线 | `src 2`（图卡）+ `bilin on` + 手动 `zoom 1.0` + **`zoom fit 0`** + `rot auto 1 speed 0`（钳制要在"拟合关着"时才看得见）。屏已经摆在这一态（`build/r95_eye_park.txt` 末态 `geom=00400A00` ⇒ rot auto=1、speed=2、fit=0，画面正在走）；要停住判四角：串口 `rot auto 0` 就冻在**当前角度**（串口读不到角度，看屏上 `ROT:` 那一格），再按 KEY1/KEY2 走 ±1° | **"四角在不在屏内"这一半由在场的人在当前板上判完**（位流 `cd04907e1369`，原话「现在屏幕没问题了四角都在屏幕内」），判法就是中列那套：`src 2` 图卡 + `zoom fit` + `rot auto` 走到 45/60 档看四角。另一半（顶部碎影）的记录与仍未判的那半，写在表下面「E4 的补充」那一段。 | 先看屏上 `ROT:` 那格在不在走、`(Fit)` 亮不亮（**屏上应当亮**：OSD 的 `(Fit)` 接到了 `zoom_fit_en \| rot_forced`；而 lane23 的 bit19 在这一态仍报 0，那是回读口的口径欠账，不是屏上错了） |
+| E4r | 旋转时**屏幕顶部仍有分散的细线**（登记原话，不当新增未通过项）；与已声明的帧头那 OFF+2 行显示上一帧的尾同族 | 由人驱动串口设态、看的人只看两件事：**`rot auto 1 speed 0`**（角度停住）顶部还有没有细线；再 **`rot auto 1 speed 2`** 看它是不是只贴在**最上面几行** | **已由在场的人答过**（板上位流 `25bf35a9900e`）：`speed 0` 角度停住时顶部干净，动起来才有 ⇒ 这是「每帧换角 × 帧头 6 行」的交互，不是纯帧头绕回 | 同上那一条的逐格凭据 `build/evidence/r104_c5head_band.txt` |
+| E5 | OSD 的 `FPS:` 这一格数的是**写进屏的新帧**，不再是显示场同步：同一块板上，15 fps 推流应读 ≈15、30 fps 应读 ≈30、图卡那一路应读 ≈59（更早一版 `build/board_temp_r97.txt` 那一版三档都读 59/60，这是改动**前**的实测基线，所以只有 15 与 30 两档能分辨改没改成）| 串口 `src 1`（钉住网络那一路）→ 上位机 `python src/host/video_sender.py --demo --fps 15` → 看屏 L0；再把命令换成 `--fps 30` 看同一格；最后串口 `src 0`（钉图卡）看它回到 ≈59。串口既没有 `[LINK]` 回包也没有 `FPS` 的数字回读（`src/host/ps/main.c` 里没有任何 fps 读者）⇒ 这一格**只能看屏**；屏幕读数不属于机器判的那一半，也不进发布前检查 | **由在场的人在屏前目视三档确认**（更早一版，原话"第一个我看了和你说的都符合"）| 各"不通"意味着什么：15 与 30 两档**仍读 59/60** ⇒ 这一条没落地（不是屏坏），回看 `src/rtl/util/shown_rate.v` 那三个源输入在这一态是不是真在跳（ETH 那一路是 `frame_ready && eth_link_pix`）；只有图卡档不对 ⇒ `frame_start` 那条支线；三档都对但数字**跳得凶** ⇒ 1.000 s 窗口与源节奏的正常拍频，不是缺陷（面板 1344×625@50 MHz ⇒ 场频 59.5 Hz，见 `data/metrics.csv` 那行）。机器那一半的凭据：变异对照 `build/mut_shown_rate_r97.txt`；台架 `sim/tb_shown_rate.v` 的 S1..S7 已在同一棵树上重跑：`RESULT tb_shown_rate PASS`（13 条判据、0 FAIL，控制台 `build/r99_tb_shown_rate_console.txt`）|
+| E6 | **上电那一度**：断电重上电、跑完三步 JTAG 链之后**谁都不碰按键**，屏上 `ROT:` 那一格应当读 **0** | 前置：板子断电 ≥10 s（让 4.7 kΩ/100 nF 那两只脚彻底放掉），上电后只跑 `build/tcl/ps_jtag_boot.tcl` → `program_pl.tcl` → `ps_app_reload.tcl`（也就是 `bash build/board_verify.sh --round=rNN` 之前那三步），**全程不碰 KEY1/KEY2**，然后只看屏第二行的 `ROT:` 那一格。要顺手分开两种解释，再做一次：上电后**先按住 KEY1 不放**直到链子跑完再松手（这一次应当读到 1 度——它是"按住被认成一次短按"的正常路径） | **已由在场的人判过两次**：更早一版读 0（原话「是0已经修复了」，条件同上）；当前板上这一版（位流 `cd04907e1369`）也读 0（原话「0度」），三步的 rc 与读数落在 `build/evidence/r118_eyes/`（`state.txt` 汇总 + `step1_boot.txt` 的 `DDR_ECHO: 10000000: 5A5AA5A5`、`step2_program_pl.txt` 的 `PROGRAMMED xc7z020_1 <- build/system.bit`、`step3_app.txt` 的 `DOW: ok`、`uart_stat.txt` 的 `[STAT] … osd=1`），刷进 PL 的那块位流按 `md5sum build/system.bit` = `cd04907e1369da35d21c4090d552f5ee` 对回 `build/evidence/r118_bit/system.bit` 与 `build/evidence/r118_board/board_now.txt` 点名的身份行。**对照那一半仍未做**（按住 KEY1 那一次）：它需要再断一次电，所以只登记"未判"，不写成过，也不影响上面这一读 | 各"不"分别意味着什么：**冷上电读 0、按住那一次也读 0** ⇒ 上电值不再说谎、配置那一刻真按住也被武装门吞掉，这就是应有样子；**冷上电仍读 1** ⇒ 那次低电平是真的（位流初值已经量到 1'b1，"说谎"这条路已被排除），回到成因清单（人手/振动/上一次会话残留），并要再核一次网表确认刷进去的确实是本版那块位流（`md5sum build/system.bit` 对 `build/r113_gates.txt` 的身份行）；**冷上电 0、按住那一次读 1** ⇒ 与上电值无关，是武装门没吞住（看 `src/rtl/util/key_debounce.v` 的 `armed/acct` 与 `sim/tb_v113_key_powup.v`）；**冷上电读 1 且 `Src` 那格也变了** ⇒ 那次低电平跨过了 0.6 s 长按阈值，成因在**按住**一侧而不是毛刺一侧。两个键共用同一份模块（KEY2 的 −1° 吃 `u_k2` 的按下沿，`pulse` 也要 `key_stable` 跳变才发），所以这一支同样被初值与这道门管住 |
 
-这三条只有看的人点头之后才写"过"。**r92/r93：E1、E3 由在场的人口头确认（原话"现在都很正常"，06:2x）；E2 确认（原话"现在画面正常只有一条"，06:5x–07:0x，含 0.50× + 自动旋转与 25 / 29.76 两档推流的对照）⇒ 三条眼睛判据这一轮全部由人点头。**同一时间他还提了一句与判据无关的观感意见（测试图动画"太丑"）——记进任务，不当成红项，也不改动已经验完的那一块位流。
-（本轮已把屏摆成最好判的样子：`split 50` + `split marker 0` + 片源 ETH，命令与板上回读在 `build/evidence/r92_eye_setup.txt` / `build/evidence/r92_eye_capture.txt`。）
+
+**E4 的补充：顶部碎影（与“四角出屏”是两个问题）**
+
+顶部碎影是另一件事：在场的人原话逐字「我看到旋转的视频四个角划过屏幕上面时角周围会有一些向左右分散的同视频角内容一样的颜色在顶部周围」，三条补充观测「bilinoff 还在，四个角都有，我是开始 rot auto 看到的现象」「停住的时候没有」「bilin on 的时候比较明显，off 的时候几乎看不到」。
+已排除的三条：① 角点出屏（`sim/tb_zoom_fit_corners.v` 在 0/30/45/60/90/270 六档 4/4 命中，`build/r104_tb_zoom_fit_corners_console.txt`）；② `zoom_fit` 与 `angle` 差一整帧（`src/rtl/process/zoom/zoom_fit.v:52-55`：输出晚两拍、且落在消隐里）；③ `fb_bilin` 末行末列抽头（`:46-54` 钉小数加折回）。归到帧头窗那一条，逐格凭据 `build/evidence/r104_c5head_band.txt`：错的 8 格全在最上面 6 个显示行（`OFF_LINES` 4 加 `BILIN_ROWS` 2），顶部前 4 行显示源行 2 而定义要 0/0/1/1；本体行一格都不错。**bilin 那次对照是可信的**：`gpio_o[19]` 经 `src/rtl/top/pl_video_top.v:255-266` 的三级同步进 `fb_bilin.bilin_en`。板上还做过速度扫描 1→2→4→6→7→6→4→2→1→0（每档约 7 秒），留给眼睛判"碎影随不随每帧角度步数变大"；`src 2` + `bilin on` + `zoom fit` 随 `rot auto 1` 一起开，末态 `rot show` 回读 `auto=1 speed=0`。
+
+眼睛后来答了两条（原话）：问"碎影是不是只贴在屏幕最上面那一条（约 6 行以内）、不管角转到屏上哪儿"⇒「角在顶部的时候才会有」；问扫的那轮里它随不随速度变宽变乱 ⇒「没有，跟速度看不出差」。这两条一起把成因**收窄**：第一条与"错只发生在屏顶那 6 行"对得上；第二条否掉的不是机制，而是那句**定量预测**——1°/帧在角点半径约 297 源像素处已经是约 5 个源像素的位移、早就过可见阈，所以"宽窄"这一档眼睛本来就分不出来；它真正分辨得开的是"有没有每帧换角"（0 与 ≥1 两档，正对应「停住的时候没有」与「角在顶部的时候才会有」）。位移随角度步数这条关系交给仿真台架量，不该让眼睛判宽窄。
+
+这一格里还剩「左缘有没有沿对角的宽彩条」那一半**没有单独的目视记录**（四角在不在屏内那一半已由人在当前板上判过，见上表）。板子已收回文档默认态：`rot auto 0` + `rot speed 0` + `zoom fit 0` + `zoom 1.0`，末态 `STAT` 回 `zsel=4 zman=1 bilin=1 geom=00400000`（接手时是 `geom=00400A00`，那时板子是转着的），回读落盘 `build/evidence/r104_rotfringe_state.txt`。
+
+要眼睛的那几格只有看的人点头之后才写"过"：E1、E3 由在场的人口头确认（原话"现在都很正常"）；
+E2 由在场的人确认（原话"现在画面正常只有一条"，含 0.50× + 自动旋转与 25 / 29.76 两档推流的对照）
+⇒ 这三条由人点头。同一时间他还提了一句与检查项无关的观感意见
+（测试图动画"太丑"）——记进任务，不当成未通过项，也不改动已经验完的那一块位流。
+那一次已把屏摆成最好判的样子：`split 50` + `split marker 0` + 片源 ETH，命令与板上回读在
+`build/evidence/r92_eye_setup.txt` / `build/evidence/r92_eye_capture.txt`。
 
 ## 结论
 
-- 机器判据 10 条全部通过（第 10 条是 #57 的结构判据），凭据都在表里点名；
+- 机器判的那一半 10 条全部通过（第 10 条看的是"收口只走一棵时钟树"这件结构上的事），凭据都在表里点名；
+- 需要人眼确认的六格（E1–E6）里，还剩两半没有目视记录：E4 的「左缘有没有沿对角的宽彩条」与 E6 的「按住 KEY1 那一次应当读到 1 度」，都写在表里没打勾；
 - 已知未修项（大角度旋转角点出屏、SD 播放中拔卡冻帧等）在 `report/known_issues.md`，这里不重复；
-- 门禁的**项数与红绿以 `bash build/gates.sh` 打印的那一行为准**，本表不复制它，以免两处漂。
+- 发布前检查（`bash build/gates.sh` 逐项读回报告并与阈值比）的项数与结果以它自己打印的那一行为准，
+  本表不复制它，以免两处漂。

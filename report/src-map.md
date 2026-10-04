@@ -1,12 +1,16 @@
 # 源码地图（`src/` 逐文件的四列现算表）
 
-本文件由 `node build/r120_src_map.mjs` 生成，重定向进 `report/src-map.md`；本次覆盖 **83 个源文件**（= git 跟踪的 src/ 下 *.v/*.c/*.h 数，两个数由脚本现算比对，不一致就 REFUSE 不出图）。
+这张表由 `node build/r120_src_map.mjs` 生成，输出重定向进 `report/src-map.md`，覆盖 **83 个源文件**。
+表里的文件数与 git 跟踪的 `src/` 下 *.v/*.c/*.h 数量由脚本现算并比对，两个数不一致时脚本拒绝出图。
 
-## 这四列能回答什么、不能回答什么
+## 这四列的用途与边界
 
-- **能**：某个模块在哪个文件、文件多大、作者自己在头注里写的第一句是什么（逐字搬运，不改写）。
-- **不能**：数据流顺序、时钟域归属、寄存器位序——那些分别在各文档里有权威口径，本表不复制，复制就会有两份真相。指路：数据通路看 `report/architecture.md`，时钟域看 `report/board_pins.md` 与 `report/build.md`，寄存器看 `skills/runtime/register-map-and-readback/SKILL.md`，台架对应关系看 `sim/README.md`。
-- 头注列为空的有 0 个文件（照实留空，不替它补句子）。
+- **能**：某个模块在哪个文件、文件多大、那个文件头注的第一句是什么（逐字搬运，不改写）。
+- **不能**：数据流顺序、时钟域归属、寄存器位序。这些数据由各自的文档单点维护，这张表只提供
+  四列，免得同一份数据出现两个口径。指路：数据通路看 `report/architecture.md`，时钟域看 `report/board_pins.md` 与
+  `report/build.md`，寄存器看 `skills/runtime/register-map-and-readback/SKILL.md`，
+  台架（`sim/` 下的仿真测试例）与模块的对应关系看 `sim/README.md`。
+- 头注列为空的文件有 0 个；这一列由脚本原样抄头注，不代写内容。
 
 | 路径 | 声明的 module | 行数 | 文件头注第一行（逐字） |
 | --- | --- | --- | --- |

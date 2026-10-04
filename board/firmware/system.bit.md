@@ -19,19 +19,17 @@
 | 源码指纹（起飞前打的） | `build/evidence/r118_tree_fp.txt`：`fpver=norm1`、`files=80`、`top=56c269602e18`、`rtl=07570b1ac1b4`；指纹的定义与算法在 `build/rtl_fingerprint.sh:1-25`（norm1 = 每份 `.v` 先 `tr -d '\r'` 再 md5，按 C 排序后合一次取 12 位） |
 | 构建日志 | `build/r118_build_console.txt`（Vivado 2025.2.1，`SW Build 6403652`；结尾 `SYSTEM BUILD DONE`，退出时间 2026-10-04 04:37:57） |
 | 轮次身份三件套（bit/xsa/elf 同一条） | `build/r118_gates.txt:3-5`：`system.bit md5=cd04907e1369` / `system.xsa md5=934ebdbaa13b` / `ps_app.elf md5=d0b07f84a068` |
-| 门禁 | `build/r118_gates.txt`：`判定 24 项、未判 0`，末行 `GATES: 有红项（判定 24 项）—— 不采纳，保留上一版`；唯一红项是**已声明过**的 `C5c` 顶层台架那一项（口径见 `README.md:56`） |
+| 门禁 | `build/r118_gates.txt`：`判定 24 项、未判 0`，末行 `GATES: 有红项（判定 24 项）—— 不采纳，保留上一版`；唯一红项是**已声明过**的 `C5c` 顶层台架那一项（口径见 README.md 的「限制与未通过项」一节） |
 | 采纳判读 | `build/r118_verdict.txt`、`build/evidence/r118_strict_b1.txt`（B1 严格名册 `pairs_compared=8 losses=0 verdict=GREEN`） |
 | 采用工件存档 | `build/evidence/r118_bit/system.bit` + `build/evidence/r118_bit/md5.txt`（本轮实测两者与 `build/system.bit` 同一个 md5：`cd04907e1369da35d21c4090d552f5ee`） |
 | 板上身份（最后一次记录） | `build/evidence/r118_board/board_now.txt`：「板上现在 = r118（刷入 2026-10-04 04:49:50，bit_cycle rc=0 board_verify rc=0）」；眼睛签收与刷入三步 rc 在 `build/evidence/r118_eyes/`（`step2_program_pl.txt` 的 `PROGRAMMED xc7z020_1 <- build/system.bit`） |
 
-警告：**`build/provenance.md`（P16a 质量判据 2 要求指过去的那一份）现在还不存在**
-—— 它由 P15a 点名、`report/run-queue.md:25` 标"待开"。所以本卡把"哪一轮"指到**真实存在的轮次件**
-（上表 8 行），而不是写一个指向缺失文件的链接。已进 `report/questions-for-team.md`（Q-P16a-4）。
+本卡把"哪一轮"指向上表那些真实存在的轮次件；跨轮的身份登记在 `build/provenance.md`（在盘上，本卡不重抄它的行）。
 
 ## 2. 如何再生成（真实命令；本轮**没有跑**）
 
 ```bash
-# 唯一规范入口（README.md:35 与 build/tcl/README.md §1 同一条）
+# 唯一规范入口（README.md 的「构建」一节，原引内容在本版 README 已无对应段落；与 build/tcl/README.md §1 同一条）
 vivado -mode batch -source build/tcl/build_system_axigpio.tcl
 # 它会原地覆盖 build/system.bit、build/system.xsa 与 build/ 下那六份报告
 # 起飞前先打指纹（链子里就是这么排的，build/r118_chain.sh:27）
@@ -51,12 +49,12 @@ bash build/rtl_fingerprint.sh > build/evidence/rXXX_tree_fp.txt
 ## 3. 它怎么进板（加载方式与易失性）
 
 ```bash
-vivado -mode batch -source build/tcl/program_pl.tcl        # README.md:40 的那一条
+vivado -mode batch -source build/tcl/program_pl.tcl        # README.md 的「上板与验证」那一条（原引内容在本版 README 已无对应段落）
 ```
 
 - 只走 **JTAG**：`build/tcl/program_pl.tcl:15-28`（`open_hw_manager` → `connect_hw_server` →
   在链上按 `PART =~ "xc7z020*"` 选器件 → `set_property PROGRAM.FILE` → `program_hw_devices`）。
-  **不写 QSPI/SPI flash**（`README.md:38`、`report/demo_script.md:28`）。
+  **不写 QSPI/SPI flash**（README.md 的「上板与验证」一节，原引内容在本版 README 已无对应段落；另 `report/demo_script.md:28`）。
 - 可以指到别处的位流做 A/B 对照：`VP_BIT=<路径>`（`build/tcl/program_pl.tcl:10-12`；
   实例：`build/r117_board.sh:13` 那句 `VP_BIT=build/evidence/r116_bit/system.bit bash build/r116_bit_cycle.sh r116back`）。
 - **易失**：断电就没了，重上电后 PL 是空的。⇒ 冷上电后必须重跑这一条。

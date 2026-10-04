@@ -1,23 +1,25 @@
 # 模块清单（`src/rtl/` 逐目录）
 
-读这份表的三条口径：
+这份表按 `src/rtl/` 的目录列出每个 RTL 文件是什么、被谁例化、有没有对应的仿真台架。
+"台架"在下文一律指 `sim/` 下的 Verilog 测试例（testbench），它不跑在板上。读这张表之前先对齐三件事：
 
-1. **例化者**一栏只写当前代码里真实存在的例化位置（`文件:行`）。写"未例化"就是从这个顶层不可达；
-   写"仅台架"是只有 `sim/` 下的测试例化它。这个集合用综合日志复核过：下面 13 个文件不出现在
-   `Synth 8-6157` 行里（口径与判据见 `build/orphan_rtl.sh:2-13`）——
+1. **例化者**一栏只写当前代码里真实存在的例化位置（`文件:行`）。写"未例化"就是从综合顶层不可达；
+   写"仅台架"是只有 `sim/` 下的测试例例化它。这个判断另用综合日志复核了一遍：综合日志里的
+   `Synth 8-6157`（`synthesizing module 'X'`）只对从顶层可达的模块出现，下面 13 个文件不在那些行里，
+   复核脚本与它的通过条件写在 `build/orphan_rtl.sh:2-13`（它报的是"这一版构建里没有"，不是"永远没用"）——
    `axi_frame_saver`、`axi_frame_saver_burst`、`axi_frame_writer`、`color_bar`、`fb_rd5x`、
    `frame_buffer`、`frame_buffer_db`、`line_cache`、`pl_demo_top`、`rotate_mapper`、
    `tap_sched`、`udp_rx`、`video_timing_720p`（13 个）。
-2. 综合收的文件清单 = `build/tcl/build_system_axigpio.tcl:12-17`（各目录整体 + 两个顶层），
-   顶层 = `system_top`（同文件 `:232`）；不在清单里的可达性无从谈起。
-3. 原理、常数、时钟域、门禁对应关系都在 `report/architecture.md`，这里不重复。
+2. 综合收录的文件清单来自 `build/tcl/build_system_axigpio.tcl:24-30`（各目录整体 + 两个顶层），
+   综合顶层是 `system_top`（同文件 `:288`）；不在这份清单里的文件谈不上可达性。
+3. 原理、常数、时钟域、"改动某处要先看哪个台架"都在 `report/architecture.md`。
 
 ## top/
 
 | 模块 | 职责 | 例化者 | 台架 |
 |------|------|--------|------|
-| `system_top` | 板上顶层：PS Block Design + PL ETH + PL 视频三者的连线，lane 读回口在这一层 | 综合顶层 | 无（第 14 项 `check_ports.py` 判接线） |
-| `pl_video_top` | 显示主通路：栅格、几何、帧缓存读写、两条抽头、混合、OSD、TMDS、仲裁与观测 | `system_top.v:258`、`pl_demo_top.v:20` | `tb_v98_top_seam`（唯一例化它的台架，门禁第 15 项认其报告） |
+| `system_top` | 板上顶层：PS Block Design + PL ETH + PL 视频三者的连线，lane 读回口在这一层 | 综合顶层 | 无（发布前检查第 14 项用 `build/check_ports.py` 检查接线） |
+| `pl_video_top` | 显示主通路：栅格、几何、帧缓存读写、两条抽头、混合、OSD、TMDS、仲裁与观测 | `system_top.v:258`、`pl_demo_top.v:20` | `tb_v98_top_seam`（唯一例化它的台架；发布前检查第 15 项读它的报告） |
 | `pl_demo_top` | 无 PS 的纯 PL 演示顶层（GPIO 全钉常量） | 未例化，且不在构建清单里 | — |
 
 ## clocks/
@@ -52,7 +54,7 @@
 | `split_ctrl` | 分割线的**位置**发生器：手动百分比 / 自动扫描 / 跟随画面端点 / 交换两侧 | `pl_video_top.v:885` | `tb_v93_split_ctrl` |
 | `seam_src` | 把缝从显示列搬到图像列：在源坐标那一拍判定这一格属原图还是处理图，线跟着画面转 | `pl_video_top.v:904` | 无独立台架（经 `tb_v98` 的 C1~C3 覆盖） |
 | `split_display` | 逐像素二选一 + 2 图像列宽的标记线 + OOB 涂黑，输出一拍后的 RGB/de | `pl_video_top.v:911` | `tb_v97_seam_scan`（四份配置对照） |
-| `osd_overlay` | 5 行状态叠加（面板/FPS/Src——`FPS` 数的是**写进屏的新帧**（`src/rtl/util/shown_rate.v`，顶层例化在 `src/rtl/top/pl_video_top.v:915`；#128 改的口径。警告 板上那一版 r97 仍是显示场计数 ⇒ 读数还是 59/60，改完要等 r99 上板才算数（r98 被门禁拒了、没上板））；Pipe/Th/Gamma、Rot/Zoom、Split/Latency、Temp/无信号），5×7 字模 ×3；端口 `osd_en`（0 = 输出逐位等于背景，由 `gpio_o[20]` 反相驱动） | `pl_video_top.v:999` | `tb_osd_lines`（T13 成对）、`tb_v794_osd_glyph`、`tb_v98` 的 C12 |
+| `osd_overlay` | 5 行状态叠加（面板/FPS/Src；Pipe/Th/Gamma、Rot/Zoom、Split/Latency、Temp/无信号），5×7 字模 ×3。`FPS:` 这一格数的是**写进屏的新帧**，计数器是 `src/rtl/util/shown_rate.v`，顶层例化在 `src/rtl/top/pl_video_top.v:941`。这一格的计数写法换过一次：在换成数新帧之前，这一格数的是扫过屏的显示场 ⇒ 屏上恒读 59 或 60，那是面板场频不是片源帧率；两段的推导与验证记录在 `report/log/issues.md` #128、#157。端口 `osd_en`（0 = 输出逐位等于背景，由 `gpio_o[20]` 反相驱动） | `pl_video_top.v:999` | `tb_osd_lines`（T13 成对）、`tb_v794_osd_glyph`、`tb_v98` 的 C12 |
 | `test_card` | 图卡片源：移动块 + 帧号二值格 + 八色彩条，自带"通路在不在刷新"的判读点 | `pl_video_top.v:759` | `tb_v81_test_card`、`tb_v83_card_render` |
 | `color_bar` | 静止彩条（图卡的上一版） | 未例化 | `tb_v81_test_card` 里作对照例化 |
 | `gamma_lut` | 效果链级 0：256 项 8bit 表，PS 逐项目写入；组合读出、不加拍 | `proc_pipeline.v:102` | `tb_v88_gamma` |
@@ -90,7 +92,7 @@
 | `sin_rom` / `cos_rom` | 360 项 Q8 三角表（角度 0..359，值是 10 位有符号：`cos(0)=10'sd256`，不是 255） | `zoom_mapper.v:22`、`zoom_fit.v:20` | — |
 | `rotate_mapper` | 独立的旋转逆映射器 | 未例化（旋转已并进 `zoom_mapper`） | `tb_rotate_mapper` |
 | `zoom_mapper` | 唯一的视口逆映射：缩放 ⊕ 旋转同级，3 级流水，出 `sx,sy,oob,frac_x,frac_y` | `pl_video_top.v:343` | `tb_zoom_mapper`、`tb_v96_zoom_scan` |
-| `zoom_ctrl` | 缩放来源选择与自动呼吸：八档表 + 手动档 + 拟合档，外加旋转态那一钳（#93：生效倍率不许超出 fit ⇒ 整幅在屏内，代价是旋转时不给放大，档号不丢），`inv_used` 是唯一读数、`rot_forced` 只喂 OSD 的 `(Fit)` | `pl_video_top.v:325` | `tb_v94_zoom_sel`（T8a~T8f）、`tb_v100_fit_rot`、`tb_zoom_mapper` |
+| `zoom_ctrl` | 缩放来源选择与自动呼吸：八档表 + 手动档 + 拟合档，外加旋转态那一钳：旋转生效时倍率不许超出 fit 档，整幅画面因此在屏内，代价是旋转时不给放大，手动档号不丢；`inv_used` 是唯一读数、`rot_forced` 只喂 OSD 的 `(Fit)` | `pl_video_top.v:325` | `tb_v94_zoom_sel`（T8a~T8f）、`tb_v100_fit_rot`、`tb_zoom_mapper` |
 | `zoom_fit` | 按角度算出"刚好装得下"的 `inv_fit` | `pl_video_top.v:322` | `tb_v100_fit_rot` |
 | `zoom_snap` | 把像素域真在用的缩放状态打成准静态总线 + 合法跨域沿，供 lane23 回读 | `pl_video_top.v:652` | `tb_v95_zoom_snap` |
 
@@ -101,8 +103,8 @@
 | `key_debounce` | 低有效按键消抖 + 单拍脉冲（`CNT_MAX` 由调用处给） | `pl_video_top.v:136,139,139` | 无独立台架 |
 | `key_long` | 同一按键的长按语义：短按松手才发、长按发**翻转位** | `pl_video_top.v:148` | `tb_v87_key_long` |
 | `src_mode` | 长按翻转位 → 四态片源模式（自动/锁 ETH/锁 SD/锁图卡），命令覆盖优先于按键 | `pl_video_top.v:157` | `tb_v82_src_mode` |
-| `src_arb` | DDR→帧缓存这台搬运机归谁：判据 + "两个引擎都空闲"才换手 + 让位延时 | `pl_video_top.v:421` | `tb_v796_src_arb` |
-| `src_life` | 活判据"此刻还有没有片源"：PS 发布心跳 500 ms 看门狗，没有就落图卡 | `pl_video_top.v:588` | `tb_v102_src_life` |
+| `src_arb` | DDR→帧缓存这台搬运机归谁：交换条件 + "两个引擎都空闲"才换手 + 让位延时 | `pl_video_top.v:421` | `tb_v796_src_arb` |
+| `src_life` | "此刻还有没有片源"的在线条件：PS 发布心跳 500 ms 看门狗，没有就落图卡 | `pl_video_top.v:588` | `tb_v102_src_life` |
 | `ps_publish` | PS 发布翻转位的跨域 + 挂起：一次发布恰好一次消费 | `pl_video_top.v:564` | `tb_ps_publish` |
 
 ## eth/
@@ -111,7 +113,7 @@
 |------|------|--------|------|
 | `eth_udp_video_top` | RGMII→协议栈→拼帧→CDC→打包写 DDR 的容器，含乒乓基址与提交脉冲 | `system_top.v:154` | `tb_v6_pingpong`、`tb_v6_ingress_integrity`、`tb_v5_bank`、`tb_link_monitor` |
 | `gmii_to_rgmii` | RGMII ↔ GMII 的壳：BUFG 收钟 + IDELAYCTRL + 收/发两侧 | `eth_udp_video_top.v:73` | — |
-| `rgmii_rx` | IDDR(`SAME_EDGE_PIPELINED`) **吃 BUFG**（#57 之后 IO 与 fabric 同一棵树）+ IDELAYE2(FIXED, 参考 200 MHz, `IDELAY_VALUE=26`) | `gmii_to_rgmii.v:28` | — |
+| `rgmii_rx` | IDDR(`SAME_EDGE_PIPELINED`) **吃 BUFG**（IO 与 fabric 现在共用同一棵钟树）+ IDELAYE2(FIXED, 参考 200 MHz, `IDELAY_VALUE=31`) | `gmii_to_rgmii.v:28` | — |
 | `rgmii_tx` | ODDR 双沿拼 4bit + TX_CTL | `gmii_to_rgmii.v:42` | — |
 | `gmii_rx_mac` | 去前导/SFD、按字节数与自己算的 FCS-32 判包好坏，出 `m_good/m_bad` | `eth_udp_video_top.v:186` | `tb_v795_rx_fcs` |
 | `udp_rx_parser` | 按下标解 IPv4/UDP + 目的端口过滤，出 `p_sof/p_eof/p_good` | `eth_udp_video_top.v:197` | `tb_udp_parser`、`tb_v795_rx_chain` |
@@ -120,7 +122,7 @@
 | `axi_frame_saver64` | 16bit→64bit 打包 + AXI3 写 DDR：`AWLEN=0` 的单拍写、AW/W 并行挂出、在途 OST=8（B 只回收计数） | `eth_udp_video_top.v:354` | `tb_v5_bank`、`tb_v6_pingpong`、`tb_v6_tail_bank`、`tb_v6_ingress_integrity` |
 | `ddr_bank_commit` | 换 bank 必须等本帧数据全部穿过 CDC，之后发 `commit_pulse` + 完成基址 | `eth_udp_video_top.v:330` | `tb_v6_pingpong`、`tb_v6_tail_bank` |
 | `link_monitor` | 链路健康计数：丢字、坏包、缺行、断流 ms、帧间隔 min/last/max/Σ，打包 10 条 lane + 心跳 | `eth_udp_video_top.v:284` | `tb_link_monitor` |
-| `eth_ctrl` | 发送侧仲裁与 GMII 出口复用（ARP/ICMP/UDP 三路） | `eth_udp_video_top.v:206` | **没有台架例化本层**（原来那支单测随 KU5P 那棵树一并撤出，2026-09-28）⇒ 它的行为只由顶层台架端到端覆盖，本行的"验证"栏因此是空的。它的用户收发口在本层无下游：`fifo_tx_*`/`fifo_rec_*` 只在 `:111-113` 声明、`:218-219` 连线 |
+| `eth_ctrl` | 发送侧仲裁与 GMII 出口复用（ARP/ICMP/UDP 三路） | `eth_udp_video_top.v:206` | 没有仿真台架直接例化这一层：原先那支单测随第二块板（RK-XCKU5P-F）的工程目录一并移出仓库，因此这一层只被顶层台架的端到端路径覆盖，这一列没有独立条目。另有一处缺口要写明：它的通用用户 FIFO 口在本层没有对端——`fifo_tx_data`/`fifo_tx_req`/`fifo_rec_en`/`fifo_rec_data` 只在 `eth_udp_video_top.v:114-116` 声明、`:219-220` 连进来，本层再没有别的驱动或读者 |
 | `snap_cross` | 「准静态总线 + 跳变沿」跨域器，带心跳丢失/变慢两种上报 | `system_top.v:214`、`pl_video_top.v:674,876,980` | `tb_link_monitor`、`tb_v95_zoom_snap` |
 | `sync_fifo` | 同钟 FIFO（读出寄存一拍、空满比指针最高位；存储无异步复位 + `ram_style=block`） | `eth_udp_video_top.v:119`（ICMP 载荷） | `tb_sync_fifo` |
 | `crc32_d8` | 反射 CRC-32 逐字节核 | `udp_tx.v`、`gmii_rx_mac.v`、`arp.v`、`icmp.v` | `tb_crc32` |

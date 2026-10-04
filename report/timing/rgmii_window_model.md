@@ -58,7 +58,7 @@ B 里那条"异步组加 `-include_generated_clocks`"**不是放松**：今天 I
 
 ## 4. 预先登记的判据（写在这份件产出的时刻，结果出来之后不许改口径）
 
-副本树：`D:/Xilinx/Prj/pro/c2_scratch_1003`（起点 fp 与主树逐位相同：`files=80 top=56c269602e18 rtl=3969247aaf7f`）。
+副本树：`（本轮独立副本树）/`（起点 fp 与主树逐位相同：`files=80 top=56c269602e18 rtl=3969247aaf7f`）。
 变量两处、缺一不可：`rgmii_rx.v` 的 MMCM + `rk_zynq7020.xdc` 末尾那 4 行窗。
 
 - **S1 这一刀要关住的东西**：`eth_rxc` 域 hold 头条 **WHS ≥ 0 且 I/O hold 失败端点 = 0**
@@ -84,7 +84,7 @@ B 里那条"异步组加 `-include_generated_clocks`"**不是放松**：今天 I
 **先前状态**：候选件 `src/constraints/r114_io_async.xdc:39-43` 用的是 ±0.500 ns（RGMII 汇总页给的"沿对齐公差"），
 并且文件里写着"本机取不到规范原文"。**这个说法现在被推翻了**：
 
-- 手册就在本地：`D:/Xilinx/Resource/ZYNQ7020/Board_Resource/芯片手册/C187932_以太网芯片_RTL8211F-CG_规格书_REALTEK(瑞昱)以太网芯片规格书.PDF`
+- 手册就在本地：`（本机厂商资料目录）/ZYNQ7020/Board_Resource/芯片手册/C187932_以太网芯片_RTL8211F-CG_规格书_REALTEK(瑞昱)以太网芯片规格书.PDF`
   （69 页，Track ID **JATR-8275-15 Rev. 1.4**）。取数方式：本机 `pip install pypdf` 后按文本抽取
   （`Read` 工具读 PDF 要 poppler，本机没装 ⇒ 这是一条真实的环境限制，不是"文档不存在"）。
 - **Table 60 "RGMII Timing Parameters"（手册第 60 页 = PDF 第 67 页）** 原文读数：
@@ -144,7 +144,7 @@ tap 26 的实测斜率 ≈63 ps/tap（`build/evidence/r114_idelay_sweep_console.
 ## 7. 副本树跑完了：这一刀**不成立**，而且它顺手暴露了一件更值钱的事（00:01）
 
 件：`build/evidence/r115_c2_scratch/`（`verdict_header.txt` 的 C2V 行、`io_probe_console.txt` 的逐段读数、
-`probe_console.txt` 的 CLKROW、`roster_diff_vs_baseline.txt`）。副本树 = `D:/Xilinx/Prj/pro/c2_scratch_1003`，
+`probe_console.txt` 的 CLKROW、`roster_diff_vs_baseline.txt`）。副本树 = `（本轮独立副本树）/`，
 **主树 `src/` 一字未动**（板上仍是 r114）。
 
 | 判据 | 结果 | 读数 |

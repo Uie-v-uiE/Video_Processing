@@ -2,7 +2,7 @@
 
 任务来源：用户 2026-10-04 00:44 的话——"时序怎么优化不要我[管]，你自己决定；我明天醒来要看到优化最后一轮；
 按照文档中的内容；我只要结果；全局的时钟都到最优物理极限"。
-文档 = `C:/Users/wenqu/Documents/Qoder/2026-10-03/6c22b30a/timing-global-round-prompt.md`
+文档 = `（本机用户目录）/Documents/Qoder/2026-10-03/6c22b30a/timing-global-round-prompt.md`
 （与 r115 那份是同一份提示词，口径不变）。
 
 ## 一、本轮进构建的两刀（都在 01:13 之前落好，指纹 `rtl=07570b1ac1b4`）

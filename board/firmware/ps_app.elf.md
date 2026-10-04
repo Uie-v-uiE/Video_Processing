@@ -68,7 +68,7 @@ Python 那条路线的退出码分三档（2 = 输入不在 / 1 = 编译链接�
 ## 3. 它怎么进板（加载方式与易失性）
 
 ```bash
-<Vitis>/bin/xsdb.bat build/tcl/ps_app_reload.tcl        # README.md:41 那一条；可跟一个别的 .elf 路径
+<Vitis>/bin/xsdb.bat build/tcl/ps_app_reload.tcl        # README.md 的「上板与验证」一节那一条（原引内容在本版 README 已无对应段落）；可跟一个别的 .elf 路径
 ```
 
 - 只做 `rst -processor`（复位 Cortex-A9）+ `dow $elf` + `con` ⇒ **不动 PL 配置**，

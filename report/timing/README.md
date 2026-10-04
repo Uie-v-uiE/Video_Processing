@@ -10,7 +10,7 @@
 
 | 提示词要求 | 实值 | 我是从哪儿读到的 |
 |---|---|---|
-| 仓库根目录 | `D:/Xilinx/Prj/pro/Video_Processing` | `git rev-parse --show-toplevel`（本轮所有命令的工作目录） |
+| 仓库根目录 | 不写死盘上位置 | `git rev-parse --show-toplevel`（本轮所有命令的工作目录） |
 | 约束文件（全部 xdc + 顺序） | **r116 起是 3 份**：① `src/constraints/rk_zynq7020.xdc` ② `src/constraints/clock_groups_impl.xdc` ③ `src/constraints/r116_rgmii_input_window.xdc`（②③ 都 `used_in_synthesis false` ⇒ 综合网表逐字节不变，任何差异只可能来自实现阶段） | `build/tcl/build_system_axigpio.tcl:19`、`:24-26`、`:31-33` 的 `add_files -fileset constrs_1`（03:2x 实测行号） |
 | 顶层 / 综合 / 实现工程名 | 顶层 `system_top`；runs `synth_1`、`impl_1`；BD 工程 `vivado_system/zynq_video_sys` | `build/tcl/build_system_axigpio.tcl:243`、`:277` 的 `launch_runs`；DCP 路径 `vivado_system/zynq_video_sys.runs/impl_1/system_top_routed.dcp` |
 | 器件 part 字符串 | `xc7z020clg484-2`（速度等级 `-2` PRODUCTION） | `build/tcl/build_system_axigpio.tcl:5` 的 `set part`，并用 `build/evidence/r115_base/timing_summary.txt` 头部的 `Speed File : -2 PRODUCTION` 交叉核对（不是照抄别处） |

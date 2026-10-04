@@ -53,7 +53,7 @@
 差异被"缺约束"藏住了。
 
 **23:44 更新：输入侧的窗数字第一次有了出处，而且旧候选件用错了行。**
-本机就有 PHY 手册（`D:/Xilinx/Resource/ZYNQ7020/Board_Resource/芯片手册/C187932_以太网芯片_RTL8211F-CG_规格书….PDF`，
+本机就有 PHY 手册（`（本机厂商资料目录）/ZYNQ7020/Board_Resource/芯片手册/C187932_以太网芯片_RTL8211F-CG_规格书….PDF`，
 69 页，Track ID JATR-8275-15 Rev 1.4），`Table 60 RGMII Timing Parameters`（手册页 60 = PDF 第 67 页）给的是：
 `TsetupR`/`TholdR` min **1.0** typ 2（发射端内部延迟集成时）、`TskewR` **1.0–1.8–2.6**（PCB 延迟模式，并要求时钟比数据多走 >1.5/<2.0 ns）、
 `Tcyc@1000M` 7.2/8/8.8。**±0.500 那张表里对应的是 `TskewT`（发射端*没有*内部延迟时的输出偏差），不是收口该用的窗**——
@@ -144,7 +144,7 @@ r116 的变化与**仍然欠的那一半**：
 | `no_output_delay` 里"有既有 false_path 覆盖" | 6（MEDIUM） | **6** | 同上，动它=放宽 |
 | `report_methodology` 的 `TIMING-18` | 7 条 | **2 条**（`led[0]`/`led[1]`） | **第二把尺子（checks 口径），不与端口数相减**；`Checks found` 446→**441**，类数仍 3 |
 
-**"本机没有 DVI/HDMI 窗口数"这一句从断言升级成了查过的否定**：把 `D:/Xilinx/Resource/Reference Material/6-Xilinx Zynq系列部分官方手册/ug471_7Series_SelectIO.pdf`
+**"本机没有 DVI/HDMI 窗口数"这一句从断言升级成了查过的否定**：把 `（本机厂商资料目录）/Reference Material/6-Xilinx Zynq系列部分官方手册/ug471_7Series_SelectIO.pdf`
 （7-series SelectIO 官方手册，188 页）整本按页抽文本扫过（脚本 `/tmp/tmds_scan.py`，命中页 7/95/100/103/185），
 TMDS 那一节（正文第 95 页）只给 **I/O 标准与属性**（`Table 1-52 Allowed Attributes of the TMDS I/O Standard`、
 50 Ω 上拉到 3.3 V、`TMDS_33` 只在 HR bank、VCCO 3.3 V），**没有任何接收端 setup/hold 窗口或 UI 数**；
@@ -152,7 +152,7 @@ TMDS 那一节（正文第 95 页）只给 **I/O 标准与属性**（`Table 1-52
 我不拿"看起来宽松"的数凑绿灯（H1/§0 的伪装形状）。
 
 **03:19 把"外部也查过"这半句做实（三次在线尝试的具体去处与为什么不能用，不再重复查）**：
-① [DVI Test & Measurement Guide Rev.1（26 页，已存 `D:/Xilinx/Prj/pro/dvi_tm_guide.pdf`，抽文本件
+① [DVI Test & Measurement Guide Rev.1（26 页，已存 `（本机 Xilinx 目录）/Prj/pro/dvi_tm_guide.pdf`，抽文本件
 `build/evidence/r117/dvi_guide_scan.txt`）](https://educypedia.org/library/DVI_TM_guide_REV1.pdf)——
 它讲**怎么测**（第 5 页原文 "the eye pattern masks of the DVI specification are essential"、
 第 9 页列离散抖动频率 0.5…4.4 MHz、第 12 页把 swing/jitter/rise time/skew 列为四项关键量），
