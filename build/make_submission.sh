@@ -526,13 +526,17 @@ printf 's|docs/walkthrough/\\([A-Za-z0-9_.-]*\\)\\.md|学习文档 \\1.md（本�
 #   于是三层深的 `skills/pitfalls/<条目>/SKILL.md` 全都不匹配 —— 现测"被引用的技能路径共数 18 个"，
 #   而交付文档里点到 skills 的路径有 117 处 ⇒ 这一层几乎空转（少报方向，见台账 #373 的同类教训）。
 SKILL_CITED="$( { grep -rhoE 'skills/[A-Za-z0-9_./-]+\.(md|sh|mjs|py)' --include='*.md' . 2>/dev/null || true; } | sort -u )"
+# ⚠ 单独一个规则文件、单独一遍 sed（不并进 `_map.sed`）：上一版并进主映射后，实测主映射里的
+# 其它规则先改写过同一行，`_map.sed` 的字面旧路径规则就再也匹配不上 ⇒ 打印"降级 73 个"而包内
+# 三层深的 `skills/pitfalls/<旧条目>/skill.md` 原样留着 20 处（台账 #374）。
+: > _skill_map.sed
 SKILL_FIX_N=0
 while IFS= read -r p; do
   [ -n "$p" ] || continue
   _pl="$(printf '%s' "$p" | tr 'A-Z' 'a-z')"
   if [ ! -e "$p" ] && [ ! -e "$_pl" ]; then
     printf 's|%s|技能包旧条目 %s（重建前的名字，未随本包；现有条目索引见 skills/README.md）|g\n' \
-      "$p" "$(basename "$(dirname "$p")")/$(basename "$p")" >> _map.sed
+      "$p" "$(basename "$(dirname "$p")")/$(basename "$p")" >> _skill_map.sed
     SKILL_FIX_N=$((SKILL_FIX_N + 1))
   fi
 done < <(printf '%s\n' "$SKILL_CITED")
@@ -543,6 +547,23 @@ find . -type f \( -name '*.md' -o -name '*.sh' -o -name '*.tcl' -o -name '*.py' 
     -o -name '*.ps1' -o -name '*.bat' -o -name '*.v' -o -name '*.c' -o -name '*.h' -o -name '*.csv' \) 2>/dev/null |
 grep -vE '^\./build/reports/|^\./report/log/' > _txt.txt || true
 xargs -r sed -i -f _map.sed < _txt.txt
+
+# 技能旧名那一族单独一遍，跑完立刻**自证**：再数一次"包里还有多少 `skills/…` 引用落不到文件"。
+# 上一版的错就是把规则并进主映射（别的规则先改写过同一行 ⇒ 字面旧路径再匹配不上），打印了
+# "降级 73 个"却留下 20 条三层深的旧引用（台账 #374）。这条判据把"我说过改了"和"确实改完了"
+# 绑在一起：残留 > 0 就 REFUSE，不再让这一层可以空转（[[feedback-ruler-teeth-empty-sets]]）。
+xargs -r sed -i -f _skill_map.sed < _txt.txt
+SKILL_LEFT="$( { { grep -rhoE 'skills/[A-Za-z0-9_./-]+\.(md|sh|mjs|py)' --include='*.md' . 2>/dev/null || true; } | sort -u |
+  while IFS= read -r q; do
+    [ -n "$q" ] || continue
+    if [ ! -e "$q" ] && [ ! -e "$(printf '%s' "$q" | tr 'A-Z' 'a-z')" ]; then printf 'X\n'; fi
+  done | grep -c X || true; } )"
+SKILL_LEFT="${SKILL_LEFT:-0}"
+echo "技能旧名独立一遍后仍未落地的引用 $SKILL_LEFT 个" >> _pruned.txt
+if [ "$SKILL_LEFT" -gt 0 ]; then
+  echo "REFUSE：技能旧名降级这一层没吃完（包内仍有 $SKILL_LEFT 个 skills 开头的引用落不到文件），不交一个自称改完过的包" >&2
+  exit 1
+fi
 
 # 新旧名对照（生成的，所以永远与表一致）
 {
