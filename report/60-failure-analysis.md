@@ -44,7 +44,7 @@
   `bash build/sim/run_one.sh tb_v98_top_seam` 读 `C5c` 那一行。
   注意 仓库里的台架名是 `tb_v98_top_seam`；`report/known_issues.md` §1"复现"那行写的 `tb_video_pipeline_top`
   是**提交包里的改名**（映射见 `build/sim/names.md` 与 `build/make_submission.sh` 的 `NAME_MAP`），
-  在仓库根照抄那条命令会"找不到台架"（本次实测：`sim/tb_video_pipeline_top.v` 不存在）。该冲突登记在 `report/70-reproduce.md` 第 6 节。
+  在仓库根照抄那条命令会"找不到台架"（本次实测：仓库里没有名为 `tb_video_pipeline_top.v` 的台架文件）。该冲突登记在 `report/70-reproduce.md` 第 6 节。
   再跑 `bash build/sim/run_one.sh tb_head_rot_displace`
   （它只用 DUT 自己的 `zoom_mapper`/`zoom_fit` 输出，不重算映射）读 `build/r105_tb_head_rot_displace.txt` 那种形状的表：
   k=0（角度不动）那一档三个角度各扫两遍**逐位相同**，k=1/2/7 各给最大位移 5/9/31 个源像素——

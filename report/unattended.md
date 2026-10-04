@@ -2,7 +2,7 @@
 
 命名差异声明：P23 原文写的是 `RUN_REPORT.md / questions-for-team.md / UNATTENDED.md / report/run-queue.md`。
 赛题 3.3.5.4 要求目录与文件名纯英文小写，因此落地为
-`docs/run_report.md`（待装配完汇总）、`report/questions-for-team.md`、`report/unattended.md`（本文件）、`report/run-queue.md`。
+运行汇总件（旧名 docs/ 这一层，2026-10-04 改名波已并入 report/；那一份汇总还没落盘，故此处不写路径）、`report/questions-for-team.md`、`report/unattended.md`（本文件）、`report/run-queue.md`。
 **内容结构逐条照 P23，只改文件名大小写。** 本文件是"实际执行过的动作清单"，与 `git log --stat` 必须对得上。
 
 ## 一、本轮（2026-10-04 09:1x–11:4x 本机时间）我自己执行过的动作
@@ -56,7 +56,7 @@
 `p16a-board`、`p16b-compare`、`p16c-signoff`、`p17-data`、`p18a-report`、`p18b-results`、`p18c-failures`、
 `p19-novelty`、`p20-licenses`、`p22-collab-archive`。
 统一约束（写在每条提示词里）：不改 `src/` 行为、不放宽判据、不删已入库件、不跑构建/台架/串口/刷板、
-不 commit/push、需要队伍答的进 `docs/questions-for-team-p<nn>.md` 并在正文留 `【队伍未确认】`。
+不 commit/push、需要队伍答的进 `report/questions-for-team-p<nn>.md` 并在正文留 `【队伍未确认】`。
 
 ## 三、我没有做、也不假装做过的事
 

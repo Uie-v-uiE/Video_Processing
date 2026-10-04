@@ -112,7 +112,7 @@
   多轮的极值另 grep 成一份件（`build/evidence/r113_temp_lines.txt` 那种写法），逐字不改。
 - **凭据**：`build/evidence/r118_board/board_verify_console.txt:15,61`；`build/evidence/r118_serial_raw.txt:1,3`（两条 `[TEMP]` 全文）；
   为什么必须是被跟踪件：`report/log/issues.md:11795-11808`（#273 那一节：以前靠手抄三条读数，这一轮改成脚本自己产出并被跟踪的回显）与
-  `build/board_temp_r97.txt:6-7`（"原始捕获文件 `board/uart_script_capture.txt` 被 `.gitignore` 挡着……所以这里把那三条抄成随包件——指路必须指到一个真在包里的文件"）。
+  `build/board_temp_r97.txt:6-7`（"原始捕获文件 `board/uart_script_capture.txt`（已被 `.gitignore` 挡住）（已被 `.gitignore` 挡住） 被 `.gitignore` 挡着……所以这里把那三条抄成随包件——指路必须指到一个真在包里的文件"）。
 - **失效条件**：`board/uart_script_capture.txt` 此刻在盘上但**不随包**（`.gitignore:134` 命中 `board/uart_*.txt`）⇒ 只当"现场核对"用，别当交付凭据。
   另一条：不同工况（空载 / SD 在播 / 电池负载）的温度**不可比**（`build/board_temp_r97.txt:4` 就把"抓的时候 SD 在播"写进头注）。
 
@@ -184,7 +184,7 @@ sed -n '1p' build/evidence/rNN_bit_md5.txt
   不要顺手写"所以是软件问题/硬件问题"。
 - **凭据**：①的做法在 `board/acceptance.md:90`（`我用**只改推流节奏**做了对照（29.76 fps 一条、复推 25 fps 仍一条）⇒ **未复现**，判为切换瞬间的暂态，不记缺陷`）；
   ②的做法在 `report/log/issues.md:12803-12816`（#318：`frames_bad=1` 用**回刷 r114 做 A/B** 查清了归属，件
-  `build/evidence/r116_board/cycle_r114back.log`、`health_r114back_a.json`）；两次读数包数在涨的那一份是 R6 要的活样本证据。
+  `build/evidence/r116_board/cycle_r114back.log`（`*.log` 已被 `.gitignore` 挡住）、`health_r114back_a.json`）；两次读数包数在涨的那一份是 R6 要的活样本证据。
 - **失效条件**：如果这个现象的发生率本来就低（例：`#189` 台架量到 ≈0.27 %，3726 个旋转态像素命中 10 个），
   **A/B 的"没看到"不等于"没有"** ⇒ 要换机器尺子（R12）。出处 `board/acceptance.md:90` 末尾那句限定。
 

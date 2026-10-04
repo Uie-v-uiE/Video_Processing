@@ -34,7 +34,7 @@
   其余（`report/` 其它、`docs/`、`submit/`、根 `README.md`）→ 文档质量与可复现性(15)。
   这条映射是**分类规矩**，不是对具体某条未决项重要性的判断；单条真要改权重就在第 2 节给它一行。
 - **本表是一张快照**：生成时刻 `2026-10-04 12:38:30`（第 4 节另加 `12:39:24` 那条计数命令的时刻）。
-  本次运行期间 `report/40/50/60/70`、`board/signoff.md`、`docs/*` 由同伴轮次并发写入，
+  本次运行期间 `report/40/50/60/70`、`board/signoff.md`、旧目录 docs/ （现名 report/）由同伴轮次并发写入，
   **同一分钟内实测到 879 → 898 的漂移**（见第 1 节 D 段）⇒ 收口时必须重跑第 1 节命令并更新本表（已登记为编号 10 那一行）。
 
 ## 1. 统计命令与两个数字（全部现算，不靠记忆）
@@ -118,7 +118,7 @@ C8 未决项汇总一致 判 8 项 正文标记总数=1270 【待验证】=132 �
 | 7 | NOT_MEASURED | `report/60-failure-analysis.md:274`（A14）＋ 本轮实跑 C12 行（`绿=7 红=4 未测=1`；第三趟 `12:56` 变 `绿=8 红=3 未测=1`）＋ **同一趟 C6 由绿转红**（`gen_index --check 条目=25→27 一致=no`） | 技能包门禁仍有 3–4 红 1 未测：G2 缺壳 / G10 专有名未标注 / G11 selftest 未落地，另有 26 张平铺卡未迁移到 `skills/scripts/` 结构（`retire_flat.mjs` 判红）。**新增一条观察**：同伴轮次在 `skills/` 下又落了 2 张条目而索引没跟着重生成 ⇒ C6 现在红（不是我造成的，但登记在这里，因为它是装配面的债） | 归 P04/P09/P11 队列，不在本轮射程；需要的是"哪几张先迁移 + 索引何时重生成"的排序。本轮**未跑任何 skill 修改**（`skills/` 是禁区） | 大模型协作与技能包(15) | 需批准 + 跑一条命令 |
 | 8 | NOT_MEASURED | `report/log/issues.md:13194`（#337 的 C5 段）＋ 本轮 C5 行（`被调脚本 60 s 未返回 ⇒ 记未测`） | `build/checks/check_repo_hygiene.sh` 在 60 s 内不返回 ⇒ C5 只能是 `NOT_MEASURED`；怀疑它把 `vivado_system/` 等生成目录扫进去了 | 收紧被调脚本的射程（白名单目录 + 打印分母），再重跑 C5。这是**改尺子的射程**，需要队伍点头；本轮未动 | 文档质量与可复现性(15) | 需批准 + 跑一条命令 |
 | 9 | 未决项（无标记） | `report/60-failure-analysis.md:515`（B15，正文自述"同文件 §6 的 D2 行"）＋ `report/io/hdmi_tp1_sdc_measurement.md` §5/§6 ＋ 实存候选件 `src/constraints/r119_hdmi_source_window.xdc`、`src/constraints/r119b_hdmi_tp1_pinclk.xdc` | 两支 HDMI 候选约束件默认不加载，处置未定（保留当反例 / 删除）；`60` 本次实读 `report/questions-for-team.md` 第 17 行是 Q-P20-2 ⇒ **这一条在问题清单里还没有独立行** | 队伍选 (a) 保留+同行自带"已知会造 −3.48/−4.90 ns 违例"声明 或 (b) 删除；并给 `report/questions-for-team.md` 增一行。**`docs/` 与 `src/` 本轮都是禁区，我没有加那一行** ⇒ 该缺口如实保留 | 性能与资源优化效果(20) + 功能正确性与设计完整性(20) | 需人给料 |
-| 10 | 未决项（无标记） | 本文件第 0/1 节（快照 `12:38:30`）＋ 实测漂移 `879→898`（`12:36:06`↔`12:38:30`） | 本表是快照：同伴轮次（40/50/60/70、`board/*`、`docs/*`）正在写，标记数只增不减 | P21 终审重跑第 1 节 A/B 两条命令并整表重生（生成命令原文见第 3 节头），并把"漏项数 = 0"的成立时刻更新 | 文档质量与可复现性(15) | 待并发收口 |
+| 10 | 未决项（无标记） | 本文件第 0/1 节（快照 `12:38:30`）＋ 实测漂移 `879→898`（`12:36:06`↔`12:38:30`） | 本表是快照：同伴轮次（40/50/60/70、`board/*`、旧目录 docs/ 即现 report/）正在写，标记数只增不减 | P21 终审重跑第 1 节 A/B 两条命令并整表重生（生成命令原文见第 3 节头），并把"漏项数 = 0"的成立时刻更新 | 文档质量与可复现性(15) | 待并发收口 |
 
 ### 2B · 任务点名的 ISSUES "仍欠"条目（逐条打开后的实况，含两条要纠正的说法）
 
@@ -148,7 +148,7 @@ C8 未决项汇总一致 判 8 项 正文标记总数=1270 【待验证】=132 �
 | 编号 | 标记类型 | 所在文件与行 | 内容一句话 | 需要我做什么/需要什么条件 | 影响哪个评测项 | 状态 |
 |---|---|---|---|---|---|---|
 | 21 | 文档冲突 | `report/70-reproduce.md:146`（冲突 1）↔ `report/build.md` §2 | `build.md` 让跑 `src\host\run_sender.bat`/`run_video.bat`/`run_serial.bat`，实跑 `find` 只命中 `vivado_system/**/runme.bat` ⇒ 根 README 的 `send_demo.bat` 才是能跑通的那份 | 改 `report/build.md` 那三行为 `send_demo.bat` + `python src/host/video_sender.py`。**`report/build.md` 不在本轮点名范围 ⇒ 未改**，需一句授权 | 文档质量与可复现性(15) | 需人给料 |
-| 22 | 文档冲突 | `report/70-reproduce.md:147`（冲突 2）↔ `report/known_issues.md` §1 | 复现命令写 `bash build/sim/run_one.sh tb_video_pipeline_top`，而 `sim/tb_video_pipeline_top.v` 不存在（那是导出时的改名，仓库名 `tb_v98_top_seam`） | 在那行旁补"仓库名 / 包内名"两跳（`build/sim/names.md` 已映射）。改 `report/known_issues.md`，需授权 | 文档质量与可复现性(15) | 需人给料 |
+| 22 | 文档冲突 | `report/70-reproduce.md:147`（冲突 2）↔ `report/known_issues.md` §1 | 复现命令写 `bash build/sim/run_one.sh tb_video_pipeline_top`，而仓库里没有名为 `tb_video_pipeline_top.v` 的台架文件（那是导出时的改名，仓库名 `tb_v98_top_seam`） | 在那行旁补"仓库名 / 包内名"两跳（`build/sim/names.md` 已映射）。改 `report/known_issues.md`，需授权 | 文档质量与可复现性(15) | 需人给料 |
 | 23 | 文档冲突 | `report/70-reproduce.md:148`（冲突 3）↔ `build/README.md` | `build/README.md` 说产出在 `build/reports/`，本次 `ls build/reports` 报 No such file ⇒ 六份 `.rpt` 平铺在 `build/`（提交包里才展平）。**本会话复测补一刀**：`build/reports/` 此刻**存在**（`12:20` 由并发的 P15b 落了 `build/reports/index.md`，`test -e` 实测），但里面只有那一份索引、没有 `.rpt`（`build/` 下平铺 179 份 `.rpt`）⇒ "平铺在 `build/`" 仍成立、"目录不存在"那半已过时，引用那句要连着时间一起念 | 给 `build/README.md` 那句补三半："仓库内平铺 / 包里展平 / 那份 `index.md` 只是原件索引"。改 `build/` 既有文件 ⇒ 越界，需授权 | 文档质量与可复现性(15) | 需人给料 |
 | 24 | 文档冲突 | `report/70-reproduce.md:149`（冲突 4）↔ `report/build.md` §2 | 一键 `build/tcl/program_system.tcl` 与交付口径的三步链（`ps_jtag_boot → program_pl → ps_app_reload`）并存；两支脚本本次实测都存在 | 在 `build.md` 那行标注"老的一键路径 + 与三步链的关系"。需授权 | 文档质量与可复现性(15) | 需人给料 |
 | 25 | 文档冲突 | `report/70-reproduce.md:150`（冲突 5）↔ `board/README.md` | `board/README.md` 实测表复述 WNS 0.720/WHS 0.033/0-of-50890/2.207 W，而现件是 0.739/0.052/0-of-51135/2.391 W；`metric_recheck` 的取数名单（`src/host/metric_recheck.mjs:274-283`）不含 `board/README.md` ⇒ 在射程外不是漏判 | 二选一：那两行改成"只指本版件、不复述数字"，或把该文件纳入 D6 射程（改 `src/host/metric_recheck.mjs` = 改尺子）。已作为 A13 进 `60`；需队伍点头 | 性能与资源优化效果(20) + 文档质量与可复现性(15) | 需人给料 |
@@ -249,7 +249,7 @@ START=201 START2=501 node <临时目录>/gen_ledger.mjs     # 快照 2026-10-04 
 | 230 | 【未核实】 | `report/repro-check.md` 行 114(2),141,158（共 4 处，3 行）| ¦ R1 ¦ **Vitis 版本要不要断言** ¦ `data/metrics.csv:2`「xc7z020clg484-2 / Vi… | 补一条可留出处的来源（URL 或本地文件 + 核对日期）并进 _meta/sources.md；没有出处就保持降级，不许写成事实 | 文档质量与可复现性(15) | 需一次来源核对（可离线做） |
 | 231 | NOT_MEASURED | `report/repro-check.md` 行 5,13,17,27,70,71,72,73,74,75,76,77,78,84,85,87,88,89,90,99,120,155(2)（共 23 处，22 行）| **读不到输入等于 `NOT_MEASURED`，绝不等于 `PASS`**（P00 铁律 3）。 | 输入到位后重跑该行点名的那条命令；见状态列区分 token（无需动作）与判据空格（需输入） | 文档质量与可复现性(15) | 空格：该判据的输入本次不可得 ⇒ 输入到位后重跑（部分需批准） |
 | 232 | NOT_MEASURED | `report/timing/debt_ledger.md` 行 208（共 1 处，1 行）| 判 10 项红 0，件 `build/evidence/r119_window_check.txt`（`--self` 十条畸形各自动红… | 输入到位后重跑该行点名的那条命令；见状态列区分 token（无需动作）与判据空格（需输入） | 文档质量与可复现性(15) | 空格：该判据的输入本次不可得 ⇒ 输入到位后重跑（部分需批准） |
-| 233 | 【队伍未确认】 | `report/unattended.md` 行 59（共 1 处，1 行）| 不 commit/push、需要队伍答的进 `docs/questions-for-team-p<nn>.md` 并在正文留 `【队伍未… | 只有队伍能答：在 report/questions-for-team.md 对应行给陈述（动机、主张强度、可公开范围、接线参数）；agent 不许代答 | 文档质量与可复现性(15) | 需人给料：等队伍在问题清单里答复 |
+| 233 | 【队伍未确认】 | `report/unattended.md` 行 59（共 1 处，1 行）| 不 commit/push、需要队伍答的进 `report/questions-for-team-p<nn>.md` 并在正文留 `【队伍未… | 只有队伍能答：在 report/questions-for-team.md 对应行给陈述（动机、主张强度、可公开范围、接线参数）；agent 不许代答 | 文档质量与可复现性(15) | 需人给料：等队伍在问题清单里答复 |
 | 234 | NOT_MEASURED | `report/unattended.md` 行 17（共 1 处，1 行）| ¦ 窗件尺子 ¦ `node build/r119_window_check.mjs` 与 `--self` ¦ `build/evid… | 输入到位后重跑该行点名的那条命令；见状态列区分 token（无需动作）与判据空格（需输入） | 文档质量与可复现性(15) | 空格：该判据的输入本次不可得 ⇒ 输入到位后重跑（部分需批准） |
 | 235 | 【未核实】 | `docs/walkthrough/README.md（不随包）` 行 30（共 1 处，1 行）| ③ 查不到的写 `【未核实】`，不许写成事实； | 补一条可留出处的来源（URL 或本地文件 + 核对日期）并进 _meta/sources.md；没有出处就保持降级，不许写成事实 | 文档质量与可复现性(15) | 需一次来源核对（可离线做） |
 | 236 | 【未实测】 | `docs/walkthrough/README.md（不随包）` 行 28（共 1 处，1 行）| ① 每个数字后面必须点名它出自哪个文件，或标 `【未实测】`； | 补一次实测（仪器 / 板子 / 一轮构建）+ 队伍批的时间窗；未测之前不许写成数字 | 文档质量与可复现性(15) | 需批准 + 跑一次实测：缺时间窗/仪器，不缺方法 |
@@ -481,7 +481,7 @@ GATES 终审 C1–C12：判定 12 项 绿=5 红=5 未测=2 有红项，不得提
   - **全范围口径（队伍这条任务问的数）**：表体的 Σ 按 `12:38:30` 那趟快照生成 = `898 (md) + 167 (非 md) = 1065`
     （第 1 节 A 段 `12:39:24` 那条命令的七类合计也是 1065，逐类可加）；
     `12:48:52` 复测 = `920 (md) + 167 (非 md) = 1087`。差的 22 处来自同伴轮次这 10 分钟里新写的
-    `report/60`、`report/70`、`board/*`、`docs/*` ⇒ **本表"漏项数 = 0"只对 `12:38:30` 这个时刻负责**，
+    `report/60`、`report/70`、`board/*`、旧目录 docs/ ⇒ **本表"漏项数 = 0"只对 `12:38:30` 这个时刻负责**，
     收口时整表重跑（编号 10 那一行；漂移现在有第三个点：879 → 898 → 920）。
   - 两条等式任何一条不成立只有两种解释：① 并发漂移（如上），② 我漏了类 ⇒
     两种都要现重跑，**不许改判据、不许删引用**。

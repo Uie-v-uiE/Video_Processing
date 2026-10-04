@@ -107,7 +107,7 @@ DDR 打包器一个字是 64bit（4 像素）。载荷取 1396 时包边界落�
 
 | 脚本 | 作用 | 怎么算跑成 |
 |------|------|------|
-| `board/uart_cmd_script.ps1 -Port COM6 -File <清单> [-DelayMs 900] [-Out <捕获>]` | 按行发，每行前面 echo `>> <行>`，所以捕获能按命令切片 | 捕获文件里每一条 `>>` 后面都跟着回声；默认 `-Out` 落到 `board/uart_script_capture.txt` |
+| `board/uart_cmd_script.ps1 -Port COM6 -File <清单> [-DelayMs 900] [-Out <捕获>]` | 按行发，每行前面 echo `>> <行>`，所以捕获能按命令切片 | 捕获文件里每一条 `>>` 后面都跟着回声；默认 `-Out` 落到 `board/uart_script_capture.txt`（已被 `.gitignore` 挡住，不入库；随包复核认同行点名的跟踪件） |
 | `board/uart_cap_once.ps1 -Port COM6 -Seconds 14 -Out <文件>` | 只收不发，抓一段自发输出（心跳、`[STAT]`）；给 `-Cmd`/`-Cmds` 时也能发几条 | 抓到的字节数不为 0，且能看见 `[BOOT]` 或 `[STAT]` 行 |
 | `node src/host/uart_cmd_check.mjs [--file board/cmd_battery_v81.txt] [--port COM6] [--dry]` | 命令层的验收条件：逐条对回声 + 该拒的必须拒 + 跑完 `STAT` 必须回到初态 | 末行 `RESULT PASS uart_cmd_check`；`--dry` 只打印期望不碰串口，`--self` 是这些期望自己的反例 |
 

@@ -147,8 +147,14 @@ const OLD_DIR = /(?:^|[^/\w.-])docs\/[\w.*-]/g;
 //         指路修完了、凭据没人管。凭据比章节更容易搬丢：导出器会把 `build/*.rpt|txt` 摊进
 //         `build/reports/`、把 `build/rNN_exp/` 整个丢掉 ⇒ 同一句话在仓里对、在包里错。
 const ART_EXT = 'txt|rpt|csv|bit|elf|md5|xdc|py|mjs|sh|tcl|v|bat|log|wdb';
+// 尾缀可以再跟一段扩展名（**2026-10-05 补**）：`build/parsed/parsed_cdc.rpt.json` 与
+// `board/firmware/ps_app.elf.md` 都是**真实存在的跟踪件**，而旧写法在第一个凭据扩展名处就收口
+// （`.rpt` 后面是 `.` ⇒ `\b` 成立），于是拿"少了 `.json` 的那个名字"去查盘 ⇒ 查不到 ⇒ 判红。
+// 这是尺子的**射程维度**错了，不是文档错了：整批 9 条 `build/parsed/` 与 2 条 `board/firmware/*.md`
+// 都属这一类。现在把尾巴吃全，查的就是行面上那一个完整文件名。
 const CITE_ART = new RegExp(
-    '(?:^|[^/\\w.:-])(build|data|sim|board|skill|report)/[\\w./-]*?[\\w-]+\\.(?:' + ART_EXT + ')\\b', 'g');
+    '(?:^|[^/\\w.:-])(build|data|sim|board|skill|report)/[\\w./-]*?[\\w-]+\\.(?:' + ART_EXT + ')'
+    + '(?:\\.(?:json|txt|rpt|csv|md|log|html))*(?:\\b|$)', 'g');
 
 //   D4c 的**范围**是这条尺子能不能留下来的关键，所以写死并念出来：
 //     判红只认"交付文档"（首页两份、board/README.md、report/*.md 非 log 的那些）——
@@ -188,9 +194,17 @@ const DELIVERY = (rel) => HOME.includes(rel) || rel === 'board/README.md'
 // 要么让包里那把尺子永远红着（评审看到的就只剩"红"这一个信号）。
 // ⚠ 豁免的形状是**写死的短表**，并且必须与指路 token **同一行**——买通它的唯一办法是当着读者写下
 //   "这东西不随包"，而那句话本身就是给人核对的真话；放行条数会打印出来，不许静默吞掉（#217 同族）。
-const NOSHIP_MARK = ['不随包', '不在本包内', '已被 `.gitignore` 挡住'];
+// 2026-10-05 增两词：'不入库'、'本地留档' 取自导出器死链自检的词表（`build/make_submission.sh`
+// 的 `SKIP_RE`），与 '不随包' 同一类意思。两把尺子各写一套话术会出现"导出器放行、这把还红"
+// （#222 同族）。词表仍以**同一行**为唯一买通途径，放行条数照打。
+const NOSHIP_MARK = ['不随包', '不在本包内', '已被 `.gitignore` 挡住', '不入库', '本地留档'];
 const noShip = (l) => NOSHIP_MARK.some((k) => l.includes(k));
 let nNOSHIP = 0;
+// 围栏里是**工具原文回显**（例：`RESULT PASS uart_cmd_check (… 捕获 board/uart_script_capture.txt)`）。
+// 作者不能往别人打印的那一行里塞声明，改抄件＝伪造记录 ⇒ 围栏内的 D4c（凭据存在性）降级为只报数，
+// 条数打印成 nFENCE。D4b（旧目录名）与 D4a（文档落点）在围栏里**照旧判红**：照抄的命令踩进旧目录
+// 或指到不存在的章节，是评审真会撞上的坑。--self 有一对钉住这件事：同一条写在围栏外必须红。
+let nFENCE = 0;
 
 function checkPaths(fileLines, exists) {
     const rows = [];
@@ -198,7 +212,9 @@ function checkPaths(fileLines, exists) {
     for (const [rel, lines] of Object.entries(fileLines)) {
         if (rel === SELF || MAPPERS.includes(rel)) continue;      // 见上面几条豁免的理由
         const hard = DELIVERY(rel);
+        let inFence = false;
         lines.forEach((l, i) => {
+            if (/^\s*(?:`{3,}|~{3,})/.test(l)) { inFence = !inFence; return; }
             const at = `${rel}:${i + 1}`;
             const ns = noShip(l);                     // 这一行自带"不随包"声明吗（见 NOSHIP_MARK 那段）
             const put = (r) => {
@@ -215,6 +231,7 @@ function checkPaths(fileLines, exists) {
                 const tok = m[0].replace(/^[^a-z]/, '');
                 if (tok.includes('NN') || tok.includes('$') || tok.includes('*')) continue;
                 if (exists(tok)) continue;
+                if (inFence) { nFENCE++; adv.push(`${at} D4c 围栏内原文回显 ⇒ 只报数：${tok}`); continue; }
                 put(`${at} D4c 点名的凭据盘上没有：${tok}`);
             }
             for (const m of l.matchAll(OLD_DIR)) {
@@ -579,11 +596,25 @@ if (argv.includes('--self')) {
         + ` 对照：同行声明才放行（有声明红 ${nsOn.length} 期望 0｜无声明红 ${nsOff.length} 期望 1｜隔行红 ${nsFar.length} 期望 1）`);
     for (const r of nsFar.concat(nsOff)) console.log('        ' + r);
     console.log(`  ${nsPred ? 'PASS' : 'FAIL'} 对照：谓词与 D2 的占位豁免都对（D2 用的就是这两个式子：noShip 命中/不命中各一次，NN 只咬占位名）`);
+    // ---- 2026-10-05 两把新降级各配一对"能红/能绿"对照 ----
+    // (a) 围栏内的原文回显：同一条死凭据写在围栏里只报数、写在围栏外必须红（少了后一半，这条降级
+    //     就成了"把整段抄件划进围栏即可放行"的后门）。
+    const fenOn = checkPaths({ 'report/x.md': ['说明：', '```text', 'RESULT PASS（捕获 board/uart_script_capture.txt）', '```'] }, () => false);
+    const fenOff = checkPaths({ 'report/x.md': ['凭据 `board/uart_script_capture.txt`'] }, () => false);
+    const fenOk = fenOn.rows.length === 0 && fenOn.adv.some(r => /D4c 围栏内/.test(r)) && fenOff.rows.length === 1;
+    console.log(`  ${fenOk ? 'PASS' : 'FAIL'} 对照：围栏内只报数／围栏外照旧红（围栏内红 ${fenOn.rows.length} 期望 0｜报数 ${fenOn.adv.filter(r => /围栏内/.test(r)).length} 期望 1｜围栏外红 ${fenOff.rows.length} 期望 1）`);
+    // (b) 链式扩展名：`…rpt.json` 要按**整名**查盘。对照=整名存在时不红；变异=整名不存在时必须红
+    //     （少了变异那一半，这条改动等于把整批 `build/parsed/` 一律放行）。
+    const FULL = 'build/parsed/parsed_cdc.rpt.json';
+    const extOk = checkPaths({ 'report/y.md': ['名册读 `build/parsed/parsed_cdc.rpt.json`'] }, (t) => t === FULL).rows.length === 0;
+    const extBad = checkPaths({ 'report/y.md': ['名册读 `build/parsed/parsed_cdc.rpt.json`'] }, () => false).rows;
+    console.log(`  ${extOk && extBad.length === 1 ? 'PASS' : 'FAIL'} 对照：链式扩展名按整名查（存在时红 ${extOk ? 0 : 1} 期望 0｜不存在红 ${extBad.length} 期望 1）`);
 
     const all = n === 10 && good.length === 0 && edges.length === 0 && d4 === 3
         && d4ok.length === 0 && d4artok.length === 0 && scope && neutral.length === 0
         && d1bok.length === 0 && d1badj.length === 0 && hasBase && d1cokPass && fpOk
-        && nsOn.length === 0 && nsOff.length === 1 && nsFar.length === 1 && nsPred;
+        && nsOn.length === 0 && nsOff.length === 1 && nsFar.length === 1 && nsPred
+        && fenOk && extOk && extBad.length === 1;
     console.log(`${all ? 'SELF: 全绿' : 'SELF: 有红'}（变异 ${n}（含 D1b 身份句 2 条 + D1c 门禁读数句 5 条：改绿数／改项数／反买通／自相矛盾／形状空转）+ D4 变异 ${d4} 条 + 对照 ${good.length + edges.length + d4ok.length + d4artok.length + d1bok.length + d1badj.length} 条，范围对照${scope ? '过' : '不过'}，D1b 基准${hasBase ? '读得到 r' + cur0.nn : '读不到'}）`);
     process.exit(all ? 0 : 1);
 }
@@ -608,7 +639,7 @@ for (const r of rows.slice(0, 40)) console.log('  ' + r);
 if (rows.length > 40) console.log(`  …另外 ${rows.length - 40} 条`);
 console.log(`D4c 范围：交付文档 ${nd} 份判红；其余 ${m - nd} 份点名凭据 ${adv.length} 条只报数`
     + '（日记与注释里那些"当时存在、随后删掉"的中间件不算指路错误 —— 见脚本头部）');
-console.log(`  同行写了"不随包/已被 .gitignore 挡住"这类声明而放行的指路：${nNOSHIP} 条`
+console.log(`  同行写了"不随包/已被 .gitignore 挡住/不入库/本地留档"这类声明而放行的指路：${nNOSHIP} 条`
     + '（豁免只降级为"只报数"，条数念出来，不许静默吞掉 —— #217 同族）');
 console.log(rows.length ? `CURRENCY: ${rows.length} 条过期指路` : 'CURRENCY: 干净');
 process.exit(rows.length ? 1 : 0);

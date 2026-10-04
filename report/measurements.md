@@ -187,7 +187,7 @@ B 桶是通配/占位写法（`rNN_*`、`<本轮>/…` 这类配方正文里教�
 
 复跑的结果同样要写出来：把若干裸文件名写成完整路径之后，上面那条四文档命令对
 `report/measurements.md` 给的是 `点名=64 命中=61 A=1 B=0 C=2`。A 桶那 1 条是
-`board/uart_script_capture.txt`——上位机侧的串口捕获件，`.gitignore:134` 命中、从未入库，
+`board/uart_script_capture.txt`——上位机侧的串口捕获件，`.gitignore:134` 命中、不入库（本地留档），
 它只在当时那台机器的工作区里真实存在，在干净检出里必然缺。
 `board/signoff.md`（A=2）与 `report/acceptance-recipes.md`（A=2）同理，都属同一族未随包件。
 第 0 节第①条"必须此刻真实存在"对这一族路径不成立 ⇒ 这一族逐个写明，引用不删。
