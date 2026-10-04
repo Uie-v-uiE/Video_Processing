@@ -82,6 +82,6 @@
 | `tb_zoom_frac.v` | zoom_mapper | 缩放支与旋转支的 x_out/y_out 与 frac_x/frac_y 是否描述同一格、旋转态到底有没有非零小数，以及… | 打 `PASS H0 reference_table_fresh / angle=30…；失败时 逐点打 `FAIL D<n>… |
 | `tb_zoom_mapper.v` | zoom_ctrl | mapper 的恒等与 0.5x 边界格及其 oob 旗标、rot_en=1 且 angle=0 的 恒等，ctrl… | expect_xy 静默（它只在失配时打印），末行 `PASS…；失败时 失配的 那个点打 `FAIL <tag> got (<xo>,<yo>)… |
 
-```tcl
+```bash
 bash build/sim/run_one.sh tb_crc32        # 单支台架：xvlog → xelab → xsim，判定词在末行
 ```

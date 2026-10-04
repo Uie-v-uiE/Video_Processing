@@ -51,7 +51,7 @@ const header = [
 ];
 const cmd = [
   '',
-  '```tcl',
+  '```bash',
   'bash build/sim/run_one.sh tb_crc32        # 单支台架：xvlog → xelab → xsim，判定词在末行',
   '```',
 ];
