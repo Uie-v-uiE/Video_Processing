@@ -32,7 +32,7 @@ const CASES = [
   { id: 'C05', want: 'FAIL', wantSub: 'description 没有触发条件', name: 'bad-desc',
     md: GOOD, descFix: 'description: 用于把九步节拍写成清单再照抄的做法说明，一步一步怎么做都在这条里。' },
   { id: 'C06', want: 'FAIL', wantSub: '含本机绝对路径', name: 'abs-path',
-    md: GOOD + '\n参考 C:/Users/someone/Tool/docs/README.md 这一份。\n' },
+    md: GOOD + '\n参考 C:/Users/someone/Tool/docs/README.md 这一份。\n' },   // abs-fixture 检查器自带的反例内容（与本机无关的通用路径形状），不是指令
   { id: 'C07', want: 'FAIL', wantSub: '专有名词', name: 'proj-name',
     md: GOOD + '\n这条在 r118 那轮量过。\n' },
   { id: 'C08', want: 'FAIL', wantSub: 'name≠目录名', name: 'bad-name', md: GOOD, rawFix: e => e.replace('name: bad-name', 'name: other-name') },

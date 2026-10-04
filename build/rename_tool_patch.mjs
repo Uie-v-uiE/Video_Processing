@@ -7,7 +7,7 @@
 // 整串匹配今晚已经两次因为一个转义不符就 MISS；而行锚点（`const OLD_DIR =` 之类）是稳定可寻的。
 // 规矩沿用今晚那张断言式补丁表：**每条都要命中，且只命中一次，否则一条都不写盘**。
 import { readFileSync, writeFileSync } from 'node:fs';
-const R = 'D:/Xilinx/Prj/pro/Video_Processing/';
+const R = process.cwd() + '/';   // 在仓库根运行；不带本机盘符（交付要求 §6.2：命令必须照字面可执行）
 // [文件, 行锚点(包含即匹配), 行内要找的旧 token, 行的新内容函数, 说明]
 const L = [
   ['src/host/doc_currency_check.mjs', 'const OLD_DIR =', 'report', (l) => l.replace('report', 'docs'),
