@@ -155,6 +155,18 @@ function echoVerdict(fileText, quote, winText) {
   return normEcho(fileText).includes(q) ? 'wrong-line' : 'absent';
 }
 
+// 「文件不在树里」这一类要与导出器同一口径：导出器按**同行**的免检词决定不算死链
+// （`build/make_submission.sh` 的 `SKIP_RE`，配合 §5.4 的逐字协作记录形状）。
+// 两处若各用一套规则，就会出现"D5 判红、导出器放行"或反过来，谁都对不上谁。
+// 词表从那个文件现读（不抄第二份）；读不到就退回"一律判红"，宁严不松（rule 44 的反买通）。
+const SKIP_RE_FROM_EXPORTER = (() => {
+  try {
+    const sh = readFileSync(path.join(ROOT, 'build/make_submission.sh'), 'utf8').match(/^SKIP_RE='(.*)'$/m);
+    return sh ? new RegExp(sh[1]) : null;
+  } catch (e) { return null; }
+})();
+let notTrackedExempt = 0;
+
 function check(linesByFile, wordsByFile, docs) {
   // hard = 机器能单独判定的那两类（引的文件不在树里 / 行号越过文件末尾）——这些**必定**是坏引用。
   // soft = "锚点不在那几行里"：它**不能**单独判"文档错了"，因为文档常指向"那一处所在的函数开头"
@@ -175,6 +187,8 @@ function check(linesByFile, wordsByFile, docs) {
         const key = resolveTarget(file, linesByFile);
         if (!key) {
           if (VENDOR.has(path.basename(file))) { skipped++; continue; }
+          // 同行带导出器免检词 ⇒ 这一格是"当时的逐字记录"，不是给人照着敲的指路（与导出器同一口径）
+          if (SKIP_RE_FROM_EXPORTER && SKIP_RE_FROM_EXPORTER.test(line)) { notTrackedExempt++; continue; }
           fails.push(`${rel}:${idx + 1}  引的文件在树里找不到：${m[0]}`); continue;
         }
         // 句子的上下文：本行 + 下一行（Markdown 里一句常被硬换行劈开）
@@ -449,7 +463,7 @@ const optVal = (name, dflt) => {
   return a ? (Number(a.split('=')[1]) || dflt) : dflt;
 };
 console.log(`D5 引用核对：扫 ${docs.length} 份交付文档（report/log 与 report/study 的追加式/笔记档案不参与）⇒ 硬错 ${fails.length} 条（文件不在树里 / 行号越过文件末尾 / D5b 例化者列指错 / D5d 逐字抄的回声对不上）`
-  + `；锚点命中 ${oks.length} 条；锚点候选 ${soft.length} 条；取不出代码锚点 ${needs.length} 条；回声转述待人看 ${echoNeed.length} 条；厂商树引用 ${skipped} 条不参与`);
+  + `；锚点命中 ${oks.length} 条；锚点候选 ${soft.length} 条；取不出代码锚点 ${needs.length} 条；回声转述待人看 ${echoNeed.length} 条；厂商树引用 ${skipped} 条不参与；旧名同行带免检词 ${notTrackedExempt} 条不参与（与导出器同一口径）`);
 if (fails.length) { console.log('\n--- 硬错（必定是坏引用）---'); fails.slice(0, listN).forEach((f) => console.log('  ' + f)); if (fails.length > listN) console.log(`  …还有 ${fails.length - listN} 条`); }
 if (args.has('--list-soft')) {
   const n = optVal('--list-soft', 20);
