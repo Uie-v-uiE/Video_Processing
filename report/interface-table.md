@@ -93,7 +93,7 @@
 | `IMG_W` / `IMG_H` | `16'd512` / `16'd300` | `512` / `300` | localparam 单点定义，避免两棵例化各写一遍字面量 | `system_top.v:136-137,155` |
 | `BASE_ADDR` | `32'h1000_0000` | `32'h1000_0000` | ETH 的乒乓两 bank 之第一块 | `system_top.v:139,156` `eth_udp_video_top.v:67-68` |
 | `UDP_PORT` | `16'd5001` | `16'd5001` | PC 推流目的端口，收侧过滤用同一个常数 | `system_top.v:145` `eth_udp_video_top.v:11` |
-| `BOARD_MAC` | `48'h00_11_22_33_44_55` | 同值 | —（旁边无出处文档，登记 `【取值依据待补】`，见 `docs/src-audit.md（未写）` A-7） | `system_top.v:158` `eth_udp_video_top.v:12` |
+| `BOARD_MAC` | `48'h00_11_22_33_44_55` | 同值 | —（旁边无出处文档，登记 `【取值依据待补】`；A-7 原定记在 `src-audit` 装配页，那一页从未写 ⇒ 现不存在，这一条没有落点） | `system_top.v:158` `eth_udp_video_top.v:12` |
 | `BOARD_IP` | `{8'd192,8'd168,8'd1,8'd10}` | 同值 | 上位机侧的 DES_IP 是 `.102`（`eth_udp_video_top.v:118`）⇒ 两条一起看 | `system_top.v:159` |
 | `IDELAY_VALUE` | `31`（默认 15） | `15` | 原文给了实测扫描曲线与交点算法，并声明"这一族在 0~31 全范围内都关不掉" | `system_top.v:160-172` `eth_udp_video_top.v:14` |
 
@@ -277,7 +277,7 @@
 
 | # | 端口（所属模块方向） | 悬空处 | 为什么悬空（读到的原文） | 是否算问题 |
 | --- | --- | --- | --- | --- |
-| O-1 | `design_1_wrapper` 的 `M_AXI_HP0_bid` / `M_AXI_HP0_bresp`（输出） | `system_top.v:99` | 只与本设计的读回包一起看：B 通道只取 `bvalid/bready`。**本表登记为风险**：响应码从未被检查 ⇒ 写失败在 PL 侧不可见 | 是（`docs/src-audit.md（未写）` A-9） |
+| O-1 | `design_1_wrapper` 的 `M_AXI_HP0_bid` / `M_AXI_HP0_bresp`（输出） | `system_top.v:99` | 只与本设计的读回包一起看：B 通道只取 `bvalid/bready`。**本表登记为风险**：响应码从未被检查 ⇒ 写失败在 PL 侧不可见 | 是（A-9 原定记在 `src-audit` 装配页，该页从未写 ⇒ 现不存在，这一条没有落点） |
 | O-2 | `eth_udp_video_top` 的 `stat_frames/stat_pkts/stat_bytes/stat_bad`（输出） | `system_top.v:200-201` | 原文（`:130-133`）：这四个口原来在 `pl_video_top` 里用两级触发器跨 16 位总线，而同步值没有读者；数的正路是 `link_monitor → snap_cross` 的 lane1/8/9（ISSUES #64）。端口留着是因为 `tb_v50_rows / tb_v6_* / tb_udp_reasm / tb_link_monitor` 直接读它们 | 否（有据） |
 | O-3 | `clk_gen` 的 `clk_pix` / `clk_pix5x`（输出，顶层那份实例） | `system_top.v:119-124` | 顶层这份 MMCM 只为了 IDELAY 的 200 MHz 参考；显示钟来自 `u_pl` 内部第二份 `clk_gen` | 否（有据）；但"两份 MMCM"这件事契约头里应写明 → A-6 |
 | O-4 | `pl_demo_top` 的 `m_axi_araddr/arid/arlen/arsize/arburst/arvalid/rready/status`（输出） | `pl_demo_top.v:51-57,63,86` | 纯 PL 演示顶层没有 PS/DDR：读口整组留空，输入侧钉 0（`:57-73`） | 否（有据） |

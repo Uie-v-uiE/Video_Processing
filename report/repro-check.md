@@ -142,7 +142,7 @@ Linux 分支：S1/S8 的 Linux 形状（`ls /dev/ttyUSB*` 等）**【未在 Linu
 | R11 | **README §5 S5 那条找安装位置的命令照字面敲不成立**（第一轮写的是"本机实测这两条能把它挖出来"） | 本轮实测：`find /c /d -maxdepth 4 -name vivado.bat`（300 s 上限内）= **0 行**；同一条在 `/<盘>/Software` 上 `-maxdepth 4` = 0 行、`-maxdepth 5` = 1 行、耗时 1.0 s ⇒ 本机安装深度从盘符根数起是 6 层（`/<盘>/Software/Vivado/<版本>/Vivado/bin/vivado.bat`） | README §5 S5 已改成 `-maxdepth 6` 并写上这两条实测计数（改后 `test -f "$VP_VIVADO_BIN/vivado.bat"` = OK，S5 PASS）⇒ 判据① 的"照着敲就成立"这一条，本轮是被自己抓出来的，不是被演练抓出来的 |
 | R12 | **README §8 导语"只有 8 个条目有正文、6 个空目录"已被并发轮次改状态** | 本轮 `ls -d skills/pitfalls/*/ \| wc -l` = 24；`ls skills/pitfalls/*/SKILL.md \| wc -l` = **20**；空目录 4（`criterion-blind-spot`、`derived-clock-port-mux`、`failing-read-prints-geometry`、`switch-feature-two-level-evidence`）；§8 表点名的 8 条正文都在（107–120 行） | 导语改成"24 / 20 / 4 + 只对该时刻负责 + 核对命令一条"，并按 P12 铁律 7 明写"下表是那 20 条的子集" |
 | R13 | **§9 那句"哪些是厂商例程改的、哪些自研：`report/log/version_lineage.md`（逐模块登记）"在这份文件里查不到** | `grep -c "厂商" report/log/version_lineage.md` = **1**（`:153` 一句 `厂商 mux` 的问题叙述），全文没有逐文件/逐模块的来源表；真正写了来源与范围的是 `report/background_and_novelty.md:32-34`（点名 `arp/icmp/udp/eth_ctrl` 来自开发板厂商例程 + 它自带的 #37/#38），**而那一句又把逐文件落点指回 `version_lineage.md`** ⇒ 两份文档互相指空 | README §9 已按实测改写（不再替"逐模块登记"背书），并保留 `report/declarations.md`、`report/` 两条 `test -f` = MISSING 的事实 ⇒ Q-P12-5 升级为"互相指空" |
-| R14 | **README 里的 `docs/questions-for-team-P12.md`（大写 P12）在盘上是小写名，且 `report/README.md:23` 指向不存在的 `data/README.md`** | 本轮 `ls docs/ \| grep -i question` → `questions-for-team-p12.md`（`od -c` 核过字节，是 `-p12`）；README 有 3 处写 `…-P12.md`（Windows 大小写不敏感所以 `test -e` 仍过，**Linux 侧 clone 就是死引用**，也撞 P00 铁律 7 的小写要求）；`test -f data/README.md` = MISSING，而 `report/README.md:23` 的"为什么这样放"那一格正指着它 | README 的 3 处已改成盘上真名（小写）；`report/README.md` 那一处属别人的文件（禁区），只登记 ⇒ Q-P12-13。全仓 C3 那一行（本轮 A12：`死引用=66`）也还没认领这处，因为它不在 D4a 的 `.md` 前缀名单里（`data/` 不在 `CITE_MD` 的目录名单中，见 `src/host/doc_currency_check.mjs:139`） |
+| R14 | **README 里那一处写的是大写名 `questions-for-team-P12.md`（当时挂在旧 `docs/` 那层，该层 0 个跟踪件；入库位在 `report/questions-for-team-p12.md`）而盘上是小写名，且 `report/README.md:23` 曾指向盘上没有的 `data/README.md`（该件后来补上，`git ls-files data/README.md` = 1）** | 本轮 `ls docs/ \| grep -i question` → `questions-for-team-p12.md`（`od -c` 核过字节，是 `-p12`）；README 有 3 处写 `…-P12.md`（Windows 大小写不敏感所以 `test -e` 仍过，**Linux 侧 clone 就是死引用**，也撞 P00 铁律 7 的小写要求）；`test -f data/README.md` = MISSING，而 `report/README.md:23` 的"为什么这样放"那一格正指着它 | README 的 3 处已改成盘上真名（小写）；`report/README.md` 那一处属别人的文件（禁区），只登记 ⇒ Q-P12-13。全仓 C3 那一行（本轮 A12：`死引用=66`）也还没认领这处，因为它不在 D4a 的 `.md` 前缀名单里（`data/` 不在 `CITE_MD` 的目录名单中，见 `src/host/doc_currency_check.mjs:139`） |
 | R15 | **"两跑逐字节一致"只在树不动时成立** | 本轮 ②③ 两次跑：`cmp` 无差异、md5 同；④⑤ 两次跑：`cmp` 报 `differ: byte 3481, line 46`，差异只有一处——`doc_enc 扫了 567 个手写文` vs `569`，期间并发轮次新增了 2 个手写件；**所有判定字段与各项计数相同**（含 `metric 判=117 首页=63 红=0`） | 不改成"忽略计数行的比对"，只把两跑的差别原样贴出来（§8.2 A9）；要复现就同一分钟连跑两次并先 `git status --porcelain \| wc -l` 记账 |
 | R16 | **本件第一轮的内部计数不自洽（判据② 的分母与 §1 的表对不上）** | §1 第一轮合计 `43 / 27 / 0 / 16`；§6 判据② 那行写 `39 条 = PASS 25 / FAIL 0 / NOT_MEASURED 14`。差额来自 §2.2 把 A7 拆成两条命令、以及 §2.5 的 M1/M2 与 §2.2 的 A2/A3 是同一跑（重复计数） | 本轮**不悄悄重算**：在 §1 加了"以 43 / 38 两个分母为准"的说明并把两轮相加做成 81 / 61 / 1 / 19；第一轮原文保留，红项在此 |
 
@@ -233,7 +233,7 @@ Linux 分支：S1/S8 的 Linux 形状（`ls /dev/ttyUSB*` 等）**【未在 Linu
 23. `node skills/scripts/golden_compare/golden_compare.mjs …（正例基线那一串，--out-dir 指临时目录）`（旧包件名，**现不存在**；现役件是 `skills/scripts/golden-compare-tool/scripts/compare.mjs`）
 24. `cat/tail/head` 归档件：`build/r118_gates_final.txt`、`build/r118_gates.txt`（含 `cmp`）、`build/evidence/r118_board/board_now.txt`、
     `bitcycle_console.txt`、`board_verify_console.txt`、`build/timing_summary.rpt`（Design Timing Summary 段）、
-    `build/evidence/r110_notadopted/r110_lane_after.txt`、`build/evidence/r118_tree_fp.txt`、`report/log/contest_checklist.md`、`docs/*`
+    `build/evidence/r110_notadopted/r110_lane_after.txt`、`build/evidence/r118_tree_fp.txt`、`report/log/contest_checklist.md`、旧 `docs/` 那层的通配（该层 0 个跟踪件，名册与台账的落点是 `report/timing/`）
 25. 只读 grep 计数：声明位 18 行、Vitis 断言位、`grep -c '^PASS' build/tb_v98_report.txt`、`ls sim/tb_*.v | wc -l`
 
 未执行（本任务禁止项，一条都没越线）：`bash build/gates.sh`、任何 `vivado`/`xvlog`/`xelab`/`xsim`、
@@ -287,7 +287,7 @@ Linux 分支：S1/S8 的 Linux 形状（`ls /dev/ttyUSB*` 等）**【未在 Linu
 | `sim/tb_*.v` | 81 | `ls sim/tb_*.v \| wc -l` | PASS，README §3.1 那句同值 |
 | `data/measured/` 件数 | 20（索引 `data/measured/README.md` 存在） | `ls data/measured \| wc -l` | PASS |
 | `skills/pitfalls/` | 24 个条目目录：**20 有 `SKILL.md`、4 空**；§8 表点名的 8 条正文都在（107–120 行） | `ls -d skills/pitfalls/*/ \| wc -l`；`ls skills/pitfalls/*/SKILL.md \| wc -l`；逐个 `[ -f … ]` | PASS；**README §8 导语原写"8 有 / 6 空"已过期 ⇒ 本轮改成实测数 + 核对命令**（§3 R12） |
-| `docs/timing/` 入库件数 | 19 | `git ls-files docs/timing/ \| wc -l` | PASS（用于 §2 R4 那句"文件都在"的实证） |
+| `report/timing/` 入库件数 | 19 | `git ls-files report/timing/ \| wc -l` = 19（旧 `docs/` 那层同一条命令今为 **0**：这 19 件在 90b0391c 整体改名进 `report/timing/`） | PASS（用于 §2 R4 那句"文件都在"的实证） |
 | `grep -c "厂商" report/log/version_lineage.md` | **1**（`:153` 的一句问题叙述，没有逐文件表） | 同左 | README §9 原写"逐模块登记"不成立 ⇒ 已改（§4 表第 9 行） |
 | `test -f report/` / `test -f report/declarations.md` | 两条都 **MISSING** | 同左 | §9 不写成链接的依据 |
 
