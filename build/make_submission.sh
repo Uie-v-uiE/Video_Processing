@@ -521,6 +521,21 @@ done
 # 留下形状等于留了个问题却没留下文件（"仓库回归台架"那一条定的就是同一写法：换说法，别留壳）。
 # 一次生成 sed 表、一遍跑完：这里曾有 245 条剪枝名，逐条 spawn grep/sed 会把这个脚本变成十分钟。
 : > _prune_map.sed
+# 通用对称（#341 的正面修法）：**剪掉一个具体文件，就必须有一条把它的指路改口的规则**。
+# 原来只有 BUILD_DEV_ONLY / DOC_EXCLUDE / BUILD_PRUNED 三个**子集**在生成规则，而
+# PRUNE_ONEOFF 那十几件与 2b 那一圈"没人点名就剪"只剪不改 ⇒ 包里留下成批死引用（本轮实测 15 条）。
+# 现在规则直接从 `_pruned.txt` 现取（每行是"理由 路径"，取最后一栏），剪几条就长几条——
+# 两半共用同一个来源，不对称就只能一起消失，不会一处改了另一处忘。
+PRUNED_PATHS="$(awk '{print $NF}' _pruned.txt | grep -E '\.(md|sh|tcl|py|mjs|ps1|png|txt|rpt|v|c|h|bat|csv)$' | sort -u)"
+PRUNED_N="$(printf '%s\n' "$PRUNED_PATHS" | grep -c .)"; PRUNED_N="${PRUNED_N:-0}"
+PRUNE_RULES=0
+for p in $PRUNED_PATHS; do
+  if [ -e "$p" ]; then continue; fi   # 还在盘上 = 这一条没真剪掉（或只是目录），不生成改口
+  esc="$(printf '%s' "$p" | sed 's|[][\\.*^$&/|]|\\&|g')"
+  printf '9999\ts|%s|仓库留档 %s（剪枝件，不随包）|g\n' "$esc" "$(basename "$p")" >> _prune_map.sed
+  PRUNE_RULES="$((PRUNE_RULES + 1))"
+done
+echo "改口对称：剪枝件路径 $PRUNED_N 条 ⇒ 生成逐条规则 $PRUNE_RULES 条（同一来源现取；两者不等就是这一层在漏）" >> _pruned.txt
 for t in ${BUILD_PRUNED[@]+"${BUILD_PRUNED[@]}"}; do
   esc="$(printf '%s' "$t" | sed 's|[][\\.*^$&/|]|\\&|g')"
   printf '%d\ts|%s|仓库留档 %s（逐轮过程件，不随包）|g\n' "${#t}" "$esc" "$(basename "$t")" >> _prune_map.sed
@@ -563,14 +578,24 @@ echo "  空目录 删=$EMPTY_DEL 余=$EMPTY_LEFT"
 # 判死链的范围 = "活文档"（评委照着跑的说明书），由 live_docs 现算；**不含 report/log/**：
 # 那里的路径是当时那天的名字，台架删了、工具改名了、捕获清了都留在里面，那是过程记录，不该拿它判包不完整。
 DEADSCAN=0
+DEADSKIP=0
+# "这行不是指路"的同行声明词（一行只按字面判，不看上下文；命中数逐份打印，别让它变成万能免检）：
+#   不随包 / 本地留档 / 不入库  —— 声明"这东西故意不在包里"（学习文档、厂商样例、一次性件都走这一类）
+#   未写 / 未落地 / 尚未 / 规划 / 待装配 —— 声明"这个落点还不存在"，是计划不是链接
+#   例如 / 示例 / 假想 / 不存在 —— 声明"这个名字是举例"（技能卡里的反例、模板里的占位路径）
+SKIP_RE='不随包|本地留档|不入库|未写|未落地|尚未|规划|待装配|例如|示例|假想|不存在'
 for f in $(live_docs); do
   if [ -f "$f" ]; then
     DEADSCAN="$((DEADSCAN + 1))"
     d="$(dirname "$f")"
+    sk="$( { grep -cE "$SKIP_RE" "$f" 2>/dev/null || true; } )"; sk="${sk:-0}"
+    DEADSKIP="$((DEADSKIP + sk))"
     # #172：先抹掉 `-log <路径>` 这类**工具自己创建的输出**（`vivado -mode batch -log sim/xsim.log` 那种），
     #   再抽指路。这不是把 `*.log` 整类放回免检名单 —— 那样就等于把自检买通；
     #   只有"这条命令要写出来的文件"不算死链，"文档点名的凭据"照样该存在。
-    sed 's/-log[[:space:]]\{1,\}[^[:space:];"`]*/ /g' "$f" 2>/dev/null |
+    # 同行声明词的过滤也走同一处 sed（**整行删掉再抽路径**）：命中词与路径在同一条句子里，
+    #   说明这一行的那个名字本来就没打算让评委去翻。
+    sed -e 's/-log[[:space:]]\{1,\}[^[:space:];"`]*/ /g' -e "/$SKIP_RE/d" "$f" 2>/dev/null |
     grep -oE '(src|sim|build|board|data|skill|report|docs)/[A-Za-z0-9_./-]*[A-Za-z0-9_-]\.[A-Za-z0-9]{1,6}' 2>/dev/null |
     sort -u | while read -r t; do
       case "$t" in *'*'*|*'<'*|*'$'*|*NN*) continue ;; esac
@@ -590,7 +615,7 @@ if [ "$DEADSCAN" -lt 40 ]; then
   echo "FAIL：死链自检只扫了 $DEADSCAN 份活文档（射程下限 40）⇒ 这一项什么都没查，不写 $OUT" >&2
   exit 1
 fi
-echo "  死链射程 扫=$DEADSCAN 份活文档 抓=$DEAD"
+echo "  死链射程 扫=$DEADSCAN 份活文档 抓=$DEAD 同行声明豁免行=$DEADSKIP（词表：不随包/本地留档/不入库/未写/未落地/尚未/规划/待装配/例如/示例/假想/不存在）"
 
 # 旧名残留一次算完（每个名字 spawn 一次 grep 在这一千多个文件上要四分钟）
 { for old in "${!NAME_MAP[@]}"; do if [ "$old" != "${NAME_MAP[$old]}" ]; then echo "$old"; fi; done; } > _oldnames.txt

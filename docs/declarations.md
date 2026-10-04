@@ -19,7 +19,7 @@ board: RK-ZYNQ7020-F
 | 字段 | 取值 | 依据 | 复核命令（在仓库根执行） |
 | --- | --- | --- | --- |
 | `part` | `xc7z020clg484-2` | 构建脚本里写死的器件串；`-2` 是 PRODUCTION 速度等级 | `grep -rn "xc7z020" build/tcl/build_system_axigpio.tcl` |
-| `vivado` | `2025.2.1` | 本机安装目录与所有报告头一致 | `ls /<盘>/Software/Vivado`（作者机器装在 `D:\Software\Vivado\2025.2.1`，这一句是叙述不是指令） |
+| `vivado` | `2025.2.1` | 本机安装目录与所有报告头一致 | `ls /<盘>/Software/Vivado`（作者机器装在 `<盘>:\Software\Vivado\2025.2.1`，这一句是叙述不是指令） |
 | `vivado_build` | `6403652` | 任一综合/实现报告头的 `Date`/`Tool Version` 行 | `head -5 build/utilization.rpt` |
 | `os` | `Windows 10.0.26300.9550` | 本机 `ver` 输出（**注意**：这是 Windows 的版本号格式，不代表 Linux 环境） | `cmd //c ver` |
 | `node` | `v24.21.0` | 本轮实跑 `node --version`；所有 `.mjs` 尺子用它跑 | `node --version` |
