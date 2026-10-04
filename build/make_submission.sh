@@ -553,11 +553,10 @@ xargs -r sed -i -f _map.sed < _txt.txt
 # "降级 73 个"却留下 20 条三层深的旧引用（台账 #374）。这条判据把"我说过改了"和"确实改完了"
 # 绑在一起：残留 > 0 就 REFUSE，不再让这一层可以空转（[[feedback-ruler-teeth-empty-sets]]）。
 xargs -r sed -i -f _skill_map.sed < _txt.txt
-SKILL_LEFT="$( { { grep -rhoE 'skills/[A-Za-z0-9_./-]+\.(md|sh|mjs|py)' --include='*.md' . 2>/dev/null || true; } | sort -u |
-  while IFS= read -r q; do
-    [ -n "$q" ] || continue
-    if [ ! -e "$q" ] && [ ! -e "$(printf '%s' "$q" | tr 'A-Z' 'a-z')" ]; then printf 'X\n'; fi
-  done | grep -c X || true; } )"
+# ⚠ 残留计数必须与**改写射程同面**：上一版对着整棵暂存树数，把 `report/log/`、`build/reports/` 这些
+#   按规矩**永不改写**的证据件也算进来 ⇒ 这一条永远不可能归零，REFUSE 成了假红（实测 47 个，
+#   其中多数在证据层）。现在只数 `_txt.txt` 里那份"主改写实际处理过的文件清单"。
+SKILL_LEFT="$( { while IFS= read -r ff; do ff="${ff#./}"; [ -f "$ff" ] || continue; grep -hoE 'skills/[A-Za-z0-9_./-]+\.(md|sh|mjs|py)' "$ff" || true; done < _txt.txt; } | sort -u | { while IFS= read -r q; do if [ -n "$q" ] && [ ! -e "$q" ] && [ ! -e "$(printf '%s' "$q" | tr 'A-Z' 'a-z')" ]; then printf 'X\n'; fi; done | grep -c X || true; } )"
 SKILL_LEFT="${SKILL_LEFT:-0}"
 echo "技能旧名独立一遍后仍未落地的引用 $SKILL_LEFT 个" >> _pruned.txt
 if [ "$SKILL_LEFT" -gt 0 ]; then
