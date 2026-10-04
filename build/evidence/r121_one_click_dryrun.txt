@@ -1,0 +1,21 @@
+r121 §1.3a／§8「双击入口可运行」的实测凭据（2026-10-04 20:14，本机：无 python3、有 python 3.12.10、node v24.21.0）
+
+$ bash run_test.sh --dry-run
+[1/4] PING 将执行 ping -n 1 -w 1000 192.168.1.10，不通再试 ping -c 1 -W 1 192.168.1.10（仍不通则整轮判红并退出 1） 未执行 NOT_MEASURED
+[2/4] CONNECT 将用 "xsdb.bat" 连 hw_server localhost:3121：读 0x41200000 原值 → lane 号写 bit[31:27] → 从 0x41210000 取 lane0/1/8/9 基线 → 原值写回 未执行 NOT_MEASURED
+[3/4] SEND 将执行 python src/host/udp_push.py --ip 192.168.1.10 --port 5001 --fps 15 --pace-mbps 15 --count 5 --file data/measured/one_click_payload.rgb565 ；输入=data/inputs/wordid_512x300.rgb565×5 帧=1536000 B 预计 1105 包 未执行 NOT_MEASURED
+[4/4] COLLECT 将再读一次 lane0/1/8/9，与预计 1105 包 / 1536000 字节对账 未执行 NOT_MEASURED
+ONE-CLICK dry-run=true clip=data/inputs/wordid_512x300.rgb565 存在=是 frames=5 预计包数=1105 预计字节=1536000 未碰网络与板子 NOT_MEASURED
+run_test.sh 转达 src/host/one_click_test.py 的退出码=0（0=四步全 PASS，1=任一步 FAIL，2=参数或片源文件不对）
+rc=0
+
+$ node src/host/one_click_test.mjs --dry-run
+[1/4] PING 将执行 ping -n 1 -w 1000 192.168.1.10，不通再试 ping -c 1 -W 1 192.168.1.10（仍不通则整轮判红并退出 1） 未执行 NOT_MEASURED
+[2/4] CONNECT 将用 "xsdb.bat" 连 hw_server localhost:3121：读 0x41200000 原值 → lane 号写 bit[31:27] → 从 0x41210000 取 lane0/1/8/9 基线 → 原值写回 未执行 NOT_MEASURED
+[3/4] SEND 将执行 node src/host/video_sender.mjs --ip 192.168.1.10 --port 5001 --fps 15 --pace-mpbps 15 --file - ；stdin=data/inputs/wordid_512x300.rgb565×5 帧=1536000 B 预计 1105 包 未执行 NOT_MEASURED
+[4/4] COLLECT 将再读一次 lane0/1/8/9，与预计 1105 包 / 1536000 字节对账 未执行 NOT_MEASURED
+ONE-CLICK dry-run=true clip=data/inputs/wordid_512x300.rgb565 存在=是 frames=5 预计包数=1105 预计字节=1536000 未碰网络与板子 NOT_MEASURED
+rc=0
+
+两条都不碰网络与板卡：四步全部明写 NOT_MEASURED，判定词在行尾（三态：PASS/FAIL/NOT_MEASURED）。
+真实一轮需要板卡在线（ping 192.168.1.10 + xsdb 连 hw_server:3121），那一步的凭据是 data/measured/one_click_*.out。
