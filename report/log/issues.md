@@ -13584,3 +13584,19 @@ VP_CLEN_CAP=200 会让 6 份导览全绿——证明这把尺子的牙齿在"导
   为什么这两个名字该豁免：`README.md / README_EN.md / LICENSE` 是 §0.4 与 §3.5 逐字点名的交付件名，
   `SKILL.md` 是 §5.3 要的"技能包"条目外壳名、技能加载器只认这个拼写；
   改名的另一面是让 §5.3 的交付物不再能被加载，这条权衡在清单里如实写出，不藏在豁免名单背后。
+
+### #360 §1.4 的参数表在 Node 侧是错的：发送器认 `--pace-mpbps`，文档与 `--help` 教的是 `--pace-mbps`
+量的时候才看见：`src/host/video_sender.mjs:43` 读的是 `get('pace-mpbps', 15)`（多一个 p），
+`measure_v63.mjs` 与 `one_click_test.mjs` 也按这个旧拼名传参，
+而 `src/host/README.md` 的参数表与 `one_click_test.mjs` 的 `--help` 都写 `--pace-mbps`。
+⇒ 照文档敲 `--pace-mbps <发送器>` 会被**静默忽略**并退回默认 15（限速变了但没有任何提示），
+这是 §6.2「每条命令必须真实可执行」的反面：命令能跑，跑的不是你写的那个值。
+修法取"一个词表"而不是"两处文档各写各的"：`video_sender.mjs` 现在先读 `pace-mbps`、
+读不到再读 `pace-mpbps`（旧命令与旧文档继续可用，不制造新的不匹配），
+两个内部调用点与 `measure_v63.mjs` 的用法行改成正名；`report/host_guide.md` 两格同步，
+并在参数格里写明"旧拼写仍接受"的位置。
+验证（实跑，不推理）：`node --check` 三个 .mjs 全过；
+`node src/host/one_click_test.mjs --dry-run` 的 SEND 行现在拼出
+`--pace-mbps 15` 且整行仍以 `未碰网络与板子 NOT_MEASURED` 结尾。
+教训：参数名这类**跨文件字符串**必须有一把尺子把"实现读的名"与"文档教的名"对起来，
+只改这一处等于下一轮再漂一次。

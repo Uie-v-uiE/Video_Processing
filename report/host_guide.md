@@ -51,7 +51,7 @@ node src\host\video_sender.mjs --file - < raw.rgb565                      # 裸�
 | `--src` | 192.168.1.100 | 本机绑定地址；传 `""` 走默认路由 |
 | `--fps` | 15 | 帧率。线速附近请配合下面的匀速 |
 | `--count N` | 0（一直发） | 发满 N 帧退出 |
-| `--pace-mpbps` | 15 | **包内匀速**：一整帧 221 包若以线速倾泻会打爆板端入包 FIFO |
+| `--pace-mbps` | 15 | **包内匀速**：一整帧 221 包若以线速倾泻会打爆板端入包 FIFO；Node 侧旧拼写 `--pace-mpbps` 仍接受（`src/host/video_sender.mjs:43` 两名都读） |
 | `--no-pace` | 关 | 关掉匀速（做压力实验时才用） |
 | `--mtu-payload` | 1392 | 必须 8 的倍数，见 §4 |
 | `--drop-every N` | 0 | 每 N 包确定性丢一个（演示坏包恢复，不是随机） |
@@ -169,7 +169,7 @@ V7 的老写法（`SRC0` `TH80` `ZOOM1` `BILIN1` `FRAME12`）仍然收；裸五�
 |------|------|
 | ping 不通 | 是不是插了 PS 网口；PC IP；位流是否已下载（ICMP 在 PL 里） |
 | 推流无画面 | `health_read.mjs` 看 `eth_live`/`owner_eth`；降 `--fps 15`；`stat` 看片源 |
-| 屏上均匀黑点 | 分包长度（§4）；或 `--pace-mpbps` 太大把入包 FIFO 打满，看 `drop_words` |
+| 屏上均匀黑点 | 分包长度（§4）；或 `--pace-mbps` 太大把入包 FIFO 打满，看 `drop_words` |
 | 画面花/错位 | 网线；关掉杀软的流量扫描；网卡强制全双工 1G |
 | 串口无响应 | ELF 是否下载；COM 号；115200 8N1；有没有别的终端占着端口 |
 | 判据脚本卡住 | `hw_server` 是否在跑；xsdb 与 vivado 的调用顺序；读 DDR 前要不要 `rst -processor` |

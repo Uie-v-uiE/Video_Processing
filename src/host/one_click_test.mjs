@@ -116,7 +116,7 @@ if (DRY) {
   const [p1, p2] = process.platform === 'win32' ? ['-n 1 -w 1000', '-c 1 -W 1'] : ['-c 1 -W 1', '-n 1 -w 1000'];
   line(1, 'PING', `将执行 ping ${p1} ${IP}，不通再试 ping ${p2} ${IP}（仍不通则整轮判红并退出 1） 未执行`, 'NOT_MEASURED');
   line(2, 'CONNECT', `将用 "${XSDB}" 连 hw_server localhost:${HWPORT}：读 ${GPIO0} 原值 → lane 号写 bit[31:27] → 从 ${GPIO1} 取 lane0/1/8/9 基线 → 原值写回 未执行`, 'NOT_MEASURED');
-  line(3, 'SEND', `将执行 node src/host/video_sender.mjs --ip ${IP} --port ${PORT} --fps ${FPS} --pace-mpbps ${PACE} --file - ；stdin=${CLIP_REL}×${FRAMES} 帧=${payload.length} B 预计 ${EXP_PKTS} 包 未执行`, 'NOT_MEASURED');
+  line(3, 'SEND', `将执行 node src/host/video_sender.mjs --ip ${IP} --port ${PORT} --fps ${FPS} --pace-mbps ${PACE} --file - ；stdin=${CLIP_REL}×${FRAMES} 帧=${payload.length} B 预计 ${EXP_PKTS} 包 未执行`, 'NOT_MEASURED');
   line(4, 'COLLECT', `将再读一次 lane0/1/8/9，与预计 ${EXP_PKTS} 包 / ${EXP_BYTES} 字节对账 未执行`, 'NOT_MEASURED');
   console.log(`ONE-CLICK dry-run=true clip=${CLIP_REL} 存在=是 frames=${FRAMES} 预计包数=${EXP_PKTS} 预计字节=${EXP_BYTES} 未碰网络与板子 NOT_MEASURED`);
   process.exit(0);
@@ -199,7 +199,7 @@ say(2, 'CONNECT', `xsdb="${XSDB}" hw_server=localhost:${HWPORT} gpio0=${GPIO0} �
 /* ---------------- ③ 发送：把字节交给已有的发送脚本，协议不在这里重写 ---------------- */
 const s = spawnSync(process.execPath,
   [host('video_sender.mjs'), '--ip', IP, '--port', String(PORT), '--fps', String(FPS),
-   '--pace-mpbps', String(PACE), '--file', '-'],
+   '--pace-mbps', String(PACE), '--file', '-'],
   { input: payload, encoding: 'utf8', timeout: 180000 });
 const sout = String(s.stdout || '') + String(s.stderr || '');
 // 发送脚本自己报的账：`[TX] stream end: N frames, M pkts (dropped D)`

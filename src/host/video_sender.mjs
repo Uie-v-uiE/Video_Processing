@@ -9,7 +9,7 @@
  * 协议: 每包 [u32 LE byte_offset][RGB565 载荷], 载荷 <= 1392 B（8 的倍数）
  * 用法: node video_sender.mjs [--ip 192.168.1.10] [--port 5001]
  *                             [--src 192.168.1.100] [--fps 15]
- *                             [--pace-mpbps 15] [--no-pace] [--count N]
+ *                             [--pace-mbps 15]（旧拼写 --pace-mpbps 仍接受）[--no-pace] [--count N]
  *                             [--test bars|grad|edge|blocks|hold|move|wordid|frameid]
  *                             [--file -]  ffmpeg 解出来的 512x300 RGB565 裸流从 stdin 进
  *
@@ -40,7 +40,7 @@ const PORT = Number(get('port', 5001));
 const SRC = String(get('src', '192.168.1.100'));
 const FPS = Number(get('fps', 15));
 const NO_PACE = get('no-pace', false) === true;
-const PACE = NO_PACE ? 0 : Number(get('pace-mpbps', 15));
+const PACE = NO_PACE ? 0 : Number(get('pace-mbps', get('pace-mpbps', 15)));
 const COUNT = Number(get('count', 0));
 const TEST = String(get('test', 'bars'));
 // --dump <文件>：把最后两帧写到 <文件> 和 <文件>.prev，供 host/ddr_verify.mjs --ref 逐字节比对

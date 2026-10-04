@@ -9,7 +9,7 @@
  * 关键：**必须等推流结束再回读**。回读要几秒，期间若还在推流，每个地址段读到的
  * 是不同时刻的帧（bank0 帧号跨度 130..152 就是这么来的），命中率统计全部作废。
  *
- * 用法：node host/measure_v63.mjs [--fps 15] [--count 60] [--pace-mpbps 15] [--live]
+ * 用法：node host/measure_v63.mjs [--fps 15] [--count 60] [--pace-mbps 15] [--live]
  *   --live  边推边读（只看 16bit 粒度探针，不看命中率）
  * 前置：板子已 ps7_init + program bit + set_src（GPIO=0x00010000），hw_server 在跑。
  */
@@ -22,12 +22,12 @@ const arg = (n, d) => {
   return i < 0 ? d : process.argv[i + 1];
 };
 const FPS = arg('fps', '15');
-const PACE = arg('pace-mpbps', '15');
+const PACE = arg('pace-mbps', '15');
 const LIVE = process.argv.includes('--live');
 const COUNT = arg('count', String(Math.ceil(Number(FPS) * 4) + 20));
 
 const tx = [host('video_sender.mjs'), '--test', 'frameid', '--fps', FPS, '--count', COUNT,
-            '--pace-mpbps', PACE];
+            '--pace-mbps', PACE];
 
 if (LIVE) {
   const sender = spawn(process.execPath, tx, { stdio: 'inherit' });
