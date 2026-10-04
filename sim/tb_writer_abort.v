@@ -1,4 +1,22 @@
 `timescale 1ns/1ps
+// 功能：被测模块 `axi_frame_writer_gated`（参数 IMG_W=64、IMG_H=16、BASE_ADDR=32'h1000_0000，例化名
+//        dut）；覆盖点：abort 那一拍之后仍在途的 R 读拍会不会串进下一帧的头几拍、outstanding 计数
+//        会不会被旧拍的 rlast 打乱，外加 allow_wr 消隐期与 abort 之后 60 拍不许写。
+// 激励与检查：时钟 `always #5 clk`（10 ns 周期），`repeat(4)@(posedge clk)` 后 rst_n=1 再空跑 2 拍；
+//        一帧 64×16=1024 像素 = 256 个 64bit 字 = 16 个 16 拍 burst（够喂出 MAX_OUT=4 个在途），
+//        AR 被恒 1 的 arready 收下排队，R 通道三个信号是队列状态的组合函数、`rvalid` 举起来就 held
+//        到被接收才推进；A 段无 abort 跑完整帧，B 段等 wr_seen>=3 后把 abort 举一拍、再换
+//        base_addr=BASE_B 重启一帧，C 段 allow_wr=0 跑 80 拍、恢复后跑 300 拍再 abort 观察 60 拍；
+//        每段 while 都带 600/3000/8000 拍的上界；判定条件：第 w 个字的期望数据低 16 位
+//        = (w/16)*128 + (w%16)，A1/B4 要 done==1、A2/B5 要 wr_seen==TOTAL_WORDS（256）、
+//        A3/B3 要 first_data[15:0]==16'd0、A4/B6 要 order_bad==0、B1 要 abort 那拍 inflight==1、
+//        B2 要 (!inflight) || rready==1、C1 要 allow_wr=0 期间 wr_seen==0、C2 要 abort 后 60 拍
+//        wr_seen==0。
+// 预期结果：通过时 A1..C2 各打一行 `  PASS <判据名> | <说明> | <计数值>`，随后
+//        `checks=12 errors=0` 与末行 `TB RESULT PASS`；失败时对应那条打 `  FAIL <判据名> | …` 并
+//        fails 加一，失序的头 6 次另打 `    PROBE order break at write <n>: got 0x… expected 0x…`，
+//        末行改打 `TB RESULT FAIL`；#8_000_000 到点打 `  FAIL Z_timeout | the run never finished …`
+//        加末行 `TB RESULT FAIL timeout`。
 // tb_writer_abort.v —— ISSUES #170 的尺子：abort 之后**在途的读拍**会串进下一帧。
 //
 // 被测的是 `src/rtl/axi/axi_frame_writer_gated.v`（顶层里那个 u_row）：它把 DDR 里刚提交的一帧逐行

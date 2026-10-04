@@ -1,3 +1,7 @@
+# 用途：把"路 (a)"量到能拍板的程度（只读，不改任何被跟踪件）
+# 输入：无字面量输入路径；参数解析见本文件
+# 输出：stdout
+# 退出码：0=跑完 1=REFUSE 4=REFUSE
 # build/tcl/r115_option_a_probe.tcl —— 把"路 (a)"量到能拍板的程度（只读，不改任何被跟踪件）
 #
 # 背景（00:01 的读数，件 build/evidence/r115_c2_scratch/io_probe_console.txt）：

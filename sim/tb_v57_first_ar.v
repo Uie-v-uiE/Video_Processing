@@ -1,4 +1,18 @@
 `timescale 1ns/1ps
+// 功能：被测模块 `frame_commit_lock`（u_cm）+ `axi_frame_writer_gated`（u_wr，参数 IMG_W=32、IMG_H=8，
+//        TOTAL_WORDS=(32*8)/4=64）串接（start_copy/copy_base/allow/abort 对接写机的 start/base_addr/
+//        allow_wr/abort）；覆盖点：commit 请求落在 de=1 的有效视区里（allow=0）时先一个字都不写，
+//        等后面消隐窗开了把这一次拷贝补完。
+// 激励与检查：axi_clk #5 翻转（10 ns）、pix_clk #10 翻转（20 ns）；rst_n 低 20 个 axi 拍后放开；
+//        起法 de=1、blank_safe=0，跑 5 个 pix 拍后 vs 打一拍、commit_req 拉高 4 个 axi 拍后收回，
+//        base 取 32'h1000_0000；TB 内做 AXI R 从机：arvalid&&arready 时锁 beats=arlen+1 并延 2 拍，
+//        之后逐拍打 rvalid、rdata=64'hC0DE+beats，beats==1 那拍带 rlast；
+//        空跑 50 个 axi 拍后开消隐（de=0、blank_safe=1），最多再等 100000 个 axi 拍（guard）；
+//        判定条件：前 50 拍内 wr_cnt（wr_en 上升沿枚数）== 0；done 必须变 1；done 之后 wr_cnt >= 64。
+// 预期结果：通过时打印 `PASS no write while de=1` 与 `PASS copy completed after allow rose wr=<wr_cnt>/64`，
+//        末行 `PASS tb_v57_first_ar`；失败时打印 `FAIL wrote during active wr=<n>`、
+//        `FAIL copy never finished after blanking opened wr=<n> busy=<b>` 或 `FAIL incomplete`，
+//        末行变 `FAIL tb_v57_first_ar errors=<n>`。
 // start arrives when allow=0 — copy must still complete on later blanking
 module tb_v57_first_ar;
     reg axi_clk=0, pix_clk=0, rst_n=0;

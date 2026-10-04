@@ -1,4 +1,16 @@
 `timescale 1ns/1ps
+// 功能：被测模块 `axi_frame_writer_gated`（u_wr，参数 IMG_W=32、IMG_H=8，TOTAL_WORDS=(32*8)/4=64）；
+//        覆盖点：64 个字全部写进 fb 才许 done 打一拍；半途 abort 之后不许再发 done。
+// 激励与检查：单时钟 axi_clk #5 翻转（10 ns 周期）；rst_n 低 20 拍后放开；base_addr=32'h1000_0000、
+//        enable 恒 1；case1 allow=1 后 start 打一拍，最多等 50000 个 axi 拍（guard）直到 done；
+//        case2 先 allow=0、start 打一拍跑 30 拍，再 allow=1 跑 40 拍，abort 打一拍后再跑 20 拍；
+//        TB 内做 AXI R 从机：arvalid&&arready 时锁 beats=arlen+1 并延 2 拍，之后逐拍打 rvalid、
+//        rdata=64'h1111*beats，beats==1 那拍带 rlast；模型里另留 drop_last 分支
+//        （araddr[7:0]==8'h80 时静默丢 beats），本次两 case 都没把它置 1；
+//        判定条件：case1 done===1 且 wr_cnt >= 64；case2 结尾 done == 0（wr_cnt 在 case2 前清 0）。
+// 预期结果：通过时打印 `PASS clean full copy done wr=<n>` 与 `PASS no done after abort (wr=<n>)`，
+//        末行 `PASS tb_v58_full_done`；失败时打印 `FAIL clean copy done=<b> wr=<n>/64` 或
+//        `FAIL done after abort`，末行变 `FAIL tb_v58_full_done errors=<n>`。
 // v5.8: writer must not pulse done unless all BRAM words written
 module tb_v58_full_done;
     reg axi_clk=0, rst_n=0;

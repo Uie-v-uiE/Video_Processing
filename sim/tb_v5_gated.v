@@ -1,4 +1,16 @@
 `timescale 1ns/1ps
+// 功能：被测模块 `axi_frame_writer_gated`（#(.IMG_W(64),.IMG_H(16))）与 `frame_commit_lock` 的
+//        allow 生成；覆盖点：allow/wr_en 只在消隐期成立——没有 allow 不许有写，allow 不许在
+//        de 或 de_pipe[15] 仍高时长时间挂着（CDC 残留按每行约 1 拍计量）。
+// 激励与检查：axi_clk #5=10 ns、pix_clk #10=20 ns；rst_n 低 30 个 axi 拍后释放；像素每行 48 拍
+//        （de 高 20 拍）、共 30 行；near_active=(x>=30)&&(y<20)，disp_quiet=~(de|de_pipe[15]|
+//        near_active) 接 blank_safe；commit_req 拉 1 拍后跑 200000 个 pix 拍。判定条件：wr_cnt>0；
+//        wr_bad（wr_en 且 allow 与 allow_d 同时为 0 的写）==0；allow_during_active（pix 域
+//        allow&&(de||de_pipe[15]) 的拍数）<=20000。
+// 预期结果：通过时打印 INFO wr_cnt=<n> wr_bad=0 allow_in_active=<n>、PASS BRAM writes occurred、
+//        PASS writer only writes when allow、PASS allow not stuck on during active (residue=<n>)，
+//        末行 PASS tb_v5_gated。失败时打 FAIL no writes、FAIL BRAM write without allow 或
+//        FAIL allow stuck during active，末行改打 FAIL tb_v5_gated errors=<n>。
 // v5.3: writes only when blank_safe (pipeline quiet); never during de/de_pipe
 module tb_v5_gated;
     reg axi_clk=0, pix_clk=0, rst_n=0;

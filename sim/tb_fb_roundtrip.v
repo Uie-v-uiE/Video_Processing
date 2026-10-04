@@ -1,4 +1,17 @@
 `timescale 1ns/1ps
+// 功能：被测模块 `frame_buffer_w64`（W=512、H=300，PX=153600 像素 / WORDS=38400 个 64bit 字，低块深
+//        D_LO=32768）；覆盖点＝全帧写完后的连续回读逐像素比对、读延迟契约（加地址后下一拍出数）、
+//        低块尾/高块头与帧尾的定点复核、越界读返回黑、越界写不污染已写像素。
+// 激励与检查：写钟 #5 翻转（10 ns，等效 axi_clk）、读钟 #10 翻转（20 ns，等效 clk_pix）；逐字写 38400 个
+//        字（每字两拍，内容 = {pix_of(w*4+3)..pix_of(w*4)}，pix_of(p)=p[15:0]^16'h5A5A 逐像素唯一），
+//        再追加两次越界写（第 38401 个字与地址 19'h7FFFF）；随后 rd_addr 从 0 起每拍 +1，连读
+//        TOTAL = PX+72 = 153672 次，第 p 拍要求 rd_data===exp_of(p)（p<PX 时 pix_of(p)，越界时 16'h0000）；
+//        最后非流水定点复核 16 格：p 从 (D_LO-2)*4 到 (D_LO+2)*4 共 8 格、帧尾 (WORDS-1)*4..WORDS*4 共 8 格。
+// 预期结果：通过时打印 `写入完成 38400 字 + 2 次越界写，t=<时刻>`、`tb_fb_roundtrip: 比对 153688 次
+//        （流水 153672 + 越界读 72 + 边界/帧尾定点 16），错 0 次` 与 `PASS tb_fb_roundtrip`；
+//        失败时打印错位处 `MISMATCH(流水) p=<n> got=<h> want=<h>`（最多 10 条）或 `MISMATCH(定点) p=<n>
+//        got=<h> want=<h>`，badcnt 加一，汇总行改打 `FAIL tb_fb_roundtrip bad=<n>`；
+//        整个仿真超过 400 ms 打 `FAIL tb_fb_roundtrip timeout`。
 // frame_buffer_w64 回读自检 TB（R04 新增：此前仓库里**没有任何** TB 覆盖显示帧缓存）。跑法：bash sim/run_one.sh tb_fb_roundtrip
 // 为什么必须有：R04 把 38400 深的单阵列改成 32768 + 8192 两块 2 的幂阵列，省 48 个 BRAM tile 的代价
 //   是地址映射多了一层块选择；错一个位屏上就是整块错位或右侧 1/4 花掉，而"报告好不好看"完全看不出来。

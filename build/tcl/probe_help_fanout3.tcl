@@ -1,3 +1,7 @@
+# 用途：READ-ONLY help probe, no design opened.
+# 输入：无字面量输入路径；参数解析见本文件
+# 输出：stdout
+# 退出码：0=跑完
 # build/tcl/probe_help_fanout3.tcl -- READ-ONLY help probe, no design opened.
 #   Follow-up to probe_help_fanout2.tcl, which MEASURED two things that change the r114 plan:
 #     * `set_max_fanout` does NOT exist in this Vivado: help says `ERROR: [Common 17-25] No topics matched`.

@@ -1,4 +1,40 @@
 `timescale 1ns/1ps
+// 功能：被测模块 `link_monitor`（三份例化：`u_lm` 用 CLK_HZ=1000 一拍当 1 ms 的测试时基、
+// `u_lm_prod` 用生产 CLK_HZ=125_000_000 只问 ms_tick、`u_lm_syn` 输入全手摆专打 gapclr 相撞）；
+// 激励由 `frame_reasm`（`u_re`，.IMG_W(8)/.IMG_H(4)/.FRAME_BYTES(64)、每包 PAY=16 ⇒ 4 包一帧）
+// 提供，跨域读出用 `snap_cross`（`u_sc`，.W(64)/.DST_HZ(8_000_000)/.HB_TO_MS(50)）；覆盖点：
+// 链路健康自诊断不误报平安——丢字与参考计数逐字相等、断帧与坏包、断流后快照继续刷新、
+// 帧间隔 min/last/max/sum 与饱和与 gapclr、快照不撕裂与心跳退化。
+// 激励与检查：主钟 #4 翻转（8 ns）、目的钟 pclk #62.5 翻转（8 MHz）；rst_n 复位 10 个
+// posedge、prst_n 20 个 pclk 沿后放开；send_frame 每帧发满 4 包（可指 drop 丢掉第几包）后
+// 固定空 GAP=50 拍（>SETTLE=32 ⇒ 每帧都能发布）；A 段把 cdc_full 在 negedge 举成一整帧、
+// 再用 flip_en 打成单拍 0/1 交替造边界事件；C 段静默 400 拍、E 段静默 70_000 拍造 >65.5 s
+// 间隔；F/F2 段把 lm_gapclr 分别举 4 拍、2 拍、跨 3 个帧边界；F2e 用 u_lm_syn 以
+// sy_frame(130) 手摆 4 帧历史 + 2 帧，并把 sy_clr 与 sy_done 在同一个 negedge 一起举起；
+// xdomain 换 100 个总线图案、每次等 12 个 pclk；心跳段按 1.5 us、8 ms、停钟 62.5 ms 三种
+// 间隔喂 s_hb。
+// 判定条件：B 段 s_frames===2、P_FRAMES_BAD===0 && aborts===0、FLAGS[4] 置位且
+// min<=last<=max 且 (max-min)<=2；B2 读寄存器本体 u_lm.gap_valid && min<=last<=max &&
+// min===max && gap_sum==={16'd0,gap_max}，再 force u_lm.gap_sum=gap_max+1 要求 b2_ok 变假；
+// P_BYTES===128 && P_PKTS===8；保留位 lm_bus[3*32+31 -:16]、[6*32+31 -:16]、[7*32+31 -:27]
+// 全 0；缺中间包后 aborts===1、P_ROWS_MAX===1、P_FRAMES_BAD===1、s_frames 仍为 2、FLAGS[1]
+// 置位；坏包 P_PKT_ERR>=1；未堵口 P_DROP===0、堵一整帧后 P_DROP!==0 且 P_CDC_EP!==0；E1/E2
+// 要求 P_DROP===ref_drop 且 P_CDC_EP===ref_ep[15:0]（台架用同两个式子独立数一遍）；断流后
+// upd_after_stop=1、P_STALL>=300、FLAGS[3] 清、下一帧 P_STALL<=60；E 段 P_GAP_MAX===16'hFFFF；
+// F 段清完 P_GAP_MAX===0 && FLAGS[4]===0 且 bad_before 不变、再两帧后 min>=1 && min<=max；
+// F2a–F2d 举住期间四段读数全 0；F2e 两棵树的 S_SUM 都不得 >32'd261（PASS 文案写作
+// <= 2×130；手摆 4 帧的历史 Σ=390 不许留在 lane5）；D 段 d_gone 起始为 1、tears==0、1.5 us 心跳时 d_slow===0、8 ms 时
+// d_slow===1 且 d_gone===0、停钟后 d_gone===1 且 d_bus===d_bus_hold；收尾 prod_ticks>=1。
+// 预期结果：通过时每段各打一条 PASS（`PASS drop_words starts at 0`、
+// `PASS B2 statistics registers self-consistent`、`PASS E1 drop_words == 参考计数`、
+// `PASS snap_cross captured 100/100 intact snapshots` 等，另有 PROBE/INFO 现场行），errors==0
+// 打 `RESULT tb_link_monitor PASS`；失败时红话自带读数，如
+// `FAIL FALSIFIER: CDC port blocked for a whole frame but drop_words=0`、
+// `FAIL gap_max=%0d after a 70 s gap, expected to saturate at 0xFFFF`、
+// `FAIL F2e B lane5 kept pre-clear history: sum=%0d > 2x130 ...`、
+// `FAIL snapshot tore %0d/100 times across the clock domain`，收尾打
+// `RESULT tb_link_monitor FAIL (%0d errors)`，200 ms 看门狗到点打
+// `RESULT tb_link_monitor FAIL timeout`。
 // tb_link_monitor —— 例化 frame_reasm + link_monitor（测试时基一份，再用生产 CLK_HZ=125e6 例第二份只问 ms_tick）+ snap_cross，验链路健康自诊断**不误报平安**：丢字、断包、断流、帧间隔、心跳，每一条都要看得见。
 // 判据索引：A 反例（挡住 CDC 写口 ⇒ drop_words 必须非 0；没有 full 时必须恒 0，否则这数字是噪声）· B/B2/B3（两帧正常提交；发布与统计寄存器**分家**判——B2 红=算术坏了、B 红 B2 绿=发布路径坏了，B2-mut 是它自己的反例；缺一个中间包 ⇒ frame_abort 恰好一次、rows_missed=1 并进快照 lane1/lane2；坏包那条上板恒 0 的路）· C 断流后快照必须继续刷新（否则 stall_ms 冻住，OSD 把"线被拔了"显示成"一切正常"）· D 第一个 frame_done 只建立基准，不许把"上电到现在"写进 min/max · E 长间隔饱和 0xFFFF 不许回卷 · F gapclr 只清帧间隔统计、别的计数不动 · **F2/F2e（#180）gapclr 是电平：举着跨帧边界（F2a–F2d，今天就是绿的，它是地板）与"放开那一拍正好压在记账那一拍"（F2e，用第三台 u_lm_syn 手摆出来，改前红）** · snap_cross 不撕裂 + hb_slow（拔线时钟退化工况）+ hb_gone。每条期望值写在各字母段的判行上。
 // 跑法：bash sim/run_one.sh tb_link_monitor

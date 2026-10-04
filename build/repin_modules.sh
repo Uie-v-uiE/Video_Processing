@@ -1,4 +1,8 @@
 #!/usr/bin/env bash
+# 用途：把 `report/modules.md` 的 D5b「例化者」列**该指到哪一行**算出来（只打印，不改文件）
+# 输入：命令行参数
+# 输出：stdout
+# 退出码：脚本内无显式 exit ⇒ 随最后一条命令（正常跑完为 0）
 # build/repin_modules.sh —— 把 `report/modules.md` 的 D5b「例化者」列**该指到哪一行**算出来（只打印，不改文件）。
 #
 # 为什么需要它（2026-10-03，r109）：这一轮往 `pl_video_top.v` 里挪了一段翻转拍点（净增 ~26 行），

@@ -1,4 +1,8 @@
 #!/usr/bin/env python3
+# 用途：#57 落地之后，把"解释旧结构"与"上板命令"这两类文档补成现状
+# 输入：build/tcl/program_pl.tcl
+# 输出：stdout
+# 退出码：脚本内无显式 exit ⇒ 随最后一条命令（正常跑完为 0）
 # build/r92_doc_followon.py —— #57 落地之后，把"解释旧结构"与"上板命令"这两类文档补成现状。
 # 规矩：只改**描述当前设计**的句子；历史日志与当时观测原样留着，但在后面追一句"现状是……"。
 # 跑法：python build/r92_doc_followon.py

@@ -1,4 +1,8 @@
 #!/usr/bin/env bash
+# 用途：从当前 git 跟踪集导出选题指南 §3.3.5.4 那份目录（final_submission/）
+# 输入：命令行参数、board/uart_script_capture.txt
+# 输出：build/reports/gates.txt、build/sim/names.md
+# 退出码：0=跑完 1=非 0 分支（该文件 exit 1 那一行）
 # make_submission.sh — 从当前 git 跟踪集导出选题指南 §3.3.5.4 那份目录（final_submission/）。
 #
 # 四条判据，每条都是为了处理"仓库里合理、交出去不合理"：

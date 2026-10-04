@@ -1,4 +1,8 @@
 #!/bin/bash
+# 用途：把 tb_v98 的 console 收成门禁第 15 项要的凭据
+# 输入：命令行参数
+# 输出：stdout
+# 退出码：2=非 0 分支（该文件 exit 2 那一行）
 # build/tb98_report.sh —— 把 tb_v98 的 console 收成门禁第 15 项要的凭据
 #
 #   bash build/tb98_report.sh [那份 run.log]        # 默认 /tmp/kx/tb_v98_top_seam.run/run.log

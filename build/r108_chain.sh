@@ -1,4 +1,8 @@
 #!/usr/bin/env bash
+# 用途：r108 这一轮（只带 icmp_tx 的 IP 首部校验和拆两拍这一刀）
+# 输入：命令行参数、build/tcl/build_system_axigpio.tcl、build/tcl/crit_path.tcl、build/tcl/hold_paths.tcl
+# 输出：stdout
+# 退出码：1=非 0 分支（该文件 exit 1 那一行）
 # build/r108_chain.sh —— r108 这一轮（只带 icmp_tx 的 IP 首部校验和拆两拍这一刀）。
 # 形状照 build/r107_chain.sh（那三脚已经踩过：门禁两步落盘、台架不并发、构建期不动 src/rtl）。
 #

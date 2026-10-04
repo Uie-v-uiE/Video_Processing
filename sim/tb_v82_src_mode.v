@@ -1,4 +1,21 @@
 `timescale 1ns/1ps
+// 功能：被测模块 `src_mode`；覆盖点＝长按翻转位到片源模式格雷码的映射：一次没按不许动、一次长按恰好
+//        一格、四态环闭合、每步只翻一位、半路复位后不再白送事件、连按三次到 TEST 档、eth_now=1 时
+//        AUTO 那格直接落锁PS、串口命令 ov_code/ov_tog 钉模式与"先稳码再翻沿"的次序。
+// 激励与检查：clk 每 #10 翻转一次；rst_n 上电为 0，4 拍后置 1、再走 4 拍。one_press = ltog 翻一次并
+//        保持 8 拍（远超 3 级同步链）后再等 6 拍；publish_mode = ov_code 先稳 8 拍、再翻 ov_tog 等
+//        8 拍；T4 翻位后多等 24 拍；T5 在 negedge 把 rst_n 拉低 3 拍再释放、等 12 拍；T7 复位后
+//        eth_now=1。判定（M_AUTO=0 M_ETH=1 M_SD=3 M_TEST=2）：T1 `mode === M_AUTO`；T1b 台架内逐字
+//        照搬的旧写法（链复位 3'b111）`mode_old === M_ETH`；T2/T2b/T2c/T2d 四次长按依次
+//        `=== M_ETH/M_SD/M_TEST/M_AUTO`；T3 四步的 `(mode ^ before)` 既不为 2'd0 也不为 2'd3
+//        （bad==0）；T4 `mode === M_ETH`；T5b 复位后 `mode === M_AUTO`；T6 连按三次 `=== M_TEST`；
+//        T7b `eth_now=1` 时一次长按 `=== M_SD`，T7c bad2==0、T7d 原地不动的步数 same==0；
+//        T8a/T8b/T9a/T9b/T10a/T10b/T12 分别钉 AUTO、长按后到 ETH、钉 TEST、交还后回 AUTO、钉 SD、
+//        钉 ETH、收尾回 AUTO；T11 先翻 ov_tog 再改 ov_code，断言 `mode === mode_before_ov`。
+// 预期结果：通过时每条 expect 各打一行 `PASS <条名>`，中间打 INFO 行（复位后 mode 与旧写法的对照值、
+//        T3 两位同时变化的步数=0、T6 结束位置、T7c 每步的前后状态与翻转位），末行
+//        `PASS tb_v82_src_mode`；失败时对应条打 `FAIL <条名> (t=<时刻>)`、errors 加一，末行改判
+//        `FAIL tb_v82_src_mode errors=<n>`；#2_000_000 处未 finish 时打 `FAIL tb_v82_src_mode timeout`。
 // 台架：src/rtl/util/src_mode.v（长按翻转位 → 片源模式格雷码）。跑：bash sim/run_one.sh tb_v82_src_mode
 // 核心判据只有一条：**一次都没按，模式不许动**。它以前在 pl_video_top 里、没有台架碰得到，于是"lsync 复位成 3'b111"上了板：
 // 源头 tog 复位是 0，移位进来的第一个 0 让 lsync[1]^lsync[2] 连续两拍为真 ⇒ 上电自己走两步 AUTO→锁ETH→锁PS

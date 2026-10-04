@@ -1,4 +1,20 @@
 `timescale 1ns/1ps
+// 功能：被测模块 `frame_reasm`（u，参数 IMG_W=512、IMG_H=300、FRAME_BYTES=307200，行距 ROW_STRIDE=1024）；
+//        覆盖点：产线尺寸下三种帧形的提交取舍——缺行、行行沾到但字节数远远不够、300 整行写满。
+// 激励与检查：时钟 #5 翻转（10 ns 周期）；rst_n 拉低 20 拍后放开；包形为 4 拍偏移（首拍 p_sof）
+//        + 数据拍 + 1 拍 p_eof，偏移取边界值 off = row*1024；
+//        腿1 send_rows(10)：跳过第 0..9 行，其余每行只送 1 像素（8'h11/8'h22），之后空跑 30 拍
+//        （判据标签写作 10/300，实发是未被跳过的 290 行各 1 像素）；
+//        腿2 send_rows(0)：300 行各 1 像素 = 600/307200 字节，之后空跑 40 拍；
+//        腿3 send_row_full：逐行发满 1024 字节（p_data = b[7:0]^row[7:0]，p_eof 与末字节同拍）× 300 行，
+//        之后空跑 40 拍；
+//        判定条件：done_cnt（frame_done 上升沿枚数，每腿前清 0）腿1 == 0、腿2 == 0、腿3 >= 1。
+// 预期结果：通过时打印 `PASS no commit when only 10/300 rows`、
+//        `PASS no commit when rows are touched but bytes are short`、
+//        `PASS commit after 300 full production rows done=<n>`，末行 `PASS tb_v50_rows_prod`；
+//        失败时打印 `FAIL commit with only 10 rows`、`FAIL committed a 600-byte frame` 或
+//        `FAIL no commit after 300 full production rows done=<n>`，
+//        末行变 `FAIL tb_v50_rows_prod errors=<n>`。
 // Production-scale row coverage: 512-wide rows, first and last row offsets
 module tb_v50_rows_prod;
     localparam IMG_W=512, IMG_H=300;

@@ -1,4 +1,8 @@
 #!/usr/bin/env python3
+# 用途："""build/r114_io_verdict.py —— 把快车道那一滚（build/tcl/r114_io_roll.tcl 的控制台）判成一张表
+# 输入：命令行参数
+# 输出：stdout
+# 退出码：0=跑完 4=非 0 分支（该文件 exit 4 那一行）
 # -*- coding: utf-8 -*-
 """build/r114_io_verdict.py —— 把快车道那一滚（build/tcl/r114_io_roll.tcl 的控制台）判成一张表。
 

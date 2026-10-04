@@ -1,4 +1,23 @@
 `timescale 1ns/1ps
+// 功能：被测模块 `axi_frame_writer_gated` 与 `frame_commit_lock`（配 `video_timing_1024x600` 出时序）；
+//        覆盖点＝整帧 38400 个 64bit 字（4 个 RGB565/字）能否在一个 V-blank 窗口（25 空行 x 1344 px
+//        = 67200 个 axi 拍）内写完、四档 HP0 带宽各自的完成时机，以及写使能不落在有效显示行上。
+// 激励与检查：pix_clk 半周期 #10（50 MHz）、axi_clk 半周期 #5（100 MHz）；rst_n 拉低 50 个 axi 拍后
+//        释放，再空跑 2000 个 pix 拍。读端 slave 按 rate_num 拍/10 拍的额度模型（credits 上限 40、
+//        冷启动 LAT=40 拍、burst 长 16）；每个 run_phase 用 1 拍 commit_req 起一帧，再
+//        `while (allow && !copy_done && !copy_abort)` 采样。判定：`copy_done && (did1 == in_one)`；
+//        `w_ok == WORDS`（=38400）且 `w_dup == 0` 且 `w_oob == 0`；`w_viol == 0`，其中 w_viol 在
+//        `wr_en && (de || de_d[11] || (y < 12'd600))` 时加一；rate=4 档（in_one=0）允许溢出到下一个
+//        消隐窗，但必须在 3_000_000 个 axi 拍内看到 copy_done。
+// 预期结果：通过时每档打 `PASS rate=<r>/10 swap <inside one V-blank|after spilling> done=..
+//        cycles=.. words=38400` 与一行 `rate=<r>/10 swapped inside the first V-blank
+//        (window budget met)`，末行 `PASS tb_v6_vblank_copy`（errors==0）；失败时按判据分别打
+//        `FAIL rate=<r>/10 no swap (abort=.. words=.. viol=..)`、
+//        `FAIL rate=<r>/10 swapped in_one=.. but required=..`、
+//        `FAIL rate=<r>/10 coverage words=.. /38400 dup=.. oob=..` 或
+//        `FAIL rate=<r>/10 writes overlapped active display (<n>)`，errors 加一后末行改判
+//        `FAIL tb_v6_vblank_copy errors=<n>`；#400_000_000 处未 finish 时打
+//        `FAIL tb_v6_vblank_copy timeout`。
 // v6 proof TB — PRODUCTION geometry (512x300 src, 1024x600 @50MHz pix, 100MHz AXI).
 // Question: does the whole frame land in the display BRAM inside ONE V-blank window, so
 // no visible row can ever mix two DDR frames?  run: bash sim/run_one.sh tb_v6_vblank_copy

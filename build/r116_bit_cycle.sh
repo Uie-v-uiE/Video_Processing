@@ -1,4 +1,8 @@
 #!/usr/bin/env bash
+# 用途：刷某一份位流 + 推 50 秒真实流量 + 读硬件健康计数（A/B 对照用）
+# 输入：命令行参数、build/tcl/program_pl.tcl
+# 输出：stdout
+# 退出码：2=REFUSE 3=REFUSE 4=REFUSE
 # build/r116_bit_cycle.sh —— 刷某一份位流 + 推 50 秒真实流量 + 读硬件健康计数（A/B 对照用）
 #
 #   用法：bash build/r116_bit_cycle.sh <标签> [位流路径]

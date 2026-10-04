@@ -1,4 +1,8 @@
 #!/usr/bin/env node
+// 用途：把任意视频转成开发板能直接顺序读的 512×300 RGB565 帧库
+// 输入：命令行参数
+// 输出：stdout
+// 退出码：1=非 0 分支（该文件 exit 1 那一行）
 // make_sd_video.mjs — 把任意视频转成开发板能直接顺序读的 512×300 RGB565 帧库
 //
 //   node src/host/make_sd_video.mjs --in D:/path/a.mp4 --out E: [--chunks 512] [--preview]

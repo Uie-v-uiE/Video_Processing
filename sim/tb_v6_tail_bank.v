@@ -1,4 +1,22 @@
 `timescale 1ns/1ps
+// 功能：被测模块 `ddr_bank_commit` 的 A/B 两条链（u_old #(.TAIL_GUARD(1'b0))=v6.4 行为、
+//        u_new #(.TAIL_GUARD(1'b1))=修复后），各自包在 `tail_lane` 里（内含 `dc_fifo` +
+//        `axi_frame_saver64` + 逐 16bit lane 生效 WSTRB 的 AXI3 从机）；覆盖点：帧尾最后 2 个
+//        lane 在反压放开那一刻会不会被提前翻页甩进下一帧。
+// 激励与检查：gmii_clk #4=125 MHz、axi_clk #5=100 MHz；10 个 gmii 负沿后 rst_n/axi_rst_n 拉高、
+//        再空 20 拍。每帧 WORDS=8 字×4 lane（want=(字号+帧号)&0xffff），push16 每 lane 占 2 个
+//        gmii 负沿，末尾 push_flush 2 拍、s_frame_done 1 拍。帧 0 的 cut_lane=-1（整帧一次送完），
+//        等 5000 个 axi 拍后 check_frame(0)；帧 1 的 cut_lane=1（最后一个字只交付 lane0/lane1
+//        就把 rd_allow 置 0，剩余 lane 与 flush 标记滞留 CDC），停读 3000 拍后置 rd_allow=1、
+//        再等 6000 拍后 check_frame(1)。判定条件：帧 0 hit_old==8 且 hit_new==8；帧 1 必须
+//        hit_old!=8（旧链复现丢尾）且 hit_new==8（新链整帧完整）、u_new.commit_cnt==2。
+// 预期结果：通过时打印 frame0 ... 完整 old=8/8 new=8/8、frame1: 完整 old=<n>/8
+//        (first_bad_word=<w>) new=8/8、OK 旧链复现出帧尾丢失：缺 <8-hit_old> 个字、
+//        OK 新链整帧完整落在自己的 bank <base>，末行 PASS tb_v6_tail_bank。失败时打
+//        FAIL frame0 基线就没落位（old=<n> new=<n>）、FAIL 复现失效：TAIL_GUARD=0 的旧链帧尾
+//        竟然完整，激励没触发机理、FAIL 修复无效：TAIL_GUARD=1 的新链仍有 <n>/8 个字不完整、
+//        FAIL 新链提交 <n> 次（期望 2），换页被过度延迟，末行 FAIL tb_v6_tail_bank errors=<n>；
+//        #80_000_000 超时打 FAIL tb_v6_tail_bank timeout。
 // v6.4「帧尾 4 字节（最后 2 个像素）偶发丢失」的复现 + 回归 TB（机理记 R03）。
 // 换页判据只看 saver_idle，而 idle 对 8192 深 CDC 和它后面两级读流水**完全不可见**：
 // 帧最后一个字中途放开反压 ⇒ force_flush 提前排空 ⇒ 翻 bank ⇒ 剩下 2 个 lane 写进下一帧。

@@ -1,4 +1,8 @@
 #!/usr/bin/env node
+// 用途：UDP 推流（Node 内置 dgram，无需 numpy/python/ffmpeg）
+// 输入：命令行参数、标准输入
+// 输出：stdout
+// 退出码：0=跑完
 /**
  * video_sender.mjs — UDP 推流（Node 内置 dgram，无需 numpy/python/ffmpeg）
  *

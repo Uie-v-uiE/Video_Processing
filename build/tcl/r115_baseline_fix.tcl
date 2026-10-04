@@ -1,3 +1,7 @@
+# 用途：补 B1 缺的两块（选项形状按 A2 实测过的那批写）
+# 输入：无字面量输入路径；参数解析见本文件
+# 输出：stdout
+# 退出码：0=跑完 1=REFUSE
 # build/tcl/r115_baseline_fix.tcl —— 补 B1 缺的两块（选项形状按 A2 实测过的那批写）
 #
 # 上一支 `r115_baseline_probe.tcl` 的两处失败（件 build/evidence/r115_baseline_probe_console.txt）：

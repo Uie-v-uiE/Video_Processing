@@ -1,4 +1,8 @@
 #!/usr/bin/env bash
+# 用途：第三捆（刀 A：key_debounce 上电武装门 #247/#250；刀 B：icmp_tx 校验和累加器 32→20）的整轮链
+# 输入：命令行参数、build/evidence/r110_setup_paths_baseline.rpt、build/tcl/build_system_axigpio.tcl、build/tcl/crit_path.tcl
+# 输出：stdout
+# 退出码：1=非 0 分支（该文件 exit 1 那一行） 2=REFUSE
 # build/r112_chain.sh —— 第三捆（刀 A：key_debounce 上电武装门 #247/#250；刀 B：icmp_tx 校验和累加器 32→20）的整轮链。
 # 与 r110_chain 的差别：
 #   ① 改前读数问的是**盘上那份 r110**（已采纳、在板上跑着的那一版），并且先把 `build/setup_paths.rpt`

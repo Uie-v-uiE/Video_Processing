@@ -1,3 +1,7 @@
+# 用途：scan $gv {%x} gi
+# 输入：无字面量输入路径；参数解析见本文件
+# 输出：stdout
+# 退出码：脚本内无显式 exit ⇒ 随最后一条命令（正常跑完为 0）
 catch {connect -host localhost -port 3121} ce
 puts "CONNECT=$ce"
 targets -set -filter {name =~ "*Cortex-A9 MPCore #0"}

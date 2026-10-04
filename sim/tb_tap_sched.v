@@ -1,4 +1,23 @@
 `timescale 1ns/1ps
+// 功能：被测模块 `tap_sched` #(.IMG_W(512), .SLOTS(5))；覆盖点：lane=0..3 四种车道、跨行、
+//        行首（sx=0）与行尾（sx=508/511 ⇒ 需要读下一个字）的请求，四个抽头 p00/p10/p01/p11
+//        与 ofx/ofy 的逐条对号、左窗 aux_q/aux_lane_q 的字-车道对位、vld 节拍与输入节拍一比一。
+// 激励与检查：时钟 always #2 clk=~clk（4 ns 周期，5 个槽 = 20 ns 像素周期）；上电 rst_n=0，
+//        repeat(4) @(posedge clk) 后拉高；每个像素周期的 s0 负沿换一次请求，共 nreq=60 条
+//        （sx=4*(k%40)+(k%4)、sy=k%50、fx=8'h11*(k%8)、fy=8'h22*(k%4)、aux_word=(k*37)%(512*300/4)，
+//        第 57/58/59 条钉 sy=100/101/102 与 sx=0/508/511），发完 req 停；读口每拍跟随
+//        rd_word_addr，内容由 pix(n)=n[15:0]^{n[11:0],4'h0}^(n[15:0]*16'h0403)^16'h5A5A 现算；
+//        之后 repeat(60*5+12)=312 个上升沿再判。判定条件：每条 vld 的 {p11,p01,p10,p00} 与
+//        {ofx,ofy} 必须等于独立按 pix(y*512+x)、pix(+1)、pix(+W)、pix(+W+1) 算出的期望队列；
+//        左窗那一路在 s2 负沿（流水灌满 2 个周期后）判 pick(aux_q,aux_lane_q) 是否等于
+//        pix(aux_prev_word*4+aux_prev_lane)；收尾五条 chk 为 nchk==60、e_head==e_tail、
+//        nchk==nreq（无多余 vld）、naux>55、nauxbad==0。
+// 预期结果：通过时五条 [CHK] 行全部以 : OK 结尾，[INFO] requests=60 checked=60 auxbad=0
+//        errors=0，末行 RESULT tb_tap_sched PASS；失败时错在哪条就 BAD 在那条，并先打出对应
+//        明细 [DIAG] taps mismatch / frac mismatch（got 与 exp 的十六进制）、
+//        [DIAG] aux mismatch（最多 5 条）、或 [DIAG] vld with empty expectation queue，
+//        末行改打 RESULT tb_tap_sched FAIL (<n> bad)；#200_000 内没跑完则打
+//        RESULT tb_tap_sched FAIL timeout。
 // tb_tap_sched —— 判"每个请求拿到的 4 个抽头 + fx/fy 都对、左窗字也对、输出节拍=输入节拍"。
 // 独立性（这条最重要）：期望值**不走** DUT 的字地址/车道路径，直接用像素函数算
 //   pix(sy*W+sx)、pix(...+1)、pix(...+W)、pix(...+W+1)；存储模型只用来喂 DUT 的读口

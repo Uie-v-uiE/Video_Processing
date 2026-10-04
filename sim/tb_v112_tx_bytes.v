@@ -1,4 +1,18 @@
 `timescale 1ns/1ps
+// 功能：被测模块 `icmp_tx`（u_dut）；覆盖点：发出去的 gmii_txd 字节流指纹（前导码 + 以太头 + IP 头 +
+//        ICMP），用作"IP 校验和累加器 32→20 位"那把刀的等价尺子。
+// 激励与检查：时钟 #4 翻转（8 ns 周期，125 MHz）；每矢量先 rst_n 低 5 拍、放开后再 3 拍，
+//        tx_start_en 拉两拍发起，随后 3200 拍内在 gmii_tx_en 有效时收字节、收满 NBYTE=72 停存；
+//        六个矢量的 des_ip/icmp_id/icmp_seq/tx_byte_num/reply_checksum 取值同 tb_v112_ip_csum
+//        （tx_byte_num 含 28 与 16'hFFF0 两端），tx_data 恒 8'hA5；
+//        判定条件：T2 每矢量收到的字节数 cnt >= 40；T1 收到的字节里出现过 8'h45；
+//        T3 同一矢量连跑两遍、第二遍只把 reply_checksum 从 32'h0000_0000 改成 32'h0000_0001，
+//        两次的滚动混合指纹 dig[0] 必须不相等。
+// 预期结果：通过时每矢量打印一行 `BYTES v<n> n=<cnt> <逐字节 hex>` 和一行 INFO mix/first，
+//        T3 打印 `  ok   T3 改一个输入位，指纹从 <a> 变成 <b>`，末行 `PASS tb_v112_tx_bytes`，
+//        等价凭据是 base/cut 两次跑的 BYTES 行逐字相同；失败时打印 `  FAIL T1 v<n> 字节流里没有 IP 首部的 0x45`、
+//        `  FAIL T2 v<n> 只收到 <cnt> 个字节（地板 40）` 或 `  FAIL T3 改了输入指纹却不动（<h>）`，
+//        末行变 `FAIL tb_v112_tx_bytes errors=<n>`；超 #20_000_000 打印 `FAIL tb_v112_tx_bytes timeout`。
 // 台架：icmp_tx **发出去的字节流**指纹（r112 那把"IP 校验和累加器 32→20 位"的等价尺子）。
 // 跑法：bash sim/run_one.sh tb_v112_tx_bytes
 //

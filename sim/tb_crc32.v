@@ -1,4 +1,14 @@
 `timescale 1ns/1ps
+// 功能：被测模块 `crc32_d8`（以太网反射 CRC 的逐字节累加器）；覆盖点＝复位初值、单字节更新、
+//        crc_clr 清零、同一序列跑两遍的可重复性。
+// 激励与检查：时钟 #4 翻转（8 ns 周期），复位释放后连喂 3 拍；判据 1 复位释放后 crc_data 必须
+//        等于 32'hFFFF_FFFF；判据 2 喂 8'h00 与 8'hFF 之后两次的 crc_data 不许相等；
+//        判据 3 crc_clr 拉一拍后 crc_data 必须回到 32'hFFFF_FFFF；
+//        判据 4 序列 {8'h55,8'hAA,8'h01} 中途清零再跑第二遍，两次的 crc_data 必须逐位相同。
+// 预期结果：通过时依次打印 PASS init / PASS crc updates / PASS clr / PASS determinism，
+//        末行 PASS tb_crc32 ALL 且 errors=0；失败时对应段打印 FAIL init <crc 值>、
+//        FAIL crc did not change、FAIL clr <crc 值> 或 FAIL determinism <v1> vs <v2>，
+//        errors 加一并改末行为 FAIL tb_crc32 errors=<n>。
 // CRC32 functional checks (not a named-vector test — algorithm is Ethernet reflected).
 module tb_crc32;
     reg clk=0, rst_n=0;

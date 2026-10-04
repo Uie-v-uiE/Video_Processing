@@ -1,4 +1,16 @@
 `timescale 1ns/1ps
+// 功能：被测模块 `udp_tx + crc32_d8 + udp_rx + frame_reasm`（GMII 直环：u_tx 的 gmii_tx_en/txd 直接喂
+//        u_rx 的 rx_dv/rxd，u_reasm 参数 IMG_W=8、IMG_H=4、FRAME_BYTES=128）；覆盖点＝一发一收的字节数
+//        与载荷不被截断、两包（偏移 0 与偏移 64）拼满一帧后 frame_reasm 的帧计数出帧。
+// 激励与检查：时钟 #4 翻转（8 ns，GMII 125 MHz），rst_n 拉低 4 拍后释放再等 2 拍；tx_len=68 配
+//        tx_start 一拍发出 UDP 载荷（前 4 字节是帧内偏移，后 64 字节是第一包 k[7:0]、第二包 8'h80+k）；
+//        每包等 tx_done，超过 5000 个时钟拍未等到即判 `FAIL timeout tx`，随后再放 20 拍；
+//        判据 1 数 rec_en 拍数 n_rec 必须等于 68；判据 2 第二包之后 frame_reasm 的 stat_frames(sf) 必须
+//        >= 1（wr_data 按 wr_addr 存进 cap[] 只做观测，本轮不参与判定）。
+// 预期结果：通过时依次打印 `PASS udp payload len`、`PASS frame complete sf=<n> n_wr=<n>`，末行
+//        `PASS tb_eth_video ALL`，同时 dump tb_eth_video.vcd 可看 txd→rec_en→wr_en 一条链的时序；
+//        失败时打印 `FAIL timeout tx`、`FAIL n_rec=<n> exp 68` 或 `FAIL no frame complete sf=<n> n_wr=<n>`，
+//        errors 加一并把末行改成 `FAIL tb_eth_video errors=<n>`。
 // GMII-level UDP TX→RX loopback + video reassembly (no fork).
 module tb_eth_video;
     localparam [47:0] MAC = 48'h00_11_22_33_44_55;

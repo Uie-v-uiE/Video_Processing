@@ -1,4 +1,8 @@
 #!/usr/bin/env python
+# 用途："""build/r115_round_roster.py —— 提示词 §4 E1：`roster_roundNNN.tsv`（与基线同形状 + *_delta + verdict）
+# 输入：命令行参数
+# 输出：stdout
+# 退出码：脚本内无显式 exit ⇒ 随最后一条命令（正常跑完为 0）
 # -*- coding: utf-8 -*-
 """build/r115_round_roster.py —— 提示词 §4 E1：`roster_roundNNN.tsv`（与基线同形状 + *_delta + verdict）。
 

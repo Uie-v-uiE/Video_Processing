@@ -1,3 +1,7 @@
+# 用途：read out the two r116 cuts on the shipped routed DCP
+# 输入：无字面量输入路径；参数解析见本文件
+# 输出：stdout
+# 退出码：0=跑完 1=REFUSE 4=REFUSE
 # build/tcl/r116_verdict_probe.tcl -- read out the two r116 cuts on the shipped routed DCP
 # ASCII-only (ISSUES #307: CJK comments have killed a Vivado Tcl parse mid-proc before).
 # One line per criterion, verdict/worst number as the LAST field.

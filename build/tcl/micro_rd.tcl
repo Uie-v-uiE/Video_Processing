@@ -1,3 +1,7 @@
+# 用途：只 place+route 帧缓存读口这一条路，回答双线性能不能上板
+# 输入：无字面量输入路径；参数解析见本文件
+# 输出：stdout
+# 退出码：1=非 0 分支（该文件 exit 1 那一行）
 # micro_rd.tcl —— 只 place+route 帧缓存读口这一条路，回答双线性能不能上板。
 #
 # 跑法（一次一个 MODE；三个 MODE 的日志分别落 build/micro_rd/m<MODE>.log）：

@@ -1,3 +1,26 @@
+// 功能：被测模块 `icmp_rx`（例化 `dut`，.BOARD_MAC(48'h00_11_22_33_44_55)、
+// .BOARD_IP({8'd192,8'd168,8'd1,8'd10})）；覆盖点：echo request 载荷长度的边界逐字节收取——
+// rec_byte_num、rec_en 次数、字节顺序、校验和成对累加、每包一次 rec_pkt_done 与状态机
+// 收尾，加上 #218 的"声明长度 0"与截断包不再楔死。
+// 激励与检查：#4 翻转时钟（8 ns = 125 MHz，与 eth_rxc 同频）；rst_n 复位 5 拍后放开再等
+// 3 拍；一包按 7 个 8'h55 + 8'hD5 前导、14 字节以太网头、20 字节 IP 头（total_length 声明
+// 28+dl，dl 可与实到 n 不同）、8 字节 ICMP 头（identifier=16'h1234、sequence=16'h5678）
+// 加 N 个载荷字节逐拍喂 dv/rxd，载荷取 pay[i]=8'hA0+i；14 轮 N 依次 1,2,3,4,5,6,7,8,15,16,
+// 55,56,63,64（奇偶都有、1/2 最能暴露"边界差一个"），每轮喂完最多等 60 拍让 dut.cur_state
+// 回到 S_IDLE(7'b000_0001)；随后喂 send_packet(4,0)（声明 0 而线上仍流 4 字节）、
+// send_packet(2,10)（只到 2 字节而声明 10），并各跟一个正常包（32 与 20 字节）。
+// 判定条件（写各条实际比较的表达式）：A rec_byte_num===N[15:0]；B en_cnt===N；
+// C badidx<0（第 k 个 rec_en 上的 rec_data 必须 ===pay[k]）；D reply_checksum===exp_sum(N)
+// （成对 {pay[2k],pay[2k+1]} 相加、奇数尾字节放低半 {8'h00,pay[N-1]}、32 位不折叠）；
+// E done_cnt===1；F dut.cur_state===S_IDLE && idle_wait<60；G icmp_id===16'h1234 &&
+// icmp_seq===16'h5678；K1 done_cnt===1；K2 回 idle；K3 rec_en===1'b0；K4 done_cnt===1 &&
+// rec_byte_num===16'd32 && badidx<0；L1 回 idle；L2 done_cnt===1 && rec_byte_num===16'd20；
+// L3 rec_byte_num===16'd20（长度属于最后一个合法包，不属于被声明 0 的那一个）。
+// 预期结果：通过时每条打 `[tb_icmp_rx_len.v] PASS <标签> | <说明>`，errors==0 收尾打
+// `[tb_icmp_rx_len.v] RESULT tb_icmp_rx_len PASS errors=0`；失败时对应条打
+// `[tb_icmp_rx_len.v] FAIL <标签> | <说明>`（A/B/C/D 红=最后一个字节的判拍挪了，
+// K/L 族同源于 #218 那一个下溢根因），收尾打 `RESULT tb_icmp_rx_len FAIL errors=%0d`，
+// 600 us 看门狗到点打 `[tb_icmp_rx_len.v] RESULT tb_icmp_rx_len FAIL timeout`。
 // tb_icmp_rx_len —— `icmp_rx` 的载荷长度尺子：把"最后一个字节判在哪一拍"变成可判红的数。
 //
 // 为什么现在要有它（此前这块 RTL 一条台架判据都没有）：r90 那一轮要把最坏 setup 路径上的

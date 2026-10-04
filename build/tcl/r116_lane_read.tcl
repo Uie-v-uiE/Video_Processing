@@ -1,3 +1,7 @@
+# 用途：read the PL link-health lanes over JTAG, preserving GPIO_0
+# 输入：无字面量输入路径；参数解析见本文件
+# 输出：stdout
+# 退出码：0=跑完
 # build/tcl/r116_lane_read.tcl -- read the PL link-health lanes over JTAG, preserving GPIO_0
 #
 # Why hand-rolled: src/host/health_read.mjs 的辅助脚本 data/measured/health_cur.tcl 在这台机器上

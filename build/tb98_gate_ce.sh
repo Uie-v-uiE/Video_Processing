@@ -1,4 +1,8 @@
 #!/bin/bash
+# 用途：门禁第 15 项（顶层台架报告）自己的反例测试
+# 输入：命令行参数
+# 输出：stdout
+# 退出码：0=跑完 1=FAIL 2=非 0 分支（该文件 exit 2 那一行）
 # build/tb98_gate_ce.sh —— 门禁第 15 项（顶层台架报告）自己的反例测试
 #
 #   bash build/tb98_gate_ce.sh          # 五条都要对，最后打印 CE: PASS / CE: FAIL

@@ -1,3 +1,7 @@
+# 用途：READ-ONLY "同一严口径"的 hold 体检，开 routed dcp，不改网表
+# 输入：无字面量输入路径；参数解析见本文件
+# 输出：stdout
+# 退出码：0=跑完 1=REFUSE 4=REFUSE
 # build/tcl/probe_uncertainty_uniform.tcl -- READ-ONLY "同一严口径"的 hold 体检，开 routed dcp，不改网表。
 #   Why (2026-10-03, the user's "别只追最差那条，要看全局"): src/constraints/rk_zynq7020.xdc:50 carries exactly
 #     ONE uncertainty line -- `set_clock_uncertainty -hold 0.800 [get_clocks eth_rxc]`. The other three domains

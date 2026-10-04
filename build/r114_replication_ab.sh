@@ -1,4 +1,8 @@
 #!/usr/bin/env bash
+# 用途：广播网"复制驱动"值不值：同一份 opt.dcp 滚两遍，变量只有一个
+# 输入：命令行参数、build/tcl/mf114_roll.tcl
+# 输出：stdout
+# 退出码：1=非 0 分支（该文件 exit 1 那一行） 2=REFUSE
 # build/r114_replication_ab.sh —— 广播网"复制驱动"值不值：同一份 opt.dcp 滚两遍，变量只有一个
 #
 # 变量（2026-10-03 实测后定稿，凭据 build/evidence/r113_help_fanout2_console.txt）：

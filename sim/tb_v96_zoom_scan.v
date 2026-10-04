@@ -1,4 +1,22 @@
 `timescale 1ns/1ps
+// 功能：被测模块 `zoom_mapper`（参数 IMAGE_W=512、IMAGE_H=300，例化名 u_map）；覆盖点：一条过屏幕
+//        中心的扫描行上逐像素的 floor+frac 自洽、源列单调性、中心格不动、左右 OOB 对称、90° 的
+//        行列交换性，以及呼吸一趟的漂移量。
+// 激励与检查：时钟 `always #5 clk`（10 ns 周期），rst_n 上电为 0、4 拍后拉高再空跑 2 拍；每档 scan()
+//        按 x = X0..X0+254（X0 = CX−127，中心两侧各 127 列、共 NPIX=255 个屏幕列）、y=CY 逐拍喂一列，
+//        日志多收到 NLOG=NPIX+12 拍用于排空；inv 取 341/512/256/1023/776，angle 取 0/45/90/300，
+//        rot_en 取 0/1，M6 段从 inv=256 以步长 8 走到 512 共 32 步；判定条件：先在 k=0..8 里扫出一个
+//        让 255 点全对的对齐位移 best_k（M0），再逐点比 sx_log[r+best_k]==exp_sx(X0+r,inv) 且
+//        fx_log[r+best_k]==exp_frac(X0+r,inv)（两个期望函数按 d=x−CX、p=d·inv 的整数 floor 与余数
+//        现算），inv=512 与 256 两档要求 bad_m1==0；inv=1023 档要求相邻源列严格增大且 inrange 计数
+//        > NPIX/4；中心格要求 !oob && sx==CX && sy==CY（0°/45°/300° 各一次）；90° 档要求 npair>60、
+//        max|Δsx|<=1、min|Δsy|>=1；M4 要求左右 OOB 连长都 >0 且相等；M6 要求每步漂移 <=2 且整趟累加
+//        ==64。
+// 预期结果：通过时每条判据各打一行 `PASS <M0..M6 标签>`，另打流水线延迟与 M4/M5/M6 的 INFO 计数行，
+//        末行 `PASS tb_v96_zoom_scan`；失败时对应那条打
+//        `FAIL <标签> (t=<时刻>)` 并 errors 加一，末行改打 `FAIL tb_v96_zoom_scan errors=<n>`；
+//        best_k 扫不出来时只打含 `tb_v96_zoom_scan(align) 找不到对齐位移` 的那一行随即 $finish；
+//        看门狗 #2_000_000 到点打 `FAIL tb_v96_zoom_scan timeout`。
 // tb_v96_zoom_scan —— 例化 zoom_mapper，逐像素扫描"每一列屏幕取了源图哪一列、它怎么随缩放/旋转变"，把"量化取整在爬"与"映射算错"分开（两者修法完全不同）；期望值只按**定义**算、不抄 RTL 流水线：sx_real = W/2 + (x − W/2)·inv/256（逆映射 屏幕→源），sx = floor(sx_real) 取**向 −∞ 取整**（正负两半都要对，中心两侧差一格就是"缝"的候选来源），frac = 256·(sx_real − sx) ∈ [0,255]；流水线延迟不假设，由 M0 扫对齐位移 k 量出来。
 // 判据索引：M0 存在让全部样本自洽的 k · M1/M1b floor+frac 逐像素自洽、含中心左侧负偏移（1.0x 必为恒等映射）· M2 inv≥256 源列随屏幕列不减、inv>256 必须严格增 · M3a/b/c 屏幕中心必落源中心（转不转、几度都算）· M4 0.25x 左右黑边（OOB）列数对称 · M5 90° 交换性：屏幕横排 ⇒ 源竖列（Δsx≈0、|Δsy|≈inv/256）· M6 呼吸一趟 256→512 同一屏幕列的漂移必须等于定义（2 px/步、全程 64 px，把 floor 写成截断就红）；每条期望值写在自己那段的 expect() 行上。
 // 跑法：bash sim/run_one.sh tb_v96_zoom_scan

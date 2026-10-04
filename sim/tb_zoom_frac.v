@@ -1,4 +1,24 @@
 `timescale 1ns/1ps
+// 功能：被测模块 `zoom_mapper`（IMAGE_W=512、IMAGE_H=300，例化名 dut）；覆盖点：缩放支与旋转支的
+//        x_out/y_out 与 frac_x/frac_y 是否描述同一格、旋转态到底有没有非零小数，以及 #189 那批
+//        "小数落在 (0,1/256)"的像素会不会整行取错。
+// 激励与检查：时钟 `always #10 clk`（20 ns 像素钟），`repeat(4) step; rst_n=1; repeat(2) step`；
+//        每个像素置 x_in/y_in 后 step×3（三级流水），期望值由台架按实数域算（Q8 的 C/S 直接读
+//        dut.u_cos.value / dut.u_sin.value，换角度后先 `repeat(10) step` 并自检表已换过）；
+//        喂的数据：缩放支 inv=299、rot=0，py=100..119 步 3 × px=250..269 步 5 再加一点 (400,40)；
+//        旋转支 angle=30、inv=256，py=120..179 步 7 × px=200..319 步 11；#189 扫描段 12 个角度
+//        （20° 起、步长 19°）× inv∈{256,299} × ay=90..269 步 15 × ax=150..369 步 17；
+//        判定条件：窗内要 x_out==floor_i(Xr) 且 y_out==floor_i(Yr)、frac 与 round_i(小数*256) 差
+//        <=1，窗外要 oob==1（窗内不许 oob）；H5 要 nfrac!=0，S2 要 nlow>=5，S3 要 nbad==0，
+//        H0/S0 要取到的表项不是 C=256/S=0。
+// 预期结果：通过时打 `PASS H0 reference_table_fresh | angle=30 取到 C=<c> S=<s>`、H1/H2/H3/H4 的
+//        段标签行、`D<tag> rot_and_zoom_pixel_compare | <n> independent floor/frac comparisons ran
+//        with 0 mismatch`、`PASS H5 rot_has_fraction | <nfrac> of <ntot> rotation pixels carry a
+//        non-zero fraction` 与 `S1 scan189 | 扫了 <tot> 个 … #189 让它们取错行的 0 个`，末行
+//        `[tb_zoom_frac] RESULT tb_zoom_frac PASS errors=0`；失败时逐点打
+//        `FAIL D<n> floor_x|floor_y|frac_x|frac_y|inside_but_oob|oob_must_be_1 | expect <e> got <g>`
+//        或 `FAIL H0/H5/S0/S2/S3 …`，errors 每加一末行就变 `[tb_zoom_frac] RESULT tb_zoom_frac
+//        FAIL errors=<n>`；看门狗 #400000 到点打 `[tb_zoom_frac] RESULT tb_zoom_frac FAIL timeout`。
 // tb_zoom_frac.v —— #104 的尺子：旋转支的小数位到底有没有交给双线性单元。
 //
 // 为什么要单独一把快尺子：#104 的病在 `zoom_mapper` 的组合/流水算术里（旋转支把 `>>> 16` 之后的

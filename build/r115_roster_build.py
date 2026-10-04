@@ -1,4 +1,8 @@
 #!/usr/bin/env python
+# 用途："""build/r115_roster_build.py —— 提示词 §3 B2 / §4 E1：把「一行一个时钟域」的花名册生成器与判定器写成一件工具
+# 输入：命令行参数
+# 输出：stdout
+# 退出码：脚本内无显式 exit ⇒ 随最后一条命令（正常跑完为 0）
 # -*- coding: utf-8 -*-
 """build/r115_roster_build.py —— 提示词 §3 B2 / §4 E1：把「一行一个时钟域」的花名册生成器与判定器写成一件工具。
 

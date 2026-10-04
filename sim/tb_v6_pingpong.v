@@ -1,4 +1,23 @@
 `timescale 1ns/1ps
+// 功能：被测模块 `ddr_bank_commit`（#(.TAIL_GUARD(1'b1))，u_commit 是上板实现而非手抄 glue 副本），
+//        连同 `frame_reasm`→`dc_fifo`→`axi_frame_saver64`；覆盖点：连续推帧时「提交→等
+//        saver_idle→翻 bank」这段链是否让每帧整帧落进它自己那笔 commit 记录的 bank。
+// 激励与检查：gmii_rx_clk #4=8 ns、axi_clk #5=10 ns；rst_n/axi_rst_n 低 20 个 gmii 负沿后同时
+//        释放、再空 20 拍。帧形 IMG_W=512、IMG_H=60→FRAME_BYTES=61440、WORDS=7680、PKTS=45，
+//        连发 NFRAMES=2 帧；lane 图案 want=(((off0+bi)>>3)+帧号)&0xffff，期望字 {want,want,want,
+//        want}；包间空 GAP=10230 拍。AXI 从机每 beat 占端口 W_LAT 拍（默认 0，+W_LAT=n 可扫）；
+//        每次 commit_pulse 后端口被显示拷贝独占 CP_CYC=67200 拍（+COPY_CYC=n 可扫，等效
+//        awready/wready 拉低）。每帧排空到 saver_idle&&!switch_req 或 3000000 个 axi 拍，再空
+//        20000 拍。判定条件：commit_cnt==NFRAMES=2；最后一帧在 commit_bank[NFRAMES-1] 记录的
+//        bank 里逐字全对的计数 hit0==WORDS=7680。
+// 预期结果：通过时逐帧打印 COMMIT <n> completed_base=<值> (bank was <b>)、drain waited <t> axi
+//        cycles、---- after frame <f>: commits=... ----、frame<f> in BANK0/BANK1: exact=7680/7680
+//        (100%) partial=0 none=0 firstmiss=-1，再打 force_flush 行与探针行、
+//        LAST frame1 in its committed bank ... exact=7680/7680、PASS last frame fully landed，
+//        末行 PASS tb_v6_pingpong。失败时打 FAIL commits=<n> expected=2 或
+//        FAIL last frame did not fully land in its own bank (partial=<n> none=<n>)；排空撞上限时
+//        另打 STUCK dump: outst=... 现场行；末行 FAIL tb_v6_pingpong errors=<n>，
+//        #400_000_000 超时打 FAIL tb_v6_pingpong timeout。
 // v6 乒乓提交 TB：连续推流时每帧丢字，跑法 bash sim/run_one.sh tb_v6_pingpong
 // 板上：单帧（发完就停）任何速率都 100% 落位；连续推流时每帧只有约 53% 的 64bit 字
 // 写进它自己的 bank（各帧 53/26/21 = 「每帧独立丢 47%」的几何分布）。差别只发生在

@@ -1,4 +1,20 @@
 `timescale 1ns/1ps
+// 功能：被测模块 `split_display`（一台架四例并行：u_a seam=512、u_b seam=1、u_c seam=0、
+//        u_d seam=1024）；覆盖点：标记蓝线占的列数与落点、左右两窗内容选择、de 透传、越界涂黑、
+//        消隐期不新画线、x_sel 落后 9 列时缝与线一起跟着走，以及三个极端缝位会不会把整行染蓝。
+// 激励与检查：时钟 `always #10 clk`（20 ns 周期），复位 de=0/hs=1/vs=1 起步、`repeat(3)@(posedge clk)`
+//        后 rst_n=1 再空跑 2 拍；set_pix 逐列驱动 x=0..1023（1024 列）、y 钉 100、orig_pix=16'h1234、
+//        proc_pix=16'hF81F、angle_idx=0、oob_l/oob_r 由测试给，每列一拍并在 `@(posedge clk); #1`
+//        之后取值；边界档：marker=0 复扫一行、sel_override=1 且 sel_lag=12'd9 复扫两行、
+//        S4/S5 单列 (300/511) 手喂；判定条件：期望色由 `round(v*255/(2^n−1))` 算且容差 ±1 LSB
+//        （exp5/exp6 两个函数），S1 要 n_marker==2 && n_wrong_marker==0、S2 要 n_wrong_content==0 &&
+//        n_left==511 && n_right==511、S3 要 n_de_bad==0、S4 要 x=300 越界列输出 0/0/0 且 x=511 仍是
+//        MR/MG/MB=8'h40/8'h40/8'hFF、S5 要 kept==1、S6a/b/c/d 要 c1==2、c0==1、cN==1、bad_sel_d==0、
+//        S7a/b 要 no_mk==0 && cont_left_bad==0、S7c 要蓝只落在 i==520 与 521（mk_ok==2 && mk_bad==0）、
+//        S8 要 mk_bad==0 && mk_ok==19。
+// 预期结果：通过时 S1..S8 各打一行 `PASS <标签>`，末行 `PASS tb_v97_seam_scan`；
+//        失败时对应那条打 `FAIL <标签> (t=<时刻>)` 并 errors 加一，末行改打
+//        `FAIL tb_v97_seam_scan errors=<n>`；看门狗 #300_000 到点打 `FAIL tb_v97_seam_scan timeout`。
 // tb_v97_seam_scan —— 缝的逐列扫描：ISSUES #56 第 2 点欠的那条判据，也是 V8-4a 接 split_ctrl 之前的预检。跑法：bash sim/run_one.sh tb_v97_seam_scan
 // 症状"碰到分割线时线周围出现颜色条"，来源已知：split_display.v:32 把 `x == PANE_W-1` 与 `x == PANE_W` **两列强行涂蓝**（V6 画的分界标记）；"知道是这两列"和"有判据保证只有这两列、别处不许冒出第三种颜色"是两件事，后者才有本文件。
 // S6 那组极端缝位（1 / 0 / 1024）是提前踩点：PANE_W=0 时 `x == PANE_W-1` 是 −1，与 12 位无符号 `x` 比较会不会把整行涂蓝 ——

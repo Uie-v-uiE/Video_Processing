@@ -1,4 +1,21 @@
 `timescale 1ns/1ps
+// 功能：被测模块 `icmp_tx`（ICMP 回应的 GMII 发送器）；覆盖点＝tx_byte_num=0（`ping -l 0` 的回复）时
+//        数据段计数减一是否回绕成巨帧，以及 8 字节/56 字节两档长度不被补位逻辑改动，配反空转对照。
+// 激励与检查：时钟 #4 翻转（8 ns，GMII 125 MHz），每场都重新复位：negedge 拉低 rst_n 4 拍、置
+//        tx_byte_num 后释放，再等 3 拍打一拍 tx_start_en（tx_data 取 8'hA5+n_bytes），等 tx_done 最多
+//        200_000 个 negedge；期望值按定义给（数据段 = max(请求载荷, 18)）：T1 tx_byte_num=0 要求
+//        数据态拍数 cyc_data==18（改前为 65536）；T4a 要求 cyc_data>0 且 dones==1（真的进过 st_tx_data
+//        并收过一次 tx_done）；T2 tx_byte_num=8 要求 cyc_data==18 且 dones==1；T5 紧跟 T2 判补位内容
+//        pad_seen==10 且第一个补位字节 pad_first 等于最后一个载荷字节 last_data_byte；
+//        T3 tx_byte_num=56 要求 cyc_data==56 且 dones==1（不补位也不少发）。
+// 预期结果：通过时逐条打印 `PASS T1 zero-byte ping reply must emit exactly MIN_DATA_NUM (18) data bytes,
+//        not 65536`、`PASS T4a T1 really ran: ...`、`PASS T2 8-byte payload still pads to 18 data bytes`、
+//        `PASS T5 padding repeats the last payload byte ...`、`PASS T3 56-byte payload emits exactly 56
+//        data bytes (no padding, none lost)`，每条前有 `INFO T<n> tx_byte_num=.. → 数据态拍数=..
+//        （期望 ..）tx_done=..` 量值行（波形上看即 gmii_tx_en 拉高期间数据态恰 18/18/56 拍），末行
+//        `RESULT tb_icmp_ping0 PASS`；失败时对应条目改打 `FAIL <条目名>` 且 errors 加一（T1 红 = 数据态
+//        拍了 65536 拍这一类巨帧），末行 `RESULT tb_icmp_ping0 FAIL nfail=<n>`；
+//        超过 #30_000_000 打印 `FAIL tb_icmp_ping0 timeout` 与 `RESULT tb_icmp_ping0 FAIL nfail=timeout`。
 // tb_icmp_ping0 —— #188 的尺子：`ping -l 0` 让 `icmp_tx` 的载荷计数减一回绕，回复变成一个畸形巨帧。
 //
 // 机理（`src/rtl/eth/icmp_tx.v:325-329`，逐行读过）：`st_tx_data` 里

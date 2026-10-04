@@ -1,3 +1,7 @@
+# 用途：把 `.runs/impl_1` **现在**这份实现结果的三个数抄出来（不重建、不改产物）
+# 输入：无字面量输入路径；参数解析见本文件
+# 输出：stdout
+# 退出码：0=跑完 1=非 0 分支（该文件 exit 1 那一行）
 # build/tcl/read_run_result.tcl —— 把 `.runs/impl_1` **现在**这份实现结果的三个数抄出来（不重建、不改产物）
 #
 #   vivado -mode batch -nojournal -source build/tcl/read_run_result.tcl

@@ -1,3 +1,7 @@
+# 用途：implementation-stage hook (adopted cut C9).
+# 输入：无字面量输入路径；参数解析见本文件
+# 输出：stdout
+# 退出码：脚本内无显式 exit ⇒ 随最后一条命令（正常跑完为 0）
 # build/tcl/r117_post_place_hook.tcl -- implementation-stage hook (adopted cut C9).
 #
 # Wired in by build/tcl/build_system_axigpio.tcl as

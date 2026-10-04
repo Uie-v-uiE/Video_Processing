@@ -1,4 +1,17 @@
 `timescale 1ns/1ps
+// 功能：被测模块 `axi_frame_writer_gated`（#(.IMG_W(128),.IMG_H(80))）与 `frame_commit_lock` 的
+//        V-blank 开窗；覆盖点：整帧写吞吐能否压在有限几个 V-blank allow 窗口内跑完。
+// 激励与检查：axi_clk #5=10 ns、pix_clk #10=20 ns；rst_n 低 30 个 axi 拍后释放；像素每行 96 拍、
+//        共 90 行（V_ACT=50 行的前 64 拍 de=1，V_BLANK_LINES=40 行整行 de=0），vs 在 ycnt==50
+//        的第 0 列；blank_safe=(y>=50)&&!de；commit_req 拉 1 拍；最多等 200000 个 axi 拍到 done=1。
+//        判定条件：wr_en 计数 wr_cnt>=TOTAL_WORDS=(128*80)/4=2560；allow&&busy 的累计拍数
+//        allow_high_cycles<=vblank_budget*3，vblank_budget=V_BLANK_LINES*96*2=7680（pix 拍 20 ns
+//        对 axi 拍 10 ns 的 2 倍关系），即上限 23040 个 axi 拍。
+// 预期结果：通过时打印 INFO wr_cnt=<n> expect=2560 allow_high=<n> budget=7680 ar=<n> cyc=<n>、
+//        PASS full frame written、PASS copy throughput acceptable for V-blast，末行 PASS tb_v5_vblast。
+//        失败时打 FAIL timeout wr=<n> allow_cyc=<n> budget=7680 ar=<n>（随后 $finish）、
+//        FAIL incomplete frame 或 FAIL too slow: allow_high=<n> > 3*Vblank=23040，
+//        末行改打 FAIL tb_v5_vblast errors=<n>。
 // v5.5: full frame must complete during ONE V-blank allow window
 module tb_v5_vblast;
     reg axi_clk=0, pix_clk=0, rst_n=0;

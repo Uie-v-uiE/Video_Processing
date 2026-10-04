@@ -1,4 +1,13 @@
 `timescale 1ns/1ps
+// 功能：被测模块 `axi_frame_saver_burst`（.base_addr=32'h1000_0000）；覆盖点：64 个连续 16bit
+//        像素在内部攒成 64bit burst 写出去，两拍 flush 能把尾巴挤出打包器并回到 idle。
+// 激励与检查：clk #5 翻转=10 ns；rst_n 低 20 拍后释放；wr_en 连续 64 拍写 wr_addr 0..63、
+//        wr_data=16'h1000+i；wr_en 落一拍后 flush 连续保持 2 拍；之后最多等 50000 拍到 idle=1。
+//        判定条件：m_axi_wvalid&&m_axi_wready 的拍数 w_cnt>=16（64 像素×2 B=128 B=16 个 64bit 字）；
+//        idle===1'b1。aw_cnt/b_cnt/max_awlen 只进 INFO 行，不参与判红。
+// 预期结果：通过时打印 INFO aw_cnt=<n> w_cnt=<n> b_cnt=<n> max_awlen=<n> idle=1 g=<n>、
+//        PASS all words written、PASS idle，末行 PASS tb_v5_saver。失败时打
+//        FAIL w_cnt=<n> expected>=16 或 FAIL not idle，末行改打 FAIL tb_v5_saver errors=<n>。
 // v5 saver TB: write 64 sequential pixels, flush, require all 16 words + idle
 module tb_v5_saver;
     reg clk=0, rst_n=0;

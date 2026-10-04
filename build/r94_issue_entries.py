@@ -1,4 +1,8 @@
 #!/usr/bin/env python3
+# 用途：把 r94 这一轮的四件事追加进账本（只追加，不改历史条目）
+# 输入：无字面量输入路径；参数解析见本文件
+# 输出：stdout
+# 退出码：脚本内无显式 exit ⇒ 随最后一条命令（正常跑完为 0）
 # build/r94_issue_entries.py —— 把 r94 这一轮的四件事追加进账本（只追加，不改历史条目）。
 # 规矩：断言结果一定比原来长；写完立刻用 grep 自证条目在盘上（"grep before claiming"）。
 import io, os

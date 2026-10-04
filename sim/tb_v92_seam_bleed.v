@@ -1,4 +1,22 @@
 `timescale 1ns/1ps
+// 功能：被测模块 `proc_box_blur`(u_blu)、`proc_sharpen`(u_shp)、`proc_sobel`(u_sob)、`proc_morph`(u_mor，
+//        mode=2'd2 膨胀、threshold=8'h80)，四家都 bypass=0；覆盖点＝右窗缝边第 0/1/2 列会不会被上一行
+//        末尾的像素影响、首行会不会被上一帧末行的行缓存影响、3×3 抽头图是否九格全亮且中心即标签像素。
+// 激励与检查：时钟 #10 翻转（20 ns 周期），rst_n 以初值 0 走 4 拍后置 1 再等 4 拍；W=512（真实右窗宽）、
+//        一"帧"LN=4 行、行间 GAP=832 拍消隐；底值 FLAT=16'h2104、扰动 HOT=16'hFFFF；drive_frame 每行喂
+//        512 个 de=1 加 1 拍 de=0；one_run 先跑一帧热身、清零采样后再跑一帧测量。三遍主序列：无扰动
+//        （hr=-1）、上一行末尾 4 格 HOT（hr=MEAS_ROW-1=1、hc=W-4=508）、牙齿对照（hr=MEAS_ROW=2、hc=199
+//        单格 HOT）；采样位置由 de_out 连续计数除以 W 得出，每个被测抓第 MEAS_ROW 行的列 0/1/2 加对照区
+//        197..203 共 NC=10 个点；C3 把 cur_row 改到 0，用脏帧 (LN-1, W-4, 4) 夹两遍全干净帧；C4 把单格
+//        HOT 依次放到 (MEAS_ROW+dy, TGT+dx)，dy,dx∈[-1,1] 共九次 one_run。判定：C0 每个被测 10 个采样位
+//        have[] 全命中（miss==0）；C1 对照区 diff_bits(clean,ctrl)==1 的列数 wcnt>=1；
+//        C2 diff_bits(clean[me][0..2], prov[me][0..2])==0；C3 diff_bits(prov[me][2], clean[me][2])==0；
+//        C4 mapbits[me] 的九位全为 1（map_full==1）。
+// 预期结果：通过时末行打印 PASS tb_v92_seam_bleed，波形上四路 de_out 每行仍 512 拍、最左三列的输出与
+//        无扰动基线逐位相同、九点抽头图九格都是 ##；失败时按 "  FAIL C<n> <模块名> <判据名>" 打行并让
+//        末行变 FAIL tb_v92_seam_bleed errors=<n>（文件末尾的说明指出当前 C2/C3 的红是登记在册的缺陷：
+//        blur 只挡首行、sobel 两个都不挡），C0 另打 "缺采样 <n> 个"，#400_000_000 看门狗到期打
+//        FAIL tb_v92_seam_bleed timeout。
 // tb_v92_seam_bleed —— 只例化 blur/sharpen/sobel/morph 四个窗口级，验右窗缝边第 0/1/2 列的两类"漏"：(a) 窗口级把最左列的"左邻"取成**上一行的最右列**（p 移位链跨消隐不复位），(b) 首行用**上一帧最后一行**的缓存（同一机制的行版本）；第三个成因（split_display 在 x==PANE_W-1/PANE_W 画的 2 像素缝标记线）是特性不是 bug，不归本台架。
 // 判据索引：C0 量具自证（十六个采样点全部真的抓到，否则"两遍相同"是空跑假绿）· C1 牙齿对照（HOT 放到被测点真正的左邻 ⇒ 差分必须不为 0）· C2 第 0/1/2 列不受上一行末尾影响 · C3 首行不受上一帧末行影响 · C4 九点抽头图九格全亮（3×3 窗口完整、中心=标签像素）；判据一律用**差分**写法（同一激励跑两遍，只把扰动格 FLAT→HOT），期望与反例写在各 C 段开头。
 // 跑法：bash sim/run_one.sh tb_v92_seam_bleed

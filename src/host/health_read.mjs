@@ -1,4 +1,8 @@
 #!/usr/bin/env node
+// 用途：V7.6 (P0-A) 从 PS 侧读回 PL 的链路健康快照
+// 输入：命令行参数
+// 输出：stdout
+// 退出码：0=跑完 1=非 0 分支（该文件 exit 1 那一行）
 /**
  * health_read.mjs — V7.6 (P0-A) 从 PS 侧读回 PL 的链路健康快照。
  *

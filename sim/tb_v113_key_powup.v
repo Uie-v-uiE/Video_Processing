@@ -1,4 +1,18 @@
 `timescale 1ns/1ps
+// 功能：被测模块 `key_debounce` + `key_long` + `angle_ctrl`（u_k1/u_k1l/u_ang 三者的 rst_n 全接 1'b1，
+//        照 system_top 里 sys_rst_n 恒真的真接线跑）；覆盖点：上电初值本身——不拉复位、不碰键时
+//        key_stable 与两级同步寄存器立不立得起来，以及立不起来时白送的那一枚短按。
+// 激励与检查：时钟 #10 翻转（20 ns 周期，50 MHz），全程没有复位动作；initial 只把 u_k1.cnt/acnt/armed、
+//        u_k1l.cnt/fired/tog/short_pulse/holding、u_ang.angle/fs_s 写成 0，故意不写 key_stable/key_sync0/key_sync1；
+//        先空跑 RUN = 3*DBN+500 = 3_500 拍（DBN=1_000、HOLD=30_000、ARM=10_000），
+//        再把 key_n_r 拉低 DBN+20 拍、拉高后跑 DBN+40 拍作反面对照；
+//        判定条件：#1 时刻 u_k1.key_stable === 1'b1 且 key_sync0/key_sync1 都 === 1'b1；
+//        空跑之后 inc==0、angle==0、ltog==0、rotate_active==0；真人一按之后 inc==1、angle==9'd1；
+//        判据条数 judged < 8 也计入 errors。
+// 预期结果：通过时八条判据各打印一行 `PASS <ASCII 判据名>`，另有 INFO PWRUP / INFO after / INFO control
+//        三行读数，末行 `RESULT tb_v113_key_powup PASS checks=<judged>`；失败时对应判据打印 `FAIL <判据名>`、
+//        条数不足打印 `FAIL FLOOR only <judged> criteria judged (ruler idled)`，
+//        末行变 `RESULT tb_v113_key_powup FAIL errors=<n> judged=<m>`。
 // tb_v113_key_powup —— "没人碰键，屏上那一格就必须是 0 度"：按板上的真接线跑，整支**不碰 rst_n**。
 //
 // 立案背景（ISSUES #256，根因终于量出来了）：

@@ -1,3 +1,7 @@
+# 用途：r113 物理单变量实验的一"滚"（#253/#252 的 ②）
+# 输入：无字面量输入路径；参数解析见本文件
+# 输出：stdout
+# 退出码：0=跑完 1=REFUSE 4=REFUSE
 # build/tcl/pb113_roll.tcl —— r113 物理单变量实验的一"滚"（#253/#252 的 ②）
 #
 #   PB_MODE=none   PB_OUT=/tmp/kx/pb113/A  vivado -mode batch -nojournal -source build/tcl/pb113_roll.tcl

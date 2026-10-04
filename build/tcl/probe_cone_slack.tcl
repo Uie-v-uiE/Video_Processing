@@ -1,3 +1,7 @@
+# 用途：read-only A/B probe for ONE cone between two endpoint sets.
+# 输入：无字面量输入路径；参数解析见本文件
+# 输出：stdout
+# 退出码：0=跑完 1=REFUSE
 # build/tcl/probe_cone_slack.tcl -- read-only A/B probe for ONE cone between two endpoint sets.
 #   Why a second probe: build/tcl/probe_reasm_fanout.tcl is hard-wired to the u_reasm family. r108 cuts
 #   the icmp_tx IP-checksum cone, so the same discipline (ask the *same* start/endpoint pair on both

@@ -1,4 +1,18 @@
 `timescale 1ns/1ps
+// 功能：被测模块 无（本 tb 不例化 RTL，在 TB 内自建 allow 同步链：blank_safe 经 pix_clk 三级移位取 bs2，
+//        bs2 再经 axi_clk 三级移位得 d0/d1/d2，allow = d1 & d2）；
+//        覆盖点：blank_safe 拉低之后、de 起来之前那段导前量够不够让 allow 先落 0，
+//        以及导前只有 3 个像素拍时 allow 的实际电平。
+// 激励与检查：两个时钟——axi_clk #5 翻转（10 ns）、pix_clk #10 翻转（20 ns）；rst_n 低 20 个 axi 拍后放开；
+//        腿1 blank_safe=1、de=0 稳定 20 个 pix 拍 + 20 个 axi 拍；
+//        腿2 blank_safe=0 撑 20 个 pix 拍 + 10 个 axi 拍（产线 64-pix 导前的类比），随后 de=1 再 4 个 pix 拍；
+//        腿3 先 de=0、blank_safe=1 撑 30 个 pix 拍 + 20 个 axi 拍，再 blank_safe=0 只撑 3 个 pix 拍就抬 de=1
+//        跑 2 个 pix 拍（这一腿只打印 INFO，不计 errors）；
+//        判定条件：腿1 结束时 allow 必须为 1，腿2 de 起来之后 allow 必须为 0。
+// 预期结果：通过时打印 `PASS allow high in stable blanking` 与 `PASS allow low before/at de after lead`，
+//        末行 `PASS tb_v571_allow_lead`；失败时打印 `FAIL allow should be 1 when blank_safe held high` 或
+//        `FAIL allow still high after 20pix lead + de=1`、errors 加一，末行变
+//        `FAIL tb_v571_allow_lead errors=<n>`；腿3 两种取值都只打 `INFO short lead ...`。
 // Directed: blank_safe low long enough ⇒ allow must be low when de pulses
 module tb_v571_allow_lead;
     reg axi_clk=0, pix_clk=0, rst_n=0;

@@ -1,3 +1,7 @@
+# 用途：READ-ONLY help probe, no design opened (about 40 s, safe while a bench runs).
+# 输入：无字面量输入路径；参数解析见本文件
+# 输出：stdout
+# 退出码：0=跑完
 # build/tcl/probe_help_fanout2.tcl -- READ-ONLY help probe, no design opened (about 40 s, safe while a bench runs).
 #   Why: before running the set_max_fanout A/B I must know (a) whether set_max_fanout exists at all in this
 #     version, (b) what the tool itself says it is used for, and (c) which implementation step can actually act on

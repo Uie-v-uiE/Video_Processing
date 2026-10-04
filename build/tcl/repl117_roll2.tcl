@@ -1,3 +1,7 @@
+# 用途：same single-variable roll as repl117_roll.tcl, with the net
+# 输入：无字面量输入路径；参数解析见本文件
+# 输出：stdout
+# 退出码：0=跑完 1=REFUSE 4=REFUSE
 # build/tcl/repl117_roll2.tcl -- same single-variable roll as repl117_roll.tcl, with the net
 # lookup FIXED.
 #

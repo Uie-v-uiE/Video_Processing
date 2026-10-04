@@ -1,3 +1,7 @@
+# 用途：只读探针：把 r117 官方构建的 I/O 侧与 check_timing 读数问回来
+# 输入：无字面量输入路径；参数解析见本文件
+# 输出：stdout
+# 退出码：0=跑完 1=REFUSE 4=REFUSE
 # build/tcl/r117_io_probe.tcl -- 只读探针：把 r117 官方构建的 I/O 侧与 check_timing 读数问回来。
 #
 # 为什么还要这一支：链子跑的 `probe_timing_roster.tcl` 与 `pre_readings.sh` 给的是**逐时钟名册**，

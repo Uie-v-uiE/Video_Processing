@@ -1,3 +1,7 @@
+# 用途：只读探针：不确定度在**开着的检查点**上到底怎么读回来
+# 输入：无字面量输入路径；参数解析见本文件
+# 输出：stdout
+# 退出码：0=跑完 1=REFUSE 4=非 0 分支（该文件 exit 4 那一行）
 # build/tcl/probe_uncertainty_shape.tcl —— 只读探针：不确定度在**开着的检查点**上到底怎么读回来
 #
 # 为什么要量（2026-10-03 21:56 实测，件 build/evidence/r113_uncertainty_console.txt 那份被本轮跑覆盖前的最后读数）：

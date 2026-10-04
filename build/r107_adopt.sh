@@ -1,4 +1,8 @@
 #!/usr/bin/env bash
+# 用途：r107 的采纳段：等链子跑完 → 断言"红只有声明过的 C5c" → 三步 JTAG 刷板 →
+# 输入：命令行参数、build/tcl/program_pl.tcl
+# 输出：stdout
+# 退出码：1=非 0 分支（该文件 exit 1 那一行）
 # build/r107_adopt.sh —— r107 的采纳段：等链子跑完 → 断言"红只有声明过的 C5c" → 三步 JTAG 刷板 →
 # board_verify（几何 + 串口电池）→ ping 三种长度。判据不过就断链，不产"看起来通过"的凭据。
 #

@@ -1,4 +1,8 @@
 #!/usr/bin/env python3
+# 用途：把 board/acceptance.md 的机器判据 1~7 行按**这一跑的日志**重抄一遍
+# 输入：build/evidence/r92_flash_1_psboot.txt、build/evidence/verify_0930_0424.txt、build/evidence/r92_tx.txt
+# 输出：stdout
+# 退出码：脚本内无显式 exit ⇒ 随最后一条命令（正常跑完为 0）
 # build/r92_acceptance_rows.py —— 把 board/acceptance.md 的机器判据 1~7 行按**这一跑的日志**重抄一遍。
 # 为什么不让手抄：这一轮换了位流与证据文件，行里每个数都该从当轮日志现取；
 # 取不到就打印 SKIP，绝不把上一轮（r90）的数留在"这一版验过"的表里。

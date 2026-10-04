@@ -1,4 +1,26 @@
 `timescale 1ns/1ps
+// 功能：被测模块 `zoom_snap`（实例 u_dut）与下游 `snap_cross`（实例 u_x，.W(20)、.DST_HZ(100_000_000)、
+//        .HB_TO_MS(200)）；覆盖点＝总线没换值时一个沿都不发、20 位各自的拼接顺序、每次真实变化恰好一个沿、
+//        沿相对帧首的滞后拍数、目的域只出现源域发布过的值、末态跟随最新一帧、自动呼吸不改变以上、
+//        心跳在翻时 hb_gone 放开、rot_forced 单独换值走同一套帧首协议。
+// 激励与检查：双钟——clk_axi 由 #5 翻转（10 ns），clk_pix 由 #20 翻转（40 ns 一个像素周期），帧周期
+//        FRAME_CY 故意压成 24 个像素周期，设计滞后 LAG_NS=8*PIX_NS=320 ns；rst_n 在一个像素沿后 #1
+//        置 1，前后各 repeat(4) @(posedge clk_axi)。publish(m,s,c,a,d,v) 在帧首摆好六位、发一拍
+//        frame_start，把整条 {rf,m,s,c,a,d,v} 记进白名单 seen_vals 并翻一次 hb_tog，凑满一帧；
+//        settle 等 30 个 axi 拍（3 级同步加余量）。序列：Z1 连发 20 帧同值（全 0）；Z2 六步逐字段点亮
+//        （zman=1 ⇒ zsel=3'd5 ⇒ zcode=3'd7 ⇒ zactive=1 ⇒ zdir=1 ⇒ zinv=10'h2AB）；Z3 走完 8 档
+//        zinv=256+97*i；Z7 跑 40 帧呼吸（每帧换值，zcode=i%8、zdir=i%2）；Z9 六位与基准帧一模一样、
+//        只翻 rf。判定：Z0 bus===20'd0 且 tog_cnt==0 且 bus_q===20'd0；Z1 tog_cnt==0 且 bus_q 为全 0；
+//        Z2a..Z2f bus_q === 对应拼接 {zman,zsel,zcode,zactive,zdir,inv}；Z3 沿数增量 ==8；
+//        Z4 lag_min==lag_max==LAG_NS（两端都卡，只卡下限会让"根本没发沿"顶着初值假绿）；Z5 torn==0；
+//        Z6 bus_q===seen_vals[n_seen-1]；Z7 沿数增量 ==40 且 Z7b/Z7c 同判；Z8 hb_gone===1'b0；
+//        Z9a bus===(v8|20'h80000)、Z9b 沿数增量 ==1、Z9c torn==0、Z9d bus[19]===1'b0 且沿数增量 ==2。
+// 预期结果：通过时每条 expect 打 "PASS <判据名>"，中间一行 "  stats: edges=<n> published=<n>
+//        lag=320..320 ns (want 320)"，末行 PASS tb_v95_zoom_snap；失败时对应判据打
+//        "FAIL <判据名> (t=<时刻>)"，撕烈由探测器打前 3 条 "  DBG tear: bus_q=<bin> never published
+//        (t=<时刻>)" 并累加 torn，沿发在两拍或多发会让 Z3/Z7 的增量翻倍、同拍发沿会让 Z4 的 lag 区间
+//        不含 320，末行变 FAIL tb_v95_zoom_snap errors=<n>，#2_000_000 看门狗到期打
+//        FAIL tb_v95_zoom_snap timeout (still running at <t>)。
 // 台架：src/rtl/process/zoom/zoom_snap.v + 下游 snap_cross（V8-8 最后一跳 / 任务 #45）
 // 测的是**机制**，不是缩放算得对不对（那由 tb_v94 逐档对表）。跑：bash sim/run_one.sh tb_v95_zoom_snap
 // Z1 总线没换值 ⇒ 一个沿都不发（对照：每帧都发沿的写法会多算）；Z2 19 位各就各位（对照：拼接顺序写反 ⇒ 字段错位立刻红）

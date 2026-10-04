@@ -1,3 +1,7 @@
+# 用途：read-only "ALL clocks, not just the worst path" roster.
+# 输入：无字面量输入路径；参数解析见本文件
+# 输出：stdout
+# 退出码：0=跑完 1=REFUSE
 # build/tcl/probe_timing_roster.tcl -- read-only "ALL clocks, not just the worst path" roster.
 #   Why (2026-10-03, user's ask: 别只追最差的那条，改时序要看全局): build/tcl/crit_path.tcl ranks the whole
 #     design, so it always shows the same headline clock (eth_rxc) and hides what the other domains did.

@@ -1,4 +1,26 @@
 `timescale 1ns/1ps
+// 功能：被测模块 `zoom_fit` #(.IMAGE_W(512), .IMAGE_H(300))（u_fit）、`angle_ctrl`（u_ang）、
+//        `zoom_ctrl` #(.INV_LO(10'd256), .INV_HI(10'd512), .STEP(10'd2))（u_zc），三角参考另例化
+//        sin_rom/cos_rom 取事实、不共用其算式；覆盖点：360 个角度逐个的"装得下"与"不白缩"、
+//        0° 回到 1.0x 附近、自动旋转只在帧沿推进且步长=speed、±1° 按键、过 360 取模不丢度、
+//        fit_en 这一路来源切换与 zoom_code 分桶对同一个数一致。
+// 激励与检查：时钟 always #10 clk=~clk（20 ns = 50 MHz），rst_n 拉低 4 拍后释放再 #1；
+//        T1/T2 令 a1=0..359、每个角度后 repeat(4) @(posedge clk)，用交叉相乘判（台架内无除法）：
+//        hav*IW >= need_x=512*bC+300*bS、hav*IH >= need_y=512*bS+300*bC、inv_fit >= 256，
+//        两轴同时超 need+need>>5 才记 T2 缩过头，a==0 时要求 inv_fit <= 259（即 256..259）；
+//        T3 取 spd=3：auto_en=0 下翻 10 次 ftgl（每次 2 拍）+settle(6 拍) 要求 ang==0，
+//        auto_en=1 同样 10 次要求 ang==30；T3e 用 k_dec 回零后按 355 次 k_inc 要求 ang==355，
+//        再 auto_en=1、spd=7 走 2 帧沿 + settle 要求 ang==9（355+14 取模 360）；
+//        T5 fit_en=1、a1=45 等 5 拍要求 inv_used===inv_fit，若 427<=inv_used<644 则
+//        zcode 必须==3'd2，fit_en=0 等 3 拍要求 inv_used===inv_scale。
+// 预期结果：通过时逐条打印 ok T2b a=0 inv_fit=<n> ~= 1.0x / ok T3b / ok T3c 10 frame edges
+//        x 3 deg => 30 / ok T3e / ok T3f / ok T5a..T5c，另有 T1/T2 done: 360 angles 与 OBS
+//        读数行，收尾 == tb_v100_fit_rot: checks=<n> errors=0 == 加两行 V100 PASS 与统一
+//        token RESULT tb_v100_fit_rot PASS checks=<n>；失败时红在对应判据上：
+//        FAIL T1 a=<角度> fits-X/Y NO（带 inv 与 need）、FAIL T1 a=<n> inv=<n> < 256、
+//        FAIL T2 a=<n> over-shrunk、FAIL T2b a=0 inv_fit=<n> (expect 256..259)、
+//        FAIL T3a/T3b/T3c/T3e/T3f（带实测角度）、FAIL T5a/T5b/T5c，errors 累加并末行改打
+//        RESULT tb_v100_fit_rot FAIL errors=<n>。
 // tb_v100_fit_rot —— V9 新算术的三台 DUT。T1/T2 zoom_fit：360 个角度逐个验"装得下"与"不白缩"；T2b 0° 必须回到 1.0x 附近（拟合不该在没转的时候留一个明显的缩水）
 // T3 angle_ctrl 自动旋转：只在帧沿走、speed=0 钉住、过 360 取模不丢度、按键仍然有效；T5 zoom_ctrl 的第三种来源：inv_used / zoom_code 是不是同一个数
 // 跑：bash sim/run_one.sh tb_v100_fit_rot（快照名要可辨认，理由见 ISSUES #75 的"读到过别人的 PASS"那段）

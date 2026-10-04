@@ -1,4 +1,22 @@
 `timescale 1ns/1ps
+// 功能：被测模块 `frame_reasm`（例化 `uut`，.IMG_W(16) / .IMG_H(8) / .FRAME_BYTES(256) ⇒ 帧缓存
+// 128 个 16 位字、合法字索引 0..127）；覆盖点：#201 —— 偏移越出帧缓存的包不许发 wr_en 但
+// 必须被 stat_oob_off 数到，同时边界与正常路径不许被收紧。
+// 激励与检查：#4 翻转时钟（8 ns = 125 MHz，与 gmii_rx_clk 同频）；每个场景 clean_start 在
+// negedge 复位 4 拍、放开后再 2 拍并把 w_total/w_oob/w_max/done_pulse 清零；一包 = 4 个小端
+// 偏移字节 + 4 个数据字节（p_sof 落在首字节、p_eof 落在末字节并带 p_good），逐字节每拍一个；
+// 三个场景各喂一种：off=288（=FB+32，期望字索引 144/145 全越界，R1+R2 同根）、
+// off=FB-4=252（末合法字对 126/127）、整帧 FB/4=64 包（off=k*4，k=0..63）；p_good 全程为 1。
+// 判定条件：R1 越界包 w_total==0 && w_oob==0；R2 同一个包 (stat_oob-oob_before)>=1；
+// R3 末字包 w_total==2 && w_max==WORDS-1(=127)；R4 整帧 done_pulse==1 && stat_frames==1 &&
+// w_total==128 && w_max==127；R4a stat_pkts==64 && stat_bad==0（wr_addr>=WORDS 记为越界写，
+// 由台架在 posedge 独立累加，不复用 RTL 的谓词）。
+// 预期结果：通过时逐条打 `PASS R1..R4a <判据名>`，每段前带一条 INFO 现场行
+// （如 `INFO R1 off=288 越界包：写次数=%0d（其中越界 %0d）最大字索引=%0d stat_oob_off +%0d`），
+// errors==0 收尾打 `RESULT tb_reasm_bounds PASS`；失败时对应条打 `FAIL <判据名>`（R1 是
+// 改前必红的那条，R2 改前改后都要绿），收尾打 `RESULT tb_reasm_bounds FAIL nfail=%0d`，
+// 4 ms 看门狗到点打 `FAIL tb_reasm_bounds timeout` + `RESULT tb_reasm_bounds FAIL
+// nfail=timeout`。
 // tb_reasm_bounds —— #201 的尺子：`byte_off` 超出帧缓存的包**不许**发出 `wr_en`，但必须被数出来。
 //
 // 为什么现在要有它：`frame_reasm.v:120-125` 那三行（`wr_en<=1; wr_data<=…; wr_addr<=off[18:1];`）

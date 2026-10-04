@@ -1,4 +1,8 @@
 #!/bin/bash
+# 用途：build/verify_evidence.sh <NN|目录> [--self] —— 校验一个冻结目录的凭据章，并把"章量的是什么"说清
+# 输入：命令行参数
+# 输出：stdout
+# 退出码：0=跑完 1=非 0 分支（该文件 exit 1 那一行） 2=非 0 分支（该文件 exit 2 那一行）
 # build/verify_evidence.sh <NN|目录> [--self] —— 校验一个冻结目录的凭据章，并把"章量的是什么"说清。
 #
 # 为什么要它（台账 #202 的尾巴 #148）：`MANIFEST.md5` 一直是按**磁盘字节**盖章的（`md5sum`），

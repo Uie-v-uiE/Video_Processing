@@ -1,4 +1,8 @@
 #!/usr/bin/env bash
+# 用途：r109 批次轮：**一次构建同时回答三件事**（用户明确要求别再逐刀付几小时台架）
+# 输入：命令行参数、build/tcl/build_system_axigpio.tcl、build/tcl/crit_path.tcl、build/tcl/hold_paths.tcl
+# 输出：stdout（本文件没有仓库内的写盘路径字面量）
+# 退出码：1=非 0 分支（该文件 exit 1 那一行）
 # build/r109_chain.sh —— r109 批次轮：**一次构建同时回答三件事**（用户明确要求别再逐刀付几小时台架）
 #   ① #167/#98：帧头那 6 行的"每帧换角"错拍 —— 改 `rot_fs_tog` 的翻转拍点 + 顶层台架新增 C12a/b/c 三条；
 #   ② #105：`clkout0_1` 那 23 级 OSD 读侧锥 —— 在源头把"屏上给人读的数"寄存一拍（同 r60 的 pct_q 手法）；

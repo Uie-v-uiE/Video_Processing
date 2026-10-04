@@ -1,3 +1,7 @@
+# 用途：Fix BD: export FCLK/RESET, assign HP0 address, then rebuild
+# 输入：无字面量输入路径；参数解析见本文件
+# 输出：stdout
+# 退出码：脚本内无显式 exit ⇒ 随最后一条命令（正常跑完为 0）
 # Fix BD: export FCLK/RESET, assign HP0 address, then rebuild
 set root [file normalize [file join [file dirname [info script]] ..]]
 set proj_dir [file join $root vivado_system]

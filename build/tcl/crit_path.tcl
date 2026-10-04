@@ -1,3 +1,7 @@
+# 用途：最差几条 setup 路径**落在哪条线上**：一行一条，直接读得完
+# 输入：无字面量输入路径；参数解析见本文件
+# 输出：stdout
+# 退出码：0=跑完 1=非 0 分支（该文件 exit 1 那一行）
 # build/tcl/crit_path.tcl —— 最差几条 setup 路径**落在哪条线上**：一行一条，直接读得完
 #
 #   vivado -mode batch -nojournal -source build/tcl/crit_path.tcl

@@ -1,4 +1,27 @@
 `timescale 1ns/1ps
+// 功能：被测模块 `raw_line_delay`，两份例化 dut1 #(.LINES(4), .W(64)) 与 dut0
+//        #(.LINES(0), .W(64))（直通对照）；覆盖点：行环形缓存的逐格语义——输出第 (row,k) 格
+//        等于第 row−LINES 行的同一列 k、de 链与数据链等长、跨过 2^RLOG=8 的槽位回绕、
+//        LINES=0 时组合直通、真实光栅（x 走到 HT−1、含竖消隐）下行首与行内各列。
+// 激励与检查：时钟 always #5 clk=~clk（10 ns）；初值 de/x/y/d 清零，repeat(4) @(negedge clk)
+//        后置 rst_n=1 再等 3 个负沿；输入全在 negedge 驱动、值取 d={行号,列号}，检查放在样本
+//        之后第二个 negedge（dut1 在下一个 posedge 才吃）。T2：feed(0,4,0,0) 只预热不判；
+//        T1/T5：feed(4,13,0,1) 每行喂 W+2=66 拍（末 2 拍 de=0），逐格判 q=={(p_row−4)%256,
+//        p_col} 且 qd==p_de_prev，收尾 t1_cnt>300 && t1_bad==0（T5 复用同一计数，行 4..12
+//        跨过环深 8）；T3：feed(13,17,1,1)，de 只打在 k%3==0 的列上，非 3 倍列只判 de，
+//        收尾 t3_cnt>60 && t3_bad==0；T4：单拍驱动 x=12'd9、y=12'd3、d=16'h0309、de=1，#1 后
+//        判 dut0 的 q0===16'h0309；T7/T7k：raster 按 HT=80（64 有效+16 空拍）、VT=16（0..7
+//        有效）的真光栅，先 raster(1,0) 预热再 raster(2,1) 判定，驱动后 #2 处取 q，第 0 列判
+//        q==={ref_row(rrow),8'd0}、第 1..W−1 列判 q==={ref_row(rrow),rcol−1}，环深
+//        SLOTS=2^clog2(LINES+1) 由 LINES 现推；收尾 t7_cnt>12 && t7_bad==0、
+//        t7k_cnt>600 && t7k_bad==0；T6 覆盖面地板 (t1_cnt+t3_cnt+t7_cnt+t7k_cnt)>1500。
+// 预期结果：通过时七条判据各打印 PASS <标签> | <说明>（T1 稳态逐格对齐、T5 跨过槽位回绕仍
+//        对齐、T3 de 与数据同为一拍延迟、T4 LINES=0 是组合直通、T7 行首第一格、T7k 行内其余
+//        列、T6 覆盖面不是空跑），另有 INFO T2/T1/T3/T7 的样本计数行与最多 14 条
+//        PROBE PHASE 相位读数，末行 RESULT tb_v100_raw_delay PASS；失败时对应条打印
+//        FAIL <标签> | <说明> 并 nfail+1，同时先打明细：不符：喂入(row=…,col=…) 输出=%04x
+//        期望=%04x de_out=%0b（最多 3 条）、de 不符…（最多 3 条）、T7 行首不符（最多 6 条）、
+//        T7k 行内不符（最多 3 条），末行改打 RESULT tb_v100_raw_delay FAIL nfail=<n>。
 // tb_v100_raw_delay —— V8-4b"原图抽头延后 OFF_LINES 行"的行环形缓存自己的判据；钉 #68/#102
 //   跑法 `bash sim/run_one.sh tb_v100_raw_delay`。旧写法串 4 个 `line_cache` ⇒ 传递函数 (行 −4, 列 −4)：每级多花一拍
 //   ⇒ 列向累计偏 N 格，模块级滤波台架永不响；现在是 1W1R 行环 RAM（写槽 = y 低位、读槽 = (y−LINES) 同一几位），期望值全部**独立算**。

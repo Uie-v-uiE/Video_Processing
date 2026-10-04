@@ -1,4 +1,8 @@
 #!/usr/bin/env bash
+# 用途："同一严口径"的 hold 体检：四域的 hold 余量到底可不可比
+# 输入：命令行参数、build/tcl/probe_uncertainty_uniform.tcl
+# 输出：stdout
+# 退出码：2=REFUSE
 # build/uncertainty_uniform_ab.sh —— "同一严口径"的 hold 体检：四域的 hold 余量到底可不可比
 #
 # 立案理由（这不是我又发明一条规矩，是把 already 存在的不对称量出来）：

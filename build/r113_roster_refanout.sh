@@ -1,4 +1,8 @@
 #!/usr/bin/env bash
+# 用途：重跑一次名册探针，把 D6 那个"工具红"改成有凭据的读数
+# 输入：命令行参数、build/system.bit、build/tcl/probe_timing_roster.tcl
+# 输出：build/evidence/r113_roster_diff_rf.txt
+# 退出码：2=REFUSE
 # build/r113_roster_refanout.sh —— 重跑一次名册探针，把 D6 那个"工具红"改成有凭据的读数
 #
 # 为什么要这一支：r113 的名册差分（build/evidence/r113_roster_diff.txt）里 D1..D5 全绿、

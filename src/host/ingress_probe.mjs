@@ -1,4 +1,8 @@
 #!/usr/bin/env node
+// 用途：定位「UDP→reasm→CDC→packer→AXI→DDR」在哪一级丢字
+// 输入：命令行参数
+// 输出：stdout
+// 退出码：0=跑完
 /**
  * ingress_probe.mjs — 定位「UDP→reasm→CDC→packer→AXI→DDR」在哪一级丢字。
  *

@@ -1,4 +1,26 @@
 `timescale 1ns/1ps
+// 功能：被测模块 `src_arb`（三份实例：u_a 取 T_OFF_CYC=200、u_b 取 T_OFF_CYC=0 作反面对照、u_d 用默认
+//        参数即硬件的 2_000_000）；覆盖点＝row_busy/fill_busy 互锁、往 PS 让位的静默滞回、eth_live 抖动
+//        下的换手次数地板、时基不可信（eth_tb_ok=0）必须让位、默认参数的 20 ms、sel 手动锁与保留值 11
+//        按 AUTO 处理，以及 why_ps 三位原因编码。
+// 激励与检查：clk 半周期 #5（100 MHz，与 AXI 域同名同频）；rst_n 上电为 0，4 拍后置 1、再走 2 拍。
+//        eth_live / tb_ok / sel / row_busy / fill_busy 由台架直接驱动，等待用拍数表达：busy 拉高后跑
+//        600 拍（远超 T_OFF=200）断言不许换手，放开后再跑 300 拍断言必须换手；B1 在 eth_live 落下 3 拍
+//        后断言 owner_b===0 而 owner_a===1；C 段以 100 拍为周期翻转 eth_live 共 12 次（周期 < T_OFF），
+//        断言 owner_a 的翻转 `flips <= 1` 且仍为 1、无滞回的 owner_b 在同一段激励里 `flips >= 3`；
+//        D 段静默 100_000 拍后断言 owner_d 仍为 1 而 owner_a 已为 0；E 段 tb_ok=0 后 3 拍断言
+//        owner_b===0、600 拍断言 owner_a===0 而 owner_d 仍为 1，再等 2_100_000 拍断言 owner_d 归 0；
+//        F 段走 sel=2'd1/2'd2/2'd0/2'd3 四种编码；G 段把 rst_n 再拉低 3 拍，断言
+//        `why_a===3'b011 && why_b===3'b011 && why_d===3'b011 && owner_a===1'b0`，随后把
+//        (sel,eth_live,tb_ok) 的 16 种组合各喂 3 拍，与台架手算的 exp_why=
+//        {强制看fb位, ~eth_live, ~tb_ok} 逐组比三个实例，判据是 `ngood == 16`；
+//        G2b 断言 `owner_a===1'b1 && why_a===3'b010`、G2c 断言 `owner_a===1'b0 && why_a===3'b010`、
+//        G3 断言 `why_a===3'b001`。
+// 预期结果：通过时每条 expect 各打一行 `PASS <段名>`，末行 `PASS tb_v796_src_arb`（errors==0）；
+//        失败时对应条打 `FAIL <段名> (t=<时刻>)` 并 errors 加一（复位后应为 0 而 owner 为 1、busy 期间
+//        被抢、滞回失效、抖动下翻转多于 1 次、默认参数提前让位、why_ps 与手算期望不符都归此类），
+//        G1 不满 16/16 时先打 `DBG G1 gi=<n> sel=<b> live=<b> tb=<b> -> why_a=.. why_b=.. why_d=..
+//        exp=..` 定位是哪一组，末行改判 `FAIL tb_v796_src_arb errors=<n>`。
 // 台架：src/rtl/util/src_arb.v（片源仲裁）。跑：bash sim/run_one.sh tb_v796_src_arb
 // 三条各配一个"反面对照"，否则测了等于没测：A 只有两个引擎都空闲才换手（对照：拉起 busy，owner 必须**不动**）；B 往 PS 让位要等一段静默（滞回，对照：T_OFF_CYC=0 的第二个实例必须**立刻**让位）；
 // C 帧间隔卡在阈值上不许来回抢总线（对照：同一段抖动激励里统计翻转次数）；D 钉"硬件里真正用的那个常数"——用**默认参数**例化第三个实例，断言它 100k 拍内还没让位（源码 2_000_000 拍 = AXI 100 MHz 下 20 ms）⇒ "参数被谁改小了"在这里被抓；

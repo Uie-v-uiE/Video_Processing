@@ -1,4 +1,25 @@
 `timescale 1ns/1ps
+// 功能：被测模块 `proc_box_blur / proc_sharpen / proc_sobel / proc_morph`（四家 3×3 窗口级并行例化，
+//        H_ACTIVE=64，morph 走 mode=2'd1、threshold=8'd128）；覆盖点＝屏幕左/上/右边缘与屏上首行那条
+//        rim 的像素值和新鲜度：夹到边的期望值、rim 随圈内邻居变、不随圈外回绕源与上一帧末行变、
+//        ×2 行与 ×2 列复制几何、四家 de_out 同根、被判格子里不许有 X。
+// 激励与检查：时钟 #10 翻转（20 ns），rst_n 低 4 拍后释放再等 4 拍；一帧 = 64 列 de=1 + 行尾 2 拍间隙 +
+//        帧末排空 30 拍，run4 连跑 4 帧且只采第 3、4 帧（ndeo 落在 2*FW..4*FW，FW=4096）；第一轮在
+//        9×7 组平移里搜让内部格全对齐的偏移，要求 ndeo===4*FW、判中格数 nj>=3000 且偏差格数 bsb==0，
+//        边上格逐格 dev(cap, mean3(夹到边的三抽头))<=1（R2/R4 各取 j=6..H-7 共 52 行，R3/R5 各取
+//        i=6..W-7 共 52 列）；第二轮 stg=0..3 各跑 D1/D1w/D2/D2w/D3 五把差分：改圈内邻居（p_hi 12→22）
+//        要求 rim 变的格数 bad==0、改圈外回绕源（p_probe 8→28）要求 rim 不动 bad==0，D3 用 pkind=4
+//        （末行电平按帧号在 5'd30/5'd4 间交替）要求屏上第一行 cap[FW+i] 与第三帧同格 cap[i] 逐位相同；
+//        每把都配正对照，对照格必须动（bb==H-12 或 bb!=0，否则判"对照死了"为红）；R7 按 ×2 行定义逐显示行比
+//        （期望 gray(hash5(ssrc(i-2/-1/0))) 的 mean3，至少判 40 行），R9 按 ×2 列同理，
+//        R8 要求 ^cap[i] 无 X，覆盖地板 n2/n3/n4/n5 各 >=20。
+// 预期结果：通过时打印 `GOLDEN gmode=<0/1>: latency = (<列平移>, <行平移>); interior mismatch 0 of <nj>`、
+//        `PASS R0 ruler integrity`、`PASS R1 calibration trusted`/`PASS R1 interior == the definition`、
+//        `PASS R2/D1`、`PASS R3`、`PASS R4/D2`、`PASS R5/D3`、`PASS R7 x2-duplicated geometry`、
+//        `PASS R8 no X`、`PASS R9 x2-duplicated columns` 与各 D 段的 `PASS D* stage=<n>`，末行
+//        `RESULT tb_edge_rim PASS`；失败时打印对应 `FAIL R0/R0b/R1/R2…/R7/R8/R9 或 FAIL D1/D1w/D2/D2w/D3`
+//        （旁路/回绕/陈旧/无可判格），rim 值不对处另有 `DIAG R* : got=… clamp=… dev=…` 行，
+//        末行改为 `RESULT tb_edge_rim FAIL b0=.. b1=.. b2=.. b3=.. b4=.. b5=.. n2=.. n3=.. n4=.. n5=..`。
 // tb_edge_rim —— 并行例化 blur/sharpen/sobel/morph 四个窗口级，验左/上边缘那条像素带的**值**与**新鲜度**等于内部：rim 要么被旁路直接发原图（一条比内部更锐的线），要么吃行缓存里上一帧的尾巴（一条与当前画面无关的带）—— 这两类病位置全对、也不黑，tb_v98 的 C2/C3/C4 一起绿，所以要这一把专门的尺子。
 // 判据索引：第一轮 R0/R0b·R1·R2/R3/R4/R5·R7·R8·R9（采集完整性与 de 同根、内部=定义并把平移量测出来、左/上/右/首行四边夹取、×2 行与×2 列几何、被判格子无 X）+ 第二轮 D1/D1w·D2/D2w/D3（差分：rim 必须随**圈内**邻居变、必须**不**随圈外回绕源与上一帧末行变，每把都配正对照）+ 覆盖地板；清单与期望值写在各自那一段开头。
 // 跑法：bash sim/run_one.sh tb_edge_rim

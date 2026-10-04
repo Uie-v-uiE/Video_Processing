@@ -1,3 +1,7 @@
+# 用途：r116 采纳轮的首页/指标表改口（英文行 + metrics.csv 三行）
+# 输入：build/timing_summary.rpt
+# 输出：stdout
+# 退出码：脚本内无显式 exit ⇒ 随最后一条命令（正常跑完为 0）
 # build/r116_rotate_en.py —— r116 采纳轮的首页/指标表改口（英文行 + metrics.csv 三行）。
 # 为什么用脚本而不是手改：这三处的形状被 src/host/metric_recheck.mjs 的首页层正则判着，
 # 手改一行少个括号就可能把"数对不上"换成"读不出来"；脚本按行首标签定位，改完整行，跑一遍尺子就收敛。

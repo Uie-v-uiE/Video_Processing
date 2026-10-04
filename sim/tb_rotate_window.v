@@ -1,4 +1,18 @@
 `timescale 1ns/1ps
+// 功能：被测模块 `proc_pipeline`（例化 `uut`，.H_ACTIVE(8)）；覆盖点：rotate_active=1 与 =0
+// 两种状态下模糊都仍被施加——旋转不许把效果链强制旁路。
+// 激励与检查：#5 翻转时钟（周期 10 ns）；rst_n 复位 4 拍后放开；九位 stage_sel 由老五位
+// en=5'b00100（只开 blur）按注释里的位序现拼、threshold=8'd80、gamma_en=0；先推 3 行 ×8 列
+// 恒定 16'hF800（这段只取首个输出、不判），再推 3 行 ×8 列阶跃图（i<4 给 16'h0000、否则
+// 16'hF800）后空跑 40 拍收 de_o；然后把 rot 落 0、改推 5 行 ×8 列同一阶跃图再空跑 40 拍
+// （边界守卫改按有效像素走之后，三行图样里已没有内行中心可采，激励才推到第 5 行）。
+// 判定条件：de_o 有效的那些拍里必须出现过既 !==16'h0000 又 !==16'hF800 的中间值（说明
+// 3×3 均值真在算），rot=1 与 rot=0 两轮各判一次、两轮的 got 都必须为 1。
+// 预期结果：通过时打印 `PASS blur active with rotate_active=1`、
+// `PASS blur active with rotate_active=0`，errors==0 收尾打 `PASS tb_rotate_window ALL`
+// （同时落 tb_rotate_window.vcd）；失败时对应判据红在
+// `FAIL no intermediate blur value under rotate_active=1` 或 `FAIL blur inactive at angle0`，
+// 收尾打 `FAIL tb_rotate_window errors=%0d`。
 // Window filter + rotation combo: ensure blur is not forced-off when angle!=0.
 // Checks that proc_pipeline applies blur when enabled regardless of rotate_active.
 module tb_rotate_window;

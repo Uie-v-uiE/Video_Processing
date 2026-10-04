@@ -1,4 +1,8 @@
 #!/usr/bin/env bash
+# 用途：把 r108 链子里被 rc=2 顶掉的那几步重跑一遍
+# 输入：命令行参数
+# 输出：stdout（本文件没有仓库内的写盘路径字面量）
+# 退出码：1=非 0 分支（该文件 exit 1 那一行）
 # build/r108_stage2.sh —— 把 r108 链子里被 rc=2 顶掉的那几步重跑一遍。
 # 根因：链子是从 nohup 的壳里起来的，VP_VIVADO_BIN 没导出 ⇒ build/sim/run_one.sh 报「找不到 xvlog」，
 # 于是 tb_v98 / tb_icmp_ping0 / tb_v795_rx_chain / tb_edge_rim 全部 REFUSE（构建与只读探针不受影响，

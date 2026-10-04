@@ -1,4 +1,37 @@
 `timescale 1ns/1ps
+// 功能：被测模块 `osd_overlay`（两份例化：`u_osd` 参数 X0=16/Y0=12/SCALE=3/CHAR_W=18/
+// CHAR_H=21/LINE_GAP=10/MAX_CHARS=32/N_LINES=5/OUT_W=1024/OUT_H=600；`u_osd2` 只换
+// OUT_W=1280/OUT_H=960）；覆盖点：T1..T18 的五行整串逐字符等于期望、边界位宽与饱和、片源
+// 标签与星号、PIPE 五位码与缩放八档与 gamma、字模逐像素形状、行宽不越分割线、温度 256
+// 编码全扫、osd_en 总开关正反成对、越界索引的机会计数。
+// 激励与检查：#10 翻转时钟（周期 20 ns）；rst_n 复位 4 拍后放开、tde 平时为 0，改完激励
+// settle 等 4 拍再比（latency 那一格的十进制寄存过一拍）；defaults() 给一组金样（fps=30、
+// angle=45、i_sel=9'h005、th=80、gd=18、zc=3、za=1、sp=50、ms=16、ok=1、src=2'b11、
+// temp=8'h47）；T2 先喂一位数（fps=9、th=9、angle=5、sp=7、ms=5）再喂越界（fps=200 期望画
+// 99、th=255、angle=359、sp=100、ms=5000 期望画 999）、T4 八组控制字
+// （9'h000/003/008/010/060/080/180/1FF）、T5 八档 zoom_code 加 zoom_auto=0、T6 gamma 二十
+// 一档逐档、T8 读第二份的前 8 格、T9 force u_osd.ch 逐格喂码点、T10 按码点逐像素扫
+// 5×7=35 个点、T13/T14 取最宽激励量行宽与残留小写、T15 把 256 个温度编码全扫（期望串
+// 由 TB 自己算）、T16 背景取 {8'h12,8'h34,8'h56} 扫整片格子（步长 2）、T17 走完整个
+// 1024×600 有效区。
+// 判定条件：expect_line 要求前 n 格等于期望串、其余格 ==8'h20（如 L0==
+// "1024X600  FPS:30  SRC:ETH"、L2=={"ROT:45",8'hDF,"  ZOOM:0.75X(AUTO)"}、L4==
+// "SPLIT:50%  LATENCY:16MS"、L5=="TEMP:47C"）；T8 第二份第 0..7 格依次
+// '1''2''8''0''X''9''6''0' 且两份第 1 格必须不相等；T9 非空格 u_osd.gi !==6'd63、空格
+// gi ===6'd63；T10 逐像素 nbad==0 且 npx==35 且 oncnt==wantcnt；T13 每行右沿
+// X0+k*CW<=511；T14 非空格不得落在小写码点且非空格计数不为 0；T15 分类数必须
+// ndig==100 && ndash==156 且 8'hFF 画 "TEMP:--"；T16 要求 t13_off==0 && t13_on>0 &&
+// t13_seen>5000；T17 oob_opp>0、T18 oob_harm==0；T11/T15t 各拿一条错期望比一次，errors
+// 必须恰好 +1（判据有牙自检，红的撤销计数）；T12 样本地板 ncell>=1500、nvis>=150、
+// nscan>=12。
+// 预期结果：通过时每段各打一条 `[tb_osd_lines.v:...] PASS T1..T18`（T12 那条附
+// "比对了 %0d 格、查了 %0d 个非空格、扫了 %0d 个字形"，T16 的现场行前缀写作 `T13 scan`），
+// errors==0 收尾打 `RESULT tb_osd_lines PASS`；失败时打
+// `FAIL <标签> L<行> cell<列> got %h want %h` 或对应段的 `FAIL T13 ... 右沿 x=%0d 越过分割线
+// 511` / `FAIL T14 屏上有 %0d 格是小写码点` / `FAIL T15 分类数不对` /
+// `FAIL T16 en=1 差异格=%0d（要 >0）` / `FAIL T17 全程 0 次越界索引` /
+// `FAIL T18 有 %0d 拍在**画像素**时索引越界`，收尾打 `RESULT tb_osd_lines FAIL
+// (%0d errors)`，80 ms 看门狗到点打 `RESULT tb_osd_lines FAIL timeout`。
 // tb_osd_lines —— 例化 osd_overlay 两份（第二份只换 OUT_W/OUT_H，用来钉"尺寸那一格来自参数"），验五行 OSD 的整串逐字符等于给定期望：新排版按实际位数打数字（Th:80 不是 Th:080）⇒ "某一格在第几列"不再是常数，整串比对反而更狠——字段整体挪一格、少打一位、后缀没跟上，全都会红。
 // 判据索引 T1..T16：五行内容 · 边界值位宽与饱和 · 片源字段标签与星号 · PIPE 五位码 · 缩放八档与 (AUTO) · gamma
 //   … · T13 最宽激励下五行留在分割线内 · **T16 `osd_en=0` 逐位等于背景（叠层总开关，正/反成对）**

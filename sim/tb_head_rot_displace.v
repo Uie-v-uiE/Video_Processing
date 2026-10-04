@@ -1,4 +1,19 @@
 `timescale 1ns/1ps
+// 功能：被测模块 `zoom_fit + zoom_mapper`（IMAGE_W=512、IMAGE_H=300，mapper 的 rotate_en 恒 1、
+//        inv_scale 恒钉 10'd256）；覆盖点＝旋转态下"上一帧角度 θ-k 与这一帧角度 θ"之间，屏顶
+//        BAND=4 个视口行（盖住 8 个显示行）的 x_out/y_out/oob 差多少，把位移量成格数与源像素数。
+// 激励与检查：时钟 #5 翻转（10 ns），rst_n 低 6 拍后释放再等 2 拍；每个格写 x_in=0..511、y_in=0..BAND-1
+//        后等 3 个上升沿取 xo/yo/oobo；三档基准角 45/60/168 各配 k∈{0,1,2,7}，两遍扫描之间只把 angle 从
+//        θ 改成 (θ-k+360)%360，inv_fit 仅读出用于打印；D3 地板要求 swept==ncell*2（ncell=W*BAND=2048）
+//        且 live1/live2 不全为 0；D1（k==0）要求 diffcell==0 且 oobchg==0（同角度两遍逐位相同）；
+//        D2（k>=1）要求移动格数 diffcell>0 且最大位移 maxd>=1，并印出最大/最小/平均位移与越界位翻转格数。
+// 预期结果：通过时打印 `PASS D1 k=0 对照 ang=<角> inv=<inv_fit> 带内有效格=<live1> 两遍逐位相同`，
+//        k>=1 各档打印 `PASS D2 ang=<角> k=<档> inv <inv_now>-><inv_prev> 有效格=.. 移动格=.. 最大位移=..
+//        最小=.. 平均=.. 越界位翻转=..`，末行 `RESULT tb_head_rot_displace PASS cells=<ncell*2*NA*NK>
+//        pairs=<NA*NK> k=1..7`；失败时打印 `FAIL D1 same-angle sweeps differ ang=.. diff=.. oobchg=..
+//        expect=0/0`（台架自己在漂）、`FAIL D2 no displacement ang=.. k=.. diff=.. maxd=.. expect>=1 格且
+//        >=1px`（尺子没牙）或 `FAIL D3 floor ... swept=.. expect=4096 ...（带内无可判的格）`，
+//        errors 加一，末行改为 `RESULT tb_head_rot_displace FAIL errors=<n> D1=<n> D2=<n> D3=<n>`。
 // tb_head_rot_displace —— #167 里**映射这一半**的那把尺子：旋转态下"上一帧的角度"与"这一帧的角度"
 // 会把画面挪开多少源像素。它**不判**"帧头到底吃了哪一帧"（那是顶层台架 `C5c` 判的，凭据
 // build/tb_v98_report.txt 与 build/evidence/r104_c5head_band.txt），它量的是**后果的大小**——

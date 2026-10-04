@@ -1,4 +1,19 @@
 `timescale 1ns/1ps
+// 功能：被测模块 `icmp_tx`（u_dut）；覆盖点：应答帧 IP 首部校验和的十项求和、两次进位折叠、
+//        写回 ip_head[2][15:0] 的那一拍，以及"累加器 20 位装得下"这条界。
+// 激励与检查：时钟 #4 翻转（8 ns 周期，125 MHz）；开头 rst_n 低 6 拍后放开再等 4 拍，
+//        每个矢量收完再低 4 拍、高 3 拍重起一帧；共 6 个矢量：des_ip 取 0、192.168.1.10、32'hFFFF_FFFF、
+//        32'h0000_0101、10.0.0.5、32'hFF00_FF00，tx_byte_num 取 64/1500/16'hFFD0/28/56/16'hFFF0，
+//        tx_start_en 置 1 一拍后收回发起，每矢量最多转 400 拍等写回；
+//        判定条件：在 cur_state==8'b0000_0010 且 cnt<=1、ip_head[0][31:16]==16'h4500、
+//        ip_head[2][31:16]==16'h8001 时抓十个 16 位项求和，期望按定义现算
+//        （fold1=(sum>>16)+(sum&16'hFFFF)，fold2 再折一次，exp16=(~fold2)&16'hFFFF）；
+//        K1 got === exp16[15:0]；K3 影子期望 (exp16^1) !== got；K2 maxsum < 1048576
+//        （十项理论上限 655350）；K4 bigfold==1，即至少一矢量 fold1 > 65535；K5 判据写作 errors + 6 >= 6。
+// 预期结果：通过时逐矢量打印 `  ok   <判据名>` 与 INFO vec<n> sum/fold1/fold2/expect/got 行，
+//        末行 `PASS tb_v112_ip_csum`；失败时打印 `  FAIL <判据名>` 或
+//        `  FAIL vec<n> 没等到校验和写回（跑了 400 拍，cur_state=<h> cnt=<n>）`，末行变
+//        `FAIL tb_v112_ip_csum errors=<n>`；超 #200_000 打印 `FAIL tb_v112_ip_csum timeout`。
 // 台架：icmp_tx 的 **IP 首部校验和**（r112 那把"累加器 32→20 位"的尺子）。
 // 跑法：bash sim/run_one.sh tb_v112_ip_csum
 //

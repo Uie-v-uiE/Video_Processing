@@ -1,4 +1,8 @@
 #!/usr/bin/env bash
+# 用途：等 r113 的链子跑完，然后把两支"只读 + 快车道"实验排上
+# 输入：命令行参数、build/system.bit
+# 输出：build/evidence/r113_refanout_run.txt、build/evidence/r114_mf_ab_run.txt
+# 退出码：0=跑完 3=非 0 分支（该文件 exit 3 那一行）
 # build/r113_after_chain_experiments.sh —— 等 r113 的链子跑完，然后把两支"只读 + 快车道"实验排上
 #
 # 为什么要等（两个理由都要能核对，不是"怕慢"这种含糊话）：

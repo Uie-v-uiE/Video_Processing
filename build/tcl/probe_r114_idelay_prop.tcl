@@ -1,3 +1,7 @@
+# 用途：读实：IDELAY_VALUE 能不能在**已综合的网表**上直接改（决定快车道能不能扫档）
+# 输入：无字面量输入路径；参数解析见本文件
+# 输出：stdout
+# 退出码：1=REFUSE
 # build/tcl/probe_r114_idelay_prop.tcl -- 读实：IDELAY_VALUE 能不能在**已综合的网表**上直接改（决定快车道能不能扫档）
 #
 #   为什么先问这个而不是直接开扫：扫 IDELAY_VALUE 有三条路，成本差 10 倍以上——

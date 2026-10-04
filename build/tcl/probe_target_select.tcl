@@ -1,3 +1,7 @@
+# 用途：read-only probe of xsdb target SELECTION.
+# 输入：无字面量输入路径；参数解析见本文件
+# 输出：stdout
+# 退出码：0=跑完
 # build/tcl/probe_target_select.tcl -- read-only probe of xsdb target SELECTION.
 # Why: ps_jtag_boot.tcl selects with a hardcoded index (`targets -set 1`). After the user's
 # cold power cycle hw_server re-enumerated the chain as 1=APU / 2=ARM#0 / 3=ARM#1 / 4=xc7z020,

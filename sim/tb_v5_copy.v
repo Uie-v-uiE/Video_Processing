@@ -1,4 +1,15 @@
 `timescale 1ns/1ps
+// 功能：被测模块 `axi_frame_writer_gated`（#(.IMG_W(64),.IMG_H(20))，start/allow/abort 由
+//        `frame_commit_lock` 供）；覆盖点：拷贝只在 blank_safe 消隐窗口内推进，整帧 320 个 64bit
+//        字全部落位且 done 自己走到 1（不靠超时收尾）。
+// 激励与检查：axi_clk #5=10 ns、pix_clk #10=20 ns；rst_n 低 30 个 axi 拍后释放；像素每行 96 拍
+//        （de 高 64 拍）、共 40 行，vs 在 xcnt==0&&ycnt==0 之后拉一拍；blank_safe=
+//        ~(de|de_pipe[15]|near_active)，near_active=(x>=80)&&(y<32)；commit_req 拉 1 拍；AXI 读侧
+//        按 {32'hCAFE,araddr[15:0],beats[15:0]} 应答。判定条件：done 在 800000 个 axi 拍内为 1，
+//        且 wr_en 计数 wr_cnt>=TOTAL_WORDS=(64*20)/4=320。
+// 预期结果：通过时打印 INFO wr_cnt=<n> (expect 320) ar=<n> cycles=<u_wr.copy_cycles>、
+//        PASS full frame written，末行 PASS tb_v5_copy。失败时打 FAIL timeout wr=<n> ar=<n>
+//        abort=<b>（随后 $finish）或 FAIL incomplete copy，末行改打 FAIL tb_v5_copy errors=<n>。
 // v5.3 copy completes using blank_safe windows (H+V blank after pipe drain)
 module tb_v5_copy;
     reg axi_clk=0, pix_clk=0, rst_n=0;

@@ -1,3 +1,7 @@
+# 用途：第二个读口要不要额外 BRAM
+# 输入：无字面量输入路径；参数解析见本文件
+# 输出：stdout
+# 退出码：脚本内无显式 exit ⇒ 随最后一条命令（正常跑完为 0）
 # build/sim/probes/probe4.tcl — 第二个读口要不要额外 BRAM？（见 dpfb.v 头部的问题）
 set dir [file normalize [file join [file dirname [info script]] .]]
 create_project dpfbtest $dir -part xc7z020clg484-2 -force

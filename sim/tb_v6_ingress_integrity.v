@@ -1,4 +1,24 @@
 `timescale 1ns/1ps
+// 功能：被测模块 `frame_reasm`→`dc_fifo`→`axi_frame_saver64` 的整条入包链（glue 与
+//        eth_udp_video_top 一致）；覆盖点：逐级计数把丢字定位到某一级，并量 CDC 与打包器 FIFO
+//        的峰值占用（#105/#120 的深度证据）。
+// 激励与检查：gmii_rx_clk #4=8 ns、axi_clk #5=10 ns；rst_n 低 10 个 gmii 负沿后释放、再空 10 拍。
+//        每包在 negedge 每字节 1 拍挂 [u32 小端 offset][载荷]，图案=字号 w 的 4 个 16bit lane
+//        全等于 w；包间空 gap_cyc=GAP=10230 拍（+GAP0 置 0=线速连灌）；载荷 PL_B=PAYLOAD=1392
+//        （+MISALIGN 改 1396，非 8 的倍数）。PART 灌 TB_PKTS=60 包→TB_WORDS=(60*PL_B)/8=10440
+//        （MISALIGN 10470）；+FULL 灌满一帧 221 包→TB_WORDS=WORDS=38400。AXI 从机每 beat 停
+//        RDDR_BEATS=20 拍、按 WSTRB 逐字节合并进 mem。判定条件：mem[pi]==={pi[15:0],pi[15:0],
+//        pi[15:0],pi[15:0]} 的字数 w_ok==TB_WORDS，且 cdc_drop==0、sv_drop==0、cdc_peak>0、
+//        sv_peak>0、s_frames==FULL（PART 期望 0、+FULL 期望 1）；排空上限 2000000 个 axi 拍。
+// 预期结果：通过时打印 mode=... words=<TB_WORDS>、drain: waited <t> axi cycles、
+//        [tb_v6_ingress_integrity:stage] 逐级计数行、words exact=<TB_WORDS>/<TB_WORDS> half=0
+//        allzero=0 other=0 lanes_bad=0、两条 PROBE 峰值行、PASS cdc peak probe alive、
+//        PASS packer peak probe alive、PASS ingress lossless、PASS full frame committed exactly
+//        once（PART 下为 PASS partial frame not committed），末行 PASS tb_v6_ingress_integrity。
+//        失败时打 FAIL ingress loses data、FAIL cdc peak probe never saw a non-empty FIFO、
+//        FAIL packer peak probe never saw a non-empty FIFO ...、FAIL frames_done=<n> expected=<n>，
+//        并附 first bad word=<w> got=<值> expected=<值>，末行 FAIL tb_v6_ingress_integrity errors=<n>；
+//        #80_000_000 超时打 FAIL tb_v6_ingress_integrity timeout。
 // v6 入包完整性 TB（跑法：bash sim/run_one.sh tb_v6_ingress_integrity）
 // 板上 JTAG 回读 DDR：38400 个 64bit 字里绝大多数只有 lane{0,2} 或 lane{1,3} 落了数据
 //   （WSTRB mask 1010 / 0101），约 40% 的 16bit lane 从来没被写过；改「包间」限速不影响比例。

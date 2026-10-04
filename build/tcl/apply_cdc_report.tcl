@@ -1,3 +1,7 @@
+# 用途：set outdir [file join $root build]
+# 输入：无字面量输入路径；参数解析见本文件
+# 输出：stdout
+# 退出码：脚本内无显式 exit ⇒ 随最后一条命令（正常跑完为 0）
 # Validate CDC constraints on existing routed design + regenerate reports
 set root [file normalize [file join [file dirname [info script]] .. ..]]   ;# 仓库根自适应（原来硬编码 D:/Xilinx/Prj/ADD/... 那个路径已不存在）
 set outdir [file join $root build]

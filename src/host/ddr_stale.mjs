@@ -1,4 +1,8 @@
 #!/usr/bin/env node
+// 用途：解析 build_v6/_ddr_dump.out（ddr_verify.mjs 落的 JTAG 回读），
+// 输入：命令行参数
+// 输出：stdout
+// 退出码：脚本内无显式 exit ⇒ 随最后一条命令（正常跑完为 0）
 /**
  * ddr_stale.mjs — 解析 build_v6/_ddr_dump.out（ddr_verify.mjs 落的 JTAG 回读），
  * 把 --test frameid 图案（像素值 = 64bit字号 + 帧号）反解成「每个 16bit 字来自第几帧」，

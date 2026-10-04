@@ -1,4 +1,17 @@
 `timescale 1ns/1ps
+// 功能：被测模块 `clk_gen`（例化名 u，即 sim/prim/ 下的厂商原语占位件）；覆盖点：三路输出时钟的
+//        频率比例、绝对周期与 locked 起没起来，钉住"用它搭的顶层台架时钟可信"这一前提。
+// 激励与检查：输入 clk 由 `always #10.0` 翻转（20 ns 周期 = 50 MHz，与 CLKIN1_PERIOD=20.0 一致），
+//        rst 上电为 1、压 500 ns 后释放；释放瞬间把三个计数器 e0/e1/e2 清零（不清会把复位前那 500 ns
+//        的边沿混进窗里、把周期量成 13 ns），再用固定窗 WIN_NS=1000 ns 数上升沿，全程不等事件；
+//        判定条件：C4 先要 e0>=20 && e1>=60 && e2>=40（不够就只报"量不出"、不许判 C1/C3），
+//        C1a 要 e1==5*e0（容 ±5 拍）、C1b 要 e2==4*e0（容 ±4 拍）、C3 要 WIN_NS/e0==20 且
+//        WIN_NS/e1==4 且 WIN_NS/e2==5、C2 要 locked===1'b1。
+// 预期结果：通过时每判据打一行 `PASS <C1a/C1b/C3/C2 标签> | <说明>`、窗口够长时另打
+//        `PASS C4 窗口够长 | 比例判据不是空跑（<e0>/<e1>/<e2> 拍）`，末行 `RESULT tb_v99_unisim_sim PASS`；
+//        失败时对应那条打 `FAIL <标签> | …` 并 nfail 加一，末行改打
+//        `RESULT tb_v99_unisim_sim FAIL nfail=<n>`；窗口不够时打 `FAIL C4 窗口不够 | … （实到 <e0>/<e1>/<e2>）`
+//        并跳过 C1/C3；看门狗 #500_000 到点打含 `FAIL 看门狗到点` 的那一行。
 // tb_v99_unisim_sim —— 仿真用厂商原语占位件（sim/prim/）自己的判据。跑法：bash sim/run_one.sh tb_v99_unisim_sim
 // 钉住的缺陷：本机 xsim 无 UNISIM 库（xelab 报 `Module <MMCME2_BASE> not found`）⇒ 任何例化 clk_gen 的顶层在仿真里起不来
 // —— ISSUES #62 风险②（"没有台架例化 pl_video_top ⇒ 缝差一拍看不见"）的物理原因。自己写的时钟模型不能当真相 ⇒ 先量一遍。

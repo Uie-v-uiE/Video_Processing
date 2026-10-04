@@ -1,4 +1,8 @@
 #!/usr/bin/env bash
+# 用途：第二捆（#174 gapclr 同拍 + #177 死代码 + #158 截断行判据 + 可选刀 4）的整轮链
+# 输入：命令行参数、build/tcl/build_system_axigpio.tcl、build/tcl/crit_path.tcl、build/tcl/hold_paths.tcl
+# 输出：stdout
+# 退出码：1=非 0 分支（该文件 exit 1 那一行）
 # build/r110_chain.sh —— 第二捆（#174 gapclr 同拍 + #177 死代码 + #158 截断行判据 + 可选刀 4）的整轮链。
 #
 # 与 r109 那支的**唯一结构差别**：开头多了一步 `build/pre_readings.sh`——

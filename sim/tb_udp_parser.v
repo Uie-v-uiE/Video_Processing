@@ -1,4 +1,18 @@
 `timescale 1ns/1ps
+// 功能：被测模块 `udp_rx_parser` #(.UDP_PORT(16'd5001))；覆盖点：一条合法 IPv4/UDP 帧
+//        （52 字节 = 14 以太网头 + 20 IPv4 + 8 UDP + 10 载荷）的载荷字节被逐拍吐出，
+//        以及目的端口不等于 5001 时一字节都不许往外发（端口过滤）。
+// 激励与检查：时钟 always #4 clk=~clk（8 ns = 125 MHz），rst_n 拉低 4 拍后释放；每字节用
+//        sendb 占 2 拍（第一拍置 s_valid/s_sof/s_eof/s_good，第二拍清零），sof 只给第 0 字节、
+//        eof 只给第 51 字节、s_good 恒 1；帧内容在 initial 里手填：type=16'h0800、
+//        ver/ihl=0x45、proto=17、UDP 长度 18、dport=16'h1389(5001)、载荷 10 字节 8'hA0+i；
+//        每段发完再等 4 拍才判。判定条件 1：p_valid 计数 pay_bytes 必须 == 10；
+//        判定条件 2：把 frame[37] 改成 8'h8A（dport 5002）后重发同一帧，pay_bytes 必须 == 0。
+// 预期结果：通过时打印 PASS payload extracted、PASS wrong port dropped，末行
+//        PASS tb_udp_parser ALL；失败时对应段打印 FAIL pay_bytes=<n> exp 10 或
+//        FAIL wrong port leaked <n> bytes，errors 累加并末行改打
+//        FAIL tb_udp_parser errors=<n>；tb_udp_parser.vcd 里应看到 p_valid 连续 10 拍、
+//        p_sof/p_eof 各一拍。
 // UDP parser TB: valid IPv4/UDP frame yields payload; wrong port dropped.
 module tb_udp_parser;
     reg clk = 0, rst_n = 0;

@@ -1,4 +1,8 @@
 #!/usr/bin/env bash
+# 用途：r113 物理单变量 A/B（#253/#252 的 ②）：同一份 opt.dcp，唯一变量 = 有没有那块 Pblock
+# 输入：命令行参数
+# 输出：stdout
+# 退出码：1=非 0 分支（该文件 exit 1 那一行） 2=非 0 分支（该文件 exit 2 那一行）
 # build/r113_pblock_ab.sh —— r113 物理单变量 A/B（#253/#252 的 ②）：同一份 opt.dcp，唯一变量 = 有没有那块 Pblock。
 #
 #   bash build/r113_pblock_ab.sh          # 两滚约 25 分钟；产物只落临时目录，盘上被跟踪件一个字节都不碰

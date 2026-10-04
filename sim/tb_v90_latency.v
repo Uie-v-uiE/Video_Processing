@@ -1,4 +1,27 @@
 `timescale 1ns/1ps
+// 功能：被测模块 `frame_latency`（实例 dut）；覆盖点＝读数精确等于台架数出来的拍差、事件配对缺步或晚到
+//        时不出数、负差值钳位不污染 max、arm 快照五口同源、逐次除法 lat_ms 的商与饱和与撕裂与翻转计数、
+//        lat_sticky 只记本轮的账、commit 与一轮收尾撞在同一拍、除法窗口之内又来了新 commit。
+// 激励与检查：时钟 #5 翻转（100 MHz，10 ns/拍），rst_n 低 4 拍后释放再等 1 拍；ev(which) 发单拍
+//        commit/copy_start/copy_done，ev_sof() 翻一次 sof_tgl 后 repeat(8) 等同步链灌满；各轮 wait_cyc
+//        取 500/1500/8000/100/50/200/60/40/300/1000/118000 拍；T10b 在 600 个相位各武装一次（每 60 次补
+//        一轮事件），T16 跑 40 轮且 i%7==3 的那次故意不等满 40 拍（撞进除法那 32 拍）；异常用 force 造
+//        边界：dut.t_commit=cyc+32'd100_000（倒挂）、dut.cyc += 32'd200_000_000（约 2000 ms）、
+//        dut.cyc -= 32'd1000（负差）。判定：T1 c1/c2/tot/mx/ncyc/clamp 全为 0；T2 c1∈[t2-t1-1,t2-t1+1]、
+//        T2b c2∈[t3-t2-1,t3-t2+1]、T2c tot∈[c1+c2+8000, c1+c2+8200]、T2d mx==tot 且 ncyc==1 且 clamp==0；
+//        T3 ncyc 仍==1，T5/T6 ncyc 仍==2；T4 ncyc==2 且 300<tot<4000；T4b mx==max(mx,tot) 且 mx>=4000；
+//        T7 clamp==1 且 c1/c2/tot 至少一项 ===32'hFFFF_FFFF、T7b ncyc==3、T7c mx===mx_keep；
+//        T8b 快照五字 === live、T8d 不武装则 qc1/qc2/qtot 不动、T9 再武装跟到最新一轮；T10 id_ok 非 0、
+//        T10b bad==0、T10c nchk>50；T11 lms===(tot/100000)、T11b lms>=1、T11c lvalid===1 且 lsticky===0；
+//        T12 lms===16'd2000 且 lvalid===1；T13 torn===1'b0；T14 lt_edges===n_edge0+2；T15 lsticky===1、
+//        T15b lms===16'd9999、T15c 下一干净轮回 lsticky===0 且 lvalid===1、T15d clamp===1；
+//        T16 nbadpair==0、T16b npair>0、T16c nskip>0；T17a dut.have_commit===1、T17b ncyc===n_before+1、
+//        T17c ===n_before+2、T17d 反配对 ===n_before+1；T18a lsticky===1、T18b lms===16'd9999、
+//        T18c 下一干净轮回 0。
+// 预期结果：通过时末行打印 PASS tb_v90_latency，读数满足 tot>=c1+c2 且三段单位都是拍数；失败时对应判据
+//        前打印 "  FAIL <判据名>"，DBG_T11/DBG_T12/DBG_T15 与 T10b/T16/PROBE 各行给出的数字与期望错开
+//        （典型形状：torn=1、lms 不等于 tot/100000、ncyc 比预期少 1、lsticky 该 1 时给 0），末行变
+//        FAIL tb_v90_latency errors=<n>，#60_000_000 看门狗先到期则打 FAIL tb_v90_latency timeout。
 // tb_v90_latency —— src/rtl/video/frame_latency.v（V8-6 链路内时延打点）；跑法 bash sim/run_one.sh tb_v90_latency
 // 这个模块产出的数字**会上文档、会被念给评委听**，所以判据的重点不是"有没有数"，而是"数会不会骗人"：
 //   ① 单位是**拍数**，PL 里不做除法（#58：在这里除了一个非 2 幂的 100 ⇒ 架出组合除法器、WNS −5.014 被门禁拦下）⇒ 读数必须精确等于台架自己数出来的拍差。

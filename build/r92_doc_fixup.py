@@ -1,4 +1,8 @@
 #!/usr/bin/env python3
+# 用途：修我自己刚写进去的两处不合适的东西
+# 输入：无字面量输入路径；参数解析见本文件
+# 输出：stdout
+# 退出码：脚本内无显式 exit ⇒ 随最后一条命令（正常跑完为 0）
 # build/r92_doc_fixup.py —— 修我自己刚写进去的两处不合适的东西。
 # (1) 新加的"念 WHS 要带口径"那条插在了编号项 1 与它的续行之间，会把列表打断；挪到 1 的末尾之后。
 # (2) board/README 与 report/BUILD 里我举例子写了 `build/isolated_xxx/system.bit` 这种**不存在的路径**，

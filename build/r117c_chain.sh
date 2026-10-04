@@ -1,4 +1,8 @@
 #!/usr/bin/env bash
+# 用途：r117 的第三次起飞：只重跑实现段（synth_1 复用），其余判读与门禁照旧
+# 输入：命令行参数、build/tcl/r117_resume_impl.tcl、build/tcl/probe_timing_roster.tcl
+# 输出：build/r117c_console.txt、build/evidence/r117c_tree_fp.txt、build/r117c_impl_console.txt
+# 退出码：2=非 0 分支（该文件 exit 2 那一行）
 # build/r117c_chain.sh —— r117 的第三次起飞：只重跑实现段（synth_1 复用），其余判读与门禁照旧。
 #
 # 前两次的账都留在盘上：

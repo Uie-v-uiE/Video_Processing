@@ -1,4 +1,14 @@
 `timescale 1ns/1ps
+// 功能：被测模块 `tb_uart_decode_bits.try_cmd`（台架内的纯软件模型，没有 RTL 例化，
+//        对照 src/ps/main.c 的 parse_bits）；覆盖点：串口命令里 5 个 "0"/"1" 字符到
+//        使能位的位序约定——字符串最左那个字符落 en[0]，右移一位落 en[1]，依此类推。
+// 激励与检查：无时钟、无复位，initial 里直调 4 组：try_cmd("00111", 5'b11100)、
+//        try_cmd("10000", 5'b00001)、try_cmd("11111", 5'b11111)、try_cmd("00000", 5'b00000)；
+//        判定条件：每次把 40 位字符串按 s[39-8*i -: 8] == "1"（i=0..4）置 en[i]，
+//        en !== expect 即 errors+1，四组都必须逐位等于期望。
+// 预期结果：通过时四组都不输出、只打印末行 PASS tb_uart_decode_bits；失败时每条错配打印
+//        FAIL cmd <字符串> got <实测 5 位> exp <期望 5 位>，末行改打
+//        FAIL tb_uart_decode_bits errors=<n>。
 // Pure software model of serial bit-string parsing (same as PS parse_bits)
 module tb_uart_decode_bits;
     integer errors = 0;

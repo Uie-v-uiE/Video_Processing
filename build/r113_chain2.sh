@@ -1,4 +1,8 @@
 #!/usr/bin/env bash
+# 用途：r113 断点续跑：构建已经过了（12:05），从"上电值重判"接着往下走
+# 输入：命令行参数、build/system.bit、build/tcl/crit_path.tcl、build/tcl/hold_paths.tcl
+# 输出：stdout
+# 退出码：1=非 0 分支（该文件 exit 1 那一行） 2=REFUSE
 # build/r113_chain2.sh —— r113 断点续跑：构建已经过了（12:05），从"上电值重判"接着往下走。
 #
 # 为什么断：链子在构建后的第一判据上自己断了 —— W2 要"三颗都在"，而网表里 `key_prev_reg`

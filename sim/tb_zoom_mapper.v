@@ -1,4 +1,21 @@
 `timescale 1ns/1ps
+// 功能：被测模块 `zoom_ctrl`（INV_LO=256 / INV_HI=512 / STEP=8）与 `zoom_mapper`（IMAGE_W=512、
+//        IMAGE_H=300）；覆盖点：mapper 的恒等与 0.5x 边界格及其 oob 旗标、rot_en=1 且 angle=0 的
+//        恒等，ctrl 的呼吸上界回弹、范围界与 enable=0 复位。
+// 激励与检查：时钟 `always #5 clk`（10 ns 周期），rst_n 压 5 拍后释放再空跑 2 拍；mapper 每个测试点
+//        置 x_in/y_in 后 stepN(4)（给流水留 4 拍），inv_force 取 256 与 512、rot_en 取 0/1、angle=0；
+//        ctrl 段先查复位值，再打 20 个 frame_start（每次举一拍、隔一拍），再打 40 个，最后 enable=0
+//        打一帧；判定条件：expect_xy 逐点比 (xo,yo,oobo) —— inv=256 时 (0,0)→(0,0)、(100,50)→(100,50)
+//        且 oob=0；inv=512 时 (256,150)→(256,150) oob=0、(0,0) 与 (384,225) 必须 oob=1、
+//        (128,75)→(0,0) oob=0；rot_en=1/angle=0/inv=256 时 (200,100)→(200,100) oob=0；
+//        ctrl 要求复位后 inv_scale==256、20 帧后 ==416（256+20*8）、再 40 帧后仍落在 [256,512]、
+//        enable=0 一帧后 inv_scale==256 且 zoom_active==0。
+// 预期结果：通过时 expect_xy 静默（它只在失配时打印），末行 `PASS tb_zoom_mapper`；失败时失配的
+//        那个点打 `FAIL <tag> got (<xo>,<yo>) oob=<b> expect (<ex>,<ey>) oob=<b>`（tag 为
+//        id(0,0)/id(100,50)/0.5x center/0.5x(0,0) OOB/0.5x(128,75)/0.5x(384,225) OOB/rot0 id），
+//        ctrl 段打 `FAIL ctrl reset inv=<n>` / `FAIL ctrl after 20 frames inv=<n> expect 416` /
+//        `FAIL ctrl range inv=<n>` / `FAIL ctrl disable inv=<n> act=<b>`，errors 逐条加一、
+//        末行改打 `FAIL tb_zoom_mapper errors=<n>`。
 // zoom_mapper + zoom_ctrl：原本=最大，向缩小循环
 module tb_zoom_mapper;
     reg clk = 0, rst_n = 0;

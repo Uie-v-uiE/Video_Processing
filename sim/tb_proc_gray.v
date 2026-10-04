@@ -1,4 +1,14 @@
 `timescale 1ns/1ps
+// 功能：被测模块 `proc_gray`（例化 `dut`，bypass 钉死 1'b0）；覆盖点：RGB565 灰度化在纯红
+// 与纯白两个极端像素上的输出亮度方向，以及 de 是否跟着输入走。
+// 激励与检查：#5 翻转时钟（周期 10 ns）；rst_n 上电为 0，repeat(4) @(posedge clk) 后放成 1，
+// 再等 1 拍；每幅图用 de_in 举一拍灌一个像素（先 RED=16'hF800，后 WHITE=16'hFFFF），接着
+// de_in 落 0、再等 1 拍采样 de_out/dout。判定条件：红像素之后 de_out 必须为 1；红的灰度
+// 取高 5 位比较，dout[15:11] > 5'd20 判为"太亮"；白的 dout[15:11] < 5'd20 判为"太暗"
+// —— 阈值 5'd20 是这两条实际在比的数。
+// 预期结果：通过时三条判据都不红，errors==0 打印 `PASS tb_proc_gray`；失败时对应判据打
+// `FAIL: de_out not set` / `FAIL: red gray too bright %h` / `FAIL: white gray too dark %h`，
+// 收尾打 `FAIL tb_proc_gray errors=%0d`。
 module tb_proc_gray;
     reg clk = 0;
     reg rst_n = 0;

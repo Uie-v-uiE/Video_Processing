@@ -1,3 +1,7 @@
+// 用途：采纳那笔的文档数字改口（规则表驱动，逐条断言"恰好命中一次"）
+// 输入：命令行参数
+// 输出：stdout
+// 退出码：脚本内无显式 exit ⇒ 随最后一条命令（正常跑完为 0）
 // build/r109_rotate_docs.mjs —— 采纳那笔的文档数字改口（规则表驱动，逐条断言"恰好命中一次"）
 // 用法：node build/r109_rotate_docs.mjs          只看命中情况，不写盘
 //      node build/r109_rotate_docs.mjs --apply  写盘

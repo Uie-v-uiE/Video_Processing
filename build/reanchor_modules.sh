@@ -1,4 +1,8 @@
 #!/bin/bash
+# 用途：把 report/modules.md 的「例化者 文件:行」引用**按 D5b 自己的红单**重锚到正确行
+# 输入：命令行参数
+# 输出：stdout
+# 退出码：0=跑完 1=非 0 分支（该文件 exit 1 那一行） 2=非 0 分支（该文件 exit 2 那一行）
 # build/reanchor_modules.sh —— 把 report/modules.md 的「例化者 文件:行」引用**按 D5b 自己的红单**重锚到正确行
 #
 # 为什么不是手改：一次 RTL 改动（r109 在 pl_video_top.v 里挪了换角拍点那段）会让它之后的所有行整体位移，

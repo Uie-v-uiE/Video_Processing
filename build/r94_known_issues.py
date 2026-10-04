@@ -1,4 +1,8 @@
 #!/usr/bin/env python3
+# 用途：把 known_issues.md 第一节里"这版没修"的三条改成"已修 + 代价 + 凭据"，
+# 输入：无字面量输入路径；参数解析见本文件
+# 输出：stdout
+# 退出码：脚本内无显式 exit ⇒ 随最后一条命令（正常跑完为 0）
 # build/r94_known_issues.py —— 把 known_issues.md 第一节里"这版没修"的三条改成"已修 + 代价 + 凭据"，
 # 并把 r94 只读巡检的四条候选挂到同一节末尾。按**标题行**切片，不做多行字符串匹配（CRLF 会静默失配）。
 import io, os

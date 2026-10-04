@@ -1,9 +1,21 @@
 # System with AXI GPIO on GP0 + PL ETH video sink
+# 作用: 一键把工程建起来并跑到比特流与全套报告（交付要求 §4 的主入口 build/build.tcl 就是 source 本文件）
+# 前置条件: 仓库根下的 src/rtl 与 src/constraints 齐全；Vivado 与本机 LICENSE 可用
+# 产出物: 工程目录 vivado_system/，以及 $outdir 下的 system.bit / system.xsa / timing_summary.rpt /
+#         utilization.rpt / cdc.rpt / methodology.rpt / power.rpt / route_status.rpt / clock_util.rpt
+# 关键参数（都用环境变量传，默认不设就是历史行为，产物要能自己带出身）:
+#   VP_PROJ_SUBDIR 工程目录名（默认 vivado_system；分步验证时指到别处，不碰正式工程）
+#   VP_OUTDIR      产物目录（默认 build）
+#   VP_STOP_AT     project = 只建工程与导源就退出（build/create_project.tcl、build/add_sources.tcl 用）
+#   IMPL_STRATEGY / IMPL_POST_PLACE_HOOK / IMPL_PRPO  见下面各自的说明块
 set root [file normalize [file join [file dirname [info script]] .. ..]]
-set proj_dir [file join $root vivado_system]
+set proj_subdir vivado_system
+if {[info exists ::env(VP_PROJ_SUBDIR)] && $::env(VP_PROJ_SUBDIR) ne ""} { set proj_subdir $::env(VP_PROJ_SUBDIR) }
+set proj_dir [file join $root $proj_subdir]
 set proj_name zynq_video_sys
 set part xc7z020clg484-2
 set outdir [file join $root build]
+if {[info exists ::env(VP_OUTDIR)] && $::env(VP_OUTDIR) ne ""} { set outdir [file normalize [file join $root $::env(VP_OUTDIR)]] }
 file mkdir $outdir
 
 create_project $proj_name $proj_dir -part $part -force
@@ -284,6 +296,13 @@ update_compile_order -fileset sources_1
 # 想接着做 V7.8 的时序收口时，连同 tag `v7.8-bilinear-wip` 一起再打开。
 # 历史结论 R07：`Performance_Explore` 与默认策略产出逐位相同的 bit ⇒ 那不是个可选项。
 
+# 分步入口在这里切一刀：VP_STOP_AT=project 时工程、IP、源与约束都已进项目文件，
+# 综合留给 build/synth.tcl 单独跑（默认不设就是不切，正式流程一步到位的老行为不变）。
+if {[info exists ::env(VP_STOP_AT)] && $::env(VP_STOP_AT) eq "project"} {
+  puts "VP_STOP_AT_PROJECT_DONE proj=$proj_dir"
+  close_project
+  exit 0
+}
 launch_runs synth_1 -jobs 4
 wait_on_run synth_1
 if {[get_property PROGRESS [get_runs synth_1]] != "100%"} {

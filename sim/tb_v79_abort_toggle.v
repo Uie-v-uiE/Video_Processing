@@ -1,4 +1,22 @@
 `timescale 1ns/1ps
+// 功能：被测模块 `frame_commit_lock`（IMG_H=300、DISP_H=600、WD_CYC=30，abort_tgl 端口在本 tb 接出）；
+//        覆盖点＝copy_abort 这一 axi 域单拍脉冲进 50 MHz 像素域的三种接法在 10 个相位下的计数：
+//        RAW 裸采两级采样、LVL3 电平型三级同步、TOG 翻转式脉冲同步器（3FF + 异拍）。
+// 激励与检查：axi_clk 半周期 #5，pix_clk 半周期 PZ=10；shift_phase 把 PZ 暂改 11 再回 10，即每个相位
+//        把像素钟整体推后 1 ns（相位 0..9 ns，0 对应板上 MMCM 50/100 MHz 同相）。rst_n 拉低 8 个 axi
+//        拍后释放再走 20 拍；de=1、blank_safe=1 常开窗口，vsync 由 `forever #400` 翻转（800 ns 周期）。
+//        每个相位连跑 3 次 one_abort()：commit_req 拉高 1 拍、拉低 1 拍、再等 400 个 axi 拍让 30 拍
+//        看门狗到期。判定按相位取增量：`n_tog - t0c != n_abort - a0c` 记一次 phases_tog_bad；
+//        `n_raw - r0c < n_abort - a0c` 记一次 phases_missed_raw；`n_lvl - l0c != n_raw - r0c`
+//        记一次 phases_lvl_differs。
+// 预期结果：通过时每个相位打一行 `phase=<p>ns aborts=<n> raw=<n> lvl3=<n> toggle=<n>`（toggle 与
+//        aborts 两列相等），收尾打 `TOTAL aborts=<n> raw=<n> lvl3=<n> toggle=<n>
+//        (raw-miss-phases=<n>, lvl-diff-phases=0)`，并在 errors==0 且 phases_tog_bad==0 且
+//        phases_missed_raw>0 且 phases_lvl_differs==0 时打 `PASS tb_v79_abort_toggle`；
+//        失败时按判据打 `FAIL A1 toggle 在 <n> 个相位上数目不对`（同时 errors 加一）、
+//        `FAIL A2 没有任何相位让裸采漏看 —— ISSUES #27 的现象描述要重写`、
+//        `FAIL A3 电平 3 级与裸采出现了不一致（<n> 个相位）`，末行改判
+//        `FAIL tb_v79_abort_toggle errors=<n>`。
 // v7.9 台架：`copy_abort`（axi 域 1 拍 = 10 ns 脉冲）进 50 MHz 像素域的三种接法，用**相位扫描**量开：
 //   相位 0 = 两钟同相（板上 MMCM 50/100 MHz 的真实情况），1..9 ns = 人为偏移 = 硅片上的 skew/JI。
 //   RAW = 像素域直接 `if (copy_abort)`（改之前的写法）；LVL3 = 电平型 3 级同步（"看起来最正规"的那版）；

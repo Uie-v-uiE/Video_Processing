@@ -1,4 +1,28 @@
 `timescale 1ns/1ps
+// 功能：被测模块 `zoom_ctrl`（实例 dut，INV_LO=256、INV_HI=512、STEP=2）；覆盖点＝八档手动倍率的
+//        inv_scale 与 zoom_code 往返、自动呼吸的步进与带界、手动期间钉住、手动与自动交接不瞬移、
+//        enable=0 让位回 1.00x、旋转态把 inv_used 钳进 inv_fit 时 zoom_code 与 zoom_active 跟同一个数。
+// 激励与检查：时钟 #5 翻转（10 ns/拍），frame_start 由台架每 40 拍发一个单拍脉冲（fcnt==39），rst_n 以
+//        初值 0 走 4 拍后置 1 再等 3 拍；手动档 zsel 遍历 3'd0..3'd7，倍率万分比取
+//        2500/3300/5000/7500/10000/13300/15000/20000，期望 inv=round(256*10000/x)（台架以 num=5120000+x、
+//        den=2x 的整数除法算，q>1023 夹到 10'd1023）；换档后 wait_change 最多等 60 拍取 inv 的那一次
+//        变化；T2 逐拍盯 11000 拍；T4 换到 3'd3 后静置 200 拍（5 个帧节拍）；T5 先停 3'd0（inv=1023，
+//        带外）再 manual=0；T6 停 3'd7（inv=128）后 enable=0 等 8 拍；T7 从 1023 走回带内最多 280 次
+//        wait_change；T8 驱 rotate_en 与 inv_fit_sim=10'd341，分别跨 45 拍与 6 拍取样。判定：
+//        T1 inv_scale==256 且 zoom_code==3'd4 且 dir==0；T2 nstep_bad==0（每步为 before±STEP 或落在
+//        INV_LO/INV_HI）、T2b nstep_ok>=200、T2c min_inv==INV_LO 且 max_inv==INV_HI；T3 t3_bad==0
+//        （inv_scale===exp_inv 且 zoom_code===同档号）；T4 inv_scale 与 before 相同；T5a inv_scale==1023、
+//        T5b after_v==before-STEP、T5c after_v==before±STEP；T6a inv_scale==128、T6b inv_scale==INV_LO
+//        且 zoom_active==0；T7 nstep_bad==0 且 before<=INV_HI；T8a inv_scale==inv_used==256 且
+//        rot_forced==0、T8b inv_used==341 且 rot_forced==1、T8c zoom_code==3'd3、T8g zoom_active==1、
+//        T8d inv_scale==inv_used==512 且 rot_forced==0、T8e inv_scale==128 且 inv_used==341 且
+//        rot_forced==1、T8f inv_used==128 且 rot_forced==0 且 inv_scale==128、T8h inv_used==256 且
+//        zoom_active==0。
+// 预期结果：通过时每条 chk 打 "  PASS <判据名>"，末两行为 "TB DONE pass=<n> fail=0" 与
+//        "TB RESULT PASS"（本文件不打 PASS tb_v94_zoom_sel 这一行，判过的条数看 pass/fail 计数），
+//        另附 T2/T3/T5/T7 的 DBG 计数行；失败时对应
+//        判据打 "  FAIL <判据名>"，档不匹配处打 "DBG T3 档 <i>: inv=<值> 期望=<值> code=<值>"，
+//        fail 非 0 时末行变 "TB RESULT FAIL"。
 // tb_v94_zoom_sel —— V8-8 手动缩放档的两件事：
 //   ① 每一档**真的**落到那个 inv，并且 OSD 的 `zoom_code` 报回同一个档号（往返）；
 //   ② 手动/自动之间切换**不瞬移**（呼吸被打断与恢复的那一帧都不许跳）。

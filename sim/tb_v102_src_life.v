@@ -1,4 +1,27 @@
 `timescale 1ns/1ps
+// 功能：被测模块 `src_life` #(.CLK_HZ(50_000_000), .HB_TIMEOUT_MS(500))；覆盖点：复位即"无
+//        片源且未发布是已知状态"、发布一拍后转有源、停发后看门狗判超时、超时恰好落在第 30 个
+//        帧节拍、重新发布自动解除、固件 100 ms keepalive 节拍不误判、停发→落图卡→恢复、
+//        钉 ETH / 钉 SD / 自动三态下的归属，以及三个输出不带 X。
+// 激励与检查：时钟 always #10 clk=~clk（50 MHz）；initial 前 4 拍 rst_n=0，拉高后再等 2 拍；
+//        一个"帧"= frame_start 一拍脉冲 + 3 拍间隔（one_frame），publish=ps_pub 一拍脉冲，
+//        改 mode/owner 与每次判定都各自过一次沿再 #1/#3（避开端口尚未传播的相位）；期望值写成
+//        字面量、不共用模块内式子（TO_FRAMES=30 由 500 ms@50 MHz=2.5e7 拍 ÷ 每帧 1344*625=
+//        840_000 拍 ≈ 29.76 手推）。判据：S1 复位后 have_src==0 && ps_src_now==0 &&
+//        ps_no_pub==1；S2 发布+一帧后 ps_src_now==1 && have_src==1 && ps_no_pub==0；S3 再喂
+//        TO_FRAMES+2=32 帧后 ps_no_pub==1 且另两位回 0；S9 复位后从 publish 起数帧到 ps_no_pub
+//        拉高，frames_seen 必须落在 30±1（上限 400 帧防空转）；S10 再发布即 0/1/1；S12 以
+//        KEEPALIVE_FRAMES=6 帧为周期发 40 轮，误判次数 low_seen==0 且 ps_src_now==1；
+//        S5a/S5b 停发 32 帧 have_src==0、恢复发布一帧后==1；S6 钉 ETH（mode_eth=1、owner=0）
+//        停发 32 帧 have_src 仍==1；S7 钉 SD 且无发布 have_src==0；S8a/b/c 自动模式下
+//        eth_owner=1 时 have_src==1、交还且无发布时==0、PS 再发布后==1；S11 三个输出各自异或
+//        自身必须为 1'b0（非 X）。
+// 预期结果：通过时每条 line 打印 PASS <ASCII 判据名>（S1 reset means no source、S2 publishing
+//        => show fb、S3 publish silence trips watchdog、S9 timeout equals the named constant、
+//        S10/S12/S5a/S5b/S6/S7/S8a/S8b/S8c/S11 no X on the outputs），S9 另有一行
+//        INFO S9 frames=<实测> expected=30 (TO_MS=500)，末行 RESULT tb_v102_src_life PASS；
+//        失败时对应条打印 FAIL <判据名> (t=<仿真时刻>) 并 errors+1，末行改打
+//        RESULT tb_v102_src_life FAIL nfail=<n>。
 // tb_v102_src_life —— `src_life` 的逐条判据（ISSUES #94）。
 // 为什么单独一份台架：#94 的症状是"屏幕永久冻在最后一帧"，而"永久"只有在**时间轴上喂出
 // "应用不再发帧了"**才看得见；顶层那份台架（tb_v98）一次要跑 75 分钟，用它调一个 30 帧的

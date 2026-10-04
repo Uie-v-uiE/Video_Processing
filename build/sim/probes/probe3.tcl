@@ -1,3 +1,7 @@
+# 用途：tmp_ramtest/probe2.tcl — 逐个综合 frame_buffer 变体，只看 RAMB36/RAMB18/LUT/FF 数
+# 输入：无字面量输入路径；参数解析见本文件
+# 输出：stdout
+# 退出码：脚本内无显式 exit ⇒ 随最后一条命令（正常跑完为 0）
 # tmp_ramtest/probe2.tcl — 逐个综合 frame_buffer 变体，只看 RAMB36/RAMB18/LUT/FF 数
 set dir [file normalize [file join [file dirname [info script]] .]]
 create_project fbtest $dir -part xc7z020clg484-2 -force

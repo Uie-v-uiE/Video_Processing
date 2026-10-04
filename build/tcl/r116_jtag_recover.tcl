@@ -1,3 +1,7 @@
+# 用途：JTAG-driven system reset (no hand needed)
+# 输入：无字面量输入路径；参数解析见本文件
+# 输出：stdout
+# 退出码：0=跑完 3=非 0 分支（该文件 exit 3 那一行）
 # build/tcl/r116_jtag_recover.tcl -- JTAG-driven system reset (no hand needed)
 #
 # Why: after program_pl the A9 cores still report "Running" over JTAG, but the console answers

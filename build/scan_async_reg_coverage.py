@@ -1,4 +1,8 @@
 #!/usr/bin/env python
+# 用途：只抓**跨时钟域的捕获寄存器**有没有打 ASYNC_REG（TIMING-10 的源码侧尺子）
+# 输入：命令行参数
+# 输出：stdout
+# 退出码：脚本内无显式 exit ⇒ 随最后一条命令（正常跑完为 0）
 # build/scan_async_reg_coverage.py —— 只抓**跨时钟域的捕获寄存器**有没有打 ASYNC_REG（TIMING-10 的源码侧尺子）
 #
 # 为什么再来这一把（#262，用户"改时序要看其他地方"那一问的第三处账）：

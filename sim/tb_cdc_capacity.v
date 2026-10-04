@@ -1,4 +1,20 @@
 `timescale 1ns/1ps
+// 功能：被测模块 `dc_fifo`（参数 DATA_W=36、ADDR_W=13，深度 DEPTH=8192）；覆盖点＝跨域 FIFO 的"满"边界
+//        落在第几格、报满后是否还收字、排空字数与写入序号顺序、两轮指针回绕。
+// 激励与检查：写域 #4 翻转（8 ns）、读域 #20 翻转（40 ns），复位释放前空跑 4 个写沿、释放后再走 3 拍；
+//        阶段 A 读侧不动、写侧连灌 DEPTH+400 个字（wr_data 取写入计数）；判据 C1 要求首次报满前的收下
+//        字数 full_at 必须等于 DEPTH；C2 要求报满之后的迟收字数 late_accept==0；阶段 B 逐字读到 received==accepted
+//        （上限 DEPTH+2000 次读），C3 要求 received==DEPTH、C4 要求 rd_data 逐字等于 expect_idx 计数
+//        （mismatch==0）；阶段 C 再做 3 轮"灌 DEPTH+300 后排空"，C5 要求 received==accepted 且 mismatch==0。
+// 预期结果：通过时打印 `PASS C1 boundary: all 8192 slots accepted`、`PASS C2 blocked once full`、
+//        `PASS C3 drained 8192 words`、`PASS C4 every word came back in write order`、
+//        `PASS C5 pointer wrap covered (<accepted> words through the 8192 boundary)`，另有
+//        `[tb_cdc_capacity:PROBE] first_full_after_accepts=/drained=/peak_occ=` 三条量值行，末两行
+//        `PASS tb_cdc_capacity ALL` 与 `RESULT tb_cdc_capacity PASS`；失败时对应判据打印
+//        `FAIL C1 wr_full fires one slot early: accepted <n> of 8192`、`FAIL C2 <n> words accepted AFTER
+//        wr_full`、`FAIL C3 drain count <n> != depth 8192`、`FAIL C4 payload order broken: <n> mismatched
+//        words`（附最多 3 条 `FAIL data[<n>]=<got> exp <want>`）或 `FAIL C5 wrap bursts lost words /
+//        out of order`，末两行改为 `FAIL tb_cdc_capacity errors=<n>` 与 `RESULT tb_cdc_capacity FAIL errors=<n>`。
 // dc_fifo 的"满"边界台架：只测一只 FIFO，不接任何链路。
 // 输入：写域 8 ns（= 板上 eth_rxc）、读域 40 ns；写侧一路灌，读侧按阶段停/放。
 // 输出：五条判据 C1..C5 + 两条 PROBE（首次报满发生在收下第几个字之后、峰值占用）。

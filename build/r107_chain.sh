@@ -1,4 +1,8 @@
 #!/usr/bin/env bash
+# 用途：r107 这一轮（只带 frame_reasm 分组这一刀）：构建 → 只读时序探针 →
+# 输入：命令行参数、build/tcl/build_system_axigpio.tcl、build/tcl/crit_path.tcl、build/tcl/hold_paths.tcl
+# 输出：stdout
+# 退出码：1=非 0 分支（该文件 exit 1 那一行）
 # build/r107_chain.sh —— r107 这一轮（只带 frame_reasm 分组这一刀）：构建 → 只读时序探针 →
 # 顶层台架 + 报告 → 边缘条带台架 + 报告 → 门禁 → 扇出/走线判据落文件。
 #

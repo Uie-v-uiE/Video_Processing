@@ -1,3 +1,7 @@
+# 用途：two things the replication cut still needs before it can be
+# 输入：无字面量输入路径；参数解析见本文件
+# 输出：stdout
+# 退出码：0=跑完 1=REFUSE 4=REFUSE
 # build/tcl/n117_net_and_help.tcl -- two things the replication cut still needs before it can be
 # paid for, both read-only and both cheap:
 #

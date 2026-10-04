@@ -1,4 +1,22 @@
 `timescale 1ns/1ps
+// 功能：被测模块 `frame_reasm` #(.IMG_W(16), .IMG_H(8), .FRAME_BYTES(256))（一帧 128 像素 =
+//        256 字节）；覆盖点：正序拼满一帧、乱序（先高偏移后低偏移）、s_good=0 的坏包计数、
+//        重复包覆盖、第二次成帧，以及 wr_en/wr_addr/wr_data 写口落点与 stat_* 计数器。
+// 激励与检查：时钟 always #4 clk=~clk（8 ns = 125 MHz），rst_n 拉低 5 拍后释放再等 2 拍；
+//        每字节 send_byte 占 2 拍；每包 send_pkt 发 8 字节 = 偏移低字节（带 sof）+ 偏移中/高
+//        两字节 + pix0 两字节 + pix1 两字节（带 eof 与 good）；台架在 posedge 抓 wr_en 并把
+//        wr_addr<128 的 wr_data 记进 capture[]。正常段连发 64 包（偏移 k*4、k=0..63）覆盖
+//        256 字节，判 s_frames==1、capture[0]==16'h1000、capture[1]==16'h2000；乱序段
+//        send_pkt(8,16'hBEEF,16'hCAFE,1) 再 send_pkt(0,16'h1111,16'h2222,1)，判
+//        capture[4]==16'hBEEF 且 capture[0]==16'h1111；坏包段 send_pkt(0,...,good=0) 判
+//        s_bad≠0；重复段同一偏移连发两遍 16'hAAAA/16'h5555，判 capture[0]==16'hAAAA；
+//        最后再发 64 包，判 s_frames==2。每段之间留 3~5 拍。
+// 预期结果：通过时逐条打印 PASS normal full frame / PASS pixel0 / PASS pixel1 /
+//        PASS OOS later-first / PASS OOS later-second / PASS bad counted /
+//        PASS duplicate overwrite / PASS second frame after jump，末行 PASS tb_udp_reasm ALL；
+//        失败时对应条打印 FAIL <判据名>: got <实测> exp <期望> 或 FAIL capture[0]=<hex> /
+//        FAIL OOS addr4=<hex> / FAIL OOS addr0=<hex> / FAIL dup=<hex> / FAIL bad not counted，
+//        errors 累加并末行改打 FAIL tb_udp_reasm errors=<n>。
 // UDP frame reassembly TB: normal, OOS, drop, duplicate, frame jump, timeout-like bad
 module tb_udp_reasm;
     reg clk = 0, rst_n = 0;

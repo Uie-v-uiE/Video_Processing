@@ -10,6 +10,25 @@
 // ⚠ 激励必须是真栅格：前导码 7×55 + D5、帧里带 4 个 FCS 字节、然后**真的拉低 dv 一段**（帧间隙），
 //   否则"畸形包已经被吃完"这件事根本没被演到（#206 上一版候选就是因为没有间隙而空转）。
 `timescale 1ns/1ps
+// 功能：被测模块 `icmp_rx`（BOARD_MAC=00:11:22:33:44:55、BOARD_IP=192.168.1.10）；覆盖点＝IP 总长 <28 的
+//        畸形包让"载荷长度 = 总长 − 28"下溢回绕后，解析器会不会楔在 st_rx_data 里把紧跟的合法包吃掉。
+// 激励与检查：时钟 #4 翻转（8 ns，GMII 125 MHz），所有激励打在 negedge；rst_n 低 4 个沿后拉高再等 4 个沿；
+//        每帧按真栅格发：7 个 8'h55 前导 + 8'hD5 + 6 字节 DA + 6 字节 SA(8'h01) + 类型 08 00 + 20 字节
+//        IP 头 + ICMP 头 8 字节（type 8 / code 0 / checksum 0000 / id / seq）+ ndata 个数据字节
+//        （i+8'h10）+ 4 个 8'hAA 当 FCS，然后 dv 拉低 40 个沿留帧间隙；
+//        R3 先发合法包（ndata=8、id=16'h1234、seq=16'h0001，IP 总长 = 28+8）要求 done_total==1、
+//        rec_byte_num==16'd8 且 dut.icmp_data_length==16'd8；R1 发畸形包（bogus=1 ⇒ IP 总长写 16'd20、
+//        ndata=0）并要求间隙结束时 (dut.cur_state == S_RX_DATA) 为假（st_after_gap==0）；R1b 用跨这两帧开着的
+//        计数器数 rec_en 拍数，要求 en_bytes==8（>8 说明畸形帧把下一整帧当自己的载荷吐了）；
+//        R2 要求紧跟的合法 ping（id=16'h4321、seq=16'h0003）仍被应答：done_total==2 且 icmp_id==16'h4321
+//        且 icmp_seq==16'h0003。
+// 预期结果：通过时打印 `PASS R3 legit frame completes | ...`、`PASS R1 wrapped length must not park the
+//        parser | ...`、`PASS R1b only the legit frame emits payload | ...`、
+//        `PASS R2 next legit frame still answered | ...`，并带 `R3 raw:`/`R1 raw(after bogus frame gap):`
+//        两行原始量（cur_state、en_bytes、done_total、icmp_data_length、icmp_rx_cnt），末行
+//        `RESULT tb_icmp_len_wrap PASS`；失败时对应条目改打 `FAIL <名字> | <说明>` 并把 nfail 加一
+//        （R1 红 = 仍停在 S_RX_DATA=7'b010_0000；R1b 红 = en_bytes>8；R2 红 = done_total/icmp_id/icmp_seq
+//        对不上），末行 `RESULT tb_icmp_len_wrap FAIL nfail=<n>`。
 module tb_icmp_len_wrap;
 
     // 与 src/rtl/eth/icmp_rx.v:31-37 一致的编码（这里抄一份是为了不依赖层次化取 localparam）

@@ -1,4 +1,8 @@
 #!/usr/bin/env bash
+# 用途：接上被我自己撞掉的那两步（顶层台架/边缘台架在 12:25 都吃了 rc=2 REFUSE）
+# 输入：命令行参数
+# 输出：build/r106b_tb98report_console.txt、build/r106b_rim_console.txt、build/r106b_rimreport_console.txt
+# 退出码：1=非 0 分支（该文件 exit 1 那一行）
 # build/r106_chain2.sh —— 接上被我自己撞掉的那两步（顶层台架/边缘台架在 12:25 都吃了 rc=2 REFUSE）
 #
 # 为什么要有"等 xsim 死透"这一道：run_one.sh 的并发守卫就是照 `/tmp/kx/<tb>.run` 的活体判的，

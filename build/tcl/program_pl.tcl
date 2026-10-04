@@ -1,3 +1,7 @@
+# 用途：scan the JTAG chain and program build/system.bit into the PL
+# 输入：无字面量输入路径；参数解析见本文件
+# 输出：stdout
+# 退出码：0=跑完 1=非 0 分支（该文件 exit 1 那一行）
 # build/tcl/program_pl.tcl — scan the JTAG chain and program build/system.bit into the PL
 #
 #   vivado -mode batch -nojournal -source build/tcl/program_pl.tcl

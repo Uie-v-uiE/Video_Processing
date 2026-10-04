@@ -1,4 +1,8 @@
 #!/usr/bin/env bash
+# 用途：r113 整轮链：带 #256 的上电值修复（key_debounce 声明初值）+ r112 那两刀
+# 输入：命令行参数、build/evidence/r112_setup_paths_baseline.rpt、build/tcl/build_system_axigpio.tcl、build/tcl/crit_path.tcl
+# 输出：stdout
+# 退出码：1=非 0 分支（该文件 exit 1 那一行） 2=REFUSE
 # build/r113_chain.sh —— r113 整轮链：带 #256 的上电值修复（key_debounce 声明初值）+ r112 那两刀。
 # 与 r112_chain 的差别（只两条，别的话都照旧）：
 #   ① 构建后**先问位流上电值再付台架的钱**：`build/check_powup_init.sh` 判红就断链。

@@ -1,4 +1,22 @@
 `timescale 1ns/1ps
+// 功能：被测模块 `proc_box_blur`(u_blur)、`proc_sharpen`(u_shp)、`proc_sobel`(u_sob)、`proc_morph`(u_mor)
+//        四个窗口级各自旁路，加 `proc_pipeline`(u_pipe) 以 stage_sel=0 全旁路；覆盖点＝旁路下"像素里带的
+//        坐标"与"台架数出来的输出位置"之差是否恒为一个固定值、四个单级的偏移之和是否等于整链偏移、
+//        逐列（含每行最后一列）有没有单独偏走的那一列。
+// 激励与检查：时钟 #10 翻转（20 ns 周期），rst_n 低 4 拍后释放再等 1 拍；W=H=32、LINE=W+1=33、Δ 直方图
+//        边长 NG=11（窗 -5..+5）、内部账另开 MARGIN=4 的门；像素值即坐标 src={行号[4:0], 6'h2A, 列号[4:0]}，
+//        每帧 32×32 个 de、行末插 1 拍 de=0，帧尾 repeat(LINE*4+16)=148 拍排空，先跑 1 帧热身第二帧才记账；
+//        补偿段把 src_off 设成从 RTL 取的 u_pipe.OFF_LINES（不在台架重抄数字）再连跑 2 帧。判定：
+//        S1c 内部样本 totv>0；S1b obi[kk]==0；S3 cnt[kk]==H*W（1024 拍 de_out，多一发少发都红）；
+//        ID 每一列 colbin 的样本都落在整帧主偏移那一格（idbad==0）；S4 drow_i/dcol_i 的 sharp、morph
+//        与 blur 相同；S2 dr_sum（四级 drow 之和）==dr_chain（整链 drow）；T1 整链内部 (ii2-5)==0 且
+//        (jj2-5)==0 且 biv==totv 且 totv>0 且 obi[4]==0；T0 c4dr==-OFF 且 c4dc==0 且 c4cons==c4tot 且
+//        c4ob==0。
+// 预期结果：通过时每条 expect 打 "[…] PASS <判据名>"，五个被测各有一行"整帧 d=(..,..) n/tot 越界n |
+//        内部 d=(..,..) … | 收到 n 拍"和一行 "ID <名>: off-col samples=0/…"，末行 PASS tb_v89_align，
+//        波形上偏移量恒等于 OFF_LINES 声明值；失败时打 "  FAIL <判据名>" 或 "FAIL S1b/S1c/S3/S2/S4
+//        <名>…" 各条并把 errors 加一，末行变 FAIL tb_v89_align errors=<n>，#8_000_000 看门狗到期则打
+//        FAIL tb_v89_align timeout。
 // tb_v89_align —— **量**（不是猜）效果链的「数据 vs 标签」错开几行几列：ISSUES #54 的那一半
 //   跑法 `bash sim/run_one.sh tb_v89_align`。办法：喂一张**像素值就是坐标**的合成图（R5=行号、G6=常数记号、B5=列号），旁路只搬运不运算
 //   ⇒ 输出里解出的 (y',x') 与该输出**所在位置** (y,x) 一减就是错位量。四个窗口级各自单独例化、与整链**同时**喂同一张图 ⇒ "哪一级贡献几行"是读出来的。

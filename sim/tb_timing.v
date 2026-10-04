@@ -1,4 +1,13 @@
 `timescale 1ns/1ps
+// 功能：被测模块 `video_timing`（.H_ACTIVE(16) .V_ACTIVE(8) .H_FP(2) .H_SYNC(4) .H_BP(2)
+//        .V_FP(1) .V_SYNC(2) .V_BP(1) ⇒ H_TOTAL=24、V_TOTAL=12、一帧 288 拍）；
+//        覆盖点：小光栅下 x/y 计数、de 有效拍数、frame_done 每帧只来一次这三件事同时成立。
+// 激励与检查：时钟 always #5 clk=~clk（10 ns 周期 = 100 MHz）；上电 rst_n=0，repeat(4)
+//        @(posedge clk) 后拉高；随后空转到第一个 fd，再往后过一拍才把 count_en 置 1，
+//        一直计到 frames==1（即整整一帧）停；判定条件：这一帧里 de 的上升计数 de_cnt 必须
+//        落在 127..128（16×8=128 个有效像素拍），de_cnt<127 || de_cnt>128 即 errors+1。
+// 预期结果：通过时打印 PASS tb_timing（errors==0）；失败时先打印 FAIL de_cnt=<实测值>
+//        expected ~128，末行改打 FAIL tb_timing。
 module tb_timing;
     reg clk = 0;
     reg rst_n = 0;

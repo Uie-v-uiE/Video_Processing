@@ -1,3 +1,7 @@
+# 用途：self-contained xsim runner for the competition repo layout.
+# 输入：无字面量输入路径；参数解析见本文件
+# 输出：stdout
+# 退出码：0=跑完 1=非 0 分支（该文件 exit 1 那一行）
 # build/sim/run_sim.tcl — self-contained xsim runner for the competition repo layout.
 #
 # Compiles every RTL module under src/rtl plus every sim/tb_*.v, then runs each

@@ -1,3 +1,7 @@
+# 用途：the spelling the tool's own edge pairing asks for, swept over taps
+# 输入：无字面量输入路径；参数解析见本文件
+# 输出：stdout
+# 退出码：0=跑完 1=REFUSE 4=REFUSE
 # build/tcl/r115_window_probe3.tcl -- the spelling the tool's own edge pairing asks for, swept over taps
 #
 # probe2 (件 build/evidence/r115_window/probe2_console.txt) read out the tool's model:

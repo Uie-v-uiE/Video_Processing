@@ -1,4 +1,8 @@
 #!/bin/bash
+# 用途：r90 这一轮的自动部分：先拿**未修改的树**做等价性锚，再落"资源换时序"那一刀，
+# 输入：命令行参数、build/tcl/crit_path.tcl
+# 输出：build/r90_icmp_pre.log、build/r90_icmp_mut.log、build/r90_icmp_post.log
+# 退出码：1=非 0 分支（该文件 exit 1 那一行）
 # build/r90_phase2.sh —— r90 这一轮的自动部分：先拿**未修改的树**做等价性锚，再落"资源换时序"那一刀，
 # 然后滚一轮构建 + 复跑顶层台架，最后写一份判定文件让人（明早的我）只看结论。
 #

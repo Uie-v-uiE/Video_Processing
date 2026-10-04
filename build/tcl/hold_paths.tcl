@@ -1,3 +1,7 @@
+# 用途：深度优化那一轮（任务 #46）的第一个问题：**WHS 那 0.0x ns 到底压在哪几条路径上
+# 输入：无字面量输入路径；参数解析见本文件
+# 输出：stdout
+# 退出码：1=非 0 分支（该文件 exit 1 那一行）
 # build/tcl/hold_paths.tcl —— 深度优化那一轮（任务 #46）的第一个问题：**WHS 那 0.0x ns 到底压在哪几条路径上？**
 #
 #   vivado -mode batch -nojournal -source build/tcl/hold_paths.tcl

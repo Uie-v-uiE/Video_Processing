@@ -1,4 +1,20 @@
 `timescale 1ns/1ps
+// 功能：被测模块 无（本 tb 不例化 RTL，比的是文件内两个 function：row_correct 与 row_trunc16）；
+//        覆盖点：产线尺寸 512×300（ROW_STRIDE=1024）下行号算式的两条路：byte_off / 1024 与
+//        (byte_off>>1) & 16'hFFFF 再 / 512（即 off[16:1] 那种截断写法）在哪些行上分家。
+// 激励与检查：无时钟、无复位、无数据流；纯组合遍历——off 从 0 到 307200 步进 1024 共 300 个行首采样点，
+//        另按 r=0..299 取 o=r*ROW_STRIDE；边界取值取 0、1024、299*1024、307198（末字节偏移）；
+//        判定条件 1：row_correct(0)==0、row_correct(1024)==1、row_correct(299*1024)==299、
+//        row_correct(307198)==299；
+//        判定条件 2：两条路结果不等的采样点数 bad >= 50（少于 50 判红）；
+//        判定条件 3：row_correct 在行首偏移上打到的不同行数 hit == IMG_H == 300。
+// 预期结果：通过时打印 `PASS basic correct formula`、`INFO row-stride samples with wrong 16bit row: <bad> / 300`、
+//        `PASS 16-bit truncation is a real production bug (<bad> rows wrong)`、
+//        `INFO correct formula hits <hit> rows`、`PASS correct formula covers all 300 rows`，
+//        末行 `PASS tb_v50_rowmath`；失败时按条打印 `FAIL off0` / `FAIL off1024` / `FAIL off row299` /
+//        `FAIL off last` / `FAIL expected many wrong rows with off[16:1] (got <bad>)` /
+//        `FAIL correct formula not covering all rows`，末行变 `FAIL tb_v50_rowmath errors=<n>`
+//        （前四条只打印不计票：errors 在 scan 段之前被清 0，不进末行判定）。
 // Prove row-index math for production 512x300 (and catch off[16:1] truncation)
 module tb_v50_rowmath;
     localparam IMG_W = 512;

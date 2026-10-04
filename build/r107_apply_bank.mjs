@@ -1,3 +1,7 @@
+// 用途：const O = process.argv.includes('--check') ? null : P;   // --check 只验锚点，不落盘；正式打是原地改，回退 = git
+// 输入：命令行参数
+// 输出：stdout
+// 退出码：1=REFUSE
 import fs from 'node:fs';
 const P = 'src/rtl/eth/frame_reasm.v';
 const O = process.argv.includes('--check') ? null : P;   // --check 只验锚点，不落盘；正式打是原地改，回退 = git checkout 这一个文件

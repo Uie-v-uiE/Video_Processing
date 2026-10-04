@@ -1,3 +1,7 @@
+# 用途：一次综合一个 top（FB_TOP 给名字，FB_VLOG 给文件），念出 tile / LUT / FF 三个数
+# 输入：无字面量输入路径；参数解析见本文件
+# 输出：stdout
+# 退出码：脚本内无显式 exit ⇒ 随最后一条命令（正常跑完为 0）
 # 一次综合一个 top（FB_TOP 给名字，FB_VLOG 给文件），念出 tile / LUT / FF 三个数。
 # tile 数是判据；LUT/FF 是这次"换"的代价，两边都要看见才算数。
 set part xc7z020clg484-2

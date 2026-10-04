@@ -1,4 +1,8 @@
 #!/bin/bash
+# 用途：r91：最后一轮时序，先动**实现策略**这一档，不动 RTL
+# 输入：命令行参数
+# 输出：stdout
+# 退出码：1=非 0 分支（该文件 exit 1 那一行） 2=REFUSE
 # build/r91_strategy_round.sh —— r91：最后一轮时序，先动**实现策略**这一档，不动 RTL。
 #
 # 为什么从这一档开始：`src/constraints/*.xdc` 里没有任何 `set_input_delay`（已 grep 证实），

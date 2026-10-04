@@ -1,3 +1,7 @@
+# 用途：带真实到达窗的口径下扫 IDELAY_VALUE，找 RGMII 收口的眼心（任务 #193 / ISSUES #275 #278）
+# 输入：无字面量输入路径；参数解析见本文件
+# 输出：stdout
+# 退出码：1=REFUSE 4=非 0 分支（该文件 exit 4 那一行）
 # build/tcl/r114_idelay_sweep.tcl -- 带真实到达窗的口径下扫 IDELAY_VALUE，找 RGMII 收口的眼心（任务 #193 / ISSUES #275 #278）
 #
 #   为什么能在快车道扫（先量过再立项，不是猜）：`build/tcl/probe_r114_idelay_set.tcl` 实测

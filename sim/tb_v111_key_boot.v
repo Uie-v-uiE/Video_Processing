@@ -1,4 +1,19 @@
 `timescale 1ns/1ps
+// 功能：被测模块 `key_debounce` + `key_long` + `angle_ctrl`（u_k1/u_k1l/u_ang 串成真链，
+//        u_k1.key_stable 取反喂 u_k1l.pressed，u_k1l.short_pulse 喂 u_ang.key_inc，key_dec 恒 0）；
+//        覆盖点：复位释放后线松着时的上电角度、去抖窗内外的按下、武装门开后的真人短按、跨过长按阈值。
+// 激励与检查：时钟 #10 翻转（20 ns 周期，50 MHz）；每腿先 rst_n 拉低 8 拍再放开；参数按真值缩 1000 倍
+//        （DBN=1_000、HOLD=30_000、ARM=10_000，FRAME=835 拍算一显示帧，frame_tgl 每 FRAME 拍翻一次）；
+//        key_n 拉低时长取 0.5×DBN / 1.5×DBN / HOLD+DBN+500 拍三档，松手后再跑 2×DBN 或 4×FRAME 拍，
+//        另有线恒高跑 3×DBN 与先等门开跑 DBN+50 两腿；
+//        判定条件：R 放开当拍 angle==0 且 rotate_active==0、ltog==0 且 k1_up==1；
+//        B 与 D 都要 inc_cnt==0 且 angle==0；A 按住期间 k1_up==1，松手后 inc_cnt==0、angle==0、ltog==0；
+//        A6 真人一按要 angle==9'd1 且 inc_cnt==1 且 ltog==0；
+//        C 要 ltog==1 且 inc_cnt==0 且松手后 angle==0。
+// 预期结果：通过时末行打印 `PASS tb_v111_key_boot` 且 errors==0，各腿 INFO 行的
+//        angle/rotate_active/ltog/k1_up/short_pulse 累计与上述取值一致（A、B、D 三腿 angle 恒 0）；
+//        失败时该条判据打印一行 `  FAIL <判据名>`、errors 加一，末行变 `FAIL tb_v111_key_boot errors=<n>`；
+//        跑到 #20_000_000 未收尾打印 `FAIL tb_v111_key_boot timeout`。
 // 台架：上电那一度 —— 用户 2026-10-03 问「为啥现在上电之后就是 1 度旋转而不是 0」。
 // 跑法：bash sim/run_one.sh tb_v111_key_boot
 //

@@ -1,4 +1,8 @@
 #!/usr/bin/env bash
+# 用途：提示词 §5 D1 + §4 C 的 C1 号切割：高扇出广播该不该被 phys_opt 复制驱动
+# 输入：命令行参数、build/tcl/mf114_roll.tcl
+# 输出：stdout
+# 退出码：2=REFUSE 4=REFUSE
 # build/r115_fanout_ab.sh —— 提示词 §5 D1 + §4 C 的 C1 号切割：高扇出广播该不该被 phys_opt 复制驱动
 #
 # 唯一变量：布线前那一次 phys_opt_design 带不带 `-force_replication_on_nets <名册里的广播网>`。

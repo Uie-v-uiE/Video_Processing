@@ -1,3 +1,7 @@
+# 用途：the datasheet window, measured, plus the IDELAY tap curve
+# 输入：无字面量输入路径；参数解析见本文件
+# 输出：stdout
+# 退出码：0=跑完 1=REFUSE 4=REFUSE
 # build/tcl/r115_window_probe2.tcl -- the datasheet window, measured, plus the IDELAY tap curve
 #
 # ASCII-only file (see ISSUES #307). Three parser shapes were paid for before this version:

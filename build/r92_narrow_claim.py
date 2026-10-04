@@ -1,4 +1,8 @@
 #!/usr/bin/env python3
+# 用途：把我自己写宽的一句话收窄，并把它钉在实测报告上
+# 输入：无字面量输入路径；参数解析见本文件
+# 输出：stdout
+# 退出码：脚本内无显式 exit ⇒ 随最后一条命令（正常跑完为 0）
 # build/r92_narrow_claim.py —— 把我自己写宽的一句话收窄，并把它钉在实测报告上。
 # 事实（`build/clock_uncertainty.rpt`，开的是本轮已布线 dcp）：
 #   * 全设计最差 min 路径：`u_pl/u_lat/t_commit_reg[0] → u_pl/u_lat/max_cyc_reg[4]`，域是 **clk_fpga_0**，

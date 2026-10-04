@@ -1,4 +1,21 @@
 `timescale 1ns/1ps
+// 功能：被测模块 `frame_reasm`（#(.IMG_W(512),.IMG_H(300),.FRAME_BYTES(307200))）；覆盖点：
+//        覆盖率门控——丢过一包（留黑洞）的帧必须不提交且计入 stat_bad；完整帧与恢复帧各提交
+//        一次，干净帧不许被记成 bad。
+// 激励与检查：clk #4 翻转=8 ns（125 MHz GMII）；rst_n 低 10 拍后释放。每包在 negedge 挂
+//        [u32 小端 offset][载荷]，载荷=min(PAY=1396, FRAME_BYTES-off)，一帧
+//        PKTS=(307200+1395)/1396=221 包（行尾旧注释的 220 与整除结果不符；最后一包只剩 80 B），
+//        帧尾空 200 拍；被丢的那一包改成空 30 拍、线上不出现任何字节。三轮依次
+//        send_frame(-1)、send_frame(100)、send_frame(-1)。判定条件：第一轮 dups==1 且
+//        stat_bad===0；第二轮 dups 仍==1 且 stat_bad==1；第三轮 dups==2。
+// 预期结果：通过时依次打印 PASS complete 512x300 frame commits、PASS clean frame not counted
+//        as bad、PASS frame with a lost packet is refused、PASS holey frame counted on the wire
+//        (OSD net_bad)、PASS next complete frame commits again，随后 INFO done=2 ... bad=1 ...
+//        末行 PASS tb_v6_cover_gate。失败时打 FAIL complete frame did not commit (done=<n>)、
+//        FAIL clean frame counted bad=<n>、FAIL holey frame committed anyway (done=<n>)（本条要抓的
+//        缺陷）、FAIL holey frame not counted (bad=<n>) 或 FAIL recovery frame did not commit
+//        (done=<n>)，末行 FAIL tb_v6_cover_gate errors=<n>；#200_000_000 超时打
+//        FAIL tb_v6_cover_gate timeout。
 // v6 gate TB — frame_reasm must refuse to commit a frame that lost a packet.
 // The old row bitmap only asked "was every row touched once", so a dropped
 // packet left a black hole that was still committed (black stripes that survive

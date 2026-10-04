@@ -1,4 +1,8 @@
 #!/usr/bin/env bash
+# 用途：clk_fpga_0 那把"未到极限"的刀，先用快车道预验（8~9 分钟/滚，两滚）
+# 输入：命令行参数、build/tcl/pb117_roll.tcl
+# 输出：stdout（本文件没有仓库内的写盘路径字面量）
+# 退出码：2=REFUSE
 # build/r117_fb_pblock_fastlane.sh —— clk_fpga_0 那把"未到极限"的刀，先用快车道预验（8~9 分钟/滚，两滚）
 # 靶子来自 report/timing/limit_audit_r116.md：最差路 1 级逻辑 / 93.6 % 布线 ⇒ 是"离得远"不是"器件慢"。
 # 判据（成对，H3 合法：同一份 opt.dcp、同一个工具、只差这一块 Pblock）：

@@ -1,4 +1,8 @@
 #!/usr/bin/env node
+// 用途：r108 那一刀的补丁：把 icmp_tx 的 IP 头校验和从"一拍 10 项加"摊成"两拍各 5 项"
+// 输入：命令行参数、src/rtl/eth/icmp_tx.v
+// 输出：stdout
+// 退出码：0=跑完 1=非 0 分支（该文件 exit 1 那一行）
 // build/r108_apply_csum.mjs —— r108 那一刀的补丁：把 icmp_tx 的 IP 头校验和从"一拍 10 项加"摊成"两拍各 5 项"。
 //
 // 依据（r106 布线后的报告，build/setup_paths.rpt / build/crit_paths.txt）：

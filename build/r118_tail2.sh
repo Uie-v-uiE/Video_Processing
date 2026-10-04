@@ -1,4 +1,8 @@
 #!/usr/bin/env bash
+# 用途：r118 的最后四步，不依赖 r118_rotate.py（首页已经在 04:49 改口成功：
+# 输入：命令行参数
+# 输出：build/r118_finish_console.txt、build/r117_docrotated.marker
+# 退出码：4=非 0 分支（该文件 exit 4 那一行）
 # build/r118_tail2.sh —— r118 的最后四步，不依赖 r118_rotate.py（首页已经在 04:49 改口成功：
 # wrote=10 mismatch=0、行数不变；那支脚本只是死在它自己的检查器包装上，与文档内容无关）。
 #

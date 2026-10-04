@@ -1,4 +1,8 @@
 #!/usr/bin/env python3
+# 用途：python build/trim_comments.py --check            # 工作树 vs HEAD：只允许注释不同
+# 输入：无字面量输入路径；参数解析见本文件
+# 输出：stdout
+# 退出码：脚本内无显式 exit ⇒ 随最后一条命令（正常跑完为 0）
 """Comment-only surgery on Verilog files, with a proof that no code moved.
 
   python build/trim_comments.py --check            # 工作树 vs HEAD：只允许注释不同

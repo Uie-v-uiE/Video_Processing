@@ -1,4 +1,8 @@
 #!/usr/bin/env bash
+# 用途：采纳段（轮号由 VP_ADOPT_NN 给，默认 107）：
+# 输入：命令行参数、build/tcl/program_pl.tcl
+# 输出：stdout
+# 退出码：1=非 0 分支（该文件 exit 1 那一行）
 # build/adopt_after_chain.sh —— 采纳段（轮号由 VP_ADOPT_NN 给，默认 107）：
 # 等链子跑完 → 三条断言 → 三步 JTAG 刷板 → board_verify（几何 + 串口电池）→ ping 三种长度。
 # 断言不过就断链，不产"看起来通过"的凭据。r107 那一程它是 build/r107_adopt.sh，通用化后给后续轮复用。

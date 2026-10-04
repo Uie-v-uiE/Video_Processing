@@ -1,4 +1,24 @@
 `timescale 1ns/1ps
+// 功能：被测模块 `pl_video_top`（例化名 dut）；覆盖点：顶层坐标图判据链（C0a..C12）中与"每一行第 0 格"
+//        有关的那一族：C8a 原图抽头、C8b 处理抽头的行首格，以及 C8c 八档缩放下原图抽头整行的列/行标签。
+// 激励与检查：sys_clk `always #10.0`（20 ns、50 MHz）、axi_clk `always #5.0`（100 MHz），复位在 C0a
+//        几行尺子自证之后释放——`repeat(4)@(posedge sys_clk)` 才把 sys_rst_n/axi_rst_n 置 1，再空跑
+//        `repeat(10)@(posedge axi_clk)`；数据由台架自建 AXI 从机模型提供 ddr[0:FRAME_WORDS-1]
+//        =300×128=38400 个 64bit 字（512×300 像素，每像素编成 {1'b1, row mod 128, col mod 256}），
+//        ps_publish 每 4 帧翻一次，跑到 frames_done≥FRAMES_MIN+3（一帧 1344×625 拍 = 16.8 ms）；
+//        缩放段按 C2_TBL 的八档 1023/776/512/341/256/192/171/128 各扫一轮并把 bilin_en_tb 钉 0；
+//        判定条件：读数全走 `dut.` 层次引用（dut.clk_pix、dut.u_split.x==12'd0、orig_pix/proc_pix、
+//        dut.de_d[dut.MIX_D]），偏移用模 256 有符号差 dsub==0——C8a 要 `c8_os>500 && c8_ob==0`
+//        （第 0 列的列标签==0 且行标签==y>>1）、C8b 要 `c8_ps>500 && c8_pb==0`、C8c 八档各要
+//        `c8c_bad[c2_k]==0` 且地板 `c8c_n>20000 && c8c_n-c8c_skip>20000`；同批还有 C0a2 回读
+//        ddr[0]==64'h8003_8002_8001_8000 与末字==64'hABFF_ABFE_ABFD_ABFC、C0b frames_done>=3、
+//        C0c ar_bursts>100 && r_beats>800 && odd_align==0 && out_of_window==0。
+// 预期结果：通过时每条判据各打一行 `PASS <C 标签> | <说明>`，C8 与 C8c 各带一行计数
+//        （`C8  第0列：原图 样本 <n> 格、不符 0 格 || 处理 样本 <n> 格、不符 0 格`、
+//        `C8c rawtap  code=<k> inv=<v> n=<n> skip=<n> bad=0 badpairs=<n> …`），
+//        末行 `RESULT tb_v98_c8_edge_column PASS`；失败时那条打 `FAIL <C 标签>`、nfail 加一，
+//        不符格另打反例行 `C8OBAD y=… 原图第0列=…`/`C8PBAD`（各前 6 格）与 `C8CBAD code=…`（前 3 格），
+//        末行改打 `RESULT tb_v98_c8_edge_column FAIL nfail=<n>`。
 // tb_v98_top_seam —— 唯一例化顶层 pl_video_top 的台架：DDR 帧是坐标图、每个像素值就是它自己的坐标（16 bit = {1'b1 非黑标志, 行 mod 128, 列 mod 256}），验"屏上任意一点解出的 (row,col) 与'它该来自哪里'一减为零"；差值一律用模 256 的有符号差（dsub，判据红先看量程够不够）；读数全走 `dut.` 层次引用、不读 DVI 引脚（sim/prim/unisims_sim.v 的 OSERDESE2 是占位件、不串行化，读它就等于信它）。
 // 判据索引：C0a/C0a2/C0a3、C0b..C0f 尺子与拷贝通路自证 · C-tap 混色级列标签与内容同列（差一拍就是一条可见的竖带）· C1 系列 内容级对齐与级数标定 · C2/C7 八档缩放的列/行等于定义 · C3 面板级几何 · C4 旋转形状（每行至多一段非黑）· C5/C6/C8 帧头、屏上第 0 格、两抽头行首 · C9a..C9e 缝旁黑列 · M2/M3 右窗行偏移只报数（跨帧恒定是把这一条转成硬判据的前提，一帧一变 = 还有一条没建模的反馈路径）。每条的期望值与反例写在自己代码段开头。
 // 跑法：bash sim/run_one.sh tb_v98_top_seam

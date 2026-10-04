@@ -1,3 +1,7 @@
+# 用途：build/wip_zoomfrac_recount.py —— 独立复算 #189：旋转支 Y 的"有没有小数"判据看错位宽，到底影响多少像素
+# 输入：无字面量输入路径；参数解析见本文件
+# 输出：stdout
+# 退出码：脚本内无显式 exit ⇒ 随最后一条命令（正常跑完为 0）
 # build/wip_zoomfrac_recount.py —— 独立复算 #189：旋转支 Y 的"有没有小数"判据看错位宽，到底影响多少像素
 # 用 RTL 的表达式逐位复刻（Verilog 语义：>>> 是算术右移 = Python 的 >>；rot_ys[15:8] = (v>>8)&0xFF），
 # 与"真值"（floor/frac 必须自洽于 Y_disp = C - (yr_pix + r/65536)）对账。

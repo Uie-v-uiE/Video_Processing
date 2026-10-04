@@ -1,4 +1,8 @@
 #!/usr/bin/env python3
+# 用途：r92 上板之后把交付文档里引用的旧数刷成这一版的实测值
+# 输入：build/evidence/r90_board_verify.txt、build/evidence/r90_health.txt、build/evidence/r92_health.txt
+# 输出：stdout
+# 退出码：脚本内无显式 exit ⇒ 随最后一条命令（正常跑完为 0）
 # build/r92_doc_refresh.py —— r92 上板之后把交付文档里引用的旧数刷成这一版的实测值。
 # 规则：数值一律**从当轮的报告/日志里现取**，不手写、不"我记得"；某处匹配不到就 SKIP 并说明，
 # 所以这条脚本可以重跑（已经改过的那行会显示匹配 0 次，不会被改坏）。

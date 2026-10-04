@@ -1,4 +1,26 @@
 `timescale 1ns/1ps
+// 功能：被测模块 `proc_morph`（H_ACTIVE=24，帧高 H=16），同帧并跑 `proc_box_blur` 作对齐基准；
+//        覆盖点＝mode0 旁路与 blur 旁路逐位一致（同一个中心抽头约定）、孤立点亮区掩码与 blur 完全重合、
+//        腐蚀与膨胀的语义、同一位置两者相反（min/max 没接反）、逐像素对定义的面积、mode3 等于 mode0、
+//        全黑输入的膨胀反例、de_o 脉冲数不随 mode 变。
+// 激励与检查：clk 半周期 #10；rst_n 拉低 4 个 negedge 后置 1、再走 2 拍。每段激励 feed() 连喂两帧
+//        （feed2 一次 24x16=384 像素，第二帧才是采集帧，用来冲掉两条行缓存里的上一段内容），行末
+//        de=0，帧尾再空走 6 个 negedge；mode 取 2'd0/1/2/3；图形只有一份定义——x 8..15 且 y 5..10 的
+//        实心方块并上 (3,3) 的孤立点，期望常数由此算、不引用 DUT 内部信号。判定：T1
+//        `got[j][i] !== got_blur[j][i]` 的处数 bad==0；T2（ref_byp=0、只留孤立点、mode=2'd2）亮区
+//        掩码不同处数 diff==0、blur 掩码非空 cnt>0，并由 morph 亮像素质心定出实测偏移
+//        `ox = c_x - 3, oy = c_y - 3`；T3 `snap_e[8][11] == WHITE && snap_e[5][8] == BLACK`；
+//        T4 `snap_e[3][3]` 与 `snap_e[4][4]` 均为 BLACK；T5 rows 与 cols 都 ≤6 区内的白像素
+//        `dot_lit == 9`；T6 `snap_e[8][7] == BLACK && snap_d[8][7] == WHITE`；T7/T8 在
+//        i、j 取 2..W-3 / 2..H-3 区间逐像素等于 exp_erode（3x3 邻域 `nb_at == 9`）与
+//        exp_dilate（`nb_at >= 1`），中心按 T2 实测偏移取；T9 内区（4..W-5 / 4..H-5）白像素
+//        `cnt == 24`（8x6 缩成 6x4）；T10 mode3 与先测的 mode0 逐位相同 bad==0；T11 全黑输入喂
+//        mode=2'd2 后每个像素 `=== BLACK`；T12 `n_deo == H * W`（=384）。
+// 预期结果：通过时只打末行 `PASS tb_v84_morph`（errors==0；chk 只对失败出声，不逐条打 PASS）；
+//        失败时先打带两格缩进的 `  FAIL <条名>`，T1 另把整帧逐行 $write 成
+//        `r<j> m=<16 个字> b=<16 个字>`、T2 把掩码打成 `MAP r<jj> m=#/#.. b=./..` 用来定位错位的
+//        行列，T5/T7/T8/T9 附 `孤立点邻域亮像素=<n> 期望 9`、`不符定义的像素数=<n> 偏移 ox=.. oy=..`、
+//        `T9 腐蚀亮像素 cnt=<n> 期望 24`，errors 加一后末行改判 `FAIL tb_v84_morph errors=<n>`。
 // 台架：src/rtl/process/proc_morph.v（级 5 形态学：3×3 腐蚀 / 膨胀）。跑：bash sim/run_one.sh tb_v84_morph
 // 挡三类"看起来像实现了"的错法：① 旁路当成实现（mode 只接了个 mux，屏上永远看到原图，或"关掉效果"时也错一行）；
 // ② 腐蚀/膨胀接反（min/max 写反，实心图形上看不出来，必须比同一个位置在两种模式下的结果）；

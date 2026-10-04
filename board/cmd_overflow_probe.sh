@@ -1,4 +1,8 @@
 #!/usr/bin/env bash
+# 用途：ISSUES #167 那条 `cmd_buf` 越界一字节的两端夹逼探针（任务 #131/#170 批）
+# 输入：命令行参数
+# 输出：stdout
+# 退出码：0=跑完 2=非 0 分支（该文件 exit 2 那一行） 3=非 0 分支（该文件 exit 3 那一行）
 # board/cmd_overflow_probe.sh —— ISSUES #167 那条 `cmd_buf` 越界一字节的两端夹逼探针（任务 #131/#170 批）。
 #
 # 为什么要单独一支探针而不是塞进 `board/cmd_battery_v81.txt`：电池的行数（"105 条串口命令"）本身就是

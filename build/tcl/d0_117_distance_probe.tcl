@@ -1,3 +1,7 @@
+# 用途：D0 read-only probe: is clk_fpga_0's worst path a DISTANCE
+# 输入：无字面量输入路径；参数解析见本文件
+# 输出：stdout
+# 退出码：0=跑完 1=REFUSE
 # build/tcl/d0_117_distance_probe.tcl -- D0 read-only probe: is clk_fpga_0's worst path a DISTANCE
 # problem, a CONGESTION problem, or neither?
 #

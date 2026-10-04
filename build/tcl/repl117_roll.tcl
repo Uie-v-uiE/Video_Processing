@@ -1,3 +1,7 @@
+# 用途：fast-lane roll: replicate ONE broadcast net (clk_fpga_0's worst family)
+# 输入：无字面量输入路径；参数解析见本文件
+# 输出：stdout
+# 退出码：0=跑完 1=REFUSE 4=REFUSE
 # build/tcl/repl117_roll.tcl -- fast-lane roll: replicate ONE broadcast net (clk_fpga_0's worst family)
 #
 # Why this net, from the reports (not from a guess): r116's per-clock probe says the worst

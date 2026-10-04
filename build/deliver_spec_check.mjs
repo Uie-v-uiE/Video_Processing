@@ -1,3 +1,7 @@
+// 用途：竞赛交付要求的机器判据（§0–§8 逐条，三态判定）
+// 输入：命令行参数
+// 输出：stdout
+// 退出码：1=非 0 分支（该文件 exit 1 那一行）
 // deliver_spec_check.mjs —— 竞赛交付要求的机器判据（§0–§8 逐条，三态判定）
 //
 // 范围：git 跟踪的仓库树（提交物=仓库本身，不是导出目录）。
@@ -59,11 +63,14 @@ if (want('C0-4')) {
   const renamed = top.has('skill') ? 'skill/ 需改名 skills/' : '';
   say('C0-4', 'top-level-structure', top.size, `多余=${extra.length}[${extra.slice(0, 8).join(',')}] 缺目录=${missing.length}[${missing.join(',')}] ${renamed} 双击入口豁免=${rootEntries.length}`, extra.length || missing.length ? 'FAIL' : 'PASS');
 }
-// ---- C1-1 约束在 src/constraints
+// ---- C1-1 约束在 src/constraints（过程凭据里的实验用 .xdc 单列，不混进"活动约束集"）
 if (want('C1-1')) {
   const xdc = tracked.filter(f => f.endsWith('.xdc'));
-  const inPlace = xdc.filter(f => f.startsWith('src/constraints/'));
-  say('C1-1', 'xdc-under-src-constraints', xdc.length, `xdc=${xdc.length} 在 src/constraints=${inPlace.length} 其它位置=${xdc.length - inPlace.length}`, xdc.length === 0 ? 'NOT_MEASURED' : (inPlace.length === xdc.length ? 'PASS' : 'FAIL'));
+  const active = xdc.filter(f => !f.startsWith('build/evidence/') && !f.startsWith('report/log/'));
+  const frozen = xdc.length - active.length;
+  const inPlace = active.filter(f => f.startsWith('src/constraints/'));
+  const out = active.filter(f => !f.startsWith('src/constraints/'));
+  say('C1-1', 'xdc-under-src-constraints', active.length, `活动 xdc=${active.length} 在 src/constraints=${inPlace.length} 不在=${out.length}[${out.slice(0, 3).join(',')}] 过程凭据里的 xdc=${frozen}(不计)`, active.length === 0 ? 'NOT_MEASURED' : (out.length ? 'FAIL' : 'PASS'));
 }
 // ---- C1-3 上位机双实现 + 双击入口 + 两类工具
 if (want('C1-3')) {
@@ -112,28 +119,32 @@ if (want('C2-1')) {
   const extra = sim.filter(f => !f.endsWith('.v') && f !== 'sim/README.md');
   say('C2-1', 'sim-only-v-files', sim.length, `sim 文件=${sim.length} 非 .v 且非 README=${extra.length} 例:${extra.slice(0, 4).join(',')}`, extra.length ? 'FAIL' : (sim.length ? 'PASS' : 'NOT_MEASURED'));
 }
-// ---- C2-3 每个 .v 头部三段（功能/激励与检查/预期结果）
+// ---- C2-3 每个 testbench 头部三段（功能/激励与检查/预期结果）。射程=tb_*.v；
+//      厂商行为模型（sim/prim 等）不是 testbench，无"激励与检查"可言，单列计数不判红。
 if (want('C2-3')) {
-  const vs = tracked.filter(f => f.startsWith('sim/') && f.endsWith('.v'));
+  const allv = tracked.filter(f => f.startsWith('sim/') && f.endsWith('.v'));
+  const vs = allv.filter(f => /\/tb_/.test(f));
+  const models = allv.filter(f => !/\/tb_/.test(f));
   const miss = [];
   for (const f of vs) {
     const head = read(f).split(/\r?\n/).slice(0, 25).join('\n');
-    const need = [/功能|coverage|dut|被测/i, /激励|检查|期望|expect|stimulus|check/i, /预期|通过|失败|pass|fail/i];
+    const need = [/功能|被测|覆盖|dut|coverage/i, /激励|检查|期望|expect|stimulus|check/i, /预期|通过|失败|pass|fail/i];
     const m = need.filter(re => !re.test(head)).length;
     if (m) miss.push(`${f}:${m}`);
   }
-  say('C2-3', 'tb-header-three-sections', vs.length, `tb=${vs.length} 不合格=${miss.length} 例:${miss.slice(0, 3).join(',')}`, vs.length === 0 ? 'NOT_MEASURED' : (miss.length ? 'FAIL' : 'PASS'));
+  say('C2-3', 'tb-header-three-sections', vs.length, `tb=${vs.length} 行为模型不计=${models.length} 不合格=${miss.length} 例:${miss.slice(0, 3).join(',')}`, vs.length === 0 ? 'NOT_MEASURED' : (miss.length ? 'FAIL' : 'PASS'));
 }
-// ---- C2-4/C2-5 sim/README.md 表格行与 .v 双向一致 + 一行 xsim 命令
+// ---- C2-4/C2-5 sim/README.md 表格行与 tb 双向一致 + 一行运行命令
 if (want('C2-4')) {
   const t = read('sim/README.md');
-  const vs = tracked.filter(f => f.startsWith('sim/') && f.endsWith('.v')).map(f => path.basename(f));
+  const allv = tracked.filter(f => f.startsWith('sim/') && f.endsWith('.v')).map(f => path.basename(f));
+  const vs = allv.filter(f => /^tb_/.test(f));
   if (!t) say('C2-4', 'sim-readme-table-bidirectional', vs.length, '文件不存在', 'NOT_MEASURED');
   else {
     const listed = [...t.matchAll(/`?([a-z0-9_\-]+\.v)`?/g)].map(x => x[1]);
     const notListed = vs.filter(v => !listed.includes(v));
-    const phantom = [...new Set(listed)].filter(v => !vs.includes(v));
-    const cmd = /xsim|xvh|xvlog|run one|bash .*sim/i.test(t);
+    const phantom = [...new Set(listed)].filter(v => !allv.includes(v));
+    const cmd = /xsim|xvh|xvlog|bash [^ ]*run_one/i.test(t);
     say('C2-4', 'sim-readme-table-bidirectional', vs.length + listed.length, `tb=${vs.length} 未列=${notListed.length} 幻影=${phantom.length} 运行命令行=${cmd ? '有' : '无'}`, (notListed.length || phantom.length || !cmd) ? 'FAIL' : 'PASS');
   }
 }
@@ -160,7 +171,7 @@ if (want('C3')) {
   if (cn.split(/\r?\n/).length > 90) p.push(`根 README ${cn.split(/\r?\n/).length} 行 超一页`);
   say('C3', 'root-readme-shape', (cn ? sec(cn) : 0) + (en ? sec(en) : 0), p.join('、') || '符合', p.length ? 'FAIL' : 'PASS');
 }
-// ---- C4 build：指定 TCL 名单 + 头部要素 + build/report 归档 + 对照表
+// ---- C4 build：指定 TCL 名单 + 头部要素 + build/report.txt 归档 + 对照表
 if (want('C4')) {
   const names = ['create_project.tcl', 'add_sources.tcl', 'build.tcl', 'synth.tcl', 'impl.tcl', 'report.tcl', 'gen_bit.tcl'];
   const tcl = tracked.filter(f => f.endsWith('.tcl'));

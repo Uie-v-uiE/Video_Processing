@@ -1,4 +1,18 @@
 `timescale 1ns/1ps
+// 功能：被测模块 `osd_overlay`；覆盖点＝glyph 并行 case 译码与 V7.9.3 串行区间比较的等价性，即
+//        0..255 全部码点各自落到哪个字形号：0x30..0x39 连号、0x41..0x46 连号、H L N O P R S T U Z
+//        I M X Y 单点、* = : . % ( ) ° - 七个符号，以及未列码点与空格统一落 63、'0' 落 0。
+// 激励与检查：clk 半周期 #10，rst_n 拉低 3 拍后释放；逐码点 `force u_osd.ch = c`（c = 0..255）、
+//        `#1` 等组合稳定、读 RTL 自算的 `u_osd.gi` 与 TB 内独立重写的黄金函数比、再 `release`，共 256 次。
+//        判定 1 `u_osd.gi !== gold_glyph(c)` 即错；判定 2 计数地板 `n_hit !== 256` 即错；
+//        判定 3（反向断言）force 8'h53 时 `gi === 6'd25` 必须为假、`gi !== 6'd24` 也必须为假；
+//        判定 4 force 8'h62 与 8'h20 时 `gi` 必须等于 6'd63；判定 5 force 8'h30 时必须等于 6'd0。
+// 预期结果：通过时全程不出 FAIL 行、只打末行 `PASS tb_v794_osd_glyph`（errors==0）；失败时打
+//        `FAIL code=<码点> rtl_gi=<n> gold=<m>`、`FAIL 只比对了 <n>/256 个码点`、
+//        `FAIL 反向断言失效：'S' 竟然等于故意写错的 25`、`FAIL 'S' 既不等于 24 也不该等于别的`、
+//        `FAIL 未画的 b 应该落到空格 63`、`FAIL 空格 20 应落到 63`、`FAIL '0' 应落到 0` 之一，
+//        errors 加一并把末行改判 `FAIL tb_v794_osd_glyph errors=<n>`；#200_000 处未 finish 时打
+//        `FAIL watchdog：台架没跑完就超时`。
 // tb_v794_osd_glyph —— V7.9.4 把 glyph_idx 从"串行区间比较"改成"并行 case"的**差分判据**。跑：bash sim/run_one.sh tb_v794_osd_glyph
 // 要防的事：译码改动**只可能**改到"某个 ASCII 落到哪个字形号"，而字形号错了在屏幕上的表现是换一个字母（S 变 5、P 变 D 之类），
 //   肉眼在 1024×600 的小字上很难立刻发现。

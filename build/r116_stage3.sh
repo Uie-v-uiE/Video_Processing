@@ -1,4 +1,8 @@
 #!/usr/bin/env bash
+# 用途：等 stage2 的门禁件落地，再跑 r117 那把刀的**预验**（不采纳，只出数）
+# 输入：命令行参数
+# 输出：build/r117_fb_pblock_console.txt
+# 退出码：1=非 0 分支（该文件 exit 1 那一行）
 # build/r116_stage3.sh —— 等 stage2 的门禁件落地，再跑 r117 那把刀的**预验**（不采纳，只出数）
 set -u
 cd "$(dirname "$0")/.."

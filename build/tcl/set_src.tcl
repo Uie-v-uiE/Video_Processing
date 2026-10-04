@@ -1,3 +1,7 @@
+# 用途：通过 JTAG 写 AXI GPIO(0x41200000) 选显示源/特效
+# 输入：无字面量输入路径；参数解析见本文件
+# 输出：stdout
+# 退出码：0=跑完
 # set_src.tcl — 通过 JTAG 写 AXI GPIO(0x41200000) 选显示源/特效
 #   [16]   src_sel   0=SRC0 彩条  1=SRC1 视频
 #   [4:0]  effect_en

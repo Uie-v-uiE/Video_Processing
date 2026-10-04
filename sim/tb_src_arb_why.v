@@ -1,4 +1,22 @@
 `timescale 1ns/1ps
+// 功能：被测模块 `src_arb`（例化 `dut`，.T_OFF_CYC(20)，顶层用 2_000_000=20 ms，这里缩短只为
+// 少等滞回计数）；覆盖点：#174 —— why_ps 必须是"换手判决那一拍的输入快照"，互锁冻住主人
+// 期间不许被最新输入刷新，而真换手时必须重新取一次快照。
+// 激励与检查：#5 翻转时钟（10 ns，与顶层 axi_clk 同周期），激励一律在 negedge 写；rst_n
+// 上电为 0，头 6 个 negedge 期间读复位形状，随后放成 1 再等 3 拍；eth_live 先置 1 等 ETH
+// 抢走总线、再置 0 等静默让位（wait_owner 最多 400 个 negedge，覆盖 TQ=20 的滞回）；
+// 然后 fill_busy=1 冻住主人、空 4 拍后把 eth_live 翻成 1 再等 6 拍；fill_busy=0 让 ETH 回抢；
+// 最后 sel=2'd2（强制 PS）等一次真换手。
+// 判定条件（写各条实际比较的表达式）：W1a owner_eth===1'b0 && why_ps===3'b011；
+// W1b owner_eth===1'b0 && why_ps===3'b010；W2 owner_eth===1'b1；W3 owner_eth===1'b0 且
+// W3b why_ps===3'b010；W4 互锁中 owner_eth===1'b0；W5（正文，改前必须红）why_ps===3'b010，
+// 旧写法在这里被最新输入刷成 3'b000；W6 owner_eth===1'b1；W7 why_ps===3'b100 &&
+// owner_eth===1'b0（判决沿看到 force_ps=1、eth_live=1、eth_tb_ok=1）。
+// 预期结果：通过时每条打 `  PASS <标签> | <说明> | <读数>`，随后打 `checks=%0d errors=0`
+// 与 `TB RESULT PASS`；失败时该条打 `  FAIL <标签> | <说明> | <读数>`（W5 红就是 #174
+// 本体，W7 拦住"why_ps 再也不更新"的反配对），收尾打 `checks=%0d errors=%0d` 与
+// `TB RESULT FAIL`；400 us 看门狗到点打 `  FAIL Z_timeout | never finished checks=%0d
+// fails=%0d` + `TB RESULT FAIL timeout`。
 // tb_src_arb_why.v —— ISSUES #174 的尺子（模块级，秒级跑完）。
 //
 // 症状：`src_arb.v:62` 的 `why_ps <= {force_ps, ~eth_live, ~eth_tb_ok};` 挂在**无条件**那一支，

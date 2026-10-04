@@ -1,4 +1,23 @@
 `timescale 1ns/1ps
+// 功能：被测模块 `shown_rate`（主例化 `u_dut`，.WIN_LAST(999) ⇒ 窗口 F=1000 拍；另例一份默认
+// 参数的 `u_full` 只读它的参数）；覆盖点：#128 —— OSD 的 `FPS:` 格数的是"写进屏的新帧"
+// 而不是场数，ETH/PS/无新内容/图卡四种片源态、复位卫生与同拍到达那一支都要对得上。
+// 激励与检查：#10 翻转时钟（20 ns），激励只由那一个 always 在 negedge 写（唯一写入者）；
+// 几何 WIN=999、FP=50 拍一场（每窗口 NFS=20 场）、场起点相对窗口错开 PH=1 拍；run() 每个
+// 场景都从 3 拍复位重新开始并跑 ns 个整窗口（nstop=ns*F）；mode 1 每 new_every 场在 PH+5
+// 那一拍发一次 eth_new、mode 2 走 pub_pend/pub_consume、mode 3 什么都不发、mode 4 靠
+// fb_vis=0 让每场都算新、mode 5 只发一帧且与场起点同拍；台架同时独立累加 n_fs/n_eth/n_pub
+// 与真值 n_pulse（eth_new 实际脉冲）/n_count（u_dut.new_shown 实际次数）。
+// 判定条件：S1 fps_q==NFS/2==10 且地板 n_fs==3*NFS(60) && n_eth==30 && n_count==30；
+// S2 fps_q==NFS/4==5 且 n_pub==3*NFS/4==15；S3 fps_q==0 且 n_fs==2*NFS==40；
+// S4 fps_q==NFS==20 且 n_fs==40；S5 u_full.WIN_LAST==49999999；S7 复位 4 拍后
+// u_dut.acc==0 && u_dut.eth_pend===1'b0 && fps_q==0；S6 一帧同拍到达时 fps_q==1、
+// S6b u_dut.eth_pend===1'b0、S6c n_pulse==1（n_pulse 在 S1 只印不判）。
+// 预期结果：通过时逐条打 `PASS <判据名>`、每条前带一行 INFO 现场读数，errors==0 收尾打
+// `RESULT tb_shown_rate PASS`；失败时对应条打 `FAIL <判据名>`（数成场数会读到 20 红在 S1，
+// 优先级写反成"清除赢"会读到 0 红在 S6），收尾打 `RESULT tb_shown_rate FAIL nfail=%0d`，
+// 20 ms 看门狗到点打 `FAIL tb_shown_rate timeout` + `RESULT tb_shown_rate FAIL
+// nfail=timeout`。
 // tb_shown_rate —— `src/rtl/util/shown_rate.v` 的逐拍尺子（ISSUES #128：OSD 的 `FPS:` 格）。
 //
 // 为什么单独一支小台架而不挂到整屏台架上：这一格错的方式是"读数恒在 59/60"，

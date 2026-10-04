@@ -1,4 +1,8 @@
 #!/bin/bash
+# 用途：r110 的 -243 LUT 归因：把 frame_reasm.v 单独 OOC 综合两遍（base 未打刀 / cut 打了刀 4①），
+# 输入：命令行参数
+# 输出：stdout
+# 退出码：1=非 0 分支（该文件 exit 1 那一行） 2=REFUSE
 # r110 的 -243 LUT 归因：把 frame_reasm.v 单独 OOC 综合两遍（base 未打刀 / cut 打了刀 4①），
 # 两遍用同一套默认参数（顶层实参 VIDEO_W=512 VIDEO_H=300 ⇒ FRAME_BYTES=307200，正是模块默认值）。
 # 两腿都是**拷贝树**，src/ 一个字节都不动（规矩：不许在构建/台架链中途改 RTL）。

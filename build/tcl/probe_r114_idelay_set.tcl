@@ -1,3 +1,7 @@
+# 用途：只问一件事：已实现的网表上 IDELAY_VALUE 改不改得动（决定扫档走快车道还是走重建）
+# 输入：无字面量输入路径；参数解析见本文件
+# 输出：stdout
+# 退出码：1=REFUSE
 # build/tcl/probe_r114_idelay_set.tcl -- 只问一件事：已实现的网表上 IDELAY_VALUE 改不改得动（决定扫档走快车道还是走重建）
 #   前一支探针死在这里：`-filter {REF_NAME eq IDELAYE2}` 报
 #   ERROR [Common 17-263] syntax error ... at position '9'（件 build/evidence/r114_idelay_prop_console4.txt）。

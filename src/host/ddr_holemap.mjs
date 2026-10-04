@@ -1,4 +1,8 @@
 #!/usr/bin/env node
+// 用途：分析 host/ddr_verify.mjs 落盘的 DDR 转储
+// 输入：命令行参数
+// 输出：stdout
+// 退出码：脚本内无显式 exit ⇒ 随最后一条命令（正常跑完为 0）
 /**
  * ddr_holemap.mjs — 分析 host/ddr_verify.mjs 落盘的 DDR 转储
  * (build_v6/_ddr_dump.out)，把「哪些 16bit lane 没落位」的分布结构打出来：

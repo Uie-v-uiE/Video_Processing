@@ -1,4 +1,8 @@
 #!/usr/bin/env bash
+# 用途：F=build/r116_recover_console.txt; : > "$F"
+# 输入：命令行参数、build/tcl/program_pl.tcl
+# 输出：stdout（本文件没有仓库内的写盘路径字面量）
+# 退出码：3=REFUSE
 set -u
 cd "$(dirname "$0")/.."
 V=${VP_VIVADO_BIN:-/d/Software/Vivado/2025.2.1/Vivado/bin}

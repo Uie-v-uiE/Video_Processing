@@ -1,4 +1,8 @@
 #!/bin/bash
+# 用途：单个模块的"改前 vs 改后"OOC 综合归因（拷贝树，只读，不动 src/）
+# 输入：命令行参数
+# 输出：stdout
+# 退出码：0=跑完 1=FAIL 2=REFUSE
 # build/ooc_two_rev.sh —— 单个模块的"改前 vs 改后"OOC 综合归因（拷贝树，只读，不动 src/）
 # 为什么要有它：r110 那笔 −243 LUT 归不到模块，就是因为只有平铺 utilization（见 #246/#250 与
 # build/evidence/r110_attrib.txt）。这把尺子把"某一把刀自己值多少 LUT/FF"直接量出来。

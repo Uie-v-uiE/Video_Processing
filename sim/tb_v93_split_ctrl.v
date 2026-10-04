@@ -1,4 +1,26 @@
 `timescale 1ns/1ps
+// 功能：被测模块 `split_ctrl`（两台：dut 取 .TICK_BITS(6)，dut16 用默认档，均 DISP_W=1024、SRC_W=512）；
+//        覆盖点＝手工位置透传与越界夹紧、swap 只换内容不换缝位、shown_pct 与整数除法逐点对账、源域跟随
+//        的折算、自动扫描的端点与步长、节拍按有效像素计（连续栅格与带消隐栅格各量一遍）、speed=0 钉住、
+//        手工转自动不跳位、range 写反折成 [min,max]、默认档一步的像素数。
+// 激励与检查：时钟 #10 翻转（20 ns 周期），rst_n 以初值 0 走 4 拍后置 1 再等 2 拍；pixels(n) 喂 n 个有效
+//        像素（每像素 de=1/de=0 各一拍）；watch(total,gap) 扫 total 个有效像素、每满 64 个插 gap 拍消隐，
+//        用量依次为 220000/12000/700/700(gap=320)/400/200/45000，T12 对 eff16 走 3*65536+8 个像素；
+//        手工位置取 512、777、1024、2000、1000、256、128、300，speed 取 1/7/0/3，lo16/hi16 取 0/16、
+//        4/12、12/4（写反）。判定：T0 eff===eff 且 pct===pct；T1a eff===512、T1b ===777、T1c/T1d ===1024；
+//        T2a swap 后 eff 与 pct 同值、T2b rol===0、T2c rol===1 且 eff 不动；T3 16 个位置
+//        pct===(pos_px*100)/DW、T3b eff=1024 ⇒ pct===100、T3c 512 ⇒ ===50；T4a follow 下 1000 夹到
+//        eff===512、T4b 256/512 ⇒ pct===((256*100)/SW)===50、T4c 128 ⇒ 25、T4d 退回显示域 128 ⇒ 12；
+//        T5a/T5b touched_lo、touched_hi 均 >0、T5c minv===0 且 maxv===DW、T5d nchg>100 且 bad_step==0；
+//        T6a speed=7 下 bad_step==0 且 nchg>10、T6b minv===256 且 maxv===768 且两端都采到、T6c pct===25；
+//        T7/T8a nchg>4 且 vp_min_gap==64 且 vp_max_gap==64；T8b minv>=lo_exp 且 maxv<=hi_exp；
+//        T9 nchg==0 且 eff===v===300；T10 v===300 且 nchg>0 且 first_delta==1 且 300<eff<400；
+//        T11 minv>=256、maxv<=768、两端采到、bad_step==0、nchg>100；T12 nch>=3 且 gmin==gmax==65536；
+//        T13 nvalid>350000（陪跑，防上面全成空判据）。
+// 预期结果：通过时每条 chk 打一行 "  PASS <判据名>"、末行 PASS tb_v93_split_ctrl，watch 的 DBG 行里
+//        bad_step=0、touched_lo/touched_hi 非 0、gap=[64,64]；失败时对应判据前打 "  FAIL <判据名>"
+//        （watch 的 DBG 行先给出 min/max/touched/bad_step 的实际数字），末行变
+//        FAIL tb_v93_split_ctrl errors=<n>；本文件没有看门狗 initial，跑飞靠 sim/run_one.sh 的超时。
 // 台架：src/rtl/video/split_ctrl.v（V8-4 分割线发生器）。跑：bash sim/run_one.sh tb_v93_split_ctrl
 // 判据一律写成可反例的形式：端点判"真的取到 lo/hi"（T5/T6b/T11），不是"落在 [lo,hi] 内"；
 // 步长判"每步恰好 = speed 或落在端点上的收尾那一步"（T6a）；夹紧的"判据有牙"由 T1b（777 原样透传）陪证；

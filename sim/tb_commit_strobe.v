@@ -1,4 +1,18 @@
 `timescale 1ns/1ps
+// 功能：被测模块 `frame_commit_lock`（参数 IMG_H=300、DISP_H=600、WD_CYC=40）；覆盖点＝一次提交产生的
+//        frame_ready_pix 是"一个像素拍的脉冲"还是粘住的电平、第二次提交能否再出沿、看门狗 abort
+//        只来一次且翻转量与 abort 一一对应、abort 之后仍能恢复提交。
+// 激励与检查：axi 域 #5 翻转（10 ns）、pix 域 #10 翻转（20 ns），两个复位在 6 个 axi 沿后同时释放；
+//        每次提交按"commit_req 两拍 → blank_safe 拉低 8 拍再拉高 8 拍重开窗口"的顺序做，copy_done 打两拍
+//        后观察 30 个像素拍；A1 要求 start_copy 计数 n_start>=1，A2 要求 frame_ready_pix 上升沿增量 >0，
+//        B1/B3/B4 要求最长高电平 max_hi 落在 [1,1] 个像素拍，A4 要求 n_abort==1，A5 要求 n_tgl==n_abort==1，
+//        A6 要求层次信号 u.copy_active===1'b0，A7 要求只看门狗那段没有新增提交沿（增量为 0），
+//        A8 要求 abort 后第三次提交仍 start 且仍出沿；看门狗段等 WD+20=60 个 axi 拍。
+// 预期结果：通过时每条判据打印 `  PASS <A1..A8/B1..B4 的名字> | <说明> | <量值>`，随后
+//        `checks=<n> errors=0` 与末行 `TB RESULT PASS`；失败时对应条目打印 `  FAIL <名字> | <说明> | <量值>`
+//        并把 fails 加一（B1 的 max_hi>1 即 #171 的电平语义），末行改打 `TB RESULT FAIL`；
+//        整个 initial 超过 #400_000 未完时打印 `  FAIL Z_timeout | never finished checks=<n> fails=<n>`
+//        与 `TB RESULT FAIL timeout`。
 // tb_commit_strobe.v —— ISSUES #171 的尺子（模块级，秒级就跑完）。
 //
 // 症状链：`pl_video_top.v` 里那段

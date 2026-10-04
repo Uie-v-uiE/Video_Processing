@@ -1,3 +1,7 @@
+# 用途：r114 物理单变量实验的一"滚"：广播网该不该被复制驱动
+# 输入：无字面量输入路径；参数解析见本文件
+# 输出：stdout
+# 退出码：0=跑完 1=REFUSE 4=REFUSE
 # build/tcl/mf114_roll.tcl —— r114 物理单变量实验的一"滚"：广播网该不该被复制驱动
 #
 #   MF_MODE=none MF_OUT=/tmp/kx/mf114/A  vivado -mode batch -nojournal -source build/tcl/mf114_roll.tcl

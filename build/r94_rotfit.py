@@ -1,4 +1,8 @@
 #!/usr/bin/env python3
+# 用途：#93 的落点改到 zoom_ctrl（不在顶层再 mux 一次）
+# 输入：无字面量输入路径；参数解析见本文件
+# 输出：stdout
+# 退出码：脚本内无显式 exit ⇒ 随最后一条命令（正常跑完为 0）
 # build/r94_rotfit.py —— #93 的落点改到 zoom_ctrl（不在顶层再 mux 一次）。
 #
 # 为什么不在顶层钳：`zoom_ctrl.v` 文件头自己写着"倍率的唯一出处在本模块，顶层再 mux 就会出现

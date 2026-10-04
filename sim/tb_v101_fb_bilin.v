@@ -1,4 +1,31 @@
 `timescale 1ns/1ps
+// 功能：被测模块 `fb_bilin` #(.IMG_W(512), .IMG_H(300))；覆盖点：双线性结果逐位等于"先纵后
+//        横"黄金值、oob_out 标签与像素同字同拍、bilin_en=0 时逐位等于最近邻、行滞后与列平移
+//        的唯一性、一个源像素在 2×2 显示块四槽同值、末行/末列越界抽头被折回（机会非零 + 无
+//        伤害成对判）、四段激励（含段 D 的旋转式映射）各自真被量过。
+// 激励与检查：时钟 always #10 clk=~clk（20 ns = 50 MHz）；先把 512×300 的图样 pxy(x,y) 按
+//        4 像素/字（wr_addr=i/4、wr_data={w3,w2,w1,w0}）经 DUT 写口灌进 38400 个字，写前把
+//        dut.u_fb.lo[0:32767]/hi[0:8191] 抹成 0 以对齐板上的 BRAM 上电态，再 rst_n=1 等 6 拍；
+//        随后连续驱动 NROW=24 行 × H_TOT=1344 拍：req_vld 只在 xx>=H_FP=160 且 <160+1024 时
+//        为 1，jd=(xx−160)>>1，sy 四段取 10+pair / 297+pair / 20+pair / (200+jd)%290，
+//        bilin_en 在 12<=row<18 为 0，fx=((sx*7)+13)&8'hFF、fy=((sy*11)+5)&8'hFF，oob_in 带
+//        两项人造标签；每拍同调用 ref_step 只用请求属性 + 黄金内存算 ref_pix。判定条件：
+//        L1 mem[0]==pxy(0,0) 且 mem[512*300−1]==pxy(511,299)；L3 在 rl=0..3 × cl=−2..2 的
+//        候选组里要求恰有一组 nchk>8000 且 nm==0，且该组必须是 (2,2)；L4/L4b/L5/L7 在偏移
+//        LAG=2*1344+2=2690 上要求 pixbad==0、labbad==0、nnbad==0、nx==0；L6 slotbad==0；
+//        L8 nckA>4000 && nckB>4000 && nckC>4000 && nckD>4000 && nslot>3000 && guard_bad==0；
+//        L9 bil_oob_opp>0；L10 bil_oob_harm==0。
+// 预期结果：通过时十条 line 各打 [tb_v101.v] PASS <ASCII 标签> | <说明>（L1 preload、
+//        L3 unique shift、L4 exact bilinear stream、L4b label follows content、
+//        L5 nn identity bilin_en=0、L7 no X on checked slots、L6 four slots same value、
+//        L8 coverage、L9 bilin padding read happened、L10 padding word never used），并带
+//        NOTE (2 row, 2 cyc) / 唯一性 nbest=1 winner=(2,2) / bad pix=0 … / L6 检查 … /
+//        L9/L10 counts… 读数行，末行 RESULT tb_v101_fb_bilin PASS errors=0；失败时错在哪条
+//        就打 [tb_v101.v] FAIL <标签> 并 errors+1：L3 红时 winner 行给出实际 (rl,cl) 与 nbest，
+//        L4/L5 红时另有最多 6 条 DIAG c=… got=%h exp=%h expNN=%h 与 24 行
+//        DIAG row=%0d n=%0d bad=%0d，L10 真有越界抽头被用时打 L10 first offender:
+//        t=… tap=vertical-B|horizontal+1 sy_then=… ky_d2=…，末行
+//        RESULT tb_v101_fb_bilin FAIL errors=<n>。
 // tb_v101_fb_bilin —— 双线性读口 `fb_bilin` 的判据（#52 / ISSUES #76 段二的单元凭据）。跑法：bash sim/run_one.sh tb_v101_fb_bilin
 // L3 延迟不靠声明、靠量：把 (行滞后, 列平移) 当两个未知数搜索，要求**只有唯一一组成立**，实测 (2 个显示行, 2 拍)。
 //   行方向晚一整对（一对结果要等这对的第二行才算得出来并写下）⇒ 顶层补偿 +2 个显示行且必须是**偶数**：奇数行

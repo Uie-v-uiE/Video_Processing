@@ -1,3 +1,7 @@
+# 用途：一个更基本的问题：**这颗 xc7z020 到底有没有 UltraRAM 站点
+# 输入：无字面量输入路径；参数解析见本文件
+# 输出：stdout
+# 退出码：0=跑完
 # build/tcl/uram_presence.tcl —— 一个更基本的问题：**这颗 xc7z020 到底有没有 UltraRAM 站点？**
 #
 #   vivado -mode batch -nojournal -source build/tcl/uram_presence.tcl

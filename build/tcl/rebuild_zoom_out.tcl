@@ -1,3 +1,7 @@
+# 用途：set outdir [file join $root build]
+# 输入：无字面量输入路径；参数解析见本文件
+# 输出：stdout
+# 退出码：1=非 0 分支（该文件 exit 1 那一行）
 # Incremental rebuild after zoom direction change
 set root [file normalize [file join [file dirname [info script]] .. ..]]   ;# 仓库根自适应（原来硬编码 D:/Xilinx/Prj/ADD/... 那个路径已不存在）
 set proj_dir [file join $root vivado_system]

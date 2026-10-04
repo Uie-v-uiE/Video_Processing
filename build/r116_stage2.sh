@@ -1,4 +1,8 @@
 #!/usr/bin/env bash
+# 用途：构建完之后剩下的那一半，交给一个看门狗自己走（夜里没有人敲第二条命令）
+# 输入：命令行参数、build/tcl/probe_timing_roster.tcl
+# 输出：stdout（本文件没有仓库内的写盘路径字面量）
+# 退出码：1=非 0 分支（该文件 exit 1 那一行）
 # build/r116_stage2.sh —— 构建完之后剩下的那一半，交给一个看门狗自己走（夜里没有人敲第二条命令）。
 # 前置：build/r116_chain.sh 在飞；它跑完会留下 build/evidence/r116/r116_io_hold.rpt。
 # 判据与采纳规则写在 build/r116_batch_plan.md 第二节；这里只负责"把每条判据的件问回来"。

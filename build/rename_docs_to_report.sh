@@ -1,4 +1,8 @@
 #!/bin/bash
+# 用途：把仓库里的 report/ 目录改成 report/，并且**带着还原能力**
+# 输入：命令行参数
+# 输出：stdout
+# 退出码：1=非 0 分支（该文件 exit 1 那一行） 2=非 0 分支（该文件 exit 2 那一行）
 # build/rename_docs_to_report.sh —— 把仓库里的 report/ 目录改成 report/，并且**带着还原能力**。
 #
 # 为什么要有这个脚本（而不是手工 mv + sed）：今晚已经试过两次，两次都在做到一半时退回，

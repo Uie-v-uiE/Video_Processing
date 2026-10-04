@@ -1,4 +1,19 @@
 `timescale 1ns/1ps
+// 功能：被测模块 `key_long`（实例 u_dut，HOLD_CYC=30_000、ARM_CYC=10_000）；覆盖点＝短按只在松手那一拍
+//        发 short_pulse、长按到阈值当拍翻一次 tog 且此后不重复、holding 在 ARM 与阈值之间的点亮与熄灭、
+//        松手后重新武装。
+// 激励与检查：时钟 #10 翻转（50 MHz，20 ns/拍），rst_n 低 5 个上升沿后释放并 #1 再取样；pressed 由
+//        hold_n 按住 n 拍，期间统计 short_pulse 出现次数 sp_cnt：T1 按 ARM+200=10 200 拍；T2 分三段
+//        ARM-100=9 900、ARM+100=10 100、HOLD-(ARM+200)=29 800 拍；T3 再按 5*ARM=50 000 拍；
+//        T5 按 HOLD+50=30 050 拍；T6 只按 50 拍后松手。判定：T0 复位后 tog===0 且 holding===0；
+//        T1a sp_cnt==0、T1b holding===1、T1c 松手那一拍 short_pulse===1、T1d 再下一拍 short_pulse===0、
+//        T1e tog===0、T1f holding===0；T2b holding===0、T2d holding===1、T2f 松手前 tog===1、
+//        T2g sp_cnt==0；T3b tog 仍 ===1、T3c holding===0；T4 长按松手 short_pulse===0；
+//        T5b 第二次长按后 tog===0、T5c sp_cnt==0；T6b 极短按下松手 short_pulse===1。
+// 预期结果：通过时每次 hold_n 打一行 "INFO <段名>：按住期间 short_pulse 次数=0 holding=<b> tog=<b>"，
+//        末行 PASS tb_v87_key_long；失败时对应判据前打 "  FAIL <判据名>"，末行变
+//        FAIL tb_v87_key_long errors=<n>；short_pulse 退回按下沿发的那种写法让 T1a/T2g 的计数非 0 先红，
+//        另一条 initial 的 #20_000_000 看门狗先到期则打 FAIL tb_v87_key_long timeout。
 // 台架：src/rtl/util/key_long.v（一个按键的两种语义）。跑法：bash sim/run_one.sh tb_v87_key_long
 // 钉用户报的两条："长按总先触发一次短按"（短按以前由 key_debounce 在**按下沿**发）、"直接长按没反应"（1.2 s 阈值 + 全程没有反馈）。
 // T1 短按（按 0.3 s 松手）只发 short_pulse、**不许**动 tog；T2 长按到阈值 ⇒ tog 恰好翻一次且**在按住期间就翻**

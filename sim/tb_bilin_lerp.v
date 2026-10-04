@@ -1,4 +1,16 @@
 `timescale 1ns/1ps
+// 功能：被测模块 `bilin_lerp`（RGB565 四抽头双线性插值算术核）；覆盖点＝fx/fy 全零与四角同色的恒等、
+//        插值方向的单调性、左右镜像对称、纯白端点保持，以及与"先纵后横"黄金模型的 400 组随机对照。
+// 激励与检查：时钟 #10 翻转（20 ns 周期），rst_n 拉低 3 拍后释放，每改一次输入等 3 个上升沿再取 pix；
+//        判据1 用 8 组 p00 取值、fx=fy=0 要求 pix!==p00 即判红；判据6 四角同 16'hFFFF、fx=91 fy=173
+//        要求 pix===16'hFFFF；判据2 六色四角同色、fx/fy 以 15 为步长采样，要求 pix===p00；
+//        判据3 fx 从 0 走到 255，要求 pix[15:11] 不比上一格回退；判据4 16 组随机抽头交换左右抽头并
+//        fx→255-fx，要求两次 R 码差 dr<=1；判据5 400 组随机抽头要求 R/G/B 与 ref_c 在 5/6bit 输出码域
+//        逐通道差 <=1（dr/dg/db 任一 >1 即判红）。
+// 预期结果：通过时逐段打印 `[tb_bilin_lerp.v:<行号>] PASS 判据1/2/3/4/6`，判据5 的 PASS 行只在
+//        errors==0 时打印并带最差偏差值，末行 `RESULT tb_bilin_lerp PASS`；失败时对应段打印
+//        `FAIL 判据N ...` 并附 pix/期望值或 dR/dG/dB，errors 加一，末行改为
+//        `RESULT tb_bilin_lerp FAIL (<n> errors)`；超过 #20_000_000 打印 `RESULT tb_bilin_lerp FAIL timeout`。
 // tb_bilin_lerp —— bilin_lerp（双线性插值算术核）的判据。跑法：bash sim/run_one.sh tb_bilin_lerp
 // 黄金模型故意用**另一种结合顺序**（先纵后横）算，而 RTL 是先横后纵 —— 不是把实现式子抄一遍；
 //   两条路只允许在"最后一步舍入"上差 ±1 个输出 LSB。

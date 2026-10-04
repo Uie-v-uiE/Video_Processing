@@ -108,7 +108,7 @@ const MUT = [
   ['M3 一键测试缺 Python 侧', {}, ['src/host/one_click_test.py'], ['C1-3']],
   ['M4 sim 里有非 .v 件', { 'sim/notes.txt': 'x\n' }, [], ['C2-1']],
   ['M5 报告里出现自称', { 'report/design.md': FILES['report/design.md'] + '\n我们做了取舍。\n' }, [], ['C7']],
-  ['M6 build/report 只剩一份报告', {}, ['build/report/timing_summary.rpt'], ['C4']],
+  ['M6 build/report.txt 只剩一份报告', {}, ['build/report/timing_summary.rpt'], ['C4']],
 ];
 for (const [name, extra, del, expect] of MUT) {
   const r = run(build(root, extra, del));

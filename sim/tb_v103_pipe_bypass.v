@@ -1,4 +1,34 @@
 `timescale 1ns/1ps
+// 功能：被测模块 `proc_pipeline` #(.H_ACTIVE(1024))（u_pipe，stage_sel=9'd0 即九级全旁路）；
+//        覆盖点：全旁路链不凭空造出黑格或 X 格、每个输入列在输出 burst 里恰好出现一次、四个
+//        窗口级九条行缓存数组的槽位都被写过、行尾不越界写自己的行缓存，以及"把一列钉黑"的
+//        正对照证明探测器不是空转。
+// 激励与检查：时钟 always #10 clk=~clk（20 ns = 50 MHz，与 clk_pix 同档），负沿置 rst_n=1 后
+//        等 4 个上升沿；每行喂 HA=1024 个有效拍（de=1、xc=col、din=patn(col)）再 LINE−HA=320
+//        个消隐拍（de=0、xc=1024..1343、din=16'h0000），yc 在整行喂完后才取 row+1，共 ROWS=12
+//        行、从第 SETTLE=6 行起判（留过 4 行窗口偏移）；列号从像素里解出（decx 是 patn 的逆），
+//        不按"第几个脉冲"计。判据：C0r ruler_bad==0（1024 列都满足 decx(patn(x))==x 且无一
+//        落入 v_black 定义）；C10dpre 喂任何像素前 unwr 与 blur lb0/lb1、sharp lb0/lb1、
+//        sobel lb0/lb1/mc1、morph mc1/mb1 九个计数逐条 ==1024；C10pre seen_a>=1024 &&
+//        blen_j==1024；C10a interior_black==0 && badrow_a==0 && xwin_a==0；C10c holes==0 &&
+//        invented==0（每列出现次数 pres[k]==ROWS−SETTLE==6，输出格数恰为 1024×6）；C10d
+//        unwr==0；C10fs near_edge>0；C10f oor_blur==0 && oor_sharp==0 && oor_sobel==0 &&
+//        oor_morph==0；C10b 在窗口 B（输入第 HOLE=300 列钉成 16'h0000）要求
+//        badrow_b>=6 && worst>=6。
+// 预期结果：通过时逐条打印 PASS <ASCII 判据名> | <说明>（C0r ruler pattern is invertible and
+//        holds no black、C10dpre the cache probe sees every array、C10pre window A judged a
+//        whole output burst、C10a bypassed chain invents no black or X cell、C10c every input
+//        column is emitted exactly once per row、C10d every line-cache slot was written at
+//        least once、C10fs the stimulus really pushed the coordinate to the line end、C10f no
+//        window stage writes outside its own line cache、C10b the same detector does see a
+//        black column fed in），并带 A row6… / A rows_judged=6 / C10c columns emitted… /
+//        C10f out-of-range cache writes… / CACHE at reset、after A: total=… / B row6… /
+//        B rows_with_black=… 读数行，末行 RESULT tb_v103_pipe_bypass PASS nfail=0；失败时
+//        对应条打印 FAIL <判据名> | <说明> 并 nfail+1，末行 RESULT tb_v103_pipe_bypass
+//        FAIL nfail=<n>。C10c 红指向 #111（链子数据比自身 de_out 晚一拍：行首插 0x0000、末列
+//        发不出去），定位看 OBS #111 head/tail 行的 val@pos0 与 dec@pos0/1/2/1023；C10f 红
+//        指向 #103 的越界写机理，读数在 C10f 行的 first offender x_in / HW slot / din；
+//        C10dpre 或 C10fs 红说明层级名指向空或激励没走到行尾，此时其余零读数不作数。
 // tb_v103_pipe_bypass —— 只测效果链：全旁路时链子不许凭空造出黑列，也不许把列搞错（ISSUES #103）。
 // 板上四条同时成立的事实（2026-09-28 用户眼睛 + 串口逐条量的）：
 //   ① `split 100`（整屏换成原图抽头）线就消失 ⇒ 在链子里，不在共用读口；

@@ -1,4 +1,8 @@
 #!/usr/bin/env bash
+# 用途：把 r116 这一版当**极限判据的实验件**刷上板（不是采纳）
+# 输入：命令行参数、build/tcl/program_pl.tcl
+# 输出：build/r116_board_verify_console.txt
+# 退出码：2=REFUSE 3=REFUSE 4=REFUSE 5=REFUSE
 # build/r116_flash_experiment.sh —— 把 r116 这一版当**极限判据的实验件**刷上板（不是采纳）。
 # 三步与采纳链完全同一套脚本、同一套标记（DDR_ECHO / PROGRAMMED / FLOW_DONE），
 # 差别只在：采纳链要求门禁先全绿，而这一版的 I/O 族是**声明过的红**，

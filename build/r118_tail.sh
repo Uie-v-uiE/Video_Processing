@@ -1,4 +1,8 @@
 #!/usr/bin/env bash
+# 用途：板已经刷好并复验过（见 build/evidence/r118_board/board_now.txt），
+# 输入：命令行参数
+# 输出：build/r118_finish_console.txt、build/evidence/r118_board/rotate_console.txt
+# 退出码：4=非 0 分支（该文件 exit 4 那一行）
 # build/r118_tail.sh —— 板已经刷好并复验过（见 build/evidence/r118_board/board_now.txt），
 # 这一支只做剩下的四步：改口（带三道尺子）→ 最终门禁两跑 → 重导提交包 → 提交并推送。
 # 每一步不过就硬停，不带未核过的首页往下走。

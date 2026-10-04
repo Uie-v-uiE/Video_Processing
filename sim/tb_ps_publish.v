@@ -1,4 +1,22 @@
 `timescale 1ns/1ps
+// 功能：被测模块 `ps_publish`（例化 `u_dut`）；覆盖点：tog 跨域同步成 pend 的建立/保持/清除，
+// 以及"一次发布对应一次消费"在两个非整数比时钟下的相位扫描。
+// 激励与检查：#10 翻转得消费侧 clk（20 ns）、#3.5 翻转得发布侧 src（7 ns，故意不成整数比）；
+// rst_n 上电为 0，4 个 clk 沿后放成 1、再等 2 拍；场景依次为：复位后读 pend；连喂 30 次
+// 消费（consume 每次举一拍）；单次翻转 tog 后最多 5 拍内抓 pend 上升、再空等 12 拍看保持、
+// 一次 consume 后等 3 拍看落回；两次相隔 60 ns 的快速发布后等 10 拍；末段 60 次"发布 +
+// 消费"，相位取 31 位 LFSR（种子 32'h13579BDF）的 ph%60×0.1 ns（0..5.9 ns）并在消费前
+// 再抖 ph%25×0.1 ns，每次最多等 8 拍抓 pend 上升。
+// 判定条件：1 pend===1'b0；2 空跑 rises==0 && falls==0 && consumes==0；3 一次发布 got==1
+// 且无 consume 时 pend===1'b1；4 consume 之后 pend===1'b0；5 两次快速发布 rises==1 &&
+// pend===1'b1；5b pend===1'b0 && falls==1 && consumes==1；6 相位扫描必须
+// rises==60 && falls==60 && consumes==60。
+// 预期结果：通过时每条打 `[tb_ps_publish.v:39] <判据名> ok`，errors==0 时打
+// `RESULT tb_ps_publish PASS`（前有计数现场行 `计数：rises=.. falls=.. consumes=..`）；
+// 失败时对应判据打 `... <<< 不成立`，某次发布没被同步到还打
+// `<<< 第 %0d 次发布没有被同步到（pend 未在 8 拍内起来）`，收尾打
+// `RESULT tb_ps_publish FAIL (%0d 处不成立)`，400 us 看门狗到点打
+// `RESULT tb_ps_publish FAIL 超时（没有跑到最后的断言）`。
 // tb_ps_publish —— 验证 PS 发布脉冲的跨域 + "一次发布对应一次消费"。
 // 为什么要台架而不是上板看：这段逻辑错了的表现是"偶尔多刷/少刷一帧"，
 // 在屏幕上和 SD 本身的抖动分不开。所以把两个时钟做成**非整数比**（7 ns vs 20 ns），

@@ -1,3 +1,7 @@
+# 用途：在**已布局布线**的 dcp 上数站点：这颗 7020 到底有没有 URAM288 站点
+# 输入：无字面量输入路径；参数解析见本文件
+# 输出：stdout
+# 退出码：0=跑完 1=非 0 分支（该文件 exit 1 那一行）
 # build/tcl/uram_sites.tcl —— 在**已布局布线**的 dcp 上数站点：这颗 7020 到底有没有 URAM288 站点
 #
 #   vivado -mode batch -nojournal -source build/tcl/uram_sites.tcl

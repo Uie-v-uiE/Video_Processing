@@ -1,4 +1,26 @@
 `timescale 1ns/1ps
+// 功能：被测模块 `test_card`（H_ACTIVE=256、V_ACTIVE=150），同参数静止对照 `color_bar` 并跑；
+//        覆盖点＝图卡 v2 的四件事（跨帧必变且彩条一像素不变、球心落在手算位置、拖影亮于光晕且不是白、
+//        底部 8 格帧号逐位正确），另加彩条八格、背景渐变单调、网格周期、四角括号、横扫光带、
+//        de 的一拍延迟契约与 mode 格雷码四环。
+// 激励与检查：clk 半周期 #5；rst_n 拉低 3 拍后置 1、再走 2 拍。px() 在 negedge 驱 x/y 与 de=1、
+//        下一个 negedge 读 rgb565；next_frame 用一拍 vs 推进帧号，连推 N=165 次把帧号推到 16'hA5；
+//        sweep 与随后两次重扫各遍历 256x150=38400 像素。判定（期望常数手算，RGB565=r[7:3] g[7:2]
+//        b[7:3]）：px(16,143) `=== 16'h19C9`；y=131 上 x=i*32+16 的八格依次 `=== 16'hFFFF/FFE0/07FF/
+//        07E0/F81F/F800/001F/18C3`；x=250 沿 y=108..125（步 5）blue5 单调不回暗且末值 > 首值；
+//        blue5(32,120) > blue5(33,120) 且 blue5(128,120) > blue5(32,120)；帧号八格逐位
+//        `=== ((16'hA5>>(7-i)) & 1) ? 16'hFFFF : 16'h19C9`（bad==0）且 px(1,143) `=== 16'h0000`；
+//        px(ballx(165),bally(165)) `=== 16'hFFFF` 而右移 16 像素 `!== 16'hFFFF`；拖影点满足
+//        `v !== 16'hFFFF && b_trail > b_bg` 且 `b_trail > b_glow`（光晕点取 ballx(165)-17）；
+//        同帧重扫 `diff_same == 0`、跨帧 `diff_card > 0` 而彩条 `diff_static == 0`；px(2,1)
+//        `=== 16'h5C76`；扫光带心 blue5 > 同行 x=250 的背景；de=0 时改坐标 `rgb === 16'hFFFF` 不变、
+//        de 再拉高一拍 `rgb === 16'hFFE0`；`{mode[0], ~mode[1]}` 四步依次落在 2'd1/2'd3/2'd2/2'd0、
+//        每步异或为 2'd01 或 2'd10、四态互不相同并回到起点。
+// 预期结果：通过时每条 expect 各打一行 `PASS <条名>`，收尾打
+//        `INFO 跨帧变化像素 card=<n> color_bar=0（共 38400）`，末行 `PASS tb_v81_test_card`；
+//        失败时对应条打 `FAIL <条名> (t=<时刻>)`（T11 另逐格打 `格 <i> got=<v> exp=<w>`），errors
+//        加一后末行改判 `FAIL tb_v81_test_card errors=<n>`；#80_000_000 处未 finish 时打
+//        `FAIL tb_v81_test_card timeout`。
 // 台架：src/rtl/video/test_card.v（图卡 v2 = 第三源）。跑：bash sim/run_one.sh tb_v81_test_card
 // 这张卡存在的唯一理由是"它会动而且动得可判读"，所以核心不是"画得美"，而是四条：
 // ① 同一像素跨帧必须变（通路在刷新），并配反面对照：静止 `color_bar` 跨帧必须**一像素都不变**；

@@ -1,4 +1,8 @@
 #!/bin/bash
+# 用途：全仓唯一的一处"源码指纹"定义（`fpver=norm1`）
+# 输入：命令行参数
+# 输出：stdout
+# 退出码：0=跑完 1=FAIL 2=非 0 分支（该文件 exit 2 那一行）
 # build/rtl_fingerprint.sh —— 全仓唯一的一处"源码指纹"定义（`fpver=norm1`）
 #
 #   bash build/rtl_fingerprint.sh                        # 打印 fpver/files/top/rtl，可 eval

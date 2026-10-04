@@ -1,4 +1,22 @@
 `timescale 1ns/1ps
+// 功能：被测模块 `zoom_fit`（例化名 u_fit）与 `zoom_mapper`（例化名 u_map，IMAGE_W=512、IMAGE_H=300）；
+//        覆盖点：六个角度下拟合倍率能不能把源图四个角都留在屏内（A），以及钉 1.00x 的正对照必须
+//        掉角（B），只用这两个 DUT 自己的输出判、不在台架外重算映射。
+// 激励与检查：时钟 `always #5 clk`（10 ns 周期），rst_n=0 起、`repeat(6)@(posedge clk)` 后拉高再
+//        空跑 2 拍；角度表 ang_list = {0,30,45,60,90,270}，换角后 `repeat(6)@(posedge clk)` 等
+//        zoom_fit 的两拍流水线落定；每个角度扫两遍整个显示窗（H=300 行 × W=512 列 = 153600 格，
+//        每格置 x_in/j、y_in/i 后 `@(posedge clk)` 三次给 mapper 留余量），A 遍喂 inv_force=inv_fit、
+//        B 遍喂 inv_force=10'd256，rot_en 全程钉 1；判定条件：inv_fit>=10'd256、swept==W*H、
+//        live>0、A 遍 seenA==4（四个源角各至少被一个 oob=0 的格取到，判"离角点 <=1 格"：
+//        xo<=1&&yo<=1、xo>=W-2&&yo<=1、xo<=1&&yo>=H-2、xo>=W-2&&yo>=H-2）、angle!=0 时 B 遍
+//        seenB<4。
+// 预期结果：通过时每个角度一行 `PASS cov angle=<a> inv_fit=<v> swept=153600 A_corners=4
+//        B_corners=<n> A_srcx=<min>..<max> A_srcy=<min>..<max>`，末行 `RESULT tb_zoom_fit_corners PASS`；
+//        失败时对应那条打 `FAIL A_clipped angle=<a> inv_fit=<v> corners_seen=<n> expect=4`、
+//        `FAIL B_no_teeth angle=<a> no-fit(1.00x) corners_seen=<n> expect<4`、
+//        `FAIL floor_swept angle=<a> swept=<n> expect=153600`、`FAIL floor_live_zero angle=<a>` 或
+//        `FAIL fit_below_identity angle=<a> inv_fit=<n>`，末行改打
+//        `RESULT tb_zoom_fit_corners FAIL errors=<n> A_red=<n> B_red=<n>`。
 // tb_zoom_fit_corners —— #162（E4/#93 的机器替身）：旋转 + 拟合时**源图四角是不是真的还在屏上**。
 //
 // 为什么要在台架里判、而不是在外面算一遍：2026-10-01 23:15 那一节里我用 node 在 RTL 外面建模判"角点出屏"，

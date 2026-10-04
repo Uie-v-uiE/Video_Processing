@@ -1,4 +1,8 @@
 #!/usr/bin/env python3
+# 用途：修我自己截断 board/acceptance.md 的那个错
+# 输入：无字面量输入路径；参数解析见本文件
+# 输出：stdout
+# 退出码：脚本内无显式 exit ⇒ 随最后一条命令（正常跑完为 0）
 # build/r92_fix_acceptance.py —— 修我自己截断 board/acceptance.md 的那个错。
 # 根因（写在这里免得下次再犯）：`r92_add_clocktree_row.py` 里插行时写成
 #     t = t[:m.end()] + row + '\n'

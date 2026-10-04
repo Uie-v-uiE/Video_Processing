@@ -1,4 +1,8 @@
 #!/usr/bin/env python3
+# 用途：push r117's official-build readings into the delivery docs.
+# 输入：命令行参数
+# 输出：stdout
+# 退出码：脚本内无显式 exit ⇒ 随最后一条命令（正常跑完为 0）
 # build/r117_fill_docs.py -- push r117's official-build readings into the delivery docs.
 # Default is --check (print only); --apply writes. All CJK prose lives in
 # build/r117_doc_templates.txt so this file stays ASCII-only (the GBK console / mixed-quote

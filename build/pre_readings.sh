@@ -1,4 +1,8 @@
 #!/usr/bin/env bash
+# 用途：构建**之前**把"改前读数"问回来的那一步，做成一条命令（原来是我手工跑两次）
+# 输入：命令行参数、build/tcl/probe_clk_worst.tcl、build/tcl/probe_cone_slack.tcl
+# 输出：stdout
+# 退出码：0=跑完 2=REFUSE 3=REFUSE
 # build/pre_readings.sh —— 构建**之前**把"改前读数"问回来的那一步，做成一条命令（原来是我手工跑两次）。
 #
 # 为什么要脚本化（2026-10-03，用户要求"别每次花几小时仿真"的直接后果）：

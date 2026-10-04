@@ -168,3 +168,5 @@ build/isolated_0929_2036/
 build/r11*_msg*.txt
 build/r11*_commit_msg*.txt
 build/*.marker
+c4_probe/
+build/c4_probe_*

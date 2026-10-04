@@ -1,4 +1,8 @@
 #!/bin/bash
+# 用途：phase2 之后自动走完这一轮的收尾：判定 → 采纳 → 补长台架 → 门禁 → 上板 → 总账
+# 输入：命令行参数、build/tcl/program_pl.tcl
+# 输出：build/r90_rim_console.txt、build/r90_gates.txt、build/evidence/r90_flash_1_psboot.txt
+# 退出码：1=非 0 分支（该文件 exit 1 那一行） 5=非 0 分支（该文件 exit 5 那一行） 6=FAIL
 # build/r90_phase3.sh —— phase2 之后自动走完这一轮的收尾：判定 → 采纳 → 补长台架 → 门禁 → 上板 → 总账。
 #
 # 门槛写在纸面上，不是我临场挑的（#149/#150 定的）：

@@ -1,3 +1,7 @@
+// 用途：采纳笔之后把"刷板时刻 / 板读结温 / 板上证据件名"回填（第二笔）
+// 输入：命令行参数
+// 输出：stdout
+// 退出码：脚本内无显式 exit ⇒ 随最后一条命令（正常跑完为 0）
 // build/r110_fill_flash.mjs —— 采纳笔之后把"刷板时刻 / 板读结温 / 板上证据件名"回填（第二笔）。
 // 与 r110_rotate_docs.mjs 同一套纪律：每条规则必须恰好命中一次，任何一条拒 ⇒ 整批不落盘。
 import { readFileSync, writeFileSync } from 'node:fs';

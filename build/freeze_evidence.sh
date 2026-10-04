@@ -1,4 +1,8 @@
 #!/bin/bash
+# 用途：build/freeze_evidence.sh <NN> —— 把第 NN 次构建的成套凭据收进 build/evidence_rNN/，并生成 MANIFEST.md5
+# 输入：命令行参数
+# 输出：stdout
+# 退出码：1=非 0 分支（该文件 exit 1 那一行） 2=非 0 分支（该文件 exit 2 那一行）
 # build/freeze_evidence.sh <NN> —— 把第 NN 次构建的成套凭据收进 build/evidence_rNN/，并生成 MANIFEST.md5。
 #
 # 为什么要有 MANIFEST.md5：现场只认 md5 不认文件名（`build/evidence_r*` 里同名的位流有好几份），

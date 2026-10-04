@@ -1,4 +1,8 @@
 #!/usr/bin/env bash
+# 用途：把 #265 那支"同一严口径 hold 体检"排到复制 A/B 之后
+# 输入：命令行参数
+# 输出：build/evidence/r113_uncertainty_run.txt
+# 退出码：3=非 0 分支（该文件 exit 3 那一行）
 # build/r113_after_mf_uncertainty.sh —— 把 #265 那支"同一严口径 hold 体检"排到复制 A/B 之后
 #
 #   为什么要串在 A/B 之后而不是并行：这台机 15.7 G 内存，开 routed dcp 的 Vivado 报告作业要 2~3 G，

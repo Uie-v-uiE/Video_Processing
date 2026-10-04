@@ -1,3 +1,7 @@
+# 用途：一次性小实验：这颗 Zynq-7020 的工具**会不会/为什么不肯**把帧缓存形状放进 UltraRAM
+# 输入：无字面量输入路径；参数解析见本文件
+# 输出：stdout
+# 退出码：0=跑完
 # build/tcl/uram_probe.tcl —— 一次性小实验：这颗 Zynq-7020 的工具**会不会/为什么不肯**把帧缓存形状放进 UltraRAM
 #
 #   vivado -mode batch -nojournal -source build/tcl/uram_probe.tcl

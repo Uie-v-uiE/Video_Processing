@@ -1,4 +1,17 @@
 `timescale 1ns/1ps
+// 功能：被测模块 `axi_frame_saver64`（.BASE_ADDR=BANK0=32'h1000_0000）；覆盖点：frame_done 当拍
+//        写 bank 翻到 BANK1、completed_base 锁住刚写完的 BANK0、排空期间 sav_base 不漂移；
+//        bank FSM 是台架按 eth_udp_video_top 的 glue 复刻的 reg，不是例化件。
+// 激励与检查：clk #5 翻转=10 ns 周期；rst_n 低 20 拍后释放；第一帧连灌 16 个像素
+//        （wr_addr 0..15、wr_data=16'hA000+i），fd_axi 拉 1 拍后等 2 拍取值；第二帧再灌 16 个像素
+//        （wr_data=16'hB000+i），flush 拉 1 拍，之后最多等 20000 拍到 idle=1。判定条件：
+//        fd_axi 后 completed_base===32'h1000_0000 且 sav_base===32'h1008_0000；
+//        idle 在 20000 拍内变 1；排空后 sav_base 仍===32'h1008_0000。
+// 预期结果：通过时依次打印 PASS completed_base locked to bank0、
+//        PASS write bank flipped to bank1 on frame_done、PASS idle after drain，末行 PASS tb_v5_bank。
+//        失败时对应判据红并打 FAIL completed_base=<值> expected 10000000、
+//        FAIL sav_base=<值> expected bank1 immediately after fd、FAIL not idle、FAIL sav_base drifted <值>，
+//        末行改打 FAIL tb_v5_bank errors=<n>。
 // v5.4: after frame_done, new pixels must go to the OTHER bank immediately
 module tb_v5_bank;
     reg clk=0, rst_n=0;

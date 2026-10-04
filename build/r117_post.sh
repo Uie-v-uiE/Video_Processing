@@ -1,4 +1,8 @@
 #!/usr/bin/env bash
+# 用途：r117 判读之后的"机械半成品"：把 E1 表、I/O 复核读数、改口清单三件自动生成，
+# 输入：命令行参数、build/tcl/r117_io_probe.tcl
+# 输出：build/r117_post_console.txt、build/r117_io_probe_console.txt、build/r117_roster_build_console.txt
+# 退出码：1=非 0 分支（该文件 exit 1 那一行）
 # build/r117_post.sh —— r117 判读之后的"机械半成品"：把 E1 表、I/O 复核读数、改口清单三件自动生成，
 # 人只做判断（要不要采纳、文案怎么写），不做抄数。
 #

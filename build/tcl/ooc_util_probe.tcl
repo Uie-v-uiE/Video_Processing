@@ -1,3 +1,7 @@
+# 用途：OOC utilization probe for ONE module (read-only w.r.t. the repo: runs inside a copy tree).
+# 输入：无字面量输入路径；参数解析见本文件
+# 输出：stdout
+# 退出码：脚本内无显式 exit ⇒ 随最后一条命令（正常跑完为 0）
 # OOC utilization probe for ONE module (read-only w.r.t. the repo: runs inside a copy tree).
 # tclargs: <dir_with_the_.v_files> <top_module> <out_report>
 # Labels here must stay ASCII: Vivado Tcl reads this file under the system codepage, and a CJK

@@ -1,4 +1,8 @@
 #!/usr/bin/env bash
+# 用途：r114 整轮链：只带两刀（#262 的 ASYNC_REG 属性 + #257 尾的 hb_gone 声明初值）
+# 输入：命令行参数、build/tcl/build_system_axigpio.tcl、build/tcl/crit_path.tcl、build/tcl/hold_paths.tcl
+# 输出：stdout
+# 退出码：1=非 0 分支（该文件 exit 1 那一行） 2=REFUSE
 # build/r114_chain.sh —— r114 整轮链：只带两刀（#262 的 ASYNC_REG 属性 + #257 尾的 hb_gone 声明初值）。
 # 与 r113_chain 的差别（三条，别的话照旧）：
 #   ① 第一判据从"位流上电值"换成**两把静态尺子**：`scan_async_reg_coverage.py` 的 SYNCREG-SUMMARY

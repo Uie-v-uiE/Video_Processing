@@ -1,3 +1,7 @@
+# 用途：fast-lane roll with an ENV-CONFIGURABLE pblock target
+# 输入：无字面量输入路径；参数解析见本文件
+# 输出：stdout
+# 退出码：0=跑完 1=REFUSE 4=REFUSE
 # build/tcl/pb117_roll.tcl -- fast-lane roll with an ENV-CONFIGURABLE pblock target
 #
 # Why a v3 instead of reusing pb113_roll2.tcl: (a) that file hardcodes its target to

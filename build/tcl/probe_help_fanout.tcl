@@ -1,3 +1,7 @@
+# 用途：READ-ONLY shape measurement, no design opened.
+# 输入：无字面量输入路径；参数解析见本文件
+# 输出：stdout
+# 退出码：0=跑完
 # build/tcl/probe_help_fanout.tcl -- READ-ONLY shape measurement, no design opened.
 #   Why: probe_timing_roster.tcl parses `report_design_analysis -fanout`, and the repo rule says a report's
 #     shape must be measured, not guessed (the first roster run silently produced an EMPTY file because the

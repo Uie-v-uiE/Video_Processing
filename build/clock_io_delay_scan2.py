@@ -1,3 +1,7 @@
+# 用途：第二遍：换个关键词找 **I/O 钟网络的延迟数字**（第一遍按 "bufio" 找，
+# 输入：命令行参数
+# 输出：stdout
+# 退出码：脚本内无显式 exit ⇒ 随最后一条命令（正常跑完为 0）
 # build/clock_io_delay_scan2.py —— 第二遍：换个关键词找 **I/O 钟网络的延迟数字**（第一遍按 "bufio" 找，
 # 命中的全是 UG472 的定性叙述；真正的 ns/ps 数在 UG471 的 SelectIO AC 表里，而那些表不一定写 "BUFIO"）。
 # 用法：python build/clock_io_delay_scan2.py

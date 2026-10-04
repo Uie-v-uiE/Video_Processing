@@ -1,3 +1,7 @@
+# 用途：D1 fast-lane roll, attempt 3 of this one cut (H7 limit).
+# 输入：无字面量输入路径；参数解析见本文件
+# 输出：stdout
+# 退出码：0=跑完 1=REFUSE 4=REFUSE
 # build/tcl/repl117_roll3.tcl -- D1 fast-lane roll, attempt 3 of this one cut (H7 limit).
 #
 # Attempt 1 (repl117_roll.tcl, 02:39) died with RP_NET_found=0: I handed `get_nets` a *cell* path.

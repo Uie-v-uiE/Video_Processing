@@ -1,4 +1,15 @@
 `timescale 1ns/1ps
+// 功能：被测模块 `sync_fifo`（例化 `uut`，参数 .DATA_W(8) / .ADDR_W(4)）；覆盖点：8 位宽、
+// 16 格深同步 FIFO 的 level/empty 旗标与"先连写后连读"两条路径上的数据一一对应。
+// 激励与检查：#4 翻转时钟（周期 8 ns）；rst_n 上电为 0，repeat(3) @(posedge clk) 后放成 1；
+// 复位放开一拍后读 empty，再连写 10 拍（wr_data<=i+8'hA0，即 0xA0..0xA9）、停写空等 2 拍读
+// level；随后逐字节读 10 次（每次 rd_en 只举一拍，#1 后采样 rd_data），读完再空等 2 拍。
+// 判定条件：复位后 !empty；写完 10 个后 level 必须 ==10（打印 exp10）；第 i 次读回必须满足
+// rd_data === i[7:0]+8'hA0（!== 即计一次错）；收尾 empty 必须回到 1。
+// 预期结果：通过时逐段打印 `PASS level`、`PASS empty end`，errors==0 时打印
+// `PASS tb_sync_fifo ALL`；失败时对应判据红在 `FAIL not empty after rst` /
+// `FAIL level=%0d exp10` / `FAIL data[%0d]=%h exp %h` / `FAIL not empty at end`，
+// 收尾打印 `FAIL tb_sync_fifo errors=%0d`。
 module tb_sync_fifo;
     reg clk=0, rst_n=0;
     always #4 clk=~clk;

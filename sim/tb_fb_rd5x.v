@@ -1,4 +1,19 @@
 `timescale 1ns/1ps
+// 功能：被测模块 `fb_rd5x`（5 槽帧缓存读口，IMG_W=512、IMG_H=300）；覆盖点＝输出像素与请求的配准
+//        （平移量唯一且等于钉住的 LAT_PIN）、右窗双线性、左窗最近邻、bilin_en=0 退化档、
+//        right_out/oob_out 是否跟着 pix 同拍。
+// 激励与检查：像素钟 #10 翻转（20 ns）、快槽钟 #2 翻转（4 ns），复位在 negedge clk 释放后跑 NREQ+22=182
+//        拍（观测表 NOBS=184）；先经 DUT 写口在 clk5 域灌 (IW*IH)/4 = 38400 个 64bit 字，再连续送出
+//        160 组请求（r_x=(q*37)%(IW-2)、r_y=(q*53)%(IH-2)、fx/fy 各自取模扫遍 0..255；sel 每 4 个里
+//        有 1 个走左窗、bilin_en 每 5 个关掉一次、oob_r 每 17 个置一次、oob_l 每 3 个置一次）；
+//        判据：平移在 0..20 内搜索且全对齐的候选数 nzero==1、found==LAT_PIN(6)、比对样本数 ncmp>100、
+//        bilin=0 的样本 nnoff>15 且输出逐位等于 e_nn、右窗输出与实数双线性模型逐通道差 <=1（nbil==0）、
+//        左窗逐位等于 e_left（nleft==0）、标志位错拍数 nflag==0、牙齿条件 far*2>ncmp 与 nnear*4<far。
+// 预期结果：通过时逐条打印 `[CHK] <判据名> : OK`，并带 `[INFO] alignment candidates found=1 first=6`、
+//        `[INFO] ncmp=.. err_bil=0 err_left=0 err_flag=0 ..`，末行 `RESULT tb_fb_rd5x PASS`；
+//        失败时对应条目打 `: BAD` 并 errors 加一（错值处有 `[DIAG] bil/left/bilin_off mismatch i=.. got=..
+//        exp=..`），末行改为 `RESULT tb_fb_rd5x FAIL (<n> bad)`；超过 #5_000_000 打印
+//        `RESULT tb_fb_rd5x FAIL timeout`。
 // tb_fb_rd5x —— 判"这条 5 槽读口产出的像素，确实是对应那一拍请求的像素"：防的是**配准**，不是插值算错
 //   （那是 tb_bilin_lerp 的活）。少打一拍 = 板上"画面错开一列 / 切窗口跳一下"，不会让任何模块报错。跑法：bash sim/run_one.sh tb_fb_rd5x
 // 四条独立性：① 期望值用 TB 里的实数（real）双线性公式算，走与 DUT 完全不同的代码路径，容差只给

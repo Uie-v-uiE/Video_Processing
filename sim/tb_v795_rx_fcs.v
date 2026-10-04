@@ -1,4 +1,21 @@
 `timescale 1ns/1ps
+// 功能：被测模块 `gmii_rx_mac`；覆盖点＝收侧自算 FCS 的四件事——量具自校（TB 造的帧真是标准以太网帧）、
+//        好帧判好、载荷翻 1 bit 判坏、短帧判坏，以及"整帧（含 FCS）再累加一遍的残值与载荷内容无关"，
+//        并把该残值钉回 RTL 里的 localparam FCS_RESIDUE。
+// 激励与检查：clk 半周期 #4（125 MHz），rst_n 拉低 3 拍后 #1 释放、再走 3 拍。build_frame(seed) 造
+//        HDR=7+1+6+6+2=22、PAY=46、FLEN=HDR+PAY+4=72 字节的最小以太网帧，CRC 从 DA[0]（下标 8）起算、
+//        末异或 FFFF_FFFF、FCS 按 LSB 先出填入；send_frame(len, flip) 在 negedge 驱 rxd 与 dv，
+//        下标为 flip 的字节 `^ 8'h01`，帧末 dv=0 再走 6 个 posedge 让 m_good/m_bad 脉冲被独立 always
+//        采到。判定：T0 `c0 !== 32'hDEBB_20E3` 即错；T1 good_cnt=1 且 bad_cnt=0；T2（换 seed=8'h5A）
+//        good_cnt=2、bad_cnt=0 且两次 `dut.crc_q` 必须相同（`res2 !== res1` 即错）；
+//        T3（flip=HDR+3）bad_cnt=1、good_cnt=2；T4（len=HDR+20=42）bad_cnt=2、good_cnt=2；
+//        T5 `(dut.FCS_RESIDUE === res1)` 必须为真。
+// 预期结果：通过时打 `INFO T0 量具自校通过（debb20e3 == ~2144df1c）`、`INFO T1 residue=<h>（内容 A）`、
+//        `INFO T2 residue=<h>（内容 B，必须与 A 相同）`、`INFO 字节数=<n> good=2 bad=2` 与末行
+//        `PASS tb_v795_rx_fcs`；失败时打 `FAIL T0 台架自校：造出来的帧不是标准 FCS（校验值=<c0>，
+//        应为 debb20e3）`，或 `FAIL <段名> got=<n> expect=<m>`、`FAIL 残值与内容有关（<res1> vs <res2>）`、
+//        `FAIL T5 RTL 常数 == 实测残值 got=0 expect=1`，errors 加一后末行改判
+//        `FAIL tb_v795_rx_fcs errors=<n>`；#500_000 处未 finish 时打 `FAIL watchdog：台架超时未跑完`。
 // tb_v795_rx_fcs —— 证明"收侧自己算 FCS"真的成立，并把残值常数钉住。跑法：bash sim/run_one.sh tb_v795_rx_fcs
 // 为什么独立算：RTL 用的是发送侧同一个 crc32_d8，只拿它自己验它就是同义反复（两边一起错也照样过）。
 // 这里的帧由 TB 用另一套实现造：标准以太网 CRC-32（反射、多项式 0xEDB88320、初值/末异或 FFFFFFFF），

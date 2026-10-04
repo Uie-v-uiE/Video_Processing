@@ -1,4 +1,8 @@
 #!/usr/bin/env python3
+# 用途："""build/r114_sweep_verdict.py —— 读 IDELAY_VALUE 扫档那一滚的控制台，出一张"哪个档把眼心找到了"的表
+# 输入：命令行参数
+# 输出：stdout
+# 退出码：0=跑完 1=非 0 分支（该文件 exit 1 那一行） 4=非 0 分支（该文件 exit 4 那一行）
 # -*- coding: utf-8 -*-
 """build/r114_sweep_verdict.py —— 读 IDELAY_VALUE 扫档那一滚的控制台，出一张"哪个档把眼心找到了"的表。
 

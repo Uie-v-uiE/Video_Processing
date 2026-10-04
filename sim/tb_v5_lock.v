@@ -1,4 +1,19 @@
 `timescale 1ns/1ps
+// 功能：被测模块 `frame_commit_lock`；覆盖点：copy_base 在 start_copy 那一拍锁存、拷贝途中不随
+//        新 commit_base 改变、copy_done 之后取最后一次 pending 的 base。
+// 激励与检查：axi_clk #5=10 ns、pix_clk #10=20 ns；rst_n 低 20 个 axi 拍后释放；像素每行 40 拍
+//        （de 高 16 拍）、共 10 行；near_active=(x>=28)&&(y<8)，blank_safe=~(de|de_pipe[15]|
+//        near_active)；copy_busy 恒 0。第一段 commit_base=32'h1000_0000、commit_req 高 5 拍，
+//        最多等 200000 个 axi 拍到 start_cnt>=1，再等 3 拍读 locked_seen（start_copy 之后一拍
+//        锁存的 copy_base）；第二段改 commit_base=32'h1008_0000、commit_req 高 3 拍、再等 5 拍；
+//        第三段 copy_done_r 拉 1 拍、等 20 拍后把 start_cnt 清零，再最多等 200000 拍取第二次 start。
+//        判定条件：第一段 locked_seen===32'h1000_0000；第二段不许出现
+//        (copy_base===32'h1008_0000 && start_cnt==1)；第三段 locked_seen===32'h1008_0000。
+// 预期结果：通过时打印 INFO first start base=10000000、PASS copy_base locked (<base>)、
+//        INFO second start base=10080000、PASS latest pending after done，末行 PASS tb_v5_lock。
+//        失败时打 FAIL no first start（首启超时直接 $finish）、FAIL copy_base changed mid-copy、
+//        FAIL second base <值>；第一段 base 不符只累 errors、无独立打印，表现为末行
+//        FAIL tb_v5_lock errors=<n>。
 module tb_v5_lock;
     reg axi_clk=0, pix_clk=0, rst_n=0;
     always #5 axi_clk = ~axi_clk;

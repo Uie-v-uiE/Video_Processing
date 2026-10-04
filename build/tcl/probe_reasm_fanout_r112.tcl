@@ -1,3 +1,7 @@
+# 用途：只读探针：r112 这一族的族级读数（不覆盖 r107 那份件）
+# 输入：无字面量输入路径；参数解析见本文件
+# 输出：stdout
+# 退出码：0=跑完 1=REFUSE
 # build/tcl/probe_reasm_fanout_r112.tcl —— 只读探针：r112 这一族的族级读数（不覆盖 r107 那份件）
 #
 #   VP_VIVADO_BIN=... "$V/vivado.bat" -mode batch -nojournal -source build/tcl/probe_reasm_fanout_r112.tcl

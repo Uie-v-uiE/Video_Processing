@@ -1,4 +1,20 @@
 `timescale 1ns/1ps
+// 功能：被测模块 `gamma_lut`（实例 dut）；覆盖点＝en=0 的逐位透明、wr 翻转位写协议（电平不变不重写、
+//        复位不算一次写）、5/6/5→8 的索引展开与 [7:3]/[7:2] 截断、边界槽 0x00/0xFF 各写各读、
+//        查表输出序列的单调性。
+// 激励与检查：时钟 #10 翻转（25 MHz 量级），rst_n 低 3 拍后释放再等 1 拍；put 每次摆好 idx/data 后翻一次
+//        wr 并同步写台架那份 ref[]；fill 连写满 256 槽，表内容取 "id"=i、"inv"=8'hFF-i、"x5a"=i^8'h5A；
+//        sweep(n) 扫 k=0..n-1，像素 = {r5=k[4:0], g6=k[5:0]^6'h15, b5=~k[4:0]}，n=32（R/G/B 各 32 档）；
+//        旁路段在表从没写过（读出来是 X）时先喂 64 组 {k[4:0],~k[5:0],k[7:3]}；⑤ 段只把 idx 改 8'h11、
+//        data 改 8'h00 而不翻 wr，再 repeat(6) @(posedge clk)；⑥ 段 rst_n 拉低 3 拍后释放；
+//        ⑦ 段 put(8'h00,8'h00) 与 put(8'hFF,8'hFF)；⑧ 段重填 "id" 后扫 32 档只看 R。判定：
+//        T1 64 组 dout===px；T2/T3/T4 每档 dout[15:11]===ref[ir][7:3]、dout[10:5]===ref[ig][7:2]、
+//        dout[4:0]===ref[ib][7:3]（bad==0）；T4b 32 档中 dout[15:11]===k[4:0] 的次数 bad==0；
+//        T5/T6b 同一 sweep 的 bad==0（表一动不动）；T6a 前置 wr===1'b0；T7 r5=0 ⇒ ir===8'h00 且
+//        dout[15:11]===5'd0，r5=31 ⇒ ir===8'hFF 且 dout[15:11]===5'd31；T8 this_r=dout[15:11] 逐档不降。
+// 预期结果：通过时末行打印 PASS tb_v88_gamma，波形上 en=0 段 dout 与 din 逐位相同、en=1 段 dout 等于
+//        ref[] 的查表结果；失败时对应判据前打印 "  FAIL <判据名>"，末行变 FAIL tb_v88_gamma errors=<n>，
+//        #20_000_000 看门狗先到期则打 FAIL tb_v88_gamma timeout。
 // 台架：src/rtl/video/gamma_lut.v（级 0 明暗校正）。跑：bash sim/run_one.sh tb_v88_gamma
 // 甲) **旁路不许动像素**（en=0 ⇒ 逐位等于输入）：整条链的安全网 —— 上板后 gamma 默认关，
 //      "新加的一级没有改变任何已有行为"就靠它。乙) **写协议**：`wr` 是**翻转位**，一次翻转 = 恰好写一项；

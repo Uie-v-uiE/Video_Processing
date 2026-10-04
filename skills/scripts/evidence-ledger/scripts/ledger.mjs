@@ -1,4 +1,8 @@
 #!/usr/bin/env node
+// 用途：证据台账：add 盖章 / check 逐条核对 / render 出 Markdown 表
+// 输入：命令行参数
+// 输出：stdout
+// 退出码：0=跑完 1=FAIL 2=FAIL
 // ledger.mjs —— 证据台账：add 盖章 / check 逐条核对 / render 出 Markdown 表
 //
 // 依赖：只有 Node 标准库（node:fs、node:path、node:os、node:crypto、node:child_process、node:url）。

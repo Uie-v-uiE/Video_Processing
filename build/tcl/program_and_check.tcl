@@ -1,3 +1,7 @@
+# 用途：root 要回退**两级**（脚本在 build/tcl/ 下）：早先它在 scripts/ 时 ../ 是对的，
+# 输入：无字面量输入路径；参数解析见本文件
+# 输出：stdout
+# 退出码：脚本内无显式 exit ⇒ 随最后一条命令（正常跑完为 0）
 # Program FPGA and report timing path
 # root 要回退**两级**（脚本在 build/tcl/ 下）：早先它在 scripts/ 时 ../ 是对的，
 # 搬进 build/tcl/ 后就成了 build/build/xxx —— 只在板前才暴露，见 report/log/issues.md #22 的补记。

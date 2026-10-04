@@ -1,4 +1,8 @@
 #!/usr/bin/env bash
+# 用途：判据：位流上电值必须等于代码想要的复位值（#256 那条根因的落地尺子）
+# 输入：命令行参数、build/tcl/probe_ff_init.tcl、build/system.bit
+# 输出：stdout
+# 退出码：0=跑完 1=FAIL 2=REFUSE
 # build/check_powup_init.sh —— 判据：位流上电值必须等于代码想要的复位值（#256 那条根因的落地尺子）
 #
 # 为什么单独一把尺子：#256 的因果链是"`system_top.v` 把 sys_rst_n 恒接 1'b1 ⇒ `if (!rst_n)` 是死支

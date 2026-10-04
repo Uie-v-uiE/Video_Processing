@@ -1,4 +1,14 @@
 `timescale 1ns/1ps
+// 功能：被测模块 `frame_reasm`（u，参数 IMG_W=8、IMG_H=4、FRAME_BYTES=64，一行 8×2=16 字节）；
+//        覆盖点：源行没写满时不许发 frame_done，四行全部到齐之后才提交一次。
+// 激励与检查：时钟 #5 翻转（10 ns 周期）；rst_n 拉低 20 拍后放开；send_packet(off0,8) 的包形是
+//        4 拍送 4 字节偏移（p_sof 占第一拍、p_valid 全程）+ 每像素 2 拍共 8 像素 + 1 拍 p_eof；
+//        偏移边界取 0、16、32、48；第一腿只发行 0 与行 1 两包，之后空跑 20 拍；
+//        第二腿把四行发满，之后空跑 30 拍；
+//        判定条件：done_cnt（posedge 上数到的 frame_done 枚数）第一腿 == 0、第二腿 >= 1。
+// 预期结果：通过时打印 `PASS no commit on 2/4 rows` 与 `PASS commit after all rows done_cnt=<n>`，
+//        末行 `PASS tb_v50_rows`；失败时打印 `FAIL frame_done on incomplete rows (<n>)` 或
+//        `FAIL no frame_done after all rows`，末行变 `FAIL tb_v50_rows errors=<n>`。
 // v5.0-fix: frame_done only after all source rows written
 module tb_v50_rows;
     reg clk=0, rst_n=0;

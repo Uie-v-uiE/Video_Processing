@@ -1,4 +1,20 @@
 `timescale 1ns/1ps
+// 功能：被测模块 `proc_pipeline`（实例 up）与 `effect_ctrl`（实例 u_eff）；覆盖点＝五级链全旁路时不产生
+//        输入里没有的颜色、总延迟等于模块声明的 LATENCY 且与 sel 无关、九位控制字与阈值的同步、
+//        gamma 窗口四个字段的位序与跟随。
+// 激励与检查：时钟 #10 翻转（20 ns 周期），rst_n 低 4 拍后释放再等 4 拍；图 W=16×H=8，i<8 按行奇偶取
+//        16'hFFFF/16'h0000，i>=8 取 {i[4:0],j[5:0],i^j}；run_frame 每档连跑 2 帧（首帧热身），每帧喂 128
+//        像素加每行 1 拍 de=0，帧尾 repeat(LAT_EXPECT+4)=19 拍，LAT_EXPECT=15。判定：T1 输出色必须都在
+//        输入里出现过（color_exists，bad==0）；T2 first_lat==up.LATENCY；T3 up.LATENCY==LAT_EXPECT(15)；
+//        T4 n_p==H*W；T5 sel=9'h001/0x004/0x008/0x010/0x020/0x080 六种下 first_lat 都==15（bad==0）；
+//        T6 灰度后与 ref0 不同的像素 cnt>0；T7 灰度后 i>=8 处 v[15:11]===v[4:0]；T8 二值化输出只有
+//        16'hFFFF/16'h0000；cfg_a 改后 repeat(6) @(negedge clk) 再取：T9 cfg=9'h000 ⇒ sel_q==9'h000、
+//        T11 th_q==8'd123、T12 cfg=9'h008 ⇒ sel_q==9'h008；T13 同 cfg 连跑两帧逐位一致；T14 cfg=9'h180
+//        与 refbyp 逐位相同；T15/T16 以 gm_a={en,wr,8'hA5,8'h3C,14'd0} 与 {1'b0,1'b0,8'h5A,8'hC3,14'd0}
+//        验 gm_en_q/gm_wr_q/gm_data_q/gm_idx_q 各就各位。
+// 预期结果：通过时末行打印 PASS tb_v86_pipe_sel，波形上首个 de_out 与首个 de_in 之差恒为 15 拍且换档
+//        不改；失败时对应判据前打 "  FAIL #<序号> <判据名>"，T1 附八行 got 的 hex dump，T2 打
+//        "T2 实测=<first_lat> 声明=<up.LATENCY> 期望=15"，末行变 FAIL tb_v86_pipe_sel errors=<n>。
 // 台架：effect_ctrl（两套控制源折成一套 + 跨域同步）与 proc_pipeline（五级链的整体契约）
 // 钉的是"整条链对外承诺的三件事"，单模块台架（tb_v84/tb_v85）管不到。跑：bash sim/run_one.sh tb_v86_pipe_sel
 // ① **全旁路 = 逐位不动**（sel=0 不许错位、钳位、变灰）：V8-4 要按分割线逐像素混合，旁路错一行/一列就出一条说不清的错缝；

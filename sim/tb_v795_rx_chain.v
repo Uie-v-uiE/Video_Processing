@@ -1,4 +1,19 @@
 `timescale 1ns/1ps
+// 功能：被测模块 `gmii_rx_mac` 与 `udp_rx_parser`（UDP_PORT=16'd5001）；覆盖点＝从 GMII 字节流到
+//        p_data/p_sof/p_eof/p_good 的转发，与三个统计脉冲 stat_drop_bad/stat_drop_filt/stat_udp_ok：
+//        好帧全收、载荷翻 1 bit、目的端口不对被过滤、帧在载荷中段被截断、两帧连发计数互不串。
+// 激励与检查：clk 半周期 #4（125 MHz），rst_n 拉低 3 拍后 #1 释放再走 3 拍；TB 用另一套标准 CRC-32
+//        （EDB8_8320、初值与末异或 FFFF_FFFF）造 PAYN=32 字节载荷的整帧 FLEN=HDRP+PAYN+4
+//        （HDRP=7+1+14+20+8=50）；send 在 negedge 逐字节驱 rxd 且 dv=1，下标为 flip 的字节 `^ 8'h01`，
+//        帧末 dv=0 再走 8 个 posedge。判定：C1 mge=1、pl_cnt=32、pl_sof=1、pl_eof=1、pl_good=1、
+//        so=1、sb+sf=0，且逐字节 `got[k] !== 8'hA0 + k` 即错；C2（flip=HDRP+5）mbe=1、pl_cnt=32、
+//        pl_eof=1、pl_good=0、sb=1、so=0；C3（dport=16'd5002）mge=1、pl_cnt=0、sf=1、so=0；
+//        C4（只发 HDRP+10=60 字节）mbe=1、sb=1、pl_cnt=10、pl_eof=1、pl_good=0；
+//        C5（先好后坏两帧）pl_cnt=2*PAYN=64、sb=1、so=1、pl_eof=2。
+// 预期结果：通过时打 `INFO C1 pay_len=<n>`、`INFO C5 got[0]=a0 got[1]=a1..` 与末行
+//        `PASS tb_v795_rx_chain`；任一计数不等即打 `FAIL <段名> got=<n> expect=<m>`，载荷字节序错了打
+//        `FAIL C1 第 <k> 字节 = <v>，应为 <A0+k>`，errors 加一后末行改判
+//        `FAIL tb_v795_rx_chain errors=<n>`；#2_000_000 处未 finish 时打 `FAIL watchdog`。
 // tb_v795_rx_chain —— #38 第 2 步「接顶层之前」的判据：自研 gmii_rx_mac（V7.9.5 起自己算 FCS）
 // + 自研 udp_rx_parser（带目的端口过滤），从 GMII 字节流验到 p_data/p_sof/p_eof/p_good 与三个统计脉冲。
 // 为什么单独写这一台：tb_udp_parser.v 的判据是照期望值手算的，而 udp_rx_parser 从未被任何顶层例化过

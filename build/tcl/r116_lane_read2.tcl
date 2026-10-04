@@ -1,3 +1,7 @@
+# 用途：read health lanes 0..9 under live traffic, then restore GPIO_0
+# 输入：无字面量输入路径；参数解析见本文件
+# 输出：stdout
+# 退出码：0=跑完
 # build/tcl/r116_lane_read2.tcl -- read health lanes 0..9 under live traffic, then restore GPIO_0
 #
 # v2 的原因：v1 想 `expr {0 + [mrd ...]}`，但 **xsdb 的 mrd 是把值打印到 stdout、并不返回字符串**

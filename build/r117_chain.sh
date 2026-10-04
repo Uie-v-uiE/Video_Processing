@@ -1,4 +1,8 @@
 #!/usr/bin/env bash
+# 用途：r117（C9 复制刀）从构建到判读的一条链，夜里自己走，人不敲第二条命令
+# 输入：命令行参数、build/tcl/build_system_axigpio.tcl、build/tcl/probe_timing_roster.tcl
+# 输出：stdout
+# 退出码：1=非 0 分支（该文件 exit 1 那一行） 2=非 0 分支（该文件 exit 2 那一行）
 # build/r117_chain.sh —— r117（C9 复制刀）从构建到判读的一条链，夜里自己走，人不敲第二条命令。
 #
 # 为什么必须等 r116 的门禁先落地再起飞：`build/*.rpt` 与 `build/system.bit` 是**同一批被跟踪的产物**，

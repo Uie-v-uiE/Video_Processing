@@ -1,3 +1,7 @@
+# 用途：read-only: which module owns the LUT change on the built design?
+# 输入：无字面量输入路径；参数解析见本文件
+# 输出：stdout
+# 退出码：0=跑完 1=REFUSE 3=REFUSE
 # build/tcl/probe_util_hier.tcl -- read-only: which module owns the LUT change on the built design?
 #   为什么要它：r110 把 frame_reasm 的新行谓词独热化之后，`build/utilization.rpt` 是**扁平汇总**，
 #   看不出 -243 个 LUT 落在谁身上；而"没归到模块的量不写进首页"是本仓的规矩（#246）。

@@ -1,3 +1,7 @@
+# 用途：与 pb113_roll.tcl 同一件事，只多一个"site 矩形写法自取"的小循环
+# 输入：无字面量输入路径；参数解析见本文件
+# 输出：stdout
+# 退出码：0=跑完 1=REFUSE 4=REFUSE
 # build/tcl/pb113_roll2.tcl —— 与 pb113_roll.tcl 同一件事，只多一个"site 矩形写法自取"的小循环。
 #   为什么要 v2：`get_site_types` 在这个 Vivado 里**不存在**（凭据 /tmp/kx/sitetypes.txt：
 #   `invalid command name "get_site_types"`），所以 7 系的 Pblock 矩形到底该写

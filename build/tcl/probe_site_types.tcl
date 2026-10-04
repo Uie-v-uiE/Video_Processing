@@ -1,3 +1,7 @@
+# 用途：只读：这块器件上 CLB 类 site 的**真实名字**
+# 输入：无字面量输入路径；参数解析见本文件
+# 输出：stdout
+# 退出码：0=跑完 2=REFUSE
 # build/tcl/probe_site_types.tcl —— 只读：这块器件上 CLB 类 site 的**真实名字**
 #   为什么单独问一次：pb113_roll.tcl 的 resize_pblock 该写 {CLBLM_L_X40Y20:CLBLM_R_X66Y52}
 #   还是 {SLICE_X40Y20:SLICE_X66Y52} 我不确定（7 系与 UltraScale 写法不同），猜错就让 roll B 白跑十来分钟。
