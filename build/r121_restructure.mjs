@@ -38,6 +38,8 @@ const DIR_MOVE = [
   [/^sim\/probes\//, 'build/sim/probes/'],
   // sim 里除 .v 与 README.md 之外的一切辅助件 ⇒ 挪进 build/sim/，名字不变（§2.1）
   { re: /^sim\/[^/]+\.(sh|tcl|do|py|mjs|txt|log|wdb|md)$/, to: (q) => (q === 'sim/README.md' ? q : 'build/sim/' + q.split('/').pop()) },
+  // sim 的任意层级里，凡不是 .v 也不是 sim/README.md 的，一律挪进 build/sim/（§2.1）
+  { re: /^sim\/.+\/[^/]+\.(sh|tcl|do|py|mjs|txt|log|wdb|md|tsv|csv|json)$/i, to: (q) => 'build/sim/' + q.split('/').slice(1).join('/') },
   [/^tight_setup_hold_pins\.txt$/, 'build/report/'],
   [/^NOTICE\.md$/, 'report/'],
 ];

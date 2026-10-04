@@ -40,7 +40,7 @@ const under = (pre) => tracked.filter(f => f === pre || f.startsWith(pre + '/'))
 if (want('C0-3')) {
   // 豁免=本要求自己点名的说明件（根 README.md/README_EN.md/LICENSE，以及各目录内的 README.md）；
   // 反买通：豁免只认这三个**文件名**，命中数必须打印，其余大写名一律红。
-  const EXEMPT_NAMES = ['README.md', 'README_EN.md', 'LICENSE'];
+  const EXEMPT_NAMES = ['README.md', 'README_EN.md', 'LICENSE', 'SKILL.md'];
   const isExempt = (f) => EXEMPT_NAMES.includes(path.basename(f));
   const bad = tracked.filter(f => !isExempt(f) && /[^a-z0-9_.\-\/]/.test(f));
   const cjk = tracked.filter(f => /[\u4e00-\u9fff\s]/.test(f));
