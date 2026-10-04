@@ -218,8 +218,36 @@ if (want('C5')) {
   const rneed = [['选题背景与创新点', /背景|创新/], ['设计原理与功能框图', /原理|框图/], ['软硬件划分与接口设计', /划分|接口/], ['优化前后性能与资源对比', /对比|优化/], ['失败分析', /失败/], ['复现说明', /复现/], ['大模型协作记录', /协作|提示词|模型/]];
   const rtxt = tracked.filter(f => f.startsWith('report/') && f.endsWith('.md')).map(read).join('\n');
   const missRep = rneed.filter(([, re]) => !re.test(rtxt)).map(([n]) => n);
-  const p = [...empty.map(d => d + ' 空'), ...(renamed ? [renamed] : []), ...(missFour.length ? ['skills/README 缺:' + missFour.join(',')] : []), ...(missRep.length ? ['report 缺章节:' + missRep.join(',')] : [])];
-  say('C5', 'dirs-skills-readme-report', need.length + four.length + rneed.length, p.join('、') || '符合', p.length ? 'FAIL' : 'PASS');
+  // §5.4 的四件"具体内容"按**结构**判，不按关键词：关键词只要出现过就算齐，等于没判
+  // （C5 的四要素那一半刚犯过同一种错）。这里要的是：能看见的数字对比表、带读数的失败分析、
+  //  三段齐的协作记录（提示词 / 模型回答 / 自我纠错）。
+  const md = tracked.filter(f => f.startsWith('report/') && f.endsWith('.md'));
+  let cmpTables = 0, failRows = 0;
+  for (const f of md) {
+    const t = read(f), ls = t.split(/\r?\n/);
+    for (let i = 0; i + 1 < ls.length; i++) {
+      const isRow = (s) => /^\s*\|/.test(s) && (s.match(/\|/g) || []).length >= 3;
+      if (!isRow(ls[i]) || !isRow(ls[i + 1])) continue;
+      const hdr = ls[i], sep = ls[i + 1];
+      if (!/[前后]|基线|改前|改后/.test(hdr + ls[i + 2] + ls[i + 3] || '')) continue;
+      const nums = (hdr + ls[i + 2] + ls[i + 3]).match(/\d+(\.\d+)?\s*(%|ns|ms|µs|LUT|FF|BRAM|fps|MB|Mbps|字|行|包)/g) || [];
+      if (nums.length >= 2) { cmpTables++; break; }
+    }
+    if (/^[-*|]?\s*(否决|REFUSE|失败|FAIL)/m.test(t) && /\d/.test(t)) failRows++;
+  }
+  const collab = tracked.filter(f => f.startsWith('report/collaboration/'));
+  const ct = collab.map(read).join('\n');
+  const tri = [['提示词', /提示词|prompt/i], ['模型回答', /回答|原话|输出|response/], ['自我纠错', /纠错|更正|改口|撤回|retract/i]];
+  const missTri = tri.filter(([, re]) => !re.test(ct)).map(([n]) => n);
+  const p = [...empty.map(d => d + ' 空'), ...(renamed ? [renamed] : []), ...(missFour.length ? ['skills/README 缺:' + missFour.join(',')] : []),
+    ...(missRep.length ? ['report 缺章节:' + missRep.join(',')] : []),
+    ...(cmpTables < Number(process.env.VP_C5_TABLES || 1) ? [`带单位数字的前后对比表只数到 ${cmpTables} 张（地板 ${process.env.VP_C5_TABLES || 1}，§5.4 要求优化前后对比）`] : []),
+    ...(failRows < Number(process.env.VP_C5_FAILS || 1) ? [`带读数的失败/否决条目只数到 ${failRows} 份（地板 ${process.env.VP_C5_FAILS || 1}，§5.4 要求失败分析）`] : []),
+    ...(collab.length < Number(process.env.VP_C5_COLLAB || 3) ? [`协作记录文件只有 ${collab.length} 份（地板 ${process.env.VP_C5_COLLAB || 3}）`] : []),
+    ...(missTri.length ? ['协作记录缺三段:' + missTri.join(',')] : [])];
+  say('C5', 'dirs-skills-readme-report', need.length + four.length + rneed.length + 4,
+    p.join('、') || `符合（对比表 ${cmpTables} 张／含失败读数 ${failRows} 份／协作记录 ${collab.length} 份三段齐）`,
+    p.length ? 'FAIL' : 'PASS');
 }
 // ---- C6 开源协议
 if (want('C6')) {
