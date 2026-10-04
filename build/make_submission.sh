@@ -552,7 +552,17 @@ xargs -r sed -i -f _map.sed < _txt.txt
 # 上一版的错就是把规则并进主映射（别的规则先改写过同一行 ⇒ 字面旧路径再匹配不上），打印了
 # "降级 73 个"却留下 20 条三层深的旧引用（台账 #374）。这条判据把"我说过改了"和"确实改完了"
 # 绑在一起：残留 > 0 就 REFUSE，不再让这一层可以空转（[[feedback-ruler-teeth-empty-sets]]）。
+# 第二遍 sed 的**可观测性**（#376 留下的三个候选，一次全照出来）：规则条数、清单行数、
+# 两遍前后"含 skills 形状引用的文件数"。若规则>0 而命中文件数不变，问题在清单/射程；
+# 若命中数下降但仍 >0，问题在规则本身；若 _skill_map.sed 是空的，问题在生成段。
+SM_N="$( { grep -c '' _skill_map.sed || true; } )"
+TX_N="$( { grep -c '' _txt.txt || true; } )"
+HIT_BEFORE="$( { while IFS= read -r ff; do ff="${ff#./}"; [ -f "$ff" ] || continue; if grep -lqE 'skills/[A-Za-z0-9_./-]+\.(md|sh|mjs|py)' "$ff" 2>/dev/null; then printf 'X\n'; fi; done < _txt.txt; } | grep -c X || true )"
+HIT_BEFORE="${HIT_BEFORE:-0}"
 xargs -r sed -i -f _skill_map.sed < _txt.txt
+HIT_AFTER="$( { while IFS= read -r ff; do ff="${ff#./}"; [ -f "$ff" ] || continue; if grep -lqE 'skills/[A-Za-z0-9_./-]+\.(md|sh|mjs|py)' "$ff" 2>/dev/null; then printf 'X\n'; fi; done < _txt.txt; } | grep -c X || true )"
+HIT_AFTER="${HIT_AFTER:-0}"
+echo "技能降级一遍可观测性：规则 $SM_N 条／改写清单 $TX_N 行／含 skills 引用的文件数 改前 $HIT_BEFORE → 改后 $HIT_AFTER" >> _pruned.txt
 # ⚠ 残留计数必须与**改写射程同面**：上一版对着整棵暂存树数，把 `report/log/`、`build/reports/` 这些
 #   按规矩**永不改写**的证据件也算进来 ⇒ 这一条永远不可能归零，REFUSE 成了假红（实测 47 个，
 #   其中多数在证据层）。现在只数 `_txt.txt` 里那份"主改写实际处理过的文件清单"。
@@ -560,7 +570,7 @@ SKILL_LEFT="$( { while IFS= read -r ff; do ff="${ff#./}"; [ -f "$ff" ] || contin
 SKILL_LEFT="${SKILL_LEFT:-0}"
 echo "技能旧名独立一遍后仍未落地的引用 $SKILL_LEFT 个" >> _pruned.txt
 if [ "$SKILL_LEFT" -gt 0 ]; then
-  echo "REFUSE：技能旧名降级这一层没吃完（包内仍有 $SKILL_LEFT 个 skills 开头的引用落不到文件），不交一个自称改完过的包" >&2
+  echo "REFUSE：技能旧名降级这一层没吃完（包内仍有 $SKILL_LEFT 个 skills 开头的引用落不到文件；规则 $SM_N 条／清单 $TX_N 行／含引用文件 改前 $HIT_BEFORE → 改后 $HIT_AFTER），不交一个自称改完过的包" >&2
   exit 1
 fi
 
