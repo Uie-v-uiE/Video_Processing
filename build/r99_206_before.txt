@@ -1,5 +1,5 @@
 # #206 的"改前红"凭据（2026-10-01 07:55 当场跑，未为此改过任何 RTL）
-# 台架：sim/tb_icmp_len_wrap.v    命令：VP_VIVADO_BIN=… bash sim/run_one.sh tb_icmp_len_wrap
+# 台架：sim/tb_icmp_len_wrap.v    命令：VP_VIVADO_BIN=… bash build/sim/run_one.sh tb_icmp_len_wrap
 # 树指纹（跑前当场算，norm1）：top=f379805a9490 rtl=9fecdc0bb6ec files=80
 #   ⇒ 这就是 r99 的树（已含 #209/#185/#186 三刀），**没有**为 #206 改过任何东西；
 #     红是从真设计里来的，不是我想象的旧代码（规矩 11）。

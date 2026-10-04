@@ -101,5 +101,5 @@ X 标记（跨时钟域点，共 4 处，逐条有件）：
      * `pl_demo_top`、`udp_rx`、`fb_rd5x`、`tap_sched`、`rotate_mapper`、`line_cache`、
        `frame_buffer`、`frame_buffer_db`、`color_bar`、`axi_frame_writer`、`axi_frame_saver`、
        `axi_frame_saver_burst`、`video_timing_720p`（13 个）在现役综合树里**未被例化**，
-       清单的机器口径见 `build/orphan_rtl.sh:2-13` 与 `report/MODULES.md` 第 1 节 ⇒ 不进框图。
+       清单的机器口径见 `build/orphan_rtl.sh:2-13` 与 `report/modules.md` 第 1 节 ⇒ 不进框图。
 ==============================================================================

@@ -25,11 +25,11 @@ say "构建完成，开始只读时序探针"
 "$V/vivado.bat" -mode batch -nojournal -source build/tcl/crit_path.tcl  > build/r106_critpath_console.txt 2>&1; say "crit_path rc=$?"
 "$V/vivado.bat" -mode batch -nojournal -source build/tcl/hold_paths.tcl > build/r106_holdpath_console.txt 2>&1; say "hold_paths rc=$?"
 
-bash sim/run_one.sh tb_v98_top_seam > build/r106_tb98_console.txt 2>&1; R=$?
+bash build/sim/run_one.sh tb_v98_top_seam > build/r106_tb98_console.txt 2>&1; R=$?
 say "顶层台架 rc=$R（3=判红，0=绿；C8c 八档的读数就在同一份 log 里）"
 bash build/tb98_report.sh > build/r106_tb98report_console.txt 2>&1; say "tb98_report rc=$?"
 
-bash sim/run_one.sh tb_edge_rim > build/r106_rim_console.txt 2>&1; say "边缘条带台架 rc=$?"
+bash build/sim/run_one.sh tb_edge_rim > build/r106_rim_console.txt 2>&1; say "边缘条带台架 rc=$?"
 ROUND=r106 bash build/rim_report.sh > build/r106_rimreport_console.txt 2>&1; say "rim_report rc=$?"
 
 bash build/gates.sh > build/r106_gates.txt 2>&1; G=$?

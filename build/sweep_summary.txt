@@ -11,7 +11,7 @@
 # 结论（一句话）：**这一档策略没有收益** —— 把 impl_1 显式设成 Performance_Explore 之后，
 #       结果与 R05 基线（构建脚本未指定任何策略）**逐位相同**：WNS 0.499 / WHS 0.060 / 0-21253。
 #       同时最差的 10 条 eth_rxc 路径同构（都是 frame_reasm 的三操作数加法进位链），
-#       于是转向 RTL 改写（V7.4，见 report/CHANGELOG_V7.md）。
+#       于是转向 RTL 改写（V7.4，见 report/changelog_v7.md）。
 #       注意：这里只证明「Performance_Explore 这一档 = 未指定策略的结果」，
 #       不对 Vivado 的默认策略名做任何断言（工程里没留下该字符串，且报告未记录）。
 #

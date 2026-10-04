@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # build/r115_c2_verdict.sh —— C2（捕获钟挪早）证伪滚的**判定器**：S1..S5 一条一行，判定在最后一列
 #
-# 判据是 23:31 预先登记在 docs/timing/rgmii_window_model.md §4 的，结果出来之后不许改口径（提示词 §6）。
+# 判据是 23:31 预先登记在 report/timing/rgmii_window_model.md §4 的，结果出来之后不许改口径（提示词 §6）。
 #   S1 关住窗：`eth_rxc` 域 hold 的 WHS ≥ 0 **且** I/O hold 失败端点 = 0（改前 −2.885/−2.522 是红）
 #   S2 机制：副本树网表里 MMCM ≥ 1 且 IDDR 仍 5 颗且 BUFG 仍在；主树同一把尺子必须报 0（正对照，规矩 46）
 #   S3 名册：其余三域不许从 MET 掉进违例；`eth_rxc` 的 setup 不许变差
@@ -10,7 +10,7 @@
 # ⚠ 这一轮**不采纳**：没有顶层台架、没有上板、没有批准人。S1–S5 全绿只等于"值得进正式一轮"。
 set -u
 cd "$(dirname "$0")/.."
-V=${VP_VIVADO_BIN:?VP_VIVADO_BIN 必须给（见 report/BUILD.md）}
+V=${VP_VIVADO_BIN:?VP_VIVADO_BIN 必须给（见 report/build.md）}
 SCR=/d/Xilinx/Prj/pro/c2_scratch_1003
 EV=build/evidence/r115_c2_scratch
 SDCP="$SCR/vivado_system/zynq_video_sys.runs/impl_1/system_top_routed.dcp"
@@ -73,7 +73,7 @@ printf '%s\n' "$rows" > "$EV/clock_names_scratch.txt"
 
 # ---- S3 名册八对（表已在 S1 之前造好，这里只做差分）----
 if [ -s "$EV/roster_scratch.tsv" ]; then
-    dif=$(python build/r115_roster_build.py --diff docs/timing/roster_baseline.tsv "$EV/roster_scratch.tsv" 2>&1)
+    dif=$(python build/r115_roster_build.py --diff report/timing/roster_baseline.tsv "$EV/roster_scratch.tsv" 2>&1)
     printf '%s\n' "$dif" > "$EV/roster_diff_vs_baseline.txt"
     pres=$(printf '%s\n' "$dif" | grep -ac "	presence	")
     mred=$(printf '%s\n' "$dif" | awk -F'\t' '$NF=="RED" && $2!="presence"{n++} END{print n+0}')

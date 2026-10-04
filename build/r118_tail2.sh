@@ -42,12 +42,12 @@ PY
 printf 'rotated after r118 board flash\n' > build/r117_docrotated.marker
 say "marker 落地，文档冻结"
 
-bash build/gates.sh > /tmp/kx/gA.txt 2>&1
+bash build/gates.sh > /tmp/kx/ga.txt 2>&1
 A=$?
-bash build/gates.sh > /tmp/kx/gB.txt 2>&1
+bash build/gates.sh > /tmp/kx/gb.txt 2>&1
 B=$?
-if cmp -s /tmp/kx/gA.txt /tmp/kx/gB.txt; then ID=identical; else ID=different; fi
-cp -f /tmp/kx/gA.txt build/r118_gates_final.txt
+if cmp -s /tmp/kx/ga.txt /tmp/kx/gb.txt; then ID=identical; else ID=different; fi
+cp -f /tmp/kx/ga.txt build/r118_gates_final.txt
 G=$(grep -c " PASS$" build/r118_gates_final.txt)
 RED=$(grep -c " FAIL$" build/r118_gates_final.txt)
 say "最终门禁 rcA=$A rcB=$B 两跑=$ID 绿=$G 红=$RED"
@@ -65,7 +65,7 @@ g = io.open("build/r118_gates_final.txt", encoding="utf-8", errors="replace").re
 green = sum(1 for l in g if l.endswith(" PASS"))
 red = sum(1 for l in g if l.endswith(" FAIL"))
 reds = [l.split()[0] + " " + l.split()[1] for l in g if l.endswith(" FAIL")]
-board = io.open("build/evidence/r118_board/BOARD_NOW.txt", encoding="utf-8", errors="replace").read().splitlines()[0]
+board = io.open("build/evidence/r118_board/board_now.txt", encoding="utf-8", errors="replace").read().splitlines()[0]
 b1 = ""
 for l in io.open("build/evidence/r118_strict_b1.txt", encoding="utf-8", errors="replace"):
     if l.startswith("B1 pairs_compared"):
@@ -79,7 +79,7 @@ entry = ("\n## §118 r118（2026-10-04 04:18–04:52）：最后一轮——只�
          "⇒ 按 H7 判负（`build/r117_verdict_declined.txt`）；RGMII 输入窗绑上就把自家发布门的 4 条硬项判红"
          "⇒ 退回候选件（`VP_R116_IO_WINDOW=1` 复现），首页那一行明写这 5 个端点当前未检查、未检查不等于满足（H5）。\n"
          "* 工具账 #325–#329；提交包重导到 %d 个文件。\n" % (b1, green, red, "、".join(reds) or "无", board, n))
-with io.open("report/log/OVERNIGHT_LOG.md", "a", encoding="utf-8", newline="\n") as f:
+with io.open("report/log/overnight_log.md", "a", encoding="utf-8", newline="\n") as f:
     f.write(entry)
 
 msg = "\n".join([
@@ -93,7 +93,7 @@ msg = "\n".join([
   "- 首页/英文首页/metrics 由 build/r117_fill_docs.py + build/r117_doc_templates.txt 从件里取数改写（10 行，写后回读 mismatch=0、行数不变）；"
   "board/ACCEPTANCE 两处板态身份句同步到 r118。",
   "- C9 与 RGMII 输入窗都留在树里当候选件并写明判负/退回原因；本版无输入窗 ⇒ 那 5 个收口端点未检查（H5）。",
-  "- 提交包重导：%d 个文件（按盘上数核）。流水补记 report/log/OVERNIGHT_LOG.md §118。" % n,
+  "- 提交包重导：%d 个文件（按盘上数核）。流水补记 report/log/overnight_log.md §118。" % n,
   "- 工具账 #325–#329（首页门禁句的形状属于尺子射程；名册对照必须同生成器；catch 返回码当哨兵打死成功的官方 run；"
   "25%% 门槛与严格判据不一致；改口脚本会把首页写空——彩排+备份+行数地板）。",
   "",

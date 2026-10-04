@@ -87,8 +87,8 @@ for d in $A $B; do
 done
 
 # 名册：两滚各自从自己的 timing_summary 长出（同一个转换器、同一口径，才许相减）
-bash build/roster_from_summary.sh "$OUTDIR/A_timing_summary.rpt" > "$OUTDIR/roster_A.txt" 2>&1
-bash build/roster_from_summary.sh "$OUTDIR/B_timing_summary.rpt" > "$OUTDIR/roster_B.txt" 2>&1
+bash build/roster_from_summary.sh "$OUTDIR/a_timing_summary.rpt" > "$OUTDIR/roster_a.txt" 2>&1
+bash build/roster_from_summary.sh "$OUTDIR/b_timing_summary.rpt" > "$OUTDIR/roster_b.txt" 2>&1
 #   抓手名册由滚自己打的机器行供（report_design_analysis 没有 -fanout 模式，#263 已实测）
 for d in A B; do
     grep -a '^MFROWAFTER|' "/tmp/kx/mf114/$d/roll_console.txt" 2>/dev/null \
@@ -137,13 +137,13 @@ line V2c_fanout_dropped "net=${nm_best:-NA} drop=${best_delta:-0}" "至少一个
 
 
 slack_of() { grep -aoE "Slack[^:]*: *-?[0-9]+\.[0-9]+" "$1" 2>/dev/null | head -1 | grep -oE -- "-?[0-9]+\.[0-9]+" | head -1; }
-sa=$(slack_of "$OUTDIR/A_family.rpt"); sb=$(slack_of "$OUTDIR/B_family.rpt")
+sa=$(slack_of "$OUTDIR/a_family.rpt"); sb=$(slack_of "$OUTDIR/b_family.rpt")
 delta=$(awk -v a="${sa:-0}" -v b="${sb:-0}" 'BEGIN{printf "%.3f", b-a}')
 line V3_family_gain "A=${sa:-NA} B=${sb:-NA} d=${delta}" "gain>=+${GAIN_MIN}ns" \
     $(awk -v d="$delta" -v m="$GAIN_MIN" 'BEGIN{print (d+0>=m+0)?"GREEN":"RED"}')
 
 # V4 名册差分（这把尺子判的是**其它域**，正是"别一根筋"那一条）
-DIFFOUT=$(bash build/timing_roster_diff.sh "$OUTDIR/roster_A.txt" "$OUTDIR/roster_B.txt" 2>&1)
+DIFFOUT=$(bash build/timing_roster_diff.sh "$OUTDIR/roster_a.txt" "$OUTDIR/roster_b.txt" 2>&1)
 printf '%s\n' "$DIFFOUT" >> "$VERDICT"
 dred=$(printf '%s\n' "$DIFFOUT" | grep -c ' RED$')
 ndiff=$(printf '%s\n' "$DIFFOUT" | grep -c '^ROSTERDIFF-ROW ')
@@ -151,8 +151,8 @@ line V4_roster_no_cost "diff_rows=$ndiff red=$dred" "red=0 且 rows>=8" \
     $([ "$dred" = 0 ] && [ "$ndiff" -ge 8 ] && echo GREEN || echo RED)
 
 # V5 资源代价
-lut_a=$(grep -aoE "Slice LUTs[^0-9]*[0-9]+" "$OUTDIR/A_util.rpt" | grep -oE "[0-9]+" | tail -1)
-lut_b=$(grep -aoE "Slice LUTs[^0-9]*[0-9]+" "$OUTDIR/B_util.rpt" | grep -oE "[0-9]+" | tail -1)
+lut_a=$(grep -aoE "Slice LUTs[^0-9]*[0-9]+" "$OUTDIR/a_util.rpt" | grep -oE "[0-9]+" | tail -1)
+lut_b=$(grep -aoE "Slice LUTs[^0-9]*[0-9]+" "$OUTDIR/b_util.rpt" | grep -oE "[0-9]+" | tail -1)
 d_lut=$(( ${lut_b:-0} - ${lut_a:-0} ))
 line V5_lut_cost "A=${lut_a:-NA} B=${lut_b:-NA} d=$d_lut" "abs<=${LUT_CAP}" \
     $([ "${lut_a:-0}" -gt 0 ] && [ "$d_lut" -ge -$LUT_CAP ] && [ "$d_lut" -le $LUT_CAP ] && echo GREEN || echo RED)

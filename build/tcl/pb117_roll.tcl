@@ -2,7 +2,7 @@
 #
 # Why a v3 instead of reusing pb113_roll2.tcl: (a) that file hardcodes its target to
 # u_eth/u_rx_par + u_eth/u_reasm, i.e. the eth_rxc family, while r116's global limit audit
-# (docs/timing/limit_audit_r116.md) points at a DIFFERENT domain -- clk_fpga_0's worst path is
+# (report/timing/limit_audit_r116.md) points at a DIFFERENT domain -- clk_fpga_0's worst path is
 # 1 logic level with 93.6 % route delay into u_pl/u_bilin/u_fb/lo_reg_0_16/WEA[0], which is a
 # placement/distance artefact, not a device limit; (b) pb113_roll2.tcl may be in flight and we
 # never edit a script a running instance is executing.

@@ -49,10 +49,10 @@ iconv: (stdin):1:17: incomplete character or shift sequence
         —— D1c 只抓到 0 句门禁读数句（地板 2）：中英首页那句“门禁 N 项 X 绿 / Y 红”改了写法或没进射程。
   排练脚本=讲稿抽取 rehearsal 差异行=0 变异对照=能红 改讲稿不重抽 ⇒ 这一项红；少一行必须判成不同（对照） PASS
   文档行号锚点 doc_cite 命中=361 候选=145 self 15 条对照全过（含厂商豁免 2 条）、硬错 0、命中 >= 300 FAIL
-          report/MODULES.md:20  D5b「例化者」列指错：system_top.v:248 第 1 列模块是 pl_video_top，被引那一行写的是「」——不是它的例化行
-          report/MODULES.md:124  D5b「例化者」列指错：system_top.v:204 第 1 列模块是 snap_cross，被引那一行写的是「);」——不是它的例化行
+          report/modules.md:20  D5b「例化者」列指错：system_top.v:248 第 1 列模块是 pl_video_top，被引那一行写的是「」——不是它的例化行
+          report/modules.md:124  D5b「例化者」列指错：system_top.v:204 第 1 列模块是 snap_cross，被引那一行写的是「);」——不是它的例化行
   数字对账 metric    判=115 首页=61 逐时钟=2/归属=2/百分数=7 csv认领=10/10 红=0 self（csv 两条 fixture + 首页假数 + 逐时钟/归属/百分数/Clock Summary 对照）全过、红 0、判 >= 30 个数、首页 >= 20 个、逐时钟 setup 与 hold 归属各 >= 2 条、余量百分数 >= 6 条、csv 认领两半相等且 >= 8（射程地板） PASS
   命令长度口径 pipe_len 逐条ok=26 自报=26 收尾PASS=1 self全绿条数=27 rc=0/0 run rc=0、--self rc=0、收尾 PIPE_LEN PASS=1、逐条 ok >= 26 且等于自报条数、self 条数 >= 20 PASS
   结温公式 temp_formula PASS=10 变异对照=3 FAIL行=0 rc=0 rc=0、FAIL 行=0、PASS >= 6、其中变异对照 >= 3（少了任何一条都说明这把握尺子可能空转） PASS
-端点总数 51140；CDC 现在按 build/CDC_BASELINE.txt 的**配对集合**判，功耗仍要人比有没有变差。# 结尾必须把**范围**一起念出来：判定 24 项、未判 0 项。
+端点总数 51140；CDC 现在按 build/cdc_baseline.txt 的**配对集合**判，功耗仍要人比有没有变差。# 结尾必须把**范围**一起念出来：判定 24 项、未判 0 项。
 GATES: 有红项（判定 24 项）—— 不采纳，保留上一版

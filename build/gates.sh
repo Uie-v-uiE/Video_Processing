@@ -20,7 +20,7 @@
 #   共同点是**判据读的与被判的是同一个对象**——加判据时先问一句：它读的文件是谁写的、什么时候写。
 #
 # 数字全部来自 Vivado 报告本身，不重新跑构建；退出码：全绿 0，任何一项红 1。
-# 阈值口径与 report/log/OVERNIGHT_LOG.md §1 的门禁表一致（**不要因为某项红了就改这里的阈值**）。
+# 阈值口径与 report/log/overnight_log.md §1 的门禁表一致（**不要因为某项红了就改这里的阈值**）。
 set -u
 D=${1:-build}
 pick() { [ -f "$D/$1" ] && echo "$D/$1" || echo "$D/../$1"; }   # 冻结目录里缺的文件回落到 build/
@@ -93,7 +93,7 @@ rerr=$(grep -a "nets with routing errors" "$R" | grep -oE '[0-9]+' | tail -1); r
 #    条数变少也不算改进（少了的原因没查清之前，只报出来不记账，见 §10 U14）。
 # 环境变量 CDCBASE 可覆盖：为了让"这条判据本身能不能红"有一份可跑的测试
 # （`build/gates_cdc_test.sh` 要喂它一份故意改坏的基线，而不许去动仓库里那份真的）。
-CDCBASE=${CDCBASE:-build/CDC_BASELINE.txt}
+CDCBASE=${CDCBASE:-build/cdc_baseline.txt}
 # 端点数取"倒数第 5 个字段"、unsafe 取"倒数第 3 个"，而不是固定列号：CDC Type 的 token 数会变
 # （"No Common Primary Clock" 4 个、"Safely Timed" 2 个），写死列号会读成 0 或读成别的列。
 # 末五列永远是 Endpoints / Safe / Unsafe / Unknown / No-ASYNC_REG ⇒ 从尾巴数才稳。
@@ -140,7 +140,7 @@ cdc_ok=1
 [ -n "$ugrow" ]   && cdc_ok=0
 [ -n "$ugrow" ]   && echo "        Unsafe 端点增长：$ugrow  ⇒ 这一项判红（#65）"
 
-# #209 加的第二把尺子。只与手写的 CDC_BASELINE.txt（r23 年份）比，会放过"以前报过、后来消失、
+# #209 加的第二把尺子。只与手写的 cdc_baseline.txt（r23 年份）比，会放过"以前报过、后来消失、
 # 现在又长回来"这一类：r98 的 `eth_rxc>clkout0_1` 就同时满足"基线里认识"与"上一版采纳的报告里没有"。
 # 所以对照物再加一份——**上一版被采纳的 cdc.rpt**（冻结目录里那份），本版有而它没有的 Critical 配对判红。
 CDCADOPT=${CDCADOPT:-build/evidence_r75/cdc.rpt}
@@ -243,7 +243,7 @@ fi
 #     所以"改了子模块端口、顶层忘了连"这类错 L1 全量 57 条一条都不会红，
 #     只能等 25 分钟的构建 —— 今晚 osd_overlay 换端口就踩在这个空档上。
 #     判据脚本自己有反例：拿两份故意改坏的拷贝跑，必须分别报"连了不存在的端口"和"输入没连"
-#     （见 report/log/OVERNIGHT_LOG.md §33 与 skill/ 那条"判据要有自己的测试"）。
+#     （见 report/log/overnight_log.md §33 与 skill/ 那条"判据要有自己的测试"）。
 #     r52 加宽到第三条**位宽**（`dbg_lat` 从 5 口变 6 口时想到的：#57 那类"高位被一根窄线吞掉"
 #     名字对得上、仿真与综合都不报，只有把两头量出来才看得见）。反例两份 + 一份负对照，
 #     凭据 `build/ports_check_width_ce.txt`。
@@ -268,7 +268,7 @@ else
         naa "顶层接线 —— 该冻结件早于第 14 项，没有对应的 ports_check 凭据（不判红，见上面注释）"
     fi
 fi
-# 14) WNS/WHS 的**归属组**（记录用，绝不判红）—— 2026-09-26 的教训，出处 `report/OPTIMIZATION_LOG.md` §4。
+# 14) WNS/WHS 的**归属组**（记录用，绝不判红）—— 2026-09-26 的教训，出处 `report/optimization_log.md` §4。
 #     上表念的是 Design Timing Summary 里那**一个**数，而它由两条互不相干、都属"布线主导"的路径轮流决定：
 #     125 MHz ETH 组（`u_cdc/wbin→BRAM ENARDEN`、`u_lm/ms32→gap_min`）对上 50 MHz 像素组（`u_pipe→u_osd` 字形）。
 #     同一套约束三次构建 WNS = 0.918 / 0.807 / 0.314，只抄那一个数就会误判成"某次改动拖慢了设计"
@@ -321,7 +321,7 @@ if [ "$D" = "build" ]; then
         RFIN=$(grep -ac "^RESULT tb_v98_top_seam FAIL" "$TB98")
         OK=1
         WHY=""
-        # #166：这一项读的就是"判定形状 + FAIL 计数"，而这两件事都由 `sim/run_one.sh --verdict` 定义
+        # #166：这一项读的就是"判定形状 + FAIL 计数"，而这两件事都由 `build/sim/run_one.sh --verdict` 定义
         #       ⇒ 那把尺子自己的五条对照（含"别人的过期日志不许替本台架答复"）不过，本项的判定就不可信：
         #       症状是"红被念成没数"，而门禁会把整项念成 PASS。让尺子的健康度绑在它支撑的那一项上。
         if ! bash build/run_one_ce.sh > "/tmp/run_one_ce.gate.$$.txt" 2>&1; then
@@ -360,7 +360,7 @@ if [ "$D" = "build" ]; then
         [ -n "$WHY" ] && echo "        ——$WHY"
     else
         say "顶层台架 tb_v98" "缺 build/tb_v98_report.txt" "必须先跑 tb98_report.sh" 0
-        echo "        —— 生成：bash sim/run_one.sh tb_v98_top_seam（从 #166 起：**退出码 3 = 台架判红**，1 = 编译失败，4 = 认不出判定）&& bash build/tb98_report.sh"
+        echo "        —— 生成：bash build/sim/run_one.sh tb_v98_top_seam（从 #166 起：**退出码 3 = 台架判红**，1 = 编译失败，4 = 认不出判定）&& bash build/tb98_report.sh"
     fi
 else
     naa "顶层台架 tb_v98 —— 历史冻结件不带与它同一次跑的顶层 md5，不判红（同第 14 项的口径）"
@@ -403,7 +403,7 @@ if [ "$D" = "build" ]; then
         [ -n "$WHY" ] && echo "        ——$WHY"
     else
         say "边缘条带 tb_edge_rim" "缺 build/tb_edge_rim_rNN.txt" "必须先跑并留凭据" 0
-        echo "        —— 生成：bash sim/run_one.sh tb_edge_rim && ROUND=rNN bash build/rim_report.sh"
+        echo "        —— 生成：bash build/sim/run_one.sh tb_edge_rim && ROUND=rNN bash build/rim_report.sh"
         echo "           ⚠ #179：`ROUND` **必须给** —— 那个脚本自带默认 r90，不给就把今天的数写成一份名字叫 r90 的假凭据，"
         echo "              而本项按 sort -V 取最新那份，于是读到的是上一轮的件（红在出身，不在设计）。"
     fi
@@ -420,7 +420,7 @@ say "PS 心跳约定 ps_hb" "rc=$HBRCC 红行=$HBRED" "--self 全绿(条数以�
     $([ "$HBRCC" = 0 ] && [ "$HBRED" = 0 ] && echo 1 || echo 0)
 printf '%s\n' "$HBOUT" | tail -6 | sed 's/^/        /'
 
-# ---- 17：手写件的编码（`docs/COMMANDS.md` 第 5 节曾经被 cp936 打坏一整段，位流/台架/门禁一个都没红）----
+# ---- 17：手写件的编码（`docs/commands.md` 第 5 节曾经被 cp936 打坏一整段，位流/台架/门禁一个都没红）----
 # 坏掉的不是硬件，是"演示时念给自己听的那份清单"，而那份要给评审看 ⇒ 判据要能自己跑。
 # --self 那一路是它自己的反例（造三条坏行必须抓到三条），没有这一段就等于"绿给绿的人看"。
 node src/host/doc_enc_check.mjs --self > /tmp/docenc_self.$$.txt 2>&1; DOCRC1=$?
@@ -469,7 +469,7 @@ fi
 rm -f /tmp/cur_self.$$.txt
 
 # ---- 19：演示排练脚本必须等于讲稿抽出来的那一份（2026-09-27 加，起因是今晚自己差点造出来）----
-# `board/demo_rehearsal.txt` 是**照着敲进板子**的那一份，而它是从 `report/DEMO_SCRIPT.md` 的代码块
+# `board/demo_rehearsal.txt` 是**照着敲进板子**的那一份，而它是从 `report/demo_script.md` 的代码块
 # 抽出来的（`src/host/demo_cmds.mjs --emit`）。讲稿改了而这份没重抽 ⇒ 排练与演示用的是两套东西，
 # 症状恰好是 #67 那一族（"清单里有、板上没有"）：台上敲一条不存在的写法，或者少演一条改过的。
 # 今晚改讲稿次序（第 9 幕拔卡）时我是**手工**比了一遍才敢说"49/49 那条仍然成立" ——
@@ -575,7 +575,7 @@ say "结温公式 temp_formula" "PASS=${TF_PASS} 变异对照=${TF_MUT} FAIL行=
 [ "$TF_RC1" = 0 ] || { echo "        —— temp_formula_check 红/读不到固件常数："; tail -8 /tmp/tf_run.$$.txt | sed 's/^/        /'; }
 rm -f /tmp/tf_run.$$.txt
 
-echo "端点总数 $eps；CDC 现在按 build/CDC_BASELINE.txt 的**配对集合**判，功耗仍要人比有没有变差。"# 结尾必须把**范围**一起念出来：判定 $NSAY 项、未判 $NNA 项。
+echo "端点总数 $eps；CDC 现在按 build/cdc_baseline.txt 的**配对集合**判，功耗仍要人比有没有变差。"# 结尾必须把**范围**一起念出来：判定 $NSAY 项、未判 $NNA 项。
 # `GATES: ALL PASS` 这一行只有在"没有一项是因为缺席而没判"时才允许出现 ——
 # `freeze_evidence.sh` 就 grep 这个串，所以有 n/a 时换成 `GATES: PARTIAL`，它自然拒绝冻结这一版。
 if [ "$pass" = 0 ]; then

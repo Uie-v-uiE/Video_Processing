@@ -27,7 +27,7 @@
 #       bash build/uncertainty_uniform_ab.sh --self                  # 尺子自己的对照（不起 Vivado）
 set -u
 cd "$(dirname "$0")/.."
-V=${VP_VIVADO_BIN:?VP_VIVADO_BIN 必须给（本机 Vivado 的 bin 目录，写法见 report/BUILD.md；不把某台机器的路径写死进交付脚本）}
+V=${VP_VIVADO_BIN:?VP_VIVADO_BIN 必须给（本机 Vivado 的 bin 目录，写法见 report/build.md；不把某台机器的路径写死进交付脚本）}
 WNS_REF=${WNS_REF:-build/timing_summary.rpt}
 HEADLINES=${HEADLINES:-"eth_rxc clk_fpga_0 clkout0_1 sys_clk"}
 BAND=${BAND:-0.800}

@@ -42,16 +42,16 @@ def sub(fname, old, new, label):
     io.open(os.path.join(ROOT, fname), 'w', encoding='utf-8', newline='').write(t.replace(old, new))
     print(f"OK   {fname:34s} {label}")
 
-# 1) MODULES.md：rgmii_rx 那一行
-sub('report/MODULES.md', '| `rgmii_rx` | BUFIO/IDDR(`SAME_EDGE_PIPELINED`) + IDELAYE2(FIXED, 参考 200 MHz) |',
+# 1) modules.md：rgmii_rx 那一行
+sub('report/modules.md', '| `rgmii_rx` | BUFIO/IDDR(`SAME_EDGE_PIPELINED`) + IDELAYE2(FIXED, 参考 200 MHz) |',
     f'| `rgmii_rx` | IDDR(`SAME_EDGE_PIPELINED`) **吃 BUFG**（#57 之后 IO 与 fabric 同一棵树）+ IDELAYE2(FIXED, 参考 200 MHz, `IDELAY_VALUE=26`) |',
     'rgmii_rx 行')
-# 2) ARCHITECTURE.md：输入延迟那一行（值与行号都现取）
-sub('report/ARCHITECTURE.md', f'| RGMII 输入延迟 | `IDELAY_VALUE` = 15（FIXED 抽头，参考 200 MHz） | `system_top.v:160`、',
+# 2) architecture.md：输入延迟那一行（值与行号都现取）
+sub('report/architecture.md', f'| RGMII 输入延迟 | `IDELAY_VALUE` = 15（FIXED 抽头，参考 200 MHz） | `system_top.v:160`、',
     f'| RGMII 输入延迟 | `IDELAY_VALUE` = **26**（FIXED 抽头，参考 200 MHz ⇒ 每拍 156 ps；#57 换树之后按 `4.854−3.171=1.683 ns` 补 +11 拍） | `{SYT}:{ide}`、',
     '输入延迟行')
-# 3) PERF_REPORT.md：那句"结构修法仍未做"
-sub('report/PERF_REPORT.md', 'BUFIO→BUFG 偏斜，结构修法仍未做，需要用户在板前）',
+# 3) perf_report.md：那句"结构修法仍未做"
+sub('report/perf_report.md', 'BUFIO→BUFG 偏斜，结构修法仍未做，需要用户在板前）',
     f'BUFIO→BUFG 偏斜；**结构修法已于 #57 落地**（`{RGX}:{bufg}` 一只 BUFG 同时喂 IDDR 与 fabric，'
     f'`{SYT}:{ide}` 补到 26 拍），最差那族 hold 的偏斜从 1.616 ns 变成同树内的 0.013~0.349 ns，'
     '数字本身仍在 0.8 ns 自加不确定度之下）',

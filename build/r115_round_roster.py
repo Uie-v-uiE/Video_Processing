@@ -151,7 +151,7 @@ def selftest():
 
 
 def join_and_report(a, b, out):
-    return write_round(a, b, out, "baseline 对照见 docs/timing/roster_baseline.tsv（跨构建，NOT_COMPARABLE_H3）")
+    return write_round(a, b, out, "baseline 对照见 report/timing/roster_baseline.tsv（跨构建，NOT_COMPARABLE_H3）")
 
 
 def main(argv):
@@ -159,7 +159,7 @@ def main(argv):
         return selftest()
     if len(argv) < 4:
         raise SystemExit(__doc__)
-    return write_round(argv[1], argv[2], argv[3], argv[4] if len(argv) > 4 else "baseline=docs/timing/roster_baseline.tsv")
+    return write_round(argv[1], argv[2], argv[3], argv[4] if len(argv) > 4 else "baseline=report/timing/roster_baseline.tsv")
 
 
 if __name__ == "__main__":

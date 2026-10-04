@@ -10,7 +10,7 @@ ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 def rd(p): return io.open(os.path.join(ROOT, p), encoding='utf-8', newline='').read()
 def wr(p, s): io.open(os.path.join(ROOT, p), 'w', encoding='utf-8', newline='').write(s)
 
-K = 'report/KNOWN_ISSUES.md'
+K = 'report/known_issues.md'
 t = rd(K)
 i = t.find('- **念 WHS 必须带口径**')
 endmark = '见 `src/constraints/rk_zynq7020.xdc`）'
@@ -40,7 +40,7 @@ if c == 1:
 else:
     print(f"SKIP board/README（匹配 {c} 次）")
 
-D = 'report/BUILD.md'
+D = 'report/build.md'
 t = rd(D)
 old2 = '拿隔离滚的产物做板上对照时可以 `VP_BIT=<那个目录>/system.bit`'
 new2 = '拿隔离滚的产物做板上对照时可以 `VP_BIT` 指过去'

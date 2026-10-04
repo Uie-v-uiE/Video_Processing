@@ -59,9 +59,9 @@ which arm-none-eabi-gcc          →  rc=1（PATH 上确实没有）
 要不要现在重建 ELF（它会**覆盖已入库的 `build/ps_app.elf`**，并把 #167 修复带上板，
 连带要重跑 `board_verify` 与串口电池），是队伍的决定 ⇒ Q-P16a-3。
 
-链接后那四道自检（任一不过就非零退出，**"链接成功"不等于可执行**）在 `report/BUILD.md:118-121`：
+链接后那四道自检（任一不过就非零退出，**"链接成功"不等于可执行**）在 `report/build.md:118-121`：
 `_boot`/`_vector_table`/`_start`/`main`/`MMUTable` 都在、ELF 入口 == `_boot`、`_vector_table` == 0x0、`.text` ≥ 20 KB；
-外加 `build/_scan_align.mjs` 扫非对齐 `[rN,#imm]`（`report/BUILD.md:121-122`）。
+外加 `build/_scan_align.mjs` 扫非对齐 `[rN,#imm]`（`report/build.md:121-122`）。
 Python 那条路线的退出码分三档（2 = 输入不在 / 1 = 编译链接失败 / 3 = 成品自检不过），
 理由写在 `build/build_ps_app.py:22-23`。
 
@@ -75,9 +75,9 @@ Python 那条路线的退出码分三档（2 = 输入不在 / 1 = 编译链接�
   位流、AXI GPIO 控制字、正在跑的视频流都保留（`build/tcl/ps_app_reload.tcl:6-8`）。
 - 反面对照：`board/boot27c.tcl` 第一步是 `rst -system`，会把已配好的 bit 冲掉（同文件 6-8 行写明）。
 - 成功判据（脚本 stdout，`build/tcl/ps_app_reload.tcl:10-14,26-40`）：
-  `DOW: ok`（**必须是 ok**；#235 那次就是 `tail` 截掉了这一行差点误判，`report/log/ISSUES.md:10916-10920`）、
+  `DOW: ok`（**必须是 ok**；#235 那次就是 `tail` 截掉了这一行差点误判，`report/log/issues.md:10916-10920`）、
   `PC_BEFORE_CON` 读得回来、3 秒后 `pc` 落在 `.text` 里且 `cpsr` 低位 `0x13`（SVC）、
-  `FLOW_DONE`；串口侧要看到 `[BOOT]` 横幅（`board/uart_cap_once.ps1` 抓，`report/BUILD.md:128`）。
+  `FLOW_DONE`；串口侧要看到 `[BOOT]` 横幅（`board/uart_cap_once.ps1` 抓，`report/build.md:128`）。
 - **易失**：ELF 在 DDR/OCM 里，断电或 `rst -system` 后必须重新 `dow`。
   ⇒ 三步链的最后一步永远是它（`board/bringup-checklist.md（未写）` §2）。
 
@@ -91,7 +91,7 @@ Python 那条路线的退出码分三档（2 = 输入不在 / 1 = 编译链接�
 powershell -NoProfile -ExecutionPolicy Bypass -File board/uart_cap_once.ps1 -Port COM6 -Seconds 20
 ```
 
-（本轮**没有执行**：这次运行不许开串口。命令与判据出处 `report/BUILD.md:128`、`board/README.md:49-50`。）
+（本轮**没有执行**：这次运行不许开串口。命令与判据出处 `report/build.md:128`、`board/README.md:49-50`。）
 
 ## 5. 一句话给接手的人
 

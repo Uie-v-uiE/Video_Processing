@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-# build/r92_fix_acceptance.py —— 修我自己截断 board/ACCEPTANCE.md 的那个错。
+# build/r92_fix_acceptance.py —— 修我自己截断 board/acceptance.md 的那个错。
 # 根因（写在这里免得下次再犯）：`r92_add_clocktree_row.py` 里插行时写成
 #     t = t[:m.end()] + row + '\n'
 # 少了 `+ t[m.end():]`，于是**第 9 行之后的整段（肉眼判据表 + 结论）被丢掉**，
@@ -8,9 +8,9 @@
 import io, os, subprocess, re
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-P = os.path.join(ROOT, 'board', 'ACCEPTANCE.md')
+P = os.path.join(ROOT, 'board', 'acceptance.md')
 
-full = subprocess.run(['git', '-C', ROOT, 'show', 'HEAD~2:board/ACCEPTANCE.md'],
+full = subprocess.run(['git', '-C', ROOT, 'show', 'HEAD~2:board/acceptance.md'],
                       capture_output=True, text=True, encoding='utf-8').stdout
 if full.count('\n') < 30:
     raise SystemExit("取回的版本也太短，停手别写")

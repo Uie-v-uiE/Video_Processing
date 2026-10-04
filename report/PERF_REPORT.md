@@ -2,13 +2,13 @@
 
 > **时效声明（2026-09-23 加，2026-09-26 19:5x 改指路）**：本文里的数字是 **v3 / V6.x 当时**的测量值，保留是为了能对比
 > "同一指标在不同版本上的走势"，**不要当成当前值引用**。当前值只有一处权威来源：
-> ~~`report/log/CHANGELOG_V7.md` 的「五版累计」表与 V7.9 门禁表~~ —— **这句已经过期**：CHANGELOG 最后一节是
+> ~~`report/log/changelog_v7.md` 的「五版累计」表与 V7.9 门禁表~~ —— **这句已经过期**：CHANGELOG 最后一节是
 > V7.9（R22+R23），而板子早已走到 r70/r71，照这个指路去念会念到五十多版之前的数字（这才是"引用旧值"真正的风险）。
 > 现在指**跟着构建走的那三样**，它们不需要有人记得去更新：
 >   ① 冻结件 `build/evidence_rNN/MANIFEST.md5`（三件套的 md5 + 那一轮的 `timing_summary/utilization/power/route_status/methodology/cdc.rpt`）；
 >   ② 那一轮的门禁原始输出 `build/rNN_gates.txt`（项数与阈值以 `build/gates.sh` 自己打印的为准）；
->   ③ 走势与"这一版为什么被采纳/否掉"记在 `report/log/OVERNIGHT_LOG.md` 的对应小节，问题账在 `report/log/ISSUES.md`。
-> 演示口径在 `report/DEMO_SCRIPT.md`（它的第 0 步末尾那条"只认 md5"就是"屏上跑的是哪一版"的判据）。
+>   ③ 走势与"这一版为什么被采纳/否掉"记在 `report/log/overnight_log.md` 的对应小节，问题账在 `report/log/issues.md`。
+> 演示口径在 `report/demo_script.md`（它的第 0 步末尾那条"只认 md5"就是"屏上跑的是哪一版"的判据）。
 > 同一份数字抄在第二个地方就会漂移，所以这里只给指路、不复制数值。
 
 > 版本：v3 · PL UDP offload + 右屏无极缩放 + 目标域效果 + 时序收敛  
@@ -71,7 +71,7 @@
 > 效果在它攻的那一组上：**`clkout0_1` 0.549 → 3.488 ns**（+2.94），hold 也从 0.051 变 0.066，
 > LUT 还少 53 个。但**全局 WNS 从 0.549 变成 0.287**：归属换成了 `eth_rxc`（同一组在 r74 是 0.712，
 > 这一版没有任何 eth 的 RTL 改动，是布局耦合把它压下来的 —— 这正是 r65/r64b 记过的那条"局部改动能动远处一组"）。
-> ⇒ 按 `OPTIMIZATION_LOG.md` §5 那条 A/B 规矩（两组都不许退）**这一版不是干净的 ADOPT**，
+> ⇒ 按 `optimization_log.md` §5 那条 A/B 规矩（两组都不许退）**这一版不是干净的 ADOPT**，
 > 它是"攻的那组大幅变好、没攻的那组退了一步、失败端点仍然 0、门禁全绿"（`build/r75_gates.txt`：
 > 出生时 18 项，05:41 那次重冻是 **19 项**——第 19 项是当晚后加的，三件成品的 md5 一字未变）。就这么记，不粉。
 > 下一刀的靶子从此明确且唯一：`u_lm/ms32 → gap_max/CE` 那条 14 级 / 10 CARRY4（ISSUES #95 的第二次尝试：
@@ -79,7 +79,7 @@
 
 - 跨钟 `eth_rxc ↔ clk_pix`：已异步约束，报告中无违例；`cdc.rpt` 的 Critical 行计数见门禁表。
 
-- **WNS 的绝对差不能当收益**：本设计实测过等价源码两次构建相差 0.2 ns 量级（`CHANGELOG_V7.md`
+- **WNS 的绝对差不能当收益**：本设计实测过等价源码两次构建相差 0.2 ns 量级（`changelog_v7.md`
   的 #21/#22 那一行就是这件事的证据），所以上表只报数，不比大小。
 - 最差路径的**性质**（不是数字）：r74 这一套里 setup 最差的一组又回到 `clkout0_1`（= `clk_pix` 20 ns，
   0.549 ns）——OSD 那条字符锥（ISSUES #39 那一族）；hold 最差的是 `eth_rxc` 0.001 ns（#57 的 RGMII
@@ -118,7 +118,7 @@
 
 - 历史上这里写的"LUT 10621 / FF 20253 / BRAM 83 / DSP 13"是**另一个版本**（V6 时代，效果链与
   协议栈都还没收敛）的数，保留在这里只说明一件事：这份文档曾经长期失校。
-- 历史明细（98.93 % → 64.64 % 怎么降下来的）见 `OPTIMIZATION_LOG.md`；
+- 历史明细（98.93 % → 64.64 % 怎么降下来的）见 `optimization_log.md`；
   逐实例的归属见上面 §4b（一张表就够，不用猜）。
 - 资源判据的口径是"**不为省资源牺牲功能**"：LUT/FF 都还有 80 % 以上余量，
   真正紧的是 BRAM 与 250 MHz 像素域的读口仲裁（双线性卡在这里，见 ISSUES #11/#39）。
@@ -233,9 +233,9 @@ PS CPU：主循环仅 `uart_poll`，不参与视频搬移。
 | 时序 | `build/timing_summary.rpt` |
 | 资源 | `build/utilization.rpt` |
 | 功耗 | `build/power.rpt` |
-| 架构 | `report/ARCHITECTURE.md` |
-| 优化过程 | `report/OPTIMIZATION_LOG.md` |
-| 上位机 | `report/HOST_GUIDE.md` |
+| 架构 | `report/architecture.md` |
+| 优化过程 | `report/optimization_log.md` |
+| 上位机 | `report/host_guide.md` |
 | 构建 | `build/tcl/build_system_axigpio.tcl` |
 
 ---
@@ -285,7 +285,7 @@ PS CPU：主循环仅 `uart_poll`，不参与视频搬移。
 - 板级：`node measure_v63.mjs --fps {15,30,60}`，原始输出见
   `data/measured/board_measure_*.txt`。
 
-## 11. 历史一节：r84 那块（2026-09-29 01:12）的数字——板上跑的已经不是这块（见 §11.4 与 board/ACCEPTANCE.md），见 §11.3；§11.4 是建出来但**未采纳**的 r88
+## 11. 历史一节：r84 那块（2026-09-29 01:12）的数字——板上跑的已经不是这块（见 §11.4 与 board/acceptance.md），见 §11.3；§11.4 是建出来但**未采纳**的 r88
 
 上面各节都是**按版本留档**的对照，本节只说此刻这块 bit，每个数字指名它出自哪份报告：
 
@@ -309,7 +309,7 @@ PS CPU：主循环仅 `uart_poll`，不参与视频搬移。
 
 ### 11.1 同一棵树的第二次实现（r85，2026-09-29 03:06）：数字与 r84 逐项相同，而且是**逐字节**证明的
 
-第二轮"遍历代码"（`report/OPTIMIZATION_LOG.md` 的 r85 一节：删 `split_display` 的空 `#()()`、
+第二轮"遍历代码"（`report/optimization_log.md` 的 r85 一节：删 `split_display` 的空 `#()()`、
 修 `split_ctrl` 那个**零宽字面量**、两项只改注释并写明为什么不修）之后重跑一轮实现，产物写在旁边
 （`build/roll_isolated.sh`，不覆盖本节引用的那些报告）：
 
@@ -329,7 +329,7 @@ PS CPU：主循环仅 `uart_poll`，不参与视频搬移。
   ⚠ 这是 **r85 那天的读数**：#139 那一刀把"满"晚一拍落地之后，同一台架同一 `+GAP0` 压力在 r88 量到的是 **8192/8192**
   （`build/r88_packer_peak_gap0.txt`，见 §11.4）—— 结论不变（这 8192 格是被填满的，深度不许降），但别把 8191 当现状读）
 与 `ISSUES #121`（同一族最差路径 **6 级逻辑 / route 71 %** ⇒ #105 的杠杆应从"改算术"改向"把路径变短"；
-  算术那一刀已于 r88 落地并留下族计数凭据，物理那一侧仍未动，见 §11.4 与 `OPTIMIZATION_LOG.md` 的 Pblock 规格行）。
+  算术那一刀已于 r88 落地并留下族计数凭据，物理那一侧仍未动，见 §11.4 与 `optimization_log.md` 的 Pblock 规格行）。
 
 ### 11.2 r86 那天板上那一版（2026-09-29 05:39 实现）：`#124` 那一刀切断了它瞄准的那一族，WNS 却没有转正
 
@@ -363,7 +363,7 @@ PS CPU：主循环仅 `uart_poll`，不参与视频搬移。
 
 ### 11.3 当时的板上那一版（r87，2026-09-29 10:0x 实现、10:1x 下板）：全设计 WNS **第一次转正**，但这一版当时还没有门禁输出
 
-位流 `1818ce4be15e` / PS 应用 `d0b07f84a068`（认 md5 不认文件名，见 `board/VERIFY_r87.md`）。
+位流 `1818ce4be15e` / PS 应用 `d0b07f84a068`（认 md5 不认文件名，见 `board/verify_r87.md`）。
 
 | 指标 | r87 读数 | 出处与读法 |
 |---|---|---|
@@ -372,16 +372,16 @@ PS CPU：主循环仅 `uart_poll`，不参与视频搬移。
 | 最差那一条 | `u_eth/u_cdc/wbin_reg[0]/C → u_cdc/mem_reg_0/ENARDEN`，**8 级逻辑**，`logic 2.467 ns (34 %) / route 4.769 ns (66 %)` | 同上（第 366 行起那一段）。这一条就是 §11.4 那一刀瞄准的对象 |
 | BRAM / LUT / FF / DSP | **95 tile（67.86 %）/ 14363（27.00 %）/ 8075（7.59 %）/ 19（8.64 %）** | `build/r87_utilization.rpt`；LUT 里 4044 是分布式 RAM |
 | 功耗 | 动态 **2.205 W**、估算结温 **52.5 °C**（工具置信度 **Low**，无仿真活动文件、无实测） | `build/r87_power.rpt`；这是估算不是读数，讲的时候要说"估算" |
-| SD 本地播放 | **29.8 – 30.0 fps**（100 帧滑窗，板上读回） | `data/metrics.csv` 那两行，逐行指到 `board/VERIFY_r87.md` |
+| SD 本地播放 | **29.8 – 30.0 fps**（100 帧滑窗，板上读回） | `data/metrics.csv` 那两行，逐行指到 `board/verify_r87.md` |
 | 门禁 | **当时没有跑过** ⇒ r87 不是"过门禁的一版"；**也补不回来** | 门禁判的是**当前工作树**的 `src/rtl` 指纹与 `build/` 那套报告/位流的**配对**，§11.4 之后树已经前进 ⇒ 现在复跑得到的那份属于 r88、不属于 r87。真要 r87 的门禁读数，得回退到那一版源码**并重跑一次构建**，这一轮没做。第一份 20 项全部判定的读数是 r88 自己的 `build/evidence/r88_gates.txt`；`doc_currency_check` 认的最新全绿冻结集仍是 **r75** |
 
-### 11.4 r88（2026-09-29 15:3x，隔离构建 `build/r88_exp/`，位流 `be753623afb8`）：`u_cdc` 那一族从最差名单里整族消失；**不作"过门禁的一版"；这一版已经烧进板子并全套验完（验收表 `board/ACCEPTANCE.md`）**
+### 11.4 r88（2026-09-29 15:3x，隔离构建 `build/r88_exp/`，位流 `be753623afb8`）：`u_cdc` 那一族从最差名单里整族消失；**不作"过门禁的一版"；这一版已经烧进板子并全套验完（验收表 `board/acceptance.md`）**
 
 | 指标 | r87 | r88 | 该怎么读 |
 |---|---|---|---|
 | 全设计 WNS | +0.152（最差在 `eth_rxc`） | **+0.516（最差仍在 `eth_rxc`）**；失败 setup/hold 均 **0 / 50885**，报告原话 "All user specified timing constraints are met" | **这 0.364 ns 不记成收益**：本仓实测过的放置摆幅就是 0.4 ns 量级（§11.2 第②条）。可以当凭据的是下面那行"族消失" |
-| 最差那一族 | `u_cdc/wbin_reg → mem_reg_N/ENARDEN` 占 8 条里 **6 条**（r85 同一把尺子的数），8 级逻辑 | **0 条 / 8**；`eth_rxc` 最差那族降到 **4 级**，最差变成自算 FCS 的 `u_rgmii_rx → u_rx_mac/u_crc_rx` 与 `u_icmp_rx` 的 FSM | 尺子是同一个 `build/tcl/crit_path.tcl`：`build/r88_crit_paths.txt`（r85 那份原样留着给 #121 引用）。改动本体见 `report/log/ISSUES.md` **#139** |
-| BRAM / LUT / FF / DSP | 95 / 14363 / 8075 / 19 | **95 / 14358（26.99 %）/ 8075 / 19** | −5 个 LUT，就是"没有资源收益"。资源这一轮的产出是**两条否定结论 + 一张归属表**，见 `report/OPTIMIZATION_LOG.md` |
+| 最差那一族 | `u_cdc/wbin_reg → mem_reg_N/ENARDEN` 占 8 条里 **6 条**（r85 同一把尺子的数），8 级逻辑 | **0 条 / 8**；`eth_rxc` 最差那族降到 **4 级**，最差变成自算 FCS 的 `u_rgmii_rx → u_rx_mac/u_crc_rx` 与 `u_icmp_rx` 的 FSM | 尺子是同一个 `build/tcl/crit_path.tcl`：`build/r88_crit_paths.txt`（r85 那份原样留着给 #121 引用）。改动本体见 `report/log/issues.md` **#139** |
+| BRAM / LUT / FF / DSP | 95 / 14363 / 8075 / 19 | **95 / 14358（26.99 %）/ 8075 / 19** | −5 个 LUT，就是"没有资源收益"。资源这一轮的产出是**两条否定结论 + 一张归属表**，见 `report/optimization_log.md` |
 | 功耗 | 2.205 W / 52.5 °C | **2.205 W / 52.5 °C**（同一套估算前提，置信度仍 Low） | 逐项相同 ⇒ 这一刀不以功耗为代价，也不宣称省电 |
 | 门禁 | 未跑 | **两步，两份都留着**：① 采纳进 `build/` 之前（拿隔离目录当参数）18 项判定全过、2 项因缺同跑台架凭据未判 ⇒ `GATES: PARTIAL`、rc=1（`build/r88_gates_partial.txt`）；② 采纳后复跑 **20 项全部判定：19 绿 + 1 红**（红的就是第 15 项顶层台架里那行 `C5c`，#98 故意留红）⇒ `GATES: 有红项（判定 20 项）`、rc=1（`build/evidence/r88_gates.txt`），`freeze_evidence.sh 88` 按规则 REFUSE（`build/evidence/r88_freeze_attempt.txt`） | ⚠ 这一轮顺手修了门禁自己的一处作用范围漏洞（**#141**）：改前同一份报告会打出 `GATES: ALL PASS`、rc=0（`build/r88_gates_naive.txt`）——"我把尺子修快了"这句话靠这三份同目录的报告才有凭据。⇒ r88 不是"过门禁的一版"，冻结集继续是 **r75** |
 
@@ -389,7 +389,7 @@ PS CPU：主循环仅 `uart_poll`，不参与视频搬移。
 93 块 RAMB36 里 `u_pl/u_bilin` 一家占 **80**（93 是 `RAMB36/FIFO*` 的**单元**数，§11.3/§11.4 那个 **95** 是 **Block RAM Tile** 数：4 块 RAMB18 两两拼进 2 个 tile ⇒ 93 + 2 = 95，两把尺子都对，念的时候要说是哪一把） —— 就是那帧 512×300×RGB565 显示缓存，
 所以 BRAM 那 67.86 % **不是冗余，是画面本身**；4044 个 RAMD64E 里效果链四个 3×3 窗口级占 **2912（72 %）**，
 打包器 928（#140 量过：线速连灌下 512/512 填满 ⇒ 承重的）。唯一的大杠杆（把效果链从 ×2 展开之后挪到之前，
-行缓存与它的 MUXF7 树一起减半）连同**为什么这一版不动它**，写在 `report/OPTIMIZATION_LOG.md` 那一节。
+行缓存与它的 MUXF7 树一起减半）连同**为什么这一版不动它**，写在 `report/optimization_log.md` 那一节。
 
 ### 11.5 r92（2026-09-30 04:2x–04:5x，正式件 `build/system.bit` md5 `883dd3b7654d`，已烧板）：**#57 那一刀落地 —— 偏斜消掉，WHS 数字不动**，这两件事必须分开念
 
@@ -400,7 +400,7 @@ PS CPU：主循环仅 `uart_poll`，不参与视频搬移。
 | 逐时钟 setup | `eth_rxc` +0.516 / `clk_fpga_0` +1.643 / `clkout0_1` +1.177 | +0.522 / **+2.161** / **+0.885** | 三个域各自的 8/10/20 ns 周期，占比 6.5 % / 21.6 % / 4.4 % |
 | **最差那 20 条 hold 的时钟偏斜** | **+1.616 ns**（发射端 BUFIO、接收端 BUFG，两条树） | **0.013 / 0.032 / 0.037 / 0.262 / 0.349 ns**（同一棵树内） | **这才是本轮的收益**：尺子 `build/tcl/hold_paths.tcl` → `build/hold_paths.rpt`。#80 的机制判断被证实并消除 |
 | 改动本体 | — | `src/rtl/eth/rgmii_rx.v`（删掉 BUFIO 那一只，5 个 IDDR 与下游吃同一只 BUFG）＋ `system_top.v:162` `IDELAY_VALUE` 15→26 | 补拍算术：`4.854−3.171=1.683 ns` ÷ `1/(32×200 MHz)=156 ps/拍` ⇒ +10.8 拍，取 +11 |
-| 功能（**唯一能判采样点的尺子**：`src/constraints/` 无 `set_input_delay`，报告看不见眼图） | 100 条命令电池 + 推流 0 丢字 | 板上实流量 `--demo --fps 25`：**2501 帧 / 100.05 s = 25.00 fps、552721 包**；推流中 `pkts=184315`、`bytes=390417344`、`drop_words=0`、`丢过字=0`、`stall_ms=0`、`心跳：正常`、`Latency=6ms↔tot/100000=6`；`RESULT PASS uart_cmd_check (100 条命令, 92.9 s)`、`RESULT board_verify PASS（判红的步骤：0）` | 凭据 `build/evidence/r92_flash_*.txt`、`build/evidence/r92_tx.txt`、`build/evidence/r92_health.txt`、`verify_0930_0424.txt`。**E1–E3 眼睛判据仍待**（`board/ACCEPTANCE.md`） |
+| 功能（**唯一能判采样点的尺子**：`src/constraints/` 无 `set_input_delay`，报告看不见眼图） | 100 条命令电池 + 推流 0 丢字 | 板上实流量 `--demo --fps 25`：**2501 帧 / 100.05 s = 25.00 fps、552721 包**；推流中 `pkts=184315`、`bytes=390417344`、`drop_words=0`、`丢过字=0`、`stall_ms=0`、`心跳：正常`、`Latency=6ms↔tot/100000=6`；`RESULT PASS uart_cmd_check (100 条命令, 92.9 s)`、`RESULT board_verify PASS（判红的步骤：0）` | 凭据 `build/evidence/r92_flash_*.txt`、`build/evidence/r92_tx.txt`、`build/evidence/r92_health.txt`、`verify_0930_0424.txt`。**E1–E3 眼睛判据仍待**（`board/acceptance.md`） |
 | 资源 / 功耗 | 95 tile / 14358 LUT / 8075 FF / 19 DSP；2.205 W、52.5 °C | 95 tile / **14351** / 8075 / 19；**2.204 W**、52.5 °C（估算，置信度 Low） | −7 个 LUT；少一只 BUFIO。功耗与结温按同一套估算前提，不宣称省电 |
 | 门禁 | 20 项判定、1 红（`C5c`/#98） | **20 项判定、1 红**（`build/r92_gates.txt`）：第 16 项边缘条带 `PASS`（`rtl=c8bf35eb19e5` 与树一致），第 15 项的红就是那条一直在的 `C5c`（`tb_v98` 138 行、`nfail=1`，无新增失败） | 与 r88/r90 同形 ⇒ 冻结集继续是 **r75**，采纳凭的是板上那套（0 丢字 + 100 条电池 + 判红步骤 0） |
 ### 11.6 r94（2026-09-30 12:1x–12:5x，正式件 `build/system.bit` md5 `a1465f29c9e4`，已烧板）：几何两刀 + 巡检防呆，时序只是"顺手量了一遍"
@@ -408,7 +408,7 @@ PS CPU：主循环仅 `uart_poll`，不参与视频搬移。
 | 指标 | r92 板上那版（`883dd3b7654d`） | r94 | 该怎么读 |
 |---|---|---|---|
 | 全设计 setup WNS | +0.522（最差在 `eth_rxc`） | **+0.553**（最差仍在 `eth_rxc`，占它 8 ns 周期的 6.9 %） | 0.031 ns **不记收益**：同一条路实测摆过 0.4 ns（规矩 35）。可以当凭据的只有"最差仍在同一条路" |
-| 全设计 hold WHS | +0.037（最差在 100 MHz 域） | **+0.049**（`clk_fpga_0` 与 `eth_rxc` 两格都是 +0.049/+0.060） | 同样**不记收益**；且念 WHS 要先问是哪一格（`eth_rxc` 那一格吃自加的 0.8 ns hold 不确定度，见 `report/KNOWN_ISSUES.md` 二.1） |
+| 全设计 hold WHS | +0.037（最差在 100 MHz 域） | **+0.049**（`clk_fpga_0` 与 `eth_rxc` 两格都是 +0.049/+0.060） | 同样**不记收益**；且念 WHS 要先问是哪一格（`eth_rxc` 那一格吃自加的 0.8 ns hold 不确定度，见 `report/known_issues.md` 二.1） |
 | 逐时钟 setup | `eth_rxc` +0.522 / `clk_fpga_0` +2.161 / `clkout0_1` +0.885 | +0.553 / **+0.970** / **+1.089** | 两个内时钟各自摆了 1 ns 以上而设计最差只动 0.031 ⇒ **这就是放置噪声的形状**，不是"某一族被改好了" |
 | 失败端点 | 0 / 50885 | **0 / 50883** | 端点总数自己会变（这一版少了 2 个 FF 端点：`zoom_ctrl` 的钳制是组合项，没加寄存器） |
 | 改动本体 | — | `zoom_mapper.v`（#104 旋转支小数位）、`zoom_ctrl.v`+`pl_video_top.v`（#93 旋转态钳进 fit，新端口 `rotate_en`/`rot_forced`）、`eth_udp_video_top.v`（#158 显式传 `FRAME_BYTES`） | 三处都不在关键锥的设计意图里；实测它们**没有把 WNS 拖下去**，仅此而已 |

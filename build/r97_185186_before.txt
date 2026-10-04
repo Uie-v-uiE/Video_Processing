@@ -1,5 +1,5 @@
 # r97 树（rtl_md5 见下面 prov）上的**改前红**凭据：#185 / #186 两把尺子（T17/T18）
-# 跑法：bash sim/run_one.sh tb_v90_latency   rc=3（3=判红，正是期望的形状）
+# 跑法：bash build/sim/run_one.sh tb_v90_latency   rc=3（3=判红，正是期望的形状）
 # 树指纹（编译之前记的，prov.txt）：
 top_md5=9d32e3019891
 tb_md5=1687895aa708

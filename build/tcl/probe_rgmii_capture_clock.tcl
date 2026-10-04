@@ -1,9 +1,9 @@
 # build/tcl/probe_rgmii_capture_clock.tcl —— C2 那一刀在**网表层**的机制凭据（G7 的可替身）
 #
 # 为什么要有这一支（不是拿报告当装饰）：
-#   本机 xsim **没有 UNISIM 行为库**（件 `sim/prim/MMCME2_BASE.v` 文件头记着 2026-09-25 的实测：
+#   本机 xsim **没有 UNISIM 行为库**（件 `sim/prim/mmcme2_base.v` 文件头记着 2026-09-25 的实测：
 #   `xelab` 报 `Module <MMCME2_BASE> not found`），而 `sim/prim/` 里**没有** IDDR / IDELAYE2 / IDELAYCTRL 的占位件
-#   （23:36 实测 `ls sim/prim/` 只有 MMCME2_BASE.v 与 unisims_sim.v）。
+#   （23:36 实测 `ls sim/prim/` 只有 mmcme2_base.v 与 unisims_sim.v）。
 #   并且那只 MMCM 占位件自己明写"**不能验相位**（PHASE 一律 0）"。
 #   ⇒ 结论：这一刀改的就是**采样相位**，现有仿真台架**看不见它**。
 #     硬编一个"能跑但看不到改动"的台架来交 G7，就是造一条恒绿的尺子（附录 1：空集/零样本不许算通过）。

@@ -1,10 +1,10 @@
 #!/usr/bin/env python3
-# build/r94_known_issues.py —— 把 KNOWN_ISSUES.md 第一节里"这版没修"的三条改成"已修 + 代价 + 凭据"，
+# build/r94_known_issues.py —— 把 known_issues.md 第一节里"这版没修"的三条改成"已修 + 代价 + 凭据"，
 # 并把 r94 只读巡检的四条候选挂到同一节末尾。按**标题行**切片，不做多行字符串匹配（CRLF 会静默失配）。
 import io, os
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-P = os.path.join(ROOT, 'docs', 'KNOWN_ISSUES.md')
+P = os.path.join(ROOT, 'docs', 'known_issues.md')
 raw = io.open(P, encoding='utf-8', newline='').read()
 NL = '\r\n' if '\r\n' in raw else '\n'
 lines = raw.split(NL)
@@ -29,9 +29,9 @@ BLOCK = """### 2. 旋转支上的双线性小数位（`#104`）—— **本轮�
   只接小数不减那一格会在旋转态整体错一行 —— 画面上是沿角度方向的一条剪切。台账与判据形状见 `#162`。
 - **复现（两半都在盘上）**：改前的红 `build/r94_zoomfrac_console.txt`（298 行 FAIL）；改后的绿
   `build/r94_zoomfrac_final.txt`（独立逐像素判据 128 次比较 0 失配；旋转态 99/99 个像素带非零小数）。
-  重跑：`bash sim/run_one.sh tb_zoom_frac`。
+  重跑：`bash build/sim/run_one.sh tb_zoom_frac`。
 - **当时为什么没修 / 现在动了什么**：位宽改动会进时序关键锥。这一轮确实动了它，所以时序那一侧的读数
-  **只在 `build/` 的 `timing_summary` 里说**（见第二节第 1 条与 `report/OPTIMIZATION_LOG.md` 的 r94 段），
+  **只在 `build/` 的 `timing_summary` 里说**（见第二节第 1 条与 `report/optimization_log.md` 的 r94 段），
   本文不写"余量变好/变差了多少 ns"。眼睛判据（`rot 30` 前后边缘锯齿）**还没复验**，不进"已验证"那一栏。
 
 ### 3. 大角度旋转的角点出屏（`#93`）—— **本轮（r94）已修，代价写在下面**
@@ -47,7 +47,7 @@ BLOCK = """### 2. 旋转支上的双线性小数位（`#104`）—— **本轮�
   但用户那一档**不丢**（`inv_scale` 保持原值），关掉旋转立刻回去；② 角度正好 0° 且旋转开着时也在钳
   （`zoom_fit` 的 ±0.5 LSB 表余量给 0° 的是 259 而不是 256 ⇒ 画面差 1.2 %、约 6 个源列）；
   ③ `zoom fit 0` **解不开**这一钳 —— 钳的是"旋转在不在生效"，不是 fit 开关（讲稿那句已改）。
-- **复现**：`bash sim/run_one.sh tb_v94_zoom_sel` 看 T8a~T8f；把钳制关掉做变异对照时**恰好** T8b/T8c/T8e 红
+- **复现**：`bash build/sim/run_one.sh tb_v94_zoom_sel` 看 T8a~T8f；把钳制关掉做变异对照时**恰好** T8b/T8c/T8e 红
   （`build/r94_rotfit_mutation.txt`），恢复后六条全绿（`build/r94_rotfit_after.txt`）。
   屏上"整幅到底在不在框内"由眼睛判，**这一条还没走眼睛复验**（配方：`rot auto` 起转到 45°/60°，看角点）。
 
@@ -75,11 +75,11 @@ BLOCK = """### 2. 旋转支上的双线性小数位（`#104`）—— **本轮�
   这条不是运行时现象、机会计数探针数不到，正确的尺子是构建期参数检查 —— 记在工具欠账那一堆，不记成"缺陷已修"。
 - **`#159`/`#160`/`#161`（只记录）**：CDC 胶水里 `cdc_d1_v` 比数据早一拍；`src_mode` 的覆盖路径可能一次翻两位、
   破坏格雷码契约（被 20 ms 滞回吃掉 ⇒ 只污染 `why_ps`/lane30 读数）；整链异步复位是"两个异步源的与门"。
-  三条都**没有能数出机会的探针**，`report/log/ISSUES.md` 里逐条写了验证配方：先跑配方拿到非零计数，再谈改代码。
+  三条都**没有能数出机会的探针**，`report/log/issues.md` 里逐条写了验证配方：先跑配方拿到非零计数，再谈改代码。
 """
 
 out = lines[:S2] + BLOCK.split('\n') + lines[SEC2:]
 new = NL.join(out)
 assert len(new) > len(raw), '重写后变短了：中止（当年踩过这个坑，见 #155）'
 io.open(P, 'w', encoding='utf-8', newline='').write(new)
-print('KNOWN_ISSUES.md %d -> %d 行' % (len(lines), len(out)))
+print('known_issues.md %d -> %d 行' % (len(lines), len(out)))

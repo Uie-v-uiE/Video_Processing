@@ -29,7 +29,7 @@ python build/r115_roster_build.py build/timing_summary.rpt build/evidence/r117/r
 say "roster build rc=$? $(tail -1 build/r117_roster_build_console.txt)"
 python build/r115_round_roster.py build/evidence/r116_roster_e1.tsv build/evidence/r117_roster_e1.tsv \
     docs/timing/roster_round117.tsv \
-    "A=build/evidence/r116_roster_e1.tsv（r116 官方件）；B=build/evidence/r117_roster_e1.tsv（r117 官方件，来源 build/timing_summary.rpt + build/evidence/r117/r117_check_timing.txt）。本轮问题只有一个：C9 这一刀有没有让任何一格变差（G1），以及 eth_rxc 两格是否逐格不动（它不吃这一刀）。基线对照仍在 docs/timing/roster_round116.tsv" \
+    "A=build/evidence/r116_roster_e1.tsv（r116 官方件）；B=build/evidence/r117_roster_e1.tsv（r117 官方件，来源 build/timing_summary.rpt + build/evidence/r117/r117_check_timing.txt）。本轮问题只有一个：C9 这一刀有没有让任何一格变差（G1），以及 eth_rxc 两格是否逐格不动（它不吃这一刀）。基线对照仍在 report/timing/roster_round116.tsv" \
     > build/r117_round_roster_console.txt 2>&1
 say "E1 表 rc=$? $(grep -a 'ROUND written' build/r117_round_roster_console.txt | head -1)"
 
@@ -47,6 +47,6 @@ grep -a "^RED " build/r117_rotation_checklist.txt | head -30
     echo "E1 表:        docs/timing/roster_round117.tsv"
     echo "改口清单:      build/r117_rotation_checklist.txt（RED 行 = 交付文档还没跟上的数）"
     echo "I/O 复核:     build/evidence/r117/{r117_check_timing.txt,r117_io_HOLD.rpt,r117_io_SETUP.rpt}"
-    echo "板侧（若已刷）: build/evidence/r117_board/BOARD_NOW.txt"
+    echo "板侧（若已刷）: build/evidence/r117_board/board_now.txt"
 } > build/r117_post_done.txt
 say "写在 build/r117_post_done.txt"

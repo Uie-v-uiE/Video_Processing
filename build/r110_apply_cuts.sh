@@ -132,7 +132,7 @@ fi
 echo "== 结论 =="
 if [ "$fail" = 0 ]; then
     if [ "$MODE" = "--apply" ]; then
-        echo "APPLIED 落刀完成 —— 顺序：① bash sim/run_one.sh tb_link_monitor（约 40 秒，F2e 必须整支绿）"
+        echo "APPLIED 落刀完成 —— 顺序：① bash build/sim/run_one.sh tb_link_monitor（约 40 秒，F2e 必须整支绿）"
         echo "          ② bash build/timing_lane.sh（约 9 分钟，与 r109 基线比：只许 tb_link_monitor 那支从红变绿）"
         echo "          ③ bash build/r110_chain.sh（构建+探针+台架+门禁；收益判据 = 那条 CE 的 fo 离开 316）"
     else

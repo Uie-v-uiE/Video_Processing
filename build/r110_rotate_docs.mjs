@@ -20,11 +20,11 @@ const RULES = [
      '（r110 这一刀的代价与收益：行覆盖使能独热化让 `u_reasm` 自己少 66 个 LUT／18 个寄存器'
      + '（OOC 两腿实测，`build/evidence/r110_attrib.txt`），全设计 14362→14119／8162→8154；'
      + '差额里归不到这把刀的那部分不写成收益）', 1],
-  ['README.en.md', '资源行里 rotator 写坏的百分数', '26\\.54\\.00 %', '26.54 %', 1],
-  ['README.en.md', '逐时钟 clkout0_1 余量%', '20\\.47 %\\)', '18.995 %)', 1],
-  ['README.en.md', '归属段里那句 20.47 %', '20\\.47 % after r109 registered the OSD read path',
+  ['readme.en.md', '资源行里 rotator 写坏的百分数', '26\\.54\\.00 %', '26.54 %', 1],
+  ['readme.en.md', '逐时钟 clkout0_1 余量%', '20\\.47 %\\)', '18.995 %)', 1],
+  ['readme.en.md', '归属段里那句 20.47 %', '20\\.47 % after r109 registered the OSD read path',
      '18.995 % after r110 one-hot-ised the row-set enable', 1],
-  ['README.en.md', '身份句里的 bit md5', '21227687e925', '2bf95588978f', 1],
+  ['readme.en.md', '身份句里的 bit md5', '21227687e925', '2bf95588978f', 1],
   ['data/metrics.csv', '全局 setup WNS', ',0\\.605,ns,', ',0.713,ns,', 1],
   ['data/metrics.csv', 'WNS 行的轮次与端点数', '本轮（r109）实现完成后 Vivado 报的 Design Timing Summary 第一列；端点总数 51029',
      '本轮（r110）实现完成后 Vivado 报的 Design Timing Summary 第一列；端点总数 51013', 1],

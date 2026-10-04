@@ -16,7 +16,7 @@
 ##       Tcyc @1000 Mbps                                                      7.2 / 8 / 8.8 ns
 ##     ⇒ 这一族数**取代**了 `r114_io_async.xdc:39-43` 里那个 ±0.500：±0.5 是同一张表里 **TskewT**
 ##       （发射端**没有**内部延迟时的输出偏差）的数，用错了行；那条已经写进
-##       `docs/timing/rgmii_window_model.md` §6。
+##       `report/timing/rgmii_window_model.md` §6。
 ##
 ## 为什么取 min 1.000 / max 2.600（而不是"猜 PHY 的延迟开着/没开"）：
 ##   RTL8211F 的 TXDLY/RXDLY 与 RXD1/RXD0 复用（原理图 `ZYNQ7020-F+V1.1原理图.pdf` 第 8 页引脚表：
@@ -28,7 +28,7 @@
 ## 为什么现在还不加载（H1/G3 与顺序）：
 ##   绑上任何窗之后，现行 `eth_rxc` 的 hold 会报负（±0.5 窗实测 −2.885，件
 ##   `build/evidence/r114_io_roll_console5.txt`；换成这里这组数预测 ≈ −3.02，推导见
-##   `docs/timing/rgmii_window_model.md` §6）。负读数本身不是坏事，它是债显形；
+##   `report/timing/rgmii_window_model.md` §6）。负读数本身不是坏事，它是债显形；
 ##   但**采纳顺序必须是先 C2（把捕获沿提前 5.000 ns）再绑窗**，否则这一轮的"没有任何域变差"这一条
 ##   会被两笔债同时压着，分不清是哪笔。C2 的证伪在 `c2_scratch_1003` 丢弃副本树里跑，判据 S1–S5 已预登记。
 ##
@@ -43,4 +43,4 @@ set_input_delay -clock eth_rxc -clock_fall -min  1.000 [get_ports {eth_rxd[*] et
 ## 输出侧那 6 个端口（`tmds_clk_p`、`tmds_data_p[0..2]`、`led[0]`、`led[1]`）**这里故意不写**：
 ## 需要 DVI/HDMI 接收端或面板的窗口数，本机板级资料（用户手册 + 原理图 + 芯片手册目录）里没有这一项，
 ## 2026-10-03 试过在线取 DVI 规范原文也没取到可引用的一页。
-## ⇒ **没有来源就不写数**，继续挂在 `docs/timing/debt_ledger.md` §2 当债，不许用"看起来宽松"的数凑绿灯。
+## ⇒ **没有来源就不写数**，继续挂在 `report/timing/debt_ledger.md` §2 当债，不许用"看起来宽松"的数凑绿灯。

@@ -63,9 +63,9 @@ grep -a "LANE-SUMMARY" "build/r${NN}_lane_after.txt"
 
 # ⑤ 顶层台架 + rim（一轮只付这一次）
 say "顶层台架（实测约 70–128 分钟）"
-bash sim/run_one.sh tb_v98_top_seam > "build/r${NN}_tb98_console.txt" 2>&1; say "tb_v98 rc=$?"
+bash build/sim/run_one.sh tb_v98_top_seam > "build/r${NN}_tb98_console.txt" 2>&1; say "tb_v98 rc=$?"
 bash build/tb98_report.sh > "build/r${NN}_tb98report_console.txt" 2>&1; say "tb98_report rc=$?"
-bash sim/run_one.sh tb_edge_rim > "build/r${NN}_rim_console.txt" 2>&1; say "rim rc=$?"
+bash build/sim/run_one.sh tb_edge_rim > "build/r${NN}_rim_console.txt" 2>&1; say "rim rc=$?"
 ROUND=r$NN bash build/rim_report.sh > "build/r${NN}_rimreport_console.txt" 2>&1; say "rim_report rc=$?"
 
 # ⑥ 门禁（两跑要逐字节一致）

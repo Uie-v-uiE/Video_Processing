@@ -2,7 +2,7 @@
 
 器件 `xc7z020clg484-2`、综合顶层 `system_top`（`build/tcl/build_system_axigpio.tcl:5,232`）、
 Vivado / Vitis 2025.2.1。本文只描述**当前代码里的结构**，每条断言给 `文件:行号`；
-改动过程与历史数字在 `report/log/ISSUES.md`、`report/log/OVERNIGHT_LOG.md`（追加式档案），不搬到这里。
+改动过程与历史数字在 `report/log/issues.md`、`report/log/overnight_log.md`（追加式档案），不搬到这里。
 第二块板（RK-XCKU5P-F）的工程已于 2026-09-28 从仓库撤出（`ku5p/` 整棵树删除），本文只讲这一块板。
 
 ## 1. 数据从哪里来、到哪里去
@@ -155,4 +155,4 @@ lane0~9 是链路健康计数（`src/rtl/eth/link_monitor.v:187-196`），lane23
 | `osd_overlay` | `tb_osd_lines`、`tb_v794_osd_glyph` | — |
 | `link_monitor` / `snap_cross` | `tb_link_monitor` | — |
 | 手写文档的编码、"把旧构建念成当前" | 无需台架 | 第 17 项 `doc_enc_check.mjs`、第 18 项 `doc_currency_check.mjs`、第 19 项排练脚本比对 |
-| 约束、CDC 结构 | 无需台架 | 第 1~11 项读 Vivado 报告；第 6 项按 `build/CDC_BASELINE.txt` 的**配对集合**判，新增配对或 unsafe 增长即红 |
+| 约束、CDC 结构 | 无需台架 | 第 1~11 项读 Vivado 报告；第 6 项按 `build/cdc_baseline.txt` 的**配对集合**判，新增配对或 unsafe 增长即红 |

@@ -14,8 +14,8 @@ const APPLY = process.argv.includes('--apply');
 const RULES = [
   ['README.md', '① 首页 WNS 行首去掉反斜杠', '\\| 全设计 setup WNS \\| **0.445 ns**', '| 全设计 setup WNS | **0.445 ns**', 1],
   ['README.md', '② 板级校验件对回真实路径', 'build/r113_board_verify_console.txt', 'build/evidence/r113_board_verify_console.txt', 2],
-  ['README.en.md', '① 首页 WNS 行首去掉反斜杠', '\\| Design-wide setup WNS \\| **0.445 ns**', '| Design-wide setup WNS | **0.445 ns**', 1],
-  ['README.en.md', '② 板级校验件对回真实路径', 'build/r113_board_verify_console.txt', 'build/evidence/r113_board_verify_console.txt', 2],
+  ['readme.en.md', '① 首页 WNS 行首去掉反斜杠', '\\| Design-wide setup WNS \\| **0.445 ns**', '| Design-wide setup WNS | **0.445 ns**', 1],
+  ['readme.en.md', '② 板级校验件对回真实路径', 'build/r113_board_verify_console.txt', 'build/evidence/r113_board_verify_console.txt', 2],
 ];
 let bad = 0, hit = 0;
 const cache = {};

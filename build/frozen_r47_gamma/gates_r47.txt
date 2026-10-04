@@ -15,5 +15,5 @@
   布线错误网线     0            == 0                         PASS
   cdc.rpt Critical 行   3            基线 4 行，配对不新增 PASS
 
-端点总数 28122；CDC 现在按 build/CDC_BASELINE.txt 的**配对集合**判，功耗仍要人比有没有变差。
+端点总数 28122；CDC 现在按 build/cdc_baseline.txt 的**配对集合**判，功耗仍要人比有没有变差。
 GATES: ALL PASS

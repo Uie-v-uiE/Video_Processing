@@ -1,7 +1,7 @@
 # 台架（`sim/`）清单与去留
 
 这里不是教程（怎么写台架、判据为什么要能红：见 `skill/pitfalls/criterion-blind-spot/SKILL.md`、
-`skill/references/bench-self-inflicted-reds/SKILL.md`，以及 `report/AI_COLLABORATION.md` §4 那一串案例）。
+`skill/references/bench-self-inflicted-reds/SKILL.md`，以及 `report/ai_collaboration.md` §4 那一串案例）。
 这一页只回答两个问题：**这些 `tb_*.v` 是怎么被跑起来的**，
 以及**哪一个在看着什么**。
 
@@ -9,7 +9,7 @@
 
 一条判据说自己抓住了某个缺陷，唯一的凭据是**把那个缺陷装回去，它必须变红**。本仓有两个入口：
 
-- `bash sim/mut_control.sh <tb名> <判据名>`：机械装回**已修好的那一刀**（#103 的 C10f 就是这么补上凭据的）。
+- `bash build/sim/mut_control.sh <tb名> <判据名>`：机械装回**已修好的那一刀**（#103 的 C10f 就是这么补上凭据的）。
   它把整个 `src/rtl` 复制到 `/tmp` 下的副本里，用固定的几条 `sed` 还原改前的延迟线写法，
   **diff 必须恰好是那几行**否则直接退出；然后只编译"变异体 + 目标台架"，断言指定的那条判据变红。
   因为它不动 `src/rtl`，所以在跑的构建与台架报告的 `rtl_md5` 都不会被作废——这是它存在的理由。
@@ -18,15 +18,15 @@
   `node src/host/doc_enc_check.mjs --self`）。要求是"每条故意坏掉的输入**只**红在它对应那一格"，
   并且**必须有一条正对照是绿的**——不然一个"永远红"的判据会被误当成有牙。
 
-执行过的记录都在 `report/log/ISSUES.md`：#103（C10f 红→绿一对）、#124（E1/E2 的 drop 两条红在 134/32、201/48，
+执行过的记录都在 `report/log/issues.md`：#103（C10f 红→绿一对）、#124（E1/E2 的 drop 两条红在 134/32、201/48，
 ep 两条仍绿）、#93（C9 族）、#102（边缘条带四条圈）。
 
 ## 跑法
 
 两个入口，都是**通配符收全部** `sim/tb_*.v`：
 
-- `sim/run_sim.tcl` —— L1 全量批跑；
-- `sim/run_one.sh <tb名>` —— 单跑一个。它在**编译之前**给顶层 / 台架 / RTL 盖三枚 md5，
+- `build/sim/run_sim.tcl` —— L1 全量批跑；
+- `build/sim/run_one.sh <tb名>` —— 单跑一个。它在**编译之前**给顶层 / 台架 / RTL 盖三枚 md5，
   并且如果发现已经有 xsim 活着就直接退出（两个 xsim 会往同一个 `run.log` 里写）。
 
 所以"某个台架忘了接进流水线"这件事不存在；反过来，**放一个坏台架在目录里，每次批跑都会被它拖住**。
@@ -62,6 +62,6 @@ ep 两条仍绿）、#93（C9 族）、#102（边缘条带四条圈）。
 - `tb_v50_rows`（外部引用只出现在冻结下来的控制台留档里）、`tb_udp_reasm`、`tb_v83_card_render`
   （后两条分别只被一个 skill 条目和 `board/README.md` + 一个 host 工具点名）。
 
-**必须修的（是注释在骗人，不是台架有问题）：** `sim/run_sim.tcl` 开头声称
+**必须修的（是注释在骗人，不是台架有问题）：** `build/sim/run_sim.tcl` 开头声称
 `axi_frame_saver.v` / `axi_frame_writer.v` "各自都有台架"——按现名搜只有带后缀的变体有。
-这类"文档/注释对不上树"的条目统一记在 `report/log/ISSUES.md` 的注释精简那一类里处理。
+这类"文档/注释对不上树"的条目统一记在 `report/log/issues.md` 的注释精简那一类里处理。

@@ -4,7 +4,7 @@
 # 为什么还包一层（而不是直接手抄数）：规则 44/52 —— "板上现在是什么"这类句子的基线必须是件。
 # 所以三个"人只能现场问"的数在这里现问：
 #   门禁绿/红/判定项数  <- build/r118_gates.txt（本轮链子那一次；最终那一次由 tail 自动化再核）
-#   刷板时间与板级复验  <- build/evidence/r118_board/BOARD_NOW.txt
+#   刷板时间与板级复验  <- build/evidence/r118_board/board_now.txt
 #   最差 hold 格的形状  <- build/hold_paths.rpt 的第一个路径块
 # 写完必须过三道尺子才落 marker：脚本自查（mismatch=0、行数不变）、metric_recheck（解析 10/10 行、红 0）、
 # doc_currency（抓到 >= 1 句门禁读数且 0 条过期指路）。任何一道不过就 **不写 marker**，
@@ -14,7 +14,7 @@ import io, os, re, shutil, subprocess, sys
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 os.chdir(ROOT)
 GATES = sys.argv[1] if len(sys.argv) > 1 else "build/r118_gates.txt"
-BOARD = "build/evidence/r118_board/BOARD_NOW.txt"
+BOARD = "build/evidence/r118_board/board_now.txt"
 MARKER = "build/r117_docrotated.marker"
 BACKUP = "/tmp/r118_backup"
 
@@ -28,7 +28,7 @@ def lines(p):
 
 
 os.makedirs(BACKUP, exist_ok=True)
-for p in ("README.md", "README.en.md", "data/metrics.csv"):
+for p in ("README.md", "readme.en.md", "data/metrics.csv"):
     shutil.copy2(p, os.path.join(BACKUP, os.path.basename(p)))
 print("BACKUP -> %s" % BACKUP)
 

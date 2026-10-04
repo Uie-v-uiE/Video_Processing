@@ -10,7 +10,7 @@
 ## 1. 为什么是纯文本、不是 `.mmd`/`.dot`/图片
 
 - 本机没有渲染器：`which mmdc`、`which dot` 都返回"no mmdc / no dot"（本轮实测，2026-10-04）。
-  ⇒ **导出的 PNG/SVG 本轮没有产出**，登记在 `docs/questions-for-team.md`，不用"应当能渲染"糊过去。
+  ⇒ **导出的 PNG/SVG 本轮没有产出**，登记在 `report/questions-for-team.md`，不用"应当能渲染"糊过去。
 - 文本正本的三条好处在这里可判：能被 `grep`/`diff` 直接检查（第 4 节的两条命令就是门禁式核对）、
   每行一个节点或一条边（改动可逐行 review）、不引入"图与文各自漂"的第二份真值。
 - 迁移到别的题目：只有"节点名与出处行"这一列要换；图例（第 2、3 节）与核对命令是通用的。
@@ -21,12 +21,12 @@
 |---|---|---|
 | `+------+` 实线框 | 本仓库 RTL 里**真实存在的实例** | 框名 = 实例名（`u_xxx`）；能在 `src/rtl/` grep 到 |
 | `.-=-=-=-.` 虚线框 | **片外**东西（PHY、面板、DDR 颗粒、PC 上位机、板载晶振/按键） | 框名 = `system_top` 的顶层端口名，或 `src/host/`、`src/ps/` 下真实存在的文件名 |
-| `(FW)` 标记 | 跑在 PS7 上的固件源文件 | 框名是源文件名；⚠ 它对应的 **ELF 在本机不能重建**（`docs/timing/README.md` 的黑名单行 `src/ps/**`），所以图中它只表示"源码里有这个东西"，不表示"板上的行为已实测" |
+| `(FW)` 标记 | 跑在 PS7 上的固件源文件 | 框名是源文件名；⚠ 它对应的 **ELF 在本机不能重建**（`report/timing/README.md` 的黑名单行 `src/ps/**`），所以图中它只表示"源码里有这个东西"，不表示"板上的行为已实测" |
 | `INT` / `EXT` | 节点表里的 kind 列：片内 / 片外 | — |
 
 三条不许：
 - 不许画"理想架构"：现役综合树里没被例化的模块（13 个，清单口径见 `build/orphan_rtl.sh` 的说明段与
-  `report/MODULES.md` 第 1 节）**不进框图**，只在 `fig-01-system-level.txt` 末尾"未画进图的东西"一节里点名列出。
+  `report/modules.md` 第 1 节）**不进框图**，只在 `fig-01-system-level.txt` 末尾"未画进图的东西"一节里点名列出。
 - 不许用模块名当框名：一个模块可能有多只实例（`key_debounce` 有 `u_k1`/`u_k2`，`snap_cross` 全工程五只），
   只有实例名能对到线上。
 - 不许把未实现的功能写进图或 `report/20-principle.md（未写）`。本轮两张图的 grep 未命中数 = 0（见第 4 节的实跑输出）。
@@ -49,7 +49,7 @@
   跨域点的**全表**（哪两侧、什么形态、约束在哪一行）在 `docs/walkthrough/clocking-and-reset.md（不随包）` 第 3 节，
   本目录不复制那张表（复制两份一定会漂）。
 - 时钟树的形状不在图里用"点线"细画：本设计只有 5 个域（`sys_clk`/`clk_pix`/`clk_pix5x`/`axi_clk`/`eth_rxc`），
-  在节点表的"域"列直接标；域的定义在 `report/ARCHITECTURE.md` 第 2 节那张表。
+  在节点表的"域"列直接标；域的定义在 `report/architecture.md` 第 2 节那张表。
 
 ## 4. 核对命令（两条，逐张图各一条，本轮都实跑过）
 
@@ -91,9 +91,9 @@ node src/host/doc_enc_check.mjs            # 手写文档的编码（本目录�
 
 跑法与期望输出见 `docs/walkthrough/hands-on.md`；本目录两份 `.txt` 不含 `.md` 扩展名，
 所以它们里面的引用**不被**第 20 项自动核对 ⇒ `report/20-principle.md（未写）` 与
-`docs/claims-vs-evidence.md`（这两份是 `.md`）里重复引用时会被扫到，因此每条锚点本轮都逐条实读回原行。
+`report/claims-vs-evidence.md`（这两份是 `.md`）里重复引用时会被扫到，因此每条锚点本轮都逐条实读回原行。
 诚实的口径：**`.txt` 图正本里的行号是本轮逐条 `sed -n 'Np'` 读出来的，但没有机器门禁长期盯着它们**，
-这一条登记在 `docs/questions-for-team.md`。
+这一条登记在 `report/questions-for-team.md`。
 
 ## 5. 复现一份可读的图（不给"应当可以"的承诺）
 

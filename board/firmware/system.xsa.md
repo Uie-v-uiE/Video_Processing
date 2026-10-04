@@ -21,8 +21,8 @@
 | 独立第二次读数 | `build/evidence/r118_board/board_verify_console.txt:5`：`build/system.xsa  md5=934ebdba  2026-10-04 04:37`（与上面同一颗，由 `build/board_verify.sh:140-143` 打印） |
 | 门禁/判读 | `build/r118_gates.txt`（判定 24 项、有红项 = 声明过的 `C5c`）、`build/evidence/r118_strict_b1.txt` |
 
-⚠ `build/provenance.md` 仍不存在（P15a 待开，`docs/run-queue.md:25`）⇒ 本轮次指到上表的真实件。
-见 `docs/questions-for-team.md`（Q-P16a-4）。
+⚠ `build/provenance.md` 仍不存在（P15a 待开，`report/run-queue.md:25`）⇒ 本轮次指到上表的真实件。
+见 `report/questions-for-team.md`（Q-P16a-4）。
 
 ## 2. 里面到底有什么（本轮实测，只读解压、不写盘）
 
@@ -70,7 +70,7 @@ print(hashlib.md5(z.read('ps7_init.tcl')).hexdigest())"
 `xsdb.bat build/tcl/ps_jtag_boot.tcl`，让它按 ③ 自己重解（脚本会打印
 `AUTO-EXTRACT ps7_init.tcl from system.xsa: OK` 与 `PS7_INIT_FILE: <路径>`，见
 `build/tcl/ps_jtag_boot.tcl:42,51`）。或者干脆显式给：`PS7_INIT=<路径>`。
-⇒ 已进 `docs/questions-for-team.md`（Q-P16a-7）。
+⇒ 已进 `report/questions-for-team.md`（Q-P16a-7）。
 
 ## 4. 如何再生成（真实命令；本轮**没有跑**）
 

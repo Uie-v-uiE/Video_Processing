@@ -99,10 +99,12 @@ let moved = 0, collide = [];
 for (const m of sorted) {
   const src = path.join(ROOT, m.from), dst = path.join(ROOT, m.to);
   if (!fs.existsSync(src)) continue;
-  if (fs.existsSync(dst) && path.resolve(src) !== path.resolve(dst)) { collide.push(m.from + ' -> ' + m.to); continue; }
+  const caseOnly = m.from.toLowerCase() === m.to.toLowerCase();
+  if (!caseOnly && fs.existsSync(dst)) { collide.push(m.from + ' -> ' + m.to); continue; }
   fs.mkdirSync(path.dirname(dst), { recursive: true });
-  if (m.from.toLowerCase() === m.to.toLowerCase()) {
-    const tmp = dst + '.case-tmp';
+  if (caseOnly) {
+    // 大小写不敏感的盘上 src 与 dst 是同一个文件：先过临时名，别把自己撞掉
+    const tmp = path.join(path.dirname(dst), '__case__' + path.basename(dst));
     fs.renameSync(src, tmp); fs.renameSync(tmp, dst);
   } else fs.renameSync(src, dst);
   moved++;
@@ -111,8 +113,9 @@ console.log(`搬迁 实搬=${moved}/${sorted.length} 撞名未搬=${collide.leng
 // 空目录在所有搬迁之后统一收
 const gone = [];
 const prune = (d) => {
+  if (d === path.join(ROOT, '.git') || d.includes(path.sep + '.git' + path.sep)) return;   // 版本库内部一律不碰
   for (const e of fs.readdirSync(d, { withFileTypes: true })) if (e.isDirectory()) prune(path.join(d, e.name));
-  if (fs.readdirSync(d).length === 0 && !/\.git$/.test(d)) { fs.rmdirSync(d); gone.push(d.replace(ROOT + path.sep, '')); }
+  if (fs.readdirSync(d).length === 0 && d !== ROOT) { fs.rmdirSync(d); gone.push(d.replace(ROOT + path.sep, '')); }
 };
 prune(ROOT);
 console.log(`空目录收掉=${gone.length} 例:${gone.slice(0, 4).join(',')}`);

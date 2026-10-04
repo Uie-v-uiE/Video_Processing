@@ -35,7 +35,7 @@
           PASS 变异 stale_tb       只红在 A10b 实测红=[A10b]
           PASS 变异 slow_rx        只红在 A11  实测红=[A11]
         SELF: 全绿（当前树 12 条 + 变异对照 5 条）
-  手写件编码 doc_enc 扫了 305 个手写文� 坏行=0 self 抓到 3/3 且全树干净 PASS
-  文档时效 doc_cur   扫了 66 个文档� 红行=0 self 变异 3+对照 2 且全树 0 条 PASS
-端点总数 39871；CDC 现在按 build/CDC_BASELINE.txt 的**配对集合**判，功耗仍要人比有没有变差。
+  手写件编码 doc_enc 扫了 305 个手写文� 坏行=0 self 抓到 3/3 且全树干净 PASS
+  文档时效 doc_cur   扫了 66 个文档� 红行=0 self 变异 3+对照 2 且全树 0 条 PASS
+端点总数 39871；CDC 现在按 build/cdc_baseline.txt 的**配对集合**判，功耗仍要人比有没有变差。
 GATES: ALL PASS

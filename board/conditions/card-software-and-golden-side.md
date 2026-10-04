@@ -22,7 +22,7 @@
 也不许把 162 当成"141 变好了"（两次跑的 `rtl_md5` 不同，是两份不同的被测对象）。
 
 `C5c` 那一行是**故意留红**的已声明缺陷（`build/evidence/r104_c5head_band.txt:7` 明写"判据号 C5c，
-就是 `report/KNOWN_ISSUES.md` 第一节那条故意留红的判据"），逐格读数：
+就是 `report/known_issues.md` 第一节那条故意留红的判据"），逐格读数：
 `judged=本体行 3564 格不符 0 ｜ head rows=帧头窗 36 格 不符 24`（同件 `:9`）。
 
 ---
@@ -64,9 +64,9 @@
 | --- | --- | --- |
 | 激励 | 不适用（静态时序分析/实现后报告，被测对象是 RTL+SDC，不是板子） | — |
 | 输入规格 | 器件 `xc7z020clg484-2`；SDC 集合见 `src/constraints/` | `data/metrics.csv:2`（共用条件行） |
-| 时钟与功耗模式 | 逐时钟周期来自名册 `period_ns` 列：8 / 10 / 20 / 20 / 4 / 5 / 20 / 20 ns 八个对象；本版**不带 RGMII 输入窗**（`data/metrics.csv:5` 明写，窗退回候选件 `VP_R116_IO_WINDOW=1` 可复现）；功耗档 `【待补】` | `docs/timing/roster_baseline.tsv:6-13`、`board/compare/roster-diff-baseline-vs-r116e1.txt` |
-| 软件版本 | 报告 mtime 2026-10-04 04:37（`build/timing_summary.rpt`、`build/utilization.rpt`）⇒ 与 r118 位流同龄；`build/CDC_BASELINE.txt`/`build/frozen_r23_srcseen/cdc.rpt` 是 2026-09-25 的 r23 冻结件 | `stat` 实测（`board/logs/index.md` 表里带了日期列） |
-| 仪器量程 | 时间余量分辨率 = 报告给的 3 位小数 ns；`rel_margin_*` 口径 = `wns_*/period_ns`（名册文件头第 2 行钉死）；hold 那一列**两把尺子**：只有 `eth_rxc` 带 `Clock Uncertainty 0.800`（`docs/timing/uncertainty_hold_ab.md`） | 名册头两行 + `build/clock_uncertainty.rpt` |
+| 时钟与功耗模式 | 逐时钟周期来自名册 `period_ns` 列：8 / 10 / 20 / 20 / 4 / 5 / 20 / 20 ns 八个对象；本版**不带 RGMII 输入窗**（`data/metrics.csv:5` 明写，窗退回候选件 `VP_R116_IO_WINDOW=1` 可复现）；功耗档 `【待补】` | `report/timing/roster_baseline.tsv:6-13`、`board/compare/roster-diff-baseline-vs-r116e1.txt` |
+| 软件版本 | 报告 mtime 2026-10-04 04:37（`build/timing_summary.rpt`、`build/utilization.rpt`）⇒ 与 r118 位流同龄；`build/cdc_baseline.txt`/`build/frozen_r23_srcseen/cdc.rpt` 是 2026-09-25 的 r23 冻结件 | `stat` 实测（`board/logs/index.md` 表里带了日期列） |
+| 仪器量程 | 时间余量分辨率 = 报告给的 3 位小数 ns；`rel_margin_*` 口径 = `wns_*/period_ns`（名册文件头第 2 行钉死）；hold 那一列**两把尺子**：只有 `eth_rxc` 带 `Clock Uncertainty 0.800`（`report/timing/uncertainty_hold_ab.md`） | 名册头两行 + `build/clock_uncertainty.rpt` |
 
 ---
 

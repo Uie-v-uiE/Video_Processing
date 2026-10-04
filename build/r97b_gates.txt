@@ -41,9 +41,9 @@
           PASS 变异 no_resume      只红在 A15  实测红=[A15]
           PASS 变异 no_clear       只红在 A16  实测红=[A16]
         SELF: 全绿（当前树 17 条 + 变异对照 10 条）
-  手写件编码 doc_enc 扫了 364 个手写文� 坏行=0 self 抓到 3/3 且全树干净 PASS
-  文档时效 doc_cur   扫了 67 个文档� 红行=0 self 变异 3+对照 2 且全树 0 条 PASS
+  手写件编码 doc_enc 扫了 364 个手写文� 坏行=0 self 抓到 3/3 且全树干净 PASS
+  文档时效 doc_cur   扫了 67 个文档� 红行=0 self 变异 3+对照 2 且全树 0 条 PASS
   排练脚本=讲稿抽取 rehearsal 差异行=0 变异对照=能红 改讲稿不重抽 ⇒ 这一项红；少一行必须判成不同（对照） PASS
-端点总数 50890；CDC 现在按 build/CDC_BASELINE.txt 的**配对集合**判，功耗仍要人比有没有变差。
+端点总数 50890；CDC 现在按 build/cdc_baseline.txt 的**配对集合**判，功耗仍要人比有没有变差。
 GATES: 有红项（判定 20 项）—— 不采纳，保留上一版
 GATES_RC=1

@@ -5,8 +5,8 @@
   ② 单独统计：非交付文件里点名且**盘上存在**的凭据 = 1616 条
 
 ## 判红那一档（rows）：交付文档点名的凭据盘上没有 —— 逐条
-  report/OPTIMIZATION_LOG.md:781 D4c → build/r94_gates.txt
-  report/PERF_REPORT.md:415 D4c → build/r94_gates.txt
+  report/optimization_log.md:781 D4c → build/r94_gates.txt
+  report/perf_report.md:415 D4c → build/r94_gates.txt
 
 ## 「只报数」那一档 adv = 129 条的分类计数
   类1 = 93 条
@@ -22,8 +22,8 @@
       原文: echo "  台架      : tb_v98 FAIL 行 $NFAIL；边缘条带 $(grep -a '^RESULT' build/tb_edge_rim_r90.txt 2>/dev/null | tail -1)"
   build/tcl/ooc_newmods.tcl:9  [D4c]  → build/ooc_newmods.log  → 归类4  → 目标不存在，且不属于日记 / 写方 / 自测夹具 / 章程不随包任何一类 ⇒ 真漏网
       原文: # 判据：log 里每条 `Slack (...)` 都必须 ≥ 0（grep "Slack" build/ooc_newmods.log）。
-  src/host/doc_enc_check.mjs:32  [D4c]  → build/frozen_r57_remap/MANIFEST.md5  → 归类4  → 人工复核改判 ⇒ ④：目录 build/frozen_r57_remap/ **就在盘上**，只是里面那份叫 MANIFEST.txt 不叫 MANIFEST.md5 —— 所以"不随提交包"不是它取不到理由，理由是**文件名写错**
-      原文: // `build/frozen_r57_remap/MANIFEST.md5` 与两份报告按 md5 引用 —— 改一个字节就等于伪造凭据。
+  src/host/doc_enc_check.mjs:32  [D4c]  → build/frozen_r57_remap/manifest.md5  → 归类4  → 人工复核改判 ⇒ ④：目录 build/frozen_r57_remap/ **就在盘上**，只是里面那份叫 MANIFEST.txt 不叫 MANIFEST.md5 —— 所以"不随提交包"不是它取不到理由，理由是**文件名写错**
+      原文: // `build/frozen_r57_remap/manifest.md5` 与两份报告按 md5 引用 —— 改一个字节就等于伪造凭据。
   src/host/health_read.mjs:16  [D4c]  → build/v76_build.log  → 归类4  → 目标不存在，且不属于日记 / 写方 / 自测夹具 / 章程不随包任何一类 ⇒ 真漏网
       原文: *   两个基地址在 build/v76_build.log 的 `ADDR GPIO0 = …` / `ADDR GPIO1 = …` 行里。
 
@@ -31,7 +31,7 @@
   board/serial_bytes.ps1:1  [D4c]  → build/serial_hex.txt  → 归类5  → 脚本的参数默认值（`= "<路径>"`）：写方，跑起来才有
       原文: param([string]$Port = 'COM6', [string]$Cmd = 'split', [int]$Seconds = 4, [string]$Out = 'build/serial_hex.txt')
   build/r90_phase3.sh:55  [D4c]  → build/r90_rim_console.txt  → 归类5  → shell 重定向 `> <路径>`：这一行就是它的生成方（同时也属 ③：带轮次号的逐轮件：导出器剪「build 逐轮过程留档（不随包）」）
-      原文: bash sim/run_one.sh tb_edge_rim > build/r90_rim_console.txt 2>&1
+      原文: bash build/sim/run_one.sh tb_edge_rim > build/r90_rim_console.txt 2>&1
   build/r90_phase3.sh:61  [D4c]  → build/r90_gates.txt  → 归类5  → shell 重定向 `> <路径>`：这一行就是它的生成方（同时也属 ③：带轮次号的逐轮件：导出器剪「build 逐轮过程留档（不随包）」）
       原文: bash build/gates.sh > build/r90_gates.txt 2>&1
   build/r90_phase3.sh:69  [D4c]  → build/evidence/r90_flash_2_program_pl.txt  → 归类5  → shell 重定向 `> <路径>`：这一行就是它的生成方（同时也属 ③：build/evidence/ 归档目录：导出器 §2 剪（板级件另搬进 board/output/））
@@ -43,7 +43,7 @@
   build/r94_bench_chain.sh:19  [D4c]  → build/r94_tb98_report_step.txt  → 归类5  → shell 重定向 `> <路径>`：这一行就是它的生成方（同时也属 ③：带轮次号的逐轮件：导出器剪「build 逐轮过程留档（不随包）」）
       原文: bash build/tb98_report.sh > build/r94_tb98_report_step.txt 2>&1 || say "tb98_report.sh 退出码非 0（红项本来就会让它非 0，不当作链断）"
   build/r94_bench_chain.sh:22  [D4c]  → build/r94_edge_rim_console.txt  → 归类5  → shell 重定向 `> <路径>`：这一行就是它的生成方（同时也属 ③：带轮次号的逐轮件：导出器剪「build 逐轮过程留档（不随包）」）
-      原文: bash sim/run_one.sh tb_edge_rim > build/r94_edge_rim_console.txt 2>&1 || die "tb_edge_rim 跑失败"
+      原文: bash build/sim/run_one.sh tb_edge_rim > build/r94_edge_rim_console.txt 2>&1 || die "tb_edge_rim 跑失败"
   build/r94_bench_chain.sh:23  [D4c]  → build/r94_rim_report_step.txt  → 归类5  → shell 重定向 `> <路径>`：这一行就是它的生成方（同时也属 ③：带轮次号的逐轮件：导出器剪「build 逐轮过程留档（不随包）」）
       原文: bash build/rim_report.sh > build/r94_rim_report_step.txt 2>&1 || say "rim_report.sh 退出码非 0"
   build/r94_bench_chain.sh:26  [D4c]  → build/r94_gates.txt  → 归类5  → shell 重定向 `> <路径>`：这一行就是它的生成方（同时也属 ③：带轮次号的逐轮件：导出器剪「build 逐轮过程留档（不随包）」）
@@ -56,10 +56,10 @@
       原文: #   vivado -mode batch -nojournal -log build/report_mem_hier.log \
   build/tcl/sweep_impl_strategy.tcl:3  [D4c]  → build/sweep.log  → 归类5  → 命令行的 `-log <路径>`：Vivado 自己创建的运行日志，不是凭据引用
       原文: #   vivado -mode batch -nojournal -log build/sweep.log -source build/tcl/sweep_impl_strategy.tcl
-  sim/run_sim.tcl:6  [D4c]  → sim/xsim.log  → 归类5  → 命令行的 `-log <路径>`：Vivado 自己创建的运行日志，不是凭据引用
-      原文: #   vivado -mode batch -nojournal -log sim/xsim.log -source sim/run_sim.tcl
+  build/sim/run_sim.tcl:6  [D4c]  → sim/xsim.log  → 归类5  → 命令行的 `-log <路径>`：Vivado 自己创建的运行日志，不是凭据引用
+      原文: #   vivado -mode batch -nojournal -log sim/xsim.log -source build/sim/run_sim.tcl
   skill/zynq-video-rtl-debug/SKILL.md:49  [D4c]  → sim/xsim.log  → 归类5  → 命令行的 `-log <路径>`：Vivado 自己创建的运行日志，不是凭据引用
-      原文: | **L1 仿真** | `vivado -mode batch -nojournal -log sim/xsim.log -source sim/run_sim.tcl`；单个 `bash sim/run_one.sh tb_xxx`；只编译 `SIM_ONLY=1`；plusargs `SIM_ARGS="+FULL +MISALI
+      原文: | **L1 仿真** | `vivado -mode batch -nojournal -log sim/xsim.log -source build/sim/run_sim.tcl`；单个 `bash build/sim/run_one.sh tb_xxx`；只编译 `SIM_ONLY=1`；plusargs `SIM_ARGS="+FULL +MISALI
 
 ### 类6 —— ⑥ 自测夹具/阴性对照里的假路径：2 条
   build/r95_read_ce.sh:36  [D4c]  → build/no_such_report.rpt  → 归类6  → 路径是**故意不存在**的假名（no_such_/_nope）：阴性对照/自测夹具，不是指路
@@ -98,217 +98,217 @@
       原文: //   复制本地缓冲，结果 WNS 从 r81 的 −0.062 掉到 −0.192、失败端点 28 → 34（凭据 build/r83_gates.txt
 
 ### 类1 —— ① 日记里的中间件（规则上不许判红）：93 条
-  build/r94_issue169_entry.md:37  [D4c]  → build/r94_flash.log  → 归类1  → 来源是日记的**草稿件**（build/rNN_issueNNN_entry.md）：正文已逐字并入 report/log/ISSUES.md —— 同族规矩：日记里"当时存在、随后删掉"不判红
+  build/r94_issue169_entry.md:37  [D4c]  → build/r94_flash.log  → 归类1  → 来源是日记的**草稿件**（build/rNN_issueNNN_entry.md）：正文已逐字并入 report/log/issues.md —— 同族规矩：日记里"当时存在、随后删掉"不判红
       原文: 与今天刚撞的 `build/r94_flash.log` 同族，区别是它长在**每轮都会跑的冻结脚本里** ⇒ 每轮复发。
-  build/r94_issue172_entry.md:7  [D4c]  → build/r94_flash.log  → 归类1  → 来源是日记的**草稿件**（build/rNN_issueNNN_entry.md）：正文已逐字并入 report/log/ISSUES.md —— 同族规矩：日记里"当时存在、随后删掉"不判红
+  build/r94_issue172_entry.md:7  [D4c]  → build/r94_flash.log  → 归类1  → 来源是日记的**草稿件**（build/rNN_issueNNN_entry.md）：正文已逐字并入 report/log/issues.md —— 同族规矩：日记里"当时存在、随后删掉"不判红
       原文: "冻结件进不了 git"而把整条检查买通；今天已经撞过同族第二次（`build/r94_flash.log` 被文档点名却进不了包，改名 `.txt` 才落进 git）。
-  build/r94_issue172_entry.md:12  [D4c]  → sim/xsim.log  → 归类1  → 来源是日记的**草稿件**（build/rNN_issueNNN_entry.md）：正文已逐字并入 report/log/ISSUES.md —— 同族规矩：日记里"当时存在、随后删掉"不判红
+  build/r94_issue172_entry.md:12  [D4c]  → sim/xsim.log  → 归类1  → 来源是日记的**草稿件**（build/rNN_issueNNN_entry.md）：正文已逐字并入 report/log/issues.md —— 同族规矩：日记里"当时存在、随后删掉"不判红
       原文: - 阴性：去掉整类免检之后第一次 `--dry` 立刻抓到一条**真死链** —— `skill/zynq-video-rtl-debug/SKILL.md -> sim/xsim.log`
-  docs/log/CHANGELOG_V7.md:409  [D4c]  → build/v76c_build.log  → 归类1  → 来源是追加式日记 docs/log/ —— 拿今天的盘判昨天的日记，红的是历史记录本身，规矩不许
+  docs/log/changelog_v7.md:409  [D4c]  → build/v76c_build.log  → 归类1  → 来源是追加式日记 docs/log/ —— 拿今天的盘判昨天的日记，红的是历史记录本身，规矩不许
       原文: **门禁（`build/v76c_build.log`）**：WNS +0.408 / WHS +0.035 / 失败端点 0/23698 /
-  docs/log/CHANGELOG_V7.md:704  [D4c]  → board/uart_r28_autoplay.txt  → 归类1  → 来源是追加式日记 docs/log/ —— 拿今天的盘判昨天的日记，红的是历史记录本身，规矩不许
+  docs/log/changelog_v7.md:704  [D4c]  → board/uart_r28_autoplay.txt  → 归类1  → 来源是追加式日记 docs/log/ —— 拿今天的盘判昨天的日记，红的是历史记录本身，规矩不许
       原文: | 上电自动挂载 + 播放 SD | `AUTOPLAY0/1` 可关；串口自己报速率 ⇒ 演示不依赖任何人敲命令 | `board/uart_r28_autoplay.txt`（4398 帧 / 9 文件 / STAT 报 30.000 fps） |
-  docs/log/CHANGELOG_V7.md:710  [D4c]  → board/sd_hotspot_diag.txt  → 归类1  → 来源是追加式日记 docs/log/ —— 拿今天的盘判昨天的日记，红的是历史记录本身，规矩不许
+  docs/log/changelog_v7.md:710  [D4c]  → board/sd_hotspot_diag.txt  → 归类1  → 来源是追加式日记 docs/log/ —— 拿今天的盘判昨天的日记，红的是历史记录本身，规矩不许
       原文: | #50 先定性、后**结案** | 定性：SD 回放在**第 3584 帧 = 第 8 个文件 VIDEO007.BIN 的第一帧**必然读失败（两次独立长跑 + 定点跳帧探测同指一处）⇒ 不是"并发挤到超时"；次生的"file not found"是控制器被留在未完成传输里。<br>结案（05:4x）：给失败行加几何量后一枪定位 —
-  docs/log/CHANGELOG_V7.md:710  [D4c]  → board/sd_hotspot_fixed.txt  → 归类1  → 来源是追加式日记 docs/log/ —— 拿今天的盘判昨天的日记，红的是历史记录本身，规矩不许
+  docs/log/changelog_v7.md:710  [D4c]  → board/sd_hotspot_fixed.txt  → 归类1  → 来源是追加式日记 docs/log/ —— 拿今天的盘判昨天的日记，红的是历史记录本身，规矩不许
       原文: | #50 先定性、后**结案** | 定性：SD 回放在**第 3584 帧 = 第 8 个文件 VIDEO007.BIN 的第一帧**必然读失败（两次独立长跑 + 定点跳帧探测同指一处）⇒ 不是"并发挤到超时"；次生的"file not found"是控制器被留在未完成传输里。<br>结案（05:4x）：给失败行加几何量后一枪定位 —
-  docs/log/CHANGELOG_V7.md:710  [D4c]  → board/sd_selftest_red.txt  → 归类1  → 来源是追加式日记 docs/log/ —— 拿今天的盘判昨天的日记，红的是历史记录本身，规矩不许
+  docs/log/changelog_v7.md:710  [D4c]  → board/sd_selftest_red.txt  → 归类1  → 来源是追加式日记 docs/log/ —— 拿今天的盘判昨天的日记，红的是历史记录本身，规矩不许
       原文: | #50 先定性、后**结案** | 定性：SD 回放在**第 3584 帧 = 第 8 个文件 VIDEO007.BIN 的第一帧**必然读失败（两次独立长跑 + 定点跳帧探测同指一处）⇒ 不是"并发挤到超时"；次生的"file not found"是控制器被留在未完成传输里。<br>结案（05:4x）：给失败行加几何量后一枪定位 —
-  docs/log/ISSUES.md:241  [D4c]  → sim/tb_ku5p_tx_arb.v  → 归类1  → 来源是追加式日记 docs/log/ —— 拿今天的盘判昨天的日记，红的是历史记录本身，规矩不许
+  docs/log/issues.md:241  [D4c]  → sim/tb_ku5p_tx_arb.v  → 归类1  → 来源是追加式日记 docs/log/ —— 拿今天的盘判昨天的日记，红的是历史记录本身，规矩不许
       原文: 内部存 pending，空闲时按 ARP > ICMP > UDP 放行。判据在 `sim/tb_ku5p_tx_arb.v`：
-  docs/log/ISSUES.md:325  [D4c]  → sim/tb_ku5p_telem.v  → 归类1  → 来源是追加式日记 docs/log/ —— 拿今天的盘判昨天的日记，红的是历史记录本身，规矩不许
+  docs/log/issues.md:325  [D4c]  → sim/tb_ku5p_telem.v  → 归类1  → 来源是追加式日记 docs/log/ —— 拿今天的盘判昨天的日记，红的是历史记录本身，规矩不许
       原文: 这正是 `sim/tb_ku5p_telem.v` 今晚已经在做的判定，搬到 RTL 约 40~60 行 + 一个台架；
-  docs/log/ISSUES.md:435  [D4c]  → build/build/system.bit  → 归类1  → 来源是追加式日记 docs/log/ —— 拿今天的盘判昨天的日记，红的是历史记录本身，规矩不许
+  docs/log/issues.md:435  [D4c]  → build/build/system.bit  → 归类1  → 来源是追加式日记 docs/log/ —— 拿今天的盘判昨天的日记，红的是历史记录本身，规矩不许
       原文: - **root 少一级**：`build/tcl/..` = `build/`，于是它去找 `build/build/system.bit`。
-  docs/log/ISSUES.md:746  [D4c]  → board/uart_50_conc3min.txt  → 归类1  → 来源是追加式日记 docs/log/ —— 拿今天的盘判昨天的日记，红的是历史记录本身，规矩不许
+  docs/log/issues.md:746  [D4c]  → board/uart_50_conc3min.txt  → 归类1  → 来源是追加式日记 docs/log/ —— 拿今天的盘判昨天的日记，红的是历史记录本身，规矩不许
       原文: | 1 | 完全不碰 JTAG：SD 回放 + 30 fps 推流并发 3 分钟（`board/uart_50_conc3min.txt`） | 前 23 个 100 帧窗口全是 29.2–30.0 fps，然后 **`playback stopped at frame 3584: SD read failed`** |
-  docs/log/ISSUES.md:748  [D4c]  → board/sd_frame_boundary2.txt  → 归类1  → 来源是追加式日记 docs/log/ —— 拿今天的盘判昨天的日记，红的是历史记录本身，规矩不许
+  docs/log/issues.md:748  [D4c]  → board/sd_frame_boundary2.txt  → 归类1  → 来源是追加式日记 docs/log/ —— 拿今天的盘判昨天的日记，红的是历史记录本身，规矩不许
       原文: | 3 | 健康控制器上定点跳帧（`board/sd_frame_boundary2.txt`） | `FRAME3583` **成功**（没打失败行）；`FRAME3584` = `SD read failed`；之后 `FRAME4095/4096/4397` 全变 `frame file not found` |
-  docs/log/ISSUES.md:773  [D4c]  → board/uart_soak_A.txt  → 归类1  → 来源是追加式日记 docs/log/ —— 拿今天的盘判昨天的日记，红的是历史记录本身，规矩不许
+  docs/log/issues.md:773  [D4c]  → board/uart_soak_A.txt  → 归类1  → 来源是追加式日记 docs/log/ —— 拿今天的盘判昨天的日记，红的是历史记录本身，规矩不许
       原文: （`board/uart_soak_A.txt`、`board/uart_sd_wedge.txt`），再几轮变成 `not mounted`
-  docs/log/ISSUES.md:773  [D4c]  → board/uart_sd_wedge.txt  → 归类1  → 来源是追加式日记 docs/log/ —— 拿今天的盘判昨天的日记，红的是历史记录本身，规矩不许
+  docs/log/issues.md:773  [D4c]  → board/uart_sd_wedge.txt  → 归类1  → 来源是追加式日记 docs/log/ —— 拿今天的盘判昨天的日记，红的是历史记录本身，规矩不许
       原文: （`board/uart_soak_A.txt`、`board/uart_sd_wedge.txt`），再几轮变成 `not mounted`
-  docs/log/ISSUES.md:774  [D4c]  → board/uart_50_dbg.txt  → 归类1  → 来源是追加式日记 docs/log/ —— 拿今天的盘判昨天的日记，红的是历史记录本身，规矩不许
+  docs/log/issues.md:774  [D4c]  → board/uart_50_dbg.txt  → 归类1  → 来源是追加式日记 docs/log/ —— 拿今天的盘判昨天的日记，红的是历史记录本身，规矩不许
       原文: （`board/uart_50_dbg.txt`）。修法与口径已经写进 `board/README.md` 与 `arb_handover_test.mjs`
-  docs/log/ISSUES.md:798  [D4c]  → board/sd_hotspot_diag.txt  → 归类1  → 来源是追加式日记 docs/log/ —— 拿今天的盘判昨天的日记，红的是历史记录本身，规矩不许
+  docs/log/issues.md:798  [D4c]  → board/sd_hotspot_diag.txt  → 归类1  → 来源是追加式日记 docs/log/ —— 拿今天的盘判昨天的日记，红的是历史记录本身，规矩不许
       原文: （`board/sd_hotspot_diag.txt` 第 3 行，整份 19 行已读全）：
-  docs/log/ISSUES.md:823  [D4c]  → board/sd_hotspot_fixed.txt  → 归类1  → 来源是追加式日记 docs/log/ —— 拿今天的盘判昨天的日记，红的是历史记录本身，规矩不许
+  docs/log/issues.md:823  [D4c]  → board/sd_hotspot_fixed.txt  → 归类1  → 来源是追加式日记 docs/log/ —— 拿今天的盘判昨天的日记，红的是历史记录本身，规矩不许
       原文: **第三步：板上凭据（不需要眼睛）** `board/sd_hotspot_fixed.txt` —— 155 s 纯串口抓取：
-  docs/log/ISSUES.md:826  [D4c]  → board/uart_sd_with_eth.txt  → 归类1  → 来源是追加式日记 docs/log/ —— 拿今天的盘判昨天的日记，红的是历史记录本身，规矩不许
+  docs/log/issues.md:826  [D4c]  → board/uart_sd_with_eth.txt  → 归类1  → 来源是追加式日记 docs/log/ —— 拿今天的盘判昨天的日记，红的是历史记录本身，规矩不许
       原文: 并发那一档也补了：`board/uart_sd_with_eth.txt` —— 同一份 elf 在 **30 fps 推流正在跑**的时候
-  docs/log/ISSUES.md:835  [D4c]  → board/sd_dirmap_banner.txt  → 归类1  → 来源是追加式日记 docs/log/ —— 拿今天的盘判昨天的日记，红的是历史记录本身，规矩不许
+  docs/log/issues.md:835  [D4c]  → board/sd_dirmap_banner.txt  → 归类1  → 来源是追加式日记 docs/log/ —— 拿今天的盘判昨天的日记，红的是历史记录本身，规矩不许
       原文: `[SD] dir map ok: 9 files, first clusters within 1946818`（`board/sd_dirmap_banner.txt`）。
-  docs/log/ISSUES.md:838  [D4c]  → board/sd_selftest_red.txt  → 归类1  → 来源是追加式日记 docs/log/ —— 拿今天的盘判昨天的日记，红的是历史记录本身，规矩不许
+  docs/log/issues.md:838  [D4c]  → board/sd_selftest_red.txt  → 归类1  → 来源是追加式日记 docs/log/ —— 拿今天的盘判昨天的日记，红的是历史记录本身，规矩不许
       原文: （`board/sd_selftest_red.txt`），改回来又是 `dir map ok`（`board/sd_selftest_green.txt`）
-  docs/log/ISSUES.md:838  [D4c]  → board/sd_selftest_green.txt  → 归类1  → 来源是追加式日记 docs/log/ —— 拿今天的盘判昨天的日记，红的是历史记录本身，规矩不许
+  docs/log/issues.md:838  [D4c]  → board/sd_selftest_green.txt  → 归类1  → 来源是追加式日记 docs/log/ —— 拿今天的盘判昨天的日记，红的是历史记录本身，规矩不许
       原文: （`board/sd_selftest_red.txt`），改回来又是 `dir map ok`（`board/sd_selftest_green.txt`）
-  docs/log/ISSUES.md:869  [D4c]  → sim/tb_v80_ku5p_cmd.v  → 归类1  → 来源是追加式日记 docs/log/ —— 拿今天的盘判昨天的日记，红的是历史记录本身，规矩不许
+  docs/log/issues.md:869  [D4c]  → sim/tb_v80_ku5p_cmd.v  → 归类1  → 来源是追加式日记 docs/log/ —— 拿今天的盘判昨天的日记，红的是历史记录本身，规矩不许
       原文: 证据：`sim/tb_v80_ku5p_cmd.v`（35 条，含两种 `p_eof` 时序与 ok/bad 总账）、
-  docs/log/ISSUES.md:1190  [D4c]  → board/uart_r46_boot.txt  → 归类1  → 来源是追加式日记 docs/log/ —— 拿今天的盘判昨天的日记，红的是历史记录本身，规矩不许
+  docs/log/issues.md:1190  [D4c]  → board/uart_r46_boot.txt  → 归类1  → 来源是追加式日记 docs/log/ —— 拿今天的盘判昨天的日记，红的是历史记录本身，规矩不许
       原文: 开机自检 `[CFG] axi_gpio_2 @41220000 ok`（凭据 `board/uart_r46_boot.txt`）；
-  docs/log/ISSUES.md:1259  [D4c]  → sim/known_red/tb_v92_seam_bleed.v  → 归类1  → 来源是追加式日记 docs/log/ —— 拿今天的盘判昨天的日记，红的是历史记录本身，规矩不许
+  docs/log/issues.md:1259  [D4c]  → sim/known_red/tb_v92_seam_bleed.v  → 归类1  → 来源是追加式日记 docs/log/ —— 拿今天的盘判昨天的日记，红的是历史记录本身，规矩不许
       原文: - **2026-09-24 22:4x 有新台架了**：`sim/known_red/tb_v92_seam_bleed.v`（故意先红，所以不进 L1 glob）。
-  docs/log/ISSUES.md:1791  [D4c]  → build/tb_v98_run.log  → 归类1  → 来源是追加式日记 docs/log/ —— 拿今天的盘判昨天的日记，红的是历史记录本身，规矩不许
+  docs/log/issues.md:1791  [D4c]  → build/tb_v98_run.log  → 归类1  → 来源是追加式日记 docs/log/ —— 拿今天的盘判昨天的日记，红的是历史记录本身，规矩不许
       原文: 探针行（`build/tb_v98_run.log`）：
-  docs/log/ISSUES.md:2115  [D4c]  → build/rot_osd_wip.patch.txt  → 归类1  → 来源是追加式日记 docs/log/ —— 拿今天的盘判昨天的日记，红的是历史记录本身，规矩不许
+  docs/log/issues.md:2115  [D4c]  → build/rot_osd_wip.patch.txt  → 归类1  → 来源是追加式日记 docs/log/ —— 拿今天的盘判昨天的日记，红的是历史记录本身，规矩不许
       原文: 做到哪儿（`build/rot_osd_wip.patch.txt` 是这一轮的全部改动，94 行，按 #70 追加的位图实现）：
-  docs/log/ISSUES.md:2366  [D4c]  → build/ps_app_v9.log  → 归类1  → 来源是追加式日记 docs/log/ —— 拿今天的盘判昨天的日记，红的是历史记录本身，规矩不许
+  docs/log/issues.md:2366  [D4c]  → build/ps_app_v9.log  → 归类1  → 来源是追加式日记 docs/log/ —— 拿今天的盘判昨天的日记，红的是历史记录本身，规矩不许
       原文: - ✅ **PS 侧固件编译门**：`node build/ps_app.mjs --clean` → `build/ps_app_v9.log`，
-  docs/log/ISSUES.md:2414  [D4c]  → build/r60_build47.log  → 归类1  → 来源是追加式日记 docs/log/ —— 拿今天的盘判昨天的日记，红的是历史记录本身，规矩不许
+  docs/log/issues.md:2414  [D4c]  → build/r60_build47.log  → 归类1  → 来源是追加式日记 docs/log/ —— 拿今天的盘判昨天的日记，红的是历史记录本身，规矩不许
       原文: **r60（构建 `build/r60_build47.log`）判红 ⇒ 不采纳、不冻结、不上板。**
-  docs/log/ISSUES.md:2685  [D4c]  → sim/v98run/run_base.log  → 归类1  → 来源是追加式日记 docs/log/ —— 拿今天的盘判昨天的日记，红的是历史记录本身，规矩不许
+  docs/log/issues.md:2685  [D4c]  → sim/v98run/run_base.log  → 归类1  → 来源是追加式日记 docs/log/ —— 拿今天的盘判昨天的日记，红的是历史记录本身，规矩不许
       原文: 基线证据（`sim/v98run/run_base.log`；6 帧、xsim 2 分 15 秒跑完；快照 `v98base`，编译/跑法见本条末尾）：
-  docs/log/ISSUES.md:2986  [D4c]  → build/cdc_who.tcl  → 归类1  → 来源是追加式日记 docs/log/ —— 拿今天的盘判昨天的日记，红的是历史记录本身，规矩不许
+  docs/log/issues.md:2986  [D4c]  → build/cdc_who.tcl  → 归类1  → 来源是追加式日记 docs/log/ —— 拿今天的盘判昨天的日记，红的是历史记录本身，规矩不许
       原文: 刷之前先跑 `build/cdc_who.tcl`，把新增那一行的 src/dst 时钟对原样贴进 ISSUES 与提交说明。
-  docs/log/ISSUES.md:4296  [D4c]  → build/evidence/verify_0927_11xx.txt  → 归类1  → 来源是追加式日记 docs/log/ —— 拿今天的盘判昨天的日记，红的是历史记录本身，规矩不许
+  docs/log/issues.md:4296  [D4c]  → build/evidence/verify_0927_11xx.txt  → 归类1  → 来源是追加式日记 docs/log/ —— 拿今天的盘判昨天的日记，红的是历史记录本身，规矩不许
       原文: ④ 换 elf 之后 `board_verify PASS`（判红 0 步，`build/evidence/verify_0927_11xx.txt` 同族）。
-  docs/log/ISSUES.md:4505  [D4c]  → build/r77_gates.txt  → 归类1  → 来源是追加式日记 docs/log/ —— 拿今天的盘判昨天的日记，红的是历史记录本身，规矩不许
+  docs/log/issues.md:4505  [D4c]  → build/r77_gates.txt  → 归类1  → 来源是追加式日记 docs/log/ —— 拿今天的盘判昨天的日记，红的是历史记录本身，规矩不许
       原文: 跑完自动出 `build/tb_v98_report.txt` + `bash build/gates.sh`（红项不采纳、不写 `build/r77_gates.txt`）。
-  docs/log/ISSUES.md:5186  [D4a]  → docs/PROJECT_BRIEF.md  → 归类1  → 来源是追加式日记 docs/log/ —— 拿今天的盘判昨天的日记，红的是历史记录本身，规矩不许
+  docs/log/issues.md:5186  [D4a]  → docs/PROJECT_BRIEF.md  → 归类1  → 来源是追加式日记 docs/log/ —— 拿今天的盘判昨天的日记，红的是历史记录本身，规矩不许
       原文: 降到 1024 会把"能扛住多大过载"砍掉 8 倍，直接危及 `report/PROJECT_BRIEF.md` 里那句"不限速推到 116.7 fps 仍未丢字"
-  docs/log/ISSUES.md:5662  [D4c]  → build/tcl/_tmp_isolated_roll.tcl  → 归类1  → 来源是追加式日记 docs/log/ —— 拿今天的盘判昨天的日记，红的是历史记录本身，规矩不许
-      原文: | `report/BUILD.md` → `build/tcl/_tmp_isolated_roll.tcl` | 那是 `roll_isolated.sh` 用完即删的临时脚本：包里没有它是**正确的**，错的是文档把它当"可 ls 的东西"来引用 | 改成描述行为（"拒绝发生在 mkdir/sed 之前，所以连那份临时 Tcl 都不会被
-  docs/log/ISSUES.md:5663  [D4c]  → build/crit_path.tcl  → 归类1  → 来源是追加式日记 docs/log/ —— 拿今天的盘判昨天的日记，红的是历史记录本身，规矩不许
-      原文: | `report/OPTIMIZATION_LOG.md` → `build/crit_path.tcl` | 纯粹**写错路径**，真身在 `build/tcl/crit_path.tcl` | 改对 |
-  docs/log/ISSUES.md:5830  [D4c]  → build/printf_arity_check.mjs  → 归类1  → 来源是追加式日记 docs/log/ —— 拿今天的盘判昨天的日记，红的是历史记录本身，规矩不许
+  docs/log/issues.md:5662  [D4c]  → build/tcl/_tmp_isolated_roll.tcl  → 归类1  → 来源是追加式日记 docs/log/ —— 拿今天的盘判昨天的日记，红的是历史记录本身，规矩不许
+      原文: | `report/build.md` → `build/tcl/_tmp_isolated_roll.tcl` | 那是 `roll_isolated.sh` 用完即删的临时脚本：包里没有它是**正确的**，错的是文档把它当"可 ls 的东西"来引用 | 改成描述行为（"拒绝发生在 mkdir/sed 之前，所以连那份临时 Tcl 都不会被
+  docs/log/issues.md:5663  [D4c]  → build/crit_path.tcl  → 归类1  → 来源是追加式日记 docs/log/ —— 拿今天的盘判昨天的日记，红的是历史记录本身，规矩不许
+      原文: | `report/optimization_log.md` → `build/crit_path.tcl` | 纯粹**写错路径**，真身在 `build/tcl/crit_path.tcl` | 改对 |
+  docs/log/issues.md:5830  [D4c]  → build/printf_arity_check.mjs  → 归类1  → 来源是追加式日记 docs/log/ —— 拿今天的盘判昨天的日记，红的是历史记录本身，规矩不许
       原文: **那把没成型的尺子已经删掉（当时的判断，记下来）**:我顺手写过 `build/printf_arity_check.mjs`（扫格式符与实参配对），
-  docs/log/ISSUES.md:5878  [D4c]  → build/reports/tb_video_pipeline_top_report.txt  → 归类1  → 来源是追加式日记 docs/log/ —— 拿今天的盘判昨天的日记，红的是历史记录本身，规矩不许
+  docs/log/issues.md:5878  [D4c]  → build/reports/tb_video_pipeline_top_report.txt  → 归类1  → 来源是追加式日记 docs/log/ —— 拿今天的盘判昨天的日记，红的是历史记录本身，规矩不许
       原文: `build/reports/tb_video_pipeline_top_report.txt`）。后果不是"不好看"而是**功能性的**：导出器按
-  docs/log/ISSUES.md:5926  [D4a]  → docs/PROJECT_BRIEF.md  → 归类1  → 来源是追加式日记 docs/log/ —— 拿今天的盘判昨天的日记，红的是历史记录本身，规矩不许
+  docs/log/issues.md:5926  [D4a]  → docs/PROJECT_BRIEF.md  → 归类1  → 来源是追加式日记 docs/log/ —— 拿今天的盘判昨天的日记，红的是历史记录本身，规矩不许
       原文: 审到 `report/PROJECT_BRIEF.md`（500 字简介，评委最先读的那页）时做的核对是**把每个数拿回它自己那份凭据里查**，
-  docs/log/ISSUES.md:6144  [D4c]  → build/reports/r87_power.rpt  → 归类1  → 来源是追加式日记 docs/log/ —— 拿今天的盘判昨天的日记，红的是历史记录本身，规矩不许
+  docs/log/issues.md:6144  [D4c]  → build/reports/r87_power.rpt  → 归类1  → 来源是追加式日记 docs/log/ —— 拿今天的盘判昨天的日记，红的是历史记录本身，规矩不许
       原文: 导出后的那一份里 13 处，而且同一个 `build/r87_power.rpt` 在包里读作 `build/reports/r87_power.rpt`
-  docs/log/ISSUES.md:6678  [D4c]  → build/r94_flash.log  → 归类1  → 来源是追加式日记 docs/log/ —— 拿今天的盘判昨天的日记，红的是历史记录本身，规矩不许
+  docs/log/issues.md:6678  [D4c]  → build/r94_flash.log  → 归类1  → 来源是追加式日记 docs/log/ —— 拿今天的盘判昨天的日记，红的是历史记录本身，规矩不许
       原文: 与今天刚撞的 `build/r94_flash.log` 同族，区别是它长在**每轮都会跑的冻结脚本里** ⇒ 每轮复发。
-  docs/log/ISSUES.md:6710  [D4c]  → build/r94_flash.log  → 归类1  → 来源是追加式日记 docs/log/ —— 拿今天的盘判昨天的日记，红的是历史记录本身，规矩不许
+  docs/log/issues.md:6710  [D4c]  → build/r94_flash.log  → 归类1  → 来源是追加式日记 docs/log/ —— 拿今天的盘判昨天的日记，红的是历史记录本身，规矩不许
       原文: "冻结件进不了 git"而把整条检查买通；今天已经撞过同族第二次（`build/r94_flash.log` 被文档点名却进不了包，改名 `.txt` 才落进 git）。
-  docs/log/ISSUES.md:6715  [D4c]  → sim/xsim.log  → 归类1  → 来源是追加式日记 docs/log/ —— 拿今天的盘判昨天的日记，红的是历史记录本身，规矩不许
+  docs/log/issues.md:6715  [D4c]  → sim/xsim.log  → 归类1  → 来源是追加式日记 docs/log/ —— 拿今天的盘判昨天的日记，红的是历史记录本身，规矩不许
       原文: - 阴性：去掉整类免检之后第一次 `--dry` 立刻抓到一条**真死链** —— `skill/zynq-video-rtl-debug/SKILL.md -> sim/xsim.log`
-  docs/log/OVERNIGHT_LOG.md:356  [D4c]  → build/scan_l4.log  → 归类1  → 来源是追加式日记 docs/log/ —— 拿今天的盘判昨天的日记，红的是历史记录本身，规矩不许
+  docs/log/overnight_log.md:356  [D4c]  → build/scan_l4.log  → 归类1  → 来源是追加式日记 docs/log/ —— 拿今天的盘判昨天的日记，红的是历史记录本身，规矩不许
       原文: | JTAG 链 | `vivado -source build/tcl/scan_jtag.tcl` → `build/scan_l4.log` | `ERROR: [Labtools 27-2269] No devices detected on target localhost:3121/xilinx_tcf/Xilinx/0ABC
-  docs/log/OVERNIGHT_LOG.md:549  [D4c]  → build/r06_build.log  → 归类1  → 来源是追加式日记 docs/log/ —— 拿今天的盘判昨天的日记，红的是历史记录本身，规矩不许
+  docs/log/overnight_log.md:549  [D4c]  → build/r06_build.log  → 归类1  → 来源是追加式日记 docs/log/ —— 拿今天的盘判昨天的日记，红的是历史记录本身，规矩不许
       原文: L3 全新构建 `build/r06_build.log`。
-  docs/log/OVERNIGHT_LOG.md:582  [D4c]  → build/r07_build.log  → 归类1  → 来源是追加式日记 docs/log/ —— 拿今天的盘判昨天的日记，红的是历史记录本身，规矩不许
+  docs/log/overnight_log.md:582  [D4c]  → build/r07_build.log  → 归类1  → 来源是追加式日记 docs/log/ —— 拿今天的盘判昨天的日记，红的是历史记录本身，规矩不许
       原文: - **结果（回填，含预设的证伪判据）**：构建 `build/r07_build.log` 通过，综合/实现/各报告阶段小结行
-  docs/log/OVERNIGHT_LOG.md:661  [D4c]  → build/v76b_build.log  → 归类1  → 来源是追加式日记 docs/log/ —— 拿今天的盘判昨天的日记，红的是历史记录本身，规矩不许
+  docs/log/overnight_log.md:661  [D4c]  → build/v76b_build.log  → 归类1  → 来源是追加式日记 docs/log/ —— 拿今天的盘判昨天的日记，红的是历史记录本身，规矩不许
       原文: - **门禁（build/v76b_build.log）**：WNS **+0.669**（比 R08 的 +0.527 还好，网表几乎相同 ⇒ 差异是
-  docs/log/OVERNIGHT_LOG.md:832  [D4c]  → sim/tb_fb_pack.v  → 归类1  → 来源是追加式日记 docs/log/ —— 拿今天的盘判昨天的日记，红的是历史记录本身，规矩不许
+  docs/log/overnight_log.md:832  [D4c]  → sim/tb_fb_pack.v  → 归类1  → 来源是追加式日记 docs/log/ —— 拿今天的盘判昨天的日记，红的是历史记录本身，规矩不许
       原文: 从顶层抽成共用模块 `src/rtl/video/fb_pack.v`，并给它配了 `sim/tb_fb_pack.v`（12 条判据，
-  docs/log/OVERNIGHT_LOG.md:908  [D4c]  → sim/tb_ku5p_tx_arb.v  → 归类1  → 来源是追加式日记 docs/log/ —— 拿今天的盘判昨天的日记，红的是历史记录本身，规矩不许
+  docs/log/overnight_log.md:908  [D4c]  → sim/tb_ku5p_tx_arb.v  → 归类1  → 来源是追加式日记 docs/log/ —— 拿今天的盘判昨天的日记，红的是历史记录本身，规矩不许
       原文: | 7b | **ISSUES #37 的板级复验**：一边推流（`--test move --fps 15`）一边 `ping -t 192.168.1.10`，跑 60 s | 期望 **不丢包、不回包内容错乱**。改前的机理是"ICMP 应答发到一半被 ARP 抢走 mux"，现象应是偶发的 ping 超时/重传；如果 60 s 一
-  docs/log/OVERNIGHT_LOG.md:954  [D4c]  → build/v64_baseline.bit  → 归类1  → 来源是追加式日记 docs/log/ —— 拿今天的盘判昨天的日记，红的是历史记录本身，规矩不许
+  docs/log/overnight_log.md:954  [D4c]  → build/v64_baseline.bit  → 归类1  → 来源是追加式日记 docs/log/ —— 拿今天的盘判昨天的日记，红的是历史记录本身，规矩不许
       原文: | U8 | 一次性诊断脚本已删除；`build/v64_baseline.bit`、`build/r05_golden.bit` 是 A/B 期间的临时副本（未跟踪），收尾删除 | —— | —— | v6.4 bit 随时可用 `git show 647160e:build/system.bit` 取出 |
-  docs/log/OVERNIGHT_LOG.md:954  [D4c]  → build/r05_golden.bit  → 归类1  → 来源是追加式日记 docs/log/ —— 拿今天的盘判昨天的日记，红的是历史记录本身，规矩不许
+  docs/log/overnight_log.md:954  [D4c]  → build/r05_golden.bit  → 归类1  → 来源是追加式日记 docs/log/ —— 拿今天的盘判昨天的日记，红的是历史记录本身，规矩不许
       原文: | U8 | 一次性诊断脚本已删除；`build/v64_baseline.bit`、`build/r05_golden.bit` 是 A/B 期间的临时副本（未跟踪），收尾删除 | —— | —— | v6.4 bit 随时可用 `git show 647160e:build/system.bit` 取出 |
-  docs/log/OVERNIGHT_LOG.md:1329  [D4c]  → build/failed_r19b/system_r19b_WNS-1.277.bit  → 归类1  → 来源是追加式日记 docs/log/ —— 拿今天的盘判昨天的日记，红的是历史记录本身，规矩不许
+  docs/log/overnight_log.md:1329  [D4c]  → build/failed_r19b/system_r19b_WNS-1.277.bit  → 归类1  → 来源是追加式日记 docs/log/ —— 拿今天的盘判昨天的日记，红的是历史记录本身，规矩不许
       原文: **顺带**：`build#14` 的 bit 已经**改名搁置**（`build/failed_r19b/system_r19b_WNS-1.277.bit`），
-  docs/log/OVERNIGHT_LOG.md:1882  [D4c]  → build/build/system.bit  → 归类1  → 来源是追加式日记 docs/log/ —— 拿今天的盘判昨天的日记，红的是历史记录本身，规矩不许
+  docs/log/overnight_log.md:1882  [D4c]  → build/build/system.bit  → 归类1  → 来源是追加式日记 docs/log/ —— 拿今天的盘判昨天的日记，红的是历史记录本身，规矩不许
       原文: 3. **3 个下板脚本的 root 少一级 `..`**：`build/tcl/..` = `build/`，于是去找 `build/build/system.bit`。
-  docs/log/OVERNIGHT_LOG.md:2082  [D4c]  → sim/tb_v80_ku5p_cmd.v  → 归类1  → 来源是追加式日记 docs/log/ —— 拿今天的盘判昨天的日记，红的是历史记录本身，规矩不许
+  docs/log/overnight_log.md:2082  [D4c]  → sim/tb_v80_ku5p_cmd.v  → 归类1  → 来源是追加式日记 docs/log/ —— 拿今天的盘判昨天的日记，红的是历史记录本身，规矩不许
       原文: | `ku5p/src/rtl/ku5p_cmd.v`（新） | UDP **目的端口 5002**（视频流仍 5001，同一份 `udp_rx_parser` 靠端口过滤分开），载荷是 ASCII：`CLR` / `SNAP` / `SPD<1..255>`；忽略首尾空白；`SPD0`、`SPD1X`、`SNA`、光秃秃 `SPD` 一
-  docs/log/OVERNIGHT_LOG.md:2083  [D4c]  → sim/tb_ku5p_telem.v  → 归类1  → 来源是追加式日记 docs/log/ —— 拿今天的盘判昨天的日记，红的是历史记录本身，规矩不许
+  docs/log/overnight_log.md:2083  [D4c]  → sim/tb_ku5p_telem.v  → 归类1  → 来源是追加式日记 docs/log/ —— 拿今天的盘判昨天的日记，红的是历史记录本身，规矩不许
       原文: | `ku5p_telem.v`（改） | 载荷 36→**42** 字节、版本 0x01→**0x02**：多 `[36:37] cmds_ok`、`[38:39] cmds_bad`、`[40] period`、`[41] flags2`（bit0=执行过命令、bit1=基线已推过）。上报周期从"写死 1 秒"变成"秒分频 × `pe
-  docs/log/OVERNIGHT_LOG.md:2084  [D4c]  → sim/top_check_ku5p.sh  → 归类1  → 来源是追加式日记 docs/log/ —— 拿今天的盘判昨天的日记，红的是历史记录本身，规矩不许
+  docs/log/overnight_log.md:2084  [D4c]  → sim/top_check_ku5p.sh  → 归类1  → 来源是追加式日记 docs/log/ —— 拿今天的盘判昨天的日记，红的是历史记录本身，规矩不许
       原文: | `ku5p_eth_top.v`（改） | 第二个 `udp_rx_parser #(.UDP_PORT(CMD_PORT))` + `ku5p_cmd` 挂上去；命令侧的 `pay_len`/drop 统计先进 `_unused_ok` 占位（**不悄悄丢掉**，否则"命令收不到"会变成查不出原因的板级现象） | `sim/top_
-  docs/log/OVERNIGHT_LOG.md:2119  [D4c]  → sim/tb_v80_ku5p_cmd.v  → 归类1  → 来源是追加式日记 docs/log/ —— 拿今天的盘判昨天的日记，红的是历史记录本身，规矩不许
+  docs/log/overnight_log.md:2119  [D4c]  → sim/tb_v80_ku5p_cmd.v  → 归类1  → 来源是追加式日记 docs/log/ —— 拿今天的盘判昨天的日记，红的是历史记录本身，规矩不许
       原文: **判据一个字没改**：`sim/tb_v80_ku5p_cmd.v` 那 35 条（含两种 `p_eof` 时序、坏包不执行也不记账、
-  docs/log/OVERNIGHT_LOG.md:2216  [D4c]  → sim/results/regression_v79_r37..r39.txt  → 归类1  → 来源是追加式日记 docs/log/ —— 拿今天的盘判昨天的日记，红的是历史记录本身，规矩不许
+  docs/log/overnight_log.md:2216  [D4c]  → sim/results/regression_v79_r37..r39.txt  → 归类1  → 来源是追加式日记 docs/log/ —— 拿今天的盘判昨天的日记，红的是历史记录本身，规矩不许
       原文: `r39` **47/47**（新增 `tb_v82_src_mode`，12 条 —— 冻结时误记 11，已按 `grep -c expect(` 更正），存档 `sim/results/regression_v79_r37..r39.txt`。
-  docs/log/OVERNIGHT_LOG.md:2261  [D4c]  → board/uart_r28_autoplay.txt  → 归类1  → 来源是追加式日记 docs/log/ —— 拿今天的盘判昨天的日记，红的是历史记录本身，规矩不许
+  docs/log/overnight_log.md:2261  [D4c]  → board/uart_r28_autoplay.txt  → 归类1  → 来源是追加式日记 docs/log/ —— 拿今天的盘判昨天的日记，红的是历史记录本身，规矩不许
       原文: `board/uart_r28_autoplay.txt`（01:3x，固件 = `build/frozen_r31_srcmode/ps_app.elf`）抓到的是
-  docs/log/OVERNIGHT_LOG.md:2274  [D4c]  → board/uart_r28_stat.txt  → 归类1  → 来源是追加式日记 docs/log/ —— 拿今天的盘判昨天的日记，红的是历史记录本身，规矩不许
+  docs/log/overnight_log.md:2274  [D4c]  → board/uart_r28_stat.txt  → 归类1  → 来源是追加式日记 docs/log/ —— 拿今天的盘判昨天的日记，红的是历史记录本身，规矩不许
       原文: 29.630 ~ 29.999 fps（`STOP` 后 `STAT` 显示 `playing=1 src=1 pub=1`，见 `board/uart_r28_stat.txt`）。
-  docs/log/OVERNIGHT_LOG.md:2283  [D4c]  → board/uart_50_conc3min.txt  → 归类1  → 来源是追加式日记 docs/log/ —— 拿今天的盘判昨天的日记，红的是历史记录本身，规矩不许
+  docs/log/overnight_log.md:2283  [D4c]  → board/uart_50_conc3min.txt  → 归类1  → 来源是追加式日记 docs/log/ —— 拿今天的盘判昨天的日记，红的是历史记录本身，规矩不许
       原文: `board/uart_50_conc3min.txt`：完全不碰 JTAG、SD 回放 + 30 fps 推流并发跑 3 分钟
-  docs/log/OVERNIGHT_LOG.md:2285  [D4c]  → board/sd_frame_boundary2.txt  → 归类1  → 来源是追加式日记 docs/log/ —— 拿今天的盘判昨天的日记，红的是历史记录本身，规矩不许
+  docs/log/overnight_log.md:2285  [D4c]  → board/sd_frame_boundary2.txt  → 归类1  → 来源是追加式日记 docs/log/ —— 拿今天的盘判昨天的日记，红的是历史记录本身，规矩不许
       原文: —— 与 09-23 那次的记录**同一帧号**。再定点跳帧（`board/sd_frame_boundary2.txt`，健康控制器）：
-  docs/log/OVERNIGHT_LOG.md:2364  [D4c]  → board/sd_hotspot_diag.txt  → 归类1  → 来源是追加式日记 docs/log/ —— 拿今天的盘判昨天的日记，红的是历史记录本身，规矩不许
+  docs/log/overnight_log.md:2364  [D4c]  → board/sd_hotspot_diag.txt  → 归类1  → 来源是追加式日记 docs/log/ —— 拿今天的盘判昨天的日记，红的是历史记录本身，规矩不许
       原文: 4. 05:44 一次 `FRAME3583`（好）/ `FRAME3584`（坏）就出结论（`board/sd_hotspot_diag.txt`）：
-  docs/log/OVERNIGHT_LOG.md:2378  [D4c]  → board/sd_hotspot_fixed.txt  → 归类1  → 来源是追加式日记 docs/log/ —— 拿今天的盘判昨天的日记，红的是历史记录本身，规矩不许
+  docs/log/overnight_log.md:2378  [D4c]  → board/sd_hotspot_fixed.txt  → 归类1  → 来源是追加式日记 docs/log/ —— 拿今天的盘判昨天的日记，红的是历史记录本身，规矩不许
       原文: 5. 05:46 改完重下 elf：`board/sd_hotspot_fixed.txt`（155 s 纯串口，不看屏）里帧窗
-  docs/log/OVERNIGHT_LOG.md:2384  [D4c]  → board/sd_selftest_red.txt  → 归类1  → 来源是追加式日记 docs/log/ —— 拿今天的盘判昨天的日记，红的是历史记录本身，规矩不许
+  docs/log/overnight_log.md:2384  [D4c]  → board/sd_selftest_red.txt  → 归类1  → 来源是追加式日记 docs/log/ —— 拿今天的盘判昨天的日记，红的是历史记录本身，规矩不许
       原文: 看它会不会红（`board/sd_selftest_red.txt`：`mount failed: cluster decode SELF-TEST failed`）
-  docs/log/OVERNIGHT_LOG.md:2418  [D4c]  → board/uart_sd_with_eth.txt  → 归类1  → 来源是追加式日记 docs/log/ —— 拿今天的盘判昨天的日记，红的是历史记录本身，规矩不许
+  docs/log/overnight_log.md:2418  [D4c]  → board/uart_sd_with_eth.txt  → 归类1  → 来源是追加式日记 docs/log/ —— 拿今天的盘判昨天的日记，红的是历史记录本身，规矩不许
       原文: （`board/uart_sd_with_eth.txt`）：SD 帧窗 `1804→4304→（整卡放完回绕）→2306`，
-  docs/log/OVERNIGHT_LOG.md:2426  [D4c]  → board/uart_final_state.txt  → 归类1  → 来源是追加式日记 docs/log/ —— 拿今天的盘判昨天的日记，红的是历史记录本身，规矩不许
+  docs/log/overnight_log.md:2426  [D4c]  → board/uart_final_state.txt  → 归类1  → 来源是追加式日记 docs/log/ —— 拿今天的盘判昨天的日记，红的是历史记录本身，规矩不许
       原文: （`board/uart_final_state.txt`）⇒ **停流之后仲裁自己交回给 PS、而且是 AUTO 模式下交回的**。
-  docs/log/OVERNIGHT_LOG.md:2516  [D4c]  → board/ddr_churn_r33_newelf.txt  → 归类1  → 来源是追加式日记 docs/log/ —— 拿今天的盘判昨天的日记，红的是历史记录本身，规矩不许
+  docs/log/overnight_log.md:2516  [D4c]  → board/ddr_churn_r33_newelf.txt  → 归类1  → 来源是追加式日记 docs/log/ —— 拿今天的盘判昨天的日记，红的是历史记录本身，规矩不许
       原文: 正好是根因的预言（PS 只有一个 `FRAME_ADDR`）。凭据 `board/ddr_churn_r33_pair.md` + `board/ddr_churn_r33_newelf.txt`。
-  docs/log/OVERNIGHT_LOG.md:2840  [D4c]  → sim/known_red/tb_v92_seam_bleed.v  → 归类1  → 来源是追加式日记 docs/log/ —— 拿今天的盘判昨天的日记，红的是历史记录本身，规矩不许
+  docs/log/overnight_log.md:2840  [D4c]  → sim/known_red/tb_v92_seam_bleed.v  → 归类1  → 来源是追加式日记 docs/log/ —— 拿今天的盘判昨天的日记，红的是历史记录本身，规矩不许
       原文: 新台架 `sim/known_red/tb_v92_seam_bleed.v`（**故意先红，所以放在 `known_red/`，不进 L1 的 glob**）
-  docs/log/OVERNIGHT_LOG.md:3661  [D4c]  → build/r57_build38.log  → 归类1  → 来源是追加式日记 docs/log/ —— 拿今天的盘判昨天的日记，红的是历史记录本身，规矩不许
+  docs/log/overnight_log.md:3661  [D4c]  → build/r57_build38.log  → 归类1  → 来源是追加式日记 docs/log/ —— 拿今天的盘判昨天的日记，红的是历史记录本身，规矩不许
       原文: 日志 `build/r57_build38.log`；构建脚本现在会把策略名打进日志（`BUILD_STRATEGY …`），
-  docs/log/OVERNIGHT_LOG.md:3828  [D4c]  → build/tb_v98_run.log  → 归类1  → 来源是追加式日记 docs/log/ —— 拿今天的盘判昨天的日记，红的是历史记录本身，规矩不许
+  docs/log/overnight_log.md:3828  [D4c]  → build/tb_v98_run.log  → 归类1  → 来源是追加式日记 docs/log/ —— 拿今天的盘判昨天的日记，红的是历史记录本身，规矩不许
       原文: 跑通之后第一眼就看到（`build/tb_v98_run.log`）：
-  docs/log/OVERNIGHT_LOG.md:4076  [D4c]  → build/ps_app_v9b/v9d/v9e.log  → 归类1  → 来源是追加式日记 docs/log/ —— 拿今天的盘判昨天的日记，红的是历史记录本身，规矩不许
+  docs/log/overnight_log.md:4076  [D4c]  → build/ps_app_v9b/v9d/v9e.log  → 归类1  → 来源是追加式日记 docs/log/ —— 拿今天的盘判昨天的日记，红的是历史记录本身，规矩不许
       原文: - **PS 固件 `node build/ps_app.mjs` rc=0** ⇒ `build/ps_app.elf`（`build/ps_app_v9b/v9d/v9e.log`），
-  docs/log/OVERNIGHT_LOG.md:4081  [D4c]  → build/r60_build47.log  → 归类1  → 来源是追加式日记 docs/log/ —— 拿今天的盘判昨天的日记，红的是历史记录本身，规矩不许
+  docs/log/overnight_log.md:4081  [D4c]  → build/r60_build47.log  → 归类1  → 来源是追加式日记 docs/log/ —— 拿今天的盘判昨天的日记，红的是历史记录本身，规矩不许
       原文: 正在跑的：**r60 构建**（`build/r60_build47.log`，入口 `build/tcl/build_system_axigpio.tcl`）。
-  docs/log/OVERNIGHT_LOG.md:4229  [D4c]  → build/r63_build.log  → 归类1  → 来源是追加式日记 docs/log/ —— 拿今天的盘判昨天的日记，红的是历史记录本身，规矩不许
+  docs/log/overnight_log.md:4229  [D4c]  → build/r63_build.log  → 归类1  → 来源是追加式日记 docs/log/ —— 拿今天的盘判昨天的日记，红的是历史记录本身，规矩不许
       原文: ### 4. 02:54 开全流构建（`build/tcl/build_system.tcl`，日志 `build/r63_build.log` + `build/r63_console.txt`）
-  docs/log/OVERNIGHT_LOG.md:4242  [D4c]  → build/src/rtl/top/pl_video_top.v  → 归类1  → 来源是追加式日记 docs/log/ —— 拿今天的盘判昨天的日记，红的是历史记录本身，规矩不许
+  docs/log/overnight_log.md:4242  [D4c]  → build/src/rtl/top/pl_video_top.v  → 归类1  → 来源是追加式日记 docs/log/ —— 拿今天的盘判昨天的日记，红的是历史记录本身，规矩不许
       原文: `Video_Processing/build`，于是 `add_files` 找 `build/src/rtl/top/pl_video_top.v` 直接
-  docs/log/OVERNIGHT_LOG.md:4246  [D4c]  → build/r63_build.log  → 归类1  → 来源是追加式日记 docs/log/ —— 拿今天的盘判昨天的日记，红的是历史记录本身，规矩不许
+  docs/log/overnight_log.md:4246  [D4c]  → build/r63_build.log  → 归类1  → 来源是追加式日记 docs/log/ —— 拿今天的盘判昨天的日记，红的是历史记录本身，规矩不许
       原文: ⇒ 02:59 第三次终于进 `wait_on_run synth_1`，日志 `build/r63_build.log` + `build/r63_console.txt`
-  docs/log/OVERNIGHT_LOG.md:4293  [D4c]  → build/r63b_build.log  → 归类1  → 来源是追加式日记 docs/log/ —— 拿今天的盘判昨天的日记，红的是历史记录本身，规矩不许
+  docs/log/overnight_log.md:4293  [D4c]  → build/r63b_build.log  → 归类1  → 来源是追加式日记 docs/log/ —— 拿今天的盘判昨天的日记，红的是历史记录本身，规矩不许
       原文: 第二次构建 `r63b` 在跑（`build/r63b_build.log`/`r63b_console.txt`，起跑时 `grep -c "^ERROR"` = 0），
-  docs/log/OVERNIGHT_LOG.md:4300  [D4c]  → build/r63b_build.log  → 归类1  → 来源是追加式日记 docs/log/ —— 拿今天的盘判昨天的日记，红的是历史记录本身，规矩不许
+  docs/log/overnight_log.md:4300  [D4c]  → build/r63b_build.log  → 归类1  → 来源是追加式日记 docs/log/ —— 拿今天的盘判昨天的日记，红的是历史记录本身，规矩不许
       原文: 凭据：`build/r63b_gates.txt`（门禁 14 项，脚本 `rc=0`，`GATES: ALL PASS`）、`build/r63b_build.log`/`r63b_console.txt`、
-  docs/log/OVERNIGHT_LOG.md:4362  [D4c]  → build/wip_c1i_falsify.sh  → 归类1  → 来源是追加式日记 docs/log/ —— 拿今天的盘判昨天的日记，红的是历史记录本身，规矩不许
+  docs/log/overnight_log.md:4362  [D4c]  → build/wip_c1i_falsify.sh  → 归类1  → 来源是追加式日记 docs/log/ —— 拿今天的盘判昨天的日记，红的是历史记录本身，规矩不许
       原文: （这条也算给 `build/wip_c1i_falsify.sh` 自己做的反例：脚本故意改坏被测对象，那它必须自己保证改回来）。
-  docs/log/OVERNIGHT_LOG.md:4390  [D4c]  → build/wip_flash_r63.sh  → 归类1  → 来源是追加式日记 docs/log/ —— 拿今天的盘判昨天的日记，红的是历史记录本身，规矩不许
+  docs/log/overnight_log.md:4390  [D4c]  → build/wip_flash_r63.sh  → 归类1  → 来源是追加式日记 docs/log/ —— 拿今天的盘判昨天的日记，红的是历史记录本身，规矩不许
       原文: `bash build/wip_flash_r63.sh`：`PROGRAMMED xc7z020_1 <- build/system.bit`（md5 `e73e67af…`）
-  docs/log/OVERNIGHT_LOG.md:4429  [D4c]  → build/wip_flash_r63.sh  → 归类1  → 来源是追加式日记 docs/log/ —— 拿今天的盘判昨天的日记，红的是历史记录本身，规矩不许
+  docs/log/overnight_log.md:4429  [D4c]  → build/wip_flash_r63.sh  → 归类1  → 来源是追加式日记 docs/log/ —— 拿今天的盘判昨天的日记，红的是历史记录本身，规矩不许
       原文: * 板上验收：`build/wip_flash_r63.sh` 三步跑完 —— `board_verify PASS（判红步骤 0）`、
-  docs/log/OVERNIGHT_LOG.md:4463  [D4c]  → build/r65_flash.txt  → 归类1  → 来源是追加式日记 docs/log/ —— 拿今天的盘判昨天的日记，红的是历史记录本身，规矩不许
+  docs/log/overnight_log.md:4463  [D4c]  → build/r65_flash.txt  → 归类1  → 来源是追加式日记 docs/log/ —— 拿今天的盘判昨天的日记，红的是历史记录本身，规矩不许
       原文: `build/r65_flash.txt`（若真刷了：`PROGRAMMED` + 串口电池 + `geom_check`）。
-  docs/log/OVERNIGHT_LOG.md:4661  [D4c]  → build/wip_r71_finalize.sh  → 归类1  → 来源是追加式日记 docs/log/ —— 拿今天的盘判昨天的日记，红的是历史记录本身，规矩不许
+  docs/log/overnight_log.md:4661  [D4c]  → build/wip_r71_finalize.sh  → 归类1  → 来源是追加式日记 docs/log/ —— 拿今天的盘判昨天的日记，红的是历史记录本身，规矩不许
       原文: r71 位流/elf 已在 `build/`，门禁 16/17 绿、第 15 项等 19:0x 那轮台架；`build/wip_r71_finalize.sh`
-  docs/log/OVERNIGHT_LOG.md:4828  [D4c]  → build/wip_c1i_falsify.sh  → 归类1  → 来源是追加式日记 docs/log/ —— 拿今天的盘判昨天的日记，红的是历史记录本身，规矩不许
+  docs/log/overnight_log.md:4828  [D4c]  → build/wip_c1i_falsify.sh  → 归类1  → 来源是追加式日记 docs/log/ —— 拿今天的盘判昨天的日记，红的是历史记录本身，规矩不许
       原文: - `build/wip_c1i_falsify.sh`、`wip_flash_r63.sh`、`wip_r65_ab.sh`、`wip_r69_finalize.sh`、
-  docs/log/OVERNIGHT_LOG.md:4840  [D4c]  → build/rot_osd_wip.patch.txt  → 归类1  → 来源是追加式日记 docs/log/ —— 拿今天的盘判昨天的日记，红的是历史记录本身，规矩不许
+  docs/log/overnight_log.md:4840  [D4c]  → build/rot_osd_wip.patch.txt  → 归类1  → 来源是追加式日记 docs/log/ —— 拿今天的盘判昨天的日记，红的是历史记录本身，规矩不许
       原文: `build/__pycache__/`、`build/rot_osd_wip.patch.txt`、`build/video_pipeline.bit`（3.9 MB，
-  docs/log/OVERNIGHT_LOG.md:4840  [D4c]  → build/video_pipeline.bit  → 归类1  → 来源是追加式日记 docs/log/ —— 拿今天的盘判昨天的日记，红的是历史记录本身，规矩不许
+  docs/log/overnight_log.md:4840  [D4c]  → build/video_pipeline.bit  → 归类1  → 来源是追加式日记 docs/log/ —— 拿今天的盘判昨天的日记，红的是历史记录本身，规矩不许
       原文: `build/__pycache__/`、`build/rot_osd_wip.patch.txt`、`build/video_pipeline.bit`（3.9 MB，
-  docs/log/OVERNIGHT_LOG.md:5399  [D4c]  → sim/tb_v57_rdw_copy.v  → 归类1  → 来源是追加式日记 docs/log/ —— 拿今天的盘判昨天的日记，红的是历史记录本身，规矩不许
+  docs/log/overnight_log.md:5399  [D4c]  → sim/tb_v57_rdw_copy.v  → 归类1  → 来源是追加式日记 docs/log/ —— 拿今天的盘判昨天的日记，红的是历史记录本身，规矩不许
       原文: - `sim/tb_v57_rdw_copy.v`：全仓无引用的死拷贝（`run_sim.tcl` 会 glob 所有 `sim/tb_*.v`，留着它
-  docs/log/OVERNIGHT_LOG.md:5706  [D4c]  → build/tb_edge_rim_r81.txt  → 归类1  → 来源是追加式日记 docs/log/ —— 拿今天的盘判昨天的日记，红的是历史记录本身，规矩不许
-      原文: → `bash build/tb98_report.sh` → `bash sim/run_one.sh tb_edge_rim` 出 `build/tb_edge_rim_r81.txt` →
-  docs/log/OVERNIGHT_LOG.md:5770  [D4c]  → build/r83_gates.txt  → 归类1  → 来源是追加式日记 docs/log/ —— 拿今天的盘判昨天的日记，红的是历史记录本身，规矩不许
+  docs/log/overnight_log.md:5706  [D4c]  → build/tb_edge_rim_r81.txt  → 归类1  → 来源是追加式日记 docs/log/ —— 拿今天的盘判昨天的日记，红的是历史记录本身，规矩不许
+      原文: → `bash build/tb98_report.sh` → `bash build/sim/run_one.sh tb_edge_rim` 出 `build/tb_edge_rim_r81.txt` →
+  docs/log/overnight_log.md:5770  [D4c]  → build/r83_gates.txt  → 归类1  → 来源是追加式日记 docs/log/ —— 拿今天的盘判昨天的日记，红的是历史记录本身，规矩不许
       原文: | 门禁 | **两条红**：WNS −0.192（`eth_rxc` 组，34 端点）与第 15 项（C5c 那一条 FAIL 行） | `build/r83_gates.txt` |
-  docs/log/OVERNIGHT_LOG.md:5890  [D4c]  → build/tcl/_tmp_isolated_roll.tcl  → 归类1  → 来源是追加式日记 docs/log/ —— 拿今天的盘判昨天的日记，红的是历史记录本身，规矩不许
+  docs/log/overnight_log.md:5890  [D4c]  → build/tcl/_tmp_isolated_roll.tcl  → 归类1  → 来源是追加式日记 docs/log/ —— 拿今天的盘判昨天的日记，红的是历史记录本身，规矩不许
       原文: - 顺手删掉一个我早前测试留下的 `build/tcl/_tmp_isolated_roll.tcl`（正式脚本的副本就是会漂，
-  docs/log/PLAN_V8_SPEC.md:15  [D4c]  → board/sd_hotspot_fixed.txt  → 归类1  → 来源是追加式日记 docs/log/ —— 拿今天的盘判昨天的日记，红的是历史记录本身，规矩不许
+  docs/log/plan_v8_spec.md:15  [D4c]  → board/sd_hotspot_fixed.txt  → 归类1  → 来源是追加式日记 docs/log/ —— 拿今天的盘判昨天的日记，红的是历史记录本身，规矩不许
       原文: | 回落检测：SD 读失败 | **已实现**（整卡 4398 帧能播完，#50 已结案） | `src/ps/sd_play.c`；`board/sd_hotspot_fixed.txt` |
-  docs/log/PLAN_V8_SPEC.md:59  [D4c]  → board/uart_cmd_check_r44.txt  → 归类1  → 来源是追加式日记 docs/log/ —— 拿今天的盘判昨天的日记，红的是历史记录本身，规矩不许
-      原文: | **1** | **命令层统一**（spec §14 语法），零 RTL 风险 | `src/ps/main.c`（解析器 + 别名表）、`report/HOST_GUIDE.md` | ✅ 2026-09-24 17:0x：`node src/host/uart_cmd_check.mjs` **32 条逐条对回声 + 反例 + 收尾回
-  docs/log/VERSION_LINEAGE.md:165  [D4c]  → sim/tb_v80_ku5p_cmd.v  → 归类1  → 来源是追加式日记 docs/log/ —— 拿今天的盘判昨天的日记，红的是历史记录本身，规矩不许
+  docs/log/plan_v8_spec.md:59  [D4c]  → board/uart_cmd_check_r44.txt  → 归类1  → 来源是追加式日记 docs/log/ —— 拿今天的盘判昨天的日记，红的是历史记录本身，规矩不许
+      原文: | **1** | **命令层统一**（spec §14 语法），零 RTL 风险 | `src/ps/main.c`（解析器 + 别名表）、`report/host_guide.md` | ✅ 2026-09-24 17:0x：`node src/host/uart_cmd_check.mjs` **32 条逐条对回声 + 反例 + 收尾回
+  docs/log/version_lineage.md:165  [D4c]  → sim/tb_v80_ku5p_cmd.v  → 归类1  → 来源是追加式日记 docs/log/ —— 拿今天的盘判昨天的日记，红的是历史记录本身，规矩不许
       原文: | KU5P 子工程（R31 命令通道） | 从"只会上报"变成**双向**：`ku5p_cmd.v`(端口 5002, `CLR/SNAP/SPD<n>`) + 遥测载荷 v0x01→**v0x02**（36→42 字节）。台架级，未上板 | `ku5p/README.md` §1/§8/§9；`sim/tb_v80_ku5p_cmd.
 
 ### 类2 —— ② 目标当前盘上存在（安全；这批不在"只报数"的 N 条里，单独统计）：1616 条
-  board/ACCEPTANCE.md:14  [D4c]  → build/system.bit  → 归类2  → 目标当前在盘上 ⇒ exists() 为真，连报数桶都不进，红不了
+  board/acceptance.md:14  [D4c]  → build/system.bit  → 归类2  → 目标当前在盘上 ⇒ exists() 为真，连报数桶都不进，红不了
       原文: | 1 | PS 起来 + PL 烧写 + 应用重载三歩都成功（**r94 重跑**）| `DDR_ECHO: 10000000: 5A5AA5A5` / `PROGRAMMED xc7z020_1`（位流 md5 `a1465f29c9e4` = 树上 `build/system.bit`）/ `RESUME: ok` | `build
-  board/ACCEPTANCE.md:14  [D4c]  → build/r94_flash.txt  → 归类2  → 目标当前在盘上 ⇒ exists() 为真，连报数桶都不进，红不了
+  board/acceptance.md:14  [D4c]  → build/r94_flash.txt  → 归类2  → 目标当前在盘上 ⇒ exists() 为真，连报数桶都不进，红不了
       原文: | 1 | PS 起来 + PL 烧写 + 应用重载三歩都成功（**r94 重跑**）| `DDR_ECHO: 10000000: 5A5AA5A5` / `PROGRAMMED xc7z020_1`（位流 md5 `a1465f29c9e4` = 树上 `build/system.bit`）/ `RESUME: ok` | `build
-  board/ACCEPTANCE.md:15  [D4c]  → build/r94_batt.txt  → 归类2  → 目标当前在盘上 ⇒ exists() 为真，连报数桶都不进，红不了
+  board/acceptance.md:15  [D4c]  → build/r94_batt.txt  → 归类2  → 目标当前在盘上 ⇒ exists() 为真，连报数桶都不进，红不了
       原文: | 2 | 串口命令电池（100 条，含该拒的必须拒）（**r94 重跑**）| `RESULT PASS uart_cmd_check (100 条命令, 93.1 s)`；`RESULT PASS geom_check（ok=8 fail=0）`；`board_verify` 全量那一串**等 r94 门禁落盘后补跑** | `bui
-  board/ACCEPTANCE.md:15  [D4c]  → build/r94_uart_cap.txt  → 归类2  → 目标当前在盘上 ⇒ exists() 为真，连报数桶都不进，红不了
+  board/acceptance.md:15  [D4c]  → build/r94_uart_cap.txt  → 归类2  → 目标当前在盘上 ⇒ exists() 为真，连报数桶都不进，红不了
       原文: | 2 | 串口命令电池（100 条，含该拒的必须拒）（**r94 重跑**）| `RESULT PASS uart_cmd_check (100 条命令, 93.1 s)`；`RESULT PASS geom_check（ok=8 fail=0）`；`board_verify` 全量那一串**等 r94 门禁落盘后补跑** | `bui
-  board/ACCEPTANCE.md:15  [D4c]  → build/r94_geom_check2.txt  → 归类2  → 目标当前在盘上 ⇒ exists() 为真，连报数桶都不进，红不了
+  board/acceptance.md:15  [D4c]  → build/r94_geom_check2.txt  → 归类2  → 目标当前在盘上 ⇒ exists() 为真，连报数桶都不进，红不了
       原文: | 2 | 串口命令电池（100 条，含该拒的必须拒）（**r94 重跑**）| `RESULT PASS uart_cmd_check (100 条命令, 93.1 s)`；`RESULT PASS geom_check（ok=8 fail=0）`；`board_verify` 全量那一串**等 r94 门禁落盘后补跑** | `bui
-  board/ACCEPTANCE.md:16  [D4c]  → build/r94_geom_check2.txt  → 归类2  → 目标当前在盘上 ⇒ exists() 为真，连报数桶都不进，红不了
+  board/acceptance.md:16  [D4c]  → build/r94_geom_check2.txt  → 归类2  → 目标当前在盘上 ⇒ exists() 为真，连报数桶都不进，红不了
       原文: | 3 | 几何"最后一跳"：命令 → 像素域真的用了它（**r94 重跑，树上带 #93 那一钳**）| `RESULT PASS geom_check（ok=8 fail=0）`，其中 G1b/G1c/G2 三条量的是"拟合/旋转钳下 `inv_used` 与屏上档号同源自洽"（例：`fit=1` 时 inv=433 ⇒ 屏上 0.5
-  board/ACCEPTANCE.md:17  [D4c]  → build/evidence/verify_0930_0424.txt  → 归类2  → 目标当前在盘上 ⇒ exists() 为真，连报数桶都不进，红不了
+  board/acceptance.md:17  [D4c]  → build/evidence/verify_0930_0424.txt  → 归类2  → 目标当前在盘上 ⇒ exists() 为真，连报数桶都不进，红不了
       原文: | 4 | 上电默认档位 | `lane23 zoom → zsel=4 zman=1 inv_scale=256 x100_actual=100`（屏上画 1.00×） | `build/evidence/verify_0930_0424.txt` 的开机回读段 |
-  board/ACCEPTANCE.md:18  [D4c]  → build/r94_tx_console.txt  → 归类2  → 目标当前在盘上 ⇒ exists() 为真，连报数桶都不进，红不了
+  board/acceptance.md:18  [D4c]  → build/r94_tx_console.txt  → 归类2  → 目标当前在盘上 ⇒ exists() 为真，连报数桶都不进，红不了
       原文: | 5 | 以太推流期间链路健康（**r94 重跑**）| `--demo --fps 25`：**3001 帧 / 120.05 s = 25.00 fps、共发 663221 包**；推流**之中**读回 `drop_words=0`、`丢过字=0`、`stall_ms=0`、`CDC灌满过=0`、`流活着=1`、`eth_rxc 心
-  board/ACCEPTANCE.md:18  [D4c]  → build/r94_health_rotclamp.txt  → 归类2  → 目标当前在盘上 ⇒ exists() 为真，连报数桶都不进，红不了
+  board/acceptance.md:18  [D4c]  → build/r94_health_rotclamp.txt  → 归类2  → 目标当前在盘上 ⇒ exists() 为真，连报数桶都不进，红不了
       原文: | 5 | 以太推流期间链路健康（**r94 重跑**）| `--demo --fps 25`：**3001 帧 / 120.05 s = 25.00 fps、共发 663221 包**；推流**之中**读回 `drop_words=0`、`丢过字=0`、`stall_ms=0`、`CDC灌满过=0`、`流活着=1`、`eth_rxc 心
-  board/ACCEPTANCE.md:19  [D4c]  → build/evidence/r92_health.txt  → 归类2  → 目标当前在盘上 ⇒ exists() 为真，连报数桶都不进，红不了
+  board/acceptance.md:19  [D4c]  → build/evidence/r92_health.txt  → 归类2  → 目标当前在盘上 ⇒ exists() 为真，连报数桶都不进，红不了
       原文: | 6 | 链路内时延同源一致 | 屏上 `Latency=6ms` 与回读 `tot/100000=6` 一致（ok） | `build/evidence/r92_health.txt` |
-  board/ACCEPTANCE.md:20  [D4c]  → build/evidence/verify_0930_0424.txt  → 归类2  → 目标当前在盘上 ⇒ exists() 为真，连报数桶都不进，红不了
+  board/acceptance.md:20  [D4c]  → build/evidence/verify_0930_0424.txt  → 归类2  → 目标当前在盘上 ⇒ exists() 为真，连报数桶都不进，红不了
       原文: | 7 | 温度格三方对账 | `V9-6 温度格三方对账：4 条 [TEMP] 的 degC↔osd↔gpio 全部自洽` | `build/evidence/verify_0930_0424.txt` |
-  board/ACCEPTANCE.md:21  [D4c]  → board/uart_script_capture.txt  → 归类2  → 目标当前在盘上 ⇒ exists() 为真，连报数桶都不进，红不了
+  board/acceptance.md:21  [D4c]  → board/uart_script_capture.txt  → 归类2  → 目标当前在盘上 ⇒ exists() 为真，连报数桶都不进，红不了
       原文: | 8 | SD 卡本地播放 | `sd=1 playing=1`，帧率 29.8 – 30.0 fps（100 帧滑窗） | `board/uart_script_capture.txt`、`data/metrics.csv` |
   …另外 1604 条同型（② 全量按形状统计，见下面的交叉表）
 
@@ -338,7 +338,7 @@
   build/frozen_r58_ethsdtest: 1 条
 
 ### 交叉表：来源顶层目录 × （点名凭据）存在与否
-  README.en.md: 盘上存在 12 / 盘上没有 0 / 其中交付文档 12
+  readme.en.md: 盘上存在 12 / 盘上没有 0 / 其中交付文档 12
   README.md: 盘上存在 14 / 盘上没有 0 / 其中交付文档 14
   board: 盘上存在 70 / 盘上没有 1 / 其中交付文档 17
   build: 盘上存在 462 / 盘上没有 33 / 其中交付文档 0

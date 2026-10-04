@@ -4,7 +4,7 @@
 #   MF_MODE=repl MF_OUT=/tmp/kx/mf114/B  ...
 #
 # 为什么是这一刀（全局口径，不是"追最差那条"）：
-#   `report/TIMING_GLOBAL.md` 第 2/3 节量出来的事实是——最差那族 route 占 84~94 %、级数只有 4~6，
+#   `report/timing_global.md` 第 2/3 节量出来的事实是——最差那族 route 占 84~94 %、级数只有 4~6，
 #   再砍逻辑没有物理依据；而名册里点名的广播（r112：`rok4[51]_i_1_n_0` fo=305、`u_reasm/wr_en_reg_1` fo=547）
 #   正是官方文档给的那类抓手（UG949 Timing Closure；AMD 自适应支持文章 9410《Suggestions for high fanout
 #   signals》把"高扇出网络复制/限制扇出"排在逻辑重写**之前**）。

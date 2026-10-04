@@ -19,7 +19,7 @@
 3. `metrics.csv`（29 行含表头，`md5=7273b71f26ca`）是**唯一**那张指标表。
    别的文档只引用它的行号或把数抄成叙述文字，不再另立第二份表。
    每一行的"证据文件"列必须指到盘上真实存在的件——终审 C2 就是判这个的
-   （`node scripts/check_repo_consistency.mjs` 的 C2 行）。
+   （`node build/checks/check_repo_consistency.mjs` 的 C2 行）。
 4. 二进制只放**能被脚本重算出来**的那些；手工截图放 `report/figures/`，不放这里。
 
 ## 这一轮没做的事（不装作做了）

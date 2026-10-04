@@ -40,7 +40,7 @@ const RULES = [
     '全设计最差换成了 `u_rgmii_rx/u_iddr_rx_ctl → u_icmp_rx/des_mac_reg\\[\\*\\]/CE` 那条 4 级路——'
     + '它 logic 只占 15\\.7 %、route 占 84\\.3 %',
     'r112 之后全设计最差是 `u_rx_par/p_eof_reg/C → u_reasm/rows_hit_reg[12..15]/CE` 那条 4 级路——'
-    + 'logic 15.724 % vs route 84.276 %。三滚判读（`build/evidence/r113_roll_ABC_verdict.txt`）：'
+    + 'logic 15.724 % vs route 84.276 %。三滚判读（`build/evidence/r113_roll_abc_verdict.txt`）：'
     + '同一份 opt.dcp 重跑 place+route **逐位复现 0.445**，换 `place_design -directive` 一格不差，'
     + '那块把 rx_par+reasm 收进一个矩形的 Pblock 因进位链半内半外没做成实验', 1],
   ['README.md', '资源行四数',
@@ -53,38 +53,38 @@ const RULES = [
     + '全设计净 **+35 LUT / +34 FF**——净账由两份逐层件相减**闭合到个位**（`build/evidence/r112_util_attrib.txt`）。'
     + '⚠ 刀 B 记为"同族抓手成立、设计余量未抬"：它那条 `ip_head → check_buffer` 真的从最差报告里消失了，'
     + '但设计的绑定约束换成了上面那条 `rows_hit` 的 CE 广播，见 ISSUES #253/#254/#255）', 1],
-  // ---------- README.en.md ----------
-  ['README.en.md', 'identity sentence',
+  // ---------- readme.en.md ----------
+  ['readme.en.md', 'identity sentence',
     'the board now runs r110, flashed at 07:51 on 2026-10-03 by the three-step JTAG chain, `bit 2bf95588978f`',
     'the board now runs r113 (bit `b94f4da6cdff`, flash time to be filled)', 1],
-  ['README.en.md', 'design-wide setup WNS',
+  ['readme.en.md', 'design-wide setup WNS',
     '\\| Design-wide setup WNS \\| \\*\\*0\\.713 ns\\*\\*', '| Design-wide setup WNS | **0.445 ns**', 1],
-  ['README.en.md', 'endpoint count (WNS row)', 'failing setup/hold endpoints \\*\\*0 / 51013\\*\\*',
+  ['readme.en.md', 'endpoint count (WNS row)', 'failing setup/hold endpoints \\*\\*0 / 51013\\*\\*',
     'failing setup/hold endpoints **0 / 51135**', 1],
-  ['README.en.md', 'per-clock eth_rxc',
+  ['readme.en.md', 'per-clock eth_rxc',
     '`eth_rxc` \\*\\*0\\.713 ns\\*\\* \\(8\\.912 % of its 8 ns period, and the design-worst absolute path\\)',
     '`eth_rxc` **0.445 ns** (5.5625 % of its 8 ns period - both the design-worst absolute path and the '
     + 'tightest period-normalised margin)', 1],
-  ['README.en.md', 'per-clock clk_fpga_0', '\\*\\*1\\.186 ns\\*\\* \\(11\\.86 %\\)', '**1.135 ns** (11.35 %)', 1],
-  ['README.en.md', 'per-clock clkout0_1', '\\*\\*3\\.799 ns\\*\\* \\(18\\.995 %\\)', '**4.467 ns** (22.335 %)', 1],
-  ['README.en.md', 'per-clock sys_clk', '`sys_clk` \\*\\*15\\.157 ns\\*\\*', '`sys_clk` **14.463 ns**', 1],
-  ['README.en.md', 'the wrong "tightest relative is clkout0_1" claim',
+  ['readme.en.md', 'per-clock clk_fpga_0', '\\*\\*1\\.186 ns\\*\\* \\(11\\.86 %\\)', '**1.135 ns** (11.35 %)', 1],
+  ['readme.en.md', 'per-clock clkout0_1', '\\*\\*3\\.799 ns\\*\\* \\(18\\.995 %\\)', '**4.467 ns** (22.335 %)', 1],
+  ['readme.en.md', 'per-clock sys_clk', '`sys_clk` \\*\\*15\\.157 ns\\*\\*', '`sys_clk` **14.463 ns**', 1],
+  ['readme.en.md', 'the wrong "tightest relative is clkout0_1" claim',
     'the tightest relative margin is `clkout0_1` at 18\\.995 % after r110 one-hot-ised the row-set enable',
     'from r112 the two readings coincide: `eth_rxc` is both the design-worst absolute path and the tightest '
     + 'relative margin at 5.5625 %; the r110 sentence that called `clkout0_1` tightest was an arithmetic mistake '
     + '(0.713/8 = 8.912 % is tighter) and is corrected here', 1],
-  ['README.en.md', 'setup ownership sentence (rule 46)',
+  ['readme.en.md', 'setup ownership sentence (rule 46)',
     'the design-worst is now `u_rgmii_rx/u_iddr_rx_ctl -> u_icmp_rx/des_mac_reg\\[\\*\\]/CE`: 4 levels, '
     + 'logic only 15\\.7 % vs route 84\\.3 %',
     'from r112 the design-worst is `u_rx_par/p_eof_reg/C -> u_reasm/rows_hit_reg[12..15]/CE`: 4 levels, '
-    + 'logic 15.724 % vs route 84.276 %. Three rolls (`build/evidence/r113_roll_ABC_verdict.txt`): re-running '
+    + 'logic 15.724 % vs route 84.276 %. Three rolls (`build/evidence/r113_roll_abc_verdict.txt`): re-running '
     + 'place+route from the same opt.dcp reproduces 0.445 digit for digit, a different `place_design -directive` '
     + 'changes nothing, and the Pblock that would pull rx_par and reasm into one rectangle could not be made a '
     + 'single-variable experiment (carry chains straddled its border)', 1],
-  ['README.en.md', 'resource row four numbers',
+  ['readme.en.md', 'resource row four numbers',
     '\\*\\*95\\.5 tiles \\(68\\.21 %\\) / 14119 \\(26\\.54 %\\) / 8154 \\(7\\.66 %\\) / 19 \\(8\\.64 %\\)\\*\\*',
     '**95.5 tiles (68.21 %) / 14154 (26.61 %) / 8188 (7.70 %) / 19 (8.64 %)**', 1],
-  ['README.en.md', 'resource-row cost parenthetical',
+  ['readme.en.md', 'resource-row cost parenthetical',
     '\\(the price of the r109 cut:[^)]*\\)',
     '(the price of the r112 cut: the power-on arming gate on the two key-debounce instances costs '
     + '+66 LUT / +46 FF, the ICMP checksum accumulator 32->20 gives back -31 LUT / -12 FF, so the design net is '
@@ -146,16 +146,16 @@ const RULES = [
     '⚠ **这一轮归属没换族，数随实现动**：最差那一格仍是灰码同步器 → 链路监测那一路'
     + '（`u_cdc/rgray_s1_reg[1] → u_lm/full_d_reg`，0.050 ns）。历史最薄仍是 r108 的 **0.035 ns**'
     + '（那一版同一目的地由 `rgray_s1_reg[7]` 驱动），r110 落在 crc 家族 0.042 ns。', 1],
-  ['README.en.md', 'hold row landing point and worst number',
+  ['readme.en.md', 'hold row landing point and worst number',
     'landing point u_eth/u_rx_mac/u_crc_rx/crc_data_reg\\[17\\]/C -> crc_data_reg\\[25\\]/D\\) at \\*\\*0\\.042 ns\\*\\*',
     'landing point u_eth/u_cdc/rgray_s1_reg[1]/C -> u_eth/u_lm/full_d_reg/D) at **0.050 ns**', 1],
-  ['README.en.md', 'hold row logic levels', '\\*\\*1 logic level \\(LUT6=1\\)\\*\\*',
+  ['readme.en.md', 'hold row logic levels', '\\*\\*1 logic level \\(LUT6=1\\)\\*\\*',
     '**3 logic levels (CARRY4=2 LUT6=1)**', 1],
-  ['README.en.md', 'hold row route share', 'routing taking \\*\\*80\\.93 %\\*\\*', 'routing taking **56.165 %**', 1],
-  ['README.en.md', 'hold row per-clock clk_fpga_0 WHS', '\\*\\*0\\.069 ns\\*\\*', '**0.056 ns**', 1],
-  ['README.en.md', 'hold row per-clock clkout0_1 WHS', '\\*\\*0\\.068 ns\\*\\*', '**0.059 ns**', 1],
-  ['README.en.md', 'hold row per-clock sys_clk WHS', '`sys_clk` \\*\\*0\\.121 ns\\*\\*', '`sys_clk` **0.133 ns**', 1],
-  ['README.en.md', 'hold row ownership sentence rewritten',
+  ['readme.en.md', 'hold row route share', 'routing taking \\*\\*80\\.93 %\\*\\*', 'routing taking **56.165 %**', 1],
+  ['readme.en.md', 'hold row per-clock clk_fpga_0 WHS', '\\*\\*0\\.069 ns\\*\\*', '**0.056 ns**', 1],
+  ['readme.en.md', 'hold row per-clock clkout0_1 WHS', '\\*\\*0\\.068 ns\\*\\*', '**0.059 ns**', 1],
+  ['readme.en.md', 'hold row per-clock sys_clk WHS', '`sys_clk` \\*\\*0\\.121 ns\\*\\*', '`sys_clk` **0.133 ns**', 1],
+  ['readme.en.md', 'hold row ownership sentence rewritten',
     'The ownership moved again and that is this rounds cost: r107 had `wgray_reg\\[6\\] -> full_d_reg` at '
     + '0\\.050 ns, r108 has the same destination driven from `rgray_s1_reg\\[7\\]` at \\*\\*0\\.035 ns\\*\\*, '
     + 'the thinnest figure in this repos history.',

@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # build/r117_fb_pblock_fastlane.sh —— clk_fpga_0 那把"未到极限"的刀，先用快车道预验（8~9 分钟/滚，两滚）
-# 靶子来自 docs/timing/limit_audit_r116.md：最差路 1 级逻辑 / 93.6 % 布线 ⇒ 是"离得远"不是"器件慢"。
+# 靶子来自 report/timing/limit_audit_r116.md：最差路 1 级逻辑 / 93.6 % 布线 ⇒ 是"离得远"不是"器件慢"。
 # 判据（成对，H3 合法：同一份 opt.dcp、同一个工具、只差这一块 Pblock）：
 #   P1 机制：B 滚必须有 PB_RESIZE rc=no-error + PB_CELLS>0（否则 MECHANISM_INERT，不许写成"没收益"）
 #   P2 收益：clk_fpga_0 的 WNS 在 B 滚必须严格优于 A 滚，且**相对余量**要报出来（10 ns 周期）

@@ -10,7 +10,7 @@
 | 项 | 值 | 出处 |
 |---|---|---|
 | 轮次号 | r118 | `build/r118_chain.sh:25`（`NN=118`） |
-| 板上现在跑的版本 | r118（刷入 2026-10-04 04:49:50） | `build/evidence/r118_board/BOARD_NOW.txt:1` |
+| 板上现在跑的版本 | r118（刷入 2026-10-04 04:49:50） | `build/evidence/r118_board/board_now.txt:1` |
 | 位流身份 | `md5(前 12) = cd04907e1369` | `build/evidence/r118_bit_md5.txt`、`build/r118_verdict.txt:1`、`build/r118_gates_final.txt:3` 三处独立同值；本卡第 5 节当场重算 |
 | 工作区与 HEAD 是否同一份 | 同一份（下列 12 个产物 `git status --porcelain` 全空） | 实跑：`git status --porcelain build/system.bit build/system.xsa build/ps_app.elf build/{timing_summary,utilization,power,route_status,methodology,cdc,clock_util}.rpt build/{width_warnings,multi_driven}.txt` → 空输出；`git cat-file -s HEAD:build/system.bit` = 2202122 = 盘上字节数 |
 
@@ -121,7 +121,7 @@ r118 日志回读 `ADDR_LOG … num_ok=1`（`:209-211`）；四个外部端口�
 | 2026-10-04 04:37:57 | 会话退出（`Exiting Vivado`）；`width_warnings.txt` / `multi_driven.txt` 同分钟落盘 | 文件末尾行、盘上 mtime |
 | 2026-10-04 04:37:58 | 链脚本记 `构建 rc=0` | `build/r118_console.txt:3` |
 | 2026-10-04 04:45:26 → 04:47:07 | 刷板一轮（JTAG `rst -system` → `ps_jtag_boot` → `program_pl` → 读回） | `build/evidence/r118_board/bitcycle_console.txt` 首末行 |
-| 2026-10-04 04:49:50 | 板上确认为 r118 | `build/evidence/r118_board/BOARD_NOW.txt:1` |
+| 2026-10-04 04:49:50 | 板上确认为 r118 | `build/evidence/r118_board/board_now.txt:1` |
 
 分阶段墙钟耗时与"这些数怎么算出来的"见 `build/README.md` 的耗时表（同一批日志，不重复取数）。
 
@@ -171,7 +171,7 @@ r118 的配对核对（本卡逐个打开确认，不看文件名猜）：
 `顶层台架 tb_v98    top=56c269602e18 FAIL行=1 指纹(norm1):fresh fresh fresh 同一次跑且无 FAIL      FAIL`。
 链脚本的采纳口径要求"红数 == 1"（`build/r118_chain.sh:91`），而它 04:42 那一次跑出门禁
 `绿=21 红=3` 并当场写下"不采纳（B1 或 B4 不过）：板子回刷 r114"（`build/r118_console.txt:10`）；
-最终采纳记录在 `build/evidence/r118_board/BOARD_NOW.txt` 与 `gatesc/gatesd_summary.txt`
+最终采纳记录在 `build/evidence/r118_board/board_now.txt` 与 `gatesc/gatesd_summary.txt`
 （`green=23 red=1`）。**两条相反口径的句子都在库里，本卡都点名，不挑一句念。**
 
 ### 缺口登记（这一版**没有**做到的事，逐条）
@@ -179,7 +179,7 @@ r118 的配对核对（本卡逐个打开确认，不看文件名猜）：
 | # | 缺口 | 后果（可判定的说法） |
 |---|---|---|
 | G1 | 没有 `build/evidence_r118/` 成套冻结目录，也没有该轮的 `MANIFEST.md5` | 现行尺子 `build/freeze_evidence.sh` 要求门禁 `GATES: ALL PASS` 才肯冻结（`:26-30`），而 r118 的门禁是 `有红项` ⇒ r118 按现有规矩**不可冻结**，只能靠本卡逐个指路。最后一次成套冻结是 `build/evidence_r75/`（盘上 mtime 序） |
-| G2 | `build/ps_app.elf` 与 r118 位流**不同源**（差 3 天），且它的构建日志没找到配对 | 任何"这套 ELF 是这一版位流的固件"的说法都不成立；要说"板上就是这两件"只念 `BOARD_NOW.txt` |
+| G2 | `build/ps_app.elf` 与 r118 位流**不同源**（差 3 天），且它的构建日志没找到配对 | 任何"这套 ELF 是这一版位流的固件"的说法都不成立；要说"板上就是这两件"只念 `board_now.txt` |
 | G3 | 构建日志与门禁件未入库，而 9 份 `.rpt` 与位流已入库 ⇒ **报告侧入库、证据侧未入库**，正好是本节上面那条规矩要防的形状 | 别人 clone 下来只有报告，无法核对旋钮与时刻；本卡第 2/3/4 节的行号引用在远端仓库里会指到不存在的文件 |
 | G4 | 无 seed 设置，跨次逐位相同不成立 | 见第 3 节末；采纳判据必须是名册/同方向两次，不能是 md5 相等 |
 | G5 | 本卡的"从零复现"能力**未演练**（见第 7 节） | 只能声明"来源可核对"，不能声明"可复现" |

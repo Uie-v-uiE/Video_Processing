@@ -144,10 +144,10 @@ set_clock_groups -asynchronous \
 `src/rtl/axi/{axi_frame_writer_gated,axi_frame_writer64}.v`
 `src/rtl/video/{frame_buffer_w64,frame_commit_lock}.v`
 `src/rtl/top/{pl_video_top,system_top}.v`
-`src/host/*`（Node 工具集）、`sim/tb_v5*.v`、`sim/tb_v6*.v`、`sim/run_sim.tcl`、
+`src/host/*`（Node 工具集）、`sim/tb_v5*.v`、`sim/tb_v6*.v`、`build/sim/run_sim.tcl`、
 `sim/tb_eth_video.v`（修好第三版就失效的参数引用）、
 `build/tcl/{build_v6,program_pl,ps_jtag_boot,set_src}.tcl`、`build/*.{bit,xsa,rpt}`、
-`report/log/V6_ROOT_CAUSE.md`、`report/log/V6_BOARD_MEASUREMENT.md`、`report/AI_COLLABORATION.md`、
+`report/log/v6_root_cause.md`、`report/log/v6_board_measurement.md`、`report/ai_collaboration.md`、
 `skill/zynq-video-rtl-debug/*`、`skill/pitfalls/frameid-loss-signature/SKILL.md`
 
 ---
@@ -410,7 +410,7 @@ DSP 从 14 个增加到 20 个但功耗不变（这几个乘法器只在像素�
 | `split_ctrl.v:53-54` 整型常量位宽 | `Synth 8-9694` invalid size | 看清那两个常量本意再改，可能是真笔误 |
 | `src_mode.v:72` 通配 `===` 被替换成 `==` | `Synth 8-589` | 要么写 `==` 要么写明为什么要四态比较 |
 | `eth_mdc` 被常量 0 驱动 | `Synth 8-3917`（端口被常量驱动） | 是"这板子没有 MDIO"就注释掉，别留着让下一个人找驱动源 |
-| 五个无人例化的遗留件（`line_cache`/`frame_buffer`/`frame_buffer_db`/`axi_frame_writer`/`video_timing_720p`） | 2026-09-29 按"模块名+例化形状"全树 grep；已在各自头部写明"本树无人例化" | 删除要过一遍 `sim/run_sim.tcl` 与 `run_one.sh` 的文件清单，今晚不动 |
+| 五个无人例化的遗留件（`line_cache`/`frame_buffer`/`frame_buffer_db`/`axi_frame_writer`/`video_timing_720p`） | 2026-09-29 按"模块名+例化形状"全树 grep；已在各自头部写明"本树无人例化" | 删除要过一遍 `build/sim/run_sim.tcl` 与 `run_one.sh` 的文件清单，今晚不动 |
 | 功耗读数 | `build/power.rpt`：静态 0.177 W、结温 52.5 °C（估算，非实测） | 想要"功耗"这项指标可报，就得给板子加实测口径，别把工具估算写成测量 |
 
 ## r85（2026-09-29 03:08，第二轮"遍历代码"的落点）：改动是**免费的**，而且是逐字节证明的
@@ -422,7 +422,7 @@ DSP 从 14 个增加到 20 个但功耗不变（这几个乘法器只在像素�
 | `split_display.v` 删掉空参数声明 `#()()` | `Synth 8-9397`（空参数声明只允许 SystemVerilog） | 该模块全树**没有一处**带 `#(...)` 例化（`pl_video_top.v:873` 与 `tb_v97` 的四例化都是 `split_display u_* (`），且 `PANE_W` 只在注释里出现 ⇒ 删的是一对括号，不是端口 |
 | `split_ctrl.v:53-54` 的 `{0'd0, x[12:0]}` 改成 `x[12:0]` | `Synth 8-9694` invalid size of integer constant literal ×2 | 那个字面量的**宽度写的是 0**（`0'd0` = 0 位），拼接里它本来就不贡献任何位；切片本身已是 13 位 ⇒ 值逐位相同 |
 | `src_mode.v` 通配比较 `===` | `Synth 8-589` ×10（**故意留着**） | 综合把它折成 `==` 是"硅片上没有 X"这条事实，而这条守卫的价值全在仿真里（`X !== 0` 恒真 ⇒ 忘接线会看见）；改成 `==` 才是把台架的灯吹灭。所以改的是注释，不是运算符 |
-| `system_top.v` 的 `eth_mdc = 1'b0` | `Synth 8-3917` port driven by constant（**故意留着**） | 数据面不用 MDIO（`report/BOARD_PINS.md:62`），PHY 由 strap 定 ⇒ 这是陈述不是缺陷；要消它得另写位时序机，那一版再来 |
+| `system_top.v` 的 `eth_mdc = 1'b0` | `Synth 8-3917` port driven by constant（**故意留着**） | 数据面不用 MDIO（`report/board_pins.md:62`），PHY 由 strap 定 ⇒ 这是陈述不是缺陷；要消它得另写位时序机，那一版再来 |
 
 **告警对账**（`build/r84_build_console.txt` vs `build/r85_build_console.txt`，同一条 grep）：
 `8-9694` 2→**0**、`8-9397` 1→**0**；`8-6849`/`8-7186`/`8-6859` 保持 **0**；`8-589` 10→10、`8-3917` 2→2
@@ -466,7 +466,7 @@ BRAM **95 = 67.86 %**、LUT as Logic **10173**、LUT as Memory **4187**、FF **8
 它瞄准的那一族**整族从最差表里消失**（失败端点 16 → 2、TNS −0.747 → −0.243，方向与机制一致）；
 但整设计的最差立刻被**同一片 `u_cdc` 邻域的兄弟路**接上了——`wbin → 格雷/比较 → 写使能 → BRAM ENA`，7 级逻辑。
 **同一条路**在隔离那一跑里是 +0.341、在正式这一跑里是 −0.135 ⇒ 这片拥挤邻域给的是 **0.4 ns 量级的布局摆动**。
-本仓早就写过"WNS 的绝对差不能当收益"（`CHANGELOG_V7.md`，等价源码实测差 0.2 ns）；
+本仓早就写过"WNS 的绝对差不能当收益"（`changelog_v7.md`，等价源码实测差 0.2 ns）；
 今天它应验的是对称面：**也不能当损失**。所以 05:03 那句"采纳后第 14 项与冻结都会跟着绿"**收回**，
 它超出了那一次测量所能支持的范围——这句写在最前面，免得下次有人拿 +0.248 去做决定。
 
@@ -583,20 +583,20 @@ BRAM **95 = 67.86 %**、LUT as Logic **10173**、LUT as Memory **4187**、FF **8
 
 | 轮次 | 这一轮改动的可核查记录 | WNS (ns) | 失败 setup 端点 | WHS (ns) | BRAM (tile/%) | Slice LUT | Slice 寄存器 | Dynamic (W) | 门禁输出 |
 |---|---|---|---|---|---|---|---|---|---|
-| r62 | V9 几何参数化上板；`report/log/ISSUES.md` #76、#80（从这一轮的时序报告读穿了 WHS +0.001 的机制） | +0.792 | 0 | +0.001 | 96 / 68.57 % | 12958 (24.36 %) | 9491 | 2.201 | `build/gates_r62.txt` |
-| r63b | **双线性读口接进来**；代价单独算过一节：`report/OPTIMIZATION_LOG.md`「r63 双线性读口的代价」 | +0.918 | 0 | +0.052 | 97 / 69.29 % | 14116 (26.53 %) | 9856 | 2.204 | `build/r63b_gates.txt` |
+| r62 | V9 几何参数化上板；`report/log/issues.md` #76、#80（从这一轮的时序报告读穿了 WHS +0.001 的机制） | +0.792 | 0 | +0.001 | 96 / 68.57 % | 12958 (24.36 %) | 9491 | 2.201 | `build/gates_r62.txt` |
+| r63b | **双线性读口接进来**；代价单独算过一节：`report/optimization_log.md`「r63 双线性读口的代价」 | +0.918 | 0 | +0.052 | 97 / 69.29 % | 14116 (26.53 %) | 9856 | 2.204 | `build/r63b_gates.txt` |
 | r75 | OSD 字格几何从最差那一锥里挪走一拍（#96）；**最近一套全绿且已冻结** | +0.287 | 0 | +0.041 | 97.5 / 69.64 % | 14776 (27.77 %) | 10018 | 2.209 | `build/r75_gates.txt` |
-| r84 | 回滚 `max_fanout` 之后，两刀的贡献才真的分开（`report/OPTIMIZATION_LOG.md` r84 一节） | **−0.094** | **16** | +0.056 | 95 / 67.86 % | 14360 (26.99 %) | 8073 | 2.205 | `build/r84_gates.txt` |
+| r84 | 回滚 `max_fanout` 之后，两刀的贡献才真的分开（`report/optimization_log.md` r84 一节） | **−0.094** | **16** | +0.056 | 95 / 67.86 % | 14360 (26.99 %) | 8073 | 2.205 | `build/r84_gates.txt` |
 | r86 | 诊断计数器的使能改喂"寄存过的事件"（#124）：目标那一族被切断，失败端点 **16 → 2** | **−0.135** | **2** | +0.053 | 95 / 67.86 % | 14358 (26.99 %) | 8075 | 2.205 | `build/r86_gates_final.txt` |
 | r87 | **当时的板上版**（第二轮遍历代码 + `link_monitor` 两个事件位补进复位清单 + OS 地址算法改乘加）——**门禁还没跑完，所以这一行只有报告数** | +0.152 | 0 | +0.051 | 95 / 67.86 % | 14363 (27.00 %) | 8075 | 未取 | `build/r87_timing_summary.rpt`、`build/r87_utilization.rpt` |
-| r88 | `dc_fifo` 满判据改用当前写指针（#105 第二刀，`report/log/ISSUES.md` #139）——**隔离构建 `build/r88_exp/`，门禁 18 项判定全过但 2 项因缺同跑台架凭据未判（#141），所以未采纳；板上跑的后来换成了这一版（已上板验完）** | +0.516 | 0 | +0.051 | 95 / 67.86 % | 14358 (26.99 %) | 8075 | 2.205 | `build/evidence/r88exp_timing_summary.rpt`、`utilization.rpt`、`power.rpt`；路径族凭据 `build/r88_crit_paths.txt`；门禁 `build/r88_gates_partial.txt` |
+| r88 | `dc_fifo` 满判据改用当前写指针（#105 第二刀，`report/log/issues.md` #139）——**隔离构建 `build/r88_exp/`，门禁 18 项判定全过但 2 项因缺同跑台架凭据未判（#141），所以未采纳；板上跑的后来换成了这一版（已上板验完）** | +0.516 | 0 | +0.051 | 95 / 67.86 % | 14358 (26.99 %) | 8075 | 2.205 | `build/evidence/r88exp_timing_summary.rpt`、`utilization.rpt`、`power.rpt`；路径族凭据 `build/r88_crit_paths.txt`；门禁 `build/r88_gates_partial.txt` |
 
 ### 为什么这张表不能读成"越优化越差"或"越优化越好"
 
 1. **行与行之间不只有优化**。r62→r63b 之间加的是**新数据通路**（双线性插值的读口与折叠逻辑），
    LUT 12958→14116、BRAM 96→97 是**功能的代价**，不是优化的结果；把它写成"优化收益"就是把账记反。
 2. **WNS 的绝对值差不是收益也不是损失**。等价源码两次构建之间实测摆过 **0.4 ns** 量级
-   （r85/r86 那一对照，见 `report/KNOWN_ISSUES.md` 第二节第 1 条），所以 r75 的 +0.287 与 r87 的 +0.152
+   （r85/r86 那一对照，见 `report/known_issues.md` 第二节第 1 条），所以 r75 的 +0.287 与 r87 的 +0.152
    之间的差**落在摆幅里**，不构成"退步"；同理 r84 的 −0.094 → r86 的 −0.135 也不能读成"那一刀让时序变差"——
    它读出来的是"最差路径换了主人"（16 → 2 个失败端点才是那一刀的账）。
 3. **失败端点数与 WNS 要一起看**。r84/r86 的 WNS 是负的但端点从 16 降到 2；
@@ -608,7 +608,7 @@ BRAM **95 = 67.86 %**、LUT as Logic **10173**、LUT as Memory **4187**、FF **8
   （最早的冻结件只有几项，今天是 20 项），**跨口径拼接会得到假趋势**，所以不列。要补的话，
   得先把"哪些项在哪些轮存在"写成一张映射表——那是一件独立的事。
 - r87 那一行欠一份门禁输出（要等 `build/gates.sh` 重跑完才会有，落在 `gates` 那一族文件名里）：
-  顶层台架与边缘条带两支还没重跑到可采纳的状态（`C5c` 那条故意留红的判据在这里，见 `report/KNOWN_ISSUES.md`）。
+  顶层台架与边缘条带两支还没重跑到可采纳的状态（`C5c` 那条故意留红的判据在这里，见 `report/known_issues.md`）。
   补齐之前它不算"过门禁的一版"。
 
 ## r90（2026-09-29 19:5x–23:0x，隔离构建 `build/isolated_0929_2036/` 与 `build/isolated_0929_2105/`）：帧缓存拆三块，BRAM 是确定的收益；时序那笔账先认下来
@@ -673,7 +673,7 @@ BRAM **95 = 67.86 %**、LUT as Logic **10173**、LUT as Memory **4187**、FF **8
 
 **这一轮先问的是"还有没有不需要动 RTL 的余量"**。三个数在 r90 之后就摆在那儿：
 setup 最差 `eth_rxc` +0.516 ns（8 ns 周期的 6.5 %），而三个域的 **hold 同为 +0.05x ns** —— 薄的是 hold。
-hold 的机制在 `report/log/ISSUES.md:2876` 那一条已经摊开过：发射端 ILOGIC 吃 **BUFIO**（SCD 3.171 ns），
+hold 的机制在 `report/log/issues.md:2876` 那一条已经摊开过：发射端 ILOGIC 吃 **BUFIO**（SCD 3.171 ns），
 接收端 fabric 吃 **BUFG**（DCD 4.854 ns），两棵树偏斜 1.616 ns ⇒ 每次重建都在掷 ±1 ps 的硬币。
 这一档能不能靠"实现时更用力"买回来？以前只在**综合前的旧网表**上扫过策略，而板上这一版
 `build/r8*_build_console.txt` 里那行 `BUILD_STRATEGY Vivado Implementation Defaults` 说明
@@ -704,7 +704,7 @@ setup 侧 `ExtraTimingOpt` 反而把 `eth_rxc` 从 +0.516 花到 +0.157。两滚
 "HDMI 1024×600 **@ 50 Hz**"写成了刷新率，那是像素时钟 50 **MHz** 的数值；
 按 `video_timing_1024x600.v:18-20` 的 `H_TOTAL=1344 / V_TOTAL=625` 与 50 MHz 像素钟算是 **59.52 Hz**，
 而板上 SD 播放实测 29.8–30.0 fps 正好是它的一半（×2 垂直展开 ⇒ 一帧源占两场）—— 两把独立的尺子对上。
-详见 `report/log/ISSUES.md` 的 #153。另一处把 512×300 标成"面板通路要的"也改成"PL 画幅"（#153）。
+详见 `report/log/issues.md` 的 #153。另一处把 512×300 标成"面板通路要的"也改成"PL 画幅"（#153）。
 
 ## r92（2026-09-30 04:0x–04:5x，隔离构建 `build/isolated_r92_bufig/` → 正式件 `build/system.bit` md5 `883dd3b7654d`）：#57 那一刀落了 —— **偏斜消掉了，WHS 数字没动**，两件事分开记账
 
@@ -743,7 +743,7 @@ setup 侧 `ExtraTimingOpt` 反而把 `eth_rxc` 从 +0.516 花到 +0.157。两滚
 **顺带量出来的一件新事实（06:1x，`build/tcl/clock_uncertainty.tcl` → `build/clock_uncertainty.rpt`）**：#57 之后**全设计最差 min 路径换了域** —— 不再是 `eth_rxc`，而是 100 MHz 的 `u_pl/u_lat/t_commit_reg[0] → max_cyc_reg[4]`，slack +0.037、`Requirement: 0.000ns`（同沿检查，不带自加不确定度）；`eth_rxc` 那一格是 +0.049，而且它的报告表里明写 `clock uncertainty 0.800` ⇒ 那句约束**确认生效**（这是 #80 追加那段一直要求"确认生效再念"的事，现在有凭据了）。⇒ 下一刀如果还想动 hold，对象是 `clk_fpga_0` 那一族，不是收包域；而给 `clk_fpga_0` 加约束要小心 51-56 行那笔旧账（它在 XDC 读取时 `get_clocks` 取不到）。
 **台架与门禁（05:0x–06:0x，`build/r92_gates.txt`，仓库里的件、不随包）**：两份台架都按新 `src/rtl` 重跑完了 —— `tb_edge_rim` 31 条判据 `PASS`（`build/tb_edge_rim_r92.txt`，`rtl=c8bf35eb19e5`）；`tb_v98` 一共 138 行判据，**只有 1 行 FAIL**，而且就是那条一直在的 `C5c`（#98）：`RESULT tb_v98_top_seam FAIL nfail=1` —— **这一刀没有引入新的失败**。报告头三枚 md5 `top=47c59cd3a852` / `tb=d64b883a6d94` / `rtl=c8bf35eb19e5` 与树一致，所以门禁第 15 项原先那条"RTL 合指纹不符"的理由消失了，只剩 `C5c` 本身 ⇒ `GATES: 有红项（判定 20 项）—— 不采纳，保留上一版`。
 这一行与 r88/r90 完全同形：20 项全判定、唯一红项是故意留着的 `C5c`，冻结集继续是 **r75**；这一版被采纳的依据不是那一行绿，而是**板上那一套**（0 丢字 + 100 条电池 + 判红步骤 0 + `BUFIO` 用量 0）。
-**还欠的只剩眼睛**：`board/ACCEPTANCE.md` 的 E1–E3（屏已摆成 `split 50` + 蓝线关 + 片源 ETH 的样子）。
+**还欠的只剩眼睛**：`board/acceptance.md` 的 E1–E3（屏已摆成 `split 50` + 蓝线关 + 片源 ETH 的样子）。
 ## r94（2026-09-30 12:1x–12:5x，正式件 `build/system.bit` md5 `a1465f29c9e4`，源树 `rtl_md5=526321488fed`）：几何两刀落地（#104 小数位、#93 旋转态钳进 fit）+ 巡检四条
 
 **这一轮的动机不是时序**，是把账本里"已知没修"的几何两条清掉，顺手把只读巡检查出的一条参数防呆落了。
@@ -847,7 +847,7 @@ WNS ≥ +0.65、WHS ≥ +0.15、失败 setup/hold 端点 = 0、BRAM ≤ 95 tile�
 
 这一节都是"尺子自己"的账，三条一起清（#179 写在上面 r94 那一节的门禁段里，这里只补它一句话的结论）：
 
-- **#166（`sim/run_one.sh` 读不出红）**：判定形状漏了 `TB RESULT PASS|FAIL` 那一族，FAIL 计数只认顶格 `^FAIL`
+- **#166（`build/sim/run_one.sh` 读不出红）**：判定形状漏了 `TB RESULT PASS|FAIL` 那一族，FAIL 计数只认顶格 `^FAIL`
   而十二支台架打的是 `  FAIL <名字>` ⇒ 一支**真红**的台架被报成 `NO-VERDICT-LINE ‖ FAIL 行数=0`；
   而且脚本无论判成什么都 exit 0 ⇒ 链里 `… || die` 的保护永不触发。现在解析收进 `--verdict` 分支
   （纯文本、不起仿真），退出码分开 **0 绿 / 1 编译失败 / 2 REFUSE / 3 判红 / 4 认不出判定**；
@@ -860,7 +860,7 @@ WNS ≥ +0.65、WHS ≥ +0.15、失败 setup/hold 端点 = 0、BRAM ≤ 95 tile�
   "新树指纹 + 旧正文"，`build/tb98_report.sh` 原样把这对指纹盖到旧正文上，门禁第 15 项"报告与当前树同一次跑"就此作废。
   现在 md5 仍然在编译前取（事后补等于把今天的指纹盖在昨天的日志上，#88 的教训），但只写 `prov.tmp`，
   xvlog 与 xelab 两步都过了才 `mv` 成 `prov.txt` 并删旧 `run.log`；失败路径删 tmp。
-  真跑复验：`bash sim/run_one.sh tb_ce169_no_such`（xelab 必然失败）之后盘上还是**成对的旧件**、没有残留 tmp
+  真跑复验：`bash build/sim/run_one.sh tb_ce169_no_such`（xelab 必然失败）之后盘上还是**成对的旧件**、没有残留 tmp
   （`build/r96_run_one_compilefail.txt`）；绿的那一跑 `tb_edge_rim` rc=0、`PASS 行数=31`、两份时间戳同一次
   （`build/r96_run_one_green.txt`）。
 - **#179 的结论**：凭据文件名里的轮次号**不许走脚本默认值** —— 链现在不给 `ROUND=rNN` 就拒绝开跑，
@@ -930,7 +930,7 @@ Slice LUT **14388**(27.05 %)、FF **8077**、DSP **19**、Dynamic **2.206 W**。
 1. **门禁抬头写身份**：`build/gates.sh` 现在把 `system.bit / system.xsa / ps_app.elf` 三枚 12 位 md5 打进自己那份报告里。
    以前它只写 mtime，所以"按位流指纹找同批门禁件"这句话在导出器里**永远查不到**——
    上一版包就是这么带着"MANIFEST 自己写着不作交付"发出去的（`#191`）。
-2. **导出器开始读正文**：随包的台架/门禁凭据里若出现**没在 `report/KNOWN_ISSUES.md` 公开过的红**，直接拒绝写包
+2. **导出器开始读正文**：随包的台架/门禁凭据里若出现**没在 `report/known_issues.md` 公开过的红**，直接拒绝写包
    （白名单只有一条：从 r77 起故意留着、且已公开的 `FAIL C5c`/#98）。这条是 `#190`，
    它把"包发出去了、里面躺着一份 RESULT … FAIL"这类事变成不可能。
 3. **冻结件的盖章对象 = 目录里实际存在的文件**（`#192`）：原来"拷哪些件"和"给哪些件算 md5"是两份分开的名单，
@@ -948,7 +948,7 @@ Slice LUT **14388**(27.05 %)、FF **8077**、DSP **19**、Dynamic **2.206 W**。
   前置条件已经量过：从装载到 `st_tx_data` 至少要有 20 拍余量，估计 +48 FF 左右，
   且**必须先隔离构建滚一轮**再谈采纳（一次只动一件事，两轮换完再判）。
 - 建立时间的"策略"这条线已经问到头了：r95 的 post-route phys_opt 在 0 违例设计上结构上不起作用、
-  r95b 两档策略（`NetDelay_high` +0.013、`WLBlockPlacementFanoutOpt` 无变化）都过不了门禁 ⇒ 见 `report/OPTIMIZATION_LOG.md` 的 r95/r95b 两节。
+  r95b 两档策略（`NetDelay_high` +0.013、`WLBlockPlacementFanoutOpt` 无变化）都过不了门禁 ⇒ 见 `report/optimization_log.md` 的 r95/r95b 两节。
   下一轮想再动时序，只能动**逻辑深度**，不是动策略、不是动约束（加不确定度只会让数字变差，那是自欺）。
 
 ## r99 这一列（2026-10-01，与上面那些"轮对轮"历史行并列，不覆写它们）
@@ -1047,7 +1047,7 @@ Slice LUT **14388**(27.05 %)、FF **8077**、DSP **19**、Dynamic **2.206 W**。
 | LUT as Memory | 4186 | 4185 | 从 git 里那一版的 `utilization.rpt` 取的，不靠记口数 |
 | Slice 寄存器 | 8079 | **8127（+48）** | 这一刀的全部代价：三组 16 位"减一后"寄存器；与隔离滚量到的 +48 **一致**（两次独立构建给出同一代价，这才是可写的对照） |
 | 动态功耗 | 2.212 W | 2.211 W | 同量级 |
-| 综合告警名册 | 19 种码 | 19 种码，**逐码计数与 8-7137 的寄存器身份列表都相同** | 见 `report/log/ISSUES.md` 00:59 那一节：这是"没有隐藏代价"的证据，不是"更好" |
+| 综合告警名册 | 19 种码 | 19 种码，**逐码计数与 8-7137 的寄存器身份列表都相同** | 见 `report/log/issues.md` 00:59 那一节：这是"没有隐藏代价"的证据，不是"更好" |
 | 门禁 | 19 绿 / 1 红（C5c） | 19 绿 / 1 红（**同一条 C5c**） | 台架判据条数也同为 141（140 PASS + 1 FAIL）⇒ 这一刀没有引入新红，也没有把 C5c 修掉 |
 
 结论三条：① **#141 采纳**——它把 r103 的全设计最差那一族从最差位上挪走了，代价是 +48 触发器，两次构建（隔离与正式）给出的代价一致、且告警名册逐字不变；

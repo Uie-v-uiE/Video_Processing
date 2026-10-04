@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# build/r118_tail.sh —— 板已经刷好并复验过（见 build/evidence/r118_board/BOARD_NOW.txt），
+# build/r118_tail.sh —— 板已经刷好并复验过（见 build/evidence/r118_board/board_now.txt），
 # 这一支只做剩下的四步：改口（带三道尺子）→ 最终门禁两跑 → 重导提交包 → 提交并推送。
 # 每一步不过就硬停，不带未核过的首页往下走。
 set -u
@@ -12,12 +12,12 @@ say "rotate rc=$R $(grep -a 'ROTATE-APPLY\|MARKER\|CLAIM\|RULER\|NOTE' build/evi
 ' ' ')"
 if [ "$R" != 0 ]; then say "停：改口没过尺子，不跑最终门禁、不提交"; exit 4; fi
 say "最终门禁两跑"
-bash build/gates.sh > /tmp/kx/gA.txt 2>&1
+bash build/gates.sh > /tmp/kx/ga.txt 2>&1
 A=$?
-bash build/gates.sh > /tmp/kx/gB.txt 2>&1
+bash build/gates.sh > /tmp/kx/gb.txt 2>&1
 B=$?
-if cmp -s /tmp/kx/gA.txt /tmp/kx/gB.txt; then ID=identical; else ID=different; fi
-cp -f /tmp/kx/gA.txt build/r118_gates_final.txt
+if cmp -s /tmp/kx/ga.txt /tmp/kx/gb.txt; then ID=identical; else ID=different; fi
+cp -f /tmp/kx/ga.txt build/r118_gates_final.txt
 G=$(grep -c " PASS$" build/r118_gates_final.txt)
 RED=$(grep -c " FAIL$" build/r118_gates_final.txt)
 say "最终门禁 rcA=$A rcB=$B 两跑=$ID 绿=$G 红=$RED 红项：$(grep -a ' FAIL$' build/r118_gates_final.txt | tr '

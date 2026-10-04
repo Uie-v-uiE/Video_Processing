@@ -4,7 +4,7 @@
 import io, os
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-P = os.path.join(ROOT, 'docs', 'log', 'ISSUES.md'.replace('/', os.sep))
+P = os.path.join(ROOT, 'docs', 'log', 'issues.md'.replace('/', os.sep))
 t = io.open(P, encoding='utf-8', newline='').read()
 NL = '\r\n' if '\r\n' in t else '\n'
 before = len(t)
@@ -92,4 +92,4 @@ for ln in TXT.strip('\n').split('\n'):
     t += ln + NL
 assert len(t) > before, "追加后反而变短了：中止，不写盘"
 io.open(P, 'w', encoding='utf-8', newline='').write(t)
-print("ISSUES.md %d -> %d 字符" % (before, len(t)))
+print("issues.md %d -> %d 字符" % (before, len(t)))

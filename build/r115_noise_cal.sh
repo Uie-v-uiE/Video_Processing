@@ -7,7 +7,7 @@
 # 为什么便宜：快车道 7–9 分钟一滚（今天实测 A 滚 place 2m + route 4m、B 滚 place 1m + route 4m），
 #   比一次正式构建（≈18 分钟构建 + 70–128 分钟顶层台架）低两个数量级，这正是提示词要的"廉价反事实"。
 # ⚠ 已知事实（写在这里免得被当成"重复三轮=噪声为 0"的巧合）：本机布局布线是**确定性**的，
-#   r113 曾三滚逐位复现 0.445（件 build/evidence/r113_roll_ABC_verdict.txt）。
+#   r113 曾三滚逐位复现 0.445（件 build/evidence/r113_roll_abc_verdict.txt）。
 #   所以 noise_ns 很可能 = 0.000。但那是**量出来的 0**，不是假设的 0：
 #   只有当两滚的每个头条读数逐位相同，才允许写 noise_ns=0；任何一位不同就取最大差。
 # 判定（每条一行，末列是判定；判定项必须"做过比较"而不是"通过"才计数，G9）：
@@ -18,7 +18,7 @@
 #   N5 与归档的正式构建读数对表（r114：WNS 0.739 / WHS 0.052）——只念差值，不判（跨构建不可比，H3）
 set -u
 cd "$(dirname "$0")/.."
-V=${VP_VIVADO_BIN:?VP_VIVADO_BIN 必须给（见 report/BUILD.md）}
+V=${VP_VIVADO_BIN:?VP_VIVADO_BIN 必须给（见 report/build.md）}
 DCP=vivado_system/zynq_video_sys.runs/impl_1/system_top_opt.dcp
 W=/tmp/kx/r115_noise
 R=0

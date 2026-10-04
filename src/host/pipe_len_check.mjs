@@ -245,7 +245,7 @@ function judgeB(runs, guard, rtl, order) {
            * 镜像 ⇒ 打印方向与命令读法反了；其余 ⇒ 翻译本身错了。
            * 这一条今天只报 WARN 不判红：**该修的是 main.c 的打印方向**，不是放松判据。
            * （apply_pipe_bits 现在 `for (i = 8; i >= 0; --i)` 打的是 MSB 左起，而 parse_bits
-           *   读串是"第 i 个字符落第 i 位"= LSB 左起，见 COMMANDS.md 那张 000000000/100000000 表。） */
+           *   读串是"第 i 个字符落第 i 位"= LSB 左起，见 commands.md 那张 000000000/100000000 表。） */
           const asInput = [...g[0]].reduce((a, ch, i) => (ch === '1' && rtl[order[i]] ? a | (1 << rtl[order[i]].bit) : a), 0);
           if (asInput !== r.legacy)
             rows.push(W(`B "${r.c.inp}" 的等价提示 "${g[0]}" 照着敲得到 ${asInput}，固件自己说的是 ${r.legacy}` +

@@ -5,14 +5,14 @@
 # so it runs exactly where the D1 fast-lane roll ran it: after place_design, before route_design.
 #
 # WHAT IT DOES: force-replicate ONE broadcast net, `u_pl/u_row/hi_reg_0[0]`.
-# WHY (all from reports, see docs/timing/limit_audit_r116.md and build/evidence/r117_d0/):
+# WHY (all from reports, see report/timing/limit_audit_r116.md and build/evidence/r117_d0/):
 #   r116's worst clk_fpga_0 setup path is 1.976 ns slack with data 7.355 ns, of which
 #   route = 6.871 ns (93.419 %) and 5.690 ns of that sits on THIS net alone
 #   (report row `net (fo=269, routed) 5.690  u_pl/u_row/hi_reg_0[0]`), whose 239 pins live
 #   in u_pl/u_row and are spread over 99 distinct tiles. Root-cause label: FANOUT.
 #   Control roll A (no phys_opt) reproduced r116's official roster digit for digit, so the
 #   single-variable comparison is legitimate; noise_ns on this tool = 0.000 (r115 blank rolls).
-# WHAT THE MEASURED WIN WAS (build/evidence/r117_repl3/B_console.txt, same opt.dcp, one variable):
+# WHAT THE MEASURED WIN WAS (build/evidence/r117_repl3/b_console.txt, same opt.dcp, one variable):
 #   clk_fpga_0 1.976 -> 2.009 (rel margin 19.76 -> 20.09 %), endpoints 15721 -> 15731 (+10 = the
 #   10 replica cells, which is the closure equation that proves the mechanism moved);
 #   clkout0_1 3.698 -> 3.885; sys_clk 14.876 -> 15.174; eth_rxc UNCHANGED at -0.846/-0.870;

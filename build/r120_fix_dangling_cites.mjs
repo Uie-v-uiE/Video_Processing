@@ -15,16 +15,16 @@ const APPLY = process.argv.includes('--apply');
 const P = (...a) => path.join(ROOT, ...a);
 
 const REP = [
-  ['docs/questions-for-team-p04.md', 'docs/questions-for-team.md'],
-  ['docs/questions-for-team-p16a.md', 'docs/questions-for-team.md'],
-  ['docs/questions-for-team-p16c.md', 'docs/questions-for-team.md'],
-  ['docs/questions-for-team-p18a.md', 'docs/questions-for-team.md'],
-  ['docs/questions-for-team-p19.md', 'docs/questions-for-team.md'],
-  ['docs/questions-for-team-p20.md', 'docs/questions-for-team.md'],
-  ['docs/questions-for-team-P16a.md', 'docs/questions-for-team.md'],
-  ['docs/questions-for-team-P17.md', 'docs/questions-for-team.md'],
-  ['report/07-skill-distillation.md', 'submit/07-skill-distillation.md'],
-  ['report/acceptance.md', 'board/ACCEPTANCE.md'],
+  ['docs/questions-for-team-p04.md', 'report/questions-for-team.md'],
+  ['docs/questions-for-team-p16a.md', 'report/questions-for-team.md'],
+  ['docs/questions-for-team-p16c.md', 'report/questions-for-team.md'],
+  ['docs/questions-for-team-p18a.md', 'report/questions-for-team.md'],
+  ['docs/questions-for-team-p19.md', 'report/questions-for-team.md'],
+  ['docs/questions-for-team-p20.md', 'report/questions-for-team.md'],
+  ['docs/questions-for-team-P16a.md', 'report/questions-for-team.md'],
+  ['docs/questions-for-team-P17.md', 'report/questions-for-team.md'],
+  ['report/07-skill-distillation.md', 'report/07-skill-distillation.md'],
+  ['report/acceptance.md', 'board/acceptance.md'],
   ['build/board/project/system.bit', 'board/project/system.bit'],
 ];
 const MARK = [
@@ -52,7 +52,7 @@ const MARK = [
 // 射程与导出器同源：所有 *.md（除 report/log、build/reports、report/study、docs/walkthrough）+ 两份根 README
 const files = execFileSync('git', ['-c', 'core.quotePath=false', 'ls-files', '*.md'], { cwd: ROOT, encoding: 'utf8' })
   .split(/\r?\n/).filter(s => s && !/^report\/log\//.test(s) && !/^build\/reports\//.test(s))
-  .concat(['README.md', 'README.en.md'].filter(f => fs.existsSync(P(f))));
+  .concat(['README.md', 'readme.en.md'].filter(f => fs.existsSync(P(f))));
 const uniq = [...new Set(files)];
 const hits = {}; let changed = 0, linesTotal = 0;
 for (const f of uniq) {

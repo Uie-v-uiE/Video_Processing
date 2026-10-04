@@ -34,8 +34,8 @@ BV=$?
   printf "B1 严格名册：%s\n" "$(grep -a "^B1 pairs_compared" build/evidence/r118_strict_b1.txt)"
   printf "刷板前那一次门禁：绿=%s 红=%s（其中 2 条是文档时效，改口后由最终两跑复验）\n" \
      "$(grep -c " PASS$" build/r118_gates.txt)" "$(grep -c " FAIL$" build/r118_gates.txt)"
-} > "$D/BOARD_NOW.txt"
-say "bit_cycle rc=$RC board_verify rc=$BV；件 $D/BOARD_NOW.txt"
+} > "$D/board_now.txt"
+say "bit_cycle rc=$RC board_verify rc=$BV；件 $D/board_now.txt"
 if [ "$RC" != 0 ] || [ "$BV" != 0 ]; then say "停：板侧没过——不带着未复验的板改口"; exit 3; fi
 
 say "改口：首页/英文首页/metrics 从件里取数；写进文档的门禁读数 = 24 项 23 绿 / 1 红，由下面的最终两跑验证（不符则 D1c 自己判红）"

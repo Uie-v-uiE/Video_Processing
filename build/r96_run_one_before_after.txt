@@ -1,7 +1,7 @@
 # 改前（r95 及以前的 run_one.sh 解析形状）对同一份日志的回答：
 VERDICT tb_demo: NO-VERDICT-LINE || FAIL 行数=0  ← 一支真红的台架被报成 0（#166 的机制）
 
-# 改后（sim/run_one.sh --verdict，同一个实现也在真跑结束时用）：
+# 改后（build/sim/run_one.sh --verdict，同一个实现也在真跑结束时用）：
 VERDICT tb_demo: TB RESULT FAIL（tb_demo） || FAIL 行数=1 || PASS 行数=1
 rc=3
 旧: VERDICT: NO-VERDICT-LINE || FAIL 行数=0

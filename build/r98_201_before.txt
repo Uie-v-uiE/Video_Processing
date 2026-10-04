@@ -1,5 +1,5 @@
 # #201 的改前红凭据：新台架 tb_reasm_bounds 跑在**未修改的树**上（r97 之后第一晚，2026-10-01 00:54）
-# 跑法：VP_VIVADO_BIN=<Vivado>/bin bash sim/run_one.sh tb_reasm_bounds
+# 跑法：VP_VIVADO_BIN=<Vivado>/bin bash build/sim/run_one.sh tb_reasm_bounds
 # 树指纹（norm1，判据不含新模块时的那一版）见下面 prov 行
 fpver=norm1
 top_md5=db6947d245b6

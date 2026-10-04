@@ -61,7 +61,7 @@
 
 先纠正一处事实（可回查，不影响到场结论）：本工程 `src/constraints/rk_zynq7020.xdc` 第 10–11 行写的是
 `set_property -dict {PACKAGE_PIN V15 IOSTANDARD LVCMOS33} [get_ports {led[0]}]` / `{PACKAGE_PIN V13 IOSTANDARD LVCMOS33} [get_ports {led[1]}]`
-——**这两颗 LED 不是 `TMDS_33`，是 `LVCMOS33`**；`TMDS_33` 只出现在 W16/Y16、AA17/AB17、U17/V17、U15/U16 这 8 个 TMDS 脚上。所以"6 个端口 + IOSTANDARD 是 TMDS_33"这个前提对 4 个 TMDS 脚成立、对 2 颗 LED 不成立。另外 `tmds_*_n` 是**真实存在并单独出脚的端口**（`report/BOARD_PINS.md`），所以对内偏斜这条量在本板是有物理意义的，不是纸上条目。
+——**这两颗 LED 不是 `TMDS_33`，是 `LVCMOS33`**；`TMDS_33` 只出现在 W16/Y16、AA17/AB17、U17/V17、U15/U16 这 8 个 TMDS 脚上。所以"6 个端口 + IOSTANDARD 是 TMDS_33"这个前提对 4 个 TMDS 脚成立、对 2 颗 LED 不成立。另外 `tmds_*_n` 是**真实存在并单独出脚的端口**（`report/board_pins.md`），所以对内偏斜这条量在本板是有物理意义的，不是纸上条目。
 
 ### 2.1 4 对 TMDS 差分（`tmds_clk_p` 与 `tmds_data_p[0..2]`，各自连同 `_n`）
 
@@ -75,7 +75,7 @@
 
 ### 2.2 那 2 颗 LED（`led[0]` = 心跳、`led[1]` = 状态）
 
-它们**不接 HDMI 连接器**，`report/BOARD_PINS.md` 与约束文件里它们是 `LVCMOS33` 直驱 LED；HDMI 规范的连接器引脚表里也没有这类信号（#18）。
+它们**不接 HDMI 连接器**，`report/board_pins.md` 与约束文件里它们是 `LVCMOS33` 直驱 LED；HDMI 规范的连接器引脚表里也没有这类信号（#18）。
 所以：**没有任何 HDMI/CTS 侧的窗可以套**。能引用的只有板级/内部依据：无接收端采样、人眼判读（几十 ms 量级），以及"它由哪个时钟域输出、Tco 是否已被内部路径分析覆盖"。
 正确的处理是把它们登记成"对外无窗，理由 = 无采样器"，而不是从 TMDS 那 4 对借一个 0.20 `Tcharacter` 的数字过来——借了就等于伪造依据。具体建议见 3.4。
 
@@ -124,7 +124,7 @@ set_max_delay -from [get_pins <tmds_clk 输出寄存器/CBU>] -to [get_ports {tm
 
 - **#3（75 ps ≤ t ≤ 0.4 `Tbit`）** 与 **#4/#5/#6**：SDC 的 `set_output_delay`/`set_max_delay` 只约束沿的到达时刻，不约束转换时间、抖动、占空比、眼图。工程上正确落法是：
   1. 器件侧：`TMDS_33` + 固定驱动/`SLEW` 相关属性，由 XDC 注释指回 #3 的两界（值可写进注释，不可当 delay 数）；
-  2. 判据侧：留作**仿真（IBIS/眼图）与示波器实测**条目，并在 `docs/timing/debt_ledger.md` 里点名"此项无 EDA 窗，依据 HDMI 1.4 Table 4-24 + Keysight 7-4"；
+  2. 判据侧：留作**仿真（IBIS/眼图）与示波器实测**条目，并在 `report/timing/debt_ledger.md` 里点名"此项无 EDA 窗，依据 HDMI 1.4 Table 4-24 + Keysight 7-4"；
   3. 若一定要在 Vivado 里留痕，用 `set_clock_uncertainty` 把 **#4 的 0.500 / 0.3367 ns** 作为钟道抖动预算"吃掉"是常见做法，但这是**设计余量**、不是对外合规声明——必须这样标注，写成"CTS 校验"就错了（代理性质：抖动的 4 MHz −3 dB 参考由 #11 定义，EDA 里根本不复现这个 CRU）。
 - **#6/#7 眼掩码**：可以给出"可用时间窗半宽"的形式值——1.4 版半宽 0.25 UI = **500 ps @0.5 Gbps / 336.7 ps @0.7425 Gbps**，1.3 版半宽 0.18333 UI = 366.7 / 246.9 ps——**但这不是我建议直接进 XDC 的窗**：它的参考沿是"理想恢复钟"而不是我们自己发出去的钟道，把它和 #1 叠加会重复计费。写文档时建议只作为实测判据（并列出 #14 的 400,000 UI / 10,000 波形 / 16 M 记录长度这个"必须采多少才说得准"的门槛，出处是 Tektronix，属第三方代理）。
 

@@ -235,7 +235,7 @@ function resolveTarget(cited, linesByFile) {
 // 被引行必须以本行第 1 列的模块名打头 —— 那一列的语义就是"它在哪里被例化"，
 // 指到别的代码上就是死引用。为什么这条可以是**硬错**而普通锚点不命中只能算 soft：
 // 列名把语义钉死了（不存在"指的是所在函数开头"那种合理解释），
-// 而它的"改前红"标本就是今晚 `report/MODULES.md` 那 28 条（命中 0 条）。
+// 而它的"改前红"标本就是今晚 `report/modules.md` 那 28 条（命中 0 条）。
 function instColOf(docLines, idx) {
   for (let j = idx; j >= 0 && j > idx - 400; j--) {
     const l = docLines[j] || '';
@@ -330,7 +330,7 @@ function selfTest(code) {
       if (r.ok === want) pass++;
     }
   }
-  // D5b 自己的对照（#208）：一个真实标本 —— `report/MODULES.md` 的"例化者"列曾经指着 axi 域那一段。
+  // D5b 自己的对照（#208）：一个真实标本 —— `report/modules.md` 的"例化者"列曾经指着 axi 域那一段。
   // ⚠ 行号**按内容现算**，不许写死（规矩 43）：今晚 r109 在 pl_video_top.v 里插了 26 行，
   //   原来那个"对号 :859"的固定标本就自己过期了 —— 尺子的 fixture 跟着源码漂，是它自己红、不是设计红。
   const pvTop = readFileSync('src/rtl/top/pl_video_top.v', 'utf8').split(/\r?\n/);

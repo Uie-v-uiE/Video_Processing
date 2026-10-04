@@ -31,4 +31,4 @@ LANE GREEN wall=17s rc=0 VERDICT tb_v111_key_boot: PASS tb_v111_key_boot || FAIL
 LANE GREEN wall=17s rc=0 VERDICT tb_v113_key_powup: RESULT tb_v113_key_powup PASS checks=8 || FAIL 行数=0 || PASS 行数=8
 LANE GREEN wall=19s rc=0 VERDICT tb_v112_tx_bytes: PASS tb_v112_tx_bytes || FAIL 行数=0 || PASS 行数=1
 LANE-SUMMARY ran=31/31 green=31 red=0 refuse=0 no-verdict/other=0 wall=564s (19:14:55)
-LANE 结论：全绿。**这不代替门禁**——采纳前必须跑 sim/run_one.sh tb_v98_top_seam + build/tb98_report.sh
+LANE 结论：全绿。**这不代替门禁**——采纳前必须跑 build/sim/run_one.sh tb_v98_top_seam + build/tb98_report.sh

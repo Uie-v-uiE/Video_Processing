@@ -7,7 +7,7 @@
 #   这是提示词 §1 H3 要的同 DCP 反事实，不是跨构建比较。
 #
 # 为什么排第一（§4 D 的分数口径）：名册里 rel_margin 最小的域是 eth_rxc（0.0924），
-#   而 `report/TIMING_GLOBAL.md` §2/§3 量到的事实是那一族的 route 占 84~94 %、级数只有 4~6 ⇒
+#   而 `report/timing_global.md` §2/§3 量到的事实是那一族的 route 占 84~94 %、级数只有 4~6 ⇒
 #   LOGIC 标签的刀没有物理依据，FANOUT 标签的刀有官方依据（UG949 + AMD 自适应支持文章 9410）。
 #   上一轮（r114）这一滚死在"网对象取不到"（MF-REFUSE exit 4），尺子已按实测形状修好并干跑验过
 #   （凭据 build/evidence/r114_mf_dry_console.txt），今晚是**这支脚本**第一次真正跑通。
@@ -29,7 +29,7 @@
 # ⚠ 不写被跟踪件，除非最后一步（evidence 目录）；不碰 runs 目录；已有产物先归档再跑，不覆盖（rule 17）。
 set -u
 cd "$(dirname "$0")/.."
-V=${VP_VIVADO_BIN:?VP_VIVADO_BIN 必须给（见 report/BUILD.md）}
+V=${VP_VIVADO_BIN:?VP_VIVADO_BIN 必须给（见 report/build.md）}
 [ -f "$V/vivado.bat" ] || { echo "[fanab] REFUSE Vivado bin 不存在: $V"; exit 2; }
 DCP=vivado_system/zynq_video_sys.runs/impl_1/system_top_opt.dcp
 W=/tmp/kx/r115_fan
@@ -94,10 +94,10 @@ f4=$(python build/r115_fanout_cmp.py "$W/A/fanout_after.rpt" "$W/B/fanout_after.
 line F4_fanout_dropped "$f4" "B 滚同名网扇出应低于 A 滚" \
      $(case "$f4" in *lower=[1-9]*) echo GREEN;; NOOVERLAP*) echo RED;; *) echo INFO;; esac)
 # F5 名册差分（H3 合法：两端同 DCP 同尺子；G1+G2 一次跑完 8 域 × 4 列）
-python build/r115_roster_build.py "$W/A/timing_summary.rpt" "$W/A/check_timing_verbose.txt" "$W/roster_A.tsv" laneA >/dev/null 2>&1
-python build/r115_roster_build.py "$W/B/timing_summary.rpt" "$W/B/check_timing_verbose.txt" "$W/roster_B.tsv" laneB >/dev/null 2>&1
-if [ -s "$W/roster_A.tsv" ] && [ -s "$W/roster_B.tsv" ]; then
-    difflines=$(python build/r115_roster_build.py --diff "$W/roster_A.tsv" "$W/roster_B.tsv" 2>&1)
+python build/r115_roster_build.py "$W/A/timing_summary.rpt" "$W/A/check_timing_verbose.txt" "$W/roster_a.tsv" laneA >/dev/null 2>&1
+python build/r115_roster_build.py "$W/B/timing_summary.rpt" "$W/B/check_timing_verbose.txt" "$W/roster_b.tsv" laneB >/dev/null 2>&1
+if [ -s "$W/roster_a.tsv" ] && [ -s "$W/roster_b.tsv" ]; then
+    difflines=$(python build/r115_roster_build.py --diff "$W/roster_a.tsv" "$W/roster_b.tsv" 2>&1)
     sm=$(printf '%s\n' "$difflines" | grep -a "ROSTERDIFF-SUMMARY" | tail -1)
     nred=$(printf '%s\n' "$difflines" | awk -F '\t' '$NF=="RED"{n++} END{print n+0}')
     line F5_roster_diff "$sm" "A vs B 逐域 G1+G2（noise_ns=0.000）" \
@@ -105,8 +105,8 @@ if [ -s "$W/roster_A.tsv" ] && [ -s "$W/roster_B.tsv" ]; then
     printf '%s\n' "$difflines" > "$W/roster_diff.txt"
 else
     okA=missing; okB=missing
-    [ -s "$W/roster_A.tsv" ] && okA=ok
-    [ -s "$W/roster_B.tsv" ] && okB=ok
+    [ -s "$W/roster_a.tsv" ] && okA=ok
+    [ -s "$W/roster_b.tsv" ] && okB=ok
     line F5_roster_diff "roster_A=$okA roster_B=$okB" "名册造不出来" RED
 fi
 # F6 布线状态（G5）：**report_route_status 的文件里没有 "successful" 这个词**（23:09 实测形状），
@@ -135,9 +135,9 @@ line F7_utilization "FF A=$ffA B=$ffB (+$(( ${ffB:-0} - ${ffA:-0} ))) LUT A=$luA
     echo "# r115 FANOUT A/B 件 —— dcp md5=$MD tree fp=$FP  噪声底 noise_ns=0.000（/tmp/kx/r115_noise/noise.txt）"
     grep -a "^FANAB " "$W/driver.log" 2>/dev/null
 } > "$EV/verdict_header.txt"
-cp "$W/roster_A.tsv" "$W/roster_B.tsv" "$W/roster_diff.txt" "$EV/" 2>/dev/null
-cp "$W/A/timing_summary.rpt" "$EV/A_timing_summary.txt" 2>/dev/null
-cp "$W/B/timing_summary.rpt" "$EV/B_timing_summary.txt" 2>/dev/null
+cp "$W/roster_a.tsv" "$W/roster_b.tsv" "$W/roster_diff.txt" "$EV/" 2>/dev/null
+cp "$W/A/timing_summary.rpt" "$EV/a_timing_summary.txt" 2>/dev/null
+cp "$W/B/timing_summary.rpt" "$EV/b_timing_summary.txt" 2>/dev/null
 cp "$W/A/fanout_before.rpt" "$W/B/fanout_after.rpt" "$EV/" 2>/dev/null
 for d in A B; do grep -aE "^(ROLL|REPLICA_CELLS|BIG_NETS|NETOBJS|MF_APPLIED|FANOUT2_ERR|CHECKTIMING_ERR|DA_LEVELS_ERR|PLACE_WALL|ROUTE_WALL|ROLLDONE)" "$W/$d/roll_console.txt" > "$EV/${d}_keylines.txt" 2>/dev/null; done
 say "verdict rc=$R  件在 $EV"

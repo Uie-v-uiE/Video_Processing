@@ -1,7 +1,7 @@
 #!/bin/bash
 # build/r94_verdict_ce.sh —— #104（run_one.sh 缺统一 RESULT token）的**改前对照**。
 #
-# 病：`sim/run_one.sh` 只认两种判定形状 —— `RESULT <tb>` 与 `^(PASS|FAIL) <tb>( ALL)?$`。
+# 病：`build/sim/run_one.sh` 只认两种判定形状 —— `RESULT <tb>` 与 `^(PASS|FAIL) <tb>( ALL)?$`。
 # 台架 `tb_v94_zoom_sel` 打的是 `TB RESULT PASS` / `TB RESULT FAIL` ⇒ 两条都不命中 ⇒ 输出
 # `NO-VERDICT-LINE … || FAIL 行数=0`，**而它自己可以是红的**。今天（12:33 那次变异对照）就现场撞见：
 # `build/r94_rotfit_mutation.txt` 明明有 3 行 FAIL，VERDICT 行却写着"FAIL 行数=0"。

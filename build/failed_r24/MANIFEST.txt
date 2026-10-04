@@ -2,7 +2,7 @@
 # 主线 build/system.bit = build#17 (md5 11998af8...)；本目录是下一次收口的起点
 # Pblock 那条路已被判死（xc7z020 全片只有 2x3=6 个时钟区，u_sched/u_fb/u_pl 已同片），
 # 下一刀改成"每像素 5 次读口 → 3 次"（横向抽头复用同一个 64bit 字，lane==3 的列 fx 钉 0）
-# 详见 report/OVERNIGHT_LOG.md 的 R21 补记 2
+# 详见 report/overnight_log.md 的 R21 补记 2
 27afff1e665079170863f39f52d676d7 *system_r24_WNS-0.327.bit
 a9afd9ed20b17db8775221f7ea812120 *cdc.rpt
 8f2696b7f4d10c3f56805451ec5102e0 *clock_util.rpt

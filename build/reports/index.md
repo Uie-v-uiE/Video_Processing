@@ -27,7 +27,7 @@ md5sum build/*.rpt | cut -c1-12                  # 与 build/provenance.md 第 5
 | `build/utilization.rpt` | r118（行 139，md5 `7dd1932b2d2a`） | 行 3 同上版本串；行 4 `Date : Sun Oct 4 04:37:30 2026`；行 6 `Command : report_utilization -file …`；行 7 `Design : system_top`；行 8 `Device : xc7z020clg484-2`；行 11 `Design State : Routed` | `parsed_utilization.rpt.json` | 是 |
 | `build/methodology.rpt` | r118（行 141，md5 `645029c4dafe`） | 行 3 同上；行 4 `Date : Sun Oct 4 04:37:40 2026`；行 6 `report_methodology -file …`；行 11 `Design State : Fully Routed` | `parsed_methodology.rpt.json` | 是 |
 | `build/cdc.rpt` | r118（行 140，md5 `443785a20f42`） | 行 3 同上；行 4 `Date : Sun Oct 4 04:37:32 2026`；行 6 `report_cdc -file …`；行 10 `Design State : Routed` | `parsed_cdc.rpt.json` | 是 |
-| `build/power.rpt` | r118（行 142，md5 `e7be51c9e05b`） | 行 3 同上；行 4 `Date : Sun Oct 4 04:37:48 2026`；行 6 `report_power -file …`；行 9-12 `Design State : routed` / `Grade : commercial` / `Process : typical` / `Characterization : Production` | `parsed_power.rpt.json` | 是（**估算**，无仿真活动文件 ⇒ 见 `docs/build-notes.md`） |
+| `build/power.rpt` | r118（行 142，md5 `e7be51c9e05b`） | 行 3 同上；行 4 `Date : Sun Oct 4 04:37:48 2026`；行 6 `report_power -file …`；行 9-12 `Design State : routed` / `Grade : commercial` / `Process : typical` / `Characterization : Production` | `parsed_power.rpt.json` | 是（**估算**，无仿真活动文件 ⇒ 见 `report/build-notes.md`） |
 | `build/route_status.rpt` | r118（行 143，md5 `a6d3822c92d7`） | **原件没有版本头**：行 1 直接是 `Design Route Status` ⇒ `banner.*` 11 个字段全部 `NOT_MEASURED`（不是空、不是 0） | `parsed_route_status.rpt.json` | 是 |
 | `build/clock_util.rpt` | r118（行 144，md5 `22ce2506d78d`） | 行 3 同上；行 4 `Date : Sun Oct 4 04:37:49 2026`；行 6 `report_clock_utilization -file …`；行 10 `Design State : Routed` | `parsed_clock_util.rpt.json` | 是 |
 | `build/width_warnings.txt` | r118（行 145，md5 `21438ef4b9ad`） | 非工具报告，无版本头；整个文件一个字符 `0`（`Synth 8-689` 计数） | `parsed_width_warnings.txt.json` | 是 |
@@ -48,14 +48,14 @@ md5sum build/*.rpt | cut -c1-12                  # 与 build/provenance.md 第 5
 
 | 原件路径 | 哪一轮 | 头一行（原文） | 用法边界 |
 |---|---|---|---|
-| `docs/timing/roster_baseline.tsv` | B3 冻结基线（生成 2026-10-03 22:45:09，来源件 r115_base 那两份） | `# label=baseline built=2026-10-03 22:45:09 src_reports=build/evidence/r115_base/timing_summary.txt,build/evidence/r115_base/check_timing_verbose.txt` | 13+1 列**口径的出处**；本轮 `roster_r118.tsv` 的列名/列序/单位与它逐字相同 |
-| `docs/timing/roster_round115.tsv` | r115 轮（A=baseline，B=r115 滚） | `# r115 轮名册（E1）。差值列 = B − A，两端同 DCP（H3 合法）；噪声底 noise_ns=0.000（B4…）` | 差分形态的参照；数字**不是** r118 |
-| `docs/timing/roster_round116.tsv` | r116 轮 | 同上第一行（文件头写的是 r115 轮的模板文字，与文件名不一致 ⇒ 这一条已登记进 `docs/build-notes.md` 的疑点，不替它解释） | 同上 |
+| `report/timing/roster_baseline.tsv` | B3 冻结基线（生成 2026-10-03 22:45:09，来源件 r115_base 那两份） | `# label=baseline built=2026-10-03 22:45:09 src_reports=build/evidence/r115_base/timing_summary.txt,build/evidence/r115_base/check_timing_verbose.txt` | 13+1 列**口径的出处**；本轮 `roster_r118.tsv` 的列名/列序/单位与它逐字相同 |
+| `report/timing/roster_round115.tsv` | r115 轮（A=baseline，B=r115 滚） | `# r115 轮名册（E1）。差值列 = B − A，两端同 DCP（H3 合法）；噪声底 noise_ns=0.000（B4…）` | 差分形态的参照；数字**不是** r118 |
+| `report/timing/roster_round116.tsv` | r116 轮 | 同上第一行（文件头写的是 r115 轮的模板文字，与文件名不一致 ⇒ 这一条已登记进 `report/build-notes.md` 的疑点，不替它解释） | 同上 |
 | `build/evidence/r116_roster_e1.tsv` | r116（`# label=r116 built=2026-10-04 03:27:56 src_reports=build/evidence/r116/r116_timing_summary.txt,build/evidence/r116/r116_check_timing.txt`） | 同左 | r116 的 B 侧读数 |
 | `build/evidence/r118_roster_diff_vs_r114.txt` | r118 vs r114（探针尺子的差分结果件） | 行 1 起是 `ROSTERDIFF-ROW clk_fpga_0/setup slack 1.850ns …->1.850ns …` | `ROSTERDIFF-SUMMARY … judged=6 pairs=16 result=GREEN` 是**既有尺子**自己算的，本条任务不重跑它、只指路 |
 | `build/evidence/r115_base/timing_summary.txt` + `check_timing_verbose.txt` | 基线（`| Date : Sat Oct 3 22:30:38 2026` / `22:21:17 2026`） | 同左 | 13+1 列口径原来吃的**那两份**输入；本轮 r118 没有独立的 check_timing 件（见下节） |
 | `build/evidence/r116/r116_timing_summary.txt` + `r116_check_timing.txt` | r116（`| Date : Sun Oct 4 01:35:11 2026` / `01:35:08 2026`） | 同左 | 同上 |
-| `build/check_timing_verbose.rpt` | **不是 r118**：`| Date : Sat Oct 3 15:32:44 2026` | 同左 | 所以本轮名册的 `unconstrained_endpoints / io_unconstrained_ports` 两列**改用 r118 原件内嵌的 check_timing 段**（`build/timing_summary.rpt` 行 58-140），行号见 `docs/build-notes.md` 的字段位置表 |
+| `build/check_timing_verbose.rpt` | **不是 r118**：`| Date : Sat Oct 3 15:32:44 2026` | 同左 | 所以本轮名册的 `unconstrained_endpoints / io_unconstrained_ports` 两列**改用 r118 原件内嵌的 check_timing 段**（`build/timing_summary.rpt` 行 58-140），行号见 `report/build-notes.md` 的字段位置表 |
 
 ## 3. 约束原件（`build/coverage.md` 的出处）
 
@@ -65,7 +65,7 @@ md5sum build/*.rpt | cut -c1-12                  # 与 build/provenance.md 第 5
 | `src/constraints/clock_groups_impl.xdc` | **是**（只实现） | 同文件 `:24-26`（`used_in_synthesis false`） |
 | `src/constraints/r116_rgmii_input_window.xdc` | 否（`VP_R116_IO_WINDOW` 未设） | 同文件 `:45-52`；r118 日志念的是 `off` 那一条（provenance 第 3 节） |
 | `src/constraints/r119_hdmi_source_window.xdc` | 否（`VP_R119_TMDS_WINDOW` 未设） | 同文件 `:63-70` |
-| `src/constraints/r114_io_async.xdc`、`r114_io_variantA_rise_only.xdc`、`r114_io_variantB_phy_delay.xdc`、`r115_io_window_candidate.xdc`、`r119b_hdmi_tp1_pinclk.xdc` | **发布流程里没有任何一处挂载**（`grep -c` 在 `build/tcl/*.tcl` 只命中探针/实验脚本） | 见 `build/coverage.md` 第 4 节 |
+| `src/constraints/r114_io_async.xdc`、`r114_io_varianta_rise_only.xdc`、`r114_io_variantb_phy_delay.xdc`、`r115_io_window_candidate.xdc`、`r119b_hdmi_tp1_pinclk.xdc` | **发布流程里没有任何一处挂载**（`grep -c` 在 `build/tcl/*.tcl` 只命中探针/实验脚本） | 见 `build/coverage.md` 第 4 节 |
 
 ## 4. 本目录不列的东西（免得读者以为漏了）
 
@@ -76,4 +76,4 @@ md5sum build/*.rpt | cut -c1-12                  # 与 build/provenance.md 第 5
   要读它们请先按同一规矩配 provenance 指纹（没有卡 ⇒ 按「未配对」处理）。
 - 资源**按模块**归属需要的 `Utilization by Hierarchy`：r118 的 `build/utilization.rpt` 里**没有这一节**
   （`grep -n 'Utilization by Hierarchy' build/utilization.rpt` 无命中），仓里 `build/util_hier.rpt`
-  的日期是 9 月 25 日 ⇒ 本轮该维度 `NOT_MEASURED`，见 `docs/build-notes.md`。
+  的日期是 9 月 25 日 ⇒ 本轮该维度 `NOT_MEASURED`，见 `report/build-notes.md`。

@@ -8,7 +8,7 @@
 # 本工程**绝不向 QSPI/SPI flash 写入**，也不碰板载 EEPROM。
 set -u
 cd "$(dirname "$0")/.."
-V="${VP_VIVADO_BIN:?要先设 VP_VIVADO_BIN=<Vivado>/bin 再跑（见 report/BUILD.md；包里的脚本一律不写死绝对路径）}"
+V="${VP_VIVADO_BIN:?要先设 VP_VIVADO_BIN=<Vivado>/bin 再跑（见 report/build.md；包里的脚本一律不写死绝对路径）}"
 X="${VP_XSDB:?还要设 VP_XSDB=<Vitis>/bin/xsdb.bat（Vitis 在 Vivado 安装树里面）}"
 NN=${VP_ADOPT_NN:-107}
 TB=${VP_ADOPT_TB:-tb_v98_top_seam}

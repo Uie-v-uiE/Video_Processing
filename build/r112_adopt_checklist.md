@@ -2,7 +2,7 @@
 
 链子：`bash build/r112_chain.sh`（08:18:56 起飞），分步件 `build/r112_build_console.txt`、
 `build/r112_lane_after.txt`、`build/r112_tb98_console.txt`、`build/r112_gates.txt`。
-两把刀与各自的凭据见 `report/log/ISSUES.md` #250；上电那一度的判定实验见 `board/ACCEPTANCE.md` 的 E6 格。
+两把刀与各自的凭据见 `report/log/issues.md` #250；上电那一度的判定实验见 `board/acceptance.md` 的 E6 格。
 
 ## 0. 先确认链子活着（别拿 `ps -W` 判，#244）
 ```
@@ -51,7 +51,7 @@ tail -3 build/r112_chain_console.txt
    - `clkout0_1` 的**余量百分数**（r110 是 18.995 %）机械认不出；
    - `metrics.csv` 里 `14362（27.00 %）` 这种"数+百分数"一格也要整段替换；
    - 身份句（板上这一版/bit）、门禁读数句、代价句、hold 落点半句 = 手写；
-   - 若 `report/MODULES.md` 的「例化者」因行位移红：`bash build/reanchor_modules.sh`（它按 D5b 红单自己定位，#250 之后 `key_debounce.v`/`icmp_tx.v` 的行号一定漂）。
+   - 若 `report/modules.md` 的「例化者」因行位移红：`bash build/reanchor_modules.sh`（它按 D5b 红单自己定位，#250 之后 `key_debounce.v`/`icmp_tx.v` 的行号一定漂）。
 3. 收尾三把尺子全绿才算：`metric_recheck` 红 0、`doc_currency` rc=0、`line_cite_check` 硬错 0。
 
 ## 5. 采纳一笔 + 上板
@@ -76,10 +76,10 @@ tail -3 build/r112_chain_console.txt
   它覆盖中英 README 各 11 条（身份句、WNS、端点数、逐时钟四数、那句算错的"相对最紧是 clkout0_1"、setup 归属整句、资源四数、代价括弧整段）
   与 `data/metrics.csv` 13 条（WNS/WHS 两行含逐时钟括弧与落点整句、LUT/FF 两行含本轮账）。**采纳时先跑 `rotate_from_metric.mjs --apply` 再跑这份 `--apply`**。
 - 还欠两条要等门禁出数才能填的规则（脚本里没写，别漏）：①首页"门禁 24 项 X 绿 / Y 红"那句要按盘上那份 `build/r112_gates.txt` 实读改；
-  ②`bit 897fa9d93956` 的刷板时刻（中英两处 + `board/ACCEPTANCE.md` 的身份行）。
-- 三滚的物理侧判读已进首页归属句的替换文本里（`build/evidence/r113_roll_ABC_verdict.txt`），所以**改口与判读同一笔提交**，不留"首页说不到底"的句子。
+  ②`bit 897fa9d93956` 的刷板时刻（中英两处 + `board/acceptance.md` 的身份行）。
+- 三滚的物理侧判读已进首页归属句的替换文本里（`build/evidence/r113_roll_abc_verdict.txt`），所以**改口与判读同一笔提交**，不留"首页说不到底"的句子。
 - 顺序（不变）：台架 → 门禁两跑逐字节一致（先 /tmp 再 cp 回 `build/r112_gates.txt`）→ `--apply` 两遍改口 → `metric_recheck`/`doc_currency`/`line_cite_check` 三把尺子红 0
   → 采纳笔（含 `src/rtl` 两文件、两份新台架、`build/system.bit`/`.xsa`、全套 r112 报告与 `build/evidence/*`）→ 三步 JTAG 刷板
   → `bash build/board_verify.sh --geom --battery --round=r112`（要 `VP_XSDB`）→ E6 交眼睛 → 试冻结 → `make_submission.sh`（数盘上文件）→ 推送。
-- ⚠ 期间**不碰 `src/rtl` 与 `sim/`**；`report/MODULES.md` 的「例化者」若因行漂红，跑 `bash build/reanchor_modules.sh`。
+- ⚠ 期间**不碰 `src/rtl` 与 `sim/`**；`report/modules.md` 的「例化者」若因行漂红，跑 `bash build/reanchor_modules.sh`。
 

@@ -16,7 +16,7 @@
 1. **先问工具**：`check_timing -verbose` 出权威端口名单，把三个现数对到同一套名字上——
    `check_timing` 念 5 输入 + 6 输出（HIGH）、`check_io_timing_coverage.py` 念 2/7 个端口（= 5/12 引脚）、
    `report_methodology` 念 TIMING-18 = 7 条。谁也不许替谁解释（#267/#268）。
-2. 然后按 `report/TIMING_GLOBAL.md` 第 4b 节的分组配方落约束：TMDS 一路先量面板/走线窗再写 `set_output_delay`，
+2. 然后按 `report/timing_global.md` 第 4b 节的分组配方落约束：TMDS 一路先量面板/走线窗再写 `set_output_delay`，
    数值**必须**有出处（手册或实测），写不出出处就在 XDC 注释里标成估计并给区间；LED/MDIO 各一条**带理由**的声明。
 3. 判据收口口径：**I3 与 I7 都要由 RED 转 GREEN，且有 -verbose 名单支撑**；只改绿 I3、把 I7 的期望值改掉 = 假收口。
 
@@ -54,7 +54,7 @@
 * 门禁项数一旦变（把上面任何尺子接进门禁），必须与"门禁 N 项"那四处句子**同一笔**改（#242/D1c）；
 * 采纳笔要含 bit/xsa，刷板后跑 `board_verify --geom --battery --round=r114`，眼睛判据仍归用户。
 
-## 九、变体 A 的判别结果（2026-10-03 16:47，件 `build/evidence/r114_io_variantA_console2.txt`）
+## 九、变体 A 的判别结果（2026-10-03 16:47，件 `build/evidence/r114_io_varianta_console2.txt`）
 
 只给上升沿的那一版与两沿那一版**每一个数都相同**（WNS 0.424 / WHS −2.885 / 5 个失败 hold 端点、同一落点
 `u_iddr_rx_ctl/D`、levels=2、走线 0.000 %）⇒ "窗写重了"被排除，`set_input_delay -clock eth_rxc` 本来就吃这条钟的
@@ -92,7 +92,7 @@
 判据不许改：同一窗下 `eth_rxc` hold ≥ 0 且 `fail_hold=0`、其余三域逐格不比 #282 表格变差；
 红就退回 BUFG，并把"BUFG + 真窗关不住"记成实测结论。前置债：`main.c` 没有 MDIO 读命令 + 本机无 arm-none-eabi ⇒
 读不到 PHY 的 RXDLY 寄存器（#131/#170），所以这一判只能靠时序实验或原理图脚带，不许用"我记得 PHY 延迟是开的"。
-`r114_io_async.xdc` / `r114_io_variantB_phy_delay.xdc` 都不进构建（核对过 add_files 只有两份现行 XDC）。
+`r114_io_async.xdc` / `r114_io_variantb_phy_delay.xdc` 都不进构建（核对过 add_files 只有两份现行 XDC）。
 
 ## 十一、扇出复制那一刀的尺子修复（2026-10-03 18:25，ISSUES #286）
 

@@ -1,5 +1,5 @@
 # r99 改后凭据：#185 / #186 两刀的台架对照（2026-10-01 07:39 跑，未构建之前先过）
-# 命令：VP_VIVADO_BIN=/d/Software/Vivado/2025.2.1/Vivado/bin bash sim/run_one.sh tb_v90_latency
+# 命令：VP_VIVADO_BIN=/d/Software/Vivado/2025.2.1/Vivado/bin bash build/sim/run_one.sh tb_v90_latency
 # 判据出处：sim/tb_v90_latency.v 的 T17（#185）与 T18（#186）
 # 改前红在：build/r97_185186_before.txt（r97 树上、未改 RTL 时量的）
 
@@ -28,6 +28,6 @@ RESULT: PASS tb_v90_latency（run_one.sh 退出码 0）
       规则对照 build/r99_cdc_gate_proof.txt。
 
 顺带修掉的读者看不见的旧指针（同属 #208 那一族，只是这次在脚本的提示语里）：
-  sim/run_one.sh、sim/mut_control.sh 里 "找不到 xvlog" 的 REFUSE 提示与头部注释写的 `docs/BUILD.md`
-  已改成 `report/BUILD.md`（目录改名那一轮漏了这两处，因为 doc_currency 只扫交付文档）。
+  build/sim/run_one.sh、build/sim/mut_control.sh 里 "找不到 xvlog" 的 REFUSE 提示与头部注释写的 `docs/build.md`
+  已改成 `report/build.md`（目录改名那一轮漏了这两处，因为 doc_currency 只扫交付文档）。
   run_one.sh 里那两行重复的"工具路径只有一个说法"注释顺手去掉一行。两个脚本 bash -n 通过。

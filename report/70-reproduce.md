@@ -2,7 +2,7 @@
 
 对应赛题 §3.3.5.3 的"复现说明：一份可供他人从零开始完整执行的操作步骤"。
 与仓库根 `README.md` 的"复现三步"**同源**：本文把那三步展开成逐命令，并在第 6 节列出两处不一致处及权威判定。
-本文**不改** `README.md`、`report/BUILD.md`、`build/README.md`、`board/README.md`（不在本次授权范围），
+本文**不改** `README.md`、`report/build.md`、`build/README.md`、`board/README.md`（不在本次授权范围），
 冲突只在本文登记并给出应改动作。
 
 ## 0. 本文的判定口径（先读，否则第 4 列会被误读）
@@ -23,19 +23,19 @@
 
 | # | 命令 | 执行目录 / shell | 所需外部设备与状态 | 完成后应看到什么 | 本次判定 |
 |---|---|---|---|---|---|
-| 1.1 | `node --version` | `<仓库根>` / Git Bash | 无 | `v24.`（`report/BUILD.md` §1 写的"需要 Node 24"）| **PASS**：`v24.21.0` |
+| 1.1 | `node --version` | `<仓库根>` / Git Bash | 无 | `v24.`（`report/build.md` §1 写的"需要 Node 24"）| **PASS**：`v24.21.0` |
 | 1.2 | `python --version` 与 `python3 --version` | `<仓库根>` / Git Bash | 无 | 至少一条给 3.x；**MSYS 上通常是 `python`，不是 `python3`**（第 7 节）| **PASS/FAIL 两态**：`python` → `Python 3.12.10`；`python3` → `command not found`，**rc=127** |
 | 1.3 | `bash --version` 与 `git --version` | `<仓库根>` / Git Bash | 无 | `GNU bash, version 5.x…-release (x86_64-pc-msys)`、`git version 2.x` | **PASS**：`5.2.37(1)-release (x86_64-pc-msys)`、`2.52.0.windows.1` |
-| 1.4 | `which vivado vivado.bat xsdb xsdb.bat arm-none-eabi-gcc` | `<仓库根>` / Git Bash | 无 | 若五条全 `no … in (…)` ⇒ 工具不在 `PATH`，**必须**改用 `VP_VIVADO_BIN` / `VP_XSDB` / `PS_CC`（`report/BUILD.md` §1 的变量表）| **PASS**：五个全部未命中（`which` rc=1）⇒ 本仓库走变量，不走 `PATH` |
-| 1.5 | `ls <Vivado>/bin/vivado.bat <Vitis>/bin/xsdb.bat`（`<Vivado>`/`<Vitis>` 换成你自己的安装目录）| `<仓库根>` / Git Bash | 无 | 两行路径都列出来 = 工具在位 | **PASS**：两份都存在（本文不写本机绝对路径，规矩见 `report/BUILD.md` §1）|
+| 1.4 | `which vivado vivado.bat xsdb xsdb.bat arm-none-eabi-gcc` | `<仓库根>` / Git Bash | 无 | 若五条全 `no … in (…)` ⇒ 工具不在 `PATH`，**必须**改用 `VP_VIVADO_BIN` / `VP_XSDB` / `PS_CC`（`report/build.md` §1 的变量表）| **PASS**：五个全部未命中（`which` rc=1）⇒ 本仓库走变量，不走 `PATH` |
+| 1.5 | `ls <Vivado>/bin/vivado.bat <Vitis>/bin/xsdb.bat`（`<Vivado>`/`<Vitis>` 换成你自己的安装目录）| `<仓库根>` / Git Bash | 无 | 两行路径都列出来 = 工具在位 | **PASS**：两份都存在（本文不写本机绝对路径，规矩见 `report/build.md` §1）|
 | 1.6 | `<Vivado>/bin/vivado.bat -version` | `<仓库根>` / Git Bash | 无（不建工程、不读板）| 打印 `vivado v2025.2.1 (64-bit)` 与 `SW Build …`；**版本必须是 2025.2.1 或你在文档里另记的版本**，否则时序/资源数不可比（`skill/references/tool-version-drift`）| **PASS（附一条未核实）**：版本串打印正确，但**退出码 = 1**。原因本次未查 ⇒ 标 `【未核实】`；读 `-version` 的判据应是版本串，**不是 rc** |
 | 1.7 | `<Vitis>/gnu/aarch32/nt/gcc-arm-none-eabi/bin/arm-none-eabi-gcc.exe --version` | `<仓库根>` / Git Bash | 无 | `…(GCC) 13.3.0`，rc=0 ⇒ 编 PS 应用的能力**在**（这一条推翻本仓多处"本机没有 bare-metal 编译器"的说法，见 `report/60-failure-analysis.md` A4）| **PASS**：rc=0，`arm-xilinx-eabi-gcc.exe (GCC) 13.3.0` |
-| 1.8 | `netstat -an -p TCP \| grep 3121` | `<仓库根>` / Git Bash 或 cmd | 无（只问本机监听）| `TCP 0.0.0.0:3121 0.0.0.0:0 LISTENING` ⇒ `hw_server` 在听；**没有这一行就别往下走上板**，第 4 节第一步会 `CONNECT:` 空（这条形状出自 `board/ACCEPTANCE.md` r96 那一行的教训与 `board/hardware_setup.md` 的探测表）| **PASS**：命中 1 行 `LISTENING` |
+| 1.8 | `netstat -an -p TCP \| grep 3121` | `<仓库根>` / Git Bash 或 cmd | 无（只问本机监听）| `TCP 0.0.0.0:3121 0.0.0.0:0 LISTENING` ⇒ `hw_server` 在听；**没有这一行就别往下走上板**，第 4 节第一步会 `CONNECT:` 空（这条形状出自 `board/acceptance.md` r96 那一行的教训与 `board/hardware_setup.md` 的探测表）| **PASS**：命中 1 行 `LISTENING` |
 
 **六支入口脚本的语法自检**（只读，不执行）：
 
 ```bash
-bash -n build/gates.sh build/board_verify.sh sim/run_one.sh sim/mut_control.sh \
+bash -n build/gates.sh build/board_verify.sh build/sim/run_one.sh build/sim/mut_control.sh \
         build/freeze_evidence.sh build/make_submission.sh
 ```
 
@@ -51,9 +51,9 @@ bash -n build/gates.sh build/board_verify.sh sim/run_one.sh sim/mut_control.sh \
 
 | # | 命令 | 执行目录 / shell | 前置与外部状态 | 完成后应看到什么 | 本次判定 |
 |---|---|---|---|---|---|
-| 2.1 | `vivado -mode batch -source build/tcl/build_system_axigpio.tcl` | `<仓库根>` / Git Bash 或 cmd（`vivado` 换成 `<Vivado>/bin/vivado.bat` 全路径，或把 `bin` 加进 `PATH`）| 磁盘余量（一轮实现会写 `vivado_system/`）、无第二个 Vivado 在跑（`report/log/ISSUES.md` 的 #234/#251 记过"改正在跑的脚本 / 起第二个实例"两类自伤）| 脚本自己按四件事播报：建工程 → 收 RTL/约束/BD（清单 `build/tcl/set_src.tcl`）→ 综合 → 实现出位流；产物 `build/system.bit`、`build/system.xsa`、`build/*.rpt`（**平铺在 `build/`**，见第 6 节冲突 3）；中途失败会打印停在哪一步且不留下半套 | `NOT_MEASURED`（本次禁跑构建）|
-| 2.2 | `md5sum build/system.bit` | `<仓库根>` / Git Bash | 2.1 跑过，或盘上已有本版位流 | 32 位 md5；拿它认身份，**不认文件名**（`report/KNOWN_ISSUES.md` §3"位流与固件不入库/靠 md5 认身份"那条）| **PASS**：本次读到 `cd04907e1369…`，与 `build/r118_gates.txt` 的身份行 `system.bit md5=cd04907e1369` 逐字相同 ⇒ 盘上那份就是 r118 |
-| 2.3 | `python build/build_ps_app.py`（或 `node build/ps_app.mjs`）| `<仓库根>` / Git Bash | 需 `PS_CC`（1.7 那条路径）与 `PS_BSP`（默认指仓库内 `vitis/platform/…/bsp`）；**不想动交付件时把 `PS_OUT` 指到别处**（`report/BUILD.md` 变量表明写这条）| 产出 `ps_app.elf` 并通过四道自检（入口==`_boot`、`_vector_table`==0x0、`.text` ≥ 20 KB、五个符号都在）；任一不过 ⇒ 非零退出，因为"链接成功"不等于可执行 | `NOT_MEASURED`（本次禁跑构建；`PS_CC` 未设时它第一步 REFUSE 的文案本次实读在 `report/BUILD.md` 里，未实跑验证）|
+| 2.1 | `vivado -mode batch -source build/tcl/build_system_axigpio.tcl` | `<仓库根>` / Git Bash 或 cmd（`vivado` 换成 `<Vivado>/bin/vivado.bat` 全路径，或把 `bin` 加进 `PATH`）| 磁盘余量（一轮实现会写 `vivado_system/`）、无第二个 Vivado 在跑（`report/log/issues.md` 的 #234/#251 记过"改正在跑的脚本 / 起第二个实例"两类自伤）| 脚本自己按四件事播报：建工程 → 收 RTL/约束/BD（清单 `build/tcl/set_src.tcl`）→ 综合 → 实现出位流；产物 `build/system.bit`、`build/system.xsa`、`build/*.rpt`（**平铺在 `build/`**，见第 6 节冲突 3）；中途失败会打印停在哪一步且不留下半套 | `NOT_MEASURED`（本次禁跑构建）|
+| 2.2 | `md5sum build/system.bit` | `<仓库根>` / Git Bash | 2.1 跑过，或盘上已有本版位流 | 32 位 md5；拿它认身份，**不认文件名**（`report/known_issues.md` §3"位流与固件不入库/靠 md5 认身份"那条）| **PASS**：本次读到 `cd04907e1369…`，与 `build/r118_gates.txt` 的身份行 `system.bit md5=cd04907e1369` 逐字相同 ⇒ 盘上那份就是 r118 |
+| 2.3 | `python build/build_ps_app.py`（或 `node build/ps_app.mjs`）| `<仓库根>` / Git Bash | 需 `PS_CC`（1.7 那条路径）与 `PS_BSP`（默认指仓库内 `vitis/platform/…/bsp`）；**不想动交付件时把 `PS_OUT` 指到别处**（`report/build.md` 变量表明写这条）| 产出 `ps_app.elf` 并通过四道自检（入口==`_boot`、`_vector_table`==0x0、`.text` ≥ 20 KB、五个符号都在）；任一不过 ⇒ 非零退出，因为"链接成功"不等于可执行 | `NOT_MEASURED`（本次禁跑构建；`PS_CC` 未设时它第一步 REFUSE 的文案本次实读在 `report/build.md` 里，未实跑验证）|
 | 2.4 | `bash build/freeze_evidence.sh rNN` | `<仓库根>` / Git Bash | 2.1 完成且门禁全绿 | 成套拷进 `build/frozen_rNN_<短名>/` 并写 `MANIFEST`；**门禁有红项时它会 REFUSE**（`GATES: ALL PASS` 才允许出现，否则打 `PARTIAL`/有红项 ⇒ 拒绝冻结）| `NOT_MEASURED`（本次既不跑构建也不改盘内 `build/`）；今天盘上门禁是**有红项**那一支（见 5.1）⇒ 照做会得到 REFUSE，这是预期行为不是故障 |
 
 **为什么 2.x 整节不能改成"我跑过了"**：一条构建的墙钟是几十分钟量级，且会原地覆写 `build/system.bit`/`*.rpt` 这些
@@ -67,11 +67,11 @@ bash -n build/gates.sh build/board_verify.sh sim/run_one.sh sim/mut_control.sh \
 
 | # | 命令 | 执行目录 / shell | 前置 | 完成后应看到什么 | 本次判定 |
 |---|---|---|---|---|---|
-| 3.1 | `export VP_VIVADO_BIN=<Vivado>/bin` 然后 `bash sim/run_one.sh tb_v98_top_seam` | `<仓库根>` / Git Bash | 1.4/1.5 确认了 `<Vivado>/bin` 里有 `xvlog`；**不能有别的 xsim 活着**（`run_one.sh` 自己会拒，两个 xsim 会往同一个 `run.log` 里写）| 末行一条 `RESULT tb_v98_top_seam PASS` 或 `FAIL nfail=N`；**当前树的期望值是 `FAIL nfail=1`，红在 `C5c`**（这一条是声明过、故意留红的判据，见 `report/60-failure-analysis.md` A1）| `NOT_MEASURED`（禁跑台架；顶层那支一轮约 2 小时）|
-| 3.2 | `bash sim/run_one.sh tb_head_rot_displace` | 同上 | 同上 | `RESULT … PASS cells=49152 pairs=12` 这种形状；它只例化 `zoom_fit` + `zoom_mapper`，1~2 分钟 | `NOT_MEASURED` |
-| 3.3 | `bash sim/run_one.sh tb_link_monitor` | 同上 | 同上 | **期望值是只红一条 `F2e B`**（`sum=518 > 2x130`）；若你看到更多红，说明你那棵树弄坏了别的 ⇒ 这条能把你和"历史红"分开（`report/60-failure-analysis.md` A2）| `NOT_MEASURED` |
-| 3.4 | `bash sim/run_sim.tcl`（全量批跑，Vivado 模式）| `<仓库根>` / cmd 或 Git Bash | 1.4 之后；目录里 81 支 `tb_*.v` 全收（本次实测计数）| 每支一份判定行；**"放一支坏台架在目录里，每次批跑都会被它拖住"**（`sim/README.md`）——今天那支就是 3.3 | `NOT_MEASURED`（禁跑台架全量）|
-| 3.5 | `bash sim/mut_control.sh <tb名> <判据名>` 或 `bash build/run_one_ce.sh` | `<仓库根>` / Git Bash | 不动 `src/rtl`（它拷到 `/tmp` 下做变异体）| 一条判据说自己抓住了缺陷，凭据是"把缺陷装回去它必须变红"；尺子自己的对照还必须有一条**正对照是绿的** | `NOT_MEASURED`（属台架动作）|
+| 3.1 | `export VP_VIVADO_BIN=<Vivado>/bin` 然后 `bash build/sim/run_one.sh tb_v98_top_seam` | `<仓库根>` / Git Bash | 1.4/1.5 确认了 `<Vivado>/bin` 里有 `xvlog`；**不能有别的 xsim 活着**（`run_one.sh` 自己会拒，两个 xsim 会往同一个 `run.log` 里写）| 末行一条 `RESULT tb_v98_top_seam PASS` 或 `FAIL nfail=N`；**当前树的期望值是 `FAIL nfail=1`，红在 `C5c`**（这一条是声明过、故意留红的判据，见 `report/60-failure-analysis.md` A1）| `NOT_MEASURED`（禁跑台架；顶层那支一轮约 2 小时）|
+| 3.2 | `bash build/sim/run_one.sh tb_head_rot_displace` | 同上 | 同上 | `RESULT … PASS cells=49152 pairs=12` 这种形状；它只例化 `zoom_fit` + `zoom_mapper`，1~2 分钟 | `NOT_MEASURED` |
+| 3.3 | `bash build/sim/run_one.sh tb_link_monitor` | 同上 | 同上 | **期望值是只红一条 `F2e B`**（`sum=518 > 2x130`）；若你看到更多红，说明你那棵树弄坏了别的 ⇒ 这条能把你和"历史红"分开（`report/60-failure-analysis.md` A2）| `NOT_MEASURED` |
+| 3.4 | `bash build/sim/run_sim.tcl`（全量批跑，Vivado 模式）| `<仓库根>` / cmd 或 Git Bash | 1.4 之后；目录里 81 支 `tb_*.v` 全收（本次实测计数）| 每支一份判定行；**"放一支坏台架在目录里，每次批跑都会被它拖住"**（`sim/README.md`）——今天那支就是 3.3 | `NOT_MEASURED`（禁跑台架全量）|
+| 3.5 | `bash build/sim/mut_control.sh <tb名> <判据名>` 或 `bash build/run_one_ce.sh` | `<仓库根>` / Git Bash | 不动 `src/rtl`（它拷到 `/tmp` 下做变异体）| 一条判据说自己抓住了缺陷，凭据是"把缺陷装回去它必须变红"；尺子自己的对照还必须有一条**正对照是绿的** | `NOT_MEASURED`（属台架动作）|
 
 ---
 
@@ -88,7 +88,7 @@ bash -n build/gates.sh build/board_verify.sh sim/run_one.sh sim/mut_control.sh \
 | 4.3 | `<Vitis>/bin/xsdb.bat build/tcl/ps_jtag_boot.tcl` | `<仓库根>` / **cmd**（`.bat` 启动器；Git Bash 里也能调但要写全路径）| 4.0 + 4.1 | `RST_SYSTEM: ok` / `PS7_INIT: ok` / `PS7_POST_CONFIG: ok` / `DDR_ECHO: 10000000: 5A5AA5A5` | `NOT_MEASURED`（禁跑刷板）|
 | 4.4 | `vivado -mode batch -source build/tcl/program_pl.tcl` | 同上 | 4.3 之后；**顺序不能换**（`board/README.md` §2 明写 PL 没烧之前应用起不来）| `PROGRAMMED xc7z020_1 <- …/build/system.bit` 与 `End of startup status: HIGH`；只走 JTAG，**不写 QSPI/SPI flash、不碰 EEPROM** | `NOT_MEASURED` |
 | 4.5 | `<Vitis>/bin/xsdb.bat build/tcl/ps_app_reload.tcl` | 同上 | 4.4 之后 | `DOW: ok` / `CON: ok` / `RESUME: ok` / `FLOW_DONE`，串口出现 `[BOOT] video_pipeline PL-UDP control plane` | `NOT_MEASURED` |
-| 4.6 | `VP_XSDB=<Vitis>/bin/xsdb.bat bash build/board_verify.sh --battery --geom` | `<仓库根>` / Git Bash | 4.3–4.5 完成；**COM6 一次只能被一个程序占用**（自己开着终端占着时脚本会拒绝，那不是板子坏了）| 四段依次过：开机回读 / 寄存器与健康位 / 几何最后一跳 / 串口命令电池；末行 `RESULT board_verify PASS（判红的步骤：0）`，且里面 `RESULT PASS uart_cmd_check（105 条命令, …）` 与 `RESULT PASS geom_check（ok=10 fail=0）`。任何一段判红整段停住并打印是哪一段 | **NOT_MEASURED**（本次禁跑串口）。**注意**：不设 `VP_XSDB` 时它按 `report/BUILD.md` 的设计**第一步 REFUSE 并念出变量名**，不是去找 RTL 的错——这是刻意的（`ISSUES #273` 记过链子里它因环境没传而 REFUSE 的那次）|
+| 4.6 | `VP_XSDB=<Vitis>/bin/xsdb.bat bash build/board_verify.sh --battery --geom` | `<仓库根>` / Git Bash | 4.3–4.5 完成；**COM6 一次只能被一个程序占用**（自己开着终端占着时脚本会拒绝，那不是板子坏了）| 四段依次过：开机回读 / 寄存器与健康位 / 几何最后一跳 / 串口命令电池；末行 `RESULT board_verify PASS（判红的步骤：0）`，且里面 `RESULT PASS uart_cmd_check（105 条命令, …）` 与 `RESULT PASS geom_check（ok=10 fail=0）`。任何一段判红整段停住并打印是哪一段 | **NOT_MEASURED**（本次禁跑串口）。**注意**：不设 `VP_XSDB` 时它按 `report/build.md` 的设计**第一步 REFUSE 并念出变量名**，不是去找 RTL 的错——这是刻意的（`ISSUES #273` 记过链子里它因环境没传而 REFUSE 的那次）|
 | 4.7 | `send_demo.bat`（双击或命令行）推一段自带测试视频；或 `python src/host/video_sender.py --demo --fps 25` | `<仓库根>` / **cmd**（`.bat`）| 4.2 通（它先 ping）；网线在 PL 口 | 屏上半原图、半处理后；`SRC` 走到 ETH。**没装 ffmpeg 时它发内置测试图**，两种都缩放到 512×300（根 README 的说法，本次未实跑）| `NOT_MEASURED`（属上板 + 推流动作）|
 | 4.8 | `bash board/cmd_overflow_probe.sh`（A3 那条的板级探针）| `<仓库根>` / Git Bash | 板 + 串口；**发 O2 那一档之前必须备好断电恢复**（#233 的教训：破坏性激励要挑没人用板子的时间窗）| 基线拿不到时它打印 `PROBE-REFUSE` 而不是判绿——这是它该有的行为 | `NOT_MEASURED` |
 
@@ -122,10 +122,10 @@ bash -n build/gates.sh build/board_verify.sh sim/run_one.sh sim/mut_control.sh \
 
 | # | 冲突 | 两份说法 | 权威判定（依据 = 我本次真跑/真看的）| 应改的动作（谁做）|
 |---|---|---|---|---|
-| 1 | 上位机三支 `.bat` | `report/BUILD.md` §2 让跑 `src\host\run_sender.bat`、`run_video.bat <mp4>`、`run_serial.bat COM5` | **以根 README 为权威**：本次实测 `find . -name "run_*.bat"` 只命中 `vivado_system/**/runme.bat`（Vivado 自己的），`src/host/` 下无 `.bat`；而根 README 用的 `send_demo.bat` 实测存在 | 把那三行改成指向 `send_demo.bat` + `python src/host/video_sender.py`（改 `report/BUILD.md`；**非本次授权**）|
-| 2 | 台架名 | `report/KNOWN_ISSUES.md` §1 的复现命令写 `bash sim/run_one.sh tb_video_pipeline_top` | **仓库内以 `sim/tb_v98_top_seam` 为权威**：本次实测 `sim/tb_video_pipeline_top.v` **不存在**；`tb_video_pipeline_top` 是导出时的改名（`sim/NAMES.md`、`build/make_submission.sh` 的 `NAME_MAP`）| 该命令旁加一句"仓库名 = `tb_v98_top_seam`，包内名 = 此名"（改 `report/KNOWN_ISSUES.md`；非本次授权）|
+| 1 | 上位机三支 `.bat` | `report/build.md` §2 让跑 `src\host\run_sender.bat`、`run_video.bat <mp4>`、`run_serial.bat COM5` | **以根 README 为权威**：本次实测 `find . -name "run_*.bat"` 只命中 `vivado_system/**/runme.bat`（Vivado 自己的），`src/host/` 下无 `.bat`；而根 README 用的 `send_demo.bat` 实测存在 | 把那三行改成指向 `send_demo.bat` + `python src/host/video_sender.py`（改 `report/build.md`；**非本次授权**）|
+| 2 | 台架名 | `report/known_issues.md` §1 的复现命令写 `bash build/sim/run_one.sh tb_video_pipeline_top` | **仓库内以 `sim/tb_v98_top_seam` 为权威**：本次实测 `sim/tb_video_pipeline_top.v` **不存在**；`tb_video_pipeline_top` 是导出时的改名（`build/sim/names.md`、`build/make_submission.sh` 的 `NAME_MAP`）| 该命令旁加一句"仓库名 = `tb_v98_top_seam`，包内名 = 此名"（改 `report/known_issues.md`；非本次授权）|
 | 3 | 报告落哪 | `build/README.md` 说构建产出 `build/reports/` 里那六份 `.rpt` | **以盘上实测为权威**：本次 `ls build/reports` → `No such file or directory`；六份报告平铺在 `build/`（`build/timing_summary.rpt` 等实测存在）。根 README 已写明"仓库平铺、提交包里展平进 `build/reports/`，同一批文件两种摆法" | `build/README.md` 那句补上"仓库内平铺"这一半（改 `build/README.md`；非本次授权）|
-| 4 | 下载 bit 用哪支 tcl | `report/BUILD.md` §2 用 `build\tcl\program_system.tcl`；根 README 与 `board/README.md` 用三步 `ps_jtag_boot → program_pl → ps_app_reload` | **以三步链为权威**（交付口径、且 `board/ACCEPTANCE.md` 每一版的行 1 都是按这三步记的）。两支脚本本次实测**都存在**，所以这不是缺失而是两条路并存 | `BUILD.md` 那行标注"老的一键下载路径，与三步链的关系 …"（改 `report/BUILD.md`；非本次授权）|
+| 4 | 下载 bit 用哪支 tcl | `report/build.md` §2 用 `build\tcl\program_system.tcl`；根 README 与 `board/README.md` 用三步 `ps_jtag_boot → program_pl → ps_app_reload` | **以三步链为权威**（交付口径、且 `board/acceptance.md` 每一版的行 1 都是按这三步记的）。两支脚本本次实测**都存在**，所以这不是缺失而是两条路并存 | `build.md` 那行标注"老的一键下载路径，与三步链的关系 …"（改 `report/build.md`；非本次授权）|
 | 5 | 板上现在跑哪一版的数字 | `board/README.md` 实测表写 WNS `0.720` / WHS `0.033` / `0 / 50890` / `2.207 W`，点名 `build/timing_summary.rpt`、`build/power.rpt` | **以报告原件 + 根 README 为权威**：本次实读 `build/timing_summary.rpt` = `0.739 / 0.052 / 0 / 51135`，`build/power.rpt` = `Total On-Chip Power (W) 2.391`；`metric_recheck` 本次判红 0 但它的取数名单（实读脚本 `:274-283`）不含 `board/README.md` ⇒ 那两行在射程外，不是尺子漏判 | 两个选项：把该表改成只指本版件不复述数字，或把它纳入 D6 射程（改 `board/README.md` 或 `src/host/metric_recheck.mjs`；**均非本次授权**）⇒ 已作为 A13 进 `report/60-failure-analysis.md` |
 
 **另有一处不算冲突但必须一起念**：根 README 的"关键数字"第一行自己声明
@@ -138,11 +138,11 @@ bash -n build/gates.sh build/board_verify.sh sim/run_one.sh sim/mut_control.sh \
 
 | 事项 | Windows + Git Bash（本次实测）| Linux | 复现时怎么办 |
 |---|---|---|---|
-| `python` / `python3` | `python` → 3.12.10；`python3` → **command not found（rc=127）** | `【未在 Linux 验证】` | 本文所有命令一律写 `python`；照 `report/BUILD.md`/`HOST_GUIDE.md` 抄 `python3` 前先 `which python3`。两条文档命令名差异登记在第 6 节之外的开放项（P21 收口）|
-| 路径写法 | `<Vivado>/bin` 在 Git Bash 里是 `/d/...` 这种；脚本内部一律用 `$(dirname "$0")/..` 回算仓库根，**不需要设仓库根**（`report/BUILD.md` §1 给了这条的正对照）| 同一套脚本应可跑，但**没验过** | 变量：`VP_VIVADO_BIN`、`VP_XSDB`、`PS_CC`、`PS_BSP`、`PS_OUT`、`VP_BIT`、`IMPL_POST_PLACE_HOOK`、`VP_R116_IO_WINDOW` |
-| `.bat` 启动器 | `xsdb.bat`、`vivado.bat`、`send_demo.bat` 必须是 Windows 批处理入口 | Linux 侧对应的是 `xsdb`、`vivado` 可执行文件，**`send_demo.bat` 在 Linux 上跑不了** | `【未在 Linux 验证】`：Linux 用户改用 `python src/host/video_sender.py --demo --fps 25`（`report/HOST_GUIDE.md` 的命令表），本文不给未经检验的等价命令 |
+| `python` / `python3` | `python` → 3.12.10；`python3` → **command not found（rc=127）** | `【未在 Linux 验证】` | 本文所有命令一律写 `python`；照 `report/build.md`/`host_guide.md` 抄 `python3` 前先 `which python3`。两条文档命令名差异登记在第 6 节之外的开放项（P21 收口）|
+| 路径写法 | `<Vivado>/bin` 在 Git Bash 里是 `/d/...` 这种；脚本内部一律用 `$(dirname "$0")/..` 回算仓库根，**不需要设仓库根**（`report/build.md` §1 给了这条的正对照）| 同一套脚本应可跑，但**没验过** | 变量：`VP_VIVADO_BIN`、`VP_XSDB`、`PS_CC`、`PS_BSP`、`PS_OUT`、`VP_BIT`、`IMPL_POST_PLACE_HOOK`、`VP_R116_IO_WINDOW` |
+| `.bat` 启动器 | `xsdb.bat`、`vivado.bat`、`send_demo.bat` 必须是 Windows 批处理入口 | Linux 侧对应的是 `xsdb`、`vivado` 可执行文件，**`send_demo.bat` 在 Linux 上跑不了** | `【未在 Linux 验证】`：Linux 用户改用 `python src/host/video_sender.py --demo --fps 25`（`report/host_guide.md` 的命令表），本文不给未经检验的等价命令 |
 | 控制台编码 | Windows 控制台中文按 **cp936** 落：本次 `ping`/`ipconfig` 的中文在 MSYS 里是乱码，`grep` 会把整段当二进制；本次用 `… \| iconv -f cp936 -t utf-8` 读到 | Linux 一般是 UTF-8，`iconv` 不需要 | 读工具原始回显时**先按字节判断编码**（这也是仓里 `doc_enc_check` 只扫手写件、不扫 `*.txt` 原始回显的原因）|
-| 换行 | 仓库用 `.gitattributes` 把源码与脚本钉成 `eol=lf`，**不钉 `*.txt`/`*.rpt`**（`KNOWN_ISSUES.md` §16 的 #202：按磁盘字节算指纹被 CRLF 翻车过一次）| 同上 | 指纹一律用 `build/rtl_fingerprint.sh` 的**去 CR 内容指纹**（`fpver=norm1`），不要在别处再算一遍 |
+| 换行 | 仓库用 `.gitattributes` 把源码与脚本钉成 `eol=lf`，**不钉 `*.txt`/`*.rpt`**（`known_issues.md` §16 的 #202：按磁盘字节算指纹被 CRLF 翻车过一次）| 同上 | 指纹一律用 `build/rtl_fingerprint.sh` 的**去 CR 内容指纹**（`fpver=norm1`），不要在别处再算一遍 |
 | 进程探测 | `ps -W` 看不到 Windows 进程名（`#244`）| `ps` 正常 | 判断"有没有 xsim 在跑"要看工具自己的工作目录（`/tmp/kx/<tb>.run/`），不要只看日志文件 0 字节 |
 
 ---
@@ -152,8 +152,8 @@ bash -n build/gates.sh build/board_verify.sh sim/run_one.sh sim/mut_control.sh \
 | # | 步骤 | 状态 | 第三方因此**无法**验证的东西 |
 |---|---|---|---|
 | 1 | `board/hardware_setup.md` 的接线表里 21 处 `【待你补】`（适配器型号/电流限流、USB-C/HDMI/网线规格、面板品牌型号、SD 卡容量速度等级、板是否从 USB 取电、屏与板是否共地等）| `【不可复现，原因：这些参数只能由队伍/持板人给，本仓任何文件里都没有；本文不猜引脚、不猜电压、不猜线材】` | 无法判断"我照做的接线是否等价"，尤其是"上电顺序与供电是否安全"这一类；只影响第 4 节，不影响第 1/5 节 |
-| 2 | 位流/固件的二进制身份 | 板上那一版可用 `md5sum build/system.bit` 对回 `build/r118_gates.txt`（本次已对上）；**上一版 r102 那份位流不在 git 里**（`KNOWN_ISSUES.md` §20 写明只活在文字凭据里）| 无法在不重构建的前提下复现"回到 r102"这一 A/B；要 A/B 就得取回那一版源再重建（约 20 分钟）|
-| 3 | 第二家仿真器的第二意见 | `【不可复现，原因：本机只有 xsim 可跑；ModelSim 目录在 `PATH` 上（本次实测看到目录）但许可那次判 inconsistent，本文未复测】` | 凡"两家仿真都过"的说法都不可复现；`report/KNOWN_ISSUES.md` §3 已明说这条 |
+| 2 | 位流/固件的二进制身份 | 板上那一版可用 `md5sum build/system.bit` 对回 `build/r118_gates.txt`（本次已对上）；**上一版 r102 那份位流不在 git 里**（`known_issues.md` §20 写明只活在文字凭据里）| 无法在不重构建的前提下复现"回到 r102"这一 A/B；要 A/B 就得取回那一版源再重建（约 20 分钟）|
+| 3 | 第二家仿真器的第二意见 | `【不可复现，原因：本机只有 xsim 可跑；ModelSim 目录在 `PATH` 上（本次实测看到目录）但许可那次判 inconsistent，本文未复测】` | 凡"两家仿真都过"的说法都不可复现；`report/known_issues.md` §3 已明说这条 |
 | 4 | 黄金参考图 | `【不可复现，原因：`data/golden/` 没有可一键重跑的生成脚本，只能人工比对】` | 不能说"与黄金参考逐像素一致"；整屏判据靠的是台架自己算的期望值，不是 golden |
 | 5 | 人眼判据 E1–E6 | `【不可复现（对无屏的人），原因：屏幕读数不属于机器判据】` | 尤其 `ROT:` 那一格今天**没有机读**（`status` 那 9 位在 `system_top` 无读者）⇒ E6 只能由人判，机器复现不了（`report/60-failure-analysis.md` B4）|
 | 6 | PHY 内部 RX 延迟现值 / MDIO 读 | `【不可复现，原因：app 里没有 MDIO 读命令】` | 无法验证"PHY 会不会把 FCS 错帧丢掉"（A 组 A8 / B 组 B1 的前提高于判据）|

@@ -55,14 +55,14 @@ grep -c '^| S0' README.md         # 5（§2A 表行）
 
 | 任务号（本仓库口径） | 会话指针 | 结论落点（改到哪个文件/哪一条技能） |
 | --- | --- | --- |
-| 前身工程（V6 线、克隆与首版） | S03；S04-a | `report/log/CHANGELOG_V6.md`、`report/log/VERSION_LINEAGE.md`、`report/log/V6_ROOT_CAUSE.md` |
-| 工程主线 r57…r114（以太网/SD/旋转/缩放/OSD/黑线与条带那一长串） | S01 的 `H01`–`H224`；S05 行 1–101（2026-09-21 → 10-02 的派发） | `report/log/ISSUES.md` #103–#316、`report/log/OVERNIGHT_LOG.md`、`src/rtl/**`、`src/fw/**`（改动由人或 agent 落，见 `workflow.md` §5） |
-| 时序极限支线 r115–r118 | S01 的 10-03 20:00 → 10-04 05:00 段；S05 行 102 之前的 09-30/10-01 批次；**轮次提示词原文 = C 栏文件**（S04-c 现场） | `docs/timing/*`（`ROUND_r116/117/118.md`、`debt_ledger.md`、`cut_ledger.tsv`）、`report/TIMING_GLOBAL.md`、`build/evidence/r11[5-8]*/**` |
-| 板级人眼签收（E6 那一格） | S01 的 `H225`（10-04 07:38）→ `H226`（07:51，原文只有「0度」） | `board/ACCEPTANCE.md:92`（**原话记录，本任务不得改写**）、`build/evidence/r118_eyes/**`、`build/evidence/r118_board/**` |
-| r119 输出侧窗（6 个输出脚那笔债） | S01 的 10-04 09:0x–09:4x 段（纯无人值守，人工轮次为 0） | `docs/timing/debt_ledger.md:172-212`、`report/io/hdmi_cts_source_window.md`、`src/constraints/r119_hdmi_source_window.xdc`、`build/evidence/r119_*.txt`、`report/log/ISSUES.md` #334/#335 |
+| 前身工程（V6 线、克隆与首版） | S03；S04-a | `report/log/changelog_v6.md`、`report/log/version_lineage.md`、`report/log/v6_root_cause.md` |
+| 工程主线 r57…r114（以太网/SD/旋转/缩放/OSD/黑线与条带那一长串） | S01 的 `H01`–`H224`；S05 行 1–101（2026-09-21 → 10-02 的派发） | `report/log/issues.md` #103–#316、`report/log/overnight_log.md`、`src/rtl/**`、`src/fw/**`（改动由人或 agent 落，见 `workflow.md` §5） |
+| 时序极限支线 r115–r118 | S01 的 10-03 20:00 → 10-04 05:00 段；S05 行 102 之前的 09-30/10-01 批次；**轮次提示词原文 = C 栏文件**（S04-c 现场） | `docs/timing/*`（`ROUND_r116/117/118.md`、`debt_ledger.md`、`cut_ledger.tsv`）、`report/timing_global.md`、`build/evidence/r11[5-8]*/**` |
+| 板级人眼签收（E6 那一格） | S01 的 `H225`（10-04 07:38）→ `H226`（07:51，原文只有「0度」） | `board/acceptance.md:92`（**原话记录，本任务不得改写**）、`build/evidence/r118_eyes/**`、`build/evidence/r118_board/**` |
+| r119 输出侧窗（6 个输出脚那笔债） | S01 的 10-04 09:0x–09:4x 段（纯无人值守，人工轮次为 0） | `report/timing/debt_ledger.md:172-212`、`report/io/hdmi_cts_source_window.md`、`src/constraints/r119_hdmi_source_window.xdc`、`build/evidence/r119_*.txt`、`report/log/issues.md` #334/#335 |
 | P01–P09 技能包（骨架/提示词/模板/脚本/踩坑/参考/runtime/evals/装配门禁） | S05 行 102–112（2026-10-04T00:41–00:43Z 那一批，`PROMPTFILE` 列点名 `00/02/03/04/05/06/07/11` 号提示词） | `skill/*`（含 `skill/pitfalls/**` 14 条、`skill/references/**` 3 条、`skill/runtime/**` 4 条）；**注意**：`git ls-files skill` = 32 已跟踪 / 96 未跟踪 ⇒ 成品多数还没入库（`workflow.md` §7 第 3 条） |
 | P11 学习文档 | S05 行 107（`6057efcd9eb1`，写过 11 个文件） | `docs/walkthrough/*`（`.gitignore` 已列 ⇒ **不随包**） |
-| P12–P21 仓库与交付文档 | S05 行 113–127（10-04 01:23–03:44Z，含每分钟 6 场并发峰值那一批） | `README.md`、`docs/*`、`report/*`、`scripts/check_repo_hygiene.sh`、`submit/*` |
+| P12–P21 仓库与交付文档 | S05 行 113–127（10-04 01:23–03:44Z，含每分钟 6 场并发峰值那一批） | `README.md`、`docs/*`、`report/*`、`build/checks/check_repo_hygiene.sh`、`submit/*` |
 | **P22 本档案** | S05 冻结段之外的 10 场之一（派发 `2026-10-04T03:44:38Z`，`SUB_ID 34dbd560d14…`；见 `prompts-used.md` §B2） | `report/collaboration/*`（本目录 11 个 `.md`） |
 | 队伍提示词集成文（P00–P23，31 份） | S04-d（本机文档目录，**不随包**） | 被 B 栏派发按路径引用（`prompts-used.md` §D）；本仓库侧的成品化结果在 `skill/prompts/*/SKILL.md`（4 条模板，E 栏） |
 
@@ -73,7 +73,7 @@ grep -c '^| S0' README.md         # 5（§2A 表行）
 | `node src/host/doc_enc_check.mjs` | `扫了 534 个手写文件：全部干净` | `扫了 550 个…`（12:4x）→ 收尾复跑 `扫了 551 个手写文件：全部干净` | **PASS**（硬错 0；分母 534→550→551 里含兄弟子会话同时写入，见 `workflow.md` §6） |
 | `node src/host/line_cite_check.mjs` | `D5: CLEAN`、硬错 0 条、soft 384 | `D5: CLEAN`、`扫 248 份交付文档`、soft 413 → 收尾 soft 419 | **PASS**（我没有引入硬错；soft 是给人排队的候选） |
 | 本目录 11 个 `.md` 按 `redaction.md` §1 模式表逐条扫（`find … \| xargs grep -HEo`） | — | 10 类模式全部 **0** 命中（含本机用户名、Windows 账号段、`COM<数字>`；唯一一次自造命中已改并登记在 `redaction.md` §4 第 9 行） | **PASS**（未处置命中数 = 0，口径见该文件末段的两面读法） |
-| `bash scripts/check_repo_hygiene.sh`（仓库级 C2a/C2b） | 本次跑到 `SCOPE \| 分发集 … 判 3614 项 \| 手写 774 / 生成 2830 / 未分类 10 \| PASS` 之后**在 480 s 内没吐出 C2/SUMMARY 行** | 未取到 | **NOT_MEASURED**（缺仓库级 C2 读数；不拿"读不到"当通过。我上面那行按同一模式表自扫，只覆盖本目录 11 个文件） |
+| `bash build/checks/check_repo_hygiene.sh`（仓库级 C2a/C2b） | 本次跑到 `SCOPE \| 分发集 … 判 3614 项 \| 手写 774 / 生成 2830 / 未分类 10 \| PASS` 之后**在 480 s 内没吐出 C2/SUMMARY 行** | 未取到 | **NOT_MEASURED**（缺仓库级 C2 读数；不拿"读不到"当通过。我上面那行按同一模式表自扫，只覆盖本目录 11 个文件） |
 
 **关于"我有没有提交"这件事，两次读数都要记（这是本次最意外的一条观察）**：
 
@@ -110,7 +110,7 @@ grep -rIl -e '#321' -e '#332' -e '#333' skill/ | wc -l   # 7 个文件
 | G1 | `skill/evals/records/` 在我 11:5x 检查时是**空目录**，12:3x 复跑已有 **2 份**（`audit-2026-10-04.md`、`stranger-run-2026-10-04.md`，P09 第 3/4 步的演练与审计表）。但这两份**都不带 `skill/evals/README.md` §3 那 9 个字段**（`被测条目` 命中 0），也就是**不是"双跑增益记录"**那一种 | 判据 8 要的"evals 记录引用会话编号"这一类对象**目前一份都没有**；目录不再是空的，但空的不是同一件事 | 队伍跑双跑后由 P08 落记录（`skill/evals/README.md` §1/§3 已定义格式） |
 | G2 | 反向也一样：现有 2 份记录里**没有一处**引用会话登记号或 `sessionId`（`grep -rIn "S0[1-5]\|sessionId\|jsonl"` = 0 命中） | 双向引用在两个方向上都还没建立 | 同 G1 |
 | G3 | #334 在 `skill/` 里 **0 引用**（最接近的一条 `skill/pitfalls/tcl-query-empty-means-broken-ruler/SKILL.md:104` 只点名 #279/#286/#319/#320）；#335 只有 **1 引用**且落在审计记录 `skill/evals/records/audit-2026-10-04.md:16`，**不在任何技能条目正文里** | 协作记录→技能这一侧对这两条断链（#334 完全断，#335 半断） | 需要改 `skill/` ⇒ **不在我的边界内**，已进 §5 Q6 |
-| G4 | #321/#332/#333 有引用（7 个文件），但形态多是"本仓 #333"这种**只写编号不写文件:行**（例如 `skill/pitfalls/assertion-not-in-any-file/SKILL.md:95`） | 可核但需二次跳转 | 队伍决定是否统一成 `report/log/ISSUES.md:13098` 全路径形式 |
+| G4 | #321/#332/#333 有引用（7 个文件），但形态多是"本仓 #333"这种**只写编号不写文件:行**（例如 `skill/pitfalls/assertion-not-in-any-file/SKILL.md:95`） | 可核但需二次跳转 | 队伍决定是否统一成 `report/log/issues.md:13098` 全路径形式 |
 | G5 | `sessions/` 里 S02、S04-a、S04-b 三场的**任务号未映射**（`metrics.md` §5 第 6 条：缺落点凭据） | 索引表有 3 个洞 | 队伍若知道那 17 秒与 10-01 下午做过什么，补一句话即可 |
 | G6 | 我自己在 11:5x 把 `records/` 读成 0，12:3x 变 2 ⇒ **本档案里任何"共几份"的断言都带检查时刻**（这条不是队伍的缺口，是写作纪律的实证） | 若不写时刻，读者会以为两处数字矛盾 | 已在 `workflow.md` §6 记为同一现象的第二例 |
 
@@ -159,7 +159,7 @@ grep -ro "【队伍未确认】" .       | wc -l         # 14
 **只读探测/检索**（全部在本机或仓库内，不改状态）：
 `ls`/`find`/`stat`/`wc -l`/`sha256sum`/`md5sum`/`git log`/`git show HEAD:build/system.bit`/`git ls-files`/
 `grep -n` 若干；`node src/host/doc_enc_check.mjs`、`node src/host/line_cite_check.mjs`、
-`node src/host/metric_recheck.mjs`、`bash scripts/check_repo_hygiene.sh`（超时未出 C2）；
+`node src/host/metric_recheck.mjs`、`bash build/checks/check_repo_hygiene.sh`（超时未出 C2）；
 `python` 解析会话导出 6 轮（`b20eed02`、`658cc4e8`、`179d559b`、4 份文档工作区、127 份子会话），
 每轮只输出**聚合计数/时间戳/SHA 摘要**，未把任何对话正文写入仓库。
 
@@ -169,7 +169,7 @@ grep -ro "【队伍未确认】" .       | wc -l         # 14
 （S05 的 127 行表格由脚本注入，生成命令写在 S05 §7；注入前后都跑了 `doc_enc_check`）。
 
 **没有做**：`git add`、`git commit`、`git push`（边界禁止）；修改 `skill/`、`report/` 其它文件、
-`docs/`、`board/ACCEPTANCE.md`、`src/`、`build/`、`sim/`、`data/`（边界禁止，且 §4b 那 4 处用户名命中就落在禁止区内 ⇒ 移交）。
+`docs/`、`board/acceptance.md`、`src/`、`build/`、`sim/`、`data/`（边界禁止，且 §4b 那 4 处用户名命中就落在禁止区内 ⇒ 移交）。
 
 ## 7. P22 质量判据 1–7 自检（判定放最后一个字段，逐条打印分母）
 
@@ -187,18 +187,18 @@ grep -ro "【队伍未确认】" .       | wc -l         # 14
 
 ```bash
 cd <仓库根>
-for f in report/log/ISSUES.md docs/timing/debt_ledger.md build/evidence/r119_tmds_clock_probe.txt \
+for f in report/log/issues.md report/timing/debt_ledger.md build/evidence/r119_tmds_clock_probe.txt \
          build/evidence/r119_tmds_launch_probe.txt build/evidence/r119_xdc_loads_probe2.txt \
          build/evidence/r119_xdc_loads_probe3.txt build/evidence/r119_xdc_loads_probe4_pinclk.txt \
          build/evidence/r119_window_check.txt build/evidence/r119_ser_clock_probe.txt \
          build/evidence/r118_board/g1b.txt build/evidence/r118_board/gatesc_summary.txt \
          build/evidence/r118_eyes/head_bit_md5.txt build/tcl/probe_tmds_clocks.tcl \
          build/tcl/probe_tmds_launch_clock.tcl src/constraints/r119_hdmi_source_window.xdc \
-         report/io/hdmi_cts_source_window.md board/ACCEPTANCE.md src/host/metric_recheck.mjs; do
+         report/io/hdmi_cts_source_window.md board/acceptance.md src/host/metric_recheck.mjs; do
   [ -e "$f" ] && echo "OK $f" || echo "MISS $f"; done
 # 行号是否越界（逐条）：
-sed -n '12854p;13075p;13098p;13111p;13137p' report/log/ISSUES.md | cut -c1-40
-sed -n '45p;121p;174p;199p' docs/timing/debt_ledger.md | cut -c1-40
+sed -n '12854p;13075p;13098p;13111p;13137p' report/log/issues.md | cut -c1-40
+sed -n '45p;121p;174p;199p' report/timing/debt_ledger.md | cut -c1-40
 sed -n '46p' src/host/metric_recheck.mjs | cut -c1-40
 sed -n '67p;76p' build/evidence/r119_tmds_clock_probe.txt | cut -c1-40
 sed -n '12p' build/evidence/r119_window_check.txt
@@ -217,13 +217,13 @@ cd <仓库根>
 check(){ f=$1; shift; for n in "$@"; do tot=$(wc -l < "$f"); if [ "$n" -le "$tot" ]; then
   printf 'OK %-52s :%-4s (文件 %s 行)\n' "$f" "$n" "$tot"; else
   printf 'DEAD %-52s :%-4s (文件只有 %s 行)\n' "$f" "$n" "$tot"; fi; done; }
-check report/log/ISSUES.md 12854 13075 13098 13111 13137
-check docs/timing/debt_ledger.md 45 121 174 199
+check report/log/issues.md 12854 13075 13098 13111 13137
+check report/timing/debt_ledger.md 45 121 174 199
 check build/evidence/r119_window_check.txt 11
 # …其余 28 个锚点同形，全部来源就是 corrections.md 各条的"②判别实验"块
 ```
 
-> 附带观察（与 `workflow.md` §6 同源）：`report/log/ISSUES.md` 在我写作期间从 13,165 行长到 **13,269 行**
+> 附带观察（与 `workflow.md` §6 同源）：`report/log/issues.md` 在我写作期间从 13,165 行长到 **13,269 行**
 > （别的子会话在追加 #336+），但它是**追加式**的，所以我引用的五个锚点逐条仍然命中；
 > 反过来 `r119_window_check.txt` 是**会被同批任务重写**的那一类，就漂了。
 > ⇒ 引用优先级：先追加式档案，后生成件；这条规矩写在 `corrections.md` C8 ③。

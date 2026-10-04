@@ -9,26 +9,26 @@
 == tb_sync_fifo rc=0 
 == tb_ps_publish rc=0 RESULT tb_ps_publish PASS
 
-== 汇总（07:31，r86 这棵树；每支都是 sim/run_one.sh 单跑，编译前各自盖 md5）==
+== 汇总（07:31，r86 这棵树；每支都是 build/sim/run_one.sh 单跑，编译前各自盖 md5）==
 10 支全部 rc=0、每支 run.log 里 ^FAIL 行数 = 0。
 有 RESULT 汇总行的 5 支：tb_bilin_lerp / tb_v101_fb_bilin / tb_v102_src_life / tb_tap_sched / tb_ps_publish。
 另外 5 支（tb_proc_gray 1 条 PASS、tb_rotate_window 3、tb_v794_osd_glyph 1、tb_udp_parser 3、tb_sync_fifo 3）
 只打判据行、不打 RESULT 汇总行 ⇒ "0 FAIL"对它们是**弱**证据（判据条数少，且没有"跑完了"的汇总 token）：
 这一格记下来，别当成 L1 全量通过。
-本次不是 L1 全量（`sim/run_sim.tcl` 会连 84 分钟的 tb_v98_top_seam 一起跑，夜里时间不允许）；
+本次不是 L1 全量（`build/sim/run_sim.tcl` 会连 84 分钟的 tb_v98_top_seam 一起跑，夜里时间不允许）；
 两份钉 md5 的整屏台架今晨已在 r86 上重跑（build/tb_v98_report.txt、build/tb_edge_rim_r86.txt）。
 
 == 07:36 更正上面那句"弱证据"（我把工具口径当成了台架缺陷）==
 五支"没有 RESULT 汇总行"的台架其实各自都有**由 errors==0 门住的收尾判定行**，今晚的日志里逐条在：
   PASS tb_proc_gray / PASS tb_rotate_window ALL / PASS tb_v794_osd_glyph / PASS tb_udp_parser ALL / PASS tb_sync_fifo ALL
-真正缺的是**统一 token**：`sim/run_sim.tcl`（L1 全量）会给每支台架补一行 `RESULT <tb> <判定>`，
-而 `sim/run_one.sh` 不补 ⇒ 只 grep `^RESULT` 的人（例如我自己上面那个汇总循环）会误判成"没跑完/没判定"。
+真正缺的是**统一 token**：`build/sim/run_sim.tcl`（L1 全量）会给每支台架补一行 `RESULT <tb> <判定>`，
+而 `build/sim/run_one.sh` 不补 ⇒ 只 grep `^RESULT` 的人（例如我自己上面那个汇总循环）会误判成"没跑完/没判定"。
 所以这一格的正确说法是：**10/10 都有明确判定行，rc=0，^FAIL=0**；待办是"让 run_one.sh 收尾也 echo 一行统一 RESULT"
 （工具侧改动，不在这轮做，免得动到明早还要用的跑法）。
 
 == 07:47 补：`rc=0` 不是判据，VERDICT 才是（顺手把这条做进 run_one.sh）==
 上面那句"10 支全部 rc=0"其实**不构成通过**——`run_one.sh` 的退出码不编码台架判定（它编译/仿真跑完就 0，
-红不红看日志）。07:47 给 `sim/run_one.sh` 补了一行统一收尾 `VERDICT <tb>: <判定> || FAIL 行数 || PASS 行数`，
+红不红看日志）。07:47 给 `build/sim/run_one.sh` 补了一行统一收尾 `VERDICT <tb>: <判定> || FAIL 行数 || PASS 行数`，
 并用三种台架验它的方向：`tb_sync_fifo`→`PASS tb_sync_fifo ALL`、`tb_proc_gray`→`PASS tb_proc_gray`、
 `tb_v103_pipe_bypass`→`RESULT tb_v103_pipe_bypass FAIL nfail=1 / FAIL 行数=1`（这条**应当**红：#111 的尺子）。
 10 支的判定行逐条核过：5 支是 `RESULT … PASS`（bilin_lerp、v101_fb_bilin、v102_src_life、tap_sched、ps_publish），

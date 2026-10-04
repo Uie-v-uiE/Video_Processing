@@ -1,5 +1,5 @@
 V7.6 .. V7.6c + P0-B 算术核 (R08-R11) L1 xsim regression
-runner : vivado -mode batch -source sim/run_sim.tcl   (xvlog rtl=61 tb=32)
+runner : vivado -mode batch -source build/sim/run_sim.tcl   (xvlog rtl=61 tb=32)
 
 R09 run (2026-09-22 20:5x, after snap_cross gained hb_slow) completed all 32 testbenches
 in a single process:  SIM DONE pass=32 fail=0     [sim/xsim_v76b.log]

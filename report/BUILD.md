@@ -1,14 +1,14 @@
 # 构建与上板
 
 > 版本注记：本文最早写于第三版，命令与脚本路径至今仍适用；**版本相关的数字**（哪块 bit、
-> 门禁多少）不在这里，看 `report/DEMO_SCRIPT.md` §0 与 `report/log/OVERNIGHT_LOG.md` §9.5。
+> 门禁多少）不在这里，看 `report/demo_script.md` §0 与 `report/log/overnight_log.md` §9.5。
 
 ## 1. 怎么定位工具链（本节**不写任何一台机器的绝对路径**）
 
 | 用途 | 在哪 |
 |------|------|
 | 仓库根 | 由脚本自己按所在位置往回算，不用设任何东西（验证方法见本节末尾） |
-| Vivado / Vitis | 2025.2.1（版本注记在 `report/PERF_REPORT.md` 与仓库根首页）。定位方式两种：把对应 `bin` 目录放进 `PATH`，或设下面那几个变量 |
+| Vivado / Vitis | 2025.2.1（版本注记在 `report/perf_report.md` 与仓库根首页）。定位方式两种：把对应 `bin` 目录放进 `PATH`，或设下面那几个变量 |
 | Vivado 工程 | `vivado_system/`（已 gitignore，用 `build/tcl/build_system_axigpio.tcl` 重建） |
 | 构建入口 | `build/tcl/build_system_axigpio.tcl`（**只有这一个**；同目录另几支是历史/局部构建，见 `build/tcl/README.md`） |
 | 下载脚本 | `build/tcl/program_system.tcl`；PS 起来用 `build/tcl/ps_jtag_boot.tcl`（会自动从 xsa 解出 `ps7_init.tcl`） |
@@ -23,7 +23,7 @@
 
 | 变量 | 指哪儿 | 谁读它 | 不设会怎样 |
 |---|---|---|---|
-| `VP_VIVADO_BIN` | `<Vivado>/bin`（Git Bash 里写成 `/d/...` 这种） | `sim/run_one.sh`、`sim/mut_control.sh`、`build/roll_isolated.sh` | 脚本第一步 `REFUSE: 找不到 xvlog（当前 …）` 并念出变量名——不会让人对着 RTL 怀疑 |
+| `VP_VIVADO_BIN` | `<Vivado>/bin`（Git Bash 里写成 `/d/...` 这种） | `build/sim/run_one.sh`、`build/sim/mut_control.sh`、`build/roll_isolated.sh` | 脚本第一步 `REFUSE: 找不到 xvlog（当前 …）` 并念出变量名——不会让人对着 RTL 怀疑 |
 | `VP_XSDB` | `<Vitis>/bin/xsdb.bat` | `build/board_verify.sh`（以及手工跑 `build/tcl/ps_app_reload.tcl` 时） | 同上 `REFUSE: 找不到 xsdb` |
 | `PS_CC` | `arm-none-eabi-gcc` 的前缀或完整路径 | `build/build_ps_app.py`、`build/_scan_align.mjs` | 不设就假定工具链在 `PATH` 上；两处都没有时报 `FATAL: PATH 上找不到 …`（退出码 2），不会去怀疑 RTL |
 | `PS_BSP` | 已 generate 过的 zynq BSP 目录（里面有 `include/` 与 `lib/libxil.a`） | `build/build_ps_app.py` | 默认指**仓库内**那份 `vitis/platform/…/bsp`（2026-09-26 起，#89/#90：以前默认指仓库外一个"曾经存在过"的目录，那树一删，PS 侧就悄悄变成"只能沿用旧 ELF、不敢重编"） |
@@ -35,7 +35,7 @@
 
 ```
 $ VP_VIVADO_BIN=/nonexistent_path bash build/roll_isolated.sh; echo "rc=$?"
-REFUSE: 找不到 xvlog（当前 /nonexistent_path）。设 VP_VIVADO_BIN=<Vivado>/bin 再跑（report/BUILD.md）
+REFUSE: 找不到 xvlog（当前 /nonexistent_path）。设 VP_VIVADO_BIN=<Vivado>/bin 再跑（report/build.md）
 rc=2
 ```
 
@@ -72,7 +72,7 @@ bash build/gates.sh
 bash build/gates.sh build/evidence_rNN
 
 :: 只跑一个台架（比全量回归快得多，改完 RTL 的第一道关）
-bash sim/run_one.sh tb_osd_lines
+bash build/sim/run_one.sh tb_osd_lines
 
 :: 推流
 cd src\host

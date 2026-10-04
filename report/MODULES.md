@@ -10,7 +10,7 @@
    `tap_sched`、`udp_rx`、`video_timing_720p`（13 个）。
 2. 综合收的文件清单 = `build/tcl/build_system_axigpio.tcl:12-17`（各目录整体 + 两个顶层），
    顶层 = `system_top`（同文件 `:232`）；不在清单里的可达性无从谈起。
-3. 原理、常数、时钟域、门禁对应关系都在 `report/ARCHITECTURE.md`，这里不重复。
+3. 原理、常数、时钟域、门禁对应关系都在 `report/architecture.md`，这里不重复。
 
 ## top/
 

@@ -20,7 +20,7 @@
   一旦状态机改了名，判据会**永不命中而静默变绿**——挂死至少比假绿诚实。
   `timescale` 必须是 `1ns/1ps`（这两支文件头已有；`#30_000_000` 在 1ns 单位下 = 30 ms 仿真时间，与 ping0 同一量级）。
 - 判"加对了"的方式：把某一档激励故意改成永不收尾（例如去掉一次 `@(posedge done)` 的等待），
-  跑 `bash sim/run_one.sh <tb>` 必须打出 **rc=3** 且 `VERDICT` 里带 `nfail=timeout`
+  跑 `bash build/sim/run_one.sh <tb>` 必须打出 **rc=3** 且 `VERDICT` 里带 `nfail=timeout`
   （`run_one.sh --verdict` 认 `^FAIL <tb> (errors=|timeout)` 这一族形状，见该文件 :30-38 的注释）。
 
 ## 2) `tb_udp_reasm.v:119-125` 的 duplicate-overwrite —— 现在是空转，改成能红的两条
@@ -71,6 +71,6 @@
 
 ## 5) 共同的收尾纪律
 每一条都各打一行 `PASS/FAIL`（rule 121），**并且**在改完之后跑：
-`bash sim/run_one.sh tb_udp_reasm`、`bash sim/run_one.sh tb_icmp_len_wrap`、`bash sim/run_one.sh tb_head_rot_displace`
+`bash build/sim/run_one.sh tb_udp_reasm`、`bash build/sim/run_one.sh tb_icmp_len_wrap`、`bash build/sim/run_one.sh tb_head_rot_displace`
 + `bash build/timing_lane.sh`（约 9 分钟）与 r109 基线对照：**只允许变好，不许有第 21 支变红**；
 再走一次变异对照（把改动的判据退回，必须只红该红的那条），才算落定。

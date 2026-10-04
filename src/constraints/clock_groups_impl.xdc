@@ -14,7 +14,7 @@
 ##                  用 -include_generated_clocks 才能把 MMCM 的
 ##                  clkout0_1(像素 50M)/clkout1_1(TMDS 250M)/clkout2(IDELAY 参考 200M)
 ##                  一起抓进本组 —— 少了这个后缀，clk_pix 会被当成独立时钟去和
-##                  eth_rxc 做 setup 分析，历史上是 WNS≈-6.7 的假违例（ISSUES.md #18）。
+##                  eth_rxc 做 setup 分析，历史上是 WNS≈-6.7 的假违例（issues.md #18）。
 ##
 ## 跨域数据由结构保证，不靠时序分析：
 ##   eth_rxc → clk_fpga_0 视频流  = dc_fifo（格雷码 + 2FF，BRAM）

@@ -1,5 +1,5 @@
 V7.7 R12（旋转只留右半窗）L1 xsim 回归
-runner : vivado -mode batch -source sim/run_sim.tcl
+runner : vivado -mode batch -source build/sim/run_sim.tcl
 result : SIM DONE pass=33 fail=0  —— 与 V7.6c 的 33/33 同一集合，无新增失败
 
 #-----------------------------------------------------------
@@ -10,7 +10,7 @@ result : SIM DONE pass=33 fail=0  —— 与 V7.6c 的 33/33 同一集合，无�
 # Start of session at: Tue Sep 22 23:05:56 2026
 # Process ID         : 11648
 # Current directory  : D:/Xilinx/Prj/pro/Video_Processing
-# Command line       : vivado.exe -mode batch -nojournal -log sim/xsim_r18.log -source sim/run_sim.tcl
+# Command line       : vivado.exe -mode batch -nojournal -log sim/xsim_r18.log -source build/sim/run_sim.tcl
 # Log file           : D:/Xilinx/Prj/pro/Video_Processing/sim/xsim_r18.log
 # Journal file       : 
 # Running On         : Uie-laptop
@@ -25,7 +25,7 @@ result : SIM DONE pass=33 fail=0  —— 与 V7.6c 的 33/33 同一集合，无�
 # Total Virtual      : 27611 MB
 # Available Virtual  : 13790 MB
 #-----------------------------------------------------------
-source sim/run_sim.tcl
+source build/sim/run_sim.tcl
 # set ws [file normalize [file join [file dirname [info script]] ..]]
 # set rtl_dir [file join $ws src rtl]
 # set simdir  [file join $ws sim]
@@ -107,11 +107,11 @@ SIM_ARGS:
 # }
 ==== tb_bilin_lerp ====
   PASS 判据1 fx=fy=0 逐位等于 p00
-  PASS 判据6 �?白在任意权重下保�? ffff
-  PASS 判据2 四��同色�?�全部采校� (fx,fy) 恒等（白/�?/�?�?/�?�?/�?�?/一�?色）
-  PASS 判据3 沿插值方向输出单调不�?
-  PASS 判据4 左右镜像圡� ±1 LSB 内�?�称
-  PASS 判据5 400 组随机抽头与黄金模型逐通道�? <=1 �?输出码（最�? 0�?
+  PASS 判据6 �?白在任意权重下保�? ffff
+  PASS 判据2 四��同色�?�全部采校� (fx,fy) 恒等（白/�?/�?�?/�?�?/�?�?/一�?色）
+  PASS 判据3 沿插值方向输出单调不�?
+  PASS 判据4 左右镜像圡� ±1 LSB 内�?�称
+  PASS 判据5 400 组随机抽头与黄金模型逐通道�? <=1 �?输出码（最�? 0�?
   RESULT tb_bilin_lerp PASS
 RESULT tb_bilin_lerp PASS
 ==== tb_crc32 ====
@@ -135,15 +135,15 @@ RESULT tb_fb_roundtrip PASS
   PASS snap_cross captured 100/100 intact snapshots
   PASS hb_slow clear while the heartbeat is at nominal rate
   PASS hb_slow asserts when the source clock is degraded (拔线工况)
-  PASS hb_gone correctly stays clear (它看不��这件事，�?�是�? hb_slow 的理甡�)
+  PASS hb_gone correctly stays clear (它看不��这件事，�?�是�? hb_slow 的理甡�)
   PASS hb_gone asserts when the source clock stops
-  PASS the last snapshot survives the source clock dying (显示�?仍能看到数字)
+  PASS the last snapshot survives the source clock dying (显示�?仍能看到数字)
   PASS production timebase: 87 ms_ticks in 10903570 cycles (125000/ms)
   RESULT tb_link_monitor PASS
 RESULT tb_link_monitor PASS
 ==== tb_osd_lines ====
   PASS number formatting: DROP hex (5 nibble) / STALL dec, both saturating
-  PASS glyph scan: D R O P S T A L (+ 老�?? F/E 没移�?)
+  PASS glyph scan: D R O P S T A L (+ 老�?? F/E 没移�?)
   RESULT tb_osd_lines PASS
 RESULT tb_osd_lines PASS
 ==== tb_proc_gray ====

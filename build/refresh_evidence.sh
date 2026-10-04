@@ -84,8 +84,8 @@ echo "对账：三件成品仍等于 $D 所记（$(md5sum build/system.bit | cut
 if [ "$CHECK" = 1 ]; then rm -f /tmp/art.$$.txt; exit 0; fi
 
 if [ "$SKIPB" = 0 ]; then
-    echo "  → bash sim/run_one.sh tb_v98_top_seam（顶层台架一轮约 80 分钟，console 在 /tmp/kx/refresh_tb98_console.txt）"
-    bash sim/run_one.sh tb_v98_top_seam > /tmp/kx/refresh_tb98_console.txt 2>&1 || {
+    echo "  → bash build/sim/run_one.sh tb_v98_top_seam（顶层台架一轮约 80 分钟，console 在 /tmp/kx/refresh_tb98_console.txt）"
+    bash build/sim/run_one.sh tb_v98_top_seam > /tmp/kx/refresh_tb98_console.txt 2>&1 || {
         echo "台架跑挂了：看 /tmp/kx/refresh_tb98_console.txt"; rm -f /tmp/art.$$.txt; exit 1; }
 fi
 echo "  → bash build/tb98_report.sh"

@@ -2,7 +2,7 @@
 #
 #   vivado -mode batch -nojournal -source build/tcl/clock_uncertainty.tcl
 #
-# 为什么单开这一个：`report/KNOWN_ISSUES.md` 里那条"念 WHS 必须带口径"说的是
+# 为什么单开这一个：`report/known_issues.md` 里那条"念 WHS 必须带口径"说的是
 # `src/constraints/rk_zynq7020.xdc:50` 那句 `set_clock_uncertainty -hold 0.800 [get_clocks eth_rxc]`。
 # 但**写了不等于生效**——同一个 XDC 文件 51-56 行那笔旧账就是教训：把 `get_clocks` 取不到的
 # `clk_fpga_0` 并进 `set_clock_groups` 之后**整条命令静默不生效**，连 eth_rxc/sys_clk 一起废掉，

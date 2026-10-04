@@ -21,7 +21,7 @@
 - **重试 = 同一次人工输入（同 `promptId`）内，同一工具、同一输入文本（`json.dumps(sort_keys=True)` 规范化、截 400 字符）
   的第 2 次及以后出现**。一次重试**不另算一轮**（口径已在上一条写明：重试是调用级计数，不是轮次级）。
 - **失败 = `tool_result` 块里 `is_error=true` 的返回数**。这是"这一刀没砍动"的下限口径：
-  工具正常返回但内容判红的（例如门禁红项）**不计入**，那种红在 `report/log/ISSUES.md` 里逐条成文。
+  工具正常返回但内容判红的（例如门禁红项）**不计入**，那种红在 `report/log/issues.md` 里逐条成文。
 - **工具调用 = `tool_use` 块数**。`LOG-MAIN` 里 `isSidechain=true` 的记录数为 **0**（实测），
   所以主会话的调用数**不含**子 agent 的调用，两个 scope 必须分开报。
 - **墙钟**：日志时间戳是 UTC，本档案一律折成北京时间（+8h，本机无夏令时）。
@@ -174,7 +174,7 @@ COMPACT_BOUNDARY_before_cutoff 75 ALL 75
 | --- | --- | --- | --- |
 | 1 | token 用量 / 费用 | `NOT_MEASURED` | 导出里 `message.usage` 的 `input_tokens`/`output_tokens`/`cache_read_input_tokens` 逐条求和 = **0 / 0**（实跑）⇒ 这份导出没落 usage 字段，任何"花了多少 token"的说法都无从算起 |
 | 2 | 阈值敏感性（gap 取 15/60 分钟时活跃时长怎么变） | `NOT_MEASURED` | 缺"同口径（`assistant`/`user`/`system` + `CUT`）下的第二组读数"；我早先跑过的 13,621.8 / 14,080.3 / 14,607.0 min 是**另一个口径**（含 `active-leaf` 心跳、且未加 `CUT`），两者不可并列比较，故不写进 §2 |
-| 3 | 逐轮"这一轮改了哪些文件"的归属表 | `NOT_MEASURED`（可算，未做） | 记录里有 `promptId` + `Edit`/`Write` 的 `file_path`，把两者关联一次即可得出；本任务未排期这条脚本 ⇒ 不做，`README.md` §2 的"结论落点"因此用的是 `report/log/ISSUES.md` 与 `docs/run-queue.md` 已成文的对应关系，而不是会话侧自算 |
+| 3 | 逐轮"这一轮改了哪些文件"的归属表 | `NOT_MEASURED`（可算，未做） | 记录里有 `promptId` + `Edit`/`Write` 的 `file_path`，把两者关联一次即可得出；本任务未排期这条脚本 ⇒ 不做，`README.md` §2 的"结论落点"因此用的是 `report/log/issues.md` 与 `report/run-queue.md` 已成文的对应关系，而不是会话侧自算 |
 | 4 | 子会话并发峰值（同一秒最多几场） | `NOT_MEASURED`（口径未定） | 缺"并发"的定义：按 `Agent` 调用同秒、还是按 `toolUseId` 批次号；定义未定就出数会是假数 |
 | 5 | 760 次失败 / 397 次重试的**动机分类**（语法错 / 路径错 / 判据红 / 权限） | `NOT_MEASURED` | 缺人工标注；`is_error` 的正文确实带报错文本，但自动分类要立分类表并逐条核，本任务不立表 |
 | 6 | S02、S04-a、S04-b 的任务号 | 未映射 | S02 工具调用为 0 ⇒ 盘上无落点；另两场的正文我没有逐条读（隐私最小必要），缺"与仓库文件的对应凭据" |

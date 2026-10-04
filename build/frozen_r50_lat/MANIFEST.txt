@@ -40,7 +40,7 @@ cdc.rpt Critical 3 行（基线 4 行，**配对集合不新增**）/
 - `uart_r50_boot.txt` —— `[CFG] axi_gpio_2 @41220000 ok` **和** `[CFG] gamma window @41220008 ok`，
   并且 SD 自动播 600 帧稳定 30 fps（`[SD] frame 600: ... 29.650 fps`）。
 - `uart_battery_r50.txt` —— 串口电池 **37 条全 ok**，收尾回初态 `en=00 thr=80 src=1 zoom=1 bilin=1 gm=0.00`。
-  ⚠ 这块的教训写进 `report/ISSUES.md`：`src/host/uart_cmd_check.mjs` **自己会驱动一次采集**，
+  ⚠ 这块的教训写进 `report/issues.md`：`src/host/uart_cmd_check.mjs` **自己会驱动一次采集**，
   我先手工跑了一遍 `uart_cmd_script.ps1 -Out ...r50_capture.txt` 是多余的，
   而且它打印的文件名是它自己的默认值 —— 看到"37/37 PASS"时**必须核对被解析的那个文件的 mtime**，
   别拿上一版的采集当这一版的凭据（这次 mtime 22:49 是对的，所以结论成立）。

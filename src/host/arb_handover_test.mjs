@@ -260,7 +260,7 @@ function readKeep() {
   const m = txt.match(/VAL\s*[0-9a-fA-F]{1,8}:\s*([0-9a-fA-F]{1,8})/);
   if (!m) {
     console.log('[ARB] 读不到 GPIO_0 的原值，拒绝继续（否则会踩掉 src_sel/特效/阈值）');
-    console.log('[ARB] 先确认：板子有电、bit 已下载、hw_server 在跑（HOST_GUIDE.md）');
+    console.log('[ARB] 先确认：板子有电、bit 已下载、hw_server 在跑（host_guide.md）');
     console.log('[ARB] xsdb 前几行：\n' + txt.split('\n').slice(0, 6).join('\n'));
     process.exit(1);
   }

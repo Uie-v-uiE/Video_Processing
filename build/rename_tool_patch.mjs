@@ -24,10 +24,10 @@ const L = [
     (l) => l.replace('rows.push(`${at} D4b 还在指已经删掉的旧目录：${l.trim().slice(0, 70)}`);',
                      '{ const r = `${at} D4b 还在指已经删掉的旧目录：${l.trim().slice(0, 70)}`; if (hard) rows.push(r); else adv.push(r); }'),
     'D4b 改成"交付文档判红、日记与注释只报数"（与 D4a/D4c 同口径）'],
-  ['src/host/doc_currency_check.mjs', "'report/PERF_REPORT.md', 'report/BUILD.md'", 'docs',
+  ['src/host/doc_currency_check.mjs', "'report/perf_report.md', 'report/build.md'", 'docs',
     (l) => l.split("'report/").join("'report/"),
     'D1 盯的清单第一行（含 BUILD/CONTEST 那三项）'],
-  ['src/host/doc_currency_check.mjs', "'report/DEMO_SCRIPT.md'", 'docs', (l) => l.split("'report/").join("'report/"),
+  ['src/host/doc_currency_check.mjs', "'report/demo_script.md'", 'docs', (l) => l.split("'report/").join("'report/"),
     'D1 盯的清单第二行'],
   ['src/host/doc_enc_check.mjs', 'const SCOPE =', "'docs'", 'docs',
     '手写件扫描目录：docs → report'],
@@ -36,7 +36,7 @@ const L = [
   ['src/host/line_cite_check.mjs', 'const SKIP_DOCS =', 'docs', (l) => l.split('report/').join('report/'),
     'D5 排除：report/log 与 report/study → report 同名'],
   ['src/host/demo_cmds.mjs', 'path.join(ROOT, \'docs\'', 'docs', (l) => l.replace("'docs'", "'report'"),
-    '讲稿抽取器读的是 report/DEMO_SCRIPT.md'],
+    '讲稿抽取器读的是 report/demo_script.md'],
 ];
 const plans = new Map();
 let bad = 0;

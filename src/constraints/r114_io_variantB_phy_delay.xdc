@@ -1,4 +1,4 @@
-## r114_io_variantB_phy_delay.xdc —— 变体 B：RGMII RX 内部延迟打开时的到达窗（沿后 1.5–2.5 ns） —— "其他地方的时序"里能一次性补上的两类约束（ISSUES #259/#266/#262 的约束侧）
+## r114_io_variantb_phy_delay.xdc —— 变体 B：RGMII RX 内部延迟打开时的到达窗（沿后 1.5–2.5 ns） —— "其他地方的时序"里能一次性补上的两类约束（ISSUES #259/#266/#262 的约束侧）
 ##
 ## 为什么单独一个文件、并且只在 implementation 阶段生效：
 ##   这里要点名 clk_fpga_0 / clkout0_1，它们是 PS7 IP 与 MMCM 在**实现阶段**才存在的钟
@@ -28,7 +28,7 @@
 ## 一、RGMII 收口（125 MHz DDR，4 位数据 + 控制）：给 eth_rxc 一个真的到达窗
 ## ============================================================
 ## 出处：RGMII 规范里 RXD/RX_CTL 与 RXC **对齐**，允许的对齐误差是 ±500 ps（"data alignment is
-##   restricted to within ±500 ps"，见 report/TIMING_GLOBAL.md 参考那一条链接的 RGMII 汇总页；
+##   restricted to within ±500 ps"，见 report/timing_global.md 参考那一条链接的 RGMII 汇总页；
 ##   TI 的 RGMII timing budget 文档 SNLA243 是同一口径的原文，本机 PDF 解析不出来，所以这里引的是
 ##   数值本身而不是"我读过 PDF"）。板级共走的偏差由规范给的接收端容忍量 1.0–2.6 ns 覆盖，
 ##   而这一段在 FPGA 内部是靠 IDELAY 把采样点挪进眼心（r92 实测 IDELAY_VALUE=26  taps），
@@ -49,7 +49,7 @@ set_input_delay -clock eth_rxc -min  1.500 [get_ports {eth_rxd[*] eth_rx_ctl}]
 ## 二、异步组间四条跨域路：从"完全不管"改成"给一条带理由的上界"（#266）
 ## ============================================================
 ## 现状（r113 量的）：`set_clock_groups -asynchronous` 把三组钟两两排除 ⇒ 这四条跨域路在任何尺子里**都不出现**
-##   （report/TIMING_GLOBAL.md §4c），也就是说"格雷码/翻转同步器最多跨几个周期"这件事今天没有任何约束兜着，
+##   （report/timing_global.md §4c），也就是说"格雷码/翻转同步器最多跨几个周期"这件事今天没有任何约束兜着，
 ##   全靠布线碰运气。UG949 的口径是：同步器这类路不该完全 false path，应该给 **set_max_delay -datapath_only**
 ##   （把数据路径本身限制在目的钟一个周期内，不参与时钟偏斜/不确定度的加倍计算），必要时再配 set_bus_skew。
 ## 界值 = **目的钟周期**（这是 UG949 给同步器的一周期界；不是收益声明，也不指望它改 WNS——

@@ -183,13 +183,13 @@ ADDRMAP SEG_axi_gpio_1_Reg = 0x41210000
 ADDRMAP SEG_axi_gpio_2_Reg = 0x41220000
 # set bad_addr 0
 # foreach {cell want} { axi_gpio_0 0x41200000  axi_gpio_1 0x41210000  axi_gpio_2 0x41220000 } {
-#   # 段�?�象要从**地址空间�?**取（`get_bd_addr_segs axi_gpio_0/S_AXI/Reg` 取到的是接口定义�?
-#   # 它的 OFFSET �?空的 —�? 上一次这里判红就�?这个原因，不�?地址没钉上）
+#   # 段�?�象要从**地址空间�?**取（`get_bd_addr_segs axi_gpio_0/S_AXI/Reg` 取到的是接口定义�?
+#   # 它的 OFFSET �?空的 —�? 上一次这里判红就�?这个原因，不�?地址没钉上）
 #   set s [get_bd_addr_segs -quiet -of_objects $aspace -filter "NAME =~ *SEG_${cell}_Reg*"]
 #   if {$s eq ""} { puts "ADDR_LOG $cell want=$want got=NOT_FOUND"; incr bad_addr; continue }
 #   set got [get_property OFFSET $s]
-#   # 比较必须圡�**数�?**上做：把 OFFSET 塞进 expr 或直接当字�?�串比都会�??刡� —�?
-#   # 这个属性经数字一走就显示成十进制�?0x41200000 �? 1092616192），字�?�串比�?�必然红�?
+#   # 比较必须圡�**数�?**上做：把 OFFSET 塞进 expr 或直接当字�?�串比都会�??刡� —�?
+#   # 这个属性经数字一走就显示成十进制�?0x41200000 �? 1092616192），字�?�串比�?�必然红�?
 #   set gv 0
 #   set wv 0
 #   scan [string tolower $got] "%x" gv
@@ -2397,7 +2397,7 @@ The top 5 pins with tight setup and hold constraints:
 | eth_rxc            | eth_rxc           | u_eth/u_icmp/u_icmp_tx/check_buffer_reg[19]/D |
 +--------------------+-------------------+-----------------------------------------------+
 
-File with complete list of pins: tight_setup_hold_pins.txt
+File with complete list of pins: build/report/
 
 
 Phase 5 Rip-up And Reroute
@@ -2712,11 +2712,11 @@ XSA: D:/Xilinx/Prj/pro/Video_Processing/build/isolated_r95_postroute_physopt/sys
 #   if {[catch {open $lg r} fh]} { continue }
 #   while {[gets $fh line] >= 0} {
 #     if {[string match "*Synth 8-689*" $line]} { incr wcount; lappend wseen [string trim $line] }
-#     # 多驱务� net（同一�? reg �?两个 always 块赋值）：Synth 8-6859 / 8-6858�?
-#     # 为什么必须单�?数：综合的��理�?**保留常量那一侧、忽略逻辑那一価�**�?
-#     # 于是 bit 里那根线恒为 0，�?**仿真按进程后写�?�盖，�?�为看起来完全�?�确**
-#     # —�? 这是"台架全绿、硬件不工作"最省事的一条路�?2026-09-24 就踩圡� border_r 上，
-#     #    �? report/log/ISSUES.md #61：旗标链的��位�?我同时写进了两个 always 块）�?
+#     # 多驱务� net（同一�? reg �?两个 always 块赋值）：Synth 8-6859 / 8-6858�?
+#     # 为什么必须单�?数：综合的��理�?**保留常量那一侧、忽略逻辑那一価�**�?
+#     # 于是 bit 里那根线恒为 0，�?**仿真按进程后写�?�盖，�?�为看起来完全�?�确**
+#     # —�? 这是"台架全绿、硬件不工作"最省事的一条路�?2026-09-24 就踩圡� border_r 上，
+#     #    �? report/log/issues.md #61：旗标链的��位�?我同时写进了两个 always 块）�?
 #     if {[string match "*multi-driven net*" $line]} { incr mcount; lappend mseen [string trim $line] }
 #   }
 #   close $fh

@@ -1,5 +1,5 @@
 # tb_shown_rate 的变异对照凭据（r97 夜，2026-10-01 00:37）
-# 跑法：VP_VIVADO_BIN=<Vivado>/bin bash sim/mut_control.sh tb_shown_rate S1 shown_rate_fields
+# 跑法：VP_VIVADO_BIN=<Vivado>/bin bash build/sim/mut_control.sh tb_shown_rate S1 shown_rate_fields
 # mutation：new_shown 整条换成 frame_start（= 老写法数显示场的语义），diff 恰好 2 行
 
 == 红名单（5 条，同一根因，按规矩整列而不是削尺子）

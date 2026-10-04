@@ -18,7 +18,7 @@
 | :59 | 95 tile（67.86 %）/ 14360（26.99 %）/ 8162 处写作 8168（7.68 %）/ 19（8.64 %）；"r108 那一刀的代价：比 r107 多 37 个 LUT、12 个寄存器" | **95.5 tile（68.21 %）/ 14362（27.00 %）/ 8162（7.67 %）/ 19（8.64 %）**；代价句改 **r109 这一刀的代价：比 r108 多 2 个 LUT、少 6 个寄存器**（OSD 读侧寄存一拍换掉的） | `utilization.rpt`：Slice LUTs 14362/27.00、Slice Registers 8162/7.67、Block RAM Tile 95.5/140/68.21 |
 | :60 | 动态 2.212 W（片上合计 2.389 W）、结温估算 52.6 °C | 动态 **2.214 W**（片上合计 **2.391 W**）、结温估算 **52.6 °C（不变）** | `power.rpt`：Dynamic 2.214 / Total On-Chip 2.391 / Junction 52.6 |
 
-## 二、README.en.md（同六行的英文对照）
+## 二、readme.en.md（同六行的英文对照）
 :70 同 :56（含 `the 22-item gate check reads 21 green` ⇒ **24-item / 23 green**）；:71 同 :57；:72 同 :58（落点半句同样要重写）；
 :73 同 :59（`+37 LUT and +12 registers versus r107` ⇒ **`+2 LUT and -6 registers versus r108`**）；:74 同 :60。
 
@@ -35,8 +35,8 @@
 | 29 片上结温（板读 XADC） | 板上那一版换成 **r109 + 新 bit md5 + 刷入时刻**，读数**必须刷完重取**，不许沿用 61.3–61.4 | — |
 
 ## 四、数字之外必须同笔做的三件事（规矩 229/46/47）
-1. **门禁项数**四处：`README.md:56`、`README.en.md:70`、`report/BACKGROUND_AND_NOVELTY.md:31`、`:80` 全部 22→**24**、21→**23**。
-2. **MODULES.md 的 8 条行号引用**重锚：r109 两处 RTL 改动造成行位移（`osd_overlay.v` 与 `pl_video_top.v`），
+1. **门禁项数**四处：`README.md:56`、`readme.en.md:70`、`report/background_and_novelty.md:31`、`:80` 全部 22→**24**、21→**23**。
+2. **modules.md 的 8 条行号引用**重锚：r109 两处 RTL 改动造成行位移（`osd_overlay.v` 与 `pl_video_top.v`），
    按 `line_cite` 自己报的红单逐条改，改到它绿为止；不猜偏移量（#236 记过一次我猜错方向）。
 3. **位流落回交付位置**（#240）：`build/system.bit`/`build/system.xsa` 里现在是未采纳的 r109（`21227687e925`）⇒
    采纳那笔要把它们连同 r109 的 gates 件一起提交，之后才允许跑 `build/make_submission.sh`。

@@ -43,7 +43,7 @@ HAND_EXT = {'.md', '.mjs', '.sh', '.tcl', '.v', '.c', '.h', '.bat', '.ps1', '.xd
 HAND_SKIP_DIRS = {'.git', 'vivado_system', 'vitis', 'xsim.dir', 'sim_work',
                   'node_modules', '.Xil', 'study', 'learn', 'golden', 'build'}
 HAND_SKIP_PREFIX = ['build/frozen_', 'build/evidence_', 'build/failed_', 'report/study/']
-HOME = ['README.md', 'README.en.md']
+HOME = ['README.md', 'readme.en.md']
 SELF = 'src/host/doc_currency_check.mjs'
 MAPPER = 'build/make_submission.sh'
 
@@ -63,7 +63,7 @@ RE_ASSIGN = re.compile(r'^\s*[A-Za-z_]\w*=\s*["\']?'
                        r'((?:build|data|sim|board|skill|docs)/[\w./-]*?[\w-]+\.(?:' + ART_EXT + r'))["\']?\s*$', re.A)
 RE_FIXTURE = re.compile(r'(^|/)(no_such|nosuch|_?nope)', re.A)
 RE_FIXTURE_NAME = re.compile(r'/((?:no_such|nosuch)[\w.-]*|[\w.-]*_nope[\w.]*)', re.A)
-# 日记的草稿件：build/rNN_issueNNN_entry.md —— 正文随后逐字并入 report/log/ISSUES.md（已核对 169/172 两份），
+# 日记的草稿件：build/rNN_issueNNN_entry.md —— 正文随后逐字并入 report/log/issues.md（已核对 169/172 两份），
 # 所以它属"追加式日记"那一族，不属"脚本注释"那一族。
 DIARY_DRAFT = re.compile(r'build/r\d+_issue\d+_entry\.md', re.A)
 
@@ -156,7 +156,7 @@ def classify(src, ln, line, tok, on_disk):
     if src.startswith('report/log/'):
         return 1, '来源是追加式日记 docs/log/ —— 拿今天的盘判昨天的日记，红的是历史记录本身，规矩不许', note
     if DIARY_DRAFT.match(src):
-        return 1, ('来源是日记的**草稿件**（build/rNN_issueNNN_entry.md）：正文已逐字并入 report/log/ISSUES.md'
+        return 1, ('来源是日记的**草稿件**（build/rNN_issueNNN_entry.md）：正文已逐字并入 report/log/issues.md'
                    ' —— 同族规矩：日记里"当时存在、随后删掉"不判红'), note
     w = write_side(line, tok)
     if w:

@@ -288,7 +288,7 @@ function seg(capture, line, i) {
   return { seg: capture.slice(nl + 1, b < 0 ? capture.length : b), at: (b < 0 ? capture.length : b) };
 }
 
-/* #177：演示默认档（唯一出处 report/DEFAULTS.md 第一节）。`pub` 每帧翻不参与；`frames/playing/sd` 是状态量。
+/* #177：演示默认档（唯一出处 report/defaults.md 第一节）。`pub` 每帧翻不参与；`frames/playing/sd` 是状态量。
  * ⚠ 这一段与下面的 `--self` 必须放在**碰串口之前**：判据自己的对照实验不该驱动板子，
  *   而过去它排在捕获之后 ⇒ `node src/host/uart_cmd_check.mjs --self` 会把 100 条电池重发一遍，
  *   既占了 COM6，又把我为眼睛判据钉在板上的那一态冲掉（2026-09-30 早上撞的）。
@@ -412,7 +412,7 @@ else if (stats[0] !== stats[stats.length - 1]) {
     fail++;
   } else if (badF.length) {
     const shown = badF.map(([k, v]) => { const m = fieldOf(last, k); return `${k}=${m ? m[2] : ';缺失'}≠${v}`; });
-    console.log(`FAIL 电池跑完板子不在演示默认档（report/DEFAULTS.md 第一节）：` + shown.join('  '));
+    console.log(`FAIL 电池跑完板子不在演示默认档（report/defaults.md 第一节）：` + shown.join('  '));
     fail++;
   } else console.log(`ok   末态 = 演示默认档（${DEFAULT_TUPLE.map(([k, v]) => k + '=' + v).join(' ')}）—— 与起点无关（#177）`);
 }

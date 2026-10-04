@@ -7,7 +7,7 @@
     ** Copyright 1986-2022 Xilinx, Inc. All Rights Reserved.
     ** Copyright 2022-2026 Advanced Micro Devices, Inc. All Rights Reserved.
 
-source sim/run_sim.tcl
+source build/sim/run_sim.tcl
 # set ws [file normalize [file join [file dirname [info script]] ..]]
 # set rtl_dir [file join $ws src rtl]
 # set simdir  [file join $ws sim]
@@ -83,25 +83,25 @@ SIM_ARGS:
 #         }
 #     }
 #     foreach h [lrange $hits end-9 end] { puts "  $h" }
-#     # NO_ASSERT 过去�?计入 pass：一�?"什么都没断言"的测试台不�?�算过�?
-#     # 现在 NO_ASSERT �? FAIL 同等对待（跑不到最后断言的台架以前会悄悄绿）�?
+#     # NO_ASSERT 过去�?计入 pass：一�?"什么都没断言"的测试台不�?�算过�?
+#     # 现在 NO_ASSERT �? FAIL 同等对待（跑不到最后断言的台架以前会悄悄绿）�?
 #     set verdict FAIL
 #     if {[llength $hits] > 0} {
 #         set verdict PASS
 #         foreach h $hits { if {[string match *FAIL* $h]} { set verdict FAIL; break } }
 #     } else {
-#         puts "  (没有 PASS/FAIL �?言�? —�? 判为失败)"
+#         puts "  (没有 PASS/FAIL �?言�? —�? 判为失败)"
 #     }
 #     puts "RESULT $tb $verdict"
 #     if {$verdict eq "FAIL" || $verdict eq "ELAB_FAIL"} { incr nfail } else { incr npass }
 # }
 ==== tb_bilin_lerp ====
   PASS 判据1 fx=fy=0 逐位等于 p00
-  PASS 判据6 �?白在任意权重下保�? ffff
-  PASS 判据2 四��同色�?�全部采校� (fx,fy) 恒等（白/�?/�?�?/�?�?/�?�?/一�?色）
-  PASS 判据3 沿插值方向输出单调不�?
-  PASS 判据4 左右镜像圡� ±1 LSB 内�?�称
-  PASS 判据5 400 组随机抽头与黄金模型逐通道�? <=1 �?输出码（最�? 0�?
+  PASS 判据6 �?白在任意权重下保�? ffff
+  PASS 判据2 四��同色�?�全部采校� (fx,fy) 恒等（白/�?/�?�?/�?�?/�?�?/一�?色）
+  PASS 判据3 沿插值方向输出单调不�?
+  PASS 判据4 左右镜像圡� ±1 LSB 内�?�称
+  PASS 判据5 400 组随机抽头与黄金模型逐通道�? <=1 �?输出码（最�? 0�?
   RESULT tb_bilin_lerp PASS
 RESULT tb_bilin_lerp PASS
 ==== tb_crc32 ====
@@ -137,15 +137,15 @@ RESULT tb_ku5p_tx_arb PASS
   PASS snap_cross captured 100/100 intact snapshots
   PASS hb_slow clear while the heartbeat is at nominal rate
   PASS hb_slow asserts when the source clock is degraded (拔线工况)
-  PASS hb_gone correctly stays clear (它看不��这件事，�?�是�? hb_slow 的理甡�)
+  PASS hb_gone correctly stays clear (它看不��这件事，�?�是�? hb_slow 的理甡�)
   PASS hb_gone asserts when the source clock stops
-  PASS the last snapshot survives the source clock dying (显示�?仍能看到数字)
+  PASS the last snapshot survives the source clock dying (显示�?仍能看到数字)
   PASS production timebase: 87 ms_ticks in 10903570 cycles (125000/ms)
   RESULT tb_link_monitor PASS
 RESULT tb_link_monitor PASS
 ==== tb_osd_lines ====
   PASS number formatting: DROP hex (5 nibble) / STALL dec, both saturating
-  PASS glyph scan: D R O P S T A L (+ 老�?? F/E 没移�?)
+  PASS glyph scan: D R O P S T A L (+ 老�?? F/E 没移�?)
   RESULT tb_osd_lines PASS
 RESULT tb_osd_lines PASS
 ==== tb_proc_gray ====

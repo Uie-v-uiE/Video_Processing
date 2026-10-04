@@ -21,11 +21,11 @@ def rw(p, pairs):
         print(f"OK   {p}：{a[:28]}…")
     io.open(fp, 'w', encoding='utf-8', newline='').write(t)
 
-K = 'report/KNOWN_ISSUES.md'
+K = 'report/known_issues.md'
 old = ('- **念 WHS 必须带口径**：本仓对 `eth_rxc` 故意加了 `set_clock_uncertainty -hold 0.800`（r79 起，只加严不放松），'
        '所以报告里 `+0.0x ns` 说的是"**按 0.8 ns 要求之后还剩这么多**"，不是"真实余量只有 0.0x"；'
        '跨版比 WHS 之前先确认这把尺子没动过（出处 `src/constraints/rk_zynq7020.xdc`）。'
-       '#57 把两条时钟树并成一条之后（见 `docs/OPTIMIZATION_LOG.md` 的 r92），这句话更要用：偏斜已经不再是那个数的来源。')
+       '#57 把两条时钟树并成一条之后（见 `docs/optimization_log.md` 的 r92），这句话更要用：偏斜已经不再是那个数的来源。')
 new = ('- **念 WHS 要先问是哪一个数**：本仓对 `eth_rxc` 故意加了 `set_clock_uncertainty -hold 0.800`（r79 起，只加严不放松，'
        '`src/constraints/rk_zynq7020.xdc`），所以 **`eth_rxc` 那一格的 `+0.049 ns` 是"按 0.8 ns 要求之后还剩这么多"**，'
        '不是"真实余量只有 0.0x"——本轮实测那条路径（`u_eth/u_rx_mac/m_sof_reg → u_eth/u_rx_par/in_pay_reg`）的报告里'
@@ -44,7 +44,7 @@ new2 = ('⚠ 念这两个数要用两把尺子：**全设计最差那条 min 路
         '同沿 min 检查的裸余量；')
 rw(B, [(old2, new2)])
 
-L = 'report/OPTIMIZATION_LOG.md'
+L = 'report/optimization_log.md'
 old3 = ('**台架与门禁（05:0x–06:0x，`build/r92_gates.txt`，仓库里的件、不随包）**')
 new3 = ('**顺带量出来的一件新事实（06:1x，`build/tcl/clock_uncertainty.tcl` → `build/clock_uncertainty.rpt`）**：'
         '#57 之后**全设计最差 min 路径换了域** —— 不再是 `eth_rxc`，而是 100 MHz 的 '

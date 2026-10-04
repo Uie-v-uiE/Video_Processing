@@ -1,11 +1,11 @@
 #!/usr/bin/env bash
-# build/repin_modules.sh —— 把 `report/MODULES.md` 的 D5b「例化者」列**该指到哪一行**算出来（只打印，不改文件）。
+# build/repin_modules.sh —— 把 `report/modules.md` 的 D5b「例化者」列**该指到哪一行**算出来（只打印，不改文件）。
 #
 # 为什么需要它（2026-10-03，r109）：这一轮往 `pl_video_top.v` 里挪了一段翻转拍点（净增 ~26 行），
 # 该行之后所有行号整体位移 ⇒ 门禁第 20 项（`line_cite` 的 D5b）当场报了 8 条"指错"，
 # 而这 8 条**不是坏引用**，是"引用是对的、行号跟着代码搬家了"。
 # 规矩：改过 RTL 之后要不要重锚，取决于**这一版采不采纳**（记忆里的"re-pin only if adopted"）——
-# 所以这里只算不改：采纳那一笔把打印出来的映射贴进 `report/MODULES.md`，不采纳就整体回退、一处都不用改。
+# 所以这里只算不改：采纳那一笔把打印出来的映射贴进 `report/modules.md`，不采纳就整体回退、一处都不用改。
 #
 # 口径：D5b 判的是"被引的那一行必须是那个模块的**例化行**"，所以正确行号 = 该实例名在
 # `pl_video_top.v` 里 `u_xxx ( ... )` 的**起始行**（不是端口连接行）。找法用两条：
@@ -18,15 +18,15 @@
 #   以它的红单为准逐条收敛**；本脚本只用来给候选，不许整表贴上去。
 set -u
 cd "$(dirname "$0")/.."
-T=${1:-report/MODULES.md}
+T=${1:-report/modules.md}
 SRC=src/rtl/top/pl_video_top.v
 echo "# 映射：$T 里指向 $SRC 的例化引用 —— 现在应该指到哪一行（来源：$T 的行号 + 尺子点名的模块）"
 echo "# 用法：采纳那一笔按这张表改 $T 的行号，然后 node src/host/line_cite.mjs 与门禁第 20 项都要复跑"
 echo
 grep -nE "pl_video_top\.v:[0-9]+" "$T" | while IFS= read -r row; do
     ln=${row%%:*}
-    # 这一行里的"模块名"取第一列（MODULES.md 的表形状：| 模块 | 例化者 file:line | ...）
-    mod=$(printf '%s\n' "$row" | awk -F'|' '{gsub(/[` ]/,"",$2); print $2; exit}')   # 剥掉反引号与空格：MODULES.md 里模块名写成 `xxx`
+    # 这一行里的"模块名"取第一列（modules.md 的表形状：| 模块 | 例化者 file:line | ...）
+    mod=$(printf '%s\n' "$row" | awk -F'|' '{gsub(/[` ]/,"",$2); print $2; exit}')   # 剥掉反引号与空格：modules.md 里模块名写成 `xxx`
     ref=$(printf '%s\n' "$row" | grep -oE "pl_video_top\.v:[0-9]+" | head -1 | cut -d: -f2)
     [ -n "$mod" ] || continue
     # ① 按模块名找：模块名后面允许有 #( … )，再跟实例名和 `(`

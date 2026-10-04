@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-# build/r92_acceptance_rows.py —— 把 board/ACCEPTANCE.md 的机器判据 1~7 行按**这一跑的日志**重抄一遍。
+# build/r92_acceptance_rows.py —— 把 board/acceptance.md 的机器判据 1~7 行按**这一跑的日志**重抄一遍。
 # 为什么不让手抄：这一轮换了位流与证据文件，行里每个数都该从当轮日志现取；
 # 取不到就打印 SKIP，绝不把上一轮（r90）的数留在"这一版验过"的表里。
 # 跑法：python build/r92_acceptance_rows.py
@@ -44,7 +44,7 @@ rows = {
  6: f"| 6 | 链路内时延同源一致 | 屏上 `Latency={lat.group(1)}ms` 与回读 `tot/100000={lat.group(2)}` 一致（ok） | `build/evidence/r92_health.txt` |",
  7: f"| 7 | 温度格三方对账 | `{temp[0]}` | `build/evidence/verify_0930_0424.txt` |",
 }
-f = os.path.join(ROOT, 'board', 'ACCEPTANCE.md')
+f = os.path.join(ROOT, 'board', 'acceptance.md')
 s = io.open(f, encoding='utf-8', newline='').read()
 for n in sorted(rows):
     s, c = re.subn(r'^\| %d \|.*$' % n, lambda m, txt=rows[n]: txt, s, count=1, flags=re.M)

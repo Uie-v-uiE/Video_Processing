@@ -3,7 +3,7 @@
 
 为什么走这条路（00:18）：`system_top.v:113-117` 已经写明**本工程不碰 MDIO**（`eth_mdio = 1'bz`、`eth_mdc = 0`）
 ⇒ PL 侧那只 RTL8211F 的工作模式**完全由板上 strap 决定**，寄存器也读不到；
-而 `docs/timing/rgmii_window_model.md` §7.3 那个窗模型的唯一未知量就是
+而 `report/timing/rgmii_window_model.md` §7.3 那个窗模型的唯一未知量就是
 `TXDLY/RXDLY`（第 23/24 脚，与 RXD1/RXD0 复用）复位时被什么拉着。
 文本抽取只能看到引脚名与一堆位号，看不到"谁接谁"——**这类图必须用眼睛读**。
 

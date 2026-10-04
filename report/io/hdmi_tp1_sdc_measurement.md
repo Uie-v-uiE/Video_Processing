@@ -5,7 +5,7 @@
 被动的检查点：`vivado_system/zynq_video_sys.runs/impl_1/system_top_opt.dcp`（mtime 04:30）与
 `system_top_routed.dcp`（mtime 04:36）。板上与仓库当前的位流摘要实测 `build/system.bit` = `cd04907e1369…`（= r118），
 这两个 DCP 与它出自**同一个 impl_1 运行目录、时间戳连续**——这是"目录与时间戳的对应"，
-不是工具出具的指纹绑定，所以这句话记为**推断**，严格绑定要等 `docs/run-queue.md` 里 P15a 的来源卡补齐。
+不是工具出具的指纹绑定，所以这句话记为**推断**，严格绑定要等 `report/run-queue.md` 里 P15a 的来源卡补齐。
 
 规范侧的数字与逐条出处在 `report/io/hdmi_cts_source_window.md`（三版 HDMI 规范本体 + Keysight/Tektronix 复述）。
 本文只回答一件事：**这些数能不能变成约束，以及变成什么。**
@@ -102,14 +102,14 @@
 `src/constraints/r119_hdmi_source_window.xdc`（窗形，已测会造 −3.48 ns 违例）与
 `src/constraints/r119b_hdmi_tp1_pinclk.xdc`（脚上钟形，−4.90 ns）**都默认不加载**，
 保留的意义是"这一族规范量不能这样进 SDC"的反例凭据；第四节的离散量才是与规范同量纲、且能对成品直接问的形式。
-两件的处置（保留 / 删除）需要队伍裁决，已进 `docs/questions-for-team.md` 的合并范围（D2）。
+两件的处置（保留 / 删除）需要队伍裁决，已进 `report/questions-for-team.md` 的合并范围（D2）。
 
 ## 六、还欠什么（写在这里，免得下一轮把它当已完成）
 
 | 编号 | 欠的东西 | 为什么不能省 | 状态 |
 | --- | --- | --- | --- |
 | D1 | 在**已布线**成品上量钟脚↔数据脚、P/N 脚的到达时刻离散，并对回 0.20 `Tcharacter` / 0.15 `Tbit` | 这是与规范同量纲、且工具能直接答的问法 | **已量**：最差互对 0.065 ns（上限 4.000）、对内 0.001 ns（上限 0.300），件 `build/evidence/r119_window_check.txt` 判 10 项红 0；但只覆盖 FPGA 内部到封装脚，板级走线未量 |
-| D2 | 两个 `set_output_delay` 候选件的处置：留在 `src/constraints/` 当"这一族量不能这样表达"的反例凭据，还是删 | 留着必须写清"默认不加载且已知会造违例"，否则下一个人会当真挂上去 | 待队伍裁决（已进 `docs/questions-for-team.md` 合并范围） |
+| D2 | 两个 `set_output_delay` 候选件的处置：留在 `src/constraints/` 当"这一族量不能这样表达"的反例凭据，还是删 | 留着必须写清"默认不加载且已知会造违例"，否则下一个人会当真挂上去 | 待队伍裁决（已进 `report/questions-for-team.md` 合并范围） |
 | D3 | 上升/下降时间 75 ps…0.4 `Tbit`、占空比 40/50/60 %、钟抖动 ≤0.25 `Tbit`（相对 4 MHz −3 dB 理想恢复钟）、眼掩码 0.25–0.75 UI × ±200 mV / 绝对 ±780 mV / 最小开度 400 mV | 这几条**不在 SDC 语义里**，只能仿真 + 示波器判 | `【未实测】`，需要仪器与队伍批准 |
 | D4 | `led[0]`/`led[1]` 的"对外无窗"登记 | 它们是 `LVCMOS33` 直驱 LED，不在 HDMI 连接器引脚表里；写"不查"属于一次放宽，必须先进放宽账本（当前 0 条） | 待裁决 |
 

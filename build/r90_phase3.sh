@@ -52,7 +52,7 @@ cp "$ISO/crit_paths_raw.rpt" build/crit_paths_raw.rpt 2>/dev/null
 say "已采纳：bit md5=$(md5sum build/system.bit | cut -c1-12)  BRAM=$BRAM  WNS=$WNS"
 
 # ---- 3) 补两条长台架里 phase2 没跑的那一条（门禁第 16 项要它与当前树同一次跑）
-bash sim/run_one.sh tb_edge_rim > build/r90_rim_console.txt 2>&1
+bash build/sim/run_one.sh tb_edge_rim > build/r90_rim_console.txt 2>&1
 grep -aq "RESULT tb_edge_rim PASS" build/r90_rim_console.txt \
   || say "注意：边缘条带台架没打出 PASS，门禁第 16 项会红，先看 build/r90_rim_console.txt"
 ROUND=r90 bash build/rim_report.sh >> "$LOG" 2>&1 || say "rim_report 没出件"

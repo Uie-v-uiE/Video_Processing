@@ -18,7 +18,7 @@ b1 = ""
 for l in read("build/evidence/r118_strict_b1.txt").splitlines():
     if l.startswith("B1 pairs_compared"):
         b1 = l
-board = read("build/evidence/r118_board/BOARD_NOW.txt").splitlines()[0]
+board = read("build/evidence/r118_board/board_now.txt").splitlines()[0]
 n_sub = subprocess.run(["find", "../submission", "-type", "f"], capture_output=True, text=True).stdout.count("\n")
 
 msg = "\n".join([
@@ -41,8 +41,8 @@ msg = "\n".join([
 ])
 io.open("/tmp/kx/msg_r118.txt", "w", encoding="utf-8").write(msg)
 
-paths = ["README.md", "README.en.md", "data/metrics.csv", "report/TIMING_GLOBAL.md", "report/log/ISSUES.md",
-         "report/KNOWN_ISSUES.md", "report/ACCEPTANCE.md", "board/ACCEPTANCE.md",
+paths = ["README.md", "readme.en.md", "data/metrics.csv", "report/timing_global.md", "report/log/issues.md",
+         "report/known_issues.md", "report/acceptance.md", "board/acceptance.md",
          "docs/timing", "build/r118_chain.sh", "build/r118_finish.sh", "build/r118_commit.py",
          "build/r118_rotate.py", "build/r118_console.txt", "build/r118_finish_console.txt",
          "build/r118_verdict.txt", "build/r118_gates.txt", "build/r118_gates_final.txt",

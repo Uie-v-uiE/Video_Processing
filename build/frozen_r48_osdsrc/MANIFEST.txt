@@ -30,7 +30,7 @@ methodology 0 CRIT / 布线错误网线 0 / cdc Critical 3 行 = 基线配对不
 为什么这版值得单独冻结：用户 2026-09-24 晚的反馈"srccard 和 ps 写反了、eth 是 auto 这样"
 不是字模问题也不是同步问题，而是**语义**问题（把意愿当事实画）。修完之后标签与屏幕在结构上不可能不一致。
 
-⚠ **本件带着一个已知缺陷**（2026-09-24 21:4x 记，见 `report/ISSUES.md` #57）：
+⚠ **本件带着一个已知缺陷**（2026-09-24 21:4x 记，见 `report/issues.md` #57）：
 这一版构建时 `system_top` 里 `wire [5:0] dbg_src` 接在 8 bit 端口上，**lane30 的模式高位被吞**，
 ⇒ 用今天的门禁（已新增第 8 项"端口宽度警告 `Synth 8-689` == 0"）跑本件的日志会**判红**：
 `bash build/gates.sh` 在 `build/log_r48_system.txt` 上数到 1 条并打印 `system_top.v:242`。

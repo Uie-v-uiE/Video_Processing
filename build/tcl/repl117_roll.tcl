@@ -6,7 +6,7 @@
 #   Destination u_pl/u_bilin/u_fb/hi_reg_8/WEA[0]        (1 logic level, route 6.871 ns = 93.4 %)
 #   Destination u_pl/u_bilin/u_fb/lo_reg_0_33/ADDRARDADDR[3]
 # i.e. a single arbiter flag broadcasting across the die into the bilinear frame buffer's
-# LUTRAM control pins. docs/timing/limit_audit_r116.md judged this domain "NOT at its physical
+# LUTRAM control pins. report/timing/limit_audit_r116.md judged this domain "NOT at its physical
 # limit" precisely because 1 logic level cannot be a device limit -- the wire is.
 #
 # So the lever is replication of that one net, NOT a pblock around u_fb (a box cannot shorten a

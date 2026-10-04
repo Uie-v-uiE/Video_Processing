@@ -2,4 +2,4 @@
 [r95 2026-09-30 14:14:02] 开滚 r95b_netdelay_high -> build/isolated_r95b_netdelay_high（IMPL_STRATEGY=Performance_NetDelay_high,r95b_wlfanout=IMPL_STRATEGY=Performance_WLBlockPlacementFanoutOpt）
 [r95 2026-09-30 14:24:59] r95b_netdelay_high：**读不到 timing_summary 的设计行** —— 不判采纳，先看 build/isolated_r95b_netdelay_high/build_console.txt 有没有 SYSTEM BUILD DONE
 [r95 2026-09-30 14:24:59] 两滚结束：phys_opt=DECLINE，ExploreWithHierarchy=DECLINE（NOT_MEASURED=报告没读出来，不是否决）
-[r95 2026-09-30 14:24:59] DONE —— 谁被采纳由人读 build/r95_timing_summary.txt 那两行来定；不采纳也要把这一节落进 report/OPTIMIZATION_LOG.md
+[r95 2026-09-30 14:24:59] DONE —— 谁被采纳由人读 build/r95_timing_summary.txt 那两行来定；不采纳也要把这一节落进 report/optimization_log.md

@@ -4,7 +4,7 @@
 # Why this probe exists before any further cut:
 #   The r116 roster says clk_fpga_0's worst setup path is
 #     dest u_pl/u_bilin/u_fb/hi_reg_8/WEA[0], data 7.355 ns with route 6.871 ns (93.4 %),
-#     1 LUT level (docs/timing/limit_audit_r116.md judged this domain "NOT at its physical limit"
+#     1 LUT level (report/timing/limit_audit_r116.md judged this domain "NOT at its physical limit"
 #     for exactly that reason: a 1-level path that spends 6.9 ns on the wire is placement, not device).
 #   The audit then scheduled "a pblock around u_fb" as r117's first cut WITHOUT measuring the
 #   distance -- and a box cannot shorten a source that lives outside it, which is why the earlier

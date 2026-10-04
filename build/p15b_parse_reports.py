@@ -10,7 +10,7 @@
                → `build/roster/roster_r118_probe.tsv`（口径 = 既有探针名册的 ROSTER| 字段）
   2. `--check` 跑 6 条质量判据，一条一行，判定放**最后一个字段**，并打印分母
   3. `--self`  给每条判据注入一个反例，验证「只染红被注入的那一条」，连带红逐条列出
-  4. `--fieldmap` 打印字段位置表（原件 + 行 + 列 + 取到的值），供 docs/build-notes.md 引用
+  4. `--fieldmap` 打印字段位置表（原件 + 行 + 列 + 取到的值），供 report/build-notes.md 引用
 
 三态：`PASS` / `FAIL` / `NOT_MEASURED`。解析不到的值一律写 `NOT_MEASURED`，
 **绝不写 0、绝不写空串**——`0` 在这个仓库里是「量到过 0 个违例」，`NOT_MEASURED` 才是「没读到」。
@@ -722,7 +722,7 @@ def emit(parsed_dir, roster_dir, prov_rel=PROVENANCE_MD, reports=None, probe_rel
             "# NA = 该域在 Intra Clock Table 里只有名字没有 intra 路径（原件那几行的形状见 "
             "parsed/parsed_timing_summary.rpt.json 的 intra_clock_table.rows[].line），**不是**解析失败；"
             "解析失败在本口径里写 NOT_MEASURED",
-            "# 口径冲突（两把尺子并存，见 docs/build-notes.md）：本表 rel_margin_* 是**比值**（0.185000 = wns/period），"
+            "# 口径冲突（两把尺子并存，见 report/build-notes.md）：本表 rel_margin_* 是**比值**（0.185000 = wns/period），"
             "探针名册 margin_pct 是**百分数**（18.50）；判据 G1/G2 用本表 ⇒ 裁决以本表为准",
             "# 名册缺口 gaps=%s（约束里声明的时钟名 vs 进表域数；算法见 build/p15b_parse_reports.py::clock_gap_count）" % gaps,
         ]

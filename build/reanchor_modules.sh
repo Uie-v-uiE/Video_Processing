@@ -1,8 +1,8 @@
 #!/bin/bash
-# build/reanchor_modules.sh —— 把 report/MODULES.md 的「例化者 文件:行」引用**按 D5b 自己的红单**重锚到正确行
+# build/reanchor_modules.sh —— 把 report/modules.md 的「例化者 文件:行」引用**按 D5b 自己的红单**重锚到正确行
 #
 # 为什么不是手改：一次 RTL 改动（r109 在 pl_video_top.v 里挪了换角拍点那段）会让它之后的所有行整体位移，
-# 于是 MODULES.md 里那一列全部指错。手改要么数偏移（会数错——#236 就记过我数错），要么逐条读（20 条要读 20 次）。
+# 于是 modules.md 里那一列全部指错。手改要么数偏移（会数错——#236 就记过我数错），要么逐条读（20 条要读 20 次）。
 # 这里的做法是**只信尺子**：读 line_cite_check 自己打出来的红行（哪份文档的第几行、指的是哪个文件的第几行、
 # 那一行第 1 列实际是什么模块），再去目标文件里找"模块名出现在第 1 列且是例化"的那一行，逐条替换，
 # 然后重跑尺子直到 0 硬错。规则：最多三轮，对不上就停下重读，不许放宽尺子（规矩 30/44）。
@@ -11,7 +11,7 @@
 cd "$(dirname "$0")/.." || exit 2
 MODE=${1:---apply}
 [ "$MODE" = "--check" ] && APPLYTAG=--check || APPLYTAG=--apply
-DOC=report/MODULES.md
+DOC=report/modules.md
 RTLDIR=src/rtl
 
 # 尺子的范围就是这个脚本的范围：只处理 D5b 那种「例化者列指错」，别的红（soft 候选）一概不动
@@ -33,7 +33,7 @@ for(let round=1;round<=3;round++){
   if(reds.length===0){ console.log("CLEAN 没有 D5b 红可改"); process.exit(0); }
   if(reds[0].doc!==doc){ console.log("SCOPE 红不在 "+doc+"（是 "+reds[0].doc+"）—— 本脚本只管 MODULES 那一列，停手"); process.exit(2); }
   const cache={};
-  // 尺子打的是**文件名**（MODULES.md 那一列也写文件名），所以要按 basename 在 src/rtl 下解析出真实路径；
+  // 尺子打的是**文件名**（modules.md 那一列也写文件名），所以要按 basename 在 src/rtl 下解析出真实路径；
   // 同名文件出现两次就拒绝（不猜路径 —— 这是本仓那条"先怀疑尺子的维度"的反面：这次是脚本自己的维度错了）。
   const {execSync:ex}=require("child_process");
   const resolve=(base)=>{

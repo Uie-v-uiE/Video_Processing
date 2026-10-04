@@ -2,7 +2,7 @@
 # build/r116_chain.sh —— r116 整轮链：两刀
 #   刀 1  src/constraints/r116_rgmii_input_window.xdc 进构建（只加严：5 个 RGMII 输入第一次被检查）
 #   刀 2  src/rtl/top/system_top.v 的 IDELAY_VALUE 26 -> 31（真窗下 0..31 扫出来的 min(hold,setup) 最大点）
-# 出处与判据全部在 docs/timing/rgmii_window_model.md §7.5 与 build/evidence/r115_window/。
+# 出处与判据全部在 report/timing/rgmii_window_model.md §7.5 与 build/evidence/r115_window/。
 #
 # 本轮的"改前红"不是猜的：同一把尺子（同一份窗、同一只已布线 DCP）扫出来的曲线在
 # probe3_console.txt 里 —— tap26 hold −1.185 / setup −0.386；tap31 hold −0.870 / setup −0.846。

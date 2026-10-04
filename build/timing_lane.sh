@@ -62,7 +62,7 @@ green=0; red=0; refuse=0; cfail=0
 t0=$(date +%s)
 for tb in "${LANE[@]}"; do
   s=$(date +%s)
-  out=$(bash sim/run_one.sh "$tb" 2>&1)
+  out=$(bash build/sim/run_one.sh "$tb" 2>&1)
   rc=$?
   w=$(( $(date +%s) - s ))
   nv=$(printf '%s\n' "$out" | grep -a "^VERDICT" | head -1)
@@ -85,5 +85,5 @@ echo "LANE-SUMMARY ran=$ran/$N green=$green red=$red refuse=$refuse no-verdict/o
 if [ "$ran" -ne "$N" ]; then echo "LANE-FATAL ran=$ran != 清单=$N —— 有一支没跑到，读数不完整"; exit 1; fi
 if [ "$refuse" -ne 0 ] || [ "$cfail" -ne 0 ]; then echo "LANE-FATAL REFUSE=$refuse 无判定=$cfail（前置或台架形状坏了）"; exit 2; fi
 if [ "$red" -ne 0 ]; then echo "LANE 结论：$red 支判红 —— 红是结论，去 log 里点名是哪条判据"; exit 3; fi
-echo "LANE 结论：全绿。**这不代替门禁**——采纳前必须跑 sim/run_one.sh tb_v98_top_seam + build/tb98_report.sh"
+echo "LANE 结论：全绿。**这不代替门禁**——采纳前必须跑 build/sim/run_one.sh tb_v98_top_seam + build/tb98_report.sh"
 exit 0

@@ -8,7 +8,7 @@
 # 为什么要"先 rst -system 再 program_pl"、为什么必须带流读数：都写在 build/r116_bit_cycle.sh 头部
 # （#315 刷板把控制台弄哑、#316 零样本通过不算测过）。这一支只是把它按 r117 再跑一遍。
 #
-# 判负怎么办：本脚本**不替人做采纳决定**。它把"板上现在是哪一颗 bit"写进 BOARD_NOW.txt，
+# 判负怎么办：本脚本**不替人做采纳决定**。它把"板上现在是哪一颗 bit"写进 board_now.txt，
 # 早上（或下一轮）若判负，一条命令回刷 r116：
 #   VP_BIT=build/evidence/r116_bit/system.bit bash build/r116_bit_cycle.sh r116back
 set -u
@@ -59,6 +59,6 @@ say "board_verify rc=$BV PASS=$(grep -ac 'PASS' "$D/board_verify_console.txt") �
     printf '仓库交付位 = 见 build/evidence/r116_bit/md5.txt（r116）与 build/evidence/r117_bit/md5.txt（r117）\n'
     printf '若 r117 判负，回刷 r116 一条命令：VP_BIT=build/evidence/r116_bit/system.bit bash build/r116_bit_cycle.sh r116back\n'
     printf 'bit_cycle rc=%s board_verify rc=%s\n' "$RC" "$BV"
-} > "$D/BOARD_NOW.txt"
-say "写在 $D/BOARD_NOW.txt"
-say "结束：早上要看的三件 = build/r117_verdict.txt / build/r117_gates.txt / $D/BOARD_NOW.txt"
+} > "$D/board_now.txt"
+say "写在 $D/board_now.txt"
+say "结束：早上要看的三件 = build/r117_verdict.txt / build/r117_gates.txt / $D/board_now.txt"

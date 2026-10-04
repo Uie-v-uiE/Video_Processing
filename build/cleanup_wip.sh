@@ -19,7 +19,7 @@
 # ⚠ 两条使用前提，缺一条就可能把正在跑的东西踢掉：
 #   ① **跑着 xsim / Vivado 时不要加 --yes** —— `.Xil/` 与 `xsim.dir/` 是它们正在用的锁目录，
 #      清单认得它们是"运行壳"，但此刻删等于从车轮下抢扳手；
-#   ② `sim_work/` 是老 `run_sim.tcl` 全量流程的工作目录（现在单台架走 `sim/run_one.sh`，
+#   ② `sim_work/` 是老 `run_sim.tcl` 全量流程的工作目录（现在单台架走 `build/sim/run_one.sh`，
 #      跑在 /tmp 下）—— 如果哪天要回退到那条路，它自己会重建，不需要留着。
 set -u
 ROOT=${CLEANUP_ROOT:-$(cd "$(dirname "$0")/.." && pwd)}
@@ -51,7 +51,7 @@ cited() {                       # $1 = 路径（整串）与 basename 都查一�
 # 两档口径，不是一条：**构建快照**（frozen_* / evidence_* / failed_* / snap_*）里装的是凭据本身，
 # 所以"有没有被文档点名"才决定删不删；**仿真运行壳**（工具就地生成的工程壳、快照、日志）
 # 按定义可再生，里面不可能有凭据 ⇒ 无条件可删。
-# 为什么不给后者也查引用：`.Xil` 这类名字在 `report/log/CHANGELOG_V7.md` 里出现过的是
+# 为什么不给后者也查引用：`.Xil` 这类名字在 `report/log/changelog_v7.md` 里出现过的是
 # "Windows 上连跑三次 synth_design 会撞 .Xil 目录锁"这条**技术注记**，不是凭据引用 ——
 # 拿它当"被引用"就等于永远清不掉，而这正是本脚本要治的那件事。
 junk() {

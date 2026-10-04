@@ -5,7 +5,7 @@
 变成可以关掉的 `marker`。OSD 一个像素都没动（它的坐标仍是 `x_d11`）。
 
 这一版**只动了标签这一半**：几何统一（4b 的第 1~3 步）在 r59b，`split_ctrl` 上顶层在 r59 步 5-6。
-动机与三次尺子错的复盘在 `report/ISSUES.md` 的 **#68**，判红却不上升为链子红那一族在 **#69**。
+动机与三次尺子错的复盘在 `report/issues.md` 的 **#68**，判红却不上升为链子红那一族在 **#69**。
 
 ## 三件套（务必与下面每一条凭据同一次构建）
 
@@ -28,7 +28,7 @@
 | Dynamic | 2.184 W | — | 与前次同量级 |
 | methodology CRITICAL | 0 | 0 | == 0 |
 | 布线错误网线 | 0 | 0 | == 0 |
-| `cdc.rpt` Critical 行 | 3（基线 4，配对集合不新增、Unsafe 不增长） | 4 | 见 `build/CDC_BASELINE.txt` |
+| `cdc.rpt` Critical 行 | 3（基线 4，配对集合不新增、Unsafe 不增长） | 4 | 见 `build/cdc_baseline.txt` |
 | 端口宽度警告 8-689 | 0（`ports_check.txt`） | 0 | == 0 |
 | 多驱动 net 8-685x | 0 | 0 | == 0 |
 | 顶层接线 | `CHECK PORTS: instances=81 modules=76 width_compared=548 violations=0` | — | violations=0 |
@@ -75,7 +75,7 @@
 ## 复现
 
 ```
-bash sim/run_one.sh tb_v97_seam_scan          # 或 vivado -mode batch -source sim/run_sim.tcl 跑全量
+bash build/sim/run_one.sh tb_v97_seam_scan          # 或 vivado -mode batch -source build/sim/run_sim.tcl 跑全量
 bash build/gates.sh                            # 14 项门禁（读的就是本目录那几份 .rpt 的同一次构建）
 bash build/board_verify.sh --stream --battery  # 机器那一半的板级复验（末尾一行 RESULT board_verify …）
 ```

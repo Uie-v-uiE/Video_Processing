@@ -99,7 +99,7 @@ B=${2:-}
 # "1.135ns  (required time - arrival time)" 这种散文、里面有 clkfbout 这一路钟）去减
 # 由 `roster_from_summary.sh` 生成的干净名册 ⇒ D3 一口气数出 big_loss=8、D6 念 fanout_rows=0，
 # 看着像"别的域被挤坏了"，其实两侧根本不是一个口径。件（已改名，别再当裁决读）
-# build/evidence/r114_roster_diff_shape_mismatch_DO_NOT_READ_AS_VERDICT.txt。
+# build/evidence/r114_roster_diff_shape_mismatch_do_not_read_as_verdict.txt。
 # 闸门只管**口径**（时钟名单 + 扇出节的有无），**不管 slack 字段长什么样**：探针那份本来就带散文
 # （`slack=1.850ns  (required time - arrival time)`）与 `NOWRITE` 行，awk 取前导数就够用。
 # 第一版我把"必须纯数"也写进闸门，结果把**合法的同口径配对**一起判成 REFUSE——

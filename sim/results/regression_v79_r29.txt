@@ -7,7 +7,7 @@
     ** Copyright 1986-2022 Xilinx, Inc. All Rights Reserved.
     ** Copyright 2022-2026 Advanced Micro Devices, Inc. All Rights Reserved.
 
-source sim/run_sim.tcl
+source build/sim/run_sim.tcl
 # set ws [file normalize [file join [file dirname [info script]] ..]]
 # set rtl_dir [file join $ws src rtl]
 # set simdir  [file join $ws sim]

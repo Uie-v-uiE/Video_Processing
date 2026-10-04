@@ -1,6 +1,6 @@
 // src/host/doc_enc_check.mjs —— 手写的文件必须是 UTF-8，而且不许有"打坏的字"
 //
-// 为什么要它：`report/COMMANDS.md` 第 5 节有一整段（bilin 那几行）在某个时刻被 cp936 控制台
+// 为什么要它：`report/commands.md` 第 5 节有一整段（bilin 那几行）在某个时刻被 cp936 控制台
 // 写坏了 —— 2026-09-26 才发现（`grep` 把整个文件当二进制、编辑器里是一串看不出意思的块）。
 // 这类事故的讨厌之处是**它不改变任何行为**：位流照编、台架照跑、门禁照绿，
 // 坏的是"演示时念给自己听的那份清单"，而那份清单要给评审看。
@@ -29,7 +29,7 @@ const EXT = new Set(['.md', '.v', '.c', '.h', '.mjs', '.sh', '.ps1', '.tcl']);
 const SCOPE = ['report/', 'board', 'src', 'sim', 'tools', 'build/tcl', 'skill'];   // 交付文档在 report//（含 report//log/）；report/ 与 study/ 已不存在；skill/ 是给评委读的手写正文，2026-09-29 补进扫描范围（漏掉它的那天我刚往 skill/ 加了一条 CJK 条目）
 // 明确点名放行的一类：早期探针的原始件。`build/uram_probe/uram_probe.v` 的中文注释在
 // 出现这个判据**之前**就已经坏掉（字节丢失，不可恢复），而它的结论被
-// `build/frozen_r57_remap/MANIFEST.md5`（仓库留档、不随包）与两份报告按 md5 引用 —— 改一个字节就等于伪造凭据。
+// `build/frozen_r57_remap/manifest.md5`（仓库留档、不随包）与两份报告按 md5 引用 —— 改一个字节就等于伪造凭据。
 // 所以这里放行，并把"不要再拿它当可读文本来引用"这句话留在这。
 const ALLOW_BAD = ['build/uram_probe/uram_probe.v'];
 const BOM_OK_EXT = new Set(['.ps1', '.tcl']);     // Windows 侧写出来的脚本常带开头 BOM，工具认它

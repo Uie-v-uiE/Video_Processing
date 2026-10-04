@@ -50,5 +50,5 @@ iconv: (stdin):1:14: incomplete character or shift sequence
   排练脚本=讲稿抽取 rehearsal 差异行=0 变异对照=能红 改讲稿不重抽 ⇒ 这一项红；少一行必须判成不同（对照） PASS
   文档行号锚点 doc_cite 命中=393 候选=93 self 15 条对照全过（含厂商豁免 2 条）、硬错 0、命中 >= 300 PASS
   数字对账 metric    判=68 首页=58 逐时钟=2/归属=2/百分数=6 csv认领=10/10 红=0 self（csv 两条 fixture + 首页假数 + 逐时钟/归属/百分数/Clock Summary 对照）全过、红 0、判 >= 30 个数、首页 >= 20 个、逐时钟 setup 与 hold 归属各 >= 2 条、余量百分数 >= 6 条、csv 认领两半相等且 >= 8（射程地板） PASS
-端点总数 51005；CDC 现在按 build/CDC_BASELINE.txt 的**配对集合**判，功耗仍要人比有没有变差。
+端点总数 51005；CDC 现在按 build/cdc_baseline.txt 的**配对集合**判，功耗仍要人比有没有变差。
 GATES: 有红项（判定 22 项）—— 不采纳，保留上一版

@@ -139,7 +139,7 @@ if (want('C2-4')) {
 }
 // ---- C3 根 README：两节 + 亮点带数 + 目录说明 + 时序 + 中英对应 + 切换链接
 if (want('C3')) {
-  const cn = read('README.md'), en = read('README_EN.md') || read('README.en.md');
+  const cn = read('README.md'), en = read('README_EN.md') || read('readme.en.md');
   const p = [];
   const sec = (t) => (t.match(/^##\s+\S/gim) || []).length;
   if (!cn) p.push('README.md 缺');
@@ -155,7 +155,7 @@ if (want('C3')) {
     if (!/20\d\d\.\d/i.test(cn)) p.push('未声明工具版本');
     if (!/README_EN\.md|README\.en\.md/i.test(cn)) p.push('缺另一版切换链接');
   }
-  if (!en) p.push('README_EN.md 缺(现名 README.en.md)');
+  if (!en) p.push('README_EN.md 缺(现名 readme.en.md)');
   else if (cn && Math.abs(sec(en) - sec(cn)) > 1) p.push(`中英小节数不等 ${sec(cn)}vs${sec(en)}`);
   if (cn.split(/\r?\n/).length > 90) p.push(`根 README ${cn.split(/\r?\n/).length} 行 超一页`);
   say('C3', 'root-readme-shape', (cn ? sec(cn) : 0) + (en ? sec(en) : 0), p.join('、') || '符合', p.length ? 'FAIL' : 'PASS');

@@ -1,7 +1,7 @@
 # 门禁第 6 项新增的第二把尺子（ISSUES #209）的对照，2026-10-01 07:25 当场跑，未改 RTL 之前先证明它有牙
 # 规则：本版 cdc.rpt 的 Critical 配对集合，减去**上一版被采纳的** cdc.rpt（build/evidence_r75/cdc.rpt）
 #       的集合；非空即判红。
-# 为什么还要第二把：手写的 build/CDC_BASELINE.txt 是 r23 年份，里面本来就有 eth_rxc>clkout0_1 这一对，
+# 为什么还要第二把：手写的 build/cdc_baseline.txt 是 r23 年份，里面本来就有 eth_rxc>clkout0_1 这一对，
 #   于是"以前报过、后来消失、现在又长回来"这一类对它免疫；而采纳版（r75）与板上那版（r97）都没有它。
 # 取数口径与门禁完全一致：awk '/^Critical/{print $2">"$3, $(NF-4), $(NF-2)}'，配对取第 1 列，sort -u 后 comm -13
 # 列含义：配对(端点数/Unsafe 端点数)

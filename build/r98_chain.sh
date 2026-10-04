@@ -25,14 +25,14 @@ grep -aq "SYSTEM BUILD DONE" "$WRAP" || { step "等构建超时（2 小时），
 
 # ② 边缘条带台架 + 它的凭据（门禁 15b 认这一份）
 step "跑 tb_edge_rim"
-bash sim/run_one.sh tb_edge_rim > "build/r${NN}_tb_edge_rim_console.txt" 2>&1
+bash build/sim/run_one.sh tb_edge_rim > "build/r${NN}_tb_edge_rim_console.txt" 2>&1
 RIMRC=$?
 step "tb_edge_rim rc=$RIMRC，出报告"
 ROUND=$NN bash build/rim_report.sh > "build/r${NN}_rim_report_step.txt" 2>&1
 
 # ③ 顶层整屏台架（2 小时那一支）+ 门禁第 15 项要的报告
 step "跑 tb_v98_top_seam（约 2 小时）"
-bash sim/run_one.sh tb_v98_top_seam > "build/r${NN}_tb98_console.txt" 2>&1
+bash build/sim/run_one.sh tb_v98_top_seam > "build/r${NN}_tb98_console.txt" 2>&1
 TBRC=$?
 step "tb_v98 rc=$TBRC，出报告"
 bash build/tb98_report.sh > "build/r${NN}_tb98_report_step.txt" 2>&1

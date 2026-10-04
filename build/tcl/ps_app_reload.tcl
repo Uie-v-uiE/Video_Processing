@@ -1,6 +1,6 @@
 # build/tcl/ps_app_reload.tcl — 只重启 Cortex-A9、重下 PS app，**不动 PL 配置**
 #
-#   cmd //c "<Vitis>\bin\xsdb.bat build/tcl/ps_app_reload.tcl"     # 工具路径见 report/BUILD.md
+#   cmd //c "<Vitis>\bin\xsdb.bat build/tcl/ps_app_reload.tcl"     # 工具路径见 report/build.md
 #   或  xsdb.bat build/tcl/ps_app_reload.tcl <别的.elf>
 #
 # 为什么不用 board/boot27c.tcl：它第一步就是 `rst -system`，会把已经配好的 bit 冲掉，

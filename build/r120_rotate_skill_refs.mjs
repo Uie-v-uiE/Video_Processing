@@ -6,14 +6,14 @@
 //           `| 旧卡.md | 目标目录 | 类别 |`；未跑 `retire_flat.mjs --apply` 之前也可以先改口（两条形式都幂等）。
 // 产出物：只打印；--apply 时逐文件写回并打印"行数变化"。
 // 失败时先看哪里：脚本报 REFUSE 时先确认分派表行数=27、再确认被改文件里那条引用是不是"记录原文"
-//           （report/log/ 与 docs/repro-check.md 里的**逐字记录**不改，那是当时看到的原文）。
+//           （report/log/ 与 report/repro-check.md 里的**逐字记录**不改，那是当时看到的原文）。
 //
 // 三条规则（每条都打印命中数，抓到 0 条就明说 0 条 —— 不静默）：
 //   R1 反引号里的仓库根形式 `skill/<snake>.md` → `skill/<cat>/<kebab>/SKILL.md`
 //   R2 只在 skill/ 根下那一份文件里：markdown 链接 ](<snake>.md) → ](<cat>/<kebab>/SKILL.md)
 //   R3 技能包条目正文里的反引号裸卡片名 `<snake>.md` → 新条目名 `<cat>/<kebab>`（裸名没有白名单前缀，
 //      G8/C3 本来就不判它，但留着就是把旧布局说成现状）
-// 不改的对象：report/log/**（追加式台账，逐字记录）、docs/repro-check.md 里的引文、report/study/**（不入库的学习文档）。
+// 不改的对象：report/log/**（追加式台账，逐字记录）、report/repro-check.md 里的引文、report/study/**（不入库的学习文档）。
 import fs from 'node:fs';
 import path from 'node:path';
 

@@ -27,5 +27,5 @@
   eth_rxc      setup 0.188ns  (失败端点 0)   hold 0.025ns    ← 门禁 WNS 就是这一组
   sys_clk      setup 11.377ns (失败端点 0)   hold 0.121ns 
 
-端点总数 34568；CDC 现在按 build/CDC_BASELINE.txt 的**配对集合**判，功耗仍要人比有没有变差。
+端点总数 34568；CDC 现在按 build/cdc_baseline.txt 的**配对集合**判，功耗仍要人比有没有变差。
 GATES: ALL PASS

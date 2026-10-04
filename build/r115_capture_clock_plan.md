@@ -6,7 +6,7 @@
 
 | # | 事实 | 件 |
 |---|---|---|
-| F1 | 出货流程里 **没有任何** `set_input_delay`/`set_output_delay` 覆盖 RGMII 收口 5 个输入（`eth_rx_ctl`、`eth_rxd[3:0]`）；`check_timing` 把它们点名成 HIGH 缺口 | `build/check_timing_verbose.rpt`、`report/TIMING_GLOBAL.md` §4b |
+| F1 | 出货流程里 **没有任何** `set_input_delay`/`set_output_delay` 覆盖 RGMII 收口 5 个输入（`eth_rx_ctl`、`eth_rxd[3:0]`）；`check_timing` 把它们点名成 HIGH 缺口 | `build/check_timing_verbose.rpt`、`report/timing_global.md` §4b |
 | F2 | 一旦把窗建起来（模型 a：`-max 0.500 / -min -0.500`，配 `-clock_fall` 那一对），`eth_rxc` 的 **min 检查立刻违例 −2.885 ns**，5 个端点全在 `u_iddr_rx_ctl/D` | `build/evidence/r114_io_roll_console5.txt`、ISSUES #275 |
 | F3 | 数据侧的路是**死的**：同一份窗下 IDELAY 从 0 扫到 31 档 = −4.522 / −3.703 / −2.570（斜率实测 ≈63 ps/tap，要补 2.7 ns 需要 43 档而最大只有 31） | `build/evidence/r114_sweep*`、ISSUES #280/#282 |
 | F4 | 换窗模型（b：数据落在沿后 1.5–2.5 ns，等于"PHY RX 内部还有延迟"）整条曲线**平移了恰好 2.0 ns**（tap0：−4.522 → −2.522） | ISSUES #282 的两模型表 |

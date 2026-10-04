@@ -21,7 +21,7 @@
 #     （这条板级事实 09-22 就写进了 snap_cross 的文件头，我当晚写仲裁时没先去读它。）
 #   · 同一轮还抓到 #50（并发下 SD 读超时一次 + 固件失败路径没清游标 ⇒ 误导人去怀疑卡）。
 #   ⇒ 本目录**不作为默认**：当前默认仍是 #23（build/frozen_r23_srcseen，bit 18443ffd）。
-#     修法与验证见 ../frozen_r25_arbfix/MANIFEST.txt 与 report/ISSUES.md #49。
+#     修法与验证见 ../frozen_r25_arbfix/MANIFEST.txt 与 report/issues.md #49。
 #
 # 校验：md5sum -c MANIFEST_BODY.txt（先在本目录内执行）。
 #   system.bit 696a5271ae5787bd064cbe656b9a40b2 / system.xsa f6239b64… / ps_app.elf adf38c67…

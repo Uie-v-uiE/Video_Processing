@@ -34,7 +34,7 @@ NEWER=$(find src/rtl -name '*.v' -newer build/system.bit 2>/dev/null | head -3)
 #     后面的整屏要跑 1~2 小时，不该被一把快尺子拖住。
 say "⓪ 模块级台架（tb_writer_abort / tb_commit_strobe / tb_v94_zoom_sel / tb_src_arb_why）"
 for TB in tb_writer_abort tb_commit_strobe tb_v94_zoom_sel tb_src_arb_why; do
-    bash sim/run_one.sh "$TB" > "build/${ROUND}_${TB}_console.txt" 2>&1; RC0=$?
+    bash build/sim/run_one.sh "$TB" > "build/${ROUND}_${TB}_console.txt" 2>&1; RC0=$?
     case $RC0 in
       0) say "   $TB 绿";;
       3) say "   $TB 判红（rc=3）—— 不断链；读 build/${ROUND}_${TB}_console.txt 的 FAIL 行";;
@@ -43,11 +43,11 @@ for TB in tb_writer_abort tb_commit_strobe tb_v94_zoom_sel tb_src_arb_why; do
 done
 
 say "① tb_v98_top_seam（整屏逐像素 + 旋转维度，这一跑 1~2 小时）"
-# ⚠ #166 之后 `sim/run_one.sh` **用退出码表达判定**：0 绿 / 1 编译或例化失败 / 2 REFUSE /
+# ⚠ #166 之后 `build/sim/run_one.sh` **用退出码表达判定**：0 绿 / 1 编译或例化失败 / 2 REFUSE /
 #   3 判红 / 4 认不出判定行。链只在 1/2/4 断；**3 不断链** —— 红是这一轮要的结论
 #   （`C5c`/#98 那条从 r77 起就故意留着，让"唯一剩下的红"永远是同一条），
 #   把它当"链断了"来处理等于把结论当成故障。
-bash sim/run_one.sh tb_v98_top_seam > build/${ROUND}_tb_v98_console.txt 2>&1; RC1=$?
+bash build/sim/run_one.sh tb_v98_top_seam > build/${ROUND}_tb_v98_console.txt 2>&1; RC1=$?
 case $RC1 in
   0) say "① 绿";;
   3) say "① 判红（rc=3）—— 不断链，红项交给第③步门禁记账（读 build/${ROUND}_tb_v98_console.txt 里的 FAIL 行）";;
@@ -56,7 +56,7 @@ esac
 bash build/tb98_report.sh > build/${ROUND}_tb98_report_step.txt 2>&1 || say "tb98_report.sh 退出码非 0（红项本来就会让它非 0，不当作链断）"
 
 say "② tb_edge_rim（边缘条带那一族）"
-bash sim/run_one.sh tb_edge_rim > build/${ROUND}_edge_rim_console.txt 2>&1; RC2=$?
+bash build/sim/run_one.sh tb_edge_rim > build/${ROUND}_edge_rim_console.txt 2>&1; RC2=$?
 case $RC2 in
   0) say "② 绿";;
   3) say "② 判红（rc=3）—— 不断链，交给第③步门禁记账";;

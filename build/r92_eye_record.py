@@ -5,7 +5,7 @@
 import io, os, re
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-P = os.path.join(ROOT, 'board', 'ACCEPTANCE.md')
+P = os.path.join(ROOT, 'board', 'acceptance.md')
 raw = io.open(P, encoding='utf-8', newline='').read()
 
 head = re.search(r'^\| # \| 看什么 \| 怎么起 \| 看不到时先看哪一格 \|\n\|---\|---\|---\|---\|\n', raw, re.M)

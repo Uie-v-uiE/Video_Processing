@@ -71,7 +71,7 @@ VP_XSDB=<Vitis>/bin/xsdb.bat bash build/board_verify.sh --battery --geom   # 上
 
 # P15a 增补（2026-10-04）：入口、落点、耗时、失败指路、自探测清单
 
-这一节是**追加**的，上面原文一行没删（`build/README.md` 是已入库文件，且 `report/log/ISSUES.md` 按行号
+这一节是**追加**的，上面原文一行没删（`build/README.md` 是已入库文件，且 `report/log/issues.md` 按行号
 指过它）。**先说清一处与本节冲突的旧句**：上面写的 `build/reports/`（以及"产物落在 `build/reports/`"）
 描述的其实是**导出包里的布局**，不是构建落点 —— 本仓当前**没有** `build/reports/` 目录
 （本次实跑 `[ -d build/reports ]` → NO），`build/reports/` 只由 `build/make_submission.sh` 在打包时
@@ -118,7 +118,7 @@ bash build/r118_chain.sh
 `[ -s 位流 ]` 否则 `exit 2`（`:35`）→ 位流 md5 前 12（`:36`）→ 名册探针 `probe_timing_roster.tcl`（`:38`）→
 两套差分尺子（`:42` 与内嵌 python 的严格口径 `:45-71`）→ 改前/改后读数（`:73`）→ 写 `r118_verdict.txt`（`:75-82`）→
 门禁两跑并 `cmp` 是否逐字节一致（`:84-88`）→ 采纳则 `build/evidence/r118_bit/` + 刷板，
-否则回刷上一版（`:93-102`）→ `board_verify.sh`（`:103`）→ 写 `BOARD_NOW.txt`（`:104-108`）。
+否则回刷上一版（`:93-102`）→ `board_verify.sh`（`:103`）→ 写 `board_now.txt`（`:104-108`）。
 
 **C. PS 侧固件**（不在 A/B 里，必须单独一条）：
 
@@ -154,7 +154,7 @@ node build/ps_app.mjs          # 需要 PS_CC / PS_BSP，默认平台在仓库�
 
 检查点能干什么（**只写用途，不在此设计复算逻辑，那是 P15c**）：开只读探针拿布局后/布线后的数
 （`open_checkpoint`/`open_run` 一条命令，不重跑 RTL），或低成本复算物理结果；
-台账 `report/log/ISSUES.md` #310 记着"在已布线 DCP 上改 `IDELAY_VALUE` 有效 ⇒ 扫档位不必重跑构建"，
+台账 `report/log/issues.md` #310 记着"在已布线 DCP 上改 `IDELAY_VALUE` 有效 ⇒ 扫档位不必重跑构建"，
 就是这一类用法的实例。r118 的五个 dcp 落盘时刻（盘上 mtime）：synth 04:29、opt 04:30:54、
 placed 04:32:31、physopt 04:32:41、routed 04:36:27。
 
@@ -198,7 +198,7 @@ placed 04:32:31、physopt 04:32:41、routed 04:36:27。
    （入口 `:365-376` 数的就是它）。
 3. `…/runs/impl_1/runme.log` —— DRC / 布局 / 布线 / `Route 35-57` 那行 Estimated Timing Summary 在这里。
 4. `build/*.rpt` 与 `build/{width_warnings,multi_driven}.txt` 的 mtime —— 判断"报告是不是这一版的"。
-5. 上板失败：`build/evidence/rNN_board/bitcycle_console.txt` → 同目录 `board_verify_console.txt` → `BOARD_NOW.txt`。
+5. 上板失败：`build/evidence/rNN_board/bitcycle_console.txt` → 同目录 `board_verify_console.txt` → `board_now.txt`。
 6. 门禁红：`build/rNN_gates.txt`（跑法必须两步，**不要把 stdout 直接重定向进它自己要读的凭据文件**，
    该脚本文件头 `:12-19` 记着这个自伤）。
 
@@ -225,9 +225,9 @@ grep -n "file dirname \[info script\]" build/tcl/build_system*.tcl build/tcl/cre
 后果（逐条有实体，不是我推的）：`add_files` 指向 `build/src/…`（不存在）；
 `file mkdir $outdir` 会凭空造出 `build/build/`（**这个空目录现在还在盘上**，本次 `ls -la build/build/`
 只有 `.` 与 `..`，mtime 2026-09-26 02:54）；`build_system.tcl` 那一份还会去找 `build/build/system.bit`。
-台账 `report/log/ISSUES.md` 把这一族记在 **#22**，并把"扫描要按类别而不是按我今天看到的那串字符"
+台账 `report/log/issues.md` 把这一族记在 **#22**，并把"扫描要按类别而不是按我今天看到的那串字符"
 记在 **#41**（#41 同时修掉了 3 支**下板**脚本，构建侧这几支**故意留着不动**，因为
-`report/log/CHANGELOG_V7.md` 与 ISSUES 若干条目按名字指它们 —— 见 `build/tcl/README.md:3-6`）。
+`report/log/changelog_v7.md` 与 ISSUES 若干条目按名字指它们 —— 见 `build/tcl/README.md:3-6`）。
 另一层差异：`create_project.tcl` 的用法注释写的是 `-source tcl/create_project.tcl`（`:2-6`），
 即**假定 cwd = `build/`**；而 `build_system_axigpio.tcl` 因为用 `.. ..`，
 从仓库根（`-source build/tcl/…`）或从 `build/`（`-source tcl/…`）起都能归一到仓库根。

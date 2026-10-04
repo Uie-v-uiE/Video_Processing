@@ -5,4 +5,4 @@
 [r95 2026-09-30 13:53:32] 开滚 r95_explor_withhier -> build/isolated_r95_explor_withhier（IMPL_STRATEGY=Performance_ExploreWithHierarchy）
 [r95 2026-09-30 14:05:02] r95_explor_withhier：**读不到 timing_summary 的设计行** —— 不判采纳，先看 build/isolated_r95_explor_withhier/build_console.txt 有没有 SYSTEM BUILD DONE
 [r95 2026-09-30 14:05:02] 两滚结束：phys_opt=DECLINE，ExploreWithHierarchy=NOT_MEASURED（NOT_MEASURED=报告没读出来，不是否决）
-[r95 2026-09-30 14:05:02] DONE —— 谁被采纳由人读 build/r95_timing_summary.txt 那两行来定；不采纳也要把这一节落进 report/OPTIMIZATION_LOG.md
+[r95 2026-09-30 14:05:02] DONE —— 谁被采纳由人读 build/r95_timing_summary.txt 那两行来定；不采纳也要把这一节落进 report/optimization_log.md

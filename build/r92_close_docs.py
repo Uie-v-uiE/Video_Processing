@@ -8,7 +8,7 @@ ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 def rd(p): return io.open(os.path.join(ROOT, p), encoding='utf-8', newline='').read()
 def wr(p, s): io.open(os.path.join(ROOT, p), 'w', encoding='utf-8', newline='').write(s)
 
-P = 'report/OPTIMIZATION_LOG.md'
+P = 'report/optimization_log.md'
 t = rd(P)
 i = t.find('**还欠的两件**')
 if i < 0:
@@ -25,11 +25,11 @@ else:
            '`GATES: 有红项（判定 20 项）—— 不采纳，保留上一版`。\n'
            '这一行与 r88/r90 完全同形：20 项全判定、唯一红项是故意留着的 `C5c`，冻结集继续是 **r75**；'
            '这一版被采纳的依据不是那一行绿，而是**板上那一套**（0 丢字 + 100 条电池 + 判红步骤 0 + `BUFIO` 用量 0）。\n'
-           '**还欠的只剩眼睛**：`board/ACCEPTANCE.md` 的 E1–E3（屏已摆成 `split 50` + 蓝线关 + 片源 ETH 的样子）。')
+           '**还欠的只剩眼睛**：`board/acceptance.md` 的 E1–E3（屏已摆成 `split 50` + 蓝线关 + 片源 ETH 的样子）。')
     wr(P, t[:i] + new + t[j:])
     print("OK   OPTIMIZATION_LOG r92 末段已换成实测（原段 %d 字 → 新段 %d 字）" % (len(seg), len(new)))
 
-A = 'board/ACCEPTANCE.md'
+A = 'board/acceptance.md'
 s = rd(A)
 if 'r92_eye_setup' in s:
     print("SKIP ACCEPTANCE 已经写过")

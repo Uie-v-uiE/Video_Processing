@@ -827,7 +827,7 @@ The top 5 pins with tight setup and hold constraints:
 | eth_rxc            | eth_rxc           | u_eth/u_reasm/rok1_reg[8]/D                   |
 +--------------------+-------------------+-----------------------------------------------+
 
-File with complete list of pins: tight_setup_hold_pins.txt
+File with complete list of pins: build/report/
 
 
 Phase 5 Rip-up And Reroute

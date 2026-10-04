@@ -1,6 +1,6 @@
 # build/tcl/r115_baseline_probe.tcl —— 阶段 B1：在**未修改的树**上把基线花名册需要的全量报告问出来（只读）
 #
-# 谁规定的：`docs/timing/README.md` §0/§3（那份是用户 2026-10-03 夜给的"时序一轮收敛到极限"提示词）。
+# 谁规定的：`report/timing/README.md` §0/§3（那份是用户 2026-10-03 夜给的"时序一轮收敛到极限"提示词）。
 # 纪律：
 #   * 只读——不 set_property、不 edit、不写 runs 目录，所有产物落 build/evidence/r115_base/；
 #   * 每一条命令的**选项形状**都是 2026-10-03 用 `help` 量过的（见同目录 help_shapes.txt 与 ISSUES #263/#264），

@@ -1,5 +1,5 @@
 # fpver=norm1 top_md5=2bf2ceeede07 tb_md5=c4d6bdaac501 rtl_md5=8997a62b75ba date=2026-10-02T08:38:04+08:00 
-# 台架：sim/tb_head_rot_displace.v（#167 的映射那一半）；跑法 bash sim/run_one.sh tb_head_rot_displace
+# 台架：sim/tb_head_rot_displace.v（#167 的映射那一半）；跑法 bash build/sim/run_one.sh tb_head_rot_displace
 # 判的是「若帧头那一带真的带着上一帧的映射，它会挪开多少源像素」；「哪几行带着上一帧」由顶层台架 C5c 判，不在这份件里
 PASS D1 k=0 对照 ang=45 inv=492 带内有效格=1112 两遍逐位相同（台架自己不漂）
 PASS D2 ang=45 k=1 inv 492->490 有效格=1098 移动格=1098 最大位移=5 最小=1 平均=2.7 越界位翻转=14

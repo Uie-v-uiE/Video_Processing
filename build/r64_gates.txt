@@ -20,5 +20,5 @@
   顶层接线（端口名/悬空输入/位宽） CHECK PORTS: instances=88 modules=78 skipped=2 width_compared=569 violations=1 FAIL violations=0（凭据 build/ports_check.txt，当场跑） FAIL
         src/rtl/top/pl_demo_top.v:19  pl_video_top u_pl 的输入 bilin_en_axi 没连（悬空=Z/X）
 
-端点总数 34566；CDC 现在按 build/CDC_BASELINE.txt 的**配对集合**判，功耗仍要人比有没有变差。
+端点总数 34566；CDC 现在按 build/cdc_baseline.txt 的**配对集合**判，功耗仍要人比有没有变差。
 GATES: 有红项 —— 不采纳，保留上一版

@@ -22,7 +22,7 @@
 #      （冻结后更正：本行原写"11 条"，按 `grep -c expect(` 实为 12；位流与报告未动，
 #        MANIFEST.txt 不在 MANIFEST_BODY.txt 的校验清单内，所以改这一行不影响 md5sum -c。）
 #
-# 门禁（bash build/gates.sh，七项全绿；CDC 按 build/CDC_BASELINE.txt 的**配对集合**判）：
+# 门禁（bash build/gates.sh，七项全绿；CDC 按 build/cdc_baseline.txt 的**配对集合**判）：
 #   WNS +0.764 / WHS +0.062 / 0 失败 setup 端点 / 0 失败 hold 端点（23840 端点）/
 #   Slice LUT 7577(14.24%) / Slice 寄存器 6026 / BRAM 90.5 tile(64.64%) / Dynamic 2.159 W /
 #   methodology 0 CRIT / 0 布线错误 / cdc Critical 3 行 = 基线配对无新增

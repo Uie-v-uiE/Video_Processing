@@ -20,5 +20,5 @@
   顶层接线（端口名/悬空输入/位宽） CHECK PORTS: instances=87 modules=78 skipped=1 width_compared=571 violations=1 FAIL violations=0（凭据 build/ports_check.txt，当场跑） FAIL
         src/rtl/top/pl_demo_top.v:19  pl_video_top u_pl .split_ctl(…) 位宽不符：端口 19 位，接的是 14 位（Verilog 静默补零/截断 ⇒ 高位会被吃掉，见 #57）
 
-端点总数 33896；CDC 现在按 build/CDC_BASELINE.txt 的**配对集合**判，功耗仍要人比有没有变差。
+端点总数 33896；CDC 现在按 build/cdc_baseline.txt 的**配对集合**判，功耗仍要人比有没有变差。
 GATES: 有红项 —— 不采纳，保留上一版

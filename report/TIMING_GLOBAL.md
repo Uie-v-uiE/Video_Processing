@@ -22,7 +22,7 @@
 
 ## 2. r112 这一版的**全设计**读数（一次构建，四域同表）
 件：`build/timing_summary.rpt`（Intra Clock Table）、`build/setup_paths.rpt`、`build/hold_paths.rpt`、
-`build/r112_reasm_probe.txt`（族级）、`build/evidence/r113_roll_ABC_verdict.txt`（物理侧三滚）。
+`build/r112_reasm_probe.txt`（族级）、`build/evidence/r113_roll_abc_verdict.txt`（物理侧三滚）。
 
 | 时钟 | 周期 | WNS | 相对余量 | WHS | 端点数 | 最差那一格的形状 |
 |---|---|---|---|---|---|---|
@@ -107,7 +107,7 @@ sys_clk    setup 14.463 -> 14.463 hold 0.133 -> 0.133
 |---|---|---|---|
 | TMDS 六路输出（`tmds_clk_p/n`、`tmds_data_p/n[2:0]`） | 源同步输出：`set_output_delay -clock <输出时钟> -setup/-hold [get_ports {tmds_*}]`，时钟取**驱动这些数据的那颗**（像素时钟 / 其 5× 串化时钟），而不是 sys_clk | 面板端采样窗 = TMDS 接收端的 setup/hold；DVI/HDMI 源同步惯例是"数据沿对齐时钟沿、余量以 UI 计"，具体 ps 要查**这块面板/接收芯片的手册** + 本板走线等长实测（原理图与管脚表在 厂商随板资料（原理图与管脚表，ZYNQ7020 那套），交付包里没有它——本机路径不能当指路）。查不到就退一步：写 `set_max_delay -datapath_only`（限偏斜而不是定死窗），并把为什么这样写在 XDC 注释里 | `build/check_io_timing_coverage.py` 的 I3（不许有裸输出）+ I1/I2（对账仍要成立） |
 | `led[1:0]` | 慢速推挽输出，不对外定时序 ⇒ `set_false_path -to [get_ports {led[*]}]` **并写明理由**（灯由人眼读，没有建立/保持窗） | 不需要数字，需要那句理由（写进 XDC 与本文，才算"显式豁免"） | 同上（FALSEPATH 那一档，且豁免表要带理由） |
-| `eth_mdc` / `eth_mdio` | MDIO 是 bit-bang 管理口，与 GTXCLK/RXC 无关 ⇒ `set_false_path`（或按 2.5 MHz 上限给一对 `set_max_delay`），理由要写 | Realtek RTL8211F 数据手册的 MDIO 时序（本板 PHY 就是 RTL8211F，见 `report/HOST_GUIDE.md` 第 14 行） | 同上 |
+| `eth_mdc` / `eth_mdio` | MDIO 是 bit-bang 管理口，与 GTXCLK/RXC 无关 ⇒ `set_false_path`（或按 2.5 MHz 上限给一对 `set_max_delay`），理由要写 | Realtek RTL8211F 数据手册的 MDIO 时序（本板 PHY 就是 RTL8211F，见 `report/host_guide.md` 第 14 行） | 同上 |
 | RGMII 收口 5 个裸输入（`eth_rx_ctl`、`eth_rxd[3:0]`） | 这一路**已经**是真物理事件，别再拖：`set_input_delay -clock eth_rxc -min/-max` 按 PHY 的 DDR 窗算，中心对齐用 `-clock_fall` 那一套 | RTL8211F 手册的 RGMII RX 表（数据相对 RXC 双沿的 setup/hold ps 值）+ 板级走线延迟；本仓已实测过"RGMII 是 DDR 采样、#57 之后没有 IDELAY 采样窗可言"，所以值给得讲道理比给个大值重要 | `build/timing_roster_diff.sh` 的 D1/D3（补完约束不许把别的域挤坏）+ 名册逐域念一遍 |
 | `eth_tx_*` 那一组现在的 `set_false_path` | **保留但要重新论证**：RGMII 发送是源同步（PHY 用 FPGA 给的 GTXCLK 采数据），"假路"其实是在说"我不检查芯片到 PHY 这一段" | 查 PHY 手册的 RGMII TX 窗，若能查就把它改成 `set_output_delay`（对齐到 eth_tx_clk），查不到就在注释里写"已知未验证"并留成账 | 同上 |
 候选值的现状（**不许直接抄进 XDC**，只当线索）：第三方一篇 RGMII 综述给的窗是
@@ -270,7 +270,7 @@ L3 名册没有任何域因这些尝试变差），所以下面**按域**摆，�
 
 ### 6.1 `eth_rxc` —— 唯一被**证明**顶到边界的一格（L1+L2+L3 齐）
 
-L1（延迟分解，件 `build/evidence/r116/r116_io_HOLD.rpt`、`..._SETUP.rpt`）：
+L1（延迟分解，件 `build/evidence/r116/r116_io_hold.rpt`、`..._SETUP.rpt`）：
 `Data Path Delay 3.928 ns = logic 100.000 % + route 0.000 %`，逻辑只有 `IBUF`+`IDELAYE2` 两级器件原语；
 required 侧是 `DCD 5.008 + 不确定度 0.835 + IDDR hold 0.155 = 5.998 ns`。⇒ **主项是钟网络的插入延迟**，
 数据侧已无对象可优化（布线 0）。
@@ -321,7 +321,7 @@ Clock Path Skew −0.039 ns（DCD 2.321 / SCD 2.456）  Clock Uncertainty 0.154 
 噪声底 `noise_ns = 0.000`（r115 两次空白滚逐位复现），所以这三格移动都大于噪声底、可称为收益；
 `eth_rxc` 一格没动 ⇒ G1 成立。**采纳入口已经写好**：`build/tcl/r117_post_place_hook.tcl`
 （挂在 `STEPS.PLACE_DESIGN.TCL.POST`，取名不一致就 `error` 停下而不是悄悄换目标），
-件 `build/evidence/r117_repl3/B_console.txt`。
+件 `build/evidence/r117_repl3/b_console.txt`。
 
 ### 6.3 `clkout0_1` 与 `sys_clk` —— 本轮不欠刀，理由各是一条可查的判据
 
@@ -420,7 +420,7 @@ UG472（114 页）的 BUFIO 一节都是定性叙述（"BUFIO 只驱动 I/O 钟�
 "有红项 ⇒ 不采纳，保留上一版"；约束原件与全部证明留在 `src/constraints/r116_rgmii_input_window.xdc`，
 `VP_R116_IO_WINDOW=1` 一条命令复现）。对照 = **r114 官方名册**，且必须同生成器配对
 （件 `build/evidence/r114_after_roster_probefmt.txt` → `build/evidence/r117_roster_diff_vs_r114.txt`；
-拿 `roster_from_summary.sh` 那份去减探针那份会被口径闸门判 REFUSE，账在 `report/log/ISSUES.md` #326）。
+拿 `roster_from_summary.sh` 那份去减探针那份会被口径闸门判 REFUSE，账在 `report/log/issues.md` #326）。
 
 | 域 / 格 | r114 | r117 | 判语 |
 | --- | --- | --- | --- |
@@ -433,7 +433,7 @@ UG472（114 页）的 BUFIO 一节都是定性叙述（"BUFIO 只驱动 I/O 钟�
 ⇒ **C9 判负**（`build/r117_verdict_declined.txt`）：起飞前预登记的是严格口径"任何一格 rel_margin 不许变小"，
 四格跌就判负；`build/timing_roster_diff.sh` 的 D3 门槛是"掉 25 % 以上的域数"，对同一份数据给 `result=GREEN`。
 **两把尺子判语不一致这件事没有靠改宽任何一方来消除**（#328），而是把严格那把独立成可指路的件
-`build/evidence/r118_strict_b1.txt`。这与 r115 那一夜 C1 复制刀的形状完全相同（`report/log/ISSUES.md` #288）：
+`build/evidence/r118_strict_b1.txt`。这与 r115 那一夜 C1 复制刀的形状完全相同（`report/log/issues.md` #288）：
 机制动了，代价落在最紧的域上 ⇒ 不做。
 
 **r118 = 只带 τ=31**（`IDELAY_VALUE` 26→31，r116 在同一份已布线 DCP 上把 0…31 扫满量出来的收口眼心；
@@ -443,7 +443,7 @@ UG472（114 页）的 BUFIO 一节都是定性叙述（"BUFIO 只驱动 I/O 钟�
 而是四条：B1 严格名册对 r114 逐格不劣化 / B2 机构中性（本版故意不挂复制钩子）/
 B3 资源中性 / B4 发布门 24 项红数 == 1 且两跑逐字节一致；全过才上板，任一不过板子回刷 r114。
 判读与板侧读数：`build/r118_verdict.txt`、`build/evidence/r118_strict_b1.txt`、
-`build/r118_gates.txt`、`build/evidence/r118_board/BOARD_NOW.txt`（本轮结果句在首页那一行与
+`build/r118_gates.txt`、`build/evidence/r118_board/board_now.txt`（本轮结果句在首页那一行与
 `build/r118_verdict.txt`）。
 
 **这一节之后，"到极限"这句话在这颗 -2 器件上的完整形状是**：

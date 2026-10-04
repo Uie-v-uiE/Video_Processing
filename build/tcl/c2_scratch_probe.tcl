@@ -4,7 +4,7 @@
 #   VP_VIVADO_BIN=/d/Software/Vivado/2025.2.1/Vivado/bin \
 #   vivado -mode batch -nojournal -source build/tcl/c2_scratch_probe.tcl
 # 输入是副本树实现完成的 DCP；输出全部落在 build/evidence/r115_c2_scratch/（被跟踪，负结果也留）。
-# 判据按 docs/timing/rgmii_window_model.md §4 的 S1..S5 预先登记，这里只**出数**，判定在差分脚本与文档里做。
+# 判据按 report/timing/rgmii_window_model.md §4 的 S1..S5 预先登记，这里只**出数**，判定在差分脚本与文档里做。
 # 运行时 puts 标签一律 ASCII（Vivado Tcl 的 CJK puts 会污染 grep，栽过两次）。
 set scratch [file normalize [file join [file dirname [info script]] .. .. .. c2_scratch_1003]]
 set dcp [file join $scratch "vivado_system/zynq_video_sys.runs/impl_1/system_top_routed.dcp"]
@@ -62,7 +62,7 @@ report_timing_summary -delay_type min -file [file join $out summary_hold.txt]
 report_timing_summary -delay_type max -file [file join $out summary_setup.txt]
 # ---- 附加读数：把窗换成手册 Table 60 的真数（-min 1.000 / -max 2.600）再报一次 ----
 # 为什么还要这一段：这一滚是**带着 ±0.500 的窗**布的线（那个数后来被查明用错了行，见
-# docs/timing/rgmii_window_model.md §6：±0.5 是 TskewT 的行，收口该用 TsetupR/TholdR=1.0 或 TskewR=1~2.6）。
+# report/timing/rgmii_window_model.md §6：±0.5 是 TskewT 的行，收口该用 TsetupR/TholdR=1.0 或 TskewR=1~2.6）。
 # 布线已经是既成事实，不能拿它冒充"按真窗布过"，所以这里只把它当**同一块布局下的第二把尺子**读，
 # 并在文档里标"读数在 ±0.5 窗的布局上、按真窗重报"。两条读数都要，不许只念好看的那条。
 set tw_ports [get_ports -quiet {eth_rxd[*] eth_rx_ctl}]

@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # build/r116_stage2.sh —— 构建完之后剩下的那一半，交给一个看门狗自己走（夜里没有人敲第二条命令）。
-# 前置：build/r116_chain.sh 在飞；它跑完会留下 build/evidence/r116/r116_io_HOLD.rpt。
+# 前置：build/r116_chain.sh 在飞；它跑完会留下 build/evidence/r116/r116_io_hold.rpt。
 # 判据与采纳规则写在 build/r116_batch_plan.md 第二节；这里只负责"把每条判据的件问回来"。
 set -u
 cd "$(dirname "$0")/.."
@@ -8,7 +8,7 @@ V=${VP_VIVADO_BIN:-/d/Software/Vivado/2025.2.1/Vivado/bin}
 export VP_VIVADO_BIN="${VP_VIVADO_BIN:?需要显式给 Vivado bin 目录}"
 export VP_XSDB=${VP_XSDB:?需要显式给 xsdb.bat 路径（机器相关，不写死）}
 NN=116
-MARK=build/evidence/r$NN/r116_io_HOLD.rpt
+MARK=build/evidence/r$NN/r116_io_hold.rpt
 say() { printf '[stage2 %s] %s\n' "$(date +%H:%M:%S)" "$*"; }
 
 # ---- 0. 等构建（最多 220 分钟；到点就走，不无限等）------------------------------------
@@ -38,9 +38,9 @@ bash build/timing_lane.sh > "build/r${NN}_lane_after.txt" 2>&1; L=$?
 say "快车道 rc=$L $(grep -a 'LANE-SUMMARY' "build/r${NN}_lane_after.txt" | tail -1)"
 
 # ---- 4. 顶层台架（一轮只付这一次）--------------------------------------------------------
-bash sim/run_one.sh tb_v98_top_seam > "build/r${NN}_tb98_console.txt" 2>&1; say "tb_v98 rc=$?"
+bash build/sim/run_one.sh tb_v98_top_seam > "build/r${NN}_tb98_console.txt" 2>&1; say "tb_v98 rc=$?"
 bash build/tb98_report.sh > "build/r${NN}_tb98report_console.txt" 2>&1; say "tb98_report rc=$?"
-bash sim/run_one.sh tb_edge_rim > "build/r${NN}_rim_console.txt" 2>&1; say "tb_edge_rim rc=$?"
+bash build/sim/run_one.sh tb_edge_rim > "build/r${NN}_rim_console.txt" 2>&1; say "tb_edge_rim rc=$?"
 ROUND=r$NN bash build/rim_report.sh > "build/r${NN}_rimreport_console.txt" 2>&1; say "rim_report rc=$?"
 
 # ---- 5. 门禁（先 /tmp 再 cp，两跑要逐字节一致）-------------------------------------------

@@ -1,5 +1,5 @@
 V6.x 回归结果（在打包后的仓库目录里跑出来，不是开发工作区）
-命令 : vivado -mode batch -nojournal -log sim/xsim_repo_v64.log -source sim/run_sim.tcl
+命令 : vivado -mode batch -nojournal -log sim/xsim_repo_v64.log -source build/sim/run_sim.tcl
 工具 : Vivado 2025.2.1 (xvlog/xelab/xsim)，Windows
 器件 : xc7z020clg484-2
 日期 : 2026-09-21（v6.4：入包写通道流水化 + 按 16bit lane 的 WSTRB）

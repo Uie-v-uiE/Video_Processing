@@ -23,7 +23,7 @@
       开 routed dcp 出 `build/evidence/r114_after_roster_rf.txt`，与 `build/evidence/r113_after_roster_rf.txt`
       （上板那版，同探针 + 同扇出名册）相减。**不许**拿 `roster_from_summary.sh` 那份只有 4 路钟的干净名册
       去减探针那份 8 路钟的名册——“少一路钟”会被数成代价（`D3 big_loss=8` 那份反例留在
-      `build/evidence/r114_roster_diff_shape_mismatch_DO_NOT_READ_AS_VERDICT.txt`）。
+      `build/evidence/r114_roster_diff_shape_mismatch_do_not_read_as_verdict.txt`）。
       `timing_roster_diff.sh` 现在自己会 REFUSE（`--self` 8/8），别绕过这道闸。
       0.445→0.739 是 `ASYNC_REG` 挪了放置的副产品（#290），不是这一刀的收益。
 - [ ] **④ 门禁两跑逐字节一致** → `build/r114_gates.txt`（24 项，项数没变 ⇒ 不动"门禁 N 项"那四处句子）。
@@ -35,7 +35,7 @@
       `--check` 必须**每条命中 1、拒 0** 才 `--apply`。⚠ #270 那一课的口径：`--check` 只证明写下的规则都命中，
       不证明覆盖 ⇒ 拿"本轮变了哪些数"逐条反查文档里每一处。本轮已知必须动的四处：
       1) 首页身份句（中英各一份）+ `data/metrics.csv` 的 WNS/WHS/util/power/结温行；
-      2) `report/TIMING_GLOBAL.md` §4 表里 `TIMING-9 / TIMING-10` 那一行的读数（改前 1 / 1，件 `r113_methodology_baseline.rpt`）；
+      2) `report/timing_global.md` §4 表里 `TIMING-9 / TIMING-10` 那一行的读数（改前 1 / 1，件 `r113_methodology_baseline.rpt`）；
       3) **同一张表下面那行自闭合等式** `Checks found: 446 = 2+1+336+98+1+1+7`——
          加数与总数都要按新报告重算，等不上就是抄漏一类（这行最容易漏，它是**别人**的账）；
       4) §4 那句把 TIMING-10 归到"#256 这一域没复位"的解释——TIMING-10 说的是同步器少 `ASYNC_REG`，

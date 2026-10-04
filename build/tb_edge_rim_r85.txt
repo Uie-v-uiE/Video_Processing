@@ -3,7 +3,7 @@ tb_md5=f8e0583ccb17
 rtl_md5=8da71c50bbc8
 date=2026-09-29T04:37:59+08:00
 # 台架判据（tb_edge_rim，r85 树）：与 r84 那份同代码，只差 split_display 的空 #()() 与 split_ctrl 的零宽字面量
-#   （两项都值中性；r85 与 r84 位流只差包头时间戳，见 report/PERF_REPORT.md §11.1）
+#   （两项都值中性；r85 与 r84 位流只差包头时间戳，见 report/perf_report.md §11.1）
 PASS R1 calibration trusted: interior == definition at (0,0) over 3844 cells
 PASS R1 calibration trusted: interior == definition at (0,1) over 3844 cells
 D1 stage=0 : left rim responds in 52/52 rows; interior control changed in 52/52

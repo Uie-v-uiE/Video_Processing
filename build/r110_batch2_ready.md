@@ -5,11 +5,11 @@
 
 ## 刀 0（**最先做**，因为它决定后面几刀的证据可不可信）：修回我把 `osd_addr` 变异弄钝的那处回归
 r109 的 #105 那一刀把 OSD 读侧改成 `ch_addr_pre = line*MAX_CHARS + cidx` → `ch_r <= chars[ch_addr_pre]`，
-`ch_addr` 从此只供台架判越界、**不再决定画出来的是什么**。后果：`sim/mut_control.sh` 的 `osd_addr` 分支
+`ch_addr` 从此只供台架判越界、**不再决定画出来的是什么**。后果：`build/sim/mut_control.sh` 的 `osd_addr` 分支
 （sed 改 `ch_addr` 那一行、`EXPDIFF=2`）现在"只改判据的眼睛、不改 DUT 的画"，而且 sed 仍能匹配 ⇒ **脚本不报警，只有人会漏**。
 详见 ISSUES #237。修法是两边重新同源并各配一支变异：
 - `sim/tb_osd_lines.v:76` 再引出 `oob_idx2 = u_osd.ch_addr_pre;`，T17/T18 要求两根都在范围内；
-- `sim/mut_control.sh` 把 `osd_addr` 拆成 `osd_addr_judge`（只改 `ch_addr` ⇒ 判据必须抓到）与
+- `build/sim/mut_control.sh` 把 `osd_addr` 拆成 `osd_addr_judge`（只改 `ch_addr` ⇒ 判据必须抓到）与
   `osd_addr_draw`（改 `ch_addr_pre` ⇒ 必须红 T17），各给 `EXPDIFF`，并改掉旧注释里"仍然 0 是限度"的说法。
 落完这一刀再谈下面的刀 1..6 —— 否则后面任何"变异对照通过"都建立在一把已经失效的尺子上。
 
@@ -18,7 +18,7 @@ r109 的 #105 那一刀把 OSD 读侧改成 `ch_addr_pre = line*MAX_CHARS + cidx
 - 改法：`if (frame_done) begin stall_ms <= 0; if (gapclr) begin gap_last<=0; gap_min<=0; gap_max<=0; gap_sum<=0; gap_valid<=0; end else if (have_base) begin …`
   —— 与 `:110` 已有的"清 > 帧边界 > 滴答"优先级对齐；跨零点那一条完成的间隔**丢弃**，下一个 `frame_done` 重建基准。
 - 预验读数：未打刀那腿 `FAIL F2e B … sum=518 > 2x130`（且只有这一条红）；打刀那腿 F2e A/B 与 F2a–F2d 全绿。
-- 落刀后：`bash sim/run_one.sh tb_link_monitor`（约 38 秒）必须全绿；然后重跑 `build/f2e_preverify.sh` 只是留凭据，不再需要。
+- 落刀后：`bash build/sim/run_one.sh tb_link_monitor`（约 38 秒）必须全绿；然后重跑 `build/f2e_preverify.sh` 只是留凭据，不再需要。
 - ⚠ 不要"顺手"改期望值：F2e A 那条对照就是防这条刀把判据改宽的（规矩 30/44）。
 
 ## 刀 2：#177 死代码一轮（删完要证"输出不变"，逐端口面已在任务 #177 里查到底）
@@ -110,7 +110,7 @@ hold 侧今天不动：WHS 0.049 的归属又换了（`u_rx_mac/u_crc_rx/crc_dat
    两路各数一份：**原图抽头**（`orig_pix`）与**处理抽头**（缝选中的那一路，即 `dut.r/g/b` 复原出的 565 那颗）。
 2. 三条各打一行：`C10a raw tap's own tag follows the definition (8 zoom codes)`、
    `C10b proc tap's own tag follows the definition`、`C10pre per-code sample floor`（每档 `n-skip >= 20000` 才有资格判绿，rule 44/46）。
-3. 牙（阳性对照，**必须在未改的树上就能红一次**）：`sim/mut_control.sh` 里加一支 `raw_tap_clamp` ——
+3. 牙（阳性对照，**必须在未改的树上就能红一次**）：`build/sim/mut_control.sh` 里加一支 `raw_tap_clamp` ——
    把 #102 第一刀那个"消隐期读地址钳 0"改回"钳到上一行"（或直接把 `u_raw` 的读地址 +1），
    变异后**只该红 C10a 一条**（连带 C10pre 不许动）；红两条以上就是判据共享根因，要在报告里点名连带。
    ⚠ 这条对照**先跑、拿到红，再谈任何 RTL**（#158/#222 的口径：先有数得出机会的尺子）。
@@ -128,7 +128,7 @@ hold 侧今天不动：WHS 0.049 的归属又换了（`u_rx_mac/u_crc_rx/crc_dat
 改法三处一起：`line("C12pre both…")→C13pre`、`C12c→C13c`、`C12a head request…→C13a`、`C12b frozen-angle…→C13b`；
 `build/tb98_report.sh:35` 的打印白名单加 `C13 `（保留 `C12 `，老家还在用）；`$display` 那两行读数前缀同批改 `C13 rot:` / `C13 frozen:`。
 ⚠ 条数不变 ⇒ "整屏判据条数"那一格不许跟着动（规矩 47：项数本身是被判的数）。
-落刀后先在**未打刀**的树上跑一次 `sim/mut_control.sh` 或任一快车道支，确认没有脚本按 `^C12a` 找新家的读数行。
+落刀后先在**未打刀**的树上跑一次 `build/sim/mut_control.sh` 或任一快车道支，确认没有脚本按 `^C12a` 找新家的读数行。
 
 ## 刀 2 的前置复核（2026-10-03 01:1x 重跑 grep，链子在飞、只读）
 按名字数"命中几个文件"（`grep -rl "\b名字\b" src/rtl src/ps sim`）：
@@ -147,7 +147,7 @@ pristine 0 ERROR / patched 0 ERROR（自测抓到并修掉两处我自己的缺�
 1. `bash build/r110_apply_cuts.sh --check` —— 三条都要 CHECK-OK；任一 ANCHOR-* 就是树变了，重读源码改脚本，不放宽锚点；
 2. `VP_I_KNOW=1 bash build/r110_apply_cuts.sh --apply` —— 这一步会自己检查"没有 vivado/xsim 在飞 + 两份 RTL 在 git 里干净"，
    所以链子在飞时它 REFUSE 是**正确行为**，不要用 `VP_ALLOW_BUSY=1` 绕过（那个开关只给拷贝树自测）；
-3. `git diff` 读一眼两处改动，`bash sim/run_one.sh tb_link_monitor`（约 40 秒，F2e 整支必须绿）；
+3. `git diff` 读一眼两处改动，`bash build/sim/run_one.sh tb_link_monitor`（约 40 秒，F2e 整支必须绿）；
 4. `bash build/timing_lane.sh`（约 9 分钟）拿刀 4 的功能等价凭据：与 r109 基线比，**只许 `tb_link_monitor` 那支从红变绿**，
    其余 27 支逐支同绿；出现新红 ⇒ 独热刀改变了行为，按 `git checkout -- src/rtl/eth/frame_reasm.v` 退回；
 5. 只有第 4 步干净才 `bash build/r110_chain.sh`（它先 `pre_readings.sh` 再构建；一轮只付一次 127 分钟顶层台架）；

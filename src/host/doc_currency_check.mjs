@@ -1,9 +1,9 @@
 // src/host/doc_currency_check.mjs —— "文档不许把旧构建念成当前"
 //
 // 为什么要有它（这一轮撞了两次，都是同一类）：
-//   * `report/PERF_REPORT.md` 的"当前值看这里"指到 `CHANGELOG_V7.md`，而那份日志最后一节是
+//   * `report/perf_report.md` 的"当前值看这里"指到 `changelog_v7.md`，而那份日志最后一节是
 //     V7.9（R22+R23）——照它念会念到五十多版之前。
-//   * `README.md` / `README.en.md` 的实现结果行一直写着 `当前默认 bit（build#23）：WNS +0.740 …`，
+//   * `README.md` / `readme.en.md` 的实现结果行一直写着 `当前默认 bit（build#23）：WNS +0.740 …`，
 //     而板上烧的是 r71；同一张命令表还把 `bilin` 写成"主线目前不含此项"，而它早就在主线上了。
 //   这类错的讨厌之处和坏字一样：**它不改变任何行为**。位流照编、台架照跑、门禁照绿，
 //   坏的是"念给评审听的那一句"。所以判据必须自己跑 ⇒ `build/gates.sh` 第 18 项。
@@ -14,7 +14,7 @@
 //      编号的构建目录是历史凭据，只能以过去式出现；"当前"那一句必须点名**门禁全绿那一套**。
 //   D2 文档里点名的 `build/frozen_*` / `build/evidence_*` 目录必须真的在盘上。
 //      冻结件被移动或改名之后，文档里的"复核一条命令"就变成一条跑不通的命令。
-//   D3 首页（README.md / README.en.md）里"门禁全绿 = rNN"这一句点名的那一套，必须等于
+//   D3 首页（README.md / readme.en.md）里"门禁全绿 = rNN"这一句点名的那一套，必须等于
 //      `build/*gates*.txt` 里**编号最大且写着 GATES: ALL PASS** 的那一套；并且 README.md 里
 //      至少要有这么一句（没有就等于没说）。⇒ 下一次冻结成功时，这一条会自己变红，逼着改首页。
 //
@@ -29,17 +29,17 @@ import { createHash } from 'node:crypto';
 const ROOT = path.resolve(import.meta.dirname, '..', '..');
 const EXT = new Set(['.md', '.mjs', '.sh', '.ps1', '.tcl']);
 // **只扫"念给人看的那一份"**：首页、板上操作卡、性能报告、构建说明、比赛清单、演示脚本、命令表。
-// 为什么把 `report/log/OVERNIGHT_LOG.md`、`report/log/CHANGELOG_V7.md`、`report/log/ISSUES.md`、
-// `report/log/VERSION_LINEAGE.md` 排除在 D1 之外——它们是**日记**，里面的"当前默认 #23""下一步冻结
+// 为什么把 `report/log/overnight_log.md`、`report/log/changelog_v7.md`、`report/log/issues.md`、
+// `report/log/version_lineage.md` 排除在 D1 之外——它们是**日记**，里面的"当前默认 #23""下一步冻结
 // frozen_r61_geom"写的是**当时**的当前与当时的计划。拿今天的盘去判昨天的日记，红的不是文档过期，
 // 而是我逼着自己回头改日记（那是销毁过程凭据，比过期更糟）。要改的永远是"现在还会被念出来"的那几页。
-const SCOPE_DOCS = ['README.md', 'README.en.md', 'board/README.md',
-    'report/PERF_REPORT.md', 'report/BUILD.md', 'report/log/CONTEST_CHECKLIST.md',
-    'report/DEMO_SCRIPT.md', 'report/COMMANDS.md', 'report/BACKGROUND_AND_NOVELTY.md'];
+const SCOPE_DOCS = ['README.md', 'readme.en.md', 'board/README.md',
+    'report/perf_report.md', 'report/build.md', 'report/log/contest_checklist.md',
+    'report/demo_script.md', 'report/commands.md', 'report/background_and_novelty.md'];
 // 会被复制粘贴去跑的脚本：里面的指路同样要成立。
 const SCOPE_DIRS = ['build/tcl', 'src/host'];
 const SKIP_DIR = new Set(['.git', 'vivado_system', 'xsim.dir', 'node_modules', '.Xil', 'dist']);
-const HOME = ['README.md', 'README.en.md'];          // D3 只看首页这两份
+const HOME = ['README.md', 'readme.en.md'];          // D3 只看首页这两份
 const SELF = 'src/host/doc_currency_check.mjs';      // 判据不看自己的例子（例子里就得写坏句）
 // 导出器是**故意**要写 `report/` 的：仓库里叫 report/，交出去必须是官方结构里的 report/，
 // 它的整个职责就是这两个名字之间的映射。拿"旧目录不许出现"去判它，等于判翻译器"不许提目标语言"。
@@ -78,7 +78,7 @@ const NUM = /(build#\d+|frozen_r\d)/;
 // 就不该拿工作区的盘去判它存在与否。
 const CITED = /(^|[^/\w.-])build\/(frozen_[\w.-]+|evidence_[\w.-]+)/g;
 const GREEN = /(门禁全绿|gate-?green)[^。\n]{0,40}?\br(\d+)/i;
-// 目录名里必须有真实编号：`frozen_rNN_…`（BUILD.md 讲的是命名规则）与光秃秃的 `frozen_r`（glob）都不算引用。
+// 目录名里必须有真实编号：`frozen_rNN_…`（build.md 讲的是命名规则）与光秃秃的 `frozen_r`（glob）都不算引用。
 function citable(tok) { return /_r\d{2,}(_|$)/.test(tok) && !tok.includes('NN'); }
 
 // 纯函数：把"文件名 → 行"喂进来就能判，--self 因此不必真去改盘上的文件。
@@ -109,7 +109,7 @@ function checkLines(docLines, dirExists, newestGreen) {
         });
     }
     if (newestGreen > 0) {
-        const home = claims.filter(c => c.at.startsWith('README.md') || c.at.startsWith('README.en.md'));
+        const home = claims.filter(c => c.at.startsWith('README.md') || c.at.startsWith('readme.en.md'));
         // 首页有两种**都算诚实**的写法：① 念"门禁全绿 = rNN"，那 rNN 必须等于盘上最新且 ALL PASS 的那一套；
         // ② 干脆不念版本号，明写"不作门禁全绿声明"，让读者自己去跑 `build/gates.sh`（交付件口吻用的就是这条）。
         // 两种都没有才算红 —— 因为"沉默"既可能是有意的（②），也可能是忘了（那就是 #88 那一类：门禁绿不绿没人说）。
@@ -134,7 +134,7 @@ function checkLines(docLines, dirExists, newestGreen) {
 //         `frozen_rNN_*` 这种带星号/占位名的写法天然不匹配，正当的命名规则句不会被咬）。
 //     D4b `report/` 这个旧目录名后面直接跟文件名字符 ⇒ 一律红（旧目录已经不存在了；
 //         "当年那个 report/ 目录"这种**叙事**（斜杠后是空格）不算指路，放过）。
-//   日记（docs/log/*.md）也在扫描范围内：里面那句"见 `report/ISSUES.md`"曾经是历史叙述，
+//   日记（docs/log/*.md）也在扫描范围内：里面那句"见 `report/issues.md`"曾经是历史叙述，
 //   但既然指路已经全部改写，留着就是半搬 —— 所以一视同仁。
 const CITE_MD = /(?:^|[^/\w.:-])(report\/log|report|build|src|sim|board|skill)\/[\w./-]*?[\w-]+\.md\b/g;
 const OLD_DIR = /(?:^|[^/\w.-])docs\/[\w.*-]/g;
@@ -167,9 +167,9 @@ const CITE_ART = new RegExp(
 //     谁要复核这条口径，跑 `--list-adv` 数一遍两类出处即可，不必信上面这些数。
 //     剩下没被上面六类盖住的 24 条也各有归属：退役台架与 wip 脚本的名字（P2 那轮 sim/ 剔除 #108、
 //     `build/wip_*.sh` 清理 #123 删掉的）、`board/uart_*` 系列的调查留痕（与③同族，只是文件名不含 sd_），
-//     以及**历史叙述里那句"当时找错了路径"**（如 `ISSUES.md:435` 讲的 `build/build/system.bit` ——
+//     以及**历史叙述里那句"当时找错了路径"**（如 `issues.md:435` 讲的 `build/build/system.bit` ——
 //     它点名的是"root 少一级"这个已修缺陷，不是让人去打开这个文件）。
-//     逐条身份（谁指谁、属哪一类）的表在 `report/log/D4C_POINTERS.md`，那份表自带"条数只对快照那一分钟负责"的声明。
+//     逐条身份（谁指谁、属哪一类）的表在 `report/log/d4c_pointers.md`，那份表自带"条数只对快照那一分钟负责"的声明。
 //     （它故意留在日记区：那页的内容就是"盘上不存在的路径"清单，放进交付区会被导出器的死链自检整批拒发
 //       —— 2026-09-30 r96 真的踩到过一次：56 条死链全部出自那页，导出器拒绝写包，行为正确，我们不改自检。）
 const DELIVERY = (rel) => HOME.includes(rel) || rel === 'board/README.md'
@@ -248,7 +248,7 @@ function handWrittenFiles(dir, out, relBase) {
 // 基准的来历不是另一句文案，而是 `build/system.bit` 的 md5 → 哪一份 `build/rNN_gates.txt` 戳了同一个 md5
 // （那一份是门禁件自己写的"身份："段，见 `build/gates.sh`）。
 // ⚠ 基准**不能**复用 D3 的"最新且 ALL PASS 的冻结集"：本仓冻结停在 r75，而板上跑的是被采纳的 r104——
-//   采纳与冻结本来就是两件事（`report/KNOWN_ISSUES.md` §20），拿冻结集当"现在"会把每一句诚实的话集体误报。
+//   采纳与冻结本来就是两件事（`report/known_issues.md` §20），拿冻结集当"现在"会把每一句诚实的话集体误报。
 // 形状要**相邻**：只说"这行里出现了 现在 也出现了 rNN"不够——正当的历史句长这样：
 // "写这一节那天（2026-09-26）板上是 r80…板上现在跑哪一轮请看 README"，那句"现在"后面跟的是"跑哪一轮"
 // 而不是编号；相邻判据不咬它，而"现在是 r80"咬得住。
@@ -276,9 +276,9 @@ function currentBoardRound() {
 }
 // D1b 的扫描面**单独一份**：日记类（report/log/）与两份过程台账（KNOWN_ISSUES / OPTIMIZATION_LOG）不进——
 // 那里成片的"板上已是这一版（rNN）"是带日期的凭据，把它们咬红等于逼人回去改凭据（D4c 那轮划过的同一条边界）。
-const D1B_DOCS = ['README.md', 'README.en.md', 'board/README.md', 'report/PERF_REPORT.md',
-    'report/BUILD.md', 'report/DEMO_SCRIPT.md', 'report/COMMANDS.md', 'report/BACKGROUND_AND_NOVELTY.md',
-    'report/AI_COLLABORATION.md', 'report/LLM_COLLAB.md', 'report/ARCHITECTURE.md', 'report/HOST_GUIDE.md'];
+const D1B_DOCS = ['README.md', 'readme.en.md', 'board/README.md', 'report/perf_report.md',
+    'report/build.md', 'report/demo_script.md', 'report/commands.md', 'report/background_and_novelty.md',
+    'report/ai_collaboration.md', 'report/llm_collab.md', 'report/architecture.md', 'report/host_guide.md'];
 function d1bScan(docs, cur) {
     const rows = [];
     let claims = 0;
@@ -450,14 +450,14 @@ if (argv.includes('--self')) {
         checkLines({ 'README.md': ['最近一次门禁全绿的冻结集 = r69：WNS +0.188'] }, okDir, 71), /D3/);
     // 正当句不许误报：过去式 + 编号目录真实存在 + 首页点的正是最新那套
     const good = checkLines({
-        'report/log/CHANGELOG_V6.md': ['第四版得到 WNS +0.708 / 寄存器 51.30%（`build/frozen_r13`）'],
+        'report/log/changelog_v6.md': ['第四版得到 WNS +0.708 / 寄存器 51.30%（`build/frozen_r13`）'],
         'README.md': ['最近一次门禁全绿的冻结集 = r71：WNS +0.346'],
     }, okDir, 71);
     console.log(`  ${good.length === 0 ? 'PASS' : 'FAIL'} 对照：过去式与点名最新全绿的那一套都不误报（实测 ${good.length} 条）`);
     for (const r of good) console.log('        ' + r);
     // 两个"别咬到正当文本"的边界：命名规则里的占位名、以及**带路径前缀**的那一种（不是仓库根的 build/）。
     const edges = checkLines({
-        'report/BUILD.md': ['冻结目录命名规则：`build/frozen_rNN_xxx/`（NN 是那一次构建的编号）',
+        'report/build.md': ['冻结目录命名规则：`build/frozen_rNN_xxx/`（NN 是那一次构建的编号）',
             '备份包里的 `submission/build/frozen_r26/` 是复制品，不拿工作区判它存在与否'],
     }, () => false, 0);
     console.log(`  ${edges.length === 0 ? 'PASS' : 'FAIL'} 对照：占位名与带前缀的路径不误报（实测 ${edges.length} 条）`);
@@ -469,21 +469,21 @@ if (argv.includes('--self')) {
     console.log(`  ${neutral.length === 0 ? 'PASS' : 'FAIL'} 对照：首页明写"不作门禁全绿声明"不误报 D3（实测 ${neutral.length} 条）`);
     for (const r of neutral) console.log('        ' + r);
     // D4 自己的反例：一条"点名的文档盘上没有"、一条"还在指已经删掉的旧目录"，两条都必须红；
-    // 再加一条正当句（真的在盘上的 `report/COMMANDS.md` + 一个占位名 `frozen_rNN_x`）不许红。
-    const d4bad = checkPaths({ 'report/ARCHITECTURE.md': ['详见 `report/NO_SUCH_DOC.md` 的 §2'], }, () => false).rows;
-    const d4old = checkPaths({ 'report/ARCHITECTURE.md': ['// 口径见 `docs/ISSUES.md` #66'], }, () => true).rows;
-    const d4ok = checkPaths({ 'README.md': ['详见 `report/COMMANDS.md`；凭据在 `build/frozen_rNN_x/`；',
+    // 再加一条正当句（真的在盘上的 `report/commands.md` + 一个占位名 `frozen_rNN_x`）不许红。
+    const d4bad = checkPaths({ 'report/architecture.md': ['详见 `report/NO_SUCH_DOC.md` 的 §2'], }, () => false).rows;
+    const d4old = checkPaths({ 'report/architecture.md': ['// 口径见 `docs/issues.md` #66'], }, () => true).rows;
+    const d4ok = checkPaths({ 'README.md': ['详见 `report/commands.md`；凭据在 `build/frozen_rNN_x/`；',
         '当年那个 report/ 目录已经拆成 docs/  与 docs/ log/（这是叙事，不是指路）'], },
-        (tok) => tok === 'report/COMMANDS.md').rows;
+        (tok) => tok === 'report/commands.md').rows;
     // D4c 的反例：点名一份盘上没有的报告必须红；对照是"通配/占位/变量"三种写法都不许咬
     // ——门禁那一句 `build/*gates*.txt` 是命名规则，不是指路（`build/gates.sh` 本身在盘上）。
-    const d4art = checkPaths({ 'report/PERF_REPORT.md': ['门禁读数见 `build/r99_gates_nope.txt`'], }, () => false).rows;
+    const d4art = checkPaths({ 'report/perf_report.md': ['门禁读数见 `build/r99_gates_nope.txt`'], }, () => false).rows;
     const d4artok = checkPaths({ 'README.md': ['跑 `bash build/gates.sh`，认 `build/*gates*.txt` 里编号最大且',
         '`ALL PASS` 的那一份；`$OUT/build/system.bit` 由脚本决定；`build/frozen_rNN/MANIFEST.md5` 是命名规则'], },
         (tok) => tok === 'build/gates.sh').rows;
     // 范围对照（#141 那一类：尺子的作用范围会无声漂移）：同一句指路写在日记里**不许判红**，
     // 但必须进"只报数"那一堆 —— 两边都查，缺一边就是范围漂了。
-    const sp = checkPaths({ 'report/log/OVERNIGHT_LOG.md': ['当时那份 `build/r99_gates_nope.txt` 已经删了',
+    const sp = checkPaths({ 'report/log/overnight_log.md': ['当时那份 `build/r99_gates_nope.txt` 已经删了',
         '那份简介 `report/PROJECT_BRIEF_NOPE.md` 后来也撤了'], }, () => false);
     const scope = sp.rows.length === 0 && sp.adv.length === 2;
     console.log(`  ${scope ? 'PASS' : 'FAIL'} 对照：同一句指路（.txt 与 .md 各一）在日记里只报数（判红 ${sp.rows.length} / 报数 ${sp.adv.length}）`);
@@ -493,15 +493,15 @@ if (argv.includes('--self')) {
     const cur0 = currentBoardRound();
     const fakeCur = { nn: 104, bit: 'deadbeefcafe', name: 'r104_gates.txt' };
     n += yes('D1b：把板态身份句念成 r80（基准 r104）',
-        d1bScan({ 'report/AI_COLLABORATION.md': [
+        d1bScan({ 'report/ai_collaboration.md': [
             '板上这一套现在是 r80（`build/system.bit` md5 `1906b6764ae4`，门禁 19/20，唯一红项 = 第 15 项的 `C5c`）'] },
             fakeCur).rows, /D1b/);
-    n += yes('D1b：英文身份句念错轮号', d1bScan({ 'README.en.md': [
+    n += yes('D1b：英文身份句念错轮号', d1bScan({ 'readme.en.md': [
         'Design-wide setup WNS (the board now runs r91, flashed at 04:10)'] }, fakeCur).rows, /D1b/);
     const d1bok = d1bScan({
-        'report/AI_COLLABORATION.md': ['写这一节那天（2026-09-26）板上是 r80（`build/system.bit` md5 `1906b6764ae4`）—— 这句**按日期读**，板上现在跑哪一轮请看 `README.md` 首页那一行'],
+        'report/ai_collaboration.md': ['写这一节那天（2026-09-26）板上是 r80（`build/system.bit` md5 `1906b6764ae4`）—— 这句**按日期读**，板上现在跑哪一轮请看 `README.md` 首页那一行'],
         'README.md': ['| 全设计 setup WNS | **0.812 ns**（板上这一版 r104，2026-10-02 01:18 三步 JTAG 刷入，`bit 680f38f5794c`）'],
-        'README.en.md': ['| Design-wide setup WNS | **0.812 ns** (the board now runs r104, flashed at 01:18 on 2026-10-02)'],
+        'readme.en.md': ['| Design-wide setup WNS | **0.812 ns** (the board now runs r104, flashed at 01:18 on 2026-10-02)'],
     }, fakeCur).rows;
     console.log(`  ${d1bok.length === 0 ? 'PASS' : 'FAIL'} 对照：带日期的历史句 + 念对轮号的中英身份句都不误报（实测 ${d1bok.length} 条）`);
     for (const r of d1bok) console.log('        ' + r);
@@ -525,12 +525,12 @@ if (argv.includes('--self')) {
     n += yes('D1c：把 21 绿念成 19 绿（基准 22 项／21 绿／1 红）',
         d1cScan({ 'README.md': ['| 全设计 setup WNS | **0.812 ns**（板上这一版 r104；门禁 22 项 19 绿 / 1 红，唯一红是 `C5c`）'] },
             fakeCur, t104).rows, /D1c/);
-    n += yes('D1c：英文式把项数念成 23（基准 22）', d1cScan({ 'README.en.md': [
+    n += yes('D1c：英文式把项数念成 23（基准 22）', d1cScan({ 'readme.en.md': [
         'the 23-item gate check reads 22 green / 1 red (the board now runs r104)'] }, fakeCur, t104).rows, /D1c/);
     const d1cok = d1cScan({
         'README.md': ['| 全设计 setup WNS | **0.812 ns**（板上这一版 r104；门禁 22 项 21 绿 / 1 红，唯一红是 `C5c`）'],
-        'README.en.md': ['(the board now runs r104; the 22-item gate check reads 21 green / 1 red)'],
-        'report/AI_COLLABORATION.md': ['写这一节那天（2026-09-26）板上是 r80，门禁 19 项 18 绿 / 1 红 —— 这句按日期读'],
+        'readme.en.md': ['(the board now runs r104; the 22-item gate check reads 21 green / 1 red)'],
+        'report/ai_collaboration.md': ['写这一节那天（2026-09-26）板上是 r80，门禁 19 项 18 绿 / 1 红 —— 这句按日期读'],
     }, fakeCur, t104);
     const d1cokPass = d1cok.rows.length === 0 && d1cok.claims === 3 && d1cok.skipped === 1;
     console.log(`  ${d1cokPass ? 'PASS' : 'FAIL'} 对照：念对的中英句不误报、带日期的历史句只数不判`

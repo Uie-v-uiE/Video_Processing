@@ -8,7 +8,7 @@
 #      空隙都会让"没有 xsim"这个条件假成立 ⇒ 必须等**链子的出口件** `build/r113_gates.txt` 出现，
 #      再叠加"没有 xsim/vivado 在飞"，两条同时成立才起飞。
 #
-# 排的两支（都直接服务"改时序要看全局"这一条，见 report/TIMING_GLOBAL.md 第 5 节与 #263）：
+# 排的两支（都直接服务"改时序要看全局"这一条，见 report/timing_global.md 第 5 节与 #263）：
 #   1) build/r113_roster_refanout.sh —— 用改好的探针重取名册，把 D6 那根"工具红"变成有凭据的读数
 #      （实测根因：本工具的 report_design_analysis 没有 -fanout 模式）。
 #   2) build/r114_maxfanout_ab.sh —— 同一份 opt.dcp 滚两遍（A 不加 / B 加 set_max_fanout），

@@ -1,5 +1,5 @@
 # r97 树（rtl_md5 未改，见下面 prov）上 #180 的**改前红**凭据：尺子 sim/tb_link_monitor.v 的 F2/F2e 段
-# 跑法：bash sim/run_one.sh tb_link_monitor   rc=3（3=判红）
+# 跑法：bash build/sim/run_one.sh tb_link_monitor   rc=3（3=判红）
 # 结论：F2a-F2d（gapclr 举着跨整个帧边界）**绿** ⇒ 台账里那句'必然撞'被这条尺子否掉；
 #       唯一永久的可达形状是 F2e：放开的这一拍正好压在记账拍上 ⇒ lane5(Σ间隔) 没被清零，均值从此偏大。
 # 可达性：bit26 今天的 main.c 从不写（ctrl_write 整字写回、26 位恒 0）⇒ 板上走不到；固件按文档用它时约 1/130 命中。

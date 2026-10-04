@@ -6,7 +6,7 @@
 import io, os, re
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-P = os.path.join(ROOT, 'board', 'ACCEPTANCE.md')
+P = os.path.join(ROOT, 'board', 'acceptance.md')
 raw = io.open(P, encoding='utf-8', newline='').read()
 
 m = re.search(r'^\| E2 \|[^\n]*$', raw, re.M)

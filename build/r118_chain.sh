@@ -105,5 +105,5 @@ bash build/board_verify.sh --geom --battery --round=r118 > "$D/board_verify_cons
     "$([ "$B1OK" = 1 ] && [ "$B4OK" = 1 ] && echo r118 || echo r114回刷)" "$(date '+%F %T')" "$RC" "$BV"
   printf 'B1 严格名册：%s\nB4 门禁：绿=%s 红=%s\n' "$(grep -a '^B1 pairs_compared' build/evidence/r118_strict_b1.txt)" \
     "$(grep -c ' PASS$' build/r${NN}_gates.txt)" "$(grep -c ' FAIL$' build/r${NN}_gates.txt)"
-} > "$D/BOARD_NOW.txt" 2>&1
-say "链结束（板上状态见 $D/BOARD_NOW.txt）"
+} > "$D/board_now.txt" 2>&1
+say "链结束（板上状态见 $D/board_now.txt）"

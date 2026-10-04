@@ -1,5 +1,5 @@
 #!/bin/bash
-# build/run_one_ce.sh —— #166 的对照实验：`sim/run_one.sh --verdict` 这条尺子**自己**能不能被喂出正确答案。
+# build/run_one_ce.sh —— #166 的对照实验：`build/sim/run_one.sh --verdict` 这条尺子**自己**能不能被喂出正确答案。
 #
 # 为什么单独一个脚本（本项目的规矩：判据要能红，检查器也要有自己的测试）：
 #   r62 那天一支真红的台架被 `run_one.sh` 报成 `NO-VERDICT-LINE || FAIL 行数=0` ——
@@ -22,7 +22,7 @@ D=$(mktemp -d); trap 'rm -rf "$D"' EXIT
 
 # $1=日志文件 $2=期望 rc $3=说明；退出码累加到 BAD
 ce() {
-    bash sim/run_one.sh --verdict tb_demo "$1" > "$1.out" 2>&1; local rc=$?
+    bash build/sim/run_one.sh --verdict tb_demo "$1" > "$1.out" 2>&1; local rc=$?
     local want=$2
     if [ "$rc" = "$want" ]; then echo "  ok   $3：rc=$rc（$(tail -1 "$1.out")）"
     else echo "  BAD  $3：rc=$rc 期望 $want（$(tail -1 "$1.out")）"; BAD=$((BAD + 1)); fi

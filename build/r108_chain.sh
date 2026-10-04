@@ -76,13 +76,13 @@ say "扇出判据落 build/r${NN}_fanout_verdict.txt"
 
 # ---- 4. 台架（一次一支，链子里不并发）----
 say "顶层台架（约 100 分钟，链子里唯一在跑的 xsim）"
-bash sim/run_one.sh tb_v98_top_seam > "build/r${NN}_tb98_console.txt" 2>&1; R=$?
+bash build/sim/run_one.sh tb_v98_top_seam > "build/r${NN}_tb98_console.txt" 2>&1; R=$?
 say "顶层台架 rc=$R（3=判红 0=绿）"
 bash build/tb98_report.sh > "build/r${NN}_tb98report_console.txt" 2>&1; say "tb98_report rc=$?"
 # 这一刀的收/发两端都要过：ICMP 应答器的台架 + 收包链
-bash sim/run_one.sh tb_icmp_ping0 > "build/r${NN}_bench_tb_icmp_ping0.txt" 2>&1; say "tb_icmp_ping0 rc=$?"
-bash sim/run_one.sh tb_v795_rx_chain > "build/r${NN}_bench_tb_v795_rx_chain.txt" 2>&1; say "tb_v795_rx_chain rc=$?"
-bash sim/run_one.sh tb_edge_rim > "build/r${NN}_rim_console.txt" 2>&1; say "边缘条带台架 rc=$?"
+bash build/sim/run_one.sh tb_icmp_ping0 > "build/r${NN}_bench_tb_icmp_ping0.txt" 2>&1; say "tb_icmp_ping0 rc=$?"
+bash build/sim/run_one.sh tb_v795_rx_chain > "build/r${NN}_bench_tb_v795_rx_chain.txt" 2>&1; say "tb_v795_rx_chain rc=$?"
+bash build/sim/run_one.sh tb_edge_rim > "build/r${NN}_rim_console.txt" 2>&1; say "边缘条带台架 rc=$?"
 ROUND=r$NN bash build/rim_report.sh > "build/r${NN}_rimreport_console.txt" 2>&1; say "rim_report rc=$?"
 
 # ---- 5. 门禁：两步（先 /tmp 再 cp，D1b/D1c 读的就是这份）----

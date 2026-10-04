@@ -11,8 +11,8 @@
 
 ## 1. 用哪把尺子（不另立标准）
 
-复用仓库现成的机检：`scripts/check_repo_hygiene.sh` 的 **C2 敏感信息**段（P20 交付物），
-它已经把我需要覆盖的类别写成模式表（逐行照 `scripts/check_repo_hygiene.sh:129-137`）：
+复用仓库现成的机检：`build/checks/check_repo_hygiene.sh` 的 **C2 敏感信息**段（P20 交付物），
+它已经把我需要覆盖的类别写成模式表（逐行照 `build/checks/check_repo_hygiene.sh:129-137`）：
 
 | 模式名 | 正则（原样，不含任何真实值） | 本档案是否覆盖 |
 | --- | --- | --- |
@@ -27,7 +27,7 @@
 | `机器名后缀laptop` | `[A-Za-z0-9_-]+-laptop` | 是（第 4 行） |
 
 **串口名不在禁止之列**：C2a 的标题原文写着"绝对路径/用户名/令牌/内网地址/机器名；**串口名允许**"
-（`scripts/check_repo_hygiene.sh:283`）⇒ `COM<数字>` 一律**不脱敏**，理由见 §4 第 8 行。
+（`build/checks/check_repo_hygiene.sh:283`）⇒ `COM<数字>` 一律**不脱敏**，理由见 §4 第 8 行。
 
 **本档案自己的扫描命令**（判 9 类，逐类对 7 个新文件跑）：
 
@@ -71,7 +71,7 @@ done
 | 工作区键 `D--Xilinx-Prj-pro`、`D--Xilinx-Prj-project-handoff` | 是工具生成的目录名（不含用户名），是"归属偏差"（S01 §5）的唯一证据 |
 | 所有**仓库相对路径**与 `文件:行` | 档案的全部可核验性建立在这上面；改成占位符等于自毁（P00 铁律 4/3） |
 | 板卡/器件名、工具版本、`Path Group` 名、`.xdc`/`.tcl` 名 | 与隐私无关，且是判别实验的必需参数 |
-| `board/ACCEPTANCE.md` 里的队员原话「0度」 | **不得改写**：那是眼睛签收记录，P22 铁律 1 的"原文照存"对象，且本任务边界明令不改这个文件 |
+| `board/acceptance.md` 里的队员原话「0度」 | **不得改写**：那是眼睛签收记录，P22 铁律 1 的"原文照存"对象，且本任务边界明令不改这个文件 |
 
 ## 3. 源日志侧的命中统计（导出**不随包**，这些计数只证明"为什么不能随包"）
 
@@ -118,8 +118,8 @@ done
 
 | 分组 | 文件数 | 代表位置 | 谁能处置 |
 | --- | --- | --- | --- |
-| 工具生成件（控制台原始捕获） | 32 | `build/evidence/pu113/r110_xvlog.txt`（4 处）、`build/evidence/r114_mf/A_roll_console.txt`（5 处）等 | 按 `scripts/check_repo_hygiene.sh:284` 的 C2b 口径：**仓库留档不脱敏，成包时由导出器剔除**（P20 既有决定） |
-| **手写件（C2a 射程）** | 4 | `build/r116_batch_plan.md:5`、`report/log/ISSUES.md:11862`、`skill/prompts/_proposed-sources.md:61`、`skill/_meta/sources.md:152` | **不在本任务边界内**（我只允许在 `report/collaboration/` 下新建文件，不许改 `skill/`、`report/` 其它文件、`docs/`）⇒ 移交队伍；计数与授权问题记在 `README.md` §5 的 Q7，位置逐条就是本行这四个 `文件:行` |
+| 工具生成件（控制台原始捕获） | 32 | `build/evidence/pu113/r110_xvlog.txt`（4 处）、`build/evidence/r114_mf/a_roll_console.txt`（5 处）等 | 按 `build/checks/check_repo_hygiene.sh:284` 的 C2b 口径：**仓库留档不脱敏，成包时由导出器剔除**（P20 既有决定） |
+| **手写件（C2a 射程）** | 4 | `build/r116_batch_plan.md:5`、`report/log/issues.md:11862`、`skill/prompts/_proposed-sources.md:61`、`skill/_meta/sources.md:152` | **不在本任务边界内**（我只允许在 `report/collaboration/` 下新建文件，不许改 `skill/`、`report/` 其它文件、`docs/`）⇒ 移交队伍；计数与授权问题记在 `README.md` §5 的 Q7，位置逐条就是本行这四个 `文件:行` |
 | 未跟踪 | 1 | 上面 36 个里 1 个未入库（成包时不随包） | 队伍决定 |
 
 ⇒ **判据 4 的两面读法必须写清**（不自夸）：

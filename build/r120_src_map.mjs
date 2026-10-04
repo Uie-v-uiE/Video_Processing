@@ -1,9 +1,9 @@
 #!/usr/bin/env node
-// build/r120_src_map.mjs —— 生成 `docs/src-map.md`（源码地图），只做"能从盘上直接读出来"的四列
+// build/r120_src_map.mjs —— 生成 `report/src-map.md`（源码地图），只做"能从盘上直接读出来"的四列
 //
 // 用途：把 `src/rtl/**.v` 与 `src/ps/**.{c,h}` 逐个列成一张可对账的表，供接手的人定位文件。
 // 前置条件：在仓库根运行；不需要工具链，纯读文件。
-// 产出物：stdout 一份 markdown（重定向进 `docs/src-map.md`）；不写任何文件。
+// 产出物：stdout 一份 markdown（重定向进 `report/src-map.md`）；不写任何文件。
 // 失败时先看哪里：某行"头注"列为空 ⇒ 那个文件首行不是 `//` 注释，是文件本身没写头注（照实留空，不替它编）。
 //
 // 四列全部现算，不import任何人工汇总：路径 | 声明的 module/顶层符号 | 行数 | 文件头注第一行（逐字）
@@ -50,7 +50,7 @@ for (const abs of files) {
 }
 console.log('# 源码地图（`src/` 逐文件的四列现算表）');
 console.log('');
-console.log(`本文件由 \`node build/r120_src_map.mjs\` 生成，重定向进 \`docs/src-map.md\`；` +
+console.log(`本文件由 \`node build/r120_src_map.mjs\` 生成，重定向进 \`report/src-map.md\`；` +
   `本次覆盖 **${rows.length} 个源文件**（` +
   '= git 跟踪的 src/ 下 *.v/*.c/*.h 数，两个数由脚本现算比对，不一致就 REFUSE 不出图）。');
 console.log('');
@@ -58,8 +58,8 @@ console.log('## 这四列能回答什么、不能回答什么');
 console.log('');
 console.log('- **能**：某个模块在哪个文件、文件多大、作者自己在头注里写的第一句是什么（逐字搬运，不改写）。');
 console.log('- **不能**：数据流顺序、时钟域归属、寄存器位序——那些分别在各文档里有权威口径，本表不复制，' +
-  '复制就会有两份真相。指路：数据通路看 `report/ARCHITECTURE.md`，' +
-  '时钟域看 `report/BOARD_PINS.md` 与 `report/BUILD.md`，寄存器看 `skill/runtime/register-map/SKILL.md`，' +
+  '复制就会有两份真相。指路：数据通路看 `report/architecture.md`，' +
+  '时钟域看 `report/board_pins.md` 与 `report/build.md`，寄存器看 `skill/runtime/register-map/SKILL.md`，' +
   '台架对应关系看 `sim/README.md`。');
 console.log(`- 头注列为空的有 ${noHead} 个文件（照实留空，不替它补句子）。`);
 console.log('');

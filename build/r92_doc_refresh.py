@@ -50,15 +50,15 @@ sub('README.md', '**95 tile（67.86 %）/ 14358（26.99 %）/ 8075（7.59 %）/ 
     f'**95 tile（67.86 %）/ {lut_n}（{lut_pct} %）/ 8075（7.59 %）/ 19（8.64 %）**', '资源行')
 sub('README.md', '| 功耗 | 动态 **2.205 W**', f'| 功耗 | 动态 **{pw} W**', '功耗行')
 
-# ---- 3) README.en.md
-sub('README.en.md', '| Design-wide setup WNS | **+0.516 ns**, failing setup/hold endpoints **0 / 50885** |',
+# ---- 3) readme.en.md
+sub('readme.en.md', '| Design-wide setup WNS | **+0.516 ns**, failing setup/hold endpoints **0 / 50885** |',
     f'| Design-wide setup WNS | **{DES[0]} ns**, failing setup/hold endpoints **0 / 50885** |', 'EN WNS')
-sub('README.en.md', "| Per-clock setup slack | 125 MHz receive domain **+0.516 ns** (6.5 % of its 8 ns period, and the design's worst path); 100 MHz domain **+1.643 ns** (16 % of 10 ns); 50 MHz display domain **+1.177 ns** (5.9 % of 20 ns) |",
+sub('readme.en.md', "| Per-clock setup slack | 125 MHz receive domain **+0.516 ns** (6.5 % of its 8 ns period, and the design's worst path); 100 MHz domain **+1.643 ns** (16 % of 10 ns); 50 MHz display domain **+1.177 ns** (5.9 % of 20 ns) |",
     f"| Per-clock setup slack | 125 MHz receive domain **{eth[0]} ns** (6.5 % of its 8 ns period, and the design's worst path); 100 MHz domain **{fpg[0]} ns** (21.6 % of 10 ns); 50 MHz display domain **{pix[0]} ns** (4.4 % of 20 ns) |", 'EN 逐时钟')
-sub('README.en.md', '| Hold time | **+0.051 ns** in all three domains - this is the thinnest margin, not the setup number above |',
+sub('readme.en.md', '| Hold time | **+0.051 ns** in all three domains - this is the thinnest margin, not the setup number above |',
     f'| Hold time | worst **{DES[1]} ns** (100 MHz domain), receive domain **{eth[1]}**, display domain **{pix[1]}** - the thinnest class of margin, quoted **after** the 0.8 ns hold uncertainty this repo imposes |', 'EN hold')
-sub('README.en.md', '14358 (26.99 %)', f'{lut_n} ({lut_pct} %)', 'EN 资源')
-sub('README.en.md', '**2.205 W**', f'**{pw} W**', 'EN 功耗')
+sub('readme.en.md', '14358 (26.99 %)', f'{lut_n} ({lut_pct} %)', 'EN 资源')
+sub('readme.en.md', '**2.205 W**', f'**{pw} W**', 'EN 功耗')
 
 # ---- 4) board/README.md
 old_para = ('时钟域的分工要说清楚，否则"余量 0.5 ns"会被读错：**全设计最差那条 setup 在 125 MHz 收包域，\n'
@@ -85,7 +85,7 @@ sub('data/metrics.csv', 'Slice LUT 占用,资源,14358（26.99 %）,个,实现�
     f'Slice LUT 占用,资源,{lut_n}（{lut_pct} %）,个,实现后报告；其中 LUT as Memory {mem}（分布式 RAM 4044）', 'csv LUT')
 sub('data/metrics.csv', '实现后动态功耗,资源,2.205,W,', f'实现后动态功耗,资源,{pw},W,', 'csv 功耗')
 
-# ---- 6) board/ACCEPTANCE.md
+# ---- 6) board/acceptance.md
 tx = rd('build/evidence/r92_tx.txt').replace('\r', '')
 m = re.search(r'\[TX\] (\d+) 帧 / ([\d.]+) s = ([\d.]+) fps；共发 ([\d,]+) 包', tx)
 he = rd('build/evidence/r92_health.txt').replace('\r', '')
@@ -95,22 +95,22 @@ verf = 'build/evidence/verify_0930_0424.txt'
 ver = re.search(r'RESULT PASS uart_cmd_check \(100 条命令, ([\d.]+) s', rd(verf).replace('\r', ''))
 print(f"取到 tx={m.groups() if m else None} pkts={int(pk.group(1),16) if pk else None} lat={lat and lat.group(1)} 电池={ver and ver.group(1)}s")
 if m and pk:
-    sub('board/ACCEPTANCE.md',
+    sub('board/acceptance.md',
         '| 5 | 以太推流期间链路健康 | Python 上位机 `--demo --fps 25`：**451 帧 / 18.05 s = 24.99 fps、99671 包**；推流**之中**读回累计 `pkts=752507`、`drop_words=0`、`丢过字=0`、`流活着=1`、屏幕归 ETH',
         f'| 5 | 以太推流期间链路健康 | Python 上位机 `--demo --fps 25`：**{m.group(1)} 帧 / {m.group(2)} s = {m.group(3)} fps、共发 {m.group(4)} 包**；推流**之中**两次读回累计 `pkts={int(pk.group(1),16)}` 且继续上涨、`drop_words=0`、`丢过字=0`、`stall_ms=0`、`流活着=1`、屏幕归 ETH、`eth_rxc 心跳：正常`',
         'ACCEPT 第 5 行')
 if ver:
-    sub('board/ACCEPTANCE.md', '| 2 | 串口命令电池（100 条，含该拒的必须拒） | `RESULT PASS uart_cmd_check (100 条命令, 93.3 s)` | `build/evidence/r90_board_verify.txt`、`board/uart_script_capture.txt` |',
+    sub('board/acceptance.md', '| 2 | 串口命令电池（100 条，含该拒的必须拒） | `RESULT PASS uart_cmd_check (100 条命令, 93.3 s)` | `build/evidence/r90_board_verify.txt`、`board/uart_script_capture.txt` |',
         f'| 2 | 串口命令电池（100 条，含该拒的必须拒） | `RESULT PASS uart_cmd_check (100 条命令, {ver.group(1)} s)`、`RESULT board_verify PASS（判红的步骤：0）` | `{verf}`、`board/uart_script_capture.txt` |',
         'ACCEPT 第 2 行')
-sub('board/ACCEPTANCE.md', '| 9 | 时序/资源读数与报告一致 | 全设计 setup WNS +0.516 ns、失败端点 0 / 50885；BRAM 95 tile、LUT 14358、FF 8075、DSP 19 |',
+sub('board/acceptance.md', '| 9 | 时序/资源读数与报告一致 | 全设计 setup WNS +0.516 ns、失败端点 0 / 50885；BRAM 95 tile、LUT 14358、FF 8075、DSP 19 |',
     f'| 9 | 时序/资源读数与报告一致 | 全设计 setup WNS {DES[0]} ns、hold WHS {DES[1]} ns、失败端点 0 / 50885；BRAM 95 tile、LUT {lut_n}、FF 8075、DSP 19 |',
     'ACCEPT 第 9 行')
 if lat:
-    sub('board/ACCEPTANCE.md', '| 6 | 链路内时延同源一致 | 屏上 `Latency=6ms` 与回读 `tot/100000=6` 一致（ok） | `build/evidence/r90_health.txt`（`node src/host/health_read.mjs --once` 在推流中读的） |',
+    sub('board/acceptance.md', '| 6 | 链路内时延同源一致 | 屏上 `Latency=6ms` 与回读 `tot/100000=6` 一致（ok） | `build/evidence/r90_health.txt`（`node src/host/health_read.mjs --once` 在推流中读的） |',
         f'| 6 | 链路内时延同源一致 | 屏上 `Latency={lat.group(1)}ms` 与回读 `tot/100000={lat.group(2)}` 一致（ok） | `build/evidence/r92_health.txt`（推流之中读） |',
         'ACCEPT 第 6 行')
-sub('board/ACCEPTANCE.md',
+sub('board/acceptance.md',
     '| 1 | PS 起来 + PL 烧写 + 应用重载三歩都成功 | `PS7_INIT: ok` / `PROGRAMMED … system.bit` / `DOW: ok` | `build/evidence/r90_flash_1_psboot.txt`、`build/evidence/r90_flash_2_program_log.txt`、`build/evidence/r90_flash_3_app.txt` |',
     '| 1 | PS 起来 + PL 烧写 + 应用重载三歩都成功 | `DDR_ECHO: 10000000: 5A5AA5A5` / `PROGRAMMED xc7z020_1 <- …\\build\\system.bit` / `RESUME: ok` | `build/evidence/r92_flash_1_psboot.txt`、`build/evidence/r92_flash_program_log.txt`、`build/evidence/r92_flash_app.txt` |',
     'ACCEPT 第 1 行')

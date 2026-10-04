@@ -1,7 +1,7 @@
 指标名称,类别,数值,单位,测量条件,测试次数或时长,证据文件
-器件与工具链,共用条件,xc7z020clg484-2 / Vivado+Vitis 2025.2.1,—,本表所有行的共用条件：Zynq-7020 CLG484 速度等级 2；工具链是 2025.2 主版本线的补丁版 2025.2.1（指南 §3.3.3.1 推荐 2026.1 或 2025.2；本作品全部脚本可在 2025.2.1 从零复现，见 report/BUILD.md）,一次声明,build/system.bit
+器件与工具链,共用条件,xc7z020clg484-2 / Vivado+Vitis 2025.2.1,—,本表所有行的共用条件：Zynq-7020 CLG484 速度等级 2；工具链是 2025.2 主版本线的补丁版 2025.2.1（指南 §3.3.3.1 推荐 2026.1 或 2025.2；本作品全部脚本可在 2025.2.1 从零复现，见 report/build.md）,一次声明,build/system.bit
 显示像素时钟,核心,50,MHz,面板 1024×600；H_TOTAL 1344、V_TOTAL 625 ⇒ 场频 59.5 Hz（50 MHz ÷ 1344 ÷ 625，#153：不是 50 Hz）；该时钟由 PL 侧 MMCM 从 50 MHz 输入合成,约束一次生效,src/constraints/ 与 build/timing_summary.rpt
-显示分辨率与场频,核心,1024×600 @59.5,—,双窗输出（左窗原图 / 右窗处理图，由 split 控制字决定缝的位置与哪一侧是处理图）,连续显示,board/VERIFY_r87.md 第 1 行
+显示分辨率与场频,核心,1024×600 @59.5,—,双窗输出（左窗原图 / 右窗处理图，由 split 控制字决定缝的位置与哪一侧是处理图）,连续显示,board/verify_r87.md 第 1 行
 全局 setup WNS,核心,0.739,ns,失败 setup 端点 0 / 总端点 51135；板上 r118 bit cd04907e1369；本版不带 RGMII 输入窗（窗退回候选件 VP_R116_IO_WINDOW=1 可复现）,一次布线后报告,build/timing_summary.rpt
 全局 setup 失败端点,核心,0,个,总端点 51135；片内路径为零违例；收口 I/O 的 5 个端点当前无输入窗 = 未检查（H5：未检查不等于满足）,一次布线后报告,build/timing_summary.rpt
 全局 hold WHS,核心,0.052,ns,失败 hold 端点 0 / 总端点 51135；WPWS 0.264；这一格是片内族（本版无输入窗）,一次布线后报告,build/timing_summary.rpt
@@ -10,20 +10,20 @@ Slice 寄存器占用,资源,8188（7.70 %）,个,实现后报告（本轮 r112 
 Block RAM Tile 占用,资源,95.5 / 140（68.21 %）,tile,实现后报告；帧缓存由 64-bit 宽 + 乒乓两块拼出，是 BRAM 的主要去向,一次构建,build/utilization.rpt
 DSP48 占用,资源,19 / 220（8.64 %）,个,实现后报告；用在缩放/旋转的坐标乘法与 gamma 计算,一次构建,build/utilization.rpt
 SD 本地播放帧率,实测,29.8 – 30.0,fps,512×300 RGB565 预转换帧序列（板上不做解码）；100 帧滑窗读数；串口 115200-8N1,两个滑窗样本,build/evidence/r87_boot_stat_drain.txt
-UDP 入口负载,口径,9.2,MB/s,512×300×2 B × 30 fps 的计算值（≈74 Mbps），千兆链路余量大；**这是负载口径不是实测带宽**，实测吞吐的读数出口在 OSD 第三行与 lane23 回读,一次计算,report/PERF_REPORT.md
+UDP 入口负载,口径,9.2,MB/s,512×300×2 B × 30 fps 的计算值（≈74 Mbps），千兆链路余量大；**这是负载口径不是实测带宽**，实测吞吐的读数出口在 OSD 第三行与 lane23 回读,一次计算,report/perf_report.md
 门禁自检项,自检,22,项,一条命令跑：时序/资源/端口宽度/CDC/文档编码（`doc_enc`）与时效（`doc_cur`）+ 两个钉 md5 的整屏台架 + 排练脚本=讲稿抽取 + 几支检查器自带的变异对照。**第 20 项 = 行号锚点（D5 `line_cite_check`）、第 21 项 = 数字对账（D6 `metric_recheck`）**：这两把从 r104 这一轮起才在门禁里（#219 查明它们此前一直只是我手工跑的——门禁件上写"N 项全判定"而首页与指标表的数没人对回报告，D6 接上第一次就抓到首页四格还是 r103 的数）,每轮构建后一次,build/gates.sh
 整屏逐像素判据,核心,141,条,与 r104 同一批的顶层台架（`build/tb_v98_report.txt` 头部 `# provenance fpver=norm1 top_md5=2bf2ceeede07 tb_md5=36d0de483e6d rtl_md5=8997a62b75ba`，编译时戳、日期 2026-10-02 01:15）；**141 = 该文件里 `^PASS` 行数 140 加 `^FAIL` 行数 1**，唯一那行 FAIL 是声明过的 `C5c`；这一格与 r103 那版同为 141 条不是巧合而是同一把尺子没动过（本轮只带 #141 那一刀），一条判据都不许靠空集通过,一次台架（约 108 分钟）,build/tb_v98_report.txt
-变异对照分支,功能正确性,5,条,sim/mut_control.sh：pipeline / osd_inchar / osd_addr / osd_inchar_all / bilin_ky_fold；规矩是「一次变异只许红它声称红的那一条」，红不了或红多了都算失败,每判据一支,sim/mut_control.sh
+变异对照分支,功能正确性,5,条,build/sim/mut_control.sh：pipeline / osd_inchar / osd_addr / osd_inchar_all / bilin_ky_fold；规矩是「一次变异只许红它声称红的那一条」，红不了或红多了都算失败,每判据一支,build/sim/mut_control.sh
 越界读写的机会计数,功能正确性,190464,拍,OSD 字模索引在 1024×600 有效区整屏走一遍时越出数组上界的拍数（最大索引 255 = 位宽上限）；这道「机会地板」让「屏上没现象」与「真的被门住了」两种说法可区分,一次台架运行,build/evidence/r86_osd_t18_teeth_addr.txt
-缩放范围,功能,0.25 – 2.00（八档）,倍,ZOOM_X100 = 25 33 50 75 100 133 150 200；手动档、自动呼吸档、Fit 档三种来源，倍率与来源都可从 lane23 回读,逐档演示,board/VERIFY_r87.md
-片源与仲裁,功能,3 路 + AUTO,—,ETH（PL 硬件收包链）/ SD（PS 读裸帧）/ TEST（自研动态图卡）；AUTO 下的切换与回落由链路健康自诊断引擎驱动，拔线与拔卡都已在板上复验,现场演示,board/VERIFY_r87.md
-端到端时延,未报,—,—,这一格有读数出口（OSD 的 Latency lane 与 JTAG 回读），但**本表不填没有复核过的数**：读数方法与逐轮记录在 board/VERIFY_r87.md 与 build/evidence/，取到可信值之前不占权重也不宣称,待复测,board/VERIFY_r87.md
-人眼判据,验收,36,行,全功能上板验收表（每一条给命令、预期现象、以及」这一行不通意味着什么」）；屏幕现象只能由人判，机器判据不冒充眼睛,一次上板,board/VERIFY_r87.md
-ETH 入流零丢包（演示工况）,实测,0,丢帧 / 坏帧,512×300 RGB565、限速 15 MB/s、目标 30 fps；PL 侧收包链自己数的（不是上位机推的数）,600 帧一轮，实测到帧率 30.007 fps,report/PERF_REPORT.md
-ETH 入流 300 秒长跑,实测,0,丢帧 / 坏帧 / 重复帧,同上工况，连续 300 s；实测量 29.99 fps、帧间隔平均 33.34 ms,9000 帧,report/PERF_REPORT.md
-入流过载点,未定,≥116.7,fps,不限速、目标 120 fps 时仍未丢字（≈36 MB/s 有效载荷、287 Mbps）；**这一版没顶到丢字那一点，所以不给「PL 能扛多少 fps」的数字**,960 帧,report/PERF_REPORT.md
-端到端时延,核心,33.34,ms,从上位机发出到屏上出现；min/avg/max = 20 / 33.34 / 51 ms，同轮墙钟交付 29.79 fps（≈9.15 MB/s = 73.2 Mbps）；测量起点=上位机发送时刻，终点=示相机位录到该帧上屏,一轮 600 帧,report/PERF_REPORT.md
-帧间隔抖动,核心,33.33,ms,30 fps 限速工况下 min/avg/max = 22 / 33.33 / 45 ms；抖动上界来自显示扫描与读口调度，不来自调度器,一轮,report/PERF_REPORT.md
+缩放范围,功能,0.25 – 2.00（八档）,倍,ZOOM_X100 = 25 33 50 75 100 133 150 200；手动档、自动呼吸档、Fit 档三种来源，倍率与来源都可从 lane23 回读,逐档演示,board/verify_r87.md
+片源与仲裁,功能,3 路 + AUTO,—,ETH（PL 硬件收包链）/ SD（PS 读裸帧）/ TEST（自研动态图卡）；AUTO 下的切换与回落由链路健康自诊断引擎驱动，拔线与拔卡都已在板上复验,现场演示,board/verify_r87.md
+端到端时延,未报,—,—,这一格有读数出口（OSD 的 Latency lane 与 JTAG 回读），但**本表不填没有复核过的数**：读数方法与逐轮记录在 board/verify_r87.md 与 build/evidence/，取到可信值之前不占权重也不宣称,待复测,board/verify_r87.md
+人眼判据,验收,36,行,全功能上板验收表（每一条给命令、预期现象、以及」这一行不通意味着什么」）；屏幕现象只能由人判，机器判据不冒充眼睛,一次上板,board/verify_r87.md
+ETH 入流零丢包（演示工况）,实测,0,丢帧 / 坏帧,512×300 RGB565、限速 15 MB/s、目标 30 fps；PL 侧收包链自己数的（不是上位机推的数）,600 帧一轮，实测到帧率 30.007 fps,report/perf_report.md
+ETH 入流 300 秒长跑,实测,0,丢帧 / 坏帧 / 重复帧,同上工况，连续 300 s；实测量 29.99 fps、帧间隔平均 33.34 ms,9000 帧,report/perf_report.md
+入流过载点,未定,≥116.7,fps,不限速、目标 120 fps 时仍未丢字（≈36 MB/s 有效载荷、287 Mbps）；**这一版没顶到丢字那一点，所以不给「PL 能扛多少 fps」的数字**,960 帧,report/perf_report.md
+端到端时延,核心,33.34,ms,从上位机发出到屏上出现；min/avg/max = 20 / 33.34 / 51 ms，同轮墙钟交付 29.79 fps（≈9.15 MB/s = 73.2 Mbps）；测量起点=上位机发送时刻，终点=示相机位录到该帧上屏,一轮 600 帧,report/perf_report.md
+帧间隔抖动,核心,33.33,ms,30 fps 限速工况下 min/avg/max = 22 / 33.33 / 45 ms；抖动上界来自显示扫描与读口调度，不来自调度器,一轮,report/perf_report.md
 实现后动态功耗,资源,2.213,W,本轮（r109）的实现后报告里 `Dynamic (W)` 那一行（片上合计 2.391 W 在同一份报告的对应行）；工具置信度 **Low**（无仿真活动文件输入），被追问要如实说,一次构建,build/power.rpt
 结温估算,资源,52.6,℃,同上（Ambient 假定 25.0 ℃、Effective TJA 11.5 ℃/W、Max Ambient 57.5 ℃）；这是工具估算，不是板上 XADC 读数；XADC 实测在 OSD 与 [STAT] 里另有一路,一次构建,build/power.rpt
 片上结温（板读 XADC）,资源,61.2 – 61.7,℃,板上这一版 **r113**（bit md5 `b94f4da6cdff`）2026-10-03 14:32 三步 JTAG 刷入（`build/evidence/r113_flash_console.txt`：14:31 起链、program_pl Vivado `exit 0` 于 14:32:26、`RESUME: ok`）之后由 `board_verify --geom --battery --round=r113` 那一次（RESULT board_verify PASS、判红步骤 0、geom 10/0、串口 105 条 97.6 s）逐条 `[TEMP]` 回显的极值：`degC=61.15 raw=0xA9D1 vccint=998mv osd=61C gpio=0x61`、`degC=61.35 raw=0xA9EA vccint=998mv osd=61C gpio=0x61`、`degC=61.71 raw=0xAA19 vccint=997mv osd=62C gpio=0x62`（六条全在 `build/evidence/r113_temp_lines.txt`——由该次运行的两份产物 grep 而来、不手抄）；V9-6 三方对账（驱动读数 ↔ 屏上三字符 ↔ 写进 PL 的 gpio）判 ok（电池里 4 条 degC↔osd↔gpio 全自洽）。区间是**六次读数的极值**、不是精度声明 ⇒ 与 r110 那版（60.6–60.7 ℃）的差属工况与热身差异、别当收益或回归；第 1b 步**自己产出**并被跟踪的原始回显 `build/evidence/r113_serial_raw.txt`（[TEMP]=2、判定=绿、地板 2）⇒ 这一格不靠手抄的凭据从 r104 起续到本轮（#220/#163）,一次板级校验（同一次串口电池 + 第 1b 步原始回显）,build/evidence/r113_temp_lines.txt、build/evidence/r113_serial_raw.txt

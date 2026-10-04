@@ -1,4 +1,4 @@
-# CMD: python build/r115_roster_build.py --diff docs/timing/roster_baseline.tsv docs/timing/roster_round116.tsv  （输入形状错：round 件的前 13 列是 A 侧）
+# CMD: python build/r115_roster_build.py --diff report/timing/roster_baseline.tsv report/timing/roster_round116.tsv  （输入形状错：round 件的前 13 列是 A 侧）
 # RUN_AT: 2026-10-04 11:56:30
 # rc 记在最后；判定 token 在本目录 index.md 的“判定”列（脚本原样输出，未手工填表）
 ROSTERDIFF clock	metric	base	round	delta	verdict

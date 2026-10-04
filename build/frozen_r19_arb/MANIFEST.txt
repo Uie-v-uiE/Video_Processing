@@ -12,7 +12,7 @@
 #         与以太网无关（要做"时序深度优化"就从它下手）。
 # cdc.rpt 与 #18 的差别：行数、分类、时钟对**都没变**，只有 sys_clk↔eth_rxc 那一行的端点数
 #       1859→1861（+2）—— 与"多一级寄存"一致；`report_cdc` 不点名信号，所以它不能当"修好了"的凭据，
-#       #37 的凭据仍然是台架四变体表（ISSUES.md #37 / skill/arbiter_pending_pulse.md）。
+#       #37 的凭据仍然是台架四变体表（issues.md #37 / skill/arbiter_pending_pulse.md）。
 # 判据：L1 全量 40/40（sim/results/regression_v79_r25.txt；r24 那次 39/1 暴露了脉宽晚一拍）
 #
 # ⚠ 一条流程教训（本次才发现，已改进做法）：**这一套是把 bit/xsa/elf 实体拷进冻结目录的**，

@@ -1,4 +1,4 @@
-# CMD: node soak.cjs（脚本正文在文件末尾原样附出）；现算 before/after 差值，判据语义取自 report/PERF_REPORT.md §6b，没有另起新尺子
+# CMD: node soak.cjs（脚本正文在文件末尾原样附出）；现算 before/after 差值，判据语义取自 report/perf_report.md §6b，没有另起新尺子
 # RUN_AT: 2026-10-04 12:13:42
 wall_s=302.141
 metrics={"drop_words":0,"frames_bad":0,"pkt_err":0,"cdc_episodes":0,"rows_miss_max":205,"pkts_delta":1989000,"bytes_delta":2764800000,"frames_sent":9000,"frames_recv":9000,"frames_ok":9000,"gap_min_ms":20,"gap_max_ms":51,"gap_sum_ms":300057,"gap_segments":8999,"avg_gap_ms":33.34337148572064,"fps_from_gap":29.990968382673955,"fps_wall":29.78741713306039,"gap_avg_impossible":false,"hb_slow_a":0,"hb_gone_a":0,"stream_live_a":"0","verdict_no_word_lost":true}

@@ -35,7 +35,7 @@ grep -aq "READY_FOR_NEXT_EDIT" build/r90_phase1.log || say "注意：phase1 没�
 say "xsim 空闲，开始"
 
 # ---------------------------------------------------------------- 1) 锚：未修改的树必须全绿
-bash sim/run_one.sh $BENCH > build/r90_icmp_pre.log 2>&1
+bash build/sim/run_one.sh $BENCH > build/r90_icmp_pre.log 2>&1
 grep -aq "RESULT $BENCH PASS" build/r90_icmp_pre.log \
   || { say "锚红了，把 FAIL 行抄在这里："; grep -a "FAIL" build/r90_icmp_pre.log | head -8 >> "$LOG"; die "锚（老树）不绿，说明我的期望值写错了，不是 RTL 的问题"; }
 say "1) 锚 OK：老树 $BENCH 全绿（判据行数=$(grep -acE '^\[tb_icmp_rx_len.v\] PASS' build/r90_icmp_pre.log)）"
@@ -44,7 +44,7 @@ say "1) 锚 OK：老树 $BENCH 全绿（判据行数=$(grep -acE '^\[tb_icmp_rx_
 cp sim/$BENCH.v /tmp/$BENCH.v.bak || die "备份台架失败"
 sed -i "s/if ((n % 2) == 1) s32 = s32 + {8'h00, pay\[n-1\]};/if ((n % 2) == 1) s32 = s32 + {pay[n-1], 8'h00};/" sim/$BENCH.v
 grep -aq "{pay\[n-1\], 8'h00}" sim/$BENCH.v || die "变异没落上（sed 模式失效），不动下一步"
-bash sim/run_one.sh $BENCH > build/r90_icmp_mut.log 2>&1
+bash build/sim/run_one.sh $BENCH > build/r90_icmp_mut.log 2>&1
 NF=$(grep -acE "\] FAIL " build/r90_icmp_mut.log)
 TAGS=$(grep -aE "\] FAIL " build/r90_icmp_mut.log | sed -E 's/.*\] FAIL ([A-Za-z0-9_]+).*/\1/' | sort -u | tr '\n' ' ')
 cp /tmp/$BENCH.v.bak sim/$BENCH.v
@@ -59,7 +59,7 @@ cp src/rtl/eth/icmp_rx.v /tmp/icmp_rx.v.pre_edit
 say "3) RTL 已改：+16 FF(len-1 寄存) +1 FF(数据窗旗标)，数据相里两条借位链都没了"
 
 # ---------------------------------------------------------------- 4) 改后必须仍全绿
-bash sim/run_one.sh $BENCH > build/r90_icmp_post.log 2>&1
+bash build/sim/run_one.sh $BENCH > build/r90_icmp_post.log 2>&1
 grep -aq "RESULT $BENCH PASS" build/r90_icmp_post.log \
   || { say "改后红了，FAIL 行："; grep -a "FAIL" build/r90_icmp_post.log | head -12 >> "$LOG"
        cp /tmp/icmp_rx.v.pre_edit src/rtl/eth/icmp_rx.v
@@ -77,7 +77,7 @@ say "6) 路径级读数（新）："
 tail -n +1 $ISO/crit_paths.txt >> "$LOG"
 
 # ---------------------------------------------------------------- 7) 顶层台架 + 判定文件
-bash sim/run_one.sh $TOPB > build/r90_tb98_console.txt 2>&1
+bash build/sim/run_one.sh $TOPB > build/r90_tb98_console.txt 2>&1
 bash build/tb98_report.sh >> "$LOG" 2>&1
 cp build/tb_v98_report.txt build/r90_final_tb98.txt
 WNS=$(awk '/^eth_rxc/{print $2}' $ISO/timing_summary.rpt | head -1)

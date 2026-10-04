@@ -119,4 +119,4 @@ while IFS= read -r spec; do
     WORDS="$WORDS $name=$(word $v)"
 done < <(printf '%s\n' "${ROLLS:-r95_postroute_physopt=IMPL_PRPO=1;r95_explor_withhier=IMPL_STRATEGY=Performance_ExploreWithHierarchy}" | tr ';' '\n')
 say "各滚结束：$WORDS（NOT_MEASURED=报告没读出来，不是否决）"
-say "DONE —— 谁被采纳由人读 $SUM 那几行来定；不采纳也要把这一节落进 report/OPTIMIZATION_LOG.md"
+say "DONE —— 谁被采纳由人读 $SUM 那几行来定；不采纳也要把这一节落进 report/optimization_log.md"

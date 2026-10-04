@@ -1,4 +1,4 @@
-[stage2 01:35:27] 构建判读件到位（build/evidence/r116/r116_io_HOLD.rpt），开始 stage2
+[stage2 01:35:27] 构建判读件到位（build/evidence/r116/r116_io_hold.rpt），开始 stage2
 [stage2 01:36:10] roster probe rc=0
 [stage2 01:36:10] 名册行数=16（r114 那份=8）
 [stage2 01:36:11] 名册差分 rc=3

@@ -19,7 +19,7 @@ say "xsim 已退出，开始顶层台架报告"
 
 bash build/tb98_report.sh > build/r106b_tb98report_console.txt 2>&1; say "tb98_report rc=$?（新报告应盖 tb_md5=1c0c56bae0e0）"
 
-bash sim/run_one.sh tb_edge_rim > build/r106b_rim_console.txt 2>&1; say "边缘条带台架 rc=$?（3=判红 2=REFUSE 0=绿）"
+bash build/sim/run_one.sh tb_edge_rim > build/r106b_rim_console.txt 2>&1; say "边缘条带台架 rc=$?（3=判红 2=REFUSE 0=绿）"
 ROUND=r106 bash build/rim_report.sh > build/r106b_rimreport_console.txt 2>&1; say "rim_report rc=$?"
 
 bash build/gates.sh > build/r106_gates.txt 2>&1; G=$?

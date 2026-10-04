@@ -43,11 +43,11 @@ bash build/timing_lane.sh > "build/r${NN}_lane_after.txt" 2>&1; L=$?
 say "快车道 rc=$L（0=全绿 2=前置坏 3=有真红 1=清单没跑齐）绿=$(grep -c 'LANE GREEN' "build/r${NN}_lane_after.txt") 红=$(grep -c 'LANE RED' "build/r${NN}_lane_after.txt")"
 
 say "顶层台架 tb_v98_top_seam（约 100 分钟，链子里唯一在跑的 xsim，一轮只付这一次）"
-bash sim/run_one.sh tb_v98_top_seam > "build/r${NN}_tb98_console.txt" 2>&1; R=$?
+bash build/sim/run_one.sh tb_v98_top_seam > "build/r${NN}_tb98_console.txt" 2>&1; R=$?
 say "顶层台架 rc=$R（3=判红 0=绿；C5c 与新增的 C12a/b/c 读数在同一份 log 里）"
 bash build/tb98_report.sh > "build/r${NN}_tb98report_console.txt" 2>&1; say "tb98_report rc=$?"
 
-bash sim/run_one.sh tb_edge_rim > "build/r${NN}_rim_console.txt" 2>&1; say "边缘条带台架 rc=$?"
+bash build/sim/run_one.sh tb_edge_rim > "build/r${NN}_rim_console.txt" 2>&1; say "边缘条带台架 rc=$?"
 ROUND=r$NN bash build/rim_report.sh > "build/r${NN}_rimreport_console.txt" 2>&1; say "rim_report rc=$?"
 
 # 门禁：先 /tmp，跑完再 cp 到位（D1b/D1c 读的就是这份，边写边读会读到截断的 —— #229）

@@ -8,7 +8,7 @@
 #   bash build/rtl_fingerprint.sh --self                 # 六条对照，红即这把尺子不可用
 #
 # 为什么要把定义抽出来（2026-09-30，r97 收口当晚撞出来的）：
-#   原来 `sim/run_one.sh`、`build/gates.sh`(15/15b)、`build/freeze_evidence.sh` 各写了一遍
+#   原来 `build/sim/run_one.sh`、`build/gates.sh`(15/15b)、`build/freeze_evidence.sh` 各写了一遍
 #   `find src/rtl … | xargs md5sum | md5sum`，算的是**磁盘字节**。本机 `core.autocrlf=true`
 #   且没有 `.gitattributes` ⇒ 一次 `git checkout -- src/rtl` 把 79 份 `.v` 里的 52 份从 LF 重写成
 #   CRLF：内容一字未改（`git diff -- src/rtl` 为空），合指纹却从 45e09e8b3b9d 变成 6ab3898eccae，

@@ -12,7 +12,7 @@
  * 用法：
  *   node health_read.mjs [--gpio0 41200000] [--gpio1 41210000] [--once] [--gapclr]
  *   --gapclr 读之前把「帧间隔统计」归零（lane3/4/5）；其余 lane 仍是自启动以来。
- *   前置：板子上电、bit 已下载、hw_server 在跑（见 HOST_GUIDE.md）。
+ *   前置：板子上电、bit 已下载、hw_server 在跑（见 host_guide.md）。
  *   两个基地址在 build/v76_build.log 的 `ADDR GPIO0 = …` / `ADDR GPIO1 = …` 行里。
  *
  * 默认把 10 条 lane 读两遍：单调计数器的第二遍只允许 >= 第一遍，变小就意味着
@@ -301,7 +301,7 @@ function runXsdb(body, tag) {
   const text = readFileSync(out, 'utf8').replace(/\r\n/g, '\n');
   if (/^error|no targets|cannot|invalid target/im.test(text.split('\n').slice(0, 8).join('\n'))) {
     console.log('[HEALTH] xsdb 报错，前几行：\n' + text.split('\n').slice(0, 8).join('\n'));
-    console.log('[HEALTH] 先确认：板子有电、bit 已下载、hw_server 在跑（HOST_GUIDE.md）');
+    console.log('[HEALTH] 先确认：板子有电、bit 已下载、hw_server 在跑（host_guide.md）');
     process.exit(1);
   }
   return text;

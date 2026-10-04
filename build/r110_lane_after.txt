@@ -28,4 +28,4 @@ LANE GREEN wall=13s rc=0 VERDICT tb_ps_publish: RESULT tb_ps_publish PASS || FAI
 LANE GREEN wall=14s rc=0 VERDICT tb_timing: PASS tb_timing || FAIL 行数=0 || PASS 行数=1
 LANE GREEN wall=13s rc=0 VERDICT tb_v93_split_ctrl: PASS tb_v93_split_ctrl || FAIL 行数=0 || PASS 行数=31
 LANE-SUMMARY ran=28/28 green=28 red=0 refuse=0 no-verdict/other=0 wall=363s (03:09:46)
-LANE 结论：全绿。**这不代替门禁**——采纳前必须跑 sim/run_one.sh tb_v98_top_seam + build/tb98_report.sh
+LANE 结论：全绿。**这不代替门禁**——采纳前必须跑 build/sim/run_one.sh tb_v98_top_seam + build/tb98_report.sh

@@ -2,7 +2,7 @@
 
 问题（ISSUES #247、任务 #185）：今天板上的角度**没有机器读数**——
 `pl_video_top.v:1046-1049` 的 `status` 口里那 9 位 `angle` 在 `system_top.v` 里只声明+连接、**没有读者**
-⇒ 综合按 "unused … removed" 删掉。后果：`board/ACCEPTANCE.md` 的 E6 那一格只能靠眼睛，
+⇒ 综合按 "unused … removed" 删掉。后果：`board/acceptance.md` 的 E6 那一格只能靠眼睛，
 "上电是不是 0 度"这种问题无法自动判。
 
 ## 为什么不做新 lane、也不新建一条跨域

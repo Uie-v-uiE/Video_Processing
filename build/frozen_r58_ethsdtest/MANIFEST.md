@@ -69,7 +69,7 @@ SD 回放             last 100 frames 29.982 fps
 `pl_video_top` 里例化了 MMCM / BUFG / OBUFDS / OSERDESE2，而**本机 xsim 没有 UNISIM 库**
 （实测 `ERROR [VRFC 10-2063] Module <MMCME2_BASE> not found`）⇒ 这就是 ISSUES #62 风险②
 （"没有任何台架例化顶层，所以缝差一拍看不见"）的**物理原因**：不是没人想写，是时钟起不来。
-现在有了 `sim/prim/MMCME2_BASE.v` + `sim/prim/unisims_sim.v`（分频比全部从例化参数读回来，
+现在有了 `sim/prim/mmcme2_base.v` + `sim/prim/unisims_sim.v`（分频比全部从例化参数读回来，
 占位件里一个数都不写）并把它们加进 `run_sim.tcl` 与 `run_one.sh` **两处**清单
 （只加一处是 2026-09-23 的老坑：单台架绿、全量判 ELAB_FAIL）。
 `tb_v99` 量到 pix/5x/200m 在 1 µs 窗口里 50/250/200 拍 ⇒ 50 / 250 / 200 MHz 精确成立。
@@ -89,7 +89,7 @@ cmd //c "D:\Software\Vivado\2025.2.1\Vitis\bin\xsdb.bat" build/tcl/ps_jtag_boot.
 cmd //c "D:\Software\Vivado\2025.2.1\Vivado\bin\vivado.bat" -mode batch -nojournal -source build/tcl/program_pl.tcl
 cmd //c "D:\Software\Vivado\2025.2.1\Vitis\bin\xsdb.bat" build/tcl/ps_app_reload.tcl
 bash build/board_verify.sh --stream --battery        # 仲裁八条 + 59 条电池
-bash sim/run_sim.tcl                                 # 全量 L1（含 tb_v99）
+bash build/sim/run_sim.tcl                                 # 全量 L1（含 tb_v99）
 ```
 
 ## 还欠什么（不要当成"已验"）

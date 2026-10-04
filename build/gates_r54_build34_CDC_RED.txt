@@ -19,5 +19,5 @@
   多驱动 net 8-685x   0            == 0（凭据 multi_driven.txt，同一次构建） PASS
   顶层接线（端口名/悬空输入/位宽） CHECK PORTS: instances=81 modules=75 skipped=1 width_compared=546 violations=0 PASS violations=0（凭据 build/ports_check.txt，当场跑） PASS
 
-端点总数 29526；CDC 现在按 build/CDC_BASELINE.txt 的**配对集合**判，功耗仍要人比有没有变差。
+端点总数 29526；CDC 现在按 build/cdc_baseline.txt 的**配对集合**判，功耗仍要人比有没有变差。
 GATES: 有红项 —— 不采纳，保留上一版

@@ -1,5 +1,5 @@
 V7.x 回归结果（第五版：资源改造 R02/R04/R05 + 帧尾修复 R03 + 时序改写 R06 之后）
-命令 : vivado -mode batch -nojournal -log sim/r06_regression.log -source sim/run_sim.tcl
+命令 : vivado -mode batch -nojournal -log sim/r06_regression.log -source build/sim/run_sim.tcl
 工具 : Vivado 2025.2.1 (xvlog/xelab/xsim)，Windows
 器件 : xc7z020clg484-2
 日期 : 2026-09-22（本轮改动：frame_reasm v5.1 —— 字节计数的三操作数加法改为饱和累加 +

@@ -31,7 +31,7 @@ verdict() {   # verdict <门禁输出文件> -> 第 6 项那行尾巴上的 PASS
     printf '%s\n' "$1" | grep -a "cdc.rpt Critical 行" | grep -oa "PASS\|FAIL" | tail -1
 }
 run() {       # run <报告目录> [CDCBASE=...]
-    CDCBASE=${2:-build/CDC_BASELINE.txt} bash build/gates.sh "$1" 2>&1
+    CDCBASE=${2:-build/cdc_baseline.txt} bash build/gates.sh "$1" 2>&1
 }
 npass=0; nfail=0
 chk() {       # chk <名字> <期望 PASS/FAIL> <实际> <附加说明>
@@ -54,7 +54,7 @@ out=$(run "$TMP"); chk T2 PASS "$(verdict "$out")" "改回 1 之后必须绿 —
 out=$(run "$TMP"); chk T3 FAIL "$(verdict "$out")" "新增配对必须红（第 6 项最初的目的）"
 
 # T4：基线某行少一列 —— 不许当成 0 混过去
-grep -v '^#' build/CDC_BASELINE.txt | sed 's/^clk_fpga_0>clkout0_1 17 1$/clk_fpga_0>clkout0_1 17/' \
+grep -v '^#' build/cdc_baseline.txt | sed 's/^clk_fpga_0>clkout0_1 17 1$/clk_fpga_0>clkout0_1 17/' \
     > "$TMP/base_2col.txt"
 out=$(run "$TMP" "$TMP/base_2col.txt"); chk T4 FAIL "$(verdict "$out")" "基线坏了必须红，不是静默按 0 算"
 

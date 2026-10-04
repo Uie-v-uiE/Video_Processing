@@ -28,6 +28,6 @@
   sys_clk      setup 14.384ns (失败端点 0)   hold 0.121ns 
 
   顶层台架 tb_v98    缺 build/tb_v98_report.txt 必须先跑 tb98_report.sh  FAIL
-        —— 生成：bash sim/run_one.sh tb_v98_top_seam && bash build/tb98_report.sh
-端点总数 34624；CDC 现在按 build/CDC_BASELINE.txt 的**配对集合**判，功耗仍要人比有没有变差。
+        —— 生成：bash build/sim/run_one.sh tb_v98_top_seam && bash build/tb98_report.sh
+端点总数 34624；CDC 现在按 build/cdc_baseline.txt 的**配对集合**判，功耗仍要人比有没有变差。
 GATES: 有红项 —— 不采纳，保留上一版

@@ -21,29 +21,29 @@
 
 | # | 件 | 比对对象（A ↔ B） | 分母（脚本打印的"判 N 项"） | 三态计数 | 判定 |
 | --- | --- | --- | --- | --- | --- |
-| V01 | `cdc-golden_compare-console.txt` + `cdc-golden_diff.csv` | `build/CDC_BASELINE.txt` ↔ `build/frozen_r23_srcseen/cdc.rpt`（Critical 行） | 判 18 项（C1 键 4 + C2 键值 8 + C3 归属 4 + C4 解析面 2） | 未判 0、红 0 | **PASS** |
-| V02 | `roster-diff-baseline-vs-r116e1.txt` | `docs/timing/roster_baseline.tsv` ↔ `build/evidence/r116_roster_e1.tsv` | comparisons_made=32（其中 both_NA=8 ⇒ 实际比 24 对） | red=2 | **RED**（`eth_rxc` 的 `rel_margin_setup -0.198125`、`rel_margin_hold -0.115250`） |
+| V01 | `cdc-golden_compare-console.txt` + `cdc-golden_diff.csv` | `build/cdc_baseline.txt` ↔ `build/frozen_r23_srcseen/cdc.rpt`（Critical 行） | 判 18 项（C1 键 4 + C2 键值 8 + C3 归属 4 + C4 解析面 2） | 未判 0、红 0 | **PASS** |
+| V02 | `roster-diff-baseline-vs-r116e1.txt` | `report/timing/roster_baseline.tsv` ↔ `build/evidence/r116_roster_e1.tsv` | comparisons_made=32（其中 both_NA=8 ⇒ 实际比 24 对） | red=2 | **RED**（`eth_rxc` 的 `rel_margin_setup -0.198125`、`rel_margin_hold -0.115250`） |
 | V03 | `roster-golden_compare-crosscheck.txt` | 同 V02 的两端，但换 `golden_compare` 这把尺子 | 判 44 项（C2 判 27） | 红 1 | **FAIL**（容差 0 ⇒ 任何变动都算超；口径不同，见下方"尺子适用面"） |
 | V04 | `roster-diff-selfcheck.txt` | 尺子自己的 5 条对照（含注入红） | SELFRESULT GREEN，rc=0 | — | **PASS**（证明 V02 那把尺子能变红） |
-| V05 | `roster-diff-wrong-input-shape.txt` | 同 V02，但 B 侧误喂 `docs/timing/roster_round116.tsv` | comparisons_made=32 red=0 | — | **NOT_MEASURED**（输入形状错：round 件的前 13 列是 A 侧自身 ⇒ 尺子在比 A↔A，全绿是假的） |
+| V05 | `roster-diff-wrong-input-shape.txt` | 同 V02，但 B 侧误喂 `report/timing/roster_round116.tsv` | comparisons_made=32 red=0 | — | **NOT_MEASURED**（输入形状错：round 件的前 13 列是 A 侧自身 ⇒ 尺子在比 A↔A，全绿是假的） |
 | V06 | `ddr-stale-15fps-dump.txt` | 板上 DDR 回读（frameid 图案）↔ 发送端图案定义 | 两 bank × 六带 = 12 带 + 帧号分布 2 行 | 命中 100.0 %、6 带全 0.0 %、连续丢 2 lane | **PASS（有条件）**：见"取样口径"行 |
 | V07 | `ddr-stale-wordid-dump.txt` | 板上 DDR 回读（wordid 图案，`data/measured/ddr_dump.out`）↔ 图案定义 | 1 bank 段 × 六带 | 命中 100.0 %、六带全 0.0 % | **PASS（有条件）**：**只有单帧**（所有 lane 帧号 = 0），证明落位不证明连续无损 |
 | V08 | `metric-recheck.txt` | `data/metrics.csv` + 根 README 首页 ↔ 它们各自点名的报告 | 判 114 个数（首页层 60、csv 认领 10/10 行） | 红 0；**其余 18 行不在该尺射程内** | **PASS**（射程内）／其余 18 行 **NOT_MEASURED** |
 | V09 | `temp-formula-check.txt` | 固件定点式（`src/ps/main.c` 现读常数）↔ BSP 浮点参考式 | 全 65536 码 + 4 锚点 + 3 变异对照 | 温度最大偏差 3 ‰°C（容差 5 ‰°C） | **PASS** |
 | V10 | `golden-digest-verify.txt` | `data/golden/` 13 件磁盘字节 ↔ `manifest.md` 登记值 | 13 行 | OK 13 / FAIL 0 | **PASS**（参考件本身未被改动） |
 | V11 | `tb98-count-vs-metrics-claim.txt` | `data/metrics.csv:15` 的"141 条"↔ 盘上台架件的 `^PASS+^FAIL` | 现算 161 + 1 = 162；`grep -rl` 该 CSV 点名的指纹 = **0 件** | 摘要不符 | **NOT_MEASURED**（基准件已被覆盖；不许拿 162 冒充 141，也不许拿 141 当本轮数） |
-| V12 | `soak300-lane-delta.txt` | `board/evidence_r41/metrics_r41_soak300.json` 的 `before`/`after` 两组 lane 回读 ↔ `report/PERF_REPORT.md` §6b 那句话 | 14 个字段做差；件内自带 `metrics` 块另给 8 个反推量（`avg_gap_ms`/`fps_from_gap`/`fps_wall`/`verdict_no_word_lost`） | `drop_words`/`cdc_episodes`/`pkt_err`/`frames_bad` 增量 = 0/0/0/0；`pkts` 增量 1,989,000（与报告那句逐字相符）；`frames_bad` 的 before 是 **1261 不是 0** | **PASS（对报告那句）**＋**一行必须纠正的口径发现**：见下面"300 s 长跑那一格" |
+| V12 | `soak300-lane-delta.txt` | `board/evidence_r41/metrics_r41_soak300.json` 的 `before`/`after` 两组 lane 回读 ↔ `report/perf_report.md` §6b 那句话 | 14 个字段做差；件内自带 `metrics` 块另给 8 个反推量（`avg_gap_ms`/`fps_from_gap`/`fps_wall`/`verdict_no_word_lost`） | `drop_words`/`cdc_episodes`/`pkt_err`/`frames_bad` 增量 = 0/0/0/0；`pkts` 增量 1,989,000（与报告那句逐字相符）；`frames_bad` 的 before 是 **1261 不是 0** | **PASS（对报告那句）**＋**一行必须纠正的口径发现**：见下面"300 s 长跑那一格" |
 
 ## 300 s 长跑那一格（V12 抓到的口径混写）
 
-`report/PERF_REPORT.md:197-199` 写的是"9000 帧 / 1,989,000 个 UDP 包 / 5.02 分钟，
+`report/perf_report.md:197-199` 写的是"9000 帧 / 1,989,000 个 UDP 包 / 5.02 分钟，
 `drop_words`、`cdc_episodes`、`frames_bad` 三个计数器全程增量为 0，**帧间隔** `min/avg/max = 20 / 33.34 / 51 ms`"
 —— V12 的差值把它逐字段核上了（`pkts` 增量正好 1,989,000、三个增量 0、`gap_min/gap_max` = 20/51）。
 
 但 `data/metrics.csv:25` 那一行把同一个 **33.34 ms 挂到了"端到端时延"**上，还补了"终点 = 示相机位录到该帧上屏"。
 两件实物都不支持那个终点：① 33.34 是 `gap_sum/gap_segments = 300057/8999`（件内自报 `avg_gap_ms=33.3434`），
 是**帧间隔**不是时延；② 仓库里**没有任何示相机/采集卡导出件**（`find` 全仓只有 `skill/references/verdict-line-must-print-scope/SKILL.md` 一个文件名撞了"scope"）；
-③ `report/PERF_REPORT.md:190-192` 自己写着真时延那一行"数字等那一轮读完再往这行填"，凭据是 `sim/tb_v90_latency.v` + r52 冻结目录。
+③ `report/perf_report.md:190-192` 自己写着真时延那一行"数字等那一轮读完再往这行填"，凭据是 `sim/tb_v90_latency.v` + r52 冻结目录。
 ⇒ 处置：`端到端时延` 在 `board/raw-vs-golden.md` 记 **A6 = `NOT_MEASURED`**（缺"起点=发送时刻、终点=屏上出现"的可复核件），
 33.34 ms 只在"帧间隔"这一行出现；两行不合并（铁律 4：同一指标换口径另起一行）。我不改 `data/metrics.csv`（禁区），只登记。
 

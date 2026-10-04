@@ -52,5 +52,5 @@ iconv: (stdin):1:14: incomplete character or shift sequence
   数字对账 metric    判=68 首页=58 逐时钟=2/归属=2/百分数=6 csv认领=10/10 红=0 self（csv 两条 fixture + 首页假数 + 逐时钟/归属/百分数/Clock Summary 对照）全过、红 0、判 >= 30 个数、首页 >= 20 个、逐时钟 setup 与 hold 归属各 >= 2 条、余量百分数 >= 6 条、csv 认领两半相等且 >= 8（射程地板） PASS
   命令长度口径 pipe_len 逐条ok=26 自报=26 收尾PASS=1 self全绿条数=27 rc=0/0 run rc=0、--self rc=0、收尾 PIPE_LEN PASS=1、逐条 ok >= 26 且等于自报条数、self 条数 >= 20 PASS
   结温公式 temp_formula PASS=10 变异对照=3 FAIL行=0 rc=0 rc=0、FAIL 行=0、PASS >= 6、其中变异对照 >= 3（少了任何一条都说明这把握尺子可能空转） PASS
-端点总数 51013；CDC 现在按 build/CDC_BASELINE.txt 的**配对集合**判，功耗仍要人比有没有变差。# 结尾必须把**范围**一起念出来：判定 24 项、未判 0 项。
+端点总数 51013；CDC 现在按 build/cdc_baseline.txt 的**配对集合**判，功耗仍要人比有没有变差。# 结尾必须把**范围**一起念出来：判定 24 项、未判 0 项。
 GATES: 有红项（判定 24 项）—— 不采纳，保留上一版

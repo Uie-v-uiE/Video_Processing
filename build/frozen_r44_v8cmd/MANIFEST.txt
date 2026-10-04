@@ -26,7 +26,7 @@ r44 冻结集 —— 2026-09-24 17:2x（下午，V8 第 0/1 步收尾）
 
 还欠的（不许在这一版里被说成"已验证"）：
 1. **并发不闪 / 图卡真机观感 / 长按四态轮转** —— 只能看屏幕，见 `board/README.md` 肉眼确认表。
-2. PS 那两个按键（MIO0/MIO12）读不到，要开 `PCW_GPIO_MIO_GPIO_ENABLE` ⇒ 下一次重建顺带做（`report/PLAN_V8_SPEC.md` §6a）。
+2. PS 那两个按键（MIO0/MIO12）读不到，要开 `PCW_GPIO_MIO_GPIO_ENABLE` ⇒ 下一次重建顺带做（`report/plan_v8_spec.md` §6a）。
 3. `rot/split/gamma/osd` 四类命令只有语法没有硬件（固件会明说缺什么），控制字布局见 §6b。
 
 回退：上一套完整可演示的是 `build/frozen_r32_sdfix/`（bit `efc89779` + elf `c00b6553`）；

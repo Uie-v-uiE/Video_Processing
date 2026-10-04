@@ -1,11 +1,11 @@
-[English](README.en.md)
+[English](readme.en.md)
 
 # Zynq 实时视频图像处理与逐像素对照显示
 
 > 这一页是**操作台**，不是宣传页。九节固定：①是什么 ②版本权威声明 ③目录与对照表
 > ④前置条件 ⑤环境自检 ⑥从零复现（A/B/C 三条路径）⑦结果比对 ⑧卡点速查 ⑨许可。
 > 陌生队伍只靠本文件应能从第 5 节走到第 7 节。逐条命令的实测状态记在
-> [`docs/repro-check.md`](docs/repro-check.md)（本文件与它成对交付；`docs/` 是仓库根的运行台账目录、**不随包**——导出器 `build/make_submission.sh:107-114` 整目录剪掉它，剪掉的件逐条列在包内 `_pruned.txt`）。
+> [`report/repro-check.md`](report/repro-check.md)（本文件与它成对交付；`docs/` 是仓库根的运行台账目录、**不随包**——导出器 `build/make_submission.sh:107-114` 整目录剪掉它，剪掉的件逐条列在包内 `_pruned.txt`）。
 
 ## 1. 一句话是什么 + 关键结果
 
@@ -24,10 +24,10 @@
 | 功耗 | 动态 **2.213 W**（片上合计 2.391 W）、估算结温 **52.6 °C**，工具置信度 **Low** ⇒ **这是估算，不是实测** | `build/power.rpt`；`data/metrics.csv` 第 20–21 行 |
 | 显示 | 1024×600 @ **59.5 Hz**（像素钟 50 MHz，`H_TOTAL=1344`/`V_TOTAL=625`；不是 50 Hz） | `data/metrics.csv` 第 2–3 行 |
 | SD 本地播放 | **29.8 – 30.0 fps**（100 帧滑窗，板上串口读回） | `data/metrics.csv` 第 11 行 |
-| 整屏逐像素判据 | 本次实测 `^PASS` **161** 行 + `^FAIL` **1** 行；唯一那行 FAIL 是**声明过**的 `C5c` | `build/tb_v98_report.txt`；`bash sim/run_one.sh --verdict …` 本会话输出（见 §6 路径 A） |
+| 整屏逐像素判据 | 本次实测 `^PASS` **161** 行 + `^FAIL` **1** 行；唯一那行 FAIL 是**声明过**的 `C5c` | `build/tb_v98_report.txt`；`bash build/sim/run_one.sh --verdict …` 本会话输出（见 §6 路径 A） |
 | 板级机器判据 | `RESULT PASS geom_check（ok=10 fail=0）`、`RESULT PASS uart_cmd_check  (105 条命令, 97.9 s, …)`、末行 `RESULT board_verify PASS（判红的步骤：0）` | `build/evidence/r118_board/board_verify_console.txt`（本会话读到末 5 行） |
-| 门禁 | 基准件那一行原文：`GATES: 有红项（判定 24 项）—— 不采纳，保留上一版`（基准件读作 23 绿 / 1 红，红的是声明过的 `C5c`）⇒ 本会话 12:2x 亲跑 `bash build/gates.sh` **两跑逐字节一致、末行就是那一句**，但那一跑判红的是**两项**：`C5c`（顶层台架 `tb_v98` FAIL 行=1，声明过的红）+ `文档时效 doc_cur`（成因与射程见 §2 红项 R4，不是本文件的数字行） | `build/r118_gates_final.txt` 末行（本会话读到）、本会话 `bash build/gates.sh` 两跑输出（逐字节比对记在 `docs/repro-check.md` §2.2 A9，`docs/` 不随包） |
-| 板上那一版 | 板上现在跑的是 r118：2026-10-04 04:49:50 由三步 JTAG 链刷入，位流 `md5(12)=cd04907e1369`，`build/r118_gates.txt` 是戳着这块 bit 的那一份门禁件，它读作 **门禁 24 项 23 绿 / 1 红**（唯一红项 = 声明过的 `C5c` 顶层台架那一项）。⚠ "板上现在跑的是 rNN"与"门禁 N 项 X 绿 / Y 红"这两半句都是**尺子射程**：`src/host/doc_currency_check.mjs:255` 的 `NOW_MARK` + `:256` 的 `ADJ_RNN`（D1b 板态身份句）与 `:310` 的 `GATES_CLAIM`（D1c 门禁读数句）按**相邻形状**取数、并对回 `build/r118_gates.txt` 的行尾计数，中英首页各要抓到一句（地板 2）。把它改成散文、删掉，或者**在本行的行名里先出现"板上现在"四个字**（`NOW_MARK` 只取每行第一个命中，后面的那半句就进不了射程）——三种写法都会让门禁第 18 项因"空转地板"判红；本会话实测撞过第三种，记在 §2 红项 R4 与 `docs/repro-check.md` §3 R10（`docs/` 不随包） | `build/evidence/r118_board/BOARD_NOW.txt`、`build/evidence/r118_bit_md5.txt`、`build/r118_gates.txt` |
+| 门禁 | 基准件那一行原文：`GATES: 有红项（判定 24 项）—— 不采纳，保留上一版`（基准件读作 23 绿 / 1 红，红的是声明过的 `C5c`）⇒ 本会话 12:2x 亲跑 `bash build/gates.sh` **两跑逐字节一致、末行就是那一句**，但那一跑判红的是**两项**：`C5c`（顶层台架 `tb_v98` FAIL 行=1，声明过的红）+ `文档时效 doc_cur`（成因与射程见 §2 红项 R4，不是本文件的数字行） | `build/r118_gates_final.txt` 末行（本会话读到）、本会话 `bash build/gates.sh` 两跑输出（逐字节比对记在 `report/repro-check.md` §2.2 A9，`docs/` 不随包） |
+| 板上那一版 | 板上现在跑的是 r118：2026-10-04 04:49:50 由三步 JTAG 链刷入，位流 `md5(12)=cd04907e1369`，`build/r118_gates.txt` 是戳着这块 bit 的那一份门禁件，它读作 **门禁 24 项 23 绿 / 1 红**（唯一红项 = 声明过的 `C5c` 顶层台架那一项）。⚠ "板上现在跑的是 rNN"与"门禁 N 项 X 绿 / Y 红"这两半句都是**尺子射程**：`src/host/doc_currency_check.mjs:255` 的 `NOW_MARK` + `:256` 的 `ADJ_RNN`（D1b 板态身份句）与 `:310` 的 `GATES_CLAIM`（D1c 门禁读数句）按**相邻形状**取数、并对回 `build/r118_gates.txt` 的行尾计数，中英首页各要抓到一句（地板 2）。把它改成散文、删掉，或者**在本行的行名里先出现"板上现在"四个字**（`NOW_MARK` 只取每行第一个命中，后面的那半句就进不了射程）——三种写法都会让门禁第 18 项因"空转地板"判红；本会话实测撞过第三种，记在 §2 红项 R4 与 `report/repro-check.md` §3 R10（`docs/` 不随包） | `build/evidence/r118_board/board_now.txt`、`build/evidence/r118_bit_md5.txt`、`build/r118_gates.txt` |
 
 **两条必须一起念的口径**（不一起念就会读错）：
 
@@ -37,7 +37,7 @@
   未检查不等于满足（口径见 `data/metrics.csv` 第 5 行、`build/provenance.md` 第 3 节）。
 - **本页不作门禁全绿声明**：某一版过没过、过几项、哪一项红，只以 `bash build/gates.sh` 自己打印的
   最后一行为准（三态原文见 `build/gates.sh:582-586`）。采纳判据与那句"不采纳"是两条不同口径的句子，
-  两条都在库里、本文件都点名：`build/r118_gates_final.txt` 末行 vs `build/evidence/r118_board/BOARD_NOW.txt`
+  两条都在库里、本文件都点名：`build/r118_gates_final.txt` 末行 vs `build/evidence/r118_board/board_now.txt`
   与 `build/provenance.md` 第 6 节。
 
 > **上面这张表的四个行名会被机器读**：`全设计 setup WNS`、`逐时钟 setup 余量`、`保持时间`、
@@ -45,16 +45,16 @@
 > 首页行锚点（`src/host/metric_recheck.mjs:274-278`），它按行名取数、按括号形状取 LUT/FF/DSP 三对、
 > 按"占它 X ns 周期的 Y %"回算百分数分母。**改这些行名或改成散文 = 门禁第 21 项（D6）直接判红**，
 > 不是"文档风格问题"。本任务就撞过一次：先写成"资源"一栏 ⇒ 4 条 `RED … 首页与指标表脱钩`，
-> 恢复行名后 `判 117 个数（首页层 63 个）／红 0`、rc=0（全程记在 `docs/repro-check.md` §3 的 R8；`docs/` 不随包）。
+> 恢复行名后 `判 117 个数（首页层 63 个）／红 0`、rc=0（全程记在 `report/repro-check.md` §3 的 R8；`docs/` 不随包）。
 
 逐时钟余量、优化被哪条证据否掉、为什么某些差值不算收益——写在
-[`report/TIMING_GLOBAL.md`](report/TIMING_GLOBAL.md)、[`report/OPTIMIZATION_LOG.md`](report/OPTIMIZATION_LOG.md)、
-[`report/PERF_REPORT.md`](report/PERF_REPORT.md)，**本页不复制它们**：同一份数字抄两处一定会漂（§2 的红项就是实例）。
+[`report/timing_global.md`](report/timing_global.md)、[`report/optimization_log.md`](report/optimization_log.md)、
+[`report/perf_report.md`](report/perf_report.md)，**本页不复制它们**：同一份数字抄两处一定会漂（§2 的红项就是实例）。
 
 ## 2. 器件与工具版本 —— 全仓唯一权威声明
 
 **本节是仓库里器件与工具版本的唯一权威位。** 其他文件（`data/metrics.csv`、`build/README.md`、
-`report/BUILD.md`、`board/README.md`、`submit/`）应当引用本节而不是各自复述；本节只收**能当场复核**的值。
+`report/build.md`、`board/README.md`、`submit/`）应当引用本节而不是各自复述；本节只收**能当场复核**的值。
 
 | 项 | 权威值 | 复核方式 |
 |---|---|---|
@@ -62,7 +62,7 @@
 | Vivado | **v2025.2.1 (64-bit)**，SW Build 6403652 | `build/r118_build_console.txt:1-2` 工具自报横幅（本会话 `head` 读到） |
 | Vitis / `xsdb` | **版本串【未核实】**：只核到"`<Vitis>/bin/xsdb.bat` 存在、其安装目录名为 2025.2.1"（本会话 `test -f`） | 本任务不许运行 xsdb，故不写它自报的版本；`build/provenance.md:84` 登记同一条未核实 |
 | PS 侧编译器 | `PATH` 上**没有** `arm-none-eabi-gcc`（本会话 `command -v` 空）；Vitis 自带那份在 `<Vitis>/gnu/aarch32/nt/gcc-arm-none-eabi/bin/arm-none-eabi-gcc.exe`（本会话 `test -f` 存在）；它自报的版本串【未核实】 | `build/provenance.md:85` |
-| 赛题版本口径 | 声明 **2025.2.1**（同一主版本线的补丁版），不是指南推荐的 2026.1 | `report/log/CONTEST_CHECKLIST.md:11`、`build/provenance.md:88` |
+| 赛题版本口径 | 声明 **2025.2.1**（同一主版本线的补丁版），不是指南推荐的 2026.1 | `report/log/contest_checklist.md:11`、`build/provenance.md:88` |
 | 显示时序 | 像素钟 50 MHz，`H_TOTAL=1344` / `V_TOTAL=625` ⇒ 场频 59.5 Hz | `data/metrics.csv` 第 2 行 |
 | 操作系统 | Windows 10.0.26300 + Git Bash（`MSYSTEM=MINGW64`，本会话 `uname -a` 实测）；**Linux 分支【未在 Linux 验证】** | §5 |
 | 脚本依赖 | Node **v24.21.0**、Python **3.12.10**、`python3` **无别名**、**无 pyserial**（本会话实测） | §5 |
@@ -72,10 +72,10 @@
 
 | # | 冲突点 | 两处原文（逐字） | 处置 |
 |---|---|---|---|
-| R1 | **Vitis 版本要不要断言 2025.2.1**（本会话实测：断言位 **4** 处、"未核实"位 **1** 处） | `data/metrics.csv:2`「xc7z020clg484-2 / Vivado+Vitis 2025.2.1」、`build/README.md:4`「工具版本：Vivado / Vitis 2025.2.1」、`report/BUILD.md:11`「Vivado / Vitis \| 2025.2.1」、`submit/07-skill-distillation.md:62`「Vivado/Vitis 2025.2.1 的报告字段位置」 vs `build/provenance.md:84`「Vitis / xsdb \| 【未核实】… 要补一次 `xsdb.bat -Version` 的原文，别拿 Vivado 的版本冒充它」 | 本节按**保守那一档**写（Vitis 未核实）。四处复述要不要统一、以哪一处为准 ⇒ `docs/questions-for-team-p12.md` Q-P12-1（`docs/` 不随包） |
+| R1 | **Vitis 版本要不要断言 2025.2.1**（本会话实测：断言位 **4** 处、"未核实"位 **1** 处） | `data/metrics.csv:2`「xc7z020clg484-2 / Vivado+Vitis 2025.2.1」、`build/README.md:4`「工具版本：Vivado / Vitis 2025.2.1」、`report/build.md:11`「Vivado / Vitis \| 2025.2.1」、`report/07-skill-distillation.md:62`「Vivado/Vitis 2025.2.1 的报告字段位置」 vs `build/provenance.md:84`「Vitis / xsdb \| 【未核实】… 要补一次 `xsdb.bat -Version` 的原文，别拿 Vivado 的版本冒充它」 | 本节按**保守那一档**写（Vitis 未核实）。四处复述要不要统一、以哪一处为准 ⇒ `report/questions-for-team-p12.md` Q-P12-1（`docs/` 不随包） |
 | R2 | **整屏判据条数 141 vs 161** | `data/metrics.csv:15`「141 = 该文件里 `^PASS` 行数 140 加 `^FAIL` 行数 1」（provenance 头 `top_md5=2bf2ceeede07`，2026-10-02 01:15）vs 本会话实测 `build/tb_v98_report.txt`（头 `top_md5=56c269602e18`，2026-10-04 01:47）`^PASS`=161、`^FAIL`=1 | 两个数各自对它那份文件都成立，但那一格指的是"该文件"的**现值** ⇒ 红项保留；`metric_recheck` 射程不含该行（它只判点名 timing/utilization/power 的行，本会话实测输出里"其余 18 行不点名"）⇒ Q-P12-2 |
-| R3 | **板上/文档里的时序与功耗读数分三档** | `build/timing_summary.rpt:151` 0.739 / 0.052 / 51135（本节权威）vs `board/README.md:62` 「setup WNS **0.720 ns** / hold WHS **0.033 ns** … 失败 setup/hold 端点 **0 / 50890**」、`board/ACCEPTANCE.md:24` 「WNS 0.553 ns、WHS 0.049 ns、失败端点 0 / 50883」；功耗 `build/power.rpt` 2.213 W / 52.6 °C vs `board/README.md:63` 「2.207 W / 52.5 °C」 | 本任务不改 `board/` 的文件（并发轮次在写，P23 授权边界）⇒ 只登记并指回本节：`docs/questions-for-team-p12.md` Q-P12-3（`docs/` 不随包） |
-| R4 | **门禁第 18 项 `doc_cur` 现在是红的，且红不在本文件的数字行上**（本会话 12:5x 亲跑 `bash build/gates.sh` **两跑逐字节一致**、退出码 1：判定 24 项、两项红 = `C5c` + `doc_cur`） | 改之前那一跑原文：`文档时效 doc_cur 扫了 130 个文档 红行=0 身份句=1 门禁读数句=1 … 身份句抓到 >= 2、门禁读数句抓到 >= 2 FAIL`。两件事分开：① **身份句与门禁读数句各只剩 1 句（地板 2）**——上一轮把 §1 那两句锚点改成了散文，本会话按 `src/host/doc_currency_check.mjs:255` `NOW_MARK` + `:256` `ADJ_RNN` + `:310` `GATES_CLAIM` 的相邻形状**改回去**（中英各一句），实测恢复 `身份句=2 门禁读数句=2`；坑在于 `NOW_MARK` 只取每行**第一个**命中，所以连"本行行名先写板上现在"都会让后半句不进射程（本会话撞过一次）。② 该子判据还要求 `node src/host/doc_currency_check.mjs` 退出码 0，而它本会话数到 **188 条 `D4b`**：`src/host/doc_currency_check.mjs:140` 的 `OLD_DIR` 把仓库根 `docs/` 一律当"已删掉的旧目录"，可 `docs/` 这一轮真实存在且入库（`git ls-files docs/timing/` 有 19 件），于是并发轮次新写的 6 份 `report/*.md`（`90-open-items` 62、`40-optimization` 55、`comparison-notes` 35、`50-results` 18、`60-failure-analysis` 8、`70-reproduce` 3，全是**未入库的并发件**）里那些指向**盘上存在文件**的 `docs/…` 全被判红；本文件自己那 12 条已按尺子自己认可的写法归零（每行同处写明"`docs/` 不随包"，`build/make_submission.sh:107-114` 确实整目录剪掉它，实测 `grep -c "  README.md:"` = 0、放行条数 15→18）。⚠ 顺带一条计数假象：改后 `红行=1` 并非新红，而是 `build/gates.sh:451` 的 `' D[123][bc]? '` 把 `report/40-optimization.md:209` 那一条 **D4b**（正文里引用了表格行名 `\| D3 \|`）数了进去——同一族的规矩记在脚本注释 41(c) | 本任务不改 `report/`、`src/`、`build/`（禁区）⇒ 红项保留、不删指路、不放宽尺子；要队伍裁的是三件：`docs/` 还算不算"旧目录"（`OLD_DIR` 该不该改成"指向不存在的 `docs/…` 才红"）、那把计数模式要不要收（`D4` 不该混进 `D[123]`）、交付文档统一怎么指 `docs/` ⇒ `docs/questions-for-team-p12.md` Q-P12-11 / Q-P12-12（`docs/` 不随包）。逐条计数与两跑 md5 记在 `docs/repro-check.md` §2.2 A9–A11、§3 R9–R11 |
+| R3 | **板上/文档里的时序与功耗读数分三档** | `build/timing_summary.rpt:151` 0.739 / 0.052 / 51135（本节权威）vs `board/README.md:62` 「setup WNS **0.720 ns** / hold WHS **0.033 ns** … 失败 setup/hold 端点 **0 / 50890**」、`board/acceptance.md:24` 「WNS 0.553 ns、WHS 0.049 ns、失败端点 0 / 50883」；功耗 `build/power.rpt` 2.213 W / 52.6 °C vs `board/README.md:63` 「2.207 W / 52.5 °C」 | 本任务不改 `board/` 的文件（并发轮次在写，P23 授权边界）⇒ 只登记并指回本节：`report/questions-for-team-p12.md` Q-P12-3（`docs/` 不随包） |
+| R4 | **门禁第 18 项 `doc_cur` 现在是红的，且红不在本文件的数字行上**（本会话 12:5x 亲跑 `bash build/gates.sh` **两跑逐字节一致**、退出码 1：判定 24 项、两项红 = `C5c` + `doc_cur`） | 改之前那一跑原文：`文档时效 doc_cur 扫了 130 个文档 红行=0 身份句=1 门禁读数句=1 … 身份句抓到 >= 2、门禁读数句抓到 >= 2 FAIL`。两件事分开：① **身份句与门禁读数句各只剩 1 句（地板 2）**——上一轮把 §1 那两句锚点改成了散文，本会话按 `src/host/doc_currency_check.mjs:255` `NOW_MARK` + `:256` `ADJ_RNN` + `:310` `GATES_CLAIM` 的相邻形状**改回去**（中英各一句），实测恢复 `身份句=2 门禁读数句=2`；坑在于 `NOW_MARK` 只取每行**第一个**命中，所以连"本行行名先写板上现在"都会让后半句不进射程（本会话撞过一次）。② 该子判据还要求 `node src/host/doc_currency_check.mjs` 退出码 0，而它本会话数到 **188 条 `D4b`**：`src/host/doc_currency_check.mjs:140` 的 `OLD_DIR` 把仓库根 `docs/` 一律当"已删掉的旧目录"，可 `docs/` 这一轮真实存在且入库（`git ls-files docs/timing/` 有 19 件），于是并发轮次新写的 6 份 `report/*.md`（`90-open-items` 62、`40-optimization` 55、`comparison-notes` 35、`50-results` 18、`60-failure-analysis` 8、`70-reproduce` 3，全是**未入库的并发件**）里那些指向**盘上存在文件**的 `docs/…` 全被判红；本文件自己那 12 条已按尺子自己认可的写法归零（每行同处写明"`docs/` 不随包"，`build/make_submission.sh:107-114` 确实整目录剪掉它，实测 `grep -c "  README.md:"` = 0、放行条数 15→18）。⚠ 顺带一条计数假象：改后 `红行=1` 并非新红，而是 `build/gates.sh:451` 的 `' D[123][bc]? '` 把 `report/40-optimization.md:209` 那一条 **D4b**（正文里引用了表格行名 `\| D3 \|`）数了进去——同一族的规矩记在脚本注释 41(c) | 本任务不改 `report/`、`src/`、`build/`（禁区）⇒ 红项保留、不删指路、不放宽尺子；要队伍裁的是三件：`docs/` 还算不算"旧目录"（`OLD_DIR` 该不该改成"指向不存在的 `docs/…` 才红"）、那把计数模式要不要收（`D4` 不该混进 `D[123]`）、交付文档统一怎么指 `docs/` ⇒ `report/questions-for-team-p12.md` Q-P12-11 / Q-P12-12（`docs/` 不随包）。逐条计数与两跑 md5 记在 `report/repro-check.md` §2.2 A9–A11、§3 R9–R11 |
 
 ## 3. 目录结构与赛题 §3.3.5.4 对照表
 
@@ -87,56 +87,56 @@
 | `src/ps/` | PS 侧裸机固件：命令解析、寄存器配置、SD 播放、自诊断读回 |
 | `src/host/` | PC 侧上位机与**只读尺子**（Python 推流、寄存器回读、文档一致性与数字对账检查器） |
 | `src/constraints/` | 引脚与时序约束（含两档默认不加载的候选件，见 §2 与 §6） |
-| `sim/` | 台架与 runner（本会话实测 `sim/tb_*.v` = **81** 支）；`sim/run_one.sh` 是单台架入口，`sim/NAMES.md` 给新旧名对照 |
+| `sim/` | 台架与 runner（本会话实测 `sim/tb_*.v` = **81** 支）；`build/sim/run_one.sh` 是单台架入口，`build/sim/names.md` 给新旧名对照 |
 | `build/` | 可复现的构建脚本（`tcl/`，入口一条命令出位流）+ 本版综合实现报告（仓库里平铺在 `build/`）+ 门禁与上板回读脚本；构建产物（位流/XSA/ELF）也落在这里 ⇒ [`build/README.md`](build/README.md) |
-| `board/` | 上板三件事：工程与二进制怎么来、运行脚本（JTAG 三步 + 串口）、跑起来读回来的实测输出 ⇒ [`board/README.md`](board/README.md)、验收表 [`board/ACCEPTANCE.md`](board/ACCEPTANCE.md) |
+| `board/` | 上板三件事：工程与二进制怎么来、运行脚本（JTAG 三步 + 串口）、跑起来读回来的实测输出 ⇒ [`board/README.md`](board/README.md)、验收表 [`board/acceptance.md`](board/acceptance.md) |
 | `data/` | `data/golden/` 参考图（含 `data/golden/manifest.md`）、`data/inputs/` 裸帧输入、`data/measured/` 实测输出留档（本会话实测 20 个件，索引在它自己的 `data/measured/README.md` 里）、[`data/metrics.csv`](data/metrics.csv) 是唯一那张数字表（`data/README.md` 本会话实测**不存在**） |
 | `skill/` | 大模型协作沉淀的技能卡（索引 [`skills/README.md`](skills/README.md)；条目数只有那一行写着，本页不复制） |
 | `report/` | 交付文档：设计说明、优化记录、命令表、复现说明（索引 [`report/README.md`](report/README.md)） |
 | `report/log/` | 追加式工作记录（问题账、过夜流水、赛题对照表）；只作过程留痕，不当结论引用 |
 
 **对照表**（赛题 §3.3.5.4 末句「采用其他组织方式的队伍须在 `README.md` 中给出目录对照说明」的落点——
-本表就在 `README.md` 里，是**必答项**不是加分项；左列逐字取 `report/log/CONTEST_CHECKLIST.md:120`
-所引的那份推荐结构的条目名，中列是本仓库现状。与 [`submit/README.md`](submit/README.md) 第 19–28 行那张
+本表就在 `README.md` 里，是**必答项**不是加分项；左列逐字取 `report/log/contest_checklist.md:120`
+所引的那份推荐结构的条目名，中列是本仓库现状。与 [`report/README.md`](report/README.md) 第 19–28 行那张
 是同口径的两张（一张面向评审的阅读路径、一张面向从零复现），**要改必须两处一起改**，只改一处就是 §2 那条
 "同一份东西抄两处一定会漂"的教训）：
 
 | 赛题推荐结构里的位置 | 本仓库实际位置（本会话 `test -e` 逐条核对） | 为什么这样放 |
 |---|---|---|
 | `README.md`（项目简介 + 复现步骤） | 本文件：九节固定（页首那行写着顺序） | 复现步骤要能被"只拿这一个文件"的人照着敲 ⇒ 命令、目录、期望输出写在 §5–§7，不外链到一份要另下的文档 |
-| 工程本体（RTL / 约束 / 固件 / 台架 / 构建脚本） | `src/rtl/`、`src/constraints/`、`src/ps/`、`sim/`、`build/tcl/`、`board/` | 交付文档指的就是这些路径；复制一份进包 = 造第二个真相源（`submit/README.md:22` 同一条理由） |
-| 设计报告 / 各章节文档 | `report/*.md`（索引 [`report/README.md`](report/README.md)），阅读路径重构在 `submit/01-overview.md`…`submit/08-limits.md` | 仓库里一份、按"怎么建的"长；包里按"评审要看的顺序"重排，**只搬指路不搬数字** |
+| 工程本体（RTL / 约束 / 固件 / 台架 / 构建脚本） | `src/rtl/`、`src/constraints/`、`src/ps/`、`sim/`、`build/tcl/`、`board/` | 交付文档指的就是这些路径；复制一份进包 = 造第二个真相源（`report/README.md:22` 同一条理由） |
+| 设计报告 / 各章节文档 | `report/*.md`（索引 [`report/README.md`](report/README.md)），阅读路径重构在 `report/01-overview.md`…`report/08-limits.md` | 仓库里一份、按"怎么建的"长；包里按"评审要看的顺序"重排，**只搬指路不搬数字** |
 | 实测数据 / 指标 | [`data/metrics.csv`](data/metrics.csv)（唯一那张数字表，每行点名它的凭据） | 数字只在一处；其余读数一律由 §7 的尺子回算，不在文档里复述（§2 的红项 R2/R3 就是复述会漂的实例） |
 | 凭据（构建 / 台架 / 板级报告原件） | `build/`（实现与综合报告平铺）、`build/evidence/`（被点名的那几份）、`build/r118_gates_final.txt` | 正文不改写：包里念的判据报告仍是工具产出的原文 |
 | 技能包（§3.3.5.2 点名 `skill/`） | `skill/`，条目一律 `<目录>/SKILL.md` 八节外壳，索引 [`skills/README.md`](skills/README.md) | 赛题按目录名收，故同名；条目数只写在 `skills/README.md` 那一行，本页不复制 |
-| 复现说明（他人从零执行） | §5–§7 三节 + [`submit/reproduce/README.md`](submit/reproduce/README.md)（每条命令逐字抄自脚本自己的用法头并标行号） | 命令 + 前置 + 期望输出，三件齐才算一条步骤 |
-| 大模型协作记录 / 技能包提炼过程 | `report/AI_COLLABORATION.md`、`report/LLM_COLLAB.md`、`submit/07-skill-distillation.md`、`skill/pitfalls/` | 赛题 §3.3.5.3 点名的两章；原料是 `report/log/ISSUES.md` 与 `OVERNIGHT_LOG.md` |
+| 复现说明（他人从零执行） | §5–§7 三节 + [`report/reproduce/README.md`](report/reproduce/README.md)（每条命令逐字抄自脚本自己的用法头并标行号） | 命令 + 前置 + 期望输出，三件齐才算一条步骤 |
+| 大模型协作记录 / 技能包提炼过程 | `report/ai_collaboration.md`、`report/llm_collab.md`、`report/07-skill-distillation.md`、`skill/pitfalls/` | 赛题 §3.3.5.3 点名的两章；原料是 `report/log/issues.md` 与 `overnight_log.md` |
 | 学习/讲解文档（推荐结构里的"上手引导"那一类） | `docs/walkthrough/`（本会话 `ls` 存在；**不随包**、也不在提交阅读路径里，`docs/` 整目录由 `build/make_submission.sh:107-114` 剪掉） | 面向接手的人而非评审；随包会让评审翻到一堆过程件 |
 | 运行台账（本仓库额外长出来的两类） | `docs/`（`run-queue.md`、`repro-check.md`、`questions-for-team*.md`、`timing/`…；**不随包**）、`report/log/` | 追加式过程留痕；它们回答"这一版的判定是谁跑的、输出是什么"，不进交付叙事 |
 
 目录摆放按比赛要求的形状来（`src/ sim/ build/ board/ data/ skill/ report/`）。交付文档这一层仓库里就叫
-`report/`；导出提交包时改的是**文件名**（按比赛要求写成纯英文小写：`report/BUILD.md` → 包内 `build.md`、
-`report/KNOWN_ISSUES.md` → 包内 `known_issues.md`），文档里的指路跟着一起改；剪掉了什么、按哪条判据剪的，逐条写在
+`report/`；导出提交包时改的是**文件名**（按比赛要求写成纯英文小写：`report/build.md` → 包内 `build.md`、
+`report/known_issues.md` → 包内 `known_issues.md`），文档里的指路跟着一起改；剪掉了什么、按哪条判据剪的，逐条写在
 包内 `_pruned.txt`（那是提交包里的件，仓库里没有，本页把它算作"非仓库路径"不参与存在性核对），
 而包内所有"路径式指路"由导出器自检——指不到就拒绝落盘。
 
 ### 3.2 提交阅读路径（`submit/`）
 
-交付文档的重构阅读路径在 [`submit/README.md`](submit/README.md)：八章设计报告、复现说明
-（[`submit/reproduce/README.md`](submit/reproduce/README.md)，每条命令逐字抄自脚本自己的用法头并标行号）、
+交付文档的重构阅读路径在 [`report/README.md`](report/README.md)：八章设计报告、复现说明
+（[`report/reproduce/README.md`](report/reproduce/README.md)，每条命令逐字抄自脚本自己的用法头并标行号）、
 以及"推荐结构 → 本仓库位置"的目录对照说明（赛题 §3.3.5.4 对采用其他组织方式的队伍的那句要求）。
 它**不复制任何数字**——数字只在 `data/metrics.csv` 与门禁那一行里读。
 
 ### 3.3 条文依据（逐字，带出处）
 
 - §3.3.5.4 末句：「上表为推荐结构，非强制。**采用其他组织方式的队伍须在 `README.md` 中给出目录对照说明**」
-  ——引自 `report/log/CONTEST_CHECKLIST.md:120`。本节（§3）就是那份对照说明，是**必答项**不是加分项。
+  ——引自 `report/log/contest_checklist.md:120`。本节（§3）就是那份对照说明，是**必答项**不是加分项。
 - §3.3.5.1：「可复现的构建脚本」与「实测输出与参考结果的比对数据」——引自同文件 `:134`、`:139`，
   落点分别是 §6 的命令序列与 §7 的比对尺子。
 - §3.3.3.1（工具版本须说明并保证脚本可复现）、§3.3.3.2（声明具体型号）——条款编号与落点见同文件 `:11`、`:12`、`:82`。
 - §3.3.5.4 文件名要求（小写字母、数字、下划线或连字符，不得出现中文、空格或特殊字符）：见同文件 `:21`。
 - §3.3.5.2 末段「通用 PYNQ Skill 单独加分」：**本作品明确不适用**（裸机 + Vivado/Vitis 原生流程），
-  登记在 `report/log/CONTEST_CHECKLIST.md:124-125`。
+  登记在 `report/log/contest_checklist.md:124-125`。
 
 ### 3.4 提交包里能直接跑的尺子（不是只在仓库里）
 
@@ -151,13 +151,13 @@
 
 | 项 | 要求 | 出处 |
 |---|---|---|
-| 板卡 | Zynq-7020 `xc7z020clg484-2` 一块（本工程只宣称这一块） | `report/log/CONTEST_CHECKLIST.md:12` |
-| 供电 | 12 V 电源适配器 | `report/BUILD.md` §3 第 1 条 |
+| 板卡 | Zynq-7020 `xc7z020clg484-2` 一块（本工程只宣称这一块） | `report/log/contest_checklist.md:12` |
+| 供电 | 12 V 电源适配器 | `report/build.md` §3 第 1 条 |
 | 显示 | HDMI 面板，支持 1024×600 | 同上 |
-| USB | USB 线（JTAG + UART 共用一根）：本会话实测枚举出 `USB Serial Converter A/B` 与 `USB Serial Port (COM6)` | `report/BUILD.md` §3；§5 S8 |
-| 网口 | 网线接 **PL 侧网口**（不是 PS 口）；PC 设 `192.168.1.100/24`，板子是 `192.168.1.10`、UDP `5001` | `report/BUILD.md` §3 与 §4 |
-| 演 SD 那一幕 | **下 bit 之前**把网线拔掉：PL 里 `link_active = |s_pkts|` 是"自配置以来收过任何一个包"，ARP 就够触发，拔线不清零 | `report/BUILD.md` §3 第 2 条 |
-| 下载方式 | **全程只走 JTAG**；本工程没有任何脚本写 QSPI/SPI flash 或板载 EEPROM | `report/log/CONTEST_CHECKLIST.md:13`、`board/README.md` §1 |
+| USB | USB 线（JTAG + UART 共用一根）：本会话实测枚举出 `USB Serial Converter A/B` 与 `USB Serial Port (COM6)` | `report/build.md` §3；§5 S8 |
+| 网口 | 网线接 **PL 侧网口**（不是 PS 口）；PC 设 `192.168.1.100/24`，板子是 `192.168.1.10`、UDP `5001` | `report/build.md` §3 与 §4 |
+| 演 SD 那一幕 | **下 bit 之前**把网线拔掉：PL 里 `link_active = |s_pkts|` 是"自配置以来收过任何一个包"，ARP 就够触发，拔线不清零 | `report/build.md` §3 第 2 条 |
+| 下载方式 | **全程只走 JTAG**；本工程没有任何脚本写 QSPI/SPI flash 或板载 EEPROM | `report/log/contest_checklist.md:13`、`board/README.md` §1 |
 | 线材型号 / 外设供电 / 限流 | `【队伍未确认】`——`board/hardware_setup.md` 正在由另一轮次写，本页不引用尚不完整的清单 ⇒ Q-P12-4 | — |
 
 ### 4.2 软件
@@ -165,7 +165,7 @@
 - Vivado 2025.2.1（Tcl 构建、门禁取数、`program_pl`/`scan_jtag` 都走它）。**本会话实测 `vivado` 不在 PATH 上**
   ⇒ 要么把 `<Vivado>/bin` 加进 PATH，要么写全 `"$VP_VIVADO_BIN/vivado.bat"`。
 - Vitis 的 `xsdb.bat`（上板那三步与 `board_verify` 用它）；路径通过环境变量 `VP_XSDB` 显式给。
-- bash：Windows 用 Git Bash / MSYS（本会话 `MSYSTEM=MINGW64`）；`sim/run_one.sh` 用到 `cygpath` 与 `tasklist`，
+- bash：Windows 用 Git Bash / MSYS（本会话 `MSYSTEM=MINGW64`）；`build/sim/run_one.sh` 用到 `cygpath` 与 `tasklist`，
   **这两样在 Linux 上没有对应形状 ⇒ 该脚本【未在 Linux 验证】**。
 - Node 24（只读尺子与 PS 固件构建脚本用它；本会话 v24.21.0）。
 - Python 3（推流上位机；只用标准库，`ffmpeg` 可选。**本机命令名是 `python`，`python3` 不存在**）。
@@ -176,7 +176,7 @@
 
 | 变量 | 指哪儿 | 谁读它 | 不设会看到什么（脚本自己打印的那一句，逐字） |
 |---|---|---|---|
-| `VP_VIVADO_BIN` | `<Vivado>/bin`（安装根下的 `Vivado/bin` 那一层；找法见 §5 S5） | `sim/run_one.sh:46`、`build/timing_lane.sh:19`、`build/r118_chain.sh:22`、`build/r116_bit_cycle.sh:12` | `REFUSE: 找不到 xvlog（当前 $V）。设 VP_VIVADO_BIN=<Vivado>/bin 再跑（report/BUILD.md）`，rc=2；快车道那一支打 `LANE-REFUSE: 先设 VP_VIVADO_BIN=<Vivado>/bin（当前 ''）` |
+| `VP_VIVADO_BIN` | `<Vivado>/bin`（安装根下的 `Vivado/bin` 那一层；找法见 §5 S5） | `build/sim/run_one.sh:46`、`build/timing_lane.sh:19`、`build/r118_chain.sh:22`、`build/r116_bit_cycle.sh:12` | `REFUSE: 找不到 xvlog（当前 $V）。设 VP_VIVADO_BIN=<Vivado>/bin 再跑（report/build.md）`，rc=2；快车道那一支打 `LANE-REFUSE: 先设 VP_VIVADO_BIN=<Vivado>/bin（当前 ''）` |
 | `VP_XSDB` | `<Vitis>/bin/xsdb.bat`（同名件在 `<Vivado>/bin` 也有一份，取 Vitis 那一份，见 §5 S7） | `build/board_verify.sh:113-114`、`build/r116_bit_cycle.sh:13` | `REFUSE: 找不到 xsdb（当前 $VP_XSDB）…` 或 `REFUSE no xsdb`；⚠ #317 那个坑是"**在子 shell 里 export、下一条命令读不到**"，命令前缀赋值对 `build/r116_bit_cycle.sh` 够用（它自己 `export VP_XSDB=${VP_XSDB:?…}`） |
 | `PS_CC` / `PS_BSP` | ARM 编译器 / 已 generate 的 zynq BSP（**默认在仓库内**：`vitis/platform/ps7_cortexa9_0/standalone_ps7_cortexa9_0/bsp`，本会话 `test -d` 存在） | `build/build_ps_app.py`、`build/ps_app.mjs:29` | `FATAL: PATH 上找不到 …`（退出码 2） |
 | `VP_BIT` | 要下进 PL 的那块位流 | `build/tcl/program_pl.tcl`、`build/r116_bit_cycle.sh:29` | 不设就是 `build/system.bit`（交付件身份仍由 md5 认） |
@@ -186,7 +186,7 @@
 
 在**仓库根**、Git Bash（Windows）里逐条敲。每条给"应看到什么"和"缺件时会看到什么"。
 本会话（2026-10-04 12:5x）把 S1–S11 **全部重跑过一遍**，两轮实测摘要与每条的原文输出记在
-[`docs/repro-check.md`](docs/repro-check.md) §2.1（`docs/` 不随包）；S5 的查找深度按本轮实测改过一次，见那一步的 ⚠。
+[`report/repro-check.md`](report/repro-check.md) §2.1（`docs/` 不随包）；S5 的查找深度按本轮实测改过一次，见那一步的 ⚠。
 
 ```bash
 # S1 shell 与平台
@@ -236,9 +236,9 @@ export VP_XSDB=<Vitis 安装目录>/bin/xsdb.bat; test -f "$VP_XSDB" && echo OK
 netstat -an | grep ":3121"
 #   期望：一行 `TCP 0.0.0.0:3121 0.0.0.0:0 LISTENING`（本会话实测有）
 #   空 ⇒ 没有 hw_server 在听 ⇒ 上板第一步连不上（`CONNECT:` 空），
-#        起 `<Vitis>/bin/hw_server.bat` 之后应拿到 `tcfchan#0`（`board/ACCEPTANCE.md:36` 钉了这条要先做）
+#        起 `<Vitis>/bin/hw_server.bat` 之后应拿到 `tcfchan#0`（`board/acceptance.md:36` 钉了这条要先做）
 #   同名件可能有两份：本会话实测 `<Vitis>/bin/xsdb.bat` 与 `<Vivado>/bin/xsdb.bat` 都在 ⇒
-#   本页一律取 **Vitis** 那一份（`report/BUILD.md` §1 与 `build/board_verify.sh:113-114` 点名的就是它）
+#   本页一律取 **Vitis** 那一份（`report/build.md` §1 与 `build/board_verify.sh:113-114` 点名的就是它）
 
 # S8 串口（只枚举，**不开口、不占用**）
 powershell.exe -NoProfile -Command "[System.IO.Ports.SerialPort]::GetPortNames()"
@@ -267,7 +267,7 @@ git status --porcelain | wc -l; git rev-parse --short HEAD
 **目录这一字段对下面 A/B/C 全部成立：一律在仓库根、Git Bash（Windows）里敲**，路径都是仓库相对路径；
 只有 B4/C* 另需 `VP_VIVADO_BIN` / `VP_XSDB` 已按 §5 的 S5、S7 设好。
 尖括号 `<…>` 全是占位符（连同尖括号一起替换），别原样回车。
-**从未被任何人跑过的命令一律不写在下面**；写不出处的命令一律不写（排除清单见 `docs/repro-check.md` §5；`docs/` 不随包）。
+**从未被任何人跑过的命令一律不写在下面**；写不出处的命令一律不写（排除清单见 `report/repro-check.md` §5；`docs/` 不随包）。
 
 ### 路径 A —— 只看归档结果（不需要 Vivado、不需要板子、5 分钟内跑完）
 
@@ -300,7 +300,7 @@ node src/host/line_cite_check.mjs
 #   `soft`（锚点候选、取不出锚点、转述待人看）**不判红也不许拿来批量改行号**
 
 # A4 整屏逐像素台架那份报告现在数出多少条（离线解析，不起仿真器）
-bash sim/run_one.sh --verdict tb_v98_top_seam build/tb_v98_report.txt
+bash build/sim/run_one.sh --verdict tb_v98_top_seam build/tb_v98_report.txt
 #   本会话实测 rc=3：VERDICT tb_v98_top_seam: RESULT tb_v98_top_seam FAIL nfail=1 || FAIL 行数=1 || PASS 行数=161
 #   rc=3 是**判红**不是崩：那 1 行红就是 §1 说的声明过的 C5c；换版后数字会变，读的是那一行的三个字段
 
@@ -315,7 +315,7 @@ node skill/scripts/check/gates.mjs
 
 # A7 读归档判据原文（不跑工具）
 cat build/r118_gates_final.txt | tail -2       # 门禁那一行（原文已在 §1）
-cat build/evidence/r118_board/BOARD_NOW.txt    # 板上是哪一版、什么时候刷的
+cat build/evidence/r118_board/board_now.txt    # 板上是哪一版、什么时候刷的
 ```
 
 ### 路径 B —— 复现仿真与构建（需要 Vivado，不需要板子）
@@ -324,28 +324,28 @@ cat build/evidence/r118_board/BOARD_NOW.txt    # 板上是哪一版、什么时�
 # B0 前置：§5 的 S5/S6 已过，且 VP_VIVADO_BIN 已 export
 #   ⚠ 同一时刻只允许一个 xsim 在写 /tmp/kx/<tb>.run：脚本会自己拒绝启动而不是杀别人的进程
 
-# B1 单台架（用法头逐字：`run_one.sh <tb_name>`，sim/run_one.sh:2）
-bash sim/run_one.sh tb_osd_lines
+# B1 单台架（用法头逐字：`run_one.sh <tb_name>`，build/sim/run_one.sh:2）
+bash build/sim/run_one.sh tb_osd_lines
 #   应看到：VERDICT tb_osd_lines: RESULT tb_osd_lines PASS || FAIL 行数=0 || PASS 行数=3   且 rc=0
 #   跑过的凭据（归档件）：build/evidence/r110_notadopted/r110_lane_after.txt:20 同一行，wall=13s
 #   本会话状态：NOT_MEASURED（本任务禁止起 xsim）
 #   失败分叉：rc=1 编译/例化失败（看 XVLOG FAILED / XELAB FAILED 及其后 8 行 ERROR）、
 #             rc=2 REFUSE（VP_VIVADO_BIN 没给或指错）、rc=3 判红、rc=4 认不出判定行
-#             ——红与"没数"必须分开：NO-VERDICT-LINE 不等于通过（sim/run_one.sh:117 给的表）
+#             ——红与"没数"必须分开：NO-VERDICT-LINE 不等于通过（build/sim/run_one.sh:117 给的表）
 
 # B2 快车道（分钟级那一组，不含约 100 分钟的顶层台架）
 #   逐条形状与耗时看件：build/evidence/r110_notadopted/r110_lane_after.txt 第 1 行 `清单=28`，
 #   里面每一条都打 `LANE GREEN wall=<10..17>s rc=0 VERDICT …`
 bash build/timing_lane.sh          # 本会话状态：NOT_MEASURED（会起仿真器）
 #   它也要 VP_VIVADO_BIN：不给就 `LANE-REFUSE: 先设 VP_VIVADO_BIN=<Vivado>/bin（当前 ''）` 且 rc=2
-#   （逐字出处 build/timing_lane.sh:19；它内部逐支调 sim/run_one.sh，所以同样受"只有一个 xsim"那一道拒绝）
+#   （逐字出处 build/timing_lane.sh:19；它内部逐支调 build/sim/run_one.sh，所以同样受"只有一个 xsim"那一道拒绝）
 #   ⚠ 快车道的绿**不代替门禁**：它不产 build/tb_v98_report.txt（该脚本 :88 那行自己写着这一条）
 
 # B3 顶层整屏台架 + 门禁第 15 项要的凭据件
-bash sim/run_one.sh tb_v98_top_seam        # 本会话状态：NOT_MEASURED（禁跑；一次约 100 分钟，见 R2 的两档口径）
+bash build/sim/run_one.sh tb_v98_top_seam        # 本会话状态：NOT_MEASURED（禁跑；一次约 100 分钟，见 R2 的两档口径）
 bash build/tb98_report.sh                  # 用法头逐字：`bash build/tb98_report.sh [那份 run.log]`（build/tb98_report.sh:4）
 #   应看到：build/tb_v98_report.txt 头部一行 `# provenance fpver=norm1 top_md5=<与 A1 的 top 同值> …`
-#   头部 md5 与当前树对不上 ⇒ "这份报告不算当前这一版"，门禁第 15 项判红（机制 sim/run_one.sh:73-95）
+#   头部 md5 与当前树对不上 ⇒ "这份报告不算当前这一版"，门禁第 15 项判红（机制 build/sim/run_one.sh:73-95）
 
 # B4 一条命令出位流（Vivado 2025.2.1，命令行；从仓库根起）
 "$VP_VIVADO_BIN/vivado.bat" -mode batch -nojournal -source build/tcl/build_system_axigpio.tcl
@@ -396,7 +396,7 @@ VP_XSDB=<Vitis 安装目录>/bin/xsdb.bat bash build/r116_bit_cycle.sh <标签>
 #     recover rc=0 / boot rc=0 / DDR_ECHO: 10000000: 5A5AA5A5 /
 #     pl rc=0 PROGRAMMED=2 / app rc=0 FLOW_DONE=1 / 读 A rc=0 / 读 B rc=0 /
 #     a: eth_live=1 owner_eth=1 drop_words=0 pkt_err=? frames_bad=? drop_seen=? / done
-#   那一行的 `?` 是**没读出来的字段**，不是 0（`report/log/ISSUES.md` #318）
+#   那一行的 `?` 是**没读出来的字段**，不是 0（`report/log/issues.md` #318）
 #   耗时：同一件首末行 04:45:26 → 04:47:07 = 1 min 41 s
 #   本会话状态：NOT_MEASURED（本任务禁止刷板、禁止占串口）
 #   失败分叉：REFUSE DDR_ECHO 没过（刚上电 JTAG 链还没重枚举，重插或先跑 C3 第 1 步）、
@@ -434,7 +434,7 @@ python src/host/video_sender.py --demo          # 先 ping 192.168.1.10，再推
 #     要干净文本就 `PYTHONIOENCODING=utf-8 python src/host/video_sender.py --help`（本会话实测有效）
 #   本会话状态：NOT_MEASURED（推流要板子）
 
-# C5 眼睛那一半不是命令：board/ACCEPTANCE.md 的 E1–E6 给的是判法与条件，
+# C5 眼睛那一半不是命令：board/acceptance.md 的 E1–E6 给的是判法与条件，
 #     只有在看的人点头之后才写进表；屏幕读数不进机器判据、也不进门禁。
 ```
 
@@ -444,17 +444,17 @@ python src/host/video_sender.py --demo          # 先 ping 192.168.1.10，再推
 |---|---|---|
 | 首页/指标表的数字 ↔ 报告原文 | `data/metrics.csv`（29 行，每行点它的证据文件） | `node src/host/metric_recheck.mjs`（不落笔）—— 本会话实测 rc=0、判 **117** 个数（首页层 63）、红 0 |
 | 时序/资源/功耗逐列取数 | `build/timing_summary.rpt`、`build/utilization.rpt`、`build/power.rpt` | `node skill/scripts/report_metrics/report_metrics.mjs --timing … --utilization … --out-dir <临时目录>`（**要 `--out-dir`**，且拒绝指向工程目录）；本会话**没跑** ⇒ `NOT_MEASURED`，只给跑法出处（该文件 `--help`） |
-| 逐像素判据条数 | `build/tb_v98_report.txt`（`^PASS` / `^FAIL` 计数） | `bash sim/run_one.sh --verdict tb_v98_top_seam build/tb_v98_report.txt`（不落笔；本会话实测 161/1，见 §2 R2） |
-| 逐键带容差的表 ↔ 表 | 例：`build/CDC_BASELINE.txt` ↔ `build/frozen_r23_srcseen/cdc.rpt` | `node skill/scripts/golden_compare/golden_compare.mjs --golden build/CDC_BASELINE.txt --golden-format kv --golden-key '$1' --golden-values 'endpoints=@2,unsafe=@1' --produced build/frozen_r23_srcseen/cdc.rpt --produced-format kv --produced-key '$2>$3' --produced-values 'endpoints=@5,unsafe=@3' --produced-where '$1=Critical' --tolerance 0 --out-dir <临时目录>` —— 这一串是该脚本**文件头自己点名的正例基线**，比的是 CDC 的两栏数（键 = 时钟对），**不是图片比对**；**要 `--out-dir`**（本会话实测 rc=0、判 18 项、未判 0、红 0） |
-| `data/golden/` 那批参考图（`data/golden/src.png`、`data/golden/rot_000.png` 等六档旋转、`data/golden/proc_00111.png` 等效果组合） | 只作**人眼参照**：本会话打开 `data/golden/README.md` 读到它的自述——"它们**不是任何台架的输入**，全仓对 `data/golden` 的引用只有 `report/log/CONTEST_CHECKLIST.md` 提了一次目录名"，且"PNG 无法一键重跑" | **没有**逐像素 diff 的只读脚本（本会话按它给的核实命令复核过）⇒ 这一行不能写成"比对尺子"；"与黄金参考逐像素一致"这句在本仓**不成立**，缺口进 `docs/questions-for-team-p12.md`（`docs/` 不随包） |
-| CDC 配对集合 | `build/CDC_BASELINE.txt` ↔ 当轮 `build/cdc.rpt` | 门禁第 6 项（`bash build/gates.sh`，可选 `CDCBASE=`）—— ⚠ **它会写门禁凭据件**，所以不在"只读"那一档，跑法与陷阱见 §6 B5 |
-| 板级行为 | `board/ACCEPTANCE.md` 的机器判据表 | `bash build/board_verify.sh --battery --geom --round=rNN` 的 `RESULT …` 行逐字对表（写 `build/evidence/…`；离线那一半 `--self` 只写临时目录） |
+| 逐像素判据条数 | `build/tb_v98_report.txt`（`^PASS` / `^FAIL` 计数） | `bash build/sim/run_one.sh --verdict tb_v98_top_seam build/tb_v98_report.txt`（不落笔；本会话实测 161/1，见 §2 R2） |
+| 逐键带容差的表 ↔ 表 | 例：`build/cdc_baseline.txt` ↔ `build/frozen_r23_srcseen/cdc.rpt` | `node skill/scripts/golden_compare/golden_compare.mjs --golden build/cdc_baseline.txt --golden-format kv --golden-key '$1' --golden-values 'endpoints=@2,unsafe=@1' --produced build/frozen_r23_srcseen/cdc.rpt --produced-format kv --produced-key '$2>$3' --produced-values 'endpoints=@5,unsafe=@3' --produced-where '$1=Critical' --tolerance 0 --out-dir <临时目录>` —— 这一串是该脚本**文件头自己点名的正例基线**，比的是 CDC 的两栏数（键 = 时钟对），**不是图片比对**；**要 `--out-dir`**（本会话实测 rc=0、判 18 项、未判 0、红 0） |
+| `data/golden/` 那批参考图（`data/golden/src.png`、`data/golden/rot_000.png` 等六档旋转、`data/golden/proc_00111.png` 等效果组合） | 只作**人眼参照**：本会话打开 `data/golden/README.md` 读到它的自述——"它们**不是任何台架的输入**，全仓对 `data/golden` 的引用只有 `report/log/contest_checklist.md` 提了一次目录名"，且"PNG 无法一键重跑" | **没有**逐像素 diff 的只读脚本（本会话按它给的核实命令复核过）⇒ 这一行不能写成"比对尺子"；"与黄金参考逐像素一致"这句在本仓**不成立**，缺口进 `report/questions-for-team-p12.md`（`docs/` 不随包） |
+| CDC 配对集合 | `build/cdc_baseline.txt` ↔ 当轮 `build/cdc.rpt` | 门禁第 6 项（`bash build/gates.sh`，可选 `CDCBASE=`）—— ⚠ **它会写门禁凭据件**，所以不在"只读"那一档，跑法与陷阱见 §6 B5 |
+| 板级行为 | `board/acceptance.md` 的机器判据表 | `bash build/board_verify.sh --battery --geom --round=rNN` 的 `RESULT …` 行逐字对表（写 `build/evidence/…`；离线那一半 `--self` 只写临时目录） |
 | 位流/固件身份 | `build/evidence/r118_bit_md5.txt`、`build/evidence/r118_bit/md5.txt` | `md5sum build/system.bit` 取前 12 位比对（认 md5 不认文件名，`build/r118_chain.sh:36`）；本会话实测 `cd04907e1369` 两处同值 |
 
 ⚠ 赛题 §3.3.5.1 说的"比对数据/脚本"在本仓的落点**不在 `scripts/`**：`scripts/` 目录本会话实测只有
-`scripts/check_repo_hygiene.sh`（存在但**未入库**，P20 那一轮在写）。比对尺子的真实位置是 `src/host/`（D1–D6 那几把）
+`build/checks/check_repo_hygiene.sh`（存在但**未入库**，P20 那一轮在写）。比对尺子的真实位置是 `src/host/`（D1–D6 那几把）
 与 `skill/scripts/`（`golden_compare` / `report_metrics` / `repro_check`）。这条差异已登记在
-[`docs/repro-check.md`](docs/repro-check.md) §4（`docs/` 不随包）。
+[`report/repro-check.md`](report/repro-check.md) §4（`docs/` 不随包）。
 
 ## 8. 卡点速查（8 条，全部来自 `skill/pitfalls/`，条目名可点进去）
 
@@ -478,15 +478,15 @@ python src/host/video_sender.py --demo          # 先 ping 192.168.1.10，再推
 
 - 本工程源码：**MIT**，见 [`LICENSE`](LICENSE)（本会话 `test -f LICENSE` 通过，全文 4 条）。
 - 哪些是厂商例程改的、哪些自研——**本会话实测这一格在仓里没有逐文件落点**，两处说法要对着读：
-  `report/BACKGROUND_AND_NOVELTY.md:32-34` 点名了来源与范围（以太网协议栈那一层
+  `report/background_and_novelty.md:32-34` 点名了来源与范围（以太网协议栈那一层
   `arp/icmp/udp/eth_ctrl` 来自开发板厂商例程，并写出它自带的两处缺陷 #37/#38），
-  它同一句把"逐文件的哪些是厂商代码、哪些是自研"的落点指给 `report/log/VERSION_LINEAGE.md`；
+  它同一句把"逐文件的哪些是厂商代码、哪些是自研"的落点指给 `report/log/version_lineage.md`；
   而本会话在那份文件里 `grep -c "厂商"` = **1**（只有 `:153` 的一句问题叙述，没有逐文件表）
   ⇒ **"逐模块登记"这句话现在不成立**，README 不替它背书 ⇒ Q-P12-5（已把这条从"清单没写完"
   升级为"两处文档互相指空"）。
-- 厂商 IP 与第三方代码的**来源/协议清单**（P20 那一轮的交付物）：目标文件 `docs/declarations.md` 本会话 `test -f` = **MISSING**（`docs/` 不随包），`NOTICE.md` 同样不存在，故此处**不写成链接**，
+- 厂商 IP 与第三方代码的**来源/协议清单**（P20 那一轮的交付物）：目标文件 `report/declarations.md` 本会话 `test -f` = **MISSING**（`docs/` 不随包），`report/` 同样不存在，故此处**不写成链接**，
   等它写完由本节指过去 ⇒ Q-P12-5。在此之前，读者能核对的只有上一条那句范围声明与 `LICENSE`。
 - 赛题 §3.3.5.2 的"通用 PYNQ Skill 单独加分"：**不适用**（本作品是裸机 + Vivado/Vitis 原生流程，
-  没有 PYNQ 层），登记见 `report/log/CONTEST_CHECKLIST.md:124-125`。
+  没有 PYNQ 层），登记见 `report/log/contest_checklist.md:124-125`。
 - 致谢：工具行为的全部说法都以本次打开过的文件为准；凡没核实的一律写 `【未核实】` 或 `NOT_MEASURED`，
   不许用 P00 第 8 条禁词那类含糊措辞填空。

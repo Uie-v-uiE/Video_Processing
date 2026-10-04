@@ -24,7 +24,7 @@ row = (f'| 10 | 收口只有一棵时钟树（#57 的结构判据，不靠 slack
        f'最差 20 条 hold 的时钟偏斜由 `build/hold_paths.rpt` 逐条读，实测 0.013~0.349 ns（改前那一条是 1.616 ns） | '
        f'`build/clock_util.rpt`、`build/hold_paths.rpt`；改前对照是仓库里的 `build/r88_clock_util.rpt`（rNN 命名的对照件，不随包） |')
 
-p = 'board/ACCEPTANCE.md'
+p = 'board/acceptance.md'
 t = rd(p)
 if '收口只有一棵时钟树' in t:
     print("SKIP 第 10 行已存在")
@@ -40,7 +40,7 @@ else:
     print("OK   ACCEPTANCE 第 10 行已插入机器判据表")
 
 # 顺手在 r92 那一节的表里补同一把尺子（只补一行，不重排）
-p2 = 'report/OPTIMIZATION_LOG.md'
+p2 = 'report/optimization_log.md'
 t2 = rd(p2)
 anchor = '| BRAM / LUT / FF / DSP | 95 / 14358 / 8075 / 19 | 95 / 14351 / 8075 / 19 |'
 add = (f'| `BUFIO` 用量（`clock_util.rpt` 第一张表） | 1 | **{now}** | 结构判据：拓扑上真的少了一棵树，'

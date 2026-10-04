@@ -4,7 +4,7 @@
 #   bash build/rim_report.sh [那份 run.log]        # 默认 /tmp/kx/tb_edge_rim.run/run.log
 #
 # 为什么单开一个脚本（`tb98_report.sh` 不是同一件事）：门禁那两项认的是**三份 md5 + 一行汇总**，
-# 而 md5 必须取自"跑的那一天"留下的 `prov.txt`（`sim/run_one.sh` 在编译**之前**写的）。
+# 而 md5 必须取自"跑的那一天"留下的 `prov.txt`（`build/sim/run_one.sh` 在编译**之前**写的）。
 # 事后拿现树重算再盖到旧日志上，正是这一项要防的那件事（#88 的教训：
 # "gates 14/14 与唯一例化顶层的台架红了几天同时成立"）。
 # 输出按轮次号命名 `build/tb_edge_rim_rNN.txt`，门禁自己取 `sort -V` 的最新一份。

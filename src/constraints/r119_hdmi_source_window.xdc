@@ -13,7 +13,7 @@
 ## 为什么是"源端"而不是"接收窗"：`tmds_clk_p/_n`、`tmds_data_p[0..2]/_n` 是本工程（Source）的**输出**，
 ## 所以对应的是 HDMI 源端合规里 TP1 的那一组量，不是 Sink 侧 TP2 的接收窗。
 ## 这个方向是 2026-10-04 用户指出来才纠正的（此前记成"要面板/接收端的窗口数"，还试过 UG471——
-## UG471 只有 TMDS_33 的电气属性，没有窗时间；见 docs/timing/debt_ledger.md §2 的那段追加）。
+## UG471 只有 TMDS_33 的电气属性，没有窗时间；见 report/timing/debt_ledger.md §2 的那段追加）。
 ##
 ## 窗宽的数字（逐条可指回出处，全部见 report/io/hdmi_cts_source_window.md 第一节结论表）：
 ##   * 钟↔数据（互对偏斜，Source at TP1，max）= **0.20 Tcharacter**
