@@ -11,33 +11,33 @@
 | 任务 | 目标文件（点名范围） | 依赖 | 状态 |
 | --- | --- | --- | --- |
 | P01 骨架 | `skill/README.md`、`skill/_meta/*` | — | 已交付（索引由 `skill/scripts/check/gen_index.mjs` 生成） |
-| P02 提示词工作流 | `skill/prompts/*` | P01 | 已交付 4 条，待与扁平卡迁移合并 |
-| P03 案例模板 | `skill/templates/*` | P01 | 已交付 4 条 |
-| P04 校验脚本 | `skill/scripts/*`、`skill/scripts/selftest/run_all.sh` | P01 | 进行中（5 份 SKILL.md + selftest） |
-| P05 踩坑清单 | `skill/pitfalls/*` | P01 | 已交付 8 条 + 扁平卡迁移进行中 |
-| P06 参考层 | `skill/references/*` | P01 | 已交付 3 条 + 迁移进行中 |
-| P07 runtime | `skill/runtime/*` | P01 | 部分（`pl-load-verify`、`register-map` 有，`dma-cache-coherency`、`host-bindings-and-reports` 缺 SKILL.md） |
-| P08 验证与增益 | `skill/evals/*` | P04/P05 | 进行中（协议+原始两跑件已在，记录待补） |
-| P09 装配与门禁 … | … | 进行中（12 项 = 绿 8 / 红 3 / 未测 1；陌生人演练与第三方审计两份记录已入 `skill/evals/records/`） |
+| P02 提示词工作流 | `skill/prompts/*` | P01 | 已交付 8 条（4 支模板 + 本轮迁入的 `eye-acceptance-loop`、`llm-fpga-debug-workflow`、`read-only-review-agent`、`round-work-loop`）；全部 `待验证`——每条都还欠"同一模板连跑 3 次"的 evals 记录 |
+| P03 案例模板 | `skill/templates/*` | P01 | 已交付 4 条；**均未经空目录演练**（各条目 §7 明写"模板未经空目录验证"，不宣称可直接使用） |
+| P04 校验脚本 | `skill/scripts/*`、`skill/scripts/selftest/run_all.sh` | P01 | 已交付：5 份脚本外壳（`contract_gen`/`golden_compare`/`regmap_check`/`report_metrics`/`repro_check`）+ `selftest/run_all.sh`（判 40 项、6 行各一判据、`pass=6 fail=0 nm=0`），G11 从"未测"转 PASS，件 `build/evidence/r120_selftest.txt` |
+| P05 踩坑清单 | `skill/pitfalls/*` | P01 | 已交付 24 条（原 8 条 + 迁入 16 张扁平卡）；旧卡已按 `retire_flat.mjs` 证明"映射/八节/出处逐条覆盖"后删除 |
+| P06 参考层 | `skill/references/*` | P01 | 已交付 7 条（原 3 页 + 迁入 4 页：`bench-verilog-subset`、`bench-self-inflicted-reds`、`verdict-line-must-print-scope`、`wns-logic-vs-route-lever`） |
+| P07 runtime | `skill/runtime/*` | P01 | 已交付 8 条：原有 4 条壳齐（`register-map`、`pl-load-verify`、`dma-cache-coherency`、`host-bindings-and-reports`）+ 迁入 4 条（`atomic-register-window-readback`、`board-eth-uart`、`udp-offset-reasm`、`zynq-ddr-bandwidth`）；G2 现在 `条目=59 全合` |
+| P08 验证与增益 | `skill/evals/*` | P04/P05 | 部分交付（`evals/runbook.md` + `raw/` 两跑原始件 + `records/` 陌生人演练与第三方审计各一份）；**缺的是"同一模板连跑 3 次"的增益对照**，各条目 §7 一律 `【待验证】`，不念成已验证 |
+| P09 装配与门禁 … | … | 已交付：**技能包门禁 12 项全绿、无未测**，两跑逐字节一致（`build/evidence/r120_gates_skill_a.txt` / `..._b.txt`）；索引 `gen_index --check` 条目=58 一致=yes；陌生人演练与第三方审计两份记录在 `skill/evals/records/`，其红项按原话入档 |
 | P11 学习文档 | `docs/walkthrough/*`（**不随包**，`.gitignore` 已列） | P13/P15b | 11 个文件已交付，5 篇因缺前置未写 |
-| P13 `src/` … | … | 进行中（`docs/interface-table.md` 已落 1509 行；`src-map`、`src-audit` 未出） |
-| P14 `sim/` … | … | 进行中（`sim/README.md` 已落；`sim/regress/`、`docs/verification-claim.md` 未出） |
+| P13 `src/` … | … | 部分（`docs/interface-table.md` 已落 1509 行；`docs/src-map.md` 本轮由 `build/r120_src_map.mjs` 现算生成，83 文件 × 4 列；`docs/src-audit.md` 未出；契约头改动受 B1 约束） |
+| P14 `sim/` … | … | 部分（`sim/README.md` 已落；`sim/regress/`、`docs/verification-claim.md` 未出 ⇒ "验证声明"只能停在"逐台架判据 + 门禁"这一档） |
 | P15a 构建与指纹 … | … | 已交付（`build/README.md`、`build/provenance.md` 194 行、`build/artifacts/`、`build/probe-guard.md`） |
-| P15b 报告解析与名册 … | … | 重试轮在跑（`build/roster/`、`build/parsed/` 已在；`build/coverage.md`、`docs/build-notes.md` 未出） |
-| P15c 逐轮台账 … | … | 已交付（`build/runs/ledger.md` 在盘；`decisions/baselines` 与叙述版待核） |
+| P15b 报告解析与名册 … | … | 已交付（`build/parsed/`、`build/roster/`、`build/coverage.md`、`docs/build-notes.md` 均在盘上并入库） |
+| P15c 逐轮台账 … | … | 部分（`build/runs/ledger.md`、`build/runs/decisions.md` 在盘；两轮派发都被 150 回合上限截停 ⇒ 逐轮指针目录未核，缺口记在未决项） |
 | P16a 板级可复原 … | … | 进行中（`board/hardware_setup.md` 151 行、`board/firmware/` 在；`board/run/`、`bringup-checklist.md` 待核） |
 | P16b 实测与比对 … | … | 已交付（`board/raw-vs-golden.md` + logs/captures/compare/conditions，比对表 12 张全部脚本产出） |
 | P16c 签核与指标 … | … | 已交付（`board/signoff.md` 29 项五件齐全、`docs/measurements.md`、`signoff-questions.md`、`docs/acceptance-recipes.md`） |
-| P17 `data/` … | … | 进行中（`data/golden/manifest.md` 214 行、`inputs/`、`generated/` 在；`data/README.md`、`docs/data-format.md` 未出） |
-| P12 根 README … | … | 重试轮在跑（`docs/repro-check.md` 已出：PASS 46 / FAIL 13 / 未测 23） |
-| P18a 原理与划分 … | … | 进行中（`report/figures/` 已建；`20-principle.md`、`30-partition-if.md` 未出） |
+| P17 `data/` … | … | 已交付（`data/golden/manifest.md` 214 行、`inputs/` 8 个向量、`generated/gen_inputs.mjs`、`data/README.md` 本轮补上；`docs/data-format.md` 未出） |
+| P12 根 README … | … | 部分（`docs/repro-check.md` 已出并随文档增长复测为 PASS 91 / FAIL 30 / 未测 32；**30 条 FAIL 未逐条归因** ⇒ C9 保留为红，见 `docs/known-limitations.md` 第 4 节） |
+| P18a 原理与划分 … | … | 未落地（`report/figures/` 已建；`20-principle.md`、`30-partition-if.md` 未写——批次到 150 回合上限，已登记不假装完成） |
 | P18b 优化与结果 … | … | 已交付（`report/40-optimization.md`、`50-results.md`、`comparison-notes.md`；15 条抽查链路一步命中） |
-| P18c 失败·复现·未决 … | … | 部分交付（`60-failure-analysis.md`、`90-open-items.md`、`report/README.md` 在；`70-reproduce.md` 未出） |
-| P19 背景与创新点 … | … | 重试轮在跑（`10-background.md`、`prior-art-search.md` 未出） |
+| P18c 失败·复现·未决 … | … | 已交付（`60-failure-analysis.md`、`70-reproduce.md`、`90-open-items.md`、`report/README.md`）；90 的表体行随每轮装配漂移，最后一轮 `gen_index` 后需再对一次 C8 |
+| P19 背景与创新点 … | … | 未落地（`10-background.md`、`prior-art-search.md`、`novelty-claims.md`、`docs/claims-vs-evidence.md` 未写；立意与主张强度本就依赖 Q-P19-1/Q-P19-2 的队伍回答） |
 | P10 报告里技能包两章 | `report/07-skill-distillation.md`（submit 侧）与 P22 配对 | P08/P09/P22 | 部分（`submit/07-skill-distillation.md` 已成文） |
-| P22 协作记录归档 … | … | 进行中（`report/collaboration/` 已建） |
-| P20 许可与声明 … | … | 部分（`LICENSE` 在、`scripts/check_repo_hygiene.sh` 387 行；`NOTICE.md`、`declarations.md`、`provenance-and-licenses.md` 未出；卫生机检 60 s 未返回 ⇒ 射程要收紧） |
-| P21 提交前终审 … | … | 尺子已交付（`scripts/check_repo_consistency.mjs`；读数件 `build/evidence/r119_final_gate_baseline.txt`、`r120_final_gate_2.txt`）；矩阵三份文档等装配完再写 |
+| P22 协作记录归档 … | … | 已交付（`report/collaboration/` 11 份：5 张会话登记卡含 127 行子会话表、纠错轨迹、提示词分栏、工作流差异、成本统计、脱敏台账）；与 `skill/evals/records/` 的双向引用缺口 6 条登记为 Q-P22-3 |
+| P20 许可与声明 … | … | 部分（`LICENSE` 在、`scripts/check_repo_hygiene.sh` 在、`docs/declarations.md` 本轮落地；`NOTICE.md` 与 provenance-and-licenses 一页未写；卫生机检整脚本 >300 s 未跑完 ⇒ 终审 C5 记 NOT_MEASURED，慢点定位到 C5 断链层，见 ISSUES #339 末段） |
+| P21 提交前终审 … | … | 已交付（尺子 + 矩阵三份：`docs/submission-checklist.md`、`docs/final-gate.md`、`docs/known-limitations.md`；定版读数件 `build/evidence/r120_final_gate.txt` = 绿 8 / 红 3 / 未测 1） |
 
 阻塞项（写在这里而不是藏起来）：
 

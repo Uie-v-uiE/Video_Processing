@@ -65,3 +65,31 @@
 - 没有改写 git 历史、没有强推、没有 `--no-verify`。
 - 没有替队伍签收任何需要眼睛的验收项。
 - 814 份工具产出原件里的主机名**没有**去改（改了就不是凭据），改为分类登记并提请裁决（#336）。
+
+## 四、r120 装配段（同日 12:2x–14:2x，提交 `1c4e26b` → `8a3d58d`）
+
+跑过并留件的命令（全部只读或产出读数件）：
+
+| 命令 | 用途 | 件 |
+| --- | --- | --- |
+| `node build/r119_window_check.mjs`（两跑 diff） | 窗件 + 成品离散读数，本轮补回 5 份输入的 md5 头 | `build/evidence/r120_window_check.txt` |
+| `node skill/scripts/check/retire_flat.mjs` → `--apply` | 旧扁平卡删除前的映射/八节/出处证明，与之后的退役 | 输出转录在提交说明；映射表 `build/evidence/r120_migration_map.txt` |
+| `node build/r120_rotate_skill_refs.mjs`（`--check`→`--apply`→再 `--check`） | 指路改口四条规则，改前 165 处、改后 0 处（幂等） | 本文件即其效果见证 |
+| `node skill/scripts/check/gen_index.mjs` + `--check` | 技能包索引重写与一致校验（条目 58） | 同上 |
+| `node skill/scripts/check/gates.mjs --full` ×2 | 技能包 12 项门禁，两跑逐字节一致 | `build/evidence/r120_gates_skill_a.txt`、`..._b.txt` |
+| `bash skill/scripts/selftest/run_all.sh` | 6 把脚本尺子 40 条对照（含反例与缺件 NOT_MEASURED） | `build/evidence/r120_selftest.txt` |
+| `node scripts/check_repo_consistency.mjs --self` | 终审 C2/C3 的 10 条对照（每条都能动） | 输出转录在提交说明 |
+| `node scripts/check_repo_consistency.mjs --list` | 全仓终审 C1–C12 定版读数 | `build/evidence/r120_final_gate.txt` |
+| `node build/r120_src_map.mjs` | 源码地图现算（盘上文件数 vs `git ls-files` 对账） | `docs/src-map.md` |
+
+本轮提交（都已 `git push` 到 `main`，代理只以**逐命令**方式给一次，`git config --get http.proxy` 与 global 均查回为空）：
+`b6f7445`（P16/P18/P22 交付件 + 终审三处量纲错）、`99afe73`（技能包重构与门禁全绿）、
+`8a3d58d`（P21 三件套 + 源码地图 + C1/C12 两处判据缺陷 + 数字对账）。
+
+**这一段仍欠、且不假装做过的**：
+1. `report/{10-background,20-principle,30-partition-if}.md`、`report/{prior-art-search,novelty-claims}.md`、
+   `docs/claims-vs-evidence.md`、`NOTICE.md`、provenance-and-licenses 一页 —— 派发批次到回合上限，未落地。
+2. 终审 C3 剩 3 条死引用、C4 命名违规 286、C9 复现 30 条 FAIL 未逐条归因、C5 卫生机检整脚本 >300 s ⇒
+   **交付终审不是全绿**（`build/evidence/r120_final_gate.txt`：绿 8 / 红 3 / 未测 1）。
+3. 需要眼睛与手的行（E6 的"按住 KEY1"那一半、拔卡观感、按键手感）仍未由人签。
+4. 改名 308 条含大写路径、脱敏 814 份工具产出原件 —— 都是不可逆/连带面，等裁决（Q-P21-2、Q-P20-2），未擅动。
