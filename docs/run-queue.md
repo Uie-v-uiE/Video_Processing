@@ -36,7 +36,7 @@
 | P19 背景与创新点 … | … | 未落地（`10-background.md`、`prior-art-search.md`、`novelty-claims.md`、`docs/claims-vs-evidence.md` 未写；立意与主张强度本就依赖 Q-P19-1/Q-P19-2 的队伍回答） |
 | P10 报告里技能包两章 | `report/07-skill-distillation.md`（submit 侧）与 P22 配对 | P08/P09/P22 | 部分（`submit/07-skill-distillation.md` 已成文） |
 | P22 协作记录归档 … | … | 已交付（`report/collaboration/` 11 份：5 张会话登记卡含 127 行子会话表、纠错轨迹、提示词分栏、工作流差异、成本统计、脱敏台账）；与 `skill/evals/records/` 的双向引用缺口 6 条登记为 Q-P22-3 |
-| P20 许可与声明 … | … | 部分（`LICENSE` 在、`scripts/check_repo_hygiene.sh` 在、`docs/declarations.md` 本轮落地；`NOTICE.md` 与 provenance-and-licenses 一页未写；卫生机检整脚本 >300 s 未跑完 ⇒ 终审 C5 记 NOT_MEASURED，慢点定位到 C5 断链层，见 ISSUES #339 末段） |
+| P20 许可与声明 … | … | 部分（`LICENSE` 在、`scripts/check_repo_hygiene.sh` 在、`docs/declarations.md` 本轮落地；**`NOTICE.md` 本轮落地**：16 行第三方件，其中 12 行标 `未核`，风险最高的是第 12 行（厂商资料抄件与原理图裁图在跟踪集内）与第 13 行（`src/rtl/eth` 25 个文件无版权头、逐文件"逐字／改造"没有登记表）⇒ 处置写成 Q-P23-1；provenance 逐轮指纹页仍未单独成页；卫生机检整脚本 >300 s 未跑完 ⇒ 终审 C5 记 NOT_MEASURED，慢点定位到 C5 断链层，见 ISSUES #339 末段） |
 | P21 提交前终审 … | … | 已交付（尺子 + 矩阵三份：`docs/submission-checklist.md`、`docs/final-gate.md`、`docs/known-limitations.md`；定版读数件 `build/evidence/r120_final_gate.txt` = 绿 8 / 红 3 / 未测 1） |
 
 阻塞项（写在这里而不是藏起来）：
