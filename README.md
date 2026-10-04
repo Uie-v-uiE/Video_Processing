@@ -13,14 +13,14 @@ PL 侧从 DDR 读帧、按 9 级效果链（灰度、模糊、锐化、Sobel、�
 ### 亮点
 
 - 0 / 51135：实现后 setup 与 hold 两个方向的失败端点都是 0，全设计最差 setup 余量 0.739 ns（`build/report/timing_summary.rpt`）。
-- 29.8 – 30.0 fps：SD 片源在 512×300 预转换序列下的 100 帧滑窗实测帧率（`data/metrics.csv`，件 `build/evidence/r87_boot_stat_drain.txt`）。
+- 29.956 / 29.815 fps：SD 片源两个 100 帧滑窗的实测读数（件 `build/evidence/r87_boot_stat_drain.txt`；`data/metrics.csv` 那一行把它取整写成 29.8 – 30.0）。
 - 9 级 × 512×300：一条可逐像素开关的处理链，同一屏左窗显示原图、右窗显示处理图，缝位置由控制字给（分割线 0–100 %）。
 - 81 支 testbench：每个关键模块与易错点各有 `sim/tb_*.v` 台架，清单由 `node build/gen_sim_readme.mjs --apply` 从各文件头注释生成。
 - 49 条技能条目：`skills/` 是与本题解耦的通用做法包，形状由 `node skills/_meta/check-skill-package.mjs` 判（现值 红=0）。
 
 ### 目录
 
-src/ —— `src/rtl/` Verilog RTL、`src/ps/` PS 侧 C、`src/constraints/` 9 份 .xdc、`src/host/` 26 支 .mjs 与 3 支 .py 上位机工具  
+src/ —— `src/rtl/` 80 个 .v、`src/ps/` PS 侧 C、`src/constraints/` 9 份 .xdc（在用 2 份，其余 7 份是候选/实验件）、`src/host/` 26 支 .mjs 与 3 支 .py 上位机工具  
 sim/ —— 84 份 .v（其中 81 支 `tb_*.v`），跑法见 `sim/README.md` 表格下方那一行  
 build/ —— 7 份流程入口 TCL、检查器与 `build/report/` 下 7 份工具原始报告  
 board/ —— 上板工程、三步 JTAG 烧写脚本与实测输出（串口留档、板级校验读数）  
@@ -44,8 +44,10 @@ vivado -mode batch -source build/report.tcl         # 重出 build/report/ 下 7
 vivado -mode batch -source build/gen_bit.tcl        # 位流与 .xsa 归档到 board/
 ```
 
-分步入口是 `build/create_project.tcl` / `add_sources.tcl` / `synth.tcl` / `impl.tcl`；
-一次全流程实测约 2 小时（综合约 11 分钟，实现约 1.5–2 小时，计时见 `build/evidence/r121_c4_verify.txt`）。
+分步入口是 `build/create_project.tcl` / `add_sources.tcl` / `synth.tcl` / `impl.tcl`。
+一次全流程的实测墙钟约 20 分钟：r118 那一跑从 04:18:27 到 04:37:57 共 19 分 30 秒，
+其中综合 10 分 09 秒、实现（含 `write_bitstream`）7 分 22 秒（两个时间戳都在 `build/r118_build_console.txt`）；
+另一次只走分步链（不含实现）的实测是建工程 63 秒、综合 10 分 53 秒、出报告 1 分 34 秒（`build/evidence/r121_c4_verify.txt`）。
 
 ### 上板与验证
 

@@ -145,7 +145,9 @@ if (want('C2-4')) {
   const vs = allv.filter(f => /^tb_/.test(f));
   if (!t) say('C2-4', 'sim-readme-table-bidirectional', vs.length, '文件不存在', 'NOT_MEASURED');
   else {
-    const listed = [...t.matchAll(/`?([a-z0-9_\-]+\.v)`?/g)].map(x => x[1]);
+    // "列出"只认表格第一格里的文件名：单元格正文里提到的名字（含被截断的片段）不算清单，
+    // 否则一个截断片段就会被念成"幻影"（本轮的 tb_v101.v 就是这么来的）
+    const listed = [...t.matchAll(/^\|\s*`?([a-z0-9_\-]+\.v)`?\s*\|/gm)].map(x => x[1]);
     const notListed = vs.filter(v => !listed.includes(v));
     const phantom = [...new Set(listed)].filter(v => !allv.includes(v));
     const cmd = /xsim|xvh|xvlog|bash [^ ]*run_one/i.test(t);

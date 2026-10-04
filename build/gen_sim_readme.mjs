@@ -25,7 +25,14 @@ function sections(txt) {
   }
   return out;
 }
-const cell = (s, n) => (s || '').replace(/\|/g, '/').replace(/\s+/g, ' ').trim().slice(0, n).trim();
+// 截断要停在标点或空格上，不留半个词（"行滞后与列平"那种尾巴就是硬切出来的）
+const cell = (s, n) => {
+  const t = (s || '').replace(/\|/g, '/').replace(/\s+/g, ' ').trim();
+  if (t.length <= n) return t;
+  const head = t.slice(0, n);
+  const at = Math.max(head.lastIndexOf('、'), head.lastIndexOf('；'), head.lastIndexOf(';'), head.lastIndexOf(','), head.lastIndexOf(' '));
+  return (at > 12 ? head.slice(0, at) : head).trim().replace(/[、，,；;（(]$/, '') + '…';
+};
 const rows = [];
 let bad = 0;
 for (const f of files) {

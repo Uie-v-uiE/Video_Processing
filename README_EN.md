@@ -15,14 +15,14 @@ test card; `src_arb` arbitrates the three sources and a long key press switches 
 ### Highlights
 
 - 0 / 51135: after implementation there are no failing setup or hold endpoints; design-wide worst setup slack is 0.739 ns (`build/report/timing_summary.rpt`).
-- 29.8 – 30.0 fps: measured 100-frame sliding window on the SD pre-converted 512×300 sequence (`data/metrics.csv`, evidence `build/evidence/r87_boot_stat_drain.txt`).
+- 29.956 / 29.815 fps: the two measured 100-frame sliding windows on the SD pre-converted sequence (evidence `build/evidence/r87_boot_stat_drain.txt`; the row in `data/metrics.csv` rounds it to 29.8 - 30.0).
 - 9 stages × 512×300: one chain switchable per pixel; the left half of the screen shows the original and the right half the processed image, seam position from the control word (0–100 %).
 - 81 testbenches: every key module and known trap has a `sim/tb_*.v` bench; the table in `sim/README.md` is generated from their headers by `node build/gen_sim_readme.mjs --apply`.
 - 49 skill entries: `skills/` is a topic-decoupled practice package, shape-checked by `node skills/_meta/check-skill-package.mjs` (currently 红=0).
 
 ### Directories
 
-src/ —— `src/rtl/` Verilog RTL, `src/ps/` PS-side C, `src/constraints/` 9 .xdc files, `src/host/` 26 .mjs and 3 .py host tools  
+src/ —— 80 .v files in `src/rtl/`, PS-side C in `src/ps/`, 9 .xdc files in `src/constraints/` (2 loaded, 7 candidates/experiments), 26 .mjs and 3 .py host tools in `src/host/`  
 sim/ —— 84 .v files (81 of them `tb_*.v`); the runner line under the table in `sim/README.md`  
 build/ —— 7 flow-entry TCL scripts, the checkers, and 7 raw tool reports under `build/report/`  
 board/ —— on-board project, the three-step JTAG flashing scripts and measured output (serial captures, board verify)  
@@ -48,8 +48,11 @@ vivado -mode batch -source build/gen_bit.tcl        # archive .bit and .xsa into
 ```
 
 Step-by-step entries are `build/create_project.tcl` / `add_sources.tcl` / `synth.tcl` / `impl.tcl`.
-One full flow measured about 2 hours (synthesis about 11 min, implementation 1.5–2 h; timings in
-`build/evidence/r121_c4_verify.txt`).
+Measured wall clock for one full flow is about 20 minutes: the r118 run went 04:18:27 -> 04:37:57 (19 min 30 s),
+of which synthesis took 10 min 09 s and implementation including `write_bitstream` took 7 min 22 s
+(both timestamps in `build/r118_build_console.txt`). A second run that only walked the staged entries,
+without implementation, measured 63 s for the project, 10 min 53 s for synthesis and 1 min 34 s for the reports
+(`build/evidence/r121_c4_verify.txt`).
 
 ### Program and verify
 
