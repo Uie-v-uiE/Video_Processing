@@ -299,6 +299,35 @@ if (want('C4')) {
   const adv = tcl.length > 40 ? `（过程 tcl=${tcl.length} 份，含各轮凭据，只报数不判红）` : '';
   say('C4', 'build-tcl-and-reports', tcl.length + repDir.length, `${p.join('、') || '符合'}（资源件=${util.length} 时序件=${tim.length}）${adv}`, p.length ? 'FAIL' : 'PASS');
 }
+// ---- C4b §4.4/§4.5 的**内容**判据：归档件里要真有条目，且件与脚本一一对应
+// C4 只看 `build/report/` 里有没有"名字带 util/timing 的件"，那判的是文件名不是内容：
+// 一份只写了"见附件"的空报告也能过。这里按工具原始输出的**行标签**逐项数（标签是从
+// 盘上真件里 grep 出来的，不是照文档猜的），并要求每份报告都能在一支脚本里被重出。
+if (want('C4b')) {
+  const dir = 'build/report';
+  const rep = tracked.filter(f => f.startsWith(dir + '/'));
+  const util = read(dir + '/utilization.rpt'), tim = read(dir + '/timing_summary.rpt');
+  const RES = [['LUT', /LUT as Logic/], ['FF', /Register as Flip Flop|Slice Registers/], ['BRAM', /Block RAM Tile/], ['DSP', /\| *DSPs/], ['IO', /Bonded IOB/]];
+  const TIM = [['WNS', /WNS\(ns\)/], ['TNS', /TNS\(ns\)/], ['频率', /Frequency\(MHz\)/], ['未收敛路径表', /Clock +WNS\(ns\)|Path Group +From Clock/]];
+  const missRes = RES.filter(([, re]) => !re.test(util)).map(([n]) => n);
+  const missTim = TIM.filter(([, re]) => !re.test(tim)).map(([n]) => n);
+  const raw = rep.filter(f => /Vivado v\./.test(read(f)));
+  // 每份报告由谁重出：脚本正文里必须点名该文件名（§4.5「脚本与报告一一对应」）
+  const emitter = read('build/report.tcl');
+  const orphan = rep.filter(f => !emitter.includes(path.basename(f)));
+  const p = [];
+  if (!rep.length) p.push('build/report/ 空');
+  if (rep.length && !util) p.push('缺 utilization.rpt');
+  if (util && missRes.length) p.push(`资源行缺:${missRes.join(',')}`);
+  if (rep.length && !tim) p.push('缺 timing_summary.rpt');
+  if (tim && missTim.length) p.push(`时序行缺:${missTim.join(',')}`);
+  if (rep.length && raw.length < 2) p.push(`带工具版本横幅的原始件只 ${raw.length} 份（要 ≥2，否则像手抄的数）`);
+  if (emitter && orphan.length) p.push(`没有脚本能重出的报告=${orphan.length}[${orphan.map(f => path.basename(f)).join(',')}]`);
+  if (!emitter) p.push('读不到 build/report.tcl ⇒ 对应关系判不了');
+  say('C4b', 'report-contents-and-script-map', RES.length + TIM.length + 2 + rep.length,
+    p.join('、') || `符合（归档件=${rep.length} 资源行 5/5 时序行 4/4 原始件横幅=${raw.length}/${rep.length} 每份都有脚本能重出）`,
+    (rep.length === 0 || !util || !tim || !emitter) ? 'NOT_MEASURED' : (p.length ? 'FAIL' : 'PASS'));
+}
 // ---- C5 四类目录齐 + skills/README 四要素 + report 章节齐
 if (want('C5')) {
   const need = ['board', 'data', 'skills', 'report'];

@@ -13611,3 +13611,14 @@ VP_CLEN_CAP=200 会让 6 份导览全绿——证明这把尺子的牙齿在"导
 验证（红→绿成对，都实跑）：原位 `硬错 0｜豁免 1｜CLEAN`；
 把那一行的"不存在"改成 `XX` 再跑 ⇒ `硬错 1｜豁免 0｜RED`；
 还原后文件 md5 与改前同为 `34a67bb4cf6c`（临时脚本 `/tmp/d5ctl.mjs`，只动这一份文档，动完即还原）。
+
+### #362 §4.4/§4.5 从"文件名对不上"升级为"内容 + 一一对应"：C4b 现跑 7 份归档件全过，夹具对照能红
+C4 原来只要求 `build/report/` 里有名字带 util / timing 的件——一份只写"见附件"的空报告也能过。
+新增 C4b 按工具原始输出的**行标签**数（标签是从盘上真件 grep 出来的：
+`LUT as Logic`、`Slice Registers`/`Register as Flip Flop`、`Block RAM Tile`、`| DSPs`、`Bonded IOB`；
+`WNS(ns)`、`TNS(ns)`、`Frequency(MHz)`、逐时钟表头），
+再加两条：带 `Vivado v.` 横幅的件数 ≥2（证明是工具产出而不是手抄数），
+以及每份报告都要能被 `build/report.tcl` 重出（§4.5「脚本与报告一一对应」；孤儿件按名字点名）。
+现跑：`C4b cmp=18 符合（归档件=7 资源行 5/5 时序行 4/4 原始件横幅=6/7 每份都有脚本能重出） PASS`。
+能红的对照（夹具在 /tmp，跑完即删）：`git init` 一棵小树，`utilization.rpt` 少 `| DSPs |` 那一行
+⇒ `C4b 资源行缺:DSP FAIL rc=1`；只补那一行 ⇒ `PASS rc=0`。两次唯一变量就是那一行。
