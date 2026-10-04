@@ -36,6 +36,8 @@ function walk(dir, acc = []) {
 }
 const rel = p => path.relative(ROOT, p).split(path.sep).join('/');
 const read = p => fs.readFileSync(p, 'utf8');
+// 判据与结论不受此值影响：--full 只是把样例从 3 条放开到全部，供人核对「红在哪几处」
+const CAP = process.argv.includes('--full') ? 9999 : 3;
 
 const entryDirs = [];
 for (const c of CATEGORIES) {
@@ -78,7 +80,7 @@ function say(id, label, made, detail, verdict) {
     for (const p of parts) { if (p === 'README.md' || p === 'SKILL.md') continue; if (!/^[a-z0-9._-]+$/.test(p)) { bad.push(rel(f)); break; } }
   }
   const n = allFiles.length;
-  say('G1', '命名纯 ASCII 小写', n, bad.length ? `违规=${bad.length} 例:${bad.slice(0, 3).join(' ')}` : `违规=0 扫=${n}`,
+  say('G1', '命名纯 ASCII 小写', n, bad.length ? `违规=${bad.length} 例:${bad.slice(0, CAP).join(' ')}` : `违规=0 扫=${n}`,
       n === 0 ? 'NOT_MEASURED' : (bad.length ? 'FAIL' : 'PASS'));
 }
 
@@ -96,7 +98,7 @@ function say(id, label, made, detail, verdict) {
   }
   for (const d of entrysWithoutSkill) bad.push(`${rel(d)}:缺 SKILL.md`);
   say('G2', '条目外壳与 name', made,
-      made === 0 ? '条目数=0（无法判定）' : (bad.length ? `不合=${bad.length} 例:${bad.slice(0, 3).join(' ')}` : `条目=${made} 全合`),
+      made === 0 ? '条目数=0（无法判定）' : (bad.length ? `不合=${bad.length} 例:${bad.slice(0, CAP).join(' ')}` : `条目=${made} 全合`),
       made === 0 ? 'NOT_MEASURED' : (bad.length ? 'FAIL' : 'PASS'));
 }
 
@@ -129,7 +131,7 @@ function say(id, label, made, detail, verdict) {
     if (missing || !ordered) bad.push(`${path.basename(d)} 缺${missing}节${ordered ? '' : '/顺序错'}`);
   }
   say('G4', '八节外壳', made,
-      made === 0 ? '条目数=0（无法判定）' : (bad.length ? `不合=${bad.length} 例:${bad.slice(0, 3).join(' ')}` : `条目=${made} 八节齐且有序`),
+      made === 0 ? '条目数=0（无法判定）' : (bad.length ? `不合=${bad.length} 例:${bad.slice(0, CAP).join(' ')}` : `条目=${made} 八节齐且有序`),
       made === 0 ? 'NOT_MEASURED' : (bad.length ? 'FAIL' : 'PASS'));
 }
 
@@ -176,11 +178,9 @@ function say(id, label, made, detail, verdict) {
     const orphans = [...listed].filter(p => !fs.existsSync(path.join(p, 'SKILL.md')));
     const missing = [...entries].filter(d => !listed.has(d + path.sep));
     say('G7', '索引双向一致', rows.length + entries.length,
-        `表列=${listed.size} 实际=${entries.length} 死行=${orphans.length} 漏条=${missing.length}`,
+        `表列=${listed.size} 实际=${entries.length} 死行=${orphans.length} 漏条=${missing.length}` +
         // 审计指出的洞：表 0 行 + 条目 0 个时上面三个数全为 0，原来会判 PASS（空集上的真）。
-        (rows.length === 0 || entries.length === 0)
-          ? `条目或表为空（表=${rows.length} 条目=${entries.length}），空集不构成通过`
-          : (orphans.length || missing.length) ? `死行=${orphans.length} 漏条=${missing.length}` : '双向一致',
+        ((rows.length === 0 || entries.length === 0) ? `；条目或表为空（表=${rows.length} 条目=${entries.length}），空集不构成通过` : ''),
         (rows.length === 0 || entries.length === 0) ? 'NOT_MEASURED' : ((orphans.length || missing.length) ? 'FAIL' : 'PASS'));
   }
 }
@@ -214,7 +214,7 @@ function say(id, label, made, detail, verdict) {
     }
   }
   say('G8', '链接与指路可解析', made,
-      made === 0 ? '一条链接都没读到（无法判定）' : `死链=${dead.length}${dead.length ? ' 例:' + dead.slice(0, 3).join(' | ') : ''} 无台账外链=${ext.length}${ext.length ? ' 例:' + ext.slice(0, 2).join(' | ') : ''}`,
+      made === 0 ? '一条链接都没读到（无法判定）' : `死链=${dead.length}${dead.length ? ' 例:' + dead.slice(0, CAP).join(' | ') : ''} 无台账外链=${ext.length}${ext.length ? ' 例:' + ext.slice(0, 2).join(' | ') : ''}`,
       made === 0 ? 'NOT_MEASURED' : ((dead.length || ext.length) ? 'FAIL' : 'PASS'));
 }
 
@@ -257,7 +257,7 @@ function say(id, label, made, detail, verdict) {
       }
     }
     // 审计指出的洞：名单过滤后为空时原来判 PASS（空集上的真）。名单为空 = 这条判据没被喂过料，只能 NOT_MEASURED。
-    say('G10', '本队专有名', made, `名单=${names.length} 命中=${made} 未标注=${hits.length}${hits.length ? ' 例:' + [...new Set(hits)].slice(0, 3).join(' ') : ''}`,
+    say('G10', '本队专有名', made, `名单=${names.length} 命中=${made} 未标注=${hits.length}${hits.length ? ' 例:' + [...new Set(hits)].slice(0, CAP).join(' ') : ''}`,
         names.length === 0 ? 'NOT_MEASURED' : (hits.length ? 'FAIL' : 'PASS'));
   }
 }
@@ -287,13 +287,13 @@ function say(id, label, made, detail, verdict) {
     const t = buf.toString('utf8');
     if (t.includes('\uFFFD')) bad.push(`${rel(f)}:截断字节`);
   }
-  say('G12', '编码与截断字节', made, made === 0 ? '文件数=0（无法判定）' : `坏=${bad.length}${bad.length ? ' 例:' + bad.slice(0, 3).join(' ') : ''}`,
+  say('G12', '编码与截断字节', made, made === 0 ? '文件数=0（无法判定）' : `坏=${bad.length}${bad.length ? ' 例:' + bad.slice(0, CAP).join(' ') : ''}`,
       made === 0 ? 'NOT_MEASURED' : (bad.length ? 'FAIL' : 'PASS'));
 }
 
 for (const l of lines) console.log(l);
 const total = pass + fail + notmeasured;
 console.log(`GATES 技能包：判定 ${total} 项 绿=${pass} 红=${fail} 未测=${notmeasured} —— ` +
-            (fail ? '有红项，不提交' : (notmeasured ? `还有 ${notmeasured} 项读不到输入，别念成绿` : '不采纳，保留上一版')) +
+            (fail ? '有红项，不提交' : (notmeasured ? `还有 ${notmeasured} 项读不到输入，别念成绿` : '全绿：无红项、无未测项')) +
             ` ${fail ? 'FAIL' : (notmeasured ? 'NOT_MEASURED' : 'PASS')}`);
 process.exit(fail ? 1 : (notmeasured ? 2 : 0));

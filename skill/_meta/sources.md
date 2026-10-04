@@ -34,7 +34,7 @@
 `skill/pitfalls/_proposed-sources.md`、`skill/prompts/_proposed-sources.md`、`skill/references/_proposed-sources.md`
 里是这三类撰写者**真正打开过**的来源行（`ls skill/*/_proposed-sources.md` 现算 = 3 份；
 `templates`、`runtime`、`scripts` 三类**没有交回 proposal 文件**，这是缺口，不是没列出来）。
-合并进本表的动作由 `build/r119_merge_sources.py` 做（`--check` 证幂等），
+合并进本表的动作由 `build/evidence/r119_merge_sources.py` 做（`--check` 证幂等），
 台账行是否可解析由 `skill/scripts/check/gates.mjs` 的 G8 判（G8 只管"外链必须有台账行"，不做合并）。
 **没有来源行的外部 URL 一律不得进入条目正文。**
 
@@ -83,7 +83,7 @@ HDMI CTS（源端 TP1 眼图掩模）那条线单独记在 `report/io/hdmi_cts_s
 | `ls -l --time-style=+%H:%M` 在这台 MSYS 上给的时间不可信；判"何时被写"只认 `stat -c '%y'` | 台账 `report/log/ISSUES.md` 2026-10-02 00:46 一节（第 9550、9565–9567 行） | 2026-10-04 | who-else-writes-this-artifact |
 | 构建脚本原地覆盖 `build/system.bit`、`system.xsa` 与那几份 `.rpt`：文件名不变、内容变 | 代码 `report/BUILD.md:182`（§7 首段，本次打开） | 2026-10-04 | who-else-writes-this-artifact |
 | 门禁用 mtime 差判"是不是同一套"（>600 s 报 WARN），并用 `find src/rtl -newer <bit>` 报"产物比源码旧" | 代码 `build/gates.sh:36-57`（本次打开） | 2026-10-04 | who-else-writes-this-artifact |
-| xsim 的 `$display`：字符串字面量赋给定宽向量或作为 task 实参时每字节 bit7 被清；字段超长时丢的是头部（左边截）⇒ 判据标签只写 ASCII | 台账 `report/log/ISSUES.md`（该文件第 1938–1941、6566–6568 行）；同族 `skill/bench_verilog_subset.md` | 2026-10-04 | console-codepage-verdict-shift |
+| xsim 的 `$display`：字符串字面量赋给定宽向量或作为 task 实参时每字节 bit7 被清；字段超长时丢的是头部（左边截）⇒ 判据标签只写 ASCII | 台账 `report/log/ISSUES.md`（该文件第 1938–1941、6566–6568 行）；同族 `skill/references/bench-verilog-subset/SKILL.md` | 2026-10-04 | console-codepage-verdict-shift |
 | GBK 控制台把一整句中文渲染成"一大长串空白"；实测同一条回复 204 字节里 90 个是 0x80+ 字节、`0x20` 只有 22 个 | 台账 `report/log/ISSUES.md`（该文件第 5810–5811、5844 行） | 2026-10-04 | console-codepage-verdict-shift |
 | Vivado/Windows 侧的 `ping` 等原始输出是 GBK，落盘前用 `iconv` 转 UTF-8，否则编码检查会当它是坏编码 | 台账 `report/log/ISSUES.md`（该文件第 9677、9799–9807 行） | 2026-10-04 | console-codepage-verdict-shift |
 | 本仓编码检查只扫手写扩展名 `.md .v .c .h .mjs .sh .ps1 .tcl`，`*.txt` 原始回显一律不扫；`.ps1`/`.tcl` 允许**第 0 个字符**是 BOM | 代码 `src/host/doc_enc_check.mjs:10-13,25,35`（本次打开） | 2026-10-04 | console-codepage-verdict-shift |
@@ -103,7 +103,7 @@ HDMI CTS（源端 TP1 眼图掩模）那条线单独记在 `report/io/hdmi_cts_s
 | 一轮把 README 写成 0 行的机制：`io.open(path,"w")` 已经把文件截成 0 行才抛异常 ⇒ 批量写文档必须"先全算好再一次性写 + 写前断言行数不变" | 台账 `report/log/ISSUES.md` #329（该文件第 13012–13034 行，含第 13020 行那句） | 2026-10-04 | assertion-not-in-any-file |
 | 检查器扫描集会自动把新造的文件算进射程：本仓 D5 扫 `.`/`report`/`report/log`/`skill`/`board` 下所有 `.md`（`report/log/`、`report/study/` 除外） | 代码 `src/host/line_cite_check.mjs:33-40`（本次打开）；台账 `report/log/ISSUES.md` #333 | 2026-10-04 | assertion-not-in-any-file、references/checker-convention-shapes |
 | D5 的硬错只有四类（文件不在树里 / 行号越过文件末尾 / D5b 例化者列 / D5d 逐字回声对不上），其余进 soft/need 不影响退出码 | 代码 `src/host/line_cite_check.mjs:22,160-215`；本次实跑输出 `D5: CLEAN（… 硬错 0 条 …）` | 2026-10-04 | assertion-not-in-any-file、references/checker-convention-shapes |
-| 只读评审的采信口径：只有能指回 `file:line` 的发现进正文，其余降级为候选或不采信（16 条 ⇒ 8 进正文、4 降 CANDIDATE） | 台账 `report/log/ISSUES.md` #125（该文件第 5402 行起）；做法在 `skill/read_only_review_agent.md` | 2026-10-04 | assertion-not-in-any-file |
+| 只读评审的采信口径：只有能指回 `file:line` 的发现进正文，其余降级为候选或不采信（16 条 ⇒ 8 进正文、4 降 CANDIDATE） | 台账 `report/log/ISSUES.md` #125（该文件第 5402 行起）；做法在 `skill/prompts/read-only-review-agent/SKILL.md` | 2026-10-04 | assertion-not-in-any-file |
 | 三代数据面的划分对比（网口/收包/拼帧/显示/右屏/PS 角色 × v1/v2/v3）与"数据面放 PL、控制面留 PS"的结论是表格形状，不是散文 | `report/PS_VS_PL.md`（mtime 2026-10-01 08:06）§1、§3 | 2026-10-04 实读 | `prompts/hw-sw-partition` |
 | 软硬件交界被写成"通道 / 地址 / 方向 / 位域 / 源码行号"四列，且明写"PS 不中转任何 ETH 视频字节" | `report/ARCHITECTURE.md` §3（2026-10-01 08:46） | 2026-10-04 实读 | `prompts/hw-sw-partition`、`templates/interface-contract` |
 | 负载口径与实测吞吐分记两行（"这是负载口径不是实测带宽"） | `data/metrics.csv`（2026-10-04 06:23）"UDP 入口负载,口径" 行 | 2026-10-04 实读 | `prompts/hw-sw-partition`、`templates/report-forms` |
@@ -123,7 +123,7 @@ HDMI CTS（源端 TP1 眼图掩模）那条线单独记在 `report/io/hdmi_cts_s
 | 那一滚的执行记录里有 `R3_AGREE/R3_BEFORE/R3_AFTER/R3_REPLICA_CELLS/R3_MECHANISM_INERT` 与 10 行 `ROW` | `build/evidence/r117_repl3/B_console.txt`（2026-10-04 03:00）；核对命令 `grep -o "R3_[A-Z_]*" … \| sort -u`（实跑 2026-10-04，返回 8 个 token） | 2026-10-04 实跑 | `prompts/single-variable-ab` |
 | 判据"改前必须红"的机器化：拷整棵 RTL 到临时目录机械复原旧写法，diff 行数超出就拒绝继续；一次变异只许红它声称红的那几条 | `sim/mut_control.sh`（2026-10-01 07:40）头部注释 | 2026-10-04 实读 | `prompts/criterion-before-code`、`templates/script-template` |
 | 机会计数 190464 拍 / 最大索引 255、第一版判据因激励只停在格子里而计数为 0、只拆一道门仍然绿 ⇒ 门有两道 | `report/LLM_COLLAB.md`（2026-10-02 02:16）例 2；`data/metrics.csv`"越界读写的机会计数"行 | 2026-10-04 实读 | `prompts/criterion-before-code`、`templates/report-forms` |
-| 判据标签被 100 字节容器按字节从左边截断 ⇒ 一条判据在日志里"消失"；新写判据标签一律 ASCII | `report/LLM_COLLAB.md` 例 6（#162）、`skill/criterion_blind_spot.md`（2026-10-01 08:06）触发第 7 条 | 2026-10-04 实读 | `prompts/criterion-before-code`、`templates/script-template` |
+| 判据标签被 100 字节容器按字节从左边截断 ⇒ 一条判据在日志里"消失"；新写判据标签一律 ASCII | `report/LLM_COLLAB.md` 例 6（#162）、`skill/pitfalls/criterion-blind-spot/SKILL.md`（2026-10-01 08:06）触发第 7 条 | 2026-10-04 实读 | `prompts/criterion-before-code`、`templates/script-template` |
 | 收尾解析把一支真红台架报成 `NO-VERDICT-LINE + FAIL 行数=0`（红与"没数"长得一样），候选解析器被"不许让过期日志替本台架答复"这条反例打回 | `sim/run_one.sh`（2026-10-01 07:40）`--verdict` 分支注释；`report/LLM_COLLAB.md` 例 6；#163/#164 | 2026-10-04 实读 | `prompts/criterion-before-code`、`templates/script-template` |
 | 台架脚本退出码分五态：0 绿 / 1 编译或例化失败 / 2 REFUSE / 3 判红 / 4 认不出判定行，"3 与 4 必须分开" | `sim/run_one.sh` 第 40、112–119 行 | 2026-10-04 实读 | `templates/script-template` |
 | 门禁退出码与三态收尾（`GATES: ALL PASS（N 项全部判定）`/`GATES: 有红项`/`GATES: PARTIAL —— 判定 N 项全过，但有 M 项因缺凭据未判`），且行首换词让下游冻结自动拒绝 | `build/gates.sh`（2026-10-02 23:06）收尾 20 行；`report/LLM_COLLAB.md` 例 5 | 2026-10-04 实读 | `templates/script-template`、`prompts/criterion-before-code` |
@@ -133,7 +133,7 @@ HDMI CTS（源端 TP1 眼图掩模）那条线单独记在 `report/io/hdmi_cts_s
 | 判断脚本成不成要用 `cmd > file 2>&1; echo rc=$?`，永不读被 pipe 掉的命令的状态；`set -e` + `pipefail` 会让兜底分支没机会执行 | `report/LLM_COLLAB.md` 例 4（#133/#106） | 2026-10-04 实读 | `templates/script-template`、`prompts/criterion-before-code` |
 | 工具定位走环境变量、找不到在第一步 REFUSE 并念出变量名；实跑输出 `REFUSE: 找不到 xvlog（当前 …）` + `rc=2`，且拒绝发生在 `mkdir`/`sed` 之前 | `report/BUILD.md`（2026-10-02 09:23）§1 表格与末段实跑两行 | 2026-10-04 实读 | `templates/script-template`、`templates/project-skeleton` |
 | 一次只测一件事（同树重复滚 = 零散布），"多变量会把单变量性打掉"的候选直接 excluded | `report/log/ISSUES.md` #223（结案行实读）；`docs/timing/cut_ledger.tsv` C2/C5 行 | 2026-10-04 实读 | `prompts/single-variable-ab` |
-| 新红了先退回未改状态、用同一版台架再跑一遍比红名单（含台架 md5 也要一致） | `skill/ab_revert_control_run.md`（2026-10-01 08:06）动作 1–5；#113 | 2026-10-04 实读 | `prompts/single-variable-ab` |
+| 新红了先退回未改状态、用同一版台架再跑一遍比红名单（含台架 md5 也要一致） | `skill/pitfalls/ab-revert-control-run/SKILL.md`（2026-10-01 08:06）动作 1–5；#113 | 2026-10-04 实读 | `prompts/single-variable-ab` |
 | 只读评审代理 + 回读门槛（代理每条结论必须能在盘上指出行号，指不出写"未证实"） | `report/LLM_COLLAB.md` 第 5 节表、例 2 | 2026-10-04 实读 | `prompts/hw-sw-partition`、`prompts/criterion-before-code` |
 | 交付导出四条判据：按引用留凭据 / 被否决轮次不进包 / 交付名工程化并生成新旧名对照 / 导出后自检不过就不落盘 | `build/make_submission.sh`（2026-10-02 21:35）头部 | 2026-10-04 实读 | `templates/project-skeleton`、`templates/report-forms` |
 | 目录/文件名口径（小写字母、数字、下划线或连字符，不得出现中文、空格或特殊字符）与"采用其他组织方式须在 README 给出目录对照说明" | `report/log/CONTEST_CHECKLIST.md:21`、`:120`（实读定位） | 2026-10-04 实读 | `templates/project-skeleton` |
@@ -144,7 +144,7 @@ HDMI CTS（源端 TP1 眼图掩模）那条线单独记在 `report/io/hdmi_cts_s
 | 协作记录的五栏（提示词原话 / 第一版回答 / 推翻它的读数 / 取证方式变化 / 落成的规矩）与"事实能按编号在同仓库查到" | `report/LLM_COLLAB.md` 开头声明与例 1–6；`report/AI_COLLABORATION.md`（2026-10-02 03:07） | 2026-10-04 实读 | `templates/report-forms/collab-record.md` |
 | 优化过程与**没采纳**的那些写在同一份文档 | `report/OPTIMIZATION_LOG.md`（2026-10-02 01:27）；`report/log/CONTEST_CHECKLIST.md` §1 同项行 | 2026-10-04 实读 | `templates/report-forms/optimization-compare.md` |
 | 复位值/默认档要从主机侧初始化代码逐条 grep，并配"屏上/回读怎么验"一列；开机做一次写图案再读回的配对自检 | `report/DEFAULTS.md`（2026-10-01 23:49）§1 | 2026-10-04 实读 | `templates/interface-contract` |
-| 窗口式读回必须"一组自洽"：新成员排在第一个字之后、快照取自读法本身、可信位为 0 时既不判红也不判绿；实测形状"8 组里 3 组破""`trusted=600 violated=0`" | `skill/atomic_register_window_readback.md`（2026-10-01 08:06）动作 2/4/5/6/7 | 2026-10-04 实读 | `templates/interface-contract` |
+| 窗口式读回必须"一组自洽"：新成员排在第一个字之后、快照取自读法本身、可信位为 0 时既不判红也不判绿；实测形状"8 组里 3 组破""`trusted=600 violated=0`" | `skill/runtime/atomic-register-window-readback/SKILL.md`（2026-10-01 08:06）动作 2/4/5/6/7 | 2026-10-04 实读 | `templates/interface-contract` |
 | 越界写仿真丢、硬件按地址位宽截断 ⇒ "声明初值 ≠ 上电值"，台架天生看不见这一类 | `report/LLM_COLLAB.md` 例 1 第五版 | 2026-10-04 实读 | `templates/interface-contract`、`prompts/criterion-before-code` |
 | 技能卡自检器只把标题形如 `# S<数字>` 的 `.md` 当卡片（六节 + ≤120 行 + README 计数行核对）⇒ 本批次新目录用 frontmatter + `## n.` 八节，不进那把尺子的射程 | `build/check_skill_cards.py`（2026-09-30 22:30）`REQUIRED/MAX_LINES/cards()` 实读 | 2026-10-04 实读 | 本目录全部条目（写作口径） |
 | 交付文档扫描范围含 `skill/`（编码检查）与 `skill` 文档目录（行号引用检查，代码扩展名 `.v .c .h .mjs .sh .tcl .ps1`） | `src/host/doc_enc_check.mjs`（2026-10-02 09:23）`SCOPE` 行；`src/host/line_cite_check.mjs`（2026-10-03 02:22）`DOC_DIRS/CODE_EXT` 行 | 2026-10-04 实读 | 本批次全部条目（自检口径） |

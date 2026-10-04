@@ -1,0 +1,4 @@
+clk_c>clk_a	7	2
+clk_a>clk_b	100	1
+clk_d>clk_a	12	0
+clk_b>clk_a	20	0

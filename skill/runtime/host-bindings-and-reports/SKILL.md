@@ -79,7 +79,7 @@ node src/host/metrics.mjs --selftest          # 不打板子，只验算式本�
 # 完成后应看到：算好的指标 + 原始 JSON 一起入库（任何结论都能回查到最初那几个数）
 ```
 
-为什么采集与计算必须同一条命令：`src/host/metrics.mjs` 文件头记着第一版把"平均帧间隔"的分母写成帧数，而硬件里 `gap_sum` 是 N−1 段 ⇒ fps 被低估约 1/N；这条现在由 `--selftest` 钉住（同族记录另见 `skill/metrics_gap_sum.md`）。
+为什么采集与计算必须同一条命令：`src/host/metrics.mjs` 文件头记着第一版把"平均帧间隔"的分母写成帧数，而硬件里 `gap_sum` 是 N−1 段 ⇒ fps 被低估约 1/N；这条现在由 `--selftest` 钉住（同族记录另见 `skill/pitfalls/metrics-gap-sum/SKILL.md`）。
 
 数字进表之后的对账（不需要板子，只读盘上文件）：
 
@@ -163,7 +163,7 @@ bash build/gates.sh build/frozen_rNN_<短名>   # 复核某一组成套冻结件
 
 ## 8. 提炼来源与边界
 
-- 来源证据（点名文件与日志条目）：`src/host/metrics.mjs`、`src/host/metric_recheck.mjs`、`src/host/rotate_from_metric`（即 `build/rotate_from_metric.mjs`）、`src/host/health_read.mjs`、`src/host/uart_cmd_check.mjs`、`src/host/ps_hb_check.mjs`、`src/host/pipe_len_check.mjs`、`src/host/demo_cmds.mjs`、`src/host/ddr_stale.mjs`、`build/check_ports.py`、`build/pre_readings.sh`、`build/gates.sh`、`build/make_submission.sh`、`data/metrics.csv`（第 14/15/16/20/24 行的口径）、`data/golden/README.md`、`build/evidence/r113_step5_gates3_console.txt`、`build/evidence/r118_board/bitcycle_console.txt`、`build/evidence/r116_board/health_live1.json`、`report/log/ISSUES.md` 的 `#57`/`#59`/`#66`/`#74`/`#316`/`#318`/`#321`、`report/ARCHITECTURE.md:117-123`、`report/HOST_GUIDE.md`、`skill/metrics_gap_sum.md`。
+- 来源证据（点名文件与日志条目）：`src/host/metrics.mjs`、`src/host/metric_recheck.mjs`、`src/host/rotate_from_metric`（即 `build/rotate_from_metric.mjs`）、`src/host/health_read.mjs`、`src/host/uart_cmd_check.mjs`、`src/host/ps_hb_check.mjs`、`src/host/pipe_len_check.mjs`、`src/host/demo_cmds.mjs`、`src/host/ddr_stale.mjs`、`build/check_ports.py`、`build/pre_readings.sh`、`build/gates.sh`、`build/make_submission.sh`、`data/metrics.csv`（第 14/15/16/20/24 行的口径）、`data/golden/README.md`、`build/evidence/r113_step5_gates3_console.txt`、`build/evidence/r118_board/bitcycle_console.txt`、`build/evidence/r116_board/health_live1.json`、`report/log/ISSUES.md` 的 `#57`/`#59`/`#66`/`#74`/`#316`/`#318`/`#321`、`report/ARCHITECTURE.md:117-123`、`report/HOST_GUIDE.md`、`skill/pitfalls/metrics-gap-sum/SKILL.md`。
 - 恒成立 / 平台相关 / 版本相关：三处读者各自带判据、零样本不算通过、数字只从原件抄、改前读数成套留档 —— 恒成立；JTAG `mrd` 这种读数出口、GPIO lane 窗口、串口命令电池是平台相关（换 Linux/UIO 要整套换掉）；`metric_recheck` 认得的三份报告文件名与 CSV 列顺序、`check_ports.py` 能解析的端口表形状是版本相关（换工具主版本或换报告模板要先重核解析行）。
 - 不再适用的条件：目标工程有真正的绑定生成器（§5.1 那套"手写两份 + 对账"就变成冗余）；读数出口变成寄存器映射文件（`/dev/mem` 之外还有 mmap 语义）；指标表没有点名原件报告（`metric_recheck` 会打印"未判"条数，等于没有这条判据）；无人复核的 PNG 参照图（本仓状态）。
 - 迁移到新题目/新板卡要改的几处：① `data/metrics.csv` 的列与"点名哪三份报告"的白名单；② lane/读数出口的编号与单调性分组（`MONO`/`LIVE` 两个集合要重列）；③ 检查器认得的路径与文件名（本仓把 `build/`、`data/measured/`、`report/` 写死在脚本里，换目录结构要改）；④ 演示清单里"不算命令"的两类（PC 侧动作、需要手指的按键）按自身交互重列；⑤ 若要引入生成器，先补"生成物 vs 原件"的判据行再删本节 §3 第一条。

@@ -13,6 +13,10 @@ import { execFileSync } from 'node:child_process';
 const ROOT = process.cwd();
 const SELF = process.argv.includes('--self');   // --self 只跑 C2 的对照例，不做全仓扫描（免得自检本身要读 3000+ 份文件）
 const LIST = process.argv.includes('--list');    // --list 把 C3 的死引用明细打全（判定不变）
+// C5 调用的卫生机检是一次全仓扫描，耗时随仓库大小走。上限用"本轮实测 × 3"而不是拍一个 60 s，
+// 否则这一项永远是 NOT_MEASURED（那是把"我没等够"说成"测不了"）。实测值更新在本行注释里：
+// 2026-10-04 r120：C1 改成一次 awk 之前，400 条路径就要 266 s（全仓外推 ≈ 39 min）；改后待重测。
+const HYGIENE_TMO = Number(process.env.VP_HYGIENE_TMO_MS || 300000);
 const P = (...a) => path.join(ROOT, ...a);
 const J = [];
 let judged = 0;
@@ -198,8 +202,10 @@ if (process.argv.includes('--self')) { process.exit(selftestC2()); }
 {
   if (!exists('scripts/check_repo_hygiene.sh')) row('C5', '许可与卫生机检', '缺 scripts/check_repo_hygiene.sh（P20）', 'NOT_MEASURED');
   else {
-    const s = sh('bash', ['scripts/check_repo_hygiene.sh'], 60000);
-    if (s.timedOut) { row('C5', '许可与卫生机检', '被调脚本 60 s 未返回 ⇒ 记未测（同时说明该脚本可能扫了 vivado_system/ 等生成目录，要收紧射程）', 'NOT_MEASURED'); }
+    const t0 = Date.now();
+    const s = sh('bash', ['scripts/check_repo_hygiene.sh'], HYGIENE_TMO);
+    const el = Math.round((Date.now() - t0) / 1000);
+    if (s.timedOut) { row('C5', '许可与卫生机检', `被调脚本 ${Math.round(HYGIENE_TMO / 1000)} s 未返回（本轮实测到 ${el} s 仍在跑）⇒ 记未测；慢在哪一行见 report/log/ISSUES.md #339 末段`, 'NOT_MEASURED'); }
     else {
       const out = s.out || '';
       const reds = (out.match(/\bFAIL$/gm) || []).length, nm = (out.match(/\bNOT_MEASURED$/gm) || []).length;

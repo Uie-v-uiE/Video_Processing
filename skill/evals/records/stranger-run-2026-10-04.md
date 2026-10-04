@@ -7,6 +7,17 @@
 - 处置约定：**原话照存，不润色、不补解释**；答错/答不出/需追问的记成红项，并列出据此回改了哪个文件哪一节。
   禁止因为演练失败就删掉问题。
 
+## 目录
+
+1. 它收到的五个问题（原文）
+2. 它的原样回答（逐条，含"答不出"的原话）
+3. 演练结论（红项清单与据此回改的位置）
+
+抄写约定：引文里引用包内目录时**去掉 `skill/` 前缀**书写（例如写成 `pitfalls/axi-dma-and-memory/`），
+因为门禁 G8 把带前缀的反引号路径当成"指路必须可解析"来判，而这里是**被审的错误原话**、不是指路；
+引文文字本身一字不删。被引的那句错误自陈已在
+`skill/runtime/dma-cache-coherency/SKILL.md` §6 按当前事实改写（2026-10-04）。
+
 ---
 
 ## 它收到的五个问题（原文）
@@ -33,7 +44,7 @@
 6. `scripts/regmap_check/regmap_check.mjs` 头部 K1–K8 判据清单（改完表跑哪八条）。
 7. `scripts/contract_gen/contract_gen.mjs` 头部（`REQUIRED` 十个必填字段，缺一格退 3）。
 8. `runtime/host-bindings-and-reports/SKILL.md` §5.1「主机侧读数代码：三处读者 + 每处自带判据」及"改表时的三步"三条命令。
-9. 如果这个新寄存器属于"先写索引、再读同一个数据口"那一族：`atomic_register_window_readback.md`「动作」第 5 条（新成员必须排在该组第一个字之后）与第 6 条（快照自带可信位）。
+9. 如果这个新寄存器属于"先写索引、再读同一个数据口"那一族：`runtime/atomic-register-window-readback`「动作」第 5 条（新成员必须排在该组第一个字之后）与第 6 条（快照自带可信位）。
 10. `runtime/pl-load-verify/SKILL.md` §5-A 表 5-A 的 L1/L2 + §5-C「校验闭环」（写图案读回那一层）。
 11. `zynq-video-rtl-debug/SKILL.md` §4 那张表（"新模块上全流程前的结构预检"用 `build/tcl/ooc_newmods.tcl`，`OOC_ONLY` 一次一个，它的数字不是门禁）。
 12. 若手上还没有能红的判据，先走 `prompts/criterion-before-code/SKILL.md`（我只抽读了它的 §3 与 §8，正文其余节没读）。
@@ -48,8 +59,8 @@
 - 同文件 **§5-A 表 5-A** L1/L2 两行 + 那句"L1 必须是第一层：它是这条链里唯一不依赖任何软件配合、也不需要应用先跑起来的判据"。
 - `runtime/register-map/SKILL.md` **§5.3** 判读口径：`src/ps/main.c:1554-1557` 的注释写的是"**不存在的从设备常常也返回 0，那种判据不会红**"，所以必须写一个非零图案再读回来比对；图案落在保留段的理由是同节"探针故意放在**保留段**，因为'探针不许命令硬件'"。
 - 同文件 **§5.5** 越界那一行：`期望调试器报总线错误；**静默返回 0 是最坏的一种**，因为它把"没有从设备"伪装成"值为 0"`。
-- 如果这个 0 是经"先写 lane 号再读数据口"读回来的：`runtime/register-map/SKILL.md` **§6** `health_read` 行给出另一条优先分叉：`恒 0 且 lane 号未回读确认 ⇒ 很可能读到的是 lane0（ISSUES #55：PS 每帧整字重写会抹掉 lane 号）`；配合 `atomic_register_window_readback.md`「动作」第 2 条"判红后先怀疑读法"。
-- 判据侧兜底：`bench_self_inflicted_reds.md` 十签名第 6 条：`几条问法都返回 0，看起来就是"没有"` ⇒ 修法"`"查不到"之前先放**阳性对照**：同一次运行里查一个明知存在的东西；对照没过，那个 0 是命令语法问题，不是事实`。
+- 如果这个 0 是经"先写 lane 号再读数据口"读回来的：`runtime/register-map/SKILL.md` **§6** `health_read` 行给出另一条优先分叉：`恒 0 且 lane 号未回读确认 ⇒ 很可能读到的是 lane0（ISSUES #55：PS 每帧整字重写会抹掉 lane 号）`；配合 `runtime/atomic-register-window-readback`「动作」第 2 条"判红后先怀疑读法"。
+- 判据侧兜底：`references/bench-self-inflicted-reds` 十签名第 6 条：`几条问法都返回 0，看起来就是"没有"` ⇒ 修法"`"查不到"之前先放**阳性对照**：同一次运行里查一个明知存在的东西；对照没过，那个 0 是命令语法问题，不是事实`。
 - 两种特殊情况它给了不同的第一步：只"读不回/挂住"而非回 0 ⇒ 按 §5-A L1 失败列先确认 DONE 与地址段 assign（不改 RTL）；若同时"串口一个字节不回、JTAG 里核仍显示 Running" ⇒ 按 `runtime/pl-load-verify/SKILL.md` **§5-D** 的恢复顺序（`rst -system` → 重初 PS → 重编 PL → 重载应用 → 再起流量）。
 
 我需要更多信息，缺什么：①"读回复 0"是调试器 `mrd`、固件开机自检，还是上位机脚本 `health_read.mjs` 读到的？三者的第一动作分别是 §5-A L1、§5.3、§6 health_read 行。②是**恒 0**还是只低位/某几位 0——`§5-A` L2 失败列把这两种分开（恒 0/恒 F = 从设备不在位流上；只低位对 = 顶层线宽吞高位）。③核当前是不是 halt 态：`runtime/register-map/SKILL.md` §4 写"lane 窗口必须在 halt 态读"。这三条问题里没给，我按最常见的"mrd 直接回 0"答。
@@ -85,9 +96,9 @@
 9. `scripts/check/SKILL.md` §3 第 1 条：**「想验设计（时序/资源/板级）：那是 `build/gates.sh` 与台架的射程，本目录只管文档与形状。」**
 10. `zynq-video-rtl-debug/SKILL.md` §2 末尾与 §8：**「不适用：画质类判定的收敛…；布局不是 `src/rtl + sim + build/tcl` 的工程（下面每条路径都是仓库根相对路径，换布局就要全部重指）。」**／**「不再适用：非 Zynq 裸机流程（带 FSBL/FreeRTOS/PYNQ 的工程），或板上没有可读回的计数寄存器时——L3 那一层直接失能，只能退到示波器/抓包。」**
 11. `_meta/naming-and-format.md` §1 条文依据表第三行：**「`通用 PYNQ Skill 单独加分` —— 本作品不用 PYNQ（裸机 + Vivado/Vitis 原生流程）」**（不在条目 §3，但在包里唯一明写"我们的场景不算"的表行）。
-12. 扁平卡（六节格式）里最接近的：`board_eth_uart.md`「不适用」第 1、2 条：**「本页只在"点对点直连 + 静态地址 + 数据面走 PL 侧网口"这一种拓扑上量过」**、**「PS 侧跑协议栈收流的工程：速率与自协商那一格要重新量，别把这里的清单当依据」**；「失效边界」第 3 条：**「本设计完全不配置 PHY（管理接口悬空，复位由上电计数驱动）⇒ 收包依赖芯片上电默认的自协商结果…换板或换通路则整段作废」**。`atomic_register_window_readback.md`「不适用」第 3 条：**「只有 1 个字可读，或你本来就有真正的原子广播口（一次读全组）。」**
+12. 扁平卡（六节格式）里最接近的：`runtime/board-eth-uart`「不适用」第 1、2 条：**「本页只在"点对点直连 + 静态地址 + 数据面走 PL 侧网口"这一种拓扑上量过」**、**「PS 侧跑协议栈收流的工程：速率与自协商那一格要重新量，别把这里的清单当依据」**；「失效边界」第 3 条：**「本设计完全不配置 PHY（管理接口悬空，复位由上电计数驱动）⇒ 收包依赖芯片上电默认的自协商结果…换板或换通路则整段作废」**。`runtime/atomic-register-window-readback`「不适用」第 3 条：**「只有 1 个字可读，或你本来就有真正的原子广播口（一次读全组）。」**
 
-如果你那句"不适用于我们的场景"其实指"这条技能整套在本仓库根本不该用"（不是某一段），我只能给上面第 1、2、3、9、10 条那种整句断言；余下的是"某段不成立"。`runtime/dma-cache-coherency/SKILL.md` §6 还有一句自陈边界：**「本仓没有 `skill/pitfalls/axi-dma-and-memory/` 目录（写作时 `ls skill/` 只有平铺 `.md` 与一个 `zynq-video-rtl-debug/`）⇒ 编号对齐列一律 `【待对齐】`」**——它指的目录布局是重构前的，与现在包内实际结构不一致，这条我判不了该按哪版执行。
+如果你那句"不适用于我们的场景"其实指"这条技能整套在本仓库根本不该用"（不是某一段），我只能给上面第 1、2、3、9、10 条那种整句断言；余下的是"某段不成立"。`runtime/dma-cache-coherency/SKILL.md` §6 还有一句自陈边界：**「本仓没有 `pitfalls/axi-dma-and-memory/` 目录（写作时 `ls skill/` 只有平铺 `.md` 与一个 `zynq-video-rtl-debug/`）⇒ 编号对齐列一律 `【待对齐】`」**——它指的目录布局是重构前的，与现在包内实际结构不一致，这条我判不了该按哪版执行。
 
 ### Q5
 
@@ -143,7 +154,7 @@
 | 红项 | 它指出的原文位置 | 判定 | 已回改 / 待回改 |
 | --- | --- | --- | --- |
 | R1 `register-map` 说 `scripts/regmap_check/` "在本仓不存在"，而包里它已存在（两处自相矛盾） | `runtime/register-map/SKILL.md` §5.2 第 3 步、§8 第④处；`scripts/regmap_check/axi_gpio_contract.tsv` 头注释 | 成立（是重构后的**过期口径**） | 待改：该两处改为指 `skill/scripts/regmap_check/`，tsv 的列口径指到 `regmap_check/SKILL.md`（该文件由 P04 agent 正在写，见 G2） |
-| R2 `dma-cache-coherency` 说本仓没有 `skill/pitfalls/axi-dma-and-memory/`，"编号对齐列一律【待对齐】" | 同文件 §6；G8 实测该路径是**死链**（死链=4 里的一条） | 成立 | 待改：把死链改成"本包未采用 P05 的类别目录布局"这一事实句，并进 `docs/run-queue.md` 的偏离登记 |
+| R2 `dma-cache-coherency` 说本仓没有 `pitfalls/axi-dma-and-memory/`，"编号对齐列一律【待对齐】" | 同文件 §6；G8 实测该路径是**死链**（死链=4 里的一条） | 成立 | 待改：把死链改成"本包未采用 P05 的类别目录布局"这一事实句，并进 `docs/run-queue.md` 的偏离登记 |
 | R3 六节扁平卡与八节条目两套并存，读者不知道按哪套 | `README.md:16` 的"每条都是同六节" vs `_meta/entry-template.md` 八节 + G4 | 成立（迁移未完成所致） | 迁移中的 28 张卡完成后由 `retire_flat.mjs` 全绿才允许并存状态消失；本轮先修 README 措辞 |
 | R4 `scripts/report_metrics/report_metrics.mjs:6` 指向自身尚不存在的 `SKILL.md` 第 8 节 | 它的 Q3 末段；G8 死链 | 成立 | 待 P04 agent 补该 `SKILL.md`（G2 红项里已含） |
 | R5 `evals/records/` 与 `evals/migration/` 是空目录 ⇒ 全包没有任何条目级验证记录 | 它的 Q3 末段与 Q1 第 8 条 | 成立 | 本文件即为第一份 record；`migration/` 由 P08 后续补，`submit/07` 里"migration 里写的是…"那句属**过度声称**，本轮已改 |

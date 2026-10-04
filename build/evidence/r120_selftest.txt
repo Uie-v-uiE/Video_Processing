@@ -1,0 +1,7 @@
+CGEN    contract_gen           判 8 项  pos=ok pos_files=ok stub=ok negC3=ok negC1=ok guard=ok guard_no_write=ok empty=ok PASS
+GCMP    golden_compare         判 7 项  pos=ok pos_art=ok guard=ok empty_set=ok negC2=ok missing=ok real_pair=ok PASS
+RGMAP   regmap_check           判 6 项  pos=ok negK6=ok emptyK6=ok precondition=ok empty_tsv=ok only_typo=ok PASS
+METRIC  report_metrics         判 9 项  no_baseline=ok pos=ok pos_art=ok negR7=ok negR6=ok guard=ok guard_no_write=ok negR3=ok missing=ok PASS
+REPRO   repro_check            判 7 项  capture=ok verify=ok negV5=ok negV1=ok pair_required=ok guard=ok guard_no_write=ok PASS
+STATIC  static_check           判 3 项  pos=ok negT1=ok negT2=ok PASS
+SELFTEST node=v24.21.0 scripts=6 判 40 项 pass=6 fail=0 nm=0 PASS
