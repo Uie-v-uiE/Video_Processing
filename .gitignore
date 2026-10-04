@@ -22,7 +22,9 @@ VITIS/
 # 工程内重复的生成目录
 build/vivado_system/
 build/build/
-build/reports/
+# 原件不随包（体积与去重），但**索引与解析件必须入库**，否则 clone 之后"成对"不成立
+build/reports/*
+!build/reports/index.md
 build/scripts/
 
 # ===== 本地个人笔记 / 辅助脚本 / 构建日志（不上传） =====
@@ -154,3 +156,7 @@ board/HANDS_ON.md
 # 2026-10-04（P11 学习文档线）：项目拆解学习文档只留本机，不上传 GitHub、不进提交包。
 # 与 report/study/ 同一条口径：写在 .gitignore 里让这条排除规则本身可被审查看见。
 docs/walkthrough/
+
+# 技能包校验脚本的运行产物（默认输出目录）。它是跑出来的，不是交付物；
+# 留在 skill/ 里会被 G5/G2 当条目、并被退役核对器误读（2026-10-04 第三方审计指出脚本往交付树里写东西这件事）。
+skill/scripts/_out/

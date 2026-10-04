@@ -18,26 +18,26 @@
 | P06 参考层 | `skill/references/*` | P01 | 已交付 3 条 + 迁移进行中 |
 | P07 runtime | `skill/runtime/*` | P01 | 部分（`pl-load-verify`、`register-map` 有，`dma-cache-coherency`、`host-bindings-and-reports` 缺 SKILL.md） |
 | P08 验证与增益 | `skill/evals/*` | P04/P05 | 进行中（协议+原始两跑件已在，记录待补） |
-| P09 装配与门禁 | `skill/scripts/check/gates.mjs`、G1–G12、陌生人演练、第三方审计 | 全部 P01–P08 | 进行中（12 项里 6 绿） |
+| P09 装配与门禁 … | … | 进行中（12 项 = 绿 8 / 红 3 / 未测 1；陌生人演练与第三方审计两份记录已入 `skill/evals/records/`） |
 | P11 学习文档 | `docs/walkthrough/*`（**不随包**，`.gitignore` 已列） | P13/P15b | 11 个文件已交付，5 篇因缺前置未写 |
-| P13 `src/` | `docs/interface-table.md`、`docs/src-map.md`、`docs/src-audit.md` | — | 进行中 |
-| P14 `sim/` | `sim/README.md`、`sim/{tb,vectors,regress,results,failure-bundle}/`、`docs/verification-claim.md` | P13 | 待开 |
-| P15a 构建与指纹 | `build/README.md`、`build/provenance.md`、`build/artifacts/` | — | 待开 |
-| P15b 报告解析与名册 | `build/parsed/`、`build/roster/`、`build/coverage.md`、`docs/build-notes.md` | P15a | 待开 |
-| P15c 逐轮台账 | `build/runs/{ledger,decisions,baselines}.md`、`docs/optimization-rounds.md` | P15a/P15b | 待开 |
-| P16a 板级可复原 | `board/README.md`、`board/hardware_setup.md`、`board/firmware/`、`board/run/`、`board/bringup-checklist.md` | — | 进行中 |
-| P16b 实测与比对 | `board/{logs,captures,compare,conditions}/`、`board/raw-vs-golden.md` | P16a | 待开 |
-| P16c 签核与指标 | `board/signoff.md`、`docs/measurements.md`、`board/signoff-questions.md`、`docs/acceptance-recipes.md` | P16b | 待开 |
-| P17 `data/` | `data/README.md`、`data/{inputs,golden,generated,fetch}/`、`data/golden/manifest.md`、`data/licenses.md`、`docs/data-format.md` | — | 进行中 |
-| P12 根 README | `README.md`、`docs/repro-check.md` | P15a/P16a/P14 | 进行中 |
-| P18a 原理与划分 | `report/20-principle.md`、`report/30-partition-if.md`、`report/figures/`、`docs/claims-vs-evidence.md` | P13 | 待开 |
-| P18b 优化与结果 | `report/40-optimization.md`、`report/50-results.md`、`report/comparison-notes.md` | P15b/P15c/P16b | 待开 |
-| P18c 失败·复现·未决 | `report/{60-failure-analysis,70-reproduce,90-open-items,README}.md` | P18a/P18b | 待开 |
-| P19 背景与创新点 | `report/10-background.md`、`report/prior-art-search.md`、`report/novelty-claims.md` | — | 进行中（需联网检索） |
+| P13 `src/` … | … | 进行中（`docs/interface-table.md` 已落 1509 行；`src-map`、`src-audit` 未出） |
+| P14 `sim/` … | … | 进行中（`sim/README.md` 已落；`sim/regress/`、`docs/verification-claim.md` 未出） |
+| P15a 构建与指纹 … | … | 已交付（`build/README.md`、`build/provenance.md` 194 行、`build/artifacts/`、`build/probe-guard.md`） |
+| P15b 报告解析与名册 … | … | 重试轮在跑（`build/roster/`、`build/parsed/` 已在；`build/coverage.md`、`docs/build-notes.md` 未出） |
+| P15c 逐轮台账 … | … | 已交付（`build/runs/ledger.md` 在盘；`decisions/baselines` 与叙述版待核） |
+| P16a 板级可复原 … | … | 进行中（`board/hardware_setup.md` 151 行、`board/firmware/` 在；`board/run/`、`bringup-checklist.md` 待核） |
+| P16b 实测与比对 … | … | 已交付（`board/raw-vs-golden.md` + logs/captures/compare/conditions，比对表 12 张全部脚本产出） |
+| P16c 签核与指标 … | … | 已交付（`board/signoff.md` 29 项五件齐全、`docs/measurements.md`、`signoff-questions.md`、`docs/acceptance-recipes.md`） |
+| P17 `data/` … | … | 进行中（`data/golden/manifest.md` 214 行、`inputs/`、`generated/` 在；`data/README.md`、`docs/data-format.md` 未出） |
+| P12 根 README … | … | 重试轮在跑（`docs/repro-check.md` 已出：PASS 46 / FAIL 13 / 未测 23） |
+| P18a 原理与划分 … | … | 进行中（`report/figures/` 已建；`20-principle.md`、`30-partition-if.md` 未出） |
+| P18b 优化与结果 … | … | 已交付（`report/40-optimization.md`、`50-results.md`、`comparison-notes.md`；15 条抽查链路一步命中） |
+| P18c 失败·复现·未决 … | … | 部分交付（`60-failure-analysis.md`、`90-open-items.md`、`report/README.md` 在；`70-reproduce.md` 未出） |
+| P19 背景与创新点 … | … | 重试轮在跑（`10-background.md`、`prior-art-search.md` 未出） |
 | P10 报告里技能包两章 | `report/07-skill-distillation.md`（submit 侧）与 P22 配对 | P08/P09/P22 | 部分（`submit/07-skill-distillation.md` 已成文） |
-| P22 协作记录归档 | `report/collaboration/*` | P08 | 待开 |
-| P20 许可与声明 | `LICENSE`、`NOTICE.md`、`docs/provenance-and-licenses.md`、`docs/declarations.md`、`scripts/check_repo_hygiene.*` | — | 进行中 |
-| P21 提交前终审 | `docs/submission-checklist.md`、`docs/final-gate.md`、`docs/known-limitations.md` | 全部 | 待开（必须最后做） |
+| P22 协作记录归档 … | … | 进行中（`report/collaboration/` 已建） |
+| P20 许可与声明 … | … | 部分（`LICENSE` 在、`scripts/check_repo_hygiene.sh` 387 行；`NOTICE.md`、`declarations.md`、`provenance-and-licenses.md` 未出；卫生机检 60 s 未返回 ⇒ 射程要收紧） |
+| P21 提交前终审 … | … | 尺子已交付（`scripts/check_repo_consistency.mjs`；读数件 `build/evidence/r119_final_gate_baseline.txt`、`r120_final_gate_2.txt`）；矩阵三份文档等装配完再写 |
 
 阻塞项（写在这里而不是藏起来）：
 

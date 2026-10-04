@@ -6174,3 +6174,44 @@ B1 严格名册：**8 对 (域,类型) 逐位复现 r114** ⇒ 片内中性，�
 
 **还欠的（都不该由我替你决定）**：6 个输出端口（`led[0..1]`、`tmds_clk_p`、`tmds_data_p[0..2]`）要外部 DVI/HDMI 窗口数或你点头改判 false-path（#188/#191）；换短钟那一刀（#194）要先量 BUFIO 快/慢支的插入延迟（#323：本机 UG471/UG472 两遍没筛出可引用的数，所以 0.5/0.2 ns 仍标"假设"）；角度机读口（#185）落了 E6 就能自动化。
 门禁的项数与红绿以 `bash build/gates.sh` 打印的那一行为准，本节不复制它（第 18 项会把自己判红，见 #330/e2d78e1）。
+
+
+## 2026-10-04 12:3x 交付重构轮（无人值守，板仍是 r118）
+
+- 板与仓库不变：板上 = HEAD 的 r118（bit `cd04907e1369`）。本轮只动文档、尺子与约束候选件，
+  没有重跑构建、没有刷板、没有碰串口。
+- HDMI 源端 TP1（任务 #199 关闭）：窗数取到并核对（HDMI 1.4 Table 4-24 / Fig 4-30，三版一致
+  + Keysight/Tektronix 复述；CTS 表本体 NDA ⇒ 只作带标签的第三方代理）。
+  把 0.20 Tcharacter 当 `set_output_delay` 窗挂上去，两版分别造 −3.48 / −4.90 ns ⇒ 量纲错
+  （skew 是单边离散上限，不是采样窗），不是设计不合格。换成同量纲问法：在 r118 已布线成品
+  逐脚量 clock-to-pin 延迟，互对最差 0.065 ns（限 4.000）、对内最差 0.001 ns（限 0.300），
+  尺子 `build/r119_window_check.mjs` 判 10 项红 0、`--self` 11 条畸形各自动红 + 2 条缺输入 `NOT_MEASURED`。
+  仍欠：板级走线离散未量、眼图/抖动/占空比/沿无 SDC 容器需仪器（`docs/timing/debt_ledger.md` 末节）。
+- 提交目录彻底重构：新建 `submit/`（README + 八章 + reproduce/），根 README 指过去；
+  学习文档 `docs/walkthrough/` 进 `.gitignore`（按队伍要求不随包）。
+- P12–P22 按 `skill_prompts/` 的 30 条任务并行落地，已可见的有 `report/{40,50,60,90,README}.md`、
+  `report/io/`、`board/{signoff.md,raw-vs-golden.md,hardware_setup.md,firmware/,logs/,captures/,compare/,conditions/}`、
+  `build/{provenance.md,roster/,parsed/,runs/ledger.md,artifacts/,probe-guard.md}`、`data/golden/manifest.md`、
+  `docs/{interface-table.md,measurements.md,repro-check.md,run-queue.md,questions-for-team*.md,unattended.md}`、
+  `LICENSE`、`scripts/check_repo_{hygiene.sh,consistency.mjs}`、`report/collaboration/`、`report/figures/`。
+- 技能包重构：28 张扁平卡往「条目 = 目录 + `SKILL.md`」迁移；索引由 `gen_index.mjs` 生成、
+  门禁 G1–G12 由 `gates.mjs` 判、退役核对 `retire_flat.mjs` 当前 `红=3`（26 张未迁完、5 个脚本目录缺壳、
+  `selftest/run_all.sh` 未落地）⇒ 不宣称技能包已交付。
+- 第三方审计 + 陌生人演练已跑并落档（`skill/evals/records/`）。审计抓到 12 处「空集 / 全 0 判绿」
+  与 5 处过期口径：我自己写的三把尺子（`r119_window_check` 全 0 地板、`check_repo_consistency` 的
+  C2/C4/C5/C7/C8/C9/C10、`gates` 的 G7/G8/G9/G10、`gen_index --check` 的空条目判绿）全部实修并重跑；
+  改严 W6 时我先把真实形状判成红（当场 `红=1`），第二版按开关块上下文修对 ⇒ 新规矩：
+  改判据后必须立刻跑真件 + `--self`，「变严」不是安全动作（ISSUES #338）。
+- 仓库门禁 `bash build/gates.sh`：判定 24 项，唯一红仍是声明过的 C5c。本轮「两跑逐字节一致」
+  **未成立**，差在 `doc_cite 命中 1105→1111`，成因是并行写入者正在加引用（不是尺子飘）
+  ⇒ 定版两跑要等所有写入者收工后重跑。
+- 终审 C1–C12 第二轮：`绿=4 红=6 未测=2`。红 = C2（`data/metrics.csv` 6 行指标没指到存在的证据文件）、
+  C3（64 条死引用，多为装配期悬空指路）、C4（230 个含大写路径，全仓射程洞）、C9（复现演练 13 条 FAIL）、
+  C12（技能包门禁 4 红）；未测 = C1（缺 `docs/declarations.md`）、C5（卫生机检 60 s 未返回）。
+  这些保留为红，写进 `report/90-open-items.md` 与 `docs/questions-for-team.md`，不靠放宽判据变绿。
+- 推送：`8627be5`（r119 取证与量测）、`b1424cd`（`submit/` + 运行台账）、`384a0b3`（卫生与 #336）、
+  `157d332`（终审尺子与 #337）、`ab640e9`（审计处置 + 尺子补牙 + #338）、`4b419f2`（台账与 push 凭据）
+  已推 `main`。直连被 `Connection was reset` 拒后改用**逐命令**代理 7897 成功，
+  `git config` 的 http/https/global 三项查回为空（不留持久代理配置）。
+- 我自己造的新违规并当场修掉的：`docs/questions-for-team-P12.md` 的大写 P（→ `p12`，
+  引用同步改口 6 处）；技能包脚本把产物写进交付树（`skill/scripts/_out/` 进 `.gitignore`）。
