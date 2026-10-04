@@ -173,6 +173,38 @@ if (want('C-PATHS')) {
     `脚本=${judged.length} 判(指向 src/ 的字面量)=${n} 解析不到=${bad.length} 模板串不计=${tpl} 用例与注释行不计=${caseSkipped} 自检探针类文件不计=${exempt} 例:${bad.slice(0, 3).join(' | ')}`,
     n === 0 ? 'NOT_MEASURED' : (bad.length ? 'FAIL' : 'PASS'));
 }
+// ---- C-LEN §7.6 长度上限：根 README 一页（C3 里判），子 README 半页。
+// "半页"落在**作者写的散文行**上：§2.4 要的是 81 行的台架表、§0.4 要的是目录表，
+// 那些是被条款强制要求的表格/代码，把它们算进长度就变成"两条条款互相打架"，
+// 于是判据只数表外散文行，表格行数另印出来（能看见长度是从哪儿来的）。
+if (want('C-LEN')) {
+  // 射程现算（手写名单会随树长大静默变窄）：除根以外所有目录级 README
+  const present = tracked.filter(f => /(^|\/)README(_EN)?\.md$/.test(f) && f.includes('/'));
+  const proseLines = (t) => {
+    let fence = false; const out = [];
+    for (const l of t.split(/\r?\n/)) {
+      if (/^\s*```/.test(l)) { fence = !fence; continue; }
+      if (fence) continue;
+      if (/^\s*\|/.test(l)) continue;             // 表格行
+      if (/^\s{4,}\S/.test(l)) continue;           // 缩进代码
+      if (!l.trim()) continue;
+      out.push(l);
+    }
+    return out;
+  };
+  const CAP = Number(process.env.VP_CLEN_CAP || 45);
+  const over = []; let tableRows = 0, cmp = 0;
+  for (const f of present) {
+    const t = read(f), ls = t.split(/\r?\n/);
+    const p = proseLines(t), tb = ls.filter(l => /^\s*\|/.test(l)).length;
+    cmp += 2; tableRows += tb;
+    if (p.length > CAP) over.push(`${f} 散文=${p.length}（上限 ${CAP}，表格 ${tb} 行不计）`);
+  }
+  say('C-LEN', 'sub-readme-length', cmp,
+    `子 README=${present.length} 逐个判散文行数≤${CAP} 超=(${over.join(' ; ') || '无'}) 表格行合计=${tableRows}（§2.4/§0.4 强制的表不算长度）`,
+    present.length === 0 ? 'NOT_MEASURED' : (over.length ? 'FAIL' : 'PASS'));
+  if (process.argv.includes('--len-list')) for (const f of present) console.log(`  ${f} 散文=${proseLines(read(f)).length} 总行=${read(f).split(/\r?\n/).length}`);
+}
 // ---- C2-1 sim 只留 .v（+ 本要求自带的 README.md）
 if (want('C2-1')) {
   const sim = under('sim');
