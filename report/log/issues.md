@@ -13505,3 +13505,21 @@ C7 现在按"这个字符串在文件里出现过"判红 ⇒ 量的是提及。�
 `skills/_meta/{build-index.mjs, run-all-checks.mjs, check-skill-package.mjs, check-selftest.mjs}`，
 外加一批小写 `skill.md` 应为 `SKILL.md`。⇒ 两条清理线按"指令 / 逐字记录 / 笔误"三分法处理（指令改指真件并跑一遍；
 逐字记录只加同行豁免词；笔误改对），**不许**为了让路径存在而新建空壳工具。
+
+### #356 我写的"没有 seal 绑定 src/ps"是工具读空，不是仓库没有：seal 的行形状是 hash␣*path
+判 §1.2 那一刀（src/ps → src/host/ps）之前，我要排除"移动会断 md5 绑定"这一条风险，
+用的命令是 `grep -rn "^[0-9a-f]\{32\}  src/ps" --include='MANIFEST*' --include='manifest*' --include='*.md5' .`，
+读空。我据此在凭据草稿里写下"没有任何 MANIFEST.md5 的哈希行点名 src/ps"。
+错在两处叠加：
+（1）本仓 seal 的行不是 `hash␣␣path` 而是 `hash *path`（`md5sum` 的 `-b` 形状，见
+    `build/frozen_r50_lat/manifest_body.txt` 第一行 `c12a1f5c… *system.bit`），
+    两个空格的模式的**通形对照**（`^[0-9a-f]{32}␣␣`）也读空——那一刻就该发现是工具坏了。
+（2）改名轮之后文件名是小写 `manifest.md5`，而 `--include='MANIFEST*'` 只匹配大写名，
+    两条件取交集 ⇒ 任何结果都是空。
+用 `*` 形状重跑有命中：`build/evidence_r63b/manifest.md5:6` 与 `r63c:9` 都点名 `src/ps/main.c`，
+正对照是同一条命令的 `src/rtl` 版读到 3 行。
+结论没有翻（可以继续迁移），但**理由换了**：那两枚是 r63 时点的记录，
+现算 `md5sum src/ps/main.c` = 21d958443d94c7cbfe3d5af54d2f0984 与两枚都不等（main.c 之后又改过），
+且 `build/verify_evidence.sh` 只认大写 `MANIFEST.md5`/`MANIFEST.content.md5`、`build/gates.sh` 不调用它
+⇒ 没有尺子会因路径变旧而转红。规矩：**"读空"必须先在同一次调用里带一个已知能命中的正对照**，
+并且模式的形状要从**真件的第一行**抄，不凭印象写分隔符。

@@ -1,0 +1,42 @@
+r122 —— src/ps → src/host/ps 迁移：改口前的基线（改前读数，用于红→绿对照）
+
+为什么动：交付要求 §1.2 写死 "RTL：src/rtl/；PS 侧 / 上位机：src/host/"，
+而固件源码在 src/ps/。新增的 `build/deliver_spec_check.mjs` 判据 C1-2 现算到这一条：
+`C1-2 src-placement-per-1.2 cmp=113 PS/上位机源文件不在 src/host=4 目录=ps … FAIL`（2026-10-04 20:26 实跑）。
+顶层八目录之外的子目录 C0-4 看不见，所以这一条此前没有任何尺子量过。
+
+改前基线（2026-10-04 20:33 实跑，逐条命令）：
+  node src/host/ps_hb_check.mjs      → 17/17，rc=0（静态读 src/ps/main.c 与 src/ps/sd_play.c）
+  node src/host/temp_formula_check.mjs → PASS temp_formula_check，rc=0（读 src/ps/main.c 的常数）
+  node src/host/pipe_len_check.mjs   → PIPE_LEN PASS，rc=0（读 src/ps/main.c）
+  node build/r120_src_map.mjs        → MAP 生成 文件=83 头注缺=0 判 83 项 PASS（src/rtl + src/ps 计数）
+  node src/host/geom_check.mjs       → rc=2 FATAL 读不到 CFG_DATA0（要 JTAG/板子；**不能**当路径对照，
+                                       它在迁移前后都会因同一个原因红，记在此以免被当成对照）
+
+对照设计（三步，全部实跑记录，不靠推理）：
+  ① 现在：上面三把静态尺子绿（路径 src/ps/main.c 解析得到）。
+  ② 只 git mv 不改口：三把尺子必须转红（读不到输入）——证明它们真的吃这个路径，
+     而不是"看起来在跑"。这一步不留文件，做完立刻进第 ③ 步。
+  ③ `node build/r122_ps_relocate.mjs --apply`（57 个文件 111 处旧名）后三把尺子回绿，
+     且 r120_src_map 仍判 83 项（文件集合不变，只有路径变）。
+
+射程与豁免（在尺子里，随尺子走）：
+  射程 = `git ls-files`（3653 个跟踪文件）现算；
+  冻结名单 = report/log、build/evidence*、build/frozen_*、build/report*、build/runs、
+             board/compare、board/logs、board/captures、data/golden、.git*
+  —— 过去时的记录不重写（改了等于毁证据链），干跑打印"冻结件不计=17"。
+  尺子自身自斥（用例字符串里就有旧名）。
+  工具干跑读数：待改文件=57 旧名总数=111 拒写=0 PASS；--self 判 10 项红=0。
+  历史 seal 的情况（更正先前的一句错判，见台账 #356）：
+    先前写"没有任何 MANIFEST.md5 的哈希行点名 src/ps"——那句用错了形状
+    （`^[0-9a-f]{32}␣␣path`），而本仓 seal 的行是 `hash *path`（一个星号分隔），
+    所以那条命令读空是**工具没读到**，不是**仓库里没有**。用 `*` 形状重跑有命中：
+      build/evidence_r63b/manifest.md5:6  cd622ec9333bd9310f8b4c6c404f6943 *../src/ps/main.c
+      build/evidence_r63c/manifest.md5:9  dedca274780f8e6f6f680d1da18b8c2f *src/ps/main.c
+    （正对照：同一命令的 `src/rtl` 版读到 3 行，证明模式这次真的能命中。）
+  迁移对这两枚的影响：内容哈希本来就已过期——现算 `md5sum src/ps/main.c` =
+    21d958443d94c7cbfe3d5af54d2f0984，与上面两枚都不等（main.c 在 r63 之后又改过，
+    最近一笔 61d1a2c，1618 行）。⇒ 这两枚是"当时那棵树的记录"，不因本次移动而变得更真或更假；
+    且 `build/verify_evidence.sh` 只认大写 `MANIFEST.md5`/`MANIFEST.content.md5`（这两件叫
+    小写 `manifest.md5`），`build/gates.sh` 里也没有调用它的项 ⇒ 没有尺子会因为路径变旧而转红。
+    冻结名单已把 `build/evidence*` 排除在改口射程外（干跑打印"冻结件不计=17"），历史件文本不改写。
