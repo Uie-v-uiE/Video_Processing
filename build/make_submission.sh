@@ -71,7 +71,7 @@ PRUNE_ONEOFF=(
   build/tcl/rebuild_zoom_out.tcl build/tcl/rebuild_cdc_fix.tcl build/tcl/micro_rd.tcl
   build/tcl/uram_presence.tcl build/tcl/uram_probe.tcl build/tcl/uram_sites.tcl
   build/tcl/dfx_runtime.txt build/tcl/retry_open_nr.log
-  build/sim/run_zoom_only.tcl build/report/ board/ddr_churn_r33_pair.md
+  build/sim/run_zoom_only.tcl board/ddr_churn_r33_pair.md
   # `build/` 在包里只该有两类东西：**可复现的构建脚本**与**综合/实现报告**（用户看包时提的）。
   # 下面这些是仓里的开发工具，不在复现链上 —— 复现链的名单不是凭印象列的，是从
   # `gates.sh` / `board_verify.sh` 里 grep 出来的：gates.sh 会调 check_ports.py、freeze_evidence.sh、
@@ -100,7 +100,10 @@ BUILD_DEV_ONLY=(
 DOC_EXCLUDE=(report/log/contest_checklist.md)
 
 # ---- 无论有没有被点名都留着：跑起来的那一套 ----
-KEEP_ALWAYS_RE='\.(sh|tcl|py|ps1|bat|xdc|f|v|c|h)$|^src/(rtl|host/ps|constraints)/|^data/golden/|MANIFEST|README|^submit/|^skills/'
+# `^build/report/` 是 §4.4 点名的交付层（资源 LUT/FF/BRAM/DSP/IO + 频率/WNS/TNS），两份 README 的
+# 凭据就指在这里；它曾被 PRUNE_ONEOFF 当成"一次性脚本"整目录剪掉 ⇒ 包里连目录都没有，首页三条
+# 凭据全成死链（2026-10-04 实测，台账 #371）。形状规则兜住，别再靠逐个点名。
+KEEP_ALWAYS_RE='\.(sh|tcl|py|ps1|bat|xdc|f|v|c|h)$|^src/(rtl|host/ps|constraints)/|^build/report/|^data/golden/|MANIFEST|README|^submit/|^skills/'
 
 cd "$REPO"
 COMMIT="$(git rev-parse --short HEAD)"
@@ -433,7 +436,10 @@ done
 #   逐路径改名规则能命中（改名规则是字面旧路径→新路径），于是评委一进包点首页第一条凭据就撞空
 #   （2026-10-04 实测：`死链 README.md -> build/report/power.rpt` 中英各 3 条，台账 #368）。
 #   同一列还有个哑 bug：`grep -v '^./build/reports/'` 永不生效（find 输出不带 `./`），这里一并改成字面 `^build/reports/`。
-FLAT_KEEP_N="$(find build/report -type f \( -name '*.rpt' -o -name '*.txt' \) 2>/dev/null | wc -l | tr -d ' ')"
+# ⚠ `|| true` 不能省：本脚本 `set -euo pipefail`，目录不存在时 find 的 1 会顺着管道把整条赋值
+#   判成失败 ⇒ 脚本**一声不响地 exit 1**（2026-10-04 实测：日志只到 FLAT_KEEP_N=0，REFUSE 那句
+#   根本没机会打印，任务通知还写 exit 0）。这一族的教训是 pipefail 下的计数子壳必须自己兜底。
+FLAT_KEEP_N="$( { find build/report -type f \( -name '*.rpt' -o -name '*.txt' \) 2>/dev/null || true; } | wc -l | tr -d ' ')"
 if [ "$FLAT_KEEP_N" -lt 1 ]; then
   echo "REFUSE：暂存区里 build/report/ 一份 .rpt 都没有 ⇒ 首页 §4.4 那三条凭据指路没有目标，包不落盘" >&2
   exit 1
