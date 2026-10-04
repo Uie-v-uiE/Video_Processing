@@ -276,11 +276,11 @@ function run(self) {
         { file: 'README.md', key: '保持时间', want: 'timing_summary.rpt', src: 'timing', kind: 'whs' },
         { file: 'README.md', key: 'BRAM / LUT / FF / DSP', want: 'utilization.rpt', src: 'util', kind: 'util' },
         { file: 'README.md', key: '功耗', want: 'power.rpt', src: 'power', kind: 'power' },
-        { file: 'readme.en.md', key: 'Design-wide setup WNS', want: 'timing_summary.rpt', src: 'timing', kind: 'wns' },
-        { file: 'readme.en.md', key: 'Per-clock setup slack', want: 'timing_summary.rpt', src: 'timing', kind: 'clocks' },
-        { file: 'readme.en.md', key: 'Hold time', want: 'timing_summary.rpt', src: 'timing', kind: 'whs' },
-        { file: 'readme.en.md', key: 'BRAM / LUT / FF / DSP', want: 'utilization.rpt', src: 'util', kind: 'util' },
-        { file: 'readme.en.md', key: 'Power', want: 'power.rpt', src: 'power', kind: 'power' },
+        { file: 'README_EN.md', key: 'Design-wide setup WNS', want: 'timing_summary.rpt', src: 'timing', kind: 'wns' },
+        { file: 'README_EN.md', key: 'Per-clock setup slack', want: 'timing_summary.rpt', src: 'timing', kind: 'clocks' },
+        { file: 'README_EN.md', key: 'Hold time', want: 'timing_summary.rpt', src: 'timing', kind: 'whs' },
+        { file: 'README_EN.md', key: 'BRAM / LUT / FF / DSP', want: 'utilization.rpt', src: 'util', kind: 'util' },
+        { file: 'README_EN.md', key: 'Power', want: 'power.rpt', src: 'power', kind: 'power' },
     ];
     let frontRows = 0, frontParsed = 0, frontRed = 0, frontNums = 0, fixtureRed = 0;
     for (const e of FRONT) {
