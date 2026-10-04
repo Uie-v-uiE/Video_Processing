@@ -1,0 +1,9 @@
+GATES DONE 03:41:23
+17
+  WNS (ns)               -0.846       >= 0                         FAIL
+  失败 setup 端点    5            == 0                         FAIL
+  WHS (ns)               -0.870       >= 0                         FAIL
+  失败 hold 端点     5            == 0                         FAIL
+  顶层台架 tb_v98    top=56c269602e18 FAIL行=1 指纹(norm1):fresh fresh fresh 同一次跑且无 FAIL      FAIL
+  文档时效 doc_cur   扫了 121 个文档 红行=2 身份句=2 门禁读数句=0 self 变异 10（D1b 身份句 2 + D1c 门禁读数句 5，含固定点与反买通各一条）+ 对照 4 全过 + 不随包豁免的三条对照全过、全树 0 条、身份句抓到 >= 2、门禁读数句抓到 >= 2 FAIL
+  文档行号锚点 doc_cite 命中=361 候选=145 self 15 条对照全过（含厂商豁免 2 条）、硬错 0、命中 >= 300 FAIL
