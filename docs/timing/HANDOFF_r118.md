@@ -31,7 +31,7 @@
 ## 三、一条命令接上（顺序不能换）
 
 ```bash
-cd /d/Xilinx/Prj/pro/Video_Processing
+cd "$(git rev-parse --show-toplevel)"   # 仓库根，不写死本机路径
 # 1) 把 rotate 里两处 shell 输出目录从 /tmp/kx 换成 build/evidence/r118_board，然后：
 VP_CLAIM=24,23,1 python build/r118_rotate.py      # 改口 + 三道尺子，过了才落 build/r117_docrotated.marker
 bash build/gates.sh > /tmp/kx/g1.txt 2>&1; bash build/gates.sh > /tmp/kx/g2.txt 2>&1

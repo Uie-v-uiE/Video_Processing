@@ -19,7 +19,7 @@ import { dump } from './repo_path.mjs';
 const SECS = Number(process.argv[2] || 45);
 const GAP = Number(process.argv[3] || 150);
 const N = Math.max(4, Math.floor(SECS * 1000 / GAP));
-const XSDB = 'D:\\Software\\Vivado\\2025.2.1\\Vitis\\bin\\xsdb.bat';
+const XSDB = process.env.VP_XSDB || 'xsdb.bat';
 
 // mrd 的返回值形如 "41200000:   000b5000" ⇒ 用 regexp 取数，不 lindex（坑记在 skill 里）。
 const TCL = [

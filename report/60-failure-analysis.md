@@ -96,7 +96,7 @@
 ### A4 · "本机没有 bare-metal 编译器"这句在本仓库写了至少五处，本次实测它错了
 
 - **现象（含证据）**：`report/log/ISSUES.md` 的 #233 写"这台机器上找不到 bare-metal 编译器 ——
-  `find /d/Software -maxdepth 8 -name arm-none-eabi-gcc.exe` 无命中"，同一句结论在 #235、#259 之后的 MDIO 那几节
+  `find /<盘>/Software -maxdepth 8 -name arm-none-eabi-gcc.exe` 无命中"，同一句结论在 #235、#259 之后的 MDIO 那几节
   （本次 `grep -n arm-none-eabi report/log/ISSUES.md` 命中 5 处）被反复引用，用来解释"ELF 为什么没重建"。
   **本次实测**：`ls <Vitis>/gnu/aarch32/nt/gcc-arm-none-eabi/bin/` 列出 `arm-none-eabi-gcc.exe` 等 20 个二进制；
   直接调用它 `--version` 返回 **rc=0** 并打印 `arm-xilinx-eabi-gcc.exe (GCC) 13.3.0`。
@@ -105,13 +105,13 @@
   而"这台机器没有编译器"是把"入口找不到"误写成"机器里没有"。
   **可判别处**：`report/BUILD.md` 的变量表本来就给了 `PS_CC` 这条路 ⇒ 只要 `PS_CC=<那条路径>` 能让
   `build/build_ps_app.py` 走过第一步，"没有编译器"这个说法当场被证伪（我本次没有跑到那一步，见下面的成本）。
-  **当年那条 find 我按原样重跑了**：`find /d/Software -maxdepth 8 -name "arm-none-eabi-gcc.exe"`（只读；
+  **当年那条 find 我按原样重跑了**：`find /<盘>/Software -maxdepth 8 -name "arm-none-eabi-gcc.exe"`（只读；
   前台 2 分钟未返回 ⇒ 改后台跑满）**命中 1 行**，正是那条 `…/gnu/aarch32/nt/gcc-arm-none-eabi/bin/arm-none-eabi-gcc.exe`。
   ⇒ "无命中"这句在本机当前状态下**不成立**。它当时为什么无命中（搜索根不同？那一次还没装？），
   历史目录状态不可重放 ⇒ 这一小格记 `NOT_MEASURED`，不替当年的我编解释。
 - **判别方法**：任何人在本仓库根执行
   `ls <Vitis>/gnu/aarch32/nt/gcc-arm-none-eabi/bin/` 或直接调用它 `--version`；
-  再原样跑一次 `find /d/Software -maxdepth 8 -name arm-none-eabi-gcc.exe`（只读，允许跑满，本次已跑满并命中）。
+  再原样跑一次 `find /<盘>/Software -maxdepth 8 -name arm-none-eabi-gcc.exe`（只读，允许跑满，本次已跑满并命中）。
   两条都是只读，**不需要队伍批准**——这也是为什么"当年那五处结论"本该在写之前花 30 秒查一次。
 - **计划与成本**：改的是**结论**不是代码——A3 那一条因此从"没救"降级为"差一次 app 重编 + 一次第三步重载"。
   补一条工具侧的账：每个 REFUSE 分支的报错文案要写清"找不到"与"没装"是两件事（`BUILD.md` 已经这么设计了，

@@ -172,7 +172,7 @@ bash -n build/gates.sh build/board_verify.sh sim/run_one.sh sim/mut_control.sh \
 | `which vivado vivado.bat xsdb xsdb.bat arm-none-eabi-gcc` | 1 | 五条全部 `no … in (…)`（`PATH` 上无 Xilinx 工具）|
 | `<Vivado>/bin/vivado.bat -version` | **1** | 前两行 `vivado v2025.2.1 (64-bit)` / `SW Build 6403652 on Thu Mar 19 19:48:24 GMT 2026`；rc=1 的原因本次未查（`【未核实】`）|
 | `<Vitis>/gnu/aarch32/nt/gcc-arm-none-eabi/bin/arm-none-eabi-gcc.exe --version` | 0 | `arm-xilinx-eabi-gcc.exe (GCC) 13.3.0` |
-| `find /d/Software -maxdepth 8 -name arm-none-eabi-gcc.exe` | 0 | 命中 1 行：`…/gnu/aarch32/nt/gcc-arm-none-eabi/bin/arm-none-eabi-gcc.exe`（前台 2 分钟未返回，改后台跑满）|
+| `find /<盘>/Software -maxdepth 8 -name arm-none-eabi-gcc.exe` | 0 | 命中 1 行：`…/gnu/aarch32/nt/gcc-arm-none-eabi/bin/arm-none-eabi-gcc.exe`（前台 2 分钟未返回，改后台跑满）|
 | `bash -n` × 6 支入口脚本 | 0 | 无输出（逐支打印 `bash -n OK <名>`）|
 | `node src/host/doc_enc_check.mjs` | 0 | `扫了 521 个手写文件：全部干净` |
 | `node src/host/line_cite_check.mjs` | 0 | `D5: CLEAN（退出码只由硬错决定…）`；`扫 209 份交付文档 … 硬错 0 条；锚点命中 1051 条；候选 384 条` |

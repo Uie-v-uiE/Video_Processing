@@ -56,7 +56,7 @@
 **核对 1：框名必须能在 `src/` grep 到**（实例名，逐只数命中行数）
 
 ```bash
-cd /d/Xilinx/Prj/pro/Video_Processing
+cd "$(git rev-parse --show-toplevel)"   # 仓库根，不写死本机路径
 for n in u_rgmii u_rx_mac u_rx_par u_reasm u_cdc u_saver u_commit u_lm u_ctrl u_udp_tx \
          u_crc_tx u_arp u_icmp u_icmp_fifo; do
     printf "%-14s hits=%s\n" "$n" "$(grep -rn --include=*.v -w "$n" src/rtl | wc -l)"

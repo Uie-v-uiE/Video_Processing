@@ -315,7 +315,7 @@ if [ "$SELF" = 1 ]; then
     # C2 / C4 反例内容（都是与本机无关的通用形态，换一台机器照样命中）
     mkdir -p "$SBABS/in"
     {
-        echo 'build path D:\\Somewhere\\project and /home/example/proj'
+        echo 'build path D:\\Somewhere\\project and /home/example/proj'   # abs-fixture：这是反例内容，不是本机路径
         echo 'token ghp_AAAAAAAAAAAAAAAA1234567890 plus secret = Abc12345678'
         echo 'board ip 192.168.9.9 mail someone@qq.com host any-laptop'
         echo '本例程仅供评估，禁止再分发；参考实现是 GPL 的。'

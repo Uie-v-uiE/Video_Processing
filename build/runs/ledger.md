@@ -585,7 +585,7 @@
 （在仓库根执行；每条命令与其结论写在本节末尾的表里 —— 见 `check` 代码块。）
 
 ```bash
-cd /d/Xilinx/Prj/pro/Video_Processing
+cd "$(git rev-parse --show-toplevel)"   # 仓库根，不写死本机路径
 # (1) r118 的四个头条数：台账 vs 根 README vs data/metrics.csv vs 报告原件
 for f in build/runs/ledger.md README.md data/metrics.csv build/timing_summary.rpt build/r118_gates.txt; do
   printf '%-32s ' "$f"; grep -oE '0\.739' "$f" | head -1; done

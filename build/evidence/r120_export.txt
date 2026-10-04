@@ -1,0 +1,36 @@
+板级凭据随包：交付文档点名 223 份 / 盘上 161 份 / 搬进包 161 份（撞名 0）
+  空目录 删=2 余=0
+台账指路（report/log/，12 份）：包内不可解析 997 条 —— **只报数不判红**：那里记的是当天在仓库里的路径，
+  过程记录不参与「包完整性」判据；评委要核对读数请走活文档点名的 build/reports/ 那一份（那条由上面的死链自检与 D6 管）。
+死链 README.md -> data/parts/installed_devices.txt
+死链 README.md -> docs/declarations.md
+死链 README.md -> docs/questions-for-team-p12.md
+死链 README.md -> docs/repro-check.md
+死链 report/40-optimization.md -> docs/build-notes.md
+死链 report/40-optimization.md -> docs/measurements.md
+死链 report/40-optimization.md -> docs/optimization-rounds.md
+死链 report/40-optimization.md -> docs/run-queue.md
+死链 report/40-optimization.md -> docs/timing/README.md
+死链 report/40-optimization.md -> docs/timing/ROUND_r116.md
+死链 report/40-optimization.md -> docs/timing/ROUND_r117.md
+死链 report/40-optimization.md -> docs/timing/ROUND_r118.md
+死链 report/40-optimization.md -> docs/timing/cut_ledger.tsv
+死链 report/40-optimization.md -> docs/timing/debt_ledger.md
+死链 report/40-optimization.md -> docs/timing/gates_G1_G12.md
+死链 report/40-optimization.md -> docs/timing/loosen_ledger.tsv
+死链 report/40-optimization.md -> docs/timing/rgmii_window_model.md
+死链 report/40-optimization.md -> docs/timing/roster_baseline.tsv
+死链 report/40-optimization.md -> docs/timing/roster_round115.tsv
+死链 report/40-optimization.md -> docs/timing/roster_round116.tsv
+死链 report/40-optimization.md -> docs/timing/uncertainty_hold_ab.md
+死链 report/50-results.md -> docs/measurements.md
+死链 report/50-results.md -> docs/run-queue.md
+死链 report/50-results.md -> docs/timing/ROUND_r116.md
+死链 report/50-results.md -> docs/timing/ROUND_r118.md
+== 自检：死链 126 ／ 旧名残留 0 ／ 带绝对路径的脚本 17 （./board/firmware/ps_app.elf.md ./board/signoff.md ./build/README.md ./build/runs/ledger.md ./report/60-failure-analysis.md ./report/70-reproduce.md ./report/figures/legend.md ./scripts/check_repo_hygiene.sh ./skill/_meta/sources.md ./skill/pitfalls/_proposed-sources.md ./skill/pitfalls/who-else-writes-this-artifact/SKILL.md ./skill/pitfalls/win-bash-path-split/SKILL.md ./skill/prompts/_proposed-sources.md ./skill/references/build-report-field-map/fields-timing.md ./skill/templates/report-forms/SKILL.md ./skill/templates/script-template/SKILL.md ./src/host/lane30_watch.mjs ） ==
+
+导出提交 8a3d58d：781 个文件 / 19M，剪掉 2740 条，死链 126，旧名残留 0，绝对路径 17
+包内自洽：入口脚本按 glob 找凭据的引用共核对 1 条（核对数为 0 时这一条是空的，别念成绿）
+随包凭据内容判定：FAIL 行共 1，其中未声明的红 0（白名单只允许 '^[ ]*FAIL C5c'）
+FAIL：死链 126 ／ 旧名残留 0 ／ 绝对路径 17。不写 /d/Xilinx/Prj/pro/final_submission。
+      明细：/tmp/sub_dead_sub.dCluw1.txt 与 /tmp/sub.dCluw1/_pruned.txt

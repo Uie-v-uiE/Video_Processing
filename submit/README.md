@@ -21,10 +21,11 @@
 | 项目简介 / 设计报告 | `submit/01-overview.md` … `submit/08-limits.md`（分章） | 一份长文拆成八章，每章只讲一件事，章末点名证据文件 |
 | 工程本体（RTL / 约束 / 固件 / 台架 / 构建脚本） | `src/`、`sim/`、`build/`、`board/` | 交付文档指的就是这些路径；复制一份进包等于造第二个真相源 |
 | 指标与读数 | `data/metrics.csv`（六张凭据不复制，只给指路） | 见 §3.3.5.4 的取舍说明，理由写在 `data/README.md` |
-| 凭据（构建/台架/板级报告原件） | `build/`（实现与综合报告）、`build/evidence/`（被点名的那几份）、`tight_setup_hold_pins.txt` | 正文不改写：包里的判据报告仍是原文 |
+| 凭据（构建/台架/板级报告原件） | 仓库里在 `build/` 与 `build/evidence/`；**包里的落点是 `build/reports/` 与 `board/output/`**（导出时按"被活文档点名"搬运，名字去掉轮次号） | 正文不改写：包里的判据报告仍是跑当时的原文；搬运表由导出器生成，不手写 |
 | 技能包 | `skill/` | 赛题 §3.3.5.2 点名 `skill/`，条目一律 `<目录>/SKILL.md` 八节外壳 |
 | 复现说明 | `submit/reproduce/` | 命令 + 前置 + 期望输出，三件齐才算一条步骤 |
 | 大模型协作记录 / 技能包提炼过程 | `submit/07-skill-distillation.md`、`submit/08-limits.md` | 赛题 §3.3.5.3 点名的两章 |
+| 度量表、逐时钟名册、逐轮台账 | `docs/`（含 `docs/timing/`） | 包与仓库同形状：`report/` 讲结论，`docs/` 放支撑结论的表与逐轮读数；两层都不复制数字，只点名凭据 |
 | 读懂工程本身 | `skill/README.md` 之外请看 `docs/walkthrough/`（**本地留档，不随包、不进 git**，见 `.gitignore`） | 学习文档面向作者与接手的人，交付件里已有分章报告 |
 
 ## 阅读顺序（八章，每章末尾都点名它依据的文件）

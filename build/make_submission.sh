@@ -103,23 +103,50 @@ MV=""
 add_mv() { if [ "$1" != "$2" ]; then MV="$MV$1"$'\t'"$2"$'\n'; fi; }
 prune() { if [ -e "$1" ]; then rm -rf "$1"; echo "$2 $1" >> _pruned.txt; fi; }
 
-# ---- 1. report/ -> report/，指路一并改写（只改目录不改指路 = 交一份满篇死链接的包）----
-if [ -d docs ]; then
-  mkdir -p report
-  mv report/*.md report/ 2>/dev/null || true
-  if [ -d report/log ]; then
-    mkdir -p report/log
-    for f in report/log/*.md; do if [ -f "$f" ]; then mv "$f" "report/log/$(basename "$f")"; fi; done
+# ---- 0. 活文档射程：由 find 现算，不留手写名单 ----
+# 手写名单会随目录长出新子树而**静默变窄**，而窄掉的那一层不会报错（规矩 47：射程漂移是无声的）：
+#   · 技能包本轮改成 `skill/<类别>/<条目>/SKILL.md`（三级），旧名单只写了两级 ⇒ 58 个条目全掉出射程；
+#   · `docs/` 重新成为交付层（那两次 docs→report 改名轮都退回了，见 report/log/ISSUES.md），
+#     而旧名单里根本没有它 ⇒ 126 条"死链"的形状就是"文件在包里、指路在文档里、射程里没有它"。
+# 所以射程只由一条 find 算出，并打印**逐层计数**：某层归零即判这一层没扫成，不判这一层干净。
+# 做成**函数**而不是快照：改名与剪枝都发生在射程计算之后，快照会漏掉刚被小写化的那批文件
+# ——第一版就是这么把 `docs/timing/ROUND_r117.md` 的指路改口整个跳过的。
+live_docs() {
+  { find . -type f -name '*.md' ! -path './report/log/*' ! -path './build/reports/*'
+    find . -type f -name '*.csv' ! -path './board/compare/*' ; } | sed 's|^\./||' | sort -u
+}
+live_docs > _live_docs.txt
+LIVE_N="$(grep -c '' _live_docs.txt)"
+ALL_CSV_N="$(find . -type f -name '*.csv' 2>/dev/null | wc -l)"
+KEPT_CSV_N="$( { grep -c '\.csv$' _live_docs.txt || true; } )"; KEPT_CSV_N="${KEPT_CSV_N:-0}"
+SCOPE_ROWS=""
+for L in report docs skill board sim data submit; do
+  n="$( { grep -c "^$L/" _live_docs.txt || true; } )"; n="${n:-0}"
+  SCOPE_ROWS="$SCOPE_ROWS $L=$n"
+  if [ "$n" = "0" ] && [ -d "$L" ]; then
+    echo "REFUSE：活文档射程里 $L/ 一层数到 0，而包内有这个目录 ⇒ 这是射程漂移，不是那一层没有文档" >&2
+    exit 1
   fi
-  rm -rf docs
-  # `*.csv` 也在改写名单里：`data/metrics.csv` 是"唯一那张数字表"，每行都点名凭据，
-  # 漏改就等于把仓内路径原样搬进包里 ⇒ 评审照表去翻却翻到一个不存在的 `report/`（D4c 在仓里看得见，在包里看不见）。
-  { find . -type f \( -name '*.md' -o -name '*.sh' -o -name '*.tcl' -o -name '*.mjs' -o -name '*.py' \
-      -o -name '*.v' -o -name '*.c' -o -name '*.h' -o -name '*.bat' -o -name '*.csv' \) -print; echo README.md; echo README.en.md; } |
-  while read -r f; do
-    if [ -f "$f" ]; then sed -i 's|\.\./report/|../report/|g; s|report/log/|report/log/|g; s|report/|report/|g' "$f"; fi
-  done
+done
+for must in README.md README.en.md report/README.md skill/README.md docs/src-map.md submit/README.md; do
+  if ! grep -qxF "$must" _live_docs.txt; then
+    echo "REFUSE：射程里缺必看入口 $must（评委照着翻的第一批文件）" >&2
+    exit 1
+  fi
+done
+REPO_MD_N="$(git -C "$REPO" ls-files '*.md' | wc -l)"
+if [ "$LIVE_N" -lt 40 ]; then
+  echo "REFUSE：射程只数到 $LIVE_N 份活文档，而仓库 git 跟踪的 *.md 有 $REPO_MD_N 份 ⇒ 这一层多半没扫成" >&2
+  exit 1
 fi
+echo "射程 活文档=$LIVE_N（仓库 *.md=$REPO_MD_N；排除 report/log/ 与 build/reports/ 两层过程/证据件）$SCOPE_ROWS csv 全树=$ALL_CSV_N 入射程=$KEPT_CSV_N（board/compare/ 是差分辨识表，按证据件排除）" | tee -a _pruned.txt
+
+# ---- 1. 目录布局：仓库什么形状，包就什么形状（§3.3.5.4 的对照说明写在 MANIFEST 与 submit/README.md）----
+# 这里原来有一段 `docs/` 并入 `report/` 的迁移：那是 §4.5 定案里"下一次改名轮"的半成品，
+# 而那一轮**两次尝试都退回了**（任务 #145），仓库现在是 `report/` + `docs/` 两层并存。
+# 迁移留下的只有 `rm -rf docs` —— 文件被删、指路没改（那三条 sed 早被某次改口脚本改成了恒等替换），
+# 于是包内 126 条指路指向一个自己不存在的目录。修法不是把指路改掉，是**别再删那一层**。
+echo "布局 docs/ 与 report/ 两层都随包（改名轮已两次退回，包与仓库同形状）" >> _pruned.txt
 
 # ---- 2. 剪 ----
 for n in "${PRUNE_ONEOFF[@]}"; do prune "$n" "一次性脚本"; done
@@ -148,7 +175,10 @@ prune "report/study" "学习文档（用户指令：不上传）"
 find . -mindepth 1 2>/dev/null | sed 's|^\./||' | grep -E "$HARD_DROP_RE" |
 while read -r n; do if [ -e "$n" ]; then rm -rf "$n"; echo "被否决轮次/中间物 $n" >> _pruned.txt; fi; done || true
 
-LIVE_SCOPE=(report README.md README.en.md skill board data/metrics.csv)
+# 引用面 = 活文档全体 + 台账（`report/log/`，它的引用不算"包里必须有"，但它确实点了名，留着更稳）
+# + 根上两份 README + `submit/`（评审阅读路径）+ `docs/`（本轮重新成为交付层；旧名单没有它，
+# 于是只被 docs 点名的件会被判成"没人要"而剪掉 ⇒ 包内少文件、文档里留指路，两头都错）。
+LIVE_SCOPE=(report docs submit README.md README.en.md skill board data/metrics.csv)
 { grep -rhoE "[A-Za-z0-9_./-]+\.[A-Za-z0-9]{1,5}" "${LIVE_SCOPE[@]}" 2>/dev/null | sed 's|^\./||'; } > _cited.txt || true
 { grep -rhoE "src/host/[A-Za-z0-9_.-]+\.mjs" build/*.sh 2>/dev/null; } >> _cited.txt || true
 sort -u -o _cited.txt _cited.txt
@@ -392,7 +422,13 @@ done < <(find build -type f \( -name '*.rpt' -o -name '*.txt' \) 2>/dev/null | g
 # ⚠ 除了整条路径，**裸文件名也要一起进映射表**：文档索引里写的是 ``ARCHITECTURE.md`` 这种不带目录的名字，
 #   只映射 `report/ARCHITECTURE.md` 的话，包里的文件已经变成小写、索引却还在指一个大写名 ——
 #   死链自检抓不到它（它不是路径形状），但评委照着翻就是翻不到（2026-09-29 干跑时看到）。
-for f in report/*.md report/log/*.md; do
+# ⚠ 名单也要由 find 现算：上一版写死 `report/*.md report/log/*.md board/*.md`，于是
+#   `docs/timing/ROUND_r117.md` 这类**大写名进了包、指路也没换**——小写化这一层对新加的 docs 层
+#   什么都没做（同一族的射程漂移）。`skill/**/SKILL.md` 是**故意不进**这张表的：§3.3.5.2 点名的
+#   条目外壳就叫 `SKILL.md`，把它小写化等于自己造死链接；大写路径的整体处置是待决项 Q-P21-2。
+LOWER_SRC="$( { find report docs board -name '*.md' 2>/dev/null; } | sed 's|^\./||' | sort )"
+LOWER_N="$(printf '%s\n' "$LOWER_SRC" | grep -c . || true)"
+for f in $LOWER_SRC; do
   if [ -f "$f" ]; then
     b="$(basename "$f")"
     lb="$(printf '%s' "$b" | tr 'A-Z' 'a-z')"
@@ -402,13 +438,7 @@ for f in report/*.md report/log/*.md; do
     fi
   fi
 done
-for f in board/*.md; do
-  if [ -f "$f" ]; then
-    b="$(basename "$f")"; lb="$(printf '%s' "$b" | tr 'A-Z' 'a-z')"
-    case "$lb" in readme.md) lb="$b" ;; esac
-    if [ "$b" != "$lb" ]; then mv "$f" "$(dirname "$f")/$lb"; add_mv "$f" "$(dirname "$f")/$lb"; add_mv "$b" "$lb"; fi
-  fi
-done
+echo "小写化：候选 $LOWER_N 份（find 现算，含 docs/ 层），实际改名 $(printf '%s' "$MV" | grep -c '^[^\t]*\t[^\t]' || true) 条映射" >> _pruned.txt
 
 printf '%s' "$MV" > _mv.tsv
 : > _map.sed
@@ -466,8 +496,7 @@ done
 # 剪掉文件而不改指路 = 亲手造死链接（上一版就是这么被自检拒绝落盘的：25 条里全是这一类）。
 # 改口只动"活文档"，`report/log/` 里的日记保持原样 —— 那里写的是"当时那天跑的是哪个脚本"，
 # 把它改成"仓库里的"等于替史官改写历史。每改一处都记进 _pruned.txt，让这件事能被核对。
-for f in README.md README.en.md report/*.md skill/*.md skill/*/*.md board/*.md sim/*.md \
-         data/metrics.csv build/README.md build/tcl/README.md; do
+for f in $(live_docs); do
   [ -f "$f" ] || continue
   for t in "${BUILD_DEV_ONLY[@]}"; do
     bn="$(basename "$t")"
@@ -516,10 +545,8 @@ printf '9997\ts|build/[A-Za-z0-9_./-]*uram[A-Za-z0-9_./-]*|仓库留档（URAM �
 printf '9997\ts|build/isolated[A-Za-z0-9_./-]*|仓库留档（隔离构建的读数，不随包）|g\n' >> _prune_map.sed
 printf '9997\ts|build/r[0-9][A-Za-z0-9_./-]*|仓库留档（本轮工作件，不随包）|g\n' >> _prune_map.sed
 sort -rn _prune_map.sed | cut -f2- > _prune_map.sorted.sed && mv _prune_map.sorted.sed _prune_map.sed
-{ ls README.md README.en.md data/metrics.csv 2>/dev/null
-  ls report/*.md skill/*.md skill/*/*.md board/*.md sim/*.md build/README.md build/tcl/README.md 2>/dev/null; } |
-xargs -r sed -i -f _prune_map.sed
-echo "改口：逐轮留档与归档目录的指路，规则 $(grep -c '' _prune_map.sed) 条已作用于活文档" >> _pruned.txt
+live_docs | xargs -r sed -i -f _prune_map.sed
+echo "改口：逐轮留档与归档目录的指路，规则 $(grep -c '' _prune_map.sed) 条已作用于活文档 $(live_docs | wc -l) 份（射程由 find 现算，不是手写名单）" >> _pruned.txt
 rm -f _prune_map.sed
 
 # ---- 4. 自检 ----
@@ -533,10 +560,12 @@ EMPTY_DEL=$(find . -type d -empty -delete -print 2>/dev/null | wc -l)
 EMPTY_LEFT=$(find . -type d -empty 2>/dev/null | wc -l)
 echo "空目录：删掉 $EMPTY_DEL 个，落包后余 $EMPTY_LEFT 个" >> _pruned.txt
 echo "  空目录 删=$EMPTY_DEL 余=$EMPTY_LEFT"
-# 判死链的范围 = "活文档"（评委照着跑的说明书），**不含 report/log/**：那里的路径是当时那天的名字，
-# 台架删了、工具改名了、捕获清了都留在里面，那是过程记录，不该拿它判包不完整。
-for f in README.md README.en.md report/*.md skill/*.md skill/*/*.md board/*.md sim/*.md build/*.md build/tcl/*.md data/*.csv; do
+# 判死链的范围 = "活文档"（评委照着跑的说明书），由 live_docs 现算；**不含 report/log/**：
+# 那里的路径是当时那天的名字，台架删了、工具改名了、捕获清了都留在里面，那是过程记录，不该拿它判包不完整。
+DEADSCAN=0
+for f in $(live_docs); do
   if [ -f "$f" ]; then
+    DEADSCAN="$((DEADSCAN + 1))"
     d="$(dirname "$f")"
     # #172：先抹掉 `-log <路径>` 这类**工具自己创建的输出**（`vivado -mode batch -log sim/xsim.log` 那种），
     #   再抽指路。这不是把 `*.log` 整类放回免检名单 —— 那样就等于把自检买通；
@@ -555,6 +584,13 @@ for f in README.md README.en.md report/*.md skill/*.md skill/*/*.md board/*.md s
 done > "$DEADLIST" 2>&1 || true
 DEAD="$(grep -c '死链' "$DEADLIST" 2>/dev/null || true)"; DEAD="${DEAD:-0}"
 if [ "$DEAD" = "0" ]; then DEAD=0; fi
+# 空转地板（#195b 同族）：死链判的是"扫了多少份文档"，不是"死链有多少"。扫不到东西就是这把尺子没跑，
+# 而不是包干净了 —— 上一版的射程是手写名单，名单漂了它自己不会说。
+if [ "$DEADSCAN" -lt 40 ]; then
+  echo "FAIL：死链自检只扫了 $DEADSCAN 份活文档（射程下限 40）⇒ 这一项什么都没查，不写 $OUT" >&2
+  exit 1
+fi
+echo "  死链射程 扫=$DEADSCAN 份活文档 抓=$DEAD"
 
 # 旧名残留一次算完（每个名字 spawn 一次 grep 在这一千多个文件上要四分钟）
 { for old in "${!NAME_MAP[@]}"; do if [ "$old" != "${NAME_MAP[$old]}" ]; then echo "$old"; fi; done; } > _oldnames.txt
@@ -565,18 +601,67 @@ if [ -s _oldnames.txt ]; then
   if [ -n "$bad" ]; then echo "残留旧台架名：$bad"; STALE=1; fi
 fi
 
-# 绝对路径只判"真被用到的"：注释里写"原来硬编码 D:/... 后来改了"是过程说明，不算违规
+# ---- 3. 绝对路径分三层判：单位是"评审会不会照字面敲这一行" ----
+# 甲) **可执行件**（.sh/.tcl/.py/.mjs/.ps1/.bat/.v/.c/.h/.xdc）：里面有本机路径 ⇒ 换一台机器就跑不动 ⇒ **硬 0**。
+#     唯一例外是**同一行带 `abs-fixture` 标记**的：那是检查器自带的反例内容（与本机无关的通用形态字符串），
+#     不是指令。豁免逐条计数打出来，免得这个标记变成万能免检（先例：#222"同行声明才放行"）。
+# 乙) **复现入口文档**（两份 README、`submit/reproduce/`、`report/70-reproduce.md`、`report/BUILD.md`、
+#     `build/tcl/README.md`、`docs/repro-check.md`、`docs/acceptance-recipes.md`、`docs/declarations.md`、
+#     `docs/submission-checklist.md`）：这些是"照着敲"的说明书，指令与本机盘符混在一行表格里的也算指令 ⇒ **硬 0**。
+# 丙) 其余 markdown/csv 里的**叙述**（"当时读的是本机这份 PDF""工具原话打印的是 D:\Sof…"）：
+#     改掉等于改写凭据 ⇒ **只报数不判红**，但逐文件计数打出来（同 #217 台账那一层的处理方式），
+#     并给一条防空转地板：这一层数出 0 份被扫 = 尺子没跑，不是包干净了。
 # ⚠ 管道末尾必须 || true：没有命中时 grep 退 1，而赋值语句的非零状态会被 set -e 直接杀掉整支脚本
-ABS="$( { grep -rnE "D:[/\\]|C:[/\\]|/d/Software|/d/Xilinx" --include='*.sh' --include='*.tcl' --include='*.py' \
-          --include='*.mjs' --include='*.ps1' --include='*.bat' --include='*.v' --include='*.c' --include='*.h' \
-          --include='*.md' --include='*.xdc' --include='*.csv' \
+ABS_RE='D:[/\\]|C:[/\\]|/d/Software|/d/Xilinx'
+ABS_CODE="$( { grep -rnE "$ABS_RE" --include='*.sh' --include='*.tcl' --include='*.py' --include='*.mjs' \
+          --include='*.ps1' --include='*.bat' --include='*.v' --include='*.c' --include='*.h' --include='*.xdc' \
           --exclude='make_submission.sh' . 2>/dev/null || true; } |
-        grep -vE ':[0-9]+:[[:space:]]*(#|//|\*)' |
-        grep -vE '^\./report/log/' |
-        grep -vE '[A-Za-z]:[/\\]…' |
+        grep -vE ':[0-9]+:[[:space:]]*(#|//|\*)' | grep -v 'abs-fixture' |
         cut -d: -f1 | sort -u | tr '\n' ' ' || true)"
-ABSN=0
-if [ -n "$ABS" ]; then ABSN="$(printf '%s\n' $ABS | wc -l)"; fi
+ABSN_CODE=0
+if [ -n "$ABS_CODE" ]; then ABSN_CODE="$(printf '%s\n' $ABS_CODE | wc -l)"; fi
+ABS_FIXTURE="$( { grep -rnE "$ABS_RE" --include='*.sh' --include='*.tcl' --include='*.py' --include='*.mjs' \
+          --exclude='make_submission.sh' . 2>/dev/null || true; } | grep -c 'abs-fixture' || true)"
+ABS_FIXTURE="${ABS_FIXTURE:-0}"
+ENTRY_SCANNED=0
+ABSN_ENTRY=0
+ABS_ENTRY=""
+for g in README.md README.en.md report/70-reproduce.md report/BUILD.md build/tcl/README.md \
+         docs/repro-check.md docs/acceptance-recipes.md docs/declarations.md docs/submission-checklist.md \
+         $(ls submit/reproduce/*.md 2>/dev/null); do
+  if [ ! -f "$g" ]; then continue; fi
+  ENTRY_SCANNED="$((ENTRY_SCANNED + 1))"
+  if grep -nE "$ABS_RE" "$g" 2>/dev/null | grep -qvE '^[0-9]+:[[:space:]]*(#|//|\*)'; then
+    ABSN_ENTRY="$((ABSN_ENTRY + 1))"; ABS_ENTRY="$ABS_ENTRY ./$g"
+  fi
+done
+if [ "$ENTRY_SCANNED" -lt 8 ]; then
+  echo "FAIL：复现入口文档只扫到 $ENTRY_SCANNED 份（地板 8）⇒ 乙层什么都没查，不写 $OUT" >&2
+  exit 1
+fi
+NARR_TMO="${TMPDIR:-/tmp}/sub_narr_$(basename "$TMP").txt"
+: > "$NARR_TMO"
+NARR_SCANNED=0
+for g in $(live_docs); do
+  case "$g" in *.md|*.csv) ;; *) continue ;; esac
+  if [ ! -f "$g" ]; then continue; fi
+  case " README.md README.en.md report/70-reproduce.md report/BUILD.md build/tcl/README.md docs/repro-check.md docs/acceptance-recipes.md docs/declarations.md docs/submission-checklist.md " in
+    *" $g "*) continue ;;
+  esac
+  case "$g" in submit/reproduce/*) continue ;; esac
+  NARR_SCANNED="$((NARR_SCANNED + 1))"
+  n="$( { grep -cE "$ABS_RE" "$g" 2>/dev/null || true; } )"; n="${n:-0}"
+  if [ "$n" != "0" ]; then echo "$n $g" >> "$NARR_TMO"; fi
+done
+NARR_LINES="$( { awk '{s+=$1} END{print s+0}' "$NARR_TMO"; } )"
+NARR_FILES="$( { grep -c '' "$NARR_TMO" || true; } )"; NARR_FILES="${NARR_FILES:-0}"
+if [ "$NARR_SCANNED" -lt 40 ]; then
+  echo "FAIL：叙述层只扫了 $NARR_SCANNED 份 markdown/csv（地板 40）⇒ 这一层没跑成" >&2
+  exit 1
+fi
+ABSN="$((ABSN_CODE + ABSN_ENTRY))"
+ABS="$ABS_CODE $ABS_ENTRY"
+echo "绝对路径：甲 可执行件=$ABSN_CODE${ABS_CODE:+ （$ABS_CODE）} 乙 复现入口件=$ABSN_ENTRY（扫 $ENTRY_SCANNED 份）${ABS_ENTRY:+ （$ABS_ENTRY）} 丙 叙述=行 $NARR_LINES／文件 $NARR_FILES（扫 $NARR_SCANNED 份，只报数：那一层记的是「当时读的是哪一份」的凭据，改掉等于改写证据） 甲层豁免=$ABS_FIXTURE 行（abs-fixture 反例内容）"
 
 # ---- #217：台账（report/log/）的指路**只报数**，不判红 ----
 # 上面的死链判据范围是"活文档"（评委照着跑的说明书），日记类不在里面——那里的路径是**当天在仓库里**的名字，
@@ -606,11 +691,11 @@ if [ "${LOGFILES:-0}" -gt 0 ] && [ "${LOGDEAD:-0}" = "0" ]; then
 fi
 
 head -25 "$DEADLIST"
-echo "== 自检：死链 $DEAD ／ 旧名残留 $STALE ／ 带绝对路径的脚本 $ABSN${ABS:+ （$ABS）} =="
+echo "== 自检：死链 $DEAD ／ 旧名残留 $STALE ／ 绝对路径（甲 可执行件 + 乙 复现入口件）$ABSN${ABS:+ （$ABS）} =="
 
 # 工作文件不许落进包（上一版把九个中间件一起交出去了，而"文件数"又漏数了要交的那份 _pruned.txt）
 rm -f _all.txt _cand.txt _cited.txt _cited_bases.txt _dropped_tb.txt _map.sed _mv.tsv \
-      _oldnames.txt _prune_list.tsv _script_tb.txt _txt.txt
+      _oldnames.txt _prune_list.tsv _script_tb.txt _txt.txt _live_docs.txt
 
 # ---- 5. 清单 ----
 # 数的是"除了本清单以外"的文件：MANIFEST.txt 是在这一行之后才写出来的，
@@ -643,13 +728,17 @@ cat > MANIFEST.txt <<EOF
   board/      工程/脚本/实测输出    <- project/**（板上那一版 .bit/.elf/.xsa）
                                      + tcl|scripts/**（JTAG 与串口脚本）+ output/**（实测输出）
   data/       测试数据与参考结果    <- data/golden/**、data/measured/**
-  skill/      技能包                <- skill/**（README.md 是索引）
+  skill/      技能包                <- skill/**（README.md 是索引；条目外壳按 §3.3.5.2 就叫 SKILL.md）
   report/     设计报告 + 协作记录   <- 仓库里的 report/（交付文档），工作记录在 report/log/
+  ——  以下两层是"其他组织方式"的一部分，对照说明同样写在 README.md / submit/README.md：
+  docs/       度量、名册与逐轮台账  <- 仓库里的 docs/（含 docs/timing/ 的逐时钟名册）；
+                                      它与 report/ 的分工：report/ 讲结论，docs/ 放支撑结论的表与逐轮读数
+  submit/     评审阅读路径          <- 仓库里的 submit/（八章分章 + reproduce/），不复制数字
 
 板上那一份（位流与固件仓库不跟踪，按 md5 认身份，不靠文件名）：
 $(for f in board/project/*; do if [ -f "$f" ]; then printf '  %-14s md5 %s\n' "$(basename "$f")" "$(md5sum "$f" | cut -c1-12)"; fi; done)  门禁凭据: $GATES_FOR_BIT
 
-自检: 活文档死链 $DEAD 条（0 才算过）／被改名台架的旧名残留 $STALE／含本机绝对路径的脚本 $ABSN
+自检: 活文档死链 $DEAD 条（0 才算过，射程 $DEADSCAN 份活文档由 find 现算）／被改名台架的旧名残留 $STALE／绝对路径（甲 可执行件 + 乙 复现入口文档）$ABSN 条（另有叙述层 $NARR_LINES 行只报数，那些是"当时读的是哪一份"的凭据）
 EOF
 
 echo
