@@ -84,7 +84,7 @@ R117HOOK ... pins_after=1 replica_cells=10
 * **A1 机制**：构建日志 `R117HOOK ... pins_after ≪ 239` 且 `replica_cells ≥ 1`；不满足就打
   `MECHANISM_INERT`（机制没动不许汇报成"没有收益"，提示词附录 1）。
 * **A2 收益**：`clk_fpga_0` / `clkout0_1` / `sys_clk` 的 rel_margin_setup 相对 **r114** 不许变小，
-  且至少一格显著变大（基线 18.50 %／18.15 %／74.38 %，见第〇节）。
+  且至少一格变大（基线 18.50 %／18.15 %／74.38 %，见第〇节；门槛数值由 `build/r117b_chain.sh` 预登记，本轮不改口径）。
 * **A3 不加严不放宽**：本轮**没有**新增任何约束；`check_timing` 的 `no_output_delay` 端口数仍是 6、
   `unconstrained_internal_endpoints` 仍是 0，而 `no_input_delay` 会**回到 5**（撤窗的诚实读数，不藏）。
 * **A4 代价地板**：Slice 寄存器增量 ≤ +15，LUT/BRAM/DSP 不许变，`route_status` successful，

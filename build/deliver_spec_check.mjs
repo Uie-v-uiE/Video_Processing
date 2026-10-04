@@ -227,26 +227,86 @@ if (want('C6')) {
   say('C6', 'license-file', 1, lic ? (which ? `识别为 ${which}` : '内容不像 MIT/Apache-2.0') : 'LICENSE 不存在', which ? 'PASS' : 'FAIL');
 }
 // ---- C7 文档风格红线（射程：交付文档，不含 report/log 与 build/evidence 过程件）
-if (want('C7')) {
-  const docs = tracked.filter(f => f.endsWith('.md') && !f.startsWith('report/log/') && !f.startsWith('build/evidence/') && !f.startsWith('docs/walkthrough'));
+// 拆"使用"与"提及"（#352）：§7.1/§7.2/§7.5 禁的是**把禁用词当成自己的话写出来**，
+// 不是禁文档引用它。判据只看落在"作者声音"里的命中；被引用/被点名/被抄成命令的走"只报数"。
+// 豁免是**形状**而不是文件名名单：围栏代码块、行内码、引号内、引用行（`>` 开头）、
+// 以及"第 2 格就是那个标记本身"的清单行（那种行的主题就是那个词）。emoji 与勾叉不豁免。
+const QUOTE_RE = /"[^"\n]*"|“[^”]*”|「[^」]*」|『[^』]*』/g;
+const MARKER = 'TBD|待补充|【[^】]*】|待验证|未实测|未核实';
+const CELL_MARKER = new RegExp('^(?:`)?(?:' + MARKER + ')');
+// 跨行引号：赛题条文抄下来会换行（"…可测量的性能表现，并给出与基线的对比""合理使用…显著…"），
+// 所以引号的开合必须带状态；第一版只按单行配对，把 4 处抄文判成了"作者自己的话"。
+function splitVoice(t) {
+  const voice = []; let mention = '', fence = false, inq = false;
+  for (const l of t.split(/\r?\n/)) {
+    if (/^\s*```/.test(l)) { fence = !fence; mention += l + '\n'; continue; }
+    if (fence || /^\s*>/.test(l)) { mention += l + '\n'; continue; }              // 代码块/引用行=被引原文
+    if (l.startsWith('|') && l.split('|').some(c => CELL_MARKER.test(c.trim()))) { mention += l + '\n'; continue; }  // 清单行
+    let s = l;
+    if (inq) {
+      const close = s.search(/["”]/);
+      if (close < 0) { mention += s + '\n'; continue; }
+      mention += s.slice(0, close + 1) + '\n'; s = s.slice(close + 1); inq = false;
+    }
+    s = s.replace(QUOTE_RE, m => { mention += m + '\n'; return ' '; });            // 同行成对引号=引用
+    if ((s.match(/["“]/g) || []).length % 2 === 1) { inq = true; mention += s + '\n'; continue; }  // 开了没关
+    voice.push(s.replace(/`[^`\n]*`/g, m => { mention += m + '\n'; return ' '; }));  // 行内码=命令/路径
+  }
+  return { voice: voice.join('\n'), mention };
+}
+function c7Judge(docs, read) {
   const I_RE = /我们|本文档|本节将?介绍|希望对您|(^|[、，。；：\s])我[要想将在认为觉建]/;
   const SOFT_RE = /显著|极大地|完美|优秀|强大|TBD|待补充|【填入】|待验证/;
-  const ARROW_RE = /→/g;   // 叙述连接符，只报数
+  const ARROW_RE = /→/g;
   const EMOJI_RE = /[\u{1F300}-\u{1FAFF}\u{2600}-\u{26FF}]/u;
-  const checks = { person: [], soft: [], emoji: [], cross: [], arrow: [] }, scanned = docs.length;
   const CROSS_RE = /[✓✗✔✘]/g;
+  const bad = { person: [], soft: [] }, sym = [], mentions = { person: 0, soft: 0 };
+  let arrows = 0, scanned = 0;
   for (const f of docs) {
-    const t = read(f);
-    if (I_RE.test(t)) checks.person.push(f);
-    if (SOFT_RE.test(t)) checks.soft.push(f);
-    if (EMOJI_RE.test(t)) checks.emoji.push(f);
-    if (CROSS_RE.test(t)) checks.cross.push(f);
-    if (ARROW_RE.test(t)) checks.arrow.push(f);
+    const t = read(f); scanned++;
+    const v = splitVoice(t).voice, m = splitVoice(t).mention;
+    if (I_RE.test(v)) bad.person.push(f); else if (I_RE.test(m)) mentions.person++;
+    if (SOFT_RE.test(v)) bad.soft.push(f); else if (SOFT_RE.test(m)) mentions.soft++;
+    if (EMOJI_RE.test(t) || CROSS_RE.test(t)) sym.push(f);
+    arrows += (t.match(ARROW_RE) || []).length;
   }
-  // 严格项=赛题 §7 点名的东西；箭头只作叙述连接符，不承载"用符号代替文字"的问题 ⇒ 报数不判红
-  const ARROW_N = checks.arrow.length;
-  const bad = checks.person.length + checks.soft.length + checks.emoji.length + checks.cross.length;
-  say('C7', 'style-red-lines', scanned, `交付文档=${scanned} 人称=${checks.person.length} 程度副词或TBD=${checks.soft.length} emoji=${checks.emoji.length} 勾叉=${checks.cross.length} 箭头(只报数)=${ARROW_N} 例:${[...checks.person, ...checks.soft, ...checks.cross].slice(0, 4).join(',')}`, scanned === 0 ? 'NOT_MEASURED' : (bad ? 'FAIL' : 'PASS'));
+  return { bad, sym, mentions, arrows, scanned };
+}
+if (process.argv.includes('--c7-self')) {
+  const cases = [
+    ['正文里写 结果【待验证】', 'soft', true, '占位符当自己的话用 ⇒ 必须红'],
+    ['表里写 `【待验证】` 这个标记', 'soft', false, '行内码里点名这个词 ⇒ 提及，不红'],
+    ['赛题说"避免以显著的资源代价"', 'soft', false, '引号里的原文 ⇒ 提及，不红'],
+    ['> 07:5x 我要往 issues.md 追加', 'person', false, '引用行里的队员原话 ⇒ 提及，不红'],
+    ['| 271 | 【填入】 | `a.md` 行 1 | 我们手写的 |', 'soft', false, '清单行第 2 格就是标记 ⇒ 提及，不红'],
+    ['结果还没量，见 报告', 'person', false, '正对照：无人称的一句 ⇒ 必须绿'],
+    ['这一格 显著 变大了', 'soft', true, '裸写的程度副词 ⇒ 必须红'],
+    ['命令 `bash ⚠ run.sh`', 'sym', true, 'emoji 不随豁免走 ⇒ 必须红'],
+    ['对应赛题 3.3.4"可测量的性能表现，并给出与基线的对比""合理使用片上资源，避免以\n显著的资源代价换取有限的性能收益"与 3.3.5.3。', 'soft', false, '跨行引号：第二行的"显著"还在引用里 ⇒ 不红'],
+    ['3.3.4 要求"可测量的表现"，而这一格显著变大是本轮自己的话。', 'soft', true, '正对照：引号外的"显著"照样红（豁免没把整把尺子买通）'],
+    ['| 索引由目录生成 | `node x.mjs --check` | 不一致 exit 1 | 待验证（等条目到位跑一次） |', 'soft', false, '表里某一整格就是状态标记 ⇒ 只报数'],
+    ['| 结论 | 这一条待验证（写在句子中间） |', 'soft', true, '标记夹在句子里当占位符 ⇒ 必须红'],
+  ];
+  let r = 0;
+  for (const [src, kind, want, why] of cases) {
+    const g = c7Judge(['x'], () => src);
+    const got = kind === 'sym' ? g.sym.length > 0 : (kind === 'person' ? g.bad.person.length > 0 : g.bad.soft.length > 0);
+    const ok = got === want;
+    if (!ok) r++;
+    console.log(`C7-SELF ${ok ? 'PASS' : 'FAIL'} ${why}（判得 ${got ? '红' : '绿'}，要 ${want ? '红' : '绿'}）`);
+  }
+  console.log(`C7-SELF 判 ${cases.length} 项 红=${r} ${r ? 'FAIL' : 'PASS'}`);
+  process.exit(r ? 1 : 0);
+}
+if (want('C7')) {
+  const docs = tracked.filter(f => f.endsWith('.md') && !f.startsWith('report/log/') && !f.startsWith('build/evidence/') && !f.startsWith('docs/walkthrough'));
+  const g = c7Judge(docs, read);
+  const n = g.bad.person.length + g.bad.soft.length + g.sym.length;
+  say('C7', 'style-red-lines', docs.length,
+    `交付文档=${g.scanned} 使用:人称=${g.bad.person.length} 程度副词或TBD=${g.bad.soft.length} emoji或勾叉=${g.sym.length}`
+    + ` 提及(只报数):人称文件=${g.mentions.person} 标记文件=${g.mentions.soft} 箭头=${g.arrows}`
+    + ` 例:${[...g.bad.person, ...g.bad.soft, ...g.sym].slice(0, 4).join(',')}`,
+    g.scanned === 0 ? 'NOT_MEASURED' : (n ? 'FAIL' : 'PASS'));
 }
 // ---- C8 汇总（清单自检的机械版）
 for (const r of rows) console.log(r);

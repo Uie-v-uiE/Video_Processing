@@ -1,0 +1,341 @@
+r121 导出器死链自检的完整 198 条（件源：/tmp/sub_dead_sub.w5zF21.txt；口径=导出器包内自检，扫 185 份活文档，同行声明豁免 1558 行）
+
+=== 按目标顶层分组 ===
+    126 skills
+     28 docs
+     12 build
+     11 report
+     10 board
+      5 data
+      3 src
+      2 skill
+      1 sim
+
+=== 目标去重（谁被点得最多） ===
+      9 skills/scripts/selftest/run_all.sh
+      8 skills/scripts/check/gates.mjs
+      6 skills/scripts/check/gen_index.mjs
+      6 skills/_meta/sources.md
+      5 skills/evals/README.md
+      4 skills/prompts/_proposed-sources.md
+      4 board/HANDS_ON.md
+      3 skills/pitfalls/tcl-query-empty-means-broken-ruler/skill.md
+      3 skills/pitfalls/assertion-not-in-any-file/skill.md
+      3 skills/_meta/naming-and-format.md
+      3 report/10-background.md
+      3 docs/src-audit.md
+      3 data/parts/installed_devices.txt
+      2 skills/templates/report-forms/metrics-table.md
+      2 skills/templates/project-skeleton/project-skeleton.md
+      2 skills/scripts/golden_compare/golden_compare.mjs
+      2 skills/scripts/check/retire_flat.mjs
+      2 skills/runtime/register-map/skill.md
+      2 skills/references/tool-version-drift/skill.md
+      2 skills/pitfalls/report-field-parse-breaks/skill.md
+      2 skills/pitfalls/frameid-loss-signature/skill.md
+      2 skills/pitfalls/exit-zero-nothing-written/skill.md
+      2 skills/pitfalls/checker-ran-on-nothing/skill.md
+      2 skills/evals/runbook.md
+      2 skills/evals/records/audit-2026-10-04.md
+      2 skills/_meta/entry-template.md
+      2 report/novelty-claims.md
+      2 report/acceptance.md
+      2 report/20-principle.md
+      2 docs/walkthrough/hands-on.md
+      2 docs/walkthrough/clocking-and-reset.md
+      2 docs/optimization-rounds.md
+      2 docs/data-format.md
+      2 build/runs/baselines.md
+      2 build/report/timing_summary.rpt
+      2 board/uart_capture.txt
+      2 board/bringup-checklist.md
+      1 src/rtl/zoom_ctrl.v
+      1 src/rtl/eth/axi_frame_writer_gated.v
+      1 src/host/run_sender.bat
+      1 skills/zynq-video-rtl-debug/skill.md
+      1 skills/templates/script-template/skill.md
+      1 skills/templates/script-template/script-template.sh
+      1 skills/templates/report-forms/timing-readout.md
+      1 skills/templates/report-forms/skill.md
+      1 skills/templates/report-forms/optimization-compare.md
+      1 skills/templates/report-forms/collab-record.md
+      1 skills/templates/report-forms/acceptance-record.md
+      1 skills/templates/interface-contract/skill.md
+      1 skills/templates/interface-contract/contract-table.md
+      1 skills/scripts/selftest/fixtures/gates_positive_skill/skills/zeta/skill.md
+      1 skills/scripts/selftest/fixtures/gates_positive_skill/skills/scripts/selftest/skill.md
+      1 skills/scripts/selftest/fixtures/gates_positive_skill/skills/scripts/beta/skill.md
+      1 skills/scripts/selftest/fixtures/gates_positive_skill/skills/prompts/alpha/skill.md
+      1 skills/scripts/selftest/fixtures/gates_positive_skill/skills/pitfalls/gamma/skill.md
+      1 skills/scripts/selftest/fixtures/gates_positive_skill/skills/_meta/naming-and-format.md
+      1 skills/scripts/report_metrics/report_metrics.mjs
+      1 skills/scripts/contract_gen/contract_gen.mjs
+      1 skills/scripts/check/static_check.mjs
+      1 skills/scripts/check/skill.md
+      1 skills/scripts/_out/base/metrics.md
+      1 skills/scripts/_out/b110/metrics.md
+      1 skills/runtime/zynq-ddr-bandwidth/skill.md
+      1 skills/runtime/udp-offset-reasm/skill.md
+      1 skills/runtime/pl-load-verify/skill.md
+      1 skills/runtime/host-bindings-and-reports/skill.md
+      1 skills/runtime/dma-cache-coherency/skill.md
+      1 skills/references/checker-convention-shapes/tokens-and-exit-codes.md
+      1 skills/references/checker-convention-shapes/skill.md
+      1 skills/references/build-report-field-map/skill.md
+      1 skills/references/bench-self-inflicted-reds/skill.md
+      1 skills/references/_proposed-sources.md
+      1 skills/prompts/single-variable-ab/skill.md
+      1 skills/prompts/report-to-bottleneck/skill.md
+      1 skills/prompts/read-only-review-agent/skill.md
+      1 skills/prompts/llm-fpga-debug-workflow/skill.md
+      1 skills/prompts/hw-sw-partition/skill.md
+      1 skills/prompts/eye-acceptance-loop/skill.md
+      1 skills/prompts/criterion-before-code/skill.md
+      1 skills/pitfalls/win-bash-path-split/skill.md
+      1 skills/pitfalls/who-else-writes-this-artifact/skill.md
+      1 skills/pitfalls/rotate-window-target-domain/skill.md
+      1 skills/pitfalls/failing-read-prints-geometry/skill.md
+      1 skills/pitfalls/derived-clock-port-mux/skill.md
+      1 skills/pitfalls/criterion-blind-spot/skill.md
+      1 skills/pitfalls/console-codepage-verdict-shift/skill.md
+      1 skills/pitfalls/cdc-pair-baseline-gate/skill.md
+      1 skills/pitfalls/artifact-freeze-and-freshness/skill.md
+      1 skills/pitfalls/arbiter-pending-pulse/skill.md
+      1 skills/pitfalls/_proposed-sources.md
+      1 skills/evals/records/stranger-run-2026-10-04.md
+      1 skills/evals/raw/doc_enc_pass1.txt
+      1 skills/_meta/team-names.txt
+      1 skill/scripts/golden_compare/golden_compare.mjs
+      1 skill/references/verdict-line-must-print-scope/skill.md
+      1 sim/run.sh
+      1 report/prior-art-search.md
+      1 report/30-partition-if.md
+      1 docs/walkthrough/system-overview.md
+      1 docs/walkthrough/subsystem-map.md
+      1 docs/walkthrough/one-pass-walk.md
+      1 docs/walkthrough/glossary.md
+      1 docs/walkthrough/_sources.md
+      1 docs/walkthrough/_progress.md
+      1 docs/walkthrough/README.md
+      1 docs/verification-claim.md
+      1 docs/runbook.md
+      1 docs/run_report.md
+      1 docs/questions-for-team-P12.md
+      1 docs/provenance-and-licenses.md
+      1 docs/perf_report.md
+      1 docs/open-issues.md
+      1 docs/notes/setup.md
+      1 docs/notes/run.sh
+      1 docs/log/overnight_log.md
+      1 data/inputs/wordid_512x300.rgb565
+      1 data/inputs/rand64_512x300.rgb565
+      1 build/synthesize.sh
+      1 build/ps7_init.tcl
+      1 build/make-bitstream.sh
+      1 build/implement.sh
+      1 build/clean.sh
+      1 build/c2_build_console2.txt
+      1 build/board/project/system.bit
+      1 build/artifacts/20261004-2025.2.1
+      1 board/run/flash_chain.sh
+      1 board/run/env_probe.sh
+
+=== 逐条（源 -> 目标） ===
+死链 README.md -> build/report/timing_summary.rpt
+死链 board/compare/index.md -> skill/references/verdict-line-must-print-scope/skill.md
+死链 board/compare/index.md -> skill/scripts/golden_compare/golden_compare.mjs
+死链 board/conditions/card-board-serial-and-jtag.md -> board/uart_capture.txt
+死链 board/conditions/card-failures-sd-icmp-jtag.md -> board/HANDS_ON.md
+死链 board/firmware/ps_app.elf.md -> board/HANDS_ON.md
+死链 board/firmware/ps_app.elf.md -> board/bringup-checklist.md
+死链 board/firmware/system.xsa.md -> build/ps7_init.tcl
+死链 board/hardware_setup.md -> board/HANDS_ON.md
+死链 board/hardware_setup.md -> board/bringup-checklist.md
+死链 board/hardware_setup.md -> board/run/env_probe.sh
+死链 board/hardware_setup.md -> board/run/flash_chain.sh
+死链 board/logs/index.md -> board/uart_capture.txt
+死链 build/README.md -> build/board/project/system.bit
+死链 build/README.md -> data/parts/installed_devices.txt
+死链 build/artifacts/README.md -> build/artifacts/20261004-2025.2.1
+死链 build/provenance.md -> data/parts/installed_devices.txt
+死链 build/runs/decisions.md -> build/runs/baselines.md
+死链 build/runs/ledger.md -> build/runs/baselines.md
+死链 build/runs/ledger.md -> docs/optimization-rounds.md
+死链 build/runs/ledger.md -> report/acceptance.md
+死链 build/runs/ledger.md -> src/rtl/eth/axi_frame_writer_gated.v
+死链 build/runs/ledger.md -> src/rtl/zoom_ctrl.v
+死链 build/sim/probes/README.md -> docs/log/overnight_log.md
+死链 data/golden/manifest.md -> docs/data-format.md
+死链 readme_en.md -> build/report/timing_summary.rpt
+死链 report/07-skill-distillation.md -> skills/_meta/naming-and-format.md
+死链 report/07-skill-distillation.md -> skills/_meta/sources.md
+死链 report/07-skill-distillation.md -> skills/evals/README.md
+死链 report/07-skill-distillation.md -> skills/evals/raw/doc_enc_pass1.txt
+死链 report/07-skill-distillation.md -> skills/evals/runbook.md
+死链 report/07-skill-distillation.md -> skills/scripts/check/gates.mjs
+死链 report/07-skill-distillation.md -> skills/scripts/check/gen_index.mjs
+死链 report/07-skill-distillation.md -> skills/scripts/selftest/run_all.sh
+死链 report/40-optimization.md -> docs/optimization-rounds.md
+死链 report/60-failure-analysis.md -> skills/scripts/check/gates.mjs
+死链 report/60-failure-analysis.md -> skills/scripts/selftest/run_all.sh
+死链 report/70-reproduce.md -> skills/scripts/check/gates.mjs
+死链 report/70-reproduce.md -> skills/scripts/selftest/run_all.sh
+死链 report/70-reproduce.md -> src/host/run_sender.bat
+死链 report/90-open-items.md -> docs/walkthrough/README.md
+死链 report/90-open-items.md -> docs/walkthrough/_progress.md
+死链 report/90-open-items.md -> docs/walkthrough/_sources.md
+死链 report/90-open-items.md -> docs/walkthrough/clocking-and-reset.md
+死链 report/90-open-items.md -> docs/walkthrough/glossary.md
+死链 report/90-open-items.md -> docs/walkthrough/hands-on.md
+死链 report/90-open-items.md -> docs/walkthrough/one-pass-walk.md
+死链 report/90-open-items.md -> docs/walkthrough/subsystem-map.md
+死链 report/90-open-items.md -> docs/walkthrough/system-overview.md
+死链 report/90-open-items.md -> skills/_meta/entry-template.md
+死链 report/90-open-items.md -> skills/_meta/naming-and-format.md
+死链 report/90-open-items.md -> skills/_meta/sources.md
+死链 report/90-open-items.md -> skills/_meta/team-names.txt
+死链 report/90-open-items.md -> skills/evals/README.md
+死链 report/90-open-items.md -> skills/evals/records/audit-2026-10-04.md
+死链 report/90-open-items.md -> skills/evals/records/stranger-run-2026-10-04.md
+死链 report/90-open-items.md -> skills/evals/runbook.md
+死链 report/90-open-items.md -> skills/pitfalls/_proposed-sources.md
+死链 report/90-open-items.md -> skills/pitfalls/assertion-not-in-any-file/skill.md
+死链 report/90-open-items.md -> skills/pitfalls/checker-ran-on-nothing/skill.md
+死链 report/90-open-items.md -> skills/pitfalls/console-codepage-verdict-shift/skill.md
+死链 report/90-open-items.md -> skills/pitfalls/exit-zero-nothing-written/skill.md
+死链 report/90-open-items.md -> skills/pitfalls/report-field-parse-breaks/skill.md
+死链 report/90-open-items.md -> skills/pitfalls/tcl-query-empty-means-broken-ruler/skill.md
+死链 report/90-open-items.md -> skills/pitfalls/who-else-writes-this-artifact/skill.md
+死链 report/90-open-items.md -> skills/pitfalls/win-bash-path-split/skill.md
+死链 report/90-open-items.md -> skills/prompts/_proposed-sources.md
+死链 report/90-open-items.md -> skills/prompts/criterion-before-code/skill.md
+死链 report/90-open-items.md -> skills/prompts/hw-sw-partition/skill.md
+死链 report/90-open-items.md -> skills/prompts/report-to-bottleneck/skill.md
+死链 report/90-open-items.md -> skills/prompts/single-variable-ab/skill.md
+死链 report/90-open-items.md -> skills/references/_proposed-sources.md
+死链 report/90-open-items.md -> skills/references/build-report-field-map/skill.md
+死链 report/90-open-items.md -> skills/references/checker-convention-shapes/skill.md
+死链 report/90-open-items.md -> skills/references/checker-convention-shapes/tokens-and-exit-codes.md
+死链 report/90-open-items.md -> skills/references/tool-version-drift/skill.md
+死链 report/90-open-items.md -> skills/runtime/dma-cache-coherency/skill.md
+死链 report/90-open-items.md -> skills/runtime/host-bindings-and-reports/skill.md
+死链 report/90-open-items.md -> skills/runtime/pl-load-verify/skill.md
+死链 report/90-open-items.md -> skills/runtime/register-map/skill.md
+死链 report/90-open-items.md -> skills/scripts/_out/b110/metrics.md
+死链 report/90-open-items.md -> skills/scripts/_out/base/metrics.md
+死链 report/90-open-items.md -> skills/scripts/check/gates.mjs
+死链 report/90-open-items.md -> skills/scripts/check/gen_index.mjs
+死链 report/90-open-items.md -> skills/scripts/check/retire_flat.mjs
+死链 report/90-open-items.md -> skills/scripts/check/skill.md
+死链 report/90-open-items.md -> skills/scripts/check/static_check.mjs
+死链 report/90-open-items.md -> skills/scripts/contract_gen/contract_gen.mjs
+死链 report/90-open-items.md -> skills/scripts/golden_compare/golden_compare.mjs
+死链 report/90-open-items.md -> skills/scripts/selftest/fixtures/gates_positive_skill/skills/_meta/naming-and-format.md
+死链 report/90-open-items.md -> skills/scripts/selftest/fixtures/gates_positive_skill/skills/pitfalls/gamma/skill.md
+死链 report/90-open-items.md -> skills/scripts/selftest/fixtures/gates_positive_skill/skills/prompts/alpha/skill.md
+死链 report/90-open-items.md -> skills/scripts/selftest/fixtures/gates_positive_skill/skills/scripts/beta/skill.md
+死链 report/90-open-items.md -> skills/scripts/selftest/fixtures/gates_positive_skill/skills/scripts/selftest/skill.md
+死链 report/90-open-items.md -> skills/scripts/selftest/fixtures/gates_positive_skill/skills/zeta/skill.md
+死链 report/90-open-items.md -> skills/scripts/selftest/run_all.sh
+死链 report/90-open-items.md -> skills/templates/interface-contract/contract-table.md
+死链 report/90-open-items.md -> skills/templates/interface-contract/skill.md
+死链 report/90-open-items.md -> skills/templates/project-skeleton/project-skeleton.md
+死链 report/90-open-items.md -> skills/templates/report-forms/acceptance-record.md
+死链 report/90-open-items.md -> skills/templates/report-forms/collab-record.md
+死链 report/90-open-items.md -> skills/templates/report-forms/metrics-table.md
+死链 report/90-open-items.md -> skills/templates/report-forms/optimization-compare.md
+死链 report/90-open-items.md -> skills/templates/report-forms/skill.md
+死链 report/90-open-items.md -> skills/templates/report-forms/timing-readout.md
+死链 report/90-open-items.md -> skills/templates/script-template/script-template.sh
+死链 report/90-open-items.md -> skills/templates/script-template/skill.md
+死链 report/90-open-items.md -> skills/zynq-video-rtl-debug/skill.md
+死链 report/README.md -> board/HANDS_ON.md
+死链 report/README.md -> skills/_meta/naming-and-format.md
+死链 report/README.md -> skills/_meta/sources.md
+死链 report/ai_collaboration.md -> skills/pitfalls/arbiter-pending-pulse/skill.md
+死链 report/ai_collaboration.md -> skills/pitfalls/artifact-freeze-and-freshness/skill.md
+死链 report/ai_collaboration.md -> skills/pitfalls/cdc-pair-baseline-gate/skill.md
+死链 report/ai_collaboration.md -> skills/pitfalls/criterion-blind-spot/skill.md
+死链 report/ai_collaboration.md -> skills/pitfalls/derived-clock-port-mux/skill.md
+死链 report/ai_collaboration.md -> skills/pitfalls/failing-read-prints-geometry/skill.md
+死链 report/ai_collaboration.md -> skills/pitfalls/frameid-loss-signature/skill.md
+死链 report/ai_collaboration.md -> skills/prompts/eye-acceptance-loop/skill.md
+死链 report/ai_collaboration.md -> skills/prompts/llm-fpga-debug-workflow/skill.md
+死链 report/ai_collaboration.md -> skills/references/bench-self-inflicted-reds/skill.md
+死链 report/ai_collaboration.md -> skills/runtime/zynq-ddr-bandwidth/skill.md
+死链 report/background_and_novelty.md -> skills/pitfalls/rotate-window-target-domain/skill.md
+死链 report/background_and_novelty.md -> skills/runtime/udp-offset-reasm/skill.md
+死链 report/claims-vs-evidence.md -> docs/perf_report.md
+死链 report/claims-vs-evidence.md -> docs/provenance-and-licenses.md
+死链 report/claims-vs-evidence.md -> report/10-background.md
+死链 report/claims-vs-evidence.md -> skills/scripts/selftest/run_all.sh
+死链 report/collaboration/README.md -> skills/evals/README.md
+死链 report/collaboration/README.md -> skills/evals/records/audit-2026-10-04.md
+死链 report/collaboration/README.md -> skills/pitfalls/assertion-not-in-any-file/skill.md
+死链 report/collaboration/README.md -> skills/pitfalls/tcl-query-empty-means-broken-ruler/skill.md
+死链 report/collaboration/corrections.md -> skills/evals/README.md
+死链 report/collaboration/corrections.md -> skills/pitfalls/assertion-not-in-any-file/skill.md
+死链 report/collaboration/corrections.md -> skills/pitfalls/checker-ran-on-nothing/skill.md
+死链 report/collaboration/corrections.md -> skills/pitfalls/exit-zero-nothing-written/skill.md
+死链 report/collaboration/corrections.md -> skills/pitfalls/report-field-parse-breaks/skill.md
+死链 report/collaboration/corrections.md -> skills/pitfalls/tcl-query-empty-means-broken-ruler/skill.md
+死链 report/collaboration/prompts-used.md -> skills/prompts/_proposed-sources.md
+死链 report/collaboration/redaction.md -> skills/_meta/sources.md
+死链 report/collaboration/redaction.md -> skills/prompts/_proposed-sources.md
+死链 report/collaboration/workflow.md -> skills/evals/README.md
+死链 report/collaboration/workflow.md -> skills/prompts/read-only-review-agent/skill.md
+死链 report/collaboration/workflow.md -> skills/scripts/check/gen_index.mjs
+死链 report/declarations.md -> skills/references/tool-version-drift/skill.md
+死链 report/figures/legend.md -> docs/walkthrough/clocking-and-reset.md
+死链 report/figures/legend.md -> docs/walkthrough/hands-on.md
+死链 report/figures/legend.md -> report/20-principle.md
+死链 report/final-gate.md -> skills/scripts/check/gates.mjs
+死链 report/interface-table.md -> docs/src-audit.md
+死链 report/measurements.md -> skills/templates/report-forms/metrics-table.md
+死链 report/optimization_log.md -> skills/pitfalls/frameid-loss-signature/skill.md
+死链 report/questions-for-team.md -> docs/src-audit.md
+死链 report/questions-for-team.md -> report/10-background.md
+死链 report/questions-for-team.md -> report/novelty-claims.md
+死链 report/questions-for-team.md -> skills/_meta/sources.md
+死链 report/questions-for-team.md -> skills/prompts/_proposed-sources.md
+死链 report/repro-check.md -> data/parts/installed_devices.txt
+死链 report/repro-check.md -> docs/questions-for-team-P12.md
+死链 report/repro-check.md -> skills/scripts/check/gates.mjs
+死链 report/repro-check.md -> skills/scripts/check/gen_index.mjs
+死链 report/repro-check.md -> skills/scripts/golden_compare/golden_compare.mjs
+死链 report/repro-check.md -> skills/scripts/report_metrics/report_metrics.mjs
+死链 report/repro-check.md -> skills/scripts/selftest/run_all.sh
+死链 report/run-queue.md -> docs/data-format.md
+死链 report/run-queue.md -> docs/src-audit.md
+死链 report/run-queue.md -> docs/verification-claim.md
+死链 report/run-queue.md -> skills/scripts/check/gen_index.mjs
+死链 report/run-queue.md -> skills/scripts/selftest/run_all.sh
+死链 report/src-map.md -> skills/runtime/register-map/skill.md
+死链 report/submission-checklist.md -> report/10-background.md
+死链 report/submission-checklist.md -> report/20-principle.md
+死链 report/submission-checklist.md -> report/30-partition-if.md
+死链 report/submission-checklist.md -> report/novelty-claims.md
+死链 report/submission-checklist.md -> report/prior-art-search.md
+死链 report/submission-checklist.md -> skills/scripts/check/gates.mjs
+死链 report/submission-checklist.md -> skills/scripts/selftest/run_all.sh
+死链 report/timing/handoff_r118.md -> report/acceptance.md
+死链 report/timing/rgmii_window_model.md -> build/c2_build_console2.txt
+死链 report/unattended.md -> docs/run_report.md
+死链 report/unattended.md -> skills/_meta/entry-template.md
+死链 report/unattended.md -> skills/_meta/sources.md
+死链 report/unattended.md -> skills/scripts/check/gates.mjs
+死链 report/unattended.md -> skills/scripts/check/gen_index.mjs
+死链 report/unattended.md -> skills/scripts/check/retire_flat.mjs
+死链 report/unattended.md -> skills/scripts/selftest/run_all.sh
+死链 report/unattended.md -> skills/templates/project-skeleton/project-skeleton.md
+死链 skills/scripts/repro-drill/skill.md -> docs/notes/run.sh
+死链 skills/scripts/repro-drill/skill.md -> docs/notes/setup.md
+死链 skills/scripts/repro-drill/skill.md -> docs/runbook.md
+死链 skills/templates/project-skeleton/templates/skeleton.md -> build/clean.sh
+死链 skills/templates/project-skeleton/templates/skeleton.md -> build/implement.sh
+死链 skills/templates/project-skeleton/templates/skeleton.md -> build/make-bitstream.sh
+死链 skills/templates/project-skeleton/templates/skeleton.md -> build/synthesize.sh
+死链 skills/templates/project-skeleton/templates/skeleton.md -> docs/open-issues.md
+死链 skills/templates/project-skeleton/templates/skeleton.md -> sim/run.sh
+死链 src/host/README.md -> data/inputs/rand64_512x300.rgb565
+死链 src/host/README.md -> data/inputs/wordid_512x300.rgb565

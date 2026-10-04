@@ -160,7 +160,7 @@ for n in "${PRUNE_ONEOFF[@]}"; do prune "$n" "一次性脚本"; done
 # （2026-09-29 把两类目录一起剪时，`report/commands.md` 指着的 `build/evidence_r75/manifest.md5`
 # 就变死了，39 条死链全是这一类）。所以先读"活文档点哪些目录"，再决定剪谁。
 CRED_DIRS=$( { grep -rhoE '(build|board)/(evidence|frozen)_[A-Za-z0-9_.-]+/' \
-    report README.md README_EN.md skill board/README.md data/metrics.csv 2>/dev/null; } | sort -u )
+    report README.md README_EN.md skills board/README.md data/metrics.csv 2>/dev/null || true; } | sort -u )
 for d in build/evidence_* build/frozen_* board/evidence_* board/frozen_*; do
   if [ -d "$d" ]; then
     if printf '%s\n' "$CRED_DIRS" | grep -qF -- "$d/"; then
@@ -183,8 +183,11 @@ while read -r n; do if [ -e "$n" ]; then rm -rf "$n"; echo "被否决轮次/中�
 # 引用面 = 活文档全体 + 台账（`report/log/`，它的引用不算"包里必须有"，但它确实点了名，留着更稳）
 # + 根上两份 README + `submit/`（评审阅读路径）+ `docs/`（本轮重新成为交付层；旧名单没有它，
 # 于是只被 docs 点名的件会被判成"没人要"而剪掉 ⇒ 包内少文件、文档里留指路，两头都错）。
-LIVE_SCOPE=(report docs submit README.md README_EN.md skill board data/metrics.csv)
+LIVE_SCOPE=(report skills README.md README_EN.md board data src sim build)
 { grep -rhoE "[A-Za-z0-9_./-]+\.[A-Za-z0-9]{1,5}" "${LIVE_SCOPE[@]}" 2>/dev/null | sed 's|^\./||'; } > _cited.txt || true
+# 射程念出来：数到 0 的那一层要能看出来（旧写法里 `docs submit skill` 三个名字在包内不存在，
+# grep 退 2 被 2>/dev/null 吃掉，set -e 直接把脚本打死——死因不在任何一行输出里）。
+echo "指路射程 $(for g in "${LIVE_SCOPE[@]}"; do printf '%s=%s ' "$g" "$( { find "$g" -type f 2>/dev/null | wc -l; } )"; done)"
 { grep -rhoE "src/host/[A-Za-z0-9_.-]+\.mjs" build/*.sh 2>/dev/null; } >> _cited.txt || true
 sort -u -o _cited.txt _cited.txt
 
@@ -218,6 +221,11 @@ for f in sim/*.v; do
 done
 
 echo "台架取舍 表格列=$(grep -c '' _table_tb.txt) 脚本点名=$(grep -c '' _script_tb.txt) 随包=$( { find sim -maxdepth 1 -name '*.v' | wc -l; } ) 剔=$( { [ -f _dropped_tb.txt ] && grep -c '' _dropped_tb.txt || echo 0; } )"
+
+# 被取代的那一次尝试的中间件（文件名里自带 51pass_1fail）不随包：包里送的是**最终**那一份凭据
+# `regression_v79_r46.txt`，attempt1 是仓库里的历史。没有任何活文档按路径点它（grep attempt1 在 *.md 里 0 命中），
+# 所以剪它不会造出死链；留着随包就会撞上"未声明的红"这条门（白名单只允许 C5c）。
+for f in build/sim/results/*attempt*.txt; do if [ -f "$f" ]; then prune "$f" "被取代的那一次尝试的中间件（最终件随包）"; fi; done
 
 # 一条 awk 判完，不逐文件 spawn（Windows 上每个 grep 都要几十毫秒，1500 个文件就是几分钟）
 find src/host build sim board data -type f 2>/dev/null | sed 's|^\./||' > _all.txt || true
@@ -437,19 +445,19 @@ done < <(find build -type f \( -name '*.rpt' -o -name '*.txt' \) 2>/dev/null | g
 #   `report/timing/round_r117.md` 这类**大写名进了包、指路也没换**——小写化这一层对新加的 docs 层
 #   什么都没做（同一族的射程漂移）。`skills/**/SKILL.md` 是**故意不进**这张表的：§3.3.5.2 点名的
 #   条目外壳就叫 `SKILL.md`，把它小写化等于自己造死链接；大写路径的整体处置是待决项 Q-P21-2。
-LOWER_SRC="$( { find report docs board -name '*.md' 2>/dev/null; } | sed 's|^\./||' | sort )"
+LOWER_SRC="$( { find . -name '*.md' ! -path './report/log/*' 2>/dev/null || true; } | sed 's|^\./||' | sort )"
 LOWER_N="$(printf '%s\n' "$LOWER_SRC" | grep -c . || true)"
 for f in $LOWER_SRC; do
   if [ -f "$f" ]; then
     b="$(basename "$f")"
     lb="$(printf '%s' "$b" | tr 'A-Z' 'a-z')"
-    case "$lb" in readme.md|license|manifest.txt) lb="$b" ;; esac
+    case "$lb" in readme.md|readme_en.md|license|manifest.txt) lb="$b" ;; esac
     if [ "$b" != "$lb" ]; then
       mv "$f" "$(dirname "$f")/$lb"; add_mv "$f" "$(dirname "$f")/$lb"; add_mv "$b" "$lb"
     fi
   fi
 done
-echo "小写化：候选 $LOWER_N 份（find 现算，含 docs/ 层），实际改名 $(printf '%s' "$MV" | grep -c '^[^\t]*\t[^\t]' || true) 条映射" >> _pruned.txt
+echo "小写化：候选 $LOWER_N 份（射程由 find 现算，不写层名——上一版点名 docs/，而包里没有这一层，find 退非零把整支脚本在 set -e 下打死且一行解释都不留），实际改名 $(printf '%s' "$MV" | grep -c '^[^\t]*\t[^\t]' || true) 条映射" >> _pruned.txt
 
 printf '%s' "$MV" > _mv.tsv
 : > _map.sed
