@@ -13686,3 +13686,17 @@ C4 原来只要求 `build/report/` 里有名字带 util / timing 的件——一
 （`rtl=07570b1ac1b4` 与留档件逐字符相同），是 §2.3 的 tb 头三段批量落进 `sim/*.v` 之后 **tb 自己变了**；
 rim 那一半本轮已用修好的入口重跑并出新件 `build/tb_edge_rim_r118.txt`（`RESULT … PASS`、FAIL 行 0），
 顶层那一半要重跑 `tb_v98_top_seam`（实测约 108 分钟）才能重新绑上 —— 不把它写成绿的，留给下一轮构建日。
+
+### #367 导出器的 KEEP_ALWAYS_RE 里那个目录名没跟着搬家：`src/host/ps/lscript_ocm.ld` 会从提交包里掉出去
+`build/make_submission.sh:103` 的"无条件保留"正则是
+`^src/(rtl|ps|constraints)/`。`src/ps` → `src/host/ps` 那一波把带斜杠的路径字面量都改了口，
+但**这条 alternation 里没有 `src/ps/` 这个整串**（它写的是 `(rtl|ps|constraints)`），所以它躲过了改写。
+后果按扩展名分两半：`main.c`/`sd_play.c`/`sd_play.h` 仍被 `\.(c|h)$` 那半保住；
+而 `lscript_ocm.ld` 既不在扩展名清单里、也不再命中目录名 ⇒ **链接脚本会被剪掉**，
+包里的固件就缺一件（`git ls-files src/host/ps/` 五件：`README.md lscript_ocm.ld main.c sd_play.c sd_play.h`；
+`git ls-files src/ | sed 's/.*\.//' | sort | uniq -c` 现测 2 c / 1 h / 1 ld / 2 md / 26 mjs / 3 py / 80 v / 9 xdc）。
+改成 `^src/(rtl|host/ps|constraints)/`。**为什么必须改而不是"反正 .c 保住了"**：
+`src/host/ps/README.md` 里第 3 步让人"链接脚本换成本目录的 `lscript_ocm.ld`"，
+文档指着一个包里没有的文件就是 §6.2 的反面。
+顺带核对一个子代理的交代：它说 `board/firmware/ps_app.elf.md:83` 有一条指向 `build/README.md:17-20` 的旧行号引用——
+`grep -an 'build/README.md:' board/firmware/ps_app.elf.md` **0 命中**，所以那条"待修"不存在，不动。
