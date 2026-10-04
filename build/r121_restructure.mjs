@@ -31,6 +31,7 @@ if (tracked.length < 500) { console.log(`REFUSE 跟踪文件只有 ${tracked.len
 const DIR_MOVE = [
   [/^docs\/timing\//, 'report/timing/'],
   [/^docs\//, 'report/'],
+  [/^README\.en\.md$/, 'README_EN.md'],
   [/^submit\/reproduce\//, 'report/reproduce/'],
   [/^submit\//, 'report/'],
   [/^scripts\//, 'build/checks/'],

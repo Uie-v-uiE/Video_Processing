@@ -227,7 +227,11 @@ function evalRow(st, root, vals, i) {
       bad.length ? bad.join('；') : `ts=${String(ts).trim()} tool=${String(tool).trim()}${String(tool).trim() === SENT ? '（件里没声明版本，按哨兵记录而不是编一个）' : ''}`,
       bad.length ? 'FAIL' : 'PASS');
   }
-  return { round: use('round') ? String(at('round')).trim() : null, verdict: VERDICTS.has(String(vcol || '').trim()) ? String(vcol).trim() : null };
+  return {
+    round: use('round') ? String(at('round')).trim() : null,
+    ts: use('ts') ? String(at('ts')).trim() : '',
+    verdict: VERDICTS.has(String(vcol || '').trim()) ? String(vcol).trim() : null,
+  };
 }
 
 // ---------------------------------------------------------------- check
@@ -254,14 +258,18 @@ function cmdCheck(o) {
   const seen = new Map();
   for (let i = 0; i < L.rows.length; i += 1) {
     const r = evalRow(st, root, L.rows[i], i);
-    if (r.round) seen.set(r.round, (seen.get(r.round) || 0) + 1);
+    if (r.round) seen.set(r.round, [...(seen.get(r.round) || []), { i, round: r.round, ts: isIsoTs(r.ts) ? r.ts : '' }]);
   }
 
-  const dups = [...seen.entries()].filter(([, n]) => n > 1);
+  const dups = [...seen.entries()].filter(([, a]) => a.length > 1);
   st.dupRounds = dups.length;
+  const dupDesc = ([r, a]) => {
+    const latest = a.reduce((m, x) => ((x.ts || '') > (m.ts || '') ? x : m), a[0]);
+    return `${r} 共 ${a.length} 行，取最新=第 ${latest.i + 1} 行（ts=${latest.ts || '不可解析'}），其余 ${a.length - 1} 行按旧行核对`;
+  };
   st.emit('U', '同轮单行',
     dups.length
-      ? `重复轮=${dups.map(([r, n]) => `${r}(${n} 行)`).join(',')} ⇒ 该轮当前判定按 ts 最新的一行取，旧行仍逐条核对；谁算数得有人确认，故判未测`
+      ? `重复轮: ${dups.map(dupDesc).join('；')} ⇒ 该轮当前判定按 ts 最新的一行取；谁算数得有人确认，所以这一项判未测而不是绿`
       : `轮数=${seen.size} 每轮各 1 行`,
     dups.length ? SENT : 'PASS');
 
@@ -275,8 +283,8 @@ function cmdCheck(o) {
     legal.length === 0 ? SENT : (allNm ? SENT : 'PASS'));
 
   if (req !== undefined) {
-    const hits = [...seen.entries()].filter(([r]) => r === String(req).trim());
-    const n = hits.length ? hits[0][1] : 0;
+    const arr = seen.get(String(req).trim());
+    const n = arr ? arr.length : 0;
     st.emit('R', '轮次覆盖', `require_round=${String(req).trim()} 命中行数=${n}` + (n === 0 ? ' ⇒ 这一轮在台账里根本没有行：没立案还是漏写？不许当通过' : ''), n === 0 ? SENT : 'PASS');
   }
   return finishAndCheck(st, req);
@@ -313,7 +321,6 @@ function cmdAdd(o) {
     : `verdict=${verdict}${o.flags.verdict === undefined ? '（未给 --verdict ⇒ 记 ' + SENT + '，不默认通过）' : ''}`, vBad ? 'FAIL' : 'PASS');
 
   const pp = o.flags.artifact ? pathProblem(o.flags.artifact) : 'artifact 缺失';
-  const pBad = pp !== null && pp !== 'artifact 缺失';
   st.emit('S3', '件路径相对', pp ? `路径=${o.flags.artifact || '(缺)'} 问题=${pp} ⇒ 台账里的件路径必须相对 --root` : `路径=${o.flags.artifact} 相对`, pp ? 'FAIL' : 'PASS');
 
   const rel = asRel(root, o.flags.artifact || '');
@@ -390,25 +397,30 @@ function cmdRender(o) {
     st.emit('L', '台账可读', `${where} 字节=${L.bytes} 数据行=${L.rows.length}`, 'PASS');
   }
 
+  const tbl = [];
+  for (const v of (L.headerOk ? L.rows : [])) {
+    const at = (c) => { const k = COLS.indexOf(c); return k < v.length ? v[k] : ''; };
+    tbl.push(`| ${cell(at('round'))} | ${cell(at('claim'))} | ${cell(at('cmd'))} | ${cell(at('artifact'))} | ${cell(at('verdict'))} | ${cell(at('digest'))} |`);
+  }
   const lines = [];
   lines.push('# 证据台账（由 ledger.mjs render 生成）', '');
   lines.push(`- 台账件：\`${cell(ledger)}\`（root=\`${cell(root)}\`）`);
   lines.push(`- 渲染时间：${new Date().toISOString()}`);
-  if (L.headerOk && L.rows.length > 0) {
-    lines.push('', '| 轮次 | 结论 | 命令 | 件 | 判定 | 摘要 |', '| --- | --- | --- | --- | --- | --- |');
-    for (const v of L.rows) {
-      const at = (c) => { const k = COLS.indexOf(c); return k < v.length ? v[k] : ''; };
-      lines.push(`| ${cell(at('round'))} | ${cell(at('claim'))} | ${cell(at('cmd'))} | ${cell(at('artifact'))} | ${cell(at('verdict'))} | ${cell(at('digest'))} |`);
-    }
-    lines.push('');
+  if (tbl.length > 0) {
+    lines.push('', '| 轮次 | 结论 | 命令 | 件 | 判定 | 摘要 |', '| --- | --- | --- | --- | --- | --- |', ...tbl, '');
     lines.push('> 本表是台账的**渲染**，不是放行判定：判定列写的是当轮结论（含 FAIL/未测），逐行可核对性请用 `check`。');
     lines.push('> 件路径都是相对 root 的；摘要是内容口径（行尾/编码不参与）。');
   } else {
-    lines.push('', '**台账 0 行 ⇒ NOT_MEASURED。**这不是"无异常"，也不是"没发现问题"：没有任何一行被登记，就没有任何一条结论可核对。');
+    lines.push('', L.headerOk
+      ? '**台账 0 行 ⇒ NOT_MEASURED。**这不是"无异常"，也不是"没发现问题"：没有任何一行被登记，就没有任何一条结论可核对。'
+      : `**台账无从解析（问题=${L.problem || '表头列与列常量不符'}）⇒ NOT_MEASURED。**没有一行被渲染；这张空表不代表"没有异常"，只代表台账本身要先修。`);
   }
-  const rendered = L.headerOk ? L.rows.length : 0;
-  const eq = rendered === (L.headerOk ? L.rows.length : 0);
-  st.emit('D', '行数等式', `渲染行数=${rendered} 台账行数=${L.rows.length} 等式=${eq ? '成立' : '不成立(有行没被渲染，渲染件会骗人)'} 输出=${out}`,
+  const rendered = tbl.filter((l) => l.startsWith('| ')).length;
+  const eq = rendered === L.rows.length;
+  const why = eq ? '' : (L.problem ? `（台账无从解析：问题=${L.problem}）`
+    : (!L.headerOk ? '（表头与列常量不符，没有一行被渲染）' : '（渲染器漏行——渲染件会骗人）'));
+  st.emit('D', '行数等式', `渲染行数=${rendered} 台账行数=${L.rows.length} 等式=${eq ? '成立' : '不成立'}${why} 输出=${out}`
+    + (eq && rendered > 0 ? '（等式不成立的分支只有台账解析坏或渲染器自己漏行才走到）' : ''),
     (!L.headerOk || rendered === 0) ? SENT : (eq ? 'PASS' : 'FAIL'));
 
   const vals = L.headerOk ? L.rows.map((v) => { const k = COLS.indexOf('verdict'); return (k < v.length ? String(v[k]).trim() : ''); }) : [];
@@ -424,10 +436,10 @@ function cmdRender(o) {
   try {
     fs.mkdirSync(path.dirname(absOut), { recursive: true });
     fs.writeFileSync(absOut, `${lines.join('\n')}\n`, { encoding: 'utf8' });
-  } catch (e) { st.emit('W', '渲染件落盘', `写入失败 ${e.code || e.message}`, 'FAIL'); return printState(st, [`渲染行数 rendered=${rendered}`, `台账行数 ledger_rows=${L.rows.length}`, `输出=${out}`]); }
+  } catch (e) { st.emit('W', '渲染件落盘', `写入失败 ${e.code || e.message}`, 'FAIL'); return printState(st, [`比较次数 cmp=${st.cmp}`, `渲染行数 rendered=${rendered}`, `台账行数 ledger_rows=${L.rows.length}`, `输出=${out}`]); }
   const selfRef = insideRoot(root, absOut);
   st.emit('W', '渲染件落盘', `已写 ${out} 行数=${lines.length}` + (selfRef ? ' 提示：渲染件落在 root 之内，别在下一轮把它当证据件引用（自指）' : ''), 'PASS');
-  return printState(st, [`渲染行数 rendered=${rendered}`, `台账行数 ledger_rows=${L.rows.length}`, `等式 equality=${eq ? 'ok' : 'broken'}`, `输出 out=${out}`]);
+  return printState(st, [`比较次数 cmp=${st.cmp}`, `渲染行数 rendered=${rendered}`, `台账行数 ledger_rows=${L.rows.length}`, `等式 equality=${eq ? 'ok' : 'broken'}`, `输出 out=${out}`]);
 }
 function insideRoot(root, abs) {
   const rel = path.relative(path.resolve(root), abs);
@@ -653,6 +665,22 @@ function selfTest() {
   ck('add --force ⇒ 未盖章行 + 未测', { token: 'NOT_MEASURED', code: 2, digest: SENT },
     { token: token(concl(r20.out)), code: r20.code, digest: colOf(readRows(al), readRows(al).length - 1, 'digest') });
 
+  // ⑪b 二进制件：摘要口径必须换成按字节，"行尾不参与"这句话对它不成立
+  const b1 = path.join(tmp, 'bincase');
+  fs.mkdirSync(path.join(b1, 'evidence'), { recursive: true });
+  fs.copyFileSync(path.join(FIXDIR, 'pkg', 'evidence', 'read-binary.bin'), path.join(b1, 'evidence', 'read-binary.bin'));
+  const bl = path.join(b1, 'evidence', 'ledger.tsv');
+  runCli(['add', '--root', b1, '--round', 'round-01', '--claim', '二进制件也能量', '--cmd', 'node demo.mjs --blob', '--artifact', 'evidence/read-binary.bin', '--verdict', 'PASS']);
+  ck('二进制件 ⇒ 摘要前缀 raw 且版本记哨兵', { mode: 'raw', tool: SENT },
+    { mode: String(colOf(readRows(bl), 0, 'digest')).split(':')[0], tool: colOf(readRows(bl), 0, 'tool') });
+  const c2b = runCheck(b1);
+  ck('二进制件 check ⇒ 自洽 PASS', { token: 'PASS', rows: 1, cmp: 10, code: 0 },
+    { token: c2b.token, rows: c2b.rows, cmp: c2b.cmp, code: c2b.code });
+  fs.appendFileSync(path.join(b1, 'evidence', 'read-binary.bin'), Buffer.from([0x00]));
+  const c3b = runCheck(b1);
+  ck('二进制件被追加字节 ⇒ 只红一条且红在 I', { token: 'FAIL', redLines: 1, redAt: 'E1-I', dig: 1 },
+    { token: c3b.token, redLines: reds(c3b.out), redAt: onlyRedId(c3b.out), dig: c3b.dig });
+
   // ⑫ render：等式 + 行数 0 ⇒ 未测 + 不洗白
   const md = path.join(tmp, 'out', 'ledger.md');
   const r21 = runCli(['render', '--root', PKG, '--out', md]);
@@ -667,6 +695,10 @@ function selfTest() {
     { token: token(concl(r22.out)), code: r22.code, clean: !concl(r22.out).includes('无异常') });
   const r23 = runCli(['render', '--root', PKG, '--ledger', fx2, '--out', path.join(tmp, 'out', 'bad.md')]);
   ck('render 判定列非法 ⇒ 红（渲染不洗白）', { token: 'FAIL', code: 1 }, { token: token(concl(r23.out)), code: r23.code });
+  const r24 = runCli(['render', '--root', d6, '--out', path.join(tmp, 'out', 'header-broken.md')]);
+  const l24 = concl(r24.out);
+  ck('render 表头坏 ⇒ 红一条在 L，等式那行不许静默成立', { token: 'FAIL', cmp: 4, redLines: 1, redAt: 'L', rendered: 0, ledger_rows: 2 },
+    { token: token(l24), cmp: num(l24, 'cmp'), redLines: reds(r24.out), redAt: onlyRedId(r24.out), rendered: num(l24, 'rendered'), ledger_rows: num(l24, 'ledger_rows') });
 
   // ⑬ 形状自检：打印出的每一行判定词都必须在三态集合里（结论行也算）
   const sample = runCli(['check', '--root', PKG]).out.split('\n').filter((l) => l.trim() !== '');
