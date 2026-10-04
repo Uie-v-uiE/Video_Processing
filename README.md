@@ -224,11 +224,11 @@ test -f "$VP_VIVADO_BIN/vivado.bat" && echo OK
 #     换一台机器不要指望它（清单与死代码那处写法见 `build/README.md` 第 2 节）
 
 # S6 器件在不在设备库（没有任何脚本替你做这件事，见 §2 末行）
-grep -o "xc7z020[a-z0-9]*" "$VP_VIVADO_BIN/../data/parts/installed_devices.txt" | sort -u
+grep -o "xc7z020[a-z0-9]*" "$VP_VIVADO_BIN/../data/parts/installed_devices.txt" | sort -u # 不随包
 #   期望三行：xc7z020 / xc7z020clg484 / xc7z020i（本会话实测正是这三行）
 #   这条假定 `<安装根>/Vivado/bin` 这一层形状成立（`bin` 直接挂在 `Vivado/` 下）；
 #   不成立时改成直接从 S5 找到的路径往回两级：
-#   grep -o "xc7z020[a-z0-9]*" "$(dirname "$VP_VIVADO_BIN")/data/parts/installed_devices.txt" | sort -u
+#   grep -o "xc7z020[a-z0-9]*" "$(dirname "$VP_VIVADO_BIN")/data/parts/installed_devices.txt" | sort -u # 不随包
 #   空输出 ⇒ 器件库缺 ⇒ create_project 会报错，形状像"工程打不开"而不是"器件缺"
 
 # S7 Vitis 的 xsdb 与 hw_server

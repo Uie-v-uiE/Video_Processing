@@ -54,12 +54,12 @@ description: 报告模板条目：四张表的表头与填写口径——指标�
 1. 复制需要的表到你的文档目录并改名为纯英文小写：
    ```bash
    mkdir -p <你的仓库>/report
-   cp <技能包>/skill/templates/report-forms/metrics-table.md <你的仓库>/report/metrics_table.md
+   cp <技能包>/skill/templates/report-forms/metrics-table.md <你的仓库>/report/metrics_table.md # 示例
    ```
    **完成后应看到**：目标文件存在；文件顶部四行元信息注释还在（用途/前置条件/产出物路径/失败时先看哪里）。
 2. 按各文件"空表/主表"段落把 `【填入】` 换成你的槽位值；**计数并报出来**：
    ```bash
-   grep -c '【填入】' <你的仓库>/report/metrics_table.md
+   grep -c '【填入】' <你的仓库>/report/metrics_table.md # 示例
    ```
    **完成后应看到**：填完之后这个数是 0（还留着的就是没填的槽）。
 3. 给每张表配一支"重算脚本"（照 `../script-template/script-template.sh` 改），

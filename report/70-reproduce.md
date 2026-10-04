@@ -190,7 +190,7 @@ bash -n build/gates.sh build/board_verify.sh sim/run_one.sh sim/mut_control.sh \
 | `arp -a 192.168.1.10` | 0 | `192.168.1.10  00-11-22-33-44-55  动态`（接口 192.168.1.100）|
 | `grep -n link_monitor build/gates.sh` | 1 | **零命中**（⇒ `tb_link_monitor` 长期红且不在门禁射程，A2）|
 | `grep -n "cmd_len" src/ps/main.c` | 0 | 第 1515 行 `if (cmd_len > 0 && cmd_len < CMD_BUF) { cmd_buf[cmd_len++] = '\n'; }`（源码已修，ELF 未重建 ⇒ A3）|
-| `ls` 存在性核对（26 个被文档点名的脚本/件）| — | 23 存在、**3 缺失**：`src/host/run_sender.bat`、`run_video.bat`、`run_serial.bat`（第 6 节冲突 1）|
+| `ls` 存在性核对（26 个被文档点名的脚本/件）| — | 23 存在、**3 缺失**：`src/host/run_sender.bat（未写）`、`run_video.bat`、`run_serial.bat`（第 6 节冲突 1）|
 | 分母计数 | — | `sim/tb_*.v` = **81**；`src/rtl/**/*.v` = **80**；`build/evidence/` 条目 = **671**；`build/tcl/` = **110**；`build/evidence/*.batt.txt` = **36** |
 
 **逐命令的三态计数（第 1–5 节共 37 条编号命令行）**，由下面这条命令现算，不靠记忆：

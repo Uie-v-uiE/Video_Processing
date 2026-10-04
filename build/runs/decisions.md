@@ -1,7 +1,7 @@
 # 采用 / 回退决定记录（P15c）
 
 这一份只记**决定**：谁批的、什么时候、依据哪两件东西、回退之后有没有留下可用基线。
-每一轮的**数字与字段**在 `build/runs/ledger.md`；**与什么比**在 `build/runs/baselines.md`。
+每一轮的**数字与字段**在 `build/runs/ledger.md`；**与什么比**在 `build/runs/baselines.md（未写）`。
 
 ## 0. 批准人这一栏怎么填（先读这条，否则整份表会被念成"队伍批过"）
 
@@ -41,7 +41,7 @@
 | r113 | `key_debounce.v` 把上电语义写进**声明初值**（#256 的修法） | 2026-10-03 14:3x | 规则预登记 + agent 执行 | ① 带 `rst_n=1'b1` 再综合的那个"1"确实进位流：`probe_init_tied_rst.tcl` 量到 FDRE INIT=1'b1 ×4 ② 名册对 r112 **八对逐位相同** ⇒ 时序中性的直接凭据（代价为零，不是收益） | 板上 `b94f4da6cdff`；`build/r113_gates.txt`（23 绿/1 红） |
 | r114 | `dc_fifo.v` 四颗格雷码寄存器 `ASYNC_REG="TRUE"`（#262）+ `snap_cross.v` 的 `hb_gone` 声明初值（#257 尾） | 2026-10-03 21:3x | 规则预登记 + agent 执行 | ① **网表侧**凭据：`marked_true` 0→**56 颗**（不用 methodology 计数当凭据，#290 已证明那是错的读法）② 名册 16 对六条全绿（`build/evidence/r114_roster_diff.txt`，同生成器配对） | 板上 `7142a1fbf082`；`build/evidence/r114_bit/`（13 份 + MANIFEST）。**`ASYNC_REG` 的 +0.294 ns 头条差不记在本刀名下**（最差换了族） |
 | r116（部分） | `IDELAY_VALUE` 26→**31**（实测眼心）—— **进构建并留在树里** | 2026-10-04 01:37 刷板 | 规则预登记 + agent 执行（采纳规则**写在起飞之前**的 `build/r116_batch_plan.md`） | ① 预测逐格命中：DCP 上扫出的 `HOLD(τ)=−2.822+0.0630τ` 在真构建里对到小数第三位（预测 −0.870 / 实测 −0.870）② V5 资源逐格中性 + 告警按类不增 | 板上 `bb2fb707aebc`；`build/evidence/r116_bit/`、`build/evidence/r116/`（原件 `r116_check_timing.txt`、`r116_io_{HOLD,SETUP}.rpt`） |
-| r118 | **只带 `IDELAY_VALUE = 31`**（不带 C9 钩子、不带输入窗） | 2026-10-04 04:49:50 刷板、06:17 收口、08:0x E6 补签 | 规则预登记 + agent 执行；**E6 那一格由队员眼睛签**（原话「0度」，07:5x） | ① **B1 严格名册**：8 对逐格与 r114 逐位相同（`build/evidence/r118_strict_b1.txt`，末行 `losses=0 verdict=GREEN`）② **B4 发布门**：`build/r118_gates.txt` 与 `build/r118_gates_final.txt` 两跑逐字节一致、24 项 23 绿/1 红（唯一红 = 声明过的 `C5c`） | **现行基线**（见 `build/runs/baselines.md`）：`build/system.bit` md5 `cd04907e1369da35d21c4090d552f5ee`，`build/evidence/r118_bit/`，快照 commit `d420db6`；名册 `build/roster/roster_r118.tsv` |
+| r118 | **只带 `IDELAY_VALUE = 31`**（不带 C9 钩子、不带输入窗） | 2026-10-04 04:49:50 刷板、06:17 收口、08:0x E6 补签 | 规则预登记 + agent 执行；**E6 那一格由队员眼睛签**（原话「0度」，07:5x） | ① **B1 严格名册**：8 对逐格与 r114 逐位相同（`build/evidence/r118_strict_b1.txt`，末行 `losses=0 verdict=GREEN`）② **B4 发布门**：`build/r118_gates.txt` 与 `build/r118_gates_final.txt` 两跑逐字节一致、24 项 23 绿/1 红（唯一红 = 声明过的 `C5c`） | **现行基线**（见 `build/runs/baselines.md（未写）`）：`build/system.bit` md5 `cd04907e1369da35d21c4090d552f5ee`，`build/evidence/r118_bit/`，快照 commit `d420db6`；名册 `build/roster/roster_r118.tsv` |
 
 ### 1.2 回退 / 否决（**一条都没删**，含历史上被删过的那两笔，见第 2 节）
 

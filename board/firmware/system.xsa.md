@@ -22,7 +22,7 @@
 | 门禁/判读 | `build/r118_gates.txt`（判定 24 项、有红项 = 声明过的 `C5c`）、`build/evidence/r118_strict_b1.txt` |
 
 ⚠ `build/provenance.md` 仍不存在（P15a 待开，`docs/run-queue.md:25`）⇒ 本轮次指到上表的真实件。
-见 `docs/questions-for-team-P16a.md`（Q-P16a-4）。
+见 `docs/questions-for-team.md`（Q-P16a-4）。
 
 ## 2. 里面到底有什么（本轮实测，只读解压、不写盘）
 
@@ -36,19 +36,19 @@
 | `ps7_init.html` | 2906788 B | `2ffce196caf6383741f03765a4486184` |
 | `ps7_init_gpl.c` / `.h` | 532120 / 4414 B | `4571a2cc13e2a50261eaa770e35a28bc` / `8e3ae4028bf88f3d80cbb3eed6965c43` |
 
-## 3. **必须如实登记的一条不一致**：仓库里那份 `build/ps7_init.tcl` 是旧的
+## 3. **必须如实登记的一条不一致**：仓库里那份 `build/ps7_init.tcl（不随包）` 是旧的
 
 `build/tcl/ps_jtag_boot.tcl:7-9,22-45` 的取文件顺序是：
-① `PS7_INIT` 环境变量 / 命令行参数 → ② **已经在盘上的 `build/ps7_init.tcl`** → ③ 从 `build/system.xsa` 自动解出。
+① `PS7_INIT` 环境变量 / 命令行参数 → ② **已经在盘上的 `build/ps7_init.tcl（不随包）`** → ③ 从 `build/system.xsa` 自动解出。
 
 本轮实测（只读比对，见 §6）：
 
 | | 大小 | MD5 | 时间 |
 |---|---|---|---|
-| 盘上 `build/ps7_init.tcl` | 31277 B | `b4591066ecb619393dbd7ec90dbbc250` | 2026-09-23 02:54:46 |
+| 盘上 `build/ps7_init.tcl（不随包）` | 31277 B | `b4591066ecb619393dbd7ec90dbbc250` | 2026-09-23 02:54:46 |
 | 当前 xsa 里的 `ps7_init.tcl` | 34952 B | `142e477927219cf686a072d36f3f2801` | 随 r118 |
 
-⇒ **两者不同**，而且 .gitignore 把 `build/ps7_init.tcl` 当派生物排除（`.gitignore:88-89`
+⇒ **两者不同**，而且 .gitignore 把 `build/ps7_init.tcl（不随包）` 当派生物排除（`.gitignore:88-89`
 「从 build/system.xsa 里解出来的 PS 初始化脚本（派生物，ps_jtag_boot.tcl 会自动重建）」），
 所以它不会随包、也不会在 clone 之后存在。两种后果要分开念：
 
@@ -60,17 +60,17 @@
 回读动作（任何人 5 秒判掉这一格，纯本地、不碰板）：
 
 ```bash
-md5sum build/ps7_init.tcl                 # 期望若与下一行相同 = 一致
+md5sum build/ps7_init.tcl（不随包）                 # 期望若与下一行相同 = 一致
 python -c "import zipfile,hashlib;\
 z=zipfile.ZipFile('build/system.xsa');\
 print(hashlib.md5(z.read('ps7_init.tcl')).hexdigest())"
 ```
 
-不一致时的处置（**属删除派生物，需队伍点头**；本轮没做）：删掉 `build/ps7_init.tcl` 再跑
+不一致时的处置（**属删除派生物，需队伍点头**；本轮没做）：删掉 `build/ps7_init.tcl（不随包）` 再跑
 `xsdb.bat build/tcl/ps_jtag_boot.tcl`，让它按 ③ 自己重解（脚本会打印
 `AUTO-EXTRACT ps7_init.tcl from system.xsa: OK` 与 `PS7_INIT_FILE: <路径>`，见
 `build/tcl/ps_jtag_boot.tcl:42,51`）。或者干脆显式给：`PS7_INIT=<路径>`。
-⇒ 已进 `docs/questions-for-team-P16a.md`（Q-P16a-7）。
+⇒ 已进 `docs/questions-for-team.md`（Q-P16a-7）。
 
 ## 4. 如何再生成（真实命令；本轮**没有跑**）
 
@@ -103,5 +103,5 @@ xsa 本身**不下载到板上**：它是工具侧的平台包（PS 配置 + BD 
 stat -c %s build/system.xsa; md5sum build/system.xsa; sha256sum build/system.xsa; stat -c %y build/system.xsa
 python -c "import zipfile,hashlib; z=zipfile.ZipFile('build/system.xsa'); \
 [print(n,len(z.read(n)),hashlib.md5(z.read(n)).hexdigest()) for n in z.namelist() if 'ps7_init' in n]"
-# 输出即 §2 的表；另外读了 build/ps7_init.tcl 的 size/md5/mtime ⇒ §3 的对比
+# 输出即 §2 的表；另外读了 build/ps7_init.tcl（不随包） 的 size/md5/mtime ⇒ §3 的对比
 ```

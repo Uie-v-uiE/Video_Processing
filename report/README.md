@@ -29,7 +29,7 @@
 | 4 | 优化过程，含**优化前后的性能与资源对比表** | `40-optimization.md`（P18b 的分章版）、`OPTIMIZATION_LOG.md`（逐轮"基线 → 措施 → 实测" + 末尾「跨全期累计对照」）、`PERF_REPORT.md`（读数与版本对比，**表头声明"不要当当前值引用"**）、`comparison-notes.md`（对比表的读法与不可读成收益的那几条）、`TIMING_GLOBAL.md`、`../data/metrics.csv` | 对比表本身齐；缺的是**指标表四处与现件不同源**（`metrics.csv` 第 14/15/25/27–28 行），逐条已核并登记在 `90-open-items.md` 第 2C 节（编号 17–20）⇒ 需要一次指标重算或一句"改哪一侧"的裁决 |
 | 5 | 大模型协作记录（提示词、模型回答、**自我纠错轨迹**、智能体工作流设计）| `AI_COLLABORATION.md`（约束怎么给、模型怎么跑偏）、`LLM_COLLAB.md`（四个案例 + §5 智能体工作流）、`collaboration/prompts-used.md`（用过的提示词原文）、`collaboration/corrections.md`（被证伪与更正的轨迹）、`collaboration/sessions/`（逐会话档案）| 原料是追加式日记 `log/ISSUES.md`、`log/OVERNIGHT_LOG.md`（**只作过程留痕，不当结论引用**）。缺的是"哪些交互可公开"的对外口径（P10 第 2 步第 1 问），需队伍点头 |
 | 6 | 技能包的提炼过程（从哪些失败总结、**如何验证有效**、边界如何确定）| `../skill/README.md`（索引与逐条验证状态）、`../skill/_meta/sources.md`（每条断言的出处）、`../skill/_meta/naming-and-format.md`（外壳与命名规矩）、`../skill/evals/records/`（评测记录）、`../skill/pitfalls/`（未升格为通用技能的事故记录）、`LLM_COLLAB.md` §5| "如何验证有效"仍薄：本轮 C12 实跑 `绿=7 红=4 未测=1`，其中 G11 selftest 未落地、26 张平铺卡未迁移 ⇒ 归 **P04/P09/P11 队列**（`90-open-items.md` 编号 7）。B13 那条"基线 vs 用它之后"的效果对比需要会话预算（编号 128）|
-| 7 | 复现说明：一份可供他人从零开始完整执行的操作步骤 | `70-reproduce.md`（环境自检 → 构建 → 仿真 → 上板 → 结果比对，逐命令带执行目录/shell/外部设备状态与"完成后应看到什么"）、`BUILD.md`、`../build/README.md`、`../build/tcl/README.md`、`../sim/README.md`、`../board/README.md`、`../board/HANDS_ON.md`、`../board/hardware_setup.md`、`../README.md` §5–§7（环境自检块与 A/B/C 三条路径）、`../docs/repro-check.md`（演练读数）、`../submit/reproduce/`（包内那一版）| 两处仍欠：① `70-reproduce.md` §6 那 **5 条与既有文档的冲突**一条都没改（改的是别人的文件），逐条动作在 `90-open-items.md` 第 2D 节（编号 21–25）；② **第三方视角的一次干净复现演练**没做过 ⇒ 需要队伍批时间窗（只读自检八步不需要，构建与上板需要）|
+| 7 | 复现说明：一份可供他人从零开始完整执行的操作步骤 | `70-reproduce.md`（环境自检 → 构建 → 仿真 → 上板 → 结果比对，逐命令带执行目录/shell/外部设备状态与"完成后应看到什么"）、`BUILD.md`、`../build/README.md`、`../build/tcl/README.md`、`../sim/README.md`、`../board/README.md`、`../board/HANDS_ON.md（不随包）`、`../board/hardware_setup.md`、`../README.md` §5–§7（环境自检块与 A/B/C 三条路径）、`../docs/repro-check.md`（演练读数）、`../submit/reproduce/`（包内那一版）| 两处仍欠：① `70-reproduce.md` §6 那 **5 条与既有文档的冲突**一条都没改（改的是别人的文件），逐条动作在 `90-open-items.md` 第 2D 节（编号 21–25）；② **第三方视角的一次干净复现演练**没做过 ⇒ 需要队伍批时间窗（只读自检八步不需要，构建与上板需要）|
 | +1 | 失败分析：哪些场景仍然做不好，原因是什么（§3.2.5.4 口径，§4.5 列为必答）| `60-failure-analysis.md`（A 组"未解决"15 条 / B 组"未测试"16 条，每条四件：现象含证据 · 可判别的假设 · 判别方法 · 计划与成本；另含"未观察到失败"的取样依据一节）、`KNOWN_ISSUES.md`（未修缺陷与"看着像问题其实是有意的"）、`../board/ACCEPTANCE.md` 与 `../board/signoff.md`（逐格签收状态）| **本轮没有对这两份做任何审计**（见本页最后一节）；A/B 31 条的动作与成本已集中登记在 `90-open-items.md` 第 2F 节（编号 101–131）|
 | +2 | 未决项集中管理（P18c 铁律 5，供 §3.3.5.5 的"文档质量"一格使用）| `90-open-items.md`（现算计数：md 口径 898 处 + 非 md 167 处 = **1065 处，七类逐类都有行认领**；漏项数 = 0 的成立时刻写在它第 1 节）| 它是一张**快照**：同伴轮次并发写入使数字只增（实测同一分钟内 879 → 898）⇒ P21 终审必须整表重跑（编号 10）。本轮写完它之后 `node scripts/check_repo_consistency.mjs` 的 C8 行**从改前的 `FAIL` 变成 `PASS`**（`汇总表行=267`、`未认领的标记类=0`），其余红项与未测项一条没少 ⇒ 整把尺子仍是 `FAIL`，两趟原始读数贴在 `90-open-items.md` 第 5 节 |
 
@@ -70,7 +70,7 @@
 | `BUILD.md` | 工具版本、环境变量、一条命令建工程出位流；失败时先看哪份日志 |
 | `../build/README.md`、`../build/tcl/README.md` | `build/` 里每个脚本与报告是什么、报告怎么读、TCL 链怎么跑 |
 | `../sim/README.md`、`../sim/NAMES.md` | 台架与判据结果；台架新旧名字对照（仓库名 ↔ 包内名）|
-| `../board/README.md`、`../board/HANDS_ON.md`、`../board/hardware_setup.md` | 上板工程 / 运行脚本 / 实测输出三块；动手步骤；接线与供电 |
+| `../board/README.md`、`../board/HANDS_ON.md（不随包）`、`../board/hardware_setup.md` | 上板工程 / 运行脚本 / 实测输出三块；动手步骤；接线与供电 |
 | `COMMANDS.md`、`COMMAND_PRECEDENCE.md`、`DEFAULTS.md` | 串口/网络命令表与寄存器映射、命令优先级裁决、上电默认档 |
 | `HOST_GUIDE.md` | PC 侧上位机：推任意视频、双击跑自带演示（`../send_demo.bat`）、读回寄存器 |
 | `BOARD_PINS.md` | 板级引脚、时钟来源与约束文件的对应关系 |

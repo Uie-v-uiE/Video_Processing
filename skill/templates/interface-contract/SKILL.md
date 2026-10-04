@@ -43,7 +43,7 @@ description: 接口契约表模板条目：一张把两侧（处理器/可编程
 
 1. 复制并把文件名换成纯英文小写：
    ```bash
-   cp <技能包>/skill/templates/interface-contract/contract-table.md <你的仓库>/report/register_contract.md
+   cp <技能包>/skill/templates/interface-contract/contract-table.md <你的仓库>/report/register_contract.md # 示例
    ```
    **完成后应看到**：目标文件存在，四行元信息注释还在。
 2. 先只填三列：对象、偏移/地址、位域。从硬件定义/块图里取，不取记忆：

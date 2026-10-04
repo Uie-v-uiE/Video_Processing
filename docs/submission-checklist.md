@@ -14,7 +14,7 @@
 | 6 | 板级材料与实测 | `board/` 76 个跟踪文件 | PASS | `git ls-files board \| wc -l` |
 | 7 | 指标表（唯一一张） | `data/metrics.csv`，28 行数据 | PASS（每行点名的证据件都在盘上：终审 C2 `全指到=28 缺或无路径=0`） | `node scripts/check_repo_consistency.mjs \| grep '^C2 '` |
 | 8 | 数据层说明 | `data/README.md` + `data/golden/README.md` + `data/measured/README.md` | PASS | `test -e data/README.md && echo ok` |
-| 9 | 设计报告分章 | `report/README.md`、`report/{40,50,60,70,90}-*.md`、`report/{ARCHITECTURE,PS_VS_PL,BUILD,TIMING_GLOBAL,...}.md` | **FAIL**：`report/10-background.md`、`report/20-principle.md`、`report/30-partition-if.md`、`report/novelty-claims.md`、`report/prior-art-search.md` 未落地（P18a/P19 的批次被回合上限截停）。已登记，见 `report/90-open-items.md` | `ls report \| grep -E '^(10\|20\|30)'` |
+| 9 | 设计报告分章 | `report/README.md`、`report/{40,50,60,70,90}-*.md`、`report/{ARCHITECTURE,PS_VS_PL,BUILD,TIMING_GLOBAL,...}.md` | **FAIL**：`report/10-background.md（未写）`、`report/20-principle.md（未写）`、`report/30-partition-if.md（未写）`、`report/novelty-claims.md（未写）`、`report/prior-art-search.md（未写）` 未落地（P18a/P19 的批次被回合上限截停）。已登记，见 `report/90-open-items.md` | `ls report \| grep -E '^(10\|20\|30)'` |
 | 10 | 提交阅读路径（八章） | `submit/{README,01-overview..08-limits}.md` + `submit/reproduce/` | PASS | `ls submit` |
 | 11 | 器件与工具版本声明（唯一权威源） | `docs/declarations.md` 的 `BEGIN-AUTHORITATIVE` 块 | PASS（终审 C1：别处**取值不同**=0；同值抄写只登记条数） | `node scripts/check_repo_consistency.mjs \| grep '^C1 '` |
 | 12 | 源码地图 | `docs/src-map.md`（83 个源文件 × 4 列，逐文件现算） | PASS（头注列为空 0 个） | `node build/r120_src_map.mjs \| tail -1` |

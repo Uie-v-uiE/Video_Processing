@@ -1,0 +1,13 @@
+CTRL A 正常行指得到 期望=1/0 实读=1/0 对照成立
+CTRL B 真缺件必须红 期望=0/1 实读=0/1 对照成立
+CTRL C 全角括号与反引号不得算进路径（改前正是这里判错） 期望=1/0 实读=1/0 对照成立
+CTRL D 没有路径的行 期望=0/1 实读=0/1 对照成立
+CTRL E 行尾点号不算进文件名 期望=1/0 实读=1/0 对照成立
+CTRL F 全角逗号后面的正文不得吞进路径 期望=1/0 实读=1/0 对照成立
+C2 自检：造 6 例 不符=0 判 6 项 PASS
+CTRL G 行文碎片不算路径 期望={"total":0,"dead":0,"skipFrag":1} 实读={"total":0,"dead":0,"skipFrag":1,"skipRun":0,"skipLedger":0} 对照成立
+CTRL H 真缺的文件必须红 期望={"total":2,"dead":1,"skipFrag":0} 实读={"total":2,"dead":1,"skipFrag":0,"skipRun":0,"skipLedger":0} 对照成立
+CTRL I 运行期产物走豁免 期望={"total":0,"dead":0,"skipRun":1} 实读={"total":0,"dead":0,"skipFrag":0,"skipRun":1,"skipLedger":0} 对照成立
+CTRL J 台账只走台账 期望={"total":0,"dead":0,"skipLedger":1} 实读={"total":0,"dead":0,"skipFrag":0,"skipRun":0,"skipLedger":1} 对照成立
+C3 自检：造 4 例 不符=0 判 10 项 PASS
+rc_self=0

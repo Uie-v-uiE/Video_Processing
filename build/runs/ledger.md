@@ -4,8 +4,8 @@
 显著的资源代价换取有限的性能收益""将设计过程中的判断依据写进报告"与 3.3.5.3"优化过程对比表"。
 
 这一份只管一件事：**每一轮改了什么、各域怎么样、花了什么代价、采用还是回退、依据是哪两份件**。
-叙述版（只讲因果与取舍、不重复数字）在 `docs/optimization-rounds.md`；
-采用/回退的**决定**在 `build/runs/decisions.md`；**与什么比**在 `build/runs/baselines.md`。
+叙述版（只讲因果与取舍、不重复数字）在 `docs/optimization-rounds.md（未写）`；
+采用/回退的**决定**在 `build/runs/decisions.md`；**与什么比**在 `build/runs/baselines.md（未写）`。
 
 ## 0. 台账口径（先读这七条，否则下面的数会被念错）
 
@@ -14,7 +14,7 @@
 | T1 | **轮次号沿用仓库自己的 `rNN`**。区间取 `report/log/ISSUES.md` 的 #147–#336 实际覆盖的轮次 = **r90…r119，30 轮连续、中间不跳号**。r93/r105/r111/r115/r119 是**没有正式构建的取证/复算轮**，也占号，因为它们的产出是判据而不是位流。r89 及更早的轮次**不在本条点名的来源区间**（#146 是 r89 的 Pblock 否决，只在 `build/runs/decisions.md` 里作为"更早的否决"列出，不在这里造数） | `report/log/ISSUES.md` 第 6185/6218/13194 行的条目号 |
 | T2 | **WNS 的绝对差本身既不算收益也不算损失**。每轮"各域"那一栏给的是读数与**失败端点数**，不给"提升了 x ns"。本仓库的实例：r114 `ASYNC_REG` 那轮头条 WNS 0.445→0.739，但最差路径**换了族**（`rows_hit` 一族 → `u_icmp_tx` 校验和锥），所以那 +0.294 不记在本刀名下 | `report/log/ISSUES.md` #290/#292/#294；`build/evidence/r118_after.txt:4`（原文"全局 WNS 的绝对差不算收益也不算损失（rule 35）"） |
 | T3 | **一轮多刀时每个数字要能归属到具体改动**；归不到的写"未归属"，且不写进首页/交付数字。实例：r110 的 −243 LUT 只有 −66 归到刀 4①（OOC 双腿相减），剩下 −177 未归属 | #246/#249；`build/evidence/r110_attrib.txt`、`build/evidence/r112_util_attrib.txt` |
-| T4 | **跨构建数字先证可比再比**。可比性依据见本文件第 2 节（`build/runs/baselines.md` 也引它）。不满足可比性的对照一律标"跨构建，只念不判" | #254 第 2 条、#297、#301 |
+| T4 | **跨构建数字先证可比再比**。可比性依据见本文件第 2 节（`build/runs/baselines.md（未写）` 也引它）。不满足可比性的对照一律标"跨构建，只念不判" | #254 第 2 条、#297、#301 |
 | T5 | **分母 `判 N 项` 每轮自己打印**：门禁项数、名册配对数、台架判据数、探针对照数。`NOT_MEASURED` 不算通过 | 各轮 `build/rNN_gates.txt` 末行"判定 N 项"；`build/evidence/rNN_roster_diff.txt` |
 | T6 | **资源与告警按类报，代价与收益同笔念**（P15c 铁律 3）。"只报收益的轮次视为未完成"在本台账里的处理是：那一轮直接写"代价未归档"并降级为定性 | `docs/timing/gates_G1_G12.md` G9；`docs/timing/debt_ledger.md` §6 |
 | T7 | **"产物未固化"是显式状态**：一轮被采纳但盘上取不到那一轮的位流或原件报告，就写这个标签并进待办，不许用"当时那个版本"糊过去 | P15c 铁律 6；质量判据 4；`report/log/ISSUES.md` #332 |
@@ -117,7 +117,7 @@
 | 字段 | 内容 |
 | --- | --- |
 | 轮次 | r94（2026-09-30 12:1x–15:0x，正式件 `build/system.bit` md5 `a1465f29c9e4`） |
-| 改动 | ① `src/rtl/process/zoom/zoom_mapper.v`（#104）：旋转支接回 `>>>16` 之后的 `[15:8]` 当小数，并把纵向 `Y_disp = H/2 − Y_math` 的翻转连着 floor 一起改。② `src/rtl/zoom_ctrl.v` + 顶层（#93）：旋转生效时把**实际用的倍率**钳进 `zoom_fit`，钳制做在 `zoom_ctrl` 的 `inv_used` 出口（新增输入 `rotate_en`、输出 `rot_forced`）——先在顶层写的那版**回退了**（`build/r94_top_mux_superceded.patch`），因为它喂不到 `zoom_code` ⇒ 屏上会与取样不一致。③ `src/rtl/eth/eth_udp_video_top.v`（#158）：`FRAME_BYTES` 由"靠默认值偶然相等"改成显式 `IMG_W*IMG_H*2`（今天的展开值逐字节不变 ⇒ 纯防呆） |
+| 改动 | ① `src/rtl/process/zoom/zoom_mapper.v`（#104）：旋转支接回 `>>>16` 之后的 `[15:8]` 当小数，并把纵向 `Y_disp = H/2 − Y_math` 的翻转连着 floor 一起改。② `src/rtl/zoom_ctrl.v（不存在）` + 顶层（#93）：旋转生效时把**实际用的倍率**钳进 `zoom_fit`，钳制做在 `zoom_ctrl` 的 `inv_used` 出口（新增输入 `rotate_en`、输出 `rot_forced`）——先在顶层写的那版**回退了**（`build/r94_top_mux_superceded.patch`），因为它喂不到 `zoom_code` ⇒ 屏上会与取样不一致。③ `src/rtl/eth/eth_udp_video_top.v`（#158）：`FRAME_BYTES` 由"靠默认值偶然相等"改成显式 `IMG_W*IMG_H*2`（今天的展开值逐字节不变 ⇒ 纯防呆） |
 | 源码指纹 | `rtl=526321488fed`（`build/r94_gates.txt`，且 = `tb_edge_rim_r94.txt` 的 `rtl_md5`）；本轮**动机不是时序**（ISSUES #162 原话） |
 | 各域 setup/hold 最差值与失败端点 | `eth_rxc` **0.553 / 0.049**（= 全设计 WNS/WHS）；`clk_fpga_0` **0.970 / 0.060**；`clkout0_1` **1.089 / 0.063**；`sys_clk` **14.195 / 0.121**。失败 setup/hold 端点 **0 / 0**，总端点 50883；WPWS 0.264 |
 | 资源 LUT/FF/BRAM/DSP 与增量归属 | LUT as Logic `10187`、`Slice Registers 8074`、BRAM `95` tile、DSP `19`、总功耗 2.383 W（`report_power`）。与 r92 的差（LUT/FF 各 −7/−1 量级）**未归属到具体刀** ⇒ 首页不写（T3） |
@@ -147,7 +147,7 @@
 | 字段 | 内容 |
 | --- | --- |
 | 轮次 | r96（2026-09-30 17:07–18:5x 构建，正式件 `build/system.bit` md5 `76d6442991e0`，22:15 前的板上版） |
-| 改动 | ① `src/rtl/eth/axi_frame_writer_gated.v`（#170）：看门狗 `abort` 之后**在途的读突发必须排空**才允许下一帧起头（新增 `drain_left`/`start_hold` 一个排空态；`m_axi_rready` 排空期间继续吃 R、三个写口关掉）。② `src/rtl/top/pl_video_top.v` + `frame_commit_lock.v`（#171）：`frame_ready_pix` 从"置 1 后只有异步复位才清"改成**一拍脉冲**（`r1 ^ r2`），顶层 `eth_has_frame` 的 `else if` 顺序跟着换 —— 旧几何下 `copy_abort_pix` 那一支**永远轮不到** |
+| 改动 | ① `src/rtl/eth/axi_frame_writer_gated.v（不存在）`（#170）：看门狗 `abort` 之后**在途的读突发必须排空**才允许下一帧起头（新增 `drain_left`/`start_hold` 一个排空态；`m_axi_rready` 排空期间继续吃 R、三个写口关掉）。② `src/rtl/top/pl_video_top.v` + `frame_commit_lock.v`（#171）：`frame_ready_pix` 从"置 1 后只有异步复位才清"改成**一拍脉冲**（`r1 ^ r2`），顶层 `eth_has_frame` 的 `else if` 顺序跟着换 —— 旧几何下 `copy_abort_pix` 那一支**永远轮不到** |
 | 源码指纹 | `rtl=fe573f9b2024`（`build/r96_gates.txt` 边缘条带行） |
 | 各域 setup/hold 最差值与失败端点 | `eth_rxc` **0.749 / 0.049**（门禁 WNS 归属）；`clk_fpga_0` **1.755 / 0.051**；`clkout0_1` **0.840 / 0.062**；`sys_clk` **14.272 / 0.121**。失败 setup/hold **0 / 0**，总端点 50887；WPWS 0.264 |
 | 资源 LUT/FF/BRAM/DSP 与增量归属 | LUT `14388`（27.05 %）、FF `8077`、BRAM `95` tile（67.86 %）、DSP `19`、Dynamic `2.206 W`。端点 +4 与 #170 排空态新增的位**同量级** ⇒ 这是结构观察不是改进；LUT 增量**未归属**（该轮未出逐层件） |
@@ -577,7 +577,7 @@
 | 2 | 每条"改善"结论都同时给出其他域影响与资源代价；只报单端的轮次列出并补齐或降级为定性 | 逐轮查"结论"行是否同时含"其余域/代价/未归属"字样；本台账里唯一一条"收益"字样在 r118（+0.315 ns 眼心）——同段同时给了 B1 八对逐位不劣化 + B3 资源一格不差 | r90/r91/r95/r100/r107/r108/r110/r112/r114/r115/r116/r117 各条均成对；r119 无各域读数 ⇒ 该轮已降级为"待定 + `NOT_MEASURED`"并写明欠的那次构建 | **PASS**（r119 记为定性，不称改善） |
 | 3 | 跨构建比较的每一处都有可比性前置说明（策略/种子/版本/指纹）；缺失处数 = 0 | `grep -c '对照方式' build/runs/ledger.md`；第 2 节是否覆盖"策略/版本/指纹/放置确定性/种子"五问 | 30 轮均有"对照方式"行；第 2 节给出：策略（r105 三样本同策略、r112 roll C 明示换档）、版本（Vivado 2025.2.1 Build 6403652 逐轮横幅）、指纹（`fpver=norm1` 枚枚点名）、放置确定性（roll A 逐位复现 + `noise_ns=0.000`）、**种子（实测：本流程未设任何 seed ⇒ 跨构建不保证逐位相同，所以只认同树重滚）** | **PASS** |
 | 4 | 采用的轮次在仓库里能取到对应产物与原件报告；取不到的标"产物未固化"并进 `report/90-open-items.md` | 逐个 `test -f`（见下面第 6 小节的全清单） | 采用轮 13 轮中：**4 轮可取全套原件**（r112/r114/r118/r119-未采用不计）；其余标"产物未固化"并进待办 | **FAIL**（已如实登记，见 decisions.md 第 3 节待办表） |
-| 5 | 台账数字与 `docs/optimization-rounds.md`、报告、根 README 引用处一致（贴出交叉核对命令） | 见第 5.1 小节 | 逐条比对结果列在下面；两处实物与叙述件的差异已打印在第 4 节 D1/D2 | **PASS**（本轮点名的一致项全部逐字符相同；两处冲突**不静默取舍**，公开念出并给出以哪份为准的理由） |
+| 5 | 台账数字与 `docs/optimization-rounds.md（未写）`、报告、根 README 引用处一致（贴出交叉核对命令） | 见第 5.1 小节 | 逐条比对结果列在下面；两处实物与叙述件的差异已打印在第 4 节 D1/D2 | **PASS**（本轮点名的一致项全部逐字符相同；两处冲突**不静默取舍**，公开念出并给出以哪份为准的理由） |
 | 6 | 回退轮次未被删除，且写明回退依据 | `git status --porcelain` 里 `D` 计数 = 0（本轮我只新增文件）；`grep -c '^## D' build/runs/decisions.md` 或 decisions.md 第 1 节条目数 | 30 轮里回退/否决/未采纳共 **13 轮**（r90/r91/r95/r98/r100/r110 前半/r112 的 rollB/C/r114 的四刀/r115 的三刀/r117/r119）**一条都没删**，每条都有回退依据的件 | **PASS** |
 
 ### 5.1 判据 5 的交叉核对（命令与输出贴在本文件里，不另立件）

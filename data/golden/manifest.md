@@ -8,7 +8,7 @@
 - **管**：`data/golden/` 目录下除本文件之外的每一个普通文件（本轮实测 13 个：11 张 PNG + 1 个 `.mem`
   + 1 份 `README.md`）。
   范围写成可判的条件而不是靠人记：`find data/golden -type f ! -name manifest.md`。
-- **不管**：`data/measured/`（板端实测留档，是**实测侧**不是参考侧，口径见 `docs/data-format.md` §4）
+- **不管**：`data/measured/`（板端实测留档，是**实测侧**不是参考侧，口径见 `docs/data-format.md（未写）` §4）
   与 `data/metrics.csv`（那是首页数字的唯一来源，由 `src/host/metric_recheck.mjs` 逐行对回报告，
   本清单不重复管它，也不许把它当参考结果）。
 - **本目录的真实定位**（读 `data/golden/README.md` 原文，不是我的推测）：
@@ -180,7 +180,7 @@ grep -rn "data/golden\|frame_640x360" --include='*.v' --include='*.mjs' --includ
    不许"内容没变就继续"——副摘要变了意味着 checkout 条件变了，这本身要解释。
    两种情况都不许静默通过。
 4. 本仓库现在**没有**自动化比对脚本消费 `data/golden/`（§6 第 4 条实测），所以第 3 条眼下是
-   给未来的读者预备的；把它接起来需要先定权威产生方式 ⇒ `docs/questions-for-team-P17.md` Q-P17-2。
+   给未来的读者预备的；把它接起来需要先定权威产生方式 ⇒ `docs/questions-for-team.md` Q-P17-2。
 5. 判据不许为了让比对通过而改参考值；参考值与判据都要留下改前红/改后绿的对照。
 
 ## 8. 含糊项统计（P17 判据 2 单独点名）

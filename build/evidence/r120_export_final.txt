@@ -1,0 +1,40 @@
+射程 活文档=243（仓库 *.md=256；排除 report/log/ 与 build/reports/ 两层过程/证据件） report=39 docs=28 skill=88 board=26 sim=3 data=8 submit=10 csv 全树=2 入射程=1（board/compare/ 是差分辨识表，按证据件排除）
+板级凭据随包：交付文档点名 237 份 / 盘上 173 份 / 搬进包 173 份（撞名 0）
+  空目录 删=2 余=0
+  死链射程 扫=202 份活文档 抓=95
+绝对路径：甲 可执行件=0 乙 复现入口件=1（扫 10 份） （ ./docs/declarations.md） 丙 叙述=行 30／文件 19（扫 193 份，只报数：那一层记的是「当时读的是哪一份」的凭据，改掉等于改写证据） 甲层豁免=1 行（abs-fixture 反例内容）
+台账指路（report/log/，12 份）：包内不可解析 982 条 —— **只报数不判红**：那里记的是当天在仓库里的路径，
+  过程记录不参与「包完整性」判据；评委要核对读数请走活文档点名的 build/reports/ 那一份（那条由上面的死链自检与 D6 管）。
+死链 README.md -> data/parts/installed_devices.txt
+死链 board/captures/index.md -> board/card_v2_preview.png
+死链 board/conditions/card-board-serial-and-jtag.md -> board/uart_capture.txt
+死链 board/conditions/card-failures-sd-icmp-jtag.md -> board/HANDS_ON.md
+死链 board/firmware/ps_app.elf.md -> board/HANDS_ON.md
+死链 board/firmware/ps_app.elf.md -> board/boot27c.tcl
+死链 board/firmware/ps_app.elf.md -> board/bringup-checklist.md
+死链 board/firmware/system.bit.md -> docs/questions-for-team-P16a.md
+死链 board/firmware/system.xsa.md -> build/ps7_init.tcl
+死链 board/firmware/system.xsa.md -> docs/questions-for-team-P16a.md
+死链 board/hardware_setup.md -> board/HANDS_ON.md
+死链 board/hardware_setup.md -> board/bringup-checklist.md
+死链 board/hardware_setup.md -> board/run/env_probe.sh
+死链 board/hardware_setup.md -> board/run/flash_chain.sh
+死链 board/hardware_setup.md -> docs/questions-for-team-P16a.md
+死链 board/logs/index.md -> board/uart_capture.txt
+死链 build/README.md -> build/board/project/system.bit
+死链 build/README.md -> data/parts/installed_devices.txt
+死链 build/artifacts/README.md -> build/artifacts/20261004-2025.2.1
+死链 build/coverage.md -> build/roster_r118_after_clk_fpga_0_setup.rpt
+死链 build/coverage.md -> build/roster_r118_after_clkfbout_setup.rpt
+死链 build/coverage.md -> build/roster_r118_after_clkout0_1_setup.rpt
+死链 build/coverage.md -> build/roster_r118_after_eth_rxc_hold.rpt
+死链 build/coverage.md -> build/roster_r118_after_sys_clk_hold.rpt
+死链 build/coverage.md -> build/roster_r118_after_sys_clk_setup.rpt
+== 自检：死链 95 ／ 旧名残留 0 ／ 绝对路径（甲 可执行件 + 乙 复现入口件）1 （  ./docs/declarations.md） ==
+
+导出提交 a060a37：839 个文件 / 20M，剪掉 2720 条，死链 95，旧名残留 0，绝对路径 1
+包内自洽：入口脚本按 glob 找凭据的引用共核对 1 条（核对数为 0 时这一条是空的，别念成绿）
+随包凭据内容判定：FAIL 行共 1，其中未声明的红 0（白名单只允许 '^[ ]*FAIL C5c'）
+FAIL：死链 95 ／ 旧名残留 0 ／ 绝对路径 1。不写 /d/Xilinx/Prj/pro/final_submission。
+      明细：/tmp/sub_dead_sub.3XqWGh.txt 与 /tmp/sub.3XqWGh/_pruned.txt
+rc=1

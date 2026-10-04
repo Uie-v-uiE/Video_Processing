@@ -13344,5 +13344,38 @@ C1 已按这个法子改掉（原来每个路径成分 3 个 grep ≈ 3.5 万进
 **没做/仍欠**：导出器没有 `--self` 反例夹具（甲层的 `abs-fixture` 豁免与乙层的地板目前只在本轮实跑里见过一次 ⇒ 记为射程债）；
 丙层要不要升级成硬门属交付叙事，写成待决项 Q-P23-2；`docs/claims-vs-evidence.md` 由子代理在写，落盘前 `report/README.md` 那条指路仍是 C3 的一条死引用。
 
+**#341 续（07:3x，同一轮的第二跑）**：射程补全之后，导出器实测**死链 95 条 / 扫 202 份活文档 / 唯一目标 66 个**（逐条落在
+`build/evidence/r120_deadlinks_a060a37.txt`；`839 个文件 / 20M / 剪掉 2720 条 / 甲层绝对路径 0 / 乙层 1 / 丙层 30 行·19 份只报数`）。
+66 个目标分四类，处置不是一刀切：
+① **剪了却没改口**（14 个：`board/boot27c.tcl`、`board/card_v2_preview.png`、`build/roster_r118_after_*.rpt` 六份、
+`src/rtl/` 四个零引用 RTL）——根因是改口规则只由 BUILD_DEV_ONLY / DOC_EXCLUDE / BUILD_PRUNED 三个**子集**生成，
+而 `PRUNE_ONEOFF` 与 2b 那一圈"没人点名就剪"只剪不改。修法是**同源对称**：规则从 `_pruned.txt` 现取（剪几条就长几条），
+并打印"剪枝件路径 N 条 ⇒ 生成逐条规则 M 条"这一对数（提交 `9faec75`）。
+② **指向盘上存在但故意不入库的件**（`docs/walkthrough/` 六份学习文档、`board/HANDS_ON.md`、`board/uart_capture.txt`、`build/ps7_init.tcl`）；
+③ **压根没写过的规划落点**；④ **改名轮留下的旧名**。
+②③④ 不再派子代理（派出去 70 分钟，`git status` 里它们**一个字节都没动**，"派了活"不等于"干了活"），
+改成一次性规则表工具 `build/r120_fix_dangling_cites.mjs`：47 条规则、一条一个决定，`repoint` 要求真件当场 `test -e`
+（不在就整批 REFUSE），`mark` 只在**同一行**加声明词，词表与导出器的 `SKIP_RE` 同源；逐文件断言行数不变。
+99 处判定 / 29 份文件（`CHECK 扫 242 份 / 待改 29 份 / 规则 47 条 判定 99 处`）。
+
+**第一版把工具用坏了两回，两回都记在这里**：
+1. `mark` 最初不分场景地把词拼在名字后面，于是 README 里那条**命令**变成
+   `grep -o "xc7z020[a-z0-9]*" "$VP_VIVADO_BIN/../data/parts/installed_devices.txt（不随包）"` ——
+   为了过自检把可跑的命令改坏，比死链接更糟（死链接至多让人翻不到，坏命令让人跑出错的数）。
+   现在按行分场景：命令行把声明挂到行尾 `# 不随包`，散文行才就地补「（词）」，两种落点仍在同一行。
+2. 回退时我用 `git diff --name-only | grep '\.md$' | xargs git checkout --`，把**同批改过、但不该回退的**
+   `report/log/ISSUES.md` 一起冲掉了（这上面那一段 #341 续就是重写的）。规矩补一条：**回退只按显式文件名单，
+   不按"扩展名/模式"扫**——模式扫的回退范围永远比你想的大（与"`git add` 是原子的"同族）。
+
+**时序侧这一轮新量到的（同属 #341 的第二跑）**：`build/evidence/r120_c1_probe5.txt`（只读，已布线 DCP）
+`REFCOUNT BUFIO 0 / BUFR 0 / MMCM 0 / PLLE 0 / BUFG 8 / IBUF 9 / IDDR 5`、`IDDR_SITES ILOGIC_X1Y37…42`、
+IDDR 自身在时钟区 `X1Y0`，4 只数据 IDDR 的全部下游锥（127–130 只时序单元）`distinct=1 (X1Y0)`，
+只有 `u_iddr_rx_ctl` 的 613 只终点跨到 `X1Y1`（`distinct=2`）。⇒ #323 想关的那个数**只读关不掉**
+（网表里没有 BUFIO 实例，就没有到达时间可测），能只读关掉的是**代价面**，而且它比 §7 的担心更乐观；
+探针 v1/v2/v4 三次都是我自己脚本的错（`foreach_in_collection` 命令名不存在、`get_property` 接空集合、
+IDDR 的输出脚在网表里叫 **Q1/Q2** 不是 O1/O2）——三次都靠"先看形状再解析"才定位，第四次才真照做。
+台账同时补两行：`C10`（校验和锥拆两拍，`measured-none`，收益上限 +0.278 有件）与
+`C11`（BUFIO + 同区第一级，`partially-measured`：代价面有读数、收益面没测）。
+
 
 

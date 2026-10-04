@@ -107,7 +107,7 @@ elf 与 bit 不同龄 ⇒ 本轮的板级结论只能盖到"bit r118 + elf r101 
 | `build/evidence/r118_serial_raw.txt` | 2026-10-04 04:47 | 5 | 2 | 2 | `9f225141` | 可比；`board_verify_console.txt:15` 自报"行数=4 [TEMP]=2 判定=绿（地板 2）" |
 | `build/evidence/verify_0930_1845.txt` | 2026-09-30 18:48 | 60 | 1 | 0 | `56da9851` | 与上一族**不同尺子**（那是 board_verify 全量控制台，不是原始逐字回显） |
 | `build/evidence/verify_0930_2215.txt` | 2026-09-30 22:18 | 62 | 1 | 0 | `084c09c0` | 同上 |
-| `board/uart_capture.txt` | 2026-09-29 07:05 | 7 | 0 | 1 | `511b3e50` | 单条 `stat` 的手动抓取，窗口与轮次身份 `【待补】` |
+| `board/uart_capture.txt（不随包）` | 2026-09-29 07:05 | 7 | 0 | 1 | `511b3e50` | 单条 `stat` 的手动抓取，窗口与轮次身份 `【待补】` |
 | `board/uart_script_capture.txt` | 2026-10-04 04:49 | 364 | 8 | 3 | `cc3c165a` | 105 条命令电池的原始捕获（r118 那一跑，`board_verify_console.txt:63` 点名它） |
 
 注：`r116_serial_raw.txt` 的 sha256 前 8 我这一轮**没有**单独复算（它只有 2 字节，登记行数以 `wc -c`=2 为准）；

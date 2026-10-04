@@ -47,23 +47,23 @@ ARCHIVE ROUND R_TIMING R_RESOURCE R_STATUS DONE_TOKEN ROW_RE COL_WNS COL_EP MIN_
 1. 复制并改名，填 SLOTS 段的十个槽位（**只改这一段**）：
    ```bash
    mkdir -p <你的仓库>/build/checks
-   cp <技能包>/skill/templates/script-template/script-template.sh <你的仓库>/build/checks/my_gate.sh
-   sed -n '33,50p' <你的仓库>/build/checks/my_gate.sh     # 看 SLOTS 段，逐行决定用环境变量还是改默认值
+   cp <技能包>/skill/templates/script-template/script-template.sh <你的仓库>/build/checks/my_gate.sh # 示例
+   sed -n '33,50p' <你的仓库>/build/checks/my_gate.sh     # 看 SLOTS 段，逐行决定用环境变量还是改默认值 # 示例
    ```
-   **完成后应看到**：`grep -c '【填入】' <你的仓库>/build/checks/my_gate.sh` 报出一个数（应当只剩判据行那一处提示，正文里不许留）。
+   **完成后应看到**：`grep -c '【填入】' <你的仓库>/build/checks/my_gate.sh（示例）` 报出一个数（应当只剩判据行那一处提示，正文里不许留）。
 2. 用环境变量跑一次（不改脚本也能跑，避免把机器路径写回文件）：
    ```bash
    REPORT_DIR=<报告目录> ROUND=<轮次号> REQ_TOOL=<可执行名> \
    VERSION_CMD='<工具> --version | head -1' \
    R_TIMING=<文件名> R_RESOURCE=<文件名> R_STATUS=<文件名> \
    DONE_TOKEN=<收尾标记> ROW_RE='<该读数行的正则>' COL_WNS=<列号> COL_EP=<列号> \
-   bash <你的仓库>/build/checks/my_gate.sh > /tmp/g.txt 2>&1; echo "rc=$?"
+   bash <你的仓库>/build/checks/my_gate.sh > /tmp/g.txt 2>&1; echo "rc=$?" # 示例
    ```
    **完成后应看到**：`rc=` 是 0/1/2/3 之一；`/tmp/g.txt` 里有 `  <名> <实测> <判据> PASS|FAIL|n/a` 若干行 + 一行 `判定 N 项…` + 一行 `RESULT: …`。
    ⚠ 取退出码不许用管道（`… | tail -2; echo $?` 读的是 `tail` 的状态）——先重定向到文件再 `echo rc=$?`。
 3. 跑反例：
    ```bash
-   bash <你的仓库>/build/checks/my_gate.sh --self
+   bash <你的仓库>/build/checks/my_gate.sh --self # 示例
    ```
    **完成后应看到**：`SELF: 全绿（7 条）`，退出码 0；任何一条 `FAIL 反例：…` 都说明这条判据没有牙。
 

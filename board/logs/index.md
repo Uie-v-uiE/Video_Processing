@@ -58,7 +58,7 @@ for f in <表里的路径>; do printf "%s | %s | lines=%s | sha8=%s\n" "$f" \
 | L25 | `build/evidence/r114_serial_raw.txt` | 2026-10-03 21:32 | 5 / 2 / 2 | `44504ce6` | 卡 A4 |
 | L26 | `build/evidence/verify_0930_1845.txt` | 2026-09-30 18:48 | 60 / 1 / 0（r96：`RESULT board_verify PASS（判红的步骤：0）`） | `56da9851` | 卡 A4（不同尺子） |
 | L27 | `build/evidence/verify_0930_2215.txt` | 2026-09-30 22:18 | 62 / 1 / 0（r97 第一次跑出 2 条红的那一份，`ACCEPTANCE.md:56`） | `084c09c0` | 卡 A4（不同尺子） |
-| L28 | `board/uart_capture.txt` | 2026-09-29 07:05 | 7 / 0 / 1 | `511b3e50` | 卡 A4（手动抓取，轮次身份 `【待补】`） |
+| L28 | `board/uart_capture.txt（不随包）` | 2026-09-29 07:05 | 7 / 0 / 1 | `511b3e50` | 卡 A4（手动抓取，轮次身份 `【待补】`） |
 
 ## 5. 异常与失败现场的凭据（进分析、不进比对表）
 

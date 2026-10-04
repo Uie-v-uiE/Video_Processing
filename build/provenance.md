@@ -83,7 +83,7 @@ diff /tmp/fp_run1.txt build/evidence/r118_tree_fp.txt   # rc=0 ⇒ 与 r118 采�
 | Vivado | v2025.2.1 (64-bit)，SW Build 6403652 | 上面行 1-2 | 本次安装位置在盘上核对到 `.../2025.2.1/Vivado/bin/vivado.bat` 存在（本机路径不入库） |
 | Vitis / xsdb | 【未核实】 | 本卡没在跟踪件里找到 Vitis 的版本串；板上链只用 `VP_XSDB` 指到 `xsdb.bat` | 要补一次 `xsdb.bat -Version` 的原文，别拿 Vivado 的版本冒充它 |
 | arm-none-eabi-gcc（PS 固件） | 【未核实】 | `build/ps_app.mjs:10,26` 只说明编译器由 `PS_CC` 给、没有版本断言 | 与 ELF 那一行一起补（见第 5 节末） |
-| 器件 | `xc7z020clg484-2` | `build/tcl/build_system_axigpio.tcl:5` | 设备库在场性本次用盘上核对：`<Vivado>/data/parts/installed_devices.txt` 内 grep 到 `xc7z020clg484`（大小写敏感的完整器件名列 `xc7z020`、`xc7z020clg484`、`xc7z020i`）。**注意：没有任何构建脚本做这一步断言**，兜底是 `create_project -part` 自己报错 |
+| 器件 | `xc7z020clg484-2` | `build/tcl/build_system_axigpio.tcl:5` | 设备库在场性本次用盘上核对：`<Vivado>/data/parts/installed_devices.txt（不随包）` 内 grep 到 `xc7z020clg484`（大小写敏感的完整器件名列 `xc7z020`、`xc7z020clg484`、`xc7z020i`）。**注意：没有任何构建脚本做这一步断言**，兜底是 `create_project -part` 自己报错 |
 
 **版本偏离声明（P15a 铁律 5 要求的那一行）**：本工程的声明版本是 **2025.2.1**，不是赛题推荐的 2026.1。
 差异需要在报告里说明；本卡的构建链没有对版本做等值断言（第 6 节"缺"那一栏登记），

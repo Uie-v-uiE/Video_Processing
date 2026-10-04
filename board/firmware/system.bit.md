@@ -26,7 +26,7 @@
 
 ⚠ **`build/provenance.md`（P16a 质量判据 2 要求指过去的那一份）现在还不存在**
 —— 它由 P15a 点名、`docs/run-queue.md:25` 标"待开"。所以本卡把"哪一轮"指到**真实存在的轮次件**
-（上表 8 行），而不是写一个指向缺失文件的链接。已进 `docs/questions-for-team-P16a.md`（Q-P16a-4）。
+（上表 8 行），而不是写一个指向缺失文件的链接。已进 `docs/questions-for-team.md`（Q-P16a-4）。
 
 ## 2. 如何再生成（真实命令；本轮**没有跑**）
 
@@ -81,4 +81,4 @@ P16a 交付物写的是"板上镜像 + 每个镜像一张来源卡"。仓库里�
 `report/BUILD.md:200-201` 记过的事故（「同名不同内容今晚发生过两次」、规矩 2「下板之前先 md5sum 对 MANIFEST」）。
 ⇒ 本目录只放来源卡 + 指回权威路径；提交包里二进制由导出器展平到 `board/project/`
 （口径：`build/README.md:17-20`）。
-**是否要改为在 `board/firmware/` 放实体拷贝**，进 `docs/questions-for-team-P16a.md`（Q-P16a-6）等你定。
+**是否要改为在 `board/firmware/` 放实体拷贝**，进 `docs/questions-for-team.md`（Q-P16a-6）等你定。

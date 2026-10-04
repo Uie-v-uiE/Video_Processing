@@ -14,7 +14,7 @@
 docs/measurements.md` 全部 `No such file or directory`），所以逐格取了名册与差分的**原件**；
 写作期间并行 agent 把其中三样落地了（`build/roster/roster_r118.tsv`、`build/roster/roster_r118_probe.tsv`、
 `build/parsed/*.json`、`docs/measurements.md`），**`build/runs/`（P15c 逐轮台账）与
-`docs/build-notes.md`、`docs/optimization-rounds.md` 仍缺**。
+`docs/build-notes.md`、`docs/optimization-rounds.md（未写）` 仍缺**。
 本节与落地后的那三样做过交叉核对，结果与两条不同源登记在 `report/comparison-notes.md` §7。
 **待 `build/runs/ledger.md` 落地后，本节改为引用台账**；在那之前，本节里凡是"某轮的名册"都指下表点名的原件。
 

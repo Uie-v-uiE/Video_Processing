@@ -130,7 +130,7 @@ tap 26 的实测斜率 ≈63 ps/tap（`build/evidence/r114_idelay_sweep_console.
 所以真落地时相移量与 `IDELAY_VALUE` 要**一起调**（把捕获点放到眼中心，而不是贴着 setup 边）。
 
 **第一个中间读数（23:50，route 阶段 `Route 35-416`，不是终态）**：
-`WNS=0.981 TNS=0.000 WHS=-0.228 THS=-1331.x`（件 `c2_scratch_1003/build/c2_build_console2.txt`）。
+`WNS=0.981 TNS=0.000 WHS=-0.228 THS=-1331.x`（件 `c2_scratch_1003/build/c2_build_console2.txt（不随包）`）。
 读法要老实：与 r114 同窗终态的 `WHS −2.885 / THS −14.344` 比，**头条 hold 变好了 2.66 ns，但 THS 涨了 90 倍**
 ⇒ 说明失败的**端点集合换了**（原来是 5 个 I/O 端点，现在是一大批 ~−0.2 的端点）。
 这批端点是"相移没有真的提前 5 ns（`−225°` 可能被工具归一化成 `+135°` 的等效延迟）"还是

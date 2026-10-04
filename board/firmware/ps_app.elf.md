@@ -79,11 +79,11 @@ Python 那条路线的退出码分三档（2 = 输入不在 / 1 = 编译链接�
   `PC_BEFORE_CON` 读得回来、3 秒后 `pc` 落在 `.text` 里且 `cpsr` 低位 `0x13`（SVC）、
   `FLOW_DONE`；串口侧要看到 `[BOOT]` 横幅（`board/uart_cap_once.ps1` 抓，`report/BUILD.md:128`）。
 - **易失**：ELF 在 DDR/OCM 里，断电或 `rst -system` 后必须重新 `dow`。
-  ⇒ 三步链的最后一步永远是它（`board/bringup-checklist.md` §2）。
+  ⇒ 三步链的最后一步永远是它（`board/bringup-checklist.md（未写）` §2）。
 
 ## 4. 这颗 ELF 与那颗 bit 的配对风险（现场真实出现过）
 
-`board/HANDS_ON.md:80` 那条写着：开机若打 `[CFG!] … gamma 窗口不在位流上`，
+`board/HANDS_ON.md（不随包）:80` 那条写着：开机若打 `[CFG!] … gamma 窗口不在位流上`，
 说的是 **elf/bit 不配套**。因为 ELF 落后于位流一整段历史（本文 §1），
 这一格现在是"已知会漂、靠开机回读判"的状态 ⇒ 回读动作 = 抓开机横幅：
 

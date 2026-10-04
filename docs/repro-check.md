@@ -58,7 +58,7 @@ R8（本任务自己写坏首页行名、被 D6 抓到、已修好的过程红�
 | S3 | `python --version; python3 --version` | `Python 3.12.10` 与 `python3: command not found`（rc=127）⇒ **本机无 `python3` 别名**，README 全部命令写 `python` | PASS（事实成立） |
 | S4 | `python -c "import serial; print(serial.__version__)"` | `ModuleNotFoundError: No module named 'serial'`（rc=1）⇒ **无 pyserial**，串口侧走 `board/*.ps1` | PASS（事实成立） |
 | S5 | `command -v vivado`；`test -f "$VP_VIVADO_BIN/vivado.bat"` | 第一条空 ⇒ `vivado` **不在 PATH**（README 因此写 `"$VP_VIVADO_BIN/vivado.bat"`）；第二条 `OK` | PASS |
-| S6 | `grep -o "xc7z020[a-z0-9]*" "$VP_VIVADO_BIN/../data/parts/installed_devices.txt" \| sort -u` | 三行：`xc7z020` / `xc7z020clg484` / `xc7z020i` ⇒ 器件在设备库；⚠ 全仓无脚本做这条断言（`build/README.md` §7 的 P3 行 = 缺） | PASS |
+| S6 | `grep -o "xc7z020[a-z0-9]*" "$VP_VIVADO_BIN/../data/parts/installed_devices.txt（不随包）" \| sort -u` | 三行：`xc7z020` / `xc7z020clg484` / `xc7z020i` ⇒ 器件在设备库；⚠ 全仓无脚本做这条断言（`build/README.md` §7 的 P3 行 = 缺） | PASS |
 | S7 | `test -f "$VP_XSDB"`；`netstat -an \| grep ":3121"` | `OK`（`xsdb.bat` 存在）+ `TCP 0.0.0.0:3121 0.0.0.0:0 LISTENING` ⇒ hw_server 在听；另 `test -f <Vitis>/bin/hw_server.bat` = 存在 | PASS |
 | S8 | `powershell.exe -NoProfile -Command "[System.IO.Ports.SerialPort]::GetPortNames()"` | `COM6`；`Get-PnpDevice -PresentOnly` 过滤出 `USB Serial Converter A/B` 与 `USB Serial Port (COM6)`，状态 `OK`（**只枚举，不开口**） | PASS |
 | S9 | `bash build/rtl_fingerprint.sh --self` | 9 行 `PASS F-SELF …` + 末行 `RESULT rtl_fingerprint --self PASS`，rc=0 | PASS |
@@ -214,7 +214,7 @@ Linux 分支：S1/S8 的 Linux 形状（`ls /dev/ttyUSB*` 等）**【未在 Linu
 4. `head -45` 五支脚本用法头（`build/gates.sh`、`build/board_verify.sh`、`sim/run_one.sh`、`build/r116_bit_cycle.sh`、`build/tb98_report.sh`）
 5. `head -40 skill/scripts/check/gates.mjs`、`head -40 build/r119_window_check.mjs`
 6. `uname -a` / `node --version` / `git --version` / `python --version` / `python3 --version` / `python -c "import serial"` / `command -v arm-none-eabi-gcc` / `command -v vivado`
-7. `test -f` 安装件：`<Vivado>/bin/vivado.bat`、`<Vitis>/bin/xsdb.bat`、`<Vitis>/bin/hw_server.bat`、`<Vitis>/gnu/.../arm-none-eabi-gcc.exe`、`<Vivado>/data/parts/installed_devices.txt`
+7. `test -f` 安装件：`<Vivado>/bin/vivado.bat`、`<Vitis>/bin/xsdb.bat`、`<Vitis>/bin/hw_server.bat`、`<Vitis>/gnu/.../arm-none-eabi-gcc.exe`、`<Vivado>/data/parts/installed_devices.txt（不随包）`
 8. `grep -o "xc7z020[a-z0-9]*" …/installed_devices.txt | sort -u`
 9. `netstat -an | grep ":3121"`
 10. `powershell.exe -NoProfile -Command "[System.IO.Ports.SerialPort]::GetPortNames()"`
@@ -253,7 +253,7 @@ Linux 分支：S1/S8 的 Linux 形状（`ls /dev/ttyUSB*` 等）**【未在 Linu
 | S3 | `python --version; python3 --version` | `Python 3.12.10` + `python3: command not found` | PASS | 同 |
 | S4 | `python -c "import serial; print(serial.__version__)"` | `ModuleNotFoundError: No module named 'serial'` | PASS | 同 |
 | S5 | `command -v vivado`；**照 README 字面** `find /c /d -maxdepth 4 -name vivado.bat`；改深度后的同一条；`test -f "$VP_VIVADO_BIN/vivado.bat"` | 第一条空（不在 PATH）；**`-maxdepth 4` 那一跑 = 0 行**（同一条在 `/<盘>/Software` 上 `-maxdepth 4` = 0、`-maxdepth 5` = 1 行、1.0 s）⇒ 本机安装是 `/<盘>/Software/Vivado/<版本>/Vivado/bin/vivado.bat`，从盘符根数起第 6 层，**旧 README 那句"本机实测这两条能把它挖出来"照字面不成立**；`-maxdepth 6` 挖到，`test -f` = OK | PASS（**改后**；改前照字面敲 = FAIL，见 §3 R11） | README §5 S5 已把深度改成 6 并写上这条实测 |
-| S6 | `grep -o "xc7z020[a-z0-9]*" "$VP_VIVADO_BIN/../data/parts/installed_devices.txt" \| sort -u`（并试备用写法 `$(dirname …)/data/parts/…`） | 两种写法都给同样三行：`xc7z020` / `xc7z020clg484` / `xc7z020i` | PASS | 同第一轮（备用形状本轮实测过，旧记录里那句"不成立时改成…"是对的） |
+| S6 | `grep -o "xc7z020[a-z0-9]*" "$VP_VIVADO_BIN/../data/parts/installed_devices.txt（不随包）" \| sort -u`（并试备用写法 `$(dirname …)/data/parts/…`） | 两种写法都给同样三行：`xc7z020` / `xc7z020clg484` / `xc7z020i` | PASS | 同第一轮（备用形状本轮实测过，旧记录里那句"不成立时改成…"是对的） |
 | S7 | `test -f "$VP_XSDB"`；同名片在 `<Vivado>/bin` 的那一份 `test -f`；`netstat -an \| grep ":3121"` | 两处都在（`…/Vitis/bin/xsdb.bat` 与 `…/Vivado/bin/xsdb.bat` ⇒ README"同名件有两份、取 Vitis 那一份"成立）；端口行 `TCP 0.0.0.0:3121 0.0.0.0:0 LISTENING` | PASS | 同 |
 | S8 | `powershell.exe -NoProfile -Command "[System.IO.Ports.SerialPort]::GetPortNames()"` | `COM6`（只枚举，未开口） | PASS | 同 |
 | S9 | `bash build/rtl_fingerprint.sh --self` | 末行 `RESULT rtl_fingerprint --self PASS`，rc=0 | PASS | 同 |
