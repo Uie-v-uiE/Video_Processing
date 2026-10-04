@@ -8,7 +8,7 @@
 
 来源类别只允许四种：`一次事故` / `反复出现的症状` / `量出来的差异` / `外部资料`。
 
-| 技能（条目路径见 `skill/README.md` 的一览表） | 来源类别 | 点名证据 |
+| 技能（条目路径见 `skills/README.md` 的一览表） | 来源类别 | 点名证据 |
 | --- | --- | --- |
 | `skill/pitfalls/checker-ran-on-nothing/` | 反复出现的症状 | `report/log/ISSUES.md` #330（等待器等的是本轮没产出的 verdict）、#194（第 14 项没有计数地板） |
 | `skill/pitfalls/report-field-parse-breaks/` | 一次事故 | `report/log/ISSUES.md` #331（首页身份句加了 Markdown 粗体，`ADJ_RNN` 跨不过 `**` ⇒ 判红抓到 0 句） |
@@ -80,6 +80,6 @@ G8 把 `{a,b}.tcl` 这种简写记法当路径。**修法是把尺子的量纲�
 ## 本章依据的产物
 
 `report/log/ISSUES.md`、`report/log/OVERNIGHT_LOG.md`、`docs/timing/ROUND_r117.md`、`docs/timing/ROUND_r118.md`、
-`report/TIMING_GLOBAL.md`、`build/tcl/r117_post_place_hook.tcl`、`skill/README.md`、`skill/_meta/naming-and-format.md`、
+`report/TIMING_GLOBAL.md`、`build/tcl/r117_post_place_hook.tcl`、`skills/README.md`、`skill/_meta/naming-and-format.md`、
 `skill/_meta/sources.md`、`skill/evals/README.md`、`skill/evals/runbook.md`、`skill/evals/raw/`、
 `skill/scripts/check/gates.mjs`、`skill/scripts/check/gen_index.mjs`

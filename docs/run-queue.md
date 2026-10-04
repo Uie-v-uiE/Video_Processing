@@ -10,7 +10,7 @@
 
 | 任务 | 目标文件（点名范围） | 依赖 | 状态 |
 | --- | --- | --- | --- |
-| P01 骨架 | `skill/README.md`、`skill/_meta/*` | — | 已交付（索引由 `skill/scripts/check/gen_index.mjs` 生成） |
+| P01 骨架 | `skills/README.md`、`skill/_meta/*` | — | 已交付（索引由 `skill/scripts/check/gen_index.mjs` 生成） |
 | P02 提示词工作流 | `skill/prompts/*` | P01 | 已交付 8 条（4 支模板 + 本轮迁入的 `eye-acceptance-loop`、`llm-fpga-debug-workflow`、`read-only-review-agent`、`round-work-loop`）；全部 `待验证`——每条都还欠"同一模板连跑 3 次"的 evals 记录 |
 | P03 案例模板 | `skill/templates/*` | P01 | 已交付 4 条；**均未经空目录演练**（各条目 §7 明写"模板未经空目录验证"，不宣称可直接使用） |
 | P04 校验脚本 | `skill/scripts/*`、`skill/scripts/selftest/run_all.sh` | P01 | 已交付：5 份脚本外壳（`contract_gen`/`golden_compare`/`regmap_check`/`report_metrics`/`repro_check`）+ `selftest/run_all.sh`（判 40 项、6 行各一判据、`pass=6 fail=0 nm=0`），G11 从"未测"转 PASS，件 `build/evidence/r120_selftest.txt` |

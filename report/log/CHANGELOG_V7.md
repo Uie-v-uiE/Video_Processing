@@ -705,7 +705,7 @@ L1 当前状态：**41/41**（`sim/results/regression_v79_r26.txt`，新增 `tb_
 | 交接判据可机器判定 | lane30 从 3 位扩到 8 位（仲裁看到的模式 + 两个引擎的 busy），**八位全在 axi 域 ⇒ 不交跨域税**；一条命令出七条判据 + 毫秒数 | `src/host/arb_handover_test.mjs`（判据自身 10 条反例台架） |
 | 修掉 #52（上电白送一次长按） | 长按同步链复位值与源头不一致 ⇒ 模式自己走到"锁 ETH"、`force_eth` 长占、停流永不交回；搬进 `src_mode.v` + 8 拍灌满期 | `sim/tb_v82_src_mode.v`（12 条，含"旧写法必须自己动"的反面对照） |
 | 修掉 #49 的 CDC 账 | `fsm_encoding="none"` + 按位下一状态：那条从 Critical（8 端点 / 4 unsafe）降到 Warning（5 / **0 unsafe**） | `build/cdc.rpt` + `build/cdc_details.rpt`（`report_cdc -details` 点名） |
-| **门禁第一次拦住我自己** | `gates.sh` 第 6 项原来写死"4 行以内算过"，#26/#27 各自新增一条 Critical 配对却打印 ALL PASS；改成与 `build/CDC_BASELINE.txt` 比**配对集合** | 反例自查：#26/#27 判红、#25 判绿；`skill/cdc_pair_baseline_gate.md` |
+| **门禁第一次拦住我自己** | `gates.sh` 第 6 项原来写死"4 行以内算过"，#26/#27 各自新增一条 Critical 配对却打印 ALL PASS；改成与 `build/CDC_BASELINE.txt` 比**配对集合** | 反例自查：#26/#27 判红、#25 判绿；`skills/rtl/cdc-and-async-discipline/SKILL.md` |
 | 指标工具的第二课 | 分母的**总体**也要对：交付字节数包含被作废的帧，而 `gap_sum` 只数被接收的帧 ⇒ 曾报出"平均 22.4 ms 而最小 6667 ms"；现在分母 = 交付 − 作废 − 1，并加自相矛盾自曝 | `src/host/metrics.mjs --selftest` 8 → 14 条 |
 | #50 先定性、后**结案** | 定性：SD 回放在**第 3584 帧 = 第 8 个文件 VIDEO007.BIN 的第一帧**必然读失败（两次独立长跑 + 定点跳帧探测同指一处）⇒ 不是"并发挤到超时"；次生的"file not found"是控制器被留在未完成传输里。<br>结案（05:4x）：给失败行加几何量后一枪定位 —— `dir_lookup` 把 FAT32 目录项偏移 20 的 **16 位小端**高簇字按大端拼了，首簇 ≥65536（= 文件起点在数据区 1 GiB 之后）才发作；修完**整卡 4398 帧第一次播完并自动回绕**，卡不用重拷 | `board/sd_hotspot_diag.txt`（`OUT-OF-RANGE` 现场）、`board/sd_hotspot_fixed.txt`（跨点 + 回绕）、`board/sd_selftest_red.txt`（判据的反例）、`build/frozen_r32_sdfix/` |
 

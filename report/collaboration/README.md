@@ -97,7 +97,7 @@ ls skill/evals/                                 # records/ migration/ raw/ READM
 ls skill/evals/migration/ | wc -l               # 0（仍是空目录）
 grep -c "被测条目" skill/evals/records/*.md      # 两份都是 0 ⇒ 不是 evals/README.md §3 规定的 9 字段记录
 grep -rIn "S0[1-5]\|sessionId\|jsonl" skill/evals/records/ | wc -l   # 0 ⇒ 没有任何一条引用会话登记号
-grep -c "已复跑" skill/README.md                 # 5（都在"为什么不能写已复跑"的语境里，见 :296/:302/:303/:318/:334）
+grep -c "已复跑" skills/README.md                 # 5（都在"为什么不能写已复跑"的语境里，见 :296/:302/:303/:318/:334）
 grep -rIn "#334" skill/ | wc -l                 # 0
 grep -rIn "#335" skill/ | wc -l                 # 1（唯一一处不在技能条目正文里，在 records/audit-2026-10-04.md:16）
 grep -rIl -e '#321' -e '#332' -e '#333' skill/ | wc -l   # 7 个文件

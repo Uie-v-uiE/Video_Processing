@@ -35,7 +35,7 @@
   `board/` 新文档、`docs/` 各章、`report/` 各新章节、`build/` 新工件。
 - 删除动作（有证明才删）：四份 `skill/{pitfalls,prompts,references,templates}/_MANIFEST.md`。
   删除前核对：三份共 30 条路径行**全部被生成索引覆盖（未覆盖 = 0）**，其"口径说明"文字已整体迁入
-  `skill/README.md` 正文区（生成块之外）。理由：`_MANIFEST.md` 违反 3.3.5.4 的小写命名，且手写第二份索引必然与
+  `skills/README.md` 正文区（生成块之外）。理由：`_MANIFEST.md` 违反 3.3.5.4 的小写命名，且手写第二份索引必然与
   `gen_index.mjs` 漂移（G1 因此判红 3 项 → 现 0 项）。
 - 追加目录：`skill/_meta/sources.md`（178 行，插 4 项目录）、
   `skill/templates/project-skeleton/project-skeleton.md`（114 行，插 8 项目录）——为过 G6。

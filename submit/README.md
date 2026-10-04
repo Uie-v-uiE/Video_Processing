@@ -12,7 +12,7 @@
 2. 想知道数字可不可信：所有读数只在两件东西里 —— `data/metrics.csv`（指标表）与
    `build/r118_gates_final.txt`（门禁那一行）。本目录**不抄任何数字**，抄了就会漂。
 3. 想复跑：`submit/reproduce/README.md`，四条命令从构建到上板，每条写明"跑完应看到什么"。
-4. 想知道这套方法能不能搬走：`skill/README.md`（技能包总索引，由脚本从目录实际内容生成）。
+4. 想知道这套方法能不能搬走：`skills/README.md`（技能包总索引，由脚本从目录实际内容生成）。
 
 ## 目录对照（推荐结构 → 本仓库位置）
 
@@ -26,7 +26,7 @@
 | 复现说明 | `submit/reproduce/` | 命令 + 前置 + 期望输出，三件齐才算一条步骤 |
 | 大模型协作记录 / 技能包提炼过程 | `submit/07-skill-distillation.md`、`submit/08-limits.md` | 赛题 §3.3.5.3 点名的两章 |
 | 度量表、逐时钟名册、逐轮台账 | `docs/`（含 `docs/timing/`） | 包与仓库同形状：`report/` 讲结论，`docs/` 放支撑结论的表与逐轮读数；两层都不复制数字，只点名凭据 |
-| 读懂工程本身 | `skill/README.md` 之外请看 `docs/walkthrough/`（**本地留档，不随包、不进 git**，见 `.gitignore`） | 学习文档面向作者与接手的人，交付件里已有分章报告 |
+| 读懂工程本身 | `skills/README.md` 之外请看 `docs/walkthrough/`（**本地留档，不随包、不进 git**，见 `.gitignore`） | 学习文档面向作者与接手的人，交付件里已有分章报告 |
 
 ## 阅读顺序（八章，每章末尾都点名它依据的文件）
 

@@ -91,7 +91,7 @@
 | `build/` | 可复现的构建脚本（`tcl/`，入口一条命令出位流）+ 本版综合实现报告（仓库里平铺在 `build/`）+ 门禁与上板回读脚本；构建产物（位流/XSA/ELF）也落在这里 ⇒ [`build/README.md`](build/README.md) |
 | `board/` | 上板三件事：工程与二进制怎么来、运行脚本（JTAG 三步 + 串口）、跑起来读回来的实测输出 ⇒ [`board/README.md`](board/README.md)、验收表 [`board/ACCEPTANCE.md`](board/ACCEPTANCE.md) |
 | `data/` | `data/golden/` 参考图（含 `data/golden/manifest.md`）、`data/inputs/` 裸帧输入、`data/measured/` 实测输出留档（本会话实测 20 个件，索引在它自己的 `data/measured/README.md` 里）、[`data/metrics.csv`](data/metrics.csv) 是唯一那张数字表（`data/README.md` 本会话实测**不存在**） |
-| `skill/` | 大模型协作沉淀的技能卡（索引 [`skill/README.md`](skill/README.md)；条目数只有那一行写着，本页不复制） |
+| `skill/` | 大模型协作沉淀的技能卡（索引 [`skills/README.md`](skills/README.md)；条目数只有那一行写着，本页不复制） |
 | `report/` | 交付文档：设计说明、优化记录、命令表、复现说明（索引 [`report/README.md`](report/README.md)） |
 | `report/log/` | 追加式工作记录（问题账、过夜流水、赛题对照表）；只作过程留痕，不当结论引用 |
 
@@ -108,7 +108,7 @@
 | 设计报告 / 各章节文档 | `report/*.md`（索引 [`report/README.md`](report/README.md)），阅读路径重构在 `submit/01-overview.md`…`submit/08-limits.md` | 仓库里一份、按"怎么建的"长；包里按"评审要看的顺序"重排，**只搬指路不搬数字** |
 | 实测数据 / 指标 | [`data/metrics.csv`](data/metrics.csv)（唯一那张数字表，每行点名它的凭据） | 数字只在一处；其余读数一律由 §7 的尺子回算，不在文档里复述（§2 的红项 R2/R3 就是复述会漂的实例） |
 | 凭据（构建 / 台架 / 板级报告原件） | `build/`（实现与综合报告平铺）、`build/evidence/`（被点名的那几份）、`build/r118_gates_final.txt` | 正文不改写：包里念的判据报告仍是工具产出的原文 |
-| 技能包（§3.3.5.2 点名 `skill/`） | `skill/`，条目一律 `<目录>/SKILL.md` 八节外壳，索引 [`skill/README.md`](skill/README.md) | 赛题按目录名收，故同名；条目数只写在 `skill/README.md` 那一行，本页不复制 |
+| 技能包（§3.3.5.2 点名 `skill/`） | `skill/`，条目一律 `<目录>/SKILL.md` 八节外壳，索引 [`skills/README.md`](skills/README.md) | 赛题按目录名收，故同名；条目数只写在 `skills/README.md` 那一行，本页不复制 |
 | 复现说明（他人从零执行） | §5–§7 三节 + [`submit/reproduce/README.md`](submit/reproduce/README.md)（每条命令逐字抄自脚本自己的用法头并标行号） | 命令 + 前置 + 期望输出，三件齐才算一条步骤 |
 | 大模型协作记录 / 技能包提炼过程 | `report/AI_COLLABORATION.md`、`report/LLM_COLLAB.md`、`submit/07-skill-distillation.md`、`skill/pitfalls/` | 赛题 §3.3.5.3 点名的两章；原料是 `report/log/ISSUES.md` 与 `OVERNIGHT_LOG.md` |
 | 学习/讲解文档（推荐结构里的"上手引导"那一类） | `docs/walkthrough/`（本会话 `ls` 存在；**不随包**、也不在提交阅读路径里，`docs/` 整目录由 `build/make_submission.sh:107-114` 剪掉） | 面向接手的人而非评审；随包会让评审翻到一堆过程件 |

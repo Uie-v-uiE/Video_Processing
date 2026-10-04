@@ -205,18 +205,22 @@ if (want('C7')) {
   const docs = tracked.filter(f => f.endsWith('.md') && !f.startsWith('report/log/') && !f.startsWith('build/evidence/') && !f.startsWith('docs/walkthrough'));
   const I_RE = /我们|本文档|本节将?介绍|希望对您|(^|[、，。；：\s])我[要想将在认为觉建]/;
   const SOFT_RE = /显著|极大地|完美|优秀|强大|TBD|待补充|【填入】|待验证/;
-  const DING_RE = /[✓✗→✔✘]/g;   // 箭头/勾叉是"符号代替文字"，单列计数：修法=换成 PASS/FAIL 文字
+  const ARROW_RE = /→/g;   // 叙述连接符，只报数
   const EMOJI_RE = /[\u{1F300}-\u{1FAFF}\u{2600}-\u{26FF}]/u;
-  const hits = { person: [], soft: [], emoji: [], ding: [] }, scanned = docs.length;
+  const checks = { person: [], soft: [], emoji: [], cross: [], arrow: [] }, scanned = docs.length;
+  const CROSS_RE = /[✓✗✔✘]/g;
   for (const f of docs) {
     const t = read(f);
-    if (I_RE.test(t)) hits.person.push(f);
-    if (SOFT_RE.test(t)) hits.soft.push(f);
-    if (EMOJI_RE.test(t)) hits.emoji.push(f);
-    if (DING_RE.test(t)) hits.ding.push(f);
+    if (I_RE.test(t)) checks.person.push(f);
+    if (SOFT_RE.test(t)) checks.soft.push(f);
+    if (EMOJI_RE.test(t)) checks.emoji.push(f);
+    if (CROSS_RE.test(t)) checks.cross.push(f);
+    if (ARROW_RE.test(t)) checks.arrow.push(f);
   }
-  const bad = hits.person.length + hits.soft.length + hits.emoji.length + hits.ding.length;
-  say('C7', 'style-red-lines', scanned, `交付文档=${scanned} 人称=${hits.person.length} 程度副词或TBD=${hits.soft.length} emoji=${hits.emoji.length} 勾叉箭头=${hits.ding.length} 例:${[...hits.person, ...hits.soft, ...hits.ding].slice(0, 4).join(',')}`, scanned === 0 ? 'NOT_MEASURED' : (bad ? 'FAIL' : 'PASS'));
+  // 严格项=赛题 §7 点名的东西；箭头只作叙述连接符，不承载"用符号代替文字"的问题 ⇒ 报数不判红
+  const ARROW_N = checks.arrow.length;
+  const bad = checks.person.length + checks.soft.length + checks.emoji.length + checks.cross.length;
+  say('C7', 'style-red-lines', scanned, `交付文档=${scanned} 人称=${checks.person.length} 程度副词或TBD=${checks.soft.length} emoji=${checks.emoji.length} 勾叉=${checks.cross.length} 箭头(只报数)=${ARROW_N} 例:${[...checks.person, ...checks.soft, ...checks.cross].slice(0, 4).join(',')}`, scanned === 0 ? 'NOT_MEASURED' : (bad ? 'FAIL' : 'PASS'));
 }
 // ---- C8 汇总（清单自检的机械版）
 for (const r of rows) console.log(r);
