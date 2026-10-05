@@ -4,13 +4,12 @@
 125 MHz，中间到底要跨多少条边**。它是 `report/timing/eth_rxc_partition_options.md` 第 2 节那条候选 B 的
 动手前置件：那张表里"今天没有同步器、只因两端同钟才安全"的点必须逐条安排掉，才允许改 RTL。
 
-口径：本轮**只读** —— 没跑综合/实现/仿真，没碰板子、COM6、`hw_server`、`xsdb`；所有数字来自已在盘上的
-报告与本轮真的打开过的源码行，取不到的写 **未量**，不补数。层次路径按工具打印的写法给（前缀 `u_eth/`、
-`u_pl/`），与 `build/cdc_details.rpt:435`、`build/cdc_details.rpt:1383` 那类名字同口径。
-"今天两端同钟"有三处独立证据：`src/rtl/eth/eth_udp_video_top.v:5`（域声明）、
-`src/rtl/eth/gmii_to_rgmii.v:25`（实现 `assign gmii_tx_clk = gmii_rx_clk;`）、
-`src/rtl/eth/eth_ctrl.v:3`（仲裁层同款声明）⇒ §2 表里凡两端分属 RX 侧 / TX 侧的信号，
-今天的源域与目的域**都是 `eth_rxc`**，表里不再重复写。
+口径：本轮**只读** —— 没跑综合/实现/仿真，没碰板子、COM6、`hw_server`、`xsdb`；所有数字来自已在盘上的报告
+与本轮真的打开过的源码行，取不到的写 **未量**，不补数。层次路径按工具打印的写法给（前缀 `u_eth/`、
+`u_pl/`），与 `build/cdc_details.rpt:435`、`build/cdc_details.rpt:1383` 那类名字同口径。"今天两端同钟"有三
+处独立证据：`src/rtl/eth/eth_udp_video_top.v:5`（域声明）、`src/rtl/eth/gmii_to_rgmii.v:25`（实现
+`assign gmii_tx_clk = gmii_rx_clk;`）、`src/rtl/eth/eth_ctrl.v:3`（仲裁层同款声明）⇒ §2 表里凡两端分属
+RX 侧 / TX 侧的信号，今天的源域与目的域**都是 `eth_rxc`**，表里不再重复写。
 
 ---
 
@@ -35,7 +34,7 @@
 | 挂在树上的寄存器 | 2544 时钟负载（网表）；名册另一列 2546 | `build/clock_util.rpt:61`、`build/timing_summary.rpt:182` |
 | 这一族最差那条的归属 | `From Clock: eth_rxc / To Clock: eth_rxc`（同域内路径） | `build/evidence_r75/timing_summary.rpt:354-355` |
 
-最后那行是本清单的立论基础：**最差路径两端写同一个钟名**，说明发侧协议栈今天整个在这 8 ns 预算里被检查。
+最后那行是本清单的立论基础：**最差路径两端写同一个钟名**，说明发侧协议栈今天整个在这 8 ns 预算里被检查；
 B 要买的就是把发侧那一半从这张表里搬走。
 
 ### 1.3 新 125 MHz 的来源（B 的钟从哪来）
@@ -146,27 +145,24 @@ B 要买的就是把发侧那一半从这张表里搬走。
 
 ### 3.1 三条最危险
 
-1. **线速 9 位出口 X22/X23**：`gmii_tx_en/gmii_txd` 是逐拍有效的发送流
-   （`src/rtl/eth/eth_ctrl.v:89-110`），直接进 ODDR 的 D1/D2
-   （`src/rtl/eth/rgmii_tx.v:27-28`、`:45-46`）。这种流不能 2-FF，只能让复用器与三路发送器**一起**待在
-   TX 域。凡"只换时钟、不换归属"的方案都在这一条上失败。
-2. **`u_icmp_fifo` 读侧 X18/X24**：`sync_fifo` 只有一个 `clk`（`src/rtl/eth/sync_fifo.v:9`），
-   `empty/full` 是同钟 `wptr == rptr` 的组合比较（`:24-27`）。分域后这套判据不是"有亚稳态风险"，
-   而是**逻辑上不再成立**。
-3. **逐包刷新的多位总线 X12/X13/X14/X15**：`icmp_id`/`icmp_seq`/`reply_checksum`/`tx_byte_num` 每个
-   echo request 都换（写点 `src/rtl/eth/icmp_rx.v:242-246`、`:303`、`:310`），而 `icmp_tx` 在
-   `st_idle` + `trig_tx_en` 那一拍整把采走（`src/rtl/eth/icmp_tx.v:258`、`:125-129`）。
-   ⇒ "写完翻 toggle、对端再采"的准静态套路**在这里不成立**，参数必须与事件本身一起过。
+1. **线速 9 位出口 X22/X23**：`gmii_tx_en/gmii_txd` 是逐拍有效的发送流（`eth_ctrl.v:89-110`），直接进 ODDR
+   的 D1/D2（`rgmii_tx.v:27-28`、`:45-46`）。这种流不能 2-FF，只能让复用器与三路发送器**一起**待在 TX 域
+   ⇒ 凡"只换时钟、不换归属"的方案都在这一条上失败。
+2. **`u_icmp_fifo` 读侧 X18/X24**：`sync_fifo` 只有一个 `clk`（`sync_fifo.v:9`），`empty/full` 是同钟
+   `wptr == rptr` 的组合比较（`:24-27`）。分域后这套判据不是"有亚稳态风险"，而是**逻辑上不再成立**。
+3. **逐包刷新的多位总线 X12/X13/X14/X15**：`icmp_id`/`icmp_seq`/`reply_checksum`/`tx_byte_num` 每个 echo
+   request 都换（写点 `icmp_rx.v:242-246`、`:303`、`:310`），而 `icmp_tx` 在 `st_idle` + `trig_tx_en` 那一拍
+   整把采走（`icmp_tx.v:258`、`:125-129`）⇒ "写完翻 toggle、对端再采"的准静态套路**在这里不成立**，
+   参数必须与事件本身一起过。
 
 ### 3.2 那三条"看着像同步器"的移位链不算
 
 `arp_tx.v:66-76`、`icmp_tx.v:103-113`、`udp_tx.v:77-87` 各有 `d0/d1/d2` 三级，配
-`pos_tx_en = (~tx_en_d2) & tx_en_d1`（`src/rtl/eth/arp_tx.v:63`、`icmp_tx.v:99`、`udp_tx.v:73`）。
-它们是**在同钟里捕一个脉冲的上升沿**，不是为 CDC 设计的：三处都没有 `ASYNC_REG`
-（`grep ASYNC_REG src/rtl/eth/` 只命中 4 族：`dc_fifo.v:27`、`ddr_bank_commit.v:42`、
-`eth_udp_video_top.v:277`、`snap_cross.v:36-37`），而源脉冲是恰好一拍宽
-（`src/rtl/eth/eth_ctrl.v:159-160` 的注释与实现、`eth_udp_video_top.v:106`）。时钟一不同，
-能不能采到取决于频率比与相位。⇒ **X11、X21 不能靠现成移位链交差**，要另配脉冲跨域件。
+`pos_tx_en = (~tx_en_d2) & tx_en_d1`（`arp_tx.v:63`、`icmp_tx.v:99`、`udp_tx.v:73`）。它们是**在同钟里捕
+一个脉冲的上升沿**，不是为 CDC 设计的：三处都没有 `ASYNC_REG`（`grep ASYNC_REG src/rtl/eth/` 只命中 4 族：
+`dc_fifo.v:27`、`ddr_bank_commit.v:42`、`eth_udp_video_top.v:277`、`snap_cross.v:36-37`），而源脉冲是恰好
+一拍宽（`eth_ctrl.v:159-160`、`eth_udp_video_top.v:106`）。时钟一不同，能不能采到取决于频率比与相位
+⇒ **X11、X21 不能靠现成移位链交差**，要另配脉冲跨域件。
 
 ### 3.3 六条地址线最好办，事件那两条要一个发射件 —— 但都不必新写 CDC 原件
 
@@ -228,19 +224,18 @@ B 之后这只件**必须被替换**，加属性救不回来。
 ### 5.1 门禁第 6 项会直接判红
 
 `build/gates.sh:108` 取 `CDCBASE=build/cdc_baseline.txt`，`:112` 的 `rows()` 从 `report_cdc` 汇总表抽
-Critical 行的"源钟>目的钟 / 端点数 / unsafe"，`:135` 算**新增配对**，`:145-146` 写明
-"新增 Critical 配对 ⇒ 这一项判红"，`:158` 再加一把尺子与采纳版
-`build/evidence_r75/cdc.rpt` 比差集。
+Critical 行的"源钟>目的钟 / 端点数 / unsafe"，`:135` 算**新增配对**，`:145-146` 写明"新增 Critical 配对 ⇒
+这一项判红"，`:158` 再加一把尺子与采纳版 `build/evidence_r75/cdc.rpt` 比差集。
 
 基线现在是 4 行（`build/cdc_baseline.txt:20-23`）：`eth_rxc>clk_fpga_0 272 1`、
-`clk_fpga_0>clkout0_1 17 1`、`eth_rxc>clkout0_1 51 1`、`sys_clk>eth_rxc 1909 2`。
-当前报告对应 `build/cdc.rpt:15-23`（Critical 两行：`clk_fpga_0→clkout0_1` 103 端点 1 unsafe、
-`sys_clk→eth_rxc` 1968 端点 2 unsafe / 530 Unknown，`:17-18`）。
+`clk_fpga_0>clkout0_1 17 1`、`eth_rxc>clkout0_1 51 1`、`sys_clk>eth_rxc 1909 2`。当前报告对应
+`build/cdc.rpt:15-23`（Critical 两行：`clk_fpga_0→clkout0_1` 103 端点 1 unsafe、`sys_clk→eth_rxc`
+1968 端点 2 unsafe / 530 Unknown，`:17-18`）。
 
-**B 之后必然新增的配对**：`eth_rxc>新TX钟` 与反向（35 条里只要有一条没被 FIFO 吃掉就会落上去）。
-若新钟按 §1.3 由 `sys_clk` 的 MMCM 生成，它会落进 `sys_clk` 那一组，`sys_clk>eth_rxc` 那行的端点数
-还会继续长。**这两条判红是设计带来的、不是 bug**，所以采纳 B 必须同轮改写
-`build/cdc_baseline.txt`（该文件 `:8` 自己规定"只有某一版被采纳为新的默认时才允许改"）。
+**B 之后必然新增的配对**：`eth_rxc>新TX钟` 与反向（35 条里只要有一条没被 FIFO 吃掉就会落上去）。若新钟按
+§1.3 由 `sys_clk` 的 MMCM 生成，它会落进 `sys_clk` 那一组，`sys_clk>eth_rxc` 那行的端点数还会继续长。
+**这两条判红是设计带来的、不是 bug**，所以采纳 B 必须同轮改写 `build/cdc_baseline.txt`（该文件 `:8` 自己
+规定"只有某一版被采纳为新的默认时才允许改"）。
 
 ### 5.2 `report_cdc` 规则号：B 会让哪几类长
 
@@ -299,15 +294,14 @@ false path 掉了。
 
 1. **新钟的时钟定义**：走 `clk_gen` CLKOUT3 时**不需要**新写 `create_clock`
    （先例：`build/clock_util.rpt:60`、`:65` 里的自动派生名）。
-2. **把新钟显式点名进时钟组**：`clock_groups_impl.xdc:28-31` 目前用 `-quiet` 兜 `get_clocks`，
-   名字取不到时**整条命令空转**、连带把 `eth_rxc`/`sys_clk` 两组一起废掉，而只留一句 warning ——
-   这个坑在 `src/constraints/rk_zynq7020.xdc:43-45` 与 `:65-74` 记了两次
-   （症状 `CRITICAL WARNING [Vivado 12-4739]`）。⇒ 判据：构建日志里不许出现 12-4739；
-   `report_cdc` 里 `eth_rxc` 与新钟必须写成 `Asynch Clock Groups`，不许是 `Safely Timed`。
+2. **把新钟显式点名进时钟组**：`clock_groups_impl.xdc:28-31` 目前用 `-quiet` 兜 `get_clocks`，名字取不到时
+   **整条命令空转**、连带把 `eth_rxc`/`sys_clk` 两组一起废掉，而只留一句 warning —— 这个坑在
+   `src/constraints/rk_zynq7020.xdc:43-45` 与 `:65-74` 记了两次（症状 `CRITICAL WARNING [Vivado 12-4739]`）。
+   ⇒ 判据：构建日志里不许出现 12-4739；`report_cdc` 里 `eth_rxc` 与新钟必须写成 `Asynch Clock Groups`。
 3. **每条新同步通道的 `set_max_delay -datapath_only`**：为 §2.5 的 4 条通道各写一对，式样照
-   `src/constraints/r114_io_async.xdc:57-63`（那里 `eth_rxc→clk_fpga_0` 用 10.000、反向 8.000）。
-   今天默认构建一条都没有（§5.4）⇒ 这是净新增尺子，不是搬运。判据：`check_timing` 的
-   "没覆盖"两类缺口不许变多；新写的 `set_max_delay` 必须真的出现在 `report_timing` 的路径头上。
+   `src/constraints/r114_io_async.xdc:57-63`（那里 `eth_rxc→clk_fpga_0` 用 10.000、反向 8.000）。今天默认
+   构建一条都没有（§5.4）⇒ 这是净新增尺子，不是搬运。判据：`check_timing` 的"没覆盖"两类缺口不许变多；
+   新写的 `set_max_delay` 必须真的出现在 `report_timing` 的路径头上。
 4. **新域的 `set_clock_uncertainty`**：镜像 `rk_zynq7020.xdc:50`。TX 侧没有片外输入窗要防，取值应比
    0.800 小 —— **具体多少未量**（本轮不跑构建，只立"必须显式写、不许吃默认 0"这条判据）。
 5. **发口时序的重新论证**：`rk_zynq7020.xdc:56-58` 那三条在 B 之后技术上仍成立（新 TX 钟就是送到 PHY 的
@@ -336,16 +330,15 @@ false path 掉了。
 | `sim/tb_sync_fifo.v` | `sync_fifo`（`:23`） | **B 会替换掉这个件**：这一支随之退役或改判成 `dc_fifo` |
 
 结构事实（这条决定台架工作量）：这七支**全是单时钟台架**。`sim/tb_icmp_tx_cksum.v:31-32` 只有一个
-`always #4 clk = ~clk`，`des_mac/des_ip/icmp_id/icmp_seq/reply_checksum` 全是 `reg` 直驱
-（`:34-43`），没有第二个时钟域可激励 ⇒ **双钟版本要新写**，工作量本轮未量。
+`always #4 clk = ~clk`，`des_mac/des_ip/icmp_id/icmp_seq/reply_checksum` 全是 `reg` 直驱（`:34-43`），没有
+第二个时钟域可激励 ⇒ **双钟版本要新写**，工作量本轮未量。
 
 ### 7.2 覆盖"RX 事件触发 TX"那半条链
 
 `sim/tb_icmp_rx_len.v`（`icmp_rx`，`:63`）、`sim/tb_icmp_len_wrap.v`（`icmp_rx`，`:51`）、
-`sim/tb_v795_rx_chain.v`（`gmii_rx_mac` `:34`、`udp_rx_parser` `:42`）、
-`sim/tb_v795_rx_fcs.v`（`gmii_rx_mac` `:36`）、`sim/tb_udp_parser.v`（`udp_rx_parser` `:28`）。
-这五支不改时钟也照跑，但事件那一路（X07…X15）一旦换成 toggle+3FF，**端到端延迟会变**，
-判据要一起复看。
+`sim/tb_v795_rx_chain.v`（`gmii_rx_mac` `:34`、`udp_rx_parser` `:42`）、`sim/tb_v795_rx_fcs.v`
+（`gmii_rx_mac` `:36`）、`sim/tb_udp_parser.v`（`udp_rx_parser` `:28`）。这五支不改时钟也照跑，但事件那一路
+（X07…X15）一旦换成 toggle+3FF，**端到端延迟会变** ⇒ 判据要一起复看。
 
 ### 7.3 查不到的部分（"没有台架"这句话的证据）
 
@@ -374,11 +367,10 @@ false path 掉了。
 
 ## 8. 这份清单对"一轮还是一处"的回答
 
-- **只改 `eth_udp_video_top.v` 一行时钟不够**：X22/X23（线速 9 位出口）与 X18/X24（`sync_fifo` 对侧读）
-  在结构上不允许"只换时钟、不换归属"。
-- 最小闭环 = 把 `eth_ctrl` + `icmp_dly` glue 迁到 TX 域（消掉 16 条）+ 新写 4 条通道（§2.5）
-  + 把 `u_icmp_fifo` 换成 `dc_fifo` + §6 的 6 组约束 + §7 的 12 支台架与 3 项门禁/板侧复验。
-  这与 `report/timing/eth_rxc_partition_options.md` 第 2 节当时写的"一整轮"一致，现在有行号可查。
+- **只改 `eth_udp_video_top.v` 一行时钟不够**：X22/X23（线速 9 位出口）与 X18/X24（`sync_fifo` 对侧读）在
+  结构上不允许"只换时钟、不换归属"。最小闭环 = 把 `eth_ctrl` + `icmp_dly` glue 迁到 TX 域（消掉 16 条）+
+  新写 4 条通道（§2.5）+ 把 `u_icmp_fifo` 换成 `dc_fifo` + §6 的 6 组约束 + §7 的 12 支台架与 3 项门禁/板侧
+  复验 —— 这与 `report/timing/eth_rxc_partition_options.md` 第 2 节当时写的"一整轮"一致，现在有行号可查。
 - **B 的预期收益仍未量**：发侧从 4835 个 `eth_rxc` 端点（`build/timing_summary.rpt:182`）里搬走多少，只能
   从一次真构建的逐时钟名册差分读；本轮一次构建都没跑。唯一一条顺带可能修掉的账：CDC-13 那两条就落在今天
   要被替换的 `u_eth/u_icmp_fifo` 上（`build/cdc_details.rpt:1383-1384`）。
@@ -390,9 +382,7 @@ false path 掉了。
 | 条目 | 状态 | 凭据，或"为什么没量到" |
 |---|---|---|
 | `gmii_tx_clk == gmii_rx_clk` 的三处独立声明 | 读出来 | `gmii_to_rgmii.v:25`、`eth_udp_video_top.v:5`、`eth_ctrl.v:3` |
-| 35 条 crossing 的位宽 / 驱动 / 接收 / 行号 | 读出来 | §2.2、§2.3 证据列；本轮打开 17 个 `.v` 文件 |
-| 其中 33 条完全没有同步器 | 读出来 | §2 表"同步形式"列 + `grep ASYNC_REG src/rtl/eth/` 只命中 4 族，全不在 TX 协议栈内 |
-| X11/X21 的三级链不算同步器 | 读出来 | `arp_tx.v:66-76`、`icmp_tx.v:103-113` 无 `ASYNC_REG`；脉冲宽度 `eth_ctrl.v:159-160` |
+| 35 条 crossing 的位宽 / 驱动 / 接收 / 行号，其中 33 条完全没有同步器（含 §3.2：X11/X21 那三条三级链不算同步器） | 读出来 | §2.2、§2.3 证据列（本轮打开 17 个 `.v` 文件）；`grep ASYNC_REG src/rtl/eth/` 只命中 4 族，全不在 TX 协议栈内；`arp_tx.v:66-76`、`icmp_tx.v:103-113` 无 `ASYNC_REG` |
 | `dc_fifo` 可复用、`sync_fifo` 不可 | 读出来 | `dc_fifo.v:8`、`:13`、`:27`；`sync_fifo.v:2`、`:9`、`:24-27` |
 | 台架覆盖矩阵；`fifo_tx_data` 无驱动、`eth_wr_*` 无使用 | 读出来 | §7.1–§7.3 的例化行与空命中；`report/log/issues.md:10549-10551`、`report/modules.md:125`；`pl_video_top.v:103-106` |
 | BUFG 8/32、MMCM 2/4、BUFIO 0/16；CLKOUT3…6 空闲、VCO/8 = 125 MHz | 读出来 | `build/clock_util.rpt:43`、`:48`、`:45`（2026-10-04 04:37 路由后报告）；`clk_gen.v:19`、`:43-47` |
@@ -405,7 +395,6 @@ false path 掉了。
 | **B 之后的 WNS / 端点数 / 资源增量（即收益）** | 未量 | 只能从真构建的逐时钟名册差分读 |
 | **新增 CDC-1/5/7/15 各长多少条；新域 `set_clock_uncertainty` 的取值** | 未量 | 前者需 `report_cdc -details`；后者无窗可依据，见 §6 第 4 条 |
 | **PHY 发侧 `TsetupR` / `TholdR` 的数值；新钟到 `AB22` 那只 ODDR 的时钟区域可达性** | 未量 | 前者仓里只有 `TskewR 1/1.8/2.6`（`src/constraints/r116_rgmii_input_window.xdc:18`），规格书原文不在本仓；后者只有 `g2` 跨 5 区这一条读数（`build/clock_util.rpt:61`），新钟从未布过 |
-| **双时钟版本 TX 台架的工作量** | 未量 | 现有 7 支全为单钟（`sim/tb_icmp_tx_cksum.v:31-32`） |
-| **`snap_cross` 用在 TX 侧时 `hb_tog/hb_gone/hb_slow` 怎么接** | 未量（待设计） | `snap_cross.v:16-30` 这一族是为"源时基退化"设计的，TX 侧无对应物理量 |
+| **双时钟版本 TX 台架的工作量；`snap_cross` 用于 TX 侧时 `hb_tog/hb_gone/hb_slow` 怎么接**（待设计） | 未量 | 前者：现有 7 支全为单钟（`sim/tb_icmp_tx_cksum.v:31-32`）。后者：`snap_cross.v:16-30` 这一族为"源时基退化"设计，TX 侧无对应物理量 |
 | **上电初值判据是否覆盖新增 toggle 源** | 未量 | `build/check_powup_init.sh` 本轮没跑 |
 | `gmii_tx_mac.v` | 查不到 | 该文件不存在：`src/rtl/eth/` 全清单里没有 |
