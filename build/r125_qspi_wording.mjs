@@ -62,9 +62,10 @@ for (const [rel, oldStr, newStr] of RULES) {
 }
 
 if (mode === 'check') {
-  let n = 0;
+  let n = 0, arch = 0;
   for (const f of execFileSync('git', ['ls-files'], { cwd: root, encoding: 'utf8' }).split('\n')) {
     if (!/\.(md|txt|csv)$/.test(f)) continue;
+    if (/^report\/log\//.test(f)) { arch++; continue; }   // 追加式台账按构造留着当时的原话，不改写（D5 同口径）
     const p = path.join(root, f);
     if (!fs.existsSync(p)) continue;
     const c = fs.readFileSync(p, 'utf8').split('本工程不向 QSPI').length - 1
@@ -73,7 +74,7 @@ if (mode === 'check') {
       + fs.readFileSync(p, 'utf8').split('永远不要把这一版写进 QSPI').length - 1;
     if (c > 0) { n += c; console.log(`RESIDUAL ${f} ${c}`); }
   }
-  console.log(`CHECK RESULT=${n ? 'RED' : 'OK'} 规则 ${RULES.length} 条（改 ${rewrote}／已改口 ${already}／不在本树 ${absent}）残留旧口径 ${n}`);
+  console.log(`CHECK RESULT=${n ? 'RED' : 'OK'} 规则 ${RULES.length} 条（改 ${rewrote}／已改口 ${already}／不在本树 ${absent}）残留旧口径 ${n} 台账档案不计 ${arch}`);
   process.exit(n ? 1 : 0);
 }
 
