@@ -179,13 +179,17 @@ echo "射程 活文档=$LIVE_N（仓库 *.md=$REPO_MD_N；排除 report/log/ 与
 # 随之必须成立的是：交付文档里不许再留指向 docs/course 或 docs/walkthrough 的活指路（下面那条计数判据就是干这个的）。
 echo "布局 docs/ 不入库也不随包（学习文档按用户要求只留本地），report/ 随包；两层的指路都要走下一节的活引用自检" >> _pruned.txt
 _livecoursecites=0
+_execcollab=0
 for _f in $(find report -type f -name '*.md' ! -path 'report/log/*'); do
   _n=$(grep -c 'docs/course\|docs/walkthrough' "$_f" 2>/dev/null || true)
+  # report/collaboration/ 是**做过什么的流水记录**（会话登记里那一行写的是当时那条提示词的原话），
+  # 不是给读者指的活路；把记录改掉等于伪造协作档案。这一层只报数不判红，其余仍要求 0。
+  case "$_f" in report/collaboration/*) _execcollab=$((_execcollab + ${_n:-0})); continue ;; esac
   _livecoursecites=$((_livecoursecites + ${_n:-0}))
 done
-echo "活指路自检：report/（排除 report/log/）里指向 docs/course 或 docs/walkthrough 的行数 = $_livecoursecites（要求 0；这份学习文档已不在仓里）" >> _pruned.txt
+echo "活指路自检：report/（排除 report/log/ 与 report/collaboration/）里指向 docs/course 或 docs/walkthrough 的行数 = $_livecoursecites（要求 0；这份学习文档已不在仓里）；协作记录层同名行数 $_execcollab 只报数不判红" >> _pruned.txt
 if [ "$_livecoursecites" -ne 0 ]; then
-  echo "REFUSE：学习文档已撤出仓库，但 report/ 里仍有 $_livecoursecites 行指向 docs/course 或 docs/walkthrough" >&2
+  echo "REFUSE：学习文档已撤出仓库，但交付正文里仍有 $_livecoursecites 行指向 docs/course 或 docs/walkthrough" >&2
   exit 3
 fi
 

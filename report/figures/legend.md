@@ -46,7 +46,7 @@
   并在信号名里把三通道都列出来。
 - 每一个 `◆` 都必须能在边表的"出处"里找到那只跨域器件（`dc_fifo`、`snap_cross`、`effect_ctrl`、
   `ps_publish`、`zoom_snap`、`frame_commit_lock` 的 abort 翻转位等）。
-  跨域点的**全表**（哪两侧、什么形态、约束在哪一行）在 `docs/walkthrough/clocking-and-reset.md（不随包）` 第 3 节，
+  跨域点的**全表**（哪两侧、什么形态、约束在哪一行）在本地学习文档《时钟与复位》那一章（这一层不随包），
   本目录不复制那张表（复制两份一定会漂）。
 - 时钟树的形状不在图里用"点线"细画：本设计只有 5 个域（`sys_clk`/`clk_pix`/`clk_pix5x`/`axi_clk`/`eth_rxc`），
   在节点表的"域"列直接标；域的定义在 架构章 第 2 节那张表。

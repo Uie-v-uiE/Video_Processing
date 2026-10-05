@@ -34,6 +34,9 @@ const EXEMPT = {
   'report/ai_collaboration.md': [
     { tok: 'path:skills/references/symptom-router/SKILL.md', why: '同一段重复点名同一份技能两次，省掉一次；指路仍在', need: 'skills/references/symptom-router/SKILL.md' },
   ],
+  'report/figures/legend.md': [
+    { tok: 'path:docs/walkthrough/clocking-and-reset.md', why: '学习文档那一层已撤出仓库，活指路换成不含死路径的说法（导出器要求正文 0 条）', need: '本地学习文档《时钟与复位》那一章' },
+  ],
 };
 
 function tally(txt) {
