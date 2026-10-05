@@ -13973,3 +13973,18 @@ rim 那一半本轮已用修好的入口重跑并出新件 `build/tb_edge_rim_r1
   要同步就在下次真导主线包时一起做，并同时核 `report/` 里那 77 条（任务清单 #215 那一格仍欠）。
   同批：`report/technical-document.md` 新增 §2.4"用到的技术"（13 行，每行的器件与文件都能对着盘上核），
   因为首页 `report/README.md` 那张表一直写着这一节该有，而正文以前只散在 §2.1 与 §3。
+
+- **#401（2026-10-06 凌晨，导出器两条判据的"射程/地板"各修一半）**：连着两次 REFUSE/FAIL 都不是包的问题，是判据自己看错了对象。
+  ① 旧技能名那一层的**取样范围**只扫 `*.md`，而改写与计数覆盖 `*.v/.mjs/.csv` 整批 ⇒
+     `sim/tb_*.v` 注释里三个平铺旧卡名（`bench_self_inflicted_reds.md`、`bench_verilog_subset.md`、
+     `criterion_blind_spot.md`）没有规则可改、却被计数判红。改成取样=改写=计数同一份清单，
+     规则从 26 涨到 30 条；同时降级文案里不再写 `skills/xxx.md` 这种**还能被同一条正则抓走**的字面
+     （平铺名只留 basename），否则"改完了"永远自证不成立。
+  ② 乙层"复现入口文档 ≥ 8 份"这条地板写死的是**上一版树的形状**：提交分支把
+     `report/acceptance-recipes.md` 与 `report/submission-checklist.md` 删了（内容并进 `board/acceptance.md`
+     与 `report/demo_script.md`），于是地板变成"缺一本被有意删掉的书"。改成两支：
+     硬名单（两份 README、`70-reproduce`、`repro-check`、`build`、`build/tcl/README`、`declarations`）
+     **必须在**，缺件即 FAIL；扫描名单=硬名单 + 板上/演示/上位机那几份，扫到几份报几份、地板 8 只作下限。
+     新增进扫描范围的四份先单独预扫过：绝对路径 0 行（`D:[/\]|C:[/\]|/d/…` 那个式子）。
+  只改提交分支那份：主线 `make_submission.sh` 今晚不跑导出，且主线树这两处形状本就不同
+  （主线有 `report/90-open-items.md` 的编号行、也有 `docs/`）；等下次真要重导主线包时一起对账，别改一把当场不跑的尺子。
