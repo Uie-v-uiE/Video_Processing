@@ -500,7 +500,11 @@ done < <(find build -type f \( -name '*.rpt' -o -name '*.txt' \) 2>/dev/null | g
 #   `report/timing/round_r117.md` 这类**大写名进了包、指路也没换**——小写化这一层对新加的 docs 层
 #   什么都没做（同一族的射程漂移）。`skills/**/SKILL.md` 是**故意不进**这张表的：§3.3.5.2 点名的
 #   条目外壳就叫 `SKILL.md`，把它小写化等于自己造死链接；大写路径的整体处置是待决项 Q-P21-2。
-LOWER_SRC="$( { find . -name '*.md' ! -path './report/log/*' 2>/dev/null || true; } | sed 's|^\./||' | sort )"
+#   ⚠ 上面这句"故意不进"以前**只写在注释里，find 没有守卫** ⇒ 实测后果：包里 49 份 `SKILL.md` 被
+#   `mv` 成 `skill.md`，同时 `add_mv` 的**裸文件名映射**把交付文档里每一处 `…/SKILL.md` 指路也小写化，
+#   于是旧技能名那一层拿到的字面（取样在改写之前）再也匹配不上 ⇒ 包内自造 20 条死链（台账 #403）。
+#   守卫现在落在 find 上（`! -path './skills/*'`），不再靠注释。
+LOWER_SRC="$( { find . -name '*.md' ! -path './report/log/*' ! -path './skills/*' 2>/dev/null || true; } | sed 's|^\./||' | sort )"
 LOWER_N="$(printf '%s\n' "$LOWER_SRC" | grep -c . || true)"
 for f in $LOWER_SRC; do
   if [ -f "$f" ]; then
@@ -564,6 +568,11 @@ printf 's|docs/walkthrough/\\([A-Za-z0-9_.-]*\\)\\.md|学习文档 \\1.md（本�
 find . -type f \( -name '*.md' -o -name '*.sh' -o -name '*.tcl' -o -name '*.py' -o -name '*.mjs' \
     -o -name '*.ps1' -o -name '*.bat' -o -name '*.v' -o -name '*.c' -o -name '*.h' -o -name '*.csv' \) 2>/dev/null |
 grep -vE '^\./build/reports/|^\./report/log/' > _txt.txt || true
+
+# 主映射这一遍**先跑**，再按改写之后的字面去取样技能旧名。顺序反过来的时候：改名层（含裸文件名映射）
+# 已经把文档里的 `SKILL.md` 换成 `skill.md`，技能那一层拿着旧字面生成的规则一条也匹配不上，
+# "降级 N 个"照样打印、包内残留照样是 20 条 —— 取样/改写/计数要同一份、同一个时刻才成立（台账 #403）。
+xargs -r sed -i -f _map.sed < _txt.txt
 SKILL_CITED="$( { xargs -d '\n' -a _txt.txt grep -hoE 'skills/[A-Za-z0-9_./-]+\.(md|sh|mjs|py)' 2>/dev/null || true; } | sort -u )"
 : > _skill_map.sed
 SKILL_FIX_N=0
@@ -581,9 +590,6 @@ while IFS= read -r p; do
   fi
 done < <(printf '%s\n' "$SKILL_CITED")
 echo "旧技能条目名就地降级 $SKILL_FIX_N 个（被引用的技能路径共数 $(printf '%s\n' "$SKILL_CITED" | grep -c . ) 个；取样范围=改写范围=计数范围）" >> _pruned.txt
-
-# 主映射这一遍先跑（`_txt.txt` 已在上面建好，取样、改写、计数用的是同一份清单）。
-xargs -r sed -i -f _map.sed < _txt.txt
 
 # 技能旧名那一族单独一遍，跑完立刻**自证**：再数一次"包里还有多少 `skills/…` 引用落不到文件"。
 # 上一版的错就是把规则并进主映射（别的规则先改写过同一行 ⇒ 字面旧路径再匹配不上），打印了
