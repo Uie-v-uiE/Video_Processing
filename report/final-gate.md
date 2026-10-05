@@ -36,12 +36,16 @@ node build/checks/check_repo_consistency.mjs --list   # 全仓终审 C1–C12；
 - **C9 的计数口径换过。** 快照里那一对 `PASS=91 FAIL=30 未测=32` 数的是整篇文本里 ` PASS`/`FAIL`/`NOT_MEASURED` 三个
   token 的**出现次数**，于是"期望输出那一栏照抄着 `RESULT tb_v98_top_seam FAIL nfail=1`"也被数成一条失败。
   现在这把尺子只读**每行最后一个字段的判定词**（`build/checks/check_repo_consistency.mjs` 的 `c9Judge`），
-  同一份 `report/repro-check.md` 读出 `判定列在内=61 行 PASS=36 FAIL=0 未测=11 判定列不成词=14`，判 **PASS**。
+  同一份 `report/repro-check.md` 在读出上面那一对数之后又收了一轮：两张表的判定列搬回末列、第三轮 `C4` 如实记未测，
+  现跑读数是 `判定列在内=61 行 PASS=49 FAIL=0 未测=12 判定列不成词=0`，判 **PASS**。
   条数分母与 `report/repro-check.md` §1 的自报数（第一轮 43、第二轮 38、两轮相加 81、第三轮 61）对得上口径吗——
   对不上，那两套数是分轮次统计的，C9 只数判定行；这一错位登记在 `report/claims-vs-evidence.md`。
-  仍然没有变成"全通过"的是那 11 行未测与 14 行判定列不成词，逐条构成见 `report/known-limitations.md` 第 4 节。
-- **C3 的死引用清了。** 同一条命令今天打印 `死引用=0`（其余计数随交付树变：两次现跑分别读到 `扫=131 检查=616` 与
-  `扫=120 检查=563`），判 PASS；快照里那 3 条死引用指的是改名之前的 `docs/…` 路径。
+  仍然没有变成"全通过"的是那 12 行未测（判定列不成词已经清零），逐条构成见 `report/known-limitations.md` 第 4 节。
+- **C3 的死引用清了，但先前那个"0"是尺子看不见。** 路径正则的字符类里没有 `/`，三层以上的指路（`build/evidence/r118_board/…` 这一族）
+  匹配不上就**静默不进分母**；右边界那条前瞻又不认反引号，`<某目录>/x.md` 这种带尖括号的形状与反引号包着的真实指路都不判。把射程改对之后
+  同一棵树现算 `检查路径引用=5244`（改前只有 628），其中 **140 条**指的是被记录在案的精简笔（`02bd5c4`、`58faa85`）删掉的
+  凭据 ⇒ 按"历史凭据"只报数，名单写死在尺子里并配了能红的反买通对照；剩下 13 条真缺口逐条改了口径（件：`build/r124_fix_dead_cites.mjs`），
+  现在打印 `死引用=0`，判 PASS。快照里那 3 条死引用指的是改名之前的 `docs/…` 路径。
 - **C4 的违规数在往下走，但还没清零。** 快照是 `跟踪文件=3601 违规=286 点名豁免=22`；改名波之后同一条命令读到
   `跟踪文件=3666 违规=10 点名豁免=72[LICENSE=1,README.md=21,README_EN.md=1,SKILL.md=49]`，判据是"违规=0 才算过" ⇒
   这一项**仍然 FAIL**，要的是剩下 10 条改名裁决，不是改判据。
@@ -54,9 +58,14 @@ node build/checks/check_repo_consistency.mjs --list   # 全仓终审 C1–C12；
 - **现在不能宣称"交付终审全绿"**。红项与未测项都在上面这张表里，且每条都写明了缺什么、谁负责、
   需要哪种动作（改文档 / 队伍裁决 / 修检查器 / 跑一轮复现归因）。
 - 红项**不靠放宽判据来消除**：C2/C3/C1 那三处量纲错改掉时，每一步都先取"改前红集"当基线，
-  再用诱饵文件与 10 条 `--self` 对照证明改后的尺子仍然会红（`node build/checks/check_repo_consistency.mjs --self` 判 10 项 PASS）。
-- 技能包那一层全绿：`gates.mjs` 12 项无红无未测，两跑逐字节一致
-  （`build/evidence/r120_gates_skill_a.txt` / `..._b.txt`），脚本自测 40 条对照 6/6 绿
-  （`build/evidence/r120_selftest.txt`）。
+  再用对照例证明改后的尺子仍然会红（`node build/checks/check_repo_consistency.mjs --self` 现算 `判 28 项 PASS`＝
+  C2 6 例 + C3 17 例 + C9 5 例；C3 那 17 例里包含"嵌套路径会红/嵌套路径在盘上就不红"与"精简名单外的缺失照旧红"两对，
+  落盘转录 `build/evidence/1006_c3_scope_selftest.txt`）。
+- 技能包那一层：现役自检是 `node skills/_meta/run-all-checks.mjs skills`（判 9 项、自测件 6、红=0、未测=0），
+  索引一致性 `node skills/_meta/build-index.mjs skills --check`（条目=49、需改写=no）。
+  旧包那把 `gates.mjs` 的"12 项全绿、两跑逐字节一致"是 2026-10-04 重建**前**的读数：`gates.mjs` 与 `gen_index.mjs`
+  现不存在，第二跑的转录件也已被记录在案的精简笔删掉、不随包 ⇒ 这一条今天复跑不出来，只算历史（本行原先写"全绿"是失实）。
+  旧包 6 把脚本尺子 40 条对照的转录仍在 `build/evidence/r120_selftest.txt`（末行 `SELFTEST node=v24.21.0 scripts=6 判 40 项 pass=6 fail=0 nm=0 PASS`），
+  同属重建前那一版的读数。
 - 这一页与**工程侧**门禁不是一回事：`build/gates.sh`（24 项，23 绿 / 1 条声明过的红 `C5c`）判的是
   位流与台架能不能采纳；本页判的是交付物齐不齐、指路活不活、数字认不认得回凭据。

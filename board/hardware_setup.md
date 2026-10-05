@@ -2,7 +2,8 @@
 
 给第一次摆这套装置的人用：照这份文件把同一套东西接起来、供好电、当场验一遍。
 这里只管**物理与工程侧**——上板命令序列在 `board/README.md` §2，每步该看到什么在 `board/acceptance.md`，
-位流、XSA、ELF 三件的身份卡在 `board/firmware/`。
+位流、XSA、ELF 三件的身份在 `build/provenance.md` 的身份表与 `board/measured/` 每一次跑的 IDENTITY 块里
+（早先把三件身份写成摘要卡的那一层已经随目录精简删掉，不随包）。
 
 三条填写口径：
 
@@ -108,8 +109,9 @@ BOM 的位置：本仓库**没有**独立的 BOM 文件（`find . -iname "*bom*"
 - 板卡原理图：`ZYNQ7020-F+V1.1原理图.pdf` **第 8 页**（PHY2 的 strap 引脚表：`23 TXDLY/RXD1`、
   `24 RXDLY/RXD0`）。出处：`report/timing/rgmii_window_model.md:108-110`、
   `report/timing/round_r116.md:31`（结论："RXDLY/TXDLY 都由 4.7K 上拉到 IODVDD ⇒ PHY 把 2 ns 延时加在 RXC 上"）。
-- 从原理图裁出来的图件在仓库内（随包性由导出器判）：`build/evidence/r115_sch_p8/`
-  下有 4 个文件：`phy2_straps.png`、`rxd_area.png`、`strap_rxdly_1.png`、`strap_txdly_1.png`。
+- 从原理图裁出来的 4 个图件（`phy2_straps.png`、`rxd_area.png`、`strap_rxdly_1.png`、`strap_txdly_1.png`）
+  曾经入库，现已随目录精简删掉、**不随包**；这一节因此只保留图件名与它们所裁的那一页页码，
+  拿不到裁图的人按上面两条引文（原理图第 8 页 + `report/timing/rgmii_window_model.md:108-110`）复原读数。
 - PHY 时序参数抄件：`build/evidence/r115_rtl8211f_delay_source.txt`（Table 60 那一组，出处 `report/timing/rgmii_window_model.md:90`）。
 - 警告：**原理图 PDF 与 PHY 规格书都不在仓库内**（在板卡资料目录，路径含机器字样 ⇒ 按 `report/build.md:16-20`
   的规矩不写进交付文档）。拿不到原件的人只能按"引文 + 裁图"复原第 8 页的那两处读数，

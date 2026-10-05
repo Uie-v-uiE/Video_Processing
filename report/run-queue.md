@@ -17,19 +17,19 @@
 | P05 踩坑清单 | `skills/pitfalls/*` | P01 | 已交付 24 条（原 8 条 + 迁入 16 张扁平卡）；旧卡已按 `retire_flat.mjs` 证明"映射/八节/出处逐条覆盖"后删除 |
 | P06 参考层 | `skills/references/*` | P01 | 已交付 7 条（原 3 页 + 迁入 4 页：`bench-verilog-subset`、`bench-self-inflicted-reds`、`verdict-line-must-print-scope`、`wns-logic-vs-route-lever`） |
 | P07 runtime | `skills/runtime/*` | P01 | 已交付 8 条：原有 4 条壳齐（`register-map`、`pl-load-verify`、`dma-cache-coherency`、`host-bindings-and-reports`）+ 迁入 4 条（`atomic-register-window-readback`、`board-eth-uart`、`udp-offset-reasm`、`zynq-ddr-bandwidth`）；G2 现在 `条目=59 全合` |
-| P08 验证与增益 | `skills/evals/*` | P04/P05 | 部分交付（`evals/runbook.md` + `raw/` 两跑原始件 + `records/` 陌生人演练与第三方审计各一份）；**缺的是"同一模板连跑 3 次"的增益对照**，各条目 §7 一律 `【待验证】`，不念成已验证 |
-| P09 装配与门禁 … | … | 已交付：**技能包门禁 12 项全绿、无未测**，两跑逐字节一致（`build/evidence/r120_gates_skill_a.txt` / `..._b.txt`）；索引 `gen_index --check` 条目=58 一致=yes；陌生人演练与第三方审计两份记录在 `skills/evals/records/`，其红项按原话入档 |
+| P08 验证与增益 | `skills/_meta/`（旧包的 `skills/evals/` 那一层在 2026-10-04 c7b325f 重建后从未入库、不随包）| P04/P05 | 部分交付（协议与两跑原始件、陌生人演练与第三方审计各一份都在 `skills/_meta/` 一侧，条目级验证状态见 `skills/_meta/validation.md`）；**缺的是"同一模板连跑 3 次"的增益对照**，各条目 §7 一律 `【待验证】`，不念成已验证 |
+| P09 装配与门禁 … | … | 已交付：**技能包自检 `node skills/_meta/run-all-checks.mjs skills` 判 9 项、自测件 6、红=0、未测=0**；索引 `node skills/_meta/build-index.mjs skills --check` 条目=49、需改写=no；陌生人演练与第三方审计两份记录现落在 `skills/_meta/` 一侧。（旧包那把"12 项全绿"的读数在 `build/evidence/r120_gates_skill_a.txt`，是 2026-10-04 c7b325f 重建**前**那一版包的产物；同一次对照的第二跑 `..._b.txt` 已被记录在案的精简笔删掉、不随包 ⇒ "两跑逐字节一致"今天在盘上复跑不出来，只算历史记录。`gen_index --check 条目=58` 同属旧包读数，现役件是 `build-index.mjs`），其红项按原话入档 |
 | P11 学习文档 | `docs/walkthrough/*`（**不随包**，`.gitignore` 已列） | P13/P15b | 11 个文件已交付，5 篇因缺前置未写 |
 | P13 `src/` … | … | 部分（`report/interface-table.md` 已落 1509 行；`report/src-map.md` 本轮由 `build/r120_src_map.mjs` 现算生成，83 文件 × 4 列；`src-audit` 装配页未写（`git ls-files` 与盘上都没有这一件 ⇒ 现不存在）；契约头改动受 B1 约束） |
-| P14 `sim/` … | … | 部分（`sim/README.md` 已落；`sim/regress/` 与 `verification-claim` 装配页未写（后者从未落盘 ⇒ 现不存在）⇒ "验证声明"只能停在"逐台架判据 + 门禁"这一档） |
+| P14 `sim/` … | … | 部分（`sim/README.md` 已落；回归清单目录与 `verification-claim` 装配页都未写（两者从未落盘 ⇒ 现不存在）⇒ "验证声明"只能停在"逐台架判据 + 门禁"这一档） |
 | P15a 构建与指纹 … | … | 已交付（`build/README.md`、`build/provenance.md` 194 行；两份逐轮说明件（探针清单与产物目录说明）已随轮次清理，探针条目并入 `build/coverage.md`） |
 | P15b 报告解析与名册 … | … | 已交付（`build/parsed/`、`build/roster/`、`build/coverage.md`、`report/build-notes.md` 均在盘上并入库） |
 | P15c 逐轮台账 … | … | 部分（`build/runs/ledger.md`、`build/runs/decisions.md` 在盘；两轮派发都被 150 回合上限截停 ⇒ 逐轮指针目录未核，缺口记在未决项） |
-| P16a 板级可复原 … | … | 进行中（`board/hardware_setup.md` 151 行、`board/firmware/` 在；`board/run/`、`bringup-checklist.md` 待核） |
-| P16b 实测与比对 … | … | 已交付（`board/raw-vs-golden.md` + logs/captures/compare/conditions，比对表 12 张全部脚本产出） |
+| P16a 板级可复原 … | … | 进行中（`board/hardware_setup.md` 已落并随包；三件身份改由 `build/provenance.md` 与 `board/measured/` 的 IDENTITY 块承担——原先那层身份摘要卡已随目录精简删掉、不随包；`bringup-checklist.md` 从未落盘 ⇒ 现不存在） |
+| P16b 实测与比对 … | … | 已交付（`board/raw-vs-golden.md` 与 `board/compare/` 里 12 张比对表全部脚本产出；当时的日志／抓图条件卡那三层从未入库、不随包） |
 | P16c 签核与指标 … | … | 已交付（`board/signoff.md` 29 项五件齐全、`report/measurements.md`、`signoff-questions.md`、`report/acceptance-recipes.md`） |
 | P17 `data/` … | … | 已交付（`data/golden/manifest.md` 214 行、`inputs/` 8 个向量、`generated/gen_inputs.mjs`、`data/README.md` 本轮补上；`data-format` 装配页未写（从未落盘 ⇒ 现不存在） |
-| P12 根 README … | … | 部分（`report/repro-check.md` 已出，第三轮的判定读数是 `判定列在内=61 行 PASS=36 FAIL=0 未测=11 判定列不成词=14`（终审 C9 现跑）；缺的是那 11 行未测与 14 行没有判定词的表格，逐条构成见 `report/known-limitations.md` 第 4 节。更早一版 C9 按全文 token 计数读出 `PASS=91 FAIL=30 未测=32`，这一错位登记在 `report/claims-vs-evidence.md`） |
+| P12 根 README … | … | 部分（`report/repro-check.md` 已出，判定读数是 `判定列在内=61 行 PASS=49 FAIL=0 未测=12 判定列不成词=0`（终审 C9 现跑）；14 行没有判定词的表格已补齐（判定列搬回末列），缺的是那 12 行未测，逐条构成见 `report/known-limitations.md` 第 4 节。更早一版 C9 按全文 token 计数读出 `PASS=91 FAIL=30 未测=32`，这一错位登记在 `report/claims-vs-evidence.md`） |
 | P18a 原理与划分 … | … | 未落地（`report/figures/` 已建；`20-principle.md`、`30-partition-if.md` 未写——批次到 150 回合上限，已登记不假装完成） |
 | P18b 优化与结果 … | … | 已交付（`report/40-optimization.md`、`50-results.md`、`comparison-notes.md`；15 条抽查链路一步命中） |
 | P18c 失败·复现·未决 … | … | 已交付（`60-failure-analysis.md`、`70-reproduce.md`、`90-open-items.md`、`report/README.md`）；90 的表体行随每轮装配漂移，最后一轮 `gen_index` 后需再对一次 C8 |

@@ -78,7 +78,7 @@
 | `node skills/scripts/check/gen_index.mjs` + `--check` | 技能包索引重写与一致校验（条目 58 是当时旧件的读数） | 同上（`gen_index.mjs` **现不存在**；现役件 `skills/_meta/build-index.mjs` 本轮判 `条目=49`）|
 | `node skills/scripts/check/gates.mjs --full` ×2 | 技能包 12 项门禁，两跑逐字节一致 | `build/evidence/r120_gates_skill_a.txt`、`..._b.txt`（`gates.mjs` **现不存在**，两件转录是当时的凭据）|
 | `bash skills/scripts/selftest/run_all.sh` | 6 把脚本尺子 40 条对照（含反例与缺件 NOT_MEASURED） | `build/evidence/r120_selftest.txt`（`run_all.sh` **现不存在**；现役等价件 `skills/_meta/run-all-checks.mjs` 本轮判 `判 9 项 自测件=6 红=0 未测=0 PASS`）|
-| `node build/checks/check_repo_consistency.mjs --self` | 终审 C2/C3 的 10 条对照（每条都能动） | 输出转录在提交说明 |
+| `node build/checks/check_repo_consistency.mjs --self` | 终审 C2/C3/C9 的对照例（现算 `判 28 项 PASS`＝C2 造 6 例 + C3 造 17 例 + C9 造 5 例，每条都能动） | 输出转录在提交说明（本轮落盘件：`build/evidence/1006_c3_scope_selftest.txt`） |
 | `node build/checks/check_repo_consistency.mjs --list` | 全仓终审 C1–C12 定版读数 | `build/evidence/r120_final_gate.txt` |
 | `node build/r120_src_map.mjs` | 源码地图现算（盘上文件数 vs `git ls-files` 对账） | `report/src-map.md` |
 

@@ -104,7 +104,18 @@ function c2Judge(rows, has) {
   }
   return { ok, miss };
 }
-const C3_RE = /(?:^|[\s`(（|])((?:build|docs|report|submit|board|data|src|sim|scripts|skill)\/[A-Za-z0-9_.\-\[\]*]{2,120})(?=[\s)|,，。；;：:]|$)/g;
+// 2026-10-05 的射程洞（本轮实测到的，不是推测），两条同族：
+//  ① 字符类里**没有 `/**` ⇒ `build/evidence/r116_board/board_now.txt` 这种三层路径永远匹配不上：
+//     正则吃掉 `build/evidence` 后要求下一字符是分隔符，而它是 `/` ⇒ 整个 token 不成立，
+//     **静默不进分母**（当时打印 `检查路径引用=631 死引用=0 PASS`，看着全绿；把 `/` 放进类里
+//     同一棵树现算抓到 1179 条）。
+//  ② 右边界那条 `(?=[\s)|,，。；;：:]|$)` 把**反引号或全角括号包起来的写法**整体否掉：
+//     中文文档里最常见的指路形状正是 `build/x.md`（两头反引号），这一类从前一条都不判。
+// 改法：字符类带 `/`，去掉右边界前瞻——字符类自己就定义了"什么算路径字符"，遇到反引号、
+// 全角标点、空白自然收口；左边界改为"前面不是路径字符也不是 `/`"（避免咬进 URL 与更长串）。
+// 截断上限一并去掉：一个 200 字符的上限会制造新的静默（超限的 token 匹配不上＝不算分母），
+// 而那正是这条判据要消灭的东西。
+const C3_RE = /(?:^|[^A-Za-z0-9_.\-\[\/])((?:build|docs|report|submit|board|data|src|sim|scripts|skill)\/[A-Za-z0-9_.\-\[\]*\/]+)/g;
 // 两条射程修正（都是尺子自己的维度错，不是被量对象变好了）：
 //  ① 只判"像一个文件"的串（带扩展名）或"像一个目录"的串（以 / 结尾）。改前 `board/README`、`src/dst`
 //     这类行文碎片被当成路径引用，虚报死引用；
@@ -127,8 +138,34 @@ try {
 } catch { C3_NOSHIP = null; }
 const c3Ship = (line) => Array.isArray(C3_NOSHIP) && C3_NOSHIP.some(k => line.includes(k));
 
-function c3Judge(t, relFile, has) {
-  let total = 0, dead = [], skipFrag = 0, skipRun = 0, skipLedger = 0, skipShip = 0, skipFence = 0;
+// 第五支豁免（2026-10-05，随 C3 射程修正一起加）：**被记录在案的精简笔删掉的凭据**。
+// 目录重构那一轮把 `build/` 从 3118 支收到 592 支（笔 `02bd5c4`，另一笔 `58faa85` 删了一条），
+// 交付文档里有 81 条指路点的是那一批**当时真在盘上、后来按记录删掉**的读数件。这类不是名字写错，
+// 硬要求它在盘上＝用错量纲（与"运行期产物""台账"同一族）。降级为只报数（条数打成 历史精简=N），
+// 但降级必须可核：只认下面这份**写死在尺子里**的删除笔名单，名单从 `git show` 现取；
+// 不在名单里的缺失照旧红（对照 P2 钉住这一条）。要新增一次精简，就得同时改这份名单——
+// 名单在尺子里、尺子随包，改它会和 `--self` 的对照一起被看见，这是反买通。
+// 取不到 git ⇒ C3 整项 NOT_MEASURED（fail-closed，不退回"全当存在"）。
+const PRUNE_COMMITS = ['02bd5c4', '58faa85'];
+let C3_PRUNED = null;
+let C3_PRUNED_DIRS = null;
+try {
+  C3_PRUNED = new Set(PRUNE_COMMITS.flatMap(c => execFileSync('git',
+    ['show', '--no-renames', '--diff-filter=D', '--name-only', '--format=', c],
+    { cwd: ROOT, encoding: 'utf8', maxBuffer: 64e6, timeout: 60000 }).split(/\r?\n/).filter(Boolean)));
+  // 文档也常指**目录**（`build/evidence_r63b/` 这种一整族读数所在的工作目录）。git 里只有文件没有目录，
+  // 所以目录形要按前缀判：它的下面曾有文件、且那些文件是被上面那两笔删掉的 ⇒ 同一族历史精简。
+  C3_PRUNED_DIRS = new Set();
+  for (const p of C3_PRUNED) {
+    const segs = p.split('/');
+    for (let i = 1; i < segs.length; i++) C3_PRUNED_DIRS.add(segs.slice(0, i).join('/') + '/');
+  }
+} catch { C3_PRUNED = null; C3_PRUNED_DIRS = null; }
+const c3PrunedHit = (c, pruned, prunedDirs) =>
+  pruned ? (pruned.has(c) || (c.endsWith('/') && prunedDirs && prunedDirs.has(c))) : false;
+
+function c3Judge(t, relFile, has, pruned, prunedDirs) {
+  let total = 0, dead = [], skipFrag = 0, skipRun = 0, skipLedger = 0, skipShip = 0, skipFence = 0, skipQuote = 0, prunedHit = 0;
   const reSrc = new RegExp(C3_RE.source, 'g');
   let inFence = false;
   for (const line of String(t).split(/\r?\n/)) {
@@ -136,6 +173,20 @@ function c3Judge(t, relFile, has) {
     // 作者不能往别人打印的那一行里塞声明，改抄件＝伪造记录 ⇒ 与 doc_currency 的 D4c 同一口径：
     // 只报数不判红，条数打出来。对照 CTRL M 钉住"同一句写在围栏外照旧必须红"。
     if (/^\s*(?:`{3,}|~{3,})/.test(line)) { inFence = !inFence; continue; }
+    // 引用块（`>` 开头）与围栏同族：那是**别人打印/写下的原文**，作者不许往里塞声明词，
+    // 也不许为了过尺子改别人的话。这一类同样只报数（条数打成 skipQuote），
+    // 对照 Q1/Q2 钉住"同一句写在作者自己名下照旧必须红"。
+    if (/^\s*>/.test(line) && !inFence) {
+      const re3 = new RegExp(C3_RE.source, 'g'); let mq;
+      while ((mq = re3.exec(line))) {
+        const c = mq[1].replace(/[.。，;)]+$/, '');
+        if (/[*\[\]]/.test(c) || /rNN|<|>|\bdemo\b/.test(c)) continue;
+        if (!C3_HASFILE.test(c) && !c.endsWith('/')) continue;
+        if (C3_RUNTIME.test(c)) continue;
+        if (!has(c) && !c3PrunedHit(c, pruned, prunedDirs)) skipQuote++;
+      }
+      continue;
+    }
     if (inFence) {
       const re2 = new RegExp(C3_RE.source, 'g'); let mm;
       while ((mm = re2.exec(line))) {
@@ -155,10 +206,15 @@ function c3Judge(t, relFile, has) {
       if (C3_RUNTIME.test(c)) { skipRun++; continue; }
       if (/^report\/log\//.test(relFile)) { skipLedger++; continue; }
       if (c3Ship(line)) { skipShip++; continue; }
-      total++; if (!has(c)) dead.push(`${relFile} → ${c}`);
+      total++;
+      if (!has(c)) {
+        // 名单里那两笔精简删掉的 ⇒ 只报数；其余（从没存在过、或存在过却被别的路径删掉）⇒ 红。
+        if (c3PrunedHit(c, pruned, prunedDirs)) prunedHit++;
+        else dead.push(`${relFile} → ${c}`);
+      }
     }
   }
-  return { total, dead, skipFrag, skipRun, skipLedger, skipShip, skipFence };
+  return { total, dead, skipFrag, skipRun, skipLedger, skipShip, skipFence, skipQuote, prunedHit };
 }
 function selftestC2() {
   const has = f => f === 'build/x.rpt';
@@ -180,7 +236,7 @@ function selftestC2() {
   }
   console.log(`C2 自检：造 ${cases.length} 例 不符=${bad} 判 ${cases.length} 项 ${bad === 0 ? 'PASS' : 'FAIL'}`);
   // C3 的对照例：碎片串必须被豁免、真缺的 .md 必须红、运行期件与台账各自只走自己那一支
-  const has3 = f => f === 'docs/real.md';
+  const has3 = f => f === 'docs/real.md' || f === 'build/evidence/r118_board/board_now.txt';
   const c3cases = [
     ['G 行文碎片不算路径', '见 board/README 那一节', 'docs/x.md', { total: 0, dead: 0, skipFrag: 1 }],
     ['H 真缺的文件必须红', '对照 docs/gone.md 与 docs/real.md', 'docs/x.md', { total: 2, dead: 1, skipFrag: 0 }],
@@ -191,12 +247,34 @@ function selftestC2() {
     ['L 同一句没写声明 ⇒ 必须红', '捕获件 board/uart_script_capture.txt 的读数见下', 'docs/x.md', { total: 1, dead: 1, skipShip: 0, skipFence: 0 }],
     ['M 围栏内原文回显只报数（同一句写在围栏外照旧红，见 L 例）',
       ['说明：', String.fromCharCode(96).repeat(3), 'RESULT PASS (捕获 board/uart_script_capture.txt)', String.fromCharCode(96).repeat(3)].join('\n'),
-      'docs/x.md', { total: 0, dead: 0, skipFence: 1 }]
+      'docs/x.md', { total: 0, dead: 0, skipFence: 1 }],
+    // 2026-10-05 补的三支形状对照：旧正则①字符类里没有 `/`、②右边界前瞻不认反引号，
+    // 于是三层路径与 `path` 这种文档里最常见的写法**根本不进分母**，"死引用=0"是看不见不是没有。
+    // N1 钉"嵌套的死引用看得见"，N2 是它的正对照（同形状但件在盘上 ⇒ 不许红）——
+    // 少了 N2，N1 可以靠"任何嵌套一律红"蒙过；N3/N4 钉住反引号包裹这一形状的红与绿。
+    ['N1 三层嵌套的死引用必须看得见', '凭据见 build/evidence/r118_board/gone.txt 那一份', 'docs/x.md', { total: 1, dead: 1 }],
+    ['N2 三层嵌套且在盘上 ⇒ 不红（N1 的正对照）', '凭据见 build/evidence/r118_board/board_now.txt', 'docs/x.md', { total: 1, dead: 0 }],
+    ['N3 反引号包着的死引用必须看得见', '见 `build/evidence/r118_board/gone.txt` 那一份', 'docs/x.md', { total: 1, dead: 1 }],
+    ['N4 反引号包着且在盘上 ⇒ 不红（N3 的正对照）', '见 `build/evidence/r118_board/board_now.txt` 那一份', 'docs/x.md', { total: 1, dead: 0 }],
+    // 第五支豁免（历史精简）的能红/能绿对：少了 P2，"指到被删过的件"就成了新的后门——
+    // 任何一条乱写的路径只要混进名单就永久免检。
+    ['P1 精简名单里的件 ⇒ 只报数不判红', '读数见 build/evidence/r7_pruned/example.rpt', 'docs/x.md', { total: 1, dead: 0, prunedHit: 1 }],
+    ['P2 同形状但不在名单里 ⇒ 必须红（P1 的反买通对照）', '读数见 build/evidence/r7_pruned/other.rpt', 'docs/x.md', { total: 1, dead: 1, prunedHit: 0 }],
+    // 目录形指路的同一对：`build/evidence_r63b/` 这种工作目录在 git 里没有条目，只有它下面的文件，
+    // 所以要按前缀判；P4 钉住"前缀下一条历史文件都没有"仍然必须红（否则任何乱写的目录都免检）。
+    ['P3 目录形指路，下面曾有被删文件 ⇒ 按前缀只报数', '整族读数在 build/evidence_r63b/ 里', 'docs/x.md', { total: 1, dead: 0, prunedHit: 1 }],
+    ['P4 目录形指路但前缀下空无一物 ⇒ 必须红（P3 的反买通对照）', '整族读数在 build/never_existed_dir/ 里', 'docs/x.md', { total: 1, dead: 1, prunedHit: 0 }],
+    // 引用块（`>`）与 ``` 围栏同族：那是别人写下的原文，作者不许往里塞声明词。
+    // Q2 钉住"同一句话挂在作者自己名下照旧必须红"，否则引用块会成为新的免检通道。
+    ['Q1 引用块里的死引用只报数', '> 当时留的快照在 build/evidence/r9_eyes/gone.txt（用完就该删）', 'docs/x.md', { total: 0, dead: 0, skipQuote: 1 }],
+    ['Q2 同一句写在作者名下 ⇒ 必须红（Q1 的反买通对照）', '当时留的快照在 build/evidence/r9_eyes/gone.txt（用完就该删）', 'docs/x.md', { total: 1, dead: 1, skipQuote: 0 }]
   ];
   let bad3 = 0;
+  const pruned3 = new Set(['build/evidence/r7_pruned/example.rpt', 'build/evidence_r63b/roster.txt']);
+  const prunedDirs3 = new Set(['build/', 'build/evidence/', 'build/evidence/r7_pruned/', 'build/evidence_r63b/']);
   for (const [name, text, rel, want] of c3cases) {
-    const r = c3Judge(text, rel, has3);
-    const got = { total: r.total, dead: r.dead.length, skipFrag: r.skipFrag, skipRun: r.skipRun, skipLedger: r.skipLedger, skipShip: r.skipShip, skipFence: r.skipFence };
+    const r = c3Judge(text, rel, has3, pruned3, prunedDirs3);
+    const got = { total: r.total, dead: r.dead.length, skipFrag: r.skipFrag, skipRun: r.skipRun, skipLedger: r.skipLedger, skipShip: r.skipShip, skipFence: r.skipFence, skipQuote: r.skipQuote, prunedHit: r.prunedHit };
     const okk = Object.keys(want).every(k => got[k] === want[k]);
     if (!okk) bad3++;
     console.log(`CTRL ${name} 期望=${JSON.stringify(want)} 实读=${JSON.stringify(got)} ${okk ? '对照成立' : '对照不成立'}`);
@@ -235,20 +313,23 @@ if (process.argv.includes('--self')) { process.exit(selftestC2()); }
 // C3 路径存活：文档里写的相对路径必须存在（判据定义与对照例在文件上半部，与 --self 共用）
 {
   const files = mdFiles();
-  const agg = { total: 0, dead: [], skipFrag: 0, skipRun: 0, skipLedger: 0, skipShip: 0, skipFence: 0 };
+  const agg = { total: 0, dead: [], skipFrag: 0, skipRun: 0, skipLedger: 0, skipShip: 0, skipFence: 0, skipQuote: 0, prunedHit: 0 };
   for (const f of files) {
-    const r = c3Judge(read(f) || '', f, exists);
+    const r = c3Judge(read(f) || '', f, exists, C3_PRUNED, C3_PRUNED_DIRS);
     agg.total += r.total; agg.dead.push(...r.dead);
     agg.skipFrag += r.skipFrag; agg.skipRun += r.skipRun; agg.skipLedger += r.skipLedger;
-    agg.skipShip += r.skipShip; agg.skipFence += r.skipFence;
+    agg.skipShip += r.skipShip; agg.skipFence += r.skipFence; agg.skipQuote += r.skipQuote; agg.prunedHit += r.prunedHit;
   }
   if (LIST) agg.dead.forEach(d => console.log('DEAD ' + d));   // --list 只把明细打全，判定与分母不变
   // 词表读不到 ⇒ 这一项**没判成**（不许把它念成"干净"，也不许念成"红"）
   if (!Array.isArray(C3_NOSHIP) || C3_NOSHIP.length === 0) {
     row('C3', '文档内路径存活', `扫=${files.length} 份 词表=读不到（doc_currency 的 NOSHIP_MARK 没解析出来）⇒ 豁免一支无法生效，本项不判`,
         'NOT_MEASURED');
+  } else if (C3_PRUNED === null) {
+    row('C3', '文档内路径存活', `扫=${files.length} 份 精简名单=读不到（git show 取不到 ${PRUNE_COMMITS.join('/')} 的删除清单）⇒ 历史凭据那一支豁免无法生效，本项不判`,
+        'NOT_MEASURED');
   } else {
-    row('C3', '文档内路径存活', `扫=${files.length} 份 检查路径引用=${agg.total} 死引用=${agg.dead.length}${agg.dead.length ? ' 例:' + agg.dead.slice(0, 3).join(' | ') : ''} 豁免=碎片${agg.skipFrag}/运行期${agg.skipRun}/台账${agg.skipLedger}/同行声明${agg.skipShip}/围栏回显${agg.skipFence}（词表 ${C3_NOSHIP.length} 词，与 doc_currency 同一套）`,
+    row('C3', '文档内路径存活', `扫=${files.length} 份 检查路径引用=${agg.total} 死引用=${agg.dead.length}${agg.dead.length ? ' 例:' + agg.dead.slice(0, 3).join(' | ') : ''} 历史精简=${agg.prunedHit}（指的是被 ${PRUNE_COMMITS.join('/')} 删掉的凭据，只报数不判红） 豁免=碎片${agg.skipFrag}/运行期${agg.skipRun}/台账${agg.skipLedger}/同行声明${agg.skipShip}/围栏回显${agg.skipFence}/引用块${agg.skipQuote}（词表 ${C3_NOSHIP.length} 词，与 doc_currency 同一套）`,
         agg.total > 0 && agg.dead.length === 0 ? 'PASS' : agg.dead.length ? 'FAIL' : 'NOT_MEASURED');
   }
 }

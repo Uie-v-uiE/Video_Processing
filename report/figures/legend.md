@@ -90,7 +90,7 @@ node src/host/doc_enc_check.mjs            # 手写文档的编码（本目录�
 ```
 
 跑法与期望输出见 `report/70-reproduce.md`；本目录两份 `.txt` 不含 `.md` 扩展名，
-所以它们里面的引用**不被**第 20 项自动核对 ⇒ `report/20-principle.md（未写）` 与
+所以它们里面的引用**不被**第 20 项自动核对 ⇒ 尚未写的那一章（第 20 章·设计原理）与
 `report/claims-vs-evidence.md`（这两份是 `.md`）里重复引用时会被扫到，因此每条锚点都逐条实读回原行。
 诚实的口径：**`.txt` 图正本里的行号是逐条 `sed -n 'Np'` 读出来的，但没有机器门禁长期盯着它们**，
 这一条只记在本节，未登记进 `report/questions-for-team.md`（2026-10-05 读该文件，里面没有这一条）；D5 的扩展名表只有 `.v`/`.c`/`.h`/`.mjs`/`.sh`/`.tcl`/`.ps1`，不含 `.txt`（`src/host/line_cite_check.mjs` 第 40 行）。

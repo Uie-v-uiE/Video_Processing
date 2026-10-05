@@ -118,7 +118,7 @@ Linux 分支：S1/S8 的 Linux 形状（`ls /dev/ttyUSB*` 等）**【未在 Linu
 | M1 | `node src/host/metric_recheck.mjs` | 红 0 | 终态 rc=0，判 117 个数、首页层 63 个、解析到 10/10 行、红 0（过程那次红 4 见 R8） | PASS |
 | M2 | `node src/host/line_cite_check.mjs` | `D5: CLEAN` | 终态 rc=0：`扫 226 份交付文档 ⇒ 硬错 0 条；锚点命中 1088 条`（新 README 的行号引用全被 D5 认下：改 README 那批把 `build/sim/run_one.sh:2/:11/:46`、`build/gates.sh:11/:582-586`、`build/board_verify.sh:4-16`、`build/r116_bit_cycle.sh:4`、`build/tcl/*.tcl:3`、`build/tb98_report.sh:4`、`metric_recheck.mjs:274-278` 等新引用写进 README/repro-check） | PASS |
 | M3 | `node skills/scripts/golden_compare/golden_compare.mjs --golden build/cdc_baseline.txt … --tolerance 0 --out-dir <临时目录>`（整串逐字抄自该文件头"复跑（仓库根，正例基线…）"那 3 行） | 末行 `GOLDEN … 判 N 项 未判 0 项 红 0 项 PASS` | `判 18 项 未判 0 项 红 0 项 PASS`，rc=0；产物只落 `--out-dir`（脚本拒绝写工程目录）；`golden_compare.mjs` 是 2026-10-04 c7b325f 重建前的旧包件名、**现不存在**，本行只报当时读数不指路——现役等价件是 `skills/scripts/golden-compare-tool/scripts/compare.mjs`，命令行已换成 `node compare.mjs <actual> <golden> [--tol N] [--exempt 文件]`，另实跑它的 `--self` 末行 `判 10 项：红=0 未测=0 夹具=8 …PASS` | PASS |
-| M4 | `node src/host/report_metrics/…` 那把（当时叫 `skills/scripts/report_metrics/report_metrics.mjs`，2026-10-04 c7b325f 重建技能包后**现不存在**；现役件 `skills/scripts/metrics-collector/scripts/collect.mjs`，用法是 `node collect.mjs <报告目录> [--out metrics.csv] [--report metrics.md] [--spec <file>]`） | 用法行 | **未跑**：当时那把要 `--out-dir` 且属于 P04 那一轮正在改的脚本 ⇒ 只指路不列为步骤；现役件只跑过 `--self`（末行 `判 10 项：红=0 夹具=4 名册=15 …PASS`），没跑过真报告目录 | NOT_MEASURED |
+| M4 | 指标采集那把（当时叫 `skills/scripts/report_metrics/report_metrics.mjs`，2026-10-04 c7b325f 重建技能包后**现不存在**；现役件 `skills/scripts/metrics-collector/scripts/collect.mjs`，用法是 `node collect.mjs <报告目录> [--out metrics.csv] [--report metrics.md] [--spec <file>]`） | 用法行 | **未跑**：当时那把要 `--out-dir` 且属于 P04 那一轮正在改的脚本 ⇒ 只指路不列为步骤；现役件只跑过 `--self`（末行 `判 10 项：红=0 夹具=4 名册=15 …PASS`），没跑过真报告目录 | NOT_MEASURED |
 | M5 | `bash build/sim/run_one.sh --verdict …`（同 A4） | 计数行 | 161/1 | PASS |
 
 ### 2.6 语法检查与上位机 help（旁证，不是交付步骤）
@@ -254,19 +254,19 @@ Linux 分支：S1/S8 的 Linux 形状（`ls /dev/ttyUSB*` 等）**【未在 Linu
 
 ### 8.1 §5 环境自检块：S1–S11 逐条重跑（全部只读）
 
-| # | 命令 | 实际输出摘要（删略主机名与绝对路径） | 判定 | 与第一轮 / 与 README 的差异 |
+| # | 命令 | 实际输出摘要（删略主机名与绝对路径） | 与第一轮 / 与 README 的差异 | 判定 |
 |---|---|---|---|---|
-| S1 | `uname -a; echo "MSYSTEM=$MSYSTEM"` | `MINGW64_NT-10.0-26300 <主机名略> 3.6.5-22c95533.x86_64 … x86_64 Msys` + `MSYSTEM=MINGW64` | PASS | 同第一轮 |
-| S2 | `node --version` | `v24.21.0` | PASS | 同 |
-| S3 | `python --version; python3 --version` | `Python 3.12.10` + `python3: command not found` | PASS | 同 |
-| S4 | `python -c "import serial; print(serial.__version__)"` | `ModuleNotFoundError: No module named 'serial'` | PASS | 同 |
-| S5 | `command -v vivado`；**照 README 字面** `find /c /d -maxdepth 4 -name vivado.bat`；改深度后的同一条；`test -f "$VP_VIVADO_BIN/vivado.bat"` | 第一条空（不在 PATH）；**`-maxdepth 4` 那一跑 = 0 行**（同一条在 `/<盘>/Software` 上 `-maxdepth 4` = 0、`-maxdepth 5` = 1 行、1.0 s）⇒ 本机安装是 `/<盘>/Software/Vivado/<版本>/Vivado/bin/vivado.bat`，从盘符根数起第 6 层，**旧 README 那句"本机实测这两条能把它挖出来"照字面不成立**；`-maxdepth 6` 挖到，`test -f` = OK | PASS（**改后**；改前照字面敲 = FAIL，见 §3 R11） | README §5 S5 已把深度改成 6 并写上这条实测 |
-| S6 | `grep -o "xc7z020[a-z0-9]*" "$VP_VIVADO_BIN/../data/parts/installed_devices.txt（不随包）" \| sort -u`（并试备用写法 `$(dirname …)/data/parts/…`） | 两种写法都给同样三行：`xc7z020` / `xc7z020clg484` / `xc7z020i` | PASS | 同第一轮（备用形状也实测过，旧记录里那句"不成立时改成…"是对的） |
-| S7 | `test -f "$VP_XSDB"`；同名片在 `<Vivado>/bin` 的那一份 `test -f`；`netstat -an \| grep ":3121"` | 两处都在（`…/Vitis/bin/xsdb.bat` 与 `…/Vivado/bin/xsdb.bat` ⇒ README"同名件有两份、取 Vitis 那一份"成立）；端口行 `TCP 0.0.0.0:3121 0.0.0.0:0 LISTENING` | PASS | 同 |
-| S8 | `powershell.exe -NoProfile -Command "[System.IO.Ports.SerialPort]::GetPortNames()"` | `COM6`（只枚举，未开口） | PASS | 同 |
-| S9 | `bash build/rtl_fingerprint.sh --self` | 末行 `RESULT rtl_fingerprint --self PASS`，rc=0 | PASS | 同 |
-| S10 | `bash build/run_one_ce.sh` | 末行 `SELF PASS run_one --verdict（八条对照都按期望动）`，rc=0 | PASS | 同 |
-| S11 | `git status --porcelain \| wc -l`; `git rev-parse --short HEAD` | `53` / `1c4e26b`（开工时是 `157d332` / 70 条 ⇒ 并发会话边跑边提交） | PASS（陈述，非判据） | README 那一行把这几个读数并列着写 |
+| S1 | `uname -a; echo "MSYSTEM=$MSYSTEM"` | `MINGW64_NT-10.0-26300 <主机名略> 3.6.5-22c95533.x86_64 … x86_64 Msys` + `MSYSTEM=MINGW64` | 同第一轮 | PASS |
+| S2 | `node --version` | `v24.21.0` | 同 | PASS |
+| S3 | `python --version; python3 --version` | `Python 3.12.10` + `python3: command not found` | 同 | PASS |
+| S4 | `python -c "import serial; print(serial.__version__)"` | `ModuleNotFoundError: No module named 'serial'` | 同 | PASS |
+| S5 | `command -v vivado`；**照 README 字面** `find /c /d -maxdepth 4 -name vivado.bat`；改深度后的同一条；`test -f "$VP_VIVADO_BIN/vivado.bat"` | 第一条空（不在 PATH）；**`-maxdepth 4` 那一跑 = 0 行**（同一条在 `/<盘>/Software` 上 `-maxdepth 4` = 0、`-maxdepth 5` = 1 行、1.0 s）⇒ 本机安装是 `/<盘>/Software/Vivado/<版本>/Vivado/bin/vivado.bat`，从盘符根数起第 6 层，**旧 README 那句"本机实测这两条能把它挖出来"照字面不成立**；`-maxdepth 6` 挖到，`test -f` = OK | README §5 S5 已把深度改成 6 并写上这条实测 | PASS（**改后**；改前照字面敲判红，见 §3 R11） |
+| S6 | `grep -o "xc7z020[a-z0-9]*" "$VP_VIVADO_BIN/../data/parts/installed_devices.txt（不随包）" \| sort -u`（并试备用写法 `$(dirname …)/data/parts/…`） | 两种写法都给同样三行：`xc7z020` / `xc7z020clg484` / `xc7z020i` | 同第一轮（备用形状也实测过，旧记录里那句"不成立时改成…"是对的） | PASS |
+| S7 | `test -f "$VP_XSDB"`；同名片在 `<Vivado>/bin` 的那一份 `test -f`；`netstat -an \| grep ":3121"` | 两处都在（`…/Vitis/bin/xsdb.bat` 与 `…/Vivado/bin/xsdb.bat` ⇒ README"同名件有两份、取 Vitis 那一份"成立）；端口行 `TCP 0.0.0.0:3121 0.0.0.0:0 LISTENING` | 同 | PASS |
+| S8 | `powershell.exe -NoProfile -Command "[System.IO.Ports.SerialPort]::GetPortNames()"` | `COM6`（只枚举，未开口） | 同 | PASS |
+| S9 | `bash build/rtl_fingerprint.sh --self` | 末行 `RESULT rtl_fingerprint --self PASS`，rc=0 | 同 | PASS |
+| S10 | `bash build/run_one_ce.sh` | 末行 `SELF PASS run_one --verdict（八条对照都按期望动）`，rc=0 | 同 | PASS |
+| S11 | `git status --porcelain \| wc -l`; `git rev-parse --short HEAD` | `53` / `1c4e26b`（开工时是 `157d332` / 70 条 ⇒ 并发会话边跑边提交） | README 那一行把这几个读数并列着写 | PASS（陈述，非判据） |
 
 ### 8.2 路径 A 与 §7 的结果比对检查（第二轮白名单内真跑；A1/A4/A6 见末尾三条）
 
@@ -328,12 +328,12 @@ build/evidence/r118_board/bitcycle_console.txt 首末两条记录
 任务书的禁止项在 2026-10-05 早解除了一半（用户："板子连好了你把那个红再改一下"）：**允许** JTAG 三步、串口、推流；
 **仍然没做**的是构建与全量仿真（B1–B6 保持 NOT_MEASURED，B4 那种会原地覆盖已采纳凭据的更要单独批）。
 
-| 步 | 命令（逐字） | 读到的原文（摘要） | 凭据 |
-|---|---|---|---|
-| 前置 | bash build/board_verify.sh --self | SELF board_verify: 5/5 条形符期望（地板 5/5） | 终端回显（该步未单独落件；同一次跑的落件见下行） |
-| C1 | VP_XSDB=… bash build/r116_bit_cycle.sh r118docround | recover rc=0 / boot rc=0 / pl rc=0 PROGRAMMED=2 / app rc=0 FLOW_DONE=1 | build/evidence/verify_1005_0741.boot.txt |
-| C4 | 随 C1 起流：python src/host/video_sender.py --demo --seconds 50 --fps 60 --pace-mbps 0 --no-ping | 两趟健康计数：eth_live=1 owner_eth=1 drop_words=0 pkt_err=0 frames_bad=1 cdc_episodes=0 stall_ms=0；时延 lane tot_ms=11.119 / 7.432，osd_ms_pair_ok=1、osd_ms_matches_tot=true，n_meas=740 / 1946，torn=false | build/evidence/r116_board/health_r118docround_a.json 与 _b.json |
-| C2 | VP_XSDB=… bash build/board_verify.sh --battery --geom --round=r118 | RESULT PASS geom_check（ok=10 fail=0）；RESULT PASS uart_cmd_check（105 条命令, 97.7 s）；ok V9-6 温度格三方对账；跑完回到 thr=80 src=1 zoom=1 bilin=1 zsel=4 zman=1 sel=000 gm=0.00 mode=0 geom=00400000 osd=1；末行 RESULT board_verify PASS（判红的步骤：0） | build/evidence/verify_1005_0741.txt、build/evidence/r118_serial_raw.txt、build/evidence/verify_1005_0741.geom.txt |
+| 步 | 命令（逐字） | 读到的原文（摘要） | 凭据 | 判定 |
+|---|---|---|---|---|
+| 前置 | bash build/board_verify.sh --self | SELF board_verify: 5/5 条形符期望（地板 5/5） | 终端回显（该步未单独落件；同一次跑的落件见下行） | PASS（`--self` 5/5 条形符期望，地板 5/5） |
+| C1 | VP_XSDB=… bash build/r116_bit_cycle.sh r118docround | recover rc=0 / boot rc=0 / pl rc=0 PROGRAMMED=2 / app rc=0 FLOW_DONE=1 | build/evidence/verify_1005_0741.boot.txt | PASS（三步 rc 全 0，末行 FLOW_DONE=1） |
+| C4 | 随 C1 起流：python src/host/video_sender.py --demo --seconds 50 --fps 60 --pace-mbps 0 --no-ping | 两趟健康计数：eth_live=1 owner_eth=1 drop_words=0 pkt_err=0 frames_bad=1 cdc_episodes=0 stall_ms=0；时延 lane tot_ms=11.119 / 7.432，osd_ms_pair_ok=1、osd_ms_matches_tot=true，n_meas=740 / 1946，torn=false | build/evidence/r116_board/health_r118docround_a.json 与 _b.json | NOT_MEASURED（两跑健康计数的原件 `build/evidence/r116_board/health_r118docround_a.json` 与 `_b.json` 已被记录在案的精简笔删掉、不随包 ⇒ 上面那串读数是当时的转述，今天在包内指不到件；要转成判定需重跑一次带流的 `board/scripts/board_health.sh`） |
+| C2 | VP_XSDB=… bash build/board_verify.sh --battery --geom --round=r118 | RESULT PASS geom_check（ok=10 fail=0）；RESULT PASS uart_cmd_check（105 条命令, 97.7 s）；ok V9-6 温度格三方对账；跑完回到 thr=80 src=1 zoom=1 bilin=1 zsel=4 zman=1 sel=000 gm=0.00 mode=0 geom=00400000 osd=1；末行 RESULT board_verify PASS（判红的步骤：0） | build/evidence/verify_1005_0741.txt、build/evidence/r118_serial_raw.txt、build/evidence/verify_1005_0741.geom.txt | PASS（geom ok=10 fail=0、105 条串口命令全过、末行判红步骤 0） |
 
 三条如实：
 

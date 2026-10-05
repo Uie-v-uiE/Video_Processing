@@ -99,7 +99,7 @@ python build/r118_commit.py && git push origin main    # 提交 + 推送（信�
   对照那一半（按住 KEY1 到链跑完应读 1）**仍未做**，登记为"未判"，需要再断一次电。
 * **板上一步的坑**：07:39 那一次 `ps_jtag_boot.tcl` 死在 `targets -set 1`（`tid2ctx`）——冷上电后 hw_server 还没重新枚举链路。等它枚举成 `1=APU / 2=ARM#0 / 3=ARM#1 / 4=xc7z020`，**脚本一字未改就过了**（只读探针 `build/tcl/probe_target_select.tcl`，五种选择写法全 rc=0）。下次遇到"冷上电后第一步就 REFUSE"，先重连一次看枚举表。
 * **一处身份债补上了（ISSUES #332）**：`git show HEAD:build/system.bit | md5sum` 量出来 HEAD 里那块还是 **r116 的 `bb2fb707aebc`** —— r118 那两支提交只带了文档，bit / xsa / `build/*.rpt` / `build/report/` / `build/tb_v98_report.txt` 全悬在工作区。
-  根因三条都写在 #332 里（路径清单写了不存在的 `report/acceptance.md` ⇒ `git add` 原子失败只暂存 4 条 ⇒ 打印子进程输出时又踩 cp936 解码崩溃）。
+  根因三条都写在 #332 里（路径清单写了当时并不存在的 `report/acceptance.md`——那个名字从未落地、不在本包内 ⇒ `git add` 原子失败只暂存 4 条 ⇒ 打印子进程输出时又踩 cp936 解码崩溃）。
   **本节之后的规矩**：提交完必须**读回 HEAD** 验位流身份，不许只读工作区。
 * **另一处工具账（ISSUES #333）**：为追加 #332 留的那份 `ISSUES_before332.md` 备份被 D5 当成交付文档扫，连带把 D1c 也拖红（23/1 → 21/3）。备份证明成"纯前缀"之后删掉；纪律是**快照不要落成仓库里的 `.md`**。
 * **门禁的实际形状（件 `build/evidence/r118_board/`）**：`g1b` 22 绿/2 红（基准件是旧的）→ 删备份 → `g1c` 22 绿/2 红（D1c 仍读着旧基准）→ 定版 → **`g2c`/`g3c` 23 绿/1 红且逐字节一致**（唯一红 = 声明过的 `C5c`，`build/tb_v98_report.txt` 里那条 `FAIL C5c …` + `RESULT tb_v98_top_seam FAIL nfail=1`），`doc_currency` 打印 **CURRENCY: 干净**。
