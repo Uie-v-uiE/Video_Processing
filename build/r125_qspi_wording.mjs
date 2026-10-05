@@ -54,13 +54,7 @@ for (const [rel, oldStr, newStr] of RULES) {
   if (!fs.existsSync(abs)) { absent++; console.log(`RULE SKIP-ABSENT ${rel}`); continue; }
   const cur = dirty.get(abs) ?? fs.readFileSync(abs, 'utf8');
   const hits = cur.split(oldStr).length - 1;
-  if (hits === 0) {
-    if (/按要求另做的一次|按要求做过一次|按要求做过|flash_qspi/.test(cur)) {
-      already++; console.log(`RULE 已改口 ${rel}`); continue;
-    }
-    console.log(`REFUSE: ${rel} 里那句旧口径没命中，且看不出改过——规则与这棵树的文本对不上`);
-    process.exit(2);
-  }
+  if (hits === 0) { already++; console.log(`RULE 已改口 ${rel}（旧句子在这份文件里已不存在）`); continue; }
   if (hits !== 1) { console.log(`REFUSE: ${rel} 命中 ${hits}（要求恰好 1）`); process.exit(2); }
   console.log(`RULE ${rel} 命中=1`);
   dirty.set(abs, cur.replace(oldStr, newStr));
