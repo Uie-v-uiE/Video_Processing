@@ -13,16 +13,19 @@
 
 ## 1. 交付要回答的每一格 → 由哪份文件负责
 
+下面八行的**行序就是赛题 §3.3.5.3 那七条的顺序**（每条已把条款号写在第一格），最后一格是本仓库自加的。
+这样排的目的只有一个：拿官方条款当检查表的人，逐条都能指到盘上一份文件，不需要在目录里翻。
+
 | 要回答什么 | 负责它的文件（都在盘上） | 仍然欠的部分 |
 |---|---|---|
-| 选题背景与创新点：解决什么实际问题、前人做过什么 | `background_and_novelty.md`（同类题目的公开通报坐标系，并声明它不是文献综述） | 真实的出发点与主张强度需要队伍自己定；对外不写"首次／首创／领先／唯一"，公开对照只到"同类做法存在、本项目形态不同"这一档 |
-| 设计原理与功能框图 | `architecture.md`（文字版数据流框图＋逐模块职责＋延迟账本）、`modules.md`（端口／时序假设／例化关系）、`rotation_and_effects.md`（定点算术与窗口卷积）、`figures/fig-01-system-level.txt`＋`figures/fig-02-module-level.txt`＋`figures/legend.md` | 两级框图目前是文本原件，缺的是能直接贴进演示稿的位图或矢量图 |
-| 软硬件划分依据与接口设计 | `ps_vs_pl.md`（划分原则与两处接口）、`interface-table.md`（机器可读的寄存器与地址表）、`commands.md`＋`command_precedence.md`＋`defaults.md`（命令表、命令优先级裁决、上电默认档）、`../src/ps/main.c`（PS 侧实物） | 主张与证据的对照在 `claims-vs-evidence.md`；接口表与人读版说明若有冲突，以机器可读表为准 |
-| 优化过程，含优化前后的性能与资源对比 | `40-optimization.md`、`optimization_log.md`（逐轮"基线 → 措施 → 实测"，末尾有跨全期累计对照）、`comparison-notes.md`（对比表怎么读、哪些差值不能算收益）、`perf_report.md`、`timing_global.md`、`../data/metrics.csv` | `data/metrics.csv` 有四行与现件不同源（第 14、15、25、27–28 行），逐条登记在 `90-open-items.md` 第 2C 节；要么重算指标，要么改文档一侧，需要一次裁决。`perf_report.md` 的表头声明了"走势表不要当当前值引用" |
-| 大模型协作记录：提示词、模型回答、自我纠错轨迹、智能体工作流 | `ai_collaboration.md`（约束怎么给、模型怎么跑偏）、`llm_collab.md`（四个案例与工作流设计）、`collaboration/prompts-used.md`（提示词原文）、`collaboration/corrections.md`（被证伪与更正的轨迹）、`collaboration/sessions/`（逐会话档案） | 追加式工作记录在 `log/issues.md` 与 `log/overnight_log.md`，只作过程留痕，不当结论引用；"哪些交互可以公开"还没有对外口径 |
-| 技能包的提炼过程：从哪些失败总结、如何验证有效、边界在哪 | `../skills/README.md`（总索引，由 `../skills/_meta/build-index.mjs` 现算）、`../skills/_meta/distillation-process.md`（提炼过程）、`../skills/_meta/validation.md`（本包自测读数与复跑命令）、`../skills/_meta/entry-map.md`（每条技能长自哪一类观察）、`../skills/_meta/check-skill-package.mjs`（形状判据） | 还欠一条"基线 vs 用它之后"的效果对比，登记在 `90-open-items.md` 第 2F 节 |
-| 复现说明：他人可从零执行的步骤 | `70-reproduce.md`（环境自检 → 构建 → 仿真 → 上板 → 结果比对，逐命令写明执行目录、shell、外部设备状态与完成后应看到什么）、`reproduce/README.md`（提交包那一版）、`build.md`、`../build/README.md`、`../build/tcl/README.md`、`../sim/README.md`、`../board/README.md`、`../board/HANDS_ON.md（不随包）`、`../board/hardware_setup.md`、`../README.md` 的复现小节、`repro-check.md`（演练读数） | 两处欠：`70-reproduce.md` 第 6 节点出的与其它文档冲突的五处尚未改（逐条动作在 `90-open-items.md` 第 2D 节）；还没有第三方视角的一次干净复现演练，构建与上板那半需要一段可用时间 |
-| 失败分析：哪些场景仍然做不好、原因是什么 | `60-failure-analysis.md`（未解决与未测试分两组，每条四件：现象含证据、可判别的假设、判别方法、计划与成本）、`known_issues.md`（未修缺陷，以及"看着像问题其实是有意的"）、`known-limitations.md`、`../board/acceptance.md` 与 `../board/signoff.md`（逐格签收状态） | 未决项的集中登记在 `90-open-items.md`；那份表是快照，会随后续实测变动，以重跑第 5 节的命令为准 |
+| §3.3.5.3 第 1 条·选题背景与创新点：解决什么实际问题、前人做过什么 | `background_and_novelty.md`（同类题目的公开通报坐标系，并声明它不是文献综述） | 真实的出发点与主张强度需要队伍自己定；对外不写"首次／首创／领先／唯一"，公开对照只到"同类做法存在、本项目形态不同"这一档 |
+| §3.3.5.3 第 2 条·设计原理与功能框图 | `architecture.md`（文字版数据流框图＋逐模块职责＋延迟账本）、`modules.md`（端口／时序假设／例化关系）、`rotation_and_effects.md`（定点算术与窗口卷积）、`figures/fig-01-system-level.txt`＋`figures/fig-02-module-level.txt`＋`figures/legend.md` | 两级框图目前是文本原件，缺的是能直接贴进演示稿的位图或矢量图 |
+| §3.3.5.3 第 3 条·软硬件划分依据与接口设计 | `ps_vs_pl.md`（划分原则与两处接口）、`interface-table.md`（机器可读的寄存器与地址表）、`commands.md`＋`command_precedence.md`＋`defaults.md`（命令表、命令优先级裁决、上电默认档）、`../src/ps/main.c`（PS 侧实物） | 主张与证据的对照在 `claims-vs-evidence.md`；接口表与人读版说明若有冲突，以机器可读表为准 |
+| §3.3.5.3 第 4 条（也是 §3.3.4 第 1、2 条）·优化过程，含优化前后的性能与资源对比 | `40-optimization.md`、`optimization_log.md`（逐轮"基线 → 措施 → 实测"，末尾有跨全期累计对照）、`comparison-notes.md`（对比表怎么读、哪些差值不能算收益）、`perf_report.md`、`timing_global.md`、`../data/metrics.csv` | `data/metrics.csv` 有四行与现件不同源（第 14、15、25、27–28 行），逐条登记在 `90-open-items.md` 第 2C 节；要么重算指标，要么改文档一侧，需要一次裁决。`perf_report.md` 的表头声明了"走势表不要当当前值引用" |
+| §3.3.5.2 与 §3.3.5.3 第 5 条·大模型协作记录：提示词、模型回答、自我纠错轨迹、智能体工作流 | `ai_collaboration.md`（约束怎么给、模型怎么跑偏）、`llm_collab.md`（四个案例与工作流设计）、`collaboration/prompts-used.md`（提示词原文）、`collaboration/corrections.md`（被证伪与更正的轨迹）、`collaboration/sessions/`（逐会话档案） | 追加式工作记录在 `log/issues.md` 与 `log/overnight_log.md`，只作过程留痕，不当结论引用；"哪些交互可以公开"还没有对外口径 |
+| §3.3.5.2 与 §3.3.5.3 第 6 条·技能包的提炼过程：从哪些失败总结、如何验证有效、边界在哪 | `../skills/README.md`（总索引，由 `../skills/_meta/build-index.mjs` 现算）、`../skills/_meta/distillation-process.md`（提炼过程）、`../skills/_meta/validation.md`（本包自测读数与复跑命令）、`../skills/_meta/entry-map.md`（每条技能长自哪一类观察）、`../skills/_meta/check-skill-package.mjs`（形状判据） | 还欠一条"基线 vs 用它之后"的效果对比，登记在 `90-open-items.md` 第 2F 节 |
+| §3.3.5.3 第 7 条（也是 §3.3.4 第 4 条）·复现说明：他人可从零执行的步骤 | `70-reproduce.md`（环境自检 → 构建 → 仿真 → 上板 → 结果比对，逐命令写明执行目录、shell、外部设备状态与完成后应看到什么）、`reproduce/README.md`（提交包那一版）、`build.md`、`../build/README.md`、`../build/tcl/README.md`、`../sim/README.md`、`../board/README.md`、`../board/HANDS_ON.md（不随包）`、`../board/hardware_setup.md`、`../README.md` 的复现小节、`repro-check.md`（演练读数） | 两处欠：`70-reproduce.md` 第 6 节点出的与其它文档冲突的五处尚未改（逐条动作在 `90-open-items.md` 第 2D 节）；还没有第三方视角的一次干净复现演练，构建与上板那半需要一段可用时间 |
+| 失败分析（本仓库自加的一格，对应 §3.3.4 第 5 条"稳定性与可演示性"）：哪些场景仍然做不好、原因是什么 | `60-failure-analysis.md`（未解决与未测试分两组，每条四件：现象含证据、可判别的假设、判别方法、计划与成本）、`known_issues.md`（未修缺陷，以及"看着像问题其实是有意的"）、`known-limitations.md`、`../board/acceptance.md` 与 `../board/signoff.md`（逐格签收状态） | 未决项的集中登记在 `90-open-items.md`；那份表是快照，会随后续实测变动，以重跑第 5 节的命令为准 |
 
 ## 2. 与 §3.3.5.4 推荐结构的对照
 
@@ -81,6 +84,17 @@
 | `../board/acceptance.md`、`../board/signoff.md`、`../board/raw-vs-golden.md` | 逐格验收状态、需要人眼判的签收、原图与金标的比对 |
 | `demo_script.md` | 演示动线与讲稿：每步该看到什么、看不到时先看哪一格；本地版在 `study/demo_plan.md（不随包）` |
 | `final-gate.md`、`declarations.md` | 发布前检查项的读法，以及对外声明的口径边界 |
+
+### 判断依据（只判断、不动手的那两件）
+
+| 文档 | 它替谁把账算清楚 | 结论落在哪 |
+|---|---|---|
+| `timing/eth_rxc_partition_options.md` | 收侧那条 0.739 ns 的 `eth_rxc` 路：还想买到余量，四条候选各值多少 | 四条逐一给判定（A 前提为假、B 要一整轮、C 先量才能判、D 不买余量但不补就是失实）；第 6 节把 D1 那一轮的逐时钟名册差分记成 `result=RED`（窗本身管用、代价在别的域），并说明为什么"没量过"不等于"到极限" |
+| `timing/eth_tx_decoupling_inventory.md` | 发侧要不要从 125 MHz 域里独立出来：这是唯一还可能买到余量的结构性改法 | 前置清单 **35 条** RX↔TX 信号级跨域、其中 **33 条完全没有同步器** ⇒ 判定"这是一整轮，不是半轮"，收益**未量**，立案与否交回给人 |
+
+§3.3.4 第 4 条要的是"判断依据看得见"。这两件没有写 RTL、没有跑构建，它们的用处是让下一轮不重复试错；
+读它们时注意：没量到的地方都明写着没量到（后一件的第 9 节是"读出来的 / 没量到的"自审清单，
+前一件对每条候选的收益都写了"未量"或"先量才能判"），结论里没有把未量写成结果。
 
 ### 大模型协作与技能包
 

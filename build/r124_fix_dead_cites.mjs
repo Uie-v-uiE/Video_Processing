@@ -1,5 +1,13 @@
 // build/r124_fix_dead_cites.mjs —— 把终审 C3 新射程下暴露的"指到从来没有过的路径"逐条改口
-// 用法：node build/r124_fix_dead_cites.mjs --check | --apply
+// 依赖：node（本机 v24.x）；以仓库根为当前工作目录；不联网、不调 Vivado/xsim，只读写仓库内的文本文件。
+// 用法：node build/r124_fix_dead_cites.mjs --check   （默认，只报每条规则的命中数，不写盘）
+//       node build/r124_fix_dead_cites.mjs --apply  （命中数与期望全对才写；任何一条不匹配就整批 REFUSE，不留半改状态）
+// 参数：
+//   | 参数 | 作用 |
+//   | --- | --- |
+//   | --check | 逐条打印命中数与不命中项，不写盘 |
+//   | --apply | 全部命中才落盘，并打印每个文件的行数变化（行数只许增不减） |
+
 // 规矩（都是以前踩过的坑）：
 //  · old 串按**字面**匹配（不是正则），每条必须命中 want 次，否则整文件不写；
 //  · 一个文件一次写，写完立刻断言行数只增不减；

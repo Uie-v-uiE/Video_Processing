@@ -1,4 +1,13 @@
 // build/r124_sync_c3c9_numbers.mjs —— 把 C3（射程改对）与 C9（判定列补齐）的现算读数同步回所有引用它们的交付文档
+// 依赖：node（本机 v24.x）；以仓库根为当前工作目录；不联网、不调 Vivado/xsim，只读写仓库内的文本文件。
+// 用法：node build/r124_sync_c3c9_numbers.mjs --check   （默认，只报每条规则的命中数，不写盘）
+//       node build/r124_sync_c3c9_numbers.mjs --apply  （命中数与期望全对才写；任何一条不匹配就整批 REFUSE，不留半改状态）
+// 参数：
+//   | 参数 | 作用 |
+//   | --- | --- |
+//   | --check | 逐条打印命中数与不命中项，不写盘 |
+//   | --apply | 全部命中才落盘，并打印每个文件的行数变化（行数只许增不减） |
+
 // 规矩：字面匹配、每条命中 1 次、一个文件一次写、行数不许变少；--check 先看命中。
 import fs from 'node:fs';
 
