@@ -13869,3 +13869,33 @@ rim 那一半本轮已用修好的入口重跑并出新件 `build/tb_edge_rim_r1
   Tcl 表达式没有 `!~` 算子（那次死在 7 分钟布线**跑完之后**的那一行）。
   可执行的教训：**"不做了"也是一个要写进交付文档的结论**，必须同时写清（a）现状按件是哪一份、（b）上界是多少、
   （c）哪些债没因为停手而消失。只写"已定型"等于给评委留一句没有出处的话。
+
+- **#394（2026-10-05 深夜，把上板工程落进 `board/` 的两支脚本：一次"验证把交付物改脏了"的自伤，加两处失实）**：
+  交付要求 `board/` 放得上板工程，于是写了 `board/tcl/stage_board_projects.tcl`（复制工程→**真的 open_project 那一份**→
+  打印器件/源件数/约束数→逐个问 88 个路径在不在→关掉工程）与 `board/scripts/stage_vitis_platform.sh`
+  （复制平台→用副本里的 BSP 重链 PS 应用）。三支脚本各踩了一刀，都记在这儿：
+  ① **验证动作把在板身份换掉了**：`node build/ps_app.mjs` 的输出路径写死在 `build/ps_app.elf`（`build/ps_app.mjs:33`），
+  所以"用副本链一遍"直接把仓库里那颗跟踪件覆盖了，`md5sum` 当场从 `d0b07f84a068` 变成重链那颗。
+  修法是脚本侧而不是工具侧：跑前 `mktemp` 备份、`trap … EXIT` 还原，判据从"md5 必须相同"改成"链得出非空 ELF"
+  （两颗本就不等，见 ③），跑完 `md5sum` 复核仍是 `d0b07f84a068`。**一般教训：验证脚本必须跑完回到交付形状**，
+  否则"验一次脏一次"，而且脏的正好是最不能脏的那一份身份件。
+  ② **复制会把归一化冲掉**：`vivado_system/*.xpr` 的工程头 `Path="D:/…"`、`vitis/platform/vitis-comp.json` 的
+  `configuration.xsa` 都是本机绝对路径；上午手工改成仓库相对的那两处，被整份 `file copy` / `cp -r` 原样带回来。
+  现在两支脚本各自带一步 NORMALIZE（`.xpr` 在 Tcl 里改属性、json 走 `build/r125_normalize_platform_json.mjs`），
+  并把"还剩几行 / 几个文件带盘符"写成 REFUSE 条件（输出 `VERIFY abs_path_lines=0`、`VERIFY abs_path_files=0`）。
+  顺带量出 `board/README.md` §1 那一格字节数早就失实：写的 51 987，仓库里那份实际 50 939，
+  这一跑之后是 50 917——`.xpr` 每被打开一次 Vivado 就重写一次，**这个数本来就不该当常量抄**，README 已改成"这一跑之后的数"。
+  ③ **抄死的易变 md5 会在六处一起失实**：`4ed58740785c…`（重建那颗 ELF）是今天上午量的，之后 `src/ps/main.c`
+  删了一条永远走不到的 `not_wired("bilin")` 分支（笔 `0bc578d`），今晚重链得到 `c0f9f79a…`，
+  `.text` 小 52 B、`.rodata` 小 220 B。同一句话散在 `board/README.md`、`report/60-failure-analysis.md`（两处）、
+  `report/figures/legend.md`、`report/known-limitations.md`、`report/known_issues.md`、`src/ps/README.md`，
+  改口脚本 `build/r125_elf_md5_rotate.mjs`（`--check` 逐条命中数必须为 1，否则整体不写），口径是**正文只指证据件、不抄数字**。
+  ④ **"本工程从不向 QSPI 写入"这一句今晚被我自己做假了**（队伍要求固化，已写入并硬件回读校验，见
+  `board/measured/flash_qspi_2026-10-05.txt`）。它散在 9 处（`board/acceptance.md` 首页口径、`board/hardware_setup.md`
+  那行"本工程从不做"、`build/README.md` §1.3 标题、`build/tcl/README.md` §2 标题、`report/demo_script.md` 那句"永远不要"、
+  `report/known_issues.md` 的理由列、`report/measurements.md` 注释、`docs/walkthrough/system-overview.md`、
+  `report/06-validation.md` 的射程声明），本轮统一改成"**演示与验收只走 JTAG；QSPI 那一次是 2026-10-05 按要求另做的**"，
+  并且没有顺手把"断电重上能自启"写成通过（那一判要人手拨启动模式）。FT2232 的 EEPROM 仍然没碰，这条不改口。
+  ⑤ 一条工具账：`bash` 里内联 `node -e '…'` 写替换串，`"$1"build/system.xsa""` 这种"引号套引号"是 JS 语法错，
+  而 `set -euo pipefail` 只让它死掉、`grep` 又把错误行滤掉，看起来像"脚本没输出"。规则：**替换逻辑进独立 .mjs，
+  不在 shell 里内联 JS**；调试这类"静默早退"先看 `bash -x` 的尾部而不是猜。

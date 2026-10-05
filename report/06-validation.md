@@ -155,8 +155,8 @@ RESULT board_verify PASS（判红的步骤：0）
 其中一批行的读数属于更早那几版，当前板上这一版被重新盖章的是上面点名的 geom + battery + 串口留档。
 
 板级复验答不了三件事：不判时序窗（那 5 个收端点没有约束，静态时序分析不参与，见
-`report/05-timing.md` §6）、不判屏上观感（第 5 节）、不写 QSPI/SPI flash
-（`board/acceptance.md` 首页那句"上板只走 JTAG"）。
+`report/05-timing.md` §6）、不判屏上观感（第 5 节）
+（`board/acceptance.md` 首页那句"验收那一路只走 JTAG"；把版本固化进板载 QSPI 是 2026-10-05 按要求另做的一次，不在本节射程）。
 
 ## 5. 人眼签收（`board/acceptance.md` E1–E6）
 

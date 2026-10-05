@@ -231,7 +231,7 @@ node src/host/metric_recheck.mjs | tail -3
 grep -c '^PASS' build/tb_v98_report.txt; grep -n '^FAIL' build/tb_v98_report.txt
 # 3) 发布前检查一把跑（项数与通过/未通过以它打印的那一行为准，这里不复制）
 bash build/gates.sh | tail -3
-# 4) 板上板级一把跑（要板子在场、COM6 空闲；本仓库只走 JTAG，不写 QSPI）
+# 4) 板上板级一把跑（要板子在场、COM6 空闲；这一路只走 JTAG）
 VP_XSDB=<Vitis>/bin/xsdb.bat bash build/board_verify.sh --battery --geom
 # 5) 温度那一格的逐条原始回显（不靠手抄）
 cat build/evidence/r118_serial_raw.txt

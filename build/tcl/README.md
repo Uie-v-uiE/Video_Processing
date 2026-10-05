@@ -22,7 +22,7 @@ set VIVADO=<Vivado>\bin\vivado.bat
 ⇒ 要构建只认 `build_system_axigpio.tcl`；跑完必须自己去 `build/` 里核对报告的时间戳，
 **不要相信退出码**。
 
-## 2. 上板（JTAG only —— 永不写 QSPI/SPI flash）
+## 2. 上板（演示与验收走 JTAG；QSPI 那一支在 `board/tcl/flash_qspi.tcl`）
 
 | 脚本 | 用途 |
 |---|---|
