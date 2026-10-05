@@ -1,23 +1,20 @@
 # 硬件接法、供电与外设
 
-给第一次摆这套装置的人用：照这份文件把同一套东西接起来、供好电、当场验一遍。
-这里只管**物理与工程侧**——上板命令序列在 `board/README.md` §2，每步该看到什么在 `board/acceptance.md`，
-位流、XSA、ELF 三件的身份在 `build/provenance.md` 的身份表与 `board/measured/` 每一次跑的 IDENTITY 块里
-（早先把三件身份写成摘要卡的那一层已经随目录精简删掉，不随包）。
+第一次摆这套装置的人照这份文件接线、供好电、当场验一遍。
+这里只管物理与工程侧。上板命令序列在 `board/README.md` §2，每步该看到什么在 `board/acceptance.md`，
+位流、XSA、ELF 三件的身份在 `build/provenance.md` 的身份表与 `board/measured/` 每一次跑的 IDENTITY 块里。
+早先把三件身份写成摘要卡的那一层已随目录精简删掉，不随包。
 
-三条填写口径：
-
-- 每一项都点名它的仓库出处；仓库里查不到的写 `【待你补】`（这个标记的意思是「这一项仓库里没有记录，值要由队伍给」），
-  不猜引脚、不猜电压、不猜线材。
-- 状态句后面一定跟一次当场回读动作（怎么验），跟不上的就不写。
-- 要断电、拔卡、重刷的动作只写流程与后果（见第 5 节），需要人站在板子前面做。
+填写口径：每一项都点名它的仓库出处，仓库里查不到的写 `【待你补】`（这个标记的意思是「这一项仓库里没有记录，值要由队伍给」），
+不猜引脚、不猜电压、不猜线材。状态句后面一定跟一次当场回读动作（怎么验），跟不上的就不写。
+要断电、拔卡、重刷的动作只写流程与后果（见第 5 节），需要人站在板子前面做。
 
 ---
 
 ## 0. 型号与版本在哪里声明
 
-单一权威源是 `report/declarations.md`：那份文件里 `<!-- BEGIN-AUTHORITATIVE -->` 块内的字段就是权威值。
-下面这张表是抄写，右侧给的是各文件里的第一处出现；两处不一致时以 `report/declarations.md` 为准。
+单一权威源是 `report/declarations.md`，那份文件里 `<!-- BEGIN-AUTHORITATIVE -->` 块内的字段就是权威值。
+下面的表是抄写，右侧给的是各文件里的第一处出现；两处不一致时以 `report/declarations.md` 为准。
 
 | 项 | 值 | 权威出处 |
 |---|---|---|
@@ -38,7 +35,7 @@ sed -n '1,20p' report/declarations.md   # 权威块；上表每个值都要能�
 
 ## 1. 连接表（每条六件：起点 / 终点 / 线材 / 方向 / 供电 / 共地）
 
-口径：**四件（起点·终点·线材·供电）齐全 = 齐**；缺的那件写 `【待你补】`。
+口径：四件（起点·终点·线材·供电）齐全才算齐，缺的那件写 `【待你补】`。
 "方向"与"共地"缺了同样算不可复原，单独列出来。
 
 | # | 起点 | 终点（含引脚/针号/接口名） | 线材 | 方向 | 供电来源与限流 | 共地 | 四件 | 出处 |
@@ -96,44 +93,47 @@ python src/host/video_sender.py --demo --ip 192.168.1.10 --port 5001 --fps 25
 | HDMI 线 / 网线 / USB-C 线 | **【待你补】**（长度与规格仓库未记） | — | 缺 |
 | PC | Windows + Git Bash + Vivado/Vitis 2025.2.1 + Node v24 + Python 3（推流用） | `report/study/05_验证与上板/03_上板流程与踩坑.md:117-123`、`send_demo.bat:8-13` | 已声明 |
 
-BOM 的位置：本仓库**没有**独立的 BOM 文件（`find . -iname "*bom*"` 命中 0）。
+本仓库没有独立的 BOM 文件（`find . -iname "*bom*"` 命中 0）。
 上表就是当前能给的最小 BOM，正式 BOM 属于声明层，不在这里新建。
 
 ---
 
 ## 3. 自制部分与图纸位置
 
-- **自制部分：无。** 这套装置由成品核心板 + 商用面板 + 商用线缆组成，仓库里没有自制板或转接板的
-  工程文件（`find . -not -path "./.git/*" \( -iname "*.brd" -o -iname "*pcb*" \)` 命中 0、
-  `find . -not -path "./.git/*" -iname "*bom*"` 命中 0）。
-- 板卡原理图：`ZYNQ7020-F+V1.1原理图.pdf` **第 8 页**（PHY2 的 strap 引脚表：`23 TXDLY/RXD1`、
-  `24 RXDLY/RXD0`）。出处：收口输入窗模型、
-  那一轮的逐轮页（结论："RXDLY/TXDLY 都由 4.7K 上拉到 IODVDD ⇒ PHY 把 2 ns 延时加在 RXC 上"）。
-- 从原理图裁出来的 4 个图件（`phy2_straps.png`、`rxd_area.png`、`strap_rxdly_1.png`、`strap_txdly_1.png`）
-  曾经入库，现已随目录精简删掉、**不随包**；这一节因此只保留图件名与它们所裁的那一页页码，
-  拿不到裁图的人按上面两条引文（原理图第 8 页 + 收口输入窗模型）复原读数。
-- PHY 时序参数抄件：`build/evidence/r115_rtl8211f_delay_source.txt`（Table 60 那一组，出处 收口输入窗模型）。
-- 警告：**原理图 PDF 与 PHY 规格书都不在仓库内**（在板卡资料目录，路径含机器字样 ⇒ 按 `report/build.md:16-20`
-  的规矩不写进交付文档）。拿不到原件的人只能按"引文 + 裁图"复原第 8 页的那两处读数，
-  不能按原图复原。是否随包、或给公开下载链接，要由队伍答复；这一条与上面那 11 处同批登记在 问队伍清单。
+自制部分没有。这套装置由成品核心板 + 商用面板 + 商用线缆组成，仓库里没有自制板或转接板的
+工程文件（`find . -not -path "./.git/*" \( -iname "*.brd" -o -iname "*pcb*" \)` 命中 0、
+`find . -not -path "./.git/*" -iname "*bom*"` 命中 0）。
+
+板卡原理图在 `ZYNQ7020-F+V1.1原理图.pdf` 第 8 页，那一页给的是 PHY2 的 strap 引脚表（`23 TXDLY/RXD1`、
+`24 RXDLY/RXD0`）。出处是收口输入窗模型和那一轮的逐轮页，那边的结论写的是：
+"RXDLY/TXDLY 都由 4.7K 上拉到 IODVDD ⇒ PHY 把 2 ns 延时加在 RXC 上"。
+
+从原理图裁出来的 4 个图件（`phy2_straps.png`、`rxd_area.png`、`strap_rxdly_1.png`、`strap_txdly_1.png`）
+曾经入库，现已随目录精简删掉、不随包，所以这一节只保留图件名与它们所裁的那一页页码。
+拿不到裁图的人按上面两处引文（原理图第 8 页 + 收口输入窗模型）复原读数。
+PHY 时序参数抄件在 `build/evidence/r115_rtl8211f_delay_source.txt`（Table 60 那一组，出处 收口输入窗模型）。
+
+原理图 PDF 与 PHY 规格书都不在仓库内，它们在板卡资料目录，路径含机器字样，
+按 `report/build.md:16-20` 的规矩不写进交付文档。拿不到原件的人只能按"引文 + 裁图"复原第 8 页的那两处读数，
+不能按原图复原。是否随包、或给公开下载链接，要由队伍答复；这一条与上面那 11 处同批登记在 问队伍清单。
 
 ---
 
 ## 4. 上电与连接顺序（不可交换的那一段）
 
-物理侧只有两条是硬顺序；逻辑侧的三条（先起 PS、再烧 PL、最后重载应用）在 `board/README.md` §2：
+物理侧的硬顺序只有两条；逻辑侧的三条（先起 PS、再烧 PL、最后重载应用）在 `board/README.md` §2。
 
 1. **先接 C1（12 V）再接 C2（USB-C）**，反过来会在"USB 已枚举、板未上电"的状态下
-   产生 `No devices detected`。这一条有正向凭据：`build/r88_jtag_scan.txt:39-52`
-   —— USB 侧（Composite Device / Serial Converter A / B / COM6）全部 `OK`，而 `scan_jtag` 报
+   产生 `No devices detected`。正向凭据是 `build/r88_jtag_scan.txt:39-52` 那一段：
+   USB 侧（Composite Device / Serial Converter A / B / COM6）全部 `OK`，而 `scan_jtag` 报
    `ERROR: [Labtools 27-2269] No devices detected on target localhost:3121/xilinx_tcf/Xilinx/0ABC01A`，
    结论原话：「缺的是**板子供电**，不是驱动/线/PC」。
    回读动作：在仓库根跑 `vivado -mode batch -source build/tcl/scan_jtag.tcl`，看 `=== DEVICES ===`
    里有没有 Zynq 那颗（正常链的样本：`build/evidence/r118_eyes/step2_program_pl.txt`，
    `arm_dap_0` 与 `xc7z020_1` 各占一行）。
-2. **网线（C4）接不接要先决定这一趟演哪一幕**：`report/build.md:91-93` 写明
-   PL 里 `link_active = |s_pkts` 是"自配置以来收过任何一个包"，**ARP 就够触发，拔线不清零、只有重配清零**
-   （过程与改法记在 开发台账 的 #47）。所以演 SD 回放必须在**下 bit 之前**拔网线。
+2. 网线（C4）接不接，要先决定这一趟演哪一幕。`report/build.md:91-93` 写明
+   PL 里 `link_active = |s_pkts` 是"自配置以来收过任何一个包"，ARP 就够触发，拔线不清零、只有重配清零
+   （过程与改法记在 开发台账 的 #47）。所以演 SD 回放必须在下 bit 之前拔网线。
    回读动作：推流前后各读一次 `node src/host/health_read.mjs --json` 的 `src_state`
    （停流再读寄存器这件事是 `board/README.md` §2 末尾的两个注意点里的第二条）。
 
@@ -154,7 +154,7 @@ BOM 的位置：本仓库**没有**独立的 BOM 文件（`find . -iname "*bom*"
 
 ## 6. 现场核对用的只读命令（不碰板子，在任何机器上都能跑）
 
-最后一列是作者机器上的一次读数，换机器值会变；这一节的作用是"上表哪句话被这条命令钉住"。
+最后一列是作者机器上的一次读数，换机器值会变。这一节答的是"上表哪句话被这条命令钉住"。
 
 | 命令 | 样本读数 | 它钉住了哪句话 |
 |---|---|---|
