@@ -609,4 +609,4 @@
   `README.md`、`build/r118_gates.txt`、`build/evidence/r118_board/board_now.txt`、
   `build/evidence/r118_board/board_verify_console.txt`、`src/host/metric_recheck.mjs`
 - 计数分母（这一篇与 `report/90-open-items.md` 共用）：
-  `sim/tb_*.v` = 81；`src/rtl/**/*.v` = 80；`build/evidence/` 条目 = 671；台架判定与发布前检查项数见 `build/r118_gates.txt`。
+  `sim/tb_*.v` = 82；`src/rtl/**/*.v` = 80；`build/evidence/` 条目 = 671；台架判定与发布前检查项数见 `build/r118_gates.txt`。

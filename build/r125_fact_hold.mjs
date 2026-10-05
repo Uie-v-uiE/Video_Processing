@@ -23,6 +23,18 @@ const CLASSES = {
 };
 const MULTI = ['number', 'md5', 'path', 'cite', 'verdict'];   // 全部按"值 → 出现次数"比，出现两次少一次也要报
 
+// 逐条豁免。改写轮里有两处"记号变少"是**修正**而不是丢事实，硬留着红会让这把尺子失去可信度；
+// 但豁免不能变成万能出口，所以每条必须带一个 `need` 字串：改写后的文里当场数得到它，才准放行；
+// 数不到就照旧红（依据消失 ⇒ 豁免自动失效，不需要再改代码）。
+const EXEMPT = {
+  'report/repro-check.md': [
+    { tok: 'number:2.7', why: 'HEAD 里该节编号错位（## 6 之下写成 ### 2.7），已改号为 6.1', need: '实际执行过的命令' },
+  ],
+  'report/ai_collaboration.md': [
+    { tok: 'path:skills/references/symptom-router/SKILL.md', why: '同一段重复点名同一份技能两次，省掉一次；指路仍在', need: 'skills/references/symptom-router/SKILL.md' },
+  ],
+};
+
 function tally(txt) {
   const out = {};
   for (const [k, re] of Object.entries(CLASSES)) {
@@ -46,7 +58,10 @@ function substrCount(hay, needle) {
   while ((i = hay.indexOf(needle, i)) >= 0) { n++; i += needle.length; }
   return n;
 }
-let judged = 0, lost = 0;
+// 记号少了一种读法 ≠ 记号没了：`30.0` 后面接了个中文句号、或 `1.5 MB` 并入 `1.5MB`，
+// 正则的边界会把同一个字串读成不同的 token。所以先按字面数一遍，字面还在就不算消失，
+// 但要把降级条数打出来——这个数本身是一条判据，异常膨胀就说明记号在漂。
+let judged = 0, lost = 0, downgraded = 0, exempted = 0, idle = 0, refused = 0;
 for (const rel of files) {
   const abs = path.join(root, rel);
   if (!fs.existsSync(abs)) { console.log(`SKIP ${rel}（工作树里没有）`); continue; }
@@ -56,17 +71,34 @@ for (const rel of files) {
   const now = fs.readFileSync(abs, 'utf8');
   const a = tally(headTxt), b = tally(now);
   const gone = [];
+  const fired = new Set();
+  const lostToks = new Set();
+  let sd = 0;
   for (const k of MULTI) {
     for (const [tok, n] of a[k]) {
       const m = b[k].get(tok) || 0;
-      if (m < n) gone.push(`${k}:${tok} x${n}→x${m}`);
+      if (m >= n) continue;
+      const lit = substrCount(now, tok);
+      if (lit >= n) { sd++; continue; }
+      const ex = (EXEMPT[rel] || []).find(e => e.tok === `${k}:${tok}`);
+      if (ex && substrCount(now, ex.need) >= 1) { fired.add(`${k}:${tok}`); exempted++; continue; }
+      lostToks.add(`${k}:${tok}`);
+      gone.push(`${k}:${tok} x${n}→x${m}${lit ? '(字面' + lit : ''}`);
     }
   }
+  // 名单里的条目若这一轮既没生效、记号也确实没少，就是可以删掉的债（防止豁免名单只增不减）。
+  const idleEx = (EXEMPT[rel] || []).filter(e => !fired.has(e.tok) && !lostToks.has(e.tok));
+  for (const e of idleEx) console.log(`EXEMPT-IDLE ${rel} ${e.tok}（本轮这个记号没少，豁免可从名单删掉）`);
+  idle += idleEx.length;
+  // 记号少了但豁免依据读不到 ⇒ 不算 idle，也不放行，照旧红（上面已 push 进 gone）。
+  const buyoff = (EXEMPT[rel] || []).filter(e => lostToks.has(e.tok) && !fired.has(e.tok));
+  for (const e of buyoff) { console.log(`EXEMPT-REFUSED ${rel} ${e.tok}（依据串「${e.need}」在改写后的文里读不到，豁免失效）`); refused++; }
   const line = ['number', 'md5', 'path', 'cite', 'verdict']
     .map(k => `${k}=${a[k].size}→${b[k].size}`).join(' ');
   judged++;
-  console.log(`HOLD ${rel} ${line} 消失=${gone.length}${gone.length ? ' 例:' + gone.slice(0, 8).join(',') : ''}`);
+  downgraded += sd;
+  console.log(`HOLD ${rel} ${line} 边界降级=${sd} 豁免=${fired.size} 消失=${gone.length}${gone.length ? ' 例:' + gone.slice(0, 8).join(',') : ''}`);
   lost += gone.length;
 }
-console.log(`RESULT=${lost ? 'RED' : 'OK'} 判 ${judged} 份文件 消失记号 ${lost} 个`);
+console.log(`RESULT=${lost ? 'RED' : 'OK'} 判 ${judged} 份文件 消失记号 ${lost} 个 边界降级 ${downgraded} 个 豁免生效 ${exempted} 条 豁免失效 ${refused} 条 豁免闲置 ${idle} 条`);
 process.exit(lost ? 1 : 0);
