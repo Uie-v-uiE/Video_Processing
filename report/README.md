@@ -29,6 +29,18 @@
 | `commands.md`、`host_guide.md`、`demo_script.md` | 串口命令表、上位机用法、演示讲稿 |
 | `declarations.md` | 器件、工具版本、开源协议等声明 |
 
+## 官方 §3.3.5.3 设计报告七条 ↔ 本包里在哪
+
+| 官方那一条 | 写在哪 |
+| --- | --- |
+| 选题背景与创新点 | `technical-document.md` 第 1.1–1.3 节（三个创新点各一两句）；"为什么选它、前人做过什么"的对照在 `contest_clause_map.md` 第 4 节与 `08-limits.md` |
+| 设计原理与功能框图 | `technical-document.md` 第 2 节（时钟域、数据流、规模）与第 3 节（PL 逐段实现）；框图在 `figures/`，图例在 `figures/legend.md` |
+| 软硬件划分依据与接口设计 | `technical-document.md` 第 5 节（划分依据，含逐像素 20 ns 那一笔预算）；寄存器与位序在 `interface-table.md`，上位机侧在 `host_guide.md` |
+| 优化过程（含前后性能与资源对比） | `40-optimization.md`（含三笔"量过并否决"的账）；测量条件与出处在 `measurements.md`、`perf_report.md`，数字对账在 `data/metrics.csv` |
+| 大模型协作记录 | `ai_collaboration.md` 与 `collaboration/`（登记卡、纠错轨迹、提示词分栏、成本统计） |
+| 技能包的提炼过程 | `07-skill-distillation.md`；每条技能的"来源失败 / 失效条件"写在 `skills/` 各条目里，机检是 `skills/_meta/check-skill-package.mjs` |
+| 复现说明 | `technical-document.md` 第 8 节 + `70-reproduce.md`（A/B/C 三条路径）+ `repro-check.md`（逐行判定，未测的行明写欠哪一次构建） |
+
 ## 三条写作规矩
 
 1. 数字必带单位与测量条件，且点名它的证据文件；没复核过的格子写"未报"，不填猜的数。
