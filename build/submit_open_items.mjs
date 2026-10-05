@@ -88,12 +88,12 @@ const head = [
   '判断留在各份文档里，这里只保证**没有一条标记落在表外**（生成件：`build/submit_open_items.mjs`）。',
   '逐轮流水账不随本包，所以这里只覆盖随包的文档。',
   '',
-  `共 ${rows.length} 处：` + MARKERS.filter(m => counts[m]).map(m => `${m} ${counts[m]}`).join('、'),
+  `共 ${rows.length} 处：` + MARKERS.filter(m => counts[m]).map(m => '`' + m + '` ' + counts[m]).join('、'),
   '',
   '| 标记类型 | 所在文件与行 | 内容一句话 | 需要我做什么 | 影响哪个评测项 | 状态 |',
   '| --- | --- | --- | --- | --- | --- |',
 ];
-const body = rows.map(([m, loc, text]) => `| ${m} | ${loc} | ${text} | ${MEANING[m]} | ${IMPACT[m]} | 未闭合 |`);
+const body = rows.map(([m, loc, text]) => `| \`${m}\` | ${loc} | ${text} | ${MEANING[m]} | ${IMPACT[m]} | 未闭合 |`);
 
 console.log(`OPEN-ITEMS 扫 md=${files.length} 标记处=${rows.length}`);
 for (const m of MARKERS) console.log(`  ${m} = ${counts[m] || 0}`);
