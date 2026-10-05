@@ -6,12 +6,12 @@
 
 The host splits 512×300 RGB565 frames into UDP packets of at most 1392 bytes and sends them to port 5001 on the board; the PS writes them into DDR, the PL reads the frame back, runs a 9-stage chain that can be switched per pixel (gray, blur, sharpen, Sobel, morphology, gamma, zoom, rotate, split blend), and drives 1024×600 HDMI through a ×2 expand. One vertical seam splits the screen: the left window is the original, the right window is the processed image in the same coordinate system, and the seam position comes from the control word (0–100 %). That view is both the demo and a measuring instrument: misalignment, dropped columns and out-of-range fill show up on both sides of the seam at once.
 
-Three sources feed it - the UDP video stream from the network, a pre-converted SD frame sequence, and a test card drawn by the PL - arbitrated by `src_arb` and switched by a long key press. `link_monitor` inside the PL keeps counting received packets, drops and frame gaps; the same counters go to the OSD, can be read back over AXI GPIO with xsdb (lane select in GPIO_0, value in GPIO_1), and can be cleared by serial commands. Beside the RTL and the host tools the repository carries 81 testbenches (`sim/tb_*.v`) and 49 practice entries decoupled from this topic (`skills/`), and every tool report can be re-run with the commands further down.
+Three sources feed it - the UDP video stream from the network, a pre-converted SD frame sequence, and a test card drawn by the PL - arbitrated by `src_arb` and switched by a long key press. `link_monitor` inside the PL keeps counting received packets, drops and frame gaps; the same counters go to the OSD, can be read back over AXI GPIO with xsdb (lane select in GPIO_0, value in GPIO_1), and can be cleared by serial commands. Beside the RTL and the host tools the repository carries 82 testbenches (`sim/tb_*.v`) and 49 practice entries decoupled from this topic (`skills/`), and every tool report can be re-run with the commands further down.
 
 ## Directory guide
 
 src/ —— 80 .v files in `src/rtl/`, PS-side C in `src/ps/`, 9 .xdc files in `src/constraints/` (2 loaded, 7 candidates/experiments), 26 .mjs and 3 .py host tools in `src/host/`  
-sim/ —— 84 .v files (81 of them `tb_*.v`); the runner line under the table in `sim/README.md`  
+sim/ —— 83 .v files at the top level (82 of them `tb_*.v`); the runner line under the table in `sim/README.md`  
 build/ —— 7 flow-entry TCL scripts, the checkers, and 7 raw tool reports under `build/report/`  
 board/ —— on-board project, the three-step JTAG flashing scripts and measured output (serial captures, board verify)  
 data/ —— test data and reference results: 8 sequences in `data/inputs/`, images in `data/golden/`, `data/metrics.csv` with a header row and 28 metric rows  
@@ -47,29 +47,26 @@ to the packets sent (difference 0). The three-step JTAG chain is in `board/READM
 
 ## Key numbers and their sources
 
+The board now runs r118, bitstream identity `system.bit md5=cd04907e1369` (the identity line is written by the gate record itself,
+`build/r118_gates.txt`; byte-identical archives are in `build/r118_gates_final.txt` and `build/evidence/r118_board/`). Every reading below
+comes from the build that produced that bitstream.
+
 Main clocks: pixel clock 50 MHz (`clkout0_1`, H_TOTAL 1344 / V_TOTAL 625 ⇒ 59.5 Hz field), PL logic clock 100 MHz (`clk_fpga_0`), Ethernet capture domain 125 MHz (`eth_rxc`); constraints live in `src/constraints/` and cover clocks, I/O delays, clock uncertainty and async groups. After implementation the design-wide worst setup slack is 0.739 ns with failing setup and hold endpoints 0 / 51135, so intra-die paths are met (WNS 0.739 ns / TNS 0 ns / 0 failing endpoints), and both directions are 0.
 
 | Row name (machine-read) | Reading | Source |
 | --- | --- | --- |
-| Design-wide setup WNS | WNS **0.739 ns**, WHS **0.052 ns**, failing setup/hold endpoints **0 / 51135** (both 0; this build ships without the RGMII capture input window ⇒ those 5 I/O endpoints are unchecked, unchecked is not met) | `build/report/timing_summary.rpt:151` (re-read), `data/metrics.csv` rows 4–6 |
+| Design-wide setup WNS | WNS **0.739 ns**, WHS **0.052 ns**, failing setup/hold endpoints **0 / 51135** (both directions 0. This build does not load the RGMII capture input window, so `eth_rx_ctl` and `eth_rxd[3:0]`, 5 receive endpoints in total, are outside the scope of the timing check; why the window went back to a candidate file is in `report/08-limits.md` §4) | `build/report/timing_summary.rpt:151`, `data/metrics.csv` rows 4–6 |
 | Per-clock setup slack | 125 MHz capture domain `eth_rxc` **0.739 ns** (9.24 % of its 8 ns period, tightest cell design-wide); 100 MHz `clk_fpga_0` **1.850 ns** (18.5 % of 10 ns); 50 MHz display domain `clkout0_1` **3.630 ns** (18.15 % of 20 ns); `sys_clk` **14.876 ns** (74.38 % of 20 ns, widest) | `build/report/timing_summary.rpt` (Intra Clock Table + Clock Summary) |
-| Hold time | worst cell design-wide is in `eth_rxc`, **0.052 ns**; per-clock WHS `clk_fpga_0` **0.053 ns**, `clkout0_1` **0.059 ns**, `sys_clk` **0.222 ns**, `eth_rxc` **0.052 ns**. Only `eth_rxc` carries the 0.800 ns hold uncertainty added in r79 and the other three domains have no such line ⇒ the four values rank within a domain only, not across domains until the band is completed | `build/report/timing_summary.rpt` (WHS column), `build/hold_paths.rpt`, `build/clock_uncertainty.rpt`; uniform band `build/evidence/r115_unc/summary_hold_after.txt:151`: WHS **-0.747 ns**, 25742 failing, not adopted |
+| Hold time | worst cell design-wide is in `eth_rxc`, **0.052 ns**; per-clock WHS `clk_fpga_0` **0.053 ns**, `clkout0_1` **0.059 ns**, `sys_clk` **0.222 ns**, `eth_rxc` **0.052 ns**. Only the `eth_rxc` domain carries a self-added 0.800 ns hold uncertainty (`src/constraints/rk_zynq7020.xdc:50`); the other three domains have no such line ⇒ the four values rank within a domain only, and a cross-domain ranking needs the uncertainty band completed first (`report/08-limits.md` §6) | `build/report/timing_summary.rpt` (WHS column), `build/hold_paths.rpt`, `build/clock_uncertainty.rpt`; uniform band `build/evidence/r115_unc/summary_hold_after.txt:151`: WHS **-0.747 ns**, 25742 failing, not adopted |
 | BRAM / LUT / FF / DSP | BRAM **95.5 tiles (68.21 %)** / 140, LUT **14154 (26.61 %)**, FF **8188 (7.70 %)**, DSP **19 (8.64 %)** / 220 | `build/report/utilization.rpt`, `data/metrics.csv` rows 7–10 |
 | Power | dynamic **2.213 W** (on-chip total 2.391 W), estimated junction temperature **52.6 °C**, tool confidence **Low** ⇒ **estimate, not measurement** | `build/report/power.rpt`, `data/metrics.csv` rows 26–27 |
+| Pre-release checks | This page makes no gate-green claim; the authoritative line is the last one printed by `bash build/gates.sh`. For the build on the board the 24-item gate check reads 23 green / 1 red, and that one failing item is the `C5c` verdict the top-level full-screen bench makes about itself: output rows in the frame-head band carry the previous frame while the body rows are correct cell by cell. Symptom, the explanations already ruled out and what would close it are in `report/08-limits.md` §1. The newest fully green archive belongs to an earlier build (`build/r75_gates.txt`); it is not this build and the two readings must not be mixed | `build/r118_gates.txt` |
 
 These reports re-run from the three commands above: what `report.tcl` re-emits differs from the archived files in the Date line and the `-file` path
 only, byte-identical otherwise (`build/evidence/r121_note_c4.txt`, run log `build/evidence/r121_report_archive.txt`). On the board side the two
 100-frame sliding windows on the SD sequence read 29.956 and 29.815 fps (`build/evidence/r87_boot_stat_drain.txt`); the row in `data/metrics.csv`
 rounds that to 29.8 – 30.0, while the per-pixel comparison of the 9-stage chain and the three sources is judged by the `sim/tb_*.v` benches.
 
-## Limits and items that do not pass
-
-The board currently runs r118, bitstream identity `system.bit md5=cd04907e1369` (the identity line in `build/r118_gates.txt`), with byte-identical
-archives in `build/r118_gates_final.txt` and `build/evidence/r118_board/`. This page makes no gate-green claim: the 24-item gate check reads 23 green / 1 red (the line the checker itself prints, evidence `build/r118_gates.txt`). The fully green set belongs to an earlier build (`build/r75_gates.txt`); the two are not the same build and must not be mixed. The failing one
-is the `C5c` verdict the top-level full-screen bench makes about itself - output rows in the frame-head band carry the previous frame while the body
-rows are correct cell by cell; symptom, what has been proven and what would close it are in `report/08-limits.md` §1 and item 1 of `report/known_issues.md`.
-
-The set with 0 failing items is an earlier version (`build/r75_gates.txt`), not the one on the board. The remaining limits are collected in
-`report/known-limitations.md`: the HDMI source side has discrete measurements only, no eye diagram or jitter instrument was used; `src/ps/` rebuilds into a runnable ELF with one command, but that rebuilt ELF differs (by md5) from the one verified on the board, so a PS-side change still needs a re-flash plus a `board_verify` pass before it may be called board-verified; the item-by-item run log in `report/repro-check.md` still carries both failing and untested rows without individual attribution, so no claim is made that a third party can reproduce every result by copy-paste; readings that did
-not enter the table, such as the eight zoom steps, are in `data/metrics.csv` row 18. Timing, utilization and power numbers are bound to the pair
-Vivado / Vitis 2025.2.1 and `xc7z020clg484-2`; another tool version (for example 2026.1) or another device means taking them from the new reports.
+Boundaries and known limitations are registered item by item in `report/known-limitations.md` (which dimensions of the HDMI source side were
+measured, how the PS-side firmware is rebuilt and re-verified on the board, what is bound to the tool version), defects and deliberately
+kept failing items in `report/known_issues.md`, and the consolidated open-items table in `report/90-open-items.md`.
