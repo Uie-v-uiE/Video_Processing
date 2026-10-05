@@ -33,8 +33,13 @@ sed 's#^set outdir \[file join \$root build\]$#set outdir [file join $root '"$OU
 # 改不动就停：正式脚本哪天换了写法，这条 sed 会**静默不匹配**，于是一轮构建就把 build/ 覆盖了。
 grep -q "file join \$root $OUT" "$TMP" || { echo "REFUSE: outdir 那一行没被改写（正式脚本的写法变了，先去看一眼）"; rm -f "$TMP"; exit 1; }
 
-mkdir -p "$OUT"
-echo "产物目录：$OUT（build/ 里那套不动）"
+# 2026-10-05：光改 outdir 不够——正式脚本的**工程目录**默认是 `vivado_system`（`build_system_axigpio.tcl:12-14`，
+# 且 `create_project … -force`），所以每一轮隔离构建都在重刷那份共享工程。产物报告虽然分开了，
+# 但"隔离"两个字原来只做到了一半。这里把工程目录也隔出去，并留一条改不动就停的自检。
+export VP_PROJ_SUBDIR="$OUT/vivado_proj"
+mkdir -p "$OUT" "$VP_PROJ_SUBDIR"
+grep -q 'VP_PROJ_SUBDIR' "$SRC" || { echo "REFUSE: 正式脚本不再支持 VP_PROJ_SUBDIR，隔离轮会把共享工程 vivado_system 改掉，先去看一眼再跑"; exit 2; }
+echo "产物目录：$OUT（build/ 里那套不动；工程目录隔到 $VP_PROJ_SUBDIR）"
 "$V/vivado.bat" -mode batch -nojournal -source "$TMP" 2>&1 | tee "${OUT%/}/build_console.txt" | tail -6
 rm -f "$TMP"
 grep -qa "SYSTEM BUILD DONE" "${OUT%/}/build_console.txt" \
