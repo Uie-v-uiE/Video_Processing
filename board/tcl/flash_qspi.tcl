@@ -9,7 +9,7 @@
 #   | 变量 | 作用 | 默认 |
 #   | --- | --- | --- |
 #   | `VP_BOOT_IMAGE` | 要写进去的镜像 | `board/flash/BOOT.bin` |
-#   | `VP_QSPI_PART`  | Vivado 部件库里的配置存储器型号 | `w25q256jw-qspi-x4-single` |
+#   | `VP_QSPI_PART`  | Vivado 部件库里的配置存储器型号 | `mx25l25645g-qspi-x4-single` |
 #   | `VP_HW_URL`     | hw_server 地址 | `localhost:3121` |
 #   | `VP_FLASH_OFFSET` | 写入偏移（hex） | `0x0` |
 #
@@ -19,7 +19,10 @@
 set root [file normalize [file join [file dirname [info script]] .. ..]]
 set img [file join $root "board/flash/BOOT.bin"]
 if {[info exists ::env(VP_BOOT_IMAGE)]} { set img [file normalize $::env(VP_BOOT_IMAGE)] }
-set part {w25q256jw-qspi-x4-single}
+# 默认挑**实测量过那一支**：板子丝印是 W25Q256FV，可 Vivado 部件库里 `w25q256jw*` 的
+# COMPATIBLE_PARTS 只列 zynquplus，拿去配 zynq7000 会在 program 那一步报 [Labtoolstcl 44-655]；
+# 同为 32 MB / x4 的 macronix 档实测擦写与回读校验都过（board/measured/flash_qspi_2026-10-05.txt）。
+set part {mx25l25645g-qspi-x4-single}
 if {[info exists ::env(VP_QSPI_PART)]} { set part $::env(VP_QSPI_PART) }
 set url {localhost:3121}
 if {[info exists ::env(VP_HW_URL)]} { set url $::env(VP_HW_URL) }
@@ -53,6 +56,9 @@ if {[llength $parts] == 0} {
 }
 
 set cm [create_hw_cfgmem -hw_device [current_hw_device] [lindex $parts 0]]
+# 把兼容家族念出来，方便换板子时一眼看出挑错没有（这一步只念不判：真正拦它的是 program 那一步的 44-655）
+if {[catch {get_property COMPATIBLE_PARTS $cm} compat]} { set compat "(读不到)" }
+puts "CFGMEM_COMPAT $compat"
 # 属性名按对象实际支持的列表来设：2025.2.1 的 hw_cfgmem 没有 PROGRAM.BBF_FILE 与
 # PROGRAM.START_ADDRESS（写死会 17-142 中断），所以先 list_property 再逐个设，缺的只报 SKIP。
 set props [list_property $cm]
