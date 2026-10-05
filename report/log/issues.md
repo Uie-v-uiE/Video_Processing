@@ -13739,3 +13739,12 @@ rim 那一半本轮已用修好的入口重跑并出新件 `build/tb_edge_rim_r1
   ③ **尺子与导出器跟着真口径改**：`build/deliver_spec_check.mjs` 的 C0-4 原先把 `docs` 放在"允许的顶层目录"里、并用同一张表当**必需存在**的清单（`missing=allowDirs∖top`）——这会让撤出变成 `缺目录=1[docs] FAIL`。改成 `allowDirs` 与 `requiredDirs` 两张表、`docs` 两边都摘掉 ⇒ 目录再被偷偷加回仓库会判"多余"而红（撤出的决定不许被静默撤销）。`build/make_submission.sh` 那句"docs/ 与 report/ 两层都随包"随之失实，改写为不入库不随包，并**新增一条能红的自检**：`report/`（排除 `report/log/`）里指向 `docs/course|docs/walkthrough` 的行数必须为 0，非 0 就 `exit 3` 不交包。
   ④ **C8 分母随撤出移动**：撤之前打印 `正文标记总数=874`，撤之后 **873**（那 11 份 md 不在跟踪清单里了）。台账头部的分解数 `467 + 407` **没有顺手改成没量过的值**——只补一条注：新读数 873 如实记下，分解要按第 1 节命令现算才算编号 10 那个动作完成（我一开始想用 `grep -o` 的 385 去替 467，一核对发现 467 是**命中行**口径、385 是**出现次**口径，两个单位不同，于是先 `git checkout` 还原再只补注）。
   终检（改完在同一棵树实跑）：`DELIVER-SPEC 判 18 项 跟踪文件=1154 红=0 未测=0`、`C0-4 多余=0 缺目录=0 PASS`、`C1–C12 绿=10 红=0 未测=2`（C5/C7 长期未测）、`CURRENCY 干净`、`D5 硬错 0`、`doc_enc 414 份全干净`。
+
+- **#385（2026-10-05 午，D→C→B 链的第一半：D2 的对外端口口径与豁免表）**：用户要求按 D→C→B 顺序把时序测试做一遍，并先把新建文档挪到 `Prj/pro/delivery_review_20261005/`、把 `docs/` 从 GitHub 撤掉（已做，见 #384）。D 拆两半，D1（TMDS 源端窗 `VP_R119_TMDS_WINDOW=1` 的隔离构建，产物 `build/isolated_1006_d_tmdswindow/`）还在跑，先把 D2 做了：
+  **D2 = 把"对外零声明"的端口逐个定性**，工具是仓里那把 `build/check_io_timing_coverage.py`（I1–I9）。对 r118 正式件 `build/timing_summary.rpt` 跑出来的原状是 `I3 RED bare_out_ports=7`。逐条查源码后给三条带出处的豁免：
+  ① `led` —— 收端是板上 LED（`src/constraints/rk_zynq7020.xdc:10-11` LVCMOS33 直驱），没有接收时钟 ⇒ `set_output_delay` 无参考对象；驱动是心跳位 `src/rtl/top/pl_video_top.v:1039` 与 `:1042`，代价只有肉眼看到的呼吸节奏。
+  ② `eth_mdc` —— `src/rtl/top/system_top.v:117` 是常量 `1'b0` ⇒ 不存在寄存器到管脚的路径。
+  ③ `eth_mdio` —— `system_top.v:116` 是 `1'bz` ⇒ fabric 既不驱动也不采样（`:114` 的注释记着综合告警 `Synth 8-3917` 的出处）。
+  改后读数：`I3 7→4`（剩的四组正是 TMDS，等 D1 的量来判）、`I6 exempt=7 no_reason=none ghost=none GREEN`、`--self judged=9 controls=9 PASS`。
+  **顺手修了这把尺子自己的一处量纲**：`I9` 原来要求"工具点名的输出引脚必须全在我判 BARE 的集合里"，于是 `led[0]/led[1]` 一旦有理由地被豁免就变成假 `ghost` 而红。改成**允许落进两个集合之一**（BARE，或带理由的 EXEMPT），并把"点名但已被豁免覆盖"的名单打印出来；反买通仍在两处：`I6` 管理由长度与端口真实性，`--self` 注入的 `not_a_pin[9]` 两个集合都不在 ⇒ 必须红（实测 `RED`，`PASS`）。
+  **两条如实留着没关的红**：`I3=4`（TMDS，D1 的判定结果决定它归零还是继续声明为债）、`I7_unit_reconcile` 仍 RED。I7 这条不是我没数对，是**报告自己两个单位不同**：`check_timing` 小标题写 `checking no_output_delay (12)`，明细行写 `There are 6 ports with no output delay specified`，而"哪六个"报告不给名字 —— 尺子头部注释早就写了 #259 欠的正是**带名字的清单**（`check_timing -verbose`）。所以正确收口是 D1 构建跑完后开一次只读探针抓 `check_timing -verbose` + `report_methodology -checks TIMING-18`，按名字对账；**在拿到名单之前不把 I7 判成绿，也不把差值钉成常量**（#251 那类"把余量写死成常数"的假绿我不能再犯一次）。

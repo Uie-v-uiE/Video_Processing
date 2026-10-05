@@ -38,6 +38,11 @@ EXEMPT = [
     ("FIXED_IO_*", "同上：PS 硬块的固定外设引脚（MIO/电源轨），由 PS 内部时序管，不属于这一把尺子的射程"),
     ("sys_clk", "它是 create_clock 的对象（20 ns），时钟端口本身不参与 no_input_delay 检查"),
     ("eth_rxc", "它是 create_clock 的对象（RGMII 的 8 ns 时钟）；这一路真正的账是 IDDR 采样窗，见 #46/#57 的实测"),
+    # 2026-10-05（用户：按 D→C→B 把对外时序量一遍）——D2：三组"没有外部时序接口"的输出，逐条给可核的理由。
+    # 判据 I6 会检查：理由 >=30 字、被豁免的端口必须在 RTL 里真存在；`led`/`eth_mdc`/`eth_mdio` 三条都有出处的行号。
+    ("led", "收端是板上的 LED，`rk_zynq7020.xdc:10-11` 是 LVCMOS33 直驱，无接收时钟、无对外时序界 ⇒ `set_output_delay` 没有参考对象；驱动源是心跳位 `pl_video_top.v:1039` 与 `:1042` 的寄存输出，代价只有肉眼看到的呼吸节奏，不是时序"),
+    ("eth_mdc", "顶层把它钉成常量 0：`system_top.v:117` 的 `assign eth_mdc = 1'b0;` ⇒ 不存在寄存器到管脚的路径可分析；PHY 工作模式由板上 strap 决定（`system_top.v:114` 的注释记着综合告警 `Synth 8-3917` 的出处）"),
+    ("eth_mdio", "顶层是高阻：`system_top.v:116` 的 `assign eth_mdio = 1'bz;` ⇒ fabric 既不驱动也不采样，管理接口在本设计里未接；把它当时序端口检查会造出一条根本不存在的违例"),
 ]
 
 def read(p):
@@ -212,9 +217,16 @@ def run(sumf, xdc_list=None, exempt_extra=None, baseline=None, methf=None):
       "identical-name-sets and meth>=1", sorted(mi) == src_in_pins and len(mi) >= 1)
     # I9：输出侧只做子集判（methodology 点名的每个引脚都必须落在我判 BARE 的输出里）；
     #   没被它点名的那几个（TMDS/MDIO 那 10 个引脚）是**留给 -verbose 的开放项**，念出来不判绿也不假判红
-    ghosts = [x for x in mo if x not in src_out_pins]
+    # 2026-10-05（D2）：工具点名的输出引脚允许落进两个集合之一 —— 我判 BARE 的，或**带理由被豁免**的。
+    # 这不是把豁免变成万能免死：豁免本身由 I6 管（理由 >=30 字、端口必须真存在），
+    # 而 `--self` 的 control_ghost_meth_name 注入的 `not_a_pin[9]` 两个集合都不在 ⇒ 仍然必须红。
+    exempt_out_pins = sorted(p for nm, d, b, st in rows if st == "EXEMPT" and d != "input" for p in pin_names(nm, b))
+    allowed_out = set(src_out_pins) | set(exempt_out_pins)
+    ghosts = [x for x in mo if x not in allowed_out]
+    covered = [x for x in mo if x in exempt_out_pins]
     resid = [x for x in src_out_pins if x not in mo]
-    j("I9_methodology_outputs", "named=%d ghost=%s unnamed_residual=%d" % (len(mo), ",".join(ghosts) or "none", len(resid)),
+    j("I9_methodology_outputs", "named=%d ghost=%s unnamed_residual=%d 点名但已被带理由豁免覆盖=%s" %
+      (len(mo), ",".join(ghosts) or "none", len(resid), ",".join(covered) or "none"),
       "no ghost names", not ghosts)
     verdict = "GREEN" if all(x[3] == "GREEN" for x in judged) else "RED"
     summary = ("IODEBT-SUMMARY report=%s src_in_bare=%d src_in_fp=%d src_out_bare=%d src_out_fp=%d "
