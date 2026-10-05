@@ -74,7 +74,7 @@ Vitis → New → Platform → 选 `build/system.xsa` → BSP 勾 `uartps` / `xs
 | `VP_XSDB=<…>/xsdb.bat VP_VIVADO_BIN=<…>/bin bash board/scripts/board_flash.sh` | 按顺序跑 起 PS → 配 PL → 下应用，末尾回读一次 AXI GPIO 证明位流真的上了 | **会**：第 1 步就是 `rst -system`，会冲掉在板的位流 |
 | 同上，末尾加 `--check` | 只做前置检查与只读扫链：工具在不在、三件套的 md5、JTAG 链上看得见的目标 | 不会 |
 | `VP_XSDB=<…>/xsdb.bat bash board/scripts/board_health.sh` | 只读拍一张健康快照：串口 `stat,temp,stat` → `mrd` GPIO 与 DDR 头 8 字 → 三条异常向量，四件判完落一份件 | 不会 |
-| `bash board/scripts/make_boot_image.sh` | 把 FSBL + 位流 + 应用打成 `board/flash/BOOT.bin`，并打印四件 md5（bootgen 的 `.bif` 只认"一行一个文件、不带逗号不带属性"） | 不会 |
+| `bash board/scripts/make_boot_image.sh` | 把 FSBL + 位流 + 应用打成 `board/flash/BOOT.bin`（生成件，不入库，跑一次就有），并打印四件 md5（bootgen 的 `.bif` 只认"一行一个文件、不带逗号不带属性"） | 不会 |
 | `VP_HW_URL=<host:port> vivado -mode batch -source board/tcl/flash_qspi.tcl` | `create_hw_cfgmem` → `program_hw_cfgmem` 把 `BOOT.bin` 写进板载 W25Q256，`PROGRAM.VERIFY` 是硬件回读比对；`VP_QSPI_PART` 选 flash 型号（默认按 `get_cfgmem_parts` 的 `COMPATIBLE_PARTS`），`VP_FLASH_OFFSET` 选起始地址，那一次写入的读数在 `board/measured/flash_qspi_2026-10-05.txt` | **会**：擦写 flash |
 | `vivado -mode batch -source board/tcl/stage_board_projects.tcl`、`PS_CC=<…> bash board/scripts/stage_vitis_platform.sh` | 第 1 节那两支：复制上板工程并当场验证打得开、链得出 | 不会 |
 

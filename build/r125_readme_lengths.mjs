@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 // 作用：把 `report/README.md` "怎么读"那张表的**长度列**按文件实际行数改写（用途：改口轮里唯一合法的"数字自己算"）
-// 输入：可选参数 = 目标 README 路径，默认 `report/README.md`
+// 输入：可选位置参数 = 目标 README 路径，默认 `report/README.md`；`--write` 才真写盘（不加只报数）
 // 输出：stdout 每行 `ROW <文件> <旧> → <新>`，最后一行 RESULT；退出码 0 改写或持平、1 行数对不上（表格被改坏）、2 找不到表
 // 为什么：交付文档里"这份多少行"是**关于文档自己的事实**，一旦正文被改，这一格立刻失实；
 //   但它又是一个可现算的数，所以不该由人抄——由这把小工具按盘上的文件算。
@@ -9,7 +9,9 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
-const rel = process.argv[2] || 'report/README.md';
+// 位置参数只取不以 -- 开头的那一个：早先直接拿 argv[2]，于是 `--write` 被当成文件名，
+// 报出来的是"REFUSE 没有 --write"——一句看起来像缺参数、实际是参数被位置参数吃掉的假话。
+const rel = process.argv.slice(2).find(a => !a.startsWith('--')) || 'report/README.md';
 const abs = path.join(root, rel);
 if (!fs.existsSync(abs)) { console.log(`REFUSE 没有 ${rel}`); process.exit(2); }
 const lines = fs.readFileSync(abs, 'utf8').split('\n');

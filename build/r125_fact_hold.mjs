@@ -2,13 +2,14 @@
 // 作用：比对"改写前（HEAD）与改写后（工作树）"两份文档里的**事实记号**，一个记号消失就判红（用途：委托改写后的验收）
 // 输入：环境变量 VP_FILES=a.md,b.md 指定文件；不给就取工作树里所有已修改的 .md/.txt
 // 输出：stdout 每个文件一行 5 类记号的 前→后 计数，加上消失记号清单；最后一行 RESULT
-// 退出码：0 全部保住；1 有记号消失；2 用法错（比如 HEAD 里没这个文件）
+// 退出码：0 全部保住；1 有记号消失；2 用法错（比如 HEAD 里没这个文件）；3 有生成件读不到现算入口（未测）
 //
 // 为什么单独一支：这轮把十几份交付文档交给并行的改写任务，"读起来不像 AI"是目的，
 // 但真正的红线是**数字/路径/判定词一个不许丢**（仓库规矩：数字/路径/失败项不能"整理"掉）。
 // 那句话不能只靠肉眼抽查，所以要有一把能数出"少了哪个记号"的尺子。
 // 这把尺子只判"消失"，不判"新增"——新增的数字要另外由 metric_recheck / line_cite 管。
 import fs from 'node:fs';
+import os from 'node:os';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { execFileSync } from 'node:child_process';
@@ -58,13 +59,41 @@ function substrCount(hay, needle) {
   while ((i = hay.indexOf(needle, i)) >= 0) { n++; i += needle.length; }
   return n;
 }
+// 生成件不比"改写前后"，比"现在与生成器是否一致"：
+// report/README.md 的长度列是**关于文档自己的事实**（正文一改就漂），report/90-open-items.md
+// 是未决标记的机械索引。这两份按 HEAD 差分必然一片红（330 行→328 行这类），那是有意的更新，不是丢事实；
+// 所以换成"重跑生成器、结果必须与盘上那份相同 / 待改 0 格"——照样能红，而且红的是"索引漂了"。
+const DERIVED = {
+  'report/README.md': () => {
+    const out = execFileSync('node', ['build/r125_readme_lengths.mjs'], { cwd: root, encoding: 'utf8' });
+    const m = (out.match(/RESULT=\S+ 待改 (\d+) 格/) || [])[1];
+    return m === '0' ? { ok: true, why: '长度列现算待改 0 格' } : { ok: false, why: `长度列失同步：待改 ${m === undefined ? '读不出' : m} 格` };
+  },
+  'report/90-open-items.md': () => {
+    const tmp = path.join(os.tmpdir(), 'r125_openitems_probe.md');
+    execFileSync('node', ['build/submit_open_items.mjs', '--write'],
+      { cwd: root, encoding: 'utf8', env: { ...process.env, SUBMIT_OPEN_ITEMS_OUT: tmp } });
+    const same = fs.readFileSync(tmp, 'utf8') === fs.readFileSync(path.join(root, 'report/90-open-items.md'), 'utf8');
+    fs.unlinkSync(tmp);
+    return same ? { ok: true, why: '与生成器输出逐字节一致' } : { ok: false, why: '与生成器现算结果不一致（表漂了，重跑 build/submit_open_items.mjs --write）' };
+  },
+};
 // 记号少了一种读法 ≠ 记号没了：`30.0` 后面接了个中文句号、或 `1.5 MB` 并入 `1.5MB`，
 // 正则的边界会把同一个字串读成不同的 token。所以先按字面数一遍，字面还在就不算消失，
 // 但要把降级条数打出来——这个数本身是一条判据，异常膨胀就说明记号在漂。
-let judged = 0, lost = 0, downgraded = 0, exempted = 0, idle = 0, refused = 0;
+let judged = 0, lost = 0, downgraded = 0, exempted = 0, idle = 0, refused = 0, derived = 0, unmeasured = 0;
 for (const rel of files) {
   const abs = path.join(root, rel);
   if (!fs.existsSync(abs)) { console.log(`SKIP ${rel}（工作树里没有）`); continue; }
+  if (DERIVED[rel]) {
+    let v;
+    try { v = DERIVED[rel](); }
+    catch (e) { console.log(`DERIVED ${rel} 未测：现算的入口读不到输入（${String(e.message).slice(0, 60)}）`); unmeasured++; continue; }
+    derived++;
+    console.log(`DERIVED ${rel} ${v.ok ? '一致' : '漂'}：${v.why}`);
+    if (!v.ok) lost++;
+    continue;
+  }
   let headTxt;
   try { headTxt = execFileSync('git', ['show', `HEAD:${rel}`], { cwd: root, encoding: 'utf8', maxBuffer: 64 << 20 }); }
   catch { console.log(`SKIP ${rel}（HEAD 里没有这一份：新文件不判）`); continue; }
@@ -100,5 +129,5 @@ for (const rel of files) {
   console.log(`HOLD ${rel} ${line} 边界降级=${sd} 豁免=${fired.size} 消失=${gone.length}${gone.length ? ' 例:' + gone.slice(0, 8).join(',') : ''}`);
   lost += gone.length;
 }
-console.log(`RESULT=${lost ? 'RED' : 'OK'} 判 ${judged} 份文件 消失记号 ${lost} 个 边界降级 ${downgraded} 个 豁免生效 ${exempted} 条 豁免失效 ${refused} 条 豁免闲置 ${idle} 条`);
-process.exit(lost ? 1 : 0);
+console.log(`RESULT=${lost ? 'RED' : (unmeasured ? 'NOT_MEASURED' : 'OK')} 判 ${judged} 份改写件 + ${derived} 份生成件（生成件比"与生成器是否一致"）消失记号 ${lost} 个 边界降级 ${downgraded} 个 豁免生效 ${exempted} 条 豁免失效 ${refused} 条 豁免闲置 ${idle} 条 生成件未测 ${unmeasured} 份`);
+process.exit(lost ? 1 : (unmeasured ? 3 : 0));
