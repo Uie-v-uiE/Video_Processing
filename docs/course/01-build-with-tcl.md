@@ -66,7 +66,7 @@ set_property used_in_implementation true  $cgxdc
   与 `used_in_implementation true` 的用途。
 - 同一族还有两把"待验收"的窗：`r116_rgmii_input_window.xdc`（`:57-63`）与
   `r119_hdmi_source_window.xdc`（`:75-81`），都由环境变量开关。默认**不进构建**——挂上它们会
-  改变 hold 判定，必须先由门禁与名册裁决（详见 `08-constraints-and-timing.md`，未写）。
+  改变 hold 判定，必须先由门禁与名册裁决（详见 `08-constraints-and-timing.md`）。
 
 ### 3.3 处理系统（PS）不是 RTL，是 BD
 
