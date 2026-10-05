@@ -59,7 +59,7 @@ console.log('');
 console.log('- **能**：某个模块在哪个文件、文件多大、作者自己在头注里写的第一句是什么（逐字搬运，不改写）。');
 console.log('- **不能**：数据流顺序、时钟域归属、寄存器位序——那些分别在各文档里有权威口径，本表不复制，' +
   '复制就会有两份真相。指路：数据通路看 `report/architecture.md`，' +
-  '时钟域看 `report/board_pins.md` 与 `report/build.md`，寄存器看 `skills/runtime/register-map/SKILL.md`，' +
+  '时钟域看 `report/board_pins.md` 与 `report/build.md`，寄存器看 `skills/runtime/register-map-and-readback/SKILL.md`，' +
   '台架对应关系看 `sim/README.md`。');
 console.log(`- 头注列为空的有 ${noHead} 个文件（照实留空，不替它补句子）。`);
 console.log('');

@@ -14,7 +14,7 @@
  *   ① 指标必须**可复跑**，评委拿到仓库能自己跑出一样的数；
  *   ② 采集与计算分不开就会出错 —— 本工具的第一版就把"平均帧间隔"的分母写成帧数，
  *      而硬件里 `gap_sum` 是 **N−1 段**（第一帧只建基准），于是 fps 被低估约 1/N；
- *      这条现在由 `--selftest` 钉住（判据与踩坑见 skills/metrics_gap_sum.md）；
+ *      这条现在由 `--selftest` 钉住（判据与踩坑见 skills/scripts/metrics-collector/SKILL.md）；
  *   ③ 原始 JSON 与算出来的表一起入库，任何结论都能回查到最初那几个数。
  *
  * 数据来源（不加任何硬件）：`link_monitor` 的 10 条快照 lane + lane31 的时基标志，

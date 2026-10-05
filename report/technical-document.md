@@ -84,6 +84,25 @@ SD 卡 ─► PS 读裸帧 ─► AXI 写 ────────────�
 | 上板人眼验收 | 36 行 | `board/verify_r87.md` |
 | 一键门禁 | 24 项（23 绿 / 1 条申报过的红） | `build/gates.sh` |
 
+### 2.4 用到的技术
+
+| 用了什么 | 在哪儿 | 为什么是它 |
+| --- | --- | --- |
+| `IDDR` + `IDELAYE2` 抽头 | `src/rtl/eth/rgmii_rx.v` | RGMII 是 125 MHz 双沿 4 位，只有片内双沿触发器能还原成单沿字节流；抽头用来挪采样沿找眼心 |
+| `OSERDESE2` 串化 | `src/rtl/hdmi/tmds_serializer.v` | TMDS 每位要 5 倍时钟串行输出， fabric 里做 7:1 只有这根原语 |
+| `MMCME2_BASE` 时钟综合 | `src/rtl/clocks/clk_gen.v` | 一片板钟要同时供出像素钟、5 倍串行钟与显示读出钟，相位与倍频都得在一个地方定 |
+| BRAM 与 LUTRAM 分工 | `src/rtl/eth/dc_fifo.v`、`src/rtl/eth/axi_frame_saver64.v` 等（`ram_style` 显式指定） | 行环要 2× 行缓冲，放 BRAM；打包 FIFO 用 LUTRAM 才不跟行环抢 BRAM 数量 |
+| DDR 帧缓存 + AXI 全互连 | BD 里的 Zynq7 PS 与 `src/rtl/axi/` | 一帧 1024×600×2 B 放不进片内，读写分离靠 AXI，写侧由 owner 信号独占 |
+| 三级同步 + `ASYNC_REG` | `src/rtl/eth/dc_fifo.v`、`src/rtl/eth/eth_udp_video_top.v` | 跨时钟域的格雷码指针必须让工具把两级放在同一只 SLICE 里，否则亚稳态窗口不受约束 |
+| AXI GPIO 作控制通道 | `src/rtl/top/pl_video_top.v`（`axi_gpio_2` 等） | 九位控制字与 gamma 窗口要软件随时改，而不动 BD 的中断与地址分配 |
+| XADC 读结温 | `src/rtl/process/effect_ctrl.v`、`src/ps/main.c` | 板上没有独立温度传感器，器件自己的系统监控是唯一的实时读数 |
+| 裸机 standalone 应用 | `src/ps/`（Vitis 平台在 `board/vitis_platform/`） | 只需要 UART、SD、GPIO 与一段主循环；带操作系统的栈在这里是成本不是收益 |
+| QSPI NOR 固化启动 | `board/tcl/flash_qspi.tcl`、`board/scripts/make_boot_image.sh` | 演示要断电自起，bootgen 出的镜像写进板载 32 MB flash |
+| xsim 台架 | `build/sim/run_one.sh`（82 个 `sim/tb_*.v`） | 判据要能对着 RTL 反复跑；工具链自带的仿真器不需要另装环境 |
+| Node.js 与 Python 上位机 | `src/host/`（`.mjs` 26 支、`.py` 3 支） | 推流、串口取数、文档尺子都要一条命令能跑，不引第三方依赖 |
+| XDC 约束面 | `src/constraints/` | 时钟组、输入输出窗、不确定度与 `ASYNC_REG` 都写在约束里，不是靠综合猜测 |
+
+
 ## 3. PL 侧实现
 
 ### 3.1 输入与网络
@@ -290,7 +309,7 @@ bash build/board_verify.sh --geom --battery      # 串口回显与几何判据�
 
 ### 8.3 固化到 QSPI（断电自启）
 
-板载 32 MB QSPI NOR（W25Q256FVI，3.3 V，挂在 PS 的 MIO1/2/3/4/5/6 = CS/DQ0/DQ1/DQ2/DQ3/CLK）。
+板载 32 MB QSPI NOR（丝印 W25Q256FV，3.3 V，挂在 PS 的 MIO1/2/3/4/5/6 = CS/DQ0/DQ1/DQ2/DQ3/CLK）。
 
 ```bash
 export VP_VIVADO_BIN="<Vivado>/bin"

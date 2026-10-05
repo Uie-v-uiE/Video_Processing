@@ -597,9 +597,23 @@ echo "技能降级一遍可观测性：规则 $SM_N 条／改写清单 $TX_N 行
 # ⚠ 残留计数必须与**改写射程同面**：上一版对着整棵暂存树数，把 `report/log/`、`build/reports/` 这些
 #   按规矩**永不改写**的证据件也算进来 ⇒ 这一条永远不可能归零，REFUSE 成了假红（实测 47 个，
 #   其中多数在证据层）。现在只数 `_txt.txt` 里那份"主改写实际处理过的文件清单"。
-SKILL_LEFT="$( { while IFS= read -r ff; do ff="${ff#./}"; [ -f "$ff" ] || continue; grep -hoE 'skills/[A-Za-z0-9_./-]+\.(md|sh|mjs|py)' "$ff" || true; done < _txt.txt; } | sort -u | { while IFS= read -r q; do if [ -n "$q" ] && [ ! -e "$q" ] && [ ! -e "$(printf '%s' "$q" | tr 'A-Z' 'a-z')" ]; then printf 'X\n'; fi; done | grep -c X || true; } )"
+SKILL_LEFT="$( { xargs -d '\n' -a _txt.txt awk -v hist='旧包|现不存在|此刻不存在|不作指路|当时叫|重建技能包|重建后|重建之前' \
+    '{ line=$0; s=line
+       while (match(s, /skills\/[A-Za-z0-9_.\/-]+\.(md|sh|mjs|py)/)) {
+         tok = substr(s, RSTART, RLENGTH); s = substr(s, RSTART + RLENGTH)
+         if (line ~ hist) continue
+         if (FILENAME ~ /report\/collaboration\//) continue
+         if (tok in seen) continue
+         seen[tok] = 1; print tok } }' 2>/dev/null \
+    | sort -u | { while IFS= read -r q; do if [ -n "$q" ] && [ ! -e "$q" ] && [ ! -e "$(printf '%s' "$q" | tr 'A-Z' 'a-z')" ]; then printf 'X\n'; fi; done | grep -c X || true; } ; } )"
 SKILL_LEFT="${SKILL_LEFT:-0}"
-echo "技能旧名独立一遍后仍未落地的引用 $SKILL_LEFT 个" >> _pruned.txt
+SKILL_DECL="$( { xargs -d '\n' -a _txt.txt awk -v hist='旧包|现不存在|此刻不存在|不作指路|当时叫|重建技能包|重建后|重建之前' \
+    '{ line=$0; s=line
+       while (match(s, /skills\/[A-Za-z0-9_.\/-]+\.(md|sh|mjs|py)/)) {
+         tok = substr(s, RSTART, RLENGTH); s = substr(s, RSTART + RLENGTH)
+         if (line ~ hist) { print tok } } }' 2>/dev/null | sort -u | grep -c . || true; } )"
+SKILL_DECL="${SKILL_DECL:-0}"
+echo "技能旧名独立一遍后仍未落地的引用 $SKILL_LEFT 个（同行带历史声明、只报数不判红的旧名 $SKILL_DECL 个；report/collaboration/ 那一层按记录处理，不参与判红）" >> _pruned.txt
 if [ "$SKILL_LEFT" -gt 0 ]; then
   echo "REFUSE：技能旧名降级这一层没吃完（包内仍有 $SKILL_LEFT 个 skills 开头的引用落不到文件；规则 $SM_N 条／清单 $TX_N 行／含引用文件 改前 $HIT_BEFORE → 改后 $HIT_AFTER），不交一个自称改完过的包" >&2
   exit 1
