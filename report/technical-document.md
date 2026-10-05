@@ -305,6 +305,10 @@ VP_QSPI_PART="w25q256jwq-spi-x1_x2_x4" \
 不写逗号不写属性"这种 bif 写法；部件名要用 `*-spi-x1_x2_x4` 这一支，
 `*-qspi-x4-single` 会被判 `Labtoolstcl 44-655`（该器件不支持）。
 写完把板的启动模式拨到 QSPI、断电重上，屏上应直接出画面，不需要 JTAG。
+本次写入的逐条结果（镜像与三份输入的 md5、Erase/Program/Verify 三行成功、耗时 137 s、
+以及上面那两个坑）记在 `board/measured/flash_qspi_2026-10-05.txt`。
+其中 `PROGRAM.VERIFY=1` 那一步是**从 flash 读回逐字节比对**，所以"Verify successful"就是片上内容
+与 `BOOT.bin` 一致的证据；"断电后能自己起来"要另一次上电才算量过。
 
 ## 9. 文档与目录
 

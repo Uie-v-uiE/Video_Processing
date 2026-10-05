@@ -77,7 +77,8 @@ puts "CFGMEM [get_property NAME $cm]"
 
 set rc [catch {program_hw_cfgmem $cm} err]
 puts "PROGRAM_RC $rc"
-puts "CFG_STATUS [get_property STATUS $cm]"
+# 2025.2.1 的 hw_cfgmem 没有 STATUS 属性（17-54），成败只看 program_hw_cfgmem 的返回码
+# 与它自己打的 Erase/Program/Verify successful 三行。
 if {$rc != 0} { puts "PROGRAM_ERR $err"; close_hw_target; close_hw_server; exit 1 }
 puts "FLASH_QSPI DONE"
 close_hw_target
