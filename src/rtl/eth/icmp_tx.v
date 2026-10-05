@@ -271,20 +271,37 @@ module icmp_tx (
                 end
                 st_check_sum: begin  //IP首部校验
                     cnt <= cnt + 5'd1;
-                    // r108（路线图 §7.2）：原来这一拍要加 10 个 16 位项，综合摆出 5 级 CARRY4——r106 报告里
-                    // 那条 10 级 / 0.741 ns 的路就是这个锥。摊成两拍各 5 项：和不截断（10 项 ≤ 655350，20 位
-                    // 够，目标寄存器 32 位），折叠次序一字不改，代价是这个状态多占一拍。
+                    // r108 把那 10 项摊成"两拍各 5 项"，综合仍然摆出 11 级 / 6 个 CARRY4
+                    // （`build/roster_r118_after_eth_rxc_setup.rpt:15-24` 那条 WNS 0.739 ns 就是这个锥，
+                    //  route 占 58 %）。这一版把**每拍只加一项**摊到底：和仍然是 20 位累加器、
+                    // 折叠次数与次序一字不改（10 项 ≤ 0x9FFF6，20 位装得下，不截断），
+                    // 模 2^20 的加法可结合 ⇒ 结果与摊之前逐位相同，代价是这个状态多占 8 拍（64 ns，
+                    // 只影响 ping 应答的发出时刻，不影响帧内容）。
                     if (cnt == 5'd0) begin
-                        check_buffer <= ip_head[0][31:16] + ip_head[0][15:0] + ip_head[1][31:16] +
-                            ip_head[1][15:0] + ip_head[2][31:16];
+                        check_buffer <= {4'd0, ip_head[0][31:16]};
                     end else if (cnt == 5'd1) begin
-                        check_buffer <= check_buffer + ip_head[2][15:0] + ip_head[3][31:16] +
-                            ip_head[3][15:0] + ip_head[4][31:16] + ip_head[4][15:0];
-                    end else if (cnt == 5'd2)  //可能出现进位,累加一次
+                        check_buffer <= check_buffer + {4'd0, ip_head[0][15:0]};
+                    end else if (cnt == 5'd2) begin
+                        check_buffer <= check_buffer + {4'd0, ip_head[1][31:16]};
+                    end else if (cnt == 5'd3) begin
+                        check_buffer <= check_buffer + {4'd0, ip_head[1][15:0]};
+                    end else if (cnt == 5'd4) begin
+                        check_buffer <= check_buffer + {4'd0, ip_head[2][31:16]};
+                    end else if (cnt == 5'd5) begin
+                        check_buffer <= check_buffer + {4'd0, ip_head[2][15:0]};
+                    end else if (cnt == 5'd6) begin
+                        check_buffer <= check_buffer + {4'd0, ip_head[3][31:16]};
+                    end else if (cnt == 5'd7) begin
+                        check_buffer <= check_buffer + {4'd0, ip_head[3][15:0]};
+                    end else if (cnt == 5'd8) begin
+                        check_buffer <= check_buffer + {4'd0, ip_head[4][31:16]};
+                    end else if (cnt == 5'd9) begin
+                        check_buffer <= check_buffer + {4'd0, ip_head[4][15:0]};
+                    end else if (cnt == 5'd10)  //可能出现进位,累加一次
                         check_buffer <= check_buffer[19:16] + check_buffer[15:0];
-                    else if (cnt == 5'd3) begin  //可能再次出现进位,累加一次
+                    else if (cnt == 5'd11) begin  //可能再次出现进位,累加一次
                         check_buffer <= check_buffer[19:16] + check_buffer[15:0];
-                    end else if (cnt == 5'd4) begin  //按位取反
+                    end else if (cnt == 5'd12) begin  //按位取反
                         skip_en          <= 1'b1;
                         cnt              <= 5'd0;
                         ip_head[2][15:0] <= ~check_buffer[15:0];
@@ -292,14 +309,24 @@ module icmp_tx (
                 end
                 st_check_icmp: begin  //ICMP首部+数据校验
                     cnt <= cnt + 5'd1;
+                    // 与上面同一把刀：每拍一项。累加器仍是 32 位、折叠仍是两次；
+                    // `reply_checksum` 作为一个完整的 32 位量加进来（不拆半），模 2^32 相加可结合 ⇒
+                    // 摊拍不改变结果。
                     if (cnt == 5'd0) begin
-                        check_buffer_icmp <= ip_head[5][31:16] + ip_head[6][31:16] +
-                            ip_head[6][15:0] + reply_checksum;
-                    end else if (cnt == 5'd1)  //可能出现进位,累加一次
-                        check_buffer_icmp <= check_buffer_icmp[31:16] + check_buffer_icmp[15:0];
-                    else if (cnt == 5'd2) begin  //可能再次出现进位,累加一次
-                        check_buffer_icmp <= check_buffer_icmp[31:16] + check_buffer_icmp[15:0];
-                    end else if (cnt == 5'd3) begin  //按位取反
+                        check_buffer_icmp <= {16'd0, ip_head[5][31:16]};
+                    end else if (cnt == 5'd1) begin
+                        check_buffer_icmp <= check_buffer_icmp + {16'd0, ip_head[6][31:16]};
+                    end else if (cnt == 5'd2) begin
+                        check_buffer_icmp <= check_buffer_icmp + {16'd0, ip_head[6][15:0]};
+                    end else if (cnt == 5'd3) begin
+                        check_buffer_icmp <= check_buffer_icmp + reply_checksum;
+                    end else if (cnt == 5'd4)  //可能出现进位,累加一次
+                        check_buffer_icmp <= {14'd0, check_buffer_icmp[31:16]} +
+                            {14'd0, check_buffer_icmp[15:0]};
+                    else if (cnt == 5'd5) begin  //可能再次出现进位,累加一次
+                        check_buffer_icmp <= {14'd0, check_buffer_icmp[31:16]} +
+                            {14'd0, check_buffer_icmp[15:0]};
+                    end else if (cnt == 5'd6) begin  //按位取反
                         skip_en          <= 1'b1;
                         cnt              <= 5'd0;
                         // ICMP:16位校验和
