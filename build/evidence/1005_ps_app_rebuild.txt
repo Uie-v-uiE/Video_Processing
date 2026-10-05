@@ -1,0 +1,10 @@
+重建 PS 应用 ELF 的实测记录（证明本机不能重建是假的）
+命令：
+  PS_CC=/d/Software/Vivado/2025.2.1/Vitis/gnu/aarch32/nt/gcc-arm-none-eabi/bin/arm-none-eabi-gcc.exe \
+  PS_BSP=<仓库根>/vitis/platform/ps7_cortexa9_0/standalone_ps7_cortexa9_0/bsp \
+  node build/ps_app.mjs
+编译器自述：arm-xilinx-eabi-gcc.exe (GCC) 13.3.0
+结果：编译/链接成功，脚本尾部打印 ENTRY _boot@0x000000cc 与 OK
+重建产物 md5 = 4ed58740785c158c89c0fbc80a0e9d39（未采纳、未上板；已从工作树还原成随包那颗）
+随包/在板那颗 md5 = d0b07f84a0683db203086fb816ac71d7（board/logs/index.md 与 build/evidence/r118_board/board_now.txt 点的都是这一颗）
+两个 md5 不同这一条如实记下：那颗更早、由 IDE 侧构建；板上已复验的行为只绑定 d0b07f84 那颗，重建这颗要先上板复验才谈得上等价。

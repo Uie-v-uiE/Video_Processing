@@ -70,7 +70,6 @@ is the `C5c` verdict the top-level full-screen bench makes about itself - output
 rows are correct cell by cell; symptom, what has been proven and what would close it are in `report/08-limits.md` §1 and item 1 of `report/known_issues.md`.
 
 The set with 0 failing items is an earlier version (`build/r75_gates.txt`), not the one on the board. The remaining limits are collected in
-`report/known-limitations.md`: the HDMI source side has discrete measurements only, no eye diagram or jitter instrument was used; this machine has no
-ARM compiler, so changes under `src/ps/` are source changes only; the item-by-item run log in `report/repro-check.md` still carries both failing and untested rows without individual attribution, so no claim is made that a third party can reproduce every result by copy-paste; readings that did
+`report/known-limitations.md`: the HDMI source side has discrete measurements only, no eye diagram or jitter instrument was used; `src/ps/` rebuilds into a runnable ELF with one command, but that rebuilt ELF differs (by md5) from the one verified on the board, so a PS-side change still needs a re-flash plus a `board_verify` pass before it may be called board-verified; the item-by-item run log in `report/repro-check.md` still carries both failing and untested rows without individual attribution, so no claim is made that a third party can reproduce every result by copy-paste; readings that did
 not enter the table, such as the eight zoom steps, are in `data/metrics.csv` row 18. Timing, utilization and power numbers are bound to the pair
 Vivado / Vitis 2025.2.1 and `xc7z020clg484-2`; another tool version (for example 2026.1) or another device means taking them from the new reports.

@@ -82,6 +82,7 @@ JTAG 三步链见 `board/README.md`。
 （`build/r75_gates.txt`），两者不是同一版，混用会读错。
 
 未通过 0 项的那一套是更早的一版（`build/r75_gates.txt`），不是板上现在这一版。其余限制集中在 `report/known-limitations.md`：HDMI
-源端只量到离散参数，眼图与抖动没有仪器可测；本机没有 ARM 编译器，`src/ps/` 的改动只能算源码改动；`report/repro-check.md` 的
+源端只量到离散参数，眼图与抖动没有仪器可测；PS 侧固件**能**用一条命令重建 ELF（编译器与 BSP 由 `PS_CC`/`PS_BSP` 指路），
+但重建出来的那颗与在板那颗 md5 不同，所以"`src/ps/` 改了"要走到"板上已修好"还差**重刷 + `board_verify` 复验**这一步（口径见 `report/known-limitations.md` 第 2 节）；`report/repro-check.md` 的
 逐条实跑里，未通过与未测两类都还没逐条归因，因此不声称第三方可以照抄复现全部结果；缩放八档这类没进表的读数记在 `data/metrics.csv`
 第 18 行。时序、资源与功耗数字绑定 2025.2.1 与 `xc7z020clg484-2` 这一组合，换版本（例如 2026.1）或换器件之后要按新报告重取。

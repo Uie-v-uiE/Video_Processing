@@ -12,12 +12,21 @@
 - **现在的处置（是否影响演示）**：布线后逐脚实测 互对最差 **0.065 ns**（限 4.000 ns）、对内最差 **0.001 ns**（限 0.300 ns）；候选约束件默认**不进构建**（开关 `VP_R119_TMDS_WINDOW`）。出图与推流不依赖这组约束，演示路径不受影响；对外口径只到"离散量已测"，不含眼图那四项。
 - **凭据**：`build/evidence/r119_window_check.txt`（含 5 份输入的现算 md5 头）；口径与边界见 `report/io/hdmi_tp1_sdc_measurement.md`。眼图、抖动、占空比、边沿速率需要示波器/探头与合规测试治具 ⇒ `【未实测】`；板级走线（连接器/线材）对离散的影响也未单独量过。
 
-## 2. PS 侧固件：这台机器不能重建 ELF
+## 2. PS 侧固件：能重建 ELF，但**重建出来的那颗必须重新上板复验**才算板上验证过
 
-- **现象**：`src/ps/` 的任何改动都**只能算源码改动**，不能说"板上已修好"。
-- **已定位的原因**：本机 `PATH` 上没有 `arm-none-eabi-gcc`，也没有 `python3` 这个名字（`python` 在）。编译器本体在盘上，缺的是入口变量 `PS_CC` 指向它；这个分辨记在失败分析那篇的串口条目与复现说明的环境自检里。
-- **现在的处置（是否影响演示）**：板上跑的 ELF 与位流同源，逐轮记录在 `board/`（`board_verify` 的凭据）；演示用的是盘上已入库的那份 ELF，串口与推流动作按那一版验过。缺的是把 PS 侧改动编进板上那一版的能力。
-- **凭据**：`report/build.md` 的变量表（`PS_CC`/`PS_BSP`/`PS_OUT`）、`board/` 下各轮 `board_verify` 记录件。还欠一条可复现的 PS 编译路径（要么把 `PS_CC` 写进入口并留一次成功记录，要么换 Vitis IDE 手工构建并留步骤截图）。
+- **事实（实测，不靠推测）**：`src/ps/` 可以用一条命令编成可上板的 ELF——
+  `PS_CC=<Vitis>/gnu/aarch32/nt/gcc-arm-none-eabi/bin/arm-none-eabi-gcc.exe PS_BSP=<仓库根>/vitis/platform/ps7_cortexa9_0/standalone_ps7_cortexa9_0/bsp node build/ps_app.mjs`，
+  编译器自述 `arm-xilinx-eabi-gcc (GCC) 13.3.0`，跑完打印 `ENTRY _boot@0x000000cc` 与 `OK`。
+  凭据 `build/evidence/1005_ps_app_rebuild.txt`（含逐条命令与两个 md5）。
+- **仍然存在的边界（这才是这一节要说的）**：重建产物的 md5 是 `4ed58740785c…`，与随包并在板上跑过验收的那颗
+  `d0b07f84a068…` **不同**（那颗更早、由 IDE 侧构建）。所以"`src/ps/` 改了"到"板上已修好"之间，
+  缺的不是编译器，是**重刷 + `board_verify` 复验**这一步。这一节以前写成"这台机器不能重建 ELF"，
+  那是把"入口找不到"误写成"机器里没有"（同一个错在 `report/60-failure-analysis.md` A4 已登记）。
+- **两个入口坑（照抄命令时会被绊到）**：`PS_BSP` 要给**绝对路径**（Windows 侧 gcc 拿相对路径会去
+  找 `vitis\platform\…\Xilinx.spec` 而失败），以及 `build/ps_app.mjs` 里 `PS_CC` 的默认安装位置
+  与本机实际位置不一致时会直接 `FATAL: arm-none-eabi-gcc 不存在`——那句话只说明**默认值没指对**。
+- **凭据**：上述重建记录件；`report/build.md` 的变量表（`PS_CC`/`PS_BSP`/`PS_OUT`）；
+  板上那颗的身份与逐轮 `board_verify` 记录在 `build/evidence/`
 
 ## 3. 时序与约束：三笔欠账的归属不在文档这一侧
 

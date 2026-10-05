@@ -36,7 +36,7 @@ board: RK-ZYNQ7020-F
 
 - 本报告里所有时序/资源数字都是在**上面这一版工具**上、对**这一颗器件**测出来的；
   换版本或换器件必须重跑，不能沿用数字。
-- Vitis 与 Vivado 同源安装（都在 `<盘>:\Software\Vivado\2025.2.1` 树下，这是作者机器的叙述），
-  PS 侧应用的本机 ELF 无法重构建（这台机器没有 `arm-none-eabi-gcc`），
-  该限制记录在 `report/build-notes.md`，不属本文件判据。
+- Vitis 与 Vivado 同源安装（都在 `<盘>:\Software\Vivado\2025.2.1` 树下），
+  PS 侧应用的 ELF **可以**在本机重建（`node build/ps_app.mjs`，用 `PS_CC`/`PS_BSP` 指到安装位置；实测记录
+  `build/evidence/1005_ps_app_rebuild.txt`），重建那颗与在板那颗 md5 不同 ⇒ "板上已修好"仍需重刷 + `board_verify` 复验。
 - `board/` 的板卡称呼是本队的命名习惯，不是厂商型号全称；厂商手册封面用的同样是 `RK-ZYNQ7020-F`。
