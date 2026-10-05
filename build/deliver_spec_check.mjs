@@ -54,12 +54,16 @@ if (want('C0-3')) {
 // ---- C0-4 顶层结构固定
 if (want('C0-4')) {
   const top = new Set(tracked.map(f => f.includes('/') ? f.split('/')[0] : '/' + f));
-  const allowDirs = new Set(['src', 'sim', 'build', 'board', 'data', 'skills', 'report', 'docs']);
+  // 2026-10-05 用户改口径：学习文档 `docs/` 从仓库撤出、只留本地 ⇒ `docs` 不再"必需存在"，
+  // 但仍留在白名单里没意义（目录已 .gitignore），所以把它从白名单一并摘掉：
+  // 将来谁再往仓库里加一个 docs/，会被本项判成"多余"而红，这是要的效果（撤出的决定不许被悄悄撤销）。
+  const allowDirs = new Set(['src', 'sim', 'build', 'board', 'data', 'skills', 'report']);
+  const requiredDirs = allowDirs;
   const allowFiles = new Set(['/README.md', '/README_EN.md', '/LICENSE']);
   const extra = [...top].filter(t => !allowDirs.has(t) && !allowFiles.has(t) && !t.startsWith('/.')
     && !/^\/(send_demo|run[_-]?\w*)\.(bat|cmd|sh)$/.test(t));
   const rootEntries = [...top].filter(t => /^\/(send_demo|run[_-]?\w*)\.(bat|cmd|sh)$/.test(t));
-  const missing = [...allowDirs].filter(d => !top.has(d));
+  const missing = [...requiredDirs].filter(d => !top.has(d));
   const renamed = top.has('skill') ? 'skills/ 需改名 skills/' : '';
   say('C0-4', 'top-level-structure', top.size, `多余=${extra.length}[${extra.slice(0, 8).join(',')}] 缺目录=${missing.length}[${missing.join(',')}] ${renamed} 双击入口豁免=${rootEntries.length}`, extra.length || missing.length ? 'FAIL' : 'PASS');
 }

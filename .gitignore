@@ -170,3 +170,6 @@ build/r11*_commit_msg*.txt
 build/*.marker
 c4_probe/
 build/c4_probe_*
+# 2026-10-05：学习文档（docs/course 十章 + docs/walkthrough）按用户要求只在本地读，不进 GitHub、不随包
+# 判据口径：交付文档里指向它的 2 处指路已改成"本地学习文档"的散文说法，不留指不到的路径
+docs/

@@ -173,9 +173,21 @@ echo "射程 活文档=$LIVE_N（仓库 *.md=$REPO_MD_N；排除 report/log/ 与
 # ---- 1. 目录布局：仓库什么形状，包就什么形状（§3.3.5.4 的对照说明写在 MANIFEST 与 report/README.md）----
 # 这里原来有一段 `docs/` 并入 `report/` 的迁移：那是 §4.5 定案里"下一次改名轮"的半成品，
 # 而那一轮**两次尝试都退回了**（任务 #145），仓库现在是 `report/` + `docs/` 两层并存。
-# 迁移留下的只有 `rm -rf docs` —— 文件被删、指路没改（那三条 sed 早被某次改口脚本改成了恒等替换），
-# 于是包内 126 条指路指向一个自己不存在的目录。修法不是把指路改掉，是**别再删那一层**。
-echo "布局 docs/ 与 report/ 两层都随包（改名轮已两次退回，包与仓库同形状）" >> _pruned.txt
+# 这一段的历史教训留着：当年只做了 `rm -rf docs` 却没改指路，包内 126 条引用指向一个自己不存在的目录。
+# 2026-10-05 用户改口径：学习文档（`docs/course` 十章 + `docs/walkthrough`）从仓库撤掉、只在本地读，
+# 所以这一层现在**既不入库也不随包**——`git archive HEAD` 里就没有它，导出器不再需要"保留那一层"。
+# 随之必须成立的是：交付文档里不许再留指向 docs/course 或 docs/walkthrough 的活指路（下面那条计数判据就是干这个的）。
+echo "布局 docs/ 不入库也不随包（学习文档按用户要求只留本地），report/ 随包；两层的指路都要走下一节的活引用自检" >> _pruned.txt
+_livecoursecites=0
+for _f in $(find report -type f -name '*.md' ! -path 'report/log/*'); do
+  _n=$(grep -c 'docs/course\|docs/walkthrough' "$_f" 2>/dev/null || true)
+  _livecoursecites=$((_livecoursecites + ${_n:-0}))
+done
+echo "活指路自检：report/（排除 report/log/）里指向 docs/course 或 docs/walkthrough 的行数 = $_livecoursecites（要求 0；这份学习文档已不在仓里）" >> _pruned.txt
+if [ "$_livecoursecites" -ne 0 ]; then
+  echo "REFUSE：学习文档已撤出仓库，但 report/ 里仍有 $_livecoursecites 行指向 docs/course 或 docs/walkthrough" >&2
+  exit 3
+fi
 
 # ---- 2. 剪 ----
 for n in "${PRUNE_ONEOFF[@]}"; do prune "$n" "一次性脚本"; done
