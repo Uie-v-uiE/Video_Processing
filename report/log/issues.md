@@ -13899,3 +13899,16 @@ rim 那一半本轮已用修好的入口重跑并出新件 `build/tb_edge_rim_r1
   ⑤ 一条工具账：`bash` 里内联 `node -e '…'` 写替换串，`"$1"build/system.xsa""` 这种"引号套引号"是 JS 语法错，
   而 `set -euo pipefail` 只让它死掉、`grep` 又把错误行滤掉，看起来像"脚本没输出"。规则：**替换逻辑进独立 .mjs，
   不在 shell 里内联 JS**；调试这类"静默早退"先看 `bash -x` 的尾部而不是猜。
+
+- **#395（2026-10-05 深夜，`flash_qspi.tcl` 的默认部件与实测量过的那颗不一致）**：写 QSPI 那次成功用的是
+  `mx25l25645g-qspi-x4-single`（`board/measured/flash_qspi_2026-10-05.txt` 的"部件"一行），
+  而脚本里 `set part` 的默认值仍是 `w25q256jw-qspi-x4-single`——那颗在 2025.2.1 的部件库里
+  `COMPATIBLE_PARTS` 只列 zynquplus，拿它配 zynq7000 正是当时报 `[Labtoolstcl 44-655]` 的那一步。
+  也就是说：**不显式给 `VP_QSPI_PART` 的人会在擦写阶段撞上当初那个错**，而这正是这台机器已经付过学费的地方。
+  改了三处：默认值换成实测那颗；文件头的参数表跟着改；`create_hw_cfgmem` 之后加一行 `CFGMEM_COMPAT`
+  把该部件的兼容家族念出来（只念不判——真拦它的是 program 那一步，多设一道硬门反而可能误伤换板子的人）。
+  技术文档 §8.3 那段"部件名要用 `*-spi-x1_x2_x4` 这一支"是当时读反了的因果：决定能不能用的不是后缀，
+  是 `COMPATIBLE_PARTS` 里有没有 `zynq7000`；已按现算改口。**这一支脚本今晚没有再跑一次擦写**
+  （再跑就是真擦真写、且要重上电），所以"默认值可用"这一条的状态是"由实测那颗直接抄来、未另跑一次"，不写成已复验。
+  另记一条工具账：`git commit -m` 的消息里放 ASCII 双引号会把消息词变成 pathspec（今晚又踩一次，报
+  `pathspec 'QSPI那类旧口径改成演示与验收只走' did not match any file(s)`）——多行或带引号的消息一律走 `git commit -F`。
