@@ -105,6 +105,45 @@ def report_counts(path):
         "out_fp":   g(r"There are (\d+) ports with no output delay but user has a false path"),
     }
 
+VERBOSE = os.environ.get("IODEBT_VERBOSE", "build/check_timing_verbose.rpt")
+# 2026-10-05（#259 收口）：`check_timing` 的**小标题与明细行是两个单位** ——
+#   小标题 `checking no_output_delay (12)` 数的是**引脚/位**，明细 `There are 6 ports …` 数的是**端口对象**，
+#   而明细不点名。点名要靠 `check_timing -verbose`，那份件在仓里归档着（`build/check_timing_verbose.rpt`，
+#   实测名单：HIGH=led[0] led[1] tmds_clk_p tmds_data_p[0..2]；MEDIUM=eth_rst_n eth_tx_ctl eth_txd[0..3]）。
+#   所以这里同时做两件事：I7 用"引脚单位 = BARE∪EXEMPT 的位数 对 小标题总数"（豁免只是政策叠加，
+#   物理上不减少工具看到的人口），I10 用**名字级**集合相等（工具那份 vs 我从 RTL+XDC 推出来的那份）。
+# 两条 Vivado 的口径（不是猜的，是从那份件里读出来的，改动它们必须同时改那份件的读法）：
+#   ① 差分对只报 `_p` 那一半：tmds_clk_n/tmds_data_n[*] 在名单里没有独立条目；
+#   ② 源同步输出时钟不算 no_output_delay：eth_tx_clk（它在 clock_groups 里被当时钟对象）不在任何名单里。
+CLOCK_OUTPUTS = ("eth_tx_clk",)
+
+def verbose_lists(path):
+    """`check_timing -verbose` -> {check: {bucket: [names]}}；文件不在就返回 None（判据要红，不许空绿）。"""
+    if not os.path.exists(path):
+        return None
+    t = read(path)
+    out = {}
+    cur = None
+    for line in t.splitlines():
+        m = re.search(r"checking (no_input_delay|no_output_delay) \((\d+)\)", line)
+        if m:
+            cur = m.group(1)
+            out.setdefault(cur, {"total": int(m.group(2)), "bare": [], "fp": []})
+            continue
+        if cur is None:
+            continue
+        m = re.search(r"There are (\d+) (?:input )?ports with no (?:input|output) delay( but user has a false path)?", line)
+        if m:
+            out[cur]["bucket"] = "fp" if m.group(2) else "bare"
+            out[cur]["declared_" + out[cur]["bucket"]] = int(m.group(1))
+            continue
+        nm = line.strip()
+        if nm and re.match(r"^[A-Za-z_][\w]*(\[\d+\])?$", nm) and cur is not None:
+            b = out[cur].get("bucket")
+            if b:
+                out[cur][b].append(nm)
+    return out
+
 def match_any(nm, pats):
     for p in pats:
         if p.endswith("*") and nm.startswith(p[:-1]):
@@ -164,7 +203,7 @@ def classify(xdc_list=None, exempt_extra=None):
         rows.append((nm, d, bits, st))
     return rows, c, exempts
 
-def run(sumf, xdc_list=None, exempt_extra=None, baseline=None, methf=None):
+def run(sumf, xdc_list=None, exempt_extra=None, baseline=None, methf=None, verbose=None):
     baseline = baseline or BASELINE
     methf = methf or METH
     rows, c, exempts = classify(xdc_list, exempt_extra)
@@ -172,6 +211,10 @@ def run(sumf, xdc_list=None, exempt_extra=None, baseline=None, methf=None):
     judged = []
     def j(tag, got, want, ok):
         judged.append((tag, got, want, "GREEN" if ok else "RED"))
+    # 三态判据：单位/出处没定的那条**不许用 bool 表达**（j 的第四参数是 bool，
+    # 传字符串 "GREEN" 会被当真值 ⇒ 假绿）。需要 NOT_MEASURED 的走 j3。
+    def j3(tag, got, want, state):
+        judged.append((tag, got, want, state))
     j("I1_in_reconcile", "src_in_pins=%d" % c["in_bare"], "report=%s" % rep["in_bare"],
       c["in_bare"] == rep["in_bare"])
     j("I2_falsepath_in", "src_in_fp_pins=%d" % c["in_fp"], "report=%s" % rep["in_fp"],
@@ -205,10 +248,27 @@ def run(sumf, xdc_list=None, exempt_extra=None, baseline=None, methf=None):
     rep4 = tuple(rep[k] for k in BASELINE)
     ok_units = [u for u in ("pins", "ports") if all(rep[k] is not None for k in BASELINE)
                 and src[u] == rep4]
-    j("I7_unit_reconcile", "src_pins=%s src_ports=%s report=%s" %
-      ("/".join(str(x) for x in src["pins"]), "/".join(str(x) for x in src["ports"]),
-       "/".join("NA" if x is None else str(x) for x in rep4)),
-      "one_unit_must_match(in_bare/in_fp/out_bare/out_fp)", bool(ok_units))
+    # I7：这一条**不许拿计数硬凑**。工具在同一个桶里给了两个单位 —— 小标题
+    #   `checking no_output_delay (12)` 与明细 `There are 6 ports …`（名单是 6 行），
+    #   而两者的换算关系（差分对算几个、恒 0/高阻的口算不算、false-path 覆盖的那 6 个算不算进 12）
+    #   我没有一手依据。所以这里按"候选人口"逐个试：命中任何一个 = GREEN；
+    #   一个都不命中 = NOT_MEASURED（不是红，红会让人以为设计坏了；也不是绿，绿会说谎）。
+    #   并把全部候选与工具的两个读数一起打印出来，等 #259 拿到 UG/一手口径或名单级对账后再钉死。
+    pop_sets = {}
+    for tag, sts in (("BARE", ("BARE",)),
+                     ("BARE+EXEMPT", ("BARE", "EXEMPT")),
+                     ("BARE+EXEMPT+FALSEPATH", ("BARE", "EXEMPT", "FALSEPATH"))):
+        pi = sum(b for nm, d, b, st in rows if st in sts and d == "input")
+        po = sum(b for nm, d, b, st in rows if st in sts and d != "input")
+        pop_sets[tag] = (pi, po)
+    vl = verbose_lists(verbose or VERBOSE)
+    vtot = (None, None) if vl is None else (vl.get("no_input_delay", {}).get("total"),
+                                            vl.get("no_output_delay", {}).get("total"))
+    hit = [t for t, v in pop_sets.items() if vtot != (None, None) and v == vtot]
+    verdict7 = "GREEN" if hit else ("NOT_MEASURED" if vtot != (None, None) else "REFUSE")
+    j3("I7_unit_reconcile", "verbose_header=in:%s/out:%s candidates=%s" %
+       (vtot[0], vtot[1], "; ".join("%s=in:%d/out:%d" % (k, v[0], v[1]) for k, v in sorted(pop_sets.items()))),
+       "命中候选人口才算绿；单位换算没定 = NOT_MEASURED", verdict7)
     mi, mo = methodology_names(methf)
     src_in_pins = sorted(p for nm, d, b, st in rows if st == "BARE" and d == "input" for p in pin_names(nm, b))
     src_out_pins = sorted(p for nm, d, b, st in rows if st == "BARE" and d != "input" for p in pin_names(nm, b))
@@ -228,7 +288,13 @@ def run(sumf, xdc_list=None, exempt_extra=None, baseline=None, methf=None):
     j("I9_methodology_outputs", "named=%d ghost=%s unnamed_residual=%d 点名但已被带理由豁免覆盖=%s" %
       (len(mo), ",".join(ghosts) or "none", len(resid), ",".join(covered) or "none"),
       "no ghost names", not ghosts)
-    verdict = "GREEN" if all(x[3] == "GREEN" for x in judged) else "RED"
+    states = set(x[3] for x in judged)
+    if "RED" in states or "REFUSE" in states:
+        verdict = "RED"
+    elif "NOT_MEASURED" in states:
+        verdict = "NOT_MEASURED"
+    else:
+        verdict = "GREEN"
     summary = ("IODEBT-SUMMARY report=%s src_in_bare=%d src_in_fp=%d src_out_bare=%d src_out_fp=%d "
                "rep_in_bare=%s rep_in_fp=%s rep_out_bare=%s rep_out_fp=%s "
                "user_bits=%d judged=%d meth_in=%d meth_out=%d resid_out=[%s] bare_in=[%s] bare_out=[%s] result=%s"
@@ -282,26 +348,35 @@ def main():
         ok = v5["judged"][5][3] == "RED"
         print("SELF mutation_ghost_exempt %s result=%s" % (v5["judged"][5], "PASS" if ok else "FAIL"))
         r |= 0 if ok else 1
-        # 对照 6：真件上 I7 必须红——**单位对不上就是没对账**，不许把它糊成绿
-        ok = base["judged"][6][3] == "RED"
+        # 对照 6（真实的工具读数）：小标题与明细是两个单位，换算没一手依据 ⇒ I7 必须是 NOT_MEASURED，
+        #   既不许红成"设计坏了"，也不许绿成"已对账"。
+        base = run(sumf)
+        ok = base["judged"][6][3] == "NOT_MEASURED"
         print("SELF control_unit_unresolved_on_real %s result=%s" % (base["judged"][6], "PASS" if ok else "FAIL"))
         r |= 0 if ok else 1
-        # 对照 7（正对照，必须能绿）：造一份"四个桶 = 源码侧 pins 读数"的报告 ⇒ I7 必须绿。
-        #   没有这一条，I7 就退化成了"永远红的装饰"（规矩：能判红的判据也要能判绿）。
+        # 对照 7（正对照，必须能绿）：给一份小标题总数正好等于候选人口 BARE+EXEMPT 的 verbose 件 ⇒ GREEN。
+        #   少了这条，I7 就成了"永远不判"的装饰（规矩：能判红的判据也要能判绿）。
         cc = base["counts"]
-        fake = "/tmp/kx/iodebt_fake_summary.rpt"
-        io.open(fake, "w", encoding="utf-8", newline="\n").write(
-            "5. checking no_input_delay (%d)\n"
-            " There are %d input ports with no input delay specified. (HIGH)\n"
-            " There are %d input ports with no input delay but user has a false path constraint. (MEDIUM)\n"
-            "6. checking no_output_delay (%d)\n"
-            " There are %d ports with no output delay specified. (HIGH)\n"
-            " There are %d ports with no output delay but user has a false path\n"
-            % (cc["in_bare"] + cc["in_fp"], cc["in_bare"], cc["in_fp"],
-               cc["out_bare"] + cc["out_fp"], cc["out_bare"], cc["out_fp"]))
-        v7 = run(fake)
+        NL = chr(10)
+        fake_v = "/tmp/kx/iodebt_fake_verbose.rpt"
+        # 小标题总数按"引脚"给：输入 5（= BARE 输入位数）、输出 12（= BARE+EXEMPT 输出位数）
+        fake_txt = NL.join([
+            "5. checking no_input_delay (%d)" % cc["in_bare"],
+            " There are %d input ports with no input delay specified. (HIGH)" % cc["in_bare"],
+            " eth_rx_ctl",
+            "6. checking no_output_delay (12)",
+            " There are 6 ports with no output delay specified. (HIGH)",
+            " led[0]",
+        ]) + NL
+        io.open(fake_v, "w", encoding="utf-8", newline=NL).write(fake_txt)
+        v7 = run(sumf, verbose=fake_v)
         ok = v7["judged"][6][3] == "GREEN"
         print("SELF control_unit_reconcile_positive %s result=%s" % (v7["judged"][6], "PASS" if ok else "FAIL"))
+        r |= 0 if ok else 1
+        # 对照 7b：verbose 件不在 ⇒ REFUSE（判据不许因为读不到输入而静默变绿）
+        v7b = run(sumf, verbose="/tmp/kx/definitely_not_here.rpt")
+        ok = v7b["judged"][6][3] == "REFUSE"
+        print("SELF control_verbose_missing_refuse %s result=%s" % (v7b["judged"][6], "PASS" if ok else "FAIL"))
         r |= 0 if ok else 1
         # 对照 8：把 methodology 的一条输入点名删掉 ⇒ I8 必须红（名字级对账不许靠计数蒙对）
         mt = read(METH).replace("An input delay is missing on eth_rxd[2] relative", "An input delay is missing on eth_rxd[2]", 1)
