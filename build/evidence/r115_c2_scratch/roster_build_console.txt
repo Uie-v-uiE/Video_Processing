@@ -1,1 +1,0 @@
-ROSTER-BUILT label=c2scratch rows=10 io_unconstrained_ports=6 out=build/evidence/r115_c2_scratch/roster_scratch.tsv

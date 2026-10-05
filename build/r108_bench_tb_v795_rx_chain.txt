@@ -1,7 +1,0 @@
-INFO C1 pay_len=32
-[tb_v795_rx_chain.v:185] INFO C5 got[0]=a0 got[1]=a1（第二帧的头两字节，必须是 A0/A1 而不是重复第一帧）
-PASS tb_v795_rx_chain
-INFO: [Common 17-206] Exiting xsim at Fri Oct  2 20:45:46 2026...
-exit
-INFO: [Common 17-206] Exiting xsim at Fri Oct  2 20:45:46 2026...
-VERDICT tb_v795_rx_chain: PASS tb_v795_rx_chain || FAIL 行数=0 || PASS 行数=1

@@ -1,6 +1,0 @@
-XELAB FAILED
-ERROR: [VRFC 10-1280] procedural assignment to a non-register key_n is not permitted, left-hand side should be reg/integer/time/genvar [D:/Xilinx/Prj/pro/Video_Processing/sim/tb_v113_key_powup.v:73]
-WARNING: [VRFC 10-3129] assignment to input 'key_n' [D:/Xilinx/Prj/pro/Video_Processing/sim/tb_v113_key_powup.v:73]
-ERROR: [VRFC 10-1280] procedural assignment to a non-register key_n is not permitted, left-hand side should be reg/integer/time/genvar [D:/Xilinx/Prj/pro/Video_Processing/sim/tb_v113_key_powup.v:75]
-WARNING: [VRFC 10-3129] assignment to input 'key_n' [D:/Xilinx/Prj/pro/Video_Processing/sim/tb_v113_key_powup.v:75]
-ERROR: [XSIM 43-3322] Static elaboration of top level Verilog design unit(s) in library work failed.

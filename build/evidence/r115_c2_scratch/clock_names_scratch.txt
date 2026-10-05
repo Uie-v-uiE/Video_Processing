@@ -1,1 +1,0 @@
-clk_fpga_0 sys_clk eth_rxc mmcm_fb mmcm_clk0 clkfbout clkout2 clkfbout_1 clkout0_1 clkout1_1 

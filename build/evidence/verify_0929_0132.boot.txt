@@ -1,3 +1,0 @@
-[SD] frame 256: last 100 frames 29.999 fps (since play 29.276)
-[SD] frame 356: last 100 frames 29.999 fps (since play 29.279)
-

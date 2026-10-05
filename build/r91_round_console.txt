@@ -1,5 +1,0 @@
-[r91 2026-09-30 00:24:14] 滚一轮：strategy=Performance_Explore -> build/isolated_r91_explore
-[r91 2026-09-30 00:41:41] Performance_Explore  design WNS=0.500 WHS=0.046 fail_ep=0 total_ep=50805 | eth_rxc WNS=0.500 WHS=0.046
-[r91 2026-09-30 00:41:42] 滚一轮：strategy=Performance_ExtraTimingOpt -> build/isolated_r91_extratimingopt
-[r91 2026-09-30 00:57:05] Performance_ExtraTimingOpt  design WNS=0.157 WHS=0.051 fail_ep=0 total_ep=50885 | eth_rxc WNS=0.157 WHS=0.052
-[r91 2026-09-30 00:57:05] 两滚结束，汇总在 build/r91_strategy_summary.txt

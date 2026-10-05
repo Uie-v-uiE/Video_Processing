@@ -1,4 +1,0 @@
-WROTE /d/Xilinx/Prj/pro/Video_Processing/build/tb_v98_report.txt  (49 行) top_md5=f379805a9490 rtl_md5=8fa1b046461a tb_md5=7a9839c61c5a
-C4 idx=10 ang=90 zoom=25% zsel=0 有画面行=440 无画面行=340 **多段行=0** 第1列[438..438] 末列[587..587] | angle=90 rot_on=1
-PASS C4a rows judged | this (angle, zoom) cell must actually have content rows, else C4b below means nothing
-PASS C4b one run per row | a rotated rectangle meets every panel row in ONE contiguous run; 2+ runs = #93's stray diagonal bar / left-edge line

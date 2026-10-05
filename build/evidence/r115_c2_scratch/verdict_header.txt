@@ -1,7 +1,0 @@
-# r115 C2 证伪滚判定头 —— 生成 2026-10-03 23:55:53
-# 主树 DCP=vivado_system/zynq_video_sys.runs/impl_1/system_top_routed.dcp  副本树 DCP=/d/Xilinx/Prj/pro/c2_scratch_1003/vivado_system/zynq_video_sys.runs/impl_1/system_top_routed.dcp
-C2V S2_mechanism   scratch mmcm=1 iddr=5 bufg=1 phase=[] | 主树 mmcm=0 正对照红=1 ≥1 / 5 / ≥1 且主树必须红 GREEN
-C2V S1_window_closed design WHS=-2.126 io_fail_endpoints=5 eth_rxc 域=NA WHS>=0 且 I/O 失败端点=0 RED
-C2V S5_clock_identity generated=7 clocks=[clk_fpga_0 sys_clk eth_rxc mmcm_fb mmcm_clk0 clkfbout clkout2 clkfbout_1 clkout0_1 clkout1_1 ] 派生钟必须点名 INFO
-C2V S3_roster      presence_changed=2 margin_red=6 | ROSTERDIFF-SUMMARY comparisons_made=34 both_NA=8 red=8 verdict=RED 钟改名 ⇒ 配对失效，S3 判不了（按 S5 处理，不许当绿也不许当红） INFO
-C2V S4_debt        io_unconstrained=6 unconstrained_endpoints=0   11 → 6 且端点仍 0 GREEN

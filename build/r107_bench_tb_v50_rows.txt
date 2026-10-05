@@ -1,7 +1,0 @@
-PASS no commit on 2/4 rows
-PASS commit after all rows done_cnt=1
-PASS tb_v50_rows
-INFO: [Common 17-206] Exiting xsim at Fri Oct  2 15:24:09 2026...
-exit
-INFO: [Common 17-206] Exiting xsim at Fri Oct  2 15:24:09 2026...
-VERDICT tb_v50_rows: PASS tb_v50_rows || FAIL 行数=0 || PASS 行数=3

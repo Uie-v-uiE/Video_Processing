@@ -1,7 +1,0 @@
-﻿=== CAPTURE START 2 commands ===
->> STAT
-[STAT] ctrl thr=80 src=1 zoom=1 bilin=1 zsel=2 zman=1 pub=0 sd=1 frames=4398 playing=1 sel=000 gm=0.00 (PL owns UDP datapath) mode=0 geom=C0400A00 osd=1
->> split show
-[SPLIT] pos=512/1024（显示列） = 50% manual marker=off
-=== CAPTURE END ===
-

@@ -1,8 +1,0 @@
-r81 第一滚（RTL 两笔优化之后，IMPL_STRATEGY=Performance_Explore）：
-报告时间 09-28 01:06  来源 vivado_system/zynq_video_sys.runs/impl_1/system_top_timing_summary_routed.rpt
-    WNS(ns)      TNS(ns)  TNS Failing Endpoints  TNS Total Endpoints      WHS(ns)      THS(ns)  THS Failing Endpoints  THS Total Endpoints     WPWS(ns)     TPWS(ns)  TPWS Failing Endpoints  TPWS Total Endpoints  
-    -------      -------  ---------------------  -------------------      -------      -------  ---------------------  -------------------     --------     --------  ----------------------  --------------------  
-     -0.062       -0.812                     28                40125        0.050        0.000                      0                40125        0.264        0.000                       0                 12864  
-
-失败端点全部在 Path Group: clk_fpga_0（28 个端点，TNS -0.812）——不是我这两笔（split_ctrl/bilin_lerp 在 clk_pix）所在的路径组；
-与 r80 第一滚（WNS -0.276 / 73 端点，同为 u_eth/u_cdc 一族）同类：这一版策略重掷又落在线下。

@@ -1,3 +1,0 @@
-[SD] frame 1093: last 100 frames 29.390 fps (since play 29.772)
-[SD] frame 1193: last 100 frames 29.999 fps (since play 29.772)
-

@@ -1,8 +1,0 @@
-dfa3c08d4c5b4df95783868d0070b4b4 *system.bit
-ff539308d17688e5a87561d84eba1083 *system.xsa
-b6498d339079f9ab91f34c7c2e30c611 *../src/rtl/process/bilin/fb_bilin.v
-cbea8b5e63c837761d21e46d2b71728c *../src/rtl/process/bilin_lerp.v
-650a3d155b02c8b8acff85849cabd3b7 *../src/rtl/top/pl_video_top.v
-cd622ec9333bd9310f8b4c6c404f6943 *../src/ps/main.c
-# 04:01 追加：r63b 的 bit/xsa 已复制进本目录（system.bit / system.xsa），因为 build/ 根下那两个文件
-# 会被下一次构建覆盖 —— 没有副本的话"门禁全绿的这一套"就只剩报告、没有可复现的位流。

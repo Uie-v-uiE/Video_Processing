@@ -1,4 +1,0 @@
-fpver=norm1
-files=80
-top=56c269602e18
-rtl=42d47b9f771d

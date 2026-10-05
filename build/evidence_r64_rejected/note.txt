@@ -1,3 +1,0 @@
-be867c41c0111cafb529b55fa8631045 *build/system.bit
-这一套是 r64（#83 第一次尝试）的**被拒**证据：门禁第 6 项判红（新增配对 clkout0_1>clk_fpga_0），位流没刷板，板上仍是 r63c。
-ports_check 那条（pl_demo_top 悬空输入）已修，当场复验 violations=0（不须重建：它读源码）。

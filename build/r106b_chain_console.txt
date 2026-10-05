@@ -1,6 +1,0 @@
-[chain2 14:08:27] xsim 已退出，开始顶层台架报告
-[chain2 14:08:28] tb98_report rc=0（新报告应盖 tb_md5=1c0c56bae0e0）
-[chain2 14:08:47] 边缘条带台架 rc=0（3=判红 2=REFUSE 0=绿）
-[chain2 14:08:48] rim_report rc=0
-[chain2 14:09:24] 门禁 rc=1 —— 末行：GATES: 有红项（判定 22 项）—— 不采纳，保留上一版
-[chain2 14:09:24] 链2结束

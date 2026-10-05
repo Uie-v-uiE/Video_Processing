@@ -1,1 +1,0 @@
-RESULT frame_buffer_w64 tile=80 ramb36fifo=80 lut=0 ff=4

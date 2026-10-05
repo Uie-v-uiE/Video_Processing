@@ -1,1 +1,0 @@
-RESULT fb_w64_3 tile=75 ramb36fifo=75 lut=0 ff=5

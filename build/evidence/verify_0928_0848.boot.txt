@@ -1,3 +1,0 @@
-[SD] frame 3760: last 100 frames 29.999 fps (since play 29.809)
-[SD] frame 3860: last 100 frames 29.999 fps (since play 29.809)
-

@@ -1,1 +1,0 @@
-推送凭据：6 次即时重试全被 Connection reset 挡住，10 分钟探测窗口内也没通；随后用 curl 分三路探（google=000 / api.github.com=200 / 本仓库 git 端点=200）确认 github 这一路恢复，一次 push 就过了：941b16d..840f9ac，`git status -sb` 无 ahead，`git ls-remote` 的 refs/heads/main 与本地 HEAD 同一个 40 位。教训形状：全线断与单点断要用不同的探针分开，curl 的三个目标就是那把尺子。

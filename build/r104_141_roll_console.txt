@@ -1,8 +1,0 @@
-产物目录：build/isolated_r104_141（build/ 里那套不动）
-MULTI_DRIVEN count=0 -> D:/Xilinx/Prj/pro/Video_Processing/build/isolated_r104_141/multi_driven.txt
-# foreach t [lrange $mseen 0 5] { puts "  MULTIDRIVE: $t" }
-# foreach s [lrange $wseen 0 5] { puts "  WIDTH: $s" }
-# puts "SYSTEM BUILD DONE"
-SYSTEM BUILD DONE
-INFO: [Common 17-206] Exiting Vivado at Thu Oct  1 23:07:24 2026...
-ROLL DONE -> build/isolated_r104_141（build/isolated_r104_141/system.bit md5=fe099177997a）

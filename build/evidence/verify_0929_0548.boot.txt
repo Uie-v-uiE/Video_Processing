@@ -1,3 +1,0 @@
-[SD] frame 2552: last 100 frames 29.502 fps (since play 28.717)
-[SD] frame 2652: last 100 frames 29.841 fps (since play 28.744)
-

@@ -1,1 +1,0 @@
-用法: bash build/freeze_evidence.sh <构建编号，如 72>

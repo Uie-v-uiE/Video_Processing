@@ -1,4 +1,0 @@
-split 50
-split 100
-split show
-split 50

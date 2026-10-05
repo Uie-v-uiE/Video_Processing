@@ -1,4 +1,0 @@
-[r117b 03:47:44] 指纹 rc=0 rtl=07570b1ac1b4
-[r117b 03:47:44] 构建起飞：钩子=D:/Xilinx/Prj/pro/Video_Processing/build/tcl/r117_post_place_hook.tcl，输入窗=off
-[r117b 04:00:36] 构建 rc=1
-[r117b 04:00:36] 没有位流 —— 链停在这里（不伪造判读）

@@ -1,2 +1,0 @@
-  skipped(端口表看不懂/非 ANSI): fb_rd5x
-CHECK PORTS: instances=79 modules=74 skipped=1 width_compared=534 violations=0 PASS

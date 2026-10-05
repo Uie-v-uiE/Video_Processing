@@ -1,4 +1,0 @@
-WROTE /d/Xilinx/Prj/pro/Video_Processing/build/tb_v98_report.txt  (95 行) top_md5=c3eb8f8db40b tb_md5=fec11c537327
-PASS C2c edges match definition | measured picture edges == geometric edges (content stage, in columns)
-PASS C3c panel edges match definition | the panel's own first/last non-black column == the geometric edges, same on every row
-RESULT tb_v98_top_seam FAIL nfail=5

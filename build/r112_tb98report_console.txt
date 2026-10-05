@@ -1,4 +1,0 @@
-WROTE /d/Xilinx/Prj/pro/Video_Processing/build/tb_v98_report.txt  (199 行) top_md5=56c269602e18 rtl_md5=0701e9d1e772 tb_md5=1c918c92200f
-PASS C12a head request beat uses the frame's own angle | #167: display rows 0..5 are fetched from the previous frame's wrapped request rows; those beats and this frame's body beats must see ONE angle
-PASS C12b frozen-angle control is coherent too | same two windows with speed=0: a red here would be a bench phase artifact, not the design
-RESULT tb_v98_top_seam FAIL nfail=1

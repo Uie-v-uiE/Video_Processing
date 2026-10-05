@@ -1,9 +1,0 @@
-PROBE run probe_ff_init.tcl -> build/evidence/r113_ff_init_probe.txt
-POWUP round=r113 stage=synth ff_lines=96 probed=build/evidence/r113_ff_init_probe.txt
-POWUP W1_key_stable              1'b1           expect=1'b1 GREEN
-POWUP W2_sync_prev               2/2            want_3_of_3 RED
-POWUP W3_k2_stable               1'b1           expect=1'b1 GREEN
-POWUP W4_angle_control           1'b0           expect=1'b0 GREEN
-POWUP W5_scope_floor             FF=96 CMP=96   floor>=20 GREEN
-POWUP-SUMMARY round=r113 judged=5 result=RED
-WRITE build/evidence/r113_powup_init_check.txt

@@ -1,2 +1,0 @@
-[mf 18:10:38] roll none -> /tmp/kx/mf114/A
-[mf 18:11:09] roll none 没跑完 rc=4（见 /tmp/kx/mf114/A/roll_console.txt）

@@ -1,9 +1,0 @@
-[chain 12:24:09] 构建完成，开始只读时序探针
-[chain 12:24:49] crit_path rc=0
-[chain 12:25:29] hold_paths rc=0
-[chain 12:25:29] 顶层台架 rc=2（3=判红，0=绿；C8c 八档的读数就在同一份 log 里）
-[chain 12:25:29] tb98_report rc=0
-[chain 12:25:29] 边缘条带台架 rc=2
-[chain 12:25:30] rim_report rc=0
-[chain 12:26:02] 门禁 rc=1 —— 末行：GATES: 有红项（判定 22 项）—— 不采纳，保留上一版
-[chain 12:26:02] 链结束

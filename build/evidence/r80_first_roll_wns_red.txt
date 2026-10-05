@@ -1,7 +1,0 @@
-# r80 第一跑（默认策略）的时序红项快照 —— build/r80_build.log 本身被 .gitignore 挡住（build/*.log 不入库），数从这里读
-     -0.276      -10.535                     73                40172        0.058        0.000      
-
-# ↑ 这份 build/timing_summary.rpt 是第二跑（IMPL_STRATEGY=Performance_Explore）跑完后会被覆盖，
-#   所以这里记的是第一跑当时的读数：WNS -0.276 / TNS -10.535 / 失败端点 73 / 总端点 40172 / WHS +0.058
-# 全部 10 条列出路径的源（同一锥）：
-# 第一跑位流 md5 = ffff6ff91927（**没有上板**）；策略扫描见 build/sweep_summary_20260927_2201.txt

@@ -1,3 +1,0 @@
-[SD] frame 1100: last 100 frames 29.558 fps (since play 29.802)
-[SD] frame 1200: last 100 frames 29.999 fps (since play 29.816)
-

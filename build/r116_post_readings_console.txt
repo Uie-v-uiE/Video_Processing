@@ -1,5 +1,0 @@
-PROBE clock=eth_rxc 打到路径的地板检查=OK rc=0
-PROBE clock=clk_fpga_0 打到路径的地板检查=OK rc=0
-PROBE clock=clkout0_1 打到路径的地板检查=OK rc=0
-PROBE-SUMMARY label=r116_after 落件=build/evidence/r116_after.txt fail=0
-PROBE 结论：三份时钟（与可选的锥）都打到了路径，可以起飞构建了；构建后用同一个脚本换标签再跑一次做对照
