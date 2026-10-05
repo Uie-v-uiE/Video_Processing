@@ -14006,3 +14006,22 @@ rim 那一半本轮已用修好的入口重跑并出新件 `build/tb_edge_rim_r1
   今晚的交付因此只到"仓与分支"这一层：`main 93dcddb→c4a440f`、`submit/20261005-final → 9d4dbcc`，
   两棵树 DELIVER-SPEC 18 项红 0、终审 C1–C12 零 FAIL、D5/D6/enc/currency 干净；
   包这一格写"未落盘 + 上面两类缺口"，不念成绿。
+
+### 403（2026-10-06 00:3x）交付树里最后两本逐批次记录搬出去了；#402 的两类缺口一类已消、一类改判据
+
+- 承 #402 的 ①：`build/runs/ledger.md`（621 行）与 `build/runs/decisions.md`（123 行）确实是
+  用户点名要删的那类记录，且它们自己点了 12 处已不随包的原件 ⇒ 留就在包里造死链。这一整步做完了：
+  ① 三条需要人定的口径（策略档位 `Performance_ExploreWithHierarchy` 的 `NOT_MEASURED`、
+  四域统一加严 hold 不确定度、HDMI 源端互对窗）**原样**迁入 `report/08-limits.md` 新第 12 节，
+  数字与措辞没动——迁走记录不许把事实一起迁走；
+  ② `report/40-optimization.md` §0 改成点名随包原件（`build/roster/roster_r118.tsv`、
+  `roster_r118_probe.tsv`、`build/parsed/*.json`、`report/measurements.md`），不再指逐批次记录；
+  ③ 重跑生成件：`report/90-open-items.md` 407 行 / 397 条 → **370 行 / 360 条**
+  （`build/submit_open_items.mjs --write`，表内"共 360 处"与 `grep -cE` 数到的行数当场一致），
+  `report/README.md` 字节数列重算（改 1 格、已对 9 格）。
+- 核对（同一棵树、同一时刻）：`r125_fact_hold.mjs` 对 40-optimization 消失记号 0；
+  `doc_enc_check` 扫 301 份手写文件全干净；`line_cite_check` D5 CLEAN；`doc_currency_check` 干净；
+  `grep -rln "build/runs/"` 在 `report/` `board/` `README*` 里零命中。
+  笔 `5d5e70a`（`submit/20261005-final`）00:31:50 推落 origin。
+- ② 这一类（同行声明只挡半句）**没在这一笔里改**：它该改的是导出器死链那层的判据形状
+  （按"引用与声明是否同一句"分档，而不是整行放行），改完再看剩余数。重导在飞的读数出来才写结论。
