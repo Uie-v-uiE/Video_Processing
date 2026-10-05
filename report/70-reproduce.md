@@ -91,7 +91,7 @@ bash -n build/gates.sh build/board_verify.sh build/sim/run_one.sh build/sim/mut_
 | 3.1 | `export VP_VIVADO_BIN=<Vivado>/bin` 然后 `bash build/sim/run_one.sh tb_v98_top_seam` | `<仓库根>` / Git Bash | 1.4/1.5 确认了 `<Vivado>/bin` 里有 `xvlog`；**不能有别的 xsim 活着**（`run_one.sh` 自己会拒，两个 xsim 会往同一个 `run.log` 里写）| 末行一条 `RESULT tb_v98_top_seam PASS` 或 `FAIL nfail=N`；**当前树的期望值是 `FAIL nfail=1`，红在 `C5c`**（这一条是声明过、故意留红的判据，见 `report/60-failure-analysis.md` A1）| `NOT_MEASURED`（禁跑台架；顶层那支一轮约 2 小时）|
 | 3.2 | `bash build/sim/run_one.sh tb_head_rot_displace` | 同上 | 同上 | `RESULT … PASS cells=49152 pairs=12` 这种形状；它只例化 `zoom_fit` + `zoom_mapper`，1~2 分钟 | `NOT_MEASURED` |
 | 3.3 | `bash build/sim/run_one.sh tb_link_monitor` | 同上 | 同上 | **期望值是只红一条 `F2e B`**（`sum=518 > 2x130`）；若你看到更多红，说明你那棵树弄坏了别的 ⇒ 这条能把你和"历史红"分开（`report/60-failure-analysis.md` A2）| `NOT_MEASURED` |
-| 3.4 | `bash build/sim/run_sim.tcl`（全量批跑，Vivado 模式）| `<仓库根>` / cmd 或 Git Bash | 1.4 之后；目录里 81 支 `tb_*.v` 全收（本次实测计数）| 每支一份判定行；**"放一支坏台架在目录里，每次批跑都会被它拖住"**（`sim/README.md`）——今天那支就是 3.3 | `NOT_MEASURED`（禁跑台架全量）|
+| 3.4 | `bash build/sim/run_sim.tcl`（全量批跑，Vivado 模式）| `<仓库根>` / cmd 或 Git Bash | 1.4 之后；目录里 82 支 `tb_*.v` 全收（本次实测计数）| 每支一份判定行；**"放一支坏台架在目录里，每次批跑都会被它拖住"**（`sim/README.md`）——今天那支就是 3.3 | `NOT_MEASURED`（禁跑台架全量）|
 | 3.5 | `bash build/sim/mut_control.sh <tb名> <判据名>` 或 `bash build/run_one_ce.sh` | `<仓库根>` / Git Bash | 不动 `src/rtl`（它拷到 `/tmp` 下做变异体）| 一条判定说自己抓住了缺陷，凭据是"把缺陷装回去它必须转成不通过"；这类对照还必须有一条**正向对照是通过的** | `NOT_MEASURED`（属台架动作）|
 
 ---

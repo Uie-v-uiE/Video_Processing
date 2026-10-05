@@ -65,7 +65,7 @@ r118 没重编应用，门禁身份行就是证据——`build/r118_gates_final.
 run_one.sh <tb_name>
 ```
 
-`sim/` 下 `tb_*.v` 共 81 支（本次 `ls sim/tb_*.v | wc -l` 数出）。另有一条**离线判读入口**，
+`sim/` 下 `tb_*.v` 共 82 支（本次 `ls sim/tb_*.v | wc -l` 数出）。另有一条**离线判读入口**，
 用法头逐字（`build/sim/run_one.sh:11`）：
 
 ```
