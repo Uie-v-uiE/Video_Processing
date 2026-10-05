@@ -25,7 +25,7 @@
   `PS_CC=<Vitis>/gnu/aarch32/nt/gcc-arm-none-eabi/bin/arm-none-eabi-gcc.exe PS_BSP=<仓库根>/vitis/platform/ps7_cortexa9_0/standalone_ps7_cortexa9_0/bsp node build/ps_app.mjs`，
   编译器自述 `arm-xilinx-eabi-gcc (GCC) 13.3.0`，跑完打印 `ENTRY _boot@0x000000cc` 与 `OK`。
   凭据 `build/evidence/1005_ps_app_rebuild.txt`（含逐条命令与两个 md5）。
-- **边界（这一节要说的）**：重建产物的 md5 是 `4ed58740785c…`，与随包并在板上跑过验收的那颗 `d0b07f84a068…` **不同**
+- **边界（这一节要说的）**：重跑 `node build/ps_app.mjs` 得到的那颗，与随包并在板上跑过验收的那颗 `d0b07f84a068…` **不同**（差在源码比入库 ELF 新；实测数字只记在 `build/evidence/1005_ps_app_rebuild.txt`）
   （那颗更早、由 IDE 侧构建）。所以"`src/ps/` 改了"到"板上已修好"之间缺的是**重刷 + `board_verify` 复验**这一步，
   不是一次编译。
 - **两个入口条件**：`PS_BSP` 要给**绝对路径**——Windows 侧 gcc 拿相对路径会去找 `vitis\platform\…\Xilinx.spec` 而读不到该文件；

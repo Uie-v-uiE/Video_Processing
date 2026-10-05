@@ -16,7 +16,7 @@
 有一处不吻合要提前知道：`build/gen_bit.tcl:12` 的归档目录默认值就是 `board/`，`:25-26` 会往那里写 `system.xsa` 与 `system.bit`。照默认跑一次 `vivado -mode batch -source build/gen_bit.tcl`，
 本目录会长出两份**未跟踪**的二进制（`.gitignore` 不挡它们）。用 `VP_BIT_DIR=build` 跑，或者跑完删掉—— 入库的那两份始终以 `build/` 为准。
 
-重编出来的 ELF 是另一颗：`4ed58740785c…`（`build/evidence/1005_ps_app_rebuild.txt`），它没上过板。 所以板上验过的行为只绑定 `d0b07f84a068` 那颗；要用重建件，就得重刷 + 跑一次第 2 节末尾那条 `board_verify`。
+重编出来的 ELF 是另一颗，它没上过板；两颗的 md5 与 `.text`/`.rodata` 大小记在 `build/evidence/1005_ps_app_rebuild.txt`。 所以板上验过的行为只绑定 `d0b07f84a068` 那颗；要用重建件，就得重刷 + 跑一次第 2 节末尾那条 `board_verify`。
 
 ## 1. 上板工程
 
