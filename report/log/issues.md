@@ -13956,3 +13956,20 @@ rim 那一半本轮已用修好的入口重跑并出新件 `build/tb_edge_rim_r1
      看着像缺参数、实际是参数被吃掉；位置参数改为只取不以 `--` 开头的那个。
   ② C3 的同行声明词表是共享的 5 个词，其中 `已被 \`.gitignore\` 挡住` **带反引号**，
      散文里不带反引号就不命中 ⇒ 同一句话换"不入库"才放行（词表与 doc_currency 同一套，不能各写一套话术）。
+
+- **#400（2026-10-05 深夜，导出器那条"skills 引用必须落地"红在历史声明上：22 个里没有一个是活指路）**：
+  提交分支重导包时 REFUSE 报 `包内仍有 22 个 skills 开头的引用落不到文件`。逐条读下来分三类：
+  ① `report/collaboration/` 的会话登记（那一行记的是当时那条提示词写过的路径，改了就是伪造协作档案）；
+  ② 同一行自己写了"旧包件 / 现不存在 / 当时叫 / 不作指路"的历史名（`repro-check.md`、`60-failure-analysis.md`、
+     `07-skill-distillation.md` 那几处）；③ 真正的活指路只有 3 条，且都是旧包平铺名：
+     `src/host/line_cite_check.mjs:16` 的 `skills/criterion_blind_spot.md`、`src/host/metrics.mjs:17` 的
+     `skills/metrics_gap_sum.md`、`build/r120_src_map.mjs:62` 的 `skills/runtime/register-map/SKILL.md`。
+  做法：③ 改成现役条目（`skills/pitfalls/ruler-fake-greens/`、`skills/scripts/metrics-collector/`、
+  `skills/runtime/register-map-and-readback/`，三条都在盘上，两棵树一起改）；
+  ① ② 交给判据分档——按**行**看：同行带历史声明、或文件在 `report/collaboration/` 下 ⇒ 只报数不判红，
+  其余仍要求 0，并把两个数一起打出来（活缺口 N／声明旧名 M）。这是 #376 那条"残留计数必须与改写射程同面"
+  的另一半：**同面不只是路径同面，还要"这句话是不是在指路"同面。**
+  只改了提交分支那份 `build/make_submission.sh`：主线那份今晚不跑导出，改一把当场不跑的尺子等于加未测代码；
+  要同步就在下次真导主线包时一起做，并同时核 `report/` 里那 77 条（任务清单 #215 那一格仍欠）。
+  同批：`report/technical-document.md` 新增 §2.4"用到的技术"（13 行，每行的器件与文件都能对着盘上核），
+  因为首页 `report/README.md` 那张表一直写着这一节该有，而正文以前只散在 §2.1 与 §3。
