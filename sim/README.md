@@ -1,4 +1,4 @@
-# `sim/` —— 81 支 RTL 台架的跑法与清单
+# `sim/` —— 82 支 RTL 台架的跑法与清单
 
 台架回答的是"这一支 RTL 在仿真里有没有按定义行事"，不看板子、不看时序。清单里每行给四件事：
 台架文件名、被测模块、覆盖点、以及**台架自己会打印什么**——最后那列是原话的形状（判定词在末行），
@@ -26,7 +26,7 @@ BOARD_MAC = 00:11:22:33:44:55   UDP_PORT = 16'd5001
 | 全部原始输出 | `/tmp/kx/<tb>.run/run.log`（屏幕只回放含 FAIL、PASS、INFO、PROBE、DIAG 的前 80 行） |
 | 这跑的是哪一棵源树 | 同目录 `prov.txt`：顶层、本台架、整棵 `src/rtl` 三枚校验和加时刻，逐支在**编译之前**取 |
 
-## 一次跑完 81 支
+## 一次跑完 82 支
 
 ```bash
 vivado -mode batch -nojournal -log sim/xsim.log -source build/sim/run_sim.tcl
@@ -60,7 +60,7 @@ vivado -mode batch -nojournal -log sim/xsim.log -source build/sim/run_sim.tcl
 | `tb_head_rot_displace.v` | zoom_fit + zoom_mapper | 被测模块 `zoom_fit + zoom_mapper`（IMAGE_W=512、IMAGE_H=300，mapper 的… | 打印 `PASS D1 k=0 对照 ang=<角> inv=<inv_fit>…；失败时 打印 `FAIL D1 same-angle sweeps differ… |
 | `tb_icmp_len_wrap.v` | icmp_rx | 被测模块 `icmp_rx`（BOARD_MAC 见下一节那三行参数… | 打印 `PASS R3 legit frame completes / ...`…；失败时 对应条目改打 `FAIL <名字> / <说明>` 并把 nfail 加一… |
 | `tb_icmp_ping0.v` | icmp_tx | 被测模块 `icmp_tx`（ICMP 回应的 GMII 发送器）；覆盖点＝tx_byte_num=0（`ping -l 0`… | 逐条打印 `PASS T1 zero-byte ping reply must…；失败时 对应条目改打 `FAIL <条目名>` 且 errors 加一（T1 红 =… |
-| `tb_icmp_tx_cksum.v` | icmp_tx | 钉的是**发出去那一帧的校验和字段与整帧字节流**：A1 按定义自洽校验 IPv4 首部校验和（把校验和那两字节当 0 反码求和再取反）、A2 每场必须真采到 ≥40 字节并走到 `tx_done`（反空转）、A3 只差一位 `reply_checksum` 的两场校验和必须不同（能红的对照）、A4 整帧逐 16 字节留档 + 一枚滚动摘要只作旁证——立它是为了 `src/rtl/eth/icmp_tx.v` 里 `st_check_sum`/`st_check_icmp` 那族"一拍加 5~6 项"的校验和锥摊成每拍一项时，能证明帧内容逐字节没变 | 逐条打 `PASS A1 ip checksum self-consistent …`/`PASS A2 captured …`/`PASS A3 perturbation …`，并打 `BYTES <场> <n> SUM32=<hex>` 留档行；失败时对应条目改打 `FAIL <条目名> | <读数>`，末行 `RESULT tb_icmp_tx_cksum PASS nfail=0` 或 `FAIL nfail=<n>`；6 ms 看门狗到点打 `RESULT tb_icmp_tx_cksum FAIL timeout` |
+| `tb_icmp_tx_cksum.v` | icmp_tx | 钉的是**发出去那一帧的校验和字段与整帧字节流**：A1 按定义自洽校验 IPv4 首部校验和（把校验和那两字节当 0 反码求和再取反）、A2 每场必须真采到 ≥40 字节并走到 `tx_done`（反空转）、A3 只差一位 `reply_checksum` 的两场校验和必须不同（能红的对照）、A4 整帧逐 16 字节留档 + 一枚滚动摘要只作旁证——立它是为了 `src/rtl/eth/icmp_tx.v` 里 `st_check_sum`/`st_check_icmp` 那族"一拍加 5~6 项"的校验和锥摊成每拍一项时，能证明帧内容逐字节没变 | 逐条打 `PASS A1 ip checksum self-consistent …`/`PASS A2 captured …`/`PASS A3 perturbation …`，并打 `BYTES <场> <n> SUM32=<hex>` 留档行；失败时对应条目改打 `FAIL <条目名> \| <读数>`，末行 `RESULT tb_icmp_tx_cksum PASS nfail=0` 或 `FAIL nfail=<n>`；6 ms 看门狗到点打 `RESULT tb_icmp_tx_cksum FAIL timeout` |
 | `tb_icmp_rx_len.v` | icmp_rx | echo request 载荷长度的边界逐字节收取—— rec_byte_num、rec_en 次数、字节顺序、校验和成对累加… | 每条打 `[tb_icmp_rx_len.v] PASS <标签> /…；失败时 对应条打 `[tb_icmp_rx_len.v] FAIL <标签> /… |
 | `tb_link_monitor.v` | link_monitor | 链路健康自诊断不误报平安——丢字与参考计数逐字相等、断帧与坏包、断流后快照继续刷新、 帧间隔 min/last/max/sum… | 每段各打一条 PASS（`PASS drop_words starts at 0`…；失败时 红话自带读数，如 `FAIL FALSIFIER: CDC port… |
 | `tb_osd_lines.v` | osd_overlay | T1..T18 的五行整串逐字符等于期望、边界位宽与饱和、片源 标签与星号、PIPE 五位码与缩放八档与 gamma… | 每段各打一条 `[tb_osd_lines.v:...] PASS…；失败时 打 `FAIL <标签> L<行> cell<列> got %h want… |
