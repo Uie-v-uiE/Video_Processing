@@ -170,3 +170,9 @@ build/r11*_commit_msg*.txt
 build/*.marker
 c4_probe/
 build/c4_probe_*
+
+# 本机学习档与计划件：用户 2026-10-05 明确要求学习文档不上 GitHub。
+# 这三个条目守着那条决定——谁在下面再 git add -A，也不会把它们带上分支。
+deep_course/
+local_docs/
+dcb_timing_chain_plan.md
