@@ -38,7 +38,7 @@
 （自述 `arm-xilinx-eabi-gcc (GCC) 13.3.0`，它不在 `PATH` 上，所以要显式给 `PS_CC`），
 `PS_BSP` 要给**绝对路径**（给相对路径时 gcc 会去找 `vitis\platform\…\Xilinx.spec` 而读不到）。实跑记录在
 `build/evidence/1005_ps_app_rebuild.txt`：编译与链接都成功，尾部打印 `ENTRY _boot@0x000000cc` 与 `OK`。
-重建出来那颗 md5 = `4ed58740785c158c89c0fbc80a0e9d39`，**没有**替换随包这颗：仓库里 `build/ps_app.elf`
+重建出来那颗与随包这颗不同（两颗的 md5 与 section 大小记在 `build/evidence/1005_ps_app_rebuild.txt`），**没有**替换随包这颗：仓库里 `build/ps_app.elf`
 是 `d0b07f84a0683db203086fb816ac71d7`（`build/r118_gates_final.txt` 的 `ps_app.elf md5=d0b07f84a068`），
 板上复验过的行为只绑这一颗；换 ELF 之后必须再跑一次 `bash build/board_verify.sh` 才谈得上等价。
 另有一条本机事实：`python3` 这个别名不存在（`python` 是 3.12），宿主脚本一律写 `python`。

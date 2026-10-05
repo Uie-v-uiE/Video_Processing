@@ -143,7 +143,7 @@ BOM 的位置：本仓库**没有**独立的 BOM 文件（`find . -iname "*bom*"
 
 | 步骤 | 为什么是风险 | 本项目的处置 | 需要谁的批准 |
 |---|---|---|---|
-| 向 QSPI/SPI flash 写入 | 会把"只能 JTAG 复现"变成"启动介质决定板上跑什么"，且擦除不可逆 | **2026-10-05 之前一直不做**；当晚按要求做过一次（`board/scripts/make_boot_image.sh` + `board/tcl/flash_qspi.tcl`，`PROGRAM.VERIFY` 是硬件回读比对，读数在 `board/measured/flash_qspi_2026-10-05.txt`），断电重上那一判没做。"擦除不可逆、启动介质决定板上跑什么"这条照旧成立。口径：README.md 的「上板与验证」一节（原引内容在本版 README 已无对应段落）「上板（只走 JTAG，本工程不向 QSPI/SPI flash 写入）」、`report/demo_script.md:31` | 不需要（被永久排除）；若将来要做，先由队伍批准并单开一轮 |
+| 向 QSPI/SPI flash 写入 | 会把"只能 JTAG 复现"变成"启动介质决定板上跑什么"，且擦除不可逆 | **2026-10-05 之前一直不做**；当晚按要求做过一次（`board/scripts/make_boot_image.sh` + `board/tcl/flash_qspi.tcl`，`PROGRAM.VERIFY` 是硬件回读比对，读数在 `board/measured/flash_qspi_2026-10-05.txt`），断电重上那一判没做。"擦除不可逆、启动介质决定板上跑什么"这条照旧成立。这一列的旧口径已随本次改口作废 | 本次即由队伍批准后单开一轮做的；下一次要写之前同样先取得同意 |
 | 写板载 FT2232 EEPROM（改 USB 序列号） | 写坏了适配器就废了 | **不做**。背景：两块板的 FT2232 被写成同一个序列号 `0ABC01`，`hw_server` 只出一个 target，表现为"两块板抢端口"（夜轮记录）。给出的办法是**一次只插一块板的 USB-C**，不是动 EEPROM（同文 989 行那句"10 秒判别实验"） | 同上 |
 | 断电重上电（冷上电） | 不可远程做，必须人手；而且是**唯一**有记录的 AP 不可达恢复手段 | 只作为恢复步骤写进文档：开发台账 的 #235「恢复要人手 —— 断电重上」、`board/acceptance.md` 的 E6（冷上电 ≥10 s 的条件） | 队伍（人必须在板前） |
 | 给板子上电 / 拔插 SD 卡与网线 | 物理动作，脚本做不到 | 全部写成"由人执行 + 回读"步骤（`board/README.md` §2 与 `board/acceptance.md`） | 队伍 |

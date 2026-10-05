@@ -98,7 +98,7 @@
   (b) 若加了界仍钉死，则真凶是别的 `.bss` 邻接，需要符号映射表（#235 明写这一项没做）。
 - **判别方法**：**只做 app 的构建**（不动 RTL）：`PS_CC=<Vitis>/gnu/aarch32/nt/gcc-arm-none-eabi/bin/arm-none-eabi-gcc.exe
   PS_OUT=<临时路径>/ps_app_test.elf node build/ps_app.mjs`，比对新旧 ELF 的 md5 —— 这一半已经跑通并留件：`build/evidence/1005_ps_app_rebuild.txt`
-  记录重建产物 `4ed58740785c158c89c0fbc80a0e9d39`（未采纳，工作树已还原成在板那颗 `d0b07f84a068…`）；剩下的半截是三步 JTAG 的第三步
+  记录重建产物（未采纳，工作树已还原成在板那颗 `d0b07f84a068…`）；剩下的半截是三步 JTAG 的第三步
   （`ps_app_reload`，**不刷 PL**），由有板子的人跑 `bash board/cmd_overflow_probe.sh`，期望改前 O2 之后 O3 不通过、改后 O3 通过：`NOT_MEASURED`。
 - **现在的处置（是否影响演示）**：源码侧已带界、板上那一版仍是旧的 ⇒ 在交付的位流与固件组合上这条是活的。
   演示不碰 127 字节那一档就照常，但操作者要知道：命令通道一旦钉死只能断电恢复。
@@ -126,7 +126,7 @@
   再原样跑一次 `find /<盘>/Software -maxdepth 8 -name arm-none-eabi-gcc.exe`（只读，允许跑满，已跑满并命中）。
   两条都是只读命令，**不需要队伍批准**，查一次的成本是 30 秒。
   编一次是第三条命令：`PS_CC=<上面那条路径> PS_BSP=<绝对 BSP 路径> node build/ps_app.mjs`，
-  跑通记录在 `build/evidence/1005_ps_app_rebuild.txt`（打印 `ENTRY _boot@0x000000cc` 与 `OK`，重建产物 md5 `4ed58740785c158c89c0fbc80a0e9d39`）。
+  跑通记录在 `build/evidence/1005_ps_app_rebuild.txt`（打印 `ENTRY _boot@0x000000cc` 与 `OK`，重建产物与在板那颗的两组 md5/section 都在该件里）。
 - **现在的处置（是否影响演示）**：改的是**结论**不是代码。这一句在交付文档里的四处副本
   （`report/declarations.md`、限制清单 第 2 节、提交清单 第 2 行、
   本页 A3）现在写的都是同一句口径：**能重建，但重建那颗与板上那颗 md5 不同 ⇒ 仍要重刷 + `board_verify` 复验**。
