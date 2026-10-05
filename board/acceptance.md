@@ -2,7 +2,7 @@
 
 这张表说清"这一版在真板子上被验过什么、哪几格还没验"。每行都点名它的凭据；
 没验到的写在最后一节，不写成通过。上板只走 JTAG（`build/tcl/ps_jtag_boot.tcl` 起 PS、
-`build/tcl/program_pl.tcl` 烧 PL、`build/tcl/ps_app_reload.tcl` 重载应用），本工程不向 QSPI/SPI flash 写入。
+`build/tcl/program_pl.tcl` 烧 PL、`build/tcl/ps_app_reload.tcl` 重载应用）；2026-10-05 晚按要求把当时那一版固化进板载 QSPI 一次，写入与硬件回读校验记在 `board/measured/flash_qspi_2026-10-05.txt`，"断电重上能不能自己起来"要人手判，本页不写成通过。板上 FT2232 的 EEPROM 全程没碰。
 
 板上当前版本：r118，位流 `build/system.bit` 的 md5 前 12 位 = `cd04907e1369`
 （身份行在 `build/evidence/r118_board/board_now.txt`，同一版的板级读数在 `build/evidence/r118_board/board_verify_console.txt`）。

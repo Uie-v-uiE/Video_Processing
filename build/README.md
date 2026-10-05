@@ -49,7 +49,7 @@ ls build/report/*.rpt | wc -l              # 归档报告数
 | `build/tcl/ooc_newmods.tcl`、`build/tcl/micro_rd.tcl`、`build/tcl/uram_presence.tcl`、`build/tcl/uram_sites.tcl` | 单模块 out-of-context 综合、读口探针、URAM 在这颗器件上的存在与位置 | stdout 与 `build/micro_rd/` |
 | `build/tcl/sweep_impl_strategy.tcl` | 同一份网表逐个实现策略重跑 `impl_1` 并汇总时序（`SWEEP_STRATS` 覆盖默认档位，收尾恢复） | `build/sweep_summary_<时间戳>.txt` |
 
-### 1.3 上板动作（走 JTAG，本工程从不向 QSPI/SPI flash 写入）
+### 1.3 上板动作（演示与验收走 JTAG；QSPI 固化是 2026-10-05 按要求另做的一次）
 
 | 脚本名 | 什么时候用 | 产出 |
 |---|---|---|
