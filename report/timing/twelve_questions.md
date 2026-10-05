@@ -107,7 +107,7 @@ L1 的分段占比有分解读数（最差的 eth_rxc 那族 route 占 58 %、�
 r115 是 `0 / 11`。刀 1 专门打这 11 里的 5 个 ⇒ 按字面应当落到 `0 / 6`。
 **实测（件 `build/evidence/r116/r116_check_timing.txt`）：`unconstrained_internal_endpoints = 0`；真正没有 input delay 的输入端口 = 0（5→0，另有 2 个是既有 false_path 覆盖、这一版没动它）；没有 output delay 的输出端口 = **6**（`led[0..1]`、`tmds_clk_p`、`tmds_data_p[0..2]`）⇒ 第二数非 0 ⇒ H5 按字面判红。**这 6 个端口缺的是**外部规范数**，
 当时本机板级资料没有、两次在线取原文也没拿到可引用的一页 ⇒ 按"没有来源就不写数"，H5 这一条**当时判不满**；
-这一格后来换了状态：数取回来了（HDMI 1.4 §4.2.4 Table 4-24 的钟↔数据 0.20 Tcharacter，逐条判定写在 `report/io/hdmi_cts_source_window.md`、扫档件 `build/evidence/r117/dvi_guide_scan.txt`），约束写成候选件 `src/constraints/r119_hdmi_source_window.xdc`（默认不加载，`VP_R119_TMDS_WINDOW=1` 复现），欠的是一次量名册的构建；欠账本体仍在 `debt_ledger.md` §2 追加节。
+这一格后来换了状态：数取回来了（HDMI 1.4 §4.2.4 Table 4-24 的**互对偏斜上限** 0.20 Tcharacter（它是散布、不是捕获窗，50 MHz 档 = 4 ns ⇒ SDC 里因此写成 ±4.000 半窗且只挂 `tmds_data_*`），逐条判定写在 `report/io/hdmi_cts_source_window.md`、扫档件 `build/evidence/r117/dvi_guide_scan.txt`），约束写成候选件 `src/constraints/r119_hdmi_source_window.xdc`（默认不加载，`VP_R119_TMDS_WINDOW=1` 复现），欠的是一次量名册的构建；欠账本体仍在 `debt_ledger.md` §2 追加节。
 
 **6. `report_methodology` 警告类别计数增加了吗？**
 答：**没增**：带窗那一版类仍是 3（TIMING-9/10/18），实例 `Checks found` 446→**441**，其中 `TIMING-18` 从 7→**2**（少掉的 5 条就是这 5 个第一次被检查的 RGMII 输入）。警告 盘上现在的 `build/methodology.rpt` 是**不带窗**那一版的 `446 / TIMING-18=7`，与带窗那份是两个对象，不许互相顶替。按 G4 这只当成本，带窗那一版的成本是**降**的；它同时是第二把尺子（checks 口径 2 ≠ 端口口径 6），两数永不相减。
