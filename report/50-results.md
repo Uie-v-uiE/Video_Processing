@@ -162,7 +162,7 @@
 | 逐实例 BRAM/DSP 归属（当前版） | **NOT_MEASURED**（`report/04-resources.md` 写的是【未实测】） | `build/utilization.rpt` 只给合计 95.5 tile / 19 DSP，不带实例层次；分层件 `build/util_hier.rpt` 是更旧一批的产物，未与本报告同批重生成 ⇒ 不当当前值念 |
 | 实测入口吞吐（MB/s） | NOT_MEASURED | `data/metrics.csv` 里没有哪一行直接写"实测 MB/s"（第 13 行是负载口径、第 22/23 行是帧率与丢帧计数） |
 | 收口 I/O 那 5 个端点的**板级真实差额** | NOT_MEASURED | 当前版没有窗 ⇒ 静态时序分析不检查；窗模型自身还有 `TskewR` 混行风险 ⇒ 不许写"板上真实 hold 差额就是 −0.870" |
-| 输出侧 6 个端口（`led[0..1]`、`tmds_clk_p`、`tmds_data_p[0..2]`）的对外窗 | 欠账仍在 | 2026-10-04 那条追加节纠正方向（本作品是 **Source**，对应 HDMI CTS 的 TP1 源端眼图而不是接收窗）；同日晚些时候取到数（互对偏斜 max 0.20 `Tcharacter` ⇒ 50 MHz 档半窗 ±4.000 ns）后仍欠**一次带窗量名册的构建**；候选件默认不加载（`VP_R119_TMDS_WINDOW=1`）。逐条可引用性判定在 `report/io/hdmi_cts_source_window.md` |
+| 输出侧 6 个端口（`led[0..1]`、`tmds_clk_p`、`tmds_data_p[0..2]`）的对外窗 | 部分收口：2 颗 LED 已按"无外部时序接口"逐条登记理由（`build/check_io_timing_coverage.py` 的豁免表，`rk_zynq7020.xdc:10-11` + `system_top.v:116/117`），4 组 TMDS 的窗仍在候选件里待量 | 2026-10-04 那条追加节纠正方向（本作品是 **Source**，对应 HDMI CTS 的 TP1 源端眼图而不是接收窗）；同日晚些时候取到数（互对偏斜 max 0.20 `Tcharacter` ⇒ 50 MHz 档半窗 ±4.000 ns）后仍欠**一次带窗量名册的构建**；候选件默认不加载（`VP_R119_TMDS_WINDOW=1`）。逐条可引用性判定在 `report/io/hdmi_cts_source_window.md` |
 | 1000M 线速下的零丢包 | NOT_MEASURED | 第 116 批那次带流是 147 Mbps（源是 512×300 的帧率上限），没把 RX 打到线速 |
 | 当前版的 `pkt_err` / `frames_bad` / `drop_seen` | NOT_MEASURED（件里显式打 `?`） | `report/log/issues.md` #318 把"读不出来的字段"显式化；不许写 0、不许借用上一版 |
 
