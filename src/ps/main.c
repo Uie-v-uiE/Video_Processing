@@ -688,14 +688,6 @@ static int tokenize(char *line, char **tk)
     return n;
 }
 
-/* "语法收到了，但 PL 里还没有对应的入口"。四种待接命令都从这里出去，
- * 好处是不会有一天某条命令**悄悄**变成"看起来收了、其实没人接"。 */
-static void not_wired(const char *verb, const char *missing, const char *step)
-{
-    xil_printf("[CMD] %s 语法已收，硬件未接：缺 %s（规划 %s，见 report/log/PLAN_V8_SPEC.md 第 3 节）\r\n",
-               verb, missing, step);
-}
-
 /* 诊断帧：四象限 + 顶部绿条，故意用四种极端颜色，让"哪一通道丢了"在屏上一眼分得清 */
 static void cmd_fill(void)
 {
@@ -1258,24 +1250,10 @@ static int dispatch(char **tk, int nt)
         gamma_set(g);
         return 0;
     }
-    /* （这里原来放着 `osd` 的"待接"提示 —— 撤掉：上面 `ci_pre(tk[0], "OSD")` 已经真的接进硬件了，
-     *   留一条永远走不到的待接分支就是"两处各说一遍"，正是 #66 那一族的病。） */
-    /* （这里原来放了一条 `bilin` 的"待接"提示 —— 撤掉，两个理由：
-     *   ① 它永远不会被执行：上面 801 行 `ci_pre(tk[0], "BILIN")` 是前缀匹配，先到先赢；
-     *   ② 它说的是错的活。04:03 查过：PS 侧 `bilin on/off` 一直是**完整实现**的
-     *      （`BILIN_BIT 19` 写进 gpio_o、`STAT` 回显 `bilin=`、电池第 18/19/50 条覆盖），
-     *      缺的是 **PL 侧没人读 `gpio_o[19]`**（`system_top.v` 用到的位是
-     *      [4:0]/[15:8]/[16]/[17]/[18]/[22]/[24:23]/[26]/[31:27]，19/20/21/25 悬空）。
-     *      ⇒ 症状不是"命令没实现"而是"命令答应了但硬件没动"，这比报"待接"更糟，
-     *      所以正确处置是**去 PL 侧加那一级同步**（见 ISSUES #83），不是在这里加提示。 */
-    /* r63/#52：双线性的**读口已经在板上跑起来了**（默认开），缺的只是"能不能用串口关回去"。
-     *   为什么现在还不许接：cfg1 三十二位已满（[8:0] 效果、[9] 旋转自动、[12:10] 转速、
-     *   [22:13] 缝位、[25:23] 三个旗标、[28:26] 缩放档、[29] 手动、[30] 蓝线、[31] 拟合），
-     *   塞不进第 33 位 ⇒ 只能走 gpio_cfg2[7:0] 或 gpio_o 的空位，而那是一次**新的 axi→像素跨域**：
-     *   按 #71 的预算账与 #65/r54 的两次 CDC-11 教训，它必须单独一次改动 + 单独一次构建 +
-     *   给 build/CDC_BASELINE.txt 写出新增那一行的理由，不能顺手挂在双线性这次改动里。
-     *   所以现在明说"待接"，而不是让用户敲了没反应（#41 定的规矩）。 */
-    if (ci_eq(tk[0], "BILIN"))   { not_wired("bilin", "双线性 on/off 的控制位（PL 读口已就位且默认开着，缺 1 个 GPIO 位 + 一条新跨域）", "ISSUES #79 第 5 节"); return 0; }
+    /* `bilin on/off` 与 `osd on|off` 都是活的：上面 `ci_pre(tk[0], "BILIN")` /
+     * `ci_pre(tk[0], "OSD")` 是前缀匹配、先到先赢，并各自写进 `gpio_o[19]`/`gpio_o[20]`，
+     * PL 侧的读口在 `system_top.v:286` 与 `pl_video_top.v:251-262`（#83）。
+     * 这里不再放任何"待接"分支：一条永远走不到的桩会把下一个查 bilin 的人引到 PL 侧去。 */
 
     if (ci_pre(tk[0], "FRAME")) {
         const char *arg = (nt >= 2) ? tk[1] : tk[0] + 5;   /* frame 12 / FRAME12 */
