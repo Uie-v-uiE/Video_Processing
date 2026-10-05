@@ -45,7 +45,7 @@
 
 `src/constraints/r114_io_async.xdc:36``：
 
-> ⚠ 这一组约束以前**完全不存在**（`set_input_delay` 在整棵 `src/constraints` 里 0 次，
+> 注意： 这一组约束以前**完全不存在**（`set_input_delay` 在整棵 `src/constraints` 里 0 次，
 > `#57` 立案时量到的）
 
 `:39-43` 给的是按 RGMII 规范的双沿窗（`-max 0.500 / -min -0.500`，上升沿与下降沿各一组）。

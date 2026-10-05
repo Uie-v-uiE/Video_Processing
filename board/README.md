@@ -1,102 +1,131 @@
-# `board/` —— 板上跑的是什么、怎么烧进去、跑完读回什么
+# `board/` —— 上板工程 · 运行脚本 · 实测输出
 
-这一页回答三件事：板上当前版本与它的身份、JTAG 三步烧写加一把验收的命令、这些命令读回来的实测值。
-每个数都点名它出自哪份日志或报告；读不回来的不写。
+三块分别是下面第 1、2、3 节。所有命令都在**仓库根**执行；本目录的脚本一律用环境变量接工具，文件里没有写死的机器路径。
 
-板上当前版本：r118，位流 `build/system.bit` 的 md5 前 12 位 = `cd04907e1369`
-（同一身份写在 `build/evidence/r118_board/board_now.txt` 的开头，配套的 xsa 与 elf 身份在 `build/r118_gates.txt` 的“身份”段）。
+## 0. 先认版本：板上这一版是哪一版
+
+| 件 | md5 前 12 位 | 在仓库哪里 |
+|---|---|---|
+| `build/system.bit` | `cd04907e1369` | 跟踪件（`git ls-files build/system.bit` 有输出） |
+| `build/system.xsa` | `934ebdbaa13b` | 跟踪件 |
+| `build/ps_app.elf` | `d0b07f84a068` | 跟踪件 |
+
+这三份二进制在 `build/`、**不在这里**：`board/` 放的是工程文本、脚本与读数。
+上表是 2026-10-05 10:26 用 `md5sum build/system.bit build/system.xsa build/ps_app.elf` 现量的，同一组数也印在 `board/measured/flash_20261005_1030.txt` 的 IDENTITY 段。
+
+有一处不吻合要提前知道：`build/gen_bit.tcl:12` 的归档目录默认值就是 `board/`，`:25-26` 会往那里写 `system.xsa` 与 `system.bit`。照默认跑一次 `vivado -mode batch -source build/gen_bit.tcl`，
+本目录会长出两份**未跟踪**的二进制（`.gitignore` 不挡它们）。用 `VP_BIT_DIR=build` 跑，或者跑完删掉—— 入库的那两份始终以 `build/` 为准。
+
+重编出来的 ELF 是另一颗：`4ed58740785c…`（`build/evidence/1005_ps_app_rebuild.txt`），它没上过板。 所以板上验过的行为只绑定 `d0b07f84a068` 那颗；要用重建件，就得重刷 + 跑一次第 2 节末尾那条 `board_verify`。
 
 ## 1. 上板工程
 
-| 项 | 值 | 出处 |
-|---|---|---|
-| 器件 | Zynq-7020 `xc7z020clg484-2` | `report/build.md` |
-| 显示输出 | HDMI **1024×600**，像素时钟 50 MHz、`H_TOTAL=1344`/`V_TOTAL=625`（`src/rtl/video/video_timing_1024x600.v:18-20`）⇒ 场频 **59.5 Hz**；50 MHz 是像素时钟的数值，不是刷新率 | `report/perf_report.md`、`build/timing_summary.rpt` |
-| PL 处理画幅 | 512×300（RGB565），输出侧 ×2 展开到 1024×600 上屏 | `src/rtl/top/pl_video_top.v` |
-| 片源 | 千兆 RGMII/UDP、SD 卡（FAT32 簇链自研解析）、PL 自绘测试图卡；仲裁与回退在 PL | `report/architecture.md` |
-| 上板方式 | **只走 JTAG**：先起 PS，再烧 PL，最后重载应用。本工程的任何脚本都不向 QSPI/SPI flash 写入，也不碰板载 EEPROM | 下面第 2 节的三条命令 |
-| 交付二进制 | `build/system.bit`、`build/system.xsa`、`build/ps_app.elf` —— 这三份**是随仓库入库的**（`git ls-files build/system.bit build/system.xsa build/ps_app.elf` 三条都有输出，`git check-ignore` 不命中）；认 md5 不认文件名，md5 写在本页第 1 节的身份行与 `build/evidence/r118_board/board_now.txt` 开头 | `git ls-files` 与 `build/evidence/r118_board/` |
+| 打开什么 | 里面是什么 | 字节 |
+|---|---|---:|
+| `board/zynq_video_sys.xpr` | Vivado 工程：器件 `xc7z020clg484-2`、源码清单、约束、BD 单元格、run 外壳 | 51 987 |
+| `board/zynq_video_sys.srcs/` | 10 份工程源件：`design_1.bd`（块设计）+ `design_1.bda` + 8 份 IP `.xci` | 643 529 |
+| `board/vitis_platform/vitis-comp.json` | Vitis 平台描述：两个 domain（`zynq_fsbl` / `standalone_ps7_cortexa9_0`）、两颗 `ps7_cortexa9`、OS 清单、`flow=EMBEDDED` | 2 087 |
+| `board/vitis_platform/resources/` | 3 份 `qemu_args.txt`（顶层一份、两个 domain 各一份） | 4 633 |
 
-三个时钟域的余量分开读，混着念会读错（下面这张表按 `build/timing_summary.rpt` 的 Intra Clock Table 逐行抄，
-setup 那一列是各自域内最差值）：
+**`.xpr` 里 81 处引用写成 `$PPRDIR/../src/...`，所以这份工程只能放在 `board/` 这一层。** 往深里挪一级，`src/rtl` 与 `src/constraints` 就全部指不回来。
+`.gen/`、`.runs/`、`.cache/` 不入库（2026-10-05 10:40 实量 36 M / 52 M / 3.1 M，133 + 222 + 34 = 389 支，而且 `.runs` 随构建进度会长，是个动目标）：`.xpr` 里另有 10 处 `$PGENDIR/...`——包括
+`sources_1/bd/design_1/hdl/design_1_wrapper.v` 和 6 个 BD IP 的 OOC 目录——指的就是这一层，所以直接打开工程会看见 output products 报缺，跑一次下面这条就长回来。
 
-| 时钟域 | 周期 | setup 余量（占它自己周期的比例） | hold 余量 |
-|---|---|---|---|
-| `eth_rxc`（125 MHz 收包域） | 8 ns | **0.720 ns（9.0 %）**，全设计最差 setup 就在这条域里 | 0.049 ns |
-| `clk_fpga_0`（100 MHz） | 10 ns | **1.142 ns（11.4 %）** | 全设计最差 min 路径落在这条域（数见下一段） |
-| `clkout0_1`（50 MHz 显示域） | 20 ns | **1.767 ns（8.8 %）** | 0.063 ns；`clk_fpga_0` 那一路是 0.060 |
+```bash
+vivado -mode batch -source build/tcl/build_system_axigpio.tcl      # 工程 + BD + 综合 + 实现 + bit + XSA + 7 份报告
+vivado -mode batch -source build/tcl/build_system_axigpio.tcl -tclargs bd_only   # 只建到 BD 就退（第 278 行打 BD_ONLY_DONE）
+```
 
-hold 的两个口径要分开，否则同一个数会被念成两种意思。`build/clock_uncertainty.rpt` 里并排放着两条 min 路径：
-一条是全设计最差的那条，起点终点都在 `clk_fpga_0`，表头写 `Requirement: 0.000ns`，这一路没加保持不确定度，
-slack 就是 0.037 ns；另一条从 `eth_rxc` 起，slack 0.049 ns，而这一族的约束里写着
-`set_clock_uncertainty -hold 0.800 [get_clocks eth_rxc]`，也就是扣掉自加的 0.8 ns 保持不确定度之后剩下的量。
-这个数既不能念成“真实余量只有 0.037”，也不能念成“被 0.8 扣过的”：它两个都不是，
-它是 100 MHz 域里一条同沿 min 检查的裸余量。
+这一支第 21 行就是 `create_project $proj_name $proj_dir -part $part -force`、第 84 行 `create_bd_design design_1`，头注释点名它一路出到 `system.bit / system.xsa` 与 7 份报告（`timing_summary utilization cdc methodology power
+route_status clock_util`）：上面那 11 份工程文本本来就是从它长出来的，收进来只为让人不必先跑完一整条构建流程 才能看见块设计与 IP 配置。它把工程建在 `vivado_system/`，与本目录这两份是同一形状
+（`.gitignore:2` 挡 `vivado_system/`、`:3` 挡任何层级的 `vivado/`、`:8` 挡 `VITIS/` —— 这就是本目录这两个目录**不叫** `vivado/` 与 `vitis/` 的原因：那两个名字在任意层级都会被挡掉）。
+`.xci` 里带着生它的那台机器的 IP `PROJECT_ID` 与 Vivado 小版本，换小版本会要 `upgrade_ip`。
 
-另外两处常见误读：拿 125 MHz 那条 setup 的余量去除 20 ns 的显示周期，会算出“显示域只剩 2.5 %”这种话；
-把三个域压成一句“余量 0.7 ns”，听的人不知道说的是哪一路。逐时钟的原始表在
-`build/timing_summary.rpt` 的 Intra Clock Table 那一段。收口只走一棵时钟树之后，
-最差 20 条 hold 路径的时钟偏斜实测 0.013~0.349 ns（`build/hold_paths.rpt` 逐条读），改前那一条是 1.616 ns。
+重编 PS 应用。编译器在 Vitis 安装树里、只是不在 PATH 上（本会话实核：`which arm-none-eabi-gcc` 无命中，而 `<Vitis>/gnu/aarch32/nt/gcc-arm-none-eabi/bin/arm-none-eabi-gcc.exe --version` 回
+`arm-xilinx-eabi-gcc.exe (GCC) 13.3.0`），所以下面两个变量都得给全路径：
+
+```bash
+PS_CC=<…>/arm-none-eabi-gcc.exe PS_BSP=<仓库根>/vitis/platform/ps7_cortexa9_0/standalone_ps7_cortexa9_0/bsp \
+node build/ps_app.mjs                                             # 产物：build/ps_app.elf
+```
+
+那个 BSP（16 MB / 983 支）不入库。没有平台时先做一次手工 New Platform：
+Vitis → New → Platform → 选 `build/system.xsa` → BSP 勾 `uartps` / `xsdps` / `xgpiops` → Generate，把生成出来的 `standalone_ps7_cortexa9_0/bsp` 指给 `PS_BSP`（这段说明的原件在 `build/ps_app.mjs:14-17`）。
+`board/vitis_platform/vitis-comp.json` 里 `configuration.xsa` 那一个字段被从本机的绝对路径改写成仓库相对的 `build/system.xsa`，其余逐字照抄平台上那份。
 
 ## 2. 运行脚本
 
-四条命令按顺序跑，**都在仓库根执行**（脚本自己按所在目录解析仓库根，换目录跑会找不着 `build/`）。
-扫链那一步对板子没有别的要求；起 PS、烧 PL、重载应用这三步需要板子已供好电、USB-C 已插、
-本机的 `hw_server` 服务在跑。
+### 2.1 一把跑的两支（`board/scripts/`）
+
+| 命令 | 做什么 | 动板子吗 |
+|---|---|---|
+| `VP_XSDB=<…>/xsdb.bat VP_VIVADO_BIN=<…>/bin bash board/scripts/board_flash.sh` | 按顺序跑 起 PS → 配 PL → 下应用，末尾回读一次 AXI GPIO 证明位流真的上了 | **会**：第 1 步就是 `rst -system`，会冲掉在板的位流 |
+| 同上，末尾加 `--check` | 只做前置检查与只读扫链：工具在不在、三件套的 md5、JTAG 链上看得见的目标 | 不会 |
+| `VP_XSDB=<…>/xsdb.bat bash board/scripts/board_health.sh` | 只读拍一张健康快照：串口 `stat,temp,stat` → `mrd` GPIO 与 DDR 头 8 字 → 三条异常向量，四件判完落一份件 | 不会 |
+
+两支都把同一份内容打成 stdout、并落成 `board/measured/<名字>_<YYYYMMDD_HHMM>.txt`，件的第一段就是跑动那一刻的 IDENTITY（时间、git HEAD、三件套 md5），末行是 `FLASH:` / `HEALTH:` 的
+GREEN/RED 总判定；判红会点名是哪一步、哪一项，不会安静地少跑一段。 `VP_XSDB` 不给或指不到就 `REFUSE` 并退 2（口径抄自 `build/board_verify.sh:118`）。
+
+### 2.2 单步工具（留在 `board/` 这一层，名字外面在指）
+
+| 文件 | 什么时候用它 | 外面谁按这个名字指它 |
+|---|---|---|
+| `boot27c.tcl` | 想一次把 PS 和应用拉起来、不介意重刷位流：`rst -system` → `ps7_init` → `dow build/ps_app.elf` → `con`，PC 在下前后都打 | `build/tcl/ps_app_reload.tcl` 的文件头用它解释"为什么换应用不该走这条" |
+| `pswhy.tcl` | 板子没反应时先读 `pc/lr/sp/cpsr` 与 `0x11488/0x1148c/0x11490` 三条异常向量，别猜 | `board/scripts/board_health.sh` |
+| `rdbck.tcl` | 读回 AXI GPIO_0（`0x41200000`）那一个字，确认控制字落板了 | `board/scripts/board_flash.sh`；`build/make_submission.sh:87` |
+| `rdddr.tcl` | 同时读 GPIO 一个字与 DDR 头 8 个字，分开"控制字没写进去"与"数据没落内存" | `board/scripts/board_health.sh` |
+| `serial_bytes.ps1` | 串口按字节抓，绕开编码猜测 | `.gitignore:148` 明写它的输出不入库 |
+| `uart_cap_once.ps1` | 串口一发一收：`-Port COM6 -Seconds 8 -Drain -Cmds "stat,temp,stat"` | `build/board_verify.sh:154,172`、`src/host/arb_handover_test.mjs`、`build/tcl/ps_app_reload.tcl` |
+| `uart_cmd_script.ps1` | 把一份清单逐条灌进 COM6 并分段收回显（`-Cmds` 会按空格拆词，带参数的命令必须走这支） | `src/host/uart_cmd_check.mjs:35`、`src/host/geom_check.mjs:45`、`build/tcl/r116_jtag_recover.tcl` |
+| `cmd_battery_v81.txt` | 105 条串口命令的清单本体（改过的一律在结尾改回来） | `src/host/uart_cmd_check.mjs:37` 的默认输入 |
+| `cmd_overflow_probe.sh` | 串口命令缓冲越界一字节的两端夹逼探针（O1/O2 两个夹逼位）；它只夹逼、不修复 | `src/ps/main.c:1492` 那句"板级指纹见 … 的 O1/O2"、`report/60-failure-analysis.md:97` |
+| `ddr_churn_probe.mjs` | 读 DDR 翻帧：`VP_XSDB=<…>/xsdb.bat node board/ddr_churn_probe.mjs` | `build/make_submission.sh`、`report/` 若干处 |
+| `demo_rehearsal.txt` | 演示时照着敲进板子的那一份，从 `report/demo_script.md` 抽出来 | `build/gates.sh:484` 拿它比对讲稿、`src/host/demo_cmds.mjs:42` 是它的默认落点 |
+
+### 2.3 上板之后一把验收（机器能判的那一半）
 
 ```bash
-# 0) 先确认 JTAG 链看得见（跑法是 vivado，不是 xsdb —— 它用的是 open_hw_manager 那套命令）
-vivado -mode batch -source build/tcl/scan_jtag.tcl
-# 1) PS 起来（ps7_init + reset system），用 Vitis 的 xsdb 启动器
-<Vitis>/bin/xsdb.bat build/tcl/ps_jtag_boot.tcl
-# 2) 烧 PL，用 Vivado
-vivado -mode batch -source build/tcl/program_pl.tcl   # program_pl 认 VP_BIT=<路径>，用来烧"隔离滚一轮"的产物做对照；不设就是 build/system.bit
-# 3) 重载 PS 应用（还是 xsdb 启动器；顺序不能换，PL 没烧之前应用起不来）
-<Vitis>/bin/xsdb.bat build/tcl/ps_app_reload.tcl
+VP_XSDB=<…>/xsdb.bat bash build/board_verify.sh --battery --geom --round=r118
 ```
 
-| 步 | 板子该处于什么状态 | 预期看到 | 不对时先看哪里 |
-|---|---|---|---|
-| 扫链 | 已上电、USB-C 已插，PL 未配置也可以 | stdout 出现 `=== TARGETS ===` 与 `=== DEVICES ===` 两段，设备清单里 DAP 与 Zynq 各占一行 | 报 `No devices detected` 时先看板子的直流供电有没有插上，其次看本机 `hw_server` 服务在不在跑；反面凭据 `build/r88_jtag_scan.txt`（USB 侧全部枚举正常、链上一个设备也没列出来，缺的是板子供电） |
-| 起 PS | 同上，串口没人占着 | `PS7_INIT: ok`、`RST_SYSTEM: ok`，之后 `DDR_ECHO` 那一格回读到位流写进去的图样 | 连不上且 `CONNECT:` 是空的 ⇒ 本机没有 `hw_server`，先起 `<Vitis>/bin/hw_server.bat` 再重跑这一步 |
-| 烧 PL | 起 PS 已过 | `PROGRAMMED xc7z020_1 <- …/build/system.bit`，同一份输出里有 `INFO: [Labtools 27-3164] End of startup status: HIGH` | 拿 `md5sum build/system.bit` 的头一段与上面点名的当前版本对回；对不上说明烧进去的不是这一版 |
-| 重载应用 | 烧 PL 已过（PL 没烧之前应用起不来） | `DOW: ok`、`CON: ok`、`RESUME: ok`，串口打出 `[BOOT]` 横幅 | 串口没动静 ⇒ 先确认 COM6 没被别的终端占住（见本节末）；`ps_app_reload.tcl` 只复位 Cortex-A9 那颗核，不会冲掉已配好的位流 |
+开机回读 → 读回口 → 105 条串口命令电池 → 几何"最后一跳"，日志留 `build/evidence/`，末行形如 `RESULT board_verify PASS（判红的步骤：0）`。`--round=` 必须给：
+没有版本身份的一手回显会被判红而不是写成一份名字叫旧轮的凭据（`build/board_verify.sh` 头部 #179）。 `--stream`（仲裁交接，约 2 分钟）与 `--self`（只测判据本身、不碰板子）两个开关见同一文件头。
 
-上板之后一把验完（还是在仓库根）：`VP_XSDB` 必须指到真实存在的 `<Vitis>/bin/xsdb.bat`，
-指不到就整条拒绝并退出码给 2；脚本自己 `cd` 回仓库根，日志留在 `build/evidence/`。
-
-```bash
-VP_XSDB=<Vitis>/bin/xsdb.bat bash build/board_verify.sh --battery --geom
-```
-
-它按这几段跑：开机回读（含把原始串口回显单独落一份件）、读回口（`src/host/health_read.mjs` 把 lane0..9 与
-lane23..31 逐格打回来）、串口命令批量测试（`--battery`：一次性跑 105 条串口命令，逐条比对期望回显，
-跑完必须回到进来的那一态）、几何“最后一跳”（`--geom`：命令发下去之后，像素域真的用了它没有）。
-任何一段不过就整段停住并打印是哪一段，末尾总判定形如 `RESULT board_verify PASS（判红的步骤：0）`。
-警告：上面那条命令没有带 `--round=`，所以“原始串口回显”那一段会判不通过（这是故意的：
-没有版本身份的一手回显会被写成别人的旧件）；要一把全过就再补一个 `--round=`，把上面板上当前版本那一行的版本号填进去。
-`--stream`（仲裁交接那一段，约 2 分钟）与 `--self`（只测判定本身、不碰板子）两个开关见脚本文件头。
-
-推流侧（PC）与串口侧的命令表在 `report/host_guide.md`、`report/commands.md`。
-两个使用注意点：**串口 COM6 一次只能被一个程序占用**（自己开着终端占着时脚本会拒绝，不是板子坏了）；
-**要看寄存器就先停止推流**，流在跑的时候读到的计数是中间值。
+两条使用注意点：**COM6 一次只能被一个程序占着**（自己开着终端时脚本会拒绝，不是板子坏了）；**要看寄存器就先停止推流**，流在跑时读到的计数是中间值。
 
 ## 3. 实测输出
 
-| 检查项 | 读回来的值 | 凭据 |
+| 件 / 目录 | 是什么 | 怎么复跑 |
 |---|---|---|
-| 串口命令批量测试 | `RESULT PASS uart_cmd_check  (105 条命令, 97.3 s)`；工具本机还会重写一份串口捕获，那份被 `.gitignore` 挡住、不随包，随包复核用右边这份总判定 | `build/r104_board_verify_console.txt`（2026-10-02 那一跑，`RESULT board_verify PASS（判红的步骤：0）`） |
-| 几何“最后一跳”自动化 | `RESULT PASS geom_check（ok=10 fail=0）`；`zoom fit` 置位/复零、自动旋转下缩放跟着角度走、收尾那 19 个几何位与进来时逐位相同 | 同上 |
-| 片源与播放状态 | `[STAT] ctrl thr=80 src=1 zoom=1 bilin=1 zsel=4 zman=1 … sd=1 frames=4398 playing=1`（SD 在播，PL 拥有 UDP 通路） | 逐字回读 `build/evidence/r104_serial_raw.txt`（被跟踪、随包） |
-| 缩放档位自洽 | `lane23 zoom → zsel=4 zcode=4 inv_scale=256 x100_actual=100 verdict=OK` | 同上（开机回读段） |
-| 温度格三方对账 | `V9-6 温度格三方对账：4 条 [TEMP] 的 degC↔osd↔gpio 全部自洽` | 同上 |
-| SD 本地播放帧率 | **29.8 – 30.0 fps**（100 帧滑窗，板上读回） | `data/metrics.csv` 那两行 |
-| 全设计时序 | setup WNS **0.720 ns** / hold WHS **0.033 ns**（最差都在 125 MHz 收包域）、失败 setup/hold 端点 **0 / 50890** | `build/timing_summary.rpt`；这组数是它点名那一次构建的读数，当前产物上的现读数以 `bash build/gates.sh` 打印的那一行为准 |
-| 功耗 | 动态 **2.207 W**、估算结温 **52.5 °C**（工具置信度 Low） | `build/power.rpt`；**这是估算**，不是实测——片上 XADC 的读数走串口 `temp` 与 OSD 那一格 |
+| `board/measured/`（4 份 / 9 785 B） | 第 2.1 那两支脚本在本目录实跑的落点：`flash_20261005_1026.txt`（`--check`，GREEN）、`flash_20261005_1030.txt`（三步全跑，GREEN）、`health_20261005_1025.txt`（HEALTH: RED，红在最后一判）、`health_20261005_1031.txt`（HEALTH: GREEN） | 就是那两支脚本；`health_20261005_1025.txt` 留着，它是 `pub=` 那个活位会把判据弄红这条修正的现场凭据 |
+| `board/evidence_r29/`（17 份 / 14 694 B） | r29 那天的**串口原始抓包** 16 份：SD 挂载、播放速率、拔卡与拔线时的仲裁交接 | `board/uart_cap_once.ps1`；哪一份支撑哪条结论写在同目录 `README.md` 里 |
+| `board/evidence_r41/`（14 份 / 48 690 B） | 七个场景各一对 json+md：`clean30` `drop200` `drop2000` `nopause60` `nopause120` `soak300` `soak300b` | `node src/host/metrics.mjs --out board/evidence_r41 --tag r41_<场景>`（默认输出目录名就是 `src/host/metrics.mjs:164` 那个形状） |
+| `board/compare/`（13 份 / 22 684 B） | 判据复核的输出：温度公式、指标重算、名册差分、DDR 陈旧字 | 12 份件的头两行是 `# CMD:` 与 `# RUN_AT:`。本次逐份实核过：**7 份**那一行就是能直接跑的命令、点名的脚本在树里（`src/host/ddr_stale.mjs` 两份、`src/host/metric_recheck.mjs`、`src/host/temp_formula_check.mjs`、`build/r115_roster_build.py` 三份）；**2 份**（`cdc-golden_compare-console.txt`、`roster-golden_compare-crosscheck.txt`）那行点的是 参考图比对器（该脚本已不在仓库里，比对读数仍以 `board/compare/` 的 13 份件为准），全仓没有这一支（`git ls-files \| grep golden_compare` 只回到这两份捕获本身）⇒ 这两判要复跑得先把那把尺子补进来；**3 份**（`golden-digest-verify.txt`、`soak300-lane-delta.txt`、`tb98-count-vs-metrics-claim.txt`）那一行是"这个数怎么现算"的说法、不是整条命令，其中 `soak300-lane-delta.txt` 把脚本正文原样附在自己的件尾。第 13 份 `cdc-golden_diff.csv` 是差分辨识表，本来就没有 `# CMD:` 行 |
+| `board/verify_r87.md` | r87 那一版的全功能上板验收单：每条给命令、该看见什么、看不见意味着什么 | `data/metrics.csv` 有 5 行的证据列指它，所以这个名字不能改 |
 
-下面三条只能由看着屏幕的人确认，检查脚本判不了，所以不预先写成通过：屏幕左半是未处理画面、
-右半是处理后的同一帧，分割线两侧的几何关系一致；缩放或旋转时画面不出现整行错位；
-OSD 各格读数与串口读回一致。这一类的记录口径见 `board/acceptance.md` 的“要人眼确认的”一节。
+`health_20261005_1025.txt` 与 `health_20261005_1031.txt` 是隔着 `flash_20261005_1030.txt` 那一次刷板、一头一尾拍的。 两边对读能确认刷完之后板子真的又跑起来了，而不是停在某个地方：`[TEMP] degC` 62.01 → 60.20（XADC 在动）、
+`pswhy` 读到的 `pc` `0000f464` → `00007554`（核在 .text 里走）、AXI GPIO 控制字两边同为 `0x000F5000`。 同一条 `[STAT]` 里的 `frames=4398` 两边也同值，但**这个同值不说明冻帧**：它打的是
+`src/ps/sd_play.c:811` 的 `sd_frame_total()`（`src/ps/main.c:1386` 那一行送进格式的），语义是"当前这个文件一共有多少帧"，按构造就是静态字段。要判断通路活不活，看能动的字段（`pub=`、`pc`、`degC`）。
 
-已知未修的几条限制写在 `report/known_issues.md`（大角度旋转时画面角点会出屏、SD 播放中拔卡会冻帧等），
-这里不重复，以免两处漂。
+生成的与实测的分界：**`board/measured/`、`board/evidence_r29/`、`board/evidence_r41/`、`board/compare/`、`board/verify_r87.md` 是从板子或板上读数算出来的**；`board/zynq_video_sys.*`、`board/vitis_platform/`
+是 Vivado/Vitis 写出来的工程文本；`board/scripts/` 与 §2.2 那一张表是人写的脚本。
+`board/uart_capture.txt` 与 `board/uart_script_capture.txt` 是本机每次跑都重写的捕获，被 `.gitignore:135-136` 挡着、不入库也不随包；要随包复核看 `build/evidence/` 里那一份。
+
+## 4. 只能由人眼判的
+
+机器判不了屏幕，所以这三条不预先写成通过：分割线两侧是同一条帧的两种处理状态、几何关系一致；缩放或旋转时不出现整行错位；OSD 各格读数与串口读回一致。
+逐格签收状态与"谁点的头、什么时候、原话"记在 `acceptance.md` 与 `signoff.md`；接线、供电、跳线与 COM 口的实际观察在 `hardware_setup.md`；原图与金标比对那一格的状态在 `raw-vs-golden.md`。
+已知未修的限制不在这里重复，看 `report/known_issues.md`。
+
+## 5. 复现顺序
+
+```
+第 0 节认版本 → 1) vivado -mode batch -source build/tcl/build_system_axigpio.tcl   （或者直接开 board/zynq_video_sys.xpr）
+              → 2) node build/ps_app.mjs                                          （要改 PS 侧才需要）
+              → 3) bash board/scripts/board_flash.sh --check                       （只读，先确认链是活的）
+              → 4) bash board/scripts/board_flash.sh                               （真的把三件套放上板）
+              → 5) bash board/scripts/board_health.sh                              （只读快照，落 board/measured/）
+              → 6) VP_XSDB=<…>/xsdb.bat bash build/board_verify.sh --battery --geom --round=<这一版>
+```
+
+发布前的检查不在本目录：`bash build/gates.sh`。读数以它打印的那一行为准，本页不复述任何一条门禁条数。
