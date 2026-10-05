@@ -98,7 +98,7 @@ GATE-SUMMARY judged=6 PASS=5 FAIL=0 NOT_MEASURED=1   分母：J1=269 J2=8 J3=40 
 |---|---|---|
 | 资源**按模块**归属（铁律 6） | `NOT_MEASURED` | 缺一次实现后只读 `report_utilization -hierarchy`（r118 件里没有该节；`build/util_hier.rpt` 是 9 月 25 日的） |
 | `clkfbout/clkfbout_1/clkout1_1/clkout2` 的时钟组归属 | `NOT_MEASURED` | 缺一次只读 `open_checkpoint` + `report_clock_groups`/`get_clocks` 探针（r118 四路 `No timing paths found.`，从时序件反推不出来） |
-| 挂上 `r119_hdmi_source_window.xdc` 之后 TMDS 输出口的时序 | `NOT_MEASURED` | 缺一次 `VP_R119_TMDS_WINDOW=1` 的构建（`build/tcl/build_system_axigpio.tcl:63-70`） |
+| 挂上 `r119_hdmi_source_window.xdc` 之后 TMDS 输出口的时序 | **已量，判 DECLINE** | `VP_R119_TMDS_WINDOW=1` 那一跑的件在 `build/evidence/1006d_tmdswindow_timing_summary.rpt`：新纳检的 `clkout1_1` 6 个输出口端点 setup −5.408 / hold −1.923 ns，四个老域八个读数里七个变差（唯一变好是 `clkout0_1/setup` 3.630→3.945）（逐域读数见 `report/timing/eth_rxc_partition_options.md` 第 6 节）；挂载开关本身在 `build/tcl/build_system_axigpio.tcl:63-70` |
 | 挂上 `r119b_hdmi_tp1_pinclk.xdc` 后的域数（8→9） | `NOT_MEASURED` | 缺一次挂载 + 重建名册；当前只有约束文件自身（`:24-26`） |
 | 板上实测吞吐/帧率/带宽（"关键性能指标"的非时序部分） | `NOT_MEASURED` | 板子与人手不在只读复核边界内；r118 那批件（`build/r118_*`、`report/timing/round_r118.md`）没有配对的解析件 |
 | 同一命令两次运行逐位相同（构建层，不是解析层） | `FAIL`（既有结论，非新测） | 见 `build/provenance.md:192`：入口对 `system.bit` 用 `file copy -force` ⇒ 原地覆盖 |

@@ -77,7 +77,10 @@
   把 TMDS 的 4.000 ns 借过去等于伪造依据；`tmds_*_n` 是否被同一对约束覆盖那一问
   （`report/timing/debt_ledger.md` §2 那句"这一条我没有官方出处（A1 未读）"）仍未答。
 - **现在的处置（是否影响演示）**：屏那一路的对外时序今天仍不出具结论——**一条 `set_output_delay` 都没进默认约束**
-  （窗留在候选件里，开关 `VP_R119_TMDS_WINDOW`，量它的那轮在跑）。
+  （窗留在候选件里，开关 `VP_R119_TMDS_WINDOW`；**已经量过一轮**：挂上它之后新纳检的 `clkout1_1` 那 6 个输出口
+  端点整批红（setup −5.408 / hold −1.923 ns，件 `build/evidence/1006d_tmdswindow_timing_summary.rpt`），
+  同一轮四个老域的八个读数里七个变差（唯一变好是 `clkout0_1` 的 setup 3.630→3.945 ns）⇒ 判 DECLINE，
+  仍不进默认集；逐域读数在 `report/timing/eth_rxc_partition_options.md` 第 6 节）。
   但"六颗端口一概欠账"这句已经不准确了：`led[0]/led[1]` 与 `eth_mdc`/`eth_mdio` 现在走的是 §3.4 的 (b)——
   在 `build/check_io_timing_coverage.py` 的豁免表里**逐条写了可核的理由与出处**
   （LED 是 `rk_zynq7020.xdc:10-11` 的 LVCMOS33 直驱、无接收时钟；`system_top.v:117` 把 MDC 钉成常量 0；

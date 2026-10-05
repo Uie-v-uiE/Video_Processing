@@ -120,12 +120,21 @@ A 因前提为假作废（第 1 节）；
 
 第 4 节那条 D 候选（TMDS 源端窗）已经量过一轮，结论写在这里以免下一份读者再去猜：
 
-- **窗本身管用**：`VP_R119_TMDS_WINDOW=1` 的隔离构建里，`check_timing` 的 `no_output_delay` HIGH 缺口 **6 → 3**，
-  并且**没有任何违例端点**（`build/evidence/1006d_tmdswindow_timing_summary.rpt`）。
+- **窗把该检查的端点检查起来了，但检查结果是全红**：`VP_R119_TMDS_WINDOW=1` 那一跑里 `check_timing` 的
+  `no_output_delay` HIGH 缺口确实从 **6 → 3**（剩的三个是 `led[0]`、`led[1]`、`tmds_clk_p`，前两个走带理由的豁免），
+  可同一份件的 Intra Clock Table 里新纳检的那一行 `clkout1_1` 是 **WNS −5.408 / 6 个 setup 违例端点、WHS −1.923 /
+  6 个 hold 违例端点**（`build/evidence/1006d_tmdswindow_timing_summary.rpt:189`，违例路是
+  `u_pl/u_dvi/u_ser*/u_master/CLK → tmds_data_n[0]` 那一族，即屏的 6 个串行输出端点）。
+  这与更早那条判据同源：HDMI 的"钟↔数据 ≤0.20 Tcharacter"是**展宽（spread）不是捕获窗**，
+  拿它当 `set_output_delay` 挂上去就是量纲错——**所以这一把的代价不是"别域掉余量"这么轻，是新检查的整批红**。
+  （本节先前写的是"窗管用且没有任何违例端点"，那是我只读了四个老域那几行、漏了 `clkout1_1` 那一行的结果，
+  账记在 `report/log/issues.md` #392。）
 - **代价在别的域**：同一轮的逐时钟名册差分（`build/evidence/1006d_roster_diff_vs_r118.txt`，八对全配上）
-  `result=RED`：`eth_rxc/setup` 0.739→0.471（相对余量 9.24 %→5.89 %）、`clk_fpga_0/setup` 1.850→1.492（−19.4 %）、
-  `sys_clk/hold` 0.222→0.121（−46 %）、`clk_fpga_0/hold` 与 `clkout0_1/hold` 各掉 5.7 %/6.8 %；
-  唯一变好是 `clkout0_1/setup` +8.7 %。**RTL 一字未改**，这是"把 TMDS 纳入检查后工具重新布置"的连带。
+  `result=RED`：八个格里**七个变差**——setup 那三域 `eth_rxc` 0.739→0.471（相对余量 9.24 %→5.89 %，−36.3 %）、
+  `clk_fpga_0` 1.850→1.492（−19.4 %）、`sys_clk` 14.876→13.887（−6.6 %），四路 hold 全掉
+  （`sys_clk` 0.222→0.121 −45.9 %、`clk_fpga_0` −5.7 %、`eth_rxc` −4.6 %、`clkout0_1` −3.4 %）；
+  唯一变好是 `clkout0_1/setup` 3.630→3.945（+8.7 %）。**RTL 一字未改**，
+  这是"把 TMDS 纳入检查后工具重新布置"的连带。
 - **所以默认构建不加载**：候选件与开关原样留着。这一条在尺子上留两个读数，别看混：
   我这一侧 `I3_output_covered bare_out_ports=4`（四个 BARE 输出**端口名**，就是屏那一路的
   `tmds_clk_p`/`tmds_clk_n`/`tmds_data_p`/`tmds_data_n`）；工具那一侧在未加载窗的构建里
@@ -135,3 +144,31 @@ A 因前提为假作废（第 1 节）；
 - **翻案的两个方向，每个都是另一个单变量**：给 `tmds_clk_p` 也配窗（现在那份只覆盖 `tmds_data_p/n`，
   剩下三个缺口正是 `led[0] led[1] tmds_clk_p`，与 `report/timing/debt_ledger.md` 的名单一致）；
   或把 ±4.000 ns 按板级走线失配**减掉**之后再绑。两条都要再来一轮名册差分才谈采纳。
+
+## 7. "接棒的是谁"量齐了：每域前 12 档（只读探针，不改一行 RTL）
+
+先前归档的档位只有 4 条（`build/evidence/r118_after.txt`，探针件头部把这条写成"没有件"的原因：
+`build/tcl/r124_tiers_probe.tcl`）。现在量齐了：只读探针
+`build/tcl/r124_tiers_probe.tcl`（`VP_TIERS_REPORT_ONLY=1`，读已完成的实现）在**同一份约束集**（实测
+`rk_zynq7020.xdc` + `clock_groups_impl.xdc`，fileset 里挂着的窗件只在内存里摘掉、不保存工程）上重跑实现，
+四个域的 intra 读数与 r118 归档件**逐位相同**（0.739/1.850/14.876/3.630，端点 4835/15721/323/30179）
+⇒ 这份档位表就是 r118 的。件 `build/evidence/r124_tiers_ladder.txt`。逐域结论：
+
+- **eth_rxc 的接棒者不是另一只加法器**：第 1–3 档是同一只 `icmp_tx` 校验和锥（11 级、布线约 58 %），
+  第 4–12 档**全是** `u_eth/u_rx_par/p_eof_reg/C → u_eth/u_reasm/rows_hit_reg[*]/CE`
+  （4 级、布线 85.1–85.2 %）。也就是说：即便把校验和锥整族搬走，本域会停在 **1.017 ns**
+  （与 `report/timing/cut_ledger.tsv` 的 C10 行那条"上限 +0.278"同一只数：1.017 − 0.739 = 0.278），
+  再往上的瓶颈是这只**使能广播**——它与已成立的那把"分组使能"刀同族（第 2 节候选 B 是另一类），
+  不是拆锥那一类。
+- **clk_fpga_0 的 1.850 ns 是一只旗标摆出来的**：前 12 档**全部**同起点 `u_pl/u_arb/owner_eth_reg/C`，
+  终点是帧缓冲 BRAM（`u_pl/u_bilin/u_fb/*`）的 `WEA`/`ADDRARDADDR` 脚，逻辑只有 1–4 级、布线占 88.8–93.6 %。
+  ⇒ 这个域没有"逻辑锥"可拆；能动的是那只高扇出旗标的复制/摆放，而这类刀在本工程上已经被量过两次
+  （赢 1 格跌 4 格那两条），要动就得按名册差分重新立案。
+- **clkout0_1 的第 2 档起是缩放映射那一族**：第 1/3/4 档是 OSD 读侧的 22 级锥，其余九档全是
+  `u_pl/u_zfit/inv_fit_reg[2]/C → u_pl/u_zmap/*`（14 级，3.975 ns 起）。⇒ 动 OSD 读侧之后本域接棒者离第 1 档只差 0.345 ns。
+- **sys_clk 最松**：前四档是 `u_pl/u_ang/angle_reg` 自己那一拍，第 5 档起是按键计数器的 CE，余量 14.876 ns（74.4 %）。
+- **hold 仍然不可互比**：只有 `eth_rxc` 有 `set_clock_uncertainty -hold 0.800`
+  （`src/constraints/rk_zynq7020.xdc:50`），其余三域没有不确定度带，四列 hold 是两把尺子读数。
+
+这份表**不产生采纳结论**：它只把"后面还有几档、每一档属于哪一族"从推断变成有件的事实。
+按规矩，档位的绝对 ns 差不算收益也不算损失，任何一刀仍要单变量重跑 + 逐时钟名册差分。
