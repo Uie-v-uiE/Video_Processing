@@ -1,0 +1,18 @@
+ROSTERDIFF-ROW clk_fpga_0/setup slack 1.850->1.776 margin_pct 18.50->17.76
+ROSTERDIFF-ROW clk_fpga_0/hold slack 0.053->0.053 margin_pct 0.53->0.53
+ROSTERDIFF-ROW clkout0_1/setup slack 3.630->3.723 margin_pct 18.15->18.62
+ROSTERDIFF-ROW clkout0_1/hold slack 0.059->0.059 margin_pct 0.29->0.29
+ROSTERDIFF-ROW eth_rxc/setup slack 0.739->0.692 margin_pct 9.24->8.65
+ROSTERDIFF-ROW eth_rxc/hold slack 0.052->0.053 margin_pct 0.65->0.66
+ROSTERDIFF-ROW sys_clk/setup slack 14.876->15.175 margin_pct 74.38->75.88
+ROSTERDIFF-ROW sys_clk/hold slack 0.222->0.092 margin_pct 1.11->0.46
+ROSTERDIFF-HEADLINE wns ->（绝对差不算收益也不算损失，rule 35）
+ROSTERDIFF D1_no_new_violation    new=0              expect=0 GREEN
+ROSTERDIFF D2_pairs_compared      pairs=8            floor>=8 GREEN
+ROSTERDIFF D3_margin_cost         big_loss=1         lost>25%的域数=0 RED
+ROSTERDIFF D4_hold_covered        hold_pairs=4       want>=2 GREEN
+ROSTERDIFF D5_no_empty_readings   empty_in_B=0       expect=0 GREEN
+ROSTERDIFF D6_fanout_inventory    fanout_rows=0      want>=1 RED
+ROSTERDIFF-COST 变差的域: clk_fpga_0/setup:1.850->1.776(相对余量-4.0%) eth_rxc/setup:0.739->0.692(相对余量-6.4%) sys_clk/hold:0.222->0.092(相对余量-58.6%)
+ROSTERDIFF-GAIN 变好的域: clkout0_1/setup:3.630->3.723(相对余量+2.6%) eth_rxc/hold:0.052->0.053(相对余量+1.5%) sys_clk/setup:14.876->15.175(相对余量+2.0%)
+ROSTERDIFF-SUMMARY a=build/evidence/1006_base_roster.txt b=build/evidence/1006_csumconst_roster.txt judged=6 pairs=8 result=RED

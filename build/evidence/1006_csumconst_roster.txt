@@ -1,0 +1,13 @@
+ROSTER|setup|clk=clk_fpga_0|period=10.000|slack=1.776|margin_pct=17.76|levels=NA|route_pct=NA|dest=NA|endpoints=15721|src=timing_summary
+ROSTER|hold|clk=clk_fpga_0|period=10.000|slack=0.053|margin_pct=0.53|levels=NA|route_pct=NA|dest=NA|endpoints=15721|src=timing_summary
+ROSTER|setup|clk=eth_rxc|period=8.000|slack=0.692|margin_pct=8.65|levels=NA|route_pct=NA|dest=NA|endpoints=4819|src=timing_summary
+ROSTER|hold|clk=eth_rxc|period=8.000|slack=0.053|margin_pct=0.66|levels=NA|route_pct=NA|dest=NA|endpoints=4819|src=timing_summary
+ROSTER|setup|clk=sys_clk|period=20.000|slack=15.175|margin_pct=75.88|levels=NA|route_pct=NA|dest=NA|endpoints=323|src=timing_summary
+ROSTER|hold|clk=sys_clk|period=20.000|slack=0.092|margin_pct=0.46|levels=NA|route_pct=NA|dest=NA|endpoints=323|src=timing_summary
+ROSTER|setup|clk=clkout0_1|period=20.000|slack=3.723|margin_pct=18.62|levels=NA|route_pct=NA|dest=NA|endpoints=30179|src=timing_summary
+ROSTER|hold|clk=clkout0_1|period=20.000|slack=0.059|margin_pct=0.29|levels=NA|route_pct=NA|dest=NA|endpoints=30179|src=timing_summary
+ROSTERFROMSUM S1_clock_rows            rows=8           floor>=8 GREEN
+ROSTERFROMSUM S2_period_known          periods=8        want>=2 GREEN
+ROSTERFROMSUM S3_margin_computed       na_margin=0      want=0 GREEN
+ROSTERFROMSUM S4_period_freq_crosscheck 8/8 bad=0        bad=0 GREEN
+ROSTERFROMSUM-SUMMARY src=build/isolated_1006_csumconst/timing_summary.rpt clock_rows=4 periods=8 result=GREEN
