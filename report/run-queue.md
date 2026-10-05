@@ -22,14 +22,14 @@
 | P11 学习文档 | `docs/walkthrough/*`（**不随包**，`.gitignore` 已列） | P13/P15b | 11 个文件已交付，5 篇因缺前置未写 |
 | P13 `src/` … | … | 部分（`report/interface-table.md` 已落 1509 行；`report/src-map.md` 本轮由 `build/r120_src_map.mjs` 现算生成，83 文件 × 4 列；`src-audit` 装配页未写（`git ls-files` 与盘上都没有这一件 ⇒ 现不存在）；契约头改动受 B1 约束） |
 | P14 `sim/` … | … | 部分（`sim/README.md` 已落；`sim/regress/` 与 `verification-claim` 装配页未写（后者从未落盘 ⇒ 现不存在）⇒ "验证声明"只能停在"逐台架判据 + 门禁"这一档） |
-| P15a 构建与指纹 … | … | 已交付（`build/README.md`、`build/provenance.md` 194 行、`build/artifacts/`、`build/probe-guard.md`） |
+| P15a 构建与指纹 … | … | 已交付（`build/README.md`、`build/provenance.md` 194 行；两份逐轮说明件（探针清单与产物目录说明）已随轮次清理，探针条目并入 `build/coverage.md`） |
 | P15b 报告解析与名册 … | … | 已交付（`build/parsed/`、`build/roster/`、`build/coverage.md`、`report/build-notes.md` 均在盘上并入库） |
 | P15c 逐轮台账 … | … | 部分（`build/runs/ledger.md`、`build/runs/decisions.md` 在盘；两轮派发都被 150 回合上限截停 ⇒ 逐轮指针目录未核，缺口记在未决项） |
 | P16a 板级可复原 … | … | 进行中（`board/hardware_setup.md` 151 行、`board/firmware/` 在；`board/run/`、`bringup-checklist.md` 待核） |
 | P16b 实测与比对 … | … | 已交付（`board/raw-vs-golden.md` + logs/captures/compare/conditions，比对表 12 张全部脚本产出） |
 | P16c 签核与指标 … | … | 已交付（`board/signoff.md` 29 项五件齐全、`report/measurements.md`、`signoff-questions.md`、`report/acceptance-recipes.md`） |
 | P17 `data/` … | … | 已交付（`data/golden/manifest.md` 214 行、`inputs/` 8 个向量、`generated/gen_inputs.mjs`、`data/README.md` 本轮补上；`data-format` 装配页未写（从未落盘 ⇒ 现不存在） |
-| P12 根 README … | … | 部分（`report/repro-check.md` 已出并随文档增长复测为 PASS 91 / FAIL 30 / 未测 32；**30 条 FAIL 未逐条归因** ⇒ C9 保留为红，见 `report/known-limitations.md` 第 4 节） |
+| P12 根 README … | … | 部分（`report/repro-check.md` 已出，第三轮的判定读数是 `判定列在内=61 行 PASS=36 FAIL=0 未测=11 判定列不成词=14`（终审 C9 现跑）；缺的是那 11 行未测与 14 行没有判定词的表格，逐条构成见 `report/known-limitations.md` 第 4 节。更早一版 C9 按全文 token 计数读出 `PASS=91 FAIL=30 未测=32`，这一错位登记在 `report/claims-vs-evidence.md`） |
 | P18a 原理与划分 … | … | 未落地（`report/figures/` 已建；`20-principle.md`、`30-partition-if.md` 未写——批次到 150 回合上限，已登记不假装完成） |
 | P18b 优化与结果 … | … | 已交付（`report/40-optimization.md`、`50-results.md`、`comparison-notes.md`；15 条抽查链路一步命中） |
 | P18c 失败·复现·未决 … | … | 已交付（`60-failure-analysis.md`、`70-reproduce.md`、`90-open-items.md`、`report/README.md`）；90 的表体行随每轮装配漂移，最后一轮 `gen_index` 后需再对一次 C8 |

@@ -74,7 +74,7 @@
 | --- | --- | --- |
 | `node build/r119_window_check.mjs`（两跑 diff） | 窗件 + 成品离散读数，本轮补回 5 份输入的 md5 头 | `build/evidence/r120_window_check.txt` |
 | `node skills/scripts/check/retire_flat.mjs` → `--apply` | 旧扁平卡删除前的映射/八节/出处证明，与之后的退役 | 输出转录在提交说明；映射表 `build/evidence/r120_migration_map.txt`（`retire_flat.mjs` 是重建前的旧包件名，**现不存在**；本行是当时跑过并留件的清单，只报数不指路）|
-| `node build/r120_rotate_skill_refs.mjs`（`--check`→`--apply`→再 `--check`） | 指路改口四条规则，改前 165 处、改后 0 处（幂等） | 本文件即其效果见证 |
+| 一次性 skill 指路改写器（`--check`→`--apply`→再 `--check`） | 指路改口四条规则，改前 165 处、改后 0 处（幂等） | 本文件即其效果见证（该脚本跑完即废，已随 r120 轮次清理） |
 | `node skills/scripts/check/gen_index.mjs` + `--check` | 技能包索引重写与一致校验（条目 58 是当时旧件的读数） | 同上（`gen_index.mjs` **现不存在**；现役件 `skills/_meta/build-index.mjs` 本轮判 `条目=49`）|
 | `node skills/scripts/check/gates.mjs --full` ×2 | 技能包 12 项门禁，两跑逐字节一致 | `build/evidence/r120_gates_skill_a.txt`、`..._b.txt`（`gates.mjs` **现不存在**，两件转录是当时的凭据）|
 | `bash skills/scripts/selftest/run_all.sh` | 6 把脚本尺子 40 条对照（含反例与缺件 NOT_MEASURED） | `build/evidence/r120_selftest.txt`（`run_all.sh` **现不存在**；现役等价件 `skills/_meta/run-all-checks.mjs` 本轮判 `判 9 项 自测件=6 红=0 未测=0 PASS`）|

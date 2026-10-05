@@ -622,7 +622,7 @@ BRAM **95 = 67.86 %**、LUT as Logic **10173**、LUT as Memory **4187**、FF **8
 
 | 读数 | 采纳基线（板上那一版） | 拆三块之后 | 凭据 |
 |---|---|---|---|
-| RAMB36/FIFO* 单元 | 93 | **88** | `build/isolated_0929_2105/utilization.rpt` |
+| RAMB36/FIFO* 单元 | 93 | **88** | 两份逐字一致的读数在本文件这一节留字（0929 那一滚的 utilization 读数件已随隔离轮次清理） |
 | Block RAM Tile | 95（67.86 %） | **90.5**（64.64 %） | 同上 |
 | RAMB18 | 5 | 5 | 同上 |
 
@@ -806,7 +806,7 @@ WNS ≥ +0.65、WHS ≥ +0.15、失败 setup/hold 端点 = 0、BRAM ≤ 95 tile�
 基线是 r94 板上那一版：`baseline_r94 WNS=0.553 WHS=0.049 endpoints=50883 bit=a1465f29c9e4`。
 
 - **A 滚（布线后物理综合，`IMPL_PRPO=1` ⇒ `AggressiveExplore`）：跑是真的跑了，而它的日志本身就是结论。**
-  `build/isolated_r95_postroute_physopt/build_console.txt:2568` 起那几行写得很清楚：
+  那一滚的构建控制台从第 2568 行起写得很清楚（读数件已随 r95 隔离轮次清理，逐字抄在下面）：
   `Command: phys_opt_design -directive AggressiveExplore` / `Physical synthesis in post route mode` /
   `Estimated Timing Summary | WNS= 0.553 | TNS= 0.000 | WHS= 0.049 |` /
   `Design worst setup slack (WNS) is greater than or equal to 0.000 ns. All physical synthesis setup optimizations will be skipped.` /
@@ -823,7 +823,7 @@ WNS ≥ +0.65、WHS ≥ +0.15、失败 setup/hold 端点 = 0、BRAM ≤ 95 tile�
   `build/r95_timing_round.sh` 里 `ROLLS` 的注释写的是"逗号分隔"，而解析用的是 `for spec in ${ROLLS:-…}` ——
   bash 只按**空白**切词 ⇒ 两滚并成一滚、策略名被拼成
   `Performance_NetDelay_high,r95b_wlfanout=IMPL_STRATEGY=Performance_WLBlockPlacementFanoutOpt`，
-  工具照例拒绝（尸检：`build/isolated_r95b_netdelay_high/build_console.txt` 最后几行）。
+  工具照例拒绝（尸检在那一滚构建控制台的最后几行，读数件已随 r95b 隔离轮次清理）。
   已修两件事：① 分隔符改成**分号**（`while IFS= read -r` + 进程替换，这样一个滚还能带多个 `KEY=VAL`）；
   ② `SUM`/`LOG` 路径可被 `R95_SUM`/`R95_LOG` 覆盖 —— 上一拨它往 r95 的凭据上追加了**第二个门槛头**
   （就在那份文件 14:14:01 那一段），明天读的人分不清哪几行属于哪个门槛，这是凭据的出身问题，不是排版问题。
