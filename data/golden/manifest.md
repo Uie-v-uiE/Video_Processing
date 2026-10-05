@@ -78,7 +78,7 @@ for(const f of process.argv.slice(1)){const b=fs.readFileSync(f),n=norm(b);
 | data/golden/proc_10000.png | `283215d0f6ed2b59f98c719078d23c6ea3f9afd5246fb1d149eea3bbf2f1d746` | 同上 ⇒ 含糊项（五位数字口径同上一行） | 同上 | 2026-10-04 | 合成（软件渲染） |
 | data/golden/proc_all.png | `dd57c368c4e35626d8431d8e527fc4a4a1c118c94d4e78e3215550963f298cf8` | 同上 ⇒ 含糊项 | 同上 | 2026-10-04 | 合成（软件渲染） |
 | data/golden/dual_preview.png | `585b81d9ed5a9854199908095370e952373005af621c3adf39db916c9f1a9b39` | 同上 ⇒ 含糊项。`data/golden/README.md` 明写它"与 `split_display` 的显示方式同类，但不是同一套算术产出" | 8 bit/通道 RGB，**1280×360**（实测 IHDR，左右并排各 640×360） | 2026-10-04 | 合成（软件渲染） |
-| data/golden/frame_640x360.mem | `380ae5ba120317c8b48853bbc1be79997507bef6e01224fe0619fb4f489a473e` | 产生程序不在树里 ⇒ 含糊项；最早可观察到的存在 = `fc314bb`（2026-09-18）。内容由本轮实测确定（见 §9 第 3 条）：12 个不同 RGB565 色值构成的图卡 | 16 位 RGB565 定点（R5G6B5）；一行一个字的 4 位十六进制**小写**，取值 `0000`–`ffff`，无量化损失；行主序 640 列 × 360 行 = 230400 行，行尾 CRLF，共 230400×6 = 1,382,400 字节（与实测长度一致） | 2026-10-04 | 合成（12 色图卡，非拍摄画面；判定依据是取值集合，见 §9） |
+| data/golden/frame_640x360.mem | `380ae5ba120317c8b48853bbc1be79997507bef6e01224fe0619fb4f489a473e` | 产生程序不在树里 ⇒ 含糊项；最早可观察到的存在 = `fc314bb`（2026-09-18）。内容由本轮实测确定（见 §9 第 3 条）：12 个不同 RGB565 色值构成的图卡 | 16 位 RGB565 定点（R5G6B5）；一行一个字的 4 位十六进制**小写**，取值 `0000`–`ffff`，无量化损失；行主序 640 列 × 360 行 = 230400 行，行尾 CRLF，共 230400×6 = 1,382,400 字节（与实测长度一致） | 2026-10-04 | 合成（12 色图卡，非拍摄画面；判定依据是取值集合，见 §9） | **【2026-10-05 修订】这一支已从目录里去掉，不随包。**
 
 ## 4. 附表：字节形状与含糊标记（按文件名basename索引，不与主表重复计数）
 
@@ -98,7 +98,7 @@ for(const f of process.argv.slice(1)){const b=fs.readFileSync(f),n=norm(b);
 | proc_10000.png | 3523 | `86ed490e0aeb2632ef1282e5f904d1abc20efc3fc1c54af2cead4354b4ac18ba` | diff | 否 ⇒ §8 |
 | proc_all.png | 4613 | `c6e4062f9e07f803131a548882297b6946f88036bd0379177e766780f57424ea` | diff | 否 ⇒ §8 |
 | dual_preview.png | 10721 | `7bd6bf832ecf2397ff517df12f566c514f61f6c9d5f1efa17c41882e2c901b1c` | diff | 否 ⇒ §8 |
-| frame_640x360.mem | 1382400 | `b4fafe39246aa51dae2aeea1a9e102dffc62f7d53d6e217661407e08c67068ab` | diff | 否 ⇒ §8 |
+| frame_640x360.mem | 1382400 | `b4fafe39246aa51dae2aeea1a9e102dffc62f7d53d6e217661407e08c67068ab` | diff | 否 ⇒ §8 | ⇒ 现已去掉，不随包。
 
 ## 5. 双向差集核对（两个方向都要 0，由命令算出）
 
@@ -202,13 +202,35 @@ grep -rn "data/golden\|frame_640x360" --include='*.v' --include='*.mjs' --includ
    复算：`cmp data/golden/src.png data/golden/rot_000.png; echo $?` ⇒ 无输出、`0`。
    ⇒ 0° 档不是"另一次渲染结果"而是源图本体，两个文件里必有一个是冗余的（处置要队伍定，见 Q-P17-4）。
 2. **PNG 的规范化摘要 ≠ 原始摘要**（12 个全是），证明 §2 那句"规范化对二进制不是一一对应"不是假设。
-3. **`frame_640x360.mem` 的整帧只有 12 个不同取值**，最多的一种 `10a5` 占 97870/230400（42.5 %），
+3. **那支 640x360 裸帧向量（已去掉，不随包）的整帧只有 12 个不同取值**，最多的一种 `10a5` 占 97870/230400（42.5 %），
    其余 11 种各约 14355–14761；每行含 9 种取值。⇒ 它是**色块图卡**（合成），不是拍摄画面。
    复算：
    ```bash
-   node -e 'const fs=require("fs");const b=fs.readFileSync("data/golden/frame_640x360.mem","latin1").split("\r\n").slice(0,-1);
+   node -e 'const fs=require("fs");const b=fs.readFileSync("<那一支已去掉的 .mem 的本地留档>","latin1").split("\r\n").slice(0,-1);
    const m=new Map();for(const x of b)m.set(x,(m.get(x)||0)+1);
    console.log("行数",b.length,"唯一值",m.size);[...m].sort((a,c)=>c[1]-a[1]).forEach(([v,n])=>console.log(v,n));'
    ```
-   与 `data/golden/README.md` 说的"目前没有任何脚本或台架读它"一致（§6 第 4 条），
+   与 `data/golden/README.md` 说的"没有任何脚本或台架读它"一致（§6 第 4 条），
    所以这条内容描述只是把它的形状钉住，不产生任何"它被用过"的说法。
+
+## 10. 2026-10-05 修订：`data/golden/` 的现量与口径
+
+本文件 §3 的表、§4 的附表、§5 与 §6 的记录都是 **2026-10-04 那一分钟的现量原样**，不改写它们（改记录等于伪造记录）。
+本轮（目录精简）动了一件事，记在这里：
+
+| 项 | 2026-10-04 记录 | 现在 |
+|---|---|---|
+| 目录里的件数 | 14（11 张 PNG + `.mem` + `README.md` + `manifest.md`） | **13**：`.mem` 那一行去掉，其余一字未动 |
+| `frame_640x360.mem` | 在册，`§9` 第 3 条钉着它的取值集合 | **已真删，不随包**。删的依据是 `data/golden/README.md` 自己给的第二条出路（"接到发流脚本上当测试数据，或者从提交包里去掉"），本轮走后者：它的尺寸 640x360 与本设计的源尺寸 512x300 不符，且全仓没有任何 `.v`/`.mjs`/`.sh` 读它 |
+| 输入向量的唯一出处 | 分散在 `.mem` 与 `data/inputs/` | 收敛到 `data/inputs/` 8 份，由 `data/generated/gen_inputs.mjs --write` 一键重生 |
+
+复算现在的现量：
+
+```bash
+find data/golden -maxdepth 1 -type f | wc -l
+ls data/golden/*.png | wc -l
+grep -c '^| data/golden/' data/golden/manifest.md
+```
+
+§9 第 1、2 条（`rot_000.png` 与 `src.png` 同字节、PNG 规范化摘要不等于原始摘要）**仍然成立**，
+这两条讲的是留在册上的 11 张图，与本轮的删除无关。
