@@ -300,13 +300,17 @@ bash build/board_verify.sh --geom --battery      # 串口回显与几何判据�
 ```bash
 export VP_VIVADO_BIN="<Vivado>/bin"
 bash board/scripts/make_boot_image.sh        # FSBL + bit + app → board/flash/BOOT.bin
-VP_QSPI_PART="w25q256jwq-spi-x1_x2_x4" \
+VP_QSPI_PART="mx25l25645g-qspi-x4-single" \
   "<Vivado>/bin/vivado.bat" -mode batch -source board/tcl/flash_qspi.tcl
 ```
 
-两个坑是实测踩到的：bootgen 对 Zynq-7000 只接受"`the_design:` + 花括号里逐行一个文件、
-不写逗号不写属性"这种 bif 写法；部件名要用 `*-spi-x1_x2_x4` 这一支，
-`*-qspi-x4-single` 会被判 `Labtoolstcl 44-655`（该器件不支持）。
+三个坑是实测踩到的。bootgen 对 Zynq-7000 只接受"`the_design:` + 花括号里逐行一个文件、
+不写逗号不写属性"这种 bif 写法。部件名不能照着板子丝印填：丝印是 W25Q256FV，而 Vivado 部件库里
+`w25q256jw*` 那一支的 `COMPATIBLE_PARTS` 只列 zynquplus，给 zynq7000 用会报 `[Labtoolstcl 44-655]`；
+真正要挑的是 `COMPATIBLE_PARTS` 里含 `zynq7000*` 的那一支同为 32 MB / x4 的 macronix 档，
+`get_cfgmem_parts` 列出来再按这个属性选，换过去之后擦写与回读校验都通过。
+2025.2.1 的 `hw_cfgmem` 对象没有 `PROGRAM.ADDRESS_RANGE` / `BBF_FILE` / `START_ADDRESS` / `STATUS`
+这几个属性（写死会 17-142、17-54 中断），又必须设 `PROGRAM.ZYNQ_FSBL`，缺它报 `[Labtools 27-3203]`。
 写完把板的启动模式拨到 QSPI、断电重上，屏上应直接出画面，不需要 JTAG。
 本次写入的逐条结果（镜像与三份输入的 md5、Erase/Program/Verify 三行成功、耗时 137 s、
 以及上面那两个坑）记在 `board/measured/flash_qspi_2026-10-05.txt`。
