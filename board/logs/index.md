@@ -18,7 +18,7 @@ for f in <表里的路径>; do printf "%s | %s | lines=%s | sha8=%s\n" "$f" \
 | --- | --- | --- | --- | --- | --- | --- | --- |
 | L01 | `build/evidence/r118_board/board_verify_console.txt` | 2026-10-04 04:49 | bit `cd04907e` / xsa `934ebdba` / elf `d0b07f84`（件内 `:4-6` 自报） | 66 | `a824a2c5` | `RESULT board_verify PASS（判红的步骤：0）`（`:66`）、`RESULT PASS geom_check（ok=10 fail=0）`（`:36`）、`RESULT PASS uart_cmd_check  (105 条命令, 97.9 s, 捕获 board/uart_script_capture.txt)`（`:63`）、`drop_words → 0`（`:21`） | 卡 A1 |
 | L02 | `build/evidence/r118_serial_raw.txt` | 2026-10-04 04:47 | 同上（控制台 `:15` 点名落点与"判定=绿（地板 2）"） | 5 | `9f225141` | `[TEMP] degC=60.65 raw=0xA990 vccint=998mv th=85C over=0 sane=1 osd=61C gpio=0x61`（`:1`）、`[STAT] … frames=4398 playing=1 … osd=1`（`:2`） | 卡 A1 |
-| L03 | `board/uart_script_capture.txt` | 2026-10-04 04:49 | 同上（L01 `:63` 点名这份是 105 条电池的原始捕获） | 364 | `cc3c165a` | 8 行 `[TEMP]`、3 行 `[STAT]`（`grep -c` 现算） | 卡 A1 / 卡 A4 |
+| L03 | `board/uart_script_capture.txt`（原始捕获，不入库；随包的是 L01 那份控制台） | 2026-10-04 04:49 | 同上（L01 `:63` 点名这份是 105 条电池的原始捕获） | 364 | `cc3c165a` | 8 行 `[TEMP]`、3 行 `[STAT]`（`grep -c` 现算） | 卡 A1 / 卡 A4 |
 | L04 | `build/evidence/r118_board/board_now.txt` | 2026-10-04 04:49 | r118（刷入 04:49:50，`bit_cycle rc=0 board_verify rc=0`） | 3 | `224992be` | `B1 严格名册：B1 pairs_compared=8 losses=0 verdict=GREEN`（`:2`） | 卡 A1 |
 | L05 | `build/evidence/r118_board/gatesb_summary.txt` | 2026-10-04 07:57 | r118 刷板前那一跑 | 5 | `f564224d` | `GATESB rc_done id=identical green=21 red=3`（`:1`）；三条红里含 `顶层台架 tb_v98 … FAIL行=1 … FAIL`（`:2`） | 卡 A1 + 卡 C1 |
 

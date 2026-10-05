@@ -113,19 +113,52 @@ const C3_HASFILE = /\.[A-Za-z][A-Za-z0-9]{1,6}$/;
 const C3_RUNTIME = /(\.log|\.dcp|impl_1\/|\.runs\/|runme|vivado_system\/|__pycache__\/)/;
 // 过程台账（report/log/）里的引用是"当时那一步看到的文件名"，改名轮之后必然对不上；
 // 导出器的死链自检也按 #217 的同一条口径排除这一层，这里保持一致并把豁免数打出来（不是静默跳过）。
+// 第三支豁免（2026-10-05）：**同一行自带"这件东西故意不入库/不随包"的声明** ⇒ 只报数不判红。
+// 词表不自己另立一份：从 `src/host/doc_currency_check.mjs` 的 `NOSHIP_MARK` 现读；读不到就
+// 让 C3 整项 NOT_MEASURED（fail-closed）。两把尺子各写一套话术的后果本轮实测到了：
+// 同一批 7 条指路（`board/uart_script_capture.txt` 那族）一边放行一边判红（详见 AUDIT §24）。
+let C3_NOSHIP = null;
+try {
+    const src = fs.readFileSync(new URL('../../src/host/doc_currency_check.mjs', import.meta.url), 'utf8');
+    const mm = src.match(/const NOSHIP_MARK = \[([^\]]+)\]/);
+    // 逐词按"单引号包起来"取，别按逗号切再剥引号 —— 词里有反引号与空格（`已被 \`.gitignore\` 挡住`），
+    // 按逗号切会把带反引号的那一条留成脏串，于是同行声明明明在词表里却永不命中（第一版就栽在这里）。
+    if (mm) C3_NOSHIP = [...mm[1].matchAll(/'([^']*)'/g)].map(x => x[1]).filter(Boolean);
+} catch { C3_NOSHIP = null; }
+const c3Ship = (line) => Array.isArray(C3_NOSHIP) && C3_NOSHIP.some(k => line.includes(k));
+
 function c3Judge(t, relFile, has) {
-  let total = 0, dead = [], skipFrag = 0, skipRun = 0, skipLedger = 0;
-  const re = new RegExp(C3_RE.source, 'g');
-  let m2;
-  while ((m2 = re.exec(t))) {
-    const c = m2[1].replace(/[.。，;)]+$/, '');
-    if (/[*\[\]]/.test(c) || /rNN|<|>|\bdemo\b/.test(c)) continue;
-    if (!C3_HASFILE.test(c) && !c.endsWith('/')) { skipFrag++; continue; }
-    if (C3_RUNTIME.test(c)) { skipRun++; continue; }
-    if (/^report\/log\//.test(relFile)) { skipLedger++; continue; }
-    total++; if (!has(c)) dead.push(`${relFile} → ${c}`);
+  let total = 0, dead = [], skipFrag = 0, skipRun = 0, skipLedger = 0, skipShip = 0, skipFence = 0;
+  const reSrc = new RegExp(C3_RE.source, 'g');
+  let inFence = false;
+  for (const line of String(t).split(/\r?\n/)) {
+    // 围栏里是**工具原文回显**（`RESULT PASS uart_cmd_check (… 捕获 board/uart_script_capture.txt)` 这一类）。
+    // 作者不能往别人打印的那一行里塞声明，改抄件＝伪造记录 ⇒ 与 doc_currency 的 D4c 同一口径：
+    // 只报数不判红，条数打出来。对照 CTRL M 钉住"同一句写在围栏外照旧必须红"。
+    if (/^\s*(?:`{3,}|~{3,})/.test(line)) { inFence = !inFence; continue; }
+    if (inFence) {
+      const re2 = new RegExp(C3_RE.source, 'g'); let mm;
+      while ((mm = re2.exec(line))) {
+        const c = mm[1].replace(/[.。，;)]+$/, '');
+        if (/[*\[\]]/.test(c) || /rNN|<|>|\bdemo\b/.test(c)) continue;
+        if (!C3_HASFILE.test(c) && !c.endsWith('/')) continue;
+        if (C3_RUNTIME.test(c)) continue;
+        if (!has(c)) skipFence++;
+      }
+      continue;
+    }
+    reSrc.lastIndex = 0; let m2;
+    while ((m2 = reSrc.exec(line))) {
+      const c = m2[1].replace(/[.。，;)]+$/, '');
+      if (/[*\[\]]/.test(c) || /rNN|<|>|\bdemo\b/.test(c)) continue;
+      if (!C3_HASFILE.test(c) && !c.endsWith('/')) { skipFrag++; continue; }
+      if (C3_RUNTIME.test(c)) { skipRun++; continue; }
+      if (/^report\/log\//.test(relFile)) { skipLedger++; continue; }
+      if (c3Ship(line)) { skipShip++; continue; }
+      total++; if (!has(c)) dead.push(`${relFile} → ${c}`);
+    }
   }
-  return { total, dead, skipFrag, skipRun, skipLedger };
+  return { total, dead, skipFrag, skipRun, skipLedger, skipShip, skipFence };
 }
 function selftestC2() {
   const has = f => f === 'build/x.rpt';
@@ -152,18 +185,40 @@ function selftestC2() {
     ['G 行文碎片不算路径', '见 board/README 那一节', 'docs/x.md', { total: 0, dead: 0, skipFrag: 1 }],
     ['H 真缺的文件必须红', '对照 docs/gone.md 与 docs/real.md', 'docs/x.md', { total: 2, dead: 1, skipFrag: 0 }],
     ['I 运行期产物走豁免', '日志在 sim/a.log 里', 'docs/x.md', { total: 0, dead: 0, skipRun: 1 }],
-    ['J 台账只走台账', '当时读的是 docs/gone.md', 'report/log/issues.md', { total: 0, dead: 0, skipLedger: 1 }]
+    ['J 台账只走台账', '当时读的是 docs/gone.md', 'report/log/issues.md', { total: 0, dead: 0, skipLedger: 1 }],
+    // 2026-10-05 新增两支豁免的"能红/能绿"对：少任何一支，这条降级就成了"把句子塞进不随包三个字即可放行"的后门
+    ['K 同行声明不随包 ⇒ 只报数', '捕获件 board/uart_script_capture.txt 是本机重写的那一份（不入库）', 'docs/x.md', { total: 0, dead: 0, skipShip: 1 }],
+    ['L 同一句没写声明 ⇒ 必须红', '捕获件 board/uart_script_capture.txt 的读数见下', 'docs/x.md', { total: 1, dead: 1, skipShip: 0, skipFence: 0 }],
+    ['M 围栏内原文回显只报数（同一句写在围栏外照旧红，见 L 例）',
+      ['说明：', String.fromCharCode(96).repeat(3), 'RESULT PASS (捕获 board/uart_script_capture.txt)', String.fromCharCode(96).repeat(3)].join('\n'),
+      'docs/x.md', { total: 0, dead: 0, skipFence: 1 }]
   ];
   let bad3 = 0;
   for (const [name, text, rel, want] of c3cases) {
     const r = c3Judge(text, rel, has3);
-    const got = { total: r.total, dead: r.dead.length, skipFrag: r.skipFrag, skipRun: r.skipRun, skipLedger: r.skipLedger };
+    const got = { total: r.total, dead: r.dead.length, skipFrag: r.skipFrag, skipRun: r.skipRun, skipLedger: r.skipLedger, skipShip: r.skipShip, skipFence: r.skipFence };
     const okk = Object.keys(want).every(k => got[k] === want[k]);
     if (!okk) bad3++;
     console.log(`CTRL ${name} 期望=${JSON.stringify(want)} 实读=${JSON.stringify(got)} ${okk ? '对照成立' : '对照不成立'}`);
   }
-  console.log(`C3 自检：造 ${c3cases.length} 例 不符=${bad3} 判 ${cases.length + c3cases.length} 项 ${bad === 0 && bad3 === 0 ? 'PASS' : 'FAIL'}`);
-  return (bad === 0 && bad3 === 0) ? 0 : 1;
+  // C9 的量纲对照（2026-10-05 随"只数判定列"这次改动一起补）：期望栏里的 FAIL 不许算成本轮失败，
+  // 判定栏里的 FAIL 必须算；判定栏不成词要单独计数，不许被悄悄丢掉。
+  const c9cases = [
+    ['N 期望栏的 FAIL 不算红', '| B3 | `run_one.sh tb_v98_top_seam` | 出处 | 期望 `RESULT … FAIL nfail=1` | 实跑：1 行 FAIL | **PASS** |', { rows: 1, pass: 1, fail: 0, nm: 0, noVerdict: 0 }],
+    ['O 判定栏 FAIL 必须红', '| A11 | `node x.mjs` | 出处 | 期望 rc=0 | 实跑 rc=1 | **FAIL** |', { rows: 1, pass: 0, fail: 1, nm: 0, noVerdict: 0 }],
+    ['P 判定栏 NOT_MEASURED 记未测', '| C2 | `board_verify` | 出处 | 期望 | 没跑 | NOT_MEASURED |', { rows: 1, pass: 0, fail: 0, nm: 1, noVerdict: 0 }],
+    ['Q 判定栏不成词单独计（表形漂了要看得见）', '| S1 | `x` | 出处 | 期望 | 实跑 | 见下一节 |', { rows: 1, pass: 0, fail: 0, nm: 0, noVerdict: 1 }],
+    ['R 登记行 R* 与表头不进射程', '| R16 | 内部计数不自洽 | 说明 | 备注 |\n| 集合 | 条数 | PASS | FAIL | NOT_MEASURED |', { rows: 0, pass: 0, fail: 0, nm: 0, noVerdict: 0 }]
+  ];
+  let bad4 = 0;
+  for (const [name, text, want] of c9cases) {
+    const g4 = c9Judge(text);
+    const okk4 = Object.keys(want).every(k => g4[k] === want[k]);
+    if (!okk4) bad4++;
+    console.log(`CTRL ${name} 期望=${JSON.stringify(want)} 实读=${JSON.stringify(g4)} ${okk4 ? '对照成立' : '对照不成立'}`);
+  }
+  console.log(`C3 自检：造 ${c3cases.length} 例 不符=${bad3} C9 自检：造 ${c9cases.length} 例 不符=${bad4} 判 ${cases.length + c3cases.length + c9cases.length} 项 ${bad === 0 && bad3 === 0 && bad4 === 0 ? 'PASS' : 'FAIL'}`);
+  return (bad === 0 && bad3 === 0 && bad4 === 0) ? 0 : 1;
 }
 if (process.argv.includes('--self')) { process.exit(selftestC2()); }
 
@@ -180,15 +235,22 @@ if (process.argv.includes('--self')) { process.exit(selftestC2()); }
 // C3 路径存活：文档里写的相对路径必须存在（判据定义与对照例在文件上半部，与 --self 共用）
 {
   const files = mdFiles();
-  const agg = { total: 0, dead: [], skipFrag: 0, skipRun: 0, skipLedger: 0 };
+  const agg = { total: 0, dead: [], skipFrag: 0, skipRun: 0, skipLedger: 0, skipShip: 0, skipFence: 0 };
   for (const f of files) {
     const r = c3Judge(read(f) || '', f, exists);
     agg.total += r.total; agg.dead.push(...r.dead);
     agg.skipFrag += r.skipFrag; agg.skipRun += r.skipRun; agg.skipLedger += r.skipLedger;
+    agg.skipShip += r.skipShip; agg.skipFence += r.skipFence;
   }
   if (LIST) agg.dead.forEach(d => console.log('DEAD ' + d));   // --list 只把明细打全，判定与分母不变
-  row('C3', '文档内路径存活', `扫=${files.length} 份 检查路径引用=${agg.total} 死引用=${agg.dead.length}${agg.dead.length ? ' 例:' + agg.dead.slice(0, 3).join(' | ') : ''} 豁免=碎片${agg.skipFrag}/运行期${agg.skipRun}/台账${agg.skipLedger}`,
-      agg.total > 0 && agg.dead.length === 0 ? 'PASS' : agg.dead.length ? 'FAIL' : 'NOT_MEASURED');
+  // 词表读不到 ⇒ 这一项**没判成**（不许把它念成"干净"，也不许念成"红"）
+  if (!Array.isArray(C3_NOSHIP) || C3_NOSHIP.length === 0) {
+    row('C3', '文档内路径存活', `扫=${files.length} 份 词表=读不到（doc_currency 的 NOSHIP_MARK 没解析出来）⇒ 豁免一支无法生效，本项不判`,
+        'NOT_MEASURED');
+  } else {
+    row('C3', '文档内路径存活', `扫=${files.length} 份 检查路径引用=${agg.total} 死引用=${agg.dead.length}${agg.dead.length ? ' 例:' + agg.dead.slice(0, 3).join(' | ') : ''} 豁免=碎片${agg.skipFrag}/运行期${agg.skipRun}/台账${agg.skipLedger}/同行声明${agg.skipShip}/围栏回显${agg.skipFence}（词表 ${C3_NOSHIP.length} 词，与 doc_currency 同一套）`,
+        agg.total > 0 && agg.dead.length === 0 ? 'PASS' : agg.dead.length ? 'FAIL' : 'NOT_MEASURED');
+  }
 }
 // C4 命名合规（调用技能包 G1 的等价逻辑，但范围是全仓跟踪文件）
 {
@@ -267,14 +329,34 @@ if (process.argv.includes('--self')) { process.exit(selftestC2()); }
     rows < 0 ? 'NOT_MEASURED' : (rows > 0 && missingCls.length === 0 ? 'PASS' : 'FAIL'));
 }
 // C9 复现演练
+// 2026-10-05 改量纲：原来数的是**整篇文本里 ` PASS` / `FAIL` / `NOT_MEASURED` 出现次数**，
+// 于是"期望输出那一栏写着 `RESULT tb_v98_top_seam FAIL nfail=1`"这种**照抄的期望**也被算成一条红。
+// 这份清单里那条是公开保留的已知缺陷（C5c），把它念成本轮的复现失败既是假话，也让这一项
+// 永远绿不了——除非把期望值改掉，而那正是"改文档迁就尺子"。现在只读**每行的判定列**（末列）。
+function c9Judge(text) {
+  const out = { pass: 0, fail: 0, nm: 0, noVerdict: 0, rows: 0 };
+  for (const line of String(text).split(/\r?\n/)) {
+    if (!/^\s*\|/.test(line)) continue;
+    const cells = line.split('|').map(s => s.trim()).filter(s => s.length);
+    if (cells.length < 2) continue;
+    if (!/^[SABCM]\d+[a-z]?$/.test(cells[0])) continue;         // 只数演练行；R*（不一致登记）与表头不进射程
+    out.rows++;
+    const v = cells[cells.length - 1];
+    if (/NOT_MEASURED/.test(v)) out.nm++;
+    else if (/FAIL/.test(v)) out.fail++;
+    else if (/PASS/.test(v)) out.pass++;
+    else out.noVerdict++;
+  }
+  return out;
+}
 {
   const rc = read('report/repro-check.md');
   if (rc === null) row('C9', 'A/B/C 路径复现演练', '缺 report/repro-check.md（P12）', 'NOT_MEASURED');
   else {
-    const nm = (rc.match(/NOT_MEASURED/g) || []).length, pass = (rc.match(/ PASS/g) || []).length, fail = (rc.match(/\bFAIL\b/g) || []).length;
-    // 审计指出的洞：原来只数 " PASS" 出现次数，满篇 FAIL 只要有一处 " PASS" 就绿。
-    // 现在：有 FAIL 就判不了绿；一条 PASS 都没有 ⇒ NOT_MEASURED。
-    row('C9', 'A/B/C 路径复现演练', `PASS=${pass} FAIL=${fail} 未测=${nm}`, fail > 0 ? 'FAIL' : (pass > 0 ? 'PASS' : 'NOT_MEASURED'));
+    const c9 = c9Judge(rc);
+    row('C9', 'A/B/C 路径复现演练',
+        `判定列在内=${c9.rows} 行 PASS=${c9.pass} FAIL=${c9.fail} 未测=${c9.nm} 判定列不成词=${c9.noVerdict}`,
+        c9.rows < 40 ? 'NOT_MEASURED' : (c9.fail > 0 ? 'FAIL' : (c9.pass > 0 ? 'PASS' : 'NOT_MEASURED')));
   }
 }
 // C10 时间线自洽：本轮读数件不应早于其声称的来源件（只查 r119 一族，其余 NOT_MEASURED）

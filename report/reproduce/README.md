@@ -187,7 +187,7 @@ bash build/board_verify.sh --self        # 只跑判据自己的五条对照（�
 
 **跑完应看到**（件 `build/evidence/r118_board/board_verify_console.txt` 原文）：
 `RESULT PASS geom_check（ok=10 fail=0）`、
-`RESULT PASS uart_cmd_check  (105 条命令, 97.9 s, 捕获 board/uart_script_capture.txt)`、
+`RESULT PASS uart_cmd_check  (105 条命令, 97.9 s, 捕获 board/uart_script_capture.txt)`（那份原始捕获不入库，随包的是 L01 控制台里同名那一行），
 `[SERIAL] 落点=build/evidence/r118_serial_raw.txt 行数=4 [TEMP]=2 判定=绿（地板 2）`、
 `ok   V9-6 温度格三方对账：4 条 [TEMP] 的 degC↔osd↔gpio 全部自洽`，末行
 `RESULT board_verify PASS（判红的步骤：0）`；红那一支是

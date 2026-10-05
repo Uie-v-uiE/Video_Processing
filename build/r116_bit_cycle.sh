@@ -52,8 +52,8 @@ const fs=require("fs");
 for (const t of ["a","b"]) {
   const f=process.argv[1]+"_"+t+".json";
   try { const j=JSON.parse(fs.readFileSync(f,"utf8")); const ss=j.src_state||{};
-    const g=k=>{const m=JSON.stringify(j).match(new RegExp("\""+k+"\"\\\\s*:\\\\s*([^,}]+)"));return m?m[1]:"?";};
-    console.log(`  ${t}: eth_live=${ss.eth_live} owner_eth=${ss.owner_eth} drop_words=${j.drop_words} pkt_err=${g("pkt_err")} frames_bad=${g("frames_bad")} drop_seen=${g("drop_seen")}`);
+    const v=(o,k)=>(o&&Object.prototype.hasOwnProperty.call(o,k))?String(o[k]):"NA";
+    console.log(`  ${t}: eth_live=${ss.eth_live} owner_eth=${ss.owner_eth} drop_words=${v(j,"drop_words")} pkt_err=${v(j,"pkt_err")} frames_bad=${v(j,"frames_bad")} drop_seen=${v(j.flags_bits,"drop_seen")} cdc_episodes=${v(j,"cdc_episodes")} stall_ms=${v(j,"stall_ms")} lat=${JSON.stringify(j.lat||{})}`);
   } catch(e){ console.log("  "+t+" NO_JSON "+e.message.slice(0,50)); }
 }' "$D/health_${LBL}" 2>&1 | tee -a "$F"
 say "done"

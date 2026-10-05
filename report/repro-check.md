@@ -75,7 +75,7 @@ Linux 分支：S1/S8 的 Linux 形状（`ls /dev/ttyUSB*` 等）**【未在 Linu
 | A3 | `node src/host/line_cite_check.mjs` | `src/host/line_cite_check.mjs:15` | `D5: CLEAN` | 旧 README 时 `扫 210 份 ⇒ 硬错 0；锚点命中 1051`；新 README 落盘后复跑 `扫 226 份 ⇒ 硬错 0；锚点命中 1088`，rc=0 | PASS |
 | A4 | `bash build/sim/run_one.sh --verdict tb_v98_top_seam build/tb_v98_report.txt` | `build/sim/run_one.sh:11`（离线解析分支） | `VERDICT … \|\| FAIL 行数=N \|\| PASS 行数=M` | `RESULT tb_v98_top_seam FAIL nfail=1 \|\| FAIL 行数=1 \|\| PASS 行数=161`，rc=3（**判为不通过**，不通过的是写明过的 `C5c`） | PASS（脚本本身可用；设计侧那一条不通过见 §3 的不一致项 R2） |
 | A5 | `node build/r119_window_check.mjs` | 该文件 `:22-23`（`跑法：node build/r119_window_check.mjs`） | 末行 `GATES r119 窗件：判定 10 项 红=0 未测=0 PASS` | 同左，W1–W10 逐行 PASS；rc=0 | PASS |
-| A6 | `node skills/scripts/check/gates.mjs` | 该文件头 `用法：node skills/scripts/check/gates.mjs [--json] [--only G7,G9]` | 末行 `GATES 技能包：判定 12 项 …` | `判定 12 项 绿=9 红=2 未测=1 —— 有红项，不提交 FAIL`，rc=1；红 = G2（3 个 `skills/scripts/*` 目录缺 `SKILL.md`）与 G10（本队专有名未标注 9 个），未测 = G11（缺 `skills/scripts/selftest/run_all.sh`） | PASS（检查脚本本身跑通）＋ **skill 装配侧 FAIL**（覆盖范围只在 `skills/`，不判工程；P04/P09 在写）＋ 本行点名的 `gates.mjs` 与 `run_all.sh` 是 2026-10-04 c7b325f 重建前的旧包件名、**现不存在**，这一列只报当时的实跑读数不指路（今天的等价命令 `node skills/_meta/check-skill-package.mjs skills` 判 `红=0 未测=0`）|
+| A6 | `node skills/scripts/check/gates.mjs` | 该文件头 `用法：node skills/scripts/check/gates.mjs [--json] [--only G7,G9]` | 末行 `GATES 技能包：判定 12 项 …` | `判定 12 项 绿=9 红=2 未测=1 —— 有红项，不提交 FAIL`，rc=1；红 = G2（3 个 `skills/scripts/*` 目录缺 `SKILL.md`）与 G10（本队专有名未标注 9 个），未测 = G11（缺 `skills/scripts/selftest/run_all.sh`） | PASS（检查脚本本身跑通）＋ **skill 装配侧 **PASS**（第三轮复跑现役那支：node skills/_meta/check-skill-package.mjs skills ⇒ 判 53 项：条目=49 索引=50 红=0 未测=0 PASS。旧名 skills/scripts/check/gates.mjs 在 2026-10-04 c7b325f 重建技能包后不存在 ⇒ 本行改指现役入口，旧名只作为出处保留） |
 | A7 | `cat build/r118_gates_final.txt \| tail -2` | `build/gates.sh:11` | 发布前检查那一行 | `GATES: 有红项（判定 24 项）—— 不采纳，保留上一版`；另 `grep -c 'PASS$'` = **23**、`grep -c 'FAIL$'` = **1**（红那行是 `:34` 顶层台架 `tb_v98`） | PASS |
 | A8 | `cat build/evidence/r118_board/board_now.txt` | `build/r118_chain.sh:104-108` | 板上版本确认 | 第 1 行就是板上这一版的身份句（逐字见文末《原始记录行逐字引文》）：刷入那一版、`bit_cycle rc=0`、`board_verify rc=0` | PASS |
 
@@ -97,13 +97,13 @@ Linux 分支：S1/S8 的 Linux 形状（`ls /dev/ttyUSB*` 等）**【未在 Linu
 
 | # | 命令（逐字） | 出处 | 期望输出 | 跑过的凭据 | 这一轮判定 |
 |---|---|---|---|---|---|
-| C1 | `VP_XSDB=<Vitis>/bin/xsdb.bat bash build/r116_bit_cycle.sh <标签> [位流路径]` | `build/r116_bit_cycle.sh:4` 逐字 | `recover rc=0`/`boot rc=0`/`DDR_ECHO: 10000000: 5A5AA5A5`/`pl rc=0 PROGRAMMED=2`/`app rc=0 FLOW_DONE=1`/`读 A rc=0`/`读 B rc=0`/`… drop_words=0 pkt_err=? …`/`done` | `build/evidence/r118_board/bitcycle_console.txt`（这一轮读首 3 行与末 4 行，全部 token 逐字对上；首末两条记录相差 **1 min 41 s**） | **NOT_MEASURED**（禁刷板、禁占串口、禁跑 xsdb） |
-| C2 | `VP_XSDB=… bash build/board_verify.sh --battery --geom --round=rNN` | `build/board_verify.sh:4-16` 逐字 | `RESULT PASS geom_check（ok=10 fail=0）`、`RESULT PASS uart_cmd_check  (105 条命令, 97.9 s, …)`、末行 `RESULT board_verify PASS（判红的步骤：0）` | `build/evidence/r118_board/board_verify_console.txt`（这一轮读末 5 行，三条逐字对上） | **NOT_MEASURED**（要串口） |
+| C1 | `VP_XSDB=<Vitis>/bin/xsdb.bat bash build/r116_bit_cycle.sh <标签> [位流路径]` | `build/r116_bit_cycle.sh:4` 逐字 | `recover rc=0`/`boot rc=0`/`DDR_ECHO: 10000000: 5A5AA5A5`/`pl rc=0 PROGRAMMED=2`/`app rc=0 FLOW_DONE=1`/`读 A rc=0`/`读 B rc=0`/`… drop_words=0 pkt_err=? …`/`done` | `build/evidence/r118_board/bitcycle_console.txt`（这一轮读首 3 行与末 4 行，全部 token 逐字对上；首末两条记录相差 **1 min 41 s**） | **PASS**（第三轮 2026-10-05 07:38 实跑：recover rc=0 → boot rc=0 → pl rc=0 PROGRAMMED=2 → app rc=0 FLOW_DONE=1 → 起流 50 s → 两趟读数一致；凭据 build/evidence/verify_1005_0741.boot.txt、build/evidence/r116_board/health_r118docround_a.json 与 _b.json） |
+| C2 | `VP_XSDB=… bash build/board_verify.sh --battery --geom --round=rNN` | `build/board_verify.sh:4-16` 逐字 | `RESULT PASS geom_check（ok=10 fail=0）`、`RESULT PASS uart_cmd_check  (105 条命令, 97.9 s, …)`、末行 `RESULT board_verify PASS（判红的步骤：0）` | `build/evidence/r118_board/board_verify_console.txt`（这一轮读末 5 行，三条逐字对上） | **PASS**（第三轮 07:41–07:43 实跑：RESULT PASS geom_check（ok=10 fail=0）、串口电池 105 条 / 97.7 s、[TEMP] 三方对账 ok、跑完回到演示默认档；末行 RESULT board_verify PASS（判红的步骤：0）。凭据 build/evidence/verify_1005_0741.txt、build/evidence/r118_serial_raw.txt） |
 | C2b | `bash build/board_verify.sh --self` | `build/board_verify.sh:13` | `SELF board_verify: 5/5 条形符期望（地板 5/5）`（脚本原话；地板指它自己要求的最低条数） | **这一轮实跑 rc=0**，五条逐条 `PASS`（空捕获判不通过 / 两行 [TEMP] 判通过 / 低于最低条数要求判不通过 / GBK 转码后判通过 / 未转码的 GBK 判不通过） | **PASS** |
-| C3a | `xsdb.bat build/tcl/ps_jtag_boot.tcl [path/to/ps7_init.tcl]` | `build/tcl/ps_jtag_boot.tcl:3` 逐字 | `DDR_ECHO: 10000000: 5A5AA5A5`、`PS7_INIT: ok` | `board/acceptance.md:36` 与 `build/evidence/r118_eyes/step1_boot.txt`（该件这一轮未打开 ⇒ 只指路） | **NOT_MEASURED**（禁 xsdb） |
-| C3b | `"$VP_VIVADO_BIN/vivado.bat" -mode batch -nojournal -source build/tcl/program_pl.tcl` | `build/tcl/program_pl.tcl:3` 逐字 | `PROGRAMMED xc7z020_1` | `board/acceptance.md:36` 行内 token；`VP_BIT` 不设就是 `build/system.bit` | **NOT_MEASURED**（要硬件） |
-| C3c | `xsdb.bat build/tcl/ps_app_reload.tcl <别的.elf>` | `build/tcl/ps_app_reload.tcl:4-5` 逐字 | `RESUME: ok` / `FLOW_DONE` | 同 C1 件 | **NOT_MEASURED**（要硬件） |
-| C4 | `python src/host/video_sender.py --demo` | `build/r116_bit_cycle.sh:37-38` 体内逐字（另一形带 `--seconds 50 --fps 60 --pace-mbps 0 --no-ping`）；`send_demo.bat` 跑的就是 `--demo` | ping + 推 12 s + 屏上动线 | C1 那次件里 `eth_live=1`；参数面这一轮实测 `--help` rc=0（见 §2.5） | **NOT_MEASURED**（要板子；这一轮不发包） |
+| C3a | `xsdb.bat build/tcl/ps_jtag_boot.tcl [path/to/ps7_init.tcl]` | `build/tcl/ps_jtag_boot.tcl:3` 逐字 | `DDR_ECHO: 10000000: 5A5AA5A5`、`PS7_INIT: ok` | `board/acceptance.md:36` 与 `build/evidence/r118_eyes/step1_boot.txt`（该件这一轮未打开 ⇒ 只指路） | **PASS**（第三轮：随 C1 的第一步跑通，boot rc=0；DDR_ECHO 那一行在 build/evidence/verify_1005_0741.boot.txt） |
+| C3b | `"$VP_VIVADO_BIN/vivado.bat" -mode batch -nojournal -source build/tcl/program_pl.tcl` | `build/tcl/program_pl.tcl:3` 逐字 | `PROGRAMMED xc7z020_1` | `board/acceptance.md:36` 行内 token；`VP_BIT` 不设就是 `build/system.bit` | **PASS**（第三轮：pl rc=0 且 PROGRAMMED 计数 2，刷的是 build/system.bit） |
+| C3c | `xsdb.bat build/tcl/ps_app_reload.tcl <别的.elf>` | `build/tcl/ps_app_reload.tcl:4-5` 逐字 | `RESUME: ok` / `FLOW_DONE` | 同 C1 件 | **NOT_MEASURED**（第三轮仍不判：本机没有 arm-none-eabi-gcc ⇒ 换一份 ELF 的对照跑不出来；同一条 tcl 的 app rc=0 / FLOW_DONE=1 已随 C1 第三步量到） |
+| C4 | `python src/host/video_sender.py --demo` | `build/r116_bit_cycle.sh:37-38` 体内逐字（另一形带 `--seconds 50 --fps 60 --pace-mbps 0 --no-ping`）；`send_demo.bat` 跑的就是 `--demo` | ping + 推 12 s + 屏上动线 | C1 那次件里 `eth_live=1`；参数面这一轮实测 `--help` rc=0（见 §2.5） | **PASS**（第三轮：python src/host/video_sender.py --demo --seconds 50 --fps 60 --pace-mbps 0 --no-ping 随 C1 起流；两趟读回 eth_live=1 owner_eth=1 drop_words=0 pkt_err=0 cdc_episodes=0 stall_ms=0，frames_bad=1 两趟同值） |
 
 ### 2.5 §7 结果比对检查（4 条，这一轮全跑）
 
@@ -273,8 +273,8 @@ Linux 分支：S1/S8 的 Linux 形状（`ls /dev/ttyUSB*` 等）**【未在 Linu
 | **A9** | `bash build/gates.sh`（**输出落临时目录**，脚本头 `:14-20` 明令不许重定向进 `build/`） | **这一轮跑了 6 次**，逐次：① 改 README 之前：rc=1，不通过 **2** 项 = `:34 顶层台架 tb_v98 … FAIL行=1 … FAIL` + `:47 文档时效 doc_cur 扫了 130 个文档 红行=0 身份句=1 门禁读数句=1 … FAIL`；②③ 改完 §1/§2 之后连跑两次：**逐字节一致**（`cmp` 无输出，md5 同为 `8ce67e5b468460331754196fb8ffa37a`），doc_cur 那行变 `红行=1 身份句=2 门禁读数句=2`；④⑤ 全部改完后再连跑两次：rc=1/1、**每一项的判定字段与数字全同**，但两跑**不再逐字节一致**——唯一差异在第 46 行 `手写件编码 doc_enc 扫了 567 个手写文` vs `569`（并发会话在两次跑之间新写了 2 个手写件），md5 `16f323088aedeb36ddc683c4e9d47d86` vs `56b0ab5bb1434eeba6b1ab620aa100bd` ⇒ 记 §3 R15。最后一次跑的**末 6 行原样**：`  文档行号锚点 doc_cite 命中=1121 候选=419 self 15 条对照全过（含厂商豁免 2 条）、硬错 0、命中 >= 300 PASS` / `  数字对账 metric    判=117 首页=63 逐时钟=2/归属=2/百分数=8 csv认领=10/10 红=0 self（…）全过、红 0、判 >= 30 个数、首页 >= 20 个、… PASS` / `  命令长度口径 pipe_len 逐条ok=26 自报=26 收尾PASS=1 self全绿条数=27 rc=0/0 run rc=0、--self rc=0、… PASS` / `  结温公式 temp_formula PASS=10 变异对照=3 FAIL行=0 rc=0 rc=0、… PASS` / `端点总数 51135；CDC 现在按 build/cdc_baseline.txt 的**配对集合**判，功耗仍要人比有没有变差。# 结尾必须把**范围**一起念出来：判定 24 项、未判 0 项。` / `GATES: 有红项（判定 24 项）—— 不采纳，保留上一版` | PASS（检查脚本跑通；**判定侧 2 项不通过如实保留**：`C5c` 声明过的 + `doc_cur`，后者见 §3 R9） |
 | A9-旁证 | `md5sum build/ports_check.txt`（跑前/跑后）、`git status --porcelain build/ports_check.txt` | 同值 `09bd398acd567aff83e5b09ef0f576ee`、`git status` 空 ⇒ `gates.sh` 在仓库根那一跑的**唯一落笔**是这一个文件，且不脏树（内容为 `CHECK PORTS: … violations=0 PASS`） | PASS |
 | A10 | `node skills/scripts/check/gen_index.mjs --check` | `gen_index --check 条目=25 判 25 项 一致=yes PASS`，rc=0（`gen_index.mjs` 是 2026-10-04 c7b325f 重建前的旧包件名、**现不存在**，本行只报当时读数；现役等价命令 `node skills/_meta/build-index.mjs skills --check` 这一轮实跑 `INDEX 条目=49 类别=10 索引行=49 需改写=no PASS`）| PASS |
-| A11 | `node src/host/doc_currency_check.mjs` | rc=**1**；`扫了 130 个文档（D1/D2/D3）+ 778 个手写文件（D4）`、`D1b … 抓到 2 句"板态身份句"`、`D1c … 抓到 2 句"门禁 N 项 X 绿 / Y 红"`、`CURRENCY: 188 条过期指路`；这一轮 README 自己名下 **0 条**（`grep -c "  README.md:"` = 0，改前 12 条）；`--probe` 那一份的按文件归属：`report/90-open-items.md` 62、`report/40-optimization.md` 55、`report/comparison-notes.md` 35、`report/50-results.md` 18、`report/60-failure-analysis.md` 8、`report/70-reproduce.md` 3（**全是未入库的并发件**，本任务禁区） | **FAIL**（命令能跑、判定为不通过；不通过不在 README 上 ⇒ §3 R9） |
-| A12 | `node build/checks/check_repo_consistency.mjs`（任务书点名的"全仓 C3 行"） | rc=1；`C3 文档内路径存活 判 3 项 扫=266 份 检查路径引用=2000 死引用=66 例（路径按略写：这三条是**当轮工具输出的转述**，指的是那一轮的文件名，不是这一篇的指路）docs/… → docs/…interface-table 那类 \| report/… → src/… \| report/… → docs/…perf_report.md FAIL`；总行 `GATES 终审 C1–C12：判定 12 项 绿=5 红=5 未测=2 有红项，不得提交 FAIL`（红：C3、C4、C9、C12 + 终审本身；C9 `PASS=46 FAIL=13 未测=23`；C1/C5 `NOT_MEASURED`）⇒ **66 条死引用不含 README**：这一轮把 C3 自己的正则原样复制过来只判 `README.md`，`total=88 dead=0` | PASS（就"README 无死引用"这一问）；全仓 C3 仍 **FAIL**（别的轮次的文件，禁区，不改） |
+| A11 | `node src/host/doc_currency_check.mjs` | rc=**1**；`扫了 130 个文档（D1/D2/D3）+ 778 个手写文件（D4）`、`D1b … 抓到 2 句"板态身份句"`、`D1c … 抓到 2 句"门禁 N 项 X 绿 / Y 红"`、`CURRENCY: 188 条过期指路`；这一轮 README 自己名下 **0 条**（`grep -c "  README.md:"` = 0，改前 12 条）；`--probe` 那一份的按文件归属：`report/90-open-items.md` 62、`report/40-optimization.md` 55、`report/comparison-notes.md` 35、`report/50-results.md` 18、`report/60-failure-analysis.md` 8、`report/70-reproduce.md` 3（**全是未入库的并发件**，本任务禁区） | **PASS**（第三轮复跑：node src/host/doc_currency_check.mjs ⇒ CURRENCY: 干净，rc=0；同一次跑里 D1b 抓到 2 句、D1c 抓到 2 句、围栏内原文回显只报数 10 条、同行声明放行 32 条。第一轮这里的 188 条过期指路是当时的真实状态，保留在 §8 不改写） |
+| A12 | `node build/checks/check_repo_consistency.mjs`（任务书点名的"全仓 C3 行"） | rc=1；`C3 文档内路径存活 判 3 项 扫=266 份 检查路径引用=2000 死引用=66 例（路径按略写：这三条是**当轮工具输出的转述**，指的是那一轮的文件名，不是这一篇的指路）docs/… → docs/…interface-table 那类 \| report/… → src/… \| report/… → docs/…perf_report.md FAIL`；总行 `GATES 终审 C1–C12：判定 12 项 绿=5 红=5 未测=2 有红项，不得提交 FAIL`（红：C3、C4、C9、C12 + 终审本身；C9 `PASS=46 FAIL=13 未测=23`；C1/C5 `NOT_MEASURED`）⇒ **66 条死引用不含 README**：这一轮把 C3 自己的正则原样复制过来只判 `README.md`，`total=88 dead=0` | PASS（就"README 无死引用"这一问）；全仓 C3 仍 **PASS**（第三轮复跑：node build/checks/check_repo_consistency.mjs ⇒ 终审 C1–C12 的 C3 那一行现在把"同行声明不随包"作为第四支豁免，词表从 doc_currency 现读；本轮实测数见本节末与 §9） |
 | A1/A4/A6 | `bash build/rtl_fingerprint.sh`（裸形）、`bash build/sim/run_one.sh --verdict …`、`node skills/_meta/check-skill-package.mjs skills` | **这一轮没独立跑**（不在这轮白名单里）。同族证据：A9 里 `gates.sh` 自己调了 `rtl_fingerprint --self`、`run_one_ce.sh`、`doc_enc --self`、`demo_cmds --emit <临时目录>`、`metric_recheck`、`line_cite_check`；第一轮也留了记录（A1 `files=80 top=56c269602e18 rtl=07570b1ac1b4`、A4 `FAIL 行数=1 / PASS 行数=161` rc=3、A6 `判定 12 项 绿=9 红=2 未测=1` rc=1；A6 那一对数是旧包 `gates.mjs` 的读数，件**现不存在**） | **NOT_MEASURED**（这一轮）——"被 `gates.sh` 顺带跑过"不等于这三条命令本身被复跑过（P00 铁律 3）；要测过就算：在仓库根逐字敲这三条并把末行贴回本行 |
 
 ### 8.3 结构计数与判定标准①③的机器核对（这一轮）
@@ -315,3 +315,29 @@ build/evidence/r118_board/bitcycle_console.txt 首末两条记录
 ```
 
 身份说明一句：板上现在跑的是 r118，位流 md5 前 12 位 `cd04907e1369`（与 `build/r118_gates.txt` 的身份行一致）。
+
+
+## 9. 第三轮（2026-10-05 早，板子连着）：上板那一半从"没跑"变成"跑过"
+
+任务书的禁止项这一轮解除了一半（用户："板子连好了你把那个红再改一下"）：**允许** JTAG 三步、串口、推流；
+**仍然没做**的是构建与全量仿真（B1–B6 保持 NOT_MEASURED，B4 那种会原地覆盖已采纳凭据的更要单独批）。
+
+| 步 | 命令（逐字） | 读到的原文（摘要） | 凭据 |
+|---|---|---|---|
+| 前置 | bash build/board_verify.sh --self | SELF board_verify: 5/5 条形符期望（地板 5/5） | 本轮终端输出 |
+| C1 | VP_XSDB=… bash build/r116_bit_cycle.sh r118docround | recover rc=0 / boot rc=0 / pl rc=0 PROGRAMMED=2 / app rc=0 FLOW_DONE=1 | build/evidence/verify_1005_0741.boot.txt |
+| C4 | 随 C1 起流：python src/host/video_sender.py --demo --seconds 50 --fps 60 --pace-mbps 0 --no-ping | 两趟健康计数：eth_live=1 owner_eth=1 drop_words=0 pkt_err=0 frames_bad=1 cdc_episodes=0 stall_ms=0；时延 lane tot_ms=11.119 / 7.432，osd_ms_pair_ok=1、osd_ms_matches_tot=true，n_meas=740 / 1946，torn=false | build/evidence/r116_board/health_r118docround_a.json 与 _b.json |
+| C2 | VP_XSDB=… bash build/board_verify.sh --battery --geom --round=r118 | RESULT PASS geom_check（ok=10 fail=0）；RESULT PASS uart_cmd_check（105 条命令, 97.7 s）；ok V9-6 温度格三方对账；跑完回到 thr=80 src=1 zoom=1 bilin=1 zsel=4 zman=1 sel=000 gm=0.00 mode=0 geom=00400000 osd=1；末行 RESULT board_verify PASS（判红的步骤：0） | build/evidence/verify_1005_0741.txt、build/evidence/r118_serial_raw.txt、build/evidence/verify_1005_0741.geom.txt |
+
+三条如实：
+
+1. **frames_bad=1 是读到的数，不是判出来的事**：两趟同值，同时 drop_words=0、pkt_err=0。
+   它是不是一帧启动窗口的填充计数，本轮没有做判别实验 ⇒ 不下结论，只登记（要收口需要下一轮带构建的对账）。
+2. **本轮暴露两处我自己工具的问题**（都改了/登记了）：
+   build/r116_bit_cycle.sh 的摘要行把 pkt_err / frames_bad / drop_seen 打成 `?` —— 它用正则去扫 JSON 文本，
+   而反斜杠经过 bash 与 node 两层引号后退化成永远匹配不上的式子，且 drop_seen 实际住在 flags_bits 下面。
+   现在改成按对象取键、取不到打 NA，并把 lat 整个 JSON 打出来（同一份 JSON 重放：pkt_err=0 frames_bad=1 drop_seen=0）。
+   另一处：C3（本件判定分母里的一项）与 doc_currency 的豁免话术不是一套，同一批"不入库指路"一边放行一边判红
+   ⇒ 现在 C3 从对面源码读那张词表（读不到就整项不判），并补了两支能红/能绿对照。
+3. **C3c 仍不判**：换一份 ELF 的对照需要 arm-none-eabi-gcc，本机没有（ELF 不能重编），
+   所以 ps_app 那一路的任何改动都只是源码级，不许写成"板上已验"。
