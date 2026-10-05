@@ -41,6 +41,11 @@ if (!files) {
 }
 if (!files.length) { console.log('RESULT=NOT_MEASURED 没有要比对的文件（工作树干净？）'); process.exit(2); }
 
+function substrCount(hay, needle) {
+  let n = 0, i = 0;
+  while ((i = hay.indexOf(needle, i)) >= 0) { n++; i += needle.length; }
+  return n;
+}
 let judged = 0, lost = 0;
 for (const rel of files) {
   const abs = path.join(root, rel);
