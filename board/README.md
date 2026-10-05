@@ -15,7 +15,7 @@
 | PL 处理画幅 | 512×300（RGB565），输出侧 ×2 展开到 1024×600 上屏 | `src/rtl/top/pl_video_top.v` |
 | 片源 | 千兆 RGMII/UDP、SD 卡（FAT32 簇链自研解析）、PL 自绘测试图卡；仲裁与回退在 PL | `report/architecture.md` |
 | 上板方式 | **只走 JTAG**：先起 PS，再烧 PL，最后重载应用。本工程的任何脚本都不向 QSPI/SPI flash 写入，也不碰板载 EEPROM | 下面第 2 节的三条命令 |
-| 交付二进制 | `build/system.bit`、`build/system.xsa`、`build/ps_app.elf`（认 md5 不认文件名；这三份二进制已被 `.gitignore` 挡住、不入库，随包的是 `board/firmware/system.bit.md` 那三张身份卡） | `board/firmware/system.bit.md`（三张来源卡逐条给 md5 与当场回读命令） |
+| 交付二进制 | `build/system.bit`、`build/system.xsa`、`build/ps_app.elf` —— 这三份**是随仓库入库的**（`git ls-files build/system.bit build/system.xsa build/ps_app.elf` 三条都有输出，`git check-ignore` 不命中）；认 md5 不认文件名，md5 写在本页第 1 节的身份行与 `build/evidence/r118_board/board_now.txt` 开头 | `git ls-files` 与 `build/evidence/r118_board/` |
 
 三个时钟域的余量分开读，混着念会读错（下面这张表按 `build/timing_summary.rpt` 的 Intra Clock Table 逐行抄，
 setup 那一列是各自域内最差值）：
