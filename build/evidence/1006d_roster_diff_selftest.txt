@@ -1,0 +1,12 @@
+SELF control_identical expected=GREEN got=GREEN PASS
+SELF control_other_domain_violates expected=RED got=RED PASS
+SELF control_margin_loss expected=RED got=RED PASS
+SELF control_all_improve expected=GREEN got=GREEN PASS
+SELF control_scope_floor expected=RED got=RED PASS
+SELF control_gain_line_shape got=ROSTERDIFF-GAIN 变好的域: clk_fpga_0/setup:1.135->1.600(相对余量+41.0%) eth_rxc/setup:0.445->0.900(相对余量+102.3%) PASS
+SELF control_prose_allowed expected=GREEN got=GREEN PASS
+SELF control_fanout_parity expected=REFUSE got=REFUSE PASS
+SELF control_clock_inventory expected=REFUSE got=REFUSE PASS
+SELF control_both_nowrite expected=GREEN got=GREEN PASS
+SELF control_a_has_b_empty expected=RED got=RED PASS
+SELF timing_roster_diff 对照 11/11 全过 PASS

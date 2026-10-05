@@ -170,7 +170,7 @@
   且小标题总数等于 HIGH+MEDIUM 两段之和（实测 `no_input_delay=7/5+2`、`no_output_delay=12/6+6`）；
   `I10_names_vs_source` 再要求工具那份 HIGH 名单与我从 RTL+XDC 推出来的那份逐个名字对得上
   （输入侧集合相等；输出侧无幽灵名，我判 BARE 的每个引脚都被点名，差分对的负端按实测口径除外）。
-  读数与 12 条对照一起记在 `build/evidence/1006_d3/io_debt_after_D3.txt`。
+  读数与 12 条对照一起记在 `build/evidence/1006_d3/io_debt_after_d3.txt`。
   这里要更正一句记录时的说法：先前把 `checking no_output_delay (12)` 与 `There are 6 ports …` 判成
   **"两个单位"**，那是读错了——同一个单位（端口/引脚各算一位），**差的是射程**：小标题数 HIGH+MEDIUM 两段，
   明细只给一段。

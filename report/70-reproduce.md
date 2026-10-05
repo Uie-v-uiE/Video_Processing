@@ -200,7 +200,7 @@ bash -n build/gates.sh build/board_verify.sh build/sim/run_one.sh build/sim/mut_
 | `node src/host/doc_currency_check.mjs` | 0 | `CURRENCY: 干净`；`D1b 基准：bit md5=cd04907e1369 → r118_gates.txt`；`D1c 基准：r118_gates.txt 行尾 PASS=22 / FAIL=1 / 判定项数=24` |
 | `node src/host/metric_recheck.mjs` | 0 | `== 数字对账：判 114 个数（首页层 60 个／解析到 10/10 行；红 0）／csv 认领 10/10 行／其余 18 行不点名这三份报告 ==` |
 | `node skills/scripts/check/gates.mjs` | **1** | `GATES 技能包：判定 12 项 绿=9 红=2 未测=1 —— 有红项，不提交 FAIL`；红项 `G2 … 不合=13`、`G10 … 未标注=9`；未测 `G11 … 缺 skills/scripts/selftest/run_all.sh`；`G9 降级标记计数 判 86 项 总309 填入=190 待验证=48 未核实=10 未实测=61`（本节是 §5/§9 那一次实跑的逐字转录（2026-10-05 复核：旧包件仍不存在）：被点的 `gates.mjs` 与 `run_all.sh` 都是 2026-10-04 c7b325f 重建前的旧包件，**现不存在**，只报当时读数不指路；今天复跑等价命令 `node skills/_meta/check-skill-package.mjs skills` 得 `判 53 项：条目=49 索引=50 红=0 未测=0 PASS`）|
-| `python build/check_io_timing_coverage.py build/timing_summary.rpt` | **1** | `IODEBT I3_output_covered bare_out_ports=4 want=0 RED`；`IODEBT-SUMMARY … judged=10 … result=RED`；`--self` 12 条对照全过（读数件 `build/evidence/1006_d3/io_debt_after_D3.txt`） |
+| `python build/check_io_timing_coverage.py build/timing_summary.rpt` | **1** | `IODEBT I3_output_covered bare_out_ports=4 want=0 RED`；`IODEBT-SUMMARY … judged=10 … result=RED`；`--self` 12 条对照全过（读数件 `build/evidence/1006_d3/io_debt_after_d3.txt`） |
 | `python build/check_ports.py --dup` | 0 | `CHECK PORTS: instances=222 modules=80 skipped=0 width_compared=562 violations=0 PASS` |
 | `node build/r119_window_check.mjs --self` | 0 | `对照总结：造 10 条畸形动红 10 条；缺输入 2 条报 NOT_MEASURED 2 条 PASS` |
 | `md5sum build/system.bit`（取前 12 位）| 0 | `cd04907e1369`（与 `build/r118_gates.txt` 身份行一致）|

@@ -23,7 +23,13 @@
 
 `data/metrics.csv` 对同样这四项各有一行，与上表一致：第 8 行「Slice LUT 占用,资源,14154（26.61 %）」、第 9 行「Slice 寄存器占用,资源,
 8188（7.70 %）」、第 10 行「Block RAM Tile 占用,资源,95.5 / 140（68.21 %）」、第 11 行「DSP48 占用,资源,19 / 220（8.64 %）,个,
-…用在缩放/旋转的坐标乘法与 gamma 计算」。
+…这 19 个的逐实例分解」。
+
+第 11 行那句**改写过旧口径**「用在缩放/旋转的坐标乘法与 gamma 计算」：`build/util_hier_probe.rpt:70` 那行
+`u_gamma` 的 `DSP Blocks` 是 **0** —— gamma 那一级是一张 LUTRAM 表查询（同一行 `LUTRAMs` 列是 96），不产生乘法。
+19 的逐实例分解来自同一份件：`u_lerp`(bilin_lerp) 6（`:60`）＋ `u_blur`(proc_box_blur) 1（`:69`）＋
+`u_split_ctrl` 1（`:75`）＋ `u_zfit`(zoom_fit) 3（`:80`）＋ `u_zmap`(zoom_mapper) 8（`:81`）＝ 19，
+与 `build/utilization.rpt` 的总数闭合。旧那句是从早期文档抄过来的，抄的时候没人回到逐实例那份件对过。
 
 ## BRAM 这一格怎么读
 - 95.5 是 **tile** 数，不是 RAM 块数：`utilization.rpt` 第 3 表把每片 RAMB36 计 1、每片 RAMB18 计 0.5，
