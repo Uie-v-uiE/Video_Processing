@@ -52,14 +52,14 @@
 | 1 | `RST_SYSTEM: ok` / `PS7_INIT: ok` / `PS7_POST_CONFIG: ok`，再 `PROGRAMMED xc7z020_1 <- build/system.bit`，收尾 `FLOW_DONE`（只走 JTAG，不写 QSPI）。**第一次跑第一步连不上**：`CONNECT:` 空 ⇒ 本机没有 hw_server 在听 3121，起了 `Vitis/bin/hw_server.bat` 之后拿到 `tcfchan#0` —— 复现时这一条要先做 | `build/evidence/r96_flash_1_ps_boot.txt`、`build/evidence/r96_flash_2_program_pl.txt`、`build/evidence/r96_flash_3_app_reload.txt` |
 | 2 | `RESULT PASS uart_cmd_check（105 条命令, 97.7 s）`（比上一版的 100 条多 5 条，多出来的是新增的判定条件）；`RESULT board_verify PASS（判红的步骤：0）` | `build/evidence/verify_0930_1845.txt`、`build/evidence/verify_0930_1845.batt.txt`、串口那份原始回显（工具本机重写、不随包） |
 | 3 | `RESULT PASS geom_check（ok=8 fail=0）`：`G1a zoom fit 1 ⇒ lane23.bit19=1`（`lane23=0x800e4909`）、`G3x` 收尾把 fit 关掉 ⇒ bit19 回 0（`0x800621f4`）、`G4` 跑完整串 19 个几何位回到演示默认档（`geom=00400000`） | `build/evidence/verify_0930_1845.geom.txt` |
-| 4 | **没有确认**：刷完之后开机读到的是 `zsel=4 zman=1` 而 `inv=265`（几分钟后同一位是 `inv=472`、`zcode=2`）—— 逐位拆开自洽，是旋转钳正在生效（板子当时在自动旋转），不是默认档失灵。要补这一格得先把旋转钉住：`rot auto 0` 之后**还要读屏上 `ROT:` 那一格的角度**，不能只发命令就算（过程记录见 `report/log/issues.md` 的 #178/#175） | `build/evidence/verify_0930_1845.txt` 的开机回读段 |
+| 4 | **没有确认**：刷完之后开机读到的是 `zsel=4 zman=1` 而 `inv=265`（几分钟后同一位是 `inv=472`、`zcode=2`）—— 逐位拆开自洽，是旋转钳正在生效（板子当时在自动旋转），不是默认档失灵。要补这一格得先把旋转钉住：`rot auto 0` 之后**还要读屏上 `ROT:` 那一格的角度**，不能只发命令就算（过程记录见 开发台账 的 #178/#175） | `build/evidence/verify_0930_1845.txt` 的开机回读段 |
 | 7 | `V9-6 温度格三方对账：4 条 [TEMP] 的 degC↔osd↔gpio 全部自洽`（在那 105 条里跑的） | `build/evidence/verify_0930_1845.batt.txt` |
 | 9 | 全设计 setup WNS **0.749 ns**、hold WHS **0.049 ns**、失败端点 **0 / 50887**（脉冲 WPWS 0.264、失败 0 / 12524）；BRAM **95** tile(67.86 %)、Slice LUT **14388**(27.05 %)、FF **8077**、DSP **19**、动态 **2.206 W**。逐时钟：`eth_rxc 0.749/0.049`（WNS 归属）、`clk_fpga_0 1.755/0.051`、`clkout0_1 0.840/0.062`、`sys_clk 14.272/0.121`。两版之间绝对值之差不记收益也不记损失；端点数 +4 与那一轮排空态新增的位同量级，这是结构观察，不是改进 | `build/timing_summary.rpt`、`build/utilization.rpt`、`build/r96_gates.txt` |
 | 10 | `build/clock_util.rpt`（本版构建产）**重读到 `BUFIO = 0`**、`BUFGCTRL = 8`；本行原来那组"最差 20 条 hold 偏斜 0.013~0.349 ns"**这一版没有逐条重读**（那是更早一版的读法，文件还在盘上） | `build/clock_util.rpt`、`build/hold_paths.rpt` |
 
 这一版还欠两格，不打勾：① 拷贝中途被看门狗打断之后，撕裂帧不再显示、`eth_ready` 读 0 ——
 那一轮的 `--stream` 是"干净停流交回"，不是 abort 注入，仿真台架那部分凭据齐而板级这一格空着；
-② 整屏台架的前置守卫记为**未判**（未通过的原因见 `report/log/issues.md` 的 #187），要等下一次整屏。
+② 整屏台架的前置守卫记为**未判**（未通过的原因见 开发台账 的 #187），要等下一次整屏。
 
 ## 机器那一半（第三张表：位流 `ef03eea4886e`）
 
@@ -69,7 +69,7 @@
 |---|---|---|
 | 1 | `RST_SYSTEM: ok` / `PS7_INIT: ok` / `PS7_POST_CONFIG: ok` / `DDR_ECHO: 10000000: 5A5AA5A5`，再 `PROGRAMMED xc7z020_1 <- build/system.bit`，收尾 `DOW: ok / CON: ok / RESUME: ok / FLOW_DONE`（只走 JTAG，**没碰 QSPI**） | `build/r97_flash_1_psboot.txt`、`build/r97_flash_2_program.txt`、`build/r97_flash_3_app.txt` |
 | 2 | `RESULT PASS uart_cmd_check（105 条命令, 97.8 s）`，而且**第一次"初态=末态"对上**——它同时满足那条要求：末态 = 演示默认档 `zman=1 zsel=4 geom=00400000` | `build/evidence/r97_batt_recheck.txt` |
-| 3 | `RESULT PASS geom_check（ok=10 fail=0）`：新增的 `G5`（`bit19 == (生效倍率偏离 256)`，样本 4 违例 0）与 `G5b`（**4/4 真钳住**）都在里面；`G3x` 从"bit19 回 0"改成判同一枚不变量（命令表里**没有把角度归零的动词** ⇒ 旧写法判的是一个到不了的状态，理由见 `report/log/issues.md` 的 #200） | `build/evidence/verify_0930_2215.txt`（第一次跑出 2 条不通过的那一份）与随后的 `geom_check` 复跑 |
+| 3 | `RESULT PASS geom_check（ok=10 fail=0）`：新增的 `G5`（`bit19 == (生效倍率偏离 256)`，样本 4 违例 0）与 `G5b`（**4/4 真钳住**）都在里面；`G3x` 从"bit19 回 0"改成判同一枚不变量（命令表里**没有把角度归零的动词** ⇒ 旧写法判的是一个到不了的状态，理由见 开发台账 的 #200） | `build/evidence/verify_0930_2215.txt`（第一次跑出 2 条不通过的那一份）与随后的 `geom_check` 复跑 |
 | 4 | 从"读得到"升级为"能被判"：屏上 `Zoom` 那格、串口 `[STAT]`、lane23 回读三处现在说的是同一件事；开机档位这一次落在**文档默认档**（`zman=1 zsel=4`），所以上一张表第 4 行那句"没有确认"可以推进到"默认档已确认，呼吸/自动档另记" | 同上 + `build/board_temp_r97.txt` 里那两条 `[STAT]` |
 | 7 | `V9-6 温度格三方对账：4 条 [TEMP] 的 degC↔osd↔gpio 全部自洽`；**并第一次把板读值抄进交付件**：`degC=63.38 / 63.17 / 63.13`（`raw 0xAAF2/0xAAD7/0xAAD2`、`vccint 997–998 mV`、屏上 `TEMP:63C`、`gpio=0x63`） | `build/board_temp_r97.txt`、`data/metrics.csv`（新增"片上结温（板读 XADC）"那一行） |
 | 9 | 全设计 setup WNS **0.720 ns**、hold WHS **0.033 ns**（含自加的 0.8 ns 不确定度）、失败端点 **0 / 50890**、脉冲 WPWS 0.264 / 0 / 12526；资源 **14379 LUT / 8079 FF / 95 tile / 19 DSP** | `build/timing_summary.rpt`、`build/utilization.rpt` |
@@ -115,6 +115,6 @@ E2 由在场的人确认（原话"现在画面正常只有一条"，含 0.50× +
 
 - 机器判的那一半 10 条全部通过（第 10 条看的是"收口只走一棵时钟树"这件结构上的事），凭据都在表里点名；
 - 需要人眼确认的六格（E1–E6）里，还剩两半没有目视记录：E4 的「左缘有没有沿对角的宽彩条」与 E6 的「按住 KEY1 那一次应当读到 1 度」，都写在表里没打勾；
-- 已知未修项（大角度旋转角点出屏、SD 播放中拔卡冻帧等）在 `report/known_issues.md`，这里不重复；
+- 已知未修项（大角度旋转角点出屏、SD 播放中拔卡冻帧等）在 问题清单，这里不重复；
 - 发布前检查（`bash build/gates.sh` 逐项读回报告并与阈值比）的项数与结果以它自己打印的那一行为准，
   本表不复制它，以免两处漂。

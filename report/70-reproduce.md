@@ -72,8 +72,8 @@ bash -n build/gates.sh build/board_verify.sh build/sim/run_one.sh build/sim/mut_
 
 | # | 命令 | 执行目录 / shell | 前置与外部状态 | 完成后应看到什么 | 判定 |
 |---|---|---|---|---|---|
-| 2.1 | `vivado -mode batch -source build/tcl/build_system_axigpio.tcl` | `<仓库根>` / Git Bash 或 cmd（`vivado` 换成 `<Vivado>/bin/vivado.bat` 全路径，或把 `bin` 加进 `PATH`）| 磁盘余量（一轮实现会写 `vivado_system/`）、无第二个 Vivado 在跑（`report/log/issues.md` 的 #234/#251 记过"改正在跑的脚本 / 起第二个实例"两类自己弄坏构建的情况）| 脚本自己按四件事播报：建工程 → 收 RTL/约束/BD（清单 `build/tcl/set_src.tcl`）→ 综合 → 实现出位流；产物 `build/system.bit`、`build/system.xsa`、`build/*.rpt`（**平铺在 `build/`**，见第 6 节冲突 3）；中途失败会打印停在哪一步且不留下半套 | `NOT_MEASURED`（构建需批准，未跑）|
-| 2.2 | `md5sum build/system.bit` | `<仓库根>` / Git Bash | 2.1 跑过，或盘上已有本版位流 | 32 位 md5；拿它认身份，**不认文件名**（`report/known_issues.md` §3"位流与固件不入库/靠 md5 认身份"那条）| **PASS**：读到 `cd04907e1369…`（2026-10-05 复跑同值，见第 9 节），与 `build/r118_gates.txt` 的身份行 `system.bit md5=cd04907e1369` 逐字相同 ⇒ 盘上那份就是 r118 |
+| 2.1 | `vivado -mode batch -source build/tcl/build_system_axigpio.tcl` | `<仓库根>` / Git Bash 或 cmd（`vivado` 换成 `<Vivado>/bin/vivado.bat` 全路径，或把 `bin` 加进 `PATH`）| 磁盘余量（一轮实现会写 `vivado_system/`）、无第二个 Vivado 在跑（开发台账 的 #234/#251 记过"改正在跑的脚本 / 起第二个实例"两类自己弄坏构建的情况）| 脚本自己按四件事播报：建工程 → 收 RTL/约束/BD（清单 `build/tcl/set_src.tcl`）→ 综合 → 实现出位流；产物 `build/system.bit`、`build/system.xsa`、`build/*.rpt`（**平铺在 `build/`**，见第 6 节冲突 3）；中途失败会打印停在哪一步且不留下半套 | `NOT_MEASURED`（构建需批准，未跑）|
+| 2.2 | `md5sum build/system.bit` | `<仓库根>` / Git Bash | 2.1 跑过，或盘上已有本版位流 | 32 位 md5；拿它认身份，**不认文件名**（问题清单 §3"位流与固件不入库/靠 md5 认身份"那条）| **PASS**：读到 `cd04907e1369…`（2026-10-05 复跑同值，见第 9 节），与 `build/r118_gates.txt` 的身份行 `system.bit md5=cd04907e1369` 逐字相同 ⇒ 盘上那份就是 r118 |
 | 2.3 | `python build/build_ps_app.py`（或 `node build/ps_app.mjs`）| `<仓库根>` / Git Bash | 需 `PS_CC`（1.7 那条路径）与 `PS_BSP`（默认指仓库内 `vitis/platform/…/bsp`）；**不想动交付件时把 `PS_OUT` 指到别处**（`report/build.md` 变量表明写这条）| 产出 `ps_app.elf` 并通过四道自检（入口==`_boot`、`_vector_table`==0x0、`.text` ≥ 20 KB、五个符号都在）；任一不过 ⇒ 非零退出，因为"链接成功"不等于可执行 | `NOT_MEASURED`（构建未跑；`PS_CC` 未设时它第一步 REFUSE 的文案实读在 `report/build.md` 里，未实跑验证）|
 | 2.4 | `bash build/freeze_evidence.sh rNN` | `<仓库根>` / Git Bash | 2.1 完成且发布前检查无未通过项 | 成套拷进 `build/frozen_rNN_<短名>/` 并写 `MANIFEST`；**发布前检查有未通过项时它会 REFUSE**（`GATES: ALL PASS` 才允许出现，否则打 `PARTIAL` 或有红项 ⇒ 拒绝归档）| `NOT_MEASURED`（既不跑构建也不改盘内 `build/`）；盘上那份门禁（`build/r118_gates.txt`）是**有红项**那一支（见 5.1）⇒ 照做会得到 REFUSE，这是预期行为不是故障 |
 
@@ -139,12 +139,12 @@ bash -n build/gates.sh build/board_verify.sh build/sim/run_one.sh build/sim/mut_
 
 ## 6. 与根 README 及既有文档的冲突清单（权威 = 实际能跑通的那份）
 
-下面 5 条都由实测得出，别人的文件未动，应改动作逐条登记在 `report/90-open-items.md` 的第 21–25 行。
+下面 5 条都由实测得出，别人的文件未动，应改动作逐条登记在 未决项集中表 的第 21–25 行。
 
 | # | 冲突 | 两份说法 | 权威判定（依据 = 真跑/真读到的输出）| 应改的动作（谁做）|
 |---|---|---|---|---|
 | 1 | 上位机三支 `.bat` | `report/build.md` §2 让跑 `src\host\run_sender.bat`、`run_video.bat <mp4>`、`run_serial.bat COM5` | **以根 README 为权威**：`find . -name "run_*.bat"` 只命中 `vivado_system/**/runme.bat`（Vivado 自己的），`src/host/` 下无 `.bat`（2026-10-05 复跑同结论）；而根 README 用的 `send_demo.bat` 实测存在 | 把那三行改成指向 `send_demo.bat` + `python src/host/video_sender.py`（改 `report/build.md`；**需队伍授权**）|
-| 2 | 台架名 | `report/known_issues.md` §1 的复现命令写 `bash build/sim/run_one.sh tb_video_pipeline_top` | **仓库内以 `sim/tb_v98_top_seam` 为权威**：仓库里没有名为 `tb_video_pipeline_top.v` 的台架文件；`tb_video_pipeline_top` 是导出时的改名（`build/sim/names.md`、`build/make_submission.sh` 的 `NAME_MAP`）| 该命令旁加一句"仓库名 = `tb_v98_top_seam`，包内名 = 此名"（已落在 `report/known_issues.md` §1 的第 38 行）|
+| 2 | 台架名 | 问题清单 §1 的复现命令写 `bash build/sim/run_one.sh tb_video_pipeline_top` | **仓库内以 `sim/tb_v98_top_seam` 为权威**：仓库里没有名为 `tb_video_pipeline_top.v` 的台架文件；`tb_video_pipeline_top` 是导出时的改名（`build/sim/names.md`、`build/make_submission.sh` 的 `NAME_MAP`）| 该命令旁加一句"仓库名 = `tb_v98_top_seam`，包内名 = 此名"（已落在 问题清单 §1 的第 38 行）|
 | 3 | 报告落哪 | `build/README.md` 说构建产出 `build/reports/` 里那六份 `.rpt` | **以盘上实测为权威**：六份报告平铺在 `build/` 根（`build/timing_summary.rpt` 等实测存在）；登记时 `ls build/reports` 报 `No such file or directory`，2026-10-05 复核 `build/reports/` 已在盘上、里面只有 `build/reports/index.md` 这一份索引。根 README 已写明"仓库平铺、提交包里展平进 `build/reports/`，同一批文件两种摆法" | `build/README.md` 那句补上"仓库内平铺"这一半（改 `build/README.md`；不在本文改动范围）|
 | 4 | 下载 bit 用哪支 tcl | `report/build.md` §2 用 `build\tcl\program_system.tcl`；根 README 与 `board/README.md` 用三步 `ps_jtag_boot → program_pl → ps_app_reload` | **以三步链为权威**（交付口径、且 `board/acceptance.md` 每一版的行 1 都是按这三步记的）。两支脚本**都存在**，所以这不是缺失而是两条路并存 | `build.md` 那行标注"老的一键下载路径，与三步链的关系 …"（改 `report/build.md`；不在本文改动范围）|
 | 5 | 板上现在跑哪一版的数字 | `board/README.md` 实测表写 WNS `0.720` / WHS `0.033` / `0 / 50890` / `2.207 W`，点名 `build/timing_summary.rpt`、`build/power.rpt` | **以报告原件 + 根 README 为权威**：实读 `build/timing_summary.rpt` = `0.739 / 0.052 / 0 / 51135`，`build/power.rpt` = `Total On-Chip Power (W) 2.391`；`metric_recheck` 判红 0，但它的取数名单（实读脚本 `:274-283`，2026-10-05 复核仍是两份首页 + `data/metrics.csv`）不含 `board/README.md` ⇒ 那两行在对账检查的覆盖范围外，不是脚本漏判 | 两个选项：把该表改成只指本版件不复述数字，或把它纳入 D6 的覆盖范围（改 `board/README.md` 或 `src/host/metric_recheck.mjs`；**都不在本文改动范围**）⇒ 已作为 A13 进 `report/60-failure-analysis.md` |
@@ -174,7 +174,7 @@ bash -n build/gates.sh build/board_verify.sh build/sim/run_one.sh build/sim/mut_
 |---|---|---|---|
 | 1 | `board/hardware_setup.md` 的接线表里 21 处 `【待你补】`（适配器型号/电流限流、USB-C/HDMI/网线规格、面板品牌型号、SD 卡容量速度等级、板是否从 USB 取电、屏与板是否共地等）| `【不可复现，原因：这些参数只能由队伍/持板人给，本仓任何文件里都没有；这里不猜引脚、不猜电压、不猜线材】` | 第三方无法判断"自己照做的接线是否等价"，尤其是"上电顺序与供电是否安全"这一类；只影响第 4 节，不影响第 1/5 节 |
 | 2 | 位流/固件的二进制身份 | 板上那一版可用 `md5sum build/system.bit` 对回 `build/r118_gates.txt`（已对上，见第 9 节）；**更早那一版（`known_issues.md` §20 的版本戳里写着是哪一版）那份位流不在 git 里**| 无法在不重构建的前提下复现"回到那一版"这一 A/B；要 A/B 就得取回那一版源再重建（约 20 分钟）|
-| 3 | 第二家仿真器的第二意见 | `【不可复现，原因：本机只有 xsim 可跑；ModelSim 目录在 `PATH` 上（实测看到目录）但许可那次判 inconsistent，未复测】` | 凡"两家仿真都过"的说法都不可复现；`report/known_issues.md` §3 已明说这条 |
+| 3 | 第二家仿真器的第二意见 | `【不可复现，原因：本机只有 xsim 可跑；ModelSim 目录在 `PATH` 上（实测看到目录）但许可那次判 inconsistent，未复测】` | 凡"两家仿真都过"的说法都不可复现；问题清单 §3 已明说这条 |
 | 4 | 黄金参考图 | `【不可复现，原因：`data/golden/` 没有可一键重跑的生成脚本，只能人工比对】` | 不能说"与黄金参考逐像素一致"；整屏判据靠的是台架自己算的期望值，不是 golden |
 | 5 | 人眼判据 E1–E6 | `【不可复现（对无屏的人），原因：屏幕读数不属于机器判据】` | 尤其 `ROT:` 那一格**没有机读**（`status` 那 9 位在 `system_top` 无读者）⇒ E6 只能由人判，机器复现不了（`report/60-failure-analysis.md` B4）|
 | 6 | PHY 内部 RX 延迟现值 / MDIO 读 | `【不可复现，原因：app 里没有 MDIO 读命令】` | 无法验证"PHY 会不会把 FCS 错帧丢掉"（A 组 A8 / B 组 B1 的前提高于判据）|

@@ -33,7 +33,7 @@
 | --- | --- | --- | --- | --- | --- | --- |
 | B1 | CDC Critical 配对/端点/unsafe | `build/frozen_r23_srcseen/cdc.rpt`（kv 抽取 `endpoints=@5`、`unsafe=@3`） | `build/cdc_baseline.txt`（`endpoints=@2,unsafe=@1`）；容差 0 | 0 | 无 | **PASS**（V01，判 18 项，红 0） |
 | B2 | 全局 setup WNS / hold WHS / 失败端点 / LUT/FF/BRAM/DSP / 动态功耗 | `build/timing_summary.rpt`、`build/utilization.rpt`、`build/power.rpt` 现读 | `data/metrics.csv` + 根 README 首页那 60 个数 | 逐数 0 超差（114 个数） | 无 | **PASS（射程内）**；`data/metrics.csv` 另 18 行不在该尺射程 ⇒ `NOT_MEASURED`（V08） |
-| B3 | 逐时钟相对余量（r116 相对冻结基线） | `build/evidence/r116_roster_e1.tsv` 的 `rel_margin_*` | `report/timing/roster_baseline.tsv`（B3 冻结基线） | `eth_rxc` −0.198125 / −0.115250 | 无 | **RED**（V02：comparisons_made=32、both_NA=8、red=2） |
+| B3 | 逐时钟相对余量（r116 相对冻结基线） | `build/evidence/r116_roster_e1.tsv` 的 `rel_margin_*` | 开发流水账（B3 冻结基线） | `eth_rxc` −0.198125 / −0.115250 | 无 | **RED**（V02：comparisons_made=32、both_NA=8、red=2） |
 | B4 | 顶层整屏台架条数 | `build/tb_v98_report.txt` 现数 161 + 1 = 162 | `data/metrics.csv:15` 声称的 141（点名 `top_md5=2bf2ceeede07`） | 无法比：该指纹的件盘上 **0 件** | 无 | **NOT_MEASURED**（V11；基准摘要不符 = 不许继续用） |
 | B5 | `gapclr` 同拍竞争（F2e B） | `build/r97_180_before.txt` `FAIL F2e B lane5 kept pre-clear history: sum=518 > 2x130` | 判据定义 `sim/tb_link_monitor.v` 的 F2e（A 腿是控制：`sum=130 ≤ 2×130`） | 518 vs 260 上限 | 无 | **FAIL（长期红，已声明）**；预验显示 `base红=1 → cut红=0`（V: `build/evidence/r174_f2e_preverify.txt`），修复**未进真树** |
 | B6 | 尺子能不能变红（变异/对照） | `temp_formula_check.mjs` 3 支变异 + `r115_roster_build.py --self` 5 条对照 | 各自的期望红点 | 全部命中唯一红点 | 无 | **PASS**（V04/V09） |
@@ -74,7 +74,7 @@
 3. **"隔一段距离的两条白线"未复现**
    2026-09-30 06:5x–07:0x 原话「现在画面正常只有一条」（`acceptance.md:70`）；对照实验只改推流节奏（29.76 与 25 fps 各一次）⇒ 判为切换暂态，**未复现、不记缺陷**。
 4. **应答器几分钟后变哑（#216/#188）**
-   真实异常：`64 × 32 字节 0/64`、`-l 32` 与 `-l 0` 交替各 4 次全 `0/4`（`report/log/issues.md:8931-8933`）。
+   真实异常：`64 × 32 字节 0/64`、`-l 32` 与 `-l 0` 交替各 4 次全 `0/4`（开发台账）。
    **14:59 写过"板上不过"，15:08 就地作废**（同节标题就是更正）：拿"长度 0"当变量其实比的是两个时刻 ⇒ 该格现在是"未验"，不是过也不是不过。
    复位救回：`4 发 1 收，RTT 3 ms`（`issues.md:8994`）；复位后连测 7 轮全 `4/4`（`:9012`）；r104 三档复测全绿（`build/r104_board_ping.txt`）。
    顺手量到的**尺子缺陷**：lane8/lane9 计数器在只发 ping 时一字未动 ⇒ 它们看不见 ICMP，"没收到 vs 收到没回"用现有 lane 分不开。

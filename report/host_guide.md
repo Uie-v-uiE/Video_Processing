@@ -113,7 +113,7 @@ DDR 打包器一个字是 64bit（4 像素）。载荷取 1396 时包边界落�
 
 命令的**权威表在 `report/commands.md`**（动词、参数、回声、拒收条件都在那张表里），命令之间的
 **覆盖关系**（哪些组合会静默无效，例如 `zoom fit 1` 下的 `zoom 1.5`）在
-`report/command_precedence.md`。这里只抄最常用的几条：
+命令优先级记录。这里只抄最常用的几条：
 
 ```
 src auto | src 0 | src 1 | src 2     片源：0=图卡 1=DDR(网络) 2=DDR 并起播 SD

@@ -75,5 +75,5 @@ JTAG 三步链见 `board/README.md`。
 `build/evidence/r121_report_archive.txt`）。SD 片源两个 100 帧滑窗的实测读数是 29.956 与 29.815 fps（`build/evidence/r87_boot_stat_drain.txt`），
 `data/metrics.csv` 那一行把它取整写成 29.8 – 30.0；9 级链与三路片源的逐格对照由 `sim/tb_*.v` 台架判。
 
-边界与限制的逐条登记在 `report/known-limitations.md`（HDMI 源端的量测维度、PS 侧固件的重建与复验步骤、工具版本绑定），
-缺陷与有意保留的未通过项在 `report/known_issues.md`，未决项集中表在 `report/90-open-items.md`。
+边界与限制的逐条登记在 限制清单（HDMI 源端的量测维度、PS 侧固件的重建与复验步骤、工具版本绑定），
+缺陷与有意保留的未通过项在 问题清单，未决项集中表在 未决项集中表。

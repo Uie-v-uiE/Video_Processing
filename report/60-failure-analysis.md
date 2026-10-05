@@ -1,7 +1,7 @@
 # 60 · 失败分析：哪些场景仍然做不好，原因是什么
 
 对应赛题 §3.3.5.3 的"失败分析"一格（口径参照 §3.2.5.4"哪些场景仍然做不好，原因是什么"）。
-这一篇与 `report/known_issues.md` 的分工：那份是**逐条缺陷记录文件**（逐条问题的原文在 `report/log/issues.md`，
+这一篇与 问题清单 的分工：那份是**逐条缺陷记录文件**（逐条问题的原文在 开发台账，
 最大编号 367），
 这一篇是**按"能不能被判别"重排的失败清单**——每条固定六件：现象、已定位的原因、还没判别什么、
 判别方法、现在的处置（是否影响演示）、计划与成本。正文里紧跟读数点名的路径就是那条的凭据，
@@ -45,7 +45,7 @@
   若冻住角度后错格数**不降**，则本假设不成立，得回去查 `raw_line_delay` 的抽头相位。
 - **判别方法（谁在什么条件下做什么能看到分晓）**：任何有 `VP_VIVADO_BIN` 的人跑
   `bash build/sim/run_one.sh tb_v98_top_seam` 读 `C5c` 那一行。
-  注意 仓库里的台架名是 `tb_v98_top_seam`；`report/known_issues.md` §1"复现"那行写的 `tb_video_pipeline_top`
+  注意 仓库里的台架名是 `tb_v98_top_seam`；问题清单 §1"复现"那行写的 `tb_video_pipeline_top`
   是**提交包里的改名**（映射见 `build/sim/names.md` 与 `build/make_submission.sh` 的 `NAME_MAP`），
   在仓库根照抄那条命令会"找不到台架"（`ls sim/ | grep pipeline_top` 零命中：仓库里没有名为 `tb_video_pipeline_top.v` 的台架文件）。该冲突登记在 `report/70-reproduce.md` 第 6 节。
   再跑 `bash build/sim/run_one.sh tb_head_rot_displace`
@@ -63,7 +63,7 @@
 ### A2 · 一支长期不通过的台架不在发布前检查的覆盖范围内（`tb_link_monitor` 的 `F2e`，即 #180 那项改动没落）
 
 - **现象（含证据）**：`FAIL F2e B lane5 kept pre-clear history: sum=518 > 2x130 (the clear lost the same-cycle race)`，
-  原始凭据 `build/r97_180_before.txt`；记录文件 `report/log/issues.md` 的"抓到一支长期不通过且不在发布前检查覆盖内的台架"那一节
+  原始凭据 `build/r97_180_before.txt`；记录文件 开发台账 的"抓到一支长期不通过且不在发布前检查覆盖内的台架"那一节
   记了同一个 `sum=518` 逐字符复现。`grep -n link_monitor build/gates.sh` **零命中**，而 `sim/tb_link_monitor.v` 在树里
   ⇒ 这一条今天仍是"不通过但发布前检查不念"，两边都没变。
 - **已定位的原因（可被判别）**：两条独立成因。① 设计侧：`src/rtl/eth/link_monitor.v` 里清零块与记账块的先后顺序（`gapclr` 的三处清零块在 `:110`、`:116`、`:138`），
@@ -72,7 +72,7 @@
   ② 工具侧：发布前检查第 15 项只钉 `tb_v98`/`tb_edge_rim` 两支的 md5，其余台架不通过的不进分母。
   **可判别处**：若 ① 成立，则把 `gapclr` 与记账两块换序后 `F2e B` 必通过且 `F2a–F2d` 不许转成不通过；若换序后仍红，则错在 `gap_valid` 的复位支。
 - **判别方法**：有 `VP_VIVADO_BIN` 的人跑 `bash build/sim/run_one.sh tb_link_monitor`，读末行 `RESULT … FAIL` 计数：
-  今天的期望值是**只红 `F2e B` 一条**（差分预验在 `report/log/issues.md` 写过实测形状 `base红=1(F2e-B=1) → cut红=0(F2e-B=0)`）。
+  今天的期望值是**只红 `F2e B` 一条**（差分预验在 开发台账 写过实测形状 `base红=1(F2e-B=1) → cut红=0(F2e-B=0)`）。
   谁在改 RTL 之前先跑这一条，就能分辨"是刚才那轮弄坏了"还是"它本来就不通过"。
 - **现在的处置（是否影响演示）**：台架仍在目录里、发布前检查不念它，这一条按"知道但没接进检查项"交出去。
   不在链子的关键路径上，演示不受影响；受影响的是"82 支台架都通过"这句话今天不能说。
@@ -82,7 +82,7 @@
 
 ### A3 · 串口一行 127 字节能把命令通道钉死到必须断电（源码已修，板上没修）
 
-- **现象（含证据）**：`report/log/issues.md` 的 #233 记着那一段连续操作（记录文件里带着当时的时间戳）：发过一条 **127 载荷字节 + CRLF** 之后，
+- **现象（含证据）**：开发台账 的 #233 记着那一段连续操作（记录文件里带着当时的时间戳）：发过一条 **127 载荷字节 + CRLF** 之后，
   连发的每条 `STAT`（6 字节）都被回成 `[CMD!] dropped 17 trailing byte(s): line unfinished for 3000 ms`，静默 15 秒仍如此；
   #235 把症状从"命令通道钉死"升级为"AP 不可达 ⇒ 要断电"。
   **把"修没修上"钉死**：`src/ps/main.c` 的换行支现在带界（`:1493` 的
@@ -107,9 +107,9 @@
 
 ### A4 · PS 固件的重建能力被写成"机器里没有编译器"，四处口径已改回来
 
-- **现象（含证据）**：`report/log/issues.md` 第 233 条写"这台机器上找不到 bare-metal 编译器 ——
+- **现象（含证据）**：开发台账 第 233 条写"这台机器上找不到 bare-metal 编译器 ——
   `find /<盘>/Software -maxdepth 8 -name arm-none-eabi-gcc.exe` 无命中"，同一句结论在第 235、259 条之后的 MDIO 那几节
-  引用面现打 `grep -c arm-none-eabi report/log/issues.md` = 9 行（这份台账只增不减），用来解释"ELF 为什么不重建"——这半句也已经不成立：一份真编出来的 ELF 记在 `build/evidence/1005_ps_app_rebuild.txt` 里。
+  引用面现打 `grep -c arm-none-eabi 开发台账` = 9 行（这份台账只增不减），用来解释"ELF 为什么不重建"——这半句也已经不成立：一份真编出来的 ELF 记在 `build/evidence/1005_ps_app_rebuild.txt` 里。
   盘上事实：`ls <Vitis>/gnu/aarch32/nt/gcc-arm-none-eabi/bin/` 列出 `arm-none-eabi-gcc.exe` 等 20 个二进制；
   直接调用它 `--version` 返回 **rc=0** 并打印 `arm-xilinx-eabi-gcc.exe (GCC) 13.3.0`（版本号与 `build/evidence/1005_ps_app_rebuild.txt` 的自述同一串）。
   同一 shell 里 `which arm-none-eabi-gcc` **rc=1**（不在 `PATH` 上）。
@@ -128,7 +128,7 @@
   编一次是第三条命令：`PS_CC=<上面那条路径> PS_BSP=<绝对 BSP 路径> node build/ps_app.mjs`，
   跑通记录在 `build/evidence/1005_ps_app_rebuild.txt`（打印 `ENTRY _boot@0x000000cc` 与 `OK`，重建产物 md5 `4ed58740785c158c89c0fbc80a0e9d39`）。
 - **现在的处置（是否影响演示）**：改的是**结论**不是代码。这一句在交付文档里的四处副本
-  （`report/declarations.md`、`report/known-limitations.md` 第 2 节、`report/submission-checklist.md` 第 2 行、
+  （`report/declarations.md`、限制清单 第 2 节、提交清单 第 2 行、
   本页 A3）现在写的都是同一句口径：**能重建，但重建那颗与板上那颗 md5 不同 ⇒ 仍要重刷 + `board_verify` 复验**。
   A3 那一条因此从"没救"降级为"app 已经重编过一份，只差第三步重载与一次探针"；
   演示不受影响，受影响的是"PS 侧改动一律算没修"这条口径的依据。
@@ -141,7 +141,7 @@
 - **现象（含证据）**：仓库根首页第一行数字自己写了"这一版不带 RGMII 输入窗"；
   候选件在 `src/constraints/r116_rgmii_input_window.xdc`（在树里）；
   带窗那一版的完整证明在 `build/evidence/r115_window/probe3_console.txt`（在树里）与
-  `report/timing_global.md` 第 6 节；`build/evidence/r116/r116_io_hold.rpt` 也在盘上。
+  时序全局记录 第 6 节；`build/evidence/r116/r116_io_hold.rpt` 也在盘上。
   `python build/check_io_timing_coverage.py build/timing_summary.rpt` 打出
   `bare_in=[eth_rx_ctl eth_rxd]`（5 位输入仍是 BARE）、`I1_in_reconcile src_in_pins=5 report=5 GREEN`
   ⇒ "收口没有任何延迟约束"这件事是工具数出来的，不是文档说的。
@@ -152,7 +152,7 @@
   若 32 以上不存在 ⇒ 本条永远不可能靠约束解决，只能改拓扑。
 - **判别方法**：设 `VP_R116_IO_WINDOW=1` 重跑一次构建（约 20~25 分钟），看发布前检查第 1 项是否打出 4 条不通过（WNS/WHS 与两个失败端点数）；
   或只读地读 `build/evidence/r116/` 那两份 I/O 报告。带窗那一版没重跑（要独占机器 20~25 分钟），所以这一格的现行凭据是那两份只读报告。
-- **现在的处置（是否影响演示）**：候选件默认不加载，首页与 `report/timing_global.md` 把这一行念成
+- **现在的处置（是否影响演示）**：候选件默认不加载，首页与 时序全局记录 把这一行念成
   "片内路径零违例 + 收口 I/O 当前无窗"，不念成"收口已通过"（H5 针对的正是把"没检查"写成"满足"）。
   演示不受影响：板上这一版的串口命令电池与几何判定都在不带窗的这一版上跑通过。
 - **计划与成本**：短期只能改口径不能改结果；真要收口，成本 = 一次拓扑改动（RX 侧加一级采样或换 PHY 内部延迟）
@@ -178,7 +178,7 @@
   也没写过带理由的 `set_false_path`/`set_max_delay` ⇒ 报告上那些"MET"**不包含芯片到面板那一段**。
   **可判别处**：这条不需要推测——它是数出来的。要说"设计真的不合格"还差一步：任何一份输出约束挂上去之后
   端点名册转成不通过、还是仍然通过，才是设计侧结论（更早一次实测挂过 `set_output_delay`：造 −3.48 ns，但那被证明是**量纲用错**，
-  见 `report/io/hdmi_tp1_sdc_measurement.md`，所以那次的不通过不能当设计不合格的证据）。
+  见 屏侧实测记录，所以那次的不通过不能当设计不合格的证据）。
 - **判别方法**：两条，都是只读或只花探针：
   ① `python build/check_io_timing_coverage.py --self`（五条自对照）确认这个检查真能抓住畸形；
   ② 按那次离散实测的量纲把问法换成"钟脚↔数据脚的 clock-to-pin 离散 ≤ 0.20 `Tcharacter`、P/N 对内 ≤ 0.15 `Tbit`"，
@@ -215,7 +215,7 @@
 ### A8 · 收侧 ARP/ICMP 没有错误源：校验和只采不验，ARP 学到的地址就是所有发送的目的地址（#205）
 
 - **现象（含证据）**：`src/rtl/eth/eth_udp_video_top.v` 把**原始** `gmii_rx_dv`/`gmii_rxd` 交给 `u_arp`/`u_icmp`，
-  而同一份顶层已经产出带 `m_good`/`m_bad` 的干净流给视频那条路（行号与逐行推演在 `report/known_issues.md` §17）。
+  而同一份顶层已经产出带 `m_good`/`m_bad` 的干净流给视频那条路（行号与逐行推演在 问题清单 §17）。
 - **已定位的原因（可被判别）**：一条 FCS 错但 PHY 仍然上送到 RGMII 的帧，能污染"本包回包/发包的目的 MAC/IP"。
   **可判别处**：这不是推测，是**读码可复核**的连线事实；真正未定的是发生率那一半——见 B1。
   修法**不是把两根线换过去**：厂商状态机入口等 `8'h55` 前导码，而干净流里前导码已被剥掉，直接改接会让它永远出不了 idle
@@ -231,7 +231,7 @@
 
 ### A9 · 两帧连着两处丢能把混帧当完整帧提交，而且没有计数器能解释它（#181）
 
-- **现象（含证据）**：`report/known_issues.md` §10 的 #181：前一帧丢**尾包**（连 `FRAME_BYTES` 都没凑够 ⇒ 它连 `frame_abort` 都不脉冲），
+- **现象（含证据）**：问题清单 §10 的 #181：前一帧丢**尾包**（连 `FRAME_BYTES` 都没凑够 ⇒ 它连 `frame_abort` 都不脉冲），
   紧接着后一帧丢**首包**（清零条件只看偏移 `< 4` 那一包）⇒ 字节数饱和、行位图是两帧缺行的**并集**正好盖满 `IMG_H`
   ⇒ `frame_done` 把混着两帧的 bank 当完整帧提交，而 `frame_abort`/`rows_missed`/`bad` **全为 0**。
 - **已定位的原因（可被判别）**：清零条件只看"包偏移 `hdr < 4`"而没有"偏移倒退 = 新帧开始"这一路。
@@ -247,7 +247,7 @@
 
 ### A10 · SD 固件四条未修（#196–#199）+ 命令表里没有把旋转角度归零的动词（#200）
 
-- **现象（含证据）**：`report/known_issues.md` §14 逐条给了行号：
+- **现象（含证据）**：问题清单 §14 逐条给了行号：
   #196 卡里的数据能决定往 `Meta[4096]` 尾后多写一字节（`src/ps/sd_play.c` 里 `>` 漏等号）；
   #197 被拒绝的 `play` 并不中性——先 `ctrl_set_src(1)` 才判 `sd_play(1)` 成不成，屏会切到"没有帧可播"那一路；
   #198 每帧重走一遍目录（缓存守卫 `open_idx` 只写不读），串口喂狗只在搬运循环里 ⇒ 未覆盖窗口是"一段目录扫描"；
@@ -265,7 +265,7 @@
   只影响"能不能用串口把角度归零"，按键仍然可用。
 - **计划与成本**：都在固件层 ⇒ 一旦改就要重建 `ps_app.elf`（走 A4 那条已经跑通的重编路，不是"编不出来"）。
   单条成本从"一次抽函数 + 三条边界断言"（#196，最便宜）到"一次上板 + 人手注卡"（#197/#198）。
-  `report/known_issues.md` §14 今天逐条写的是 #196/#197/#200 **未修**、#198/#199 只记录；其中 #196/#199 不需要板子，是不用上板就能先把尺子配出来的两条。
+  问题清单 §14 今天逐条写的是 #196/#197/#200 **未修**、#198/#199 只记录；其中 #196/#199 不需要板子，是不用上板就能先把尺子配出来的两条。
 
 ### A11 · 两处"外部输入不可信"的钳制缺失，既不升格为缺陷也不注销（#127 第 5 条 + #159/#160/#161）
 
@@ -285,7 +285,7 @@
 
 ### A12 · 能力缺口：过滤掉的包数读不出来；`bad` 会动这件事只有台架证据
 
-- **现象（含证据）**：`report/known_issues.md` §2 第 3、4 条：端口过滤逻辑进了顶层，但三个统计脉冲没接出去
+- **现象（含证据）**：问题清单 §2 第 3、4 条：端口过滤逻辑进了顶层，但三个统计脉冲没接出去
   ⇒ 能演示"过滤生效"，不能读出"滤掉了多少"；`bad`（坏包计数）的"会动"只有入包链台架的 C2 一条凭据。
 - **已定位的原因（可被判别）**：这是**接口的存在性**问题，不是行为问题 ⇒ 判别极便宜：
   `grep` 顶层有没有把那几个统计脉冲连到可读寄存器，再读一次 lane 表。
@@ -315,7 +315,7 @@
   这是本篇点名它的原因。演示不受影响。
 - **计划与成本**：两个选项：把 `board/acceptance.md:75` 那一行改成"只指本版件、不复述数字"，或把该文件纳入 D6 的覆盖范围。
   成本 ≈ 一次小改 + 一条反例（#225 的教训：**加了名单不设最低条数要求，"判 N 个数"会随不通过的条数自己缩水**）。
-  登记原因：`report/build.md`/`build/README.md`/`board/acceptance.md` 都不是本篇能改的文件，动作逐条落在 `report/90-open-items.md`（见 D 节）。
+  登记原因：`report/build.md`/`build/README.md`/`board/acceptance.md` 都不是本篇能改的文件，动作逐条落在 未决项集中表（见 D 节）。
 
 ### A14 · 技能包装配：旧包量到 2 红 1 未测，今天的两条等价命令都判绿（这条债已还）
 
@@ -324,7 +324,7 @@
   `G2 条目外壳与 name … 判 38 项 不合=13 例:skills/scripts/contract_gen:缺 SKILL.md … FAIL`；
   `G10 本队专有名 … 名单=78 命中=24 未标注=9 例:proc_pipeline zoom_snap system_top FAIL`。
   未测一条：`G11 脚本 selftest 可跑 … 判 0 项 缺 skills/scripts/selftest/run_all.sh NOT_MEASURED`。（`run_all.sh` 与 `gates.mjs` 都**现不存在**；今天的等价件末行是 `SKILL-SELFTEST 判 16 项 不符=0 PASS` 与 `判 53 项：条目=49 索引=50 红=0 未测=0 PASS`。）
-- **已定位的原因（可被判别）**：那 2 红 1 未测是**装配没完成**时的读数，不是检查脚本坏——`report/run-queue.md` 的 P04/P07/P09 三行现在都写
+- **已定位的原因（可被判别）**：那 2 红 1 未测是**装配没完成**时的读数，不是检查脚本坏——任务队列 的 P04/P07/P09 三行现在都写
   "已交付"（P09 那句是 `技能包门禁 12 项全绿、无未测`），与今天两条 PASS 读数对得上，所以这一格是**已还的债**，留在 A 组只把旧读数与今读数并排给读者。
   **可判别处**：它随时能被重新判红——`check-skill-package.mjs` 的末行一旦从 `红=0` 变成 `红>0`，装配债就挂回来，尺子还在原位。
 - **判别方法**：`node skills/_meta/check-skill-package.mjs skills`（一个条目一行、判定在最后一个字段，末行 `判 53 项：条目=49 索引=50 红=0 未测=0 PASS`）
@@ -357,7 +357,7 @@
 
 ### B1 · 带错 FCS 的帧能不能上到 RGMII（PHY 会不会自行丢掉）
 
-- **现象（缺口）**：#205 的后果读实了，发生率**没测**：`report/known_issues.md:604` 明写"PHY 会不会自行丢掉这类帧**当时没测**
+- **现象（缺口）**：#205 的后果读实了，发生率**没测**：问题清单 明写"PHY 会不会自行丢掉这类帧**当时没测**
   （板上没有可靠注错手段，与'`bad` 只有台架证据'那条债同源）"。
 - **已定位的原因（可被判别）**：若 RTL8211F 在 MAC 侧就把 FCS 错帧丢掉，`#205` 的可达概率≈0（分级应降为低）；
   若它透传（有些 strap 配置会），则一条空口可写的 ARP 表污染是**可达的**。两种假设给出不同的修法优先级。
@@ -382,7 +382,7 @@
 
 ### B3 · 回读口新增那两位的板级复验（#175/#176）
 
-- **现象（缺口）**：`report/known_issues.md` §8 明写"这两件的板级/顶层复验还没做……要刷过板才算关"。
+- **现象（缺口）**：问题清单 §8 明写"这两件的板级/顶层复验还没做……要刷过板才算关"。
 - **已定位的原因（可被判别）**：鉴别证据本来就是板上一对——改前 `bit19=0` 而 `health_read` 念 MISMATCH，改后同一状态应 `bit19=1` 且念 OK。
   这是一个二值判定，不含糊。
 - **判别方法**：刷含 `zoom_snap` 20 位那一版的位流（自那一版起每一版都带了），跑 `node src/host/geom_check.mjs`；
@@ -410,7 +410,7 @@
 
 ### B5 · HDMI CTS 里 SDC 没有容器的那四条（眼图掩码 / 抖动 / 占空比 / 上升下降沿）
 
-- **现象（缺口）**：`report/io/hdmi_tp1_sdc_measurement.md:113` 的 D3 行写 `【未实测】，需要仪器与队伍批准`；
+- **现象（缺口）**：屏侧实测记录 的 D3 行写 `【未实测】，需要仪器与队伍批准`；
   同文件第四节写明"不能说'过了 CTS'"。
 - **已定位的原因（可被判别）**：这不是假设而是**手段缺失**：规范那几条是波形质量量，SDC 里既没有容器也不该有
   （`set_output_delay` 那条路已被那次离散实测量成"量纲用错"，见同文件第三节）。
@@ -432,7 +432,7 @@
 
 ### B7 · 这颗器件有没有 URAM 站点（阳性对照没过，那个 0 不算结论）
 
-- **现象（缺口）**：`report/known_issues.md` §2 第 2 条：`ram_style` 给 `ultramark`/`ultraram` 都被综合判为无效值，
+- **现象（缺口）**：问题清单 §2 第 2 条：`ram_style` 给 `ultramark`/`ultraram` 都被综合判为无效值，
   已核实的只有这一条；"这颗器件有没有 URAM 站点"三次 Tcl 问法**阳性对照没过**。
 - **已定位的原因（可被判别）**：问法本身错了（问的对象/属性名不在这颗器件的词典里），不是器件里没有。
   **可判别处**：先用一个**已知存在**的属性（例如查 `BRAM` 站点数应得非 0）做阳性对照；
@@ -445,7 +445,7 @@
 
 ### B8 · 合法大载荷与 `u_fifo` 深度之间的界（`ping -l 65000`）
 
-- **现象（缺口）**：`report/known_issues.md:630` 末节明写"**当时没查的**（写清楚，别被读成'都查过了'）"，点名的就是合法大载荷与 `u_fifo` 深度之间那条界。
+- **现象（缺口）**：问题清单 末节明写"**当时没查的**（写清楚，别被读成'都查过了'）"，点名的就是合法大载荷与 `u_fifo` 深度之间那条界。
 - **已定位的原因（可被判别）**：`icmp_rx.v` 的 `rec_byte_num` 直通 `icmp_tx_byte_num`，若 FIFO 深度小于合法载荷，
   溢出应体现在 `m_bad`/`bad` 或解析器状态回退上 ⇒ **可判别的读数很具体**：灌一档 65000 字节，读那两位是否非零。
 - **判别方法**：台架侧给 `icmp_rx` 喂一档超长合法帧（不需要板子，成本最低）；板侧用 `ping -l 65000`（Windows 会拒绝这么长的 `-l`，
@@ -456,7 +456,7 @@
 ### B9 · 功耗是估算，不是实测
 
 - **现象（缺口）**：根首页与 `build/power.rpt` 写的都是"动态功耗 + `Confidence Level Low`"；
-  `report/known_issues.md` §2 与 `data/metrics.csv` 都把"片上 XADC 的读数是另一路"写在同一格。
+  问题清单 §2 与 `data/metrics.csv` 都把"片上 XADC 的读数是另一路"写在同一格。
 - **已定位的原因（可被判别）**：不是假设——是口径。可判别的下一步是把两条路对账：
   外置电源（可调电源带电流显示）读一次输入电流 × 12 V，与工具算的动态功耗比；
   偏差 > 20 % 就说明工具的 `power.rpt` 需要重设活动因子。
@@ -467,7 +467,7 @@
 
 ### B10 · 第二家仿真器的第二意见
 
-- **现象（缺口）**：`report/known_issues.md` §3 第一行：本机只有 xsim，ModelSim 的许可证被新版 FlexNet 签发、自带客户端判
+- **现象（缺口）**：问题清单 §3 第一行：本机只有 xsim，ModelSim 的许可证被新版 FlexNet 签发、自带客户端判
   inconsistent ⇒ 凡"两家仿真都过"的说法都不可复现。这一格不必停在"没验"：`PATH` 上仍挂着 `…/ModelSim/modelsim_ae/win32aloem`，
   而那个目录本身已经不在盘上（`ls /d/Software/ModelSim` 报 No such file or directory），`vsim` 连发都发不起来 ⇒
   当年那句"已不在"说的是许可证服务，现在多了一条更前面的原因：程序文件也没了。
@@ -479,7 +479,7 @@
 
 ### B11 · 黄金参考不是自动生成的
 
-- **现象（缺口）**：`report/known_issues.md` §3 明写：`data/golden/` 的对比图没有可一键重跑的生成脚本，只能人工比对
+- **现象（缺口）**：问题清单 §3 明写：`data/golden/` 的对比图没有可一键重跑的生成脚本，只能人工比对
   ⇒ 不说"与黄金参考逐像素一致"。`data/golden/manifest.md` 在树里（`git status` 显示它仍是未跟踪新件），
   参照物那一半已经登记，一键重跑的那一半仍缺 ⇒ 这一条挂在 P17 的交付范围里。
 - **已定位的原因（可被判别）**：若参考图能由一条命令从同一份激励重算出来，"逐像素一致"就升级为可机器判定；
@@ -506,13 +506,13 @@
 
 - **现象（缺口）**：旧包 `gates.mjs`（当时的原文，件**现不存在**，只报数不指路）的 G9 行打印
   `降级标记计数 判 86 项 总309 …`；先前引过的 `skills/README.md` 那句"效果对比多数来自历史件而非本轮重跑，逐条标注在各条目 §7 内"
-  在今天这版 `skills/README.md`（全文 184 行）里**已经不存在**，那一处引用指不到出处，按 `report/90-open-items.md` 的规矩保持 `【待验证】` 标记而不是删掉；
+  在今天这版 `skills/README.md`（全文 184 行）里**已经不存在**，那一处引用指不到出处，按 未决项集中表 的规矩保持 `【待验证】` 标记而不是删掉；
   仍然读实的是 `skills/prompts/` 四个模板的「已验证效果」一节逐份写"未量过，属建议"（`grep -A1 "^## 已验证效果" skills/prompts/*/SKILL.md` 四份同构）。
 - **已定位的原因（可被判别）**：这不是假设而是**没做**：看的是"同一模板连跑 3 次的产出差异"，
   跑完就有数，跑不出来就只能保持"未测试"。
 - **判别方法**：谁在任意题目上按 `skills/prompts/*/SKILL.md` 的 §5 连跑 3 次，把三次的表头一致性与
   "是否只念全局 WNS"记进 `skills/evals/records/`——**这一路当前不在盘上**：`ls skills/evals` 报 No such file or directory，
-  所以它既不是"空的"也不是"有红项"，而是那批 records 在这份包里从来没存在过 ⇒ `report/run-queue.md` 的 P08 行仍写"部分交付"、
+  所以它既不是"空的"也不是"有红项"，而是那批 records 在这份包里从来没存在过 ⇒ 任务队列 的 P08 行仍写"部分交付"、
   缺的正是"同一模板连跑 3 次的增益对照"，这一格只能明写"指不到"。
 - **现在的处置（是否影响演示）**：效果对比那一栏保持"未测试"，`skills/evals/records/` 不在盘上，指不到就明写指不到；
   演示不受影响。
@@ -522,7 +522,7 @@
 
 - **现象（缺口）**：`report/build.md:15-16` 与 `report/host_guide.md:37,47-48` 用 `python3`，
   而本机 Git Bash 的现状是：`python3 --version` → `command not found`（rc=127）、`python --version` → 3.12.10。
-  反过来 `report/log/issues.md` 的 #233 记着当时那条 `python3 build/build_ps_app.py` 就是被 `python3: command not found` 挡住的。
+  反过来 开发台账 的 #233 记着当时那条 `python3 build/build_ps_app.py` 就是被 `python3: command not found` 挡住的。
 - **已定位的原因（可被判别）**：这是 Windows/MSYS 与 Linux 的**命令名差异**，不是"脚本坏了"。
   可判别：同一份脚本在两个平台各跑一次 `--help`，看哪一边报 command not found。
 - **判别方法**：需要一台 Linux 机器；本仓库**没有**任何一条命令在 Linux 上跑过 ⇒ 本篇点名的每条命令都只在这一台 Windows 机器上成对验过
@@ -533,7 +533,7 @@
 ### B15 · 两个 HDMI 候选约束件的处置未定（保留还是删）
 
 - **现象（缺口）**：`src/constraints/r119_hdmi_source_window.xdc` 与 `src/constraints/r119b_hdmi_tp1_pinclk.xdc`（两份都在树里，
-  候选件语义见 `report/io/hdmi_tp1_sdc_measurement.md:105`）都**默认不加载**，保留意义是"这一族规范量不能这样进 SDC"的反例凭据。
+  候选件语义见 屏侧实测记录）都**默认不加载**，保留意义是"这一族规范量不能这样进 SDC"的反例凭据。
   同文件 §6 的 D2 行（`:112`）写的是"待队伍裁决"。
 - **已定位的原因（可被判别）**：这是决定题不是技术题。可判别的风险写得很具体：留着但不写"已知会造 −3.48/−4.90 ns 违例"，
   下一个人就会真挂上去 ⇒ 留着必须**同行自带声明**。
@@ -541,12 +541,12 @@
   若保留，`node src/host/doc_currency_check.mjs` 与 D4 类指路检查要能读到那句声明。
 - **现在的处置（是否影响演示）**：两件候选约束默认不加载，保留意义是"这一族规范量不能这样进 SDC"的反例凭据；
   留着就必须同行自带声明。演示不受影响。
-- **计划与成本**：零构建成本；已进 `report/questions-for-team.md` 的合并范围（该文件 `:17` 仍是 Q-P20-2，
-  D2 这一条**还没有独立行** ⇒ 已登记进 `report/90-open-items.md`，见那里）。
+- **计划与成本**：零构建成本；已进 问队伍清单 的合并范围（该文件 `:17` 仍是 Q-P20-2，
+  D2 这一条**还没有独立行** ⇒ 已登记进 未决项集中表，见那里）。
 
 ### B16 · 构建期参数检查不存在（`IMG_H > 512` 时行位图折叠）
 
-- **现象（缺口）**：`report/known_issues.md` §6 明写：`frame_reasm.v` 用 9 位 `row_idx` 索引 `row_ok[IMG_H-1:0]`，
+- **现象（缺口）**：问题清单 §6 明写：`frame_reasm.v` 用 9 位 `row_idx` 索引 `row_ok[IMG_H-1:0]`，
   `IMG_H > 512` 时行位图按 512 折叠；"这条不是运行时现象、机会计数探针数不到，正确的尺子是构建期参数检查——记在工具欠账那一堆"。
 - **已定位的原因（可被判别）**：不存在那条检查 ⇒ 任何把分辨率改大的改动都会**静默**折叠。
   可判别：跑一次 `IMG_H=600` 的 elaboration（或只做静态参数比对）看有没有任何工具报错。
@@ -578,17 +578,17 @@
 
 1. **这一篇只登记"缺什么"，不代替修复动作**。`report/build.md`（A15）、`report/README.md` 的索引、
    `board/acceptance.md:75` 那一行与 `src/host/metric_recheck.mjs`（A13 缺的那层覆盖）
-   都在这一篇之外；需要动的动作逐条登记在 `report/90-open-items.md`，在那里认领与收口。
+   都在这一篇之外；需要动的动作逐条登记在 未决项集中表，在那里认领与收口。
 2. **A 组每条的"计划与成本"是排序材料**，按"谁来动、动一次要多久"写，不是承诺。
 3. **不声称任何一条"已解决"，除非给出复跑命令 + 输入 + 期望 + 实际四件**。
    已闭环的三个例子（拔卡冻帧、处理侧那条钉在显示列 320 的黑线、0 字节 `ping` 打死应答器）
-   的编号与复验读数登记在 `report/known_issues.md` §四 与 `report/known-limitations.md` 第 9 节，
+   的编号与复验读数登记在 问题清单 §四 与 限制清单 第 9 节，
    不在这里重新宣称。
 4. **严重度不下调**：A3 那条按最终状态写成"要断电"，不写成"可恢复"；
    A13 那条即使它难看（是本包文档里的抄件）也照写。
-5. **没列进这一篇的失败另有个数**：`report/log/issues.md` 的标题段计数随记录增长，
+5. **没列进这一篇的失败另有个数**：开发台账 的标题段计数随记录增长，
    现跑读数是 **418** 段（`grep -c '^### #'` = 157 与 `grep -c '^## '` = 261 之和），
-   最大的 `^### #NNN` 编号是 **367**（`grep -oE '^### #[0-9]+' report/log/issues.md | grep -oE '[0-9]+' | sort -n | tail -1`）。
+   最大的 `^### #NNN` 编号是 **367**（`grep -oE '^### #[0-9]+' 开发台账 | grep -oE '[0-9]+' | sort -n | tail -1`）。
    这一篇只收"能被判别"的那些；纯过程性的不通过（命令写错、检查脚本自己先错那一族）在
    `report/ai_collaboration.md` 与记录文件里，不重复列。
 
@@ -603,10 +603,10 @@
   `python build/check_io_timing_coverage.py build/timing_summary.rpt`、`python build/check_ports.py --dup`、`node build/r119_window_check.mjs --self`、
   `grep -n link_monitor build/gates.sh`、`grep -n cmd_len src/ps/main.c`、`grep -n gapclr src/rtl/eth/link_monitor.v`
 - 打开读过的文件（绝对路径 = 仓库根 `（仓库根）/` 下）：
-  `report/known_issues.md`、`report/log/issues.md`（#216/#218 一节、#233/#235 一节、C5c 两节、F2e 一节、#259/#269 两节）、
+  问题清单、开发台账（#216/#218 一节、#233/#235 一节、C5c 两节、F2e 一节、#259/#269 两节）、
   `board/README.md`、`board/acceptance.md`、`report/build.md`、`build/README.md`、`sim/README.md`、
-  `report/io/hdmi_tp1_sdc_measurement.md`、`board/hardware_setup.md`、`report/questions-for-team.md`、`report/run-queue.md`、
+  屏侧实测记录、`board/hardware_setup.md`、问队伍清单、任务队列、
   `README.md`、`build/r118_gates.txt`、`build/evidence/r118_board/board_now.txt`、
   `build/evidence/r118_board/board_verify_console.txt`、`src/host/metric_recheck.mjs`
-- 计数分母（这一篇与 `report/90-open-items.md` 共用）：
+- 计数分母（这一篇与 未决项集中表 共用）：
   `sim/tb_*.v` = 81；`src/rtl/**/*.v` = 80；`build/evidence/` 条目 = 671；台架判定与发布前检查项数见 `build/r118_gates.txt`。

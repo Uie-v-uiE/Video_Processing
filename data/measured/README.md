@@ -11,7 +11,7 @@
 | `board_measure_r08.md` | r08 那一次板级测量的判读（三态、拔线可逆性、`gapclr` 对账） | 原始件在同目录的 `.txt`，判读口径与 `report/` 同源 |
 | `README.md` | 本说明 | —— |
 
-判读要点（与 `report/log/v6_board_measurement.md` §4.1 同一判据）：
+判读要点（与 板级测量记录 §4.1 同一判据）：
 
 | 指标 | 本次(15fps) | 30fps | 60fps(18.4MB/s) | 修复前 |
 |---|---|---|---|---|

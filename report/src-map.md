@@ -7,7 +7,7 @@
 
 - **能**：某个模块在哪个文件、文件多大、那个文件头注的第一句是什么（逐字搬运，不改写）。
 - **不能**：数据流顺序、时钟域归属、寄存器位序。这些数据由各自的文档单点维护，这张表只提供
-  四列，免得同一份数据出现两个口径。指路：数据通路看 `report/architecture.md`，时钟域看 `report/board_pins.md` 与
+  四列，免得同一份数据出现两个口径。指路：数据通路看 架构章，时钟域看 `report/board_pins.md` 与
   `report/build.md`，寄存器看 `skills/runtime/register-map-and-readback/SKILL.md`，
   台架（`sim/` 下的仿真测试例）与模块的对应关系看 `sim/README.md`。
 - 头注列为空的文件有 0 个；这一列由脚本原样抄头注，不代写内容。
@@ -16,7 +16,7 @@
 | --- | --- | --- | --- |
 | `src/ps/main.c` | `（无 module：C/H 或纯 include）` | 1619 | PS control plane + SD 卡本地回放。UDP 视频数据通路仍然整个在 PL（rtl/eth 目录）。 |
 | `src/ps/sd_play.c` | `（无 module：C/H 或纯 include）` | 882 | SD 卡本地视频回放：裸机 FAT32 只读 + XSdPs，不依赖 FatFs / 任何文件系统库。 |
-| `src/ps/sd_play.h` | `（无 module：C/H 或纯 include）` | 68 | SD 卡本地回放的 PS 侧接口（见 sd_play.c 与 report/log/overnight_log.md §P1）。 |
+| `src/ps/sd_play.h` | `（无 module：C/H 或纯 include）` | 68 | SD 卡本地回放的 PS 侧接口（见 sd_play.c 与 夜轮记录 §P1）。 |
 | `src/rtl/axi/axi_frame_writer.v` | axi_frame_writer | 169 | AXI3 HP0 整帧取数（64bit、最多 16 拍/突发）。警告 **本树无人例化**：现役两代是 |
 | `src/rtl/axi/axi_frame_writer64.v` | axi_frame_writer64 | 116 | AXI3 HP read: DDR frame -> 64-bit BRAM writes, with overlapped bursts |
 | `src/rtl/axi/axi_frame_writer_gated.v` | axi_frame_writer_gated | 191 | axi_frame_writer_gated：pl_video_top 里的 u_row —— 显示帧缓存的逐行搬运机：从 HP0 把 DDR 里刚提交 |

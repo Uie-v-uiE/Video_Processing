@@ -67,6 +67,6 @@ only, byte-identical otherwise (`build/evidence/r121_note_c4.txt`, run log `buil
 100-frame sliding windows on the SD sequence read 29.956 and 29.815 fps (`build/evidence/r87_boot_stat_drain.txt`); the row in `data/metrics.csv`
 rounds that to 29.8 – 30.0, while the per-pixel comparison of the 9-stage chain and the three sources is judged by the `sim/tb_*.v` benches.
 
-Boundaries and known limitations are registered item by item in `report/known-limitations.md` (which dimensions of the HDMI source side were
+Boundaries and known limitations are registered item by item in 限制清单 (which dimensions of the HDMI source side were
 measured, how the PS-side firmware is rebuilt and re-verified on the board, what is bound to the tool version), defects and deliberately
-kept failing items in `report/known_issues.md`, and the consolidated open-items table in `report/90-open-items.md`.
+kept failing items in 问题清单, and the consolidated open-items table in 未决项集中表.

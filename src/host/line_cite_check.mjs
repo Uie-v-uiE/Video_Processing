@@ -39,7 +39,7 @@ const DOC_DIRS = ['.', 'report', 'report/log', 'skill', 'board'];
 const SKIP_DOCS = ['report/log/', 'report/study/'];
 const CODE_EXT = new Set(['.v', '.c', '.h', '.mjs', '.sh', '.tcl', '.ps1']);
 // 被引文件在这些目录里不存在（生成的、厂商树），引用它们本来就不该判红
-const SKIP_DIR = new Set(['.git', 'vivado_system', 'xsim.dir', 'node_modules', '.Xil', 'dist', 'study', 'report/study']);
+const SKIP_DIR = new Set(['.git', 'vivado_system', 'xsim.dir', 'node_modules', '.Xil', 'dist', 'study', 'report/study', 'local_docs', 'deep_course']);
 // 锚点里不算数的词：文件名、常见英文、工具名——它们出现在任何地方都不证明"指对了地方"
 const STOP = new Set(['the', 'and', 'for', 'with', 'this', 'that', 'from', 'then', 'else', 'wire', 'reg',
                       'input', 'output', 'module', 'begin', 'end', 'node', 'bash', 'git', 'docs', 'src',

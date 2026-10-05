@@ -115,7 +115,7 @@ VP_XSDB=<…>/xsdb.bat bash build/board_verify.sh --battery --geom --round=r118
 
 机器判不了屏幕，所以这三条不预先写成通过：分割线两侧是同一条帧的两种处理状态、几何关系一致；缩放或旋转时不出现整行错位；OSD 各格读数与串口读回一致。
 逐格签收状态与"谁点的头、什么时候、原话"记在 `acceptance.md` 与 `signoff.md`；接线、供电、跳线与 COM 口的实际观察在 `hardware_setup.md`；原图与金标比对那一格的状态在 `raw-vs-golden.md`。
-已知未修的限制不在这里重复，看 `report/known_issues.md`。
+已知未修的限制不在这里重复，看 问题清单。
 
 ## 5. 复现顺序
 
