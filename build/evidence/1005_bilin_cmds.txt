@@ -1,0 +1,4 @@
+bilin off
+stat
+bilin on
+stat
