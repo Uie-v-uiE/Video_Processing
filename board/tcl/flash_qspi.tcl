@@ -57,9 +57,11 @@ set cm [create_hw_cfgmem -hw_device [current_hw_device] [lindex $parts 0]]
 # PROGRAM.START_ADDRESS（写死会 17-142 中断），所以先 list_property 再逐个设，缺的只报 SKIP。
 set props [list_property $cm]
 puts "CFGMEM_PROPS $props"
+set fsbl [file join $root "vitis/platform/zynq_fsbl/build/fsbl.elf"]
+if {![file exists $fsbl]} { puts "REFUSE: no FSBL at $fsbl"; close_hw_target; close_hw_server; exit 1 }
 foreach {name val} [list \
-    PROGRAM.ADDRESS_RANGE {use_file} \
     PROGRAM.FILES         [list $img] \
+    PROGRAM.ZYNQ_FSBL     $fsbl \
     PROGRAM.BLANK_CHECK   {0} \
     PROGRAM.ERASE         {1} \
     PROGRAM.CFG_PROGRAM   {1} \

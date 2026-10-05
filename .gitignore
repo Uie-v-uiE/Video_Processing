@@ -179,3 +179,9 @@ docs/
 board/flash/BOOT.bin
 board/flash/boot.bif
 board/flash/*.log
+
+# 本机学习档与计划件：学习文档不上 GitHub（2026-10-05 的决定）。
+# 这三条守住那条决定：在 review 工作树里再 git add -A，也不会把它们带上分支。
+deep_course/
+local_docs/
+dcb_timing_chain_plan.md
