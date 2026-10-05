@@ -402,7 +402,12 @@ if (process.argv.includes('--self')) { process.exit(selftestC2()); }
   const counts = {}; let total = 0;
   for (const f of mdFiles()) { const t = read(f) || ''; for (const k of marks) { const n = (t.match(new RegExp(k.replace(/[【】]/g, x => '\\' + x), 'g')) || []).length; if (n) { counts[k] = (counts[k] || 0) + n; total += n; } } }
   const open = read('report/90-open-items.md');
-  const rows = open === null ? -1 : open.split(/\r?\n/).filter(l => /^\|\s*\d+\s*\|/.test(l)).length;
+  // 两棵树的汇总表形状不同：主线那份是 `| 1 | 【标记】 | …`，提交分支由
+  // `build/submit_open_items.mjs` 生成、首列就是标记（可有可无被反引号包住）。
+  // 老正则只认前者，在提交分支永远读成 0 行 ⇒ "表空就是缺认领"那条门其实没看过表（台账 #396）。
+  // 两种形状都数，行数仍为 0 就判红。
+  const ROW_RE = /^\|\s*(?:\d+\s*\|\s*)?`?(?:【[^】]*】|NOT_MEASURED)`?\s*\|/;
+  const rows = open === null ? -1 : open.split(/\r?\n/).filter(l => ROW_RE.test(l)).length;
   // 审计指出的洞：原来只要 `rows > 0` 就判 PASS，正文标记与汇总表从不比对（名字叫"汇总一致"却不比）。
   // 现在要求：正文里每一类出现过的标记，汇总表里必须至少有一行认领它；缺类就 FAIL 并把类名念出来。
   const missingCls = open === null ? [] : Object.keys(counts).filter(k => !open.includes(k));
