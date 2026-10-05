@@ -85,3 +85,18 @@
 
 每一条例子都遵守同一条纪律：**逐时钟名册差分**（`build/timing_roster_diff.sh`，八对 (时钟,类型) 要全配上），
 本族没变好而别域变差就是**代价**，不是"没找到收益"。
+
+## 6. D1 的实测结果（2026-10-05，判 DECLINE）
+
+第 4 节那条 D 候选（TMDS 源端窗）已经量过一轮，结论写在这里以免下一份读者再去猜：
+
+- **窗本身管用**：`VP_R119_TMDS_WINDOW=1` 的隔离构建里，`check_timing` 的 `no_output_delay` HIGH 缺口 **6 → 3**，
+  并且**没有任何违例端点**（`build/evidence/1006d_tmdswindow_timing_summary.rpt`）。
+- **代价在别的域**：同一轮的逐时钟名册差分（`build/evidence/1006d_roster_diff_vs_r118.txt`，八对全配上）
+  `result=RED`：`eth_rxc/setup` 0.739→0.471（相对余量 9.24 %→5.89 %）、`clk_fpga_0/setup` 1.850→1.492（−19.4 %）、
+  `sys_clk/hold` 0.222→0.121（−46 %）、`clk_fpga_0/hold` 与 `clkout0_1/hold` 各掉 5.7 %/6.8 %；
+  唯一变好是 `clkout0_1/setup` +8.7 %。**RTL 一字未改**，这是"把 TMDS 纳入检查后工具重新布置"的连带。
+- **所以默认构建不加载**：候选件与开关原样留着，`I3=3` 这条继续作为**量过的债**登记（不是"没做"）。
+- **翻案的两个方向，每个都是另一个单变量**：给 `tmds_clk_p` 也配窗（现在那份只覆盖 `tmds_data_p/n`，
+  剩下三个缺口正是 `led[0] led[1] tmds_clk_p`，与 `report/timing/debt_ledger.md` 的名单一致）；
+  或把 ±4.000 ns 按板级走线失配**减掉**之后再绑。两条都要再来一轮名册差分才谈采纳。

@@ -1,0 +1,15 @@
+ROSTER|setup|clk=clk_fpga_0|period=10.000|slack=1.492|margin_pct=14.92|levels=NA|route_pct=NA|dest=NA|endpoints=15721|src=timing_summary
+ROSTER|hold|clk=clk_fpga_0|period=10.000|slack=0.050|margin_pct=0.50|levels=NA|route_pct=NA|dest=NA|endpoints=15721|src=timing_summary
+ROSTER|setup|clk=eth_rxc|period=8.000|slack=0.471|margin_pct=5.89|levels=NA|route_pct=NA|dest=NA|endpoints=4835|src=timing_summary
+ROSTER|hold|clk=eth_rxc|period=8.000|slack=0.050|margin_pct=0.62|levels=NA|route_pct=NA|dest=NA|endpoints=4835|src=timing_summary
+ROSTER|setup|clk=sys_clk|period=20.000|slack=13.887|margin_pct=69.44|levels=NA|route_pct=NA|dest=NA|endpoints=323|src=timing_summary
+ROSTER|hold|clk=sys_clk|period=20.000|slack=0.121|margin_pct=0.60|levels=NA|route_pct=NA|dest=NA|endpoints=323|src=timing_summary
+ROSTER|setup|clk=clkout0_1|period=20.000|slack=3.945|margin_pct=19.73|levels=NA|route_pct=NA|dest=NA|endpoints=30179|src=timing_summary
+ROSTER|hold|clk=clkout0_1|period=20.000|slack=0.055|margin_pct=0.28|levels=NA|route_pct=NA|dest=NA|endpoints=30179|src=timing_summary
+ROSTER|setup|clk=clkout1_1|period=4.000|slack=-5.408|margin_pct=-135.20|levels=NA|route_pct=NA|dest=NA|endpoints=6|src=timing_summary
+ROSTER|hold|clk=clkout1_1|period=4.000|slack=-1.923|margin_pct=-48.08|levels=NA|route_pct=NA|dest=NA|endpoints=6|src=timing_summary
+ROSTERFROMSUM S1_clock_rows            rows=10          floor>=8 GREEN
+ROSTERFROMSUM S2_period_known          periods=8        want>=2 GREEN
+ROSTERFROMSUM S3_margin_computed       na_margin=0      want=0 GREEN
+ROSTERFROMSUM S4_period_freq_crosscheck 8/8 bad=0        bad=0 GREEN
+ROSTERFROMSUM-SUMMARY src=build/isolated_1006_d_tmdswindow/timing_summary.rpt clock_rows=5 periods=8 result=GREEN

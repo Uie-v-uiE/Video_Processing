@@ -111,9 +111,31 @@ B=${2:-}
 clks_a=$(grep -a '^ROSTER|' "$A" | sed -n 's/^ROSTER|[a-z]*|clk=\([^|]*\)|.*/\1/p' | sort -u | tr '\n' ' ')
 clks_b=$(grep -a '^ROSTER|' "$B" | sed -n 's/^ROSTER|[a-z]*|clk=\([^|]*\)|.*/\1/p' | sort -u | tr '\n' ' ')
 fo_a=$(grep -ac '^FANOUT|' "$A"); fo_b=$(grep -ac '^FANOUT|' "$B")
-if [ "$clks_a" != "$clks_b" ] || { [ "$fo_a" -gt 0 ] && [ "$fo_b" -eq 0 ]; } || { [ "$fo_a" -eq 0 ] && [ "$fo_b" -gt 0 ]; }; then
+# 2026-10-05（D1 逼出来的修法）：**"B 多出一颗钟"不是口径不一致，而是这一轮把那条路从"没人检查"
+#   变成了"有窗可检查"**（TMDS `clkout1_1` 在基线那份里没有行，绑上 `set_output_delay` 之后才出现）。
+#   原来一律 REFUSE 会把正当实验挡回去（同上面注释里"假拒绝"那一课）。现在分成三种：
+#     · A 里的钟在 B 里**消失** = 真口径不一致 ⇒ REFUSE（整路消失不可能是代价）；
+#     · B 多出的钟**setup/hold 两行齐** = 新纳入检查的路，单独打印 `ROSTERDIFF-NEWTIMED` 让人看见，不挡；
+#     · B 多出的钟只有半行 = 不是同一把生成器 ⇒ REFUSE。
+missing_in_b=""
+for c in $clks_a; do printf '%s ' "$clks_b" | grep -q "$c " || missing_in_b="$missing_in_b $c"; done
+extra_in_b=""
+for c in $clks_b; do printf '%s ' "$clks_a" | grep -q "$c " || extra_in_b="$extra_in_b $c"; done
+half_new=""
+for c in $extra_in_b; do
+    ns=$(grep -ac "^ROSTER|setup|clk=$c|" "$B"); nh=$(grep -ac "^ROSTER|hold|clk=$c|" "$B")
+    if [ "$ns" -ge 1 ] && [ "$nh" -ge 1 ]; then
+        printf 'ROSTERDIFF-NEWTIMED clk=%s setup_rows=%s hold_rows=%s（这一轮新纳入检查的路，不参与差分）\n' "$c" "$ns" "$nh"
+    else
+        half_new="$half_new $c"
+    fi
+done
+fan_mismatch=no
+if { [ "$fo_a" -gt 0 ] && [ "$fo_b" -eq 0 ]; } || { [ "$fo_a" -eq 0 ] && [ "$fo_b" -gt 0 ]; }; then fan_mismatch=yes; fi
+if [ -n "$missing_in_b" ] || [ -n "$half_new" ] || [ "$fan_mismatch" = "yes" ]; then
     printf 'ROSTERDIFF-SHAPE clocks_A=[%s] clocks_B=[%s] fanout_rows=%s/%s\n' "$clks_a" "$clks_b" "$fo_a" "$fo_b"
-    echo 'ROSTERDIFF-SHAPE 口径：两侧要同一把生成器——时钟名单要一致、扇出节要同有同无（不同口径相减出来的不是代价，是尺子断）'
+    echo "ROSTERDIFF-SHAPE 消失的钟=[${missing_in_b# }] 只有半行的新钟=[${half_new# }] 扇出节一边有一边无=$fan_mismatch"
+    echo 'ROSTERDIFF-SHAPE 口径：两侧要同一把生成器——A 的钟不许在 B 消失、新钟要 setup+hold 齐、扇出节要同有同无（不同口径相减出来的不是代价，是尺子断）'
     echo "ROSTERDIFF-SUMMARY a=$A b=$B result=REFUSE"
     exit 3
 fi
