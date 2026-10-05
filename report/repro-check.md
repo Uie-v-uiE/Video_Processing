@@ -338,12 +338,14 @@ build/evidence/r118_board/bitcycle_console.txt 首末两条记录
 三条如实：
 
 1. **frames_bad=1 是读到的数，不是判出来的事**：两趟同值，同时 drop_words=0、pkt_err=0。
-   它是不是一帧启动窗口的填充计数，本轮没有做判别实验 ⇒ 不下结论，只登记（要收口需要下一轮带构建的对账）。
-2. **本轮暴露两处我自己工具的问题**（都改了/登记了）：
+   它是不是一帧启动窗口的填充计数，没有做判别实验 ⇒ 不下结论，只登记（要收口需要一次带构建的对账）。
+2. **这一跑暴露两处检查器自身的问题**（都改了/登记了）：
    build/r116_bit_cycle.sh 的摘要行把 pkt_err / frames_bad / drop_seen 打成 `?` —— 它用正则去扫 JSON 文本，
    而反斜杠经过 bash 与 node 两层引号后退化成永远匹配不上的式子，且 drop_seen 实际住在 flags_bits 下面。
    现在改成按对象取键、取不到打 NA，并把 lat 整个 JSON 打出来（同一份 JSON 重放：pkt_err=0 frames_bad=1 drop_seen=0）。
    另一处：C3（本件判定分母里的一项）与 doc_currency 的豁免话术不是一套，同一批"不入库指路"一边放行一边判红
    ⇒ 现在 C3 从对面源码读那张词表（读不到就整项不判），并补了两支能红/能绿对照。
-3. **C3c 仍不判**：换一份 ELF 的对照需要 arm-none-eabi-gcc，本机没有（ELF 不能重编），
-   所以 ps_app 那一路的任何改动都只是源码级，不许写成"板上已验"。
+3. **C3c 仍不判**：这一行要的是"换一份 ELF 再读一遍"的对照。ELF 可以用 `node build/ps_app.mjs` 重建
+   （`arm-none-eabi-gcc` 在 `<Vitis>/gnu/aarch32/nt/gcc-arm-none-eabi/bin/`，实测记录
+   `build/evidence/1005_ps_app_rebuild.txt`），但重建那颗 md5 与板上那颗不同 ⇒ 这一行欠的不是编译器，
+   是一次重刷加 `board_verify` 复验。在那之前 ps_app 那一路的改动只算源码级，不许写成"板上已验"。

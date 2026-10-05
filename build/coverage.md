@@ -14,7 +14,7 @@
 | `src/constraints/clock_groups_impl.xdc` | 同上 + `set_property used_in_synthesis false` | 同文件 `:24-25` | 是（只实现阶段） |
 | `src/constraints/r116_rgmii_input_window.xdc` | env 开关 `VP_R116_IO_WINDOW` | 同文件 `:45-52` | **否**（走 `:51` 的 off 分支） |
 | `src/constraints/r119_hdmi_source_window.xdc` | env 开关 `VP_R119_TMDS_WINDOW` | 同文件 `:63-70` | **否**（走 `:69` 的 off 分支） |
-| `src/constraints/r114_io_async.xdc` | 发布流程不挂；只被实验脚本 source | `build/tcl/r114_idelay_sweep.tcl:18`、`r114_io_roll.tcl:29`、`r114_io_roll_one.tcl:12` | 否 |
+| `src/constraints/r114_io_async.xdc` | 发布流程不挂；r114 那一拨输入窗实验脚本已随轮次清掉，现在没有任何一处 source 它 | `grep -rl r114_io_async build/tcl/*.tcl build/*.sh` **0 命中**（本轮实跑） | 否 |
 | `src/constraints/r114_io_varianta_rise_only.xdc`、`r114_io_variantb_phy_delay.xdc`、`r115_io_window_candidate.xdc`、`r119b_hdmi_tp1_pinclk.xdc` | `grep -rl <名> build/tcl/*.tcl build/*.sh` **0 命中**（本轮实跑） | —— | 否（无任何一处挂载） |
 
 ⇒ 参与覆盖面核对的"已加载约束"= 前两份，共 **2 份**。

@@ -67,18 +67,27 @@ SIM_KEEP=("${!SIM_MAP[@]}" "${SIM_PLAIN[@]}")
 # ---- 硬剔除：被否决的轮次、探针与构建中间物、零引用 RTL ----
 HARD_DROP_RE='^build/(failed_|red_|multidrive_|exp_|strprobe|uram_probe|micro_rd|ps_obj|snap_|r[0-9]+_|build/|vivado_system/|__pycache__/)|^docs/walkthrough/|^sim/(probes|msim|v98run|xtest|tagchk|syntaxchk|v100run2)/|^src/rtl/(axi/axi_frame_writer|eth/axi_frame_saver|video/frame_buffer_db|video/video_timing_720p)\.v$'
 PRUNE_ONEOFF=(
-  build/tcl/apply_cdc_report.tcl build/tcl/fix_bd_and_top.tcl build/tcl/rebuild_opt.tcl
-  build/tcl/rebuild_zoom_out.tcl build/tcl/rebuild_cdc_fix.tcl build/tcl/micro_rd.tcl
-  build/tcl/uram_presence.tcl build/tcl/uram_probe.tcl build/tcl/uram_sites.tcl
-  build/tcl/dfx_runtime.txt build/tcl/retry_open_nr.log
+  build/tcl/apply_cdc_report.tcl build/tcl/micro_rd.tcl
+  build/tcl/uram_presence.tcl build/tcl/uram_sites.tcl
+  build/tcl/retry_open_nr.log
   build/sim/run_zoom_only.tcl board/ddr_churn_r33_pair.md
   # `build/` 在包里只该有两类东西：**可复现的构建脚本**与**综合/实现报告**（用户看包时提的）。
   # 下面这些是仓里的开发工具，不在复现链上 —— 复现链的名单不是凭印象列的，是从
   # `gates.sh` / `board_verify.sh` 里 grep 出来的：gates.sh 会调 check_ports.py、freeze_evidence.sh、
   # gates_cdc_test.sh、tb98_report.sh、board_verify.sh，所以那几个**留**，其余走。
+  # 2026-10-05 目录精简：下面这些名字已经从仓库里真删掉了，留在名单里只会让 `_pruned.txt` 念一条
+  # 兜不住任何东西的死规则（#222 同族：规则要说真话），所以连着删掉；`prune()` 本来就有 `[ -e ]`
+  # 挡着，少列名字不会漏剪：`build/tcl/uram_probe.tcl`、`build/tcl/dfx_runtime.txt`、
+  # `build/roll_isolated.sh`、`build/trim_comments.py`、`build/tag_bench_labels.mjs`、`build/tcl/probe_reasm_fanout.tcl`、
+  # `build/tcl/build_system.tcl`、`build/tcl/synth_pl_only.tcl`、`build/tcl/build_bitstream.tcl`、
+  # `build/tcl/create_project.tcl`、`build/tcl/fix_bd_and_top.tcl`、`build/tcl/rebuild_opt.tcl`、
+  # `build/tcl/rebuild_zoom_out.tcl`、`build/tcl/rebuild_cdc_fix.tcl`。
+  # 例外两条：`build/roll_isolated.sh` 与 `build/_scan_align.mjs` 有交付文档按名字点着
+  # （`report/build.md`、`report/optimization_log.md`、`report/perf_report.md`、`report/repro-check.md`），
+  # 仓库里必须先留着，所以它们仍列在下面 —— 文档改口之后再一起删。
   build/_scan_align.mjs build/cleanup_wip.sh build/refresh_evidence.sh build/roll_isolated.sh
-  build/trim_comments.py build/orphan_rtl.sh build/rim_gate_ce.sh build/tb98_gate_ce.sh
-  build/ps_app.mjs build/tag_bench_labels.mjs build/_tmp_isolated_roll.tcl
+  build/orphan_rtl.sh build/rim_gate_ce.sh build/tb98_gate_ce.sh
+  build/ps_app.mjs
   # rNN_ 开头的开发件现在由上面的形状规则统一剪掉，不再逐个列名字（列名就会漏，r92 漏过九个）。
   # `board/` 同理：留"上板工程 / 运行脚本 / 实测输出"，一次性探针走。
   # 名单不是凭印象 —— 先查过谁被指路：`rdddr.tcl` 被 build.md 点名、`demo_rehearsal.txt` 被 gates.sh 用、
@@ -91,8 +100,8 @@ PRUNE_ONEOFF=(
 # 属于"可复现"，不属于开发工具。
 BUILD_DEV_ONLY=(
   build/_scan_align.mjs build/cleanup_wip.sh build/refresh_evidence.sh build/roll_isolated.sh
-  build/trim_comments.py build/orphan_rtl.sh build/rim_gate_ce.sh build/tb98_gate_ce.sh
-  build/ps_app.mjs build/tag_bench_labels.mjs
+  build/orphan_rtl.sh build/rim_gate_ce.sh build/tb98_gate_ce.sh
+  build/ps_app.mjs
 )
 # 赛程对照表也不进包（用户原话："那些什么与赛程对照啥的都丢掉，直接把这个项目说清楚就行，
 # 不过是按照比赛的目录罢了"）：它是作者对着指南打勾用的工作记录，评审要的"比赛推荐的目录形状"
