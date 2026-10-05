@@ -14,9 +14,9 @@
 
 | 路径 | 声明的 module | 行数 | 文件头注第一行（逐字） |
 | --- | --- | --- | --- |
-| `src/host/ps/main.c` | `（无 module：C/H 或纯 include）` | 1619 | PS control plane + SD 卡本地回放。UDP 视频数据通路仍然整个在 PL（rtl/eth 目录）。 |
-| `src/host/ps/sd_play.c` | `（无 module：C/H 或纯 include）` | 882 | SD 卡本地视频回放：裸机 FAT32 只读 + XSdPs，不依赖 FatFs / 任何文件系统库。 |
-| `src/host/ps/sd_play.h` | `（无 module：C/H 或纯 include）` | 68 | SD 卡本地回放的 PS 侧接口（见 sd_play.c 与 report/log/overnight_log.md §P1）。 |
+| `src/ps/main.c` | `（无 module：C/H 或纯 include）` | 1619 | PS control plane + SD 卡本地回放。UDP 视频数据通路仍然整个在 PL（rtl/eth 目录）。 |
+| `src/ps/sd_play.c` | `（无 module：C/H 或纯 include）` | 882 | SD 卡本地视频回放：裸机 FAT32 只读 + XSdPs，不依赖 FatFs / 任何文件系统库。 |
+| `src/ps/sd_play.h` | `（无 module：C/H 或纯 include）` | 68 | SD 卡本地回放的 PS 侧接口（见 sd_play.c 与 report/log/overnight_log.md §P1）。 |
 | `src/rtl/axi/axi_frame_writer.v` | axi_frame_writer | 169 | AXI3 HP0 整帧取数（64bit、最多 16 拍/突发）。警告 **本树无人例化**：现役两代是 |
 | `src/rtl/axi/axi_frame_writer64.v` | axi_frame_writer64 | 116 | AXI3 HP read: DDR frame -> 64-bit BRAM writes, with overlapped bursts |
 | `src/rtl/axi/axi_frame_writer_gated.v` | axi_frame_writer_gated | 191 | axi_frame_writer_gated：pl_video_top 里的 u_row —— 显示帧缓存的逐行搬运机：从 HP0 把 DDR 里刚提交 |

@@ -7,7 +7,7 @@
 数据面整条在 PL：收包、拼帧、写 DDR、读回、帧缓存、几何（缩放与旋转）、效果链、逐像素混合、OSD、
 TMDS 编码（`report/architecture.md` §3）。PS 只做三件事：发命令、读计数、把 SD 卡上的帧 DMA 进它自己
 那块 DDR；SD 控制器把帧直接落进那块内存，CPU 不逐帧搬第二遍，写完只翻一次发布位，也不中转 ETH 视频字节
-（`src/host/ps/main.c` 文件头、`report/architecture.md` §3）。
+（`src/ps/main.c` 文件头、`report/architecture.md` §3）。
 
 这样切的结果是可核对的：实时数据面放 PL，显示链上每一级的延迟由流水线级数决定，与软件运行状态无关，
 CPU 占用接近 0；控制面留 PS，命令与状态各走一条独立的 GPIO 通道。两条路的取舍与对照实验记在
@@ -41,9 +41,9 @@ SD 卡 ─► PS sd_play.c DMA ─► 写进 PS 专用 bank，翻发布位 gpio_
 写完读、读完写。"抽头"指同一条读流上并行取出的两路值：原图一路、处理图一路，两者来自同一拍。
 
 缓冲与地址的分配：ETH 那两路乒乓占 `0x1000_0000` 与 `+0x0008_0000`，SD 与图卡填充走第三个 bank
-`0x1010_0000`（`src/host/ps/main.c` 文件头第 19 行、第 41–46 行注释；`report/architecture.md` §4）。
+`0x1010_0000`（`src/ps/main.c` 文件头第 19 行、第 41–46 行注释；`report/architecture.md` §4）。
 三个 bank 的地址必须分开，这条结论来自板级实测：早期 SD 那路用的正是乒乓第 0 块的地址，两路同时写同
-一块内存，屏幕表现为两个片源互相覆盖（`src/host/ps/main.c` 第 41–45 行注释把现象与原因写在一起）。
+一块内存，屏幕表现为两个片源互相覆盖（`src/ps/main.c` 第 41–45 行注释把现象与原因写在一起）。
 帧的拷贝只在消隐窗口内做，赶不上窗口就整笔作废、屏上保留上一帧；把关的是 `frame_commit_lock`，
 它的职责记于 `report/modules.md`，通路记于 `report/architecture.md` §1。
 
@@ -83,4 +83,4 @@ SD 卡 ─► PS sd_play.c DMA ─► 写进 PS 专用 bank，翻发布位 gpio_
 - `report/ps_vs_pl.md`
 - `report/modules.md`
 - `src/rtl/top/system_top.v`
-- `src/host/ps/main.c`
+- `src/ps/main.c`

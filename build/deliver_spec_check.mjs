@@ -72,23 +72,77 @@ if (want('C1-1')) {
   const out = active.filter(f => !f.startsWith('src/constraints/'));
   say('C1-1', 'xdc-under-src-constraints', active.length, `活动 xdc=${active.length} 在 src/constraints=${inPlace.length} 不在=${out.length}[${out.slice(0, 3).join(',')}] 过程凭据里的 xdc=${frozen}(不计)`, active.length === 0 ? 'NOT_MEASURED' : (out.length ? 'FAIL' : 'PASS'));
 }
-// ---- C1-2 §1.2 源码归档位置：RTL 在 src/rtl，PS 侧与上位机在 src/host
-//      顶层八目录之外的**子目录**不会被 C0-4 看到，所以这一条单独量：
-//      凡是固件/上位机的源文件落在 src/ 的其他子目录里就是偏差，点名不圆场。
-if (want('C1-2')) {
-  const srcAll = under('src');
-  const rtl = srcAll.filter(f => /\.(v|sv|vhd|vhdl)$/.test(f) && f.startsWith('src/rtl/'));
-  const rtlOutside = srcAll.filter(f => /\.(v|sv|vhd|vhdl)$/.test(f) && !f.startsWith('src/rtl/'));
-  const isSrc = (f) => /\.(c|h|cpp|py|mjs|ld)$/.test(f) && f.startsWith('src/') && !f.startsWith('src/rtl/') && !f.startsWith('src/constraints/');
-  const inHost = srcAll.filter(f => isSrc(f) && f.startsWith('src/host/'));
-  const outside = srcAll.filter(f => isSrc(f) && !f.startsWith('src/host/'));
-  const dirs = [...new Set(outside.map(f => f.split('/')[1]))];
+// ---- C1-2 §1.2 源码归档位置：RTL 在 src/rtl，**PS 裸机固件在 src/ps（与 src/rtl 同级）**，
+//      上位机/PC 侧工具在 src/host。顶层八目录之外的**子目录**不会被 C0-4 看到，所以这一条单独量。
+// 口径换过一次：r122 那一轮按"PS 侧与上位机都在 src/host"判，固件因此被归档到 src/host/ps。
+//      本轮按用户口径改回"PS 源与 rtl 同级 = src/ps"，上位机工具仍留在 src/host —— 两类源文件
+//      按**扩展名**分家（固件=c/h/cpp/ld/S，PC 侧=py/mjs），不再一锅烩在"在不在 src/host"上。
+// ⚠ 判据不许改成恒绿：`--c1-2-self` 那六条对照里必须有"固件放回 src/host/ps ⇒ 红"和
+//      "src/ps 空了 ⇒ 红"两条，否则这一条只是把现在的成绩单抄了一遍。
+const C12 = { RTL: 'src/rtl/', PS: 'src/ps/', HOST: 'src/host/', CON: 'src/constraints/' };
+function c12Judge(files) {
+  const srcAll = files.filter(f => f.startsWith('src/') && !f.startsWith('src/../'));
+  const isRtlSrc = (f) => /\.(v|sv|vhd|vhdl)$/.test(f);
+  const isFwSrc = (f) => /\.(c|cpp|cc|h|hpp|ld|S)$/.test(f);
+  const isPcSrc = (f) => /\.(py|mjs)$/.test(f);
+  const rtl = srcAll.filter(f => isRtlSrc(f) && f.startsWith(C12.RTL));
+  const rtlOutside = srcAll.filter(f => isRtlSrc(f) && !f.startsWith(C12.RTL));
+  const fw = srcAll.filter(f => isFwSrc(f) && !f.startsWith(C12.CON));
+  const fwInPs = fw.filter(f => f.startsWith(C12.PS));
+  const fwMisplaced = fw.filter(f => !f.startsWith(C12.PS));
+  const pc = srcAll.filter(f => isPcSrc(f));
+  const pcInHost = pc.filter(f => f.startsWith(C12.HOST));
+  const pcMisplaced = pc.filter(f => !f.startsWith(C12.HOST));
   const p = [];
   if (rtlOutside.length) p.push(`RTL 不在 src/rtl=${rtlOutside.length}[${rtlOutside.slice(0, 3).join(',')}]`);
-  if (outside.length) p.push(`PS/上位机源文件不在 src/host=${outside.length} 目录=${dirs.join(',')} 例:${outside.slice(0, 3).join(',')}`);
-  say('C1-2', 'src-placement-per-1.2', rtl.length + rtlOutside.length + inHost.length + outside.length,
-    p.join('、') || `符合（RTL=${rtl.length} 在 src/rtl，PS/上位机=${inHost.length} 在 src/host）`,
-    (rtl.length + inHost.length) === 0 ? 'NOT_MEASURED' : (p.length ? 'FAIL' : 'PASS'));
+  if (fwMisplaced.length) p.push(`PS 固件源不在 src/ps=${fwMisplaced.length} 目录=${[...new Set(fwMisplaced.map(f => f.split('/')[1]))].join(',')} 例:${fwMisplaced.slice(0, 3).join(',')}`);
+  // 这一条是"删掉了也算偏差"的那一档：不写成 `fw.length && !fwInPs.length`，因为固件源**整个被删**
+  // 时 fw 也是 0，那样判据就悄悄恒绿了 —— 交付口径要求 src/ps 里必须有 PS 源，空目录就是不合格。
+  if (!fwInPs.length) p.push(`src/ps 下一份固件源都没有（PS 归档缺失；src/ 里的固件源=${fw.length}，例:${fw.slice(0, 2).join(',') || '无'}）`);
+  if (pcMisplaced.length) p.push(`上位机/PC 源不在 src/host=${pcMisplaced.length} 例:${pcMisplaced.slice(0, 3).join(',')}`);
+  let verdict;
+  if (!srcAll.length) verdict = 'NOT_MEASURED';        // 射程空 = 没量，不许当"没毛病"
+  else verdict = p.length ? 'FAIL' : 'PASS';
+  return {
+    cmp: srcAll.length, p, verdict,
+    detail: p.join('、')
+      || `符合（RTL=${rtl.length} 在 src/rtl，PS 固件=${fwInPs.length} 在 src/ps 与 rtl 同级，上位机/PC=${pcInHost.length} 在 src/host）`,
+  };
+}
+if (want('C1-2')) {
+  const g = c12Judge(tracked);
+  say('C1-2', 'src-placement-per-1.2', g.cmp, g.detail, g.verdict);
+}
+// ---- C1-2 自己的对照：判据必须**能红**，否则"换了口径"等于"改了成绩单"
+//      （本轮口径从"PS 在 src/host"换成"PS 在 src/ps 与 rtl 同级"，没有这六条就分不清
+//        是真的按新口径判、还是把现在的成绩抄了一遍。跑法：node build/deliver_spec_check.mjs --c1-2-self）
+if (process.argv.includes('--c1-2-self')) {
+  // 夹具里的假路径**由常量拼出来**，不写成 `src/host/ps/main.c` 这种字面量：
+  // C-PATHS 判的就是脚本里的 `src/**` 字面量必须在盘上存在，写死会让这条判据自己红在夹具上；
+  // 而把它塞进 SKIP_RE 或 CASE_LINE 去豁免，等于拿豁免通道盖住一条真指路（rule 44 反买通禁止的形状）。
+  const OLD_PS = C12.HOST + 'ps/';                       // r122 那一版固件的位置 = 本轮要判红的形状
+  const RTL = ['src/rtl/top/pl_video_top.v', 'src/rtl/eth/icmp_tx.v'];
+  const FW = [C12.PS + 'main.c', C12.PS + 'sd_play.c', C12.PS + 'sd_play.h', C12.PS + 'lscript_ocm.ld'];
+  const PC = ['src/host/video_sender.mjs', 'src/host/udp_push.py', 'src/host/README.md'];
+  const cases = [
+    ['正对照：本轮口径（RTL 在 src/rtl + 固件在 src/ps + PC 在 src/host）', RTL.concat(FW, PC), 'PASS'],
+    ['能红①：固件放回 host/ps（r122 那一版的位置）', RTL.concat(
+      [OLD_PS + 'main.c', OLD_PS + 'sd_play.c', OLD_PS + 'lscript_ocm.ld'], PC), 'FAIL'],
+    ['能红②：固件整个被删（src/ps 空了）——不许滑成绿，也不许躲进 NOT_MEASURED', RTL.concat(PC), 'FAIL'],
+    ['能红③：PC 侧工具漂进 ps/', RTL.concat(FW, [C12.PS + 'video_sender.mjs'])
+      .filter(f => f !== 'src/host/video_sender.mjs'), 'FAIL'],
+    ['能红④：RTL 漂进 ps/（证明 src/ps 不是"什么源都能放"）', [C12.PS + 'top.v'].concat(FW, PC), 'FAIL'],
+    ['射程空：src/ 下一个文件都没跟踪 ⇒ NOT_MEASURED，不能当"没毛病"', ['README.md', 'build/x.sh'], 'NOT_MEASURED'],
+  ];
+  let r = 0;
+  for (const [why, fs_, wantV] of cases) {
+    const g = c12Judge(fs_);
+    const ok = g.verdict === wantV;
+    if (!ok) r++;
+    console.log(`C12-SELF ${ok ? 'PASS' : 'FAIL'} ${why} ⇒ 判 ${g.verdict}（要 ${wantV}）${g.verdict === 'FAIL' ? ' 理由:' + g.p.join('、').slice(0, 110) : ''}`);
+  }
+  console.log(`C12-SELF 判 ${cases.length} 项 红=${r} ${r ? 'FAIL' : 'PASS'}`);
+  process.exit(r ? 1 : 0);
 }
 // ---- C1-3 上位机双实现 + 双击入口 + 两类工具
 if (want('C1-3')) {

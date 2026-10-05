@@ -198,7 +198,7 @@ sed -n '1p' build/evidence/rNN_bit_md5.txt
   它真正分辨得开的是"有没有每帧换角"`）；机器那一侧的读数 `build/r105_tb_head_rot_displace.txt`（`RESULT … PASS cells=49152 pairs=12`；
   45° k=1/2/7 最大 5/9/31 源像素，k=0 那一档三个角度各扫两遍逐位相同 ⇒ 台架自己不漂）；
   另一处同族教训 `report/log/issues.md:10080-10089`。
-- **失效条件**：如果这个现象**只有**眼睛能看（例如 OSD 上那格数字，`src/host/ps/main.c` 里根本没有 fps 读者），
+- **失效条件**：如果这个现象**只有**眼睛能看（例如 OSD 上那格数字，`src/ps/main.c` 里根本没有 fps 读者），
   就别硬造机器判据；那条永远不进门禁（`board/acceptance.md:84-85`）。
 
 ## R13 逐轮读数**不覆盖**，就地新开一节写这一版

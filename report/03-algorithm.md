@@ -54,7 +54,7 @@
 - 实现选择：像素通路的最后一级，叠 5 行状态文字（面板/FPS/片源、Pipe/Th/Gamma、Rot/Zoom、
   Split/Latency、Temp/无信号），字模是 5×7 点阵再放大 3 倍（`CHAR_W = 18`、`CHAR_H = 21`）；输出比输入
   晚 2 拍，内容与坐标仍是同一拍；行数参数 `N_LINES = 5`。出处 `src/rtl/video/osd_overlay.v` 文件头
-  第 2–19 行。叠层开关 `osd_en` 由 `gpio_o[20]` 反相驱动，复位状态是"有 OSD"（`src/host/ps/main.c`
+  第 2–19 行。叠层开关 `osd_en` 由 `gpio_o[20]` 反相驱动，复位状态是"有 OSD"（`src/ps/main.c`
   第 11 行、第 53–57 行）。
 - 代价：字格几何里含不是 2 的幂的除法与取余（`/31`、`/18`、`%18`），组合链的级数因此偏高。`FPS:`
   那一格数的是"写进屏的新帧"，而它以前数的是扫过屏的显示场，两者不是一回事（计数所在的模块
@@ -91,7 +91,7 @@
 - `src/rtl/process/proc_morph.v`
 - `src/rtl/video/osd_overlay.v`
 - `src/rtl/eth/axi_frame_saver64.v`
-- `src/host/ps/main.c`
+- `src/ps/main.c`
 - `report/architecture.md`
 - `report/modules.md`
 - `report/rotation_and_effects.md`

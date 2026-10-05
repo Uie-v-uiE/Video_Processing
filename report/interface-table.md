@@ -4,7 +4,7 @@
 
 ## 0. 本表的口径（先读这一节，否则判据会被误用）
 
-- **权威来源是代码本身**：`src/rtl/**.v`、`src/constraints/*.xdc`、`src/host/ps/*`、`src/host/*.mjs`。
+- **权威来源是代码本身**：`src/rtl/**.v`、`src/constraints/*.xdc`、`src/ps/*`、`src/host/*.mjs`。
   文档与本表冲突时**以 RTL 为准**（P13 交付物清单原文："与 RTL 一致，冲突以 RTL 为准"）。
 - 每一行的最后一列是**锚点**：一个可以在源码里 `grep` 到的标识符或 `文件:行`。
   §H-2 给出逐行回 grep 的命令与命中率；锚点取不出来的行一律写 `【无锚点】`，不写"略"。
@@ -102,7 +102,7 @@
 ## C. PS ↔ PL 寄存器表（AXI GPIO @ GP0 从端口）
 
 三个基址由构建脚本钉死并回读校验（`build/tcl/build_system_axigpio.tcl:228-253`）；
-固件里的宏必须等于它（`src/host/ps/main.c:48,77`）。JTAG 侧读法见 `src/host/health_read.mjs:34-35`（默认 `41200000`/`41210000`）。
+固件里的宏必须等于它（`src/ps/main.c:48,77`）。JTAG 侧读法见 `src/host/health_read.mjs:34-35`（默认 `41200000`/`41210000`）。
 
 | 基址 | BD 实例 | 引出的外部端口 | 位宽/方向 | RTL 侧消费者 | 锚点 |
 | --- | --- | --- | --- | --- | --- |

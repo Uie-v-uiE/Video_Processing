@@ -100,7 +100,7 @@ function decodeZoom(v) {
     zoom_active: b(11), zoom_dir: b(10), inv_scale: v & 0x3FF,
   };
 }
-// 八档的**倍率**（与 src/host/ps/main.c 的 ZOOM_X100、zoom_ctrl.v 的档位表同序，但这里的期望
+// 八档的**倍率**（与 src/ps/main.c 的 ZOOM_X100、zoom_ctrl.v 的档位表同序，但这里的期望
 // 不是抄它们的整数表 —— 而是从"倍率"这个定义算出来的，见 inv_exp_of）。
 const ZOOM_X100 = [25, 33, 50, 75, 100, 133, 150, 200];
 // inv_scale 是 Q8 的**倒数**：期望值 = 256 ÷ 倍率 = 25600 ÷ x100，四舍五入，

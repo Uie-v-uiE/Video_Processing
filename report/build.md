@@ -13,7 +13,7 @@
 | 构建入口 | `build/tcl/build_system_axigpio.tcl`（**只有这一个**；同目录另几支是历史/局部构建，见 `build/tcl/README.md`） |
 | 下载脚本 | `build/tcl/program_system.tcl`；PS 起来用 `build/tcl/ps_jtag_boot.tcl`（会自动从 xsa 解出 `ps7_init.tcl`） |
 | 上位机 | 推流 `python3 src/host/udp_push.py`（协议、限速、确定性丢包都在文件头）；其余取证类工具是 Node 写的（`src/host/*.mjs`），需要 Node 24，**不在演示主链路上** |
-| PS 源码 | `src/host/ps/main.c`（编译：`python3 build/build_ps_app.py`，需要 `PS_BSP`，见下表） |
+| PS 源码 | `src/ps/main.c`（编译：`python3 build/build_ps_app.py`，需要 `PS_BSP`，见下表） |
 
 > 曾经这一节的第一行就是本机安装路径的清单（Vivado 装在哪、仓库在哪、git 装在哪），
 > 换一台机器照着抄会全错，而且"仓库里还有另一份旧的工作副本"这种事写进交付文档只会让人误判。

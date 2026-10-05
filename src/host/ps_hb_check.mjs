@@ -22,8 +22,8 @@ import path from 'node:path';
 
 const ROOT = path.resolve(import.meta.dirname, '..', '..');
 const F = {
-    main:   'src/host/ps/main.c',
-    sd:     'src/host/ps/sd_play.c',
+    main:   'src/ps/main.c',
+    sd:     'src/ps/sd_play.c',
     top:    'src/rtl/top/pl_video_top.v',
     life:   'src/rtl/util/src_life.v',
     tb102:  'sim/tb_v102_src_life.v',

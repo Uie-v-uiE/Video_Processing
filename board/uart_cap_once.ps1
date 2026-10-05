@@ -1,6 +1,6 @@
 param([string]$Port = 'COM6', [int]$Seconds = 8, [string]$Out = 'board\uart_capture.txt',
       [string[]]$Cmd = @(), [string]$Cmds = '', [double]$CmdDelay = 0.12, [switch]$Drain)
-# One-shot serial send/capture for the Z7 console (src/host/ps/main.c). No pyserial needed.
+# One-shot serial send/capture for the Z7 console (src/ps/main.c). No pyserial needed.
 #   boot banner only : -Seconds 20
 #   one command      : -Cmd STAT
 #   several, spaced  : -Cmds "SD,PLAY,STOP" -CmdDelay 12 -Seconds 8

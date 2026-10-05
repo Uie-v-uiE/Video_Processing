@@ -1,4 +1,16 @@
-# src/host 上位机
+# src/host 上位机（PC 侧）
+
+## 这个目录现在只放什么
+
+**只放 PC 侧的上位机工具**：推流/发送（`video_sender.mjs` / `video_sender.py` / `udp_push.py`）、
+一键测试（`one_click_test.*`）、各把读回与判据尺子（`health_read.mjs`、`ps_hb_check.mjs`、
+`uart_cmd_check.mjs`、`geom_check.mjs`…）。**板上裸机固件不在这里** —— `main.c` / `sd_play.c` /
+`sd_play.h` / `lscript_ocm.ld` 在 `src/ps/`，与 `src/rtl/`、`src/constraints/` 同级
+（口径改过两次：r122 曾把固件收进 `src/host/ps/`，本轮搬回 `src/ps/`）。
+`build/deliver_spec_check.mjs` 的 C1-2 现在按扩展名分家判（固件必须在 `src/ps/`、
+PC 侧必须在 `src/host/`），`--c1-2-self` 那六条对照钉着它会判红。
+本目录的 `ps_hb_check.mjs` 文件名恰好以 `ps_` 开头，它是 PC 侧尺子，
+不要因为名字里有 `ps` 就把它跟着固件一起搬走。
 
 ## 环境依赖
 

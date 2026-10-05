@@ -103,7 +103,13 @@ DOC_EXCLUDE=(report/log/contest_checklist.md)
 # `^build/report/` 是 §4.4 点名的交付层（资源 LUT/FF/BRAM/DSP/IO + 频率/WNS/TNS），两份 README 的
 # 凭据就指在这里；它曾被 PRUNE_ONEOFF 当成"一次性脚本"整目录剪掉 ⇒ 包里连目录都没有，首页三条
 # 凭据全成死链（2026-10-04 实测，台账 #371）。形状规则兜住，别再靠逐个点名。
-KEEP_ALWAYS_RE='\.(sh|tcl|py|ps1|bat|xdc|f|v|c|h)$|^src/(rtl|host/ps|constraints)/|^build/report/|^data/golden/|MANIFEST|README|^submit/|^skills/'
+# PS 裸机固件现在在 `src/ps/`（与 src/rtl、src/constraints 同级），不再是 src/host/ps。
+# 这条形状规则要跟着改口。诚实说清它今天兜着什么、明天兜着什么：
+#  · 旧口径下它是**承重**的——裁剪池 `find src/host …` 会把 src/host/ps/* 收进去，而下面那条
+#    "src/host/ 下的件必须被活文档按路径点名"会把 main.c 剪掉，靠这一条才免检。
+#  · 新口径下 src/ps 与 src/rtl 一样不在裁剪池里，所以这一条当下不兜东西；名单留着是把
+#    "固件在哪"这件事写在脚本里，哪天有人把 src 加进 find，固件不会被静默剪出包。
+KEEP_ALWAYS_RE='\.(sh|tcl|py|ps1|bat|xdc|f|v|c|h)$|^src/(rtl|ps|constraints)/|^build/report/|^data/golden/|MANIFEST|README|^submit/|^skills/'
 
 cd "$REPO"
 COMMIT="$(git rev-parse --short HEAD)"
@@ -849,7 +855,7 @@ cat > MANIFEST.txt <<EOF
 
 目录对照（选题指南 §3.3.5.4 推荐结构 -> 本仓库）
   README.md   项目简介 + 复现步骤   <- README.md（中）/ README_EN.md（英）
-  src/        设计源码              <- src/rtl/**（PL）+ src/host/ps/**（裸机固件）+ src/host/**（PC 侧）
+  src/        设计源码              <- src/rtl/**（PL）+ src/ps/**（裸机固件）+ src/host/**（PC 侧）
   sim/        仿真脚本与结果        <- 支撑交付结论的台架 + run_one.sh/run_sim.tcl + mut_control.sh
                                       名字对照见 build/sim/names.md，判据报告在 build/reports/
   build/      可复现构建 + 实现报告 <- tcl/build_system_axigpio.tcl（一条命令出位流）

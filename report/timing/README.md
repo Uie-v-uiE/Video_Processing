@@ -16,7 +16,7 @@
 | 器件 part 字符串 | `xc7z020clg484-2`（速度等级 `-2` PRODUCTION） | `build/tcl/build_system_axigpio.tcl:5` 的 `set part`，并用 `build/evidence/r115_base/timing_summary.txt` 头部的 `Speed File : -2 PRODUCTION` 交叉核对（不是照抄别处） |
 | 本轮时钟花名册 | 8 个时钟对象，4 个有 intra 路径：`eth_rxc` 8 ns（PHY 恢复钟，`create_clock` 于 rk_zynq7020.xdc:36）、`clk_fpga_0` 10 ns（PS7 `FCLKCLK[0]`，由 BD 配置推导，**不是我在 xdc 里写周期**）、`sys_clk` 20 ns（rk_zynq7020.xdc:6）、`clkout0_1` 20 ns（`u_pl/u_clk/u_mmcm/CLKOUT0` 像素 50 MHz）；另外 4 个 `clkfbout`/`clkfbout_1`/`clkout1_1`(4 ns)/`clkout2`(5 ns) 在 Intra Clock Table 里**只有一行名字**（没有 intra 路径） | `build/evidence/r115_baseline_fix_console.txt` 的 8 行 `CLKROW`（含 `SOURCE_PINS` 原文）+ `report/timing/roster_baseline.tsv` |
 | 本轮目标（用户批准的上限频率） | **未批准任何提速目标**——本轮的批准范围是"把债收口、且没有任何域变差"，不是"把频率拉高"。所以目标写成：**所有域 rel_margin ≥ 基线**，而不是"WNS ≥ 某个 ns" | 用户 2026-10-03 的话只有"今晚开始做吧"；提示词 §0 要求"未填的不许靠猜测补全" ⇒ 这一格留空并说明为什么留空 |
-| 不可触碰的文件（黑名单） | `src/constraints/rk_zynq7020.xdc`、`src/constraints/clock_groups_impl.xdc`（**不放宽**，见 H1）、板载 QSPI/SPI flash 与 EEPROM（老规矩：不写、不碰）、`src/host/ps/**`（本机无 `arm-none-eabi-gcc` ⇒ 只能 source-only，不许用板级口吻汇报） | 用户长期规矩 + 提示词 H1/H6 |
+| 不可触碰的文件（黑名单） | `src/constraints/rk_zynq7020.xdc`、`src/constraints/clock_groups_impl.xdc`（**不放宽**，见 H1）、板载 QSPI/SPI flash 与 EEPROM（老规矩：不写、不碰）、`src/ps/**`（本机无 `arm-none-eabi-gcc` ⇒ 只能 source-only，不许用板级口吻汇报） | 用户长期规矩 + 提示词 H1/H6 |
 | 本轮真实剩余墙钟时间 | 开工 `date` = **2026-10-03 22:18**；写这行时 **22:39**。用户睡前只说"今晚"，没给截止点 ⇒ 按"到次日早晨用户醒来前"计，且**每个阶梯前重新 `date`**（§6 的硬闸门） | 每次 `date` 的输出都抄进本文件末节的"时间线" |
 
 **改动权限**：约束（只许加严或补覆盖）+ 实现策略 + 小型 RTL 改动（逐处挂单元 bench 与设计指纹）。

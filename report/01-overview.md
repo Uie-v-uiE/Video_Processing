@@ -8,7 +8,7 @@
 一块 Zynq-7020（器件 `xc7z020clg484-2`，出处 `build/utilization.rpt` 报告头那一行
 `| Device       : xc7z020clg484-2`）上的实时视频图像处理通路。几何、滤波、显示全部在 PL 完成；
 PS 只发命令、读计数、把 SD 卡上的帧 DMA 进自己那块 DDR，不中转 ETH 视频字节
-（软硬件划分见 `report/architecture.md` §3；`src/host/ps/main.c` 文件头第 2 行写的是同一件事：
+（软硬件划分见 `report/architecture.md` §3；`src/ps/main.c` 文件头第 2 行写的是同一件事：
 「PS control plane + SD 卡本地回放。UDP 视频数据通路仍然整个在 PL」）。
 
 输出是 1024×600 的 HDMI 画面，画面里有一条竖缝：缝一侧是未处理的画面，另一侧是同一坐标系下
@@ -84,7 +84,7 @@ PS 只发命令、读计数、把 SD 卡上的帧 DMA 进自己那块 DDR，不�
 - `report/08-limits.md`
 - `report/known_issues.md`
 - `report/log/issues.md`
-- `src/host/ps/main.c`
+- `src/ps/main.c`
 - `src/rtl/video/osd_overlay.v`
 - `src/rtl/process/proc_pipeline.v`
 - `src/rtl/top/pl_video_top.v`

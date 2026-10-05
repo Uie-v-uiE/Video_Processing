@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""build/build_ps_app.py —— 不用 Vitis IDE，把 src/host/ps 直接编成板上能跑的 ELF。
+"""build/build_ps_app.py —— 不用 Vitis IDE，把 src/ps 直接编成板上能跑的 ELF。
 
 为什么要脚本化：交付要求"从零复现"，而"在 IDE 里手工点 New Platform / New Application"
 不属于能复现的步骤。另外这个 app 只需要 PS 侧的 xparameters（UART/SD/DDR/GLOBALTIMER），
@@ -98,7 +98,7 @@ def cflags():
 def compile_units(objs):
     srcs = sorted(f for f in os.listdir(SRC) if re.search(r"\.(c|S)$", f))
     if not srcs:
-        print("FATAL: src/host/ps 下没有 .c")
+        print("FATAL: src/ps 下没有 .c")
         sys.exit(2)
     for f in srcs:
         o = re.sub(r"\.(c|S)$", ".o", f)

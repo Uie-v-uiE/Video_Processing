@@ -204,13 +204,13 @@ bash -n build/gates.sh build/board_verify.sh build/sim/run_one.sh build/sim/mut_
 | `python build/check_ports.py --dup` | 0 | `CHECK PORTS: instances=222 modules=80 skipped=0 width_compared=562 violations=0 PASS` |
 | `node build/r119_window_check.mjs --self` | 0 | `对照总结：造 10 条畸形动红 10 条；缺输入 2 条报 NOT_MEASURED 2 条 PASS` |
 | `md5sum build/system.bit`（取前 12 位）| 0 | `cd04907e1369`（与 `build/r118_gates.txt` 身份行一致）|
-| `md5sum build/ps_app.elf`（取前 12 位）| 0 | `d0b07f84a068`（与 `build/r118_gates.txt` 身份行一致；`git log -1 --format=%ci -- build/ps_app.elf` = `2026-09-29`（原始提交时间戳以 `%ci` 打全，这里只留日期），早于 `src/host/ps/main.c` 的 #167 那次提交 `2026-10-02`）|
+| `md5sum build/ps_app.elf`（取前 12 位）| 0 | `d0b07f84a068`（与 `build/r118_gates.txt` 身份行一致；`git log -1 --format=%ci -- build/ps_app.elf` = `2026-09-29`（原始提交时间戳以 `%ci` 打全，这里只留日期），早于 `src/ps/main.c` 的 #167 那次提交 `2026-10-02`）|
 | `netstat -an -p TCP \| grep 3121` | 0 | `TCP 0.0.0.0:3121 0.0.0.0:0 LISTENING` |
 | `ping -n 2 -w 1000 192.168.1.10` | 0 | 中文 cp936 输出；统计行经 `iconv` 读出 `发送 = 2，接收 = 2，丢失 = 0 (0% 丢失)`、`平均 = 1ms` |
 | `ipconfig \| iconv -f cp936 -t utf-8` | 0 | `IPv4 地址 … : 192.168.1.100` / `子网掩码 … : 255.255.255.0` |
 | `arp -a 192.168.1.10` | 0 | `192.168.1.10  00-11-22-33-44-55  动态`（接口 192.168.1.100）|
 | `grep -n link_monitor build/gates.sh` | 1 | **零命中**（⇒ `tb_link_monitor` 长期不通过且不在发布前检查的覆盖范围里，A2）|
-| `grep -n "cmd_len" src/host/ps/main.c` | 0 | 第 1515 行 `if (cmd_len > 0 && cmd_len < CMD_BUF) { cmd_buf[cmd_len++] = '\n'; }`（源码已修，ELF 未重建 ⇒ A3）|
+| `grep -n "cmd_len" src/ps/main.c` | 0 | 第 1515 行 `if (cmd_len > 0 && cmd_len < CMD_BUF) { cmd_buf[cmd_len++] = '\n'; }`（源码已修，ELF 未重建 ⇒ A3）|
 | `ls` 存在性核对（26 个被文档点名的脚本/件）| — | 23 存在、**3 缺失**：`src/host/run_sender.bat（未写）`、`run_video.bat`、`run_serial.bat`（第 6 节冲突 1）|
 | 分母计数 | — | `sim/tb_*.v` = **81**；`src/rtl/**/*.v` = **80**；`build/evidence/` 条目 = **671**；`build/tcl/` = **110**；`build/evidence/*.batt.txt` = **36** |
 

@@ -9,19 +9,19 @@
 - 结论只以代码为出处，格式是 `文件:行号`。RTL 与固件两头都要指：固件那一头决定"写了哪个位"，
   RTL 那一头决定"这个位此刻有没有被选中"。只有固件那一头的结论不算结论。
 - "静默"与"有回显"分开写。这个仓已有的规矩是**不许收了却什么都不做**（token 上限那段注释
-  `src/host/ps/main.c:620-626`、split 的通用拒绝分支 `src/host/ps/main.c:1206-1209` 都是按这条写的），
+  `src/ps/main.c:620-626`、split 的通用拒绝分支 `src/ps/main.c:1206-1209` 都是按这条写的），
   所以凡是"被盖住且回声没说明"的那几条，都集中在 §12 列成待改清单。§12 只登记条件与改法，代码未动。
 - 这一页不替代 `report/commands.md`（命令表）。它只管"命令同时有效时谁赢"。
   两份文档需要对齐的地方在 §13 逐条点名，以代码为准。
 
-贯穿全文的一个区分：`stat` 打出来的每一个字段都是 **PS 侧的影子**（`src/host/ps/main.c:1403-1411`），
+贯穿全文的一个区分：`stat` 打出来的每一个字段都是 **PS 侧的影子**（`src/ps/main.c:1403-1411`），
 它证明"固件请求了这个值"，证明不了"像素域正在用这个值"。请求侧与执行侧的对账见 §11。
 
 正文里的出处用短文件名（在 `src/` 下每个名字都只有一份），完整路径是：
 
 | 短名 | 完整路径 | 短名 | 完整路径 |
 |---|---|---|---|
-| `main.c` | `src/host/ps/main.c` | `pl_video_top.v` | `src/rtl/top/pl_video_top.v` |
+| `main.c` | `src/ps/main.c` | `pl_video_top.v` | `src/rtl/top/pl_video_top.v` |
 | `system_top.v` | `src/rtl/top/system_top.v` | `src_mode.v` | `src/rtl/util/src_mode.v` |
 | `src_arb.v` | `src/rtl/util/src_arb.v` | `src_life.v` | `src/rtl/util/src_life.v` |
 | `zoom_ctrl.v` | `src/rtl/process/zoom/zoom_ctrl.v` | `zoom_fit.v` | `src/rtl/process/zoom/zoom_fit.v` |

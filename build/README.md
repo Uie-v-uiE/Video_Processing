@@ -52,7 +52,7 @@
 归档会不会覆盖已采纳产物——这五条现行入口一条都没做，逐条对回行号见 `build/probe-guard.md` §3。
 PS 侧 ELF 不在上面这条链里：本机 PATH 无 `arm-none-eabi-gcc`（`which` 无命中），这一版没有重编，
 `build/ps_app.elf` 还是上一次构建那一份（它的文件时间与校验和记在 `board/firmware/ps_app.elf.md`）；
-编译与自检口径在 `src/host/ps/README.md`（`git ls-files src/host/ps` 回 5 支）。
+编译与自检口径在 `src/ps/README.md`（`git ls-files src/ps` 回 5 支）。
 
 ### 2.2 可选环境变量：这些都不设就是出货档
 

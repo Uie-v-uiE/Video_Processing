@@ -14,7 +14,7 @@
 
 ## 目录导览
 
-src/ —— `src/rtl/` 80 个 .v、`src/host/ps/` PS 侧 C、`src/constraints/` 9 份 .xdc（在用 2 份，其余 7 份是候选/实验件）、`src/host/` 26 支 .mjs 与 3 支 .py 上位机工具  
+src/ —— `src/rtl/` 80 个 .v、`src/ps/` PS 侧 C、`src/constraints/` 9 份 .xdc（在用 2 份，其余 7 份是候选/实验件）、`src/host/` 26 支 .mjs 与 3 支 .py 上位机工具  
 sim/ —— 84 份 .v（其中 81 支 `tb_*.v`），跑法见 `sim/README.md` 表格下方那一行  
 build/ —— 7 份流程入口 TCL、检查器与 `build/report/` 下 7 份工具原始报告  
 board/ —— 上板工程、三步 JTAG 烧写脚本与实测输出（串口留档、板级校验读数）  
@@ -82,6 +82,6 @@ JTAG 三步链见 `board/README.md`。
 （`build/r75_gates.txt`），两者不是同一版，混用会读错。
 
 未通过 0 项的那一套是更早的一版（`build/r75_gates.txt`），不是板上现在这一版。其余限制集中在 `report/known-limitations.md`：HDMI
-源端只量到离散参数，眼图与抖动没有仪器可测；本机没有 ARM 编译器，`src/host/ps/` 的改动只能算源码改动；`report/repro-check.md` 的
+源端只量到离散参数，眼图与抖动没有仪器可测；本机没有 ARM 编译器，`src/ps/` 的改动只能算源码改动；`report/repro-check.md` 的
 逐条实跑里，未通过与未测两类都还没逐条归因，因此不声称第三方可以照抄复现全部结果；缩放八档这类没进表的读数记在 `data/metrics.csv`
 第 18 行。时序、资源与功耗数字绑定 2025.2.1 与 `xc7z020clg484-2` 这一组合，换版本（例如 2026.1）或换器件之后要按新报告重取。

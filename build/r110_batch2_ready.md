@@ -131,7 +131,7 @@ hold 侧今天不动：WHS 0.049 的归属又换了（`u_rx_mac/u_crc_rx/crc_dat
 落刀后先在**未打刀**的树上跑一次 `build/sim/mut_control.sh` 或任一快车道支，确认没有脚本按 `^C12a` 找新家的读数行。
 
 ## 刀 2 的前置复核（2026-10-03 01:1x 重跑 grep，链子在飞、只读）
-按名字数"命中几个文件"（`grep -rl "\b名字\b" src/rtl src/host/ps sim`）：
+按名字数"命中几个文件"（`grep -rl "\b名字\b" src/rtl src/ps sim`）：
 `fifo_tx_data`=1、`fifo_rec_en`=1、`pct_q`=1 ⇒ 只有声明它的那个文件自己提它，**无人消费成立**；
 `icmp_tx_data`=2、`udp_tx_data`=2 ⇒ 恰好 eth_ctrl.v（端口）+ eth_udp_video_top.v（空接），删两头不会打断别处；
 **但 `tx_data`=7、`tx_req`=7、`rec_en`=8、`rec_data`=8 —— 这四个是通用名，别的模块（udp/icmp 收发链）也在用。**

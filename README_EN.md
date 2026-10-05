@@ -10,7 +10,7 @@ Three sources feed it - the UDP video stream from the network, a pre-converted S
 
 ## Directory guide
 
-src/ —— 80 .v files in `src/rtl/`, PS-side C in `src/host/ps/`, 9 .xdc files in `src/constraints/` (2 loaded, 7 candidates/experiments), 26 .mjs and 3 .py host tools in `src/host/`  
+src/ —— 80 .v files in `src/rtl/`, PS-side C in `src/ps/`, 9 .xdc files in `src/constraints/` (2 loaded, 7 candidates/experiments), 26 .mjs and 3 .py host tools in `src/host/`  
 sim/ —— 84 .v files (81 of them `tb_*.v`); the runner line under the table in `sim/README.md`  
 build/ —— 7 flow-entry TCL scripts, the checkers, and 7 raw tool reports under `build/report/`  
 board/ —— on-board project, the three-step JTAG flashing scripts and measured output (serial captures, board verify)  
@@ -71,6 +71,6 @@ rows are correct cell by cell; symptom, what has been proven and what would clos
 
 The set with 0 failing items is an earlier version (`build/r75_gates.txt`), not the one on the board. The remaining limits are collected in
 `report/known-limitations.md`: the HDMI source side has discrete measurements only, no eye diagram or jitter instrument was used; this machine has no
-ARM compiler, so changes under `src/host/ps/` are source changes only; the item-by-item run log in `report/repro-check.md` still carries both failing and untested rows without individual attribution, so no claim is made that a third party can reproduce every result by copy-paste; readings that did
+ARM compiler, so changes under `src/ps/` are source changes only; the item-by-item run log in `report/repro-check.md` still carries both failing and untested rows without individual attribution, so no claim is made that a third party can reproduce every result by copy-paste; readings that did
 not enter the table, such as the eight zoom steps, are in `data/metrics.csv` row 18. Timing, utilization and power numbers are bound to the pair
 Vivado / Vitis 2025.2.1 and `xc7z020clg484-2`; another tool version (for example 2026.1) or another device means taking them from the new reports.

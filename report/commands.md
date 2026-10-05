@@ -1,13 +1,13 @@
 # 串口命令清单
 
 这一页把上位机与板子之间的命令表写全：每条命令做什么、参数取值范围、哪一句回显算执行成功、
-非法输入会得到什么。命令的解析在 `src/host/ps/main.c` 的 `dispatch()`；寄存器位的唯一出处在 RTL
+非法输入会得到什么。命令的解析在 `src/ps/main.c` 的 `dispatch()`；寄存器位的唯一出处在 RTL
 （`src/rtl/process/proc_pipeline.v` 文件头、`src/rtl/top/system_top.v:262-293`、`src/rtl/top/pl_video_top.v`
 的端口注释）。表里只写固件里真的实现了的写法；有意不做的与还缺那一位的，单独放在 §6。
 
 串口：**115200 8N1**，COM 号自己认（`board/uart_cap_once.ps1 -Port COM6 -Seconds 14`，或任意串口终端）。
-一行一条命令，以回车结束（CR、LF、CRLF 都认，`src/host/ps/main.c:1505`）；动词与参数大小写不敏感；
-一条最多切 8 个 token，第 9 个之后的参数不会被看见（`T_MAX`，`src/host/ps/main.c:626`）——
+一行一条命令，以回车结束（CR、LF、CRLF 都认，`src/ps/main.c:1505`）；动词与参数大小写不敏感；
+一条最多切 8 个 token，第 9 个之后的参数不会被看见（`T_MAX`，`src/ps/main.c:626`）——
 带参数最多的一条是 `gamma auto` 后面跟区间、步长与间隔那四个，正好 6 个 token。不认识的写法不会静默：
 回一行 `[CMD] 不认: <整行>` 并打印 help。
 
@@ -58,7 +58,7 @@ LED 那两位是 `src/rtl/top/pl_video_top.v:1039-1042`。引脚号出自 `src/c
 
 `pipe <九个 0/1>` 写的是 PL 效果链的算法选择字（九位，一位一级）。字符的位置就是位的编号：
 第一个字符落 bit0，所以照抄着敲就对。位定义与下表同源（`src/rtl/process/proc_pipeline.v:5-6` 与 `:56-65`，
-固件那份抄在 `src/host/ps/main.c:110-118` 的 `SEL_*`）。
+固件那份抄在 `src/ps/main.c:110-118` 的 `SEL_*`）。
 
 | 位 | 算法 | 属于哪一级 |
 |---|---|---|
@@ -85,10 +85,10 @@ bit7 与 bit8 **同时为 1 时两个都不做**：`w_erode = sel[7] & ~sel[8]`�
 | `pipe 00000`（五位） | **一个位都不写**，只回等价的九位 | 见下面原句 |
 | `pipe 00110`／`pipe 0000001`（6/7/8 位） | 拒，不做补零解释 | `[PIPE] 长度只收 **九位**（一位一级）。五位是 V7 的老写法，给了会告诉你等价的九位；6/7/8 位一律拒（过去被当 9 位补零，屏上对不上）。例：pipe 000000100 / pipe show` |
 
-五位给到的那一句原文照抄（包括那对星号，出自 `src/host/ps/main.c:484-488`）：
+五位给到的那一句原文照抄（包括那对星号，出自 `src/ps/main.c:484-488`）：
 `[PIPE] 只收 **九位**（一位一级，顺序 gray/invert/blur/sharpen/sobel/binary/bin_pol/erode/dilate）。你给的这串是五位的老位序，等价的九位是：pipe 011010000`
 ——尾巴那串与命令读法**同侧**（第一个字符是 bit0）。长度 6/7/8 一律拒（`parse_bits`，
-`src/host/ps/main.c:576-590`：数到第 10 个字符就退，收尾既不是 5 也不是 9 也退）。
+`src/ps/main.c:576-590`：数到第 10 个字符就退，收尾既不是 5 也不是 9 也退）。
 
 再往前一版的毛病是只挡"超过 9 位"，于是 `pipe 00001100`（8 位）被**静默当成 9 位前面补零**收下——
 命令收了、意思变了，敲的人只能试到某个长度"看起来对了"。现在这一条由机器钉住：
@@ -143,13 +143,13 @@ bit7 与 bit8 **同时为 1 时两个都不做**：`w_erode = sel[7] & ~sel[8]`�
 | `src 3`／`src 9`／`src xx` | 不存在这一路 | 只有 auto/0/1/2 | — | `[SRC] 只认 auto / 0=TEST 图卡 / 1=ETH 网络 / 2=SD 卡回放（屏上印的就是这三个词）`，不改任何状态 |
 
 命令里的编号与 PL 里的模式码是两张表，念的时候必须按代码：`src 0`=TEST、`src 1`=ETH、`src 2`=SD
-（`src/host/ps/main.c:726-739`），而模式码是 AUTO=0 / ETH=1 / TEST=2 / SD=3（`:65-68`）。
+（`src/ps/main.c:726-739`），而模式码是 AUTO=0 / ETH=1 / TEST=2 / SD=3（`:65-68`）。
 所以 `src 3` 不是"第四路"，它落在拒绝分支上（`:740-742`）。回声印的词与屏上印的词同源。
 
 **`src` 现在真的能钉住**：以前它只写 PS 手里那 1 bit `src_sel`，而"钉住哪一路"是 PL 里四态环、
 只有 KEY1 长按能改，于是命令打印一句"还要 mode 覆盖位"就没了下文（`report/log/issues.md` 第 66 条：
 用户"发了流切不到 SD""长按要按几次"的根）。现在走 GPIO_0 的 `[24:23]`=模式码 + `[22]`=翻转位
-（`src/host/ps/main.c:508-515`），码与沿的先后由固件保证（两笔写：第一笔只更新码，第二笔才翻沿），
+（`src/ps/main.c:508-515`），码与沿的先后由固件保证（两笔写：第一笔只更新码，第二笔才翻沿），
 跨域在 `src/rtl/util/src_mode.v` 里做（码走一条与翻转位等长的延迟线）。覆盖期间再按一次 KEY1 = 只交还控制权；
 `src auto` 连按键环一起清（`src_mode.v:82-83`）。
 
@@ -167,7 +167,7 @@ AUTO（`mode=0`）下屏幕归谁仍由仲裁决定：ETH 有流就归 ETH；停
 stat         回读，字段顺序就是固件那一句 xil_printf：
              thr src zoom bilin zsel zman pub sd frames playing sel gm mode geom osd
              （**没有 `en=` 了** —— 老五位的那个投影随五位一起删了，效果链的真相只剩 `sel=%03x`；
-              `osd=` 是后来新加的，按"新字段只往后加"的规矩排在最后：src/host/ps/main.c:1403-1411）
+              `osd=` 是后来新加的，按"新字段只往后加"的规矩排在最后：src/ps/main.c:1403-1411）
 ```
 
 ---
@@ -177,7 +177,7 @@ stat         回读，字段顺序就是固件那一句 xil_printf：
 | 命令 | 做什么 | 取值范围 | 成功回显 | 非法输入 |
 |---|---|---|---|---|
 | `zoom on` / `zoom off` | 右窗缩放开关（老写法 `ZOOM1` / `ZOOM0`）；它同时是手动档与呼吸的闸门 | 0/1/on/off | `[CTRL] … zoom=1/0` 两行 | 认不出的 token ⇒ `[ZOOM] 不认的参数 …`，不改状态 |
-| `zoom 0.75` | 手动定档：八档里取最近的一档 | 写 0.01…4.00 都吃（`zoom_parse_x100`，`src/host/ps/main.c:525-539`），落进 `0.25/0.33/0.5/0.75/1.0/1.33/1.5/2` 这八档之一 | `[ZOOM] <你写的> → 最近档 <档名>（八档：…；回自动用 zoom auto）`，并把"你写的"与"我用的"一起报出来 | 注意 `zoom 1` 仍是 V7 的"开呼吸"（**开关**语义），要 1.0 倍必须写 `zoom 1.0`——这一处重叠记在 `report/log/issues.md` 第 63 条，固件的拒绝消息自己会把它念出来；其余认不出的 token 走不认，不改状态 |
+| `zoom 0.75` | 手动定档：八档里取最近的一档 | 写 0.01…4.00 都吃（`zoom_parse_x100`，`src/ps/main.c:525-539`），落进 `0.25/0.33/0.5/0.75/1.0/1.33/1.5/2` 这八档之一 | `[ZOOM] <你写的> → 最近档 <档名>（八档：…；回自动用 zoom auto）`，并把"你写的"与"我用的"一起报出来 | 注意 `zoom 1` 仍是 V7 的"开呼吸"（**开关**语义），要 1.0 倍必须写 `zoom 1.0`——这一处重叠记在 `report/log/issues.md` 第 63 条，固件的拒绝消息自己会把它念出来；其余认不出的 token 走不认，不改状态 |
 | `zoom auto` | 交还呼吸 | — | `[CTRL] zoom_step=<档号> <档名> (自动呼吸)` | — |
 | `zoom fit [0/1]` | 缩放跟着**旋转角度**定（屏上 Zoom 格标 `(Fit)`）；不带参数等于 1 | 0/1 | `[ZOOM] fit=1（此刻真的在用的 inv 由角度算出来，屏上 Zoom 格标 (Fit)；关掉之后回到手动档/呼吸自动档）` | `[ZOOM] fit 只认 0 或 1（1 = 倍率跟着角度走）` |
 | `bilin on/off/show` | 右窗双线性 ↔ 最近邻，现场对比用（老写法 `BILIN1`/`BILIN0`）；位是 `gpio_o[19]`，默认开着 | 0/1/on/off，或 `show` | `[BILIN] bilin=on/off`；`show` 额外印出"什么时候才看得出差别"和一条可复现对照序列（`src 0` → `zoom 1.5` → `bilin off/on`） | `[BILIN] 只认 on/off（0/1）或 show` |
@@ -223,7 +223,7 @@ stat         回读，字段顺序就是固件那一句 xil_printf：
 三方对账由 `src/host/uart_cmd_check.mjs` 做，不需要任何人看屏幕（这条对照记在 `report/log/issues.md` 第 91 条）。
 
 `temp` 这一行有两个不显眼但要紧的设计。**全程不用 float**：`xil_printf` 不认 `%f`，所以 °C×1000 定点换算，
-常数与容差由 `src/host/temp_formula_check.mjs` 独立核对（从 `src/host/ps/main.c` 抠常数，
+常数与容差由 `src/host/temp_formula_check.mjs` 独立核对（从 `src/ps/main.c` 抠常数，
 与 BSP 浮点宏在全码段上比）。`sane=1` 是防"读回一个常数但看着很像数"：raw 全 0 会译成 −273.15 °C、
 全 F 译成 230.8 °C，两个都被挡下，同时要求 VCCINT 落在 0.8..1.3 V。阈值可以改是为了**能人为造出告警**——
 室温到不了 85 °C，否则"接了但没亮过"与"根本没接"在串口上长得一模一样；把阈值压到环境以下 `over` 必须=1、
@@ -243,7 +243,7 @@ stat         回读，字段顺序就是固件那一句 xil_printf：
 SRC0 SRC1 TH80 ZOOM0 ZOOM1 BILIN0 BILIN1 FRAME12 AUTOPLAY0 AUTOPLAY1 SD PLAY STOP FILL STAT
 ```
 
-上面这一串都还有效（`src/host/ps/main.c:612-619` 的语法说明里写了哪些工具在发它们：
+上面这一串都还有效（`src/ps/main.c:612-619` 的语法说明里写了哪些工具在发它们：
 `report/host_guide.md`、`report/demo_script.md`、`build/tcl/set_src.tcl`）。
 **裸五位串不在其中**：`00111`、`pipe 00111` 都一个位都不写，只回一句等价的九位让你照着敲。
 老工具脚本里写死的那几条，改法就是照下面这张表换成九位——左列如今**只是"当年那个脚本里写的字"**，
@@ -260,7 +260,7 @@ SRC0 SRC1 TH80 ZOOM0 ZOOM1 BILIN0 BILIN1 FRAME12 AUTOPLAY0 AUTOPLAY1 SD PLAY STO
 现在钉的是"回一句正好九个字符的等价串 **且 `!sel=`＝一个位都不写**"。早先那一版它们钉的是
 `sel=021`/`030`/`000`（也就是让五位真的翻译生效），那条路已经跟五位一起退了。
 help 与开机横幅里那句旧写法清单现在只点 `SRC0 SRC1 TH80 ZOOM0 ZOOM1 BILIN0 BILIN1 FRAME12`，
-后面跟着"裸五位已随五位控制退役，给了会回一句等价的九位"（`src/host/ps/main.c:1440-1441`）——
+后面跟着"裸五位已随五位控制退役，给了会回一句等价的九位"（`src/ps/main.c:1440-1441`）——
 早先那份带着 `00111` 的文案已经跟上了，念的时候仍以这一节的表为准。
 
 `rot auto [0|1]`、`rot speed <0..7>`、`rot show`、`zoom fit [0|1]`、`split <0..100>`、`split px <n>`、
@@ -268,7 +268,7 @@ help 与开机横幅里那句旧写法清单现在只点 `SRC0 SRC1 TH80 ZOOM0 Z
 `gamma manual`、`gamma show`、`osd on|off|show` 都是活的，不是待接。
 `rot auto 1` 会**顺带**做两件事，两件都在回声里明说：把缩放切到 fit（用户指定的成对语义，
 不想要就先 `zoom fit 0` 再 `rot auto 1`），以及当 `speed` 是 0 时把它提到 2——不然 "auto=1" 看着就像没反应
-（`src/host/ps/main.c:1071-1091`）。`zoom fit` 与 `rot auto` **不带参数都等于 1**。
+（`src/ps/main.c:1071-1091`）。`zoom fit` 与 `rot auto` **不带参数都等于 1**。
 
 ---
 
@@ -276,7 +276,7 @@ help 与开机横幅里那句旧写法清单现在只点 `SRC0 SRC1 TH80 ZOOM0 Z
 
 | 写法 | 敲下去会得到什么 | 缺的是什么 |
 |---|---|---|
-| `rot <数字>` / `rot +15` | `[ROT] 只认：…` 那一行（原文在 §4 表下面）＋一句角度走按键 | "设成某个绝对角度"**有意不做**：那要一个 9 位写窗口 + 一次跨域同步（新硬件、新时序账），而按键 ±1° 已经能把角度带到 0..359 任何一格；`rot auto`/`rot speed` 是活的，真要"从 0 转一整圈"用它们就够了（理由写在 `src/host/ps/main.c:1042-1044`） |
+| `rot <数字>` / `rot +15` | `[ROT] 只认：…` 那一行（原文在 §4 表下面）＋一句角度走按键 | "设成某个绝对角度"**有意不做**：那要一个 9 位写窗口 + 一次跨域同步（新硬件、新时序账），而按键 ±1° 已经能把角度带到 0..359 任何一格；`rot auto`/`rot speed` 是活的，真要"从 0 转一整圈"用它们就够了（理由写在 `src/ps/main.c:1042-1044`） |
 | `split range 20 80` / `split speed 2` | `[SPLIT] 只认：…（range/speed 仍是构建参数，待接）`，不改状态 | 扫描端点与速度仍是**构建参数**（顶层 `SPLIT_SPEED`/`SPLIT_LO16`/`SPLIT_HI16` 三个参数，`src/rtl/top/pl_video_top.v:19-21`；例化 `split_ctrl` 时在 `:889` 那一路送进去）；改它们要走一次重新构建 |
 | `bilin` 的**读回**（不是 on/off 本身） | `bilin on/off/show` 都是活的（`gpio_o[19]` → 那一位自己的 3 级 ASYNC_REG → `fb_bilin.bilin_en`，默认开着），所以不在本表 | 这一条欠的只有"JTAG 侧看得见它此刻是什么"：lane23 现在把 `bit[30:20]` 留作扩展（`src/rtl/top/pl_video_top.v:680-687`），要补得走像素域→axi 域的一条正路（`zoom_snap` 那个模子），不许把像素域一根线裸插进 axi 口（那正是 `report/log/issues.md` 第 61/65 两条交过的税）。屏上"放大档锯齿变软"这件事现在能当场 on/off 对照，不必再靠两份位流比；已经记下的目视对照在 `board/acceptance.md` 的 E4 那一格（"bilin on 的时候比较明显，off 的时候几乎看不到"是当时的原话）。`bilin off` 当场退回最近邻，1:1 档两边必须一模一样 |
 
@@ -308,14 +308,14 @@ gamma/温度窗口在 `0x41220000 + 0x08`（`CFG_DATA1`）。物理位到逻辑�
 | `gpio_cfg1[30]` | **在用** | `split marker 0`（关掉那根 2 像素蓝线；位是"反着写"的：1 = 关） |
 | `gpio_cfg1[31]` | **在用** | `zoom fit`：缩放由旋转角度定（屏上 Zoom 格标 `(Fit)`） |
 | `gpio_cfg2 ch2` 全字（`+0x08`） | **在用** | gamma 表窗口（en/wr/idx/data）＋ `[13:8] gamma_disp`（只给 OSD 那一格）＋ `[7:0] temp_disp`（屏上温度的两位 BCD） |
-| `gpio_o[4:0]` | **保留，PS 恒写 0** | 那五位使能已从 RTL 删净（入口 + 兜底合流 + 给 OSD 的第二出口），PL 里没有读者；位留着是因为 `build/tcl/set_src.tcl`/`src/host/health_read.mjs` 都按位写这只整字，重排位序等于把老工具全部判为不通过（理由写在 `src/host/ps/main.c` 的 `ctrl_write`） |
+| `gpio_o[4:0]` | **保留，PS 恒写 0** | 那五位使能已从 RTL 删净（入口 + 兜底合流 + 给 OSD 的第二出口），PL 里没有读者；位留着是因为 `build/tcl/set_src.tcl`/`src/host/health_read.mjs` 都按位写这只整字，重排位序等于把老工具全部判为不通过（理由写在 `src/ps/main.c` 的 `ctrl_write`） |
 | `gpio_o[20]` | **在用** | OSD 反相开关（写 1 = 关掉叠层，复位 = 有 OSD），走 `src/rtl/top/pl_video_top.v:265-276` 那条**独立**的三级同步链 |
 | `gpio_o[21]` `[25]` | 空闲 | 目前唯一还空着的两位 |
 
 这 19 个几何位（`[22:13]`+`[25:23]`+`[30]`+`[31]`+`[9]`+`[12:10]`）在 PL 里过的是**同一条 `snap_cross`**
-（`src/rtl/top/pl_video_top.v:876`）。位图的三处读者是：`src/host/ps/main.c` 的宏、
+（`src/rtl/top/pl_video_top.v:876`）。位图的三处读者是：`src/ps/main.c` 的宏、
 `src/rtl/top/pl_video_top.v` 的 `split_ctl` 端口注释、`report/log/issues.md` 第 70 条追加——
-改任何一处要一次改完（固件注释里把这句话写成了硬性要求，`src/host/ps/main.c:153-154`）。
+改任何一处要一次改完（固件注释里把这句话写成了硬性要求，`src/ps/main.c:153-154`）。
 
 ---
 
@@ -326,7 +326,7 @@ gamma/温度窗口在 `0x41220000 + 0x08`（`CFG_DATA1`）。物理位到逻辑�
 3. 想手工直接写寄存器（不发串口）：控制字在 `0x41200000`（老 32 位，`[4:0]` 如今是保留位——
    写它 PL 已经没有读者，别指望它能开效果），九位算法字在 **`0x41220000`**（通道 2 在 **`+0x08`** = gamma 窗口）；
    `xsdb` 里 `mwr -force 0x41220000 0x00000021` 就是"灰度+二值化"。gamma 窗口的位是
-   `{en[31], wr[30], data[29:22], idx[21:14]}`（`src/host/ps/main.c:96-106`），
+   `{en[31], wr[30], data[29:22], idx[21:14]}`（`src/ps/main.c:96-106`），
    手工写一项要**两次写**（先摆 idx/data、再把 wr 翻转），只写一次 PL 不会动——这不是坑，是协议
    （电平与边沿的区别），`src/rtl/video/gamma_lut.v` 头部写了为什么选翻转。
    两只控制字都是硬编码地址：位流里没有 `axi_gpio_2` 时不会编译失败，只会"写了没反应"，
@@ -348,10 +348,10 @@ gamma/温度窗口在 `0x41220000 + 0x08`（`CFG_DATA1`）。物理位到逻辑�
 
 **`sd remount` 为什么需要它，以及为什么现在同一上电周期也能成功**：驱动 `XSdPs_CfgInitialize` 开头有一句
 `if (IsReady == XIL_COMPONENT_IS_READY) return XST_DEVICE_IS_STARTED;`，而仓里原本没有任何一处清 `IsReady`
-⇒ 第二次初始化第一步就被挡回（`xsdps.c:156-159`，那段推导抄在 `src/host/ps/sd_play.c` 的重挂注释里）。
-现在 `sd_remount()` 先清 `IsReady` 再挂（`src/host/ps/sd_play.c:572`）。主循环还有一条
+⇒ 第二次初始化第一步就被挡回（`xsdps.c:156-159`，那段推导抄在 `src/ps/sd_play.c` 的重挂注释里）。
+现在 `sd_remount()` 先清 `IsReady` 再挂（`src/ps/sd_play.c:572`）。主循环还有一条
 `sd_recover_tick()`：卡插回来自己重挂、重挂成功自己接回回放，每 2 s 一次、最多 30 次，
-停手时会明说让你敲 `sd remount` 或重下 elf（`src/host/ps/sd_play.c:596-631`）。
+停手时会明说让你敲 `sd remount` 或重下 elf（`src/ps/sd_play.c:596-631`）。
 另一半在同一族里：读卡失败必须把 `mounted` 清 0（`card_gone()`），否则 `sd_recover_tick()` 第一行那道门
 永远关着——这件事是 `src/host/ps_hb_check.mjs` 的 A16 那条钉的（17 条 ＋ 10 条变异对照，
 其中四条只管"插回卡要自己接上"这一半；跑法 `node src/host/ps_hb_check.mjs --self`）。
@@ -370,7 +370,7 @@ gamma/温度窗口在 `0x41220000 + 0x08`（`CFG_DATA1`）。物理位到逻辑�
 |---|---|---|
 | PL 怎么知道"PS 手里有货" | 两位粘滞位 `eth_link_pix \| ps_src_seen`，只置 1 从不清零 | `src_life`：跟着 `ps_publish` 的翻转数心跳，**500 ms 没收到就当没片源**（`src/rtl/util/src_life.v:56-57`，超时参数 `src/rtl/top/pl_video_top.v:586`） |
 | 拔掉 SD 卡 | 画面**永久冻在最后一帧**，插回也不恢复 | ≤500 ms 后落回该落的那一路（有网络回网络，没有回图卡） |
-| `stop` / `play 0` / `frame N` / `fill` | 天然成立（粘滞位记着） | **靠固件替片源说话**：`ps_keepalive()` 每 100 ms 把屏上那一帧重发一次（`src/host/ps/main.c:260-269`） |
+| `stop` / `play 0` / `frame N` / `fill` | 天然成立（粘滞位记着） | **靠固件替片源说话**：`ps_keepalive()` 每 100 ms 把屏上那一帧重发一次（`src/ps/main.c:260-269`） |
 
 心跳与超时是同一件事的两半：`PS_HB_MS=100` 对 `PS_SRC_TIMEOUT_MS=500`（排得下 5 拍）。
 凭据分三层，缺一层就是没验：`sim/tb_v102_src_life.v`（PL 那 13 条，含"锁网络冻帧是语义"
