@@ -556,27 +556,33 @@ printf 's|docs/walkthrough/\\([A-Za-z0-9_.-]*\\)\\.md|学习文档 \\1.md（本�
 # ⚠ 这条正则是**射程本身**，只能按形状数、不能按层数写死：上一版写成 `skills/<一段>/<一段>.ext`，
 #   于是三层深的 `skills/pitfalls/<条目>/SKILL.md` 全都不匹配 —— 现测"被引用的技能路径共数 18 个"，
 #   而交付文档里点到 skills 的路径有 117 处 ⇒ 这一层几乎空转（少报方向，见台账 #373 的同类教训）。
-SKILL_CITED="$( { grep -rhoE 'skills/[A-Za-z0-9_./-]+\.(md|sh|mjs|py)' --include='*.md' . 2>/dev/null || true; } | sort -u )"
-# ⚠ 单独一个规则文件、单独一遍 sed（不并进 `_map.sed`）：上一版并进主映射后，实测主映射里的
-# 其它规则先改写过同一行，`_map.sed` 的字面旧路径规则就再也匹配不上 ⇒ 打印"降级 73 个"而包内
-# 三层深的 `skills/pitfalls/<旧条目>/skill.md` 原样留着 20 处（台账 #374）。
+# ⚠ 取样范围必须与**改写范围、残留计数范围同一份**：上一版只对 `*.md` 取样生成规则，
+#   而 sed 与计数都覆盖 `*.v`/`*.mjs`/`*.csv` 那一整批 ⇒ 台架注释里的三个旧平铺卡名
+#   既没规则可改、又被计数判红（实测 REFUSE 剩 3 个，全是 `sim/*.v` 的注释）。
+# 改写只作用于" prose 与脚本"；证据类（build/reports/、report/log/）保持原文。
+# 这份清单先建，因为下面技能旧名的**取样**要用同一份（取样范围=改写范围=计数范围）。
+find . -type f \( -name '*.md' -o -name '*.sh' -o -name '*.tcl' -o -name '*.py' -o -name '*.mjs' \
+    -o -name '*.ps1' -o -name '*.bat' -o -name '*.v' -o -name '*.c' -o -name '*.h' -o -name '*.csv' \) 2>/dev/null |
+grep -vE '^\./build/reports/|^\./report/log/' > _txt.txt || true
+SKILL_CITED="$( { xargs -d '\n' -a _txt.txt grep -hoE 'skills/[A-Za-z0-9_./-]+\.(md|sh|mjs|py)' 2>/dev/null || true; } | sort -u )"
 : > _skill_map.sed
 SKILL_FIX_N=0
 while IFS= read -r p; do
   [ -n "$p" ] || continue
   _pl="$(printf '%s' "$p" | tr 'A-Z' 'a-z')"
   if [ ! -e "$p" ] && [ ! -e "$_pl" ]; then
+    # 平铺名（`skills/xxx.md`）降级后的字面不能再带 `skills/`，否则新写的这句话会被同一把
+    # 计数正则再抓一次 ⇒ 永远红；三层名保留"组/文件"，因为它不含 `skills/` 前缀也认得出位置。
+    _grp="$(basename "$(dirname "$p")")"
+    if [ "$_grp" = "skills" ]; then _short="$(basename "$p")"; else _short="$_grp/$(basename "$p")"; fi
     printf 's|%s|技能包旧条目 %s（重建前的名字，未随本包；现有条目索引见 skills/README.md）|g\n' \
-      "$p" "$(basename "$(dirname "$p")")/$(basename "$p")" >> _skill_map.sed
+      "$p" "$_short" >> _skill_map.sed
     SKILL_FIX_N=$((SKILL_FIX_N + 1))
   fi
 done < <(printf '%s\n' "$SKILL_CITED")
-echo "旧技能条目名就地降级 $SKILL_FIX_N 个（被引用的技能路径共数 $(printf '%s\n' "$SKILL_CITED" | grep -c . ) 个）" >> _pruned.txt
+echo "旧技能条目名就地降级 $SKILL_FIX_N 个（被引用的技能路径共数 $(printf '%s\n' "$SKILL_CITED" | grep -c . ) 个；取样范围=改写范围=计数范围）" >> _pruned.txt
 
-# 改写只作用于" prose 与脚本"；证据类（build/reports/、report/log/）保持原文
-find . -type f \( -name '*.md' -o -name '*.sh' -o -name '*.tcl' -o -name '*.py' -o -name '*.mjs' \
-    -o -name '*.ps1' -o -name '*.bat' -o -name '*.v' -o -name '*.c' -o -name '*.h' -o -name '*.csv' \) 2>/dev/null |
-grep -vE '^\./build/reports/|^\./report/log/' > _txt.txt || true
+# 主映射这一遍先跑（`_txt.txt` 已在上面建好，取样、改写、计数用的是同一份清单）。
 xargs -r sed -i -f _map.sed < _txt.txt
 
 # 技能旧名那一族单独一遍，跑完立刻**自证**：再数一次"包里还有多少 `skills/…` 引用落不到文件"。
