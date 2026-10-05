@@ -1,6 +1,9 @@
 #!/usr/bin/env node
 // build/r125_elf_md5_rotate.mjs —— 把六份交付文档里"重建那颗 ELF 的 md5"从抄死的数字改成指路
 //
+// 作用：把交付文档里抄死的"重建产物 md5"换成指路（输出：stdout 逐条命中数 + 一行 CHECK/APPLY RESULT）
+// 退出码：0 通过；2 某条规则命中数不是 1；3 --apply 时工作树不干净。
+//
 // 为什么：那条 md5 是 2026-10-05 上午量的（4ed58740785c…），之后 src/ps/main.c 删掉一条永远走不到的
 // not_wired("bilin") 分支（0bc578d），今晚用 board/vitis_platform 副本重链得到的是另一颗（c0f9f79a…）。
 // 把易变的数字抄在六处正文里，下次重编又会全部失实；数字只留在证据件 build/evidence/1005_ps_app_rebuild.txt。

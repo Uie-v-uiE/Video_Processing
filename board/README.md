@@ -27,19 +27,19 @@
 | `board/vitis_platform/vitis-comp.json` | Vitis 平台描述：两个 domain（`zynq_fsbl` / `standalone_ps7_cortexa9_0`）、两颗 `ps7_cortexa9`、OS 清单、`flow=EMBEDDED` | 2 087 |
 | `board/vitis_platform/resources/` | 3 份 `qemu_args.txt`（顶层一份、两个 domain 各一份） | 4 633 |
 
-**这四份的形状不是手抄来的，是被两支脚本验过一遍的**（读实见 `board/measured/stage_2026-10-05.txt`）：
+**这四份的形状是两支脚本复制并当场验证出来的**，逐条 `VERIFY` 输出在 `board/measured/stage_2026-10-05.txt`：
 
 ```bash
 vivado -mode batch -nojournal -log board/flash/stage.log -source board/tcl/stage_board_projects.tcl
 PS_CC=<…>/arm-none-eabi-gcc.exe bash board/scripts/stage_vitis_platform.sh
 ```
 
-第一支把 `vivado_system/` 那份工程复制进本目录，然后**真的 `open_project` 复制出来的这一份**，打印器件、14 条 run、
-86 份源件与 2 份约束，并逐个问这 88 个路径在不在盘上（缺一个就 REFUSE）；关闭工程之后把 Vivado 写回的工程头
-`Path="…"` 改回仓库相对的 `board/zynq_video_sys.xpr`，再数一遍全文件有无本机绝对路径（实量 0 行），
-最后删掉打开时生成的 `*.cache`、`*.hw`。第二支用 `board/vitis_platform` 里的 BSP **重新编译链接一遍 PS 应用**，
-判据是"链得出非空 ELF"，跑完把平台正文（`hw/`、域目录、`zynq_fsbl/`）删掉、只留入库那 4 份文本件。
-两支都只在这台机器上有前置：第一支要 `vivado_system/` 已经建好，第二支要 `vitis/platform` 带 BSP（16 MB，不入库）。
+前一支 `open_project` 复制出来的那一份，逐个问这 88 个路径在不在盘上；后一支用副本里的 BSP 重新编译链接一遍 PS 应用。
+
+| 这支验什么 | 打印出来的判据 | 本机前置 |
+|---|---|---|
+| `stage_board_projects.tcl` | 器件 `xc7z020clg484-2`、14 条 run、86 份源件 + 2 份约束、`missing_files=0 of 88`；关掉工程后把 Vivado 写回的工程头 `Path="…"` 改回仓库相对名，再数还有几行带盘符（实量 0），删掉打开时长出的 `*.cache`、`*.hw` | `vivado_system/` 已建好 |
+| `stage_vitis_platform.sh` | 找得到副本里的 BSP、`hw/system.xsa` 与 `fsbl.elf` 在，判据是**链得出非空 ELF**（不是"md5 等于仓库那颗"，原因见上面那句重建件），跑完把 16 MB 平台正文删回入库那 4 份文本件 | `vitis/platform` 带 BSP（不入库，重建路见下面那段） |
 
 **`.xpr` 里 81 处引用写成 `$PPRDIR/../src/...`，所以这份工程只能放在 `board/` 这一层。** 往深里挪一级，`src/rtl` 与 `src/constraints` 就全部指不回来。
 `.gen/`、`.runs/`、`.cache/` 不入库（2026-10-05 10:40 实量 36 M / 52 M / 3.1 M，133 + 222 + 34 = 389 支，而且 `.runs` 随构建进度会长，是个动目标）：`.xpr` 里另有 12 处 `$PGENDIR/...`——包括
@@ -150,7 +150,6 @@ VP_XSDB=<…>/xsdb.bat bash build/board_verify.sh --battery --geom --round=r118
                    然后把启动模式拨到 QSPI、断电重上（这一步只有人手能做）
 ```
 
-第 1、2 两支脚本（`stage_board_projects.tcl` / `stage_vitis_platform.sh`）不在这一列里：它们不改板子，
-改的是 `board/` 这份工程本身，判据与实跑输出在第 1 节与 `board/measured/stage_2026-10-05.txt`。
+第 1 节那两支（`stage_board_projects.tcl` / `stage_vitis_platform.sh`）不在这一列：它们不改板子，改的是 `board/` 这份工程本身。
 
 发布前的检查不在本目录：`bash build/gates.sh`。读数以它打印的那一行为准，本页不复述任何一条门禁条数。

@@ -1,6 +1,8 @@
 #!/usr/bin/env node
 // build/r125_normalize_platform_json.mjs —— 把 Vitis 平台描述件里的本机绝对路径改写成仓库相对的
 //
+// 作用：把 Vitis 平台描述件里的本机绝对路径改写成仓库相对的（用途：交付形状归一化）
+//
 // 为什么单独一支：`board/vitis_platform/vitis-comp.json` 入库那一版把 `configuration.xsa`
 // 写成 `build/system.xsa`；从 `vitis/platform` 整份复制过来会带出 `D:/…/build/system.xsa`。
 // 这一步是交付形状的一部分，交给 `board/scripts/stage_vitis_platform.sh` 在复制之后立刻跑。
