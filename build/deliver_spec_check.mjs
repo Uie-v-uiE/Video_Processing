@@ -54,7 +54,7 @@ if (want('C0-3')) {
 // ---- C0-4 顶层结构固定
 if (want('C0-4')) {
   const top = new Set(tracked.map(f => f.includes('/') ? f.split('/')[0] : '/' + f));
-  const allowDirs = new Set(['src', 'sim', 'build', 'board', 'data', 'skills', 'report']);
+  const allowDirs = new Set(['src', 'sim', 'build', 'board', 'data', 'skills', 'report', 'docs']);
   const allowFiles = new Set(['/README.md', '/README_EN.md', '/LICENSE']);
   const extra = [...top].filter(t => !allowDirs.has(t) && !allowFiles.has(t) && !t.startsWith('/.')
     && !/^\/(send_demo|run[_-]?\w*)\.(bat|cmd|sh)$/.test(t));

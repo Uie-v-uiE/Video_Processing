@@ -127,4 +127,4 @@ VP_VIVADO_BIN=<Vivado>/bin bash build/sim/run_one.sh tb_v101_fb_bilin
 
 小结：这一级的全部要点是——只用乘和移位；缩放与判"装得下"必须共用同一张表；
 翻转与取整要一起改；快域不做算术；读口数量由 BRAM 总量决定而不是由"想要几个口"决定。
-下一步：`04-RGMII收包与帧重组.md`。
+下一步：`04-rgmii-rx-frame-reassembly.md`。

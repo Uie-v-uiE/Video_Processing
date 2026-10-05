@@ -66,7 +66,7 @@ set_property used_in_implementation true  $cgxdc
   与 `used_in_implementation true` 的用途。
 - 同一族还有两把"待验收"的窗：`r116_rgmii_input_window.xdc`（`:57-63`）与
   `r119_hdmi_source_window.xdc`（`:75-81`），都由环境变量开关。默认**不进构建**——挂上它们会
-  改变 hold 判定，必须先由门禁与名册裁决（详见 `08-约束与时序收敛.md`，未写）。
+  改变 hold 判定，必须先由门禁与名册裁决（详见 `08-constraints-and-timing.md`，未写）。
 
 ### 3.3 处理系统（PS）不是 RTL，是 BD
 
@@ -79,7 +79,7 @@ apply_bd_automation -rule xilinx.com:bd_rule:processing_system7 ...  # :87
 Zynq 的 PS 是硬核，PL 侧只留一个接口 IP。`apply_bd_automation` 会读板级预设（DDR、MIO、
 GP 口位宽），把 PS7 的配置一次设好。**AXI GPIO 就在这个过程中挂到 GP0**——文件名里的
 `axigpio` 说的就是这件事：本工程的控制字走 `axi_gpio` 而不是自造从设备，
-代价是位宽受限、好处是不动 BD 也能加控制位（见 `02-gamma-原理到实现.md` 第 5 节）。
+代价是位宽受限、好处是不动 BD 也能加控制位（见 `02-gamma-principle-to-rtl.md` 第 5 节）。
 
 ### 3.4 跑综合，并且**验它真跑完了**
 
@@ -151,4 +151,4 @@ VP_PROJ_SUBDIR=vivado_system_probe VP_OUTDIR=build/probe_dir bash build/roll_iso
 | `timing_summary.rpt` 里的数和板上表现不符 | 报告和位流不是同一次实现 | `open_run` 是否在 `report_*` 之前（`:361`） |
 
 小结：这条命令的全部要点是"路径自算、阶段自证、报告跟在 `open_run` 之后、实验只换一个变量"。
-下一步：`02-gamma-原理到实现.md`。
+下一步：`02-gamma-principle-to-rtl.md`。

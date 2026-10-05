@@ -107,4 +107,4 @@ bash build/sim/run_one.sh tb_v98_top_seam                               # C0c �
 
 小结：这一层的四个难点全都不是算法：跨域要声明结构（`ASYNC_REG`）、吞吐要看平均速率而不是深度、
 "提交"要等真实交付而不是等某个模块自报空闲、可验证性可以反过来决定模块边界。
-下一步：`06-效果链九级.md`。
+下一步：`06-effect-chain-nine-stages.md`。
