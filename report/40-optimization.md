@@ -12,12 +12,10 @@
 
 ## 0. 这一章实际引用的原始文件
 
-规划中的单一事实源是 `build/parsed/`、`build/roster/`、`build/runs/` 与 `report/measurements.md`。
-这一章开工时前四样里只有 `build/runs/`（逐批次记录文件）还没落地，其余三样
-（`build/roster/roster_r118.tsv`、`build/roster/roster_r118_probe.tsv`、`build/parsed/*.json`、
-`report/measurements.md`）与本章写作同时完成，所以下面逐格引用的是名册与差分的原件，
-并与落地的那三样做过交叉核对；核对结果与两处不同源登记在 对照表说明 §7。
-`build/runs/` 落地后改引用它；在那之前，凡是"某一批次的名册"都指下表点名的原件。
+这一章引用的原件是 `build/roster/roster_r118.tsv`、`build/roster/roster_r118_probe.tsv`、
+`build/parsed/*.json` 与 `report/measurements.md`；名册与差分同名册对过，两处不同源登记在 对照表说明 §7。
+逐批次那份记录留在仓库历史里（不随包），所以凡是"某一批次的名册"都指下表点名的原件；
+下表每一格的读数都能在 `report/measurements.md` 里找到同一句口径，两处对不上就是这一章的错。
 
 | 类别 | 本章实际引用的原件 |
 | --- | --- |
