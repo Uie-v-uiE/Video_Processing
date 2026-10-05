@@ -25,7 +25,7 @@
 | 缩放 0.25–2.00（八档）+ 自动呼吸 + Fit | `src/rtl/process/zoom/` | lane23 回读倍率与来源；屏上量格 |
 | 旋转 + 双线性插值 | `src/rtl/process/rotate/`、`bilin/` | `sim/tb_v96` 的映射判据 M1/M2/M4/M6；整屏台架 |
 | 效果链（gamma / 颜色 / 滤波 / 边缘 / 阈值 / 形态学） | `src/rtl/process/proc_pipeline.v` 等 11 个文件 | 每级一条旁路判据；固定 15 拍延迟由 `tb_v86` 实测钉住 |
-| 同帧左右对比（左原图 / 右处理图，缝位置可调） | `src/rtl/process/split_ctrl.v` + 顶层混合 | 串口 `split <n>` 后 marker 位不变的判据；屏上看缝 |
+| 同帧左右对比（左原图 / 右处理图，缝位置可调） | `src/rtl/video/split_ctrl.v` + 顶层混合 | 串口 `split <n>` 后 marker 位不变的判据；屏上看缝 |
 | OSD 叠加（帧率、丢帧、温度、几何参数） | `src/rtl/video/osd_overlay.v` | 36 行人眼验收表逐条；`[TEMP]` 回显与屏上三字符对账 |
 | 链路健康自诊断（计数 + 自动回落） | `src/rtl/eth/link_monitor.v` + 顶层仲裁 | 拔线/拔卡现场复验；AUTO 回落到可用源 |
 | QSPI 固化（断电自启） | `board/tcl/flash_qspi.tcl` | 见 §8 |
