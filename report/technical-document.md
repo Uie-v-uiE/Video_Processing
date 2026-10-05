@@ -274,6 +274,9 @@ Slice LUT 14,154（26.61 %）、寄存器 8,188（7.70 %）、BRAM 95.5/140 tile
 
 ### 8.1 从零建工程并跑门禁
 
+`board/` 里那份上板工程本身是怎么落位并验证的，写在两支脚本里（`board/tcl/stage_board_projects.tcl`、
+`board/scripts/stage_vitis_platform.sh`），判据与实跑读数在 `board/measured/stage_2026-10-05.txt`。
+
 ```bash
 # Vivado：建工程 → 综合 → 实现 → 位流（约 2 小时，含时序报告）
 <DV>/bin/vivado.bat -mode batch -source build/tcl/build_system_axigpio.tcl
