@@ -95,7 +95,7 @@ Master 出 D1–D8、Slave 出 D3/D4，Slave `SHIFTOUT` → Master `SHIFTIN`（U
 | `sys_clk`（20 ns） | 板载晶振 | 复位/按键/部分观测窗口 |
 | `clk_fpga_0`（10 ns） | PS7（BD 里的 FCLK0） | AXI、HP0 拷贝、`shown_rate` 窗口等 |
 | `clk_pix`（20 ns，50 MHz） | `clk_gen` 的 MMCM | 整条显示通路（单域） |
-| `eth_rxc`（8 ns） | PHY 恢复的源同步时钟 | 收包族 **+ 发侧协议栈（arp/icmp/udp）+ 512×100 位打包 FIFO**：`gmii_tx_clk` 与 `gmii_rx_clk` 是同一根（`src/rtl/eth/eth_udp_video_top.v:5`），所以它是全设计端点最密、setup 余量最薄的一族（4835 端点、相对余量 9.24 %，账在 `04` 第 7 节） |
+| `eth_rxc`（8 ns） | PHY 恢复的源同步时钟 | 收包族 **+ 发侧协议栈（arp/icmp/udp）+ `link_monitor`**（2544 只寄存器，`build/clock_util.rpt:174`；512×100 位打包 FIFO **不在这一族**，它在 `axi_clk`/`clk_fpga_0`，`src/rtl/eth/eth_udp_video_top.v:355`）：`gmii_tx_clk` 与 `gmii_rx_clk` 是同一根（`src/rtl/eth/eth_udp_video_top.v:5`），所以它是全设计端点最密、setup 余量最薄的一族（4835 端点、相对余量 9.24 %，账在 `04` 第 7 节） |
 | （派生）`clk_pix5x` 250 MHz、`clk_200m` | 同一 MMCM | TMDS 10:1 串化、IDELAY 参考 |
 
 **为什么 MMCM 输出的名字带 `_1`**（`clkout0_1`）：那是 BD/MMCM 生成时钟的命名，

@@ -148,11 +148,12 @@ gmii_to_rgmii → gmii_rx_mac(自算 FCS) → udp_rx_parser → frame_reasm
 ⇒ **MAC 之上没有任何逻辑去吃 8 ns 的预算**，PHY 恢复出来的 RXC 域里只剩 PHY 接口本身。
 
 本工程的 `gmii_tx_clk` 与 `gmii_rx_clk` 是同一根（`src/rtl/eth/eth_udp_video_top.v:5`），
-于是收侧链路、发侧协议栈（arp / icmp / udp）、512×100 位的 LUTRAM 打包器
-（`src/rtl/eth/axi_frame_saver64.v:48-51`，`FW=9`）和 `link_monitor` 全压在同一颗 8 ns 时钟上
-⇒ 4835 端点、时钟网 2546 负载（`build/timing_summary.rpt:182`），
-而 `u_saver/wptr_reg[5]` 这一根写指针位单独吃 1165 个负载
-（`build/roster_r118_after_fanout.rpt` 汇总表第 5 行）。
+于是收侧链路、发侧协议栈（arp / icmp / udp）与 `link_monitor` 全压在同一颗 8 ns 时钟上
+⇒ 名册上 4835 个 setup 端点、实际挂 2544 只寄存器（`build/timing_summary.rpt:182`、`build/clock_util.rpt:174`）。
+**512×100 位的 LUTRAM 打包器不在这个域里**：`eth_udp_video_top.v:355` 写的是 `.clk(axi_clk)`，
+而 `axi_clk` 是 HP0 的 100 MHz（`clk_fpga_0`，挂 3338 只寄存器，`build/clock_util.rpt:128`）——
+这一句早先写错过一次，把打包器算进这一族，2026-10-05 按源码改正。
+它留在原处的意义是：**这一族的"装得多"要按"收侧链 + 发侧协议栈"来还，不能按打包器来还**。
 一个域里塞这么多，代价就是这个域里**每一条**路径都要先付 4 ns 量级的布线。
 
 ### 7.5 从那个工程可以 import 的改法，按代价排序（第 1 条过了等价台架、在名册差分判负回退）
