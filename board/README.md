@@ -34,8 +34,6 @@ vivado -mode batch -nojournal -log board/flash/stage.log -source board/tcl/stage
 PS_CC=<…>/arm-none-eabi-gcc.exe bash board/scripts/stage_vitis_platform.sh
 ```
 
-前一支 `open_project` 复制出来的那一份，逐个问这 88 个路径在不在盘上；后一支用副本里的 BSP 重新编译链接一遍 PS 应用。
-
 | 这支验什么 | 打印出来的判据 | 本机前置 |
 |---|---|---|
 | `stage_board_projects.tcl` | 器件 `xc7z020clg484-2`、14 条 run、86 份源件 + 2 份约束、`missing_files=0 of 88`；关掉工程后把 Vivado 写回的工程头 `Path="…"` 改回仓库相对名，再数还有几行带盘符（实量 0），删掉打开时长出的 `*.cache`、`*.hw` | `vivado_system/` 已建好 |
@@ -77,10 +75,8 @@ Vitis → New → Platform → 选 `build/system.xsa` → BSP 勾 `uartps` / `xs
 | 同上，末尾加 `--check` | 只做前置检查与只读扫链：工具在不在、三件套的 md5、JTAG 链上看得见的目标 | 不会 |
 | `VP_XSDB=<…>/xsdb.bat bash board/scripts/board_health.sh` | 只读拍一张健康快照：串口 `stat,temp,stat` → `mrd` GPIO 与 DDR 头 8 字 → 三条异常向量，四件判完落一份件 | 不会 |
 | `bash board/scripts/make_boot_image.sh` | 把 FSBL + 位流 + 应用打成 `board/flash/BOOT.bin`，并打印四件 md5（bootgen 的 `.bif` 只认"一行一个文件、不带逗号不带属性"） | 不会 |
-| `VP_HW_URL=<host:port> vivado -mode batch -source board/tcl/flash_qspi.tcl` | `create_hw_cfgmem` → `program_hw_cfgmem` 把 `BOOT.bin` 写进板载 W25Q256，`PROGRAM.VERIFY` 是硬件回读比对 | **会**：擦写 flash |
+| `VP_HW_URL=<host:port> vivado -mode batch -source board/tcl/flash_qspi.tcl` | `create_hw_cfgmem` → `program_hw_cfgmem` 把 `BOOT.bin` 写进板载 W25Q256，`PROGRAM.VERIFY` 是硬件回读比对；`VP_QSPI_PART` 选 flash 型号（默认按 `get_cfgmem_parts` 的 `COMPATIBLE_PARTS`），`VP_FLASH_OFFSET` 选起始地址，那一次写入的读数在 `board/measured/flash_qspi_2026-10-05.txt` | **会**：擦写 flash |
 | `vivado -mode batch -source board/tcl/stage_board_projects.tcl`、`PS_CC=<…> bash board/scripts/stage_vitis_platform.sh` | 第 1 节那两支：复制上板工程并当场验证打得开、链得出 | 不会 |
-
-`VP_QSPI_PART` 指定 flash 型号（默认按 `get_cfgmem_parts` 的 `COMPATIBLE_PARTS` 选），`VP_FLASH_OFFSET` 指定起始地址；`board/measured/flash_qspi_2026-10-05.txt` 是那一次写入的读数。
 
 前两支（`board_flash.sh` / `board_health.sh`）都把同一份内容打成 stdout、并落成 `board/measured/<名字>_<YYYYMMDD_HHMM>.txt`，件的第一段就是跑动那一刻的 IDENTITY（时间、git HEAD、三件套 md5），末行是 `FLASH:` / `HEALTH:` 的
 GREEN/RED 总判定；判红会点名是哪一步、哪一项，不会安静地少跑一段。 `VP_XSDB` 不给或指不到就 `REFUSE` 并退 2（口径抄自 `build/board_verify.sh:118`）。
