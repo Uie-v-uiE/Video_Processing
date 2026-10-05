@@ -32,8 +32,13 @@
 第二控制字（BD 里的 `axi_gpio_2`，双通道 ×32 位纯输出）见 `src/ps/main.c` 的
 `/* ---- V8-2：第二条控制字` 一节。
 
-## 本机限制
+## 重建这颗 ELF
 
-本机没有 `arm-none-eabi-gcc`（也没有 `python3`），所以上面 1–3 步只能在装有 Vitis 的机器上跑；
-仓库里随包的 `build/ps_app.elf` 是 2026-10-04 之前编好的那一份，本轮未重编
-（凭据：`build/r118_gates_final.txt` 的 `ps_app.elf md5=d0b07f84a068` 与上一版同一枚）。
+上面 1–3 步在本机就能跑：编译器在 `<Vitis>/gnu/aarch32/nt/gcc-arm-none-eabi/bin/arm-none-eabi-gcc.exe`
+（自述 `arm-xilinx-eabi-gcc (GCC) 13.3.0`，它不在 `PATH` 上，所以要显式给 `PS_CC`），
+`PS_BSP` 要给**绝对路径**（给相对路径时 gcc 会去找 `vitis\platform\…\Xilinx.spec` 而读不到）。实跑记录在
+`build/evidence/1005_ps_app_rebuild.txt`：编译与链接都成功，尾部打印 `ENTRY _boot@0x000000cc` 与 `OK`。
+重建出来那颗 md5 = `4ed58740785c158c89c0fbc80a0e9d39`，**没有**替换随包这颗：仓库里 `build/ps_app.elf`
+是 `d0b07f84a0683db203086fb816ac71d7`（`build/r118_gates_final.txt` 的 `ps_app.elf md5=d0b07f84a068`），
+板上复验过的行为只绑这一颗；换 ELF 之后必须再跑一次 `bash build/board_verify.sh` 才谈得上等价。
+另有一条本机事实：`python3` 这个别名不存在（`python` 是 3.12），宿主脚本一律写 `python`。
