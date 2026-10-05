@@ -8,3 +8,18 @@
 重建产物 md5 = 4ed58740785c158c89c0fbc80a0e9d39（未采纳、未上板；已从工作树还原成随包那颗）
 随包/在板那颗 md5 = d0b07f84a0683db203086fb816ac71d7（board/logs/index.md 与 build/evidence/r118_board/board_now.txt 点的都是这一颗）
 两个 md5 不同这一条如实记下：那颗更早、由 IDE 侧构建；板上已复验的行为只绑定 d0b07f84 那颗，重建这颗要先上板复验才谈得上等价。
+
+—— 2026-10-05 21:57 第二次实测（`board/scripts/stage_vitis_platform.sh`，用 board/vitis_platform 副本里的 BSP）——
+命令：PS_CC=<Vitis>/gnu/aarch32/nt/gcc-arm-none-eabi/bin/arm-none-eabi-gcc.exe bash board/scripts/stage_vitis_platform.sh
+STAGE_BSP = board/vitis_platform/ps7_cortexa9_0/standalone_ps7_cortexa9_0/bsp
+STAGE_HAVE = hw/system.xsa、zynq_fsbl/build/fsbl.elf
+ELF_MD5_INREPO        = d0b07f84a0683db203086fb816ac71d7（验证跑完后工作树仍是这一颗，脚本已改成跑前备份、退出时还原）
+ELF_MD5_STAGED_BUILD  = c0f9f79ac97aa77265ed42779f38611a
+SECTIONS_BEFORE .text 62900 | .rodata 19447
+SECTIONS_AFTER  .text 62848 | .rodata 19227
+结论两条：① 副本完整——同一条命令用原始 BSP（vitis/platform）链出来的也是 c0f9f79a…，两颗一致，
+   说明 board/vitis_platform 这份复制没有丢东西，能独立编译链接；
+   ② 重建这颗与在板那颗仍不同，且比上午那颗 4ed58740785c… 又变了一版——
+   中间 src/ps/main.c 删掉一条永远走不到的 not_wired("bilin") 分支（笔 0bc578d），
+   .text 小 52 B、.rodata 小 220 B 与此相符。这颗仍未上板、未采纳。
+由此定下的一条口径：正文里不抄重建产物的 md5（每改一次源码就变一次），只指本件。
