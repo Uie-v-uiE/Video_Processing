@@ -13988,3 +13988,21 @@ rim 那一半本轮已用修好的入口重跑并出新件 `build/tb_edge_rim_r1
      新增进扫描范围的四份先单独预扫过：绝对路径 0 行（`D:[/\]|C:[/\]|/d/…` 那个式子）。
   只改提交分支那份：主线 `make_submission.sh` 今晚不跑导出，且主线树这两处形状本就不同
   （主线有 `report/90-open-items.md` 的编号行、也有 `docs/`）；等下次真要重导主线包时一起对账，别改一把当场不跑的尺子。
+
+- **#402（2026-10-06 00:21，提交包仍没落盘：包内自检抓到 62 条活引用落不到文件，24 个目标）**：
+  `bash build/make_submission.sh`（VP_SUB_OUT=Prj/final_submission_20261005）跑完 rc=1，
+  报 `导出提交 9d4dbcc：707 个文件 / 14M，剪掉 499 条，死链 62，旧名残留 0，绝对路径 0` ⇒ **不写盘**（这条门就是干这个的），
+  旧的 `Prj/final_submission`（10-04 `ef68bb3`，520 文件）原样没动。缺口分两类，别混着修：
+  ① **该剪没剪**：`build/runs/ledger.md` 与 `build/runs/decisions.md` 是逐批次流水账，包内自检从它们身上抓到 8 条
+     指向**已被别的规则剪掉**的东西（`build/frozen_r23_srcseen/cdc.rpt`、`build/mut_shown_rate_r97.txt`、
+     `build/scan_async_reg_coverage.py`、`build/board_temp_r101.txt`、`build/roster_r118_*.rpt`、`docs/optimization-rounds.md` 等）。
+     这两本自己也**正是用户点名要删的那类记录**，但它们同时被 `report/40-optimization.md`（当"单一事实源"讲）和
+     生成件 `report/90-open-items.md`（逐行点名 `build/runs/decisions.md:14/54/63`）引用 ⇒
+     剪它要先改那两处引用、再重跑 `build/submit_open_items.mjs`，是一整步改名/删档活，**不能在凌晨半做**（先例：#145 改名轮两次退回）。
+  ② **声明写对了、判据没吃到**：`data/golden/manifest.md:224` 那行明写"已真删，不随包"、
+     `board/README.md:127` 明写"被 .gitignore 挡着、不入库"、`report/70-reproduce.md:214` 明写 `（未写）`，
+     可死链那层仍把它们算进 62 —— 与 #400① 同一形状：**一行里多个引用时，同行声明只挡住了它自己那半句**。
+     这一支该修的是判据（按"引用与声明是否同一句"分档），不是把文档话术再改一遍。
+  今晚的交付因此只到"仓与分支"这一层：`main 93dcddb→c4a440f`、`submit/20261005-final → 9d4dbcc`，
+  两棵树 DELIVER-SPEC 18 项红 0、终审 C1–C12 零 FAIL、D5/D6/enc/currency 干净；
+  包这一格写"未落盘 + 上面两类缺口"，不念成绿。
