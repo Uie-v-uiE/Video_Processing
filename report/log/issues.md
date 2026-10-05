@@ -13759,3 +13759,18 @@ rim 那一半本轮已用修好的入口重跑并出新件 `build/tb_edge_rim_r1
   **代价在别的域**（逐时钟名册差分 `pairs=8` 全配上，`result=RED`）：`eth_rxc/setup` 0.739→**0.471**（相对余量 9.24 %→5.89 %）、`clk_fpga_0/setup` 1.850→1.492（−19.4 %）、`sys_clk/hold` 0.222→0.121（−46 %）、`clk_fpga_0/hold` 与 `clkout0_1/hold` 各掉 5.7 %/6.8 %；唯一变好是 `clkout0_1/setup` 3.630→3.945（+8.7 %）。**没有一处 RTL 改动**，纯粹是"把 TMDS 纳入检查后工具重新布置"的连带代价 ⇒ 按计划里预写的判据（本族没变好、别域变差就是代价）**DECLINE**：窗留在候选件与 `VP_R119_TMDS_WINDOW` 开关后面，默认构建不加载，`I3=3` 那条继续作为**量过的债**登记，不圆场。
   **翻案需要什么**（写下来免得下次又从零想）：把 TMDS **钟道**也一并给窗（`tmds_clk_p` 目前没有 `set_output_delay`），或把数据窗从 ±4.000 ns 收紧到板级走线失配减掉之后的真值——两者都是**另一个单变量**，都要再来一轮名册差分。
   **顺手把差分闸门的一处"假拒绝"修了**：B 侧比 A 侧**多出一颗钟**（`clkout1_1` 因为绑窗才第一次出现在名册里）原来一律 `REFUSE`，那会把正当实验挡在门外；现在分成三种：A 的钟在 B 消失 = REFUSE（口径不一致）、B 多出的钟 setup+hold 齐 = 打印 `ROSTERDIFF-NEWTIMED` 并放行、只有半行 = REFUSE。`--self 对照 11/11 全过`（原有的 `control_clock_inventory` 仍要求红，所以放行不是把闸门放宽了事）。
+
+- **#388（2026-10-05 午，D3：`-verbose` 的名字级清单把 I7 收了，同时推翻我自己那句"两个单位"）**：D1/D2 落定之后，`#259` 只剩"名字级对账"这一半。做法不是再跑一次构建，而是把仓里归档的那份 `build/check_timing_verbose.rpt` **逐行数过**（3522 字节，`check_timing -verbose` 的形状）：
+  `5. checking no_input_delay (7)` 下面是 HIGH 5 行（`eth_rx_ctl`、`eth_rxd[0..3]`）+ MEDIUM 2 行（`key1_n`、`key2_n`）；
+  `6. checking no_output_delay (12)` 下面是 HIGH 6 行（`led[0]`、`led[1]`、`tmds_clk_p`、`tmds_data_p[0..2]`）+ MEDIUM 6 行（`eth_rst_n`、`eth_tx_ctl`、`eth_txd[0..3]`）；
+  再加一句 `There are 0 ports … but with a timing clock defined on it`。**⇒ 小标题 = 两个严重度之和，明细只给一段，两边同一个单位（每个端口位算一个、各点一行）**。
+  所以 `#386` 与我写进 `report/timing_global.md` 的那句"工具在同一个桶里给了两个单位（12 是引脚、6 是端口）"是**我读错了**，不是工具的问题；`12−6=6` 那个差值从来就不该被当成对账（#251 同族）。这条在 `#386` 里也写着，那次只改了一半。
+- `build/check_io_timing_coverage.py` 的改动（判据 9 → **10** 条）：
+  ① 新增 `I7_verbose_selfreconcile`：每段 `There are N …` 必须等于该段下面点名的行数，且小标题必须等于 HIGH+MEDIUM 两段点名数之和。真件读数 `no_input_delay=7/5+2 no_output_delay=12/6+6` ⇒ **GREEN**（这条以前是 NOT_MEASURED，因为我只数计数、没数名字）。
+  ② 新增 `I10_names_vs_source`：**名字级两向**对账——输入侧我的 BARE 引脚集合必须与工具 HIGH 名单**逐个相同**；输出侧工具点名的每个名字必须落在我判 BARE∪带理由 EXEMPT 里（无幽灵），而我判 BARE 的每个引脚必须被工具点名（差分对负端按实测口径 ① 除外：`tmds_clk_n`、`tmds_data_n[0..2]`）。实测 **GREEN**，被豁免覆盖而工具不点名的是 `led[0] led[1] eth_mdc eth_mdio`（`eth_mdc`/`eth_mdio` 是常量 0 / 高阻，见 `system_top.v:116-117`；这一条口径是**从名单反推**的，文档里写明了不是手册条文）。
+  ③ 解析器 `verbose_lists()` 修好两处会造出假红的地方：任何 `N. checking …` 行都重置游标（否则后段 `multiple_clock` 那几行会被当上前段的名单）；认不出 `(HIGH)`/`(MEDIUM)` 的行**不许**改动桶（`There are 0 ports … timing clock` 那句曾把上一段的 `declared_bare=6` 覆盖成 0）。
+  ④ 尺子的默认报告件从归档的 `build/evidence/r112_bit/timing_summary.rpt` 改成**盘上现行** `build/timing_summary.rpt`（可用 `IODEBT_SUM` 覆盖）——默认读历史就是"当前"这句话又飘了一次（规矩：工具里的默认产物路径是每轮变量）。两份的四个数实测相同（5/2/6/6），所以这不是改判据而是改射程。
+  ⑤ `--self` 从 9 条对照变成 **12** 条，全部按**标签**取判定行（`jt(res, tag)`），不再写 `judged[7]` 这种硬编号：新增判据把索引一挤，硬编号就会打到别的判据上——我自己这次就先中招，三条对照"绿"得毫无意义。三条新的坏件对照分别是：小标题 12→11 ⇒ I7 红；从 HIGH 名单删一个名字 ⇒ I7 与 I10 同时红（同一事实的两个视角）；塞进 `not_a_pin[9]` ⇒ I10 红。件缺失 ⇒ I7/I10 一起 REFUSE。
+  ⑥ 判据行的可机读字段改成 ASCII（`named_but_exempted_with_reason=`、`header=HIGH+MEDIUM …`）：这台机器的控制台是 GBK，CJK 进判定行会让日志对 `grep` 变成 binary（老坑，又踩在自家新判据上）。
+- **落定后的形状**：`python build/check_io_timing_coverage.py` = 判 10 条，**9 绿 / 1 红**，唯一红仍是 `I3_output_covered bare_out_ports=4`——它由 D1 那句"窗量过并拒绝"决定，不是没做；`--self` 12 条对照全过。读数件 `build/evidence/1006_d3/io_debt_after_D3.txt`。改口的文档：`report/60-failure-analysis.md` A6、`report/70-reproduce.md` 第 5.6 行与退出码表、`report/timing_global.md` 那行"其他地方"、`report/timing/eth_rxc_partition_options.md` 第 6 节（`I3=3` 那句混了两个口径，现拆成"我这侧 4 个端口名 / 工具那侧 6→3 个引脚名"）。
+- **没做的**：`build/tcl/probe_io_timing_names.tcl`（为这一步准备的只读探针）**没有跑**——归档件里已经有名字，不必再开一次 Vivado；如果哪天 `-verbose` 那份件过期或与现行构建不同形，那个探针就是重取名单的入口，用法写在文件头。

@@ -17,6 +17,10 @@
 #   I4 基线不涨：报告的四个数任何一项都不许多于基线（新接口进来就红）
 #   I5 计数地板：被数到的用户端口位数 >= 20 且报告四项都解析到（空转不许当绿）
 #   I6 豁免反买通：豁免表每条必须有 >=30 字的理由，且被豁免的端口必须在 RTL 里真存在
+#   I7 verbose 件自对账（2026-10-05 D3 收的尾）：`check_timing -verbose` 里每一段"There are N …"
+#      必须等于它下面点名的行数，且小标题总数必须等于 HIGH+MEDIUM 两段点名数之和
+#   I10 名字级两向对账：工具那份 HIGH 名单与我从 RTL+XDC 推出的那份，输入侧集合相等、
+#      输出侧无幽灵名、且我判 BARE 的每一个都被工具点名（差分负端按实测口径除外）
 # 用法：
 #   python build/check_io_timing_coverage.py build/evidence/r112_bit/timing_summary.rpt
 #   python build/check_io_timing_coverage.py --self
@@ -28,6 +32,7 @@ XDCS = ["src/constraints/rk_zynq7020.xdc", "src/constraints/clock_groups_impl.xd
 BASELINE = {"in_bare": 5, "in_fp": 2, "out_bare": 6, "out_fp": 6}
 # （原来这里还有一条 GAP_OUT_BARE = 6："源码位数 12 减报告 6 等于 6"——那是**位数减端口对象数**的量纲错，
 #  差值被钉成常量后它永远绿，什么也没对账。现在由 I7_unit_reconcile 取代：必须存在一个单位让四个桶全等于报告。）
+DEFAULT_SUM = os.environ.get("IODEBT_SUM", "build/timing_summary.rpt")
 METH = os.environ.get("IODEBT_METH", "build/methodology.rpt")
 # 第三个来源：report_methodology 的 TIMING-18 **明细**会自己点名引脚（2026-10-03 实测：
 #   eth_rx_ctl + eth_rxd[0..3] 五个输入、led[0]/led[1] 两个输出），这是 check_timing 那种"只给计数"
@@ -106,39 +111,60 @@ def report_counts(path):
     }
 
 VERBOSE = os.environ.get("IODEBT_VERBOSE", "build/check_timing_verbose.rpt")
-# 2026-10-05（#259 收口）：`check_timing` 的**小标题与明细行是两个单位** ——
-#   小标题 `checking no_output_delay (12)` 数的是**引脚/位**，明细 `There are 6 ports …` 数的是**端口对象**，
-#   而明细不点名。点名要靠 `check_timing -verbose`，那份件在仓里归档着（`build/check_timing_verbose.rpt`，
-#   实测名单：HIGH=led[0] led[1] tmds_clk_p tmds_data_p[0..2]；MEDIUM=eth_rst_n eth_tx_ctl eth_txd[0..3]）。
-#   所以这里同时做两件事：I7 用"引脚单位 = BARE∪EXEMPT 的位数 对 小标题总数"（豁免只是政策叠加，
-#   物理上不减少工具看到的人口），I10 用**名字级**集合相等（工具那份 vs 我从 RTL+XDC 推出来的那份）。
-# 两条 Vivado 的口径（不是猜的，是从那份件里读出来的，改动它们必须同时改那份件的读法）：
-#   ① 差分对只报 `_p` 那一半：tmds_clk_n/tmds_data_n[*] 在名单里没有独立条目；
-#   ② 源同步输出时钟不算 no_output_delay：eth_tx_clk（它在 clock_groups 里被当时钟对象）不在任何名单里。
+# 2026-10-05（D3，用 `-verbose` 的名字级清单收 #259 的尾）：
+#   先前这里写着"小标题与明细是两个**单位**"，那句是**我读错了**。逐行数过那份件之后实情是
+#   同一个单位（端口对象）、不同**射程**：
+#     `checking no_input_delay (7)`  = HIGH 点了 5 个名（eth_rx_ctl、eth_rxd[0..3]）
+#                                    + MEDIUM 点了 2 个名（key1_n、key2_n）= 7
+#     `checking no_output_delay (12)` = HIGH 6 个名（led[0]、led[1]、tmds_clk_p、tmds_data_p[0..2]）
+#                                     + MEDIUM 6 个名（eth_rst_n、eth_tx_ctl、eth_txd[0..3]）= 12
+#   所以小标题 = 两个严重度之和，明细行只报其中一个严重度；把 12−6=6 钉成常量仍然错（那是我自己
+#   造的差值，#251 同族），但现在判绿靠的是三段计数与三段点名行数逐段相等，不是扣常数。
+# Vivado 在这份名单里的两条口径（是从那份件里读出来的，不是猜的；动它们必须同时改那份件的读法）：
+#   ① 差分对只报 `_p` 那一半：tmds_clk_n / tmds_data_n[*] 端口在 RTL 里存在，名单里没有；
+#   ② 恒 0 与高阻的输出不被点名：eth_mdc（`system_top.v:117` 常量 0）、eth_mdio（`:116` 高阻）
+#      都不在名单里。**这是从这份名单反推的口径，不是手册条文**，所以下面只把它当作
+#      "它们不许出现在方向一的等式里"用，不用它去解释任何计数。
+#   ③ `eth_tx_clk` 既不在 HIGH 也不在 MEDIUM（它在 clock_groups 里当时钟对象）。
 CLOCK_OUTPUTS = ("eth_tx_clk",)
 
 def verbose_lists(path):
-    """`check_timing -verbose` -> {check: {bucket: [names]}}；文件不在就返回 None（判据要红，不许空绿）。"""
+    """`check_timing -verbose` -> {check: {total, bare:[names], fp:[names], declared_*}}；
+    文件不在就返回 None（判据要红，不许空绿）。"""
     if not os.path.exists(path):
         return None
     t = read(path)
     out = {}
     cur = None
     for line in t.splitlines():
-        m = re.search(r"checking (no_input_delay|no_output_delay) \((\d+)\)", line)
+        m = re.match(r"\s*\d+\.\s+checking (\w+)", line)
         if m:
+            # 任何 checking 段都重置游标：目录区（文件前半那份"5. checking … (7)"索引）与正文段
+            # 用同一形状的小标题，不重置就会把下一段（multiple_clock 等）的行当成上一段的名单。
             cur = m.group(1)
-            out.setdefault(cur, {"total": int(m.group(2)), "bare": [], "fp": []})
+            if m.group(1) in ("no_input_delay", "no_output_delay"):
+                mm = re.search(r"checking (no_input_delay|no_output_delay) \((\d+)\)", line)
+                e = out.setdefault(mm.group(1), {"total": int(mm.group(2)), "bare": [], "fp": [], "bucket": None})
+                e["total"] = int(mm.group(2))
             continue
-        if cur is None:
+        if cur not in ("no_input_delay", "no_output_delay"):
             continue
-        m = re.search(r"There are (\d+) (?:input )?ports with no (?:input|output) delay( but user has a false path)?", line)
+        m = re.search(r"There are (\d+) (?:input )?ports with no (?:input|output) delay specified\. \(HIGH\)", line)
         if m:
-            out[cur]["bucket"] = "fp" if m.group(2) else "bare"
-            out[cur]["declared_" + out[cur]["bucket"]] = int(m.group(1))
+            out[cur]["bucket"] = "bare"
+            out[cur]["declared_bare"] = int(m.group(1))
+            continue
+        m = re.search(r"There are (\d+) (?:input )?ports with no (?:input|output) delay"
+                      r" but user has a false path.*\(MEDIUM\)", line)
+        if m:
+            out[cur]["bucket"] = "fp"
+            out[cur]["declared_fp"] = int(m.group(1))
             continue
         nm = line.strip()
-        if nm and re.match(r"^[A-Za-z_][\w]*(\[\d+\])?$", nm) and cur is not None:
+        # 同一桶里还有第三种"0 ports … but with a timing clock defined on it"（本设计实测为 0），
+        # 它既不归 HIGH 也不归 MEDIUM：认不出严重度标记就不许改动 bucket，否则那份"0 条"会把
+        # 上一段的声明数覆盖成 0 —— 一条只看计数的判据就会红得莫名其妙。
+        if nm and re.match(r"^[A-Za-z_][\w]*(\[\d+\])?$", nm):
             b = out[cur].get("bucket")
             if b:
                 out[cur][b].append(nm)
@@ -232,43 +258,58 @@ def run(sumf, xdc_list=None, exempt_extra=None, baseline=None, methf=None, verbo
                                                 for nm in all_names)]
     j("I6_exempt_integrity", "exempt=%d" % len(exempts), "no_reason=%s ghost=%s" %
       (",".join(bad) or "none", ",".join(ghost) or "none"), not bad and not ghost)
-    # I7：两边的**单位**必须能对上，否则这条判据就是拿位数减端口对象数（原来的写法正是这样，
-    #   还把差值钉成常量 6 ⇒ 它绿得毫无意义：一个我自己造出来的量纲差，被当成"已对账"）。
-    #   现在改成正经的两读法：把源码侧按 pins（位数=引脚数）与 ports（顶层端口对象数）各算一遍，
-    #   只要**存在一个单位**让四个桶全等于报告里的四个数，I7 才绿；两个单位都对不上就红，
-    #   并明确写出"要先问 check_timing -verbose"（#259 欠的就是那份带名字的清单）。
-    src = {"pins": (c["in_bare"], c["in_fp"], c["out_bare"], c["out_fp"])}
-    src_ports = dict(in_bare=0, in_fp=0, out_bare=0, out_fp=0)
-    for nm, d, b, st in rows:
-        if st in ("BARE", "FALSEPATH", "TIMED"):
-            key = ("in_" if d == "input" else "out_") + ("bare" if st == "BARE" else "fp")
-            if st in ("BARE", "FALSEPATH"):
-                src_ports[key] += 1
-    src["ports"] = (src_ports["in_bare"], src_ports["in_fp"], src_ports["out_bare"], src_ports["out_fp"])
-    rep4 = tuple(rep[k] for k in BASELINE)
-    ok_units = [u for u in ("pins", "ports") if all(rep[k] is not None for k in BASELINE)
-                and src[u] == rep4]
-    # I7：这一条**不许拿计数硬凑**。工具在同一个桶里给了两个单位 —— 小标题
-    #   `checking no_output_delay (12)` 与明细 `There are 6 ports …`（名单是 6 行），
-    #   而两者的换算关系（差分对算几个、恒 0/高阻的口算不算、false-path 覆盖的那 6 个算不算进 12）
-    #   我没有一手依据。所以这里按"候选人口"逐个试：命中任何一个 = GREEN；
-    #   一个都不命中 = NOT_MEASURED（不是红，红会让人以为设计坏了；也不是绿，绿会说谎）。
-    #   并把全部候选与工具的两个读数一起打印出来，等 #259 拿到 UG/一手口径或名单级对账后再钉死。
-    pop_sets = {}
-    for tag, sts in (("BARE", ("BARE",)),
-                     ("BARE+EXEMPT", ("BARE", "EXEMPT")),
-                     ("BARE+EXEMPT+FALSEPATH", ("BARE", "EXEMPT", "FALSEPATH"))):
-        pi = sum(b for nm, d, b, st in rows if st in sts and d == "input")
-        po = sum(b for nm, d, b, st in rows if st in sts and d != "input")
-        pop_sets[tag] = (pi, po)
+    # I7：`check_timing -verbose` 那份件**自己内部**必须对得上账（这是收 #259 的那一刀）。
+    #   三段都要相等：① 每一段"There are N …"的 N == 它下面点名的行数；② 小标题总数 == HIGH 点名数 + MEDIUM 点名数。
+    #   对不上就只有两种可能：工具的口径和我读出来的不一样（那就是尺子错），或者名单被改过（那就是件不可信）。
+    #   两种都不许静默通过。件读不到 = REFUSE（不是红也不是绿）。
     vl = verbose_lists(verbose or VERBOSE)
-    vtot = (None, None) if vl is None else (vl.get("no_input_delay", {}).get("total"),
-                                            vl.get("no_output_delay", {}).get("total"))
-    hit = [t for t, v in pop_sets.items() if vtot != (None, None) and v == vtot]
-    verdict7 = "GREEN" if hit else ("NOT_MEASURED" if vtot != (None, None) else "REFUSE")
-    j3("I7_unit_reconcile", "verbose_header=in:%s/out:%s candidates=%s" %
-       (vtot[0], vtot[1], "; ".join("%s=in:%d/out:%d" % (k, v[0], v[1]) for k, v in sorted(pop_sets.items()))),
-       "命中候选人口才算绿；单位换算没定 = NOT_MEASURED", verdict7)
+    if vl is None:
+        j3("I7_verbose_selfreconcile", "verbose=%s not readable" % (verbose or VERBOSE),
+           "each bucket count == named lines", "REFUSE")
+    else:
+        bad7, seg7 = [], []
+        for chk in ("no_input_delay", "no_output_delay"):
+            e = vl.get(chk)
+            if not e:
+                bad7.append("%s:section missing" % chk); continue
+            nb, nf = len(e.get("bare", [])), len(e.get("fp", []))
+            db, df = e.get("declared_bare"), e.get("declared_fp")
+            if db != nb:
+                bad7.append("%s:HIGH declared %s != named %d" % (chk, db, nb))
+            if df != nf:
+                bad7.append("%s:MEDIUM declared %s != named %d" % (chk, df, nf))
+            if e["total"] != nb + nf:
+                bad7.append("%s:header %s != HIGH%d+MEDIUM%d" % (chk, e["total"], nb, nf))
+            seg7.append("%s=%s/%d+%d" % (chk, e["total"], nb, nf))
+        j3("I7_verbose_selfreconcile", " ".join(seg7) + ("" if not bad7 else " MISMATCH: " + "; ".join(bad7)),
+           "header=HIGH+MEDIUM and each bucket count == named lines", "GREEN" if not bad7 else "RED")
+    # I10：**名字级**两向对账（工具那份 HIGH 名单 vs 我从 RTL+XDC 推出来的那份）。
+    #   输入侧走严格相等；输出侧走"工具点名的每一个都必须在我这边有归属"+
+    #   "我判 BARE 的每一个都必须被工具点名，除非落进上面 ① 那条差分对口径"。
+    #   这一条是把 I6 的豁免表钉回现实的：豁免表要是漂了（多一条、少一条、名字写错），这里就红。
+    if vl is None:
+        j3("I10_names_vs_source", "verbose not readable", "name sets agree", "REFUSE")
+    else:
+        mine_in = sorted(p for nm, d, b, st in rows if st == "BARE" and d == "input" for p in pin_names(nm, b))
+        tool_in = sorted(vl.get("no_input_delay", {}).get("bare", []))
+        tool_out = sorted(vl.get("no_output_delay", {}).get("bare", []))
+        mine_out_bare = set(p for nm, d, b, st in rows if st == "BARE" and d != "input" for p in pin_names(nm, b))
+        mine_out_exempt = set(p for nm, d, b, st in rows if st == "EXEMPT" and d != "input" for p in pin_names(nm, b))
+        mine_out_all = sorted(mine_out_bare | mine_out_exempt)
+        # 差分负端（`_n` 且把 `_n` 换成 `_p` 后同一份名单里有对应名字）不被工具点名，是本设计实测到的口径 ①。
+        neg = sorted(p for p in mine_out_bare
+                     if p not in tool_out and
+                     re.sub(r"_n(\[\d+\])?$", r"_p\1", p) in set(tool_out))
+        ghosts10 = [x for x in tool_out if x not in mine_out_all]
+        unexplained = [x for x in mine_out_bare if x not in tool_out and x not in neg]
+        ok10 = (tool_in == mine_in) and not ghosts10 and not unexplained
+        j3("I10_names_vs_source",
+           "in src=[%s] tool=[%s] out_ghost=[%s] out_unexplained=[%s] diff_neg_excluded=[%s]" %
+           (" ".join(mine_in), " ".join(tool_in), ",".join(ghosts10) or "none",
+            ",".join(unexplained) or "none", " ".join(neg)),
+           "input sets identical; no ghost out names; every out BARE named by tool (diff pair neg half excluded)",
+           "GREEN" if ok10 else "RED")
+
     mi, mo = methodology_names(methf)
     src_in_pins = sorted(p for nm, d, b, st in rows if st == "BARE" and d == "input" for p in pin_names(nm, b))
     src_out_pins = sorted(p for nm, d, b, st in rows if st == "BARE" and d != "input" for p in pin_names(nm, b))
@@ -285,7 +326,7 @@ def run(sumf, xdc_list=None, exempt_extra=None, baseline=None, methf=None, verbo
     ghosts = [x for x in mo if x not in allowed_out]
     covered = [x for x in mo if x in exempt_out_pins]
     resid = [x for x in src_out_pins if x not in mo]
-    j("I9_methodology_outputs", "named=%d ghost=%s unnamed_residual=%d 点名但已被带理由豁免覆盖=%s" %
+    j("I9_methodology_outputs", "named=%d ghost=%s unnamed_residual=%d named_but_exempted_with_reason=%s" %
       (len(mo), ",".join(ghosts) or "none", len(resid), ",".join(covered) or "none"),
       "no ghost names", not ghosts)
     states = set(x[3] for x in judged)
@@ -306,6 +347,37 @@ def run(sumf, xdc_list=None, exempt_extra=None, baseline=None, methf=None, verbo
                   verdict))
     return {"rows": rows, "judged": judged, "summary": summary, "verdict": verdict, "counts": c, "rep": rep}
 
+def jt(res, tag):
+    """按标签取那条判定行。`--self` 一律用它，不再写 judged[7] 这种硬编号：
+    判据插在中间就会让对照打到别的判据上（这条尺子自己就差点被这样废掉）。"""
+    for row in res["judged"]:
+        if row[0] == tag:
+            return row
+    raise KeyError(tag)
+
+def patch_verbose(src, drop=None, ghost_after=None, header=None):
+    """把归档的 -verbose 件改成某种**坏法**，用来验对照真的能红。按行做，不做整串替换：
+    那些名字行没有缩进，用 ' 名字' 去 replace 会静默失配（我第一版就是这样，三条对照全绿了个假）。"""
+    lines = src.splitlines(True)
+    if header:
+        pat = "checking %s (" % header[0]
+        lines = [re.sub(r"checking " + re.escape(header[0]) + r" \(\d+\)",
+                        "checking " + header[0] + " (%d)" % header[1], ln) if pat in ln else ln
+                 for ln in lines]
+    if drop:
+        for i, ln in enumerate(lines):
+            if ln.strip() == drop:
+                del lines[i]; break
+        else:
+            raise KeyError("drop 目标不在件里：%s" % drop)
+    if ghost_after:
+        for i, ln in enumerate(lines):
+            if ln.strip() == ghost_after[0]:
+                lines.insert(i + 1, ghost_after[1] + chr(10)); break
+        else:
+            raise KeyError("ghost_after 目标不在件里：%s" % ghost_after[0])
+    return "".join(lines)
+
 def make_variant(drop_patterns, append_lines):
     src = read(XDCS[0])
     out = [ln for ln in src.splitlines() if not any(re.match(p, ln) for p in drop_patterns)]
@@ -318,88 +390,107 @@ def main():
     argv = sys.argv[1:]
     if "--self" in argv:
         rest = [a for a in argv if a != "--self"]
-        sumf = rest[0] if rest else "build/evidence/r112_bit/timing_summary.rpt"
+        # 默认读**盘上现行**那份实现报告，不是某一颗归档位流的副本：
+        #   尺子的默认件必须是"当前这一版"，否则它读的是历史（规矩：报告默认路径是每轮变量）。
+        sumf = rest[0] if rest else os.environ.get("IODEBT_SUM", DEFAULT_SUM)
         r = 0
         base = run(sumf)
         print("SELF baseline_verdict=%s counts_in_bare=%d in_fp=%d out_bare=%d out_fp=%d user_bits=%d"
               % (base["verdict"], base["counts"]["in_bare"], base["counts"]["in_fp"],
                  base["counts"]["out_bare"], base["counts"]["out_fp"], base["counts"]["user_bits"]))
         # 对照 1：输入侧对账这条必须**能绿**（源码数出来 5 位、报告也是 5 ⇒ 不是把把红的那种尺子）
-        ok = base["judged"][0][3] == "GREEN"
-        print("SELF control_input_reconcile %s result=%s" % (base["judged"][0], "PASS" if ok else "FAIL"))
+        ok = jt(base, "I1_in_reconcile")[3] == "GREEN"
+        print("SELF control_input_reconcile %s result=%s" % (jt(base, "I1_in_reconcile"), "PASS" if ok else "FAIL"))
         r |= 0 if ok else 1
         # 对照 2：删掉 key1_n 的 false path ⇒ in_fp 少一位、in_bare 多一位 ⇒ I1/I2 必须撞
         v2 = run(sumf, xdc_list=[make_variant([r"^\s*set_false_path\s+-from\s+\[get_ports\s+key1_n\]"], [])])
-        ok = v2["judged"][1][3] == "RED" and v2["judged"][0][3] == "RED"
-        print("SELF mutation_drop_false_path %s %s result=%s" % (v2["judged"][0], v2["judged"][1], "PASS" if ok else "FAIL"))
+        a, b = jt(v2, "I1_in_reconcile"), jt(v2, "I2_falsepath_in")
+        ok = a[3] == "RED" and b[3] == "RED"
+        print("SELF mutation_drop_false_path %s %s result=%s" % (a, b, "PASS" if ok else "FAIL"))
         r |= 0 if ok else 1
         # 对照 3：给 eth_rx_ctl 补一条 set_input_delay ⇒ 源码端 in_bare 变 4、报告仍是 5 ⇒ I1 必须红
         v3 = run(sumf, xdc_list=[make_variant([], ["set_input_delay -clock eth_rxc 2.000 [get_ports eth_rx_ctl]"])])
-        ok = v3["judged"][0][3] == "RED"
-        print("SELF mutation_add_input_delay %s result=%s" % (v3["judged"][0], "PASS" if ok else "FAIL"))
+        row = jt(v3, "I1_in_reconcile")
+        ok = row[3] == "RED"
+        print("SELF mutation_add_input_delay %s result=%s" % (row, "PASS" if ok else "FAIL"))
         r |= 0 if ok else 1
         # 对照 4：现场加一条没理由的豁免 ⇒ I6 必须红（反买通）
         v4 = run(sumf, exempt_extra="tmds_data_p|")
-        ok = v4["judged"][5][3] == "RED"
-        print("SELF mutation_reasonless_exempt %s result=%s" % (v4["judged"][5], "PASS" if ok else "FAIL"))
+        row = jt(v4, "I6_exempt_integrity")
+        ok = row[3] == "RED"
+        print("SELF mutation_reasonless_exempt %s result=%s" % (row, "PASS" if ok else "FAIL"))
         r |= 0 if ok else 1
         # 对照 5：豁免一个 RTL 里根本不存在的名字 ⇒ I6 也必须红（豁免不许空挂）
         v5 = run(sumf, exempt_extra="not_a_port_xyz|这条是编的名字，用来验尺子会不会让幽灵豁免蒙过去")
-        ok = v5["judged"][5][3] == "RED"
-        print("SELF mutation_ghost_exempt %s result=%s" % (v5["judged"][5], "PASS" if ok else "FAIL"))
+        row = jt(v5, "I6_exempt_integrity")
+        ok = row[3] == "RED"
+        print("SELF mutation_ghost_exempt %s result=%s" % (row, "PASS" if ok else "FAIL"))
         r |= 0 if ok else 1
-        # 对照 6（真实的工具读数）：小标题与明细是两个单位，换算没一手依据 ⇒ I7 必须是 NOT_MEASURED，
-        #   既不许红成"设计坏了"，也不许绿成"已对账"。
+        # 对照 6（真实件，正对照）：D3 拿到 `-verbose` 的名字级清单以后，I7 与 I10 在真实归档件上
+        #   必须**判得出绿**——一条只会红或只会 NOT_MEASURED 的判据等于没有（规矩：能判红的也要能判绿）。
         base = run(sumf)
-        ok = base["judged"][6][3] == "NOT_MEASURED"
-        print("SELF control_unit_unresolved_on_real %s result=%s" % (base["judged"][6], "PASS" if ok else "FAIL"))
+        a, b = jt(base, "I7_verbose_selfreconcile"), jt(base, "I10_names_vs_source")
+        ok = a[3] == "GREEN" and b[3] == "GREEN"
+        print("SELF control_verbose_real_green %s | %s result=%s" % (a, b, "PASS" if ok else "FAIL"))
         r |= 0 if ok else 1
-        # 对照 7（正对照，必须能绿）：给一份小标题总数正好等于候选人口 BARE+EXEMPT 的 verbose 件 ⇒ GREEN。
-        #   少了这条，I7 就成了"永远不判"的装饰（规矩：能判红的判据也要能判绿）。
-        cc = base["counts"]
-        NL = chr(10)
-        fake_v = "/tmp/kx/iodebt_fake_verbose.rpt"
-        # 小标题总数按"引脚"给：输入 5（= BARE 输入位数）、输出 12（= BARE+EXEMPT 输出位数）
-        fake_txt = NL.join([
-            "5. checking no_input_delay (%d)" % cc["in_bare"],
-            " There are %d input ports with no input delay specified. (HIGH)" % cc["in_bare"],
-            " eth_rx_ctl",
-            "6. checking no_output_delay (12)",
-            " There are 6 ports with no output delay specified. (HIGH)",
-            " led[0]",
-        ]) + NL
-        io.open(fake_v, "w", encoding="utf-8", newline=NL).write(fake_txt)
-        v7 = run(sumf, verbose=fake_v)
-        ok = v7["judged"][6][3] == "GREEN"
-        print("SELF control_unit_reconcile_positive %s result=%s" % (v7["judged"][6], "PASS" if ok else "FAIL"))
+        real_v = read(VERBOSE)
+        # 对照 7：把输出段的小标题 12 改成 11 ⇒ I7 必须红（目录行与正文行一起改：只改一处会被另一处盖回去）
+        p7 = "/tmp/kx/iodebt_v_header.rpt"
+        io.open(p7, "w", encoding="utf-8", newline="").write(
+            patch_verbose(real_v, header=("no_output_delay", 11)))
+        v7 = run(sumf, verbose=p7)
+        row = jt(v7, "I7_verbose_selfreconcile")
+        ok = row[3] == "RED"
+        print("SELF control_header_mismatch %s result=%s" % (row, "PASS" if ok else "FAIL"))
         r |= 0 if ok else 1
-        # 对照 7b：verbose 件不在 ⇒ REFUSE（判据不许因为读不到输入而静默变绿）
-        v7b = run(sumf, verbose="/tmp/kx/definitely_not_here.rpt")
-        ok = v7b["judged"][6][3] == "REFUSE"
-        print("SELF control_verbose_missing_refuse %s result=%s" % (v7b["judged"][6], "PASS" if ok else "FAIL"))
+        # 对照 8：从 HIGH 名单里删掉一个名字 ⇒ 声明数与点名行数不再相等（I7 红），
+        #   而我这边它仍是 BARE ⇒ 没被工具点名（I10 红）。一刀同时红两条，因为它们守的是同一个事实。
+        p8 = "/tmp/kx/iodebt_v_dropped.rpt"
+        io.open(p8, "w", encoding="utf-8", newline="").write(patch_verbose(real_v, drop="tmds_data_p[2]"))
+        v8 = run(sumf, verbose=p8)
+        r7, r10 = jt(v8, "I7_verbose_selfreconcile"), jt(v8, "I10_names_vs_source")
+        ok = r7[3] == "RED" and r10[3] == "RED"
+        print("SELF control_dropped_name %s | %s result=%s" % (r7, r10, "PASS" if ok else "FAIL"))
         r |= 0 if ok else 1
-        # 对照 8：把 methodology 的一条输入点名删掉 ⇒ I8 必须红（名字级对账不许靠计数蒙对）
+        # 对照 9：往 HIGH 名单里塞一个本设计没有的引脚 ⇒ I10 必须红（幽灵点名，豁免表漂了也走这条）
+        p9 = "/tmp/kx/iodebt_v_ghost.rpt"
+        io.open(p9, "w", encoding="utf-8", newline="").write(
+            patch_verbose(real_v, ghost_after=("tmds_clk_p", "not_a_pin[9]")))
+        v9 = run(sumf, verbose=p9)
+        row = jt(v9, "I10_names_vs_source")
+        ok = row[3] == "RED"
+        print("SELF control_ghost_verbose_name %s result=%s" % (row, "PASS" if ok else "FAIL"))
+        r |= 0 if ok else 1
+        # 对照 10：verbose 件不在 ⇒ I7/I10 都 REFUSE（判据不许因为读不到输入而静默变绿）
+        v10 = run(sumf, verbose="/tmp/kx/definitely_not_here.rpt")
+        r7, r10 = jt(v10, "I7_verbose_selfreconcile"), jt(v10, "I10_names_vs_source")
+        ok = r7[3] == "REFUSE" and r10[3] == "REFUSE"
+        print("SELF control_verbose_missing_refuse %s | %s result=%s" % (r7, r10, "PASS" if ok else "FAIL"))
+        r |= 0 if ok else 1
+        # 对照 11：把 methodology 的一条输入点名删掉 ⇒ I8 必须红（名字级对账不许靠计数蒙对）
         mt = read(METH).replace("An input delay is missing on eth_rxd[2] relative", "An input delay is missing on eth_rxd[2]", 1)
-        m8 = "/tmp/kx/iodebt_meth_noinput.rpt"
-        io.open(m8, "w", encoding="utf-8", newline="\n").write(mt)
-        v8 = run(sumf, methf=m8)
-        ok = v8["judged"][7][3] == "RED"
-        print("SELF control_missing_meth_name %s result=%s" % (v8["judged"][7], "PASS" if ok else "FAIL"))
+        f11 = "/tmp/kx/iodebt_meth_noinput.rpt"
+        io.open(f11, "w", encoding="utf-8", newline="\n").write(mt)
+        v11 = run(sumf, methf=f11)
+        row = jt(v11, "I8_methodology_inputs")
+        ok = row[3] == "RED"
+        print("SELF control_missing_meth_name %s result=%s" % (row, "PASS" if ok else "FAIL"))
         r |= 0 if ok else 1
-        # 对照 9：给 methodology 塞一个本设计里不存在的引脚名 ⇒ I9 必须红（幽灵点名）
-        m9 = read(METH).replace("An output delay is missing on led[0] relative",
-                                "An output delay is missing on not_a_pin[9] relative", 1)
-        p9 = "/tmp/kx/iodebt_meth_ghost.rpt"
-        io.open(p9, "w", encoding="utf-8", newline="\n").write(m9)
-        v9 = run(sumf, methf=p9)
-        ok = v9["judged"][8][3] == "RED"
-        print("SELF control_ghost_meth_name %s result=%s" % (v9["judged"][8], "PASS" if ok else "FAIL"))
+        # 对照 12：给 methodology 塞一个本设计里不存在的引脚名 ⇒ I9 必须红（幽灵点名）
+        f12 = "/tmp/kx/iodebt_meth_ghost.rpt"
+        io.open(f12, "w", encoding="utf-8", newline="\n").write(
+            read(METH).replace("An output delay is missing on led[0] relative",
+                               "An output delay is missing on not_a_pin[9] relative", 1))
+        v12 = run(sumf, methf=f12)
+        row = jt(v12, "I9_methodology_outputs")
+        ok = row[3] == "RED"
+        print("SELF control_ghost_meth_name %s result=%s" % (row, "PASS" if ok else "FAIL"))
         r |= 0 if ok else 1
-        print("SELF check_io_timing_coverage judged=%d controls=9 result=%s"
+        print("SELF check_io_timing_coverage judged=%d controls=12 result=%s"
               % (len(base["judged"]), "PASS" if r == 0 else "FAIL"))
         return r
 
-    sumf = argv[0] if argv else "build/evidence/r112_bit/timing_summary.rpt"
+    sumf = argv[0] if argv else os.environ.get("IODEBT_SUM", DEFAULT_SUM)
     if not os.path.exists(sumf):
         print("IODEBT-SUMMARY result=REFUSE no_report=%s" % sumf)
         return 2

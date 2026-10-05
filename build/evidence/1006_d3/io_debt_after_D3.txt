@@ -1,0 +1,63 @@
+IODEBT-PORT DDR_cas_n        inout   bits=1   PS_INTERNAL
+IODEBT-PORT DDR_cke          inout   bits=1   PS_INTERNAL
+IODEBT-PORT DDR_ck_n         inout   bits=1   PS_INTERNAL
+IODEBT-PORT DDR_ck_p         inout   bits=1   PS_INTERNAL
+IODEBT-PORT DDR_cs_n         inout   bits=1   PS_INTERNAL
+IODEBT-PORT DDR_odt          inout   bits=1   PS_INTERNAL
+IODEBT-PORT DDR_ras_n        inout   bits=1   PS_INTERNAL
+IODEBT-PORT DDR_reset_n      inout   bits=1   PS_INTERNAL
+IODEBT-PORT DDR_we_n         inout   bits=1   PS_INTERNAL
+IODEBT-PORT DDR_ba           inout   bits=3   PS_INTERNAL
+IODEBT-PORT DDR_addr         inout   bits=15  PS_INTERNAL
+IODEBT-PORT DDR_dq           inout   bits=32  PS_INTERNAL
+IODEBT-PORT DDR_dm           inout   bits=4   PS_INTERNAL
+IODEBT-PORT DDR_dqs_n        inout   bits=4   PS_INTERNAL
+IODEBT-PORT DDR_dqs_p        inout   bits=4   PS_INTERNAL
+IODEBT-PORT FIXED_IO_ddr_vrn inout   bits=1   PS_INTERNAL
+IODEBT-PORT FIXED_IO_ddr_vrp inout   bits=1   PS_INTERNAL
+IODEBT-PORT FIXED_IO_mio     inout   bits=54  PS_INTERNAL
+IODEBT-PORT FIXED_IO_ps_clk  inout   bits=1   PS_INTERNAL
+IODEBT-PORT FIXED_IO_ps_porb inout   bits=1   PS_INTERNAL
+IODEBT-PORT FIXED_IO_ps_srstb inout   bits=1   PS_INTERNAL
+IODEBT-PORT sys_clk          input   bits=1   CLOCK_SRC
+IODEBT-PORT key1_n           input   bits=1   FALSEPATH
+IODEBT-PORT key2_n           input   bits=1   FALSEPATH
+IODEBT-PORT led              output  bits=2   EXEMPT
+IODEBT-PORT tmds_clk_p       output  bits=1   BARE
+IODEBT-PORT tmds_clk_n       output  bits=1   BARE
+IODEBT-PORT tmds_data_p      output  bits=3   BARE
+IODEBT-PORT tmds_data_n      output  bits=3   BARE
+IODEBT-PORT eth_rxc          input   bits=1   CLOCK_SRC
+IODEBT-PORT eth_rx_ctl       input   bits=1   BARE
+IODEBT-PORT eth_rxd          input   bits=4   BARE
+IODEBT-PORT eth_tx_clk       output  bits=1   FALSEPATH
+IODEBT-PORT eth_tx_ctl       output  bits=1   FALSEPATH
+IODEBT-PORT eth_txd          output  bits=4   FALSEPATH
+IODEBT-PORT eth_mdc          output  bits=1   EXEMPT
+IODEBT-PORT eth_mdio         inout   bits=1   EXEMPT
+IODEBT-PORT eth_rst_n        output  bits=1   FALSEPATH
+IODEBT I1_in_reconcile        src_in_pins=5          report=5 GREEN
+IODEBT I2_falsepath_in        src_in_fp_pins=2       report=2 GREEN
+IODEBT I3_output_covered      bare_out_ports=4       want=0 RED
+IODEBT I4_baseline_no_growth  report=in_bare:5,in_fp:2,out_bare:6,out_fp:6 must_not_exceed=5,2,6,6 GREEN
+IODEBT I5_scope_floor         user_bits=22 ports=15  bits>=20 report 4/4 GREEN
+IODEBT I6_exempt_integrity    exempt=7               no_reason=none ghost=none GREEN
+IODEBT I7_verbose_selfreconcile no_input_delay=7/5+2 no_output_delay=12/6+6 header=HIGH+MEDIUM and each bucket count == named lines GREEN
+IODEBT I10_names_vs_source    in src=[eth_rx_ctl eth_rxd[0] eth_rxd[1] eth_rxd[2] eth_rxd[3]] tool=[eth_rx_ctl eth_rxd[0] eth_rxd[1] eth_rxd[2] eth_rxd[3]] out_ghost=[none] out_unexplained=[none] diff_neg_excluded=[tmds_clk_n tmds_data_n[0] tmds_data_n[1] tmds_data_n[2]] input sets identical; no ghost out names; every out BARE named by tool (diff pair neg half excluded) GREEN
+IODEBT I8_methodology_inputs  src=[eth_rx_ctl eth_rxd[0] eth_rxd[1] eth_rxd[2] eth_rxd[3]] meth=[eth_rx_ctl eth_rxd[0] eth_rxd[1] eth_rxd[2] eth_rxd[3]] identical-name-sets and meth>=1 GREEN
+IODEBT I9_methodology_outputs named=2 ghost=none unnamed_residual=8 named_but_exempted_with_reason=led[0],led[1] no ghost names GREEN
+IODEBT-SUMMARY report=build/timing_summary.rpt src_in_bare=5 src_in_fp=2 src_out_bare=8 src_out_fp=7 rep_in_bare=5 rep_in_fp=2 rep_out_bare=6 rep_out_fp=6 user_bits=22 judged=10 meth_in=5 meth_out=2 resid_out=[tmds_clk_n tmds_clk_p tmds_data_n[0] tmds_data_n[1] tmds_data_n[2] tmds_data_p[0] tmds_data_p[1] tmds_data_p[2]] bare_in=[eth_rx_ctl eth_rxd] bare_out=[tmds_clk_p tmds_clk_n tmds_data_p tmds_data_n] result=RED
+SELF baseline_verdict=RED counts_in_bare=5 in_fp=2 out_bare=8 out_fp=7 user_bits=22
+SELF control_input_reconcile ('I1_in_reconcile', 'src_in_pins=5', 'report=5', 'GREEN') result=PASS
+SELF mutation_drop_false_path ('I1_in_reconcile', 'src_in_pins=6', 'report=5', 'RED') ('I2_falsepath_in', 'src_in_fp_pins=1', 'report=2', 'RED') result=PASS
+SELF mutation_add_input_delay ('I1_in_reconcile', 'src_in_pins=4', 'report=5', 'RED') result=PASS
+SELF mutation_reasonless_exempt ('I6_exempt_integrity', 'exempt=8', 'no_reason=tmds_data_p ghost=none', 'RED') result=PASS
+SELF mutation_ghost_exempt ('I6_exempt_integrity', 'exempt=8', 'no_reason=not_a_port_xyz ghost=not_a_port_xyz', 'RED') result=PASS
+SELF control_verbose_real_green ('I7_verbose_selfreconcile', 'no_input_delay=7/5+2 no_output_delay=12/6+6', 'header=HIGH+MEDIUM and each bucket count == named lines', 'GREEN') | ('I10_names_vs_source', 'in src=[eth_rx_ctl eth_rxd[0] eth_rxd[1] eth_rxd[2] eth_rxd[3]] tool=[eth_rx_ctl eth_rxd[0] eth_rxd[1] eth_rxd[2] eth_rxd[3]] out_ghost=[none] out_unexplained=[none] diff_neg_excluded=[tmds_clk_n tmds_data_n[0] tmds_data_n[1] tmds_data_n[2]]', 'input sets identical; no ghost out names; every out BARE named by tool (diff pair neg half excluded)', 'GREEN') result=PASS
+SELF control_header_mismatch ('I7_verbose_selfreconcile', 'no_input_delay=7/5+2 no_output_delay=11/6+6 MISMATCH: no_output_delay:header 11 != HIGH6+MEDIUM6', 'header=HIGH+MEDIUM and each bucket count == named lines', 'RED') result=PASS
+SELF control_dropped_name ('I7_verbose_selfreconcile', 'no_input_delay=7/5+2 no_output_delay=12/5+6 MISMATCH: no_output_delay:HIGH declared 6 != named 5; no_output_delay:header 12 != HIGH5+MEDIUM6', 'header=HIGH+MEDIUM and each bucket count == named lines', 'RED') | ('I10_names_vs_source', 'in src=[eth_rx_ctl eth_rxd[0] eth_rxd[1] eth_rxd[2] eth_rxd[3]] tool=[eth_rx_ctl eth_rxd[0] eth_rxd[1] eth_rxd[2] eth_rxd[3]] out_ghost=[none] out_unexplained=[tmds_data_n[2],tmds_data_p[2]] diff_neg_excluded=[tmds_clk_n tmds_data_n[0] tmds_data_n[1]]', 'input sets identical; no ghost out names; every out BARE named by tool (diff pair neg half excluded)', 'RED') result=PASS
+SELF control_ghost_verbose_name ('I10_names_vs_source', 'in src=[eth_rx_ctl eth_rxd[0] eth_rxd[1] eth_rxd[2] eth_rxd[3]] tool=[eth_rx_ctl eth_rxd[0] eth_rxd[1] eth_rxd[2] eth_rxd[3]] out_ghost=[not_a_pin[9]] out_unexplained=[none] diff_neg_excluded=[tmds_clk_n tmds_data_n[0] tmds_data_n[1] tmds_data_n[2]]', 'input sets identical; no ghost out names; every out BARE named by tool (diff pair neg half excluded)', 'RED') result=PASS
+SELF control_verbose_missing_refuse ('I7_verbose_selfreconcile', 'verbose=/tmp/kx/definitely_not_here.rpt not readable', 'each bucket count == named lines', 'REFUSE') | ('I10_names_vs_source', 'verbose not readable', 'name sets agree', 'REFUSE') result=PASS
+SELF control_missing_meth_name ('I8_methodology_inputs', 'src=[eth_rx_ctl eth_rxd[0] eth_rxd[1] eth_rxd[2] eth_rxd[3]] meth=[eth_rx_ctl eth_rxd[0] eth_rxd[1] eth_rxd[3]]', 'identical-name-sets and meth>=1', 'RED') result=PASS
+SELF control_ghost_meth_name ('I9_methodology_outputs', 'named=2 ghost=not_a_pin[9] unnamed_residual=8 named_but_exempted_with_reason=led[1]', 'no ghost names', 'RED') result=PASS
+SELF check_io_timing_coverage judged=10 controls=12 result=PASS

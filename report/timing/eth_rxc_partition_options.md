@@ -96,7 +96,12 @@
   `result=RED`：`eth_rxc/setup` 0.739→0.471（相对余量 9.24 %→5.89 %）、`clk_fpga_0/setup` 1.850→1.492（−19.4 %）、
   `sys_clk/hold` 0.222→0.121（−46 %）、`clk_fpga_0/hold` 与 `clkout0_1/hold` 各掉 5.7 %/6.8 %；
   唯一变好是 `clkout0_1/setup` +8.7 %。**RTL 一字未改**，这是"把 TMDS 纳入检查后工具重新布置"的连带。
-- **所以默认构建不加载**：候选件与开关原样留着，`I3=3` 这条继续作为**量过的债**登记（不是"没做"）。
+- **所以默认构建不加载**：候选件与开关原样留着。这一条在尺子上留两个读数，别看混：
+  我这一侧 `I3_output_covered bare_out_ports=4`（四个 BARE 输出**端口名**，就是屏那一路的
+  `tmds_clk_p`/`tmds_clk_n`/`tmds_data_p`/`tmds_data_n`）；工具那一侧在未加载窗的构建里
+  HIGH 缺口是 6 个**引脚名**（`led[0]`、`led[1]`、`tmds_clk_p`、`tmds_data_p[0..2]`），加载窗的那一轮降到 3
+  （`led[0]`、`led[1]`、`tmds_clk_p`）。`led` 两个已经走带理由的豁免，所以尺子上的 4 与工具上的 3 不是同一个数，
+  这句话本身就是"量过的债"的形状（件 `build/evidence/1006_d3/io_debt_after_D3.txt`）。
 - **翻案的两个方向，每个都是另一个单变量**：给 `tmds_clk_p` 也配窗（现在那份只覆盖 `tmds_data_p/n`，
   剩下三个缺口正是 `led[0] led[1] tmds_clk_p`，与 `report/timing/debt_ledger.md` 的名单一致）；
   或把 ±4.000 ns 按板级走线失配**减掉**之后再绑。两条都要再来一轮名册差分才谈采纳。

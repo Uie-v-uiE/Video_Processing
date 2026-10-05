@@ -163,6 +163,9 @@ docs/walkthrough/
 
 # ---- 2026-10-04（r120）：把"开发过程留下的树"钉死在仓库外 ----
 # 9/29 那棵隔离构建的输出目录（含 2.1 MB 位流与 866 KB xsa）：过程留档，不入库、不随包。
+# 隔离轮的整个产物目录都不入库（只 `build/evidence/` 里那份读数件算凭据）：
+#   凡是被交付文档引用的读数必须复制进 build/evidence/，否则指路会落空（#383 踩过一次）
+build/isolated_*/
 build/isolated_0929_2036/
 # 各轮临时写commit message/标记的散件：它们是当时那一步的草稿，不是凭据（凭据一律在 build/evidence/ 下以 .txt 留档）。
 build/r11*_msg*.txt

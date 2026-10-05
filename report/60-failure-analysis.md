@@ -158,14 +158,22 @@
 - **计划与成本**：短期只能改口径不能改结果；真要收口，成本 = 一次拓扑改动（RX 侧加一级采样或换 PHY 内部延迟）
   + 一整轮 + 上板 A/B；今天没排。
 
-### A6 · 输出侧时序从未被声明：7 个 BARE 端口，两条判定不通过
+### A6 · 输出侧的对外声明：TMDS 四组仍为 BARE（量过并拒绝），输入侧与名单级对账已闭合
 
 - **现象（含证据）**：命令 `python build/check_io_timing_coverage.py build/timing_summary.rpt`（只读，读 RTL 端口表 + XDC + 归档报告），
-  末行 `result=RED`，9 条判定里 7 条通过 **2 条不通过**：
-  `I3_output_covered bare_out_ports=7 want=0 RED`、`I7_unit_reconcile … RED`。
-  点名的 BARE 输出：`tmds_clk_p`、`tmds_clk_n`、`tmds_data_p[0..2]`、`tmds_data_n[0..2]`、`led`、`eth_mdc`、`eth_mdio`；
-  `I9_methodology_outputs` 那行还念出 `unnamed_residual=10`（这 10 个引脚既不在 TIMING-18 名单也不在"有定义时钟"那条里）。
-  历史件同形状：`build/evidence/r113_io_debt.txt`（在树里）。
+  末行 `result=RED`，10 条判定里 9 条通过 **只有 1 条不通过**：
+  `I3_output_covered bare_out_ports=4 want=0 RED`。点名的 BARE 输出正好是屏那一路的四组端口名
+  `tmds_clk_p`、`tmds_clk_n`、`tmds_data_p`、`tmds_data_n`（`led`/`eth_mdc`/`eth_mdio` 已按 §3.4(b) 走带理由的豁免，
+  理由逐条给行号，见 `report/08-limits.md`）。
+  名单级两条现在是**绿**的，而且是靠逐行数名字数出来的：`I7_verbose_selfreconcile` 读
+  `build/check_timing_verbose.rpt` 那份 `-verbose` 件，要求每段 `There are N …` 等于它下面点名的行数、
+  且小标题总数等于 HIGH+MEDIUM 两段之和（实测 `no_input_delay=7/5+2`、`no_output_delay=12/6+6`）；
+  `I10_names_vs_source` 再要求工具那份 HIGH 名单与我从 RTL+XDC 推出来的那份逐个名字对得上
+  （输入侧集合相等；输出侧无幽灵名，我判 BARE 的每个引脚都被点名，差分对的负端按实测口径除外）。
+  读数与 12 条对照一起记在 `build/evidence/1006_d3/io_debt_after_D3.txt`。
+  这里要更正一句记录时的说法：先前把 `checking no_output_delay (12)` 与 `There are 6 ports …` 判成
+  **"两个单位"**，那是读错了——同一个单位（端口/引脚各算一位），**差的是射程**：小标题数 HIGH+MEDIUM 两段，
+  明细只给一段。
 - **已定位的原因（可被判别）**：屏那一路（HDMI/TMDS 到面板）与 LED、MDIO 从来没有写过 `set_output_delay`，
   也没写过带理由的 `set_false_path`/`set_max_delay` ⇒ 报告上那些"MET"**不包含芯片到面板那一段**。
   **可判别处**：这条不需要推测——它是数出来的。要说"设计真的不合格"还差一步：任何一份输出约束挂上去之后
