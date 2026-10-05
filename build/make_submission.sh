@@ -803,12 +803,25 @@ if [ -n "$ABS_CODE" ]; then ABSN_CODE="$(printf '%s\n' $ABS_CODE | wc -l)"; fi
 ABS_FIXTURE="$( { grep -rnE "$ABS_RE" --include='*.sh' --include='*.tcl' --include='*.py' --include='*.mjs' \
           --exclude='make_submission.sh' . 2>/dev/null || true; } | grep -c 'abs-fixture' || true)"
 ABS_FIXTURE="${ABS_FIXTURE:-0}"
+# 地板不能写死成"上一版树里有几份"：提交分支把 `report/acceptance-recipes.md` 与
+# `report/submission-checklist.md` 删掉了（内容并进 `board/acceptance.md` 与 `report/demo_script.md`），
+# 于是"扫到 8 份"这条地板变成"缺一本被有意删掉的书"式的假红。改成两支：
+#   硬名单 = 复现说明书**必须在**的那几份，缺任何一份就 FAIL（这才是要防的错）；
+#   扫描名单 = 硬名单 + 板上/演示/上位机那几份入口文档 + `submit/reproduce/`，逐份扫，扫到几份打几份。
+ENTRY_HARD="README.md README_EN.md report/70-reproduce.md report/repro-check.md report/build.md build/tcl/README.md report/declarations.md"
+ENTRY_MORE="board/README.md board/acceptance.md report/demo_script.md report/host_guide.md report/acceptance-recipes.md report/submission-checklist.md"
+ENTRY_MISSING=""
+for g in $ENTRY_HARD; do
+  if [ ! -f "$g" ]; then ENTRY_MISSING="$ENTRY_MISSING $g"; fi
+done
+if [ -n "$ENTRY_MISSING" ]; then
+  echo "FAIL：复现入口的硬名单缺件：$ENTRY_MISSING ⇒ 乙层没法查，不写 $OUT" >&2
+  exit 1
+fi
 ENTRY_SCANNED=0
 ABSN_ENTRY=0
 ABS_ENTRY=""
-for g in README.md README_EN.md report/70-reproduce.md report/build.md build/tcl/README.md \
-         report/repro-check.md report/acceptance-recipes.md report/declarations.md report/submission-checklist.md \
-         $(ls submit/reproduce/*.md 2>/dev/null); do
+for g in $ENTRY_HARD $ENTRY_MORE $(ls submit/reproduce/*.md 2>/dev/null); do
   if [ ! -f "$g" ]; then continue; fi
   ENTRY_SCANNED="$((ENTRY_SCANNED + 1))"
   if grep -nE "$ABS_RE" "$g" 2>/dev/null | grep -qvE '^[0-9]+:[[:space:]]*(#|//|\*)'; then
@@ -816,9 +829,10 @@ for g in README.md README_EN.md report/70-reproduce.md report/build.md build/tcl
   fi
 done
 if [ "$ENTRY_SCANNED" -lt 8 ]; then
-  echo "FAIL：复现入口文档只扫到 $ENTRY_SCANNED 份（地板 8）⇒ 乙层什么都没查，不写 $OUT" >&2
+  echo "FAIL：复现入口文档只扫到 $ENTRY_SCANNED 份（硬名单 $(printf '%s\n' $ENTRY_HARD | grep -c .) 份必须全在，地板 8）⇒ 乙层什么都没查，不写 $OUT" >&2
   exit 1
 fi
+echo "乙层射程：入口文档扫 $ENTRY_SCANNED 份（硬名单全在，其余为在包内的可选入口）" >> _pruned.txt
 NARR_TMO="${TMPDIR:-/tmp}/sub_narr_$(basename "$TMP").txt"
 : > "$NARR_TMO"
 NARR_SCANNED=0
