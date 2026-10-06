@@ -921,9 +921,24 @@ fi
 head -25 "$DEADLIST"
 echo "== 自检：死链 $DEAD ／ 旧名残留 $STALE ／ 绝对路径（甲 可执行件 + 乙 复现入口件）$ABSN${ABS:+ （$ABS）} =="
 
-# 工作文件不许落进包（上一版把九个中间件一起交出去了，而"文件数"又漏数了要交的那份 _pruned.txt）
-rm -f _all.txt _cand.txt _cited.txt _cited_bases.txt _dropped_tb.txt _map.sed _mv.tsv \
-      _oldnames.txt _prune_list.tsv _script_tb.txt _txt.txt _live_docs.txt
+# 工作文件不许落进包。上一版这里是**手写的十二个名字**（#341 同族的射程漂移）：后来新增的
+# `_skill_map.sed` 与 `_table_tb.txt` 不在名单里 —— 2026-10-06 落包实测它们就躺在包根上，
+# 还被数进了 MANIFEST。现在按**形状**扫：包根上任何 `_` 开头的文件都清掉，只留 MANIFEST 点名
+# 要交的 `_pruned.txt`；扫完必须还读得到 `_pruned.txt`，读不到就是这把扫帚把要交的东西一起扫了。
+_SWEEP=0
+_KEEP=0
+for _w in ./_*; do
+  [ -f "$_w" ] || continue
+  case "$_w" in ./_pruned.txt) _KEEP=$((_KEEP + 1)); continue ;; esac
+  rm -f "$_w"
+  echo "中间物落盘前清掉 $_w" >> _pruned.txt
+  _SWEEP=$((_SWEEP + 1))
+done
+echo "包根中间物清扫 清=$_SWEEP 保留=$_KEEP（保留只准是 _pruned.txt 那 1 份）"
+if [ "$_KEEP" != "1" ]; then
+  echo "FAIL：包根上 _pruned.txt 数到 $_KEEP 份 ⇒ 清扫层没在按形状干活，先别落盘" >&2
+  exit 1
+fi
 
 # ---- 5. 清单 ----
 # 数的是"除了本清单以外"的文件：MANIFEST.txt 是在这一行之后才写出来的，
