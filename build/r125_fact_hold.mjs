@@ -82,6 +82,20 @@ const EXEMPT = {
   'src/ps/README.md': [
     { tok: 'path:build/tcl/create_project.tcl', why: '旧路径从来不存在（死链接），换成现役位置', need: 'build/create_project.tcl' },
   ],
+  // r126 的死链收口：下面五条都是"指到从来没有过 / 已被剪掉的东西"的句子被改成能兑现的说法。
+  //    规则同 #403/#404 那一族 —— 指路指向不存在的原件就是失实，改口不是丢事实，但替代它的依据
+  //    必须当场在文里（need），否则照旧红。逐条判据：`build/make_submission.sh` 的死链自检抓=0。
+  'board/raw-vs-golden.md': [
+    { tok: 'path:board/captures/index.md', why: '那层抓图索引从未入库，句子换成"没有可复核件"的直说', need: '示相机' },
+    { tok: 'path:board/compare/index.md', why: '示例命令里点着两层不存在的目录，照抄会报 No such file，收成一份', need: 'data/golden/[A-Za-z0-9_.-]' },
+  ],
+  'build/provenance.md': [
+    { tok: 'path:build/artifacts/README.md', why: '那份对照表从来不存在，改指同一行下一列的脚本证据', need: 'file copy -force' },
+  ],
+  'report/collaboration/README.md': [
+    { tok: 'path:report/collaboration/metrics.md', why: '该件已随那本入口记录一起迁出，目录清单不再列它', need: 'report/collaboration/prompts-used.md' },
+    { tok: 'path:report/collaboration/redaction.md', why: '同上：脱敏台账那件也随记录迁出，清单不再列它', need: 'report/collaboration/prompts-used.md' },
+  ],
 };
 
 function tally(txt) {

@@ -746,6 +746,8 @@ DEADSHIELD=0
 #   未写 / 未落地 / 尚未 / 规划 / 待装配 —— 声明"这个落点还不存在"，是计划不是链接
 #   例如 / 示例 / 假想 / 不存在 —— 声明"这个名字是举例"（技能卡里的反例、模板里的占位路径）
 SKIP_RE='不随包|本地留档|不入库|未写|未落地|尚未|规划|待装配|例如|示例|假想|不存在'
+# 包内文件全名清单（"切短"那一层要拿它比对尾巴）：在循环之前算一次，别每份文档重跑一遍 find。
+ALLPKG="$(find . -type f | sed 's|^\./||' | sort)"
 for f in $(live_docs); do
   if [ -f "$f" ]; then
     DEADSCAN="$((DEADSCAN + 1))"
@@ -764,9 +766,11 @@ for f in $(live_docs); do
     # #172：先抹掉 `-log <路径>` 这类**工具自己创建的输出**（`vivado -mode batch -log sim/xsim.log` 那种），
     #   再抽指路。这不是把 `*.log` 整类放回免检名单 —— 那样就等于把自检买通；
     #   只有"这条命令要写出来的文件"不算死链，"文档点名的凭据"照样该存在。
+    # 模板里的 `【填入：xxx】` 是**要生成方填的槽位**（技能包模板自带的写法），不是"包里有这个文件"的指路 ⇒
+    #   同一条 sed 里抹掉槽位内容，另记条数（抹掉的槽位里若出现真凭据名，那条凭据在正文别处仍会被判）。
     # 同行声明词的过滤用 grep -E（ERE 里 `|` 才是"或"；sed 那条是 BRE，会把整串词表当字面量）：
     #   命中词与路径在同一条句子里，说明这一行的那个名字本来就没打算让评委去翻 ⇒ **整行删掉再抽路径**。
-    sed -e 's/-log[[:space:]]\{1,\}[^[:space:];"`]*/ /g' "$f" 2>/dev/null | grep -vE "$SKIP_RE" |
+    sed -e 's/-log[[:space:]]\{1,\}[^[:space:];"`]*/ /g' -e 's/【填入：[^】]*】/ /g' "$f" 2>/dev/null | grep -vE "$SKIP_RE" |
     grep -oE '(src|sim|build|board|data|skills?|report|docs)/[A-Za-z0-9_./-]*[A-Za-z0-9_-]\.[A-Za-z0-9]{1,6}' 2>/dev/null |
     sort -u | while read -r t; do
       case "$t" in *'*'*|*'<'*|*'$'*|*NN*) continue ;; esac
@@ -774,12 +778,20 @@ for f in $(live_docs); do
       #   结果把整条自检买通了。产物一律 .txt 之后，指到 `*.log` 的引用就是真死链，该报。
       case "$t" in *.out|board/uart_script_capture.txt) continue ;; esac
       if [ -e "$t" ] || [ -e "$d/$t" ]; then continue; fi
+      # 抽取词表只从 src|sim|build|board|data|skills|report|docs 起头，于是"相对自身写全"的
+      #   `fixtures/docs/runbook.md` 会被切成 `docs/runbook.md`。包里有以这个尾巴结尾的文件时
+      #   不算死链，单独记一行 `切短`（这不是免检名单：名字在包里没有对应尾巴时照样判死）。
+      tesc="$(printf '%s' "$t" | sed 's/[][\.*^$/]/\\&/g')"
+      clip="$( { printf '%s\n' "$ALLPKG" | grep -cE "/$tesc\$" || true; } )"; clip="${clip:-0}"
+      if [ "$clip" -gt 0 ]; then echo "切短 $f -> $t" >> "$DEADLIST"; continue; fi
       echo "死链 $f -> $t"
     done
   fi
 done > "$DEADLIST" 2>&1 || true
 DEAD="$(grep -c '死链' "$DEADLIST" 2>/dev/null || true)"; DEAD="${DEAD:-0}"
 if [ "$DEAD" = "0" ]; then DEAD=0; fi
+CLIP="$(grep -c '^切短' "$DEADLIST" 2>/dev/null || true)"; CLIP="${CLIP:-0}"
+if [ "$CLIP" = "0" ]; then CLIP=0; fi
 # 空转地板（#195b 同族）：死链判的是"扫了多少份文档"，不是"死链有多少"。扫不到东西就是这把尺子没跑，
 # 而不是包干净了 —— 上一版的射程是手写名单，名单漂了它自己不会说。
 if [ "$DEADSCAN" -lt 40 ]; then
@@ -792,7 +804,7 @@ if [ "$DEADSKIP" -gt 0 ] && [ "$DEADSHIELD" -eq 0 ]; then
   echo "FAIL：同行声明词命中 $DEADSKIP 行、却一条指路都没挡住 ⇒ 豁免层空转，不写 $OUT" >&2
   exit 1
 fi
-echo "  死链射程 扫=$DEADSCAN 份活文档 抓=$DEAD 同行声明命中行=$DEADSKIP 其中真正挡下指路=$DEADSHIELD 条（词表：不随包/本地留档/不入库/未写/未落地/尚未/规划/待装配/例如/示例/假想/不存在）"
+echo "  死链射程 扫=$DEADSCAN 份活文档 抓=$DEAD 同行声明命中行=$DEADSKIP 其中真正挡下指路=$DEADSHIELD 条 抽取被词表切短=$CLIP 条（模板槽位与相对自身的长路径，逐条列在清单里）（词表：不随包/本地留档/不入库/未写/未落地/尚未/规划/待装配/例如/示例/假想/不存在）"
 
 # 旧名残留一次算完（每个名字 spawn 一次 grep 在这一千多个文件上要四分钟）
 { for old in "${!NAME_MAP[@]}"; do if [ "$old" != "${NAME_MAP[$old]}" ]; then echo "$old"; fi; done; } > _oldnames.txt

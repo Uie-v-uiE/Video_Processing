@@ -400,21 +400,43 @@ if (want('C5')) {
   const rtxt = tracked.filter(f => f.startsWith('report/') && f.endsWith('.md')).map(read).join('\n');
   const missRep = rneed.filter(([, re]) => !re.test(rtxt)).map(([n]) => n);
   // §5.4 的四件"具体内容"按**结构**判，不按关键词：关键词只要出现过就算齐，等于没判
-  // （C5 的四要素那一半刚犯过同一种错）。这里要的是：能看见的数字对比表、带读数的失败分析、
+  // （C5 的四要素那一半刚犯过同一种错）。这里要的是：看得见的改前/改后数字、带读数的失败分析、
   //  三段齐的协作记录（提示词 / 模型回答 / 自我纠错）。
+  // **数条目，不数文件**（这一版改的就是这个口径）：上一版"有对比表的文件 19 份"把一份 607 行、
+  // 31 条的失败分析记成 1 —— "把清单从 30 条删到 3 条"这把尺子根本不动，而它要保护的正是条目数。
   const md = tracked.filter(f => f.startsWith('report/') && f.endsWith('.md'));
-  let cmpTables = 0, failRows = 0;
+  const MDU = /\d+(?:\.\d+)?\s*(?:%|ns|ms|µs|us|LUT|FF|BRAM|fps|MB|Mbps|MHz)/g;
+  const MDU1 = /\d+(?:\.\d+)?\s*(?:%|ns|ms|µs|us|LUT|FF|BRAM|fps|MB|Mbps|MHz)/;
+  const CRED = /[\w./-]+\.(?:rpt|txt|log|csv|md|bit|bin|elf|xsa|v|xdc|tcl|out)/;
+  let cmpRows = 0, cmpFrom = 0, failRows = 0, failFrom = 0;
   for (const f of md) {
     const t = read(f), ls = t.split(/\r?\n/);
-    for (let i = 0; i + 1 < ls.length; i++) {
-      const isRow = (s) => /^\s*\|/.test(s) && (s.match(/\|/g) || []).length >= 3;
-      if (!isRow(ls[i]) || !isRow(ls[i + 1])) continue;
-      const hdr = ls[i], sep = ls[i + 1];
-      if (!/[前后]|基线|改前|改后/.test(hdr + ls[i + 2] + ls[i + 3] || '')) continue;
-      const nums = (hdr + ls[i + 2] + ls[i + 3]).match(/\d+(\.\d+)?\s*(%|ns|ms|µs|LUT|FF|BRAM|fps|MB|Mbps|字|行|包)/g) || [];
-      if (nums.length >= 2) { cmpTables++; break; }
+    // 改前/改后对比：表格里点名"前/后/基线"的那一行开表，其后每一行**带 ≥2 个"数字+单位"**的数据行
+    // 算一条。单位表收 MHz/Mbps：只认 % 的话，"线速 100 Mbps→97.9 Mbps"那种行会凭空丢掉。
+    const isRow = (s) => /^\s*\|/.test(s) && (s.match(/\|/g) || []).length >= 3;
+    let open = false, n = 0;
+    for (const l of ls) {
+      if (!isRow(l) || /^\s*\|[\s:|-]+$/.test(l)) { open = false; continue; }   // 出表 / 分隔行
+      if (!open) { if (/[前后]|基线|改前|改后/.test(l)) open = true; continue; }
+      if ((l.match(MDU) || []).length >= 2) n++;
     }
-    if (/^[-*|]?\s*(否决|REFUSE|失败|FAIL)/m.test(t) && /\d/.test(t)) failRows++;
+    if (n) { cmpFrom++; cmpRows += n; }
+    // 失败/否决条目两类形状：① 落在"失败/未解决/未测试/否决/缺陷"小节里的三级以下标题（按条编号的
+    // 清单，标题本身就是"一条"），且其后正文带读数或点名凭据；② 行首点名
+    // 否决/拒绝/判负/不采纳/REFUSE/DECLINE/失败/FAIL 且带数或带台账号。"这里失败了"那种空话不算。
+    let inFail = false, k = 0;
+    for (let i = 0; i < ls.length; i++) {
+      const l = ls[i];
+      if (/^##\s/.test(l)) { inFail = /失败|未解决|未测试|否决|拒绝|缺陷/.test(l); continue; }
+      if (inFail && /^#{3,6}\s/.test(l)) {
+        const body = ls.slice(i + 1, i + 41).join(' ');
+        if (MDU1.test(body) || CRED.test(body)) k++;
+        continue;
+      }
+      if (/^[\s|*>-]*(否决|拒绝|判负|不采纳|REFUSE|DECLINE|失败|FAIL)/i.test(l) &&
+        (MDU1.test(l) || /#\d{2,}/.test(l))) k++;
+    }
+    if (k) { failFrom++; failRows += k; }
   }
   const collab = tracked.filter(f => f.startsWith('report/collaboration/'));
   const ct = collab.map(read).join('\n');
@@ -422,13 +444,13 @@ if (want('C5')) {
   const missTri = tri.filter(([, re]) => !re.test(ct)).map(([n]) => n);
   const p = [...empty.map(d => d + ' 空'), ...(renamed ? [renamed] : []), ...(missFour.length ? ['skills/README 缺:' + missFour.join(',')] : []),
     ...(missRep.length ? ['report 缺章节:' + missRep.join(',')] : []),
-    ...(cmpTables < Number(process.env.VP_C5_TABLES || 30) ? [`带单位数字的前后对比表只数到 ${cmpTables} 张（地板 ${process.env.VP_C5_TABLES || 30}，§5.4 要求优化前后对比）`] : []),
-    ...(failRows < Number(process.env.VP_C5_FAILS || 8) ? [`带读数的失败/否决条目只数到 ${failRows} 份（地板 ${process.env.VP_C5_FAILS || 8}，§5.4 要求失败分析）`] : []),
+    ...(cmpRows < Number(process.env.VP_C5_CMP_ROWS || 30) ? [`带单位数字的改前/改后对比条目只数到 ${cmpRows} 条（地板 ${process.env.VP_C5_CMP_ROWS || 30}，§5.4 要求优化前后对比）`] : []),
+    ...(failRows < Number(process.env.VP_C5_FAIL_ROWS || 8) ? [`带读数的失败/否决条目只数到 ${failRows} 条（地板 ${process.env.VP_C5_FAIL_ROWS || 8}，§5.4 要求失败分析）`] : []),
     ...(collab.length < Number(process.env.VP_C5_COLLAB || 9) ? [`协作记录文件只有 ${collab.length} 份（地板 ${process.env.VP_C5_COLLAB || 9}）`] : []),
     ...(missTri.length ? ['协作记录缺三段:' + missTri.join(',')] : [])];
-  say('C5', 'dirs-skills-readme-report', need.length + four.length + rneed.length + 4,
-    p.join('、') || `符合（对比表 ${cmpTables} 张／含失败读数 ${failRows} 份／协作记录 ${collab.length} 份三段齐）`,
-    p.length ? 'FAIL' : 'PASS');
+  say('C5', 'dirs-skills-readme-report', md.length + collab.length + 4,
+    p.join('、') || `符合（对比条目 ${cmpRows} 条/${cmpFrom} 份／失败否决条目 ${failRows} 条/${failFrom} 份／协作记录 ${collab.length} 份三段齐）`,
+    md.length < 20 ? 'NOT_MEASURED' : (p.length ? 'FAIL' : 'PASS'));
 }
 // ---- C6 开源协议
 if (want('C6')) {

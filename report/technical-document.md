@@ -313,7 +313,7 @@ bash build/board_verify.sh --geom --battery      # 串口回显与几何判据�
 
 ```bash
 export VP_VIVADO_BIN="<Vivado>/bin"
-bash board/scripts/make_boot_image.sh        # FSBL + bit + app → board/flash/BOOT.bin
+bash board/scripts/make_boot_image.sh        # FSBL + bit + app → board/flash/BOOT.bin（生成件，不随包）
 VP_QSPI_PART="mx25l25645g-qspi-x4-single" \
   "<Vivado>/bin/vivado.bat" -mode batch -source board/tcl/flash_qspi.tcl
 ```

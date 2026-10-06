@@ -9,8 +9,6 @@ report/collaboration/sessions/            # 5 张登记卡：每场会话一张�
 report/collaboration/corrections.md       # 自我纠错轨迹（三件成对 8 条 + 未成对 4 条）
 report/collaboration/prompts-used.md      # 当时用的提示词原文 ↔ 事后模板，五栏分开
 report/collaboration/workflow.md          # 智能体工作流设计与实际执行的差异（W1–W7）
-report/collaboration/metrics.md           # 成本统计：全部现算，附命令与分母
-report/collaboration/redaction.md         # 脱敏台账（9 行处置 + 仓库既有命中的移交）
 ```
 
 ## 0. 一句话结论（先说不能核的部分）

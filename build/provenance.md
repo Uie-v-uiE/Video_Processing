@@ -189,6 +189,6 @@ r118 的配对核对（本卡逐个打开确认，不看文件名猜）：
 | 项 | 状态 | 缺的具体是哪一次运行 |
 |---|---|---|
 | 从零演练（独立副本目录，一条命令出全套产物） | `NOT_MEASURED` | 缺一次在**独立目录副本**里跑 `build/rNN_chain.sh` 的同形链、并留下它自己的构建日志 + 门禁件 + 目录名。本轮按边界不跑构建（板上与仓库当前都是 r118，任何重建都会换掉已采纳产物） |
-| 重跑同一命令不覆盖上一次归档 | `FAIL`（现状即不满足，见 `build/artifacts/README.md` 对照表 A2/A3） | 入口脚本对 `build/system.bit` 是 `file copy -force`（`build/tcl/build_system_axigpio.tcl:341`）、对工程目录是 `create_project … -force`（`:9`）⇒ 第二次运行**原地覆盖**，不产生第二个目录名 |
+| 重跑同一命令不覆盖上一次归档 | `FAIL`（现状即不满足，对照表里 A2/A3 那两行，再加上本行下一列那句 `file copy -force`） | 入口脚本对 `build/system.bit` 是 `file copy -force`（`build/tcl/build_system_axigpio.tcl:341`）、对工程目录是 `create_project … -force`（`:9`）⇒ 第二次运行**原地覆盖**，不产生第二个目录名 |
 | 残留进程防护被人为触发一次 | `NOT_MEASURED` | 配方与"该由谁触发、触发后应看到什么"写在 `build/probe-guard.md`；本轮不与队伍的设备/会话冲突 ⇒ 未触发。被它挡住的验证一律 `NOT_MEASURED`，不当回归、不覆盖 |
 | 版本等值断言、器件库断言、磁盘余量探测 | `FAIL`（现有脚本没做，不是本轮没测） | 逐条对回脚本的哪一行做了/没做，见 `build/README.md` 的自探测清单 |

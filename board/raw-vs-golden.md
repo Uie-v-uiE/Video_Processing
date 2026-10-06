@@ -20,10 +20,10 @@
 | --- | --- | --- | --- | --- | --- | --- | --- | --- |
 | A1 | 片上结温 | 一次转换一码；时间基准 = 固件采样时刻；分母 = 单条 `[TEMP]` | `build/evidence/r118_serial_raw.txt:1` `degC=60.65 raw=0xA990 vccint=998mv` | `XAdcPs_RawToTemperature` 浮点参考式，经 `src/host/temp_formula_check.mjs` 全 65536 码核对；固件侧是**定点**（×1000 整数、右移 16 截断） | 最大 3 ‰°C（容差 5 ‰°C） | 无（manifest 只管 `data/golden/` 的 13 件图像/图卡） | `NOT_MEASURED`（缺"板级温度基准件"） | **PASS**（V09） |
 | A2 | 缩放倍率落位 | 起点 = 串口命令；终点 = `lane23` 像素域回读；分母 = 8 条几何判据 | `board/compare` 无 ⇒ 读 `build/evidence/r118_board/board_verify_console.txt:20` `inv_scale=256 x100_actual=100 rule=manual_tier inv_expected=256 inv_ok=true` | 期望值 = 独立复算的最近档（`nearOf(259)=4`，同一件 `:29`）；16 bit 定点，256 = 1.00× | 0（同源自洽） | 无 | `NOT_MEASURED`（manifest 里没有"lane23 期望值表"） | **PASS**（`RESULT PASS geom_check（ok=10 fail=0）`，同件 `:36`） |
-| A3 | 入包链丢字率 | 分母 = 153600 个 16 bit lane/bank；取样 = 推 200 帧后停 + 等 500 ms 读 | `board/compare/ddr-stale-15fps-dump.txt`（源自 `data/measured/ddr_dump_20260921_15fps.out.gz`）`最新帧(#198) 100.0 %`、六带 `0.0 %`、`连续丢字带 2 个 lane` | 参考 = 发送端自描述图案（frameid：值 = 64 bit 字号 + 帧号），逐 lane 反解 | 2/307200 lane（≈0.00065 %） | 无 | `NOT_MEASURED`（缺"图像内容基准"，图案自校验不算参考结果） | **PASS**，但只覆盖 15 fps 一轮（V06） |
+| A3 | 入包链丢字率 | 分母 = 153600 个 16 bit lane/bank；取样 = 推 200 帧后停 + 等 500 ms 读 | `board/compare/ddr-stale-15fps-dump.txt`（原件是那次 15 fps 停流后从板上读回的 DDR 转储，不随包）`最新帧(#198) 100.0 %`、六带 `0.0 %`、`连续丢字带 2 个 lane` | 参考 = 发送端自描述图案（frameid：值 = 64 bit 字号 + 帧号），逐 lane 反解 | 2/307200 lane（≈0.00065 %） | 无 | `NOT_MEASURED`（缺"图像内容基准"，图案自校验不算参考结果） | **PASS**，但只覆盖 15 fps 一轮（V06） |
 | A4 | SD 本地播放帧率 | 时间基准 = 固件 100 帧滑窗；分母 = 滑窗帧数；**舍入 = 滑窗均值报 1 位小数**（无位宽概念，是"计数 ÷ 时长"） | `board/uart_script_capture.txt`（r118 电池内）+ `data/metrics.csv:12` 行 `29.8 – 30.0 fps`，凭据 `build/evidence/r87_boot_stat_drain.txt` | 参考 = 片源名义 30 fps（预转换帧序列，非解码）；整数名义值 | −0.2 … 0 fps | 无 | `NOT_MEASURED`（**缺独立时间仪器**；且 manifest 无帧率基准行） | **PASS（弱）**：只在"标称 30 fps"这一个口径下成立 |
 | A5 | 以太推流帧率 | 时间基准 = 上位机墙钟；分母 = 发出的帧数；**fps 保留 2 位小数（发送端格式化），帧/包计数是整数** | `build/evidence/r116_board/sender_live.log:2` `3001 帧 / 50.03 s = 59.98 fps，663221 包`（汉字已坏、数字 ASCII 可读） | 参考 = 发送端设定 60 fps；另有 r94 那一次 25 fps 设定（`board/acceptance.md:20`） | −0.02 fps | 无 | `NOT_MEASURED`（同一指标换设定要另起一行；且这是**发送端**读数，不是板端帧率） | **PASS（发送端自证）** |
-| A6 | 端到端时延 | 起点 = 上位机发送时刻、终点 = 屏上出现该帧；**这一对起点/终点没有任何可复核件**（仓库里没有示相机/采集卡导出，见 `board/captures/index.md` 第 4 节） | 无可用硬件读出。`board/acceptance.md:37`（r92）那对 `Latency=6ms` 与回读 `tot/100000=6` 只是**同一读数的两个出口一致**，不是时延绝对值 | 参考侧缺件；`data/metrics.csv:20` 那行自己写「不填没有复核过的数」 | 不可算 | 无 | `NOT_MEASURED`（时延本体） | **NOT_MEASURED** |
+| A6 | 端到端时延 | 起点 = 上位机发送时刻、终点 = 屏上出现该帧；**这一对起点/终点没有任何可复核件**（仓库里没有示相机/采集卡导出；当年放抓图与条件卡的那两层索引从未入库，也不随包） | 无可用硬件读出。`board/acceptance.md:37`（r92）那对 `Latency=6ms` 与回读 `tot/100000=6` 只是**同一读数的两个出口一致**，不是时延绝对值 | 参考侧缺件；`data/metrics.csv:20` 那行自己写「不填没有复核过的数」 | 不可算 | 无 | `NOT_MEASURED`（时延本体） | **NOT_MEASURED** |
 | A6b | 帧间隔（**换了指标就另起一行**，铁律 4） | 分母 = 8999 个间隔（`gap_segments`）；时间基准 = 板内 lane 自计的 ms | `board/compare/soak300-lane-delta.txt`（源 `board/evidence_r41/metrics_r41_soak300.json`）`gap_min/gap_max = 20/51 ms`、`gap_sum = 300057 ms` | 参考 = `report/perf_report.md:205-199` 那句 `min/avg/max = 20 / 33.34 / 51 ms`；件内自报 `avg_gap_ms = 33.3434` | 0.00 ms（现算 33.340 与件内 33.343 都归到 33.34） | 无（golden 没有时延/抖动类基准） | `NOT_MEASURED` | **PASS**（V12） |
 | A7 | 状态断言（逐条带回读） | 每条命令后读一次 `[STAT]` / lane；**回读是 32 bit 寄存器字段的十进制原字 + 逐位拆**（`lane23 raw=2147893504`），没有舍入这一维 | `src=1`（`r118_serial_raw.txt:2`）、`playing=1 sd=1 frames=4398`（同）、`osd=1`（同）、`drop_words → 0`（`board_verify_console.txt:21`）、lane30 `why_no_stream=1`（同 `:19`） | 参考 = 下发命令的期望态 | 0 | 无 | `NOT_MEASURED`（对 golden） | **PASS**：5 条状态断言 **5/5 有回读**，没有一条只写"我发过命令" |
 | A8 | 上电角度 `ROT:` 读 0 | 屏上第二行那一格；无串口读者 | **无仪器读出**（`board/acceptance.md:98` 自己写"串口读不到角度"） | 参考 = r113 网表实测 `INIT=1'b1`（`build/evidence/r113_ff_init_probe.txt`） | 不可算 | 无 | `NOT_MEASURED` | **不进比对表** ⇒ 见第 4 节"人眼报告（无仪器证据）" |
@@ -32,7 +32,7 @@
 
 | # | 指标 | 软件算出（来源 + 口径） | 参考侧（来源 + 口径） | 差值 | manifest 基准条目 | 判定 |
 | --- | --- | --- | --- | --- | --- | --- |
-| B1 | CDC Critical 配对/端点/unsafe | `build/frozen_r23_srcseen/cdc.rpt`（kv 抽取 `endpoints=@5`、`unsafe=@3`） | `build/cdc_baseline.txt`（`endpoints=@2,unsafe=@1`）；容差 0 | 0 | 无 | **PASS**（V01，判 18 项，红 0） |
+| B1 | CDC Critical 配对/端点/unsafe | `build/frozen_r23_srcseen/cdc.rpt`（那一组成套冻结件不随包；kv 抽取 `endpoints=@5`、`unsafe=@3`） | `build/cdc_baseline.txt`（`endpoints=@2,unsafe=@1`）；容差 0 | 0 | 无 | **PASS**（V01，判 18 项，红 0） |
 | B2 | 全局 setup WNS / hold WHS / 失败端点 / LUT/FF/BRAM/DSP / 动态功耗 | `build/timing_summary.rpt`、`build/utilization.rpt`、`build/power.rpt` 现读 | `data/metrics.csv` + 根 README 首页那 60 个数 | 逐数 0 超差（114 个数） | 无 | **PASS（射程内）**；`data/metrics.csv` 另 18 行不在该尺射程 ⇒ `NOT_MEASURED`（V08） |
 | B3 | 逐时钟相对余量（r116 相对冻结基线） | `build/evidence/r116_roster_e1.tsv` 的 `rel_margin_*` | 开发流水账（B3 冻结基线） | `eth_rxc` −0.198125 / −0.115250 | 无 | **RED**（V02：comparisons_made=32、both_NA=8、red=2） |
 | B4 | 顶层整屏台架条数 | `build/tb_v98_report.txt` 现数 161 + 1 = 162 | `data/metrics.csv:15` 声称的 141（点名 `top_md5=2bf2ceeede07`） | 无法比：该指纹的件盘上 **0 件** | 无 | **NOT_MEASURED**（V11；基准摘要不符 = 不许继续用） |
@@ -115,7 +115,7 @@
 
 ```bash
 A=$(grep -rhoE "data/golden/[A-Za-z0-9_.-]+\.(png|mem|md)" \
-      board/raw-vs-golden.md board/captures/index.md board/compare/index.md \
+      board/raw-vs-golden.md \
       | grep -v "manifest\.md" | sort -u)
 M=$(awk '/^\|[ ]*data\/golden\//{split($0,a,"|");gsub(/^[ \t]+|[ \t]+$/,"",a[2]);print a[2]}' \
       data/golden/manifest.md | sort -u)

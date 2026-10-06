@@ -61,7 +61,7 @@
 | `【填入：build/synthesize.sh】` | 读入 `src/logic` + `src/constraints`，出逻辑综合结果 | `build/reports/【填入：synthesis.txt】` | 文本件存在，头部命令与本命令行一致 |
 | `【填入：build/implement.sh】` | 布局布线 + 时序/占用报告 | `build/reports/【填入：implementation.txt】`、`…/utilization.txt` | 两个文本件、余量与占用可读 |
 | `【填入：build/make-bitstream.sh】` | 生成可刷写的产物 | `build/reports/【填入：bitstream.txt】` + 产物本体 | 产物带版本号/时间戳，能被下一步引用 |
-| `sim/run.sh` | 跑全部用例 | `build/reports/【填入：sim.txt】` | 用例行数 = 用例数；三态判定齐 |
+| 【填入：`sim/run.sh`】 | 跑全部用例 | `build/reports/【填入：sim.txt】` | 用例行数 = 用例数；三态判定齐 |
 | `【填入：tools/collect-metrics.sh】` | 从上面几份文本报告抽资源/频率/吞吐 | `deliverables/metrics/【填入：metrics.md】` | 表里每行都能反查回某份报告 |
 | `【填入：tools/gate.sh】` | 多判据门禁跑批（三态 + 判 N 项） | `build/reports/【填入：gate.txt】` | 红即非 0 退出，不静默 |
 | `【填入：board-ops/flash.sh】` | 刷写 + 读回身份 | `deliverables/evidence/【填入：短名_轮次标识_序号.txt】` | 读回的身份与仓库产物对得上 |
@@ -103,4 +103,4 @@
 2. `build/reports` 下每个件的**非可打印字符占比**接近 0（是人能读的文本），头部三行齐。
 3. `deliverables/evidence` 下每个件名都能解析出轮次标识；按某一标识过滤，结果集非空。
 4. 全量搜 `docs/` 与 `build/reports/` 里的盘符/用户主目录形式，命中数 = 0。
-5. 任一条读不到 ⇒ 该项 `NOT_MEASURED`，记进 `docs/open-issues.md`，不许默认成通过。
+5. 任一条读不到 ⇒ 该项 `NOT_MEASURED`，记进 【填入：`docs/open-issues.md`】，不许默认成通过。

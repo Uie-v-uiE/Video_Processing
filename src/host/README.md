@@ -31,7 +31,7 @@ PC 侧必须在 `src/host/`），`--c1-2-self` 那六条对照钉着它会判红
 | --- | --- | --- | --- |
 | `--ip` | 板卡地址：第 ① 步 ping、第 ③ 步发送目标 | `192.168.1.10` | `--ip 192.168.1.20` |
 | `--port` | UDP 目标端口，转给发送脚本 | `5001` | `--port 5001` |
-| `--clip` | 内置测试片源，相对仓库根（两实现读同一份） | `data/inputs/wordid_512x300.rgb565` | `--clip data/inputs/rand64_512x300.rgb565` |
+| `--clip` | 内置测试片源，相对仓库根（两实现读同一份） | `data/inputs/wordid_512x300.rgb565` | `--clip data/inputs/rand64_512x300.rgb565`（这两份是生成件，不随包：`node data/generated/gen_inputs.mjs` 现出） |
 | `--frames` | 发多少帧；片源整帧数不足则重复补足后截到该帧数 | `5` | `--frames 2` |
 | `--fps` | 转给发送脚本的帧率：Python 侧 `udp_push.py` 按它分帧停，Node 侧 `video_sender.mjs` 的 stdin 模式只按 `--pace-mbps` 匀速 | `15` | `--fps 30` |
 | `--pace-mbps` | 发送限速 MB/s（保护板端入包 FIFO），0 = 不限速 | `15` | `--pace-mbps 0` |
