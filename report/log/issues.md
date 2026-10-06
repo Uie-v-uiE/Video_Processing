@@ -14271,3 +14271,15 @@ rim 那一半本轮已用修好的入口重跑并出新件 `build/tb_edge_rim_r1
 - 另建一份独立可读副本 `D:/Xilinx/Prj/Video_Processing/`：仓库已提交内容（`git archive HEAD`，1200 文件）
   + `final_submission/`（695 文件）+ `study_docs/`（四套学习文档 138 份 `.md`，含这一册时序篇）
   + 顶层 `BUNDLE-Contents.md` 说明每块是什么、哪两份 course 不是逐字节相同所以没合并。
+
+
+### 414 交付文档 §2.1 时钟表的两行"用途"写反了（100 MHz 是 AXI/写侧，50 MHz 的 clk_pix 才是读出/几何/效果链/OSD）
+
+- 发现路径不是重读文档：给 `D:/Xilinx/Prj/Video_Processing/LEARNING/` 写学习文档时，两位作者各自从代码读出相反的分工并来报告与交付文档冲突。按"代理的结论是声明不是事实"先复核，三条互相独立的盘上证据一起把它们判成真的：
+  1. `build/report/clock_util.rpt` 的 g0 行：`clk_fpga_0` 的驱动脚是 `…processing_system7_0/inst/buffer_fclk_clk_0.FCLK_CLK_0_BUFG/O`、net 是 `FCLK_CLK0`、周期 10.000 ns；g1 行：`clkout0_1` 的驱动脚是 `u_pl/u_clk/u_bufg_pix/O`、net 是 `u_pl/u_clk/clk_pix`、20.000 ns。
+  2. `src/rtl/top/system_top.v` 把 `.axi_clk(fclk0)` 接进 AXI 写侧；`src/rtl/top/pl_video_top.v` 里 `fb_bilin` 是 `.clk(clk_pix)`（读出）+ `.wr_clk(axi_clk)`（写入）。
+  3. `src/constraints/clock_groups_impl.xdc:12` 自己写着"clk_fpga_0 100 MHz，PS FCLK0（全部 AXI 事务）"。
+- 改法走工具不走手改：`build/fix_clock_roles.mjs`（三棵树同改，7 份文件 21 处替换；写盘前要求每份行数不变；幂等三态按"旧串在挖掉新串之后仍命中"算首次、"不命中且新串在位"算已改口，两边都 0 才算本文件没这行）。顺带把 `sys_clk` 那行的"PS/AXI 侧"改成"板载晶振输入"——AXI 事务不在那一档。
+- 改后重跑四把文档尺子（提交分支上实测）：`deliver_spec_check` 判 18 项红 0、`r125_fact_hold` 消失记号 0（一条 `link_monitor.v` 豁免转闲置，即那个记号本轮没少，可从名单删）、`line_cite_check` D5 硬错 0、`metric_recheck` 判 117 个数红 0。
+- 教训一条：#413 那轮把每个带单位数字的出处回核过并判红 0，但没回核表格里"用途"这一列指向哪一行——**数字对上了，行仍可能贴错**。凡"某列描述某个实体"的表，判据要成对：列里的数对 + 列与行的对应也对。
+- 待办：提交包按新提交重导（`make_submission.sh` 的四道自检会再判一次死链/旧名/绝对路径/未声明红）。

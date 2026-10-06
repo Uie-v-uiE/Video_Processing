@@ -48,9 +48,9 @@
 
 | 域 | 频率 | 周期 | 用途 | setup WNS | hold WHS |
 | --- | --- | --- | --- | --- | --- |
-| `sys_clk` | 50 MHz | 20.000 ns | PS/AXI 侧、按键、慢速控制 | 14.876 ns | 0.222 ns |
-| `clk_fpga_0` | 100 MHz | 10.000 ns | 显示读出、几何、效果链、OSD | 1.850 ns | 0.053 ns |
-| `clkout0_1` | 50 MHz | 20.000 ns | 帧缓存写侧与 AXI 全互连 | 3.630 ns | 0.059 ns |
+| `sys_clk` | 50 MHz | 20.000 ns | 板载晶振输入、按键、慢速控制 | 14.876 ns | 0.222 ns |
+| `clk_fpga_0` | 100 MHz | 10.000 ns | AXI 全互连与帧缓存写侧（PS FCLK0） | 1.850 ns | 0.053 ns |
+| `clkout0_1` | 50 MHz | 20.000 ns | 显示读出、几何、效果链、OSD（`clk_pix`） | 3.630 ns | 0.059 ns |
 | `eth_rxc` | 125 MHz | 8.000 ns | RGMII 收发、协议栈、仲裁 | 0.739 ns | 0.052 ns |
 | `clkout1_1` | 250 MHz | 4.000 ns | TMDS 串行化（OSERDESE2） | 不纳检（见 §6.4） | — |
 
