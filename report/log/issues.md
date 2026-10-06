@@ -14283,3 +14283,11 @@ rim 那一半本轮已用修好的入口重跑并出新件 `build/tb_edge_rim_r1
 - 改后重跑四把文档尺子（提交分支上实测）：`deliver_spec_check` 判 18 项红 0、`r125_fact_hold` 消失记号 0（一条 `link_monitor.v` 豁免转闲置，即那个记号本轮没少，可从名单删）、`line_cite_check` D5 硬错 0、`metric_recheck` 判 117 个数红 0。
 - 教训一条：#413 那轮把每个带单位数字的出处回核过并判红 0，但没回核表格里"用途"这一列指向哪一行——**数字对上了，行仍可能贴错**。凡"某列描述某个实体"的表，判据要成对：列里的数对 + 列与行的对应也对。
 - 待办：提交包按新提交重导（`make_submission.sh` 的四道自检会再判一次死链/旧名/绝对路径/未声明红）。
+
+
+### 415 §6.1 第一行把 PL 侧那只 MMCM 算到了 PS 头上（同一张表的第二处错，随 #414 一起改）
+
+- 修 #414 时按"这张表还有没有别的列/句在说同一件事"往下扫，撞上 `report/technical-document.md` §6.1 第一行："时钟全部由 PS 侧 MMCM 与 BUFG 树产生，`clk_fpga_0` 100 MHz、`clkout1_1` 250 MHz 同源"。两处不实：`clkout1_1` 不在 PS 侧，也不是与 `clk_fpga_0` 同源。
+- 证据：`build/report/clock_util.rpt` 的 g4 行——`clkout1_1` 的驱动脚是 `u_pl/u_clk/u_bufg_5x/O`、net 是 `u_pl/u_clk/clk_pix5x`；`src/rtl/clocks/clk_gen.v:15` 例化的是 PL 硬原语 `MMCME2_BASE`，`src/rtl/top/pl_video_top.v:128` 处 `clk_gen u_clk` 的 `.clk_in(sys_clk)` 是板上那 50 MHz；g0 行才是 PS7 的 `…/FCLK_CLK_0_BUFG/O`。⇒ 时钟树是两支：PS 出 `clk_fpga_0`，PL 那只 MMCM 出 `clk_pix`（= `clkout0_1` 50 MHz）与 `clk_pix5x`（= `clkout1_1` 250 MHz）与 200 MHz 抽头参考。
+- 改法仍走工具：把这一条作为第 7 组替换塞进 `build/fix_clock_roles.mjs`（三棵树同改，命中 3 份；重跑时前 6 组报"已在位 33"，幂等三态按 #414 那版判定）。改后四把文档尺子：DELIVER-SPEC 判 18 项红 0、`r125_fact_hold` 消失记号 0 且记号数只增不减（number 170→171、path 66→67、cite 6→8）、D5 硬错 0、`metric_recheck` 红 0/117。
+- 教训（与 #414 同族，但机制不同）：**修一处事实错之后，要顺着"同一件事还被谁说过"扫一遍，而不是修完那一格就走**。这次撞上的第二处不在表格里，在下一节的第一个要点里——它讲的是同一批时钟，用词却把 PL 的原语说成 PS 的。
