@@ -193,7 +193,7 @@ SD 卡 FAT32 目录读取与裸帧推送、XADC 采样、状态回显。
 
 ### 6.1 收敛方法
 
-- 时钟全部由 PS 侧 MMCM 与 BUFG 树产生，`clk_fpga_0` 100 MHz、`clkout1_1` 250 MHz 同源；
+- 时钟树分两支：`clk_fpga_0` 100 MHz 由 PS7 的 FCLK_CLK0 给（`build/report/clock_util.rpt` 的 g0 行，驱动脚是 `…/FCLK_CLK_0_BUFG/O`）；显示与算法那几支由 PL 侧一只 `MMCME2_BASE` 产生（`src/rtl/clocks/clk_gen.v:15`，喂进来的是 `sys_clk` 50 MHz，见 `src/rtl/top/pl_video_top.v:128`），`clkout0_1` = `clk_pix` 50 MHz、`clkout1_1` = `clk_pix5x` 250 MHz 都出自这只 MMCM；
 - RGMII 收口的 IDDR 与延迟抽头按 §3.1 的实测交点定；
 - 跨域一律 3 级同步 + `ASYNC_REG`，格雷码指针链单独钉（`dc_fifo` 四颗 FF）；
 - 时钟分组显式声明（`src/constraints/clock_groups_impl.xdc`），异步组之外的跨域路才受检查；

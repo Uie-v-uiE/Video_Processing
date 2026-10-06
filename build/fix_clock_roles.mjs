@@ -24,6 +24,11 @@ const PAIRS = [
   ['20.000 | 帧缓存写侧与 AXI 全互连', '20.000 | 显示读出、几何、效果链、OSD（`clk_pix`）'],
   ['20.000 ns | PS/AXI 侧、按键、慢速控制', '20.000 ns | 板载晶振输入、按键、慢速控制'],
   ['20.000 | PS/AXI 侧、按键、慢速控制', '20.000 | 板载晶振输入、按键、慢速控制'],
+  // §6.1 第一行把两支 MMCM 都算到 PS 头上：clkout0_1/clkout1_1 其实是 PL 侧那只 MMCME2_BASE 的输出
+  ['- 时钟全部由 PS 侧 MMCM 与 BUFG 树产生，`clk_fpga_0` 100 MHz、`clkout1_1` 250 MHz 同源；',
+   '- 时钟树分两支：`clk_fpga_0` 100 MHz 由 PS7 的 FCLK_CLK0 给（`build/report/clock_util.rpt` 的 g0 行，驱动脚是 `…/FCLK_CLK_0_BUFG/O`）；' +
+   '显示与算法那几支由 PL 侧一只 `MMCME2_BASE` 产生（`src/rtl/clocks/clk_gen.v:15`，喂进来的是 `sys_clk` 50 MHz，见 `src/rtl/top/pl_video_top.v:128`），' +
+   '`clkout0_1` = `clk_pix` 50 MHz、`clkout1_1` = `clk_pix5x` 250 MHz 都出自这只 MMCM；'],
 ];
 
 function walk(d, out) {
