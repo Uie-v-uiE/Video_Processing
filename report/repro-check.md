@@ -97,7 +97,7 @@ Linux 分支：S1/S8 的 Linux 形状（`ls /dev/ttyUSB*` 等）**【未在 Linu
 | B4 | `"$VP_VIVADO_BIN/vivado.bat" -mode batch -nojournal -source build/tcl/build_system_axigpio.tcl` | 命令串逐字自 `build/README.md`「复现（唯一入口）」第 31 行与 `report/build.md` §2；**脚本自己的用法头只给了 bd_only 那一形**（`:265`），完整形在脚本头没有 ⇒ 记为"文档记录的入口" | 末行 `SYSTEM BUILD DONE`；中间 `WIDTH_WARNINGS count=0`、`MULTI_DRIVEN count=0`、`BIT:`、`XSA:` | 跑过的凭据：`build/r118_build_console.txt:1-6` 横幅 + `build/system.bit`（`md5(12)=cd04907e1369`，落笔在 10-04）+ `build/provenance.md` 第 4 节的时刻表 | **NOT_MEASURED**（本任务禁跑构建；且它会**原地覆盖**已采纳产物，该现状在 `build/provenance.md` 第 7 节判 `FAIL`） |
 | B4b | `vivado -mode batch -source build/tcl/build_system_axigpio.tcl -tclargs bd_only` | `build/tcl/build_system_axigpio.tcl:265`（脚本头逐字） | `BD_ONLY_DONE` | 同族只读形：本次未跑 | **NOT_MEASURED**（仍要 vivado，本任务禁跑） |
 | B5 | `bash build/gates.sh` | `build/gates.sh:11` 逐字 | 三态之一（`:582-586` 逐字三条） | 跑过的凭据：`build/r118_gates_final.txt`（末行见 A7）与 `build/r118_gates.txt`（`cmp` 过两份：**逐字节相同**） | **NOT_MEASURED**（**任务明令不许跑**：它会写证据件、且已有人在跑） |
-| B6 | `node build/ps_app.mjs` | `report/build.md` §3.1 | `build/ps_app.elf` + 四道自检 | 该件写于 `2026-10-01`、`md5(12)=d0b07f84a068`（`build/provenance.md` 第 5 节，并登记它与板上这一版的位流**不同源**） | **NOT_MEASURED**（禁跑构建；且需要 `PS_CC`/`PS_BSP`） |
+| B6 | `node build/ps_app.mjs` | `report/build.md` §3.1 | `build/ps_app.elf` + 四道自检 | 该件写于 `2026-10-06`、`md5(12)=57fa442a7eaf`（重链到 DDR 之后重编的那一颗，就是板上正在跑的这颗） | **NOT_MEASURED**（禁跑构建；且需要 `PS_CC`/`PS_BSP`） |
 
 ### 2.4 §6 路径 C —— 上板（7 条）
 

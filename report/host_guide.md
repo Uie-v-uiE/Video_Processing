@@ -149,7 +149,7 @@ temp [th 70] | echo [0|1] | stat | help
 | 脚本 | 一句话 | 被谁调用 |
 |------|--------|----------|
 | `src/host/udp_push.py` | 零依赖推流（协议、限速、确定性丢包）；`--pattern edge` 是"换帧原子性"的现场对照 | 手工；`report/host_guide.md` §2 的推流对照 |
-| `build/build_ps_app.py` | 不用 IDE 把 `src/ps` 编成 ELF，并做**成品自检**（入口 = `_boot`、`_vector_table` 必须在 0x0、`.text` 体积下界、七个符号必须在）；退出码 2/1/3 分别指"输入不在/编译失败/成品不可执行" | `report/build.md` §1；与 Node 版孪生工具（`build/ps_app.mjs`）产出**逐字节相同**（md5 `d0b07f84a068…`，即板上那一版）|
+| `build/build_ps_app.py` | 不用 IDE 把 `src/ps` 编成 ELF，并做**成品自检**（入口 = `_boot`、`_vector_table` = 第一个 LOAD 的 `VirtAddr`、基址落在 `[0x00100000, 0x3FEF0000]` 且不为 0、`.text` 体积下界、七个符号必须在）；退出码 2/1/3 分别指"输入不在/编译失败/成品不可执行" | `report/build.md` §1；与 Node 版孪生工具（`build/ps_app.mjs`）产出**逐字节相同**（md5 `57fa442a7eaf…`，即板上那一版）|
 | `src/host/doc_enc_check.mjs` | 手写文件（`.md .v .c .h .mjs .sh .ps1 .tcl`，范围 `report/board/src/sim/tools/build/tcl` 与 `skills/`）必须 UTF-8 无 BOM、无 CR 混排、无替换符/私用区 | `build/gates.sh` |
 | `src/host/doc_currency_check.mjs` | 文档里点名的 `build/frozen_rNN/` 必须盘上真有、旧编号不许写成"当前默认" | `build/gates.sh` |
 | `src/host/line_cite_check.mjs` | 交付文档里的 `文件.v:NNN` 引用：**硬错（决定退出码）= 文件不在树里 / 行号越过文件末尾 / 「例化者」列指错 / 逐字抄的固件回声与所引那几行对不上**；"锚点不在那几行"（`--list-soft`）与"这句在该文件里找不到、像转述"（`--list-echo`）只列清单不判不过。`--self` 的 15 条对照含厂商豁免 2 条 | `build/gates.sh` 第 20 项（2026-10-02 起进这份检查表；此前只有人手工跑） |

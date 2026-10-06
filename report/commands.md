@@ -11,7 +11,7 @@
 带参数最多的一条是 `gamma auto` 后面跟区间、步长与间隔那四个，正好 6 个 token。不认识的写法不会静默：
 回一行 `[CMD] 不认: <整行>` 并打印 help。
 
-板上现在跑的是 r118，位流 `build/system.bit` 的 md5 前 12 位 = `cd04907e1369`
+板上现在跑的是 r126，位流 `build/system.bit` 的 md5 前 12 位 = `cd04907e1369`
 （身份段在 `build/r118_gates.txt` 开头，板上读数在 `build/evidence/r118_board/board_now.txt`）。
 认版本只认 md5，不认文件名：`bit/xsa/elf` 是一套，换 bit 必须重下 elf。
 

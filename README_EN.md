@@ -47,8 +47,8 @@ to the packets sent (difference 0). The three-step JTAG chain is in `board/READM
 
 ## Key numbers and their sources
 
-The board now runs r118, bitstream identity `system.bit md5=cd04907e1369` (the identity line is written by the gate record itself,
-`build/r118_gates.txt`; byte-identical archives are in `build/r118_gates_final.txt` and `build/evidence/r118_board/`). Every reading below
+The board now runs r126, bitstream identity `system.bit md5=cd04907e1369` (the identity line is written by the gate record itself,
+`build/r126_gates.txt`; byte-identical archives are in `build/r118_gates_final.txt` and `build/evidence/r118_board/`). Every reading below
 comes from the build that produced that bitstream.
 
 Main clocks: pixel clock 50 MHz (`clkout0_1`, H_TOTAL 1344 / V_TOTAL 625 ⇒ 59.5 Hz field), PL logic clock 100 MHz (`clk_fpga_0`), Ethernet capture domain 125 MHz (`eth_rxc`); constraints live in `src/constraints/` and cover clocks, I/O delays, clock uncertainty and async groups. After implementation the design-wide worst setup slack is 0.739 ns with failing setup and hold endpoints 0 / 51135, so intra-die paths are met (WNS 0.739 ns / TNS 0 ns / 0 failing endpoints), and both directions are 0.
