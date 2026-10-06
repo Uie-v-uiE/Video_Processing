@@ -4,7 +4,7 @@
 
 ## Introduction (what the system does)
 
-The host splits 512×300 RGB565 frames into UDP packets of at most 1392 bytes and sends them to port 5001 on the board; the PS writes them into DDR, the PL reads the frame back, runs a 9-stage chain that can be switched per pixel (gray, blur, sharpen, Sobel, morphology, gamma, zoom, rotate, split blend), and drives 1024×600 HDMI through a ×2 expand. One vertical seam splits the screen: the left window is the original, the right window is the processed image in the same coordinate system, and the seam position comes from the control word (0–100 %). That view is both the demo and a measuring instrument: misalignment, dropped columns and out-of-range fill show up on both sides of the seam at once.
+The host splits 512×300 RGB565 frames into UDP packets of at most 1392 bytes and sends them to port 5001 on the board. Reception does not go through the PS: the PL recovers GMII from RGMII, reassembles the Ethernet frame, filters by port and writes the payload into the ping-pong DDR frame buffers as an AXI master (only the SD path is DMA'd in by the PS). The PL then reads a frame back, runs the per-bit switchable effect chain (six pipeline stages, a 9-bit control word, one bit per algorithm) plus zoom, rotate and split blend, and drives 1024×600 HDMI through a ×2 expand. One vertical seam splits the screen: the left window is the original, the right window is the processed image in the same coordinate system, and the seam position comes from the control word (0–100 %). That view is both the demo and a measuring instrument: misalignment, dropped columns and out-of-range fill show up on both sides of the seam at once.
 
 Three sources feed it - the UDP video stream from the network, a pre-converted SD frame sequence, and a test card drawn by the PL - arbitrated by `src_arb` and switched by a long key press. `link_monitor` inside the PL keeps counting received packets, drops and frame gaps; the same counters go to the OSD, can be read back over AXI GPIO with xsdb (lane select in GPIO_0, value in GPIO_1), and can be cleared by serial commands. Beside the RTL and the host tools the repository carries 82 testbenches (`sim/tb_*.v`) and 49 practice entries decoupled from this topic (`skills/`), and every tool report can be re-run with the commands further down.
 
@@ -65,7 +65,7 @@ Main clocks: pixel clock 50 MHz (`clkout0_1`, H_TOTAL 1344 / V_TOTAL 625 ⇒ 59.
 These reports re-run from the three commands above: what `report.tcl` re-emits differs from the archived files in the Date line and the `-file` path
 only, byte-identical otherwise (`build/evidence/r121_note_c4.txt`, run log `build/evidence/r121_report_archive.txt`). On the board side the two
 100-frame sliding windows on the SD sequence read 29.956 and 29.815 fps (`build/evidence/r87_boot_stat_drain.txt`); the row in `data/metrics.csv`
-rounds that to 29.8 – 30.0, while the per-pixel comparison of the 9-stage chain and the three sources is judged by the `sim/tb_*.v` benches.
+rounds that to 29.8 – 30.0, while the per-pixel comparison of the 9 select bits in the effect chain and the three sources is judged by the `sim/tb_*.v` benches.
 
 Boundaries and known limitations are registered item by item in `report/known-limitations.md` (which dimensions of the HDMI source side were
 measured, how the PS-side firmware is rebuilt and re-verified on the board, what is bound to the tool version), defects and deliberately
