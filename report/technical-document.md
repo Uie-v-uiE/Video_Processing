@@ -28,7 +28,7 @@
 | 同帧左右对比（左原图 / 右处理图，缝位置可调） | `src/rtl/video/split_ctrl.v` + 顶层混合 | 串口 `split <n>` 后 marker 位不变的判据；屏上看缝 |
 | OSD 叠加（帧率、丢帧、温度、几何参数） | `src/rtl/video/osd_overlay.v` | 36 行人眼验收表逐条；`[TEMP]` 回显与屏上三字符对账 |
 | 链路健康自诊断（计数 + 自动回落） | `src/rtl/eth/link_monitor.v` + 顶层仲裁 | 拔线/拔卡现场复验；AUTO 回落到可用源 |
-| QSPI 固化（断电自启） | `board/scripts/make_boot_image.sh` + `board/tcl/flash_qspi.tcl` | 位流那一格实测成立、应用那一格不成立，两格分开写在 §8.3 |
+| QSPI 固化（断电自启） | `board/scripts/make_boot_image.sh` + `board/tcl/flash_qspi.tcl` | 断电自启整条成立（`Boot mode is QSPI` → `FPGA Done !` → `SUCCESSFUL_HANDOFF`），两格读数与凭据在 §8.3 |
 
 ### 1.3 三个创新点
 
@@ -297,7 +297,7 @@ WNS 的绝对差不算收益也不算损失，只有同一域自己的关键路�
 # 一键门禁（24 项）
 bash build/gates.sh
 # 整屏台架（约 108 分钟）
-bash sim/run_one.sh tb_v98
+bash build/sim/run_one.sh tb_v98
 ```
 
 ### 8.2 上板（JTAG）
@@ -335,20 +335,38 @@ VP_QSPI_PART="mx25l25645g-qspi-x4-single" \
 擦写另有两条规矩：先把启动模式拨到 JTAG 再写（QSPI 档下工具报 `[Xicom 50-100]`，
 这时写进去的东西它报成功也不可信），以及 `program_flash -erase_all` 在这颗片上失败、扇区擦可用。
 
-写完拨回 QSPI、断电重上，实测结果要分成两格说，不能一句"上电即出画面"盖过去：
+写完拨回 QSPI、断电重上，两格都量过了：
 
 | 断电自启 | 实测读数 | 凭据 |
 | --- | --- | --- |
-| 位流（PL 配置） | **成立**：串口出 FSBL 横幅、`Boot mode is QSPI`、`QSPI is in 4-bit mode`，随后 `DMA Done !`、`FPGA Done !` | `board/measured/qspi_coldboot_2026-10-06_fsbl_from_flash.txt` |
-| 应用（PS 侧 `src/ps`） | **不成立**：FSBL 打完 `FPGA Done !` 停在 `Handoff Address: 0x00000000` → `No Execution Address JTAG handoff`，应用没跑，串口也不出现 §8.2 那串 `[CFG] … ok` | 同一份回显的最后两行 |
+| 位流（PL 配置） | **成立**：串口出 FSBL 横幅、`Boot mode is QSPI`、`QSPI is in 4-bit mode`，随后 `DMA Done !`、`FPGA Done !` | `board/measured/qspi_coldboot_selfboot_ok_2026-10-06.txt` |
+| 应用（PS 侧 `src/ps`） | **成立**：`SUCCESSFUL_HANDOFF` 之后 `[CFG] axi_gpio_2 @41220000 ok`、`[CFG] gamma window @41220008 ok`、`[TEMP] PS-XADC @F8007100 ok`，接着 `[CTRL] … src=1`，SD 自动播起片，ETH 那一路也出画面 | 同一份回显（4,895 字节） |
 
-应用这一格不是玄学，读平台自带的 FSBL 源码能对上：`image_mover.c` 的 `LoadBootImage()` 遇到
-"PS 分区且加载地址为 0 且未签名"直接跳出分区循环，交接地址因此从未被赋值。而 `readelf -l` 实测
-`fsbl.elf` 与 `ps_app.elf` 的第一个 LOAD 段都是 `VirtAddr 0x00000000`（OCM 低 192 KB 别名窗）——
-FSBL 若真把应用装到 0，就是一边执行一边覆盖自己，这条 guard 挡的正是这件事。
-所以要让断电自启把整条演示跑出来，应用必须链接到 DDR（本工程的帧缓存在 `0x10100000`，
-选基址要避开它）：改 `src/ps` 的链接脚本 `lscript_ocm.ld` 的 `MEMORY` 再重建 ELF，是单独一轮的事，
-没有包含在这次交付里。**换句话说：上电能自动把 PL 配置好，演示仍按 §8.2 那三步从 JTAG 起。**
+应用这一格第一次量的时候并不成立：串口停在 `Handoff Address: 0x00000000` →
+`No Execution Address JTAG handoff`（那一份回显留在
+`board/measured/qspi_coldboot_2026-10-06_fsbl_from_flash.txt`，它同时是"头部修好了、位流确实从 flash 起来了"的凭据）。
+读平台自带的 FSBL 源码能对上——`image_mover.c` 的
+`LoadBootImage()` 遇到"PS 分区且加载地址为 0"直接跳出分区循环（它自己的注释写着
+loop will break on PS load address zero），交接地址因此从未被赋值；而 `readelf -l` 实测
+`fsbl.elf` 与本应用的第一个 LOAD 段都是 `VirtAddr 0x00000000`（OCM 低 192 KB 别名窗），
+真把应用装到 0，就是 FSBL 一边执行一边覆盖自己。所以修法只有一个方向：**应用链到 DDR**。
+
+- `src/ps/lscript_ocm.ld` 的 `MEMORY` 第一段 `ORIGIN` 从 `0x00000000` 改成 `0x00200000`。
+  这个基址是量出来的：PL 的三个 bank 在 `0x10000000` / `0x10080000` / `0x10100000`
+  （`system_top.v`、`eth_udp_video_top.v`、`main.c` 的 `FRAME_ADDR`），中间这一大片全仓零引用；
+  上界受 `translation_table.S` 的映射窗限制（只把 `[0x00100000, 0x3FFFFFFF]` 当 cacheable）。
+  第二段 `0xFFFF0000`（各模式栈）不动。
+- 两支构建脚本（`build/ps_app.mjs` 与零依赖的 `build/build_ps_app.py`）里那条旧判据
+  "`_vector_table` 必须在 0x0，否则 FATAL"本身就是这个坑的守门人，换成三条等值判据：
+  入口 = `_boot`、`_vector_table` = 第一个 LOAD 的 `VirtAddr`、且该基址落在
+  `[0x00100000, 0x3FEF0000]` 且不为 0；`readelf -l` 取不到 LOAD 行时判"这条没跑，不算通过"。
+- 位流与 C 语句一个字没动；重编后的 ELF 是 `build/ps_app.elf` md5 `57fa442a7eaf`，
+  重打的 `BOOT.bin` 是 2,435,868 字节 / md5 `f62b1b8cc3bd`（三份输入里位流仍是 `cd04907e1369`）。
+
+在这块**自启的板子**上跑了机器能判的那一半：`bash build/board_verify.sh --battery --geom --round=r126`
+⇒ `RESULT board_verify PASS（判红的步骤：0）`，串口电池 105 条命令 98.2 s 全过、跑完回到初态且末态
+= 演示默认档，几何那一跳退出码 0，温度格三方对账自洽。原始回显在 `build/evidence/r126_serial_raw.txt` 与 `build/evidence/verify_1006_1944.txt`（这两份不随包，读数已抄在上面）。
+所以演示可以直接断电上电，§8.2 那三步 JTAG 加载仍然可用——换了 app 不想重刷 PL 时就用它。
 
 写入的逐条结果记在 `board/measured/flash_qspi_2026-10-05.txt`，里面有镜像与三份输入的 md5、
 Erase/Program/Verify 三行成功、耗时 137 s。`PROGRAM.VERIFY=1`（或 `program_flash -verify`）那一步是从

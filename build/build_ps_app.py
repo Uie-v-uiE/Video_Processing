@@ -166,10 +166,27 @@ def self_check():
         print("FATAL: ELF 入口 0x%s != _boot 0x%s —— 标准启动没跑，VBAR/栈/MMU 都没设"
               % (ep.group(1), bt))
         sys.exit(3)
-    if int(vt, 16) != 0:
-        print("FATAL: _vector_table 不在 0x0（实际 0x%s）—— VBAR 复位值就是 0，表放别处等于没有表" % vt)
+    # 加载基址三条一起判（与 build/ps_app.mjs 同一条判据，两份构建脚本不许各说一套）：
+    #   ① _vector_table == 第一个 LOAD 的 VirtAddr（boot.S 把 VBAR 指到它，表得随镜像一起被装进去）
+    #   ② 基址在 FSBL 认的 DDR 窗口内 —— 平台自带的 image_mover.c 里 LoadBootImage() 见到
+    #      "PS 分区且加载地址为 0" 直接 break（注释写着 loop will break on PS load address zero），
+    #      断电自启因此停在 "No Execution Address JTAG handoff"；而 translation_table.S
+    #      也只把 [0x00100000, 0x3FFFFFFF] 映射成 cacheable。
+    #   ③ 基址不许是 0（今晚那个坑的直接回归判据；旧版这里判的恰恰是"必须在 0"）
+    rlf = capture(tool("readelf.exe"), ["-l", OUT])
+    ld0 = re.search(r"\bLOAD\b\s+0x[0-9a-f]+\s+0x([0-9a-f]+)\s+0x[0-9a-f]+", rlf)
+    if not ld0:
+        print("FATAL: readelf -l 里取不到第一个 LOAD 的 VirtAddr ⇒ 这条判据没跑，不算通过")
         sys.exit(3)
-    print("ENTRY _boot@0x%s  (_vector_table@0x%s -> 0x0 是 b _boot)  _start@0x%s  OK" % (bt, vt, st))
+    lma0 = int(ld0.group(1), 16)
+    if lma0 != int(vt, 16):
+        print("FATAL: _vector_table 0x%s != 第一个 LOAD 的 VirtAddr 0x%x ⇒ 表不在镜像开头" % (vt, lma0))
+        sys.exit(3)
+    if lma0 == 0 or lma0 < 0x00100000 or lma0 > 0x3FEF0000:
+        print("FATAL: 加载基址 0x%x 不在 [0x00100000, 0x3FEF0000] ⇒ FSBL 不交接 / 超出映射窗口" % lma0)
+        sys.exit(3)
+    print("ENTRY _boot@0x%s  _vector_table@0x%s = LOAD0  基址在 DDR 窗口内（FSBL 会交接）  _start@0x%s  OK"
+          % (bt, vt, st))
 
 
 def main():

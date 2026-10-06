@@ -8,15 +8,15 @@
 |---|---|---|
 | `build/system.bit` | `cd04907e1369` | 跟踪件（`git ls-files build/system.bit` 有输出） |
 | `build/system.xsa` | `934ebdbaa13b` | 跟踪件 |
-| `build/ps_app.elf` | `d0b07f84a068` | 跟踪件 |
+| `build/ps_app.elf` | `57fa442a7eaf` | 跟踪件 |
 
 这三份二进制在 `build/`、**不在这里**：`board/` 放的是工程文本、脚本与读数。
-上表是 2026-10-05 10:26 用 `md5sum build/system.bit build/system.xsa build/ps_app.elf` 现量的，同一组数也印在 `board/measured/flash_20261005_1030.txt` 的 IDENTITY 段。
+上表是 2026-10-06 19:36 用 `md5sum build/system.bit build/system.xsa build/ps_app.elf` 现量的，同一组数也印在 `board/measured/flash_20261006_1936.txt` 的 IDENTITY 段。
 
 有一处不吻合要提前知道：`build/gen_bit.tcl:12` 的归档目录默认值就是 `board/`，`:25-26` 会往那里写 `system.xsa` 与 `system.bit`。照默认跑一次 `vivado -mode batch -source build/gen_bit.tcl`，
 本目录会长出两份**未跟踪**的二进制（`.gitignore` 不挡它们）。用 `VP_BIT_DIR=build` 跑，或者跑完删掉—— 入库的那两份始终以 `build/` 为准。
 
-重编出来的 ELF 是另一颗，它没上过板；两颗的 md5 与 `.text`/`.rodata` 大小记在 `build/evidence/1005_ps_app_rebuild.txt`。 所以板上验过的行为只绑定 `d0b07f84a068` 那颗；要用重建件，就得重刷 + 跑一次第 2 节末尾那条 `board_verify`。
+重编出来的 ELF 是另一颗，它没上过板；两颗的 md5 与 `.text`/`.rodata` 大小记在 `build/evidence/1005_ps_app_rebuild.txt`。 2026-10-06 把 PS 应用重链到 DDR 之后重编的那颗（md5 `57fa442a7eaf`）就是现在板上跑的这颗，10-05 那颗没上过板、已被它取代；要用自己重编的件，就得重刷 + 跑一次第 2 节末尾那条 `board_verify`。
 
 ## 1. 上板工程
 
@@ -144,8 +144,8 @@ VP_XSDB=<…>/xsdb.bat bash build/board_verify.sh --battery --geom --round=r118
               → 7) bash board/scripts/make_boot_image.sh                           （可选：要断电自启才做）
               → 8) VP_HW_URL=<host:port> vivado -mode batch -source board/tcl/flash_qspi.tcl
                    然后把启动模式拨到 QSPI、断电重上（这一步只有人手能做）。
-                   实测读数分两格：上电会把 PL 配置好（串口 `FPGA Done !`），PS 应用不会自己跑；
-                   根因与凭据在 `report/technical-document.md` §8.3，演示照上面 4) 的 JTAG 三步走。
+                   实测：拨回 QSPI 断电重上，串口依次出 `Boot mode is QSPI` → `FPGA Done !` → `SUCCESSFUL_HANDOFF` → `[CFG] … ok`，
+                   SD 自动播起片、ETH 那一路也出画面 ⇒ 演示可以只靠断电上电。凭据与修法见 `report/technical-document.md` §8.3；上面 4) 的 JTAG 三步仍然可用。
 ```
 
 第 1 节那两支（`stage_board_projects.tcl` / `stage_vitis_platform.sh`）不在这一列：它们不改板子，改的是 `board/` 这份工程本身。

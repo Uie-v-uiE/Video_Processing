@@ -204,7 +204,7 @@ bash -n build/gates.sh build/board_verify.sh build/sim/run_one.sh build/sim/mut_
 | `python build/check_ports.py --dup` | 0 | `CHECK PORTS: instances=222 modules=80 skipped=0 width_compared=562 violations=0 PASS` |
 | `node build/r119_window_check.mjs --self` | 0 | `对照总结：造 10 条畸形动红 10 条；缺输入 2 条报 NOT_MEASURED 2 条 PASS` |
 | `md5sum build/system.bit`（取前 12 位）| 0 | `cd04907e1369`（与 `build/r118_gates.txt` 身份行一致）|
-| `md5sum build/ps_app.elf`（取前 12 位）| 0 | `d0b07f84a068`（与 `build/r118_gates.txt` 身份行一致；`git log -1 --format=%ci -- build/ps_app.elf` = `2026-09-29`（原始提交时间戳以 `%ci` 打全，这里只留日期），早于 `src/ps/main.c` 的 #167 那次提交 `2026-10-02`）|
+| `md5sum build/ps_app.elf`（取前 12 位）| 0 | `57fa442a7eaf`（与 `build/r126_gates.txt` 身份行一致；这一版是 2026-10-06 把 PS 应用从 OCM 的 0x0 重链到 DDR 的 0x00200000 之后重编出来的，位流没换）|
 | `netstat -an -p TCP \| grep 3121` | 0 | `TCP 0.0.0.0:3121 0.0.0.0:0 LISTENING` |
 | `ping -n 2 -w 1000 192.168.1.10` | 0 | 中文 cp936 输出；统计行经 `iconv` 读出 `发送 = 2，接收 = 2，丢失 = 0 (0% 丢失)`、`平均 = 1ms` |
 | `ipconfig \| iconv -f cp936 -t utf-8` | 0 | `IPv4 地址 … : 192.168.1.100` / `子网掩码 … : 255.255.255.0` |

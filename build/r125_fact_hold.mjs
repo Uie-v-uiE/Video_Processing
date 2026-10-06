@@ -27,6 +27,7 @@ const MULTI = ['number', 'md5', 'path', 'cite', 'verdict'];   // 全部按"值 �
 // 逐条豁免。改写轮里有两处"记号变少"是**修正**而不是丢事实，硬留着红会让这把尺子失去可信度；
 // 但豁免不能变成万能出口，所以每条必须带一个 `need` 字串：改写后的文里当场数得到它，才准放行；
 // 数不到就照旧红（依据消失 ⇒ 豁免自动失效，不需要再改代码）。
+const 同上_r126 = 'r126 那一轮：板上那版换了（位流没动、PS 应用从 OCM 重链到 DDR），旧句子随结论一起换';
 const EXEMPT = {
   'report/repro-check.md': [
     { tok: 'number:2.7', why: 'HEAD 里该节编号错位（## 6 之下写成 ### 2.7），已改号为 6.1', need: '实际执行过的命令' },
@@ -46,6 +47,40 @@ const EXEMPT = {
   ],
   'build/r120_src_map.mjs': [
     { tok: 'path:skills/runtime/register-map/SKILL.md', why: '目录名与现役条目对齐（生成器与 report/src-map.md 同一说法）', need: 'skills/runtime/register-map-and-readback/SKILL.md' },
+  ],
+
+  // ---- r126 那一轮（app 从 OCM 0x0 重链到 DDR、QSPI 自启成立）：下面每一条都是**事实本身变了**，
+  //      不是改写带走数字。旧记号少掉的同时，替代它的值必须当场在文里（`need`），否则照旧红。
+  //      依据：main 台账 #409 + `build/r126_gates.txt` + `board/measured/qspi_coldboot_selfboot_ok_2026-10-06.txt`。
+  'README.md': [
+    { tok: 'path:build/r118_gates.txt', why: '板上那版换成了位流未变、应用重链后的 r126，身份句跟着门禁件走', need: 'build/r126_gates.txt' },
+  ],
+  'README_EN.md': [
+    { tok: 'path:build/r118_gates.txt', why: 同上_r126, need: 'build/r126_gates.txt' },
+  ],
+  'board/README.md': [
+    { tok: 'md5:d0b07f84a068', why: '现役 PS 应用换成重链到 DDR 的那颗', need: '57fa442a7eaf' },
+    { tok: 'path:board/measured/flash_20261005_1030.txt', why: '身份表改念今天这一步的实测件', need: 'flash_20261006_1936.txt' },
+    { tok: 'cite::26', why: '同一句里的时刻从 10:26 换成 19:36，:NN 记号少一个', need: '19:36' },
+  ],
+  'report/70-reproduce.md': [
+    { tok: 'md5:d0b07f84a068', why: '期望值换成重链后的那颗', need: '57fa442a7eaf' },
+    { tok: 'path:build/r118_gates.txt', why: '对齐的门禁件换成 r126', need: 'build/r126_gates.txt' },
+    { tok: 'path:build/ps_app.elf', why: '那格从"mtime 早于 main.c 的论证"换成一句话的现在态', need: '重编出来的' },
+    { tok: 'path:src/ps/main.c', why: 同上_r126, need: '位流没换' },
+    { tok: 'number:2026', why: '删掉的是"2026-09-29 / 2026-10-02"两个日期、补进一个 2026-10-06', need: '2026-10-06' },
+    { tok: 'number:29', why: 同上_r126, need: '2026-10-06' },
+    { tok: 'number:167', why: '那格不再引用台账编号（正文里 #NNN 本来就不该出现）', need: '0x00200000' },
+  ],
+  'report/host_guide.md': [
+    { tok: 'md5:d0b07f84a068', why: '孪生工具产物那颗换成重链后的这颗', need: '57fa442a7eaf' },
+  ],
+  'report/repro-check.md': [
+    { tok: 'md5:d0b07f84a068', why: 'B6 那格换成重链后的那颗（文末当天的原始回声仍留着）', need: '57fa442a7eaf' },
+    { tok: 'path:build/provenance.md', why: '那半句"登记不同源"的指路随着结论一起换掉', need: '就是板上正在跑的这颗' },
+  ],
+  'src/ps/README.md': [
+    { tok: 'path:build/tcl/create_project.tcl', why: '旧路径从来不存在（死链接），换成现役位置', need: 'build/create_project.tcl' },
   ],
 };
 

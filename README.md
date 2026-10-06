@@ -55,7 +55,7 @@ JTAG 三步链见 `board/README.md`。
 
 ## 关键数字与出处
 
-板上现在跑的是 r118，位流身份 `system.bit md5=cd04907e1369`（身份行由检查记录自己写出，`build/r118_gates.txt`；逐字节一致的存档件在
+板上现在跑的是 r126，位流身份 `system.bit md5=cd04907e1369`（身份行由检查记录自己写出，`build/r126_gates.txt`；逐字节一致的存档件在
 `build/r118_gates_final.txt` 与 `build/evidence/r118_board/`）。表内每一格读数都来自这一块位流的那一次构建。
 
 主时钟三条：显示像素钟 50 MHz（`clkout0_1`，H_TOTAL 1344 / V_TOTAL 625，场频 59.5 Hz）、PL 逻辑钟 100 MHz（`clk_fpga_0`）、以太网

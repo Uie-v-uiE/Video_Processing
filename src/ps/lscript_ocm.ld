@@ -16,9 +16,19 @@ _UNDEF_STACK_SIZE = DEFINED(_UNDEF_STACK_SIZE) ? _UNDEF_STACK_SIZE : 1024;
 
 /* Define Memories in the system */
 
+/* 第一段的名字还叫 ps7_ram_0（Vitis 生成的段名），但 **ORIGIN 已经从 OCM 的 0x0 挪到 DDR 的
+ * 0x00200000**：断电自启时 FSBL 的 LoadBootImage() 见到"PS 分区且加载地址为 0"就不交接
+ * （它自己的注释写着 loop will break on load address zero），而 FSBL 与本 app 本来就都在
+ * OCM 那个 0x0 窗口里，真装进去就是一边执行一边互相覆盖。挪进 DDR 之后两条都成立：
+ * FSBL 会交接，加载也不会踩到正在跑的 FSBL。
+ * 取值范围 [0x00100000, 0x3FFFFFFF]：这是 xparameters 里 ps7_ddr_0 的窗口，
+ * translation_table.S 也只把这一段映射成 cacheable。
+ * 0x00200000 起留 12 MB：本 app 的镜像实测 ~136 KB；再往上是 PL/PS 三个 bank 用的
+ * 0x10000000 / 0x10080000 / 0x10100000（system_top.v、eth_udp_video_top.v、main.c 的 FRAME_ADDR），
+ * 中间这大片没人用。文件名仍叫 lscript_ocm.ld 是历史名，改名会牵动交付清单与版权登记，留到单独一轮。 */
 MEMORY
 {
-   ps7_ram_0_S_AXI_BASEADDR : ORIGIN = 0x00000000, LENGTH = 0x00030000
+   ps7_ram_0_S_AXI_BASEADDR : ORIGIN = 0x00200000, LENGTH = 0x00C00000
    ps7_ram_1_S_AXI_BASEADDR : ORIGIN = 0xFFFF0000, LENGTH = 0x0000FE00
 }
 
