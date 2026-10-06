@@ -14143,3 +14143,44 @@ rim 那一半本轮已用修好的入口重跑并出新件 `build/tb_edge_rim_r1
 - **还没量的（别念成已修好）**：豁免真生效之后，35 条死链里有多少是假警报。
   我第一次想拿一段临时脚本单独重算这一层，忘了 cwd 会被重置到 `Prj/pro`，抓出 21,772 行——那判的不是包而是整个工作区，
   作废；真实数字以下一次 `bash build/make_submission.sh --dry` 打印的 `抓=` 为准。
+
+### 409（2026-10-06 20:0x）断电自启整条链路成立：app 从 OCM 0x0 重链到 DDR 0x00200000，冷上电 SD/ETH/OSD 全部自己跑起来
+
+- 改的三处（只有链接与判据，没有动任何 C 语句与 RTL）：
+  ① `src/ps/lscript_ocm.ld` 的 `MEMORY` 第一段 `ORIGIN` 从 `0x00000000`（OCM 低别名窗）改成 **`0x00200000`（DDR）**，
+     `LENGTH=0x00C00000`；第二段 `0xFFFF0000`（各模式栈）不动。基址选 0x00200000 的理由逐条量过：
+     PL 侧三个 bank 是 `0x10000000`（`system_top.v:139`）/ `0x10080000`（`eth_udp_video_top.v:68` BANK0+0x80000）/
+     `0x10100000`（`system_top.v:144` = `main.c:46` FRAME_ADDR，跨度 0x4B000），中间这大片全仓零引用；
+     上界受 `translation_table.S` 的映射窗限制（只把 `[0x00100000, 0x3FFFFFFF]` 当 cacheable）。
+  ②③ 两支 PS 构建脚本（`build/ps_app.mjs` 与零依赖的 `build/build_ps_app.py`）里那条**旧判据本身就是坑**：
+     它写死"`_vector_table` 必须在 0x0，否则 FATAL"，而 FSBL 的 `LoadBootImage()` 恰恰对
+     "PS 分区且加载地址为 0"不交接。换成三条等值判据：入口 = `_boot`、`_vector_table` = 第一个 LOAD 的
+     `VirtAddr`、且该基址落在 `[0x00100000, 0x3FEF0000]` 且不为 0。取不到 LOAD 行时判"这条没跑，不算通过"。
+- 重编产物：`build/ps_app.elf` md5 `d0b07f84a068` → **`57fa442a7eaf34cf4ca5e0557900abc2`**，
+  `_boot@0x002000cc`、`_vector_table@0x00200000`、镜像 ~136 KB。
+  `board/scripts/make_boot_image.sh` 重打镜像：`BOOT_BYTES 2435868`、`BOOT_MD5 f62b1b8cc3bdc3ca45631c50a0205346`，
+  三份输入里位流仍是 `cd04907e1369`（**没动 RTL**）、FSBL `46395a8c2ac1`、app `57fa442a7eaf`；
+  镜像头 IHT+0x10/+0x14/+0x20 = `0x00001700 / 0x0001f6f4 / 0x0001f6f4`。
+- 写 flash（JTAG 档）：Erase 9 s / Program 17 s / Verify 24 s，`Flash Operation Successful`。
+- **冷上电判定（拨到 `1 0` + 断电重上）过了**：串口 `board/measured/qspi_coldboot_selfboot_ok_2026-10-06.txt`
+  （4,895 字节）依次打 `Boot mode is QSPI` → `FPGA Done !` → **`SUCCESSFUL_HANDOFF`**
+  → `[CFG] axi_gpio_2 @41220000 ok`、`[CFG] gamma window @41220008 ok`、`[TEMP] PS-XADC @F8007100 ok`
+  → `[CTRL] … src=1` 且 SD 自动播跑起来。#407 里那两格现在合成一格：**断电自启成立**。
+  队员的眼同时确认 ETH 与 SD 两路都出画面（原话"这次 eth 和 sd 都通了"）。
+- 自启状态下的机器验收（这一步比 JTAG 加载更有说服力，因为测的就是演示时那块板）：
+  `VP_XSDB=… bash build/board_verify.sh --battery --geom --round=r126` ⇒ `RESULT board_verify PASS（判红的步骤：0）`，
+  串口电池 105 条命令 98.2 s 全过、跑完回到初态、末态 = 演示默认档，`[GEOM] 退出码 0`，
+  温度格三方对账（4 条 `[TEMP]` 的 degC↔osd↔gpio）自洽。凭据：
+  `build/evidence/r126_serial_raw.txt`、`build/evidence/verify_1006_1944.txt`（及 `.batt/.boot/.geom/.health.json`）、
+  `board/measured/flash_20261006_1936.txt`（三步链 GREEN：`PC_BEFORE_CON: 002000cc`、`GPIO@0x41200000 = 000B5000`）。
+- 两条**别念成已修好**的尾巴：
+  ① 冷上电那份回显里 SD 播到 frame 2324 报 `frame file not found on card`，随后 `sd remount` 打回
+     `dir map ok: 9 files` 并继续 —— 现象是"一个文件放完/切下一个"还是"簇映射在第 2324 帧处断"，
+     **本轮没有判**（要判就把 `sd_frame_total()` 对 `VIDEO004.BIN` 给的帧数与实际可读簇数对上；
+     这条不是新立的 bug，只是没读过的分支）。
+  ② ELF 换了，凡是把 `d0b07f84a068` 当**现役** ELF 写的活句子都要改口（`board/README.md` 的身份表、
+     `report/70-reproduce.md` 的复现期望行），而引用某次门禁身份行/验收行的**历史引文**不动。
+     交付分支里 `build/r125_elf_md5_rotate.mjs` 那套规则就是干这个的，这一轮的改口跟它一起走。
+- 文件名债务（记下来不藏）：`src/ps/lscript_ocm.ld` 现在链的是 DDR，名字仍是历史名。改名会牵动
+  交付清单（`deliver_spec_check.mjs` 的 C12 名单）、版权登记（`report/notice.md` 两行）与导出器
+  `KEEP_ALWAYS_RE`，留到单独一轮，别和硬件验证混在一笔里。

@@ -149,10 +149,10 @@ if (!text || Number(text[2]) < 20000) {
 }
 
 /*
- * "符号在"不等于"从它开始跑"，也不等于"向量表在 CPU 会去找的地址上"。
- * 所以这里做**等值**校验：ELF 入口 = _boot，且 _vector_table 必须在 0x0
- * （CPSR.V=0 时硬件的向量表就在 0x00000000，而 _boot 会把 VBAR 也指到同一张表）。
- * 差一个字节就等于 #42 和"异常可诊断"两件事都没修上，而症状和修之前一模一样。
+ * "符号在"不等于"从它开始跑"，也不等于"镜像被装到了 CPU 会被交接的地方"。
+ * 所以这里做**等值**校验：ELF 入口 = _boot、_vector_table = 第一个 LOAD 的 VirtAddr、
+ * 且该基址在 FSBL 认的 DDR 窗口里（三条的由来写在下面那段注释里）。
+ * 差一个字节就等于 #42 和"异常可诊断"、"断电自启"三件事都没修上，而症状和修之前一模一样。
  */
 const reh = execFileSync(CC.replace(/gcc\.exe$/, 'readelf.exe'), ['-h', OUT], { encoding: 'utf8' });
 /* readelf 打的是 `0xcc`：以前这里写的是 `0*([0-9a-f]+)`，'0' 被 0* 吃掉后捕获到空 ⇒
@@ -169,11 +169,28 @@ if (parseInt(ep[1], 16) !== parseInt(bt, 16)) {
   console.log(`FATAL: ELF 入口 0x${ep[1]} != _boot 0x${bt} —— 标准启动没跑，VBAR/栈/MMU 都没设`);
   process.exit(3);
 }
-if (parseInt(vt, 16) !== 0) {
-  console.log(`FATAL: _vector_table 不在 0x0（实际 0x${vt}）—— VBAR 复位值就是 0，表放别处等于没有表`);
+/* 加载基址三条一起判（以前这里只判"_vector_table 必须在 0x0"，而那条恰恰是断电自启起不来的根：
+ * 平台自带 FSBL 的 LoadBootImage() 见到"PS 分区且加载地址为 0"就不交接（image_mover.c 的注释
+ * 写着 loop will break on PS load address zero），而且 FSBL 自己也链在 OCM 那个 0x0 窗口里，
+ * 真把 app 装到 0 就是一边执行一边覆盖自己。现在 app 在 DDR（src/ps/lscript_ocm.ld 的 MEMORY），
+ * 所以要判的是：① 向量表在镜像开头（boot.S 把 VBAR 指到它），② 基址落在 FSBL 认的 DDR 窗口内
+ * （translation_table.S 也只把这一段映射成 cacheable），③ 基址不等于 0（把今晚那个坑钉住）。 */
+const rlf = execFileSync(CC.replace(/gcc\.exe$/, 'readelf.exe'), ['-l', OUT], { encoding: 'utf8' });
+const ld0 = /\bLOAD\b\s+0x[0-9a-f]+\s+0x([0-9a-f]+)\s+0x[0-9a-f]+/.exec(rlf);
+if (!ld0) {
+  console.log('FATAL: readelf -l 里取不到第一个 LOAD 的 VirtAddr ⇒ 这条判据没跑，不算通过');
   process.exit(3);
 }
-console.log(`ENTRY _boot@0x${bt}  (_vector_table@0x${vt} -> 0x0 是 b _boot)  _start@0x${st}  ✓`);
+const lma0 = parseInt(ld0[1], 16);
+if (lma0 !== parseInt(vt, 16)) {
+  console.log(`FATAL: _vector_table 0x${vt} != 第一个 LOAD 的 VirtAddr 0x${lma0.toString(16)} ⇒ 表不在镜像开头，加载它的那步不会带上它`);
+  process.exit(3);
+}
+if (lma0 === 0 || lma0 < 0x00100000 || lma0 > 0x3FEF0000) {
+  console.log(`FATAL: 加载基址 0x${lma0.toString(16)} 不在 [0x00100000, 0x3FEF0000] ⇒ FSBL 不交接 / 超出 translation_table.S 映射的那一段`);
+  process.exit(3);
+}
+console.log(`ENTRY _boot@0x${bt}  _vector_table@0x${vt} = LOAD0  基址在 DDR 窗口内（FSBL 会交接）  _start@0x${st}  ✓`);
 
 fs.copyFileSync(OUT, path.join(root, 'build', 'ps_app.elf'));
 console.log('OK  ' + OUT);
