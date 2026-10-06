@@ -135,7 +135,7 @@
 
 | 位 | 名称 | RTL 落点 | PS 侧宏 | 锚点 |
 | --- | --- | --- | --- | --- |
-| `[8:0]` | `stage_sel`（九级效果，一位一级） | `.stage_sel(gpio_cfg1_o[8:0])` | `SEL_GRAY`…`SEL_DILATE`（`1u<<0`…`1u<<8`） | `system_top.v:264` `main.c:110-118` |
+| `[8:0]` | `stage_sel`（9 个算法位，六级流水里一位一个算法；腐蚀与膨胀同属最后一级） | `.stage_sel(gpio_cfg1_o[8:0])` | `SEL_GRAY`…`SEL_DILATE`（`1u<<0`…`1u<<8`） | `system_top.v:264` `main.c:110-118` |
 | `[9]` | `rot_auto` | `split_ctl` 拼接的第 4 位 | `ROT_AUTO_BIT (1u<<9)` | `system_top.v:274-275` `main.c:155` |
 | `[12:10]` | `rot_speed`（度/帧） | 同上 | `ROT_SPEED_SHIFT 10u` | `system_top.v:274` `main.c:156-157` |
 | `[22:13]` | 缝位 `[9:0]`/`auto_en`/`follow`/`swap` | 同上 | `SPLIT_POS_SHIFT 13u`、`SPLIT_AUTO/FOLLOW/SWAP_BIT` | `system_top.v:275` `main.c:123-139` |
