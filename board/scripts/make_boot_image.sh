@@ -12,7 +12,11 @@
 #   | `VP_FSBL` / `VP_BIT` / `VP_APP` | 覆盖三份输入 | 见"依赖"那行 |
 #
 # bif 的写法是实测出来的（三种带逗号/带 `[boot]`/带 `configuration` 的写法都被 bootgen 判语法错）：
-# Zynq-7000 这一支要的是 `the_design:` + 花括号里**逐行一个文件、不写逗号、不写属性**。
+# Zynq-7000 这一支要的是 `the_design:` + 花括号里逐行一个文件、不写逗号；
+# 但 FSBL 那一行**必须**带 `[bootloader]` 属性——不带的时候 bootgen 也报 "generated successfully"，
+# 打出来的镜像却把镜像头 IHT+0x10/+0x14/+0x20（分区表偏移那一组）留成 0，启动 ROM 读不懂
+# （实测：冷上电 DONE 不亮、串口零字节）。依据：`bootgen -bif_help bootloader`（该属性 SUPPORTED 含 zynq）
+# + 厂商镜像同三个字段是 0x00001700 / 0x00018008 / 0x00018008 的对照。
 set -euo pipefail
 
 root="$(cd "$(dirname "$0")/../.." && pwd)"
@@ -35,7 +39,8 @@ win() { if command -v cygpath >/dev/null 2>&1; then cygpath -w "$1" | tr '\\' '/
 bif="$out/boot.bif"
 {
   printf 'the_design:\n{\n'
-  win "$fsbl"
+  # FSBL 必须标 [bootloader]；不标时 bootgen 照样报成功，但分区表偏移全 0（见文件头）
+  printf '   [bootloader] '; win "$fsbl"
   win "$bit"
   win "$app"
   printf '}\n'
