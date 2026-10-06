@@ -143,7 +143,9 @@ VP_XSDB=<…>/xsdb.bat bash build/board_verify.sh --battery --geom --round=r118
               → 6) VP_XSDB=<…>/xsdb.bat bash build/board_verify.sh --battery --geom --round=<这一版>
               → 7) bash board/scripts/make_boot_image.sh                           （可选：要断电自启才做）
               → 8) VP_HW_URL=<host:port> vivado -mode batch -source board/tcl/flash_qspi.tcl
-                   然后把启动模式拨到 QSPI、断电重上（这一步只有人手能做）
+                   然后把启动模式拨到 QSPI、断电重上（这一步只有人手能做）。
+                   实测读数分两格：上电会把 PL 配置好（串口 `FPGA Done !`），PS 应用不会自己跑；
+                   根因与凭据在 `report/technical-document.md` §8.3，演示照上面 4) 的 JTAG 三步走。
 ```
 
 第 1 节那两支（`stage_board_projects.tcl` / `stage_vitis_platform.sh`）不在这一列：它们不改板子，改的是 `board/` 这份工程本身。

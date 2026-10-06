@@ -740,6 +740,7 @@ echo "  空目录 删=$EMPTY_DEL 余=$EMPTY_LEFT"
 # 那里的路径是当时那天的名字，台架删了、工具改名了、捕获清了都留在里面，那是过程记录，不该拿它判包不完整。
 DEADSCAN=0
 DEADSKIP=0
+DEADSHIELD=0
 # "这行不是指路"的同行声明词（一行只按字面判，不看上下文；命中数逐份打印，别让它变成万能免检）：
 #   不随包 / 本地留档 / 不入库  —— 声明"这东西故意不在包里"（学习文档、厂商样例、一次性件都走这一类）
 #   未写 / 未落地 / 尚未 / 规划 / 待装配 —— 声明"这个落点还不存在"，是计划不是链接
@@ -751,12 +752,21 @@ for f in $(live_docs); do
     d="$(dirname "$f")"
     sk="$( { grep -cE "$SKIP_RE" "$f" 2>/dev/null || true; } )"; sk="${sk:-0}"
     DEADSKIP="$((DEADSKIP + sk))"
+    # 这一层**实际挡下**几条指路：数的是"命中词的那些行里，本来会被判死的形状路径"。
+    #   上一版把这串词表交给了 sed 的地址（默认 BRE），而 `|` 在 BRE 里是字面竖线 ⇒ 整行删除
+    #   一条也没删掉，可"命中 840 行"照样打印 —— 报的是保护，做的是空转（2026-10-06 实测）。
+    #   下面把"词表有命中、却一条指路都没挡住"判成空转并拒绝落盘，这一层就再也藏不住。
+    sh="$(sed -e 's/-log[[:space:]]\{1,\}[^[:space:];"`]*/ /g' "$f" 2>/dev/null |
+          grep -E "$SKIP_RE" 2>/dev/null |
+          grep -oE '(src|sim|build|board|data|skills?|report|docs)/[A-Za-z0-9_./-]*[A-Za-z0-9_-]\.[A-Za-z0-9]{1,6}' 2>/dev/null |
+          sort -u | wc -l)"; sh="${sh:-0}"
+    DEADSHIELD="$((DEADSHIELD + sh))"
     # #172：先抹掉 `-log <路径>` 这类**工具自己创建的输出**（`vivado -mode batch -log sim/xsim.log` 那种），
     #   再抽指路。这不是把 `*.log` 整类放回免检名单 —— 那样就等于把自检买通；
     #   只有"这条命令要写出来的文件"不算死链，"文档点名的凭据"照样该存在。
-    # 同行声明词的过滤也走同一处 sed（**整行删掉再抽路径**）：命中词与路径在同一条句子里，
-    #   说明这一行的那个名字本来就没打算让评委去翻。
-    sed -e 's/-log[[:space:]]\{1,\}[^[:space:];"`]*/ /g' -e "/$SKIP_RE/d" "$f" 2>/dev/null |
+    # 同行声明词的过滤用 grep -E（ERE 里 `|` 才是"或"；sed 那条是 BRE，会把整串词表当字面量）：
+    #   命中词与路径在同一条句子里，说明这一行的那个名字本来就没打算让评委去翻 ⇒ **整行删掉再抽路径**。
+    sed -e 's/-log[[:space:]]\{1,\}[^[:space:];"`]*/ /g' "$f" 2>/dev/null | grep -vE "$SKIP_RE" |
     grep -oE '(src|sim|build|board|data|skills?|report|docs)/[A-Za-z0-9_./-]*[A-Za-z0-9_-]\.[A-Za-z0-9]{1,6}' 2>/dev/null |
     sort -u | while read -r t; do
       case "$t" in *'*'*|*'<'*|*'$'*|*NN*) continue ;; esac
@@ -776,7 +786,13 @@ if [ "$DEADSCAN" -lt 40 ]; then
   echo "FAIL：死链自检只扫了 $DEADSCAN 份活文档（射程下限 40）⇒ 这一项什么都没查，不写 $OUT" >&2
   exit 1
 fi
-echo "  死链射程 扫=$DEADSCAN 份活文档 抓=$DEAD 同行声明豁免行=$DEADSKIP（词表：不随包/本地留档/不入库/未写/未落地/尚未/规划/待装配/例如/示例/假想/不存在）"
+# 豁免层的空转判据（与上面同一族）：词表在文档里命中了行，却一条指路都没挡住，说明这一层
+# 又退化成了"只报数不干活"（BRE/ERE 那次就是这样）⇒ 宁可停下，也别带着假保护落盘。
+if [ "$DEADSKIP" -gt 0 ] && [ "$DEADSHIELD" -eq 0 ]; then
+  echo "FAIL：同行声明词命中 $DEADSKIP 行、却一条指路都没挡住 ⇒ 豁免层空转，不写 $OUT" >&2
+  exit 1
+fi
+echo "  死链射程 扫=$DEADSCAN 份活文档 抓=$DEAD 同行声明命中行=$DEADSKIP 其中真正挡下指路=$DEADSHIELD 条（词表：不随包/本地留档/不入库/未写/未落地/尚未/规划/待装配/例如/示例/假想/不存在）"
 
 # 旧名残留一次算完（每个名字 spawn 一次 grep 在这一千多个文件上要四分钟）
 { for old in "${!NAME_MAP[@]}"; do if [ "$old" != "${NAME_MAP[$old]}" ]; then echo "$old"; fi; done; } > _oldnames.txt

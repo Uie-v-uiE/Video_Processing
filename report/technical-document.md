@@ -28,7 +28,7 @@
 | 同帧左右对比（左原图 / 右处理图，缝位置可调） | `src/rtl/video/split_ctrl.v` + 顶层混合 | 串口 `split <n>` 后 marker 位不变的判据；屏上看缝 |
 | OSD 叠加（帧率、丢帧、温度、几何参数） | `src/rtl/video/osd_overlay.v` | 36 行人眼验收表逐条；`[TEMP]` 回显与屏上三字符对账 |
 | 链路健康自诊断（计数 + 自动回落） | `src/rtl/eth/link_monitor.v` + 顶层仲裁 | 拔线/拔卡现场复验；AUTO 回落到可用源 |
-| QSPI 固化（断电自启） | `board/tcl/flash_qspi.tcl` | 见 §8 |
+| QSPI 固化（断电自启） | `board/scripts/make_boot_image.sh` + `board/tcl/flash_qspi.tcl` | 位流那一格实测成立、应用那一格不成立，两格分开写在 §8.3 |
 
 ### 1.3 三个创新点
 
@@ -318,17 +318,45 @@ VP_QSPI_PART="mx25l25645g-qspi-x4-single" \
   "<Vivado>/bin/vivado.bat" -mode batch -source board/tcl/flash_qspi.tcl
 ```
 
-两个坑是实测踩到的。bootgen 对 Zynq-7000 只接受"`the_design:` + 花括号里逐行一个文件、
-不写逗号不写属性"这种 bif 写法。部件名不能照板子丝印填：丝印是 W25Q256FV，可 Vivado 部件库里
-`w25q256jw*` 那一支的 `COMPATIBLE_PARTS` 只列 zynquplus，配 zynq7000 会在擦写那一步判
-`Labtoolstcl 44-655`；要看的是这张兼容表，不是型号后缀。同为 32 MB / x4 的 macronix 档实测擦写与
-回读校验都通过。第三个坑在 `hw_cfgmem` 的属性上：2025.2.1 没有 `PROGRAM.BBF_FILE`、`START_ADDRESS`
-与 `STATUS`（写死会 17-142、17-54 中断），而 `PROGRAM.ZYNQ_FSBL` 又必须设，缺它报 `[Labtools 27-3203]`。
-写完把板的启动模式拨到 QSPI、断电重上，屏上应直接出画面，不需要 JTAG。
-本次写入的逐条结果记在 `board/measured/flash_qspi_2026-10-05.txt`，里面有镜像与三份输入的 md5、
-Erase/Program/Verify 三行成功、耗时 137 s，以及上面那两个坑。
-`PROGRAM.VERIFY=1` 那一步是从 flash 读回逐字节比对，"Verify successful"就是片上内容
-与 `BOOT.bin` 一致的证据；断电后能自己起来，要另一次上电才算量过。
+三个坑是实测踩到的。
+
+1. bootgen 的 bif：`the_design:` + 花括号里逐行一个文件、不写逗号，**但 FSBL 那一行必须带
+   `[bootloader]`**。缺这个属性时 bootgen 照样打印 `Bootimage generated successfully`，
+   产出的镜像头里分区表偏移那三个字段（IHT+0x10 / +0x14 / +0x20）却全是 0，启动 ROM 找不到
+   分区，冷上电的表现是串口一个字节都不出、`DONE` 不亮。依据两条：
+   `bootgen -bif_help bootloader` 写明该属性支持 zynq；厂商镜像同三个字段是
+   `0x00001700 / 0x00018008 / 0x00018008`，补上属性之后本工程这份变成同一形状（数值差来自 FSBL 大小）。
+2. 部件名不能照板子丝印填：丝印是 W25Q256FV，可 Vivado 部件库里 `w25q256jw*` 那一支的
+   `COMPATIBLE_PARTS` 只列 zynquplus，配 zynq7000 会在擦写那一步判 `Labtoolstcl 44-655`；
+   要看的是这张兼容表，不是型号后缀。同为 32 MB / x4 的 macronix 档实测擦写与回读校验都通过。
+3. `hw_cfgmem` 的属性：2025.2.1 没有 `PROGRAM.BBF_FILE`、`START_ADDRESS` 与 `STATUS`
+   （写死会 17-142、17-54 中断），而 `PROGRAM.ZYNQ_FSBL` 又必须设，缺它报 `[Labtools 27-3203]`。
+
+擦写另有两条规矩：先把启动模式拨到 JTAG 再写（QSPI 档下工具报 `[Xicom 50-100]`，
+这时写进去的东西它报成功也不可信），以及 `program_flash -erase_all` 在这颗片上失败、扇区擦可用。
+
+写完拨回 QSPI、断电重上，实测结果要分成两格说，不能一句"上电即出画面"盖过去：
+
+| 断电自启 | 实测读数 | 凭据 |
+| --- | --- | --- |
+| 位流（PL 配置） | **成立**：串口出 FSBL 横幅、`Boot mode is QSPI`、`QSPI is in 4-bit mode`，随后 `DMA Done !`、`FPGA Done !` | `board/measured/qspi_coldboot_2026-10-06_fsbl_from_flash.txt` |
+| 应用（PS 侧 `src/ps`） | **不成立**：FSBL 打完 `FPGA Done !` 停在 `Handoff Address: 0x00000000` → `No Execution Address JTAG handoff`，应用没跑，串口也不出现 §8.2 那串 `[CFG] … ok` | 同一份回显的最后两行 |
+
+应用这一格不是玄学，读平台自带的 FSBL 源码能对上：`image_mover.c` 的 `LoadBootImage()` 遇到
+"PS 分区且加载地址为 0 且未签名"直接跳出分区循环，交接地址因此从未被赋值。而 `readelf -l` 实测
+`fsbl.elf` 与 `ps_app.elf` 的第一个 LOAD 段都是 `VirtAddr 0x00000000`（OCM 低 192 KB 别名窗）——
+FSBL 若真把应用装到 0，就是一边执行一边覆盖自己，这条 guard 挡的正是这件事。
+所以要让断电自启把整条演示跑出来，应用必须链接到 DDR（本工程的帧缓存在 `0x10100000`，
+选基址要避开它）：改 `src/ps` 的链接脚本 `lscript_ocm.ld` 的 `MEMORY` 再重建 ELF，是单独一轮的事，
+没有包含在这次交付里。**换句话说：上电能自动把 PL 配置好，演示仍按 §8.2 那三步从 JTAG 起。**
+
+写入的逐条结果记在 `board/measured/flash_qspi_2026-10-05.txt`，里面有镜像与三份输入的 md5、
+Erase/Program/Verify 三行成功、耗时 137 s。`PROGRAM.VERIFY=1`（或 `program_flash -verify`）那一步是从
+flash 读回逐字节比对，`Verify successful` 只证明片上内容与 `BOOT.bin` 一致；
+"断电后能自己起来"要另一次上电才算量过——上面那两格就是这么来的。
+对照实验也留在包里：把厂商那份 BOOT.BIN 写进同一颗 flash 再冷上电，`DONE` 亮、串口打出 U-Boot
+（`board/measured/qspi_vendor_control_2026-10-06.txt`），说明板子、拨码、启动 ROM、这颗 flash
+和写入流程都没问题，问题只可能在镜像本身。
 
 ## 9. 文档与目录
 
