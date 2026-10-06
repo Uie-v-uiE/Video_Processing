@@ -29,6 +29,9 @@ const MULTI = ['number', 'md5', 'path', 'cite', 'verdict'];   // 全部按"值 �
 // 数不到就照旧红（依据消失 ⇒ 豁免自动失效，不需要再改代码）。
 const 同上_r126 = 'r126 那一轮：板上那版换了（位流没动、PS 应用从 OCM 重链到 DDR），旧句子随结论一起换';
 const EXEMPT = {
+  'report/technical-document.md': [
+    { tok: 'path:src/rtl/eth/link_monitor.v', why: '创新点那一格换成几何算子之后这条指路不再重复第二遍；§1.2 功能清单那一行仍按完整路径点名它', need: 'src/rtl/eth/link_monitor.v' },
+  ],
   'report/06-validation.md': [
     { tok: 'md5:d0b07f84a068', why: '包内门禁件换成 r126 那份（同一块位流、新 ELF），身份行抄的就是那一版；旧值仍在仓库那件历史门禁里', need: 'ps_app.elf md5=57fa442a7eaf' },
   ],
