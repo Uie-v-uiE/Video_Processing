@@ -1,0 +1,8 @@
+# read-only JTAG snapshot taken by build/tcl/probe_pl_done_state.tcl, SAME probe as
+# pl_config_state_qspimode_2026-10-06.txt, taken after DIP -> 0 0 (JTAG) + power cycle
+# CONFIG_STATUS 01010110000000000001111100001100  (QSPI run read 01010110000100000111111111111100)
+# BOOT_STATUS   00000000000000000000000000000000  (QSPI run read 00000000000000000000000000000001)
+# discriminating bits: DONE(int)+DONE(pin) 1->0, EOS 1->0, GWE/GHIGH/GTS_CFG_B 1->0, CPU0_STATUS_VALID 1->0
+# NOT discriminating: MODE_PIN_M[2:0] reads 111 in both runs, so the mode-pin bits alone cannot tell the DIP
+# conclusion: with a valid image in flash the boot ROM configures the PL (DONE=1); in JTAG mode nothing does
+# corroboration: the same UART sent a bare newline and answered 'Zynq>' before the flip (vendor U-Boot live)

@@ -1,0 +1,53 @@
+# read-only JTAG snapshot taken by build/tcl/probe_pl_done_state.tcl
+# board state at capture: DIP still at QSPI (1 0), flash holds the vendor control image
+# purpose: record MODE/DONE/BOOT_STATUS so the same probe run after DIP=JTAG can be A/B'd
+# vivado rc=0, chain: arm_dap_0 + xc7z020_1 (IDCODE 00100011011100100111000010010011)
+# --- extract ---
+REGISTER.BOOT_STATUS                                                string        true       00000000000000000000000000000001
+REGISTER.BOOT_STATUS.BIT00_0_STATUS_VALID                           string        true       1
+REGISTER.BOOT_STATUS.BIT01_0_FALLBACK                               string        true       0
+REGISTER.BOOT_STATUS.BIT02_0_INTERNAL_PROG                          string        true       0
+REGISTER.BOOT_STATUS.BIT03_0_WATCHDOG_TIMEOUT_ERROR                 string        true       0
+REGISTER.BOOT_STATUS.BIT04_0_ID_ERROR                               string        true       0
+REGISTER.BOOT_STATUS.BIT05_0_CRC_ERROR                              string        true       0
+REGISTER.BOOT_STATUS.BIT06_0_WRAP_ERROR                             string        true       0
+REGISTER.BOOT_STATUS.BIT07_0_SECURITY_ERROR                         string        true       0
+REGISTER.BOOT_STATUS.BIT08_1_STATUS_VALID                           string        true       0
+REGISTER.BOOT_STATUS.BIT09_1_FALLBACK                               string        true       0
+REGISTER.BOOT_STATUS.BIT10_1_INTERNAL_PROG                          string        true       0
+REGISTER.BOOT_STATUS.BIT11_1_WATCHDOG_TIMEOUT_ERROR                 string        true       0
+REGISTER.BOOT_STATUS.BIT12_1_ID_ERROR                               string        true       0
+REGISTER.BOOT_STATUS.BIT13_1_CRC_ERROR                              string        true       0
+REGISTER.BOOT_STATUS.BIT14_1_WRAP_ERROR                             string        true       0
+REGISTER.BOOT_STATUS.BIT15_1_SECURITY_ERROR                         string        true       0
+REGISTER.BOOT_STATUS.BIT16_RESERVED                                 string        true       0000000000000000
+REGISTER.CONFIG_STATUS                                              string        true       01010110000100000111111111111100
+REGISTER.CONFIG_STATUS.BIT00_CRC_ERROR                              string        true       0
+REGISTER.CONFIG_STATUS.BIT01_DECRYPTOR_ENABLE                       string        true       0
+REGISTER.CONFIG_STATUS.BIT02_PLL_LOCK_STATUS                        string        true       1
+REGISTER.CONFIG_STATUS.BIT03_DCI_MATCH_STATUS                       string        true       1
+REGISTER.CONFIG_STATUS.BIT04_END_OF_STARTUP_(EOS)_STATUS            string        true       1
+REGISTER.CONFIG_STATUS.BIT05_GTS_CFG_B_STATUS                       string        true       1
+REGISTER.CONFIG_STATUS.BIT06_GWE_STATUS                             string        true       1
+REGISTER.CONFIG_STATUS.BIT07_GHIGH_STATUS                           string        true       1
+REGISTER.CONFIG_STATUS.BIT08_MODE_PIN_M[0]                          string        true       1
+REGISTER.CONFIG_STATUS.BIT09_MODE_PIN_M[1]                          string        true       1
+REGISTER.CONFIG_STATUS.BIT10_MODE_PIN_M[2]                          string        true       1
+REGISTER.CONFIG_STATUS.BIT11_INIT_B_INTERNAL_SIGNAL_STATUS          string        true       1
+REGISTER.CONFIG_STATUS.BIT12_INIT_B_PIN                             string        true       1
+REGISTER.CONFIG_STATUS.BIT13_DONE_INTERNAL_SIGNAL_STATUS            string        true       1
+REGISTER.CONFIG_STATUS.BIT14_DONE_PIN                               string        true       1
+REGISTER.CONFIG_STATUS.BIT15_IDCODE_ERROR                           string        true       0
+REGISTER.CONFIG_STATUS.BIT16_SECURITY_ERROR                         string        true       0
+REGISTER.CONFIG_STATUS.BIT17_SYSTEM_MONITOR_OVER-TEMP_ALARM_STATUS  string        true       0
+REGISTER.CONFIG_STATUS.BIT18_CFG_STARTUP_STATE_MACHINE_PHASE        string        true       100
+REGISTER.CONFIG_STATUS.BIT21_RESERVED                               string        true       0000
+REGISTER.CONFIG_STATUS.BIT25_CFG_BUS_WIDTH_DETECTION                string        true       11
+REGISTER.CONFIG_STATUS.BIT27_HMAC_ERROR                             string        true       0
+REGISTER.CONFIG_STATUS.BIT28_PUDC_B_PIN                             string        true       1
+REGISTER.CONFIG_STATUS.BIT29_BAD_PACKET_ERROR                       string        true       0
+REGISTER.CONFIG_STATUS.BIT30_CFGBVS_PIN                             string        true       1
+REGISTER.CONFIG_STATUS.BIT31_RESERVED                               string        true       0
+# --- end extract ---
+# reading: MODE_PIN_M[2:0]=111, DONE internal+pin=1, EOS=1, CRC_ERROR=0, IDCODE_ERROR=0
+# BOOT_STATUS: bit0 CPU0_STATUS_VALID=1, bit1 FALLBACK=0, bit2 INTERNAL_PROG=0, no error bits

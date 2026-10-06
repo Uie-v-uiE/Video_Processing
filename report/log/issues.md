@@ -14101,3 +14101,45 @@ rim 那一半本轮已用修好的入口重跑并出新件 `build/tb_edge_rim_r1
   **还没写进 flash，也没做冷上电判定**。判据已经写死：`DONE` 亮 + 串口出 `[CFG] axi_gpio_2 @41220000 ok`
   那一串 + HDMI 出画面，三样齐了才改口；在那之前文档与交付里"断电自启未判"保持原样。
   验证通过后要把同一处修复同步到交付分支 `submit/20261005-final` 的 `board/scripts/make_boot_image.sh`。
+
+### 407（2026-10-06 19:0x）断电自启的前一半成立了：`[bootloader]` 生效，FSBL 从 QSPI 起来并把 PL 配好；后一半卡在 app 的链接基址
+
+- 动作：新镜像写进 flash（`program_flash -flash_type qspi-x4-single -verify`：Erase 9 s / Program 19 s /
+  Verify 29 s，`Flash Operation Successful`），拨到 `1 0` 冷上电，串口从头录到尾
+  （`board/measured/qspi_coldboot_2026-10-06_fsbl_from_flash.txt`：窗口内 2,136 字节，落盘 2,224 字节，多的部分是换行转换）。
+- 读数：`Boot mode is QSPI` / `FlashID=0xEF 0x40 0x19` + `WINBOND 256M Bits` / `QSPI is in 4-bit mode`，
+  解析出 bitstream 分区后 `DMA Done !` 再 **`FPGA Done !`** ⇒ #406 那条根因确认修好
+  （修之前同样的冷上电是**串口零字节**，那才是当时唯一的判据）。
+- 剩下的坎（新的，跟头部那件不是一回事）：`Handoff Address: 0x00000000` ⇒ `No Execution Address JTAG handoff`，app 没跑。
+  机制读到了源码那一行：`vitis/platform/zynq_fsbl/image_mover.c` 的 `LoadBootImage()` 里
+  "PS 分区 && Load Address < DDR_START && Load Address==0 && 未签名未加密" 直接 `break`，
+  `ExecAddress` 因此从没被赋值；`main.c` 见 `FsblStartAddr==0` 就转 JTAG handoff 等待。
+  那段注释自己写着 "Loop will break when PS load address zero"。
+- **为什么这条 guard 不是"换个写法"能绕的**：`readelf -l` 实测 `fsbl.elf` 与 `ps_app.elf` 的第一个 LOAD
+  都是 `VirtAddr 0x00000000`（OCM 低 192 KB 别名窗），FSBL 若真把 app 装到 0，就是一边执行一边覆盖自己。
+  ⇒ 要"断电自启并且跑 app"，app 必须链进 DDR（`FRAME_ADDR=0x10100000` 是第三个 bank，基址要避开它和 PL 经 HP0 写入的区域）。
+  这一轮要动 `src/ps/lscript_ocm.ld` + 重建 ELF + 再刷一次 + 重跑 board_verify，
+  属于"最后一夜要不要动 src/ps"的取舍，**留给用户定**：
+  A) 固化=位流自启成立（上电 DONE 亮、PL 配好），演示仍 JTAG 起 app；
+  B) 做 DDR 重链，争取上电全自动出画面，失败就回退到 A 的形状。
+- 只读判据顺手做了 A/B（同一支 `build/tcl/probe_pl_done_state.tcl`）：
+  QSPI 档 `CONFIG_STATUS=01010110000100000111111111111100`、`BOOT_STATUS` bit0=1；
+  JTAG 档 `CONFIG_STATUS=01010110000000000001111100001100`、`BOOT_STATUS=0`。
+  ⇒ **能分辨的是 DONE(内部/引脚)、EOS、CPU0_STATUS_VALID；`MODE_PIN_M[2:0]` 两档都读 111，分辨不了拨码**。
+  两份读数存 `board/measured/pl_config_state_qspimode_2026-10-06.txt` / `..._jtagmode_2026-10-06.txt`。
+
+### 408（2026-10-06 19:1x）导出器的"同行声明豁免"层一直在空转：词表是按 `grep -E` 写的，却挂在 `sed` 的 BRE 地址上
+
+- 症状：dry run 打"同行声明豁免行=840"，可 `build/provenance.md` 里那行明明写着
+  `installed_devices.txt（不随包）`，照样被判死链。
+- 最小对照（两条都能翻，不是猜的）：同一行含"不随包"的文本，
+  `sed -e "/不随包|本地留档/d"` 之后剩 **1** 行（没删），`sed -E -e "/不随包|本地留档/d"` 剩 **0** 行（删了），
+  `grep -cE` 数到 **1**。⇒ BRE 里 `|` 是字面竖线，**整条豁免一次都没删过行**；
+  而打印出来的 840 来自另一条 `grep -cE`，它数的是"命中多少行"，不是"挡住多少指路"——报的是保护，做的是空转。
+- 修法（两棵树同一段，`diff` 该段逐字相同、都过 `bash -n`）：抽取管道改成
+  `sed(抹掉 -log 的输出) | grep -vE "$SKIP_RE" | grep -oE 路径形状`；
+  并给这一层加自己的空转判据：新数一个 `DEADSHIELD`="命中词的那些行里本来会被判死的指路条数"，
+  若 `DEADSKIP>0` 而 `DEADSHIELD==0` ⇒ FAIL 拒绝落盘。下一次再有人把词表塞进 BRE，这把尺子会自己叫。
+- **还没量的（别念成已修好）**：豁免真生效之后，35 条死链里有多少是假警报。
+  我第一次想拿一段临时脚本单独重算这一层，忘了 cwd 会被重置到 `Prj/pro`，抓出 21,772 行——那判的不是包而是整个工作区，
+  作废；真实数字以下一次 `bash build/make_submission.sh --dry` 打印的 `抓=` 为准。
