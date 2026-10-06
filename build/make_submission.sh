@@ -306,14 +306,30 @@ BUILD_PRUNED=()          # 逐条记下被剪的名字，3.9b 用它改口（不
 PRUNED_DIRS=()
 
 # 2d-0) 板上那一版的"门禁凭据"只带一份，并按板上那块的身份取，不靠轮次号
+#   ⚠ 2026-10-06 21:03 落包读出来的是 `r118_gates_final.txt`：glob 按**字面序**排，
+#   `r118…` 排在 `r126…` 前面，于是包内那份门禁件的身份行写着旧 ELF `d0b07f84a068`，
+#   而交付正文（`board/README.md` 的身份表、§8.3、复现期望行）写的是板上这颗 `57fa442a7eaf`。
+#   身份行是评委交叉核对走的那一行 ⇒ 选**同一块位流**里最新的那一份（按 mtime），并把候选数念出来。
 BIT12="$(md5sum "$REPO/build/system.bit" 2>/dev/null | cut -c1-12)"
 GBIT=""
+GCAND=0
 if [ -n "$BIT12" ]; then
-  for c in "$REPO"/build/*gates*.txt "$REPO"/build/evidence/*gates*.txt "$REPO"/build/evidence_r*/*gates*.txt; do
-    if [ -f "$c" ] && grep -q "$BIT12" "$c" 2>/dev/null; then GBIT="$c"; break; fi
-  done
+  while IFS= read -r c; do
+    [ -f "$c" ] || continue
+    if grep -q "system.bit md5=$BIT12" "$c" 2>/dev/null; then
+      GCAND="$((GCAND + 1))"
+      [ -n "$GBIT" ] || GBIT="$c"
+    fi
+  done < <(ls -t "$REPO"/build/*gates*.txt "$REPO"/build/evidence/*gates*.txt "$REPO"/build/evidence_r*/*gates*.txt 2>/dev/null)
 fi
-if [ -n "$GBIT" ]; then mkdir -p build/reports; cp "$GBIT" build/reports/gates.txt; echo "带上板上那一版的门禁件 $(basename "$GBIT") -> build/reports/gates.txt" >> _pruned.txt; fi
+if [ -n "$GBIT" ]; then
+  mkdir -p build/reports
+  cp "$GBIT" build/reports/gates.txt
+  echo "带上板上那一版的门禁件 $(basename "$GBIT") -> build/reports/gates.txt" >> _pruned.txt
+  echo "门禁件选取 位流=$BIT12 候选=$GCAND 取最新=$(basename "$GBIT")（身份行：$(grep -m2 'md5=' "$GBIT" | tr -s ' ' | tr '\n' ' ')）"
+else
+  echo "门禁件选取 位流=${BIT12:-读不到} 候选=$GCAND ⇒ 包里没有门禁件（默认这一项该 REFUSE，除非显式 --allow-no-gates）"
+fi
 
 # 2d-1) 板级实测输出：把**交付文档按路径点名的**那几份搬进包内板级目录，并把轮次号从包内名字里去掉。
 #   ⚠ 2026-10-02 修：这里原来只扫 `board/acceptance.md` 一个文件，而 2d-4 那一圈无条件删掉
