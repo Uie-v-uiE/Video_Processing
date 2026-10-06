@@ -14241,3 +14241,33 @@ rim 那一半本轮已用修好的入口重跑并出新件 `build/tb_edge_rim_r1
 - 教训一条（与 #408、rule 42 同族）：**证据件里的告警行不会因为"我们没改内容"而自动可读**。
   把件原样交出去是对的，但每一句可能被读成"交付物不一致"的告警，都要在正文里给一句
   当场能复跑的判别式（这里是 `git rev-parse` 两两对读），否则评委只能按字面信它。
+
+### 413
+
+- 技术文档 §1.3 的第二条创新点换掉（提交分支笔 `ed07de7`）：原"视频通路和网络收包在同一个 PL 里由硬件自己数账"
+  挪回 §1.2 功能清单（那一行本来就在，指路 `src/rtl/eth/link_monitor.v` 也还在），创新点格换成
+  **"0.25–2.00 倍八档缩放、任意角度旋转与双线性插值共用一套坐标算子"**——理由：RGMII/帧重组/ARP/ICMP 这一套
+  有公开的同类实现可对照，评委容易归成"集成"；而八档定点倒数 + 逆映射 + 两次线性插值 + 自动 Fit，
+  并且"旋转态四角有没有出屏"由一条两端夹逼的台架判据判掉（不靠人眼）、倍率与来源能从 lane23 读回，
+  这三件事合在一起是本项目自己的设计。同一次改动让导出器把交付包重导一遍（694 文件，包内技术文档已含新句）。
+- 学习文档新增"时序优化"一册（主树 `report/study/timing/`，五个文件 2203 行）：
+  `00-from-zero-clock-period-setup-hold.md` 650 行（触发器在钟沿比较什么、五域余量表、报告字段形状、
+  约束各改什么、CDC 与 `ASYNC_REG` 为什么 STA 管不了、改名会静默缩小约束射程）；
+  `01-methods-and-priority.md` 613 行（约束/结构/物理/工具/判据五个面，每条方法写满"能改什么·代价·
+  机制证据·结果证据·本项目量到了什么"，加一棵带时间成本的优先级决策树与六条常犯的错）；
+  `02-how-this-project-did-it.md` 800 行（名册怎么建、九次单变量对照的读数、IDELAY 抽头 31 的两条直线与
+  不相交证明及其范围、归因、采纳条件、仍欠的账）；`90-numbers-index.md`（这三份里每个数字的出处总表）；
+  `README.md`（入口与三条读法约定）。
+- 对这三份做了两遍机检而不是靠通读：① 文中反引号路径逐条 `test -e`，248 处在盘上、42 处未解析——
+  其中 7 处是写作时引的外部数据包，已把那份表移进仓库改成 `90-numbers-index.md` 并回写引用；
+  其余是只写了 basename 的 `.xdc`/`.rpt`（九份 `src/constraints/*.xdc` 全在盘上，逐份 `ls` 过）。
+  ② 带单位的数字回全仓找出处，逐条核下来的两处易错点：`sys_clk→clkout0_1` 那 231 是 `build/timing_summary.rpt:199`
+  的 Total Endpoints（不是失败端点），`54588 → 9593` 是 `report/log/changelog_v7.md:65` 的 Slice Registers 行。
+- 整理：`doc_audit_20261005/` 从 100 多个条目收到 17 个（删的是提交消息正文、改口前的台账草稿、被杀掉那两次导出的日志、
+  一次性探针脚本；留下 `deadlayer_replica.mjs`、`w13_diff.mjs`、`REVIEW_GUIDE.md`、`STYLE_CONTRACT.md`、
+  `AUDIT.md` 这类还能复跑或还被指着的件）；清掉两棵树里的 `__pycache__`、板测留下的未跟踪
+  `data/measured/one_click_cur.out`、`local_docs/c3_*.txt` 与 `triage_c3_dead.mjs`（0 引用）、
+  `/tmp` 下 66 个导出暂存目录。整理后两棵树 `git status --porcelain` 均为 0 行。
+- 另建一份独立可读副本 `D:/Xilinx/Prj/Video_Processing/`：仓库已提交内容（`git archive HEAD`，1200 文件）
+  + `final_submission/`（695 文件）+ `study_docs/`（四套学习文档 138 份 `.md`，含这一册时序篇）
+  + 顶层 `BUNDLE-Contents.md` 说明每块是什么、哪两份 course 不是逐字节相同所以没合并。
