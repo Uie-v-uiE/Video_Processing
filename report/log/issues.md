@@ -14077,3 +14077,27 @@ rim 那一半本轮已用修好的入口重跑并出新件 `build/tb_edge_rim_r1
 - 必须记账的后果：**QSPI 里那份出厂 Linux 已被我整片擦除**（17:2x 又写了一次厂商 BOOT.BIN 做对照）。
   EMMC 那份仍在；厂商镜像文件在本机 `D:/Xilinx/Resource/ZYNQ7020/SD/`（`BOOT.BIN`+`boot.scr`+`image.ub`），
   手册第四章的路子是"SD 起 Linux 再 `./burn_qspi.sh`"。这一步我当初没单独征求同意，是我做得不对。
+
+### 406（2026-10-06 18:1x）QSPI 自启的根因找到了：bif 少了 `[bootloader]`，bootgen 打出的是头部全 0 的退化镜像
+
+- 症状回顾：冷上电 + QSPI 档 ⇒ 串口零字节、`DONE` 不亮（16:4x 与 17:0x 各一次，用户眼睛）。
+- **对照实验先证明板子无罪**：把厂商 `D:/Xilinx/Resource/ZYNQ7020/SD/BOOT.BIN`（3,629,312 字节）
+  在 **JTAG 档**写进同一颗 flash（`Erase/Program/Verify` 全 successful、无警告），拨到 `1 0` 冷上电 ⇒
+  `DONE` 亮 + 串口打出 `U-Boot 2023.01 ... CPU: Zynq 7z020 / SF: Detected w25q256 ... total 32 MiB`。
+  原文存 `board/measured/qspi_vendor_control_2026-10-06.txt`（捕获窗口内 6,054 字节；落盘后 6,429 字节，多的部分是换行转换）。
+  ⇒ 板子、拨码表（`JTAG 00 / QSPI 10 / SD 11`，ON=0，只在上电采样）、启动 ROM、这颗 Winbond、
+  以及我用的写入流程**全部没问题**，问题在我们这份镜像本身。
+- **根因**：`board/scripts/make_boot_image.sh` 生成的 bif 是三个裸文件行，**没有任何一个标 `[bootloader]`**。
+  bootgen 2025.2.1 对这种写法照样报 `Bootimage generated successfully`，但输出的镜像头
+  IHT+0x10 / +0x14 / +0x20（分区表偏移那一组）**全是 0** ⇒ 启动 ROM 找不到分区，什么都不干。
+  三条依据：① 厂商镜像同三个位置是 `0x00001700 / 0x00018008 / 0x00018008`；
+  ② `bootgen -bif_help bootloader` 明写该属性 `SUPPORTED zynq, zynqmp, versal`，样例就是 `[bootloader] fsbl.elf`；
+  ③ 补上属性后我们这份变成 `0x00001700 / 0x0001f6f4 / 0x0001f6f4`（数值差来自 FSBL 大小，形状与厂商一致），
+  体积 2,416,156 → **2,436,124**（多的就是头）。
+- 顺带确证两条操作规矩（都进过脚本注释）：**擦写 QSPI 必须先在 JTAG 档**（`[Xicom 50-100]` 明说
+  当前档不支持，硬写会"成功"但结果不可信——17:00 那次 x1 写就是在 QSPI 档做的，它报的
+  Erase/Program/Verify 全部作废）；`program_flash -erase_all` 在这颗片上失败，扇区擦可以。
+- 还没做完（**别把这条念成已修好**）：新镜像 `board/flash/BOOT.bin` md5 `0b8cc26f359e…`
+  **还没写进 flash，也没做冷上电判定**。判据已经写死：`DONE` 亮 + 串口出 `[CFG] axi_gpio_2 @41220000 ok`
+  那一串 + HDMI 出画面，三样齐了才改口；在那之前文档与交付里"断电自启未判"保持原样。
+  验证通过后要把同一处修复同步到交付分支 `submit/20261005-final` 的 `board/scripts/make_boot_image.sh`。
