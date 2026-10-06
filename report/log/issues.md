@@ -14045,3 +14045,35 @@ rim 那一半本轮已用修好的入口重跑并出新件 `build/tb_edge_rim_r1
   `build/mut_shown_rate_r97.txt`、`sim/run_one.sh`（现役在 `build/sim/`）、`src/host/run_sender.bat`、
   `report/timing/*.md` 等）：要么把指路改成现役路径，要么让被点名的件真随包。#403 里那句"该改判据形状"
   被本条更正——判据形状不是这一族的原因。
+
+### 405（2026-10-06 17:2x）QSPI 自启仍未成立；我撤回两条推论，并把两处只读判据修对
+
+- 事实（只有这一条可信）：拨码 QSPI 档 + 冷上电 ⇒ **COM6 零字节、`DONE` 不亮**（用户眼睛，17:0x 与 17:1x 各一次）。
+  演示侧不受影响：17:15 `board_flash.sh` 三步全绿（`RST_SYSTEM/PS7_INIT/DDR_ECHO 5A5AA5A5/PROGRAMMED/DOW`，
+  GPIO 回读 `000F5000`，件 `board/measured/flash_20261006_1715.txt`），且这是在拨码仍指 QSPI 时做的——
+  JTAG 配置与启动模式无关。
+- **撤回两条我先前当结论说的话**：①"镜像套镜像"②"x4/QE 位"。理由：拿"从 JTAG 启动 FSBL 让它念分区表"当
+  校验器，同一块没动过的 flash 两次念出互相矛盾的偏移（先 `Multiboot 0xC000 / Partition Count 0x700000007`，
+  后 `0xC400 / Image Start 0x02000000 / BankSel 2 != Register Read 239 / Bank Selection Failed`）
+  ⇒ 这条测法本身不成立，它给的数不能用来判 flash。教训与 [[feedback-ruler-teeth-empty-sets]] 同族：
+  **一把尺子如果两次读数不一致，它就是在量自己**。
+- 新线索（纯软件、可复核）：厂商 `D:/Xilinx/Resource/ZYNQ7020/SD/BOOT.BIN`（3,629,312 字节）头部
+  `0x30/0x34/0x40` = `0x00001700 / 0x00018008 / 0x00018008`，我们那份同三个位置**全 0**；
+  `bootgen` 带 `-arch zynq` 与不带（legacy）产出**逐字节相同**（同大小同头）⇒ 不是模式开关。
+  正在做的对照：把厂商 BOOT.BIN 写进 QSPI、冷上电看串口出不出字（出字⇒板/拨码/ROM/flash 全好，问题在打包）。
+- 两处脚本修复（都在真硬件上验过）：
+  ① `board/scripts/board_flash.sh` 的"只读扫链"原来调 `build/tcl/r116_jtag_health.tcl`——**仓库里没有这个文件**，
+     而它抓的标记 `JTAG_TARGETS_END / APU_SELECT rc=0` 出自 `r116_jtag_recover.tcl`，那支是**发系统复位**的：
+     等于把"复位"藏在只读路径里、又把好板子判成红。现改指真正只读的 `scan_jtag.tcl`，被调文件缺失直接 REFUSE，
+     并打印"线缆 target=1、链上器件行=2"这种可比数的计数。
+  ② `board/tcl/flash_qspi.tcl` 记下喂法实测：`PROGRAM.FILES` 只收 `.bit/.bin/.mcs`（塞 ELF 报 44-518），
+     且 Vivado 这一支**强制要** `PROGRAM.ZYNQ_FSBL`（不给报 27-3203）⇒ 它不是"原样写盘"的接口，
+     想要逐字节写 BOOT.bin 得走 `program_flash`（它 `-erase_all` 在这颗片上会失败，扇区擦可以）。
+- 可复现性缺口（记下来，别丢）：为了这次排查我给 FSBL 打开了 `FSBL_DEBUG_INFO`
+  （`vitis/platform/zynq_fsbl/UserConfig.cmake`，fsbl.elf md5 `0a1c57b2…` → `46395a8c…`），
+  但 `vitis/` 在 `.gitignore` 里 ⇒ **这个开关不在仓库里就复现不出来**。要么把开关做进
+  `board/scripts/make_boot_image.sh`（构建前显式加 `-DFSBL_DEBUG_INFO` 并校验产物里有横幅字符串），
+  要么在文档里写清"要复现这份带打印的 FSBL 需要改哪一行"。
+- 必须记账的后果：**QSPI 里那份出厂 Linux 已被我整片擦除**（17:2x 又写了一次厂商 BOOT.BIN 做对照）。
+  EMMC 那份仍在；厂商镜像文件在本机 `D:/Xilinx/Resource/ZYNQ7020/SD/`（`BOOT.BIN`+`boot.scr`+`image.ub`），
+  手册第四章的路子是"SD 起 Linux 再 `./burn_qspi.sh`"。这一步我当初没单独征求同意，是我做得不对。

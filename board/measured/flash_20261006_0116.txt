@@ -1,0 +1,12 @@
+==== IDENTITY ====
+RUN_AT      2026-10-06 01:16:57  mode=check-only
+GIT_HEAD    444a93f
+MD5_12      cd04907e1369  build/system.bit
+MD5_12      d0b07f84a068  build/ps_app.elf
+MD5_12      934ebdbaa13b  build/system.xsa
+TOOL        xsdb=D:/Software/Vivado/2025.2.1/Vitis/bin/xsdb.bat
+TOOL        vivado_bin=D:/Software/Vivado/2025.2.1/Vivado/bin
+==== STEP 0 JTAG SCAN (read-only) ====
+couldn't read file "build/tcl/r116_jtag_health.tcl": no such file or directory
+scan sees a Cortex-A9 target = 0
+CHECK ONLY —— 没有对板子做任何写动作（下一步去掉 --check 才会真的刷）

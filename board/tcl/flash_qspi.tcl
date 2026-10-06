@@ -30,6 +30,23 @@ set offs {0x0}
 if {[info exists ::env(VP_FLASH_OFFSET)]} { set offs $::env(VP_FLASH_OFFSET) }
 
 if {![file exists $img]} { puts "REFUSE: no boot image at $img"; exit 1 }
+# ⚠ 喂法（2026-10-06 实测出来的，别再改回去）：Vivado 的 cfgmem 与 program_flash 的 `-fsbl`
+#   都是"**给原料、工具自己打镜像**"的接口——PROGRAM.ZYNQ_FSBL 会把 FSBL 与启动头**包到 FILES 前面**。
+#   把已经打好的 BOOT.bin 当 FILES 喂进去 = 镜像套镜像：flash 开头的分区表就成了垃圾。
+#   证据（把 FSBL 从 JTAG 跑起来、让它自己念，board/measured/qspi_serial_live.txt）：
+#     Boot mode is QSPI / FlashID=0xEF 0x40 0x19 WINBOND 256M Bits / QSPI is in 4-bit mode
+#     Partition Count: 30064771079 (=0x700000007，垃圾) → INVALID_LOAD_ADDRESS_FAIL, FSBL Status=0xE0000000
+#   而两次 program 的 "Verify Operation successful" 都比的是工具自己拼出来的东西 ⇒ 对可启动性零证明。
+#   所以现在喂 bit + 应用 ELF，FSBL 单独给；BOOT.bin 只留作 bootgen 侧的凭据与尺寸参考。
+set bitf [file join $root "build/system.bit"]
+if {[info exists ::env(VP_BIT)]} { set bitf [file normalize $::env(VP_BIT)] }
+set appf [file join $root "build/ps_app.elf"]
+if {[info exists ::env(VP_APP)]} { set appf [file normalize $::env(VP_APP)] }
+foreach f [list $bitf $appf] {
+  if {![file exists $f]} { puts "REFUSE: 原料不在 $f"; exit 1 }
+}
+puts "FEED_BIT $bitf"
+puts "FEED_APP $appf"
 puts "IMAGE $img"
 puts "IMAGE_BYTES [file size $img]"
 puts "PART $part  OFFSET $offs  SERVER $url"
@@ -64,14 +81,27 @@ puts "CFGMEM_COMPAT $compat"
 set props [list_property $cm]
 puts "CFGMEM_PROPS $props"
 set fsbl [file join $root "vitis/platform/zynq_fsbl/build/fsbl.elf"]
+# PROGRAM.FILES 只收 .bit/.bin/.mcs（实测 44-518 "Valid file type extension .mcs or .bin"），
+# 应用 ELF 不能直接进这一层——它已经在 bootgen 打好的 BOOT.bin 里了。
+# 只有喂位流时才需要 ZYNQ_FSBL（那时工具负责打镜像）；喂 BOOT.bin 时**必须不给**，
+# 否则就是镜像套镜像（本文件上面那段实测说明）。
 if {![file exists $fsbl]} { puts "REFUSE: no FSBL at $fsbl"; close_hw_target; close_hw_server; exit 1 }
-foreach {name val} [list \
+set feed_props [list \
     PROGRAM.FILES         [list $img] \
-    PROGRAM.ZYNQ_FSBL     $fsbl \
     PROGRAM.BLANK_CHECK   {0} \
     PROGRAM.ERASE         {1} \
     PROGRAM.CFG_PROGRAM   {1} \
-    PROGRAM.VERIFY        {1} ] {
+    PROGRAM.VERIFY        {1} ]
+switch -- [string tolower [file extension $img]] {
+  ".bit" - ".mcs" {
+    lappend feed_props PROGRAM.ZYNQ_FSBL $fsbl
+    puts "FEED_MODE 原料（$img）⇒ 由工具打镜像，FSBL 单独给"
+  }
+  default {
+    puts "FEED_MODE 原样写盘（$img 已是完整 BOOT.bin，含 FSBL+位流+应用）⇒ 不设 ZYNQ_FSBL"
+  }
+}
+foreach {name val} $feed_props {
     if {[lsearch -exact $props $name] >= 0} {
         set_property $name $val $cm
         puts "SET $name = $val"
