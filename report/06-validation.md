@@ -82,8 +82,12 @@
 
 1. 脚本头部第 22 行写着"数字全部来自 Vivado 报告本身，不重新跑构建"。它判的是
    盘上报告与阈值的机械比较；防"念到上一版"靠自己打出来的新鲜度与三枚 md5
-   （`身份：system.bit md5=cd04907e1369 / system.xsa md5=934ebdbaa13b / ps_app.elf md5=d0b07f84a068`），
-   不靠"跑过就算验过"。
+   （`身份：system.bit md5=cd04907e1369 / system.xsa md5=934ebdbaa13b / ps_app.elf md5=57fa442a7eaf`），
+   不靠"跑过就算验过"。同一份件第 6 行那句 `WARN 有 RTL 源比 system.bit 新` 判的是**文件时间**，不是内容：
+   它点名的三份源码（`src/rtl/eth/icmp_tx.v`、`src/rtl/top/pl_video_top.v`、`src/rtl/top/system_top.v`）
+   在 HEAD 与产出这颗位流那一笔（`1601548`）上的 blob 号逐一相同——仓库里 `git rev-parse HEAD:<文件>`
+   与 `git rev-parse 1601548:<文件>` 对读即可复跑。mtime 变过而源码没变，位流里就是包里这份 RTL；
+   门禁件里顶层台架那一行的 `指纹(norm1):fresh` 是同一件事的另一半证据。
 2. `build/tcl/README.md` §1 对构建侧说过"不要相信退出码"：有两支历史脚本 `add_files` 指向错路径、
    报错之后仍然 exit 0。检查脚本的 0/1 退出码同属"便利"，不是"标准"。
 3. 这一版的采纳条件第 4 条写的是"发布门 24 项里红数 == 1（只有声明过的 `C5c`），且检查两跑逐字节一致"

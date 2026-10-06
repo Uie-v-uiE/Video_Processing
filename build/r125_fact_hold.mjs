@@ -29,6 +29,9 @@ const MULTI = ['number', 'md5', 'path', 'cite', 'verdict'];   // 全部按"值 �
 // 数不到就照旧红（依据消失 ⇒ 豁免自动失效，不需要再改代码）。
 const 同上_r126 = 'r126 那一轮：板上那版换了（位流没动、PS 应用从 OCM 重链到 DDR），旧句子随结论一起换';
 const EXEMPT = {
+  'report/06-validation.md': [
+    { tok: 'md5:d0b07f84a068', why: '包内门禁件换成 r126 那份（同一块位流、新 ELF），身份行抄的就是那一版；旧值仍在仓库那件历史门禁里', need: 'ps_app.elf md5=57fa442a7eaf' },
+  ],
   'report/repro-check.md': [
     { tok: 'number:2.7', why: 'HEAD 里该节编号错位（## 6 之下写成 ### 2.7），已改号为 6.1', need: '实际执行过的命令' },
   ],
