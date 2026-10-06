@@ -9,11 +9,12 @@ import fs from 'node:fs';
 import path from 'node:path';
 
 const APPLY = process.argv.includes('--apply');
-const TREES = [
-  'D:/Xilinx/Prj/pro/Video_Processing',
-  'D:/Xilinx/Prj/pro/delivery_review_20261005',
-  'D:/Xilinx/Prj/Video_Processing',
-];
+// 树根从命令行给（相对仓库根即可），本文件不许写绝对路径——交付包的绝对路径判据会拒收整个包。
+const TREES = process.argv.slice(2).filter((a) => !a.startsWith('--')).map((a) => a.replace(/[\\/]+$/, ''));
+if (!TREES.length) {
+  console.log('用法：node build/fix_clock_roles.mjs --check|--apply <树根> [<树根> …]（相对路径，如 . 或 ../worktree）');
+  process.exit(1);
+}
 const SKIP = /(^|[\\/])(\.git|final_submission|node_modules)([\\/]|$)/;
 
 // 只带"周期 + 用途"这段，足够定位且各表形状一致（交付表带 ns，时序卷的表不带）
