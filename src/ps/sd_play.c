@@ -6,7 +6,7 @@
  * 一个只读目录扫描 200 行就够。引入 FatFs 反而多一层没人验过的代码。
  *
  * 卡上的内容（make_sd_video.mjs 生成，写卡时逐文件 md5 已核对）：
- *   VIDEO000.BIN .. VIDEO008.BIN   每个 512 帧 × 307200 B = 153.6 MiB
+ *   VIDEO000.BIN .. VIDEO008.BIN   各 512 帧、末块按余数（本卡 VIDEO008=302，共 4398）；512 × 307200 B = 157286400 B = 150.0 MiB（旧写"153.6 MiB"是把 1 MB 当成 1024x1000）
  *   META.TXT   WIDTH/HEIGHT/FRAME_BYTES/FRAMES/FPS/CHUNK_FRAMES/FILES/SOURCE + FILEi=名字 FRAMES=n BYTES=b
  *
  * 帧的落地路径刻意做成"零拷贝"：SD 控制器的 DMA 直接写 PL 要读的那块 DDR，
