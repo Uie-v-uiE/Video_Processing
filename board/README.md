@@ -40,7 +40,7 @@ PS_CC=<…>/arm-none-eabi-gcc.exe bash board/scripts/stage_vitis_platform.sh
 | `stage_vitis_platform.sh` | 找得到副本里的 BSP、`hw/system.xsa` 与 `fsbl.elf` 在，判据是**链得出非空 ELF**（不是"md5 等于仓库那颗"，原因见上面那句重建件），跑完把 16 MB 平台正文删回入库那 4 份文本件 | 仓库根 `vitis/platform` 带 BSP（2026-10-07 起随仓库交付；重建路见下面那段） |
 
 **`.xpr` 里 81 处引用写成 `$PPRDIR/../src/...`，所以这份工程只能放在 `board/` 这一层。** 往深里挪一级，`src/rtl` 与 `src/constraints` 就全部指不回来。
-**工程本体自 2026-10-07 起随仓库交付**：仓库根的 `vivado_system/` 是这份工程的一份**能直接打开的快照**（`.xpr` + `.srcs` + `.gen/` 的 output products + `.runs/` 含 `system_top_routed.dcp`，`du -sh` 实量 86 M），`vitis/` 是配套的 Vitis 平台（53 M）；这两棵一起 `git add` 清点出 2473 支新跟踪文件。这三棵生成树的体积与支数在 2026-10-05 10:40 量过一次：`.gen` 36 M / 133 支、`.runs` 52 M / 222 支、`.cache` 3.1 M / 34 支，合计 389 支，而且 `.runs` 随构建进度会长，是个动目标。现在前两棵入库，`.cache` 与 `*.ip_user_files/`、`.Xil/`、`*.jou`、`*.log`、`*.str` 这些重跑就长回来的噪声仍不入库。`.xpr` 里另有 12 处 `$PGENDIR/...`——包括
+**工程本体自 2026-10-07 起随仓库交付**：仓库根的 `vivado_system/` 是这份工程的一份**能直接打开的快照**（`.xpr` + `.srcs` + `.gen/` 的 output products + `.runs/` 含 `system_top_routed.dcp`，`du -sh` 实量 86 M），`vitis/` 是配套的 Vitis 平台（53 M）；这两棵一起 `git add` 清点出 2473 支新跟踪文件。这三棵生成树的体积与支数在 2026-10-05 10:40 量过一次：`.gen` 36 M / 133 支、`.runs` 52 M / 222 支、`.cache` 3.1 M / 34 支，合计 389 支，而且 `.runs` 随构建进度会长，是个动目标。现在前两棵入库，`.cache` 与 `*.ip_user_files/`、`.Xil/`、`*.jou`、`*.log`、`*.str` 这些重跑就长回来的噪声仍不入库。`.xpr` 里另有 12 处 `$PGENDIR/...`——包括提交包里这两棵带的是**整棵副本**，位置在包内板级目录下的同名两子里；包里的活文档指路已由导出器改成包内那一层，但 `board/scripts/` 与 `build/` 里的**脚本正文**写的仍是仓库布局的位置，在包里照着脚本跑要先把这两棵的名字前面加上一层板级目录。
 `sources_1/bd/design_1/hdl/design_1_wrapper.v` 和 6 个 BD IP 的 OOC 目录，都在这一类里——指的就是 `.gen/` 这一层，所以 clone 之后不必先跑构建；换 Vivado 小版本或 `.gen` 与 `.xpr` 对不上时，以下面这条 Tcl 重建为准。
 
 ```bash

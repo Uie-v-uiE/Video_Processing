@@ -672,6 +672,34 @@ for b in build/system.bit build/system.xsa build/ps_app.elf; do
   if [ -f "$REPO/$b" ]; then cp "$REPO/$b" "board/project/$(basename "$b")"; fi
 done
 
+# ---- 3.8c Vivado 工程与 Vitis 平台两棵**整棵**随包（2026-10-07 用户口径："完整工程"要在包里看得见）----
+# 仓库布局不动（工程仍在仓库根），只有包多这一层；取的是 **git 里的字节**而不是工作树，
+# 所以重开工程长出来的噪声（`.cache`、`.ip_user_files`、`.jou/.log/.str`）不会被顺手带出去。
+# 这一层**不走上面"按引用留凭据"那套筛法**：块设计与 IP 配置少一个文件就打不开，所以整棵搬。
+mkdir -p board
+if git -C "$REPO" archive --format=tar vivado_system vitis | tar -x -C "$TMP/board"; then
+  VS_N="$( { find board/vivado_system -type f 2>/dev/null || true; } | wc -l | tr -d ' ')"
+  VT_N="$( { find board/vitis -type f 2>/dev/null || true; } | wc -l | tr -d ' ')"
+else
+  VS_N=0; VT_N=0
+fi
+if [ "${VS_N:-0}" -lt 1 ] || [ "${VT_N:-0}" -lt 1 ]; then
+  echo "REFUSE：工程两棵没整棵进包（board/vivado_system=${VS_N:-0} board/vitis=${VT_N:-0}）⇒ 不写 $OUT" >&2
+  exit 1
+fi
+echo "工程两棵随包：board/vivado_system $VS_N 支 + board/vitis $VT_N 支 = $((VS_N+VT_N)) 支（整棵，取 git 里的字节，不按引用筛）" >> _pruned.txt
+# 活文档里的**裸路径**指路跟着换层。守卫 `[^/[:alnum:]_.-]` 让已带 `board/` 前缀的那一处不匹配，
+# 所以这条规则可以重跑而不会写成 `board/board/…`（改名规则最常见的两种坏法：漏一层、套两层）。
+TREE_N=0
+for f in $(live_docs); do
+  [ -f "$f" ] || continue
+  grep -qE '(^|[^/[:alnum:]_.-])(vivado_system|vitis)/' "$f" 2>/dev/null || continue
+  sed -i -E -e 's#(^|[^/[:alnum:]_.-])vivado_system/#\1board/vivado_system/#g' \
+            -e 's#(^|[^/[:alnum:]_.-])vitis/#\1board/vitis/#g' "$f"
+  TREE_N=$((TREE_N+1))
+done
+echo "改口：$TREE_N 份活文档里 Vivado 工程与 Vitis 平台两棵的裸路径指路，改指包内 board/ 下的那一层（脚本正文不动，它们说的是仓库位置）" >> _pruned.txt
+
 # ---- 3.9 被剪掉的**仓库工具**，活文档里的指路就地改口 ----
 # 剪掉文件而不改指路 = 亲手造死链接（上一版就是这么被自检拒绝落盘的：25 条里全是这一类）。
 # 改口只动"活文档"，`report/log/` 里的日记保持原样 —— 那里写的是"当时那天跑的是哪个脚本"，
