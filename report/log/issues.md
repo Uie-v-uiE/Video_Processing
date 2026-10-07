@@ -14306,3 +14306,22 @@ rim 那一半本轮已用修好的入口重跑并出新件 `build/tb_edge_rim_r1
 - 另一条：`number:600` 从技术文档消失后 `fact_hold` 先判红（依据消失 ⇒ 照旧红）。这次消失是**改正的结果**，所以按它自己的办法进豁免表，并带 `need: '9000 帧 / 300 s'` 守卫——正确口径哪天又丢了，豁免自动失效、重新变红。
 - 改后尺子全绿：DELIVER-SPEC 判 18 项红 0、`fact_hold` RESULT=OK（消失记号 0、豁免生效 1）、D5 硬错 0、`metric_recheck` 判 117 个数红 0 且 csv 认领 10/10、`doc_currency` 干净。
 - 学习文档同步：`LEARNING/01`（不再把它当"一轮"提）、`LEARNING/06b` 数字索引那一行改成"入流帧间隔（不是端到端）"并写明端到端仍未报、`LEARNING/07` 把"这处矛盾已按凭据关掉"的来龙去脉写进去。引用尺子 1082 条全 OK。
+
+### #455 叠加式 `xargs git archive | tar -x` 会静默少拷贝（副本同步）
+
+- 现象：`sync_bundle.sh` 的"all 独有件叠加"那一步 REFUSE，而更早一次手工重跑"看起来成功"（`TAR_RC=0`），事后核对才发现 83 支里只落了第一批。
+- 根因：GNU tar 读到**第一份档的 EOF 块就停**，后续 `git archive` 全被 SIGPIPE（141）杀掉；`xargs` 因此退 123，而没有 `pipefail` 的 shell 只量了 tar 的退出码。
+- 修法（已落 `Prj/pro/sync_bundle.sh`）：一次调用出一份档（`git archive origin/all -- $(tr n - 修法（已落 `Prj/pro/sync_bundle.sh`）：一次调用出一份档（把整张清单当 argv 传：`git archive origin/all -- $(tr '\n' ' ' <清单)`），并先拒绝清单里带空格的路径；再加一条会红的地板判据"落地 83 / 清单 83"。顺手记一条：本机 git 不认 `--pathspec-from-file`，它会把 usage 打到管道里让 tar 报"不像 tar 档"。
+- 同族的第二条无牙判据：脚本原来只**打印**"尺子=0 支（期望 3）"就继续走 ⇒ 一次中途失败会把只住在副本里的三支 learning 尺子删掉。现在改成不齐就 REFUSE，并从常驻镜像 `Prj/pro/learning_tools_mirror/` 自愈补齐（这次就是靠它补回来的）。
+
+### #456 "N 条 / 默认值 / 旗标归属"这类计数不在任何尺子射程里（一次复核抓到三条文档失实）
+
+- 三条全是"从旧文档抄、没读代码"：`report/host_guide.md` 写 `health_read.mjs` 读"12 条 lane"（现数 19，名单是 `src/host/health_read.mjs:334` 的 `want`，越界号读回 `32'hDEAD_BEEF`，`src/rtl/top/system_top.v:244`）；参数表把 `--src`/`--count`/`--mtu-payload` 的归属写错、把 `send_demo.bat` 传的 300 当成 `--seconds` 的默认（真默认 12.0，且只在带 `--demo` 时生效：`video_sender.py:209` 的判据是 `a.demo and …`）、把 `--pace-mbps` 一律写 15（Python 支默认 20.0）；`report/demo_script.md` 写"板上这一版 OSD `FPS:` 数的是显示场"（#128 已在第 99 批采纳，数的是**写进屏的新帧**，`src/rtl/util/shown_rate.v` 被 `pl_video_top.v:941` 的 `u_fpsr` 例化）。
+- 判据侧为什么漏：D5 判引用在不在树里、D6 判点名报告的数对不对，**都不判"对工具内部结构的计数"** ⇒ 这类句子只能现量。方法记下：`grep -o -- "--[a-z-]*"` 逐支列旗标、`sed -n 'Np'` 读默认值那一行、`wc -l`/`grep -c` 数清单、`uart_cmd_check.mjs --dry` 看末号（105）、`ps_hb_check.mjs` 自报 17/17、`report/40-optimization.md` §3 数到 V21。
+- 顺带一条防误判：`split marker` 这类子命令在固件里是不分大小写的 `ci_eq(tk[1],"MARKER")`，按 `"marker"` 直搜得 0——别据此判"文档教了不存在的命令"。
+
+### #457 `ARCH/` 第二层尺子的误配要分类计数，别整批当真
+
+- 十卷定稿后两层读数：第一层 判 3100 / OK 3100 / NO_FILE 0 / OUT_OF_RANGE 0；第二层 判 906（逐字 605、折竖线 0、记号齐 183、同行他条引用支撑 67、**可疑待读 51**）。
+- 51 条逐条 `grep -n` 读过：真指错 9 条（8 处行号 + 1 处片段写法 `wr_data={…}` → 源码里的非阻塞 `<=`），其余 41 条按类别记：写法不同（对齐空格/括号/位宽记法/层次前缀）27、区间记法只认起点 3、同行并列多来源或跨行续接被配到后一条 11。剩 4 条"改了会引入新误配"的形状列在副本根 `REVIEW-20261007.md` §5.2。
+- 另两条结构核查：`ARCH/A9` 原来是 CRLF（652 个 CR），已 `tr -d '\r'` 转 LF、行数不变；十卷里带"未证清单"那一节的是 8 卷，A7 与 A9 没有单列——这条已写进 `ARCH/README.md` 的第 0 条，免得那句"每卷末尾列未证"变成假话。
