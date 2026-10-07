@@ -10,9 +10,9 @@
 | `dpfb.v` + `probe4.tcl` | 给显示帧缓存**再加一个读口**（双线性要同时读源的第 r 行与 r+1 行），RAMB36 会不会翻倍？ | **会**：1 写 1 读 = **80**（与生产版一致，说明探针可信）；1 写 2 读 = **160**。7 系列 RAMB36 只有 A/B 两个口，第三个逻辑口只能靠复制阵列实现 ⇒ 90.5+80=170.5 > 140，**双读口方案被实测排除**，双线性只能走「同一个读口在 250 MHz 上分时读两次」或「行缓存」 |
 | `fbtest.v` + `probe2.tcl` `probe3.tcl` | 512×300 RGB565 帧缓存为什么吃掉 128 个 RAMB36，怎么写能省？ | 与数组深度/位宽都无关，是地址空间被向上填到 2^16；按 2 的幂拆两块 → **80 个** |
 
-跑法（会在本目录生成 Vivado 工程文件，**不要提交** `*.xpr/.runs/.Xil/*.log`）：
+跑法（会在本目录生成 Vivado 工程文件，**不要提交** `*.xpr/.runs/.Xil/*.log`；`<tools>` = Vivado 套件安装根，占位符口径见 `report/70-reproduce.md` 步骤 1.5）：
 
 ```bat
-"D:\Software\Vivado\2025.2.1\Vivado\bin\vivado.bat" -mode batch -nojournal ^
+"<tools>\Vivado\bin\vivado.bat" -mode batch -nojournal ^
     -log sim\probes\probe.log -source sim\probes\probe.tcl
 ```

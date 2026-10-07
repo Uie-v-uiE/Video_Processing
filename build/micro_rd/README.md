@@ -7,9 +7,9 @@
 `build/tcl/ooc_newmods.tcl` 那种综合级 OOC 量不出来（它自己就写着"这里的数字不是门禁"），
 必须真实 place+route。全流程一次 30+ 分钟，所以把这一条路单独 place+route。
 
-## 跑法（一次一个 MODE；不要并行跑两个 vivado，内存只有 ~2.7 GB 空余）
+## 跑法（一次一个 MODE；不要并行跑两个 vivado，内存只有 ~2.7 GB 空余；`<tools>` = Vivado 套件安装根，占位符口径见 `report/70-reproduce.md` 步骤 1.5）
 ```sh
-MODE=1 "D:/Software/Vivado/2025.2.1/Vivado/bin/vivado.bat" -mode batch -nojournal \
+MODE=1 "<tools>/Vivado/bin/vivado.bat" -mode batch -nojournal \
      -log build/micro_rd/r2_m1.log -source build/tcl/micro_rd.tcl
 ```
 三个 MODE 是**同一份骨架只差 mux 与地址寄存**（`micro_fb_rd.v` 头部写着差别）：

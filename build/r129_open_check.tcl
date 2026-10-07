@@ -1,3 +1,5 @@
+# 作用：只读探针——本机路径占位符化（r129）之后 Vivado 工程还打得开吗（输入=仓库根 `vivado_system/` 的工程，
+#       输出=stdout 的 OPEN/VERIFY/CLOSE 行；不开写路径，一个文件都不改）
 # build/r129_open_check.tcl —— 只读探针：本机路径占位符化之后，Vivado 工程还打得开吗
 #
 # 为什么要跑：r129 把 `vivado_system/` 与 `vitis/` 两棵里 175 份生成件正文的本机绝对路径

@@ -1,6 +1,9 @@
 #!/usr/bin/env node
 // build/r129_path_sanitize.mjs —— 把仓库里**非证据层**文件正文的本机绝对路径换成占位符。
 //
+// 作用/输入/输出：读 `git ls-files` 的跟踪件正文（输入），只把盘符路径换成占位符后写回同一批文件
+// （输出），并在 stdout 念出四类计数；判据读不到东西时报 NOT_MEASURED 而不是绿（退出码见末行）。
+//
 // 为什么要有这一支：用户 2026-10-07 口径"本机路径改一下吧，交付看的是链接"。
 // 但同一件事有两半：
 //   · 改得：Vivado/Vitis 工程树里的生成件正文、手写源码注释里指向本机资料库的路径、脚本用法示例。
@@ -44,6 +47,12 @@ const MAP = [
 
 // 证据与留档层：不改正文，只数还剩多少条
 const EVIDENCE = /^(build\/|board\/measured\/|board\/evidence|board\/compare\/|report\/log\/|data\/metrics\.csv)/;
+// 但 `build/` 底下也住着**手写说明件**（`build/micro_rd/README.md`、`build/sim/probes/README.md` 里那种
+// 照着就能敲的命令）。把整个 `build/` 当证据层 ⇒ 连"教人敲的本机绝对路径"一起挡掉，而文本尺子与导出器
+// 的绝对路径判据都不读这一层，那一类当下没人管（台账 #468）。例外按形状给，不写文件名。
+// 脚本类（.sh/.tcl/.mjs）**留在豁免层**：这支工具自己的 MAP 里那些盘符字面量是数据不是指令，
+// 让工具去改自己就是把映射表改坏。
+const INSTRUCTIONS = /(^|\/)README\.md$/;
 // 用户原话签收：一个字都不动
 const VERBATIM = /^board\/signoff\.md$/;
 
@@ -51,7 +60,7 @@ const listed = cp.execSync(
   'git -c core.quotepath=false ls-files vivado_system vitis src board build report sim skills data',
   {cwd: REPO, encoding:'utf8'}).split('\n').filter(Boolean);
 
-let touched = 0, hits = 0, binSkip = 0, evSkip = 0, verbSkip = 0, evHits = 0;
+let touched = 0, hits = 0, binSkip = 0, evSkip = 0, verbSkip = 0, evHits = 0, instrPulled = 0;
 const perKind = {};
 for (const rel of listed) {
   const abs = path.join(REPO, rel);
@@ -66,7 +75,8 @@ for (const rel of listed) {
   const before = (txt.match(/[A-Za-z]:[\/\\](Xilinx|Software)/gi) || []).length;
   if (!before) continue;
   if (VERBATIM.test(rel)) { verbSkip++; evHits += before; continue; }
-  if (EVIDENCE.test(rel)) { evSkip++; evHits += before; continue; }
+  if (EVIDENCE.test(rel) && !INSTRUCTIONS.test(rel)) { evSkip++; evHits += before; continue; }
+  if (EVIDENCE.test(rel)) instrPulled++;        // 手写说明件被 README.md 例外从豁免层拉回来
   let out = txt;
   for (const [a, b] of MAP) out = out.split(a).join(b);
   // `.xpr` 的工程头属性另写：仓库自己的约定是**仓库相对落点名**（`board/tcl/stage_board_projects.tcl`
@@ -81,7 +91,7 @@ for (const rel of listed) {
   if (APPLY && out !== txt) fs.writeFileSync(abs, out);
   if (after > 0) console.log('残留 ' + rel + ' 还剩 ' + after + ' 条（映射表没盖住的形状，列出来给人看）');
 }
-console.log(`${APPLY ? 'APPLY' : 'CHECK'} 改动文件=${touched} 替换条数=${hits} 跳过证据/留档=${evSkip} 份(${evHits} 条，不动正文) 跳过签收原话=${verbSkip} 份 跳过二进制=${binSkip} 份`);
+console.log(`${APPLY ? 'APPLY' : 'CHECK'} 改动文件=${touched} 替换条数=${hits} 跳过证据/留档=${evSkip} 份(${evHits} 条，不动正文) 跳过签收原话=${verbSkip} 份 跳过二进制=${binSkip} 份 说明件例外拉回=${instrPulled} 份(build/ 底下的 README.md，正文可改)`);
 console.log('按扩展名：' + Object.entries(perKind).sort((a,b)=>b[1]-a[1]).slice(0,10).map(([k,v])=>`${k}=${v}`).join(' '));
 // 判据要能区分"已经干净"和"这一层根本没接上"：
 //   touched=0 而证据层/二进制确实扫到了 ⇒ 本来就是 ALREADY-CLEAN（改完再跑一次应当是这样）；
