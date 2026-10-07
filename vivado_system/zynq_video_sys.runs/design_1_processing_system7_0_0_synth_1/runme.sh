@@ -12,9 +12,9 @@ echo "Please update the PATH and LD_LIBRARY_PATH variables below, before executi
 exit
 
 if [ -z "$PATH" ]; then
-  PATH=D:/Software/Vivado/2025.2.1/Vitis/bin;D:/Software/Vivado/2025.2.1/Vivado/ids_lite/ISE/bin/nt64;D:/Software/Vivado/2025.2.1/Vivado/ids_lite/ISE/lib/nt64:D:/Software/Vivado/2025.2.1/Vivado/bin
+  PATH=<tools>/Vitis/bin;<tools>/Vivado/ids_lite/ISE/bin/nt64;<tools>/Vivado/ids_lite/ISE/lib/nt64:<tools>/Vivado/bin
 else
-  PATH=D:/Software/Vivado/2025.2.1/Vitis/bin;D:/Software/Vivado/2025.2.1/Vivado/ids_lite/ISE/bin/nt64;D:/Software/Vivado/2025.2.1/Vivado/ids_lite/ISE/lib/nt64:D:/Software/Vivado/2025.2.1/Vivado/bin:$PATH
+  PATH=<tools>/Vitis/bin;<tools>/Vivado/ids_lite/ISE/bin/nt64;<tools>/Vivado/ids_lite/ISE/lib/nt64:<tools>/Vivado/bin:$PATH
 fi
 export PATH
 
@@ -25,7 +25,7 @@ else
 fi
 export LD_LIBRARY_PATH
 
-HD_PWD='D:/Xilinx/Prj/pro/Video_Processing/vivado_system/zynq_video_sys.runs/design_1_processing_system7_0_0_synth_1'
+HD_PWD='<repo>/vivado_system/zynq_video_sys.runs/design_1_processing_system7_0_0_synth_1'
 cd "$HD_PWD"
 
 HD_LOG=runme.log

@@ -5,7 +5,7 @@
 // Date        : Mon Oct  5 14:46:07 2026
 // Host        : Uie-laptop running 64-bit major release  (build 9200)
 // Command     : write_verilog -force -mode synth_stub
-//               d:/Xilinx/Prj/pro/Video_Processing/vivado_system/zynq_video_sys.gen/sources_1/bd/design_1/ip/design_1_axi_gpio_1_0/design_1_axi_gpio_1_0_stub.v
+//               <repo>/vivado_system/zynq_video_sys.gen/sources_1/bd/design_1/ip/design_1_axi_gpio_1_0/design_1_axi_gpio_1_0_stub.v
 // Design      : design_1_axi_gpio_1_0
 // Purpose     : Stub declaration of top-level module interface
 // Device      : xc7z020clg484-2

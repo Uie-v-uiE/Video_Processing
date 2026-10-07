@@ -676,8 +676,12 @@ done
 # 仓库布局不动（工程仍在仓库根），只有包多这一层；取的是 **git 里的字节**而不是工作树，
 # 所以重开工程长出来的噪声（`.cache`、`.ip_user_files`、`.jou/.log/.str`）不会被顺手带出去。
 # 这一层**不走上面"按引用留凭据"那套筛法**：块设计与 IP 配置少一个文件就打不开，所以整棵搬。
+# ⚠ `git archive` 的语法是 `archive <tree-ish> [<path>…>]`：少写 `HEAD` 时第一个参数 `vivado_system`
+#   被当成 tree-ish，git 报 `fatal: not a valid object name: vivado_system`、tar 接着报
+#   `does not look like a tar archive`（2026-10-07 16:1x 第一次实跑死在这一步；
+#   下面的落地数判据把它接住了，`REFUSE … 不写 $OUT`，上一版包 13 MB 原样还在）。
 mkdir -p board
-if git -C "$REPO" archive --format=tar vivado_system vitis | tar -x -C "$TMP/board"; then
+if git -C "$REPO" archive --format=tar HEAD -- vivado_system vitis | tar -x -C "$TMP/board"; then
   VS_N="$( { find board/vivado_system -type f 2>/dev/null || true; } | wc -l | tr -d ' ')"
   VT_N="$( { find board/vitis -type f 2>/dev/null || true; } | wc -l | tr -d ' ')"
 else

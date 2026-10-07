@@ -5,10 +5,10 @@
 # SharedData Build 6403650 on Thu Mar 19 14:02:13 MDT 2026
 # Start of session at: Mon Oct  5 14:47:29 2026
 # Process ID         : 16264
-# Current directory  : D:/Xilinx/Prj/pro/Video_Processing/vivado_system/zynq_video_sys.runs/synth_1
+# Current directory  : <repo>/vivado_system/zynq_video_sys.runs/synth_1
 # Command line       : vivado.exe -log system_top.vds -product Vivado -mode batch -messageDb vivado.pb -notrace -source system_top.tcl
-# Log file           : D:/Xilinx/Prj/pro/Video_Processing/vivado_system/zynq_video_sys.runs/synth_1/system_top.vds
-# Journal file       : D:/Xilinx/Prj/pro/Video_Processing/vivado_system/zynq_video_sys.runs/synth_1\vivado.jou
+# Log file           : <repo>/vivado_system/zynq_video_sys.runs/synth_1/system_top.vds
+# Journal file       : <repo>/vivado_system/zynq_video_sys.runs/synth_1\vivado.jou
 # Running On         : Uie-laptop
 # Platform           : Windows Server 2016 or Windows 10
 # Operating System   : 26300
@@ -25,7 +25,7 @@ source system_top.tcl -notrace
 create_project: Time (s): cpu = 00:00:11 ; elapsed = 00:00:07 . Memory (MB): peak = 539.367 ; gain = 225.281
 INFO: [IP_Flow 19-234] Refreshing IP repositories
 INFO: [IP_Flow 19-1704] No user IP repositories specified
-INFO: [IP_Flow 19-2313] Loaded Vivado IP repository 'D:/Software/Vivado/2025.2.1/Vivado/data/ip'.
+INFO: [IP_Flow 19-2313] Loaded Vivado IP repository '<tools>/Vivado/data/ip'.
 Command: synth_design -top system_top -part xc7z020clg484-2
 Starting synth_design
 Attempting to get a license for feature 'Synthesis' and/or device 'xc7z020'
@@ -37,48 +37,48 @@ INFO: [Synth 8-7075] Helper process launched with PID 8724
 ---------------------------------------------------------------------------------
 Starting RTL Elaboration : Time (s): cpu = 00:00:04 ; elapsed = 00:00:05 . Memory (MB): peak = 1341.691 ; gain = 540.598
 ---------------------------------------------------------------------------------
-WARNING: [Synth 8-10929] literal value 'd10 truncated to fit in 2 bits [D:/Xilinx/Prj/pro/Video_Processing/src/rtl/util/src_arb.v:45]
-INFO: [Synth 8-6157] synthesizing module 'system_top' [D:/Xilinx/Prj/pro/Video_Processing/src/rtl/top/system_top.v:4]
-INFO: [Synth 8-6157] synthesizing module 'design_1_wrapper' [D:/Xilinx/Prj/pro/Video_Processing/vivado_system/zynq_video_sys.gen/sources_1/bd/design_1/hdl/design_1_wrapper.v:13]
-INFO: [Synth 8-6157] synthesizing module 'design_1' [d:/Xilinx/Prj/pro/Video_Processing/vivado_system/zynq_video_sys.gen/sources_1/bd/design_1/synth/design_1.v:13]
-INFO: [Synth 8-6157] synthesizing module 'design_1_axi_gp0_ic_0' [d:/Xilinx/Prj/pro/Video_Processing/vivado_system/zynq_video_sys.gen/sources_1/bd/design_1/synth/design_1.v:692]
-INFO: [Synth 8-6157] synthesizing module 'm00_couplers_imp_EJ3EHT' [d:/Xilinx/Prj/pro/Video_Processing/vivado_system/zynq_video_sys.gen/sources_1/bd/design_1/synth/design_1.v:1604]
-INFO: [Synth 8-6155] done synthesizing module 'm00_couplers_imp_EJ3EHT' (0#1) [d:/Xilinx/Prj/pro/Video_Processing/vivado_system/zynq_video_sys.gen/sources_1/bd/design_1/synth/design_1.v:1604]
-INFO: [Synth 8-6157] synthesizing module 'm01_couplers_imp_1OS1680' [d:/Xilinx/Prj/pro/Video_Processing/vivado_system/zynq_video_sys.gen/sources_1/bd/design_1/synth/design_1.v:1719]
-INFO: [Synth 8-6155] done synthesizing module 'm01_couplers_imp_1OS1680' (0#1) [d:/Xilinx/Prj/pro/Video_Processing/vivado_system/zynq_video_sys.gen/sources_1/bd/design_1/synth/design_1.v:1719]
-INFO: [Synth 8-6157] synthesizing module 'm02_couplers_imp_DQUA3M' [d:/Xilinx/Prj/pro/Video_Processing/vivado_system/zynq_video_sys.gen/sources_1/bd/design_1/synth/design_1.v:1834]
-INFO: [Synth 8-6155] done synthesizing module 'm02_couplers_imp_DQUA3M' (0#1) [d:/Xilinx/Prj/pro/Video_Processing/vivado_system/zynq_video_sys.gen/sources_1/bd/design_1/synth/design_1.v:1834]
-INFO: [Synth 8-6157] synthesizing module 's00_couplers_imp_1KZGM77' [d:/Xilinx/Prj/pro/Video_Processing/vivado_system/zynq_video_sys.gen/sources_1/bd/design_1/synth/design_1.v:1949]
-INFO: [Synth 8-6157] synthesizing module 'design_1_axi_gp0_ic_imp_auto_pc_0' [D:/Xilinx/Prj/pro/Video_Processing/vivado_system/zynq_video_sys.runs/synth_1/.Xil/Vivado-16264-Uie-laptop/realtime/design_1_axi_gp0_ic_imp_auto_pc_0_stub.v:6]
-INFO: [Synth 8-6155] done synthesizing module 'design_1_axi_gp0_ic_imp_auto_pc_0' (0#1) [D:/Xilinx/Prj/pro/Video_Processing/vivado_system/zynq_video_sys.runs/synth_1/.Xil/Vivado-16264-Uie-laptop/realtime/design_1_axi_gp0_ic_imp_auto_pc_0_stub.v:6]
-INFO: [Synth 8-6155] done synthesizing module 's00_couplers_imp_1KZGM77' (0#1) [d:/Xilinx/Prj/pro/Video_Processing/vivado_system/zynq_video_sys.gen/sources_1/bd/design_1/synth/design_1.v:1949]
-INFO: [Synth 8-6157] synthesizing module 'design_1_axi_gp0_ic_imp_xbar_0' [D:/Xilinx/Prj/pro/Video_Processing/vivado_system/zynq_video_sys.runs/synth_1/.Xil/Vivado-16264-Uie-laptop/realtime/design_1_axi_gp0_ic_imp_xbar_0_stub.v:6]
-INFO: [Synth 8-6155] done synthesizing module 'design_1_axi_gp0_ic_imp_xbar_0' (0#1) [D:/Xilinx/Prj/pro/Video_Processing/vivado_system/zynq_video_sys.runs/synth_1/.Xil/Vivado-16264-Uie-laptop/realtime/design_1_axi_gp0_ic_imp_xbar_0_stub.v:6]
-WARNING: [Synth 8-7071] port 'm_axi_awprot' of module 'design_1_axi_gp0_ic_imp_xbar_0' is unconnected for instance 'xbar' [d:/Xilinx/Prj/pro/Video_Processing/vivado_system/zynq_video_sys.gen/sources_1/bd/design_1/synth/design_1.v:1233]
-WARNING: [Synth 8-7071] port 'm_axi_arprot' of module 'design_1_axi_gp0_ic_imp_xbar_0' is unconnected for instance 'xbar' [d:/Xilinx/Prj/pro/Video_Processing/vivado_system/zynq_video_sys.gen/sources_1/bd/design_1/synth/design_1.v:1233]
-WARNING: [Synth 8-7023] instance 'xbar' of module 'design_1_axi_gp0_ic_imp_xbar_0' has 40 connections declared, but only 38 given [d:/Xilinx/Prj/pro/Video_Processing/vivado_system/zynq_video_sys.gen/sources_1/bd/design_1/synth/design_1.v:1233]
-INFO: [Synth 8-6155] done synthesizing module 'design_1_axi_gp0_ic_0' (0#1) [d:/Xilinx/Prj/pro/Video_Processing/vivado_system/zynq_video_sys.gen/sources_1/bd/design_1/synth/design_1.v:692]
-INFO: [Synth 8-6157] synthesizing module 'design_1_axi_gpio_0_0' [D:/Xilinx/Prj/pro/Video_Processing/vivado_system/zynq_video_sys.runs/synth_1/.Xil/Vivado-16264-Uie-laptop/realtime/design_1_axi_gpio_0_0_stub.v:6]
-INFO: [Synth 8-6155] done synthesizing module 'design_1_axi_gpio_0_0' (0#1) [D:/Xilinx/Prj/pro/Video_Processing/vivado_system/zynq_video_sys.runs/synth_1/.Xil/Vivado-16264-Uie-laptop/realtime/design_1_axi_gpio_0_0_stub.v:6]
-INFO: [Synth 8-6157] synthesizing module 'design_1_axi_gpio_1_0' [D:/Xilinx/Prj/pro/Video_Processing/vivado_system/zynq_video_sys.runs/synth_1/.Xil/Vivado-16264-Uie-laptop/realtime/design_1_axi_gpio_1_0_stub.v:6]
-INFO: [Synth 8-6155] done synthesizing module 'design_1_axi_gpio_1_0' (0#1) [D:/Xilinx/Prj/pro/Video_Processing/vivado_system/zynq_video_sys.runs/synth_1/.Xil/Vivado-16264-Uie-laptop/realtime/design_1_axi_gpio_1_0_stub.v:6]
-INFO: [Synth 8-6157] synthesizing module 'design_1_axi_gpio_2_0' [D:/Xilinx/Prj/pro/Video_Processing/vivado_system/zynq_video_sys.runs/synth_1/.Xil/Vivado-16264-Uie-laptop/realtime/design_1_axi_gpio_2_0_stub.v:6]
-INFO: [Synth 8-6155] done synthesizing module 'design_1_axi_gpio_2_0' (0#1) [D:/Xilinx/Prj/pro/Video_Processing/vivado_system/zynq_video_sys.runs/synth_1/.Xil/Vivado-16264-Uie-laptop/realtime/design_1_axi_gpio_2_0_stub.v:6]
-INFO: [Synth 8-6157] synthesizing module 'design_1_axi_mem_intercon_0' [d:/Xilinx/Prj/pro/Video_Processing/vivado_system/zynq_video_sys.gen/sources_1/bd/design_1/synth/design_1.v:1274]
-INFO: [Synth 8-6157] synthesizing module 's00_couplers_imp_7HNO1D' [d:/Xilinx/Prj/pro/Video_Processing/vivado_system/zynq_video_sys.gen/sources_1/bd/design_1/synth/design_1.v:2195]
-INFO: [Synth 8-6155] done synthesizing module 's00_couplers_imp_7HNO1D' (0#1) [d:/Xilinx/Prj/pro/Video_Processing/vivado_system/zynq_video_sys.gen/sources_1/bd/design_1/synth/design_1.v:2195]
-INFO: [Synth 8-6155] done synthesizing module 'design_1_axi_mem_intercon_0' (0#1) [d:/Xilinx/Prj/pro/Video_Processing/vivado_system/zynq_video_sys.gen/sources_1/bd/design_1/synth/design_1.v:1274]
-INFO: [Synth 8-6157] synthesizing module 'design_1_processing_system7_0_0' [D:/Xilinx/Prj/pro/Video_Processing/vivado_system/zynq_video_sys.runs/synth_1/.Xil/Vivado-16264-Uie-laptop/realtime/design_1_processing_system7_0_0_stub.v:6]
-INFO: [Synth 8-6155] done synthesizing module 'design_1_processing_system7_0_0' (0#1) [D:/Xilinx/Prj/pro/Video_Processing/vivado_system/zynq_video_sys.runs/synth_1/.Xil/Vivado-16264-Uie-laptop/realtime/design_1_processing_system7_0_0_stub.v:6]
-WARNING: [Synth 8-7071] port 'S_AXI_HP0_RCOUNT' of module 'design_1_processing_system7_0_0' is unconnected for instance 'processing_system7_0' [d:/Xilinx/Prj/pro/Video_Processing/vivado_system/zynq_video_sys.gen/sources_1/bd/design_1/synth/design_1.v:586]
-WARNING: [Synth 8-7071] port 'S_AXI_HP0_WCOUNT' of module 'design_1_processing_system7_0_0' is unconnected for instance 'processing_system7_0' [d:/Xilinx/Prj/pro/Video_Processing/vivado_system/zynq_video_sys.gen/sources_1/bd/design_1/synth/design_1.v:586]
-WARNING: [Synth 8-7071] port 'S_AXI_HP0_RACOUNT' of module 'design_1_processing_system7_0_0' is unconnected for instance 'processing_system7_0' [d:/Xilinx/Prj/pro/Video_Processing/vivado_system/zynq_video_sys.gen/sources_1/bd/design_1/synth/design_1.v:586]
-WARNING: [Synth 8-7071] port 'S_AXI_HP0_WACOUNT' of module 'design_1_processing_system7_0_0' is unconnected for instance 'processing_system7_0' [d:/Xilinx/Prj/pro/Video_Processing/vivado_system/zynq_video_sys.gen/sources_1/bd/design_1/synth/design_1.v:586]
-WARNING: [Synth 8-7023] instance 'processing_system7_0' of module 'design_1_processing_system7_0_0' has 107 connections declared, but only 103 given [d:/Xilinx/Prj/pro/Video_Processing/vivado_system/zynq_video_sys.gen/sources_1/bd/design_1/synth/design_1.v:586]
-INFO: [Synth 8-6155] done synthesizing module 'design_1' (0#1) [d:/Xilinx/Prj/pro/Video_Processing/vivado_system/zynq_video_sys.gen/sources_1/bd/design_1/synth/design_1.v:13]
-INFO: [Synth 8-6155] done synthesizing module 'design_1_wrapper' (0#1) [D:/Xilinx/Prj/pro/Video_Processing/vivado_system/zynq_video_sys.gen/sources_1/bd/design_1/hdl/design_1_wrapper.v:13]
-INFO: [Synth 8-6157] synthesizing module 'clk_gen' [D:/Xilinx/Prj/pro/Video_Processing/src/rtl/clocks/clk_gen.v:4]
-INFO: [Synth 8-6157] synthesizing module 'MMCME2_BASE' [D:/Software/Vivado/2025.2.1/Vivado/scripts/rt/data/unisim_comp.v:95830]
+WARNING: [Synth 8-10929] literal value 'd10 truncated to fit in 2 bits [<repo>/src/rtl/util/src_arb.v:45]
+INFO: [Synth 8-6157] synthesizing module 'system_top' [<repo>/src/rtl/top/system_top.v:4]
+INFO: [Synth 8-6157] synthesizing module 'design_1_wrapper' [<repo>/vivado_system/zynq_video_sys.gen/sources_1/bd/design_1/hdl/design_1_wrapper.v:13]
+INFO: [Synth 8-6157] synthesizing module 'design_1' [<repo>/vivado_system/zynq_video_sys.gen/sources_1/bd/design_1/synth/design_1.v:13]
+INFO: [Synth 8-6157] synthesizing module 'design_1_axi_gp0_ic_0' [<repo>/vivado_system/zynq_video_sys.gen/sources_1/bd/design_1/synth/design_1.v:692]
+INFO: [Synth 8-6157] synthesizing module 'm00_couplers_imp_EJ3EHT' [<repo>/vivado_system/zynq_video_sys.gen/sources_1/bd/design_1/synth/design_1.v:1604]
+INFO: [Synth 8-6155] done synthesizing module 'm00_couplers_imp_EJ3EHT' (0#1) [<repo>/vivado_system/zynq_video_sys.gen/sources_1/bd/design_1/synth/design_1.v:1604]
+INFO: [Synth 8-6157] synthesizing module 'm01_couplers_imp_1OS1680' [<repo>/vivado_system/zynq_video_sys.gen/sources_1/bd/design_1/synth/design_1.v:1719]
+INFO: [Synth 8-6155] done synthesizing module 'm01_couplers_imp_1OS1680' (0#1) [<repo>/vivado_system/zynq_video_sys.gen/sources_1/bd/design_1/synth/design_1.v:1719]
+INFO: [Synth 8-6157] synthesizing module 'm02_couplers_imp_DQUA3M' [<repo>/vivado_system/zynq_video_sys.gen/sources_1/bd/design_1/synth/design_1.v:1834]
+INFO: [Synth 8-6155] done synthesizing module 'm02_couplers_imp_DQUA3M' (0#1) [<repo>/vivado_system/zynq_video_sys.gen/sources_1/bd/design_1/synth/design_1.v:1834]
+INFO: [Synth 8-6157] synthesizing module 's00_couplers_imp_1KZGM77' [<repo>/vivado_system/zynq_video_sys.gen/sources_1/bd/design_1/synth/design_1.v:1949]
+INFO: [Synth 8-6157] synthesizing module 'design_1_axi_gp0_ic_imp_auto_pc_0' [<repo>/vivado_system/zynq_video_sys.runs/synth_1/.Xil/Vivado-16264-Uie-laptop/realtime/design_1_axi_gp0_ic_imp_auto_pc_0_stub.v:6]
+INFO: [Synth 8-6155] done synthesizing module 'design_1_axi_gp0_ic_imp_auto_pc_0' (0#1) [<repo>/vivado_system/zynq_video_sys.runs/synth_1/.Xil/Vivado-16264-Uie-laptop/realtime/design_1_axi_gp0_ic_imp_auto_pc_0_stub.v:6]
+INFO: [Synth 8-6155] done synthesizing module 's00_couplers_imp_1KZGM77' (0#1) [<repo>/vivado_system/zynq_video_sys.gen/sources_1/bd/design_1/synth/design_1.v:1949]
+INFO: [Synth 8-6157] synthesizing module 'design_1_axi_gp0_ic_imp_xbar_0' [<repo>/vivado_system/zynq_video_sys.runs/synth_1/.Xil/Vivado-16264-Uie-laptop/realtime/design_1_axi_gp0_ic_imp_xbar_0_stub.v:6]
+INFO: [Synth 8-6155] done synthesizing module 'design_1_axi_gp0_ic_imp_xbar_0' (0#1) [<repo>/vivado_system/zynq_video_sys.runs/synth_1/.Xil/Vivado-16264-Uie-laptop/realtime/design_1_axi_gp0_ic_imp_xbar_0_stub.v:6]
+WARNING: [Synth 8-7071] port 'm_axi_awprot' of module 'design_1_axi_gp0_ic_imp_xbar_0' is unconnected for instance 'xbar' [<repo>/vivado_system/zynq_video_sys.gen/sources_1/bd/design_1/synth/design_1.v:1233]
+WARNING: [Synth 8-7071] port 'm_axi_arprot' of module 'design_1_axi_gp0_ic_imp_xbar_0' is unconnected for instance 'xbar' [<repo>/vivado_system/zynq_video_sys.gen/sources_1/bd/design_1/synth/design_1.v:1233]
+WARNING: [Synth 8-7023] instance 'xbar' of module 'design_1_axi_gp0_ic_imp_xbar_0' has 40 connections declared, but only 38 given [<repo>/vivado_system/zynq_video_sys.gen/sources_1/bd/design_1/synth/design_1.v:1233]
+INFO: [Synth 8-6155] done synthesizing module 'design_1_axi_gp0_ic_0' (0#1) [<repo>/vivado_system/zynq_video_sys.gen/sources_1/bd/design_1/synth/design_1.v:692]
+INFO: [Synth 8-6157] synthesizing module 'design_1_axi_gpio_0_0' [<repo>/vivado_system/zynq_video_sys.runs/synth_1/.Xil/Vivado-16264-Uie-laptop/realtime/design_1_axi_gpio_0_0_stub.v:6]
+INFO: [Synth 8-6155] done synthesizing module 'design_1_axi_gpio_0_0' (0#1) [<repo>/vivado_system/zynq_video_sys.runs/synth_1/.Xil/Vivado-16264-Uie-laptop/realtime/design_1_axi_gpio_0_0_stub.v:6]
+INFO: [Synth 8-6157] synthesizing module 'design_1_axi_gpio_1_0' [<repo>/vivado_system/zynq_video_sys.runs/synth_1/.Xil/Vivado-16264-Uie-laptop/realtime/design_1_axi_gpio_1_0_stub.v:6]
+INFO: [Synth 8-6155] done synthesizing module 'design_1_axi_gpio_1_0' (0#1) [<repo>/vivado_system/zynq_video_sys.runs/synth_1/.Xil/Vivado-16264-Uie-laptop/realtime/design_1_axi_gpio_1_0_stub.v:6]
+INFO: [Synth 8-6157] synthesizing module 'design_1_axi_gpio_2_0' [<repo>/vivado_system/zynq_video_sys.runs/synth_1/.Xil/Vivado-16264-Uie-laptop/realtime/design_1_axi_gpio_2_0_stub.v:6]
+INFO: [Synth 8-6155] done synthesizing module 'design_1_axi_gpio_2_0' (0#1) [<repo>/vivado_system/zynq_video_sys.runs/synth_1/.Xil/Vivado-16264-Uie-laptop/realtime/design_1_axi_gpio_2_0_stub.v:6]
+INFO: [Synth 8-6157] synthesizing module 'design_1_axi_mem_intercon_0' [<repo>/vivado_system/zynq_video_sys.gen/sources_1/bd/design_1/synth/design_1.v:1274]
+INFO: [Synth 8-6157] synthesizing module 's00_couplers_imp_7HNO1D' [<repo>/vivado_system/zynq_video_sys.gen/sources_1/bd/design_1/synth/design_1.v:2195]
+INFO: [Synth 8-6155] done synthesizing module 's00_couplers_imp_7HNO1D' (0#1) [<repo>/vivado_system/zynq_video_sys.gen/sources_1/bd/design_1/synth/design_1.v:2195]
+INFO: [Synth 8-6155] done synthesizing module 'design_1_axi_mem_intercon_0' (0#1) [<repo>/vivado_system/zynq_video_sys.gen/sources_1/bd/design_1/synth/design_1.v:1274]
+INFO: [Synth 8-6157] synthesizing module 'design_1_processing_system7_0_0' [<repo>/vivado_system/zynq_video_sys.runs/synth_1/.Xil/Vivado-16264-Uie-laptop/realtime/design_1_processing_system7_0_0_stub.v:6]
+INFO: [Synth 8-6155] done synthesizing module 'design_1_processing_system7_0_0' (0#1) [<repo>/vivado_system/zynq_video_sys.runs/synth_1/.Xil/Vivado-16264-Uie-laptop/realtime/design_1_processing_system7_0_0_stub.v:6]
+WARNING: [Synth 8-7071] port 'S_AXI_HP0_RCOUNT' of module 'design_1_processing_system7_0_0' is unconnected for instance 'processing_system7_0' [<repo>/vivado_system/zynq_video_sys.gen/sources_1/bd/design_1/synth/design_1.v:586]
+WARNING: [Synth 8-7071] port 'S_AXI_HP0_WCOUNT' of module 'design_1_processing_system7_0_0' is unconnected for instance 'processing_system7_0' [<repo>/vivado_system/zynq_video_sys.gen/sources_1/bd/design_1/synth/design_1.v:586]
+WARNING: [Synth 8-7071] port 'S_AXI_HP0_RACOUNT' of module 'design_1_processing_system7_0_0' is unconnected for instance 'processing_system7_0' [<repo>/vivado_system/zynq_video_sys.gen/sources_1/bd/design_1/synth/design_1.v:586]
+WARNING: [Synth 8-7071] port 'S_AXI_HP0_WACOUNT' of module 'design_1_processing_system7_0_0' is unconnected for instance 'processing_system7_0' [<repo>/vivado_system/zynq_video_sys.gen/sources_1/bd/design_1/synth/design_1.v:586]
+WARNING: [Synth 8-7023] instance 'processing_system7_0' of module 'design_1_processing_system7_0_0' has 107 connections declared, but only 103 given [<repo>/vivado_system/zynq_video_sys.gen/sources_1/bd/design_1/synth/design_1.v:586]
+INFO: [Synth 8-6155] done synthesizing module 'design_1' (0#1) [<repo>/vivado_system/zynq_video_sys.gen/sources_1/bd/design_1/synth/design_1.v:13]
+INFO: [Synth 8-6155] done synthesizing module 'design_1_wrapper' (0#1) [<repo>/vivado_system/zynq_video_sys.gen/sources_1/bd/design_1/hdl/design_1_wrapper.v:13]
+INFO: [Synth 8-6157] synthesizing module 'clk_gen' [<repo>/src/rtl/clocks/clk_gen.v:4]
+INFO: [Synth 8-6157] synthesizing module 'MMCME2_BASE' [<tools>/Vivado/scripts/rt/data/unisim_comp.v:95830]
 	Parameter BANDWIDTH bound to: OPTIMIZED - type: string 
 	Parameter CLKFBOUT_MULT_F bound to: 2.000000e+01 - type: double 
 	Parameter CLKFBOUT_PHASE bound to: 0.000000e+00 - type: double 
@@ -95,11 +95,11 @@ INFO: [Synth 8-6157] synthesizing module 'MMCME2_BASE' [D:/Software/Vivado/2025.
 	Parameter DIVCLK_DIVIDE bound to: 1 - type: integer 
 	Parameter REF_JITTER1 bound to: 1.000000e-02 - type: double 
 	Parameter STARTUP_WAIT bound to: FALSE - type: string 
-INFO: [Synth 8-6155] done synthesizing module 'MMCME2_BASE' (0#1) [D:/Software/Vivado/2025.2.1/Vivado/scripts/rt/data/unisim_comp.v:95830]
-INFO: [Synth 8-6157] synthesizing module 'BUFG' [D:/Software/Vivado/2025.2.1/Vivado/scripts/rt/data/unisim_comp.v:2678]
-INFO: [Synth 8-6155] done synthesizing module 'BUFG' (0#1) [D:/Software/Vivado/2025.2.1/Vivado/scripts/rt/data/unisim_comp.v:2678]
-INFO: [Synth 8-6155] done synthesizing module 'clk_gen' (0#1) [D:/Xilinx/Prj/pro/Video_Processing/src/rtl/clocks/clk_gen.v:4]
-INFO: [Synth 8-6157] synthesizing module 'eth_udp_video_top' [D:/Xilinx/Prj/pro/Video_Processing/src/rtl/eth/eth_udp_video_top.v:7]
+INFO: [Synth 8-6155] done synthesizing module 'MMCME2_BASE' (0#1) [<tools>/Vivado/scripts/rt/data/unisim_comp.v:95830]
+INFO: [Synth 8-6157] synthesizing module 'BUFG' [<tools>/Vivado/scripts/rt/data/unisim_comp.v:2678]
+INFO: [Synth 8-6155] done synthesizing module 'BUFG' (0#1) [<tools>/Vivado/scripts/rt/data/unisim_comp.v:2678]
+INFO: [Synth 8-6155] done synthesizing module 'clk_gen' (0#1) [<repo>/src/rtl/clocks/clk_gen.v:4]
+INFO: [Synth 8-6157] synthesizing module 'eth_udp_video_top' [<repo>/src/rtl/eth/eth_udp_video_top.v:7]
 	Parameter IMG_W bound to: 16'b0000001000000000 
 	Parameter IMG_H bound to: 16'b0000000100101100 
 	Parameter BASE_ADDR bound to: 268435456 - type: integer 
@@ -107,132 +107,132 @@ INFO: [Synth 8-6157] synthesizing module 'eth_udp_video_top' [D:/Xilinx/Prj/pro/
 	Parameter BOARD_MAC bound to: 48'b000000000001000100100010001100110100010001010101 
 	Parameter BOARD_IP bound to: 32'b11000000101010000000000100001010 
 	Parameter IDELAY_VALUE bound to: 31 - type: integer 
-INFO: [Synth 8-6157] synthesizing module 'gmii_to_rgmii' [D:/Xilinx/Prj/pro/Video_Processing/src/rtl/eth/gmii_to_rgmii.v:4]
+INFO: [Synth 8-6157] synthesizing module 'gmii_to_rgmii' [<repo>/src/rtl/eth/gmii_to_rgmii.v:4]
 	Parameter IDELAY_VALUE bound to: 31 - type: integer 
-INFO: [Synth 8-6157] synthesizing module 'rgmii_rx' [D:/Xilinx/Prj/pro/Video_Processing/src/rtl/eth/rgmii_rx.v:24]
+INFO: [Synth 8-6157] synthesizing module 'rgmii_rx' [<repo>/src/rtl/eth/rgmii_rx.v:24]
 	Parameter IDELAY_VALUE bound to: 31 - type: integer 
-INFO: [Synth 8-6157] synthesizing module 'IDELAYE2' [D:/Software/Vivado/2025.2.1/Vivado/scripts/rt/data/unisim_comp.v:85037]
+INFO: [Synth 8-6157] synthesizing module 'IDELAYE2' [<tools>/Vivado/scripts/rt/data/unisim_comp.v:85037]
 	Parameter IDELAY_TYPE bound to: FIXED - type: string 
 	Parameter IDELAY_VALUE bound to: 31 - type: integer 
 	Parameter REFCLK_FREQUENCY bound to: 2.000000e+02 - type: double 
-INFO: [Synth 8-6155] done synthesizing module 'IDELAYE2' (0#1) [D:/Software/Vivado/2025.2.1/Vivado/scripts/rt/data/unisim_comp.v:85037]
-INFO: [Synth 8-6157] synthesizing module 'IDDR' [D:/Software/Vivado/2025.2.1/Vivado/scripts/rt/data/unisim_comp.v:84902]
+INFO: [Synth 8-6155] done synthesizing module 'IDELAYE2' (0#1) [<tools>/Vivado/scripts/rt/data/unisim_comp.v:85037]
+INFO: [Synth 8-6157] synthesizing module 'IDDR' [<tools>/Vivado/scripts/rt/data/unisim_comp.v:84902]
 	Parameter DDR_CLK_EDGE bound to: SAME_EDGE_PIPELINED - type: string 
 	Parameter INIT_Q1 bound to: 1'b0 
 	Parameter INIT_Q2 bound to: 1'b0 
 	Parameter SRTYPE bound to: SYNC - type: string 
-INFO: [Synth 8-6155] done synthesizing module 'IDDR' (0#1) [D:/Software/Vivado/2025.2.1/Vivado/scripts/rt/data/unisim_comp.v:84902]
-WARNING: [Synth 8-4446] all outputs are unconnected for this instance and logic may be removed [D:/Xilinx/Prj/pro/Video_Processing/src/rtl/eth/rgmii_rx.v:59]
-INFO: [Synth 8-6157] synthesizing module 'IDELAYCTRL' [D:/Software/Vivado/2025.2.1/Vivado/scripts/rt/data/unisim_comp.v:85024]
-INFO: [Synth 8-6155] done synthesizing module 'IDELAYCTRL' (0#1) [D:/Software/Vivado/2025.2.1/Vivado/scripts/rt/data/unisim_comp.v:85024]
-INFO: [Synth 8-6155] done synthesizing module 'rgmii_rx' (0#1) [D:/Xilinx/Prj/pro/Video_Processing/src/rtl/eth/rgmii_rx.v:24]
-INFO: [Synth 8-6157] synthesizing module 'rgmii_tx' [D:/Xilinx/Prj/pro/Video_Processing/src/rtl/eth/rgmii_tx.v:4]
-INFO: [Synth 8-6157] synthesizing module 'ODDR' [D:/Software/Vivado/2025.2.1/Vivado/scripts/rt/data/unisim_comp.v:117062]
+INFO: [Synth 8-6155] done synthesizing module 'IDDR' (0#1) [<tools>/Vivado/scripts/rt/data/unisim_comp.v:84902]
+WARNING: [Synth 8-4446] all outputs are unconnected for this instance and logic may be removed [<repo>/src/rtl/eth/rgmii_rx.v:59]
+INFO: [Synth 8-6157] synthesizing module 'IDELAYCTRL' [<tools>/Vivado/scripts/rt/data/unisim_comp.v:85024]
+INFO: [Synth 8-6155] done synthesizing module 'IDELAYCTRL' (0#1) [<tools>/Vivado/scripts/rt/data/unisim_comp.v:85024]
+INFO: [Synth 8-6155] done synthesizing module 'rgmii_rx' (0#1) [<repo>/src/rtl/eth/rgmii_rx.v:24]
+INFO: [Synth 8-6157] synthesizing module 'rgmii_tx' [<repo>/src/rtl/eth/rgmii_tx.v:4]
+INFO: [Synth 8-6157] synthesizing module 'ODDR' [<tools>/Vivado/scripts/rt/data/unisim_comp.v:117062]
 	Parameter DDR_CLK_EDGE bound to: SAME_EDGE - type: string 
 	Parameter INIT bound to: 1'b0 
 	Parameter SRTYPE bound to: SYNC - type: string 
-INFO: [Synth 8-6155] done synthesizing module 'ODDR' (0#1) [D:/Software/Vivado/2025.2.1/Vivado/scripts/rt/data/unisim_comp.v:117062]
-INFO: [Synth 8-6155] done synthesizing module 'rgmii_tx' (0#1) [D:/Xilinx/Prj/pro/Video_Processing/src/rtl/eth/rgmii_tx.v:4]
-INFO: [Synth 8-6155] done synthesizing module 'gmii_to_rgmii' (0#1) [D:/Xilinx/Prj/pro/Video_Processing/src/rtl/eth/gmii_to_rgmii.v:4]
-INFO: [Synth 8-6157] synthesizing module 'sync_fifo' [D:/Xilinx/Prj/pro/Video_Processing/src/rtl/eth/sync_fifo.v:5]
+INFO: [Synth 8-6155] done synthesizing module 'ODDR' (0#1) [<tools>/Vivado/scripts/rt/data/unisim_comp.v:117062]
+INFO: [Synth 8-6155] done synthesizing module 'rgmii_tx' (0#1) [<repo>/src/rtl/eth/rgmii_tx.v:4]
+INFO: [Synth 8-6155] done synthesizing module 'gmii_to_rgmii' (0#1) [<repo>/src/rtl/eth/gmii_to_rgmii.v:4]
+INFO: [Synth 8-6157] synthesizing module 'sync_fifo' [<repo>/src/rtl/eth/sync_fifo.v:5]
 	Parameter DATA_W bound to: 8 - type: integer 
 	Parameter ADDR_W bound to: 11 - type: integer 
-INFO: [Synth 8-6155] done synthesizing module 'sync_fifo' (0#1) [D:/Xilinx/Prj/pro/Video_Processing/src/rtl/eth/sync_fifo.v:5]
-INFO: [Synth 8-6157] synthesizing module 'arp' [D:/Xilinx/Prj/pro/Video_Processing/src/rtl/eth/arp.v:4]
+INFO: [Synth 8-6155] done synthesizing module 'sync_fifo' (0#1) [<repo>/src/rtl/eth/sync_fifo.v:5]
+INFO: [Synth 8-6157] synthesizing module 'arp' [<repo>/src/rtl/eth/arp.v:4]
 	Parameter BOARD_MAC bound to: 48'b000000000001000100100010001100110100010001010101 
 	Parameter BOARD_IP bound to: -1062731510 - type: integer 
 	Parameter DES_MAC bound to: 48'b111111111111111111111111111111111111111111111111 
 	Parameter DES_IP bound to: -1062731418 - type: integer 
-INFO: [Synth 8-6157] synthesizing module 'arp_rx' [D:/Xilinx/Prj/pro/Video_Processing/src/rtl/eth/arp_rx.v:6]
+INFO: [Synth 8-6157] synthesizing module 'arp_rx' [<repo>/src/rtl/eth/arp_rx.v:6]
 	Parameter BOARD_MAC bound to: 48'b000000000001000100100010001100110100010001010101 
 	Parameter BOARD_IP bound to: -1062731510 - type: integer 
-INFO: [Synth 8-6155] done synthesizing module 'arp_rx' (0#1) [D:/Xilinx/Prj/pro/Video_Processing/src/rtl/eth/arp_rx.v:6]
-INFO: [Synth 8-6157] synthesizing module 'arp_tx' [D:/Xilinx/Prj/pro/Video_Processing/src/rtl/eth/arp_tx.v:6]
-	Parameter BOARD_MAC bound to: 48'b000000000001000100100010001100110100010001010101 
-	Parameter BOARD_IP bound to: -1062731510 - type: integer 
-	Parameter DES_MAC bound to: 48'b111111111111111111111111111111111111111111111111 
-	Parameter DES_IP bound to: -1062731418 - type: integer 
-INFO: [Synth 8-6155] done synthesizing module 'arp_tx' (0#1) [D:/Xilinx/Prj/pro/Video_Processing/src/rtl/eth/arp_tx.v:6]
-INFO: [Synth 8-6157] synthesizing module 'crc32_d8' [D:/Xilinx/Prj/pro/Video_Processing/src/rtl/eth/crc32_d8.v:5]
-INFO: [Synth 8-6155] done synthesizing module 'crc32_d8' (0#1) [D:/Xilinx/Prj/pro/Video_Processing/src/rtl/eth/crc32_d8.v:5]
-INFO: [Synth 8-6155] done synthesizing module 'arp' (0#1) [D:/Xilinx/Prj/pro/Video_Processing/src/rtl/eth/arp.v:4]
-INFO: [Synth 8-6157] synthesizing module 'icmp' [D:/Xilinx/Prj/pro/Video_Processing/src/rtl/eth/icmp.v:6]
-	Parameter BOARD_MAC bound to: 48'b000000000001000100100010001100110100010001010101 
-	Parameter BOARD_IP bound to: -1062731510 - type: integer 
-INFO: [Synth 8-6157] synthesizing module 'icmp_rx' [D:/Xilinx/Prj/pro/Video_Processing/src/rtl/eth/icmp_rx.v:7]
-	Parameter BOARD_MAC bound to: 48'b000000000001000100100010001100110100010001010101 
-	Parameter BOARD_IP bound to: -1062731510 - type: integer 
-INFO: [Synth 8-6155] done synthesizing module 'icmp_rx' (0#1) [D:/Xilinx/Prj/pro/Video_Processing/src/rtl/eth/icmp_rx.v:7]
-INFO: [Synth 8-6157] synthesizing module 'icmp_tx' [D:/Xilinx/Prj/pro/Video_Processing/src/rtl/eth/icmp_tx.v:8]
+INFO: [Synth 8-6155] done synthesizing module 'arp_rx' (0#1) [<repo>/src/rtl/eth/arp_rx.v:6]
+INFO: [Synth 8-6157] synthesizing module 'arp_tx' [<repo>/src/rtl/eth/arp_tx.v:6]
 	Parameter BOARD_MAC bound to: 48'b000000000001000100100010001100110100010001010101 
 	Parameter BOARD_IP bound to: -1062731510 - type: integer 
 	Parameter DES_MAC bound to: 48'b111111111111111111111111111111111111111111111111 
 	Parameter DES_IP bound to: -1062731418 - type: integer 
-INFO: [Synth 8-6155] done synthesizing module 'icmp_tx' (0#1) [D:/Xilinx/Prj/pro/Video_Processing/src/rtl/eth/icmp_tx.v:8]
-INFO: [Synth 8-6155] done synthesizing module 'icmp' (0#1) [D:/Xilinx/Prj/pro/Video_Processing/src/rtl/eth/icmp.v:6]
-INFO: [Synth 8-6157] synthesizing module 'udp_tx' [D:/Xilinx/Prj/pro/Video_Processing/src/rtl/eth/udp_tx.v:7]
+INFO: [Synth 8-6155] done synthesizing module 'arp_tx' (0#1) [<repo>/src/rtl/eth/arp_tx.v:6]
+INFO: [Synth 8-6157] synthesizing module 'crc32_d8' [<repo>/src/rtl/eth/crc32_d8.v:5]
+INFO: [Synth 8-6155] done synthesizing module 'crc32_d8' (0#1) [<repo>/src/rtl/eth/crc32_d8.v:5]
+INFO: [Synth 8-6155] done synthesizing module 'arp' (0#1) [<repo>/src/rtl/eth/arp.v:4]
+INFO: [Synth 8-6157] synthesizing module 'icmp' [<repo>/src/rtl/eth/icmp.v:6]
 	Parameter BOARD_MAC bound to: 48'b000000000001000100100010001100110100010001010101 
 	Parameter BOARD_IP bound to: -1062731510 - type: integer 
-INFO: [Synth 8-6155] done synthesizing module 'udp_tx' (0#1) [D:/Xilinx/Prj/pro/Video_Processing/src/rtl/eth/udp_tx.v:7]
-INFO: [Synth 8-6157] synthesizing module 'gmii_rx_mac' [D:/Xilinx/Prj/pro/Video_Processing/src/rtl/eth/gmii_rx_mac.v:8]
-INFO: [Synth 8-6155] done synthesizing module 'gmii_rx_mac' (0#1) [D:/Xilinx/Prj/pro/Video_Processing/src/rtl/eth/gmii_rx_mac.v:8]
-INFO: [Synth 8-6157] synthesizing module 'udp_rx_parser' [D:/Xilinx/Prj/pro/Video_Processing/src/rtl/eth/udp_rx_parser.v:4]
+INFO: [Synth 8-6157] synthesizing module 'icmp_rx' [<repo>/src/rtl/eth/icmp_rx.v:7]
+	Parameter BOARD_MAC bound to: 48'b000000000001000100100010001100110100010001010101 
+	Parameter BOARD_IP bound to: -1062731510 - type: integer 
+INFO: [Synth 8-6155] done synthesizing module 'icmp_rx' (0#1) [<repo>/src/rtl/eth/icmp_rx.v:7]
+INFO: [Synth 8-6157] synthesizing module 'icmp_tx' [<repo>/src/rtl/eth/icmp_tx.v:8]
+	Parameter BOARD_MAC bound to: 48'b000000000001000100100010001100110100010001010101 
+	Parameter BOARD_IP bound to: -1062731510 - type: integer 
+	Parameter DES_MAC bound to: 48'b111111111111111111111111111111111111111111111111 
+	Parameter DES_IP bound to: -1062731418 - type: integer 
+INFO: [Synth 8-6155] done synthesizing module 'icmp_tx' (0#1) [<repo>/src/rtl/eth/icmp_tx.v:8]
+INFO: [Synth 8-6155] done synthesizing module 'icmp' (0#1) [<repo>/src/rtl/eth/icmp.v:6]
+INFO: [Synth 8-6157] synthesizing module 'udp_tx' [<repo>/src/rtl/eth/udp_tx.v:7]
+	Parameter BOARD_MAC bound to: 48'b000000000001000100100010001100110100010001010101 
+	Parameter BOARD_IP bound to: -1062731510 - type: integer 
+INFO: [Synth 8-6155] done synthesizing module 'udp_tx' (0#1) [<repo>/src/rtl/eth/udp_tx.v:7]
+INFO: [Synth 8-6157] synthesizing module 'gmii_rx_mac' [<repo>/src/rtl/eth/gmii_rx_mac.v:8]
+INFO: [Synth 8-6155] done synthesizing module 'gmii_rx_mac' (0#1) [<repo>/src/rtl/eth/gmii_rx_mac.v:8]
+INFO: [Synth 8-6157] synthesizing module 'udp_rx_parser' [<repo>/src/rtl/eth/udp_rx_parser.v:4]
 	Parameter UDP_PORT bound to: 16'b0001001110001001 
-INFO: [Synth 8-6155] done synthesizing module 'udp_rx_parser' (0#1) [D:/Xilinx/Prj/pro/Video_Processing/src/rtl/eth/udp_rx_parser.v:4]
-INFO: [Synth 8-6157] synthesizing module 'eth_ctrl' [D:/Xilinx/Prj/pro/Video_Processing/src/rtl/eth/eth_ctrl.v:6]
-INFO: [Synth 8-6155] done synthesizing module 'eth_ctrl' (0#1) [D:/Xilinx/Prj/pro/Video_Processing/src/rtl/eth/eth_ctrl.v:6]
-INFO: [Synth 8-6157] synthesizing module 'frame_reasm' [D:/Xilinx/Prj/pro/Video_Processing/src/rtl/eth/frame_reasm.v:8]
+INFO: [Synth 8-6155] done synthesizing module 'udp_rx_parser' (0#1) [<repo>/src/rtl/eth/udp_rx_parser.v:4]
+INFO: [Synth 8-6157] synthesizing module 'eth_ctrl' [<repo>/src/rtl/eth/eth_ctrl.v:6]
+INFO: [Synth 8-6155] done synthesizing module 'eth_ctrl' (0#1) [<repo>/src/rtl/eth/eth_ctrl.v:6]
+INFO: [Synth 8-6157] synthesizing module 'frame_reasm' [<repo>/src/rtl/eth/frame_reasm.v:8]
 	Parameter IMG_W bound to: 16'b0000001000000000 
 	Parameter IMG_H bound to: 16'b0000000100101100 
 	Parameter FRAME_BYTES bound to: 307200 - type: integer 
-INFO: [Synth 8-6155] done synthesizing module 'frame_reasm' (0#1) [D:/Xilinx/Prj/pro/Video_Processing/src/rtl/eth/frame_reasm.v:8]
-INFO: [Synth 8-6157] synthesizing module 'link_monitor' [D:/Xilinx/Prj/pro/Video_Processing/src/rtl/eth/link_monitor.v:8]
+INFO: [Synth 8-6155] done synthesizing module 'frame_reasm' (0#1) [<repo>/src/rtl/eth/frame_reasm.v:8]
+INFO: [Synth 8-6157] synthesizing module 'link_monitor' [<repo>/src/rtl/eth/link_monitor.v:8]
 	Parameter CLK_HZ bound to: 125000000 - type: integer 
 	Parameter LIVE_MS bound to: 16'b0000000011001000 
-INFO: [Synth 8-6155] done synthesizing module 'link_monitor' (0#1) [D:/Xilinx/Prj/pro/Video_Processing/src/rtl/eth/link_monitor.v:8]
-INFO: [Synth 8-6157] synthesizing module 'dc_fifo' [D:/Xilinx/Prj/pro/Video_Processing/src/rtl/eth/dc_fifo.v:3]
+INFO: [Synth 8-6155] done synthesizing module 'link_monitor' (0#1) [<repo>/src/rtl/eth/link_monitor.v:8]
+INFO: [Synth 8-6157] synthesizing module 'dc_fifo' [<repo>/src/rtl/eth/dc_fifo.v:3]
 	Parameter DATA_W bound to: 36 - type: integer 
 	Parameter ADDR_W bound to: 13 - type: integer 
-INFO: [Synth 8-6155] done synthesizing module 'dc_fifo' (0#1) [D:/Xilinx/Prj/pro/Video_Processing/src/rtl/eth/dc_fifo.v:3]
-INFO: [Synth 8-6157] synthesizing module 'ddr_bank_commit' [D:/Xilinx/Prj/pro/Video_Processing/src/rtl/eth/ddr_bank_commit.v:8]
+INFO: [Synth 8-6155] done synthesizing module 'dc_fifo' (0#1) [<repo>/src/rtl/eth/dc_fifo.v:3]
+INFO: [Synth 8-6157] synthesizing module 'ddr_bank_commit' [<repo>/src/rtl/eth/ddr_bank_commit.v:8]
 	Parameter BANK0 bound to: 268435456 - type: integer 
 	Parameter BANK1 bound to: 32'b00010000000010000000000000000000 
 	Parameter TAIL_GUARD bound to: 1'b1 
-INFO: [Synth 8-6155] done synthesizing module 'ddr_bank_commit' (0#1) [D:/Xilinx/Prj/pro/Video_Processing/src/rtl/eth/ddr_bank_commit.v:8]
-INFO: [Synth 8-6157] synthesizing module 'axi_frame_saver64' [D:/Xilinx/Prj/pro/Video_Processing/src/rtl/eth/axi_frame_saver64.v:8]
+INFO: [Synth 8-6155] done synthesizing module 'ddr_bank_commit' (0#1) [<repo>/src/rtl/eth/ddr_bank_commit.v:8]
+INFO: [Synth 8-6157] synthesizing module 'axi_frame_saver64' [<repo>/src/rtl/eth/axi_frame_saver64.v:8]
 	Parameter BASE_ADDR bound to: 268435456 - type: integer 
-INFO: [Synth 8-6155] done synthesizing module 'axi_frame_saver64' (0#1) [D:/Xilinx/Prj/pro/Video_Processing/src/rtl/eth/axi_frame_saver64.v:8]
-INFO: [Synth 8-6155] done synthesizing module 'eth_udp_video_top' (0#1) [D:/Xilinx/Prj/pro/Video_Processing/src/rtl/eth/eth_udp_video_top.v:7]
-INFO: [Synth 8-6157] synthesizing module 'snap_cross' [D:/Xilinx/Prj/pro/Video_Processing/src/rtl/eth/snap_cross.v:8]
+INFO: [Synth 8-6155] done synthesizing module 'axi_frame_saver64' (0#1) [<repo>/src/rtl/eth/axi_frame_saver64.v:8]
+INFO: [Synth 8-6155] done synthesizing module 'eth_udp_video_top' (0#1) [<repo>/src/rtl/eth/eth_udp_video_top.v:7]
+INFO: [Synth 8-6157] synthesizing module 'snap_cross' [<repo>/src/rtl/eth/snap_cross.v:8]
 	Parameter W bound to: 320 - type: integer 
 	Parameter DST_HZ bound to: 100000000 - type: integer 
 	Parameter HB_TO_MS bound to: 200 - type: integer 
-INFO: [Synth 8-6155] done synthesizing module 'snap_cross' (0#1) [D:/Xilinx/Prj/pro/Video_Processing/src/rtl/eth/snap_cross.v:8]
-INFO: [Synth 8-6157] synthesizing module 'pl_video_top' [D:/Xilinx/Prj/pro/Video_Processing/src/rtl/top/pl_video_top.v:8]
+INFO: [Synth 8-6155] done synthesizing module 'snap_cross' (0#1) [<repo>/src/rtl/eth/snap_cross.v:8]
+INFO: [Synth 8-6157] synthesizing module 'pl_video_top' [<repo>/src/rtl/top/pl_video_top.v:8]
 	Parameter IMG_W bound to: 16'b0000001000000000 
 	Parameter IMG_H bound to: 16'b0000000100101100 
 	Parameter PANE_W bound to: 16'b0000001000000000 
 	Parameter BASE_ADDR bound to: 268435456 - type: integer 
 	Parameter PS_BASE_ADDR bound to: 269484032 - type: integer 
-INFO: [Synth 8-6157] synthesizing module 'key_debounce' [D:/Xilinx/Prj/pro/Video_Processing/src/rtl/util/key_debounce.v:18]
+INFO: [Synth 8-6157] synthesizing module 'key_debounce' [<repo>/src/rtl/util/key_debounce.v:18]
 	Parameter CNT_MAX bound to: 1000000 - type: integer 
-INFO: [Synth 8-6155] done synthesizing module 'key_debounce' (0#1) [D:/Xilinx/Prj/pro/Video_Processing/src/rtl/util/key_debounce.v:18]
-INFO: [Synth 8-6157] synthesizing module 'key_long' [D:/Xilinx/Prj/pro/Video_Processing/src/rtl/util/key_long.v:8]
+INFO: [Synth 8-6155] done synthesizing module 'key_debounce' (0#1) [<repo>/src/rtl/util/key_debounce.v:18]
+INFO: [Synth 8-6157] synthesizing module 'key_long' [<repo>/src/rtl/util/key_long.v:8]
 	Parameter HOLD_CYC bound to: 30000000 - type: integer 
 	Parameter ARM_CYC bound to: 10000000 - type: integer 
-INFO: [Synth 8-6155] done synthesizing module 'key_long' (0#1) [D:/Xilinx/Prj/pro/Video_Processing/src/rtl/util/key_long.v:8]
-INFO: [Synth 8-6157] synthesizing module 'src_mode' [D:/Xilinx/Prj/pro/Video_Processing/src/rtl/util/src_mode.v:5]
-WARNING: [Synth 8-589] replacing case/wildcard equality operator === with logical equality operator == [D:/Xilinx/Prj/pro/Video_Processing/src/rtl/util/src_mode.v:75]
-WARNING: [Synth 8-589] replacing case/wildcard equality operator === with logical equality operator == [D:/Xilinx/Prj/pro/Video_Processing/src/rtl/util/src_mode.v:75]
-WARNING: [Synth 8-589] replacing case/wildcard equality operator !== with logical equality operator != [D:/Xilinx/Prj/pro/Video_Processing/src/rtl/util/src_mode.v:75]
-WARNING: [Synth 8-589] replacing case/wildcard equality operator !== with logical equality operator != [D:/Xilinx/Prj/pro/Video_Processing/src/rtl/util/src_mode.v:85]
-INFO: [Synth 8-6155] done synthesizing module 'src_mode' (0#1) [D:/Xilinx/Prj/pro/Video_Processing/src/rtl/util/src_mode.v:5]
-INFO: [Synth 8-6157] synthesizing module 'angle_ctrl' [D:/Xilinx/Prj/pro/Video_Processing/src/rtl/process/rotate/angle_ctrl.v:7]
-INFO: [Synth 8-6155] done synthesizing module 'angle_ctrl' (0#1) [D:/Xilinx/Prj/pro/Video_Processing/src/rtl/process/rotate/angle_ctrl.v:7]
-INFO: [Synth 8-6157] synthesizing module 'effect_ctrl' [D:/Xilinx/Prj/pro/Video_Processing/src/rtl/process/effect_ctrl.v:8]
-INFO: [Synth 8-6155] done synthesizing module 'effect_ctrl' (0#1) [D:/Xilinx/Prj/pro/Video_Processing/src/rtl/process/effect_ctrl.v:8]
-INFO: [Synth 8-6157] synthesizing module 'video_timing_1024x600' [D:/Xilinx/Prj/pro/Video_Processing/src/rtl/video/video_timing_1024x600.v:6]
-INFO: [Synth 8-6157] synthesizing module 'video_timing' [D:/Xilinx/Prj/pro/Video_Processing/src/rtl/video/video_timing.v:4]
+INFO: [Synth 8-6155] done synthesizing module 'key_long' (0#1) [<repo>/src/rtl/util/key_long.v:8]
+INFO: [Synth 8-6157] synthesizing module 'src_mode' [<repo>/src/rtl/util/src_mode.v:5]
+WARNING: [Synth 8-589] replacing case/wildcard equality operator === with logical equality operator == [<repo>/src/rtl/util/src_mode.v:75]
+WARNING: [Synth 8-589] replacing case/wildcard equality operator === with logical equality operator == [<repo>/src/rtl/util/src_mode.v:75]
+WARNING: [Synth 8-589] replacing case/wildcard equality operator !== with logical equality operator != [<repo>/src/rtl/util/src_mode.v:75]
+WARNING: [Synth 8-589] replacing case/wildcard equality operator !== with logical equality operator != [<repo>/src/rtl/util/src_mode.v:85]
+INFO: [Synth 8-6155] done synthesizing module 'src_mode' (0#1) [<repo>/src/rtl/util/src_mode.v:5]
+INFO: [Synth 8-6157] synthesizing module 'angle_ctrl' [<repo>/src/rtl/process/rotate/angle_ctrl.v:7]
+INFO: [Synth 8-6155] done synthesizing module 'angle_ctrl' (0#1) [<repo>/src/rtl/process/rotate/angle_ctrl.v:7]
+INFO: [Synth 8-6157] synthesizing module 'effect_ctrl' [<repo>/src/rtl/process/effect_ctrl.v:8]
+INFO: [Synth 8-6155] done synthesizing module 'effect_ctrl' (0#1) [<repo>/src/rtl/process/effect_ctrl.v:8]
+INFO: [Synth 8-6157] synthesizing module 'video_timing_1024x600' [<repo>/src/rtl/video/video_timing_1024x600.v:6]
+INFO: [Synth 8-6157] synthesizing module 'video_timing' [<repo>/src/rtl/video/video_timing.v:4]
 	Parameter H_ACTIVE bound to: 1024 - type: integer 
 	Parameter V_ACTIVE bound to: 600 - type: integer 
 	Parameter H_FP bound to: 44 - type: integer 
@@ -243,137 +243,137 @@ INFO: [Synth 8-6157] synthesizing module 'video_timing' [D:/Xilinx/Prj/pro/Video
 	Parameter V_BP bound to: 16 - type: integer 
 	Parameter H_POL bound to: 1'b1 
 	Parameter V_POL bound to: 1'b0 
-INFO: [Synth 8-6155] done synthesizing module 'video_timing' (0#1) [D:/Xilinx/Prj/pro/Video_Processing/src/rtl/video/video_timing.v:4]
-INFO: [Synth 8-6155] done synthesizing module 'video_timing_1024x600' (0#1) [D:/Xilinx/Prj/pro/Video_Processing/src/rtl/video/video_timing_1024x600.v:6]
-INFO: [Synth 8-6157] synthesizing module 'zoom_fit' [D:/Xilinx/Prj/pro/Video_Processing/src/rtl/process/zoom/zoom_fit.v:8]
+INFO: [Synth 8-6155] done synthesizing module 'video_timing' (0#1) [<repo>/src/rtl/video/video_timing.v:4]
+INFO: [Synth 8-6155] done synthesizing module 'video_timing_1024x600' (0#1) [<repo>/src/rtl/video/video_timing_1024x600.v:6]
+INFO: [Synth 8-6157] synthesizing module 'zoom_fit' [<repo>/src/rtl/process/zoom/zoom_fit.v:8]
 	Parameter IMAGE_W bound to: 512 - type: integer 
 	Parameter IMAGE_H bound to: 300 - type: integer 
-INFO: [Synth 8-6157] synthesizing module 'sin_rom' [D:/Xilinx/Prj/pro/Video_Processing/src/rtl/process/rotate/sin_rom.v:3]
-INFO: [Synth 8-6155] done synthesizing module 'sin_rom' (0#1) [D:/Xilinx/Prj/pro/Video_Processing/src/rtl/process/rotate/sin_rom.v:3]
-INFO: [Synth 8-6157] synthesizing module 'cos_rom' [D:/Xilinx/Prj/pro/Video_Processing/src/rtl/process/rotate/cos_rom.v:3]
-INFO: [Synth 8-6155] done synthesizing module 'cos_rom' (0#1) [D:/Xilinx/Prj/pro/Video_Processing/src/rtl/process/rotate/cos_rom.v:3]
-INFO: [Synth 8-6155] done synthesizing module 'zoom_fit' (0#1) [D:/Xilinx/Prj/pro/Video_Processing/src/rtl/process/zoom/zoom_fit.v:8]
-INFO: [Synth 8-6157] synthesizing module 'zoom_ctrl' [D:/Xilinx/Prj/pro/Video_Processing/src/rtl/process/zoom/zoom_ctrl.v:5]
+INFO: [Synth 8-6157] synthesizing module 'sin_rom' [<repo>/src/rtl/process/rotate/sin_rom.v:3]
+INFO: [Synth 8-6155] done synthesizing module 'sin_rom' (0#1) [<repo>/src/rtl/process/rotate/sin_rom.v:3]
+INFO: [Synth 8-6157] synthesizing module 'cos_rom' [<repo>/src/rtl/process/rotate/cos_rom.v:3]
+INFO: [Synth 8-6155] done synthesizing module 'cos_rom' (0#1) [<repo>/src/rtl/process/rotate/cos_rom.v:3]
+INFO: [Synth 8-6155] done synthesizing module 'zoom_fit' (0#1) [<repo>/src/rtl/process/zoom/zoom_fit.v:8]
+INFO: [Synth 8-6157] synthesizing module 'zoom_ctrl' [<repo>/src/rtl/process/zoom/zoom_ctrl.v:5]
 	Parameter INV_LO bound to: 10'b0100000000 
 	Parameter INV_HI bound to: 10'b1000000000 
 	Parameter STEP bound to: 10'b0000000010 
-INFO: [Synth 8-6155] done synthesizing module 'zoom_ctrl' (0#1) [D:/Xilinx/Prj/pro/Video_Processing/src/rtl/process/zoom/zoom_ctrl.v:5]
-INFO: [Synth 8-6157] synthesizing module 'zoom_mapper' [D:/Xilinx/Prj/pro/Video_Processing/src/rtl/process/zoom/zoom_mapper.v:4]
+INFO: [Synth 8-6155] done synthesizing module 'zoom_ctrl' (0#1) [<repo>/src/rtl/process/zoom/zoom_ctrl.v:5]
+INFO: [Synth 8-6157] synthesizing module 'zoom_mapper' [<repo>/src/rtl/process/zoom/zoom_mapper.v:4]
 	Parameter IMAGE_W bound to: 16'b0000001000000000 
 	Parameter IMAGE_H bound to: 16'b0000000100101100 
-INFO: [Synth 8-6155] done synthesizing module 'zoom_mapper' (0#1) [D:/Xilinx/Prj/pro/Video_Processing/src/rtl/process/zoom/zoom_mapper.v:4]
-INFO: [Synth 8-6157] synthesizing module 'src_arb' [D:/Xilinx/Prj/pro/Video_Processing/src/rtl/util/src_arb.v:17]
+INFO: [Synth 8-6155] done synthesizing module 'zoom_mapper' (0#1) [<repo>/src/rtl/process/zoom/zoom_mapper.v:4]
+INFO: [Synth 8-6157] synthesizing module 'src_arb' [<repo>/src/rtl/util/src_arb.v:17]
 	Parameter T_OFF_CYC bound to: 2000000 - type: integer 
-INFO: [Synth 8-6155] done synthesizing module 'src_arb' (0#1) [D:/Xilinx/Prj/pro/Video_Processing/src/rtl/util/src_arb.v:17]
-INFO: [Synth 8-6157] synthesizing module 'frame_commit_lock' [D:/Xilinx/Prj/pro/Video_Processing/src/rtl/video/frame_commit_lock.v:5]
+INFO: [Synth 8-6155] done synthesizing module 'src_arb' (0#1) [<repo>/src/rtl/util/src_arb.v:17]
+INFO: [Synth 8-6157] synthesizing module 'frame_commit_lock' [<repo>/src/rtl/video/frame_commit_lock.v:5]
 	Parameter IMG_H bound to: 16'b0000000100101100 
 	Parameter DISP_H bound to: 600 - type: integer 
-INFO: [Synth 8-6155] done synthesizing module 'frame_commit_lock' (0#1) [D:/Xilinx/Prj/pro/Video_Processing/src/rtl/video/frame_commit_lock.v:5]
-INFO: [Synth 8-6157] synthesizing module 'axi_frame_writer_gated' [D:/Xilinx/Prj/pro/Video_Processing/src/rtl/axi/axi_frame_writer_gated.v:8]
+INFO: [Synth 8-6155] done synthesizing module 'frame_commit_lock' (0#1) [<repo>/src/rtl/video/frame_commit_lock.v:5]
+INFO: [Synth 8-6157] synthesizing module 'axi_frame_writer_gated' [<repo>/src/rtl/axi/axi_frame_writer_gated.v:8]
 	Parameter IMG_W bound to: 16'b0000001000000000 
 	Parameter IMG_H bound to: 16'b0000000100101100 
 	Parameter BASE_ADDR bound to: 268435456 - type: integer 
-INFO: [Synth 8-6155] done synthesizing module 'axi_frame_writer_gated' (0#1) [D:/Xilinx/Prj/pro/Video_Processing/src/rtl/axi/axi_frame_writer_gated.v:8]
-INFO: [Synth 8-6157] synthesizing module 'ps_publish' [D:/Xilinx/Prj/pro/Video_Processing/src/rtl/util/ps_publish.v:9]
-INFO: [Synth 8-6155] done synthesizing module 'ps_publish' (0#1) [D:/Xilinx/Prj/pro/Video_Processing/src/rtl/util/ps_publish.v:9]
-INFO: [Synth 8-6157] synthesizing module 'src_life' [D:/Xilinx/Prj/pro/Video_Processing/src/rtl/util/src_life.v:8]
+INFO: [Synth 8-6155] done synthesizing module 'axi_frame_writer_gated' (0#1) [<repo>/src/rtl/axi/axi_frame_writer_gated.v:8]
+INFO: [Synth 8-6157] synthesizing module 'ps_publish' [<repo>/src/rtl/util/ps_publish.v:9]
+INFO: [Synth 8-6155] done synthesizing module 'ps_publish' (0#1) [<repo>/src/rtl/util/ps_publish.v:9]
+INFO: [Synth 8-6157] synthesizing module 'src_life' [<repo>/src/rtl/util/src_life.v:8]
 	Parameter CLK_HZ bound to: 50000000 - type: integer 
 	Parameter HB_TIMEOUT_MS bound to: 500 - type: integer 
-INFO: [Synth 8-6155] done synthesizing module 'src_life' (0#1) [D:/Xilinx/Prj/pro/Video_Processing/src/rtl/util/src_life.v:8]
-INFO: [Synth 8-6157] synthesizing module 'frame_latency' [D:/Xilinx/Prj/pro/Video_Processing/src/rtl/video/frame_latency.v:6]
-WARNING: [Synth 8-589] replacing case/wildcard equality operator !== with logical equality operator != [D:/Xilinx/Prj/pro/Video_Processing/src/rtl/video/frame_latency.v:121]
-WARNING: [Synth 8-589] replacing case/wildcard equality operator === with logical equality operator == [D:/Xilinx/Prj/pro/Video_Processing/src/rtl/video/frame_latency.v:123]
-WARNING: [Synth 8-589] replacing case/wildcard equality operator === with logical equality operator == [D:/Xilinx/Prj/pro/Video_Processing/src/rtl/video/frame_latency.v:124]
-WARNING: [Synth 8-589] replacing case/wildcard equality operator === with logical equality operator == [D:/Xilinx/Prj/pro/Video_Processing/src/rtl/video/frame_latency.v:125]
-WARNING: [Synth 8-589] replacing case/wildcard equality operator === with logical equality operator == [D:/Xilinx/Prj/pro/Video_Processing/src/rtl/video/frame_latency.v:172]
-INFO: [Synth 8-6155] done synthesizing module 'frame_latency' (0#1) [D:/Xilinx/Prj/pro/Video_Processing/src/rtl/video/frame_latency.v:6]
-INFO: [Synth 8-6157] synthesizing module 'zoom_snap' [D:/Xilinx/Prj/pro/Video_Processing/src/rtl/process/zoom/zoom_snap.v:8]
-INFO: [Synth 8-6155] done synthesizing module 'zoom_snap' (0#1) [D:/Xilinx/Prj/pro/Video_Processing/src/rtl/process/zoom/zoom_snap.v:8]
-INFO: [Synth 8-6157] synthesizing module 'snap_cross__parameterized0' [D:/Xilinx/Prj/pro/Video_Processing/src/rtl/eth/snap_cross.v:8]
+INFO: [Synth 8-6155] done synthesizing module 'src_life' (0#1) [<repo>/src/rtl/util/src_life.v:8]
+INFO: [Synth 8-6157] synthesizing module 'frame_latency' [<repo>/src/rtl/video/frame_latency.v:6]
+WARNING: [Synth 8-589] replacing case/wildcard equality operator !== with logical equality operator != [<repo>/src/rtl/video/frame_latency.v:121]
+WARNING: [Synth 8-589] replacing case/wildcard equality operator === with logical equality operator == [<repo>/src/rtl/video/frame_latency.v:123]
+WARNING: [Synth 8-589] replacing case/wildcard equality operator === with logical equality operator == [<repo>/src/rtl/video/frame_latency.v:124]
+WARNING: [Synth 8-589] replacing case/wildcard equality operator === with logical equality operator == [<repo>/src/rtl/video/frame_latency.v:125]
+WARNING: [Synth 8-589] replacing case/wildcard equality operator === with logical equality operator == [<repo>/src/rtl/video/frame_latency.v:172]
+INFO: [Synth 8-6155] done synthesizing module 'frame_latency' (0#1) [<repo>/src/rtl/video/frame_latency.v:6]
+INFO: [Synth 8-6157] synthesizing module 'zoom_snap' [<repo>/src/rtl/process/zoom/zoom_snap.v:8]
+INFO: [Synth 8-6155] done synthesizing module 'zoom_snap' (0#1) [<repo>/src/rtl/process/zoom/zoom_snap.v:8]
+INFO: [Synth 8-6157] synthesizing module 'snap_cross__parameterized0' [<repo>/src/rtl/eth/snap_cross.v:8]
 	Parameter W bound to: 20 - type: integer 
 	Parameter DST_HZ bound to: 100000000 - type: integer 
 	Parameter HB_TO_MS bound to: 200 - type: integer 
-INFO: [Synth 8-6155] done synthesizing module 'snap_cross__parameterized0' (0#1) [D:/Xilinx/Prj/pro/Video_Processing/src/rtl/eth/snap_cross.v:8]
-INFO: [Synth 8-6157] synthesizing module 'axi_frame_writer64' [D:/Xilinx/Prj/pro/Video_Processing/src/rtl/axi/axi_frame_writer64.v:4]
+INFO: [Synth 8-6155] done synthesizing module 'snap_cross__parameterized0' (0#1) [<repo>/src/rtl/eth/snap_cross.v:8]
+INFO: [Synth 8-6157] synthesizing module 'axi_frame_writer64' [<repo>/src/rtl/axi/axi_frame_writer64.v:4]
 	Parameter IMG_W bound to: 16'b0000001000000000 
 	Parameter IMG_H bound to: 16'b0000000100101100 
 	Parameter BASE_ADDR bound to: 269484032 - type: integer 
-INFO: [Synth 8-6155] done synthesizing module 'axi_frame_writer64' (0#1) [D:/Xilinx/Prj/pro/Video_Processing/src/rtl/axi/axi_frame_writer64.v:4]
-INFO: [Synth 8-6157] synthesizing module 'fb_bilin' [D:/Xilinx/Prj/pro/Video_Processing/src/rtl/process/bilin/fb_bilin.v:7]
+INFO: [Synth 8-6155] done synthesizing module 'axi_frame_writer64' (0#1) [<repo>/src/rtl/axi/axi_frame_writer64.v:4]
+INFO: [Synth 8-6157] synthesizing module 'fb_bilin' [<repo>/src/rtl/process/bilin/fb_bilin.v:7]
 	Parameter IMG_W bound to: 16'b0000001000000000 
 	Parameter IMG_H bound to: 16'b0000000100101100 
-INFO: [Synth 8-6157] synthesizing module 'frame_buffer_w64' [D:/Xilinx/Prj/pro/Video_Processing/src/rtl/video/frame_buffer_w64.v:8]
+INFO: [Synth 8-6157] synthesizing module 'frame_buffer_w64' [<repo>/src/rtl/video/frame_buffer_w64.v:8]
 	Parameter W bound to: 16'b0000001000000000 
 	Parameter H bound to: 16'b0000000100101100 
-INFO: [Synth 8-6155] done synthesizing module 'frame_buffer_w64' (0#1) [D:/Xilinx/Prj/pro/Video_Processing/src/rtl/video/frame_buffer_w64.v:8]
-INFO: [Synth 8-6157] synthesizing module 'bilin_lerp' [D:/Xilinx/Prj/pro/Video_Processing/src/rtl/process/bilin_lerp.v:8]
-INFO: [Synth 8-6155] done synthesizing module 'bilin_lerp' (0#1) [D:/Xilinx/Prj/pro/Video_Processing/src/rtl/process/bilin_lerp.v:8]
-INFO: [Synth 8-6155] done synthesizing module 'fb_bilin' (0#1) [D:/Xilinx/Prj/pro/Video_Processing/src/rtl/process/bilin/fb_bilin.v:7]
-INFO: [Synth 8-6157] synthesizing module 'test_card' [D:/Xilinx/Prj/pro/Video_Processing/src/rtl/video/test_card.v:8]
+INFO: [Synth 8-6155] done synthesizing module 'frame_buffer_w64' (0#1) [<repo>/src/rtl/video/frame_buffer_w64.v:8]
+INFO: [Synth 8-6157] synthesizing module 'bilin_lerp' [<repo>/src/rtl/process/bilin_lerp.v:8]
+INFO: [Synth 8-6155] done synthesizing module 'bilin_lerp' (0#1) [<repo>/src/rtl/process/bilin_lerp.v:8]
+INFO: [Synth 8-6155] done synthesizing module 'fb_bilin' (0#1) [<repo>/src/rtl/process/bilin/fb_bilin.v:7]
+INFO: [Synth 8-6157] synthesizing module 'test_card' [<repo>/src/rtl/video/test_card.v:8]
 	Parameter H_ACTIVE bound to: 16'b0000001000000000 
 	Parameter V_ACTIVE bound to: 16'b0000000100101100 
-INFO: [Synth 8-6155] done synthesizing module 'test_card' (0#1) [D:/Xilinx/Prj/pro/Video_Processing/src/rtl/video/test_card.v:8]
-INFO: [Synth 8-6157] synthesizing module 'raw_line_delay' [D:/Xilinx/Prj/pro/Video_Processing/src/rtl/video/raw_line_delay.v:8]
+INFO: [Synth 8-6155] done synthesizing module 'test_card' (0#1) [<repo>/src/rtl/video/test_card.v:8]
+INFO: [Synth 8-6157] synthesizing module 'raw_line_delay' [<repo>/src/rtl/video/raw_line_delay.v:8]
 	Parameter LINES bound to: 4 - type: integer 
 	Parameter W bound to: 1024 - type: integer 
 	Parameter DW bound to: 17 - type: integer 
-INFO: [Synth 8-6155] done synthesizing module 'raw_line_delay' (0#1) [D:/Xilinx/Prj/pro/Video_Processing/src/rtl/video/raw_line_delay.v:8]
-INFO: [Synth 8-6157] synthesizing module 'proc_pipeline' [D:/Xilinx/Prj/pro/Video_Processing/src/rtl/process/proc_pipeline.v:8]
+INFO: [Synth 8-6155] done synthesizing module 'raw_line_delay' (0#1) [<repo>/src/rtl/video/raw_line_delay.v:8]
+INFO: [Synth 8-6157] synthesizing module 'proc_pipeline' [<repo>/src/rtl/process/proc_pipeline.v:8]
 	Parameter H_ACTIVE bound to: 1024 - type: integer 
-INFO: [Synth 8-6157] synthesizing module 'gamma_lut' [D:/Xilinx/Prj/pro/Video_Processing/src/rtl/video/gamma_lut.v:8]
-WARNING: [Synth 8-589] replacing case/wildcard equality operator !== with logical equality operator != [D:/Xilinx/Prj/pro/Video_Processing/src/rtl/video/gamma_lut.v:39]
-INFO: [Synth 8-6155] done synthesizing module 'gamma_lut' (0#1) [D:/Xilinx/Prj/pro/Video_Processing/src/rtl/video/gamma_lut.v:8]
-INFO: [Synth 8-6157] synthesizing module 'proc_gray' [D:/Xilinx/Prj/pro/Video_Processing/src/rtl/process/proc_gray.v:5]
-INFO: [Synth 8-6155] done synthesizing module 'proc_gray' (0#1) [D:/Xilinx/Prj/pro/Video_Processing/src/rtl/process/proc_gray.v:5]
-INFO: [Synth 8-6157] synthesizing module 'proc_invert' [D:/Xilinx/Prj/pro/Video_Processing/src/rtl/process/proc_invert.v:5]
-INFO: [Synth 8-6155] done synthesizing module 'proc_invert' (0#1) [D:/Xilinx/Prj/pro/Video_Processing/src/rtl/process/proc_invert.v:5]
-INFO: [Synth 8-6157] synthesizing module 'proc_box_blur' [D:/Xilinx/Prj/pro/Video_Processing/src/rtl/process/proc_box_blur.v:4]
+INFO: [Synth 8-6157] synthesizing module 'gamma_lut' [<repo>/src/rtl/video/gamma_lut.v:8]
+WARNING: [Synth 8-589] replacing case/wildcard equality operator !== with logical equality operator != [<repo>/src/rtl/video/gamma_lut.v:39]
+INFO: [Synth 8-6155] done synthesizing module 'gamma_lut' (0#1) [<repo>/src/rtl/video/gamma_lut.v:8]
+INFO: [Synth 8-6157] synthesizing module 'proc_gray' [<repo>/src/rtl/process/proc_gray.v:5]
+INFO: [Synth 8-6155] done synthesizing module 'proc_gray' (0#1) [<repo>/src/rtl/process/proc_gray.v:5]
+INFO: [Synth 8-6157] synthesizing module 'proc_invert' [<repo>/src/rtl/process/proc_invert.v:5]
+INFO: [Synth 8-6155] done synthesizing module 'proc_invert' (0#1) [<repo>/src/rtl/process/proc_invert.v:5]
+INFO: [Synth 8-6157] synthesizing module 'proc_box_blur' [<repo>/src/rtl/process/proc_box_blur.v:4]
 	Parameter H_ACTIVE bound to: 1024 - type: integer 
-INFO: [Synth 8-6155] done synthesizing module 'proc_box_blur' (0#1) [D:/Xilinx/Prj/pro/Video_Processing/src/rtl/process/proc_box_blur.v:4]
-INFO: [Synth 8-6157] synthesizing module 'proc_sharpen' [D:/Xilinx/Prj/pro/Video_Processing/src/rtl/process/proc_sharpen.v:7]
+INFO: [Synth 8-6155] done synthesizing module 'proc_box_blur' (0#1) [<repo>/src/rtl/process/proc_box_blur.v:4]
+INFO: [Synth 8-6157] synthesizing module 'proc_sharpen' [<repo>/src/rtl/process/proc_sharpen.v:7]
 	Parameter H_ACTIVE bound to: 1024 - type: integer 
-INFO: [Synth 8-6155] done synthesizing module 'proc_sharpen' (0#1) [D:/Xilinx/Prj/pro/Video_Processing/src/rtl/process/proc_sharpen.v:7]
-INFO: [Synth 8-6157] synthesizing module 'proc_sobel' [D:/Xilinx/Prj/pro/Video_Processing/src/rtl/process/proc_sobel.v:6]
+INFO: [Synth 8-6155] done synthesizing module 'proc_sharpen' (0#1) [<repo>/src/rtl/process/proc_sharpen.v:7]
+INFO: [Synth 8-6157] synthesizing module 'proc_sobel' [<repo>/src/rtl/process/proc_sobel.v:6]
 	Parameter H_ACTIVE bound to: 1024 - type: integer 
-INFO: [Synth 8-6155] done synthesizing module 'proc_sobel' (0#1) [D:/Xilinx/Prj/pro/Video_Processing/src/rtl/process/proc_sobel.v:6]
-INFO: [Synth 8-6157] synthesizing module 'proc_binary' [D:/Xilinx/Prj/pro/Video_Processing/src/rtl/process/proc_binary.v:5]
-INFO: [Synth 8-6155] done synthesizing module 'proc_binary' (0#1) [D:/Xilinx/Prj/pro/Video_Processing/src/rtl/process/proc_binary.v:5]
-INFO: [Synth 8-6157] synthesizing module 'proc_morph' [D:/Xilinx/Prj/pro/Video_Processing/src/rtl/process/proc_morph.v:8]
+INFO: [Synth 8-6155] done synthesizing module 'proc_sobel' (0#1) [<repo>/src/rtl/process/proc_sobel.v:6]
+INFO: [Synth 8-6157] synthesizing module 'proc_binary' [<repo>/src/rtl/process/proc_binary.v:5]
+INFO: [Synth 8-6155] done synthesizing module 'proc_binary' (0#1) [<repo>/src/rtl/process/proc_binary.v:5]
+INFO: [Synth 8-6157] synthesizing module 'proc_morph' [<repo>/src/rtl/process/proc_morph.v:8]
 	Parameter H_ACTIVE bound to: 1024 - type: integer 
-INFO: [Synth 8-6155] done synthesizing module 'proc_morph' (0#1) [D:/Xilinx/Prj/pro/Video_Processing/src/rtl/process/proc_morph.v:8]
-INFO: [Synth 8-6155] done synthesizing module 'proc_pipeline' (0#1) [D:/Xilinx/Prj/pro/Video_Processing/src/rtl/process/proc_pipeline.v:8]
-INFO: [Synth 8-6157] synthesizing module 'snap_cross__parameterized1' [D:/Xilinx/Prj/pro/Video_Processing/src/rtl/eth/snap_cross.v:8]
+INFO: [Synth 8-6155] done synthesizing module 'proc_morph' (0#1) [<repo>/src/rtl/process/proc_morph.v:8]
+INFO: [Synth 8-6155] done synthesizing module 'proc_pipeline' (0#1) [<repo>/src/rtl/process/proc_pipeline.v:8]
+INFO: [Synth 8-6157] synthesizing module 'snap_cross__parameterized1' [<repo>/src/rtl/eth/snap_cross.v:8]
 	Parameter W bound to: 19 - type: integer 
 	Parameter DST_HZ bound to: 50000000 - type: integer 
 	Parameter HB_TO_MS bound to: 200 - type: integer 
-INFO: [Synth 8-6155] done synthesizing module 'snap_cross__parameterized1' (0#1) [D:/Xilinx/Prj/pro/Video_Processing/src/rtl/eth/snap_cross.v:8]
-INFO: [Synth 8-6157] synthesizing module 'split_ctrl' [D:/Xilinx/Prj/pro/Video_Processing/src/rtl/video/split_ctrl.v:8]
+INFO: [Synth 8-6155] done synthesizing module 'snap_cross__parameterized1' (0#1) [<repo>/src/rtl/eth/snap_cross.v:8]
+INFO: [Synth 8-6157] synthesizing module 'split_ctrl' [<repo>/src/rtl/video/split_ctrl.v:8]
 	Parameter DISP_W bound to: 1024 - type: integer 
 	Parameter SRC_W bound to: 512 - type: integer 
 	Parameter TICK_BITS bound to: 16 - type: integer 
-INFO: [Synth 8-6155] done synthesizing module 'split_ctrl' (0#1) [D:/Xilinx/Prj/pro/Video_Processing/src/rtl/video/split_ctrl.v:8]
-INFO: [Synth 8-6157] synthesizing module 'seam_src' [D:/Xilinx/Prj/pro/Video_Processing/src/rtl/video/seam_src.v:8]
+INFO: [Synth 8-6155] done synthesizing module 'split_ctrl' (0#1) [<repo>/src/rtl/video/split_ctrl.v:8]
+INFO: [Synth 8-6157] synthesizing module 'seam_src' [<repo>/src/rtl/video/seam_src.v:8]
 	Parameter TAPS bound to: 18 - type: integer 
-INFO: [Synth 8-6155] done synthesizing module 'seam_src' (0#1) [D:/Xilinx/Prj/pro/Video_Processing/src/rtl/video/seam_src.v:8]
-INFO: [Synth 8-6157] synthesizing module 'split_display' [D:/Xilinx/Prj/pro/Video_Processing/src/rtl/video/split_display.v:4]
-INFO: [Synth 8-6155] done synthesizing module 'split_display' (0#1) [D:/Xilinx/Prj/pro/Video_Processing/src/rtl/video/split_display.v:4]
-INFO: [Synth 8-6157] synthesizing module 'shown_rate' [D:/Xilinx/Prj/pro/Video_Processing/src/rtl/util/shown_rate.v:22]
-INFO: [Synth 8-6155] done synthesizing module 'shown_rate' (0#1) [D:/Xilinx/Prj/pro/Video_Processing/src/rtl/util/shown_rate.v:22]
-INFO: [Synth 8-6157] synthesizing module 'snap_cross__parameterized2' [D:/Xilinx/Prj/pro/Video_Processing/src/rtl/eth/snap_cross.v:8]
+INFO: [Synth 8-6155] done synthesizing module 'seam_src' (0#1) [<repo>/src/rtl/video/seam_src.v:8]
+INFO: [Synth 8-6157] synthesizing module 'split_display' [<repo>/src/rtl/video/split_display.v:4]
+INFO: [Synth 8-6155] done synthesizing module 'split_display' (0#1) [<repo>/src/rtl/video/split_display.v:4]
+INFO: [Synth 8-6157] synthesizing module 'shown_rate' [<repo>/src/rtl/util/shown_rate.v:22]
+INFO: [Synth 8-6155] done synthesizing module 'shown_rate' (0#1) [<repo>/src/rtl/util/shown_rate.v:22]
+INFO: [Synth 8-6157] synthesizing module 'snap_cross__parameterized2' [<repo>/src/rtl/eth/snap_cross.v:8]
 	Parameter W bound to: 18 - type: integer 
 	Parameter DST_HZ bound to: 50000000 - type: integer 
 	Parameter HB_TO_MS bound to: 1000 - type: integer 
 	Parameter SLOW_MS bound to: 200 - type: integer 
-INFO: [Synth 8-6155] done synthesizing module 'snap_cross__parameterized2' (0#1) [D:/Xilinx/Prj/pro/Video_Processing/src/rtl/eth/snap_cross.v:8]
-INFO: [Synth 8-6157] synthesizing module 'osd_overlay' [D:/Xilinx/Prj/pro/Video_Processing/src/rtl/video/osd_overlay.v:8]
+INFO: [Synth 8-6155] done synthesizing module 'snap_cross__parameterized2' (0#1) [<repo>/src/rtl/eth/snap_cross.v:8]
+INFO: [Synth 8-6157] synthesizing module 'osd_overlay' [<repo>/src/rtl/video/osd_overlay.v:8]
 	Parameter OUT_W bound to: 1024 - type: integer 
 	Parameter OUT_H bound to: 600 - type: integer 
-INFO: [Synth 8-6155] done synthesizing module 'osd_overlay' (0#1) [D:/Xilinx/Prj/pro/Video_Processing/src/rtl/video/osd_overlay.v:8]
-INFO: [Synth 8-6157] synthesizing module 'rgb2dvi' [D:/Xilinx/Prj/pro/Video_Processing/src/rtl/hdmi/rgb2dvi.v:4]
-INFO: [Synth 8-6157] synthesizing module 'tmds_encoder' [D:/Xilinx/Prj/pro/Video_Processing/src/rtl/hdmi/tmds_encoder.v:3]
-INFO: [Synth 8-6155] done synthesizing module 'tmds_encoder' (0#1) [D:/Xilinx/Prj/pro/Video_Processing/src/rtl/hdmi/tmds_encoder.v:3]
-INFO: [Synth 8-6157] synthesizing module 'tmds_serializer' [D:/Xilinx/Prj/pro/Video_Processing/src/rtl/hdmi/tmds_serializer.v:4]
-INFO: [Synth 8-6157] synthesizing module 'OSERDESE2' [D:/Software/Vivado/2025.2.1/Vivado/scripts/rt/data/unisim_comp.v:117669]
+INFO: [Synth 8-6155] done synthesizing module 'osd_overlay' (0#1) [<repo>/src/rtl/video/osd_overlay.v:8]
+INFO: [Synth 8-6157] synthesizing module 'rgb2dvi' [<repo>/src/rtl/hdmi/rgb2dvi.v:4]
+INFO: [Synth 8-6157] synthesizing module 'tmds_encoder' [<repo>/src/rtl/hdmi/tmds_encoder.v:3]
+INFO: [Synth 8-6155] done synthesizing module 'tmds_encoder' (0#1) [<repo>/src/rtl/hdmi/tmds_encoder.v:3]
+INFO: [Synth 8-6157] synthesizing module 'tmds_serializer' [<repo>/src/rtl/hdmi/tmds_serializer.v:4]
+INFO: [Synth 8-6157] synthesizing module 'OSERDESE2' [<tools>/Vivado/scripts/rt/data/unisim_comp.v:117669]
 	Parameter DATA_RATE_OQ bound to: DDR - type: string 
 	Parameter DATA_RATE_TQ bound to: SDR - type: string 
 	Parameter DATA_WIDTH bound to: 10 - type: integer 
@@ -381,8 +381,8 @@ INFO: [Synth 8-6157] synthesizing module 'OSERDESE2' [D:/Software/Vivado/2025.2.
 	Parameter TBYTE_CTL bound to: FALSE - type: string 
 	Parameter TBYTE_SRC bound to: FALSE - type: string 
 	Parameter TRISTATE_WIDTH bound to: 1 - type: integer 
-INFO: [Synth 8-6155] done synthesizing module 'OSERDESE2' (0#1) [D:/Software/Vivado/2025.2.1/Vivado/scripts/rt/data/unisim_comp.v:117669]
-INFO: [Synth 8-6157] synthesizing module 'OSERDESE2__parameterized0' [D:/Software/Vivado/2025.2.1/Vivado/scripts/rt/data/unisim_comp.v:117669]
+INFO: [Synth 8-6155] done synthesizing module 'OSERDESE2' (0#1) [<tools>/Vivado/scripts/rt/data/unisim_comp.v:117669]
+INFO: [Synth 8-6157] synthesizing module 'OSERDESE2__parameterized0' [<tools>/Vivado/scripts/rt/data/unisim_comp.v:117669]
 	Parameter DATA_RATE_OQ bound to: DDR - type: string 
 	Parameter DATA_RATE_TQ bound to: SDR - type: string 
 	Parameter DATA_WIDTH bound to: 10 - type: integer 
@@ -390,103 +390,103 @@ INFO: [Synth 8-6157] synthesizing module 'OSERDESE2__parameterized0' [D:/Softwar
 	Parameter TBYTE_CTL bound to: FALSE - type: string 
 	Parameter TBYTE_SRC bound to: FALSE - type: string 
 	Parameter TRISTATE_WIDTH bound to: 1 - type: integer 
-INFO: [Synth 8-6155] done synthesizing module 'OSERDESE2__parameterized0' (0#1) [D:/Software/Vivado/2025.2.1/Vivado/scripts/rt/data/unisim_comp.v:117669]
-INFO: [Synth 8-6157] synthesizing module 'OBUFDS' [D:/Software/Vivado/2025.2.1/Vivado/scripts/rt/data/unisim_comp.v:113400]
-INFO: [Synth 8-6155] done synthesizing module 'OBUFDS' (0#1) [D:/Software/Vivado/2025.2.1/Vivado/scripts/rt/data/unisim_comp.v:113400]
-INFO: [Synth 8-6155] done synthesizing module 'tmds_serializer' (0#1) [D:/Xilinx/Prj/pro/Video_Processing/src/rtl/hdmi/tmds_serializer.v:4]
-INFO: [Synth 8-6155] done synthesizing module 'rgb2dvi' (0#1) [D:/Xilinx/Prj/pro/Video_Processing/src/rtl/hdmi/rgb2dvi.v:4]
-INFO: [Synth 8-6155] done synthesizing module 'pl_video_top' (0#1) [D:/Xilinx/Prj/pro/Video_Processing/src/rtl/top/pl_video_top.v:8]
-INFO: [Synth 8-6155] done synthesizing module 'system_top' (0#1) [D:/Xilinx/Prj/pro/Video_Processing/src/rtl/top/system_top.v:4]
-WARNING: [Synth 8-6014] Unused sequential element ip_head_byte_num_reg was removed.  [D:/Xilinx/Prj/pro/Video_Processing/src/rtl/eth/icmp_rx.v:130]
-WARNING: [Synth 8-6014] Unused sequential element icmp_code_reg was removed.  [D:/Xilinx/Prj/pro/Video_Processing/src/rtl/eth/icmp_rx.v:135]
-WARNING: [Synth 8-6014] Unused sequential element icmp_checksum_reg was removed.  [D:/Xilinx/Prj/pro/Video_Processing/src/rtl/eth/icmp_rx.v:136]
-WARNING: [Synth 8-6014] Unused sequential element rec_en_cnt_reg was removed.  [D:/Xilinx/Prj/pro/Video_Processing/src/rtl/eth/icmp_rx.v:146]
-WARNING: [Synth 8-7137] Register ip_head_reg[6] in module icmp_tx has both Set and reset with same priority. This may cause simulation mismatches. Consider rewriting code  [D:/Xilinx/Prj/pro/Video_Processing/src/rtl/eth/icmp_tx.v:196]
-WARNING: [Synth 8-7137] Register ip_head_reg[5] in module icmp_tx has both Set and reset with same priority. This may cause simulation mismatches. Consider rewriting code  [D:/Xilinx/Prj/pro/Video_Processing/src/rtl/eth/icmp_tx.v:196]
-WARNING: [Synth 8-7137] Register ip_head_reg[4] in module icmp_tx has both Set and reset with same priority. This may cause simulation mismatches. Consider rewriting code  [D:/Xilinx/Prj/pro/Video_Processing/src/rtl/eth/icmp_tx.v:196]
-WARNING: [Synth 8-7137] Register ip_head_reg[3] in module icmp_tx has both Set and reset with same priority. This may cause simulation mismatches. Consider rewriting code  [D:/Xilinx/Prj/pro/Video_Processing/src/rtl/eth/icmp_tx.v:196]
-WARNING: [Synth 8-7137] Register ip_head_reg[2] in module icmp_tx has both Set and reset with same priority. This may cause simulation mismatches. Consider rewriting code  [D:/Xilinx/Prj/pro/Video_Processing/src/rtl/eth/icmp_tx.v:196]
-WARNING: [Synth 8-7137] Register ip_head_reg[0] in module icmp_tx has both Set and reset with same priority. This may cause simulation mismatches. Consider rewriting code  [D:/Xilinx/Prj/pro/Video_Processing/src/rtl/eth/icmp_tx.v:196]
-WARNING: [Synth 8-7137] Register ip_head_reg[6] in module udp_tx has both Set and reset with same priority. This may cause simulation mismatches. Consider rewriting code  [D:/Xilinx/Prj/pro/Video_Processing/src/rtl/eth/udp_tx.v:160]
-WARNING: [Synth 8-7137] Register ip_head_reg[5] in module udp_tx has both Set and reset with same priority. This may cause simulation mismatches. Consider rewriting code  [D:/Xilinx/Prj/pro/Video_Processing/src/rtl/eth/udp_tx.v:160]
-WARNING: [Synth 8-7137] Register ip_head_reg[4] in module udp_tx has both Set and reset with same priority. This may cause simulation mismatches. Consider rewriting code  [D:/Xilinx/Prj/pro/Video_Processing/src/rtl/eth/udp_tx.v:160]
-WARNING: [Synth 8-7137] Register ip_head_reg[3] in module udp_tx has both Set and reset with same priority. This may cause simulation mismatches. Consider rewriting code  [D:/Xilinx/Prj/pro/Video_Processing/src/rtl/eth/udp_tx.v:160]
-WARNING: [Synth 8-7137] Register ip_head_reg[2] in module udp_tx has both Set and reset with same priority. This may cause simulation mismatches. Consider rewriting code  [D:/Xilinx/Prj/pro/Video_Processing/src/rtl/eth/udp_tx.v:160]
-WARNING: [Synth 8-7137] Register ip_head_reg[0] in module udp_tx has both Set and reset with same priority. This may cause simulation mismatches. Consider rewriting code  [D:/Xilinx/Prj/pro/Video_Processing/src/rtl/eth/udp_tx.v:160]
-WARNING: [Synth 8-6014] Unused sequential element saw_sfd_reg was removed.  [D:/Xilinx/Prj/pro/Video_Processing/src/rtl/eth/gmii_rx_mac.v:54]
-WARNING: [Synth 8-6014] Unused sequential element pkt_start_reg was removed.  [D:/Xilinx/Prj/pro/Video_Processing/src/rtl/eth/frame_reasm.v:131]
-WARNING: [Synth 8-3848] Net fifo_tx_data in module/entity eth_udp_video_top does not have driver. [D:/Xilinx/Prj/pro/Video_Processing/src/rtl/eth/eth_udp_video_top.v:114]
-WARNING: [Synth 8-7137] Register tr_reg in module bilin_lerp has both Set and reset with same priority. This may cause simulation mismatches. Consider rewriting code  [D:/Xilinx/Prj/pro/Video_Processing/src/rtl/process/bilin_lerp.v:39]
-WARNING: [Synth 8-7137] Register tg_reg in module bilin_lerp has both Set and reset with same priority. This may cause simulation mismatches. Consider rewriting code  [D:/Xilinx/Prj/pro/Video_Processing/src/rtl/process/bilin_lerp.v:40]
-WARNING: [Synth 8-7137] Register tb_reg in module bilin_lerp has both Set and reset with same priority. This may cause simulation mismatches. Consider rewriting code  [D:/Xilinx/Prj/pro/Video_Processing/src/rtl/process/bilin_lerp.v:41]
-WARNING: [Synth 8-7137] Register br_reg in module bilin_lerp has both Set and reset with same priority. This may cause simulation mismatches. Consider rewriting code  [D:/Xilinx/Prj/pro/Video_Processing/src/rtl/process/bilin_lerp.v:42]
-WARNING: [Synth 8-7137] Register bg_reg in module bilin_lerp has both Set and reset with same priority. This may cause simulation mismatches. Consider rewriting code  [D:/Xilinx/Prj/pro/Video_Processing/src/rtl/process/bilin_lerp.v:43]
-WARNING: [Synth 8-7137] Register bb_reg in module bilin_lerp has both Set and reset with same priority. This may cause simulation mismatches. Consider rewriting code  [D:/Xilinx/Prj/pro/Video_Processing/src/rtl/process/bilin_lerp.v:44]
-WARNING: [Synth 8-7137] Register fy1_reg in module bilin_lerp has both Set and reset with same priority. This may cause simulation mismatches. Consider rewriting code  [D:/Xilinx/Prj/pro/Video_Processing/src/rtl/process/bilin_lerp.v:45]
-WARNING: [Synth 8-6014] Unused sequential element q00_reg was removed.  [D:/Xilinx/Prj/pro/Video_Processing/src/rtl/process/proc_sharpen.v:76]
-WARNING: [Synth 8-6014] Unused sequential element d20_reg was removed.  [D:/Xilinx/Prj/pro/Video_Processing/src/rtl/process/proc_sobel.v:128]
-WARNING: [Synth 8-6014] Unused sequential element c20_reg was removed.  [D:/Xilinx/Prj/pro/Video_Processing/src/rtl/process/proc_morph.v:124]
-WARNING: [Synth 8-6014] Unused sequential element s_line_reg was removed.  [D:/Xilinx/Prj/pro/Video_Processing/src/rtl/video/osd_overlay.v:101]
-WARNING: [Synth 8-6014] Unused sequential element s_cidx_reg was removed.  [D:/Xilinx/Prj/pro/Video_Processing/src/rtl/video/osd_overlay.v:103]
-WARNING: [Synth 8-6014] Unused sequential element left_d_reg[0] was removed.  [D:/Xilinx/Prj/pro/Video_Processing/src/rtl/top/pl_video_top.v:362]
-WARNING: [Synth 8-6014] Unused sequential element left_d_reg[1] was removed.  [D:/Xilinx/Prj/pro/Video_Processing/src/rtl/top/pl_video_top.v:362]
-WARNING: [Synth 8-6014] Unused sequential element left_d_reg[2] was removed.  [D:/Xilinx/Prj/pro/Video_Processing/src/rtl/top/pl_video_top.v:362]
-WARNING: [Synth 8-6014] Unused sequential element left_d_reg[3] was removed.  [D:/Xilinx/Prj/pro/Video_Processing/src/rtl/top/pl_video_top.v:362]
-WARNING: [Synth 8-6014] Unused sequential element left_d_reg[4] was removed.  [D:/Xilinx/Prj/pro/Video_Processing/src/rtl/top/pl_video_top.v:362]
-WARNING: [Synth 8-6014] Unused sequential element left_d_reg[5] was removed.  [D:/Xilinx/Prj/pro/Video_Processing/src/rtl/top/pl_video_top.v:362]
-WARNING: [Synth 8-6014] Unused sequential element left_d_reg[6] was removed.  [D:/Xilinx/Prj/pro/Video_Processing/src/rtl/top/pl_video_top.v:362]
-WARNING: [Synth 8-6014] Unused sequential element left_d_reg[7] was removed.  [D:/Xilinx/Prj/pro/Video_Processing/src/rtl/top/pl_video_top.v:362]
-WARNING: [Synth 8-6014] Unused sequential element left_d_reg[8] was removed.  [D:/Xilinx/Prj/pro/Video_Processing/src/rtl/top/pl_video_top.v:362]
-WARNING: [Synth 8-6014] Unused sequential element left_d_reg[9] was removed.  [D:/Xilinx/Prj/pro/Video_Processing/src/rtl/top/pl_video_top.v:362]
-WARNING: [Synth 8-6014] Unused sequential element left_d_reg[10] was removed.  [D:/Xilinx/Prj/pro/Video_Processing/src/rtl/top/pl_video_top.v:362]
-WARNING: [Synth 8-6014] Unused sequential element left_d_reg[11] was removed.  [D:/Xilinx/Prj/pro/Video_Processing/src/rtl/top/pl_video_top.v:362]
-WARNING: [Synth 8-6014] Unused sequential element left_d_reg[12] was removed.  [D:/Xilinx/Prj/pro/Video_Processing/src/rtl/top/pl_video_top.v:362]
-WARNING: [Synth 8-6014] Unused sequential element left_d_reg[13] was removed.  [D:/Xilinx/Prj/pro/Video_Processing/src/rtl/top/pl_video_top.v:362]
-WARNING: [Synth 8-6014] Unused sequential element left_d_reg[14] was removed.  [D:/Xilinx/Prj/pro/Video_Processing/src/rtl/top/pl_video_top.v:362]
-WARNING: [Synth 8-6014] Unused sequential element left_d_reg[15] was removed.  [D:/Xilinx/Prj/pro/Video_Processing/src/rtl/top/pl_video_top.v:362]
-WARNING: [Synth 8-6014] Unused sequential element left_d_reg[16] was removed.  [D:/Xilinx/Prj/pro/Video_Processing/src/rtl/top/pl_video_top.v:362]
-WARNING: [Synth 8-6014] Unused sequential element left_d_reg[17] was removed.  [D:/Xilinx/Prj/pro/Video_Processing/src/rtl/top/pl_video_top.v:362]
-WARNING: [Synth 8-6014] Unused sequential element left_d_reg[18] was removed.  [D:/Xilinx/Prj/pro/Video_Processing/src/rtl/top/pl_video_top.v:362]
-WARNING: [Synth 8-6014] Unused sequential element left_d_reg[19] was removed.  [D:/Xilinx/Prj/pro/Video_Processing/src/rtl/top/pl_video_top.v:362]
-WARNING: [Synth 8-6014] Unused sequential element left_d_reg[20] was removed.  [D:/Xilinx/Prj/pro/Video_Processing/src/rtl/top/pl_video_top.v:362]
-WARNING: [Synth 8-6014] Unused sequential element cx_d_reg[0] was removed.  [D:/Xilinx/Prj/pro/Video_Processing/src/rtl/top/pl_video_top.v:363]
-WARNING: [Synth 8-6014] Unused sequential element cx_d_reg[1] was removed.  [D:/Xilinx/Prj/pro/Video_Processing/src/rtl/top/pl_video_top.v:363]
-WARNING: [Synth 8-6014] Unused sequential element cx_d_reg[2] was removed.  [D:/Xilinx/Prj/pro/Video_Processing/src/rtl/top/pl_video_top.v:363]
-WARNING: [Synth 8-6014] Unused sequential element cx_d_reg[3] was removed.  [D:/Xilinx/Prj/pro/Video_Processing/src/rtl/top/pl_video_top.v:363]
-WARNING: [Synth 8-6014] Unused sequential element cx_d_reg[4] was removed.  [D:/Xilinx/Prj/pro/Video_Processing/src/rtl/top/pl_video_top.v:363]
-WARNING: [Synth 8-6014] Unused sequential element cx_d_reg[5] was removed.  [D:/Xilinx/Prj/pro/Video_Processing/src/rtl/top/pl_video_top.v:363]
-WARNING: [Synth 8-6014] Unused sequential element cx_d_reg[6] was removed.  [D:/Xilinx/Prj/pro/Video_Processing/src/rtl/top/pl_video_top.v:363]
-WARNING: [Synth 8-6014] Unused sequential element cx_d_reg[7] was removed.  [D:/Xilinx/Prj/pro/Video_Processing/src/rtl/top/pl_video_top.v:363]
-WARNING: [Synth 8-6014] Unused sequential element cx_d_reg[8] was removed.  [D:/Xilinx/Prj/pro/Video_Processing/src/rtl/top/pl_video_top.v:363]
-WARNING: [Synth 8-6014] Unused sequential element cx_d_reg[9] was removed.  [D:/Xilinx/Prj/pro/Video_Processing/src/rtl/top/pl_video_top.v:363]
-WARNING: [Synth 8-6014] Unused sequential element cx_d_reg[10] was removed.  [D:/Xilinx/Prj/pro/Video_Processing/src/rtl/top/pl_video_top.v:363]
-WARNING: [Synth 8-6014] Unused sequential element cx_d_reg[11] was removed.  [D:/Xilinx/Prj/pro/Video_Processing/src/rtl/top/pl_video_top.v:363]
-WARNING: [Synth 8-6014] Unused sequential element cx_d_reg[12] was removed.  [D:/Xilinx/Prj/pro/Video_Processing/src/rtl/top/pl_video_top.v:363]
-WARNING: [Synth 8-6014] Unused sequential element cx_d_reg[13] was removed.  [D:/Xilinx/Prj/pro/Video_Processing/src/rtl/top/pl_video_top.v:363]
-WARNING: [Synth 8-6014] Unused sequential element cx_d_reg[14] was removed.  [D:/Xilinx/Prj/pro/Video_Processing/src/rtl/top/pl_video_top.v:363]
-WARNING: [Synth 8-6014] Unused sequential element cx_d_reg[15] was removed.  [D:/Xilinx/Prj/pro/Video_Processing/src/rtl/top/pl_video_top.v:363]
-WARNING: [Synth 8-6014] Unused sequential element cx_d_reg[16] was removed.  [D:/Xilinx/Prj/pro/Video_Processing/src/rtl/top/pl_video_top.v:363]
-WARNING: [Synth 8-6014] Unused sequential element cx_d_reg[17] was removed.  [D:/Xilinx/Prj/pro/Video_Processing/src/rtl/top/pl_video_top.v:363]
-WARNING: [Synth 8-6014] Unused sequential element cx_d_reg[18] was removed.  [D:/Xilinx/Prj/pro/Video_Processing/src/rtl/top/pl_video_top.v:363]
-WARNING: [Synth 8-6014] Unused sequential element cx_d_reg[19] was removed.  [D:/Xilinx/Prj/pro/Video_Processing/src/rtl/top/pl_video_top.v:363]
-WARNING: [Synth 8-6014] Unused sequential element cx_d_reg[20] was removed.  [D:/Xilinx/Prj/pro/Video_Processing/src/rtl/top/pl_video_top.v:363]
-WARNING: [Synth 8-6014] Unused sequential element cy_d_reg[4] was removed.  [D:/Xilinx/Prj/pro/Video_Processing/src/rtl/top/pl_video_top.v:363]
-WARNING: [Synth 8-6014] Unused sequential element cy_d_reg[5] was removed.  [D:/Xilinx/Prj/pro/Video_Processing/src/rtl/top/pl_video_top.v:363]
-WARNING: [Synth 8-6014] Unused sequential element cy_d_reg[6] was removed.  [D:/Xilinx/Prj/pro/Video_Processing/src/rtl/top/pl_video_top.v:363]
-WARNING: [Synth 8-6014] Unused sequential element cy_d_reg[7] was removed.  [D:/Xilinx/Prj/pro/Video_Processing/src/rtl/top/pl_video_top.v:363]
-WARNING: [Synth 8-6014] Unused sequential element cy_d_reg[8] was removed.  [D:/Xilinx/Prj/pro/Video_Processing/src/rtl/top/pl_video_top.v:363]
-WARNING: [Synth 8-6014] Unused sequential element cy_d_reg[9] was removed.  [D:/Xilinx/Prj/pro/Video_Processing/src/rtl/top/pl_video_top.v:363]
-WARNING: [Synth 8-6014] Unused sequential element cy_d_reg[10] was removed.  [D:/Xilinx/Prj/pro/Video_Processing/src/rtl/top/pl_video_top.v:363]
-WARNING: [Synth 8-6014] Unused sequential element cy_d_reg[11] was removed.  [D:/Xilinx/Prj/pro/Video_Processing/src/rtl/top/pl_video_top.v:363]
-WARNING: [Synth 8-6014] Unused sequential element cy_d_reg[12] was removed.  [D:/Xilinx/Prj/pro/Video_Processing/src/rtl/top/pl_video_top.v:363]
-WARNING: [Synth 8-6014] Unused sequential element cy_d_reg[13] was removed.  [D:/Xilinx/Prj/pro/Video_Processing/src/rtl/top/pl_video_top.v:363]
-WARNING: [Synth 8-6014] Unused sequential element cy_d_reg[14] was removed.  [D:/Xilinx/Prj/pro/Video_Processing/src/rtl/top/pl_video_top.v:363]
-WARNING: [Synth 8-6014] Unused sequential element cy_d_reg[15] was removed.  [D:/Xilinx/Prj/pro/Video_Processing/src/rtl/top/pl_video_top.v:363]
-WARNING: [Synth 8-6014] Unused sequential element cy_d_reg[16] was removed.  [D:/Xilinx/Prj/pro/Video_Processing/src/rtl/top/pl_video_top.v:363]
-WARNING: [Synth 8-6014] Unused sequential element cy_d_reg[17] was removed.  [D:/Xilinx/Prj/pro/Video_Processing/src/rtl/top/pl_video_top.v:363]
-WARNING: [Synth 8-6014] Unused sequential element cy_d_reg[18] was removed.  [D:/Xilinx/Prj/pro/Video_Processing/src/rtl/top/pl_video_top.v:363]
-WARNING: [Synth 8-6014] Unused sequential element cy_d_reg[19] was removed.  [D:/Xilinx/Prj/pro/Video_Processing/src/rtl/top/pl_video_top.v:363]
-WARNING: [Synth 8-6014] Unused sequential element cy_d_reg[20] was removed.  [D:/Xilinx/Prj/pro/Video_Processing/src/rtl/top/pl_video_top.v:363]
+INFO: [Synth 8-6155] done synthesizing module 'OSERDESE2__parameterized0' (0#1) [<tools>/Vivado/scripts/rt/data/unisim_comp.v:117669]
+INFO: [Synth 8-6157] synthesizing module 'OBUFDS' [<tools>/Vivado/scripts/rt/data/unisim_comp.v:113400]
+INFO: [Synth 8-6155] done synthesizing module 'OBUFDS' (0#1) [<tools>/Vivado/scripts/rt/data/unisim_comp.v:113400]
+INFO: [Synth 8-6155] done synthesizing module 'tmds_serializer' (0#1) [<repo>/src/rtl/hdmi/tmds_serializer.v:4]
+INFO: [Synth 8-6155] done synthesizing module 'rgb2dvi' (0#1) [<repo>/src/rtl/hdmi/rgb2dvi.v:4]
+INFO: [Synth 8-6155] done synthesizing module 'pl_video_top' (0#1) [<repo>/src/rtl/top/pl_video_top.v:8]
+INFO: [Synth 8-6155] done synthesizing module 'system_top' (0#1) [<repo>/src/rtl/top/system_top.v:4]
+WARNING: [Synth 8-6014] Unused sequential element ip_head_byte_num_reg was removed.  [<repo>/src/rtl/eth/icmp_rx.v:130]
+WARNING: [Synth 8-6014] Unused sequential element icmp_code_reg was removed.  [<repo>/src/rtl/eth/icmp_rx.v:135]
+WARNING: [Synth 8-6014] Unused sequential element icmp_checksum_reg was removed.  [<repo>/src/rtl/eth/icmp_rx.v:136]
+WARNING: [Synth 8-6014] Unused sequential element rec_en_cnt_reg was removed.  [<repo>/src/rtl/eth/icmp_rx.v:146]
+WARNING: [Synth 8-7137] Register ip_head_reg[6] in module icmp_tx has both Set and reset with same priority. This may cause simulation mismatches. Consider rewriting code  [<repo>/src/rtl/eth/icmp_tx.v:196]
+WARNING: [Synth 8-7137] Register ip_head_reg[5] in module icmp_tx has both Set and reset with same priority. This may cause simulation mismatches. Consider rewriting code  [<repo>/src/rtl/eth/icmp_tx.v:196]
+WARNING: [Synth 8-7137] Register ip_head_reg[4] in module icmp_tx has both Set and reset with same priority. This may cause simulation mismatches. Consider rewriting code  [<repo>/src/rtl/eth/icmp_tx.v:196]
+WARNING: [Synth 8-7137] Register ip_head_reg[3] in module icmp_tx has both Set and reset with same priority. This may cause simulation mismatches. Consider rewriting code  [<repo>/src/rtl/eth/icmp_tx.v:196]
+WARNING: [Synth 8-7137] Register ip_head_reg[2] in module icmp_tx has both Set and reset with same priority. This may cause simulation mismatches. Consider rewriting code  [<repo>/src/rtl/eth/icmp_tx.v:196]
+WARNING: [Synth 8-7137] Register ip_head_reg[0] in module icmp_tx has both Set and reset with same priority. This may cause simulation mismatches. Consider rewriting code  [<repo>/src/rtl/eth/icmp_tx.v:196]
+WARNING: [Synth 8-7137] Register ip_head_reg[6] in module udp_tx has both Set and reset with same priority. This may cause simulation mismatches. Consider rewriting code  [<repo>/src/rtl/eth/udp_tx.v:160]
+WARNING: [Synth 8-7137] Register ip_head_reg[5] in module udp_tx has both Set and reset with same priority. This may cause simulation mismatches. Consider rewriting code  [<repo>/src/rtl/eth/udp_tx.v:160]
+WARNING: [Synth 8-7137] Register ip_head_reg[4] in module udp_tx has both Set and reset with same priority. This may cause simulation mismatches. Consider rewriting code  [<repo>/src/rtl/eth/udp_tx.v:160]
+WARNING: [Synth 8-7137] Register ip_head_reg[3] in module udp_tx has both Set and reset with same priority. This may cause simulation mismatches. Consider rewriting code  [<repo>/src/rtl/eth/udp_tx.v:160]
+WARNING: [Synth 8-7137] Register ip_head_reg[2] in module udp_tx has both Set and reset with same priority. This may cause simulation mismatches. Consider rewriting code  [<repo>/src/rtl/eth/udp_tx.v:160]
+WARNING: [Synth 8-7137] Register ip_head_reg[0] in module udp_tx has both Set and reset with same priority. This may cause simulation mismatches. Consider rewriting code  [<repo>/src/rtl/eth/udp_tx.v:160]
+WARNING: [Synth 8-6014] Unused sequential element saw_sfd_reg was removed.  [<repo>/src/rtl/eth/gmii_rx_mac.v:54]
+WARNING: [Synth 8-6014] Unused sequential element pkt_start_reg was removed.  [<repo>/src/rtl/eth/frame_reasm.v:131]
+WARNING: [Synth 8-3848] Net fifo_tx_data in module/entity eth_udp_video_top does not have driver. [<repo>/src/rtl/eth/eth_udp_video_top.v:114]
+WARNING: [Synth 8-7137] Register tr_reg in module bilin_lerp has both Set and reset with same priority. This may cause simulation mismatches. Consider rewriting code  [<repo>/src/rtl/process/bilin_lerp.v:39]
+WARNING: [Synth 8-7137] Register tg_reg in module bilin_lerp has both Set and reset with same priority. This may cause simulation mismatches. Consider rewriting code  [<repo>/src/rtl/process/bilin_lerp.v:40]
+WARNING: [Synth 8-7137] Register tb_reg in module bilin_lerp has both Set and reset with same priority. This may cause simulation mismatches. Consider rewriting code  [<repo>/src/rtl/process/bilin_lerp.v:41]
+WARNING: [Synth 8-7137] Register br_reg in module bilin_lerp has both Set and reset with same priority. This may cause simulation mismatches. Consider rewriting code  [<repo>/src/rtl/process/bilin_lerp.v:42]
+WARNING: [Synth 8-7137] Register bg_reg in module bilin_lerp has both Set and reset with same priority. This may cause simulation mismatches. Consider rewriting code  [<repo>/src/rtl/process/bilin_lerp.v:43]
+WARNING: [Synth 8-7137] Register bb_reg in module bilin_lerp has both Set and reset with same priority. This may cause simulation mismatches. Consider rewriting code  [<repo>/src/rtl/process/bilin_lerp.v:44]
+WARNING: [Synth 8-7137] Register fy1_reg in module bilin_lerp has both Set and reset with same priority. This may cause simulation mismatches. Consider rewriting code  [<repo>/src/rtl/process/bilin_lerp.v:45]
+WARNING: [Synth 8-6014] Unused sequential element q00_reg was removed.  [<repo>/src/rtl/process/proc_sharpen.v:76]
+WARNING: [Synth 8-6014] Unused sequential element d20_reg was removed.  [<repo>/src/rtl/process/proc_sobel.v:128]
+WARNING: [Synth 8-6014] Unused sequential element c20_reg was removed.  [<repo>/src/rtl/process/proc_morph.v:124]
+WARNING: [Synth 8-6014] Unused sequential element s_line_reg was removed.  [<repo>/src/rtl/video/osd_overlay.v:101]
+WARNING: [Synth 8-6014] Unused sequential element s_cidx_reg was removed.  [<repo>/src/rtl/video/osd_overlay.v:103]
+WARNING: [Synth 8-6014] Unused sequential element left_d_reg[0] was removed.  [<repo>/src/rtl/top/pl_video_top.v:362]
+WARNING: [Synth 8-6014] Unused sequential element left_d_reg[1] was removed.  [<repo>/src/rtl/top/pl_video_top.v:362]
+WARNING: [Synth 8-6014] Unused sequential element left_d_reg[2] was removed.  [<repo>/src/rtl/top/pl_video_top.v:362]
+WARNING: [Synth 8-6014] Unused sequential element left_d_reg[3] was removed.  [<repo>/src/rtl/top/pl_video_top.v:362]
+WARNING: [Synth 8-6014] Unused sequential element left_d_reg[4] was removed.  [<repo>/src/rtl/top/pl_video_top.v:362]
+WARNING: [Synth 8-6014] Unused sequential element left_d_reg[5] was removed.  [<repo>/src/rtl/top/pl_video_top.v:362]
+WARNING: [Synth 8-6014] Unused sequential element left_d_reg[6] was removed.  [<repo>/src/rtl/top/pl_video_top.v:362]
+WARNING: [Synth 8-6014] Unused sequential element left_d_reg[7] was removed.  [<repo>/src/rtl/top/pl_video_top.v:362]
+WARNING: [Synth 8-6014] Unused sequential element left_d_reg[8] was removed.  [<repo>/src/rtl/top/pl_video_top.v:362]
+WARNING: [Synth 8-6014] Unused sequential element left_d_reg[9] was removed.  [<repo>/src/rtl/top/pl_video_top.v:362]
+WARNING: [Synth 8-6014] Unused sequential element left_d_reg[10] was removed.  [<repo>/src/rtl/top/pl_video_top.v:362]
+WARNING: [Synth 8-6014] Unused sequential element left_d_reg[11] was removed.  [<repo>/src/rtl/top/pl_video_top.v:362]
+WARNING: [Synth 8-6014] Unused sequential element left_d_reg[12] was removed.  [<repo>/src/rtl/top/pl_video_top.v:362]
+WARNING: [Synth 8-6014] Unused sequential element left_d_reg[13] was removed.  [<repo>/src/rtl/top/pl_video_top.v:362]
+WARNING: [Synth 8-6014] Unused sequential element left_d_reg[14] was removed.  [<repo>/src/rtl/top/pl_video_top.v:362]
+WARNING: [Synth 8-6014] Unused sequential element left_d_reg[15] was removed.  [<repo>/src/rtl/top/pl_video_top.v:362]
+WARNING: [Synth 8-6014] Unused sequential element left_d_reg[16] was removed.  [<repo>/src/rtl/top/pl_video_top.v:362]
+WARNING: [Synth 8-6014] Unused sequential element left_d_reg[17] was removed.  [<repo>/src/rtl/top/pl_video_top.v:362]
+WARNING: [Synth 8-6014] Unused sequential element left_d_reg[18] was removed.  [<repo>/src/rtl/top/pl_video_top.v:362]
+WARNING: [Synth 8-6014] Unused sequential element left_d_reg[19] was removed.  [<repo>/src/rtl/top/pl_video_top.v:362]
+WARNING: [Synth 8-6014] Unused sequential element left_d_reg[20] was removed.  [<repo>/src/rtl/top/pl_video_top.v:362]
+WARNING: [Synth 8-6014] Unused sequential element cx_d_reg[0] was removed.  [<repo>/src/rtl/top/pl_video_top.v:363]
+WARNING: [Synth 8-6014] Unused sequential element cx_d_reg[1] was removed.  [<repo>/src/rtl/top/pl_video_top.v:363]
+WARNING: [Synth 8-6014] Unused sequential element cx_d_reg[2] was removed.  [<repo>/src/rtl/top/pl_video_top.v:363]
+WARNING: [Synth 8-6014] Unused sequential element cx_d_reg[3] was removed.  [<repo>/src/rtl/top/pl_video_top.v:363]
+WARNING: [Synth 8-6014] Unused sequential element cx_d_reg[4] was removed.  [<repo>/src/rtl/top/pl_video_top.v:363]
+WARNING: [Synth 8-6014] Unused sequential element cx_d_reg[5] was removed.  [<repo>/src/rtl/top/pl_video_top.v:363]
+WARNING: [Synth 8-6014] Unused sequential element cx_d_reg[6] was removed.  [<repo>/src/rtl/top/pl_video_top.v:363]
+WARNING: [Synth 8-6014] Unused sequential element cx_d_reg[7] was removed.  [<repo>/src/rtl/top/pl_video_top.v:363]
+WARNING: [Synth 8-6014] Unused sequential element cx_d_reg[8] was removed.  [<repo>/src/rtl/top/pl_video_top.v:363]
+WARNING: [Synth 8-6014] Unused sequential element cx_d_reg[9] was removed.  [<repo>/src/rtl/top/pl_video_top.v:363]
+WARNING: [Synth 8-6014] Unused sequential element cx_d_reg[10] was removed.  [<repo>/src/rtl/top/pl_video_top.v:363]
+WARNING: [Synth 8-6014] Unused sequential element cx_d_reg[11] was removed.  [<repo>/src/rtl/top/pl_video_top.v:363]
+WARNING: [Synth 8-6014] Unused sequential element cx_d_reg[12] was removed.  [<repo>/src/rtl/top/pl_video_top.v:363]
+WARNING: [Synth 8-6014] Unused sequential element cx_d_reg[13] was removed.  [<repo>/src/rtl/top/pl_video_top.v:363]
+WARNING: [Synth 8-6014] Unused sequential element cx_d_reg[14] was removed.  [<repo>/src/rtl/top/pl_video_top.v:363]
+WARNING: [Synth 8-6014] Unused sequential element cx_d_reg[15] was removed.  [<repo>/src/rtl/top/pl_video_top.v:363]
+WARNING: [Synth 8-6014] Unused sequential element cx_d_reg[16] was removed.  [<repo>/src/rtl/top/pl_video_top.v:363]
+WARNING: [Synth 8-6014] Unused sequential element cx_d_reg[17] was removed.  [<repo>/src/rtl/top/pl_video_top.v:363]
+WARNING: [Synth 8-6014] Unused sequential element cx_d_reg[18] was removed.  [<repo>/src/rtl/top/pl_video_top.v:363]
+WARNING: [Synth 8-6014] Unused sequential element cx_d_reg[19] was removed.  [<repo>/src/rtl/top/pl_video_top.v:363]
+WARNING: [Synth 8-6014] Unused sequential element cx_d_reg[20] was removed.  [<repo>/src/rtl/top/pl_video_top.v:363]
+WARNING: [Synth 8-6014] Unused sequential element cy_d_reg[4] was removed.  [<repo>/src/rtl/top/pl_video_top.v:363]
+WARNING: [Synth 8-6014] Unused sequential element cy_d_reg[5] was removed.  [<repo>/src/rtl/top/pl_video_top.v:363]
+WARNING: [Synth 8-6014] Unused sequential element cy_d_reg[6] was removed.  [<repo>/src/rtl/top/pl_video_top.v:363]
+WARNING: [Synth 8-6014] Unused sequential element cy_d_reg[7] was removed.  [<repo>/src/rtl/top/pl_video_top.v:363]
+WARNING: [Synth 8-6014] Unused sequential element cy_d_reg[8] was removed.  [<repo>/src/rtl/top/pl_video_top.v:363]
+WARNING: [Synth 8-6014] Unused sequential element cy_d_reg[9] was removed.  [<repo>/src/rtl/top/pl_video_top.v:363]
+WARNING: [Synth 8-6014] Unused sequential element cy_d_reg[10] was removed.  [<repo>/src/rtl/top/pl_video_top.v:363]
+WARNING: [Synth 8-6014] Unused sequential element cy_d_reg[11] was removed.  [<repo>/src/rtl/top/pl_video_top.v:363]
+WARNING: [Synth 8-6014] Unused sequential element cy_d_reg[12] was removed.  [<repo>/src/rtl/top/pl_video_top.v:363]
+WARNING: [Synth 8-6014] Unused sequential element cy_d_reg[13] was removed.  [<repo>/src/rtl/top/pl_video_top.v:363]
+WARNING: [Synth 8-6014] Unused sequential element cy_d_reg[14] was removed.  [<repo>/src/rtl/top/pl_video_top.v:363]
+WARNING: [Synth 8-6014] Unused sequential element cy_d_reg[15] was removed.  [<repo>/src/rtl/top/pl_video_top.v:363]
+WARNING: [Synth 8-6014] Unused sequential element cy_d_reg[16] was removed.  [<repo>/src/rtl/top/pl_video_top.v:363]
+WARNING: [Synth 8-6014] Unused sequential element cy_d_reg[17] was removed.  [<repo>/src/rtl/top/pl_video_top.v:363]
+WARNING: [Synth 8-6014] Unused sequential element cy_d_reg[18] was removed.  [<repo>/src/rtl/top/pl_video_top.v:363]
+WARNING: [Synth 8-6014] Unused sequential element cy_d_reg[19] was removed.  [<repo>/src/rtl/top/pl_video_top.v:363]
+WARNING: [Synth 8-6014] Unused sequential element cy_d_reg[20] was removed.  [<repo>/src/rtl/top/pl_video_top.v:363]
 WARNING: [Synth 8-3917] design system_top has port eth_mdc driven by constant 0
 WARNING: [Synth 8-7129] Port bg_pix[15] in module osd_overlay is either unconnected or has no load
 WARNING: [Synth 8-7129] Port bg_pix[14] in module osd_overlay is either unconnected or has no load
@@ -608,24 +608,24 @@ INFO: [Project 1-570] Preparing netlist for logic optimization
 
 Processing XDC Constraints
 Initializing timing engine
-Parsing XDC File [d:/Xilinx/Prj/pro/Video_Processing/vivado_system/zynq_video_sys.gen/sources_1/bd/design_1/ip/design_1_processing_system7_0_0/design_1_processing_system7_0_0/design_1_processing_system7_0_0_in_context.xdc] for cell 'u_bd/design_1_i/processing_system7_0'
-Finished Parsing XDC File [d:/Xilinx/Prj/pro/Video_Processing/vivado_system/zynq_video_sys.gen/sources_1/bd/design_1/ip/design_1_processing_system7_0_0/design_1_processing_system7_0_0/design_1_processing_system7_0_0_in_context.xdc] for cell 'u_bd/design_1_i/processing_system7_0'
-Parsing XDC File [d:/Xilinx/Prj/pro/Video_Processing/vivado_system/zynq_video_sys.gen/sources_1/bd/design_1/ip/design_1_axi_gpio_0_0/design_1_axi_gpio_0_0/design_1_axi_gpio_0_0_in_context.xdc] for cell 'u_bd/design_1_i/axi_gpio_0'
-Finished Parsing XDC File [d:/Xilinx/Prj/pro/Video_Processing/vivado_system/zynq_video_sys.gen/sources_1/bd/design_1/ip/design_1_axi_gpio_0_0/design_1_axi_gpio_0_0/design_1_axi_gpio_0_0_in_context.xdc] for cell 'u_bd/design_1_i/axi_gpio_0'
-Parsing XDC File [d:/Xilinx/Prj/pro/Video_Processing/vivado_system/zynq_video_sys.gen/sources_1/bd/design_1/ip/design_1_axi_gpio_1_0/design_1_axi_gpio_1_0/design_1_axi_gpio_1_0_in_context.xdc] for cell 'u_bd/design_1_i/axi_gpio_1'
-Finished Parsing XDC File [d:/Xilinx/Prj/pro/Video_Processing/vivado_system/zynq_video_sys.gen/sources_1/bd/design_1/ip/design_1_axi_gpio_1_0/design_1_axi_gpio_1_0/design_1_axi_gpio_1_0_in_context.xdc] for cell 'u_bd/design_1_i/axi_gpio_1'
-Parsing XDC File [d:/Xilinx/Prj/pro/Video_Processing/vivado_system/zynq_video_sys.gen/sources_1/bd/design_1/ip/design_1_axi_gpio_2_0/design_1_axi_gpio_2_0/design_1_axi_gpio_2_0_in_context.xdc] for cell 'u_bd/design_1_i/axi_gpio_2'
-Finished Parsing XDC File [d:/Xilinx/Prj/pro/Video_Processing/vivado_system/zynq_video_sys.gen/sources_1/bd/design_1/ip/design_1_axi_gpio_2_0/design_1_axi_gpio_2_0/design_1_axi_gpio_2_0_in_context.xdc] for cell 'u_bd/design_1_i/axi_gpio_2'
-Parsing XDC File [d:/Xilinx/Prj/pro/Video_Processing/vivado_system/zynq_video_sys.gen/sources_1/bd/design_1/ip/design_1_axi_gp0_ic_imp_xbar_0/design_1_axi_gp0_ic_imp_xbar_0/design_1_axi_gp0_ic_imp_xbar_0_in_context.xdc] for cell 'u_bd/design_1_i/axi_gp0_ic/xbar'
-Finished Parsing XDC File [d:/Xilinx/Prj/pro/Video_Processing/vivado_system/zynq_video_sys.gen/sources_1/bd/design_1/ip/design_1_axi_gp0_ic_imp_xbar_0/design_1_axi_gp0_ic_imp_xbar_0/design_1_axi_gp0_ic_imp_xbar_0_in_context.xdc] for cell 'u_bd/design_1_i/axi_gp0_ic/xbar'
-Parsing XDC File [d:/Xilinx/Prj/pro/Video_Processing/vivado_system/zynq_video_sys.gen/sources_1/bd/design_1/ip/design_1_axi_gp0_ic_imp_auto_pc_0/design_1_axi_gp0_ic_imp_auto_pc_0/design_1_axi_gp0_ic_imp_auto_pc_0_in_context.xdc] for cell 'u_bd/design_1_i/axi_gp0_ic/s00_couplers/auto_pc'
-Finished Parsing XDC File [d:/Xilinx/Prj/pro/Video_Processing/vivado_system/zynq_video_sys.gen/sources_1/bd/design_1/ip/design_1_axi_gp0_ic_imp_auto_pc_0/design_1_axi_gp0_ic_imp_auto_pc_0/design_1_axi_gp0_ic_imp_auto_pc_0_in_context.xdc] for cell 'u_bd/design_1_i/axi_gp0_ic/s00_couplers/auto_pc'
-Parsing XDC File [D:/Xilinx/Prj/pro/Video_Processing/src/constraints/rk_zynq7020.xdc]
-Finished Parsing XDC File [D:/Xilinx/Prj/pro/Video_Processing/src/constraints/rk_zynq7020.xdc]
-INFO: [Project 1-236] Implementation specific constraints were found while reading constraint file [D:/Xilinx/Prj/pro/Video_Processing/src/constraints/rk_zynq7020.xdc]. These constraints will be ignored for synthesis but will be used in implementation. Impacted constraints are listed in the file [.Xil/system_top_propImpl.xdc].
+Parsing XDC File [<repo>/vivado_system/zynq_video_sys.gen/sources_1/bd/design_1/ip/design_1_processing_system7_0_0/design_1_processing_system7_0_0/design_1_processing_system7_0_0_in_context.xdc] for cell 'u_bd/design_1_i/processing_system7_0'
+Finished Parsing XDC File [<repo>/vivado_system/zynq_video_sys.gen/sources_1/bd/design_1/ip/design_1_processing_system7_0_0/design_1_processing_system7_0_0/design_1_processing_system7_0_0_in_context.xdc] for cell 'u_bd/design_1_i/processing_system7_0'
+Parsing XDC File [<repo>/vivado_system/zynq_video_sys.gen/sources_1/bd/design_1/ip/design_1_axi_gpio_0_0/design_1_axi_gpio_0_0/design_1_axi_gpio_0_0_in_context.xdc] for cell 'u_bd/design_1_i/axi_gpio_0'
+Finished Parsing XDC File [<repo>/vivado_system/zynq_video_sys.gen/sources_1/bd/design_1/ip/design_1_axi_gpio_0_0/design_1_axi_gpio_0_0/design_1_axi_gpio_0_0_in_context.xdc] for cell 'u_bd/design_1_i/axi_gpio_0'
+Parsing XDC File [<repo>/vivado_system/zynq_video_sys.gen/sources_1/bd/design_1/ip/design_1_axi_gpio_1_0/design_1_axi_gpio_1_0/design_1_axi_gpio_1_0_in_context.xdc] for cell 'u_bd/design_1_i/axi_gpio_1'
+Finished Parsing XDC File [<repo>/vivado_system/zynq_video_sys.gen/sources_1/bd/design_1/ip/design_1_axi_gpio_1_0/design_1_axi_gpio_1_0/design_1_axi_gpio_1_0_in_context.xdc] for cell 'u_bd/design_1_i/axi_gpio_1'
+Parsing XDC File [<repo>/vivado_system/zynq_video_sys.gen/sources_1/bd/design_1/ip/design_1_axi_gpio_2_0/design_1_axi_gpio_2_0/design_1_axi_gpio_2_0_in_context.xdc] for cell 'u_bd/design_1_i/axi_gpio_2'
+Finished Parsing XDC File [<repo>/vivado_system/zynq_video_sys.gen/sources_1/bd/design_1/ip/design_1_axi_gpio_2_0/design_1_axi_gpio_2_0/design_1_axi_gpio_2_0_in_context.xdc] for cell 'u_bd/design_1_i/axi_gpio_2'
+Parsing XDC File [<repo>/vivado_system/zynq_video_sys.gen/sources_1/bd/design_1/ip/design_1_axi_gp0_ic_imp_xbar_0/design_1_axi_gp0_ic_imp_xbar_0/design_1_axi_gp0_ic_imp_xbar_0_in_context.xdc] for cell 'u_bd/design_1_i/axi_gp0_ic/xbar'
+Finished Parsing XDC File [<repo>/vivado_system/zynq_video_sys.gen/sources_1/bd/design_1/ip/design_1_axi_gp0_ic_imp_xbar_0/design_1_axi_gp0_ic_imp_xbar_0/design_1_axi_gp0_ic_imp_xbar_0_in_context.xdc] for cell 'u_bd/design_1_i/axi_gp0_ic/xbar'
+Parsing XDC File [<repo>/vivado_system/zynq_video_sys.gen/sources_1/bd/design_1/ip/design_1_axi_gp0_ic_imp_auto_pc_0/design_1_axi_gp0_ic_imp_auto_pc_0/design_1_axi_gp0_ic_imp_auto_pc_0_in_context.xdc] for cell 'u_bd/design_1_i/axi_gp0_ic/s00_couplers/auto_pc'
+Finished Parsing XDC File [<repo>/vivado_system/zynq_video_sys.gen/sources_1/bd/design_1/ip/design_1_axi_gp0_ic_imp_auto_pc_0/design_1_axi_gp0_ic_imp_auto_pc_0/design_1_axi_gp0_ic_imp_auto_pc_0_in_context.xdc] for cell 'u_bd/design_1_i/axi_gp0_ic/s00_couplers/auto_pc'
+Parsing XDC File [<repo>/src/constraints/rk_zynq7020.xdc]
+Finished Parsing XDC File [<repo>/src/constraints/rk_zynq7020.xdc]
+INFO: [Project 1-236] Implementation specific constraints were found while reading constraint file [<repo>/src/constraints/rk_zynq7020.xdc]. These constraints will be ignored for synthesis but will be used in implementation. Impacted constraints are listed in the file [.Xil/system_top_propImpl.xdc].
 Resolution: To avoid this warning, move constraints listed in [.Xil/system_top_propImpl.xdc] to another XDC file and exclude this new file from synthesis with the used_in_synthesis property (File Properties dialog in GUI) and re-run elaboration/synthesis.
-Parsing XDC File [D:/Xilinx/Prj/pro/Video_Processing/vivado_system/zynq_video_sys.runs/synth_1/dont_touch.xdc]
-Finished Parsing XDC File [D:/Xilinx/Prj/pro/Video_Processing/vivado_system/zynq_video_sys.runs/synth_1/dont_touch.xdc]
+Parsing XDC File [<repo>/vivado_system/zynq_video_sys.runs/synth_1/dont_touch.xdc]
+Finished Parsing XDC File [<repo>/vivado_system/zynq_video_sys.runs/synth_1/dont_touch.xdc]
 INFO: [Timing 38-2] Deriving generated clocks
 Completed Processing XDC Constraints
 
@@ -1458,6 +1458,6 @@ INFO: [Common 17-83] Releasing license: Synthesis
 synth_design completed successfully
 synth_design: Time (s): cpu = 00:05:30 ; elapsed = 00:05:56 . Memory (MB): peak = 2564.672 ; gain = 2010.309
 Write ShapeDB Complete: Time (s): cpu = 00:00:01 ; elapsed = 00:00:00.071 . Memory (MB): peak = 2564.672 ; gain = 0.000
-INFO: [Common 17-1381] The checkpoint 'D:/Xilinx/Prj/pro/Video_Processing/vivado_system/zynq_video_sys.runs/synth_1/system_top.dcp' has been generated.
+INFO: [Common 17-1381] The checkpoint '<repo>/vivado_system/zynq_video_sys.runs/synth_1/system_top.dcp' has been generated.
 INFO: [Vivado 12-24828] Executing command : report_utilization -file system_top_utilization_synth.rpt -pb system_top_utilization_synth.pb
 INFO: [Common 17-206] Exiting Vivado at Mon Oct  5 14:53:38 2026...

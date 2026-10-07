@@ -55,6 +55,9 @@ const EXEMPT = {
     { tok: 'path:docs/walkthrough/clocking-and-reset.md', why: '学习文档那一层已撤出仓库，活指路换成不含死路径的说法（导出器要求正文 0 条）', need: '本地学习文档《时钟与复位》那一章' },
   ],
   // 三条是"死名 → 活名"的改口：旧路径本来就读不到，换成的新路径当场在文件里、也在盘上。
+  'src/host/README.md': [
+    { tok: 'number:2025.2', why: '那一格旧文写的示例是 `D:/Xilinx/Vitis/2025.2/bin/xsdb.bat`——这台机器上没有这个路径（实核：xsdb.bat 在套件目录的 `Vitis/bin/` 下，版本号是 2025.2.1 而不是 2025.2），本机路径按 r129 的口径换成占位符之后，跟着死路径一起消失的是那个错版本号；工具版本本身写在 `report/build.md` 的版本表里，不在这张参数表里重复', need: '<Vitis>/bin/xsdb.bat' },
+  ],
   'src/host/line_cite_check.mjs': [
     { tok: 'path:skills/criterion_blind_spot.md', why: '旧包平铺名换成现役条目', need: 'skills/pitfalls/ruler-fake-greens/SKILL.md' },
   ],
@@ -157,7 +160,7 @@ const DERIVED = {
 // 记号少了一种读法 ≠ 记号没了：`30.0` 后面接了个中文句号、或 `1.5 MB` 并入 `1.5MB`，
 // 正则的边界会把同一个字串读成不同的 token。所以先按字面数一遍，字面还在就不算消失，
 // 但要把降级条数打出来——这个数本身是一条判据，异常膨胀就说明记号在漂。
-let judged = 0, lost = 0, downgraded = 0, exempted = 0, idle = 0, refused = 0, derived = 0, unmeasured = 0;
+let judged = 0, lost = 0, downgraded = 0, exempted = 0, idle = 0, refused = 0, derived = 0, unmeasured = 0, pthold = 0;
 for (const rel of files) {
   const abs = path.join(root, rel);
   if (!fs.existsSync(abs)) { console.log(`SKIP ${rel}（工作树里没有）`); continue; }
@@ -187,6 +190,14 @@ for (const rel of files) {
       if (lit >= n) { sd++; continue; }
       const ex = (EXEMPT[rel] || []).find(e => e.tok === `${k}:${tok}`);
       if (ex && substrCount(now, ex.need) >= 1) { fired.add(`${k}:${tok}`); exempted++; continue; }
+      // 规则式豁免（2026-10-07 本机路径占位符化，`build/r129_path_sanitize.mjs`）：
+      // 只有同时满足三条才放行 ⇒ 不是万能出口：
+      //   ① 记号类型是 path；② 消失的那条**本来就是本机根下的绝对路径**
+      //      （`D:/Xilinx/…` 被记号正则切成 `/Xilinx/…`，正则的边界吃掉了盘符）；
+      //      ③ 改写后的同一份文件里当场数得到占位符（`<repo>`/`<tools>`/`<board-docs>` 任一）。
+      // 少任一条照旧红：路径不是本机根形状的红（丢指路），文件里没有占位符的红（真把事实删了）。
+      if (k === 'path' && /^[/\\](?:Xilinx|Software)[/\\]/i.test(tok)
+          && /<repo>|<tools>|<board-docs>/.test(now)) { pthold++; continue; }
       lostToks.add(`${k}:${tok}`);
       gone.push(`${k}:${tok} x${n}→x${m}${lit ? '(字面' + lit : ''}`);
     }
@@ -205,5 +216,5 @@ for (const rel of files) {
   console.log(`HOLD ${rel} ${line} 边界降级=${sd} 豁免=${fired.size} 消失=${gone.length}${gone.length ? ' 例:' + gone.slice(0, 8).join(',') : ''}`);
   lost += gone.length;
 }
-console.log(`RESULT=${lost ? 'RED' : (unmeasured ? 'NOT_MEASURED' : 'OK')} 判 ${judged} 份改写件 + ${derived} 份生成件（生成件比"与生成器是否一致"）消失记号 ${lost} 个 边界降级 ${downgraded} 个 豁免生效 ${exempted} 条 豁免失效 ${refused} 条 豁免闲置 ${idle} 条 生成件未测 ${unmeasured} 份`);
+console.log(`RESULT=${lost ? 'RED' : (unmeasured ? 'NOT_MEASURED' : 'OK')} 判 ${judged} 份改写件 + ${derived} 份生成件（生成件比"与生成器是否一致"）消失记号 ${lost} 个 边界降级 ${downgraded} 个 豁免生效 ${exempted} 条 占位符豁免 ${pthold} 条 豁免失效 ${refused} 条 豁免闲置 ${idle} 条 生成件未测 ${unmeasured} 份`);
 process.exit(lost ? 1 : (unmeasured ? 3 : 0));

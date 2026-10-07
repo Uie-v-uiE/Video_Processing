@@ -46,7 +46,7 @@
 2912	4389	8120942361486395	libsrc/scutimer/src/CMakeFiles/scutimer.dir/xscutimer_selftest.c.obj	cc32831181daa2c5
 2890	4409	8120942361465972	libsrc/scutimer/src/CMakeFiles/scutimer.dir/xscutimer_g.c.obj	aef6712a8c47b304
 9	4431	0	CMakeFiles/print_compiler	20be0ed1676c8710
-9	4431	0	D:/Xilinx/Prj/pro/Video_Processing/vitis/platform/ps7_cortexa9_0/standalone_ps7_cortexa9_0/bsp/libsrc/build_configs/gen_bsp/CMakeFiles/print_compiler	20be0ed1676c8710
+9	4431	0	<repo>/vitis/platform/ps7_cortexa9_0/standalone_ps7_cortexa9_0/bsp/libsrc/build_configs/gen_bsp/CMakeFiles/print_compiler	20be0ed1676c8710
 3288	4488	8120942363065755	libsrc/sdps/src/CMakeFiles/sdps.dir/xsdps_sinit.c.obj	aac1f9a65304843e
 3174	4520	8120942363684878	libsrc/scuwdt/src/CMakeFiles/scuwdt.dir/xscuwdt_sinit.c.obj	c7be554756f21bbf
 2972	4617	8120942363795332	libsrc/scuwdt/src/CMakeFiles/scuwdt.dir/xscuwdt_g.c.obj	ced346d62b7616f2
@@ -136,7 +136,7 @@
 8132	8904	8120942409163117	libsrc/xiltimer/src/CMakeFiles/xiltimer.dir/core/default_timer/globaltimer_sleep_zynq.c.obj	990dd54513c12529
 8166	9015	8120942410831326	libsrc/xiltimer/src/CMakeFiles/xiltimer.dir/xiltimer.c.obj	80a3bd06fea9ea7f
 8353	9036	0	libsrc/CMakeFiles/combined	f09b809d8c06948f
-8353	9036	0	D:/Xilinx/Prj/pro/Video_Processing/vitis/platform/ps7_cortexa9_0/standalone_ps7_cortexa9_0/bsp/libsrc/build_configs/gen_bsp/libsrc/CMakeFiles/combined	f09b809d8c06948f
+8353	9036	0	<repo>/vitis/platform/ps7_cortexa9_0/standalone_ps7_cortexa9_0/bsp/libsrc/build_configs/gen_bsp/libsrc/CMakeFiles/combined	f09b809d8c06948f
 7880	9089	8120942411483113	libsrc/standalone/src/CMakeFiles/xilstandalone.dir/arm/cortexa9/xil_cache.c.obj	8bd955d2b63389ba
 9015	9238	8120942413162909	libsrc/xiltimer/src/libxiltimer.a	99e15709aa97d49a
 9089	9335	8120942414127654	libsrc/standalone/src/libxilstandalone.a	d84f4a46739e35ab

@@ -5,7 +5,7 @@
 ## 未覆盖 = 不是"满足"，是"没检查"。
 ##
 ## 数从哪儿来（三条，全部本地可核，抄件 build/evidence/r115_rtl8211f_delay_source.txt）：
-##   1) 原理图 `D:/Xilinx/Resource/ZYNQ7020/Board_Resource/ZYNQ7020-F+V1.1原理图.pdf` 第 8 页：
+##   1) 原理图 `<board-docs>/ZYNQ7020/Board_Resource/ZYNQ7020-F+V1.1原理图.pdf` 第 8 页：
 ##      R57 4.7K 把 PHY1_RXD0 上拉到 PHY1_IODVDD，R59 4.7K 把 PHY1_RXD1 上拉到 PHY1_IODVDD
 ##      （PHY2 那一半是 R72/R73，同一接法）。图件 build/evidence/r115_sch_p8/rxd_area.png、phy2_straps.png。
 ##   2) 规格书 RTL8211F-CG（JATR-8275-15 Rev 1.4）Table 10（PDF p23）：RXD0=RXDLY、RXD1=TXDLY；

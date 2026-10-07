@@ -6,7 +6,7 @@
 ##   下一轮（任务 #195 / ISSUES #259）不用再从头问"该写多少"。
 ##
 ## 出处（本机就有的两件事，不是记忆、不是二手博客）：
-##   * 文件 `D:/Xilinx/Resource/ZYNQ7020/Board_Resource/芯片手册/C187932_以太网芯片_RTL8211F-CG_规格书_REALTEK(瑞昱)以太网芯片规格书.PDF`
+##   * 文件 `<board-docs>/ZYNQ7020/Board_Resource/芯片手册/C187932_以太网芯片_RTL8211F-CG_规格书_REALTEK(瑞昱)以太网芯片规格书.PDF`
 ##     （69 页，Track ID JATR-8275-15 Rev. 1.4）
 ##   * **Table 60 "RGMII Timing Parameters"，手册页 60 = PDF 第 67 页**（文本抽取读数，2026-10-03 23:44）：
 ##       TsetupR  Data→Clock Input Setup at receiver（发射端内部延迟已集成）  min 1.0  typ 2  –   ns

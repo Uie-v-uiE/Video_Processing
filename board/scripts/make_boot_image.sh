@@ -3,7 +3,7 @@
 #
 # 依赖：bootgen（Vivado/Vitis 2025.2.1 安装树里的 `bin/bootgen.bat`，不在 PATH）；
 #       三份输入都在盘上：`vitis/platform/zynq_fsbl/build/fsbl.elf`、`build/system.bit`、`build/ps_app.elf`。
-# 用法：VP_VIVADO_BIN="D:/Software/Vivado/2025.2.1/Vivado/bin" bash board/scripts/make_boot_image.sh
+# 用法：VP_VIVADO_BIN="<tools>/Vivado/bin" bash board/scripts/make_boot_image.sh
 # 参数：
 #   | 变量 | 作用 | 默认 |
 #   | --- | --- | --- |

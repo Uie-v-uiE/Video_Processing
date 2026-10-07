@@ -5,10 +5,10 @@
 # SharedData Build 6403650 on Thu Mar 19 14:02:13 MDT 2026
 # Start of session at: Mon Oct  5 18:08:33 2026
 # Process ID         : 3028
-# Current directory  : D:/Xilinx/Prj/pro/Video_Processing/vivado_system/zynq_video_sys.runs/impl_1
+# Current directory  : <repo>/vivado_system/zynq_video_sys.runs/impl_1
 # Command line       : vivado.exe -log system_top.vdi -applog -product Vivado -messageDb vivado.pb -mode batch -source system_top.tcl -notrace
-# Log file           : D:/Xilinx/Prj/pro/Video_Processing/vivado_system/zynq_video_sys.runs/impl_1/system_top.vdi
-# Journal file       : D:/Xilinx/Prj/pro/Video_Processing/vivado_system/zynq_video_sys.runs/impl_1\vivado.jou
+# Log file           : <repo>/vivado_system/zynq_video_sys.runs/impl_1/system_top.vdi
+# Journal file       : <repo>/vivado_system/zynq_video_sys.runs/impl_1\vivado.jou
 # Running On         : Uie-laptop
 # Platform           : Windows Server 2016 or Windows 10
 # Operating System   : 26300
@@ -25,38 +25,38 @@ source system_top.tcl -notrace
 create_project: Time (s): cpu = 00:00:11 ; elapsed = 00:00:07 . Memory (MB): peak = 539.855 ; gain = 224.387
 INFO: [IP_Flow 19-234] Refreshing IP repositories
 INFO: [IP_Flow 19-1704] No user IP repositories specified
-INFO: [IP_Flow 19-2313] Loaded Vivado IP repository 'D:/Software/Vivado/2025.2.1/Vivado/data/ip'.
+INFO: [IP_Flow 19-2313] Loaded Vivado IP repository '<tools>/Vivado/data/ip'.
 Command: link_design -top system_top -part xc7z020clg484-2
 Design is defaulting to srcset: sources_1
 Design is defaulting to constrset: constrs_1
 INFO: [Device 21-403] Loading part xc7z020clg484-2
 INFO: [Project 1-5699] Read binary netlist with skipMacroContent - 1
-INFO: [Project 1-454] Reading design checkpoint 'd:/Xilinx/Prj/pro/Video_Processing/vivado_system/zynq_video_sys.gen/sources_1/bd/design_1/ip/design_1_axi_gpio_0_0/design_1_axi_gpio_0_0.dcp' for cell 'u_bd/design_1_i/axi_gpio_0'
-INFO: [Project 1-454] Reading design checkpoint 'd:/Xilinx/Prj/pro/Video_Processing/vivado_system/zynq_video_sys.gen/sources_1/bd/design_1/ip/design_1_axi_gpio_1_0/design_1_axi_gpio_1_0.dcp' for cell 'u_bd/design_1_i/axi_gpio_1'
-INFO: [Project 1-454] Reading design checkpoint 'd:/Xilinx/Prj/pro/Video_Processing/vivado_system/zynq_video_sys.gen/sources_1/bd/design_1/ip/design_1_axi_gpio_2_0/design_1_axi_gpio_2_0.dcp' for cell 'u_bd/design_1_i/axi_gpio_2'
-INFO: [Project 1-454] Reading design checkpoint 'd:/Xilinx/Prj/pro/Video_Processing/vivado_system/zynq_video_sys.gen/sources_1/bd/design_1/ip/design_1_processing_system7_0_0/design_1_processing_system7_0_0.dcp' for cell 'u_bd/design_1_i/processing_system7_0'
-INFO: [Project 1-454] Reading design checkpoint 'd:/Xilinx/Prj/pro/Video_Processing/vivado_system/zynq_video_sys.gen/sources_1/bd/design_1/ip/design_1_axi_gp0_ic_imp_xbar_0/design_1_axi_gp0_ic_imp_xbar_0.dcp' for cell 'u_bd/design_1_i/axi_gp0_ic/xbar'
-INFO: [Project 1-454] Reading design checkpoint 'd:/Xilinx/Prj/pro/Video_Processing/vivado_system/zynq_video_sys.gen/sources_1/bd/design_1/ip/design_1_axi_gp0_ic_imp_auto_pc_0/design_1_axi_gp0_ic_imp_auto_pc_0.dcp' for cell 'u_bd/design_1_i/axi_gp0_ic/s00_couplers/auto_pc'
+INFO: [Project 1-454] Reading design checkpoint '<repo>/vivado_system/zynq_video_sys.gen/sources_1/bd/design_1/ip/design_1_axi_gpio_0_0/design_1_axi_gpio_0_0.dcp' for cell 'u_bd/design_1_i/axi_gpio_0'
+INFO: [Project 1-454] Reading design checkpoint '<repo>/vivado_system/zynq_video_sys.gen/sources_1/bd/design_1/ip/design_1_axi_gpio_1_0/design_1_axi_gpio_1_0.dcp' for cell 'u_bd/design_1_i/axi_gpio_1'
+INFO: [Project 1-454] Reading design checkpoint '<repo>/vivado_system/zynq_video_sys.gen/sources_1/bd/design_1/ip/design_1_axi_gpio_2_0/design_1_axi_gpio_2_0.dcp' for cell 'u_bd/design_1_i/axi_gpio_2'
+INFO: [Project 1-454] Reading design checkpoint '<repo>/vivado_system/zynq_video_sys.gen/sources_1/bd/design_1/ip/design_1_processing_system7_0_0/design_1_processing_system7_0_0.dcp' for cell 'u_bd/design_1_i/processing_system7_0'
+INFO: [Project 1-454] Reading design checkpoint '<repo>/vivado_system/zynq_video_sys.gen/sources_1/bd/design_1/ip/design_1_axi_gp0_ic_imp_xbar_0/design_1_axi_gp0_ic_imp_xbar_0.dcp' for cell 'u_bd/design_1_i/axi_gp0_ic/xbar'
+INFO: [Project 1-454] Reading design checkpoint '<repo>/vivado_system/zynq_video_sys.gen/sources_1/bd/design_1/ip/design_1_axi_gp0_ic_imp_auto_pc_0/design_1_axi_gp0_ic_imp_auto_pc_0.dcp' for cell 'u_bd/design_1_i/axi_gp0_ic/s00_couplers/auto_pc'
 Netlist sorting complete. Time (s): cpu = 00:00:00 ; elapsed = 00:00:00.277 . Memory (MB): peak = 867.371 ; gain = 0.000
 INFO: [Netlist 29-17] Analyzing 2900 Unisim elements for replacement
 INFO: [Netlist 29-28] Unisim Transformation completed in 1 CPU seconds
 INFO: [Project 1-479] Netlist was created with Vivado 2025.2.1
 INFO: [Project 1-570] Preparing netlist for logic optimization
-Parsing XDC File [d:/Xilinx/Prj/pro/Video_Processing/vivado_system/zynq_video_sys.gen/sources_1/bd/design_1/ip/design_1_processing_system7_0_0/design_1_processing_system7_0_0.xdc] for cell 'u_bd/design_1_i/processing_system7_0/inst'
-Finished Parsing XDC File [d:/Xilinx/Prj/pro/Video_Processing/vivado_system/zynq_video_sys.gen/sources_1/bd/design_1/ip/design_1_processing_system7_0_0/design_1_processing_system7_0_0.xdc] for cell 'u_bd/design_1_i/processing_system7_0/inst'
-Parsing XDC File [d:/Xilinx/Prj/pro/Video_Processing/vivado_system/zynq_video_sys.gen/sources_1/bd/design_1/ip/design_1_axi_gpio_0_0/design_1_axi_gpio_0_0_board.xdc] for cell 'u_bd/design_1_i/axi_gpio_0/U0'
-Finished Parsing XDC File [d:/Xilinx/Prj/pro/Video_Processing/vivado_system/zynq_video_sys.gen/sources_1/bd/design_1/ip/design_1_axi_gpio_0_0/design_1_axi_gpio_0_0_board.xdc] for cell 'u_bd/design_1_i/axi_gpio_0/U0'
-Parsing XDC File [d:/Xilinx/Prj/pro/Video_Processing/vivado_system/zynq_video_sys.gen/sources_1/bd/design_1/ip/design_1_axi_gpio_1_0/design_1_axi_gpio_1_0_board.xdc] for cell 'u_bd/design_1_i/axi_gpio_1/U0'
-Finished Parsing XDC File [d:/Xilinx/Prj/pro/Video_Processing/vivado_system/zynq_video_sys.gen/sources_1/bd/design_1/ip/design_1_axi_gpio_1_0/design_1_axi_gpio_1_0_board.xdc] for cell 'u_bd/design_1_i/axi_gpio_1/U0'
-Parsing XDC File [d:/Xilinx/Prj/pro/Video_Processing/vivado_system/zynq_video_sys.gen/sources_1/bd/design_1/ip/design_1_axi_gpio_2_0/design_1_axi_gpio_2_0_board.xdc] for cell 'u_bd/design_1_i/axi_gpio_2/U0'
-Finished Parsing XDC File [d:/Xilinx/Prj/pro/Video_Processing/vivado_system/zynq_video_sys.gen/sources_1/bd/design_1/ip/design_1_axi_gpio_2_0/design_1_axi_gpio_2_0_board.xdc] for cell 'u_bd/design_1_i/axi_gpio_2/U0'
-Parsing XDC File [D:/Xilinx/Prj/pro/Video_Processing/src/constraints/rk_zynq7020.xdc]
-Finished Parsing XDC File [D:/Xilinx/Prj/pro/Video_Processing/src/constraints/rk_zynq7020.xdc]
-Parsing XDC File [D:/Xilinx/Prj/pro/Video_Processing/src/constraints/clock_groups_impl.xdc]
-INFO: [Timing 38-35] Done setting XDC timing constraints. [D:/Xilinx/Prj/pro/Video_Processing/src/constraints/clock_groups_impl.xdc:28]
-INFO: [Timing 38-2] Deriving generated clocks [D:/Xilinx/Prj/pro/Video_Processing/src/constraints/clock_groups_impl.xdc:28]
+Parsing XDC File [<repo>/vivado_system/zynq_video_sys.gen/sources_1/bd/design_1/ip/design_1_processing_system7_0_0/design_1_processing_system7_0_0.xdc] for cell 'u_bd/design_1_i/processing_system7_0/inst'
+Finished Parsing XDC File [<repo>/vivado_system/zynq_video_sys.gen/sources_1/bd/design_1/ip/design_1_processing_system7_0_0/design_1_processing_system7_0_0.xdc] for cell 'u_bd/design_1_i/processing_system7_0/inst'
+Parsing XDC File [<repo>/vivado_system/zynq_video_sys.gen/sources_1/bd/design_1/ip/design_1_axi_gpio_0_0/design_1_axi_gpio_0_0_board.xdc] for cell 'u_bd/design_1_i/axi_gpio_0/U0'
+Finished Parsing XDC File [<repo>/vivado_system/zynq_video_sys.gen/sources_1/bd/design_1/ip/design_1_axi_gpio_0_0/design_1_axi_gpio_0_0_board.xdc] for cell 'u_bd/design_1_i/axi_gpio_0/U0'
+Parsing XDC File [<repo>/vivado_system/zynq_video_sys.gen/sources_1/bd/design_1/ip/design_1_axi_gpio_1_0/design_1_axi_gpio_1_0_board.xdc] for cell 'u_bd/design_1_i/axi_gpio_1/U0'
+Finished Parsing XDC File [<repo>/vivado_system/zynq_video_sys.gen/sources_1/bd/design_1/ip/design_1_axi_gpio_1_0/design_1_axi_gpio_1_0_board.xdc] for cell 'u_bd/design_1_i/axi_gpio_1/U0'
+Parsing XDC File [<repo>/vivado_system/zynq_video_sys.gen/sources_1/bd/design_1/ip/design_1_axi_gpio_2_0/design_1_axi_gpio_2_0_board.xdc] for cell 'u_bd/design_1_i/axi_gpio_2/U0'
+Finished Parsing XDC File [<repo>/vivado_system/zynq_video_sys.gen/sources_1/bd/design_1/ip/design_1_axi_gpio_2_0/design_1_axi_gpio_2_0_board.xdc] for cell 'u_bd/design_1_i/axi_gpio_2/U0'
+Parsing XDC File [<repo>/src/constraints/rk_zynq7020.xdc]
+Finished Parsing XDC File [<repo>/src/constraints/rk_zynq7020.xdc]
+Parsing XDC File [<repo>/src/constraints/clock_groups_impl.xdc]
+INFO: [Timing 38-35] Done setting XDC timing constraints. [<repo>/src/constraints/clock_groups_impl.xdc:28]
+INFO: [Timing 38-2] Deriving generated clocks [<repo>/src/constraints/clock_groups_impl.xdc:28]
 get_clocks: Time (s): cpu = 00:00:07 ; elapsed = 00:00:07 . Memory (MB): peak = 1623.305 ; gain = 594.789
-Finished Parsing XDC File [D:/Xilinx/Prj/pro/Video_Processing/src/constraints/clock_groups_impl.xdc]
+Finished Parsing XDC File [<repo>/src/constraints/clock_groups_impl.xdc]
 INFO: [Project 1-1714] 4 XPM XDC files have been applied to the design.
 INFO: [Opt 31-138] Pushed 0 inverter(s) to 0 load pin(s).
 Netlist sorting complete. Time (s): cpu = 00:00:00 ; elapsed = 00:00:00.013 . Memory (MB): peak = 1623.305 ; gain = 0.000
@@ -256,7 +256,7 @@ INFO: [Vivado 12-24828] Executing command : report_drc -file system_top_drc_opte
 Command: report_drc -file system_top_drc_opted.rpt -pb system_top_drc_opted.pb -rpx system_top_drc_opted.rpx
 INFO: [IP_Flow 19-1839] IP Catalog is up to date.
 INFO: [DRC 23-27] Running DRC with 2 threads
-INFO: [Vivado_Tcl 2-168] The results of DRC are in file D:/Xilinx/Prj/pro/Video_Processing/vivado_system/zynq_video_sys.runs/impl_1/system_top_drc_opted.rpt.
+INFO: [Vivado_Tcl 2-168] The results of DRC are in file <repo>/vivado_system/zynq_video_sys.runs/impl_1/system_top_drc_opted.rpt.
 report_drc completed successfully
 INFO: [Timing 38-480] Writing timing data to binary archive.
 Wrote PlaceDB: Time (s): cpu = 00:00:00 ; elapsed = 00:00:00.001 . Memory (MB): peak = 2177.805 ; gain = 0.000
@@ -270,7 +270,7 @@ Wrote PlaceStorage: Time (s): cpu = 00:00:00 ; elapsed = 00:00:00.020 . Memory (
 Wrote Netlist Cache: Time (s): cpu = 00:00:00 ; elapsed = 00:00:00.003 . Memory (MB): peak = 2177.805 ; gain = 0.000
 Wrote Device Cache: Time (s): cpu = 00:00:00 ; elapsed = 00:00:00.016 . Memory (MB): peak = 2177.805 ; gain = 0.000
 Write Physdb Complete: Time (s): cpu = 00:00:00 ; elapsed = 00:00:00.138 . Memory (MB): peak = 2177.805 ; gain = 0.000
-INFO: [Common 17-1381] The checkpoint 'D:/Xilinx/Prj/pro/Video_Processing/vivado_system/zynq_video_sys.runs/impl_1/system_top_opt.dcp' has been generated.
+INFO: [Common 17-1381] The checkpoint '<repo>/vivado_system/zynq_video_sys.runs/impl_1/system_top_opt.dcp' has been generated.
 Command: place_design
 Attempting to get a license for feature 'Implementation' and/or device 'xc7z020'
 INFO: [Common 17-349] Got license for feature 'Implementation' and/or device 'xc7z020'
@@ -531,7 +531,7 @@ Wrote PlaceStorage: Time (s): cpu = 00:00:04 ; elapsed = 00:00:02 . Memory (MB):
 Wrote Netlist Cache: Time (s): cpu = 00:00:00 ; elapsed = 00:00:00.040 . Memory (MB): peak = 2177.805 ; gain = 0.000
 Wrote Device Cache: Time (s): cpu = 00:00:00 ; elapsed = 00:00:00.013 . Memory (MB): peak = 2177.805 ; gain = 0.000
 Write Physdb Complete: Time (s): cpu = 00:00:04 ; elapsed = 00:00:02 . Memory (MB): peak = 2177.805 ; gain = 0.000
-INFO: [Common 17-1381] The checkpoint 'D:/Xilinx/Prj/pro/Video_Processing/vivado_system/zynq_video_sys.runs/impl_1/system_top_placed.dcp' has been generated.
+INFO: [Common 17-1381] The checkpoint '<repo>/vivado_system/zynq_video_sys.runs/impl_1/system_top_placed.dcp' has been generated.
 Command: phys_opt_design
 Attempting to get a license for feature 'Implementation' and/or device 'xc7z020'
 INFO: [Common 17-349] Got license for feature 'Implementation' and/or device 'xc7z020'
@@ -558,7 +558,7 @@ Wrote PlaceStorage: Time (s): cpu = 00:00:03 ; elapsed = 00:00:02 . Memory (MB):
 Wrote Netlist Cache: Time (s): cpu = 00:00:00 ; elapsed = 00:00:00.038 . Memory (MB): peak = 2177.805 ; gain = 0.000
 Wrote Device Cache: Time (s): cpu = 00:00:00 ; elapsed = 00:00:00.013 . Memory (MB): peak = 2177.805 ; gain = 0.000
 Write Physdb Complete: Time (s): cpu = 00:00:04 ; elapsed = 00:00:02 . Memory (MB): peak = 2177.805 ; gain = 0.000
-INFO: [Common 17-1381] The checkpoint 'D:/Xilinx/Prj/pro/Video_Processing/vivado_system/zynq_video_sys.runs/impl_1/system_top_physopt.dcp' has been generated.
+INFO: [Common 17-1381] The checkpoint '<repo>/vivado_system/zynq_video_sys.runs/impl_1/system_top_physopt.dcp' has been generated.
 Command: route_design
 Attempting to get a license for feature 'Implementation' and/or device 'xc7z020'
 INFO: [Common 17-349] Got license for feature 'Implementation' and/or device 'xc7z020'
@@ -769,14 +769,14 @@ INFO: [Vivado 12-24828] Executing command : report_drc -file system_top_drc_rout
 Command: report_drc -file system_top_drc_routed.rpt -pb system_top_drc_routed.pb -rpx system_top_drc_routed.rpx
 INFO: [IP_Flow 19-1839] IP Catalog is up to date.
 INFO: [DRC 23-27] Running DRC with 2 threads
-INFO: [Vivado_Tcl 2-168] The results of DRC are in file D:/Xilinx/Prj/pro/Video_Processing/vivado_system/zynq_video_sys.runs/impl_1/system_top_drc_routed.rpt.
+INFO: [Vivado_Tcl 2-168] The results of DRC are in file <repo>/vivado_system/zynq_video_sys.runs/impl_1/system_top_drc_routed.rpt.
 report_drc completed successfully
 report_drc: Time (s): cpu = 00:00:10 ; elapsed = 00:00:06 . Memory (MB): peak = 2578.973 ; gain = 0.000
 INFO: [Vivado 12-24828] Executing command : report_methodology -file system_top_methodology_drc_routed.rpt -pb system_top_methodology_drc_routed.pb -rpx system_top_methodology_drc_routed.rpx
 Command: report_methodology -file system_top_methodology_drc_routed.rpt -pb system_top_methodology_drc_routed.pb -rpx system_top_methodology_drc_routed.rpx
 INFO: [Timing 38-35] Done setting XDC timing constraints.
 INFO: [DRC 23-133] Running Methodology with 2 threads
-INFO: [Vivado_Tcl 2-1520] The results of Report Methodology are in file D:/Xilinx/Prj/pro/Video_Processing/vivado_system/zynq_video_sys.runs/impl_1/system_top_methodology_drc_routed.rpt.
+INFO: [Vivado_Tcl 2-1520] The results of Report Methodology are in file <repo>/vivado_system/zynq_video_sys.runs/impl_1/system_top_methodology_drc_routed.rpt.
 report_methodology completed successfully
 report_drc: Time (s): cpu = 00:00:32 ; elapsed = 00:00:17 . Memory (MB): peak = 2578.973 ; gain = 0.000
 INFO: [Vivado 12-24828] Executing command : report_timing_summary -max_paths 10 -routable_nets -report_unconstrained -file system_top_timing_summary_routed.rpt -pb system_top_timing_summary_routed.pb -rpx system_top_timing_summary_routed.rpx -warn_on_violation 
@@ -816,5 +816,5 @@ Wrote PlaceStorage: Time (s): cpu = 00:00:03 ; elapsed = 00:00:02 . Memory (MB):
 Wrote Netlist Cache: Time (s): cpu = 00:00:00 ; elapsed = 00:00:00.042 . Memory (MB): peak = 2578.973 ; gain = 0.000
 Wrote Device Cache: Time (s): cpu = 00:00:00 ; elapsed = 00:00:00.014 . Memory (MB): peak = 2578.973 ; gain = 0.000
 Write Physdb Complete: Time (s): cpu = 00:00:05 ; elapsed = 00:00:02 . Memory (MB): peak = 2578.973 ; gain = 0.000
-INFO: [Common 17-1381] The checkpoint 'D:/Xilinx/Prj/pro/Video_Processing/vivado_system/zynq_video_sys.runs/impl_1/system_top_routed.dcp' has been generated.
+INFO: [Common 17-1381] The checkpoint '<repo>/vivado_system/zynq_video_sys.runs/impl_1/system_top_routed.dcp' has been generated.
 INFO: [Common 17-206] Exiting Vivado at Mon Oct  5 18:15:04 2026...

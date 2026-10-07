@@ -7,7 +7,7 @@
 123	226	8120942469503833	CMakeFiles/fsbl.elf.dir/fsbl_handoff.S.obj	aa251630afcd51f1
 129	311	8120942470325431	CMakeFiles/fsbl.elf.dir/fsbl_hooks.c.obj	dd5cfc543b68e571
 185	390	8120942471281218	CMakeFiles/fsbl.elf.dir/qspi.c.obj	e9d1c7db354c9f91
-2	123	0	D:/Xilinx/Prj/pro/Video_Processing/vitis/platform/zynq_fsbl/build/CMakeFiles/print_build_info	e695c770f9d43fc6
+2	123	0	<repo>/vitis/platform/zynq_fsbl/build/CMakeFiles/print_build_info	e695c770f9d43fc6
 135	335	8120942470665660	CMakeFiles/fsbl.elf.dir/image_mover.c.obj	cf6e93188b9a3efd
 153	347	8120942470844149	CMakeFiles/fsbl.elf.dir/nand.c.obj	19c552506e719ebc
 140	358	8120942470963677	CMakeFiles/fsbl.elf.dir/main.c.obj	e6dee96839c36d62
@@ -16,7 +16,7 @@
 204	396	8120942471362998	CMakeFiles/fsbl.elf.dir/sd.c.obj	3ce8209f125acd81
 60	383	8129785852149727	build.ninja	f5695452804bd4b
 15	165	0	CMakeFiles/print_build_info	6fd6efddffd46d39
-15	165	0	D:/Xilinx/Prj/pro/Video_Processing/vitis/platform/zynq_fsbl/build/CMakeFiles/print_build_info	6fd6efddffd46d39
+15	165	0	<repo>/vitis/platform/zynq_fsbl/build/CMakeFiles/print_build_info	6fd6efddffd46d39
 751	1173	8129785864099316	CMakeFiles/fsbl.elf.dir/rsa.c.obj	31bd7641d32347de
 166	1173	8129785864099316	CMakeFiles/fsbl.elf.dir/fsbl_handoff.S.obj	c12f876daf7a2a94
 217	1177	8129785864099316	CMakeFiles/fsbl.elf.dir/md5.c.obj	ff5f4fc80d29bf85
@@ -30,5 +30,5 @@
 209	1428	8129785866715814	CMakeFiles/fsbl.elf.dir/main.c.obj	33b8898d08215195
 768	1443	8129785866856407	CMakeFiles/fsbl.elf.dir/sd.c.obj	69925428b1ec5dcd
 18	395	0	CMakeFiles/print_build_info	6fd6efddffd46d39
-18	395	0	D:/Xilinx/Prj/pro/Video_Processing/vitis/platform/zynq_fsbl/build/CMakeFiles/print_build_info	6fd6efddffd46d39
+18	395	0	<repo>/vitis/platform/zynq_fsbl/build/CMakeFiles/print_build_info	6fd6efddffd46d39
 396	655	8129786252906247	fsbl.elf	de0142ad407f8e7e

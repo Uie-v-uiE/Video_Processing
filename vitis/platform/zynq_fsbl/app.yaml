@@ -1,4 +1,4 @@
-domain_path: D:\Xilinx\Prj\pro\Video_Processing\vitis\platform\zynq_fsbl\zynq_fsbl_bsp
-app_src_dir: D:\Software\Vivado\2025.2.1\Vitis\data\embeddedsw\lib\sw_apps\zynq_fsbl
+domain_path: <repo>\vitis\platform\zynq_fsbl\zynq_fsbl_bsp
+app_src_dir: <tools>\Vitis\data\embeddedsw\lib\sw_apps\zynq_fsbl
 template: zynq_fsbl
 lang: c

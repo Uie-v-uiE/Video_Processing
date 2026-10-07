@@ -4,7 +4,7 @@
 <!-- Copyright 1986-2022 Xilinx, Inc. All Rights Reserved.                   -->
 <!-- Copyright 2022-2026 Advanced Micro Devices, Inc. All Rights Reserved.   -->
 
-<Project Product="Vivado" Version="7" Minor="71" Path="D:/Xilinx/Prj/pro/Video_Processing/vivado_system/zynq_video_sys.xpr">
+<Project Product="Vivado" Version="7" Minor="71" Path="vivado_system/zynq_video_sys.xpr">
   <DefaultLaunch Dir="$PRUNDIR"/>
   <Configuration>
     <Option Name="Id" Val="b4e672a7627a4bf583c61c40964435ca"/>

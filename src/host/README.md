@@ -38,6 +38,6 @@ PC 侧必须在 `src/host/`），`--c1-2-self` 那六条对照钉着它会判红
 | `--gpio0` | 写 lane 号的 GPIO_0 基址，十六进制不带 0x | `41200000` | `--gpio0 41200000` |
 | `--gpio1` | 读 lane 值的 GPIO_1 基址，十六进制不带 0x | `41210000` | `--gpio1 41210000` |
 | `--hw-port` | hw_server 端口 | `3121` | `--hw-port 3121` |
-| `--xsdb` | xsdb 可执行文件 | 环境变量 `VP_XSDB`，没给则 `xsdb.bat` | `--xsdb D:/Xilinx/Vitis/2025.2/bin/xsdb.bat` |
+| `--xsdb` | xsdb 可执行文件 | 环境变量 `VP_XSDB`，没给则 `xsdb.bat` | `--xsdb <Vitis>/bin/xsdb.bat` |
 | `--dry-run` | 只打印将要做什么：不 ping、不连板、不发包 | 关 | `--dry-run` |
 | `--help` | 打印参数全表 | 关 | `--help` |

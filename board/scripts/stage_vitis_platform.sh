@@ -4,7 +4,7 @@
 # 依赖：`vitis/platform/`（含 `hw/system.xsa`、`zynq_fsbl/`、域目录与 BSP）；
 #       `arm-none-eabi-gcc`（在 Vitis 安装树 `<Vitis>/gnu/aarch32/nt/gcc-arm-none-eabi/bin/`）；
 #       `build/ps_app.mjs`（应用构建入口）；`src/ps/` 的源码。
-# 用法：PS_CC="D:/Software/Vivado/2025.2.1/gnu/aarch32/nt/gcc-arm-none-eabi/bin/arm-none-eabi-gcc.exe" \
+# 用法：PS_CC="<Vitis>/gnu/aarch32/nt/gcc-arm-none-eabi/bin/arm-none-eabi-gcc.exe" \
 #         bash board/scripts/stage_vitis_platform.sh
 # 参数：
 #   | 变量 | 作用 | 默认 |

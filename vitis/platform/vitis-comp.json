@@ -3,7 +3,7 @@
   "type": "PLATFORM",
   "configuration": {
     "description": "",
-    "xsa": "D:/Xilinx/Prj/pro/Video_Processing/build/system.xsa",
+    "xsa": "<repo>/build/system.xsa",
     "xsaPathInPlatform": "platform/hw/system.xsa",
     "emulationXsa": "",
     "emulationXsaPathInPlatform": "",
