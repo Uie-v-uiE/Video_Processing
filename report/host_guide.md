@@ -76,7 +76,7 @@ node src\host\video_sender.mjs --file - < raw.rgb565                      # 裸�
 | `blocks` `hold` `wordid` | 地址映射、字边界对齐 | 逐帧丢字 |
 | `frameid` | 逐帧丢字 / 陈旧帧（每个字写着自己来自第几帧） | —— |
 
-推真实视频用根目录的 `send_demo.bat`：双击 = 先 ping 板子（默认 192.168.1.10）再推 12 s
+推真实视频用根目录的 `send_demo.bat`：双击 = 先 ping 板子（默认 192.168.1.10）再推 300 s（5 分钟；时长与地址写在脚本开头两个 `set` 里，可改）
 内置测试图（渐变底 + 每帧移动的白线与红块）；把自己的视频文件拖到图标上、或
 `send_demo.bat <你的视频.mp4>` = 发任意片源。背后都是 `python src/host/video_sender.py`，
 只需要 Python 3 标准库；解码走 ffmpeg（没有 ffmpeg 就明说并退出，不静默降级、不假装在放）。

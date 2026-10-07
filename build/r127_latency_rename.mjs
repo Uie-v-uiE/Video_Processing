@@ -4,6 +4,8 @@
 //       `report/perf_report.md:205-208`（min/avg/max = 20/33.34/51 属于"长跑那一行"：9000 帧 / 5.02 分钟）+
 //       `board/evidence_r41/metrics_r41_soak300.md` 的 gap_sum/gap_segments = 33.3434 ms（8999 段）。
 // 本工具一次改三棵树里所有引用这一格的地方；端到端那一格（metrics.csv:20）保持"未报"不动。
+// 作用：把"端到端时延"那一格的口径改口轮一次做完——输入是三棵树里的现文，输出是同一批文件被改写。
+// 退出码：0 = 全部规则判完且无坏规则（--check 不落盘）；1 = 有坏规则、Σ 不闭合，或没给树根。
 // 用法：node build/r127_latency_rename.mjs --check|--apply <树根> [<树根> …]
 import fs from 'node:fs';
 import path from 'node:path';
