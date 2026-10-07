@@ -203,7 +203,7 @@ DDR 打包器一个字是 64bit（4 像素）。载荷取 1396 时包边界落�
 | `src/host/uart_cmd_check.mjs` | §5 那条串口回归清单（105 条命令） | `build/board_verify.sh` |
 | `src/host/pipe_len_check.mjs` | `pipe` 这一条命令的"唯一说法"离线核对：位号四份一致、五位一条都不写、退役不退半截（A/B/C/D 四组，不碰板子） | `build/gates.sh` |
 | `src/host/udp_sink_check.mjs` | 本机 UDP 环回自检：协议、切片、匀速这三件事对不对，不依赖板子 | 手工（改发送端后必跑） |
-| `src/host/health_read.mjs` | JTAG 读健康快照 12 条 lane；`--json` 出机器可读对象，`--gapclr` 归零帧间隔统计 | `build/board_verify.sh`、`board/README.md` |
+| `src/host/health_read.mjs` | JTAG 读健康快照 **19 条 lane**（名单就是 `src/host/health_read.mjs:334` 那一行 `want`：lane0–9 加 23–31；越界的号读回 `32'hDEAD_BEEF` 兜底，`src/rtl/top/system_top.v:244`）；`--json` 出机器可读对象，`--gapclr` 归零帧间隔统计 | `build/board_verify.sh`、`board/README.md` |
 | `src/host/geom_check.mjs` | 缩放/旋转的几何读数与预期公式对账 | `build/board_verify.sh`、`board/README.md` |
 | `src/host/arb_handover_test.mjs` | 无人值守的仲裁交接：静默、推流、停、再推四步连着走，100 ms 密度采 lane30，八条 PASS/FAIL（更早那一版是七条）；`--selftest` 不打板子 | `build/board_verify.sh` |
 | `src/host/video_sender.mjs` | 推流（§3、§4） | `build/board_verify.sh`（经 `arb_handover_test.mjs` 起）、演示 |
