@@ -89,16 +89,20 @@ node src\host\video_sender.mjs --file - < raw.rgb565                            
 | 参数 | 默认 | 哪个工具有 | 说明 |
 |------|------|-----------|------|
 | `--ip` / `--port` | 192.168.1.10 / 5001 | 三个都有 | 板卡地址与端口 |
-| `--src` | 192.168.1.100 | `.mjs`、`.py` | 本机绑定地址；传 `""` 走默认路由（`src/host/video_sender.mjs:166`） |
-| `--fps` | 15（`.mjs`）/ 30（`.py`） | 三个都有 | 帧率。线速附近请配合下面的匀速 |
-| `--count N` | 0（一直发） | `udp_push.py`、`.mjs` | 发满 N 帧退出 |
-| `--seconds N` | 300 | `video_sender.py` | 发满 N 秒退出（`send_demo.bat` 开头那个 `set DEMO_SECONDS` 就是它） |
-| `--pace-mbps` | 15 | 三个都有 | 包内匀速：一整帧 221 包若以线速倾泻会打爆板端入包 FIFO；Node 侧旧拼写 `--pace-mpbps` 仍接受（`src/host/video_sender.mjs:39` 两名都读） |
-| `--no-pace` | 关 | `.mjs` | 关掉匀速（做压力实验时才用） |
-| `--mtu-payload` | 1392 | `.mjs`、`.py` | 必须 8 的倍数，见 §6 |
+| `--src` | 192.168.1.100 | 仅 `.mjs` | 本机绑定地址；传 `""` 走默认路由（`src/host/video_sender.mjs:166`）。另两支不绑地址，走系统默认路由 |
+| `--fps` | 15（`.mjs`、`udp_push.py`）/ 30（`video_sender.py`） | 三个都有 | 帧率。线速附近请配合下面的匀速 |
+| `--count N` | 0（一直发） | 三个都有 | 发满 N 帧退出 |
+| `--seconds N` | 12 | 仅 `video_sender.py` | **只在带 `--demo` 时生效**（`video_sender.py:209` 那一行的判据是 `a.demo and …> a.seconds`）；`send_demo.bat` 显式传 300，所以双击是 5 分钟 |
+| `--no-ping` | 关 | 仅 `video_sender.py` | 跳过开推前的那次 ping（板子已确认在跑、或做"应答器变哑"实验时用） |
+| `--demo` | 关 | 仅 `video_sender.py` | 开 push 前先 ping 板子，并按 `--seconds` 到点自己停。它**不是**"只发内置图"：`--input 片子 --demo` 就是"ping + 发这部片子到点停"，`send_demo.bat` 拖文件进来走的就是这一支（`send_demo.bat:30`） |
+| `--input F` / `--raw WxH` | — / 源尺寸 | 仅 `video_sender.py` | 任意片源（mp4/mov/avi 走 ffmpeg；裸 RGB565 帧流配 `--raw` 说清源有多大）。`--raw` 说的是源，不是板子收多大 |
+| `--pattern NAME` | — | 仅 `udp_push.py` | 内置测试图名（`edge` 等）；`.mjs` 那边同一件事叫 `--test` |
+| `--file F` | — | `udp_push.py`、`.mjs` | 推一份裸 RGB565 帧流，一帧 307200 B；`--file -` 从 stdin 进 |
+| `--pace-mbps` | 15（`.mjs`、`udp_push.py`）/ 20（`video_sender.py`） | 三个都有 | 包内匀速：一整帧 221 包若以线速倾泻会打爆板端入包 FIFO；Node 侧旧拼写 `--pace-mpbps` 仍接受（`src/host/video_sender.mjs:39` 两名都读） |
+| `--no-pace` | 关 | 仅 `.mjs` | 关掉匀速（做压力实验时才用） |
+| `--mtu-payload` | 1392 | `udp_push.py`、`.mjs` | 必须 8 的倍数，见 §6；`video_sender.py` 没有这一支开关，固定用默认载荷 |
 | `--drop-every N` | 0 | `udp_push.py`、`.mjs` | 每 N 包确定性丢一个（演示坏包恢复，不是随机） |
-| `--dump FILE` | 关 | `.mjs` | 把帧的字节落盘，供离线核对 |
-| `--test NAME` | — | 仅 `.mjs` | 图案选择，见下表 |
+| `--dump FILE` / `--test NAME` / `--ref` | 关 / — / — | 仅 `.mjs` | 把帧字节落盘供离线核对 / 图案选择（见下表） / 对照参考帧 |
 
 `udp_push.py` 的其余参数用 `--help` 看，命名一致但少几项。
 
