@@ -1027,19 +1027,43 @@ cat > MANIFEST.txt <<EOF
                                      + reports/**（这一版的综合/实现报告）+ 入口脚本 gates.sh
   board/      工程/脚本/实测输出    <- project/**（板上那一版 .bit/.elf/.xsa）
                                      + tcl|scripts/**（JTAG 与串口脚本）+ output/**（实测输出）
+                                     + measured/**、compare/**、evidence_r*/**（板级读数、差分辨识、串口抓包）
+                                     + vivado_system/**（Vivado 工程整棵副本，$(find board/vivado_system -type f 2>/dev/null | wc -l) 支）+ vitis/**（Vitis 平台整棵副本，$(find board/vitis -type f 2>/dev/null | wc -l) 支）
+                                       —— 这两棵在仓库里住在根目录，随包搬到板级这一层，包内活文档的指路已跟着改口；
+                                          脚本正文（board/scripts/、build/）仍按仓库布局写，在包里跑要先补一层 board/
   data/       测试数据与参考结果    <- data/golden/**、data/measured/**
   skills/      技能包                <- skills/**（README.md 是索引；条目外壳按 §3.3.5.2 就叫 SKILL.md）
-  report/     设计报告 + 协作记录   <- 仓库里的 report/（交付文档），工作记录在 report/log/
-  ——  以下两层是"其他组织方式"的一部分，对照说明同样写在 README.md / report/README.md：
-  docs/       度量、名册与逐轮台账  <- 仓库里的 docs/（含 docs/timing/ 的逐时钟名册）；
-                                      它与 report/ 的分工：report/ 讲结论，docs/ 放支撑结论的表与逐轮读数
-  submit/     评审阅读路径          <- 仓库里的 submit/（八章分章 + reproduce/），不复制数字
+  report/     设计报告 + 协作记录   <- 仓库里的 report/（交付文档 + collaboration/ + figures/）
+  ——  逐轮台账（report/log/issues.md）与逐时钟名册（report/timing/）不在本包、也不在交付分支上：
+      它们住在同一仓库的过程分支，交付分支只带结论层。本包内的支撑数据是 build/reports/**（这一版的
+      综合/实现报告）、board/output/** 与 board/measured/**（板级实测读数）、data/**（测试数据与参考结果）。
+      早先这一版对照里写过 docs/ 与 submit/ 两层——现量 git ls-files 各 0 支（改名与迁出之后仓库里已无这两层），故删。
 
 板上那一份（位流与固件仓库不跟踪，按 md5 认身份，不靠文件名）：
 $(for f in board/project/*; do if [ -f "$f" ]; then printf '  %-14s md5 %s\n' "$(basename "$f")" "$(md5sum "$f" | cut -c1-12)"; fi; done)  门禁凭据: $GATES_FOR_BIT
 
 自检: 活文档死链 $DEAD 条（0 才算过，射程 $DEADSCAN 份活文档由 find 现算）／被改名台架的旧名残留 $STALE／绝对路径（甲 可执行件 + 乙 复现入口文档）$ABSN 条（另有叙述层 $NARR_LINES 行只报数，那些是"当时读的是哪一份"的凭据）
 EOF
+
+# ---- 3.11d 包根每一层都要在 MANIFEST 里被回答过一次（2026-10-07 加的，起因是我把两棵工程整棵搬进包内，
+#       那 2443 支占了包内八成文件数，而 MANIFEST 的目录对照一行都没提；四条老自校与五把文本尺子都不读
+#       MANIFEST 的正文，所以"声明少了"这件事当时没有任何东西会响）。
+#       判法按形状不按名单：包内**顶层目录**每一层、以及**文件数 ≥300 的二级目录**，
+#       名字都必须出现在 MANIFEST.txt 里；一条都没核到 ⇒ 报 NOT_MEASURED（不许念成"声明齐了"）。
+UNDECL=""; DECL_N=0
+for d in */ ; do
+  dn="${d%/}"; DECL_N=$((DECL_N + 1))
+  grep -qF -- "$dn/" MANIFEST.txt || UNDECL="$UNDECL $dn/"
+done
+for d in */*/ ; do
+  n=$(find "$d" -type f 2>/dev/null | wc -l)
+  [ "$n" -ge 300 ] || continue
+  DECL_N=$((DECL_N + 1))
+  grep -qF -- "$(basename "$d")" MANIFEST.txt || UNDECL="$UNDECL $d($n 支)"
+done
+echo "MANIFEST 声明核对：核到 $DECL_N 层（顶层全部 + 二级里 ≥300 支的），未点名=$( [ -n "$UNDECL" ] && echo "$UNDECL" || echo 0 )"
+if [ "$DECL_N" -eq 0 ]; then echo "REFUSE：声明核对一层都没核到 ⇒ 这一层没接上，别念成「声明齐」"; exit 1; fi
+if [ -n "$UNDECL" ]; then echo "REFUSE：这些层在包里却没有在 MANIFEST 里说明：$UNDECL ⇒ 不写 $OUT（补说明，别删件）"; exit 1; fi
 
 echo
 echo "导出提交 $COMMIT：$files 个文件 / $bytes，剪掉 $removed 条，死链 $DEAD，旧名残留 $STALE，绝对路径 $ABSN"
