@@ -1,0 +1,19 @@
+C0-3 file-names-ascii-lowercase cmp=1126 违例=0 中文或空格=0 说明件豁免=71 例: PASS
+C0-4 top-level-structure cmp=16 多余=0[] 缺目录=0[]  双击入口豁免=3 PASS
+C1-1 xdc-under-src-constraints cmp=9 活动 xdc=9 在 src/constraints=9 不在=0[] 过程凭据里的 xdc=0(不计) PASS
+C1-2 src-placement-per-1.2 cmp=124 符合（RTL=80 在 src/rtl，PS 固件=4 在 src/ps 与 rtl 同级，上位机/PC=29 在 src/host） PASS
+C1-3 host-dual-impl-entries cmp=31 py=3 mjs=26 同名成对=2[one_click_test,video_sender] bat=2 sh=47 齐 PASS
+C1-4 host-readme-3-sections cmp=3 行=44 缺=无  PASS
+C1-5 script-header-comments cmp=169 脚本=161 缺要素=0 自我描述=0 夹具期望件不计=8 PASS
+C-PATHS script-src-paths-resolve cmp=89 脚本=138 判(指向 src/ 的字面量)=89 解析不到=0 模板串不计=3 用例与注释行不计=521 自检探针类文件不计=27 例: PASS
+C-LEN sub-readme-length cmp=38 子 README=19（导览 6 上限 45／章节 13 上限 160）超=(board/README.md 散文=63（导览上限 45，表格 36 行不计）) 表格行合计=552（§2.4/§0.4 强制的表不算长度） FAIL
+C2-1 sim-only-v-files cmp=86 sim 文件=86 非 .v 且非 README=0 例: PASS
+C2-3 tb-header-three-sections cmp=82 tb=82 行为模型不计=3 不合格=0 例: PASS
+C2-4 sim-readme-table-bidirectional cmp=164 tb=82 未列=0 幻影=0 运行命令行=有 PASS
+C3 root-readme-shape cmp=8 符合 PASS
+C4 build-tcl-and-reports cmp=63 符合（资源件=2 时序件=1）（过程 tcl=56 份，含各轮凭据，只报数不判红） PASS
+C4b report-contents-and-script-map cmp=18 符合（归档件=7 资源行 5/5 时序行 4/4 原始件横幅=6/7 每份都有脚本能重出） PASS
+C5 dirs-skills-readme-report cmp=19 符合（对比表 46 张／含失败读数 12 份／协作记录 11 份三段齐） PASS
+C6 license-file cmp=1 识别为 MIT PASS
+C7 style-red-lines cmp=190 交付文档=190 使用:人称=0 程度副词或TBD=0 emoji或勾叉=5 提及(只报数):人称文件=2 标记文件=8 箭头=1521 例:build/README.md,docs/course/04-rgmii-rx-frame-reassembly.md,docs/course/05-framebuffer-and-axi.md,docs/course/07-osd-and-same-frame-split.md FAIL
+DELIVER-SPEC 判 18 项 跟踪文件=1126 红=2 未测=0 FAIL

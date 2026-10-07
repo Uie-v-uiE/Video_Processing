@@ -1,23 +1,23 @@
 # 构建与上板
 
-> 版本注记：本文最早写于第三版，命令与脚本路径至今仍适用；**版本相关的数字**（哪块 bit、
-> 门禁多少）不在这里，看 `report/demo_script.md` §0 与 `report/log/overnight_log.md` §9.5。
+> 版本注记：这一页最早写于第三版，命令与脚本路径至今仍适用。哪块 bit、门禁多少这类随版本漂的数字
+> 不在这里，看 `report/demo_script.md` §0 与 夜轮记录 §9.5。
 
-## 1. 怎么定位工具链（本节**不写任何一台机器的绝对路径**）
+## 1. 怎么定位工具链（这一页不写任何一台机器的绝对路径）
 
 | 用途 | 在哪 |
 |------|------|
-| 仓库根 | 由脚本自己按所在位置往回算，不用设任何东西（验证方法见本节末尾） |
+| 仓库根 | 由脚本自己按所在位置往回算，不用设任何东西（验证方法见 §1 末尾） |
 | Vivado / Vitis | 2025.2.1（版本注记在 `report/perf_report.md` 与仓库根首页）。定位方式两种：把对应 `bin` 目录放进 `PATH`，或设下面那几个变量 |
-| Vivado 工程 | `vivado_system/`（已 gitignore，用 `build/tcl/build_system_axigpio.tcl` 重建） |
+| Vivado 工程 | `vivado_system/`（2026-10-07 起随仓库交付：clone 下来就能直接打开 `.xpr`，噪声目录被 `.gitignore` 挡住）；重建入口仍是 `build/tcl/build_system_axigpio.tcl`，改了 BD 或 IP 配置要以它重新长出来的那份为准 |
 | 构建入口 | `build/tcl/build_system_axigpio.tcl`（**只有这一个**；同目录另几支是历史/局部构建，见 `build/tcl/README.md`） |
 | 下载脚本 | `build/tcl/program_system.tcl`；PS 起来用 `build/tcl/ps_jtag_boot.tcl`（会自动从 xsa 解出 `ps7_init.tcl`） |
 | 上位机 | 推流 `python3 src/host/udp_push.py`（协议、限速、确定性丢包都在文件头）；其余取证类工具是 Node 写的（`src/host/*.mjs`），需要 Node 24，**不在演示主链路上** |
 | PS 源码 | `src/ps/main.c`（编译：`python3 build/build_ps_app.py`，需要 `PS_BSP`，见下表） |
 
-> 曾经这一节的第一行就是本机安装路径的清单（Vivado 装在哪、仓库在哪、git 装在哪），
+> 早先这里的第一行就是本机安装路径的清单（Vivado 装在哪、仓库在哪、git 装在哪），
 > 换一台机器照着抄会全错，而且"仓库里还有另一份旧的工作副本"这种事写进交付文档只会让人误判。
-> 规矩：**代码、Tcl、脚本与交付文档都不许出现绝对路径**；这条现在由导出器判（见 §5 与 `build/make_submission.sh` 头部判据 4）。
+> 规矩：代码、Tcl、脚本与交付文档都不许出现绝对路径，这条现在由导出器判（见 §5 与 `build/make_submission.sh` 头部判据 4）。
 
 ### 换一台机器只要设这几个变量
 
@@ -202,6 +202,6 @@ cp build/system.bit build/system.xsa build/ps_app.elf \
 3. 门禁**任何一条红**都不采纳：保留上一版当明早默认，把这一版挪去 `build/failed_rNN/`
    （里面留着 `system_r24_WNS-0.327.bit` 这种带 WNS 命名的失败件，是用来对照的，不是用来下的）。
 
-当前回退链（2026-09-23 07:1x，四块 bit 实体都在各自目录里）：
-`frozen_r19_arb`（`545a27a1`，**明早默认**）→ `frozen_r18_abort`（`534f7760`，从 git 历史复原）
-→ `frozen_r17_cdc`（`11998af8`）→ `frozen_r13`（`0f46ec91`，最后一次上过板验证的功能集）。
+当前回退链（2026-09-23 07:1x，四块 bit 实体都在各自目录里），按优先序取：
+`frozen_r19_arb`（`545a27a1`，**明早默认**）；退一档取 `frozen_r18_abort`（`534f7760`，从 git 历史复原）；
+再退 `frozen_r17_cdc`（`11998af8`）；最后 `frozen_r13`（`0f46ec91`，最后一次上过板验证的功能集）。

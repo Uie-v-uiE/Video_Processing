@@ -1,0 +1,35 @@
+QSPI 固化记录（2026-10-05，JTAG → 板载 32 MB QSPI NOR）
+
+镜像
+  文件        board/flash/BOOT.bin（生成件，不入库；由 board/scripts/make_boot_image.sh 产出）
+  大小        2408732 字节
+  镜像 md5    2f7ee28f482d61488ced9c1413a71dfe
+  FSBL        vitis/platform/zynq_fsbl/build/fsbl.elf  md5 0a1c57b2398029f20bc0abd2f2db4b22
+  位流        build/system.bit  md5 cd04907e1369da35d21c4090d552f5ee（与板上那一版同一只）
+  PS 应用     build/ps_app.elf  md5 d0b07f84a0683db203086fb816ac71d7
+
+写入
+  工具        Vivado 2025.2.1 批处理，board/tcl/flash_qspi.tcl
+  hw_server   localhost:3121（已在跑的那一个）
+  部件        mx25l25645g-qspi-x4-single（32 MB、x4、单片）
+  结果        Erase Operation successful.
+              Program Operation successful.
+              Verify Operation successful.
+              [Labtoolstcl 44-377] Flash programming completed successfully
+              PROGRAM_RC 0
+  耗时        137 s（program_hw_cfgmem 的 elapsed）
+  完整日志    仓库外本机件 board/flash/flash_qspi_6.log（*.log 已在 .gitignore 里，不随包）
+
+硬件回读校验的口径
+  `PROGRAM.VERIFY=1` 那一步是**从 flash 读回逐字节比对**，不是主机侧比对 ⇒ "Verify Operation successful"
+  就是"片上内容与 BOOT.bin 一致"的证据。至于"断电后能自己起来"，还要把启动模式拨到 QSPI 再上电一次才算量过。
+
+踩到的三个障碍（都写进脚本注释了，避免下一个人重踩）
+  1. bootgen 对 Zynq-7000 的 bif 只接受 `the_design:` + 花括号里逐行一个文件；
+     带逗号、带 `[boot]`、带 `configuration` 三种写法都判 syntax error。
+  2. 配置存储器部件必须选 `COMPATIBLE_PARTS` 里含 zynq7000 的那一支。板子丝印是 W25Q256FV，
+     但 Vivado 部件库里 `w25q256jw*` 系只标 zynquplus ⇒ 报 [Labtoolstcl 44-655]；
+     改用同为 32 MB / x4 的 macronix 档，擦写与回读校验都通过。
+  3. 2025.2.1 的 hw_cfgmem 对象没有 `PROGRAM.ADDRESS_RANGE`、`PROGRAM.BBF_FILE`、`PROGRAM.START_ADDRESS`
+     与 `STATUS`（写死会 17-142 / 17-54 中断），且必须设 `PROGRAM.ZYNQ_FSBL`——
+     缺它报 [Labtools 27-3203] FSBL file not found。脚本改成先 `list_property` 再逐个设，不支持的打印 SKIP。

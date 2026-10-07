@@ -1,24 +1,24 @@
 # 复现自检清单（`report/repro-check.md`）—— 与根 `README.md` 配对的那一份
 
-这份清单和根 `README.md` 成对交付：**README 里出现的每一条命令，这里有一条记录**，写明出处（脚本自己的用法头行号）、
+这份清单和根 `README.md` 成对交付，README 里出现的每一条命令在这里都有一条记录，写明出处（脚本自己的用法头行号）、
 期望输出、实跑摘要与判定。判定只有三态：`PASS`（真跑过）、`FAIL`（跑了且判为不通过，原文照贴）、
 `NOT_MEASURED`（没跑，原因逐条写明）。读不到输入就记 `NOT_MEASURED`，不记 `PASS`（P00 铁律 3）。
 
-- 跑过两次：**第一轮**（只读探测）记 HEAD `384a0b3`；**第二轮**（P12 收尾那次）开工时 HEAD `157d332`、
-  自检最后一步 S11 读到 `1c4e26b`（同一时段另有会话在提交）。两轮之间 README 被改过 5 次、本件写完。
+- 跑过两次。第一轮（只读探测）记 HEAD `384a0b3`；第二轮（收尾那次）开工时 HEAD `157d332`、
+  自检最后一步 S11 读到 `1c4e26b`，同一时段另有会话在提交。两轮之间 README 被改过 5 次、本件写完。
   第二轮的全部实测记在第 8 节，第 2 节的数字属第一轮。
 - 终端：Git Bash（`MSYSTEM=MINGW64`）。清单里不写任何一台机器的绝对路径：工具输出回显过主机名与用户目录，
-  一律删略为 `<主机名略>` / `<临时目录>`（P23 敏感信息边界）。
-- 两轮的允许范围不同，必须分开念：
+  一律删略为 `<主机名略>` / `<临时目录>`。
+- 两轮的允许范围不同，要分开念：
   - 第一轮：只跑只读探测与只读检查；不跑构建、台架全量、`xsim`、`xsdb`、串口、刷板，
     也不跑 `bash build/gates.sh`（它会写证据件，且当时已有实例在跑）⇒ §2.3 的 B5 记 `NOT_MEASURED`。
   - 第二轮：任务书把 `bash build/gates.sh` 加进可跑名单（它只打印判定，唯一写盘的是 `build/ports_check.txt`，
     跑前跑后 md5 相同 = `09bd398acd567aff83e5b09ef0f576ee`，`git status` 不脏），其余禁止项不变；
-    HEAD `1c4e26b` 那批实跑了 **6 次** `bash build/gates.sh`（逐次读数见 §8.3）。
-- 因此这里的口径是：**别人跑过、件在库里的命令，README 才写成步骤**（给路径与件里的原文行）；
+    HEAD `1c4e26b` 那批实跑了 6 次 `bash build/gates.sh`（逐次读数见 §8.3）。
+- 口径是别人跑过、件在库里的命令才写成 README 的步骤（给路径与件里的原文行）；
   没人跑过或跑不了的命令不写成步骤（排除清单见 §5），能写的也只标 `NOT_MEASURED`。
 
-## 1. 判定汇总（打印分母）
+## 1. 判定汇总（条数与三态）
 
 | 集合 | 条数 | PASS | FAIL | NOT_MEASURED |
 |---|---|---|---|---|
@@ -39,18 +39,18 @@
 
 （第三轮只解锁了上板那一半：JTAG 三步 + 推流 + `board_verify --battery --geom`；构建与全量仿真仍 NOT_MEASURED。
 本行的五个数由 `build/checks/check_repo_consistency.mjs` 的 C9 同一套式子现算：判定列在内 =61，另有 14 行的判定列不是三态词（§9 那张表的最后一列是凭据名，所以不计判定）。
-⇒ 上面两行的旧分母按当时口径保留，不改写。）
+所以上面两行的旧计数按当时口径保留，不改写。）
 
 注意 上面这张表与 §6 判定标准② 那一行的分母（第一轮写的是"39 条 = PASS 25 / FAIL 0 / NOT_MEASURED 14"）**对不上**：
 差在 §2.2 把 A7 拆成两条命令、§2.6 的 3 项与 §2.5 的 M1/M2 属同一次跑的重复计数。第一轮没随表格更新那一句，
-落笔时也不悄悄改它，只如实登记成 §3 的不一致项 **R16**；**以本表 43 / 38 两个分母为准**。
+落笔时也不改它，只登记成 §3 的不一致项 R16；以本表 43 / 38 两个计数为准。
 
 
 `NOT_MEASURED` 的 16 条全部是"要工具 / 要板子 / 本任务禁跑"那一类，每条在下面对应表里写明
-**缺的是哪一次运行、为什么缺**，没有一个被记成通过；路径 B/C 的"别人跑过"由**归档件 + 件里的时间戳**支撑，
-不冒充现场跑过。
-**另有两格不通过不在这张表里**：R7（`skills/` 装配检查自己报不通过，覆盖范围不在工程）与
-R8（改 README §1 时自己写坏首页行名、被数字对账抓到、已改回去的过程不通过）——两处都是**如实记录的不通过**，不是"跑过判通过"。
+缺的是哪一次运行、为什么缺，没有一条被记成通过。路径 B/C 的"别人跑过"靠归档件和件里的时间戳支撑，
+不写成现场跑过。
+另有两格不通过不在这张表里：R7（`skills/` 装配检查自己报不通过，覆盖范围不在工程）与
+R8（改 README §1 时写坏首页行名、被数字对账抓到、已改回去的过程不通过）。两处都按原样记录，不是"跑过判通过"。
 
 ## 2. 逐条命令与实测输出摘要
 
@@ -70,7 +70,7 @@ R8（改 README §1 时自己写坏首页行名、被数字对账抓到、已改
 | S10 | `bash build/run_one_ce.sh` | 8 行 `ok …`（rc 分别为 0/3/3/4/4/3/4/4）+ 末行 `SELF PASS run_one --verdict（八条对照都按期望动）`，rc=0 | PASS |
 | S11 | `git status --porcelain \| wc -l; git rev-parse --short HEAD` | `35` / `384a0b3` ⇒ 脏树 35 件（并发会话在写文档与 `data/`），本件按陈述记录，不作判据 | PASS（陈述） |
 
-Linux 分支：S1/S8 的 Linux 形状（`ls /dev/ttyUSB*` 等）**【未在 Linux 验证】**，本件不给期望输出。
+Linux 分支：S1/S8 的 Linux 形状（`ls /dev/ttyUSB*` 等）标【未在 Linux 验证】，本件不给期望输出。
 
 ### 2.2 §6 路径 A —— 只看归档结果（8 条全跑）
 
@@ -129,7 +129,7 @@ Linux 分支：S1/S8 的 Linux 形状（`ls /dev/ttyUSB*` 等）**【未在 Linu
 | `python src/host/video_sender.py --help` | rc=0；参数名 11 个 ASCII 完好，**中文说明糊成乱码**；`python -c "import sys;print(sys.stdout.encoding)"` = `gbk`、`locale.getpreferredencoding(False)` = `cp936`；加 `PYTHONIOENCODING=utf-8` 后同一条命令输出正常中文 ⇒ README §6 C4 把这一条如实写了 | PASS（并实测出 `skills/pitfalls/console-codepage-verdict-shift` 的那一族形状） |
 | `ls sim/tb_*.v \| wc -l` | `81` | PASS |
 
-## 3. 本件发现的不一致（**原样列出，不静默统一**）
+## 3. 本件发现的不一致（原样列出，不静默统一）
 
 | # | 冲突 | 两处原文（逐字，带 file:line） | 处置 |
 |---|---|---|---|
@@ -142,12 +142,12 @@ Linux 分支：S1/S8 的 Linux 形状（`ls /dev/ttyUSB*` 等）**【未在 Linu
 | R7 | **skill 装配检查那一次跑就是红的**（旧包件；现役入口的读数见 §2.2 A6） | `node skills/scripts/check/gates.mjs` 当时的输出：G2 不合=13（`skills/scripts/{contract_gen,golden_compare,regmap_check}` 等缺 `SKILL.md`）、G10 未标注=9、G11 `NOT_MEASURED`（缺 `skills/scripts/selftest/run_all.sh`） | 覆盖范围只在 `skills/`，与工程复现无关；README §6 A6 明写"别把它念成设计坏了"；P04/P09 在写 ⇒ 不列为本任务红项，但**如实登记**；本行的 `gates.mjs`、`run_all.sh` 与 `skills/scripts/{contract_gen,golden_compare,regmap_check}` 都是 2026-10-04 c7b325f 重建前的旧包名、**现不存在**，只报当时读数 |
 | R8 | **本任务自己造成的回归（已被机器抓到并修好）**：README §1 初版把四行合并成"全设计 setup / hold + 资源"两行后，D6 的数字对账检查立刻红 4 条 | 实跑记录 `node src/host/metric_recheck.mjs` ⇒ rc=**1**，末行 `== 数字对账：判 86 个数（首页层 32 个／解析到 6/10 行；红 4）…`；四条红逐字：`RED row=README.md 里找不到「全设计 setup WNS」这一行 ⇒ 首页与指标表脱钩`（另三条同形：`逐时钟 setup 余量`、`保持时间`、`BRAM / LUT / FF / DSP`）。根因在 `src/host/metric_recheck.mjs:274-278` 的 `FRONT` 名单按**行名 + 括号形状 + "占它 X ns 周期的 Y %"**读首页 | **已回改 README §1**：恢复四个行名与 `功耗` 行的形状（数字逐条对回 `build/timing_summary.rpt` 的 Intra Clock Table 与 Clock Summary），复跑 ⇒ rc=**0**、`判 117 个数（首页层 63 个／解析到 10/10 行；红 0）`。README §1 表下加了一段"这四个行名会被机器读"的警告。**没有**改判定标准本身、**没有**放宽名单（P23 禁止项） |
 
-| R9 | **发布前检查的 24 项里那一次有两项不通过，第二项是 `doc_cur`（第一轮之后新出现，不是本文件造成的）** | 那次 `bash build/gates.sh` 第 34 行 `顶层台架 tb_v98 top=56c269602e18 FAIL行=1 … FAIL`（= 声明过的 `C5c`）+ 第 47 行 `文档时效 doc_cur 扫了 130 个文档 红行=0 身份句=1 门禁读数句=1 … FAIL`；而**归档基准件** `build/r118_gates_final.txt:47` 同一项是 `… 红行=0 身份句=2 门禁读数句=2 … PASS`。两半根因：① §1 那两句锚点被上一轮改成散文（归 R10）；② `src/host/doc_currency_check.mjs:140` 的 `OLD_DIR = /(?:^\|[^/\w.-])docs\/[\w.*-]/g` 把仓库根 `docs/` **一律**当"已删掉的旧目录"，可那时 `docs/` 真实存在且入库（`git ls-files docs/timing/` = 19 件），于是并发会话新写的 6 份交付文档里指向**盘上存在文件**的 188 条 `docs/…` 全被判为不通过（按文件归属见 §8.2 A11） | 不通过项**保留**（其中 `doc_cur` 一支 2026-10-05 复跑已转干净 ⇒ 读数见 §8.2 A11；`C5c` 仍按声明未修）：不改 `report/`、不改 `src/`、不放宽 `OLD_DIR` 这条正则；README 名下那 12 条按检查脚本自己认可的写法归零（同一行写"不随包"，实证是 `build/make_submission.sh:107-114` 的 `rm -rf docs` ⇒ 放行条数从 15 涨到 18）；要队伍裁的三件事 ⇒ `report/questions-for-team-p12.md` Q-P12-11、Q-P12-12 |
+| R9 | **发布前检查的 24 项里那一次有两项不通过，第二项是 `doc_cur`（第一轮之后新出现，不是本文件造成的）** | 那次 `bash build/gates.sh` 第 34 行 `顶层台架 tb_v98 top=56c269602e18 FAIL行=1 … FAIL`（= 声明过的 `C5c`）+ 第 47 行 `文档时效 doc_cur 扫了 130 个文档 红行=0 身份句=1 门禁读数句=1 … FAIL`；而**归档基准件** `build/r118_gates_final.txt:47` 同一项是 `… 红行=0 身份句=2 门禁读数句=2 … PASS`。两半根因：① §1 那两句锚点被上一轮改成散文（归 R10）；② `src/host/doc_currency_check.mjs:140` 的 `OLD_DIR = /(?:^\|[^/\w.-])docs\/[\w.*-]/g` 把仓库根 `docs/` **一律**当"已删掉的旧目录"，可那时 `docs/` 真实存在且入库（`git ls-files docs/timing/` = 19 件），于是并发会话新写的 6 份交付文档里指向**盘上存在文件**的 188 条 `docs/…` 全被判为不通过（按文件归属见 §8.2 A11） | 不通过项**保留**（其中 `doc_cur` 一支 2026-10-05 复跑已转干净 ⇒ 读数见 §8.2 A11；`C5c` 仍按声明未修）：不改 `report/`、不改 `src/`、不放宽 `OLD_DIR` 这条正则；README 名下那 12 条按检查脚本自己认可的写法归零（同一行写"不随包"，实证是 `build/make_submission.sh:107-114` 的 `rm -rf docs` ⇒ 放行条数从 15 涨到 18）；要队伍裁的三件事 ⇒ 问队伍清单 Q-P12-11、Q-P12-12 |
 | R10 | **首页那两句锚点上一轮被删掉了，机器抓到、随后改回；改回时又撞了第二个坑** | 直调 `src/host/doc_currency_check.mjs` 的 D1b/D1c：改前 `抓到 1 句"板态身份句"` / `抓到 1 句"门禁 N 项 X 绿 / Y 红"`（最低要求 2 句，见 `build/gates.sh:466-467` 那两行 `—— D1b 只抓到 … 这一层正在空转`）；把 §1 那两句按 `:255` `NOW_MARK` + `:256` `ADJ_RNN` + `:310` `GATES_CLAIM` 的相邻形状写回去之后**仍然只抓到 1 句**——用 `node -e` 复制那对正则打到 README 每一行才看见：`line 30 NOW= "板上现在" ADJ= NO`，因为**行名"板上现在跑的那一版"里先出现了 `板上现在`**，`l.match()` 只取每行第一个命中，后半句"跑的是 r118"就进不了这一层的判定范围；把行名改成"板上那一版"后 = `2 句 / 2 句` | 两处都已改回并复跑（A9 第 ②③ 次跑：`身份句=2 门禁读数句=2`）；README §1 那一行加了"连行名里先出现这四个字都会挤出这一层的判定范围"的警告。**没有**改判定标准本身。**教训形状**：改"被检查脚本按形状读取的文本"时，同一行里更早的同形状命中会吃掉后面那句 ⇒ 要看的是"检查脚本这次抓到几句"，不是"改过了" |
 | R11 | **README §5 S5 那条找安装位置的命令照字面敲不成立**（第一轮写的是"本机实测这两条能把它挖出来"） | 实测：`find /c /d -maxdepth 4 -name vivado.bat`（300 s 上限内）= **0 行**；同一条在 `/<盘>/Software` 上 `-maxdepth 4` = 0 行、`-maxdepth 5` = 1 行、耗时 1.0 s ⇒ 本机安装深度从盘符根数起是 6 层（`/<盘>/Software/Vivado/<版本>/Vivado/bin/vivado.bat`） | README §5 S5 已改成 `-maxdepth 6` 并写上这两条实测计数（改后 `test -f "$VP_VIVADO_BIN/vivado.bat"` = OK，S5 PASS）⇒ 判定标准① 的"照着敲就成立"这一条，是被自己抓出来的，不是被演练抓出来的 |
 | R12 | **README §8 导语"只有 8 个条目有正文、6 个空目录"已被并发会话改状态** | `ls -d skills/pitfalls/*/ \| wc -l` = 24；`ls skills/pitfalls/*/SKILL.md \| wc -l` = **20**；空目录 4（`criterion-blind-spot`、`derived-clock-port-mux`、`failing-read-prints-geometry`、`switch-feature-two-level-evidence`）；§8 表点名的 8 条正文都在（107–120 行） | 导语改成"24 / 20 / 4 + 只对该时刻负责 + 核对命令一条"，并按 P12 铁律 7 明写"下表是那 20 条的子集" |
-| R13 | **§9 那句"哪些是厂商例程改的、哪些自研：`report/log/version_lineage.md`（逐模块登记）"在这份文件里查不到** | `grep -c "厂商" report/log/version_lineage.md` = **1**（`:153` 一句 `厂商 mux` 的问题叙述），全文没有逐文件/逐模块的来源表；真正写了来源与范围的是 `report/background_and_novelty.md:32-34`（点名 `arp/icmp/udp/eth_ctrl` 来自开发板厂商例程 + 它自带的 #37/#38），**而那一句又把逐文件落点指回 `version_lineage.md`** ⇒ 两份文档互相指空 | README §9 已按实测改写（不再替"逐模块登记"背书），并保留 `report/declarations.md`、`report/` 两条 `test -f` = MISSING 的事实 ⇒ Q-P12-5 升级为"互相指空" |
-| R14 | **README 里那一处写的是大写名 `questions-for-team-P12.md`（当时挂在旧 `docs/` 那层，该层 0 个跟踪件；入库位在 `report/questions-for-team-p12.md`）而盘上是小写名，且 `report/README.md:23` 曾指向盘上没有的 `data/README.md`（该件后来补上，`git ls-files data/README.md` = 1）** | `ls docs/ \| grep -i question` → `questions-for-team-p12.md`（`od -c` 核过字节，是 `-p12`）；README 有 3 处写 `…-P12.md`（Windows 大小写不敏感所以 `test -e` 仍过，**Linux 侧 clone 就是死引用**，也撞 P00 铁律 7 的小写要求）；`test -f data/README.md` = MISSING，而 `report/README.md:23` 的"为什么这样放"那一格正指着它 | README 的 3 处已改成盘上真名（小写）；`report/README.md` 那一处属别人的文件（禁区），只登记 ⇒ Q-P12-13。全仓 C3 那一行（A12：`死引用=66`）也还没认领这处，因为它不在 D4a 的 `.md` 前缀名单里（`data/` 不在 `CITE_MD` 的目录名单中，见 `src/host/doc_currency_check.mjs:139`） |
+| R13 | **§9 那句"哪些是厂商例程改的、哪些自研：逐轮版本线（逐模块登记）"在这份文件里查不到** | `grep -c "厂商" 逐轮版本线` = **1**（`:153` 一句 `厂商 mux` 的问题叙述），全文没有逐文件/逐模块的来源表；真正写了来源与范围的是 背景与创新（点名 `arp/icmp/udp/eth_ctrl` 来自开发板厂商例程 + 它自带的 #37/#38），**而那一句又把逐文件落点指回 `version_lineage.md`** ⇒ 两份文档互相指空 | README §9 已按实测改写（不再替"逐模块登记"背书），并保留 `report/declarations.md`、`report/` 两条 `test -f` = MISSING 的事实 ⇒ Q-P12-5 升级为"互相指空" |
+| R14 | **README 里那一处写的是大写名 `questions-for-team-P12.md`（当时挂在旧 `docs/` 那层，该层 0 个跟踪件；入库位在 问队伍清单）而盘上是小写名，且 `report/README.md:23` 曾指向盘上没有的 `data/README.md`（该件后来补上，`git ls-files data/README.md` = 1）** | `ls docs/ \| grep -i question` → `questions-for-team-p12.md`（`od -c` 核过字节，是 `-p12`）；README 有 3 处写 `…-P12.md`（Windows 大小写不敏感所以 `test -e` 仍过，**Linux 侧 clone 就是死引用**，也撞 P00 铁律 7 的小写要求）；`test -f data/README.md` = MISSING，而 `report/README.md:23` 的"为什么这样放"那一格正指着它 | README 的 3 处已改成盘上真名（小写）；`report/README.md` 那一处属别人的文件（禁区），只登记 ⇒ Q-P12-13。全仓 C3 那一行（A12：`死引用=66`）也还没认领这处，因为它不在 D4a 的 `.md` 前缀名单里（`data/` 不在 `CITE_MD` 的目录名单中，见 `src/host/doc_currency_check.mjs:139`） |
 | R15 | **"两跑逐字节一致"只在树不动时成立** | ②③ 两次跑：`cmp` 无差异、md5 同；④⑤ 两次跑：`cmp` 报 `differ: byte 3481, line 46`，差异只有一处——`doc_enc 扫了 567 个手写文` vs `569`，期间并发会话新增了 2 个手写件；**所有判定字段与各项计数相同**（含 `metric 判=117 首页=63 红=0`） | 不改成"忽略计数行的比对"，只把两跑的差别原样贴出来（§8.2 A9）；要复现就同一分钟连跑两次并先 `git status --porcelain \| wc -l` 记账 |
 | R16 | **本件第一轮的内部计数不自洽（判定标准② 的分母与 §1 的表对不上）** | §1 第一轮合计 `43 / 27 / 0 / 16`；§6 判定标准② 那行写 `39 条 = PASS 25 / FAIL 0 / NOT_MEASURED 14`。差额来自 §2.2 把 A7 拆成两条命令、以及 §2.5 的 M1/M2 与 §2.2 的 A2/A3 是同一跑（重复计数） | **不悄悄重算**：在 §1 加了"以 43 / 38 两个分母为准"的说明并把两轮相加做成 81 / 61 / 1 / 19；第一轮原文保留，红项在此 |
 
@@ -156,35 +156,35 @@ Linux 分支：S1/S8 的 Linux 形状（`ls /dev/ttyUSB*` 等）**【未在 Linu
 ## 4. 路径存在性核对（判定标准③）
 
 - 抽取方式：从 `README.md` 里把所有反引号中的 `*.{md,sh,tcl,v,rpt,txt,csv,py,mjs,ps1,bat,bit,xsa,elf,png,json,xdc,mem,bin}` 取出来 `sort -u`，再逐条 `test -e`。
-- 结果（README 406 行，2026-10-04 12:0x 这一版）：**总数 49，命中 43**；未命中 6 条**逐条都是已声明的非仓库路径或占位符**：
+- 结果（README 406 行，2026-10-04 12:0x 这一版）：总数 49，命中 43；未命中 6 条，逐条都是已声明的非仓库路径或占位符：
   `_pruned.txt`（提交包内件，正文已写"仓库里没有"）、`build.md` / `known_issues.md`（导出改名示例里的裸文件名，
-  实体是 `report/build.md`、`report/known_issues.md`，两者 `test -f` 通过）、
+  实体是 `report/build.md`、问题清单，两者 `test -f` 通过）、
   `data/README.md`（`test -f` = MISSING，README §3.1 明写它不存在）、
   `report/declarations.md`（P20 尚未生成，正文实测声明"尚不存在，故不引用"）、`xsdb.bat`（写作 `<Vitis>/bin/xsdb.bat` 占位）。
-- Markdown 链接（`[x](y)` 形式）：**14 条，命中 14/14**（含本件与 `report/questions-for-team-p12.md`，两件均已落盘）。
-- 并发会话带来的**实时漂移**抓到一次：第一轮量时 `data/measured/` 是空的，第二轮已有 20 个件，
+- Markdown 链接（`[x](y)` 形式）：14 条，命中 14/14（含本件与 问队伍清单，两件均已落盘）。
+- 并发会话带来的实时漂移抓到一次：第一轮量时 `data/measured/` 是空的，第二轮已有 20 个件，
   README §3.1 那一行已改成"20 个件 + 索引在它自己的 `data/measured/README.md`"（该索引文件 `test -f` 通过）。
-  同一行里点名的 `data/README.md` 到清单收尾时 `test -f` 仍为 **MISSING** ⇒ README 明写它不存在、只作陈述不作链接。
+  同一行里点名的 `data/README.md` 到清单收尾时 `test -f` 仍为 **MISSING**，所以 README 明写它不存在、只作陈述不作链接。
 - `test -f` 逐条清单过长不贴全文，抽取与判定命令本身可复跑（见上"抽取方式"）。
-- **第二轮（HEAD `1c4e26b`）复测**：同一抽取方式在改完的 README（490 行）上跑出 **总数 70 / 命中 63 / 未命中 7**，
+- 第二轮（HEAD `1c4e26b`）复测：同一抽取方式在改完的 README（490 行）上跑出总数 70 / 命中 63 / 未命中 7，
   未命中那 7 条逐条是 `build.md`、`known_issues.md`、`_pruned.txt`、`xsdb.bat`、`.bat`（裸文件名或扩展名提及，
-  实体分别是 `report/build.md`、`report/known_issues.md`、包内件、`<Vitis>/bin/xsdb.bat` 占位、§8 那条"`.bat` 不要用 `[ -x ]` 判"），
-  加上 `data/README.md`、`report/declarations.md` 两条**正文自己写明不存在**的；
-  Markdown 本地链接 **16/16 命中**；把全仓检查项 C3 的正则原样复制过来只判 README.md ⇒ **88 条指路、死 0**（§8.3）。
-  ⇒ 判定标准③ 的命中数报的是 **63/70 + 16/16 + 88/88**，未命中数 = 0（7 条例外逐条已声明，不是漏网）。
+  实体分别是 `report/build.md`、问题清单、包内件、`<Vitis>/bin/xsdb.bat` 占位、§8 那条"`.bat` 不要用 `[ -x ]` 判"），
+  加上 `data/README.md`、`report/declarations.md` 两条正文自己写明不存在的；
+  Markdown 本地链接 16/16 命中；把全仓检查项 C3 的正则原样复制过来只判 README.md，得 88 条指路、死 0（§8.3）。
+  判定标准③ 报的命中数是 63/70 + 16/16 + 88/88，未命中数 = 0（7 条例外逐条已声明，不是漏网）。
 
-## 5. 被排除、**没有**写进 README 的命令（P12 停止条件：命令没实跑过就不写）
+## 5. 被排除、没有写进 README 的命令（停止条件：命令没实跑过就不写）
 
 | 命令 | 为什么排除 |
 |---|---|
-| `vivado -mode batch -source build/sim/run_sim.tcl`（全量回归） | 调用形式在脚本头里**没有出处**（`report/reproduce/README.md` §阶段 2 记为【未核实】，只存在于 `report/build.md` §2）⇒ 不写 |
+| `vivado -mode batch -source build/sim/run_sim.tcl`（全量回归） | 调用形式在脚本头里**没有出处**（复现步骤 §阶段 2 记为【未核实】，只存在于 `report/build.md` §2）⇒ 不写 |
 | `run_sender.bat` / `run_video.bat` / `run_serial.bat` | 实测 `src/host/` 下**不存在**这三个 .bat（R4） |
 | `python3 src/host/udp_push.py` | 本机无 `python3` 别名（S3 实测 rc=127）⇒ 要写也只能写 `python`，而 `udp_push.py` 那一支的跑法只在文档里见过、没实跑 ⇒ 不写 |
 | `bash build/gates.sh build/frozen_r19_arb`（读成套归档件那一形） | 脚本头 `:12` 逐字有它，但本次没有对应的实跑件 ⇒ 只在 §6 B5 作"逐字备查"引用，**不列为步骤** |
 | `node build/ps_app.mjs --clean`、`python build/build_ps_app.py` | 禁跑构建 + 缺 `PS_CC`/`PS_BSP` 实测 ⇒ 只留 §4.3 的变量表 |
 | `powershell -File board/uart_cap_once.ps1 -Seconds 20` | 抢串口（本任务禁），且 `board_verify.sh` 头明写 COM6 一次只能一个程序占 ⇒ 只指路不写命令 |
 | `node src/host/metric_recheck.mjs --self`、`--list-*` 各支 | 只跑了默认那一形，`--self` 那几把没实跑 ⇒ 不写进 README |
-| 赛题原文逐字（§3.3.5.4 / §3.3.5.1 / §3.3.3.1 / §3.3.3.2 全段） | 仓库里没有指南 PDF；只引用了 `report/log/contest_checklist.md` 里**已入库的摘录行**（带行号），没有凭记忆补原文 |
+| 赛题原文逐字（§3.3.5.4 / §3.3.5.1 / §3.3.3.1 / §3.3.3.2 全段） | 仓库里没有指南 PDF；只引用了 章程对照记录 里**已入库的摘录行**（带行号），没有凭记忆补原文 |
 
 ### 5.1 第二轮（HEAD `1c4e26b`）追加的排除与"没跑"登记
 
@@ -198,24 +198,24 @@ Linux 分支：S1/S8 的 Linux 形状（`ls /dev/ttyUSB*` 等）**【未在 Linu
 | `bash build/make_submission.sh` | **绝对禁止**（会重写提交目录）⇒ 未跑；核对过 README 只在"证据引用"位置提到它 3 次（`:8`、`:78`、`:114`），**没有**把它写成任何一条步骤（`grep -n make_submission README.md` 可复跑） |
 
 
-## 6. P12 的六条质量标准自证（判定放在最后一个字段）
+## 6. 交付前的六条质量标准自证（判定放在最后一个字段）
 
 | # | 标准 | 证据（命令输出摘要 / 文件:行） | 判定 |
 |---|---|---|---|
 | ① | A/B/C 每步都有命令与期望输出，跳步词命中数 = 0 | `grep -cnE "自行配置\|按需要修改\|按需修改\|自行调整\|根据实际情况\|酌情\|一般来说\|通常情况下\|理论上\|应该问题不大\|环境配置好后\|配置好环境" README.md` ⇒ **0**（分母：README 406 行、9 节、A7+B6+C5 步各带期望输出） | PASS |
 | ② | 本件每条命令跑过或标 `NOT_MEASURED` | §1 汇总表：39 条 = PASS 25 / FAIL 0 / NOT_MEASURED 14；14 条逐条写明"缺的是哪一次运行为什么缺" | PASS |
 | ③ | README 里每个路径 `test -e` 存在（报命中数/总数） | §4：**49 条抽出来、命中 43**；未命中 6 条逐条是"包内件/改名示例/占位符/已声明不存在"；链接 **14/14** | PASS（带 6 条已声明的例外） |
-| ④ | 版本与器件声明只有一处权威、不一致数报出 | 抽取命令：`grep -rn --include='*.md' --include='*.csv' -E "2025\.2\.1\|xc7z020clg484" <除 README.md 外的 9 个文档/表>` ⇒ **18 行复述位，分布在 9 个文件**（`README_EN.md` 2、`board/README.md` 1、`build/README.md` 5、`build/provenance.md` 4、`data/metrics.csv` 1、`report/build.md` 1、`report/01-overview.md` 2、`report/04-resources.md` 1、`report/07-skill-distillation.md` 1）。器件串 `xc7z020clg484-2` **零冲突**；Vivado 串 **零冲突**（v2025.2.1 / SW Build 6403652 与 `build/r118_build_console.txt:1-2` 同值）；**不一致数 = 1 类**（Vitis 版本串：断言位 4 vs 未核实位 1，见 §3 R1）。README §2 已声明为唯一权威位，本任务不改别人的文件 ⇒ 复述位仍在原处，逐条列红不静默统一 | PASS（不一致如实报出：1 类 / 涉 5 处） |
+| ④ | 版本与器件声明只有一处权威、不一致数报出 | 抽取命令：`grep -rn --include='*.md' --include='*.csv' -E "2025\.2\.1\|xc7z020clg484" <除 README.md 外的 9 个文档/表>` ⇒ **18 行复述位，分布在 9 个文件**（`README_EN.md` 2、`board/README.md` 1、`build/README.md` 5、`build/provenance.md` 4、`data/metrics.csv` 1、`report/build.md` 1、概览章 2、资源章 1、`report/07-skill-distillation.md` 1）。器件串 `xc7z020clg484-2` **零冲突**；Vivado 串 **零冲突**（v2025.2.1 / SW Build 6403652 与 `build/r118_build_console.txt:1-2` 同值）；**不一致数 = 1 类**（Vitis 版本串：断言位 4 vs 未核实位 1，见 §3 R1）。README §2 已声明为唯一权威位，本任务不改别人的文件 ⇒ 复述位仍在原处，逐条列红不静默统一 | PASS（不一致如实报出：1 类 / 涉 5 处） |
 | ⑤ | 关键结果数字全部有来源文件，无来源数字数 = 0 | README §1 十行数字每行点名 `file` 或 `file:line`；用 `node src/host/metric_recheck.mjs` 终态 **rc=0、判 117 个数、首页层 63 个、解析到 10/10 行、红 0** 与 `build/timing_summary.rpt:151` 直读复核（`0.739 … 0 … 51135 … 0.052`）；`【待实测】` 计数 = **0**、`【未核实】` = 4（Vitis 版本串、编译器版本串、两处口径），**都不是结果数字**；耗时数字只出自 `build/r118_build_console.txt` 与 `build/evidence/r110_notadopted/r110_lane_after.txt` 的时间戳，两处口径不同的（108 vs 75 分钟）原样并列不取舍 | PASS |
 | ⑥ | 陌生人演练（新会话、只读 README、五个问题） | 演练已用**独立会话**执行（sessionId `3057b9f2-6904-4b52-9cda-26490544034c`，无本对话上下文），回答原样贴在 §7"演练记录"，未润色；据此回改的 README 节次列在 §7 末 | 见 §7（红项保留） |
 
-### 2.7 实际执行过的命令（可与 `report/unattended.md` 对账）
+### 6.1 实际执行过的命令（可与 无人值守记录 对账）
 
-按顺序全列（分母 **25** 类动作；只读，未写工程产物、未 commit、未 push）：
+按顺序全列，25 类动作，只读，未写工程产物、未 commit、未 push：
 
 1. `ls` 根目录与 `docs/ build/ sim/ board/ skills/ skills/pitfalls/ data/ report/ submit/ src/ scripts/ src/host/ build/tcl/ skills/scripts/`
 2. `Read build/provenance.md`（全文）
-3. `Read build/README.md`（全文）、`Read report/build.md`（全文）、`Read report/reproduce/README.md`（全文）
+3. `Read build/README.md`（全文）、`Read report/build.md`（全文）、`Read 复现步骤`（全文）
 4. `head -45` 五支脚本用法头（`build/gates.sh`、`build/board_verify.sh`、`build/sim/run_one.sh`、`build/r116_bit_cycle.sh`、`build/tb98_report.sh`）
 5. `head -40 skills/scripts/check/gates.mjs`（旧包件，2026-10-04 c7b325f 后**现不存在**；今天读同一层是 `head -40 skills/_meta/check-skill-package.mjs`）、`head -40 build/r119_window_check.mjs`
 6. `uname -a` / `node --version` / `git --version` / `python --version` / `python3 --version` / `python -c "import serial"` / `command -v arm-none-eabi-gcc` / `command -v vivado`
@@ -238,19 +238,19 @@ Linux 分支：S1/S8 的 Linux 形状（`ls /dev/ttyUSB*` 等）**【未在 Linu
 23. `node skills/scripts/golden_compare/golden_compare.mjs …（正例基线那一串，--out-dir 指临时目录）`（旧包件名，**现不存在**；现役件是 `skills/scripts/golden-compare-tool/scripts/compare.mjs`）
 24. `cat/tail/head` 归档件：`build/r118_gates_final.txt`、`build/r118_gates.txt`（含 `cmp`）、`build/evidence/r118_board/board_now.txt`、
     `bitcycle_console.txt`、`board_verify_console.txt`、`build/timing_summary.rpt`（Design Timing Summary 段）、
-    `build/evidence/r110_notadopted/r110_lane_after.txt`、`build/evidence/r118_tree_fp.txt`、`report/log/contest_checklist.md`、旧 `docs/` 那层的通配（该层 0 个跟踪件，名册（逐时钟端点读数表）与登记表的落点是 `report/timing/`）
+    `build/evidence/r110_notadopted/r110_lane_after.txt`、`build/evidence/r118_tree_fp.txt`、章程对照记录、旧 `docs/` 那层的通配（该层 0 个跟踪件，名册（逐时钟端点读数表）与登记表的落点是 开发流水账）
 25. 只读 grep 计数：声明位 18 行、Vitis 断言位、`grep -c '^PASS' build/tb_v98_report.txt`、`ls sim/tb_*.v | wc -l`
 
 未执行（本任务禁止项，一条都没越线）：`bash build/gates.sh`、任何 `vivado`/`xvlog`/`xelab`/`xsim`、
-`xsdb`、串口收发、刷板、`node build/ps_app.mjs`、`git add`/`commit`/`push`（P23 的提交动作由队伍决定何时做，
-本件只写文件）。
+`xsdb`、串口收发、刷板、`node build/ps_app.mjs`、`git add`/`commit`/`push`。提交动作由队伍决定何时做，
+本件只写文件。
 
 ## 7. 演练记录（原样，不润色、不补解释）
 
-第 6 节判定标准⑥ 写的是"回答原样贴在 §7"，而这一节现在没有内容 ⇒ 独立会话演练的那份回答没落到本件里，
+第 6 节判定标准⑥ 写的是"回答原样贴在 §7"，而这一节现在没有内容。独立会话演练的那份回答没落到本件里，
 这一条在本件内指不到凭据；README 的回改记录在 §6 判定标准⑥ 那一格里仍然可查。
 
-## 8. 第二轮复跑记录（P12 收尾那一轮，HEAD 从 `157d332` 走到 `1c4e26b`）
+## 8. 第二轮复跑记录（收尾那一轮，HEAD 从 `157d332` 走到 `1c4e26b`）
 
 ### 8.1 §5 环境自检块：S1–S11 逐条重跑（全部只读）
 
@@ -279,7 +279,7 @@ Linux 分支：S1/S8 的 Linux 形状（`ls /dev/ttyUSB*` 等）**【未在 Linu
 | **A9** | `bash build/gates.sh`（**输出落临时目录**，脚本头 `:14-20` 明令不许重定向进 `build/`） | **共跑 6 次**，逐次：① 改 README 之前：rc=1，不通过 **2** 项 = `:34 顶层台架 tb_v98 … FAIL行=1 … FAIL` + `:47 文档时效 doc_cur 扫了 130 个文档 红行=0 身份句=1 门禁读数句=1 … FAIL`；②③ 改完 §1/§2 之后连跑两次：**逐字节一致**（`cmp` 无输出，md5 同为 `8ce67e5b468460331754196fb8ffa37a`），doc_cur 那行变 `红行=1 身份句=2 门禁读数句=2`；④⑤ 全部改完后再连跑两次：rc=1/1、**每一项的判定字段与数字全同**，但两跑**不再逐字节一致**——唯一差异在第 46 行 `手写件编码 doc_enc 扫了 567 个手写文` vs `569`（并发会话在两次跑之间新写了 2 个手写件），md5 `16f323088aedeb36ddc683c4e9d47d86` vs `56b0ab5bb1434eeba6b1ab620aa100bd` ⇒ 记 §3 R15。最后一次跑的**末 6 行原样**：`  文档行号锚点 doc_cite 命中=1121 候选=419 self 15 条对照全过（含厂商豁免 2 条）、硬错 0、命中 >= 300 PASS` / `  数字对账 metric    判=117 首页=63 逐时钟=2/归属=2/百分数=8 csv认领=10/10 红=0 self（…）全过、红 0、判 >= 30 个数、首页 >= 20 个、… PASS` / `  命令长度口径 pipe_len 逐条ok=26 自报=26 收尾PASS=1 self全绿条数=27 rc=0/0 run rc=0、--self rc=0、… PASS` / `  结温公式 temp_formula PASS=10 变异对照=3 FAIL行=0 rc=0 rc=0、… PASS` / `端点总数 51135；CDC 现在按 build/cdc_baseline.txt 的**配对集合**判，功耗仍要人比有没有变差。# 结尾必须把**范围**一起念出来：判定 24 项、未判 0 项。` / `GATES: 有红项（判定 24 项）—— 不采纳，保留上一版` | PASS（检查脚本跑通；**判定侧 2 项不通过如实保留**：`C5c` 声明过的 + `doc_cur`，后者见 §3 R9） |
 | A9-旁证 | `md5sum build/ports_check.txt`（跑前/跑后）、`git status --porcelain build/ports_check.txt` | 同值 `09bd398acd567aff83e5b09ef0f576ee`、`git status` 空 ⇒ `gates.sh` 在仓库根那一跑的**唯一落笔**是这一个文件，且不脏树（内容为 `CHECK PORTS: … violations=0 PASS`） | PASS |
 | A10 | `node skills/scripts/check/gen_index.mjs --check` | `gen_index --check 条目=25 判 25 项 一致=yes PASS`，rc=0（`gen_index.mjs` 是 2026-10-04 c7b325f 重建前的旧包件名、**现不存在**，本行只报当时读数；现役等价命令 `node skills/_meta/build-index.mjs skills --check` 实跑 `INDEX 条目=49 类别=10 索引行=49 需改写=no PASS`）| PASS |
-| A11 | `node src/host/doc_currency_check.mjs` | rc=**1**；`扫了 130 个文档（D1/D2/D3）+ 778 个手写文件（D4）`、`D1b … 抓到 2 句"板态身份句"`、`D1c … 抓到 2 句"门禁 N 项 X 绿 / Y 红"`、`CURRENCY: 188 条过期指路`；README 自己名下 **0 条**（`grep -c "  README.md:"` = 0，改前 12 条）；`--probe` 那一份的按文件归属：`report/90-open-items.md` 62、`report/40-optimization.md` 55、`report/comparison-notes.md` 35、`report/50-results.md` 18、`report/60-failure-analysis.md` 8、`report/70-reproduce.md` 3（**全是未入库的并发件**，本任务禁区） | **PASS**（第三轮复跑：node src/host/doc_currency_check.mjs ⇒ CURRENCY: 干净，rc=0；同一次跑里 D1b 抓到 2 句、D1c 抓到 2 句、围栏内原文回显只报数 10 条、同行声明放行 32 条。第一轮这里的 188 条过期指路是当时的真实状态，保留在 §8 不改写） |
+| A11 | `node src/host/doc_currency_check.mjs` | rc=**1**；`扫了 130 个文档（D1/D2/D3）+ 778 个手写文件（D4）`、`D1b … 抓到 2 句"板态身份句"`、`D1c … 抓到 2 句"门禁 N 项 X 绿 / Y 红"`、`CURRENCY: 188 条过期指路`；README 自己名下 **0 条**（`grep -c "  README.md:"` = 0，改前 12 条）；`--probe` 那一份的按文件归属：未决项集中表 62、`report/40-optimization.md` 55、对照表说明 35、结果页 18、`report/60-failure-analysis.md` 8、`report/70-reproduce.md` 3（**全是未入库的并发件**，本任务禁区） | **PASS**（第三轮复跑：node src/host/doc_currency_check.mjs ⇒ CURRENCY: 干净，rc=0；同一次跑里 D1b 抓到 2 句、D1c 抓到 2 句、围栏内原文回显只报数 10 条、同行声明放行 32 条。第一轮这里的 188 条过期指路是当时的真实状态，保留在 §8 不改写） |
 | A12 | `node build/checks/check_repo_consistency.mjs`（任务书点名的"全仓 C3 行"） | rc=1；`C3 文档内路径存活 判 3 项 扫=266 份 检查路径引用=2000 死引用=66 例（路径按略写：这三条是**当轮工具输出的转述**，指的是那一轮的文件名，不是这一篇的指路）docs/… → docs/…interface-table 那类 \| report/… → src/… \| report/… → docs/…perf_report.md FAIL`；总行 `GATES 终审 C1–C12：判定 12 项 绿=5 红=5 未测=2 有红项，不得提交 FAIL`（红：C3、C4、C9、C12 + 终审本身；C9 `PASS=46 FAIL=13 未测=23`；C1/C5 `NOT_MEASURED`）⇒ **66 条死引用不含 README**：把 C3 自己的正则原样复制过来只判 `README.md`，`total=88 dead=0` | PASS（就"README 无死引用"这一问）；全仓 C3 仍 **PASS**（第三轮复跑：node build/checks/check_repo_consistency.mjs ⇒ 终审 C1–C12 的 C3 那一行现在把"同行声明不随包"作为第四支豁免，词表从 doc_currency 现读；实测数见本节末与 §9） |
 | A1/A4/A6 | `bash build/rtl_fingerprint.sh`（裸形）、`bash build/sim/run_one.sh --verdict …`、`node skills/_meta/check-skill-package.mjs skills` | **没独立跑**（不在第二轮白名单里）。同族证据：A9 里 `gates.sh` 自己调了 `rtl_fingerprint --self`、`run_one_ce.sh`、`doc_enc --self`、`demo_cmds --emit <临时目录>`、`metric_recheck`、`line_cite_check`；第一轮也留了记录（A1 `files=80 top=56c269602e18 rtl=07570b1ac1b4`、A4 `FAIL 行数=1 / PASS 行数=161` rc=3、A6 `判定 12 项 绿=9 红=2 未测=1` rc=1；A6 那一对数是旧包 `gates.mjs` 的读数，件**现不存在**） | **NOT_MEASURED**（第二轮）——"被 `gates.sh` 顺带跑过"不等于这三条命令本身被复跑过（P00 铁律 3）；要测过就算：在仓库根逐字敲这三条并把末行贴回本行 |
 
@@ -295,8 +295,8 @@ Linux 分支：S1/S8 的 Linux 形状（`ls /dev/ttyUSB*` 等）**【未在 Linu
 | `sim/tb_*.v` | 81 | `ls sim/tb_*.v \| wc -l` | PASS，README §3.1 那句同值 |
 | `data/measured/` 件数 | 20（索引 `data/measured/README.md` 存在） | `ls data/measured \| wc -l` | PASS |
 | `skills/pitfalls/` | 24 个条目目录：**20 有 `SKILL.md`、4 空**；§8 表点名的 8 条正文都在（107–120 行） | `ls -d skills/pitfalls/*/ \| wc -l`；`ls skills/pitfalls/*/SKILL.md \| wc -l`；逐个 `[ -f … ]` | PASS；**README §8 导语原写"8 有 / 6 空"已过期 ⇒ 已改成实测数 + 核对命令**（§3 R12） |
-| `report/timing/` 入库件数 | 19 | `git ls-files report/timing/ \| wc -l` = 19（旧 `docs/` 那层同一条命令今为 **0**：这 19 件在 90b0391c 整体改名进 `report/timing/`） | PASS（用于 §2 R4 那句"文件都在"的实证） |
-| `grep -c "厂商" report/log/version_lineage.md` | **1**（`:153` 的一句问题叙述，没有逐文件表） | 同左 | README §9 原写"逐模块登记"不成立 ⇒ 已改（§4 表第 9 行） |
+| 开发流水账 入库件数 | 19 | `git ls-files 开发流水账 \| wc -l` = 19（旧 `docs/` 那层同一条命令今为 **0**：这 19 件在 90b0391c 整体改名进 开发流水账） | PASS（用于 §2 R4 那句"文件都在"的实证） |
+| `grep -c "厂商" 逐轮版本线` | **1**（`:153` 的一句问题叙述，没有逐文件表） | 同左 | README §9 原写"逐模块登记"不成立 ⇒ 已改（§4 表第 9 行） |
 | `test -f report/` / `test -f report/declarations.md` | 两条都 **MISSING** | 同左 | §9 不写成链接的依据 |
 
 ## 9. 原始记录行逐字引文（正文里被简写的那几行，原文照抄在这里）
@@ -325,7 +325,7 @@ build/evidence/r118_board/bitcycle_console.txt 首末两条记录
 
 ## 10. 第三轮（2026-10-05 早，板子连着）：上板那一半从"没跑"变成"跑过"
 
-任务书的禁止项在 2026-10-05 早解除了一半（用户："板子连好了你把那个红再改一下"）：**允许** JTAG 三步、串口、推流；
+任务书的禁止项在 2026-10-05 早解除了一半（用户："板子连好了你把那个红再改一下"）：允许 JTAG 三步、串口、推流；
 **仍然没做**的是构建与全量仿真（B1–B6 保持 NOT_MEASURED，B4 那种会原地覆盖已采纳凭据的更要单独批）。
 
 | 步 | 命令（逐字） | 读到的原文（摘要） | 凭据 | 判定 |
@@ -337,15 +337,15 @@ build/evidence/r118_board/bitcycle_console.txt 首末两条记录
 
 三条如实：
 
-1. **frames_bad=1 是读到的数，不是判出来的事**：两趟同值，同时 drop_words=0、pkt_err=0。
-   它是不是一帧启动窗口的填充计数，没有做判别实验 ⇒ 不下结论，只登记（要收口需要一次带构建的对账）。
-2. **这一跑暴露两处检查器自身的问题**（都改了/登记了）：
-   build/r116_bit_cycle.sh 的摘要行把 pkt_err / frames_bad / drop_seen 打成 `?` —— 它用正则去扫 JSON 文本，
-   而反斜杠经过 bash 与 node 两层引号后退化成永远匹配不上的式子，且 drop_seen 实际住在 flags_bits 下面。
+1. frames_bad=1 是读到的数，不是判出来的事：两趟同值，同时 drop_words=0、pkt_err=0。
+   它是不是一帧启动窗口的填充计数，没做判别实验，所以下不了结论，只登记（要收口需要一次带构建的对账）。
+2. 这一跑暴露两处检查器自身的问题，都改了或登记了：
+   build/r116_bit_cycle.sh 的摘要行把 pkt_err / frames_bad / drop_seen 打成 `?`，因为它用正则去扫 JSON 文本，
+   反斜杠经过 bash 与 node 两层引号后退化成永远匹配不上的式子，而 drop_seen 实际在 flags_bits 下面。
    现在改成按对象取键、取不到打 NA，并把 lat 整个 JSON 打出来（同一份 JSON 重放：pkt_err=0 frames_bad=1 drop_seen=0）。
-   另一处：C3（本件判定分母里的一项）与 doc_currency 的豁免话术不是一套，同一批"不入库指路"一边放行一边判红
-   ⇒ 现在 C3 从对面源码读那张词表（读不到就整项不判），并补了两支能红/能绿对照。
-3. **C3c 仍不判**：这一行要的是"换一份 ELF 再读一遍"的对照。ELF 可以用 `node build/ps_app.mjs` 重建
+   另一处：C3（本件判定计数里的一项）与 doc_currency 的豁免话术不是一套，同一批"不入库指路"一边放行一边判红。
+   现在 C3 从对面源码读那张词表（读不到就整项不判），并补了两支能红/能绿对照。
+3. C3c 仍不判。这一行要的是"换一份 ELF 再读一遍"的对照。ELF 可以用 `node build/ps_app.mjs` 重建
    （`arm-none-eabi-gcc` 在 `<Vitis>/gnu/aarch32/nt/gcc-arm-none-eabi/bin/`，实测记录
-   `build/evidence/1005_ps_app_rebuild.txt`），但重建那颗 md5 与板上那颗不同 ⇒ 这一行欠的不是编译器，
+   `build/evidence/1005_ps_app_rebuild.txt`），但重建那颗 md5 与板上那颗不同。这一行欠的不是编译器，
    是一次重刷加 `board_verify` 复验。在那之前 ps_app 那一路的改动只算源码级，不许写成"板上已验"。

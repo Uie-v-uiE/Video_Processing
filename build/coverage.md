@@ -4,7 +4,7 @@
 本文只回答一件事：**每一路真实存在的时钟，被哪一条约束、由哪个文件的哪一行覆盖到了**（P15b 铁律 3）。
 按名字写的约束一旦名字变了就整条空转，工具不一定提醒 ⇒ 这张表的全部意义是让"哪个名字没人管"每次都能被数出来。
 **不重跑构建**：右侧证据全部来自已留档的只读件；所有行号是 2026-10-04 用 `grep -n` 现取的（命令见第 6 节）。
-读数边界（这份表不能证明什么）见 `report/build-notes.md` 第 1 节。
+读数边界（这份表不能证明什么）见 构建流水账 第 1 节。
 
 ## 1. 本轮到底挂了哪几份 XDC（按入口脚本判，不按目录列表猜）
 
@@ -61,13 +61,13 @@
 | M2 | 生成钟的名字不是约束给的，也不是 RTL 里的网名 | `grep -rn create_generated_clock src/` = 0 命中；`clk_gen.v:37` 的 `clkout0` vs 报告的 `clkout0_1`；`clock_util.rpt:60` 的网名是 `u_pl/u_clk/clk_pix` | 名字由工具产出 ⇒ 例化顺序/改 net 名/re-source MMCM 都可能改名。**这就是改名后静默丢覆盖的形状**，下一次动时钟树必须重跑本文第 3 节 |
 | M3 | `clock_groups_impl.xdc:13-17` 注释自陈生成集 = `clkout0_1/clkout1_1/clkout2`（3 路），报告实际有 5 路 | 注释 `:13-17` vs `timing_summary.rpt:167-171` | 文件头的说明已过期 ⇒ 读约束的人会以为 `clkfbout`/`clkfbout_1` 不在组里；本仓里"约束文件的自述"与"报告"不同源时**以报告为准** |
 | M4 | `clk_fpga_0` 用 `get_clocks -quiet` 引用 | `clock_groups_impl.xdc:30`；历史账：`rk_zynq7020.xdc:43-45`（把取不到的名字并进同一条命令 ⇒ **整条命令空转**，连 `eth_rxc`/`sys_clk` 一起废）、`rk_zynq7020.xdc:66-70`（`CRITICAL WARNING [Vivado 12-4739]`） | 一旦 PS7 的 FCLK 命名变化，这一组会静默消失 ⇒ 三组两两异步变成两两做 setup 分析，历史上对应 `clock_groups_impl.xdc:16-17` 写的 WNS≈-6.7 假违例形状。本轮的正面证据：`cdc.rpt:17-23` 那 7 行仍写着 `Asynch Clock Groups` ⇒ 此刻 `-quiet` 是取到对象的 |
-| M5 | 唯一一条 `set_clock_uncertainty` 只作用于 1/8 路，且只作用 `-hold` 一侧 | `rk_zynq7020.xdc:50`（全仓 `set_clock_uncertainty` 只有这一处，`grep -n` 实测）；生效证据 `roster_r118_after_eth_rxc_hold.rpt:29`；setup 侧与另外 7 路的 hold 侧均无 `UU` 项或整行缺失 | 其余 7 路的 hold 余量全部由工具自己给的数决定；读 WHS 时必须知道"这一路的余量里没有用户不确定度"（见 `report/build-notes.md` 第 1 节 C 组） |
+| M5 | 唯一一条 `set_clock_uncertainty` 只作用于 1/8 路，且只作用 `-hold` 一侧 | `rk_zynq7020.xdc:50`（全仓 `set_clock_uncertainty` 只有这一处，`grep -n` 实测）；生效证据 `roster_r118_after_eth_rxc_hold.rpt:29`；setup 侧与另外 7 路的 hold 侧均无 `UU` 项或整行缺失 | 其余 7 路的 hold 余量全部由工具自己给的数决定；读 WHS 时必须知道"这一路的余量里没有用户不确定度"（见 构建流水账 第 1 节 C 组） |
 | M6 | 输出口两类都没有窗：`eth_rxd/eth_rx_ctl`（输入 5 口 HIGH）、`tmds_*`+`led[*]`（输出 6 口 HIGH） | `timing_summary.rpt:99`、`:106`；名字参照 `check_timing_verbose.rpt:57-61`、`:73-78`；对应候选件 `r116_rgmii_input_window.xdc:32-35`（`-clock eth_rxc`）、`r119_hdmi_source_window.xdc:51-52`（`-clock clkout1_1`）均未挂载 | `check_timing` 的 HIGH 条数**不是时序失败**，但它意味着"这些口的时序结论不存在" ⇒ 赛题口径里不能把 8 路内部收敛外推成"设计整体时序收敛" |
 | M7 | 候选件独占名 `r119b_tmclk`：在约束里被创建，报告 8 路里没有 | `r119b_hdmi_tp1_pinclk.xdc:24-26`；J2 行 `候选件独占名=1 [r119b_tmclk]` | 一旦挂载，域数从 8 变 9 ⇒ `build/roster/roster_r118.tsv` 与本文第 2 节同时作废，必须一起重建，不能只改一处 |
 
 ## 5. 本文自带的判据（一条一行，判定放最后一个字段，打印分母）
 
-复跑：`python build/p15b_parse_reports.py --check`（只读，不写盘；本轮实跑输出见 `report/build-notes.md` 第 5 节）。
+复跑：`python build/p15b_parse_reports.py --check`（只读，不写盘；本轮实跑输出见 构建流水账 第 5 节）。
 
 ```
 C1 时钟名集合对齐：报告 Clock Summary 8 路 == 名册 8 域，缺口 0                 分母=8 判定=PASS

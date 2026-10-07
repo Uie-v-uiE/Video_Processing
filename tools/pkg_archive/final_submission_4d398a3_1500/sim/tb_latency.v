@@ -1,0 +1,399 @@
+`timescale 1ns/1ps
+// 功能：被测模块 `frame_latency`（实例 dut）；覆盖点＝读数精确等于台架数出来的拍差、事件配对缺步或晚到
+//        时不出数、负差值钳位不污染 max、arm 快照五口同源、逐次除法 lat_ms 的商与饱和与撕裂与翻转计数、
+//        lat_sticky 只记本轮的账、commit 与一轮收尾撞在同一拍、除法窗口之内又来了新 commit。
+// 激励与检查：时钟 #5 翻转（100 MHz，10 ns/拍），rst_n 低 4 拍后释放再等 1 拍；ev(which) 发单拍
+//        commit/copy_start/copy_done，ev_sof() 翻一次 sof_tgl 后 repeat(8) 等同步链灌满；各轮 wait_cyc
+//        取 500/1500/8000/100/50/200/60/40/300/1000/118000 拍；T10b 在 600 个相位各武装一次（每 60 次补
+//        一轮事件），T16 跑 40 轮且 i%7==3 的那次故意不等满 40 拍（撞进除法那 32 拍）；异常用 force 造
+//        边界：dut.t_commit=cyc+32'd100_000（倒挂）、dut.cyc += 32'd200_000_000（约 2000 ms）、
+//        dut.cyc -= 32'd1000（负差）。判定：T1 c1/c2/tot/mx/ncyc/clamp 全为 0；T2 c1∈[t2-t1-1,t2-t1+1]、
+//        T2b c2∈[t3-t2-1,t3-t2+1]、T2c tot∈[c1+c2+8000, c1+c2+8200]、T2d mx==tot 且 ncyc==1 且 clamp==0；
+//        T3 ncyc 仍==1，T5/T6 ncyc 仍==2；T4 ncyc==2 且 300<tot<4000；T4b mx==max(mx,tot) 且 mx>=4000；
+//        T7 clamp==1 且 c1/c2/tot 至少一项 ===32'hFFFF_FFFF、T7b ncyc==3、T7c mx===mx_keep；
+//        T8b 快照五字 === live、T8d 不武装则 qc1/qc2/qtot 不动、T9 再武装跟到最新一轮；T10 id_ok 非 0、
+//        T10b bad==0、T10c nchk>50；T11 lms===(tot/100000)、T11b lms>=1、T11c lvalid===1 且 lsticky===0；
+//        T12 lms===16'd2000 且 lvalid===1；T13 torn===1'b0；T14 lt_edges===n_edge0+2；T15 lsticky===1、
+//        T15b lms===16'd9999、T15c 下一干净轮回 lsticky===0 且 lvalid===1、T15d clamp===1；
+//        T16 nbadpair==0、T16b npair>0、T16c nskip>0；T17a dut.have_commit===1、T17b ncyc===n_before+1、
+//        T17c ===n_before+2、T17d 反配对 ===n_before+1；T18a lsticky===1、T18b lms===16'd9999、
+//        T18c 下一干净轮回 0。
+// 预期结果：通过时末行打印 PASS tb_latency，读数满足 tot>=c1+c2 且三段单位都是拍数；失败时对应判据
+//        前打印 "  FAIL <判据名>"，DBG_T11/DBG_T12/DBG_T15 与 T10b/T16/PROBE 各行给出的数字与期望错开
+//        （典型形状：torn=1、lms 不等于 tot/100000、ncyc 比预期少 1、lsticky 该 1 时给 0），末行变
+//        FAIL tb_latency errors=<n>，#60_000_000 看门狗先到期则打 FAIL tb_latency timeout。
+// tb_latency —— src/rtl/video/frame_latency.v（V8-6 链路内时延打点）；跑法 bash sim/run_one.sh tb_latency
+// 这个模块产出的数字**会上文档、会被念给评委听**，所以判据的重点不是"有没有数"，而是"数会不会骗人"：
+//   ① 单位是**拍数**，PL 里不做除法（#58：在这里除了一个非 2 幂的 100 ⇒ 架出组合除法器、WNS −5.014 被门禁拦下）⇒ 读数必须精确等于台架自己数出来的拍差。
+//   ② 配对：commit→start→done→显示帧起始走齐了才许出一次读数；顺序错、缺步、上一轮晚到的事件统统不许凑数（宁可 n_meas 不动）。
+//   ③ 不回绕：差值为负/绕了半圈时报 32'hFFFF_FFFF 并置 clamped（钳位），绝不报成一个很小的时延。④ max 只增不减，n_meas 如实数轮次。
+// ⚠ 台架自己也红过两次才修对（原因写在下面 ev()/ev_sof() 旁边）：**量具错了会把发现报成故障**。
+// T17/T18（#185/#186，2026-09-30 落尺）钉的是同一个形状的两半：**同一个 always 块里两个分支写同一个寄存器、
+// 后写者赢**（commit 与一轮收尾同拍 ⇒ 丢掉一整轮），以及**隔了 32 拍再直播读一次输入**（本轮的钳位账
+// 被后来的 commit 改写 ⇒ 该画 `--` 的轮次把 999 画上屏）。两条都是**改前红**，凭据 build/r97_185186_before.txt。
+module tb_latency;
+    reg clk = 0, rst_n = 0;
+    always #5 clk = ~clk;                 // 100 MHz：一拍 10 ns，与 fclk0 同口径
+
+    reg commit = 0, copy_start = 0, copy_done = 0;
+    reg sof_tgl = 0;                       // 显示帧起始的**翻转位**（像素域转过来的样子）
+
+    wire [31:0] c1, c2, tot, mx;
+    wire [15:0] ncyc;
+    wire        clamp;
+    // #59：读回口用的那一组快照
+    reg         arm = 0;
+    wire [31:0] qc1, qc2, qtot, qmax, qstat, qms;
+    // V8-5：拍数→ms 的逐次除法那一组（OSD 的 Latency 一格就吃这四个口）
+    wire [15:0] lms;
+    wire        lvalid, lsticky, ltog;
+
+    frame_latency dut (
+        .axi_clk(clk), .axi_rst_n(rst_n),
+        .commit(commit), .copy_start(copy_start), .copy_done(copy_done),
+        .disp_sof_tgl(sof_tgl), .arm(arm),
+        .c1_cyc(c1), .c2_cyc(c2), .tot_cyc(tot), .max_cyc(mx),
+        .n_meas(ncyc), .clamped(clamp),
+        .q_c1(qc1), .q_c2(qc2), .q_tot(qtot), .q_max(qmax), .q_stat(qstat),
+        .q_ms(qms),                      // lane24：与 q_tot 同一轮的 ms（T16 判它）
+        // V8-5：OSD 那一口的四个观测对象
+        .lat_ms(lms), .lat_valid(lvalid), .lat_sticky(lsticky), .lat_tog(ltog)
+    );
+
+    // ---- ms 换算这一组的监视器（T12/T13 用）----
+    reg  lt_prev = 0;                      // lat_tog 的上一次电平
+    integer lt_edges = 0;                  // 翻转了几次 = 完成了几次换算
+    reg     torn = 0;                      // 除法没跑完期间 lat_ms 被动过 ⇒ 半截数被写过
+    reg  [15:0] lms_hold;
+    always @(posedge clk) begin
+        if (rst_n) begin
+            if (ltog !== lt_prev) begin lt_edges = lt_edges + 1; lt_prev = ltog; end
+            if (dut.drun && (lms !== lms_hold)) torn = 1;
+        end
+        lms_hold = lms;
+    end
+
+    integer errors = 0, t1, t2, t3, i, j, mx_keep;
+    integer a1, a2, a3, bad, nchk;
+    integer n_edge0, npair, nbadpair, nskip;                       // V8-5：T14 用的"翻转次数基线"
+    integer n_before;                                              // T17 用的"这一拍之前数到几轮"
+    reg [31:0] big;                        // V8-5：force 拍号时用的临时值
+
+    // 0 = 这组含钳位值、判不了；1 = 可信且恒等式成立；2 = 可信但恒等式破了
+    function [1:0] id_ok;
+        input [31:0] x1, x2, xt;
+        begin
+            if (x1 === 32'hFFFF_FFFF || x2 === 32'hFFFF_FFFF || xt === 32'hFFFF_FFFF)
+                id_ok = 2'd0;
+            else id_ok = (xt >= x1 + x2) ? 2'd1 : 2'd2;
+        end
+    endfunction
+
+    task chk;
+        input [100*8:1] name;
+        input cond;
+        begin
+            // 用 `!== 1'b1` 而不是 `!cond`：cond 为 X 时 `if (!cond)` 两个分支都不走 ⇒ **判据会因为一个
+            // 未初始化的计数器而静默变绿**（nchk 没清零 ⇒ X ⇒ T10b/T10c 一条都没判却报 PASS，见 #60）。X 一律当红。
+            if (cond !== 1'b1) begin errors = errors + 1; $display("  FAIL %0s", name); end
+        end
+    endtask
+
+    // 单拍脉冲事件。⚠ `which` 必须显式给位宽：task 的 input 默认 **1 bit** ⇒ 写 `input which` 时 ev(2)
+    // 被截成 0 ⇒ copy_done 永远不发、所有读数停在 0（本文件就是这么全红过一次的）。
+    task ev;
+        input [1:0] which;                 // 0 commit / 1 start / 2 done
+        begin
+            @(negedge clk);
+            case (which) 0: commit = 1; 1: copy_start = 1; default: copy_done = 1; endcase
+            @(negedge clk);
+            commit = 0; copy_start = 0; copy_done = 0;
+        end
+    endtask
+
+    // 翻转一次"显示帧起始"，然后等同步链灌满（3 级 + 收尾判定 ⇒ 数拍）再看读数
+    task ev_sof;
+        begin
+            @(negedge clk); sof_tgl = ~sof_tgl;
+            repeat (8) @(negedge clk);
+        end
+    endtask
+
+    task wait_cyc;
+        input integer n;
+        begin repeat (n) @(negedge clk); end
+    endtask
+
+    initial begin
+        rst_n = 0; commit = 0; copy_start = 0; copy_done = 0; sof_tgl = 0;
+        repeat (4) @(negedge clk);
+        rst_n = 1;
+        @(negedge clk);
+
+        // ---- T1 复位后没有读数、没有假的最大值 ----
+        chk("T1 复位：三段/总和/max/n_meas 全 0，clamped=0",
+            c1 === 0 && c2 === 0 && tot === 0 && mx === 0 && ncyc === 0 && clamp === 0);
+
+        // ---- T2 一轮干净的时序：读数必须**恰好等于拍差**（单位=拍，不做除法）----
+        @(negedge clk); t1 = dut.cyc;  ev(0);
+        wait_cyc(500);
+        @(negedge clk); t2 = dut.cyc;  ev(1);
+        wait_cyc(1500);
+        @(negedge clk); t3 = dut.cyc;  ev(2);
+        wait_cyc(8000);
+        ev_sof();
+        chk("T2 c1 恰好等于 commit→start 的拍差（±事件脉冲自身的 1 拍）",
+            (c1 >= t2 - t1 - 1) && (c1 <= t2 - t1 + 1));
+        chk("T2b c2 恰好等于 start→done 的拍差",
+            (c2 >= t3 - t2 - 1) && (c2 <= t3 - t2 + 1));
+        chk("T2c tot 覆盖整段（≥ c1+c2+8000 且 < c1+c2+8200：同步链那几拍算在内）",
+            tot >= c1 + c2 + 8000 && tot <= c1 + c2 + 8200);
+        chk("T2d 第一轮 max == tot，n_meas == 1，没钳位",
+            mx == tot && ncyc == 1 && clamp == 0);
+
+        // ---- T3 时序乱了序：先 start / 先 done 都不许出数 ----
+        ev(1); wait_cyc(100);              // 没有 commit 配对的 start
+        ev(2); wait_cyc(100);              // 没有起点的 done
+        ev_sof();
+        chk("T3 缺 commit 的一串事件不产生读数（n_meas 仍是 1）", ncyc == 1);
+
+        // ---- T4 第二轮更小：tot 跟着变小，但 max 保留历史最大 ----
+        @(negedge clk); t1 = dut.cyc; ev(0);
+        wait_cyc(100);  ev(1);
+        wait_cyc(100);  ev(2);
+        wait_cyc(200);  ev_sof();
+        chk("T4 第二轮读数被记下（n_meas=2）且 tot 明显小于第一轮",
+            ncyc == 2 && tot < 4000 && tot > 300);
+        chk("T4b max 不被小值覆盖（演示时要念的就是这个数）", mx == (tot < mx ? mx : tot) && mx >= 4000);
+
+        // ---- T5 commit 一刷新就清配对标记：旧轮晚到的 done 不许凑数 ----
+        ev(0); wait_cyc(100);
+        ev(1); wait_cyc(50);               // 这一轮走到 start
+        ev(0); wait_cyc(50);               // 新 commit 来了 ⇒ 上一轮作废
+        ev(2); wait_cyc(50);               // 这个 done 属于被作废的那一轮
+        ev_sof();
+        chk("T5 作废轮次不会被晚到的 done 凑成一次读数（n_meas 仍是 2）", ncyc == 2);
+
+        // ---- T6 没搬完的一帧不出读数 ----
+        ev(0); wait_cyc(100);
+        ev(1); wait_cyc(100);
+        ev_sof();
+        chk("T6 缺 copy_done 的一帧不产生读数（n_meas 仍是 2）", ncyc == 2);
+
+        // ---- T7 钳位：把 t_commit 强行设到"未来"，让差值变负 ⇒ 必须报 0xFFFFFFFF 且置标志 ----
+        @(negedge clk);
+        mx_keep = mx;
+        dut.t_commit = dut.cyc + 32'd100_000;     // 人为制造一次倒挂（时序异常/绕圈的等价形状）
+        dut.have_commit = 1'b1; dut.have_start = 1'b1; dut.have_done = 1'b1;
+        dut.t_start  = dut.cyc;
+        dut.t_done   = dut.cyc;
+        ev_sof();
+        chk("T7 差值为负 ⇒ 三项报 32'hFFFF_FFFF 并置 clamped（**绝不回绕成小数**）",
+            clamp == 1 && (c1 === 32'hFFFF_FFFF || c2 === 32'hFFFF_FFFF || tot === 32'hFFFF_FFFF));
+        chk("T7b 钳位轮次仍如实计数（读数是否可用由 clamped 说，不由 n_meas 说）", ncyc == 3);
+        // 台架逼出来的设计缺陷：钳位值 0xFFFFFFFF 一旦进过 max，"最大时延"就永远读不出真数 ⇒ RTL 里 max 只认真读数。
+        chk("T7c 钳位的那一轮不污染 max（一次倒挂不许把最大时延永远钉在 0xFFFFFFFF）",
+            mx === mx_keep);
+
+        // ---- T8/T8b/T8c/T9/T10：#59 的快照口 ----
+        // 为什么要它：这五个字之间有恒等式 `tot ≥ c1 + c2`（c3 = 等扫描，非负），而 live 寄存器每轮都在换；
+        // 上位机**逐 lane 各读一次**（五个 lane 要几毫秒），推流时每 ~16 ms 换一轮 ⇒ 读到的是不同轮的碎片
+        //（板级 11 组里 4 组破坏恒等式，见 ISSUES #59）。RTL 里这五个值在**同一个 always 块、同一拍**写 ⇒
+        // 单次读一定自洽，所以错的是读法不是硬件 —— 这条判据钉的就是"读法"这一半。
+        ev(0); wait_cyc(40); ev(1); wait_cyc(60); ev(2); ev_sof();     // 先跑一轮干净的
+        chk("T8 起点：live 有可用读数且未钳位（否则下面的『不动』是空的）",
+            tot != 0 && tot !== 32'hFFFF_FFFF);
+        @(negedge clk); arm = 1; @(negedge clk); arm = 0;               // 一拍武装 = 同时抄五个
+        a1 = qc1; a2 = qc2; a3 = qtot;
+        chk("T8b 刚抄完：快照逐字等于当时的 live（五口同源）",
+            qc1 === c1 && qc2 === c2 && qtot === tot && qmax === mx && qstat[31:16] === ncyc);
+        ev(0); wait_cyc(90); ev(1); wait_cyc(40); ev(2); ev_sof();      // 再来一轮，live 必须换
+        chk("T8c 又跑了一轮，live 确实更新了（否则『快照不动』没有对照意义）",
+            tot !== a3);
+        chk("T8d 没有再武装 ⇒ 快照一动不动（读回口拿到的是同一轮）",
+            qc1 === a1 && qc2 === a2 && qtot === a3);
+        @(negedge clk); arm = 1; @(negedge clk); arm = 0;
+        chk("T9 再武装一次，快照跟到最新一轮",
+            qc1 === c1 && qc2 === c2 && qtot === tot);
+        // ⚠ 判"这一组可用"不能用 qstat[0]：`clamped` 是**整个会话的粘滞位**（T7 注过一次倒挂就永远是 1），
+        //    拿它当"本轮无效"的筛子会让判据要么假红、要么**一条都没判就绿**。本轮可不可信只看这一组自己有没有钳位值。
+        chk("T10 快照这组满足恒等式 tot >= c1 + c2（板级破的就是它）",
+            id_ok(qc1, qc2, qtot));
+        // T10b **相位扫描**：轮次正在跑的时候在任意一拍武装，抄到的一组都必须自洽 —— 它是判据里唯一会碰到
+        //      "武装那一拍正好与写回同一拍"的相位；少了它，"快照"这个说法只在采样点错开时才成立，那不够。
+        bad = 0; nchk = 0;      // ⚠ Verilog 的 integer 默认是 X，不清零就是把判据交给 X
+        for (i = 0; i < 600; i = i + 1) begin
+            @(negedge clk); arm = 1; @(negedge clk); arm = 0;
+            if (id_ok(qc1, qc2, qtot) == 2) bad = bad + 1;   // 2 = 这组可信但恒等式破了
+            if (id_ok(qc1, qc2, qtot) != 0) nchk = nchk + 1;  // 真的判过几条（不许空跑）
+            if (i % 60 == 59) begin ev(0); ev(1); ev(2); ev_sof(); end
+        end
+        chk("T10b 600 个相位各处武装，抄到的一组都不破坏恒等式", bad == 0);
+        chk("T10c 相位扫描**真的判到了**可信组（否则 T10b 的绿是空的）", nchk > 50);
+        // 计数打成 ASCII：判据的数字要能被 grep/脚本读走，不该压在中文里（本仓台架的规矩）
+        $display("T10b phases=600 trusted=%0d violated=%0d snapshot_n=%0d",
+                 nchk, bad, qstat[31:16]);
+
+        // V8-5：拍数→ms 的逐次除法（OSD 的 Latency 一格吃这四个口）。判的到底是什么：
+        //  T11 商必须**恰好**等于 tot/100000 —— 拿台架自己的整数除法独立算一遍，不抄 RTL 的余数；这条同时钉住"收尾那一位"（quo 非阻塞 ⇒ 差在"看起来对"的那 1 ms 上）。
+        //  T12/T15 越界必须**饱和在 9999 ms**，不许回卷成小数（回卷 = 把"慢得离谱"报成"几乎没延迟"）；屏上只有三位，osd_overlay 自己再夹 999（独立判据 T2h）。
+        //  T13 除法跑一半时 lat_ms 不许动 ⇒ 跨域那一级拿到的永远是完整数（#59 同一类谎）；T14 一轮一次翻转：少翻 = OSD 停在旧值，多翻 = 撕开两组测量。
+        //  T15 本轮配对被钳位 ⇒ lat_sticky=1（屏上画 `--`），下一轮干净就必须回 0 —— 它**不是**会话粘滞位 `clamped`，两者故意不一样。
+        //      相位扫描最后一轮的除法还没跑完 ⇒ 先等它翻完再取基线，否则 T14 红的是台架不是 RTL。
+        wait_cyc(50);
+        n_edge0 = lt_edges;
+        ev(0);
+        wait_cyc(1000);   ev(1);
+        wait_cyc(118000); ev(2);
+        wait_cyc(200);    ev_sof();
+        wait_cyc(60);                          // 除法 32 拍 + 收尾
+        $display("DBG_T11 tot=%0d exp=%0d lms=%0d valid=%0d sticky=%0d edges=%0d",
+                 tot, (tot / 100000), lms, lvalid, lsticky, lt_edges);
+        chk("T11 商恰好等于 tot/100000（台架独立整数除法）", lms === (tot / 100000));
+        chk("T11b 这一轮真的除出了非零毫秒（否则 T11 可能一直在比 0）", lms >= 1);
+        chk("T11c 测量有效位亮、本轮没钳位", lvalid === 1'b1 && lsticky === 1'b0);
+
+        // T12 造一个 2000 ms 的轮次：把拍号强行推到 2 亿拍之后再去打显示帧起始
+        ev(0);
+        wait_cyc(50);     ev(1);
+        wait_cyc(50);     ev(2);
+        big = dut.cyc + 32'd200_000_000;
+        force dut.cyc = big;
+        @(negedge clk); sof_tgl = ~sof_tgl;
+        repeat (8) @(negedge clk);
+        release dut.cyc;
+        wait_cyc(60);
+        $display("DBG_T12 tot=%0d lms=%0d sticky=%0d edges=%0d base=%0d", tot, lms, lsticky, lt_edges, n_edge0);
+        // 本模块的饱和点是 **9999 ms**（四位数，读回口也用得上）；屏上那一格只有三位，由 osd_overlay 自己再夹到 999
+        // —— 两件事各有判据：这里钉 9999，tb_osd_overlay 的 T2h 钉"5000 ms 上屏画 999"。
+        chk("T12 两千毫秒的轮次原样报出（未越本模块的 9999 饱和点）",
+            lms === 16'd2000 && lvalid === 1'b1);
+
+        chk("T13 除法没跑完期间 lat_ms 从没被动过（跨域拿到的是完整数）", torn === 1'b0);
+        chk("T14 两轮各翻一次：翻转次数 = 完成的换算次数", lt_edges === n_edge0 + 2);
+
+        // T15 倒挂的一轮：拍号往回走 ⇒ diff 判为钳位 ⇒ 本轮不可信（sticky=1）
+        ev(0);
+        wait_cyc(50);     ev(1);
+        wait_cyc(50);     ev(2);
+        big = dut.cyc - 32'd1000;
+        force dut.cyc = big;
+        @(negedge clk); sof_tgl = ~sof_tgl;
+        repeat (8) @(negedge clk);
+        release dut.cyc;
+        wait_cyc(60);
+        $display("DBG_T15 tot=%0d lms=%0d valid=%0d sticky=%0d torn=%0d edges=%0d", tot, lms, lvalid, lsticky, torn, lt_edges);
+        chk("T15 配对被钳位的那一轮：lat_sticky 亮（屏上那一格因此画 --）", lsticky === 1'b1);
+        // tot 被钳成满量程 ⇒ 商是 4 万多的 ms ⇒ 必须停在 9999。这条是**真造出来的越界**，
+        // 不是拿常数 1'b1 糊出来的空判据（#60 那一课：不许有条判据永远不会红）。
+        chk("T15b 越界的一轮饱和在 9999，不回卷成小数", lms === 16'd9999);
+        ev(0);
+        wait_cyc(200);    ev(1);
+        wait_cyc(200);    ev(2);
+        wait_cyc(200);    ev_sof();
+        wait_cyc(60);
+        chk("T15c 下一轮干净就必须回 0（sticky 只是本轮的账，不是会话的账）",
+            lsticky === 1'b0 && lvalid === 1'b1);
+        chk("T15d 会话粘滞位仍然是 1（两件事故意分开，别让 OSD 拿它当筛子）", clamp === 1'b1);
+        $display("T11_15 lms=%0d edges=%0d torn=%0d clamp=%0d", lms, lt_edges, torn, clamp);
+
+        // ---- T16 lane24 那一口：与 q_tot **同一轮**的毫秒数必须等于整数除法 ----
+        // 给板上的 OSD 用：屏上 `Latency:` 画的 ms 与上位机 lane24 读的是同一个数，而 lane27 的 q_tot 是同一轮武装抄走的拍数
+        // ⇒ 两者必须互相推得出来。pair_ok（qms[17]）为 0 的那次（撞进除法那 32 拍）不下结论，但必须**至少有一次**能下结论，否则是空判据（#60）。
+        @(negedge clk); arm = 1; @(negedge clk); arm = 0;
+        npair = 0; nbadpair = 0; nskip = 0;
+        for (i = 0; i < 40; i = i + 1) begin
+            ev(0); ev(1); ev(2); ev_sof();
+            // 除法要 32 拍 ⇒ 每 7 次里留一次**故意不等**（撞进除法窗口，pair_ok 必须给 0），其余等满 40 拍再武装（配对可用）。
+            // 两种都要发生，否则"pair_ok 会保护"这句话本身就是一条从没走过分支的判据。
+            if ((i % 7) != 3) wait_cyc(40);
+            @(negedge clk); arm = 1; @(negedge clk); arm = 0;
+            if (qtot !== 32'hFFFF_FFFF && qms[17]) begin
+                npair = npair + 1;
+                if (qms[15:0] !== (qtot / 32'd100000)) nbadpair = nbadpair + 1;
+            end
+            if (!qms[17]) nskip = nskip + 1;
+            if (1'b0) begin
+                $display("T16 pair qtot=%0d qms=%0d exp=%0d sticky=%0d",
+                         qtot, qms[15:0], (qtot / 32'd100000), qms[16]);
+            end
+        end
+        chk("T16 lane24 的 ms 与同一轮 q_tot 的整数除法一致（屏上那格的机器对照）",
+            nbadpair == 0);
+        chk("T16b 这条判据真的判到了配对（npair>0，否则是空判据）", npair > 0);
+        chk("T16c 也真的撞到过除法窗口（nskip>0 ⇒ pair_ok 那一位不是装饰）", nskip > 0);
+        $display("T16 npair=%0d nskip=%0d nbad=%0d", npair, nskip, nbadpair);
+
+        // ==== T17（#185）：commit 与"一轮收尾"撞在同一个 axi 沿 ⇒ 新一轮不许被自己的清零盖掉 ====
+        // frame_latency.v 的 `if (commit)` 支（:103）写 have_commit=1，收尾支（:130）写 have_commit=0，
+        // 而收尾支写在后面 ⇒ 同拍时**后写者赢**：刚进来的 commit 被当成没来过。可见症状是整整丢一轮
+        //（n_meas 少 1，屏上那一格与 lane24 继续念上一轮的旧数，直到下一次 commit 才又动起来）。
+        // 撞拍不是硬造出来的极端：disp_edge 由三级同步链晚两拍产生，commit 来自 frame_commit_lock
+        //（#171 之后它是单拍脉冲），两条路都落在同一个 100 MHz 域 ⇒ 撞上只是概率问题。
+        wait_cyc(80);
+        ev(0); wait_cyc(300); ev(1); wait_cyc(300); ev(2);      // 先把 have_done 立起来
+        n_before = ncyc;
+        @(negedge clk); sof_tgl = ~sof_tgl;   // N1：同步链从这里开始数两拍 ⇒ 收尾沿落在第三个沿上
+        @(negedge clk); @(negedge clk);       // N2、N3（N3 在 P2 与 P3 之间）
+        commit = 1;                           // P3 = disp_edge 为真的那一拍：故意让 commit 也在这拍
+        @(negedge clk); commit = 0;
+        repeat (6) @(negedge clk);
+        $display("PROBE T17 collide: n_before=%0d n_now=%0d have_commit=%0b have_done=%0b t_commit=%0d",
+                 n_before, ncyc, dut.have_commit, dut.have_done, dut.t_commit);
+        chk("T17a collided commit keeps have_commit set for the new round", dut.have_commit === 1'b1);
+        chk("T17b the collision closed the OLD round once (n_meas +1)", ncyc === n_before + 1);
+        wait_cyc(200); ev(1); wait_cyc(200); ev(2); wait_cyc(200); ev_sof();
+        chk("T17c the collided round still yields its own reading (n_meas +2 total)",
+            ncyc === n_before + 2);
+        // 反配对（正对照）：同样的三轮，只是把显示帧起始错开一拍再打 ⇒ 必须照常出读数。
+        // 没有它，"T17c 少 1"就分不清是 RTL 丢了轮次还是台架的 n_meas 从来就不动。
+        n_before = ncyc;
+        ev(0); wait_cyc(300); ev(1); wait_cyc(300); ev(2); wait_cyc(300); ev_sof();
+        chk("T17d control: the same round without the collision counts (n_meas +1)",
+            ncyc === n_before + 1);
+        $display("PROBE T17d control: n=%0d tot=%0d c1=%0d", ncyc, tot, c1);
+
+        // ==== T18（#186）：lat_sticky 要记住"这一轮钳没钳"，不许在 32 拍之后再直播读一次 ====
+        // :177 `lat_sticky <= (tot_new === CLAMP)` 读的是**除法收尾那一拍**的 tot_new，
+        // 而 tot_new = diff(cyc, t_commit) 里的 t_commit 会被这一轮之后的新 commit 改写 ⇒
+        // 一轮明明被钳位（该画 `--`），收尾时算出来的却只是"这一拍到新 commit 的三十几拍"⇒ sticky=0，
+        // 而 lat_ms 那边照样饱和在 9999 ⇒ 屏上把 999 画上屏。同文件 :90-92 早就立过
+        // "lane24 不许取直播值"的口径，这一条是同一个口径没贯彻到的地方。
+        wait_cyc(80);
+        ev(0); wait_cyc(50); ev(1); wait_cyc(50); ev(2);
+        big = dut.cyc - 32'd1000;                 // 倒挂 ⇒ 这一轮的 diff 为负 ⇒ 收尾时被钳位
+        force dut.cyc = big;
+        @(negedge clk); sof_tgl = ~sof_tgl;       // N1
+        @(negedge clk); @(negedge clk);           // N2、N3 —— 收尾沿在 P3（同步链两拍）
+        @(negedge clk); commit = 1;               // N4 ⇒ P4：除法窗口**之内**的新 commit，改写 t_commit
+        @(negedge clk); commit = 0;
+        release dut.cyc;
+        wait_cyc(60);                             // 除法 32 拍跑完
+        $display("PROBE T18 clamp+mid-div commit: tot=%0d lms=%0d sticky=%0b valid=%0b n=%0d",
+                 tot, lms, lsticky, lvalid, ncyc);
+        chk("T18a a clamped round stays sticky even if a commit lands mid-division", lsticky === 1'b1);
+        chk("T18b the reading itself still saturates at 9999 ms", lms === 16'd9999);
+        // 反配对：下一轮干净 ⇒ sticky 必须回 0。它拦住的是"把 lat_sticky 直接接会话粘滞位 clamped"
+        // 这种修法——那样屏上会永远画 `--`，读数再也不可信（T15d 已经说过两位故意分开）。
+        ev(0); wait_cyc(300); ev(1); wait_cyc(300); ev(2); wait_cyc(300); ev_sof(); wait_cyc(60);
+        chk("T18c next clean round clears sticky (anti-cheat pair for T18a)",
+            lsticky === 1'b0 && lvalid === 1'b1);
+        $display("PROBE T18c clean round: lms=%0d sticky=%0b n=%0d", lms, lsticky, ncyc);
+
+        $display("");
+        $display("[tb_latency.v:361] 口径提醒：本模块量的是 PL 内部（commit 之后到该帧开始扫描），单位是 axi 拍数；");
+        $display("[tb_latency.v:362] 上位机编码与网线传输不在内 ⇒ 对外只能说「链路内时延（PL 侧）」，");
+        $display("[tb_latency.v:363] 且第三段（等扫描）的分辨率是一个显示帧 ⇒ 报数必须带 ±1 帧。");
+        $display("[tb_latency.v:364] 换算成时间戳在 src/host/health_read.mjs 里做（1 拍 = 10 ns，一个常量）。");
+        $display("");
+        if (errors == 0) $display("PASS tb_latency");
+        else             $display("FAIL tb_latency errors=%0d", errors);
+        $finish;
+    end
+
+    initial begin
+        #60_000_000;                         // V8-5 加了 12 万拍那一轮 ⇒ 看门狗跟着放宽
+        $display("FAIL tb_latency timeout");
+        $finish;
+    end
+endmodule

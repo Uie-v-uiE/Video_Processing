@@ -3,7 +3,7 @@
 > 这一页只写**今天还在用**的那几条，并把"看着能用、其实会骗人"的那几条点名。
 > 历史上这里还推荐过 `create_project.tcl` + `build_bitstream.tcl` 那套 V7 流程 —— 那两条已经
 > 不能描述现在的设计（工程里有 BD、有 AXI GPIO、有 `system_top`），文件先留着是因为
-> `report/log/changelog_v7.md` 与 `issues.md` 的若干条目按名字指它们；**不要**拿它们当构建入口。
+> 变更志 与 `issues.md` 的若干条目按名字指它们；**不要**拿它们当构建入口。
 
 ## 1. 构建（唯一规范入口）
 
@@ -41,7 +41,7 @@ set VIVADO=<Vivado>\bin\vivado.bat
 `crit_path.tcl`（关键路径）、`hold_paths.tcl`（hold 违例清单）、`cdc_who.tcl`（CDC 违例归因；
 门禁里"`cdc.rpt` Critical 行 = 基线那几行，配对不新增、unsafe 不增长"那一项用的就是构建落下的 `build/cdc.rpt`）、
 `report_mem_hier.tcl`（存储层次）、`read_run_result.tcl`（读 run 状态）。`ooc_newmods.tcl` / `sweep_impl_strategy.tcl` 是
-`report/optimization_log.md` §5 那次"实现策略扫描"用的工具，那一份 A/B 对比脚本
+优化流水账 §5 那次"实现策略扫描"用的工具，那一份 A/B 对比脚本
 （仓库里曾有的 `wip_r65_ab.sh`）已经退役，扫描结论本身在 OPTIMIZATION_LOG 里。
 
 ## 4. 一次性修复脚本（别当模板抄）

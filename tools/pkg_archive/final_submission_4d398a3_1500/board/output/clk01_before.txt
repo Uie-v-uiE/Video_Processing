@@ -1,0 +1,50 @@
+# r109 改前读数：clkout0_1 最差 8 条（同一族）——任务 #180/#88 的基线
+# 来源：build/probe_clk_worst.tcl 跑 r108 的 system_top_routed.dcp（构建前唯一基线），
+#       控制台 build/r109_clk01_probe_console.txt，明细 build/probe_clk_r109clk01.rpt
+# 口径：这一族的收益看**级数与 route 占比**，不看绝对 WNS 差（规矩 35）
+CLOCK period=20.000 ns  waveform=0.000 10.000
+  Slack (MET) :             1.130ns  (required time - arrival time)
+  Source:                 u_pl/u_split_ctrl/prod/CLK
+  Destination:            u_pl/u_osd/b_reg[2]/D
+  Data Path Delay:        18.445ns  (logic 4.147ns (22.483%)  route 14.298ns (77.517%))
+  Logic Levels:           23  (CARRY4=2 LUT2=2 LUT3=2 LUT4=1 LUT5=3 LUT6=12 MUXF7=1)
+  Slack (MET) :             1.164ns  (required time - arrival time)
+  Source:                 u_pl/u_split_ctrl/prod/CLK
+  Destination:            u_pl/u_osd/b_reg[7]/D
+  Data Path Delay:        18.445ns  (logic 4.147ns (22.483%)  route 14.298ns (77.517%))
+  Logic Levels:           23  (CARRY4=2 LUT2=2 LUT3=2 LUT4=1 LUT5=3 LUT6=12 MUXF7=1)
+  Slack (MET) :             1.270ns  (required time - arrival time)
+  Source:                 u_pl/u_split_ctrl/prod/CLK
+  Destination:            u_pl/u_osd/r_reg[5]/D
+  Data Path Delay:        18.334ns  (logic 4.147ns (22.619%)  route 14.187ns (77.381%))
+  Logic Levels:           23  (CARRY4=2 LUT2=2 LUT3=2 LUT4=1 LUT5=3 LUT6=12 MUXF7=1)
+  Slack (MET) :             1.292ns  (required time - arrival time)
+  Source:                 u_pl/u_split_ctrl/prod/CLK
+  Destination:            u_pl/u_osd/b_reg[5]/D
+  Data Path Delay:        18.291ns  (logic 4.147ns (22.672%)  route 14.145ns (77.328%))
+  Logic Levels:           23  (CARRY4=2 LUT2=2 LUT3=2 LUT4=1 LUT5=3 LUT6=12 MUXF7=1)
+  Slack (MET) :             1.295ns  (required time - arrival time)
+  Source:                 u_pl/u_split_ctrl/prod/CLK
+  Destination:            u_pl/u_osd/b_reg[3]/D
+  Data Path Delay:        18.285ns  (logic 4.147ns (22.680%)  route 14.138ns (77.320%))
+  Logic Levels:           23  (CARRY4=2 LUT2=2 LUT3=2 LUT4=1 LUT5=3 LUT6=12 MUXF7=1)
+  Slack (MET) :             1.306ns  (required time - arrival time)
+  Source:                 u_pl/u_split_ctrl/prod/CLK
+  Destination:            u_pl/u_osd/r_reg[6]/D
+  Data Path Delay:        18.337ns  (logic 4.150ns (22.632%)  route 14.187ns (77.368%))
+  Logic Levels:           23  (CARRY4=2 LUT2=2 LUT3=2 LUT4=1 LUT5=3 LUT6=12 MUXF7=1)
+  Slack (MET) :             1.321ns  (required time - arrival time)
+  Source:                 u_pl/u_split_ctrl/prod/CLK
+  Destination:            u_pl/u_osd/b_reg[6]/D
+  Data Path Delay:        18.292ns  (logic 4.148ns (22.676%)  route 14.145ns (77.324%))
+  Logic Levels:           23  (CARRY4=2 LUT2=2 LUT3=2 LUT4=1 LUT5=3 LUT6=12 MUXF7=1)
+  Slack (MET) :             1.323ns  (required time - arrival time)
+  Source:                 u_pl/u_split_ctrl/prod/CLK
+  Destination:            u_pl/u_osd/g_reg[5]/D
+  Data Path Delay:        18.257ns  (logic 4.147ns (22.715%)  route 14.110ns (77.285%))
+  Logic Levels:           23  (CARRY4=2 LUT2=2 LUT3=2 LUT4=1 LUT5=3 LUT6=12 MUXF7=1)
+PATHS printed: 8  (floor: 0 means report_timing gave nothing for clock clkout0_1)
+
+# 对照（同一次构建的其它三个时钟，来自 build/timing_summary.rpt 的 Intra Clock Table）：
+#   eth_rxc 0.721 ns（占 8 ns 周期的 9.0 %，全设计绝对最差）/ clk_fpga_0 1.524 ns（15.2 %）
+#   clkout0_1 1.130 ns（占 20 ns 的 5.65 % —— **相对余量最紧**）/ sys_clk 14.324 ns

@@ -1,0 +1,459 @@
+﻿=== CAPTURE START 98 commands ===
+>> STAT
+STAT
+[STAT] ctrl thr=80 src=1 zoom=1 bilin=1 zsel=4 zman=1 pub=1 sd=1 frames=4398 playing=1 sel=000 gm=0.00 (PL owns UDP datapath) mode=0 geom=40400000
+>> th 80
+th 80
+[CTRL] AXI_GPIO=0x000F5000 sel=000 thr=80 src=1 zoom=1 pub=1 bilin=1
+[CTRL]   zoom_step=4 1.00x (手动)
+[SD] frame 1212: last 100 frames 29.999 fps (since play 29.856)
+>> TH120
+TH120
+[CTRL] AXI_GPIO=0x000F7800 sel=000 thr=120 src=1 zoom=1 pub=1 bilin=1
+[CTRL]   zoom_step=4 1.00x (手动)
+>> THE
+THE
+[TH] 要跟十进制 0..255
+>> th
+th
+[TH] 要跟十进制 0..255
+>> pipe 11000
+pipe 11000
+[PIPE] 只收 **九位**（一位一级，顺序 gray/invert/blur/sharpen/sobel/binary/bin_pol/erode/dilate）。你给的这串是五位的老位序，等价的九位是：pipe 100001000
+[SD] frame 1312: last 100 frames 29.949 fps (since play 29.856)
+>> 01010
+01010
+[PIPE] 只收 **九位**（一位一级，顺序 gray/invert/blur/sharpen/sobel/binary/bin_pol/erode/dilate）。你给的这串是五位的老位序，等价的九位是：pipe 000011000
+>> pipe 00000
+pipe 00000
+[PIPE] 只收 **九位**（一位一级，顺序 gray/invert/blur/sharpen/sobel/binary/bin_pol/erode/dilate）。你给的这串是五位的老位序，等价的九位是：pipe 000000000
+>> src 0
+src 0
+[CTRL] AXI_GPIO=0x000A7800 sel=000 thr=120 src=0 zoom=1 pub=0 bilin=1
+[CTRL]   zoom_step=4 1.00x (手动)
+[SRC] 已钉住 TEST = 片内自绘测试图卡（mode=2；长按 KEY1 一次即交还给按键环）
+[SD] frame 1412: last 100 frames 29.790 fps (since play 29.856)
+>> src 2
+src 2
+[CTRL] AXI_GPIO=0x014B7800 sel=000 thr=120 src=1 zoom=1 pub=0 bilin=1
+[CTRL]   zoom_step=4 1.00x (手动)
+[SRC] 已钉住 SD = 卡里回放（帧缓存走 DDR）（mode=3；长按 KEY1 一次即交还给按键环）
+>> src 1
+src 1
+[CTRL] AXI_GPIO=0x018F7800 sel=000 thr=120 src=1 zoom=1 pub=1 bilin=1
+[CTRL]   zoom_step=4 1.00x (手动)
+[SRC] 已钉住 ETH = 网络推流（mode=1；长按 KEY1 一次即交还给按键环）
+>> src 9
+src 9
+[SRC] 只认 auto / 0=TEST 图卡 / 1=ETH 网络 / 2=SD 卡回放（屏上印的就是这三个词）
+>> zoom off
+zoom off
+[CTRL] AXI_GPIO=0x00CD7800 sel=000 thr=120 src=1 zoom=0 pub=1 bilin=1
+[CTRL]   zoom_step=4 1.00x (手动)
+[SD] frame 97: last 97 frames 29.938 fps (since play 29.856)
+>> ZOOM1
+ZOOM1
+[CTRL] AXI_GPIO=0x00CB7800 sel=000 thr=120 src=1 zoom=1 pub=0 bilin=1
+[CTRL]   zoom_step=4 1.00x (手动)
+>> bilin off
+bilin off
+[CTRL] AXI_GPIO=0x00C37800 sel=000 thr=120 src=1 zoom=1 pub=0 bilin=0
+[CTRL]   zoom_step=4 1.00x (手动)
+[BILIN] bilin=off
+>> BILIN1
+BILIN1
+[CTRL] AXI_GPIO=0x00CF7800 sel=000 thr=120 src=1 zoom=1 pub=1 bilin=1
+[CTRL]   zoom_step=4 1.00x (手动)
+[BILIN] bilin=on
+>> frame 12
+frame 12
+[CTRL] AXI_GPIO=0x00CB7800 sel=000 thr=120 src=1 zoom=1 pub=0 bilin=1
+[CTRL]   zoom_step=4 1.00x (手动)
+[SD] frame 16: last 100 frames 29.837 fps (since play 29.856)
+>> rot 45
+rot 45
+[ROT] 只认：rot auto [0|1] | rot speed <0..7> | rot show
+       （角度仍然用 KEY1/KEY2 ±1°；`rot auto 1` 会同时开缩放拟合）
+>> rot speed 1
+rot speed 1
+[CTRL] AXI_GPIO=0x00CB7800 sel=000 thr=120 src=1 zoom=1 pub=0 bilin=1
+[CTRL]   zoom_step=4 1.00x (手动)
+[ROT] speed=1 度/帧
+>> split auto
+split auto
+[CTRL] AXI_GPIO=0x00CB7800 sel=000 thr=120 src=1 zoom=1 pub=0 bilin=1
+[CTRL]   zoom_step=4 1.00x (手动)
+[SPLIT] auto：缝在 [2..14]/16 宽度之间自动扫（follow=0 ⇒ 扫的是屏幕的左右；速度与端点是构建参数；`split range`/`speed` 仍待接）
+[SD] frame 116: last 100 frames 29.927 fps (since play 29.856)
+>> split range 20 80
+split range 20 80
+[SPLIT] 只认：split screen | split video | split <0..100> | px <0..1024 或 0..512> | auto | manual | swap 0|1 | follow 0|1 | marker 0|1 | show（range/speed 仍是构建参数，待接）
+>> gamma 1.8
+gamma 1.8
+[GAMMA] g=1.80 mono_bad=0 first=0 last=255
+>> gamma off
+gamma off
+[GAMMA] off（PL 逐位旁路，表保留）
+>> osd off
+osd off
+[CMD] osd 语法已收，硬件未接：缺 OSD 那一层的开关位（现在是常显）。两条接法都不便宜：给 osd_overlay 加 en 端口要连改三处台架例化；在 HDMI 输出前加一级 mux 又要碰字形那一路（r71 该组 setup 最差 0.514 ns）（规划 时序那一轮之后，ISSUES #53，见 report/PLAN_V8_SPEC.md 第 3 节）
+[SD] frame 216: last 100 frames 29.769 fps (since play 29.856)
+>> zoom 1.5
+zoom 1.5
+[CTRL] AXI_GPIO=0x00CF7800 sel=000 thr=120 src=1 zoom=1 pub=1 bilin=1
+[CTRL]   zoom_step=6 1.50x (手动)
+[ZOOM] 1.5 → 最近档 1.50x（八档：0.25x 0.33x 0.50x 0.75x 1.00x 1.33x 1.50x 2.00x；回自动用 zoom auto）
+>> zoom 0.25
+zoom 0.25
+[CTRL] AXI_GPIO=0x00CB7800 sel=000 thr=120 src=1 zoom=1 pub=0 bilin=1
+[CTRL]   zoom_step=0 0.25x (手动)
+[ZOOM] 0.25 → 最近档 0.25x（八档：0.25x 0.33x 0.50x 0.75x 1.00x 1.33x 1.50x 2.00x；回自动用 zoom auto）
+>> zoom 0.9
+zoom 0.9
+[CTRL] AXI_GPIO=0x00CF7800 sel=000 thr=120 src=1 zoom=1 pub=1 bilin=1
+[CTRL]   zoom_step=4 1.00x (手动)
+[ZOOM] 0.9 → 最近档 1.00x（八档：0.25x 0.33x 0.50x 0.75x 1.00x 1.33x 1.50x 2.00x；回自动用 zoom auto）
+>> zoom 2
+zoom 2
+[CTRL] AXI_GPIO=0x00CB7800 sel=000 thr=120 src=1 zoom=1 pub=0 bilin=1
+[CTRL]   zoom_step=7 2.00x (手动)
+[ZOOM] 2 → 最近档 2.00x（八档：0.25x 0.33x 0.50x 0.75x 1.00x 1.33x 1.50x 2.00x；回自动用 zoom auto）
+[SD] frame 316: last 100 frames 29.685 fps (since play 29.856)
+>> zoom 1.0
+zoom 1.0
+[CTRL] AXI_GPIO=0x00CF7800 sel=000 thr=120 src=1 zoom=1 pub=1 bilin=1
+[CTRL]   zoom_step=4 1.00x (手动)
+[ZOOM] 1.0 → 最近档 1.00x（八档：0.25x 0.33x 0.50x 0.75x 1.00x 1.33x 1.50x 2.00x；回自动用 zoom auto）
+>> zoom auto
+zoom auto
+[CTRL] AXI_GPIO=0x00CB7800 sel=000 thr=120 src=1 zoom=1 pub=0 bilin=1
+[CTRL]   zoom_step=4 1.00x (自动呼吸)
+>> zoom 9
+zoom 9
+[ZOOM] 不认的参数 `9`：`zoom on|off`（呼吸开关）、`zoom auto`（回自动）或 `zoom <倍率>`，如 0.75 / 1.5 / 2
+       （注意：`zoom 1` / `zoom 0` 沿用 V7 的 `ZOOM1/ZOOM0`，是**开关**；要 1.00 倍请写 `zoom 1.0`）
+[SD] frame 416: last 100 frames 29.762 fps (since play 29.856)
+>> help
+help
+  V8 语法: src auto|0|1|2 | pipe <九位>|pipe show | th 80 | zoom on|off|auto|<倍率> | bilin on|off | gamma off|1.8 | frame N | sd [files|file n|remount] | play | stop | fill | autoplay 0|1 | temp [th <°C>] | stat | help
+  pipe 九位一位一级（gray/invert/blur/sharpen/sobel/binary/bin_pol/erode/dilate）；五位是 V7 老位序，给了只回一句等价的九位、不生效。**其余长度一律拒**
+  屏上 Pipe 那一格不是这串 0/1：它是五位、每位的 0..3 表示"这一级选了第几个算法"，想知道现在开着什么就敲 pipe show
+  语法已收/硬件待接: osd on|off | split 的 range/speed
+  几何(V9): rot auto [0|1] | rot speed 0..7（度/帧）| rot show
+  缩放(V9): zoom fit [0|1]（1 = 倍率跟着角度定，旋转时整幅画面永远在屏内）
+  Gamma:  gamma <1.00..3.00> | off | on | auto [lo hi [step [ms]]] | manual | show
+  分割线: split screen（屏幕里扫）| split video（画面里扫、跟着转）| split 0..100 | split px | auto | manual | swap 0|1 | follow 0|1 | marker 0|1 | show
+  旧写法仍可用: SRC0 SRC1 TH80 ZOOM0 ZOOM1 BILIN0 BILIN1 FRAME12（裸五位已随五位控制退役，给了会回一句等价的九位）
+>> BOGUS
+BOGUS
+[CMD] 不认: BOGUS
+  V8 语法: src auto|0|1|2 | pipe <九位>|pipe show | th 80 | zoom on|off|auto|<倍率> | bilin on|off | gamma off|1.8 | frame N | sd [files|file n|remount] | play | stop | fill | autoplay 0|1 | temp [th <°C>] | stat | help
+  pipe 九位一位一级（gray/invert/blur/sharpen/sobel/binary/bin_pol/erode/dilate）；五位是 V7 老位序，给了只回一句等价的九位、不生效。**其余长度一律拒**
+  屏上 Pipe 那一格不是这串 0/1：它是五位、每位的 0..3 表示"这一级选了第几个算法"，想知道现在开着什么就敲 pipe show
+  语法已收/硬件待接: osd on|off | split 的 range/speed
+  几何(V9): rot auto [0|1] | rot speed 0..7（度/帧）| rot show
+  缩放(V9): zoom fit [0|1]（1 = 倍率跟着角度定，旋转时整幅画面永远在屏内）
+  Gamma:  gamma <1.00..3.00> | off | on | auto [lo hi [step [ms]]] | manual | show
+  分割线: split screen（屏幕里扫）| split video（画面里扫、跟着转）| split 0..100 | split px | auto | manual | swap 0|1 | follow 0|1 | marker 0|1 | show
+  旧写法仍可用: SRC0 SRC1 TH80 ZOOM0 ZOOM1 BILIN0 BILIN1 FRAME12（裸五位已随五位控制退役，给了会回一句等价的九位）
+>> pipe 000001010
+pipe 000001010
+[CTRL] AXI_GPIO=0x00CB7800 sel=0A0 thr=120 src=1 zoom=1 pub=0 bilin=1
+[CTRL]   zoom_step=4 1.00x (自动呼吸)
+[PIPE] sel=0A0 生效: binary erode
+[PIPE] 屏上那五是**每一级选了第几个算法**（0=无,1/2=该级的两个算法,3=两位都设了）⇒ 与命令串不是同一个写法，看这一行的名字
+>> pipe 000000001
+pipe 000000001
+[CTRL] AXI_GPIO=0x00CF7800 sel=100 thr=120 src=1 zoom=1 pub=1 bilin=1
+[CTRL]   zoom_step=4 1.00x (自动呼吸)
+[PIPE] sel=100 生效: dilate
+[PIPE] 屏上那五是**每一级选了第几个算法**（0=无,1/2=该级的两个算法,3=两位都设了）⇒ 与命令串不是同一个写法，看这一行的名字
+[SD] frame 516: last 100 frames 27.266 fps (since play 29.853)
+>> pipe 000100000
+pipe 000100000
+[CTRL] AXI_GPIO=0x00CF7800 sel=008 thr=120 src=1 zoom=1 pub=1 bilin=1
+[CTRL]   zoom_step=4 1.00x (自动呼吸)
+[PIPE] sel=008 生效: sharpen
+[PIPE] 屏上那五是**每一级选了第几个算法**（0=无,1/2=该级的两个算法,3=两位都设了）⇒ 与命令串不是同一个写法，看这一行的名字
+>> pipe 00001100
+pipe 00001100
+[PIPE] 长度只收 **九位**（一位一级）。五位是 V7 的老写法，给了会告诉你等价的九位；6/7/8 位一律拒（过去被当 9 位补零，屏上对不上）。例：pipe 000000100 / pipe show
+>> pipe 1
+pipe 1
+[PIPE] 长度只收 **九位**（一位一级）。五位是 V7 的老写法，给了会告诉你等价的九位；6/7/8 位一律拒（过去被当 9 位补零，屏上对不上）。例：pipe 000000100 / pipe show
+>> pipe show
+pipe show
+[PIPE] sel=008 生效: sharpen
+[PIPE] 屏上那五是**每一级选了第几个算法**（0=无,1/2=该级的两个算法,3=两位都设了）⇒ 与命令串不是同一个写法，看这一行的名字
+[SD] frame 616: last 100 frames 29.661 fps (since play 29.853)
+>> pipe 000000000
+pipe 000000000
+[CTRL] AXI_GPIO=0x00CB7800 sel=000 thr=120 src=1 zoom=1 pub=0 bilin=1
+[CTRL]   zoom_step=4 1.00x (自动呼吸)
+[PIPE] sel=000 生效: none
+[PIPE] 屏上那五是**每一级选了第几个算法**（0=无,1/2=该级的两个算法,3=两位都设了）⇒ 与命令串不是同一个写法，看这一行的名字
+>> AUTOPLAY0
+AUTOPLAY0
+[SD] autoplay off (only affects the next boot)
+>> autoplay 1
+autoplay 1
+[SD] autoplay on (only affects the next boot)
+>> SRC2
+SRC2
+[CTRL] AXI_GPIO=0x00CB7800 sel=000 thr=120 src=1 zoom=1 pub=0 bilin=1
+[CTRL]   zoom_step=4 1.00x (自动呼吸)
+[SRC] 已钉住 SD = 卡里回放（帧缓存走 DDR）（mode=3；长按 KEY1 一次即交还给按键环）
+[SD] frame 4: last 4 frames 29.999 fps (since play 29.853)
+>> bilin 2
+bilin 2
+[BILIN] 只认 on/off（0/1）或 show
+>> TH80
+TH80
+[CTRL] AXI_GPIO=0x018B5000 sel=000 thr=80 src=1 zoom=1 pub=0 bilin=1
+[CTRL]   zoom_step=4 1.00x (自动呼吸)
+>> temp
+temp
+[TEMP] degC=60.81 raw=0xA9A4 vccint=998mv th=85C over=0 sane=1 osd=61C gpio=0x61
+[SD] frame 104: last 100 frames 29.999 fps (since play 29.853)
+>> temp th 0
+temp th 0
+[TEMP] th=0C
+>> temp
+temp
+[TEMP] degC=61.11 raw=0xA9CB vccint=997mv th=0C over=1 sane=1 osd=61C gpio=0x61
+>> temp th 200
+temp th 200
+[TEMP] th=200C
+>> temp
+temp
+[TEMP] degC=60.79 raw=0xA9A1 vccint=998mv th=200C over=0 sane=1 osd=61C gpio=0x61
+[SD] frame 204: last 100 frames 29.999 fps (since play 29.853)
+>> temp th
+temp th
+[TEMP] th 要跟十进制 0..200（°C），已退回 85
+>> temp th 999
+temp th 999
+[TEMP] th 要跟十进制 0..200（°C），已退回 85
+>> TEMP
+TEMP
+[TEMP] degC=60.75 raw=0xA99C vccint=998mv th=85C over=0 sane=1 osd=61C gpio=0x61
+>> src auto
+src auto
+[SRC] 已钉住 自动（控制权交还按键环）（mode=0；长按 KEY1 一次即交还给按键环）
+[SD] frame 304: last 100 frames 29.999 fps (since play 29.853)
+>> src 0
+src 0
+[CTRL] AXI_GPIO=0x004E5000 sel=000 thr=80 src=0 zoom=1 pub=1 bilin=1
+[CTRL]   zoom_step=4 1.00x (自动呼吸)
+[SRC] 已钉住 TEST = 片内自绘测试图卡（mode=2；长按 KEY1 一次即交还给按键环）
+>> src 2
+src 2
+[CTRL] AXI_GPIO=0x010F5000 sel=000 thr=80 src=1 zoom=1 pub=1 bilin=1
+[CTRL]   zoom_step=4 1.00x (自动呼吸)
+[SRC] 已钉住 SD = 卡里回放（帧缓存走 DDR）（mode=3；长按 KEY1 一次即交还给按键环）
+>> src 1
+src 1
+[CTRL] AXI_GPIO=0x01CF5000 sel=000 thr=80 src=1 zoom=1 pub=1 bilin=1
+[CTRL]   zoom_step=4 1.00x (自动呼吸)
+[SRC] 已钉住 ETH = 网络推流（mode=1；长按 KEY1 一次即交还给按键环）
+[SD] frame 47: last 47 frames 29.797 fps (since play 29.853)
+>> src auto
+src auto
+[SRC] 已钉住 自动（控制权交还按键环）（mode=0；长按 KEY1 一次即交还给按键环）
+>> STAT
+STAT
+[STAT] ctrl thr=80 src=1 zoom=1 bilin=1 zsel=4 zman=0 pub=1 sd=1 frames=4398 playing=1 sel=000 gm=0.00 (PL owns UDP datapath) mode=0 geom=40C00400
+>> sd
+sd
+[SD] FAT32 part_lba=2048 spc=32 rootclus=2 data_lba=34816
+[SD] frames=4398 fps=30.000 files=9 frame=307200B
+[SD]   VIDEO000.BIN frames=512
+[SD]   VIDEO001.BIN frames=512
+[SD]   VIDEO002.BIN frames=512
+[SD]   VIDEO003.BIN frames=512
+[SD]   VIDEO004.BIN frames=512
+[SD]   VIDEO005.BIN frames=512
+[SD]   VIDEO006.BIN frames=512
+[SD]   VIDEO007.BIN frames=512
+[SD]   VIDEO008.BIN frames=302
+>> sd files
+sd files
+[SD] 9 file(s), 4398 frame(s) total
+  #0 VIDEO000.BIN 512 frame(s) first=0
+  #1 VIDEO001.BIN 512 frame(s) first=512
+  #2 VIDEO002.BIN 512 frame(s) first=1024
+  #3 VIDEO003.BIN 512 frame(s) first=1536
+  #4 VIDEO004.BIN 512 frame(s) first=2048
+  #5 VIDEO005.BIN 512 frame(s) first=2560
+  #6 VIDEO006.BIN 512 frame(s) first=3072
+  #7 VIDEO007.BIN 512 frame(s) first=3584
+  #8 VIDEO008.BIN 302 frame(s) first=4096
+[SD] frame 147: last 100 frames 29.639 fps (since play 29.853)
+>> sd file 1
+sd file 1
+[CTRL] AXI_GPIO=0x004F5000 sel=000 thr=80 src=1 zoom=1 pub=1 bilin=1
+[CTRL]   zoom_step=4 1.00x (自动呼吸)
+[SD] file #1 VIDEO001.BIN (512 frame(s)) first=512
+>> sd file 99
+sd file 99
+[SD] file 只认 0..8（不认的写法不改任何状态；先看 sd files）
+>> split 30
+split 30
+[CTRL] AXI_GPIO=0x004F5000 sel=000 thr=80 src=1 zoom=1 pub=1 bilin=1
+[CTRL]   zoom_step=4 1.00x (自动呼吸)
+[SPLIT] 30% -> pos=307/1024（显示列；manual；屏上 Split 格应显示 29%）
+>> split swap 1
+split swap 1
+[CTRL] AXI_GPIO=0x004B5000 sel=000 thr=80 src=1 zoom=1 pub=0 bilin=1
+[CTRL]   zoom_step=4 1.00x (自动呼吸)
+[SPLIT] swap=1（只换内容，不换缝位）
+[SD] frame 596: last 100 frames 29.795 fps (since play 29.853)
+>> split swap 0
+split swap 0
+[CTRL] AXI_GPIO=0x004B5000 sel=000 thr=80 src=1 zoom=1 pub=0 bilin=1
+[CTRL]   zoom_step=4 1.00x (自动呼吸)
+[SPLIT] swap=0（只换内容，不换缝位）
+>> split marker 0
+split marker 0
+[CTRL] AXI_GPIO=0x004B5000 sel=000 thr=80 src=1 zoom=1 pub=0 bilin=1
+[CTRL]   zoom_step=4 1.00x (自动呼吸)
+[SPLIT] marker=0（那条 2 像素蓝线）
+>> split marker 1
+split marker 1
+[CTRL] AXI_GPIO=0x004B5000 sel=000 thr=80 src=1 zoom=1 pub=0 bilin=1
+[CTRL]   zoom_step=4 1.00x (自动呼吸)
+[SPLIT] marker=1（那条 2 像素蓝线）
+[SD] frame 696: last 100 frames 29.999 fps (since play 29.853)
+>> split show
+split show
+[SPLIT] pos=307/1024（显示列） = 29% manual marker=on
+>> split 150
+split 150
+[SPLIT] 只认：split screen | split video | split <0..100> | px <0..1024 或 0..512> | auto | manual | swap 0|1 | follow 0|1 | marker 0|1 | show（range/speed 仍是构建参数，待接）
+>> split 100
+split 100
+[CTRL] AXI_GPIO=0x004B5000 sel=000 thr=80 src=1 zoom=1 pub=0 bilin=1
+[CTRL]   zoom_step=4 1.00x (自动呼吸)
+[SPLIT] 100% -> pos=1023/1024（显示列；manual；屏上 Split 格应显示 99%；已夹到 10 位上限）
+>> split show
+split show
+[SPLIT] pos=1023/1024（显示列） = 99% manual marker=on
+[SD] frame 796: last 100 frames 29.891 fps (since play 29.853)
+>> split video
+split video
+[CTRL] AXI_GPIO=0x004B5000 sel=000 thr=80 src=1 zoom=1 pub=0 bilin=1
+[CTRL]   zoom_step=4 1.00x (自动呼吸)
+[SPLIT] video：缝在**画面**列（线跟着旋转走，端点是画面的两端）里扫，pos=506/512 = 98%
+>> split px 512
+split px 512
+[CTRL] AXI_GPIO=0x004F5000 sel=000 thr=80 src=1 zoom=1 pub=1 bilin=1
+[CTRL]   zoom_step=4 1.00x (自动呼吸)
+[SPLIT] pos=512 px = 100%（manual）
+>> split screen
+split screen
+[CTRL] AXI_GPIO=0x004B5000 sel=000 thr=80 src=1 zoom=1 pub=0 bilin=1
+[CTRL]   zoom_step=4 1.00x (自动呼吸)
+[SPLIT] screen：缝在显示列（屏幕左右扫）里扫，pos=1023/1024 = 99%（缝位已夹到 10 位上限 1023）
+>> split show
+split show
+[SPLIT] pos=1023/1024（显示列） = 99% manual marker=on
+[SD] frame 896: last 100 frames 29.776 fps (since play 29.853)
+>> split 50
+split 50
+[CTRL] AXI_GPIO=0x004B5000 sel=000 thr=80 src=1 zoom=1 pub=0 bilin=1
+[CTRL]   zoom_step=4 1.00x (自动呼吸)
+[SPLIT] 50% -> pos=512/1024（显示列；manual；屏上 Split 格应显示 50%）
+>> rot show
+rot show
+[ROT] auto=0 speed=1 deg/frame zoom=now（KEY1/KEY2 的 ±1° 一直有效）
+>> rot speed 3
+rot speed 3
+[CTRL] AXI_GPIO=0x004B5000 sel=000 thr=80 src=1 zoom=1 pub=0 bilin=1
+[CTRL]   zoom_step=4 1.00x (自动呼吸)
+[ROT] speed=3 度/帧
+[SD] frame 996: last 100 frames 29.579 fps (since play 29.852)
+>> rot speed 9
+rot speed 9
+[ROT] speed 只认 0..7（每帧几个度：60 fps 下 1≈6 s 一圈，7≈0.9 s 一圈；0 = 自动开着但不走）
+>> rot auto 1
+rot auto 1
+[ROT] auto=1：顺带把缩放切到 fit（屏上 Zoom 格标 (Fit)）；不想这样就先 zoom fit 0 再 rot auto 1
+[CTRL] AXI_GPIO=0x004F5000 sel=000 thr=80 src=1 zoom=1 pub=1 bilin=1
+[CTRL]   zoom_step=4 1.00x (自动呼吸)
+>> rot auto 2
+rot auto 2
+[ROT] auto 只认 0 或 1
+>> rot auto 0
+rot auto 0
+[ROT] auto=0（停在当前角度；缩放那一路不变）
+[CTRL] AXI_GPIO=0x004B5000 sel=000 thr=80 src=1 zoom=1 pub=0 bilin=1
+[CTRL]   zoom_step=4 1.00x (自动呼吸)
+[SD] frame 1096: last 100 frames 29.371 fps (since play 29.852)
+>> zoom fit 0
+zoom fit 0
+[CTRL] AXI_GPIO=0x004B5000 sel=000 thr=80 src=1 zoom=1 pub=0 bilin=1
+[CTRL]   zoom_step=4 1.00x (自动呼吸)
+[ZOOM] fit=0（不再由角度定；关掉之后回到呼吸自动档）
+>> zoom fit 1
+zoom fit 1
+[CTRL] AXI_GPIO=0x004F5000 sel=000 thr=80 src=1 zoom=1 pub=1 bilin=1
+[CTRL]   zoom_step=4 1.00x (自动呼吸)
+[ZOOM] fit=1（此刻真的在用的 inv 由角度算出来，屏上 Zoom 格标 (Fit)；关掉之后回到呼吸自动档）
+>> zoom fit 2
+zoom fit 2
+[ZOOM] fit 只认 0 或 1（1 = 倍率跟着角度走）
+>> zoom fit 0
+zoom fit 0
+[CTRL] AXI_GPIO=0x004B5000 sel=000 thr=80 src=1 zoom=1 pub=0 bilin=1
+[CTRL]   zoom_step=4 1.00x (自动呼吸)
+[ZOOM] fit=0（不再由角度定；关掉之后回到呼吸自动档）
+[SD] frame 1196: last 100 frames 29.941 fps (since play 29.852)
+>> split video
+split video
+[CTRL] AXI_GPIO=0x004B5000 sel=000 thr=80 src=1 zoom=1 pub=0 bilin=1
+[CTRL]   zoom_step=4 1.00x (自动呼吸)
+[SPLIT] video：缝在**画面**列（线跟着旋转走，端点是画面的两端）里扫，pos=256/512 = 50%
+>> split 40
+split 40
+[CTRL] AXI_GPIO=0x004F5000 sel=000 thr=80 src=1 zoom=1 pub=1 bilin=1
+[CTRL]   zoom_step=4 1.00x (自动呼吸)
+[SPLIT] 40% -> pos=204/512（画面列；manual；屏上 Split 格应显示 39%）
+>> split px 9999
+split px 9999
+[SPLIT] px 只认 0..512（当前是画面列空间）
+[SD] frame 1296: last 100 frames 29.897 fps (since play 29.852)
+>> split screen
+split screen
+[CTRL] AXI_GPIO=0x004F5000 sel=000 thr=80 src=1 zoom=1 pub=1 bilin=1
+[CTRL]   zoom_step=4 1.00x (自动呼吸)
+[SPLIT] screen：缝在显示列（屏幕左右扫）里扫，pos=399/1024 = 38%
+>> split 50
+split 50
+[CTRL] AXI_GPIO=0x004B5000 sel=000 thr=80 src=1 zoom=1 pub=0 bilin=1
+[CTRL]   zoom_step=4 1.00x (自动呼吸)
+[SPLIT] 50% -> pos=512/1024（显示列；manual；屏上 Split 格应显示 50%）
+>> rot speed 0
+rot speed 0
+[CTRL] AXI_GPIO=0x004B5000 sel=000 thr=80 src=1 zoom=1 pub=0 bilin=1
+[CTRL]   zoom_step=4 1.00x (自动呼吸)
+[ROT] speed=0 度/帧
+>> gamma auto
+gamma auto
+[GAMMA] g=1.00 mono_bad=0 first=0 last=255
+[GAMMA] auto：1.00..3.00，每 2000 ms 走 0.20（停：gamma manual，或直接 gamma <数>）
+[SD] frame 1396: last 100 frames 29.787 fps (since play 29.852)
+>> gamma manual
+gamma manual
+[GAMMA] auto 停了，停在 g=1.00
+>> gamma off
+gamma off
+[GAMMA] off（PL 逐位旁路，表保留）
+>> src auto
+src auto
+[SRC] 已钉住 自动（控制权交还按键环）（mode=0；长按 KEY1 一次即交还给按键环）
+[SD] frame 1496: last 100 frames 29.743 fps (since play 29.852)
+>> STAT
+STAT
+[STAT] ctrl thr=80 src=1 zoom=1 bilin=1 zsel=4 zman=0 pub=0 sd=1 frames=4398 playing=1 sel=000 gm=0.00 (PL owns UDP datapath) mode=0 geom=00400000
+=== CAPTURE END ===
+

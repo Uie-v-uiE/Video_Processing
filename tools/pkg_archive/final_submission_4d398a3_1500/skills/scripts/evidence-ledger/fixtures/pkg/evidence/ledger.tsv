@@ -1,0 +1,3 @@
+ts	round	claim	cmd	artifact	bytes	cbytes	digest	tool	verdict	note
+2026-10-04T09:56:11.209Z	round-01	合成轮次一：读数在阈值内	node demo.mjs --report evidence/read-full.txt	evidence/read-full.txt	421	421	txt:d3ad5a0254cf8aef	v0.0-fixture-1	PASS	夹具行，内容与真实工程无关
+2026-10-04T09:56:17.548Z	round-02	合成轮次二：件里没写版本，判定未测	node demo.mjs --report evidence/read-no-tool.txt	evidence/read-no-tool.txt	341	341	txt:282e0c3e882be46c	NOT_MEASURED	NOT_MEASURED	夹具行：演示 tool 字段只能记哨兵

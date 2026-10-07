@@ -27,9 +27,26 @@ const MULTI = ['number', 'md5', 'path', 'cite', 'verdict'];   // 全部按"值 �
 // 逐条豁免。改写轮里有两处"记号变少"是**修正**而不是丢事实，硬留着红会让这把尺子失去可信度；
 // 但豁免不能变成万能出口，所以每条必须带一个 `need` 字串：改写后的文里当场数得到它，才准放行；
 // 数不到就照旧红（依据消失 ⇒ 豁免自动失效，不需要再改代码）。
+const 同上_r126 = 'r126 那一轮：板上那版换了（位流没动、PS 应用从 OCM 重链到 DDR），旧句子随结论一起换';
 const EXEMPT = {
+  'report/technical-document.md': [
+    { tok: 'path:src/rtl/eth/link_monitor.v', why: '创新点那一格换成几何算子之后这条指路不再重复第二遍；§1.2 功能清单那一行仍按完整路径点名它', need: 'src/rtl/eth/link_monitor.v' },
+    { tok: 'number:600', why: '那一格原写“一轮 600 帧”是轮次挂错：33.34 的 min/avg/max 出自 9000 帧 / 300 s 那一轮的 gap 统计（report/perf_report.md:205-208），而 600 帧那轮自报的是 33.3255 ms；2026-10-07 改名并把轮次写对 ⇒ 600 从本文消失是改正的结果，不是把依据弄丢', need: '9000 帧 / 300 s' },
+  ],
+  'report/06-validation.md': [
+    { tok: 'md5:d0b07f84a068', why: '包内门禁件换成 r126 那份（同一块位流、新 ELF），身份行抄的就是那一版；旧值仍在仓库那件历史门禁里', need: 'ps_app.elf md5=57fa442a7eaf' },
+  ],
   'report/repro-check.md': [
     { tok: 'number:2.7', why: 'HEAD 里该节编号错位（## 6 之下写成 ### 2.7），已改号为 6.1', need: '实际执行过的命令' },
+  ],
+  // ---- 2026-10-07：演示稿第 3 行那条 OSD `FPS:` 口径纠错。旧句写"板上现在这一版数的是显示场同步"，
+  //      与现役 RTL 矛盾：`src/rtl/util/shown_rate.v` 在树里、`u_fpsr` 已被顶层例化，而 #128 就在
+  //      第 99 批那一次采纳里（`report/40-optimization.md:75` 五行读数那一行点名 #128）⇒ 板上这一版
+  //      数的就是写进屏的新帧。屏上例子由 59 改 30、指错行号 915 改 941，都是**改正**不是丢依据。
+  'report/demo_script.md': [
+    { tok: 'cite::59', why: '屏上例子 `1024X600 FPS:59` 换成 `FPS:30`：这一格从 #128 起数新帧，例子要与代码行为一致。尺子把屏上字串 `:59` 读成行号引用属形状撞车，但记号消失本身是改正', need: 'FPS:30' },
+    { tok: 'number:915', why: '顶层 `u_fpsr` 实际在 `pl_video_top.v:941`（现量：该行就是 `shown_rate u_fpsr (`），旧文写 915 是指错行 ⇒ 少一次 915 是改行号', need: 'pl_video_top.v:941' },
+    { tok: 'cite::915', why: '同上：915 换成 941', need: 'pl_video_top.v:941' },
   ],
   'report/ai_collaboration.md': [
     { tok: 'path:skills/references/symptom-router/SKILL.md', why: '同一段重复点名同一份技能两次，省掉一次；指路仍在', need: 'skills/references/symptom-router/SKILL.md' },
@@ -38,6 +55,9 @@ const EXEMPT = {
     { tok: 'path:docs/walkthrough/clocking-and-reset.md', why: '学习文档那一层已撤出仓库，活指路换成不含死路径的说法（导出器要求正文 0 条）', need: '本地学习文档《时钟与复位》那一章' },
   ],
   // 三条是"死名 → 活名"的改口：旧路径本来就读不到，换成的新路径当场在文件里、也在盘上。
+  'src/host/README.md': [
+    { tok: 'number:2025.2', why: '那一格旧文写的示例是 `D:/Xilinx/Vitis/2025.2/bin/xsdb.bat`——这台机器上没有这个路径（实核：xsdb.bat 在套件目录的 `Vitis/bin/` 下，版本号是 2025.2.1 而不是 2025.2），本机路径按 r129 的口径换成占位符之后，跟着死路径一起消失的是那个错版本号；工具版本本身写在 `report/build.md` 的版本表里，不在这张参数表里重复', need: '<Vitis>/bin/xsdb.bat' },
+  ],
   'src/host/line_cite_check.mjs': [
     { tok: 'path:skills/criterion_blind_spot.md', why: '旧包平铺名换成现役条目', need: 'skills/pitfalls/ruler-fake-greens/SKILL.md' },
   ],
@@ -46,6 +66,57 @@ const EXEMPT = {
   ],
   'build/r120_src_map.mjs': [
     { tok: 'path:skills/runtime/register-map/SKILL.md', why: '目录名与现役条目对齐（生成器与 report/src-map.md 同一说法）', need: 'skills/runtime/register-map-and-readback/SKILL.md' },
+  ],
+
+  // ---- r126 那一轮（app 从 OCM 0x0 重链到 DDR、QSPI 自启成立）：下面每一条都是**事实本身变了**，
+  //      不是改写带走数字。旧记号少掉的同时，替代它的值必须当场在文里（`need`），否则照旧红。
+  //      依据：main 台账 #409 + `build/r126_gates.txt` + `board/measured/qspi_coldboot_selfboot_ok_2026-10-06.txt`。
+  'README.md': [
+    { tok: 'path:build/r118_gates.txt', why: '板上那版换成了位流未变、应用重链后的 r126，身份句跟着门禁件走', need: 'build/r126_gates.txt' },
+  ],
+  'README_EN.md': [
+    { tok: 'path:build/r118_gates.txt', why: 同上_r126, need: 'build/r126_gates.txt' },
+  ],
+  'board/README.md': [
+    // 2026-10-07：`board/measured/` 与 `board/compare/` 那两格"份数 / 字节数"是**关于目录自己的计数**，
+    // 不在任何尺子射程里（D5 判路径在不在、D6 判被点名报告里那个数）。目录长了新件、旧总数就失实，
+    // 换掉它是更正而不是丢依据 ⇒ 放行条件写成"新数当场在文里"。
+    // （原先挂在这里的 `verdict:不入库` 已删：那句话落进 HEAD 之后它永远读不到"消失"，留着只会让名单变脏。）
+    { tok: 'number:188', why: '`board/measured/` 从 6 份长到 10 份（r125/r126 那四次 QSPI 冷上电与出厂对照抓包落进同一目录），旧的字节总数 19 188 随份数一起失实；本次逐份 `wc -c` 现量成新总数', need: '38 870' },
+    { tok: 'number:684', why: '`board/compare/` 份数仍是 13，字节总数随其中一份件被重写而变；本次同样逐份现量', need: '22 925' },
+  ],
+  'report/70-reproduce.md': [
+    { tok: 'md5:d0b07f84a068', why: '期望值换成重链后的那颗', need: '57fa442a7eaf' },
+    { tok: 'path:build/r118_gates.txt', why: '对齐的门禁件换成 r126', need: 'build/r126_gates.txt' },
+    { tok: 'path:build/ps_app.elf', why: '那格从"mtime 早于 main.c 的论证"换成一句话的现在态', need: '重编出来的' },
+    { tok: 'path:src/ps/main.c', why: 同上_r126, need: '位流没换' },
+    { tok: 'number:2026', why: '删掉的是"2026-09-29 / 2026-10-02"两个日期、补进一个 2026-10-06', need: '2026-10-06' },
+    { tok: 'number:29', why: 同上_r126, need: '2026-10-06' },
+    { tok: 'number:167', why: '那格不再引用台账编号（正文里 #NNN 本来就不该出现）', need: '0x00200000' },
+  ],
+  'report/host_guide.md': [
+    { tok: 'md5:d0b07f84a068', why: '孪生工具产物那颗换成重链后的这颗', need: '57fa442a7eaf' },
+  ],
+  'report/repro-check.md': [
+    { tok: 'md5:d0b07f84a068', why: 'B6 那格换成重链后的那颗（文末当天的原始回声仍留着）', need: '57fa442a7eaf' },
+    { tok: 'path:build/provenance.md', why: '那半句"登记不同源"的指路随着结论一起换掉', need: '就是板上正在跑的这颗' },
+  ],
+  'src/ps/README.md': [
+    { tok: 'path:build/tcl/create_project.tcl', why: '旧路径从来不存在（死链接），换成现役位置', need: 'build/create_project.tcl' },
+  ],
+  // r126 的死链收口：下面五条都是"指到从来没有过 / 已被剪掉的东西"的句子被改成能兑现的说法。
+  //    规则同 #403/#404 那一族 —— 指路指向不存在的原件就是失实，改口不是丢事实，但替代它的依据
+  //    必须当场在文里（need），否则照旧红。逐条判据：`build/make_submission.sh` 的死链自检抓=0。
+  'board/raw-vs-golden.md': [
+    { tok: 'path:board/captures/index.md', why: '那层抓图索引从未入库，句子换成"没有可复核件"的直说', need: '示相机' },
+    { tok: 'path:board/compare/index.md', why: '示例命令里点着两层不存在的目录，照抄会报 No such file，收成一份', need: 'data/golden/[A-Za-z0-9_.-]' },
+  ],
+  'build/provenance.md': [
+    { tok: 'path:build/artifacts/README.md', why: '那份对照表从来不存在，改指同一行下一列的脚本证据', need: 'file copy -force' },
+  ],
+  'report/collaboration/README.md': [
+    { tok: 'path:report/collaboration/metrics.md', why: '该件已随那本入口记录一起迁出，目录清单不再列它', need: 'report/collaboration/prompts-used.md' },
+    { tok: 'path:report/collaboration/redaction.md', why: '同上：脱敏台账那件也随记录迁出，清单不再列它', need: 'report/collaboration/prompts-used.md' },
   ],
 };
 
@@ -61,11 +132,22 @@ function tally(txt) {
 
 const wanted = process.env.VP_FILES ? process.env.VP_FILES.split(',').map(s => s.trim()).filter(Boolean) : null;
 let files = wanted;
+let seen = 0, untracked = 0;
 if (!files) {
   const st = execFileSync('git', ['status', '--porcelain'], { cwd: root, encoding: 'utf8' });
-  files = st.split('\n').filter(l => /^ M/.test(l)).map(l => l.slice(3).trim()).filter(f => /\.(md|txt)$/.test(f));
+  // 射程以前只取 `^ M`（工作树改了但没 add）。本仓库的规矩是"改完先 git add、跑尺子、再 pathspec 提交"，
+  // 于是**已经 add 过的那一笔**（`M ` 或 `MM`）读起来像"工作树干净"⇒ 尺子空转成 NOT_MEASURED，
+  // 而 NOT_MEASURED 很容易被念成"没毛病"（台账 #467 之后今天 17:38 就撞上一次：提交完再跑，它说干净）。
+  // 现在两种都要，并且把"看见多少行／多少是未跟踪"一起念出来，让"没东西可比"与"没接上"分得开。
+  const rows = st.split('\n').filter(Boolean);
+  seen = rows.length;
+  untracked = rows.filter(l => /^\?\?/.test(l)).length;
+  files = rows
+    .filter(l => !/^\?\?/.test(l) && (l.slice(0, 2).includes('M') || l.slice(0, 2).includes('A')))
+    .map(l => l.slice(3).trim())
+    .filter(f => /\.(md|txt)$/.test(f) && !f.includes(' -> ') && fs.existsSync(path.join(root, f)));
 }
-if (!files.length) { console.log('RESULT=NOT_MEASURED 没有要比对的文件（工作树干净？）'); process.exit(2); }
+if (!files.length) { console.log(`RESULT=NOT_MEASURED 没有要比对的文件（工作树干净？status 里一共 ${seen} 行、未跟踪 ${untracked} 行；要指定就 VP_FILES=a.md,b.md）`); process.exit(2); }
 
 function substrCount(hay, needle) {
   let n = 0, i = 0;
@@ -94,7 +176,7 @@ const DERIVED = {
 // 记号少了一种读法 ≠ 记号没了：`30.0` 后面接了个中文句号、或 `1.5 MB` 并入 `1.5MB`，
 // 正则的边界会把同一个字串读成不同的 token。所以先按字面数一遍，字面还在就不算消失，
 // 但要把降级条数打出来——这个数本身是一条判据，异常膨胀就说明记号在漂。
-let judged = 0, lost = 0, downgraded = 0, exempted = 0, idle = 0, refused = 0, derived = 0, unmeasured = 0;
+let judged = 0, lost = 0, downgraded = 0, exempted = 0, idle = 0, refused = 0, derived = 0, unmeasured = 0, pthold = 0;
 for (const rel of files) {
   const abs = path.join(root, rel);
   if (!fs.existsSync(abs)) { console.log(`SKIP ${rel}（工作树里没有）`); continue; }
@@ -124,6 +206,14 @@ for (const rel of files) {
       if (lit >= n) { sd++; continue; }
       const ex = (EXEMPT[rel] || []).find(e => e.tok === `${k}:${tok}`);
       if (ex && substrCount(now, ex.need) >= 1) { fired.add(`${k}:${tok}`); exempted++; continue; }
+      // 规则式豁免（2026-10-07 本机路径占位符化，`build/r129_path_sanitize.mjs`）：
+      // 只有同时满足三条才放行 ⇒ 不是万能出口：
+      //   ① 记号类型是 path；② 消失的那条**本来就是本机根下的绝对路径**
+      //      （`D:/Xilinx/…` 被记号正则切成 `/Xilinx/…`，正则的边界吃掉了盘符）；
+      //      ③ 改写后的同一份文件里当场数得到占位符（`<repo>`/`<tools>`/`<board-docs>` 任一）。
+      // 少任一条照旧红：路径不是本机根形状的红（丢指路），文件里没有占位符的红（真把事实删了）。
+      if (k === 'path' && /^[/\\](?:Xilinx|Software)[/\\]/i.test(tok)
+          && /<repo>|<tools>|<board-docs>/.test(now)) { pthold++; continue; }
       lostToks.add(`${k}:${tok}`);
       gone.push(`${k}:${tok} x${n}→x${m}${lit ? '(字面' + lit : ''}`);
     }
@@ -142,5 +232,5 @@ for (const rel of files) {
   console.log(`HOLD ${rel} ${line} 边界降级=${sd} 豁免=${fired.size} 消失=${gone.length}${gone.length ? ' 例:' + gone.slice(0, 8).join(',') : ''}`);
   lost += gone.length;
 }
-console.log(`RESULT=${lost ? 'RED' : (unmeasured ? 'NOT_MEASURED' : 'OK')} 判 ${judged} 份改写件 + ${derived} 份生成件（生成件比"与生成器是否一致"）消失记号 ${lost} 个 边界降级 ${downgraded} 个 豁免生效 ${exempted} 条 豁免失效 ${refused} 条 豁免闲置 ${idle} 条 生成件未测 ${unmeasured} 份`);
+console.log(`RESULT=${lost ? 'RED' : (unmeasured ? 'NOT_MEASURED' : 'OK')} 判 ${judged} 份改写件 + ${derived} 份生成件（生成件比"与生成器是否一致"）消失记号 ${lost} 个 边界降级 ${downgraded} 个 豁免生效 ${exempted} 条 占位符豁免 ${pthold} 条 豁免失效 ${refused} 条 豁免闲置 ${idle} 条 生成件未测 ${unmeasured} 份`);
 process.exit(lost ? 1 : (unmeasured ? 3 : 0));

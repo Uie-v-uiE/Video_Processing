@@ -1,0 +1,19 @@
+# r112 判读  改前=build/evidence/r110_setup_paths_baseline.rpt  改后=build/setup_paths.rpt
+## 地板（解析器自己要被数一次）
+  改前 解析块数=6 第一条 slack=0.713ns
+  改后 解析块数=6 第一条 slack=0.445ns
+## 改前：IP 校验和那一条族（终点是 check_buffer_reg[*]）
+0.713ns | src=u_eth/u_icmp/u_icmp_tx/ip_head_reg[4][18]/C | dst=u_eth/u_icmp/u_icmp_tx/check_buffer_reg[17]/D | levels=10 | CARRY4=6
+1.071ns | src=u_eth/u_icmp/u_icmp_tx/ip_head_reg[4][18]/C | dst=u_eth/u_icmp/u_icmp_tx/check_buffer_reg[30]/D | levels=13 | CARRY4=9
+1.075ns | src=u_eth/u_icmp/u_icmp_tx/ip_head_reg[4][18]/C | dst=u_eth/u_icmp/u_icmp_tx/check_buffer_reg[31]/D | levels=13 | CARRY4=9
+1.167ns | src=u_eth/u_icmp/u_icmp_tx/ip_head_reg[4][18]/C | dst=u_eth/u_icmp/u_icmp_tx/check_buffer_reg[29]/D | levels=13 | CARRY4=9
+## 改后：同一条族
+## 全设计最差那一格（两份各自的第一条）
+  改前：0.713ns | src=u_eth/u_icmp/u_icmp_tx/ip_head_reg[4][18]/C | dst=u_eth/u_icmp/u_icmp_tx/check_buffer_reg[17]/D | levels=10 | CARRY4=6
+  改后：0.445ns | src=u_eth/u_rx_par/p_eof_reg/C | dst=u_eth/u_reasm/rows_hit_reg[12]/CE | levels=4 | CARRY4=-
+## 三条结论（每条都点名它读的是哪份件）
+  1) 全局最差 slack：改前 0.713ns → 改后 0.445ns（件：r110_setup_paths_baseline.rpt / setup_paths.rpt 的第一块）。
+     ⚠ 规矩 35：这一行的绝对差本身不叫收益，收益要看第 2 条的同族对照。
+  2) 这一族已从最差路径报告里消失（改前 5 块 → 改后 0 块）⇒ 抓手成立
+  3) ⚠ 归属**换族**了：改后最差是 u_eth/u_rx_par/p_eof_reg/C → u_eth/u_reasm/rows_hit_reg[12]/CE；首页归属句要整句重写（规矩 46）。
+verdict rc=0

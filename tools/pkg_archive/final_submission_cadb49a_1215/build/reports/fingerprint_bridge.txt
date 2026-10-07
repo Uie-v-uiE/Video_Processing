@@ -1,0 +1,21 @@
+# build/fingerprint_bridge.txt —— 旧 raw 源码指纹 ↔ norm1（去 CR 的内容指纹）对照
+#
+# 为什么要有这张表：`build/rtl_fingerprint.sh` 的文件头写了原因（`core.autocrlf=true` 且当时没有
+# `.gitattributes` ⇒ 一次 `git checkout -- src/rtl` 把 52/79 份 `.v` 从 LF 重写成 CRLF，磁盘字节的
+# md5 因此漂了，内容一字未改）。r97 那一版构建与台架留下的都是**漂之前**的 raw 值，
+# 而门禁第 15/15b 项认的就是这两个字段 ⇒ 判据改成 norm1，旧值通过这张表对账。
+#
+# 三条口径（缺一就不是桥接而是放行）：
+#   1) 每行的 norm1 不手抄，由 `git archive <commit>` 把那次提交的内容抽到临时树、
+#      用 `FP_ROOT=<临时树> bash build/rtl_fingerprint.sh` 现算；
+#   2) `bash build/rtl_fingerprint.sh --self` 的 F4 会把每一行按**当前树**重算一遍，
+#      对不上就红 —— 所以这张表不能用来把旧报告糊到新设计上；
+#   3) 表里没有的 raw 一律查不到（F4b 证明这件事），调用方判红。
+#
+# kind=rtl  整个 src/rtl 的合指纹（files=79，与 --self 的 F3 同一个扫描面）
+# kind=file 单文件，path= 是相对仓库根的路径
+#
+kind=rtl  legacy_raw=45e09e8b3b9d  norm1=438f72a4e150  files=79  from=git:a9ba1f3:src/rtl  path=none
+kind=file legacy_raw=9d32e3019891  norm1=db6947d245b6  from=git:a9ba1f3:src/rtl/top/pl_video_top.v  path=src/rtl/top/pl_video_top.v
+kind=file legacy_raw=9ffbc9f0d4e0  norm1=7a9839c61c5a  from=git:9c6fc74:sim/tb_v98_top_seam.v  path=sim/tb_v98_top_seam.v
+kind=file legacy_raw=f8e0583ccb17  norm1=872c331f67f1  from=git:9c6fc74:sim/tb_edge_rim.v  path=sim/tb_edge_rim.v

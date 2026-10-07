@@ -1,0 +1,25 @@
+﻿=== CAPTURE START 6 commands ===
+[SD] frame 2955: last 100 frames 29.999 fps (since play 28.562)
+>> stat
+stat
+[STAT] ctrl en=00 thr=80 src=1 zoom=1 bilin=1 zsel=4 zman=0 pub=1 sd=1 frames=4398 playing=1 sel=000 gm=0.00 (PL owns UDP datapath) mode=0 geom=00400000
+>> stop
+stop
+[SD] stopped at frame 3014
+>> sd remount
+sd remount
+[SD] remount failed: XSdPs_CfgInitialize failed
+[SD] 若卡已经在座：SD 控制器停在半途传输里，只能断电重插（见 ISSUES #45/#94）
+>> stat
+stat
+[STAT] ctrl en=00 thr=80 src=1 zoom=1 bilin=1 zsel=4 zman=0 pub=0 sd=0 frames=0 playing=0 sel=000 gm=0.00 (PL owns UDP datapath) mode=0 geom=00400000
+>> play
+play
+[CTRL] AXI_GPIO=0x004B5000 sel=000 thr=80 src=1 zoom=1 pub=0 bilin=1
+[CTRL]   zoom_step=4 1.00x (自动呼吸)
+[SD] play refused: not mounted
+>> stat
+stat
+[STAT] ctrl en=00 thr=80 src=1 zoom=1 bilin=1 zsel=4 zman=0 pub=1 sd=0 frames=0 playing=0 sel=000 gm=0.00 (PL owns UDP datapath) mode=0 geom=00400000
+=== CAPTURE END ===
+

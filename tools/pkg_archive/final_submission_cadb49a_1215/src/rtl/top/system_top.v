@@ -1,0 +1,322 @@
+`timescale 1ns/1ps
+// system_top：FPGA 顶层（构建脚本的 top）。design_1_wrapper(PS7+AXI) + clk_gen(IDELAY 参考) +
+// eth_udp_video_top(自研收包，占 HP0 写 DDR) + pl_video_top(显示通路) + snap_cross(观测 lane 复用回 AXI)。
+module system_top (
+    inout  wire        DDR_cas_n,
+    inout  wire        DDR_cke,
+    inout  wire        DDR_ck_n,
+    inout  wire        DDR_ck_p,
+    inout  wire        DDR_cs_n,
+    inout  wire        DDR_odt,
+    inout  wire        DDR_ras_n,
+    inout  wire        DDR_reset_n,
+    inout  wire        DDR_we_n,
+    inout  wire [2:0]  DDR_ba,
+    inout  wire [14:0] DDR_addr,
+    inout  wire [31:0] DDR_dq,
+    inout  wire [3:0]  DDR_dm,
+    inout  wire [3:0]  DDR_dqs_n,
+    inout  wire [3:0]  DDR_dqs_p,
+    inout  wire        FIXED_IO_ddr_vrn,
+    inout  wire        FIXED_IO_ddr_vrp,
+    inout  wire [53:0] FIXED_IO_mio,
+    inout  wire        FIXED_IO_ps_clk,
+    inout  wire        FIXED_IO_ps_porb,
+    inout  wire        FIXED_IO_ps_srstb,
+    input  wire        sys_clk,
+    input  wire        key1_n,
+    input  wire        key2_n,
+    output wire [1:0]  led,
+    output wire        tmds_clk_p,
+    output wire        tmds_clk_n,
+    output wire [2:0]  tmds_data_p,
+    output wire [2:0]  tmds_data_n,
+    input  wire        eth_rxc,
+    input  wire        eth_rx_ctl,
+    input  wire [3:0]  eth_rxd,
+    output wire        eth_tx_clk,
+    output wire        eth_tx_ctl,
+    output wire [3:0]  eth_txd,
+    output wire        eth_mdc,
+    inout  wire        eth_mdio,
+    output wire        eth_rst_n
+);
+    wire fclk0, fclk0_rst_n;
+    wire [31:0] gpio_o, status;
+    wire [31:0] gpio1_i;   // v7.6：PL→PS 的健康 lane 窗口（BD 的 GPIO_1 输入）
+    // V8-2：新的效果/几何控制字（BD 里第二个 AXI GPIO，2 通道 × 32 bit，纯输出）。
+    //   ch1[8:0] = stage_sel（九位算法选择，见 proc_pipeline.v 文件头）
+    //   ch1[31:9] 与 ch2 全留给 V8-3/Gamma 与 V8-4/分割线 —— 现在**故意不接**：
+    //   地址与通道布局一次定好，后面两步就不用再动 BD（动一次 BD = 全套门禁重来）。
+    wire [31:0] gpio_cfg1_o, gpio_cfg2_o;
+    wire [31:0] m_araddr;
+    wire [5:0]  m_arid;
+    wire [3:0]  m_arlen_axi3;
+    wire [2:0]  m_arsize;
+    wire [1:0]  m_arburst;
+    wire        m_arvalid, m_arready;
+    wire [63:0] m_rdata;
+    wire [5:0]  m_rid;
+    wire [1:0]  m_rresp;
+    wire        m_rlast, m_rvalid, m_rready;
+    wire [7:0]  m_arlen8;
+
+    wire [31:0] m_awaddr;
+    wire [7:0]  m_awlen;
+    wire [2:0]  m_awsize;
+    wire [1:0]  m_awburst;
+    wire        m_awvalid, m_awready;
+    wire [63:0] m_wdata;
+    wire [7:0]  m_wstrb;
+    wire        m_wlast, m_wvalid, m_wready;
+    wire        m_bvalid, m_bready;
+    wire [3:0]  m_awlen_axi3 = m_awlen[3:0];
+
+    design_1_wrapper u_bd (
+        .DDR_cas_n(DDR_cas_n), .DDR_cke(DDR_cke), .DDR_ck_n(DDR_ck_n), .DDR_ck_p(DDR_ck_p),
+        .DDR_cs_n(DDR_cs_n), .DDR_odt(DDR_odt), .DDR_ras_n(DDR_ras_n), .DDR_reset_n(DDR_reset_n),
+        .DDR_we_n(DDR_we_n), .DDR_ba(DDR_ba), .DDR_addr(DDR_addr), .DDR_dq(DDR_dq),
+        .DDR_dm(DDR_dm), .DDR_dqs_n(DDR_dqs_n), .DDR_dqs_p(DDR_dqs_p),
+        .FIXED_IO_ddr_vrn(FIXED_IO_ddr_vrn), .FIXED_IO_ddr_vrp(FIXED_IO_ddr_vrp),
+        .FIXED_IO_mio(FIXED_IO_mio), .FIXED_IO_ps_clk(FIXED_IO_ps_clk),
+        .FIXED_IO_ps_porb(FIXED_IO_ps_porb), .FIXED_IO_ps_srstb(FIXED_IO_ps_srstb),
+        .FCLK_CLK0(fclk0), .FCLK_RESET0_N(fclk0_rst_n),
+        .GPIO_0_tri_o(gpio_o),
+        .GPIO_1_tri_i(gpio1_i),
+        .GPIO_2_tri_o(gpio_cfg1_o),
+        .GPIO_3_tri_o(gpio_cfg2_o),
+        .M_AXI_HP0_araddr(m_araddr), .M_AXI_HP0_arburst(m_arburst),
+        .M_AXI_HP0_arcache(4'b0011), .M_AXI_HP0_arid(m_arid),
+        .M_AXI_HP0_arlen(m_arlen_axi3), .M_AXI_HP0_arlock(2'b00),
+        .M_AXI_HP0_arprot(3'b000), .M_AXI_HP0_arqos(4'b0000),
+        .M_AXI_HP0_arready(m_arready), .M_AXI_HP0_arsize(m_arsize),
+        .M_AXI_HP0_arvalid(m_arvalid),
+        .M_AXI_HP0_awaddr(m_awaddr), .M_AXI_HP0_awburst(m_awburst), .M_AXI_HP0_awcache(4'b0011),
+        .M_AXI_HP0_awid(6'd0), .M_AXI_HP0_awlen(m_awlen_axi3), .M_AXI_HP0_awlock(2'b00),
+        .M_AXI_HP0_awprot(3'b000), .M_AXI_HP0_awqos(4'b0000),
+        .M_AXI_HP0_awready(m_awready), .M_AXI_HP0_awsize(m_awsize),
+        .M_AXI_HP0_awvalid(m_awvalid),
+        .M_AXI_HP0_bid(), .M_AXI_HP0_bready(m_bready), .M_AXI_HP0_bresp(), .M_AXI_HP0_bvalid(m_bvalid),
+        .M_AXI_HP0_rdata(m_rdata), .M_AXI_HP0_rid(m_rid), .M_AXI_HP0_rlast(m_rlast),
+        .M_AXI_HP0_rready(m_rready), .M_AXI_HP0_rresp(m_rresp), .M_AXI_HP0_rvalid(m_rvalid),
+        .M_AXI_HP0_wdata(m_wdata), .M_AXI_HP0_wid(6'd0), .M_AXI_HP0_wlast(m_wlast),
+        .M_AXI_HP0_wready(m_wready), .M_AXI_HP0_wstrb(m_wstrb), .M_AXI_HP0_wvalid(m_wvalid)
+    );
+
+    assign m_arlen_axi3 = m_arlen8[3:0];
+
+    reg [23:0] phy_rst_cnt = 24'd0;
+    always @(posedge sys_clk) begin
+        if (!(&phy_rst_cnt)) phy_rst_cnt <= phy_rst_cnt + 1'b1;
+    end
+    assign eth_rst_n = phy_rst_cnt[23];
+    // 本工程的数据面不碰 MDIO（`report/BOARD_PINS.md:62` 就是这么记的：RGMII 走 16-27，MDIO 52-53 不用），
+    // PHY 的工作模式由板上 strap 定 ⇒ MDIO 高阻、MDC 钉 0。综合报 `Synth 8-3917 port eth_mdc driven by
+    // constant 0` 是**陈述而不是缺陷**；要真做 PHY 寄存器读写得另起一个位时序机，那一版再来消它。
+    assign eth_mdio  = 1'bz;
+    assign eth_mdc   = 1'b0;
+
+    wire clk_pix_unused, clk_pix5x_unused, mmcm_locked;
+    wire clk_200m;
+    clk_gen u_idelay_clkgen (
+        .clk_in(sys_clk), .rst_n(1'b1),
+        .clk_pix(clk_pix_unused), .clk_pix5x(clk_pix5x_unused),
+        .clk_200m(clk_200m), .locked(mmcm_locked)
+    );
+
+    wire        eth_wr_en, eth_frame_done, eth_link;
+    wire [18:0] eth_wr_addr;
+    wire [15:0] eth_wr_data;
+    // （r55）u_eth 的四个统计口在本层**故意不接**：eth_pkts/eth_bytes/eth_bad 原来送进 pl_video_top 用两级
+    // 触发器跨 16 位总线，而那个同步值没有读者；eth_frames 同样没人用（OSD 的 FPS 是像素域数 vsync 得来的）。
+    // 计数的正路是 link_monitor → snap_cross → lane1/8/9（ISSUES #64）；端口本身留着是对的：一批台架
+    // （tb_rows / tb_v6_* / tb_udp_reasm / tb_link_monitor）直接读它们。
+    // ---- V7.9.6（P0-C ③）：几何与 DDR 基址只在这里出现一次 ----
+    // 原来 512/300/0x1000_0000 在下面两个例化上各写一遍字面量，两个模块自己都有 parameter，但**没有任何东西阻止两边不一致** ⇒ 现象是"写进去的帧几何与读出来的显示几何对不上"（整幅错位/撕裂），既不是综合错误也不是仿真必红。换分辨率因此从"全文搜字面量"变成"改这四行"。
+    localparam [15:0] VIDEO_W    = 16'd512;      // 帧缓冲宽（像素）
+    localparam [15:0] VIDEO_H    = 16'd300;      // 帧缓冲高（行）
+    localparam [15:0] PANE_W     = 16'd512;      // 右半窗宽（当前与 VIDEO_W 同值，语义不同）
+    localparam [31:0] DDR_BASE   = 32'h1000_0000;
+    // PS 片源（SD 回放 / FILL）专用的第三个 DDR bank。ETH 占 0x1000_0000 与 0x1008_0000
+    // 乒乓两 bank（每帧 300 KB，间隔 512 KB 够用），所以第三个 bank 从 +1 MB 起。
+    // 这个数**必须与固件里的 FRAME_ADDR 一致**：`src/ps/sd_play.c` 与 `src/ps/main.c`
+    // 各有一处，改这里不改那边 ⇒ 现象是"PS 片源在屏上不动"（搬运机读的是另一块内存）。
+    localparam [31:0] PS_DDR_BASE = 32'h1010_0000;
+    localparam [15:0] UDP_VIDEO_PORT = 16'd5001; // PC 推流的目的端口（收侧过滤用同一个常数）
+
+    wire        eth_gmii_clk;
+    wire [31:0] eth_ddr_base;
+    wire        eth_commit;
+    wire        pl_copy_hold;
+    wire [319:0] eth_lm_bus;
+    wire        eth_lm_tog, eth_lm_hb;
+
+    eth_udp_video_top #(
+        .IMG_W(VIDEO_W), .IMG_H(VIDEO_H),
+        .BASE_ADDR(DDR_BASE),
+        .UDP_PORT(UDP_VIDEO_PORT),
+        .BOARD_MAC(48'h00_11_22_33_44_55),
+        .BOARD_IP({8'd192,8'd168,8'd1,8'd10}),
+        // #57：IDDR 与 fabric 同吃 BUFG 之后，采样沿往后推 1.683 ns（BUFIO→BUFG 之差），
+        // 数据侧要补同样的量：200 MHz 参考 ⇒ 156 ps/拍 ⇒ +10.8 拍，取 15+11=26（0~31 之内）。
+        // r116 把它改成 31，理由不是那段算术而是**工具在真窗下的实测曲线**：
+        //   窗 = src/constraints/r116_rgmii_input_window.xdc（RTL8211F RXDLY 开着 ⇒ 数据沿落在
+        //   它自己的捕获沿前 [1.2, 2.8] ns）；在这份窗下把 IDELAY_VALUE 从 0 扫到 31（只读，
+        //   set_property 在已布线 DCP 上有效，件 build/evidence/r115_window/probe3_console.txt）：
+        //     hold  −2.822 → −0.870（+63 ps/拍），setup +2.005 → −0.846（−92 ps/拍）
+        //   ⇒ 两条曲线的交点在 tap 31（0.155 ns/拍 的斜率差解出 31.1），也就是
+        //      min(hold, setup) 的最大值；tap 26 的 min 是 −1.185，tap 31 是 −0.870。
+        //   ⚠ 这一族**在 0~31 全范围内都关不掉**：hold 查慢角（钟网络 5.008）、setup 查快角（1.597），
+        //      钟网络的角间差 3.4 ns 远大于数据路径的 0.47 ns ⇒ 需要 D_slow/D_fast ≥ 1.45 而
+        //      IDELAY 主导的路径只有 1.15。这是"极限判据"的内容，不是"再找个点"。
+        .IDELAY_VALUE(31)
+    ) u_eth (
+        .rgmii_rxc(eth_rxc),
+        .rst_n(eth_rst_n & mmcm_locked),
+        .axi_clk(fclk0),
+        .axi_rst_n(fclk0_rst_n),
+        .idelay_clk(clk_200m),
+        .copy_hold(pl_copy_hold),
+        .rgmii_rx_ctl(eth_rx_ctl),
+        .rgmii_rxd(eth_rxd),
+        .rgmii_tx_clk(eth_tx_clk),
+        .rgmii_tx_ctl(eth_tx_ctl),
+        .rgmii_txd(eth_txd),
+        .fb_wr_en(eth_wr_en),
+        .fb_wr_addr(eth_wr_addr),
+        .fb_wr_data(eth_wr_data),
+        .frame_done(eth_frame_done),
+        .link_active(eth_link),
+        .eth_gmii_clk(eth_gmii_clk),
+        .ddr_commit_base(eth_ddr_base),
+        .ddr_commit_pulse(eth_commit),
+        .m_axi_awaddr(m_awaddr), .m_axi_awlen(m_awlen),
+        .m_axi_awsize(m_awsize), .m_axi_awburst(m_awburst),
+        .m_axi_awvalid(m_awvalid), .m_axi_awready(m_awready),
+        .m_axi_wdata(m_wdata), .m_axi_wstrb(m_wstrb),
+        .m_axi_wlast(m_wlast), .m_axi_wvalid(m_wvalid),
+        .m_axi_wready(m_wready),
+        .m_axi_bvalid(m_bvalid), .m_axi_bready(m_bready),
+        .stat_frames(), .stat_pkts(),                     // r55：这四个统计口在本层不接，理由见
+        .stat_bytes(), .stat_bad(),                      // 上面那段注释（数走 link_monitor 的 lane）
+        .lm_bus(eth_lm_bus), .lm_bus_tog(eth_lm_tog), .lm_hb(eth_lm_hb),
+        .gapclr_sel(gpio_o[26])          // 测量前把帧间隔统计归零（见 link_monitor 尾部）
+    );
+
+    // ---- v7.6 (P0-A)：把健康快照再跨一份到 fclk0（100 MHz）给 PS 读 ----
+    // 读法：先用**已经存在**的 GPIO_0（输出）把 lane 号写到 gpio_o[31:27]，
+    // 再从新加的 GPIO_1（输入）读那一条 32bit。lane 定义见 link_monitor 尾部。
+    //   lane 31 → {30'd0, hb_slow, hb_gone}：bit0=源时钟没有，bit1=源时钟被拉慢
+    //   （板级实测拔线时 RXC≈2.5 MHz ⇒ 只有 bit1 会亮），
+    //   其它越界的 lane → 32'hDEAD_BEEF，好让脚本一眼看出自己写错了号。
+    wire [319:0] lm_axi;
+    wire         lm_clk_gone, lm_clk_slow;
+    snap_cross #(.W(320), .DST_HZ(100_000_000), .HB_TO_MS(200)) u_lm_axi (
+        .dst_clk(fclk0), .dst_rst_n(fclk0_rst_n),
+        .bus(eth_lm_bus), .bus_tog(eth_lm_tog), .hb_tog(eth_lm_hb),
+        .bus_q(lm_axi), .hb_gone(lm_clk_gone), .hb_slow(lm_clk_slow)
+    );
+    wire [4:0] lm_lane = gpio_o[31:27];
+    reg  [31:0] lm_rd;
+    // 片源仲裁的可观测状态（来自 pl_video_top，axi 域电平）：位序的唯一出处在 pl_video_top 的 `dbg_src`
+    // 端口注释里，这里不抄第二遍（抄两遍就是 #66 那一族的病）。有了 lane30，"停流后 owner_eth 是否在几十
+    // 毫秒内从 1 变 0"就是**可机器判定**的，不必等任何人看屏幕。
+    // ⚠ 位宽必须与 `pl_video_top.dbg_src` **一模一样**（r54 起是 16 bit）。这里以前写过 [5:0] ⇒ 综合只给一条
+    //   `Synth 8-689` 警告就把模式高位**静默丢掉**：TEST(10) 读起来像自动(00)、SD(11) 像 ETH(01)（ISSUES #57）。
+    //   这类"名字连对、宽度被吞"现在由门禁第 14 项的位宽判据当场拦（`build/check_ports.py` 的反例之一就是这根线）。
+    wire [15:0] dbg_src;
+    wire [31:0] dbg_zoom;              // V8-8 lane23：像素域在用的缩放状态（pl_video_top 里已跨好）
+    wire [6*32-1:0] dbg_lat;             // V8-6/V8-5：lane25..29 与 lane24
+    //   lane N(25..29) = dbg_lat[(N-25)*32 +: 32]；lane24 = dbg_lat[5*32 +: 32] = q_ms，位序
+    //   {14'd0, pair_ok, 本轮 sticky, ms[15:0]} —— 屏上 Latency 那一格的机器对照。
+    // 指到 lane25 就把这一组五个字**同时**抄进快照（#59：逐 lane 各读各的会读到不同轮，于是板级 11 组读数里
+    // 4 组破坏了恒等式 tot ≥ c1 + c2）。读的顺序必须是 25→26→27→28→29，因为 25 既是"轮次/钳位位"也是武装位
+    // （`health_read.mjs` 的 want 列表就是这个顺序，改那里的时候记得一起看）。
+    // 域：gpio_o 由 axi 写更新，frame_latency 也在 axi 域 ⇒ 这不是跨域信号。
+    wire          lat_arm = (lm_lane == 5'd25);
+    always @(*) begin
+        if      (lm_lane == 5'd31)     lm_rd = {30'd0, lm_clk_slow, lm_clk_gone};
+        else if (lm_lane == 5'd30)     lm_rd = {16'd0, dbg_src};   // [10:8]=why_ps（V8-7）
+        else if (lm_lane == 5'd24)     lm_rd = dbg_lat[5*32 +: 32];   // 与 q_tot 同一轮的 ms
+        else if (lm_lane == 5'd23)     lm_rd = dbg_zoom;              // V8-8：像素域在用的缩放状态
+        else if (lm_lane >= 5'd25 && lm_lane <= 5'd29)
+                                       lm_rd = dbg_lat[(lm_lane-25)*32 +: 32];
+        else if (lm_lane > 5'd9)       lm_rd = 32'hDEAD_BEEF;
+        else                           lm_rd = lm_axi[lm_lane*32 +: 32];
+    end
+    assign gpio1_i = lm_rd;
+
+    // 片源仲裁的两个输入，都取自已经 u_lm_axi 同步进 fclk0 的现成信号 ⇒ 顶层不新增跨域，也**不在这里做
+    // 相与**：判据的组合归 src_arb 管（那里才台架验得到，见 tb_src_arb 的 E 段）。
+    //   · eth_live = 快照 lane7.bit3 = (stall_ms < 200)，"最近真的收到过完整帧"；
+    //   · eth_tb_ok = 量它的源时基仍准。板级实测：断链时 RTL8211 不停 RXC 而是拉到 ~2.5 MHz ⇒ stall_ms 慢约
+    //     48 倍地爬，单看那一位会永远判"活着" ⇒ 仲裁死死占住 ETH、SD 再也接不回画面（屏上 STALL=9999 是
+    //     OSD 钉住的显示值，不是 9999 ms）。hb_slow 专门看这种"心跳还在但变慢"。
+    wire eth_live   = lm_axi[7*32 + 3];
+    wire eth_tb_ok  = !(lm_clk_slow || lm_clk_gone);
+
+    pl_video_top #(.IMG_W(VIDEO_W), .IMG_H(VIDEO_H), .PANE_W(PANE_W), .BASE_ADDR(DDR_BASE),
+                   .PS_BASE_ADDR(PS_DDR_BASE)) u_pl (
+        .sys_clk(sys_clk), .sys_rst_n(1'b1),
+        .axi_clk(fclk0), .axi_rst_n(fclk0_rst_n),
+        // gpio_o[4:0] 以前是 V7 那五位效果使能，现已退役（九级控制字是唯一口径）⇒ 这几位
+        // **保留但不接**，PS 侧一律写 0；`check_ports.py`（门禁第 14 项）会盯端口对不对得上。
+        .stage_sel(gpio_cfg1_o[8:0]), .threshold(gpio_o[15:8]), .src_sel(gpio_o[16]),
+        // V8-8 手动缩放：**同一个字**的高位（PS 侧 CFG_DATA0 = 0x41220000）：
+        //   [28:26] 档号、[29] 手动旗标。异步性一致 ⇒ 一并交给 effect_ctrl 那条 sel 链。
+        //   ⚠ 别写成 gpio_cfg2_o：那是 PS 侧 +0x08 的 gamma 窗口（命名差一位是这里的坑）。
+        .zoom_sel_async(gpio_cfg1_o[28:26]), .zoom_manual_async(gpio_cfg1_o[29]),
+        // #51：分割线控制位（位图见 ISSUES #70 追加）：[22:13]=pos_px/auto/follow/swap、[30]=marker_off
+        // #51 的 14 位 + V9 的 5 位（[14]=rot_auto、[17:15]=rot_speed、[18]=zoom_fit）。
+        // 位图唯一出处 = ISSUES #70 追加 与 pl_video_top 的端口注释；PS 侧的拼字在 src/ps/main.c。
+        // cfg1 的可用位：[8:0] 效果九位、[22:13] 缝位、[25:23] 三个旗标、[28:26] 缩放档、
+        //                [29] 手动、[30] 蓝线关、[31] 拟合 ← V9 用掉剩下的 [9] 与 [12:10]
+        .split_ctl({gpio_cfg1_o[31], gpio_cfg1_o[12:10], gpio_cfg1_o[9],
+                    gpio_cfg1_o[30], gpio_cfg1_o[25:23], gpio_cfg1_o[22:13]}),
+        .gamma_ctl(gpio_cfg2_o),        // axi_gpio_2 通道 2（+0x08）：gamma 表的 idx/data/wr/en
+        // V7.7：ZOOM0/ZOOM1 不再是死命令。之前这里硬绑 1'b1，串口命令与 GPIO bit17 全无效
+        // （main.c 自己就注明"当前 RTL 常开，bit17 仅预留"）。
+        // 注意默认值：set_src.tcl 现在写 0x0003_0000（bit16+bit17），保持"上电即呼吸缩放"的旧观感。
+        .zoom_en(gpio_o[17]),
+        // #83：PS 侧 `BILIN_BIT 19`（main.c:44/181）从 V6 起就在写这一位，而 PL 从来没读它
+        //   ⇒ 症状是"串口答应了、硬件没动"，电池那三条只能证明 PS 记下了值。这里把它接进来，
+        //   跨域用 `pl_video_top` 里与 `zoom_en` 完全相同的单水位 3 级 ASYNC_REG（准静态电平，
+        //   不需要 toggle/快照）。**不并进 effect_ctrl 那条已批准的链**（#71 的红线），
+        //   也不与任何现成发射 FF 共用（#65 / r54 构建 #34 的 CDC-11 Critical 就是这么来的）。
+        .bilin_en_axi(gpio_o[19]),
+        .osd_off_axi(gpio_o[20]),       // r83：**反相**，1 = 关掉 OSD 叠层（PS 侧 `OSD_OFF_BIT 20`）
+        .ps_publish(gpio_o[18]),        // 每翻转一次 = PS 请求把 DDR 里那一帧搬上屏一次
+        // V8-2 补的片源模式覆盖（2026-09-25）：[24:23] = 码（00 自动/01 ETH/11 SD/10 TEST），
+        // [22] = 翻转位。码与翻转的先后由 main.c 保证（先写码再翻位），跨域在 src_mode 里做。
+        // 为什么占 22~24：gpio_o 的 [4:0]/[15:8]/16/17/18/19 都各有主人，[26] 是 gapclr，
+        // [31:27] 是 lane 号 ⇒ 20~25 是当时唯一成片的空位（取中段三个，留 20/21/25 给以后）。
+        .mode_ovr(gpio_o[24:23]), .mode_ovr_tog(gpio_o[22]),
+        .key1_n(key1_n), .key2_n(key2_n), .led(led),
+        .dbg_src(dbg_src), .dbg_lat(dbg_lat), .dbg_zoom(dbg_zoom), .lat_arm(lat_arm),
+        .tmds_clk_p(tmds_clk_p), .tmds_clk_n(tmds_clk_n),
+        .tmds_data_p(tmds_data_p), .tmds_data_n(tmds_data_n),
+        .m_axi_araddr(m_araddr), .m_axi_arid(m_arid), .m_axi_arlen(m_arlen8),
+        .m_axi_arsize(m_arsize), .m_axi_arburst(m_arburst),
+        .m_axi_arvalid(m_arvalid), .m_axi_arready(m_arready),
+        .m_axi_rdata(m_rdata), .m_axi_rid(m_rid), .m_axi_rresp(m_rresp),
+        .m_axi_rlast(m_rlast), .m_axi_rvalid(m_rvalid), .m_axi_rready(m_rready),
+        .eth_wr_clk(eth_gmii_clk),
+        .eth_wr_en(eth_wr_en),
+        .eth_wr_addr(eth_wr_addr),
+        .eth_wr_data(eth_wr_data),
+        .eth_link(eth_link),
+        .eth_live(eth_live),
+        .eth_tb_ok(eth_tb_ok),
+        .eth_frame(eth_frame_done),
+        .eth_ddr_base(eth_ddr_base),
+        .eth_commit(eth_commit),
+        // （r55）这里不再有 .eth_pkts / .eth_bad：那两个口在 pl_video_top 里只喂一段没人读的
+        // 两级"当总线用"的同步器，删掉的理由与数的正路都写在 ISSUES #64 / pl_video_top 端口处。
+        // lm_bus / lm_bus_tog / lm_hb 三个口跟着 V8-5 的 OSD 改版一起撤掉了：
+        // 像素域那一路快照从此没有消费者（DROP/STALL 两格撤下屏）。
+        // 这三个数仍然从 axi 域那条 snap_cross（上面 lane 读回口用的那一条）出去，
+        // `health_read.mjs` 一字未改照样读得到。
+        .status(status),
+        .copy_hold(pl_copy_hold)
+    );
+endmodule

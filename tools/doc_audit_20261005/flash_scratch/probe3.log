@@ -1,0 +1,69 @@
+#-----------------------------------------------------------
+# Vivado v2025.2.1 (64-bit)
+# SW Build 6403652 on Thu Mar 19 19:48:24 GMT 2026
+# IP Build 6403511 on Thu Mar 19 12:41:45 MDT 2026
+# SharedData Build 6403650 on Thu Mar 19 14:02:13 MDT 2026
+# Start of session at: Mon Oct  5 20:54:28 2026
+# Process ID         : 20756
+# Current directory  : D:/Xilinx/Prj/pro/doc_audit_20261005/flash_scratch
+# Command line       : vivado.exe -mode batch -nojournal -log probe3.log -source probe3.tcl
+# Log file           : D:/Xilinx/Prj/pro/doc_audit_20261005/flash_scratch/probe3.log
+# Journal file       : 
+# Running On         : Uie-laptop
+# Platform           : Windows Server 2016 or Windows 10
+# Operating System   : 26300
+# Processor Detail   : 12th Gen Intel(R) Core(TM) i5-12450H
+# CPU Frequency      : 2496 MHz
+# CPU Physical cores : 8
+# CPU Logical cores  : 12
+# Host memory        : 16873 MB
+# Swap memory        : 21474 MB
+# Total Virtual      : 38348 MB
+# Available Virtual  : 16573 MB
+#-----------------------------------------------------------
+source probe3.tcl
+# open_hw
+WARNING: 'open_hw' is deprecated, please use 'open_hw_manager' instead.
+open_hw_manager: Time (s): cpu = 00:00:12 ; elapsed = 00:00:08 . Memory (MB): peak = 540.594 ; gain = 221.750
+# catch {connect_hw_server -url localhost:3121}
+INFO: [Labtools 27-2285] Connecting to hw_server url TCP:localhost:3121
+INFO: [Labtools 27-3415] Connecting to cs_server url TCP:localhost:0
+INFO: [Labtools 27-3417] Launching cs_server...
+INFO: [Labtools 27-2221] Launch Output:
+
+
+******** Xilinx cs_server v2025.2.0
+  ****** Build date   : Nov 14 2025-07:16:52
+    **** Build number : 2025.2.1763075812
+      ** Copyright 2017-2022 Xilinx, Inc. All Rights Reserved.
+      ** Copyright 2022-2026 Advanced Micro Devices, Inc. All Rights Reserved.
+
+
+
+# catch {open_hw_target}
+INFO: [Labtoolstcl 44-466] Opening hw_target localhost:3121/xilinx_tcf/Xilinx/0ABC01A
+# current_hw_device [get_hw_devices xc7z020_1]
+# set p0 [lindex [get_cfgmem_parts *25q256*] 0]
+# puts "P0 $p0"
+P0 w25q256jwm-qspi-x8-dual_parallel
+# puts "PROPS [lsort [list_property $p0]]"
+PROPS CLASS COMPATIBLE_PARTS COMPATIBLE_RSPINS DATA_WIDTH MEM_DENSITY MEM_DEVICE MEM_DEVICE_ALIAS MEM_FAMILY MEM_INTERFACE_FILE MEM_MANUFACTURER MEM_TYPE NAME NUM_CFG_FILES
+# foreach pr [list_property $p0] { puts "VAL $pr = [get_property $pr $p0]" }
+VAL CLASS = cfgmem_part
+VAL COMPATIBLE_PARTS = - zynquplus zynquplusRFSOC
+VAL COMPATIBLE_RSPINS = NONE
+VAL DATA_WIDTH = x8-dual_parallel
+VAL MEM_DENSITY = 256
+VAL MEM_DEVICE = w25q256jwm
+VAL MEM_DEVICE_ALIAS = 
+VAL MEM_FAMILY = w25q
+VAL MEM_INTERFACE_FILE = 
+VAL MEM_MANUFACTURER = Winbond
+VAL MEM_TYPE = qspi
+VAL NAME = w25q256jwm-qspi-x8-dual_parallel
+VAL NUM_CFG_FILES = 1
+# set all [get_cfgmem_parts *]
+# puts "ALLN [llength $all]"
+ALLN 4495
+# exit 0
+INFO: [Common 17-206] Exiting Vivado at Mon Oct  5 20:54:44 2026...

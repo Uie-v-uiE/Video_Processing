@@ -1,0 +1,164 @@
+
+CAPTURE_OPEN 18:02:21 window=900s
+
+
+U-Boot 2023.01 (Mar 29 2023 - 13:08:40 +0000)
+
+CPU:   Zynq 7z020
+Silicon: v3.1
+DRAM:  ECC disabled 1 GiB
+Core:  37 devices, 19 uclasses, devicetree: board
+Flash: 0 Bytes
+NAND:  0 MiB
+MMC:   mmc@e0100000: 0, mmc@e0101000: 1
+Loading Environment from SPIFlash... zynq_qspi spi@e000d000: Invalid chip select 0:0 (err=-19)
+*** Warning - spi_flash_probe_bus_cs() failed, using default environment
+
+In:    serial@e0000000
+Out:   serial@e0000000
+Err:   serial@e0000000
+Net:   
+ZYNQ GEM: e000b000, mdio bus e000b000, phyaddr 0, interface rgmii-id
+eth0: ethernet@e000b000
+Hit any key to stop autoboot:  2  1  0 
+SF: Detected w25q256 with page size 256 Bytes, erase size 4 KiB, total 32 MiB
+device 0 offset 0x9c0000, size 0x40000
+SF: 262144 bytes @ 0x9c0000 Read: OK
+QSPI: Trying to boot script at 3000000
+## Executing script at 03000000
+Wrong image format for "source" command
+QSPI: SCRIPT FAILED: continuing...
+JTAG: Trying to boot script at 3000000
+## Executing script at 03000000
+Wrong image format for "source" command
+JTAG: SCRIPT FAILED: continuing...
+switch to partitions #0, OK
+mmc0 is current device
+Scanning mmc 0:1...
+7[r[999;999H[6n8No EFI system partition
+BootOrder not defined
+EFI boot manager: Cannot load any image
+switch to partitions #0, OK
+mmc1(part 0) is current device
+Scanning mmc 1:1...
+Found U-Boot script /boot/boot.scr
+3015 bytes read in 19 ms (154.3 KiB/s)
+## Executing script at 03000000
+Trying to load boot images from qspi
+SF: Detected w25q256 with page size 256 Bytes, erase size 4 KiB, total 32 MiB
+device 0 offset 0x820000, size 0xa80000
+SF: 11010048 bytes @ 0x820000 Read: OK
+Wrong Image Format for bootm command
+ERROR: can't get kernel image!
+Booting using Fit image failed
+device 0 offset 0xa00000, size 0x600000
+SF: 6291456 bytes @ 0xa00000 Read: OK
+device 0 offset 0x1000000, size 0xf80000
+SF: 16252928 bytes @ 0x1000000 Read: OK
+Wrong Image Format for bootm command
+ERROR: can't get kernel image!
+Booting using Separate images failed
+Trying to load boot images from jtag
+Wrong Image Format for bootm command
+ERROR: can't get kernel image!
+Trying to load boot images from mmc0
+Wrong Image Format for bootm command
+ERROR: can't get kernel image!
+Trying to load boot images from mmc1
+Wrong Image Format for bootm command
+ERROR: can't get kernel image!
+Trying to load boot images from qspi
+SF: Detected w25q256 with page size 256 Bytes, erase size 4 KiB, total 32 MiB
+device 0 offset 0x820000, size 0xa80000
+SF: 11010048 bytes @ 0x820000 Read: OK
+Wrong Image Format for bootm command
+ERROR: can't get kernel image!
+Booting using Fit image failed
+device 0 offset 0xa00000, size 0x600000
+SF: 6291456 bytes @ 0xa00000 Read: OK
+device 0 offset 0x1000000, size 0xf80000
+SF: 16252928 bytes @ 0x1000000 Read: OK
+Wrong Image Format for bootm command
+ERROR: can't get kernel image!
+Booting using Separate images failed
+Trying to load boot images from nand
+
+
+no devices available
+Wrong Image Format for bootm command
+ERROR: can't get kernel image!
+Booting using Fit image failed
+
+no devices available
+
+no devices available
+Wrong Image Format for bootm command
+ERROR: can't get kernel image!
+Booting using Separate images failed
+Trying to load boot images from nor
+Trying to load boot images from usb0
+Wrong Image Format for bootm command
+ERROR: can't get kernel image!
+Trying to load boot images from usb1
+Wrong Image Format for bootm command
+ERROR: can't get kernel image!
+Trying to load boot images from pxe
+Trying to load boot images from dhcp
+SCRIPT FAILED: continuing...
+BootOrder not defined
+EFI boot manager: Cannot load any image
+SF: Detected w25q256 with page size 256 Bytes, erase size 4 KiB, total 32 MiB
+device 0 offset 0x9c0000, size 0x40000
+SF: 262144 bytes @ 0x9c0000 Read: OK
+QSPI: Trying to boot script at 3000000
+## Executing script at 03000000
+Wrong image format for "source" command
+QSPI: SCRIPT FAILED: continuing...
+
+
+no devices available
+NAND: SCRIPT FAILED: continuing...
+NOR: Trying to boot script at 3000000
+## Executing script at 03000000
+Wrong image format for "source" command
+NOR: SCRIPT FAILED: continuing...
+starting USB...
+Bus usb@e0002000: USB EHCI 1.00
+scanning bus usb@e0002000 for devices... 1 USB Device(s) found
+       scanning usb for storage devices... 0 Storage Device(s) found
+
+Device 0: unknown device
+
+Device 1: unknown device
+ethernet@e000b000 Waiting for PHY auto negotiation to complete......... TIMEOUT !
+missing environment variable: pxeuuid
+Retrieving file: pxelinux.cfg/01-00-0a-35-00-1e-53
+ethernet@e000b000 Waiting for PHY auto negotiation to complete......... TIMEOUT !
+Retrieving file: pxelinux.cfg/00000000
+ethernet@e000b000 Waiting for PHY auto negotiation to complete......... TIMEOUT !
+Retrieving file: pxelinux.cfg/0000000
+ethernet@e000b000 Waiting for PHY auto negotiation to complete......... TIMEOUT !
+Retrieving file: pxelinux.cfg/000000
+ethernet@e000b000 Waiting for PHY auto negotiation to complete......... TIMEOUT !
+Retrieving file: pxelinux.cfg/00000
+ethernet@e000b000 Waiting for PHY auto negotiation to complete......... TIMEOUT !
+Retrieving file: pxelinux.cfg/0000
+ethernet@e000b000 Waiting for PHY auto negotiation to complete......... TIMEOUT !
+Retrieving file: pxelinux.cfg/000
+ethernet@e000b000 Waiting for PHY auto negotiation to complete......... TIMEOUT !
+Retrieving file: pxelinux.cfg/00
+ethernet@e000b000 Waiting for PHY auto negotiation to complete......... TIMEOUT !
+Retrieving file: pxelinux.cfg/0
+ethernet@e000b000 Waiting for PHY auto negotiation to complete......... TIMEOUT !
+Retrieving file: pxelinux.cfg/default-arm-zynq-zynq
+ethernet@e000b000 Waiting for PHY auto negotiation to complete......... TIMEOUT !
+Retrieving file: pxelinux.cfg/default-arm-zynq
+ethernet@e000b000 Waiting for PHY auto negotiation to complete......... TIMEOUT !
+Retrieving file: pxelinux.cfg/default-arm
+ethernet@e000b000 Waiting for PHY auto negotiation to complete......... TIMEOUT !
+Retrieving file: pxelinux.cfg/default
+ethernet@e000b000 Waiting for PHY auto negotiation to complete......... TIMEOUT !
+Config file not found
+ethernet@e000b000 Waiting for PHY auto negotiation to complete......... TIMEOUT !
+ethernet@e000b000 Waiting for PHY auto negotiation to complete......... TIMEOUT !
+Zynq> CAPTURE_END 18:17:21 total_bytes=6353

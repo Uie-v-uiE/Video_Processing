@@ -1,0 +1,72 @@
+`timescale 1ns/1ps
+// Dual-pane: left original / right processed+zoomed. 单个像素时钟域，输出打一拍。
+// Display 1024x600, each pane 512 wide, source 512x300 with 2x vertical scale.
+module split_display (
+    input  wire        clk,
+    input  wire        rst_n,
+    input  wire [11:0] x,
+    input  wire [11:0] y,
+    // ⚠ `x_sel` = **与两个像素抽头同一级**的列坐标（ISSUES #68）。以前这里直接用 `x` 判左/右窗、也用它画那条
+    //   2 px 标记线，而顶层的 `x` 是第 11 级标签、`orig_pix/proc_pix` 却是第 20 级的内容（3 拍打地址 + 1 拍读地址
+    //   寄存 + 1 拍 BRAM + `u_pipe.LATENCY`=15）⇒ 判定比内容旧 9 列 ⇒ 缝左边约 9 列里"标签说左窗、内容其实是右窗
+    //   那一路（被强制清 0）"⇒ 选中的是 0 ⇒ 一条近黑的竖带：这就是用户念的"缩放碰到分割线时周围出现颜色条"的第二
+    //   个成分（第一个是故意画的蓝线，见下面 `marker`）。`x`/`y`/`de`/`hs`/`vs` 仍按原级数穿过输出寄存器 ⇒
+    //   **OSD 位置一个像素都不动**，只有"选哪一路"与"标记线画在哪一列"跟着内容走（= 修好本应如此的东西）。
+    input  wire [11:0] x_sel,
+    // #51：缝位从此是**输入**（显示列 0..DISP_W）。顶层不接它就没有旧行为 ——
+    //   PANE_W 退化成一个默认值的出处，不再是唯一说法（ISSUES #66 那一族的病）。
+    input  wire [11:0] seam,
+    input  wire        raw_left,        // 1 = 缝左边给原图（swap 只换这一位，不换缝位）
+    // ---- V9-1：缝可以量在**图像列**里（`split follow 1`）----
+    //   `seam_in_src=1` 时下面两路由 `seam_src` 在**源头那一拍**算好、跟着内容一起推到这一级，
+    //   于是那条线是"画面里的一条竖线"，画到屏上就跟着旋转/缩放一起走（用户要的"蓝线跟着视频转"）。
+    //   `seam_in_src=0` 时这两路完全不参与，走的就是 #51 那条已经上板验过的显示列比较。
+    input  wire        seam_in_src,
+    input  wire        src_orig,        // 1 = 这一格给原图
+    input  wire        src_mark,        // 1 = 这一格是那条 2 图像列宽的标记线（画面外不给 1）
+    input  wire        marker,           // 1 = 画那条 2 px 标记线（V8-4 起可关；关掉了 #56-2(a) 就没了）
+    input  wire        de,
+    input  wire        hs,
+    input  wire        vs,
+    input  wire [15:0] orig_pix,
+    input  wire [15:0] proc_pix,
+    input  wire [1:0]  angle_idx,
+    input  wire        oob_l,
+    input  wire        oob_r,
+    output reg  [7:0]  r,
+    output reg  [7:0]  g,
+    output reg  [7:0]  b,
+    output reg         de_out,
+    output reg         hs_out,
+    output reg         vs_out
+);
+    wire        left = seam_in_src ? ~src_orig : (x_sel < seam);   // 缝位是输入（#51）；旧代码这里写的是参数 PANE_W
+    // oob 对两个抽头是同一件事（同一份源坐标），所以 `left` 在这里只影响下面这一位的选择，
+    // 而 V9-1 的图像域路径已经把"哪一侧给原图"在源头算完了 ⇒ 不再过一遍 raw_left（过两遍就是反的）。
+    wire        oob  = left ? oob_l : oob_r;
+    wire        take_orig = seam_in_src ? src_orig : (raw_left ? left : ~left);
+    wire [15:0] sel  = oob ? 16'h0000 : (take_orig ? orig_pix : proc_pix);
+    wire [4:0]  r5   = sel[15:11];
+    wire [5:0]  g6   = sel[10:5];
+    wire [4:0]  b5   = sel[4:0];
+    wire        sep  = marker && (seam_in_src ? src_mark
+                                              : ((x_sel == (seam - 12'd1)) || (x_sel == seam)));
+
+    always @(posedge clk or negedge rst_n) begin
+        if (!rst_n) begin
+            r <= 0; g <= 0; b <= 0;
+            de_out <= 0; hs_out <= 0; vs_out <= 0;
+        end else begin
+            de_out <= de;
+            hs_out <= hs;
+            vs_out <= vs;
+            if (sep && de) begin
+                r <= 8'h40; g <= 8'h40; b <= 8'hFF;
+            end else begin
+                r <= {r5, r5[4:2]};
+                g <= {g6, g6[5:4]};
+                b <= {b5, b5[4:2]};
+            end
+        end
+    end
+endmodule

@@ -2,7 +2,7 @@
 
 ## 重编 ELF 的步骤（本机不可跑，见末行）
 
-1. Vivado：`build/tcl/create_project.tcl` 建工程 → `build/tcl/build_system_axigpio.tcl` 出
+1. Vivado：`build/create_project.tcl` 建工程 → `build/tcl/build_system_axigpio.tcl` 出
    `build/system.xsa`（要构建只认这一支；两条同族历史脚本 `add_files` 指错路径、报错后仍 exit 0）。
 2. Vitis：File → New → Platform from XSA，选 `build/system.xsa`；BSP 需 `lwip`、`xuartps`、`xgpio`。
 3. New Application，应用名 `video_ps`，源文件用本目录的 `main.c`、`sd_play.c`、`sd_play.h`，

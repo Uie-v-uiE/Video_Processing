@@ -1,0 +1,412 @@
+# System with AXI GPIO on GP0 + PL ETH video sink
+# 作用: 一键把工程建起来并跑到比特流与全套报告（交付要求 §4 的主入口 build/build.tcl 就是 source 本文件）
+# 前置条件: 仓库根下的 src/rtl 与 src/constraints 齐全；Vivado 与本机 LICENSE 可用
+# 产出物: 工程目录 vivado_system/，以及 $outdir 下的 system.bit / system.xsa / timing_summary.rpt /
+#         utilization.rpt / cdc.rpt / methodology.rpt / power.rpt / route_status.rpt / clock_util.rpt
+# 关键参数（都用环境变量传，默认不设就是历史行为，产物要能自己带出身）:
+#   VP_PROJ_SUBDIR 工程目录名（默认 vivado_system；分步验证时指到别处，不碰正式工程）
+#   VP_OUTDIR      产物目录（默认 build）
+#   VP_STOP_AT     project = 只建工程与导源就退出（build/create_project.tcl、build/add_sources.tcl 用）
+#   IMPL_STRATEGY / IMPL_POST_PLACE_HOOK / IMPL_PRPO  见下面各自的说明块
+set root [file normalize [file join [file dirname [info script]] .. ..]]
+set proj_subdir vivado_system
+if {[info exists ::env(VP_PROJ_SUBDIR)] && $::env(VP_PROJ_SUBDIR) ne ""} { set proj_subdir $::env(VP_PROJ_SUBDIR) }
+set proj_dir [file join $root $proj_subdir]
+set proj_name zynq_video_sys
+set part xc7z020clg484-2
+set outdir [file join $root build]
+if {[info exists ::env(VP_OUTDIR)] && $::env(VP_OUTDIR) ne ""} { set outdir [file normalize [file join $root $::env(VP_OUTDIR)]] }
+file mkdir $outdir
+
+create_project $proj_name $proj_dir -part $part -force
+set_property target_language Verilog [current_project]
+
+set rtl_files {}
+foreach d {util clocks video process process/rotate process/zoom process/bilin axi hdmi eth} {
+  foreach f [glob -nocomplain [file join $root src rtl $d *.v]] { lappend rtl_files $f }
+}
+lappend rtl_files [file join $root src rtl top pl_video_top.v]
+lappend rtl_files [file join $root src rtl top system_top.v]
+add_files -norecurse $rtl_files
+add_files -fileset constrs_1 -norecurse [file join $root src constraints rk_zynq7020.xdc]
+# 异步时钟组单独一个文件，并且**只在实现阶段生效**：clk_fpga_0 由 PS7 IP 的 XDC
+# 创建，综合阶段还不存在，而 XDC 里不能用 if/catch（[Designutils 20-1307]）。
+# 不拆的话每个 run 都吃 2 条 CRITICAL WARNING [Vivado 12-4739]，且整条
+# set_clock_groups 不生效（综合阶段本来就不生效 ⇒ 拆分不改时序数字，只是去掉噪声）。
+set cgxdc [add_files -fileset constrs_1 -norecurse [file join $root src constraints clock_groups_impl.xdc]]
+set_property used_in_synthesis false $cgxdc
+set_property used_in_implementation true $cgxdc
+
+# r116: RGMII 收口 5 个输入的**有出处输入窗**（H5 的债，只加严不放宽：这 5 个端口从来没被检查过）。
+# 与 clock_groups 一样**只在实现阶段生效** —— 输入窗不影响综合网表，这样"网表逐字节不变、
+# 只有实现阶段的检查变多"本身就是一个对照（任何资源/告警差异都不该出现，出现了就是我这刀的问题）。
+#
+# ⚠ 03:44 改口（r116 的门禁读数逼出来的决定，不是把约束改掉换绿灯）：
+#   绑上这个窗之后，仓库自己的**发布门禁** `build/gates.sh` 有 4 项机械判红
+#   （WNS ≥ 0、失败 setup 端点 == 0、WHS ≥ 0、失败 hold 端点 == 0），
+#   而它末尾那句写死的是"有红项 ⇒ 不采纳，保留上一版"。也就是说：
+#   **这个设计只有在"RGMII 输入不被检查"的前提下才过发布门禁**。这不是话术，是两件事实：
+#     ① 约束本身是对的（RTL8211F-CG 规格书 Table 60 发射端两行 + 原理图 strap：min 1.200 / max 2.800）；
+#     ② 这一族在合法 0…31 全档内**关不掉**（hold 要 τ ≥ 44.8、setup 要 τ ≤ 21.8，
+#        根因是两只钟的角间差 3.411 ns vs 数据 0.467 ns）——见
+#        report/timing/rgmii_window_model.md §7.5 与 report/timing/limit_audit_r116.md。
+#   所以默认**不加载**（回到 r114 的约束集），把它留在仓里当**候选件 + 全份证明**；
+#   要复现 r116 那一版（带窗、5 个 I/O 端点红）只要：`VP_R116_IO_WINDOW=1` 再构建一次。
+#   撤销的不是"约束的正确性"，是"把它带进发布物"这个动作；下一刀（把 IDDR 捕获钟换成短钟，
+#   report/timing_global.md 第 7 节）落地之后，这个窗应当重新加载。
+if {[info exists ::env(VP_R116_IO_WINDOW)] && $::env(VP_R116_IO_WINDOW) eq "1"} {
+  set iwxdc [add_files -fileset constrs_1 -norecurse [file join $root src constraints r116_rgmii_input_window.xdc]]
+  set_property used_in_synthesis false $iwxdc
+  set_property used_in_implementation true $iwxdc
+  puts "VP_R116_IO_WINDOW loaded（RGMII 输入窗已进实现，预计 5 个 I/O 端点会红）"
+} else {
+  puts "VP_R116_IO_WINDOW off（RGMII 输入窗留在候选件 src/constraints/r116_rgmii_input_window.xdc，原因见上方注释）"
+}
+
+# 6b) HDMI **源端（TP1）** 对外窗（2026-10-04 取到数之后新加的候选件，默认同样不加载）
+#   数字与出处：钟↔数据 = 0.20 Tcharacter（HDMI 1.4 §4.2.4 Table 4-24，1.3/1.1 同值；
+#   逐条判定与"哪些只能作第三方代理"写在 report/io/hdmi_cts_source_window.md）。
+#   当前档 50 MHz 像素钟 ⇒ 半窗 ±4.000 ns；参考时钟对象由 pin 反查得到（clkout1_1，件 board/output/ser_clock_probe.txt）。
+#   为什么默认关：**新增约束必须先用一轮构建量名册**（别域不许变差），量过之前带进发布物就是用声明代替测量。
+#   开法：VP_R119_TMDS_WINDOW=1 再构建一次。
+#   注意：这里**不放** Tcl 守卫到 .xdc 里——2026-10-04 实测 Vivado 解析 .xdc 时对 `if`/`puts` 报
+#   Designutils 20-1307 并整块跳过（件 build/evidence/r119_xdc_loads_probe2.txt），守卫会静默失效；
+#   数字推导、参考钟身份、射程这三件事由只读尺子 build/r119_window_check.mjs 判（--self 有 6 条能红的对照）。
+if {[info exists ::env(VP_R119_TMDS_WINDOW)] && $::env(VP_R119_TMDS_WINDOW) eq "1"} {
+  set hwxdc [add_files -fileset constrs_1 -norecurse [file join $root src constraints r119_hdmi_source_window.xdc]]
+  set_property used_in_synthesis false $hwxdc
+  set_property used_in_implementation true $hwxdc
+  puts "VP_R119_TMDS_WINDOW loaded（HDMI 源端 TP1 窗已进实现；这一轮的量还没做，别念成已采纳）"
+} else {
+  puts "VP_R119_TMDS_WINDOW off（候选件 src/constraints/r119_hdmi_source_window.xdc，缺的是一次量名册的构建）"
+}
+
+create_bd_design design_1
+create_bd_cell -type ip -vlnv xilinx.com:ip:processing_system7:5.5 processing_system7_0
+set ps [get_bd_cells processing_system7_0]
+apply_bd_automation -rule xilinx.com:bd_rule:processing_system7 \
+  -config {make_external "FIXED_IO, DDR" Master "Disable" Slave "Disable" apply_board_preset "0"} $ps
+
+# V8-2：开 MIO GPIO，为了读板上那两个 PS 按键（原理图网络名 PS_MIO0_KEY1 / PS_MIO12_KEY2）。
+# 老配置只有 EMIO GPIO=0、MIO GPIO 根本没开 ⇒ 那两个脚电气上存在但固件读不到（见 report/log/plan_v8_spec.md §6a）。
+# MIO 0 与 12 都没被占用：QSPI=MIO 1..6、UART0=MIO 10..11、ENET0=MIO 16..27(+MDIO 52..53)、SD0=MIO 40..45(+CD MIO 9)。
+# 每脚四行（PULLUP/IOTYPE/DIRECTION/SLEW）是 GPIO 认领这两行 MIO 所必需的，缺了 validate_bd_design 会报 IOTYPE 未设。
+# 注意这个 dict 里**不能夹注释行**：整块是一个 `set_property -dict [list ... ]`，
+# 行续 `\` 之间出现的裸文本会变成 list 的元素（我第一次就这么把脚本写坏了）。
+set_property -dict [list \
+  CONFIG.PCW_FPGA0_PERIPHERAL_FREQMHZ {100} \
+  CONFIG.PCW_EN_CLK0_PORT {1} CONFIG.PCW_EN_RST0_PORT {1} \
+  CONFIG.PCW_USE_M_AXI_GP0 {1} \
+  CONFIG.PCW_USE_S_AXI_HP0 {1} CONFIG.PCW_S_AXI_HP0_DATA_WIDTH {64} \
+  CONFIG.PCW_ENET0_PERIPHERAL_ENABLE {1} \
+  CONFIG.PCW_ENET0_ENET0_IO {MIO 16 .. 27} \
+  CONFIG.PCW_ENET0_GRP_MDIO_ENABLE {1} CONFIG.PCW_ENET0_GRP_MDIO_IO {MIO 52 .. 53} \
+  CONFIG.PCW_UART0_PERIPHERAL_ENABLE {1} CONFIG.PCW_UART0_UART0_IO {MIO 10 .. 11} \
+  CONFIG.PCW_QSPI_PERIPHERAL_ENABLE {1} CONFIG.PCW_QSPI_GRP_SINGLE_SS_ENABLE {1} \
+  CONFIG.PCW_SD0_PERIPHERAL_ENABLE {1} CONFIG.PCW_SD0_SD0_IO {MIO 40 .. 45} \
+  CONFIG.PCW_SD0_GRP_CD_ENABLE {1} CONFIG.PCW_SD0_GRP_CD_IO {MIO 9} \
+  CONFIG.PCW_GPIO_EMIO_GPIO_ENABLE {0} \
+  CONFIG.PCW_GPIO_MIO_GPIO_ENABLE {1} CONFIG.PCW_GPIO_MIO_GPIO_IO {MIO} \
+  CONFIG.PCW_MIO_0_PULLUP {enabled} CONFIG.PCW_MIO_0_IOTYPE {LVCMOS 3.3V} \
+  CONFIG.PCW_MIO_0_DIRECTION {inout} CONFIG.PCW_MIO_0_SLEW {slow} \
+  CONFIG.PCW_MIO_12_PULLUP {enabled} CONFIG.PCW_MIO_12_IOTYPE {LVCMOS 3.3V} \
+  CONFIG.PCW_MIO_12_DIRECTION {inout} CONFIG.PCW_MIO_12_SLEW {slow} \
+  CONFIG.PCW_PRESET_BANK0_VOLTAGE {LVCMOS 3.3V} \
+  CONFIG.PCW_PRESET_BANK1_VOLTAGE {LVCMOS 1.8V} \
+  CONFIG.PCW_UIPARAM_DDR_PARTNO {MT41K256M16 RE-125} \
+  CONFIG.PCW_UIPARAM_DDR_BUS_WIDTH {32 Bit} \
+  CONFIG.PCW_UIPARAM_DDR_DRAM_WIDTH {16 Bits} \
+] $ps
+
+create_bd_cell -type ip -vlnv xilinx.com:ip:axi_gpio:2.0 axi_gpio_0
+set_property -dict [list \
+  CONFIG.C_GPIO_WIDTH {32} \
+  CONFIG.C_ALL_OUTPUTS {1} \
+  CONFIG.C_INTERRUPT_PRESENT {0} \
+] [get_bd_cells axi_gpio_0]
+
+# v7.6 (P0-A)：第二条 GPIO，**只读 32bit**，给 PS 读 PL 侧的链路健康快照。
+# 不新增 AXI 从地址之外的任何东西：lane 号走已有的 GPIO_0（gpio_o[31:27]），
+# 数据走这条 —— BD 里只多一个 ip、多一条 M01_AXI。
+create_bd_cell -type ip -vlnv xilinx.com:ip:axi_gpio:2.0 axi_gpio_1
+set_property -dict [list \
+  CONFIG.C_GPIO_WIDTH {32} \
+  CONFIG.C_ALL_INPUTS {1} \
+  CONFIG.C_INTERRUPT_PRESENT {0} \
+] [get_bd_cells axi_gpio_1]
+
+# V8-2：第三条 GPIO —— **双通道 ×32bit 纯输出**，装 V7 那条 32bit 控制字放不下的东西。
+# 为什么要多这一条：gpio_0 里 [4:0] 效果、[15:8] 阈值、[16] 片源、[17] 缩放、[18] 发布、
+# [19] 双线性、[26] gapclr、[31:27] lane 读回 都用掉了，只剩 9 位空；而 V8 的算法选择字就要
+# 9 位，后面 Gamma 的索引+数据窗口与分割线的位置/range/速度还要 30 多位。
+# 把这 64 位**一次开出来**（通道 2 现在故意不接），V8-3/V8-4 就不必再动 BD ——
+# 动一次 BD = 地址、约束、全套门禁重来。老工具（set_src.tcl / health_read.mjs /
+# arb_handover_test.mjs）读写的 gpio_0 位序一个都没动。
+# 地址在下面钉死 0x41220000：固件里的 AXI_GPIO_CFG_BASE 必须等于它（BSP 不会重新生成
+# xparameters.h，基址是硬编码的，错了不是编译失败而是"写了没反应"）。
+create_bd_cell -type ip -vlnv xilinx.com:ip:axi_gpio:2.0 axi_gpio_2
+set_property -dict [list \
+  CONFIG.C_IS_DUAL {1} \
+  CONFIG.C_GPIO_WIDTH {32} \
+  CONFIG.C_GPIO2_WIDTH {32} \
+  CONFIG.C_ALL_OUTPUTS {1} \
+  CONFIG.C_ALL_OUTPUTS_2 {1} \
+  CONFIG.C_INTERRUPT_PRESENT {0} \
+] [get_bd_cells axi_gpio_2]
+
+create_bd_cell -type ip -vlnv xilinx.com:ip:axi_interconnect:2.1 axi_gp0_ic
+set_property -dict [list CONFIG.NUM_MI {3} CONFIG.NUM_SI {1}] [get_bd_cells axi_gp0_ic]
+create_bd_cell -type ip -vlnv xilinx.com:ip:axi_interconnect:2.1 axi_mem_intercon
+set_property -dict [list CONFIG.NUM_MI {1} CONFIG.NUM_SI {1}] [get_bd_cells axi_mem_intercon]
+
+connect_bd_net [get_bd_pins processing_system7_0/FCLK_CLK0] \
+  [get_bd_pins axi_gp0_ic/ACLK] \
+  [get_bd_pins axi_gp0_ic/S00_ACLK] \
+  [get_bd_pins axi_gp0_ic/M00_ACLK] \
+  [get_bd_pins axi_gpio_0/s_axi_aclk] \
+  [get_bd_pins axi_gpio_1/s_axi_aclk] \
+  [get_bd_pins axi_gpio_2/s_axi_aclk] \
+  [get_bd_pins axi_gp0_ic/M01_ACLK] \
+  [get_bd_pins axi_gp0_ic/M02_ACLK] \
+  [get_bd_pins axi_mem_intercon/ACLK] \
+  [get_bd_pins axi_mem_intercon/S00_ACLK] \
+  [get_bd_pins axi_mem_intercon/M00_ACLK] \
+  [get_bd_pins processing_system7_0/S_AXI_HP0_ACLK] \
+  [get_bd_pins processing_system7_0/M_AXI_GP0_ACLK]
+
+connect_bd_net [get_bd_pins processing_system7_0/FCLK_RESET0_N] \
+  [get_bd_pins axi_gp0_ic/ARESETN] \
+  [get_bd_pins axi_gp0_ic/S00_ARESETN] \
+  [get_bd_pins axi_gp0_ic/M00_ARESETN] \
+  [get_bd_pins axi_gpio_0/s_axi_aresetn] \
+  [get_bd_pins axi_gpio_1/s_axi_aresetn] \
+  [get_bd_pins axi_gpio_2/s_axi_aresetn] \
+  [get_bd_pins axi_gp0_ic/M01_ARESETN] \
+  [get_bd_pins axi_gp0_ic/M02_ARESETN] \
+  [get_bd_pins axi_mem_intercon/ARESETN] \
+  [get_bd_pins axi_mem_intercon/S00_ARESETN] \
+  [get_bd_pins axi_mem_intercon/M00_ARESETN]
+
+connect_bd_intf_net [get_bd_intf_pins processing_system7_0/M_AXI_GP0] \
+  [get_bd_intf_pins axi_gp0_ic/S00_AXI]
+connect_bd_intf_net [get_bd_intf_pins axi_gp0_ic/M00_AXI] \
+  [get_bd_intf_pins axi_gpio_0/S_AXI]
+connect_bd_intf_net [get_bd_intf_pins axi_gp0_ic/M01_AXI] \
+  [get_bd_intf_pins axi_gpio_1/S_AXI]
+connect_bd_intf_net [get_bd_intf_pins axi_gp0_ic/M02_AXI] \
+  [get_bd_intf_pins axi_gpio_2/S_AXI]
+connect_bd_intf_net [get_bd_intf_pins axi_mem_intercon/M00_AXI] \
+  [get_bd_intf_pins processing_system7_0/S_AXI_HP0]
+
+make_bd_intf_pins_external [get_bd_intf_pins axi_mem_intercon/S00_AXI]
+foreach p [get_bd_intf_ports] {
+  if {[string match *S00* $p]} { catch {set_property name M_AXI_HP0 $p} }
+}
+
+create_bd_port -dir O -type clk -freq_hz 100000000 FCLK_CLK0
+connect_bd_net [get_bd_pins processing_system7_0/FCLK_CLK0] [get_bd_ports FCLK_CLK0]
+create_bd_port -dir O -type rst FCLK_RESET0_N
+set_property CONFIG.POLARITY ACTIVE_LOW [get_bd_ports FCLK_RESET0_N]
+connect_bd_net [get_bd_pins processing_system7_0/FCLK_RESET0_N] [get_bd_ports FCLK_RESET0_N]
+
+# 外部端口改名：**不能依赖 make_bd_pins_external 的返回值**（r45 第二次试跑实测它在这里返回空，
+# 于是 `get_bd_ports {}` 报 "No ports matched"，脚本按判据自己停了）。
+# 也不能按子串匹配：双通道 GPIO 的两个端口都叫 gpio_io_o*，子串循环会把第二个也命名成
+# GPIO_0_tri_o，冲突被 catch 吞掉之后端口留着自动名 —— 顶层例化时报的错看起来像"凭空少一个端口"。
+# 所以：调用前后各取一次端口名集合，diff 出来的那一个就是刚建出来的，再改名。
+proc bd_port_names {} {
+  set r {}
+  foreach p [get_bd_ports] { lappend r [get_property NAME $p] }
+  return $r
+}
+foreach {pin newname} {
+  axi_gpio_0/gpio_io_o   GPIO_0_tri_o
+  axi_gpio_1/gpio_io_i   GPIO_1_tri_i
+  axi_gpio_2/gpio_io_o   GPIO_2_tri_o
+  axi_gpio_2/gpio2_io_o  GPIO_3_tri_o
+} {
+  set before [bd_port_names]
+  make_bd_pins_external [get_bd_pins $pin]
+  set fresh {}
+  foreach n [bd_port_names] { if {[lsearch -exact $before $n] < 0} { lappend fresh $n } }
+  if {[llength $fresh] != 1} { puts "PORT_LOOKUP_FAILED $pin fresh={$fresh}"; exit 1 }
+  set_property name $newname [get_bd_ports $fresh]
+  puts "PORT $pin -> $newname"
+}
+puts "BD PORTS: [get_bd_ports]"
+
+catch {set_property CONFIG.ASSOCIATED_BUSIF {M_AXI_HP0} [get_bd_ports FCLK_CLK0]}
+assign_bd_address
+# 三个基址钉死（0x41210000 是固件与 health_read.mjs 一直在用的 GPIO_1，0x41220000 是新的控制字）。
+# 为什么不能"让它自动排"：BSP 不会重新生成 xparameters.h，固件里基址是硬编码的；
+# 地址一挪，现象不是编译失败而是"写了没反应"——最难查的那一类。
+foreach {seg want} {
+  axi_gpio_0/S_AXI/Reg 0x41200000
+  axi_gpio_1/S_AXI/Reg 0x41210000
+  axi_gpio_2/S_AXI/Reg 0x41220000
+} {
+  assign_bd_address -offset $want -range 64K \
+    -target_address_space [get_bd_addr_spaces processing_system7_0/Data] \
+    [get_bd_addr_segs $seg] -force
+}
+set aspace [get_bd_addr_spaces processing_system7_0/Data]
+# 先整张地址图打出来：上一次这里查不到偏移时只能看到 got=（空串），看不出"是查询写错了还是地址真没钉上"。
+foreach s [get_bd_addr_segs -quiet -of_objects $aspace] {
+  puts "ADDRMAP [get_property NAME $s] = [get_property OFFSET $s]"
+}
+set bad_addr 0
+foreach {cell want} { axi_gpio_0 0x41200000  axi_gpio_1 0x41210000  axi_gpio_2 0x41220000 } {
+  # 段对象要从**地址空间里**取（`get_bd_addr_segs axi_gpio_0/S_AXI/Reg` 取到的是接口定义，
+  # 它的 OFFSET 是空的 —— 上一次这里判红就是这个原因，不是地址没钉上）
+  set s [get_bd_addr_segs -quiet -of_objects $aspace -filter "NAME =~ *SEG_${cell}_Reg*"]
+  if {$s eq ""} { puts "ADDR_LOG $cell want=$want got=NOT_FOUND"; incr bad_addr; continue }
+  set got [get_property OFFSET $s]
+  # 比较必须在**数值**上做：把 OFFSET 塞进 expr 或直接当字符串比都会误判 ——
+  # 这个属性经数字一走就显示成十进制（0x41200000 → 1092616192），字符串比对必然红。
+  set gv 0
+  set wv 0
+  scan [string tolower $got] "%x" gv
+  scan [string tolower $want] "%x" wv
+  puts "ADDR_LOG $cell want=$want got=$got num_ok=[expr {$gv == $wv}]"
+  if {$gv != $wv} { incr bad_addr }
+}
+validate_bd_design
+if {$bad_addr} { puts "ADDRESS PINNING FAILED"; exit 1 }
+save_bd_design
+# BD 配置写错（IP 的参数名、引脚名、MIO 认领）本来 3 分钟就能验出来，不必等 20 分钟的综合+实现。
+# 所以留一个只建 BD 就退出的口子：`vivado -mode batch -source 本脚本 -tclargs bd_only`。
+if {[lindex $argv 0] eq "bd_only"} { puts "BD_ONLY_DONE"; exit 0 }
+make_wrapper -files [get_files design_1.bd] -top
+set wrap [file join $proj_dir ${proj_name}.gen sources_1 bd design_1 hdl design_1_wrapper.v]
+if {![file exists $wrap]} {
+  set wrap [lindex [glob -nocomplain [file join $proj_dir ${proj_name}.srcs sources_1 bd design_1 hdl design_1_wrapper.v]] 0]
+}
+add_files -norecurse $wrap
+puts "WRAPPER: $wrap"
+puts "TOP: system_top.v (maintained, includes PL ETH)"
+
+set_property top system_top [current_fileset]
+update_compile_order -fileset sources_1
+
+# ---- build#16 试过的实现策略旋钮：已撤掉，恢复默认 impl_1 ----
+# 记录：`Performance_ExtraTimingOpt` 把 clk_pix→clk_pix5x 那组从 −0.485 抬到 **+0.788**（转好），
+# 并把 intra-5x 从 −0.485 收到 −0.327（phys_opt 复制了高扇出的地址 mux 驱动，日志里
+# 有 `Processed net u_pl/u_rd/u_sched/... Replicated`），但**仍然红** ⇒ V7.8 的顶层没有进主线，
+# 主线回到 build#13 的结构。留这个旋钮在这里没有意义（默认结构不需要它），
+# 想接着做 V7.8 的时序收口时，连同 tag `v7.8-bilinear-wip` 一起再打开。
+# 历史结论 R07：`Performance_Explore` 与默认策略产出逐位相同的 bit ⇒ 那不是个可选项。
+
+# 分步入口在这里切一刀：VP_STOP_AT=project 时工程、IP、源与约束都已进项目文件，
+# 综合留给 build/synth.tcl 单独跑（默认不设就是不切，正式流程一步到位的老行为不变）。
+if {[info exists ::env(VP_STOP_AT)] && $::env(VP_STOP_AT) eq "project"} {
+  puts "VP_STOP_AT_PROJECT_DONE proj=$proj_dir"
+  close_project
+  exit 0
+}
+launch_runs synth_1 -jobs 4
+wait_on_run synth_1
+if {[get_property PROGRESS [get_runs synth_1]] != "100%"} {
+  puts "SYNTH FAILED [get_property STATUS [get_runs synth_1]]"
+  exit 1
+}
+# 实现策略可以用环境变量 IMPL_STRATEGY 指定；不设就是工程默认（"Vivado Implementation Defaults"）。
+# 为什么做成"外部传 + 一定把名字打进日志"而不是直接改这一行：步骤② 的采纳判据要
+# "同一份 RTL + 某个策略"**两次独立构建同方向**（扫描里 `Performance_ExploreWithRemap`
+# 把 WHS 从 0.019 抬到 0.028），而策略一旦写死进脚本，过几个月没人知道眼前这颗 bit 是哪一档出来的。
+# ⇒ 名字必须出现在构建日志里，产物自己带着它的出身。
+if {[info exists ::env(IMPL_STRATEGY)] && $::env(IMPL_STRATEGY) ne ""} {
+  if {[catch {set_property -dict [list strategy $::env(IMPL_STRATEGY)] [get_runs impl_1]} e]} {
+    puts "BUILD_STRATEGY_REJECTED $::env(IMPL_STRATEGY) : $e"
+    exit 1
+  }
+}
+puts "BUILD_STRATEGY [get_property STRATEGY [get_runs impl_1]]"
+# r117（C9 复制刀）：与 IMPL_STRATEGY 同一个规矩——**默认不设就是不挂**，设了就把挂的东西打进日志，
+# 产物自己带出身。为什么必须走环境变量而不是直接改这一行：r116 那一版位流的复现路径不能被事后改写。
+# 挂的是 place_design 之后的 TCL.POST：快车道滚（build/evidence/r117_repl3/b_console.txt）就是在
+# place 之后、route 之前做的这一次强制复制，把同一个动作放在官方 run 的同一个位置才是单变量。
+if {[info exists ::env(IMPL_POST_PLACE_HOOK)] && $::env(IMPL_POST_PLACE_HOOK) ne ""} {
+  if {[catch {set_property STEPS.PLACE_DESIGN.TCL.POST $::env(IMPL_POST_PLACE_HOOK) [get_runs impl_1]} e]} {
+    puts "BUILD_HOOK_REJECTED $::env(IMPL_POST_PLACE_HOOK) : $e"
+    exit 1
+  }
+  puts "BUILD_POST_PLACE_HOOK $::env(IMPL_POST_PLACE_HOOK)"
+} else {
+  puts "BUILD_POST_PLACE_HOOK none"
+}
+# 布线后物理综合（post-route phys_opt）：默认**关**（不设变量就是 r64b 那一档流程，逐位同源的对照）。
+# 为什么单独开一档试：`report/optimization_log.md` §4 量到全设计 WNS 由两条**布线主导**（route 占 60~67 %）的
+# 路径轮流决定，其中 eth 那条的高扇出网络 fo=96 / 17 正好是 phys_opt 的靶子；而它**不动网表**只动物理结果，
+# 所以这一档不需要重跑 RTL 台架 —— 但它同样要"产物自己带着出身"，故与 IMPL_STRATEGY 一样打进日志。
+if {[info exists ::env(IMPL_PRPO)] && $::env(IMPL_PRPO) eq "1"} {
+  if {[catch {
+    set_property STEPS.POST_ROUTE_PHYS_OPT_DESIGN.IS_ENABLED true [get_runs impl_1]
+    set_property STEPS.POST_ROUTE_PHYS_OPT_DESIGN.ARGS.DIRECTIVE AggressiveExplore [get_runs impl_1]
+  } e]} {
+    puts "BUILD_PRPO_REJECTED $e"
+    exit 1
+  }
+  puts "BUILD_PRPO on AggressiveExplore"
+} else {
+  puts "BUILD_PRPO off"
+}
+launch_runs impl_1 -to_step write_bitstream -jobs 4
+wait_on_run impl_1
+
+set bit [file join $proj_dir ${proj_name}.runs impl_1 system_top.bit]
+if {![file exists $bit]} {
+  set bit [lindex [glob -nocomplain [file join $proj_dir ${proj_name}.runs impl_1 *.bit]] 0]
+}
+file copy -force $bit [file join $outdir system.bit]
+open_run impl_1
+report_timing_summary -file [file join $outdir timing_summary.rpt]
+report_utilization -file [file join $outdir utilization.rpt]
+# V7：一并产出 CDC / 方法学报告，让仓库脚本的输出与库里提交的文件一致
+catch {report_cdc -file [file join $outdir cdc.rpt]}
+catch {report_methodology -file [file join $outdir methodology.rpt]}
+# 门禁还要求功耗与布线状态，缺了就只能靠人工补跑 —— 一并产出
+catch {report_power -file [file join $outdir power.rpt]}
+catch {report_route_status -file [file join $outdir route_status.rpt]}
+catch {report_clock_utilization -file [file join $outdir clock_util.rpt]}
+write_hw_platform -fixed -include_bit -force -file [file join $outdir system.xsa]
+catch {close_project}
+puts "BIT: [file join $outdir system.bit]"
+puts "XSA: [file join $outdir system.xsa]"
+# ---- 端口宽度警告计数（ISSUES #57/#58 之后新增的门禁第 8 项的凭据）----
+# 为什么要单独落一个文件：`gates.sh` 以前只能去 grep "最新的构建日志"，于是出现过
+# 报告是 A 版、日志是 B 版的错配（那一刻这一项绿得没有意义）。凭据与报告同一次生成、
+# 一起进冻结目录，才是"这一套 bit 没有宽度问题"的证明。
+# 扫的是综合的 runme.log（顶层 + 各 OOC IP），8-689 就报在那里，带 file:line。
+set wcount 0
+set wseen {}
+set mcount 0
+set mseen {}
+foreach lg [glob -nocomplain [file join $proj_dir [file tail $proj_name].runs * runme.log]] {
+  if {![file exists $lg]} { continue }
+  if {[catch {open $lg r} fh]} { continue }
+  while {[gets $fh line] >= 0} {
+    if {[string match "*Synth 8-689*" $line]} { incr wcount; lappend wseen [string trim $line] }
+    # 多驱动 net（同一个 reg 被两个 always 块赋值）：Synth 8-6859 / 8-6858。
+    # 为什么必须单独数：综合的处理是**保留常量那一侧、忽略逻辑那一侧**，
+    # 于是 bit 里那根线恒为 0，而**仿真按进程后写覆盖，行为看起来完全正确**
+    # —— 这是"台架全绿、硬件不工作"最省事的一条路（2026-09-24 就踩在 border_r 上，
+    #    见 report/log/issues.md #61：旗标链的复位被我同时写进了两个 always 块）。
+    if {[string match "*multi-driven net*" $line]} { incr mcount; lappend mseen [string trim $line] }
+  }
+  close $fh
+}
+set wf [open [file join $outdir width_warnings.txt] w]
+puts $wf $wcount
+foreach s $wseen { puts $wf "  $s" }
+close $wf
+puts "WIDTH_WARNINGS count=$wcount -> [file join $outdir width_warnings.txt]"
+set mf [open [file join $outdir multi_driven.txt] w]
+puts $mf $mcount
+foreach t [lrange $mseen 0 40] { puts $mf "  $t" }
+close $mf
+puts "MULTI_DRIVEN count=$mcount -> [file join $outdir multi_driven.txt]"
+foreach t [lrange $mseen 0 5] { puts "  MULTIDRIVE: $t" }
+foreach s [lrange $wseen 0 5] { puts "  WIDTH: $s" }
+
+puts "SYSTEM BUILD DONE"
+

@@ -1,0 +1,32 @@
+# r80 #102 第一刀的模块级凭据：sim/tb_v100_raw_delay.v（真实光栅：x 自由跑到 HT-1 + 25 拍竖消隐 + 有效行数=环深整数倍）
+# 被测 = src/rtl/video/raw_line_delay.v md5 0f88665f1411（行末…改为消隐首拍预读 head_q 之后）
+# 三跑对照（同一台架、同一 RTL，只改 d_out 那一行）：
+
+## 1) 修复后（全绿）
+PASS T1 |  (row,k) row-LIN k
+PASS T5 |  13  > 2^RLOG
+INFO T1 样本 512 格、错 0 格（W=64 × 行 4..12）
+PASS T3 de | d_o de_oude#54 
+INFO T3 样本 192 格、错 0 格
+PASS T4 LINES=0 |  0 RAM
+PASS  | #    `x[H_TOTAL-1]` 
+PASS  |  #92
+INFO T7 行首样本 16 格、错 0 格 || 行内样本 1008 格、错 0 格
+PASS  | 
+RESULT tb_v100_raw_delay PASS
+
+## 2) 变异：把 d_out 退回 "assign d_out = q;"（关掉行首预读）
+   实测：T7 行首样本 16 格、错 16 格 —— 只有 T7 红；
+        T1/T3/T4/T5/T6 与 T7k(行内 1008 格、错 0) 全绿 ⇒ 红恰好落在被修的那一格，判据没有连带伤到别的列
+        （凭据 = 本文件上方第 1 段跑之前那一次控制台输出，2026-09-27 21:3x）
+
+## 3) 探针 PHASE（决定期望值写法的那四次读数，row=5）
+PROBE PHASE row=5 col=0 d_out=0100 (cell k-1 应=1ffffffff, cell k 应=0100)
+PROBE PHASE row=5 col=1 d_out=0100 (cell k-1 应=100000000, cell k 应=0101)
+PROBE PHASE row=5 col=2 d_out=0101 (cell k-1 应=100000001, cell k 应=0102)
+PROBE PHASE row=5 col=3 d_out=0102 (cell k-1 应=100000002, cell k 应=0103)
+
+# ⚠ 两条台架自己的教训（都写在 tb_v100 的注释里，别只看结论）：
+#   a) 第一版 T7 检查放在'喂完之后第二拍'，量的其实是 cell k，行首那一格从来没被看到 ⇒ 变异也绿（空判）
+#      ⇒ 改成'驱动之后、下一个 posedge 之前(#2)取样'，才是硬件把标签与内容配对的那半拍
+#   b) 行内期望是 cell k-1 而不是 cell k：RAM 读出晚一拍晚的是**拍**，不是列

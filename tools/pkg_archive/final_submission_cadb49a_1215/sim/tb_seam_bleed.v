@@ -1,0 +1,307 @@
+`timescale 1ns/1ps
+// 功能：被测模块 `proc_box_blur`(u_blu)、`proc_sharpen`(u_shp)、`proc_sobel`(u_sob)、`proc_morph`(u_mor，
+//        mode=2'd2 膨胀、threshold=8'h80)，四家都 bypass=0；覆盖点＝右窗缝边第 0/1/2 列会不会被上一行
+//        末尾的像素影响、首行会不会被上一帧末行的行缓存影响、3×3 抽头图是否九格全亮且中心即标签像素。
+// 激励与检查：时钟 #10 翻转（20 ns 周期），rst_n 以初值 0 走 4 拍后置 1 再等 4 拍；W=512（真实右窗宽）、
+//        一"帧"LN=4 行、行间 GAP=832 拍消隐；底值 FLAT=16'h2104、扰动 HOT=16'hFFFF；drive_frame 每行喂
+//        512 个 de=1 加 1 拍 de=0；one_run 先跑一帧热身、清零采样后再跑一帧测量。三遍主序列：无扰动
+//        （hr=-1）、上一行末尾 4 格 HOT（hr=MEAS_ROW-1=1、hc=W-4=508）、牙齿对照（hr=MEAS_ROW=2、hc=199
+//        单格 HOT）；采样位置由 de_out 连续计数除以 W 得出，每个被测抓第 MEAS_ROW 行的列 0/1/2 加对照区
+//        197..203 共 NC=10 个点；C3 把 cur_row 改到 0，用脏帧 (LN-1, W-4, 4) 夹两遍全干净帧；C4 把单格
+//        HOT 依次放到 (MEAS_ROW+dy, TGT+dx)，dy,dx∈[-1,1] 共九次 one_run。判定：C0 每个被测 10 个采样位
+//        have[] 全命中（miss==0）；C1 对照区 diff_bits(clean,ctrl)==1 的列数 wcnt>=1；
+//        C2 diff_bits(clean[me][0..2], prov[me][0..2])==0；C3 diff_bits(prov[me][2], clean[me][2])==0；
+//        C4 mapbits[me] 的九位全为 1（map_full==1）。
+// 预期结果：通过时末行打印 PASS tb_seam_bleed，波形上四路 de_out 每行仍 512 拍、最左三列的输出与
+//        无扰动基线逐位相同、九点抽头图九格都是 ##；失败时按 "  FAIL C<n> <模块名> <判据名>" 打行并让
+//        末行变 FAIL tb_seam_bleed errors=<n>（文件末尾的说明指出当前 C2/C3 的红是登记在册的缺陷：
+//        blur 只挡首行、sobel 两个都不挡），C0 另打 "缺采样 <n> 个"，#400_000_000 看门狗到期打
+//        FAIL tb_seam_bleed timeout。
+// tb_seam_bleed —— 只例化 blur/sharpen/sobel/morph 四个窗口级，验右窗缝边第 0/1/2 列的两类"漏"：(a) 窗口级把最左列的"左邻"取成**上一行的最右列**（p 移位链跨消隐不复位），(b) 首行用**上一帧最后一行**的缓存（同一机制的行版本）；第三个成因（split_display 在 x==PANE_W-1/PANE_W 画的 2 像素缝标记线）是特性不是 bug，不归本台架。
+// 判据索引：C0 量具自证（十六个采样点全部真的抓到，否则"两遍相同"是空跑假绿）· C1 牙齿对照（HOT 放到被测点真正的左邻 ⇒ 差分必须不为 0）· C2 第 0/1/2 列不受上一行末尾影响 · C3 首行不受上一帧末行影响 · C4 九点抽头图九格全亮（3×3 窗口完整、中心=标签像素）；判据一律用**差分**写法（同一激励跑两遍，只把扰动格 FLAT→HOT），期望与反例写在各 C 段开头。
+// 跑法：bash sim/run_one.sh tb_seam_bleed
+module tb_seam_bleed;
+    localparam W   = 512;          // 真实右窗宽度（IMG_W=512）
+    localparam LN  = 4;            // 一"帧"四行：够让行缓存绕一圈，量到帧边界那一行的漏
+    localparam GAP = 832;          // 真实消隐：H 总 1344 - 有效 512
+    localparam [15:0] FLAT = 16'h2104;   // 一个**低但非零**的普通像素：低于 morph 的阈值 0x80，
+                                      // 又不至于和"钳位取中心"的 0 混成一个值
+    localparam [15:0] HOT  = 16'hFFFF;   // 拉满，保证与 FLAT 的差在任何窗口运算里都不为 0
+
+    reg clk = 0, rst_n = 0;
+    always #10 clk = ~clk;
+
+    reg         de = 0;
+    reg  [11:0] xs = 0, ys = 0;
+    reg  [15:0] src = 0;
+
+    // 四个被测（都例化成"只这一级"，与整链分开看）
+    wire        d_blu, d_shp, d_sob, d_mor;
+    wire [15:0] q_blu, q_shp, q_sob, q_mor;
+
+    proc_box_blur #(.H_ACTIVE(W)) u_blu (
+        .clk(clk), .rst_n(rst_n), .bypass(1'b0),
+        .hs_in(1'b0), .vs_in(1'b0), .de_in(de), .x_in(xs), .y_in(ys), .din(src),
+        .de_out(d_blu), .dout(q_blu)
+    );
+    proc_sharpen #(.H_ACTIVE(W)) u_shp (
+        .clk(clk), .rst_n(rst_n), .bypass(1'b0),
+        .de_in(de), .x_in(xs), .y_in(ys), .din(src), .de_out(d_shp), .dout(q_shp)
+    );
+    proc_sobel #(.H_ACTIVE(W)) u_sob (
+        .clk(clk), .rst_n(rst_n), .bypass(1'b0),
+        .vs_in(1'b0), .de_in(de), .x_in(xs), .y_in(ys), .din(src),
+        .de_out(d_sob), .dout(q_sob)
+    );
+    // morph 吃的是"二值掩码"：mode=2 膨胀（任一邻为 1 即 1）对漏进来的邻最敏感
+    proc_morph #(.H_ACTIVE(W)) u_mor (
+        .clk(clk), .rst_n(rst_n), .mode(2'd2), .threshold(8'h80),
+        .de_in(de), .x_in(xs), .y_in(ys), .din(src), .de_out(d_mor), .dout(q_mor)
+    );
+
+    // 采样：位置 = 输出脉冲的连续计数（每 W 拍换一行）。de_out 是 de_in 延三拍，但**每行脉冲数仍是 W** ⇒
+    // 连续数下去就定得出 (行,列)；只记 MEAS_ROW 那一行、下面那几个列，别的丢掉。
+    localparam MEAS_ROW = 2;                       // 帧内第三行：不是首行，绕开 (3) 的干扰
+    integer cur_row = MEAS_ROW;                    // C3 要测第 0 行，所以采样行是可变的
+    integer pc [0:3];                               // 每个被测一个脉冲计数
+    integer got [0:3][0:15];                        // 抓到的值（列 0..2 + 对照区 SP0..SP0+6）
+    reg     have [0:3][0:15];
+    // 要抓的列：0/1/2 是"缝边漏区"；对照区抓**一段**（197..203）而不是一个点 —— "左邻影响哪一列输出"本身就是
+    // 本条要问的事，只抓一个点时分不清红的是"量具没抓到"还是"它的灵敏度串了列"（改成整段抓 + 找差值落点）。
+    localparam SP0 = 197, NSP = 7, TGT = 200;                  // 对照区：列 197..203
+    localparam NC  = 3 + NSP;                       // 索引 0..2 = 漏区列，3.. = 对照区
+
+    integer me, k, found;
+    task sample; input integer idx; input [15:0] q;
+        begin
+            // 先判"这一拍是不是我要的位置"，再自增计数（顺序反了会整体错一格）
+            if (pc[idx]/W == cur_row) begin
+                if (pc[idx] % W <= 2) begin
+                    got[idx][pc[idx] % W] = q; have[idx][pc[idx] % W] = 1;
+                end else if (pc[idx] % W >= SP0 && pc[idx] % W < SP0 + NSP) begin
+                    found = 3 + (pc[idx] % W - SP0);
+                    got[idx][found] = q; have[idx][found] = 1;
+                end
+            end
+            pc[idx] = pc[idx] + 1;
+            if (pc[idx] == LN*W) pc[idx] = 0;       // 每"帧"对齐一次，免得漂移累积
+        end
+    endtask
+
+    // 诊断打印（不是判据）：抓"被测点落在第 MEAS_ROW 行第 0/1/2 列"那一拍，把各模块**自己的**边界旗标念出来。
+    // 为什么要它：同一条 `x_d1==0` 判据在四个模块里对应的**实际列**并不相同，光看代码推不出来 —— 让 DUT 自己报。
+    // #97：四家的单根 `border_r` 换成四根（左/右/上/陈旧），这里跟着念四根，只是把现场摆出来。
+    reg dbg_en = 0;
+    always @(posedge clk) if (rst_n && dbg_en) begin
+        if (d_blu && pc[0] % W <= 2 && pc[0] / W == MEAS_ROW)
+            $display("[tb_seam_bleed.v:102] DBG blur  slot列%0d L%0d R%0d A%0d S%0d x_in=%0d", pc[0] % W, u_blu.no_left, u_blu.no_right, u_blu.no_above, u_blu.stale_row, u_blu.x_in);
+        if (d_shp && pc[1] % W <= 2 && pc[1] / W == MEAS_ROW)
+            $display("[tb_seam_bleed.v:104] DBG sharp slot列%0d L%0d R%0d A%0d S%0d x_in=%0d", pc[1] % W, u_shp.no_left, u_shp.no_right, u_shp.no_above, u_shp.stale_row, u_shp.x_in);
+        if (d_sob && pc[2] % W <= 2 && pc[2] / W == MEAS_ROW)
+            $display("[tb_seam_bleed.v:106] DBG sobel slot列%0d L%0d R%0d A%0d S%0d x_in=%0d", pc[2] % W, u_sob.no_left, u_sob.no_right, u_sob.no_above, u_sob.stale_row, u_sob.x_in);
+        if (d_mor && pc[3] % W <= 2 && pc[3] / W == MEAS_ROW)
+            $display("[tb_seam_bleed.v:108] DBG morph slot列%0d L%0d R%0d A%0d S%0d x_in=%0d", pc[3] % W, u_mor.no_left, u_mor.no_right, u_mor.no_above, u_mor.stale_row, u_mor.x_in);
+    end
+
+    always @(posedge clk) if (rst_n) begin
+        if (d_blu) sample(0, q_blu);
+        if (d_shp) sample(1, q_shp);
+        if (d_sob) sample(2, q_sob);
+        if (d_mor) sample(3, q_mor);
+    end
+
+    // 激励：整帧 FLAT，只有若干"扰动格"是 HOT
+    // hot_col_base = -1 ⇒ 无扰动；= W-4 ⇒ 上一行末尾 4 格 HOT（(2) 的探针）；
+    //                = 199 ⇒ 对照列的左邻 HOT（C1 的牙齿对照）；= 0 且行 = LN-1 ⇒ (3) 的探针。
+    integer run, hot_row, hot_col, ln, cx2, r;
+    task drive_frame; input integer hr; input integer hc; input integer nhot;
+        begin
+            for (ln = 0; ln < LN; ln = ln + 1) begin
+                for (cx2 = 0; cx2 < W; cx2 = cx2 + 1) begin
+                    @(negedge clk);
+                    xs = cx2[11:0]; ys = ln[11:0];
+                    src = (ln == hr && cx2 >= hc && cx2 < hc + nhot) ? HOT : FLAT;
+                    de  = 1;
+                end
+                @(negedge clk); de = 0;
+                repeat (GAP) @(negedge clk);         // 真实消隐宽度
+            end
+        end
+    endtask
+
+    // 跑一遍：先热身（帧缓存要绕一圈），再清零采样，然后测一帧
+    task one_run; input integer hr; input integer hc; input integer nhot;
+        begin
+            drive_frame(hr, hc, nhot);
+            for (me = 0; me < 4; me = me + 1) begin
+                pc[me] = 0;
+                for (k = 0; k < NC; k = k + 1) have[me][k] = 0;
+            end
+            drive_frame(hr, hc, nhot);
+        end
+    endtask
+
+    // 两遍之差（逐位相同 ⇒ 0）
+    function integer diff_bits; input [15:0] a, b; begin diff_bits = (a === b) ? 0 : 1; end endfunction
+
+    integer errors = 0;
+    reg [15:0] clean [0:3][0:15];
+    reg [15:0] prov  [0:3][0:15];
+    reg [15:0] ctrl  [0:3][0:15];
+    // 本方言不是 SystemVerilog：没有 string / $sformatf（xvlog 直接报错）⇒ 名字用"函数返回定长串 + 打印时并列"拼。
+    function [8*8:1] name_of; input integer k;
+        begin
+            case (k) 0: name_of = "blur";    1: name_of = "sharpen";
+                      2: name_of = "sobel";  3: name_of = "morph";
+                      default: name_of = "?"; endcase
+        end
+    endfunction
+    task chk; input [8*8:1] tag; input integer k; input cond; input [80*8:1] what;
+        begin
+            if (cond) $display("  PASS %0s %-8s %0s", tag, name_of(k), what);
+            else begin errors = errors + 1; $display("  FAIL %0s %-8s %0s", tag, name_of(k), what); end
+        end
+    endtask
+    task expect; input [120*8:1] name; input cond;
+        begin
+            if (cond !== 1'b1) begin errors = errors + 1; $display("  FAIL %0s", name); end
+            else $display("  PASS %0s", name);
+        end
+    endtask
+
+    integer col, wmove, wcnt;
+    reg [8:0] mapbits [0:3];                   // 每级九个格子的影响位（按 dy,dx 顺序）
+    integer mi;
+    reg [200*8:1] line_buf, val_buf;
+    reg [15:0] base_v [0:3];
+    function map_full; input integer k;
+        begin
+            map_full = 1;
+            for (mi = 0; mi < 9; mi = mi + 1) if (!mapbits[k][mi]) map_full = 0;
+        end
+    endfunction
+
+    initial begin
+        repeat (4) @(negedge clk);
+        rst_n = 1;
+        repeat (4) @(negedge clk);
+
+        // 第一遍：完全无扰动（上一行末尾也是 FLAT）
+        one_run(-1, 0, 0);
+        for (me = 0; me < 4; me = me + 1)
+            for (k = 0; k < NC; k = k + 1) clean[me][k] = got[me][k];
+
+        // 第二遍：把**上一行末尾** 4 格拉成 HOT —— 干净的设计里它碰不到第 0/1/2 列
+        dbg_en = 1;
+        one_run(MEAS_ROW-1, W-4, 4);
+        dbg_en = 0;
+        for (me = 0; me < 4; me = me + 1)
+            for (k = 0; k < NC; k = k + 1) prov[me][k] = got[me][k];
+
+        // 第三遍（牙齿对照）：HOT 放在对照列 200 的左邻 ⇒ 那一格的输出**必须**变
+        one_run(MEAS_ROW, 199, 1);
+        for (me = 0; me < 4; me = me + 1)
+            for (k = 0; k < NC; k = k + 1) ctrl[me][k] = got[me][k];
+
+        $display("");
+        $display("[tb_seam_bleed.v:213] === 最左列的行末回绕（上一行末尾 4 格 HOT，看第 %0d 行的第 0/1/2 列动不动）===", MEAS_ROW);
+        for (me = 0; me < 4; me = me + 1) begin
+            $display("[tb_seam_bleed.v:215] %0s  第0列 无扰动=%h 有扰动=%h | 对照区第200列 无扰动=%h 有扰动=%h",
+                     name_of(me), clean[me][0], prov[me][0], clean[me][3+3], ctrl[me][3+3]);
+        end
+        // C0 量具自己先自证：十六个采样点必须**真的**抓到过（没抓到 = 采样位置算错，
+        //     而"两遍相同"会在什么都没抓到的情况下假绿 —— 这是本仓一贯的"检查器也要有判据"）
+        begin : c0
+            integer miss;
+            miss = 0;
+            for (me = 0; me < 4; me = me + 1)
+                for (k = 0; k < NC; k = k + 1) if (!have[me][k]) miss = miss + 1;
+            expect("C0 十六个采样点全部真的抓到（量具没空跑）", miss == 0);
+            if (miss) $display("[tb_seam_bleed.v:227] 缺采样 %0d 个", miss);
+        end
+        // C1 牙齿对照：每一级都必须**真的**被自己的左邻影响得到，否则下面的"没变"不算证据
+        for (me = 0; me < 4; me = me + 1) begin
+            wmove = -1; wcnt = 0;
+            for (k = 0; k < NSP; k = k + 1)
+                if (diff_bits(clean[me][3+k], ctrl[me][3+k]) == 1) begin
+                    if (wmove < 0) wmove = SP0 + k;
+                    wcnt = wcnt + 1;
+                end
+            $display("[tb_seam_bleed.v:237] %0s 对照区：扰动让 %0d 列的输出变了，最先变的是第 %0d 列（左邻在第 199 列）",
+                     name_of(me), wcnt, wmove);
+            chk("C1", me, wcnt >= 1, "左邻(199)变 HOT 时对照区必须有一列跟着变");
+        end
+
+        // C2 主判据：上一行末尾不该影响本行开头
+        for (me = 0; me < 4; me = me + 1) begin
+            chk("C2", me, diff_bits(clean[me][0], prov[me][0]) == 0,
+                "第 0 列不受上一行末尾影响（缝边不冒条）");
+            chk("C2", me, diff_bits(clean[me][1], prov[me][1]) == 0, "第 1 列同上");
+            chk("C2", me, diff_bits(clean[me][2], prov[me][2]) == 0, "第 2 列同上");
+        end
+
+        // C3 帧边界（同一机制的行版本）：上一帧最后一行不该影响本帧第 0 行。
+        //    四个被测一起测（计数器必须**一起**复位，单独复位一个会把别家的相位打乱）。
+        cur_row = 0;                                // 采样点搬到首行
+        for (me = 0; me < 4; me = me + 1) begin pc[me] = 0; for (k = 0; k < NC; k = k + 1) have[me][k] = 0; end
+        drive_frame(LN-1, W-4, 4);                 // 让"最后一行末尾"带 HOT，留在缓存里
+        for (me = 0; me < 4; me = me + 1) begin pc[me] = 0; for (k = 0; k < NC; k = k + 1) have[me][k] = 0; end
+        drive_frame(LN-1, 0, 0);                   // 本帧干净，只有缓存是脏的
+        for (me = 0; me < 4; me = me + 1) prov[me][2] = got[me][0];
+        for (me = 0; me < 4; me = me + 1) begin pc[me] = 0; for (k = 0; k < NC; k = k + 1) have[me][k] = 0; end
+        drive_frame(LN-1, 0, 0);                   // 再来一遍（缓存也干净了）
+        for (me = 0; me < 4; me = me + 1) clean[me][2] = got[me][0];
+        for (me = 0; me < 4; me = me + 1) begin
+            $display("[tb_seam_bleed.v:262] %0s  帧边界第 0 行：脏缓存=%h 干净=%h", name_of(me), prov[me][2], clean[me][2]);
+            chk("C3", me, diff_bits(prov[me][2], clean[me][2]) == 0,
+                "首行不受上一帧最后一行影响");
+        end
+
+        // C4 九点抽头图：**这个窗口到底以哪个像素为中心**，用影响关系量出来（把单个 HOT 放到被测点
+        // (MEAS_ROW,TGT) 的 3×3 邻域九个位置各跑一遍，看输出动没动）。正确写法是九格全 '#'（真正的 3×3 窗口）：
+        // 少一格 = 那一路抽头根本没接上；整图上下平移一格 = 窗口中心不在标签像素上。
+        begin : tapmap
+            integer dy, dx, mv;
+            cur_row = MEAS_ROW;         // C3 把它搬到了第 0 行，这一段必须搬回来
+            $display("");
+            $display("[tb_seam_bleed.v:276] === 九点抽头图（. = 无影响，# = 有影响；中心 = 被测像素 (行%0d,列%0d)）===",
+                     MEAS_ROW, TGT);
+            one_run(-1, 0, 0);                          // 全 FLAT 基线
+            for (me = 0; me < 4; me = me + 1) base_v[me] = got[me][3 + (TGT - SP0)];
+            for (me = 0; me < 4; me = me + 1) begin
+                for (dy = -1; dy <= 1; dy = dy + 1) begin
+                    line_buf = "";
+                    val_buf  = "";
+                    for (dx = -1; dx <= 1; dx = dx + 1) begin
+                        one_run(MEAS_ROW + dy, TGT + dx, 1);
+                        mv = diff_bits(base_v[me], got[me][3 + (TGT - SP0)]);
+                        mapbits[me][(1-dy)*3 + (dx+1)] = mv;
+                        line_buf = {line_buf, mv ? "##" : ".."};
+                        // 本方言没有 $hexp()（xelab 报 Undefined system function）：数值打成 32 位十六进制拼进串
+                        val_buf  = {val_buf, " ", mv ? 16'h2323 : 16'h2E2E, 16'h2020};
+                    end
+                    $display("[tb_seam_bleed.v:293] %0s  源行偏移 d%0d ：%0s", name_of(me), dy, line_buf);
+                    $display("[tb_seam_bleed.v:294] 每格 ##=受影响 .=不受影响（基线值 %h 与扰动后 %h 只在上面 C2 那行打印）",
+                     base_v[me], got[me][3 + (TGT - SP0)]);
+                end
+            end
+            // 判据：九格必须**全**亮（3×3 窗口的定义），且中心格也亮（旁路/工作都取中心抽头）
+            for (me = 0; me < 4; me = me + 1)
+                chk("C4", me, map_full(me) == 1, "九点抽头图九格全亮（3x3 窗口完整）");
+        end
+
+        $display("");
+        $display("[tb_seam_bleed.v:304] 说明 C2/C3 现在的红是**登记在册的缺陷**（blur 只挡首行、sobel 两个都不挡），");
+        $display("[tb_seam_bleed.v:305] 修法是让三/四个窗口级共用同一套边界约定，见 ISSUES #54 (A') 与 #56。");
+        $display("");
+        if (errors == 0) $display("PASS tb_seam_bleed");
+        else             $display("FAIL tb_seam_bleed errors=%0d", errors);
+        $finish;
+    end
+
+    initial begin
+        #400_000_000;
+        $display("FAIL tb_seam_bleed timeout");
+        $finish;
+    end
+endmodule

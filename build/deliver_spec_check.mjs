@@ -9,6 +9,7 @@
 // 读不到/没扫到一律 NOT_MEASURED（不许当"没毛病"）。
 // 用法：node build/deliver_spec_check.mjs [仓库根] [--only C2,C3]
 import fs from 'node:fs';
+import os from 'node:os';
 import path from 'node:path';
 import { execFileSync } from 'node:child_process';
 
@@ -38,6 +39,16 @@ const exists = (p) => fs.existsSync(path.join(ROOT, p));
 const read = (p) => { try { return fs.readFileSync(path.join(ROOT, p), 'utf8'); } catch (e) { return ''; } };
 const under = (pre) => tracked.filter(f => f === pre || f.startsWith(pre + '/'));
 
+// ---- 厂商生成树（2026-10-07 用户口径：交付文档要求"上传工程"，于是 Vivado 工程 `vivado_system/`
+// 与 Vitis 平台 `vitis/` 本体随仓库交付）。这两棵树的**文件名、脚本头注释、IP 的 OOC 约束**
+// 都由工具生成、不由我们署名，改它们等于把工程改坏，所以"手写件"四条判据（C0-3 文件名 /
+// C1-1 约束位置 / C1-5 脚本头 / C4 tcl 头 / C-PATHS 路径）把它们单独计数、不混进射程。
+// 反买通三条：① 名单钉死这两个顶层目录名（别的目录一律不享受）；② 被挡掉的违例数必须打印，
+// 数不到就算 NOT_MEASURED；③ 手写件那一侧仍要有非空样本（`ours=N` 打印），N=0 也判红。
+const VENDOR_DIRS = ['vivado_system', 'vitis'];
+const isVendor = (f) => VENDOR_DIRS.includes(f.split('/')[0]);
+const ours = tracked.filter((f) => !isVendor(f));
+
 // ---- C0-3 文件名纯英文（小写字母/数字/下划线/连字符/点/斜杠）
 // 豁免=本要求自己点名的三个名字（README.md / README_EN.md / LICENSE），且只按**整文件名**豁免；
 // 反买通：豁免命中数必须打印，且豁免名单不许超过这 3 条（防止把整类文件放过去）。
@@ -46,10 +57,11 @@ if (want('C0-3')) {
   // 反买通：豁免只认这三个**文件名**，命中数必须打印，其余大写名一律红。
   const EXEMPT_NAMES = ['README.md', 'README_EN.md', 'LICENSE', 'SKILL.md'];
   const isExempt = (f) => EXEMPT_NAMES.includes(path.basename(f));
-  const bad = tracked.filter(f => !isExempt(f) && /[^a-z0-9_.\-\/]/.test(f));
-  const cjk = tracked.filter(f => /[\u4e00-\u9fff\s]/.test(f));
-  const hitExempt = tracked.filter(isExempt).length;
-  say('C0-3', 'file-names-ascii-lowercase', tracked.length, `违例=${bad.length} 中文或空格=${cjk.length} 说明件豁免=${hitExempt} 例:${bad.slice(0, 4).join(',')}`, bad.length || cjk.length ? 'FAIL' : 'PASS');
+  const bad = ours.filter(f => !isExempt(f) && /[^a-z0-9_.\-\/]/.test(f));
+  const cjk = ours.filter(f => /[\u4e00-\u9fff\s]/.test(f));
+  const hitExempt = ours.filter(isExempt).length;
+  const vBad = tracked.filter(f => isVendor(f) && /[^a-z0-9_.\-\/]/.test(f)).length;
+  say('C0-3', 'file-names-ascii-lowercase', ours.length, `违例=${bad.length} 中文或空格=${cjk.length} 说明件豁免=${hitExempt} 例:${bad.slice(0, 4).join(',')} 厂商工程树违例=${vBad}(不计入，名由 Vivado/Vitis 生成)`, ours.length === 0 ? 'NOT_MEASURED' : (bad.length || cjk.length ? 'FAIL' : 'PASS'));
 }
 // ---- C0-4 顶层结构固定
 if (want('C0-4')) {
@@ -60,21 +72,27 @@ if (want('C0-4')) {
   const allowDirs = new Set(['src', 'sim', 'build', 'board', 'data', 'skills', 'report']);
   const requiredDirs = allowDirs;
   const allowFiles = new Set(['/README.md', '/README_EN.md', '/LICENSE']);
-  const extra = [...top].filter(t => !allowDirs.has(t) && !allowFiles.has(t) && !t.startsWith('/.')
+  const extra = [...top].filter(t => !allowDirs.has(t) && !allowFiles.has(t) && !VENDOR_DIRS.includes(t) && !t.startsWith('/.')
     && !/^\/(send_demo|run[_-]?\w*)\.(bat|cmd|sh)$/.test(t));
   const rootEntries = [...top].filter(t => /^\/(send_demo|run[_-]?\w*)\.(bat|cmd|sh)$/.test(t));
   const missing = [...requiredDirs].filter(d => !top.has(d));
   const renamed = top.has('skill') ? 'skills/ 需改名 skills/' : '';
-  say('C0-4', 'top-level-structure', top.size, `多余=${extra.length}[${extra.slice(0, 8).join(',')}] 缺目录=${missing.length}[${missing.join(',')}] ${renamed} 双击入口豁免=${rootEntries.length}`, extra.length || missing.length ? 'FAIL' : 'PASS');
+  // 放行不是白给：这两棵工程树必须在 `board/README.md` 里被点名（用户 2026-10-07 的口径写在那份说明里），
+  // 点不到名就照红——防止"目录悄悄多出来一个、判据跟着多放行一个"。
+  const projPresent = [...top].filter(t => VENDOR_DIRS.includes(t));
+  const projDeclared = projPresent.every(t => read('board/README.md').includes(t));
+  const projTxt = `工程本体目录=${projPresent.length}[${projPresent.join(',')}]${projPresent.length ? (projDeclared ? ' 已在 board/README.md 点名' : ' 未在 board/README.md 点名') : ''}`;
+  say('C0-4', 'top-level-structure', top.size, `多余=${extra.length}[${extra.slice(0, 8).join(',')}] 缺目录=${missing.length}[${missing.join(',')}] ${renamed} 双击入口豁免=${rootEntries.length} ${projTxt}`, (extra.length || missing.length || (projPresent.length && !projDeclared)) ? 'FAIL' : 'PASS');
 }
 // ---- C1-1 约束在 src/constraints（过程凭据里的实验用 .xdc 单列，不混进"活动约束集"）
 if (want('C1-1')) {
   const xdc = tracked.filter(f => f.endsWith('.xdc'));
-  const active = xdc.filter(f => !f.startsWith('build/evidence/') && !f.startsWith('report/log/'));
-  const frozen = xdc.length - active.length;
+  const vXdc = xdc.filter(isVendor).length;
+  const active = xdc.filter(f => !isVendor(f) && !f.startsWith('build/evidence/') && !f.startsWith('report/log/'));
+  const frozen = xdc.length - active.length - vXdc;
   const inPlace = active.filter(f => f.startsWith('src/constraints/'));
   const out = active.filter(f => !f.startsWith('src/constraints/'));
-  say('C1-1', 'xdc-under-src-constraints', active.length, `活动 xdc=${active.length} 在 src/constraints=${inPlace.length} 不在=${out.length}[${out.slice(0, 3).join(',')}] 过程凭据里的 xdc=${frozen}(不计)`, active.length === 0 ? 'NOT_MEASURED' : (out.length ? 'FAIL' : 'PASS'));
+  say('C1-1', 'xdc-under-src-constraints', active.length, `活动 xdc=${active.length} 在 src/constraints=${inPlace.length} 不在=${out.length}[${out.slice(0, 3).join(',')}] 过程凭据里的 xdc=${frozen}(不计) BD/IP 自动生成的 xdc=${vXdc}(不计，随工程本体交付)`, active.length === 0 ? 'NOT_MEASURED' : (out.length ? 'FAIL' : 'PASS'));
 }
 // ---- C1-2 §1.2 源码归档位置：RTL 在 src/rtl，**PS 裸机固件在 src/ps（与 src/rtl 同级）**，
 //      上位机/PC 侧工具在 src/host。顶层八目录之外的**子目录**不会被 C0-4 看到，所以这一条单独量。
@@ -148,6 +166,42 @@ if (process.argv.includes('--c1-2-self')) {
   console.log(`C12-SELF 判 ${cases.length} 项 红=${r} ${r ? 'FAIL' : 'PASS'}`);
   process.exit(r ? 1 : 0);
 }
+// ---- 厂商工程树豁免自己的对照（没有这一段，C0-3/C0-4/C1-1/C1-5/C4 就退化成"把现在的成绩抄一遍"）
+// 五条各有指向：① 手写件里混进违例名 ⇒ 必须红（豁免没把整把尺子买通）；② 只剩厂商件 ⇒
+// NOT_MEASURED（空集不许当绿，#194 同族）；③ 顶层多出第三个目录 ⇒ 必须红（放行名单钉死两个名字）；
+// ④ 工程树没在 `board/README.md` 点名 ⇒ 必须红（白给不算数，要有声明）；⑤ 正对照：违例全来自
+// 厂商树 ⇒ 必须绿且把挡掉的条数念出来。跑法：node build/deliver_spec_check.mjs --vendor-self
+if (process.argv.includes('--vendor-self')) {
+  const TOP = ['src/a.md', 'sim/a.md', 'build/a.md', 'board/a.md', 'data/a.md', 'skills/a.md', 'report/a.md'];
+  const cases = [
+    { id: 'C0-3', list: ['src/rtl/Top_Bad.v'], want: 'FAIL', why: '手写件里混进大写文件名' },
+    { id: 'C1-5', list: ['vitis/platform/hw/sdt/ps7_init.tcl'], want: 'NOT_MEASURED', why: '射程里只剩厂商脚本' },
+    { id: 'C1-1', list: ['vivado_system/x.gen/a.xdc'], want: 'NOT_MEASURED', why: '射程里只剩 BD 生成的 xdc' },
+    { id: 'C0-4', list: [...TOP, 'foo/a.md'], want: 'FAIL', why: '顶层多出第三个目录' },
+    { id: 'C0-4', list: [...TOP, 'vivado_system/a.dcp'], want: 'FAIL', why: '工程树没在 board/README.md 点名', readme: '这份说明没有点名任何工程目录' },
+    { id: 'C0-3', list: ['vitis/CMakeLists.txt', 'src/a.md'], want: 'PASS', why: '违例只来自厂商树 ⇒ 绿但要念条数' },
+  ];
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'vdself-'));
+  fs.mkdirSync(path.join(dir, 'board'), { recursive: true });
+  let r = 0;
+  for (const [i, c] of cases.entries()) {
+    fs.writeFileSync(path.join(dir, 'board', 'README.md'), c.readme || 'vivado_system 与 vitis 随仓库交付');
+    const lf = 'list_' + i + '.txt';
+    fs.writeFileSync(path.join(dir, lf), c.list.join('\n') + '\n');
+    let out = '';
+    try {
+      out = execFileSync(process.execPath, [process.argv[1], dir, '--only=' + c.id, '--files=' + lf], { encoding: 'utf8' });
+    } catch (e) { out = String(e.stdout || ''); }
+    const line = (out.split(/\r?\n/).find((x) => x.startsWith(c.id + ' ')) || '').trim();
+    const got = line.split(/\s+/).pop() || 'NO_ROW';
+    const ok = got === c.want;
+    if (!ok) r++;
+    console.log(`VENDOR-SELF ${ok ? 'PASS' : 'FAIL'} ${c.id} ${c.why}（判得 ${got}，要 ${c.want}）`);
+  }
+  fs.rmSync(dir, { recursive: true, force: true });
+  console.log(`VENDOR-SELF 判 ${cases.length} 项 红=${r} ${r ? 'FAIL' : 'PASS'}`);
+  process.exit(r ? 1 : 0);
+}
 // ---- C1-3 上位机双实现 + 双击入口 + 两类工具
 if (want('C1-3')) {
   const host = under('src/host');
@@ -181,18 +235,20 @@ if (want('C1-4')) {
 // ---- C1-5 脚本头注释只写 用途/输入输出/退出码
 if (want('C1-5')) {
   const scripts = tracked.filter(f => /\.(mjs|py|tcl|sh)$/.test(f) && !f.startsWith('build/evidence'));
+  const vScript = scripts.filter(isVendor).length;
+  const handScripts = scripts.filter((f) => !isVendor(f));
   // 夹具里的脚本是"被逐字节比对的期望产物"，不是给人跑的入口：给它们加头注释会让
   // 生成器与期望件不再逐字节相同（本轮真实踩到：contract-to-host 的 S1 因此红）。
   // 豁免打在尺子里并念出条数，不静默吞掉（#341 同族）。
-  const fixt = scripts.filter(f => /\/(fixtures?|expected)\//.test(f));
-  const runnable = scripts.filter(f => !/\/(fixtures?|expected)\//.test(f));
+  const fixt = handScripts.filter(f => /\/(fixtures?|expected)\//.test(f));
+  const runnable = handScripts.filter(f => !/\/(fixtures?|expected)\//.test(f));
   let noHead = 0, selfDesc = 0; const ex = [];
   for (const f of runnable) {
     const t = read(f), head = t.split(/\r?\n/).slice(0, 12).join('\n');
     if (!/(用途|作用|输入|输出|退出码|usage|purpose|exit code|outputs?)/i.test(head)) { noHead++; if (ex.length < 3) ex.push(f); }
     if (/本文件是|该文件是|This file is a/i.test(head)) selfDesc++;
   }
-  say('C1-5', 'script-header-comments', runnable.length + fixt.length, `脚本=${runnable.length} 缺要素=${noHead} 自我描述=${selfDesc} 夹具期望件不计=${fixt.length}${ex.length ? ' 例:' + ex.join(',') : ''}`, runnable.length === 0 ? 'NOT_MEASURED' : (noHead || selfDesc ? 'FAIL' : 'PASS'));
+  say('C1-5', 'script-header-comments', runnable.length + fixt.length, `脚本=${runnable.length} 缺要素=${noHead} 自我描述=${selfDesc} 夹具期望件不计=${fixt.length} 厂商工程脚本=${vScript}(不计，工具生成不许改头)${ex.length ? ' 例:' + ex.join(',') : ''}`, runnable.length === 0 ? 'NOT_MEASURED' : (noHead || selfDesc ? 'FAIL' : 'PASS'));
 }
 // ---- C-PATHS §6.2「路径与仓库实际一致」的机械版：脚本里指向源码目录的输入路径必须在盘上
 // 只判 `src/` 开头的字面量：build/ data/ 下大量路径是脚本**自己要产出的件**，
@@ -202,7 +258,10 @@ if (want('C1-5')) {
 if (want('C-PATHS')) {
   // 自检/探针/改口器的正文里**必须**写着不存在的假路径（那是它们的用例），按形状豁免并念出条数；
   // 豁免名单住在尺子里且打印命中数，防止被随手扩大（rule 44 的反买通同族）。
-  const SKIP_RE = /selftest|probe|fix_dangling|ps_relocate|orphan_rtl|ports_dup_ce|repin_modules|rtl_fingerprint|check_repo_consistency/;
+  // 2026-10-07 追加 `deliver_spec_check`：本尺子的 `--c1-2-self / --vendor-self` 两块**必须**写着
+  // 不存在的假路径（那是它们的用例：`src/rtl/Top_Bad.v` 就是要判红的名），
+  // 与 selftest/probe 同类。命中数照旧打印，名单只按文件名匹配、不吞别的文件。
+  const SKIP_RE = /selftest|probe|fix_dangling|ps_relocate|orphan_rtl|ports_dup_ce|repin_modules|rtl_fingerprint|check_repo_consistency|deliver_spec_check/;
   const scripts = tracked.filter(f => /\.(py|mjs|sh|tcl|bat|cmd|ps1)$/.test(f)
     && !/^build\/(evidence|frozen_|report|runs)/.test(f) && !/\/(fixtures?|expected)\//.test(f)
     && !f.startsWith('report/log/'));
@@ -338,8 +397,10 @@ if (want('C3')) {
 if (want('C4')) {
   const names = ['create_project.tcl', 'add_sources.tcl', 'build.tcl', 'synth.tcl', 'impl.tcl', 'report.tcl', 'gen_bit.tcl'];
   const tcl = tracked.filter(f => f.endsWith('.tcl'));
-  const miss = names.filter(n => !tcl.some(f => path.basename(f) === n));
-  const noHead = tcl.filter(f => { const h = read(f).split(/\r?\n/).slice(0, 12).join('\n'); return !/(作用|前置|产出|参数|purpose|inputs?|outputs?)/i.test(h); });
+  const vTcl = tcl.filter(isVendor).length;
+  const tclOurs = tcl.filter((f) => !isVendor(f));
+  const miss = names.filter(n => !tclOurs.some(f => path.basename(f) === n));
+  const noHead = tclOurs.filter(f => { const h = read(f).split(/\r?\n/).slice(0, 12).join('\n'); return !/(作用|前置|产出|参数|purpose|inputs?|outputs?)/i.test(h); });
   const repDir = tracked.filter(f => f.startsWith('build/report/'));
   const util = repDir.filter(f => /util/i.test(f)), tim = repDir.filter(f => /timing|summary/i.test(f));
   const breadme = read('build/README.md');

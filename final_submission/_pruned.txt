@@ -1,0 +1,532 @@
+board 里带轮次号的记录（不随包） board/verify_r87.md
+build 逐轮过程留档（不随包） build/board_temp_r97.txt
+build 逐轮过程留档（不随包） build/gates_r62.txt
+build 逐轮过程留档（不随包） build/r63b_gates.txt
+build 逐轮过程留档（不随包） build/r63c_gates.txt
+build 逐轮过程留档（不随包） build/r95b_timing_summary.txt
+build 逐轮过程留档（不随包） build/roster_r118_after_clk_fpga_0_setup.rpt
+build 逐轮过程留档（不随包） build/roster_r118_after_clkfbout_setup.rpt
+build 逐轮过程留档（不随包） build/roster_r118_after_clkout0_1_setup.rpt
+build 逐轮过程留档（不随包） build/roster_r118_after_clkout1_1_setup.rpt
+build 逐轮过程留档（不随包） build/roster_r118_after_eth_rxc_hold.rpt
+build 逐轮过程留档（不随包） build/roster_r118_after_sys_clk_setup.rpt
+一次性脚本 board/boot27c.tcl
+一次性脚本 board/ddr_churn_probe.mjs
+一次性脚本 board/rdbck.tcl
+一次性脚本 build/_scan_align.mjs
+一次性脚本 build/cleanup_wip.sh
+一次性脚本 build/orphan_rtl.sh
+一次性脚本 build/ps_app.mjs
+一次性脚本 build/refresh_evidence.sh
+一次性脚本 build/rim_gate_ce.sh
+一次性脚本 build/roll_isolated.sh
+一次性脚本 build/sim/run_zoom_only.tcl
+一次性脚本 build/tb98_gate_ce.sh
+一次性脚本 build/tcl/apply_cdc_report.tcl
+一次性脚本 build/tcl/micro_rd.tcl
+一次性脚本 build/tcl/uram_presence.tcl
+一次性脚本 build/tcl/uram_sites.tcl
+中间物落盘前清掉 ./_all.txt
+中间物落盘前清掉 ./_cand.txt
+中间物落盘前清掉 ./_cited.txt
+中间物落盘前清掉 ./_cited_bases.txt
+中间物落盘前清掉 ./_dropped_tb.txt
+中间物落盘前清掉 ./_live_docs.txt
+中间物落盘前清掉 ./_map.sed
+中间物落盘前清掉 ./_mv.tsv
+中间物落盘前清掉 ./_oldnames.txt
+中间物落盘前清掉 ./_prune_list.tsv
+中间物落盘前清掉 ./_script_tb.txt
+中间物落盘前清掉 ./_skill_map.sed
+中间物落盘前清掉 ./_table_tb.txt
+中间物落盘前清掉 ./_txt.txt
+乙层射程：入口文档扫 11 份（硬名单全在，其余为在包内的可选入口）
+回归台架（不随包，文档里的裸名提及指的是仓库） sim/xtest.v
+射程 活文档=135（仓库 *.md=130；排除 report/log/ 与 build/reports/ 两层过程/证据件） board=15 build=10 data=6 report=32 sim=1 skills=67 src=2 vitis=0 vivado_system=0 csv 全树=7 入射程=6（board/compare/ 是差分辨识表，按证据件排除）
+小写化：候选 55 份（射程由 find 现算，不写层名——上一版点名 docs/，而包里没有这一层，find 退非零把整支脚本在 set -e 下打死且一行解释都不留），实际改名 257 条映射
+工程两棵随包：board/vivado_system 315 支 + board/vitis 2128 支 = 2443 支（整棵，取 git 里的字节，不按引用筛）
+布局 docs/ 不入库也不随包（学习文档按用户要求只留本地），report/ 随包；两层的指路都要走下一节的活引用自检
+带上板上那一版的门禁件 r126_gates.txt -> build/reports/gates.txt
+归档目录（逐轮留档，不随包） board/evidence_r29
+归档目录（逐轮留档，不随包） board/evidence_r41
+归档目录（逐轮留档，不随包） build/evidence
+归档目录（逐轮留档，不随包） build/evidence_r75
+归档目录（逐轮留档，不随包） build/frozen_r32_sdfix
+归档目录（逐轮留档，不随包） build/isolated_1005_icmpck1
+技能旧名独立一遍后仍未落地的引用 0 个（同行带历史声明、只报数不判红的旧名 12 个；report/collaboration/ 那一层按记录处理，不参与判红）
+技能降级一遍可观测性：规则 31 条／改写清单 446 行／含 skills 引用的文件数 改前 26 → 改后 26
+探针/扫描的过程输出（不随包） build/probe_split100_old.txt
+探针/扫描的过程输出（不随包） build/probe_split100b_old.txt
+探针/扫描的过程输出（不随包） build/sweep_summary.txt
+探针/扫描的过程输出（不随包） build/tb_v98_report_contaminated_1245.txt
+改口 board/README.md: build/ps_app.mjs → 仓库里的 ps_app.mjs（3 处）
+改口 build/README.md: build/cleanup_wip.sh → 仓库里的 cleanup_wip.sh（1 处）
+改口 build/README.md: build/orphan_rtl.sh → 仓库里的 orphan_rtl.sh（1 处）
+改口 build/README.md: build/ps_app.mjs → 仓库里的 ps_app.mjs（1 处）
+改口 build/README.md: build/refresh_evidence.sh → 仓库里的 refresh_evidence.sh（1 处）
+改口 build/provenance.md: build/ps_app.mjs → 仓库里的 ps_app.mjs（2 处）
+改口 build/tcl/README.md: build/ps_app.mjs → 仓库里的 ps_app.mjs（1 处）
+改口 report/60-failure-analysis.md: build/ps_app.mjs → 仓库里的 ps_app.mjs（2 处）
+改口 report/70-reproduce.md: build/ps_app.mjs → 仓库里的 ps_app.mjs（1 处）
+改口 report/90-open-items.md: build/ps_app.mjs → 仓库里的 ps_app.mjs（3 处）
+改口 report/90-open-items.md: build/roll_isolated.sh → 仓库里的 roll_isolated.sh（1 处）
+改口 report/ai_collaboration.md: build/orphan_rtl.sh → 仓库里的 orphan_rtl.sh（1 处）
+改口 report/ai_collaboration.md: build/tb98_gate_ce.sh → 仓库里的 tb98_gate_ce.sh（2 处）
+改口 report/build.md: build/_scan_align.mjs → 仓库里的 _scan_align.mjs（2 处）
+改口 report/build.md: build/ps_app.mjs → 仓库里的 ps_app.mjs（1 处）
+改口 report/build.md: build/rim_gate_ce.sh → 仓库里的 rim_gate_ce.sh（1 处）
+改口 report/build.md: build/roll_isolated.sh → 仓库里的 roll_isolated.sh（2 处）
+改口 report/contest_clause_map.md: build/ps_app.mjs → 仓库里的 ps_app.mjs（2 处）
+改口 report/contest_clause_map.md: build/roll_isolated.sh → 仓库里的 roll_isolated.sh（1 处）
+改口 report/declarations.md: build/ps_app.mjs → 仓库里的 ps_app.mjs（1 处）
+改口 report/figures/legend.md: build/orphan_rtl.sh → 仓库里的 orphan_rtl.sh（1 处）
+改口 report/figures/legend.md: build/ps_app.mjs → 仓库里的 ps_app.mjs（1 处）
+改口 report/host_guide.md: build/ps_app.mjs → 仓库里的 ps_app.mjs（1 处）
+改口 report/interface-table.md: build/orphan_rtl.sh → 仓库里的 orphan_rtl.sh（1 处）
+改口 report/perf_report.md: build/roll_isolated.sh → 仓库里的 roll_isolated.sh（1 处）
+改口 report/repro-check.md: build/ps_app.mjs → 仓库里的 ps_app.mjs（4 处）
+改口 report/repro-check.md: build/roll_isolated.sh → 仓库里的 roll_isolated.sh（1 处）
+改口 report/technical-document.md: build/ps_app.mjs → 仓库里的 ps_app.mjs（1 处）
+改口对称：剪枝件路径 416 条 ⇒ 生成逐条规则 317 条（同一来源现取；两者不等就是这一层在漏）
+改口：9 份活文档里 Vivado 工程与 Vitis 平台两棵的裸路径指路，改指包内 board/ 下的那一层（脚本正文不动，它们说的是仓库位置）
+改口：逐轮留档与归档目录的指路，规则 347 条已作用于活文档 122 份（射程由 find 现算，不是手写名单）
+文档点名但仍不随包（按 §…决定不复制；仓库里按 md5 认） board/evidence_r29
+文档点名但仍不随包（按 §…决定不复制；仓库里按 md5 认） board/evidence_r41
+文档点名但仍不随包（按 §…决定不复制；仓库里按 md5 认） build/evidence_r75
+文档点名但仍不随包（按 §…决定不复制；仓库里按 md5 认） build/frozen_r32_sdfix
+旧技能条目名就地降级 31 个（被引用的技能路径共数 83 个；取样范围=改写范围=计数范围）
+未被活文档点名 board/compare/ddr-stale-wordid-dump.txt
+未被活文档点名 board/compare/metric-recheck.txt
+未被活文档点名 board/compare/roster-diff-baseline-vs-r116e1.txt
+未被活文档点名 board/compare/roster-diff-selfcheck.txt
+未被活文档点名 board/compare/roster-diff-wrong-input-shape.txt
+未被活文档点名 board/compare/temp-formula-check.txt
+未被活文档点名 board/evidence_r29/after_stream_stop.txt
+未被活文档点名 board/evidence_r29/arb_sd_with_cable_in.txt
+未被活文档点名 board/evidence_r29/eth_act.txt
+未被活文档点名 board/evidence_r29/handover2.txt
+未被活文档点名 board/evidence_r29/handover_test.txt
+未被活文档点名 board/evidence_r29/play_after_recover.txt
+未被活文档点名 board/evidence_r29/play_now.txt
+未被活文档点名 board/evidence_r29/stat_after_handover.txt
+未被活文档点名 board/evidence_r29/stat_playing.txt
+未被活文档点名 board/evidence_r29/zoom_switch.txt
+未被活文档点名 board/evidence_r41/metrics_r41_clean30.json
+未被活文档点名 board/evidence_r41/metrics_r41_clean30.md
+未被活文档点名 board/evidence_r41/metrics_r41_drop200.json
+未被活文档点名 board/evidence_r41/metrics_r41_drop200.md
+未被活文档点名 board/evidence_r41/metrics_r41_drop2000.json
+未被活文档点名 board/evidence_r41/metrics_r41_drop2000.md
+未被活文档点名 board/evidence_r41/metrics_r41_nopause120.json
+未被活文档点名 board/evidence_r41/metrics_r41_nopause120.md
+未被活文档点名 board/evidence_r41/metrics_r41_nopause60.json
+未被活文档点名 board/evidence_r41/metrics_r41_nopause60.md
+未被活文档点名 board/evidence_r41/metrics_r41_soak300.md
+未被活文档点名 board/evidence_r41/metrics_r41_soak300b.json
+未被活文档点名 board/evidence_r41/metrics_r41_soak300b.md
+未被活文档点名 build/evidence/1005_bilin_cmds.txt
+未被活文档点名 build/evidence/1005_bilin_probe.txt
+未被活文档点名 build/evidence/1006_csumconst_timing_summary.rpt
+未被活文档点名 build/evidence/1006_roster_diff_vs_r118.txt
+未被活文档点名 build/evidence/1006d_roster_diff_selftest.txt
+未被活文档点名 build/evidence/1006d_roster_diff_vs_r118.txt
+未被活文档点名 build/evidence/r109_metric_rotation.txt
+未被活文档点名 build/evidence/r113_after_roster_rf.txt
+未被活文档点名 build/evidence/r113_io_debt.txt
+未被活文档点名 build/evidence/r114_after_roster_rf.txt
+未被活文档点名 build/evidence/r114_async_reg_post.txt
+未被活文档点名 build/evidence/r115_noise_verdict.txt
+未被活文档点名 build/evidence/r117/bufio_delay_scan2.txt
+未被活文档点名 build/evidence/r117_d0/nethelp_console.txt
+未被活文档点名 build/evidence/r118_eyes/handoff8.txt
+未被活文档点名 build/evidence/r119_gates_now.txt
+未被活文档点名 build/evidence/r120_consistency_self.txt
+未被活文档点名 build/evidence/r120_export.txt
+未被活文档点名 build/evidence/r120_final_gate.txt
+未被活文档点名 build/evidence/r120_final_gate_2.txt
+未被活文档点名 build/evidence/r120_gates_skill_a.txt
+未被活文档点名 build/evidence/r120_migration_map.txt
+未被活文档点名 build/evidence/r120_repo_gates.txt
+未被活文档点名 build/evidence/r120_selftest.txt
+未被活文档点名 build/evidence/r121_note_metrics.txt
+未被活文档点名 build/evidence/r85_cdc_gap0_run.txt
+未被活文档点名 build/evidence/r86_bilin_l10_teeth.txt
+未被活文档点名 build/evidence/r86_osd_t18_teeth.txt
+未被活文档点名 build/evidence/r86_osd_t18_teeth_doubleguard.txt
+未被活文档点名 build/evidence/r88exp_clock_util.rpt
+未被活文档点名 build/evidence/r88exp_timing_summary.rpt
+未被活文档点名 build/evidence/r92_flash_1_psboot.txt
+未被活文档点名 build/evidence/verify_0930_1848.arb.txt
+未被活文档点名 build/evidence/verify_1007_1421.batt.txt
+未被活文档点名 build/evidence/verify_1007_1421.boot.txt
+未被活文档点名 build/evidence/verify_1007_1421.geom.txt
+未被活文档点名 build/evidence/verify_1007_1421.health.json
+未被活文档点名 build/evidence/verify_1007_1421.serial.raw
+未被活文档点名 build/isolated_1005_icmpck1/build_console.txt
+未被活文档点名 build/l1_console_r52.txt
+未被活文档点名 build/ports_floor_ce.txt
+未被活文档点名 build/sim/results/regression_v7.txt
+未被活文档点名 build/sim/results/regression_v76.txt
+未被活文档点名 build/sim/results/regression_v77_r12.txt
+未被活文档点名 build/sim/results/regression_v77_r13.txt
+未被活文档点名 build/sim/results/regression_v77_r15.txt
+未被活文档点名 build/sim/results/regression_v77_r16.txt
+未被活文档点名 build/sim/results/regression_v78_r21.txt
+未被活文档点名 build/sim/results/regression_v79_r23.txt
+未被活文档点名 build/sim/results/regression_v79_r24.txt
+未被活文档点名 build/sim/results/regression_v79_r25.txt
+未被活文档点名 build/sim/results/regression_v79_r26.txt
+未被活文档点名 build/sim/results/regression_v79_r27.txt
+未被活文档点名 build/sim/results/regression_v79_r28.txt
+未被活文档点名 build/sim/results/regression_v79_r29.txt
+未被活文档点名 build/sim/results/regression_v79_r30.txt
+未被活文档点名 build/sim/results/regression_v79_r31.txt
+未被活文档点名 build/sim/results/regression_v79_r32.txt
+未被活文档点名 build/sim/results/regression_v79_r33.txt
+未被活文档点名 build/sim/results/regression_v79_r34.txt
+未被活文档点名 build/sim/results/regression_v79_r35.txt
+未被活文档点名 build/sim/results/regression_v79_r36.txt
+未被活文档点名 build/sim/results/regression_v79_r37.txt
+未被活文档点名 build/sim/results/regression_v79_r38.txt
+未被活文档点名 build/sim/results/regression_v79_r39.txt
+未被活文档点名 build/sim/results/regression_v79_r43.txt
+未被活文档点名 build/sim/results/regression_v79_r43b.txt
+未被活文档点名 build/sim/results/regression_v79_r44.txt
+未被活文档点名 build/sim/results/regression_v79_r47.txt
+未被活文档点名 build/sim/results/regression_v79_r48.txt
+未被活文档点名 build/sim/results/regression_v79_r48meas.txt
+未被活文档点名 build/sim/results/regression_v79_r49.txt
+未被活文档点名 build/sim/v98_ruler_fix_verdict.txt
+未被活文档点名 build/tb_edge_rim_r118.txt
+未被活文档点名 build/tb_edge_rim_r92.txt
+未被活文档点名 data/inputs/full_512x300.rgb565
+未被活文档点名 data/inputs/overlong_1p5frame.rgb565
+未被活文档点名 data/inputs/rand64_512x300.rgb565
+未被活文档点名 data/inputs/trunc_299rows.rgb565
+未被活文档点名 data/inputs/wordid_512x300.rgb565
+未被活文档点名 data/inputs/zero_512x300.rgb565
+板级凭据去轮次号会撞名，这一份保留原名 build/evidence/r113_serial_raw.txt -> board/output/r113_serial_raw.txt
+板级凭据去轮次号会撞名，这一份保留原名 build/evidence/r113_temp_lines.txt -> board/output/r113_temp_lines.txt
+板级凭据去轮次号会撞名，这一份保留原名 build/evidence/r114_after.txt -> board/output/r114_after.txt
+板级凭据去轮次号会撞名，这一份保留原名 build/evidence/r116_roster_diff.txt -> board/output/r116_roster_diff.txt
+板级凭据去轮次号会撞名，这一份保留原名 build/evidence/r117_after.txt -> board/output/r117_after.txt
+板级凭据去轮次号会撞名，这一份保留原名 build/evidence/r117_after_roster_probefmt.txt -> board/output/r117_after_roster_probefmt.txt
+板级凭据去轮次号会撞名，这一份保留原名 build/evidence/r118_after.txt -> board/output/r118_after.txt
+板级凭据去轮次号会撞名，这一份保留原名 build/evidence/r118_after_roster_probefmt.txt -> board/output/r118_after_roster_probefmt.txt
+板级凭据去轮次号会撞名，这一份保留原名 build/evidence/r118_bit_md5.txt -> board/output/r118_bit_md5.txt
+板级凭据去轮次号会撞名，这一份保留原名 build/evidence/r118_roster_diff_vs_r114.txt -> board/output/r118_roster_diff_vs_r114.txt
+板级凭据去轮次号会撞名，这一份保留原名 build/evidence/r118_serial_raw.txt -> board/output/r118_serial_raw.txt
+板级凭据去轮次号会撞名，这一份保留原名 build/evidence/r118_tree_fp.txt -> board/output/r118_tree_fp.txt
+板级凭据去轮次号会撞名，这一份保留原名 build/evidence/r120_window_check.txt -> board/output/r120_window_check.txt
+板级凭据去轮次号会撞名，这一份保留原名 build/evidence/r126_serial_raw.txt -> board/output/r126_serial_raw.txt
+板级凭据去轮次号会撞名，这一份保留原名 build/evidence/r128_serial_raw.txt -> board/output/r128_serial_raw.txt
+板级凭据去轮次号会撞名，这一份保留原名 build/evidence/r85_artifact_md5.txt -> board/output/r85_artifact_md5.txt
+板级凭据去轮次号会撞名，这一份保留原名 build/evidence/r85_timing_summary.rpt -> board/output/r85_timing_summary.rpt
+板级凭据去轮次号会撞名，这一份保留原名 build/evidence/r85_utilization.rpt -> board/output/r85_utilization.rpt
+板级凭据去轮次号会撞名，这一份保留原名 build/evidence/r86_artifact_md5.txt -> board/output/r86_artifact_md5.txt
+板级凭据去轮次号会撞名，这一份保留原名 build/evidence/r86_timing_summary.rpt -> board/output/r86_timing_summary.rpt
+板级凭据去轮次号会撞名，这一份保留原名 build/evidence/r86_utilization.rpt -> board/output/r86_utilization.rpt
+板级实测输出搬进包内板级目录 build/evidence/1005_ps_app_rebuild.txt -> board/output/1005_ps_app_rebuild.txt
+板级实测输出搬进包内板级目录 build/evidence/1006_c3_scope_selftest.txt -> board/output/1006_c3_scope_selftest.txt
+板级实测输出搬进包内板级目录 build/evidence/1006d_tmdswindow_timing_summary.rpt -> board/output/1006d_tmdswindow_timing_summary.rpt
+板级实测输出搬进包内板级目录 build/evidence/r104_c5head_band.txt -> board/output/c5head_band.txt
+板级实测输出搬进包内板级目录 build/evidence/r104_rotfringe_state.txt -> board/output/rotfringe_state.txt
+板级实测输出搬进包内板级目录 build/evidence/r104_temp_lines.txt -> board/output/temp_lines.txt
+板级实测输出搬进包内板级目录 build/evidence/r105_ab_rolls.txt -> board/output/ab_rolls.txt
+板级实测输出搬进包内板级目录 build/evidence/r106_gates_firstselfred.txt -> board/output/gates_firstselfred.txt
+板级实测输出搬进包内板级目录 build/evidence/r107_rowok_bank_equiv.txt -> board/output/rowok_bank_equiv.txt
+板级实测输出搬进包内板级目录 build/evidence/r109_clk01_after.txt -> board/output/clk01_after.txt
+板级实测输出搬进包内板级目录 build/evidence/r109_clk01_before.txt -> board/output/clk01_before.txt
+板级实测输出搬进包内板级目录 build/evidence/r110_after.txt -> board/output/after.txt
+板级实测输出搬进包内板级目录 build/evidence/r110_attrib.txt -> board/output/attrib.txt
+板级实测输出搬进包内板级目录 build/evidence/r110_before.txt -> board/output/before.txt
+板级实测输出搬进包内板级目录 build/evidence/r110_serial_raw.txt -> board/output/serial_raw.txt
+板级实测输出搬进包内板级目录 build/evidence/r111_angle_readback.txt -> board/output/angle_readback.txt
+板级实测输出搬进包内板级目录 build/evidence/r112_util_attrib.txt -> board/output/util_attrib.txt
+板级实测输出搬进包内板级目录 build/evidence/r112_verdict.txt -> board/output/verdict.txt
+板级实测输出搬进包内板级目录 build/evidence/r113_ff_init.txt -> board/output/ff_init.txt
+板级实测输出搬进包内板级目录 build/evidence/r113_ff_init_probe.txt -> board/output/ff_init_probe.txt
+板级实测输出搬进包内板级目录 build/evidence/r113_methodology_baseline.rpt -> board/output/methodology_baseline.rpt
+板级实测输出搬进包内板级目录 build/evidence/r113_roll_abc_verdict.txt -> board/output/roll_abc_verdict.txt
+板级实测输出搬进包内板级目录 build/evidence/r113_roster_diff.txt -> board/output/roster_diff.txt
+板级实测输出搬进包内板级目录 build/evidence/r113_serial_raw.txt -> board/output/r113_serial_raw.txt
+板级实测输出搬进包内板级目录 build/evidence/r113_temp_lines.txt -> board/output/r113_temp_lines.txt
+板级实测输出搬进包内板级目录 build/evidence/r114_after.txt -> board/output/r114_after.txt
+板级实测输出搬进包内板级目录 build/evidence/r114_after_roster_probefmt.txt -> board/output/after_roster_probefmt.txt
+板级实测输出搬进包内板级目录 build/evidence/r114_async_netlist_pre_console.txt -> board/output/async_netlist_pre_console.txt
+板级实测输出搬进包内板级目录 build/evidence/r114_io_roll_console5.txt -> board/output/io_roll_console5.txt
+板级实测输出搬进包内板级目录 build/evidence/r116_after_roster.txt -> board/output/after_roster.txt
+板级实测输出搬进包内板级目录 build/evidence/r116_roster_diff.txt -> board/output/r116_roster_diff.txt
+板级实测输出搬进包内板级目录 build/evidence/r116_tree_fp.txt -> board/output/tree_fp.txt
+板级实测输出搬进包内板级目录 build/evidence/r117_after.txt -> board/output/r117_after.txt
+板级实测输出搬进包内板级目录 build/evidence/r117_after_roster_probefmt.txt -> board/output/r117_after_roster_probefmt.txt
+板级实测输出搬进包内板级目录 build/evidence/r117_bit_md5.txt -> board/output/bit_md5.txt
+板级实测输出搬进包内板级目录 build/evidence/r117_d0_console.txt -> board/output/d0_console.txt
+板级实测输出搬进包内板级目录 build/evidence/r117_roster_diff_vs_r114.txt -> board/output/roster_diff_vs.txt
+板级实测输出搬进包内板级目录 build/evidence/r118_after.txt -> board/output/r118_after.txt
+板级实测输出搬进包内板级目录 build/evidence/r118_after_roster_probefmt.txt -> board/output/r118_after_roster_probefmt.txt
+板级实测输出搬进包内板级目录 build/evidence/r118_bit_md5.txt -> board/output/r118_bit_md5.txt
+板级实测输出搬进包内板级目录 build/evidence/r118_roster_diff_vs_r114.txt -> board/output/r118_roster_diff_vs_r114.txt
+板级实测输出搬进包内板级目录 build/evidence/r118_serial_raw.txt -> board/output/r118_serial_raw.txt
+板级实测输出搬进包内板级目录 build/evidence/r118_strict_b1.txt -> board/output/strict_b1.txt
+板级实测输出搬进包内板级目录 build/evidence/r118_tree_fp.txt -> board/output/r118_tree_fp.txt
+板级实测输出搬进包内板级目录 build/evidence/r119_pin_skew_probe.txt -> board/output/pin_skew_probe.txt
+板级实测输出搬进包内板级目录 build/evidence/r119_pin_skew_probe2.txt -> board/output/pin_skew_probe2.txt
+板级实测输出搬进包内板级目录 build/evidence/r119_ser_clock_probe.txt -> board/output/ser_clock_probe.txt
+板级实测输出搬进包内板级目录 build/evidence/r119_window_check.txt -> board/output/window_check.txt
+板级实测输出搬进包内板级目录 build/evidence/r119_xdc_loads_probe3.txt -> board/output/xdc_loads_probe3.txt
+板级实测输出搬进包内板级目录 build/evidence/r119_xdc_loads_probe4_pinclk.txt -> board/output/xdc_loads_probe4_pinclk.txt
+板级实测输出搬进包内板级目录 build/evidence/r120_window_check.txt -> board/output/r120_window_check.txt
+板级实测输出搬进包内板级目录 build/evidence/r121_c4_verify.txt -> board/output/c4_verify.txt
+板级实测输出搬进包内板级目录 build/evidence/r121_note_c4.txt -> board/output/note_c4.txt
+板级实测输出搬进包内板级目录 build/evidence/r121_report_archive.txt -> board/output/report_archive.txt
+板级实测输出搬进包内板级目录 build/evidence/r124_tiers_ladder.txt -> board/output/tiers_ladder.txt
+板级实测输出搬进包内板级目录 build/evidence/r126_serial_raw.txt -> board/output/r126_serial_raw.txt
+板级实测输出搬进包内板级目录 build/evidence/r128_serial_raw.txt -> board/output/r128_serial_raw.txt
+板级实测输出搬进包内板级目录 build/evidence/r71_after_recover.txt -> board/output/after_recover.txt
+板级实测输出搬进包内板级目录 build/evidence/r71_remount_probe.txt -> board/output/remount_probe.txt
+板级实测输出搬进包内板级目录 build/evidence/r80_ring_head_module_cred.txt -> board/output/ring_head_module_cred.txt
+板级实测输出搬进包内板级目录 build/evidence/r84_artifact_md5.txt -> board/output/artifact_md5.txt
+板级实测输出搬进包内板级目录 build/evidence/r84_osd_switch.txt -> board/output/osd_switch.txt
+板级实测输出搬进包内板级目录 build/evidence/r84_timing_summary.rpt -> board/output/timing_summary.rpt
+板级实测输出搬进包内板级目录 build/evidence/r84_utilization.rpt -> board/output/utilization.rpt
+板级实测输出搬进包内板级目录 build/evidence/r85_artifact_md5.txt -> board/output/r85_artifact_md5.txt
+板级实测输出搬进包内板级目录 build/evidence/r85_route_status.rpt -> board/output/route_status.rpt
+板级实测输出搬进包内板级目录 build/evidence/r85_timing_summary.rpt -> board/output/r85_timing_summary.rpt
+板级实测输出搬进包内板级目录 build/evidence/r85_utilization.rpt -> board/output/r85_utilization.rpt
+板级实测输出搬进包内板级目录 build/evidence/r86_artifact_md5.txt -> board/output/r86_artifact_md5.txt
+板级实测输出搬进包内板级目录 build/evidence/r86_board_cold.txt -> board/output/board_cold.txt
+板级实测输出搬进包内板级目录 build/evidence/r86_board_warm.txt -> board/output/board_warm.txt
+板级实测输出搬进包内板级目录 build/evidence/r86_crit_paths.txt -> board/output/crit_paths.txt
+板级实测输出搬进包内板级目录 build/evidence/r86_osd_t18_teeth_addr.txt -> board/output/osd_t18_teeth_addr.txt
+板级实测输出搬进包内板级目录 build/evidence/r86_timing_summary.rpt -> board/output/r86_timing_summary.rpt
+板级实测输出搬进包内板级目录 build/evidence/r86_utilization.rpt -> board/output/r86_utilization.rpt
+板级实测输出搬进包内板级目录 build/evidence/r87_boot_stat_drain.txt -> board/output/boot_stat_drain.txt
+板级实测输出搬进包内板级目录 build/evidence/r88_freeze_attempt.txt -> board/output/freeze_attempt.txt
+板级实测输出搬进包内板级目录 build/evidence/r88_gates.txt -> board/output/gates.txt
+板级实测输出搬进包内板级目录 build/evidence/r89exp_timing_summary.rpt -> board/output/r89exp_timing_summary.rpt
+板级实测输出搬进包内板级目录 build/evidence/r92_eye_capture2.txt -> board/output/eye_capture2.txt
+板级实测输出搬进包内板级目录 build/evidence/r92_eye_setup.txt -> board/output/eye_setup.txt
+板级实测输出搬进包内板级目录 build/evidence/r92_health.txt -> board/output/health.txt
+板级实测输出搬进包内板级目录 build/evidence/r92_tx.txt -> board/output/tx.txt
+板级实测输出搬进包内板级目录 build/evidence/r96_flash_1_ps_boot.txt -> board/output/flash_1_ps_boot.txt
+板级实测输出搬进包内板级目录 build/evidence/r96_flash_2_program_pl.txt -> board/output/flash_2_program_pl.txt
+板级实测输出搬进包内板级目录 build/evidence/r96_flash_3_app_reload.txt -> board/output/flash_3_app_reload.txt
+板级实测输出搬进包内板级目录 build/evidence/r97_batt_recheck.txt -> board/output/batt_recheck.txt
+板级实测输出搬进包内板级目录 build/evidence/r99_battery_before_fix.txt -> board/output/battery_before_fix.txt
+板级实测输出搬进包内板级目录 build/evidence/r99_battery_pass_after_fix.txt -> board/output/battery_pass_after_fix.txt
+板级实测输出搬进包内板级目录 build/evidence/verify_0929_0132.txt -> board/output/verify_0929_0132.txt
+板级实测输出搬进包内板级目录 build/evidence/verify_0930_0424.txt -> board/output/verify_0930_0424.txt
+板级实测输出搬进包内板级目录 build/evidence/verify_0930_1845.geom.txt -> board/output/verify_0930_1845.geom.txt
+板级实测输出搬进包内板级目录 build/evidence/verify_0930_1845.txt -> board/output/verify_0930_1845.txt
+板级实测输出搬进包内板级目录 build/evidence/verify_0930_2215.txt -> board/output/verify_0930_2215.txt
+板级实测输出搬进包内板级目录 build/evidence/verify_1005_0741.boot.txt -> board/output/verify_1005_0741.boot.txt
+板级实测输出搬进包内板级目录 build/evidence/verify_1005_0741.geom.txt -> board/output/verify_1005_0741.geom.txt
+板级实测输出搬进包内板级目录 build/evidence/verify_1005_0741.txt -> board/output/verify_1005_0741.txt
+板级实测输出搬进包内板级目录 build/evidence/verify_1006_1944.txt -> board/output/verify_1006_1944.txt
+板级实测输出搬进包内板级目录 build/evidence/verify_1007_1421.txt -> board/output/verify_1007_1421.txt
+构建产物（由板上那一版补回） ./build/ps_app.elf
+构建产物（由板上那一版补回） ./build/system.bit
+构建产物（由板上那一版补回） ./build/system.xsa
+活指路自检：report/（排除 report/log/ 与 report/collaboration/）里指向 docs/course 或 docs/walkthrough 的行数 = 0（要求 0；这份学习文档已不在仓里）；协作记录层同名行数 2 只报数不判红
+空目录：删掉 4 个，落包后余 0 个
+被取代的那一次尝试的中间件（最终件随包） build/sim/results/regression_v79_r46_attempt1_51pass_1fail.txt
+被否决轮次/中间物 build/micro_rd
+被否决轮次/中间物 build/r100_206_after.txt
+被否决轮次/中间物 build/r100_chain.sh
+被否决轮次/中间物 build/r101_216_deathpoint.txt
+被否决轮次/中间物 build/r101_appreload_218.txt
+被否决轮次/中间物 build/r101_gates.txt
+被否决轮次/中间物 build/r101_jtagboot_218.txt
+被否决轮次/中间物 build/r101_program_pl_218.txt
+被否决轮次/中间物 build/r102_218_after.txt
+被否决轮次/中间物 build/r102_218_before.txt
+被否决轮次/中间物 build/r102_appreload.txt
+被否决轮次/中间物 build/r102_jtagboot.txt
+被否决轮次/中间物 build/r102_program_pl.txt
+被否决轮次/中间物 build/r103_appreload.txt
+被否决轮次/中间物 build/r103_board_ping.txt
+被否决轮次/中间物 build/r103_gates.txt
+被否决轮次/中间物 build/r103_jtagboot.txt
+被否决轮次/中间物 build/r103_program_pl.txt
+被否决轮次/中间物 build/r103_tb_zoom_frac.txt
+被否决轮次/中间物 build/r104_board_ping.txt
+被否决轮次/中间物 build/r104_board_verify_console.txt
+被否决轮次/中间物 build/r104_gates.txt
+被否决轮次/中间物 build/r104_tb_zoom_fit_corners_console.txt
+被否决轮次/中间物 build/r105_tb_head_rot_displace.txt
+被否决轮次/中间物 build/r106_critpath_console.txt
+被否决轮次/中间物 build/r106_gates.txt
+被否决轮次/中间物 build/r107_gates.txt
+被否决轮次/中间物 build/r107_reasm_probe.txt
+被否决轮次/中间物 build/r108_cone_before.txt
+被否决轮次/中间物 build/r108_cone_verdict.txt
+被否决轮次/中间物 build/r108_gates.txt
+被否决轮次/中间物 build/r109_gates.txt
+被否决轮次/中间物 build/r110_gates.txt
+被否决轮次/中间物 build/r112_gates.txt
+被否决轮次/中间物 build/r112_reasm_probe.txt
+被否决轮次/中间物 build/r113_angle_lane_plan.md
+被否决轮次/中间物 build/r113_gates.txt
+被否决轮次/中间物 build/r113_powup_rejudge.txt
+被否决轮次/中间物 build/r113_roster_refanout.sh
+被否决轮次/中间物 build/r114_async_netlist_console.txt
+被否决轮次/中间物 build/r114_board_ping.txt
+被否决轮次/中间物 build/r114_gates.txt
+被否决轮次/中间物 build/r114_replication_ab.sh
+被否决轮次/中间物 build/r115_roster_build.py
+被否决轮次/中间物 build/r116_batch_plan.md
+被否决轮次/中间物 build/r116_bit_cycle.sh
+被否决轮次/中间物 build/r116_gates.txt
+被否决轮次/中间物 build/r117_a1_read.sh
+被否决轮次/中间物 build/r117_verdict_declined.txt
+被否决轮次/中间物 build/r118_build_console.txt
+被否决轮次/中间物 build/r118_chain.sh
+被否决轮次/中间物 build/r118_commit.py
+被否决轮次/中间物 build/r118_console.txt
+被否决轮次/中间物 build/r118_gates.txt
+被否决轮次/中间物 build/r118_gates_final.txt
+被否决轮次/中间物 build/r118_verdict.txt
+被否决轮次/中间物 build/r119_window_check.mjs
+被否决轮次/中间物 build/r120_src_map.mjs
+被否决轮次/中间物 build/r124_fix_dead_cites.mjs
+被否决轮次/中间物 build/r124_readme_clause_index.mjs
+被否决轮次/中间物 build/r124_repro_verdict_col.mjs
+被否决轮次/中间物 build/r124_sync_c3c9_numbers.mjs
+被否决轮次/中间物 build/r125_elf_md5_rotate.mjs
+被否决轮次/中间物 build/r125_fact_hold.mjs
+被否决轮次/中间物 build/r125_normalize_platform_json.mjs
+被否决轮次/中间物 build/r125_qspi_wording.mjs
+被否决轮次/中间物 build/r125_readme_lengths.mjs
+被否决轮次/中间物 build/r126_fix_dead_cites.py
+被否决轮次/中间物 build/r126_gates.txt
+被否决轮次/中间物 build/r126_rotate.mjs
+被否决轮次/中间物 build/r127_demo_entry.mjs
+被否决轮次/中间物 build/r127_latency_rename.mjs
+被否决轮次/中间物 build/r129_open_check.tcl
+被否决轮次/中间物 build/r129_path_sanitize.mjs
+被否决轮次/中间物 build/r65_gates.txt
+被否决轮次/中间物 build/r75_gates.txt
+被否决轮次/中间物 build/r84_battery2_console.txt
+被否决轮次/中间物 build/r84_build_console.txt
+被否决轮次/中间物 build/r84_gates.txt
+被否决轮次/中间物 build/r85_build_console.txt
+被否决轮次/中间物 build/r85_gates.txt
+被否决轮次/中间物 build/r86_build_console.txt
+被否决轮次/中间物 build/r86_flash_2_program.txt
+被否决轮次/中间物 build/r86_freeze_attempt.txt
+被否决轮次/中间物 build/r86_gates.txt
+被否决轮次/中间物 build/r86_gates_final.txt
+被否决轮次/中间物 build/r87_power.rpt
+被否决轮次/中间物 build/r87_timing_summary.rpt
+被否决轮次/中间物 build/r87_utilization.rpt
+被否决轮次/中间物 build/r88_cdc_capacity.txt
+被否决轮次/中间物 build/r88_cdc_capacity_mut.txt
+被否决轮次/中间物 build/r88_clock_util.rpt
+被否决轮次/中间物 build/r88_crit_paths.txt
+被否决轮次/中间物 build/r88_crit_paths_raw.rpt
+被否决轮次/中间物 build/r88_gates_naive.txt
+被否决轮次/中间物 build/r88_gates_partial.txt
+被否决轮次/中间物 build/r88_jtag_scan.txt
+被否决轮次/中间物 build/r88_packer_peak_gap0.txt
+被否决轮次/中间物 build/r88_packer_peak_throttled.txt
+被否决轮次/中间物 build/r88_resource_owners.txt
+被否决轮次/中间物 build/r89_adopted_tb98.txt
+被否决轮次/中间物 build/r90_phase3.sh
+被否决轮次/中间物 build/r90_splitonly_tb98.txt
+被否决轮次/中间物 build/r91_strategy_round.sh
+被否决轮次/中间物 build/r92_gates.txt
+被否决轮次/中间物 build/r94_batt.txt
+被否决轮次/中间物 build/r94_bench_chain.sh
+被否决轮次/中间物 build/r94_build_console.txt
+被否决轮次/中间物 build/r94_eye_state_cap2.txt
+被否决轮次/中间物 build/r94_flash.txt
+被否决轮次/中间物 build/r94_gates.txt
+被否决轮次/中间物 build/r94_geom_check2.txt
+被否决轮次/中间物 build/r94_health_rotclamp.txt
+被否决轮次/中间物 build/r94_rotfit_after.txt
+被否决轮次/中间物 build/r94_rotfit_mutation.txt
+被否决轮次/中间物 build/r94_uart_cap.txt
+被否决轮次/中间物 build/r94_uart_neg_ce.txt
+被否决轮次/中间物 build/r94_verdict_ce.sh
+被否决轮次/中间物 build/r94_zoomfrac_after.txt
+被否决轮次/中间物 build/r94_zoomfrac_console.txt
+被否决轮次/中间物 build/r94_zoomfrac_final.txt
+被否决轮次/中间物 build/r95_batt_before_178_verdict.txt
+被否决轮次/中间物 build/r95_batt_from_default.txt
+被否决轮次/中间物 build/r95_batt_from_parked.txt
+被否决轮次/中间物 build/r95_eye_park.txt
+被否决轮次/中间物 build/r95_geom_check_177.txt
+被否决轮次/中间物 build/r95_read_ce.sh
+被否决轮次/中间物 build/r95_timing_round.sh
+被否决轮次/中间物 build/r95_timing_summary.txt
+被否决轮次/中间物 build/r96_174_before.txt
+被否决轮次/中间物 build/r96_176_before.txt
+被否决轮次/中间物 build/r96_commit_strobe_after.txt
+被否决轮次/中间物 build/r96_commit_strobe_mutation.txt
+被否决轮次/中间物 build/r96_gates.txt
+被否决轮次/中间物 build/r96_run_one_before_after.txt
+被否决轮次/中间物 build/r96_run_one_compilefail.txt
+被否决轮次/中间物 build/r96_run_one_green.txt
+被否决轮次/中间物 build/r96_writer_abort_after.txt
+被否决轮次/中间物 build/r96_writer_abort_before.txt
+被否决轮次/中间物 build/r96_writer_abort_mutation.txt
+被否决轮次/中间物 build/r97_180_before.txt
+被否决轮次/中间物 build/r97_185186_before.txt
+被否决轮次/中间物 build/r97_189_recount.txt
+被否决轮次/中间物 build/r97_gates.txt
+被否决轮次/中间物 build/r97_tb_src_arb_why_after.txt
+被否决轮次/中间物 build/r97_tb_v94_zoom_sel_after.txt
+被否决轮次/中间物 build/r98_188_after.txt
+被否决轮次/中间物 build/r98_188_before.txt
+被否决轮次/中间物 build/r98_188_siblings.txt
+被否决轮次/中间物 build/r98_201_after.txt
+被否决轮次/中间物 build/r98_201_before.txt
+被否决轮次/中间物 build/r98_cdc_details.txt
+被否决轮次/中间物 build/r98_cdc_summary.txt
+被否决轮次/中间物 build/r99_185186_after.txt
+被否决轮次/中间物 build/r99_206_before.txt
+被否决轮次/中间物 build/r99_cdc_details.txt
+被否决轮次/中间物 build/r99_cdc_gate_proof.txt
+被否决轮次/中间物 src/rtl/axi/axi_frame_writer.v
+被否决轮次/中间物 src/rtl/eth/axi_frame_saver.v
+被否决轮次/中间物 src/rtl/video/frame_buffer_db.v
+被否决轮次/中间物 src/rtl/video/video_timing_720p.v
+被否决轮次/中间物 vitis/.gitignore
+被否决轮次/中间物 vitis/_ide
+被否决轮次/中间物 vitis/platform
+被否决轮次/中间物 vivado_system/zynq_video_sys.gen
+被否决轮次/中间物 vivado_system/zynq_video_sys.hw
+被否决轮次/中间物 vivado_system/zynq_video_sys.runs
+被否决轮次/中间物 vivado_system/zynq_video_sys.srcs
+被否决轮次/中间物 vivado_system/zynq_video_sys.xpr
+轮次留档未被按路径点名 build/evidence_r75/clock_util.rpt
+轮次留档未被按路径点名 build/evidence_r75/methodology.rpt
+轮次留档未被按路径点名 build/evidence_r75/multi_driven.txt
+轮次留档未被按路径点名 build/evidence_r75/ports_check.txt
+轮次留档未被按路径点名 build/evidence_r75/power.rpt
+轮次留档未被按路径点名 build/evidence_r75/r75_c2_shape.txt
+轮次留档未被按路径点名 build/evidence_r75/r75_gates.txt
+轮次留档未被按路径点名 build/evidence_r75/r75_l1_regress.txt
+轮次留档未被按路径点名 build/evidence_r75/r75_tb98_prov.txt
+轮次留档未被按路径点名 build/evidence_r75/route_status.rpt
+轮次留档未被按路径点名 build/evidence_r75/tb_v98_report.txt
+轮次留档未被按路径点名 build/evidence_r75/timing_summary.rpt
+轮次留档未被按路径点名 build/evidence_r75/utilization.rpt
+轮次留档未被按路径点名 build/evidence_r75/width_warnings.txt
+轮次留档未被按路径点名 build/export_r97c_console.txt
+轮次留档未被按路径点名 build/frozen_r32_sdfix/arb_handover_r32.json
+轮次留档未被按路径点名 build/frozen_r32_sdfix/arb_r32_run1.txt
+轮次留档未被按路径点名 build/frozen_r32_sdfix/manifest.txt
+轮次留档未被按路径点名 build/frozen_r32_sdfix/manifest_body.txt
+轮次留档未被按路径点名 build/frozen_r32_sdfix/sd_hotspot_diag.txt
+轮次留档未被按路径点名 build/frozen_r32_sdfix/sd_hotspot_fixed.txt
+轮次留档未被按路径点名 build/frozen_r32_sdfix/sd_selftest_green.txt
+轮次留档未被按路径点名 build/frozen_r32_sdfix/sd_selftest_red.txt
+轮次留档未被按路径点名 build/frozen_r32_sdfix/stat_after_run2.txt
+轮次留档未被按路径点名 build/frozen_r32_sdfix/uart_sd_with_eth.txt
+轮次留档未被按路径点名 build/isolated_r100_141_note.txt
+轮次留档未被按路径点名 build/roster_r118_after_eth_rxc_setup.rpt
+过程留档 build/frozen_r13
+过程留档 build/frozen_r19_arb
+过程留档 build/frozen_r62_geom

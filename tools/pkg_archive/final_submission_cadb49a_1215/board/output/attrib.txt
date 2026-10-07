@@ -1,0 +1,17 @@
+SPLIT ok bytes=2325
+ATTR-DIFFOK 差异行=20（上限 40）cut 有 new_row_w、base 没有
+  base | Slice LUTs*             |  737 |     0 |          0 |     53200 |  1.39 |
+  base |   LUT as Memory         |    0 |     0 |          0 |     17400 |  0.00 |
+  base | Slice Registers         |  660 |     0 |          0 |    106400 |  0.62 |
+  base | Block RAM Tile |    0 |     0 |          0 |       140 |  0.00 |
+  base * Note: Each Block RAM Tile only has one FIFO logic available and therefore can accommodate only one FIFO36E1 or one FIFO18E1. However, if a FIFO18E1 occupies a Block RAM Tile, that tile can still accommodate a RAMB18E1
+ATTR base LUT=737 FF=660
+  cut | Slice LUTs*             |  671 |     0 |          0 |     53200 |  1.26 |
+  cut |   LUT as Memory         |    0 |     0 |          0 |     17400 |  0.00 |
+  cut | Slice Registers         |  642 |     0 |          0 |    106400 |  0.60 |
+  cut | Block RAM Tile |    0 |     0 |          0 |       140 |  0.00 |
+  cut * Note: Each Block RAM Tile only has one FIFO logic available and therefore can accommodate only one FIFO36E1 or one FIFO18E1. However, if a FIFO18E1 occupies a Block RAM Tile, that tile can still accommodate a RAMB18E1
+ATTR cut LUT=671 FF=642
+ATTR-DELTA 刀4①：LUT=-66 FF=-18（base=737 cut=671）
+ATTR 口径：设计里 r110 相对 r109 是 -243 LUT，凭据 build/evidence/r110_notadopted/utilization.rpt；
+           这一条只量刀 4① 自己。|ATTR-DELTA| 远小于 243 ⇒ 那笔账不在这把刀上，r110 维持不采纳。

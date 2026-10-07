@@ -1,0 +1,21 @@
+# 口径 = build/evidence/*_after_roster_probefmt.txt 的 ROSTER| 字段（探针那把尺子，差分由 build/timing_roster_diff.sh 判 D1..D6）
+# 原件=build/evidence/r118_after_roster_probefmt.txt ；FANOUT| 行数=20（该节存在与否是差分闸门的口径检查之一）
+# margin_pct 是**百分数**，与 roster_r118.tsv 的 rel_margin_*（比值）同量不同单位；本表不用于 G1/G2 裁决
+# slack_raw 保留原件的散文尾巴（`0.739ns  (required time - arrival time)`），slack_ns 取前导数（与 timing_roster_diff.sh::field 同法）；NOWRITE = 该域没有可读路径，不是 0
+clock	type	period_ns	slack_ns	slack_raw	margin_pct	levels	route_pct	dest	source_line
+clk_fpga_0	setup	10.000	1.850	1.850ns  (required time - arrival time)	18.50	1  (LUT6=1)	93.584	u_pl/u_bilin/u_fb/lo_reg_0_16/WEA[0]	1
+clk_fpga_0	hold	10.000	0.053	0.053ns  (arrival time - required time)	0.53	0	43.472	u_bd/design_1_i/axi_gp0_ic/s00_couplers/auto_pc/inst/gen_axilite.gen_b2s_conv.axilite_b2s/RD.r_channel_0/rd_data_fifo_0/memory_reg[31][9]_srl32/D	2
+sys_clk	setup	20.000	14.876	14.876ns  (required time - arrival time)	74.38	5  (LUT5=2 LUT6=2 MUXF7=1)	74.015	u_pl/u_ang/angle_reg[3]/D	3
+sys_clk	hold	20.000	0.222	0.222ns  (arrival time - required time)	1.11	0	50.893	u_pl/u_k2/cnt_reg[8]/D	4
+eth_rxc	setup	8.000	0.739	0.739ns  (required time - arrival time)	9.24	4  (LUT3=2 LUT5=1 LUT6=1)	58.447	u_eth/u_icmp/u_icmp_tx/check_buffer_reg[19]/D	5
+eth_rxc	hold	8.000	0.052	0.052ns  (arrival time - required time)	0.65	1  (LUT4=1)	56.480	u_eth/u_lm/full_d_reg/D	6
+clkfbout	setup	20.000	NOT_MEASURED	NOWRITE	NA	NA	NA	NA	7
+clkfbout	hold	20.000	NOT_MEASURED	NOWRITE	NA	NA	NA	NA	8
+clkout2	setup	5.000	NOT_MEASURED	NOWRITE	NA	NA	NA	NA	9
+clkout2	hold	5.000	NOT_MEASURED	NOWRITE	NA	NA	NA	NA	10
+clkfbout_1	setup	20.000	NOT_MEASURED	NOWRITE	NA	NA	NA	NA	11
+clkfbout_1	hold	20.000	NOT_MEASURED	NOWRITE	NA	NA	NA	NA	12
+clkout0_1	setup	20.000	3.630	3.630ns  (required time - arrival time)	18.15	21  (CARRY4=9 LUT2=1 LUT3=2 LUT4=4 LUT5=1 LUT6=4)	59.150	u_pl/u_osd/ch_r_reg/ADDRARDADDR[6]	13
+clkout0_1	hold	20.000	0.059	0.059ns  (arrival time - required time)	0.29	0	62.683	u_pl/u_pipe/u_sobel/no_right_r_reg[1]/D	14
+clkout1_1	setup	4.000	NOT_MEASURED	NOWRITE	NA	NA	NA	NA	15
+clkout1_1	hold	4.000	NOT_MEASURED	NOWRITE	NA	NA	NA	NA	16

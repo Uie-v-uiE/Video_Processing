@@ -1,0 +1,176 @@
+`timescale 1ns/1ps
+// axi_frame_saver64 — AXI3 DDR 写入器（64bit 字）：AWLEN=0 + **写通道流水化**，AW/W 并行挂出、各自握手，
+// 发完立刻取下一个字（≤2 拍/字 = 400 MB/s），B 响应只在 outst 计数里回收、**永不阻塞数据通路**。
+// 时钟域：全程 axi_clk（HP0 100 MHz）；入包侧的字由 eth_udp_video_top 里的 BRAM CDC 打过来。
+// 为什么必须流水化（ISSUES #31）：v6.2 之前每字走完 S_AW→S_W→S_B，在途深度恒 1 ⇒ HP0 写延迟
+//（~40 拍，被显示拷贝抢端口时上百拍）直接成为吞吐上限 ≈20 MB/s ⇒ 板上"每包固定从第 48 字节起丢字"。
+// ⚠ 加深缓冲治不了它（ISSUES #32）：瓶颈是**平均排空速率**不是深度，v6.2 把 CDC 做到 8192 时上板毫无改善。
+module axi_frame_saver64 #(
+    parameter BASE_ADDR = 32'h1000_0000,
+    parameter FW = 9   // 512-entry packer FIFO。存储必须是**分布式 RAM**（见下面 ram_style）：
+                       // 早先版本让它被综合成触发器（512×100bit ≈ 5.1 万 FDRE），
+                       // 占整机 Slice Register 的 94%，FW=11 直接 DRC UTLZ-1。
+                       // 深缓冲在 eth_udp_video_top 里 BRAM 实现的 CDC（8192 条）。
+)(
+    input  wire        clk,
+    input  wire        rst_n,
+    input  wire        enable,
+    input  wire [31:0] base_addr,
+    input  wire        wr_en,
+    input  wire [18:0] wr_addr,
+    input  wire [15:0] wr_data,
+    input  wire        flush,
+    output wire        fifo_full,
+    output wire        idle,
+    output reg         busy,
+    output wire [31:0] m_axi_awaddr,
+    output wire [7:0]  m_axi_awlen,
+    output wire [2:0]  m_axi_awsize,
+    output wire [1:0]  m_axi_awburst,
+    output wire        m_axi_awvalid,
+    input  wire        m_axi_awready,
+    output wire [63:0] m_axi_wdata,
+    output wire [7:0]  m_axi_wstrb,
+    output wire        m_axi_wlast,
+    output wire        m_axi_wvalid,
+    input  wire        m_axi_wready,
+    input  wire        m_axi_bvalid,
+    output reg         m_axi_bready
+);
+    assign m_axi_awlen   = 8'd0;
+    assign m_axi_awsize  = 3'b011;
+    assign m_axi_awburst = 2'b01;
+    // v6.4：写选通按 16bit lane 生成（见下面 keep_r 处的说明），不再恒为 8'hFF。
+    assign m_axi_wlast   = 1'b1;
+
+    // 打包 FIFO 存储：显式要求**分布式 RAM**。读口是异步的（下面 ridx/rd_*），
+    // 512×100bit 只要 ~800 个 LUT-RAM，换掉原先 5.1 万个 FDRE。
+    (* ram_style = "distributed" *) reg [31:0] q_addr [0:(1<<FW)-1];
+    (* ram_style = "distributed" *) reg [63:0] q_data [0:(1<<FW)-1];
+    (* ram_style = "distributed" *) reg [3:0]  q_keep [0:(1<<FW)-1];
+    reg [FW:0] wptr, rptr;
+    assign fifo_full = (wptr[FW] != rptr[FW]) && (wptr[FW-1:0] == rptr[FW-1:0]);
+    wire fifo_empty = (wptr == rptr);
+
+    wire [FW-1:0] ridx    = rptr[FW-1:0];
+    wire [31:0]   rd_addr = q_addr[ridx];
+    wire [63:0]   rd_data = q_data[ridx];
+    wire [3:0]    rd_keep = q_keep[ridx];
+
+    reg [18:0] cur_widx;
+    reg [63:0] cur_data;
+    reg [3:0]  cur_keep;                 // 正在拼的字里哪些 16bit lane 已有数据
+    reg        cur_dirty;
+
+    // ---- v6.3 写通道流水化：AW/W 并行挂出，B 只回收计数 ----
+    localparam [3:0] OST = 4'd8;          // 在途 beat 上限（够盖住 HP0 写延迟）
+    reg        aw_wait, w_wait;           // 本 beat 的 AW / W 尚未被接收
+    reg [3:0]  outst;                     // 已发出、B 未回的 beat 数
+    reg [31:0] a_r;
+    reg [63:0] d_r;
+    reg [3:0]  keep_r;
+    wire       beat   = aw_wait || w_wait;
+    wire       b_ok   = m_axi_bvalid && m_axi_bready;
+    wire       have   = (rptr != wptr) && !beat && (outst < OST);
+
+    assign m_axi_awvalid = aw_wait;
+    assign m_axi_wvalid  = w_wait;
+    assign m_axi_awaddr  = a_r;
+    assign m_axi_wdata   = d_r;
+    // 每个 beat 只写自己有效的字节，剩下的留给另一次推送 ⇒ 分包长度不再敏感。
+    //（旧实现恒为 8'hFF，"同一个 64bit 字被相邻两包分两次写"时后一次会把前一次的半字覆盖成 0：
+    //  分包长度不是 8 的倍数（如 1396）时每帧 111 处 = 222 个 16bit 黑洞，屏上均匀散布的黑点）。
+    assign m_axi_wstrb   = { {2{keep_r[3]}}, {2{keep_r[2]}},
+                             {2{keep_r[1]}}, {2{keep_r[0]}} };
+
+    assign idle = enable && !cur_dirty && fifo_empty && !beat && (outst == 4'd0);
+
+    wire [18:0] in_widx = wr_addr[18:2];
+    wire        idx_chg = cur_dirty && (in_widx != cur_widx);
+
+    reg [31:0] pack_base;
+    always @(posedge clk or negedge rst_n) begin
+        if (!rst_n) pack_base <= BASE_ADDR;
+        else if (!cur_dirty) pack_base <= base_addr;
+    end
+
+    // 打包器把「凑满一个 64bit 字的片段」推入 FIFO 的两个时机：
+    //   1) 来了新的字索引 ⇒ 先把正在拼的旧字推走；2) flush ⇒ 把半截字推走。
+    // 两处推的内容完全相同（都是 cur_*），所以合并成一个写脉冲。
+    // 原样保留 v6.4 语义：FIFO 满时该字被丢弃（第二处还会清 cur_dirty）。
+    wire push_now = enable && ((wr_en && idx_chg) || (flush && cur_dirty && !wr_en));
+    wire pack_we  = push_now && !fifo_full;
+
+    // 存储写必须**独占一个不带异步复位的 always 块**。这不是风格问题：
+    // 写成 task + 和指针同在异步复位块里时，Vivado 报 Synth 8-7186 拒绝把数组
+    // 推断成 RAM，512×64bit 直接退化成 3.29 万个 FDRE（实测对比见 OVERNIGHT_LOG
+    // R02 探针表：task 写法 FF=32904/LUTRAM=0，本写法 FF=85/LUTRAM=864）。
+    always @(posedge clk) begin
+        if (pack_we) begin
+            q_addr[wptr[FW-1:0]] <= pack_base + {10'd0, cur_widx, 3'b000};
+            q_data[wptr[FW-1:0]] <= cur_data;
+            q_keep[wptr[FW-1:0]] <= cur_keep;
+        end
+    end
+
+    always @(posedge clk or negedge rst_n) begin
+        if (!rst_n) begin
+            wptr <= 0; cur_widx <= 0; cur_data <= 0; cur_dirty <= 0; cur_keep <= 0;
+        end else begin
+            if (pack_we) wptr <= wptr + 1'b1;
+            if (enable) begin
+                if (wr_en) begin
+                    if (idx_chg || !cur_dirty) begin
+                        cur_widx  <= in_widx;
+                        case (wr_addr[1:0])
+                            2'd0: begin cur_data <= {48'd0, wr_data}; cur_keep <= 4'b0001; end
+                            2'd1: begin cur_data <= {32'd0, wr_data, 16'd0}; cur_keep <= 4'b0010; end
+                            2'd2: begin cur_data <= {16'd0, wr_data, 32'd0}; cur_keep <= 4'b0100; end
+                            default: begin cur_data <= {wr_data, 48'd0}; cur_keep <= 4'b1000; end
+                        endcase
+                        cur_dirty <= 1'b1;
+                    end else begin
+                        case (wr_addr[1:0])
+                            2'd0: begin cur_data[15:0]  <= wr_data; cur_keep[0] <= 1'b1; end
+                            2'd1: begin cur_data[31:16] <= wr_data; cur_keep[1] <= 1'b1; end
+                            2'd2: begin cur_data[47:32] <= wr_data; cur_keep[2] <= 1'b1; end
+                            default: begin cur_data[63:48] <= wr_data; cur_keep[3] <= 1'b1; end
+                        endcase
+                    end
+                end else if (flush && cur_dirty) begin
+                    cur_dirty <= 1'b0;
+                    cur_keep  <= 4'b0;
+                end
+            end
+        end
+    end
+
+    // 每拍最多装载一个 beat；装载条件是「上一个 beat 的 AW 和 W 都已被接收」。
+    // 握手成功的接收方若拉低 ready，valid 保持不动，直到各自被接收为止。
+    always @(posedge clk or negedge rst_n) begin
+        if (!rst_n) begin
+            rptr <= 0; outst <= 0; busy <= 0;
+            aw_wait <= 0; w_wait <= 0; a_r <= 0; d_r <= 0; keep_r <= 0;
+            m_axi_bready <= 0;
+        end else begin
+            m_axi_bready <= 1'b1;                 // B 通道永不反压，只回收计数
+            if (have && !b_ok)      outst <= outst + 4'd1;
+            // 只减不回绕：万一上游偶尔多回一个 B，回绕成 15 会让 have 永远不成立
+            // （整条入包链就此卡死 = 板上「冻结」类症状），宁可少计也不要锁死。
+            else if (!have && b_ok) outst <= (outst == 4'd0) ? 4'd0 : outst - 4'd1;
+
+            if (have) begin
+                a_r     <= rd_addr;
+                d_r     <= rd_data;
+                keep_r  <= rd_keep;
+                rptr    <= rptr + 1'b1;
+                aw_wait <= 1'b1;
+                w_wait  <= 1'b1;
+            end else begin
+                if (aw_wait && m_axi_awready) aw_wait <= 1'b0;
+                if (w_wait  && m_axi_wready)  w_wait  <= 1'b0;
+            end
+            busy <= !fifo_empty || beat || (outst != 4'd0);
+        end
+    end
+endmodule

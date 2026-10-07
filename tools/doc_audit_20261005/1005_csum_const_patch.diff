@@ -1,0 +1,41 @@
+diff --git a/src/rtl/eth/icmp_tx.v b/src/rtl/eth/icmp_tx.v
+index f5f2a1e..0edaa69 100644
+--- a/src/rtl/eth/icmp_tx.v
++++ b/src/rtl/eth/icmp_tx.v
+@@ -57,6 +57,14 @@ module icmp_tx (
+     //parameter define
+     //ICMP报文类型:回显应答
+     parameter ECHO_REPLY = 8'h00;
++    // IP 首部里在装配那一刻就完全确定的那几项，编译期先加成一个常数：
++    //   ip_head[0][31:16] = {8'h45,8'h00} = 16'h4500（版本号 4 + 首部长度 5）
++    //   ip_head[1][15:0]  = 16'h4000（bit[15:13]=010 不分片）
++    //   ip_head[2][31:16] = {8'h80,8'd01} = 16'h8001（TTL 128 + 协议号 ICMP）
++    //   ip_head[2][15:0]  = 16'h0000（校验和字段，求和期间必须是 0，cnt==4 才写回结果）
++    //   ip_head[3]        = BOARD_IP（源 IP，参数）
++    localparam [19:0] IP_CSUM_K = 16'h4500 + 16'h4000 + 16'h8001 +
++                                  BOARD_IP[31:16] + BOARD_IP[15:0];
+ 
+     //reg define
+     reg [7:0] cur_state;
+@@ -274,12 +282,17 @@ module icmp_tx (
+                     // r108（路线图 §7.2）：原来这一拍要加 10 个 16 位项，综合摆出 5 级 CARRY4——r106 报告里
+                     // 那条 10 级 / 0.741 ns 的路就是这个锥。摊成两拍各 5 项：和不截断（10 项 ≤ 655350，20 位
+                     // 够，目标寄存器 32 位），折叠次序一字不改，代价是这个状态多占一拍。
++                    // 1005 第二刀（`docs/course/04` §7.5-1）：这 10 项里有 6 项是**编译期常量**
++                    // （`8'h45,8'h00`、`16'h4000`、`8'h80,8'd01`、`BOARD_IP` 两半、校验和字段那两字节=0），
++                    // 抽进 IP_CSUM_K 之后，发送前这两拍不再去读那几只分散在别处的 `ip_head_reg`，
++                    // 变量项从 10 个降到 4 个（`total_num`、递增后的 ID、目的 IP 两半）。
++                    // 逐位等价的理由：加法模 2^20 与顺序无关，10 项 ≤ 655350 = 0x9FFF6 不溢出 20 位，
++                    // 折叠的次数与次序一字未改 ⇒ 写进 `ip_head[2][15:0]` 的 16 位必然与改前相同
++                    // （判据 = `sim/tb_icmp_tx_cksum.v` 逐字节钉整帧输出流）。
+                     if (cnt == 5'd0) begin
+-                        check_buffer <= ip_head[0][31:16] + ip_head[0][15:0] + ip_head[1][31:16] +
+-                            ip_head[1][15:0] + ip_head[2][31:16];
++                        check_buffer <= IP_CSUM_K + ip_head[0][15:0] + ip_head[1][31:16];
+                     end else if (cnt == 5'd1) begin
+-                        check_buffer <= check_buffer + ip_head[2][15:0] + ip_head[3][31:16] +
+-                            ip_head[3][15:0] + ip_head[4][31:16] + ip_head[4][15:0];
++                        check_buffer <= check_buffer + ip_head[4][31:16] + ip_head[4][15:0];
+                     end else if (cnt == 5'd2)  //可能出现进位,累加一次
+                         check_buffer <= check_buffer[19:16] + check_buffer[15:0];
+                     else if (cnt == 5'd3) begin  //可能再次出现进位,累加一次

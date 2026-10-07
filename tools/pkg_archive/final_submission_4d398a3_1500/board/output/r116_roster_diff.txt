@@ -1,0 +1,18 @@
+ROSTERDIFF-ROW clk_fpga_0/setup slack 1.850->1.976ns  (required time - arrival time) margin_pct 18.50->19.76
+ROSTERDIFF-ROW clk_fpga_0/hold slack 0.053->0.053ns  (arrival time - required time) margin_pct 0.53->0.53
+ROSTERDIFF-ROW clkout0_1/setup slack 3.630->3.698ns  (required time - arrival time) margin_pct 18.15->18.49
+ROSTERDIFF-ROW clkout0_1/hold slack 0.059->0.059ns  (arrival time - required time) margin_pct 0.29->0.29
+ROSTERDIFF-ROW eth_rxc/setup slack 0.739->-0.846ns  (required time - arrival time) margin_pct 9.24->-10.57
+ROSTERDIFF-ROW eth_rxc/hold slack 0.052->-0.870ns  (arrival time - required time) margin_pct 0.65->-10.88
+ROSTERDIFF-ROW sys_clk/setup slack 14.876->14.876ns  (required time - arrival time) margin_pct 74.38->74.38
+ROSTERDIFF-ROW sys_clk/hold slack 0.222->0.222ns  (arrival time - required time) margin_pct 1.11->1.11
+ROSTERDIFF-HEADLINE wns ->（绝对差不算收益也不算损失，rule 35）
+ROSTERDIFF D1_no_new_violation    new=2              expect=0 RED
+ROSTERDIFF D2_pairs_compared      pairs=8            floor>=8 GREEN
+ROSTERDIFF D3_margin_cost         big_loss=2         lost>25%的域数=0 RED
+ROSTERDIFF D4_hold_covered        hold_pairs=4       want>=2 GREEN
+ROSTERDIFF D5_no_empty_readings   empty_in_B=0       expect=0 GREEN
+ROSTERDIFF D6_fanout_inventory    fanout_rows=0      want>=1 RED
+ROSTERDIFF-COST 变差的域: eth_rxc/setup:0.739->-0.846ns  (required time - arrival time)(相对余量-214.4%) eth_rxc/hold:0.052->-0.870ns  (arrival time - required time)(相对余量-1773.8%)
+ROSTERDIFF-GAIN 变好的域: clk_fpga_0/setup:1.850->1.976ns  (required time - arrival time)(相对余量+6.8%) clkout0_1/setup:3.630->3.698ns  (required time - arrival time)(相对余量+1.9%)
+ROSTERDIFF-SUMMARY a=build/evidence/r114_after_roster.txt b=build/evidence/r116_after_roster_4clk.txt judged=6 pairs=8 result=RED

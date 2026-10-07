@@ -1,0 +1,144 @@
+
+CAPTURE_OPEN 19:38:24 window=900s cold-boot-2
+
+Xilinx First Stage Boot Loader 
+Release 2025.2	Oct  6 2026-16:29:46
+Devcfg driver initialized 
+Silicon Version 3.1
+Boot mode is JTAG
+
+Xilinx First Stage Boot Loader 
+Release 2025.2	Oct  6 2026-16:29:46
+Devcfg driver initialized 
+Silicon Version 3.1
+Boot mode is QSPI
+Single Flash Information
+FlashID=0xEF 0x40 0x19
+WINBOND 256M Bits
+QSPI is in single flash connection
+QSPI is in 4-bit mode
+QSPI Init Done 
+Flash Base Address: 0xFC000000
+Reboot status register: 0x60400000
+Multiboot Register: 0x0000C000
+Image Start Address: 0x00000000
+Partition Header Offset:0x00000C80
+Partition Count: 21474836485
+Partition Number: 21474836481
+Header Dump
+Image Word Len: 0x00086660
+Data Word Len: 0x00086660
+Partition Word Len:0x00086660
+Load Addr: 0x00000000
+Exec Addr: 0x00000000
+Partition Start: 0x00008380
+Partition Attr: 0x00000020
+Partition Checksum Offset: 0x00000000
+Section Count: 0x00000001
+Checksum: 0xFFE646EE
+Bitstream
+In FsblHookBeforeBitstreamDload function 
+PCAP:StatusReg = 0xF800700000000000
+PCAP:device ready
+PCAP:Clear done
+Level Shifter Value = 0xA0000000A 
+Devcfg Status register = 0xF800700000000000 
+PCAP:Fabric is Initialized done
+PCAP register dump:
+PCAP CTRL 0xF8007000: 0x4C00E07F
+PCAP LOCK 0xF8007004: 0x0000001A
+PCAP CONFIG 0xF8007008: 0x00000508
+PCAP ISR 0xF800700C: 0x0802000B
+PCAP IMR 0xF8007010: 0xFFFFFFFF
+PCAP STATUS 0xF8007014: 0x00008A30
+PCAP DMA SRC ADDR 0xF8007018: 0x00100001
+PCAP DMA DEST ADDR 0xF800701C: 0xFFFFFFFF
+PCAP DMA SRC LEN 0xF8007020: 0x00086660
+PCAP DMA DEST LEN 0xF8007024: 0x00086660
+PCAP ROM SHADOW CTRL 0xF8007028: 0xFFFFFFFF
+PCAP MBOOT 0xF800702C: 0x0000C000
+PCAP SW ID 0xF8007030: 0x00000000
+PCAP UNLOCK 0xF8007034: 0x757BDF0D
+PCAP MCTRL 0xF8007080: 0x30800100
+
+DMA Done ! 
+
+FPGA Done ! 
+In FsblHookAfterBitstreamDload function 
+Partition Number: 21474836482
+Header Dump
+Image Word Len: 0x000050A1
+Data Word Len: 0x000050A1
+Partition Word Len:0x000050A1
+Load Addr: 0x00200000
+Exec Addr: 0x002000CC
+Partition Start: 0x0008E9E0
+Partition Attr: 0x00000010
+Partition Checksum Offset: 0x00000000
+Section Count: 0x00000003
+Checksum: 0xFFB620FD
+Application
+Partition Number: 21474836483
+Header Dump
+Image Word Len: 0x00001005
+Data Word Len: 0x00001005
+Partition Word Len:0x00001005
+Load Addr: 0x00218000
+Exec Addr: 0x00000000
+Partition Start: 0x00093A90
+Partition Attr: 0x00000010
+Partition Checksum Offset: 0x00000000
+Section Count: 0x00000000
+Checksum: 0xFFD512F0
+Application
+Partition Number: 21474836484
+Header Dump
+Image Word Len: 0x00000027
+Data Word Len: 0x00000027
+Partition Word Len:0x00000027
+Load Addr: 0x0021EFC0
+Exec Addr: 0x00000000
+Partition Start: 0x00094AA0
+Partition Attr: 0x00000010
+Partition Checksum Offset: 0x00000000
+Section Count: 0x00000000
+Checksum: 0xFFD4C2BA
+Application
+Handoff Address: 0x002000CC
+In FsblHookBeforeHandoff function 
+SUCCESSFUL_HANDOFF
+FSBL Status = 0xE0000000
+
+[BOOT] video_pipeline PL-UDP control plane
+[CTRL] AXI_GPIO=0x000A5000 sel=000 thr=80 src=0 zoom=1 pub=0 bilin=1 osd=1
+[CTRL]   zoom_step=4 1.00x (??????)
+[CFG] axi_gpio_2 @41220000 ok
+[CFG] gamma window @41220008 ok
+[TEMP] PS-XADC @F8007100 ok
+[BOOT] UDP RX is in PL (RGMII PHY2). PS is control + SD playback.
+[BOOT] uart115200??????????????? help????????????????????? 9 ??????pipe 010000000???
+[SD] dir map ok: 9 files, first clusters within 1946818
+[SD] FAT32 part_lba=2048 spc=32 rootclus=2 data_lba=34816
+[SD] frames=4398 fps=30.000 measured=0.000 files=9 frame=307200B
+[SD]   VIDEO000.BIN frames=512
+[SD]   VIDEO001.BIN frames=512
+[SD]   VIDEO002.BIN frames=512
+[SD]   VIDEO003.BIN frames=512
+[SD]   VIDEO004.BIN frames=512
+[SD]   VIDEO005.BIN frames=512
+[SD]   VIDEO006.BIN frames=512
+[SD]   VIDEO007.BIN frames=512
+[SD]   VIDEO008.BIN frames=302
+[CTRL] AXI_GPIO=0x000B5000 sel=000 thr=80 src=1 zoom=1 pub=0 bilin=1 osd=1
+[CTRL]   zoom_step=4 1.00x (??????)
+[SD] autoplay: playing
+[SDRD!] lba=34816 n=1 clus=43580 part_end=62332928 IN-RANGE (data_lba=34816 spc=32 fat_lba=4396 dst=0x0021EA80)
+[SDRD!] lba=34816 n=1 clus=43580 part_end=62332928 IN-RANGE (data_lba=34816 spc=32 fat_lba=4396 dst=0x0021EA80)
+[SDRD!] lba=4396 n=1 clus=43580 part_end=62332928 IN-RANGE (data_lba=34816 spc=32 fat_lba=4396 dst=0x0021E880)
+[SDDBG] name='VIDEO004.BIN' k83=564944454F303034_42494E
+        root_clus=2 fat_next=268435455 meta_clus=0 spc=32 fat_lba=4396 data_lba=34816
+[SRC] PS ???????????????????????????????????? / ??????????????????????????????
+[SD] playback stopped at frame 2324: frame file not found on card (PLAY retries; if it keeps failing, `sd remount`)
+[SD] ??????????????? 1 ???????????????card absent or CMD sequence failed
+[SD] dir map ok: 9 files, first clusters within 1946818
+[SD] ??????????????????????????? ok????????? 2 ?????????????????????

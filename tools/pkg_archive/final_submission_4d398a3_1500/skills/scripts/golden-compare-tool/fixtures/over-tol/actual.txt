@@ -1,0 +1,3 @@
+path slack unit
+p0 0.5125 ns
+p1 -0.0493 ns

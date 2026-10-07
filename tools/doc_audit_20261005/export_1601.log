@@ -1,0 +1,21 @@
+注意 /d/Xilinx/Prj/pro/final_submission 现在是上一版（导出时间: 2026-10-06 21:49:47 来源提交: bda1a88（导出时工作区未提交改动 1 条） ）——本轮若拒绝落盘，这个目录不算本轮交付
+射程 活文档=135（仓库 *.md=130；排除 report/log/ 与 build/reports/ 两层过程/证据件） board=15 build=10 data=6 report=32 sim=1 skills=67 src=2 csv 全树=7 入射程=6（board/compare/ 是差分辨识表，按证据件排除）
+指路射程 report=34 skills=117 README.md=1 README_EN.md=1 board=90 data=29 src=120 sim=86 build=429 
+台架取舍 表格列=82 脚本点名=25 随包=82 剔=1
+门禁件选取 位流=cd04907e1369 候选=3 取最新=r126_gates.txt（身份行：身份：system.bit md5=cd04907e1369  system.xsa md5=934ebdbaa13b ）
+板级凭据随包：交付文档点名 134 份 / 盘上 97 份 / 搬进包 97 份（撞名 0）
+  空目录 删=2 余=0
+  死链射程 扫=122 份活文档 抓=0 同行声明命中行=847 其中真正挡下指路=402 条 抽取被词表切短=3 条（模板槽位与相对自身的长路径，逐条列在清单里）（词表：不随包/本地留档/不入库/未写/未落地/尚未/规划/待装配/例如/示例/假想/不存在）
+绝对路径：甲 可执行件=0 乙 复现入口件=0（扫 11 份） 丙 叙述=行 4／文件 4（扫 115 份，只报数：那一层记的是「当时读的是哪一份」的凭据，改掉等于改写证据） 甲层豁免=2 行（abs-fixture 反例内容）
+台账指路（report/log/，0 份）：包内不可解析 0 条 —— **只报数不判红**：那里记的是当天在仓库里的路径，
+  过程记录不参与「包完整性」判据；评委要核对读数请走活文档点名的 build/reports/ 那一份（那条由上面的死链自检与 D6 管）。
+切短 skills/scripts/repro-drill/SKILL.md -> docs/notes/run.sh
+切短 skills/scripts/repro-drill/SKILL.md -> docs/notes/setup.md
+切短 skills/scripts/repro-drill/SKILL.md -> docs/runbook.md
+== 自检：死链 0 ／ 旧名残留 0 ／ 绝对路径（甲 可执行件 + 乙 复现入口件）0 （ ） ==
+包根中间物清扫 清=14 保留=1（保留只准是 _pruned.txt 那 1 份）
+
+导出提交 ed07de7：694 个文件 / 14M，剪掉 510 条，死链 0，旧名残留 0，绝对路径 0
+包内自洽：入口脚本按 glob 找凭据的引用共核对 1 条（核对数为 0 时这一条是空的，别念成绿）
+随包凭据内容判定：FAIL 行共 1，其中未声明的红 0（白名单只允许 '^[ ]*FAIL C5c'）
+-> /d/Xilinx/Prj/pro/final_submission（695 个文件，与 MANIFEST 的计数一致）

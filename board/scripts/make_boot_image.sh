@@ -3,7 +3,7 @@
 #
 # 依赖：bootgen（Vivado/Vitis 2025.2.1 安装树里的 `bin/bootgen.bat`，不在 PATH）；
 #       三份输入都在盘上：`vitis/platform/zynq_fsbl/build/fsbl.elf`、`build/system.bit`、`build/ps_app.elf`。
-# 用法：VP_VIVADO_BIN="D:/Software/Vivado/2025.2.1/Vivado/bin" bash board/scripts/make_boot_image.sh
+# 用法：VP_VIVADO_BIN="<tools>/Vivado/bin" bash board/scripts/make_boot_image.sh
 # 参数：
 #   | 变量 | 作用 | 默认 |
 #   | --- | --- | --- |
@@ -14,8 +14,9 @@
 # bif 的写法是实测出来的（三种带逗号/带 `[boot]`/带 `configuration` 的写法都被 bootgen 判语法错）：
 # Zynq-7000 这一支要的是 `the_design:` + 花括号里逐行一个文件、不写逗号；
 # 但 FSBL 那一行**必须**带 `[bootloader]` 属性——不带的时候 bootgen 也报 "generated successfully"，
-# 打出来的镜像却把 IHT 的分区表偏移三个字段留成 0，启动 ROM 读不懂（实测：DONE 不亮、串口零字节）。
-# 依据：`bootgen -bif_help bootloader`（该属性 SUPPORTED 含 zynq）+ 厂商镜像头部同字段非 0 的对照。
+# 打出来的镜像却把镜像头 IHT+0x10/+0x14/+0x20（分区表偏移那一组）留成 0，启动 ROM 读不懂
+# （实测：冷上电 DONE 不亮、串口零字节）。依据：`bootgen -bif_help bootloader`（该属性 SUPPORTED 含 zynq）
+# + 厂商镜像同三个字段是 0x00001700 / 0x00018008 / 0x00018008 的对照。
 set -euo pipefail
 
 root="$(cd "$(dirname "$0")/../.." && pwd)"
@@ -38,11 +39,7 @@ win() { if command -v cygpath >/dev/null 2>&1; then cygpath -w "$1" | tr '\\' '/
 bif="$out/boot.bif"
 {
   printf 'the_design:\n{\n'
-  # FSBL 必须标 [bootloader]（bootgen -bif_help bootloader：该属性支持 zynq）。
-  # 不标的时候 bootgen 照样报 "Bootimage generated successfully"，但打出来的镜像头部
-  # IHT+0x10/+0x14/+0x20（分区表偏移那一组）全是 0 ⇒ 启动 ROM 读不懂，冷上电零字节、DONE 不亮。
-  # 对照：厂商 SD/BOOT.BIN 那三个位置是 0x00001700 / 0x00018008 / 0x00018008；
-  #      补上 [bootloader] 之后我们这份变成 0x00001700 / 0x0001f6f4 / 0x0001f6f4（同一形状）。
+  # FSBL 必须标 [bootloader]；不标时 bootgen 照样报成功，但分区表偏移全 0（见文件头）
   printf '   [bootloader] '; win "$fsbl"
   win "$bit"
   win "$app"

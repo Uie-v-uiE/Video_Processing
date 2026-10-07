@@ -1,0 +1,1147 @@
+{
+ "field_positions": [
+  {
+   "col": "NOT_MEASURED",
+   "field": "banner.Tool Version",
+   "file": "build/power.rpt",
+   "line": 3,
+   "locator": "sed -n '3p' build/power.rpt",
+   "value": "Vivado v.2025.2.1 (win64) Build 6403652 Thu Mar 19 19:48:24 GMT 2026"
+  },
+  {
+   "col": "NOT_MEASURED",
+   "field": "banner.Date",
+   "file": "build/power.rpt",
+   "line": 4,
+   "locator": "sed -n '4p' build/power.rpt",
+   "value": "Sun Oct  4 04:37:48 2026"
+  },
+  {
+   "col": "NOT_MEASURED",
+   "field": "banner.Host",
+   "file": "build/power.rpt",
+   "line": 5,
+   "locator": "sed -n '5p' build/power.rpt",
+   "value": "Uie-laptop running 64-bit major release  (build 9200)"
+  },
+  {
+   "col": "NOT_MEASURED",
+   "field": "banner.Command",
+   "file": "build/power.rpt",
+   "line": 6,
+   "locator": "sed -n '6p' build/power.rpt",
+   "value": "report_power -file D:/Xilinx/Prj/pro/Video_Processing/build/power.rpt"
+  },
+  {
+   "col": "NOT_MEASURED",
+   "field": "banner.Design",
+   "file": "build/power.rpt",
+   "line": 7,
+   "locator": "sed -n '7p' build/power.rpt",
+   "value": "system_top"
+  },
+  {
+   "col": "NOT_MEASURED",
+   "field": "banner.Device",
+   "file": "build/power.rpt",
+   "line": 8,
+   "locator": "sed -n '8p' build/power.rpt",
+   "value": "xc7z020clg484-2"
+  },
+  {
+   "col": "NOT_MEASURED",
+   "field": "banner.Speed File",
+   "file": "build/power.rpt",
+   "line": "NOT_MEASURED",
+   "locator": "grep -n '<锚点文本>' build/power.rpt（本轮没定位到 ⇒ NOT_MEASURED）",
+   "value": "NOT_MEASURED"
+  },
+  {
+   "col": "NOT_MEASURED",
+   "field": "banner.Design State",
+   "file": "build/power.rpt",
+   "line": 9,
+   "locator": "sed -n '9p' build/power.rpt",
+   "value": "routed"
+  },
+  {
+   "col": "NOT_MEASURED",
+   "field": "banner.Grade",
+   "file": "build/power.rpt",
+   "line": 10,
+   "locator": "sed -n '10p' build/power.rpt",
+   "value": "commercial"
+  },
+  {
+   "col": "NOT_MEASURED",
+   "field": "banner.Process",
+   "file": "build/power.rpt",
+   "line": 11,
+   "locator": "sed -n '11p' build/power.rpt",
+   "value": "typical"
+  },
+  {
+   "col": "NOT_MEASURED",
+   "field": "banner.Characterization",
+   "file": "build/power.rpt",
+   "line": 12,
+   "locator": "sed -n '12p' build/power.rpt",
+   "value": "Production"
+  },
+  {
+   "col": 2,
+   "field": "summary[Total On-Chip Power (W)]",
+   "file": "build/power.rpt",
+   "line": 33,
+   "locator": "sed -n '33p' build/power.rpt | awk -F('|') '{print $3}'",
+   "value": "2.391"
+  },
+  {
+   "col": 2,
+   "field": "summary[Design Power Budget (W)]",
+   "file": "build/power.rpt",
+   "line": 34,
+   "locator": "sed -n '34p' build/power.rpt | awk -F('|') '{print $3}'",
+   "value": "Unspecified*"
+  },
+  {
+   "col": 2,
+   "field": "summary[Power Budget Margin (W)]",
+   "file": "build/power.rpt",
+   "line": 35,
+   "locator": "sed -n '35p' build/power.rpt | awk -F('|') '{print $3}'",
+   "value": "NA"
+  },
+  {
+   "col": 2,
+   "field": "summary[Dynamic (W)]",
+   "file": "build/power.rpt",
+   "line": 36,
+   "locator": "sed -n '36p' build/power.rpt | awk -F('|') '{print $3}'",
+   "value": "2.213"
+  },
+  {
+   "col": 2,
+   "field": "summary[Device Static (W)]",
+   "file": "build/power.rpt",
+   "line": 37,
+   "locator": "sed -n '37p' build/power.rpt | awk -F('|') '{print $3}'",
+   "value": "0.178"
+  },
+  {
+   "col": 2,
+   "field": "summary[Effective TJA (C/W)]",
+   "file": "build/power.rpt",
+   "line": 38,
+   "locator": "sed -n '38p' build/power.rpt | awk -F('|') '{print $3}'",
+   "value": "11.5"
+  },
+  {
+   "col": 2,
+   "field": "summary[Max Ambient (C)]",
+   "file": "build/power.rpt",
+   "line": 39,
+   "locator": "sed -n '39p' build/power.rpt | awk -F('|') '{print $3}'",
+   "value": "57.4"
+  },
+  {
+   "col": 2,
+   "field": "summary[Junction Temperature (C)]",
+   "file": "build/power.rpt",
+   "line": 40,
+   "locator": "sed -n '40p' build/power.rpt | awk -F('|') '{print $3}'",
+   "value": "52.6"
+  },
+  {
+   "col": 2,
+   "field": "summary[Confidence Level]",
+   "file": "build/power.rpt",
+   "line": 41,
+   "locator": "sed -n '41p' build/power.rpt | awk -F('|') '{print $3}'",
+   "value": "Low"
+  },
+  {
+   "col": 2,
+   "field": "summary[Setting File]",
+   "file": "build/power.rpt",
+   "line": 42,
+   "locator": "sed -n '42p' build/power.rpt | awk -F('|') '{print $3}'",
+   "value": "---"
+  },
+  {
+   "col": 2,
+   "field": "summary[Simulation Activity File]",
+   "file": "build/power.rpt",
+   "line": 43,
+   "locator": "sed -n '43p' build/power.rpt | awk -F('|') '{print $3}'",
+   "value": "---"
+  },
+  {
+   "col": 2,
+   "field": "summary[Design Nets Matched]",
+   "file": "build/power.rpt",
+   "line": 44,
+   "locator": "sed -n '44p' build/power.rpt | awk -F('|') '{print $3}'",
+   "value": "NA"
+  },
+  {
+   "col": 2,
+   "field": "table[1.1 On-Chip Components].Clocks.Power (W)",
+   "file": "build/power.rpt",
+   "line": 55,
+   "locator": "sed -n '55p' build/power.rpt | awk -F('|') '{print $3}'",
+   "value": "0.045"
+  },
+  {
+   "col": 2,
+   "field": "table[1.1 On-Chip Components].Slice Logic.Power (W)",
+   "file": "build/power.rpt",
+   "line": 56,
+   "locator": "sed -n '56p' build/power.rpt | awk -F('|') '{print $3}'",
+   "value": "0.031"
+  },
+  {
+   "col": 2,
+   "field": "table[1.1 On-Chip Components].LUT as Logic.Power (W)",
+   "file": "build/power.rpt",
+   "line": 57,
+   "locator": "sed -n '57p' build/power.rpt | awk -F('|') '{print $3}'",
+   "value": "0.024"
+  },
+  {
+   "col": 2,
+   "field": "table[1.2 Power Supply Summary].Vccint.Voltage (V)",
+   "file": "build/power.rpt",
+   "line": 81,
+   "locator": "sed -n '81p' build/power.rpt | awk -F('|') '{print $3}'",
+   "value": "1.000"
+  },
+  {
+   "col": 2,
+   "field": "table[1.2 Power Supply Summary].Vccaux.Voltage (V)",
+   "file": "build/power.rpt",
+   "line": 82,
+   "locator": "sed -n '82p' build/power.rpt | awk -F('|') '{print $3}'",
+   "value": "1.800"
+  },
+  {
+   "col": 2,
+   "field": "table[1.2 Power Supply Summary].Vcco33.Voltage (V)",
+   "file": "build/power.rpt",
+   "line": 83,
+   "locator": "sed -n '83p' build/power.rpt | awk -F('|') '{print $3}'",
+   "value": "3.300"
+  },
+  {
+   "col": 2,
+   "field": "table[1.3 Confidence Level].Design implementation state.Confidence",
+   "file": "build/power.rpt",
+   "line": 110,
+   "locator": "sed -n '110p' build/power.rpt | awk -F('|') '{print $3}'",
+   "value": "High"
+  },
+  {
+   "col": 2,
+   "field": "table[1.3 Confidence Level].Clock nodes activity.Confidence",
+   "file": "build/power.rpt",
+   "line": 111,
+   "locator": "sed -n '111p' build/power.rpt | awk -F('|') '{print $3}'",
+   "value": "High"
+  },
+  {
+   "col": 2,
+   "field": "table[1.3 Confidence Level].I/O nodes activity.Confidence",
+   "file": "build/power.rpt",
+   "line": 112,
+   "locator": "sed -n '112p' build/power.rpt | awk -F('|') '{print $3}'",
+   "value": "Low"
+  },
+  {
+   "col": 2,
+   "field": "table[2.2 Clock Constraints].clk_fpga_0.Domain",
+   "file": "build/power.rpt",
+   "line": 144,
+   "locator": "sed -n '144p' build/power.rpt | awk -F('|') '{print $3}'",
+   "value": "u_bd/design_1_i/processing_system7_0/inst/FCLK_CLK_unbuffered[0]"
+  },
+  {
+   "col": 2,
+   "field": "table[2.2 Clock Constraints].clkfbout.Domain",
+   "file": "build/power.rpt",
+   "line": 145,
+   "locator": "sed -n '145p' build/power.rpt | awk -F('|') '{print $3}'",
+   "value": "u_idelay_clkgen/clkfbout"
+  },
+  {
+   "col": 2,
+   "field": "table[2.2 Clock Constraints].clkfbout_1.Domain",
+   "file": "build/power.rpt",
+   "line": 146,
+   "locator": "sed -n '146p' build/power.rpt | awk -F('|') '{print $3}'",
+   "value": "u_pl/u_clk/clkfbout"
+  },
+  {
+   "col": 2,
+   "field": "power_clock_constraints[clk_fpga_0].Domain",
+   "file": "build/power.rpt",
+   "line": 144,
+   "locator": "sed -n '144p' build/power.rpt | awk -F('|') '{print $3}'",
+   "value": "u_bd/design_1_i/processing_system7_0/inst/FCLK_CLK_unbuffered[0]"
+  },
+  {
+   "col": 3,
+   "field": "power_clock_constraints[clk_fpga_0].Constraint (ns)",
+   "file": "build/power.rpt",
+   "line": 144,
+   "locator": "sed -n '144p' build/power.rpt | awk -F('|') '{print $4}'",
+   "value": "10.0"
+  },
+  {
+   "col": 2,
+   "field": "power_clock_constraints[clkfbout].Domain",
+   "file": "build/power.rpt",
+   "line": 145,
+   "locator": "sed -n '145p' build/power.rpt | awk -F('|') '{print $3}'",
+   "value": "u_idelay_clkgen/clkfbout"
+  },
+  {
+   "col": 3,
+   "field": "power_clock_constraints[clkfbout].Constraint (ns)",
+   "file": "build/power.rpt",
+   "line": 145,
+   "locator": "sed -n '145p' build/power.rpt | awk -F('|') '{print $4}'",
+   "value": "20.0"
+  },
+  {
+   "col": 2,
+   "field": "power_clock_constraints[clkfbout_1].Domain",
+   "file": "build/power.rpt",
+   "line": 146,
+   "locator": "sed -n '146p' build/power.rpt | awk -F('|') '{print $3}'",
+   "value": "u_pl/u_clk/clkfbout"
+  },
+  {
+   "col": 3,
+   "field": "power_clock_constraints[clkfbout_1].Constraint (ns)",
+   "file": "build/power.rpt",
+   "line": 146,
+   "locator": "sed -n '146p' build/power.rpt | awk -F('|') '{print $4}'",
+   "value": "20.0"
+  },
+  {
+   "col": 2,
+   "field": "power_clock_constraints[clkout0_1].Domain",
+   "file": "build/power.rpt",
+   "line": 147,
+   "locator": "sed -n '147p' build/power.rpt | awk -F('|') '{print $3}'",
+   "value": "u_pl/u_clk/clkout0"
+  },
+  {
+   "col": 3,
+   "field": "power_clock_constraints[clkout0_1].Constraint (ns)",
+   "file": "build/power.rpt",
+   "line": 147,
+   "locator": "sed -n '147p' build/power.rpt | awk -F('|') '{print $4}'",
+   "value": "20.0"
+  },
+  {
+   "col": 2,
+   "field": "power_clock_constraints[clkout1_1].Domain",
+   "file": "build/power.rpt",
+   "line": 148,
+   "locator": "sed -n '148p' build/power.rpt | awk -F('|') '{print $3}'",
+   "value": "u_pl/u_clk/clkout1"
+  },
+  {
+   "col": 3,
+   "field": "power_clock_constraints[clkout1_1].Constraint (ns)",
+   "file": "build/power.rpt",
+   "line": 148,
+   "locator": "sed -n '148p' build/power.rpt | awk -F('|') '{print $4}'",
+   "value": "4.0"
+  },
+  {
+   "col": 2,
+   "field": "power_clock_constraints[clkout2].Domain",
+   "file": "build/power.rpt",
+   "line": 149,
+   "locator": "sed -n '149p' build/power.rpt | awk -F('|') '{print $3}'",
+   "value": "u_idelay_clkgen/clkout2"
+  },
+  {
+   "col": 3,
+   "field": "power_clock_constraints[clkout2].Constraint (ns)",
+   "file": "build/power.rpt",
+   "line": 149,
+   "locator": "sed -n '149p' build/power.rpt | awk -F('|') '{print $4}'",
+   "value": "5.0"
+  },
+  {
+   "col": 2,
+   "field": "power_clock_constraints[eth_rxc].Domain",
+   "file": "build/power.rpt",
+   "line": 150,
+   "locator": "sed -n '150p' build/power.rpt | awk -F('|') '{print $3}'",
+   "value": "eth_rxc"
+  },
+  {
+   "col": 3,
+   "field": "power_clock_constraints[eth_rxc].Constraint (ns)",
+   "file": "build/power.rpt",
+   "line": 150,
+   "locator": "sed -n '150p' build/power.rpt | awk -F('|') '{print $4}'",
+   "value": "8.0"
+  },
+  {
+   "col": 2,
+   "field": "power_clock_constraints[sys_clk].Domain",
+   "file": "build/power.rpt",
+   "line": 151,
+   "locator": "sed -n '151p' build/power.rpt | awk -F('|') '{print $3}'",
+   "value": "sys_clk"
+  },
+  {
+   "col": 3,
+   "field": "power_clock_constraints[sys_clk].Constraint (ns)",
+   "file": "build/power.rpt",
+   "line": 151,
+   "locator": "sed -n '151p' build/power.rpt | awk -F('|') '{print $4}'",
+   "value": "20.0"
+  }
+ ],
+ "not_measured": [
+  "banner.Speed File"
+ ],
+ "original": "build/power.rpt",
+ "pairing": {
+  "identity_from_provenance": "r118（**估算**，无仿真活动文件、无实测）",
+  "pairing_result": "PASS",
+  "provenance_file": "build/provenance.md",
+  "provenance_line": 142,
+  "provenance_md5_12": "e7be51c9e05b",
+  "provenance_sha256_16": "c8d0a5c3dab2463a",
+  "recomputed_md5_12": "e7be51c9e05b",
+  "recomputed_sha256_16": "c8d0a5c3dab2463a"
+ },
+ "parse_status": "OK",
+ "provenance_present": true,
+ "round": "r118",
+ "sections": {
+  "banner": {
+   "Characterization": "Production",
+   "Command": "report_power -file D:/Xilinx/Prj/pro/Video_Processing/build/power.rpt",
+   "Date": "Sun Oct  4 04:37:48 2026",
+   "Design": "system_top",
+   "Design State": "routed",
+   "Device": "xc7z020clg484-2",
+   "Grade": "commercial",
+   "Host": "Uie-laptop running 64-bit major release  (build 9200)",
+   "Process": "typical",
+   "Speed File": "NOT_MEASURED",
+   "Tool Version": "Vivado v.2025.2.1 (win64) Build 6403652 Thu Mar 19 19:48:24 GMT 2026"
+  },
+  "tables": [
+   {
+    "header": [],
+    "header_line": "NOT_MEASURED",
+    "rows": [
+     {
+      "cells": [
+       "Total On-Chip Power (W)",
+       "2.391"
+      ],
+      "line": 33
+     },
+     {
+      "cells": [
+       "Design Power Budget (W)",
+       "Unspecified*"
+      ],
+      "line": 34
+     },
+     {
+      "cells": [
+       "Power Budget Margin (W)",
+       "NA"
+      ],
+      "line": 35
+     },
+     {
+      "cells": [
+       "Dynamic (W)",
+       "2.213"
+      ],
+      "line": 36
+     },
+     {
+      "cells": [
+       "Device Static (W)",
+       "0.178"
+      ],
+      "line": 37
+     },
+     {
+      "cells": [
+       "Effective TJA (C/W)",
+       "11.5"
+      ],
+      "line": 38
+     },
+     {
+      "cells": [
+       "Max Ambient (C)",
+       "57.4"
+      ],
+      "line": 39
+     },
+     {
+      "cells": [
+       "Junction Temperature (C)",
+       "52.6"
+      ],
+      "line": 40
+     },
+     {
+      "cells": [
+       "Confidence Level",
+       "Low"
+      ],
+      "line": 41
+     },
+     {
+      "cells": [
+       "Setting File",
+       "---"
+      ],
+      "line": 42
+     },
+     {
+      "cells": [
+       "Simulation Activity File",
+       "---"
+      ],
+      "line": 43
+     },
+     {
+      "cells": [
+       "Design Nets Matched",
+       "NA"
+      ],
+      "line": 44
+     }
+    ],
+    "section": "1 Summary",
+    "section_line": 29,
+    "table_border_line": 32
+   },
+   {
+    "header": [
+     "On-Chip",
+     "Power (W)",
+     "Used",
+     "Available",
+     "Utilization (%)"
+    ],
+    "header_line": 53,
+    "rows": [
+     {
+      "cells": [
+       "Clocks",
+       "0.045",
+       "10",
+       "---",
+       "---"
+      ],
+      "line": 55
+     },
+     {
+      "cells": [
+       "Slice Logic",
+       "0.031",
+       "27572",
+       "---",
+       "---"
+      ],
+      "line": 56
+     },
+     {
+      "cells": [
+       "LUT as Logic",
+       "0.024",
+       "9969",
+       "53200",
+       "18.74"
+      ],
+      "line": 57
+     },
+     {
+      "cells": [
+       "LUT as Distributed RAM",
+       "0.005",
+       "4044",
+       "17400",
+       "23.24"
+      ],
+      "line": 58
+     },
+     {
+      "cells": [
+       "CARRY4",
+       "0.002",
+       "1147",
+       "13300",
+       "8.62"
+      ],
+      "line": 59
+     },
+     {
+      "cells": [
+       "Register",
+       "<0.001",
+       "8188",
+       "106400",
+       "7.70"
+      ],
+      "line": 60
+     },
+     {
+      "cells": [
+       "F7/F8 Muxes",
+       "<0.001",
+       "1249",
+       "53200",
+       "2.35"
+      ],
+      "line": 61
+     },
+     {
+      "cells": [
+       "LUT as Shift Register",
+       "<0.001",
+       "141",
+       "17400",
+       "0.81"
+      ],
+      "line": 62
+     },
+     {
+      "cells": [
+       "Others",
+       "0.000",
+       "350",
+       "---",
+       "---"
+      ],
+      "line": 63
+     },
+     {
+      "cells": [
+       "Signals",
+       "0.054",
+       "20734",
+       "---",
+       "---"
+      ],
+      "line": 64
+     },
+     {
+      "cells": [
+       "Block RAM",
+       "0.174",
+       "95.5",
+       "140",
+       "68.21"
+      ],
+      "line": 65
+     },
+     {
+      "cells": [
+       "MMCM",
+       "0.212",
+       "2",
+       "4",
+       "50.00"
+      ],
+      "line": 66
+     },
+     {
+      "cells": [
+       "DSPs",
+       "0.008",
+       "19",
+       "220",
+       "8.64"
+      ],
+      "line": 67
+     },
+     {
+      "cells": [
+       "I/O",
+       "0.156",
+       "27",
+       "200",
+       "13.50"
+      ],
+      "line": 68
+     },
+     {
+      "cells": [
+       "PS7",
+       "1.533",
+       "1",
+       "---",
+       "---"
+      ],
+      "line": 69
+     },
+     {
+      "cells": [
+       "Static Power",
+       "0.178",
+       "",
+       "",
+       ""
+      ],
+      "line": 70
+     },
+     {
+      "cells": [
+       "Total",
+       "2.391",
+       "",
+       "",
+       ""
+      ],
+      "line": 71
+     }
+    ],
+    "section": "1.1 On-Chip Components",
+    "section_line": 49,
+    "table_border_line": 52
+   },
+   {
+    "header": [
+     "Source",
+     "Voltage (V)",
+     "Total (A)",
+     "Dynamic (A)",
+     "Static (A)",
+     "Powerup (A)",
+     "Budget (A)",
+     "Margin (A)"
+    ],
+    "header_line": 79,
+    "rows": [
+     {
+      "cells": [
+       "Vccint",
+       "1.000",
+       "0.325",
+       "0.300",
+       "0.025",
+       "NA",
+       "Unspecified",
+       "NA"
+      ],
+      "line": 81
+     },
+     {
+      "cells": [
+       "Vccaux",
+       "1.800",
+       "0.139",
+       "0.120",
+       "0.018",
+       "NA",
+       "Unspecified",
+       "NA"
+      ],
+      "line": 82
+     },
+     {
+      "cells": [
+       "Vcco33",
+       "3.300",
+       "0.046",
+       "0.045",
+       "0.001",
+       "NA",
+       "Unspecified",
+       "NA"
+      ],
+      "line": 83
+     },
+     {
+      "cells": [
+       "Vcco25",
+       "2.500",
+       "0.000",
+       "0.000",
+       "0.000",
+       "NA",
+       "Unspecified",
+       "NA"
+      ],
+      "line": 84
+     },
+     {
+      "cells": [
+       "Vcco18",
+       "1.800",
+       "0.000",
+       "0.000",
+       "0.000",
+       "NA",
+       "Unspecified",
+       "NA"
+      ],
+      "line": 85
+     },
+     {
+      "cells": [
+       "Vcco15",
+       "1.500",
+       "0.000",
+       "0.000",
+       "0.000",
+       "NA",
+       "Unspecified",
+       "NA"
+      ],
+      "line": 86
+     },
+     {
+      "cells": [
+       "Vcco135",
+       "1.350",
+       "0.000",
+       "0.000",
+       "0.000",
+       "NA",
+       "Unspecified",
+       "NA"
+      ],
+      "line": 87
+     },
+     {
+      "cells": [
+       "Vcco12",
+       "1.200",
+       "0.000",
+       "0.000",
+       "0.000",
+       "NA",
+       "Unspecified",
+       "NA"
+      ],
+      "line": 88
+     },
+     {
+      "cells": [
+       "Vccaux_io",
+       "1.800",
+       "0.000",
+       "0.000",
+       "0.000",
+       "NA",
+       "Unspecified",
+       "NA"
+      ],
+      "line": 89
+     },
+     {
+      "cells": [
+       "Vccbram",
+       "1.000",
+       "0.024",
+       "0.015",
+       "0.009",
+       "NA",
+       "Unspecified",
+       "NA"
+      ],
+      "line": 90
+     },
+     {
+      "cells": [
+       "MGTAVcc",
+       "1.000",
+       "0.000",
+       "0.000",
+       "0.000",
+       "NA",
+       "Unspecified",
+       "NA"
+      ],
+      "line": 91
+     },
+     {
+      "cells": [
+       "MGTAVtt",
+       "1.200",
+       "0.000",
+       "0.000",
+       "0.000",
+       "NA",
+       "Unspecified",
+       "NA"
+      ],
+      "line": 92
+     },
+     {
+      "cells": [
+       "MGTVccaux",
+       "1.800",
+       "0.000",
+       "0.000",
+       "0.000",
+       "NA",
+       "Unspecified",
+       "NA"
+      ],
+      "line": 93
+     },
+     {
+      "cells": [
+       "Vccpint",
+       "1.000",
+       "0.762",
+       "0.722",
+       "0.039",
+       "NA",
+       "Unspecified",
+       "NA"
+      ],
+      "line": 94
+     },
+     {
+      "cells": [
+       "Vccpaux",
+       "1.800",
+       "0.061",
+       "0.051",
+       "0.010",
+       "NA",
+       "Unspecified",
+       "NA"
+      ],
+      "line": 95
+     },
+     {
+      "cells": [
+       "Vccpll",
+       "1.800",
+       "0.017",
+       "0.014",
+       "0.003",
+       "NA",
+       "Unspecified",
+       "NA"
+      ],
+      "line": 96
+     },
+     {
+      "cells": [
+       "Vcco_ddr",
+       "1.500",
+       "0.459",
+       "0.457",
+       "0.002",
+       "NA",
+       "Unspecified",
+       "NA"
+      ],
+      "line": 97
+     },
+     {
+      "cells": [
+       "Vcco_mio0",
+       "3.300",
+       "0.003",
+       "0.002",
+       "0.001",
+       "NA",
+       "Unspecified",
+       "NA"
+      ],
+      "line": 98
+     },
+     {
+      "cells": [
+       "Vcco_mio1",
+       "1.800",
+       "0.003",
+       "0.002",
+       "0.001",
+       "NA",
+       "Unspecified",
+       "NA"
+      ],
+      "line": 99
+     },
+     {
+      "cells": [
+       "Vccadc",
+       "1.800",
+       "0.020",
+       "0.000",
+       "0.020",
+       "NA",
+       "Unspecified",
+       "NA"
+      ],
+      "line": 100
+     }
+    ],
+    "section": "1.2 Power Supply Summary",
+    "section_line": 75,
+    "table_border_line": 78
+   },
+   {
+    "header": [
+     "User Input Data",
+     "Confidence",
+     "Details",
+     "Action"
+    ],
+    "header_line": 108,
+    "rows": [
+     {
+      "cells": [
+       "Design implementation state",
+       "High",
+       "Design is routed",
+       ""
+      ],
+      "line": 110
+     },
+     {
+      "cells": [
+       "Clock nodes activity",
+       "High",
+       "User specified more than 95% of clocks",
+       ""
+      ],
+      "line": 111
+     },
+     {
+      "cells": [
+       "I/O nodes activity",
+       "Low",
+       "More than 75% of inputs are missing user specification",
+       "Provide missing input activity with simulation results or by editing the \"By Resource Type -> I/Os\" view"
+      ],
+      "line": 112
+     },
+     {
+      "cells": [
+       "Internal nodes activity",
+       "Medium",
+       "User specified less than 25% of internal nodes",
+       "Provide missing internal nodes activity with simulation results or by editing the \"By Resource Type\" views"
+      ],
+      "line": 113
+     },
+     {
+      "cells": [
+       "Device models",
+       "High",
+       "Device models are Production",
+       ""
+      ],
+      "line": 114
+     },
+     {
+      "cells": [
+       "Overall confidence level",
+       "Low",
+       "",
+       ""
+      ],
+      "line": 116
+     }
+    ],
+    "section": "1.3 Confidence Level",
+    "section_line": 104,
+    "table_border_line": 107
+   },
+   {
+    "header": [
+     "Clock",
+     "Domain",
+     "Constraint (ns)"
+    ],
+    "header_line": 142,
+    "rows": [
+     {
+      "cells": [
+       "clk_fpga_0",
+       "u_bd/design_1_i/processing_system7_0/inst/FCLK_CLK_unbuffered[0]",
+       "10.0"
+      ],
+      "line": 144
+     },
+     {
+      "cells": [
+       "clkfbout",
+       "u_idelay_clkgen/clkfbout",
+       "20.0"
+      ],
+      "line": 145
+     },
+     {
+      "cells": [
+       "clkfbout_1",
+       "u_pl/u_clk/clkfbout",
+       "20.0"
+      ],
+      "line": 146
+     },
+     {
+      "cells": [
+       "clkout0_1",
+       "u_pl/u_clk/clkout0",
+       "20.0"
+      ],
+      "line": 147
+     },
+     {
+      "cells": [
+       "clkout1_1",
+       "u_pl/u_clk/clkout1",
+       "4.0"
+      ],
+      "line": 148
+     },
+     {
+      "cells": [
+       "clkout2",
+       "u_idelay_clkgen/clkout2",
+       "5.0"
+      ],
+      "line": 149
+     },
+     {
+      "cells": [
+       "eth_rxc",
+       "eth_rxc",
+       "8.0"
+      ],
+      "line": 150
+     },
+     {
+      "cells": [
+       "sys_clk",
+       "sys_clk",
+       "20.0"
+      ],
+      "line": 151
+     }
+    ],
+    "section": "2.2 Clock Constraints",
+    "section_line": 138,
+    "table_border_line": 141
+   }
+  ]
+ }
+}

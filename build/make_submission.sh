@@ -65,7 +65,10 @@ SIM_PLAIN=(tb_link_monitor tb_zoom_mapper tb_rotate_window tb_cdc_capacity tb_ic
 SIM_KEEP=("${!SIM_MAP[@]}" "${SIM_PLAIN[@]}")
 
 # ---- 硬剔除：被否决的轮次、探针与构建中间物、零引用 RTL ----
-HARD_DROP_RE='^build/(failed_|red_|multidrive_|exp_|strprobe|uram_probe|micro_rd|ps_obj|snap_|r[0-9]+_|build/|vivado_system/|__pycache__/)|^docs/walkthrough/|^sim/(probes|msim|v98run|xtest|tagchk|syntaxchk|v100run2)/|^src/rtl/(axi/axi_frame_writer|eth/axi_frame_saver|video/frame_buffer_db|video/video_timing_720p)\.v$'
+# 2026-10-07：`vivado_system/` 与 `vitis/` 是**仓库里**那份可打开的工程（评委 clone 后直接看块设计与
+# IP，不必先跑完构建）；它们不进提交包，包里走 `board/` 的工程文本 + `build/tcl/` 一条命令重建。
+# 这两条前缀必须在 HARD_DROP_RE 里：KEEP_ALWAYS_RE 会按扩展名把 .gen 下的 .v/.xdc 全捞回来。
+HARD_DROP_RE='^vivado_system/|^vitis/|^build/(failed_|red_|multidrive_|exp_|strprobe|uram_probe|micro_rd|ps_obj|snap_|r[0-9]+_|build/|vivado_system/|__pycache__/)|^docs/walkthrough/|^sim/(probes|msim|v98run|xtest|tagchk|syntaxchk|v100run2)/|^src/rtl/(axi/axi_frame_writer|eth/axi_frame_saver|video/frame_buffer_db|video/video_timing_720p)\.v$'
 PRUNE_ONEOFF=(
   build/tcl/apply_cdc_report.tcl build/tcl/micro_rd.tcl
   build/tcl/uram_presence.tcl build/tcl/uram_sites.tcl
@@ -669,6 +672,38 @@ for b in build/system.bit build/system.xsa build/ps_app.elf; do
   if [ -f "$REPO/$b" ]; then cp "$REPO/$b" "board/project/$(basename "$b")"; fi
 done
 
+# ---- 3.8c Vivado 工程与 Vitis 平台两棵**整棵**随包（2026-10-07 用户口径："完整工程"要在包里看得见）----
+# 仓库布局不动（工程仍在仓库根），只有包多这一层；取的是 **git 里的字节**而不是工作树，
+# 所以重开工程长出来的噪声（`.cache`、`.ip_user_files`、`.jou/.log/.str`）不会被顺手带出去。
+# 这一层**不走上面"按引用留凭据"那套筛法**：块设计与 IP 配置少一个文件就打不开，所以整棵搬。
+# ⚠ `git archive` 的语法是 `archive <tree-ish> [<path>…>]`：少写 `HEAD` 时第一个参数 `vivado_system`
+#   被当成 tree-ish，git 报 `fatal: not a valid object name: vivado_system`、tar 接着报
+#   `does not look like a tar archive`（2026-10-07 16:1x 第一次实跑死在这一步；
+#   下面的落地数判据把它接住了，`REFUSE … 不写 $OUT`，上一版包 13 MB 原样还在）。
+mkdir -p board
+if git -C "$REPO" archive --format=tar HEAD -- vivado_system vitis | tar -x -C "$TMP/board"; then
+  VS_N="$( { find board/vivado_system -type f 2>/dev/null || true; } | wc -l | tr -d ' ')"
+  VT_N="$( { find board/vitis -type f 2>/dev/null || true; } | wc -l | tr -d ' ')"
+else
+  VS_N=0; VT_N=0
+fi
+if [ "${VS_N:-0}" -lt 1 ] || [ "${VT_N:-0}" -lt 1 ]; then
+  echo "REFUSE：工程两棵没整棵进包（board/vivado_system=${VS_N:-0} board/vitis=${VT_N:-0}）⇒ 不写 $OUT" >&2
+  exit 1
+fi
+echo "工程两棵随包：board/vivado_system $VS_N 支 + board/vitis $VT_N 支 = $((VS_N+VT_N)) 支（整棵，取 git 里的字节，不按引用筛）" >> _pruned.txt
+# 活文档里的**裸路径**指路跟着换层。守卫 `[^/[:alnum:]_.-]` 让已带 `board/` 前缀的那一处不匹配，
+# 所以这条规则可以重跑而不会写成 `board/board/…`（改名规则最常见的两种坏法：漏一层、套两层）。
+TREE_N=0
+for f in $(live_docs); do
+  [ -f "$f" ] || continue
+  grep -qE '(^|[^/[:alnum:]_.-])(vivado_system|vitis)/' "$f" 2>/dev/null || continue
+  sed -i -E -e 's#(^|[^/[:alnum:]_.-])vivado_system/#\1board/vivado_system/#g' \
+            -e 's#(^|[^/[:alnum:]_.-])vitis/#\1board/vitis/#g' "$f"
+  TREE_N=$((TREE_N+1))
+done
+echo "改口：$TREE_N 份活文档里 Vivado 工程与 Vitis 平台两棵的裸路径指路，改指包内 board/ 下的那一层（脚本正文不动，它们说的是仓库位置）" >> _pruned.txt
+
 # ---- 3.9 被剪掉的**仓库工具**，活文档里的指路就地改口 ----
 # 剪掉文件而不改指路 = 亲手造死链接（上一版就是这么被自检拒绝落盘的：25 条里全是这一类）。
 # 改口只动"活文档"，`report/log/` 里的日记保持原样 —— 那里写的是"当时那天跑的是哪个脚本"，
@@ -697,6 +732,12 @@ done
 # 改口后的文字里不许再留着斜杠形状：死链自检就是照形状从文档里抓 `build/x.txt` 的，
 # 留下形状等于留了个问题却没留下文件（"仓库回归台架"那一条定的就是同一写法：换说法，别留壳）。
 # 一次生成 sed 表、一遍跑完：这里曾有 245 条剪枝名，逐条 spawn grep/sed 会把这个脚本变成十分钟。
+# 2026-10-07 17:40 实测过一次失败：这一行的报错是 `_prune_map.sed: No such file or directory`，
+# 读起来像"文件不存在"，其实是**脚本的工作目录（$TMP，第 130 行 cd 进去的临时树）在这一刻已经没了**——
+# 重定向失败报的是目标路径，不是命令名。所以这里先验目录、再重新锚一次 cd，并把原因说成人话：
+# 本轮不落盘（$OUT 保持上一版），而不是让后面 400 行在一个不存在的目录里造出半棵树。
+[ -d "$TMP" ] || { echo "REFUSE：工作目录 \$TMP 已经不在了（$TMP）⇒ 临时树被外部删过，本轮不落盘，请先查有没有别的 make_submission 实例在跑"; exit 1; }
+cd "$TMP" || { echo "REFUSE：进不去工作目录 $TMP"; exit 1; }
 : > _prune_map.sed
 # 通用对称（#341 的正面修法）：**剪掉一个具体文件，就必须有一条把它的指路改口的规则**。
 # 原来只有 BUILD_DEV_ONLY / DOC_EXCLUDE / BUILD_PRUNED 三个**子集**在生成规则，而
@@ -986,19 +1027,43 @@ cat > MANIFEST.txt <<EOF
                                      + reports/**（这一版的综合/实现报告）+ 入口脚本 gates.sh
   board/      工程/脚本/实测输出    <- project/**（板上那一版 .bit/.elf/.xsa）
                                      + tcl|scripts/**（JTAG 与串口脚本）+ output/**（实测输出）
+                                     + measured/**、compare/**、evidence_r*/**（板级读数、差分辨识、串口抓包）
+                                     + vivado_system/**（Vivado 工程整棵副本，$(find board/vivado_system -type f 2>/dev/null | wc -l) 支）+ vitis/**（Vitis 平台整棵副本，$(find board/vitis -type f 2>/dev/null | wc -l) 支）
+                                       —— 这两棵在仓库里住在根目录，随包搬到板级这一层，包内活文档的指路已跟着改口；
+                                          脚本正文（board/scripts/、build/）仍按仓库布局写，在包里跑要先补一层 board/
   data/       测试数据与参考结果    <- data/golden/**、data/measured/**
   skills/      技能包                <- skills/**（README.md 是索引；条目外壳按 §3.3.5.2 就叫 SKILL.md）
-  report/     设计报告 + 协作记录   <- 仓库里的 report/（交付文档），工作记录在 report/log/
-  ——  以下两层是"其他组织方式"的一部分，对照说明同样写在 README.md / report/README.md：
-  docs/       度量、名册与逐轮台账  <- 仓库里的 docs/（含 docs/timing/ 的逐时钟名册）；
-                                      它与 report/ 的分工：report/ 讲结论，docs/ 放支撑结论的表与逐轮读数
-  submit/     评审阅读路径          <- 仓库里的 submit/（八章分章 + reproduce/），不复制数字
+  report/     设计报告 + 协作记录   <- 仓库里的 report/（交付文档 + collaboration/ + figures/）
+  ——  逐轮台账（report/log/issues.md）与逐时钟名册（report/timing/）不在本包、也不在交付分支上：
+      它们住在同一仓库的过程分支，交付分支只带结论层。本包内的支撑数据是 build/reports/**（这一版的
+      综合/实现报告）、board/output/** 与 board/measured/**（板级实测读数）、data/**（测试数据与参考结果）。
+      早先这一版对照里写过 docs/ 与 submit/ 两层——现量 git ls-files 各 0 支（改名与迁出之后仓库里已无这两层），故删。
 
 板上那一份（位流与固件仓库不跟踪，按 md5 认身份，不靠文件名）：
 $(for f in board/project/*; do if [ -f "$f" ]; then printf '  %-14s md5 %s\n' "$(basename "$f")" "$(md5sum "$f" | cut -c1-12)"; fi; done)  门禁凭据: $GATES_FOR_BIT
 
 自检: 活文档死链 $DEAD 条（0 才算过，射程 $DEADSCAN 份活文档由 find 现算）／被改名台架的旧名残留 $STALE／绝对路径（甲 可执行件 + 乙 复现入口文档）$ABSN 条（另有叙述层 $NARR_LINES 行只报数，那些是"当时读的是哪一份"的凭据）
 EOF
+
+# ---- 3.11d 包根每一层都要在 MANIFEST 里被回答过一次（2026-10-07 加的，起因是我把两棵工程整棵搬进包内，
+#       那 2443 支占了包内八成文件数，而 MANIFEST 的目录对照一行都没提；四条老自校与五把文本尺子都不读
+#       MANIFEST 的正文，所以"声明少了"这件事当时没有任何东西会响）。
+#       判法按形状不按名单：包内**顶层目录**每一层、以及**文件数 ≥300 的二级目录**，
+#       名字都必须出现在 MANIFEST.txt 里；一条都没核到 ⇒ 报 NOT_MEASURED（不许念成"声明齐了"）。
+UNDECL=""; DECL_N=0
+for d in */ ; do
+  dn="${d%/}"; DECL_N=$((DECL_N + 1))
+  grep -qF -- "$dn/" MANIFEST.txt || UNDECL="$UNDECL $dn/"
+done
+for d in */*/ ; do
+  n=$(find "$d" -type f 2>/dev/null | wc -l)
+  [ "$n" -ge 300 ] || continue
+  DECL_N=$((DECL_N + 1))
+  grep -qF -- "$(basename "$d")" MANIFEST.txt || UNDECL="$UNDECL $d($n 支)"
+done
+echo "MANIFEST 声明核对：核到 $DECL_N 层（顶层全部 + 二级里 ≥300 支的），未点名=$( [ -n "$UNDECL" ] && echo "$UNDECL" || echo 0 )"
+if [ "$DECL_N" -eq 0 ]; then echo "REFUSE：声明核对一层都没核到 ⇒ 这一层没接上，别念成「声明齐」"; exit 1; fi
+if [ -n "$UNDECL" ]; then echo "REFUSE：这些层在包里却没有在 MANIFEST 里说明：$UNDECL ⇒ 不写 $OUT（补说明，别删件）"; exit 1; fi
 
 echo
 echo "导出提交 $COMMIT：$files 个文件 / $bytes，剪掉 $removed 条，死链 $DEAD，旧名残留 $STALE，绝对路径 $ABSN"

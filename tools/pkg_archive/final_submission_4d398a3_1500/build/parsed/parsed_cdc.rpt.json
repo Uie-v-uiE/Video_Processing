@@ -1,0 +1,465 @@
+{
+ "field_positions": [
+  {
+   "col": "NOT_MEASURED",
+   "field": "banner.Tool Version",
+   "file": "build/cdc.rpt",
+   "line": 3,
+   "locator": "sed -n '3p' build/cdc.rpt",
+   "value": "Vivado v.2025.2.1 (win64) Build 6403652 Thu Mar 19 19:48:24 GMT 2026"
+  },
+  {
+   "col": "NOT_MEASURED",
+   "field": "banner.Date",
+   "file": "build/cdc.rpt",
+   "line": 4,
+   "locator": "sed -n '4p' build/cdc.rpt",
+   "value": "Sun Oct  4 04:37:32 2026"
+  },
+  {
+   "col": "NOT_MEASURED",
+   "field": "banner.Host",
+   "file": "build/cdc.rpt",
+   "line": 5,
+   "locator": "sed -n '5p' build/cdc.rpt",
+   "value": "Uie-laptop running 64-bit major release  (build 9200)"
+  },
+  {
+   "col": "NOT_MEASURED",
+   "field": "banner.Command",
+   "file": "build/cdc.rpt",
+   "line": 6,
+   "locator": "sed -n '6p' build/cdc.rpt",
+   "value": "report_cdc -file D:/Xilinx/Prj/pro/Video_Processing/build/cdc.rpt"
+  },
+  {
+   "col": "NOT_MEASURED",
+   "field": "banner.Design",
+   "file": "build/cdc.rpt",
+   "line": 7,
+   "locator": "sed -n '7p' build/cdc.rpt",
+   "value": "system_top"
+  },
+  {
+   "col": "NOT_MEASURED",
+   "field": "banner.Device",
+   "file": "build/cdc.rpt",
+   "line": 8,
+   "locator": "sed -n '8p' build/cdc.rpt",
+   "value": "7z020-clg484"
+  },
+  {
+   "col": "NOT_MEASURED",
+   "field": "banner.Speed File",
+   "file": "build/cdc.rpt",
+   "line": 9,
+   "locator": "sed -n '9p' build/cdc.rpt",
+   "value": "-2  PRODUCTION 1.12 2019-11-22"
+  },
+  {
+   "col": "NOT_MEASURED",
+   "field": "banner.Design State",
+   "file": "build/cdc.rpt",
+   "line": 10,
+   "locator": "sed -n '10p' build/cdc.rpt",
+   "value": "Routed"
+  },
+  {
+   "col": "NOT_MEASURED",
+   "field": "banner.Grade",
+   "file": "build/cdc.rpt",
+   "line": "NOT_MEASURED",
+   "locator": "grep -n '<锚点文本>' build/cdc.rpt（本轮没定位到 ⇒ NOT_MEASURED）",
+   "value": "NOT_MEASURED"
+  },
+  {
+   "col": "NOT_MEASURED",
+   "field": "banner.Process",
+   "file": "build/cdc.rpt",
+   "line": "NOT_MEASURED",
+   "locator": "grep -n '<锚点文本>' build/cdc.rpt（本轮没定位到 ⇒ NOT_MEASURED）",
+   "value": "NOT_MEASURED"
+  },
+  {
+   "col": "NOT_MEASURED",
+   "field": "banner.Characterization",
+   "file": "build/cdc.rpt",
+   "line": "NOT_MEASURED",
+   "locator": "grep -n '<锚点文本>' build/cdc.rpt（本轮没定位到 ⇒ NOT_MEASURED）",
+   "value": "NOT_MEASURED"
+  },
+  {
+   "col": 6,
+   "field": "cdc[clk_fpga_0>clkout0_1].Endpoints",
+   "file": "build/cdc.rpt",
+   "line": 17,
+   "locator": "awk 'NR==17{print $6}' build/cdc.rpt",
+   "value": "Primary"
+  },
+  {
+   "col": 8,
+   "field": "cdc[clk_fpga_0>clkout0_1].Unsafe",
+   "file": "build/cdc.rpt",
+   "line": 17,
+   "locator": "awk 'NR==17{print $8}' build/cdc.rpt",
+   "value": "Asynch"
+  },
+  {
+   "col": 6,
+   "field": "cdc[sys_clk>eth_rxc].Endpoints",
+   "file": "build/cdc.rpt",
+   "line": 18,
+   "locator": "awk 'NR==18{print $6}' build/cdc.rpt",
+   "value": "Primary"
+  },
+  {
+   "col": 8,
+   "field": "cdc[sys_clk>eth_rxc].Unsafe",
+   "file": "build/cdc.rpt",
+   "line": 18,
+   "locator": "awk 'NR==18{print $8}' build/cdc.rpt",
+   "value": "Asynch"
+  },
+  {
+   "col": 6,
+   "field": "cdc[clkout0_1>clk_fpga_0].Endpoints",
+   "file": "build/cdc.rpt",
+   "line": 19,
+   "locator": "awk 'NR==19{print $6}' build/cdc.rpt",
+   "value": "Primary"
+  },
+  {
+   "col": 8,
+   "field": "cdc[clkout0_1>clk_fpga_0].Unsafe",
+   "file": "build/cdc.rpt",
+   "line": 19,
+   "locator": "awk 'NR==19{print $8}' build/cdc.rpt",
+   "value": "Asynch"
+  },
+  {
+   "col": 6,
+   "field": "cdc[eth_rxc>clk_fpga_0].Endpoints",
+   "file": "build/cdc.rpt",
+   "line": 20,
+   "locator": "awk 'NR==20{print $6}' build/cdc.rpt",
+   "value": "Primary"
+  },
+  {
+   "col": 8,
+   "field": "cdc[eth_rxc>clk_fpga_0].Unsafe",
+   "file": "build/cdc.rpt",
+   "line": 20,
+   "locator": "awk 'NR==20{print $8}' build/cdc.rpt",
+   "value": "Asynch"
+  },
+  {
+   "col": 6,
+   "field": "cdc[clk_fpga_0>eth_rxc].Endpoints",
+   "file": "build/cdc.rpt",
+   "line": 21,
+   "locator": "awk 'NR==21{print $6}' build/cdc.rpt",
+   "value": "Primary"
+  },
+  {
+   "col": 8,
+   "field": "cdc[clk_fpga_0>eth_rxc].Unsafe",
+   "file": "build/cdc.rpt",
+   "line": 21,
+   "locator": "awk 'NR==21{print $8}' build/cdc.rpt",
+   "value": "Asynch"
+  },
+  {
+   "col": 6,
+   "field": "cdc[input>port].Endpoints",
+   "file": "build/cdc.rpt",
+   "line": 22,
+   "locator": "awk 'NR==22{print $6}' build/cdc.rpt",
+   "value": "No"
+  },
+  {
+   "col": 8,
+   "field": "cdc[input>port].Unsafe",
+   "file": "build/cdc.rpt",
+   "line": 22,
+   "locator": "awk 'NR==22{print $8}' build/cdc.rpt",
+   "value": "Primary"
+  },
+  {
+   "col": 6,
+   "field": "cdc[eth_rxc>clkout0_1].Endpoints",
+   "file": "build/cdc.rpt",
+   "line": 23,
+   "locator": "awk 'NR==23{print $6}' build/cdc.rpt",
+   "value": "Primary"
+  },
+  {
+   "col": 8,
+   "field": "cdc[eth_rxc>clkout0_1].Unsafe",
+   "file": "build/cdc.rpt",
+   "line": 23,
+   "locator": "awk 'NR==23{print $8}' build/cdc.rpt",
+   "value": "Asynch"
+  },
+  {
+   "col": 6,
+   "field": "cdc[sys_clk>clkout0_1].Endpoints",
+   "file": "build/cdc.rpt",
+   "line": 24,
+   "locator": "awk 'NR==24{print $6}' build/cdc.rpt",
+   "value": "None"
+  },
+  {
+   "col": 8,
+   "field": "cdc[sys_clk>clkout0_1].Unsafe",
+   "file": "build/cdc.rpt",
+   "line": 24,
+   "locator": "awk 'NR==24{print $8}' build/cdc.rpt",
+   "value": "231"
+  },
+  {
+   "col": 6,
+   "field": "cdc[clkout0_1>sys_clk].Endpoints",
+   "file": "build/cdc.rpt",
+   "line": 25,
+   "locator": "awk 'NR==25{print $6}' build/cdc.rpt",
+   "value": "None"
+  },
+  {
+   "col": 8,
+   "field": "cdc[clkout0_1>sys_clk].Unsafe",
+   "file": "build/cdc.rpt",
+   "line": 25,
+   "locator": "awk 'NR==25{print $8}' build/cdc.rpt",
+   "value": "19"
+  }
+ ],
+ "not_measured": [
+  "banner.Grade",
+  "banner.Process",
+  "banner.Characterization"
+ ],
+ "original": "build/cdc.rpt",
+ "pairing": {
+  "identity_from_provenance": "r118",
+  "pairing_result": "PASS",
+  "provenance_file": "build/provenance.md",
+  "provenance_line": 140,
+  "provenance_md5_12": "443785a20f42",
+  "provenance_sha256_16": "e6cef709d6b87eb3",
+  "recomputed_md5_12": "443785a20f42",
+  "recomputed_sha256_16": "e6cef709d6b87eb3"
+ },
+ "parse_status": "OK",
+ "provenance_present": true,
+ "round": "r118",
+ "sections": {
+  "banner": {
+   "Characterization": "NOT_MEASURED",
+   "Command": "report_cdc -file D:/Xilinx/Prj/pro/Video_Processing/build/cdc.rpt",
+   "Date": "Sun Oct  4 04:37:32 2026",
+   "Design": "system_top",
+   "Design State": "Routed",
+   "Device": "7z020-clg484",
+   "Grade": "NOT_MEASURED",
+   "Host": "Uie-laptop running 64-bit major release  (build 9200)",
+   "Process": "NOT_MEASURED",
+   "Speed File": "-2  PRODUCTION 1.12 2019-11-22",
+   "Tool Version": "Vivado v.2025.2.1 (win64) Build 6403652 Thu Mar 19 19:48:24 GMT 2026"
+  },
+  "table": {
+   "header_cells": [
+    "Severity",
+    "Source",
+    "Clock",
+    "Destination",
+    "Clock",
+    "CDC",
+    "Type",
+    "Exceptions",
+    "Endpoints",
+    "Safe",
+    "Unsafe",
+    "Unknown",
+    "No",
+    "ASYNC_REG"
+   ],
+   "header_line": 15,
+   "row_count": 9,
+   "rows": [
+    {
+     "cells": {
+      "col1": "Critical",
+      "col10": "Groups",
+      "col11": "103",
+      "col12": "102",
+      "col13": "1",
+      "col14": "0",
+      "col15": "2",
+      "col2": "clk_fpga_0",
+      "col3": "clkout0_1",
+      "col4": "No",
+      "col5": "Common",
+      "col6": "Primary",
+      "col7": "Clock",
+      "col8": "Asynch",
+      "col9": "Clock"
+     },
+     "line": 17
+    },
+    {
+     "cells": {
+      "col1": "Critical",
+      "col10": "Groups",
+      "col11": "1968",
+      "col12": "1436",
+      "col13": "2",
+      "col14": "530",
+      "col15": "0",
+      "col2": "sys_clk",
+      "col3": "eth_rxc",
+      "col4": "No",
+      "col5": "Common",
+      "col6": "Primary",
+      "col7": "Clock",
+      "col8": "Asynch",
+      "col9": "Clock"
+     },
+     "line": 18
+    },
+    {
+     "cells": {
+      "col1": "Warning",
+      "col10": "Groups",
+      "col11": "28",
+      "col12": "28",
+      "col13": "0",
+      "col14": "0",
+      "col15": "0",
+      "col2": "clkout0_1",
+      "col3": "clk_fpga_0",
+      "col4": "No",
+      "col5": "Common",
+      "col6": "Primary",
+      "col7": "Clock",
+      "col8": "Asynch",
+      "col9": "Clock"
+     },
+     "line": 19
+    },
+    {
+     "cells": {
+      "col1": "Warning",
+      "col10": "Groups",
+      "col11": "271",
+      "col12": "271",
+      "col13": "0",
+      "col14": "0",
+      "col15": "0",
+      "col2": "eth_rxc",
+      "col3": "clk_fpga_0",
+      "col4": "No",
+      "col5": "Common",
+      "col6": "Primary",
+      "col7": "Clock",
+      "col8": "Asynch",
+      "col9": "Clock"
+     },
+     "line": 20
+    },
+    {
+     "cells": {
+      "col1": "Warning",
+      "col10": "Groups",
+      "col11": "15",
+      "col12": "15",
+      "col13": "0",
+      "col14": "0",
+      "col15": "0",
+      "col2": "clk_fpga_0",
+      "col3": "eth_rxc",
+      "col4": "No",
+      "col5": "Common",
+      "col6": "Primary",
+      "col7": "Clock",
+      "col8": "Asynch",
+      "col9": "Clock"
+     },
+     "line": 21
+    },
+    {
+     "cells": {
+      "col1": "Warning",
+      "col10": "False",
+      "col11": "Path",
+      "col12": "2",
+      "col13": "2",
+      "col14": "0",
+      "col15": "0",
+      "col16": "2",
+      "col2": "input",
+      "col3": "port",
+      "col4": "clock",
+      "col5": "sys_clk",
+      "col6": "No",
+      "col7": "Common",
+      "col8": "Primary",
+      "col9": "Clock"
+     },
+     "line": 22
+    },
+    {
+     "cells": {
+      "col1": "Info",
+      "col10": "Groups",
+      "col11": "1",
+      "col12": "1",
+      "col13": "0",
+      "col14": "0",
+      "col15": "0",
+      "col2": "eth_rxc",
+      "col3": "clkout0_1",
+      "col4": "No",
+      "col5": "Common",
+      "col6": "Primary",
+      "col7": "Clock",
+      "col8": "Asynch",
+      "col9": "Clock"
+     },
+     "line": 23
+    },
+    {
+     "cells": {
+      "col1": "Info",
+      "col10": "0",
+      "col11": "0",
+      "col2": "sys_clk",
+      "col3": "clkout0_1",
+      "col4": "Safely",
+      "col5": "Timed",
+      "col6": "None",
+      "col7": "231",
+      "col8": "231",
+      "col9": "0"
+     },
+     "line": 24
+    },
+    {
+     "cells": {
+      "col1": "Info",
+      "col10": "0",
+      "col11": "0",
+      "col2": "clkout0_1",
+      "col3": "sys_clk",
+      "col4": "Safely",
+      "col5": "Timed",
+      "col6": "None",
+      "col7": "19",
+      "col8": "19",
+      "col9": "0"
+     },
+     "line": 25
+    }
+   ]
+  }
+ }
+}

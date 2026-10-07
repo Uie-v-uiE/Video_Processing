@@ -404,7 +404,7 @@ if (process.argv.includes('--self')) { process.exit(selftestC2()); }
   const open = read('report/90-open-items.md');
   // 两棵树的汇总表形状不同：主线那份是 `| 1 | 【标记】 | …`，提交分支由
   // `build/submit_open_items.mjs` 生成、首列就是标记（可有可无被反引号包住）。
-  // 老正则只认前者，在提交分支永远读成 0 行 ⇒ "表空就是缺认领"那条门其实没看过表（台账 #396）。
+  // 老正则只认前者，对这份件永远读成 0 行 ⇒ "表空就是缺认领"这条门从没看过真实的表（台账 #396）。
   // 两种形状都数，行数仍为 0 就判红。
   const ROW_RE = /^\|\s*(?:\d+\s*\|\s*)?`?(?:【[^】]*】|NOT_MEASURED)`?\s*\|/;
   const rows = open === null ? -1 : open.split(/\r?\n/).filter(l => ROW_RE.test(l)).length;
