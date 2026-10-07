@@ -59,7 +59,7 @@
 | 人眼判据 E6（上电那一度） | 验收 | 读 **0**（队员原话「0度」） | — | 断电 ≥10 s 冷上电 + 只跑三步 JTAG 链 + 全程不碰 KEY1/KEY2，看屏第二行 `ROT:` | 一次 | `build/evidence/r118_eyes/`（`state.txt`、`step1_boot.txt`、`step2_program_pl.txt`、`step3_app.txt`、`uart_stat.txt`） |
 
 **这一格里没有填的东西**（`data/metrics.csv` 自己就这么写的，本章不代填）：
-端到端时延那一行有两格——第 20 行标"未报/—/待复测"，第 25 行标 33.34 ms（一轮 600 帧）；
+端到端时延只剩第 20 行那一格（未报/—/待复测）；第 25 行原挂同名、标 33.34 ms 且写"一轮 600 帧"，2026-10-07 按凭据改名"入流帧间隔（PL 内）"并把轮次写成 9000 帧 / 300 s；
 两者同表并列时**不许把 33.34 当成当前这一版的复核值**（第 20 行明写"本表不填没有复核过的数"）。
 
 ## 2. 优化前后对比表（同口径那把：B-main 第 114 批 → 发布物第 118 批）
@@ -140,7 +140,7 @@
 | ETH 入流零丢包（演示工况） | 0 | 丢帧/坏帧 | 512×300、限速 15 MB/s、目标 30 fps；PL 侧收包链自己数的；600 帧一轮，实测帧率 30.007 fps | `data/metrics.csv` 第 22 行；`report/perf_report.md` |
 | ETH 入流 300 秒长跑 | 0 | 丢帧/坏帧/重复帧 | 同工况连续 300 s；实测 29.99 fps、帧间隔平均 33.34 ms；9000 帧 | `data/metrics.csv` 第 23 行 |
 | 入流过载点 | ≥116.7 | fps | 不限速、目标 120 fps 时仍未丢字（≈36 MB/s、287 Mbps）；**这一版没顶到丢字那一点 ⇒ 不给"PL 能扛多少 fps"** | `data/metrics.csv` 第 24 行 |
-| 端到端时延（一轮 600 帧） | 33.34（min/avg/max 20 / 33.34 / 51） | ms | 起点=上位机发送时刻、终点=示相机位录到上屏；同轮墙钟交付 29.79 fps；**与第 1 张表里"未报/待复测"那一格并列时不给当前这一版借用** | `data/metrics.csv` 第 20、25 行 |
+| 入流帧间隔（PL 内，9000 帧 / 300 s 那一轮） | 33.34（min/avg/max 20 / 33.34 / 51） | ms | `gap_sum/gap_segments` 件内自报 33.3434 ms、8999 段；同轮墙钟交付 29.79 fps；不含上位机编码、网线与交换机排队，**不是端到端时延**；端到端那一格仍是"未报/待复测" | `data/metrics.csv` 第 20、25 行、`report/perf_report.md:205` |
 | 帧间隔抖动 | 33.33（min/avg/max 22 / 33.33 / 45） | ms | 30 fps 限速工况；抖动上界来自显示扫描与读口调度 | `data/metrics.csv` 第 26 行 |
 | 第 116 批带流读数（真实流量，非线速） | `drop_words=0`、`pkt_err=0`、`frames_bad=1` 不增长，两个读数一致 | — | 512×300@60 ≈ **147 Mbps**、50 s / 3001 帧 / 66.3 万包；警告 **147 Mbps 不等于 1000M 线速**，这条只证"真实流量下不丢字"；`frames_bad=1` 的归属已由回刷第 114 批的改前/改后对照查清（四读数逐格相同） | `report/timing/round_r116.md` §三 V6 与"V6 的两条未定"第 0 条；`build/evidence/r116_board/health_*.json` |
 | 第 118 批带流读数 | `drop_words=0`（两次，`eth_live=1 owner_eth=1`） | — | **同一次摘要里 `pkt_err=? frames_bad=? drop_seen=?` 三格没读出来 ⇒ NOT_MEASURED**，不许写成 0，也不许拿上一版的两次读数替它答 | `build/evidence/r118_board/bitcycle_console.txt`；`report/log/issues.md` #318；`report/06-validation.md` §4 |

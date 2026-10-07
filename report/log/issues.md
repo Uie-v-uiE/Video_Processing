@@ -14291,3 +14291,18 @@ rim 那一半本轮已用修好的入口重跑并出新件 `build/tb_edge_rim_r1
 - 证据：`build/report/clock_util.rpt` 的 g4 行——`clkout1_1` 的驱动脚是 `u_pl/u_clk/u_bufg_5x/O`、net 是 `u_pl/u_clk/clk_pix5x`；`src/rtl/clocks/clk_gen.v:15` 例化的是 PL 硬原语 `MMCME2_BASE`，`src/rtl/top/pl_video_top.v:128` 处 `clk_gen u_clk` 的 `.clk_in(sys_clk)` 是板上那 50 MHz；g0 行才是 PS7 的 `…/FCLK_CLK_0_BUFG/O`。⇒ 时钟树是两支：PS 出 `clk_fpga_0`，PL 那只 MMCM 出 `clk_pix`（= `clkout0_1` 50 MHz）与 `clk_pix5x`（= `clkout1_1` 250 MHz）与 200 MHz 抽头参考。
 - 改法仍走工具：把这一条作为第 7 组替换塞进 `build/fix_clock_roles.mjs`（三棵树同改，命中 3 份；重跑时前 6 组报"已在位 33"，幂等三态按 #414 那版判定）。改后四把文档尺子：DELIVER-SPEC 判 18 项红 0、`r125_fact_hold` 消失记号 0 且记号数只增不减（number 170→171、path 66→67、cite 6→8）、D5 硬错 0、`metric_recheck` 红 0/117。
 - 教训（与 #414 同族，但机制不同）：**修一处事实错之后，要顺着"同一件事还被谁说过"扫一遍，而不是修完那一格就走**。这次撞上的第二处不在表格里，在下一节的第一个要点里——它讲的是同一批时钟，用词却把 PL 的原语说成 PS 的。
+
+
+### 416 指标表"端到端时延"那一格定案（队选 A）：33.34 ms 是入流帧间隔，而且原来连轮次都挂错了
+
+- 队点头走 A：`data/metrics.csv:25` 改名「入流帧间隔（PL 内）」，端到端那一格（`:20`）保持 `未报` 不动。
+- 凭据三条，互相独立：
+  1. `report/perf_report.md:195` 第①条——这个读数只在 PL 内部，上位机编码、网线、交换机排队都不在里面，"不许叫端到端时延"；
+  2. `report/perf_report.md:205-208`——`min/avg/max = 20 / 33.34 / 51 ms` 属于"长跑那一行"：9000 帧 / 1,989,000 个包 / 5.02 分钟；
+  3. `board/evidence_r41/metrics_r41_soak300.md` 里 `gap_sum/gap_segments` = **33.3434 ms**（8999 段），而 600 帧那一轮（`metrics_r41_clean30.md:210`）自报 `avg_gap_ms = 33.3255` ⇒ 原第 25 行写"一轮 600 帧"是**轮次挂错**，不是口径之争。
+- 量级旁证：33.34 ms 恰等于 1 ÷ 29.99 fps 的一帧周期；真做"编码 + 排队 + 显示 16.8 ms"不会刚好落在一帧周期上。
+- 落地走工具不走手改：`build/r127_latency_rename.mjs`（三棵树、12 条规则、四态判定 命中/已改口/本树无此句/坏，Σ 必须等于规则×树，写盘前逐文件要求行数不变）。改到 8 处：`data/metrics.csv`、`report/measurements.md`、`report/technical-document.md`（两处措辞 + §7 结果表行）、`report/08-limits.md`、`report/50-results.md`（正文与表行）、`board/raw-vs-golden.md` 的 U7 源头行、主树 `report/90-open-items.md` 第 19 条处置格。
+- **一条机制账（本轮最值钱的一条）**：`report/90-open-items.md` 在提交分支里是**生成件**——由 `build/submit_open_items.mjs` 从现存文档现扫标记生成。第一次手改它的单元格，`build/r125_fact_hold.mjs` 立刻判 `DERIVED … 与生成器现算结果不一致`。正确路径是改**源头**（`board/raw-vs-golden.md:110`）再 `node build/submit_open_items.mjs --write`。**手改生成件 = 造一个当下看起来对、下一次生成就被抹掉的绿。**
+- 另一条：`number:600` 从技术文档消失后 `fact_hold` 先判红（依据消失 ⇒ 照旧红）。这次消失是**改正的结果**，所以按它自己的办法进豁免表，并带 `need: '9000 帧 / 300 s'` 守卫——正确口径哪天又丢了，豁免自动失效、重新变红。
+- 改后尺子全绿：DELIVER-SPEC 判 18 项红 0、`fact_hold` RESULT=OK（消失记号 0、豁免生效 1）、D5 硬错 0、`metric_recheck` 判 117 个数红 0 且 csv 认领 10/10、`doc_currency` 干净。
+- 学习文档同步：`LEARNING/01`（不再把它当"一轮"提）、`LEARNING/06b` 数字索引那一行改成"入流帧间隔（不是端到端）"并写明端到端仍未报、`LEARNING/07` 把"这处矛盾已按凭据关掉"的来龙去脉写进去。引用尺子 1082 条全 OK。
