@@ -14325,3 +14325,17 @@ rim 那一半本轮已用修好的入口重跑并出新件 `build/tb_edge_rim_r1
 - 十卷定稿后两层读数：第一层 判 3100 / OK 3100 / NO_FILE 0 / OUT_OF_RANGE 0；第二层 判 906（逐字 605、折竖线 0、记号齐 183、同行他条引用支撑 67、**可疑待读 51**）。
 - 51 条逐条 `grep -n` 读过：真指错 9 条（8 处行号 + 1 处片段写法 `wr_data={…}` → 源码里的非阻塞 `<=`），其余 41 条按类别记：写法不同（对齐空格/括号/位宽记法/层次前缀）27、区间记法只认起点 3、同行并列多来源或跨行续接被配到后一条 11。剩 4 条"改了会引入新误配"的形状列在副本根 `REVIEW-20261007.md` §5.2。
 - 另两条结构核查：`ARCH/A9` 原来是 CRLF（652 个 CR），已 `tr -d '\r'` 转 LF、行数不变；十卷里带"未证清单"那一节的是 8 卷，A7 与 A9 没有单列——这条已写进 `ARCH/README.md` 的第 0 条，免得那句"每卷末尾列未证"变成假话。
+
+
+### #458 交付分支上长出来的 7 支工具从没回灌过程树（双向集合差才发现）
+
+- 做"bundle 工程半棵 vs `main` 非厂商树"的逐件对账时顺带比了两棵分支的名单：`all` 有而 `main` 无 = 83（正常，那是过程件），`main` 有而 `all` 无 = **7**（不正常）。
+- 七件都是 r126/r127 那几轮在交付分支上写的工具与一份条款对照表：`build/fix_clock_roles.mjs`、`build/r126_fix_dead_cites.py`、`build/r127_demo_entry.mjs`、`build/r127_latency_rename.mjs`、`build/submit_open_items.mjs`、`build/submit_trim_cites.mjs`、`report/contest_clause_map.md`。已逐件从 `main` 取字节写入 `all`，比过摘要（忽略行尾）7/7 SAME。
+- 方法记一条：**双向集合差**才是"两棵分支只差文档层、代码逐字同"的完整判据。上一轮只数了"`all` 比 `main` 多 83"这一向，另一向没人看 ⇒ 少拷贝的洞就是这么留下的；凡是"两边只剩 X 的差异"这类结论，都得两个方向各出一行计数。
+
+### #459 bundle 工程半棵的逐件对账落成一条可重跑的工具
+
+- 工具：`Prj/pro/r128_bundle_reconcile.mjs`（在 git 之外，与 `sync_bundle.sh`、`learning_tools_mirror/` 同目录）。一次 `git archive` 出树、按"去掉 `\r` 之后的内容摘要"逐件比。
+- 读数：`判=1124 缺=0 内容不同=0 多余(bundle 有而 main 无)=86 bundle盘上半棵=1210 main非厂商=1124`。多余 86 = `all` 独有跟踪件 83 + 只住在副本里的三把 learning 尺子（`build/learning_cite_check.mjs` / `learning_anchor_spot.mjs` / `learning_fix_cites.mjs`，两棵分支都没跟踪它们）。归类：`report/timing`=21、`report/log`=13、`board/measured`=6、`build/evidence`=5、`build/runs`=2、`build/learning_*.mjs`=3。
+- 两条坑：逐件 `git show` 1124 次会死在 2 分钟的工具超时里（我先踩了一次，改成一次 `git archive HEAD -- . ':(exclude)vivado_system' ':(exclude)vitis'` 出临时树）；比较前必须去掉 `\r`，否则 autocrlf 会把 210 行的 `.gitignore` 判成"内容不同"——它盘上比 `git show` 的字节正好多 210 个字节 = 每行一个 CR，而内容逐字相同。用完的临时树要删掉，别留在 `Prj/pro` 里当下一次的假象。
+- `ARCH/` 的同一轮补记：交付文档那条"12 条 lane"改对之后，本地这套拆解文档里还有三处同一个错（索引表 A8 行、`A8…:338` 的"共 20 条"、`A7…:325` 的标题），都按 `src/host/health_read.mjs:334` 的现数 19 改口；A8 的表行也改成盘上现量（599 行 / 47 小节）。两层尺子重跑：第一层 `判=3102 OK=3102（裸路径 183）` 红 0，第二层五档逐字不变（`判=906`、可疑待读仍 51）⇒ 改口没挪走证据。
