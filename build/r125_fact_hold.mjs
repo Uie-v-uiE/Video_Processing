@@ -39,6 +39,15 @@ const EXEMPT = {
   'report/repro-check.md': [
     { tok: 'number:2.7', why: 'HEAD 里该节编号错位（## 6 之下写成 ### 2.7），已改号为 6.1', need: '实际执行过的命令' },
   ],
+  // ---- 2026-10-07：演示稿第 3 行那条 OSD `FPS:` 口径纠错。旧句写"板上现在这一版数的是显示场同步"，
+  //      与现役 RTL 矛盾：`src/rtl/util/shown_rate.v` 在树里、`u_fpsr` 已被顶层例化，而 #128 就在
+  //      第 99 批那一次采纳里（`report/40-optimization.md:75` 五行读数那一行点名 #128）⇒ 板上这一版
+  //      数的就是写进屏的新帧。屏上例子由 59 改 30、指错行号 915 改 941，都是**改正**不是丢依据。
+  'report/demo_script.md': [
+    { tok: 'cite::59', why: '屏上例子 `1024X600 FPS:59` 换成 `FPS:30`：这一格从 #128 起数新帧，例子要与代码行为一致。尺子把屏上字串 `:59` 读成行号引用属形状撞车，但记号消失本身是改正', need: 'FPS:30' },
+    { tok: 'number:915', why: '顶层 `u_fpsr` 实际在 `pl_video_top.v:941`（现量：该行就是 `shown_rate u_fpsr (`），旧文写 915 是指错行 ⇒ 少一次 915 是改行号', need: 'pl_video_top.v:941' },
+    { tok: 'cite::915', why: '同上：915 换成 941', need: 'pl_video_top.v:941' },
+  ],
   'report/ai_collaboration.md': [
     { tok: 'path:skills/references/symptom-router/SKILL.md', why: '同一段重复点名同一份技能两次，省掉一次；指路仍在', need: 'skills/references/symptom-router/SKILL.md' },
   ],
