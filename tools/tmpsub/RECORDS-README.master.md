@@ -6,7 +6,8 @@
 - 基点：第一笔是快照 `db55268`，之后每跟一次账/刷一次包就多一笔
   ⇒ **本支当前 HEAD 请用 `git ls-remote origin refs/heads/records/20261007` 现读**，这份说明件故意不写自己的提交号（写了就立刻是旧的）。
   树里的内容对齐到：交付分支 `main` = `eb5933b`（板上的位流 `cd04907e1369` / 工程 `934ebdbaa13b` / 固件 `57fa442a7eaf`，
-  三枚 md5 与 `board/README.md` 逐字符对上）、过程分支 `all` = 台账 **#475** 那一笔（`4d37225`）。
+  三枚 md5 与 `board/README.md` 逐字符对上）、过程分支 `all` = 台账到 **#476** 那一笔（两支的提交号都不写在正文里，
+  一律 `git ls-remote origin refs/heads/main`／`refs/heads/all`／`refs/heads/records/20261007` 现读）。
 - **树的内容**按可读副本 `D:\Xilinx\Prj\Video_Processing` 整棵搬（20:4x 第二次全量刷新，`cp -a`）：仓库半那
   **1223 件 = `main` 的非厂商跟踪件 1133 + `all` 独有的 87 支过程件 + 只住在副本里的三把尺子**，再加上本地六层、片源与 `tools/`。
   这里有个讲究：`ARCH/` 与 `LEARNING/` 里每一条 `文件:行号` 引的都是 **`main` 那一版**的交付文档，所以这一支必须铺 `main` 的文档层——
@@ -19,7 +20,7 @@
 
 | 层 | 件数 | 是什么 |
 |---|---|---|
-| 仓库半（`src/`、`sim/`、`build/`、`report/`、`board/`、`data/`、`skills/`、两份 README、LICENSE、三支入口脚本、`.gitignore`/`.gitattributes`） | **1223** | `main` 的非厂商跟踪件 1133 + `all` 独有的 87 支过程件（`report/log/` 台账到 #475、`report/timing/` 各轮账、`board/measured/`、`build/evidence/` 等）+ 三把本地尺子 |
+| 仓库半（`src/`、`sim/`、`build/`、`report/`、`board/`、`data/`、`skills/`、两份 README、LICENSE、三支入口脚本、`.gitignore`/`.gitattributes`） | **1223** | `main` 的非厂商跟踪件 1133 + `all` 独有的 87 支过程件（`report/log/` 台账到 #476、`report/timing/` 各轮账、`board/measured/`、`build/evidence/` 等）+ 三把本地尺子 |
 | `LEARNING/` | 10 份 `.md` / 4004 行 | 九卷 + 入口 README 的学习文档与经验总结（面向"从零开始"的读者） |
 | `ARCH/` | 11 份 `.md` / 5618 行 | 十卷 + 入口 README 的架构拆解（假定读者已会 PL/PS 与 Verilog/C）；5616 → 5618 是 #474 改那三卷单位错时留下的两行 |
 | `study_docs/` | 141 件（138 份 `.md`）/ 4.1 M | 四套学习册：`main_report_study/`（含时序四份与**今天新写的 SD 卡准备一节**）、`branch_deep_course/`、两套 course+walkthrough |
@@ -88,4 +89,6 @@
   `node build/learning_cite_check.mjs ARCH` 应读 `判=3103 OK=3103`，`node build/learning_cite_check.mjs LEARNING` 应读 `判=1092 OK=1092`；
   第二层 `learning_anchor_spot.mjs` 的读数（含 ARCH 那 51 条"可疑待读"为什么不算红）写在
   `ARCH/README.md` 与根下 `REVIEW-20261007.md` §3 第 6、19 条。
-- 逐轮账：`report/log/issues.md` 从 `all` 跟过来，条目号到最后一条应当连续（本支这次跟到 **#475**）。
+- 逐轮账：`report/log/issues.md` 从 `all` 跟过来，条目号到最后一条应当连续（本支这次跟到 **#476**）。
+  `tools/tmpsub/` 里的本轮草稿停在 #475 那一批（8 支）——**这一轮起不再往支里拷新草稿**，
+  因为每拷一支就把上面那几格"件数"读数顶旧一次（台账 #476 记的就是这件事）。
