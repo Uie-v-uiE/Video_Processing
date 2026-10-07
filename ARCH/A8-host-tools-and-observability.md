@@ -551,7 +551,7 @@ Python 侧把同样三件事压成一行：`sock.sendto(struct.pack("<I", off) +
 ### 10.2 板侧：`sd_play.c` 自己解析 FAT32
 
 不用 FatFs 的理由在文件头：BSP 的 libsrc 里没有 xilffs（只有 sdps），而卡上的文件布局是自己用 `make_sd_video.mjs` 生成的——只有 8.3 名、只有簇链，一个只读目录扫描 200 行就够，引入 FatFs 反而多一层没人验过的代码（来源：`src/ps/sd_play.c:4-6`）。
-它期望看到的东西与上位机侧对得上：`VIDEO000.BIN .. VIDEO008.BIN` 每个 512 帧 × 307200 B = 153.6 MiB，`META.TXT` 的键是 `WIDTH/HEIGHT/FRAME_BYTES/FRAMES/FPS/CHUNK_FRAMES/FILES/SOURCE` 加每文件的 `FILEi=名字 FRAMES=n BYTES=b`（来源：`src/ps/sd_play.c:8-10`）——`CHUNK_FRAMES` 与 `--chunks` 的默认 512 是同一个数（来源：`src/host/make_sd_video.mjs:37`、`src/ps/sd_play.c:10`）。
+它期望看到的东西与上位机侧对得上：`VIDEO000.BIN .. VIDEO008.BIN`，满块 512 帧 × 307200 B = **157 286 400 B = 150.0 MiB = 157.3 MB**（这一格先前写的是"153.6 MiB"：那个数只有把 1 MB 当成 1024×1000 B 才得到，即 `157286400 / 1024 / 1000 = 153.6`，是 MiB 与 MB 之间少除一次 1.024；2026-10-07 19:5x 用 `node` 现重算改对。同一句话的**源头在 `src/ps/sd_play.c:9` 的注释里**，那一处本轮没动——`ARCH/A7:392` 早就把这两个数标出来了），末块不满：本卡实测 `VIDEO008.BIN frames=302`，八满块 4096 + 302 = **4398** 与 `frames=4398` 对平（来源：`board/measured/qspi_selfboot_uart_capture_2026-10-07_1935.txt:202-210`）；`META.TXT` 的键是 `WIDTH/HEIGHT/FRAME_BYTES/FRAMES/FPS/CHUNK_FRAMES/FILES/SOURCE` 加每文件的 `FILEi=名字 FRAMES=n BYTES=b`（来源：`src/ps/sd_play.c:8-10`）——`CHUNK_FRAMES` 与 `--chunks` 的默认 512 是同一个数（来源：`src/host/make_sd_video.mjs:37`、`src/ps/sd_play.c:10`）。
 帧的落地路径刻意做成零拷贝：SD 控制器的 DMA 直接写 PL 要读的那块 DDR（来源：`src/ps/sd_play.c:12`）。
 解析规则只有一条：**行首匹配 `KEY=` 才认**，避免把 `FILE` 行里的 `FRAMES=` 当成全局帧数（来源：`src/ps/sd_play.c:291`）；这条判据本身曾经写错成指针比较、症状却是"这张卡的 META.TXT 不合格"，于是内置了"一段必须过、两段必须被拒"的三段样本自检（来源：`src/ps/sd_play.c:382-386`、`:433-436`）。
 清单被缓冲区截断时的现象：`FRAMES=512` 被切成 `FRAMES=51` ⇒ 少算的帧数是**假缺口**、卡本身没坏，同时挂出 `META.TXT longer than the buffer read - file list truncated`（来源：`src/ps/sd_play.c:368-370`）。

@@ -1,0 +1,1333 @@
+{
+ "field_positions": [
+  {
+   "col": "NOT_MEASURED",
+   "field": "banner.Tool Version",
+   "file": "build/timing_summary.rpt",
+   "line": 3,
+   "locator": "sed -n '3p' build/timing_summary.rpt",
+   "value": "Vivado v.2025.2.1 (win64) Build 6403652 Thu Mar 19 19:48:24 GMT 2026"
+  },
+  {
+   "col": "NOT_MEASURED",
+   "field": "banner.Date",
+   "file": "build/timing_summary.rpt",
+   "line": 4,
+   "locator": "sed -n '4p' build/timing_summary.rpt",
+   "value": "Sun Oct  4 04:37:30 2026"
+  },
+  {
+   "col": "NOT_MEASURED",
+   "field": "banner.Host",
+   "file": "build/timing_summary.rpt",
+   "line": 5,
+   "locator": "sed -n '5p' build/timing_summary.rpt",
+   "value": "Uie-laptop running 64-bit major release  (build 9200)"
+  },
+  {
+   "col": "NOT_MEASURED",
+   "field": "banner.Command",
+   "file": "build/timing_summary.rpt",
+   "line": 6,
+   "locator": "sed -n '6p' build/timing_summary.rpt",
+   "value": "report_timing_summary -file D:/Xilinx/Prj/pro/Video_Processing/build/timing_summary.rpt"
+  },
+  {
+   "col": "NOT_MEASURED",
+   "field": "banner.Design",
+   "file": "build/timing_summary.rpt",
+   "line": 7,
+   "locator": "sed -n '7p' build/timing_summary.rpt",
+   "value": "system_top"
+  },
+  {
+   "col": "NOT_MEASURED",
+   "field": "banner.Device",
+   "file": "build/timing_summary.rpt",
+   "line": 8,
+   "locator": "sed -n '8p' build/timing_summary.rpt",
+   "value": "7z020-clg484"
+  },
+  {
+   "col": "NOT_MEASURED",
+   "field": "banner.Speed File",
+   "file": "build/timing_summary.rpt",
+   "line": 9,
+   "locator": "sed -n '9p' build/timing_summary.rpt",
+   "value": "-2  PRODUCTION 1.12 2019-11-22"
+  },
+  {
+   "col": "NOT_MEASURED",
+   "field": "banner.Design State",
+   "file": "build/timing_summary.rpt",
+   "line": 10,
+   "locator": "sed -n '10p' build/timing_summary.rpt",
+   "value": "Routed"
+  },
+  {
+   "col": "NOT_MEASURED",
+   "field": "banner.Grade",
+   "file": "build/timing_summary.rpt",
+   "line": "NOT_MEASURED",
+   "locator": "grep -n '<锚点文本>' build/timing_summary.rpt（本轮没定位到 ⇒ NOT_MEASURED）",
+   "value": "NOT_MEASURED"
+  },
+  {
+   "col": "NOT_MEASURED",
+   "field": "banner.Process",
+   "file": "build/timing_summary.rpt",
+   "line": "NOT_MEASURED",
+   "locator": "grep -n '<锚点文本>' build/timing_summary.rpt（本轮没定位到 ⇒ NOT_MEASURED）",
+   "value": "NOT_MEASURED"
+  },
+  {
+   "col": "NOT_MEASURED",
+   "field": "banner.Characterization",
+   "file": "build/timing_summary.rpt",
+   "line": "NOT_MEASURED",
+   "locator": "grep -n '<锚点文本>' build/timing_summary.rpt（本轮没定位到 ⇒ NOT_MEASURED）",
+   "value": "NOT_MEASURED"
+  },
+  {
+   "col": 1,
+   "field": "design_timing_summary.WNS(ns)",
+   "file": "build/timing_summary.rpt",
+   "line": 151,
+   "locator": "sed -n '151p' build/timing_summary.rpt | awk '{print $1}'",
+   "value": "0.739"
+  },
+  {
+   "col": 2,
+   "field": "design_timing_summary.TNS(ns)",
+   "file": "build/timing_summary.rpt",
+   "line": 151,
+   "locator": "sed -n '151p' build/timing_summary.rpt | awk '{print $2}'",
+   "value": "0.000"
+  },
+  {
+   "col": 3,
+   "field": "design_timing_summary.TNS Failing Endpoints",
+   "file": "build/timing_summary.rpt",
+   "line": 151,
+   "locator": "sed -n '151p' build/timing_summary.rpt | awk '{print $3}'",
+   "value": "0"
+  },
+  {
+   "col": 4,
+   "field": "design_timing_summary.TNS Total Endpoints",
+   "file": "build/timing_summary.rpt",
+   "line": 151,
+   "locator": "sed -n '151p' build/timing_summary.rpt | awk '{print $4}'",
+   "value": "51135"
+  },
+  {
+   "col": 5,
+   "field": "design_timing_summary.WHS(ns)",
+   "file": "build/timing_summary.rpt",
+   "line": 151,
+   "locator": "sed -n '151p' build/timing_summary.rpt | awk '{print $5}'",
+   "value": "0.052"
+  },
+  {
+   "col": 6,
+   "field": "design_timing_summary.THS(ns)",
+   "file": "build/timing_summary.rpt",
+   "line": 151,
+   "locator": "sed -n '151p' build/timing_summary.rpt | awk '{print $6}'",
+   "value": "0.000"
+  },
+  {
+   "col": 7,
+   "field": "design_timing_summary.THS Failing Endpoints",
+   "file": "build/timing_summary.rpt",
+   "line": 151,
+   "locator": "sed -n '151p' build/timing_summary.rpt | awk '{print $7}'",
+   "value": "0"
+  },
+  {
+   "col": 8,
+   "field": "design_timing_summary.THS Total Endpoints",
+   "file": "build/timing_summary.rpt",
+   "line": 151,
+   "locator": "sed -n '151p' build/timing_summary.rpt | awk '{print $8}'",
+   "value": "51135"
+  },
+  {
+   "col": 9,
+   "field": "design_timing_summary.WPWS(ns)",
+   "file": "build/timing_summary.rpt",
+   "line": 151,
+   "locator": "sed -n '151p' build/timing_summary.rpt | awk '{print $9}'",
+   "value": "0.264"
+  },
+  {
+   "col": 10,
+   "field": "design_timing_summary.TPWS(ns)",
+   "file": "build/timing_summary.rpt",
+   "line": 151,
+   "locator": "sed -n '151p' build/timing_summary.rpt | awk '{print $10}'",
+   "value": "0.000"
+  },
+  {
+   "col": 11,
+   "field": "design_timing_summary.TPWS Failing Endpoints",
+   "file": "build/timing_summary.rpt",
+   "line": 151,
+   "locator": "sed -n '151p' build/timing_summary.rpt | awk '{print $11}'",
+   "value": "0"
+  },
+  {
+   "col": 12,
+   "field": "design_timing_summary.TPWS Total Endpoints",
+   "file": "build/timing_summary.rpt",
+   "line": 151,
+   "locator": "sed -n '151p' build/timing_summary.rpt | awk '{print $12}'",
+   "value": "12634"
+  },
+  {
+   "col": 4,
+   "field": "clock_summary[clk_fpga_0].Period(ns)",
+   "file": "build/timing_summary.rpt",
+   "line": 164,
+   "locator": "sed -n '164p' build/timing_summary.rpt | awk '{print $4}'",
+   "value": "10.000"
+  },
+  {
+   "col": 5,
+   "field": "clock_summary[clk_fpga_0].Frequency(MHz)",
+   "file": "build/timing_summary.rpt",
+   "line": 164,
+   "locator": "sed -n '164p' build/timing_summary.rpt | awk '{print $5}'",
+   "value": "100.000"
+  },
+  {
+   "col": 4,
+   "field": "clock_summary[eth_rxc].Period(ns)",
+   "file": "build/timing_summary.rpt",
+   "line": 165,
+   "locator": "sed -n '165p' build/timing_summary.rpt | awk '{print $4}'",
+   "value": "8.000"
+  },
+  {
+   "col": 5,
+   "field": "clock_summary[eth_rxc].Frequency(MHz)",
+   "file": "build/timing_summary.rpt",
+   "line": 165,
+   "locator": "sed -n '165p' build/timing_summary.rpt | awk '{print $5}'",
+   "value": "125.000"
+  },
+  {
+   "col": 4,
+   "field": "clock_summary[sys_clk].Period(ns)",
+   "file": "build/timing_summary.rpt",
+   "line": 166,
+   "locator": "sed -n '166p' build/timing_summary.rpt | awk '{print $4}'",
+   "value": "20.000"
+  },
+  {
+   "col": 5,
+   "field": "clock_summary[sys_clk].Frequency(MHz)",
+   "file": "build/timing_summary.rpt",
+   "line": 166,
+   "locator": "sed -n '166p' build/timing_summary.rpt | awk '{print $5}'",
+   "value": "50.000"
+  },
+  {
+   "col": 4,
+   "field": "clock_summary[clkfbout].Period(ns)",
+   "file": "build/timing_summary.rpt",
+   "line": 167,
+   "locator": "sed -n '167p' build/timing_summary.rpt | awk '{print $4}'",
+   "value": "20.000"
+  },
+  {
+   "col": 5,
+   "field": "clock_summary[clkfbout].Frequency(MHz)",
+   "file": "build/timing_summary.rpt",
+   "line": 167,
+   "locator": "sed -n '167p' build/timing_summary.rpt | awk '{print $5}'",
+   "value": "50.000"
+  },
+  {
+   "col": 4,
+   "field": "clock_summary[clkfbout_1].Period(ns)",
+   "file": "build/timing_summary.rpt",
+   "line": 168,
+   "locator": "sed -n '168p' build/timing_summary.rpt | awk '{print $4}'",
+   "value": "20.000"
+  },
+  {
+   "col": 5,
+   "field": "clock_summary[clkfbout_1].Frequency(MHz)",
+   "file": "build/timing_summary.rpt",
+   "line": 168,
+   "locator": "sed -n '168p' build/timing_summary.rpt | awk '{print $5}'",
+   "value": "50.000"
+  },
+  {
+   "col": 4,
+   "field": "clock_summary[clkout0_1].Period(ns)",
+   "file": "build/timing_summary.rpt",
+   "line": 169,
+   "locator": "sed -n '169p' build/timing_summary.rpt | awk '{print $4}'",
+   "value": "20.000"
+  },
+  {
+   "col": 5,
+   "field": "clock_summary[clkout0_1].Frequency(MHz)",
+   "file": "build/timing_summary.rpt",
+   "line": 169,
+   "locator": "sed -n '169p' build/timing_summary.rpt | awk '{print $5}'",
+   "value": "50.000"
+  },
+  {
+   "col": 4,
+   "field": "clock_summary[clkout1_1].Period(ns)",
+   "file": "build/timing_summary.rpt",
+   "line": 170,
+   "locator": "sed -n '170p' build/timing_summary.rpt | awk '{print $4}'",
+   "value": "4.000"
+  },
+  {
+   "col": 5,
+   "field": "clock_summary[clkout1_1].Frequency(MHz)",
+   "file": "build/timing_summary.rpt",
+   "line": 170,
+   "locator": "sed -n '170p' build/timing_summary.rpt | awk '{print $5}'",
+   "value": "250.000"
+  },
+  {
+   "col": 4,
+   "field": "clock_summary[clkout2].Period(ns)",
+   "file": "build/timing_summary.rpt",
+   "line": 171,
+   "locator": "sed -n '171p' build/timing_summary.rpt | awk '{print $4}'",
+   "value": "5.000"
+  },
+  {
+   "col": 5,
+   "field": "clock_summary[clkout2].Frequency(MHz)",
+   "file": "build/timing_summary.rpt",
+   "line": 171,
+   "locator": "sed -n '171p' build/timing_summary.rpt | awk '{print $5}'",
+   "value": "200.000"
+  },
+  {
+   "col": 2,
+   "field": "intra_clock[clk_fpga_0].WNS(ns)",
+   "file": "build/timing_summary.rpt",
+   "line": 181,
+   "locator": "sed -n '181p' build/timing_summary.rpt | awk '{print $2}'",
+   "value": "1.850"
+  },
+  {
+   "col": 4,
+   "field": "intra_clock[clk_fpga_0].TNS Failing Endpoints",
+   "file": "build/timing_summary.rpt",
+   "line": 181,
+   "locator": "sed -n '181p' build/timing_summary.rpt | awk '{print $4}'",
+   "value": "0"
+  },
+  {
+   "col": 8,
+   "field": "intra_clock[clk_fpga_0].THS Failing Endpoints",
+   "file": "build/timing_summary.rpt",
+   "line": 181,
+   "locator": "sed -n '181p' build/timing_summary.rpt | awk '{print $8}'",
+   "value": "0"
+  },
+  {
+   "col": 13,
+   "field": "intra_clock[clk_fpga_0].TPWS Total Endpoints",
+   "file": "build/timing_summary.rpt",
+   "line": 181,
+   "locator": "sed -n '181p' build/timing_summary.rpt | awk '{print $13}'",
+   "value": "4374"
+  },
+  {
+   "col": 2,
+   "field": "intra_clock[eth_rxc].WNS(ns)",
+   "file": "build/timing_summary.rpt",
+   "line": 182,
+   "locator": "sed -n '182p' build/timing_summary.rpt | awk '{print $2}'",
+   "value": "0.739"
+  },
+  {
+   "col": 4,
+   "field": "intra_clock[eth_rxc].TNS Failing Endpoints",
+   "file": "build/timing_summary.rpt",
+   "line": 182,
+   "locator": "sed -n '182p' build/timing_summary.rpt | awk '{print $4}'",
+   "value": "0"
+  },
+  {
+   "col": 8,
+   "field": "intra_clock[eth_rxc].THS Failing Endpoints",
+   "file": "build/timing_summary.rpt",
+   "line": 182,
+   "locator": "sed -n '182p' build/timing_summary.rpt | awk '{print $8}'",
+   "value": "0"
+  },
+  {
+   "col": 13,
+   "field": "intra_clock[eth_rxc].TPWS Total Endpoints",
+   "file": "build/timing_summary.rpt",
+   "line": 182,
+   "locator": "sed -n '182p' build/timing_summary.rpt | awk '{print $13}'",
+   "value": "2546"
+  },
+  {
+   "col": 2,
+   "field": "intra_clock[sys_clk].WNS(ns)",
+   "file": "build/timing_summary.rpt",
+   "line": 183,
+   "locator": "sed -n '183p' build/timing_summary.rpt | awk '{print $2}'",
+   "value": "14.876"
+  },
+  {
+   "col": 4,
+   "field": "intra_clock[sys_clk].TNS Failing Endpoints",
+   "file": "build/timing_summary.rpt",
+   "line": 183,
+   "locator": "sed -n '183p' build/timing_summary.rpt | awk '{print $4}'",
+   "value": "0"
+  },
+  {
+   "col": 8,
+   "field": "intra_clock[sys_clk].THS Failing Endpoints",
+   "file": "build/timing_summary.rpt",
+   "line": 183,
+   "locator": "sed -n '183p' build/timing_summary.rpt | awk '{print $8}'",
+   "value": "0"
+  },
+  {
+   "col": 13,
+   "field": "intra_clock[sys_clk].TPWS Total Endpoints",
+   "file": "build/timing_summary.rpt",
+   "line": 183,
+   "locator": "sed -n '183p' build/timing_summary.rpt | awk '{print $13}'",
+   "value": "187"
+  },
+  {
+   "col": "NOT_MEASURED",
+   "field": "intra_clock[clkfbout].WNS(ns)",
+   "file": "build/timing_summary.rpt",
+   "line": "NOT_MEASURED",
+   "locator": "grep -n '<锚点文本>' build/timing_summary.rpt（本轮没定位到 ⇒ NOT_MEASURED）",
+   "value": "NOT_MEASURED"
+  },
+  {
+   "col": "NOT_MEASURED",
+   "field": "intra_clock[clkfbout].TNS Failing Endpoints",
+   "file": "build/timing_summary.rpt",
+   "line": "NOT_MEASURED",
+   "locator": "grep -n '<锚点文本>' build/timing_summary.rpt（本轮没定位到 ⇒ NOT_MEASURED）",
+   "value": "NOT_MEASURED"
+  },
+  {
+   "col": "NOT_MEASURED",
+   "field": "intra_clock[clkfbout].THS Failing Endpoints",
+   "file": "build/timing_summary.rpt",
+   "line": "NOT_MEASURED",
+   "locator": "grep -n '<锚点文本>' build/timing_summary.rpt（本轮没定位到 ⇒ NOT_MEASURED）",
+   "value": "NOT_MEASURED"
+  },
+  {
+   "col": 5,
+   "field": "intra_clock[clkfbout].TPWS Total Endpoints",
+   "file": "build/timing_summary.rpt",
+   "line": 184,
+   "locator": "sed -n '184p' build/timing_summary.rpt | awk '{print $5}'",
+   "value": "3"
+  },
+  {
+   "col": "NOT_MEASURED",
+   "field": "intra_clock[clkfbout_1].WNS(ns)",
+   "file": "build/timing_summary.rpt",
+   "line": "NOT_MEASURED",
+   "locator": "grep -n '<锚点文本>' build/timing_summary.rpt（本轮没定位到 ⇒ NOT_MEASURED）",
+   "value": "NOT_MEASURED"
+  },
+  {
+   "col": "NOT_MEASURED",
+   "field": "intra_clock[clkfbout_1].TNS Failing Endpoints",
+   "file": "build/timing_summary.rpt",
+   "line": "NOT_MEASURED",
+   "locator": "grep -n '<锚点文本>' build/timing_summary.rpt（本轮没定位到 ⇒ NOT_MEASURED）",
+   "value": "NOT_MEASURED"
+  },
+  {
+   "col": "NOT_MEASURED",
+   "field": "intra_clock[clkfbout_1].THS Failing Endpoints",
+   "file": "build/timing_summary.rpt",
+   "line": "NOT_MEASURED",
+   "locator": "grep -n '<锚点文本>' build/timing_summary.rpt（本轮没定位到 ⇒ NOT_MEASURED）",
+   "value": "NOT_MEASURED"
+  },
+  {
+   "col": 5,
+   "field": "intra_clock[clkfbout_1].TPWS Total Endpoints",
+   "file": "build/timing_summary.rpt",
+   "line": 185,
+   "locator": "sed -n '185p' build/timing_summary.rpt | awk '{print $5}'",
+   "value": "3"
+  },
+  {
+   "col": 2,
+   "field": "intra_clock[clkout0_1].WNS(ns)",
+   "file": "build/timing_summary.rpt",
+   "line": 186,
+   "locator": "sed -n '186p' build/timing_summary.rpt | awk '{print $2}'",
+   "value": "3.630"
+  },
+  {
+   "col": 4,
+   "field": "intra_clock[clkout0_1].TNS Failing Endpoints",
+   "file": "build/timing_summary.rpt",
+   "line": 186,
+   "locator": "sed -n '186p' build/timing_summary.rpt | awk '{print $4}'",
+   "value": "0"
+  },
+  {
+   "col": 8,
+   "field": "intra_clock[clkout0_1].THS Failing Endpoints",
+   "file": "build/timing_summary.rpt",
+   "line": 186,
+   "locator": "sed -n '186p' build/timing_summary.rpt | awk '{print $8}'",
+   "value": "0"
+  },
+  {
+   "col": 13,
+   "field": "intra_clock[clkout0_1].TPWS Total Endpoints",
+   "file": "build/timing_summary.rpt",
+   "line": 186,
+   "locator": "sed -n '186p' build/timing_summary.rpt | awk '{print $13}'",
+   "value": "5508"
+  },
+  {
+   "col": "NOT_MEASURED",
+   "field": "intra_clock[clkout1_1].WNS(ns)",
+   "file": "build/timing_summary.rpt",
+   "line": "NOT_MEASURED",
+   "locator": "grep -n '<锚点文本>' build/timing_summary.rpt（本轮没定位到 ⇒ NOT_MEASURED）",
+   "value": "NOT_MEASURED"
+  },
+  {
+   "col": "NOT_MEASURED",
+   "field": "intra_clock[clkout1_1].TNS Failing Endpoints",
+   "file": "build/timing_summary.rpt",
+   "line": "NOT_MEASURED",
+   "locator": "grep -n '<锚点文本>' build/timing_summary.rpt（本轮没定位到 ⇒ NOT_MEASURED）",
+   "value": "NOT_MEASURED"
+  },
+  {
+   "col": "NOT_MEASURED",
+   "field": "intra_clock[clkout1_1].THS Failing Endpoints",
+   "file": "build/timing_summary.rpt",
+   "line": "NOT_MEASURED",
+   "locator": "grep -n '<锚点文本>' build/timing_summary.rpt（本轮没定位到 ⇒ NOT_MEASURED）",
+   "value": "NOT_MEASURED"
+  },
+  {
+   "col": 5,
+   "field": "intra_clock[clkout1_1].TPWS Total Endpoints",
+   "file": "build/timing_summary.rpt",
+   "line": 187,
+   "locator": "sed -n '187p' build/timing_summary.rpt | awk '{print $5}'",
+   "value": "10"
+  },
+  {
+   "col": "NOT_MEASURED",
+   "field": "intra_clock[clkout2].WNS(ns)",
+   "file": "build/timing_summary.rpt",
+   "line": "NOT_MEASURED",
+   "locator": "grep -n '<锚点文本>' build/timing_summary.rpt（本轮没定位到 ⇒ NOT_MEASURED）",
+   "value": "NOT_MEASURED"
+  },
+  {
+   "col": "NOT_MEASURED",
+   "field": "intra_clock[clkout2].TNS Failing Endpoints",
+   "file": "build/timing_summary.rpt",
+   "line": "NOT_MEASURED",
+   "locator": "grep -n '<锚点文本>' build/timing_summary.rpt（本轮没定位到 ⇒ NOT_MEASURED）",
+   "value": "NOT_MEASURED"
+  },
+  {
+   "col": "NOT_MEASURED",
+   "field": "intra_clock[clkout2].THS Failing Endpoints",
+   "file": "build/timing_summary.rpt",
+   "line": "NOT_MEASURED",
+   "locator": "grep -n '<锚点文本>' build/timing_summary.rpt（本轮没定位到 ⇒ NOT_MEASURED）",
+   "value": "NOT_MEASURED"
+  },
+  {
+   "col": 5,
+   "field": "intra_clock[clkout2].TPWS Total Endpoints",
+   "file": "build/timing_summary.rpt",
+   "line": 188,
+   "locator": "sed -n '188p' build/timing_summary.rpt | awk '{print $5}'",
+   "value": "3"
+  },
+  {
+   "col": "NOT_MEASURED",
+   "field": "check_timing.pins_not_constrained_for_max_delay",
+   "file": "build/timing_summary.rpt",
+   "line": 92,
+   "locator": "sed -n '92p' build/timing_summary.rpt",
+   "value": "0"
+  },
+  {
+   "col": "NOT_MEASURED",
+   "field": "check_timing.pins_not_constrained_due_to_constant_clock",
+   "file": "build/timing_summary.rpt",
+   "line": 94,
+   "locator": "sed -n '94p' build/timing_summary.rpt",
+   "value": "0"
+  },
+  {
+   "col": "NOT_MEASURED",
+   "field": "check_timing.pins_with_no_clock",
+   "file": "build/timing_summary.rpt",
+   "line": 77,
+   "locator": "sed -n '77p' build/timing_summary.rpt",
+   "value": "0"
+  },
+  {
+   "col": "NOT_MEASURED",
+   "field": "check_timing.input_ports_no_input_delay_HIGH",
+   "file": "build/timing_summary.rpt",
+   "line": 99,
+   "locator": "sed -n '99p' build/timing_summary.rpt",
+   "value": "5"
+  },
+  {
+   "col": "NOT_MEASURED",
+   "field": "check_timing.input_ports_no_input_delay_MEDIUM_false_path",
+   "file": "build/timing_summary.rpt",
+   "line": 101,
+   "locator": "sed -n '101p' build/timing_summary.rpt",
+   "value": "2"
+  },
+  {
+   "col": "NOT_MEASURED",
+   "field": "check_timing.ports_no_output_delay_HIGH",
+   "file": "build/timing_summary.rpt",
+   "line": 106,
+   "locator": "sed -n '106p' build/timing_summary.rpt",
+   "value": "6"
+  },
+  {
+   "col": "NOT_MEASURED",
+   "field": "check_timing.ports_no_output_delay_MEDIUM_false_path",
+   "file": "build/timing_summary.rpt",
+   "line": 108,
+   "locator": "sed -n '108p' build/timing_summary.rpt",
+   "value": "6"
+  },
+  {
+   "col": "NOT_MEASURED",
+   "field": "check_timing.pins_with_multiple_clocks",
+   "file": "build/timing_summary.rpt",
+   "line": 115,
+   "locator": "sed -n '115p' build/timing_summary.rpt",
+   "value": "0"
+  },
+  {
+   "col": "NOT_MEASURED",
+   "field": "check_timing.generated_clocks_not_connected",
+   "file": "build/timing_summary.rpt",
+   "line": 120,
+   "locator": "sed -n '120p' build/timing_summary.rpt",
+   "value": "0"
+  },
+  {
+   "col": "NOT_MEASURED",
+   "field": "check_timing.combinational_loops",
+   "file": "build/timing_summary.rpt",
+   "line": 125,
+   "locator": "sed -n '125p' build/timing_summary.rpt",
+   "value": "0"
+  }
+ ],
+ "not_measured": [
+  "banner.Grade",
+  "banner.Process",
+  "banner.Characterization",
+  "intra_clock[clkfbout].WNS(ns)",
+  "intra_clock[clkfbout].TNS Failing Endpoints",
+  "intra_clock[clkfbout].THS Failing Endpoints",
+  "intra_clock[clkfbout_1].WNS(ns)",
+  "intra_clock[clkfbout_1].TNS Failing Endpoints",
+  "intra_clock[clkfbout_1].THS Failing Endpoints",
+  "intra_clock[clkout1_1].WNS(ns)",
+  "intra_clock[clkout1_1].TNS Failing Endpoints",
+  "intra_clock[clkout1_1].THS Failing Endpoints",
+  "intra_clock[clkout2].WNS(ns)",
+  "intra_clock[clkout2].TNS Failing Endpoints",
+  "intra_clock[clkout2].THS Failing Endpoints"
+ ],
+ "original": "build/timing_summary.rpt",
+ "pairing": {
+  "identity_from_provenance": "r118",
+  "pairing_result": "PASS",
+  "provenance_file": "build/provenance.md",
+  "provenance_line": 138,
+  "provenance_md5_12": "8ff1201d17ae",
+  "provenance_sha256_16": "7291d41286cb5a97",
+  "recomputed_md5_12": "8ff1201d17ae",
+  "recomputed_sha256_16": "7291d41286cb5a97"
+ },
+ "parse_status": "OK",
+ "provenance_present": true,
+ "round": "r118",
+ "sections": {
+  "banner": {
+   "Characterization": "NOT_MEASURED",
+   "Command": "report_timing_summary -file D:/Xilinx/Prj/pro/Video_Processing/build/timing_summary.rpt",
+   "Date": "Sun Oct  4 04:37:30 2026",
+   "Design": "system_top",
+   "Design State": "Routed",
+   "Device": "7z020-clg484",
+   "Grade": "NOT_MEASURED",
+   "Host": "Uie-laptop running 64-bit major release  (build 9200)",
+   "Process": "NOT_MEASURED",
+   "Speed File": "-2  PRODUCTION 1.12 2019-11-22",
+   "Tool Version": "Vivado v.2025.2.1 (win64) Build 6403652 Thu Mar 19 19:48:24 GMT 2026"
+  },
+  "check_timing": {
+   "combinational_loops": {
+    "line": 125,
+    "locator": "grep -n 'There are (\\d+) combinational loops in the design' build/timing_summary.rpt",
+    "text": "There are 0 combinational loops in the design.",
+    "value": "0"
+   },
+   "generated_clocks_not_connected": {
+    "line": 120,
+    "locator": "grep -n 'There are (\\d+) generated clocks that are not connected to a clock source' build/timing_summary.rpt",
+    "text": "There are 0 generated clocks that are not connected to a clock source.",
+    "value": "0"
+   },
+   "input_ports_no_input_delay_HIGH": {
+    "line": 99,
+    "locator": "grep -n 'There are (\\d+) input ports with no input delay specified\\. \\(HIGH\\)' build/timing_summary.rpt",
+    "text": "There are 5 input ports with no input delay specified. (HIGH)",
+    "value": "5"
+   },
+   "input_ports_no_input_delay_MEDIUM_false_path": {
+    "line": 101,
+    "locator": "grep -n 'There are (\\d+) input ports with no input delay but user has a false path constraint' build/timing_summary.rpt",
+    "text": "There are 2 input ports with no input delay but user has a false path constraint. (MEDIUM)",
+    "value": "2"
+   },
+   "pins_not_constrained_due_to_constant_clock": {
+    "line": 94,
+    "locator": "grep -n 'There are (\\d+) pins that are not constrained for maximum delay due to constant clock' build/timing_summary.rpt",
+    "text": "There are 0 pins that are not constrained for maximum delay due to constant clock.",
+    "value": "0"
+   },
+   "pins_not_constrained_for_max_delay": {
+    "line": 92,
+    "locator": "grep -n 'There are (\\d+) pins that are not constrained for maximum delay\\.' build/timing_summary.rpt",
+    "text": "There are 0 pins that are not constrained for maximum delay.",
+    "value": "0"
+   },
+   "pins_with_multiple_clocks": {
+    "line": 115,
+    "locator": "grep -n 'There are (\\d+) register/latch pins with multiple clocks' build/timing_summary.rpt",
+    "text": "There are 0 register/latch pins with multiple clocks.",
+    "value": "0"
+   },
+   "pins_with_no_clock": {
+    "line": 77,
+    "locator": "grep -n 'There are (\\d+) register/latch pins with no clock' build/timing_summary.rpt",
+    "text": "There are 0 register/latch pins with no clock.",
+    "value": "0"
+   },
+   "ports_no_output_delay_HIGH": {
+    "line": 106,
+    "locator": "grep -n 'There are (\\d+) ports with no output delay specified\\. \\(HIGH\\)' build/timing_summary.rpt",
+    "text": "There are 6 ports with no output delay specified. (HIGH)",
+    "value": "6"
+   },
+   "ports_no_output_delay_MEDIUM_false_path": {
+    "line": 108,
+    "locator": "grep -n 'There are (\\d+) ports with no output delay but user has a false path constraint' build/timing_summary.rpt",
+    "text": "There are 6 ports with no output delay but user has a false path constraint (MEDIUM)",
+    "value": "6"
+   },
+   "toc": [
+    {
+     "check": "no_clock",
+     "count": "0",
+     "index": "1",
+     "line": 62
+    },
+    {
+     "check": "constant_clock",
+     "count": "0",
+     "index": "2",
+     "line": 63
+    },
+    {
+     "check": "pulse_width_clock",
+     "count": "0",
+     "index": "3",
+     "line": 64
+    },
+    {
+     "check": "unconstrained_internal_endpoints",
+     "count": "0",
+     "index": "4",
+     "line": 65
+    },
+    {
+     "check": "no_input_delay",
+     "count": "7",
+     "index": "5",
+     "line": 66
+    },
+    {
+     "check": "no_output_delay",
+     "count": "12",
+     "index": "6",
+     "line": 67
+    },
+    {
+     "check": "multiple_clock",
+     "count": "0",
+     "index": "7",
+     "line": 68
+    },
+    {
+     "check": "generated_clocks",
+     "count": "0",
+     "index": "8",
+     "line": 69
+    },
+    {
+     "check": "loops",
+     "count": "0",
+     "index": "9",
+     "line": 70
+    },
+    {
+     "check": "partial_input_delay",
+     "count": "0",
+     "index": "10",
+     "line": 71
+    },
+    {
+     "check": "partial_output_delay",
+     "count": "0",
+     "index": "11",
+     "line": 72
+    },
+    {
+     "check": "latch_loops",
+     "count": "0",
+     "index": "12",
+     "line": 73
+    },
+    {
+     "check": "no_clock",
+     "count": "0",
+     "index": "1",
+     "line": 75
+    },
+    {
+     "check": "constant_clock",
+     "count": "0",
+     "index": "2",
+     "line": 80
+    },
+    {
+     "check": "pulse_width_clock",
+     "count": "0",
+     "index": "3",
+     "line": 85
+    },
+    {
+     "check": "unconstrained_internal_endpoints",
+     "count": "0",
+     "index": "4",
+     "line": 90
+    },
+    {
+     "check": "no_input_delay",
+     "count": "7",
+     "index": "5",
+     "line": 97
+    },
+    {
+     "check": "no_output_delay",
+     "count": "12",
+     "index": "6",
+     "line": 104
+    },
+    {
+     "check": "multiple_clock",
+     "count": "0",
+     "index": "7",
+     "line": 113
+    },
+    {
+     "check": "generated_clocks",
+     "count": "0",
+     "index": "8",
+     "line": 118
+    },
+    {
+     "check": "loops",
+     "count": "0",
+     "index": "9",
+     "line": 123
+    },
+    {
+     "check": "partial_input_delay",
+     "count": "0",
+     "index": "10",
+     "line": 128
+    },
+    {
+     "check": "partial_output_delay",
+     "count": "0",
+     "index": "11",
+     "line": 133
+    },
+    {
+     "check": "latch_loops",
+     "count": "0",
+     "index": "12",
+     "line": 138
+    }
+   ]
+  },
+  "clock_summary": {
+   "header_cells": [
+    "Clock",
+    "Waveform(ns)",
+    "Period(ns)",
+    "Frequency(MHz)"
+   ],
+   "header_line": 162,
+   "row_count": 8,
+   "rows": [
+    {
+     "cells": {
+      "col1": "clk_fpga_0",
+      "col2": "{0.000",
+      "col3": "5.000}",
+      "col4": "10.000",
+      "col5": "100.000"
+     },
+     "line": 164
+    },
+    {
+     "cells": {
+      "col1": "eth_rxc",
+      "col2": "{0.000",
+      "col3": "4.000}",
+      "col4": "8.000",
+      "col5": "125.000"
+     },
+     "line": 165
+    },
+    {
+     "cells": {
+      "col1": "sys_clk",
+      "col2": "{0.000",
+      "col3": "10.000}",
+      "col4": "20.000",
+      "col5": "50.000"
+     },
+     "line": 166
+    },
+    {
+     "cells": {
+      "col1": "clkfbout",
+      "col2": "{0.000",
+      "col3": "10.000}",
+      "col4": "20.000",
+      "col5": "50.000"
+     },
+     "line": 167
+    },
+    {
+     "cells": {
+      "col1": "clkfbout_1",
+      "col2": "{0.000",
+      "col3": "10.000}",
+      "col4": "20.000",
+      "col5": "50.000"
+     },
+     "line": 168
+    },
+    {
+     "cells": {
+      "col1": "clkout0_1",
+      "col2": "{0.000",
+      "col3": "10.000}",
+      "col4": "20.000",
+      "col5": "50.000"
+     },
+     "line": 169
+    },
+    {
+     "cells": {
+      "col1": "clkout1_1",
+      "col2": "{0.000",
+      "col3": "2.000}",
+      "col4": "4.000",
+      "col5": "250.000"
+     },
+     "line": 170
+    },
+    {
+     "cells": {
+      "col1": "clkout2",
+      "col2": "{0.000",
+      "col3": "2.500}",
+      "col4": "5.000",
+      "col5": "200.000"
+     },
+     "line": 171
+    }
+   ],
+   "title_line": 158
+  },
+  "design_timing_summary": {
+   "data_line": 151,
+   "header_cells": [
+    "WNS(ns)",
+    "TNS(ns)",
+    "TNS",
+    "Failing",
+    "Endpoints",
+    "TNS",
+    "Total",
+    "Endpoints",
+    "WHS(ns)",
+    "THS(ns)",
+    "THS",
+    "Failing",
+    "Endpoints",
+    "THS",
+    "Total",
+    "Endpoints",
+    "WPWS(ns)",
+    "TPWS(ns)",
+    "TPWS",
+    "Failing",
+    "Endpoints",
+    "TPWS",
+    "Total",
+    "Endpoints"
+   ],
+   "header_line": 149,
+   "row": {
+    "THS Failing Endpoints": "0",
+    "THS Total Endpoints": "51135",
+    "THS(ns)": "0.000",
+    "TNS Failing Endpoints": "0",
+    "TNS Total Endpoints": "51135",
+    "TNS(ns)": "0.000",
+    "TPWS Failing Endpoints": "0",
+    "TPWS Total Endpoints": "12634",
+    "TPWS(ns)": "0.000",
+    "WHS(ns)": "0.052",
+    "WNS(ns)": "0.739",
+    "WPWS(ns)": "0.264"
+   },
+   "title_line": 145
+  },
+  "embedded_report_methodology": {
+   "header_line": 44,
+   "rows": [
+    {
+     "Description": "Asynchronous driver check",
+     "Rule": "DPIR-1",
+     "Severity": "Warning",
+     "Violations": "2",
+     "line": 46
+    },
+    {
+     "Description": "LUT drives async reset alert",
+     "Rule": "LUTAR-1",
+     "Severity": "Warning",
+     "Violations": "1",
+     "line": 47
+    },
+    {
+     "Description": "Mapped onto distributed RAM because of timing constraints",
+     "Rule": "SYNTH-5",
+     "Severity": "Warning",
+     "Violations": "336",
+     "line": 48
+    },
+    {
+     "Description": "Timing of a RAM block might be sub-optimal",
+     "Rule": "SYNTH-6",
+     "Severity": "Warning",
+     "Violations": "98",
+     "line": 49
+    },
+    {
+     "Description": "Unknown CDC Logic",
+     "Rule": "TIMING-9",
+     "Severity": "Warning",
+     "Violations": "1",
+     "line": 50
+    },
+    {
+     "Description": "Missing property on synchronizer",
+     "Rule": "TIMING-10",
+     "Severity": "Warning",
+     "Violations": "1",
+     "line": 51
+    },
+    {
+     "Description": "Missing input or output delay",
+     "Rule": "TIMING-18",
+     "Severity": "Warning",
+     "Violations": "7",
+     "line": 52
+    }
+   ]
+  },
+  "inter_clock_table": {
+   "header_cells": [
+    "From",
+    "Clock",
+    "To",
+    "Clock",
+    "WNS(ns)",
+    "TNS(ns)",
+    "TNS",
+    "Failing",
+    "Endpoints",
+    "TNS",
+    "Total",
+    "Endpoints",
+    "WHS(ns)",
+    "THS(ns)",
+    "THS",
+    "Failing",
+    "Endpoints",
+    "THS",
+    "Total",
+    "Endpoints"
+   ],
+   "header_line": 196,
+   "row_count": 2,
+   "rows": [
+    {
+     "cells": {
+      "col1": "clkout0_1",
+      "col10": "19",
+      "col2": "sys_clk",
+      "col3": "14.757",
+      "col4": "0.000",
+      "col5": "0",
+      "col6": "19",
+      "col7": "0.165",
+      "col8": "0.000",
+      "col9": "0"
+     },
+     "line": 198
+    },
+    {
+     "cells": {
+      "col1": "sys_clk",
+      "col10": "231",
+      "col2": "clkout0_1",
+      "col3": "3.695",
+      "col4": "0.000",
+      "col5": "0",
+      "col6": "231",
+      "col7": "0.200",
+      "col8": "0.000",
+      "col9": "0"
+     },
+     "line": 199
+    }
+   ],
+   "title_line": 192
+  },
+  "intra_clock_table": {
+   "header_cells": [
+    "Clock",
+    "WNS(ns)",
+    "TNS(ns)",
+    "TNS",
+    "Failing",
+    "Endpoints",
+    "TNS",
+    "Total",
+    "Endpoints",
+    "WHS(ns)",
+    "THS(ns)",
+    "THS",
+    "Failing",
+    "Endpoints",
+    "THS",
+    "Total",
+    "Endpoints",
+    "WPWS(ns)",
+    "TPWS(ns)",
+    "TPWS",
+    "Failing",
+    "Endpoints",
+    "TPWS",
+    "Total",
+    "Endpoints"
+   ],
+   "header_line": 179,
+   "row_count": 8,
+   "rows": [
+    {
+     "cells": {
+      "col1": "clk_fpga_0",
+      "col10": "3.870",
+      "col11": "0.000",
+      "col12": "0",
+      "col13": "4374",
+      "col2": "1.850",
+      "col3": "0.000",
+      "col4": "0",
+      "col5": "15721",
+      "col6": "0.053",
+      "col7": "0.000",
+      "col8": "0",
+      "col9": "15721"
+     },
+     "line": 181
+    },
+    {
+     "cells": {
+      "col1": "eth_rxc",
+      "col10": "3.500",
+      "col11": "0.000",
+      "col12": "0",
+      "col13": "2546",
+      "col2": "0.739",
+      "col3": "0.000",
+      "col4": "0",
+      "col5": "4835",
+      "col6": "0.052",
+      "col7": "0.000",
+      "col8": "0",
+      "col9": "4835"
+     },
+     "line": 182
+    },
+    {
+     "cells": {
+      "col1": "sys_clk",
+      "col10": "7.000",
+      "col11": "0.000",
+      "col12": "0",
+      "col13": "187",
+      "col2": "14.876",
+      "col3": "0.000",
+      "col4": "0",
+      "col5": "323",
+      "col6": "0.222",
+      "col7": "0.000",
+      "col8": "0",
+      "col9": "323"
+     },
+     "line": 183
+    },
+    {
+     "cells": {
+      "col1": "clkfbout",
+      "col2": "18.408",
+      "col3": "0.000",
+      "col4": "0",
+      "col5": "3"
+     },
+     "line": 184
+    },
+    {
+     "cells": {
+      "col1": "clkfbout_1",
+      "col2": "18.408",
+      "col3": "0.000",
+      "col4": "0",
+      "col5": "3"
+     },
+     "line": 185
+    },
+    {
+     "cells": {
+      "col1": "clkout0_1",
+      "col10": "8.870",
+      "col11": "0.000",
+      "col12": "0",
+      "col13": "5508",
+      "col2": "3.630",
+      "col3": "0.000",
+      "col4": "0",
+      "col5": "30179",
+      "col6": "0.059",
+      "col7": "0.000",
+      "col8": "0",
+      "col9": "30179"
+     },
+     "line": 186
+    },
+    {
+     "cells": {
+      "col1": "clkout1_1",
+      "col2": "2.408",
+      "col3": "0.000",
+      "col4": "0",
+      "col5": "10"
+     },
+     "line": 187
+    },
+    {
+     "cells": {
+      "col1": "clkout2",
+      "col2": "0.264",
+      "col3": "0.000",
+      "col4": "0",
+      "col5": "3"
+     },
+     "line": 188
+    }
+   ],
+   "title_line": 175
+  },
+  "other_path_groups_table": {
+   "header_cells": [
+    "Path",
+    "Group",
+    "From",
+    "Clock",
+    "To",
+    "Clock",
+    "WNS(ns)",
+    "TNS(ns)",
+    "TNS",
+    "Failing",
+    "Endpoints",
+    "TNS",
+    "Total",
+    "Endpoints",
+    "WHS(ns)",
+    "THS(ns)",
+    "THS",
+    "Failing",
+    "Endpoints",
+    "THS",
+    "Total",
+    "Endpoints"
+   ],
+   "header_line": 207,
+   "row_count": 0,
+   "rows": [],
+   "title_line": 203
+  }
+ }
+}

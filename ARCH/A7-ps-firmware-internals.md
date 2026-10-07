@@ -389,7 +389,7 @@ lane31 只有两位：`{30'd0, hb_slow, hb_gone}`，bit0=源时钟没有、bit1=
 | 每段帧数 | 前 8 段各 512 帧、第 9 段 302 帧 | 来源：`board/measured/qspi_coldboot_selfboot_ok_2026-10-06.txt:123-131` |
 | 总帧数 | `frames=4398` | 8×512 + 302 = 4,096 + 302 = 4,398（来源：`board/measured/qspi_coldboot_selfboot_ok_2026-10-06.txt:122`） |
 | 每帧字节 | `frame=307200B` | 512×300×2（来源：`src/ps/sd_play.c:34`），同一行读数在 `board/measured/qspi_coldboot_selfboot_ok_2026-10-06.txt:122` |
-| 每段体积 | 512 × 307,200 = 157,286,400 B | 除 2^20 = 150 MiB、除 10^6 = 157.3 MB——注意 `src/ps/sd_play.c:9` 那句写的"153.6 MiB"与这两个数都不等 |
+| 每段体积 | 512 × 307,200 = 157,286,400 B | 除 2^20 = 150 MiB、除 10^6 = 157.3 MB——`src/ps/sd_play.c:9` 旧版那句写的"153.6 MiB"与这两个数都不等（153.6 只能由 `157286400/1024/1000` 得到，即把 1 MB 当成 1024×1000 B）；注释已在 `eb5933b` 改对，同一行并补了"末块按余数（本卡 VIDEO008=302，共 4398）" |
 | 分区上界 | `part_end=62332928` | 来源：`board/measured/qspi_coldboot_selfboot_ok_2026-10-06.txt:135`；part_sect = 62332928 − 2048 = 62,330,880 扇区 ⇒ ×512 = 31,913,410,560 B |
 | 合法簇数上界 | `first clusters within 1946818` | 来源：`board/measured/qspi_coldboot_selfboot_ok_2026-10-06.txt:120`；算式就是 `(part_lba + part_sect - data_lba) / spc + 2u`（来源：`src/ps/sd_play.c:523`）：(62332928 − 34816)/32 + 2 = 1,946,816 + 2 = 1,946,818 |
 

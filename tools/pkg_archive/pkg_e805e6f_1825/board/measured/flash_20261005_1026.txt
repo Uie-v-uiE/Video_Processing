@@ -1,0 +1,22 @@
+==== IDENTITY ====
+RUN_AT      2026-10-05 10:26:58  mode=check-only
+GIT_HEAD    33c1d65
+MD5_12      cd04907e1369  build/system.bit
+MD5_12      d0b07f84a068  build/ps_app.elf
+MD5_12      934ebdbaa13b  build/system.xsa
+TOOL        xsdb=D:/Software/Vivado/2025.2.1/Vitis/bin/xsdb.bat
+TOOL        vivado_bin=（--check：这一步不需要）
+==== STEP 0 JTAG SCAN (read-only) ====
+JTAG_TARGETS_BEGIN
+  1  APU
+     2  ARM Cortex-A9 MPCore #0 (Running)
+     3  ARM Cortex-A9 MPCore #1 (Running)
+  4  xc7z020
+JTAG_TARGETS_END
+APU_SELECT rc=0 err=
+CTX0 rc=1 err=invalid command name "ctx"
+SLCR_PSS_RST_CTRL(0xF8F00218) rc=1 val=no register match: 0xF8F00218
+SLCR_DDR_RST_CTRL rc=1 val=no register match: 0xF8F00200
+JTAGHEALTHDONE
+scan sees a Cortex-A9 target = 1
+CHECK ONLY —— 没有对板子做任何写动作（下一步去掉 --check 才会真的刷）

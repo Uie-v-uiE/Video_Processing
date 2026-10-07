@@ -1,0 +1,140 @@
+`timescale 1ns/1ps
+// 功能：被测模块 `zoom_ctrl`（INV_LO=256 / INV_HI=512 / STEP=8）与 `zoom_mapper`（IMAGE_W=512、
+//        IMAGE_H=300）；覆盖点：mapper 的恒等与 0.5x 边界格及其 oob 旗标、rot_en=1 且 angle=0 的
+//        恒等，ctrl 的呼吸上界回弹、范围界与 enable=0 复位。
+// 激励与检查：时钟 `always #5 clk`（10 ns 周期），rst_n 压 5 拍后释放再空跑 2 拍；mapper 每个测试点
+//        置 x_in/y_in 后 stepN(4)（给流水留 4 拍），inv_force 取 256 与 512、rot_en 取 0/1、angle=0；
+//        ctrl 段先查复位值，再打 20 个 frame_start（每次举一拍、隔一拍），再打 40 个，最后 enable=0
+//        打一帧；判定条件：expect_xy 逐点比 (xo,yo,oobo) —— inv=256 时 (0,0)→(0,0)、(100,50)→(100,50)
+//        且 oob=0；inv=512 时 (256,150)→(256,150) oob=0、(0,0) 与 (384,225) 必须 oob=1、
+//        (128,75)→(0,0) oob=0；rot_en=1/angle=0/inv=256 时 (200,100)→(200,100) oob=0；
+//        ctrl 要求复位后 inv_scale==256、20 帧后 ==416（256+20*8）、再 40 帧后仍落在 [256,512]、
+//        enable=0 一帧后 inv_scale==256 且 zoom_active==0。
+// 预期结果：通过时 expect_xy 静默（它只在失配时打印），末行 `PASS tb_zoom_mapper`；失败时失配的
+//        那个点打 `FAIL <tag> got (<xo>,<yo>) oob=<b> expect (<ex>,<ey>) oob=<b>`（tag 为
+//        id(0,0)/id(100,50)/0.5x center/0.5x(0,0) OOB/0.5x(128,75)/0.5x(384,225) OOB/rot0 id），
+//        ctrl 段打 `FAIL ctrl reset inv=<n>` / `FAIL ctrl after 20 frames inv=<n> expect 416` /
+//        `FAIL ctrl range inv=<n>` / `FAIL ctrl disable inv=<n> act=<b>`，errors 逐条加一、
+//        末行改打 `FAIL tb_zoom_mapper errors=<n>`。
+// zoom_mapper + zoom_ctrl：原本=最大，向缩小循环
+module tb_zoom_mapper;
+    reg clk = 0, rst_n = 0;
+    always #5 clk = ~clk;
+
+    reg        enable = 1;
+    reg        frame_start = 0;
+    wire [9:0] inv_scale;
+    wire       zoom_active, dir;
+
+    zoom_ctrl #(.INV_LO(10'd256), .INV_HI(10'd512), .STEP(10'd8)) u_ctrl (
+        .clk(clk), .rst_n(rst_n), .enable(enable),
+        // V8-8 给 zoom_ctrl 加的这两个输入以前在这里是**悬空**的（`check_ports --audit-sim` 抓到；
+        //  #88 的教训就是"悬空在仿真里是 Z，症状长得像硬件坏了"）。这台架量的是**呼吸**，
+        // 所以钉 manual=0（自动），档号给一个合法值让 `zsel` 那一路不产生 X。
+        .zsel(3'd4), .manual(1'b0),
+        .frame_start(frame_start),
+        .rotate_en(1'b0),        // #93 那一刀不参与：这台架量的是呼吸，旋转标志钉成 0
+        .fit_en(1'b0), .inv_fit(10'd256),   // V9-2：这台台架用 inv_force 直接喂 mapper，缩放来源钉成"非拟合"
+        .inv_scale(inv_scale), .inv_used(), .zoom_active(zoom_active), .dir(dir), .rot_forced()
+    );
+
+    reg  [11:0] x_in = 0, y_in = 0;
+    reg  [9:0]  inv_force = 10'd256;
+    reg         rot_en = 1'b0;
+    reg  [8:0]  angle = 9'd0;
+    wire [11:0] xo, yo;
+    wire        oobo;
+    wire [7:0]  fx, fy;
+
+    zoom_mapper #(.IMAGE_W(512), .IMAGE_H(300)) u_map (
+        .clk(clk), .rst_n(rst_n),
+        .inv_scale(inv_force), .angle(angle), .rotate_en(rot_en),
+        .x_in(x_in), .y_in(y_in),
+        .x_out(xo), .y_out(yo), .oob(oobo),
+        .frac_x(fx), .frac_y(fy)
+    );
+
+    integer errors = 0;
+    integer i;
+
+    task stepN;
+        input integer n;
+        integer j;
+        begin
+            for (j = 0; j < n; j = j + 1) @(posedge clk);
+        end
+    endtask
+
+    task expect_xy;
+        input [11:0] ex, ey;
+        input        exp_oob;
+        input [255:0] tag;
+        begin
+            if (oobo !== exp_oob || (!exp_oob && (xo !== ex || yo !== ey))) begin
+                $display("FAIL %0s got (%0d,%0d) oob=%b expect (%0d,%0d) oob=%b",
+                         tag, xo, yo, oobo, ex, ey, exp_oob);
+                errors = errors + 1;
+            end
+        end
+    endtask
+
+    initial begin
+        rst_n = 0;
+        repeat (5) @(posedge clk);
+        rst_n = 1;
+        repeat (2) @(posedge clk);
+
+        // inv=256 identity (original size)
+        inv_force = 10'd256; rot_en = 0; angle = 0;
+        x_in = 0; y_in = 0; stepN(4); expect_xy(12'd0, 12'd0, 1'b0, "id(0,0)");
+        x_in = 100; y_in = 50; stepN(4); expect_xy(12'd100, 12'd50, 1'b0, "id(100,50)");
+
+        // inv=512 → 0.5x zoom-out
+        // sx = 256 + (x-256)*512/256 = 256 + (x-256)*2
+        // center stays; edges OOB
+        inv_force = 10'd512;
+        x_in = 256; y_in = 150; stepN(4); expect_xy(12'd256, 12'd150, 1'b0, "0.5x center");
+        x_in = 0; y_in = 0; stepN(4); expect_xy(12'd0, 12'd0, 1'b1, "0.5x(0,0) OOB");
+        // sx=256+(128-256)*2=0 → in range; sy=150+(75-150)*2=0
+        x_in = 128; y_in = 75; stepN(4); expect_xy(12'd0, 12'd0, 1'b0, "0.5x(128,75)");
+        // sx=256+(384-256)*2=512 → OOB (>=512)
+        x_in = 384; y_in = 225; stepN(4); expect_xy(12'd0, 12'd0, 1'b1, "0.5x(384,225) OOB");
+
+        // rotate 0 + inv 256 identity
+        inv_force = 10'd256; rot_en = 1; angle = 0;
+        x_in = 200; y_in = 100; stepN(4); expect_xy(12'd200, 12'd100, 1'b0, "rot0 id");
+
+        // zoom_ctrl: start 256, STEP=8 toward 512
+        if (inv_scale !== 10'd256) begin
+            $display("FAIL ctrl reset inv=%0d", inv_scale);
+            errors = errors + 1;
+        end
+        // (512-256)/8=32 frames to hit INV_HI
+        for (i = 0; i < 20; i = i + 1) begin
+            frame_start = 1; @(posedge clk); frame_start = 0; @(posedge clk);
+        end
+        // 256+20*8=416
+        if (inv_scale !== 10'd416) begin
+            $display("FAIL ctrl after 20 frames inv=%0d expect 416", inv_scale);
+            errors = errors + 1;
+        end
+        for (i = 0; i < 40; i = i + 1) begin
+            frame_start = 1; @(posedge clk); frame_start = 0; @(posedge clk);
+        end
+        // hit 512 then bounce down; expect still in [256,512]
+        if (inv_scale < 10'd256 || inv_scale > 10'd512) begin
+            $display("FAIL ctrl range inv=%0d", inv_scale);
+            errors = errors + 1;
+        end
+        enable = 0;
+        frame_start = 1; @(posedge clk); frame_start = 0; @(posedge clk);
+        if (inv_scale !== 10'd256 || zoom_active !== 1'b0) begin
+            $display("FAIL ctrl disable inv=%0d act=%b", inv_scale, zoom_active);
+            errors = errors + 1;
+        end
+
+        if (errors == 0) $display("PASS tb_zoom_mapper");
+        else             $display("FAIL tb_zoom_mapper errors=%0d", errors);
+        $finish;
+    end
+endmodule

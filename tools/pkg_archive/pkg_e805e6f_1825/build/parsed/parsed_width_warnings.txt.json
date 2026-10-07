@@ -1,0 +1,36 @@
+{
+ "field_positions": [
+  {
+   "col": 1,
+   "field": "counter_value",
+   "file": "build/width_warnings.txt",
+   "line": 1,
+   "locator": "sed -n '1p' build/width_warnings.txt",
+   "value": "0"
+  }
+ ],
+ "not_measured": [],
+ "original": "build/width_warnings.txt",
+ "pairing": {
+  "identity_from_provenance": "内容 `0`（`Synth 8-689` 计数，入口 `:379-383`）",
+  "pairing_result": "PASS",
+  "provenance_file": "build/provenance.md",
+  "provenance_line": 145,
+  "provenance_md5_12": "21438ef4b9ad",
+  "provenance_sha256_16": "13bf7b3039c63bf5",
+  "recomputed_md5_12": "21438ef4b9ad",
+  "recomputed_sha256_16": "13bf7b3039c63bf5"
+ },
+ "parse_status": "OK",
+ "provenance_present": true,
+ "round": "r118",
+ "sections": {
+  "bytes": 3,
+  "non_empty_lines": 1,
+  "note": "计数件：只有一个数字，不是报告。数字 0 = 「该检查真的数到 0 条」，与读不到（NOT_MEASURED）是两回事。",
+  "value": {
+   "line": 1,
+   "value": "0"
+  }
+ }
+}

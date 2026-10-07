@@ -1,0 +1,1 @@
+C4 收口两件：tcl 头要素改判据词表对齐（build/tcl_header_align.mjs，114 项 tcl=114 基线已有=99 待换=0 红=15 属手写残差，另轮处理）；build/report/ 归档件已跟踪（7 份，report.tcl 重跑产物 rc=0），与 build/*.rpt 官方件只差 Date 与 -file 路径两行，其余逐字节相同。C2-3 窗口口径改成"module 声明之前"；C4 的 tcl 总数降级为只报数（过程脚本是各轮凭据，判红只能逼出删证据）。

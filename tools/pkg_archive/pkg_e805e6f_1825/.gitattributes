@@ -1,0 +1,27 @@
+# 换行编码钉死：源码与脚本一律 LF，工作树里不再出现"同一次 checkout 把 52/79 份 .v 改成 CRLF"
+# 那种事（`core.autocrlf=true` 且没有本文件时，`git checkout -- src/rtl` 会重写磁盘字节，
+# 内容一字未改而 md5 全漂 —— 2026-09-30 夜里门禁第 15/15b 项就红在这里，详见
+# build/rtl_fingerprint.sh 的文件头与台账 #202）。
+#
+# 只覆盖参与指纹与构建的文件类型；`text` 让 git 自己判文本/二进制，`eol=lf` 规定工作树形状。
+*.v      text eol=lf
+*.sv     text eol=lf
+*.xdc    text eol=lf
+*.c      text eol=lf
+*.h      text eol=lf
+*.sh     text eol=lf
+*.tcl    text eol=lf
+*.py     text eol=lf
+*.mjs    text eol=lf
+# 交付文档与日记也钉住：doc_currency / line_cite 的按行引用不能因为换行符重写而整篇错位
+*.md     text eol=lf
+# ⚠ 不列 *.txt / *.log：`build/evidence*/MANIFEST.md5` 是按**磁盘字节**给 .txt 凭据盖指纹的，
+#   在这里加一条 eol=lf 会让下一次 checkout 把已盖章的台架/门禁件改字节，
+#   于是冻结层凭空红一片。要动这一族得先把盖章口径一起改掉（台账 #202 的同一族）。
+#
+# 技能条目的**夹具**单独钉住（2026-10-05 实测：`skills/scripts/contract-to-host` 的 S1"黄金一致"
+# 在主工作树 3/3 PASS、在干净检出 0/3 FAIL。差别不在 expected（两棵树逐字节相同），而在输入夹具
+# `fixtures/contract.csv`：blob 是 LF，没列属性时 checkout 按 autocrlf 给它加了 CR ⇒ digest 变了。
+# 也就是说这条绿**只在"那份 csv 从没被重新 checkout 过"的工作树里存在**，评委 fresh clone 一定红。
+# 只覆盖 fixtures 目录，不碰 data/*.csv（那里的凭据按磁盘字节盖过指纹，同一族风险）。
+skills/**/fixtures/*.csv  text eol=lf
