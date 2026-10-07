@@ -14357,3 +14357,34 @@ rim 那一半本轮已用修好的入口重跑并出新件 `build/tb_edge_rim_r1
 - 改完重跑：`LEARNING` 第一层 `文件=10 判=1092 OK=1092（裸路径 515）NO_FILE=0 OUT_OF_RANGE=0 EMPTY_LINE=0`；第二层 `判=188 = 逐字 123 + 折竖线 5 + 记号齐 34 + 同行他条引用支撑 26 + 可疑待读 0`。`ARCH` 那两套 = `判=3101 OK=3101` 与 `判=906`（五档与 11:59 那次逐字相同）。
 - 规矩写下来：**凡重排/改名/删段一份被别处按行号引用的文档，收尾要把所有引用它的文档重跑一遍两层引用尺子**，不能只在写的时候核自己那一处；交付树里这件事由 D5（行号锚点）与 `fact_hold`（记号消失）管，本地那两套（`LEARNING/`、`ARCH/`）不在门禁射程里，只能手动跑这两把尺子。
 - 顺带一条本次量到的机制：`grep -c $'\r' 件` 会把**总行数**当 CR 数打出来（造一份 4 行、2 行 CRLF 的件：`tr -dc '\r' | wc -c` 读 2 是真值，`grep -c` 读 4）。数 CR 一律用 `tr`。
+
+
+### #462 复现三步第一次在"只有仓库"的状态下跑通：`ps7_init.tcl` 的自动解包从来没执行成功过
+
+- 板子回到 JTAG 档后从第 1 步跑起，当场死在 `build/tcl/ps_jtag_boot.tcl` line 31：
+  `invalid command name "System.IO.Compression.ZipFile"`。根因是**写给 PowerShell 的那两行没有把方括号转义**——
+  `puts $fh "\$z = [System.IO.Compression.ZipFile]::OpenRead(...)"` 里的 `[ ... ]` 在 Tcl 双引号内是**命令替换**，
+  所以 Tcl 去执行 `System.IO.Compression.ZipFile` 而不是把它写进 .ps1。
+  两条 `puts` 各加一个 `\[` 即修好；这条"从 `build/system.xsa` 里自动解出 `ps7_init.tcl`"的第三路
+  （脚本头部注释自己写的兜底，2026-09-23 补的就是"别让人卡在看不懂的报错上"）**在任何机器上都没真的通过**，
+  跑得动的人都是手里已经有一份 `build/ps7_init.tcl`（第 2 路）。
+- 为什么以前没发现：这一层的判据全是文本尺子（D5/D6/deliver_spec/fact_hold），没有一个**跑脚本**的门禁；
+  而我自己每次都是"已经有 ps7_init.tcl"的状态。**教训**：凡是交付文档写"clone 之后照这三步就能复现"的地方，
+  至少要有一次是在**新解出来的工作树**（没有本地未跟踪件）里跑，否则"可复现"这句话是靠我机器上的残留撑着。
+- 修完的实测链（bit `cd04907e…` / xsa `934ebdba…` / elf `57fa442a…`，与 `board/README.md` 第一行逐个字符对上）：
+  1. `ps_jtag_boot.tcl` ⇒ `AUTO-EXTRACT ps7_init.tcl from system.xsa: OK`、`PS7_INIT: ok`、`PS7_POST_CONFIG: ok`、
+     `DDR_ECHO: 10000000: 5A5AA5A5`、`PS BOOT STEP DONE`；
+  2. `vivado -mode batch -source build/tcl/program_pl.tcl` ⇒ `PROGRAMMED xc7z020_1 <- build/system.bit`；
+  3. `ps_app_reload.tcl` ⇒ `RESUME: ok` / `FLOW_DONE`，`pc = 002078ec`（DDR 那一版 app）。
+  然后 `ping 192.168.1.10` 3/3、0% 丢包、平均 1 ms。
+- `bash build/board_verify.sh --geom --battery --round=r128` ⇒ `RESULT board_verify PASS（判红的步骤：0）`：
+  `RESULT PASS geom_check（ok=10 fail=0）`、`RESULT PASS uart_cmd_check (105 条命令, 97.2 s)`、
+  末态回到演示默认档 `thr=80 src=1 zoom=1 bilin=1 zsel=4 zman=1 sel=000 gm=0.00 mode=0 geom=00400000 osd=1`、
+  4 条 `[TEMP]` 的 degC↔osd↔gpio 三方自洽。凭据件 `build/evidence/verify_1007_1421.txt` 一族 6 支 +
+  原始串口回显 `build/evidence/r128_serial_raw.txt`（脚本自己要求跟踪的那一份）都进了仓库。
+- 推流中途读回的数（这条同时是"收包记账自洽"的新凭据）：`lane8 pkts=64754`、`lane9 bytes=90009602`，
+  按 221 包/帧（307200 B ÷ 1392 B 向上取整）折算 = **293.0 帧**，按字节折算也是 **293.00 帧**——两路独立折算逐位相同；
+  `drop_words=0`（板上唯一真实丢字通道没丢过一个 16bit 字）、`流活着=1`、`间隔已校准=1`、
+  屏上 Latency=17 ms 与回读 `tot/100000=17` 同源一致。同一次读数里 `lane1` 低半 = 作废过 1 帧、
+  `lane2` 高半 = 缺行峰值 300 ⇒ 那是**一整帧被整帧作废**（同一事实的两个视角），不是零星丢行；
+  这一帧作废发生在什么时候没有更多证据，记为未定，不当 bug 立案（`p_good` 恒 1 ⇒ 高半"坏包应为 0"是预期不是证据）。
