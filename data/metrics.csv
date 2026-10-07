@@ -22,7 +22,7 @@ UDP 入口负载,口径,9.2,MB/s,512×300×2 B × 30 fps 的计算值（≈74 Mb
 ETH 入流零丢包（演示工况）,实测,0,丢帧 / 坏帧,512×300 RGB565、限速 15 MB/s、目标 30 fps；PL 侧收包链自己数的（不是上位机推的数）,600 帧一轮，实测到帧率 30.007 fps,report/perf_report.md
 ETH 入流 300 秒长跑,实测,0,丢帧 / 坏帧 / 重复帧,同上工况，连续 300 s；实测量 29.99 fps、帧间隔平均 33.34 ms,9000 帧,report/perf_report.md
 入流过载点,未定,≥116.7,fps,不限速、目标 120 fps 时仍未丢字（≈36 MB/s 有效载荷、287 Mbps）；**这一版没顶到丢字那一点，所以不给「PL 能扛多少 fps」的数字**,960 帧,report/perf_report.md
-端到端时延,核心,33.34,ms,从上位机发出到屏上出现；min/avg/max = 20 / 33.34 / 51 ms，同轮墙钟交付 29.79 fps（≈9.15 MB/s = 73.2 Mbps）；测量起点=上位机发送时刻，终点=示相机位录到该帧上屏,一轮 600 帧,report/perf_report.md
+入流帧间隔（PL 内）,核心,33.34,ms,PL 侧收包链量的相邻两帧之间隔（`gap_sum/gap_segments` 件内自报 33.3434 ms、8999 段）；min/avg/max = 20 / 33.34 / 51 ms；同轮墙钟交付 29.79 fps（≈9.15 MB/s = 73.2 Mbps）；只含 PL 内部——不含上位机编码、网线与交换机排队（口径见 `report/perf_report.md:195` 第①条）,9000 帧 / 300 s 那一轮,report/perf_report.md
 帧间隔抖动,核心,33.33,ms,30 fps 限速工况下 min/avg/max = 22 / 33.33 / 45 ms；抖动上界来自显示扫描与读口调度，不来自调度器,一轮,report/perf_report.md
 实现后动态功耗,资源,2.213,W,本轮（r109）的实现后报告里 `Dynamic (W)` 那一行（片上合计 2.391 W 在同一份报告的对应行）；工具置信度 **Low**（无仿真活动文件输入），被追问要如实说,一次构建,build/power.rpt
 结温估算,资源,52.6,℃,同上（Ambient 假定 25.0 ℃、Effective TJA 11.5 ℃/W、Max Ambient 57.5 ℃）；这是工具估算，不是板上 XADC 读数；XADC 实测在 OSD 与 [STAT] 里另有一路,一次构建,build/power.rpt

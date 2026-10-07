@@ -31,6 +31,7 @@ const 同上_r126 = 'r126 那一轮：板上那版换了（位流没动、PS 应
 const EXEMPT = {
   'report/technical-document.md': [
     { tok: 'path:src/rtl/eth/link_monitor.v', why: '创新点那一格换成几何算子之后这条指路不再重复第二遍；§1.2 功能清单那一行仍按完整路径点名它', need: 'src/rtl/eth/link_monitor.v' },
+    { tok: 'number:600', why: '那一格原写“一轮 600 帧”是轮次挂错：33.34 的 min/avg/max 出自 9000 帧 / 300 s 那一轮的 gap 统计（report/perf_report.md:205-208），而 600 帧那轮自报的是 33.3255 ms；2026-10-07 改名并把轮次写对 ⇒ 600 从本文消失是改正的结果，不是把依据弄丢', need: '9000 帧 / 300 s' },
   ],
   'report/06-validation.md': [
     { tok: 'md5:d0b07f84a068', why: '包内门禁件换成 r126 那份（同一块位流、新 ELF），身份行抄的就是那一版；旧值仍在仓库那件历史门禁里', need: 'ps_app.elf md5=57fa442a7eaf' },
