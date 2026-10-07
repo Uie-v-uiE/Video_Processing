@@ -21,14 +21,14 @@
 |---|---|---|
 | 仓库半（`src/`、`sim/`、`build/`、`report/`、`board/`、`data/`、`skills/`、两份 README、LICENSE、三支入口脚本、`.gitignore`/`.gitattributes`） | **1223** | `main` 的非厂商跟踪件 1133 + `all` 独有的 87 支过程件（`report/log/` 台账到 #475、`report/timing/` 各轮账、`board/measured/`、`build/evidence/` 等）+ 三把本地尺子 |
 | `LEARNING/` | 10 份 `.md` / 4004 行 | 九卷 + 入口 README 的学习文档与经验总结（面向"从零开始"的读者） |
-| `ARCH/` | 11 份 `.md` / 5616 行 | 十卷 + 入口 README 的架构拆解（假定读者已会 PL/PS 与 Verilog/C） |
+| `ARCH/` | 11 份 `.md` / 5618 行 | 十卷 + 入口 README 的架构拆解（假定读者已会 PL/PS 与 Verilog/C）；5616 → 5618 是 #474 改那三卷单位错时留下的两行 |
 | `study_docs/` | 141 件（138 份 `.md`）/ 4.1 M | 四套学习册：`main_report_study/`（含时序四份与**今天新写的 SD 卡准备一节**）、`branch_deep_course/`、两套 course+walkthrough |
 | `poster/` | 3 件 | 决赛海报：`index.html` + 300 dpi A4 PNG + 单页 PDF |
 | `PDF/` | 5 件 | 三份打印件（技术文档 11 页／上位机 6 页／海报 1 页）+ 两份中间 HTML；上位机那份是 18:59 从 `8eefc56` 重印的 |
 | `final_submission/` | **3142** 件 / 141 M | 交付包本体（`main` 的 `eb5933b` 于 **20:33:09** 导出，`MANIFEST.txt` 声明 3141 条 + 它自己），按选题指南 §3.3.5.4 的形状；含包内两棵工程副本（`board/vivado_system` 315 支、`board/vitis` 2128 支） |
 | 根下四份本地件 | 4 件 | `演示流程-3分钟.md`、`提交表-创新关键词与项目简介.md`、`REVIEW-20261007.md`、`BUNDLE-Contents.md`（与可读副本同名同内容） |
 | `media/sd.mp4` | 1 件 / 66 996 905 B | SD 那一路的原始片源（两支分支都不跟踪它；`src/host/make_sd_video.mjs` 的输入） |
-| `tools/` | **4796** 件 | git 之外的一切：`sync_bundle.sh`、`md2pdf_run.sh`+`md2pdf.mjs`、`r128_bundle_reconcile.mjs`、`dircount_claims.mjs`、`r120_tier_*.rpt` 四份逐时钟名册、`learning_tools_mirror/`、`tmpsub/`（一次性对照器、串口捕获、导出日志）、`doc_audit_20261005/`、`skill_v2/`、`deep_course_candidates/`、`pkg_archive/`（**三版留档旧包**：`cadb49a`/`4d398a3`/`e805e6f` 共 4538 件 + 两份改口前的 PDF + 一份中间 HTML） |
+| `tools/` | **4804** 件 | git 之外的一切：`sync_bundle.sh`、`md2pdf_run.sh`+`md2pdf.mjs`、`r128_bundle_reconcile.mjs`、`dircount_claims.mjs`、`r120_tier_*.rpt` 四份逐时钟名册、`learning_tools_mirror/`、`tmpsub/`（一次性对照器、串口捕获、导出日志、本轮的台账草稿与两份集合差清单）、`doc_audit_20261005/`、`skill_v2/`、`deep_course_candidates/`、`pkg_archive/`（**三版留档旧包**：`cadb49a`/`4d398a3`/`e805e6f` 共 4538 件 + 两份改口前的 PDF + 一份中间 HTML） |
 
 `tools/pkg_archive/` 里那一版 `e805e6f` 的包在这一支改叫 **`pkg_e805e6f_1825`**（本机原件仍叫 `final_submission_e805e6f_1825`）。
 缩名不是整理癖：`git add` 在 Windows 上对超过 260 字符的路径直接报 `Filename too long` 并**整笔原子失败**（一支都进不去），
@@ -64,20 +64,22 @@
 
 ## 想核对"这一支确实只是搬运、没改内容"
 
-- 与 `main` 比（这一条是 20:5x 现量，读数存在 `tools/tmpsub/branch_vs_main.txt`）：
-  `git -c core.quotePath=false diff --name-status --no-renames origin/main HEAD` 读 **A 8204 / D 2443 / M 0**。
+- 与 `main` 比（这一条是 20:5x 现量；同一算式的一份输出留在 `tools/tmpsub/branch_vs_main.txt`，
+  它是**把本轮那 8 支草稿拷进 `tools/tmpsub/` 之前**跑的 ⇒ 那份文件读 A 8204，而下面这一格读 8212，差的正好是这 8 支）：
+  `git -c core.quotePath=false diff --name-status --no-renames origin/main HEAD` 读 **A 8212 / D 2443 / M 0**。
   **`M 0` 才是"只是搬运"那句话的可判形式**：两边共有的 **1133** 支路径逐字相同，含刚对齐到 `eb5933b` 的 `src/ps/sd_play.c`。
   `D 2443` 不是缺东西——那是 `main` 根下的 `vitis/`(2128) + `vivado_system/`(315)，这一支把它们放在包的同一层，
   **树摘要逐字相同**（`git rev-parse origin/main:vitis` = `HEAD:final_submission/board/vitis` = `a4ea409806c0…`，
   `origin/main:vivado_system` = `HEAD:final_submission/board/vivado_system` = `fa435e2d9d3d…`）⇒ 内容一件没少，git 按内容去重。
-  `A 8204` 的逐层分布：`tools/` 4796、包 3142（`main` 不跟踪 `final_submission/`）、`study_docs/` 141、`report/` 70、
+  `A 8212` 的逐层分布：`tools/` 4804、包 3142（`main` 不跟踪 `final_submission/`）、`study_docs/` 141、`report/` 70、
   `ARCH/` 11 + `LEARNING/` 10、`build/` 10、`board/` 10、`PDF/` 5、`poster/` 3、`media/` 1、根下 5 份说明件。
-- 被跟踪件数与盘上件数也对得上：`git ls-files | wc -l` = **9337** = `find -type f` 的 **9338** 减掉工作树指针文件 `.git` 那**一支**
+- 被跟踪件数与盘上件数也对得上：`git ls-files | wc -l` = **9345** = `find -type f` 的 **9346** 减掉工作树指针文件 `.git` 那**一支**
   （它是 69 字节的文本指针，不是内容件；别把它读成"漏了一支"）。
-- 与可读副本比（20:5x 现量）：`find . -type f -not -path './.git/*' -not -path './tools/*' -not -name RECORDS-README.md | wc -l`
-  在这一支读 **4541**、在副本 `D:\Xilinx\Prj\Video_Processing` 那侧同一算式读 **4540**，**差的那一支就是工作树指针文件 `.git`**
-  （这一支是 `git worktree`，根下 `.git` 是一支 69 字节的文本指针、会被 `find -type f` 数进去；副本那侧 `.git` 是目录，数不进去）。
-  除此之外两侧同形：片源在副本根下、在这一支挪到了 `media/`，件数不变。
+- 与可读副本比（20:5x 现量）：`find . -type f -not -path './.git/*' -not -path './tools/*' -not -name RECORDS-README.md -not -name .git | wc -l`
+  在这一支读 **4540**、在副本 `D:\Xilinx\Prj\Video_Processing` 那侧同一算式也读 **4540**，`comm` 双向逐条比只剩**一处形状差**：
+  片源在副本根下（`./sd.mp4`）、在这一支挪到了 `./media/sd.mp4`（各 1 支，内容逐字相同）。
+  ⚠ 算式里那个 `-not -name .git` **不能省**：这一支是 `git worktree`，根下 `.git` 是一支 69 字节的文本指针文件，会被 `find -type f` 数进去（读成 4541）；
+  而副本那侧**根本没有 `.git`**（它不是仓库，是一个纯目录副本）⇒ 少减这一支就会造出一条不存在的"缺一件"。
 - 交付包：进 `final_submission/`，`find -type f | wc -l` 应读 **3142**，`MANIFEST.txt` 头三行应读
   `导出时间: 2026-10-07 20:33:09 / 来源提交: eb5933b（导出时工作区未提交改动 0 条） / 文件数: 3141，体积 141M，本次剪掉 532 条`。
   与上一版包（`e805e6f`/18:25:43，留档在本支的 `tools/pkg_archive/pkg_e805e6f_1825`，本机原件叫 `final_submission_e805e6f_1825`）逐件比过 md5：
