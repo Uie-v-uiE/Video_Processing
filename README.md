@@ -51,7 +51,7 @@ bash run_test.sh                                    # 一键测试：ping → �
 node src/host/video_sender.mjs --test bars          # 通用推流；任意片源用 src/host/video_sender.py --input
 ```
 
-预期现象：屏上出现滚动条纹与右移的黄色方块，OSD 第 2 行的帧率格落到 29–30，`lane8` 的收包计数增量等于发出的包数（差额 0）。
+预期现象：屏上出现滚动条纹与右移的黄色方块，OSD 第 1 行的帧率格落到 29–30，`lane8` 的收包计数增量等于发出的包数（差额 0）。
 JTAG 三步链见 `board/README.md`。
 
 ## 关键数字与出处

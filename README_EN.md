@@ -42,7 +42,7 @@ bash run_test.sh                                    # one click: ping -> readbac
 node src/host/video_sender.mjs --test bars          # general sender; any file via src/host/video_sender.py --input
 ```
 
-Expected: scrolling bars with a yellow block moving right, the OSD second-line FPS cell settling at 29–30, and the `lane8` received-packet delta equal
+Expected: scrolling bars with a yellow block moving right, the OSD first-line FPS cell settling at 29–30, and the `lane8` received-packet delta equal
 to the packets sent (difference 0). The three-step JTAG chain is in `board/README.md`.
 
 ## Key numbers and their sources
