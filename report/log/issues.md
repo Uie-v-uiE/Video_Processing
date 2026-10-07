@@ -14619,3 +14619,37 @@ rim 那一半本轮已用修好的入口重跑并出新件 `build/tb_edge_rim_r1
   ⇒ 这是今天第二次证明：**改完交付正文必须跑 deliver_spec 全套**，文本三把尺子读不到风格红与脚本头要素。
   行数安全核过：`git diff --numstat`=2/2、`wc -l` 与 `git show HEAD:board/README.md` 同为 154 ⇒ 本地两套文档
   对该文件的 10 条行号引用不受影响（#465 的应用）。
+
+### #470 导出器把"我的工作目录没了"报成"文件不存在"，而事实尺子读不到"已经 add 的改动"——两条都是"看着像没毛病"的空转
+
+- 两件都在交付树，随 `1b85181`（导出器）与 `cfad421`（尺子）落地并 `git ls-remote` 读回远端。
+- **① 导出器 17:40 那一跑失败**：日志只有 `build/make_submission.sh: line 735: _prune_map.sed: No such file or directory`，
+  `EXPORT_RC=1`。那一句是 `: > _prune_map.sed`——bash 对**重定向**失败报的是目标路径，不是命令名，
+  所以错误读起来像"某个文件不存在"，真相是**脚本自己的工作目录**（第 130 行 `cd "$TMP"` 进去的临时树）在那一刻已经没了。
+  现查三件：`ls -d /tmp/sub.*` 读空、`ps` 里没有第二个 make_submission 实例、包还是上一版
+  （`MANIFEST.txt` 头两行 `导出时间: 2026-10-07 17:00:03 / 来源提交: d457b77`）⇒ "任一自检不过就不写 $OUT"
+  这层保护有效，旧包没被半棵树覆盖。
+- **谁删的记为未定**（不立结论）：那段时间只跑过 `sync_bundle.sh`（自带 `mktemp -d`，删除面是
+  `rm -rf "$DST/{src,sim,build,report,board,data,skills,vivado_system,vitis}"`，只动副本）与
+  `r128_bundle_reconcile.mjs`（只 `fs.rmSync('Prj/pro/tmp_main_tree')`，固定名）⇒ 都不碰 `/tmp/sub.*`；
+  两次被 TaskStop 杀掉的导出各有各的 TMP，且 `ls -d /tmp/sub.*` 在我 17:21 手删之后到本轮开始前是空的。
+- 改法（不知道凶手也能防住下一步）：落笔前 `[ -d "$TMP" ]` + **重新 `cd "$TMP"`**（路径式 cd 会把陈旧句柄换掉），
+  两条都 REFUSE 并打成人话、退出码 1；运行侧把 `TMPDIR` 指到仓库所在盘（msys 的 `/tmp` 就是
+  `C:\Users\wenqu\AppData\Local\Temp`，那里同时住着 harness 的任务输出与 Windows 清理的射程）——
+  本轮就按 `TMPDIR=/d/Xilinx/Prj/pro/tmpsub` 跑，临时树 `sub.hUFGWG` 当场数到。
+- 顺带两条操作账：① **被 TaskStop 杀掉的导出会在临时目录留一份 141 MB 的 `sub.XXXXXX`**，
+  第一次 `rm -rf` 报 `Device or resource busy`（当时另一个会话的一条 powershell 在跑），重试即成
+  ⇒ 判"还被不被占住"要重试，别拿第一次报错当结论；② 工具的 `EXPORT_RC` 必须从日志里读，
+  包装器自己的 rc 永远是 0（这条早就记过，这次又用上了）。
+- **② `r125_fact_hold` 的射程漏掉"已经 add 的改动"**（今天 17:38 撞到）：取文件那行写的是 `/^ M/`，
+  而 porcelain 第一列是索引状态、第二列才是工作树 ⇒ 本仓库"改完先 add、跑尺子、再 pathspec 提交"的顺序下，
+  最需要它验的那一步正好在射程外，它回一句 `RESULT=NOT_MEASURED 没有要比对的文件（工作树干净？）`（退出码 2，不红）。
+  这不是"少测了几个文件"，是**整把尺子在那一刻什么都没测**——与 #466/#467 那两条"空转报绿"同族。
+  改法：状态两位里任一处是 `M`/`A` 就算脏（` M`/`M `/`MM`/`A `/`AM`），仍限定 `.md|.txt`、仍要求盘上存在
+  （新文件走原来那句 `SKIP …HEAD 里没有这一份`），NOT_MEASURED 那一行改成念出"status 一共几行 / 未跟踪几行"。
+  三段对照（跑完立刻还原）：干净树 ⇒ `NOT_MEASURED（…一共 1 行、未跟踪 0 行…）` rc=2；
+  给 `report/70-reproduce.md` 末尾加一行并 `git add`（旧射程会漏的那一型）⇒ `HOLD … 消失=0 / RESULT=OK` rc=0；
+  `git restore --staged --worktree` ⇒ 盘上那份与 `git show HEAD:` 那份摘要同一把（`4fa388e63f95`）、`wc -l` 回到 236
+  ⇒ 测试没在仓库里留下东西。判据语义一字未动：仍是"HEAD vs 盘上"、五类记号按"值→出现次数"比、只判消失。
+- 两条的形状总结（写进这一笔是为了下次能想起来）：**尺子的"绿"要能区分"量过且没问题"与"没量到"**；
+  而工具的报错要能区分"我要写的东西不存在"与"我站的地方不存在"。前者靠地板与计数，后者靠一句人话预检。
