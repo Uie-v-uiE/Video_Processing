@@ -78,7 +78,12 @@ const EXEMPT = {
     { tok: 'path:build/r118_gates.txt', why: 同上_r126, need: 'build/r126_gates.txt' },
   ],
   'board/README.md': [
-    { tok: 'verdict:不入库', why: '2026-10-07 改口径：工程本体（vivado_system/ 与 vitis/）随仓库交付，六处"不入库"里两处改成"入库"，剩下四处说的是 .cache / ip_user_files / jou / log 这类噪声', need: '随仓库交付' },
+    // 2026-10-07：`board/measured/` 与 `board/compare/` 那两格"份数 / 字节数"是**关于目录自己的计数**，
+    // 不在任何尺子射程里（D5 判路径在不在、D6 判被点名报告里那个数）。目录长了新件、旧总数就失实，
+    // 换掉它是更正而不是丢依据 ⇒ 放行条件写成"新数当场在文里"。
+    // （原先挂在这里的 `verdict:不入库` 已删：那句话落进 HEAD 之后它永远读不到"消失"，留着只会让名单变脏。）
+    { tok: 'number:188', why: '`board/measured/` 从 6 份长到 10 份（r125/r126 那四次 QSPI 冷上电与出厂对照抓包落进同一目录），旧的字节总数 19 188 随份数一起失实；本次逐份 `wc -c` 现量成新总数', need: '38 870' },
+    { tok: 'number:684', why: '`board/compare/` 份数仍是 13，字节总数随其中一份件被重写而变；本次同样逐份现量', need: '22 925' },
   ],
   'report/70-reproduce.md': [
     { tok: 'md5:d0b07f84a068', why: '期望值换成重链后的那颗', need: '57fa442a7eaf' },
