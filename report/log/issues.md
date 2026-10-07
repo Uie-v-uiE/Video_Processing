@@ -14569,3 +14569,53 @@ rim 那一半本轮已用修好的入口重跑并出新件 `build/tb_edge_rim_r1
   `build/evidence_r75/r75_build_console.txt`、`build/r98_cdc_details.txt`、`build/r98_cdc_summary.txt`）
   ⇒ 按既有规矩（证据件保持原样）本轮不动它们正文。**但要如实记一句：同一个账户名已经在之前的提交与已推的历史里，
   改当前树并不能把它从历史里拿掉**；真要下架得重写历史——那是另一个决定，不替用户做。
+
+### #469 交付正文的两处失实、一处旗标歧义、一份变旧的 PDF、一格目录计数失实，和"新加工具必须跑 deliver_spec 全套"这笔账
+
+- 这一笔收 16:40–17:4x 的六件事（交付树四笔：`d457b77`／`658bdba`／`8eefc56`／`3fdff4d`，每笔都 `git ls-remote` 读回过远端）。
+- **① 首页与 §1.3 的两句失实**（`d457b77`）。`report/technical-document.md:160` 写"OSD 叠四行信息"，
+  现读 `src/rtl/video/osd_overlay.v` 是 `at(0)`…`at(4)` **五行**（263/276/287/299/314 五个 `at(n)`）；
+  `README.md:54` 与 `README_EN.md:45` 把帧率格写成"第 2 行/second-line"，而 `FPS:` 在 `at(0)` 那一行（`:263-270`
+  依次是 `OUT_W`、`X`、`OUT_H`、`FPS:`、`SRC:`）。两处都**在同一行内改**（行数 393/80/71 一格没动 ⇒ 不重演 #465 的平移），
+  改后 `doc_enc 302 干净`、`D5 硬错 0（锚点 282）`、`fact_hold 消失 0`。
+  五行与文档①…⑤那五格的对应逐格读过源码：②是 `Pipe:`+`Th:`+`Gamma:`、③是 `Rot:…°`+`Zoom:`、
+  ④是 `Split:%`+`(Auto)`+`Latency:`、⑤是 `Temp:` 与 `no_sig` 时那句 `ETH is no signal`。
+- **② 我自己新加的两支工具把交付门禁弄红了**（`658bdba` 修）。`1fd04c9` 加 `r129_path_sanitize.mjs`／`r129_open_check.tcl`
+  时只跑了三把文本尺子 ⇒ 傍晚重跑 `deliver_spec` 才读到 红=2（`C1-5 缺要素=2`、`C4 头注释缺要素=1`——
+  同一支 `.tcl` 被两条判据各抓一次，词表不同：C1-5 认 用途/作用/输入/输出/退出码，C4 认 作用/前置/产出/参数）。
+  一个细节：`.mjs` 其实写了"用法"和"退出码"，但"用法"**不在 C1-5 的词表里**、而"退出码"被压在**第 13 行**，
+  判据只看前 12 行 ⇒ 差一行就红。改完 `判 18 项 跟踪文件=3576 红=0 未测=0`、三个 `--*-self` 6/6/12 全红 0。
+  **规矩**：加/改任何会被 `git ls-files` 扫到的工具，判据集合就是 deliver_spec 全套，不是文本三把。
+- **③ `build/` 当豁免层挡太宽**（同笔，细节在 #468 末）：两行可敲命令改写成 `<tools>/Vivado/bin/vivado.bat`，
+  两文件的"跑法"行内补 `<tools>` 的解释并指回 `report/70-reproduce.md` 步骤 1.5；例外按形状给并打印份数，
+  能红对照实测 `--check 改动文件=1 拉回=1`（加临时行）⇒ 删回后 `18→19→18` 行、`git diff` 只剩预期两处。
+- **④ `--fps` 的归属歧义**（`8eefc56`）。为"示例命令行的旗标归属"临时写了一支一次性核对器（不落仓库）：
+  `判=18 条旗标-工具配对，红=1`。那 2 行"有旗标没点名工具"是核对器自己的形状盲区——文档写的是
+  `node src\host\video_sender.mjs`（反斜杠），我的路径正则只认正斜杠；手工按同一判据复核那两行都对
+  （`--test frameid` 在 `video_sender.mjs:13` 的选项表里、`--file -` 是 `:51`+`:273` 的 stdin 路）。
+  真红的那条在 `report/host_guide.md:228`：格子里先 `health_read.mjs --json` 再"降 `--fps 15`"，
+  而 `health_read.mjs` 的旗标从 `get('...')` 现抓是 **gpio0/gpio1/once/gapclr/json/port/xsdb/selfcheck 八个、没有 `--fps`**
+  ⇒ 照抄的人得到一条被静默忽略的命令（#360 那一族）。同一格补主语，行数不动、数字 15 原位。
+  形状记下来：**"一行里出现两支工具"是这类核对器的误配来源**（同族：#465 的"同行多来源"、ARCH 第二层那 11 条）。
+- **⑤ PDF 会变旧，而没有任何尺子读 PDF 正文**：`PDF/technical-document.pdf`（11:25 生成）里还印着被 `d457b77`
+  改掉的那句"OSD 叠四行"。把两步流水线包成可重跑的 `Prj/pro/md2pdf_run.sh`（`md2pdf.mjs` → headless Edge → pypdf 现读页数），
+  重印后 `PAGES 11 mm 209.9 x 297.0`、`OSD 叠四行` 0 次、`OSD 叠五行` 1 次、`at(0)` 1 次；旧那份留
+  `Prj/pro/pkg_archive/technical-document_pre1640.pdf`。顺手核另一份：`host-guide.pdf` 6 页、含"19 条"不含"12 条 lane" ⇒ 没变旧。
+  **判据**：凡"从仓库某份 .md 派生出的本地产物"（PDF、海报 PNG），要么配一条"源 mtime ≤ 产物 mtime"的对比，
+  要么每次改源就手动重印并记下产物时间——这次靠的是后者。
+- **⑥ 一格"目录自己有几份件"的计数失实**（`3fdff4d`）。`board/README.md` 写 `board/measured/`（6 份 / 19 188 B），
+  现量是 **10 份 / 38 870 B**（r125/r126 那四次 QSPI 冷上电与出厂对照抓包落进同一目录）；同轮 `board/compare/`
+  的字节总数差 241 B（份数 13 对）。查法=为"N 份/N 条/N 处"这类**不在任何尺子射程里的计数**临时写的一次性核对器
+  （扫全树 `.md` 的 `` `<目录>/`（N 份 / M B）`` 形状，回盘上逐份 `wc -c`）：`判=4 条（扫 179 份 .md），不符=2`
+  ⇒ 改完重跑 `判=4 不符=0 RESULT=OK`。四份新件各支撑什么是**逐份 grep 数过**再写的：
+  `..._fsbl_from_flash.txt` 四个横幅串各 1 次而 `SUCCESSFUL_HANDOFF`/`[CFG]` 各 **0** 次 ⇒ 位流起来、app 没交接；
+  `..._selfboot_ok_...txt` 同串之后 `SUCCESSFUL_HANDOFF` 1 次 + `[CFG]` 2 次 ⇒ 断电自启整条成立；
+  `qspi_vendor_control_...txt` 只有 `U-Boot 2023.01` ⇒ 出厂镜像本来就从 QSPI 起得来。
+  尺子配套：`r125_fact_hold` 的 `board/README.md` 名单换成两条带 `need` 的（`number:188` ⇒ 当场读得到 `38 870`；
+  `number:684` ⇒ `22 925`），并删掉一条永远读不到"消失"的闲置豁免（`verdict:不入库`——落进 HEAD 之后它只会让名单变脏）。
+  两条新豁免的能红对照：把 `38 870` 换成别的词 ⇒ `CTL_RC=1 RESULT=RED 消失 1 失效 1`；换回来 ⇒ `BACK_RC=0 OK 豁免生效 2`。
+  **同一笔里我又制造了一次红**：新句写"写我们自己的镜像之前"，`C7 style-red-lines` 当场 `使用:人称=1 例:board/README.md`
+  （`I_RE` 里就有"我们"，deliver_spec_check.mjs:552）⇒ 改"写入自己的镜像之前"后 人称=0、红=0。
+  ⇒ 这是今天第二次证明：**改完交付正文必须跑 deliver_spec 全套**，文本三把尺子读不到风格红与脚本头要素。
+  行数安全核过：`git diff --numstat`=2/2、`wc -l` 与 `git show HEAD:board/README.md` 同为 154 ⇒ 本地两套文档
+  对该文件的 10 条行号引用不受影响（#465 的应用）。
