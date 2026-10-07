@@ -132,11 +132,22 @@ function tally(txt) {
 
 const wanted = process.env.VP_FILES ? process.env.VP_FILES.split(',').map(s => s.trim()).filter(Boolean) : null;
 let files = wanted;
+let seen = 0, untracked = 0;
 if (!files) {
   const st = execFileSync('git', ['status', '--porcelain'], { cwd: root, encoding: 'utf8' });
-  files = st.split('\n').filter(l => /^ M/.test(l)).map(l => l.slice(3).trim()).filter(f => /\.(md|txt)$/.test(f));
+  // 射程以前只取 `^ M`（工作树改了但没 add）。本仓库的规矩是"改完先 git add、跑尺子、再 pathspec 提交"，
+  // 于是**已经 add 过的那一笔**（`M ` 或 `MM`）读起来像"工作树干净"⇒ 尺子空转成 NOT_MEASURED，
+  // 而 NOT_MEASURED 很容易被念成"没毛病"（台账 #467 之后今天 17:38 就撞上一次：提交完再跑，它说干净）。
+  // 现在两种都要，并且把"看见多少行／多少是未跟踪"一起念出来，让"没东西可比"与"没接上"分得开。
+  const rows = st.split('\n').filter(Boolean);
+  seen = rows.length;
+  untracked = rows.filter(l => /^\?\?/.test(l)).length;
+  files = rows
+    .filter(l => !/^\?\?/.test(l) && (l.slice(0, 2).includes('M') || l.slice(0, 2).includes('A')))
+    .map(l => l.slice(3).trim())
+    .filter(f => /\.(md|txt)$/.test(f) && !f.includes(' -> ') && fs.existsSync(path.join(root, f)));
 }
-if (!files.length) { console.log('RESULT=NOT_MEASURED 没有要比对的文件（工作树干净？）'); process.exit(2); }
+if (!files.length) { console.log(`RESULT=NOT_MEASURED 没有要比对的文件（工作树干净？status 里一共 ${seen} 行、未跟踪 ${untracked} 行；要指定就 VP_FILES=a.md,b.md）`); process.exit(2); }
 
 function substrCount(hay, needle) {
   let n = 0, i = 0;
