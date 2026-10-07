@@ -14339,3 +14339,12 @@ rim 那一半本轮已用修好的入口重跑并出新件 `build/tb_edge_rim_r1
 - 读数：`判=1124 缺=0 内容不同=0 多余(bundle 有而 main 无)=86 bundle盘上半棵=1210 main非厂商=1124`。多余 86 = `all` 独有跟踪件 83 + 只住在副本里的三把 learning 尺子（`build/learning_cite_check.mjs` / `learning_anchor_spot.mjs` / `learning_fix_cites.mjs`，两棵分支都没跟踪它们）。归类：`report/timing`=21、`report/log`=13、`board/measured`=6、`build/evidence`=5、`build/runs`=2、`build/learning_*.mjs`=3。
 - 两条坑：逐件 `git show` 1124 次会死在 2 分钟的工具超时里（我先踩了一次，改成一次 `git archive HEAD -- . ':(exclude)vivado_system' ':(exclude)vitis'` 出临时树）；比较前必须去掉 `\r`，否则 autocrlf 会把 210 行的 `.gitignore` 判成"内容不同"——它盘上比 `git show` 的字节正好多 210 个字节 = 每行一个 CR，而内容逐字相同。用完的临时树要删掉，别留在 `Prj/pro` 里当下一次的假象。
 - `ARCH/` 的同一轮补记：交付文档那条"12 条 lane"改对之后，本地这套拆解文档里还有三处同一个错（索引表 A8 行、`A8…:338` 的"共 20 条"、`A7…:325` 的标题），都按 `src/host/health_read.mjs:334` 的现数 19 改口；A8 的表行也改成盘上现量（599 行 / 47 小节）。两层尺子重跑：第一层 `判=3102 OK=3102（裸路径 183）` 红 0，第二层五档逐字不变（`判=906`、可疑待读仍 51）⇒ 改口没挪走证据。
+
+
+### #460 判据 1 的射程与判据 6 的标签（同步工具的两处尺子债，同轮改掉）
+
+- 射程：`sync_bundle.sh` 的"仓库半文件数"只剪了 `LEARNING/ poster/ study_docs/ final_submission/` 四层，而副本后来长出了 `ARCH/`、`PDF/` 与根下四份本地 `.md` ⇒ 这些被算进了"仓库半"。同一时刻两个读数：旧射程 1230、按形状补全后 1210，而 1210 才等于分解式 `main 非厂商 1124 + all 叠加 83 + 本地尺子 3`。判据也从"≥1200 的地板"换成"**等于分解式**"（地板太宽，多算 20 件照样绿）。两个数同时打印，旧射程当对照。
+- 标签：判据 6 写的是"BUNDLE-Contents.md 未被碰"，代码其实只做了 `[ -f ]` ⇒ 标签超出了它真正做的比较。改成"本清单在盘上（只量存在性，不判有没有被改过）"。这与 #456 那条是同一族：**一条判据的标签宽度是判据的一部分**。
+- 顺手一条文档指路：可读副本根那份 `BUNDLE-Contents.md` 原来把同步工具写成 `build/sync_bundle.sh`，而这支脚本只在 `D:\Xilinx\Prj\pro\sync_bundle.sh`（不在任何分支，也不在副本里）——按副本里的路径去找会扑空。已改口，并把逐件对账的读数与工具名（`Prj/pro/r128_bundle_reconcile.mjs`）写进同一行。
+- 改完重跑 `bash sync_bundle.sh main` 全绿：`RESULT=PASS`，`判据1 仓库半文件数=1210（= 1124+83+3）OK`、`备份 尺子=3 支`、`落地 83/清单 83`；再跑对账工具读回 `判=1124 缺=0 内容不同=0`。`bash -n` 先过一遍语法。
+- 一条方法：改了检查脚本就必须**当场重跑一次**，否则"编辑过的判据"只是一段没被执行过的代码。这与"检查器的 `--self` 全过而真实读数仍红"那一族是同一件事的两面。
