@@ -35,9 +35,9 @@ if {$psinit eq "" || ![file exists $psinit]} {
         set ps1 [file join $root build _extract_ps7_init.ps1]
         set fh [open $ps1 w]
         puts $fh "Add-Type -AssemblyName System.IO.Compression.FileSystem"
-        puts $fh "\$z = [System.IO.Compression.ZipFile]::OpenRead('$xsa')"
+        puts $fh "\$z = \[System.IO.Compression.ZipFile]::OpenRead('$xsa')"
         puts $fh "\$e = \$z.GetEntry('ps7_init.tcl')"
-        puts $fh "[System.IO.Compression.ZipFileExtensions]::ExtractToFile(\$e, '$outit', \$true)"
+        puts $fh "\[System.IO.Compression.ZipFileExtensions]::ExtractToFile(\$e, '$outit', \$true)"
         puts $fh "\$z.Dispose()"
         puts $fh "if (Test-Path '$outit') { Write-Output OK }"
         close $fh
