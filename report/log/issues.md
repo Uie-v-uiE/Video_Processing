@@ -14518,3 +14518,54 @@ rim 那一半本轮已用修好的入口重跑并出新件 `build/tb_edge_rim_r1
   这一句的区别要留在记录里（本轮靠逐行看 diff 补上，不是靠指纹）。
 - 提交：交付树 `1fd04c9`（180 文件，+4542/−4397）；导出器另一处 bug 同笔修掉
   （`git archive` 少写 tree-ish ⇒ `fatal: not a valid object name: vivado_system`，见 #466 末）。
+
+### #468 占位符豁免这条新规则补了两条对照（一绿一红），另外查出 `build/` 这一层的豁免太宽
+
+- 背景：#467 给 `build/r125_fact_hold.mjs` 加了一条 `path:` 记号的规则豁免（绝对路径记号变成
+  `<repo>/…` 这类占位符形状时放行，条件是改写后的文里当场有占位符）。当时只验了"确实放行"，
+  **没验它还能红** ⇒ 按既有规矩（每一条豁免都要有一条能红的对照）这条不闭合。
+- 做法（不动在飞的导出，另开一棵 detached worktree 落在 `a9e5bf7`＝改路径之前那一笔）：
+  `git worktree add --detach Prj/pro/fh_ctrl_wt a9e5bf7`，把**当前**那把尺子拷进那棵临时树（只改工作区、不提交），
+  再把 12 份射程内文件的盘上内容换成 `1fd04c9` 那一份（`git checkout 1fd04c9 -- <名单>`）
+  ⇒ HEAD=绝对路径 / 盘上=占位符，正好复刻那一轮改写的前后两边，跑的是真尺子不是模拟。
+  名单怎么来的：`git diff --name-only a9e5bf7 1fd04c9 -- '*.md' '*.txt'` = 12 份
+  （那笔提交 180 个改动文件里只有这 12 份落在尺子的 `.md|.txt` 射程内）。
+- **正向读数**：`POS_RC=0`、`RESULT=OK 判 12 份改写件 消失记号 0 个 豁免生效 1 条 占位符豁免 159 条 豁免失效 0 条 豁免闲置 7 条`。
+- **负向读数（能红的对照）**：把
+  `vitis/platform/zynq_fsbl/zynq_fsbl_bsp/libsrc/build_configs/gen_bsp/install_manifest.txt` 里那 331 个 `<repo>`
+  全换成不带尖括号的"本机目录" ⇒ `NEG_RC=1`、`RESULT=RED 消失 82 个 占位符豁免 0 条`。
+  ⇒ 这条规则读的是"新文里到底有没有占位符"，不是"这条记号是不是路径"，所以它不是一张万能出口。
+- 顺量到的一条口径（写下来免得下次误读）：**159 = 被改写的路径 token 数，不是文件数**。
+  `path:` 正则把整条绝对路径当一枚记号，`D:/Xilinx/…/CMakeCache.txt` → `<repo>/…/CMakeCache.txt`
+  就是"旧记号消失 + 新文有占位符"；逐行读数里 `path=76→76 … 占位符豁免` 这种"计数相同"的形态是正常的，
+  因为这把尺子按"值 → 出现次数"比、不按总数比。159 条里 158 条来自 `vitis/**` 的厂商 `.txt`
+  （CMakeCache / install_manifest 那几份），手写件只有 `src/host/README.md` 记 1 条。
+- 工具账：`git worktree remove --force` 在 Windows 上报 `failed to delete 'D:/…/fh_ctrl_wt': Permission denied`，
+  但**注册已经摘掉**（`git worktree list` 只剩两支真树），残留只是个空目录、`rmdir` 收掉即可
+  ⇒ 判"worktree 还在不在"要读 `git worktree list`，不能拿 remove 的报错当证据。
+- **查出的一条射程洞（本轮就改）**：`build/r129_path_sanitize.mjs` 的
+  `EVIDENCE = /^(build\/|…)/` 把整个 `build/` 当证据层挡掉，而 `build/` 底下也有**教人敲命令的手写件**：
+  `build/micro_rd/README.md:12`、`build/sim/probes/README.md:16` 两行示例命令写的是
+  `D:/Software/Vivado/2025.2.1/Vivado/bin/vivado.bat`（前者正斜杠、后者反斜杠 + `bat` 续行符 `^`）
+  ⇒ 换一台机器照抄就报找不到文件；导出器的绝对路径判据（甲可执行件／乙复现入口件）不覆盖 `build/*/README.md`，
+  文本尺子也不读它们 ⇒ 这一层当下**没人管**。改法按形状给 EVIDENCE 开一个 `(^|/)README\.md$` 例外
+  （不是给这两份文件写名字），并**打印被例外拉回可改层的份数**；两行正文改成本仓库已有的
+  `$VP_VIVADO_BIN` / `%VP_VIVADO_BIN%` 约定（`board/scripts/board_flash.sh:8` 就是这么定义它的），
+  行数一格不动。脚本类（`.sh/.tcl/.mjs`）**留在豁免层**：`r129_path_sanitize.mjs` 自己的 MAP 里那些
+  盘符字面量是数据不是指令，让工具去改自己就是把映射表改坏。
+- 这次全树现数（用来回答"本机路径还剩多少"）：跟踪件里正文含 `Xilinx|Software` 盘符的 **191 份**
+  （`build/` 186 + `board/` 5），扩展名 txt 92 / rpt 84 / json 6 / tcl 3 / mjs 3 / md 3。
+  与尺子自己的读数对得上一格不差：`--check` 现跑 `跳过证据/留档=190 份(3060 条) 跳过签收原话=1 份` ⇒ 190+1=191；
+  #467 当时写的是 188 份/3048 条，差的 2 份/12 条就是那笔提交新加的两把尺子自己
+  （`build/r129_path_sanitize.mjs` 10 条 + `build/r125_fact_hold.mjs` 2 条，都住在 `build/` 所以进了豁免层）
+  ⇒ 两处说法同源、差额已归因，不是两处各说各话。
+- 逐条看过之后：3 份 `.tcl` 与 3 份 `.mjs` 里的盘符都是**提及**（注释写"原来硬编码 `D:/Xilinx/Prj/ADD/…` 已不存在"
+  这一类历史说明），不是指令 ⇒ 不动；`board/signoff.md` 是用户原话签收，逐字不动；
+  剩下真该改的就是上面那两份 `build/**/README.md`。
+- 个人账户名 `wenqu` 的分布也现数了：9 处在 8 份件里，其中 2 份写的本来就是泛化形状
+  （`data/generated/gen_inputs.mjs` 的 `C:/Users/<用户>/`、`skills/_meta/check-selftest.mjs` 的 `C:/Users/someone/`），
+  真名那 6 处全在工具回显与我自己的探针说明里（`build/evidence/r111_angle_readback.txt`、
+  `build/evidence/r114_io_roll_console5.txt`、`build/evidence/r114_mf/verdict.txt`、
+  `build/evidence_r75/r75_build_console.txt`、`build/r98_cdc_details.txt`、`build/r98_cdc_summary.txt`）
+  ⇒ 按既有规矩（证据件保持原样）本轮不动它们正文。**但要如实记一句：同一个账户名已经在之前的提交与已推的历史里，
+  改当前树并不能把它从历史里拿掉**；真要下架得重写历史——那是另一个决定，不替用户做。
