@@ -202,3 +202,9 @@ vitis/**/.Xil/
 vitis/**/*.jou
 vitis/**/*.log
 vitis/**/*.str
+
+# ===== 2026-10-07 工程本体入库后的噪声收口 =====
+# `!vivado_system/**` 在文件末尾（后写优先），所以顶层的 *.pb 例外被它盖掉了；
+# 这里按同一条"入库=能打开的工程，不含工具跑出来的二进制/临时读数"补两条。
+vivado_system/**/*.pb
+vivado_system/.*.rpt

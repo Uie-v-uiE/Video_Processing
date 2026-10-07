@@ -21,6 +21,7 @@ board/ —— 上板工程、三步 JTAG 烧写脚本与实测输出（串口留
 data/ —— 测试数据与参考结果：`data/inputs/` 8 份输入序列、`data/golden/` 参考图、`data/metrics.csv` 第 1 行是表头、往下 28 行指标  
 skills/ —— 49 条 SKILL.md 技能条目，各写适用范围、使用方法、失效条件与已验证的复用结果  
 report/ —— 设计报告、失败分析、复现说明与大模型协作记录  
+vivado_system/ 与 vitis/ —— Vivado 工程与 Vitis 平台本体，2026-10-07 起随仓库交付（clone 下来就能打开 `vivado_system/zynq_video_sys.xpr`；重开工程时长出来的噪声——`.cache`、`.ip_user_files`、`.jou/.log/.str` 这些——被 `.gitignore` 挡住）  
 
 ## 从零复现
 

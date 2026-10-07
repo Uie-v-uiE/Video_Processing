@@ -9,7 +9,7 @@
 |------|------|
 | 仓库根 | 由脚本自己按所在位置往回算，不用设任何东西（验证方法见 §1 末尾） |
 | Vivado / Vitis | 2025.2.1（版本注记在 `report/perf_report.md` 与仓库根首页）。定位方式两种：把对应 `bin` 目录放进 `PATH`，或设下面那几个变量 |
-| Vivado 工程 | `vivado_system/`（已 gitignore，用 `build/tcl/build_system_axigpio.tcl` 重建） |
+| Vivado 工程 | `vivado_system/`（2026-10-07 起随仓库交付：clone 下来就能直接打开 `.xpr`，噪声目录被 `.gitignore` 挡住）；重建入口仍是 `build/tcl/build_system_axigpio.tcl`，改了 BD 或 IP 配置要以它重新长出来的那份为准 |
 | 构建入口 | `build/tcl/build_system_axigpio.tcl`（**只有这一个**；同目录另几支是历史/局部构建，见 `build/tcl/README.md`） |
 | 下载脚本 | `build/tcl/program_system.tcl`；PS 起来用 `build/tcl/ps_jtag_boot.tcl`（会自动从 xsa 解出 `ps7_init.tcl`） |
 | 上位机 | 推流 `python3 src/host/udp_push.py`（协议、限速、确定性丢包都在文件头）；其余取证类工具是 Node 写的（`src/host/*.mjs`），需要 Node 24，**不在演示主链路上** |
