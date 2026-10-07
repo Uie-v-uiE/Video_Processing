@@ -14348,3 +14348,12 @@ rim 那一半本轮已用修好的入口重跑并出新件 `build/tb_edge_rim_r1
 - 顺手一条文档指路：可读副本根那份 `BUNDLE-Contents.md` 原来把同步工具写成 `build/sync_bundle.sh`，而这支脚本只在 `D:\Xilinx\Prj\pro\sync_bundle.sh`（不在任何分支，也不在副本里）——按副本里的路径去找会扑空。已改口，并把逐件对账的读数与工具名（`Prj/pro/r128_bundle_reconcile.mjs`）写进同一行。
 - 改完重跑 `bash sync_bundle.sh main` 全绿：`RESULT=PASS`，`判据1 仓库半文件数=1210（= 1124+83+3）OK`、`备份 尺子=3 支`、`落地 83/清单 83`；再跑对账工具读回 `判=1124 缺=0 内容不同=0`。`bash -n` 先过一遍语法。
 - 一条方法：改了检查脚本就必须**当场重跑一次**，否则"编辑过的判据"只是一段没被执行过的代码。这与"检查器的 `--self` 全过而真实读数仍红"那一族是同一件事的两面。
+
+
+### #461 重排一份被引用的文档 ⇒ 引用它的文档集体变脏（收尾跑两层尺子抓到三条）
+
+- 起因：今天把 `report/host_guide.md` 整篇重排（任务优先的结构 + 参数表按真实旗标重写）。写的时候只核了自己那一处，没重跑引用尺子。
+- 收尾读数：`learning_cite_check.mjs LEARNING` 抓到一条 `EMPTY_LINE`（`LEARNING/04:214` 引 `report/host_guide.md:27`，那行重排后是空行，真句"串口是 COM6 / 115200 / 8N1"在 `:41`）；`learning_anchor_spot.mjs LEARNING` 抓到两条：同一卷 `:322` 引 `:152` 的工具表内容现在在 `:197`；`LEARNING/06a:315` 写 `build/make_submission.sh:955` 有 `RESULT=NOT_MEASURED` —— **导出器全文没有这个记号**（`grep -c NOT_MEASURED build/make_submission.sh` = 0），它用的是同一效果的 `REFUSE`，已改指真的两条地板 `:171`（活文档射程数到 N 份就 REFUSE）与 `:251`（台架表一格名都没数到）。
+- 改完重跑：`LEARNING` 第一层 `文件=10 判=1092 OK=1092（裸路径 515）NO_FILE=0 OUT_OF_RANGE=0 EMPTY_LINE=0`；第二层 `判=188 = 逐字 123 + 折竖线 5 + 记号齐 34 + 同行他条引用支撑 26 + 可疑待读 0`。`ARCH` 那两套 = `判=3101 OK=3101` 与 `判=906`（五档与 11:59 那次逐字相同）。
+- 规矩写下来：**凡重排/改名/删段一份被别处按行号引用的文档，收尾要把所有引用它的文档重跑一遍两层引用尺子**，不能只在写的时候核自己那一处；交付树里这件事由 D5（行号锚点）与 `fact_hold`（记号消失）管，本地那两套（`LEARNING/`、`ARCH/`）不在门禁射程里，只能手动跑这两把尺子。
+- 顺带一条本次量到的机制：`grep -c $'\r' 件` 会把**总行数**当 CR 数打出来（造一份 4 行、2 行 CRLF 的件：`tr -dc '\r' | wc -c` 读 2 是真值，`grep -c` 读 4）。数 CR 一律用 `tr`。
