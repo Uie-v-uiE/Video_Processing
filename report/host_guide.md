@@ -225,7 +225,7 @@ DDR 打包器一个字是 64bit（4 像素）。载荷取 1396 时包边界落�
 | 现象 | 先查 | 用什么确认 |
 |------|------|-----------|
 | ping 不通 | 是不是插了 PS 网口；PC IP；位流是否已下载（ICMP 在 PL 里） | `ping 192.168.1.10`；不通就重跑 §2 第 1、2 条 |
-| 推流无画面 | 片源归属、`eth_live` | `node src/host/health_read.mjs --json` 看 `eth_live`/`owner_eth`；降 `--fps 15`；串口 `stat` 看 `src=` |
+| 推流无画面 | 片源归属、`eth_live` | `node src/host/health_read.mjs --json` 看 `eth_live`/`owner_eth`；把**推流那支**的 `--fps` 降到 15（这一支 `health_read` 没有 `--fps`）；串口 `stat` 看 `src=` |
 | 屏上均匀黑点 | 分包长度（§6）；或 `--pace-mbps` 太大把入包 FIFO 打满 | `stat` 与 `health_read` 看 `drop_words` |
 | 画面花/错位 | 网线；杀软流量扫描；网卡双工 | 强制全双工 1G 后重推；`--test bars` 看行序 |
 | 串口无响应 | ELF 是否下载；COM 号；115200 8N1；有没有别的终端占着端口 | 重跑 §2 第 3 条；换一个串口终端 |
