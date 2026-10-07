@@ -37,11 +37,11 @@ PS_CC=<…>/arm-none-eabi-gcc.exe bash board/scripts/stage_vitis_platform.sh
 | 这支验什么 | 打印出来的判据 | 本机前置 |
 |---|---|---|
 | `stage_board_projects.tcl` | 器件 `xc7z020clg484-2`、14 条 run、86 份源件 + 2 份约束、`missing_files=0 of 88`；关掉工程后把 Vivado 写回的工程头 `Path="…"` 改回仓库相对名，再数还有几行带盘符（实量 0），删掉打开时长出的 `*.cache`、`*.hw` | `vivado_system/` 已建好 |
-| `stage_vitis_platform.sh` | 找得到副本里的 BSP、`hw/system.xsa` 与 `fsbl.elf` 在，判据是**链得出非空 ELF**（不是"md5 等于仓库那颗"，原因见上面那句重建件），跑完把 16 MB 平台正文删回入库那 4 份文本件 | `vitis/platform` 带 BSP（不入库，重建路见下面那段） |
+| `stage_vitis_platform.sh` | 找得到副本里的 BSP、`hw/system.xsa` 与 `fsbl.elf` 在，判据是**链得出非空 ELF**（不是"md5 等于仓库那颗"，原因见上面那句重建件），跑完把 16 MB 平台正文删回入库那 4 份文本件 | 仓库根 `vitis/platform` 带 BSP（2026-10-07 起随仓库交付；重建路见下面那段） |
 
 **`.xpr` 里 81 处引用写成 `$PPRDIR/../src/...`，所以这份工程只能放在 `board/` 这一层。** 往深里挪一级，`src/rtl` 与 `src/constraints` 就全部指不回来。
-`.gen/`、`.runs/`、`.cache/` 不入库（2026-10-05 10:40 实量 36 M / 52 M / 3.1 M，133 + 222 + 34 = 389 支，而且 `.runs` 随构建进度会长，是个动目标）：`.xpr` 里另有 12 处 `$PGENDIR/...`——包括
-`sources_1/bd/design_1/hdl/design_1_wrapper.v` 和 6 个 BD IP 的 OOC 目录，都在这一类里——指的就是这一层，所以直接打开工程会看见 output products 报缺，跑一次下面这条就长回来。
+**工程本体自 2026-10-07 起随仓库交付**：仓库根的 `vivado_system/` 是这份工程的一份**能直接打开的快照**（`.xpr` + `.srcs` + `.gen/` 的 output products + `.runs/` 含 `system_top_routed.dcp`，`du -sh` 实量 86 M），`vitis/` 是配套的 Vitis 平台（53 M）；这两棵一起 `git add` 清点出 2473 支新跟踪文件。这三棵生成树的体积与支数在 2026-10-05 10:40 量过一次：`.gen` 36 M / 133 支、`.runs` 52 M / 222 支、`.cache` 3.1 M / 34 支，合计 389 支，而且 `.runs` 随构建进度会长，是个动目标。现在前两棵入库，`.cache` 与 `*.ip_user_files/`、`.Xil/`、`*.jou`、`*.log`、`*.str` 这些重跑就长回来的噪声仍不入库。`.xpr` 里另有 12 处 `$PGENDIR/...`——包括
+`sources_1/bd/design_1/hdl/design_1_wrapper.v` 和 6 个 BD IP 的 OOC 目录，都在这一类里——指的就是 `.gen/` 这一层，所以 clone 之后不必先跑构建；换 Vivado 小版本或 `.gen` 与 `.xpr` 对不上时，以下面这条 Tcl 重建为准。
 
 ```bash
 vivado -mode batch -source build/tcl/build_system_axigpio.tcl      # 工程 + BD + 综合 + 实现 + bit + XSA + 7 份报告
@@ -50,7 +50,7 @@ vivado -mode batch -source build/tcl/build_system_axigpio.tcl -tclargs bd_only  
 
 这一支第 21 行就是 `create_project $proj_name $proj_dir -part $part -force`、第 84 行 `create_bd_design design_1`，头注释点名它一路出到 `system.bit / system.xsa` 与 7 份报告（`timing_summary utilization cdc methodology power
 route_status clock_util`）：上面那 11 份工程文本本来就是从它长出来的，收进来只为让人不必先跑完一整条构建流程 才能看见块设计与 IP 配置。它把工程建在 `vivado_system/`，与本目录这两份是同一形状
-（`.gitignore:2` 挡 `vivado_system/`、`:3` 挡任何层级的 `vivado/`、`:8` 挡 `VITIS/` —— 这就是本目录这两个目录**不叫** `vivado/` 与 `vitis/` 的原因：那两个名字在任意层级都会被挡掉）。
+（`.gitignore` 末尾那一段自 2026-10-07 起改成"工程入库、只挡噪声"；早先它是整目录挡掉 `vivado_system/`、任意层级的 `vivado/` 与 `VITIS/` —— 后者在 Windows 上连 `vitis/` 一起挡，所以父目录被排除时里面的文件放不回来，这也是本目录那两个副本当年**不叫** `vivado/` 与 `vitis/` 的原因）。
 `.xci` 里带着生它的那台机器的 IP `PROJECT_ID` 与 Vivado 小版本，换小版本会要 `upgrade_ip`。
 
 重编 PS 应用。编译器在 Vitis 安装树里、只是不在 PATH 上（本会话实核：`which arm-none-eabi-gcc` 无命中，而 `<Vitis>/gnu/aarch32/nt/gcc-arm-none-eabi/bin/arm-none-eabi-gcc.exe --version` 回
@@ -61,7 +61,7 @@ PS_CC=<…>/arm-none-eabi-gcc.exe PS_BSP=<仓库根>/vitis/platform/ps7_cortexa9
 node build/ps_app.mjs                                             # 产物：build/ps_app.elf
 ```
 
-那个 BSP（16 MB / 983 支）不入库。没有平台时先做一次手工 New Platform：
+那个 BSP（16 MB / 983 支）现在随 `vitis/` 一起入库，clone 之后 `PS_BSP` 直接指得到；只有手上没有这份平台时才做一次手工 New Platform：
 Vitis → New → Platform → 选 `build/system.xsa` → BSP 勾 `uartps` / `xsdps` / `xgpiops` → Generate，把生成出来的 `standalone_ps7_cortexa9_0/bsp` 指给 `PS_BSP`（这段说明的原件在 `build/ps_app.mjs:14-17`）。
 `board/vitis_platform/vitis-comp.json` 里 `configuration.xsa` 那一个字段被从本机的绝对路径改写成仓库相对的 `build/system.xsa`，其余逐字照抄平台上那份。
 

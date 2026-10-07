@@ -65,7 +65,10 @@ SIM_PLAIN=(tb_link_monitor tb_zoom_mapper tb_rotate_window tb_cdc_capacity tb_ic
 SIM_KEEP=("${!SIM_MAP[@]}" "${SIM_PLAIN[@]}")
 
 # ---- 硬剔除：被否决的轮次、探针与构建中间物、零引用 RTL ----
-HARD_DROP_RE='^build/(failed_|red_|multidrive_|exp_|strprobe|uram_probe|micro_rd|ps_obj|snap_|r[0-9]+_|build/|vivado_system/|__pycache__/)|^docs/walkthrough/|^sim/(probes|msim|v98run|xtest|tagchk|syntaxchk|v100run2)/|^src/rtl/(axi/axi_frame_writer|eth/axi_frame_saver|video/frame_buffer_db|video/video_timing_720p)\.v$'
+# 2026-10-07：`vivado_system/` 与 `vitis/` 是**仓库里**那份可打开的工程（评委 clone 后直接看块设计与
+# IP，不必先跑完构建）；它们不进提交包，包里走 `board/` 的工程文本 + `build/tcl/` 一条命令重建。
+# 这两条前缀必须在 HARD_DROP_RE 里：KEEP_ALWAYS_RE 会按扩展名把 .gen 下的 .v/.xdc 全捞回来。
+HARD_DROP_RE='^vivado_system/|^vitis/|^build/(failed_|red_|multidrive_|exp_|strprobe|uram_probe|micro_rd|ps_obj|snap_|r[0-9]+_|build/|vivado_system/|__pycache__/)|^docs/walkthrough/|^sim/(probes|msim|v98run|xtest|tagchk|syntaxchk|v100run2)/|^src/rtl/(axi/axi_frame_writer|eth/axi_frame_saver|video/frame_buffer_db|video/video_timing_720p)\.v$'
 PRUNE_ONEOFF=(
   build/tcl/apply_cdc_report.tcl build/tcl/micro_rd.tcl
   build/tcl/uram_presence.tcl build/tcl/uram_sites.tcl

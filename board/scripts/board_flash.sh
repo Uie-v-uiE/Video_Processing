@@ -70,10 +70,21 @@ trap 'rm -rf "$TMP" 2>/dev/null || true' EXIT
 } > "$TMP/head.txt"
 
 # ---- 0) 只读扫链：hw_server 看不看得见 PS 那颗 A9，这一条对板子没有任何副作用 ----
-# 用 build/tcl/r116_jtag_health.tcl 而不是自己写 connect/targets：那支已经分清"通路断了"与"目标选错"，
-# 而且是纯 rr/targets（它的文件头就写着 read-only）。
-"$VP_XSDB" -quiet build/tcl/r116_jtag_health.tcl > "$TMP/scan.txt" 2>&1
-SCAN_OK=0; grep -aq 'JTAG_TARGETS_END' "$TMP/scan.txt" && grep -aq 'APU_SELECT rc=0' "$TMP/scan.txt" && SCAN_OK=1
+# 用 build/tcl/scan_jtag.tcl：它只做 open_hw_manager / connect_hw_server / open_hw_target + 打印清单，
+# 没有 rst/con/mwr，所以 --check 真的不碰板子。
+# 上一版这里写的是 build/tcl/r116_jtag_health.tcl —— 仓库里从来没有这个文件，xsdb 直接报
+# "couldn't read file"，而判据抓的两个标记（JTAG_TARGETS_END / APU_SELECT rc=0）其实出自
+# r116_jtag_recover.tcl，那支是**发系统复位**的：既指错文件，又把"复位"藏进只读路径里（台账 #405）。
+# 现在：被调文件不在就 REFUSE（缺件不是红，是没量过），并且把"比了几次"念出来。
+SCAN_TCL=build/tcl/scan_jtag.tcl
+if [ ! -f "$SCAN_TCL" ]; then
+  say "REFUSE: 扫链要调的 $SCAN_TCL 不在仓库里 ⇒ 这一项什么都没查，不判红也不判绿"; exit 2
+fi
+"$VP_VIVADO_BIN/vivado.bat" -mode batch -nojournal -source "$SCAN_TCL" > "$TMP/scan.txt" 2>&1
+SCAN_TGT="$(grep -c '^  localhost:' "$TMP/scan.txt" || true)"; SCAN_TGT="${SCAN_TGT:-0}"
+SCAN_APU="$(grep -cE 'arm_dap|xc7z020' "$TMP/scan.txt" || true)"; SCAN_APU="${SCAN_APU:-0}"
+say "扫链（只读）：线缆 target=$SCAN_TGT 条、链上器件行=$SCAN_APU（要 ≥2：arm_dap + xc7z020）"
+SCAN_OK=0; [ "$SCAN_APU" -ge 2 ] && SCAN_OK=1
 
 RC1=1; RC2=1; RC3=1; RB=1
 if [ "$CHECK_ONLY" = 0 ]; then
@@ -96,7 +107,7 @@ fi
 
 FAIL=""
 addfail() { FAIL="${FAIL}$(printf '\n%s' "        $1")"; }
-[ "$SCAN_OK" = 1 ] || addfail "扫链没看见 APU 目标"
+[ "$SCAN_OK" = 1 ] || addfail "扫链没看见 APU/PL（器件行=$SCAN_APU，期望 ≥2；明细 $TMP/scan.txt）"
 if [ "$CHECK_ONLY" = 0 ]; then
   [ "$RC1" = 0 ] || addfail "第1步 ps_jtag_boot rc=$RC1"
   [ "$RC2" = 0 ] || addfail "第2步 program_pl rc=$RC2"

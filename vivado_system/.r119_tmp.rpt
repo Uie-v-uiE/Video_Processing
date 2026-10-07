@@ -1,0 +1,52 @@
+Copyright 1986-2022 Xilinx, Inc. All Rights Reserved. Copyright 2022-2026 Advanced Micro Devices, Inc. All Rights Reserved.
+---------------------------------------------------------------------------------------------------------------------------------------------
+| Tool Version : Vivado v.2025.2.1 (win64) Build 6403652 Thu Mar 19 19:48:24 GMT 2026
+| Date         : Sun Oct  4 09:41:13 2026
+| Host         : Uie-laptop running 64-bit major release  (build 9200)
+| Command      : report_timing -to [get_ports -quiet {led[1]}] -delay_type min -max_paths 1 -nworst 1 -file vivado_system/.r119_tmp.rpt
+| Design       : system_top
+| Device       : 7z020-clg484
+| Speed File   : -2  PRODUCTION 1.12 2019-11-22
+| Design State : Routed
+---------------------------------------------------------------------------------------------------------------------------------------------
+
+Timing Report
+
+Slack:                    inf
+  Source:                 u_pl/u_k1l/holding_reg/C
+                            (rising edge-triggered cell FDRE clocked by sys_clk  {rise@0.000ns fall@10.000ns period=20.000ns})
+  Destination:            led[1]
+                            (output port)
+  Path Group:             (none)
+  Path Type:              Min at Fast Process Corner
+  Data Path Delay:        3.607ns  (logic 1.431ns (39.688%)  route 2.175ns (60.312%))
+  Logic Levels:           2  (LUT2=1 OBUF=1)
+  Clock Uncertainty:      0.025ns  ((TSJ^2 + TIJ^2)^1/2 + DJ) / 2 + PE
+    Total System Jitter     (TSJ):    0.050ns
+    Total Input Jitter      (TIJ):    0.000ns
+    Discrete Jitter          (DJ):    0.000ns
+    Phase Error              (PE):    0.000ns
+
+    Location             Delay type                Incr(ns)  Path(ns)    Netlist Resource(s)
+  -------------------------------------------------------------------    -------------------
+                         (clock sys_clk rise edge)    0.000     0.000 r  
+    W17                                               0.000     0.000 r  sys_clk (IN)
+                         net (fo=0)                   0.000     0.000    sys_clk
+    W17                  IBUF (Prop_ibuf_I_O)         0.252     0.252 r  sys_clk_IBUF_inst/O
+                         net (fo=1, routed)           0.674     0.926    sys_clk_IBUF
+    BUFGCTRL_X0Y4        BUFG (Prop_bufg_I_O)         0.026     0.952 r  sys_clk_IBUF_BUFG_inst/O
+                         net (fo=186, routed)         0.571     1.523    u_pl/u_k1l/sys_clk_IBUF_BUFG
+    SLICE_X63Y72         FDRE                                         r  u_pl/u_k1l/holding_reg/C
+  -------------------------------------------------------------------    -------------------
+    SLICE_X63Y72         FDRE (Prop_fdre_C_Q)         0.141     1.664 r  u_pl/u_k1l/holding_reg/Q
+                         net (fo=1, routed)           0.280     1.944    u_pl/u_k1l/k1_hold
+    SLICE_X64Y72         LUT2 (Prop_lut2_I1_O)        0.045     1.989 r  u_pl/u_k1l/led_OBUF[1]_inst_i_1/O
+                         net (fo=1, routed)           1.895     3.884    led_OBUF[1]
+    V13                  OBUF (Prop_obuf_I_O)         1.245     5.130 r  led_OBUF[1]_inst/O
+                         net (fo=0)                   0.000     5.130    led[1]
+    V13                                                               r  led[1] (OUT)
+  -------------------------------------------------------------------    -------------------
+
+
+
+

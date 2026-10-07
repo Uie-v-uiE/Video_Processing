@@ -66,9 +66,7 @@ const EXEMPT = {
     { tok: 'path:build/r118_gates.txt', why: 同上_r126, need: 'build/r126_gates.txt' },
   ],
   'board/README.md': [
-    { tok: 'md5:d0b07f84a068', why: '现役 PS 应用换成重链到 DDR 的那颗', need: '57fa442a7eaf' },
-    { tok: 'path:board/measured/flash_20261005_1030.txt', why: '身份表改念今天这一步的实测件', need: 'flash_20261006_1936.txt' },
-    { tok: 'cite::26', why: '同一句里的时刻从 10:26 换成 19:36，:NN 记号少一个', need: '19:36' },
+    { tok: 'verdict:不入库', why: '2026-10-07 改口径：工程本体（vivado_system/ 与 vitis/）随仓库交付，六处"不入库"里两处改成"入库"，剩下四处说的是 .cache / ip_user_files / jou / log 这类噪声', need: '随仓库交付' },
   ],
   'report/70-reproduce.md': [
     { tok: 'md5:d0b07f84a068', why: '期望值换成重链后的那颗', need: '57fa442a7eaf' },

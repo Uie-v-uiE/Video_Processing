@@ -1,11 +1,11 @@
 # ===== Vivado / Vitis / 仿真 生成物（勿提交） =====
-vivado_system/
+# 2026-10-07 改口径：**工程本体（`vivado_system/` 与 `vitis/`）随仓库交付**，所以这两条整目录排除
+# 已经删掉，噪声改由文件本目录末尾那一段规则挡。这里保留的都是**别处**的生成物。
+# 注意：不能再写 `VITIS/`——Windows 上它连 `vitis/` 一起挡，而父目录被排除后里面的文件放不回来。
 vivado/
 dfx_runtime.txt
 build/_repro*
 vivado_sim/
-vit/
-VITIS/
 .Xil/
 *.jou
 *.log
@@ -185,3 +185,20 @@ board/flash/*.log
 deep_course/
 local_docs/
 dcb_timing_chain_plan.md
+
+# ===== 2026-10-07：工程本体随仓库交付（这一段必须留在文件末尾，后写的规则才赢）=====
+# 目的：clone 之后直接打开 `vivado_system/zynq_video_sys.xpr` 就能看见块设计、IP 配置与
+# output products（`.gen/`），不必先跑完 90 分钟的构建；`vitis/` 是配套的 Vitis 平台。
+# 重建路仍然保留并且是权威口径：`build/tcl/build_system_axigpio.tcl` 一条命令长回整棵树。
+# 只挡重跑就长回来的噪声：`.cache/`、`.ip_user_files/`、`.Xil/`、jou/log/str。
+!vivado_system/**
+!vitis/**
+vivado_system/**/*.cache/
+vivado_system/**/*.ip_user_files/
+vivado_system/**/*.jou
+vivado_system/**/*.log
+vivado_system/**/*.str
+vitis/**/.Xil/
+vitis/**/*.jou
+vitis/**/*.log
+vitis/**/*.str
