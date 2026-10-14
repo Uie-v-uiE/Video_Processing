@@ -227,6 +227,10 @@ connect_debug_port u_ila_dbg/probe0 [get_nets -hier -filter {MARK_DEBUG == 1}]
 connect_debug_port dbg_hub/clk [get_nets clk_IBUF_BUFG]
                                        ;# ⑦ 连**缓冲后**的钟网。连顶层 `clk` 时连接同样静默，
                                        ;#    而 implement 有时过有时不过（下面那条 A/B 统计是全部四次）
+connect_debug_port u_ila_dbg/clk [get_nets clk_IBUF_BUFG]
+                                       ;# ⑦b **核自己的 clk 端口也要连**，否则 ⑧ 之后想往下走时，
+                                       ;#    opt_design 报 `[Chipscope 16-213] The debug port
+                                       ;#    'u_ila_dbg/clk' has 1 unconnected channels (bits)`
 write_checkpoint -force ./post_synth.dcp      ;# ⑧ 存盘——"存出文件"本身还不够
 open_checkpoint ./post_synth.dcp              ;# ⑨ 重新打开它才算"已保存的设计"
 implement_debug_core                          ;# ⑩ 核进入网表（日志出现 dbg_hub_CV/u_ila_dbg_CV）
@@ -331,10 +335,27 @@ write_debug_probes -force ./design             ;# ⑪ 产出 design.ltx；判据
   `modify_debug_ports -probes [list {top/x_ila/probe0 0 top/inst/net_0}]` 得到
   `ERROR: [Vivado_Tcl 4-948] Invalid debug port name top/x_ila/probe0`（`catch` 的 msg 字段里只有
   包装那条 `[Common 17-39] … failed due to earlier errors`，真编号在日志上一条，见 §1 规则第一条末尾）——
-  **它已经在认端口名了，所以列表形状这层过了**。两件事仍然没被这条证明：
+  **它已经在认端口名了，所以列表形状这层过了**。剩下的那件"能不能真改连"也取到了，答案带三条形状：
   ① 不带 `-probes` 裸调 `modify_debug_ports` 在"内存里有综合后网表、但没有核"时会 **rc=0 且什么都不做**
   （本机取到 rc=0、msg 空串；同一会话里加完 `load_features labtools` 还是 rc=0）；
-  ② "这么给能不能真把探针改连到另一根网上"要有核、而且是已布线的设计，本机没跑到那一步。
+  ② **真改一个连接要"完全布局过"的设计**：在没有 `place_design` 成功的网表上给一根**不同的**网，
+  得到 `ERROR: [Vivado_Tcl 4-997] modify_debug_ports command can only work on fully placed design.`
+  （`catch` 里还是那条 `17-39` 包装）；
+  ③ **给成"现在就连着的那根网"是 no-op，而且它先被判掉**：
+  `INFO: [Vivado_Tcl 4-993] Same net has been specified for connection on probe pin, leaving the probe pin untouched.`
+  后面整条 **rc=0**——本机就是拿这条把"未布局也能 rc=0"读成了成功，
+  所以**判 `modify_debug_ports` 动没动，不能看返回码**：先看日志里有没有 `4-993`（有就是没动），
+  再看有没有真的重连（下面那条读回口不存在，只能靠 `report_debug_core` 那张表的 `Net Name`，
+  而且它要在 `implement_debug_core` 之后取，见本节开头那条）。
+  多元素列表是**逐个处理**的：本机一次给两个元素，第一个先打 `4-993`（与现状相同），
+  第二个因为通道号越界而红——`ERROR: [Vivado_Tcl 4-964] Invalid range for channel index 1 for port
+  u_ila_dbg/probe1.`（那位宽 1 的槽合法通道只有 0），整条 rc=1。
+  所以"一次改多位"在形状上支持，但**一个元素越界就把整条带红**，前面的元素已经处理过了；
+  要安全就一个元素一条命令，每条之后取一次表。
+  读回口这条也钉死了：`get_property CONNECTED_TO <debug_port>` **不存在**
+  （`ERROR: [Vivado 12-4442] Invalid property name CONNECTED_TO. Use the 'list_property' command to
+  find properties supported by the debug_port u_ila_dbg/probe0 object`），
+  槽上只有 `PORT_WIDTH` 可读——**改连前后都没有属性告诉你连着谁**。
   所以这条的用法是：**拿假名字在离线会话里把拼写与列表形状钉死，改连的效果回设计侧验**。
   判"槽宽够不够"就读 `get_property PORT_WIDTH <端口>`——**别拿"连上没报错"当依据**：
   连一位上去同样不报错，症状是抓到的值永远只有一位。

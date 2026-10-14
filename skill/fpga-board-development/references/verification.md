@@ -181,13 +181,29 @@ xsim sim_net -R
   于是得出"unisim 引用的是安装树那一份"这个错推断。控制变量重做后结论是：
   **变量只有一个——`glbl` 必须在 `xelab` 的顶层里**；编译安装树那份无害但非必需。
   报错位置在库文件里而不是你的代码里，第一次看到会误以为网表坏了——按这条对号入座。
-- 工程流程那一族的**取数状态分三条，别一句话全否掉**：`launch_simulation` 本机跑过
+- 工程流程那一族的**取数状态分三条**：`launch_simulation` 本机跑过
   （`-scripts_only` 与真跑两种，functional / timing 两个臂，配方与读数在本节末尾那条"带 SDF 的时序仿真"）；
-  `export_simulation` 与 `compile_simlib` **本机没跑过**，只取到 `-help` 的选项表
-  （`export_simulation` 的必填项是 `-simulator <arg>`，另有 `-of_objects`/`-step`/`-lib_map_path`/
-  `-absolute_path`/`-export_source_files`/`-exec`/`-more_options`/`-runtime`/`-script_name`/`-directory`
-  等；**这些只是"它接受哪些名字"，不是"这样给就能导出"**）。要用哪条就在你机器上先 `-help` 再试；
-  但**手工这条路（`write_verilog -mode funcsim` + `xvlog`/`xelab`/`xsim`）本机是跑通了的**，
+  `compile_simlib` 只取到 `-help`（rc=0，命令在）；
+  **`export_simulation` 本机调过四次，四次都没导出成功**，把四条读数留着当边界：
+  `-simulator bogus` → `[Vivado 12-23824] Invalid simulator specified 'bogus'! Please type
+  'export_simulation -help' for the list of supported simulators.`（rc=1）；
+  `-of_objects [get_files <某个 .v>]` → `[Common 17-69] Command failed: '-of_objects' only supports
+  a sub-design (composite) file`（rc=1，**普通源文件不算 composite**，要给 BD/IP 那一类）；
+  `-simulator xsim -script_name run_sim`（名字不带扩展名）→ 打
+  `ERROR: [exportsim-Tcl-4] Invalid script file extension '' specified. Please provide script
+  filename with the '.sh' extension.` **而 `catch` 的返回码是 0**、目录里什么都没有——
+  这一条是本族里"红消息 + rc=0 + 无产物"三者同时出现的最干净的一格；
+  给 BD 的 `.bd` 当 `-of_objects`、且 `-ip_user_files_dir` 指向不存在的目录 →
+  `[exportsim-Tcl-0] Directory path specified with the '-ip_user_files_dir' does not exist:'…'`
+  后面跟一条 `[Common 17-39] 'send_msg_id' failed due to earlier errors.`（**它内部报错的入口是
+  `send_msg_id`，不是 export_simulation 自己**）；目录先建好再跑，会先创建
+  `<directory>/top/` 然后死在 `[Common 17-161] Invalid option value 'null' specified for 'object'.`
+  加 `expected boolean value but got ""`——**失败的那次也已经在目录里留下了子目录**，
+  所以"目录非空"不能当导出成功的判据，要数生成的脚本文件本身。
+  结论写死：**这一族里 `export_simulation` 的可用配方本机没有**，要导出去别人的仿真器就在你机器上
+  按上面四条逐个补齐（simulator 名合法、对象是 composite、每个目录参数都先建、script_name 带 `.sh`），
+  并且只认"目录里出现了那份脚本"这一条读数。
+  手工那条路（`write_verilog -mode funcsim` + `xvlog`/`xelab`/`xsim`）本机是跑通了的，
   配方与两臂读数也在本节末尾——所以网表仿真这件事不必等 `compile_simlib`。
 
 **本机实测到的两类差异**，两类都是"同一 bench、同一时刻，两边结果不同"（下面引用的每一行都
