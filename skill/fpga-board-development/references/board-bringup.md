@@ -96,7 +96,7 @@ WARNING: -padimageheader was requested, but no images were specified.
 [INFO]   : Bootimage generated successfully
 ```
 
-并产出 2368 字节的文件——里面没有任何可执行段。注意第二行那句 **`-padimageheader` 本机没有写这个开关
+并产出 2368 字节的文件——里面没有任何可执行段。注意第二行那句 **`-padimageheader`：命令行里没写它
 也会出现**，所以它是"没有镜像可pad"的另一句说法，不能读成"命令行里有 `-padimageheader`"。
 **而且这条工具的退出码要看你从哪个入口调它**——把两份记录的分歧查成了"两个都对、条件不同"：
 同一句 `-arch bogus`（不带 `-image` 也一样）在两个入口上都打同一行

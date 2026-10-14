@@ -138,7 +138,7 @@ sed -i "s/8'd255/8'd254/" rtl/proc.v        # 改一个常数
 write_verilog -mode funcsim ./sim/netlist_func.v   ;# 综合之后；本机产出 235 行、里面是 FDRE/LUT1 这类原语
 write_sdf ./sim/top.sdf                            ;# 本机 306 行。**上面那条跑法不读它**：
 ;#   funcsim 是功能网表，不带时序标注；要让仿真读 SDF 得另出 timesim 网表并给 xelab 传 SDF 选项，
-;#   而那一组选项名在本机没核过（`-sdf_lib_name` 已实测是 `Unknown option`）。
+;#   而那一组选项名没有核过（`-sdf_lib_name` 已实测是 `Unknown option`）。
 ;#   要注时序先 `xelab -help` 查出这一版可用的写法，别照抄网上的 `-sdf ty(...)`。
 ```
 
@@ -226,7 +226,7 @@ xsim sim_net -R
    而网表内嵌 `$sdf_annotate` 的写法能找到文件却报 `43-3462 Unable to annotate SDF delays`——
    **本机在这一步连试三次都没通，就停在这里**（三次同一条错误：`Cannot find design unit add4_nt.sdf
    in library work`，rc=1——`--sdfmax /dut=<file>`、`--sdfmax dut=<file>`、以及走 `.bat` 传参各一次）。
-   记下三条可查的事实：`--sdfmax` 的取值形态本机没能猜中；内嵌 `$sdf_annotate` 的写法能找到文件但报
+   记下三条可查的事实：`--sdfmax` 的取值形态不能凭猜；内嵌 `$sdf_annotate` 的写法能找到文件但报
    `43-3462 Unable to annotate SDF delays`；所以**这条路要修就得走 Vivado 工程流的 `launch_simulation`/
    `export_simulation`（本包没跑过）**，别把任何未跑通的写法写成"这样就能注入 SDF"。
 
