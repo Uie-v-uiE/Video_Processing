@@ -328,7 +328,28 @@ launch_runs impl_1 impl_2 -jobs 2 -to_step write_bitstream
 | 重跑同一 run 结果"莫名变好" | 上一跑的产物被复用 | `reset_runs` 后重跑，比较前后报告 |
 | 同一策略重跑两次，报告只差两行 | 本机一组读数：`reset_runs impl_1` 之后 `launch_runs impl_1 -to_step route_design` 再跑一遍，两份 `report_timing_summary` 各 **337 行**，逐行比只落在 **2 行**上——第 4 行 `Date` 与第 6 行命令回显（因为 `-file` 给了两个不同路径），而 WNS `7.746`、TNS `0.000` 两边**逐字相同** | **别把读数差异当"正常波动"吸收掉**：同机、同版本、同策略、`reset_runs` 干净重跑本来就该一致，**差出第三行就是有一个输入变了**（directive、工具版本、IP 版本、增量状态、part 重选）——去查那一个变量，而不是再跑第三次凑多数。"这一处改动值不值得再开一轮"是另一问，走 `constraints-timing.md` §5（它估收益上限，不比读数） |
 | 并行两个 run 抢同一份中间文件 | 竞态 | 串行，或用不同 run 名；见 `board-bringup.md` §5 |
+| 探针脚本自己把会话弄死，而且死在**下一行无关命令**上 | 本机实测的最小对照：六行脚本（定义一个过程、`read_verilog cnt.v`、`synth_design`、`puts`）**只换过程名**——叫 `try` 时第一条 `read_verilog` 报 `[Common 17-685] Unable to load Tcl app xilinx::xsim` 加 `[Common 17-69] Command failed`，`-mode batch` 直接 rc=1，后面每条读数全没打印；叫 `tcall` 时同一份脚本 rc=0、`synth_design` rc=0 | 探针脚本别覆盖 Tcl 内建/工具已占用的名字；见下面那段"名字占用"的取法 |
+| `catch` 抓到的 msg 字段只有一条包装 | 真错在它上面那一行 | 见 `onchip-debug.md` §1 规则第一条末尾（`17-39` 包住 `44-199` 那次）；判据要落错误编号就去日志里取上一条 `ERROR:` |
 
 批处理启动本身也要留证据：`-mode batch -nojournal -log <文件> -source <tcl>`，
 `tcl` 里**不要在末尾 `exit` 之外再抛错**——`source` 中途报错时后面的命令不会执行，
 所以关键读数要放在最前面打印。
+
+**"名字占用"这件事在探针脚本里是一个可查的项，不是运气。** 本机两次被它掀掉会话，取法固定三条：
+
+```tcl
+# 1) 先看你要定义的过程名在这版工具里是不是已经有名字（Tcl 内建或已装载的应用命令）
+puts "PROBE-COLLIDE <try> = [info commands try]"        ;# 打出 try 就是撞了
+# 2) 撞了就换名；再把这条探针本身当成一次回归：换名前后各跑同一份脚本，比 rc
+# 3) 打印名字时用 <[list $n]> 包起来，空读数才看得见边界
+foreach n {read_verilog xvlog xelab xsim exec} {
+  puts "PROBE-NAME <[list $n]> = [info commands $n]"
+}
+```
+
+本机那一轮的第 3 条读数是 `read_verilog`/`exec` 有名字而 `xvlog`/`xelab`/`xsim` 三个全空
+（`onchip-debug.md` §1 记过同一种"空读数要用有名字的样本括住"的做法；`SKILL.md` §1 第 9 条）。
+第 1 条在**新会话**里对 `try` 打出的是 `try`——它就是 Tcl 8.6 的内建命令（本机 `[info patchlevel]`
+是 `8.6.13`），而内建命令被自己的 `proc` 顶掉之后，受影响的不一定是调用它的那行，
+而是**任何内部用到它的工具代码**（这次是 `read_verilog` 去惰性装载 `xilinx::xsim` 那一路）。
+所以这条规矩的写法是：**探针脚本里每个 `proc` 名字先查一次再用**，别靠"这名字没人用吧"。

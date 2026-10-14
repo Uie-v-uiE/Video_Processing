@@ -305,21 +305,33 @@ xsim simv --runall                      # 非交互跑完（--R 是同义；本�
                                         # 什么都不跑——旧脚本里的 `-tcl` 换成 `-tclbatch`（带文件）或 `--runall`。
 ```
 
-**同一族命令跑综合后网表（本机实测过，两臂都能出判定行）**：
+**同一族命令跑综合后网表（本机实测过，两臂都能出判定行）**。
+这里分两段抄，别抄成一段：**`write_verilog` 是 Vivado 里的命令，`xvlog`/`xelab`/`xsim` 不是**——
+本机在 `vivado -mode batch` 会话里数过 `[info commands xvlog]`、`[info commands xelab]`、
+`[info commands xsim]`，三条**全空**，而同一次会话里 `[info commands read_verilog]`、
+`[info commands exec]` 都返回自己的名字（0 命中配一条正向对照，按 `SKILL.md` §1 那条判存在性的规矩，
+这只能说明"在这个上下文里它们不是 Tcl 命令"，不是说这三条工具不存在）。
+所以把那段直接贴进 `vivado -mode batch` 会得 `invalid command name "xvlog"`；
+要么在 shell 里跑（下面那段），要么在 Tcl 里走 `exec <安装根>/bin/xvlog …`
+（`xvlog` 不在 PATH 上，见本节前面那条"跑批之前的前提"）。
 
 ```tcl
 # 先出网表（Vivado 批处理里）：synth_design 之后
 write_verilog -mode funcsim -force ./sim/netlist_func.v
+```
+
+```bash
 # 再仿：unisims 只给用到的那几个（缺一个就报 VRFC 10-2063 Module <X> not found）
-xvlog $VIVADO/data/verilog/src/unisims/IBUF.v \
-      $VIVADO/data/verilog/src/unisims/OBUF.v \
-      $VIVADO/data/verilog/src/unisims/BUFG.v \
-      $VIVADO/data/verilog/src/unisims/LUT1.v  $VIVADO/data/verilog/src/unisims/LUT2.v \
-      $VIVADO/data/verilog/src/unisims/LUT3.v  $VIVADO/data/verilog/src/unisims/LUT4.v \
-      $VIVADO/data/verilog/src/unisims/LUT5.v  $VIVADO/data/verilog/src/unisims/LUT6.v \
-      $VIVADO/data/verilog/src/unisims/FDRE.v  $VIVADO/data/verilog/src/unisims/CARRY4.v \
-      $VIVADO/data/verilog/src/unisims/GND.v   $VIVADO/data/verilog/src/unisims/VCC.v \
-      $VIVADO/data/verilog/src/glbl.v \
+VIV=$(dirname "$(command -v xvlog)")/..        # 装过就现取，别把本机路径抄进自己的脚本
+xvlog "$VIV/data/verilog/src/unisims/IBUF.v" \
+      "$VIV/data/verilog/src/unisims/OBUF.v" \
+      "$VIV/data/verilog/src/unisims/BUFG.v" \
+      "$VIV/data/verilog/src/unisims/LUT1.v"  "$VIV/data/verilog/src/unisims/LUT2.v" \
+      "$VIV/data/verilog/src/unisims/LUT3.v"  "$VIV/data/verilog/src/unisims/LUT4.v" \
+      "$VIV/data/verilog/src/unisims/LUT5.v"  "$VIV/data/verilog/src/unisims/LUT6.v" \
+      "$VIV/data/verilog/src/unisims/FDRE.v"  "$VIV/data/verilog/src/unisims/CARRY4.v" \
+      "$VIV/data/verilog/src/unisims/GND.v"   "$VIV/data/verilog/src/unisims/VCC.v" \
+      "$VIV/data/verilog/src/glbl.v" \
       ./sim/netlist_func.v sim/tb.v
 xelab -s simn tb glbl                   # 顶层必须给两个：只写 tb 会在 unisim 源里报
                                         # [VRFC 10-2989] 'glbl' is not declared [OBUF.v:43]
@@ -331,11 +343,13 @@ xsim simn --runall -log run.log         # 判定行还是只看 run.log 里的 T
 
 ```bash
 vlib work
-vlog -sv -work work <安装根>/Vivado/data/verilog/src/unisims/IBUF.v `
-                       …（网表实际用到的那几个，逐个列）… `
-                       <安装根>/Vivado/data/verilog/src/unisims/INV.v `
-                       <安装根>/Vivado/data/verilog/src/glbl.v `
-                       sim/netlist_func.v sim/tb.v
+# 续行符按 shell 的写法（bash 用反斜杠）；这一版原来抄的是 PowerShell 的反引号，
+# 在标了 bash 的块里贴下去就是一条续不上行的断句
+vlog -sv -work work "${VIV}/data/verilog/src/unisims/IBUF.v" \
+     …（网表实际用到的那几个，逐个列）… \
+     "${VIV}/data/verilog/src/unisims/INV.v" \
+     "${VIV}/data/verilog/src/glbl.v" \
+     sim/netlist_func.v sim/tb.v
 vsim -c -nolog -do "run -all; quit" work.tb work.glbl   # 顶层同样要给两个，只给 tb 会在 glbl 引用处失败
 ```
 

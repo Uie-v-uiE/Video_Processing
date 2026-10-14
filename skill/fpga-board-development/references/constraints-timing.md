@@ -468,8 +468,15 @@ report_io
    （`ERROR: [Common 17-170] Unknown option '-min', please type 'report_timing -help' for usage info.`，
    rc=1），所以旧记录里那个 `-min` 不是能跑的原文，抄之前先换写法。
    对照的一格：单钟、只有 `create_clock -period 10` 而没有任何 min 约束时，
-   `-delay_type min` 给 `Requirement: 0.000ns  (c rise@0.000ns - c rise@0.000ns)` 与一条
+   `-delay_type min` 给 `Requirement: 0.000ns  (clk rise@0.000ns - clk rise@0.000ns)` 与一条
    `Slack (MET) : 0.140ns`——**hold 需求默认就是 0**，不要把它读成"这一侧没检查"。
+   **但同一份设计上再叠一条 `set_clock_uncertainty 0.5`（不带方向）之后，这一格变成
+   `Requirement: 0.000ns` 配 `Slack (VIOLATED) : -0.360ns`**（`Clock Uncertainty: 0.500ns` 这一段
+   这时才出现在 min 报告里；max 侧那条从 `0.035ns` 变 `0.535ns`，见 §11）。
+   **所以"hold 需求默认 0"说的是需求那一栏，不是"hold 这一侧不会红"**：判 hold 看的是
+   `-delay_type min` 报告里的 `Slack` 与失败端点数，不是 `Requirement` 是不是 0。
+   （这一格与 §11 那条是同一个实验的两个读数：设之前 `0.140ns`、设之后 `-0.360ns`，
+   两次都是同一份综合后网表、同一对端点。）
    同一件事在 `check_timing` 里有对应数字：`10. checking partial_input_delay (1)`。
    输出路径的字样取决于那个脚有没有被绑到真钟上：设过 `set_output_delay -clock <钟>` 之后
   `report_timing -to <port>` 印 `Destination: dout[1]` 加一行
@@ -781,15 +788,31 @@ setup `Requirement` 读数全部停在 `10.000ns`，动的只有报告里的 `Cl
 （`0.035 → 0.535 → 0.735`，加了 propagated 之后仍是 `0.735`）；
 `report_timing -delay_type min` 那一侧的 `Requirement` 是 `0.000ns`，也没被 `-hold 0.3` 拉负。
 再一份**综合后、未布局**的单钟设计（`create_clock -period 10` 打在端口 `clk` 上、
-一个 8 位计数器），默认报告读到 `Requirement: 10.000ns  (c rise@10.000ns - c rise@0.000ns)`；
-`set_clock_uncertainty 0.5 [get_clocks c]` 之后**同一条读数还是 `10.000ns`**，
-变化只出现在 `Clock Uncertainty:` 那一段（这一格本机是按"报告全文里有没有这一段"来判的，前后各取一次全文）。
-min 侧同一份设计上读 `Requirement: 0.000ns`（口径见 §7 第 6 条那句"hold 需求默认就是 0"）。
-**所以累计四次会话、九条 setup `Requirement` 读数**（那三份 `-file` 报告 3 条、
-另一路独立复核 1 条、那份布线完成设计的四种写法各 1 条、这份综合后设计 1 条）
-**里没有一条被扣下来**。留在这一节的规矩因此是两条可执行的：
+一个 8 位计数器），默认报告读到 `Requirement: 10.000ns  (clk rise@10.000ns - clk rise@0.000ns)` 与
+`Clock Uncertainty:      0.035ns  ((TSJ^2 + TIJ^2)^1/2 + DJ) / 2 + PE`、`Slack (MET) : 7.524ns`；
+`set_clock_uncertainty 0.5 [get_clocks clk]`（rc=0）之后**同一条 `Requirement` 还是 `10.000ns`**，
+变的是那一段：`0.035ns → 0.535ns`，并且多出一行 `User Uncertainty         (UU):    0.500ns`，
+`Slack` 从 `7.524ns` 变成 `7.024ns`（报告串长 `4843 → 4894`，多出来的就是 `UU` 那一行）。
+**判这一格要用数值，不能用"报告里有没有 `Clock Uncertainty:` 那一段"**——没设不确定度时那段本来也在
+（`0.035ns` 就是工具默认模型给的），"有这一段"前后都为真，永远不红，正是 `SKILL.md` §1 那条
+"判据必须能红"要排除的写法；要前后各取一次**全文并比数值**。
+min 侧同一份设计：设之前 `Requirement: 0.000ns  (clk rise@0.000ns - clk rise@0.000ns)`、
+`Slack (MET) : 0.140ns`，且**这一段整个不存在**（`0.035` 那个默认值只加在 max 侧）；
+`set_clock_uncertainty 0.5`（不带方向）之后 `Requirement` 仍是 `0.000ns`，但这段出现了
+（`0.500ns`，同样带 `UU: 0.500ns`）而 `Slack` 变成 **`Slack (VIOLATED) : -0.360ns`**。
+**所以"hold 需求默认是 0"读成"hold 这一侧不会被不确定度打红"是错的**：不带方向的那条命令两侧都加，
+`Requirement` 那一栏一个字不改，红的是 `Slack`。
+**所以这一节里能点名的 setup `Requirement` 读数一共 11 条，分布在五次会话里**：那三份 `-file` 报告 3 条、
+另一路独立复核 1 条、布线完成设计的四种写法各 1 条（共 4）、更早那份综合后设计（钟名 `c`）1 条、
+这份综合后设计（钟名 `clk`，上面逐值抄的就是它）前后各 1 条（共 2）。
+**加起来没有一条被扣下来**；另有一路独立复核在同一形状的网表上自己重跑了一遍前后两读，
+拿到的也是 `0.035 → 0.535`、`Slack 7.524 → 7.024`（连报告串长 `4843 → 4894` 都一致），
+这一路不计进条数，只当"不是某一次会话的偶然"的旁证。
+留在这一节的规矩因此是三条可执行的：
 
 - 先看 `Clock Uncertainty:` 那一段（那里是确定度的**记账处**），再看 `Requirement`；
+- 比的是那一段里的**数值**，不是"有没有这一段"（默认值 `0.035ns` 让"有这段"前后都为真），
+  也不是那一段的**存在与否**——min 侧唯一会变的存在性就是"设过不带方向的 `0.5` 之后它才出现"；
 - 要在自己的设计上确认"`Requirement` 有没有被它扣掉"，就用同一对 `-from/-to`
   取**加约束前 / 加约束后**两个文本（§4 第 4、5 条的捕获写法）。两处不一致时先怀疑端点取法，
   但**别把"我怀疑工具没生效"写成结论**——就是那个"怀疑"没被排除的一方。

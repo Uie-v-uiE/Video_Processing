@@ -10,20 +10,42 @@
 
 Vivado 里从工具到板子是一串对象，每一环都可能连错，而且错法各不相同。
 
-**下面"对象链"那几条要 `hw_server` 加板上器件；而注册时机与 `load_features` 的特性名不需要硬件，
+**下面"对象链"那几条要 `hw_server` 加板上器件；而注册时机、`-help` 语法、选项名的拼写不需要硬件，
 在 batch 会话里就能核对**（这两类读数的成本差很远，别因为前半段跑不动就跳过整节）。
-离线（没开 `open_hw_manager`、或没有 target）时
-任何 `hw_*` 命令都先报
-`ERROR: [Labtoolstcl 44-235] The labtools system is not initialized. You must execute 'open_hw_manager' to initialize the labtools system prior using this command.`
-**在到达它自己的参数检查之前**就停住——所以离线只能核命令名与 `-help` 语法，
-核不了"这个选项这么给行不行"。把下面这段当可跑清单之前，先确认你此刻有板子。
+
+**但"离线一律停在参数检查之前"这句是错的**，它太宽，把能核的那半也一起放弃了。本机在一个全新
+batch 会话里（没 `load_features`、没开工程、没板子）按"哪条命令先被调用"取到三种形状：
+
+| 离线会话里第一条被调用的命令 | 读数 |
+|---|---|
+| `get_hw_ilas`、`get_hw_targets` | **rc=0、返回空串**——不报 `44-235`；"没有硬件"与"没查到"是同一个读数 |
+| `open_hw_manager` | **rc=0**（它只把 labtools 初始化起来，不代表链上有东西） |
+| `write_hw_ila_data <文件>` | rc=1 `[Labtoolstcl 44-235] The labtools system is not initialized. You must execute 'open_hw_manager' to initialize the labtools system prior using this command.` |
+
+再按"错误发生在哪一层"分，**拼写层离线就能判，语义层不能**：
+
+- 拼写层（在到达工程/labtools 状态之前就打完）：`write_hw_ila_data -bogus 1 x` 与
+  `modify_debug_ports -bogus 1` 都给 `[Common 17-170] Unknown option '-bogus'`；
+  `modify_debug_ports dbg_hub/clk`、`report_debug_core u_ila_dbg` 都给
+  `[Common 17-165] Too many positional options …`；`connect_debug_cores -master dbg_hub`（把名字当对象传）
+  给 `[Common 17-161] Invalid option value 'dbg_hub' specified for 'master'`；
+  `run_hw_ila hi` 给 `[Labtoolstcl 44-135] Invalid option value 'hi' specified for 'hw_ila'`——
+  **同一种"选项值不合法"在两族里编号不同**（`Common 17-161` / `Labtoolstcl 44-135`），
+  所以要按消息文本搜，别按 `Common`/`Labtoolstcl` 这个类别名搜，否则只看得见一半。
+- 语义层（离线判不了）：`write_hw_ila_data` **不给** `<file>` 直接停在 `44-235`，
+  所以"少给必填参数会报什么"取不到；`create_debug_core u_ila_0 ila`（形状合法）在
+  **内存里没有网表**时停在 `[Common 17-53] User Exception: No open project`。
+  调试那一族过不过 `17-53` 看的是**内存里有没有设计**，不是有没有工程：同一批命令在
+  `read_verilog`+`synth_design` 之后（仍未开工程）能走下去，见本页第 3 条规则。
+
+把下面这段当可跑清单之前，先确认你此刻有板子。
 
 ```tcl
 open_hw_manager
 connect_hw_server                      ;# 默认本机 hw_server；跨机器要 -url
 open_hw_target
-get_hw_targets                        ;# 看到几个 target？
-get_hw_devices                         ;# 板上认到的器件（链上多个 FPGA/ARM 时必看）
+get_hw_targets                        ;# 看到几个 target？没板子时这条**不是返回空而是报错**，见下面第 1 条
+get_hw_devices                         ;# 板上认到的器件（链上多个 FPGA/ARM 时必看）；离线它返回空串
 program_hw_devices [get_hw_devices 点名一颗粒]
                                        ;# 别写 [get_hw_devices]：不带过滤就是把链上所有器件都给它
                                        ;# （这句按的是它的参数形状；多器件链是否同形要自己试出来）
@@ -33,19 +55,44 @@ close_hw_manager
 
 规则：
 
-- **`connect_hw_server` 成功不代表你的板子在链上。** 判据是 `get_hw_targets` /
-  `get_hw_devices` 的数量与名字，不是命令没报错。
-- **一条 JTAG 通道上互斥的是写类操作（下载、擦写）与第二个 hw_server 进程；只读客户端可以共存**
-  （口径见 `SKILL.md` §5）。抢不到时先列出谁在用（另一个 Vivado、`hw_server` 的另一个会话、
-  Vitis/xsdb），**不要靠反复重连试探**——那会把对方会话搞成半死状态。
-- **命令族分两种注册时机，别混。** ① `hw_*` 那一族（`open_hw_manager`、`get_hw_probes`、
-  `read_hw_ila_data`）在新开 batch 会话里 `info commands` 查不到名字，`load_features labtools`
-  之后才有。② 网表侧那一族（`create_debug_core`、`connect_debug_port`、`write_debug_probes`、
+- **`connect_hw_server` 成功不代表你的板子在链上，而且这条连"没板子"都拦不住。** 本机离线读数
+  （这台机器上确实有一个 `hw_server` 在听，第二个视图给在下面）：`open_hw_manager` rc=0、
+  `connect_hw_server` rc=0 且返回串就是 `localhost:3121`——**这个返回值只说明那个 URI 上有个服务**，
+  要确认它存在就另取一次 `netstat -ano` 找 3121、`tasklist /FI "IMAGENAME eq hw_server.exe"` 看进程；
+  紧接着 `get_hw_targets` **rc=1**：
+
+  ```
+  ERROR: [Labtoolstcl 44-199] No matching targets found on connected servers: localhost
+  ```
+
+  而同一会话里 `get_hw_devices`、`get_hw_ilas` 仍是 **rc=0 + 空串**。所以这一串的判据只有数量与名字
+  （`llength [get_hw_targets]`、`get_hw_devices` 的名字），不是"命令没报错"，也不是"命令返回了一个 URI"。
+  **还有两条写法上的坑会把它藏起来**：① 空集合上的 `open_hw_target` 报
+  `[Labtoolstcl 44-469] There is no current hw_target.`；② `catch` 抓到的那条只是包装
+  （`ERROR: [Common 17-39] 'get_hw_targets' failed due to earlier errors.`），**真正的 `44-199` 打在日志里
+  它上面那一行**——脚本里只把 `catch` 的 msg 字段打出来，就会把"为什么没 target"整个丢掉。
+  凡是判据要落错误编号的，去日志里读上一条 `ERROR:`，别只信 `$msg`。
+- **一条 JTAG 通道上互斥的是写类操作（下载、擦写）与第二个 hw_server 进程**
+  （口径见 `SKILL.md` §5；**只读客户端能不能与写客户端共存本机没测过**——没板子，
+  所以别把它当"我读一下不碍事"的许可）。抢不到时先列出谁在用（另一个 Vivado、`hw_server` 的
+  另一个会话、Vitis/xsdb），**不要靠反复重连试探**：试探的代价在这台机器上量不出来，
+  而列占用者是当场能做的，所以流程走后者。
+- **命令族分两种注册时机，别混。** ① `hw_*` 那一族在新开 batch 会话里 `info commands` 查不到名字：
+  本机把 `open_hw_manager`、`get_hw_probes`、`read_hw_ila_data`、`get_hw_ilas`、`get_hw_targets`、
+  `get_hw_devices`、`connect_hw_server`、`write_hw_ila_data`、`run_hw_ila`、`program_hw_devices`、
+  `close_hw_manager`、`current_hw_ila`、`get_hw_ila_datas`、`upload_hw_ila_data`、`wait_on_hw_ila`
+  这 15 个数了一遍：**`load_features labtools` 之前 0/15 有名字，之后 15/15**。
+  ② 网表侧那一族（`create_debug_core`、`connect_debug_port`、`write_debug_probes`、
   `implement_debug_core`、`report_debug_core`）**在没 `load_features` 的新会话里就已经有名字**
   （本机在一个**没开工程、没 `load_features`** 的 batch 会话里 `read_verilog`+`synth_design` 之后
   直接跑通 `create_debug_core`/`connect_debug_port`/`write_checkpoint`）。
+  **①那一条还有反例，别把"查不到名字"读成"调不了"**：同一个新会话里第一条就调 `get_hw_ilas`
+  → rc=0 空串，调完之后再看 `info commands get_hw_ilas` 才有名字（工具自己按调用惰性装载）。
+  所以这一族"名字"与"能不能跑"是两个量，两个都要各自取一次。
   两类都用 `<命令> -help` 当正向读数（`get_debug_ports`/`get_debug_cores` 只证网表侧的对象，
-  `get_hw_probes`/`get_hw_ilas` 才对应 `hw_*` 那一侧，别拿前者当后者的存在性判据）。
+  `get_hw_probes`/`get_hw_ilas` 才对应 `hw_*` 那一侧，别拿前者当后者的存在性判据；
+  反过来 `get_hw_ilas`/`get_hw_devices` 这两条**返回空串**，所以它们在"有名字/能调用"这件事上
+  什么也否证不了，只能当形状参考）。
   要判某条命令在这版存不存在，用 `<命令> -help`：要么印用法，要么报 `invalid command name
   "<命令>"`（`[Common 17-25] No topics matched` 是另一路 `help <命令>` 的报法，两种别混用）。
   同理，工程类命令（BD 那一串、`wait_on_run`）在没打开工程时 `info commands` 查不到名字，
@@ -254,13 +301,34 @@ write_debug_probes -force ./design             ;# ⑪ 产出 design.ltx；判据
   这回事，`create_debug_port` 也没有宽度参数）。所以"我要看一整组 8 位"在这条路上
   没有隐式的解：要么每位一个槽（`probe0…probe7`，逐个 `create_debug_port` 再逐个连），
   要么走 IP 那条路按名字设宽（`CONFIG.C_PROBE<k>_WIDTH`，本机在 IP 路径上验证过设 4 读回 4）。
-  第三条路 `modify_debug_ports -probes <args>` **只到选项表为止，用法不能照抄**：
-  语法行是 `modify_debug_ports [-probes <args>] [-quiet] [-verbose]`，描述写的是
-  "Modify **routed** probe connections to debug cores"（**它管的是已布线之后的改连**，
-  与建核时连探针不是同一件事）；把核端口当位置参数传进去直接得
-  `[Common 17-165] Too many positional options when parsing 'clk_IBUF_BUFG'`——**这条命令没有位置参数**。
-  `-probes` 的取值说明在 `-help` 的表里被截断（只到 "debug core pin, channel index,"），
-  所以它能不能一次改多位、与逐个 `create_debug_port` 的效果是否同形，仍要在自己的设计上试出来再写进流程。
+  第三条路 `modify_debug_ports -probes <args>` 的**取值形状能离线核，效果不能**：语法行是
+  `modify_debug_ports [-probes <args>] [-quiet] [-verbose]`，描述写的是
+  "Modifies a routed design to connect nets to specified ports of debug cores"（**它管的是
+  已布线之后的改连**，与建核时连探针不是同一件事）；把核端口当位置参数传进去直接得
+  `[Common 17-165] Too many positional options when parsing 'clk_IBUF_BUFG'`（同一条把名字换成
+  `dbg_hub/clk` 也是这条）——**这条命令没有位置参数**。
+  **别把 `-help` 里换行的说明读成"被截断"**：本页早先就是那么读错过一次，以为 `-probes`
+  只写到 "debug core pin, channel index,"。整段 `-help` 打出来是完整的：Usage 表那格写全了
+  "debug core pin, channel index, and logical net for each probe connection"，Arguments 里给出
+  **三元素的顺序**（1) 核的逻辑引脚 2) 探针通道号 3) 要抓的逻辑网）与**多层列表**的形状，
+  还带一个可直接抄的例子：
+
+  ```tcl
+  ;# -help 里的例子（这是帮助文本，不是本机跑通的读数）：
+  modify_debug_ports -probes [list {top/x_ila/probe0 0 top/inst_A/net_0} \
+                              {top/x_ila/probe1 1 top/inst_A/net_a}]
+  ```
+
+  本机怎么把"形状对不对"变成离线读数的：在只有综合后网表、没有任何调试核的会话里把**假名字**按
+  这个三元素形状传进去——
+  `modify_debug_ports -probes [list {top/x_ila/probe0 0 top/inst/net_0}]` 得到
+  `ERROR: [Vivado_Tcl 4-948] Invalid debug port name top/x_ila/probe0`（`catch` 的 msg 字段里只有
+  包装那条 `[Common 17-39] … failed due to earlier errors`，真编号在日志上一条，见 §1 规则第一条末尾）——
+  **它已经在认端口名了，所以列表形状这层过了**。两件事仍然没被这条证明：
+  ① 不带 `-probes` 裸调 `modify_debug_ports` 在"内存里有综合后网表、但没有核"时会 **rc=0 且什么都不做**
+  （本机取到 rc=0、msg 空串；同一会话里加完 `load_features labtools` 还是 rc=0）；
+  ② "这么给能不能真把探针改连到另一根网上"要有核、而且是已布线的设计，本机没跑到那一步。
+  所以这条的用法是：**拿假名字在离线会话里把拼写与列表形状钉死，改连的效果回设计侧验**。
   判"槽宽够不够"就读 `get_property PORT_WIDTH <端口>`——**别拿"连上没报错"当依据**：
   连一位上去同样不报错，症状是抓到的值永远只有一位。
 - 核"建了但没 implement"时 `write_debug_probes` 是 **rc=1**：
@@ -371,12 +439,16 @@ write_hw_ila_data  [-force] [-csv_file] [-vcd_file] [-legacy_csv_file] [-quiet]
 不是本机测到的行为**），别把第二个 token 抄成
 `<hw_ila_data_object(s)>...`；要 CSV/VCD 用那两个开关，别自己转（帮助原文：默认扩展名
 `.ila`，`-csv_file` 默认 `.csv`，`-vcd_file` 默认 `.vcd`）。
-**"不给 `<file>` 会报缺参数"这句离线证不了**：没有 labtools 会话时它在参数检查之前就停在
-`[Labtoolstcl 44-235]`（见 §1 开头）——所以参数级行为要么有板子要么别写。
+**"不给 `<file>` 会报缺参数"这句离线证不了**（本机：`write_hw_ila_data` 不给任何参数、或只给一个
+文件名，两条都停在 `[Labtoolstcl 44-235]`，见 §1 开头那张表）——所以**必填参数缺了会怎样**要么有板子要么别写。
+但**别把它读成"离线什么都判不了"**：同一台机器上 `write_hw_ila_data -bogus 1 x` 给的是
+`[Common 17-170] Unknown option '-bogus'`，**选项名的拼写离线就判得掉**（§1 的"拼写层/语义层"那一段）。
 判"触发有没有等到"用 `wait_on_hw_ila`，别用 `sleep`+看一眼：那正是 `board-bringup.md` §5
 说的"等待本身不是判据，`wait_on_run` 之后仍要读 STATUS"在抓取这一侧的同一件事。
 `run_hw_ila -file` 是另一样东西（它的 `-help` 文本写着 trigger-at-startup、不给扩展名时补 `.tas`）；
-这是**帮助文本的内容**，离线到不了参数检查（§1 开头），别当实测行为搬用。也别和 `.ila` 数据文件混。
+这是**帮助文本的内容**。帮助文本里"选项叫什么"离线可核（§1 拼写层），
+"给了之后发生什么"离线不可核（`run_hw_ila` 在本机连对象名那一层都没过：把一个名字当 `hw_ila` 传进去
+报 `[Labtoolstcl 44-135] Invalid option value 'hi' specified for 'hw_ila'`），别当实测行为搬用。也别和 `.ila` 数据文件混。
 
 核的配置能读也能写（本机）：`set_property CONFIG.C_PROBE0_WIDTH 4 [get_ips ila_0]` 读回 4。
 **探针个数那个属性叫 `CONFIG.C_NUM_OF_PROBES`**（有 `OF`；`CONFIG.C_NUM_PROBES` 不存在）。
@@ -460,18 +532,24 @@ ILA 数据是 `.ila`（`read_hw_ila_data`/`write_hw_ila_data` 的帮助都写明
 
 规则：
 
-- **"写探针描述文件"这件事可以成功返回而不产生任何文件。** 设计里没有调试核时，
-  `write_debug_probes` 返回 0、打印 `INFO: [Chipscope 16-244] No debug cores were found`，
+- **"写探针描述文件"这件事可以成功返回而不产生任何文件——而且返回值里就带着那个不存在的路径。**
+  设计里没有调试核时，`write_debug_probes` 返回 0、打印 `INFO: [Chipscope 16-244] No debug cores were found`，
   目标目录里什么都没有；加了 `-quiet` 连这条 INFO 都看不见（本机实测：`-quiet` 时一行都不印）。
-  **所以这一步别加 `-quiet`**：要一起看的是 `file exists` 与消息里有没有 `16-244` 两件事；
+  本机两条配套读数：① `write_debug_probes out.ltx` 在**有综合后网表、没有核、没开工程**的会话里
+  rc=0 且 **msg 字段就是 `C:/…/p18/out.ltx`**，而 `ls *.ltx` 取到 "No such file or directory"；
+  ② 同一条命令在**内存里连网表都没有**时换成 rc=1 的 `[Common 17-53] No open project`。
+  **所以"命令返回了一个路径字符串"不是文件存在的证据，`file exists` 也不是这一版的证据**（下面一条）。
+  **这一步别加 `-quiet`**：要一起看的是 `file exists` 与消息里有没有 `16-244` 两件事；
   退出码只在区分"有核没 implement"（`12-5829`，rc=1）时才有信息，单独拿它当判据正是
   `SKILL.md` §1 第 9 条列的那类假读数。
   两种失败都拿不到 `.ltx`，但一句是"你没插"、一句是"插了没落地"，修法不同。
-- **探针描述文件（`.ltx`）必须与板上跑的比特流同一次构建。** 版本不同时的症状是
-  "能连上、有波形、但每个信号都对不上"，比连不上更难查。落地做法：与 `.bit` 放同一目录、同前缀。
+- **探针描述文件（`.ltx`）必须与板上跑的比特流同一次构建。** 落地做法：与 `.bit` 放同一目录、同前缀，
+  并把两者的 `file mtime`/`size` 一起记进同一条构建记录。
+  （`.ltx` 与 `.bit` 不同批时会在**连上之后**才暴露，而那时候的排查成本比连不上还高——
+  这一句是顺序判断，不是本机读数：没板子，那个症状没被观察到过。）
   **而"同目录同前缀"恰好让 `file exists` 这一条失去信息**：前一次留下的同名 `.ltx` 会让它读起来是绿的，
   实际是旧构建的。所以这一步是三条一起：带 `-force` 写、写完 `file exists` 为真、
-  `file mtime` 落在****的窗口里。少了第三条，判据检查的是文件名，不是构建身份。
+  `file mtime` 落在 `T0` 之后（`T0` 怎么取见下面两行）。少了第三条，判据检查的是文件名，不是构建身份。
   "窗口"要落成一个可比较的数，不要写成"看起来是新的"：在开跑之前取一次 `clock seconds` 记为 `T0`，
   判 `mtime >= T0`；拿不到 `T0` 时用同一次构建的 `.bit` 的 `file mtime` 当参照，判 `.ltx` 不早于它。
   两条边界要写进结论：① `mtime` 是**秒级**的（本机 1.2 s 之差只读出 1 秒），同一秒内产生的两个产物

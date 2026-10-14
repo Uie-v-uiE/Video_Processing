@@ -65,7 +65,9 @@ license: MIT
    看着像属性错，其实是对象为空——同一族陷阱是
    `list_property_value [get_ports -quiet 不存在] IOSTANDARD`，它把**属性名**报成非法值
    （`Invalid option value 'IOSTANDARD' specified for 'object'.`），一个字不提集合为空）；
-   `write_debug_probes` 没有调试核也返 0 且不生成文件，`bootgen` 命令行写错也返 0——
+   `write_debug_probes` 没有调试核也返 0 且不生成文件（本机连返回值都取到了：msg 就是
+   `<工作目录>/out.ltx` 这个**并不存在**的路径，同会话里 `write_hw_ila_data out.ila` 反而 rc=1
+   报 `44-235`——**同一个"写文件"动作里两条命令的空/红形状不一样，别互相推断**），`bootgen` 命令行写错也返 0——
    但**这一条只在 `bootgen.bat` 上成立**：本机同一句 `-arch bogus` 走 `bin/bootgen`（`#!/bin/bash` 那个包装）
    回的是 rc=**1**，错误文本两边一模一样。脚本里"用返回码兜住 bootgen"要先定你调的是哪个入口）；
    `get_property` 读回的空（名字在这层不存在、与本来就没值，**两种都可能只回一个空**，
@@ -255,8 +257,17 @@ license: MIT
   本机 `wait_on_run` 连 `auto_load` 都读 0，调用它却能走到
   `[Common 17-162] Invalid option value specified for '-runs'`；同一批 BD 命令在 `create_project` 之后
   仍读 0、只被**调用过一次**（哪怕失败在 `17-53 No open project`）就全部变 1。
+  `hw_*` 那一族给的是一个可以直接抄的形状：本机把 15 个 `hw_*`/`get_hw_*` 名字在一个全新 batch 会话里
+  数一遍是 **0/15 有名字**，`load_features labtools` 之后 **15/15**；而**没 `load_features` 的同一台机器上**
+  第一条就调 `get_hw_ilas` 照样 rc=0（空串），调完之后 `info commands get_hw_ilas` 才有名字。
   所以"这条命令不存在"只认一个信号：`invalid command name "<名字>"`
-  （三相位读数与取法在 `onchip-debug.md` §2）。
+  （三相位读数与取法在 `onchip-debug.md` §2；`hw_*` 这一族的 0/15→15/15 与那条空串反例在 §1）。
+  **第五种要单独记：探针脚本自己覆盖了一个同名的内建/工具过程**，症状是死在**下一行无关命令**上。
+  本机那组对照是六行脚本（定义过程 → `read_verilog` → `synth_design` → `puts`），**只换过程名**：
+  叫 `try` 时 `read_verilog` 报 `[Common 17-685] Unable to load Tcl app xilinx::xsim`、
+  整个 batch rc=1、后面一条读数都没打印；叫 `tcall` 时同一份脚本 rc=0。
+  防它很便宜：脚本里每个要定义的 `proc` 名先 `[info commands <名>]` 查一次，**有输出就是撞名**
+  （`try` 在 Tcl 8.6.13 上返回 `try`），A/B 取法在 `vivado-build-run.md` §8。
 
 同一句话可能同时像两行时，**先按能被推翻的那一侧查**：先确认抓来/烧进去的是这一次的比特流
 （`onchip-debug.md` §3、`board-bringup.md` §1），再谈设计里的延迟。
