@@ -90,10 +90,24 @@ list_property_value STEPS.PLACE_DESIGN.ARGS.DIRECTIVE [get_runs impl_1]
 |---|---|
 | `STEPS.<STEP>.TCL.POST` | 该步骤结束后要执行的**脚本文件路径**（不是内联 Tcl，见 §5）——用它把 `report_timing_summary`、`report_methodology`、`report_utilization` 落成文件 |
 | `STEPS.<STEP>.REPORTS` | 该步骤默认要生成的报告集 |
-| `STEPS.<STEP>.IS_ENABLED` | 这步跑不跑（如 `PHYS_OPT_DESIGN`、`POWER_OPT_DESIGN`） |
-| `STEPS.<STEP>.ARGS.DIRECTIVE` | 该步的 directive（值用 §2 的 `list_property_value` 查） |
+| `STEPS.<STEP>.IS_ENABLED` | 这步跑不跑——**但只有 5 个步骤有这一项**：本机 `impl_1` 的 9 步里 `EN=1` 的是 `OPT_DESIGN`、`POWER_OPT_DESIGN`、`POST_PLACE_POWER_OPT_DESIGN`、`PHYS_OPT_DESIGN`、`POST_ROUTE_PHYS_OPT_DESIGN`；`INIT_DESIGN`、`PLACE_DESIGN`、`ROUTE_DESIGN`、`WRITE_BITSTREAM` **没有这个属性**（本条只数了清单，没测往不存在属性上写会发生什么；要动必需步骤前先 `list_property` 看清它在不在）。`synth_1` 唯一那一步 `SYNTH_DESIGN` 也没有（`EN=0`） |
+| `STEPS.<STEP>.ARGS.DIRECTIVE` | 该步的 directive（值用 §2 的 `list_property_value` 查）。**同样只有 5 步有**：`OPT_DESIGN`、`PLACE_DESIGN`、`PHYS_OPT_DESIGN`、`POST_ROUTE_PHYS_OPT_DESIGN`、`ROUTE_DESIGN`；`INIT_DESIGN`、`POWER_OPT_DESIGN`、`POST_PLACE_POWER_OPT_DESIGN`、`WRITE_BITSTREAM` 没有这一项 |
 | `STEPS.<STEP>.ARGS.MORE OPTIONS` | 追加原始参数；**用了它就要在记录里写用了什么**，否则复现时少条件。属性名含空格，整条要写成 `{…}`；值也有坑：本机 `set_property {STEPS.PLACE_DESIGN.ARGS.MORE OPTIONS} {-g x}` 报 `Unknown option '-g x'`，改成带前导空格的 `{ -g x}` 或嵌套大括号 `{{-g x}}` 才收下并能读回 |
 | `STEPS.INIT_DESIGN.TCL.PRE` | 读入设计前挂钩（例如生成派生约束文件） |
+
+这一族的**总数**也数过，写解析时拿它自检（2025.2.1，`xc7z020clg400-1`）：`list_property [get_runs impl_1]`
+给 **98** 项、`list_property [get_runs synth_1]` 给 **63** 项；`impl_1` 里带 `STEPS.<STEP>.` 前缀的步骤
+**9** 个，`synth_1` 只有 **1** 个（`SYNTH_DESIGN`），而 `MORE OPTIONS`/`TCL.POST`/`REPORTS` 三族在
+`impl_1` 的 9 步上**都有**（9/9）。run 对象上还直接挂着**结果数字**，不必去抠报告文本——两版 run
+返回的是同一组 8 个名字（`STATS.ELAPSED`、`STATS.TNS`、`STATS.THS`、`STATS.WNS`、`STATS.WHS`、
+`STATS.TPWS`、`STATS.TOTAL_POWER`、`STATS.FAILED_NETS`；本条只列名字，值要自己 `get_property`）。
+与"要不要重跑"直接相关的几项两边都有：`NEEDS_REFRESH`、`RQS_FILES`、`MIN_RQA_SCORE`、
+`GEN_FULL_BITSTREAM`、`INCLUDE_IN_ARCHIVE`；只有 `impl_1` 有 `AUTO_RQS.DIRECTORY` 与 `ML_STRATEGY_RUNS`。
+**`ARGS.VERBOSE` 两边都不在清单里**（同一条扫描的正向对照：`ARGS.MORE OPTIONS` 命中 9/9）。
+判"这个属性名在不在"只能靠 `list_property`：本机往 run 上读一个**编出来的**属性名
+（`get_property IS_IMPL [get_runs impl_1]`）得到的是 **rc=0 + 空串**，不报任何错；
+同一会话读 `NAME` 返回 `impl_1`（正向对照，证明这条 `get_property` 真的在干活）。
+所以"读回来是空"永远分不清是**值为空**还是**名字不存在**——只有清单能分。
 
 `<STEP>` 不要背，从属性名里现取（本机 2025.2.1 的 `impl_1` 数出 9 个）：
 
@@ -140,12 +154,21 @@ list_property_value STEPS.ROUTE_DESIGN.ARGS.DIRECTIVE [get_runs impl_1]
 
 ```tcl
 set_property STEPS.SYNTH_DESIGN.TCL.POST {report_timing_summary -file t.rpt} [get_runs synth_1]
-;# set_property 本身返回成功，只留下两条 WARNING：
-;#   [Runs 36-525] Unable to set the post hook file '...' for run step Synth
-;#   [Runs 36-540] Run directory synth_1 does not exist. Can not find Tcl hook script file '...'
+;# set_property 本身 rc=0，但它自己打一条：
+;#   WARNING: [Runs 36-540] Run directory synth_1 does not exist. Can not find Tcl hook
+;#            script file report_timing_summary -file t.rpt.
 launch_runs synth_1
-;# ERROR: [Project 1-1965] Hook script file <把那串 Tcl 当文件名拼出来的路径> ...
+;# launch 这一条又打一条，然后 rc=1：
+;#   WARNING: [Runs 36-525] Unable to set the post hook file ' report_timing_summary -file t.rpt '
+;#            for run step Synth Design, as path is invalid.
+;#   ERROR: [Project 1-1965] Hook script file <把那串 Tcl 当文件名拼出来的路径> ...
 ```
+
+两条 WARNING **一条在设的时候、一条在发的时候**（本机读数里它们的先后就是这两条命令的先后），
+`36-525` 里步骤名是全名 `Synth Design`，而且它把值原样裹在一对空格里回显
+（`' report_timing_summary -file t.rpt '`）。失败之后的状态也取过：`STATUS` 冻在
+`Scripts Generated`；**run 目录这次是存在的**（`file exists …/synth_1` = 1，脚本已经生成过），
+**但没有 `runme.log`**（同一条判断 = 0）——所以"目录在不在"分不清跑没跑，`runme.log` 才分得清。
 
 工具把属性值当**脚本文件名**去找（本机在 run 目录还没建出来时就是上面那条 `36-540`），
 而钩子**执行时**的工作目录是那个 run 目录——这两件事不同层：属性值怎么解析由工具定，
@@ -158,7 +181,8 @@ launch_runs impl_1 -to_step route_design -jobs 4
 ;# ERROR: [Project 1-1965] Hook script file <工程>/q2/q2.runs/impl_1/tcl/post_route.tcl
 ;#        used in Run: impl_1 and Step: Route Design does not exist     ← 拼在 run 目录上找的
 ;# 之后 STATUS 冻在 `Scripts Generated`、runme.log 根本没有、什么也没跑；
-;#   综合那一步（`STEPS.SYNTH_DESIGN.TCL.POST`）另有复核报过同一条 1-1965，本包只复现了 route 这一臂
+;#   综合那一臂本机也撞到同一条 1-1965（上面第一段，`Step: Synth Design`），
+;#   但那是"内联 Tcl 当文件名"触发的；相对路径 `./tcl/…` 这种写法只在 route 这一臂跑过
 ```
 
 正确写法是给一个真的、入库的脚本文件，并把**绝对路径**交给属性：
@@ -179,6 +203,20 @@ run 目录里出现 `hook_timing.rpt`；钩子里额外追加写了一行 `pwd=`
 那行打出来正是 `…/q2/q2.runs/impl_1`——**"钩子执行时的工作目录 = run 目录"与
 "属性值按 run 目录解析"是同一件事的两面**，所以钩子想引用工程里的别的东西，得把绝对路径自己带进去
 （放在 run 目录里、或再传一个属性）。
+**绝对路径这一臂还带一条 WARNING，出现条件就是"这文件不在任何 fileset 里"**（本机 2025.2.1，
+`set_property` 当时打、命令 rc 仍 0）：
+
+```tcl
+;# WARNING: [Runs 36-537] File <绝对路径> is not part of fileset utils_1, but has specified
+;#          as a Tcl hook script for run(s) synth_1. This file will not be handled as part of
+;#          the project for archive and other project based functionality.
+```
+
+同一次跑里钩子确实是执行了的：`STATUS` 走到 `synth_design Complete!`、run 目录出现
+`hook_marker.txt`（内容 `PWD=…/p4.runs/synth_1`）、`runme.log` 里有钩子打的 `HOOK_MARKER_LINE`
+——**而 `runme.log` 里没有那条 `36-537`**（`string match` 判 0）：它是工程侧的消息，只出现在批处理
+会话的输出里，事后翻 run 日志会漏掉它。它说的代价是"这文件不跟工程一起归档"；
+把它加进某个 fileset（`utils_1` 那种 utility fileset 也行）之后这条是否消失，**本机没测（NOT RUN）**。
 **注意这一步的默认报告不一定同处**：综合那份叫 `top_utilization_synth.rpt` 且落在**综合 run** 的目录里，
 把它当"实现那一步的兄弟文件"看是错的归属。
 
@@ -248,7 +286,9 @@ launch_runs impl_1 impl_2 -jobs 2 -to_step write_bitstream
 取自己机器上的值有确定办法（本机实测）：`list_property [get_runs impl_1]` 里**就有 `FLOW` 这一项**，
 `get_property FLOW [get_runs impl_1]` 直接回 `Vivado Implementation 2025`，照它写就不会猜
 （但 `list_property_value FLOW` 给的是**空清单**，所以这条路只能读现值、不能枚举合法值）。
-还有一件撞上的事：**工程模式里 `create_project` + 设好 top 之后，`synth_1`/`impl_1` 已经存在**，
+还有一件撞上的事：**`create_project` 一执行完 `synth_1`/`impl_1` 就已经在了**（本机在只建了工程、
+还没 `add_files`、也没设 top 的时刻 `get_runs *` 就返回 `synth_1 impl_1`；`add_files` 之后、
+`set_property top` 之后各取一次，返回同一对），
 再 `create_run synth_1 …` 得到 `[Common 17-69] A run named 'synth_1' already exists`——
 新建对比 run 时用别的名字，不要先删再建。
 `launch_runs impl_1 impl_2 -to_step write_bitstream -jobs 2` 本机**真的把两个 run 一起发出去了**
@@ -256,7 +296,10 @@ launch_runs impl_1 impl_2 -jobs 2 -to_step write_bitstream
 
 - **`-jobs` 是总并行度**：两个完整实现同时跑意味着两份内存（本机一次 `synth_design` 峰值约 1.8 GB，
   实现更高），笔记本上 `-jobs 2` 更可能互相拖慢而不是加速。
-- **`current_run` 在 `launch_runs` 之后返回 `impl_1`**——并行时"当前 run"只有一个，
+- **`current_run` 在 `launch_runs` 之后返回 `impl_1`——但它在这之前也返回 `impl_1`**：本机一次全新
+  `create_project` + `add_files` + 设 top 之后、**任何 `launch_runs` 之前** `current_run` 就已经是
+  `impl_1`，发完 `synth_1` 之后还是 `impl_1`，发完 `impl_1`、`wait` 之后仍是 `impl_1`（四次取读数同一个值）。
+  所以它**不能当"我刚才发的是哪个 run"的证据**，它只是工程模式的默认当前 run。并行时"当前 run"只有一个，
   读属性要显式 `[get_runs impl_2]`；两份产物在不同 run 目录，比较时各自取报告（§5 的钩子按 run 生效）。
   **这与 `board-bringup.md` §5 那条"并行跑两个构建要连工程目录都分开"不是同一件事**：那条管的是
   两个工程副本或两个会话同时跑（共享目录会互相覆盖）；同一工程里的两个 run 各有 `.runs/<run>/`，
@@ -264,6 +307,10 @@ launch_runs impl_1 impl_2 -jobs 2 -to_step write_bitstream
 - **重复启动已在跑的 run 会给清楚的一句**：
   `ERROR: [Common 17-69] Command failed: Runs 'impl_1', 'impl_2' are already running and cannot be relaunched.`
   （`-scripts_only` 撞上同状态也是这句，不是另一句。）
+  **单 run 时这句换形状**（本机在 `impl_1` 还在跑时再发一次同一个 run，rc=1）：
+  `ERROR: [Common 17-69] Command failed:  Run'impl_1' is already running and cannot be relaunched.`
+  ——注意 `Run'impl_1'` 这里**没有空格、而且 `failed:` 后面有两个空格**：拿它做 grep 判据时别按复数那条的
+  字面去匹配，两条都要列上。
 
 **"不认这个选项"的编号别当检索键**：本机 `launch_runs impl_1 -zzq 2` 报的是
 `[Common 17-170] Unknown option '-zzq'`，`set_input_jitter -setup …` 也是 `17-170`；
@@ -326,7 +373,7 @@ launch_runs impl_1 impl_2 -jobs 2 -to_step write_bitstream
 | `launch_runs` 报 `[Common 17-69] ... Run 'synth_1' needs to be reset before launching` | 这个 run 已经有产物/状态，改完东西不重置不让重跑 | 按它给的话用 `reset_run`（单数）或 `reset_runs`（复数）再 `launch_runs`；跳过这步的结果是"改了没重跑" |
 | `wait_on_run` 返回但 `STATUS` 仍未完成 | 超时/队列异常/子进程还在 | 再看一次 `STATUS`；别急着重发同一命令 |
 | 重跑同一 run 结果"莫名变好" | 上一跑的产物被复用 | `reset_runs` 后重跑，比较前后报告 |
-| 同一策略重跑两次，报告只差两行 | 本机一组读数：`reset_runs impl_1` 之后 `launch_runs impl_1 -to_step route_design` 再跑一遍，两份 `report_timing_summary` 各 **337 行**，逐行比只落在 **2 行**上——第 4 行 `Date` 与第 6 行命令回显（因为 `-file` 给了两个不同路径），而 WNS `7.746`、TNS `0.000` 两边**逐字相同** | **别把读数差异当"正常波动"吸收掉**：同机、同版本、同策略、`reset_runs` 干净重跑本来就该一致，**差出第三行就是有一个输入变了**（directive、工具版本、IP 版本、增量状态、part 重选）——去查那一个变量，而不是再跑第三次凑多数。"这一处改动值不值得再开一轮"是另一问，走 `constraints-timing.md` §5（它估收益上限，不比读数） |
+| 同一策略重跑两次，报告只差两行 | 本机两组读数，**差几行取决于两次的命令行是否相同**：① `reset_runs impl_1` 之后 `launch_runs impl_1 -to_step route_design` 再跑一遍、两份 `report_timing_summary` 的 `-file` 给了两个不同路径：各 **337 行**，逐行比落在 **2 行**——第 4 行 `Date` 与第 6 行命令回显，WNS `7.746`、TNS `0.000` 两边**逐字相同**；② 同一 run 目录里的默认那份（`cnt3_timing_summary_routed.rpt`，两次的命令行完全一样）：各 **621 行**，逐行比只落在 **1 行**——第 4 行 `Date`（`07:31:49` vs `07:33:17`），第 6 行命令回显**逐字相同** | **别把读数差异当"正常波动"吸收掉**：同机、同版本、同策略、`reset_runs` 干净重跑本来就该一致，**命令行相同时只差 `Date` 一行；差到第二行先查两次调用本身是不是同一句（`-file` 路径、`-to_step` 之类），差到第三行才是有一个输入变了**（directive、工具版本、IP 版本、增量状态、part 重选）——去查那一个变量，而不是再跑第三次凑多数。行数本身是设计相关的（上面 337 与 621 就是两份不同设计），别把行数当判据。"这一处改动值不值得再开一轮"是另一问，走 `constraints-timing.md` §5（它估收益上限，不比读数） |
 | 并行两个 run 抢同一份中间文件 | 竞态 | 串行，或用不同 run 名；见 `board-bringup.md` §5 |
 | 探针脚本自己把会话弄死，而且死在**下一行无关命令**上 | 本机实测的最小对照：六行脚本（定义一个过程、`read_verilog cnt.v`、`synth_design`、`puts`）**只换过程名**——叫 `try` 时第一条 `read_verilog` 报 `[Common 17-685] Unable to load Tcl app xilinx::xsim` 加 `[Common 17-69] Command failed`，`-mode batch` 直接 rc=1，后面每条读数全没打印；叫 `tcall` 时同一份脚本 rc=0、`synth_design` rc=0 | 探针脚本别覆盖 Tcl 内建/工具已占用的名字；见下面那段"名字占用"的取法 |
 | `catch` 抓到的 msg 字段只有一条包装 | 真错在它上面那一行 | 见 `onchip-debug.md` §1 规则第一条末尾（`17-39` 包住 `44-199` 那次）；判据要落错误编号就去日志里取上一条 `ERROR:` |

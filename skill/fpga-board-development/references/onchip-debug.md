@@ -349,8 +349,12 @@ write_debug_probes -force ./design             ;# ⑪ 产出 design.ltx；判据
   ```
 
   `Net Name` 那一格非空就是真连上了；`-file <路径>` 同理会落一份文件。
-  `-full_path` 在本机这一份设计上长度与不带它一致（4489/4489，网名本来已是全路径形状），
+  `-full_path` 取过**两次**，两次都是"加了等于没加"：一份设计上 4489/4489 字符，另一份（连接补齐之后的
+  `a4` 那份 checkpoint）4537/4537 字符、**92 行对 92 行、逐行比 0 处不同**——网名本来已是全路径形状。
   **所以别默认加了它信息就更多**，两版各取一次长度再决定用哪个。
+  这一族的选项边界也钉过：同一次会话里 `-name` 与 `-of_objects` 都报
+  `[Common 17-170] Unknown option`（这就是"上面那条 0 差值不是命令跑不动"的正向对照——
+  这条命令确实接收 `-full_path`，只是它不改变输出）。
   剩下那条 `.ltx` 的路仍然弱：`.ltx` 是 **JSON**（`open`+`read` 读回来过：
   `ltx_root.ltx_data[].debug_cores[]` 里每个核带 `type`/`name`/`uuid`/`pins[]`，
   pin 带 `name`/`id`/`type`/`direction`/`nets[]`），可 `nets[]` 里写的是

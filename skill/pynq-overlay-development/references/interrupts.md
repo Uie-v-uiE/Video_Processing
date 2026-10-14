@@ -7,7 +7,8 @@ from pynq import Interrupt, PL
 print(dict(PL.interrupt_pins))    # 唯一的合法名字来源
 ```
 
-源码 `interrupt.py:63-64`：`pinname` 不在 `PL.interrupt_pins` 里就直接
+源码 `interrupt.py:63-64`（3.0.1/3.1.2/4.0.0；**2.5.1 与 2.7.0 的同一段在 `:92-93`**，那两版的
+`:63-64` 是另一个函数在扫 `/proc/interrupts`）：`pinname` 不在 `PL.interrupt_pins` 里就直接
 `ValueError("No Pin of name {} found")`。合法名字的形状是 block diagram 里的
 **`${cell}/${pin}`**（docstring 原话），也就是"产生中断的那个 IP 的输出端口"，不是
 `xlconcat` 的名字（它是拼线 glue，不是中断源）。这里有个真会绊人的地方：同一个"层次前缀"
@@ -49,12 +50,14 @@ MMIO 块可查**，别去读 `0x04`/`0x1C`：那条路走的是 UIO，机制在 
 
 
 2. `get_uio_irq(raw_irq)` 扫 `/proc/interrupts`，**判的是倒数第三列等于 `str(raw_irq)`、
-   取最后一列当设备名**，而且要求这一行至少 7 列（`:32-42`）——注意它不 `break`，多行命中时
+   取最后一列当设备名**，而且要求这一行至少 7 列（3.0.1/3.1.2/4.0.0 `:32-42`；2.5.1/2.7.0 同一段在
+   `:61-70`，函数从 `:44` 起）——注意它不 `break`，多行命中时
    留下的是**最后一条**；
 3. 拿这个设备名去 `get_uio_device()`：逐个读 `/sys/class/uio/*/name`，**整串相等**才返回
-   `/dev/uioN`，找不到返回 `None`（`uio.py:27-32`）；
+   `/dev/uioN`，找不到返回 `None`（`uio.py:27-32`，3.0.1/3.1.2/4.0.0；2.5.1/2.7.0 同一段在 `:56-61`，
+   那两版的 `:27-32` 还是文件头的许可证注释）；
 4. `None` 就直接 `ValueError('Could not find UIO device for interrupt pin for IRQ number {}')`
-   （`interrupt.py:145-147`）。
+   （3.x/4.0.0 `interrupt.py:145-147`；2.5.1 `:190`、2.7.0 `:175`）。
 
 所以这一支的判据是一串**能对上的名字**，而不是"有没有 `/dev/uio*`"：
 `PL.interrupt_pins[pin]` 里的 `raw_irq` → `/proc/interrupts` 那一行的最后一列 →
@@ -140,15 +143,15 @@ AXI DMA 就是现成的例子：`start()` 只在 `description["interrupts"]` 里
 ## 2. `wait()` 是协程，而且没有 `timeout` 形参
 
 ```text
-async def wait(self)    # interrupt.py:72
+async def wait(self)    # interrupt.py:72（3.0.1/3.1.2/4.0.0；2.7.0 在 :101）
 ```
 
 - `intr.wait(2)` / `intr.wait(timeout=2)` 都会 `TypeError` —— 不是用法问题，是这个参数不存在。
 - 正确等待：`await intr.wait()`（在 notebook 的 cell 顶层 `await` 可用；在普通脚本里
    `import asyncio; asyncio.run(producer())`）。
 - **不要并发对同一个 `Interrupt` 调 `wait()`。** 机理是这样的：实现用 `self.waiting` 挡住
-   "重复向控制器注册事件"（`:81-84`），但所有调用者 `await` 的是**同一个** `asyncio.Event`，
-   而最先醒的那个会把 `self.waiting` 清成 False（`:86`）。于是"注册保护"与"谁在等"并不是同一件事——
+   "重复向控制器注册事件"（`:81-84`，3.x/4.0.0；2.7.0 同一段在 `:110-113`），但所有调用者 `await` 的是**同一个** `asyncio.Event`，
+   而最先醒的那个会把 `self.waiting` 清成 False（`:86`；2.7.0 `:115`）。于是"注册保护"与"谁在等"并不是同一件事——
    并发等不报错，但之后的行为没有保证。**这是建议，不是被机制强制的约束**，所以别靠"它没报错"
    认定自己用对了。
 - notebook 里裸等一个不会来的中断会把 kernel 挂住到进程被杀。

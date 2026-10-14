@@ -45,11 +45,21 @@ cat /sys/kernel/config/device-tree/overlays/design_1/status    # 期望 applied
 说明设备树进去了但那一根针没声明（回到 BD/`.hwh` 与生成侧）；目录不在，才是叠加这一层没进去。
 
 **同名 `.dtbo` 会互相顶掉**——这是上面那条命名规则的直接后果，也是"中断上周还好这周不来"的一个
-真实成因。`insert_dtbo` 每次都是先 `.remove()` 再 `.insert()`，而字典的键是**基名**：`overlays/a/design_1.dtbo` 与
+真实成因。`insert_dtbo` 每次都是先 `.remove()` 再 `.insert()`（4.0.0/3.1.2/3.0.1
+`pl_server/device.py:366-368`），而字典的键是**基名**：`get_dtbo_base_name()` 的函数体就一行
+`return dtbo_path.split('/')[-1].split('.')[0]`（4.0.0 `devicetree.py:48`，函数从 `:31` 起；2.5.1 在 `:78`）——
+所以 `overlays/a/design_1.dtbo` 与
 `overlays/b/design_1.dtbo` 落到**同一个** configfs 目录。加载 B 会先把 A 的叠加 rmdir
 （`devicetree.py:122-127`，驱动注释写的是 "Remove the dtbo file from the device tree"），
-A 的位流可能还配在 PL 里，但它的中断/UIO 节点已经没了。反方向也成立：`remove_dtbo()` 按
-`self.dtbo` 的基名删（`bitstream.py:183`），所以**释放 A 会把 B 的设备树摘掉**。
+A 的位流可能还配在 PL 里，但它的中断/UIO 节点已经没了。反方向也成立：`remove_dtbo()`
+先按 `self.dtbo` 委托给 device 层（`bitstream.py:183` 是 3.0.1/3.1.2/4.0.0 三版同一行；2.5.1 在
+`bitstream.py:165`、2.7.0 在 `bitstream.py:198`），
+**真正"按基名删 + 从字典里 del"的那两行在 4.0.0 的 `pl_server/device.py:379-381`**
+（3.0.1/3.1.2 同处同一对行）。
+2.5.1 里 `pl_server/device.py:405` 只是把请求发给 PL server 进程的包装，删的动作在 server 一侧：
+`pl_server/server.py:452` 起、`pl_server/server.py:462` 取基名（这两格**射程外**——`server.py` 只存在于
+2.5.1 那棵副本，本包判定用的 3.1/4.0 副本里没有），
+所以**释放 A 会把 B 的设备树摘掉**。
 两个 overlay 的 `.dtbo` 因此必须**基名互不相同**——注意这与本节开头那条不是一回事：
 "各自跟自己的 `.bit` 同名同批"是**配套**要求（谁与谁必须同一批导出），它**不区分**两个 overlay；
 上面那对反例 `overlays/a/design_1.dtbo` 与 `overlays/b/design_1.dtbo` 恰恰**都满足**配套要求，
@@ -145,12 +155,19 @@ print(ol.ip_dict['axi_dma_0']['type'])    # 与 bindto 逐字符比
 （单条 `hasattr(...)` 的 `False` 尤其不能当"不存在"，理由见本页 §3 末尾那条"`hasattr` 不是无副作用的查询"
 与 `debug-triage.md` §3 的同族写法）。真实的生命周期口是这几个：
 
+下表"位置"一列全部取本机 **4.0.0** 那棵树。同一批符号在其它版本的落点本机各取过一次
+（顺序 3.1.2 / 3.0.1 / 2.7.0 / 2.5.1）：`free` `:393`、`:387`、`:384`、`:374`；`download` `:402`、`:398`、
+`:390`、`:378`；`is_loaded` `:468`、`:464`、`:454`、`:448`；`reset` `:485`、`:481`、`:471`、`:465`；
+`bitstream.py` 的 `remove_dtbo` 四版分别 `:174`、`:174`、`:189`、`:156`，`insert_dtbo` `:185`、`:185`、
+`:200`、`:167`。**名字不漂、行号漂**——按名字找，跳过去之前先回读那一行现在写的是什么
+（`SKILL.md` 开头那条在这里同样成立）。
+
 | 口 | 位置 | 做什么 | 版本差别 |
 |---|---|---|---|
 | `ol.free()` | `overlay.py:394` | `if self.dtbo: self.remove_dtbo()` —— **只撤设备树，不重载位流** | **3.1 的 `free()` 还多一句 `self.device.close()`**（`v3.1:393-396`），4.0.0 去掉了。这就是"3.1 上 free 之后连 PL server 都关了、下一版加载要先重连"的来源 |
 | `ol.remove_dtbo()` | `bitstream.py:174` | 从系统里移除这个 dtbo | — |
 | `ol.insert_dtbo(dtbo=None)` | `bitstream.py:185` | 挂上 dtbo | — |
-| `ol.download(dtbo=None)` | `overlay.py:402` | 按 `clock_dict` 重配 FCLK（`:422-427`）+ `super().download(self.parser)` + 挂 `.dtbo`。**函数体里没有任何字典赋值**；docstring 说的"字典自动重置"发生在 device 层（`bitstream.py:168` → `pl.py:233`）。它也不重绑 `_ip_map`（§3.2） | 会动硬件：只读排查期间不要调用 |
+| `ol.download(dtbo=None)` | `overlay.py:402` | 按 `clock_dict` 重配 FCLK（`:422-427`）+ `super().download(self.parser)` + 挂 `.dtbo`。**函数体里没有任何字典赋值**；docstring 说的"字典自动重置"发生在 device 层（`bitstream.py:168` → `pl_server/device.py:414` 的 `post_download`，链条与版本行号见 §3.2 末段）。它也不重绑 `_ip_map`（§3.2） | 会动硬件：只读排查期间不要调用 |
 | `ol.reset()` | `overlay.py:482` | 重新从 parser 取 `ip_dict/gpio_dict/interrupt_*`，且**只在 `is_loaded()` 为真时**才 `device.reset(...)` | 位流没在跑的时候调它，字典刷新了但 PL 没重置——两件事别混着记 |
 | `ol.is_loaded()` | `overlay.py:465` | 比对 `self.timestamp == device.timestamp`，**`timestamp` 为空时退化成比 `bitfile_name` 字符串**（`:477-480`） | 它回答的是"这个对象与 device 记的那份是不是同一个"，**不是**"板上跑的功能是不是这一版"：同名 `.bit` 重下之后它照样 `True`，而那时你手上的驱动对象已经是旧的（§3.2）。与 §2 那条"只打印、不作判据"是同一个意思，身份只看版本寄存器读回 |
 
@@ -158,7 +175,14 @@ print(ol.ip_dict['axi_dma_0']['type'])    # 与 bindto 逐字符比
 
 1. **先把会打到 PL 的主停掉**（两个通道各**用 `MMIO` 写 RS=0**，cyclic 下补 `0x0004`；
    不要用 `stop()` 收尾——它在引擎异常里自旋，见 `dma-channels.md` §2），再下载下一版。
-   否则 PS 侧在途事务在 PL 被重置的窗口里等不到响应，表现是"下一次开始一路坏"。
+   否则 PS 侧在途事务在 PL 被重置的窗口里等不到响应。**这条理由是口径不是本机读数**（没有板子），
+   但"要先停"这件事 PYNQ 自己就是这么做的：全位流下载在配置之前显式走
+   `EmbeddedDevice.download` 里的 `if not bitstream.partial: self.shutdown(); self.gen_cache(...)`
+   （4.0.0 `pl_server/embedded_device.py:704-706`；partial 走 `else`，**不 shutdown**），
+   而 `Device.shutdown` 的 docstring 原话是 "Shutdown the AXI connections to the PL in preparation
+   for reconfiguration"（包装在 `pl.py:226`（4.0.0）/`:227`（3.1.2）/`:190`（2.5.1），实现在
+   `pl_server/device.py:383`（3.1.2/4.0.0）、2.5.1 在 `:416`）。
+   也就是说驱动层替你停了它认为在跑的 AXI，**它停不到你自己在 Python 之外发起的搬运**。
 2. **旧对象的引用要断掉**。`Overlay` 持有 mmap、fd、每个 IP 的驱动实例；只要还有一个引用活着
    （循环变量、异常 traceback、Jupyter 的 `In/_`），底层映射就不释放。`del` + 显式断引用 +
    重启 kernel 是三种能立刻区分"软件没清"与"硬件真坏"的手段。
@@ -189,10 +213,32 @@ print(ol.ip_dict['axi_dma_0']['type'])    # 与 bindto 逐字符比
 （`:493-498`：`ip_dict`/`gpio_dict`/`interrupt_controllers`/`interrupt_pins`，`hierarchy_dict`、
 `mem_dict`、`clock_dict` 都不在其中），`download()` 的函数体里连字典赋值都没有
 （`:402-433` 只有时钟那一段 + `super().download(self.parser)` + `insert_dtbo`）——
-docstring 说的"所有字典会自动重置"是**在 device 那一层**发生的：
-`Bitstream.download` 只有一句 `self.device.download(self, parser)`（`bitstream.py:168`），
-再由 `PL.reset(parser)`（`pl.py:233`，它的 docstring 原话是 "This method must be called after a
-bitstream download"）去换 PL 侧的东西。全文件 `delattr` 0 次命中，`_ip_map` 只在两处被赋值。
+docstring 说的"所有字典会自动重置"是**在 device 那一层**发生的，而且**只对全位流成立**。
+链条按名字取，行号随版本漂：`Overlay` 在五版里都是 `class Overlay(Bitstream)`
+（`overlay.py:203` 是 4.0.0 的；3.1.2 在 `overlay.py:202`、3.0.1 在 `overlay.py:199`、2.7.0 在
+`overlay.py:224`、2.5.1 在 `overlay.py:216`），而 `overlay.py` 全文**从没给 `self.timestamp` 赋过值**——
+它是 `Bitstream.__init__` 里那句 `self.timestamp = ""`（4.0.0 的 `bitstream.py:148`）。
+`Bitstream.download` 只有一句 `self.device.download(self, parser)`（`bitstream.py:168` 是
+3.0.1/3.1.2/4.0.0 三版同一行；2.7.0 在 `bitstream.py:187`、2.5.1 在 `bitstream.py:154`）
+→ 底层末尾 `super().post_download(...)`（4.0.0 的 `pl_server/embedded_device.py:717`）
+→ `Device.post_download`（`pl_server/device.py:414` 是 3.0.1/3.1.2/4.0.0 三版同一行；2.7.0 在
+`pl_server/device.py:446`、2.5.1 在 `pl_server/device.py:436`）里那道 `if not bitstream.partial:`
+（五版同一形状，4.0.0 占 `pl_server/device.py:415-422`）决定要不要盖时间戳并
+`self.reset(parser, timestamp, bitfile_name)`。
+两个后果：
+
+- 那句 "This method must be called after a bitstream download." 是 `Device.reset`（`pl_server/device.py:147`）
+  与它的门面 `PL.reset` 的 docstring：`pl.py:236`（4.0.0）、`:237`（3.0.1/3.1.2）、`:200`（2.5.1/2.7.0）。
+  **`pl.py:233` 取不到它**——3.x 那行是空行，4.0.0 那行正是 `def reset` 自己。
+- **partial 不进这道门**：时间戳保持 `""`、`Device.reset` 不跑，于是 `is_loaded()` 走上表那条
+  `bitfile_name` 分支（4.0.0 `:477-480`），字典也没被"重置"过。"重下之后字典自动换新"这句
+  只对全位流成立；给 partial 刷字典只有显式 `ol.reset()`。
+
+顺着这道门还有一处跨对象的副作用：`ol.reset()` 在 `is_loaded()` 为真时会把**自己那份**时间戳交给
+`device.reset()`（4.0.0 `overlay.py:497-498`、3.1.2 `:500-501`），而 `Device.reset` 只挡 `None`
+（`device.py:185-186`，`if timestamp is not None`）——`""` 是能过去的。所以**对一个时间戳为空串的
+overlay 调 `reset()`，会把 device 侧的 timestamp 写成空串**，此后别的对象里带着真时间戳的
+`is_loaded()` 一律落回名字分支或返回假。全文件 `delattr` 0 次命中，`_ip_map` 只在两处被赋值。
 
 - `download()` 之前取过的 `dma = ol.axi_dma_0`，重下之后**还是同一个对象**：它的 `MMIO` 仍按老地址
    映射，驱动实例里的 buffer/UIO fd 也都还在。
@@ -282,19 +328,27 @@ print("ip_dict now says:", hex(PL.ip_dict["axi_dma_0"]["phys_addr"]))
 
 两个入口，别混：
 
-- `Overlay.pr_download(partial_region, partial_bit, dtbo=None, program=True)`（`overlay.py:435`）
+- `Overlay.pr_download(partial_region, partial_bit, dtbo=None, program=True)`
+   （4.0.0 `overlay.py:435`；3.1.2 `:438`、3.0.1 `:434`、2.7.0 `:426`、2.5.1 `:409`
+   —— 后两版的签名**没有 `program`**，见下面第三条）
    —— 整块 overlay 对象上的口，`partial_region` 是 PR 块名。
-- `DefaultHierarchy.download(bitfile_name, dtbo=None, program=True)`（`overlay.py:946`）
+- `DefaultHierarchy.download(bitfile_name, dtbo=None, program=True)`（4.0.0 `overlay.py:946`；
+   3.1.2 `:949`、3.0.1 `:1048`、2.7.0 `:1014`、2.5.1 `:987`，2.5.1 那版签名是
+   `download(self, bitfile_name, dtbo)`——`dtbo` 无默认值）
    —— 拿到那个 PR **层次对象**之后的口。层次对象本身由 `_hierarchy_drivers` 注册队列与
    `RegisterHierarchy` 元类绑定（三处行号**按版本各取一次**：4.0.0 是 `overlay.py:545` 建队列、
    `:893` 在元类 `__init__` 里 `appendleft`、`:901` 是
    `class DefaultHierarchy(_IPMap, metaclass=RegisterHierarchy)`；3.1.2 同样三处都在，行号是
    `:548`、`:896`、`:904`；2.7.0 把它们排在 `:531`、`:961`、`:969`），判据是元数据里那一层的 `driver`。
 
-`partial=True` 告诉底层这是部分配置：它只对**生成它的那个全镜像**有效——板上现状不是那个
-static 镜像时，下 partial 的结果是配置寄存器被按错位的方式改，症状通常是"某一块从此不动"而
-AXI-Lite 一侧仍然活着。所以每次出 partial 都要同时记下它对应的全镜像（连同两者指纹），
-切换顺序写成"全 → partial"，不要在未知状态下直接下 partial。
+`partial=True` 告诉底层这是部分配置。源码里看得见的差别（4.0.0 `pl_server/embedded_device.py:704-712`）：
+全位流那一支先 `self.shutdown()` + `self.gen_cache(...)` 并取 `flag=0`，partial 那一支**什么都不先做**、
+取 `flag=1`；两支最后写的是同一对 sysfs 口——`/sys/class/fpga_manager/fpga0/flags` 与
+`/sys/class/fpga_manager/fpga0/firmware`（两个常量在 `:553-554`，落笔在 `:711-712`，写进去的是
+`bitstream.binfile_name` 而不是 `.bit` 原名），再加上 §3.2 那道门（partial 不盖时间戳、不跑 `Device.reset`）。
+至于"板上现状不是那个 static 镜像时会怎样"：**本包没有板子，下面这句是要求不是读数**——按部分配置的
+定义，partial 位流的位框只对生成它的那份 static 有效，所以每次出 partial 都要同时记下它对应的全镜像
+（连同两者指纹），切换顺序写成"全 → partial"，不要在未知状态下直接下 partial。
 
 **这一节给的是归属，不是可抄的走法**：上面两个入口的签名归属、"partial 绑定全镜像"这条后果，
 加上下面这三条（前两条读源码核实过，第三条在设计侧那一包）。
