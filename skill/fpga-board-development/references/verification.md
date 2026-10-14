@@ -353,8 +353,28 @@ vsim -c -transcript ms.log -do "run -all; quit" work.tb   # 非交互跑完，�
 ```
 
 `-transcript` 不是可选的：本节上面那条提取管道读的就是 `ms.log`，不加这一句它就没有输入文件。
-（`-work work` 能不能省掉 `vlib work`/`vmap` 没有定论——跑通过的只有直接带 `-work work` 的 `vlog`；
-在自己的机器上第一次跑时把这两条预备命令也试一遍。）
+
+**`vlib`/`vmap` 这两条预备命令的形状本机逐条取过**（ModelSim SE-64 2020.4，Git Bash 里直接调用
+`<安装根>/modelsim/win64/` 下的那三个名字），结论是**这两条的返回码都不能当判据**：
+
+| 调用 | 输出 | rc |
+|---|---|---|
+| `vlib work`（目录不存在时） | **什么都不打**，`work` 目录被建出来 | **0** |
+| `vlib work`（再来一次） | `** Warning: (vlib-34) Library already exists at "work".` + `Errors: 0, Warnings: 1` | **0** |
+| `vmap -c` | 两行横幅 + `Copying <安装根>/modelsim/win64/../modelsim.ini to modelsim.ini`（**在当前目录造一份 `modelsim.ini`**） | 0 |
+| `vmap mylib2 work`（目标目录在） | 横幅 + `vmap mylib2 work` + `Modifying modelsim.ini` | **0** |
+| `vmap mylib ./mylib_dir`（目标目录**不**在） | 横幅 + `Modifying modelsim.ini` + `** Error (suppressible): (vmap-19) Failed to access library 'mylib' at "./mylib_dir". No such file or directory. (errno = ENOENT)` | **5** |
+| `vmap`（只列映射，但 `.ini` 里还留着上一条那个坏映射） | 把**整张表打完**（`"mylib" maps to directory ./mylib_dir.` 在最前，后面 `std`/`ieee`/`unisim`… 一路打完） | **5** |
+
+三条要用去的读法：① 最后那一行才是重点——**`vmap` 列得动、rc 也可以是 5**，
+所以"用返回码判断映射表读没读出来"在这一族里必错，判据是 `grep` 那份 `modelsim.ini` 里
+`mylib = ./mylib_dir` 这一行在不在（本机两次都**在**）；② 上一条即使报错，**映射也已经写进 `.ini`**——
+`vmap` 的"Modifying modelsim.ini"在错误之前就打出来了，所以"报错了应该没写进去"是错的直觉，
+留一个指向不存在目录的映射会让**之后每一次** `vmap` 都带回那个 5；③ 判库建没建成用
+`ls` 看目录、看目录里的库文件，不是看 `vlib` 有没有说话（它成功时是**沉默**的）。
+
+`-work work` 与这两条的关系只测到一半：跑通过的臂都是**显式带 `-work work` 的 `vlog`**，
+"省掉 `vlib`/`vmap` 只靠 `-work work` 行不行"本机没做过对照，别当已知。
 
 ```bash
 xvlog -sv rtl/*.v sim/tb.v              # 含 final/int 之类 SV 构造时要带 -sv（$fatal 不需要，见 §1）

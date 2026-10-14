@@ -516,8 +516,18 @@ instance name ???<名字>`），打印的选项表里**没有** `-file` 这一�
 ——说明位置参数 `<file>` 底层就是一个名为 `file` 的选项。结论一句：**`file exists` 单用不构成判据，
 成立的是三条一起**——带 `-force` 写、`file exists` 为真、`file mtime` 落在窗口里
 （窗口怎么取、以及"同目录同前缀"为什么恰好会让第一条假绿，都见下面规则列表第二条）。
-写法用位置参数；不带 `-force` 且目标已存在时会怎样没有定论，所以别把它当默认安全项——要么显式带
-`-force`，要么在自己的设计上先试一次再决定。
+写法用位置参数。**不带 `-force` 而目标已存在时是硬失败**（这一条本机取到了，不再是"没有定论"）：
+先 `write_debug_probes -force ./dbg/design` 产出 `design.ltx`（mtime 与 size 都记下来），
+再原样去掉 `-force` 调一次——把名字写成 `./dbg/design` 与写成 `./dbg/design.ltx` **两次都是**
+
+```
+ERROR: [Vivado 12-1574] You must use the -force option to overwrite existing file
+        'C:/…/dbg/design.ltx'.
+```
+
+rc=1，而旧文件的 `mtime`/`size` 一字不变（本机：`1792013347`/`1726` 保持到下一次带 `-force` 的写，
+那次 `mtime` 前进 2 秒、size 仍 1726）。所以**别把不带 `-force` 当"安全默认"**：它不会静默跳过，
+会把这一步变成红；而错误文本里带**绝对路径**，顺手就能核对"写到哪"——这两件事一起用。
 `-file` 能不能用不取决于某一次没报错。
 产物扩展名是 `.ltx`（帮助原文："Debug probes file name (default extension is .ltx)"，
 **并且本机实测到**：跑完 §2.1 的 ⑩ 之后给 `write_debug_probes -force ./noext`，返回
