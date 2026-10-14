@@ -13,10 +13,10 @@ Vivado 里从工具到板子是一串对象，每一环都可能连错，而且�
 **下面"对象链"那几条要 `hw_server` 加板上器件；而注册时机、`-help` 语法、选项名的拼写不需要硬件，
 在 batch 会话里就能核对**（这两类读数的成本差很远，别因为前半段跑不动就跳过整节）。
 
-**但"离线一律停在参数检查之前"这句是错的**，它太宽，把能核的那半也一起放弃了。本机在一个全新
-batch 会话里（没 `load_features`、没开工程、没板子）按"哪条命令先被调用"取到三种形状：
+**离线能核的比"只能核命令名与 `-help`"多，但比"能核这个选项这么给行不行"少**，界线是实测的。
+一个全新 batch 会话（没 `load_features`、没开工程、没板子）里，`hw_*` 这一族并不停在同一道门上：
 
-| 离线会话里第一条被调用的命令 | 读数 |
+| 离线会话里的这条命令 | 读数 |
 |---|---|
 | `get_hw_ilas`、`get_hw_targets` | **rc=0、返回空串**——不报 `44-235`；"没有硬件"与"没查到"是同一个读数 |
 | `open_hw_manager` | **rc=0**（它只把 labtools 初始化起来，不代表链上有东西） |
@@ -37,6 +37,13 @@ batch 会话里（没 `load_features`、没开工程、没板子）按"哪条命
   **内存里没有网表**时停在 `[Common 17-53] User Exception: No open project`。
   调试那一族过不过 `17-53` 看的是**内存里有没有设计**，不是有没有工程：同一批命令在
   `read_verilog`+`synth_design` 之后（仍未开工程）能走下去，见本页第 3 条规则。
+  **但"参数层行为一律离线取不到"这句也别写**，它取决于那个参数是不是必填：
+  `run_hw_ila` 不带参数（`hw_ila` 是可选的、缺省取当前那份）在**没 `load_features`、没开 hw 会话**的
+  会话里就直接给 `[Labtoolstcl 44-8] Current hw_ila is not set and <hw_ilas> option is empty.`
+  （`catch` 的 msg 仍是 `17-39` 包装），而同一条把名字当参数传进去给
+  `[Labtoolstcl 44-135] Invalid option value 'hi' specified for 'hw_ila'`，
+  **三个时点（新会话 / `load_features labtools` 之后 / `open_hw_manager` 之后）取到的都是这一条**——
+  所以选项值检查确实在"有没有硬件会话"之前，而 `44-235` 只是那几条**必填**位置参数命令的读数。
 
 把下面这段当可跑清单之前，先确认你此刻有板子。
 
@@ -307,11 +314,11 @@ write_debug_probes -force ./design             ;# ⑪ 产出 design.ltx；判据
   已布线之后的改连**，与建核时连探针不是同一件事）；把核端口当位置参数传进去直接得
   `[Common 17-165] Too many positional options when parsing 'clk_IBUF_BUFG'`（同一条把名字换成
   `dbg_hub/clk` 也是这条）——**这条命令没有位置参数**。
-  **别把 `-help` 里换行的说明读成"被截断"**：本页早先就是那么读错过一次，以为 `-probes`
-  只写到 "debug core pin, channel index,"。整段 `-help` 打出来是完整的：Usage 表那格写全了
-  "debug core pin, channel index, and logical net for each probe connection"，Arguments 里给出
-  **三元素的顺序**（1) 核的逻辑引脚 2) 探针通道号 3) 要抓的逻辑网）与**多层列表**的形状，
-  还带一个可直接抄的例子：
+  **`-help` 里换行的说明不等于"被截断"**：判某个选项的取值有没有写全，要把 Usage 表、Arguments
+  那段与 `Examples:` 一起读完再下结论——只看表里第一行就写"它没说明白"，得到的会是假缺口。
+  这一条的 `-help` 全文给的是：Usage 表那格 "debug core pin, channel index, **and logical net**
+  for each probe connection"；Arguments 里定下**三元素的顺序**（1) 核的逻辑引脚 2) 探针通道号
+  3) 要抓的逻辑网）与**多层列表**的形状；`Examples:` 里有一个可直接抄的两路改连写法：
 
   ```tcl
   ;# -help 里的例子（这是帮助文本，不是本机跑通的读数）：
