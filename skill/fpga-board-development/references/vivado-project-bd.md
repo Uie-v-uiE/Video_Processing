@@ -409,6 +409,11 @@ make_wrapper -files [get_files top.bd] -top   ;# 本机 rc=0，返回 …/topbd.
   就是这条（`FCLK_CLK0` 自己**是源**，两个源不能进同一根网）。
 - `[BD 41-758] The following clock pins are not connected to a valid clock source:` 后面**逐行点名**
   （本机列过 `/ps7/M_AXI_GP0_ACLK` 与 `/ps7/S_AXI_HP0_ACLK`）——这条才是 validate 红的真成因。
+  最小的复现不需要 PS：**一棵只有 `axi_gpio` 的 BD 就是这条**，本机打出来的是
+  `ERROR: [BD 41-758] … : ` 换行后单独一行 `/gpio_0/s_axi_aclk`，紧跟
+  `ERROR: [Common 17-39] 'validate_bd_design' failed due to earlier errors.`，
+  再后面是 Tcl 自己的 `while executing "validate_bd_design" (file "p.tcl" line 10)`——
+  那三行 traceback 就是"会话从这一行被截断"的实证：不包 `catch` 时它后面的读数一条都不会打印。
 - `CRITICAL WARNING: [BD 41-1356] Slave segment </gpio0/S_AXI/Reg> is not assigned into address
   space </ps7/Data>. Please use Address Editor to either assign or exclude it.` —— "没分配"的信号；
   它出现时 `validate_bd_design` 可以 rc=0 也可以红，两件事别合并判。
@@ -420,6 +425,24 @@ make_wrapper -files [get_files top.bd] -top   ;# 本机 rc=0，返回 …/topbd.
 - `[BD 5-699] No address segments matched '<整条表达式>'` 是**空集合**的读数；本机另看到紧跟一句
   `INFO: [BD 41-3093] Triggering Legacy Auto Assign Algorithm`，而整条 `assign_bd_address` 仍然
   **rc=0**（这就是把段名大小写写错时"什么都不发生"的形状，见本节末那条）。
+
+**最小的能让 `validate_bd_design` 变绿的 BD**（不要 PS、不要地址段）——本机就是拿它把 BD 级的
+`export_simulation` 跑通的：
+
+```tcl
+create_bd_design design_1
+set cell [create_bd_cell -type ip -vlnv xilinx.com:ip:axi_gpio:2.0 gpio_0]   ;# 返回 /gpio_0
+create_bd_port -dir I -type clk clk                        ;# 时钟要有"源"；板级输入端口就是源
+connect_bd_net [get_bd_ports clk] [get_bd_pins gpio_0/s_axi_aclk]   ;# rc=0
+validate_bd_design                    ;# rc=0；接这一根之前它就是上面那条 41-758
+save_bd_design                        ;# rc=0
+generate_target all [get_files *.bd]  ;# rc=0：`generate_target` 是收 .bd 对象的
+```
+
+三处容易归错对象：`connect_bd_net` 这里的方向是**端口 → 引脚**（反过来把 `ps7/FCLK_CLK0` 这种
+**源**接到板级输入端口上，撞的就是上面 `[BD 41-249]` 那条"两个源"）；`get_files *.bd` 交回来的是
+一条完整路径（本机 `…/pb2.srcs/sources_1/bd/design_1/design_1.bd`），后面几步都拿它当同一个对象用；
+导出仿真那一步的参数与判据在 `verification.md` §9，不在本页。
 
 本机把几种写法都试过，两种失败、一种半失败，原文如下：
 

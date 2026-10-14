@@ -360,6 +360,22 @@ launch_runs impl_1 impl_2 -jobs 2 -to_step write_bitstream
 5. 产物哈希表（`.bit`/`.xsa`/报告），并写明 JTAG 下载是易失的——
    对方拿到这些也**证明不了**板子上跑的是它，那要靠 RTL 里的版本寄存器读回（`SKILL.md` §1 第 5 条）。
 
+数产物时**不要拿 `**` 当递归**，两个命令面都不认它。本机 Vivado 的 Tcl 是 **8.6.13**
+（`puts $tcl_version` + `info patchlevel` 取的），同一棵目录树里——树是真的有那份文件，
+`out/design_1/xsim/run.sh` 存在、`find out -type f` 数到 **13** 个文件：
+
+```tcl
+glob -nocomplain $R/out/**/run.sh    ;# 返回空（0 命中，不报错）
+glob -nocomplain $R/out/*/*/run.sh   ;# 命中 1 条 …/out/design_1/xsim/run.sh：同一棵树的正向对照
+```
+
+bash 那一侧同形：`ls out/**/run.sh` 在未 `shopt -s globstar` 时给 `No such file or directory`，
+`ls out/*/*/run.sh` 一直命中，`shopt -s globstar` 之后 `**` 才命中。
+所以"树里有没有某个文件"要么**写死层数**，要么自己走一遍（五行的递归 `proc walk` 本机用它数出 13，
+与 `find -type f | wc -l` 的 13 一致）。拿 `**` 起头判"导出成功/打包成功"，会得到一次**假失败**——
+它和 `export_simulation` 那一族的读数形状是同一条：本机 BD 导出成功那次（rc=0、`run.sh` 真的落出来了），
+`catch` 交回的字符串**长度是 0**——判据要落在产物上，不落在返回值上。
+
 跨机器复现不上时，先按这份清单逐条 diff，再怀疑工具：绝大多数"同一工程两台机器结果不同"
 落在第 1、2 条（GUI 点出来的设置没进 tcl、版本或速度等级不同），不是综合器不稳定。
 
