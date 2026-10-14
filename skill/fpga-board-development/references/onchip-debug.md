@@ -245,6 +245,14 @@ connect_debug_port u_ila_dbg/clk [get_nets clk_IBUF_BUFG]
                                        ;#   **同一句 16-213 照样出现**——所以这条 DRC 数的是"未连通道数"，
                                        ;#   它报出来的端口名不一定就是缺口所在；建了槽位就得连，
                                        ;#   不需要就 `delete_debug_port` 掉。
+                                       ;#   **读回口就在这张表上**：`implement_debug_core` 之后
+                                       ;#   `report_debug_core` 的 `clk` 那一行，
+                                       ;#   没连时是 `Channel Name=clk[0]`、`Net Type`/`MARK_DEBUG`/
+                                       ;#   `Net Name` **三格全空**；连上之后同一行变成
+                                       ;#   `Net Type=signal`、`MARK_DEBUG=false`、`Net Name=clk_IBUF_BUFG`。
+                                       ;#   所以"这条 connect 到底落没落地"判的是 `Net Name` 那一格，
+                                       ;#   不是 `connect_debug_port` 的返回码（它两种情况都 rc=0），
+                                       ;#   也不是 `get_property CONNECTED_TO`（那条属性不存在，`12-4442`）。
 write_checkpoint -force ./post_synth.dcp      ;# ⑧ 存盘——"存出文件"本身还不够
 open_checkpoint ./post_synth.dcp              ;# ⑨ 重新打开它才算"已保存的设计"
 implement_debug_core                          ;# ⑩ 核进入网表（日志出现 dbg_hub_CV/u_ila_dbg_CV）
@@ -320,13 +328,27 @@ write_debug_probes -force ./design             ;# ⑪ 产出 design.ltx；判据
   也没打出来）。**换个写法同一批读数就全拿到了**：每条 `get_property` 都包进 `catch` 之后，本机对
   三个端口逐个取一个不存在的属性名，每个都正常返回那段错误文本而不是中断会话（下面 VIO 那条就是那次）。
   所以批量取属性只有两种安全写法：逐条 `catch`，或先对**这个对象** `list_property` 再按清单取。
-  **"探针连上了哪个网"没有属性可读，而两条后备路都比想象中弱**（本机实测）：
-  `report_debug_core` 有一次在 `implement_debug_core` 之后**整段返回空**（0 行，也不报错）；
-  `.ltx` 是 **JSON**（`open`+`read` 读回来过：`ltx_root.ltx_data[].debug_cores[]` 里每个核带
-  `type`/`name`/`uuid`/`pins[]`，pin 带 `name`/`id`/`type`/`direction`/`nets[]`），
-  可 `nets[]` 里写的是 `u_ila_dbg/probe0[0]` 这种**核内名字**，不是你连进去的设计网名。
-  所以这一格既不能靠属性、也不能靠这两条后备路：**把网名在连接那一步自己 `puts` 进日志**，
-  这是本页能给的唯一稳妥做法（读 `.ltx` 本身要回到 shell/Tcl 的 `open`，见 §3 那条"只有写的命令"）。
+  **"探针连上了哪个网"没有属性可读，但有可用的后备读数**（本机把这条重新取过，早先的结论是误判）：
+  `get_property CONNECTED_TO <端口>` 报 `12-4442`（属性不存在），而
+  **裸调 `report_debug_core` 返回的是 0 长度字符串**——表格是打到日志里的，不是返回给你的，
+  所以早先那次"整段返回空（0 行，也不报错）"就是这么来的，它**不是**这条后备路坏了。
+  加上 `-return_string` 就拿到全文（本机 4489 字符），行里就是判据：
+
+  ```
+  | clk     | input | clk |             | clk[0]    | signal | false | clk_IBUF_BUFG |
+  | probe0  | input | probe | PROBE_TYPE=DATA_AND_TRIGGER | probe0[0] | signal | true  | clk_IBUF      |
+  ```
+
+  `Net Name` 那一格非空就是真连上了；`-file <路径>` 同理会落一份文件。
+  `-full_path` 在本机这一份设计上长度与不带它一致（4489/4489，网名本来已是全路径形状），
+  **所以别默认加了它信息就更多**，两版各取一次长度再决定用哪个。
+  剩下那条 `.ltx` 的路仍然弱：`.ltx` 是 **JSON**（`open`+`read` 读回来过：
+  `ltx_root.ltx_data[].debug_cores[]` 里每个核带 `type`/`name`/`uuid`/`pins[]`，
+  pin 带 `name`/`id`/`type`/`direction`/`nets[]`），可 `nets[]` 里写的是
+  `u_ila_dbg/probe0[0]` 这种**核内名字**，不是你连进去的设计网名。
+  三条一起用的写法是：**`report_debug_core -return_string` 取 `Net Name` 当判据，
+  同时在连接那一步把网名 `puts` 进日志**（后者是为了日志可追溯，不是因为没有读回口；
+  读 `.ltx` 本身要回到 shell/Tcl 的 `open`，见 §3 那条"只有写的命令"）。
 - **`PORT_WIDTH` 是会咬人的那条读数**：本机把 `connect_debug_port` 连到 1 位网上它仍是 `1`，
   `create_debug_port` 新建的 `probe1` 也是 `1`，**连一个 8 位网不会把它变成 8**（这条路没有自动加宽
   这回事，`create_debug_port` 也没有宽度参数）。所以"我要看一整组 8 位"在这条路上
