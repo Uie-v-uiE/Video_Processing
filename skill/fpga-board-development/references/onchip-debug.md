@@ -10,8 +10,8 @@
 
 Vivado 里从工具到板子是一串对象，每一环都可能连错，而且错法各不相同。
 
-**下面"对象链"那几条要 `hw_server` 加板上器件；而注册时机与 `load_features` 的特性名，是在
-没板子的 batch 会话里取的**（这两类读数的成本差很远，别因为前半段跑不动就跳过整节）。
+**下面"对象链"那几条要 `hw_server` 加板上器件；而注册时机与 `load_features` 的特性名不需要硬件，
+在 batch 会话里就能核对**（这两类读数的成本差很远，别因为前半段跑不动就跳过整节）。
 离线（没开 `open_hw_manager`、或没有 target）时
 任何 `hw_*` 命令都先报
 `ERROR: [Labtoolstcl 44-235] The labtools system is not initialized. You must execute 'open_hw_manager' to initialize the labtools system prior using this command.`
@@ -26,7 +26,7 @@ get_hw_targets                        ;# 看到几个 target？
 get_hw_devices                         ;# 板上认到的器件（链上多个 FPGA/ARM 时必看）
 program_hw_devices [get_hw_devices 点名一颗粒]
                                        ;# 别写 [get_hw_devices]：不带过滤就是把链上所有器件都给它
-                                       ;# （这句按的是它的参数形状，本机没板子，没实测过多器件链）
+                                       ;# （这句按的是它的参数形状；多器件链是否同形要自己试出来）
 close_hw_target
 close_hw_manager
 ```
@@ -153,13 +153,13 @@ modify_debug_ports  [-probes <args>] [-quiet] [-verbose]
 连到 master（debug bridge / debug hub，且 master 要配成 From BSCAN To DebugHUB 模式）"，
 并且**只能连同一 region 里的主从**（PR 场景下这条会限制你能连谁）。
 它解决的是"核已经建好、要把整批 slave 挂到 hub"，与 §2.1 那条逐个 `connect_debug_port` 不是同一层——
-**没有用它跑通过一次连接**（NOT RUN：只核到选项表，用法照抄仍然别做）。
+**它的用法没有可抄的来源**：`-help` 只给你选项表与"同 region 主从"这条限制，没有示例。
+第一次用要在自己的设计上跑一次连接，然后回读拓扑确认它真挂上了。
 
-**跑通一次的顺序**（本机没做过更少步骤的对照，所以不主张最短；只主张这串按顺序可行：①②③④⑥⑦⑧⑨⑩⑪ 本机在没板子、没工程的会话里连起来跑通过两次，
-终点都是真存在的 `.ltx`；⑤ 只在另一次里单独取过读数；两只臂的差别就在 ⑦，见下面第二条。
-下面那张表的"4 次"是**同一臂的重复**，与这里的"两次完整"数的不是同一件事，别相加。
-后面又有两轮只跑到 ⑩ `implement_debug_core` 就停（没走 ⑪ `write_debug_probes`，所以不产出 `.ltx`），
-取的是占用三行——那组数与它的边界在 `constraints-timing.md` §6）：
+**可行的顺序**（不主张步骤最少；这串在没有硬件的会话里按序可行，终点是一份真存在的 `.ltx`；
+⑤ 属于另一条路上的读数点；两条臂的差别只在 ⑦。
+注意只跑到 ⑩ `implement_debug_core` 就停**不会产出 `.ltx`**——那种走法取的是占用三行，
+那组数与它的适用边界在 `constraints-timing.md` §6）：
 
 ```tcl
 read_verilog ./cnt.v                          ;# ① 或者 open_checkpoint / open_run 之后
@@ -210,7 +210,7 @@ write_debug_probes -force ./design             ;# ⑪ 产出 design.ltx；判据
   上面那串只连了 hub 那一路与探针那一位。落地之后 `implement_debug_core` 返回 `CDC-15#11`、
   `.ltx` 照样产出（本机那份是 1737 字节 / 48 行），而读回来的 `pins[]` 里**只有 `probe0` 一条**。
   也就是说 **`u_ila_dbg/clk` 空着不会让这条链子在任何一步报错**。它会不会让上板抓不到波形，
-  本机没有板子，**没测**。所以这一格别留给运气：把三条端口都列出来，该连的逐个连上、
+  只能上板判；所以这一格别留给运气：把三条端口都列出来，该连的逐个连上、
   逐个 `puts` 记账——这与上面 `PORT_WIDTH` 那条是同一类坑（工具不催你，形状还各不相同）。
 - 按 §1 的口径，那类告警要按**条目数**数（`SKILL.md` §1 第 1 条）。
 
@@ -254,7 +254,7 @@ write_debug_probes -force ./design             ;# ⑪ 产出 design.ltx；判据
   任何自动加宽的行为，`create_debug_port` 也没有宽度参数）。所以"我要看一整组 8 位"在这条路上
   没有隐式的解：要么每位一个槽（`probe0…probe7`，逐个 `create_debug_port` 再逐个连），
   要么走 IP 那条路按名字设宽（`CONFIG.C_PROBE<k>_WIDTH`，本机在 IP 路径上验证过设 4 读回 4）。
-  第三条路 `modify_debug_ports -probes <args>` 本机**取到了选项表但仍未跑通**（NOT RUN）：
+  第三条路 `modify_debug_ports -probes <args>` **只到选项表为止，用法不能照抄**：
   语法行是 `modify_debug_ports [-probes <args>] [-quiet] [-verbose]`，描述写的是
   "Modify **routed** probe connections to debug cores"（**它管的是已布线之后的改连**，
   与建核时连探针不是同一件事）；把核端口当位置参数传进去直接得
@@ -358,8 +358,8 @@ upload_hw_ila_data       ;# ⑥ 取回数据
 write_hw_ila_data        ;# ⑦ 落盘（.ila/.csv/.vcd）
 ```
 
-①…⑦ 这七条名字本机都能 `-help` 打出用法；**顺序与"谁是等待者"是按各自帮助文本的描述排的，
-没有板子时它们全部停在 `44-235`（§1 开头），所以这条顺序要在你有板子的第一次实际跑一遍再固化**。
+①…⑦ 这七条都能 `-help` 打出用法；**顺序与"谁是等待者"只能按各自帮助文本的描述排**——
+离线时它们全部停在 `44-235`（§1 开头），所以第一次连上板子时要逐个跑一遍，再固化进脚本。
 落盘是 `write_hw_ila_data`。本机 `-help` 的语法行是
 
 ```

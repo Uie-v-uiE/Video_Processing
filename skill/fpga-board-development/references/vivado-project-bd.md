@@ -412,7 +412,7 @@ rc=0、回空，而这个根本不在上面那套名字里，读到的空与"没
 | `/ps7/Data/SEG_gpio0_Reg` | 就是它自己 | 分配到的基址，本机 `0x41200000` | 跟随 `-range`，本机 `0x00010000` | assign 的**输出** |
 
 前一次"一次读到 4 个 `OFFSET`、其中 3 个为空"按这张表就有了正确解释：那三个是从端声明的那一类，
-**不是"没分配"也不是"被排除"**。"被排除段本来就没有 `OFFSET`"这一支没复现；
+**不是"没分配"也不是"被排除"**。"被排除段本来就没有 `OFFSET`"这一支要自己排除一次才看得到；
 要用的时候在同一份设计上跑一次 `exclude_bd_addr_seg` 再回来读 `USAGE` 与 `OFFSET`
 （`info commands *bd_addr*` 本机交出 6 条：`get_bd_addr_segs assign_bd_address exclude_bd_addr_seg
 create_bd_addr_seg get_bd_addr_spaces include_bd_addr_seg`，两条排除/包含都在）。
@@ -449,12 +449,13 @@ PS/软件侧要的是**同一批**产物。`.xsa` 走 `write_hw_platform`。
 只有一个位置参数（输出文件名），多传 `[get_files top.bd]` 报 `Too many positional options`；
 **先前这里写"必须先设 `platform.name`/`platform.board_id`，否则报 User Exception"——在
 一个只做了 BD、两个属性都没设的工程上跑 `write_hw_platform -fixed -force out.xsa`：rc=0，
-文件也真生成了（1502 字节）**，那句话没能复现，别再当 precondition 引用（要判成功只有一招：看文件在不在、多大）。
+文件也真生成了（1502 字节）**，所以不要把"先设 platform.*"当 precondition 引用（判成功只有一招：看文件在不在、多大）。
 `-include_bit` 也不是"一条提示后继续"：同一工程没跑过 bitstream 时它是
 `ERROR: [Common 17-69] Command failed: Unable to get BIT file from implementation run. Please ensure
 implementation has been run all the way through Bitstream generation.`，**rc=1 且不产出 .xsa**。
-早期那次看到的 `INFO: [Projectvivado 1-1937] No bit file available…` 形状没复现——
-两种形状差在哪没有证据，所以判据只认"返回码 + 文件在不在"，不认消息文本。
+同一条失败在不同前置状态下给的文本并不一样（这里是 `17-69` 的 ERROR，另处见过
+`INFO: [Projectvivado 1-1937] No bit file available…` 的形状），两者关系没有可引的证据，
+所以判据只认"返回码 + 文件在不在"，不认消息文本。
 **同一族的 `1-xxxx` 在本机出现过两个类别名**：上面 §2.1 那条 `upgrade_project` 是
 `[Project 1-1969]`，导出这一族是 `[Projectvivado 1-1937]` / `[Projectvivado 1-1040]`。
 为什么不同本机没有解释，所以**按消息文本搜，别按类别名搜**——按 `Project` 搜会漏掉

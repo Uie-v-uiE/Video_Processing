@@ -189,7 +189,8 @@ xsim sim_net -R
 按 §1 的契约写：`TB_RESULT <判定词> checks=… errors=…`，判定词紧跟前缀，**中间没有冒号**——
 带冒号的写法会让 `awk '{print $2}'` 取到 `:`，红绿都解析成 `NOT_RUN`）：
 
-1. **初始化窗口：`有窗口` 是实测的，`只有网表侧有` 没复现。**
+1. **初始化窗口：`RTL 与网表都有窗口` 这一格是复现到的；`只有网表侧有` 这一格不要当结论用**——
+   要主张它，得在同一份设计上给出网表侧多出的那段 x 窗口的长度。
    前一次记的一次观察是：bench 在 `#12` 检查"复位释放后 `q==0`"，RTL 侧打
    `TB_RESULT PASS checks=12 errors=0`、网表侧打 `TB_RESULT FAIL checks=12 errors=1`
    （失败那条的观察文本是 `reset q= x`，它不是判定行），把检查点推晚之后网表侧才 PASS。
@@ -219,7 +220,7 @@ xsim sim_net -R
    （它存在，选项里有 `-cell`/`-process_corner`/`-mode`）；补上 `write_sdf` 之后网表 8542 字符、
    SDF 27101 字符都在，`xsim` 仍报 `[XSIM 43-3462] Unable to annotate SDF delays in the design`
    并以 **rc=1** 退出（本机少见地非 0，别以为 xsim 永远 0）。
-   所以"带 SDF 时 GSR 会不会真的把 x 窗口撑开"这一问仍是 NOT RUN。
+   所以"带 SDF 时 GSR 会不会把 x 窗口撑开"这一问，要等工程流里 `config_simulation` 配好之后才答得了。
    补一条同样属于的取得：`xelab --sdfmax "/实例=文件"` 经 `cmd //c` 传参时
    会被拆开（本机三种实例写法都得到 `Cannot find design unit add4_nt.sdf in library work`），
    而网表内嵌 `$sdf_annotate` 的写法能找到文件却报 `43-3462 Unable to annotate SDF delays`——
