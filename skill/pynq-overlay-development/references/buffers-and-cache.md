@@ -1,0 +1,265 @@
+# 缓冲区与一致性：分配、释放、cache、漏量
+
+本页管**谁持有内存**：`allocate` 的真实形状、释放的正确写法（`close()` 是废弃空操作）、缓存一致性的方向与判据、以及把“漏没漏”变成一个数。引擎那一半在 `dma-channels.md`。
+
+## 1. `allocate` 的真实签名与默认 dtype
+
+```text
+def allocate(shape, dtype="u4", target=None, **kwargs)    # pynq/buffer.py:138（3.1 与 4.0.0 同）
+```
+
+- 默认 dtype 是 **`"u4"`**：源码 docstring 自己写着 "The default dtype is 32-bit unsigned int
+   rather than float"。所以 `allocate((8, 1024))` 是 8×1024×4 = 32768 字节，不是 8192 字节。
+   按 PL 的实际字宽显式给 dtype：字节流 `np.uint8`、32 位 `np.uint32`、64 位 `np.uint64`。
+- 返回的是 `PynqBuffer`（`class PynqBuffer(np.ndarray)`，在 `pynq/buffer.py`；
+   `from pynq import PynqBuffer` 是**取不到的**，见 `versions-and-apis.md` §2），**本身就是 ndarray**：
+   可以直接 `buf[:] = arr`、`buf.reshape(...)`、切片；切片会跟着调整 `device_address/offset`
+   （`__array_finalize__`，`buffer.py:50-56`：`self.device_address = obj.device_address + offset`，
+   其中 `offset` 是**虚拟地址差**）。
+   这条有个必须记住的后果：**切片的 `physical_address` 已经含了偏移**，所以要"从中间开始搬"就把
+   切片对象本身交给 DMA（`v = buf[64:]; dma...transfer(v)`，对齐检查与 `transferred` 都按 `v` 记）。
+   **手算 `buf.physical_address + 64` 并不会"绕过同步记账"，也不会让同步范围错位**：
+   `flush()`/`invalidate()` 传的确实是 `self.offset` 与 `self.nbytes`（`buffer.py:104-114`，3.1.2 与 4.0.0 同形），
+   而这两个量在切片视图上**就是视图自己的**——`__array_finalize__` 按
+   `offset = self.virtual_address - obj.virtual_address`、`self.offset = obj.offset + offset` 重算
+   （`:50-56`），而 `nbytes` 是 numpy 给视图的**元素数 × itemsize**。连续切片下它正好等于那段的字节数，
+   所以"设备写的区间与被同步的区间不一致"这句对连续切片不成立（本页前一次就是这么写的，被源码反写）。
+   **带步长的切片会反过来咬人**，本机直接用 `numpy` 量过：100 个 `u4` 的 `a`（`a.nbytes`=400），
+   `a[64:]`→**144**、`a[10:20]`→**40**（都与区间一致），而 `a[::2]`→`offset=0`、`nbytes`=**200**，
+   可这个视图真正碰到的字节铺满整个 400。`flush`/`invalidate` 是把 `(offset, nbytes)` 当**连续字节区间**
+   交给 driver 的，所以对 `[::2]` 这样的视图，同步只覆盖前半段、**尾部 200 字节没被 flush，而且不报错**。
+   可用判据（本机在同一份 numpy 上量过）：`a[64:]`、`a[10:20]` 的 `flags['C_CONTIGUOUS']` 是 `True` 且
+   `__array_interface__['strides']` 为 `None`，而 `a[::2]` 是 `False`、`strides=(8,)`——**连续（无 stride）
+   才意味着同步范围等于视图碰到的范围**。不连续时的两条出路：按**原始对象整段**做同步（牺牲一点带宽，
+   最省事），或者重新申请一块连续的设备缓冲再把值拷进去。
+   **别顺手写 `np.ascontiguousarray(v)` 当解法**：它的 `subok` 默认为 `False`，返回的可能只是普通
+   `ndarray`（丢掉 `physical_address` 与释放责任），先 `type(...)` 与 `hasattr(..., "physical_address")`
+   各取一次读数再决定用哪条路。
+   本页前一次就是这么写的，被源码反写了。
+   手算仍然不该用，但危险在**释放**那一侧：`freebuffer()` 走
+   `libc.munmap(self.virtual_address, self.nbytes)` 然后 `del self.bo`（`:65-82`）——拿视图去调它，
+   只 unmap 视图那一段、却把整个 DMA 缓冲的句柄丢掉，而它自己的 docstring 就写着
+   "free the memory regardless of whether other objects may still be using the buffer"。
+   所以规范写法是：切片对象本身交给 DMA，释放由**持有原始对象的那一层**做（退出 `with`），
+   不要在视图上调 `freebuffer()`（本页 §3 第 2 条是同一件事的规范写法，改这里要同步那一处）。
+   `reshape` 不改变地址，只改形状。
+- `target=None` 用 `Device.active_device`；这就是"同一行代码在板端和在远程模式下分到不同内存"的入口。
+- 物理地址属性名是 **`physical_address`**（`buffer.py:89-91`，DMA 内部用的就是它），
+   不是 `phys_addr`（那是 `ip_dict` 里 IP 基址的键名）也不是 `phys_address`。
+   别的手上：`virtual_address`、`cacheable`、`device`、`offset`、`bo`。
+
+## 2. 释放：`close()` 是**废弃的空操作**，不是释放
+
+这一段值得单独一节，因为按 2.x 习惯写 `finally: buf.close()` 的代码，**不会报错，也不会回收内存**。
+各版给的信号不一样（逐棵读过）：2.5.1 `buffer.py:107-111` 是 `"""Unused - for backwards
+compatibility only"""` 加一句 `pass`，**一条告警都不发**；从 2.7.0 起（`buffer.py:107-113`）
+才有下面那段 `warnings.warn`，3.1/4.0 同形。
+所以判“这行代码有没有在起作用”靠的是它到底释不释放，不是有没有看到 `DeprecationWarning`。
+
+```python
+def close(self):    # buffer.py:97-102，3.1 与 4.0.0 完全一样
+    """Unused - for backwards compatibility only"""
+    warnings.warn(".close no longer functional - use scopes to manage buffers",
+    DeprecationWarning)
+```
+
+它只发一条 `DeprecationWarning` 就返回；`freebuffer()` 一个字节都没被调用。真正释放内存的是：
+
+```python
+with allocate((n,), dtype=np.uint8) as buf:    # __enter__/__exit__ 在 buffer.py:130-135
+    ...    # __exit__ 调的是 freebuffer()
+buf.freebuffer()    # 或者显式调用（buffer.py:65）
+del buf    # 靠 __del__ -> freebuffer()，时机由解释器定
+```
+
+三条要记住的：
+
+1. **`freebuffer()` 不看引用计数。** docstring 明写："This will free the memory regardless of
+   whether other objects may still be using the buffer"。所以先 `got = np.array(buf)` 拷出来再释放；
+   只要还持有 `buf` 的切片/视图，释放之后读它就是 UB。
+2. `jupyter`/长跑脚本里 `close()` 的"没报错"会被当成"已经释放了"，内存池越用越少，最后在某次
+   无关的 `allocate` 上炸。**但"有没有走到 `freebuffer()`"不是一条判据**——`with` 退出时它必然被
+   调用（`__exit__` 就是调它），所以这个计数出生以来没红过，属于装饰性检查。
+   真正的释放还有一道门：`freebuffer()` 的 unmap 主体整个包在 `if hasattr(self, "memory")` 里
+。`memory` 不是 `PynqBuffer` 自己设的，
+   是**分配器设的**，链条在两版里完全一致（行号也一样）：
+   `allocate() → Device.allocate()`（`pl_server/device.py:127`）`→ self.default_memory`
+   （这是个 property：3.1.2 `pl_server/embedded_device.py:551`，4.0.0 `:566`）`→ XrtMemory.allocate`
+   （`pl_server/xrt_device.py:113`）`→ buf.memory = self`（`:125`）。
+   `EmbeddedDevice` 就是 `XrtDevice` 的子类（3.1.2 `embedded_device.py:513`，4.0.0 `:528`），
+   所以**在 Pynq-Z2/ZynqMP 板子那侧这道门是开着的**：`with allocate(...)` 退出后确实 munmap。
+   要当心的是另一种运行方式——**远程模式返回的类根本不是 `PynqBuffer`**：
+   `RemoteDevice.allocate` 造的是 `RemoteBuffer(np.ndarray)`，它的 `__del__` 调 `self.freebuffer()`，
+   而那个 `freebuffer` 是一次 **gRPC 调用**。**两组坐标按版本分开抄**（同一个文件在两版里行数差很多，
+   3.1.2 那份只有 917 行，照 4.0.0 的行号去取会取到不存在的东西）：
+
+   | 取的东西 | 4.0.0（1241 行） | 3.1.2（917 行） |
+   |---|---|---|
+   | `RemoteDevice.allocate` | `:498` | `:474` |
+   | `class RemoteBuffer` | `:1058` | `:734` |
+   | `__del__` → 调 `freebuffer()` | `:1134` → `:1137` | `:810` → `:813` |
+   | `def freebuffer` | `:1142` | `:818` |
+   | docstring "Always set to False for RemoteBuffer" | `:1079`（赋值在 `:1118`） | `:755`（赋值在 `:794`） |
+
+   行号会漂，所以这张表只是本机这两版的**出处**，用法仍然是自己那份上
+   `grep -n "class RemoteBuffer\|def freebuffer\|__del__" <安装路径>/pynq/pl_server/remote_device.py`。
+   注意这条推论：主机进程崩掉/会话断掉时，板子那一侧的缓冲**没有人去释放**——
+   于是**在板上**读 `/proc/meminfo` 会看到比预期小的可用量，而主机这边什么异常都没有
+   （这个读数是板端的，别写成"主机重启后看到"）。所以远程模式下"板子内存不对"要按**残留**来查
+   （重启板端会话，或在板上读），不是按主机的引用计数查。
+   最后那行 docstring 是明写的：远程那侧的一致性语义与板子不同（`coherent` 恒为 `False`），别照搬。
+
+   也就是说：本页关于 `cacheable`、`sync_to_device/sync_from_device`、`physical_address` 的推理
+   是**板子那侧**的形状，不能整套搬到主机进程里。
+   一行判别（比猜运行方式可靠）：
+
+    ```python
+    from pynq import allocate
+    b = allocate((1024,), dtype="u4")
+    print(type(b), hasattr(b, "memory"))    # 期望 <class 'pynq.buffer.PynqBuffer'> True
+   ```
+
+   打出来不是 `PynqBuffer` 就说明你在远程那套上，下面的章节要按 `versions-and-apis.md` §1
+   重读一遍。`RemoteBuffer` 到底暴露哪些属性本包没有逐条核过（不编）；要用的话
+   `dir(b)` 现场导一次。
+
+   **所以唯一的释放证据是池子的读数**（下一节的 `CmaFree` 差值），不是调用痕迹。
+
+3. 重复释放安全（`freebuffer` 里 `if not self.freed`），但那是安全网，不是让你省掉 `with`。
+
+**要把"漏没漏"变成一个数**，别靠"跑久了会不会炸"来判：
+
+先排掉三种"你没漏但看起来像漏"的来源，再去做差值实验：
+
+1. **SG 的描述符表**（会挂住，但**不会每笔累积**）。`_SGDMAChannel.transfer` 每次自己 `allocate`
+   一块 BD 表（`lib/dma.py:384`），回收只发生在 `wait()`/`wait_async()` 的**末尾**（`:519-521`），
+   而 cyclic 与引擎错误都在它之前就 `raise` 了（`:473-474`）。
+   但下一次 `transfer()` 会重新绑定 `_descr`，旧表随即由 `__del__ → freebuffer()` 释放，
+   所以**每通道最多残留一张**：`_num_descr × 64 B`，普通传输就是 128 B。
+   判据因此是数量级比对，不是"有没有涨"：观测差值若是 `k×128 B` 量级、且
+   `stop()` 之后 `dma.sendchannel._descr is not None`，才是这条；差值大几个数量级就别说它解释得掉。
+   细则在 `dma-channels.md` §1 第 2.5 条。
+
+2. **远程模式**。`pynq.allocate` 在主机侧给你的是 `RemoteBuffer`，它的释放是一次 gRPC 调用；
+   主机会话断了，板子上那块就没人还（见上面 §2 的远程分支）。
+3. **`with` 的作用域真的很长的那些写法**（不是"notebook 里不退出"——cell 结束块就结束了，
+   结束后 `b` 只是变成已释放的悬空句柄）。真会让内存在整轮跑完前一直占着的是：
+   不带 `with` 的裸 `allocate()` 再赋值给变量、`with` 块里嵌着一个长期不返回的
+   `wait()`（cyclic 下它甚至直接 `raise`，见第 1 条），以及把缓冲存进一个活到进程结束的对象里
+   （例如某个全局的队列/环形缓冲列表）——最后这种最像"漏"，但它是**设计上的长生命周期**，
+   差值实验只会告诉你"没还"，不会告诉你"该还"。
+
+
+
+```python
+import re
+import numpy as np
+from pynq import allocate
+
+def cma_free_kb():
+    try:
+        t = open("/proc/meminfo").read()
+    except OSError:
+        return None    # 不在板上跑时直接走 NOT_RUN 那一支
+    m = re.search(r"CmaFree:\s+(\d+)\s+kB", t)
+    return int(m.group(1)) if m else None    # None = 这一版内核没导出 CMA 统计
+
+start = cma_free_kb()
+for i in range(50):
+    with allocate((4*1024*1024,), dtype=np.uint8) as buf:    # 每轮 4 MiB
+        pass
+end = cma_free_kb()
+if start is None or end is None:
+    print("VERDICT: NOT_RUN -- 这一版没有 CmaFree 读数，既不能说没漏也不能说没回收")
+elif start - end > 204800 // 2:                            # 半轮以上没还
+    print("VERDICT: LEAK held_kb =", start - end)          # 全漏的话约 204800 kB（50×4 MiB）
+else:
+    print("VERDICT: ok held_kb =", start - end)            # 期望 ≈0；容差见下面第 4 条
+```
+
+**`start` 必须存下来**——这一段以前写成"打印 start、结尾再取一次当前值减去它自己"，
+那**永远不会红**（两个数都是循环结束后的读数，差恒 ≈0），判据形同装饰。
+现在的判据是**同一次会话里前后两个读数的差**：漏 = `CmaFree` 变少 = `start - end` 是**正**的。
+
+判据是**两数之差**，不是"有没有 MemoryError"：50 轮之后 `CmaFree` 单调下降 ≈ `50×4 MiB` 就是漏。
+三条限定要说在结论里，否则这个数会骗人：
+
+- **`CmaFree` 只量 CMA 池，也就是 `allocate` 出来的那一族——**这句里的「同一池」本机**没有核实过**：
+  3.1/4.0 的 `allocate` 走的是 `xrt_device.py` 那条路径（那个文件里不出现 CMA 字样），
+  所以 `VERDICT: ok`（差 ≈0）在这两版上还有第三个解释：**量的不是同一池**。
+  先做一次配对：板上 `grep -i cma /proc/meminfo` 在分配前、分配后各取一次，
+  `CmaFree` 真的掉了你申请的量，才说明这个字段记的是你那批缓冲的账；不掉就先换读数来源，
+  别把「量为 0」直接读成「没漏」。 反复 `Overlay(...)` 攒下来的是
+   mmap 映射、`/dev/uio*` fd 与驱动实例，**不在这个池子里**——所以那个实验跑 20 次 Overlay
+   会打出 `held_kb ≈ 0`（也就是 `VERDICT: ok`），这是"没量到"，不是"没漏"。要查那条路看
+   `overlay-metadata.md` §3 的"引用还活着就不释放"（循环变量、异常 traceback、Jupyter 的 `In`/`_`）
+   与 `overlay-metadata.md` §5 那份反复加载骨架，`lsof`/`fd` 计数比 `CmaFree` 诚实。
+- **上面这个循环量的是"`with allocate` 这个写法漏不漏"，不是"你的代码漏不漏"。** 要审计的是你自己的
+   那段：把循环体换成被怀疑的调用序列（含异常路径），否则全绿只证明标准库那条路是通的。
+- `None` 要显式判：`None == None` 会打印成"没差值"，那是把"读不到"记成"没漏"。上面那行
+   `VERDICT: NOT_RUN` 就是为这个存在的。若 `CmaFree` 根本没有（`cma=` 没写进 cmdline、或走
+   reserved 区方案），改用 `grep -a Cma /proc/meminfo` 与 `dmesg | grep -a -i cma` 看这一版暴露了哪些字段名再决定。
+- "在池的粒度内稳定"这句要给得出数：容差取**分配尺寸的量级**（这里是 4 MiB）或
+   `/proc/meminfo` 里 `CmaTotal` 的 1%，两个都行但必须写明用的哪个，不然"稳定"是不可推翻的说法。
+
+要让这条能红，破坏的必须是**作用域本身**，而且**不能靠"重绑变量"**：
+`for i in range(50): b = allocate(...)` 这种写法每轮把上一块对象丢给 GC，
+`__del__ → freebuffer()`（`buffer.py:62-63`）照样回收，测出来是绿的——那是变异没打到点子上。
+打得着点的做法是**让引用真的活着**：
+
+```python
+hold = []
+for i in range(50):
+    hold.append(allocate((4 * 1024 * 1024,), dtype=np.uint8))    # 引用留在列表里，作用域不结束
+```
+
+这应该打出 `VERDICT: LEAK held_kb ≈ 204800`；跑完记得 `hold.clear()` 再看一次读数回落，
+两边都观察到才算这条判据存在。**只在 `with` 外面补一句 `buf.close()` 不会红**——退出 `with` 时
+`__exit__` 照样释放（`buffer.py:133-134` 那条路径），得到绿的变异对照不等于代码没漏。
+
+
+## 3. 缓存一致性：方向、粒度、和"要不要你做"
+
+```python
+buf.cacheable    # 这块内存是不是走 cache 的映射（buffer.py:85-87 -> not self.coherent）
+buf.sync_to_device()    # CPU 写过、给 PL 读之前
+buf.sync_from_device()    # PL 写过、CPU 读之前
+buf.flush(); buf.invalidate()
+```
+
+方向记成一句话：**给 PL 读的先 `sync_to_device`（把脏行写出去），PL 写过的读之前 `sync_from_device`
+（把脏行丢掉重读）**。两个方向都漏或反了，症状不同：漏 → 半新半旧/首块尾块坏；反 → 第一次对、
+第二次读到旧数据。
+
+"半新半旧"这一句在 §1（手算地址）和这里（一致性）都出现过，所以给一条**有排除力的顺序**，
+别两支同时试：
+
+1. **先证明这一笔搬完了**：读 `dma-channels.md` §2 那四个口（`idle`/`error`/`transferred`/引擎状态）。
+   没搬完的话，"半新半旧"是**没写完**而不是写完没同步——后面几步全是白做。
+2. **再看地址是从哪来的**：交给 DMA 的是切片（`buf[K:]`）还是手算的 `physical_address + K`？
+   机制被源码反写了一次，按反写后的说法查：视图上的 `self.offset`/`self.nbytes`
+   是**视图的量**（`__array_finalize__` 在 `:50-56` 重算 offset、`nbytes` 取视图长度），
+   所以 `flush`/`invalidate`（`:104-114`）**跟着切片走**——"另一段被无谓 invalidate"那种说法不成立。
+   该查的是释放路径：`freebuffer()`（`:65-82`）拿视图调用时 `munmap` 只覆盖视图长度，
+   紧接着的 `del self.bo` 却把整个缓冲的句柄去掉。这一步只看代码就能定，代价最低。
+3. **再看 `buf.cacheable` 与调用方向——但只在"驱动不替你同步"的那条路上看**（旧文把这一步当成
+   通判据，是错的）：`cacheable`（= `not coherent`，`buffer.py:85-87`，两版同一行号）为真却没调
+   `sync_to_device`/`sync_from_device`、或方向反了，症状是"第一次对、第二次旧"，
+   与第 1 步的"永远缺一块"不一样，用它来分。
+   **走 DMA 驱动时这一步永远不会红**：TX 通道构造时 `_flush_before=True`（3.1.2
+   `lib/dma.py:60-63`），`transfer()` 里就 `array.flush()`（`:153-154`，SG `:430-431`），
+   `wait()` 里再 `_active_buffer.invalidate()`（`:183-184`）——**忘了手动同步是不可见的**。
+   所以这一格只适用于：自定义 master 直访 DDR、PL 自己写你手分配的缓冲、以及远程模式那侧
+   （`coherent` 恒 `False`）。
+4. **以上都排除，才轮到尾部粒度**：见下面那条——它排最后是因为它的证据最贵（要构造专用图案）。
+
+
+粒度按 cache line，长度不足一行的尾部最容易只维护一半 —— 所以**别只同步一半长度**。
+（cache line 粒度这个词来自实现侧，本包没有对应的 C 绑定，所以不能给你"一行多少字节"的数；
+能落地的判据是行为侧的：构造一段**首/尾各差一点**的图案——只同步中间 `nbytes-K`、或从非对齐偏移
+（`K` 这里只是**任意一个不是对齐倍数**的探针尺寸，不代表行宽是 64，别把它当常数搬）
+开始同步——看坏的是不是总是两头。这一族的分诊在 `debug-triage.md` §2 树 C，端到端写法在 `dma-channels.md` §3。）
+
+`cacheable` 为 False 时（非缓存映射或 reserved 区）`flush/invalidate` 内部 `if not self.coherent`
+直接跳过，这些调用是空操作，此时问题不在这层。判据：先打印 `buf.cacheable`，再决定往哪边查。
+这一步很多"玄学旧数据"的案子能当场结案。
