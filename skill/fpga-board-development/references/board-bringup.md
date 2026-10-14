@@ -2,8 +2,9 @@
 
 **这一页有两类读数。** 工具侧的（`write_cfgmem`/`program_hw_cfgmem` 的存在与语法、`md5sum` 的报法、
 `bootgen` 的产物形状、`fpga -file` 的选项表）不依赖硬件；另一类**只能上板取**：§1 的 IDCODE/ISC 回读能力、
-§2 表格"断电之后"那一列的三个行为、§3 的第 2/4/5 步、§4 的全部五步与第 0 步的挂死形态、§6 的计数器读回、
-§7 的时序代价（**占用那一半不需要板子**，见 `constraints-timing.md` §6）。
+§2 表格"断电之后"那一列的三个行为、§3 的第 2/4/5 步、§4 的全部五步与第 0 步的挂死形态、§6 的计数器读回。
+§7 的代价**两类都不需要板子**：占用与时序都是工具侧读数（`report_utilization` 与实现之后的
+`report_timing_summary`，见 `constraints-timing.md` §6），只有"板上跑的是哪一版"那一半要板子。
 凡属后一类，在你自己的板子上取到读数之前，它只是"怎么取"，不是结论。
 
 ## 1. 板上跑哪一版：靠读回来，不靠文件名，也不只靠 md5
@@ -59,9 +60,28 @@ md5sum -c board/fp.txt                              # 问：这几个文件换�
 | 动作 | 效果 | 断电之后 | 副作用与可逆性 |
 |---|---|---|---|
 | JTAG 下载 PL（硬件管理器 Program Device / xsdb `fpga -file`） | 直接写配置 SRAM | 配置丢失，回到启动介质那一版（**前提**是启动模式引脚真指向那个介质） | 对**芯片**是可逆的；对**系统**不一定：PS 正在访问 PL 从设备时重配，那笔在途事务可能永不返回（互联挂死、内核 oops），下游外设还会吃到管脚抖动。先停 master、释放句柄、确认没人在用这些管脚，再下载 |
-| 写 QSPI/配置 Flash（Vivado 硬件管理器 Tcl：`create_hw_cfgmem` + `set_property PROGRAM.FILE` + `program_hw_cfgmem`；镜像由 `write_cfgmem -format` 出 mcs／hex／bin 之一） | 改变上电默认 | 上电自启这一版 | **擦除不可逆**；从此"板上跑什么"由介质决定，需要现场人员同意。**注意**：xsdb 2025.2.1 里**没有** `cfgmem`/`pcfgmem` 这条子命令（`invalid command name`），别在 xsdb 里找它；`program_hw_cfgmem` 要 `load_features labtools` 之后才注册。同一族的正对照本机在 Vivado 批处理里重取过：`load_features labtools` 之后 `info commands *cfgmem*` 交出 8 个（`create_hw_cfgmem`、`current_hw_cfgmem`、`delete_hw_cfgmem`、`get_cfgmem_parts`、`get_hw_cfgmems`、`program_hw_cfgmem`、`readback_hw_cfgmem`、`write_cfgmem`），**而同一安装在没加载它的裸批处理会话里只给 1 个（`write_cfgmem`）**——数到 1 不是"这一族不在"，是还没加载；加载本身 rc=0，`load_features memanalysis` 那种不存在的特性名 rc=1 且计数仍是 8（这条是的正对照）。**并且没有 `program_cfgmem` 这个名字**：在加载 labtools 之后直接调用它，得到 `invalid command name "program_cfgmem"`，要的那条带 `hw_`；`write_cfgmem -arch bogus` 报的是 `[Common 17-170] Unknown option '-arch'`（`-arch` 属于 bootgen，不属于这一族）。而 `info commands cfgmem`/`pcfgmem` 各为 0 且 `-help` 报 `invalid command name`——**扫描看得见这一族时这两个是 0**。xsdb 那一侧没重跑，取法同形（它也是 Tcl，`info commands <名字>` 就够） |
+| 写 QSPI/配置 Flash（Vivado 硬件管理器 Tcl：`create_hw_cfgmem` + `set_property PROGRAM.FILE` + `program_hw_cfgmem`；镜像由 `write_cfgmem -format` 出 mcs／hex／bin 之一） | 改变上电默认 | 上电自启这一版 | **擦除不可逆**；从此"板上跑什么"由介质决定，需要现场人员同意。**这一族的名字在 Vivado 批处理与 xsdb 两条命令面上的读数不一样，写在表格下面那段，别在 xsdb 里找 `program_hw_cfgmem`** |
 | SD 镜像里的启动文件 | 按模式引脚从 SD 起 | 换卡即换版本 | 卡可拔，但镜像内对引导区的写入不可逆 |
 | Linux/PYNQ 运行时加载 overlay | 当前会话内生效 | 是否还在，取决于它有没有被登记成开机重放（`/lib/firmware` + device-tree overlay 那套机制），与前三种规则都不同 | 反复下载会重置 PS 侧握着旧句柄的对象 |
+
+**`cfgmem` 这一族的名字在两条命令面上的读数**（同一次安装、各自现取，别互相搬）：
+
+- **Vivado 批处理**：裸会话里 `info commands *cfgmem*` 只给 **1** 个（`write_cfgmem`）；
+  `load_features labtools`（rc=0）之后同一个通配给 **8** 个：`create_hw_cfgmem`、`current_hw_cfgmem`、
+  `delete_hw_cfgmem`、`get_cfgmem_parts`、`get_hw_cfgmems`、`program_hw_cfgmem`、`readback_hw_cfgmem`、
+  `write_cfgmem`。**数到 1 不是"这一族不在"，是还没加载**；对照格是
+  `load_features memanalysis` 那种不存在的特性名——rc=1，且计数仍然是 8（说明加载失败不会把名单洗掉）。
+  **`program_cfgmem` 这个名字不存在**：加载 labtools 之后直接调用得到 `invalid command name "program_cfgmem"`，
+  要的那条带 `hw_`。`write_cfgmem -arch bogus` 报 `[Common 17-170] Unknown option '-arch'`
+  （`-arch` 属于 `bootgen`，不属于这一族）。
+- **xsdb**（本机这个 2025.2.1 的 xsdb 在 `<安装根>/Vivado/bin/xsdb.bat`，随 Vivado 一起装、**不在 PATH 上**）：
+  这一族**一个都没有**——`info commands *cfgmem*` 交出空，`cfgmem`、`pcfgmem`、`program_cfgmem`、
+  `program_hw_cfgmem`、`write_cfgmem` 逐个查都是 0，直接调用 `program_cfgmem` 与 `program_hw_cfgmem`
+  都报 `invalid command name`。**所以"`program_hw_cfgmem` 要 `load_features labtools` 之后才注册"
+  那句只属于 Vivado 这一面，在 xsdb 里找它是白费**。这次扫描的正向对照是同一次里
+  `targets` 与 `connect` 两条**有名字**——扫描看得见 xsdb 自己的命令面，所以那个空是真的空。
+- 两条命令面之间不通用的还有 `program_cfgmem` 这种"名字像但两边都没有"的：判存在要用
+  `invalid command name`，不能用一次 `info commands` 的 0（`SKILL.md` §1 第 9 条那条）。
 
 要确认四件事再动配置 Flash（缺一就别动手）：
 
@@ -191,5 +211,7 @@ PL 独立跑时用 VIO probe 或一个调试 IO。计数器只有配上"读回�
    "逻辑没动"。
 3. 触发条件设成错误标志或状态跳变，不要设成"跑一会儿看看"；要抓一整帧就用行/帧级触发条件。
 4. 采集深度按要看的窗口算，别默认 1024 就够；一次采不全就重跑，成本是整轮构建。
-5. 取证完出**不含调试核**的版本再去做任何"已验证"声明；调试核走 JTAG，与别的客户端共享 hw_server，
-   但写类操作（下载、擦写）互斥，先规划谁读。
+5. 取证完出**不含调试核**的版本再去做任何"已验证"声明；调试核走 JTAG，与别的客户端共享 hw_server。
+   **"写类操作（下载、擦写）要独占、只读客户端能否共存"这一条是流程口径，不是本机读数**
+   （没板子，两个客户端抢一条链的形状取不到）；所以别把它当"我挂个只读不影响别人"的许可，
+   动手前先列出现存占用者（`SKILL.md` §5 那条），把自己的读与别人的写分开排。

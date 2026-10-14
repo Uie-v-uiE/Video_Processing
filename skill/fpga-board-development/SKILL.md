@@ -1,6 +1,6 @@
 ---
 name: fpga-board-development
-description: 用于 Verilog/VHDL 加 Vivado/Vitis 的 PL-PS 工程改动与调试。写或改可综合 RTL、对齐流水线延迟与门控同拍、处理跨时钟域与复位、写物理约束与时序约束并读时序报告（WNS/TNS/失败端点/命中计数/死约束）、组织 Vivado 工程与 Block Design（文件集、IP、地址、改名、导出 .xsa）、跑构建与策略（launch_runs/策略/directive/让 run 自己交报告）、造自检 testbench 与参考模型、跑 xsim/ModelSim/iverilog、生成并烧写比特流（JTAG 易失与 QSPI/SD 自启的区别）、插 ILA/VIO 并管 JTAG 通道与 hw_server、判断板上到底在跑哪一版、分诊「设了没反应」「写一笔就把 CPU 卡住」「位置偏 vs 颜色偏」「偶发一拍错值」，以及跑综合后网表仿真（`glbl`/GSR 窗口）、`report_timing` 说没有路径而返回码仍是 0、`reset_run` 与两个策略并行对比、`bootgen` 出的镜像起不来、`MARK_DEBUG` 设了读不回来、给 run 加自动出报告的钩子，以及判断一个结论需要哪一级读数；「控制侧全通、搬运/引擎侧一步不动」的两路钟分诊、`validate_bd_design` 点名没接的时钟引脚、`CONNECTED_BD_PINS` 取到空值、`.ltx` 与比特流是否同批（`file mtime` 只到秒）、ILA/VIO 端口属性清单逐端口不同。PYNQ 运行时（Overlay/寄存器/DMA/中断/缓冲区）用 pynq-overlay-development。不用于纯软件项目、与硬件无关的脚本、器件采购选型。
+description: 用于 Verilog/VHDL 加 Vivado/Vitis 的 PL-PS 工程改动与调试。写或改可综合 RTL、对齐流水线延迟与门控同拍、处理跨时钟域与复位、写物理约束与时序约束并读时序报告（WNS/TNS/失败端点/命中计数/死约束）、组织 Vivado 工程与 Block Design（文件集、IP、地址、改名、导出 .xsa）、跑构建与策略（launch_runs/策略/directive/让 run 自己交报告）、造自检 testbench 与参考模型、跑 xsim/ModelSim/iverilog、生成并烧写比特流（JTAG 易失与 QSPI/SD 自启的区别）、插 ILA/VIO 并管 JTAG 通道与 hw_server、判断板上到底在跑哪一版、分诊「设了没反应」「写一笔就把 CPU 卡住」「位置偏 vs 颜色偏」「偶发一拍错值」，以及跑综合后网表仿真（`glbl`/GSR 窗口）与带 SDF 的时序仿真（`launch_simulation -mode/-type`、注解成没成看 `XSIM 43-3451/43-3452`、tb 的 `file_type`）、`report_timing` 说没有路径而返回码仍是 0、`reset_run` 与两个策略并行对比、`bootgen` 出的镜像起不来、`MARK_DEBUG` 设了读不回来、给 run 加自动出报告的钩子，以及判断一个结论需要哪一级读数；「控制侧全通、搬运/引擎侧一步不动」的两路钟分诊、`validate_bd_design` 点名没接的时钟引脚、`CONNECTED_BD_PINS` 取到空值、`.ltx` 与比特流是否同批（`file mtime` 只到秒）、ILA/VIO 端口属性清单逐端口不同。PYNQ 运行时（Overlay/寄存器/DMA/中断/缓冲区）用 pynq-overlay-development。不用于纯软件项目、与硬件无关的脚本、器件采购选型。
 license: MIT
 ---
 
@@ -120,6 +120,8 @@ license: MIT
 | 多位量跨钟：握手、异步 FIFO、格雷码三选一怎么挑 | `references/rtl-pipeline-cdc.md` §4.2 |
 | 消隐/延迟预算花不起、加了级就丢行；**画面滚动/整帧偏一行** | `references/rtl-pipeline-cdc.md` §6 |
 | 逻辑像被优化掉了：块在网表里不存在、读回恒 0、搜模块名搜不到 | `references/rtl-pipeline-cdc.md` §5 |
+| **`validate_bd_design` 红了但不知道缺什么**、`make_wrapper` 报 `12-5158`/`BD 41-1031`、`assign_bd_address` 报 `BD 5-126`、给连接命令加了 `-quiet` 之后"rc=0 却没连上" | `references/vivado-project-bd.md` §2.2 末段（那五条 `41-249`/`41-758`/`41-1356`/`41-1031`/`5-699` 的成套形状） |
+| **要跑带 SDF 的时序仿真**（注解成没成看 `43-3451/43-3452`、`xelab` 里没有 `--sdfmax`、tb 要设 `file_type SystemVerilog`） | `references/verification.md` §8 末尾那条"带 SDF 的时序仿真这一臂现在通了" |
 | 时序红了，要看 WNS/TNS/失败端点、分清是哪一阶段的数；`report_timing` 说没有路径而返回码仍是 0 | `references/constraints-timing.md` §4 |
 | 换了时钟源/加了 `create_generated_clock` 突然变好 | `references/constraints-timing.md` §1 |
 | 一条约束到底命中了没有（命中集合是否为空） | `references/constraints-timing.md` §2 |
@@ -134,7 +136,7 @@ license: MIT
 | bench 绿了但判据出生以来没红过 | `references/verification.md` §4 |
 | bench 全绿但现场坏：参考模型与 RTL 同一套算式 | `references/verification.md` §2 |
 | bench 全绿但现场坏：tb 只例化了子模块，没覆盖出错那层 | `references/verification.md` §3 |
-| **同一份 bench 在 RTL 绿、综合后网表不绿**、`glbl`/GSR 窗口（复位值在网表侧对不上、头一段全是 `x`）、缺 unisim 库 | `references/verification.md` §8 |
+| **同一份 bench 在 RTL 绿、综合后网表不绿**、`glbl`/GSR 窗口（复位值在网表侧对不上、头一段全是 `x`）、缺 unisim 库、**要跑带 SDF 的时序仿真**（`launch_simulation -mode/-type`、生成的 `xelab` 里没有 `--sdfmax`、`43-3451/43-3452` 才是注解成功的读数、tb 的 `file_type SystemVerilog`） | `references/verification.md` §8 |
 | 红绿到底怎么取：`-sv`、退出码恒 0、判定行怎么 grep | `references/verification.md` §1 |
 | 仿真里出现 X/Z、未初始化把比较吞了 | `references/verification.md` §5 |
 | CDC 要扫相位的 bench 怎么写（**撕裂**、偶发一拍错位在仿真侧就抓这里） | `references/verification.md` §6 |
@@ -250,6 +252,11 @@ license: MIT
   `SEG_*` 段和它的 `OFFSET`，**不是**看你传进去的那条从端段（那条的 `OFFSET` 分配成功后仍是空、
   `USAGE` 两边同为 `register`，拿它当判据会一直判不通过）；取完对不上再去 §4 那张表（它给的两个成因是手动挪过段、
   导出用的是改之前那份）。
+- **数"某个东西有几条/在不在"之前，先说清数的是哪个对象**：`.bd` 文件、`write_bd_tcl` 倒出来的脚本、
+  还是 cell 在内存里的属性，是三个不同的对象，工具不会替你对齐。本机同一份设计在三个时刻取过这三个对象，
+  给出的是三组数（文件里没有 / dump 里有 / `get_property` 读得到），
+  把"文件里还没出现"读成"这一步没算出来"就会把功劳记给错的阶段——
+  先看 `vivado-project-bd.md` §2.1 那张三行表再决定你要数哪一个。
 - **设计侧的三种"空读数"分属三页，别互相顶替**：约束对象集合为空→`constraints-timing.md` §2；
   时序路径为空→同页 §4 第 4 条；例外表里自己那条整行消失→同页 §9。
   三者的修法不同，而工具在三种情况下都可能一副"没报错"的样子。

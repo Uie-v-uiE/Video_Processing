@@ -175,6 +175,29 @@ A 里那唯一一条是 `CONFIG.PCW_FPGA_FCLK0_ENABLE {1}`——**不是我写�
 也不是 `make_wrapper`/`generate_target`（这两个前后 `PCW_` 计数与字符数一字不变，9231→9231→9231）。
 对"能不能拿 dump 当构建脚本"的直接影响：**同一份 BD 在 validate 之前倒出来的脚本会少掉这些派生参数**，
 照它重建出来的东西与你刚验证过的那份不是同一份——要倒就倒在 validate 之后。
+
+**但"记进 BD"这件事分两条通道，数错了对象会把功劳记错人**（同一份 ps7 + smartconnect + gpio，
+连接与地址都做掉、**没有手动设过任何 `CONFIG.PCW_*`**，在三个时刻各读一次，
+读的是"文件里的条数"与"dump 里的条数"两个不同对象）：
+
+| 时刻 | `write_bd_tcl` 的 dump | `.bd` 文件 | `get_property CONFIG.PCW_FPGA_FCLK0_ENABLE [get_bd_cells ps7]` |
+|---|---|---|---|
+| assign + `save_bd_design`，**还没 validate** | `PCW_` **0** 次（241 行 / 9101 字符） | `PCW_` **0** 次（8686 字节） | 读不出（那时还没有） |
+| `validate_bd_design`（rc=0）之后、**没再 save** | `PCW_` **1** 次、`PCW_FPGA_FCLK0_ENABLE` 在里面（242 行 / 8947 字符） | **仍是 0 次、8686 字节一字不变** | **`1`** |
+| 再 `save_bd_design` | 同上 1 次 | `PCW_` **1** 次（9621 字节 / 302 行） | `1` |
+
+所以两条要分开写：**算出派生参数的是 `validate_bd_design`**（它在内存里就把 `PCW_FPGA_FCLK0_ENABLE`
+填上了，`get_property` 当场读得到、`write_bd_tcl` 当场能倒出来），
+**把它写进 `.bd` 文件的是 `save_bd_design`**。
+推论是取数纪律：**要在文件里数参数，就得在你关心的那个时刻之后先 save 一次再读文件**，
+否则读到的是上一次保存时的形状。两种会把功劳记错的样子：
+一是把"save 之后才出现的条数"当成"save 算出来的"（其实是 validate 在内存里算的），
+二是**自己手动 `set_property CONFIG.PCW_*` 三条、save 之后文件里 `PCW_` 32 次 / `PCW_ACT` 23 次**，
+就以为那一整片是工具派生的——**那一组数是你自己写进去的值被序列化，跟派生不派生无关**
+（同一份设计重做时不手动设任何东西，validate 之前文件里就是 0）。
+顺带把 `PCW_ACT` 那条读数的射程收窄：上面手动设过配置的那一臂里，`.bd` 文件有 23 处 `PCW_ACT`，
+而 `write_bd_tcl` 的 dump 里是 **0**——所以"dump 里没有 `PCW_ACT`"与"`.bd` 里没有"是两件事，
+按下面那条把属性名读回来的判据（`list_property [get_bd_cells ps7]`）才不会串。
 两件事因此要分开：`write_bd_tcl` 只写"被记为改动"的 PCW 参数；automation 落成默认值的那一大批
 **不进 dump**（本机另一次只有 automation 加一颗 gpio 的设计，dump 241 行、`PCW_` **0** 次）。
 而 **`CONFIG.PCW_ACT_*` 在本机的 dump 里一次都没出现过（两个臂都是 0）**——那句
@@ -367,6 +390,36 @@ make_wrapper -files [get_files top.bd] -top   ;# 本机 rc=0，返回 …/topbd.
 ```
 
 `get_bd_addr_spaces` 本机两次都给 `/gpio0/S_AXI /ps7/Data`（空间名一律现取）。
+
+**这一串里有几个名字是别的资料常用、本版不认的**（都是直接调用取到的读数，不是搜出来的）：
+`create_bd_design -part <part> top` → `[Common 17-170] Unknown option '-part'`（part 从工程来，
+命令只收名字）；`make_extract_pins ps7 -extract pcw` → `invalid command name "make_extract_pins"`
+（教程里"把 PS 的 PCW 引脚拉出来"那一步在这版不存在）。**这一条的正向对照是同一次会话里 PS 的引脚本来就在**：
+`connect_bd_net [get_bd_pins ps7/FCLK_CLK0] [get_bd_pins ps7/M_AXI_GP0_ACLK]` 直接 rc=0，
+`get_bd_pins ps7/FCLK_CLK0` 也取得到对象——所以那个 `invalid command name` 不是"PS 还没展开所以看不见引脚"，
+是这条命令本身没有。`ps7/FCLK_CLK0` 与 `ps7/M_AXI_GP0_ACLK` 直接 `connect_bd_net` 即可，本机就是这么连绿的。
+
+**别在这条链上用 `-quiet`，它会让你把失败的连接读成成功**（本机自己踩的：给
+`connect_bd_intf_net`/`connect_bd_net` 都加了 `-quiet`，两条 rc=0 就往下走，结果后面
+`assign_bd_address` 报 `[BD 5-126] Cannot assign </gpio0/S_AXI/Reg> into Address Space </ps7/Data>`，
+去掉 `-quiet` 重取才知道连接那步根本没成）。同一条链上的失败形状是成套出现的，认这几条就够：
+
+- `[BD 41-249] Net '<名>' already has a source port '/<某口>' connected to it; Another source port
+  cannot be connected to this net.` —— 把 `create_bd_port -dir I` 的板级输入接到 `ps7/FCLK_CLK0`
+  就是这条（`FCLK_CLK0` 自己**是源**，两个源不能进同一根网）。
+- `[BD 41-758] The following clock pins are not connected to a valid clock source:` 后面**逐行点名**
+  （本机列过 `/ps7/M_AXI_GP0_ACLK` 与 `/ps7/S_AXI_HP0_ACLK`）——这条才是 validate 红的真成因。
+- `CRITICAL WARNING: [BD 41-1356] Slave segment </gpio0/S_AXI/Reg> is not assigned into address
+  space </ps7/Data>. Please use Address Editor to either assign or exclude it.` —— "没分配"的信号；
+  它出现时 `validate_bd_design` 可以 rc=0 也可以红，两件事别合并判。
+- 红的时候后面还会跟 `[BD 41-1031] Hdl Generation failed for the IP Integrator design <路径>`，
+  再后面才是 `ERROR: [Vivado 12-5158] Failed to make wrapper … Top wrapper not generated for
+  'verilog' language.`——**`make_wrapper` 的这条是最末梢**，按它去查 wrapper 就找错地方了；
+  而 `catch` 交回来的 msg 只有包装句 `[Common 17-39] 'make_wrapper' failed due to earlier errors.`，
+  真信息在上面（同 `onchip-debug.md` §1 那条 `17-39` 的规则）。
+- `[BD 5-699] No address segments matched '<整条表达式>'` 是**空集合**的读数；本机另看到紧跟一句
+  `INFO: [BD 41-3093] Triggering Legacy Auto Assign Algorithm`，而整条 `assign_bd_address` 仍然
+  **rc=0**（这就是把段名大小写写错时"什么都不发生"的形状，见本节末那条）。
 
 本机把几种写法都试过，两种失败、一种半失败，原文如下：
 

@@ -524,7 +524,15 @@ instance name ???<名字>`），打印的选项表里**没有** `-file` 这一�
 `.../noext.ltx` 且该文件真存在——扩展名是工具补的，不是它报错）。
 ILA 数据是 `.ila`（`read_hw_ila_data`/`write_hw_ila_data` 的帮助都写明缺省扩展名 `.ila`）。
 这一族 `-help` 里出现过的缺省扩展名只有 `.ltx`、`.ila`、`.csv`、`.vcd`、`.tas`；
-别的资料里的 `.ldebug` 没在这版的 `-help` 里读到（本机没做全盘文件名搜索，别把这句当"不存在"）。
+别的资料里的 `.ldebug` 在本机两样东西里都没有：`write_debug_probes -help` 只写 `.ltx`；
+安装树里管调试输出的那一层是 `<安装根>/Vivado/data/dbgflows/`，**它下面唯一的子目录就叫 `ltx`**，
+本机在 `data/dbgflows` + `data/XilinxTclStore` 这 2020 个文件里搜 `ltx` 命中 1 个
+（`dbgflows/ltx/schema/ltxJsonSchema.json`，这一条就是那次扫描的正向对照），搜 `ldebug` 命中 **0** 个。
+两条边界要一起说：这只否证"这个扩展名/文件名在这一层出现过"，**不否证**别的版本或别的工具用它；
+**而且范围必须自己写明**——本机第一次想扫整棵 `data/`，用的过滤器是 `find data -name '*.tcl'`，
+结果那条 find 自己交出 **0 个文件**（Vivado 的 Tcl 不按 `.tcl` 铺在这里），
+所以那一次的"0 命中"是扫描坏了、不是东西不存在。
+要扫就先拿一个已知存在的名字（这里是 `ltx`）在同一次扫描里证明扫得见，再谈那个 0。
 
 数据面同理，`read_hw_ila_data` 读的是**文件**，不是硬件：
 

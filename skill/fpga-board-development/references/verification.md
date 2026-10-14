@@ -181,9 +181,14 @@ xsim sim_net -R
   于是得出"unisim 引用的是安装树那一份"这个错推断。控制变量重做后结论是：
   **变量只有一个——`glbl` 必须在 `xelab` 的顶层里**；编译安装树那份无害但非必需。
   报错位置在库文件里而不是你的代码里，第一次看到会误以为网表坏了——按这条对号入座。
-- 走工程流程的那些命令（`launch_simulation`、`export_simulation`、`compile_simlib`）本包**没跑过**，
-  具体选项要在你机器上取一次；但**手工这条路（`write_verilog -mode funcsim` + `xvlog`/`xelab`/`xsim`）
-  本机现在是跑通了的**，配方与两臂读数在本节末尾——所以网表仿真这件事不必等 `compile_simlib`。
+- 工程流程那一族的**取数状态分三条，别一句话全否掉**：`launch_simulation` 本机跑过
+  （`-scripts_only` 与真跑两种，functional / timing 两个臂，配方与读数在本节末尾那条"带 SDF 的时序仿真"）；
+  `export_simulation` 与 `compile_simlib` **本机没跑过**，只取到 `-help` 的选项表
+  （`export_simulation` 的必填项是 `-simulator <arg>`，另有 `-of_objects`/`-step`/`-lib_map_path`/
+  `-absolute_path`/`-export_source_files`/`-exec`/`-more_options`/`-runtime`/`-script_name`/`-directory`
+  等；**这些只是"它接受哪些名字"，不是"这样给就能导出"**）。要用哪条就在你机器上先 `-help` 再试；
+  但**手工这条路（`write_verilog -mode funcsim` + `xvlog`/`xelab`/`xsim`）本机是跑通了的**，
+  配方与两臂读数也在本节末尾——所以网表仿真这件事不必等 `compile_simlib`。
 
 **本机实测到的两类差异**，两类都是"同一 bench、同一时刻，两边结果不同"（下面引用的每一行都
 按 §1 的契约写：`TB_RESULT <判定词> checks=… errors=…`，判定词紧跟前缀，**中间没有冒号**——
@@ -209,28 +214,84 @@ xsim sim_net -R
    窗口宽度仍然要**读，不要背单位**：安装树那份
    `<安装根>/Vivado/data/verilog/src/glbl.v` 第 4 行是 `` `timescale 1 ps / 1 ps ``、
    第 8 行 `parameter ROC_WIDTH = 100000`，第 64 行附近 `#(ROC_WIDTH)` 才把 `GSR_int` 放下——
-   **也就是 100 ns，不是 100 µs**（本页早先写的是 100 µs，把数放大了 1000 倍；同一份文件里还有
+   **也就是 100 ns，不是 100 µs**（数对但单位错就会放大 1000 倍：这里的 100000 要按那份文件自己的
+   `` `timescale 1 ps / 1 ps `` 折回来；同一份文件里还有
    `GRES_WIDTH = 10000` / `GRES_START = 10000`，那是另一个 10 ns 宽的窗口）。
    而且 `write_verilog` 出来的网表里也带一个 `module glbl`，**它的 timescale 才是仿真时生效的那份**，
    所以配一条 `grep -n "timescale\|ROC_WIDTH" <实际编译进去的那份 glbl>` 一起看。
-   **没跑通的分支要说清卡在哪一步，测到的部分要记全**：带 SDF 的时序仿真这一臂停在
-   卡点逐个是（都是自己的读数）：`write_verilog -mode timesim -sdf_anno true -sdf_file <路径>`
-   **rc=0 但不生成任何 `.sdf`**（绝对路径、相对路径两种都试过，仿真时炸
-   `[XSIM 43-3230] Could not open sdf file`）——**SDF 是另一条命令 `write_sdf <file>` 写的**
-   （它存在，选项里有 `-cell`/`-process_corner`/`-mode`）；补上 `write_sdf` 之后网表 8542 字符、
-   SDF 27101 字符都在，`xsim` 仍报 `[XSIM 43-3462] Unable to annotate SDF delays in the design`
-   并以 **rc=1** 退出（本机少见地非 0，别以为 xsim 永远 0）。
-   所以"带 SDF 时 GSR 会不会把 x 窗口撑开"这一问，要等工程流里 `config_simulation` 配好之后才答得了。
-   补一条同样属于的取得：`xelab --sdfmax "/实例=文件"` 经 `cmd //c` 传参时
-   会被拆开（本机三种实例写法都得到 `Cannot find design unit add4_nt.sdf in library work`），
-   而网表内嵌 `$sdf_annotate` 的写法能找到文件却报 `43-3462 Unable to annotate SDF delays`——
-   **本机在这一步连试三次都没通，就停在这里**（三次同一条错误：`Cannot find design unit add4_nt.sdf
-   in library work`，rc=1——`--sdfmax /dut=<file>`、`--sdfmax dut=<file>`、以及走 `.bat` 传参各一次）。
-   记下三条可查的事实：`--sdfmax` 的取值形态不能凭猜；内嵌 `$sdf_annotate` 的写法能找到文件但报
-   `43-3462 Unable to annotate SDF delays`；所以**这条路要修就得走 Vivado 工程流的 `launch_simulation`/
-   `export_simulation`（本包没跑过）**，别把任何未跑通的写法写成"这样就能注入 SDF"。
+   **带 SDF 的时序仿真这一臂现在通了，走的是 Vivado 工程流**（本机实跑，两臂都有判定行）。
+   先记三件把它打通的东西，每件都推翻一种"照着写"的写法：
 
-   而那次不对称观察也许就来自那一类设置——没有证据前别写成结论。
+   1. **`config_simulation` 不是命令名**：没开工程时报 `invalid command name "config_simulation"`，
+      `open_project` 之后**同一条调用还是这句**——所以别按某些资料去"配 sim 设置"。
+      选种类用的是 `launch_simulation` 自己的两个选项，`-help` 的取值表原文是
+      `-mode [ behavioral | post-synthesis | post-implementation ]` 与
+      `-type [ functional | timing ]`（**连字符**，不是 `post_synth`/`impl`）。
+   2. **仿真文件集的属性不能当判据**：`list_property [get_filesets sim_1]` 里以 `SIM` 开头的只有
+      `SIMMODEL_VALUE_CHECK`、`SIMULATOR_LAUNCH_MODE`、`SIM_WRAPPER_TOP` 三条，
+      `SIM_MODE`/`SIM_TYPE` 都不在这个清单里；而 `set_property SIM_MODE post-implementation` 返回 0
+      且读回得到值，`set_property SIM_TYPE timing` 返回 0 却**读回永远是空**，
+      连 `set_property SIM_TYPE bogus` 也返回 0。对照格：
+      `SIM_MODE bogus` 与 `SIMULATOR_LAUNCH_MODE bogus` 都是
+      `[Common 17-69] Command failed: Invalid value 'bogus' for property 'sim_mode'`（后者报
+      `'simulator_launch_mode'`）。**同样是"设了个不在清单里的名字"，一条会拦、一条静默收下**——
+      种类必须用命令行选项传，判它生效要看生成的目录名（下一条）。
+      另一条同族陷阱：`create_fileset sim_1` 在新工程里报 `[Vivado 12-426] fileset with name 'sim_1' already exists`，
+      默认工程已经有它，别以为要自己建。
+   3. **网表与 SDF 由工程流自己写出来**，不要手搓：
+      `launch_simulation -mode post-implementation -type timing -scripts_only` 生成
+      `<prj>.sim/sim_1/impl/timing/xsim/`，里面有 `<top>_time_impl.v`（本机 8690 字节）与
+      `<top>_time_impl.sdf`（本机 25079 字节）、`compile.bat`/`elaborate.bat`/`simulate.bat`、
+      `<top>.tcl`、`xsim.ini`。`-type functional` 那一臂的目录是 **`impl/func`（不是 `impl/functional`）**、
+      网表叫 `<top>_func_impl.v`，里面 `sdf_annotate` 计数 **0**、也没有 `.sdf` 文件。
+      关键形状：**`xelab` 那一行里没有 `--sdfmax`**，SDF 是内嵌在网表里带进去的——
+      `$sdf_annotate("tb_gsr_time_impl.sdf",,,,"tool_control");`：
+      **文件名是相对的**（所以只能在生成目录里跑）、第 3、4 个实参留空、第 5 个是字面量 `tool_control`。
+      两臂的 `xelab` 选项集也不同，读的时候一起看：functional 是
+      `-L uvm -L unisims_ver`，没有 `--maxdelay`；timing 是
+      `--maxdelay -L simprims_ver … -transport_int_delays -pulse_r 0 -pulse_int_r 0 -pulse_e 0 -pulse_int_e 0`。
+      判"注上了"看 `elaborate.log` 那两条：
+      `INFO: [XSIM 43-3451] SDF backannotation process started with SDF file "<文件>", for root module "<tb>/<dut>"`
+      与 `INFO: [XSIM 43-3452] SDF backannotation was successful …`。
+      **早先本机撞的 `[XSIM 43-3462] Unable to annotate SDF delays` 与这一整套形状的差别**就在这几个实参上
+      （自己拼的那行少了 `tool_control`）；`--sdfmax` 那条路在本机三次尝试里都被 shell 拆包
+      （`Cannot find design unit <文件> in library work`，rc=1，`/dut=<file>`、`dut=<file>`、走 `.bat` 各一次）——
+      **别再走 `--sdfmax`，用工程流生成的那一行。**
+      `write_verilog`/`write_sdf` 在**只开了工程、内存里没有设计**时是硬失败：
+      `[Common 17-53] User Exception: No open design. Please open an elaborated, synthesized or implemented
+      design before executing this command.`（前面记的"`-mode timesim -sdf_anno true` rc=0 但不生成 `.sdf`"
+      是设计在内存里时的另一种形状，两种别混；SDF 由 `write_sdf <file>` 写，选项有
+      `-cell`/`-process_corner`/`-mode`。）
+
+   **还有一条会伪装成"流程坏了"的**：生成的 `xvlog` 命令行**不带 `-sv`**，
+   testbench 里只要用了 `int`、`$isunknown`、循环内变量声明就会红：
+   `ERROR: [VRFC 10-2939] 'int' is an unknown type`、
+   `ERROR: [VRFC 10-9406] system call 'isunknown' is not allowed in this dialect; use SystemVerilog mode instead`、
+   `ERROR: [VRFC 10-8530] module '<tb>' is ignored due to previous errors`——
+   **但症状出现在下一个工具**：`xelab` 报 `[XSIM 43-3225] Cannot find design unit xil_defaultlib.<tb>
+   in library work located at xsim.dir/work`，读起来像工程流坏了，其实是 tb 压根没编译进去。
+   修法在工程侧：`set_property file_type SystemVerilog [get_files <tb>.v]`（读回 `SystemVerilog`），
+   不是去给 `xvlog` 加开关。
+
+   这一臂真正要回答的那一句（**GSR 会不会把 x 窗口撑开**）现在有两个读数：同一份工程、
+   同一次实现，只换 `-type`（上面第 3 条已经写明这两个臂连 `xelab` 的选项集也不同）——
+
+   | 那一臂 | 首个非 x 的采样点 | t=0 |
+   |---|---|---|
+   | `impl/func`（无 SDF） | `first_defined_time=5000`、`sample_index=0` | `q_at_time0=xxxxxxxxx` |
+   | `impl/timing`（注 SDF） | `first_defined_time=10000`、`sample_index=1` | 同上 |
+
+   两臂 `$finish` 都在 805 ns，`Time resolution is 1 ps`。
+   **打印值的口径**：那份 tb 是 `timescale 1ns/1ps`，`%0t` 按**精度**输出，
+   所以 5000/10000 是 **ps**，不是 ns——把 10000 读成 10000 ns 就又把窗口放大 1000 倍，
+   和本页前面 `ROC_WIDTH` 那一格是同一种错。
+   移动的量级也对得上：`IOPATH` 在本机那份 `.sdf` 里有 114 条，单条形如
+   `(IOPATH I O (822.3:955.8:955.8) (822.3:955.8:955.8))`（min:typ:max，ps），
+   **亚 ns 的延迟跨过 5 ns 的采样点，看起来就是整整一格**——所以这一条不能读成"延迟多了 5 ns"。
+   注意这一对臂的差别**不止 SDF**（`xelab` 选项集也不同，见上面第 3 条），
+   所以能主张的是"注上 SDF 的那一臂首个非 x 点晚一个采样格"，
+   **不能主张这半格全归 SDF**；要拆开就把采样间隔改细（`#1` 而不是 `#5`）再取一次首个非 x 点，
+   并把两臂的 `xelab` 选项对齐到只剩注不注 SDF 一件事。
    落在窗口里的检查点测的是初始化行为，不是设计行为；判据要么把检查点放到 GSR 之后，
    要么显式改 `glbl` 的参数并把这一条写进记录。（这类"网表红"很容易被误读成综合改坏了逻辑。）
 2. **结构不是一一对应。** 源码写的是 `{cin,r} <= {1'b0,r} + a`，本机那份 funcsim 网表里
