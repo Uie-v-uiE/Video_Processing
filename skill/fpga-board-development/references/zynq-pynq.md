@@ -130,7 +130,9 @@ AXI-Lite 那一路管寄存器，引擎那一路管搬运，它们在 BD 里是*
 导出面的迁移线（谁在 2.7 被删、谁搬了家）逐条在
 `pynq-overlay-development/references/versions-and-apis.md` §2.1；`ip.baseaddr` 同理**在 IP 句柄这一层不存在**——
 基址在 `ip.mmio.base_addr`（`MMIO.__init__(self, base_addr, length=4, …)` 里记 `self.base_addr`）。
-**但别说成"`baseaddr` 这个词在任何副本里都不存在"**：它在每棵树里都有 21～39 处命中，只是不在
+**但别说成"`baseaddr` 这个词在任何副本里都不存在"**：它在每棵树里都有命中，本机按
+`grep -rn baseaddr <树>/pynq | wc -l` 逐棵数过：2.5.1=**21**、2.7.0=**27**、3.0.1=**40**、
+3.1.2=**43**、4.0.0=**26**（早先这里写的"21～39"没盖住 3.0.1 与 3.1.2 这两棵）。只是不在
 IP 句柄那一层——`metadata/ip_dict_view.py` 里 port 对象的 `dst_port.baseaddr`、`mem_dict_view.py` 的
 `subord_port.baseaddr`，以及 IP 驱动 C/VHDL 源码里的 `baseaddr_p`。限定错层次的全称否定，
 比不写更容易骗人。
@@ -163,7 +165,11 @@ print(buf.dtype, buf.shape, hex(buf.physical_address))
   （`mmio.py:70-84`）——所以"扫类定义说它不存在"是错的。
 - `DMA` 驱动挂在实例上（`getattr(overlay, 'axi_dma_0')`），通道是 `sendchannel`/`recvchannel`，
   **单次上限不一定等于 `buffer_max_size`**：`axi_dma_micro` 是 `数据位宽 × burst_size`，
-  而 `c_sg_length_width` 缺键时驱动退回硬编码 `2^26-1`（`lib/dma.py:630-637`、`:664-666`）；
+  而 `c_sg_length_width` 缺键时驱动退回的是**由一个命名常量算出来的 `2^26-1`**，不是字面量：
+  `self.buffer_max_size = 1 << MAX_C_SG_LENGTH_WIDTH`（`lib/dma.py:635`）随后 `-= 1`（`:637`），
+  而 `MAX_C_SG_LENGTH_WIDTH = 26` 就定义在同一份文件的 `:11`（3.1.2）；`:630-633` 是有键时
+  按 IP 参数走的那一支。**要引用这个数就连 `:11` 一起引**，换版本时先看那一行还是不是 26
+  （`axi_dma_micro` 在 `:664-667`）；
   另外只有 SDMA 会在超限时 `raise`，SG 会**默默拆成多个描述符**，所以"没报 exceeds maximum"
   在 SG 上不是证据。`transfer(array,
   start=0, nbytes=0)` 里 **`start` 按字节**算且参与对齐检查；cyclic 只在 sendchannel，且 cyclic

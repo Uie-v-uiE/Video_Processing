@@ -219,6 +219,12 @@ modify_debug_ports  [-probes <args>] [-quiet] [-verbose]
 read_verilog ./cnt.v                          ;# ① 或者 open_checkpoint / open_run 之后
 synth_design -top cnt -part <你的 part>       ;#    拿到"打开的网表"
 set_property MARK_DEBUG 1 [get_nets clk_IBUF] ;# ② 读回必须是 1（§2 上面那条）
+;#    **要打在内部网上**：同一次会话里把同一条属性打到顶层端口那根网 `clk` 上，
+;#    `set_property` 返回 **0**、`get_property MARK_DEBUG [get_nets clk]` 读回 **0**、
+;#    `llength [get_nets -hier -filter {MARK_DEBUG == 1}]` 也是 **0**——静默不落地，
+;#    与"根本没设"两种情况给的是同一组读数；换成 `clk_IBUF` 就变回 1/1。
+;#    两臂同会话、同网表、只差目标网，所以这不是版本、不是缓存、也不是 `set_property` 报错与否。
+;#    顶层端口要探针就取它的 IBUF 输出网（名字现取：`get_nets -quiet *IBUF*`）。
 create_debug_core u_ila_dbg ila               ;# ③ dbg_hub 会被自动加进来
 get_debug_ports                               ;# ④ 取小写名字：本机三条——u_ila_dbg/clk、u_ila_dbg/probe0、dbg_hub/clk
 create_debug_port u_ila_dbg probe             ;# ⑤ 要第二个槽位才需要（打回的名字形状见下面 VIO 那条）
@@ -228,9 +234,17 @@ connect_debug_port dbg_hub/clk [get_nets clk_IBUF_BUFG]
                                        ;# ⑦ 连**缓冲后**的钟网。连顶层 `clk` 时连接同样静默，
                                        ;#    而 implement 有时过有时不过（下面那条 A/B 统计是全部四次）
 connect_debug_port u_ila_dbg/clk [get_nets clk_IBUF_BUFG]
-                                       ;# ⑦b **核自己的 clk 端口也要连**，否则 ⑧ 之后想往下走时，
-                                       ;#    opt_design 报 `[Chipscope 16-213] The debug port
-                                       ;#    'u_ila_dbg/clk' has 1 unconnected channels (bits)`
+                                       ;# ⑦b **核自己的 clk 端口也要连**。两臂只差这一条、同会话同流程
+                                       ;#   （mark→create→连 probe0/`dbg_hub/clk`→write/open→implement）：
+                                       ;#   不连的那臂 `opt_design` 报
+                                       ;#   `[Chipscope 16-213] The debug port 'u_ila_dbg/clk' has 1
+                                       ;#   unconnected channels (bits)`，紧接着 `place_design` 也跟着红
+                                       ;#   （`catch` 里只有 `17-39` 包装）；连上的那臂两步都 rc=0。
+                                       ;#   一条附带的观察：另一臂里 `u_ila_dbg/clk` 是连了的，
+                                       ;#   但多用 `create_debug_port` 建过一个没连的 `probe1`，
+                                       ;#   **同一句 16-213 照样出现**——所以这条 DRC 数的是"未连通道数"，
+                                       ;#   它报出来的端口名不一定就是缺口所在；建了槽位就得连，
+                                       ;#   不需要就 `delete_debug_port` 掉。
 write_checkpoint -force ./post_synth.dcp      ;# ⑧ 存盘——"存出文件"本身还不够
 open_checkpoint ./post_synth.dcp              ;# ⑨ 重新打开它才算"已保存的设计"
 implement_debug_core                          ;# ⑩ 核进入网表（日志出现 dbg_hub_CV/u_ila_dbg_CV）
@@ -242,7 +256,13 @@ write_debug_probes -force ./design             ;# ⑪ 产出 design.ltx；判据
 - ⑧ 之后直接 ⑩ 会被拒：`ERROR: [Common 17-69] Command failed: Design needs to be saved before
   implementing debug cores.`——**`write_checkpoint` 写出一个文件并不满足它**，本机是靠 ⑨
   `open_checkpoint` 重新打开同一份 dcp 才过去的。工程流程里对应的说法是把它放到 `opt_design`
-  之后（那条路本文未验证，别默认它与上面等价）。
+  之后（**那条路要在你自己的带 run 的工程里走一遍才算数**，别默认它与上面等价）。
+  本机能补的是非工程流那一侧的顺序读数：`implement_debug_core` 之后直接
+  `place_design` + `route_design` 是过的（两臂都 rc=0）；中间插一步 `opt_design` 反而被
+  核的未连通道拦住：`ERROR: [Chipscope 16-213] The debug port 'u_ila_dbg/clk' has 1
+  unconnected channels (bits). This will cause errors during implementation.`——
+  那是 ⑦b 之前那一臂的读数，补上 ⑦b 之后没再重跑 `opt_design` 这一格，
+  **所以"⑦b + opt_design"这一组合本机仍未取过数**，别推定它通。
 - ⑨ 之后 `get_debug_cores` 仍然给 `dbg_hub u_ila_dbg`：核信息与标记是随 dcp 走的，
   不需要在重开后重建。
 - **⑦ 要连的应当是"缓冲之后"的那个钟网；而"连错会不会当场告诉你"没有可靠判据**——

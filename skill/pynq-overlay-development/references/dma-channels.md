@@ -76,7 +76,7 @@ dma.sendchannel.wait()    # 这三行只说明签名形状；收尾别照抄，�
    后果：SG 上"没报 exceeds maximum"完全不能证明你没超限，只能证明驱动自己拆了；
    分块逻辑写在 Python 侧做（SDMA 必须自己分块）。
 2.5 **SG 还会替你分配一块 CMA**（这一条最容易在算内存预算时漏掉，编号挂在第 2 条后面因为它同源）。
-   先给结构证据，免得被读成"我只看了一个分支"：整个 `transfer()`（`lib/dma.py:317` 起到 `:467`，
+   先给结构证据，免得被读成"我只看了一个分支"：整个 `transfer()`（`lib/dma.py:317` 起到 `:468`（最后一条语句跨 `:465-468`），
    下一节 `wait()` 从 `:470` 开始）里
    **只有一次 `allocate`**（`:384`）与**一个描述符循环**（`for i in ...`，`:390`），
    cyclic 与非 cyclic 的差别只在循环**内部**——`:392` 让最后一张描述符指回第一张，`:398` 是
@@ -152,8 +152,9 @@ dma.sendchannel.wait()    # 这三行只说明签名形状；收尾别照抄，�
 `transfer()` 只是把请求交给引擎；真正的完成是 `wait()` 返回或状态位置起。没有中断时 `wait()`
 是轮询（读 `SR` 判 `idle`/`error`），可能永远不返回。
 
-**引擎自己提供四个读数**，全部是 MMIO 位，不需要中断也不需要 Python 侧的运气（行号 `lib/dma.py`，
-`_offset` 是 MM2S=0 / S2MM=0x30）：
+**引擎自己提供四个读数**，全部是 MMIO 位，不需要中断也不需要 Python 侧的运气
+（**行号是 3.1.2 与 4.0.0 的 `lib/dma.py`**，两版这几处逐行相同；`_offset` 是 MM2S=0 / S2MM=0x30。
+**2.5.1 不能套这张表**，它连类都只有一个，见下面那段版本线）：
 
 | 口 | 判据 | 能排除什么 / 不能排除什么 |
 |---|---|---|
@@ -170,8 +171,13 @@ dma.sendchannel.wait()    # 这三行只说明签名形状；收尾别照抄，�
 
 **而 `transferred` 这个口自身还有版本线，方向对旧镜像不利。** 在 `pynq/lib/dma.py` 里数
 `grep -c "self\.transferred"`：2.5.1 是 **0** 处，2.7.0、3.0.1、3.1.2、4.0.0 各 **10** 处。
-**所以 2.5.1 的通道对象上没有这个属性**——上面那四个口在 2.5.1 只能取到
-`running`/`idle`/`error` 三个，写 `ch.transferred` 得到的是 `AttributeError`，不是 0。
+**2.5.1 的通道对象上不止没有这个口——连 `error` 都没有。** 那一版的类是 `_DMAChannel`
+（`lib/dma.py:42`，SDMA/SG 还没分成两个类），整份文件里只有**两个** `@property`：
+`:65-66` 的 `running` 与 `:72-73` 的 `idle`（`grep -n "def error"` 在 2.5.1 上打回 **0** 行；
+`grep -n "0x70"` 也是 0 行）。上面那张四口表在 2.5.1 上只取到 `running`/`idle` 两个，
+写 `ch.error` 与写 `ch.transferred` 得到的都是 `AttributeError`，不是 0、也不是 `False`。
+**所以"先看 `idle`/`error` 两位再决定"那条在旧镜像上要退化成只看 `idle`**——
+而 `idle` 分不清"正常停"与"报错停"，这正是这张表警告过的那件事。
 两种替代：自己读完成长度那个寄存器（`SR+0x28`；2.5.1 的通道里握着 `self._mmio` 与 `self._offset`，
 `:56-57`，读法按本页 §2 的显式 `MMIO` 口），或者
 `getattr(ch, "transferred", None)` 把"这个版本没有这个口"与"这一笔搬了 0 字节"分开报——
@@ -195,7 +201,7 @@ SG（`lib/dma.py:477-501`）**另外还有一族描述符层面的**，位是 `0
 | `Scatter-Gather Internal Error (re-used completed descriptor)` | `0x100` | 复用了已经完成的描述符——通常是前一次没 `stop()` 就再 `transfer()` |
 | `Scatter-Gather Slave Error` | `0x200` | 描述符指向的**内存**访问被拒 |
 | `Scatter-Gather Decode Error (invalid descriptor address)` | `0x400` | 描述符**表本身**的地址不在段上（BD 基址/`_descr` 映射问题，不是数据缓冲区的地址问题） |
-| `RuntimeError: DMA Error in descriptor` | 由 `wait()`/`wait_async()` 在描述符 CMPL 位缺失时抛（`:513/544`） | 引擎没走到那个描述符：长度、启动顺序或门控没对上 |
+| `RuntimeError: DMA Error in descriptor` | 由 `wait()`/`wait_async()` 抛：条件是 `if self._descr[i, 7] & 0x30000000:`（`:512-513`、`:543-544`）——**那几位被置起来才抛**，不是"完成位缺失" | 引擎在描述符上报了错：长度、启动顺序或门控没对上。**注意这条出口不会先 `stop()`**（见下面那条），读 `error`/`idle` 再决定下一步 |
 
 也就是说 SG 上"报的是数据地址错"还是"报的是描述符表地址错"是可分的，这两类的修法完全不同；
 把它合并成一句"DMA 报错了"会浪费一小时。
@@ -263,9 +269,16 @@ def wait_with_timeout(ch, seconds):
 - `start()` 那侧对称地有 `while not self.running: pass`（SDMA `:93-94`、SG `:299-300`）。
 
 更要紧的是**你自己不调也会进去**：`_SGDMAChannel.transfer()` 内部就 `self.stop()`（`:387`），
-`wait()` 与 `wait_async()` 的错误分支同样调它（`:517`、`:548`），连 `__init__` 都调（`:257`）。
-所以**在"报错/超时"这条路上，任何驱动调用都可能把进程挂死**，危险不止 `stop()` 这一个名字。
-源码撑得住的唯一动作是**自己动寄存器**：用 `MMIO` 写 DMACR 的 RS=0（cyclic 下再写 `0x0`←`0x0004`，
+`__init__` 也调（`:257`）。**但 `wait()` / `wait_async()` 的报错分支不调它**——
+`:517`、`:548` 那两次 `self.stop()` 前面都写着 `# Ensure engine is idled`，位置在
+描述符循环**跑完之后**（`:516-517`、`:547-548`），而抛错的那些出口
+（`:481-500` 那族 SR 位、`:513`/`:544` 的 `raise RuntimeError("DMA Error in descriptor")`）
+都在到达那两行**之前**就离开函数了。所以"任何驱动调用都可能把你带进 `stop()`"这句要反过来读：
+**发起过传输却报错的那条路不会替你停引擎**，`stop()` 只在 `transfer()`/`__init__`/正常收尾时发生；
+而一旦你手动去调 `stop()`，卡住的是它里面那两个无界循环（上面两条）。
+两种情形都要防，防法不同：报错之后先读 `error`/`idle` 决定要不要自己写 RS=0，
+而不是指望库已经帮你停过。
+源码撑得住的唯一手动动作是**自己动寄存器**：用 `MMIO` 写 DMACR 的 RS=0（cyclic 下再写 `0x0`←`0x0004`，
 `:306-308` 正是驱动自己做的事），然后**自己带截止时间轮询 SR**。
 边界要说清：源码能证的只有**这两个循环没有上界**；"引擎报了 Slave Error 之后是不是永不清 `running`"
 是板端行为，本包没有那边的读数（需板端）。这条路也绕开了 §1 第 4 条那张表，且 overlay 复位 PL 时会一起冲掉。

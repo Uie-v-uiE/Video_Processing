@@ -37,9 +37,14 @@ def allocate(shape, dtype="u4", target=None, **kwargs)    # pynq/buffer.py:138�
    各取一次读数再决定用哪条路。
    本页前一次就是这么写的，被源码反写了。
    手算仍然不该用，但危险在**释放**那一侧：`freebuffer()` 走
-   `libc.munmap(self.virtual_address, self.nbytes)` 然后 `del self.bo`（`:65-82`）——拿视图去调它，
-   只 unmap 视图那一段、却把整个 DMA 缓冲的句柄丢掉，而它自己的 docstring 就写着
-   "free the memory regardless of whether other objects may still be using the buffer"。
+   `libc.munmap(self.virtual_address, self.nbytes)` 然后 `del self.bo`（`:65-82`）——
+   拿视图去调它，**被解除映射的是视图那一段**（地址与长度都是视图的），
+   而 `del self.bo` 丢的也只是**这个视图自己那一份引用**：`__array_finalize__` 在 `:57`
+   做的是 `self.bo = obj.bo`，原始对象手里仍然握着同一个 `bo`。
+   **所以症状不是"句柄没了"，是"原始对象还以为自己映射着"**——共享的那段映射被局部解除，
+   之后任何还拿着 `bo` 的对象访问到被 unmap 的区间就是悬空访问，而 `munmap` 本身不会告诉谁。
+   它自己的 docstring 就写着 "free the memory regardless of whether other objects may still be
+   using the buffer"（`:68` 起）——这一句才是这条路的判据。
    所以规范写法是：切片对象本身交给 DMA，释放由**持有原始对象的那一层**做（退出 `with`），
    不要在视图上调 `freebuffer()`（本页 §3 第 2 条是同一件事的规范写法，改这里要同步那一处）。
    `reshape` 不改变地址，只改形状。
@@ -241,7 +246,8 @@ buf.flush(); buf.invalidate()
    是**视图的量**（`__array_finalize__` 在 `:50-56` 重算 offset、`nbytes` 取视图长度），
    所以 `flush`/`invalidate`（`:104-114`）**跟着切片走**——"另一段被无谓 invalidate"那种说法不成立。
    该查的是释放路径：`freebuffer()`（`:65-82`）拿视图调用时 `munmap` 只覆盖视图长度，
-   紧接着的 `del self.bo` 却把整个缓冲的句柄去掉。这一步只看代码就能定，代价最低。
+   而 `del self.bo` 只丢视图自己那一份引用（`:57` 是 `self.bo = obj.bo`，原始对象仍持有同一个 `bo`）——
+   受损的是**共享映射被局部解除**，不是句柄消失。这一步只看代码就能定，代价最低。
 3. **再看 `buf.cacheable` 与调用方向——但只在"驱动不替你同步"的那条路上看**（旧文把这一步当成
    通判据，是错的）：`cacheable`（= `not coherent`，`buffer.py:85-87`，两版同一行号）为真却没调
    `sync_to_device`/`sync_from_device`、或方向反了，症状是"第一次对、第二次旧"，

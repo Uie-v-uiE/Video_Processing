@@ -310,7 +310,19 @@ check_timing
 策略与 directive 快照要一致（取法在 `vivado-build-run.md` §7 第 3 条，那条才是 run 属性快照；
 §4 讲的是 part/VLNV/驱动 tcl/产物四件）；**带探针那一版通常会抑制优化**（多出来的网络与约束
 会让布局器改主意），所以减出来的差值**不等于**核的净成本——它的含义是「这一版整体贵了多少」。
-要拿净成本就得让两版只差 `MARK_DEBUG` 这一件事、其余全部相同；这组对照没做成之前，不要报"净成本"这个数。
+要拿净成本就得让两版只差调试核这一件事、其余全部相同。**这组对照本机做成过一次**：
+两臂同一份 `cnt.v`、同 part、同一步骤序列（`synth_design` → `create_clock -period 10` →
+`write_checkpoint` → `open_checkpoint` → `place_design` → `route_design`），B 臂只多了
+"一颗 ILA + 自动 `dbg_hub`"这一件事（两臂各自独立会话，避免共享临时目录互相锁住——
+同一会话里连跑两臂时第二臂的 `synth_design` 会撞 `[Designutils 20-411] … could not be deleted
+and may be locked`，那样出来的差值不能用）。差值：
+`LUT as Logic` 6→950、`LUT as Memory` 0→85、`Slice Registers` 8→1810、`Block RAM Tile` 0→0.5、
+`Bonded IOB` 10→10（没动）；时序侧 `WNS` 7.746→3.773、`WHS` 0.191→**−0.887**
+（hold 失败端点 0→2、TNS −1.373），端点总数 8→3467。
+**这是一份设计的差值，不是"核的成本表"**：换探针位宽/深度、换设计、走没走 `opt_design` 都会动数
+（上面那张三行表里"综合阶段 1093 LUT"与本组"路由完成后 950+85"是**不同阶段**，
+既不能互相校对更不能相减）。报它的时候必须连同"两臂只差哪一件事"一起报，
+否则又退回上界那个含糊说法；这一对数没做过第二份设计，**别当通用常数搬**。
 单个层次占多少，用上面那条 `-hierarchical`（综合后就给得出）。
 **"插一个调试核到底贵多少"本机有数了**（一份 8 位计数器 `cnt`、`xc7z020clg400-1`、2025.2.1，
 一路 `create_debug_core u_ila_dbg ila` + 连 `clk`/`probe0` + `dbg_hub` 自动加进来；

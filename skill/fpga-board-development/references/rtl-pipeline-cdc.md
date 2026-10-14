@@ -67,7 +67,11 @@ if (found != LATENCY) $error("latency probe: got %0d expect %0d", found, LATENCY
 ```
 
 **这段是 SystemVerilog，不是 Verilog-2001**：`int`、`var` 型循环这类 SV 构造在只给 `-2012` 的
-编译里就会红（本机取到的是 `[VRFC 10-2939] 'int' is an unknown type`，见 `verification.md` §1 那条）。
+编译里就会红（`xvlog` 默认模式下本机取到 `[VRFC 10-2939] 'int' is an unknown type`，见 `verification.md`
+§1 那条）。**但选项名要按各家工具现取**：ModelSim 那一侧 `vlog -2012 <文件>` 直接被拒——
+`** Error (suppressible): (vlog-1902) Option "-2012" is not a valid option for this tool.`、
+`Errors: 1`、rc=1，而同一个 `mempart.v` 给 `-sv` 是 `Errors: 0, Warnings: 0`、rc=0。
+**两臂只差那一个选项名**，所以那次 rc=1 不是文件坏了，是选项不存在——照抄别家的版本号写法就会卡在这一步。
      **但 `$error` 不在这一类**：单独取过，一个用 `integer` + `$error(...)` + `$finish` 的文件默认 `xvlog` 退 0、不打任何 ERROR —— 早先那句"`$error` 也会红"是把它和 `int` 混在一起了。
      所以要么整个 bench 用 `-sv` 编，要么把 `int found` 换成 `integer found`（`$error` 可以留着）
 加一条自己的判定行——**别让它只在你的工具链里"应该能过"**。
@@ -159,9 +163,11 @@ wire ev_dst = s[1] ^ s[2];
 
    两种写法看着都像"截了一下"，性质完全不同：`wire s = wide_sig;` 能编译、只留最低位（**静默**）；
    而对存储器整体做位部分选择是**编译期就红**的，只是**报错号随编译模式变**——
-   不加 `-sv` 报 `[VRFC 10-3627] part-select of memory 'mem' is not allowed`，
-   加了 `-sv` 同一行改报 `[VRFC 10-395] cannot assign an unpacked type to a packed type`。
-   两种模式都红，但脚本按 `10-3627` 匹配会漏掉 `-sv` 那一半。会悄悄出事的永远只是前者。
+   不加 `-sv` 时**同一行连报两条**：`[VRFC 10-3627] part-select of memory 'mem' is not allowed` 与
+   `[VRFC 10-395] cannot assign an unpacked type to a packed type`（本机逐字取到，两条都带
+   `[memsel.v:7]`，随后 `[VRFC 10-8530] module 'memsel' is ignored due to previous errors`、`xvlog` rc=1）；
+   加了 `-sv` 只剩 `[VRFC 10-395]` 那一条。
+   两种模式都红，但**脚本按 `10-3627` 匹配会在 `-sv` 模式下整个漏掉这一行**。会悄悄出事的永远只是前者。
 
    `` `default_nettype none `` 让拼错的信号在编译期就炸，而不是变成一根隐式 1 位线网——
    但它**同时会把 ANSI 端口也判红**：本机 `module m(input clk, ...)` 这种裸端口在 `none` 之下报
@@ -187,6 +193,11 @@ puts "STAGE=<[get_property STEPS.SYNTH_DESIGN.ARGS.DIRECTIVE [current_run]]> DES
 llength [get_cells -quiet *]                  ;# 本机这一份 31（另一路复核在同一类设计上报 24——**那是别人的读数，别当本包的数引用**；两个数都只服务于各自那份网表）
 llength [get_cells -quiet -hier NOPE_NOT_HERE] ;# 0，而且 -quiet 下不回任何告警文本
 llength [get_pins  -quiet -hier */D]          ;# 8
+;# **这一条数的是 D 引脚，不是触发器位数**：锁存器的数据脚也叫 D。
+;# 本机一份"4 位触发器 + 4 位锁存器"的设计上它给 **8**，逐个取父单元的 `REF_NAME` 是
+;# `FDRE FDRE FDRE FDRE LDCE LDCE LDCE LDCE`——**只数 `*/D` 会把锁存器算成触发器**。
+;# 要位数就按名字分：`get_cells -quiet -hier -filter {REF_NAME == FDRE}` / `== LDCE` 各数一次，
+;# 或者直接 `foreach p [get_pins -hier */D] { get_cells -of_objects $p }` 看 `REF_NAME` 的分布。
 llength [get_nets  -quiet -hier -filter {MARK_DEBUG == 1}]   ;# 1（标记随 dcp 一起存下来）
 ;# 这条是本页与 `onchip-debug.md` §2 共用的规范写法，改这里要同步那一页的指向句。
 ;# 三种过滤写法本机都取到同一个集合：{MARK_DEBUG == 1}、{MARK_DEBUG == true}、裸 {MARK_DEBUG}。

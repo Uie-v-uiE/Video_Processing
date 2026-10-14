@@ -183,7 +183,10 @@ xsim sim_net -R
   报错位置在库文件里而不是你的代码里，第一次看到会误以为网表坏了——按这条对号入座。
 - 工程流程那一族的**取数状态分三条**：`launch_simulation` 本机跑过
   （`-scripts_only` 与真跑两种，functional / timing 两个臂，配方与读数在本节末尾那条"带 SDF 的时序仿真"）；
-  `compile_simlib` 只取到 `-help`（rc=0，命令在）；
+  `compile_simlib` 只取到 `-help`（rc=0，命令在）与一次拼错选项的调用：
+  `compile_simlib -simulator xsim -library_set compiled -no_compile_unisim_ok` →
+  `[Common 17-170] Unknown option '-library_set'`、rc=1（**`-library_set` 不是它的选项**，
+  那种写法来自别的工具或旧版脚本；要真编库先 `-help` 把选项表现取一次）。
   **`export_simulation` 本机调过四次，四次都没导出成功**，把四条读数留着当边界：
   `-simulator bogus` → `[Vivado 12-23824] Invalid simulator specified 'bogus'! Please type
   'export_simulation -help' for the list of supported simulators.`（rc=1）；
