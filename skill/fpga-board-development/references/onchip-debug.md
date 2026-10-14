@@ -240,11 +240,14 @@ connect_debug_port u_ila_dbg/clk [get_nets clk_IBUF_BUFG]
                                        ;#   `[Chipscope 16-213] The debug port 'u_ila_dbg/clk' has 1
                                        ;#   unconnected channels (bits)`，紧接着 `place_design` 也跟着红
                                        ;#   （`catch` 里只有 `17-39` 包装）；连上的那臂两步都 rc=0。
-                                       ;#   一条附带的观察：另一臂里 `u_ila_dbg/clk` 是连了的，
-                                       ;#   但多用 `create_debug_port` 建过一个没连的 `probe1`，
-                                       ;#   **同一句 16-213 照样出现**——所以这条 DRC 数的是"未连通道数"，
-                                       ;#   它报出来的端口名不一定就是缺口所在；建了槽位就得连，
-                                       ;#   不需要就 `delete_debug_port` 掉。
+                                       ;#   一条容易搞反的细节：这句 16-213 数的是**这个端口自己**的未连通道，
+                                       ;#   所以缺口就在 `u_ila_dbg/clk` 这一格——本机两处独立会话都是
+                                       ;#   "只连了 `dbg_hub/clk`、没连核的 `clk`"这一种配置，
+                                       ;#   报出来的都是同一句；而把 `u_ila_dbg/clk` 也连上之后
+                                       ;#   `opt_design` 与 `place_design` 两步都 rc=0（同一份 dcp、同一流程）。
+                                       ;#   这条 DRC 只说"`clk` 这一格有 1 位没连"，本机两次红
+                                       ;#   （另一臂同样是只连 `dbg_hub/clk`）与一次绿的全部差别就是
+                                       ;#   ⑦b 这一条；别的槽位没连会怎样，本机没做过那一格，别外推。
                                        ;#   **读回口就在这张表上**：`implement_debug_core` 之后
                                        ;#   `report_debug_core` 的 `clk` 那一行，
                                        ;#   没连时是 `Channel Name=clk[0]`、`Net Type`/`MARK_DEBUG`/
@@ -264,13 +267,11 @@ write_debug_probes -force ./design             ;# ⑪ 产出 design.ltx；判据
 - ⑧ 之后直接 ⑩ 会被拒：`ERROR: [Common 17-69] Command failed: Design needs to be saved before
   implementing debug cores.`——**`write_checkpoint` 写出一个文件并不满足它**，本机是靠 ⑨
   `open_checkpoint` 重新打开同一份 dcp 才过去的。工程流程里对应的说法是把它放到 `opt_design`
-  之后（**那条路要在你自己的带 run 的工程里走一遍才算数**，别默认它与上面等价）。
-  本机能补的是非工程流那一侧的顺序读数：`implement_debug_core` 之后直接
-  `place_design` + `route_design` 是过的（两臂都 rc=0）；中间插一步 `opt_design` 反而被
-  核的未连通道拦住：`ERROR: [Chipscope 16-213] The debug port 'u_ila_dbg/clk' has 1
-  unconnected channels (bits). This will cause errors during implementation.`——
-  那是 ⑦b 之前那一臂的读数，补上 ⑦b 之后没再重跑 `opt_design` 这一格，
-  **所以"⑦b + opt_design"这一组合本机仍未取过数**，别推定它通。
+  之后（**那条带 run 的工程流要自己在工程里走一遍才算数**，别默认它与上面等价）。
+  非工程流这一侧本机取到的是：⑦b 连上之后 `opt_design` → `place_design` → `route_design`
+  整条走通（两臂 rc 全 0，差值读数在 `constraints-timing.md` §6）；
+  **不连 ⑦b 的那臂在 `opt_design` 这一步就被 `16-213` 拦住**，`place_design` 随后只是
+  `17-39` 包装的红。也就是说这条链要往下走，⑦b 不是可选项。
 - ⑨ 之后 `get_debug_cores` 仍然给 `dbg_hub u_ila_dbg`：核信息与标记是随 dcp 走的，
   不需要在重开后重建。
 - **⑦ 要连的应当是"缓冲之后"的那个钟网；而"连错会不会当场告诉你"没有可靠判据**——
