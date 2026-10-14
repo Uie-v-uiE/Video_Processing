@@ -269,6 +269,13 @@ license: MIT
   第一条就调 `get_hw_ilas` 照样 rc=0（空串），调完之后 `info commands get_hw_ilas` 才有名字。
   所以"这条命令不存在"只认一个信号：`invalid command name "<名字>"`
   （三相位读数与取法在 `onchip-debug.md` §2；`hw_*` 这一族的 0/15→15/15 与那条空串反例在 §1）。
+  **但反方向也有坑：命令名会被前缀认出来**，本机 `catch {save_project} e` 打的不是
+  `invalid command name`，而是 `save_project_as` 的选项错
+  （`[Common 17-163] Missing value for option 'name', please type 'save_project_as -help' …`），
+  而同一次会话里 `[info commands save_project]` 是空的、`save_project_as` 有名字。
+  **少打一截不会失败，会去执行另一条命令**——所以判存在性要用**完整且精确**的名字调它，
+  名字短了得到的红/绿都不属于你以为那条命令（写探针脚本时同理：先 `info commands <全名>` 取
+  候选列表，看到的不止一个就要改调用形式，别赌唯一前缀）。
   **第五种要单独记：探针脚本自己覆盖了一个同名的内建/工具过程**，症状是死在**下一行无关命令**上。
   本机那组对照是六行脚本（定义过程 → `read_verilog` → `synth_design` → `puts`），**只换过程名**：
   叫 `try` 时 `read_verilog` 报 `[Common 17-685] Unable to load Tcl app xilinx::xsim`、

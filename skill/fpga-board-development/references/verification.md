@@ -187,25 +187,32 @@ xsim sim_net -R
   `compile_simlib -simulator xsim -library_set compiled -no_compile_unisim_ok` →
   `[Common 17-170] Unknown option '-library_set'`、rc=1（**`-library_set` 不是它的选项**，
   那种写法来自别的工具或旧版脚本；要真编库先 `-help` 把选项表现取一次）。
-  **`export_simulation` 本机调过四次，四次都没导出成功**，把四条读数留着当边界：
+  **`export_simulation` 本机五次调用，前四次都红，第五次通了**，通的配方与那四条红读数一起留着——
+  四条红正好各指一个前提：
   `-simulator bogus` → `[Vivado 12-23824] Invalid simulator specified 'bogus'! Please type
   'export_simulation -help' for the list of supported simulators.`（rc=1）；
   `-of_objects [get_files <某个 .v>]` → `[Common 17-69] Command failed: '-of_objects' only supports
-  a sub-design (composite) file`（rc=1，**普通源文件不算 composite**，要给 BD/IP 那一类）；
-  `-simulator xsim -script_name run_sim`（名字不带扩展名）→ 打
+  a sub-design (composite) file`（rc=1，**普通源文件不算 composite**）；
+  `-simulator xsim -script_name run_sim`（名字不带扩展名）→
   `ERROR: [exportsim-Tcl-4] Invalid script file extension '' specified. Please provide script
-  filename with the '.sh' extension.` **而 `catch` 的返回码是 0**、目录里什么都没有——
-  这一条是本族里"红消息 + rc=0 + 无产物"三者同时出现的最干净的一格；
-  给 BD 的 `.bd` 当 `-of_objects`、且 `-ip_user_files_dir` 指向不存在的目录 →
+  filename with the '.sh' extension.` **而返回码是 0**、目录里什么都没有——
+  "红消息 + rc=0 + 无产物"三者能同时出现，这一族别拿返回码当门；
+  `-of_objects [get_files *.bd]` 且 `-ip_user_files_dir` 指向不存在的目录 →
   `[exportsim-Tcl-0] Directory path specified with the '-ip_user_files_dir' does not exist:'…'`
-  后面跟一条 `[Common 17-39] 'send_msg_id' failed due to earlier errors.`（**它内部报错的入口是
-  `send_msg_id`，不是 export_simulation 自己**）；目录先建好再跑，会先创建
-  `<directory>/top/` 然后死在 `[Common 17-161] Invalid option value 'null' specified for 'object'.`
-  加 `expected boolean value but got ""`——**失败的那次也已经在目录里留下了子目录**，
-  所以"目录非空"不能当导出成功的判据，要数生成的脚本文件本身。
-  结论写死：**这一族里 `export_simulation` 的可用配方本机没有**，要导出去别人的仿真器就在你机器上
-  按上面四条逐个补齐（simulator 名合法、对象是 composite、每个目录参数都先建、script_name 带 `.sh`），
-  并且只认"目录里出现了那份脚本"这一条读数。
+  后面跟 `[Common 17-39] 'send_msg_id' failed due to earlier errors.`
+  （**它内部报错的入口是 `send_msg_id`，不是 export_simulation 自己**；目录先建好再跑同一组参数，
+  会先创建 `<directory>/top/` 然后死在 `[Common 17-161] Invalid option value 'null' specified
+  for 'object'.` 加 `expected boolean value but got ""`——**失败那次也留下了子目录**，
+  所以"目录非空"不是判据）。
+  通的那一次是：`create_ip -name axi_gpio … -module_name gpio0` → `generate_target all [get_ips gpio0]`
+  → `export_simulation -simulator xsim -of_objects [get_files *.xci] -directory <已建好的目录>
+  -script_name run.sh -ip_user_files_dir <已建好> -ipstatic_source_dir <已建好> -lib_map_path <已建好>`
+  → rc=0，落出 11 个文件：`<目录>/gpio0/xsim/` 下 `run.sh`、`vlog.prj`、`vhdl.prj`、`elab.opt`、
+  `cmd.tcl`、`xsim.ini`、`glbl.v`、`file_info.txt`、`gpio0_sv.sveo`、两份 `README.txt`。
+  **三条要点**：① `-of_objects` 要的 composite 在这里就是一个 IP 的 `.xci`（BD 那一棵本机没通）；
+  ② 那三个目录参数**都要预先 `mkdir`**，工具不会替你建，缺哪个就报哪个；
+  ③ `-script_name` 必须带 `.sh`（本机 `-export_scriptset` 也不是它的选项，`17-170`）。
+  判"导出成功"就数 `<目录>/**/run.sh` 在不在，别数目录。
   手工那条路（`write_verilog -mode funcsim` + `xvlog`/`xelab`/`xsim`）本机是跑通了的，
   配方与两臂读数也在本节末尾——所以网表仿真这件事不必等 `compile_simlib`。
 
