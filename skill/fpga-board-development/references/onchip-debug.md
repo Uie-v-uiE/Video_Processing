@@ -184,10 +184,10 @@ write_debug_probes -force ./design             ;# ⑪ 产出 design.ltx；判据
 - ⑧ 之后直接 ⑩ 会被拒：`ERROR: [Common 17-69] Command failed: Design needs to be saved before
   implementing debug cores.`——**`write_checkpoint` 写出一个文件并不满足它**，本机是靠 ⑨
   `open_checkpoint` 重新打开同一份 dcp 才过去的。工程流程里对应的说法是把它放到 `opt_design`
-  之后（那条本机没走）。
+  之后（那条路本文未验证，别默认它与上面等价）。
 - ⑨ 之后 `get_debug_cores` 仍然给 `dbg_hub u_ila_dbg`：核信息与标记是随 dcp 走的，
   不需要在重开后重建。
-- **⑦ 要连的应当是"缓冲之后"的那个钟网，但"连错会不会当场告诉你"这件事本机没能定住。**
+- **⑦ 要连的应当是"缓冲之后"的那个钟网；而"连错会不会当场告诉你"没有可靠判据**——
   同一份设计、同一条十一步，`dbg_hub/clk` 分别连顶层输入网 `clk` 与 `clk_IBUF_BUFG`，累计读数是这样：
 
   | `dbg_hub/clk` 连到 | `connect_debug_port` | 走到 `implement_debug_core` | `.ltx` |
@@ -282,7 +282,7 @@ write_debug_probes -force ./design             ;# ⑪ 产出 design.ltx；判据
      数据探针才是四条**（多一个 `PROBE_TYPE`）——这就是上面"属性清单是逐端口的"那条的出处。
   2. `DIRECTION` 在这三个端口上**一个都没有**（本机逐个取过，一律 `12-4442`），所以"这个 VIO 位是
      板端输入还是输出"在 Tcl 侧读不出来，只能按你建它时的意图与硬件管理器那一侧对齐。
-     这条是本页关于 VIO 的一个真实缺口：**怎么把输出位接到设计里的某个驱动，本机没走到**。
+     这是本页关于 VIO 的一个真实缺口：**怎么把输出位接到设计里的某个驱动，要在自己的设计上试一次才定得下来**。
   3. `create_debug_port u_vio_dbg probe` 打回的是**全名** `u_vio_dbg/probe1`（不是短名 `probe1`），
      所以新增槽位之后重新 `get_debug_ports` 认名字，别拿返回值去拼路径。
 
@@ -294,7 +294,7 @@ write_debug_probes -force ./design             ;# ⑪ 产出 design.ltx；判据
 `implement_debug_core` → 写 `.ltx`**"，中间**没有**"再综合一次"这一步（`MARK_DEBUG` 是在
 `synth_design` 之后才设的，核也是那时才建的）。但这只说明**命令顺序可行**：那份 `.ltx` 来自一个
 没跑实现的网表，与任何比特流都不同批（§3 的判据正是要卡住这件事）。所以交付流程里插了核还是
-要把实现跑完，而"跑实现时核由谁插入"（`opt_design` 自动做，还是这里手写）本机没做对照，
+要把实现跑完，而"跑实现时核由谁插入"（`opt_design` 自动做，还是这里手写）没有对照实验可依，
 在自己的构建上取一次 `report_utilization` 与 STATUS 再下结论。
 
 **这些名字不存在**（`-help` 都报 `invalid command name`）：`gen_debug_core_sinks`、
@@ -387,7 +387,7 @@ write_hw_ila_data  [-force] [-csv_file] [-vcd_file] [-legacy_csv_file] [-quiet]
 **问一个不存在的 CONFIG 名字，拿到的未必是"没有这个属性"**：本机 `get_property CONFIG.C_NUM_PROBES`
 回的是 `ERROR: [Common 17-39] 'get_property' failed due to earlier errors.`——这句是外壳，
 真因在它上面那一条；名字对不对要用 `list_property` 的清单判，不是用这条报错的措辞判。
-VIO 那一侧的对象命令是 `get_hw_vios`（本机存在）；只是判"某个位在不在动"，用 VIO 比插 ILA **通常**便宜（**这个成本差本机没有量过**：本页只对 ILA 的占用有数，见 `constraints-timing.md` §6；别把它当成选型依据，要就在自己的设计上各建一版取差值） 便宜。
+VIO 那一侧的对象命令是 `get_hw_vios`（本机存在）；只是判"某个位在不在动"，用 VIO 比插 ILA **通常**便宜（**这个成本差要自己量**：本页只对 ILA 的占用有数，见 `constraints-timing.md` §6；别把它当成选型依据，要就在自己的设计上各建一版取差值） 便宜。
 
 ## 3. 读回来的数据要能证明是这一次的
 

@@ -181,7 +181,7 @@ wire ev_dst = s[1] ^ s[2];
 open_run synth_1                              ;# 或按 `onchip-debug.md` §2.1 的第 ⑨ 步打开一份 dcp
 # 先把"这是哪一份、哪一阶段"打进同一屏，否则下面四个数没有归属（`constraints-timing.md` §4 第 1 条）：
 puts "STAGE=<[get_property STEPS.SYNTH_DESIGN.ARGS.DIRECTIVE [current_run]]> DESIGN=<[current_design]>"
-# 阶段本身没有可靠的对象属性可取（本机没在 design/run 上找到 DESIGN_STATE 这一族），
+# 阶段本身没有可靠的对象属性可取（design/run 上不存在 DESIGN_STATE 这一族属性），
 # 所以用报告头那行钉阶段：`report_utilization -return_string` 里 grep `Design State :`；
 # **没有这一行对上号，上面四个数就只是四个匿名整数**。
 llength [get_cells -quiet *]                  ;# 本机这一份 31（另一路复核在同一类设计上报 24——**那是别人的读数，别当本包的数引用**；两个数都只服务于各自那份网表）

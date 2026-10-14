@@ -343,9 +343,8 @@ vsim -c -nolog -do "run -all; quit" work.tb work.glbl   # 顶层同样要给两�
 iverilog -g2012 -o build/sim/tb rtl/*.v sim/tb.v && vvp build/sim/tb
 ```
 
-上面那种跑法（ModelSim 与 Vivado 各自的非交互批跑）在本机实测过。
-第一条（ModelSim）与第二条（Vivado 的 `xvlog`/`xelab`/`xsim`）在本机实测过；第三条 `iverilog`
-本机没装，**没跑过**。实测到的坑：
+三条跑法里，ModelSim 那条与 Vivado 那条（`xvlog`/`xelab`/`xsim`）是给过完整非交互批跑、有读数的；
+`iverilog` 那条要自己装了才能验，本文不给它结论。下面这些坑是前两条跑出来的：
 
 - `xelab` 的 `--relax` **不是必需的**：本机不加它也能 `Built simulation snapshot`。加了不出错，
   但别以为少了它跑不通是设计有问题。
