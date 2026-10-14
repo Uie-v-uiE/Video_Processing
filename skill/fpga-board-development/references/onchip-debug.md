@@ -245,9 +245,17 @@ connect_debug_port u_ila_dbg/clk [get_nets clk_IBUF_BUFG]
                                        ;#   "只连了 `dbg_hub/clk`、没连核的 `clk`"这一种配置，
                                        ;#   报出来的都是同一句；而把 `u_ila_dbg/clk` 也连上之后
                                        ;#   `opt_design` 与 `place_design` 两步都 rc=0（同一份 dcp、同一流程）。
-                                       ;#   这条 DRC 只说"`clk` 这一格有 1 位没连"，本机两次红
-                                       ;#   （另一臂同样是只连 `dbg_hub/clk`）与一次绿的全部差别就是
-                                       ;#   ⑦b 这一条；别的槽位没连会怎样，本机没做过那一格，别外推。
+                                       ;#   这条 DRC 点名的就是缺口那一格，本机三臂各自对上：
+                                       ;#   只连 `dbg_hub/clk` → 报 `u_ila_dbg/clk`（两处独立会话）；
+                                       ;#   连了 `clk` 但 `create_debug_port` 多建一个不连 → 报
+                                       ;#   `u_ila_dbg/probe1`；两格都连上 → `opt_design` rc=0。
+                                       ;#   **别只盯 `16-213` 那一行**：未连槽位那一臂随后的
+                                       ;#   `place_design` 红成 `[Opt 31-65] LUT input is undriven
+                                       ;#   … u_ila_dbg/inst/ila_core_inst/u_trig/…`——
+                                       ;#   指向核内部的一根 LUT 输入，很容易被读成"核坏了"或"综合改坏了"，
+                                       ;#   它其实只是上面那条未连通道的下游。判据顺序是：
+                                       ;#   先看这一臂有没有 `16-213`，再看 `report_debug_core -return_string`
+                                       ;#   里哪一格的 `Net Name` 是空的。
                                        ;#   **读回口就在这张表上**：`implement_debug_core` 之后
                                        ;#   `report_debug_core` 的 `clk` 那一行，
                                        ;#   没连时是 `Channel Name=clk[0]`、`Net Type`/`MARK_DEBUG`/
