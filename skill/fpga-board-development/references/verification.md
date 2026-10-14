@@ -213,7 +213,7 @@ xsim sim_net -R
    `GRES_WIDTH = 10000` / `GRES_START = 10000`，那是另一个 10 ns 宽的窗口）。
    而且 `write_verilog` 出来的网表里也带一个 `module glbl`，**它的 timescale 才是仿真时生效的那份**，
    所以配一条 `grep -n "timescale\|ROC_WIDTH" <实际编译进去的那份 glbl>` 一起看。
-   **没测过的分支要说清，但已经测到一半的都记下来**：带 SDF 的时序仿真这一臂本机**没跑通**，
+   **没跑通的分支要说清卡在哪一步，测到的部分要记全**：带 SDF 的时序仿真这一臂停在
    卡点逐个是（都是自己的读数）：`write_verilog -mode timesim -sdf_anno true -sdf_file <路径>`
    **rc=0 但不生成任何 `.sdf`**（绝对路径、相对路径两种都试过，仿真时炸
    `[XSIM 43-3230] Could not open sdf file`）——**SDF 是另一条命令 `write_sdf <file>` 写的**
@@ -292,7 +292,7 @@ vsim -c -transcript ms.log -do "run -all; quit" work.tb   # 非交互跑完，�
 ```
 
 `-transcript` 不是可选的：本节上面那条提取管道读的就是 `ms.log`，不加这一句它就没有输入文件。
-（`-work work` 需不需要先 `vlib work`/`vmap` 本机没测过——本机只跑通了带 `-work work` 的 `vlog`；
+（`-work work` 能不能省掉 `vlib work`/`vmap` 没有定论——跑通过的只有直接带 `-work work` 的 `vlog`；
 在自己的机器上第一次跑时把这两条预备命令也试一遍。）
 
 ```bash

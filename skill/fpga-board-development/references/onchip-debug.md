@@ -250,8 +250,8 @@ write_debug_probes -force ./design             ;# ⑪ 产出 design.ltx；判据
   所以这一格既不能靠属性、也不能靠这两条后备路：**把网名在连接那一步自己 `puts` 进日志**，
   这是本页能给的唯一稳妥做法（读 `.ltx` 本身要回到 shell/Tcl 的 `open`，见 §3 那条"只有写的命令"）。
 - **`PORT_WIDTH` 是会咬人的那条读数**：本机把 `connect_debug_port` 连到 1 位网上它仍是 `1`，
-  `create_debug_port` 新建的 `probe1` 也是 `1`，**连一个 8 位网不会把它变成 8**（这条路本机没测出
-  任何自动加宽的行为，`create_debug_port` 也没有宽度参数）。所以"我要看一整组 8 位"在这条路上
+  `create_debug_port` 新建的 `probe1` 也是 `1`，**连一个 8 位网不会把它变成 8**（这条路没有自动加宽
+  这回事，`create_debug_port` 也没有宽度参数）。所以"我要看一整组 8 位"在这条路上
   没有隐式的解：要么每位一个槽（`probe0…probe7`，逐个 `create_debug_port` 再逐个连），
   要么走 IP 那条路按名字设宽（`CONFIG.C_PROBE<k>_WIDTH`，本机在 IP 路径上验证过设 4 读回 4）。
   第三条路 `modify_debug_ports -probes <args>` **只到选项表为止，用法不能照抄**：
@@ -437,7 +437,8 @@ instance name ???<名字>`），打印的选项表里**没有** `-file` 这一�
 ——说明位置参数 `<file>` 底层就是一个名为 `file` 的选项。结论一句：**`file exists` 单用不构成判据，
 成立的是三条一起**——带 `-force` 写、`file exists` 为真、`file mtime` 落在窗口里
 （窗口怎么取、以及"同目录同前缀"为什么恰好会让第一条假绿，都见下面规则列表第二条）。
-写法用位置参数；不带 `-force` 时目标已存在会怎样，本机没测。
+写法用位置参数；不带 `-force` 且目标已存在时会怎样没有定论，所以别把它当默认安全项——要么显式带
+`-force`，要么在自己的设计上先试一次再决定。
 `-file` 能不能用不取决于某一次没报错。
 产物扩展名是 `.ltx`（帮助原文："Debug probes file name (default extension is .ltx)"，
 **并且本机实测到**：跑完 §2.1 的 ⑩ 之后给 `write_debug_probes -force ./noext`，返回
