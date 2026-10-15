@@ -276,7 +276,9 @@
    **而在 2.5.1 上连那声警告都没有，日志里一个字都不会出现**（释放与作用域那一侧的口径见
    `buffers-and-cache.md`，它按 2.7.0 `buffer.py:107-113` 引的是同一件事的 warned 那一臂）。
 7. **`hasattr(channel, 'wait_async')` 当成"中断接好了"** → 它是类上的 `async def`，
-   永远为真（`lib/dma.py:189/525`）。这条判据出生以来没红过，所以它不是判据（`dma-channels.md` §2）。
+   永远为真（两个 `async def wait_async`：3.1.2 与 4.0.0 在 `lib/dma.py:189` 与 `:525`，
+   3.0.1 在 `:187`/`:519`，2.7.0 在 `:224`/`:518`，**2.5.1 只有 `:141` 一处**（那一版没有 SG 通道）——
+   五个版本都在类体里，所以这条判据在哪一版都恒真）。这条判据出生以来没红过，所以它不是判据（`dma-channels.md` §2）。
    能红的替换判据是这三行，它们各自把一种"没接上"分开：
 
     ```python
@@ -288,8 +290,10 @@
    ```
 
    依据：`DMA.set_up_tx_channel` 只在 `"mm2s_introut" in description["interrupts"]` 时才把
-   `self.mm2s_introut` 当参数传进去，否则建的是 `interrupt=None` 的通道（`lib/dma.py:671` 与其后的
-   `else` 分支；SDMA/SG 两条分支同构）。而 `_interrupts` 在 `DefaultIP.__init__` 里是
+   `self.mm2s_introut` 当参数传进去，否则建的是 `interrupt=None` 的通道
+   （那一行按版本是 3.1.2/4.0.0 `lib/dma.py:671`、3.0.1 `:658`、**2.7.0 `:647` 且用单引号
+   `if 'mm2s_introut' in …`——按双引号 grep 会把 2.7.0 扫成 0 命中**；SDMA/SG 两条分支同构，
+   正向对照是同一次 grep 换成 `.[i]ntrout. in self.description` 两版都命中）。而 `_interrupts` 在 `DefaultIP.__init__` 里是
    `description["interrupts"]`，缺这个键就是 `{}`。
    第三种组合最有信息量：`_interrupts` **非空**但 `ch._interrupt` 是 `None` → 元数据里有这根针，
    `Interrupt(details["fullpath"])` 构造时抛了 `ValueError`，驱动**打了个 warning 然后 `setattr(None)`**
@@ -306,7 +310,9 @@
 8. **`import pynq` 成功当成"装对了"** → 一个空的/不含 `__init__.py` 的 `pynq/` 目录也会导入成功
    （namespace package），随后所有名字都解析不到，看着像版本不对。判据：`pynq.__file__` 不是 `None`。
 9. **异常后继续跑** → 前一轮 DMA/中断状态没清，后面的读数全被污染。特别注意 cyclic：
-   在 recvchannel 上传 `cyclic=True` 时源码**先赋值后检查**（`lib/dma.py:366→368`），
+   在 recvchannel 上传 `cyclic=True` 时源码**先赋值后检查**（`self._cyclic = cyclic` 在前、
+   `if self._cyclic and (self._tx_rx != DMA_TYPE_TX)` 在后：3.1.2/4.0.0 是 `lib/dma.py:366→:368`、
+   3.0.1 是 `:362→:364`；**2.5.1 与 2.7.0 全文没有 `cyclic`**，那两版根本没这条路），
    抛了异常也把 `_cyclic` 留下了 → 之后 `wait()` **仍然抛**，
    但**要把两条抛点分开**（4.0.0 `lib/dma.py`，两条都是 `RuntimeError`，消息不同）：
    `wait()` 第一句是 `if self._cyclic: raise RuntimeError('Cannot wait in cyclic BD mode')`（`:473-474`），
@@ -368,8 +374,11 @@ def bench(fn, reps=7, warmup=2):
    开工先 `print(threading.enumerate())`。
 - 上限有两处天花板，分开报：AXI DMA 的 `buffer_max_size`（长度寄存器位宽决定）与 DDR/HP 口带宽
    （把所有竞争 master 列全再算）。**micro 版 AXI DMA 的单次上限是 `数据位宽 × burst_size`，
-   跟 `buffer_max_size` 不是一个数**（`lib/dma.py:664-666`），报上限前先确认你这版是不是 micro。
-- 长度寄存器位宽是 IP 参数，不是常数：`(1 << C_..._LENGTH_WIDTH) - 1`（`lib/dma.py:631-637`）。
+   跟 `buffer_max_size` 不是一个数**（那段 `if self._micro:` 在 3.1.2/4.0.0 `lib/dma.py:664-667`、
+   3.0.1 `:651-654`、2.7.0 `:641-645`；**2.5.1 全文没有 `self._micro`**），报上限前先确认你这版是不是 micro。
+- 长度寄存器位宽是 IP 参数，不是常数：`(1 << c_sg_length_width) - 1` 那一整块在
+   3.1.2/4.0.0 是 `lib/dma.py:630-637`（键存在与缺键退回常数 26 两条分支都在里面）、3.0.1 是 `:617-624`；
+   2.5.1 与 2.7.0 不在这里（那两版没有 DMA 级的 `c_sg_length_width` 判断，见 `dma-channels.md` §1 的版本线）。
    换 IP 配置要重测，不要沿用上一版的分块大小。
 - **HP/ACP 带宽上限要当场算，不要搬数字。** 算法只有两个输入，都能从你自己的设计里读到：
 

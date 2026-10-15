@@ -99,7 +99,9 @@ print(dict(PL.interrupt_pins))    # 空 = 这根针没被走到（两种成因�
 **第二行为什么不能写成 `hex(PL.ip_dict[k]["phys_addr"])`**：`ip_dict` 里**PS 那一条压根没有
 `phys_addr` 这个键**。解析器给 PS 条目写的只有 `gpio`/`interrupts`/`parameters`/`type`
 （4.0.0 `pl_server/hwh_parser.py:243-249`；2.7.0 `:259-265`、3.0.1/3.1.2 `:236-242` 同形），
-而 `PL.ip_dict` 是把这个字典原样交出去的（`pl.py:110-112` → `device.py:120`）。
+而 `PL.ip_dict` 是把这个字典原样交出去的（4.0.0 `pl.py:110-112`；**3.1.2 同一三行在 `:111-113`**，
+差一行是因为那版的 docstring 多一行——裸行号在这里会串，所以两个号都要自带版本。
+→ `device.py:120` 那一行 `self.ip_dict = self.parser.ip_dict`，两版同号）。
 本机用一个照这个形状建的桩字典跑那句推导式，得到的就是
 **`KeyError: 'phys_addr'`——整行一个读数都不打印**（同一次桩上换成 `"phys_addr" in v` 先判
 就正常输出，这是本包 `overlay-metadata.md` §2 已有的写法）。
