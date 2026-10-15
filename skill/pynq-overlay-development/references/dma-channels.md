@@ -180,7 +180,7 @@ dma.sendchannel.wait()    # 这三行只说明签名形状；收尾别照抄，�
    2 个描述符""最小的表也是 128 B 起"，并据此说"把它叫单描述符传输是挂错对象"，**三句一起收回**：
    `:375` 那句注释（"We need to always have at least two descriptors!"）是意图，
    `:376-378` 的折半**只在 `blk_size > remain` 这一支执行**，所以按 `:373-380` 原式复算
-   （本机取的数：`_max_size = 2**26-1`、`_align = 4`）有三种情形都成立——
+   （**取的不是板上的数，是源码里的回退值**：4.0.0 `lib/dma.py:11` 就是 `MAX_C_SG_LENGTH_WIDTH = 26`，`_align` 是数据位宽换算来的 4 字节——这两个数**随 IP 配置变**（`c_sg_length_width` 在 `:630-632` 从 description 读），板上要用 `dma.sendchannel._max_size`/`._align` 现读）有三种情形都成立——
    `nbytes == blk_size`（67108860）→ **`_num_descr = 1`，表是 64 B**；
    `blk_size < nbytes`（`_max_size=64` 时传 65 B）→ 2 个；
    `nbytes < 2 × _align`（传 4 或 6 个字节）→ `int(remain/2) - (int(remain/2) % _align)`

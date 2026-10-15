@@ -518,7 +518,7 @@ write_debug_probes -force ./design             ;# ⑪ 产出 design.ltx；判据
 `create_bd_design`、`connect_bd_net`、`validate_bd_design`、`assign_bd_address` 在裸会话读 0，
 `create_project` 之后**仍然读 0**，而**只要调用过一次**——哪怕那一次失败在
 `[Common 17-53] User Exception: No open project…`——同一批名字立刻变 1
-（`*bd_*` 的 glob 计数在同一台机器上依次是 **3 → 58 → 58**，`revAF3/F.log` 的
+（`*bd_*` 的 glob 计数在同一台机器上依次是 **3 → 58 → 58**；`quiet3/q3b.log` 另一臂的 `info commands *bd_*` 在三个相位都是 **61**（`BDNAME|before_create|61`、`after_create|61`、`after_call|61`——注意**建工程之前就已经是 61**），而 `get_cells -quiet *bd_*` 每一相位都数到 **0** ⇒ **命令名的条数不是“有没有建工程”的函数，是那一轮会话加载了哪些 app 的函数**；两臂之差（3/58/58 对 61/61/61）的成因本机没分开，所以哪一条都别当通用常数搬，`revAF3/F.log` 的
 `FPH0|bd_glob|3` / `FPH1|bd_glob|58` / `FPH2|bd_glob|58`——**先前写的"3 → 58 → 61"里那个 61 不存在**
 （同一次日志 `grep -c "|61"` = **0**），所以"扫得到多少是相位的函数"这句留，具体数按这三行搬）。
 **并且上面那句"create_project 之后仍然读 0"也不是那三相位给出的顺序**：那次跑的是
@@ -593,7 +593,7 @@ set_property command"，例子那一行写的是 `set_property CONTROL.TRIGGER_M
 `CONTROL.TSM_FILE`、`CORE_REFRESH_RATE_MS`、`NAME`、`STATIC.MAX_DATA_DEPTH`、`STATUS.CORE_STATUS`、
 `STATUS.SAMPLE_COUNT`、`TRIGGER_START_TIME_SECONDS`、`TRIGGER_STOP_TIME_SECONDS`。
 **帮助文本点名的比这份类清单多**：`run_hw_ila -help` 还列了 `CONTROL.WINDOW_COUNT`、`CONTROL.TRIGGER_MODE`、
-`CONTROL.CAPTURE_MODE`、`CONTROL.CAPTURE_CONDITION`、`CONTROL.TRIG_OUT_MODE`，这五个**不在上面那 12 项里**
+`CONTROL.CAPTURE_MODE`、`CONTROL.CAPTURE_CONDITION`、`CONTROL.TRIG_OUT_MODE`。**第二次独立取数**（`quiet3/q3b.log`，全新会话、没读任何设计）：`list_property -class hw_ila` 交回 **12 项**，其中 `CONTROL.*` 恰好 **4 项**；同一会话`list_property -regexp -class hw_ila {CONTROL.*}` 交回 **4 项**——**帮助里点名的那五个名字不是被筛法筛掉的**（筛与不筛都是这 4 项）；`report_property -class hw_ila` 在这条路上是`rc=0` + **空串**（没有对象时它连“有哪些属性”都不回答，别把空当“属性不存在”的证据），这五个**不在上面那 12 项里**
 （帮助共点名 9 个 `CONTROL.*`，类清单只有 4 个）。**规矩是反的**：
 **`list_property -class` 只列"静态声明"的属性，不是"可 set 的白名单"**——帮助里那句
 "using CONTROL properties **on the hw_ila object**"加上它自己的例子就是可设性的直接证据，
@@ -655,7 +655,7 @@ msg `17-39` 包装 + 日志里 `[Labtoolstcl 44-199] No matching targets found o
 `get_hw_targets` 在**还没 `connect_hw_server`** 时是 rc=0 + 空串，connect 之后变成 `17-39` 包装。
 **(6) 但"`$g` 是空串还是包装文本"这条判据在带 `-quiet` 时不成立**——`-quiet` 把两者都变成"rc=0 + 空串"。
 **先把射程说准**：五个命令各加 `-quiet` 只重跑过**一相**（`ila11/i11.log:206-220`，那一相在
-`disconnect_hw_server` **之后**）——`b7_get_targets_quiet`、`b8_apply_quiet`、`b9_run_quiet` 等
+`disconnect_hw_server` **之后**）。**先补一条更硬的对照**：`quiet3/q3b.log` 在同一批处理里把五条 `-quiet` 在**三相**各跑一边（`open_hw_manager` 之后未 connect、`connect_hw_server` 之后、`disconnect_hw_server` 之后），**15 行全是 `rc=0|len=0`**，`file exists w1.ila`/`w2.ila`/`w3.ila` 三次都是 **0**——所以“三相一律”从“只测过一相的过宽说法”升级成有臂号的读数（这句先前收回过一次，这次带着 `q3b.log` 补回来）。**同一臂还给了这条判据的正面对照**：`apply_hw_ila_trigger` 在同相位带 `-verbose` 与裸调都是 `rc=1`、msg 长 **146** 的 `ERROR: [Common 17-53] User Exception: No open design.…`，带 `-quiet` 就是 `rc=0|len=0`——**被抹掉的是那条 17-53，不是装饰**——`b7_get_targets_quiet`、`b8_apply_quiet`、`b9_run_quiet` 等
 每条都是 `code=0|first=|len=0`，而 `write_hw_ila_data -quiet w3.ila` 之后 `file exists w3.ila` = **0**：
 **什么都没发生却全绿**。另两相只零散测过（`revAH2/r1.log:89` 裸相一条、`r2.log:71,78,90,103`
 设计开着那相三条），**所以先前那句"在三相会话里一律 rc=0、msg 空串"收回**——要判"某一相会不会被抹掉"，
