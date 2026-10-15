@@ -148,7 +148,7 @@ def allocate(shape, dtype="u4", target=None, **kwargs)    # pynq/buffer.py:138�
    也没有 memory 门，而它的 `__array_finalize__`（`:1123-1132`）不搬 `freed`
    ⇒ **在远程的视图上调它是 `AttributeError`，不是空转**（静态读来，未上板）。
    真正的危险回到引用侧那一条：原始对象被释放（退出 `with`、`__del__`、显式 `freebuffer()`）之后
-   视图还在你手上，读它就是悬空；而原始对象 `freebuffer()` 过后再切一片会当场
+   视图还在你手上，读它就是悬空（**显式释放这一条路**：视图的 `base` 就是原始对象，所以原始对象的 `__del__` 在视图活着时走不到——桩实测 `del orig; gc.collect()` ⇒ `munmap` 0 次，无视图时才 1 次）；而原始对象 `freebuffer()` 过后再切一片会当场
    `AttributeError: 'PynqBuffer' object has no attribute 'bo'`（`:82` 那句 `del self.bo` 是看得见的）。
    **也别给视图补一个 `memory` 去"修好"它**：没有 `pointer` 的视图一开就撞 `if not self.freed` ⇒
    `AttributeError: 'PynqBuffer' object has no attribute 'freed'`（桩 RUN）；

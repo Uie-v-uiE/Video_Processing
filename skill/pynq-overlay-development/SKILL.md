@@ -129,7 +129,7 @@ license: MIT
    还有一条容易漏的顺序：**`pointer` 那支排在解映射之前**（4.0.0 `buffer.py:74-77` 对 `:78-82`），
    所以带指针的对象连**原始对象**调用都不会 `munmap`（桩 RUN）——"退出作用域就把内存还回去"对它不成立。
    真危险因此落在**引用侧**：原始对象释放之后（退出 `with`、`__del__`、显式调用）视图若还在你手上，
-   读它是悬空且不可复现，别当判据；在原始对象上调用之后再切一片会当场
+   读它是悬空且不可复现，别当判据（**只有这一条路**：`__del__` 走不到这里——`v = o[64:]` 之后 `v.base` 就是那个原始对象，视图活着就把它引用住了，桩与真 numpy 都实测过 `del o; gc.collect()` ⇒ `munmap` 0 次）；在原始对象上**显式**调用之后再切一片会当场
    `AttributeError: 'PynqBuffer' object has no attribute 'bo'`（`del self.bo` 是 4.0.0 那次调用的最后一句）。
    **也别给视图补一个 `memory` 去"修好"它**：没有 `pointer` 时它撞 `if not self.freed`
    ⇒ `AttributeError ... no attribute 'freed'`（桩 RUN），带 `pointer` 时它只退指针、既不 munmap 也不读
