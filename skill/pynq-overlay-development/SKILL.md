@@ -30,10 +30,12 @@ license: MIT
    顶层 `pynq` 只导出 `allocate`。
 6. **`buf.close()` 是废弃的空操作**：3.1/4.0 里它发一条 `DeprecationWarning`（2.7.0 起就有），
    而 **2.5.1 里是空 `pass`、连告警都没有**——所以"没看到警告"不能反过来证明你没在用它。释放靠退出 `with` 或
-   `freebuffer()`；漏没漏只看连续内存池的读数，不看有没有报错。
+   `freebuffer()`。**判"漏没漏"不能靠有没有报错**（它本来就什么都不做），也**不能只押 `CmaFree` 差值**：
+   这一族释放走的是 `munmap`/`xclFreeBO`（§7），而 `CmaFree` 是不是同一个池本包没核实（见路由表那格），
+   一条永远不红的判据不算判据——先用"退出 `with` 之后再读一次这个 buffer 会不会炸"这类能红的做法。
 7. **切片交给 DMA，不要手算 `physical_address + 偏移`。** 手算**不会**绕过同步记账，也**不会**让范围错位：
    `flush()`/`invalidate()` 用的就是 `self.offset`/`self.nbytes`（4.0.0 `buffer.py:104-114`），而
-   `__array_finalize__` 给视图算的是**视图自己**的 offset（`:50-56`：`offset = self.virtual_address -
+   `__array_finalize__` 给视图算的是**视图自己**的 offset（`:50-57`：`offset = self.virtual_address -
    obj.virtual_address`，`self.offset = obj.offset + offset`），而 `nbytes` 是"元素数 × itemsize"：
    **连续切片**下同步范围正好等于视图碰到的那段，**步长切片（如 `a[::2]`）下它只盖住前半段，
    尾部静默漏同步**（判据是 `flags['C_CONTIGUOUS']` 与 `__array_interface__['strides']`；
@@ -46,8 +48,11 @@ license: MIT
    在视图上调它不报错，坏的是后面（`buffers-and-cache.md` §3 第 2 条是规范写法）。
 8. **`transfer()` 的长度上限：SDMA 与 SG 的失败方式不同**，所以判断"有没有超限"不能靠
    "有没有报错"这一件事（分支、算法与恢复见 `dma-channels.md` §1、`debug-triage.md` §2 树 C）。
-9. **`wait_async` 是类上的协程，`hasattr` 永远为真。** 判断中断接没接要看通道实例的 `_interrupt`
-   和 IP 元数据里的 `interrupts`，别看方法存不存在。
+9. **`wait_async` 是类上的协程，`hasattr` 永远为真。** 判断中断接没接要分**三样东西**看，别看方法
+   存不存在：① 通道实例的 `_interrupt`（驱动侧握着的那个对象在不在）、② IP 元数据里的 `interrupts`
+   （这一版设计有没有声明这根针）、③ 设备树里的 UIO 节点（`.dtbo` 那层有没有落地，
+   `debug-triage.md` §2 树 D 第 1 步就是查它）。**①② 可以同时全绿而 ③ 是缺的**，
+   那时 `wait()` 就是永远不回——所以不要把"①② 都对"写成"中断已接好"。
 10. **`wait()` 没有 timeout 形参。** 第一次上板不要裸等；超时自己包，并知道包起来的代价是
     后台线程与一个还在跑的引擎。异常之后先把引擎弄停再继续——但「弄停」只能用 `MMIO` 写 RS=0
    加自己轮询 SR：`stop()`/`transfer()`/`wait()`/`start()` 内部都有无上界的自旋（`dma-channels.md` §2 那条）。

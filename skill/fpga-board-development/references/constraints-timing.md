@@ -267,7 +267,13 @@ check_timing
 
 ## 5. 值不值得再开一轮构建
 
-综合/实现是小时级任务。开构建之前先估收益上限：
+"综合/实现是小时级"这句**只对某些设计成立，别当默认量级**——本机同一台机器上实测过的三档：
+20 行双时钟计数器 `synth_design` **47 s**（复核那一臂）；4 位计数器建工程 + `launch_runs` 到
+`route_design` 每跑 **1.5-2 分钟**（`vivado-build-run.md` §8 那两次重跑的 `Date` 差就是 88 秒）；
+真正贵的是带 IP 与拥塞的大设计。**所以估收益之前先花一次量一次**：拿你自己这份工程
+`reset_runs` + 干净重跑一遍，记下 `STATUS` 里那步的 `STATS.ELAPSED`（run 属性上就有，
+见 `vivado-build-run.md` §3），用这个数而不是别人的小时数来决定"值不值得再开一轮"。
+开构建之前先估收益上限：
 
 1. 从 `report_timing` 拿这条锥的逻辑级数与最大延迟分量，看数据路径延迟占周期的比例。
 2. 如果这一锥改完的估计收益明显够不到违例量，就把它**排在后面**而不是排第一——注意这是排序依据，
@@ -527,7 +533,11 @@ report_io
    **所以"hold 需求默认 0"说的是需求那一栏，不是"hold 这一侧不会红"**：判 hold 看的是
    `-delay_type min` 报告里的 `Slack` 与失败端点数，不是 `Requirement` 是不是 0。
    （这一格与 §11 那条是同一个实验的两个读数：设之前 `0.140ns`、设之后 `-0.360ns`，
-   两次都是同一份综合后网表、同一对端点。）
+   两次都是同一份综合后网表、同一对端点。**注意**：那一次的前后差只属于那一臂——本机今天在同一份
+   RTL 上另起一臂（所有输入都带 `-min`/`-max`、没有 uncertainty）读到的是 `Requirement: 0.000ns` 配
+   `Slack (VIOLATED) : -0.122ns`（`DCD 2.456ns`、`SCD 0.000ns`）。**三个数彼此不同是正常的**：
+   hold 的 slack 由时钟树延迟与 uncertainty 一起定，换一臂就换一个数；能搬走的只有"读 `Slack` 与
+   失败端点数，别读 `Requirement`"这一条。)
    同一件事在 `check_timing` 里有对应数字：`10. checking partial_input_delay (1)`。
    输出路径的字样取决于那个脚有没有被绑到真钟上：设过 `set_output_delay -clock <钟>` 之后
   `report_timing -to <port>` 印 `Destination: dout[1]` 加一行
@@ -597,16 +607,27 @@ get_files -compile_order constraints -used_in synthesis  ;# timing board design
    ```
 
    `USED_IN_SYNTHESIS`/`USED_IN_IMPLEMENTATION` 置 0 与 `IS_ENABLED` 置 0 的效果**不一样**，
-   这一点是分开的两次读数：把两个 `USED_IN_*` 都设成 0，`report_compile_order -constraints`
-   **照样列出这个文件**（只是那两个阶段不再吃它的约束，且不告诉你）；把 `IS_ENABLED` 设成 0
-   才让它从两张表里消失。所以"文件还在表里"不能推出"它的约束被应用了"，
-   也不能推出"没被应用"——**判阶段以两个 `USED_IN_*` 为准，不以 `USED_IN` 那个汇总字符串为准**
-   （实测两个旗标都为 0 时，`USED_IN` 仍然打印 `synthesis implementation`）。
+   而且区别不在"文件还列不列"上——本机一次会话里把这两臂各取了一遍（工程模式，2025.2.1）：
+   - 只把 `USED_IN_SYNTHESIS` 设 0：`get_property USED_IN` 立刻从 `synthesis implementation`
+     变成 **`implementation`**（**它是那两个旗标的汇总串，不是第四个独立开关**），并且
+     `get_files -compile_order constraints -used_in synthesis` 里**这个文件不再出现**；
+   - 把 `IS_ENABLED` 设 0（两个旗标都还是 1）：`USED_IN` 仍然打印 `synthesis implementation`，
+     **但同一条 `-compile_order` 里它同样不出现**。
+   所以早先那句"两个旗标都为 0 时 `USED_IN` 仍打印 `synthesis implementation`"是**把两臂读反了**，
+   另一路复核重做也给出"两个都为 0 → `USED_IN` 是空串"。**判阶段还是以两个 `USED_IN_*` 为准**，
+   但要知道：`USED_IN` 会跟着它们变，而 `-compile_order` 对 `IS_ENABLED=0` 也一样隐身——
+   **两个读数都不能单独证明"这条约束被应用了"**，能证明的只有下一条那类对象级读数。
+   （`report_compile_order -constraints` 的逐行 `Used_In` 单元格本机这一臂没单独取，NOT RUN。）
    回到 §2 的那条老规矩：想知道约束有没有落到对象上，数命中集合，别看文件清单。
-   （顺带一条同名陷阱：文件对象上**没有** `SOURCE` 属性。报错文案随模式变：工程流里是
-   `[Common 17-54] The object 'file' does not have a property 'SOURCE'`，
-   在 OOC/非工程那一侧是 `[Common 17-124] 'set' has no attribute named 'SOURCE'`——
-   两句都是同一个意思，别因为文案不同以为是另一个问题。能列出的属性里有 `USED_IN`、
+   （顺带一条同名陷阱：文件对象上**没有** `SOURCE` 属性。本机 `set_property SOURCE foo [get_files b.xdc]`
+   交回 rc=1 与 `17-142` 那条（同一文件 `list_property` 数到 19 项，里面没有它）。
+   **同一个"这个名字不在这个对象上"在不同对象类上报的号并不相同**：调试端口那一族报的是
+   `12-4442`（原文与逐端口清单见 `onchip-debug.md` §1），文件对象是 `17-142`，
+   而早先记在本页的 `17-54`/`17-124` 两条在本机这一臂**都没出现**。
+   所以值得搬的是"**先 `list_property` 再写**"这一步，不是某个号；号要按自己那一版、那一类对象现取。
+   顺带一条：`get_property_list -of_objects …` 这个命令名在本机不存在（`invalid command name`），
+   能用的只有 `list_property`。
+   能列出的属性里有 `USED_IN`、
    `USED_IN_SYNTHESIS`、`USED_IN_IMPLEMENTATION`、`IS_ENABLED`、`IS_GENERATED`、
    `PROCESSING_ORDER`、`SCOPED_TO_REF`、`SCOPED_TO_CELLS`、`FILE_TYPE`、`FILESET_NAME`。）
 3. **作用域要显式。** `SCOPED_TO_REF`/`SCOPED_TO_CELLS` 为空就是全局约束。给某个 IP 内部引脚写的约束
@@ -675,7 +696,13 @@ Position  From                   Through  To                     Setup     Hold 
   - 用**时钟名**给 `-from/-to`、方向写反（那两个钟都存在、但这个方向没路径）→ 印 `Non-existent path`
     （上面那个例子就是这种）；
   - 用**针/单元**给而不存在的路径（例如指到反向的那对寄存器）→ 整行**不出现**，或出现了但 `Status`
-    是空白；`-ignored` 那张表里也没有（本机一次 `-ignored` 输出 67 字符，两条死例外一条都不在）。
+    是空白。**这条"死例外到底在哪张表"本机有两份互相打架的读数**：早先一臂记的是
+    "`-ignored` 输出 67 字符、两条死例外一条都不在"；另一路复核在同一版工具上重做方向写反的 MCP，
+    拿到的却是**默认表里没有它们、而 `-ignored`（1303 字符）里两条都在**，`Status` 是
+    `Non-existent path`。**差别没被分开**（候选：给对象的方式是时钟名还是针/单元、是否已经跑过
+    `route_design`、`-ignored` 是否与 `-setup/-hold` 组合）。
+    所以**别把"死例外一定在/不在某张表"写进判据**；要判这条约束有没有落到路径上，
+    用下面那种"同一对端点、加约束前后各取一次 `report_timing`"的差分。
   反过来，**活着的例外 `Status` 是空白**。所以按 `Status` 的字样判"生效没有"两头都会错：
   空白既可能是"活着"也可能是"没被列出来"，`Non-existent path` 不是必然出现。
   比这张表硬的是**这条约束所覆盖的那条路径的 `Requirement`/`Slack`**（取法见 §4 的
@@ -688,11 +715,16 @@ Position  From                   Through  To                     Setup     Hold 
   `-ignored` 是合法选项但 **`-help` 里不列它**。一条例外都没有时印 `No valid timing exceptions found.`。
   `Position` 编号随设计已有例外数量变，按 `From`/`To` 的时钟名认自己那条。
   没有 `-summarize` 这个选项（`[Common 17-170] Unknown option`）。
-- 多周期是 **setup 与 hold 两笔**，但**不是"先只有一行"**：本机只给
-  `set_multicycle_path -setup 2 -from … -to …`（没有写 `-hold`）之后，默认表里就已经是**两行**——
-  `Setup cycles=2` 与 `Hold cycles=0`。也就是说 hold 那一笔是工具跟着 setup 自己推的默认值，
-  不是留在 1；要改它必须再显式 `set_multicycle_path -hold M`（本机补了 `-hold 1` 之后第二行
-  变成 `cycles=1`）。判"hold 到底停在几"就读这一列，别按"我只写了一笔所以只改了一半"去猜。
+- 多周期是 **setup 与 hold 两笔**，但**默认表不会替你补第二笔**——这一条本机两臂对照过：
+  只给 `set_multicycle_path -setup 2 -from clk_fast -to clk_slow`（方向是活的、没写 `-hold`）之后，
+  `report_exceptions -return_string`（1156 字符）里**只有一行**：
+  `3 [get_clocks clk_fast] * [get_clocks clk_slow] cycles=2 -`——**`Hold` 那一列是 `-`（破折号），
+  不是一行 `cycles=0`**。早先这里写的"默认表里就已经是两行、hold 是工具跟着 setup 推的默认值"
+  **在本机这一臂不成立**（两行的形状只在**显式给过 `-hold M`** 的那一臂出现，见上面那张表）。
+  所以判"hold 停在几"就读 `Hold` 那一列：出现 `-` 就是"这一笔没被单独设过"，
+  不要按"它一定被补成了某个默认值"去推时序结果。
+  另一臂的对照：同一次跑里再 `report_exceptions -ignored -return_string` 给 852 字符、
+  里面印的是 `No ignored timing exceptions found.`（活例外不会跑到 `-ignored` 那张表里来）。
 - `set_case_analysis` 宣布"这个脚恒为某个值"，于是以它为起点的路径不再分析。它改的只有分析：
   外部真会动的脚被这么钉住，就把错误藏起来了。用之前先说清"这个脚在系统里真的不会动"依据是什么。
 - 多钟设计的默认行为有原文，逐字是（本机，一句话到句号结束，中间用 "or" 不是斜杠）：
@@ -704,7 +736,16 @@ Position  From                   Through  To                     Setup     Hold 
   ——**跨钟路径默认被当成合法同步路径计时**。注意打它的时机：实测是 `report_timing`（跨钟方向）与
   `report_clock_interaction` 会打，`synth_design` 与 `report_timing_summary` 一次都没打——
   所以"没看到这句"不代表只有一个钟。
-- `report_clock_interaction` 是**按有向时钟对**一行（两个钟 = 四行，`A→A`、`B→B`、`A→B`、`B→A`）。
+- `report_clock_interaction` **不是"每个有向对都印一行"**：本机一份只有两个钟（`clk_fast` 10 ns、
+  `clk_slow` 40 ns）的设计，综合后 `report_clock_interaction -return_string` 交回 1431 字符，
+  而含钟名的数据行**只有 1 行**：
+  `clk_fast clk_slow rise - rise 48.88 0.00 0 8 50.00 No Common Clock Timed (unsafe)`。
+  早先这里写的"两个钟 = 四行（`A→A`、`B→B`、`A→B`、`B→A`）"是**另一份设计的读数**（那里有
+  自建 clock group 之类的东西才会多出对角线那些行）——**行数属于那份设计，不属于这条命令**；
+  要按行做判据就自己数并连同设计一起记（`grep -c` 那种"应该有 N 行"的断言在这里必翻车）。
+  表头也不是 `Path Classification` 这种连续字串，本机看到的数据行按
+  `… WNS Path / Clock-Pair …` 与表头 `… Endpoints Requirement(ns) Classification Constraints` 分布，
+  写解析时按**列位**取，别 grep 一个想象中的表头词。
   表头是**两行**的：上一行给分组名（本机是 `Clock Interaction`、`Constraint Type`），
   下一行才是字段名（`Path Classification`、`Inter-Clock Constraints`）——按其中一个词去找另一列，
   会以为它不存在。要读的两列是"这一对钟被怎么归类"（本机见过 `Clean`、`No Common Clock`）与

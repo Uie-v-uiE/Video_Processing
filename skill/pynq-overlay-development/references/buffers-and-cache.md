@@ -14,7 +14,7 @@ def allocate(shape, dtype="u4", target=None, **kwargs)    # pynq/buffer.py:138�
 - 返回的是 `PynqBuffer`（`class PynqBuffer(np.ndarray)`，在 `pynq/buffer.py`；
    `from pynq import PynqBuffer` 是**取不到的**，见 `versions-and-apis.md` §2），**本身就是 ndarray**：
    可以直接 `buf[:] = arr`、`buf.reshape(...)`、切片；切片会跟着调整 `device_address/offset`
-   （`__array_finalize__`，`buffer.py:50-56`：`self.device_address = obj.device_address + offset`，
+   （`__array_finalize__`，`buffer.py:50-57`：`self.device_address = obj.device_address + offset`，
    其中 `offset` 是**虚拟地址差**）。
    这条有个必须记住的后果：**切片的 `physical_address` 已经含了偏移**，所以要"从中间开始搬"就把
    切片对象本身交给 DMA（`v = buf[64:]; dma...transfer(v)`，对齐检查与 `transferred` 都按 `v` 记）。
@@ -22,7 +22,7 @@ def allocate(shape, dtype="u4", target=None, **kwargs)    # pynq/buffer.py:138�
    `flush()`/`invalidate()` 传的确实是 `self.offset` 与 `self.nbytes`（`buffer.py:104-114`，3.1.2 与 4.0.0 同形），
    而这两个量在切片视图上**就是视图自己的**——`__array_finalize__` 按
    `offset = self.virtual_address - obj.virtual_address`、`self.offset = obj.offset + offset` 重算
-   （`:50-56`），而 `nbytes` 是 numpy 给视图的**元素数 × itemsize**。连续切片下它正好等于那段的字节数，
+   （`:50-57`），而 `nbytes` 是 numpy 给视图的**元素数 × itemsize**。连续切片下它正好等于那段的字节数，
    所以"设备写的区间与被同步的区间不一致"这句对连续切片不成立（本页前一次就是这么写的，被源码反写）。
    **带步长的切片会反过来咬人**，本机直接用 `numpy` 量过：100 个 `u4` 的 `a`（`a.nbytes`=400），
    `a[64:]`→**144**、`a[10:20]`→**40**（都与区间一致），而 `a[::2]`→`offset=0`、`nbytes`=**200**，
@@ -37,10 +37,12 @@ def allocate(shape, dtype="u4", target=None, **kwargs)    # pynq/buffer.py:138�
    各取一次读数再决定用哪条路。
    本页前一次就是这么写的，被源码反写了。
    手算仍然不该用，但危险在**释放**那一侧：`freebuffer()` 走
-   `libc.munmap(self.virtual_address, self.nbytes)` 然后 `del self.bo`（**这一整套只在 3.0.1/3.1.2/4.0.0 成立**：
-    函数在 `:65-82`；2.5.1 与 2.7.0 的 `freebuffer` 在 `:82`，而且**那两版的 `buffer.py` 里 `munmap`
-    出现 0 次**（同一条 `grep -c` 在 3.1.2/4.0.0 各给 3）——"局部解除映射"这个危险是 3.x 那套分配器带来的，
-    照搬到 2.x 连成因都不对，那两版走的是 Xlnk 那一族）——
+   `libc.munmap(self.virtual_address, self.nbytes)` 然后 `del self.bo`（**这一整套只在 3.1.2/4.0.0 成立**：
+    函数在 `:65-82`；**3.0.1 只做前一半**——同一位置是 `libc.munmap(...)` 之后跟
+    `xrt.xclFreeBO(self.device.handle, self.bo)`，**没有 `del self.bo`**，所以"句柄被丢掉"这个形状在
+    3.0.1 上换成"BO 被还给 XRT"；2.5.1 与 2.7.0 的 `freebuffer` 在 `:82`，而且**那两版的 `buffer.py` 里
+    `munmap` 出现 0 次**（同一条 `grep -c` 在 3.0.1/3.1.2/4.0.0 各给 3）——"局部解除映射"这个危险是
+    3.x 那套分配器带来的，套到 2.x 上会连成因都不对，那两版走的是 Xlnk 那一族）——
    拿视图去调它，**被解除映射的是视图那一段**（地址与长度都是视图的），
    而 `del self.bo` 丢的也只是**这个视图自己那一份引用**：`__array_finalize__` 在 `:57`
    做的是 `self.bo = obj.bo`，原始对象手里仍然握着同一个 `bo`。
@@ -250,7 +252,7 @@ buf.flush(); buf.invalidate()
    没搬完的话，"半新半旧"是**没写完**而不是写完没同步——后面几步全是白做。
 2. **再看地址是从哪来的**：交给 DMA 的是切片（`buf[K:]`）还是手算的 `physical_address + K`？
    机制被源码反写了一次，按反写后的说法查：视图上的 `self.offset`/`self.nbytes`
-   是**视图的量**（`__array_finalize__` 在 `:50-56` 重算 offset、`nbytes` 取视图长度），
+   是**视图的量**（`__array_finalize__` 在 `:50-57` 重算 offset、`nbytes` 取视图长度），
    所以 `flush`/`invalidate`（`:104-114`）**跟着切片走**——"另一段被无谓 invalidate"那种说法不成立。
    该查的是释放路径：`freebuffer()`（`:65-82`）拿视图调用时 `munmap` 只覆盖视图长度，
    而 `del self.bo` 只丢视图自己那一份引用（`:57` 是 `self.bo = obj.bo`，原始对象仍持有同一个 `bo`）——

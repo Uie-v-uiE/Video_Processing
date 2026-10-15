@@ -173,6 +173,6 @@ print("checks=%d mismatches=%d" % (checks, int(((got != ref) & mask).sum())))
 | 2 | `print(sorted(PL.ip_dict))` 把名字**复制**过去；再 `print(PL.ip_dict[name]["type"])` 与 `print(type(getattr(ol, name)).__name__)` 成对打印——后者是 `DefaultIP` 就是驱动没绑上（VLNV 对不上），**别拿 `MODTYPE` 当版本判据**：在两棵新版树里都还读到它（3.1.2 `pl_server/hwh_parser.py:163`、4.0.0 `:170` 的 `mod.get("MODTYPE")`），而按 VLNV 绑驱动从 2.5.1 就是这样（`for vlnv in cls.bindto`：2.5.1 `overlay.py:527-528`、3.1.2 `:561`/`:569`、4.0.0 `:558`/`:566`）——两层的逐行归属由 `overlay-metadata.md` §2 第 2 条拥有，这里不重抄 | 别按记忆猜实例名 |
 | 3 | 先读一个**必然有值**的偏移（第 0 步的 `0x00` 版本寄存器）确认通路，再谈图案；单位（字节 vs 字）与 4 对齐照 `mmio-registers.md` §2 的式子算一遍并打印中间值 | 别反复重试同一笔写；别把 `0xFFFFFFFF` 写进没核实过的偏移 |
 | 4 | 把读到的值和期望值**两个都打印**（只说"对不上"不算读数）；再核 `.bit` 的 md5 与这次构建的那份是否同一个 | 别用文件哈希代替身份——哈希对得上只证明文件没换，不证明 PL 里配的是它 |
-| 5 | 先 `from pynq import Clocks`（本页前面没导入过它），再 `print([Clocks.fclk0_mhz, Clocks.fclk1_mhz, Clocks.fclk2_mhz, Clocks.fclk3_mhz])`（3.1 上不要用 `Clocks.get_pl_clk`，那里返回 `None`），再读自由运行计数器两次取差；然后按 `dma-channels.md` §2 把四个状态口逐个打印 | 别只等一侧的 `wait()`；别用 `sleep()` 代替完成判定 |
+| 5 | 先 `from pynq import Clocks`（本页前面没导入过它），再 `print([Clocks.fclk0_mhz, Clocks.fclk1_mhz, Clocks.fclk2_mhz, Clocks.fclk3_mhz])`（2.7.0/3.0.1/3.1.2 上不要用 `Clocks.get_pl_clk`，那里返回 `None`；4.0.0 才修好），再读自由运行计数器两次取差；然后按 `dma-channels.md` §2 把四个状态口逐个打印 | 别只等一侧的 `wait()`；别用 `sleep()` 代替完成判定 |
 | 6 | 打印 `checks=` 并确认它非 0；再把参考实现的一条算式与 RTL 的对照写进报告（两条独立来源） | 别拿"看起来对"的截图当证据 |
 

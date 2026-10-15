@@ -21,7 +21,7 @@
     ```python
     from pynq import Clocks
     print([Clocks.fclk0_mhz, Clocks.fclk1_mhz, Clocks.fclk2_mhz, Clocks.fclk3_mhz])
-    print([Clocks.get_pl_clk(i) for i in range(4)])    # 3.1 上会是 [None, None, None, None]
+    print([Clocks.get_pl_clk(i) for i in range(4)])    # 2.7.0/3.0.1/3.1.2 上会是 [None, None, None, None]
    ```
 
    **属性写法是主读数**：`fclk0_mhz`…`fclk3_mhz` 是 `_ClocksMeta` 上的 property，四路在两版里都存在
@@ -33,8 +33,9 @@
     Zynq-7000/ZynqMP 那条 `_ClocksBase` 路的；Versal 目标上别照抄这个算式（本机没有 Versal 可跑，
     这一格只到源码为止）。
 
-   `Clocks.get_pl_clk(i)` 在 **3.1 上恒为 `None`**：元类转发器把 `return` 写丢了
-   （3.1.2 `ps.py:260-271`，末行是裸的 `cls._instance.get_pl_clk(clk_idx)`），4.0.0 补回来了
+   `Clocks.get_pl_clk(i)` 在 **2.7.0/3.0.1/3.1.2 上都恒为 `None`**：元类转发器把 `return` 写丢了
+   （3.1.2 `ps.py:260-271`、3.0.1 `:258-269`、2.7.0 `:286-297`，末行都是裸的
+   `cls._instance.get_pl_clk(clk_idx)`），4.0.0 补回来了
    （`ps.py:354-365`）。所以"四路全 None"在 3.1 上**不是**"时钟没开"的证据，而是版本读数——
    反过来它还是一个不用查版本文件的判别式。把它当硬件读数用会直接把树 A 引向假红。
 
@@ -327,7 +328,7 @@ def bench(fn, reps=7, warmup=2):
     per_port_bytes_per_sec = fclk_mhz * 1e6 * (bus_width_bits / 8)    # 该口的位宽与那路时钟
    ```
 
-   `fclk_mhz` 用 `Clocks.fclk0_mhz`…`fclk3_mhz` 现读（`debug-triage.md` §2 树 A；别用 3.1 上的
+   `fclk_mhz` 用 `Clocks.fclk0_mhz`…`fclk3_mhz` 现读（`debug-triage.md` §2 树 A；别用 2.7.0/3.0.1/3.1.2 上的
    `Clocks.get_pl_clk`，它返回 `None`），`bus_width` 从 Address
    Editor/`ip_dict[...]['parameters']` 里那个 `*_DATA_WIDTH` 读——**两者都不是常数**。
    然后：① 把同一时刻会并发用这块 DDR 的 master 全列出来（显示扫描、另一个 DMA、VCU、DDR 刷新

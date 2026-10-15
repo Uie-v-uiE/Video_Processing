@@ -186,8 +186,9 @@ wire ev_dst = s[1] ^ s[2];
 ```tcl
 open_run synth_1                              ;# 或按 `onchip-debug.md` §2.1 的第 ⑨ 步打开一份 dcp
 # 先把"这是哪一份、哪一阶段"打进同一屏，否则下面四个数就只是四个匿名整数
-# （报告归属哪一阶段的规矩在 `constraints-timing.md` §4 第 1 条；这几个属性名怎么现取归 `vivado-build-run.md` §3）：
-puts "RUN=[get_property NAME [current_run]] TOP=[current_design] DIR=[get_property {STEPS.SYNTH_DESIGN.ARGS.DIRECTIVE} [current_run]]"
+# （报告归属哪一阶段的规矩在 `constraints-timing.md` §4 第 1 条；步骤属性名怎么现取归 §3 那张表，
+#  这里只把设计名与 run 名钉在屏幕上，directive 那一格到 §3 现取现打）：
+puts "DESIGN=[current_design]  RUN=[get_property NAME [current_run]]"
 # 阶段本身没有可靠的对象属性可取（design/run 上不存在 DESIGN_STATE 这一族属性），
 # 所以用报告头那行钉阶段：`report_utilization -return_string` 里 grep `Design State :`；
 # **没有这一行对上号，上面四个数就只是四个匿名整数**。
