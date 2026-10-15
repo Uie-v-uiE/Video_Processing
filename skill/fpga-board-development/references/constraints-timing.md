@@ -160,6 +160,12 @@ CRITICAL WARNING: [Vivado 12-4739] create_generated_clock:No valid object(s) fou
 `-quiet` 的代价不是"少一行噪音"，是**少掉这一族唯一的线索**。
 `[Vivado 12-481] No ports matched ...` 是**另一臂的读数**（本机这一臂没取到，
 复核那一路也没能从 XDC 里触发），按"某一次观察"引用，不要当这一族的固定文案。
+**同一条 `12-4739` 在这页里以两种严重度出现过，这不是矛盾，是路径不同**：
+上面那张表里它是 `ERROR:` 且 **rc=1**（在会话里直接调 `set_false_path`/`create_generated_clock`），
+而 XDC 走 run 流程那一路（本页 §7 上面引的那段日志）里同样两个 id 是
+`CRITICAL WARNING:` 且**流程继续往下跑**。
+**所以"这条 id 会不会中断构建"没有全局答案，只有"你这次是手敲还是挂在 run 上"的答案**；
+把它当门禁时，判据用"这一条约束自己的命中集合是不是空"（下面那段），不用严重度、也不用返回码。
 调试端口那一族更是
 `WARNING: [Vivado 12-1423] ...` **配一个返回 0**——所以某些资料里的 `No ports matched` 并不是"没这回事"，
 只是**这一条约束**在这一次用的说法。
@@ -360,8 +366,12 @@ check_timing
 - `report_utilization -hierarchy` → `[Common 17-170] Unknown option '-hierarchy'`（返回码 1，
   而 **`-return_string` 交回来的就是那行 ERROR 本身**，107 字符；`report_clock_utilization -hierarchy` 同形）。
   所以"拿到非空串"**不等于**"拿到报告"——这一族要判的是 `catch` 的返回码，不是串长。
-- `report_utilization -hier` → 第三种形状：`ERROR: '-hier' option is ambiguous and matches
-  'hierarchical', 'hierarchical_depth', 'hierarchical_min_primitive_count', 'hierarchical_percentages'`。
+- `report_utilization -hier` → 第三种形状，整行原样（本机 `repr()` 出来核过，5 对引号平衡）：
+  `ERROR: '-hier' option is ambiguous and matches 'hierarchical', 'hierarchical_depth', 'hierarchical_min_primitive_count', and 'hierarchical_percentages'`
+  **两处要在自己机器上核**：① 最后一个候选之前是 **`, and `**（早先本页这条抄丢了那个 `and`，
+  正踩在本页 §2 教过的坑上——**抄日志文本要整行照抄，不要按记忆补标点**）；
+  ② 这条消息**没有 `[Common 17-xxx]` 这一类 id 前缀**，就是光秃秃的 `ERROR:`，
+  所以按 id grep 会漏它，**只能按 `'…' option is ambiguous` 这段文本搜**。rc=1。
 - 正确写法是 **`-hierarchical`**，而且它**不要求先布局布线**：综合后调用返回 0、表体就有内容
   （本机 `| cnt | (top) | 6 | 6 | 0 | 0 | 8 | 0 | 0 | 0 |`；**实现之后同一份设计取到 1556 字符**——
   列名与行内容**与综合后那张一模一样**，多出来的只有表尾这一行说明：
