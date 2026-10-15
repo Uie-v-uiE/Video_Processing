@@ -38,8 +38,12 @@
    `cls._instance.get_pl_clk(clk_idx)`），4.0.0 补回来了
    （`ps.py:354-365`）。所以"四路全 None"在 3.1 上**不是**"时钟没开"的证据，而是版本读数——
    反过来它还是一个不用查版本文件的判别式——**但这个判别式只分得出"这三版之一 vs 4.0.0"，
-   分不出 2.5.1**：2.5.1 没有元类转发那一层，`get_pl_clk` 是 `_ClocksBase` 上直接实现的
-   `@classmethod`（2.5.1 `ps.py:188-209`，末行 `return round(src_clk_mhz / (pl_clk_odiv0 * pl_clk_odiv1), 6)`
+   分不出 2.5.1**：2.5.1 没有元类转发那一层，`get_pl_clk` 是**直接定义在类体里的
+   `@classmethod`**（2.5.1 `ps.py:188` 是装饰器、`:189` 是 `def get_pl_clk(mcs, clk_idx)`，
+   **注意宿主类是 `_ClocksMeta`（`ps.py:48`）——2.5.1 里根本没有 `_ClocksBase` 这个类**，
+   那一版的 `ps.py` 只有 `_ClocksMeta`/`_ClocksUltrascale`/`_ClocksZynq`/`Clocks` 四层，
+   别把后几版的宿主名搬过来），末行
+   `return round(src_clk_mhz / (pl_clk_odiv0 * pl_clk_odiv1), 6)`
    在 `:209`，第一个形参写作 `mcs` 而不是 `cls`），**照样返回值**。所以"四路都有值"这一臂
    同时对应 2.5.1 与 4.0.0，要分开还得读 `pynq.__version__` 或那条转发行的原文。
    把它当硬件读数用会直接把树 A 引向假红。
@@ -52,9 +56,18 @@
 
    ①那一层还有一个更具体的形状值得先排：**同一个 IP 的"寄存器时钟"与"搬运/引擎时钟"常常是两个引脚**，
    只给寄存器那一路钟时，症状恰好是"寄存器侧全通、搬运侧一步不动"。
-   **本包不是没有能红的读数**——下面出口 (b) 那两个状态位（`idle`/`error`）在这种形状下就是红的
-   （引擎不动 → `idle` 永远不来或永远挂着）；`transferred` 只能在 `wait()` 之后取，别算进这一格
-   （本页 §3 第 3 条）；这一对只判"引擎动没动总线"，**判不出"引擎该由哪一路钟驱动"**。
+   **本包不是没有能红的读数**——但**先前这里写"下面出口 (b) 那两个状态位（`idle`/`error`）在这种形状下就是红的"
+   收回**（那是推断，不是读数）：这两位是**寄存器读数**，不是"引擎动过"的证据。
+   源码事实是：`idle` 就是 `self._mmio.read(self._offset + 4) & 0x02 == 0x02`（4.0.0 `lib/dma.py:80`），
+   `running` 是 `& 0x01 == 0x00`（`:71`，**注意它是"位为 0 才算 running"**），
+   `error` 是 `& 0x70 != 0x0`（`:85`）；而 SG 的 `wait()` 用
+   `if self.idle or self.halted: break`（`:502`）作退出条件，`stop()` 写完
+   `self._mmio.write(self._offset, 0x0000)`（`:99`）之后引擎本来就落在"不 running"那一侧。
+   ⇒ **没有钟时这些位停在写值后那一刻的状态、不会自己变**，所以它们既可能"看着 idle"也可能"看着不 idle"，
+   **取决于此前写过什么**（这半句是机理，需板端，本机没有读数）；
+   能说的只有一句：**这一对读的是状态位，判不出"引擎该由哪一路钟驱动"**，
+   要判那件事只能靠出口 (c)（设计里本来就有的第二个时钟域对照，如锁定位）或设计侧埋的易失计数器。
+   `transferred` 只能在 `wait()` 之后取，别算进这一格（本页 §3 第 3 条）。
    后一层在设计侧取，本包不重复：`fpga-board-development/references/zynq-pynq.md` §1 给了逐个时钟引脚的
    读法（`get_bd_pins <cell>/*CLK*` 数出几路，再读每个引脚自己的 `CONFIG.ASSOCIATED_BUSIF`——那是
    "这一路钟驱动哪些接口"的自述，**按 IP 自己给的清单算，不要按引脚名字的字面猜**：本机就在
@@ -199,9 +212,19 @@
    **`self.mmio.write(0x08, 0)`**（`:174`，注释 "Disable Interrupt lines"）——
    它把 32 条线全部 disable 掉，而写的是**同一块硬件**的同一组寄存器。
    于是第一个进程那边"针还在、注册过、事件对象还活着"，但线已经被别人全局关了；
-   而且第一个进程不会收到任何异常。判据（只读，不改状态）：
-   在两个进程里分别打印 `os.getpid()` 与 `sorted(PL.interrupt_controllers)`，
-   进程数 > 1 而控制器名相同，就是这一条。
+   而且第一个进程不会收到任何异常。**先前给的判据收回**：
+   原文写"在两个进程里分别打印 `os.getpid()` 与 `sorted(PL.interrupt_controllers)`，
+   进程数 > 1 而控制器名相同就是这一条"——**那台机器永不红、且必然误判**：
+   `PL.interrupt_controllers` 是**元数据解析出来的表**，两个进程只要加载同一份 overlay 就同名，
+   而 `mmio.write(0x08, 0)` 那一句只发生在 `_InterruptController.__init__`（`:174`），
+   构造的唯一入口是 `get_controller()` 发现**本进程**的 `_controllers` 里还没有这个名字
+   （`:119-123`）。⇒ 第二个进程哪怕只做 MMIO 读、从不 `Interrupt(...)`，也**不会**关任何线，
+   按旧判据却被定罪。
+   **改成的判据是流程性的**：要证明"这条真发生过"，得能指出第二个进程里**确实构造过控制器**
+   （它调用过 `Interrupt(...)`/`get_controller(...)` 且是那次调用新建的），
+   而那次 `write(0x08,0)` 不在任何 Python 侧结构里留痕，所以**板上取证只能读控制器自己的掩码寄存器**
+   （`+0x08` 回读是否变成全 0；**这属需板端，本机无读数**）。
+   日常能用的只有前半：**别的进程一旦要碰中断，本进程的所有等待都不可信**。
    处理办法只有一个方向：**中断的注册与等待收在同一个进程里**；
    另一个进程要读状态就走寄存器/轮询（`dma-channels.md` §2 的四口），别在那边 `Interrupt(...)`。
    这条与 `SKILL.md` §4 里"两个进程/notebook 同时管同一块 PL"那一行是同一族，但那一行讲的是 mmap 所有权，
@@ -240,7 +263,16 @@
    （2.7.0 `buffer.py:107-113`，文本 `.close no longer functional - use scopes to manage buffers`）。
    两边都不调 `freebuffer()`（那一句在 `__del__` 里：`def __del__` 在 2.5.1/2.7.0 `buffer.py:79`、
    调用在 `:80`；3.1.2/4.0.0 分别是 `:62` 与 `:63`——**别把 `def freebuffer` 那一行（`:82`/`:65`）算进 `__del__` 的区间**）。它**没报错**恰恰是这条假绿的全部危险：
-   长跑脚本的连续内存池一直在漏，直到某次无关的 `allocate` 报 `MemoryError`；
+   长跑脚本的连续内存池一直在漏，直到某次无关的分配失败才露头——**露头的是 `RuntimeError` 不是 `MemoryError`**
+   （先前这里写"报 `MemoryError`"是错的，五棵钉住的树里 `allocate` 那条路径 **0 处 `MemoryError`**；
+   正向对照：同一次 `grep -rn MemoryError` 在 `mmio.py` 命中若干处，但那全是
+   `Unaligned read/write: offset must be multiple of 4` 那一族，与分配无关）。
+   真实的两处抛点是：**2.5.1 `pl_server/xrt_device.py:390`、2.7.0 `:414`、3.0.1 `:410` 都是
+   `RuntimeError("Allocate failed: " + str(bo))`**，
+   3.1.2 与 4.0.0 换成了 `pl_server/xrt_device.py:347` 的
+   `RuntimeError(f"BO allocation failed: {e}")`（同一函数紧接还有一处 `:349`
+   `RuntimeError("BO handle is invalid (None)")`）。⇒ **别拿异常类名当"漏到了头"的判据**，
+   判据还是 `buffers-and-cache.md` §2 那条：两数之差（`CmaFree` 或等价池读数）单调下降才算。
    **而在 2.5.1 上连那声警告都没有，日志里一个字都不会出现**（释放与作用域那一侧的口径见
    `buffers-and-cache.md`，它按 2.7.0 `buffer.py:107-113` 引的是同一件事的 warned 那一臂）。
 7. **`hasattr(channel, 'wait_async')` 当成"中断接好了"** → 它是类上的 `async def`，
@@ -275,7 +307,16 @@
    （namespace package），随后所有名字都解析不到，看着像版本不对。判据：`pynq.__file__` 不是 `None`。
 9. **异常后继续跑** → 前一轮 DMA/中断状态没清，后面的读数全被污染。特别注意 cyclic：
    在 recvchannel 上传 `cyclic=True` 时源码**先赋值后检查**（`lib/dma.py:366→368`），
-   抛了异常也把 `_cyclic` 留下了，而 `stop()` 不清它 → 之后 `wait()` 一直 `RuntimeError`。
+   抛了异常也把 `_cyclic` 留下了 → 之后 `wait()` **仍然抛**，
+   但**要把两条抛点分开**（4.0.0 `lib/dma.py`，两条都是 `RuntimeError`，消息不同）：
+   `wait()` 第一句是 `if self._cyclic: raise RuntimeError('Cannot wait in cyclic BD mode')`（`:473-474`），
+   第二句才是 `if not self._transfer_started: raise RuntimeError("DMA transfer not started")`（`:475-476`）。
+   **先前这里只写"一直 `RuntimeError`"没分这两条**，而 `stop()` 本身就把
+   `_transfer_started` 置回 `False`（`:312`，赋值点另在 `:253` 构造与 `:301` `start()`），
+   所以"停过之后再 wait"看到的是**第二条**消息，不是第一条；
+   只有 `_cyclic` 真的留着（cyclic 传输抛异常那条路）才撞**第一条**。
+   ⇒ 读消息文本就能分诊：`Cannot wait in cyclic BD mode` ⇒ `_cyclic` 还挂着；
+   `DMA transfer not started` ⇒ 是没 `start()`/已 `stop()`，与 cyclic 无关。
    要么先用 `MMIO` 写 `RS=0`（cyclic 下再补 `0x0004`）——**别指望 `channel.stop()`：引擎没停下来时它会
    死在自己的 `while self.running: pass` 里**（`dma-channels.md` §2），要么再 `transfer()` 一次把 `_cyclic`
    覆盖回去（`dma-channels.md` §1 第 3 条）。
@@ -356,7 +397,13 @@ def bench(fn, reps=7, warmup=2):
 4    PL.interrupt_pins 的相关条目（**键就是 `<实例>/<端口>` 这一形**——解析器把针名按
      `block, _, pin = interrupt.rpartition("/")` 拆开分发给 `ip_dict[block]["interrupts"][pin]`
      （4.0.0 `pl_server/hwh_parser.py:519-524`），所以字典的键与 `fullpath` 同源；
-     值的键实测是 `controller`/`index`/`fullpath`，3.x/4.0 多一个 `raw_irq`
+     值的键**从源码读**是 `controller`/`index`/`fullpath`，3.x/4.0 **可能**再多一个 `raw_irq`——
+     **这一条是有条件的**：4.0.0 `pl_server/hwh_parser.py:445-446` 是
+     `if raw_map is not None: self.interrupt_pins[p]["raw_irq"] = raw_map[offset]`，
+     而针经过 intc 那一支的递归调用（`:431` `self._add_interrupt_pins(self.pins[name + "/intr"], name, 0)`）
+     **根本不传 `raw_map`**（形参默认 `None`，`:419`）⇒ **接在 axi_intc 后面的针没有 `raw_irq` 这个键**。
+     所以别把"读不到 `raw_irq`"当成解析器坏了，先判这根针在不在 intc 后面。
+     控制器那本字典同理（`:432-435` 只写 `parent`/`index`，`:436-437` 条件写 `raw_irq`）。
      （逐版赋值行：2.5.1 `:387-389`（**没有 `raw_irq`**）、2.7.0 `:429-433`、
      3.0.1/3.1.2 `:433-436`、4.0.0 `:440-444`）；
      **`parent` 不在针的条目里，它在 `interrupt_controllers` 那本字典**（4.0.0 `:432-435`），
