@@ -6,6 +6,7 @@ bench 只打**一条**结论行，格式固定、纯 ASCII，判定词紧跟在�
 
 ```verilog
 integer checks, errors;
+checks = 0; errors = 0;          // **这一行不是装饰**，见下面那条
 // ...  stimulus 跑完之后：
 if (checks == 0)       $display("TB_RESULT NOT_RUN checks=%0d errors=%0d", checks, errors);
 else if (errors == 0)  $display("TB_RESULT PASS checks=%0d errors=%0d", checks, errors);
@@ -13,9 +14,27 @@ else                   $display("TB_RESULT FAIL checks=%0d errors=%0d", checks, 
 $finish;
 ```
 
+**先前这段没有那两行初始化**，是这段骨架自己的缺陷（本机两臂，`%TEMP%\tbinit`，xvlog+xelab+xsim）：
+只写 `integer checks, errors;` 就进 `if (checks == 0)`，`integer` 默认是 X，
+比较结果是 X、两个分支都不成立 ⇒ 交回的是 **`TB_RESULT FAIL checks=x errors=x`**，
+而 `xsim tb_x --runall` 的**退出码仍是 0**；把 `checks=0; errors=0;` 补上才是
+`TB_RESULT NOT_RUN checks=0 errors=0`。⇒ 两个后果都要记住：
+①**没置初值的骨架把"什么都没测"报成 FAIL**（方向上"安全"，但会让人以为 bench 在跑），
+②`checks=x` 是一个**解析不出数**的字段，任何按 `%0d` 取数的脚本在这一臂上拿到的是字面 `x`。
+所以契约里的"置初值"是硬性一条，不是风格。
+
 契约的三条内容，脚本侧照此解析：
 
 - 以 `TB_RESULT` 开头的行**必须恰好有一条**；找不到就按 `NOT_RUN` 处理，不要按 0 处理。
+  **但"以行首开头"这个形状只在一边成立**（本机两臂）：xsim 的输出里那一行是**顶格**的，
+  `grep -c '^TB_RESULT'` 得 1；ModelSim 的 transcript 给每一行加了 **`# ` 前缀**，
+  同一条锚定的 grep 得 **0**（不锚定时才是 1），去掉前缀再锚定才回到 1
+  （本机两臂分别是 `sed 's/^# //' ms.log | grep -c '^TB_RESULT'` = 1）。
+  **行尾另有一层**：本机两份 ModelSim transcript 按**字节**数都是 `CR=LF=CRLF` 全篇成对
+  （`ms.log` 5/5/5、`ms2.log` 24/24/24，结论行原样是 `# TB_RESULT FAIL checks=x errors=x\r`），
+  而我先用 `grep … | cat -A` 看同一行时它显示的是 `x$`（不带 `^M`）——
+  **所以"看起来没有 CR"不能当"文件里没有 CR"**，这类行尾问题只认字节数（`tr -cd` 或 python `count`）。
+  实践口径：剥 `# ` 之后再用允许行尾还有一个 CR 的模式取字段。
 - 判定词是这一行的**第二个字段**。不要把判定词放到行末——人写的说明、参考文件名里都可能出现
   `PASS`/`FAIL` 字样，按"行尾取词"或"输出里含 PASS"解析都会误取。
 - 计数（`checks`、`errors`）必须在行里。`checks==0` 的绿是假绿：断言根本没被触发（时钟没跑、
@@ -37,7 +56,13 @@ transcript 里打出 `TB_RESULT FAIL` 与 `** Fatal` 之后，`vsim -c` 与 `xsi
 
 SystemVerilog 写法要不要 `-sv`，**两个工具的答案不一样**，别一句话概括：
 
-- `xvlog`：`final` 块不加 `-sv` 报 `[VRFC 10-4982] syntax error near 'begin'` 并退 1，加了退 0。
+- `xvlog`：`final` 块不加 `-sv` 会红，但**报错文本里那个 token 随写法变，别抄整句**
+  （本机两臂，同一目录 `%TEMP%\svchk\`）：`final begin … end` 那一臂第一条是
+  `[VRFC 10-4982] syntax error near 'begin'`（其后还有 `near '$display'`、`near 'end'` 与
+  `10-8549 … keyword 'begin' used in incorrect context` 若干条），
+  而把 `final` 直接接 `$display(...)` 的那一臂第一条是 **`near '$display'`**
+  （+ `[VRFC 10-8530] module 'tb2' is ignored due to previous errors`）；两臂退出码都是 **1**，
+  加 `-sv` 后都是 0。⇒ **稳定的判据是"rc 非 0 + 有 `10-4982` 这一族"，不是某一句完整文本**；
   但 `int` 单独出现时给的是 `[VRFC 10-2939] 'int' is an unknown type`（不是语法错）。
   **`$fatal` 不需要 `-sv`**——xvlog 与 vlog 都接受它，本机不加 `-sv` 也能跑并打出 Fatal。
 - ModelSim 的 `vlog` 按**文件扩展名**自动切：同一段含 `final`/`int`/`logic`/`$fatal` 的代码放进
@@ -58,6 +83,25 @@ SystemVerilog 写法要不要 `-sv`，**两个工具的答案不一样**，别�
 - 换算法：RTL 用排序网络/移位累加，模型直接排序后取中值 / 用行为级乘加。
 - 换表示：RTL 定点 Q 格式，模型用浮点算完再量化，容差按量化步长推。
 - 换次序：RTL 流水重叠，模型按整幅一次算完。
+
+**这条规矩能不能判？能，但不是靠"跑一遍看绿不绿"**（五臂实测，
+`%TEMP%\src1\run_src1.py`，同一个 8 位加法 DUT、xvlog+xelab+xsim、40 个向量）：
+
+| 臂 | DUT | 模型 | 判定行 |
+|---|---|---|---|
+| A | `a+b` | 抄 RTL 的 `a+b` | `PASS checks=40 errors=0` |
+| B | `a+b+1` | 抄 RTL 的 `a+b`（没跟着改） | `FAIL checks=40 errors=40` |
+| C | `a+b+1` | 抄 RTL 的 `a+b+1`（跟着一起改） | **`PASS checks=40 errors=0`** |
+| D | `a+b+1` | 独立实现（逐位进位 `ripple()`，里没有 `+1` 这一说） | `FAIL checks=40 errors=40` |
+| E | `a+b` | 独立实现 `ripple()` | `PASS checks=40 errors=0` |
+
+A 与 E **逐字相同**——所以"跑一遍都绿"确实区分不了同源与独立（这是常见误读，也是
+先前这一节没有配对照的缺处）。**能区分的是 C 与 D 这一对**：
+把同一个破坏**同时写进 DUT 与模型**，抄来的模型会**跟着绿**（C：它只是把错抄了一遍），
+独立实现的模型**仍然红**（D：`ripple()` 里没有那个 `+1` 可以吸收）。
+⇒ 自检办法就一句话：**"两边一起改坏"之后还绿的那份模型，是抄的**。
+而 B 臂说明另一件事：只改 DUT 不改模型时两种模型都会红，所以**普通的变异对照
+（§4 那种"破坏 DUT 看红不红"）证明不了模型独立**，它证明的是判据能红。
 
 然后**把契约显式写进模型**：延迟多少拍、有效位与数据是否同拍、边界那一拍给什么。模型与 RTL 只在
 数值上一致而时序相位不一致，症状正是"值都对、图还是错的"。
@@ -85,8 +129,18 @@ sed -i "s/8'd255/8'd254/" rtl/proc.v        # 改一个常数
 ```
 
 两种都用过之后要 `git diff`/`fc` 确认**只改了那一处**——破坏式对照最怕顺手改了两个地方，
-红了也不知道是哪个造成的。含中文注释的文件不要用 shell 的重定向去改：编码链路会把注释弄坏，
-用编辑器改完再存。
+红了也不知道是哪个造成的。**"shell 改会弄坏中文注释"这句要按工具分开设**（本机三臂，
+`%TEMP%\cjksed3\probe3.py`，每臂都是同一处 `255→254` 的替换、按字节看结果）：
+`sed -i` 对 UTF-8 与 GBK 两种文件**注释字节都没坏**（解码回来仍是原字），
+但它**把 CRLF 改成 LF**（`CRLF=2 → 0`，LF 数不变）；
+Windows PowerShell 5.1 的 `(Get-Content) -replace | Set-Content` 把 UTF-8 文件**写成不能按 UTF-8 解码**的字节
+（`CJK-UNDECODABLE`）并且把行数也并了（`LF=2 → 1`）；
+`pwsh` 7 同一条命令**注释没坏**，但**把 LF 改成 CRLF**（`CRLF=0 → 2`）。
+⇒ 能主张的是"**三个工具都会改行尾，其中 5.1 那一支还会坏编码**"，
+不能主张"shell 一律弄坏中文"。而**行尾被改这件事本身就足以污染上面那句"只改了一处"的自检**
+（`git diff` 会把整篇标成改动，`core.autocrlf` 在检出时也会重写磁盘字节），
+所以这一族检查请按**字节数**（`CR`/`LF` 计数）而不是按"看起来一样"来判。
+含中文的文件仍优先用编辑器/工具的原生写入（本页不重复那条规矩）。
 
 **破坏必须只改语义、不改变编译可行性。** 把 `8'd255` 写成 `8.d255` 那种"破坏"得到的是语法红
 （`Digits must follow decimal point in real`），它证明不了判据能抓功能错，却会被记成"I6 已完成"。
