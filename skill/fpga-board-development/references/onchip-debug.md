@@ -170,6 +170,19 @@ CRITICAL WARNING: [Chipscope 16-3] Cannot debug net 'clk'; it is not accessible 
 `can't read "wr_clk_period": no such variable` 那种——它是工具处理自己生成的 xdc 时打的，
 一次构建里能数出 10 条而**会话照常跑完**（§2.1 那三行读数就是这么来的）。
 决定会不会截断的是"这条错误有没有从脚本顶层抛出"，不是编号。
+**两条补充读数**（本机同一个批处理会话里连着测的，`report_exceptions` 那一族）：
+① `catch` 确实兜得住"选项组合不合法"这类 ERROR——`Common 17-170`、`Common 17-165`、
+`Common 17-69`、`Vivado 12-5399` 四条都是 **rc=1 + msg 里就是那条原文 + 会话继续**。
+最容易自己制造截断的地方是 **`catch` 之后再引用那个没被赋上值的变量**：
+`catch {set w [report_exceptions -write_valid_exceptions -return_string]} m` 失败时 `w` 保持未定义，
+下一行 `puts "$w"` 抛的是 `can't read "w": no such variable`，**这条没人兜，会话就断在这里**，
+看上去像"上面那条命令把 Vivado 弄崩了"（本机就这样误判过一次；把 `set w ""` 放到 `catch` 之前重做，
+同一句命令 rc 正常交回、脚本跑到 `exit`）。口诀：**先给变量置初值，再 `catch`，`puts` 只打 rc 与 msg**。
+② **加了 `-quiet` 之后这条线会被抹平**：同一条缺 `-file` 的命令写成
+`report_exceptions -quiet -write_valid_exceptions -return_string` 交回 **rc=0、msg 空、什么都没写**——
+就是它 `-help` 里那句 "returns TCL_OK regardless of any errors encountered during execution" 的形状。
+**所以带 `-quiet` 的 rc=0 不能当"这步做成了"的证据**；要判成没成，去看它该产出的文件在不在，
+或去掉 `-quiet` 重取一次 msg。
 写 `true`/`false` 也接受，读回会归一成 `1`/`0`（`list_property_value` 给的合法字面量就是 `1 0`）。
 要数"这次到底标了几个"，用集合而不是数日志——**那条命令与它的三种过滤写法都记在
 `rtl-pipeline-cdc.md` §5 末尾那段**（连同"`-quiet` 只影响日志卫生、判据是 `llength`"的理由与正向对照），本页不重抄一遍。
@@ -567,11 +580,12 @@ get_hw_ilas                        ;# 这条要 §1 那一串先跑通（有板�
 而同一类扫描问 `info commands *cfgmem*` 在没加载 `labtools` 的裸批处理会话里交出 **1 个**（`write_cfgmem`）、
 `load_features labtools` 之后交出 **8 个**（逐条名单见 `board-bringup.md` §2 那一行）——
 **两个读数都非 0，所以 `*md5*` 那个 0 是"这一族不在"，不是"这次没扫到"**。
-**但 `md5sum` 这条的失败形状值得单记**：本机 `catch {md5sum p.tcl}` 之前，日志先打了
-`WARNING: [Common 17-259] Unknown Tcl command 'md5sum p.tcl' sending command to the OS shell
-for execution. It is recommended to use 'exec' to send the command to the OS shell.`，
-之后 `catch` 才交回 `invalid command name "md5sum"`（rc=1）。
-也就是说**工具先把它丢给操作系统 shell 试过一遍**——"这条命令不存在"并不等于"什么都没发生"：
+**但 `md5sum` 这条的失败形状值得单记**：`catch {md5sum <文件>}` 交回
+`invalid command name "md5sum"`（rc=1），而**同一次会话里还多打了一条 `[Common 17-259]` 的
+WARNING，说它已经把这条丢给操作系统 shell 试过一遍**——原文逐字、它与哪条命令相邻这件事的真实形状，
+以及 `exec md5sum` 那一条能用的读数，都由 `board-bringup.md` §1 那一节拥有（那里是规范出处，本文不重抄，
+重抄就会漂移——这一对页先前就在"谁先谁后"上打过架，现在按 §1 的实测结论收口）。
+也就是说：**"这条命令不存在"并不等于"什么都没发生"**：
 在别的机器上那一步可能真跑出副作用（比如那个名字在 OS 上确实存在）。所以探针脚本里**不要靠"命令不存在所以安全"来省略检查**。判"它在不在"用 `catch` **真调一次**看交回什么；
 注意别改用 `info commands <名字>` 单独下结论——本页 §1 那条已经钉过：惰性加载会让它在命令明明可用时
 交出空（`wait_on_run` 就是反例）。

@@ -30,10 +30,21 @@
 ```python
 dma = getattr(ol, "axi_dma_0")    # 这一段假定 ol 已经存在（它是 §2 加载之后才有的对象）
 ch = dma.sendchannel
-print("sendchannel:", "None(这一侧硬件没使能)" if ch is None
-    else ("中断已接" if ch._interrupt else "通道在、中断对象是 None"))
-print(sorted(dma.description.get("interrupts", {})))    # 期望 ['mm2s_introut','s2mm_introut']；[] = .hwh 里就没声明
+print("sendchannel is None:", ch is None)
+print("bool(_interrupt):", None if ch is None else bool(ch._interrupt))
+print(sorted(dma.description.get("interrupts", {})))
 ```
+**这三行只打印值，不打印结论**（原先这里印的是 `"中断已接"` 这种字样——被收回：
+①②都真不等于"中断接好了"，本包 `SKILL.md` §1 第 9 条就是这条规矩；
+板上还可能有第三种坏法：`_interrupt` 在、但事件那一路不对——分诊走 `debug-triage.md` §2
+   的"中断不到"那棵树）。
+**`print` 出来的第三个读数 `[]` 有两种成因，别只认第一种**：
+`.hwh` 里这个 IP 确实没声明中断端口；**或者端口声明了、但没接到 `xlconcat → pl_ps_irq0`**——
+`interrupt_pins` 这一族是解析器**从 PS 那根中断针往回走网络**建起来的
+（4.0.0 `pl_server/hwh_parser.py:385-396` 走线、`:517-524` `assign_interrupts_gpio`
+把 `interrupt_pins` 的条目分发给 `ip_dict[block]["interrupts"][pin]`），
+**没接到那根针的端口连被枚举的机会都没有**。这正是本节上面让你去接的线，
+所以 `[]` 出现时先回 BD 查接线，再怀疑 `.hwh`。
 
 
 ## 1. 导出与拷贝：整组一起走
@@ -48,8 +59,16 @@ ls -l --time-style=full-iso /home/xilinx/jupyter_notebooks/myip/    # .bit/.hwh/
 ls /sys/kernel/config/device-tree/overlays/    # 上一次加载留下的叠加条目
 ```
 
-第二条的期望值是**没有**你这一版的名字（第一次加载前它不可能在）；如果它在，说明前一个 overlay 还挂在
-内核树上，`overlay-metadata.md` §1 讲了同名 `.dtbo` 会互相顶掉这件事，先处理干净再往下走。
+第二条**不是"里面必须是空的"**：板上跑过 PYNQ 的镜像、启动时自载的 `design_1`、
+或以前任何一次 overlay 都会在里面留下条目，**你的版本名第一次加载前不可能在**才是那条判据。
+**并且"没有你的条目"有两种成因**：确实没挂过，**或者这个路径在这块板上根本没挂载**——
+本机在主机上对着一个不存在/未挂载的目录跑同样的 `ls` 得到的是 **`rc=2`、stdout 0 字节**，
+形状与"目录空"几乎一样；所以**判这条要连同返回码与 stderr 一起看**（`rc!=0` 时这一格写 `NOT_RUN`，
+不要写成"没有残留，通过"）。
+名字真的在、而你现在要换一版：**这不是可以在这一步顺手清的动作**——
+`/sys/kernel/config/device-tree/overlays/<名字>` 往下删是 `SKILL.md` §5 列的危险动作之一
+（同名 `.dtbo` 互相顶掉的机制见 `overlay-metadata.md` §1）。先记下这一格读到什么，
+按那一页的处理路径走，别在这里 `rm`。
 
 时间戳不同批 = 后面所有地址读数都不可信。通过标准：`.bit` 与元数据同批、同目录、文件名一致。
 
@@ -62,9 +81,19 @@ ol = Overlay("/home/xilinx/jupyter_notebooks/myip/design_1.bit")
 print("dtbo =", ol.dtbo)    # None = 连文件都没找到；非 None 只证明路径被算出来，
     # 不证明内核装载了它——那要看 configfs 的 status
 print(sorted(PL.ip_dict))    # 实例名从这里复制，不要手拼
-print({k: hex(PL.ip_dict[k]["phys_addr"]) for k in PL.ip_dict})
-print(dict(PL.interrupt_pins))    # 空 = 中断没接进来，别再去试名字
+print({k: (hex(v["phys_addr"]) if "phys_addr" in v else "NO-phys_addr")
+       for k, v in PL.ip_dict.items()})
+print(dict(PL.interrupt_pins))    # 空 = 这根针没被走到（两种成因见 §0 那三行）
 ```
+**第二行为什么不能写成 `hex(PL.ip_dict[k]["phys_addr"])`**：`ip_dict` 里**PS 那一条压根没有
+`phys_addr` 这个键**。解析器给 PS 条目写的只有 `gpio`/`interrupts`/`parameters`/`type`
+（4.0.0 `pl_server/hwh_parser.py:243-249`；2.7.0 `:259-265`、3.0.1/3.1.2 `:236-242` 同形），
+而 `PL.ip_dict` 是把这个字典原样交出去的（`pl.py:110-112` → `device.py:120`）。
+本机用一个照这个形状建的桩字典跑那句推导式，得到的就是
+**`KeyError: 'phys_addr'`——整行一个读数都不打印**（同一次桩上换成 `"phys_addr" in v` 先判
+就正常输出，这是本包 `overlay-metadata.md` §2 已有的写法）。
+**2.5.1 还有一层差别**：那一版的解析器没有 PS 这条目，所以"KeyError"这个形状本身就随版本变——
+**别把某个版本报错当"这条目应该存在"的证据**。
 
 通过标准：目标 IP 在表里、`phys_addr` 与 Vivado Address Editor 里那一行一致；
 `.dtbo` 非 `None` 时，`cat /sys/kernel/config/device-tree/overlays/<dtbo 基名>/status` 读到 `applied`
@@ -75,13 +104,27 @@ print(dict(PL.interrupt_pins))    # 空 = 中断没接进来，别再去试名�
 
 ```python
 from pynq import MMIO, PL    # PL 是取 ip_dict 的那个入口，别只导入 MMIO
-base = PL.ip_dict["my_ip_0"]["phys_addr"]
-mm = MMIO(base, 0x1000)
+ent = PL.ip_dict["my_ip_0"]
+base = ent["phys_addr"]
+mm = MMIO(base, ent["addr_range"])    # 长度用这条条目里的实际范围；
+    # 不要顺手写 0x1000：`debug-triage.md` §2 那条就是针对这个写法——映射超出实际范围之后，
+    # 读到 0 与"这个偏移上没有寄存器"分不开，而 §3 后面 warnings 里那些挂死形状正是这样造出来的。
+    # 只有 `overlay-metadata.md` §5 那个"扫整段"的骨架才需要给一个比实际范围大的长度。
 SCRATCH = 0x08    # 第 0 步埋的那个"无副作用回写"寄存器
 
 # probe32 的唯一定义在 mmio-registers.md §4（写三式 + 读回 + finally 复原）；
 # 那一页是规范出处，这里不重抄一遍——重抄就会漂移。用之前把那个函数贴进同一个 cell/脚本。
-probe32(mm, SCRATCH, "scratch")
+# 用之前先读它页面上那两条限制：① 图案里 0x00000000 那一行"读回 0 = OK"**不构成证据**
+# （读到全 0 的东西——比如没接从设备的地址——它必然绿），判据只能是 0xA5A5A5A5 那一行；
+# ② `finally` 里那次复原写会**顶掉你刚撞到的错误**：本机在主机上用一个照 `probe32` 形状写的桩
+# 量过这条 Python 语义——里面先 `raise MemoryError("Unaligned write…")`、`finally` 再
+# `raise RuntimeError("SLVERR on the restore write")`，交回来的是 **顶层 `RuntimeError`（复原那笔）、
+# 原错误只在 `e.__context__` 里**（`__suppress_context__` 为 `False`）。
+# 也就是说你读到的是"复原写失败"，而真正的第一现场被挪到下一层——
+# 与本页 §7 表里"卡在第 3 步"那一行写的"别反复重试同一笔写"是同一路危险；
+# 第一次上板建议先 `restore=False`（本包的 `probe32` 有这个形参），
+# 要不要复原由你按读回来的值另起一次显式写。
+probe32(mm, SCRATCH, "scratch", restore=False)
 ```
 
 `off` 一律是**字节**偏移且必须 4 对齐（`ip.mmio.array[i]` 才是字索引，两者别混，
@@ -111,8 +154,13 @@ print(hex(mm.read(0x00)))    # 期望值来自设计文档，不来自记忆
 
 ## 5. 数据通路：先单字节图案，再真实数据
 
-下面这段是 `dma-channels.md` §3 那节**规范骨架的镜像**（这里多打印每通道的完成读数，少一步
-参考比对的细节）。两边的等待方式必须一致：改一处就改两处，否则本页的"通过标准"会指向一个
+下面这段是 `dma-channels.md` §3 那节**规范骨架的镜像**，**但它不是逐字相同的那段**：
+两边差别由那一页 §3 末尾按七条列全（导入与 `Overlay(...)` 那两行不在这里、
+**通道判空的 `raise SystemExit` 守卫换成了打印**、`n` 取的数不同、这里多打一行 `max=`、
+"先挂收侧"那句的免责只在那一页、`ref` 在 `with` 块外、比对式这里用 `mask` 且**不打第一处错位**）。
+**其中两处是要命的**：① 这里没有那个守卫，所以"这一侧硬件没使能"在这一页要靠
+`send=/recv=` 那行读出来；② 这里不打 `first=/got=/exp=`，出第一次错位时定位信息比规范版少。
+两边的等待方式必须一致：改一处就改两处，否则本页的"通过标准"会指向一个
 另一页并不推荐的收尾。
 
 
@@ -138,10 +186,29 @@ with allocate((n,), dtype=np.uint8) as src, allocate((n,), dtype=np.uint8) as ds
     dst.sync_from_device()
     got = np.array(dst)    # 出了 with 就释放了，比对要在块内取快照
 ref = np.arange(n, dtype=np.uint8)
-mask = np.ones(n, dtype=bool)    # 只比对 PL 真正改写的那些下标；透传这一版是全部
-checks = int(mask.sum())    # 这一格必须能算出 0：形状/dtype 不对或 mask 全空
+mask = np.ones(n, dtype=bool)    # 透传阶段：PL 不改任何字节，所以要比的下标就是全体
+checks = int(mask.sum())    # 见下面那条：透传阶段它恒等于 n，此时它不是判据
 print("checks=%d mismatches=%d" % (checks, int(((got != ref) & mask).sum())))
 ```
+**`checks` 这一格什么时候才算数，先前这里写反了**（原话是"这一格必须能算出 0"）。
+按上面这句 `mask = np.ones(n)`，`checks` **恒等于 `n`**，`0` 这一支在这个骨架里永远到不了——
+一条出生以来没红过的判据不构成证据（`SKILL.md` §1 那条）。它真正的用法是第二阶段：
+**PL 只改写下标的一个子集时**（ROI、行有效窗、只处理奇数列那一类），
+`mask` 必须由**设计里那个窗的口径**给出（例如 `mask[y0:y1, x0:x1] = True`），
+这时 `checks=0` 才有意义，说的是"你的窗算空了"。**透传阶段这一格的判据是反过来的：
+`checks != n` 才说明 mask 写错了**。两句都要连同 mask 的来历一起打印，否则读数无法解释。
+**并且 mask 收窄会缩小证据面**（本机对照：同一份"后半段全错"的数组，
+`mask=ones` 那一臂报 `checks=1024 mismatches=510`，
+只取前半的 mask 报 `checks=512 mismatches=0`——**后者看着是绿的**），
+所以"只比 PL 改写的那部分"这件事要么按设计的窗严格给，要么一开始就全比。
+
+`dma.buffer_max_size` 那个打印是**没有版本标签的**：2.5.1 那版**不减 1**
+（2.5.1 `lib/dma.py:194-197`，两支都是 `1 << …` 就结束），3.0.1 起才有 `-= 1`
+（3.0.1 `:624`、3.1.2 与 4.0.0 `:637`），而且 2.5.1 在缺键时**会发一条
+`UserWarning`（`Failed to find parameter c_sg_length_width; users should really use
+*.hwh files for overlays.`，`:198-200`）**，后来的版本改成静默退回常数 26。
+同理上面那行打印里的 `ch.idle`/`ch.error`/`ch.transferred` 在 **2.5.1 只有 `running`/`idle`**，
+照抄会 `AttributeError`（分支表在 `dma-channels.md` §2 末）。
 
 别写成 `finally: src.close()`——`close()` 在 3.1 与 4.0.0 里只发一条 `DeprecationWarning`，
 什么都不释放（`buffers-and-cache.md` §2）。通道判空写 `is not None`：构造函数在没使能那一侧时
@@ -173,6 +240,6 @@ print("checks=%d mismatches=%d" % (checks, int(((got != ref) & mask).sum())))
 | 2 | `print(sorted(PL.ip_dict))` 把名字**复制**过去；再 `print(PL.ip_dict[name]["type"])` 与 `print(type(getattr(ol, name)).__name__)` 成对打印——后者是 `DefaultIP` 就是驱动没绑上（VLNV 对不上），**别拿 `MODTYPE` 当版本判据**：在两棵新版树里都还读到它（3.1.2 `pl_server/hwh_parser.py:163`、4.0.0 `:170` 的 `mod.get("MODTYPE")`），而按 VLNV 绑驱动从 2.5.1 就是这样（`for vlnv in cls.bindto`：2.5.1 `overlay.py:527-528`、3.1.2 `:561`/`:569`、4.0.0 `:558`/`:566`）——两层的逐行归属由 `overlay-metadata.md` §2 第 2 条拥有，这里不重抄 | 别按记忆猜实例名 |
 | 3 | 先读一个**必然有值**的偏移（第 0 步的 `0x00` 版本寄存器）确认通路，再谈图案；单位（字节 vs 字）与 4 对齐照 `mmio-registers.md` §2 的式子算一遍并打印中间值 | 别反复重试同一笔写；别把 `0xFFFFFFFF` 写进没核实过的偏移 |
 | 4 | 把读到的值和期望值**两个都打印**（只说"对不上"不算读数）；再核 `.bit` 的 md5 与这次构建的那份是否同一个 | 别用文件哈希代替身份——哈希对得上只证明文件没换，不证明 PL 里配的是它 |
-| 5 | 先 `from pynq import Clocks`（本页前面没导入过它），再 `print([Clocks.fclk0_mhz, Clocks.fclk1_mhz, Clocks.fclk2_mhz, Clocks.fclk3_mhz])`（2.7.0/3.0.1/3.1.2 上不要用 `Clocks.get_pl_clk`，那里返回 `None`；4.0.0 才修好），再读自由运行计数器两次取差；然后按 `dma-channels.md` §2 把四个状态口逐个打印 | 别只等一侧的 `wait()`；别用 `sleep()` 代替完成判定 |
+| 5 | 先 `from pynq import Clocks`（本页前面没导入过它），再 `print([Clocks.fclk0_mhz, Clocks.fclk1_mhz, Clocks.fclk2_mhz, Clocks.fclk3_mhz])`——**属性写法是主读数**；`Clocks.get_pl_clk` 在 2.7.0/3.0.1/3.1.2 上恒为 `None`（丢 `return` 那段见 `debug-triage.md` §2 树 A），4.0.0 补回来了，但**别把"有值"读成"是 4.0.0"**：2.5.1 没有丢 `return` 这一层，同样给值。再读自由运行计数器两次取差；然后按 `dma-channels.md` §2 把四个状态口逐个打印 | 别只等一侧的 `wait()`；别用 `sleep()` 代替完成判定 |
 | 6 | 打印 `checks=` 并确认它非 0；再把参考实现的一条算式与 RTL 的对照写进报告（两条独立来源） | 别拿"看起来对"的截图当证据 |
 

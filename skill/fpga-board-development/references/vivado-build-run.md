@@ -46,16 +46,29 @@ set_property TOP top_wrapper [current_fileset]
   `Synth Design complete`）。所以判"这次到底成没成"要读**最后那一步**对应的那条，
   并把这一串值原样抄进记录；产物文件的时间戳是第二道读数（比较对象：它要晚于你最后一次
   `launch_runs`，不是"看起来是新的"）。
-- **`get_property <不在清单里的属性名> <对象>` 的失败形状按对象类不同**（本机一次会话里逐类取过）：
-  `run` 与 `fileset` 上**什么都不报**——`IS_IMPL`、`PROBES_FILE`、`NOT_A_REAL_PROPERTY_AT_ALL`
-  三个瞎写的名字都是 **rc=0、值为空串、一条消息都没有**（同一批名字对着 `list_property` 数：
-  `run` 98 项、`fileset` 21 项，都不含它们）；`project` 上却是 **rc=1 +
-  `ERROR: [Common 17-54] The object 'project' does not have a property 'PROBES_FILE'.`**。
-  同一个探针形状在两类对象上**一个响一个不响**，所以"读回来是空"不能单独当结论，
-  **也不能靠"有没有报错"判名字对不对**——唯一判据是 `list_property <对象>` 的清单。
-  （另有一路复核报过"在 run 上瞎写名字也给 `WARNING: [Common 17-673]` 加空值"；本机这一臂
-  两次都没重现那条消息。**把它读成"有时候会多一条 WARNING"，不要读成判据**——两种读数下
-  `list_property` 给的答案是同一个。）
+- **`get_property <不在清单里的属性名> <对象>` 的失败形状按对象类不同**（本机一个会话里逐类取过，
+  每个名字都在 `catch` 里读 rc、值与 msg，WARNING 是从日志里 grep 出来的）：
+  - **`run` 类对象**（`[get_runs impl_1]`、`[get_runs synth_1]`、`[current_run]` 三者同形）：
+    瞎写的 `NOT_A_REAL_PROPERTY_AT_ALL` 给 **rc=0、值空串，并且日志里有一条
+    `WARNING: [Common 17-673] Cannot get value of property 'NOT_A_REAL_PROPERTY_AT_ALL' because
+    this property is not valid in conjunction with other property setting on this object.`**；
+    `IS_IMPL` 与 `PROBES_FILE` 这两个"看着像真的"的名字也是同一条 17-673。
+    **早先这里写的是"run 上什么都不报"、并把 17-673 那一路读数降级成"有时多一条 WARNING"——
+    那句被本机自己重做推翻，收回**（同一版工具、同一形状，四条臂都打出 17-673）。
+  - **`fileset`**：瞎写的名字 **rc=0、空串、一条消息都没有**——"静默"只成立于这一类对象。
+  - **`project`**：**rc=1 + `ERROR: [Common 17-54] The object 'project' does not have a property
+    'NOT_A_REAL_PROPERTY_AT_ALL'.`**（原文里属性名就是你写的那个）。
+  - **`run` 上还有第三种形状，也是最容易被当成"名字不存在"的**：
+    `get_property STATS.WNS [get_runs impl_1]` 在 run 还没出数之前给 **rc=0、空串、没有 WARNING**。
+    所以在 run 上"空值 + 无 17-673"说的是**这个名字是真的、只是现在没值**；
+    "空值 + 有 17-673"才是"这个名字它不接受"。**这条区分不需要 `list_property` 就能做**，
+    但 `list_property` 仍是唯一**穷举**口径（本机 `impl_1` **98 项**、`synth_1` **63 项**、
+    `current_fileset` **21 项**——注意 98 与 63 不是一回事，**引用这个数要连同是哪个 run 一起写**）。
+  - `fileset` 那边没有可用的"响与不响"之分（都静默），所以那一类只能靠清单。
+  **为什么这条 WARNING 这么容易"没重现"**：它**不进 `catch` 的 msg**（本机四臂的 msg 全是空串），
+  只打到会话输出/日志。所以只打印 `rc` 与 `msg` 的探针会把它整个丢掉，读数就变成"什么都不报"。
+  **取法：把会话输出落进文件再 grep `17-673`**（`-mode batch -nojournal -log x.log`，或直接重定向 stdout），
+  不要只看 `catch` 交回来的那条。
   判"这一版有没有调试核"用的是 `.ltx` 与 `get_hw_ilas`，见 `onchip-debug.md` §3。
 - **不要用 GUI 里点出来的设置当基线。** GUI 的选项落在工程文件里，看不见就等于"没设"。
   要可重复就把它们写成 `set_property`（下一条），并在记录里留这份 tcl。

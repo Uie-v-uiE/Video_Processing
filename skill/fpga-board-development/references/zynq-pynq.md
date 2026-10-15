@@ -175,7 +175,13 @@ print(buf.dtype, buf.shape, hex(buf.physical_address))
   start=0, nbytes=0)` 里 **`start` 按字节**算且参与对齐检查；cyclic 只在 sendchannel，且 cyclic
   下 `wait()` 直接 `RuntimeError`。细则归 `pynq-overlay-development/references/dma-channels.md`。
 - `Interrupt(pinname)` 的 pinname 必须逐字来自 `PL.interrupt_pins`；`wait()` 是**协程、没有 timeout
-  形参**（`interrupt.py:72`），超时用 `asyncio.wait_for` 包；重下 overlay 之后该对象明确失效。
+  形参**（`interrupt.py:72`，本机 3.0.1/3.1.2/4.0.0 三棵树同一行都是 `async def wait(self):`），
+  超时用 `asyncio.wait_for` 包；**2.7.0 上它是 `:101` 的协程、2.5.1 上 `:103` 是普通
+  `def wait(self)`**——不是协程就没有 `await`/`wait_for` 可用。这一条的报错形状本机是在桩上量的
+  （主机 Python 3.12 + `asyncio`，不是板上的 pynq 运行时）：普通 `def wait()` 交给
+  `asyncio.wait_for(o.wait(), 1)` 得到 `TypeError: object int can't be used in 'await' expression`
+  （消息里那个类型名就是 `wait()` 的返回类型，2.5.1 真返回什么本机没测），同一句喂给
+  `async def wait()` 正常返回。**别把 3.x 的包法抄到 2.5.1 上**；重下 overlay 之后该对象明确失效。
 
 存在性一律不能凭静态扫描断言 —— 上面 `MMIO.write` 就是运行时绑定的例子。板端现场采集与签名导出，
 用只读命令现采：`python3 -c "import pynq; print(pynq.__version__, pynq.__file__)"`、

@@ -714,8 +714,9 @@ Position  From                   Through  To                     Setup     Hold 
       `get_pins -quiet {q2_reg[0]/Q}` 与 `{q1_reg[0]/D}` **都返回了对象**（各自 1 个）——
       **"对象取到了"与"能当 `-from` 始点"是两件事**，别拿前者当后者的证据。
   - **表的位置（时钟名那一臂，两笔分开给）**：只给 `-setup 2` 时默认表 `report_exceptions
-    -return_string` 是 **841 字符、内容一个字没变**（与加约束前的 841 字符同长，仍印
-    `No valid timing exceptions found.`、`Non-existent` 命中 0），而 `report_exceptions -ignored
+    -return_string` 是 **841 字符、与加约束前那条同长**（末行仍是
+    `No valid timing exceptions found.`、`Non-existent` 命中 0；本机比的是长度与这两个标记，
+    **没有逐字 diff**，所以这里说的是"看不出变化"而不是"逐字相同"），而 `report_exceptions -ignored
     -return_string` 是 **1182 字符**、里面有那一行
     `3 [get_clocks clk_slow] * [get_clocks clk_fast] cycles=2 - Non-existent path`；
     再补上同方向的 `-hold 1`（返回 0）之后**默认表仍然是那 841 字符**，`-ignored` 变成
@@ -741,7 +742,7 @@ Position  From                   Through  To                     Setup     Hold 
   `-return_string` 或 `-file` 取文本，§4 第 4、5 条：普通调用的返回串是空的）。
   默认表的射程就是 `-help` 的 Description 原话："Report all timing exceptions applied to setup and
   hold checks defined by timing constraints in the current design, or report the exceptions on the
-  specified timing paths."——**"applied to"就是上一条那一臂默认表一个字没变的原因**。
+  specified timing paths."——**"applied to"就是上一条那一臂默认表看不出变化的原因**。
   **早先这里写"`-ignored` 是合法选项但 `-help` 里不列它"是错的**（本机 2025.2.1 复核：
   `report_exceptions -help` 的语法行里就有 `[-ignored]`，Usage 表里给它一行
   "Only report exceptions which are fully ignored"，`Examples:` 一节第二条直接是
@@ -791,6 +792,16 @@ Position  From                   Through  To                     Setup     Hold 
   所以聚合表不能告诉你"哪一条"没管到东西，只能告诉你总量；逐条要 `-coverage`。
   `-count_objects` 给的是每条例外的 `From/Through/To` 各命中几个对象（本机两行都 `1 clocks`），
   它回答"我指到了谁"，不回答"管到多少端点"。
+  **要把豁免集存档下来（§8 那条"写进改动记录"）就分这两条**：
+  `-write_valid_exceptions -file ve.xdc` 只写**落到检查上的**那几条（本机 471 字节、文件体里一行
+  `set_multicycle_path 2 -setup \`，死的不在），`-write_merged_exceptions -file me.xdc` 写**登记的全部**
+  （本机 561 字节、**两条** `set_multicycle_path 2 -setup \`——数量对得上"登记的两条都在"，
+  但各自是哪一对钟写在**续行**里，本机那次只把 `set_` 开头那行打出来过，没逐条核对续行）——
+  两份差的那一行就是"你写了但没落地"的清单；文件头是四行 `####` 横幅加 `# Command Used: …`
+  加一句 `current_design`，所以**别按文件总行数判有没有东西**，按 `set_` 开头的行数。
+  两条都要 `-file`：少了它一条 `12-5399` 报错（`catch` 得住，见 `onchip-debug.md` §1 那条补充）。
+  `-from`/`-to` 还能把表筛窄：本机 `-from [get_clocks clk_fast]` 交回 1184 字符、只含活的那一行，
+  死的那行不在筛选结果里（所以"筛出来是空"说的是"没有符合的对象"，不是"没登记"）。
 - 多周期是 **setup 与 hold 两笔**，但**默认表不会替你补第二笔**——这一条本机两臂对照过：
   只给 `set_multicycle_path -setup 2 -from clk_fast -to clk_slow`（方向是活的、没写 `-hold`）之后，
   `report_exceptions -return_string`（1156 字符）里**只有一行**：

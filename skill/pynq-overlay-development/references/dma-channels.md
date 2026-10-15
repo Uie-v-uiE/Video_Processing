@@ -340,7 +340,18 @@ def wait_with_timeout(ch, seconds):
 
 ## 3. 一次端到端搬运的最小正确写法
 
-**这一节是这段骨架的规范版本**；`first-bringup.md` §5 是它的镜像（只差在打印哪些读数）。
+**这一节是这段骨架的规范版本**；`first-bringup.md` §5 是它的镜像，**差别不止"打印哪些读数"**
+（本机把两段代码逐行 diff 过，七处不同，按出现的顺序是：
+① 那份不含 `from pynq import Overlay` 与 `ol = Overlay(...)`——它假定 §2 已经加载；
+② 那份**没有 `raise SystemExit` 的通道判空守卫**，换成一句打印
+`send=/recv=…is not None`；③ `n` 是 `1024` 而不是 `1024*768`；
+④ 多一份 `print("max =", dma.buffer_max_size, …)`；
+⑤ "先挂收侧"那两句在那里**没有本节下面那条"源码没有先后耦合"的免责**；
+⑥ `ref` 在 `with` 块**外面**；
+⑦ 比对式不一样——本节这份是
+`bad = np.nonzero(got != ref)[0]` 并打出 `first=/got=/exp=` 的第一处错位，
+那份改成 `mask` 与 `((got != ref) & mask).sum()`，**不再给第一条错位的下标与两侧值**）——
+两份都要改的时候按这七条对齐，别只改一边。
 改这里的等待方式或比对方式时，**同步改那一页**——两边不一致时，本节的四条边界与
 `debug-triage.md` §3 第 3 条的完成判定会失去同一个出处。
 

@@ -41,12 +41,19 @@ MMIO 块可查**，别去读 `0x04`/`0x1C`：那条路走的是 UIO，机制在 
 
 **直连 PS 那一支到底在找什么**。`get_parent()` 看到针的 `parent == ""` 时走的是：
 
-1. 取针的 `raw_irq`（针的字典里有 `parent`/`controller`、`index`、`raw_irq` 这些键，`:138-141`）。
-   **键名本身有版本线**：2.5.1 的解析器写 `'controller'`（2.5.1 `pl_server/hwh_parser.py:387`），
-   2.7.0 也写 `'controller'` 但已经挪到另一行并加了 `raw_irq`（2.7.0 `pl_server/hwh_parser.py:429`
-   与 `:433`）；2.5.1 的驱动直接读那个键（2.5.1 `interrupt.py:95`）。3.x/4.x 改成**先取 `parent`、
-   没有才退回 `controller`**（4.0.0 `interrupt.py:138`）。所以从 2.x 搬代码时"读 `parent` 读到
-   `None`"不是 bug，是键名搬家。
+1. 取针的 `raw_irq`（针的字典里的键是 **`controller`/`index`/`raw_irq`**，4.0.0 `interrupt.py:138-141`
+   读的就是这几个；**`parent` 从来不是解析器写进去的键**——
+   `grep -rn "'controller'\|\"controller\"" pynq/` 在 4.0.0 交出
+   `pl_server/hwh_parser.py:441: "controller": parent`（左边是字典键名，右边的 `parent` 是个**局部变量**），
+   加上 `overlay.py:280`、`pl.py:383`、`hwh_parser.py:101` 三处文档字符串都写
+   `{str: {'controller' : str, 'index' : int}}`；**同一棵树里 `"parent"` 作为键 0 命中**，
+   正向对照是同一条 grep 在 `interrupt.py:138` 命中了读它的那一行）。
+   **先前这里写的"'controller'→'parent' 键名搬家、读 `parent` 读到 `None` 不是 bug"是错的**，两处都错：
+   键名没搬家（五棵树的解析器都只写 `controller`），而且取不到键时是 **`KeyError`，不是 `None`**。
+   `interrupt.py:138` 那句 `parent = entry['parent'] if 'parent' in entry else entry['controller']`
+   是一个**永远走不到前一支的兜底**（写侧没有那个键），它存在的最早版本是 **2.7.0 `:167`**
+   （不是"3.x/4.x 才改的"；3.0.1 `:138`、4.0.0 `:138` 同一句），2.5.1 `:95` 是直接
+   `entry['controller']`。所以从 2.x 搬代码时**不要**"顺手改成读 `parent`"——那才是把对的代码改坏。
 
 
 2. `get_uio_irq(raw_irq)` 扫 `/proc/interrupts`，**判的是倒数第三列等于 `str(raw_irq)`、
@@ -80,8 +87,10 @@ UIO 节点由 `.dtbo` 声明，所以这一支查不出来时回到 `overlay-met
 这三行里的动词都直接抄自上游注释，不是本包给寄存器的命名。
 **表里的行号按版本各数过一次**：`write(0x08, 0)`、`read(0x04)`、`write(0x14, …)`、`write(0x0C, irqs)`、
 `write(0x10, …)`、`write(0x1C, 0x00000003)` 这六处在 3.0.1/3.1.2/4.0.0 **完全同位**
-（`:174`/`:188`/`:195`/`:205`/`:227`/`:233`）；2.5.1 整体后移到 `:183`/`:207`/`:214`/`:224`/`:246`/`:252`，
-2.7.0 在 `:203`/`:217`/`:224`/`:234`/`:256`/`:262`。**寄存器地址与写法一版都没变，变的只有行号**——
+（`:174`/`:188`/`:195`/`:205`/`:227`/`:233`）；2.5.1 的对应行是 `:183`/`:207`/`:214`/`:224`/`:246`/`:252`，
+**别按"整体后移多少行"去推**——本机这六个数与 4.0.0 的差是 `+9, +19, +19, +19, +19, +19`，
+第一对与其余不是一个偏移量（2.7.0 又是另一组：`:203`/`:217`/`:224`/`:234`/`:256`/`:262`）。
+**寄存器地址与写法一版都没变，变的只有行号**——
 所以这张表的能力结论可以跨版搬，行号不能。
 
 三条从这张表的**形状**里掉出来的结论，比表本身更常用于排查：
@@ -108,9 +117,16 @@ UIO 节点由 `.dtbo` 声明，所以这一支查不出来时回到 `overlay-met
 所以"它认到的是哪个实例"可以用同一张 `ip_dict` 核对，而不是靠你猜地址。
 
 **用户真正要做的是让中断源自己发中断**：绝大多数 AXI IP 的中断输出要由 IP 自己的控制位使能。
-AXI DMA 就是现成的例子：`start()` 只在 `description["interrupts"]` 里有 `mm2s_introut`/`s2mm_introut`
-时才会把 DMACR 的 `0x1000`（interrupt enable）一并写上（`lib/dma.py:671`、`:728`；写入值的完整条件表
-——含"只有 cyclic 模式才会多置的那一位"——在 `dma-channels.md` §1 第 4 条，本文不重讲）。
+AXI DMA 就是现成的例子：`start()` 只在 `self._interrupt` 为真时才把 DMACR 的 `0x1000`
+（interrupt enable）与 `RS` 一起写上——写入那一行在 **`lib/dma.py:90`（SDMA）与 `:291`/`:296`（SG，
+cyclic 那支多 `0x10`）**，不是下面这两个连线处；`:671`、`:728` 是**决定 `_interrupt` 有没有被建起来**的地方
+（`if "mm2s_introut" in self.description["interrupts"]:` / `s2mm_introut`），
+`0.1001` 与 `0.0001` 的分支就是 `:89-92`、`:289-298` 那两组。
+（**先前这里把 `:671`/`:728` 写成"把 DMACR 一并写上"的那一行**——归属错了：那两处一个 `set` 都没做，
+只挑要不要建带中断的通道。）写入值的完整条件表
+——含"只有 cyclic 模式才会多置的那一位"——在 `dma-channels.md` §1 第 4 条，本文不重讲。
+**这条版本线也值得记住**：`0x1001` 这种"带中断使能"的写法在 2.5.1 只有 SDMA 一处（`:86`）、
+2.7.0 两处（`:124`/`:328`）且**都还没有 cyclic 的 `0x1011`**（3.0.1 起才有 `:292`）。
 所以"中断不来的五步分诊"是：
 
 1. `PL.interrupt_pins` 里有没有这个针？
@@ -277,7 +293,13 @@ async def run_once(dma, src, dst, irq_obj, seconds=2.0):
    真正的通路读数：`bool(dma.sendchannel._interrupt)` 与
    `dma.description.get("interrupts", {})`（详见 `dma-channels.md` §2）。
 - 同理别用"能不能 import 到某个驱动名"当"这块 IP 有驱动"的判据——驱动是**按 VLNV 字符串**绑的：
-   `bindto = ["xilinx.com:ip:axi_dma:7.1"]`（`lib/dma.py:758`），版本对不上就悄悄退回
-   `DefaultIP`（`overlay.py:58-80`），不报 ImportError。判据用
+   `bindto = ["xilinx.com:ip:axi_dma:7.1"]`（`lib/dma.py:758`），**退回 `DefaultIP` 有两条臂，
+   一条响一条不响**（4.0.0 `overlay.py:58-82`，`_complete_description` 之前那一段）：
+   **名字对得上、版本号对不上**（`no_version_ip in _ip_drivers` 那一支）走 `:72-79`，
+   发一条 `warnings.warn(message, UserWarning)`（原文形状
+   `IP {fullpath} is of type {type} and driver found for [{其它版本列表}]. Use ignore_version=True to use this driver.`）
+   然后在 `:80` 设 `DefaultIP`；**连名字（去掉版本之后）都不在表里**的那支是 `:81-82`，
+   **一句都不发**、直接 `DefaultIP`。所以"悄悄"只成立于后一支，**先前这里把两条都写成静默是错的**；
+   两支都不报 ImportError。判据用
    `type(getattr(ol, 'axi_dma_0')).__name__` 打一次，或查 `overlay.ip_dict[name]['type']`
    与 `bindto` 的字符串是否完全相等。

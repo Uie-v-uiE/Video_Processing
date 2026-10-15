@@ -33,8 +33,35 @@ md5sum build/top.bit build/app.elf > board/fp.txt   # 记：哪个文件、哪�
 md5sum -c board/fp.txt                              # 问：这几个文件换过没有
 ```
 
-**这条只能在 shell 里跑**：Vivado 的 Tcl 里**没有** `md5sum` 这条命令
-（本机：`invalid command name "md5sum"`；`file exists`/`file size`/`file mtime`/`file stat` 才有）。
+**这条命令名在 Vivado 的 Tcl 里不存在，但 `exec` 能把它送出去**（本机两条都在同一会话取过）：
+裸写 `md5sum probe.txt` → **rc=1 + `invalid command name "md5sum"`**，
+并且日志里先有一条 `WARNING: [Common 17-259] Unknown Tcl command 'md5sum probe.txt'
+sending command to the OS shell for execution. It is recommended to use 'exec' …`
+（**这条 WARNING 在日志里并不挨在它那条命令旁边**：本机那份会话输出里它落在
+"上一条 `puts` 的结果"与"`md5sum probe.txt` 这条命令的回显"**之间**，
+同一份日志里 `open_hw_manager: Time (s): …` 也跑到了它自己那行回显的前面。
+**所以批处理日志里"消息挨着哪条命令"不能用来归属消息**——要归属就自己打带 tag 的 `puts`，
+按 tag 找，别按行邻接找）；写成 **`exec md5sum probe.txt` → rc=0**，交回
+`af5597c29467a96523a70787c319f4db *probe.txt`（GNU coreutils 那一族的输出格式，前面带 `*` 表示二进制）。
+所以"要在工具会话里算哈希"是可行的，只是必须走 `exec`。
+**"缺文件时打什么字样"要先说你跑的是哪一种模式**（本机 GNU coreutils 8.32，两臂都自己跑过）：
+- **普通模式 `md5sum a.bin b.bin`**：存在的文件只打一行 `<hash> *a.bin`（rc=0）；
+  缺的那个多打一行 `md5sum: b.bin: No such file or directory` 且 **rc=1**；
+  混合（一有一缺）就只有这两行加 rc=1——**普通模式没有任何 per-file 状态词**，
+  既没有 `OK`/`FAILED`，也**没有 `MISSING`**。所以"用 grep 找 MISSING"在这族上永远找不到，
+  这条 0 命中的正向对照就是同一次跑里 `-c` 那一臂（下一条）确实打出了状态词。
+- **校验模式 `md5sum -c fp.txt`**：每个条目一行状态——`probe.txt: OK`、
+  读不到的那条是 `…: FAILED open or read`（前面还跟一行 `md5sum: …: No such file or directory`）、
+  值不符的是 `probe.txt: FAILED`，末尾**两条不同的 WARNING**：
+  `WARNING: 1 listed file could not be read` 与 `WARNING: 1 computed checksum did NOT match`，rc=1。
+  **这两类坏是不同的行，别合成一个"md5 不匹配"**：一条是文件不在，一条是内容变了。
+板上那个 rootfs 若是另一族 `md5sum`，它打什么本机没有读数——**先照上面两臂在板上各跑一次**
+（一次全存在、一次故意缺一个），把那一族的原文抄进记录，再写解析。
+**判"取到了什么对象"用 `file exists`/`file size`/`file mtime`/`file stat` 这一族**——
+注意这一族是 ensemble 子命令，**`info commands {file exists}` 查它是空的**
+（本包 `SKILL.md` 用法段记过这个盲区）：证明它们在的写法是**真调一次**
+（本机在同一些会话里调过 `file exists`（返回 1/0）与 `file size`（返回字节数），
+`file stat` 这一条本机没调过，只到这里存在）。
 所以要在工具会话里判"是不是的产物"，取 `file mtime` 加 `size` 这一对，
 哈希那一步回到 shell 做——同一个形状的另一个落点见 `onchip-debug.md` §3 的 `.ltx` 判据。
 
@@ -154,7 +181,18 @@ WARNING: -padimageheader was requested, but no images were specified.
 
 ## 3. 上电自检顺序（每步都要一个读数）
 
-1. **起 hw_server**，再接客户端。连不上先确认服务在不在、TCP 端口有没有第二个实例在监听。
+1. **"连上了"不是"接上板了"**（本机没有板，这条是把整步的判据重排过）：
+   `open_hw_manager` **rc=0**，`connect_hw_server` 也 **rc=0**、交回的是 `localhost:3121`，
+   日志里还有一条 `INFO: [Labtools 27-2222] Launching hw_server...`——
+   **它自己会把服务拉起来**，所以"连不上先确认服务在不在"这个顺序在这版上不成立：
+   三步全绿而一块板都没接。真正的门是下一条读数：
+   `get_hw_devices` 在这里交回 **0 个** +
+   `WARNING: [Labtoolstcl 44-128] No matching hw_devices were found.`。
+   **所以顺序是：先 `connect_hw_server`，再数 `get_hw_devices` 的个数并把个数原样打出来**
+   （本机：`rc=0`、`llength` = **0**、`catch` 的 msg 是**空串**——那条 44-128 只在日志里，
+   又一次说明"只打 rc 与 msg"会把它吞掉）；个数为 0 时后面所有 `program_hw_*` 都别跑，
+   因为**连 `current_hw_device` 在没有设备时也是 rc=0、msg 空**（本机取过），
+   它不会替你拦住下一步。
 2. **JTAG 起 PS**：初始化 + 内存写读。初始化那一步用的是 Vitis 生成的 `ps7_init.tcl`
    （**`ps7_init` 不是任何控制台的内建命令**，安装树里也没有现成文件；它是构建产物，
    没有它就换一块板子重跑生成），内存写读用 xsdb 的 `mrd`/`mwr`
