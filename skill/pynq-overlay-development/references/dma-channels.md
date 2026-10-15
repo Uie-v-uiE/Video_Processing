@@ -6,6 +6,26 @@
 
 `pynq.lib.dma.DMA` 是挂在 IP 实例上的驱动（用 `getattr(ol, 'axi_dma_0')`，不要自己 new；
 传错参数会拿到 `RuntimeError: You appear to want the old DMA driver which has been deprecated...`）。
+**这条守卫本身按版本变，两件事都要知道**：
+①**判据不一样**——严格那一支是 `if type(description) is not dict or args or kwargs:`
+（2.5.1 `lib/dma.py:186`、2.7.0 `lib/dma.py:584`，`raise` 各在 `:187`、`:585`）；
+放宽那一支是 `if type(description) not in [dict, ReprDict] or args or kwargs:`
+（3.0.1 `lib/dma.py:587`、3.1.2 与 4.0.0 `lib/dma.py:595`，`raise` 各在 `:588`、`:596`）——
+也就是说**同一个入参形状在 2.5.1/2.7.0 会抛、在 3.0.1 及以后不会**：
+`PL.ip_dict[<IP 名>]` 交回来的是 `ReprDict`（4.0.0 `utils.py:119` 那个是转发壳：
+`class ReprDict(pynqutils.runtime.ReprDict)`，真身在 `pynqutils.runtime`——
+**那份包五棵树里都没有、主机也没装**：逐版 `find pynq-<版> -type d -name pynqutils` 各 0 个、
+`importlib.util.find_spec("pynqutils")` 交回 `None`（正向对照就是 `utils.py:119` 这一行确实引用了它），
+所以它的基类**本机不可核**，别去猜 `ReprDict` 到底继不继承 `dict`）。
+**注意两支都是 `type(...)` 精确比较**（`is not dict` / `not in [dict, ReprDict]`），
+差别只是 3.0.1 起把 `ReprDict` 也点名放行——所以"我自己套一层 dict 子类传进去"在两版都过不去，
+这条是 Python 语义不是读数。
+②**别照着消息去找那个模块**：文案给的去处 `pynq.lib.deprecated` 在**五棵树里都不存在**
+（`ls pynq-<版>/pynq/lib/deprecated` 五版都没有这个目录；
+同一次 `grep -rn "lib\.deprecated"` 在五版的唯一命中就是这条消息自己的字符串——
+2.5.1 `:189`、4.0.0 `:599`，正向对照即此），
+所以"按提示 import 回来"这条路是死的；真正的修法只有把调用形状改对：**用 `getattr(ol, <IP 名>)` 拿驱动，
+不要自己 `DMA(some_thing)`**；确实要自己构造，就传一条能让守卫认得的字典形状。
 
 **一处文档与实现互相矛盾的地方，按实现走：**官方 `doc_dma.rst` 写着
 "The *DMA* class supports simple mode only."，而 `lib/dma.py` 里明明白白有

@@ -19,16 +19,25 @@ license: MIT
 `invalid command name "write_project_xpr"`。所以 **`info commands` 空不足为凭，`-help` 能打出用法就是存在；
 只有 `invalid command name` 才是否定证据**（在你要用的那个上下文里试——`load_features` 的那几个合法特性名见
 `references/onchip-debug.md` §1）。别把另一路 `help <命令>`（Tcl 帮助系统）混进来，它对同样的东西会给
-`[Common 17-25] No topics matched`。同理，`get_property` 遇到"名字不对"有**两种本机都遇到过的报法，
-而哪种对应哪一类对象并不由名字的形状预测**：`get_property CLOCK [get_ports X]` 回空并跟一条
-`[Common 17-673]` 告警；`get_property PROBE_TYPE [get_debug_ports dbg_hub/clk]`（钟端口没有这个属性）
+`[Common 17-25] No topics matched`。同理，`get_property` 遇到"名字不对"的报法**由对象类决定，
+不由名字的形状预测**（下面这四类本机都各自有臂；`references/vivado-build-run.md` §2 是明细）：
+`get_property CLOCK [get_ports clk]` 在一个已综合的设计上给 **rc=0、空串、`catch` 里没有消息、
+日志里也没有 17-673**（同一臂的正向对照：`list_property [get_ports clk]` 交回 **62 项**、
+`PULLTYPE` 在清单内而 `DIR`/`CLOCK` 不在——所以这一类上"空串"与"名字不存在"根本分不开，
+**别把它写成"会跟一条告警"**）；
+`get_property PROBE_TYPE [get_debug_ports dbg_hub/clk]`（钟端口没有这个属性）
 报 `[Vivado 12-4442] Invalid property name`，是 **ERROR——不包 `catch` 就把整个 batch 会话从那一行截断**，
 后面所有读数都不会打印（对象取空时同理，`[Common 17-55] expects at least one object`）。
 所以"读回来是空"和"这句没报错"都不能当依据，**判"这个名字在这层存在不存在"只看
 `list_property <这个对象>`**——它是逐对象的，不是全局表。
-这条还**分对象族**，两边的失败形状不一样：run 对象上读一个编出来的属性名（本机试的是 `IS_IMPL`）
-给的是 **rc=0 + 空串、一句错都不报**（同一会话读 `NAME` 返回 `impl_1`，证明那条 `get_property` 在干活）；
-上面那种 `12-4442` 只出现在 debug port 那一族。所以"空串"永远分不清是值为空还是名字不存在。
+这条还**分对象族**，四族的失败形状都不一样：run 类对象上读一个编出来的属性名给
+**rc=0 + 空串 + 一条 `[Common 17-673]` WARNING**（消息只进日志、不进 `catch` 的 msg——
+只看 `catch` 会把它读成"什么都没报"）；`fileset` 与上面的 `port` 一样是**全静默**那一类；
+`project` 是 **rc=1 + `[Common 17-54]`**。
+run 类里还有第三种形状：属性名是真的、只是这一版还没出值，于是"空串"在 run 上要按**有没有伴随
+17-673** 拆成两种判据，而这一抓手在 `port`/`fileset` 上不存在（它们全静默）。四族的形状、那条
+WARNING 为什么不进 `catch` 的 msg、以及各层清单项数怎么取，出处都在
+`references/vivado-build-run.md` §1 的那份对象族清单——引用具体读数去那里抄，别在这里复述。
 工具不在 PATH 不等于没装：Vivado 命令行在 `<安装根>/Vivado/bin`，ModelSim 在 `<安装根>/modelsim/win64`。
 
 ## 1. 九条硬规则（结论与读数的配对）
@@ -58,7 +67,7 @@ license: MIT
 7. **给数字要给口径**：同一口径重复若干次的原始读数，写明计数窗口、时钟频率、取最差还是中位。
 8. **一次改动跨 RTL / 固件 / 上位机三个域，就分三处收证据**，不许合成一句"改完验证通过"。
 9. **三种"看着像读数"的东西不是判据**：命令返回码（**"名字合法、对象/方向不对"才可能返 0**，
-   §7 那条 `set_property PULLUP true [get_ports <输入脚>]` 就是这种——把它查得更细：
+   `references/constraints-timing.md` §7 那条 `set_property PULLUP true [get_ports <输入脚>]` 就是这种——把它查得更细：
    这个名字**写之前不在 `list_property` 清单里、写完之后就在了**，所以"清单里没有"与"能读回值"
    都抓不住它；真会红的是写的时候那句 `[Netlist 29-177] Cannot set property 'CLOCK' because the
    property does not exist.`；
@@ -153,7 +162,7 @@ license: MIT
 | 工程结构、文件集与编译顺序、源没进综合 | `references/vivado-project-bd.md` §1 |
 | BD 的验证与 cell 改名的连锁 | `references/vivado-project-bd.md` §2 |
 | 把 BD 倒成脚本、**PS 配置项的 `PCW_*` 参数名**去哪查、IP 版本状态表与 `upgrade_*` 的坑 | `references/vivado-project-bd.md` §2.1 |
-| **自己的 RTL 进了 BD 却拿不到地址/连不上接口**（`BD 41-1285` 协议不匹配、`assign_bd_address` 没落点、`OFFSET` 读回来是空） | `references/vivado-project-bd.md` §2.2 |
+| **自己的 RTL 进了 BD 却拿不到地址/连不上接口**（`assign_bd_address` 没落点、`OFFSET` 读回来是空 → §2.2；`BD 41-1285` 协议不匹配那条在 §2） | `references/vivado-project-bd.md` §2.2 |
 | 导出 `.xsa` 与整组配套、交给 PS 侧的那份文件；**`write_hw_platform` rc=0 也生成了文件，对面却说没有 hwh/没有位流** | `references/vivado-project-bd.md` §3 |
 | BD 里改了但重新生成后没生效；或**下一个会话里 BD 的 cell/地址全都数不到**（没 `save_bd_design`） | `references/vivado-project-bd.md` §4 |
 | run 的状态怎么读（`STATUS` 那一串）、`launch_runs` 立刻返回却什么都没 | `references/vivado-build-run.md` §1 |
@@ -165,7 +174,7 @@ license: MIT
 | 命令明明在（`-help` 打得开），选项却报 `Unknown option`；或 `launch_runs` 返回 0 却没提交你要的那个 run | `references/vivado-build-run.md` §6 |
 | 把构建交给同事、或**同一工程两台机器结果不同**，要能复核同一版 | `references/vivado-build-run.md` §7 |
 | 构建中途报错、报 `needs to be reset` 不让重跑、重跑把上一版产物复用、run 之间抢同一份中间文件、同一策略重跑两次报告**差出第三种行** | `references/vivado-build-run.md` §8 |
-| 连不上板、JTAG 通道被占、对象链找不到 target；离线跑 `hw_*` 一律先报 `44-235` | `references/onchip-debug.md` §1 |
+| 连不上板、JTAG 通道被占、对象链找不到 target；离线跑 `hw_*` 各停在**不同**的一处（不是"一律 44-235"：`get_hw_ilas`/`current_hw_ila` 给 rc=0 空串，`run_hw_ila`/`wait_on_hw_ila`/`upload_hw_ila_data` 给 `44-8`，只有 `write_hw_ila_data` 在裸会话给 `44-235`） | `references/onchip-debug.md` §1 |
 | 插了探针之后时序变差、能不能拿调试版的数字当交付结论 | `references/onchip-debug.md` §2 |
 | 核是怎么进网表的：IP 那条路与网表手术那条路的命令名与坑 | `references/onchip-debug.md` §2.1 |
 | 抓取与触发这一族有哪些名字、为什么本机给不出参数级用法、七步顺序长什么样 | `references/onchip-debug.md` §2.2 |
@@ -220,11 +229,12 @@ license: MIT
   按能被最快推翻的顺序走：① `llength` 取命中集合（`constraints-timing.md` §2，空就是它）；
   ② 报告里那条路径还在不在（`constraints-timing.md` §4 第 4 条，`No paths found` 而返回码 0 也是"没了"）；
   ③ 两条都正常才去 `rtl-pipeline-cdc.md` §5 查常量传播。
-- **"两次读数不一样"的三行**：**同机同版本同策略的干净重跑本来就该逐字一致**——本机一组读数把这条
-  钉住了（`reset_runs` 后重跑，两份 337 行的 `report_timing_summary` 只差 `Date` 与命令回显两行，
-  WNS/TNS 逐字相同，判据与"差出第三行该查哪五个变量"在 `vivado-build-run.md` §8）。
-  所以**"差一点点"不是要吸收掉的波动，而是有输入变了的证据**；先 diff 再决定要不要重跑，
-  别再跑第三次凑多数。换了机器或版本=先 diff 交接五件套的前两条
+- **"两次读数不一样"的三行**：**同机同版本同策略的干净重跑不该有实质差异**——本机两组读数把这条钉住了
+  （`reset_runs` 后重跑：命令行完全相同的那一对只差第 4 行 `Date` **一行**；`-file` 给了两个不同路径的
+  那一对差 `Date` 与命令回显**两行**；两对的 WNS/TNS 都逐字相同。**行数由设计决定，337 行与 621 行是
+  两份不同设计，别拿行数当判据**）。所以**"差一点点"不是要吸收掉的波动，而是有输入变了的证据**；
+  先 diff 再决定要不要重跑，别再跑第三次凑多数。差到第三行该查哪五个变量、判据的取法在
+  `vivado-build-run.md` §8。换了机器或版本=先 diff 交接五件套的前两条
   （`vivado-build-run.md` §7：驱动 tcl、part 全名含速度等级）；"改完这一处值不值得再开一轮"
   才是 `constraints-timing.md` §5（估收益上限，它不比读数差异）。
 - **ILA 那一组行的问法是"我现在缺什么"**：缺命令名→§2.1；缺"这个数字算哪个版本、能不能拿它签字"
@@ -316,10 +326,20 @@ license: MIT
   从此由启动介质决定。PYNQ 运行时侧还有两件同类的（往 `/sys/kernel/config/device-tree/overlays` 写、
   改启动镜像/板级设置），见 `pynq-overlay-development/SKILL.md` 的"危险动作"；两边清单合起来看，
   任何一边都不暗示另一边是安全的。
-- hw_server 允许多个只读客户端；互斥的是**写类操作**与第二个 hw_server 进程。串口独占。
-- 插调试核（ILA/VIO）是一次**网表变更**，插完之后构建要重跑一遍才算数：走 IP 那条路要重综合，
-  走网表手术那条路本机只测到"综合之后插核 → 存盘 → 重开 → `implement_debug_core` → 出 `.ltx`"
-  这一串，**整轮实现没跑过**（`references/onchip-debug.md` §2.1 末段把这条界线写明了）。
+- hw_server 上**要独占的是写类操作（下载、擦写）与第二个 hw_server 进程**；"多个只读客户端能否共存"
+  本机**没有臂**（没板子，两个客户端抢一条链的形状取不到），所以它不是"我挂个只读不影响别人"的许可——
+  这条口径的出处与未测声明在 `references/onchip-debug.md` §1 末段与 `references/board-bringup.md` §7
+  第 5 条。串口同理按独占处理：抢不到先列出现存占用者（另一个 Vivado、hw_server 的另一个会话、
+  Vitis/xsdb），不要靠反复重连试探。
+  相关的一条**本机读数**：`open_hw_manager` 自己就会拉起 hw_server（日志
+  `INFO: [Labtools 27-2222] Launching hw_server...`），随后 `connect_hw_server` 在**没有任何板子**的
+  这台机器上给 **rc=0 与 `localhost:3121`**，报错的是下一步 `open_hw_target`
+  （`[Labtoolstcl 44-469] There is no current hw_target.`）⇒ **"连上了"不等于链路上有东西**，
+  判"有没有 target"要读到 `open_hw_target` 那一层，别拿 `connect_hw_server` 的 0 当依据。
+- 插调试核（ILA/VIO）是一次**网表变更**，插完之后构建要重跑一遍才算数：**"走 IP 那条配置流程要重新
+  综合"本机没有臂**（那是工具流程口径，不是读数）；本机只测到网表手术那条路——"综合之后插核 → 存盘 →
+  重开 → `implement_debug_core` → 出 `.ltx`"这一串，**整轮实现没跑过**，且 vio 上验证到的只到建核那几步
+  （`references/onchip-debug.md` §2.1 末段把这条界线写明了）。
   所以两种路都要自己把完整构建再跑一遍才算交付版：**带探针那一次的读数不能替交付那一次签字**。
 
 ## 6. 边界：这几类问题本包不给答案，只给下一步

@@ -32,11 +32,17 @@ Vivado 里从工具到板子是一串对象，每一环都可能连错，而且�
   `run_hw_ila hi` 给 `[Labtoolstcl 44-135] Invalid option value 'hi' specified for 'hw_ila'`——
   **同一种"选项值不合法"在两族里编号不同**（`Common 17-161` / `Labtoolstcl 44-135`），
   所以要按消息文本搜，别按 `Common`/`Labtoolstcl` 这个类别名搜，否则只看得见一半。
-- 语义层（离线判不了）：`write_hw_ila_data` **不给** `<file>` 直接停在 `44-235`，
-  所以"少给必填参数会报什么"取不到；`create_debug_core u_ila_0 ila`（形状合法）在
-  **内存里没有网表**时停在 `[Common 17-53] User Exception: No open project`。
-  调试那一族过不过 `17-53` 看的是**内存里有没有设计**，不是有没有工程：同一批命令在
-  `read_verilog`+`synth_design` 之后（仍未开工程）能走下去，见本页第 3 条规则。
+- 语义层（离线判不了）——**这一条本机自己收窄了一次**：`write_hw_ila_data` **不给** `<file>` 在裸会话
+  停在 `44-235`（labtools 未初始化那道门先拦），但同一条在 `open_hw_manager` 之后给
+  `[Common 17-163] Missing value for option 'file', please type 'write_hw_ila_data -help' for usage info.`
+  （本机 2026-10-15 两臂；两相表在 §2.2 末）——**"少给必填参数会报什么"取不取得到是会话相位的函数**，
+  不再是"一律取不到"。`create_debug_core u_ila_0 ila`（形状合法）在**内存里没有网表**时停在
+  `[Common 17-53] User Exception: No open project`，而同一批调试命令在 `open_hw_manager` 之后
+  （仍然没有设计）换成
+  `[Common 17-53] User Exception: No open design. Please open an elaborated, synthesized or implemented design before executing this command.`：
+  **过不过 `17-53` 看的是它要的那类对象在不在**（工程 / 设计 / hw_target），
+  **打回来的是哪一句 17-53 看的是会话相位**——两句的字符数不同（118 与 146），按文本搜才分得开。
+  同一批命令在 `read_verilog`+`synth_design` 之后（仍未开工程）能走下去，见本页第 3 条规则。
   **但"参数层行为一律离线取不到"这句也别写**，它取决于那个参数是不是必填：
   `run_hw_ila` 不带参数（`hw_ila` 是可选的、缺省取当前那份）在**没 `load_features`、没开 hw 会话**的
   会话里就直接给 `[Labtoolstcl 44-8] Current hw_ila is not set and <hw_ilas> option is empty.`
@@ -216,10 +222,16 @@ modify_debug_ports  [-probes <args>] [-quiet] [-verbose]
 `report_debug_core` **不接受位置参数**：`report_debug_core u_ila_dbg` 报
 `[Common 17-165] Too many positional options when parsing 'u_ila_dbg'`——裸调它就把整个设计里
 所有核的参数表与 channel 表打出来（列里有 `MARK_DEBUG` 与 `Net Name`）。
-**但别把那张表当成连接判据（本机的一份读数就是反例）**：在 `implement_debug_core` **之前**取它，
-即使 `connect_debug_port` 一个字没报错、`MARK_DEBUG` 与 `Net Name` 两格也还是空的——核这时还是
-"建了没落地"的状态（就是 §2.1 里那条 `12-5829`（核建了但没 implement 那一坑）的同一件事）。所以顺序是：
-先按 §2 的读回判"网可达"，落地之后再取一次这张表，才有判读价值。
+**这张表能读，但它读的是"哪一路探针后面有网"，不是"核落地了没有"**（早先这里写"在
+`implement_debug_core` **之前**取它，即使 `connect_debug_port` 一个字没报错、`MARK_DEBUG` 与 `Net Name`
+两格也还是空的"——**本机 2026-10-15 的那份 `a4.dcp` 把它推翻了，收回**）。反例的读数：`a4.dcp` 正是
+`implement_debug_core` **之前**存的盘，`report_debug_core -return_string` 给 **4537 字符 / 92 行**，
+端口表里绝大多数格子都有值——`clk` 行 `Net Type=signal`、`MARK_DEBUG=false`、`Net Name=clk_IBUF_BUFG`；
+`probe0` 行 `MARK_DEBUG=true`、`Net Name=clk_IBUF`（它连的是 `get_nets -hier -filter {MARK_DEBUG == 1}`
+取到的那一条）；**唯一三格全空**（`Net Type`/`MARK_DEBUG`/`Net Name`）的是 `probe1` 那一行，而 `probe1`
+正是脚本里 `create_debug_port u_ila_dbg probe` 新建出来、**从没 `connect_debug_port` 过**的那一路。
+⇒ 正确用法是**逐行看空格**：某一行的 `Net Name` 空 = 这一路没落到网上；"核建了但没落地"的信号仍然是
+§2.1 那条 `12-5829`，两件事别混。判"网可达"先按 §2 的读回，这张表用来定位"是哪一路没接上"。
 `connect_debug_cores` 的选项表取到了（3756 字符）：语法行是
 `connect_debug_cores -master <args> -slaves <args> [-quiet] [-verbose]`，说明是"把 debug slave 核
 连到 master（debug bridge / debug hub，且 master 要配成 From BSCAN To DebugHUB 模式）"，
@@ -490,10 +502,21 @@ write_debug_probes -force ./design             ;# ⑪ 产出 design.ltx；判据
 （`*bd_*` 的 glob 计数在同一台机器上依次是 **3 → 58 → 61**，所以"扫得到多少"本身也是相位的函数）。
 硬件管理器那一族同理：`connect_hw_server`、`open_hw_target`、`program_hw_cfgmem`、`get_hw_ilas`、
 `run_hw_ila` 先都读 0，调用一次 `connect_hw_server`（它失败在
-`[Labtools 44-235] The labtools system is not initialized. You must execute 'open_hw_manager'…`）
-之后五个一起变 1。`auto_load` 也补不全：把两份文档 ```tcl 代码块里出现的 **71** 个命令名逐个问一遍，
+`[Labtoolstcl 44-235] The labtools system is not initialized. You must execute 'open_hw_manager'…`）
+之后五个一起变 1。**类别名是 `Labtoolstcl` 不是 `Labtools`**（本机 2026-10-15 那一臂的日志里
+`Labtoolstcl 44-` 命中、`Labtools 44-` **0** 命中；正向对照就是同一批日志里的
+`INFO: [Labtools 27-2285] Connecting to hw_server url TCP:localhost:3121` 与
+`INFO: [Labtools 27-2222] Launching hw_server...`——`27-####` 那族确实写成 `Labtools`，
+所以"按 `Labtools` 搜"既会漏 44 也会撞进 27）。
+**但"这一族离线全都停在 44-235"不成立**：同一个裸会话里 `get_hw_ilas` 给 **rc=0、空串**，
+只在日志里留一条 `WARNING: [Labtoolstcl 44-130] No matching hw_ilas were found.`——
+它是"空集合 + 一条 WARNING"那一族，和"抛 44-235"那一族要分开读。`auto_load` 也补不全：把两份文档 ```tcl 代码块里出现的 **71** 个命令名逐个问一遍，
 70 个能经 `info commands` 或 `auto_load` 落实，**唯独 `wait_on_run` 两条路都读 0**，
-而调用它得到 `[Common 17-162] Invalid option value specified for '-runs'`——**命令在，是我的参数不对**。
+而裸调它得到 `[Common 17-163] Missing value for option 'runs', please type 'wait_on_runs -help' for
+usage info.`——**命令在，是缺必填参数**（本机 2026-10-15 重跑；早先这里写的
+`[Common 17-162] Invalid option value specified for '-runs'` 不是这一臂的读数：17-162 要
+`wait_on_run -runs <不存在的值>` 才出，两种失败别混）。帮助打头的那一行是 `wait_on_runs`（复数形式，
+前缀别名），所以"`info commands wait_on_run` 读 0"与"这条命令能用"不矛盾。
 于是判"这个名字不存在"的**唯一信号是 `invalid command name "<名字>"`**
 （本机 `program_cfgmem`、`ipx`、`export_bd_tcl`、`md5sum` 走的都是这一条），不是计数为 0。
 想验"在不在"也别真去调用一条会做事的命令：用 `eval $name` 批量试探时**真的执行了一次
@@ -522,15 +545,42 @@ write_hw_ila_data  display_hw_ila_data
 ```tcl
 get_hw_ilas              ;# ① 认对象（可能不止一个核）
 current_hw_ila           ;# ② 必要时显式指定，别接受默认
-apply_hw_ila_trigger     ;# ③ 布触发条件
+apply_hw_ila_trigger     ;# ③ startup 触发支路（不是"布触发条件"那一步，见下）
 run_hw_ila               ;# ④ 起抓
-wait_on_hw_ila           ;# ⑤ 等这一次抓取结束（判"等到没有"就用它）
+wait_on_hw_ila           ;# ⑤ 等这一次抓取结束（判"等到没有"别用它，见 §2.2 末）
 upload_hw_ila_data       ;# ⑥ 取回数据
 write_hw_ila_data        ;# ⑦ 落盘（.ila/.csv/.vcd）
 ```
 
-①…⑦ 这七条都能 `-help` 打出用法；**顺序与"谁是等待者"只能按各自帮助文本的描述排**——
-离线时它们全部停在 `44-235`（§1 开头），所以第一次连上板子时要逐个跑一遍，再固化进脚本。
+**③ 那一行按帮助原文不是"布触发条件"**：`apply_hw_ila_trigger -help` 的自述是
+"Apply trigger at startup init values to an ILA core in the design"，语法行是
+`apply_hw_ila_trigger  [-ila_cell <arg>] [-quiet] [-verbose] [<file>]`，正文写它读的是
+`run_hw_ila -file` 写出的那份 trigger configuration file（帮助里的例子给的是
+`apply_hw_ila_trigger C:/Data/ila1_triggers.tas`），用途是"让核在器件配置完成、startup 之后立刻按这些
+条件触发"。**正常在线流程里"布触发"是另一件事**：帮助文本把下一步写成
+`set_property CONTROL.* [current_hw_ila]`（本机只读到帮助文本这一层——离线没有 `hw_ila` 对象可设，
+`CONTROL.*` 这一族**未测**）。所以 ③ 是一条**可选的 startup 支路**；把它当成"设触发的那一步"，
+七步走完没有任何一步设过触发。
+
+**这七步离线各停在不同的地方**（本机 2026-10-15 两臂，无板；引的都是 `catch` 的 msg 原文首条）：
+
+| 步 | 裸会话（没开 hw_manager） | `open_hw_manager` + `connect_hw_server` 之后 |
+|---|---|---|
+| ① `get_hw_ilas` | rc=0、空串；日志里一条 `WARNING: [Labtoolstcl 44-130] No matching hw_ilas were found.` | 同样 rc=0、空串 |
+| ② `current_hw_ila` | rc=0、空串 | 同样 rc=0、空串 |
+| ③ `apply_hw_ila_trigger` | `[Common 17-53] User Exception: No open project …` | `[Common 17-53] User Exception: No open design …` |
+| ④ `run_hw_ila` | `[Labtoolstcl 44-8] Current hw_ila is not set and <hw_ilas> option is empty.` | 同 44-8 |
+| ⑤ `wait_on_hw_ila` | 同 44-8 | 同 44-8 |
+| ⑥ `upload_hw_ila_data` | msg 只有一条包装 `[Common 17-39] 'upload_hw_ila_data' failed due to earlier errors.`，真错（44-8）在日志的上一行 | 同上 |
+| ⑦ `write_hw_ila_data` | `[Labtoolstcl 44-235] The labtools system is not initialized …` | `[Common 17-163] Missing value for option 'file' …` |
+
+⇒ 一局里三件事顺手被改掉：①② 属于"空集合 + 日志一条告警"那一族，**不是** 44-235；⑥ 的 msg 又是
+`17-39` 包装（本页"catch 抓到的 msg 只有一条包装"那条的第二次命中）；⑦ 在 `open_hw_manager` 之后
+**必填参数缺失离线就判得掉**（见下一条）。附带一条：`connect_hw_server` 在 `open_hw_manager` 之后给
+**rc=0 与 `localhost:3121`**（`open_hw_manager` 自己就把 hw_server 拉起来了，日志里
+`INFO: [Labtools 27-2222] Launching hw_server...`），而紧接着 `open_hw_target` 仍报
+`[Labtoolstcl 44-469] There is no current hw_target.`——**"连上了"不代表链路上有东西**。
+所以第一次连上板子时要逐个跑一遍这七步，再固化进脚本；顺序按帮助文本排，别按"哪步离线红过"排。
 落盘是 `write_hw_ila_data`。本机 `-help` 的语法行是
 
 ```
@@ -542,12 +592,20 @@ write_hw_ila_data  [-force] [-csv_file] [-vcd_file] [-legacy_csv_file] [-quiet]
 不是本机测到的行为**），别把第二个 token 抄成
 `<hw_ila_data_object(s)>...`；要 CSV/VCD 用那两个开关，别自己转（帮助原文：默认扩展名
 `.ila`，`-csv_file` 默认 `.csv`，`-vcd_file` 默认 `.vcd`）。
-**"不给 `<file>` 会报缺参数"这句离线证不了**（本机：`write_hw_ila_data` 不给任何参数、或只给一个
-文件名，两条都停在 `[Labtoolstcl 44-235]`，见 §1 开头那张表）——所以**必填参数缺了会怎样**要么有板子要么别写。
-但**别把它读成"离线什么都判不了"**：同一台机器上 `write_hw_ila_data -bogus 1 x` 给的是
+**"不给 `<file>` 会报缺参数"这句离线证得了，但只在开过 `open_hw_manager` 之后**（本机 2026-10-15 两臂：
+裸会话里 `write_hw_ila_data` 不给参数、或只给一个文件名，两条都先停在
+`[Labtoolstcl 44-235]`——labtools 未初始化这道门在参数检查**之前**；`open_hw_manager` 之后同一条裸调给
+`[Common 17-163] Missing value for option 'file', please type 'write_hw_ila_data -help' for usage info.`）。
+所以这是**会话相位的函数**，不是"离线判不了"：判必填参数之前先确认自己在哪一相（上面那张两相表）。
+但**也别把它读成"离线什么都判不了"**：同一台机器上 `write_hw_ila_data -bogus 1 x` 给的是
 `[Common 17-170] Unknown option '-bogus'`，**选项名的拼写离线就判得掉**（§1 的"拼写层/语义层"那一段）。
-判"触发有没有等到"用 `wait_on_hw_ila`，别用 `sleep`+看一眼：那正是 `board-bringup.md` §5
-说的"等待本身不是判据，`wait_on_run` 之后仍要读 STATUS"在抓取这一侧的同一件事。
+`wait_on_hw_ila` **不能当"触发有没有等到"的判据**——它的 `-help` 自述是
+"This command operates silently, returning nothing if successful"（`-timeout <arg>` 单位是**分钟**、
+默认 No timeout；到点那一支返回什么，离线没有臂，**未测**），也就是说它天生不返回可读的东西；
+本机连对象那一层都没过（裸会话/开过 hw_manager 两相都给 `44-8 Current hw_ila is not set`），
+**这条判据在离线永远不会红**。别用 `sleep`+看一眼代替它，也别用它代替板上要读的那个东西：
+那正是 `board-bringup.md` §5 说的"等待本身不是判据，`wait_on_run` 之后仍要读 STATUS"在抓取这一侧的同一件事
+（等完之后读的是 `upload_hw_ila_data` 拿到的那份数据里有没有 capture 完成的证据，取法要板子）。
 `run_hw_ila -file` 是另一样东西（它的 `-help` 文本写着 trigger-at-startup、不给扩展名时补 `.tas`）；
 这是**帮助文本的内容**。帮助文本里"选项叫什么"离线可核（§1 拼写层），
 "给了之后发生什么"离线不可核（`run_hw_ila` 在本机连对象名那一层都没过：把一个名字当 `hw_ila` 传进去
@@ -682,7 +740,10 @@ ILA 数据是 `.ila`（`read_hw_ila_data`/`write_hw_ila_data` 的帮助都写明
   目标目录里什么都没有；加了 `-quiet` 连这条 INFO 都看不见（本机实测：`-quiet` 时一行都不印）。
   本机两条配套读数：① `write_debug_probes out.ltx` 在**有综合后网表、没有核、没开工程**的会话里
   rc=0 且 **msg 字段就是 `C:/…/p18/out.ltx`**，而 `ls *.ltx` 取到 "No such file or directory"；
-  ② 同一条命令在**内存里连网表都没有**时换成 rc=1 的 `[Common 17-53] No open project`。
+  ② 同一条命令在**内存里连网表都没有**时换成 rc=1 的 `[Common 17-53] User Exception: No open project…`；
+  同一句在 `open_hw_manager` 之后（仍然没有设计）打回的是
+  `No open design. Please open an elaborated, synthesized or implemented design before executing this command.`
+  ——**同编号、两种文本**，按文本搜才认得出自己在哪一相（§1 语义层那条给的两臂）。
   **所以"命令返回了一个路径字符串"不是文件存在的证据，`file exists` 也不是这一版的证据**（下面一条）。
   **这一步别加 `-quiet`**：要一起看的是 `file exists` 与消息里有没有 `16-244` 两件事；
   退出码只在区分"有核没 implement"（`12-5829`，rc=1）时才有信息，单独拿它当判据正是
@@ -724,7 +785,7 @@ ILA 数据是 `.ila`（`read_hw_ila_data`/`write_hw_ila_data` 的帮助都写明
 
 | 情况 | 为什么 | 代替做法 |
 |---|---|---|
-| 问题只在真实内存/带宽下出现（DDR 竞争、HP 口拥塞） | 探针的采样会改负载，插了就不复现 | 用可数的门（计数器、丢帧计数）在软件侧统计，见 `board-bringup.md` §6 |
+| 问题只在真实内存/带宽下出现（DDR 竞争、HP 口拥塞） | "探针的采样会改负载，所以插了就不复现"是这一族的**机理与常见叙事**。本页的读数全部是离线的命令形状（§1–§3 那三节给的就是它们的全部范围），里面没有任何一条量过负载变化，所以这句话不能当已验证的事实搬用 | 用可数的门（计数器、丢帧计数）在软件侧统计，见 `board-bringup.md` §6；要证"负载是插核改的"，在同一份设计上取"带核/不带核"两臂的同一口径读数 |
 | 现场没有 JTAG（只有 SD/QSPI 自启） | 物理上连不上 | 把状态搬到串口打印或寄存器回读 |
-| 现象是"一笔访问把 CPU 卡死" | 总线挂住时调试链路也受影响 | 按通路问题处理，见 `board-bringup.md` §4 |
+| 现象是"一笔访问把 CPU 卡死" | **"总线挂住时调试链路也受影响"是没有臂的推断**：JTAG 链路与 ILA 的数据通路是否经过被卡住的那笔 AXI 事务，本机没有板、两页都没量过，两个方向都可能成立，所以这句既不能当"插了也没用"，也不能当"插了就能看见" | 按通路问题处理，见 `board-bringup.md` §4；真要判"挂住时 ILA 还能不能抓"，就在板上做一次有意的挂死（写一个没有从设备的地址）并同时起一次抓取，把两臂读数记在一起 |
 | 需要长期在客户现场判版本 | 不能每次接调试器 | 版本/构建号寄存器（`board-bringup.md` §1）；再加一个自由运行计数器证明"时钟活着"，见 `SKILL.md` §2 的 I5 |

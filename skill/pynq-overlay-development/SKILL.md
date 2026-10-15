@@ -1,6 +1,6 @@
 ---
 name: pynq-overlay-development
-description: 用于在 PYNQ（Zynq-7000 的 Pynq-Z1/Z2、Ultra96、ZynqMP 的 ZCU102/104/K26、RFSoC 等）上做 Overlay 加载、寄存器访问、缓冲区与 DMA 搬运、中断等待、板端性能测量与问题定位的工作。触发场景：`Overlay(...)` 加载后拿不到 IP 或 `KeyError`、位流与 `.hwh/.xsa/.dtbo` 配套问题、`download=False` 之后哪些字段有值、部分位流只重配一块 PR 区域、`register_map` 与 `mmio.array` 的偏移和复位值、`MMIO.read/write` 报未对齐或报「Device does not have capabilities」、`pynq.allocate` 的 dtype 与物理地址、缓冲区释放与 `close()`（2.5.1 是静默 `pass`、3.x/4.x 只发 DeprecationWarning）、DMA 报 unaligned/exceeds maximum、`wait()` 挂死或超时、`wait_async` 看起来永远存在、传输半新半旧或首块尾块坏、中断 `Interrupt(...)` 构造失败与没有 timeout 形参、反复换 overlay 之后结果不对、板端 Jupyter 与远程开发模式的行为差别、`DMA.transfer()` 不抛异常而 `transferred` 一直是 0、寄存器侧全通但搬运侧一步不动（这一层要回设计侧数时钟引脚）、`CmaFree` 看不见 mmap 与 fd 泄漏、从 2.x 的 `Xlnk` 迁到 3.x/4.x、第一次把自定义 IP 从 Vivado 导出跑到板上验证。不用于 Vivado/Vitis 侧的 RTL、综合、约束与时序收敛（用 `fpga-board-development`），也不用于与 PL 无关的纯 Python。
+description: 用于在 PYNQ（Zynq-7000 的 Pynq-Z1/Z2、Ultra96、ZynqMP 的 ZCU102/104/K26、RFSoC 等）上做 Overlay 加载、寄存器访问、缓冲区与 DMA 搬运、中断等待、板端性能测量与问题定位的工作。触发场景：`Overlay(...)` 加载后拿不到 IP 或 `KeyError`、位流与 `.hwh/.xsa/.dtbo` 配套问题、`download=False` 之后哪些字段有值、部分位流只重配一块 PR 区域、`register_map` 与 `mmio.array` 的偏移与字/字节口径、`MMIO.read/write` 报未对齐或报「Device does not have capabilities」、`pynq.allocate` 的 dtype 与物理地址、缓冲区释放与 `close()`（2.5.1 是静默 `pass`、3.x/4.x 只发 DeprecationWarning）、DMA 报 unaligned/exceeds maximum、`wait()` 挂死或超时、`wait_async` 看起来永远存在、传输半新半旧或首块尾块坏、中断 `Interrupt(...)` 构造失败与没有 timeout 形参、反复换 overlay 之后结果不对、板端 Jupyter 与远程开发模式的行为差别、`DMA.transfer()` 不抛异常而 `transferred` 一直是 0、寄存器侧全通但搬运侧一步不动（这一层要回设计侧数时钟引脚）、`CmaFree` 看不见 mmap 与 fd 泄漏、从 2.x 的 `Xlnk` 迁到 3.x/4.x、第一次把自定义 IP 从 Vivado 导出跑到板上验证。不用于 Vivado/Vitis 侧的 RTL、综合、约束与时序收敛（用 `fpga-board-development`），也不用于与 PL 无关的纯 Python。
 license: MIT
 ---
 
@@ -21,8 +21,11 @@ license: MIT
 
 1. **`Overlay(...)` 不报错不等于元数据进去了。** `print(ol.dtbo)` 只证明路径被算出来；
    设备树是否生效要问内核：`/sys/kernel/config/device-tree/overlays/<dtbo 基名>/status` 读到 `applied`。
-2. **`.dtbo` 的基名是它的身份。** 两个不同目录、同基名的 `.dtbo` 会落到同一个 configfs 条目，
-   加载后者会把前者的中断/UIO 节点静默摘掉。要共存就必须不同名。
+2. **`.dtbo` 的基名是它的身份。** 代码能证到的只有"同基名 → 同一个 configfs 条目"
+   （4.0.0 `devicetree.py:74-75`：`self.dtbo_name = get_dtbo_base_name(dtbo_path)`，
+   `self.sysfs_dir = os.path.join(SYSTEM_DEVICE_TREE_PATH, self.dtbo_name)`）。
+   "加载后者会把前者的中断/UIO 节点静默摘掉"是**内核那一侧的机理，本包没有板、没量过**，
+   只当"为什么要不同名"的理由，不当读数用。要共存就必须不同名。
 3. **`write()` 不报错不等于写到了。** 至少三种图案 + 读回，恒 0 / 恒 F 不算通过；
    图案只往确认过没有副作用的偏移写，写完复原。
 4. **`MMIO.read/write` 的 offset 是字节，`mmio.array[]` 的索引是字。** 混用的表现是"读到隔壁寄存器"。
@@ -32,7 +35,11 @@ license: MIT
    而 **2.5.1 里是空 `pass`、连告警都没有**——所以"没看到警告"不能反过来证明你没在用它。释放靠退出 `with` 或
    `freebuffer()`。**判"漏没漏"不能靠有没有报错**（它本来就什么都不做），也**不能只押 `CmaFree` 差值**：
    这一族释放走的是 `munmap`/`xclFreeBO`（§7），而 `CmaFree` 是不是同一个池本包没核实（见路由表那格），
-   一条永远不红的判据不算判据——先用"退出 `with` 之后再读一次这个 buffer 会不会炸"这类能红的做法。
+   一条永远不红的判据不算判据——**先给它做一次最小破坏**：故意留一份引用不释放（或反过来，跑一遍
+   正常释放），看那个数真的会动，才说明这条判据看得见释放；两臂的口径要写在一起
+   （`buffers-and-cache.md` §2）。**"退出 `with` 之后再读一次这个 buffer 会不会炸"不是判据**：
+   同一页 §3 第 1 条自己写了"释放之后读它就是 UB"——UB 不可复现（可能读到旧值、可能把进程打死），
+   它当不了"能红"的那一次。
 7. **切片交给 DMA，不要手算 `physical_address + 偏移`。** 手算**不会**绕过同步记账，也**不会**让范围错位：
    `flush()`/`invalidate()` 用的就是 `self.offset`/`self.nbytes`（4.0.0 `buffer.py:104-114`），而
    `__array_finalize__` 给视图算的是**视图自己**的 offset（`:50-57`：`offset = self.virtual_address -
@@ -42,10 +49,13 @@ license: MIT
    `__array_interface__['strides']`，`buffers-and-cache.md` §1 有实测的 `nbytes`/`offset` 对照；
    "尾部没被 flush 且不报错"是**机理**，驱动那层本机没打开，别当读数用；
    两条出路写在 `buffers-and-cache.md` §1）。
-   **真正的危险在释放那一侧**：`freebuffer()`（3.1.2/4.0.0 `buffer.py:65-82`）走的是
-   `libc.munmap(self.virtual_address, self.nbytes)` 加 `del self.bo`，对切片视图来说这两个量都只是视图的，
-   于是视图上那一次调用只释放了一段地址、却把整个缓冲的句柄一起丢掉（它的 docstring 自己就声明
-   不管别的引用还在不在），**全程不报错**。
+   **真正的危险在释放那一侧**：`freebuffer()`（3.1.2/4.0.0 `buffer.py:65-82`）在视图上做的是
+   `self.freed = True`、`libc.munmap(self.virtual_address, self.nbytes)`、`del self.bo` 三件事，
+   而这三个量**都只属于视图自己**——`__array_finalize__` 在 `:57` 是 `self.bo = obj.bo`（共享同一个 BO
+   对象），`del` 只解开视图这一份绑定、原始对象仍握着它的句柄，所以"把整个缓冲的句柄丢掉"这个说法
+   **不成立**（成立的那半是：共享映射被**局部**解除，且原始对象的 `freed` 还是假，它之后再释放一次
+   就是第二次 `munmap`；内核侧那一笔的后果本机没打开，属机理）。docstring 自己就声明不看别的引用还在不在，
+   **全程不报错**。
    所以释放只能由**持有原始对象的那一层**做（退出 `with`、或在原始 buffer 上调 `freebuffer()`），
    在视图上调它不报错，坏的是后面（`buffers-and-cache.md` §3 第 2 条是规范写法）。
 8. **`transfer()` 的长度上限：SDMA 与 SG 的失败方式不同**，所以判断"有没有超限"不能靠
@@ -53,13 +63,24 @@ license: MIT
 9. **`wait_async` 是类上的协程，`hasattr` 永远为真。** 判断中断接没接要分**三样东西**看，别看方法
    存不存在：① 通道实例的 `_interrupt`（驱动侧握着的那个对象在不在）、② IP 元数据里的 `interrupts`
    （这一版设计有没有声明这根针）、③ 设备树里的 UIO 节点（`.dtbo` 那层有没有落地，
-   `debug-triage.md` §2 树 D 第 1 步就是查它）。**①② 可以同时全绿而 ③ 是缺的**，
-   那时 `wait()` 就是永远不回——所以不要把"①② 都对"写成"中断已接好"。
+   `debug-triage.md` §2 树 D 第 1 步就是查它）。**"①② 全绿而 ③ 缺"这个组合不存在**：③ 缺时
+   `Interrupt(...)` 抛 `ValueError`，3.x/4.x 的 `DefaultIP.__init__` 把它吞成 `setattr(..., None)`
+   加一条 UserWarning `Interrupt {} not created: {}`（4.0.0 `overlay.py:706-711`、3.1.2 `:709-714`、
+   3.0.1 `:705-710`、2.7.0 `:677-683`），① 于是就是 `None`；**2.5.1 没有这层 `try`**，`overlay.py:649`
+   直接把异常抛出构造函数。所以 ① 是"③ 有没有落地"的**结果**，不是并列的第三项。
+   **`wait()` 挂死与中断无关**：五版的 `wait()`（4.0.0 SD `lib/dma.py:166-185`、SG `:470-514`；
+   2.5.1 SD `:130-137`）一次都不读 `_interrupt`，是纯轮询 SR——它不回说的是"引擎没到 idle"。
+   碰 `_interrupt` 的只有 `wait_async()`（4.0.0 `:194`、SG `:533`），① 是 `None` 时它抛
+   `AttributeError: 'NoneType' object has no attribute 'wait'`——是异常，不是挂死。
+   所以不要把"①② 都对"写成"中断已接好"，也不要把"wait 不回"归到中断那一层。
 10. **`wait()` 没有 timeout 形参。** 第一次上板不要裸等；超时自己包，并知道包起来的代价是
     后台线程与一个还在跑的引擎。异常之后先把引擎弄停再继续——但「弄停」只能用 `MMIO` 写 RS=0
    加自己轮询 SR：`stop()`/`transfer()`/`wait()`/`start()` 内部都有无上界的自旋（`dma-channels.md` §2 那条）。
-11. **一次访问把 CPU 卡住，说明这笔事务永远等不到响应。** 它不在 Python 的状态里，
-    重启 kernel 救不回来；这类现象要按通路问题处理，不是按值设错处理。
+11. **一次访问把 CPU 卡住，这类现象要按通路问题处理，不是按值设错处理。**
+    "这笔 AXI 事务永远等不到响应、所以它不在 Python 的状态里、重启 kernel 也救不回来"属于
+    **通路那一族的机理口径**（同族句子在 `mmio-registers.md` §4 第一条已经标明是手册口径、本包不引手册）：
+    本包没有板，**没有一条读数支持"重启 kernel 无效"**，所以别把它写成验证过的结论。
+    当场能做的只有：换一次探活读、按通路分诊（§2 第一条），并把"要不要断电"按不可逆动作对待（§5）。
 
 ## 2. 三条分诊顺序
 
@@ -86,7 +107,7 @@ license: MIT
 | `from pynq.ps import Register` 起不来——是被删了还是搬家了 | `references/versions-and-apis.md` §2 |
 | 同一个名字在板端与主机远程模式指向不同的类，先判自己在哪种模式 | `references/versions-and-apis.md` §1 |
 | 教程里写 `from pynq import MM`，自己的仓库也能 import，怀疑是官方 API | `references/versions-and-apis.md` §2.2 |
-| 想查"这一版这个 API 到底怎么解释参数"——代码与 docstring 说法不一致（典型：`transfer(array, start=…)` 的 `start` 是元素还是字节） | `references/versions-and-apis.md` §4 |
+| 想查"这一版这个 API 到底怎么解释参数"——代码与 docstring 说法不一致（典型：`transfer(array, start=…)` 的 `start`，3.1.2 `lib/dma.py:130`/`:347` 两处 docstring 写 "Offset into array to start."，4.0.0 同两处改 "Byte offset into array to start."；**没有任何一版写"元素"**，单位最终由代码定） | `references/versions-and-apis.md` §4 |
 | 想知道**我这一台**这一版到底导出了哪些名字 | `references/versions-and-apis.md` §3 |
 | `Overlay(...)` 成功但拿不到 IP：`KeyError`、`AttributeError`、`RuntimeError` 三种文本长得不一样 | `references/overlay-metadata.md` §3.1 |
 | 句柄拿得到但类型是 `DefaultIP`（驱动退回——它丢的是驱动类那层 API，**不会**把 `register_map` 变空） | `references/overlay-metadata.md` §2 |
@@ -101,7 +122,7 @@ license: MIT
 | `ip.array[i]`、`ip.register_map.keys()` 这类写法抛 `AttributeError` | `references/mmio-registers.md` §3 |
 | `register_map` 报 "only available if the .hwh is provided"（连同 `ip_dict['registers']` 一起没） | `references/mmio-registers.md` §3 |
 | 寄存器写了没反应——先分清"没生效"还是"这笔写没返回" | `references/mmio-registers.md` §4 |
-| `MMIO` 报 `offset must be a multiple of 4`、想读第 N 个字、8 字节读回来顺序怪 | `references/mmio-registers.md` §2 |
+| `MMIO` 报 `Unaligned read: offset must be multiple of 4.`（写侧逐字是 `Unaligned write: offset must be multiple of 4.`，**没有 "a"**；五版同形，4.0.0 `mmio.py:123`/`:155`，抛的类型是 `MemoryError`）、想读第 N 个字、8 字节读回来顺序怪 | `references/mmio-registers.md` §2 |
 | 报 `Device does not have capabilities for MMIO`——先弄懂 `mm.write` 是构造期按哪三条能力位绑的 | `references/mmio-registers.md` §1 |
 | 读回恒 0 或恒 F（不是值不对，是根本没接上） | `references/mmio-registers.md` §4 |
 | 板上跑的 **PL** 是哪一版——`md5sum` 对上了为什么还不够 | `references/mmio-registers.md` §5 |
@@ -112,7 +133,7 @@ license: MIT
 | 反复 `Overlay(...)` 之后东西不回收（引用还活着：循环变量、异常 traceback、Jupyter 的 `In`/`_`） | `references/overlay-metadata.md` §3 |
 | cache 维护方向写反（第一次对、第二次读到旧的）、尾巴不足一行 | `references/buffers-and-cache.md` §3 |
 | 基址明明是 4 对齐的，DMA 还报 `unaligned` | `references/dma-channels.md` §1 |
-| 报 `exceeds maximum`；或"没报超限"却搬不动，想知道 SG 替你占了多少内存 | `references/dma-channels.md` §1 |
+| 报 `Transfer size is {} bytes, which exceeds the maximum DMA buffer size {}.`（2.7.0 起逐字，SD 侧 4.0.0 `lib/dma.py:143-145`；**2.5.1 是另一种写法**：`Transferred array is {} bytes, which exceeds the maximum DMA buffer size {}.`，`:116-118`，而且它按 `array.nbytes` 判）；或"没报超限"却搬不动，想知道 SG 替你占了多少内存 | `references/dma-channels.md` §1 |
 | cyclic 模式停不下来、误置之后 `wait()` 一直报错 | `references/dma-channels.md` §1 |
 | `wait()` 挂住、想知道搬完了没有、`transferred` 能不能当判据 | `references/dma-channels.md` §2 |
 | 要一份端到端最小正确写法（搬一次并证明它完成） | `references/dma-channels.md` §3 |
@@ -139,13 +160,17 @@ license: MIT
   `free()` 在 3.1 上还多关了一次 device、下一版加载要重连 →`overlay-metadata.md` §3 那张生命周期表；
   两个同基名 `.dtbo` 互相把对方的中断节点摘掉 →`overlay-metadata.md` §1。
   先分清"是对象死了、连接死了，还是节点没了"，三者的修法互不通用。
-- **"结果不对"分两层**：搬没搬完看 `dma-channels.md` §2（四个口一起看；注意 `transferred`
-  只在 `wait()`/`wait_async()` 里才被写，等之前读它必然是 0）；
+- **"结果不对"分两层**：搬没搬完看 `dma-channels.md` §2（四个口一起看；`transferred` 的写点是
+  `__init__` 与每次 `transfer()` 置 0（4.0.0 SD `lib/dma.py:65`/`:155`，SG `:252`/`:445`），
+  只有 `wait()`/`wait_async()` 把它更新成引擎计数里的实际值（SD `:185`/`:198`）——所以"等之前读它
+  必然是 0"成立，但"只有等待会写它"不成立）；
   搬完了但内容旧/尾巴坏看 `buffers-and-cache.md` §3（方向与行粒度）。顺序是先 §2 后 §3，反过来会把
   完成问题误判成缓存问题。
 - **`MemoryError` 有两行**：缓冲池（CMA）那条走 `buffers-and-cache.md` §2 的 `CmaFree` 差值实验；
-  反复加载 overlay 的那条走 `overlay-metadata.md` §3——`CmaFree` 量不到 mmap/fd/驱动实例，
-  拿它当"没泄漏"的结论会一直读到一个不变的 0。
+  反复加载 overlay 的那条走 `overlay-metadata.md` §3。这两族的释放走 `munmap`/`xclFreeBO`（§7 那一族），
+  **`CmaFree` 量不到 mmap/fd/驱动实例**是这一族的机理推断，本包没有板、没量过——所以
+  "拿它当'没泄漏'的结论会一直读到一个不变的 0"是**待验证的预测**，不是读数：
+  板上要用它做判据，先跑一次故意不释放的对照臂证明它会动。
 - **同一句"地址不对"落在两行**：`.hwh`/`.bit` 不是同一次导出（元数据本身就是上一版）→
   `overlay-metadata.md` §1；对象是你手上之前的旧句柄 →`overlay-metadata.md` §3.2。
   区分办法是 §3.2 那三行 `print`（比对句柄与 `ip_dict` 的自洽），它判不出混批；混批要和 Vivado
@@ -164,9 +189,9 @@ license: MIT
 | `.dtbo`/`.bit` 的**生成与刷新**（设备树叠加怎么产、改名之后怎么重产） | **两个技能包都不给这一步**：本包只管运行时，隔壁包管到"BD 导出与整组配套"（`fpga-board-development/references/vivado-project-bd.md` §3），`.dtbo` 的生成那一格它也没核实过 | 板上先做两件能做的：比 `.bit`/`.hwh`/`.dtbo` 的时间戳是否同批；把 `PL.interrupt_pins` 的键与这一版 BD 应有的中断源逐个对，少一个就是叠加没进去。**不要靠删掉旧 `.dtbo` 来"强制重算"**——删除不触发任何重新生成，而该文件正是中断/UIO 绑定的载体。真要找生成方，看你用的镜像里那套叠加工具的文档，别在两包里搜 |
 | 开机自动加载某个 overlay | 属于启动介质与镜像那一层；本包不管启动，隔壁包也只到"启动镜像产物"（`fpga-board-development/references/board-bringup.md` §2 与 §2.1） | 先在目标上看有什么（`ls /usr/bin/pynq-* /sbin/pynq-*`、`cat /etc/pynq_release.txt`），再读该工具自己的 `--help`；改动按不可逆动作对待。**断电之后板上跑的是哪一版**这一问可以答：`fpga-board-development/references/board-bringup.md` §2 那张表，加上它 §1 的身份读回 |
 | VIDC / `axi_vdma` 的帧与行语义 | 与 AXI DMA 是两套东西，别套本包 DMA 页的完成判定 | 用当前版本的驱动属性现场导出一次再看；`ip_dict[name]['type']` 能区分 `axi_dma` 与 `axi_vdma` |
-| HP/ACP 口**位宽与拓扑该不该这么接** | 位宽/连线是设计侧决定的 | 但"运行时这一路的位宽与上限从哪读"在**本包**：`references/debug-triage.md` §4 —— `bus_width` 从 `ip_dict[...]` 的参数（`*_DATA_WIDTH` 那一族）读，再按竞争者列总需求；只有"该不该这么接"要回设计侧 |
+| HP/ACP 口**位宽与拓扑该不该这么接** | 位宽/连线是设计侧决定的 | 但"运行时这一路的位宽与上限从哪读"在**本包**：`references/debug-triage.md` §4 —— 从 `description["parameters"]` 里读 `*_DATA_WIDTH` 那一族参数（4.0.0 `lib/dma.py:661` 取的就是 `c_m_axi_mm2s_data_width` 再 `>> 3` 换成字节），再按竞争者列总需求。**`bus_width` 不是 API 名**，它只是本页举例用的变量名：五版全树 `grep -rIn bus_width` = 0 命中；同一批扫描的正向对照是 `c_m_axi_mm2s_data_width`（2.7.0/3.0.1/3.1.2/4.0.0 各 1 命中，**2.5.1 连它也没有**，那一版取法不同，别把行号搬过去） |
 | ZynqMP/RFSoC 上 SMMU 与地址翻译的**配置** | 平台配置层，两包都不给 | 症状识别在本包 `references/debug-triage.md` §2 树 A3（PL 报 Slave Error 而 PS 读回正常）；地址错误的分层判据在隔壁包 `fpga-board-development/references/zynq-pynq.md` §2.1；配置那一层查平台文档 |
-| 一笔访问卡死之后怎么撤回 | 用户态没有撤回到达事务的接口 | 按需要断电重启对待；重启后第一件事读版本号寄存器确认板上是哪一版 |
+| 一笔访问卡死之后怎么撤回 | 本包依的口径是"用户态没有撤回到达事务的接口"——**这是平台/内核那一层的机理，本包没有板、没有一条臂证明它，也没有一条反证**；同族的"重启 kernel 救不回来"见 §1 第 11 条的层级标注 | 按需要断电重启对待（断电属于不可逆动作，见 §5）；重启后第一件事读版本号寄存器确认板上是哪一版（`fpga-board-development/references/board-bringup.md` §1 的身份读回） |
 | 两个进程/notebook 同时管同一块 PL | 没有所有权机制可依 | 按"PL 只有一个所有者"用：重下只在一个进程里做，另一个进程要读寄存器就自己 `MMIO(base, len)` |
 
 ## 5. 危险动作
