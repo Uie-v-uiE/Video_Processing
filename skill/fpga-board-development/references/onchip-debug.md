@@ -71,7 +71,7 @@ close_hw_manager
 - **`connect_hw_server` 成功不代表你的板子在链上，而且这条连"没板子"都拦不住。** 本机离线读数
   （这台机器上确实有一个 `hw_server` 在听，第二个视图给在下面）：`open_hw_manager` rc=0、
   `connect_hw_server` rc=0 且返回串就是 `localhost:3121`——**这个返回值只说明那个 URI 上有个服务**，
-  要确认它存在就另取一次 `netstat -ano` 找 3121、`tasklist /FI "IMAGENAME eq hw_server.exe"` 看进程；
+  要确认它存在就另取一次 `netstat -ano | findstr :3121 | findstr LISTENING` 与 `tasklist | findstr /i "hw_server cs_server"`（写法要与本节后面那条一致：只 `findstr :3121` 会把 `TIME_WAIT` 也数进来，只查 hw_server 会漏掉 cs_server）；
   紧接着 `get_hw_targets` **rc=1**：
 
   ```
@@ -94,7 +94,7 @@ close_hw_manager
   本机把 `open_hw_manager`、`get_hw_probes`、`read_hw_ila_data`、`get_hw_ilas`、`get_hw_targets`、
   `get_hw_devices`、`connect_hw_server`、`write_hw_ila_data`、`run_hw_ila`、`program_hw_devices`、
   `close_hw_manager`、`current_hw_ila`、`get_hw_ila_datas`、`upload_hw_ila_data`、`wait_on_hw_ila`
-  这 15 个数了一遍：**`load_features labtools` 之前 0/15 有名字，之后 15/15**。
+  这 15 个数了一遍：**`load_features labtools` 之后 15/15 有名字；**"之前 0/15"这句没有记录支持，收回**：本机现存那次扫描只覆盖 **7 个名字**，而 `revAH2/r1.log:27` 在还没 `load_features` 的那一相就打出 `NM|S0|apply_hw_ila_trigger=<apply_hw_ila_trigger>` ⇒ 裸相就已注册的名字至少这一个，"整族都要加载"是坏的泛化；能主张的只到"部分名字要加载才出现"（要逐名定论自己扫一遍，`quiet3/q3b.log` 那次没扫名字）。
   ② 网表侧那一族（`create_debug_core`、`connect_debug_port`、`write_debug_probes`、
   `implement_debug_core`、`report_debug_core`）**在没 `load_features` 的新会话里就已经有名字**
   （本机在一个**没开工程、没 `load_features`** 的 batch 会话里 `read_verilog`+`synth_design` 之后
@@ -276,8 +276,8 @@ connect_debug_port u_ila_dbg/clk [get_nets clk_IBUF_BUFG]
                                        ;#   报出来的都是同一句；而把 `u_ila_dbg/clk` 也连上之后
                                        ;#   `opt_design` 与 `place_design` 两步都 rc=0（同一份 dcp、同一流程）。
                                        ;#   这条 DRC 点名的就是缺口那一格，本机三臂各自对上：
-                                       ;#   只连 `dbg_hub/clk` → 报 `u_ila_dbg/clk`（两处独立会话）；
-                                       ;#   连了 `clk` 但 `create_debug_port` 多建一个不连 → 报
+                                       ;#   只连 `dbg_hub/clk` → 报 `u_ila_dbg/clk`（**一处**：`chain15/c.log:420`）；
+                                       ;#   连了 `clk` 但 `create_debug_port` 多建一个不连 → 报（**两处独立会话**是这一格：`chain15/e.log:304`、`chain15/f.log:301`；另有一次报 `probe0`，`revAA/b6/v7.log:337`）→ 报
                                        ;#   `u_ila_dbg/probe1`；两格都连上 → `opt_design` rc=0。
                                        ;#   **别只盯 `16-213` 那一行**：未连槽位那一臂随后的
                                        ;#   `place_design` 红成 `[Opt 31-65] LUT input is undriven
@@ -304,8 +304,8 @@ connect_debug_port u_ila_dbg/clk [get_nets clk_IBUF_BUFG]
                                        ;#   **implement 会把这张表撑长**：同一批 dcp 在
                                        ;#   `implement_debug_core` 之后再取，`a1` 4219/90 → **4449/98**、
                                        ;#   `a2` 4259/90 → **4489/98** ⇒ **字符数/行数不能当判据**；
-                                       ;#   空格那判据在 implement 之后是否逐行仍然成立，本机这一臂
-                                       ;#   没有逐行比过（只比了长度），要用作前后对照时自己取一次。
+                                       ;#   空格那判据在 implement 之后**比过**：`revAH2/r4.log:169` 交回 `TBL|a1-POST|len=4449|nlines=98`，随后 `:170-172` 逐行取数（第 42 行 `clk | input | clk | clk[0] | signal | false`、第 92 行那格**通道列仍为空**、第 94 行 `probe0`），本机这一臂
+                                       ;#   比过，那格在 implement 之后仍然成立（别再重跑这一臂）。
                                        ;#   所以"这条 connect 到底落没落地"判的是 `Net Name` 那一格，
                                        ;#   它反映的是**连接**，不是"implement 了没有"（先前这里写成
                                        ;#   "`implement_debug_core` 之后"才读得到，是多余的门槛，已收回）；
@@ -351,7 +351,7 @@ write_debug_probes -force ./design             ;# ⑪ 产出 design.ltx；判据
   `get_debug_ports` 给**三条**：`dbg_hub/clk`、`u_ila_dbg/clk`、`u_ila_dbg/probe0`；
   上面那串只连了 hub 那一路与探针那一位。落地之后 `implement_debug_core` 返回 `CDC-15#11`、
   `.ltx` 照样产出（本机那份是 1737 字节 / 48 行），而读回来的 `pins[]` 里**只有 `probe0` 一条**。
-  也就是说 **`u_ila_dbg/clk` 空着不会让这条链子在任何一步报错**。它会不会让上板抓不到波形，
+  也就是说 **`u_ila_dbg/clk` 空着在建核与产出 `.ltx` 那几步不报错，**但"任何一步不报错"这句要收回**：同一条链子上 `chain15/c.log:420` 的 `opt_design` 就 rc=1（`Chipscope 16-213` 点名它），随后 `:426` `DRC NDRV-1`、`:430` `Vivado_Tcl 4-384`、`:433` `place_design` 因前者失败 —— "这条链子"要写成步名列表而不是整条**。它会不会让上板抓不到波形，
   只能上板判；所以这一格别留给运气：把三条端口都列出来，该连的逐个连上、
   逐个 `puts` 记账——这与上面 `PORT_WIDTH` 那条是同一类坑（工具不催你，形状还各不相同）。
 - 按 §1 的口径，那类告警要按**条目数**数（`SKILL.md` §1 第 1 条）。
@@ -388,7 +388,7 @@ write_debug_probes -force ./design             ;# ⑪ 产出 design.ltx；判据
   `get_property CONNECTED_TO <端口>` 报 `12-4442`（属性不存在），而
   **裸调 `report_debug_core` 返回的是 0 长度字符串**——表格是打到日志里的，不是返回给你的，
   所以早先那次"整段返回空（0 行，也不报错）"就是这么来的，它**不是**这条后备路坏了。
-  加上 `-return_string` 就拿到全文（本机 4489 字符），行里就是判据：
+  加上 `-return_string` 就拿到全文（本机 **implement 之后**那份是 4489 字符：`chain15/d.stdout:273` 的 `MARK RSTR len=4489`；implement **之前**是 4219/4259，见上面 §2.1 那一对——**引长度要连着相位一起引**），行里就是判据：
 
   ```
   | clk     | input | clk |             | clk[0]    | signal | false | clk_IBUF_BUFG |
@@ -399,7 +399,10 @@ write_debug_probes -force ./design             ;# ⑪ 产出 design.ltx；判据
   `-full_path` 取过**两次**，两次都是"加了等于没加"：一份设计上 4489/4489 字符，另一份（连接补齐之后的
   `a4` 那份 checkpoint）4537/4537 字符、**92 行对 92 行、逐行比 0 处不同**——网名本来已是全路径形状。
   另有一路复核在同一份 dcp 上用 `$a eq $b` 直接判等，结果也是"两串完全相同"（**那是别人的读数，
-  这里只当旁证**：那一路没有再打印长度，所以它支持"无差值"这个形状，不支持具体字符数）。
+  这里只当旁证**：那一路**打了长度但读数不可用**——`revP/stdout2.txt:94` 是
+   `C1 chars plain/fp 1/1 identical=1 lines 92/92`，那个 `1/1` 出自 `[string length a]`（少了 `$`，本包记过的
+   写法坑），**不是字符数**；所以它只支持"两串相同"这个形状。真要字符数就读 `dbgfull/p.log` 的
+   4489/4489 与 4537/4537）。
   **所以别默认加了它信息就更多**，两版各取一次长度再决定用哪个。
   这一族的选项边界也钉过：同一次会话里 `-name` 与 `-of_objects` 都报
   `[Common 17-170] Unknown option`（这就是"上面那条 0 差值不是命令跑不动"的正向对照——
