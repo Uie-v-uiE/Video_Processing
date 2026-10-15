@@ -32,10 +32,27 @@ def allocate(shape, dtype="u4", target=None, **kwargs)    # pynq/buffer.py:138�
    `__array_interface__['strides']` 为 `None`，而 `a[::2]` 是 `False`、`strides=(8,)`——**连续（无 stride）
    才意味着同步范围等于视图碰到的范围**。不连续时的两条出路：按**原始对象整段**做同步（牺牲一点带宽，
    最省事），或者重新申请一块连续的设备缓冲再把值拷进去。
-   **别顺手写 `np.ascontiguousarray(v)` 当解法**：它的 `subok` 默认为 `False`，返回的可能只是普通
-   `ndarray`（丢掉 `physical_address` 与释放责任），先 `type(...)` 与 `hasattr(..., "physical_address")`
-   各取一次读数再决定用哪条路。
-   本页前一次就是这么写的，被源码反写了。
+   **别顺手写 `np.ascontiguousarray(v)` 当解法**，而且**先前这里写的理由也是错的**——
+   原句"`subok` 默认为 `False`"当它有一个可以打开的开关；本机 numpy 2.5.3 上
+   `np.ascontiguousarray.__text_signature__` 是 **(a, dtype=None, \*, like=None)**，
+   **根本没有 `subok` 这个形参**（`"subok" in np.ascontiguousarray.__doc__` 也是 `False`），
+   所以它不是"默认丢子类"，是**没有保留子类的选项**。
+   用一份照 `class PynqBuffer(np.ndarray)` 形状建的桩（`__array_finalize__` 传 `device_address`、
+   `physical_address` 是 property）在 `v = base[::2]` 上取四个读数：
+   `np.ascontiguousarray(v)` → 类型 **`ndarray`**、`hasattr(..., 'physical_address')` **False**、
+   数据指针是新分配；`np.array(v, copy=True)` → 同样掉成 `ndarray`；
+   **`v.copy()`** → 类型仍是子类、`physical_address` 还在；
+   **`np.require(v, requirements=['C'])`** → 同样保留子类。
+   **但后两条不是安全出路**：它们保留的是 `__array_finalize__` 抄过来的那个
+   `device_address`，而数据已经搬到新分配的**主机**内存（本机桩上 base 的指针是
+   `0x26803838840`、`v.copy()` 的是 `0x2681a6303d0`，而 `device_address` 两边同为
+   `268435456`）——**类还在、地址还是那块设备缓冲、字节已经不在映射里**，
+   拿它去 `transfer()` 就是搬错内存。所以真正可判的只有：
+   `type(x).__name__` 与 `hasattr(x, 'physical_address')` **各取一次**，
+   再把 `x.__array_interface__['data'][0]` 与原始 buffer 的那个数**比一下**——
+   三个数一起看才分得开"还是那块"与"换了地方但还穿着那件衣服"。
+   （以上是 numpy 侧的语义读数；**pynq 真缓冲区在板上的 `data` 指针关系本机没有读数**，
+   要它在板上成立，就按这三句现采一次。）
    手算仍然不该用，但危险在**释放**那一侧：`freebuffer()` 走
    `libc.munmap(self.virtual_address, self.nbytes)` 然后 `del self.bo`（**这一整套只在 3.1.2/4.0.0 成立**：
     函数在 `:65-82`；**3.0.1 只做前一半**——同一位置是 `libc.munmap(...)` 之后跟

@@ -91,6 +91,21 @@ sending command to the OS shell for execution. It is recommended to use 'exec' �
 | SD 镜像里的启动文件 | 按模式引脚从 SD 起 | 换卡即换版本 | 卡可拔，但镜像内对引导区的写入不可逆 |
 | Linux/PYNQ 运行时加载 overlay | 当前会话内生效 | 是否还在，取决于它有没有被登记成开机重放（`/lib/firmware` + device-tree overlay 那套机制），与前三种规则都不同 | 反复下载会重置 PS 侧握着旧句柄的对象 |
 
+**"擦除不可逆"这句话在工具侧是有开关可读的，别只靠自觉**（本机 2025.2.1 `program_hw_cfgmem -help`
+原文取到这几条）：这条命令做的事是 "**Erase, blank check, program, and/or verify** the specified
+hw_cfgmem object"，**做哪几件由 `hw_cfgmem` 对象上的属性决定**——
+`PROGRAM.ERASE`（"Erases the contents of the flash memory when true"，布尔 0/1）、
+`PROGRAM.BLANK_CHECK`（编程前查是否已空）、`PROGRAM.VERIFY`，以及
+`PROGRAM.ADDRESS_RANGE`：`use_file` 是"只按这次配置文件占的地址去擦/查/写/验"，
+**`entire_device` 是"把整片擦/查/写/验一遍"**。
+所以"会不会连别的东西一起擦掉"这件事**在命令之前就能数出来**：把这几个属性逐个读回来打印，
+`ADDRESS_RANGE` 是 `entire_device` 还是 `use_file` 要写进当次的记录，
+而不是等它跑完再后悔。**擦除前能留的退路也在这条命令旁边**：
+`readback_hw_cfgmem -all -file <路径>`（§2 下面那份名单里的名字）先把现有 contents 读回成文件，
+这一步不做也不改变任何板上状态。
+上面那一行"需要现场人员同意"因此不是流程装饰，而是**这条命令会动到这次范围之外的内容**；
+属性读数 + 回读文件这两件事都做到，才谈执行。
+
 **`cfgmem` 这一族的名字在两条命令面上的读数**（同一次安装、各自现取，别互相搬）：
 
 - **Vivado 批处理**：裸会话里 `info commands *cfgmem*` 只给 **1** 个（`write_cfgmem`）；
@@ -107,9 +122,18 @@ sending command to the OS shell for execution. It is recommended to use 'exec' �
   `onchip-debug.md` §1 那条 `load_features` 下面，本页不重抄。
   ② 想证明这一族注册上了，除通配计数还有一条更硬的：加载之后**不带参数**调 `program_hw_cfgmem`
   得到 `[Labtoolstcl 44-346] Config mem object incorrect`——这已经不是"没这条命令"的形状。
-  ③ `write_cfgmem -help` 的形状是 `[-force] -format <arg> -size <arg> [-interface <arg>] [-checksum]`：
-  **`-format` 与 `-size` 都标 Required**，`-format` 合法值 `[ BIN | HEX | MCS ]`。
-  上面表格里只写了 `-format`，抄脚本时别丢 `-size`。（那一路本机把三种 `-format` 各调过一次，
+  ③ `write_cfgmem -help` 的 `Syntax:` 原样是
+  `write_cfgmem [-force] -format <arg> -size <arg> [-interface <arg>] [-checksum]
+  [-disablebitswap] [-loadbit <arg>] [-loaddata <arg>] [-loadpdi <arg>] [-quiet] [-verbose] <file>`：
+  **表里标 Required 的只有 `-format` 与 `-size`**（`-format` 合法值 `[ BIN | HEX | MCS ]`，
+  `-size` 那行原文是"Size of memory that is being targeted in M Bytes (must be power of 2)"），
+  **而 `-loadbit` 在选项表里写着 "(Optional)"——但本机不给任何 `load*` 就调它，报的是
+  `ERROR: [Common 17-161] Invalid option value '' specified for '-loadbit'.` 且不产出文件**
+  （两种给法都试过：不带 `-force` 与带 `-force` 都是这同一条 17-161）。
+  **也就是"三个 `load*` 里必须给一个"这件事在 `-help` 里没写在 Required 那一列**——
+  所以抄脚本时不只别丢 `-size`，`-loadbit "up 0x0 <bit>"`（或 `-loaddata`/`-loadpdi`）
+  也必须有，而它的报错会把原因指到一个你压根没写的选项上。
+  上面表格里只写了 `-format`，这是第一处会撞的坑。（那一路本机把三种 `-format` 各调过一次，
   但**产物文件没有逐个核过**——真正要的是板侧编程，本机没 flash 也没接板。）
 - **xsdb**（本机这个 2025.2.1 的 xsdb 在 `<安装根>/Vivado/bin/xsdb.bat`，随 Vivado 一起装、**不在 PATH 上**）：
   这一族**一个都没有**——`info commands *cfgmem*` 交出空，`cfgmem`、`pcfgmem`、`program_cfgmem`、
@@ -163,7 +187,9 @@ WARNING: -padimageheader was requested, but no images were specified.
 接管道 `${PIPESTATUS[0]}` 都 rc=1。**所以"bootgen 的返回码能不能当门"这个问题没有全局答案，
 只有"我这个脚本调的是哪一个"的答案**；要可重复就别看返回码，读 stdout 里有没有
 `Bootimage generated successfully` 加上产物文件真存在、大小对得上（上面那条 2368 字节的假绿就是这个形状）。
-这一条与 `SKILL.md` 不变量 9 是同一条读数的两种详略：改这里要同步改那一处。
+这一条与 `SKILL.md` §2 的 **I5（板上身份要能读回来）与 I6（判据必须能红）** 是同一条读数的两种详略：
+改这里要同步改那一处。**（先前这里写"不变量 9"——`SKILL.md` §2 只有 I1…I6 六条，
+那个编号不存在；按 §2 的标题"六条不变量"数过。）**
 
 所以：
 
