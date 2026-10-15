@@ -286,13 +286,18 @@ connect_debug_port u_ila_dbg/clk [get_nets clk_IBUF_BUFG]
                                        ;#   它其实只是上面那条未连通道的下游。判据顺序是：
                                        ;#   先看这一臂有没有 `16-213`，再看 `report_debug_core -return_string`
                                        ;#   里哪一格的 `Net Name` 是空的。
-                                       ;#   **读回口就在这张表上**：`implement_debug_core` 之后
-                                       ;#   `report_debug_core` 的 `clk` 那一行，
-                                       ;#   没连时是 `Channel Name=clk[0]`、`Net Type`/`MARK_DEBUG`/
-                                       ;#   `Net Name` **三格全空**；连上之后同一行变成
-                                       ;#   `Net Type=signal`、`MARK_DEBUG=false`、`Net Name=clk_IBUF_BUFG`。
+                                       ;#   **读回口就在这张表上，而且不需要先 implement**：
+                                       ;#   本机两份 `implement_debug_core` **之前**的 checkpoint 对打——
+                                       ;#   `a1`（`u_ila_dbg/clk` 从没 connect 过）里 `clk` 那一行是
+                                       ;#   `Channel Name=clk[0]` 而 `Net Type`/`MARK_DEBUG`/`Net Name`
+                                       ;#   **三格全空**（整份报告 4219 字符 / 90 行）；
+                                       ;#   `a4`（同一行连到了 `clk_IBUF_BUFG`）里同一行变成
+                                       ;#   `Net Type=signal`、`MARK_DEBUG=false`、
+                                       ;#   `Net Name=clk_IBUF_BUFG`（4537 字符 / 92 行）。
                                        ;#   所以"这条 connect 到底落没落地"判的是 `Net Name` 那一格，
-                                       ;#   不是 `connect_debug_port` 的返回码（它两种情况都 rc=0），
+                                       ;#   它反映的是**连接**，不是"implement 了没有"（先前这里写成
+                                       ;#   "`implement_debug_core` 之后"才读得到，是多余的门槛，已收回）；
+                                       ;#   也不是 `connect_debug_port` 的返回码（它两种情况都 rc=0），
                                        ;#   也不是 `get_property CONNECTED_TO`（那条属性不存在，`12-4442`）。
 write_checkpoint -force ./post_synth.dcp      ;# ⑧ 存盘——"存出文件"本身还不够
 open_checkpoint ./post_synth.dcp              ;# ⑨ 重新打开它才算"已保存的设计"
@@ -557,31 +562,62 @@ write_hw_ila_data        ;# ⑦ 落盘（.ila/.csv/.vcd）
 `apply_hw_ila_trigger  [-ila_cell <arg>] [-quiet] [-verbose] [<file>]`，正文写它读的是
 `run_hw_ila -file` 写出的那份 trigger configuration file（帮助里的例子给的是
 `apply_hw_ila_trigger C:/Data/ila1_triggers.tas`），用途是"让核在器件配置完成、startup 之后立刻按这些
-条件触发"。**正常在线流程里"布触发"是另一件事**：帮助文本把下一步写成
-`set_property CONTROL.* [current_hw_ila]`（本机只读到帮助文本这一层——离线没有 `hw_ila` 对象可设，
-`CONTROL.*` 这一族**未测**）。所以 ③ 是一条**可选的 startup 支路**；把它当成"设触发的那一步"，
+条件触发"。**正常在线流程里"布触发"是另一件事**：那句话的出处是 **`run_hw_ila -help`**（本机数过：
+`apply_hw_ila_trigger -help` 全文 106 行里 `CONTROL`/`set_property` **0 命中**，`run_hw_ila -help` 331 行里
+21 命中，正文写着"using CONTROL properties on the hw_ila object. You set these properties with the
+set_property command"）。**`CONTROL.*` 这一族离线是取得到清单的**——不用对象：
+`list_property -class hw_ila` **rc=0**，交回 11 项，其中 4 项是 `CONTROL.DATA_DEPTH`、
+`CONTROL.TRIGGER_CONDITION`、`CONTROL.TRIGGER_POSITION`、`CONTROL.TSM_FILE`
+（其余：`CLASS`、`CORE_REFRESH_RATE_MS`、`NAME`、`STATIC.MAX_DATA_DEPTH`、`STATUS.CORE_STATUS`、
+`STATUS.SAMPLE_COUNT`、`TRIGGER_START_TIME_SECONDS`、`TRIGGER_STOP_TIME_SECONDS`）。
+**但帮助文本点名的比类清单多**：`run_hw_ila -help` 还列了 `CONTROL.WINDOW_COUNT`、`CONTROL.TRIGGER_MODE`、
+`CONTROL.CAPTURE_MODE`、`CONTROL.CAPTURE_CONDITION`、`CONTROL.TRIG_OUT_MODE`，这五个**不在上面那 11 项里**
+（9 vs 4）——两份清单不一致时**以 `list_property -class` 为准去写脚本**，帮助里的名字可能要的是别的对象或
+更高版本。留未测的只有"能不能真的 set"：那要有 `hw_ila` 对象，也就是要板子。
+所以 ③ 是一条**可选的 startup 支路**；把它当成"设触发的那一步"，
 七步走完没有任何一步设过触发。
 
-**这七步离线各停在不同的地方**（本机 2026-10-15 两臂，无板；引的都是 `catch` 的 msg 原文首条）：
+**这七步离线各停在不同的地方**（本机 2026-10-15 三臂，无板。表里给的是 `catch` 的 msg **首行**；
+真号常常在日志的上一行，不在 msg 里）：
 
-| 步 | 裸会话（没开 hw_manager） | `open_hw_manager` + `connect_hw_server` 之后 |
-|---|---|---|
-| ① `get_hw_ilas` | rc=0、空串；日志里一条 `WARNING: [Labtoolstcl 44-130] No matching hw_ilas were found.` | 同样 rc=0、空串 |
-| ② `current_hw_ila` | rc=0、空串 | 同样 rc=0、空串 |
-| ③ `apply_hw_ila_trigger` | `[Common 17-53] User Exception: No open project …` | `[Common 17-53] User Exception: No open design …` |
-| ④ `run_hw_ila` | `[Labtoolstcl 44-8] Current hw_ila is not set and <hw_ilas> option is empty.` | 同 44-8 |
-| ⑤ `wait_on_hw_ila` | 同 44-8 | 同 44-8 |
-| ⑥ `upload_hw_ila_data` | msg 只有一条包装 `[Common 17-39] 'upload_hw_ila_data' failed due to earlier errors.`，真错（44-8）在日志的上一行 | 同上 |
-| ⑦ `write_hw_ila_data` | `[Labtoolstcl 44-235] The labtools system is not initialized …` | `[Common 17-163] Missing value for option 'file' …` |
+| 步 | 裸会话（没开 hw_manager） | `open_hw_manager` 之后（不必 connect） | 会话里另有打开的设计时 |
+|---|---|---|---|
+| ① `get_hw_ilas` | rc=0、空串；日志里一条 `WARNING: [Labtoolstcl 44-130] No matching hw_ilas were found.` | 同样 rc=0、空串 | 同样 rc=0、空串（① 从不抛 44-235） |
+| ② `current_hw_ila` | rc=0、空串，**连 44-130 都不打** | 同 | 同 |
+| ③ `apply_hw_ila_trigger` | `[Common 17-53] User Exception: No open project …` | `[Common 17-53] User Exception: No open design …` | `[Vivado 44-362]` 且**消息体是空的**（整条 msg 长 25，编号之外没有正文） |
+| ④ `run_hw_ila` | msg 只有包装 `[Common 17-39] 'run_hw_ila' failed due to earlier errors.`，真号 `[Labtoolstcl 44-8] Current hw_ila is not set and <hw_ilas> option is empty.` 在日志的上一行 | 同（包装 + 44-8） | 未取臂 |
+| ⑤ `wait_on_hw_ila` | 同 ④：msg 是 `17-39` 包装，真号 44-8 | 同 | 未取臂 |
+| ⑥ `upload_hw_ila_data` | 同 ④：`17-39` 包装 + 44-8 | 同 | 未取臂 |
+| ⑦ `write_hw_ila_data` | `[Labtoolstcl 44-235] The labtools system is not initialized …`（带不带文件名都一样） | `[Common 17-163] Missing value for option 'file' …` | 未取臂 |
 
-⇒ 一局里三件事顺手被改掉：①② 属于"空集合 + 日志一条告警"那一族，**不是** 44-235；⑥ 的 msg 又是
-`17-39` 包装（本页"catch 抓到的 msg 只有一条包装"那条的第二次命中）；⑦ 在 `open_hw_manager` 之后
-**必填参数缺失离线就判得掉**（见下一条）。附带一条：`connect_hw_server` 在 `open_hw_manager` 之后给
-**rc=0 与 `localhost:3121`**，而**把 hw_server 拉起来的就是这一步自己**（日志里
-`INFO: [Labtools 27-2285]` 与 `INFO: [Labtools 27-2222] Launching hw_server...` 两行紧跟在
-`connect_hw_server` 的命令回显之后；`open_hw_manager` 那一步只打出它自己的 `Time (s)` 行——先前这里写成
-"`open_hw_manager` 自己拉起"，是归属写错，已收回），而紧接着 `open_hw_target` 仍报
-`[Labtoolstcl 44-469] There is no current hw_target.`——**"连上了"不代表链路上有东西**。
+⇒ 这一局改掉五件事，每条都对应表里一格：
+**(1) ④⑤⑥ 三条的 msg 全是 `17-39` 包装**——先前这里只给 ⑥ 标了包装、把 ④⑤ 直接写成 `44-8`，
+等于把日志里的真号搬进"msg 首行"那一列，现在三行统一。
+**(2) 解锁 ⑦ 的是 `open_hw_manager` 这一步自己**：只开 manager、不 `connect_hw_server`，
+`write_hw_ila_data` 就已经报 `17-163`；①-⑦ 在两列之间逐行相同，`connect_hw_server`/`open_hw_target`
+成不成功都不参与，所以列名里去掉了 connect。
+**(3) ③ 有第三种形状**：会话里**有打开的设计**时同一条命令交回 `[Vivado 44-362]`、消息体为空
+（本机两臂都取到：依次 `open_checkpoint` 两份 dcp（都是建过调试核、还没 implement 的那两个状态），
+每臂随后调 ③ 都得到同一条空正文的 `44-362`，msg 全长 25，编号之外没有正文）
+⇒ **前两列的前提是"会话里没有打开的设计"**，而真在线流程恰是"有设计、有比特流"那一相，
+别拿前两列去解释板上的 44-362。
+**(4) "谁在服务"要用端口和进程判，别用 INFO 的措辞判**：`connect_hw_server` 在 `open_hw_manager` 之后
+给 **rc=0 与 `localhost:3121`**，但这条 0 既不证明服务是本次起的、也不证明链路上有东西。
+本机两臂对那两条 INFO 的记录**不一致**：一臂里 3121 被一个残留的 `hw_server.exe` 占着
+（`netstat` 有 LISTENING、`tasklist` 有 PID），日志只打 `INFO: [Labtools 27-2285] Connecting to hw_server url TCP:localhost:3121`
+而 **`27-2222 Launching hw_server...` 零命中**，随后 `27-2221 Launch Output:` 的 banner 写的是
+`Xilinx cs_server`（被拉起的其实是 cs_server）；另一臂同样在端口被占时观察到 `27-2285` 与 `27-2222` 都在。
+**差别候选是那个占端口的进程是否真在 accept**，本机没把这一条分开——所以判据落成机器可数的两个：
+`netstat -ano | findstr :3121` 与 `tasklist | findstr hw_server`，先确认"谁在听"再谈连的是谁；
+残留服务还会让**下一个批处理连上它**（照样 rc=0），排查时别把它当成自己的进程。
+**(5) "有没有 target"有一条更早的读数**：`connect_hw_server` 之后 `get_hw_targets` 给的是
+msg `17-39` 包装 + 日志里 `[Labtoolstcl 44-199] No matching targets found on connected servers: localhost`，
+它比 `open_hw_target` 的 `44-469 There is no current hw_target.` **早一层**交回答案；两条都能判"没板子"。
+取数形状按本机那两臂写：`get_hw_targets` 在**还没 `connect_hw_server`** 时是 rc=0 + 空串，
+connect 之后同一条变成 `17-39` 包装（真号在日志里）——所以要"数有几个 target"就 `catch {get_hw_targets} g`
+之后看 `$g` 是空串还是那条包装文本，**别把 rc=0 读成"有一个"**；`-quiet` 那一支本机没单独取数（未测）。另外 `connect_hw_server -url <别的地址>` 在已经连着的时候给
+`[Labtoolstcl 44-586] Disconnect server connection, TCP:localhost:3121, before making a new one.`
+——**换 URL 要先断旧的**，这条不是"重试一次就好"。
 所以第一次连上板子时要逐个跑一遍这七步，再固化进脚本；顺序按帮助文本排，别按"哪步离线红过"排。
 落盘是 `write_hw_ila_data`。本机 `-help` 的语法行是
 
