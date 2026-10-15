@@ -310,6 +310,15 @@ launch_runs impl_1 impl_2 -jobs 2 -to_step write_bitstream
 `set_property top` 之后各取一次，返回同一对），
 再 `create_run synth_1 …` 得到 `[Common 17-69] A run named 'synth_1' already exists`——
 新建对比 run 时用别的名字，不要先删再建。
+**同一件事在工程层是另一条编号，而且是截断性的**：脚本第二次跑 `create_project pb <目录> -part …`
+而那个目录里已经有 `pb.xpr` 时，得到的是
+`ERROR: [Common 17-53] User Exception: Project already exists on disk, please use '-force' option to overwrite:`
+**后面逐行列出它会覆盖哪些路径**（本机看到 `…/pb.xpr`、`pb.cache`、`pb.hw`、`pb.ip_user_files` 四行），
+然后 `INFO: [Common 17-206] Exiting Vivado` —— **`-mode batch` 从这一行就结束，脚本剩下的读数一条都不会打印**。
+这条不是"提醒"，是 17-53 那一族里的 User Exception：**`catch` 能兜住它**（前面 §1 那条"先给变量置初值再
+`catch`"的口诀同样适用于这里），但重跑脚本的正解是 **`create_project -force` 或每次换一个带时间戳的目录**
+（§4 那条"产物不可重复"要的正是后者；`-force` 会把上面那四个路径一起覆盖掉，
+所以**不要在别人正在用的目录上 `-force`**）。
 `launch_runs impl_1 impl_2 -to_step write_bitstream -jobs 2` 本机**真的把两个 run 一起发出去了**
 （`-jobs` 在多 run 形式下可用；它的含义见下一条总并行度的成本）。三条配套读数各说一件事：
 

@@ -26,8 +26,15 @@ def allocate(shape, dtype="u4", target=None, **kwargs)    # pynq/buffer.py:138�
    所以"设备写的区间与被同步的区间不一致"这句对连续切片不成立（本页前一次就是这么写的，被源码反写）。
    **带步长的切片会反过来咬人**，本机直接用 `numpy` 量过：100 个 `u4` 的 `a`（`a.nbytes`=400），
    `a[64:]`→**144**、`a[10:20]`→**40**（都与区间一致），而 `a[::2]`→`offset=0`、`nbytes`=**200**，
-   可这个视图真正碰到的字节铺满整个 400。`flush`/`invalidate` 是把 `(offset, nbytes)` 当**连续字节区间**
-   交给 driver 的，所以对 `[::2]` 这样的视图，同步只覆盖前半段、**尾部 200 字节没被 flush，而且不报错**。
+   可这个视图真正碰到的字节铺满整个 400。`flush`/`invalidate` **在 Python 这一层交出去的是
+   `(self.offset, self.nbytes)` 这一对连续区间**（`buffer.py:104-114` 那几行的原文，
+   本机读到的是 `device.flush(self.bo, self.offset, self.virtual_address, self.nbytes)` 这一句）；
+   **由此推"所以对 `a[::2]` 只覆盖前半段、尾部 200 字节没被 flush，而且不报错"——
+   这一句是机理，不是读数**：再往下那层 C 绑定与驱动行为本机没打开过、也没板可测
+   （要它在板上成为读数：分配一块、写一个跨距图案、`sync_from_device()` 之后看尾部是否还是旧值）。
+   **注意可证的部分已经够用了**：numpy 那半边（`nbytes`/`offset`/`strides`）是本机量的，
+   而"该同步的范围 ≠ 视图碰到的范围"这件事在 numpy 层就成立，所以不需要驱动那一层读数也足以
+   得出"别拿带步长的视图去做同步"。
    可用判据（本机在同一份 numpy 上量过）：`a[64:]`、`a[10:20]` 的 `flags['C_CONTIGUOUS']` 是 `True` 且
    `__array_interface__['strides']` 为 `None`，而 `a[::2]` 是 `False`、`strides=(8,)`——**连续（无 stride）
    才意味着同步范围等于视图碰到的范围**。不连续时的两条出路：按**原始对象整段**做同步（牺牲一点带宽，
@@ -37,29 +44,49 @@ def allocate(shape, dtype="u4", target=None, **kwargs)    # pynq/buffer.py:138�
    `np.ascontiguousarray.__text_signature__` 是 **(a, dtype=None, \*, like=None)**，
    **根本没有 `subok` 这个形参**（`"subok" in np.ascontiguousarray.__doc__` 也是 `False`），
    所以它不是"默认丢子类"，是**没有保留子类的选项**。
-   用一份照 `class PynqBuffer(np.ndarray)` 形状建的桩（`__array_finalize__` 传 `device_address`、
-   `physical_address` 是 property）在 `v = base[::2]` 上取四个读数：
-   `np.ascontiguousarray(v)` → 类型 **`ndarray`**、`hasattr(..., 'physical_address')` **False**、
-   数据指针是新分配；`np.array(v, copy=True)` → 同样掉成 `ndarray`；
-   **`v.copy()`** → 类型仍是子类、`physical_address` 还在；
-   **`np.require(v, requirements=['C'])`** → 同样保留子类。
-   **但后两条不是安全出路**：它们保留的是 `__array_finalize__` 抄过来的那个
-   `device_address`，而数据已经搬到新分配的**主机**内存（本机桩上 base 的指针是
-   `0x26803838840`、`v.copy()` 的是 `0x2681a6303d0`，而 `device_address` 两边同为
-   `268435456`）——**类还在、地址还是那块设备缓冲、字节已经不在映射里**，
-   拿它去 `transfer()` 就是搬错内存。所以真正可判的只有：
-   `type(x).__name__` 与 `hasattr(x, 'physical_address')` **各取一次**，
-   再把 `x.__array_interface__['data'][0]` 与原始 buffer 的那个数**比一下**——
-   三个数一起看才分得开"还是那块"与"换了地方但还穿着那件衣服"。
-   （以上是 numpy 侧的语义读数；**pynq 真缓冲区在板上的 `data` 指针关系本机没有读数**，
-   要它在板上成立，就按这三句现采一次。）
+   用一份**照 4.0.0 `buffer.py:50-57` 逐行写**的桩（`offset = self.virtual_address - obj.virtual_address`、
+   `device_address = obj.device_address + offset`、`self.bo = obj.bo`）在 `v = base[::2]` 上取四个读数，
+   numpy 2.5.3、本机自己跑的：
+   `np.ascontiguousarray(v)` → 类型 **`ndarray`**、连 `device_address` 这个属性都没有；
+   `np.array(v, copy=True)` → 同样掉成 `ndarray`；
+   **`v.copy()`** → 类型仍是子类，但 **`device_address` 变成 `268490416`、`offset` 变成 `54960`**
+   （基址是 `268435456`，多出来的 `54960` = `0xD6B0` 就是那次拷贝相对基底的**主机指针差**，
+   桩里基底的 `virtual_address` 打出来是 `0x249672490c0`）；
+   **`np.require(v, requirements=['C'])`** → 类型仍是子类，`device_address` 是 **`650906928`**。
+   **先前这里写"`v.copy()` 保留子类、`device_address` 两边同为 `268435456`"是错的**，
+   错在我自己的桩没照 `:52-54` 那三行写（漏了 `offset = virtual_address 差` 这一步）——
+   **真实的形状比"丢了属性"更坏**：副本**看起来 Still 是一个 buffer**，
+   而它的 `device_address`（`physical_address` 由它派生）是**拿主机指针差拼出来的一个数**，
+   它既不是那块设备缓冲的地址，也不会报错；拿这种对象去 `transfer()`
+   或去读 `physical_address` 对表，得到的就是一个看着像样、实际指向别处的数。
+   **所以"保留子类"的两条出路（`copy()` / `require()`）都不能当出路用**，
+   唯一稳的是**回到原始对象**再做整段同步（本节上面那条）。
+   自查三件套仍是那三个数，但第二个要**比数值不是比"有没有"**：
+   `type(x).__name__`、`x.device_address` 与 `x.offset`（**`offset != 0` 而你以为它是 0，
+   就说明你手上是一份副本而不是视图**）、以及 `x.__array_interface__['data'][0]`
+   与原始 buffer 的那个指针是否相同。
+   （以上全是 numpy 侧语义，**pynq 真缓冲区在板上的这组数本机没有读数**。）
+   **另有一条与 numpy 版本相关的坑，本机是在这个桩上撞出来的**：numpy 2.1 起
+   `ndarray` 自带一个**只读**的 `device` 属性（本机 2.5.3：`np.arange(4).device` → `'cpu'`，
+   赋值报 `AttributeError: attribute 'device' of 'numpy.ndarray' objects is not writable`），
+   而 `buffer.py:55` 那句是 **`self.device = obj.device`**——
+   **照这段代码建子类视图时，本机在桩上得到的就是这个 AttributeError**。
+   真实 `PynqBuffer` 在 numpy≥2.1 的板上会不会走到这一行，**本机没有板、没有读数**（标 机理/需板端）；
+   要做的是在目标上现采一次：`python3 -c "import numpy as np; print(np.__version__)"` 与
+   `python3 -c "from pynq import allocate; b=allocate((8,)); v=b[::2]; print(type(v), v.device_address)"`
+   ——后者若抛 `AttributeError … 'device' … not writable`，就是这一条在真环境成立。
    手算仍然不该用，但危险在**释放**那一侧：`freebuffer()` 走
    `libc.munmap(self.virtual_address, self.nbytes)` 然后 `del self.bo`（**这一整套只在 3.1.2/4.0.0 成立**：
     函数在 `:65-82`；**3.0.1 只做前一半**——同一位置是 `libc.munmap(...)` 之后跟
     `xrt.xclFreeBO(self.device.handle, self.bo)`，**没有 `del self.bo`**，所以"句柄被丢掉"这个形状在
     3.0.1 上换成"BO 被还给 XRT"；2.5.1 与 2.7.0 的 `freebuffer` 在 `:82`，而且**那两版的 `buffer.py` 里
     `munmap` 出现 0 次**（同一条 `grep -c` 在 3.0.1/3.1.2/4.0.0 各给 3）——"局部解除映射"这个危险是
-    3.x 那套分配器带来的，套到 2.x 上会连成因都不对，那两版走的是 Xlnk 那一族）——
+    3.x 那套分配器带来的，套到 2.x 上会连成因都不对——**但"那两版走 Xlnk 那一族"这半句是错的**：
+    `grep -rln Xlnk pynq-2.7.0/pynq` 交出**空**（正向对照：同一条在 2.5.1 交出 **9** 个文件，
+    含 `xlnk.py`），2.7.0 的 `allocate()` 已经走 XRT 那条链
+    （`pl_server/device.py:293 return self.default_memory.allocate(...)` →
+    `pl_server/xrt_device.py:171 buf.memory = self`），
+    **只有 2.5.1 还带 Xlnk 那一层**）——
    拿视图去调它，**被解除映射的是视图那一段**（地址与长度都是视图的），
    而 `del self.bo` 丢的也只是**这个视图自己那一份引用**：`__array_finalize__` 在 `:57`
    做的是 `self.bo = obj.bo`，原始对象手里仍然握着同一个 `bo`。
@@ -280,7 +307,12 @@ buf.flush(); buf.invalidate()
    与第 1 步的"永远缺一块"不一样，用它来分。
    **走 DMA 驱动时这一步永远不会红**：TX 通道构造时 `_flush_before=True`（3.1.2
    `lib/dma.py:60-63`），`transfer()` 里就 `array.flush()`（`:153-154`，SG `:430-431`），
-   `wait()` 里再 `_active_buffer.invalidate()`（`:183-184`）——**忘了手动同步是不可见的**。
+   `wait()` 里再 `_active_buffer.invalidate()`——**但这一支只属于收侧**：那一段的原文是
+   `:183 if not self._flush_before:` + `:184 self._active_buffer.invalidate()`，
+   而 `_flush_before` 在构造时**RX 置 `False`（`:60`）、TX 置 `True`（`:63`）**，
+   **所以发侧（TX）走的是 `:153 if self._flush_before:` 那支、在 `transfer()` 之前 flush，
+   `wait()` 里那句 invalidate 对它根本不执行**（先前这里把两条通道混在一句里，
+   写成"`wait()` 里再 invalidate"像是在说两条都是）。**忘了手动同步是不可见的**。
    所以这一格只适用于：自定义 master 直访 DDR、PL 自己写你手分配的缓冲、以及远程模式那侧
    （`coherent` 恒 `False`）。
 4. **以上都排除，才轮到尾部粒度**：见下面那条——它排最后是因为它的证据最贵（要构造专用图案）。
@@ -293,5 +325,15 @@ buf.flush(); buf.invalidate()
 开始同步——看坏的是不是总是两头。这一族的分诊在 `debug-triage.md` §2 树 C，端到端写法在 `dma-channels.md` §3。）
 
 `cacheable` 为 False 时（非缓存映射或 reserved 区）`flush/invalidate` 内部 `if not self.coherent`
-直接跳过，这些调用是空操作，此时问题不在这层。判据：先打印 `buf.cacheable`，再决定往哪边查。
-这一步很多"玄学旧数据"的案子能当场结案。
+直接跳过，这些调用是空操作，此时问题不在这层。**但"先打印 `buf.cacheable`"这条判据
+在本机的代码路径上永远不会红**（这一条被本机重做推翻）：`cacheable` 的定义是
+`buffer.py:85-87` 的 `return not self.coherent`，而**每一版的 XRT 分配都把 `coherent` 硬写成
+`False`**——2.5.1 `pl_server/xrt_device.py:135`、2.7.0 `:128`、3.1.2 与 4.0.0 都是 `:81` 的
+`coherent=False,`（4.0.0 同一行也在 `buffer.py:39` 的默认参数里写着 `coherent=False`），
+**所以 `allocate()` 出来的缓冲 `cacheable` 恒为 `True`**，
+`False` 那一臂只在**2.5.1 的 Xlnk 路径**上可达（2.5.1 `xlnk.py:294` 的 `coherent=not cacheable`
+是唯一由用户侧决定的写法）。**所以这一格的用法要反过来写**：读到 `True` 是常态，
+不能据此说"同步层在工作"；读到 `False` 才是异常，而那基本等于"你不在 XRT 这条路上"。
+判"驱动有没有替你同步"要靠上一层的分支（`_flush_before` 那两支，见上一条）
+和端到端的字节比对，不是这个属性。
+这一步很多"玄学旧数据"的案子能当场结案。（**这句先前说得过头了，按上面收窄**。）

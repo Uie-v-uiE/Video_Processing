@@ -59,7 +59,7 @@ DataRecorder, get_rails    # GPIO/Interrupt/UioController 随模式换实现；D
 
 | 现象 | 2.0 / 2.4 | 2.5.1（整树） | 2.7.0（整树） | 3.1.2 / 4.0.0 |
 |---|---|---|---|---|
-| `from pynq import Xlnk` | 有 | **有**（2.5.1 `__init__.py:32`） | 没了 | 没有。**替代品是同一格就已经存在的 `pynq.allocate`**（2.5.1 `__init__.py:45` 是转发行，见下面那条注）加上下文管理器。别指望改名就能跑：3.x/4.x 的**公开面里没有 `cma_*`**——3.1.2 只剩 `lib/logictools/trace_analyzer.py` 里的私有属性 `self._cma_array`，4.0.0 连这个也归零；2.x 那套成员名在 2.5.1 `xlnk.py` 里逐个查得到（`cma_alloc` 2.5.1 `xlnk.py:169`、`cma_array` 2.5.1 `xlnk.py:255`、`cma_get_phy_addr` 2.5.1 `xlnk.py:300`、`cma_free` 2.5.1 `xlnk.py:367`、`cma_stats` 2.5.1 `xlnk.py:388`，五处都是该文件的 `def` 行；**每个号都要自带版本**，3.x/4.x 已经没有 `xlnk.py`，只标一次会被读成后面几条也归那两版），那是**旧版的参照**不是新版的能力 |
+| `from pynq import Xlnk` | 有 | **有**（2.5.1 `__init__.py:32`） | 没了 | 没有。**替代品是同一格就已经存在的 `pynq.allocate`**（2.5.1 `__init__.py:45` 是转发行，见下面那条注）加上下文管理器。别指望改名就能跑：3.x/4.x 的**公开面里没有 `cma_*`**——3.1.2 只剩 `lib/logictools/trace_analyzer.py` 里的私有属性 `self._cma_array`（`grep -rn cma_` 的数 是 2.5.1 **62** / 2.7.0 **8** / 3.0.1 **8** / 3.1.2 **8** / 4.0.0 **0**，后三版的 8 处全在 `lib/logictools/trace_analyzer.py` 这一个文件里），**4.0.0 那个 0 的原因是整个模块被删掉了** （`ls pynq-4.0.0/pynq/lib/logictools` → `No such file or directory`，同一条在 3.1.2 下列出 `__init__.py`/`boolean_generator.py`/… 一堆文件）——不是"改了名"，是东西没了；2.x 那套成员名在 2.5.1 `xlnk.py` 里逐个查得到（`cma_alloc` 2.5.1 `xlnk.py:169`、`cma_array` 2.5.1 `xlnk.py:255`、`cma_get_phy_addr` 2.5.1 `xlnk.py:300`、`cma_free` 2.5.1 `xlnk.py:367`、`cma_stats` 2.5.1 `xlnk.py:388`，五处都是该文件的 `def` 行；**每个号都要自带版本**，3.x/4.x 已经没有 `xlnk.py`，只标一次会被读成后面几条也归那两版），那是**旧版的参照**不是新版的能力 |
 | `Register` 从哪来 | `from .ps import Register` | 同左（2.5.1 `ps.py:34` 自己 `from .registers import Register`，所以 `pynq.ps` 里确实有这个名字） | 改成 `from .registers import Register`（2.7.0 `__init__.py:30`），`ps.py` 不再转进来 → `from pynq.ps import Register` 从这一版起 `ImportError` | 同 2.7 |
 | `Bitstream` 从哪来 | `from .pl import Bitstream` | **已经是** `from .bitstream import Bitstream`（2.5.1 `__init__.py:39`） | 同 2.5.1 | 同 2.7 |
 | `allocate` / `DeviceTreeSegment` / `Device` | 都没有 | **三者都已存在**（2.5.1 `__init__.py:45/37/46`） | 同 | 都有 |
@@ -129,7 +129,13 @@ if getattr(pynq, "__file__", None) is None:
 def resolve(dotted):        # 名字写全路径（pynq.MMIO.read，不是 MMIO.read）：从 pynq 往下走
     cur = pynq
     for part in dotted.split(".")[1:]:
-        if part not in dir(cur):        # 不用 hasattr：`pynq.PL` 是实例，它走 `__getattr__`，
+        if part not in dir(cur):        # 不用 hasattr：转发是靠 `PLMeta` 上的 property 做的
+                                        # （4.0.0 `pl.py:24 class PLMeta(type)` + `:41/:59/:76/:100/…`
+                                        #  一组 `@property`；`grep -c __getattr__ pl.py` 是 **0**，
+                                        #  正向对照同一句在 `overlay.py` 给 **4**），
+                                        # 所以 `PL` 上取不到东西**不经过 `__getattr__`**；
+                                        # 不用 hasattr 的理由是另一条：它在有 `__getattr__` 的对象上
+                                        # 会触发驱动构造（有副作用），且只吞 `AttributeError`
                                         # 有副作用还可能直接抛（见 overlay-metadata.md §3 末条）
             return "ABSENT"
         try:
@@ -195,7 +201,8 @@ grep -F -f must_have.txt names.txt | grep -q ' ABSENT' \
 `bitstream.py` 里是 `remove_dtbo`（`:156`/`:189`/`:174`/`:174`/`:174`），
 `overlay.py` 里最接近的是 `free()`（`:374`/`:384`/`:387`/`:393`/`:394`）。
 网上"换 overlay 就 `ov.remove()`"的写法**不会**得到"没这个方法"那种干净报错，因为
-`Overlay` 自己就定义了 `__getattr__`（4.0.0 `overlay.py:364-371`，2.5.1 `:350-358`），
+`Overlay` 自己就定义了 `__getattr__`（4.0.0 `overlay.py:364-372`——`raise` 那行在 `:372`，
+早先这里写成 `364-371` 少了一行；2.5.1 `:350-358`），
 名字会被它接住。两种报错看加载状态（同一条语句 `ol.remove`）：
 **没加载过 → `RuntimeError("Overlay not currently loaded")`**（那是 `is_loaded()` 那一支给的）；
 **已加载 → `AttributeError("Could not find IP or hierarchy remove in overlay")`**

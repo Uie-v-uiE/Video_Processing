@@ -916,6 +916,27 @@ WNS 好看只说明**被检查的那些路径**满足要求。`report_methodolog
 5. **阶段要钉住**：综合后的条目集合与布局布线后不是同一批，报告要与那一次 run 同源落档
    （§4 第 1 条、§5）。做成 run 的一部分（`STEPS.<STEP>.TCL.POST` 指向一个脚本文件，
    见 `vivado-build-run.md` §5）比事后手点可信。
+6. **有一类 DRC 不在报告里等你能"看见它红了"，它直接把 bitgen 拦停**：
+   本机一份**只给了 `create_clock`、没给任何管脚约束**的最小设计走完 `route_design` 之后
+   `write_bitstream`，`catch` 交回的是 **rc=1 + `ERROR: [Common 17-39] 'write_bitstream'
+   failed due to earlier errors.`**（包装句，看不出原因），
+   `.bit` 也没有产出（`file size` 立刻炸在"文件不存在"上），真信息在它上面三条：
+   `ERROR: [DRC NSTD-1] Unspecified I/O Standard: 42 out of 42 logical ports use I/O standard
+   (IOSTANDARD) value 'DEFAULT' …` 与
+   `ERROR: [DRC UCIO-1] Unconstrained Logical Port: 42 out of 42 logical ports have no user
+   assigned specific location constraint (LOC) …`（两条都把问题端口列出来：
+   `Problem ports: c[7:0], d[15:0], q[15:0], clk, and rst.`），紧跟
+   `ERROR: [Vivado 12-1345] Error(s) found during DRC. Bitgen not run.`。
+   **两条 DRC 的原文各给了一句官方退路**：
+   `set_property SEVERITY {Warning} [get_drc_checks NSTD-1]` 与同形的 `UCIO-1`，
+   并写明"要让它进 run 流程就挂在 `write_bitstream` 步骤的 pre-hook 上"
+   （`vivado-build-run.md` §5 那条钩子读数是同一件事的另一面）。
+   **这条读数的用处有两处**：① 最小测试设计（不落管脚、只为了看时序/资源）在这里一定会停，
+   别把它误读成"我的 RTL 坏了"或"工具版本问题"；② **交付流程里不要顺手用那条 SEVERITY 降级**——
+   它降的是"这 42 个脚的电压标准与位置没定"这件事的严重级，
+   真板子上这正是可能烧料号的那类错误（`board-bringup.md` §3 上电自检顺序的存在理由）。
+   本机用降级把它跑通是为了量"同一份布线连写两次 `.bit` 哈希变不变"，
+   **那一次跑不能当交付**。
 
 ## 11. 不确定度与抖动：参数对象给错时工具不都拦
 

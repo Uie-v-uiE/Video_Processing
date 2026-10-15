@@ -38,7 +38,9 @@ license: MIT
    `__array_finalize__` 给视图算的是**视图自己**的 offset（`:50-57`：`offset = self.virtual_address -
    obj.virtual_address`，`self.offset = obj.offset + offset`），而 `nbytes` 是"元素数 × itemsize"：
    **连续切片**下同步范围正好等于视图碰到的那段，**步长切片（如 `a[::2]`）下它只盖住前半段，
-   尾部静默漏同步**（判据是 `flags['C_CONTIGUOUS']` 与 `__array_interface__['strides']`；
+   覆盖范围与视图碰到的字节不一致**（这一层在本机是可证的：判据是 `flags['C_CONTIGUOUS']` 与
+   `__array_interface__['strides']`，`buffers-and-cache.md` §1 有实测的 `nbytes`/`offset` 对照；
+   "尾部没被 flush 且不报错"是**机理**，驱动那层本机没打开，别当读数用；
    两条出路写在 `buffers-and-cache.md` §1）。
    **真正的危险在释放那一侧**：`freebuffer()`（3.1.2/4.0.0 `buffer.py:65-82`）走的是
    `libc.munmap(self.virtual_address, self.nbytes)` 加 `del self.bo`，对切片视图来说这两个量都只是视图的，
