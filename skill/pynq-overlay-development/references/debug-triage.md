@@ -353,7 +353,14 @@ def bench(fn, reps=7, warmup=2):
 1    pynq.__version__ / pynq.__file__ / python 版本 / sys.executable / 板型(compatible)
 2    Interrupt.__module__（判断板端还是远程模式）
 3    PL.ip_dict 的相关条目（名字、phys_addr、addr_range、type）
-4    PL.interrupt_pins 的相关条目（不只键名：`parent`/`controller`、`index`、`raw_irq` 都打出来）
+4    PL.interrupt_pins 的相关条目（**键就是 `<实例>/<端口>` 这一形**——解析器把针名按
+     `block, _, pin = interrupt.rpartition("/")` 拆开分发给 `ip_dict[block]["interrupts"][pin]`
+     （4.0.0 `pl_server/hwh_parser.py:519-524`），所以字典的键与 `fullpath` 同源；
+     值的键实测是 `controller`/`index`/`fullpath`，3.x/4.0 多一个 `raw_irq`
+     （逐版赋值行：2.5.1 `:387-389`（**没有 `raw_irq`**）、2.7.0 `:429-433`、
+     3.0.1/3.1.2 `:433-436`、4.0.0 `:440-444`）；
+     **`parent` 不在针的条目里，它在 `interrupt_controllers` 那本字典**（4.0.0 `:432-435`），
+     先前这一格把两本字典混成一本，已改）
     连接键是**驱动自己在用的那一条**：
     针的 `raw_irq` ⇄ `/proc/interrupts` 里**倒数第三列等于它**的那一行（该行需 ≥7 列）⇄
     那一行的**最后一列**（设备名）⇄ 必须与某个 `/sys/class/uio/*/name` **整串相等**。
