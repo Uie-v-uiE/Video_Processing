@@ -126,7 +126,7 @@ buf.freebuffer()    # 或者显式调用（buffer.py:65）
 del buf    # 靠 __del__ -> freebuffer()，时机由解释器定
 ```
 
-三条要记住的：
+四条要记住的：
 
 1. **`freebuffer()` 不看引用计数。** docstring 明写："This will free the memory regardless of
    whether other objects may still be using the buffer"。所以先 `got = np.array(buf)` 拷出来再释放；
@@ -190,9 +190,14 @@ del buf    # 靠 __del__ -> freebuffer()，时机由解释器定
 先排掉三种"你没漏但看起来像漏"的来源，再去做差值实验：
 
 1. **SG 的描述符表**（会挂住，但**不会每笔累积**）。`_SGDMAChannel.transfer` 每次自己 `allocate`
-   一块 BD 表（`lib/dma.py:384`），回收只发生在 `wait()`/`wait_async()` 的**末尾**（`:519-521`），
+   一块 BD 表（`lib/dma.py:384`），回收只发生在 `wait()`/`wait_async()` 的**末尾**
+   （**真正的丢引用是 `:521 self._descr = None` 这一行**；它上面那句 `:520 self._descr.close()`
+   按本节 §2 是同一条 `buffer.py:97-102` 的废弃空操作，**只做一件事：发一条 `DeprecationWarning`**，
+   所以每一次 SG 的 `wait()` 都会顺带打出那条告警——它是"走到这一行了"的读数，不是错误），
    而 cyclic 与引擎错误都在它之前就 `raise` 了（`:473-474`）。
-   但下一次 `transfer()` 会重新绑定 `_descr`，旧表随即由 `__del__ → freebuffer()` 释放，
+   **顺序要说清**：旧表是在 `wait()` 里 `:521` 那一抛就交给 `__del__ → freebuffer()` 的，
+   **不是等到下一次 `transfer()`**；下一次 `transfer()` 重新绑定 `_descr` 那条路只在
+   **`wait()` 压根没跑完**（cyclic、或上面那两个 `raise`）时才成为实际回收点。
    所以**每通道最多残留一张**：`_num_descr × 64 B`，普通传输就是 128 B。
    判据因此是数量级比对，不是"有没有涨"：观测差值若是 `k×128 B` 量级、且
    `stop()` 之后 `dma.sendchannel._descr is not None`，才是这条；差值大几个数量级就别说它解释得掉。
@@ -200,6 +205,16 @@ del buf    # 靠 __del__ -> freebuffer()，时机由解释器定
 
 2. **远程模式**。`pynq.allocate` 在主机侧给你的是 `RemoteBuffer`，它的释放是一次 gRPC 调用；
    主机会话断了，板子上那块就没人还（见上面 §2 的远程分支）。
+2.5 **上面那句"`with` 真的会释放"只成立于 3.x/4.0.0**，2.x 是另一条链，而 **2.7.0 上有一个洞**：
+   2.x 的设备层靠 `weakref.finalize` 回收 BO —— 2.5.1 `pl_server/xrt_device.py:136` 是**无条件**注册的
+   （`weakref.finalize(buf, _free_bo, device, bo, ar.virtual_address, ar.nbytes)`），
+   **2.7.0 把它写在 `if pointer is not None:` 里面**（`:129-130`），
+   也就是**指针为空时那块 BO 没有登记任何 Python 层的回收钩子**；
+   再加上 2.7.0 的 `freebuffer()` 在 `:82-93` 只做 `pointer`/`return_to` 那一套、
+   **整个文件里 `munmap` 出现 0 次**（正向对照：同一条 `grep -c` 在 3.0.1/3.1.2/4.0.0 各给 3）——
+   所以**在 2.7.0 上"我用了 `with`，所以这块一定被还"这句话不成立**。
+   这一条的**后果面本机没有读数**（要它成为读数：在板上反复 `allocate` 一批不带 `with` 的缓冲、
+   每轮读 `/proc/meminfo` 的 `CmaFree` 与 `dma_alloc` 侧的水位，看是否回收——见 `debug-triage.md` §2 树 C 与池子那条）。
 3. **`with` 的作用域真的很长的那些写法**（不是"notebook 里不退出"——cell 结束块就结束了，
    结束后 `b` 只是变成已释放的悬空句柄）。真会让内存在整轮跑完前一直占着的是：
    不带 `with` 的裸 `allocate()` 再赋值给变量、`with` 块里嵌着一个长期不返回的
