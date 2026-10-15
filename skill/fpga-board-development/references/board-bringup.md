@@ -151,7 +151,9 @@ hw_cfgmem object"，**做哪几件由 `hw_cfgmem` 对象上的属性决定**—�
   那句只属于 Vivado 这一面，在 xsdb 里找它是白费**。这次扫描的正向对照是同一次里
   `targets` 与 `connect` 两条**有名字**——扫描看得见 xsdb 自己的命令面，所以那个空是真的空。
 - 两条命令面之间不通用的还有 `program_cfgmem` 这种"名字像但两边都没有"的：判存在要用
-  `invalid command name`，不能用一次 `info commands` 的 0（`SKILL.md` §1 第 9 条那条）。
+  `invalid command name`，不能用一次 `info commands` 的 0（规矩在 `SKILL.md` 的**"用法"那一段**——
+  "空不足为凭，`-help` 能打出用法就是存在"；**先前这里把它指到 §1 里讲返回码的那条，路径错了**：
+  那条讲的是"返回码/空属性/清单"三件事，不含这条，按 §1 的编号去数也数不到）。
 
 要确认四件事再动配置 Flash（缺一就别动手）：
 
