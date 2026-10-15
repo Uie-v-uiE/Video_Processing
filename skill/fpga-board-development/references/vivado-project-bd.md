@@ -270,9 +270,16 @@ ZYNQ7 Processing | 5.5 | 5.5 (Rev. 8) | Included | xc7z020clg400-1`）——
 `report_ip_status` 同样加了这个开关却交空串。**所以别把任一命令的实测长度当默认**——
 每个要解析的报告都在自己这版上取一次长度（`string length` 打一行就够），再决定是解析返回值还是抓日志。
 工具的升级动作是 `upgrade_ip` / `upgrade_project`（本机都实跑过）；
+**`upgrade_project` 的语法里没有"工程文件"这个位置参数**（`-help` 交回
+`upgrade_project [-migrate_output_products] [-log <arg>]`，2025.2.1），
+所以 `upgrade_project xx.xpr -quiet` 那种写法是 `[Common 17-165] Too many positional options when
+parsing '-quiet'`、rc=1 —— 它只能对**当前已打开的工程**调用。
 `upgrade_project` 在已经是新版时打 `[INFO] Project 1-1969 ... 0 IPs were upgraded; 0 IPs failed
-to upgrade, exiting script.` 并**不再执行后面的命令**（这是本机早期那次取到的形状）；
+to upgrade, exiting script.` 并**不再执行后面的命令**（这是本机早期那次取到的形状，**现在本机没有
+一份日志留着它**）；
 两遍重跑却**既没打 `1-1969`、后面的 `report_ip_status` 也照跑**（返回 2234 字符那张表）。
+第三种臂也记一下：在一个**不含任何 IP** 的新建工程里空参调用它 → **rc=0、`catch` 交回的 msg 长度 0、
+日志里也没有 `1-1969`**——也就是"它成功了"这件事从这里三个通道都看不出来。
 两种都记下：这条命令**不能当流水线里的一环**——它可能悄悄终止脚本，也可能什么都不打。
 要"升级前后各取一次表"，就分两个会话/两条命令跑，中间用 `file` 落盘，别指望同一段脚本走到底。
 
@@ -576,8 +583,9 @@ implementation has been run all the way through Bitstream generation.`，**rc=1 
 所以判"这次导出成不成"**不能只押一条通道**：返回码、解包成员列表、日志里特定消息，
 三者各自会漏——上面那个 1503 字节的空壳是"rc=0 且文件在"却什么 handoff 都没有，
 而只看消息文本又会被"同一失败两种文本"骗过去。可用的是这三件一起写进同一条判据。
-**同一族的 `1-xxxx` 在本机出现过两个类别名**：上面 §2.1 那条 `upgrade_project` 是
-`[Project 1-1969]`，导出这一族是 `[Projectvivado 1-1937]` / `[Projectvivado 1-1040]`。
+**同一族的 `1-xxxx` 在本机出现过两个类别名**：上面 §2.1 那条 `upgrade_project` 的
+`[Project 1-1969]` 是**早期那一臂的形状，本机没有一份现存日志里有它**（§2.1 已把三种臂都记下），
+导出这一族的 `[Projectvivado 1-1937]` / `[Projectvivado 1-1040]` 则都在现存日志里。
 为什么不同本机没有解释，所以**按消息文本搜，别按类别名搜**——按 `Project` 搜会漏掉
 导出这一族的失败读数。
 

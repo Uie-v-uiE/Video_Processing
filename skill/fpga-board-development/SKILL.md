@@ -42,8 +42,13 @@ license: MIT
    建立与保持要一起取（WNS 与 WHS）。
 4. **约束按名字命中才生效。** 每条约束自己出命中计数（`llength [get_ports -quiet X]`；
    这版 `sizeof_collection` 调用就报 `invalid command name`）。**"指向不存在的东西"没有一条固定文案**，
-   本机见过的形状：`CRITICAL WARNING: [Vivado 12-4739] ... No valid object(s) found for ...`、
-   `WARNING: [Vivado 12-481]` / `[Vivado 12-584] No ports matched '...'`（过滤器空结果），
+   本机实测的形状（设计已 link、名字不存在，六臂各跑一次）：过滤器那一句先打
+   `WARNING: [Vivado 12-584] No ports matched 'NOPE_X'.` 而**命令本身 rc=0、交回空集合**；
+   空集合喂进约束才由下一条冒出
+   `ERROR: [Vivado 12-4739] set_false_path:No valid object(s) found for '-from [get_ports NOPE_X]'.`
+   且 rc=1（`create_clock`/`set_input_delay`/`set_output_delay`/`set_max_delay` 四臂同形，只是引到的
+   选项名不同）。`[Vivado 12-481] No ports matched ...` 是**另一臂的读数**，本机没有一份日志里有它，
+   只当"某一次观察"引用，别当这一族的固定文案。
    调试端口那一族则是 `WARNING: [Vivado 12-1423] No ChipScope debug ports matched '...'` 返回 0、
    错要到下一句才以 `[Vivado 12-1420] Debug port '' was not found.` 冒出来。
    所以判据一律是**命中集合的大小**，不是"日志里有没有某句话"。
