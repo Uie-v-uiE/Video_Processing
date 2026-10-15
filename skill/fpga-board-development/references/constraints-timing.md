@@ -501,10 +501,15 @@ report_io
    **不是**"这一侧没做检查"；先把那个脚的约束补齐，再读 `Requirement:`。
    旧那句"只有 `create_clock`、没有任何 min 约束时给 `Requirement: 0.000ns` 配 `Slack (MET) : 0.140ns`"
    的**触发条件归错了**：本机 A1 正是那个状态，交回来的是 `(none)` 路径 + 没有需求行。
-   `0.000ns` 这个值本身在第三臂重现了，所以它属于"报告交的是被时钟组覆盖的路径"那一类；
-   那份旧设计当时为什么被交出一条被覆盖的路径，本机没再复现（候选：它所有输入脚都已带
-   `set_input_delay`，或那次报告带了 `-from`/`-to`）——**这两个候选没分开之前，脚本里不要假设
-   min 报告一定有 `Requirement:` 行**，先打印整段、按 `Path Group:` 分支。
+   **再补两臂把这个开放项关掉**（同一份设计接着做）：给**所有**输入脚都补上 `-min 1`/`-max 3` 之后
+   （A5），min 报告交的还是 `din[0] → q_reg[0]/D`、`Path Group: clk`、`Requirement: 0.000ns`
+   ——**长度与 A3 一模一样（4058）**，也就是说"只要有任一条 IO 带 `-min`，报告就改交被时钟组覆盖的路径"，
+   不需要"所有脚都约束"那么强。但这一臂的 `Slack` 是 **`(VIOLATED) : -0.122ns`**，
+   同段里给出 `Destination Clock Delay (DCD): 2.456ns`、`Source Clock Delay (SCD): 0.000ns`。
+   所以旧那格 `Slack (MET) : 0.140ns` 的形状现在有了名字：**同一条"被时钟组覆盖 + 需求 0.000"的路径，
+   MET 还是 VIOLATED 由时钟树延迟（DCD）定**，综合后 DCD 一进来就能把它推到负。
+   **判 hold 的落点因此是 `Slack` 与失败端点数，永远不是 `Requirement` 那一栏**（这一栏在 hold 侧
+   经常就是 0.000，它不携带"有没有问题"的信息）。
    取 min 报告的那条命令**必须写成 `-delay_type min`**：`report_timing -min` 现在被直接拒绝
    （`ERROR: [Common 17-170] Unknown option '-min', please type 'report_timing -help' for usage info.`，
    本机同一形状再次撞到时是以异常交回、`catch` 里能看到这条 17-170），所以旧记录里那个 `-min`
