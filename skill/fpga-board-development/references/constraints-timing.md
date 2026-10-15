@@ -27,9 +27,19 @@ report_clocks            ;# 名字与周期逐条和设计意图对上
 check_timing             ;# 重点看 no_clock、unmatched、no_input_pause 这几类条目是不是空
 ```
 
-**MMCM/PLL 输出脚上的时钟，工具一般已经从时钟网络自己推导出来了**（`report_clocks` 里能看到）。
+**MMCM/PLL 输出脚上的时钟，工具一般已经从时钟网络自己推导出来了**（`report_clocks` 里能看到）——
+**这半句本机没有读数**（本机没有跑过带 MMCM/`clk_wiz` 的设计），留着只当 UG903 口径的提醒。
 所以别一上来就在综合时钟管理 tile 的输出脚上手工 `create_generated_clock`——那是 UG903 不推荐的
-做法（会撞车，非要用得加 `-add`）。`create_generated_clock` 的正当用途是给**逻辑里分频或选择出来
+做法。**先前这句后面括号里写的"（会撞车，非要用得加 `-add`）"本机复现不出来，按读数改成这样**：
+在两臂都用的**全局缓冲网络**（`get_nets -hier *BUFG*` 交回的 `clk_IBUF_BUFG` 那一类，
+**注意这不是 MMCM 输出脚，本机没有 CMT 实例，所以这条只到"缓冲网络"这一层**）上写
+`create_generated_clock -name gq -source [get_ports clk] -divide_by 4 [get_nets clk_IBUF_BUFG]`：
+**rc=0、没有任何 collision 文本，返回值是 `gq`**，之后 `get_clocks *` 本机一臂给 `clk gq`
+（**主钟还在**），另一路复核在同一形状上报的是只剩 `gq`（主钟被顶掉）——
+**"会不会顶掉主钟"两臂相反，别当判据**；要判就自己数 `get_clocks *` 并把原样打进日志。
+**`-add` 单独用是硬错**：`create_generated_clock … -add [get_nets …]` 不给 `-master_clock` 时
+本机两臂都取到 `ERROR: [Vivado 12-670] Cannot specify -add without specifying -master_clock.`（rc=1）。
+**`create_generated_clock` 的正当用途是给逻辑里分频或选择出来
 时钟**建模，例如：
 
 ```tcl
@@ -144,9 +154,23 @@ Synthesis finished with 0 errors, 0 critical warnings and 0 warnings.
 
   这里的 `<周期>` 用**目的时钟周期**（慢的那一侧），`-datapath_only` 表示只约束数据路径延迟、不牵连
   时钟路径。**两个钟有共同来源时 `-datapath_only` 不会自己挑时钟对**：本机对同一对钟
-  先得到 `ERROR: [Constraints 18-510] A clock pair with common or internal edges must be specified
-  with the option -clock_pairs`，加上 `-clock_pairs [get_clocks slow_clk] [get_clocks fast_clk]`
-  之后 `Requirement` 才真的变成 40.000 ns（不加时它压根没落地，而 `set_max_delay` 那句本身看着是成功的）。
+  取到过 `ERROR: [Constraints 18-510] A clock pair with common or internal edges must be specified
+  with the option -clock_pairs` 这条文本。**但先前这里给的补救办法是错的，现在收回**：
+  原文写"加上 `-clock_pairs [get_clocks slow_clk] [get_clocks fast_clk]` 之后 `Requirement`
+  才真的变成 40.000 ns"——**`set_max_delay` 没有 `-clock_pairs` 这个选项**：
+  本机把 `set_max_delay -help` 全文取回来是 **7829 字符、里面 `clock_pairs` 出现 0 次**
+  （正向对照：同一次 `-help` 里 `-datapath_only`、`-from`、`-to` 都列着），
+  照那句话写得到 `ERROR: [Common 17-170] Unknown option '-clock_pairs'`（rc=1）。
+  **而 `18-510` 本身也不是必然出现**：另一臂在"目的钟由源钟 `create_generated_clock -divide_by 4`
+  派生"的一对钟上写 `set_max_delay -datapath_only 40 -from clk -to gq`，**rc=0、无任何消息**。
+  **所以这条约束现在没有可复现的补救配方，能写的只有判据**：
+  ① 写法是 `-datapath_only <延迟> -from <钟> -to <钟>`；把对象放在位置参数上
+  （`set_max_delay -datapath_only 5 [get_clocks clk]`）撞的是
+  `Common 17-165 Too many positional options when parsing 'clk'`；
+  ② 判落地看**那条路径的 `Requirement`**（§4 的 `report_timing -from/-to` 头部），不是看命令返回；
+  ③ 真撞到 `18-510` 时**别猜选项名**，把这条命令 `-help` 的 `Syntax:` 整段打出来按它写；
+  ④ 两个钟确有共同来源、又只想约束数据路径时，`set_clock_groups`/`set_false_path` 那一族
+  在 §3 有自己的射程表，不要拿这条硬撑。
   所以这类"看起来收下了"的有界约束，判据是那条路径的 `Requirement` 变成你要的数，不是命令返回。**判它有没有落地不能用 `report_exceptions`**：本机两条 `set_max_delay`（一条寄存器到寄存器
   跨域、一条带 `-quiet`）都没出现在那张表里——那张表收的是多周期/false path/case analysis 这一族。
   有界约束的读数是那条路径的 `Requirement`（§4 的 `report_timing` 头部）。
@@ -370,6 +394,17 @@ and may be locked`，那样出来的差值不能用）。差值：
 （`onchip-debug.md` §2 的读回判据管这件事）。③ **hold 是被它带出来的**：没核那一臂 WHS 0.212 干净，
 带核同一份设计 WHS −0.653、两个端点失败——**这正是"调试版的数字不能给交付签字"的具体形状**，
 不是抽象告诫（`SKILL.md` §1 第 3 条）。
+**但③这一条只是那一臂的读数，不是"插核就会坏 hold"这条机理**：另一路复核把核建起来、
+`opt/place/route` 全跑完之后取到的是**坏的全在 setup 上**——
+`WNS -2.327 / TNS -17.974 / 8 个失败 setup 端点`，而
+`WHS 0.008`、`Hold: 0 Failing Endpoints`，最差路径同样挂在
+`Path Group: dbg_hub/…/SERIES7_BSCAN.bscan_inst/TCK`、`Requirement: 1.000ns`。
+**两臂相反，所以"核会带出 hold 违例"不能当判据用**；能当判据的是那一句总的：
+**插核之后新出现的违例要先按 `Path Group` 分辨它属于谁**（setup 还是 hold、几条端点、
+挂不挂在 `dbg_hub` 上，都从同一份 `report_timing_summary` 里读，见 §4 的捕获写法），
+并且**核的几何（位宽、级数、是否在 BSCAN 上）与布线结果一起决定坏在哪一侧**——
+本机与复核都没把"什么条件下坏 setup、什么条件下坏 hold"分开，
+**所以这里不要写"插核必然伤 hold"**，那是把自己的那次读数当机理。
 
 两条边界要说清：这些是**同一份小设计、同一会话**的数，不是"只差 `MARK_DEBUG`"的两版构建对照
 （上面差值法那三个前提在这里都不成立），换器件、换核宽、换探针数都会变；
@@ -912,7 +947,10 @@ WNS 好看只说明**被检查的那些路径**满足要求。`report_methodolog
    （上面那个 SUMMARY 就是那么来的），而在**打开一个综合 dcp 之后再跑**得到的是
    `ERROR: [Common 17-53] User Exception: Methodology could not be found in the design.`
    同一份网表、换个打开方式就没数据。所以拿它当门之前，先确认它这一次真的产出了表：
-   判据是输出里那行 `Rules Checked:` 或 `Checks found:` 在不在，不是命令有没有被调用。
+   判据**只认 `Checks found:` 那一行**：本机两份设计各取一次 `report_methodology -return_string`，
+   `Rules Checked:` **一次都没有出现**（正向对照：同一次输出里 `Checks found: 6` / `Checks found: 11` 都在），
+   所以先前把 `Rules Checked:` 也列为可用门字符串是错的——它对应的是另一种工具形状，
+   在自己的机器上没读到之前不要拿它当"报告成功了"的证据。
 5. **阶段要钉住**：综合后的条目集合与布局布线后不是同一批，报告要与那一次 run 同源落档
    （§4 第 1 条、§5）。做成 run 的一部分（`STEPS.<STEP>.TCL.POST` 指向一个脚本文件，
    见 `vivado-build-run.md` §5）比事后手点可信。

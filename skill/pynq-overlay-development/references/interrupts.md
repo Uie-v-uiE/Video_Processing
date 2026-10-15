@@ -41,19 +41,20 @@ MMIO 块可查**，别去读 `0x04`/`0x1C`：那条路走的是 UIO，机制在 
 
 **直连 PS 那一支到底在找什么**。`get_parent()` 看到针的 `parent == ""` 时走的是：
 
-1. 取针的 `raw_irq`（针的字典里的键是 **`controller`/`index`/`raw_irq`**，4.0.0 `interrupt.py:138-141`
-   读的就是这几个；**`parent` 从来不是解析器写进去的键**——
-   `grep -rn "'controller'\|\"controller\"" pynq/` 在 4.0.0 交出
-   `pl_server/hwh_parser.py:441: "controller": parent`（左边是字典键名，右边的 `parent` 是个**局部变量**），
-   加上 `overlay.py:280`、`pl.py:383`、`hwh_parser.py:101` 三处文档字符串都写
-   `{str: {'controller' : str, 'index' : int}}`；**同一棵树里 `"parent"` 作为键 0 命中**，
-   正向对照是同一条 grep 在 `interrupt.py:138` 命中了读它的那一行）。
-   **先前这里写的"'controller'→'parent' 键名搬家、读 `parent` 读到 `None` 不是 bug"是错的**，两处都错：
-   键名没搬家（五棵树的解析器都只写 `controller`），而且取不到键时是 **`KeyError`，不是 `None`**。
+1. 取针的 `raw_irq`（针的字典里**实际被写进去的键**是 `controller`/`index`/`fullpath`，
+   3.x/4.0 还多一个 `raw_irq`——逐版的赋值行：2.5.1 `pl_server/hwh_parser.py:387-389`（**没有 `raw_irq`**，
+   那一版 `_add_interrupt_pins(self, net, parent, offset)` 的形参里就没有 `raw_map`）、
+   2.7.0 `:429-431` 加 `:433` 的 `raw_irq`、3.0.1 与 3.1.2 `:433-436`、4.0.0 `:440-443`，
+   `Interrupt(pinname)` 用的就是这个 `fullpath`）。
+   **`parent` 这个键确实存在，但它不在针上——在控制器那本字典里**：
+   4.0.0 `:432-435` 写的是 `interrupt_controllers[name] = {"parent": parent, "index": offset}`
+   （`:437` 再补 `raw_irq`）。**先前这里说"`parent` 从来不是解析器写的键"是我把两本字典混成一本**，
+   收回；正确的说法是：**针的条目里没有 `parent`，控制器的条目里才有**。
+   于是 `entry['parent']`（`entry` 是针）取不到键时是 **`KeyError`，不是 `None`**；
    `interrupt.py:138` 那句 `parent = entry['parent'] if 'parent' in entry else entry['controller']`
-   是一个**永远走不到前一支的兜底**（写侧没有那个键），它存在的最早版本是 **2.7.0 `:167`**
-   （不是"3.x/4.x 才改的"；3.0.1 `:138`、4.0.0 `:138` 同一句），2.5.1 `:95` 是直接
-   `entry['controller']`。所以从 2.x 搬代码时**不要**"顺手改成读 `parent`"——那才是把对的代码改坏。
+   是一个**对针永远走不到前一支的兜底**，它存在的最早版本是 **2.7.0 `:167`**
+   （3.0.1/4.0.0 都在 `:138`），2.5.1 `:95` 是直接 `entry['controller']`。
+   所以从 2.x 搬代码时**不要**"顺手改成读 `parent`"——那才是把对的代码改坏。
 
 
 2. `get_uio_irq(raw_irq)` 扫 `/proc/interrupts`，**判的是倒数第三列等于 `str(raw_irq)`、
