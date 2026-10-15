@@ -341,19 +341,36 @@ print("ip_dict now says:", hex(PL.ip_dict["axi_dma_0"]["phys_addr"]))
    —— 后两版的签名**没有 `program`**，见下面第三条）
    —— 整块 overlay 对象上的口，`partial_region` 是 PR 块名。
 - `DefaultHierarchy.download(bitfile_name, dtbo=None, program=True)`（4.0.0 `overlay.py:946`；
-   3.1.2 `:949`、3.0.1 `:1048`、2.7.0 `:1014`、2.5.1 `:987`，2.5.1 那版签名是
-   `download(self, bitfile_name, dtbo)`——`dtbo` 无默认值）
+   3.1.2 `:949`、3.0.1 `:1048`、2.7.0 `:1014`、2.5.1 `:987`。**`program` 这个形参只有 3.0.1 起才有**：
+   2.7.0 `:1014` 的原样是 `def download(self, bitfile_name, dtbo=None)`、
+   2.5.1 `:987` 是 `def download(self, bitfile_name, dtbo)`（`dtbo` 连默认值都没有）——
+   **先前这里只给 2.5.1 标了这一点，2.7.0 漏了，现已补**；
+   下面第三条讲 `_load_bitstream` 的无 `program` 版本时也是同一件事的另一层）
    —— 拿到那个 PR **层次对象**之后的口。层次对象本身由 `_hierarchy_drivers` 注册队列与
    `RegisterHierarchy` 元类绑定（三处行号**按版本各取一次**：4.0.0 是 `overlay.py:545` 建队列、
    `:893` 在元类 `__init__` 里 `appendleft`、`:901` 是
    `class DefaultHierarchy(_IPMap, metaclass=RegisterHierarchy)`；3.1.2 同样三处都在，行号是
    `:548`、`:896`、`:904`；2.7.0 把它们排在 `:531`、`:961`、`:969`），判据是元数据里那一层的 `driver`。
 
-`partial=True` 告诉底层这是部分配置。源码里看得见的差别（4.0.0 `pl_server/embedded_device.py:704-712`）：
+`partial=True` 告诉底层这是部分配置。源码里看得见的差别（**3.x/4.0.0 这一族**，
+4.0.0 `pl_server/embedded_device.py:704-712`）：
 全位流那一支先 `self.shutdown()` + `self.gen_cache(...)` 并取 `flag=0`，partial 那一支**什么都不先做**、
 取 `flag=1`；两支最后写的是同一对 sysfs 口——`/sys/class/fpga_manager/fpga0/flags` 与
-`/sys/class/fpga_manager/fpga0/firmware`（两个常量在 `:553-554`，落笔在 `:711-712`，写进去的是
-`bitstream.binfile_name` 而不是 `.bit` 原名），再加上 §3.2 那道门（partial 不盖时间戳、不跑 `Device.reset`）。
+`/sys/class/fpga_manager/fpga0/firmware`（两个常量在 `:553-554`，落笔在 `:711-712`）。
+**两条版本线与归属要分开说**：① **2.5.1 没有 `pl_server/embedded_device.py` 这个文件**
+（那一版 `pl_server/` 下只有 `device.py`/`hwh_parser.py`/`server.py`/`tcl_parser.py`/
+`xclbin_parser.py`/`xrt_device.py`）；2.5.1 `pl_server/device.py:619-627` 是同一形状的分支，
+**有 `self.shutdown()`，没有 `gen_cache` 那一步**；
+② **写进 `firmware` 的不是 `.bit` 原名，是 `bitstream.binfile_name`**，
+而这个名字在 `:125-127` 就是 `Path(原文件名).stem + ".bin"`，
+同一个函数还顺手给出 `firmware_path = Path("/lib/firmware") / bitstream.binfile_name`——
+也就是**内核按固件搜索路径去解这个裸基名**，而 `/lib/firmware/<stem>.bin`
+**每次下载都会被同名覆盖**：两份 stem 相同的 partial 位流（`foo.bit` 与 `foo.bin` 或
+不同目录下的同名 `foo.bit`）在这条路上互相顶掉，这与本节上面 `.dtbo` 同名顶掉是同一类坑，
+只是发生在固件文件名而不是设备树段名上。
+**"覆盖到底发生在哪一次下载、内核报什么"这部分是机理，本机无板、没有读数**；
+可读的那部分是文件名规则本身（源码 `:125-127`，逐字）。
+再加上 §3.2 那道门（partial 不盖时间戳、不跑 `Device.reset`）。
 至于"板上现状不是那个 static 镜像时会怎样"：**本包没有板子，下面这句是要求不是读数**——按部分配置的
 定义，partial 位流的位框只对生成它的那份 static 有效，所以每次出 partial 都要同时记下它对应的全镜像
 （连同两者指纹），切换顺序写成"全 → partial"，不要在未知状态下直接下 partial。
@@ -362,15 +379,37 @@ print("ip_dict now says:", hex(PL.ip_dict["axi_dma_0"]["phys_addr"]))
 加上下面这三条（前两条读源码核实过，第三条在设计侧那一包）。
 
 - **块名**：`partial_region` 要的是元数据里的**层名**，从 `ol.hierarchy_dict` 的键现取
-  （§3.1 那张表里 `hierarchy_dict` 的"什么时候有值"就是它的取法时机）；`PL.ip_dict` 里只有 IP 项，
-  拿它当层名清单会取到不存在的关键字。
+  （取法与时机在 **§2.1** 那张表的 `hierarchy_dict` 那一行——**先前这里写"§3.1 那张表"是条指空的路径，
+  本页 §3.1 是例外表、没有这一行**）。
+  **先前这里写"`PL.ip_dict` 里只有 IP 项，拿它当层名清单会取到不存在的关键字"——预测的坏法是错的，收回**：
+  层名与 IP 名**都能**从 overlay 对象上解析到，因为 `_IPMap.__getattr__` 的查找顺序是
+  **先 hierarchies、再 ip**（4.0.0 `overlay.py:794-811`：`if key in self._description["hierarchies"] …
+  elif key in self._description["ip"]`），而 `pr_download` 内部走的正是
+  `self.__getattr__(partial_region)`（`:462`）——**写错成一个 IP 名不会得到"没有这个层"，
+  它会真的解析到那个 IP 对象**，然后在 `:463` 那一行要它的 `.download` 方法时才炸；
+  没绑驱动的 IP 走的是 `DefaultIP`，本机用 `ast` 查过那个类**没有 `download`**，
+  所以真实症状是 **`AttributeError: 'DefaultIP' object has no attribute 'download'`**。
+  **判据因此是"名字从 `hierarchy_dict` 里取"这一条纪律 + 报错时看的是异常里的类名**
+  （`DefaultIP` ⇒ 你给的名字落到 IP 上了 / 驱动没绑上；不是"层不存在"）。
 - **`program` 的确切语义**（读到源码，不再标"没核实"）：它**只**决定这一下要不要真的去配置 PL。
   `_load_bitstream` 里是 `if program: self.bitstreams[...].download()`，
   **紧跟一句无条件的 `self.pr_loaded = ...bitfile_name`**（4.0.0 `:1024-1027`、3.1.2 `:1027-1030`、
   3.0.1 `:1126-1129`），而换缓存那句 `_ip_map = _IPMap(description)`（`:989`/3.1.2 `:992`）排在它后面。
   三条后果：① `program=False` 是"**只看元数据、不动 PL**"的合法走法，与本包一贯的"先读再写"一致；
   ② 但它照样把 `pr_loaded` 推进到那个从未生效的 partial，于是 Python 侧认为已经下过了，
-  下一次 `download()` 会先对那个位流做 `remove_dtbo()`（`:964-965`）；
+  下一次 `download()` 会先对那个位流做 `remove_dtbo()`（`:964-965`）——
+  **这一条本机沿调用链走到底了，结论比"会做一次 remove_dtbo"更硬**：
+  `insert_dtbo()` 那一步是 `if dtbo:` 门控的（`:969`），**`remove_dtbo()` 只看 `self.pr_loaded`**，
+  而 `bitstream.py:174-183` 的 `remove_dtbo()` 是 `self.device.remove_device_tree(self.dtbo)`，
+  `pl.py:292-301` 再原样透传给 `Device.remove_device_tree`，
+  `pl_server/device.py:379` 第一行就是 `dtbo_base_name = get_dtbo_base_name(abs_dtbo)`——
+  **一路上没有任何一处先判 `None`**。用钉住的那份真实函数在本机跑
+  （`devicetree.py:31` 的 `get_dtbo_base_name`）：传 `None` 得到
+  **`AttributeError: 'NoneType' object has no attribute 'split'`**，
+  同一次运行里传 `/lib/firmware/name2.dtbo` 正常返回 `name2`（正向对照）。
+  **所以 `pr_download(..., dtbo=None, program=False)` 之后再走一次普通 `download()`
+  会在那一步抛 `AttributeError`**——这不是"元数据没生效"那么温和，是一次崩在库内部；
+  走法要么一直带 `dtbo`，要么这条之后别再调 `download()`（先 `del`/重开解释器再加载）。
   ③ **2.5.1 与 2.7.0 没有这个参数**（`_load_bitstream(self, bitfile_name)`，2.5.1 `:1047`、
   2.7.0 `:1086`），把带 `program=` 的写法抄到那两版会 `TypeError`。
 - **"只有那一块被重配"怎么证明**：这是**设计侧的预留要求**，不是运行时能补出来的读数。
@@ -381,19 +420,25 @@ print("ip_dict now says:", hex(PL.ip_dict["axi_dma_0"]["phys_addr"]))
 ## 5. 反复加载的测试脚本骨架
 
 ```python
-import gc, sys, time
+import gc, time
 from pynq import Overlay, PL, MMIO
 
 def load_and_verify(bit, expect_id, id_off=0x0, tries=20, delay=0.05):
     """下载 -> 读回身份；身份不对就不要往下跑。返回 (overlay, ip_name)。"""
     ov = Overlay(bit)
-    name = next(k for k in PL.ip_dict if k.endswith(expect_id[0]))
-    mm = MMIO(PL.ip_dict[name]["phys_addr"], 0x1000)
+    hits = [k for k in PL.ip_dict if k.endswith(expect_id[0])]
+    if len(hits) != 1:
+        raise RuntimeError(f"{expect_id[0]}: matched {len(hits)} of {list(PL.ip_dict)}")
+    name = hits[0]
+    ent = PL.ip_dict[name]
+    mm = MMIO(ent["phys_addr"], ent["addr_range"])
+    got = None
     for _ in range(tries):
-        if mm.read(id_off) == expect_id[1]:
+        got = mm.read(id_off)
+        if got == expect_id[1]:
             return ov, name
         time.sleep(delay)
-    raise RuntimeError(f"{bit}: 版本寄存器读到 0x{mm.read(id_off):08x}，期望 0x{expect_id[1]:08x} "
+    raise RuntimeError(f"{bit}: 版本寄存器读到 0x{got:08x}，期望 0x{expect_id[1]:08x} "
                        "—— 位流与元数据不配套，或上一版还没被真正覆盖")
 
 for bit, want in [("a.bit", ("axi_gpio_0", 0x0A000000)), ("b.bit", ("axi_gpio_0", 0x0B000000))]:
@@ -406,6 +451,23 @@ for bit, want in [("a.bit", ("axi_gpio_0", 0x0A000000)), ("b.bit", ("axi_gpio_0"
         gc.collect()    # 断掉引用，让 mmap/fd 真的释放
 ```
 
+**这个骨架里有三处先前写错、现在按本机/本机代码读数的样子改了，理由都记在这**：
+① 长度先前是硬写的 `0x1000`——**它不是"扫整段"用的**（这一节只读 `id_off` 一个字），
+而且 `first-bringup.md` §3 明确写着别顺手给 `0x1000`；现在取 `ent["addr_range"]`
+（`PL.ip_dict[name]` 这条条目里就有；**PS 那一条没有 `phys_addr`，见 `first-bringup.md` §2 那条**）。
+② 取名字先前是 `next(k for k in PL.ip_dict if k.endswith(...))`——**`next()` 只在"零个匹配"时抛
+`StopIteration`，多个匹配时它静默返回字典序里碰到的第一个**。本机用一个照 `ip_dict` 形状建的桩
+跑这句：键是**全路径**（`overlay.py` 里 `ip_dict` 就是按全路径建的），
+同时放 `axi_gpio_0` 与 `design_1/axi_gpio_0` 两个键时它不报错、返回 `axi_gpio_0`，
+**换一种插入顺序结果就变**——所以这里必须是"数出恰好一个"（上面 `len(hits) != 1` 那一支），
+`endswith` 的短名匹配在层次化 BD 上本来就不唯一。
+③ 失败消息先前是 `0x{mm.read(id_off):08x}`——**那是在报错那一刻又读了一次总线**，
+打印出来的可能与当初判定不符的那个值已经不是同一个样本（计数器类的寄存器尤其明显：
+本机用桩量过"触发检查的值是 2、消息里打印的是 3"这种两臂混写）。
+现在把每轮的值存进 `got`，消息里用同一个样本。
+
 关键不是 `gc.collect()`，是**每轮的身份读数**：它把"软件状态残留"与"设计/元数据不配套"分开，
-后者靠重试是永远过不去的。`load_and_verify` 里那句 `next(...)` 在找不到时会抛
-`StopIteration`——那是"实例名不在这版元数据里"的读数，给它一个明确的报错比让它穿出去好。
+后者靠重试是永远过不去的。名字那一支现在抛的是**带 `matched N of <keys>` 的 `RuntimeError`**：
+零个匹配与多个匹配走同一句、且把当时的键清单印出来——
+"实例名不在这版元数据里"和"这版元数据里同名的不止一个"是两种不同的坏法，
+让 `N` 自己说话，比先前让 `next()` 抛一个不带上下文的 `StopIteration` 好定位。

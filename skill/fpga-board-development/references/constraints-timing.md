@@ -27,8 +27,30 @@ report_clocks            ;# 名字与周期逐条和设计意图对上
 check_timing             ;# 重点看 no_clock、unmatched、no_input_pause 这几类条目是不是空
 ```
 
-**MMCM/PLL 输出脚上的时钟，工具一般已经从时钟网络自己推导出来了**（`report_clocks` 里能看到）——
-**这半句本机没有读数**（本机没有跑过带 MMCM/`clk_wiz` 的设计），留着只当 UG903 口径的提醒。
+**MMCM/PLL 输出脚上的时钟，工具一般已经从时钟网络自己推导出来了**——**这半句本机现在有读数了**
+（一份只例化 `MMCME2_BASE` 原语、两路输出各带一级寄存器的设计，
+**只写了一条 `create_clock -name clk_in -period 10.000 [get_ports clk_in]`，
+没有写任何 `create_generated_clock`**）：`get_clocks *` 交回
+`clk_in clk_fb clk0 clk90` 四条，`report_clocks` 的表体是
+
+```
+Clock   Period(ns)  Waveform(ns)    Attributes  Sources
+clk_in  10.000      {0.000 5.000}   P           {clk_in}
+clk0    10.000      {0.000 5.000}   P,G,A       {u_mmcm/CLKOUT0}
+clk90   20.000      {0.000 10.000}  P,G,A       {u_mmcm/CLKOUT1}
+clk_fb  10.000      {0.000 5.000}   P,G,A       {u_mmcm/CLKFBOUT}
+```
+
+报告自带的图例是 `P: Propagated`、`G: Generated`、**`A: Auto-derived`**（还有 `R/V/I/S` 四个）——
+**所以"这个钟是不是工具自己推出来的"有可直接读的标记：`Attributes` 里有没有 `A`**，
+不用猜，也不用数条数。派生出来的周期跟着原语参数走（这里 `CLKOUT1_DIVIDE=16` 对
+`CLKOUT0_DIVIDE_F=8.0`，于是 10.000 与 20.000 两路差一倍）。
+**两个边界**：① 这份读数用的是**裸原语**，不是 `clk_wiz`/`MMCM` IP 包装（本机没建 IP），
+IP 里那些 `PRIMITIVE`/`CLKOUTn_*` 参数最终也是落到同样的原语参数上，但
+"IP 的 GUI 选项 → 原语参数"这一层本机没有核；② **推出来的周期正确与否取决于
+`CLKIN1_PERIOD` 一类的参数**，与你在 XDC 里给的 `create_clock` 周期是两条来源——
+两者不一致时报告里会各说各话，所以判派生钟要看 `report_clocks` 的那一行，
+而不是假设"我给了输入周期，输出周期就一定对"。
 所以别一上来就在综合时钟管理 tile 的输出脚上手工 `create_generated_clock`——那是 UG903 不推荐的
 做法。**先前这句后面括号里写的"（会撞车，非要用得加 `-add`）"本机复现不出来，按读数改成这样**：
 在两臂都用的**全局缓冲网络**（`get_nets -hier *BUFG*` 交回的 `clk_IBUF_BUFG` 那一类，
@@ -999,14 +1021,26 @@ WNS 好看只说明**被检查的那些路径**满足要求。`report_methodolog
    再对着该版本的规则说明看，不要望文生义。
 3. `report_drc` 也能跑，但 `-return_string` 拿到的**第一行是版权头**，表头和数据在后面；
    写解析时按表头字符串定位，别假设第一行是数据。
-4. **`report_methodology` 不是任何阶段都能跑。** 本机在"当前内存里 link 着的设计"上跑得通
-   （上面那个 SUMMARY 就是那么来的），而在**打开一个综合 dcp 之后再跑**得到的是
-   `ERROR: [Common 17-53] User Exception: Methodology could not be found in the design.`
-   同一份网表、换个打开方式就没数据。所以拿它当门之前，先确认它这一次真的产出了表：
-   判据**只认 `Checks found:` 那一行**：本机两份设计各取一次 `report_methodology -return_string`，
-   `Rules Checked:` **一次都没有出现**（正向对照：同一次输出里 `Checks found: 6` / `Checks found: 11` 都在），
-   所以先前把 `Rules Checked:` 也列为可用门字符串是错的——它对应的是另一种工具形状，
-   在自己的机器上没读到之前不要拿它当"报告成功了"的证据。
+4. **`report_methodology` 要有"开着的设计"才跑**（2025.2.1、`-mode batch`、非工程模式，三臂各跑一次）：
+   ① `open_checkpoint` 一份综合 dcp → `report_methodology -return_string` **rc=0、串长 2651**；
+   ② `open_checkpoint` 另一份 post dcp → **rc=0**，串里 `Checks found: 9`；
+   ③ **什么都没开**就调用 → **rc=1、串长 118**，原文是
+   `ERROR: [Common 17-53] User Exception: No open project. Please create or open a project before executing this command.`
+   三条要从这次读数里拿走：
+   (a) **先前这里写的"打开一个综合 dcp 之后再跑会得 `Methodology could not be found in the design`"收回**——
+   ①② 两臂都是 rc=0；而且那句文案在本机抓到的所有日志里 `grep -rIl` **0 命中**
+   （正向对照：同一条 grep 换成 `No open project` 在 `meth1/la_nochk.log` 就命中，说明这批日志查得见这类文案）。
+   (b) 两臂（③ 与"link 失败后什么都没开"的那一次）拿到的文案**只提 project**，而这一次连设计都没有——
+   **所以"该建工程"是从这条消息里读不出来的**：它既可能在说没工程，也可能在说没设计，
+   本机的两臂同时缺两者，分不开（要在工程模式里再取一次才算钉住归属，本机没做）。
+   可用的判据只有 `catch` 的 rc 与串长；真要修，先让"有开着的设计"成立。
+   (c) **`open_checkpoint` 自己就会跑一遍 methodology 并往日志里打
+   `INFO: [DRC 23-133] Running Methodology with 2 threads` 与 `report_methodology completed successfully`**——
+   这两行出现不等于**你那一次**调用成功了；只认自己 `catch` 收到的那份串。
+   所以拿它当门之前，先确认这一次真的产出了表：判据**只认 `Checks found:` 那一行**：本机两份设计各取一次
+   `report_methodology -return_string`，`Rules Checked:` **一次都没有出现**（正向对照：同一次输出里
+   `Checks found: 6` / `Checks found: 11` 都在），所以先前把 `Rules Checked:` 也列为可用门字符串是错的——
+   它对应的是另一种工具形状，在自己的机器上没读到之前不要拿它当"报告成功了"的证据。
 5. **阶段要钉住**：综合后的条目集合与布局布线后不是同一批，报告要与那一次 run 同源落档
    （§4 第 1 条、§5）。做成 run 的一部分（`STEPS.<STEP>.TCL.POST` 指向一个脚本文件，
    见 `vivado-build-run.md` §5）比事后手点可信。

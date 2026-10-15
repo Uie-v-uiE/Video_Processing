@@ -58,7 +58,33 @@ else:
 `axi_dma_micro`（`self._micro`）下每个通道的 `_max_size` 是 **数据位宽 × burst size**，
 跟长度寄存器位宽无关；这时 `buffer_max_size` 那个数会**远大于**真实单次上限。要哪个数，
 看你这版 IP 是不是 micro，判据：`dma.description['parameters']` 里有没有 micro 相关键、
-以及 `getattr(channel, '_max_size', None)`（实例属性，类上看不见）。
+以及 `getattr(channel, '_max_size', None)`（实例属性，类上看不见——
+**赋值点就在两个构造函数里**：SDMA 侧 `lib/dma.py:51`、SG 侧 `:238` 都是 `self._max_size = max_size`。
+**类体里没有这个名字，这不是"属性不存在"**：同一棵树上对 `_SDMAChannel` 做类体枚举，
+得到的是 `__init__/running/idle/error/start/stop/_clear_interrupt/transfer/wait/wait_async`，
+类级属性赋值 0 条——所以 `dir(_SDMAChannel)` 看不见任何上限类字段是**这个类的写法**，
+不是"这个通道没有长度上限属性"（上限真实存在，只是挂在实例上）。
+**真正拦你的也是 `_max_size` 而不是 `buffer_max_size`**：`transfer()` 里那一句是
+`:141 if nbytes > self._max_size:`，抛的消息（`:142-145`）**逐字**是
+
+```python
+raise ValueError(
+    "Transfer size is {} bytes, which exceeds "
+    "the maximum DMA buffer size {}.".format(nbytes, self._max_size)
+)
+```
+
+**别把这段文案当跨版本常数**：2.7.0 同一句排在 `:177-180`，形状逐字相同（只是续行风格不同）；
+**2.5.1 是另一套**——那一版只有一个 `_DMAChannel` 类（`:42`，没有 SDMA/SG 之分），
+守卫写的是 `:115 if array.nbytes > self._size:`，**属性名是 `_size` 不是 `_max_size`**
+（赋值在 `:60`），消息前半因此是 `Transferred array is {} bytes`（`:116`）。
+**先前这里抄的是一句"requested ="开头的形状，五棵树的 `lib/dma.py` 里 grep `too large` 与
+`requested =` 都是 0 处（正向对照：同一条 grep 换个文件就有——4.0.0 `lib/axigpio.py:110`、
+2.5.1 `:136` 都是 `"{} too large for {} bits"`，说明这次扫描看得见这类文案）——那句是编的，收回**；
+上面两份是逐字从源码抄的。抄文案之前按自己的版本 `sed -n '141,145p' lib/dma.py` 取一次。
+而 SG 的分块尺寸还会先做一次**向下对齐**：`:373 blk_size = self._max_size - (self._max_size % self._align)`，
+所以"每块多大"这个数**不等于** `_max_size`，也**不等于** `buffer_max_size`——
+要按 `_align`（那条对齐边界见本节第 1 条）算一遍再写进记录。
 还有一条容易当成"永远跟着 IP 参数走"的：**`c_sg_length_width` 这个键不存在时，驱动退回一个
 硬编码常数** `MAX_C_SG_LENGTH_WIDTH = 26`（`lib/dma.py:11` 与 `:634-635`），于是
 `buffer_max_size = 2^26-1`，与你的 IP 实际能力无关。这条路径只在元数据缺键时触发，
