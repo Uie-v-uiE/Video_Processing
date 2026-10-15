@@ -384,7 +384,8 @@ are not present in the design.`。**这两句说明行才是判据**：返回码
 ## 7. 物理与 IO 约束：电平、时钟输入、没约束的脚
 
 时序约束管"多快"，这一节管"接错没接错"。接错的典型表现不是报错，而是**功能时对时不对、
-换个温度或换块板子就坏**。
+换个温度或换块板子就坏**（后半句是这类问题的常见叙事与机理，**不是本机的读数**——本机没有板子，
+也没做过温度或换板实验；这一节的判据全部走"报告里能不能数出来"，不依赖这句话）。
 
 ```tcl
 set_property PACKAGE_PIN H16 [get_ports clk_p]
@@ -421,7 +422,11 @@ report_io
    ——不是 `[Common 17-*]` 那一族，所以按 17-* 去认"名字写错了"会整个错过它。
    这一族的名字检查因此要写成两问：**①** 这个对象**现在**暴不暴露这个名字（`list_property`，**在写之前**取）；
    **②** 写的时候有没有 `29-177`。两问都过才叫"这个名字对这类对象能用"；
-   `PULLUP true` 属于"过了②、没过①"，要换成 ①里本来就有的 `PULLTYPE PULLUP`（取值也现取），
+   `PULLUP true` 属于"过了②、没过①"，要换成 ①里本来就有的 `PULLTYPE PULLUP`
+   （**这一条本机补测过**：未加约束的输入脚写之前 `list_property` 给 62 项、`PULLUP` 不在其中（0）、
+   `PULLTYPE` 在（1）；`set_property PULLTYPE PULLUP` rc=0 且 `get_property PULLTYPE` 读回 `PULLUP`，
+   清单变 63。同一次会话再写 `set_property PULLUP true` **也** rc=0、读回 `1`——
+   两条都"写得进去"，但只有前一条在写之前就在清单里，这正是①与②要分开问的理由），
    而不是靠读回值给自己宽恕。
    方向差异这条复现：同一份设计的输出脚 `q[0]` 给 **65** 项、含 `SLEW`/`DRIVE`，输入脚两项都没有；
    差分脚、XPHY 脚没查。每类都查一次再写进脚本，属性名与取值都别抄。
@@ -453,7 +458,8 @@ report_io
    另一条相关：`report_io` 里**根本不列没有 `PACKAGE_PIN` 的端口**（本机 28 个未分配端口在报告里
    出现 0 次），所以"report_io 里找不到这个脚"推不出"这个脚不存在/没被用"，只能反过来说。
 5. **未使用的输入要显式处理**（上拉/下拉用第 2 条查到的那个名字，或在外接电路上解决）。
-   悬空输入的代价是功耗与偶发翻转，不是编译错误——所以它的判据只能是"这个脚上有属性值"
+   悬空输入的代价是功耗与偶发翻转，不是编译错误——**这半句是机理，本机没有可引用的电流或翻转读数**；
+   所以它的判据只能是"这个脚上有属性值"
    （读回）与"report_io 里它的方向/标准符合预期"，不是"综合没报错"。
 6. **IO 时序要有基准时钟。** `set_input_delay`/`set_output_delay` 不写 `-clock` 时，实测打的是
    `INFO: [Constraints 18-632] set_input_delay: No clock object specified, the clocks will be
@@ -472,13 +478,27 @@ report_io
 
    `clocked by` 后面那个名字就是它认的参考钟。`Path Group` **不能**当凭据：本机见过两种形态——
    `Path Group: sys_clk` 与 `Path Group: 3`（加了 clock group/false path 之后多为数字编号），
-   所以它有时是钟名有时是组号。参考钟与"约束写了半边"的读数在 `Requirement:` 那一行：
-   `-max 2.0` 没写 `-min` 时，hold 那一侧的 `Requirement` 是**工具自己补的**：本机读到
-   `Requirement: 5.000ns (sys_clk rise@5.000ns - sys_clk rise@0.000ns)`——**这个补出来的值不要按
-   "周期减 max" 去推**（本机 10 ns 周期、`-max 2.0`，补的是 5.000 而不是 8.000），只读它。
-   取它的那条命令**必须写成 `-delay_type min`**：`report_timing -min` 现在被直接拒绝
+   所以它有时是钟名有时是组号。
+   **`Requirement: 5.000ns` 那一格已经收回**（原先写成"`-max 2.0` 没写 `-min` 时 hold 侧的
+   Requirement 是工具补的、补成 5.000"）：这一条**两次独立复现都不成立**——本机一份只有
+   `create_clock -period 10` + `set_input_delay -max 3 [get_ports din*]` 的设计，
+   `report_timing -delay_type min -return_string` 交回 2844 字符、**整段里一条 `Requirement:` 行都没有**，
+   只有 `Slack: inf`；另一路复核用 `-max 2.0` 重做，同样"865 字符、无 `Requirement:`"。
+   那个 5.000 的真实身份是**周期的一半，即下降沿时刻**：它出现在报告头
+   `{rise@0.000ns fall@5.000ns period=10.000ns}` 那一段（就是上面那段里的 `fall@5.000ns`），
+   不是 Requirement 行。所以现在的写法是：**别把下降沿时刻当工具补的需求**。
+   **但 min 报告到底给不给 `Requirement:` 行，本机有两个都真实、互相冲突的形状**，
+   分别对应两种输入：①只有 `create_clock -period 10`、没有任何 IO min/max 约束的设计，
+   `-delay_type min` 给 `Requirement: 0.000ns` + `Slack (MET) : 0.140ns`（下面"对照的一格"那条）；
+   ②同一族设计但**加了 `set_input_delay -max`（没写 `-min`）**之后，`-delay_type min`
+   交回的是**没有 `Requirement:` 行、只有 `Slack: inf`** 的段。
+   差在哪一个变量本机还没分开（候选：报告挑中的路径是 IO 路径还是寄存器间路径、`-max` 只写半边是否
+   让整条 hold 路径变成"无需求"），**在两臂拆开之前，不要把"min 一定有 Requirement 行"写进脚本**——
+   要么先打印整段再决定读哪一行，要么显式把 `-min` 写上。
+   取 min 报告的那条命令**必须写成 `-delay_type min`**：`report_timing -min` 现在被直接拒绝
    （`ERROR: [Common 17-170] Unknown option '-min', please type 'report_timing -help' for usage info.`，
-   rc=1），所以旧记录里那个 `-min` 不是能跑的原文，抄之前先换写法。
+   本机同一形状再次撞到时是以异常交回、`catch` 里能看到这条 17-170），所以旧记录里那个 `-min`
+   不是能跑的原文，抄之前先换写法。
    对照的一格：单钟、只有 `create_clock -period 10` 而没有任何 min 约束时，
    `-delay_type min` 给 `Requirement: 0.000ns  (clk rise@0.000ns - clk rise@0.000ns)` 与一条
    `Slack (MET) : 0.140ns`——**hold 需求默认就是 0**，不要把它读成"这一侧没检查"。
@@ -730,7 +750,11 @@ WNS 好看只说明**被检查的那些路径**满足要求。`report_methodolog
 读法与判据：
 
 1. **按 `Severity` 分组数条数**，不是"有没有红"。上面这就是教科书式的"全绿但没检查"：
-   综合成功、时序报告也好看，而 8 个寄存器**根本没进时钟模型**——对应 §1 要求先把钟出名。
+   综合成功、时序报告也好看，而有一批寄存器**根本没进时钟模型**——对应 §1 要求先把钟出名。
+   **但 `Checks found: 8` 数的是"检查条数"，不是"寄存器个数"**：这一族（TIMING-17
+   `Non-clocked sequential cell`）通常一条对一个 cell，本机那份设计也正是 8 条对 8 个不同对象，
+   所以数值相等；**这个相等不是命令保证的**（一条规则对一个对象出多条检查在别的规则里就有）。
+   要写进判据就去数报告明细里 TIMING-17 那几行的**对象列去重**，别拿 SUMMARY 的 `Checks` 当 cell 数。
    `Critical Warning` 不为 0 时，每条都要落进改动记录，写明"这条我不处理的理由"。
 2. **条目名是缩写，不含 "reset"/"clock" 这种完整单词**（本机见过的有 `TIMING-17`、`RTSTAT-1`、
    `REQP-1`、`AR-1`）。用关键词 grep 报告来判"它查没查 X"一定出错：先把 `Rule` 整列打出来，

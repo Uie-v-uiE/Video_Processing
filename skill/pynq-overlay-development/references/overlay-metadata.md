@@ -242,8 +242,16 @@ overlay 调 `reset()`，会把 device 侧的 timestamp 写成空串**，此后�
 
 - `download()` 之前取过的 `dma = ol.axi_dma_0`，重下之后**还是同一个对象**：它的 `MMIO` 仍按老地址
    映射，驱动实例里的 buffer/UIO fd 也都还在。
-- 因为缓存不在 overlay 上，**`del ol.axi_dma_0` 删不掉它**（overlay 自己没有这个属性，`del` 走
-   `__getattribute__` 找不到就 `AttributeError`）。想"刷新句柄"没有公开的口子，只能换对象。
+- 因为缓存不在 overlay 上，**`del ol.axi_dma_0` 删不掉它**——但原因**不是**"`del` 走 `__getattribute__`
+   找不到"：`del` 走的是 `__delattr__`，它**根本不回落到 `__getattr__`**，所以"读得到、删不掉"这对
+   看起来矛盾的事是同一个机制的两面。本机按同形状做过最小复现（overlay 只转发、驱动实例缓存到
+   `_ip_map.__dict__`）：`o.axi_dma_0` 读得到，`del o.axi_dma_0` 抛
+   `AttributeError: 'Overlay' object has no attribute 'axi_dma_0'`，而 `o.__dict__` 全程只有 `_ip_map`
+   这一个键——缓存落在 map 上（源码里那些 `setattr(self, key, driver)`，4.0.0 `overlay.py:797`/`:810` 就是它）。
+   **由此有一条没写进 API 里的"刷新句柄"路子**：`del ol._ip_map.<ip名>` 删的是那份缓存，删完之后
+   `ol.<ip名>` 会重新走 `__getattr__` **新构造**一个驱动对象（本机复现里这一步正常，源码那两条
+   `setattr` 也只在"缓存不在"时才会被经过）。它只是"让属性查找再跑一次"，**不动 PL、不重配、不清状态**；
+   要真的换硬件状态仍然得回 `download()` / `reset()`（§3.2 上面那些归属）。
 - 但 **PR 那条路是反的**：缓存被整块换新。要说准归属——`Overlay.pr_download()`
    （4.0.0 `overlay.py:435`）自己只做两件事：`pr_block = self.__getattr__(partial_region)`，
    然后 `pr_block.download(bitfile_name=partial_bit, dtbo=dtbo, program=program)`（3.1.2 `:465-466`）。

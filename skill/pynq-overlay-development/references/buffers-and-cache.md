@@ -37,7 +37,10 @@ def allocate(shape, dtype="u4", target=None, **kwargs)    # pynq/buffer.py:138�
    各取一次读数再决定用哪条路。
    本页前一次就是这么写的，被源码反写了。
    手算仍然不该用，但危险在**释放**那一侧：`freebuffer()` 走
-   `libc.munmap(self.virtual_address, self.nbytes)` 然后 `del self.bo`（`:65-82`）——
+   `libc.munmap(self.virtual_address, self.nbytes)` 然后 `del self.bo`（**这一整套只在 3.0.1/3.1.2/4.0.0 成立**：
+    函数在 `:65-82`；2.5.1 与 2.7.0 的 `freebuffer` 在 `:82`，而且**那两版的 `buffer.py` 里 `munmap`
+    出现 0 次**（同一条 `grep -c` 在 3.1.2/4.0.0 各给 3）——"局部解除映射"这个危险是 3.x 那套分配器带来的，
+    照搬到 2.x 连成因都不对，那两版走的是 Xlnk 那一族）——
    拿视图去调它，**被解除映射的是视图那一段**（地址与长度都是视图的），
    而 `del self.bo` 丢的也只是**这个视图自己那一份引用**：`__array_finalize__` 在 `:57`
    做的是 `self.bo = obj.bo`，原始对象手里仍然握着同一个 `bo`。
@@ -82,17 +85,21 @@ del buf    # 靠 __del__ -> freebuffer()，时机由解释器定
 1. **`freebuffer()` 不看引用计数。** docstring 明写："This will free the memory regardless of
    whether other objects may still be using the buffer"。所以先 `got = np.array(buf)` 拷出来再释放；
    只要还持有 `buf` 的切片/视图，释放之后读它就是 UB。
-2. `jupyter`/长跑脚本里 `close()` 的"没报错"会被当成"已经释放了"，内存池越用越少，最后在某次
-   无关的 `allocate` 上炸。**但"有没有走到 `freebuffer()`"不是一条判据**——`with` 退出时它必然被
+2. `jupyter`/长跑脚本里 `close()` 的"没报错"会被当成"已经释放了"，于是有人把"池子越用越少、
+   最后在某次无关的 `allocate` 上炸"当预期后果（**这是机理与常见叙事，不是本机的读数**——本机没有板子，
+   也没量过池子曲线）。**但"有没有走到 `freebuffer()`"不是一条判据**——`with` 退出时它必然被
    调用（`__exit__` 就是调它），所以这个计数出生以来没红过，属于装饰性检查。
-   真正的释放还有一道门：`freebuffer()` 的 unmap 主体整个包在 `if hasattr(self, "memory")` 里
-。`memory` 不是 `PynqBuffer` 自己设的，
+   真正的释放还有一道门：`freebuffer()` 的 unmap 主体整个包在 `if hasattr(self, "memory")` 里。
+   `memory` 不是 `PynqBuffer` 自己设的，
    是**分配器设的**，链条在两版里完全一致（行号也一样）：
-   `allocate() → Device.allocate()`（`pl_server/device.py:127`）`→ self.default_memory`
+   `allocate() → Device.allocate()`（`pl_server/device.py:127` 是**签名行**；真正往下交的是同一函数体的
+   `:145` `return self.default_memory.allocate(shape, dtype, **kwargs)`）`→ self.default_memory`
    （这是个 property：3.1.2 `pl_server/embedded_device.py:551`，4.0.0 `:566`）`→ XrtMemory.allocate`
-   （`pl_server/xrt_device.py:113`）`→ buf.memory = self`（`:125`）。
+   （`pl_server/xrt_device.py:113`）`→ buf.memory = self`（`:125`，紧跟在 `:124` 那句 `_xrt_allocate(...)` 之后）。
    `EmbeddedDevice` 就是 `XrtDevice` 的子类（3.1.2 `embedded_device.py:513`，4.0.0 `:528`），
-   所以**在 Pynq-Z2/ZynqMP 板子那侧这道门是开着的**：`with allocate(...)` 退出后确实 munmap。
+   所以**代码层的结论只到这里**：走这条链分出来的缓冲确实带上 `memory`，那道 `hasattr` 门在这条路上是开的。
+   `:124` 的 `_xrt_allocate` 是 C/XRT 绑定，本页没有打开过它，所以**"板上退出 `with` 之后确实把映射解掉了"
+   这句本机没有读数**（没有板子）；要在板上确认就用 §2 那条能数的观测点，别把这条链当成结果。
    要当心的是另一种运行方式——**远程模式返回的类根本不是 `PynqBuffer`**：
    `RemoteDevice.allocate` 造的是 `RemoteBuffer(np.ndarray)`，它的 `__del__` 调 `self.freebuffer()`，
    而那个 `freebuffer` 是一次 **gRPC 调用**。**两组坐标按版本分开抄**（同一个文件在两版里行数差很多，

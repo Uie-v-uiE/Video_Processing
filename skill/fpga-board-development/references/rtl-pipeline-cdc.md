@@ -194,10 +194,14 @@ llength [get_cells -quiet *]                  ;# 本机这一份 31（另一路�
 llength [get_cells -quiet -hier NOPE_NOT_HERE] ;# 0，而且 -quiet 下不回任何告警文本
 llength [get_pins  -quiet -hier */D]          ;# 8
 ;# **这一条数的是 D 引脚，不是触发器位数**：锁存器的数据脚也叫 D。
-;# 本机一份"4 位触发器 + 4 位锁存器"的设计上它给 **8**，逐个取父单元的 `REF_NAME` 是
-;# `FDRE FDRE FDRE FDRE LDCE LDCE LDCE LDCE`——**只数 `*/D` 会把锁存器算成触发器**。
-;# 要位数就按名字分：`get_cells -quiet -hier -filter {REF_NAME == FDRE}` / `== LDCE` 各数一次，
-;# 或者直接 `foreach p [get_pins -hier */D] { get_cells -of_objects $p }` 看 `REF_NAME` 的分布。
+;# 本机**另一份**设计（不是上面那 8 位计数器那份）："5 位使能寄存器 + 3 位异步复位 + 2 位异步置位 + 4 位锁存器"，给 **14**，逐个取父单元
+;# 的 `REF_NAME` 是 `LDCE LDCE LDCE LDCE FDRE FDRE FDRE FDRE FDRE FDCE FDCE FDCE FDCE FDCE`
+;# （综合把异步**置位**那一组也化成了 FDCE，所以 `FDPE` 一个都不剩）。
+;# **只数 `*/D` 会把锁存器算成触发器**；而按 `== FDRE` / `== LDCE` 各数一次**同样错**：
+;# 本机 `== FDRE` = 5、`== LDCE` = 4，加起来 9，既不是触发器位数（10）也不是总数（14）——
+;# 漏掉的那 5 个 FDCE 正好被"锁存器别算进来"的减项掩盖了一半，这种**两个错互相掩盖**的形状最难发现。
+;# 按族分才对：`-filter {REF_NAME =~ FD*}` = **10**（真触发器位数）、`{REF_NAME =~ LD*}` = **4**；
+;# 10+4=14 与 `*/D` 的总数对上——**这个合计就是拆分自身的正向对照**，不成立就说明还有第三族。
 llength [get_nets  -quiet -hier -filter {MARK_DEBUG == 1}]   ;# 1（标记随 dcp 一起存下来）
 ;# 这条是本页与 `onchip-debug.md` §2 共用的规范写法，改这里要同步那一页的指向句。
 ;# 三种过滤写法本机都取到同一个集合：{MARK_DEBUG == 1}、{MARK_DEBUG == true}、裸 {MARK_DEBUG}。
