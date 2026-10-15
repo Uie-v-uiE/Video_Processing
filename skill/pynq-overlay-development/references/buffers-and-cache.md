@@ -81,8 +81,10 @@ def allocate(shape, dtype="u4", target=None, **kwargs)    # pynq/buffer.py:138�
     `xrt.xclFreeBO(self.device.handle, self.bo)`，**没有 `del self.bo`**，所以"句柄被丢掉"这个形状在
     3.0.1 上换成"BO 被还给 XRT"；2.5.1 与 2.7.0 的 `freebuffer` 在 `:82`，而且**那两版的 `buffer.py` 里
     `munmap` 出现 0 次**（同一条 `grep -c` 在 3.0.1/3.1.2/4.0.0 各给 3）——这些行号差别的实际作用范围
-    比原先写的小：**下面那条"`freebuffer()` 拿视图去调会 munmap 哪一段"的问题压根不存在**（视图进不了
-    那个分支，见本条末尾），所以这套差别只在**原始对象**上调用时才谈得上；套到 2.x 上还会连成因都不对——
+    比原先写的小：**下面那条"`freebuffer()` 拿视图去调会 munmap 哪一段"的问题，在板端 3.0.1+ 上问不出来**
+    （视图进不了那个 `hasattr(self, "memory")` 分支，见本条末尾）；2.5.1/2.7.0 的 `buffer.py` 里根本没有
+    `munmap`，那边没有"解映射"这一问，只有挂了 `pointer` 的视图会真的走退回缓存那一支——**所以"视图上调它
+    一律空转"这句也别留**。这套 munmap/`del bo` 的差别只在**原始对象**上调用时才谈得上；套到 2.x 上还会连成因都不对——
     **但"那两版走 Xlnk 那一族"这半句是错的**：
     `grep -rln Xlnk pynq-2.7.0/pynq` 交出**空**（正向对照：同一条在 2.5.1 交出 **9** 个文件，
     含 `xlnk.py`），2.7.0 的 `allocate()` 已经走 XRT 那条链
@@ -92,20 +94,36 @@ def allocate(shape, dtype="u4", target=None, **kwargs)    # pynq/buffer.py:138�
    **但"拿视图去调它会局部解除映射"这个结论整段收回**：`freebuffer()` 的 unmap 主体整个包在
    `:73` 的 `if hasattr(self, "memory"):` 里，而 `memory` 是**分配器**只设在原始对象上的那一句
    （4.0.0 `pl_server/xrt_device.py:125`，2.7.0 同一链在 `:171`），`__array_finalize__`（`:50-57`）
-   **既不搬 `memory` 也不搬 `freed`**（那两样只在 `__new__` 的 `:46-47` 设）。
-   主机桩实测（照 `:38-82` 逐行抄，numpy 2.5.3；`device` 改名 `dev` 绕开 numpy≥2.1 的只读属性，
+   **既不搬 `memory` 也不搬 `freed`**（`freed` 在 `__new__` 的 `:47` 设，`memory` 从不进 `__new__`）。
+   主机桩实测（结构照 `:38-82` 抄，numpy 2.5.3；`device` 改名 `dev` 绕开 numpy≥2.1 的只读属性——
+   逐字保留 `self.device = ...` 的那份在 2.5.3 上**构造即失败**，逐字文本在本条上面那条；
    `libc.munmap` 换成记录器）：`view.freebuffer()` ⇒ `munmap calls = []`、`orig.freed` 仍 `False`、
    `view.bo` 还在；步长视图同样空转。**它不报错不是因为安全，是因为什么都没做。**
+   **但这条"空转"只成立于板端 3.0.1+，且只对没有 `pointer` 的对象**（与 `SKILL.md` §1 第 7 条同口径）：
+   2.5.1 与 2.7.0 的 `freebuffer` **没有 memory 门**：`buffer.py:90` 是这两版里唯一的判断
+   （`if hasattr(self, 'pointer') and self.pointer:`）——所以像 `lib/video/drm.py:186-189` 那样
+   往视图上挂 `pointer`/`return_to` 的对象，在那两版上调用**会真的把指针退回缓存**（桩 RUN：
+   `returned = ['FRAMEPTR']`、`pointer = 0`、`munmap = []`）；普通切片视图没有 `pointer`，
+   在那两版上同样什么都不做且不报错（桩 RUN：`returned = []`，原始对象的 `pointer` 纹丝不动）。
+   **`pointer` 分支在两版里都排在解映射之前**（4.0.0 是 `:74-77` 与 `:78-82` 的一对 if/else，
+   2.x 只有前者）：挂着 `pointer` 的对象调 `freebuffer()` **连原始对象也不会 `munmap`**（桩 RUN：
+   `munmap = []`、`freed` 仍 `False`、`bo` 还在）——它退的是指针，不是这块内存。
+   远程模式是第三个类：`RemoteBuffer.freebuffer`（4.0.0 `pl_server/remote_device.py:1142-1149`）
+   也没有 memory 门，而它的 `__array_finalize__`（`:1123-1132`）不搬 `freed`
+   ⇒ **在远程的视图上调它是 `AttributeError`，不是空转**（静态读来，未上板）。
    真正的危险回到引用侧那一条：原始对象被释放（退出 `with`、`__del__`、显式 `freebuffer()`）之后
    视图还在你手上，读它就是悬空；而原始对象 `freebuffer()` 过后再切一片会当场
    `AttributeError: 'PynqBuffer' object has no attribute 'bo'`（`:82` 那句 `del self.bo` 是看得见的）。
-   **也别给视图补一个 `memory` 去"修好"它**：门一开就撞 `if not self.freed`，而视图没有这个属性 ⇒
-   `AttributeError: 'PynqBuffer' object has no attribute 'freed'`（同一桩的另一臂，两臂都是 RUN）。
+   **也别给视图补一个 `memory` 去"修好"它**：没有 `pointer` 的视图一开就撞 `if not self.freed` ⇒
+   `AttributeError: 'PynqBuffer' object has no attribute 'freed'`（桩 RUN）；
+   **带了 `pointer` 的视图是第三臂**——它走 `:74-77` 把指针退回缓存，既不 munmap 也不读 `freed`（桩 RUN），
+   所以"补门必然炸"这句也不成立。
    它 docstring 里那句 "free the memory regardless of whether other objects may still be
    using the buffer"（`:66-71`）说的主语是**被调用的那个对象自己**——在原始对象上调用时它确实不看别的引用，
    在视图上调用时它连门都没进；读这句别把主语换掉。
    所以规范写法不变：切片对象本身交给 DMA，释放由**持有原始对象的那一层**做（退出 `with`），
-   在视图上调 `freebuffer()` 是一次无效动作，不要把它当"已经回收了"（本页 §3 第 2 条同步改成这个说法）。
+   在视图上调 `freebuffer()` **在板端 3.0.1+ 上是一次无效动作**（2.x 那档挂了 `pointer` 的视图除外，见上），
+   不要把它当"已经回收了"（本页 §3 第 2 条同口径）。
    `reshape` 不改变地址，只改形状。
 - `target=None` 用 `Device.active_device`；这就是"同一行代码在板端和在远程模式下分到不同内存"的入口。
 - 物理地址属性名是 **`physical_address`**（`buffer.py:89-91`，DMA 内部用的就是它），
@@ -145,7 +163,9 @@ del buf    # 靠 __del__ -> freebuffer()，时机由解释器定
    最后在某次无关的 `allocate` 上炸"当预期后果（**这是机理与常见叙事，不是本机的读数**——本机没有板子，
    也没量过池子曲线）。**但"有没有走到 `freebuffer()`"不是一条判据**——`with` 退出时它必然被
    调用（`__exit__` 就是调它），所以这个计数出生以来没红过，属于装饰性检查。
-   真正的释放还有一道门：`freebuffer()` 的 unmap 主体整个包在 `if hasattr(self, "memory")` 里。
+   真正的释放还有一道门（**只在板端 3.0.1+**；2.5.1/2.7.0 没有这道 `memory` 门，它们的门是
+   `if hasattr(self, 'pointer') and self.pointer:`，远程档两样都没有——三档见上面 §1 那条与 `SKILL.md` §1 第 7 条）：
+   `freebuffer()` 的 unmap 主体整个包在 `if hasattr(self, "memory")` 里。
    `memory` 不是 `PynqBuffer` 自己设的，
    是**分配器设的**，链条在两版里完全一致（行号也一样）：
    `allocate() → Device.allocate()`（`pl_server/device.py:127` 是**签名行**；真正往下交的是同一函数体的
@@ -323,8 +343,10 @@ buf.flush(); buf.invalidate()
    机制被源码反写了一次，按反写后的说法查：视图上的 `self.offset`/`self.nbytes`
    是**视图的量**（`__array_finalize__` 在 `:50-57` 重算 offset、`nbytes` 取视图长度），
    所以 `flush`/`invalidate`（`:104-114`）**跟着切片走**——"另一段被无谓 invalidate"那种说法不成立。
-   该查的是释放路径，而**它在视图上不会发生**（`freebuffer()` 的 unmap 主体整个包在 `:73` 的
-   `if hasattr(self, "memory"):` 里，视图没有 `memory`；§1 那条已按主机桩实测改写成"视图上调它是空转"）——
+   该查的是释放路径，而**它不会因为你在视图上调了一次 `freebuffer()` 就发生**：板端 3.0.1+ 上
+   `freebuffer()` 的 unmap 主体整个包在 `:73` 的 `if hasattr(self, "memory"):` 里，视图没有 `memory`，
+   那一次调用**完整空转**（主机桩：`munmap calls = []`）；2.5.1/2.7.0 没这道门、挂了 `pointer` 的视图会真的
+   退回缓存，远程档则是 `AttributeError`——三档逐条见本页 §1 与 `SKILL.md` §1 第 7 条。
    所以这一步真正要问的是**"原始对象还在不在手上"**：原始对象被释放之后视图仍被拿着，读它就是悬空，
    而这一切都不报错。判法（只看代码就能定，代价最低）：`print(hasattr(buf, "memory"), buf.shape, view.base is buf)`
    在释放前后各打一次，`memory` 只在分配器那条链上被设（`xrt_device.py:125`），视图永远没有它。

@@ -257,8 +257,8 @@
    `482-497`），此时手上能取到的独立证据只有 `idle`/`error` 那两个状态位。
 4. **参考实现照抄 RTL 语义** → 模型与实现同源于同一个误解时永远"一致"；参考要么来自实测golden，
    要么用不同算法（如 numpy 向量化 vs 流水线逐像素）。
-5. **切片视图当数据用** → `PynqBuffer` 是 ndarray，切片只是视图；`freebuffer()`（或退出 `with`）
-   之后再读是 UB。要比对就 `np.array(buf)` 拷一份。
+5. **切片视图当数据用** → `PynqBuffer` 是 ndarray，切片只是视图；在**原始对象**上 `freebuffer()`
+   （或退出 `with`）之后再读视图是 UB。要比对就 `np.array(buf)` 拷一份。
 6. **`finally: buf.close()` 当成"释放了"** → `close()` 在**这两版都不释放**，但**留痕不同**：
    2.5.1 的 `close()` 函数体只有一句 `pass`（2.5.1 `buffer.py:107-111`，docstring 写着
    "Unused - for backwards compatibility only"），**连警告都没有**；

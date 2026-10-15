@@ -83,32 +83,28 @@ license: MIT
    `__array_interface__['strides']`，`buffers-and-cache.md` §1 有实测的 `nbytes`/`offset` 对照；
    "尾部没被 flush 且不报错"是**机理**，驱动那层本机没打开，别当读数用；
    两条出路写在 `buffers-and-cache.md` §1）。
-   **真正的危险在释放那一侧，而形状与本包先前写的不同**：3.0.1/3.1.2/4.0.0 里 `freebuffer()` 的整个
-   unmap 主体（4.0.0 `buffer.py:73-82`）包在 `if hasattr(self, "memory"):` 里，而 `memory` 是**分配器**
-   只设在原始对象上的那一句（`pl_server/xrt_device.py:125`：`buf.memory = self`）；`__array_finalize__`
-   （`:50-57`）**既不搬 `memory` 也不搬 `freed`**（`freed` 在 `__new__:47` 设，`memory` 从不进 `__new__`）
-   ⇒ **在板端的 3.0.1+ 上，对切片视图调 `freebuffer()` 是一段完整的 no-op**：主机桩实测
-   `munmap calls = []`、`orig.freed` 仍是 `False`、`view.bo` 也还在（连续切片与步长切片一样）。
-   **桩的两处偏离要写明**：结构照 `:38-82` 抄，但**属性名改过**——逐字保留 `self.device = ...` 的那份
-   在 numpy 2.5.3 上**根本构造不出来**（`AttributeError: attribute 'device' of 'numpy.ndarray'
-   objects is not writable`，本机 RUN），所以桩里把它改名 `dev`；`libc.munmap` 换成记录器。
-   **它"不报错"不是因为安全，是因为什么都没做。**
-   先前这里写的"视图上会 `munmap` 视图那一段、共享映射被局部解除、原始对象之后再 `munmap` 一次"
-   **整段收回**（同一说法也在 `buffers-and-cache.md` §1 与 §3 第 2 条，三处一起改）。
-   **但这条"空转"只属于板端 3.0.1+，另外两档不是这个形状**：2.5.1/2.7.0 的 `freebuffer`
-   （`buffer.py:82-93`）**没有 memory 门**，门是 `if hasattr(self, 'pointer') and self.pointer:`——
-   所以给视图挂过 `pointer` 的那一类（`lib/video/drm.py:186-189` 正是
-   `array.view(PynqBuffer)` 之后
-   设 `view.pointer`/`view.return_to`）在那两版上**会真的把指针还给缓存**，普通切片视图才是什么都不做；
-   远程模式走的是另一个类（`pl_server/remote_device.py` 的 `RemoteBuffer.freebuffer`，`:1142-1149`），
-   它也没有 memory 门、`:1123-1132` 一带不把 `freed` 搬给视图，**在视图上调它是 `AttributeError`**（静态读来）。
-   剩下的真危险在**引用侧**：原始对象被释放（退出 `with`、`__del__`、显式 `freebuffer()`）之后视图还在你手上，
-   读它就是悬空（不可复现，别拿它当判据，见 §2 末）；而原始对象 `freebuffer()` 过之后再切一片会当场
-   `AttributeError: 'PynqBuffer' object has no attribute 'bo'`——`:82` 那句 `del self.bo` 是看得见的。
-   **也别去"给视图补一个 `memory`"把门打开**：没有 `pointer` 的视图一开就撞 `if not self.freed` ⇒
-   `AttributeError: 'PynqBuffer' object has no attribute 'freed'`（桩 RUN）；**带了 `pointer` 的视图是第三臂**，
-   它走 `:74-77` 把指针退回缓存、既不 munmap 也不读 `freed`（桩 RUN），所以"补门必然炸"这句也不成立。
-   所以释放只能由**持有原始对象的那一层**做（`buffers-and-cache.md` §3 第 2 条是规范写法）。
+   **真正的危险在释放那一侧，形状要分三档**（先前这里与 `buffers-and-cache.md` §1、§3 第 2 条写的
+   "视图上调 `freebuffer()` 会 `munmap` 视图那一段、映射被局部解除"**整段收回**）：
+   **第一档 板端 3.0.1/3.1.2/4.0.0**：unmap 主体（4.0.0 `buffer.py:73-82`）整个被 `if hasattr(self, "memory"):`
+   包住，`memory` 只有分配器会挂到原始对象上（`pl_server/xrt_device.py:125`），
+   `__array_finalize__`（4.0.0 `buffer.py:50-57`）既不搬它也不搬 `freed`
+   ⇒ **对切片视图调 `freebuffer()` 是完整 no-op**，连续切片与步长切片同形；主机桩的读数与它的
+   两处偏离写在 `buffers-and-cache.md` §1（含"逐字照抄那份在 numpy 2.5.3 上构造不出来"那一条）。
+   **第二档 板端 2.5.1/2.7.0**：同一个方法**没有 memory 门**，`buffer.py:90` 是这两版里唯一的判断，
+   即 `if hasattr(self, 'pointer') and self.pointer:`——挂过 `pointer`/`return_to` 的对象
+   （`lib/video/drm.py:186-189` 那一族）调它会**真的把指针退回缓存**，只有普通切片视图才什么都不做。
+   **第三档 远程模式**是另一个类：`RemoteBuffer.freebuffer`（4.0.0 `pl_server/remote_device.py:1142-1149`）
+   同样没有 memory 门，而它附近那段 `__array_finalize__` 不把 `freed` 交给视图 ⇒ 在远程的视图上调它是
+   `AttributeError`（静态读来，未上板）。
+   还有一条容易漏的顺序：**`pointer` 那支排在解映射之前**（4.0.0 `buffer.py:74-77` 对 `:78-82`），
+   所以带指针的对象连**原始对象**调用都不会 `munmap`（桩 RUN）——"退出作用域就把内存还回去"对它不成立。
+   真危险因此落在**引用侧**：原始对象释放之后（退出 `with`、`__del__`、显式调用）视图若还在你手上，
+   读它是悬空且不可复现，别当判据；在原始对象上调用之后再切一片会当场
+   `AttributeError: 'PynqBuffer' object has no attribute 'bo'`（`del self.bo` 是 4.0.0 那次调用的最后一句）。
+   **也别给视图补一个 `memory` 去"修好"它**：没有 `pointer` 时它撞 `if not self.freed`
+   ⇒ `AttributeError ... no attribute 'freed'`（桩 RUN），带 `pointer` 时它只退指针、既不 munmap 也不读
+   `freed`（桩 RUN）——两臂都在，所以"补门必然炸"这句也不成立。
+   释放由**持有原始对象的那一层**做，规范写法在 `buffers-and-cache.md` §3 第 2 条。
 8. **`transfer()` 的长度上限：SDMA 与 SG 的失败方式不同**，所以判断"有没有超限"不能靠
    "有没有报错"这一件事（分支、算法与恢复见 `dma-channels.md` §1、`debug-triage.md` §2 树 C）。
 9. **`wait_async` 是类上的协程，`hasattr` 永远为真。** 判断中断接没接要分**三样东西**看，别看方法
@@ -199,7 +195,7 @@ license: MIT
 | 板上跑的 **PL** 是哪一版——`md5sum` 对上了为什么还不够 | `references/mmio-registers.md` §5 |
 | 改了控制字的位定义，固件与上位机没同步 | `references/mmio-registers.md` §6 |
 | `allocate` 给的尺寸是元素还是字节、dtype 默认是什么 | `references/buffers-and-cache.md` §1 |
-| 物理地址属性叫什么、`physical_address + 偏移` 这种手算为什么不行（同步范围本来就跟着视图走；释放那一侧的危险**不是**"在视图上调 `freebuffer()` 会解掉一段映射"——那一次调用是空转——而是**原始对象被释放之后视图仍被拿着**） | `references/buffers-and-cache.md` §1 |
+| 物理地址属性叫什么、`physical_address + 偏移` 这种手算为什么不行（同步范围本来就跟着视图走；释放那一侧的危险**不是**"在视图上调 `freebuffer()` 会解掉一段映射"——板端 3.0.1+ 上那一次调用是空转，2.5.1/2.7.0 上挂了 `pointer` 的视图会真的退回缓存，远程档直接 `AttributeError`——而是**原始对象被释放之后视图仍被拿着**） | `references/buffers-and-cache.md` §1 |
 | `allocate` 的 buffer `close()` 没报错也没回收；`CmaFree` 前后差值能证"这个写法回收了"（但它与 `allocate` 是否同一池没核实） | `references/buffers-and-cache.md` §2 |
 | 反复 `Overlay(...)` 之后东西不回收（引用还活着：循环变量、异常 traceback、Jupyter 的 `In`/`_`） | `references/overlay-metadata.md` §3 |
 | cache 维护方向写反（第一次对、第二次读到旧的）、尾巴不足一行 | `references/buffers-and-cache.md` §3 |
