@@ -94,7 +94,7 @@ close_hw_manager
   本机把 `open_hw_manager`、`get_hw_probes`、`read_hw_ila_data`、`get_hw_ilas`、`get_hw_targets`、
   `get_hw_devices`、`connect_hw_server`、`write_hw_ila_data`、`run_hw_ila`、`program_hw_devices`、
   `close_hw_manager`、`current_hw_ila`、`get_hw_ila_datas`、`upload_hw_ila_data`、`wait_on_hw_ila`
-  这 15 个数了一遍：**`load_features labtools` 之后 15/15 有名字；**"之前 0/15"这句没有记录支持，收回**：本机现存那次扫描只覆盖 **7 个名字**，而 `revAH2/r1.log:27` 在还没 `load_features` 的那一相就打出 `NM|S0|apply_hw_ila_trigger=<apply_hw_ila_trigger>` ⇒ 裸相就已注册的名字至少这一个，"整族都要加载"是坏的泛化；能主张的只到"部分名字要加载才出现"（要逐名定论自己扫一遍，`quiet3/q3b.log` 那次没扫名字）。
+  这 15 个数了一遍：`load_features labtools` **之后 15/15 有名字**；**"之前 0/15"这句没有记录支持，收回**：本机现存那次扫描只覆盖 **7 个名字**，而 `revAH2/r1.log:27` 在还没 `load_features` 的那一相就打出 `NM|S0|apply_hw_ila_trigger=<apply_hw_ila_trigger>` ⇒ 裸相就已注册的名字至少这一个，"整族都要加载"是坏的泛化；能主张的只到"部分名字要加载才出现"（要逐名定论自己扫一遍，`quiet3/q3b.log` 那次没扫名字）。
   ② 网表侧那一族（`create_debug_core`、`connect_debug_port`、`write_debug_probes`、
   `implement_debug_core`、`report_debug_core`）**在没 `load_features` 的新会话里就已经有名字**
   （本机在一个**没开工程、没 `load_features`** 的 batch 会话里 `read_verilog`+`synth_design` 之后
@@ -351,7 +351,7 @@ write_debug_probes -force ./design             ;# ⑪ 产出 design.ltx；判据
   `get_debug_ports` 给**三条**：`dbg_hub/clk`、`u_ila_dbg/clk`、`u_ila_dbg/probe0`；
   上面那串只连了 hub 那一路与探针那一位。落地之后 `implement_debug_core` 返回 `CDC-15#11`、
   `.ltx` 照样产出（本机那份是 1737 字节 / 48 行），而读回来的 `pins[]` 里**只有 `probe0` 一条**。
-  也就是说 **`u_ila_dbg/clk` 空着在建核与产出 `.ltx` 那几步不报错，**但"任何一步不报错"这句要收回**：同一条链子上 `chain15/c.log:420` 的 `opt_design` 就 rc=1（`Chipscope 16-213` 点名它），随后 `:426` `DRC NDRV-1`、`:430` `Vivado_Tcl 4-384`、`:433` `place_design` 因前者失败 —— "这条链子"要写成步名列表而不是整条**。它会不会让上板抓不到波形，
+  也就是说 `u_ila_dbg/clk` **空着在建核与产出 `.ltx` 那几步不报错**；**但"任何一步不报错"这句要收回**：同一条链子上 `chain15/c.log:420` 的 `opt_design` 就 rc=1（`Chipscope 16-213` 点名它），随后 `:426` `DRC NDRV-1`、`:430` `Vivado_Tcl 4-384`、`:433` `place_design` 因前者失败 —— "这条链子"要写成步名列表而不是整条**。它会不会让上板抓不到波形，
   只能上板判；所以这一格别留给运气：把三条端口都列出来，该连的逐个连上、
   逐个 `puts` 记账——这与上面 `PORT_WIDTH` 那条是同一类坑（工具不催你，形状还各不相同）。
 - 按 §1 的口径，那类告警要按**条目数**数（`SKILL.md` §1 第 1 条）。
