@@ -175,10 +175,10 @@ WARNING 为什么不进 `catch` 的 msg、以及各层清单项数怎么取，�
 | 把构建交给同事、或**同一工程两台机器结果不同**，要能复核同一版 | `references/vivado-build-run.md` §7 |
 | 构建中途报错、报 `needs to be reset` 不让重跑、重跑把上一版产物复用、run 之间抢同一份中间文件、同一策略重跑两次报告**差出第三种行** | `references/vivado-build-run.md` §8 |
 | 连不上板、JTAG 通道被占、对象链找不到 target；离线跑 `hw_*` 各停在**不同**的一处（不是"一律 44-235"：`get_hw_ilas`/`current_hw_ila` 给 rc=0 空串，`run_hw_ila`/`wait_on_hw_ila`/`upload_hw_ila_data` 的 msg 都是 `17-39` 包装、真号 `44-8` 在日志里，只有 `write_hw_ila_data` 在裸会话给 `44-235`；会话里有打开的设计时 `apply_hw_ila_trigger` 还给 `[Vivado 44-362]` 空正文） | `references/onchip-debug.md` §2.2 |
-| 离线跑一条调试命令，失败到底在**拼写层**（选项名写错，`17-170`/`17-165`）还是在**语义/相位层**（`44-235`、`17-53` 的两种文本）；`-quiet` 会不会把唯一那条线索抹掉 | `references/onchip-debug.md` §1 |
+| 离线跑一条调试命令，失败到底在**拼写层**（选项名写错，`17-170`/`17-165`）还是在**语义/相位层**（`44-235`、`17-53` 的两种文本） | `references/onchip-debug.md` §1 |
 | 插了探针之后时序变差、能不能拿调试版的数字当交付结论 | `references/onchip-debug.md` §2 |
 | 核是怎么进网表的：IP 那条路与网表手术那条路的命令名与坑 | `references/onchip-debug.md` §2.1 |
-| 抓取与触发这一族有哪些名字、为什么本机给不出参数级用法、七步顺序长什么样 | `references/onchip-debug.md` §2.2 |
+| 抓取与触发这一族有哪些名字、七步顺序长什么样、离线每一相各停在哪条消息上（含 `-quiet` 把线索全抹掉那一格） | `references/onchip-debug.md` §2.2 |
 | 抓到的信号名全对不上、怎么证明抓的是这一次的版本；只想确认一个位在不在动 | `references/onchip-debug.md` §3 |
 | 在线调试根本帮不上的四种情况（DDR 负载、现场无 JTAG、总线卡死、长期判版本） | `references/onchip-debug.md` §4 |
 | 板上到底跑哪一版、产物哈希能回答什么 | `references/board-bringup.md` §1 |
@@ -338,13 +338,17 @@ WARNING 为什么不进 `catch` 的 msg、以及各层清单项数怎么取，�
   `get_hw_targets` 比它还**早一层**就给答案（connect 之后 msg 是 `17-39` 包装、日志里真号
   `[Labtoolstcl 44-199] No matching targets found on connected servers: localhost`）
   ⇒ **"连上了"不等于链路上有东西**，别拿 `connect_hw_server` 的 0 当依据。
-  **"是不是本次把 hw_server 拉起来的"不要用日志措辞判**：`27-2285 Connecting…` 与
-  `27-2222 Launching hw_server...` 这两条在本机两臂里记过**不一致**的事（一臂端口被残留进程占着时
-  `27-2222` 零命中、那次真正被拉起的是 cs_server；另一臂两条都在），差别候选没分开 ⇒
-  判"谁在服务"只用数得出的两条：`netstat -ano | findstr :3121` 与 `tasklist | findstr hw_server`；
-  残留服务会被下一个批处理直接连上、照样 rc=0。换地址也别直接试，已连着时
-  `connect_hw_server -url …` 要先断旧的（`44-586`）。两臂的逐条读数在
-  `references/board-bringup.md` §3 第 1 条与 `references/onchip-debug.md` §2.2 末。
+  **"是不是本次把 hw_server 拉起来的"只认一条读数**：`INFO: [Labtools 27-2222] Launching hw_server...`
+  **在不在**——本机用"显式起一颗真 hw_server 占住 3121 再连"那一臂量过：占着时日志只有
+  `27-2285 Connecting to hw_server url…`、`27-2222` 零命中；没人监听时它出现（且 `27-2221 Launch Output:`
+  是**每次 launch 共用**的一行，那次跟它配对的是 cs_server 的 banner，别把 27-2221 当成 hw_server 的证据）。
+  判"谁在服务"用两条可数的，而且旗标要对：`netstat -ano | findstr :3121 | findstr LISTENING`
+  （只 `findstr :3121` 会假绿：服务死后还剩 `TIME_WAIT` 行，本机量到）与
+  `tasklist | findstr /i "hw_server cs_server"`（残留的不只 hw_server：一次批处理退出后 4 颗
+  `cs_server.exe` 还活着，那时查 hw_server 是 0 命中）。
+  **别拿"再连一次试试"当恢复**：已经连着时**同一个 URL** 再调 `connect_hw_server` 也给
+  `[Labtoolstcl 44-586] Disconnect server connection, TCP:localhost:3121, before making a new one.`；
+  先 `disconnect_hw_server`（本机 rc=0）再连就恢复 rc=0。
 - 插调试核（ILA/VIO）是一次**网表变更**，插完之后构建要重跑一遍才算数：**"走 IP 那条配置流程要重新
   综合"本机没有臂**（那是工具流程口径，不是读数）；本机只测到网表手术那条路——"综合之后插核 → 存盘 →
   重开 → `implement_debug_core` → 出 `.ltx`"这一串，**整轮实现没跑过**，且 vio 上验证到的只到建核那几步

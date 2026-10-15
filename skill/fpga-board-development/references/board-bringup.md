@@ -220,15 +220,18 @@ WARNING: -padimageheader was requested, but no images were specified.
 
 1. **"连上了"不是"接上板了"**（本机没有板，这条是把整步的判据重排过）：
    `open_hw_manager` **rc=0**，`connect_hw_server` 也 **rc=0**、交回的是 `localhost:3121`，
-   日志里还有一条 `INFO: [Labtools 27-2222] Launching hw_server...`——
-   **要不要"先把服务拉起来"也不是这一步的事**：`connect_hw_server` 在没人听 3121 时会去起一个
-   （日志 `INFO: [Labtools 27-2222] Launching hw_server...`），但**这两条 INFO 不能当"本次真起了新进程"的证据**——
-   本机两臂记过不同的事：一臂里 3121 被残留的 `hw_server.exe` 占着（`netstat` 有 LISTENING、
-   `tasklist` 有 PID），只有 `27-2285 Connecting to hw_server url…`、`27-2222` **零命中**
-   （那次 `27-2221 Launch Output:` 的 banner 是 `Xilinx cs_server`）；另一臂端口被占时两条都在。
-   差别候选是占端口的进程有没有真在 accept，本机没分开 ⇒ **判"谁在服务"用数得出的两条**：
-   `netstat -ano | findstr :3121` 与 `tasklist | findstr hw_server`；残留服务会被下一个批处理直接连上、
-   照样 rc=0，所以"连不上先确认服务在不在"这个顺序在这版上不成立：
+   **而"要不要先自己起服务"也不是这一步的事**：`connect_hw_server` 在没人听 3121 时会去起一个，
+   且 **`27-2222 Launching hw_server...` 在不在恰好就是"本次有没有起新服务"的读数**——
+   本机把这一臂做成了"显式起一颗真 `hw_server.exe` 占住 3121 再连"（日志里同时记了 `netstat` 的
+   LISTENING 行与 PID）：那一臂**只有** `27-2285 Connecting to hw_server url…`、`27-2222` 零命中。
+   一条归属要写对：`27-2221 Launch Output:` 是**每次 launch 共用**的一行（那次跟它配对的是
+   `Xilinx cs_server` 的 banner），没人监听 3121 时它会出现两次，别拿它当 hw_server 的证据。
+   ⇒ **判"谁在服务"用两条可数的，旗标还须带对**：
+   `netstat -ano | findstr :3121 | findstr LISTENING`（只 `findstr :3121` 会假绿——服务被杀之后
+   本机还剩着 `127.0.0.1:xxxxx → 3121` 的 `TIME_WAIT` 行）与
+   `tasklist | findstr /i "hw_server cs_server"`（残留的不只 hw_server：一次批处理退出后本机留着
+   4 颗 `cs_server.exe`，那时单查 hw_server 是 0 命中）。残留服务会被下一个批处理直接连上、照样 rc=0。
+   所以"连不上先确认服务在不在"这个顺序在这版上不成立：
    三步全绿而一块板都没接。真正的门是下一条读数：
    `get_hw_devices` 在这里交回 **0 个** +
    `WARNING: [Labtoolstcl 44-128] No matching hw_devices were found.`。

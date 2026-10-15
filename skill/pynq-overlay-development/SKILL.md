@@ -21,15 +21,27 @@ license: MIT
 
 1. **`Overlay(...)` 不报错不等于元数据进去了。** `print(ol.dtbo)` 只证明路径被算出来；
    设备树是否生效要问内核：`/sys/kernel/config/device-tree/overlays/<dtbo 基名>/status` 读到 `applied`。
-   **库自己那条回读是带换行的精确串比较**：`devicetree.py:88-89` 是
-   `return f.read() == 'applied\n'`，所以"人 `cat` 看到 `applied`、库却判 `False`"能同时发生
-   （比较式要尾部那个 `\n`；这是按源码读到的形状，本包没有板，没有一次真回读）。
+   **库自己那条回读是"带尾换行的相等比较"，而两版的容错不一样**：3.0.1/3.1.2/4.0.0 走
+   `open(..., 'r')` 文本模式 + `return f.read() == 'applied\n'`（4.0.0 `devicetree.py:88-89`），
+   2.5.1 走 `subprocess.check_output('cat …')` 再 `status.decode('utf-8') == 'applied\n'`（`:115-118`）。
+   主机上三种写法都比过（Python 3.12，RUN）：`applied\r\n` 在文本模式那支被归一化成 `applied\n`
+   ⇒ **判 True**，在 `decode()` 那支不归一化 ⇒ 判 False；`applied\n` 两支都 True；
+   **没有尾换行的 `applied` 两支都 False**。所以"人眼看是 `applied`、库说 False"能同时发生的
+   真实成因是**少那个换行**（外加 2.5.1 遇上 CRLF）。还有一道门：目录不存在时
+   `is_dtbo_applied()` 直接回 False（`:86-87`）⇒ **False 混着两种成因**（没落地 / 落地了但 status
+   读法不对），要分开就自己 `cat -A` 看字节。
 2. **`.dtbo` 的基名是它的身份。** 代码能证到的不止"同基名 → 同一个 configfs 条目"
    （4.0.0 `devicetree.py:74-75`：`self.dtbo_name = get_dtbo_base_name(dtbo_path)`，
    `self.sysfs_dir = os.path.join(SYSTEM_DEVICE_TREE_PATH, self.dtbo_name)`）：
    `insert()` 是 `os.makedirs(self.sysfs_dir, exist_ok=True)` 再往 `<该条目>/dtbo` 写字节
-   （`:97-103`），**同名第二次插入就是往同一条目再写一次**；`remove()` 是
-   `if os.path.exists(self.sysfs_dir): os.rmdir(self.sysfs_dir)`（`:126-127`）——**按目录名删，不认是谁插的**。
+   （`:97-103`），**同名第二次插入就是往同一条目再写一次**，写完它还做两次检查
+   （`:109-116` 把 `dtbo` 读回来比对、`:118-120` 再问 `is_dtbo_applied()`，
+   任一不过抛 `RuntimeError("Device tree {} cannot be applied")`——**所以"插入失败一定不报错"是错的**）；
+   `remove()` 是 `if os.path.exists(self.sysfs_dir): os.rmdir(self.sysfs_dir)`（`:126-127`）——
+   **按目录名删、不认是谁插的，而且没有 `try`**：目录被内核占着（还有子节点/引用）时这里就抛 `OSError`。
+   **2.5.1 不是这套形状**：它的 `insert()`/`remove()` 走 `subprocess` 的 `mkdir -p`、`cat <dtbo> > …`、
+   `rmdir`（`:120-145`），那一版根本没有 `sysfs_dir` 属性，路径是每次现拼的——
+   别把上面这些行号搬给 2.5.1。
    "加载后者会把前者的中断/UIO 节点静默摘掉"是**内核那一侧的机理，本包没有板、没量过**，
    只当"为什么要不同名"的理由，不当读数用。要共存就必须不同名。
 3. **`write()` 不报错不等于写到了。** 至少三种图案 + 读回，恒 0 / 恒 F 不算通过；
@@ -43,8 +55,16 @@ license: MIT
    这一族的释放路径**分三档，别当成一条**（`grep -rn munmap pynq/buffer.py` = 2.5.1/2.7.0 **0** 处、
    3.0.1/3.1.2/4.0.0 各 3 处；同一批扫描里 `xclFreeBO` 全树 = 5/5/6/**0**/**0**）：
    3.0.1 的 `buffer.py:82` 直接 `xrt.xclFreeBO(...)`；3.1.2/4.0.0 的 `buffer.py:82` 是 `del self.bo`，
-   BO 真正归还发生在 `ExecBo.__del__` → `_free_bo(...)`（4.0.0 `pl_server/xrt_device.py:168-169`，
-   `_free_bo` 定义在 `:91`）——也就是**引用归零之后**，`del` 只是去掉 `PynqBuffer` 那一份；
+   **但这条链的下一环不在 Python 里**：`ExecBo` 这一类在 3.1.2/4.0.0 只有定义
+   （`pl_server/xrt_device.py:154`）而**没有任何构造点**（全树 `grep -rn ExecBo` 只回这一行；
+   3.0.1 才有 `:596 return ExecBo(...)`），所以那两版的 `ExecBo.__del__` 是**死码**，
+   先前把它写成"归还靠 `ExecBo.__del__` → `_free_bo`"是错的，收回。
+   真实形状是：`self.bo` 来自 `pyxrt.bo(...)`（`:345`，失败才是那条 `BO allocation failed:`），
+   归还发生在 C++ 侧引用归零时，Python 树里**看不到显式释放**；唯一的显式出口是同文件
+   `:84` 的 `weakref.finalize(buf, _free_bo, device, bo, ar.virtual_address, ar.nbytes)`——
+   **而它只在 `pointer is not None` 时挂**（`:83`），`_free_bo` 本体是 `libc.munmap` + `del bo`（`:91-93`）。
+   所以"退出 `with` 之后一定有人 unmap"这句要按那一档分开说：3.0.1 显式 `xclFreeBO`；
+   3.1.2/4.0.0 只有带 pointer 的那条路有显式 `finalize`，普通 `allocate()` 出来的缓冲**依赖引用归零**；
    2.5.1/2.7.0 的 `buffer.py` 里既没有 `munmap` 也没有 `xclFreeBO`（BO 的归还那一步在
    `pl_server/xrt_device.py`：2.5.1 `:142`、2.7.0 `:140` 都是 `xrt.xclFreeBO(device.handle, bo)`），
    本包关于 `munmap` 的那段分析在那两版不适用。
@@ -52,7 +72,7 @@ license: MIT
    一条永远不红的判据不算判据——**先给它做一次最小破坏**：故意留一份引用不释放（或反过来，跑一遍
    正常释放），看那个数真的会动，才说明这条判据看得见释放；两臂的口径要写在一起
    （`buffers-and-cache.md` §2）。**"退出 `with` 之后再读一次这个 buffer 会不会炸"不是判据**：
-   同一页 §3 第 1 条自己写了"释放之后读它就是 UB"——UB 不可复现（可能读到旧值、可能把进程打死），
+   `buffers-and-cache.md` 的 §2 第 1 条自己写了"释放之后读它就是 UB"——UB 不可复现（可能读到旧值、可能把进程打死），
    它当不了"能红"的那一次。
 7. **切片交给 DMA，不要手算 `physical_address + 偏移`。** 手算**不会**绕过同步记账，也**不会**让范围错位：
    `flush()`/`invalidate()` 用的就是 `self.offset`/`self.nbytes`（4.0.0 `buffer.py:104-114`），而
@@ -63,31 +83,48 @@ license: MIT
    `__array_interface__['strides']`，`buffers-and-cache.md` §1 有实测的 `nbytes`/`offset` 对照；
    "尾部没被 flush 且不报错"是**机理**，驱动那层本机没打开，别当读数用；
    两条出路写在 `buffers-and-cache.md` §1）。
-   **真正的危险在释放那一侧，而形状与本包先前写的不同**：`freebuffer()` 的整个 unmap 主体
-   （3.1.2/4.0.0 `buffer.py:73-82`）包在 `if hasattr(self, "memory"):` 里，而 `memory` 是**分配器**只设在
-   原始对象上的那一句（`pl_server/xrt_device.py:125`：`buf.memory = self`），`__array_finalize__`
-   （`:50-57`）既不搬 `memory` 也不搬 `freed`（那两样只在 `__new__` 的 `:46-47` 设）
-   ⇒ **在视图上调 `freebuffer()` 是一段完整的 no-op**：忠实照 `:38-82` 写的主机桩（numpy 2.5.3）实测
-   `munmap calls = []`、`orig.freed` 仍是 `False`、`view.bo` 也还在。
+   **真正的危险在释放那一侧，而形状与本包先前写的不同**：3.0.1/3.1.2/4.0.0 里 `freebuffer()` 的整个
+   unmap 主体（4.0.0 `buffer.py:73-82`）包在 `if hasattr(self, "memory"):` 里，而 `memory` 是**分配器**
+   只设在原始对象上的那一句（`pl_server/xrt_device.py:125`：`buf.memory = self`）；`__array_finalize__`
+   （`:50-57`）**既不搬 `memory` 也不搬 `freed`**（`freed` 在 `__new__:47` 设，`memory` 从不进 `__new__`）
+   ⇒ **在板端的 3.0.1+ 上，对切片视图调 `freebuffer()` 是一段完整的 no-op**：主机桩实测
+   `munmap calls = []`、`orig.freed` 仍是 `False`、`view.bo` 也还在（连续切片与步长切片一样）。
+   **桩的两处偏离要写明**：结构照 `:38-82` 抄，但**属性名改过**——逐字保留 `self.device = ...` 的那份
+   在 numpy 2.5.3 上**根本构造不出来**（`AttributeError: attribute 'device' of 'numpy.ndarray'
+   objects is not writable`，本机 RUN），所以桩里把它改名 `dev`；`libc.munmap` 换成记录器。
    **它"不报错"不是因为安全，是因为什么都没做。**
    先前这里写的"视图上会 `munmap` 视图那一段、共享映射被局部解除、原始对象之后再 `munmap` 一次"
-   **整段收回**（同一说法也在 `buffers-and-cache.md` §3 第 2 条，两处一起改）。
-   真正的危险在**引用侧**：原始对象被释放（退出 `with`、`__del__`、显式 `freebuffer()`）之后视图还在你手上，
+   **整段收回**（同一说法也在 `buffers-and-cache.md` §1 与 §3 第 2 条，三处一起改）。
+   **但这条"空转"只属于板端 3.0.1+，另外两档不是这个形状**：2.5.1/2.7.0 的 `freebuffer`
+   （`buffer.py:82-93`）**没有 memory 门**，门是 `if hasattr(self, 'pointer') and self.pointer:`——
+   所以给视图挂过 `pointer` 的那一类（`lib/video/drm.py:186-189` 正是
+   `array.view(PynqBuffer)` 之后
+   设 `view.pointer`/`view.return_to`）在那两版上**会真的把指针还给缓存**，普通切片视图才是什么都不做；
+   远程模式走的是另一个类（`pl_server/remote_device.py` 的 `RemoteBuffer.freebuffer`，`:1142-1149`），
+   它也没有 memory 门、`:1123-1132` 一带不把 `freed` 搬给视图，**在视图上调它是 `AttributeError`**（静态读来）。
+   剩下的真危险在**引用侧**：原始对象被释放（退出 `with`、`__del__`、显式 `freebuffer()`）之后视图还在你手上，
    读它就是悬空（不可复现，别拿它当判据，见 §2 末）；而原始对象 `freebuffer()` 过之后再切一片会当场
    `AttributeError: 'PynqBuffer' object has no attribute 'bo'`——`:82` 那句 `del self.bo` 是看得见的。
-   **也别去"给视图补一个 `memory`"把门打开**：门一开就撞 `if not self.freed`，而视图没有这个属性 ⇒
-   `AttributeError: 'PynqBuffer' object has no attribute 'freed'`（两臂都是本机桩实测，不是推演）。
+   **也别去"给视图补一个 `memory`"把门打开**：没有 `pointer` 的视图一开就撞 `if not self.freed` ⇒
+   `AttributeError: 'PynqBuffer' object has no attribute 'freed'`（桩 RUN）；**带了 `pointer` 的视图是第三臂**，
+   它走 `:74-77` 把指针退回缓存、既不 munmap 也不读 `freed`（桩 RUN），所以"补门必然炸"这句也不成立。
    所以释放只能由**持有原始对象的那一层**做（`buffers-and-cache.md` §3 第 2 条是规范写法）。
 8. **`transfer()` 的长度上限：SDMA 与 SG 的失败方式不同**，所以判断"有没有超限"不能靠
    "有没有报错"这一件事（分支、算法与恢复见 `dma-channels.md` §1、`debug-triage.md` §2 树 C）。
 9. **`wait_async` 是类上的协程，`hasattr` 永远为真。** 判断中断接没接要分**三样东西**看，别看方法
    存不存在：① 通道实例的 `_interrupt`（驱动侧握着的那个对象在不在）、② IP 元数据里的 `interrupts`
    （这一版设计有没有声明这根针）、③ 设备树里的 UIO 节点（`.dtbo` 那层有没有落地，
-   `debug-triage.md` §2 树 D 第 1 步就是查它）。**"①② 全绿而 ③ 缺"这个组合不存在**：③ 缺时
+   `debug-triage.md` §2 树 D 第 1 步就是查它）。**"①② 全绿而 ③ 缺"这个组合在板端不存在**：③ 缺时
    `Interrupt(...)` 抛 `ValueError`，3.x/4.x 的 `DefaultIP.__init__` 把它吞成 `setattr(..., None)`
    加一条 UserWarning `Interrupt {} not created: {}`（4.0.0 `overlay.py:706-711`、3.1.2 `:709-714`、
    3.0.1 `:705-710`、2.7.0 `:677-683`），① 于是就是 `None`；**2.5.1 没有这层 `try`**，`overlay.py:649`
    直接把异常抛出构造函数。所以 ① 是"③ 有没有落地"的**结果**，不是并列的第三项。
+   **远程模式是另一档，别把上面那句搬过去**：远程环境把 `Interrupt` 换成 `RemoteInterrupt`
+   （4.0.0 `pl_server/remote_device.py:885`），它**从不抛 `ValueError`**，只在构造时
+   `warnings.warn("Interrupts are not yet implemented for remote devices")`（`:899`）
+   ⇒ 远程下 ① **恒不是 `None`**，问题要到 `:901 def wait(self, timeout=None)` 那一层才露头。
+   所以"① 是不是 `None`"这条分流只在板端成立；先按 `Interrupt.__module__` 判自己在哪一档
+   （`debug-triage.md` §2 树 D 第 2 步给的就是这个）。
    **但吞的只有 `ValueError`**（逐版都是 `except ValueError as e:`，4.0.0 `overlay.py:709`、
    3.1.2 `:712`、3.0.1 `:708`、2.7.0 `:680`）：UIO 节点**在**但打不开（`uio.py:73` 的
    `open(device, 'r+b', buffering=0)` ⇒ `FileNotFoundError`/`PermissionError`，非 root 就会走这一支）、
@@ -97,12 +134,15 @@ license: MIT
    SG `:470-523`；2.5.1 SD `:130-139`）一次都不读 `_interrupt`，是纯轮询 SR——它不回说的是"引擎没到 idle"。
    **SG 那一版 `wait()` 在等到 idle 之后还要 `self.stop()`（`:517`），而 `stop()` 的尾巴是
    `:310-311` 的 `while self.running: pass`**——所以 SG 的 `wait()` 有第二个卡点，位置在"已经搬完之后"。
-   读 `_interrupt` 的有两个：`wait_async()`（SD `:189-198`、SG `:525-540`，① 是 `None` 时它抛
+   读 `_interrupt` 的有两个：`wait_async()`（SD `:189-199`、SG `:525-554`，① 是 `None` 时它抛
    `AttributeError: 'NoneType' object has no attribute 'wait'`——是异常，不是挂死；且**只有真去 `await`
    才抛**，`ch.wait_async()` 不 await 只是造出一个协程，什么都不发生），以及 **`start()`**
    （SD `:89`、SG `:290`/`:295`；2.5.1 `:85`、2.7.0 SD `:123`/SG `:327`、3.0.1 SD `:89`/SG `:286`/`:291`）：
    它按 ① 决定往 DMACR 写 `0x1001` 还是 `0x0001`（SG cyclic 那支是 `0x1011`/`0x0011`）——
-   **这是一块板端口：读回 DMACR 的 bit12 就知道引擎的中断开关到底有没有被打开**。
+   **源码能撑到的只是"0x1000 是这两组常量里唯一随 ① 变化的那一位"**；把它叫"中断使能位"是 PG021
+   那一层的命名，本包不引手册，**属推断**。所以这块板端口的正确用法是差分而不是解释：
+   同一个通道在"元数据说接了中断"与"没接"两种状态下各读回一次 DMACR，**看那一位是否随 ① 变**，
+   变与不变都是读数；至于它叫什么，去查你自己那份 PG021 表格。
    所以不要把"①② 都对"写成"中断已接好"，也不要把"wait 不回"归到中断那一层。
 10. **`wait()` 没有 timeout 形参。** 第一次上板不要裸等；超时自己包，并知道包起来的代价是
     后台线程与一个还在跑的引擎。异常之后先把引擎弄停再继续——但「弄停」只能用 `MMIO` 写 RS=0
@@ -198,7 +238,9 @@ license: MIT
   搬完了但内容旧/尾巴坏看 `buffers-and-cache.md` §3（方向与行粒度）。顺序是先 §2 后 §3，反过来会把
   完成问题误判成缓存问题。
 - **`MemoryError` 有两行**：缓冲池（CMA）那条走 `buffers-and-cache.md` §2 的 `CmaFree` 差值实验；
-  反复加载 overlay 的那条走 `overlay-metadata.md` §3。这两族的释放走 `munmap`/`xclFreeBO`（§7 那一族），
+  反复加载 overlay 的那条走 `overlay-metadata.md` §3。这两族的释放路径**按版本不是一条**
+  （见本节第 6 条那三档：3.0.1 显式 `xclFreeBO`；3.1.2/4.0.0 的 `del self.bo` 之后 Python 树里没有
+  显式释放，只有 `pointer is not None` 时挂上的那条 `weakref.finalize`；2.5.1/2.7.0 走 XRT 那一步），
   **`CmaFree` 量不到 mmap/fd/驱动实例**是这一族的机理推断，本包没有板、没量过——所以
   "拿它当'没泄漏'的结论会一直读到一个不变的 0"是**待验证的预测**，不是读数：
   板上要用它做判据，先跑一次故意不释放的对照臂证明它会动。

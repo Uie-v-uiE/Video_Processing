@@ -14,9 +14,13 @@
 **第一条全通、第二条一步不动，最省时间的怀疑不是软件，是"这个 IP 其实有两路钟"**。
 AXI-Lite 那一路管寄存器，引擎那一路管搬运，它们在 BD 里是**不同的引脚、常常接不同的钟源**；
 只给前者上钟，症状正是"寄存器写得进、读得回、`ip_dict` 里也有这个地址，但引擎永远不动"。
-这一层在设计侧就查得完。读数不是一次取的，别当成同一份 BD：第 1、3 步与第 2 步里 `axi_dma` 那几个值
-来自同一份只连了两路钟的 DMA BD；第 2 步里 `axi_gpio` 与 `clk_wiz` 两处对照是另一份只放了这三个 IP、
-一条线都没连的 BD。
+这一层在设计侧就查得完。读数不是一次取的，别当成同一份 BD——**一共三份**，各自的形状是：
+第 1 步"只点了完全没连的 `m_axi_sg_aclk`"与第 3 步的 `TYPE`/`CONFIG.FREQ_HZ` 那几对读数，来自
+**三端口三连线、只漏 sg 那一路**的那份（本机那一次 `41-758` 的名单里只有 `m_axi_sg_aclk` 一个脚）；
+把时钟引脚**两路都不连**的是另一份，同一条 `validate_bd_design` 在那一份上点的是
+`m_axi_sg_aclk` **和** `m_axi_s2mm_aclk` 两个脚——所以"点几个脚"本身就是"哪份 BD"的指纹，
+拿这份的名单去解释那份的现象必然错。第 2 步里 `axi_gpio` 与 `clk_wiz` 两处对照又是第三份
+（只放了这三个 IP、一条线都没连）。引用上面任何一条读数时，连"哪一份"一起说。
 
 1. 先 `validate_bd_design`：**什么都没接**的时钟引脚会被逐个点名（消息原文形状、以及它套在外层命令上的
    那个 `[Common 17-39]` 外壳，都记在 `vivado-project-bd.md` §2 第 1 条——那一节是这一族的规范位置）。
@@ -104,8 +108,11 @@ AXI-Lite 那一路管寄存器，引擎那一路管搬运，它们在 BD 里是*
   第一笔只更新数据、选通保持原值；第二笔才翻选通。一次写同时改两者，对端可能读到"新码 + 还没认的
   沿"或"旧码 + 已认的沿"，覆盖白丢，症状是"串口回显成功、屏上没变"。
 - **cache 维护的方向与对齐**要按平台查：CPU 写出去给 PL 读，写后要 flush；PL 写进来给 CPU 读，
-  读前要 invalidate。对齐按 cache line，长度不足一行的尾部最容易只维护了一半。方向写反的症状是
-  "第一次对、第二次旧"；漏了的症状是"半新半旧"或首块/尾块坏。
+  读前要 invalidate。对齐按 cache line，长度不足一行的尾部最容易只维护了一半。
+  **下面两句症状是这一族的机理叙事，本机没有板、没有一条读数支撑**（要它在板上成为读数：
+  同一份数据跑"维护对/反/漏"三臂，每臂都读回转存 + 记帧号/序号，别只看完成的返回值）——
+  方向写反的症状是"第一次对、第二次旧"；漏了的症状是"半新半旧"或首块/尾块坏。
+  cache line 到底是 32 还是 64 字节也属同一层：读自己那颗 ACP/PL 通道的平台手册或上板测，别抄本页。
 - 轮询要有界：带超时读数（轮了多少次、什么时候放弃），不要用固定 `sleep` 或循环次数当完成判据。
   `sleep` 用来"造一个脉冲宽度"是另一用途，两者不许混。
 - 中断路径：先初始化中断控制器，再使能设备侧，最后清一次挂起状态；顺序错了会一进来就丢。
@@ -124,7 +131,12 @@ AXI-Lite 那一路管寄存器，引擎那一路管搬运，它们在 BD 里是*
 
 不同大版本的签名差别是真的，而且**差别会直接把你打到不存在的名字上**：在本包能查到的 Python
 包树里（2.5.1/2.7.0/3.0.1/3.1.2/4.0.0 五棵），IP 字典这个属性**只叫 `ip_dict`**——同一条命令
-在每棵树里都能命中 `ip_dict` 于 18～23 个文件，而 `dict_of_ipif` 在五棵树里**一个文件都没有**
+（`grep -rl ip_dict <树>/pynq | wc -l`，**口径是 `<树>/pynq` 这个子树 + 子串匹配 + 计文件数**）在每棵树里都能命中
+`ip_dict` 于 **19/18/22/23/22** 个文件；换三个口径里的任何一个，数就变：放宽到整棵树（含 `boards/`、
+`tests/`、非 `.py` 文件）是 **22/24/29/30/26**；只走 `*.py` 且用词边界 `\bip_dict\b` 是
+**19/18/21/21/19**（这三组都是本机同一批树上量出来的，差别全在口径，不在代码）——
+**报数之前先把命令与口径一起写出来**，否则同一件事在两页里会写成两个"都对"的数（本页就吃过这一次亏）。
+而 `dict_of_ipif` 在五棵树里**一个文件都没有**
 （这组数字就是正向对照：它证明扫描看得见这些文件，所以 0 是"真的没有"，不是"扫不到"；
 注意 `grep "class MM"` 会误命中 `MMIO`，判"某个名字存不存在"必须加词边界）。
 导出面的迁移线（谁在 2.7 被删、谁搬了家）逐条在
@@ -132,10 +144,19 @@ AXI-Lite 那一路管寄存器，引擎那一路管搬运，它们在 BD 里是*
 基址在 `ip.mmio.base_addr`（`MMIO.__init__(self, base_addr, length=4, …)` 里记 `self.base_addr`）。
 **但别说成"`baseaddr` 这个词在任何副本里都不存在"**：它在每棵树里都有命中，本机按
 `grep -rn baseaddr <树>/pynq | wc -l` 逐棵数过：2.5.1=**21**、2.7.0=**27**、3.0.1=**40**、
-3.1.2=**43**、4.0.0=**26**（早先这里写的"21～39"没盖住 3.0.1 与 3.1.2 这两棵）。只是不在
-IP 句柄那一层——`metadata/ip_dict_view.py` 里 port 对象的 `dst_port.baseaddr`、`mem_dict_view.py` 的
-`subord_port.baseaddr`，以及 IP 驱动 C/VHDL 源码里的 `baseaddr_p`。限定错层次的全称否定，
-比不写更容易骗人。
+3.1.2=**43**、4.0.0=**26**（早先这里写的"21～39"没盖住 3.0.1 与 3.1.2 这两棵）。
+**但这几行命中不是同一个东西，逐棵拆开看才知道该引哪一条**（本机按文件与语言过滤过）：
+真正的 `baseaddr` 只在 `metadata/` 那两个视图里：3.1.2 `metadata/ip_dict_view.py:184` 是
+`] = dst_port.baseaddr`，3.1.2 `metadata/mem_dict_view.py:63` 是 `subord_port.baseaddr`，
+**而 `metadata/` 这个目录 2.5.1 与 2.7.0 根本没有**（3.0.1/3.1.2/4.0.0 才有），
+所以那两版的 21/27 行里没有这一族；剩下的命中是三样杂物：IP 驱动的 C 源码/头里的
+`baseaddr_p`（`*.c`/`*.h`；`grep -rn VHDL *.vhd*` 五棵树 **0 命中**，别说成"C/VHDL"）、
+`mmio.py:15-23` 与 `pl_server/remote_device.py:609-619` 里的 **`baseaddress`**（多一个 `e`，
+是被子串匹配捞进来的）、以及 `libxil.a` 这类二进制留下的 `Binary file ... matches` 占位行
+（2.7.0/3.0.1/3.1.2 各 4 行、4.0.0 1 行、2.5.1 0 行——**它们各占一行计数**）。
+⇒ 结论没变、但理由要按层次说：`ip.baseaddr` **在 IP 句柄这一层不存在**（基址在
+`ip.mmio.base_addr`），"全树有命中"这件事不构成反证，因为命中的是别的对象、别的拼写、和二进制占位行。
+限定错层次的全称否定，比不写更容易骗人。
 
 先采集现场事实，再写代码：
 
@@ -155,22 +176,33 @@ print(buf.dtype, buf.shape, hex(buf.physical_address))
 **PYNQ 这一层的深度内容在 `pynq-overlay-development` 技能里**（Overlay 生命周期、MMIO 语义、
 缓冲区与 DMA、中断、取证）。这里只留与 PS/PL 协同直接相关的、已按上游 v3.1 与 v4.0.0 源码核对过的几条：
 
-- `pynq/buffer.py:138` 是 `allocate(shape, dtype="u4", target=None, **kwargs)`，返回 `PynqBuffer`
-  （`np.ndarray` 子类，可直接当数组用）。**默认 dtype 是 `"u4"`（uint32）** —— 字节流/图像要显式
+- `pynq/buffer.py:138` 是 `allocate(shape, dtype="u4", target=None, **kwargs)`，**板端**返回 `PynqBuffer`
+  （`np.ndarray` 子类，可直接当数组用）；**远程 target 走的不是这个类**——`RemoteDevice.allocate`
+  造的是 `RemoteBuffer`（4.0.0 `pl_server/remote_device.py:498` → 类在 `:1058`；3.1.2 是
+  `:474` → `:734`，**两份文件行数差很多，别把行号搬版本**：3.1.2 那份只有 917 行），它的 `freebuffer()`
+  是一次 gRPC 调用而不是本地 unmap，判"我拿到的是哪一个"用 `type(buf).__name__` 与
+  `buf.__module__`，别看有没有 `physical_address`（两边都有才奇怪）。
+  细则与坑在 `pynq-overlay-development/references/buffers-and-cache.md` §2 那张两版对照表。**默认 dtype 是 `"u4"`（uint32）** —— 字节流/图像要显式
   给 `np.uint8`，否则 `(8,512)` 是 16 KiB 不是 4 KiB。物理地址属性名是 **`physical_address`**
   （`buffer.py:90`），不是 `ip_dict` 里那个 `phys_addr`。
 - `MMIO.read(offset=0, length=4, word_order="little")`（`mmio.py:87`）：`length` 只收 1/2/4/8；
   `offset` 是**字节**地址且必须 4 对齐（否则 `MemoryError`）；**`word_order` 只在 `length=8` 时起作用，
   且是"两个 32 位字的先后"，不是字节端序**。`MMIO.write` 在 `__init__` 里按设备能力绑定
-  （`mmio.py:70-84`）——所以"扫类定义说它不存在"是错的。
+  （`mmio.py:70-85`，那条 `raise ValueError("Device does not have capabilities for MMIO")` 在 `:85`，
+  **不在 70-84 这个区间里**）——所以"扫类定义说它不存在"是错的。
 - `DMA` 驱动挂在实例上（`getattr(overlay, 'axi_dma_0')`），通道是 `sendchannel`/`recvchannel`，
   **单次上限不一定等于 `buffer_max_size`**：`axi_dma_micro` 是 `数据位宽 × burst_size`，
   而 `c_sg_length_width` 缺键时驱动退回的是**由一个命名常量算出来的 `2^26-1`**，不是字面量：
   `self.buffer_max_size = 1 << MAX_C_SG_LENGTH_WIDTH`（`lib/dma.py:635`）随后 `-= 1`（`:637`），
   而 `MAX_C_SG_LENGTH_WIDTH = 26` 就定义在同一份文件的 `:11`（3.1.2）；`:630-633` 是有键时
   按 IP 参数走的那一支。**要引用这个数就连 `:11` 一起引**，换版本时先看那一行还是不是 26
-  （`axi_dma_micro` 在 `:664-667`）；
-  另外只有 SDMA 会在超限时 `raise`，SG 会**默默拆成多个描述符**，所以"没报 exceeds maximum"
+  （`axi_dma_micro` 在 `:664-667`）；**注意 `axi_dma_micro` 不是源码里的标识符**
+  （五棵树 `grep -rIn axi_dma_micro` 全 0 命中，2.5.1 连 `c_micro_dma` 都没有；
+  真读的是参数 `c_micro_dma` 与 `self._micro` 那一族，4.0.0 各 2/5 处，正向对照就是这两个数），
+  本页用它只是给"micro DMA 这一档"起的名；
+  另外只有 SDMA 会在超限时 `raise`（逐字是 `ValueError("Transfer size is {} bytes, which exceeds
+  the maximum DMA buffer size {}.")`，4.0.0 `lib/dma.py:141-145`；**没有"exceeds maximum"这种短串**，
+  按它 grep 五棵树 0 命中），SG 会**默默拆成多个描述符**，所以"没看到那句超限"
   在 SG 上不是证据。`transfer(array,
   start=0, nbytes=0)` 里 **`start` 按字节**算且参与对齐检查；cyclic 只在 sendchannel，且 cyclic
   下 `wait()` 直接 `RuntimeError`。细则归 `pynq-overlay-development/references/dma-channels.md`。
@@ -181,7 +213,12 @@ print(buf.dtype, buf.shape, hex(buf.physical_address))
   （主机 Python 3.12 + `asyncio`，不是板上的 pynq 运行时）：普通 `def wait()` 交给
   `asyncio.wait_for(o.wait(), 1)` 得到 `TypeError: object int can't be used in 'await' expression`
   （消息里那个类型名就是 `wait()` 的返回类型，2.5.1 真返回什么本机没测），同一句喂给
-  `async def wait()` 正常返回。**别把 3.x 的包法抄到 2.5.1 上**；重下 overlay 之后该对象明确失效。
+  `async def wait()` 正常返回。**别把 3.x 的包法抄到 2.5.1 上**。重下 overlay 之后旧对象的正确说法是**"等待的结果未定义"**，
+  不是"会报错"：类 docstring 原文 "this object is invalidated and waiting results in undefined
+  behaviour"（4.0.0 `interrupt.py:48-50`），而 `:78-80` 的
+  `RuntimeError("Interrupt invalidated by Overlay change")` **只在 `self.parent()` 已经是 `None` 时**才抛
+  ——父对象还被别处攥着时它不抛，等到什么都有可能。所以修法是**重下之后重新构造对象**，不是加 `try`
+  （与 `pynq-overlay-development/references/interrupts.md` §3 同一口径）。
 
 存在性一律不能凭静态扫描断言 —— 上面 `MMIO.write` 就是运行时绑定的例子。板端现场采集与签名导出，
 用只读命令现采：`python3 -c "import pynq; print(pynq.__version__, pynq.__file__)"`、
@@ -191,8 +228,13 @@ print(buf.dtype, buf.shape, hex(buf.physical_address))
 
 ## 6. Overlay 与位流必须配套
 
-`.bit` 与它的元数据（`.hwh`/`.xsa`/`.tcl`/`.dtbo`）必须同一次导出的同一版；混版会报 `KeyError`、
-找不到 IP 实例、地址对不上，或者更糟——加载成功但映射来自上一版。检查方法：整组放在一起并落一次
+`.bit` 与它的元数据（`.hwh`/`.xsa`/`.tcl`/`.dtbo`）必须同一次导出的同一版；混版**不一定报"版本不匹配"**，
+而是按你走哪条访问口分三种错（先分流再动手，否则三条都会把你指向"重新导出"）：
+`getattr(overlay, 名字)` 报 `AttributeError("Could not find IP or hierarchy <名字> in overlay")`、
+位流根本不在板上时同一句报 `RuntimeError("Overlay not currently loaded")`、
+只有你自己写 `ip_dict[名字]` 才是 `KeyError`——三条的出处与逐字文本在
+`pynq-overlay-development/references/overlay-metadata.md` §3.1。或者更糟——加载成功但映射来自上一版。
+检查方法：整组放在一起并落一次
 哈希（`md5sum design_1.bit design_1.hwh > board/fp.txt`），
 换位流就整组换、整组重记。
 
@@ -201,7 +243,13 @@ PYNQ 把叠加按 `.dtbo` 的**基名**登记进
 `/sys/kernel/config/device-tree/overlays/<基名>`，每次加载都是先 `remove()` 再 `insert()`
 （`pynq-3.1.2`/`pynq-4.0.0` 的 `pl_server/device.py:363-368` 逐字节相同）。所以
 `overlays/a/design_1.dtbo` 与 `overlays/b/design_1.dtbo` 共用同一个条目——加载 B 会把 A 的中断/UIO
-节点静默摘掉，A 的位流却可能还配在 PL 里。症状是"上一个 overlay 的中断突然不来"，而不是任何报错。
+节点摘掉，A 的位流却可能还配在 PL 里。**"这一路不会报错"是错的**：`insert()` 写完自己会做两次检查
+（读回 `dtbo` 比对 + 问 `status`），任一不过就抛
+`RuntimeError("Device tree {} cannot be applied")`（3.x `devicetree.py:109-120`，2.5.1 是
+`subprocess` 那套、比较式在 `:115-118`）；`remove()` 是**没有 `try` 的裸 `os.rmdir`**
+（`:122-127`），目录还被内核占着时这里就抛 `OSError`。
+**"摘掉之后上一个 overlay 的中断突然不来"这一句是本包的机理推断、没有板端读数**（没有板子），
+要它在板上成为读数：加载 B 之前后各读一次 `/proc/interrupts` 与 `/sys/class/uio`，把两次名单放在一起。
 两个 overlay 要想共存，`.dtbo` 基名必须不同（顺带 `.bit` 也各自同名同批最省事）。
 判据与非破坏性检查在 `pynq-overlay-development/references/overlay-metadata.md` §1。
 
@@ -223,7 +271,11 @@ PYNQ 把叠加按 `.dtbo` 的**基名**登记进
 `pynq-overlay-development` 的 `SKILL.md`「十一条硬规则」与
 `pynq-overlay-development/references/debug-triage.md` §1。这里只留一条 Zynq 专属的后果：
 
-- `DMA.transfer()` 不抛异常通常只到"描述符入队"；`ip_dict` 里有这个地址只到"元数据解析到了"。
+- `DMA.transfer()` 不抛异常**不等于搬完了**，而且**两条通道的"不抛"含义不同**：SDMA 那一支
+  `transfer()` 直接把 `0x18`/`0x1C`/`0x28` 写进寄存器就返回（4.0.0 `lib/dma.py:156-162`，
+  **没有描述符可言**）；SG 那一支 `transfer()` 末尾就调了 `self.start()`（`:446`）并写 TAILDESC
+  （`:461-468`，注释原文 "triggers the descriptor fetches"）——**所以 SG 不透明知"引擎有没有开始搬"，
+  只说明请求已提交**。`ip_dict` 里有这个地址只到"元数据解析到了"。
   这两条**都不算**"位流是这一版"或"那一路时钟活着"——后者要设计里预留的读回口（§6 与 `board-bringup.md` §1）。
 
 ## 8. 现象分诊：位置偏 ≠ 颜色偏
