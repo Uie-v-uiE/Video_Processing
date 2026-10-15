@@ -577,8 +577,10 @@ write_hw_ila_data        ;# ⑦ 落盘（.ila/.csv/.vcd）
 ⇒ 一局里三件事顺手被改掉：①② 属于"空集合 + 日志一条告警"那一族，**不是** 44-235；⑥ 的 msg 又是
 `17-39` 包装（本页"catch 抓到的 msg 只有一条包装"那条的第二次命中）；⑦ 在 `open_hw_manager` 之后
 **必填参数缺失离线就判得掉**（见下一条）。附带一条：`connect_hw_server` 在 `open_hw_manager` 之后给
-**rc=0 与 `localhost:3121`**（`open_hw_manager` 自己就把 hw_server 拉起来了，日志里
-`INFO: [Labtools 27-2222] Launching hw_server...`），而紧接着 `open_hw_target` 仍报
+**rc=0 与 `localhost:3121`**，而**把 hw_server 拉起来的就是这一步自己**（日志里
+`INFO: [Labtools 27-2285]` 与 `INFO: [Labtools 27-2222] Launching hw_server...` 两行紧跟在
+`connect_hw_server` 的命令回显之后；`open_hw_manager` 那一步只打出它自己的 `Time (s)` 行——先前这里写成
+"`open_hw_manager` 自己拉起"，是归属写错，已收回），而紧接着 `open_hw_target` 仍报
 `[Labtoolstcl 44-469] There is no current hw_target.`——**"连上了"不代表链路上有东西**。
 所以第一次连上板子时要逐个跑一遍这七步，再固化进脚本；顺序按帮助文本排，别按"哪步离线红过"排。
 落盘是 `write_hw_ila_data`。本机 `-help` 的语法行是

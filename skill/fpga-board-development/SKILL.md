@@ -331,9 +331,10 @@ WARNING 为什么不进 `catch` 的 msg、以及各层清单项数怎么取，�
   这条口径的出处与未测声明在 `references/onchip-debug.md` §1 末段与 `references/board-bringup.md` §7
   第 5 条。串口同理按独占处理：抢不到先列出现存占用者（另一个 Vivado、hw_server 的另一个会话、
   Vitis/xsdb），不要靠反复重连试探。
-  相关的一条**本机读数**：`open_hw_manager` 自己就会拉起 hw_server（日志
-  `INFO: [Labtools 27-2222] Launching hw_server...`），随后 `connect_hw_server` 在**没有任何板子**的
-  这台机器上给 **rc=0 与 `localhost:3121`**，报错的是下一步 `open_hw_target`
+  相关的一条**本机读数**：`connect_hw_server` 在**没有任何板子**的这台机器上给 **rc=0 与
+  `localhost:3121`**，而拉起服务的正是这一步（日志里 `INFO: [Labtools 27-2285]` 与
+  `INFO: [Labtools 27-2222] Launching hw_server...` 紧跟在 `connect_hw_server` 的回显之后，
+  不在 `open_hw_manager` 之后），报错的是下一步 `open_hw_target`
   （`[Labtoolstcl 44-469] There is no current hw_target.`）⇒ **"连上了"不等于链路上有东西**，
   判"有没有 target"要读到 `open_hw_target` 那一层，别拿 `connect_hw_server` 的 0 当依据。
 - 插调试核（ILA/VIO）是一次**网表变更**，插完之后构建要重跑一遍才算数：**"走 IP 那条配置流程要重新

@@ -419,7 +419,8 @@ print("ip_dict now says:", hex(PL.ip_dict["axi_dma_0"]["phys_addr"]))
   `_IPMap.__getattr__`（`:791-794`）在下一次属性访问时**新建**一个驱动对象并 `setattr` 缓存它——
   新对象的 `pr_loaded` 是空串，门直接挡住。所以：
   (甲) `Overlay.download()`（全位流那条，`:402-433`）**不含** `remove_dtbo()`（全树 `grep -rn remove_dtbo`
-  只有四处：`bitstream.py:174` 定义、`overlay.py:396` 在 `free()` 里且有 `if self.dtbo:` 门、
+  只有四处：`bitstream.py:174` 定义、`overlay.py:395-396` 在 `free()` 里（`:395` 是 `if self.dtbo:` 那道门，
+  `:396` 才是调用）、
   `overlay.py:965` 在层次 `download()` 里、`pl.py:301` 委托），走它不会崩在这里；
   (乙) 之后再 `ol.pr_download(...)` 也不会——拿到的是新建的层次对象；
   (丙) **真正会崩的是这一条**：你在换代**之前**把句柄攥在了手里

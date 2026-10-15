@@ -221,7 +221,9 @@ WARNING: -padimageheader was requested, but no images were specified.
 1. **"连上了"不是"接上板了"**（本机没有板，这条是把整步的判据重排过）：
    `open_hw_manager` **rc=0**，`connect_hw_server` 也 **rc=0**、交回的是 `localhost:3121`，
    日志里还有一条 `INFO: [Labtools 27-2222] Launching hw_server...`——
-   **它自己会把服务拉起来**，所以"连不上先确认服务在不在"这个顺序在这版上不成立：
+   **把服务拉起来的是 `connect_hw_server` 那一步，不是 `open_hw_manager`**（本机 2026-10-15 的臂里，
+   `27-2285` 与 `27-2222` 两行紧跟在 `connect_hw_server` 的命令回显之后；`open_hw_manager` 那一步只打出
+   自己的 `Time (s)` 行），所以"连不上先确认服务在不在"这个顺序在这版上不成立：
    三步全绿而一块板都没接。真正的门是下一条读数：
    `get_hw_devices` 在这里交回 **0 个** +
    `WARNING: [Labtoolstcl 44-128] No matching hw_devices were found.`。
