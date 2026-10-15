@@ -102,8 +102,25 @@ get_ports -quiet cfg_strobe               ;# 空集合同样说明问题
 `expr $pcw/1` 的 `invalid bareword "PCW_"`、一句读没赋值的 `$wv2` 的 `can't read "wv2"`、
 一句对空集合的 `current_bd_design`，每次都把**那一行之后所有读数**整段抹掉，日志里只剩前半截；
 包了 `catch` 的那些步则一条不丢。见 `onchip-debug.md` §2 那条 `17-55`）。
-另有一个编号 `[Common 17-423] (property list) would need more arguments...`，
-本机是在"属性表达式没给对象"那种写法上取到的；**同一句问法换 run 对象又是第四个编号**
+**先前这里写"另有一个编号 `[Common 17-423] (property list) would need more arguments...`，
+本机是在'属性表达式没给对象'那种写法上取到的"——这一条本机重做之后 11 个写法都取不到，收回**
+（`%TEMP%\pr423b`：`set_property {MARK_DEBUG} [get_nets -quiet NOPE]`、
+`set_property [list MARK_DEBUG] […]`、`set_property {MARK_DEBUG 1} {}`、
+`set_property {MARK_DEBUG 1}`（少值）、`get_property {NAME}`（少对象）、
+`set_property IS_ENABLED {} [get_runs -quiet NOPE]`、`list_property [get_nets -quiet NOPE] USED_IN`、
+`report_property [list]` 等，交回的是 `17-163`/`17-161`/`17-56`/`17-58` 四条编号，
+**`grep -c 17-423` 在那份会话输出里是 0**（11 臂的输出里逐条数：`17-163` 命中 **7** 行、
+`17-161` **1**、`17-56` **1**、`17-58` **1**、`17-423` **0**）。
+这一族**实际会出现**的编号与形状是：
+`[Common 17-163] Missing value for option 'objects'|'value'|'object', please type '<命令> -help' …`
+（少给哪一侧就说哪一侧，**这是 rc=1**）、
+`[Common 17-161] Invalid option value '' specified for 'objects'.`（给了空集合）、
+`[Common 17-56] 'list_property'/'report_property' expects exactly one object got '0'.`、
+`[Common 17-58] '' is not a valid first class Tcl object.`。
+**还有一格是静默通过的**：`get_property {NAME NAME} [current_design]`（属性名写重复了两遍）
+本机 **rc=0、交回空串、无消息**——**属性位置写成一个列表时工具不报错**，
+所以"属性名对不对"这件事在这里也只能靠 `list_property` 或读回一个**已知有值**的属性来验。
+**同一句问法换 run 对象又是另一个编号**
 （`list_property [get_runs -quiet 不存在的名字]` → `[Common 17-58] '' is not a valid first class
 Tcl object.`——**引号后面没有逗号**：本机第一版探针把消息 `split` 之后用 `,` join 打印，
 于是抄出一个工具从没打过的逗号。**抄日志文本之前先确认它是整行打印还是被拆过**。
@@ -120,10 +137,39 @@ CRITICAL WARNING: [Vivado 12-4739] create_generated_clock:No valid object(s) fou
                   '-source [get_pins u_mmcm/CLKIN1]'. [.../top.xdc:4]
 ```
 
-**但"找不到对象"的文案不止这一种**：同一版本本机也拿到过 `WARNING: [Vivado 12-481] No ports matched
-'...'` 与 `[Vivado 12-584] No ports matched ...`（同页 §7 就有两条是这种形状），调试端口那一族更是
+**但"找不到对象"的文案不止这一种**：`WARNING: [Vivado 12-584] No ports matched '...'`
+本机**现在有一臂能自己复现**（不是引用别人，且每条都按批处理的回显行做了归属——
+`-mode batch` 会先打印 `# <这一条命令>` 再执行，所以"消息挨着哪条命令"在这份日志里是可用的，
+**前提是你在 `catch` 之外不再自己加 `puts`**，见 `board-bringup.md` §1 那条反例）。
+一份 `link_design` 之后的四输入小设计，`get_ports *` 交出 `clk d[0] d[1] d[2] d[3] q[0] q[1] q[2] q[3] rst`，
+逐臂是：
+
+| 这一臂 | 日志里 | `catch` 交回 |
+|---|---|---|
+| `get_ports NOPE` | `WARNING: [Vivado 12-584] No ports matched 'NOPE'.` | **rc=0、msg 空** |
+| `get_ports -quiet NOPE` | **什么都没有**（`-quiet` 把这条吞了） | rc=0、msg 空 |
+| `llength [get_ports -quiet NOPE]` | 什么都没有 | rc=0、msg `0` |
+| `get_cells NOPE_CELL` | `WARNING: [Vivado 12-180] No cells matched 'NOPE_CELL'.`（**cells 是 `12-180`，不是 `12-584`**） | rc=0、msg 空 |
+| `set_property PULLDOWN true [get_ports NOPE_PORT2]` | 先 `12-584`，再 | **rc=1 + `[Common 17-55] 'set_property' expects at least one object.`** |
+| `set_false_path -from [get_ports NOPE_PORT]` | 先 `12-584`，再 | **rc=1 + `[Vivado 12-4739] set_false_path:No valid object(s) found for '-from [get_ports NOPE_PORT]'.`** |
+
+**两件事从这里掉出来**：① **同一个"对象为空"，取对象那一步静默、用对象那一步抛**——
+所以判据必须落在"自己数命中集合"，而不是"这条约束命令有没有报错"；
+② **加 `-quiet` 之后连那条 WARNING 都没有了**，也就是"用了 `-quiet` 的约束文件里有一条指错对象"
+这件事**在日志里不留任何痕迹**（本机表里第 2、3 行就是证据）——
+`-quiet` 的代价不是"少一行噪音"，是**少掉这一族唯一的线索**。
+`[Vivado 12-481] No ports matched ...` 是**另一臂的读数**（本机这一臂没取到，
+复核那一路也没能从 XDC 里触发），按"某一次观察"引用，不要当这一族的固定文案。
+调试端口那一族更是
 `WARNING: [Vivado 12-1423] ...` **配一个返回 0**——所以某些资料里的 `No ports matched` 并不是"没这回事"，
-只是**这一条约束**在这一次用的说法。更值得记住的是同一次运行里，这三条 CRITICAL WARNING 在日志
+只是**这一条约束**在这一次用的说法。
+**还有一条更贴近交付的形状**：把上面两句错约束写进 `.xdc` 用 `read_xdc $R/c.xdc` 读进来，
+**`read_xdc` 交回 rc=0、返回值就是那个文件路径**，日志里则是
+`WARNING: [Vivado 12-584] No ports matched 'NOPE_PORT'. [.../c.xdc:2]` 与
+`... 'NOPE_PORT2'. [.../c.xdc:3]`——**带 `文件:行号` 后缀**，
+所以"约束文件里哪一条没命中"这一问在 XDC 路线上是有现成答案的：**grep `12-584` 拿那个 `:行号`**，
+但**绝不能拿 `read_xdc` 的返回码当"约束都命中了"**。
+更值得记住的是同一次运行里，这三条 CRITICAL WARNING 在日志
 第 53/56/60 行，而第 214 行照样印：
 
 ```
