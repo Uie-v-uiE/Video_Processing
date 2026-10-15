@@ -321,6 +321,23 @@ xsim sim_net -R
       `<top>_time_impl.sdf`（本机 25079 字节）、`compile.bat`/`elaborate.bat`/`simulate.bat`、
       `<top>.tcl`、`xsim.ini`。`-type functional` 那一臂的目录是 **`impl/func`（不是 `impl/functional`）**、
       网表叫 `<top>_func_impl.v`，里面 `sdf_annotate` 计数 **0**、也没有 `.sdf` 文件。
+      **不带 `-scripts_only` 的那一臂也跑通了**（"工程流真跑"就是这条）：先
+      `set_property top <testbench 名> [get_filesets sim_1]`（`get_property top [get_filesets sim_1]`
+      默认是**空串**，这一格没人替你填），再 `launch_simulation -mode post-implementation -type timing`
+      → rc=0，它**自己把 compile / elaborate / simulate 三段都跑掉**，同一目录里留下
+      `compile.log`、`elaborate.log`、`simulate.log` 与快照 `xsim.dir/<top>_time_impl/`。
+      少了那道 top 设置就是硬失败：`ERROR: [Common 17-70] Application Exception: Top module not set
+      for fileset 'sim_1' …`、rc=1，而且 **`.sim/` 下面一个目录都不建**（`glob <prj>.sim/*/*` 取回空）——
+      "没产物"在这里不等于"跑到一半坏了"。
+      `elaborate.log` 第 4 行是工具自己拼的那条 `xelab`（本机含 `--incr --debug typical --relax --mt 2
+      --maxdelay -L xil_defaultlib -L simprims_ver -L secureip --snapshot <top>_time_impl
+      -transport_int_delays -pulse_r 0 …`，结尾是 `xil_defaultlib.<top> xil_defaultlib.glbl`），
+      第 11/12 行就是下面那对 43-3451/43-3452。
+      **顺手钉一条命令面**：这种批处理会话里没有 `run_sim`、`run_simulation`（**在 `launch_simulation`
+      成功之后仍然** `invalid command name`），`open_sim` 在加载之前测也是 `invalid command name`；
+      但 `close_sim` 真能调（rc=0）——而同一个会话早期 `info commands close_sim` 交出的是**空**。
+      这是"`info commands` 的 0 不能当否定证据"的又一个实例，而且方向与惰性加载那条例子相反
+      （先是看不见、后来能调）。
       关键形状：**`xelab` 那一行里没有 `--sdfmax`**，SDF 是内嵌在网表里带进去的——
       `$sdf_annotate("tb_gsr_time_impl.sdf",,,,"tool_control");`：
       **文件名是相对的**（所以只能在生成目录里跑）、第 3、4 个实参留空、第 5 个是字面量 `tool_control`。
