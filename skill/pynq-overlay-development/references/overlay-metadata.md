@@ -4,7 +4,7 @@
 
 | 件 | 作用 | 漂了的后果 |
 |---|---|---|
-| `.bit`（全）/ `.bin`（部分） | 配置 PL | 与元数据不同批 → 地址打到别的从设备，读回像"随机数" |
+| `.bit`（全）/ `.bin`（部分） | 配置 PL | 与元数据不同批 → 地址会打到别的从设备；**读到什么需板端**（本机没有读数，"像随机数"只是这种坏法的一种可能形状） |
 | `.hwh` / `.xsa` | IP 实例名、`phys_addr`、`addr_range`、寄存器与中断信息 | 地址与实例名来自上一版 → `KeyError` 或写飞 |
 | 解析后的视图（`ol.ip_dict` 等） | Python 侧看到的那一份：构造时从 `self.device.parser` 深拷贝进来（4.0.0 `overlay.py:324` 与 `:331`；3.1.2 同两句在 `:323` 与 `:330`） | 视图与这批 `.hwh/.xsa` 不一致 → 名字或地址对不上。**判据**：把要用的实例名与 `phys_addr` 从 `ol.ip_dict` 里打出来，与 Vivado Address Editor 那一行逐字比，别比"我记得叫什么" |
 | `.dtbo` | 设备树 fragment（中断、UIO 绑定等） | 没有/不匹配 → 没有 `/dev/uio*`，`Interrupt` 起不来 |
@@ -32,7 +32,7 @@ print("dtbo =", ol.dtbo, "存在吗 =", bool(ol.dtbo and os.path.exists(ol.dtbo)
 
 要把"设备树到底进没进去"变成**非破坏性**的判据，问板子的口子就是驱动自己用的那一个。
 `SYSTEM_DEVICE_TREE_PATH = '/sys/kernel/config/device-tree/overlays'`，每个叠加是它下面的一个目录，目录名就是 `.dtbo` 的**基名**
-（`get_dtbo_base_name` 的实现是 `dtbo_path.split('/')[-1].split('.')[0]`——**在第一个点就截断**，`devicetree.py:44-48`；所以不止 `a.dtbo` 与 `a.bak.dtbo` 会撞同一个键，任何多点名字都归到第一段。「先 `.remove()` 再 `.insert()`」那两步在 `pl_server/device.py:363-368`，不在 `devicetree.py`），目录里有两个文件：
+（`get_dtbo_base_name` 的实现是 `dtbo_path.split('/')[-1].split('.')[0]`——**在第一个点就截断**，实现那一行是 `devicetree.py:48`，`44-47` 是 docstring 的 Returns 段；所以不止 `a.dtbo` 与 `a.bak.dtbo` 会撞同一个键，任何多点名字都归到第一段。「先 `.remove()` 再 `.insert()`」那两步在 `pl_server/device.py:363-368`，不在 `devicetree.py`），目录里有两个文件：
 
 ```bash
 ls /sys/kernel/config/device-tree/overlays/    # 期望看到 design_1（= .dtbo 基名）
@@ -57,8 +57,13 @@ A 的位流可能还配在 PL 里，但它的中断/UIO 节点已经没了。反
 **真正"按基名删 + 从字典里 del"的那两行在 4.0.0 的 `pl_server/device.py:379-381`**
 （3.0.1/3.1.2 同处同一对行）。
 2.5.1 里 `pl_server/device.py:405` 只是把请求发给 PL server 进程的包装，删的动作在 server 一侧：
-`pl_server/server.py:452` 起、`pl_server/server.py:462` 取基名（这两格**射程外**——`server.py` 只存在于
-2.5.1 那棵副本，本包判定用的 3.1/4.0 副本里没有），
+2.5.1 的 `pl_server/server.py:452` 起、2.5.1 `pl_server/server.py:462` 取基名。
+**2.7.0 同一对是 2.7.0 `pl_server/server.py:453` 与 2.7.0 `pl_server/server.py:463`**（两版只差一行）。
+这两格对本包判定用的 3.1/4.0 副本**射程外**——`server.py` 只在 **2.5.1 与 2.7.0** 两棵里有
+（`ls pynq-3.0.1/pynq/pl_server` 就没有它；先前这里写"只存在于 2.5.1 那棵"是数漏了 2.7.0，已改）。
+形状也不一样，别照着抄：2.7.0 `pl_server/server.py:453` 那一行原样是 `def remove_device_tree(cls, abs_dtbo)`
+（`@classmethod`），而 4.0.0 `pl_server/device.py:370` 是实例方法 `def remove_device_tree(self, abs_dtbo)`、
+动作在 4.0.0 `pl_server/device.py:379-381`；3.1.2 的同一对是 3.1.2 `pl_server/device.py:370` 与 3.1.2 `:379-381`。
 所以**释放 A 会把 B 的设备树摘掉**。
 两个 overlay 的 `.dtbo` 因此必须**基名互不相同**——注意这与本节开头那条不是一回事：
 "各自跟自己的 `.bit` 同名同批"是**配套**要求（谁与谁必须同一批导出），它**不区分**两个 overlay；
@@ -117,7 +122,7 @@ print("dtbo =", ol.dtbo, "| loaded =", ol.is_loaded())
 - **驱动退回（`DefaultIP`）不会把 `register_map` 变空**——`DefaultIP` 自己就带这个 property，
   寄存器表在就照样给得出。驱动退回丢的是**驱动类那一层的 API**（DMA 的 `start()`/通道那些名字）。
 
-`_assign_drivers`（4.0.0 `overlay.py:46-80`、3.1.2 `:45-81`）的逻辑是：`type` 完全命中 `bindto` → 用该驱动；只差版本号且
+`_assign_drivers`（4.0.0 `overlay.py:46-82`、3.1.2 `overlay.py:45-81`；**闭区间要到 82/81**，因为"完全没命中→`DefaultIP`"那一句正是最后两行 `:81-82`／`:80-81`，把它截在外面会让读者以为兜底不在函数里）的逻辑是：`type` 完全命中 `bindto` → 用该驱动；只差版本号且
 `ignore_version=False` → 打一条 `UserWarning`
 `"IP {fullpath} is of type {type} and driver found for [{其他版本}]. Use ignore_version=True to use
 this driver."` 然后 **`driver = DefaultIP`**；`ignore_version=True` → 用那个近似版本的驱动。
@@ -140,8 +145,8 @@ print(ol.ip_dict['axi_dma_0']['type'])    # 与 bindto 逐字符比
 | `ol.ip_dict` / `hierarchy_dict` / `gpio_dict` | **有值**（来自 `self.device.parser`） | `:324`、`:326-331` |
 | `ol.interrupt_pins` / `PL.interrupt_pins` | 同上，有值（但它是**这张表**，不代表中断已经接通） | 同上 |
 | `getattr(ol, 'my_ip_0')`、`ol.my_ip_0`、`ol.<任何IP>` | **`RuntimeError("Overlay not currently loaded")`** —— `Overlay.__getattr__` 先问 `is_loaded()` | `:364-372` |
-| `ol.register_map` / `ip.*` | 拿不到（上一条门挡在前面） | 同上 |
-| 手写 `MMIO(base, len)` 打寄存器 | 对象能建，但 PL 没配置：读回恒 0，或者**这一笔把 CPU 卡住** | 见 `mmio-registers.md` §4 与 `debug-triage.md` §2 树 A |
+| `ol.register_map` | `download=False` 时被上一条门挡住；**但下载之后它也不会"就有了"**：`Overlay` 上从来没有 `register_map`（每版只有一处 `def register_map`，在 `DefaultIP` 里，4.0.0 `:735`），`getattr(self._ip_map, key)`（`:369-370`）落到分支之外抛 `AttributeError: Could not find IP or hierarchy register_map in overlay`（4.0.0 `:828-831`）。要 register_map 只能 `getattr(ol, <IP名>).register_map` | 同上 |
+| 手写 `MMIO(base, len)` 打寄存器 | 对象能建（**这条是源码级事实**）；PL 没配置时读回什么、会不会把这笔访问挂住，**都属机理/需板端，本机无读数** | 见 `mmio-registers.md` §4 与 `debug-triage.md` §2 树 A |
 | `ol.dtbo` | 仍是构造时算出来的那个值（与是否下载无关） | `bitstream.py:135-143` |
 
 用法上就一句话：**`download=False` 是"先问我这版元数据里有什么"的口，不是"安全的只读探测"口**；
@@ -397,7 +402,8 @@ print("ip_dict now says:", hex(PL.ip_dict["axi_dma_0"]["phys_addr"]))
   3.0.1 `:1126-1129`），而换缓存那句 `_ip_map = _IPMap(description)`（`:989`/3.1.2 `:992`）排在它后面。
   三条后果：① `program=False` 是"**只看元数据、不动 PL**"的合法走法，与本包一贯的"先读再写"一致；
   ② 但它照样把 `pr_loaded` 推进到那个从未生效的 partial，于是 Python 侧认为已经下过了，
-  下一次 `download()` 会先对那个位流做 `remove_dtbo()`（`:964-965`）——
+  **同一个层次句柄**上的下一次 `download()` 会先对那个位流做 `remove_dtbo()`（`:964-965`；
+  "同一个句柄"这个限定是关键，见下面那三条臂）——
   **这一条本机沿调用链走到底了，结论比"会做一次 remove_dtbo"更硬**：
   `insert_dtbo()` 那一步是 `if dtbo:` 门控的（`:969`），**`remove_dtbo()` 只看 `self.pr_loaded`**，
   而 `bitstream.py:174-183` 的 `remove_dtbo()` 是 `self.device.remove_device_tree(self.dtbo)`，
@@ -407,9 +413,24 @@ print("ip_dict now says:", hex(PL.ip_dict["axi_dma_0"]["phys_addr"]))
   （`devicetree.py:31` 的 `get_dtbo_base_name`）：传 `None` 得到
   **`AttributeError: 'NoneType' object has no attribute 'split'`**，
   同一次运行里传 `/lib/firmware/name2.dtbo` 正常返回 `name2`（正向对照）。
-  **所以 `pr_download(..., dtbo=None, program=False)` 之后再走一次普通 `download()`
-  会在那一步抛 `AttributeError`**——这不是"元数据没生效"那么温和，是一次崩在库内部；
-  走法要么一直带 `dtbo`，要么这条之后别再调 `download()`（先 `del`/重开解释器再加载）。
+  **但这条崩法能走到的路比先前写的窄，那句"之后再走一次普通 `download()` 就会崩"收回**：
+  `:964` 那道门读的是**实例自己**的 `self.pr_loaded`（`__init__` 在 `:929` 置空串），
+  而 `download()` 的**最后一行**（`:989`）已经把 `self._overlay._ip_map` 整个换成新的 `_IPMap`，
+  `_IPMap.__getattr__`（`:791-794`）在下一次属性访问时**新建**一个驱动对象并 `setattr` 缓存它——
+  新对象的 `pr_loaded` 是空串，门直接挡住。所以：
+  (甲) `Overlay.download()`（全位流那条，`:402-433`）**不含** `remove_dtbo()`（全树 `grep -rn remove_dtbo`
+  只有四处：`bitstream.py:174` 定义、`overlay.py:396` 在 `free()` 里且有 `if self.dtbo:` 门、
+  `overlay.py:965` 在层次 `download()` 里、`pl.py:301` 委托），走它不会崩在这里；
+  (乙) 之后再 `ol.pr_download(...)` 也不会——拿到的是新建的层次对象；
+  (丙) **真正会崩的是这一条**：你在换代**之前**把句柄攥在了手里
+  （`hr = getattr(ol, "<层名>")` 或 `ol.hierarchy_dict` 里取出来的那个），
+  `pr_download(..., dtbo=None, program=False)` 把**它**的 `pr_loaded` 推进了，
+  随后你再对**同一个 `hr`** 调一次 `hr.download(...)` → `:964` 成立 → `remove_dtbo()` 拿到
+  `dtbo=None` → `AttributeError: 'NoneType' object has no attribute 'split'`。
+  所以写法上的规矩是两条，不是一条：**要么每次都用 `ol.<层名>` 现取（别缓存层次句柄跨下载用），
+  要么一直带上 `dtbo`**；`program=False` 的真实代价不是"下一次下载会炸"，
+  而是**它照样把 PL 侧的元数据与 `_ip_map` 整体换代了一遍**（`:989`），
+  你手里所有旧句柄从这一刻起都不再是属性查找会返回的那个对象。
   ③ **2.5.1 与 2.7.0 没有这个参数**（`_load_bitstream(self, bitfile_name)`，2.5.1 `:1047`、
   2.7.0 `:1086`），把带 `program=` 的写法抄到那两版会 `TypeError`。
 - **"只有那一块被重配"怎么证明**：这是**设计侧的预留要求**，不是运行时能补出来的读数。

@@ -28,9 +28,11 @@ check_timing             ;# 重点看 no_clock、unmatched、no_input_pause 这�
 ```
 
 **MMCM/PLL 输出脚上的时钟，工具一般已经从时钟网络自己推导出来了**——**这半句本机现在有读数了**
-（一份只例化 `MMCME2_BASE` 原语、两路输出各带一级寄存器的设计，
-**只写了一条 `create_clock -name clk_in -period 10.000 [get_ports clk_in]`，
-没有写任何 `create_generated_clock`**）：`get_clocks *` 交回
+（一份只例化 `MMCME2_BASE` 原语、两路输出各带一级寄存器的设计，原语参数是
+`.BANDWIDTH("OPTIMIZED") .CLKFBOUT_MULT_F(8.0) .CLKIN1_PERIOD(10.0) .DIVCLK_DIVIDE(1)
+.CLKOUT0_DIVIDE_F(8.0) .CLKOUT1_DIVIDE(16)`，**没有写 `CLKOUT1_PHASE`**；
+**XDC 侧只有一条 `create_clock -name clk_in -period 10.000 [get_ports clk_in]`，
+没有任何 `create_generated_clock`**）：`get_clocks *` 交回
 `clk_in clk_fb clk0 clk90` 四条，`report_clocks` 的表体是
 
 ```
@@ -43,18 +45,30 @@ clk_fb  10.000      {0.000 5.000}   P,G,A       {u_mmcm/CLKFBOUT}
 
 报告自带的图例是 `P: Propagated`、`G: Generated`、**`A: Auto-derived`**（还有 `R/V/I/S` 四个）——
 **所以"这个钟是不是工具自己推出来的"有可直接读的标记：`Attributes` 里有没有 `A`**，
-不用猜，也不用数条数。派生出来的周期跟着原语参数走（这里 `CLKOUT1_DIVIDE=16` 对
-`CLKOUT0_DIVIDE_F=8.0`，于是 10.000 与 20.000 两路差一倍）。
-**两个边界**：① 这份读数用的是**裸原语**，不是 `clk_wiz`/`MMCM` IP 包装（本机没建 IP），
-IP 里那些 `PRIMITIVE`/`CLKOUTn_*` 参数最终也是落到同样的原语参数上，但
-"IP 的 GUI 选项 → 原语参数"这一层本机没有核；② **推出来的周期正确与否取决于
-`CLKIN1_PERIOD` 一类的参数**，与你在 XDC 里给的 `create_clock` 周期是两条来源——
-两者不一致时报告里会各说各话，所以判派生钟要看 `report_clocks` 的那一行，
-而不是假设"我给了输入周期，输出周期就一定对"。
+不用猜，也不用数条数。**这条判据有反向臂**：同一个 `u_mmcm/CLKOUT0` 脚上手工写
+`create_generated_clock -name gc0 -source [get_ports clk_in] -divide_by 1 [get_pins u_mmcm/CLKOUT0]`
+→ **rc=0、返回值 `gc0`、没有 collision 文本**，表里那一行变成
+`gc0 10.000 {0.000 5.000} P,G {u_mmcm/CLKOUT0}`——**手写的那条没有 `A`**，
+而 `clk90`/`clk_fb` 仍是 `P,G,A`，`clk_in` 这个主钟也还在，**唯一变化是自动派生的 `clk0` 从清单里消失了**。
+派生出来的周期跟着**你给的那条 `create_clock`** 走，不跟着原语参数走（六臂实测，都在同一份设计上改一处）：
+① `CLKIN1_PERIOD` 从 10.0 改成 **20.0** 而 XDC 仍写 10.000 → 表体与上面**逐字相同**（`clk0 10.000`、
+`clk90 20.000`），**没有一条告警**；② XDC 改成 `-period 14.000` 而原语仍是 10.0 →
+`clk_in/clk_fb/clk0` 全变 **14.000**、`clk90` 变 **28.000**；③ **完全不写 `create_clock`** →
+`get_clocks *` 是**空**（`CLKIN1_PERIOD` 建不出时钟模型）。
+**所以先前那句"推出来的周期取决于 `CLKIN1_PERIOD`，两者不一致时报告里会各说各话"收回**——
+它没有被任何一臂支持，实测是**XDC 单方面说了算、不一致时静默采用 XDC**，报告不会各说各话。
+**这条读数里唯一要小心的数值是 `Waveform`**：上面那一行 `clk90 {0.000 10.000}` 成立的条件是
+**这份设计没写 `CLKOUT1_PHASE`**；同一份设计上补 `.CLKOUT1_PHASE(90.0)` 之后，
+`clk90` 那一行变成 `20.000 {5.000 15.000} P,G,A {u_mmcm/CLKOUT1}`（周期不变、相位搬 90°）。
+**抄这张表的时候要把原语参数一起抄**，否则读者会拿一个带相位的设计去比这对波形数。
+还有一条边界：这份读数用的是**裸原语**，不是 `clk_wiz`/`MMCM` IP 包装（本机没建过 IP），
+"IP 的 GUI 选项 → 原语参数"这一层本机**没有核过**，别把它当已知。
 所以别一上来就在综合时钟管理 tile 的输出脚上手工 `create_generated_clock`——那是 UG903 不推荐的
-做法。**先前这句后面括号里写的"（会撞车，非要用得加 `-add`）"本机复现不出来，按读数改成这样**：
-在两臂都用的**全局缓冲网络**（`get_nets -hier *BUFG*` 交回的 `clk_IBUF_BUFG` 那一类，
-**注意这不是 MMCM 输出脚，本机没有 CMT 实例，所以这条只到"缓冲网络"这一层**）上写
+做法，而刚才那条手工 `create_generated_clock` 的臂给出了它的真实代价：**不是报错，是把工具自己那条 `clk0` 顶掉**（顶掉之后
+`A` 标记消失，你后续靠 `A` 判"哪些钟是自动推的"就少了一条）。**先前这句后面括号里写的
+"（会撞车，非要用得加 `-add`）"本机复现不出来，按读数改成这样**：
+在**全局缓冲网络**（`get_nets -hier *BUFG*` 交回的 `clk_IBUF_BUFG` 那一类，
+与上面那个 CMT 输出脚是**两种对象**）上写
 `create_generated_clock -name gq -source [get_ports clk] -divide_by 4 [get_nets clk_IBUF_BUFG]`：
 **rc=0、没有任何 collision 文本，返回值是 `gq`**，之后 `get_clocks *` 本机一臂给 `clk gq`
 （**主钟还在**），另一路复核在同一形状上报的是只剩 `gq`（主钟被顶掉）——
@@ -124,7 +138,7 @@ get_ports -quiet cfg_strobe               ;# 空集合同样说明问题
 `expr $pcw/1` 的 `invalid bareword "PCW_"`、一句读没赋值的 `$wv2` 的 `can't read "wv2"`、
 一句对空集合的 `current_bd_design`，每次都把**那一行之后所有读数**整段抹掉，日志里只剩前半截；
 包了 `catch` 的那些步则一条不丢。见 `onchip-debug.md` §2 那条 `17-55`）。
-**先前这里写"另有一个编号 `[Common 17-423] (property list) would need more arguments...`，
+**先前这里写"另有一个编号 `[Common 17-423] (property list) would need more arguments...`（本机没有出处，这一条收回），
 本机是在'属性表达式没给对象'那种写法上取到的"——这一条本机重做之后 11 个写法都取不到，收回**
 （`%TEMP%\pr423b`：`set_property {MARK_DEBUG} [get_nets -quiet NOPE]`、
 `set_property [list MARK_DEBUG] […]`、`set_property {MARK_DEBUG 1} {}`、
@@ -227,9 +241,15 @@ Synthesis finished with 0 errors, 0 critical warnings and 0 warnings.
   ```
 
   这里的 `<周期>` 用**目的时钟周期**（慢的那一侧），`-datapath_only` 表示只约束数据路径延迟、不牵连
-  时钟路径。**两个钟有共同来源时 `-datapath_only` 不会自己挑时钟对**：本机对同一对钟
-  取到过 `ERROR: [Constraints 18-510] A clock pair with common or internal edges must be specified
-  with the option -clock_pairs` 这条文本。**但先前这里给的补救办法是错的，现在收回**：
+  时钟路径。**先前这里写"本机对同一对钟取到过"下面这句，那句在本机没有出处、现在收回**：
+  `ERROR: [Constraints 18-510] A clock pair with common or internal edges must be specified with the option -clock_pairs`（这句没有出处，收回）
+  ——收回的理由在下一行：**现存日志里 `[Constraints 18-510]` 0 次**
+  （同一次 `grep -rhoE "\[Constraints 18-[0-9]+\]"` 交回这一族的
+  其它编号是 `18-11670`×59、`18-632`×46、`18-513`×6、`18-402`×6、`18-4644`×2、`18-1056`×1、`18-619`×1、
+  `18-1055`×1，说明这次扫描看得见这类编号），短语 "A clock pair" 也是 **0 次**；
+  而下面 ② 那一臂量到的恰恰是**同一条写法 rc=0、什么消息都不发**。
+  **所以"两个钟有共同来源时一定会撞这条错误"这句话从来没有被读数支持过**，能写的只有判据。
+  **但先前这里给的补救办法也是错的，同样收回**：
   原文写"加上 `-clock_pairs [get_clocks slow_clk] [get_clocks fast_clk]` 之后 `Requirement`
   才真的变成 40.000 ns"——**`set_max_delay` 没有 `-clock_pairs` 这个选项**：
   本机把 `set_max_delay -help` 全文取回来是 **7829 字符、里面 `clock_pairs` 出现 0 次**
@@ -569,10 +589,16 @@ report_io
    而 `get_package_pins` 这类"从器件侧列可用脚"的查询，本机在工程模式下取不到任何东西
    （三种写法都空，喂给 `get_property` 还报 `[Common 17-161] Invalid option value ''`），
    所以"哪些脚已被占用"只能从自己那几份 XDC 里数。
-   **`-quiet` 是日志卫生，不是判据保护**：空集合时不带它，命令打一条
-   `WARNING: [Vivado 12-481] No ports matched '...'` / `[Vivado 12-584] No ports matched ...`
-   **到日志**，交回来的仍是空集合（本机实测：`catch {get_pins NOPE} g` → rc=0、`llength $g`=0、
-   `string length $g`=0）。本页早前那句"`llength` 数的是那句话的词数"不成立，已按实测改。
+   **`-quiet` 是日志卫生，不是判据保护**：空集合时不带它，命令往日志里打一条
+   `WARNING: [Vivado 12-584] No ports matched 'NOPE_X'.`，交回来的仍是空集合
+   （本机实测：`catch {get_pins NOPE_X} g` → rc=0、`llength $g`=0、`string length $g`=0；
+   `create_clock`/`set_input_delay`/`set_output_delay`/`set_false_path`/`set_max_delay` 五臂与
+   `get_ports`/`get_pins` 两臂取到的**都是 `12-584`**，后面紧跟的那条 `12-4739` 才是 rc=1 的那一句）。
+   另有一种编号 `[Vivado 12-481] No ports matched ...` 在别的资料里表示同一件事，**本机没有一份日志里有它**
+   （同一批日志一起 grep：`12-584` 命中、`12-481` 0 命中，
+   正向对照就是上一行那条，所以这个 0 是"这批日志里真没有"，不是"扫描看不见"），
+   因此它只当"某一次别处的观察"引用，**别当这一族的固定文案**。
+   本页早前那句"`llength` 数的是那句话的词数"不成立，已按实测改。
    真正的污染发生在**你之后拿这份日志做文本判定时**——告警行会冒充一次命中。
    另一条相关：`report_io` 里**根本不列没有 `PACKAGE_PIN` 的端口**（本机 28 个未分配端口在报告里
    出现 0 次），所以"report_io 里找不到这个脚"推不出"这个脚不存在/没被用"，只能反过来说。
@@ -1030,13 +1056,21 @@ WNS 好看只说明**被检查的那些路径**满足要求。`report_methodolog
    (a) **先前这里写的"打开一个综合 dcp 之后再跑会得 `Methodology could not be found in the design`"收回**——
    ①② 两臂都是 rc=0；而且那句文案在本机抓到的所有日志里 `grep -rIl` **0 命中**
    （正向对照：同一条 grep 换成 `No open project` 在 `meth1/la_nochk.log` 就命中，说明这批日志查得见这类文案）。
-   (b) 两臂（③ 与"link 失败后什么都没开"的那一次）拿到的文案**只提 project**，而这一次连设计都没有——
-   **所以"该建工程"是从这条消息里读不出来的**：它既可能在说没工程，也可能在说没设计，
-   本机的两臂同时缺两者，分不开（要在工程模式里再取一次才算钉住归属，本机没做）。
-   可用的判据只有 `catch` 的 rc 与串长；真要修，先让"有开着的设计"成立。
-   (c) **`open_checkpoint` 自己就会跑一遍 methodology 并往日志里打
-   `INFO: [DRC 23-133] Running Methodology with 2 threads` 与 `report_methodology completed successfully`**——
-   这两行出现不等于**你那一次**调用成功了；只认自己 `catch` 收到的那份串。
+   (b) **`[Common 17-53]` 有两种文本，各自对应缺的那一样**（先前这里写"两臂都只提 project、
+   缺工程与缺设计分不开"，是因为**只在非工程模式下取过数**；补齐工程模式那一臂就分开了）：
+   连工程都没开 → `No open project. Please create or open a project before executing this command.`
+   （串长 **118**）；**工程开着、`close_design` 之后**再调同一条命令 →
+   `No open design. Please open an elaborated, synthesized or implemented design before executing this command.`
+   （**rc=1、串长 146**，本机与另一路复核各取一次都是 146）。
+   ⇒ 判"该补工程还是该补设计"按文本就够，不用猜；可用的机器判据仍是 `catch` 的 rc 与串长。
+   (c) **先前这里写"`open_checkpoint` 自己就会跑一遍 methodology 并打那两行"收回**——
+   同一份 post dcp 一次开、连调三次 `report_methodology -return_string`：
+   `INFO: [DRC 23-133] Running Methodology with 2 threads` 与
+   `report_methodology completed successfully` **各出现 3 次**，第一对排在
+   `open_checkpoint` 的 puts **之后**、第一次调用的回显之后，且三次 `catch` 都 rc=0、串长都是 3012
+   （`%TEMP%\meth1\k1.log`）。⇒ **那两对是"每一次成功的 report_methodology"打的，不是打开检查点打的**；
+   它们能证明"这个会话里有人成功跑过"，**不能证明"你这一次成功"**——要证自己那一次，
+   还是只认自己 `catch` 收到的 rc 与串。
    所以拿它当门之前，先确认这一次真的产出了表：判据**只认 `Checks found:` 那一行**：本机两份设计各取一次
    `report_methodology -return_string`，`Rules Checked:` **一次都没有出现**（正向对照：同一次输出里
    `Checks found: 6` / `Checks found: 11` 都在），所以先前把 `Rules Checked:` 也列为可用门字符串是错的——

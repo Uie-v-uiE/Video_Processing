@@ -9,7 +9,11 @@
 
 **一处文档与实现互相矛盾的地方，按实现走：**官方 `doc_dma.rst` 写着
 "The *DMA* class supports simple mode only."，而 `lib/dma.py` 里明明白白有
-`_SGDMAChannel`（`:202` 起，`transfer(..., cyclic=...)` 在 `:317`）并且 `DMA.set_up_tx_channel()`
+`_SGDMAChannel`（**行号按版本取，别搬**：3.1.2 与 4.0.0 是类在 `:202`、
+`transfer(..., cyclic=...)` 在 `:317`；3.0.1 是 `:199`/`:313`；2.7.0 是 `:238`/`:347`，
+而且**2.7.0 那份整个文件 `grep -c cyclic` = 0**——那一版的 SG 通道没有 cyclic 这条参数，
+所以"有没有 cyclic"本身是个版本读数，不是 IP 能力读数；本节后面凡是靠它当判据的都要先确认版本）
+并且 `DMA.set_up_tx_channel()`
 会按 `self._sg` 选择构造它。所以"SG 不支持"这句话不能作为判据——它要么是文档过期，要么指的是
 某个特定 IP 变体的支持范围。
 **但那句 `doc_dma.rst` 的引文本包取不到出处**：`.rst` 不在 sdist 里（手上那几棵发行树都没有 `doc/`），
@@ -19,7 +23,7 @@
 （本文 §1 第 2 条）、以及 `transferred` 是从寄存器读还是从描述符累加（§2）。
 
 **通道对象总是在，但可能是 `None`。** `DMA.__init__` 先 `self.sendchannel = None;
-self.recvchannel = None`（`lib/dma.py:639-641`），只有当 IP 的 `parameters` 里
+self.recvchannel = None`（`lib/dma.py:639-640`：639 是 send、640 是 recv，**641 已经是 `set_up_tx_channel()` 那一行**，别把范围拉到它），只有当 IP 的 `parameters` 里
 `c_include_mm2s` / `c_include_s2mm` 为真才去构造对应通道。所以：
 
 ```python
@@ -31,7 +35,7 @@ dma.sendchannel is None    # 这版硬件没使能 MM2S —— 不是 bug，是�
 **长度上限有两个不同的来源**，别把 `buffer_max_size` 当唯一答案：
 
 ```python
-# 源码原样（4.0.0 与 3.1.2 的 lib/dma.py 这一段逐行相同，行号 629-637）：
+# 4.0.0 与 3.1.2 的 lib/dma.py:630-637；下面把源码 631-633 的续行折成了一行、并去掉 636 的空行，
 if "c_sg_length_width" in description["parameters"]:
     self.buffer_max_size = 1 << int(description["parameters"]["c_sg_length_width"])
 else:
@@ -87,7 +91,7 @@ raise ValueError(
 所以"每块多大"这个数**不等于** `_max_size`，也**不等于** `buffer_max_size`——
 要按 `_align`（那条对齐边界见本节第 1 条）算一遍再写进记录。
 还有一条容易当成"永远跟着 IP 参数走"的：**`c_sg_length_width` 这个键不存在时，驱动退回一个
-硬编码常数** `MAX_C_SG_LENGTH_WIDTH = 26`（`lib/dma.py:11` 与 `:634-635`），于是
+硬编码常数** `MAX_C_SG_LENGTH_WIDTH = 26`（定义在 `lib/dma.py:11`；用到它的是 `:635`——**`:634` 是那句 `else:`**，把范围写成 `:634-635` 会让人以为常数出现在两处），于是
 `buffer_max_size = 2^26-1`，与你的 IP 实际能力无关。这条路径只在元数据缺键时触发，
 而元数据缺键本身就是"这批 `.hwh/.xsa` 不配套"的读数——所以别拿这个数当设计上限。
 
@@ -112,7 +116,9 @@ dma.sendchannel.wait()    # 这三行只说明签名形状；收尾别照抄，�
    ```
 
    `dre`（datawidth converter）开着时这条检查整个跳过；`align` 是**字节**数，所以 32 位宽是 4、
-   64 位宽是 8。"基址 4 对齐但报 unaligned"九成是那一路宽度是 8 或者你手写了偏移而没走切片。
+   64 位宽是 8。所以"基址看着 4 对齐却报 unaligned"有**两个能在主机上查的成因**：
+   那一路的 `_align` 其实是 8（上面那两行代码就是取它的），或你的 `start` 是手写的偏移而不是切片带出来的
+   （`_dre` 为 0 时对齐检查算的是 `physical_address + start` 整体）。第三个可能"板上另有原因"**本机无读数**，别写进结论。
 2. **长度上限只由 SDMA 检查**：`_SDMAChannel.transfer` 有
    `if nbytes > self._max_size: raise ValueError("Transfer size is {} bytes, which exceeds the
    maximum DMA buffer size {}.")`（`lib/dma.py:141-145`）。**`_SGDMAChannel.transfer` 没有这条检查**：
@@ -138,7 +144,8 @@ dma.sendchannel.wait()    # 这三行只说明签名形状；收尾别照抄，�
    `_num_descr = ceil(remain / blk_size)`（`:380`）。也就是说 **SG 的一次传输占用 =
    你的缓冲 + 描述符表**，两边都在同一块连续内存池里。
    清表这件事**在每个等待函数里都只发生在最后**（`wait()` 与 `wait_async()` 各一次，就是上面数到的
-   `:521`/`:552` 那两处。别把它说成"全文件只有一个回收点"——那和 `:85` 的"回收点只有两个"数的不是
+   `:521`/`:552` 那两处。别把它说成"全文件只有一个回收点"——那和本节**上面那句**
+   "分配点只有一个、回收点只有两个"数的不是
    同一个东西：`:85` 数的是 `_descr` 被赋值的位置，这里数的是"清表落在函数体的哪一段"）：
    `self.stop()` 之后才 `self._descr.close(); self._descr = None`（`:519-521`，
    `wait_async` 同理 `:550-552`）。前面任何一条 `raise` 都会跳过它——
@@ -147,13 +154,21 @@ dma.sendchannel.wait()    # 这三行只说明签名形状；收尾别照抄，�
    ① **cyclic 或以 `raise` 收尾的流程会挂住一张 BD 表**——但要说清量级，别把它当成"一路涨的漏"：
    下一次 `transfer()` 在 `:384` 重新绑定 `self._descr`，旧表引用计数归零后由
    `__del__ → freebuffer()`（`buffer.py:62-63`）释放，所以**每通道最多残留一张**，不是每笔累积一张。
-   一张的大小是 `_num_descr × 64 B`，而 `:376-378` 保证了至少 2 个描述符（`:375` 的注释原话是
-   "We need to always have at least two descriptors!"，`:376-378` 的做法是把 `blk_size` 折半凑够两个）——
-   所以**最小的"一块一次传完"也是 2 个描述符 = 128 B 起**；把它叫"单描述符传输"是把这个数
-   挂到了错的对象上。所以"掉了 200 MB"**不该**归因到这里，
-   这条能帮你排除它：`_num_descr × 64 B` 与观测差值差几个数量级时，去查 `buffers-and-cache.md` §2
-   的另外两种来源（远程模式、真的长生命周期引用）。
-   反过来，如果你的差值恰好是 `k × 128 B` 这种量级、且 `stop()` 之后
+   一张的大小是 `_num_descr × 64 B`。**但 `_num_descr` 不是"至少 2"**——先前这里写"保证了至少
+   2 个描述符""最小的表也是 128 B 起"，并据此说"把它叫单描述符传输是挂错对象"，**三句一起收回**：
+   `:375` 那句注释（"We need to always have at least two descriptors!"）是意图，
+   `:376-378` 的折半**只在 `blk_size > remain` 这一支执行**，所以按 `:373-380` 原式复算
+   （本机取的数：`_max_size = 2**26-1`、`_align = 4`）有三种情形都成立——
+   `nbytes == blk_size`（67108860）→ **`_num_descr = 1`，表是 64 B**；
+   `blk_size < nbytes`（`_max_size=64` 时传 65 B）→ 2 个；
+   `nbytes < 2 × _align`（传 4 或 6 个字节）→ `int(remain/2) - (int(remain/2) % _align)`
+   **归零**，`:380` 那句除法当场 `ZeroDivisionError`。
+   这最后一条是 `transfer()` **内部**的崩法，与板子、与驱动版本都无关，值得单独记住：
+   往 SG 通道上发个位数长度的缓冲不是"没搬动"，是会炸在算表这一行。
+   所以核差值要按 **64 B 的整数倍**去比，不是 128 B。
+   "掉了 200 MB"**不该**归因到这里——这条能帮你排除它：把观测差值与 `_num_descr × 64 B` 摆在同一
+   数量级上比，对不上就去看 `buffers-and-cache.md` §2 的另外两种来源（远程模式、长生命周期引用）。
+   反过来，如果你的差值恰好是 `k × 64 B` 这种量级、且 `stop()` 之后
    `dma.sendchannel._descr is not None`（`:254` 置初值、`stop()` 不清），那就是这条；
    想让还表成为确定动作：收尾时补一次**非 cyclic** 的 `transfer()` 再 `wait()`，
    或者让驱动对象离开作用域。
@@ -175,7 +190,8 @@ dma.sendchannel.wait()    # 这三行只说明签名形状；收尾别照抄，�
    3.0.1 低 32 位在 `:413`、高 32 位在 `:415`，**两半都漏加 `start`**（最坏的一档）；
    3.1.2 低 32 位在 `:417` 漏加、高 32 位 `:419` 是加的；4.0.0 两半都补上了（`:417` 起）。
    所以 SG 上**任何 `start != 0` 的传输**在 3.0.1/3.1.2 上都受影响，不只是 cyclic 模式，
-   而 3.0.1 上连"高字"都是错的（症状会更像整块地址跑到别的内存区域去）。
+   而 3.0.1 上连"高字"都是错的（**后果面是机理、需板端**：地址高低两半都偏，指向的就不是原缓冲，
+   但"跑到的地方会不会正好是别的从设备/别的数据"这一层本机没有板子，采不到）。
    对照面：SDMA 那一侧两版都正确（`:157` 与 `:160` 低字和高字都加了 `start`）。这正好给出一条
    不用仪器的差分实验——同一块缓冲、同一个 `start`，SDMA 搬对而 SG 搬错，就指到 `:417` 这一条；
    细节与两种症状的成因见 `versions-and-apis.md` §4。
@@ -251,14 +267,14 @@ SDMA（`lib/dma.py:170-181`）三条：
 | 抛出的 | DMASR 位 | 通常的真实原因 |
 |---|---|---|
 | `RuntimeError: DMA Internal Error (transfer length 0?)` | `0x10` | 给了零长度 / `nbytes` 算成 0 / 切片后 `array.nbytes - start == 0` |
-| `RuntimeError: DMA Slave Error (cannot access memory map interface)` | `0x20` | 目的/源地址上有从设备拒绝访问（缓冲区被释放后继续用、SMMU 没映射） |
+| `RuntimeError: DMA Slave Error (cannot access memory map interface)` | `0x20` | 目的/源地址上有从设备拒绝访问（缓冲区被释放后继续用；**`SMMU 没映射`这一因只在 ZynqMP/RFSoC 上有对象，Pynq-Z1/Z2 的 Zynq-7000 没有 SMMU**，别拿它解释 7020 上的这一位；两种成因都属机理、需板端） |
 | `RuntimeError: DMA Decode Error (invalid address)` | `0x40` | 地址段上根本没有从设备——**这一条最常被误读成"设计坏了"** |
 
 SG（`lib/dma.py:477-501`）**另外还有一族描述符层面的**，位是 `0x100/0x200/0x400`，措辞也不同：
 
 | 抛出的 | 位 | 含义 |
 |---|---|---|
-| `Scatter-Gather Internal Error (re-used completed descriptor)` | `0x100` | 复用了已经完成的描述符——通常是前一次没 `stop()` 就再 `transfer()` |
+| `Scatter-Gather Internal Error (re-used completed descriptor)` | `0x100` | 复用了已经完成的描述符——**机理/需板端**的一种解释是"前一次没 `stop()` 就再 `transfer()`"（源码里 `stop()` 只做 `:303-312` 那几步、`transfer()` 重新分配整张表，见本节 §1 第 4 条），这条解释没有被任何读数钉住 |
 | `Scatter-Gather Slave Error` | `0x200` | 描述符指向的**内存**访问被拒 |
 | `Scatter-Gather Decode Error (invalid descriptor address)` | `0x400` | 描述符**表本身**的地址不在段上（BD 基址/`_descr` 映射问题，不是数据缓冲区的地址问题） |
 | `RuntimeError: DMA Error in descriptor` | 由 `wait()`/`wait_async()` 抛：条件是 `if self._descr[i, 7] & 0x30000000:`（`:512-513`、`:543-544`）——**那几位被置起来才抛**，不是"完成位缺失" | 引擎在描述符上报了错：长度、启动顺序或门控没对上。**注意这条出口不会先 `stop()`**（见下面那条），读 `error`/`idle` 再决定下一步 |
@@ -368,7 +384,11 @@ def wait_with_timeout(ch, seconds):
 ## 3. 一次端到端搬运的最小正确写法
 
 **这一节是这段骨架的规范版本**；`first-bringup.md` §5 是它的镜像，**差别不止"打印哪些读数"**
-（本机把两段代码逐行 diff 过，七处不同，按出现的顺序是：
+（本机把两段代码用 `difflib.unified_diff` 逐行 diff 过：**语义上是下面这七处**，
+**行级上远不止七行**——`changed_lines=37`，其中一整块是内联注释：本节这份在 `transfer()` 两句上各带
+一条解释"谁先挂收"的话、镜像那份把它压成一条，等待提醒的注释这里是 2 行、那里是 3 行且措辞不同，
+`dst.sync_from_device()` 与 `got = np.array(dst)` 后面的注释也不同。
+**所以"按这七条对齐"只能保证语义差不丢，不会让两段收敛**，别把对齐做完当成 diff 归零：
 ① 那份不含 `from pynq import Overlay` 与 `ol = Overlay(...)`——它假定 §2 已经加载；
 ② 那份**没有 `raise SystemExit` 的通道判空守卫**，换成一句打印
 `send=/recv=…is not None`；③ `n` 是 `1024` 而不是 `1024*768`；
