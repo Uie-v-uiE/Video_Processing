@@ -152,7 +152,7 @@ AXI-Lite 那一路管寄存器，引擎那一路管搬运，它们在 BD 里是*
 所以那两版的 21/27 行里**没有 `X.baseaddr` 这种属性访问**这句成立，但**"没有 `baseaddr` 这个词"不成立**：
 按词边界数（`grep -anrw baseaddr <树>/pynq | wc -l`）是 **2.5.1=4、2.7.0=11、3.0.1=13、3.1.2=13、4.0.0=6**，
 2.5.1/2.7.0 那些行出自 **IP 驱动 C 源码里的注释**（`grep -anrw baseaddr <树>/pynq` 的第一条就是）——
-**把"属性族不在那两版"写成"这个词不在那两版"正是本段末尾要警告的那种限定错层次的全称否定，先前这里自己犯了**；剩下的命中是三样杂物：IP 驱动的 C 源码/头里的
+**把"属性族不在那两版"写成"这个词不在那两版"正是本段末尾要警告的那种限定错层次的全称否定，先前这里自己犯了**；剩下的命中主要是三样杂物（**还有第四样先前没列**：`lib/_pynq/embeddedsw/lib/bsp/standalone/src/common/intr/xinterrupt_wrap.c` 有 11 行 `baseaddress`，而这文件只在 3.0.1/3.1.2/4.0.0 存在，2.5.1/2.7.0 没有它）：IP 驱动的 C 源码/头里的
 `baseaddr_p`（`*.c`/`*.h`；那条 `grep -rn VHDL *.vhd*` 的 **0 是空扫**——五棵树里**根本没有 `.vhd` 文件**
 （`find <树>/pynq -name '*.vhd*' | wc -l` = 0），所以它既不能写成"VHDL 里也没有"，也别写成"C/VHDL"）、
 `mmio.py:15-23`（**裸号按本包规矩是 3.0.1/3.1.2/4.0.0 的**：那三版都在 `:15` 起，
@@ -184,7 +184,7 @@ print(buf.dtype, buf.shape, hex(buf.physical_address))
 **PYNQ 这一层的深度内容在 `pynq-overlay-development` 技能里**（Overlay 生命周期、MMIO 语义、
 缓冲区与 DMA、中断、取证）。这里只留与 PS/PL 协同直接相关的、已按上游 v3.1 与 v4.0.0 源码核对过的几条：
 
-- `pynq/buffer.py:138` 是 `allocate(shape, dtype="u4", target=None, **kwargs)`，**板端**返回 `PynqBuffer`
+- **4.0.0** `pynq/buffer.py:138` 是 `allocate(shape, dtype="u4", target=None, **kwargs)`（**2.5.1 的同一条在 `buffer.py:151`**；`dtype=` 后面的引号风格也变了，`physical_address` 那个 @property 在 4.0.0 是 `:90`、2.5.1 是 `:100`——裸号按本包规矩取 4.0.0，搬版本前先 `grep -n "def allocate"` 各树现取），**板端**返回 `PynqBuffer`
   （`np.ndarray` 子类，可直接当数组用）；**远程 target 走的不是这个类**——`RemoteDevice.allocate`
   造的是 `RemoteBuffer`（4.0.0 `pl_server/remote_device.py:498` → 类在 `:1058`；3.1.2 是
   `:474` → `:734`，**两份文件行数差很多，别把行号搬版本**：3.1.2 那份只有 917 行），它的 `freebuffer()`
