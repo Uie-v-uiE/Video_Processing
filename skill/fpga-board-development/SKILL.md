@@ -131,7 +131,7 @@ license: MIT
 | `set_false_path` 该管到哪、有没有顺手把数据路也豁免了 | `references/constraints-timing.md` §3 |
 | 改了这条约束，时序**最多**能好到多少？值不值得再等实现 | `references/constraints-timing.md` §5 |
 | 要一个占了多少的数：资源放不下、某个块占比离谱、分层占用怎么取、哪个阶段才给得出 | `references/constraints-timing.md` §6 |
-| 引脚电平不对、bank 电压、差分时钟输入、属性在这个脚叫什么 | `references/constraints-timing.md` §7 |
+| 引脚电平不对、bank 电压、差分时钟输入、属性在这个脚叫什么；`-delay_type min` 报告里读不到 `Requirement:` 行 | `references/constraints-timing.md` §7 |
 | XDC 层面：加了没生效/被另一条覆盖、一块工程两版板、生成约束能不能手改 | `references/constraints-timing.md` §8 |
 | 加了 multicycle / false_path / case_analysis，不确定管到东西没有 | `references/constraints-timing.md` §9 |
 | `report_methodology` / `report_drc` 一堆规则号，哪些要处理 | `references/constraints-timing.md` §10 |

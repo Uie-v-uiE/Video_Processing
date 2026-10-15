@@ -186,10 +186,28 @@ xsim sim_net -R
   报错位置在库文件里而不是你的代码里，第一次看到会误以为网表坏了——按这条对号入座。
 - 工程流程那一族的**取数状态分三条**：`launch_simulation` 本机跑过
   （`-scripts_only` 与真跑两种，functional / timing 两个臂，配方与读数在本节末尾那条"带 SDF 的时序仿真"）；
-  `compile_simlib` 只取到 `-help`（rc=0，命令在）与一次拼错选项的调用：
-  `compile_simlib -simulator xsim -library_set compiled -no_compile_unisim_ok` →
+  `compile_simlib` 取过 `-help` 的**完整选项表**（rc=0；表里打出来是 **17 行**、但 `-simulator` 占了
+  两行（一行说明、一行标 Required），**去重是 16 个选项**——这是"数行数还是数名字"的现成反面例子）。
+  16 个是 `-simulator`/`-directory`/`-family`/`-force`/`-language`/`-library`/`-print_library_info`/
+  `-simulator_exec_path`/`-gcc_exec_path`/`-source_library_path`/`-skip_libraries`/`-no_ip_compile`/
+  `-no_systemc_compile`/`-32bit`/`-quiet`/`-verbose`，其中只有 `-simulator <arg>` 标 Required。
+  也取过两次**真编译**：
+  ① `compile_simlib -simulator xsim -library_set compiled -no_compile_unisim_ok` →
   `[Common 17-170] Unknown option '-library_set'`、rc=1（**`-library_set` 不是它的选项**，
-  那种写法来自别的工具或旧版脚本；要真编库先 `-help` 把选项表现取一次）。
+  那种写法来自别的工具或旧版脚本；要真编库先把选项表取一次，就是上面那 16 个）。
+  ② `compile_simlib -simulator xsim -directory <已建好的目录>`（默认**带** IP 编译）跑到中途真红：
+  `[XSIM 43-3410] Failed to compile one of the generated C files.`，外面套的是
+  `[Common 17-39] 'compile_simlib' failed due to earlier errors.`——**这条 `17-39` 又是一层包装**，
+  真因在它上面几行：`processing_system7_v5_5/sim_tlm/xilinx-zynq.h:34:29: fatal error:
+  remote-port-tlm.h: No such file or directory`，另一处是
+  `zynq_ultra_ps_e_v3_3/sim_tlm/xilinx_zynqmp.cpp:40:20: fatal error: safeio.h: No such file or directory`。
+  这两颗头本机核过确实不在：安装树的 `data/xsim` 下 `find` 找不到 `safeio.h` 与 `remote-port-tlm.h`，
+  而生成的导出目录 `remote_port_c_v4/include` 是**空目录**（正向对照：那条 `g++` 命令行里三个 `-I`
+  指的就是这些目录，说明路径传对了、头文件没被铺出来）。日志里工具自己也给了下一步：
+  "Please recompile with `-mt off -v 1` switch to identify which design unit failed"。
+  **所以这条的读数是**：带 `sim_tlm` 那族 C 源的 IP 库编译在这台机器上不成，成不成的判据不在返回码上
+  （`17-39` 把什么都包成一句）；绕法是 `-no_ip_compile`（就在上面那张表里），
+  那一臂本机**还在跑**——它出来之前，不要把"`compile_simlib` 可用"写进任何脚本。
   **`export_simulation` 本机五次调用，前四次都红，第五次通了**，通的配方与那四条红读数一起留着——
   四条红正好各指一个前提：
   `-simulator bogus` → `[Vivado 12-23824] Invalid simulator specified 'bogus'! Please type
@@ -212,10 +230,22 @@ xsim sim_net -R
   -script_name run.sh -ip_user_files_dir <已建好> -ipstatic_source_dir <已建好> -lib_map_path <已建好>`
   → rc=0，落出 11 个文件：`<目录>/gpio0/xsim/` 下 `run.sh`、`vlog.prj`、`vhdl.prj`、`elab.opt`、
   `cmd.tcl`、`xsim.ini`、`glbl.v`、`file_info.txt`、`gpio0_sv.sveo`、两份 `README.txt`。
-  **三条要点**：① `-of_objects` 要的 composite 在这里就是一个 IP 的 `.xci`（BD 那一棵本机没通）；
+  **三条要点**：① `-of_objects` 要的 composite 在这里就是一个 IP 的 `.xci`；
   ② 那三个目录参数**都要预先 `mkdir`**，工具不会替你建，缺哪个就报哪个；
   ③ `-script_name` 必须带 `.sh`（本机 `-export_scriptset` 也不是它的选项，`17-170`）。
-  判"导出成功"就数 `<目录>/**/run.sh` 在不在，别数目录。
+  **BD 那一棵也通了**（旧版这里写的"本机没通"已作废）。要通它靠的不是换参数，而是**先让 BD 自己绿**：
+  最小可 `validate_bd_design` 的 BD 是一个 `axi_gpio` + `create_bd_port -dir I -type clk clk` +
+  `connect_bd_net [get_bd_ports clk] [get_bd_pins gpio_0/s_axi_aclk]`（配方与逐条 rc 见
+  `vivado-project-bd.md`），然后 `save_bd_design` → `generate_target all [get_files *.bd]`（rc=0，
+  这条命令确实收 `.bd` 对象）→ 用上面同一组参数 `-of_objects [get_files *.bd]` 导出，
+  本机 rc=0、落出 **13** 个文件（`<目录>/design_1/` 根下一份 `README.txt`；其 `xsim/` 下 `run.sh`/`vlog.prj`/`vhdl.prj`/`elab.opt`/`cmd.tcl`/
+  `xsim.ini`/`glbl.v`/`file_info.txt`/`design_1.bda`/`design_1_sv.sveo`/`protoinst_files/design_1.protoinst`/
+  第二份 `README.txt`，两处的 `README.txt` 各一份，加起来 13），
+  日志里那两条是 `exportsim-Tcl-35`（正在为 XSIM 导出）与 `exportsim-Tcl-40`（用已编译好的 IP 仿真库）。
+  **而成功那次 `catch` 交回来的字符串长度是 0**——所以判据不能挂在返回值上。
+  判"导出成功"**别写 `<目录>/**/run.sh`**：Tcl 8.6.13 的 `glob` 与没开 `globstar` 的 bash 都不把 `**`
+  当递归，本机同一棵树里 `**/run.sh` 命中 **0**、`*/*/run.sh` 命中 1（正向对照），
+  照 `**` 写会得到一次假失败。写死层数，或自己递归走一遍（详见 `vivado-build-run.md` §7 那条）。
   手工那条路（`write_verilog -mode funcsim` + `xvlog`/`xelab`/`xsim`）本机是跑通了的，
   配方与两臂读数也在本节末尾——所以网表仿真这件事不必等 `compile_simlib`。
 

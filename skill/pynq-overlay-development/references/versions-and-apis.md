@@ -59,11 +59,23 @@ DataRecorder, get_rails    # GPIO/Interrupt/UioController 随模式换实现；D
 
 | 现象 | 2.0 / 2.4 | 2.5.1（整树） | 2.7.0（整树） | 3.1.2 / 4.0.0 |
 |---|---|---|---|---|
-| `from pynq import Xlnk` | 有 | **有**（2.5.1 `__init__.py:32`） | 没了 | 没有。**替代品是同一格就已经存在的 `pynq.allocate`**（2.5.1 `__init__.py:45`）加上下文管理器。别指望改名就能跑：3.x/4.x 的**公开面里没有 `cma_*`**——3.1.2 只剩 `lib/logictools/trace_analyzer.py` 里的私有属性 `self._cma_array`（`:404` 等 8 处命中），4.0.0 连这个也归零；2.x 那套成员名在 2.5.1 `xlnk.py` 里逐个查得到（`cma_alloc` 2.5.1 `xlnk.py:169`、`cma_array` 2.5.1 `xlnk.py:255`、`cma_get_phy_addr` 2.5.1 `xlnk.py:300`、`cma_free` 2.5.1 `xlnk.py:367`、`cma_stats` 2.5.1 `xlnk.py:388`，五处都是该文件的 `def` 行；**每个号都要自带版本**，3.x/4.x 已经没有 `xlnk.py`，只标一次会被读成后面几条也归那两版），那是**旧版的参照**不是新版的能力 |
+| `from pynq import Xlnk` | 有 | **有**（2.5.1 `__init__.py:32`） | 没了 | 没有。**替代品是同一格就已经存在的 `pynq.allocate`**（2.5.1 `__init__.py:45` 是转发行，见下面那条注）加上下文管理器。别指望改名就能跑：3.x/4.x 的**公开面里没有 `cma_*`**——3.1.2 只剩 `lib/logictools/trace_analyzer.py` 里的私有属性 `self._cma_array`，4.0.0 连这个也归零；2.x 那套成员名在 2.5.1 `xlnk.py` 里逐个查得到（`cma_alloc` 2.5.1 `xlnk.py:169`、`cma_array` 2.5.1 `xlnk.py:255`、`cma_get_phy_addr` 2.5.1 `xlnk.py:300`、`cma_free` 2.5.1 `xlnk.py:367`、`cma_stats` 2.5.1 `xlnk.py:388`，五处都是该文件的 `def` 行；**每个号都要自带版本**，3.x/4.x 已经没有 `xlnk.py`，只标一次会被读成后面几条也归那两版），那是**旧版的参照**不是新版的能力 |
 | `Register` 从哪来 | `from .ps import Register` | 同左（2.5.1 `ps.py:34` 自己 `from .registers import Register`，所以 `pynq.ps` 里确实有这个名字） | 改成 `from .registers import Register`（2.7.0 `__init__.py:30`），`ps.py` 不再转进来 → `from pynq.ps import Register` 从这一版起 `ImportError` | 同 2.7 |
 | `Bitstream` 从哪来 | `from .pl import Bitstream` | **已经是** `from .bitstream import Bitstream`（2.5.1 `__init__.py:39`） | 同 2.5.1 | 同 2.7 |
 | `allocate` / `DeviceTreeSegment` / `Device` | 都没有 | **三者都已存在**（2.5.1 `__init__.py:45/37/46`） | 同 | 都有 |
 | `PL_SERVER_FILE` | 原文是 2.0/2.4 的 `__init__.py` 里 `from .pl import PL_SERVER_FILE`（**本包现存语料只到 2.5.1**，这一格是早先抄下的原文，现在重验不了，别当读数用） | **全名 0 命中，但这一族还在**：同前缀的 `PL_SERVER_TEMPLATE` 就在 `pl_server/server.py:47`，值 `'/tmp/pynq.{}.socket'`，`:102` 与 `:520` 用它拼 socket 路径（这三个行号出自 2.5.1 那棵树；本包判定用的副本是 3.1/4.0.0，这两格都**射程外**——要引它得回到同一版重新取行号） | 同 2.5.1：`pl_server/server.py:46` 有 `PL_SERVER_TEMPLATE`（同一句射程外声明） | **连前缀都是 0 命中**：`grep -rn "PL_SERVER"` 在 3.0.1/3.1.2/4.0.0 三棵整树里一行没有，而同一条命令在上面两棵 2.x 树里各命中数行——这就是证明"扫描看得见文件"的正向对照。所以迁移线是**先改名、后消失**，不是一步消失 |
+
+**这张表有两处按行号引用会把结论搬错，分开钉一下**：
+
+- `__init__.py:45`（2.5.1）指的是 `from .buffer import allocate` 这一行——**一条 re-export**：
+  名字确实能从这里 `from pynq import allocate` 引到，但干活的是 `buffer.py` 里的 `allocate`。
+  同表 `Register` 那格是同一个意思（2.5.1 `ps.py:34` 也是转发）——**引用能力时要引实现那一行，
+  或者两处都标出来**，只标转发行会被读成"能力在这里"。
+- "公开面里没有 `cma_*`"与"`self._cma_array` 有 8 处命中"**数的不是同一个对象**：前者是能
+  `from pynq import X` 的名字，后者是 `grep -rc 'cma_'` 的文本命中。后者本机按版本各数一次：
+  2.7.0 给 **8**、3.0.1 给 **8**、3.1.2 给 **8**（三处都只在 `lib/logictools/trace_analyzer.py` 这一个文件里）、
+  4.0.0 给 **0**。所以那 8 处**不是 3.1.2 特有的残留**，写成"只剩 3.1.2 还有"就把一次跨版本读数
+  压缩成了一版。
 
 判"这一族还有没有替代物"要**按前缀扫，不按全名**：只搜 `PL_SERVER_FILE` 得 0 只能写"这个拼法不在"，
 把它写成"这个能力没了"就把一次范围不足的扫描当成了事实。正确顺序是先 `grep -rn "<前缀>"` 拿到全部
@@ -188,11 +200,16 @@ grep -F -f must_have.txt names.txt | grep -q ' ABSENT' \
    用 `array.nbytes - start` 算（`:358`），对齐检查判的是 `physical_address + start`（`:359`）。
    而 3.1 的 SG 通道填描述符时**低 32 位漏加了 `start`**：3.1.2 `lib/dma.py:417` 是
    `(array.physical_address + i*blk_size) & 0xFFFFFFFF`，4.0.0 同一行是
-   `(array.physical_address + start + i*blk_size)`。更准确地说 3.1 交出去的是一个**混合地址**——
+   `(array.physical_address + start + i*blk_size) & 0xFFFFFFFF`（**尾巴上的掩码不要漏抄**）。更准确地说 3.1 交出去的是一个**混合地址**——
    低字用不带 `start` 的、高字 `(… + start + …) >> 32` 是带的（`:419` 两版相同）。所以当高位两边都是 0
    （低地址板的常态）时，症状是"长度对、内容从数组头开始搬、不报错"；一旦 `base+start` 跨了 4 GiB
    进位而 `base` 没跨，描述符地址就落到完全不同的区域，表现为引擎报错/DECERR 而不是静默错值。
    两种症状同一个根因，别按"哪个能复现"来判断版本。
+   **这两句"症状"是从地址算式推出来的推断，不是读数**：本机没有板、没有跑过一次真实搬运，
+   能给的只有代码层那两行（低字确实不带 `start`、高字带）。
+   还有第三档要说全：**3.0.1 比 3.1.2 更坏**——3.0.1 的 `lib/dma.py:413`（低字）与
+   3.0.1 的 `lib/dma.py:415`（高字）**都不加 `start`**，所以"高字带着 start"这个缓解条件在 3.0.1 上不成立
+   （三档对照见 `dma-channels.md` §1）。
    **但"不报错"这句要说窄一点**：对齐检查判的是 `physical_address + start` 这个**和**
    （3.1.2 与 4.0.0 的 `lib/dma.py:359` **内容相同**——这两个文件只差 `:130`、`:347`、`:417` 三行，
    其余逐行对齐），而 3.1 交出去的描述符用的是**不含 `start` 的低字**——
@@ -201,7 +218,8 @@ grep -F -f must_have.txt names.txt | grep -q ' ABSENT' \
    unaligned transfers...")`，根本走不到静默错值；只有 `base` 与 `base+start` 都对齐（例如
    `start` 是位宽整数倍、或那一侧开了 DRE 跳过检查）才是"不报错但搬错"。
    差分实验要有开关才行：**这条走 SDMA 还是 SG 由元数据里的 `c_include_sg` 决定**
-   （`:621-626` 读它；`c_micro_dma` 与它互斥，micro 必是 SDMA），
+   （`:620-623` 读它；`c_micro_dma` 在 `:615-616`——注意它在读 SG 的那几行**之前**，
+    互斥抛错另在 `:625-627`，micro 必是 SDMA），
    所以"同一块缓冲、同一个 `start`，SDMA 对而 SG 错"要拿**两个不同配置的 IP**（或同一工程
    改一次 SG 选项重新导出）来做，不是在同一个 overlay 上换个调用方式。
    两条范围要说清：`:417` 在 `:390-428` 那个描述符循环里，**cyclic 与非 cyclic 都走它**，

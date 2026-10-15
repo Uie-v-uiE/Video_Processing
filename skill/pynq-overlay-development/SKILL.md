@@ -84,6 +84,8 @@ license: MIT
 | `Overlay(...)` 成功但拿不到 IP：`KeyError`、`AttributeError`、`RuntimeError` 三种文本长得不一样 | `references/overlay-metadata.md` §3.1 |
 | 句柄拿得到但类型是 `DefaultIP`（驱动退回——它丢的是驱动类那层 API，**不会**把 `register_map` 变空） | `references/overlay-metadata.md` §2 |
 | 重下之后旧句柄还活着（`ip_dict` 里有它，句柄却往老地址写） | `references/overlay-metadata.md` §3.2 |
+| `ol.<ip名>` 读得到但 `del ol.<ip名>` 报 `AttributeError`；想"只刷新句柄" | `references/overlay-metadata.md` §3.2（`__delattr__` 不回落到 `__getattr__` 那两条） |
+| partial 重下之后 `is_loaded()` 变成比名字、或某次 `ol.reset()` 之后别的对象全说"没加载" | `references/overlay-metadata.md` §3.2 末段与 §4（`if not bitstream.partial` 那道门） |
 | 只想 `download=False` 看看这一版元数据里有什么 | `references/overlay-metadata.md` §2.1 |
 | `.bit`/`.hwh`/`.dtbo`/`.xsa` 谁必须与谁同名同批 | `references/overlay-metadata.md` §1 |
 | 只重配一块 PR 区域（partial 位流） | `references/overlay-metadata.md` §4 |

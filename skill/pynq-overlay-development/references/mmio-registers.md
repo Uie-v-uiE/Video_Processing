@@ -4,11 +4,14 @@
 
 ```python
 from pynq import MMIO
-mm = MMIO(base_addr, length=4, device=None, **kwargs)    # mmio.py:42
+mm = MMIO(base_addr, length=4, device=None, **kwargs)    # mmio.py:42（3.1.2/4.0.0；
+#  2.5.1 的签名在 :67，是 def __init__(self, base_addr, length=4, debug=False, device=None)——没有 **kwargs；
+#  2.7.0 在 :69）
 ```
 
 `MMIO` 把 `self.array` 建成 32 位字数组，或直接拿到映射对象；**`self.write` 绑到哪个实现，
-是 `__init__` 里按设备能力现绑的**（`mmio.py:70-84`）。注意它是 `if / elif / elif`，所以能力同时
+是 `__init__` 里按设备能力现绑的**（`mmio.py:70-85`——**注意那条 `raise` 在 `:85`，不在 70-84 里**）。
+注意它是 `if / elif / elif`，所以能力同时
 具备时**优先级就是代码顺序**：
 
 | 顺序 | 能力判据 | 绑定 | `self.array` 从哪来 |
@@ -17,6 +20,14 @@ mm = MMIO(base_addr, length=4, device=None, **kwargs)    # mmio.py:42
 | ② | `elif has_capability("REGISTER_RW")` | `self.write = self.write_reg` | `tnp.ndarray(shape=(length//4,), dtype="u4", hook=_AccessHook(...))` |
 | ③ | `elif has_capability("REMOTE")` | `self.read = map.read`、`self.write = map.write` | `map.array`（map 来自 `device.mmap`） |
 | — | 都不满足 | `raise ValueError("Device does not have capabilities for MMIO")` | — |
+
+**这张表只成立在 3.1.2/4.0.0**（两版这段逐字符相同）。**3.0.1 里没有 ③ 这一支**：
+它的 `mmio.py` 是 `:70` MEMORY_MAPPED、`:74` REGISTER_RW、`:79` `else:`、`:80` 那条 `raise`，
+整个文件 `has_capability("REMOTE")` **0 次命中**（同一次 grep 在前两版各命中 1 次，作正向对照）——
+所以在 3.0.1 上"远程模式走 ③"这条路不存在。2.5.1/2.7.0 的能力块起点也不同
+（`mmio.py:92` 与 `:97`）。**顺带一条扫描写法上的坑，本机自己就踩了**：那两版里这些能力名是用
+**单引号**写的（`has_capability('MEMORY_MAPPED')`），照 4.0.0 的双引号写法去 grep，2.x 会整片 0 命中——
+那不是"这一族不在"，是查询写法把射程收窄了；判"某版有没有"要两种引号都试一遍或按 `has_capability` 前缀数。
 
 三条后果，都能在本机上指出依据：
 
@@ -69,7 +80,7 @@ ip.register_map.ctrl.write(0x11)    # 名字来自 .hwh/.xsa 的元数据
 
 - **`ip.array[i]` 不存在。** `DefaultIP.__init__` 只建了 `self.mmio`（4.0.0 `overlay.py:695-697`、3.1.2 `overlay.py:698-700`），
    它自己没有 `array`，也没有把属性转发给 mmio 的 `__getattr__`（`overlay.py` 里的 `__getattr__`
-   挂在 `Overlay`（`:364`）和 `_IPMap`（`:793`）上，不是挂在 `DefaultIP` 上）。所以在板上写
+   挂在 `Overlay`（4.0.0 `:364`、3.1.2 `:363`）和 `_IPMap`（4.0.0 `:793`、3.1.2 `:796`）上，不是挂在 `DefaultIP` 上）。所以在板上写
    `ip.array[0]` 得到的是 `AttributeError`——这条**不是**"设计没做这个寄存器"，是名字写错了，
    两者要分开（见 `debug-triage.md` §2 树 B）。
 - `DefaultIP` 自带的 `read/write` 是**整字**、按**字节偏移**的便捷口（4.0.0 `overlay.py:758` 与 `:769`；3.1.2 同两个句子在 `overlay.py:761` 与 `:772`，

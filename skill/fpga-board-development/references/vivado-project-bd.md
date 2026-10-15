@@ -172,7 +172,11 @@ A 里那唯一一条是 `CONFIG.PCW_FPGA_FCLK0_ENABLE {1}`——**不是我写�
 跑一次 `validate_bd_design`（rc=0）之后再取，变 **1**，名字正是 `CONFIG.PCW_FPGA_FCLK0_ENABLE`；
 `save_bd_design` 之后仍是 1。**所以是"验证"这一步把 PS7 的派生参数算出来并记进 BD，
 `write_bd_tcl` 才有东西可写**——不是时钟连线（三种接法各测过一轮，全 0），
-也不是 `make_wrapper`/`generate_target`（这两个前后 `PCW_` 计数与字符数一字不变，9231→9231→9231）。
+也不是 `make_wrapper`/`generate_target`。**这一句要按它真实的取法读**：那三个 `9231` 是
+   `write_bd_tcl` 产物的**字符数**（`string length`），`PCW_` 计数在同一次差分里同样逐次相同、
+   只是没单独列成数；而 `make_wrapper` 与 `generate_target` 是**连着放在同一个臂里**跑的，
+   所以这条只支持"这两步之间没有变化"，**不支持把"没变化"归给其中某一条命令**——
+   要单独归因就各建一臂（与 §2.1 那条"两个时刻两个对象"是同一个毛病）。
 对"能不能拿 dump 当构建脚本"的直接影响：**同一份 BD 在 validate 之前倒出来的脚本会少掉这些派生参数**，
 照它重建出来的东西与你刚验证过的那份不是同一份——要倒就倒在 validate 之后。
 
@@ -433,6 +437,10 @@ make_wrapper -files [get_files top.bd] -top   ;# 本机 rc=0，返回 …/topbd.
 create_bd_design design_1
 set cell [create_bd_cell -type ip -vlnv xilinx.com:ip:axi_gpio:2.0 gpio_0]   ;# 返回 /gpio_0
 create_bd_port -dir I -type clk clk                        ;# 时钟要有"源"；板级输入端口就是源
+;# 这一步会打 WARNING: [BD 5-670] It is required to provide a frequency value for a user created
+;# input clock port. …（本机两份日志里都有它）——**它是 WARNING，不影响下面 validate 变绿**；
+;# 想连这条一起清就写成 `create_bd_port -dir I -type clk clk -freq_hz 100000000`
+;# （单位是 Hz：本页上面那条实测把 `100` 传进去读回来就是 100 Hz）。
 connect_bd_net [get_bd_ports clk] [get_bd_pins gpio_0/s_axi_aclk]   ;# rc=0
 validate_bd_design                    ;# rc=0；接这一根之前它就是上面那条 41-758
 save_bd_design                        ;# rc=0

@@ -487,21 +487,35 @@ report_io
    那个 5.000 的真实身份是**周期的一半，即下降沿时刻**：它出现在报告头
    `{rise@0.000ns fall@5.000ns period=10.000ns}` 那一段（就是上面那段里的 `fall@5.000ns`），
    不是 Requirement 行。所以现在的写法是：**别把下降沿时刻当工具补的需求**。
-   **但 min 报告到底给不给 `Requirement:` 行，本机有两个都真实、互相冲突的形状**，
-   分别对应两种输入：①只有 `create_clock -period 10`、没有任何 IO min/max 约束的设计，
-   `-delay_type min` 给 `Requirement: 0.000ns` + `Slack (MET) : 0.140ns`（下面"对照的一格"那条）；
-   ②同一族设计但**加了 `set_input_delay -max`（没写 `-min`）**之后，`-delay_type min`
-   交回的是**没有 `Requirement:` 行、只有 `Slack: inf`** 的段。
-   差在哪一个变量本机还没分开（候选：报告挑中的路径是 IO 路径还是寄存器间路径、`-max` 只写半边是否
-   让整条 hold 路径变成"无需求"），**在两臂拆开之前，不要把"min 一定有 Requirement 行"写进脚本**——
-   要么先打印整段再决定读哪一行，要么显式把 `-min` 写上。
+   **现在这个差别分开了**（同一份小设计、同一个会话里连取三次
+   `report_timing -delay_type min -return_string`）：给不给 `Requirement:` 行，取决于报告把**哪条路径**交给你，
+   而那由"设计里还有没有被任何 IO 约束覆盖不到的输入脚"决定——
+   - 只有 `create_clock -period 10`：交回 `Source: wr → Destination: q_reg[0]/CE`、`Path Group: (none)`、
+     `Slack: inf`，整段 **2844 字符、`Requirement:` 0 条**；
+   - 再加 `set_input_delay -max 3 [get_ports din*]`：**与上一臂完全同形**（仍 2844 字符、仍 `(none)`）——
+     只写 max 不会让 hold 侧长出需求行；
+   - 再补 `set_input_delay -min 1`：交的路径变成 `din[0] → q_reg[0]/D`、`Path Group: clk`，
+     这时才有 `Requirement: 0.000ns (clk rise@0.000ns - clk rise@0.000ns)`（4058 字符）。
+   所以读的顺序是：**先看 `Path Group:` 是不是 `(none)`**。`(none)` + `Slack: inf` 说的是
+   "报告挑中的是一条你根本没约束的脚"（`-sort_by slack` 会把这种排在前面），
+   **不是**"这一侧没做检查"；先把那个脚的约束补齐，再读 `Requirement:`。
+   旧那句"只有 `create_clock`、没有任何 min 约束时给 `Requirement: 0.000ns` 配 `Slack (MET) : 0.140ns`"
+   的**触发条件归错了**：本机 A1 正是那个状态，交回来的是 `(none)` 路径 + 没有需求行。
+   `0.000ns` 这个值本身在第三臂重现了，所以它属于"报告交的是被时钟组覆盖的路径"那一类；
+   那份旧设计当时为什么被交出一条被覆盖的路径，本机没再复现（候选：它所有输入脚都已带
+   `set_input_delay`，或那次报告带了 `-from`/`-to`）——**这两个候选没分开之前，脚本里不要假设
+   min 报告一定有 `Requirement:` 行**，先打印整段、按 `Path Group:` 分支。
    取 min 报告的那条命令**必须写成 `-delay_type min`**：`report_timing -min` 现在被直接拒绝
    （`ERROR: [Common 17-170] Unknown option '-min', please type 'report_timing -help' for usage info.`，
    本机同一形状再次撞到时是以异常交回、`catch` 里能看到这条 17-170），所以旧记录里那个 `-min`
    不是能跑的原文，抄之前先换写法。
-   对照的一格：单钟、只有 `create_clock -period 10` 而没有任何 min 约束时，
+   对照的一格（**注意它属于"报告交的是被时钟组覆盖的路径"那一类**，见上面四臂那条）：
+   单钟、只有 `create_clock -period 10` 而没有任何 min 约束的那份设计，
    `-delay_type min` 给 `Requirement: 0.000ns  (clk rise@0.000ns - clk rise@0.000ns)` 与一条
    `Slack (MET) : 0.140ns`——**hold 需求默认就是 0**，不要把它读成"这一侧没检查"。
+   同样"只有 create_clock"的状态换到上面 A1 那份设计上，交回来的却是 `Path Group: (none)` +
+   `Slack: inf` + 没有需求行：**同一个约束状态有两种报告形状，差别在报告挑中了哪条路径**，
+   所以这一格不能当"min 一定长这样"的模板用。
    **但同一份设计上再叠一条 `set_clock_uncertainty 0.5`（不带方向）之后，这一格变成
    `Requirement: 0.000ns` 配 `Slack (VIOLATED) : -0.360ns`**（`Clock Uncertainty: 0.500ns` 这一段
    这时才出现在 min 报告里；max 侧那条从 `0.035ns` 变 `0.535ns`，见 §11）。

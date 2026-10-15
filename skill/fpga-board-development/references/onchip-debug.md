@@ -542,7 +542,7 @@ write_hw_ila_data  [-force] [-csv_file] [-vcd_file] [-legacy_csv_file] [-quiet]
 **问一个不存在的 CONFIG 名字，拿到的未必是"没有这个属性"**：本机 `get_property CONFIG.C_NUM_PROBES`
 回的是 `ERROR: [Common 17-39] 'get_property' failed due to earlier errors.`——这句是外壳，
 真因在它上面那一条；名字对不对要用 `list_property` 的清单判，不是用这条报错的措辞判。
-VIO 那一侧的对象命令是 `get_hw_vios`（本机存在）；只是判"某个位在不在动"，用 VIO 比插 ILA **通常**便宜（**这个成本差要自己量**：本页只对 ILA 的占用有数，见 `constraints-timing.md` §6；别把它当成选型依据，要就在自己的设计上各建一版取差值） 便宜。
+VIO 那一侧的对象命令是 `get_hw_vios`（本机存在）；只是判"某个位在不在动"，用 VIO 比插 ILA **通常**便宜（**这个成本差要自己量**：本页只对 ILA 的占用有数，见 `constraints-timing.md` §6；别把它当成选型依据，要就在自己的设计上各建一版取差值）。
 
 ## 3. 读回来的数据要能证明是这一次的
 
@@ -560,6 +560,14 @@ get_hw_ilas                        ;# 这条要 §1 那一串先跑通（有板�
 而同一类扫描问 `info commands *cfgmem*` 在没加载 `labtools` 的裸批处理会话里交出 **1 个**（`write_cfgmem`）、
 `load_features labtools` 之后交出 **8 个**（逐条名单见 `board-bringup.md` §2 那一行）——
 **两个读数都非 0，所以 `*md5*` 那个 0 是"这一族不在"，不是"这次没扫到"**。
+**但 `md5sum` 这条的失败形状值得单记**：本机 `catch {md5sum p.tcl}` 之前，日志先打了
+`WARNING: [Common 17-259] Unknown Tcl command 'md5sum p.tcl' sending command to the OS shell
+for execution. It is recommended to use 'exec' to send the command to the OS shell.`，
+之后 `catch` 才交回 `invalid command name "md5sum"`（rc=1）。
+也就是说**工具先把它丢给操作系统 shell 试过一遍**——"这条命令不存在"并不等于"什么都没发生"：
+在别的机器上那一步可能真跑出副作用（比如那个名字在 OS 上确实存在）。所以探针脚本里**不要靠"命令不存在所以安全"来省略检查**。判"它在不在"用 `catch` **真调一次**看交回什么；
+注意别改用 `info commands <名字>` 单独下结论——本页 §1 那条已经钉过：惰性加载会让它在命令明明可用时
+交出空（`wait_on_run` 就是反例）。
 要在 Tcl 里比"是不是的产物"，取 `mtime`+`size` 这一对，
 真要比哈希得回到 shell 侧（`board-bringup.md` §1 那套）。
 
@@ -605,6 +613,16 @@ rc=1，而旧文件的 `mtime`/`size` 一字不变（本机：`1792013347`/`1726
 那次 `mtime` 前进 2 秒、size 仍 1726）。所以**别把不带 `-force` 当"安全默认"**：它不会静默跳过，
 会把这一步变成红；而错误文本里带**绝对路径**，顺手就能核对"写到哪"——这两件事一起用。
 `-file` 能不能用不取决于某一次没报错。
+**这一族还有一道更靠前的门，本机撞到过**：在**只做过综合**的检查点上（`get_debug_cores` 那时已经
+数得到 2 个对象——`dbg_hub` 与 `u_ila_dbg`，核也确实连着），`write_debug_probes -force <名>`
+仍然是 **rc=1**，日志里是
+`ERROR: [Vivado 12-5829] Unable to generate LTX file since debug core UUIDs are unavailable for
+unimplemented cores. Resolution: Issue the write_debug_probes TCL command after opt_design
+(or implement_debug_core) step has been run`，而 `catch` 交回来的仍只是那句包装
+`[Common 17-39] 'write_debug_probes' failed due to earlier errors.`，**并且不产出 `.ltx`**。
+所以上面那组 `mtime`/`size` 读数属于"**跑过 `opt_design`/`implement_debug_core` 之后**"那条流程；
+把它抄到综合级检查点上，先撞的是 `12-5829` 而不是 `12-1574`。判"我手上这份 dcp 能不能出探针文件"，
+看的就是这一步在不在它之前——**这条也是"错误号成套出现、按最前面那条归因"的又一例**。
 产物扩展名是 `.ltx`（帮助原文："Debug probes file name (default extension is .ltx)"，
 **并且本机实测到**：跑完 §2.1 的 ⑩ 之后给 `write_debug_probes -force ./noext`，返回
 `.../noext.ltx` 且该文件真存在——扩展名是工具补的，不是它报错）。
