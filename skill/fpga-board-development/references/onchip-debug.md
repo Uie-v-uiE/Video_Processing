@@ -668,7 +668,9 @@ msg `17-39` 包装 + 日志里 `[Labtoolstcl 44-199] No matching targets found o
 同一条命令 `-quiet` 交回空串、换 `-verbose` 就回到 `44-362`。
 **"日志里连 `44-362` 都不打"这句也收回**：`44-362` 从来只是 `catch` 交回的 msg（`i9` 的
 `d1`/`e2` 长度 25），**在"没有打开设计"的那一相它确实只出现在 msg 里；**但设计开着的时候它会进日志流（下面单独跑的三条：三种写法都会返回，不会终止会话）**——`quiet4/q4c.log` 打开 `chain15/a4/a4.dcp`（`:52` `OPEN|rc=0|len=13`）之后，第一条 `apply_hw_ila_trigger **-quiet**` 就在 `:63` 打出 `ERROR: [Vivado 44-362]`（**正文为空**），紧接 `:64` `INFO: [Common 17-206] Exiting Vivado`（`quiet4/q4c.log:63` 的 `ERROR: [Vivado 44-362]` 打在**整块 `foreach` 被回显之后**——批处理是先把循环体整段回显、再执行的，**把终止归属于第一条是错的**，这句刚写下去就收回）。
-**每条各自起一个批处理之后**（`quiet4/one_quiet.log`/`one_verbose.log`/`one_plain.log`，三份都 `OPEN|rc=0` 且都跑到自己那行的 `RESULT|...`）：`-quiet` ⇒ `rc=0|len=0`；`-verbose` ⇒ `rc=1`、msg **25 字符** `ERROR: [Vivado 44-362] `（**正文为空**）；裸调 ⇒ 与 `-verbose` 同形（`rc=1|len=25`）。三份日志里 `grep -c '^ERROR:'` 都是 **0**——那句 `ERROR: ...` 只在我自己的 `puts` 行里，不是工具打的日志行。
+**每条各自起一个批处理之后**（`quiet4/one_quiet.log`/`one_verbose.log`/`one_plain.log`，各看自己那行
+`RESULT|quiet` / `RESULT|verbose` / `RESULT|plain`——这三份日志的行号随回显变，**按 `RESULT|<写法>` 这个 tag 取**，
+三份都 `OPEN|rc=0` 且都跑到自己那行的 `RESULT|...`）：`-quiet` ⇒ `rc=0|len=0`；`-verbose` ⇒ `rc=1`、msg **25 字符** `ERROR: [Vivado 44-362] `（**正文为空**）；裸调 ⇒ 与 `-verbose` 同形（`rc=1|len=25`）。三份日志里 `grep -c '^ERROR:'` 都是 **0**——那句 `ERROR: ...` 只在我自己的 `puts` 行里，不是工具打的日志行。
 ⇒ **两种写法都不能主张**：既不能说"`-quiet` 会终止会话"，也不能说"裸调会终止会话"（我 20 分钟内先写前者、再写后者，两条都被这批单独跑的臂否证，一起收回）。`q4c.log` 那次中止**归属不了**：批处理先把整块 `foreach` 回显、再执行，而 `ERROR: [Vivado 44-362]` 出现在回显之后、任何 `FORM|` 行之前，所以本机现在只能说"合在一块跑会丢后面的读数、且丢在哪一支分不开"。**规矩保留**（每条命令单独起一个 `vivado -mode batch`），理由按可观察的写：**合跑丢读数**，不是"某一支致命"**——拿一条不能载它的通道去数"没打"是假读数。
 ⇒ 所以"数 target/判有没有落地"要么**不带 `-quiet`**、要么把 `file exists` 与不带 quiet 的同一条
 并排跑一次；`-quiet` 只该用于你已经有独立读数的场合（日志卫生，不是判据保护）。
