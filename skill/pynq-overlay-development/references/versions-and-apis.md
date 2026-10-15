@@ -188,9 +188,24 @@ grep -F -f must_have.txt names.txt | grep -q ' ABSENT' \
    **`hasattr` 不要用**：被 `__getattr__` 接住的对象上它会触发驱动构造（有副作用），而且只吞
    `AttributeError`，别种异常直接往外抛（见 `overlay-metadata.md` §3 末条）。
 
-同理 `pynq.Overlay.remove`：3.1 与 4.0.0 的 `overlay.py` 里**没有** `def remove`（有
-`bitstream.py:174` 的 `remove_dtbo()`、`overlay.py:394` 的 `free()`）。网上"换 overlay 就 `ov.remove()`"
-写法在这两版上直接 `AttributeError`。正确的生命周期动作见 `overlay-metadata.md` §3。
+同理 `pynq.Overlay.remove`：**五个钉过的版本（2.5.1/2.7.0/3.0.1/3.1.2/4.0.0）的 `overlay.py` 里
+`def remove` 都是 0 个**（`grep -c 'def remove' pynq/<版本>/overlay.py`）。
+**同一棵树上的正向对照**（证明这把 grep 看得见东西）：`def remove` 只在 `devicetree.py` 出现
+（`DeviceTreeSegment.remove`，行号 2.5.1 `:138` / 2.7.0 `:151` / 3.0.1 与 3.1.2 与 4.0.0 `:122`），
+`bitstream.py` 里是 `remove_dtbo`（`:156`/`:189`/`:174`/`:174`/`:174`），
+`overlay.py` 里最接近的是 `free()`（`:374`/`:384`/`:387`/`:393`/`:394`）。
+网上"换 overlay 就 `ov.remove()`"的写法**不会**得到"没这个方法"那种干净报错，因为
+`Overlay` 自己就定义了 `__getattr__`（4.0.0 `overlay.py:364-371`，2.5.1 `:350-358`），
+名字会被它接住。两种报错看加载状态（同一条语句 `ol.remove`）：
+**没加载过 → `RuntimeError("Overlay not currently loaded")`**（那是 `is_loaded()` 那一支给的）；
+**已加载 → `AttributeError("Could not find IP or hierarchy remove in overlay")`**
+（走到 `_IPMap.__getattr__` 的兜底 `raise`，4.0.0 `:829`、3.1.2 `:832`，五个版本这句原文一致）。
+**所以后一种文本会把人往"这是个 IP 名字打错了"上带**——它其实是"你要的方法不存在"。
+判"某个名字到底是不是驱动方法"别看 `dir()` 也别试 `hasattr`（前者不含 `__getattr__` 造出来的东西，
+后者在这些对象上有副作用），看源码里的类体：`Overlay` 的方法是
+`free/gen_cache/download/pr_download/is_loaded/reset/load_ip_data/_register_drivers/__init__/__getattr__/__dir__`
+这一族（4.0.0 用 `python -c` + `ast` 数过），**没有 `remove`**。正确的生命周期动作见
+`overlay-metadata.md` §3。
 
 ## 4. 四个"教程没写但会咬人"的口径
 

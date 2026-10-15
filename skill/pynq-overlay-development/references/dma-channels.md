@@ -31,10 +31,28 @@ dma.sendchannel is None    # 这版硬件没使能 MM2S —— 不是 bug，是�
 **长度上限有两个不同的来源**，别把 `buffer_max_size` 当唯一答案：
 
 ```python
-# 真实形状是"有键就用参数，没键就用常数 26"（lib/dma.py:630-637）：
-w = parameters.get("c_sg_length_width")
-buffer_max_size = (1 << int(w)) - 1 if w else (1 << MAX_C_SG_LENGTH_WIDTH) - 1
-max_size = data_width * int(parameters["c_mm2s_burst_size"]) if self._micro else buffer_max_size
+# 源码原样（4.0.0 与 3.1.2 的 lib/dma.py 这一段逐行相同，行号 629-637）：
+if "c_sg_length_width" in description["parameters"]:
+    self.buffer_max_size = 1 << int(description["parameters"]["c_sg_length_width"])
+else:
+    self.buffer_max_size = 1 << MAX_C_SG_LENGTH_WIDTH
+self.buffer_max_size -= 1
+```
+
+**判"有没有参数"用的是 `in`，不是取到值再判真值**——这一字之差有后果：键**存在但值为 0** 时走
+第一条分支，`1 << 0` 再减 1 = **0**，而不是退回 26 位那个常数。早先这里写成
+`w = parameters.get(...)` / `... if w else ...` 的转述**是错的**（那种写法会把 0 当成"没有键"），
+照它推上限会在"IP 里把 `C_SG_LENGTH_WIDTH` 设成 0"这一格上给出完全不同的数。
+
+`max_size`（每通道 `_max_size`）**不在这一段里**，它是**收发各一份**、且**用的 burst 键不同**
+（4.0.0 `lib/dma.py`）：MM2S 在 `:664-669` 用 `c_mm2s_burst_size`，S2MM 在 `:718-726` 用
+`c_s2mm_burst_size`，两处的形状都是
+
+```python
+if self._micro:
+    max_size = data_width * int(self.description["parameters"]["c_mm2s_burst_size"])   # S2MM 那份是 c_s2mm_burst_size
+else:
+    max_size = self.buffer_max_size
 ```
 
 `axi_dma_micro`（`self._micro`）下每个通道的 `_max_size` 是 **数据位宽 × burst size**，
@@ -80,8 +98,11 @@ dma.sendchannel.wait()    # 这三行只说明签名形状；收尾别照抄，�
    下一节 `wait()` 从 `:470` 开始）里
    **只有一次 `allocate`**（`:384`）与**一个描述符循环**（`for i in ...`，`:390`），
    cyclic 与非 cyclic 的差别只在循环**内部**——`:392` 让最后一张描述符指回第一张，`:398` 是
-   非 cyclic 的正常链，没有第二条路径；而 `_descr` 在整个文件里只被赋值四次：
-   `:254`（构造函数置 `None`）、`:384`（分配）、`:521` 与 `:552`（`wait()`/`wait_async()` 的收尾）。
+   非 cyclic 的正常链，没有第二条路径；而 `_descr` 在整个文件里只被**整体重新绑定**四次
+   （这一句的数法要说清，否则对不上：**`grep -n 'self\._descr *=' lib/dma.py`** 交 4 行——
+   `:254`（构造函数置 `None`）、`:384`（分配）、`:521` 与 `:552`（`wait()`/`wait_async()` 的收尾）；
+   若改成 `grep -n 'self\._descr\[' lib/dma.py` 数的是**元素写**，本机 4.0.0 交到 **13 行**，
+   那是往表里填字段，不是换表。两个数都对，别拿其中一个去否另一个）。
    "分配点只有一个、回收点只有两个"就是本节下面所有结论的依据：`stop()`（`:303-312`）不碰它、
    cyclic 走不到它，都不是推测而是穷举的结果。
    `_SGDMAChannel.transfer`
@@ -266,10 +287,12 @@ def wait_with_timeout(ch, seconds):
 ```
 
 超时之后这个线程**不会被杀掉**：`ch.wait()` 里那个 `while True` 还在轮询 MMIO。
-它从此持续抢 GIL 和 AXI-Lite 带宽，**把这个进程之后所有吞吐读数都污染掉**——本机做过一次对照
-实验（桩 MMIO，主机 Windows）：起一个忙轮询线程之后，主线程同类循环的耗时从 2.7 ms 涨到
-16.4 ms。那两个毫秒数是**这一台主机 + 这一个解释器**的读数，随机器与版本而变，不要当事实搬运；
-可复现的是方向与机理。
+它从此持续抢 GIL 和 AXI-Lite 带宽。**这两半的证据层级不同，别合成一句**：
+抢 GIL 这一半本机在主机上量过（桩 MMIO，Windows）：起一个忙轮询线程之后，主线程同类循环的耗时
+从 2.7 ms 涨到 16.4 ms——那两个毫秒数是**这一台主机 + 这一个解释器**的读数，随机器与版本而变，
+不要当事实搬运；可复现的是方向与机理。
+**抢 AXI-Lite 带宽、"把这个进程之后所有吞吐读数都污染掉"是板上行为，本机没有板，未测**
+（要它在板上变成读数：同一进程里先测一次吞吐基线，再挂一个忙轮询线程重测同一段，两次口径写在一起）。
 所以规则是：**用它测量过的进程不要再用来测吞吐**；测吞吐的窗口要么开独立进程，
 要么先确认没有遗留的等待线程（`threading.enumerate()` 打印一次）。
 
@@ -311,7 +334,7 @@ def wait_with_timeout(ch, seconds):
 4. 本包给不了的：DMASR 的粘滞错误位要不要显式清、"引擎卡在途事务"时用户态有没有撤回手段——
    这两条没有源码或读数支撑，把"卡住"当成需要复位 PL 的那一档
    （见 `SKILL.md` §4 边界表"一笔访问卡死之后怎么撤回"那一行，按行名找，别按"第几行"找）。
-   顺带撤一条旧写法：**`write(DMACR, 0x4)` 不是"网上抄来的危险写法"`**——驱动自己就这么写
+   顺带撤一条旧写法：**`write(DMACR, 0x4)` 不是"网上抄来的危险写法"**——驱动自己就这么写
    （`self._mmio.write(0x0, 0x0004)`，`:308`），cyclic 的复位正是它做的。本包先前那句"别照抄"说反了。
 
 
@@ -334,8 +357,8 @@ n = 1024 * 768
 with allocate((n,), dtype=np.uint8) as src, allocate((n,), dtype=np.uint8) as dst:
     src[:] = np.arange(n, dtype=np.uint8)    # 直接当 ndarray 用
     src.sync_to_device()    # CPU→PL
-    dma.recvchannel.transfer(dst)    # 先挂收侧，再发起侧
-    dma.sendchannel.transfer(src)
+    dma.recvchannel.transfer(dst)    # 惯例上先挂收侧再发发起侧；驱动里两个通道是独立对象、
+    dma.sendchannel.transfer(src)    # 源码没有任何先后耦合（先后是否有害是板上行为，本包未测）
     # 本页 §2 定义的 wait_with_timeout 才是这里该用的东西：裸 wait() 没有 timeout 形参，
     # 引擎不返回时这一行会把整个进程挂住，而且不会给你任何读数。
     for who, ch in (("recv", dma.recvchannel), ("send", dma.sendchannel)):

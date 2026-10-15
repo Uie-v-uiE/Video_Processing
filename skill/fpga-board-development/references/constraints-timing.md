@@ -678,12 +678,13 @@ get_files -compile_order constraints -used_in synthesis  ;# timing board design
 set_multicycle_path -setup 2 -from [get_clocks slow_clk] -to [get_clocks fast_clk]
 set_multicycle_path -hold  1 -from [get_clocks slow_clk] -to [get_clocks fast_clk]
 set_case_analysis 0 [get_ports rst_n]
-report_exceptions              ;# 每条例外一行，看 Status 列
+report_exceptions              ;# 落到 setup/hold 检查上的例外，每行一条
+report_exceptions -ignored     ;# 登记了但没落到任何路径上的（死例外在这一张）
 report_clock_interaction       ;# 每对钟怎么被处理
 ```
 
 实测读数（本机 2025.2.1，`fast_clk` 10 ns / `slow_clk` 40 ns，数据只从 fast 流向 slow，
-上面那两条 MCP 因此方向写反了）：
+上面那两条 MCP 因此方向写反了。**这两行出自哪张表，本机有两份互相打架的旧读数，分开过程见下一条**）：
 
 ```
 Position  From                   Through  To                     Setup     Hold     Status
@@ -692,29 +693,63 @@ Position  From                   Through  To                     Setup     Hold 
 ```
 
 - **判据是"我那条在不在表里 + 它管的那条路径活着没有"，不是 `Status` 那一列的字。**
-  本机对"死例外"观测到**两种**形态，且与你怎么写对象有关：
-  - 用**时钟名**给 `-from/-to`、方向写反（那两个钟都存在、但这个方向没路径）→ 印 `Non-existent path`
-    （上面那个例子就是这种）；
-  - 用**针/单元**给而不存在的路径（例如指到反向的那对寄存器）→ 整行**不出现**，或出现了但 `Status`
-    是空白。**这条"死例外到底在哪张表"本机有两份互相打架的读数**：早先一臂记的是
-    "`-ignored` 输出 67 字符、两条死例外一条都不在"；另一路复核在同一版工具上重做方向写反的 MCP，
-    拿到的却是**默认表里没有它们、而 `-ignored`（1303 字符）里两条都在**，`Status` 是
-    `Non-existent path`。**差别没被分开**（候选：给对象的方式是时钟名还是针/单元、是否已经跑过
-    `route_design`、`-ignored` 是否与 `-setup/-hold` 组合）。
-    所以**别把"死例外一定在/不在某张表"写进判据**；要判这条约束有没有落到路径上，
-    用下面那种"同一对端点、加约束前后各取一次 `report_timing`"的差分。
+  "死例外到底在哪张表"这条本机**分开了**（2025.2.1，同一份双钟设计 `clk_fast` 10 ns /
+  `clk_slow` 40 ns、数据只从 fast 流向 slow，一次会话里连取，两张表都用 `-return_string`）：
+  - **给对象的方式决定工具在哪一步告诉你**：
+    - 用**时钟名**写反方向（`set_multicycle_path -setup 2 -from [get_clocks clk_slow] -to
+      [get_clocks clk_fast]`，两个钟都存在、但这个方向没有路径）→ **返回 0、连 warning 都没有**，
+      例外被登记下来；
+    - 用**针**写不存在的路径（`-from [get_pins -quiet {q2_reg[0]/Q}] -to
+      [get_pins -quiet {q1_reg[0]/D}]`）→ **当场被拒**：先
+      `WARNING: [Constraints 18-402] 'q2_reg[0]/Q' is not a valid startpoint.`，再
+      `ERROR: [Constraints 18-513] set_multicycle_path: list of objects specified for '-from'
+      option contains no valid startpoints`，返回码 1，**例外根本没有被创建**。
+      所以"针那一臂整行不出现"不是被表格吞了，是设置那一步就没进去。而同一行里
+      `get_pins -quiet {q2_reg[0]/Q}` 与 `{q1_reg[0]/D}` **都返回了对象**（各自 1 个）——
+      **"对象取到了"与"能当 `-from` 始点"是两件事**，别拿前者当后者的证据。
+  - **表的位置（时钟名那一臂，两笔分开给）**：只给 `-setup 2` 时默认表 `report_exceptions
+    -return_string` 是 **841 字符、内容一个字没变**（与加约束前的 841 字符同长，仍印
+    `No valid timing exceptions found.`、`Non-existent` 命中 0），而 `report_exceptions -ignored
+    -return_string` 是 **1182 字符**、里面有那一行
+    `3 [get_clocks clk_slow] * [get_clocks clk_fast] cycles=2 - Non-existent path`；
+    再补上同方向的 `-hold 1`（返回 0）之后**默认表仍然是那 841 字符**，`-ignored` 变成
+    **1304 字符、两行**（`… cycles=2 -` 与 `… - cycles=1`，`Status` 都印 `Non-existent path`）。
+    活的那一向（`-from clk_fast -to clk_slow`，返回 0）进的是**默认表**：841 → 1156 字符，
+    行 `4 [get_clocks clk_fast] * [get_clocks clk_slow] cycles=2 -`、`Status` 空白，
+    而 `-ignored` 仍是 1182 字符（活例外不会挤进这张表）。
+    **所以按这一臂读：默认表 = 落到检查上的，`-ignored` = 登记了但没落到任何路径上的，
+    `Non-existent path` 这个词只在后一张出现。** 上面那张两行表（`Position 7/8`）因此是
+    **`-ignored` 那张**——早先把它记成默认表的内容，是把同一次跑里两份输出的归属写串了；
+    另一份"`-ignored` 67 字符、两条死例外一条都不在"的读数仍未被复现（它没有 `Position` 行，
+    说明那次设计里根本没有登记不上的例外；候选条件：对象是给成针还是钟名、`-setup/-hold`
+    是否成对、有没有跑过 `route_design`）。
+    **不依赖表归属也能判的写法**是差分：同一对 `-from/-to` 加约束前后各取一次 `report_timing`
+    （取法见 §4 第 4、5 条），`Requirement` 变了才算落地。
   反过来，**活着的例外 `Status` 是空白**。所以按 `Status` 的字样判"生效没有"两头都会错：
-  空白既可能是"活着"也可能是"没被列出来"，`Non-existent path` 不是必然出现。
+  空白既可能是"活着"也可能是"这条压根没被创建（针那一臂）"，`Non-existent path` 不是必然出现。
   比这张表硬的是**这条约束所覆盖的那条路径的 `Requirement`/`Slack`**（取法见 §4 的
   `report_timing -from … -to …`）——但**三种约束留下的痕迹不一样，别用一种读法套全部**：
   多周期会把 `Requirement` 真的挪走（本机 10.000 → 20.000，见本节末那张三行表），
   `set_false_path` 则让这条路径**从报告里整个消失**（读不到 `Requirement` 不等于"没生效"，
   也不等于"路径不存在"——要靠加约束前后各取一次同一对 `-from/-to` 来分开（两次都必须用
   `-return_string` 或 `-file` 取文本，§4 第 4、5 条：普通调用的返回串是空的）。
-  默认表（`report_exceptions`）只列"应用到 setup/hold 检查上的例外"（`-help` 原话）；
-  `-ignored` 是合法选项但 **`-help` 里不列它**。一条例外都没有时印 `No valid timing exceptions found.`。
+  默认表的射程就是 `-help` 的 Description 原话："Report all timing exceptions applied to setup and
+  hold checks defined by timing constraints in the current design, or report the exceptions on the
+  specified timing paths."——**"applied to"就是上一条那一臂默认表一个字没变的原因**。
+  **早先这里写"`-ignored` 是合法选项但 `-help` 里不列它"是错的**（本机 2025.2.1 复核：
+  `report_exceptions -help` 的语法行里就有 `[-ignored]`，Usage 表里给它一行
+  "Only report exceptions which are fully ignored"，`Examples:` 一节第二条直接是
+  `report_exceptions -ignored`）。这条错误本身值得留一句教训：**`-help` 打全了要读到底**
+  （本次这份共 ~200 行，含 `Categories/Description/Arguments/Examples/See Also` 六段），
+  只读前半截就会把"没在我看过的那几行里"写成"不列"。
+  同一次 `-help` 里可用而本节先前没提的选项：`-scope_override`、`-summary`、`-coverage`、
+  `-ignored_objects`（"Report the list of ignored startpoints and endpoints"——**这条才是
+  "我的 `-from` 针被当成无效始点"的直接读数口**）、`-count_objects`、`-write_merged_exceptions`、
+  `-write_valid_exceptions`、`-no_header`；**没有 `-ignored_setup`/`-ignored_hold`**
+  （`[Common 17-170] Unknown option '-ignored_setup'`，返回 1），也**没有 `-summarize`**
+  （同样 `17-170`；要的是 `-summary`）。
+  一条例外都没有时印 `No valid timing exceptions found.`。
   `Position` 编号随设计已有例外数量变，按 `From`/`To` 的时钟名认自己那条。
-  没有 `-summarize` 这个选项（`[Common 17-170] Unknown option`）。
 - 多周期是 **setup 与 hold 两笔**，但**默认表不会替你补第二笔**——这一条本机两臂对照过：
   只给 `set_multicycle_path -setup 2 -from clk_fast -to clk_slow`（方向是活的、没写 `-hold`）之后，
   `report_exceptions -return_string`（1156 字符）里**只有一行**：

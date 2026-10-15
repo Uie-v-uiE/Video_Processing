@@ -522,24 +522,46 @@ create_bd_addr_seg get_bd_addr_spaces include_bd_addr_seg`，两条排除/包含
 
 PS/软件侧要的是**同一批**产物。`.xsa` 走 `write_hw_platform`。
 `export_bd_design` 导出的是**BD 的设计源**：本机看到它建出一棵目录树
-（几次运行分别看到 `<dir>/<bd>.gen/…`、`<dir>/<bd>.sint/…`、`<dir>/modrefs/…`、
-`<dir>/export_operation_runs/`、`<dir>/<n>.srcs/…` 这些前缀——**别去记这个形状**），
-返回值是那个 `.bd` 的路径而不是新文件，而且它**不接受 `-force`**（`Unknown option '-force'`）。
-共同点是里面**没有 `.hwh`/`.xsa`/`.dt`**（几次一致）：它不是 hw handoff 的出口。
-`.hwh` 属于 BD 的输出产物那一类，第一次用之前在这台机器上把它的实际路径与扩展名取出来
-（`generate_target`/输出产物目录）再写脚本，不要照抄别处的目录结构。
+（几次运行分别看到 `<dir>/<p>.gen/…`、`<dir>/<p>.sint/…`、`<dir>/modrefs/…`、
+`<dir>/export_operation_runs/`、`<dir>/<p>.srcs/…` 这些前缀——**注意那个 `<p>` 是工程名，不是 BD 名**：
+本机工程叫 `p1`、BD 叫 `topbd`，树根是 `p1.gen/` 与 `p1.srcs/`，所以"`<dir>/<bd>.gen/…`"这种写法
+在这份读数是错的。**别去记这个形状**，要就当场 `find` 一遍）。
+返回值是那个 `.bd` 的路径而不是新文件，而且它**不接受 `-force`**
+（`ERROR: [Common 17-170] Unknown option '-force'`，rc=1）。
+**返回的那条路径是相对工程根目录的**（本机原样 `<p1.srcs\sources_1\bd\topbd\topbd.bd>`，35 字符）：
+同一句 `file exists` 在 `cd` 进工程根之后给 1、拼上工程目录再拼它给 0——
+所以"拿返回值当落地判据"的脚本必须先把 cwd 设成工程根，或自己拼绝对路径。
+共同点是里面**没有 `.hwh`/`.xsa`/`.dt`/`.dtbo`/`.bit`**（本机对导出的 6 个文件逐个匹配这些扩展名，
+命中 0；正向对照是同一次导出里确实有 `topbd.bd`/`topbd.bda`/`topbd.bxml`/`.xci` 这些文件）：
+它不是 hw handoff 的出口。`.hwh` 属于 BD 的输出产物那一类（`generate_target` 那条链的产物），
+第一次用之前在这台机器上把它的实际路径与扩展名取出来再写脚本，不要照抄别处的目录结构。
 
 `write_hw_platform` 的形式先问一次（`-help`），本机实测的三条：
 只有一个位置参数（输出文件名），多传 `[get_files top.bd]` 报 `Too many positional options`；
 **先前这里写"必须先设 `platform.name`/`platform.board_id`，否则报 User Exception"——在
 一个只做了 BD、两个属性都没设的工程上跑 `write_hw_platform -fixed -force out.xsa`：rc=0，
-文件也真生成了（1502 字节）**，所以不要把"先设 platform.*"当 precondition 引用（判成功只有一招：看文件在不在、多大）。
+文件也真生成了**，所以不要把"先设 platform.*"当 precondition 引用。
+**但"看文件在不在、多大"这条判据已经被本机否掉了**（同一形态复跑：工程 `p1`、BD `topbd`、
+里面只有一个 `axi_gpio`、`xc7z020clg400-1`、2025.2.1）：rc=0、`out1.xsa` 生成、**1503 字节**
+（早先一臂同形状是 1502 字节——差 1 字节、原因没查出来，这本身就是"字节数不能当判据"的证据），
+而同一次日志里有 `INFO: [Vivado_Tcl 4-424] Cannot write hardware definition file as there are
+no IPI block design hardware handoff files present` **9 条**与
+`CRITICAL WARNING: [Projectvivado 1-1924] Failed to write hardware handoff data into Hardware Platform.`
+1 条；把它当 zip 解开，成员**只有 `xsa.json`（2039 字节）与 `xsa.xml`（999 字节）**，
+没有 `.hwh`、没有 bit、没有 `ps7_init`，`xsa.json` 里 `"platformState": "pre_synth"`。
+**这就是那个"空壳 .xsa"的形状**：命令收下了、文件生成了、大小看着像回事，交给 Vitis/PYNQ 一侧
+才发现什么 handoff 都没有。所以判"导出真的出了东西"要两件事一起看：
+① 解包列表（`python -c "import zipfile;print(zipfile.ZipFile(f).namelist())"`）里有没有你要的那件
+（`.hwh`/bit/`ps7_init`），② 这次日志里 `4-424` 与 `1-1924` 有没有出现。
+`xsa.json` 里的 `platformState` 也值得读一行：它是 `pre_synth` 就说明这份是从没跑过实现的工程导的。
 `-include_bit` 也不是"一条提示后继续"：同一工程没跑过 bitstream 时它是
 `ERROR: [Common 17-69] Command failed: Unable to get BIT file from implementation run. Please ensure
 implementation has been run all the way through Bitstream generation.`，**rc=1 且不产出 .xsa**。
 同一条失败在不同前置状态下给的文本并不一样（这里是 `17-69` 的 ERROR，另处见过
-`INFO: [Projectvivado 1-1937] No bit file available…` 的形状），两者关系没有可引的证据，
-所以判据只认"返回码 + 文件在不在"，不认消息文本。
+`INFO: [Projectvivado 1-1937] No bit file available…` 的形状），两者关系没有可引的证据。
+所以判"这次导出成不成"**不能只押一条通道**：返回码、解包成员列表、日志里特定消息，
+三者各自会漏——上面那个 1503 字节的空壳是"rc=0 且文件在"却什么 handoff 都没有，
+而只看消息文本又会被"同一失败两种文本"骗过去。可用的是这三件一起写进同一条判据。
 **同一族的 `1-xxxx` 在本机出现过两个类别名**：上面 §2.1 那条 `upgrade_project` 是
 `[Project 1-1969]`，导出这一族是 `[Projectvivado 1-1937]` / `[Projectvivado 1-1040]`。
 为什么不同本机没有解释，所以**按消息文本搜，别按类别名搜**——按 `Project` 搜会漏掉
@@ -548,23 +570,32 @@ implementation has been run all the way through Bitstream generation.`，**rc=1 
 **两个属性都设了也不保证出 `.xsa`。** 本机一个 Zynq7 工程在这之后仍然失败，报的是
 `ERROR: [Projectvivado 1-1040] Failed to get Source File object for dynamic region BD` 与
 `ERROR: [Platform 74-31] Error parsing hpfm stream.`，目录里一个 `.xsa` 都没有
-（BD 的输出产物/hwh 不齐时就卡在这里）。所以判"导出成功"只能是**去看文件在不在**，
+（BD 的输出产物/hwh 不齐时就卡在这里）。所以判"导出成功"要**去看文件在不在、并且把它当 zip 解开数成员**，
 不是看命令返回；顺带一条纠正：**`write_hw_platform` 没有 `-return_string`**——本机两次都是
 `ERROR: [Common 17-170] Unknown option '-return_string'`（`-help` 的选项表里也没这个开关）；
-它正常返回的是**写出的路径字符串**。先前这里记的"回 `TCL_TRUE`"是误读，删掉。
+它正常返回的是**写出的路径字符串**（本机 `<...>/hwp3/out1.xsa`，绝对路径）。先前这里记的"回 `TCL_TRUE`"是误读，删掉。
 
 规则：
 
-- **`.bit` 与 `.xsa/.hwh`、`.dtbo` 必须同一次导出。** 分别导出 = 地址与中断映射可能来自两个
-  版本，表现是 PS 侧读寄存器不报错但值不对。落地做法：把这三件一起放进一个带时间戳的目录，
-  并在记录里写它们的哈希（哈希只回答"文件有没有换"，不回答"板上跑的是不是它"，
-  后者见 `board-bringup.md` §1）。
+- **软件侧要的那几件必须来自同一次导出**，但它们**不是同一条命令的产物**，别把归属记串：
+  `.hwh` 属于 BD 的输出产物那一族（`generate_target` 那条链；本机那条 1503 字节的空壳 `.xsa` 里
+  就没有它），`.bit` 属于实现跑完 bitstream 之后的 run 产物（`-include_bit` 在没跑实现时是
+  `17-69` 且 rc=1，见上面），`.dtbo` **不是 Vivado 这几条命令的输出**（本机
+  `write_hw_platform` 与 `export_bd_design` 两个出口的清单里都没有它——正向对照：同一清单里
+  能看到 `xsa.json`/`xsa.xml` 或 `.bd`/`.bda`/`.xci`），它在 Vitis/设备树那一侧生成。
+  所以"一次导出"指的是**一次把这四件从同一个修订号取齐**，不是"有一条命令能一次生成全部"。
+  分别取 = 地址与中断映射可能来自两个版本；**推论的表现是"PS 侧读寄存器不报错但值不对"，
+  这一条是机理，本机没有板，需要板端复现**（怎么在板上把它变成读数见 `board-bringup.md` §3）。
+  落地做法：把这几件一起放进一个带时间戳的目录，并在记录里写它们的哈希
+  （哈希只回答"文件有没有换"，不回答"板上跑的是不是它"，后者见 `board-bringup.md` §1）。
 - 换 part 或换工具小版本之后，先 `upgrade_project`，再 `validate_bd_design` + 重跑实现，
   不要假设旧工程在新工具里产物等价。
 - **IP 的参数默认值会变。** `report_ip_status` 告诉你哪些 cell 需要处理。改参数前要存的不是
   "一条命令的快照"，而是**逐个名字**的读数：`get_property CONFIG.* [get_bd_cells dma0]` 这种
   通配写法**不会展开**，实测静默返回空——照着它做前后对比，你 diff 的是两个空表。可用的是
-  先 `list_property [get_bd_cells dma0]` 把 `CONFIG.` 开头的名字列出来（本机这个 IP 有 26 个），
+  先 `list_property [get_bd_cells dma0]` 把 `CONFIG.` 开头的名字列出来（本机 `axi_dma` 那个 cell
+  是 26 个 `CONFIG.`；**这个数随 IP 变**——同一次跑里只放一个 `axi_gpio` 的 `gpio_0` 是
+  29 个属性、其中 16 个 `CONFIG.`，所以别把任何一个当"IP 一般有几十个"），
   再按名字取（`get_property CONFIG.c_include_sg [get_bd_cells dma0]` → `1`），
   或者一次倒全部：`report_property -return_string [get_bd_cells dma0]`。
 
@@ -573,7 +604,7 @@ implementation has been run all the way through Bitstream generation.`，**rc=1 
 | 症状 | 先看 | 别做 |
 |---|---|---|
 | BD 里改了 IP 参数，板上行为没变 | 是否重新生成输出产物并重启了 run；`validate_bd_design` 是否报错被忽略 | 别用"再编一次"当检查，看这次的日志有没有真的跑 |
-| **下一个会话里 BD 改动全不见了**（cell、地址、连接一起为空） | 有没有 `save_bd_design`。本机一组读数：一个只做了 create/connect/validate 的会话结束后，`.bd` 仍是 **317 字节**的桩；`open_project` + `open_bd_design` 之后 `get_bd_cells *` 给 **0**、`get_bd_intf_pins ps7/*` 给 **0**、`get_bd_addr_spaces` 为空，**而 `create_bd_cell` 照样 rc=0**（于是你在新会话里"又建了一遍"，谁都没报错）；同一次补一句 `save_bd_design` 之后，同一个文件变 **2186 字节** | 别拿"命令没报错"判断改动还活着；先数 cell，再看地址 |
+| **下一个会话里 BD 改动全不见了**（cell、地址、连接一起为空） | 有没有 `save_bd_design`。本机一组读数：一个只做了 create/connect/validate 的会话结束后，`.bd` 仍是 **317 字节**的桩；`open_project` + `open_bd_design` 之后 `get_bd_cells *` 给 **0**、`get_bd_intf_pins ps7/*` 给 **0**、`get_bd_addr_spaces` 为空，**而 `create_bd_cell` 照样 rc=0**（于是你在新会话里"又建了一遍"，谁都没报错）；同一次补一句 `save_bd_design` 之后，同一个文件变 **2186 字节**。**这两个字节数只对那一份 BD 成立，别当阈值用**（要复现的是"桩→有内容"这个方向，不是那个数）；而这组里 `get_bd_addr_spaces` 为空与 §2.2 那次同一个命令交出 `/gpio0/S_AXI /ps7/Data` **不是同一份设计的读数**（两臂各自成立，混在一句里就会读成矛盾）——按"数 cell"判，别把"地址空间非空"当唯一判据 | 别拿"命令没报错"判断改动还活着；先数 cell，再看地址 |
 | 新增端口综合后被剪掉 | 端口是否连到 BD 外部/顶层是否保留（未连的顶层端口会被优化） | 别加 `keep` 来掩盖没连这件事 |
 | 约束突然命中 0 个对象 | cell 改名、`make_wrapper` 之后层级多了一层 | 别改约束正则来"让它命中"，先确认层级 |
 | 地址对不上 | `assign_bd_address` 之后是否又手动挪段；导出是不是改之前的 | 别手改地址去迁就软件 |
