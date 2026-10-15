@@ -26,7 +26,12 @@
 
    **属性写法是主读数**：`fclk0_mhz`…`fclk3_mhz` 是 `_ClocksMeta` 上的 property，四路在两版里都存在
    （3.1.2 `ps.py:153/180/207/234`；4.0.0 `ps.py:247/274/301/328`）。它们返回的是实例层算出来的
-   `round(src_clk_mhz / (div0 * div1), 6)`（3.1.2 `ps.py:325-345`）。
+   `round(src_clk_mhz / (div0 * div1), 6)`（3.1.2 `ps.py:325-345`；源码里的形参名是
+    `pl_clk_odiv0`/`pl_clk_odiv1`，别按本包这两个缩写去 grep）。**"两版同形"有平台边界**：
+    4.0.0 另有 `class _ClocksVersal(_ClocksBase)`（`ps.py:779`）与它自己的 `get_pl_clk`（`:891`），
+    那里的公式只除一个分频（`round(src_clk_mhz / pl_clk_odiv0, 6)`）——所以本条读数是
+    Zynq-7000/ZynqMP 那条 `_ClocksBase` 路的；Versal 目标上别照抄这个算式（本机没有 Versal 可跑，
+    这一格只到源码为止）。
 
    `Clocks.get_pl_clk(i)` 在 **3.1 上恒为 `None`**：元类转发器把 `return` 写丢了
    （3.1.2 `ps.py:260-271`，末行是裸的 `cls._instance.get_pl_clk(clk_idx)`），4.0.0 补回来了
@@ -224,8 +229,8 @@
    "Unused - for backwards compatibility only"），**连警告都没有**；
    2.7.0 起同一个位置改成发 `DeprecationWarning`
    （2.7.0 `buffer.py:107-113`，文本 `.close no longer functional - use scopes to manage buffers`）。
-   两边都不调 `freebuffer()`（那一句在 `__del__` 里：2.5.1/2.7.0 `buffer.py:80-82`，
-   3.1.2/4.0.0 `buffer.py:63-65`）。它**没报错**恰恰是这条假绿的全部危险：
+   两边都不调 `freebuffer()`（那一句在 `__del__` 里：`def __del__` 在 2.5.1/2.7.0 `buffer.py:79`、
+   调用在 `:80`；3.1.2/4.0.0 分别是 `:62` 与 `:63`——**别把 `def freebuffer` 那一行（`:82`/`:65`）算进 `__del__` 的区间**）。它**没报错**恰恰是这条假绿的全部危险：
    长跑脚本的连续内存池一直在漏，直到某次无关的 `allocate` 报 `MemoryError`；
    **而在 2.5.1 上连那声警告都没有，日志里一个字都不会出现**（释放与作用域那一侧的口径见
    `buffers-and-cache.md`，它按 2.7.0 `buffer.py:107-113` 引的是同一件事的 warned 那一臂）。
@@ -248,6 +253,14 @@
    第三种组合最有信息量：`_interrupts` **非空**但 `ch._interrupt` 是 `None` → 元数据里有这根针，
    `Interrupt(details["fullpath"])` 构造时抛了 `ValueError`，驱动**打了个 warning 然后 `setattr(None)`**
    ——回去看加载时那条 `Interrupt ... not created`，它通常就是 `.dtbo` 与这一版 BD 对不上（§2 树 D）。
+   **这条 warn/置空的路在 `overlay.py` 的 `DefaultIP.__init__` 里，不在 `lib/dma.py`**（本机按行取过：
+   3.1.2 `:711-714`、4.0.0 `:708-711`，四行分别是 `setattr(... Interrupt(details["fullpath"]))` /
+   `except ValueError as e:` / `warnings.warn("Interrupt {} not created: {}"...)` / `setattr(self, interrupt, None)`）。
+   同一条 grep 在 `lib/dma.py` 里对 `"not created"` **命中 0 次**（正向对照就是上面 overlay.py 里那些行，
+   所以那个 0 是"这条不在那个文件"，不是"没扫到"）。
+   **版本边界**：2.5.1 的同一处（`overlay.py:649`）**没有 try/except**——那一版这个 `ValueError`
+   会直接穿出来，既不会有 warning，也不会有那个值为 `None` 的属性；所以在 2.5.1 上"看见 `ch._interrupt`
+   是 None"这条读数本身不存在。
 
 8. **`import pynq` 成功当成"装对了"** → 一个空的/不含 `__init__.py` 的 `pynq/` 目录也会导入成功
    （namespace package），随后所有名字都解析不到，看着像版本不对。判据：`pynq.__file__` 不是 `None`。
@@ -265,7 +278,11 @@
    判定行必须带计数：`checks=`、`mismatches=`。
 12. **重下位流之后继续用旧句柄** → `ol.<ip>` 由 `_IPMap.__getattr__` 懒建后 `setattr` 缓存，
    缓存挂在 `ol._ip_map` 上；`download()`/`reset()` 都不清它，也不重建 `_ip_map`
-   （`overlay.py` 里 `delattr` 0 次命中，同文件 `setattr` 8 次命中；两处 `__dict__` 只做 `__dir__` 枚举）。
+   （`overlay.py` 里 `delattr` 0 次命中，同文件 `setattr` **8 次**命中——**但这两族不是同一个对象**：
+   懒建缓存那 5 次在 `_IPMap.__getattr__` 里（4.0.0 `:797`/`:810`/`:814`/`:820`/`:826`），
+   另外 3 次是 `DefaultIP.__init__` 绑中断与 GPIO（`:708`/`:711`/`:714`）。
+   上面那条"旧句柄不刷新"只由**前 5 次**支撑；拿 8 这个总数当证据就是把两族混着数了。
+   两处 `__dict__` 只做 `__dir__` 枚举）。
    所以老句柄会**安静地**按上一次的 mmap 继续写，直到某个读数解释不通。
    例外要知道：`pr_download` 那条路会整块替换 `_ip_map`，之后取到的是新对象——
    但**动手的不是 `pr_download` 自己**（它只是转到对应 region 上；那句赋值在

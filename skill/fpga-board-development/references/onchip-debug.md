@@ -112,6 +112,11 @@ close_hw_manager
   `[Common 17-220] No such feature 'netlist'. Available features are: hsi ipintegrator ipservices
   labtools simulator xhub`。要 BD 那一族用 `ipintegrator`，要硬件管理器/ILA 那一族用 `labtools`；
   **没有 `netlist` 这个特性**（不少脚本里写着它）。
+  **但那条"可用清单"是"还没加载的那些"，不是允许名单**——这条本机用一次会话里的两臂钉住了：
+  进入会话先 `load_features nosuchfeature_a` 得到的是含 `labtools` 的六项；接着
+  `load_features labtools`（rc=0）；再问一次 `load_features nosuchfeature_b`，同一句话里的清单
+  **变成了没有 `labtools` 的五项**。所以"清单里没列某个名字"只说明**它已经加载了**，
+  不能读成"这一版不能加载它"；两页引用的清单不一样就是这个原因（`board-bringup.md` §2 那格）。
 - 一个工程里多个 `.bit`、或板上是菊花链时，`program_hw_devices` 的目标要**显式取**，
   不要接受默认第一个。
 - 易失与持久要分清：JTAG 下载掉电即失（SD/QSPI 里的版本才会回来），见
@@ -351,6 +356,8 @@ write_debug_probes -force ./design             ;# ⑪ 产出 design.ltx；判据
   `Net Name` 那一格非空就是真连上了；`-file <路径>` 同理会落一份文件。
   `-full_path` 取过**两次**，两次都是"加了等于没加"：一份设计上 4489/4489 字符，另一份（连接补齐之后的
   `a4` 那份 checkpoint）4537/4537 字符、**92 行对 92 行、逐行比 0 处不同**——网名本来已是全路径形状。
+  另有一路复核在同一份 dcp 上用 `$a eq $b` 直接判等，结果也是"两串完全相同"（**那是别人的读数，
+  这里只当旁证**：那一路没有再打印长度，所以它支持"无差值"这个形状，不支持具体字符数）。
   **所以别默认加了它信息就更多**，两版各取一次长度再决定用哪个。
   这一族的选项边界也钉过：同一次会话里 `-name` 与 `-of_objects` 都报
   `[Common 17-170] Unknown option`（这就是"上面那条 0 差值不是命令跑不动"的正向对照——
@@ -568,6 +575,11 @@ for execution. It is recommended to use 'exec' to send the command to the OS she
 在别的机器上那一步可能真跑出副作用（比如那个名字在 OS 上确实存在）。所以探针脚本里**不要靠"命令不存在所以安全"来省略检查**。判"它在不在"用 `catch` **真调一次**看交回什么；
 注意别改用 `info commands <名字>` 单独下结论——本页 §1 那条已经钉过：惰性加载会让它在命令明明可用时
 交出空（`wait_on_run` 就是反例）。
+**还有一种更安静的坑：`info commands` 看不见 ensemble 的子命令**（本机实取）：
+`info commands {file exists}`、`{file stat}`、`{file mtime}` 全部返回**空串**，
+而同一会话里 `info commands file` 返回 `file`、`catch {file exists <一个真的文件>}` 是 **rc=0、值 1**——
+`file` 是个 ensemble，子命令不是全局命令名。所以"`info commands` 说没有"这一条
+在**三种情形**下都不构成否定：惰性加载、名字被前缀解析吃掉、以及这里的 ensemble 子命令。
 要在 Tcl 里比"是不是的产物"，取 `mtime`+`size` 这一对，
 真要比哈希得回到 shell 侧（`board-bringup.md` §1 那套）。
 

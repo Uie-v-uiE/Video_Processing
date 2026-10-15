@@ -145,7 +145,9 @@ print("checks=%d mismatches=%d" % (checks, int(((got != ref) & mask).sum())))
 
 别写成 `finally: src.close()`——`close()` 在 3.1 与 4.0.0 里只发一条 `DeprecationWarning`，
 什么都不释放（`buffers-and-cache.md` §2）。通道判空写 `is not None`：构造函数在没使能那一侧时
-就是把属性赋成 `None`（`lib/dma.py:639-641`），`is not None` 直接说出这件事；
+就是把属性赋成 `None`（3.1.2 与 4.0.0 都是 `lib/dma.py:639-640`：`self.sendchannel = None`、
+ `self.recvchannel = None`；**2.7.0 这一对整体前移到 `:617`，2.5.1 里根本没有这两行**——它的通道是直接在
+ 构造里建起来的，所以这句不能往 2.5.1 上抄），`is not None` 直接说出这件事；
 `bool(x)` 在这一刻也能用（`bool(None)` 恒为 `False`，这是语言保证，不是巧合），
 但它问的是"真值"而不是"有没有这一侧通道"，读代码的人要靠推断才能确认你的意图。
 

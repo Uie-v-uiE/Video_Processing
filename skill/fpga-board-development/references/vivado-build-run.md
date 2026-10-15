@@ -46,10 +46,16 @@ set_property TOP top_wrapper [current_fileset]
   `Synth Design complete`）。所以判"这次到底成没成"要读**最后那一步**对应的那条，
   并把这一串值原样抄进记录；产物文件的时间戳是第二道读数（比较对象：它要晚于你最后一次
   `launch_runs`，不是"看起来是新的"）。
-- **`get_property <不在清单里的属性名> <对象>` 不报错。** 本机实测：`get_property PROBES_FILE
-  [get_runs impl_1]` 与一个瞎写的名字返回**同样**的 `WARNING: [Common 17-673]` 加空值，而
-  `list_property [get_runs impl_1]` 里根本没有这一项。所以"读回来是空"永远不能单独当结论——
-  先用 `list_property <对象>` 确认属性名在清单里，再谈它等于什么。
+- **`get_property <不在清单里的属性名> <对象>` 的失败形状按对象类不同**（本机一次会话里逐类取过）：
+  `run` 与 `fileset` 上**什么都不报**——`IS_IMPL`、`PROBES_FILE`、`NOT_A_REAL_PROPERTY_AT_ALL`
+  三个瞎写的名字都是 **rc=0、值为空串、一条消息都没有**（同一批名字对着 `list_property` 数：
+  `run` 98 项、`fileset` 21 项，都不含它们）；`project` 上却是 **rc=1 +
+  `ERROR: [Common 17-54] The object 'project' does not have a property 'PROBES_FILE'.`**。
+  同一个探针形状在两类对象上**一个响一个不响**，所以"读回来是空"不能单独当结论，
+  **也不能靠"有没有报错"判名字对不对**——唯一判据是 `list_property <对象>` 的清单。
+  （另有一路复核报过"在 run 上瞎写名字也给 `WARNING: [Common 17-673]` 加空值"；本机这一臂
+  两次都没重现那条消息。**把它读成"有时候会多一条 WARNING"，不要读成判据**——两种读数下
+  `list_property` 给的答案是同一个。）
   判"这一版有没有调试核"用的是 `.ltx` 与 `get_hw_ilas`，见 `onchip-debug.md` §3。
 - **不要用 GUI 里点出来的设置当基线。** GUI 的选项落在工程文件里，看不见就等于"没设"。
   要可重复就把它们写成 `set_property`（下一条），并在记录里留这份 tcl。
@@ -390,6 +396,7 @@ bash 那一侧同形：`ls out/**/run.sh` 在未 `shopt -s globstar` 时给 `No 
 | `wait_on_run` 返回但 `STATUS` 仍未完成 | 超时/队列异常/子进程还在 | 再看一次 `STATUS`；别急着重发同一命令 |
 | 重跑同一 run 结果"莫名变好" | 上一跑的产物被复用 | `reset_runs` 后重跑，比较前后报告 |
 | 同一策略重跑两次，报告只差两行 | 本机两组读数，**差几行取决于两次的命令行是否相同**：① `reset_runs impl_1` 之后 `launch_runs impl_1 -to_step route_design` 再跑一遍、两份 `report_timing_summary` 的 `-file` 给了两个不同路径：各 **337 行**，逐行比落在 **2 行**——第 4 行 `Date` 与第 6 行命令回显，WNS `7.746`、TNS `0.000` 两边**逐字相同**；② 同一 run 目录里的默认那份（`cnt3_timing_summary_routed.rpt`，两次的命令行完全一样）：各 **621 行**，逐行比只落在 **1 行**——第 4 行 `Date`（`07:31:49` vs `07:33:17`），第 6 行命令回显**逐字相同** | **别把读数差异当"正常波动"吸收掉**：同机、同版本、同策略、`reset_runs` 干净重跑本来就该一致，**命令行相同时只差 `Date` 一行；差到第二行先查两次调用本身是不是同一句（`-file` 路径、`-to_step` 之类），差到第三行才是有一个输入变了**（directive、工具版本、IP 版本、增量状态、part 重选）——去查那一个变量，而不是再跑第三次凑多数。行数本身是设计相关的（上面 337 与 621 就是两份不同设计），别把行数当判据。"这一处改动值不值得再开一轮"是另一问，走 `constraints-timing.md` §5（它估收益上限，不比读数） |
+| `launch_runs <综合 run> -to_step write_bitstream` 报 `[Vivado 12-1015] Invalid step 'write_bitstream'. Valid steps are: synth_design`，后面还跟一条 `[Common 17-69] Command failed: Run 'impl_1' is not active` | `-to_step` 的合法值**是按你发的那个 run 的流程校验的**，不是全局步骤名清单；那条 `impl_1 is not active` 是它顺带说的第二件事，别只盯着它 | 想要比特流就发实现 run（`launch_runs impl_1 -to_step write_bitstream`）或干脆不带 `-to_step`；判"这个 run 能到哪些步"就照 12-1015 打给你的那份清单读，**它给的就是那个 run 的合法集合** |
 | 并行两个 run 抢同一份中间文件 | 竞态 | 串行，或用不同 run 名；见 `board-bringup.md` §5 |
 | 探针脚本自己把会话弄死，而且死在**下一行无关命令**上 | 本机实测的最小对照：六行脚本（定义一个过程、`read_verilog cnt.v`、`synth_design`、`puts`）**只换过程名**——叫 `try` 时第一条 `read_verilog` 报 `[Common 17-685] Unable to load Tcl app xilinx::xsim` 加 `[Common 17-69] Command failed`，`-mode batch` 直接 rc=1，后面每条读数全没打印；叫 `tcall` 时同一份脚本 rc=0、`synth_design` rc=0 | 探针脚本别覆盖 Tcl 内建/工具已占用的名字；见下面那段"名字占用"的取法 |
 | `catch` 抓到的 msg 字段只有一条包装 | 真错在它上面那一行 | 见 `onchip-debug.md` §1 规则第一条末尾（`17-39` 包住 `44-199` 那次）；判据要落错误编号就去日志里取上一条 `ERROR:` |

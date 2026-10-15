@@ -74,6 +74,16 @@ md5sum -c board/fp.txt                              # 问：这几个文件换�
   **`program_cfgmem` 这个名字不存在**：加载 labtools 之后直接调用得到 `invalid command name "program_cfgmem"`，
   要的那条带 `hw_`。`write_cfgmem -arch bogus` 报 `[Common 17-170] Unknown option '-arch'`
   （`-arch` 属于 `bootgen`，不属于这一族）。
+  **三条补充读数**（另一路复核在本机重跑得到，本页按原文记）：
+  ① `load_features` 失败时那句 `17-220` 里的 "Available features are: …" **是"还没加载的那些"**，
+  不是允许名单——加载过 `labtools` 之后再问一个错名字，清单里就没有它了。逐臂读数与归属在
+  `onchip-debug.md` §1 那条 `load_features` 下面，本页不重抄。
+  ② 想证明这一族注册上了，除通配计数还有一条更硬的：加载之后**不带参数**调 `program_hw_cfgmem`
+  得到 `[Labtoolstcl 44-346] Config mem object incorrect`——这已经不是"没这条命令"的形状。
+  ③ `write_cfgmem -help` 的形状是 `[-force] -format <arg> -size <arg> [-interface <arg>] [-checksum]`：
+  **`-format` 与 `-size` 都标 Required**，`-format` 合法值 `[ BIN | HEX | MCS ]`。
+  上面表格里只写了 `-format`，抄脚本时别丢 `-size`。（那一路本机把三种 `-format` 各调过一次，
+  但**产物文件没有逐个核过**——真正要的是板侧编程，本机没 flash 也没接板。）
 - **xsdb**（本机这个 2025.2.1 的 xsdb 在 `<安装根>/Vivado/bin/xsdb.bat`，随 Vivado 一起装、**不在 PATH 上**）：
   这一族**一个都没有**——`info commands *cfgmem*` 交出空，`cfgmem`、`pcfgmem`、`program_cfgmem`、
   `program_hw_cfgmem`、`write_cfgmem` 逐个查都是 0，直接调用 `program_cfgmem` 与 `program_hw_cfgmem`

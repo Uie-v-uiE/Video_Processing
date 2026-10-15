@@ -42,6 +42,10 @@ SystemVerilog 写法要不要 `-sv`，**两个工具的答案不一样**，别�
   **`$fatal` 不需要 `-sv`**——xvlog 与 vlog 都接受它，本机不加 `-sv` 也能跑并打出 Fatal。
 - ModelSim 的 `vlog` 按**文件扩展名**自动切：同一段含 `final`/`int`/`logic`/`$fatal` 的代码放进
   `.sv` 文件，不加 `-sv` 也是 `Errors: 0`；放进 `.v` 才报 `Errors: 5` 并退 2。
+  **`Errors:` 后面那个数不是判据，别抄它**：本机第二次拿一小段只有 `final $display(...)` 的代码重做，
+  `.v` 给的是 `Errors: 2`（两条：`vlog-13069 near "$display"` 与 `vlog-13205` 那条 scope 错）、
+  同一段放 `.sv` 仍 `Errors: 0`；**两次的返回码都是 2**（`.v` 那次单独取过 `rc=2`）。
+  所以稳的是"`.v` 里放 SV 构造 → 非零返回码"，那个 5 属于第一段代码。
   所以"vlog 必须加 -sv"这句在本机不成立，成立的是"文件名与内容要配套"。
 
 用 Verilog-2001 就按上面那样在 `$finish` 前打印；上 SystemVerilog 就整个工程统一（扩展名、`-sv`、
@@ -206,8 +210,22 @@ xsim sim_net -R
   指的就是这些目录，说明路径传对了、头文件没被铺出来）。日志里工具自己也给了下一步：
   "Please recompile with `-mt off -v 1` switch to identify which design unit failed"。
   **所以这条的读数是**：带 `sim_tlm` 那族 C 源的 IP 库编译在这台机器上不成，成不成的判据不在返回码上
-  （`17-39` 把什么都包成一句）；绕法是 `-no_ip_compile`（就在上面那张表里），
-  那一臂本机**还在跑**——它出来之前，不要把"`compile_simlib` 可用"写进任何脚本。
+  （`17-39` 把什么都包成一句）。
+  **绕法已跑通并且这次连"编出来能用"都验到底了**（`-no_ip_compile` 就在上面那张表里）：
+  `compile_simlib -simulator xsim -directory <已建好的目录> -no_ip_compile` → **rc=0**、
+  日志里 **0 个 ERROR**，目录里落 12 个库目录（`secureip`/`simprims_ver`/`unifast`/`unifast_ver`/
+  `unimacro`/`unimacro_ver`/`unisim`/`unisims_ver`/`xilinx_vip`/`xpm`）加 `xsim.ini`、`xsim.ini.map`、
+  `compile_simlib.log`；`xsim.ini` 的内容就是 `unisims_ver=<那个目录>/unisims_ver` 这样的映射行，
+  每个库目录里是 `.rlx`/`.sdbl`/`.sdbx` 这些 xsim 的库文件。
+  **但"rc=0 + 有目录"还不是"库可用"，可用要这样验**（本机全部实跑）：把一个含 `BUFG` 的小设计
+  `xvlog --relax c2.v`（rc=0），再把那份 `xsim.ini` 放到当前目录，然后
+  - `xelab --relax work.c2 -s s` → **rc=1**：`[VRFC 10-2063] Module <BUFG> not found while processing
+    module instance <bu>` 加 `[XSIM 43-3322] Static elaboration … failed`；
+  - `xelab --relax -L unisims_ver work.c2 -s s` → **rc=0**、`Built simulation snapshot`。
+  也就是说 **`xsim.ini` 只负责"名字→目录"，`-L` 才是"这次 elaborate 去查这个库"**，少一个就是上面那条红。
+  另外记一条命令面：**`xelab` 不吃 `-lib_map_path`**（`ERROR: [XSIM 43-3985] Problem with usage of
+  options: unrecognised option '--lib_map_path'` 之后直接把整页 usage 打出来），
+  `compile_simlib` 那边有这个名字，两边不通用。
   **`export_simulation` 本机五次调用，前四次都红，第五次通了**，通的配方与那四条红读数一起留着——
   四条红正好各指一个前提：
   `-simulator bogus` → `[Vivado 12-23824] Invalid simulator specified 'bogus'! Please type
