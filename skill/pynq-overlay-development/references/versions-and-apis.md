@@ -164,14 +164,34 @@ loaded")` 的属性再跑同一段，未加 `try` 之前脚本在第二个名字
 能同时做到"好安装为绿、真出问题为红"的写法是把清单分成两份，只对第一份判：
 
 ```bash
-python probe_names.py > names.txt          # 每行 "<名字> <状态>"
-# must_have.txt = 这一版应当解析得到的名字；expected_absent.txt = §2.1 迁移表能解释"为什么没有"的名字
-grep -F -f must_have.txt names.txt | grep -q ' ABSENT' \
-  && echo "VERDICT: FAIL missing_api" || echo "VERDICT: ok"
+# 上一节那段采集脚本要**存成文件**才能在这里被引用（本包先前直接写 `python probe_names.py`，
+# 而那段脚本在包里没有名字也没有落盘步骤——`find . -name 'probe_names*'` 在自己工程里数不到就是这件事）：
+# 把它存成 probe_names.py，每行打印 "<名字> <状态>"。
+python probe_names.py > names.txt
+# must_have.txt = 这一版应当解析得到的名字（一行一个）；
+# expected_absent.txt = §2.1 迁移表能解释"为什么没有"的名字（不参与判定）
+if grep -q '^NOT_RUN' names.txt; then echo "VERDICT: NOT_RUN"; exit 1; fi
+missing=0
+while read -r n; do
+    grep -Fxq "$n OK" names.txt || { echo "MISSING $n"; missing=1; }
+done < must_have.txt
+if [ "$missing" -eq 0 ]; then echo "VERDICT: ok"; else echo "VERDICT: FAIL missing_api"; exit 1; fi
 ```
 
-这条判据要按老规矩自证能红：在同一台机器上往 `must_have.txt` 里塞一个**故意写错的名字**
-（`pynq.MMIO.raed`），它必须打出 `VERDICT: FAIL`；把同一个名字改对之后它回到 `ok`。
+**先前这里给的是另一条写法，本机自己复现出它的假绿：**
+`grep -F -f must_have.txt names.txt | grep -q ' ABSENT' && echo FAIL || echo ok`
+——`names.txt` 里只有一行 `NOT_RUN …`（就是上面那条"装成 namespace package、脚本 `sys.exit(3)`"的臂）时，
+第一个 `grep` **一行都不匹配**，第二个 `grep -q` 拿到空输入返回 1，
+于是整条判据打出 **`VERDICT: ok`**（本机 `OLD-GATE on dead: ok`）。
+**它把"什么都没测到"读成了"全都在"**，而且它的自证红臂也是反的：
+往 `must_have.txt` 里塞一个故意写错的名字，错的名单行同样匹配不到任何东西，还是 `ok`。
+上面那条换成了**逐名核对 `"<名字> OK"`**（`grep -Fxq` 要整行相等，不是子串），
+并且**先单独判 `NOT_RUN`**。三臂本机都跑过：装对的一臂 `VERDICT: ok`（rc=0）、
+故意错名的一臂 `MISSING pynq.MMIO.raed` + `VERDICT: FAIL`（rc=1）、
+`NOT_RUN` 那一臂 `VERDICT: NOT_RUN`（rc=1）。
+**判"能不能红"的口径也要按这三条读**：门禁必须有一条**非零退出**，只打印字样不算。
+这条判据要按老规矩自证能红：在同一台机器上往 `must_have.txt` 里塞一个**故意写错的名字**，
+它必须打出 `VERDICT: FAIL` **并且返回码非 0**；把同一个名字改对之后它回到 `ok`。
 只跑一次绿不算这条门禁存在。
 
 | 状态 | 含义 | 拿它当什么 |
