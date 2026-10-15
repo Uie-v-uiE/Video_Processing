@@ -61,8 +61,9 @@ else:
 以及 `getattr(channel, '_max_size', None)`（实例属性，类上看不见——
 **赋值点就在两个构造函数里**：SDMA 侧 `lib/dma.py:51`、SG 侧 `:238` 都是 `self._max_size = max_size`。
 **类体里没有这个名字，这不是"属性不存在"**：同一棵树上对 `_SDMAChannel` 做类体枚举，
-得到的是 `__init__/running/idle/error/start/stop/_clear_interrupt/transfer/wait/wait_async`，
-类级属性赋值 0 条——所以 `dir(_SDMAChannel)` 看不见任何上限类字段是**这个类的写法**，
+得到 `__init__/running/idle/error/start/stop/_clear_interrupt/transfer/wait/wait_async`
+（其中 `running`/`idle`/`error` 是 `@property`，`wait_async` 是 `async def`，其余是普通方法），
+**类级属性赋值 0 条**——所以 `dir(_SDMAChannel)` 看不见任何上限类字段是**这个类的写法**，
 不是"这个通道没有长度上限属性"（上限真实存在，只是挂在实例上）。
 **真正拦你的也是 `_max_size` 而不是 `buffer_max_size`**：`transfer()` 里那一句是
 `:141 if nbytes > self._max_size:`，抛的消息（`:142-145`）**逐字**是
