@@ -56,13 +56,19 @@ license: MIT
    3.0.1/3.1.2/4.0.0 各 3 处；同一批扫描里 `xclFreeBO` 全树 = 5/5/6/**0**/**0**）：
    3.0.1 的 `buffer.py:82` 直接 `xrt.xclFreeBO(...)`；3.1.2/4.0.0 的 `buffer.py:82` 是 `del self.bo`，
    **但这条链的下一环不在 Python 里**：`ExecBo` 这一类在 3.1.2/4.0.0 只有定义
-   （`pl_server/xrt_device.py:154`）而**没有任何构造点**（`grep -an "ExecBo(" xrt_device.py`：
-   3.1.2 与 4.0.0 都只回定义那一行），所以**这两版**的 `ExecBo.__del__` 是**死码**；
+   （`pl_server/xrt_device.py:154`）而**没有任何构造点**。证据要按真实命令写：
+   `grep -an "ExecBo(" pynq-<版>/pynq/pl_server/xrt_device.py` 交回 **2.5.1 [529] / 2.7.0 [581] /
+   3.0.1 [596] / 3.1.2 [] / 4.0.0 []**——**那两版是 0 行，不是"只回定义那一行"**（定义行是
+   `class ExecBo:`，2.5.1/2.7.0/3.0.1/3.1.2/4.0.0 分别在 `:198`/`:197`/`:186`/`:154`/`:154`，
+   带括号的模式匹配不到它；要数定义行得用 `grep -an ExecBo`），，所以**这两版**的 `ExecBo.__del__` 是**死码**；
    **先前写"3.0.1 才有 `:596` 那句构造"是错的，收回**：2.5.1 在 `xrt_device.py:529`、2.7.0 在 `:581`、
    3.0.1 在 `:596` 三处都真的构造它（同一条 grep 逐棵树各回一行），所以那三版的 `__del__` 不是死码，
    先前把它写成"归还靠 `ExecBo.__del__` → `_free_bo`"是错的，收回。
    真实形状是：`self.bo` 来自 `pyxrt.bo(...)`（`:345`，失败才是那条 `BO allocation failed:`），
-   归还发生在 C++ 侧引用归零时，Python 树里**看不到显式释放**；唯一的显式出口是同文件
+   归还发生在 `pyxrt` 那一侧、引用归零时（**机理，本机读不到**：`pyxrt` 这个名字只在 3.1.2/4.0.0 的
+   `pl_server/xrt_device.py` 里出现（各 1 个文件），2.5.1/2.7.0/3.0.1 是 **0 个文件**，五棵树里都没有它的
+   源码或桩；正向对照就是同一条 `grep -rl pyxrt pynq-<版>/pynq` 在那两版能命中文件）——
+   Python 树里**看不到显式释放**；唯一的显式出口是同文件
    `:84` 的 `weakref.finalize(buf, _free_bo, device, bo, ar.virtual_address, ar.nbytes)`——
    **而它只在 `pointer is not None` 时挂**（`:83`），`_free_bo` 本体是 `libc.munmap` + `del bo`（`:91-93`）。
    所以"退出 `with` 之后一定有人 unmap"这句要按那一档分开说：3.0.1 显式 `xclFreeBO`；
@@ -75,7 +81,10 @@ license: MIT
    先前这里写的"普通 `allocate()` 出来的缓冲依赖引用归零"把两样混成一句，**收回**；
    2.5.1/2.7.0 的 `buffer.py` 里既没有 `munmap` 也没有 `xclFreeBO`（BO 的归还那一步在
    `pl_server/xrt_device.py`：2.5.1 `:142`、2.7.0 `:140` 都是 `xrt.xclFreeBO(device.handle, bo)`），
-   本包关于 `munmap` 的那段分析在那两版不适用。
+   **`buffer.py` 里**没有 `munmap`（那段分析在 `buffer.py` 这一层不适用）——但**别说成"那两版不 munmap"**：
+   2.5.1 `pl_server/xrt_device.py:140-142`、2.7.0 `:138-140` 的 `_free_bo` 就是
+   `libc.munmap(...)` 之后接 `xrt.xclFreeBO(device.handle, bo)`，只是它挂在 `weakref.finalize`
+   上（2.5.1 `:136` **无条件**；2.7.0 `:129-130` 只在 `pointer` 形参非 `None` 时挂）。
    而 `CmaFree` 是不是同一个池本包没核实（见路由表那格），
    一条永远不红的判据不算判据——**先给它做一次最小破坏**：故意留一份引用不释放（或反过来，跑一遍
    正常释放），看那个数真的会动，才说明这条判据看得见释放；两臂的口径要写在一起

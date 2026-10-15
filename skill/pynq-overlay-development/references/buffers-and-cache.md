@@ -91,6 +91,12 @@ def allocate(shape, dtype="u4", target=None, **kwargs)    # pynq/buffer.py:138�
     （2.7.0 `pl_server/device.py:292 return self.default_memory.allocate(...)` →
     2.7.0 `pl_server/xrt_device.py:170 buf.memory = self`），
     **只有 2.5.1 还带 Xlnk 那一层**）——
+   **逐版坐标要按版搬**（裸号一律取 4.0.0，这三处的其它版是）：`_xrt_allocate` 定义行
+   2.7.0 `xrt_device.py:111`（finalize `:129-130`、`ar.pointer` `:132-134`）、3.0.1 `:92`
+   （`:116-117`、`:118-120`）、3.1.2 与 4.0.0 `:59`（`:83-84`、`:85-87`）；
+   `lib/video/drm.py` 那个 `view(PynqBuffer)` 家族在 2.5.1 `:195-198`、2.7.0 `:215-218`、
+   3.x/4.0.0 `:186-189`；`lib/video/dma.py` 的 `pointer=`/`cache=` 在 2.5.1 与 2.7.0 是 `:57`/`:61`，
+   在 3.x/4.0.0 是 `:33-34`/`:42`。
    （2.7.0 的交接行是 `pl_server/device.py:292 return self.default_memory.allocate(shape, dtype, **kwargs)`
    → 2.7.0 的挂 `memory` 行是 `pl_server/xrt_device.py:170 buf.memory = self`；
    **这两个号在 2.5.1 各往后错一行（`:293`/`:171`）**，搬版本会取到 `return buf`（2.7.0 `:171`）
@@ -160,7 +166,12 @@ def allocate(shape, dtype="u4", target=None, **kwargs)    # pynq/buffer.py:138�
    所以规范写法不变：切片对象本身交给 DMA，释放由**持有原始对象的那一层**做（退出 `with`），
    在视图上调 `freebuffer()` **在板端 3.0.1+ 上是一次无效动作**（2.x 那档挂了 `pointer` 的视图除外，见上），
    不要把它当"已经回收了"（本页 §3 第 2 条同口径）。
-   `reshape` 不改变地址，只改形状。
+   `reshape` **在不触发拷贝的那条路上**不改变地址，只改形状。
+   **补一条本机实测的坑（原先整个枚举漏了它）**：`ravel()`/`flatten()` 在**步长视图**上
+   既保留子类、又按"虚拟地址差"重算地址，于是交出的是**看着正常实际是垃圾**的数——
+   照 `buffer.py:50-57` 写的镜像类上量到 `ravel()` 后 `device_address=-112720752`、
+   `offset=-381156208`（`flatten()` 同形）。这和 `copy()`/`require()` 是同一族危险：
+   比"丢了属性"更坏，因为属性还在、值是假的。
 - `target=None` 用 `Device.active_device`；这就是"同一行代码在板端和在远程模式下分到不同内存"的入口。
 - 物理地址属性名是 **`physical_address`**（`buffer.py:89-91`，DMA 内部用的就是它），
    不是 `phys_addr`（那是 `ip_dict` 里 IP 基址的键名）也不是 `phys_address`。
@@ -217,7 +228,8 @@ del buf    # 靠 __del__ -> freebuffer()，时机由解释器定
    真在 Python 之外的是 `pyxrt.bo`/`map_bo` 那一步（`:345` 一族）；所以**"板上退出 `with` 之后确实把映射解掉了"
    这句本机没有读数**（没有板子）；要在板上确认就用 §2 那条能数的观测点，别把这条链当成结果。
    要当心的是另一种运行方式——**远程模式返回的类根本不是 `PynqBuffer`**：
-   `RemoteDevice.allocate` 造的是 `RemoteBuffer(np.ndarray)`，它的 `__del__` 调 `self.freebuffer()`，
+   `RemoteDevice.allocate` 造的是 `RemoteBuffer(np.ndarray)`，它的 `__del__`（4.0.0 `:1134-1139`、3.1.2 `:810-815`）外面是
+   `if hasattr(self, 'freed') and not self.freed:` + `try: self.freebuffer() except Exception: pass`，
    而那个 `freebuffer` 是一次 **gRPC 调用**。**两组坐标按版本分开抄**（同一个文件在两版里行数差很多，
    3.1.2 那份只有 917 行，照 4.0.0 的行号去取会取到不存在的东西）：
 
