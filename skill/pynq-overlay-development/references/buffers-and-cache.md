@@ -69,7 +69,7 @@ def allocate(shape, dtype="u4", target=None, **kwargs)    # pynq/buffer.py:138�
    **另有一条与 numpy 版本相关的坑，本机是在这个桩上撞出来的**：numpy 2.1 起
    `ndarray` 自带一个**只读**的 `device` 属性（本机 2.5.3：`np.arange(4).device` → `'cpu'`，
    赋值报 `AttributeError: attribute 'device' of 'numpy.ndarray' objects is not writable`），
-   而 `buffer.py:55` 那句是 **`self.device = obj.device`**——
+   而 4.0.0 `buffer.py:56` 那句是 **`self.device = obj.device`**（`:55` 是 `self.offset = obj.offset + offset`）——
    **照这段代码建子类视图时，本机在桩上得到的就是这个 AttributeError**。
    真实 `PynqBuffer` 在 numpy≥2.1 的板上会不会走到这一行，**本机没有板、没有读数**（标 机理/需板端）；
    要做的是在目标上现采一次：`python3 -c "import numpy as np; print(np.__version__)"` 与
@@ -97,21 +97,31 @@ def allocate(shape, dtype="u4", target=None, **kwargs)    # pynq/buffer.py:138�
    或空行（2.7.0 `:293`）——先前这里按 2.5.1 的号写 2.7.0，两行都差一行，已改）：
    **但"拿视图去调它会局部解除映射"这个结论整段收回**：`freebuffer()` 的 unmap 主体整个包在
    `:73` 的 `if hasattr(self, "memory"):` 里，而 `memory` 是**分配器**只设在原始对象上的那一句
-   （4.0.0 `pl_server/xrt_device.py:125`，2.7.0 同一链在 `:171`），`__array_finalize__`（`:50-57`）
+   （4.0.0 `pl_server/xrt_device.py:125`，2.7.0 同一链在 `:170`，3.0.1 在 `:157`），`__array_finalize__`（`:50-57`）
    **既不搬 `memory` 也不搬 `freed`**（`freed` 在 `__new__` 的 `:47` 设，`memory` 从不进 `__new__`）。
    主机桩实测（结构照 `:38-82` 抄，numpy 2.5.3；`device` 改名 `dev` 绕开 numpy≥2.1 的只读属性——
    逐字保留 `self.device = ...` 的那份在 2.5.3 上**构造即失败**，逐字文本在本条上面那条；
    `libc.munmap` 换成记录器）：`view.freebuffer()` ⇒ `munmap calls = []`、`orig.freed` 仍 `False`、
    `view.bo` 还在；步长视图同样空转。**它不报错不是因为安全，是因为什么都没做。**
-   **但这条"空转"只成立于板端 3.0.1+，且只对没有 `pointer` 的对象**（与 `SKILL.md` §1 第 7 条同口径）：
+   **但这条"空转"只成立于板端 3.0.1+**（决定进不进得了门的是 `hasattr(memory)` 那一关，**不是 `pointer`**；
+   进了门之后 `pointer` 才决定走 `:74-77` 还是 `:78-82`）：
    2.5.1 与 2.7.0 的 `freebuffer` **没有 memory 门**：`buffer.py:90` 是这两版里唯一的判断
    （`if hasattr(self, 'pointer') and self.pointer:`）——**但"谁带 `pointer`"这两版完全不同，别当一个档用**：
    2.5.1 的 `allocate()` 经 `pl_server/device.py:293` 交给 `default_memory`，而那一版的它**就是 Xlnk**
-   （2.5.1 `pl_server/device.py:574 self.default_memory = Xlnk()`；2.7.0 那行换成 XRT 那条链）
+   （2.5.1 `pl_server/device.py:574 self.default_memory = Xlnk()`；**这一条有前提**：那一版同时带着
+   `XrtDevice`，谁当 `active_device` 由 `_probe_`/`_probe_priority_` 决定（机制在 2.5.1 `pl_server/device.py:51-78`），
+   而走 XRT 那条时 2.5.1 的 `_xrt_allocate(shape, dtype, device, memidx)`（`xrt_device.py:122`）
+   **根本没有 pointer/cache 形参**，普通缓冲就不带 `pointer`、`:90` 整段空转，归还靠它 `:136` 那条
+   **无条件**的 `weakref.finalize`；2.7.0 那行换成 XRT 那条链），
    ⇒ `xlnk.py:255-297` 的 `cma_array` 在 `:296-297` **无条件**挂〔`xlnk.py` 与 `lib/logictools/` 都不在 4.0.0 那棵树上：前者只在 2.5.1，后者整目录在 4.0.0 已删——本行的号取自 2.5.1 的副本外〕
    `view.pointer = pointer`（`:289` 是 `ffi.gc(...)` 句柄，真值）与 `view.return_to = cache`（默认 `None`）
    ⇒ **"带 pointer"在 2.5.1 是常态不是特例**；而 `:91 if self.return_to:` 为假 ⇒ 退回缓存那步被跳过，
-   只剩 `:93 self.pointer = 0`：**丢掉 `ffi.gc` 句柄之后，那块 CMA 什么时候还得由 GC 决定，不是同步释放**
+   只剩 `:93 self.pointer = 0`：**这一句连"还回去"都谈不上**——`cma_array` 在 `:290` 用
+   `self.cma_get_buffer(pointer, length)` 造数组，那块 buffer 成了数组的 `base`，
+   **主机桩实测同一形状**（ctypes buffer + `np.frombuffer`，numpy 2.5.3，偏离：堆内存不是 CMA、
+   finalizer 换成引用计数观察）：出生时 `sys.getrefcount` = **3**（局部名 + `arr.base` + 调用参数），
+   把属性置 0 只去掉一份引用，**数组还活着 → 句柄活着 → `cma_free` 不触发**；要等数组连同它的
+   所有视图一起消失才轮到 finalizer（这是 Python 引用语义，板上真实时机仍需现读 `CmaFree`）
    （源码读；板上要判就现读 `CmaFree`，别把"调用返回了"当成"还回去了"）。
    2.7.0 的 `allocate()` 不挂 `pointer`，所以它上面的普通缓冲在 `:90` 那一关直接返回、什么都不做。
    **还有只属于 2.5.1 的一条**：它的 `__exit__`（`buffer.py:146-147`）调的是 `self.free_buffer()`，
@@ -188,7 +198,9 @@ del buf    # 靠 __del__ -> freebuffer()，时机由解释器定
 2. `jupyter`/长跑脚本里 `close()` 的"没报错"会被当成"已经释放了"，于是有人把"池子越用越少、
    最后在某次无关的 `allocate` 上炸"当预期后果（**这是机理与常见叙事，不是本机的读数**——本机没有板子，
    也没量过池子曲线）。**但"有没有走到 `freebuffer()`"不是一条判据**——`with` 退出时它必然被
-   调用（`__exit__` 就是调它），所以这个计数出生以来没红过，属于装饰性检查。
+   调用（3.x/4.0.0 的 `__exit__` 就是调它；**2.5.1 是例外**——它的 `__exit__`（`buffer.py:146-147`）调
+   `free_buffer()`，那个名字不在类上，块一退出先 `AttributeError`，**根本走不到 `freebuffer()`**），
+   所以在 3.x/4.0.0 上这个计数出生以来没红过，属于装饰性检查。
    真正的释放还有一道门（**只在板端 3.0.1+**；2.5.1/2.7.0 没有这道 `memory` 门，它们的门是
    `if hasattr(self, 'pointer') and self.pointer:`，远程档两样都没有——三档见上面 §1 那条与 `SKILL.md` §1 第 7 条）：
    `freebuffer()` 的 unmap 主体整个包在 `if hasattr(self, "memory")` 里。
@@ -200,7 +212,9 @@ del buf    # 靠 __del__ -> freebuffer()，时机由解释器定
    （`pl_server/xrt_device.py:113`）`→ buf.memory = self`（`:125`，紧跟在 `:124` 那句 `_xrt_allocate(...)` 之后）。
    `EmbeddedDevice` 就是 `XrtDevice` 的子类（3.1.2 `embedded_device.py:513`，4.0.0 `:528`），
    所以**代码层的结论只到这里**：走这条链分出来的缓冲确实带上 `memory`，那道 `hasattr` 门在这条路上是开的。
-   `:124` 的 `_xrt_allocate` 是 C/XRT 绑定，本页没有打开过它，所以**"板上退出 `with` 之后确实把映射解掉了"
+   `xrt_device.py:59` 的 `_xrt_allocate` **是 Python 里的 `def`，本页已经逐行打开过**（函数体 `:68-88`：
+   `:71-73` 分配并映射 bo、`:83-84` 按 `pointer` **形参**挂 `weakref.finalize`、`:85-87` 按 `cache` 设属性），
+   真在 Python 之外的是 `pyxrt.bo`/`map_bo` 那一步（`:345` 一族）；所以**"板上退出 `with` 之后确实把映射解掉了"
    这句本机没有读数**（没有板子）；要在板上确认就用 §2 那条能数的观测点，别把这条链当成结果。
    要当心的是另一种运行方式——**远程模式返回的类根本不是 `PynqBuffer`**：
    `RemoteDevice.allocate` 造的是 `RemoteBuffer(np.ndarray)`，它的 `__del__` 调 `self.freebuffer()`，

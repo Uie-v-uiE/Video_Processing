@@ -56,8 +56,10 @@ license: MIT
    3.0.1/3.1.2/4.0.0 各 3 处；同一批扫描里 `xclFreeBO` 全树 = 5/5/6/**0**/**0**）：
    3.0.1 的 `buffer.py:82` 直接 `xrt.xclFreeBO(...)`；3.1.2/4.0.0 的 `buffer.py:82` 是 `del self.bo`，
    **但这条链的下一环不在 Python 里**：`ExecBo` 这一类在 3.1.2/4.0.0 只有定义
-   （`pl_server/xrt_device.py:154`）而**没有任何构造点**（全树 `grep -rn ExecBo` 只回这一行；
-   3.0.1 才有 `:596 return ExecBo(...)`），所以那两版的 `ExecBo.__del__` 是**死码**，
+   （`pl_server/xrt_device.py:154`）而**没有任何构造点**（`grep -an "ExecBo(" xrt_device.py`：
+   3.1.2 与 4.0.0 都只回定义那一行），所以**这两版**的 `ExecBo.__del__` 是**死码**；
+   **先前写"3.0.1 才有 `:596` 那句构造"是错的，收回**：2.5.1 在 `xrt_device.py:529`、2.7.0 在 `:581`、
+   3.0.1 在 `:596` 三处都真的构造它（同一条 grep 逐棵树各回一行），所以那三版的 `__del__` 不是死码，
    先前把它写成"归还靠 `ExecBo.__del__` → `_free_bo`"是错的，收回。
    真实形状是：`self.bo` 来自 `pyxrt.bo(...)`（`:345`，失败才是那条 `BO allocation failed:`），
    归还发生在 C++ 侧引用归零时，Python 树里**看不到显式释放**；唯一的显式出口是同文件
@@ -101,7 +103,14 @@ license: MIT
    2.5.1 的 `allocate()` 交给 Xlnk（2.5.1 `pl_server/device.py:574 self.default_memory = Xlnk()`），
    而 `xlnk.py:296-297` **无条件**给每个原始对象挂 `pointer`（`:289` 是 `ffi.gc` 句柄）与〔`xlnk.py` 与 `lib/logictools/` 都不在 4.0.0 那棵树上：前者只在 2.5.1，后者整目录在 4.0.0 已删——本行的号取自 2.5.1 的副本外〕
    `return_to = cache`（默认 `None`）⇒ 在 2.5.1 上"带 pointer"是**常态**，`freebuffer()` 因此只把
-   `pointer` 置 0，那块 CMA 何时还得由 `ffi.gc` 句柄的 **GC** 决定；2.7.0 走 XRT，普通 `allocate()`
+   `pointer` 置 0，而 `:290` 用 `cma_get_buffer(pointer, length)` 造的数组把句柄挂在 `base` 上，
+   **置 0 并不触发 `cma_free`**（主机桩同一形状实测：`sys.getrefcount` 出生就是 3，属性只是其中一份；
+   数组连同它的所有视图一起消失才轮到 finalizer。这是引用语义，板上真实时机仍要现读 `CmaFree`）；
+   **这一档还有前提**：2.5.1 只有把 `active_device` 落成 `XlnkDevice` 时才走 Xlnk
+   （谁当选由 `_probe_`/`_probe_priority_` 决定，机制在 2.5.1 `pl_server/device.py:51-78`）——走 XRT 那条时
+   2.5.1 的 `_xrt_allocate(shape, dtype, device, memidx)`（`pl_server/xrt_device.py:122`）**没有 pointer/cache 形参**，
+   普通缓冲不带 `pointer`，`:90` 整段空转，归还靠 `:136` 那条**无条件**的 `weakref.finalize`。
+   2.7.0 走 XRT，普通 `allocate()`
    不带 `pointer`，在 `:90` 那一关直接返回、什么都不做。
    **只属于 2.5.1 的一条**：它的 `__exit__`（`buffer.py:146-147`）调的是 `self.free_buffer()`，
    那个类上**没有这个名字**（全树 `def free_buffer` 只有 `lib/logictools/logictools_controller.py:456`，〔`xlnk.py` 与 `lib/logictools/` 都不在 4.0.0 那棵树上：前者只在 2.5.1，后者整目录在 4.0.0 已删——本行的号取自 2.5.1 的副本外〕
