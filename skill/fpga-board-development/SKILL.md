@@ -338,13 +338,14 @@ WARNING 为什么不进 `catch` 的 msg、以及各层清单项数怎么取，�
   `get_hw_targets` 比它还**早一层**就给答案（connect 之后 msg 是 `17-39` 包装、日志里真号
   `[Labtoolstcl 44-199] No matching targets found on connected servers: localhost`）
   ⇒ **"连上了"不等于链路上有东西**，别拿 `connect_hw_server` 的 0 当依据。
-  **"是不是本次把 hw_server 拉起来的"只认一条读数**：`INFO: [Labtools 27-2222] Launching hw_server...`
+  **先提醒一个前提**：labtools 未初始化时 `connect_hw_server` 直接 rc=1 + `Labtoolstcl 44-235`且**什么都不起**；要先 `open_hw_manager` 才会自动拉起（本机 `hsk1/c1.log`、`c2.log` 两臂）。
+   **"是不是本次把 hw_server 拉起来的"只认一条读数**：`INFO: [Labtools 27-2222] Launching hw_server...`
   **在不在**——本机用"显式起一颗真 hw_server 占住 3121 再连"那一臂量过：占着时日志只有
   `27-2285 Connecting to hw_server url…`、`27-2222` 零命中；没人监听时它出现（且 `27-2221 Launch Output:`
   是**每次 launch 共用**的一行，那次跟它配对的是 cs_server 的 banner，别把 27-2221 当成 hw_server 的证据）。
   判"谁在服务"用两条可数的，而且旗标要对：`netstat -ano | findstr :3121 | findstr LISTENING`
   （只 `findstr :3121` 会假绿：`r5.log:68-70` 在 `disconnect_hw_server` 之后仍有 3 行——`0.0.0.0:3121`
-  还是 **LISTENING**（服务活着），另两行才是 `TIME_WAIT`；**"服务死后还剩 TIME_WAIT"本机没有快照，那句收回**）与
+  还是 **LISTENING**（服务活着），另两行才是 `TIME_WAIT`；而**真把进程杀掉之后本机是 0 行**（`hsk1` 臂，T0 与 T+6s 都 0、没有 TIME_WAIT 尾巴）⇒ "服务死后还剩 TIME_WAIT"这句彻底收回）与
   `tasklist | findstr /i "hw_server cs_server"`（残留的不只 hw_server：`r5.log` 的 `TL|DURING` 与
   `TL|AFTERDISCONNECT` 两个快照都是 **1 颗 hw_server + 2 颗 cs_server**；**先前"4 颗 cs_server、
   查 hw_server 是 0 命中"那两句没有任何现存快照支持，收回**——能立的只有"两个名字都要数"）。
