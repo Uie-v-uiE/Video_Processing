@@ -88,9 +88,13 @@ def allocate(shape, dtype="u4", target=None, **kwargs)    # pynq/buffer.py:138�
     **但"那两版走 Xlnk 那一族"这半句是错的**：
     `grep -rln Xlnk pynq-2.7.0/pynq` 交出**空**（正向对照：同一条在 2.5.1 交出 **9** 个文件，
     含 `xlnk.py`），2.7.0 的 `allocate()` 已经走 XRT 那条链
-    （`pl_server/device.py:293 return self.default_memory.allocate(...)` →
-    `pl_server/xrt_device.py:171 buf.memory = self`），
+    （2.7.0 `pl_server/device.py:292 return self.default_memory.allocate(...)` →
+    2.7.0 `pl_server/xrt_device.py:170 buf.memory = self`），
     **只有 2.5.1 还带 Xlnk 那一层**）——
+   （2.7.0 的交接行是 `pl_server/device.py:292 return self.default_memory.allocate(shape, dtype, **kwargs)`
+   → 2.7.0 的挂 `memory` 行是 `pl_server/xrt_device.py:170 buf.memory = self`；
+   **这两个号在 2.5.1 各往后错一行（`:293`/`:171`）**，搬版本会取到 `return buf`（2.7.0 `:171`）
+   或空行（2.7.0 `:293`）——先前这里按 2.5.1 的号写 2.7.0，两行都差一行，已改）：
    **但"拿视图去调它会局部解除映射"这个结论整段收回**：`freebuffer()` 的 unmap 主体整个包在
    `:73` 的 `if hasattr(self, "memory"):` 里，而 `memory` 是**分配器**只设在原始对象上的那一句
    （4.0.0 `pl_server/xrt_device.py:125`，2.7.0 同一链在 `:171`），`__array_finalize__`（`:50-57`）
@@ -101,14 +105,36 @@ def allocate(shape, dtype="u4", target=None, **kwargs)    # pynq/buffer.py:138�
    `view.bo` 还在；步长视图同样空转。**它不报错不是因为安全，是因为什么都没做。**
    **但这条"空转"只成立于板端 3.0.1+，且只对没有 `pointer` 的对象**（与 `SKILL.md` §1 第 7 条同口径）：
    2.5.1 与 2.7.0 的 `freebuffer` **没有 memory 门**：`buffer.py:90` 是这两版里唯一的判断
-   （`if hasattr(self, 'pointer') and self.pointer:`）——所以像 `lib/video/drm.py:186-189` 那样
-   往视图上挂 `pointer`/`return_to` 的对象，在那两版上调用**会真的把指针退回缓存**（桩 RUN：
-   `returned = ['FRAMEPTR']`、`pointer = 0`、`munmap = []`）；普通切片视图没有 `pointer`，
-   在那两版上同样什么都不做且不报错（桩 RUN：`returned = []`，原始对象的 `pointer` 纹丝不动）。
+   （`if hasattr(self, 'pointer') and self.pointer:`）——**但"谁带 `pointer`"这两版完全不同，别当一个档用**：
+   2.5.1 的 `allocate()` 经 `pl_server/device.py:293` 交给 `default_memory`，而那一版的它**就是 Xlnk**
+   （2.5.1 `pl_server/device.py:574 self.default_memory = Xlnk()`；2.7.0 那行换成 XRT 那条链）
+   ⇒ `xlnk.py:255-297` 的 `cma_array` 在 `:296-297` **无条件**挂〔`xlnk.py` 与 `lib/logictools/` 都不在 4.0.0 那棵树上：前者只在 2.5.1，后者整目录在 4.0.0 已删——本行的号取自 2.5.1 的副本外〕
+   `view.pointer = pointer`（`:289` 是 `ffi.gc(...)` 句柄，真值）与 `view.return_to = cache`（默认 `None`）
+   ⇒ **"带 pointer"在 2.5.1 是常态不是特例**；而 `:91 if self.return_to:` 为假 ⇒ 退回缓存那步被跳过，
+   只剩 `:93 self.pointer = 0`：**丢掉 `ffi.gc` 句柄之后，那块 CMA 什么时候还得由 GC 决定，不是同步释放**
+   （源码读；板上要判就现读 `CmaFree`，别把"调用返回了"当成"还回去了"）。
+   2.7.0 的 `allocate()` 不挂 `pointer`，所以它上面的普通缓冲在 `:90` 那一关直接返回、什么都不做。
+   **还有只属于 2.5.1 的一条**：它的 `__exit__`（`buffer.py:146-147`）调的是 `self.free_buffer()`，
+   而 `PynqBuffer` 上**没有这个名字**——全树 `def free_buffer` 只有
+   `lib/logictools/logictools_controller.py:456`（另一个类、还要一个 `name` 参数），`buffer.py` 里〔`xlnk.py` 与 `lib/logictools/` 都不在 4.0.0 那棵树上：前者只在 2.5.1，后者整目录在 4.0.0 已删——本行的号取自 2.5.1 的副本外〕
+   既没有定义也没有 `__getattr__` ⇒ **`with allocate(...) as buf:` 在 2.5.1 上退出块当场 `AttributeError`**，
+   而 2.7.0 的 `__exit__`（`buffer.py:148-149`）调的才是 `self.freebuffer()`。
+   本包通篇把"退出 `with`"当规范释放写法，**这一版那个写法自己会炸**（`xlnk.py:262-265` 的 docstring〔`xlnk.py` 与 `lib/logictools/` 都不在 4.0.0 那棵树上：前者只在 2.5.1，后者整目录在 4.0.0 已删——本行的号取自 2.5.1 的副本外〕
+   还写着"可以用 `with` 语句自动释放"——docstring 与代码在这里不一致，以行为为准）；
+   这一条是能在板上跑红的判据，不是机理。
+   pointer 的**真生产者**也不是 DRM 那一族：4.0.0 `lib/video/dma.py:28-44`（帧缓存复用旧缓冲）把
+   `pointer=`/`cache=` 传给 `allocate()`，那条路出来的缓冲**同时有 `memory`（`xrt_device.py:125`）
+   与 `pointer` 属性（`:85-87`）**⇒ 在 3.x/4.0.0 上它走 `:74-77` 真的退回缓存；
+   而 `lib/video/drm.py:186-189` 那个 `array.view(PynqBuffer)` 之后手设 `pointer`/`return_to` 的对象
+   **没有 `memory`** ⇒ 在 3.x/4.0.0 上它的 `freebuffer()` 连门都没进（整段空转，指针也退不回去）——
+   先前拿 drm 那一族当"会退回缓存"的例子是**选错了家族**（它在 2.5.1/2.7.0 上确实退回，在 3.x 上不退回）。
+   挂 pointer 的对象调它会真的退回缓存（桩 RUN：`returned = ['FRAMEPTR']`、`pointer = 0`、`munmap = []`）；
+   普通切片视图没有 `pointer`，在那两版上同样什么都不做且不报错（桩 RUN：`returned = []`，原始对象的 `pointer` 纹丝不动）。
    **`pointer` 分支在两版里都排在解映射之前**（4.0.0 是 `:74-77` 与 `:78-82` 的一对 if/else，
    2.x 只有前者）：挂着 `pointer` 的对象调 `freebuffer()` **连原始对象也不会 `munmap`**（桩 RUN：
    `munmap = []`、`freed` 仍 `False`、`bo` 还在）——它退的是指针，不是这块内存。
-   远程模式是第三个类：`RemoteBuffer.freebuffer`（4.0.0 `pl_server/remote_device.py:1142-1149`）
+   远程模式是第三个类：`RemoteBuffer.freebuffer`（4.0.0 `pl_server/remote_device.py:1142-1154`，
+   `if not self.freed` 在 `:1148`，gRPC 与 `raise RuntimeError(response.msg)` 在 `:1150-1154`）
    也没有 memory 门，而它的 `__array_finalize__`（`:1123-1132`）不搬 `freed`
    ⇒ **在远程的视图上调它是 `AttributeError`，不是空转**（静态读来，未上板）。
    真正的危险回到引用侧那一条：原始对象被释放（退出 `with`、`__del__`、显式 `freebuffer()`）之后

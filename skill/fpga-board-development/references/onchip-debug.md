@@ -518,7 +518,13 @@ write_debug_probes -force ./design             ;# ⑪ 产出 design.ltx；判据
 `create_bd_design`、`connect_bd_net`、`validate_bd_design`、`assign_bd_address` 在裸会话读 0，
 `create_project` 之后**仍然读 0**，而**只要调用过一次**——哪怕那一次失败在
 `[Common 17-53] User Exception: No open project…`——同一批名字立刻变 1
-（`*bd_*` 的 glob 计数在同一台机器上依次是 **3 → 58 → 61**，所以"扫得到多少"本身也是相位的函数）。
+（`*bd_*` 的 glob 计数在同一台机器上依次是 **3 → 58 → 58**，`revAF3/F.log` 的
+`FPH0|bd_glob|3` / `FPH1|bd_glob|58` / `FPH2|bd_glob|58`——**先前写的"3 → 58 → 61"里那个 61 不存在**
+（同一次日志 `grep -c "|61"` = **0**），所以"扫得到多少是相位的函数"这句留，具体数按这三行搬）。
+**并且上面那句"create_project 之后仍然读 0"也不是那三相位给出的顺序**：那次跑的是
+"先调用（`FPH0|assign_bd_address|0`）→ 建工程 → 再扫"，`create_project` **之前**就已经调过；
+"建好工程之后、任何 BD 命令之前"这一相位本机**没测过**，别当判据搬（要测就按
+`FPH0`/`FPH1` 的写法插一相位进去）。
 硬件管理器那一族同理：`connect_hw_server`、`open_hw_target`、`program_hw_cfgmem`、`get_hw_ilas`、
 `run_hw_ila` 先都读 0，调用一次 `connect_hw_server`（它失败在
 `[Labtoolstcl 44-235] The labtools system is not initialized. You must execute 'open_hw_manager'…`）
@@ -634,20 +640,29 @@ LISTENING 行与 PID、`tasklist` 有那颗进程）：那一臂的日志**有 `
 ② 早先有一臂记成"端口被占时两条 INFO 都在"，本机按上面的做法**复现不出来**，
 差别候选是那个占端口的进程是否真在 accept——**没分开之前别引这句**。
 ⇒ 判据因此是可数的两条，而且要带对旗标：
-`netstat -ano | findstr :3121 | findstr LISTENING`（**只 `findstr :3121` 会假绿**：服务被杀之后
-还剩 `127.0.0.1:xxxxx → 3121` 的 `TIME_WAIT` 行，本机量到）与
-`tasklist | findstr /i "hw_server cs_server"`（**残留的不只是 hw_server**：一次批处理退出后
-本机见过 4 颗 `cs_server.exe` 还活着，那时查 `hw_server` 是 0 命中——只查前者会漏）。
+`netstat -ano | findstr :3121 | findstr LISTENING`（**只 `findstr :3121` 会假绿**：`revAH2/r5.log:68-70`
+在 `disconnect_hw_server` 之后仍数到 3 行——`0.0.0.0:3121` 那行还是 **LISTENING**（服务活着），
+另两行才是 `TIME_WAIT`。**先前那句"服务被杀之后还剩 `TIME_WAIT`、本机量到"把这对读数安错了相位**：
+"杀服务之后"本机没有快照，别拿那句去解释你看到的现象）与
+`tasklist | findstr /i "hw_server cs_server"`（**残留的不只是 hw_server**：`r5.log` 的
+`TL|DURING` 与 `TL|AFTERDISCONNECT` 两个快照都是 **1 颗 `hw_server.exe`（PID 21436）+ 2 颗
+`cs_server.exe`**——**先前那句"见过 4 颗 `cs_server.exe`、那时查 `hw_server` 是 0 命中"没有任何现存快照支持，收回**；
+站得住的只有"两个名字都要数"，颗数以你自己那次 `tasklist` 现读为准）。
 残留服务还会让**下一个批处理连上它**（照样 rc=0），排查时别把它当成自己的进程。
 **(5) "有没有 target"有一条更早的读数**：`connect_hw_server` 之后 `get_hw_targets` 给的是
 msg `17-39` 包装 + 日志里 `[Labtoolstcl 44-199] No matching targets found on connected servers: localhost`，
 它比 `open_hw_target` 的 `44-469 There is no current hw_target.` **早一层**交回答案；两条都能判"没板子"。
 `get_hw_targets` 在**还没 `connect_hw_server`** 时是 rc=0 + 空串，connect 之后变成 `17-39` 包装。
-**(6) 但"`$g` 是空串还是包装文本"这条判据已经废了——`-quiet` 会把两者都变成"rc=0 + 空串"**：
-本机一臂把五个命令各加 `-quiet` 重跑（`get_hw_targets`、`apply_hw_ila_trigger`、`run_hw_ila`、
-`wait_on_hw_ila`、`write_hw_ila_data -quiet w3.ila`），在三相会话里**一律 rc=0、msg 空串**，
-日志里连 `44-199` 与 `44-362` 都不打（同一次批处理里 `44-199` 只在**不带 `-quiet`** 的那一条出现一次），
-而 `write_hw_ila_data -quiet w3.ila` 之后 `file exists w3.ila` 是 **0**——**什么都没发生却全绿**。
+**(6) 但"`$g` 是空串还是包装文本"这条判据在带 `-quiet` 时不成立**——`-quiet` 把两者都变成"rc=0 + 空串"。
+**先把射程说准**：五个命令各加 `-quiet` 只重跑过**一相**（`ila11/i11.log:206-220`，那一相在
+`disconnect_hw_server` **之后**）——`b7_get_targets_quiet`、`b8_apply_quiet`、`b9_run_quiet` 等
+每条都是 `code=0|first=|len=0`，而 `write_hw_ila_data -quiet w3.ila` 之后 `file exists w3.ila` = **0**：
+**什么都没发生却全绿**。另两相只零散测过（`revAH2/r1.log:89` 裸相一条、`r2.log:71,78,90,103`
+设计开着那相三条），**所以先前那句"在三相会话里一律 rc=0、msg 空串"收回**——要判"某一相会不会被抹掉"，
+那一相得自己跑齐这五条。判"线索是不是被 `-quiet` 抹掉"真正能用的是 **`r2.log:69-74` 那对**：
+同一条命令 `-quiet` 交回空串、换 `-verbose` 就回到 `44-362`。
+**"日志里连 `44-362` 都不打"这句也收回**：`44-362` 从来只是 `catch` 交回的 msg（`i9` 的
+`d1`/`e2` 长度 25），**它本来就不进日志流**——拿一条不能载它的通道去数"没打"是假读数。
 ⇒ 所以"数 target/判有没有落地"要么**不带 `-quiet`**、要么把 `file exists` 与不带 quiet 的同一条
 并排跑一次；`-quiet` 只该用于你已经有独立读数的场合（日志卫生，不是判据保护）。
 另外 `connect_hw_server` 在**已经连着**的时候再调一次——**哪怕 URL 一模一样**——给

@@ -229,8 +229,11 @@ WARNING: -padimageheader was requested, but no images were specified.
    ⇒ **判"谁在服务"用两条可数的，旗标还须带对**：
    `netstat -ano | findstr :3121 | findstr LISTENING`（只 `findstr :3121` 会假绿——服务被杀之后
    本机还剩着 `127.0.0.1:xxxxx → 3121` 的 `TIME_WAIT` 行）与
-   `tasklist | findstr /i "hw_server cs_server"`（残留的不只 hw_server：一次批处理退出后本机留着
-   4 颗 `cs_server.exe`，那时单查 hw_server 是 0 命中）。残留服务会被下一个批处理直接连上、照样 rc=0。
+   `tasklist | findstr /i "hw_server cs_server"`（残留的不只 hw_server：`revAH2/r5.log` 的两个快照
+   `TL|DURING` 与 `TL|AFTERDISCONNECT` 各是 **1 颗 `hw_server.exe`（PID 21436）+ 2 颗 `cs_server.exe`**；
+   **先前"留着 4 颗 cs_server、那时单查 hw_server 是 0 命中"没有任何现存快照支持，收回**——
+   只查一个名字会漏这件事仍然成立，具体颗数以你自己在同一台机器上那次 `tasklist` 为准）。
+   残留服务会被下一个批处理直接连上、照样 rc=0。
    所以"连不上先确认服务在不在"这个顺序在这版上不成立：
    三步全绿而一块板都没接。真正的门是下一条读数：
    `get_hw_devices` 在这里交回 **0 个** +

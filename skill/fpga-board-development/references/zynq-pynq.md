@@ -148,10 +148,18 @@ AXI-Lite 那一路管寄存器，引擎那一路管搬运，它们在 BD 里是*
 **但这几行命中不是同一个东西，逐棵拆开看才知道该引哪一条**（本机按文件与语言过滤过）：
 真正的 `baseaddr` 只在 `metadata/` 那两个视图里：3.1.2 `metadata/ip_dict_view.py:184` 是
 `] = dst_port.baseaddr`，3.1.2 `metadata/mem_dict_view.py:63` 是 `subord_port.baseaddr`，
-**而 `metadata/` 这个目录 2.5.1 与 2.7.0 根本没有**（3.0.1/3.1.2/4.0.0 才有），
-所以那两版的 21/27 行里没有这一族；剩下的命中是三样杂物：IP 驱动的 C 源码/头里的
-`baseaddr_p`（`*.c`/`*.h`；`grep -rn VHDL *.vhd*` 五棵树 **0 命中**，别说成"C/VHDL"）、
-`mmio.py:15-23` 与 `pl_server/remote_device.py:609-619` 里的 **`baseaddress`**（多一个 `e`，
+**而 `metadata/` 这个目录 2.5.1 与 2.7.0 根本没有**（3.0.1/3.1.2/4.0.0 才有），**但"才有"不等于"里面都有"：按词边界数 `grep -anrw baseaddr <树>/pynq/metadata` 是 0/0/2/2/0——`metadata/` 在 4.0.0 也在，只是里面一行 `baseaddr` 都没有，属性族只在 3.0.1/3.1.2**，
+所以那两版的 21/27 行里**没有 `X.baseaddr` 这种属性访问**这句成立，但**"没有 `baseaddr` 这个词"不成立**：
+按词边界数（`grep -anrw baseaddr <树>/pynq | wc -l`）是 **2.5.1=4、2.7.0=11、3.0.1=13、3.1.2=13、4.0.0=6**，
+2.5.1/2.7.0 那些行出自 **IP 驱动 C 源码里的注释**（`grep -anrw baseaddr <树>/pynq` 的第一条就是）——
+**把"属性族不在那两版"写成"这个词不在那两版"正是本段末尾要警告的那种限定错层次的全称否定，先前这里自己犯了**；剩下的命中是三样杂物：IP 驱动的 C 源码/头里的
+`baseaddr_p`（`*.c`/`*.h`；那条 `grep -rn VHDL *.vhd*` 的 **0 是空扫**——五棵树里**根本没有 `.vhd` 文件**
+（`find <树>/pynq -name '*.vhd*' | wc -l` = 0），所以它既不能写成"VHDL 里也没有"，也别写成"C/VHDL"）、
+`mmio.py:15-23`（**裸号按本包规矩是 3.0.1/3.1.2/4.0.0 的**：那三版都在 `:15` 起，
+**而 2.5.1 的同一段在 `mmio.py:41` 起、2.7.0 在 `:42` 起**——`grep -anw baseaddress <树>/pynq/mmio.py`
+第一条就是那个 `def __init__(self, baseaddress, device)`）与 `pl_server/remote_device.py:609-619`
+（**这个文件只有 3.1.2/4.0.0 有**：2.5.1/2.7.0/3.0.1 三棵树里它不存在，`test -f` 直接失败）里的
+**`baseaddress`**（多一个 `e`，
 是被子串匹配捞进来的）、以及 `libxil.a` 这类二进制留下的 `Binary file ... matches` 占位行
 （2.7.0/3.0.1/3.1.2 各 4 行、4.0.0 1 行、2.5.1 0 行——**它们各占一行计数**）。
 ⇒ 结论没变、但理由要按层次说：`ip.baseaddr` **在 IP 句柄这一层不存在**（基址在

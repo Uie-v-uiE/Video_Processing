@@ -281,7 +281,7 @@ WARNING 为什么不进 `catch` 的 msg、以及各层清单项数怎么取，�
   三者的修法不同，而工具在三种情况下都可能一副"没报错"的样子。
   第四种空读数不属于设计、属于工具自己：**`info commands <精确名>` 给 0 只表示"这个包此刻没加载"**。
   本机 `wait_on_run` 连 `auto_load` 都读 0，调用它却能走到
-  `[Common 17-162] Invalid option value specified for '-runs'`；同一批 BD 命令在 `create_project` 之后
+  `[Common 17-163] Missing value for option 'runs'`（裸调 `wait_on_run` 实测到的就是这条；帮助里打头的名字是别名 `wait_on_runs`。**先前这里写的 `17-162 Invalid option value` 是错的，收回**）；同一批 BD 命令在 `create_project` 之后
   仍读 0、只被**调用过一次**（哪怕失败在 `17-53 No open project`）就全部变 1。
   `hw_*` 那一族给的是一个可以直接抄的形状：本机把 15 个 `hw_*`/`get_hw_*` 名字在一个全新 batch 会话里
   数一遍是 **0/15 有名字**，`load_features labtools` 之后 **15/15**；而**没 `load_features` 的同一台机器上**
@@ -343,9 +343,11 @@ WARNING 为什么不进 `catch` 的 msg、以及各层清单项数怎么取，�
   `27-2285 Connecting to hw_server url…`、`27-2222` 零命中；没人监听时它出现（且 `27-2221 Launch Output:`
   是**每次 launch 共用**的一行，那次跟它配对的是 cs_server 的 banner，别把 27-2221 当成 hw_server 的证据）。
   判"谁在服务"用两条可数的，而且旗标要对：`netstat -ano | findstr :3121 | findstr LISTENING`
-  （只 `findstr :3121` 会假绿：服务死后还剩 `TIME_WAIT` 行，本机量到）与
-  `tasklist | findstr /i "hw_server cs_server"`（残留的不只 hw_server：一次批处理退出后 4 颗
-  `cs_server.exe` 还活着，那时查 hw_server 是 0 命中）。
+  （只 `findstr :3121` 会假绿：`r5.log:68-70` 在 `disconnect_hw_server` 之后仍有 3 行——`0.0.0.0:3121`
+  还是 **LISTENING**（服务活着），另两行才是 `TIME_WAIT`；**"服务死后还剩 TIME_WAIT"本机没有快照，那句收回**）与
+  `tasklist | findstr /i "hw_server cs_server"`（残留的不只 hw_server：`r5.log` 的 `TL|DURING` 与
+  `TL|AFTERDISCONNECT` 两个快照都是 **1 颗 hw_server + 2 颗 cs_server**；**先前"4 颗 cs_server、
+  查 hw_server 是 0 命中"那两句没有任何现存快照支持，收回**——能立的只有"两个名字都要数"）。
   **别拿"再连一次试试"当恢复**：已经连着时**同一个 URL** 再调 `connect_hw_server` 也给
   `[Labtoolstcl 44-586] Disconnect server connection, TCP:localhost:3121, before making a new one.`；
   先 `disconnect_hw_server`（本机 rc=0）再连就恢复 rc=0。

@@ -64,7 +64,13 @@ license: MIT
    `:84` 的 `weakref.finalize(buf, _free_bo, device, bo, ar.virtual_address, ar.nbytes)`——
    **而它只在 `pointer is not None` 时挂**（`:83`），`_free_bo` 本体是 `libc.munmap` + `del bo`（`:91-93`）。
    所以"退出 `with` 之后一定有人 unmap"这句要按那一档分开说：3.0.1 显式 `xclFreeBO`；
-   3.1.2/4.0.0 只有带 pointer 的那条路有显式 `finalize`，普通 `allocate()` 出来的缓冲**依赖引用归零**；
+   **3.1.2/4.0.0 里普通 `allocate()` 出来的缓冲走的是另一支**：它有 `memory`、没有 `pointer` 属性，
+   于是 `freebuffer()` 取 `buffer.py:78-82` 那一支——**同步 `libc.munmap`（`:81`）然后 `del self.bo`（`:82`）**；
+   需要等引用归零的只是 **BO 对象本身**（`self.bo` 是个 `pyxrt.bo`，`del` 只解掉 Python 这一份绑定），
+   **不是那块映射**。而 `weakref.finalize`（同文件 `:83-84`）挂在 `_xrt_allocate` 的 **`pointer` 形参**
+   非 `None` 时（`:59` 的签名；传它的是 frame cache 复用旧缓冲那条路，4.0.0 `lib/video/dma.py:28-44`
+   同时传 `pointer=` 与 `cache=`），**与 `ar.pointer` 那个属性（`:85-87` 才设）不是同一个东西**——
+   先前这里写的"普通 `allocate()` 出来的缓冲依赖引用归零"把两样混成一句，**收回**；
    2.5.1/2.7.0 的 `buffer.py` 里既没有 `munmap` 也没有 `xclFreeBO`（BO 的归还那一步在
    `pl_server/xrt_device.py`：2.5.1 `:142`、2.7.0 `:140` 都是 `xrt.xclFreeBO(device.handle, bo)`），
    本包关于 `munmap` 的那段分析在那两版不适用。
@@ -91,9 +97,24 @@ license: MIT
    ⇒ **对切片视图调 `freebuffer()` 是完整 no-op**，连续切片与步长切片同形；主机桩的读数与它的
    两处偏离写在 `buffers-and-cache.md` §1（含"逐字照抄那份在 numpy 2.5.3 上构造不出来"那一条）。
    **第二档 板端 2.5.1/2.7.0**：同一个方法**没有 memory 门**，`buffer.py:90` 是这两版里唯一的判断，
-   即 `if hasattr(self, 'pointer') and self.pointer:`——挂过 `pointer`/`return_to` 的对象
-   （`lib/video/drm.py:186-189` 那一族）调它会**真的把指针退回缓存**，只有普通切片视图才什么都不做。
-   **第三档 远程模式**是另一个类：`RemoteBuffer.freebuffer`（4.0.0 `pl_server/remote_device.py:1142-1149`）
+   即 `if hasattr(self, 'pointer') and self.pointer:`——**但"谁带 `pointer`"这两版完全不同**：
+   2.5.1 的 `allocate()` 交给 Xlnk（2.5.1 `pl_server/device.py:574 self.default_memory = Xlnk()`），
+   而 `xlnk.py:296-297` **无条件**给每个原始对象挂 `pointer`（`:289` 是 `ffi.gc` 句柄）与〔`xlnk.py` 与 `lib/logictools/` 都不在 4.0.0 那棵树上：前者只在 2.5.1，后者整目录在 4.0.0 已删——本行的号取自 2.5.1 的副本外〕
+   `return_to = cache`（默认 `None`）⇒ 在 2.5.1 上"带 pointer"是**常态**，`freebuffer()` 因此只把
+   `pointer` 置 0，那块 CMA 何时还得由 `ffi.gc` 句柄的 **GC** 决定；2.7.0 走 XRT，普通 `allocate()`
+   不带 `pointer`，在 `:90` 那一关直接返回、什么都不做。
+   **只属于 2.5.1 的一条**：它的 `__exit__`（`buffer.py:146-147`）调的是 `self.free_buffer()`，
+   那个类上**没有这个名字**（全树 `def free_buffer` 只有 `lib/logictools/logictools_controller.py:456`，〔`xlnk.py` 与 `lib/logictools/` 都不在 4.0.0 那棵树上：前者只在 2.5.1，后者整目录在 4.0.0 已删——本行的号取自 2.5.1 的副本外〕
+   另一个类、要一个参数），而 2.7.0 的 `__exit__` 在 `:148-149`、调的才是 `freebuffer()`
+   ⇒ **`with allocate(...) as buf:` 在 2.5.1 上退出块当场 `AttributeError`**——本包把"退出 `with`"
+   写成规范释放用法，那一版这个写法自己会炸（`xlnk.py:262-265` 的 docstring 还承诺 `with` 会自动释放，〔`xlnk.py` 与 `lib/logictools/` 都不在 4.0.0 那棵树上：前者只在 2.5.1，后者整目录在 4.0.0 已删——本行的号取自 2.5.1 的副本外〕
+   这里 docstring 与行为不一致，以行为为准）。
+   真会"退回缓存"的家族是 `lib/video/dma.py:28-44` 那种 `allocate(..., cache=self)`（它**同时**有
+   `memory` 与 `pointer` 属性）；`lib/video/drm.py:186-189` 那个 `array.view(PynqBuffer)` + 手设
+   `pointer`/`return_to` 的对象**没有 `memory`**，在 3.x/4.0.0 上它的 `freebuffer()` 连门都没进
+   （先前把 drm 那一族当成"退回缓存"的通用例子，是选错了家族）。
+   **第三档 远程模式**是另一个类：`RemoteBuffer.freebuffer`（4.0.0 `pl_server/remote_device.py:1142-1154`，
+   `if not self.freed:` 在 `:1148`、gRPC 调用与 `raise RuntimeError(response.msg)` 在 `:1150-1154`）
    同样没有 memory 门，而它附近那段 `__array_finalize__` 不把 `freed` 交给视图 ⇒ 在远程的视图上调它是
    `AttributeError`（静态读来，未上板）。
    还有一条容易漏的顺序：**`pointer` 那支排在解映射之前**（4.0.0 `buffer.py:74-77` 对 `:78-82`），
@@ -235,8 +256,9 @@ license: MIT
   完成问题误判成缓存问题。
 - **`MemoryError` 有两行**：缓冲池（CMA）那条走 `buffers-and-cache.md` §2 的 `CmaFree` 差值实验；
   反复加载 overlay 的那条走 `overlay-metadata.md` §3。这两族的释放路径**按版本不是一条**
-  （见本节第 6 条那三档：3.0.1 显式 `xclFreeBO`；3.1.2/4.0.0 的 `del self.bo` 之后 Python 树里没有
-  显式释放，只有 `pointer is not None` 时挂上的那条 `weakref.finalize`；2.5.1/2.7.0 走 XRT 那一步），
+  （见本节第 6 条那三档：3.0.1 显式 `xclFreeBO`；3.1.2/4.0.0 的普通 `allocate()` 缓冲在 `freebuffer()` 里
+  **同步** `libc.munmap` 再 `del self.bo`（要等引用归零的是 BO 对象、不是那块映射），那条 `weakref.finalize`
+  挂的是 `_xrt_allocate` 的 `pointer` **形参**非 `None`（frame cache 复用旧缓冲那条路）；2.5.1/2.7.0 走 XRT 那一步），
   **`CmaFree` 量不到 mmap/fd/驱动实例**是这一族的机理推断，本包没有板、没量过——所以
   "拿它当'没泄漏'的结论会一直读到一个不变的 0"是**待验证的预测**，不是读数：
   板上要用它做判据，先跑一次故意不释放的对照臂证明它会动。
