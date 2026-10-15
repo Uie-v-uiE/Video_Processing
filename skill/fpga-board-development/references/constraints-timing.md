@@ -660,19 +660,24 @@ get_files -compile_order constraints -used_in synthesis  ;# timing board design
 
    ```tcl
    report_clock_interaction   ;# 每对时钟当前是怎么处理的
-   report_exceptions          ;# 被豁免/被多周期覆盖的路径清单
+   report_exceptions          ;# 已落到 setup/hold 检查上的例外（不是"被豁免路径清单"，逐条量看 -coverage）
+   report_exceptions -coverage;# 每条例外的 Endpoints 数：0 = 登记了但一条都没管到
    ```
 
    `set_clock_groups -asynchronous` 写宽了（把整片设计的钟一股脑分组）之后时序报告必然好看，因为
    跨组路径整批不再检查。这类"改善"没有对应的物理机制，不能写成已修好。一条豁免的正当依据是
    **设计上确实异步**（两个钟没有共同来源、且没有硬件同步机制），不是"这条路径 WNS 是负的"。
-7. 每加一条豁免就记下它豁免了多少条路径（`report_exceptions` 的前后差），与 §3 的"放宽范围写进
+7. 每加一条豁免就记下它豁免了多少条路径（取数口是 `report_exceptions -coverage` 那一列
+   `Endpoints`，逐条；`-summary` 只给按类型的总量，见 §9），与 §3 的"放宽范围写进
    改动记录"是同一条要求的两个入口。
 
 ## 9. 时序例外三件套：各自消掉什么，以及"没消到东西"长什么样
 
-三条都会让报告变好看，消掉的东西不一样。共同点是**它们都登记在同一张可查的表里**——
+三条都会让报告变好看，消掉的东西不一样。共同点是**都能用同一条 `report_exceptions` 查到，
+但它交回的是两张表**（哪条进哪张，见下面第一条 bullet 那一臂）——
 所以"加了例外但什么都没管到"这件事有读数，不必靠猜。
+**但 `set_max_delay`/`set_min_delay` 这一族不在这张登记里**（§3 那条：两条 `set_max_delay` 都没出现，
+那张表收的是多周期/false path/case analysis 这一族），别把"表里没有"读成"约束没落地"。
 
 ```tcl
 set_multicycle_path -setup 2 -from [get_clocks slow_clk] -to [get_clocks fast_clk]
@@ -680,6 +685,7 @@ set_multicycle_path -hold  1 -from [get_clocks slow_clk] -to [get_clocks fast_cl
 set_case_analysis 0 [get_ports rst_n]
 report_exceptions              ;# 落到 setup/hold 检查上的例外，每行一条
 report_exceptions -ignored     ;# 登记了但没落到任何路径上的（死例外在这一张）
+report_exceptions -coverage    ;# 每条例外管到几条端点：Endpoints=0 就是"什么都没管到"
 report_clock_interaction       ;# 每对钟怎么被处理
 ```
 
@@ -743,13 +749,48 @@ Position  From                   Through  To                     Setup     Hold 
   （本次这份共 ~200 行，含 `Categories/Description/Arguments/Examples/See Also` 六段），
   只读前半截就会把"没在我看过的那几行里"写成"不列"。
   同一次 `-help` 里可用而本节先前没提的选项：`-scope_override`、`-summary`、`-coverage`、
-  `-ignored_objects`（"Report the list of ignored startpoints and endpoints"——**这条才是
-  "我的 `-from` 针被当成无效始点"的直接读数口**）、`-count_objects`、`-write_merged_exceptions`、
+  `-ignored_objects`、`-count_objects`、`-write_merged_exceptions`、
   `-write_valid_exceptions`、`-no_header`；**没有 `-ignored_setup`/`-ignored_hold`**
   （`[Common 17-170] Unknown option '-ignored_setup'`，返回 1），也**没有 `-summarize`**
   （同样 `17-170`；要的是 `-summary`）。
+  **`-ignored_objects` 不是"无效始点"的读数口**（先前这里这么推荐过，本机重做后收回）：
+  一份设计里同时有①一条被 `18-513` 当场拒绝的针型 MCP、②一条登记上但管不到东西的钟名型死例外，
+  `report_exceptions -ignored_objects -return_string` 仍然只交回一句
+  `No ignored startpoints or ignored endpoints found.`（875 字符里除了报告头就是这句）——
+  它报的是**时序引擎判定为被忽略的起点/终点对象**，与"你的 `set_…` 命令有没有被拒"不是一回事。
+  真正能一句话说清"这条例外管到几条端点"的是 `-coverage`，见下一条。
   一条例外都没有时印 `No valid timing exceptions found.`。
   `Position` 编号随设计已有例外数量变，按 `From`/`To` 的时钟名认自己那条。
+  两张表的**空表形状**也各有原文（本机一份零例外的设计）：默认表 841 字符、末行
+  `No valid timing exceptions found.`；`-ignored` 852 字符、末行 `No ignored timing exceptions found.`。
+  **两者都远长于"几十字符"**，所以早先那臂"67 字符"的形状与这两条空表读数都对不上。
+  本机连"`-no_header` 会不会把长度缩到几十"都试了：去掉报告头之后空表是
+  **35 字符**（默认表，只剩 `No valid timing exceptions found.`）与 **52 字符**
+  （`-ignored_objects`，只剩 `No ignored startpoints or ignored endpoints found.`），
+  有一行数据时是 **367**（`-ignored`）与 **338**（`-coverage`）——**没有一个落在 67 上**，
+  那一臂的触发条件本机复现不出来。**结论是别拿字符数当判据**（它随报告头里的日期、
+  主机名、设计状态而变），要判"管到没有"看下面那条的 `Endpoints` 列。
+  这一族与"跑没跑过实现"无关：同一份设计 `opt_design`+`place_design`+`route_design` 之后重取，
+  默认表仍是"没有"（836 字符，比综合后的 841 只差在报告头那几行）、`-ignored` 仍是那一条死例外
+  （1177 字符）；**针型那条 MCP 在布线之后重试，照样 `18-513` rc=1**——所以"表归属/是否被拒"
+  都不是布线前后会变的东西，别把它们当成需要等实现才能判的事。
+- **要一个"这条例外到底管到几条端点"的数，用 `report_exceptions -coverage`，一条命令同时给死与活。**
+  本机同一份双钟设计上把死、活两向各写一条 `-setup 2` 之后，表头与两行数据原样是：
+
+        Position  Type             Setup     Hold  From      Through  To        Endpoints  From (%)  Through (%)  To (%)
+        3         Multicycle Path  cycles=2  -     1 clocks           1 clocks  0          0.00                   0.00
+        4         Multicycle Path  cycles=2  -     1 clocks           1 clocks  8          100.00                 100.00
+
+  **`Endpoints` 那一列就是判据**：`0` 是"这条约束登记了但一条端点都没管到"（第 3 行是写反方向的死例外），
+  `8 / 100.00` 是"管到了"（第 4 行）。这比"在哪张表里"硬，因为它不要求你先解释表的归属，
+  也不要求你去差分 `report_timing`；§8 第 7 条要的"每加一条豁免就记下豁免了多少条路径"，
+  取数口就是这一列（或下面那个 `-summary`）。按 `Position` 认自己那条，编号会随已有例外数漂。
+  `-summary` 给的是**按类型聚合**的同一件事：本机那次是
+  `Multicycle Path  2 条约束 / 8 个 setup 端点 / 0 个 hold 端点`——
+  **注意 `No. of Constraints` 把那条死例外也数进去了**（2 = 死的 + 活的），而端点只从活的来（8），
+  所以聚合表不能告诉你"哪一条"没管到东西，只能告诉你总量；逐条要 `-coverage`。
+  `-count_objects` 给的是每条例外的 `From/Through/To` 各命中几个对象（本机两行都 `1 clocks`），
+  它回答"我指到了谁"，不回答"管到多少端点"。
 - 多周期是 **setup 与 hold 两笔**，但**默认表不会替你补第二笔**——这一条本机两臂对照过：
   只给 `set_multicycle_path -setup 2 -from clk_fast -to clk_slow`（方向是活的、没写 `-hold`）之后，
   `report_exceptions -return_string`（1156 字符）里**只有一行**：

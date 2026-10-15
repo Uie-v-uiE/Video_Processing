@@ -98,9 +98,15 @@ sed -i "s/8'd255/8'd254/" rtl/proc.v        # 改一个常数
 ## 5. X / Z 与未初始化
 
 数组元素默认 X、**标量也默认 X**——这条本机在两个仿真器上都实测过：`reg` 标量、`integer`、
-存储器元素在 0 时刻读出来全是 X（`PROBE10 ii=x rs=x rv=xxxxxxxx arr0=xxxxxxxx`），
+存储器元素在 0 时刻读出来全是 X。同一份 bench（`reg scalar_r; reg [31:0] vec; reg [7:0] mem[0:3]; integer ii;`
+一句 `$display`）在本机 xsim 与 ModelSim SE-64 2020.4 上交回**逐字同形**的一行，只有行前多一个 `# `：
+`XDEF scalar=x vec=xxxxxxxx mem0=xx ii=x`（`integer` 用 `%0d` 打出来是 `x` 不是 0）。
+串里的 `xxxxxxxx` 是 32 位字段的样子，**字符数随位宽变**，别把它当固定文本去 grep。
 **只有 SV 的 2 态类型（`bit`/`byte`）才默认 0**。所以"标量默认 0"这种说法只对 2 态类型成立，
 不要拿它推断未驱动 `reg` 的读数——否则会以为某个没写的寄存器"应该是 0"，而它其实是 X。
+（本机没有 `iverilog`：直接调用得到 `bash: iverilog: command not found`，
+在 `D:\Software` 往下三层搜 `iverilog.exe` 也是空——所以第三家的默认初值本机**没有读数**，
+上面那一对才是本包唯一实测过的两臂。）
 
 比对器里含 X/Z 的项记 `NOT_RUN` 或 `FAIL`，禁止在提取层把它折成 0（折了就变成假绿）。
 数组没写过的地址读出来是 X，是"这块逻辑从没被驱动"的直接证据，不要屏蔽。

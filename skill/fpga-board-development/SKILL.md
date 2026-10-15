@@ -133,7 +133,7 @@ license: MIT
 | 要一个占了多少的数：资源放不下、某个块占比离谱、分层占用怎么取、哪个阶段才给得出 | `references/constraints-timing.md` §6 |
 | 引脚电平不对、bank 电压、差分时钟输入、属性在这个脚叫什么；`-delay_type min` 报告里读不到 `Requirement:` 行 | `references/constraints-timing.md` §7 |
 | XDC 层面：加了没生效/被另一条覆盖、一块工程两版板、生成约束能不能手改 | `references/constraints-timing.md` §8 |
-| 加了 multicycle / false_path / case_analysis，不确定管到东西没有 | `references/constraints-timing.md` §9 |
+| 加了 multicycle / false_path / case_analysis，不确定管到东西没有；`report_exceptions` 默认表一个字没变而 `-ignored` 里多了一行 | `references/constraints-timing.md` §9 |
 | `report_methodology` / `report_drc` 一堆规则号，哪些要处理 | `references/constraints-timing.md` §10 |
 | 给时钟加不确定度/抖动、`set_propagated_clock` 生效没有 | `references/constraints-timing.md` §11 |
 | bench 绿了但判据出生以来没红过 | `references/verification.md` §4 |
@@ -149,7 +149,7 @@ license: MIT
 | BD 的验证与 cell 改名的连锁 | `references/vivado-project-bd.md` §2 |
 | 把 BD 倒成脚本、**PS 配置项的 `PCW_*` 参数名**去哪查、IP 版本状态表与 `upgrade_*` 的坑 | `references/vivado-project-bd.md` §2.1 |
 | **自己的 RTL 进了 BD 却拿不到地址/连不上接口**（`BD 41-1285` 协议不匹配、`assign_bd_address` 没落点、`OFFSET` 读回来是空） | `references/vivado-project-bd.md` §2.2 |
-| 导出 `.xsa` 与整组配套、交给 PS 侧的那份文件 | `references/vivado-project-bd.md` §3 |
+| 导出 `.xsa` 与整组配套、交给 PS 侧的那份文件；**`write_hw_platform` rc=0 也生成了文件，对面却说没有 hwh/没有位流** | `references/vivado-project-bd.md` §3 |
 | BD 里改了但重新生成后没生效；或**下一个会话里 BD 的 cell/地址全都数不到**（没 `save_bd_design`） | `references/vivado-project-bd.md` §4 |
 | run 的状态怎么读（`STATUS` 那一串）、`launch_runs` 立刻返回却什么都没 | `references/vivado-build-run.md` §1 |
 | 策略名与 directive 名怎么在**自己这版**里查 | `references/vivado-build-run.md` §2 |

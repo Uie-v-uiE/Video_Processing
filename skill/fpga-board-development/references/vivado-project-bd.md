@@ -113,6 +113,20 @@ BD 想倒成 Tcl 脚本用的命令名是 `write_bd_tcl`，**没有** `export_bd
    换工具版本就换 IP。要可重复就把 VLNV 钉死，并用 `report_ip_status` 看哪些 cell 落后于
    工具推荐的版本——**落后不是错误**，升级 IP 才会改参数默认值，所以升级是一次变更，
    不能和别的改动混在同一次构建里。
+   同一行还埋着一个一字之差：`-vlnf`（网上常见的手误）在本机 2025.2.1 是
+   `ERROR: [Common 17-170] Unknown option '-vlnf', please type 'create_bd_cell -help' for usage info.`
+   且 **rc=1、cell 不建成**；但批处理里它**不会**停下（`catch` 得住），真正让会话终止的是下一行
+   引用这个没建成的 cell，本机那一臂原样是两行：
+   `WARNING: [BD 5-230] No cells matched 'get_bd_cells gpio_0'` 紧跟
+   `ERROR: [Common 17-55] 'get_property' expects at least one object.`（带一条
+   `Resolution: If [get_<value>] was used to populate the object, …`），随后
+   `INFO: [Common 17-206] Exiting Vivado` —— 脚本后面所有行一行都不执行。
+   **所以 tcl 里"可能失败的命令"要逐条 `catch` 并把 rc 打出来**，否则你看到的"输出到这里就没了"
+   不是卡住，是中止。
+   同一臂还顺手给了一条判据边界：那个**一个 cell 都没有**的 BD 上
+   `validate_bd_design` 返回 **rc=0、无任何消息**，`save_bd_design` 照样 `Wrote : <…>/topbd.bd`——
+   **`validate` 通过不是"BD 里有东西"的证据**，空设计在它眼里是合法的。数一遍
+   `llength [get_bd_cells *]` 才算。
 4. **引脚与接口名要从这个 IP 上列出来，不要背。** 例：`axi_dma:7.1` 的流接口是
    `S_AXIS_S2MM`（从端）与 `M_AXI_S2MM`（主端 AXI 口），**没有** `M_AXIS_S2MM`——按后者写
    `get_bd_intf_pins` 返回空集合，`connect_bd_intf_net` 就连了个寂寞。复位口同理，
