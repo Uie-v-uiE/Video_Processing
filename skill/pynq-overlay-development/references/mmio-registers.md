@@ -43,12 +43,27 @@ mm = MMIO(base_addr, length=4, device=None, **kwargs)    # mmio.py:42（3.1.2/4.
 
 ## 2. `read(offset=0, length=4, word_order="little")` 的四条硬事实
 
-源码 `mmio.py:87-133`，3.1 与 4.0.0 一致：
+源码 `mmio.py:87-133`（3.1.2/4.0.0）。**版本线比"3.1 起"更早，而 2.5.1 是另一种能力**：
+2.7.0 `mmio.py:110`、3.0.1 `:82`、3.1.2/4.0.0 `:87` 都是现代签名
+`read(offset=0, length=4, word_order="little")`（2.7.0 那一版用**单引号**，按双引号 grep 会把它扫成 0 命中）；
+**2.5.1 的入口不叫 `read`**，是 `MMIO.read_mm(offset=0, length=4)`（`:110`）与
+`read_reg(offset=0, length=4)`（`:178`），两支都**只收 4 字节**——`if length != 4:` 抛的是另一句话
+`ValueError("MMIO currently only supports 4-byte reads.")`（`:126-127`、`:194-195`），
+而且**没有 `word_order` 这个参数**（所以 8 字节读、1/2 字节读在 2.5.1 上根本不存在；
+拿 3.x 的写法去 2.5.1 上试，先撞的是这句 `ValueError`，不是"没有这个函数"）。
+下面四条按现代那一版写。
 
 1. `length` 只接受 **1/2/4/8**，其它值 `ValueError("MMIO currently only supports 1, 2, 4 and
    8-byte reads.")`。
 2. `offset` 必须是 **4 的倍数**，否则 `MemoryError("Unaligned read: offset must be multiple of 4.")`。
    也就是说：offset 是**字节**地址偏移（内部 `idx = offset >> 2`），想读第 3 个字要写 `12` 不是 `3`。
+   **但这道门不是第一个被查的**：现代那一版的检查顺序是 `length` 集合 → `offset < 0`
+   （`ValueError("Offset cannot be negative.")`，4.0.0 `:118`，2.5.1 也有，`:129`）→
+   8 字节时的 `word_order` 取值 → 最后才是对齐。所以一个"既负又没对齐"的 offset 给你的是
+   `ValueError` 而不是 `MemoryError`，**按异常类型反推"我错在哪一项"会推错**，要按这句顺序读源码，
+   或干脆一次只改一个参数。**四版都是这个顺序**，逐版的行号（前一项 = `length` 集合那道，
+   后一项 = `offset < 0` 那道）：2.7.0 `:137`/`:140`、3.0.1 `:109`/`:113`、3.1.2 `:114`/`:118`、
+   4.0.0 `:114`/`:118`；2.5.1 只有前两道与最后一道（`:127`/`:129`/`:132`，没有 `word_order` 那道）。
 3. `word_order` **只在 `length == 8` 时生效**，而且它决定的是"两个 32 位字的先后"，源码 docstring
    明写这不是字节端序：`little` = `[off+4..off+7]` 在高、`[off..off+3]` 在低；`big` 相反。
    把它当端序开关去修"数值怪"，会修出第二重错位。
