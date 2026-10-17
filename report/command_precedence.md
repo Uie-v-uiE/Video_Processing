@@ -59,13 +59,13 @@
 | `split auto` | `SPLIT_AUTO_BIT` → `cfg1[23]`（`main.c:1125`） | `split_ctrl.v:94`、`102` | **它盖 `pos_px`** | 半说明（§6） |
 | `split follow 1` / `split video` | `SPLIT_FOLLOW_BIT` → `cfg1[24]`（`main.c:1145-1147`、`1171`） | `split_ctrl.v:33` | 与 `auto` 同时开时新的 `pos` 不动屏 | 说明了"auto 仍开着"（`main.c:1176`） |
 | `split swap 1` | `SPLIT_SWAP_BIT` → `cfg1[25]`（`main.c:1147`） | `split_ctrl.v:105`→`split_display.v:47` | — | 说明了"只换内容，不换缝位"（`main.c:1152`） |
-| `split marker 0` | `SPLIT_MARKOFF_BIT` → `cfg1[30]`（反着写，`main.c:1144-1145`） | `pl_video_top.v:894`→`split_display.v:63-65` | 标记线盖过缝两侧的内容 | 是（那格说明是蓝线） |
+| `split marker 0` | `SPLIT_MARKOFF_BIT` → `cfg1[30]`（反着写，`main.c:1144-1145`） | `pl_video_top.v:913`→`split_display.v:63-65` | 标记线盖过缝两侧的内容 | 是（那格说明是蓝线） |
 | `split range` / `split speed` | 不存在 | 端点/速度是构建参数（声明 `pl_video_top.v:19-21`，送进 `split_ctrl` 那一处 `:889`） | — | 明确拒绝（`main.c:1207-1209`） |
-| `pipe <九位>` | `cur_sel` → `cfg1[8:0]`（`main.c:456`、`223`） | `proc_pipeline.v:56-65` | 缝位决定"看得见几成" | 见 §7 |
-| `pipe` 的 `[6]`（bin_pol） | 同上 | `proc_pipeline.v:141` | **`[5]=0` 时无人读它** | **没有**（§8） |
-| `pipe` 的 `[7]`＋`[8]` 同开 | 同上 | `proc_pipeline.v:59-60`、`proc_morph.v:24` | **两者互相抵消** | **没有**（§8） |
-| `th <0..255>` | `cur_thr` → `gpio_o[15:8]`（`main.c:493`、`214`） | `proc_binary.v:23`、`proc_morph.v:34` | `[5]`/`[7]`/`[8]` 全 0 时没有读者 | **没有**（§8） |
-| `gamma <γ>` | `cur_gamma` ＋ `CFG_DATA1` 表窗口 | `proc_pipeline.v:104`（级 0） | 只在"处理图"那一侧可见 | **没有**（§7） |
+| `pipe <九位>` | `cur_sel` → `cfg1[8:0]`（`main.c:456`、`223`） | `proc_pipeline.v:59-68` | 缝位决定"看得见几成" | 见 §7 |
+| `pipe` 的 `[6]`（bin_pol） | 同上 | `proc_pipeline.v:144` | **`[5]=0` 时无人读它** | **没有**（§8） |
+| `pipe` 的 `[7]`＋`[8]` 同开 | 同上 | `proc_pipeline.v:62-63`、`proc_morph.v:25` | **两者互相抵消** | **没有**（§8） |
+| `th <0..255>` | `cur_thr` → `gpio_o[15:8]`（`main.c:493`、`214`） | `proc_binary.v:23`、`proc_morph.v:35` | `[5]`/`[7]`/`[8]` 全 0 时没有读者 | **没有**（§8） |
+| `gamma <γ>` | `cur_gamma` ＋ `CFG_DATA1` 表窗口 | `proc_pipeline.v:107`（级 0） | 只在"处理图"那一侧可见 | **没有**（§7） |
 | `bilin on/off` | `cur_bilin` → `gpio_o[19]`（`main.c:558`、`216`） | `pl_video_top.v:251-262`→`fb_bilin.v:51-54` | 整数倍率、画面末行末列与越界格 | 说了两个条件（§9） |
 | `osd on/off` | `cur_osd` → `gpio_o[20]`（**反相**：写 1 = 关，`main.c:567-571`、`217`） | `pl_video_top.v:265-276`→`osd_overlay.v:58`、`518` | 无人盖它（只作用于输出级那一个选择） | 是（`show` 那一句说清只影响叠字） |
 | 裸五位串 / `pipe 00111` | 不写任何位（`main.c:461-467`） | — | — | 回一句等价的九位 |
@@ -252,7 +252,7 @@ PS 这一路看的是 500 ms 内有没有过发布（`src_life.v:41-47`），而
 （`main.c:1200-1203`），所以 100% 会念成 99%。
 
 **（d）`marker` 与 `swap` 是内容级的事。** 标记线位在 `cfg1[30]`，语义反着写
-（1 = 关，`main.c:1144-1145`；执行侧 `split_marker_on = ~gp[13]`，`pl_video_top.v:894`），
+（1 = 关，`main.c:1144-1145`；执行侧 `split_marker_on = ~gp[13]`，`pl_video_top.v:913`），
 而它在混色级排在内容之前：`if (sep && de)` 直接画蓝（`split_display.v:63-65`）。
 `swap` 只翻 `raw_on_left`（`split_ctrl.v:105`），不改缝位（回声明说，`main.c:1152`）。
 follow 打开时"哪一格算缝的左侧"改由源头那一拍判定（`seam_src`，`pl_video_top.v:903-908`，
@@ -264,8 +264,8 @@ follow 打开时"哪一格算缝的左侧"改由源头那一拍判定（`seam_sr
 
 缝两侧的像素来自同一份源坐标、两个抽头：`orig_pix`（链子之前）与 `proc_pix`（链子之后），
 选择器是 `sel = oob ? 黑 : (take_orig ? orig : proc)`（`split_display.v:48`）。
-gamma 是链子的第 0 级（`proc_pipeline.v:104`，`en=0` 时逐位旁路），
-`th`/`pipe` 都在它后面（`proc_pipeline.v:141`、`147`）。
+gamma 是链子的第 0 级（`proc_pipeline.v:107`，`en=0` 时逐位旁路），
+`th`/`pipe` 都在它后面（`proc_pipeline.v:144`、`147`）。
 
 于是这三条推论都是位级的事实，而不是观感：
 
@@ -284,19 +284,19 @@ gamma 是链子的第 0 级（`proc_pipeline.v:104`，`en=0` 时逐位旁路）�
 九位是"一位一级"，但级与级之间有三条不成对的规则，代码都在 RTL 一侧：
 
 - **`[6]`（bin_pol）是 `[5]`（binary）的修饰位，不是独立的一级。**
-  它唯一的读者是 `proc_binary` 的 `.pol(bin_pol)`（`proc_pipeline.v:141`），
+  它唯一的读者是 `proc_binary` 的 `.pol(bin_pol)`（`proc_pipeline.v:144`），
   而同一个例化的 `bypass(~w_bin)` 在 `[5]=0` 时把这一级整个旁路掉——
   于是 `pipe 010000000` 这一位写进去了，没有任何像素会因它改变。
   模块文件头自己写了这条约束（`proc_pipeline.v:6`，"只在 `[5]=1` 有意义"）。
 - **`[7]` 与 `[8]` 同时为 1 时两个都不做。** `w_erode = sel[7] & ~sel[8]`、
-  `w_dilate = sel[8] & ~sel[7]`（`proc_pipeline.v:59-60`），合成 `morph_mode=0`；
+  `w_dilate = sel[8] & ~sel[7]`（`proc_pipeline.v:62-63`），合成 `morph_mode=0`；
   而 `proc_morph` 把 `mode==0` 与 `mode==3` 都当旁路
-  （`proc_morph.v:24`，理由写在 `proc_morph.v:22-23`：开/闭运算要两遍 3×3 窗口）。
+  （`proc_morph.v:25`，理由写在 `proc_morph.v:23-24`：开/闭运算要两遍 3×3 窗口）。
   这不是"后写的盖住先写的"，是**两位互相抵消**。
   与之对照：`[2]`/`[3]`（模糊/锐化）是串联的两个窗口级，同开就都做（`proc_pipeline.v:119-125`），
   所以互斥只有级 5 这一处。
 - **`th` 只有两个读者。** `proc_binary` 的亮度比较（`proc_binary.v:23`，极性由 `pol` 翻，`:24`）
-  与 `proc_morph` 自己那一次二值化（`proc_morph.v:34`）。
+  与 `proc_morph` 自己那一次二值化（`proc_morph.v:35`）。
   所以当 `[5]`、`[7]`、`[8]` 全为 0 时，`th` 的任何取值都不改变画面；
   而 `[7]` 或 `[8]` 单独开着时 `th` 仍然有效（形态学自带一次亮度判决）。
 
@@ -367,14 +367,14 @@ gamma 是链子的第 0 级（`proc_pipeline.v:104`，`en=0` 时逐位旁路）�
 | 想知道的事 | 读哪里 | 出处 |
 |---|---|---|
 | 此刻倍率是多少 | 屏上 `Zoom:` 那五位档位（由 `inv_used` 分区得到） | `zoom_ctrl.v:76-95`、`osd_overlay.v:140-158` |
-| 此刻倍率是哪一路给的 | 屏上后缀：`(Fit)` = 角度定的，`(Auto)` = 呼吸在跑，**无后缀** = 手动档**或** `zoom off`（合成式要求 `zoom_run`） | `osd_overlay.v:295-296`；三个旗标的合成 `pl_video_top.v:1010-1011` |
+| 此刻倍率是哪一路给的 | 屏上后缀：`(Fit)` = 角度定的，`(Auto)` = 呼吸在跑，**无后缀** = 手动档**或** `zoom off`（合成式要求 `zoom_run`） | `osd_overlay.v:295-296`；三个旗标的合成 `pl_video_top.v:1066-1067` |
 | 同上，但不看屏 | lane23 的 `zoom_fit`（bit19，念作"请求拟合 或 被旋转钳住"）与 `[9:0]`（`inv_used`） | 位序唯一出处 `pl_video_top.v:680-687`；译码 `src/host/health_read.mjs:87-100`，**期望值只有一处实现** `:120`（`zoomJudge`，人读那一支与 `--json` 共用它） |
 | 请求侧写了什么 | `stat` 的 `zsel=`/`zman=`、`zoom=`；`rot show` 的 `zoom=fit/now` | `main.c:1403-1407`、`1047-1050` |
 | 屏上此刻是哪一路 | 屏上 `SRC:` 的名字（`{fb_vis, owner_eth}`），尾部 `*` 才表示"被钉住" | `pl_video_top.v:1070`、`osd_overlay.v:244-252` |
 | 为什么归这一路 | lane30：`owner_eth`/`eth_live`/`eth_tb_ok`/`why_ps` | `pl_video_top.v:603`、`src_arb.v:35-39`、`73`；译码 `health_read.mjs:71-78` |
 | 模式请求 | `stat` 的 `mode=`（AUTO/ETH/TEST/SD 的**编码**，不是词） | `main.c:1410`、编码表 `main.c:65-68` |
 | 此刻生效的是哪几级效果 | `pipe show` 念名字；屏上 `Pipe:` 念成对编码 | `main.c:600-610`、`osd_overlay.v:133-143` |
-| `th` 此刻有没有读者 | `pipe show` 里有没有 binary / erode / dilate | 读者只有 `proc_binary.v:23`、`proc_morph.v:34` |
+| `th` 此刻有没有读者 | `pipe show` 里有没有 binary / erode / dilate | 读者只有 `proc_binary.v:23`、`proc_morph.v:35` |
 | 缝在哪个坐标空间 | `split show` 的"画面列/显示列"与 `pos=<n>/<W>` | `main.c:1113-1122`；空间由谁定的唯一出处 `split_ctrl.v:33` |
 | 缝是不是在被自动扫 | `split show` 的 `auto/manual`；屏上 `Split:` 后面的 `(Auto)` | `main.c:1118`、`osd_overlay.v:300-303` |
 | 几何控制字整字（含 fit 位） | `stat` 的 `geom=%08x`（PS 影子），bit31 = zoom_fit | `main.c:1403-1411`、`main.c:158` |
@@ -408,8 +408,8 @@ node src/host/health_read.mjs    执行侧：lane23（倍率与 fit）、lane30�
 | 4 | `zoom fit 0` 的"回到手动档/呼吸自动档" | `cur_zoom=0` 时实际回到 1.00x，那句是错的 | 三个分支：`手动档` / `呼吸` / `1.00x（因为 zoom off）` |
 | 5 | `rot speed <n>` 而 `rot auto 0` | 只报"speed=n 度/帧" | "（`rot auto` 现在是关的 ⇒ 这个转速要 `rot auto 1` 才看得见）" |
 | 6 | `play` / `fill` / `frame N` 而模式被钉住 | 写了 DDR 与发布，画面不动，回声不提模式 | 读 `cur_mode_ovr`（`main.c:198`）：非 AUTO 时补一句"屏此刻钉在 %s ⇒ 这一路不会上屏，先 `src auto` 或 `src 2`" |
-| 7 | `pipe` 含 `[6]` 而 `[5]=0` | `print_sel_names` 把 `bin_pol` 列为"生效" | "bin_pol 是 binary 的修饰位，`[5]=0` 时无人读它（`proc_pipeline.v:141`）⇒ 要它就用 `001100000` 这种 `[5][6]` 同开的写法" |
-| 8 | `pipe` 含 `[7]`＋`[8]` | 列出 `erode dilate`，画面上两个都没做 | "腐蚀与膨胀同开＝明确旁路（开/闭要两遍窗口，`proc_morph.v:22-24`）⇒ 屏上 `Pipe:` 第五格会是 0，以那一格为准" |
+| 7 | `pipe` 含 `[6]` 而 `[5]=0` | `print_sel_names` 把 `bin_pol` 列为"生效" | "bin_pol 是 binary 的修饰位，`[5]=0` 时无人读它（`proc_pipeline.v:144`）⇒ 要它就用 `001100000` 这种 `[5][6]` 同开的写法" |
+| 8 | `pipe` 含 `[7]`＋`[8]` | 列出 `erode dilate`，画面上两个都没做 | "腐蚀与膨胀同开＝明确旁路（开/闭要两遍窗口，`proc_morph.v:23-25`）⇒ 屏上 `Pipe:` 第五格会是 0，以那一格为准" |
 | 9 | `th <n>` 而 binary/erode/dilate 全 0 | 只报 `[CTRL] thr=n` | "（这一位只被 binary 与 morph 读；现在这两位都没开 ⇒ `th` 不会改变画面，开一个：`pipe 000001000`）" |
 | 10 | 任何让屏上几乎全是原图的缝位（`split ≥ 99%`） | 效果链照旧回显"开着" | 在 `split` 的回声尾部加一句"处理图只剩一列 ⇒ 想看清 `pipe`/`gamma` 把缝放回中间（`split 50`）"；依据就是 `split_display.v:48` 那一次选择 |
 | 11 | `bilin show` 的条件句 | 只讲"倍率非整数"这一条 | 补第二条：源画面最后一列/最后一行与越界格按构造退化成最近邻（`fb_bilin.v:51-54`、`zoom_mapper.v:100-105`） |

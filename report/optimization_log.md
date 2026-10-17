@@ -419,7 +419,7 @@ r85 只做上面那张"还能做的"表里**不需要新判据**的四项（`#10
 
 | 改了什么 | 出处（改前的告警） | 为什么算"值中性" |
 |---|---|---|
-| `split_display.v` 删掉空参数声明 `#()()` | `Synth 8-9397`（空参数声明只允许 SystemVerilog） | 该模块全树**没有一处**带 `#(...)` 例化（`pl_video_top.v:873` 与 `tb_v97` 的四例化都是 `split_display u_* (`），且 `PANE_W` 只在注释里出现 ⇒ 删的是一对括号，不是端口 |
+| `split_display.v` 删掉空参数声明 `#()()` | `Synth 8-9397`（空参数声明只允许 SystemVerilog） | 该模块全树**没有一处**带 `#(...)` 例化（`pl_video_top.v:967` 与 `tb_v97` 的四例化都是 `split_display u_* (`），且 `PANE_W` 只在注释里出现 ⇒ 删的是一对括号，不是端口 |
 | `split_ctrl.v:53-54` 的 `{0'd0, x[12:0]}` 改成 `x[12:0]` | `Synth 8-9694` invalid size of integer constant literal ×2 | 那个字面量的**宽度写的是 0**（`0'd0` = 0 位），拼接里它本来就不贡献任何位；切片本身已是 13 位 ⇒ 值逐位相同 |
 | `src_mode.v` 通配比较 `===` | `Synth 8-589` ×10（**故意留着**） | 综合把它折成 `==` 是"硅片上没有 X"这条事实，而这条守卫的价值全在仿真里（`X !== 0` 恒真 ⇒ 忘接线会看见）；改成 `==` 才是把台架的灯吹灭。所以改的是注释，不是运算符 |
 | `system_top.v` 的 `eth_mdc = 1'b0` | `Synth 8-3917` port driven by constant（**故意留着**） | 数据面不用 MDIO（`report/board_pins.md:62`），PHY 由 strap 定 ⇒ 这是陈述不是缺陷；要消它得另写位时序机，那一版再来 |
@@ -1057,3 +1057,45 @@ Slice LUT **14388**(27.05 %)、FF **8077**、DSP **19**、Dynamic **2.206 W**。
 ③ 这一列的每一个数都点名凭据：`build/timing_summary.rpt`、`build/crit_paths.txt`（01:23 重生成）、
    `build/hold_paths.rpt`（01:24）、`build/utilization.rpt`、`build/power.rpt`、`build/r104_gates.txt`、
    `build/r104_board_verify_console.txt`、`build/r104_board_ping.txt`、`build/evidence/r104_temp_lines.txt`。
+
+## r132 这一列（2026-10-17 11:36 那份 `build/timing_summary.rpt` 逐条读出来的，不抄上一轮）
+
+设计级读数：**WNS +0.687 ns / WHS +0.004 ns / WPWS +0.264 ns**，setup 与 hold 的失败端点都是 **0 / 51027**，
+脉宽失败端点 **0 / 12582**；报告第 154 行是 `All user specified timing constraints are met`。
+位流 `build/system.bit`（md5 前缀 `cb907d3e4898`，11:35）与这份报告（11:36）是同一次实现出来的，
+所以下面每一格都能回指同一张网表。
+
+进这一轮历史的是两刀，都不是为了时序：**#477** 把 `seam_src` 的"标记线画在画面内"判定挪到与像素同环的
+那一位，并把 `TAPS=1` 时会越界的 `dq[TAPS-2:0]` 改成循环写法；**#129/#130** 给四个窗口级加编译期参数
+`STREAM_WRAP`、顶层改喂 `cy_chain`。两刀都不新增任何一拍，所以这列读数该问的是"瓶颈有没有换地方"。
+
+四个主时钟的地板：setup `eth_rxc` 0.687 < `clk_fpga_0` 1.571 < `clkout0_1` 3.287 < `sys_clk` 14.294；
+hold `eth_rxc` 0.004 < `clk_fpga_0` 0.048 < `clkout0_1` 0.067 < `sys_clk` 0.121；
+PW 由小到大：`eth_rxc` 3.500 < `clk_fpga_0` 3.870 < `sys_clk` 7.000 < `clkout0_1` 8.870（全设计那条 0.264 落在
+`clkout2` 的 3 个端点上，与这两刀无关）。
+
+| 档 | slack | 起 → 止 | 逻辑级数 | 走线 | 这一格是什么病 |
+|---|---|---|---|---|---|
+| setup · `clk_fpga_0` | 1.571 | `u_pl/u_arb/owner_eth_reg/C → u_pl/u_bilin/u_fb/lo_reg_0_40/ADDRARDADDR[7]` | 1（LUT3=1） | 7.072 ns = 92.7 % | 一级逻辑、九成以上是走线 ⇒ 拥塞形状而不是深度；起点还是 `owner_eth`（#214 那条混域名） |
+| hold · `clk_fpga_0` | 0.048 | `u_eth/u_saver/cur_data_reg[36]/C → u_eth/u_saver/q_data_reg_448_511_36_38/RAMA/I` | 0 | 0.067 ns = 32.2 % | 进 BRAM 的搬运寄存器，0 级逻辑 ⇒ 没有着力点 |
+| setup · `eth_rxc`（全设计最差） | **0.687** | `u_eth/u_icmp/u_icmp_tx/FSM_onehot_cur_state_reg[6]/C → u_eth/u_icmp/u_icmp_tx/ip_head_reg[4][10]/R` | 5（LUT3=1 LUT4=1 LUT5=1 LUT6=2） | 5.438 ns = 80.0 % | 状态机到 `ip_head` 的复位扇出；8 ns 周期里八成是走线 ⇒ 与 #179/#141 同一族的老账，重排算术不动绕线 |
+| hold · `eth_rxc`（全设计最差 hold） | **0.004** | `u_eth/u_rx_par/p_valid_reg/C → u_eth/u_reasm/stat_bytes_reg[0]/D` | 2（CARRY4=1 LUT2=1） | 0.908 ns = 78.0 % | 收包并行段到重组段，地板 4 ps ⇒ 布局与扇出的账 |
+| setup · `sys_clk` | 14.294 | `u_pl/u_ang/angle_reg[5]/C → u_pl/u_ang/angle_reg[6]/D` | 5（CARRY4=1 LUT5=2 LUT6=2） | 3.991 ns = 71.5 % | 角度步进器自己那一拍 |
+| hold · `sys_clk` | 0.121 | `u_pl/u_ang/fs_s_reg[0]/C → u_pl/u_ang/fs_s_reg[1]/D` | 0 | 0.055 ns = 28.2 % | 同一颗模块的同步链 |
+| setup · `clkout0_1`（像素域） | 3.287 | `u_pl/x_d_reg[20][3]/C → u_pl/u_osd/ch_r_reg/ADDRARDADDR[6]` | 20（CARRY4=9 LUT2=1 LUT3=2 LUT4=4 LUT5=1 LUT6=3） | 10.380 ns = 64.5 % | 还是 OSD 那一锥（#105/#106 的账）：`MIX_D` 第 20 级的显示列标签进字模 BRAM 的写地址，20 级里 9 级是 CARRY4 |
+| hold · `clkout0_1` | 0.067 | `u_pl/u_bilin/j_d3_reg[1]_rep__1/C → u_pl/u_blur/lb1_reg_0_127_11_11/DP.HIGH/WADR2` | 0 | 0.195 ns = 58.0 % | 行缓存写地址，0 级逻辑；起点那颗 `_rep__1` 是布线器复制出来的寄存器 |
+| setup · 跨域 `clkout0_1 → sys_clk` | 14.631 | `u_pl/u_split_x/bus_q_reg[16]/C → u_pl/u_ang/angle_reg[6]/D` | 7（CARRY4=2 LUT2=1 LUT5=2 LUT6=2） | 3.187 ns = 64.7 % | 分割线总线跨进角度域 |
+| hold · 跨域 `clkout0_1 → sys_clk` | 0.172 | `u_pl/rot_fs_tog_reg/C → u_pl/u_ang/fs_s_reg[0]/D` | 0 | 0.628 ns = 81.7 % | 翻转位扇出到同步器——任务 #127 记的那一族 |
+| setup · 跨域 `sys_clk → clkout0_1` | 4.888 | `u_pl/u_ang/angle_reg[1]/C → u_pl/u_zmap/y_out_reg[8]/D` | 15（CARRY4=3 DSP48E1=1 LUT2=1 LUT3=1 LUT4=3 LUT5=4 LUT6=2） | 8.581 ns = 59.6 % | 角度进坐标映射那一拍，带一个 DSP |
+| hold · 跨域 `sys_clk → clkout0_1` | 0.173 | `u_pl/u_k1l/tog_reg/C → u_pl/u_mode/lsync_reg[0]/D` | 0 | 0.548 ns = 78.7 % | 长按翻转位进模式域 |
+
+读法三条：
+1. 四条同域 setup 地板里只有 `clkout0_1` 那条带深度（20 级、9 级 CARRY4），其余三条走线占 71–93 % ⇒
+   这一轮"时序到头"的准确说法还是：**瓶颈在绕线与 OSD 那一锥**，不在这一轮改的窗口级与缝判定。
+2. 两块 hold 地板（0.004 / 0.048）都是 0–2 级逻辑、走线 32–78 % ⇒ 与 r102/r103/r104 那几列同一形状。
+3. 按规矩 35：这列里每一个绝对值与上一列的升降**都不写成收益或损失**。这一轮能报的事实只有
+   "两端都 met、失败端点 0、最差那一格的归属还在 `eth_rxc` 的 `u_icmp_tx` 一族"。
+
+凭据：`build/timing_summary.rpt`（10-17 11:36；逐时钟 WNS/WHS/WPWS 与端点总数取自第 175 行起的
+`Intra Clock Table`，上面 12 条取自报告里按时钟分段的 `Max Delay Paths` / `Min Delay Paths`，8 条同域 +
+4 条跨域）、`build/route_status.rpt`、`build/utilization.rpt`（同一分钟）、`build/system.bit`（11:35）。

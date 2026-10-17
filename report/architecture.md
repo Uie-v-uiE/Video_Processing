@@ -63,7 +63,7 @@ bank，PS 全程不碰这些字节；SD 回放那路由 PS 的 SD 控制器 DMA 
 | 时钟 | 频率 | 来源 | 谁用 |
 |------|------|------|------|
 | `sys_clk` | 50 MHz（周期 20 ns，引脚 W17） | 板载振荡器，`src/constraints/rk_zynq7020.xdc:5-6` | MMCM 输入、按键、心跳/LED；OSD 的 `FPS:` 那一格的计数口径在这个域与 `clk_pix` 之间改过一次，见下一行 |
-| `clk_pix` = `clkout0` | 50 MHz | MMCM CLKOUT0 ÷20，`src/rtl/clocks/clk_gen.v:21` | 栅格、映射、特效链、混合、OSD、`shown_rate`（OSD `FPS:` 那一格现在数"写进屏的新帧"，`src/rtl/util/shown_rate.v`，顶层例化 `src/rtl/top/pl_video_top.v:941`；在这一格改成数新帧之前，它数的是扫过屏的显示场，也就是约 60 Hz 的面板场频 ⇒ 屏上恒读 59 或 60。两种计数口径的推导与验证记录在 `report/log/issues.md` #128、#157 两节） |
+| `clk_pix` = `clkout0` | 50 MHz | MMCM CLKOUT0 ÷20，`src/rtl/clocks/clk_gen.v:21` | 栅格、映射、特效链、混合、OSD、`shown_rate`（OSD `FPS:` 那一格现在数"写进屏的新帧"，`src/rtl/util/shown_rate.v`，顶层例化 `src/rtl/top/pl_video_top.v:997`；在这一格改成数新帧之前，它数的是扫过屏的显示场，也就是约 60 Hz 的面板场频 ⇒ 屏上恒读 59 或 60。两种计数口径的推导与验证记录在 `report/log/issues.md` #128、#157 两节） |
 | `clk_pix5x` = `clkout1` | 250 MHz | MMCM CLKOUT1 ÷4，`clk_gen.v:24` | TMDS 串化（`rgb2dvi`） |
 | `clk_200m` = `clkout2` | 200 MHz | MMCM CLKOUT2 ÷5，`clk_gen.v:27` | IDELAYCTRL 参考 |
 | `axi_clk` = `clk_fpga_0` | 100 MHz | PS FCLK0，`system_top.v:83` | AXI 读写、GPIO、两个搬运引擎 |

@@ -1288,8 +1288,8 @@ grep -n "OSERDESE2\|DATA_WIDTH\|CLKDIV\|OBUFDS" src/rtl/hdmi/tmds_serializer.v
 proc_pipeline.v:22   LATENCY   = 15        ← 唯一真源（parameter，声明处原文："不许由外部覆盖"）
 proc_pipeline.v:27   OFF_LINES = 4         ← 第二个真源
    │
-   ├─ pl_video_top.v:816   PROC_LAT  = u_pipe.LATENCY            = 15
-   ├─ pl_video_top.v:817   LEFT_TAIL = PROC_LAT                  = 15   （orig_skid / oob_skid 的级数）
+   ├─ pl_video_top.v:835   PROC_LAT  = u_pipe.LATENCY            = 15
+   ├─ pl_video_top.v:836   LEFT_TAIL = PROC_LAT                  = 15   （orig_skid / oob_skid 的级数）
    ├─ pl_video_top.v:354   MIX_D     = 3 + 1 + 1 + u_pipe.LATENCY = 20
    │        └ :352 注释：3 = 打拍，1 = addr_q，1 = BRAM 读出
    ├─ pl_video_top.v:355   SB        = (MIX_D > 16) ? MIX_D + 1 : 16 = 21   （延迟链数组宽度）
@@ -1310,16 +1310,16 @@ proc_pipeline.v:27   OFF_LINES = 4         ← 第二个真源
 `proc_pipeline.v:22`、`raw_line_delay.v:9`（`LINES` **有默认值 4**，而 `:38-40` 的注释口径是"只有一个合法出处
 `u_pipe.OFF_LINES`、刻意不给猜出来的默认值"——**参数行与注释互相打脸**；RAM 块数账在 `:38`）、
 `split_display.v:11`（注释里写 `+15`，那是**历史记录不是定义**）、`tb_v86_pipe_sel.v:8`（`LAT_EXPECT`）、
-`proc_box_blur.v:25-30` 与 `proc_sharpen.v`/`proc_sobel.v`/`proc_morph.v` 的同形段。
+`proc_box_blur.v:26-31` 与 `proc_sharpen.v`/`proc_sobel.v`/`proc_morph.v` 的同形段。
 自检脚本：`node src/host/pipe_len_check.mjs`（门禁第 21 项，§17）。
 
 ### 9.2 门控与数据同拍：三类必须并排读的抽头
 
 | 类别 | 抽头 | 为什么是这个数 |
 |---|---|---|
-| 显示/混合 | `x_d/y_d/de_d/hs_d/vs_d[MIX_D=20]`（`pl_video_top.v:919-920`） | 内容与标签走同一条链（`:359-374`），MIX_D 由 LATENCY 导出 |
+| 显示/混合 | `x_d/y_d/de_d/hs_d/vs_d[MIX_D=20]`（`pl_video_top.v:975-976`） | 内容与标签走同一条链（`:359-374`），MIX_D 由 LATENCY 导出 |
 | 环外地址 | `x_d[2]/y_d[2]/de_d[2]`（`:741,743-748`） | `addr_q` 1 拍 + BRAM 1 拍 = 2；第一版错接 `[3]` ⇒ k=4/5 全错 |
-| 各级算子坐标 | `xd[2]/xd[5]/xd[8]/xd[12]`（`proc_pipeline.v:95-98`） | 该级 de_in 之前**累积**拍数（`:74` 原文） |
+| 各级算子坐标 | `xd[2]/xd[5]/xd[8]/xd[12]`（`proc_pipeline.v:98-101`） | 该级 de_in 之前**累积**拍数（`:74` 原文） |
 
 `#92` 事故的完整形状（一次改动制造了三个判据）：`:913-914` 记录"只把 `x_sel` 提到 `MIX_D`，
 `x/y/de/hs/vs` 停在第 11 级 ⇒ 屏上 `de` 比同拍像素**早 9 列**"；`split_display.v:11` 记录同类
@@ -1459,7 +1459,7 @@ set_clock_groups -asynchronous \
 | 6 | 校验和等宽累加**拆拍** | `icmp_tx.v:274-276`：10 项一拍 ⇒ **5 级 CARRY4、0.741 ns**；改成 5 拍各加 5 项 | `icmp_tx.v:272-292`；`udp_tx.v:234-249` |
 | 7 | 显示侧小写折算**从读侧挪到写侧** | 读侧 `ch→gi→font→b_reg` 是全设计最差路径主体；挪过去换来译码表少 17 个分支 | `osd_overlay.v:187-189` |
 | 8 | 非 2 幂深度帧缓存**拆成 32768 + 8192 两块** | 单块会被向上填到 `2^16` ⇒ 128 块 RAMB36（全片 140）；拆后实测 80 | `frame_buffer_w64.v:4-7,23-35` |
-| 9 | 打包器数组**显式 `ram_style="distributed"` + 存储写独占无复位 always 块** | `Synth 8-7186` 拒绝推断成 RAM ⇒ 512×64bit 退化成 **32904 个 FDRE**（实测对照 FF=32904/LUTRAM=0 vs FF=85/LUTRAM=864）；另一版 `FW=11` 直接 DRC `UTLZ-1`（占整机 Slice Register 94 %） | `axi_frame_saver64.v:10-13,48-50,104-107`；`sync_fifo.v:2-4`（同族：大深度 icmp_fifo 落寄存器堆导致 `eth_rxc@125 MHz` 域 WNS 为负）；`proc_morph.v:36-39` |
+| 9 | 打包器数组**显式 `ram_style="distributed"` + 存储写独占无复位 always 块** | `Synth 8-7186` 拒绝推断成 RAM ⇒ 512×64bit 退化成 **32904 个 FDRE**（实测对照 FF=32904/LUTRAM=0 vs FF=85/LUTRAM=864）；另一版 `FW=11` 直接 DRC `UTLZ-1`（占整机 Slice Register 94 %） | `axi_frame_saver64.v:10-13,48-50,104-107`；`sync_fifo.v:2-4`（同族：大深度 icmp_fifo 落寄存器堆导致 `eth_rxc@125 MHz` 域 WNS 为负）；`proc_morph.v:37-40` |
 | 10 | IDDR 与 fabric **同吃一只 BUFG**（放弃 BUFIO 采样） | 两棵钟树 SCD 3.171 vs DCD 4.854 差 1.616 ns 而数据路径只 1.855 ns ⇒ 工具每次布线垫随机量，WHS 在 ±1 ps 掷硬币（r62 +0.001 / r63b +0.052） | `rgmii_rx.v:3-5,12-20`；`rk_zynq7020.xdc:37-49` |
 
 **一条失败并被回滚的优化（必须留在文档里，否则下一个 AI 会推荐它）**：
@@ -1646,7 +1646,7 @@ grep -n "Total On-Chip\|Static\|PS7" vivado_system/zynq_video_sys.runs/impl_1/sy
 | `[31:27]` | **健康 lane 号** | `:219` `wire [4:0] lm_lane = gpio_o[31:27];` | 固件也从不写 |
 
 **位序三处同源**：RTL 解码 `system_top.v:262-293` + 固件拼字 `main.c:214-218` + 表头注释 `main.c:4-15`。
-**这是 ABI**：只准往高位加，不许重排（`pl_video_top.v:1048` 里 `status` 的注释给了理由：
+**这是 ABI**：只准往高位加，不许重排（`pl_video_top.v:1104` 里 `status` 的注释给了理由：
 "不重排，JTAG 侧的读法就不会错位"）。
 
 ### 13.3 `gpio_cfg1_o[31:0]`（效果九位 + 几何 19 位）
@@ -1724,7 +1724,7 @@ mux 实现：`system_top.v:237-247`（**if/else-if 组合链，没有 case、没
 
 ### 13.6 `status[31:0]`：**没有读者，别当观测面**
 
-位组成（`pl_video_top.v:1046-1049`，逐字）：
+位组成（`pl_video_top.v:1102-1105`，逐字）：
 ```verilog
 assign status = {zoom_dir, zoom_active, inv_used, eth_ready, locked, rotate_active, angle,
                  5'b0 /* 原 en_sync：随 #66 五位控制一起退役，位保留填 0（与 gpio_o[4:0] 同样处理：
@@ -2154,7 +2154,7 @@ bash run_test.sh           # → python src/host/one_click_test.py "$@"
 | `status[31:0]` | 有驱动无负载，综合会剪 | §13.6 |
 | `split pos` | 10 位（屏宽 1024）⇒ PS 夹到 1023 并明说夹了 | §13.3 |
 | `eth_mdc` | 恒 0、`eth_mdio` 恒 z（strap 定模式），`Synth 8-3917` 是陈述 | §2 |
-| morph | **不支持开/闭**（两遍），`mode==3` 显式当旁路 | `proc_morph.v:22-24` |
+| morph | **不支持开/闭**（两遍），`mode==3` 显式当旁路 | `proc_morph.v:23-25` |
 | binary | **无滞回** | `proc_binary.v:23-25` |
 | UDP | **不校验 UDP 校验和**，也不校验 IP 首部校验和；只靠帧 CRC32 | §7.3 |
 | DA 过滤 | 主线解析器**一行 DA 都不看** ⇒ 任何目的 MAC 的单播/多播都收 | §7.2、§7.3 |
@@ -2219,13 +2219,13 @@ bash run_test.sh           # → python src/host/one_click_test.py "$@"
 | 时钟源几颗 MMCM？ | 一颗 | **两颗**（同 module 两次例化，VCO 都 1000 MHz）；`system_top` 那颗**只出 200 MHz**给 IDELAYCTRL | §4.2 |
 | 像素钟是哪颗给的？ | "顶层 `u_idelay_clkgen`" | `pl_video_top.u_clk`（MMCM#2）；顶层那颗的 `clk_pix/clk_pix5x` 接 `*_unused` | `system_top.v:119-125` |
 | 灰度公式？ | `0.299R+0.587G+0.114B` 浮点，或 `>>8` 移位近似 | **整数乘加**：`r8*77 + g8*150 + b8*29`，取 `y16[15:8]` | `proc_gray.v:21-23` |
-| box blur 怎么除 9？ | "除法器"或"可分离两趟" | **不可分离**（9 抽头直接相加），且用 **`*57 >> 9`**（57/512 ≈ 0.1113） | `proc_box_blur.v:104-120` |
-| 卷积边界怎么补？ | 补零/补黑/环绕 | **clamp-to-edge：复制中心行/列**；帧首行"陈旧行"用当前行三行替换 | `proc_box_blur.v:89-101` |
-| Sobel 幅值？ | `sqrt(gx²+gy²)` | **`|Gx|+|Gy|`**，然后夹到 255 | `proc_sobel.v:115-118` |
+| box blur 怎么除 9？ | "除法器"或"可分离两趟" | **不可分离**（9 抽头直接相加），且用 **`*57 >> 9`**（57/512 ≈ 0.1113） | `proc_box_blur.v:116-132` |
+| 卷积边界怎么补？ | 补零/补黑/环绕 | **clamp-to-edge：复制中心行/列**；帧首行"陈旧行"用当前行三行替换 | `proc_box_blur.v:101-113` |
+| Sobel 幅值？ | `sqrt(gx²+gy²)` | **`|Gx|+|Gy|`**，然后夹到 255 | `proc_sobel.v:117-120` |
 | gamma 怎么做？ | "PL 里算 `pow`" | **256 项表**（3 张分布式 RAM），曲线由 **PS 固件算好逐项下发**；PL 里 0 拍（组合读出） | `gamma_lut.v:1-7,27-29,51-52` |
 | 旋转怎么做？ | "正向映射散写 + 24 位角度累加" | **逆映射**（屏幕→源）；角度是 **9 bit 十进制度 0..359**，三角表 360 项 Q8 硬编码 | `zoom_mapper.v:2`、`angle_ctrl.v:15`、`sin_rom.v:2-6` |
 | 缩放倍率怎么存？ | 浮点倍率 | **Q8 倒数 `inv`**，八档表 1023/776/512/341/256/192/171/128；**运行时不做除法**（乘倒数常数） | `zoom_ctrl.v:44-53`、`zoom_fit.v:26-30` |
-| 形态学支持开/闭？ | 支持 | **不支持**（单遍；`mode==3` 显式当旁路） | `proc_morph.v:22-24` |
+| 形态学支持开/闭？ | 支持 | **不支持**（单遍；`mode==3` 显式当旁路） | `proc_morph.v:23-25` |
 | `set_clock_groups` 写主 XDC 行不行？ | 行 | **不行**：综合期 `clk_fpga_0` 不存在 ⇒ `Vivado 12-4739` + **整条命令空转**，连带废掉另两组；XDC 里又不准 `if` | `rk_zynq7020.xdc:62-75` |
 | `-quiet` 能救 `get_clocks` 取不到的名字吗？ | 能 | **不能**：`-quiet` 只压报错、不救命令本身 | 同上 |
 | 跨域靠 `set_max_delay` 吗？ | 一般这么做 | **现役不靠**：加载的两份 XDC 无 `set_max_delay`/`set_multicycle_path`/`create_generated_clock`；跨域一律 FIFO/翻转/3FF。⚠ 但禁用集 `r114_io_async.xdc:57-63` 写了四条 `set_max_delay -datapath_only` 作为**未采纳的替代方案** | §6、§10.4 |

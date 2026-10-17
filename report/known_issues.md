@@ -686,7 +686,7 @@
   **组合或缩**被 `pl_video_top.v:465-470` 那三级 `ASYNC_REG` 链的第一拍直接采样。同步器本身没错，
   错在采的是多 bit 计数器的译码输出（计数器进位那几拍物理上可以出毛刺 ⇒ 一次假的"链路掉"）。
 - **为什么这不是"报告好不好看"的问题**：`eth_link_pix` 正是过程台账第 128 条接给 `shown_rate` 的
-  ETH 门（`pl_video_top.v:920`），假掉线若正好盖住 `frame_start` 那一拍就少计一帧 ⇒ 屏上 `FPS:`
+  ETH 门（`pl_video_top.v:976`），假掉线若正好盖住 `frame_start` 那一拍就少计一帧 ⇒ 屏上 `FPS:`
   偶发少 1；同一位还喂 `eth_ready`（`:510`）与片源仲裁。
 - **归因的第二个结论**：`git log -S "link_active = |s_pkts"` 只有 `fc314bb`（建仓第一个提交），
   而前后两版之间只改过 `frame_reasm.v` 与 `pl_video_top.v`，两者都不动这个表达式
@@ -734,7 +734,7 @@
   "按着"，20 ms 后确认真实电平那一沿就是"松手"⇒ 白补一枚短按。先前给过的两个硬件解释（浮空、
   RC 太慢）都不成立，以这条量果为准。软件那条路也是排除的：xsdb 只读回 `CFG_DATA0=0x30400000` ⇒
   `rot_auto=0`、`rot_speed=0`（同一份 `build/evidence/r111_angle_readback.txt`）⇒ 自动旋转那一入口
-  当时不可能发步。当时只能靠眼睛的原因：`status` 口里那 9 位 `angle`（`pl_video_top.v:1046-1049`）
+  当时不可能发步。当时只能靠眼睛的原因：`status` 口里那 9 位 `angle`（`pl_video_top.v:1102-1105`）
   在 `system_top.v` 里只被声明与连接、没有任何读者 ⇒ 综合按 unused 删掉，没有机读角度
   （凭据 `build/evidence/r111_angle_readback.txt`，那份件里也记了曾把 lane0 的健康快照误读成
   `status` 的错）。

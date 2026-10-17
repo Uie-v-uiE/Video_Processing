@@ -1,0 +1,12 @@
+D5 引用核对：扫 222 份交付文档（report/log 与 report/study 的追加式/笔记档案不参与）⇒ 硬错 7 条（文件不在树里 / 行号越过文件末尾 / D5b 例化者列指错 / D5d 逐字抄的回声对不上）；锚点命中 1521 条；锚点候选 750 条；取不出代码锚点 805 条；回声转述待人看 4 条；厂商树引用 29 条不参与；旧名同行带免检词 1 条不参与（与导出器同一口径）
+
+--- 硬错（必定是坏引用）---
+  report/modules.md:78  D5b「例化者」列指错：proc_pipeline.v:109 第 1 列模块是 proc_gray，被引那一行写的是「);」——不是它的例化行
+  report/modules.md:79  D5b「例化者」列指错：proc_pipeline.v:113 第 1 列模块是 proc_invert，被引那一行写的是「.clk(clk), .rst_n(rst_n), .bypass(~w_gray),」——不是它的例化行
+  report/modules.md:80  D5b「例化者」列指错：proc_pipeline.v:119 第 1 列模块是 proc_box_blur，被引那一行写的是「);」——不是它的例化行
+  report/modules.md:81  D5b「例化者」列指错：proc_pipeline.v:125 第 1 列模块是 proc_sharpen，被引那一行写的是「.x_in(x_blur), .y_in(y_blur), .din(d1b),」——不是它的例化行
+  report/modules.md:82  D5b「例化者」列指错：proc_pipeline.v:132 第 1 列模块是 proc_sobel，被引那一行写的是「);」——不是它的例化行
+  report/modules.md:83  D5b「例化者」列指错：proc_pipeline.v:140 第 1 列模块是 proc_binary，被引那一行写的是「);」——不是它的例化行
+  report/modules.md:84  D5b「例化者」列指错：proc_pipeline.v:146 第 1 列模块是 proc_morph，被引那一行写的是「);」——不是它的例化行
+
+D5: RED（退出码只由硬错决定；soft 750 条是给人排队的候选，拿它批量改行号 = #122 警告的那种坏主意）

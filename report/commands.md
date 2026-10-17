@@ -44,7 +44,7 @@ LED 那两位是 `src/rtl/top/pl_video_top.v:1095-1098`。引脚号出自 `src/c
 **`SRC:` 画的是"屏幕真的那一路"，不是"模式"**：这一行以前写意愿（AUTO/ETH/SD/TEST 四态），于是"显示 ETH
 时写着 AUTO"这类事都会发生——意愿没生效的状态下，标签与屏幕必然不一致。现在标签由顶层的 `fb_vis` 与
 `owner_eth` 推出来：`{fb_vis, owner_eth}` 取 11 印 `ETH`、10 印 `SD`、其余印 `TEST`
-（`src/rtl/top/pl_video_top.v:1014` → `src/rtl/video/osd_overlay.v:244-254`），意愿只以一个 `*` 表示
+（`src/rtl/top/pl_video_top.v:1070` → `src/rtl/video/osd_overlay.v:244-254`），意愿只以一个 `*` 表示
 （`osd_overlay.v:252`）。用词只有这三个（`CARD`/`PS` 那两个歧义词已经换掉：CARD 在板上同时被念作"SD 卡"
 和"测试图卡"，PS 既指处理器也指片内自绘）。仿真里专门造了"仲裁以为占着屏、mux 却选了图卡"这一组激励
 （`{fb_vis, owner_eth}` = 01），标签必须写 `TEST`——画的是 mux 那一路，不是仲裁的想法
@@ -74,8 +74,8 @@ LED 那两位是 `src/rtl/top/pl_video_top.v:1095-1098`。引脚号出自 `src/c
 
 同级两个算法是**串联**的，两个都占自己的拍数（整链固定 15 拍，`proc_pipeline.v:17-21`）。
 bit7 与 bit8 **同时为 1 时两个都不做**：`w_erode = sel[7] & ~sel[8]`、`w_dilate = sel[8] & ~sel[7]`
-（`proc_pipeline.v:59-60`），合成 `morph_mode=0`，而 `proc_morph` 把 0 与 3 都当旁路
-（`src/rtl/process/proc_morph.v:24`，理由写在 `:22-23`：开/闭运算要两遍 3×3 窗口，本设计只有一遍）。
+（`proc_pipeline.v:62-63`），合成 `morph_mode=0`，而 `proc_morph` 把 0 与 3 都当旁路
+（`src/rtl/process/proc_morph.v:25`，理由写在 `:23-24`：开/闭运算要两遍 3×3 窗口，本设计只有一遍）。
 
 | 写法 | 成功回显 | 非法输入会得到什么 |
 |---|---|---|
@@ -313,7 +313,7 @@ gamma/温度窗口在 `0x41220000 + 0x08`（`CFG_DATA1`）。物理位到逻辑�
 | `gpio_o[21]` `[25]` | 空闲 | 目前唯一还空着的两位 |
 
 这 19 个几何位（`[22:13]`+`[25:23]`+`[30]`+`[31]`+`[9]`+`[12:10]`）在 PL 里过的是**同一条 `snap_cross`**
-（`src/rtl/top/pl_video_top.v:876`）。位图的三处读者是：`src/ps/main.c` 的宏、
+（`src/rtl/top/pl_video_top.v:895`）。位图的三处读者是：`src/ps/main.c` 的宏、
 `src/rtl/top/pl_video_top.v` 的 `split_ctl` 端口注释、`report/log/issues.md` 第 70 条追加——
 改任何一处要一次改完（固件注释里把这句话写成了硬性要求，`src/ps/main.c:153-154`）。
 

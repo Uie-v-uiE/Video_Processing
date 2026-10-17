@@ -27,7 +27,7 @@
 | `sys_clk` | input | (scalar) | 板载 50 MHz 有源钟，喂 MMCM 与上电计数器 | 上升沿有效；`create_clock -period 20.000` | `rk_zynq7020.xdc:5`(W17 LVCMOS33) `:6`(clock) | `system_top.v:26` |
 | `key1_n` | input | (scalar) | 低有效按键 1（短按=旋转 ±1°，长按 0.6 s=切片源模式） | 异步输入，无建立要求：整脚被排除在时序分析外 | `rk_zynq7020.xdc:8`(W18) `:59`(false_path -from) | `system_top.v:27` |
 | `key2_n` | input | (scalar) | 低有效按键 2 | 同上 | `rk_zynq7020.xdc:9`(V14) `:60`(false_path -from) | `system_top.v:28` |
-| `led` | output | [1:0] | `led[0]`=心跳/拷贝超窗快闪；`led[1]`=长按计时与翻转态 | clk_pix 域寄存输出，无对外时序窗 | `rk_zynq7020.xdc:10`(V15) `:11`(V13) | `pl_video_top.v:1039` `:1042` |
+| `led` | output | [1:0] | `led[0]`=心跳/拷贝超窗快闪；`led[1]`=长按计时与翻转态 | clk_pix 域寄存输出，无对外时序窗 | `rk_zynq7020.xdc:10`(V15) `:11`(V13) | `pl_video_top.v:1095` `:1098` |
 | `tmds_clk_p` | output | (scalar) | HDMI 时钟对 P | TMDS_33；源端窗是**候选件未进发布约束集**（§G-6） | `rk_zynq7020.xdc:12`(W16 TMDS_33) | `system_top.v:30` |
 | `tmds_clk_n` | output | (scalar) | HDMI 时钟对 N | 同上 | `rk_zynq7020.xdc:13`(Y16) | `system_top.v:31` |
 | `tmds_data_p` | output | [2:0] | B/G/R 三对 TMDS 数据 P（位 0=B、1=G、2=R） | 250 MHz 并串（`clk_pix5x`），与钟的 skew 判据见候选件 | `rk_zynq7020.xdc:14,16,18` | `system_top.v:32` |

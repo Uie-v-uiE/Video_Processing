@@ -75,13 +75,13 @@
 |------|------|--------|------|
 | `proc_pipeline` | 级 0 gamma + 五级效果的装配：链延迟 `LATENCY`=15、内容滞后 `OFF_LINES`=4 都由它声明 | `pl_video_top.v:819` | `tb_v86_pipe_sel`、`tb_v89_align`、`tb_rotate_window`、`tb_osd_lines` |
 | `effect_ctrl` | AXI→像素域的准静态控制字同步（三对 `ASYNC_REG`）+ 九位 `stage_sel` 解码，只此一套口径 | `pl_video_top.v:198` | `tb_v86_pipe_sel` |
-| `proc_gray` | 级 1：RGB565 → 亮度 → RGB565 | `proc_pipeline.v:109` | `tb_proc_gray` |
-| `proc_invert` | 级 1 的第二选项：反色 | `proc_pipeline.v:113` | 无独立台架（`tb_v86`/`tb_v89` 覆盖） |
-| `proc_box_blur` | 级 2：3×3 均值模糊，两条行缓存、三拍 de 链 | `proc_pipeline.v:119` | `tb_v84_morph`、`tb_v85_sharpen`、`tb_v89_align`、`tb_v92_seam_bleed`、`tb_edge_rim` |
-| `proc_sharpen` | 级 2 的第二选项：3×3 锐化（与模糊同级、非串联） | `proc_pipeline.v:125` | `tb_v85_sharpen`、`tb_v89_align`、`tb_edge_rim` |
-| `proc_sobel` | 级 3：Sobel 梯度幅值，白边黑底 | `proc_pipeline.v:132` | `tb_v89_align`、`tb_v92_seam_bleed`、`tb_edge_rim` |
-| `proc_binary` | 级 4：阈值二值化，`pol` 选判决方向（亮于/暗于阈值算白） | `proc_pipeline.v:140` | 无独立台架（`tb_v86` 逐档、`tb_v89` 整链） |
-| `proc_morph` | 级 5：3×3 腐蚀 / 膨胀；两位同时为 1 时明确旁路 | `proc_pipeline.v:146` | `tb_v84_morph`、`tb_v89_align`、`tb_edge_rim` |
+| `proc_gray` | 级 1：RGB565 → 亮度 → RGB565 | `proc_pipeline.v:112` | `tb_proc_gray` |
+| `proc_invert` | 级 1 的第二选项：反色 | `proc_pipeline.v:116` | 无独立台架（`tb_v86`/`tb_v89` 覆盖） |
+| `proc_box_blur` | 级 2：3×3 均值模糊，两条行缓存、三拍 de 链 | `proc_pipeline.v:122` | `tb_v84_morph`、`tb_v85_sharpen`、`tb_v89_align`、`tb_v92_seam_bleed`、`tb_edge_rim` |
+| `proc_sharpen` | 级 2 的第二选项：3×3 锐化（与模糊同级、非串联） | `proc_pipeline.v:128` | `tb_v85_sharpen`、`tb_v89_align`、`tb_edge_rim` |
+| `proc_sobel` | 级 3：Sobel 梯度幅值，白边黑底 | `proc_pipeline.v:135` | `tb_v89_align`、`tb_v92_seam_bleed`、`tb_edge_rim` |
+| `proc_binary` | 级 4：阈值二值化，`pol` 选判决方向（亮于/暗于阈值算白） | `proc_pipeline.v:143` | 无独立台架（`tb_v86` 逐档、`tb_v89` 整链） |
+| `proc_morph` | 级 5：3×3 腐蚀 / 膨胀；两位同时为 1 时明确旁路 | `proc_pipeline.v:149` | `tb_v84_morph`、`tb_v89_align`、`tb_edge_rim` |
 | `bilin_lerp` | 双线性算术核，两级流水（先横后纵），与抽头怎么来完全解耦 | `fb_bilin.v:172` | `tb_bilin_lerp` |
 
 ## process/rotate/ 与 process/zoom/
