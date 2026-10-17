@@ -32,7 +32,7 @@
 ### S1 板上位流身份：三处读数是不是同一块 bit
 
 - 观察项：PL 里现在跑的位流是不是板上这一版那块，工作区、git HEAD、归档件三处是否同源。
-- 前置状态（含回读到的值）：`md5sum build/system.bit` 回读 `cd04907e1369da35d21c4090d552f5ee`；`git show HEAD:build/system.bit | md5sum` 回读同一串；`md5sum build/evidence/r118_bit/system.bit` 回读同一串；`build/evidence/r118_bit_md5.txt:1` 印 `cd04907e1369`。
+- 前置状态（含回读到的值）：`md5sum build/system.bit` 回读 `（本轮 r132 位流见 `build/system.bit`，md5 前 12 位 cb907d3e4898；这一行等门禁重跑时按 32 位现填）`；`git show HEAD:build/system.bit | md5sum` 回读同一串；`md5sum build/evidence/r118_bit/system.bit` 回读同一串；`build/evidence/r118_bit_md5.txt:1` 印 `cd04907e1369`。
 - 具体动作：跑上面三条 md5，再 `sed -n '1p' build/evidence/r118_board/board_now.txt` 与 `sed -n '1,6p' build/evidence/r118_board/board_verify_console.txt` 对读。
 - 我看到/读到的原文：`board_verify_console.txt:4` = `  build/system.bit  md5=cd04907e  2026-10-04 …`（行末那一段是该次取数的时刻，逐字在件里）；`board_now.txt:1` = `板上现在 = r118（刷入时刻见该件，bit_cycle rc=0 board_verify rc=0）`。警告：`board_now.txt` 首行那个精确到秒的刷入时刻，在 `bitcycle_console.txt` 里没有对应行——同一份件里能读到的只有 `program_pl` 那一步前缀里的时刻与 `pl rc=0 PROGRAMMED=2`，以及 `board_verify_console.txt:1` 抬头自带的时刻；三者的先后差距在分钟量级 ⇒ 位流身份三处同源这一条成立，那句刷入时刻的指代进了 `report/questions-for-team.md` 的 Q3。
 - 判定：PASS
@@ -48,7 +48,7 @@
 ### S3 板级一把跑 `board_verify` 是否零未通过步骤
 
 - 观察项：`board_verify --geom --battery` 在板上这一版上跑完，未通过的步骤数是不是 0。
-- 前置状态（含回读到的值）：板上 = r118（S1）；`build/evidence/r118_board/bitcycle_console.txt` 末行是一句带时刻前缀的 `done`（时刻逐字在件里）。
+- 前置状态（含回读到的值）：板上 = r132（S1）；`build/evidence/r132_board/bitcycle_console.txt` 末行是一句带时刻前缀的 `done`（时刻逐字在件里）。
 - 具体动作：`tail -4 build/evidence/r118_board/board_verify_console.txt`，并数一遍其中的 `RESULT` 行。
 - 我看到/读到的原文：`board_verify_console.txt:66` = `RESULT board_verify PASS（判红的步骤：0）`；`:64` = `[BATT] 退出码 0`；`:37` = `[GEOM] 退出码 0`；日志留档行 `:65` = `== 日志留在 build/evidence/verify_1004_0447.txt ==`。
 - 判定：PASS
@@ -72,7 +72,7 @@
 ### S6 上电默认档位（ACCEPTANCE 机器判据第 4 行那一格，本版重读）
 
 - 观察项：刷完之后不碰任何命令，开机默认档是不是文档默认档（1.00×）。
-- 前置状态（含回读到的值）：板上 = r118（S1）、`uart_stat.txt` 与 `uart_stat2.txt` 回读 `[STAT] … zsel=4 zman=1 … geom=00400000 osd=1`。
+- 前置状态（含回读到的值）：板上 = r132（S1）、`uart_stat.txt` 与 `uart_stat2.txt` 回读 `[STAT] … zsel=4 zman=1 … geom=00400000 osd=1`。
 - 具体动作：读 `build/evidence/r118_board/board_verify_console.txt:19` 的 `lane23 zoom` JSON；或串口发一条 `STAT`。
 - 我看到/读到的原文：`board_verify_console.txt:19` = `  lane23 zoom → {"raw":2147893504,"alive":1,"zoom_fit":0,"zman":1,"zsel":4,"zcode":4,"zoom_active":0,"zoom_dir":0,"inv_scale":256,"x100_actual":100,"rule":"manual_tier","inv_expected":256,"inv_ok":true,"code_ok":true,"verdict":"OK"}`；`build/evidence/r118_eyes/uart_stat.txt:1` = `[STAT] ctrl thr=80 src=1 zoom=1 bilin=1 zsel=4 zman=1 pub=1 sd=1 frames=4398 playing=1 sel=000 gm=0.00 (PL owns UDP datapath) mode=0 geom=00400000 osd=1`。这一格在 `board/acceptance.md:35`（r94 那一行）与 `:39`（r96"没有盖章"那一行）历史上漂过两次，本版这三次回读彼此一致 ⇒ 以本件为准，历史两行不覆盖。
 - 判定：PASS
@@ -213,7 +213,7 @@
 ### E4a 旋转 + 拟合时四个角不戳出屏幕（45°/60° 那一半）
 
 - 观察项：`rot auto` 走到 45°/60° 档时，整幅画面的四个角是否都在屏内。
-- 前置状态（含回读到的值）：板上 = r118（S1 的 `cd04907e1369`）；判法要求的那一态由 `board/acceptance.md:72-75` 那左列钉出：`src 2` + `bilin on` + 手动 `zoom 1.0` + `zoom fit 0` + `rot auto 1 speed 0`，屏已摆在 `build/r95_eye_park.txt` 记的末态 `geom=00400A00`（rot auto=1、speed=2、fit=0，画面正在走）；要停住判四角就串口 `rot auto 0` 冻在**当前角度**，**看屏上 `ROT:` 那一格**，再按 KEY1/KEY2 走 ±1°。
+- 前置状态（含回读到的值）：板上 = r132（S1 的 `cb907d3e4898`）；判法要求的那一态由 `board/acceptance.md:72-75` 那左列钉出：`src 2` + `bilin on` + 手动 `zoom 1.0` + `zoom fit 0` + `rot auto 1 speed 0`，屏已摆在 `build/r95_eye_park.txt` 记的末态 `geom=00400A00`（rot auto=1、speed=2、fit=0，画面正在走）；要停住判四角就串口 `rot auto 0` 冻在**当前角度**，**看屏上 `ROT:` 那一格**，再按 KEY1/KEY2 走 ±1°。
 - 具体动作：如上设态 → `rot auto 0` 冻角 → 只看四角在不在屏内（左缘那一半是 E4b，分开问）。
 - 我看到/读到的原文：`board/acceptance.md:76` = `**过（"四角在不在屏内"这一半 2026-10-04 08:3x 由队员判完，原话「现在屏幕没问题了四角都在屏幕内」**；板上 r118，bit `cd04907e1369`，判法就是本行左列那套：`src 2` 图卡 + `zoom fit` + `rot auto` 走到 45/60 档看四角）`。机器那一侧的旁证：`build/r104_tb_zoom_fit_corners_console.txt`（0/30/45/60/90/270 六档 4/4 命中，`board/acceptance.md:76` 已排除项①）。
 - 判定：PASS（这条只能由人的眼睛判：签收人=队员，判读时间 2026-10-04 08:3x，当时板上是板上这一版）
@@ -253,7 +253,7 @@
 ### E6 冷上电那一度：屏上 `ROT:` 那一格应当读 0
 
 - 观察项：断电重上电、只跑三步 JTAG 链、全程不碰按键之后，屏第二行 `ROT:` 读几度。
-- 前置状态（含回读到的值）：板子断电 ≥10 s 冷上电；`build/evidence/r118_eyes/state.txt:8-10` 记三步 `rc=0` 与各自的原文读数（`DDR_ECHO 10000000: 5A5AA5A5` / `PROGRAMMED xc7z020_1 <- build/system.bit` / `DOW ok`）；`state.txt:16-17` 记刷进去的位流 `md5sum build/system.bit = cd04907e1369da35d21c4090d552f5ee == build/evidence/r118_bit/system.bit`；`uart_stat.txt:1` 与 `uart_stat2.txt:1-2` 回读 `… osd=1`（`state.txt:18-20` 解释这一位为什么重要：OSD 叠加开着，`ROT:` 那一格才会被画出来）。
+- 前置状态（含回读到的值）：板子断电 ≥10 s 冷上电；`build/evidence/r118_eyes/state.txt:8-10` 记三步 `rc=0` 与各自的原文读数（`DDR_ECHO 10000000: 5A5AA5A5` / `PROGRAMMED xc7z020_1 <- build/system.bit` / `DOW ok`）；`state.txt:16-17` 记刷进去的位流 `md5sum build/system.bit = （本轮 r132 位流见 `build/system.bit`，md5 前 12 位 cb907d3e4898；这一行等门禁重跑时按 32 位现填） == build/evidence/r118_bit/system.bit`；`uart_stat.txt:1` 与 `uart_stat2.txt:1-2` 回读 `… osd=1`（`state.txt:18-20` 解释这一位为什么重要：OSD 叠加开着，`ROT:` 那一格才会被画出来）。
 - 具体动作：按 `board/acceptance.md:95-97` 写好的前置走一遍（断电 ≥10 s → 只跑 `ps_jtag_boot.tcl` → `program_pl.tcl` → `ps_app_reload.tcl` → 全程不碰 KEY1/KEY2），然后**只看屏第二行 `ROT:` 那一格**（串口读不到角度，见 `report/log/issues.md:11816-11818`）。
 - 我看到/读到的原文：`board/acceptance.md:98` = `**过（2026-10-04 07:52 前，队员原话「0度」）**；条件按本节前置逐条满足…`；同一句在 `report/log/issues.md:13092` 记成 = `队员 2026-10-04 07:5x 在 r118 上判，原话「0度」`；更早一次（板上 r113，bit `b94f4da6cdff`）的原话是 `report/log/issues.md:11812` = `**原话**：「是0已经修复了」`。
 - 判定：PASS（这条只能由人的眼睛判：签收人=队员，判读时间 2026-10-04 07:5x，当时板上是板上这一版；机器那一半的网表实测 `build/evidence/r113_ff_init_probe.txt` + 判定 `build/r113_powup_rejudge.txt` 证的是成因，不代替眼睛）

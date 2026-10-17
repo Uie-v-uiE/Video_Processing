@@ -1,6 +1,6 @@
 # 技术文档：Zynq-7020 多源视频实时处理与显示系统
 
-版本对应位流 `build/system.bit`（md5 前 12 位 `cd04907e1369`），工具链 Vivado / Vitis 2025.2.1，
+版本对应位流 `build/system.bit`（md5 前 12 位 `cb907d3e4898`），工具链 Vivado / Vitis 2025.2.1，
 器件 `xc7z020-clg484-2`。本文只写上板跑通并有报告可查的内容；没量过的项目直接写"没量过"。
 
 ## 1. 作品是什么
@@ -21,7 +21,7 @@
 | ARP 请求与 ICMP ping 应答（纯 RTL） | `src/rtl/eth/arp_rx.v`、`arp_tx.v`、`icmp_rx.v`、`icmp_tx.v` | 主机 `ping` 有回包；`sim/tb_icmp_ping0.v` 等四条回归 |
 | SD 卡裸帧播放（PS 读，不做解码） | `src/ps/sd_play.c` | 串口 `[STAT]` 与屏上帧号；29.8–30.0 fps |
 | 自研动态测试图卡（第三源） | `src/rtl/video/`（渐变底 + 移动块 + 帧号） | 拔网线拔卡后屏不黑；长按按键切源 |
-| 帧缓存与乒乓读写 | DDR（AXI）+ BRAM 行环 | 整屏台架的逐像素判据；BRAM 95.5/140 tile |
+| 帧缓存与乒乓读写 | DDR（AXI）+ BRAM 行环 | 整屏台架的逐像素判据；BRAM 96/140 tile |
 | 缩放 0.25–2.00（八档）+ 自动呼吸 + Fit | `src/rtl/process/zoom/` | lane23 回读倍率与来源；屏上量格 |
 | 旋转 + 双线性插值 | `src/rtl/process/rotate/`、`bilin/` | `sim/tb_v96` 的映射判据 M1/M2/M4/M6；整屏台架 |
 | 效果链（gamma / 颜色 / 滤波 / 边缘 / 阈值 / 形态学） | `src/rtl/process/proc_pipeline.v` 等 11 个文件 | 每级一条旁路判据；固定 15 拍延迟由 `tb_v86` 实测钉住 |
@@ -184,6 +184,14 @@ SD 卡 FAT32 目录读取与裸帧推送、XADC 采样、把状态回显到串�
 
 ### 6.2 关键路径在哪
 
+> ⚠ 版本口径（2026-10-17）：下面这些**路径名、级数、布线占比**是第 118 批那一次的名册，保留作推导过程；
+> r132 的现读是：全设计 WNS **0.687 ns**（`eth_rxc`，`u_eth/u_icmp/u_icmp_tx/FSM_onehot_cur_state_reg[6]/C`
+> → `u_eth/u_icmp/u_icmp_tx/ip_head_reg[4][10]/R`）、`clk_fpga_0` **1.571 ns**
+> （`u_pl/u_arb/owner_eth_reg/C` → `u_pl/u_bilin/u_fb/lo_reg_0_40/ADDRARDADDR[7]`）、
+> `sys_clk` **14.294 ns**（`u_pl/u_ang/angle_reg[5]/C` → `angle_reg[6]/D`），WHS 最差 **0.004 ns**
+> （`u_eth/u_rx_par/p_valid_reg/C` → `u_eth/u_reasm/stat_bytes_reg[0]/D`）。逐域名册要整份重导是待办
+> （`report/log/issues.md` #479 末段），这里不把新数配旧路径写成同源。
+
 `eth_rxc` 的 0.739 ns 是 `u_icmp_tx/ip_head_reg[4][16] → check_buffer_reg[19]/D`，
 11 级逻辑含 6 个 CARRY4，布线占 58.4 %。同一只锥贡献前 3 档（0.739 / 0.873 / 0.961）。
 第 4–12 档全部是 `u_rx_par/p_eof_reg → u_reasm/rows_hit_reg[*]/CE`，
@@ -242,7 +250,7 @@ SD 卡 FAT32 目录读取与裸帧推送、XADC 采样、把状态回显到串�
 | 入流下界 | ≥116.7 fps 不丢字 | 不限速、目标 120 fps、960 帧；过载点未顶到 |
 | 入流帧间隔（PL 内） | 33.34 ms（min 20 / max 51） | PL 收包链相邻两帧之间隔；9000 帧 / 300 s 那一轮；不含编码、网线与交换机排队 |
 | SD 播放 | 29.8–30.0 fps | 预转换 RGB565，板上不解码 |
-| Slice LUT | 14,154（26.61 %） | 实现后报告 |
+| Slice LUT | 14,013（26.61 %） | 实现后报告 |
 | Slice 寄存器 | 8,188（7.70 %） | 同上 |
 | BRAM tile | 95.5 / 140（68.21 %） | 帧缓存乒乓 + 行环是主要去向 |
 | DSP48 | 19 / 220（8.64 %） | 逐实例见 §3.3 |
@@ -252,7 +260,7 @@ SD 卡 FAT32 目录读取与裸帧推送、XADC 采样、把状态回显到串�
 ### 7.3 优化前后的对比
 
 本版绝对值（`build/utilization.rpt`，与 `data/metrics.csv` 同源，指标表每行都点名它的证据文件）：
-Slice LUT 14,154（26.61 %）、寄存器 8,188（7.70 %）、BRAM 95.5/140 tile（68.21 %）、DSP48 19/220（8.64 %）。
+Slice LUT 14,013（26.61 %）、寄存器 8,132（7.70 %）、BRAM 95.5/140 tile（68.57 %）、DSP48 19/220（8.64 %）。
 
 逐轮的增减只写有件可查的三笔（都来自 `data/metrics.csv` 的资源行与 `build/evidence/` 的逐层件）：
 

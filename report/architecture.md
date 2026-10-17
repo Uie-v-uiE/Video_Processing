@@ -122,7 +122,7 @@ lane0~9 是链路健康计数（`src/rtl/eth/link_monitor.v:187-196`），lane23
 | 混合域 `MIX_D` | 3 + 1 + 1 + LATENCY = 20（顶层只从 `u_pipe.LATENCY` 取） | `pl_video_top.v:354` |
 | 原图行延迟环 | 深 = `u_pipe.OFF_LINES` = 4 行、宽 `W = 2*IMG_W` = 1024、位宽 17（像素+oob 同环） | `pl_video_top.v:781,788` |
 | 双线性额外行 `BILIN_ROWS` | 2 显示行（乒乓读口一对结果下一对才读得到），必须为偶数 | `pl_video_top.v:253-254` |
-| 缝判定抽头 `SEAM_TAPS` | `MIX_D + 1 - 3` = 18 | `pl_video_top.v:902` |
+| 缝判定抽头 `SEAM_TAPS` | `MIX_D + 1 - 3` = 18 | `pl_video_top.v:933` |
 | 缩放范围 | `INV_LO`=256（1.0×）↔ `INV_HI`=512（0.5×），`STEP`=2，三角波按帧走 | `pl_video_top.v:325`、`zoom_ctrl.v:3-8` |
 | 手动档 / 拟合档 | 八档表按 `inv_used` 分界（900/644/427/299/224/182/150）；`fit_en` 时 inv 由角度定。旋转生效时 inv 还要被钳进 fit 那一档：`angle_ctrl.v` 明写 `rotate_active = (angle != 0)`，只要角度非 0（自动旋转逐 1° 也算）钳制就在，整幅画面因此永远在屏内；代价是旋转态不提供放大，手动 1.33x/1.5x/2.0x 会被拉回 fit 档，但档号不丢；**0° 不钳** —— 角度为 0 时这条钳制整个解除 | `src/rtl/process/zoom/zoom_ctrl.v`（分界与旋转钳制都在本文件）、`zoom_fit.v:2-7` |
 | 端口 / 地址 | UDP 5001、板 MAC `00-11-22-33-44-55`、IP 192.168.1.10 | `system_top.v:145,158-159` |

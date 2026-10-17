@@ -6,7 +6,7 @@
 
 | 件 | md5 前 12 位 | 在仓库哪里 |
 |---|---|---|
-| `build/system.bit` | `cd04907e1369` | 跟踪件（`git ls-files build/system.bit` 有输出） |
+| `build/system.bit` | `cb907d3e4898` | 跟踪件（`git ls-files build/system.bit` 有输出） |
 | `build/system.xsa` | `934ebdbaa13b` | 跟踪件 |
 | `build/ps_app.elf` | `57fa442a7eaf` | 跟踪件 |
 

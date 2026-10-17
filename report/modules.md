@@ -57,7 +57,7 @@
 | `osd_overlay` | 5 行状态叠加（面板/FPS/Src；Pipe/Th/Gamma、Rot/Zoom、Split/Latency、Temp/无信号），5×7 字模 ×3。`FPS:` 这一格数的是**写进屏的新帧**，计数器是 `src/rtl/util/shown_rate.v`，顶层例化在 `src/rtl/top/pl_video_top.v:997`。这一格的计数写法换过一次：在换成数新帧之前，这一格数的是扫过屏的显示场 ⇒ 屏上恒读 59 或 60，那是面板场频不是片源帧率；两段的推导与验证记录在 `report/log/issues.md` #128、#157。端口 `osd_en`（0 = 输出逐位等于背景，由 `gpio_o[20]` 反相驱动） | `pl_video_top.v:1055` | `tb_osd_lines`（T13 成对）、`tb_v794_osd_glyph`、`tb_v98` 的 C12 |
 | `test_card` | 图卡片源：移动块 + 帧号二值格 + 八色彩条，自带"通路在不在刷新"的判读点 | `pl_video_top.v:759` | `tb_v81_test_card`、`tb_v83_card_render` |
 | `color_bar` | 静止彩条（图卡的上一版） | 未例化 | `tb_v81_test_card` 里作对照例化 |
-| `gamma_lut` | 效果链级 0：256 项 8bit 表，PS 逐项目写入；组合读出、不加拍 | `proc_pipeline.v:102` | `tb_v88_gamma` |
+| `gamma_lut` | 效果链级 0：256 项 8bit 表，PS 逐项目写入；组合读出、不加拍 | `proc_pipeline.v:105` | `tb_v88_gamma` |
 | `frame_latency` | 链路内时延：commit→起拷→拷完→该帧开始扫描，分三段量并在 axi 域除成 ms | `pl_video_top.v:624` | `tb_v90_latency` |
 | `line_cache` | 早期"左扫效果→右读行缓"的行列缓存 | 未例化 | 无 |
 

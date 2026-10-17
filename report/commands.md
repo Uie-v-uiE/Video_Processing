@@ -11,7 +11,7 @@
 带参数最多的一条是 `gamma auto` 后面跟区间、步长与间隔那四个，正好 6 个 token。不认识的写法不会静默：
 回一行 `[CMD] 不认: <整行>` 并打印 help。
 
-板上现在跑的是 r126，位流 `build/system.bit` 的 md5 前 12 位 = `cd04907e1369`
+板上现在跑的是 r132，位流 `build/system.bit` 的 md5 前 12 位 = `cb907d3e4898`
 （身份段在 `build/r118_gates.txt` 开头，板上读数在 `build/evidence/r118_board/board_now.txt`）。
 认版本只认 md5，不认文件名：`bit/xsa/elf` 是一套，换 bit 必须重下 elf。
 
@@ -34,7 +34,7 @@
 阈值与极性都不是手写的：上表那两个时间分别是 `key_long` 的 `HOLD_CYC` = 30_000_000 与 `ARM_CYC` =
 10_000_000 在 50 MHz 下的换算（`src/rtl/top/pl_video_top.v:148`）；短按改到松手发在同一条线里
 （`src/rtl/util/key_long.v` 的 `short_pulse`，注释写明以前在按下沿发 ⇒ 每次长按必然先转 1°）；
-LED 那两位是 `src/rtl/top/pl_video_top.v:1039-1042`。引脚号出自 `src/constraints/rk_zynq7020.xdc:8-9`。
+LED 那两位是 `src/rtl/top/pl_video_top.v:1095-1098`。引脚号出自 `src/constraints/rk_zynq7020.xdc:8-9`。
 
 **长按为什么要留反馈**：四种现象——"长按没反应""切 SD 要按两次""看着像自己变成彗星图""屏上写的和放的对不上"——
 全部来自同一件事：模式变了，但屏幕上没有任何东西跟着变。处置是两笔：按住过了计时门限就让 LED1 亮起来

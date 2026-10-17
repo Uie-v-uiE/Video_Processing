@@ -27,10 +27,12 @@
 
 | 时钟 | 周期 ns | setup slack / 相对余量 | hold slack / 相对余量 | 端点 | 该域最差路径（终点 / 级数 / 布线占比） |
 | --- | --- | --- | --- | --- | --- |
-| `eth_rxc` | 8.000 | **0.739 / 9.24 %** | 0.052 / 0.65 % | 4835 | setup `u_eth/u_icmp/u_icmp_tx/check_buffer_reg[19]/D`，4 级，route 58.447 %；hold `u_eth/u_lm/full_d_reg/D`，1 级 LUT4，route 56.480 % |
-| `clk_fpga_0` | 10.000 | 1.850 / 18.50 % | 0.053 / 0.53 % | 15721 | setup `u_pl/u_bilin/u_fb/lo_reg_0_16/WEA[0]`，1 级 LUT6，route **93.584 %**；hold `…axilite_b2s/RD.r_channel_0/rd_data_fifo_0/memory_reg[31][9]_srl32/D`，0 级，route 43.472 % |
-| `clkout0_1` | 20.000 | 3.630 / 18.15 % | 0.059 / 0.29 % | 30179 | setup `u_pl/u_osd/ch_r_reg/ADDRARDADDR[6]`，21 级（含 9×CARRY4），route 59.150 %；hold `u_pl/u_pipe/u_sobel/no_right_r_reg[1]/D`，0 级，route 62.683 % |
-| `sys_clk` | 20.000 | 14.876 / **74.38 %** | 0.222 / 1.11 % | 323 | setup `u_pl/u_ang/angle_reg[3]/D`，5 级，route 74.015 %；hold `u_pl/u_k2/cnt_reg[8]/D`，0 级，route 50.893 % |
+
+> ⚠ 2026-10-17（r132）这一节只更新到 **setup/hold 余量与端点数**（现读自 `build/timing_summary.rpt`）；表里那些**路径名、级数、route 占比**仍是第 118 批那一次的名册——要跟着重导得再跑一轮 `build/tcl/` 那套逐域抽路径的件（登记在 `report/log/issues.md` #479 的待办里）。宁可留下这句，也不把新数配旧路径写成"同源"。
+| `eth_rxc` | 8.000 | **0.687 / 8.59 %** | 0.004 / 0.05 % | 4835 | setup `u_eth/u_icmp/u_icmp_tx/check_buffer_reg[19]/D`，4 级，route 58.447 %；hold `u_eth/u_lm/full_d_reg/D`，1 级 LUT4，route 56.480 % |
+| `clk_fpga_0` | 10.000 | 1.571 / 15.71 % | 0.048 / 0.48 % | 15721 | setup `u_pl/u_bilin/u_fb/lo_reg_0_16/WEA[0]`，1 级 LUT6，route **93.584 %**；hold `…axilite_b2s/RD.r_channel_0/rd_data_fifo_0/memory_reg[31][9]_srl32/D`，0 级，route 43.472 % |
+| `clkout0_1` | 20.000 | 3.287 / 16.44 % | 0.067 / 0.34 % | 30071 | setup `u_pl/u_osd/ch_r_reg/ADDRARDADDR[6]`，21 级（含 9×CARRY4），route 59.150 %；hold `u_pl/u_pipe/u_sobel/no_right_r_reg[1]/D`，0 级，route 62.683 % |
+| `sys_clk` | 20.000 | 14.294 / **71.47 %** | 0.121 / 0.61 % | 323 | setup `u_pl/u_ang/angle_reg[3]/D`，5 级，route 74.015 %；hold `u_pl/u_k2/cnt_reg[8]/D`，0 级，route 50.893 % |
 | `clkfbout`、`clkfbout_1` | 20.000 | `slack=NOWRITE` / `margin_pct=NA` | 同左 | 这两行没有 setup/hold；`build/timing_summary.rpt` 只有脉冲宽度行 18.408 ns / 3 端点 | — |
 | `clkout1_1` | 4.000 | `NOWRITE` / `NA` | 同左 | 脉冲宽度 2.408 ns / 10 端点 | — |
 | `clkout2` | 5.000 | `NOWRITE` / `NA` | 同左 | 脉冲宽度 **0.264 ns** / 3 端点（全设计最小 WPWS 就是这一行） | — |
@@ -49,7 +51,7 @@ setup/hold 行"，不报"这四颗钟没问题"——两者的区别见第 7 节
 ## 3. 本版与上一版：8 对读数逐位相同
 
 件 `build/evidence/r118_strict_b1.txt` 每行给一对"上一版 / 本版"的同一个读数并带差值字段 `d=+0.000 SAME`，
-共 8 对；末行 `B1 pairs_compared=8 losses=0 verdict=GREEN`：`clk_fpga_0` 1.850 / 0.053、
+共 8 对；末行 `B1 pairs_compared=8 losses=0 verdict=GREEN`：`clk_fpga_0` 1.571 / 0.048、
 `clkout0_1` 3.630 / 0.059、`sys_clk` 14.876 / 0.222、`eth_rxc` 0.739 / 0.052。
 `build/r118_verdict.txt` 的 `R118 B1_strict … verdict=GREEN` 是同一件事的判定行，
 `report/timing/round_r118.md` §四把它登记为 B1 这项条件的结论。

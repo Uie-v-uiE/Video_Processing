@@ -9,7 +9,7 @@
 
 ## 0. 基线与可比性前置（先定这个，否则下面每一格都会被读成"提升"）
 
-**本作品的当前发布物 = r118**，位流身份 `cd04907e1369`（`build/r118_gates.txt:3`、
+**本作品的当前发布物 = r132**，位流身份 `cb907d3e4898`（`build/r132_gates.txt:3`、
 `build/evidence/r118_bit_md5.txt`；板上就是这一块，见 `build/evidence/r118_board/board_now.txt`）。
 
 **基线分两把，可比性不同**（"基线"就是用来作差的参照版本）：
@@ -36,18 +36,18 @@
 | 器件与工具链 | 共用条件 | xc7z020clg484-2 / Vivado+Vitis 2025.2.1 | — | 全部行的共用条件；`build/utilization.rpt` 头部 `Design : system_top`、`Device : xc7z020clg484-2`、`Speed File : -2`、`Design State : Routed` | 一次声明 | `build/system.bit`、`build/utilization.rpt` 报告头 |
 | 显示像素时钟 | 核心 | 50 | MHz | 面板 1024×600；H_TOTAL 1344、V_TOTAL 625 ⇒ 场频 59.5 Hz；由 PL 侧 MMCM 从 50 MHz 输入合成 | 约束一次生效 | `src/constraints/` 与 `build/timing_summary.rpt` |
 | 显示分辨率与场频 | 核心 | 1024×600 @59.5 | — | 双窗输出（左窗原图 / 右窗处理图） | 连续显示 | `board/verify_r87.md` 第 1 行 |
-| 全局 setup WNS | 核心 | **0.739** | ns | 失败 setup 端点 0 / 总端点 51135；板上这一版 bit `cd04907e1369`；**本版不带 RGMII 输入窗** | 一次布线后报告 | `build/r118_gates.txt:10`、`build/evidence/r118_after.txt:7` |
-| 全局 setup 失败端点 | 核心 | 0 | 个 | 总端点 51135；片内路径零违例；**收口 I/O 那 5 个端点当前无输入窗 = 未检查**（未检查不等于满足） | 一次布线后报告 | `build/r118_gates.txt:11` |
-| 全局 hold WHS | 核心 | **0.052** | ns | 失败 hold 端点 0 / 总端点 51135；WPWS 0.264；这一格是片内族 | 一次布线后报告 | `build/r118_gates.txt:12` |
-| `eth_rxc`（8.000 ns）setup / hold | 核心（逐时钟） | 0.739 / 0.052 | ns | 名册行 `margin_pct=9.24 / 0.65`；该域 4835 端点、失败 0 | 一次布线后报告（只读开 routed dcp） | `build/evidence/r118_after_roster_probefmt.txt` 第 5–6 行 |
-| `clk_fpga_0`（10.000 ns）setup / hold | 核心（逐时钟） | 1.850 / 0.053 | ns | `margin_pct=18.50 / 0.53`；15721 端点；setup 那格 route **93.584 %**、1 级 LUT6 | 同上 | 同上 第 1–2 行 |
-| `clkout0_1`（20.000 ns）setup / hold | 核心（逐时钟） | 3.630 / 0.059 | ns | `margin_pct=18.15 / 0.29`；30179 端点；setup 那格 21 级（含 9×CARRY4） | 同上 | 同上 第 13–14 行 |
-| `sys_clk`（20.000 ns）setup / hold | 核心（逐时钟） | 14.876 / 0.222 | ns | `margin_pct=74.38 / 1.11`；323 端点 | 同上 | 同上 第 3–4 行 |
+| 全局 setup WNS | 核心 | **0.687** | ns | 失败 setup 端点 0 / 总端点 51027；板上这一版 bit `cb907d3e4898`；**本版不带 RGMII 输入窗** | 一次布线后报告 | `build/r118_gates.txt:10`、`build/evidence/r118_after.txt:7` |
+| 全局 setup 失败端点 | 核心 | 0 | 个 | 总端点 51027；片内路径零违例；**收口 I/O 那 5 个端点当前无输入窗 = 未检查**（未检查不等于满足） | 一次布线后报告 | `build/r118_gates.txt:11` |
+| 全局 hold WHS | 核心 | **0.004** | ns | 失败 hold 端点 0 / 总端点 51027；WPWS 0.264；这一格是片内族 | 一次布线后报告 | `build/r118_gates.txt:12` |
+| `eth_rxc`（8.000 ns）setup / hold | 核心（逐时钟） | 0.687 / 0.004 | ns | 名册行 `margin_pct=8.59 / 0.05`；该域 4835 端点、失败 0 | 一次布线后报告（只读开 routed dcp） | `build/evidence/r118_after_roster_probefmt.txt` 第 5–6 行 |
+| `clk_fpga_0`（10.000 ns）setup / hold | 核心（逐时钟） | 1.571 / 0.048 | ns | `margin_pct=15.71 / 0.48`；15721 端点；setup 那格 route **93.584 %**、1 级 LUT6 | 同上 | 同上 第 1–2 行 |
+| `clkout0_1`（20.000 ns）setup / hold | 核心（逐时钟） | 3.287 / 0.067 | ns | `margin_pct=16.44 / 0.34`；30071 端点；setup 那格 21 级（含 9×CARRY4） | 同上 | 同上 第 13–14 行 |
+| `sys_clk`（20.000 ns）setup / hold | 核心（逐时钟） | 14.294 / 0.121 | ns | `margin_pct=71.47 / 0.61`；323 端点 | 同上 | 同上 第 3–4 行 |
 | `clkfbout`/`clkfbout_1`/`clkout1_1`/`clkout2` | 核心（逐时钟） | `NOWRITE` / `NA` | — | 名册里这两族没有同沿路径行；**"NA"不等于"这一族没问题"** | 同上 | 同上 第 7–12、15–16 行；读法写在 `report/timing/debt_ledger.md` §1 |
 | 跨域两行 `sys_clk↔clkout0_1` | 核心 | setup 3.695 / hold 0.200（231 端点）；setup 14.757 / hold 0.165（19 端点） | ns | `build/timing_summary.rpt` 的 Inter Clock Table 里就这两对；其余跨域对被 `set_clock_groups -asynchronous` 整组排除 | 一次布线后报告 | `report/05-timing.md` §2（引同一件） |
-| Slice LUT 占用 | 资源 | 14154（26.61 %） | 个 | 实现后 Routed 报告 | 一次构建 | `build/utilization.rpt:35` |
-| Slice 寄存器占用 | 资源 | 8188（7.70 %） | 个 | 同上 | 一次构建 | `build/utilization.rpt:40` |
-| Block RAM Tile 占用 | 资源 | 95.5 / 140（68.21 %） | tile | = RAMB36/FIFO 93（66.43 %）+ RAMB18 5（1.79 %）×0.5；帧缓存由 64-bit 宽 + 乒乓两块拼出 | 一次构建 | `build/utilization.rpt:106,107,109` |
+| Slice LUT 占用 | 资源 | 14013（26.34 %） | 个 | 实现后 Routed 报告 | 一次构建 | `build/utilization.rpt:35` |
+| Slice 寄存器占用 | 资源 | 8132（7.64 %） | 个 | 同上 | 一次构建 | `build/utilization.rpt:40` |
+| Block RAM Tile 占用 | 资源 | 96 / 140（68.57 %） | tile | = RAMB36/FIFO 93（66.43 %）+ RAMB18 5（1.79 %）×0.5；帧缓存由 64-bit 宽 + 乒乓两块拼出 | 一次构建 | `build/utilization.rpt:106,107,109` |
 | DSP48 占用 | 资源 | 19 / 220（8.64 %） | 个 | 逐实例分解全在坐标与窗口运算：`u_lerp` 6 ＋ `u_blur` 1 ＋ `u_split_ctrl` 1 ＋ `u_zfit` 3 ＋ `u_zmap` 8 ＝ 19；**gamma 那一级 DSP=0**（它是 LUTRAM 表查询、不做乘法） | 一次构建 | 总数 `build/utilization.rpt:121`；逐实例 `build/util_hier_probe.rpt:60/69/75/80/81`，`u_gamma` 在 `:70` |
 | LUT as Memory（分布式 RAM） | 资源 | 4185（24.05 %） | 个 | 与 `report_methodology` 的 SYNTH-5 = 336 条同源（"因为时序约束才映射成分布式 RAM"） | 一次构建 | `build/utilization.rpt:37`；`build/methodology.rpt:32` |
 | BUFGCTRL / MMCME2_ADV / Bonded IOB / IDELAYE2 | 资源 | 8/32（25.00 %）/ 2/4（50.00 %）/ 27/200（13.50 %）/ 5（2.50 %） | 个 | 同一份 Routed 报告 | 一次构建 | `build/utilization.rpt:161` 等；逐行原文见 `report/04-resources.md` 占用表 |

@@ -184,7 +184,7 @@ PS 这一路看的是 500 ms 内有没有过发布（`src_life.v:41-47`），而
 每 100 ms 替它报一次心跳（`main.c:242-251`、`260-269`）。心跳停了才会把画面交回仲裁（`main.c:273-278`）。
 
 屏上 `SRC:` 那一格画的是第三层与第二层的合成结果，不是模式：
-`src_eff = {fb_vis, owner_eth_pix}`（`pl_video_top.v:1014`）→ 11 印 `ETH`、10 印 `SD`、其余印 `TEST`
+`src_eff = {fb_vis, owner_eth_pix}`（`pl_video_top.v:1070`）→ 11 印 `ETH`、10 印 `SD`、其余印 `TEST`
 （`osd_overlay.v:244-252`），模式非 AUTO 时只在名字后加一个 `*`（`osd_overlay.v:252`）。
 
 `stat` 里与片源有关的是两个字段，**都是 PS 影子**：`src=` 是 `cur_src`（bit16 那个位），
@@ -370,7 +370,7 @@ gamma 是链子的第 0 级（`proc_pipeline.v:104`，`en=0` 时逐位旁路）�
 | 此刻倍率是哪一路给的 | 屏上后缀：`(Fit)` = 角度定的，`(Auto)` = 呼吸在跑，**无后缀** = 手动档**或** `zoom off`（合成式要求 `zoom_run`） | `osd_overlay.v:295-296`；三个旗标的合成 `pl_video_top.v:1010-1011` |
 | 同上，但不看屏 | lane23 的 `zoom_fit`（bit19，念作"请求拟合 或 被旋转钳住"）与 `[9:0]`（`inv_used`） | 位序唯一出处 `pl_video_top.v:680-687`；译码 `src/host/health_read.mjs:87-100`，**期望值只有一处实现** `:120`（`zoomJudge`，人读那一支与 `--json` 共用它） |
 | 请求侧写了什么 | `stat` 的 `zsel=`/`zman=`、`zoom=`；`rot show` 的 `zoom=fit/now` | `main.c:1403-1407`、`1047-1050` |
-| 屏上此刻是哪一路 | 屏上 `SRC:` 的名字（`{fb_vis, owner_eth}`），尾部 `*` 才表示"被钉住" | `pl_video_top.v:1014`、`osd_overlay.v:244-252` |
+| 屏上此刻是哪一路 | 屏上 `SRC:` 的名字（`{fb_vis, owner_eth}`），尾部 `*` 才表示"被钉住" | `pl_video_top.v:1070`、`osd_overlay.v:244-252` |
 | 为什么归这一路 | lane30：`owner_eth`/`eth_live`/`eth_tb_ok`/`why_ps` | `pl_video_top.v:603`、`src_arb.v:35-39`、`73`；译码 `health_read.mjs:71-78` |
 | 模式请求 | `stat` 的 `mode=`（AUTO/ETH/TEST/SD 的**编码**，不是词） | `main.c:1410`、编码表 `main.c:65-68` |
 | 此刻生效的是哪几级效果 | `pipe show` 念名字；屏上 `Pipe:` 念成对编码 | `main.c:600-610`、`osd_overlay.v:133-143` |

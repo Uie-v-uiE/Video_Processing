@@ -4,7 +4,7 @@
 没验到的写在最后一节，不写成通过。验收那一路只走 JTAG（`build/tcl/ps_jtag_boot.tcl` 起 PS、
 `build/tcl/program_pl.tcl` 烧 PL、`build/tcl/ps_app_reload.tcl` 重载应用）；2026-10-05 晚队伍另有一次要求，把当时那一版固化进板载 QSPI，写入与硬件回读校验记在 `board/measured/flash_qspi_2026-10-05.txt`，而"断电重上能不能自己起来"要人手判，本页不替它写成通过。板上 FT2232 的 EEPROM 全程没碰。
 
-板上当前版本：r118，位流 `build/system.bit` 的 md5 前 12 位 = `cd04907e1369`
+板上当前版本：r132，位流 `build/system.bit` 的 md5 前 12 位 = `cb907d3e4898`
 （身份行在 `build/evidence/r118_board/board_now.txt`，同一版的板级读数在 `build/evidence/r118_board/board_verify_console.txt`）。
 
 ## 怎么读这张表
@@ -118,3 +118,28 @@ E2 由在场的人确认（原话"现在画面正常只有一条"，含 0.50× +
 - 已知未修项（大角度旋转角点出屏、SD 播放中拔卡冻帧等）在 `report/known_issues.md`，这里不重复；
 - 发布前检查（`bash build/gates.sh` 逐项读回报告并与阈值比）的项数与结果以它自己打印的那一行为准，
   本表不复制它，以免两处漂。
+
+## r132 追加实测（2026-10-17，公历锚定；上面 E1-E6 各行保留为当时的读数，不改写历史）
+
+- **装法与读数（三步 JTAG）**：`ps_jtag_boot` ⇒ `RST_SYSTEM: ok` / `PS7_INIT: ok` / `PS7_POST_CONFIG: ok` /
+  `DDR_ECHO: 10000000: 5A5AA5A5`；`program_pl` ⇒ `PROGRAMMED xc7z020_1 <- build/system.bit`（bit `cb907d3e4898`）；
+  `ps_app_reload` ⇒ `DOW: ok` / `RESUME: ok` / `FLOW_DONE`。第一次只装 PL 时串口控制台死掉过一次，
+  根因与恢复顺序记在 `report/log/issues.md` #478（`mrd` 报 `AHB AP transaction error` ⇒ 应用在 AXI 上卡住，
+  必须按 `ps_jtag_boot → program_pl → ps_app_reload` 整条走）。
+- **E2（缩放/旋转不出现整行错位）本轮重读**：由队员目视确认，原话「现在很漂亮 基本上看起来没什么问题了」；
+  这一条在 r131 之前一直是"下沿那条带该处理没处理"的形状，r132 关掉它（机理与凭据见
+  `report/08-limits.md` §1 与 `report/log/issues.md` #478）。
+- **E4r（旋转时屏幕顶部的分散细线 / 角划过上沿时的碎影）本轮重读**：队员同次报回
+  「顶上的拖影我肉眼没看到」⇒ 记为"本轮眼验未见"。**这一条没有机器判据**：台架那幅坐标图逐帧不变，
+  能量到的是几何（`C5b/C5c`）不是新鲜度，所以"晚一帧"这一档只能由人判。
+- **QSPI 固化（本轮新增的一度，未完成）**：`board/tcl/flash_qspi.tcl` 一次写盘 `SF: 33554432 bytes @ 0x0 Erased: OK`
+  → `Program Operation successful` → `Verify Operation successful` → `PROGRAM_RC 0`，进盘镜像
+  `board/flash/BOOT.bin` md5 `acd8cdd5f060`（内含位流 `cb907d3e4898`），日志 `build/evidence/r132_flash_qspi_9_OK.log`。
+  ⚠ **验收还没闭合**：判据是"启动档拨到 QSPI、断电 10 秒后冷上电，屏上有画面且 COM6 出字"，
+  那一次读数还没回来；按 `report/log/issues.md` #405 自己定的口径，`Program/Verify successful` 对可启动性零证明。
+  ⚠ 另外这套工具**没有读回口**（`hw_cfgmem` 属性表无 READ，`info commands program_flash` = 0，
+  读数在 `board/measured/probe_flash_read.log`）⇒ 写之前留不下现盘内容的第二份，下一次固化前先记这件事。
+- **给人复核时用的四条命令**（本轮就是这么起的态）：`split 50` → `split marker 0` → `zoom 0.5` → `rot auto 1`，
+  看画面最下沿那条斜阶梯；再 `split marker 1` 同角度晃一次，蓝线应只贴在缝上；`rot auto 0` 停在 45°/60°
+  各看四边；最后 `STAT` 读回（含 E6 那一度：谁都不碰按键时 `ROT:` 该读 0）。
+
