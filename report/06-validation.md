@@ -44,8 +44,8 @@
 与现在盘上这份头部 `top_md5=56c269602e18` 不同源 ⇒ **不同批次之间的条数不可比**，以当前件为准。
 这条差异在 `40-optimization.md` §8 登记为 D2。
 
-唯一那条 FAIL 是 `FAIL C5c frame head is not the previous frame's tail …`，
-它是**公开声明、有意保留**的未通过项，登记与复现方法在 `report/known_issues.md` §一 第 1 条（`#98`）。
+`FAIL C5c frame head is not the previous frame's tail …` 是那份件里唯一那条 FAIL；它当时是**公开声明、有意保留**的未通过项，登记在 `report/known_issues.md` §一 第 1 条（`#98`）。
+**这一条已于 r132 关闭**（同一把尺子改后 PASS，正本 `report/08-limits.md` §1、台账 #478）；上面那些条数（141/161/162 那一族）与"红数 == 1"这个形状都属于**上一版那次全量台架**，r132 的整屏台架本轮还没重跑完，跑完之后由 `build/tb98_report.sh` 交账再改这几格。
 
 这些判据的形状值得说一句：一条主判据前面都挂一条**空集守卫**
 （`PASS C4a rows judged`、`PASS C5a judged rows`、`PASS C9pre rows judged`、`PASS C11pre …`、
