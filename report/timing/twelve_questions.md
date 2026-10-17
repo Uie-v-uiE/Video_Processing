@@ -54,7 +54,7 @@
 没有。这一段全部是网表/报告层读数，凡涉及行为一律不带"板上验证过"的口气；
 `src/ps` 一字未动（改了也只是源码级：ELF 可用 `node build/ps_app.mjs` 重建，但重建那颗与板上那颗 md5 不同，要重刷 + `board_verify` 复验才算板上验证，H6）。
 r116 那一版是真刷过板并板级复验的：bit `bb2fb707aebc`、三步 JTAG 链、`board_verify --geom --battery` **PASS 判红步骤 0**（geom 10/0、105 条串口命令全过）、带真实流量（147 Mbps）两次读数 `drop_words=0`/`pkt_err=0`，并用回刷 r114 做 A/B 证明 `frames_bad=1` 与 r116 无关（读数抄在 `round_r116.md` 的 V6 与 ISSUES #318）。
-眼睛判据的现况按 `board/acceptance.md` 的 E6 那一行：当前板上那颗（位流 `cd04907e1369`）冷上电读 0、已由在场的人判过；仍欠的是"按住 KEY1 那一次"的对照那一半。
+眼睛判据的现况按 `board/acceptance.md` 的 E6 那一行：当前板上那颗（位流 `cb907d3e4898`，r132）冷上电读 0、已由在场的人判过；仍欠的是"按住 KEY1 那一次"的对照那一半。
 
 **11. 剩余红路径的根因标签是不是每个都挂上了？有没有"未知原因但绿了"？**
 两类红都挂了标签：G1 的 4 格 = `FANOUT`（C1 自身的代价，刀已拒）；H5 的 11 端口 = `UNCONSTRAINED`（C4）。

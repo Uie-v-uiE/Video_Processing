@@ -3,7 +3,7 @@
 日期：2026-10-04。工具：Vivado 2025.2.1 (64-bit) build 6403652。器件：`xc7z020clg484-2`。
 所有读数都是**只读探针**打在实现检查点上得到的，本轮**没有把任何新约束带进构建，也没有重建产物**。
 被动的检查点：`vivado_system/zynq_video_sys.runs/impl_1/system_top_opt.dcp`（mtime 04:30）与
-`system_top_routed.dcp`（mtime 04:36）。板上与仓库当前的位流摘要实测 `build/system.bit` = `cd04907e1369…`（= r118），
+`system_top_routed.dcp`（mtime 04:36）。当时板上与仓库的位流摘要实测 `build/system.bit` = `cd04907e1369…`（= r118），
 这两个 DCP 与它出自**同一个 impl_1 运行目录、时间戳连续**——这是"目录与时间戳的对应"，
 不是工具出具的指纹绑定，所以这句话记为**推断**，严格绑定要等 `report/run-queue.md` 里 P15a 的来源卡补齐。
 

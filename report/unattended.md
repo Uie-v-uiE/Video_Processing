@@ -18,7 +18,7 @@
 | 仓库门禁 | `bash build/gates.sh` × 2 | 两跑逐字节一致；判定 24 项、23 绿、**1 红 = 已声明的 C5c**（顶层台架 `tb_v98` FAIL 行=1） |
 | 技能包门禁 | `node skills/scripts/check/gen_index.mjs` + `gates.mjs`（两个都是 2026-10-04 c7b325f 重建前的旧包件名、**现不存在**；今天这一格由 `skills/_meta/build-index.mjs` + `skills/_meta/check-skill-package.mjs` 承担）| 最近一次：判定 12 项 = 9 绿、**2 红（G2 缺壳、G10 专有名未标注）**、1 未测（G11 selftest） |
 | 敏感信息扫描 | `git grep -lI -e <用户名> -e <本机名>` 全仓 / 只看向导类文件 | 结果记进 ISSUES #336：工具产出原件 814 份含 `Host :`/临时绝对路径；手写文档 2 份含临时路径 |
-| 位流身份读回 | `md5sum build/system.bit` = `cb907d3e4898…`（与 r118 记录一致） | 支撑 `system_top_routed.dcp` 与板上位流同轮的**推断**（目录与时间戳对应，非工具指纹绑定） |
+| 位流身份读回 | `md5sum build/system.bit` = `cb907d3e4898…`（r132 这一轮；门禁件尚未重跑） | 支撑 `system_top_routed.dcp` 与板上位流同轮的**推断**（目录与时间戳对应，非工具指纹绑定） |
 
 ### 我写/改的文件（全部随下列提交入库）
 - `8627be5`：`src/constraints/r119_hdmi_source_window.xdc`（改写成纯 SDC）、

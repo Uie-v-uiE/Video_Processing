@@ -36,7 +36,7 @@
 | 器件与工具链 | 共用条件 | xc7z020clg484-2 / Vivado+Vitis 2025.2.1 | — | 全部行的共用条件；`build/utilization.rpt` 头部 `Design : system_top`、`Device : xc7z020clg484-2`、`Speed File : -2`、`Design State : Routed` | 一次声明 | `build/system.bit`、`build/utilization.rpt` 报告头 |
 | 显示像素时钟 | 核心 | 50 | MHz | 面板 1024×600；H_TOTAL 1344、V_TOTAL 625 ⇒ 场频 59.5 Hz；由 PL 侧 MMCM 从 50 MHz 输入合成 | 约束一次生效 | `src/constraints/` 与 `build/timing_summary.rpt` |
 | 显示分辨率与场频 | 核心 | 1024×600 @59.5 | — | 双窗输出（左窗原图 / 右窗处理图） | 连续显示 | `board/verify_r87.md` 第 1 行 |
-| 全局 setup WNS | 核心 | **0.687** | ns | 失败 setup 端点 0 / 总端点 51027；板上这一版 bit `cb907d3e4898`；**本版不带 RGMII 输入窗** | 一次布线后报告 | `build/r118_gates.txt:10`、`build/evidence/r118_after.txt:7` |
+| 全局 setup WNS | 核心 | **0.687** | ns | 失败 setup 端点 0 / 总端点 51027；板上这一版 bit `cb907d3e4898`；**本版不带 RGMII 输入窗** | 一次布线后报告 | `build/timing_summary.rpt`（Design Timing Summary）、`build/r132_streamwrap_build.log` |
 | 全局 setup 失败端点 | 核心 | 0 | 个 | 总端点 51027；片内路径零违例；**收口 I/O 那 5 个端点当前无输入窗 = 未检查**（未检查不等于满足） | 一次布线后报告 | `build/r118_gates.txt:11` |
 | 全局 hold WHS | 核心 | **0.004** | ns | 失败 hold 端点 0 / 总端点 51027；WPWS 0.264；这一格是片内族 | 一次布线后报告 | `build/r118_gates.txt:12` |
 | `eth_rxc`（8.000 ns）setup / hold | 核心（逐时钟） | 0.687 / 0.004 | ns | 名册行 `margin_pct=8.59 / 0.05`；该域 4835 端点、失败 0 | 一次布线后报告（只读开 routed dcp） | `build/evidence/r118_after_roster_probefmt.txt` 第 5–6 行 |

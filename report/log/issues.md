@@ -15170,3 +15170,16 @@ rim 那一半本轮已用修好的入口重跑并出新件 `build/tb_edge_rim_r1
   未整份重导，`report/05-timing.md` 与 `report/technical-document.md` §6.2 各挂了版本口径；
   ④ `docs/` 整棵在 `.gitignore:178` 里（本机教案，不进仓库也不上传）；⑤ QSPI 那句"已固化"统一降级为
   "已写入 + 逐字节回读一致，冷上电自启那一次未验"。
+
+- **我自己这一铲造成的错配（当天 00:2x 复查 git diff 才抓到，全部改齐）**：文档扫描的规则是"行里有『板上/当前/这一版』
+  就把 `cd04907e1369`→`cb907d3e4898` 等 token 换掉"，但它只看**一行**，看不见同一行里还有 `r118` 这个轮次标签，于是留下
+  五处"轮次是 r118、位流号是 r132"的新假话：`board/signoff-questions.md:7`、`report/repro-check.md:323`、
+  `report/timing_global.md:3`、`report/unattended.md:21`，以及一条**本就不该动的带日期历史读数**
+  `board/raw-vs-golden.md:69`（2026-10-04 那次眼睛判读挂的是 r118 那颗 bit，已改回）。反方向两处也补了：
+  `report/claims-vs-evidence.md:104`（现读句里还是旧号）、`report/io/hdmi_tp1_sdc_measurement.md:6`（把"当前"改成"当时"）、
+  `report/40-optimization.md:96`（"板上这一版"→"当时的板上那一版"）。
+  教训写成一个可检查的动作：**按行 token 换以后必须再扫一遍"轮次标签 × 位流号"的配对**
+  （`grep -n cb907d3e4898` 里不许出现 r1[0-3]0..r131；`grep -n cd04907e1369` 里不许出现"板上现在/当前/现役"），
+  这一对二扫就是这条记录存在的理由。
+- **锚点债补记**（任务 #52）：`report/study/learn/*` 与 `report/study/_notes/*` 里约 198 处 `pl_video_top.v:NNN` 仍是
+  #129 之前的行号（793 行之后整体 +19）。今晚只给 study 的两本入口与 timing 三份挂了版本戳，逐条重指没做。
