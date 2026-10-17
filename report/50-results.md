@@ -47,7 +47,7 @@
 | 跨域两行 `sys_clk↔clkout0_1` | 核心 | setup 3.695 / hold 0.200（231 端点）；setup 14.757 / hold 0.165（19 端点） | ns | `build/timing_summary.rpt` 的 Inter Clock Table 里就这两对；其余跨域对被 `set_clock_groups -asynchronous` 整组排除 | 一次布线后报告 | `report/05-timing.md` §2（引同一件） |
 | Slice LUT 占用 | 资源 | 14013（26.34 %） | 个 | 实现后 Routed 报告 | 一次构建 | `build/utilization.rpt:35` |
 | Slice 寄存器占用 | 资源 | 8132（7.64 %） | 个 | 同上 | 一次构建 | `build/utilization.rpt:40` |
-| Block RAM Tile 占用 | 资源 | 96 / 140（68.57 %） | tile | = RAMB36/FIFO 93（66.43 %）+ RAMB18 5（1.79 %）×0.5；帧缓存由 64-bit 宽 + 乒乓两块拼出 | 一次构建 | `build/utilization.rpt:106,107,109` |
+| Block RAM Tile 占用 | 资源 | 96 / 140（68.57 %） | tile | = RAMB36/FIFO 93（66.43 %）+ RAMB18 6（2.14 %）×0.5 ⇒ 93 + 6×0.5 = 96 tile；帧缓存由 64-bit 宽 + 乒乓两块拼出 | 一次构建 | `build/utilization.rpt:106,107,109` |
 | DSP48 占用 | 资源 | 19 / 220（8.64 %） | 个 | 逐实例分解全在坐标与窗口运算：`u_lerp` 6 ＋ `u_blur` 1 ＋ `u_split_ctrl` 1 ＋ `u_zfit` 3 ＋ `u_zmap` 8 ＝ 19；**gamma 那一级 DSP=0**（它是 LUTRAM 表查询、不做乘法） | 一次构建 | 总数 `build/utilization.rpt:121`；逐实例 `build/util_hier_probe.rpt:60/69/75/80/81`，`u_gamma` 在 `:70` |
 | LUT as Memory（分布式 RAM） | 资源 | 4185（24.05 %） | 个 | 与 `report_methodology` 的 SYNTH-5 = 336 条同源（"因为时序约束才映射成分布式 RAM"） | 一次构建 | `build/utilization.rpt:37`；`build/methodology.rpt:32` |
 | BUFGCTRL / MMCME2_ADV / Bonded IOB / IDELAYE2 | 资源 | 8/32（25.00 %）/ 2/4（50.00 %）/ 27/200（13.50 %）/ 5（2.50 %） | 个 | 同一份 Routed 报告 | 一次构建 | `build/utilization.rpt:161` 等；逐行原文见 `report/04-resources.md` 占用表 |

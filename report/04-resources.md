@@ -32,8 +32,8 @@
 与 `build/utilization.rpt` 的总数闭合。旧那句是从早期文档抄过来的，抄的时候没人回到逐实例那份件对过。
 
 ## BRAM 这一格怎么读
-- 95.5 是 **tile** 数，不是 RAM 块数：`utilization.rpt` 第 3 表把每片 RAMB36 计 1、每片 RAMB18 计 0.5，
-  所以上表的算法是 `93 + 5×0.5 = 95.5`；分母 140 是器件的 tile 总数（同一行的 `Available` 列）。
+- 96 是 **tile** 数，不是 RAM 块数：`utilization.rpt` 第 3 表把每片 RAMB36 计 1、每片 RAMB18 计 0.5，
+  所以上表的算法是 `93 + 6×0.5 = 96`（r132 现读：RAMB36/FIFO 93 片 + RAMB18 6 片）；分母 140 是器件的 tile 总数（同一行的 `Available` 列）。
 - 这一格是实现后 `Routed` 的读数（报告头 `Design State : Routed`），不是综合阶段的估算。
 - 主要去向：帧缓存，加 ETH 与 AXI 之间的 `dc_fifo`，再加窗口级的行缓存。定性的那句写在 `data/metrics.csv` 第 10 行
   「帧缓存由 64-bit 宽 + 乒乓两块拼出，是 BRAM 的主要去向」。
@@ -41,7 +41,7 @@
   同一件事在 `report/perf_report.md` §4b 也是这么讲的；那一节写的百分比属于更早几版构建，本章不引它的数。
 
 【未实测】：当前版本**逐实例**的 BRAM 与 DSP 归属——帧缓存到底吃几片、DSP 落在哪几级——仓库里没有这份数据。
-`build/utilization.rpt` 只给合计 95.5 tile / 19 DSP，不带实例层次；分层件 `build/util_hier.rpt` 出自更早一次实现，
+`build/utilization.rpt` 只给合计 96 tile / 19 DSP，不带实例层次；分层件 `build/util_hier.rpt` 出自更早一次实现，
 未与本报告同一轮重生成，所以不当作当前值念。
 
 ## 时序余量的出处（`data/metrics.csv`，其证据文件列为 `build/timing_summary.rpt`）
