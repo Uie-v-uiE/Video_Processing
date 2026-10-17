@@ -124,9 +124,9 @@
 
 | # | 被禁止的比较 | 为什么不可比 | 允许的写法 |
 | --- | --- | --- | --- |
-| N1 | **2026-09-18 优化前基线 ↔ 板上现役那一版发布物**的任何相减或"提升 X 倍" | 约束集只有一份 XDC、`set_clock_groups` 当时未含 MMCM 生成钟（跨域 −6.748 那条是**假跨钟**）；无逐时钟名册；无发布前检查项数口径；RTL 规模不同（LUT 10621 vs 14154、FF 20253 vs 8188）；位流身份未钉 md5 | 只定性说"这一族问题被解决"，**不给倍数、不给百分比** |
+| N1 | **2026-09-18 优化前基线 ↔ 板上现役那一版发布物**的任何相减或"提升 X 倍" | 约束集只有一份 XDC、`set_clock_groups` 当时未含 MMCM 生成钟（跨域 −6.748 那条是**假跨钟**）；无逐时钟名册；无发布前检查项数口径；RTL 规模不同（LUT 10621 vs 14013、FF 20253 vs 8132）；位流身份未钉 md5 | 只定性说"这一族问题被解决"，**不给倍数、不给百分比** |
 | N2 | **早期各版（`build/gates_rNN.txt` 那一代，r62 一直到 r94）各行之间的 WNS 相减** | 检查项数一路在长（早期那份就是那个件名，`report/optimization_log.md` 第 607–608 行明写"跨口径拼接会得到假趋势"）；r63b/r99 之间加的是**新数据通路**（功能代价不是优化结果，第 596 行）；逐时钟名册那时还不存在 | `report/50-results.md` §3 那张表整张标"不可比，仅定性"，且三条"不能读成曲线"的原因一条不省 |
-| N3 | **四个域的 WHS 互相比大小**（0.052 / 0.053 / 0.059 / 0.222） | 全工程只有一行自加不确定度 `set_clock_uncertainty -hold 0.800 [get_clocks eth_rxc]`（`src/constraints/rk_zynq7020.xdc:50`），其余三域一分没扣；量过：统一那条带 ⇒ WHS **−0.747 / 25,742 失败端点**（`report/log/issues.md` #302、`report/timing/uncertainty_hold_ab.md`） | "四域 hold 全为正在**现行约束集**下为真"；"四域 hold 余量差不多"是约束口径造出来的形状，**不是设计事实** |
+| N3 | **四个域的 WHS 互相比大小**（0.004 / 0.048 / 0.067 / 0.121） | 全工程只有一行自加不确定度 `set_clock_uncertainty -hold 0.800 [get_clocks eth_rxc]`（`src/constraints/rk_zynq7020.xdc:50`），其余三域一分没扣；量过：统一那条带 ⇒ WHS **−0.747 / 25,742 失败端点**（`report/log/issues.md` #302、`report/timing/uncertainty_hold_ab.md`） | "四域 hold 全为正在**现行约束集**下为真"；"四域 hold 余量差不多"是约束口径造出来的形状，**不是设计事实** |
 | N4 | **`io_unconstrained_ports`（端口数）↔ `TIMING-18`（checks 数）** | 两种量纲；`report/timing/debt_ledger.md` §6 原话"两个数永不相减（附录 1 的量纲红线）"。带输入窗那一版实测：端口 11→6 与 TIMING-18 7→2 **各自都是真的** | 两套口径的数**并列念**，不做减法、不互相"对账" |
 | N5 | **`LUT as Logic`（如 `build/evidence/r115_fanout_ab/verdict_header.txt` 里的 9969/10004）↔ `Slice LUTs`（14154）** | 同一次 `report_utilization` 里的**不同行/不同口径**（#301 第 3 条记的就是"按记忆的形状 grep"） | 只在同一列内相减（P10） |
 | N6 | **`RAMB36/FIFO` 单元数 ↔ `Block RAM Tile` 数** | tile = RAMB36×1 + RAMB18×0.5（`report/04-resources.md` BRAM 口径节） | Q5 那种"单位先对齐再相减" |
