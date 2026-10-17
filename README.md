@@ -55,21 +55,21 @@ JTAG 三步链见 `board/README.md`。
 
 ## 关键数字与出处
 
-板上现在跑的是 r126，位流身份 `system.bit md5=cd04907e1369`（身份行由门禁件自己写出，`build/r126_gates.txt`；逐字节一致的存档件在
-`build/r118_gates_final.txt` 与 `build/evidence/r118_board/`）。下面每一格读数都来自这一块位流那一次构建。
+板上现在这一版是 r132，位流身份 `build/system.bit md5=cb907d3e4898`（2026-10-17 11:35 那一跑产出，构建日志 `build/r132_streamwrap_build.log`；同一轮读数件 `build/utilization.rpt` / `build/timing_summary.rpt` / `build/power.rpt` 都是 11:36）。下面每一格读数都来自这一块位流那一次构建。
+装法两条都留了痕：JTAG 三步（`ps_jtag_boot` → `program_pl` → `ps_app_reload`）的读数在 `report/log/issues.md` #478；QSPI 固化写了一次并通过 `Verify Operation successful`（进盘镜像 `board/flash/BOOT.bin` md5 `acd8cdd5f060`，日志 `build/evidence/r132_flash_qspi_9_OK.log`），但**冷上电那一度还没验** ⇒ 本页不把它写成"已固化"，等读数回来再改。
 
 主时钟三条：显示像素钟 50 MHz（`clkout0_1`，H_TOTAL 1344 / V_TOTAL 625 ⇒ 场频 59.5 Hz）、PL 逻辑钟 100 MHz（`clk_fpga_0`）、以太网
 收包域 125 MHz（`eth_rxc`）；约束在 `src/constraints/`，含时钟、I/O 窗、时钟不确定度与异步组声明。实现后全设计最差 setup 余量
-0.739 ns，失败 setup 与 hold 端点 0 / 51135，片内路径已收敛（WNS 0.739 ns / TNS 0 ns / 失败端点 0），两个方向都是 0。
+0.687 ns，失败 setup 与 hold 端点 0 / 51027，片内路径已收敛（WNS 0.687 ns / TNS 0 ns / 失败端点 0），两个方向都是 0。
 
 | 行名（会被机器读） | 读数 | 来源 |
 | --- | --- | --- |
-| 全设计 setup WNS | WNS **0.739 ns**、WHS **0.052 ns**，失败 setup/hold 端点 **0 / 51135**（两个方向都是 0。本版不加载 RGMII 收口输入窗，`eth_rx_ctl` 与 `eth_rxd[3:0]` 这 5 个收端点因此不在时序检查的覆盖范围内，窗为何退回候选件见 `report/08-limits.md` §4） | `build/report/timing_summary.rpt:151`、`data/metrics.csv` 第 4–6 行 |
-| 逐时钟 setup 余量 | 125 MHz 收包域 `eth_rxc` **0.739 ns**（占它 8 ns 周期的 9.24 %，全设计最紧的一格）；100 MHz `clk_fpga_0` **1.850 ns**（占它 10 ns 周期的 18.5 %）；50 MHz 显示域 `clkout0_1` **3.630 ns**（占它 20 ns 周期的 18.15 %）；`sys_clk` **14.876 ns**（占它 20 ns 周期的 74.38 %，最宽的一档） | `build/report/timing_summary.rpt`（Intra Clock Table + Clock Summary 两段） |
-| 保持时间 | 全设计最差那一格在 `eth_rxc`，**0.052 ns**；逐时钟 WHS：`clk_fpga_0` **0.053 ns**、`clkout0_1` **0.059 ns**、`sys_clk` **0.222 ns**、`eth_rxc` **0.052 ns**。警告：只有 `eth_rxc` 这一域带自加的 0.800 ns hold 不确定度（`src/constraints/rk_zynq7020.xdc:50`），其余三个域的报告里没有这一行 ⇒ 这四个数只能在同域内比大小，跨域比较要等不确定度补齐（`report/08-limits.md` §6） | `build/report/timing_summary.rpt`（Intra Clock Table 的 WHS 列）、`build/hold_paths.rpt`、`build/clock_uncertainty.rpt` |
-| BRAM / LUT / FF / DSP | BRAM **95.5 tile（68.21 %）**/ 140、LUT **14154（26.61 %）**、FF **8188（7.70 %）**、DSP **19（8.64 %）**/ 220 | `build/report/utilization.rpt`、`data/metrics.csv` 第 7–10 行 |
-| 功耗 | 动态 **2.213 W**（片上合计 2.391 W）、估算结温 **52.6 °C**，工具置信度 **Low** ⇒ **这是估算，不是实测** | `build/report/power.rpt`；`data/metrics.csv` 第 20–21 行 |
-| 发布前检查 | 本页不作门禁全绿声明，以 `bash build/gates.sh` 打印的末行为准；板上这一版读数是「门禁 24 项 23 绿 / 1 红」，唯一未通过项是顶层整屏台架自己判出的 `C5c`——帧头窗那一带的输出行带着上一帧的内容，本体行逐格全对，症状、已排除的解释与关闭条件在 `report/08-limits.md` §1。最新且全部通过的那一套归档属于更早的一次构建 `build/r75_gates.txt`，与板上这一版不是同一构建，两处读数不能混用 | `build/r118_gates.txt` |
+| 全设计 setup WNS | WNS **0.687 ns**、WHS **0.004 ns**，失败 setup/hold 端点 **0 / 51027**（两个方向都是 0。本版不加载 RGMII 收口输入窗，`eth_rx_ctl` 与 `eth_rxd[3:0]` 这 5 个收端点因此不在时序检查的覆盖范围内，窗为何退回候选件见 `report/08-limits.md` §4） | `build/timing_summary.rpt`（Design Timing Summary）、`data/metrics.csv` 第 4-6 行 |
+| 逐时钟 setup 余量 | 125 MHz 收包域 `eth_rxc` **0.687 ns**（占它 8 ns 周期的 8.59 %，全设计最紧的一格）；100 MHz `clk_fpga_0` **1.571 ns**（占它 10 ns 周期的 15.71 %）；50 MHz 显示域 `clkout0_1` **3.287 ns**（占它 20 ns 周期的 16.44 %）；`sys_clk` **14.294 ns**（占它 20 ns 周期的 71.47 %，最宽的一档） | `build/timing_summary.rpt`（Intra Clock Table + Clock Summary 两段） |
+| 保持时间 | 全设计最差那一格在 `eth_rxc`，**0.004 ns**；逐时钟 WHS：`clk_fpga_0` **0.048 ns**、`clkout0_1` **0.067 ns**、`sys_clk` **0.121 ns**、`eth_rxc` **0.004 ns**。警告：只有 `eth_rxc` 这一域带自加的 0.800 ns hold 不确定度（`src/constraints/rk_zynq7020.xdc:50`），其余三个域的报告里没有这一行 ⇒ 这四个数只能在同域内比大小，跨域比较要等不确定度补齐（`report/08-limits.md` §6） | `build/timing_summary.rpt`（Intra Clock Table 的 WHS 列）、`build/hold_paths.rpt`、`build/clock_uncertainty.rpt` |
+| BRAM / LUT / FF / DSP | BRAM **96 tile（68.57 %）**/ 140、LUT **14013（26.34 %）**、FF **8132（7.64 %）**、DSP **19（8.64 %）**/ 220 | `build/utilization.rpt`、`data/metrics.csv` 第 7-10 行 |
+| 功耗 | 动态 **2.213 W**（片上合计 **2.390 W**）、估算结温 **52.6 °C**（Ambient 25.0 °C、Effective TJA 11.5 °C/W、Max Ambient 57.4 °C），工具置信度 **Low** ⇒ **这是估算，不是实测** | `build/power.rpt`；`data/metrics.csv` 第 20-21 行 |
+| 发布前检查 | 本页不作门禁全绿声明，以 `bash build/gates.sh` 打印的末行为准；**r132 这一轮的门禁还没跑**（#46 的规范通道整架正在跑：`build/sim/run_one.sh tb_v98_top_seam`），所以这一格只写"未跑"，不引用旧构建的读数。变化是正向的：长期红着的顶层判据 `C5c` 在 r132 翻绿（`report/log/issues.md` #478：两版树各一次整架 165 PASS / 0 FAIL，其中交付版就是这一行的 `STREAM_WRAP` 版） | `build/r132_streamwrap_build.log`、`report/log/issues.md` #478 |
 
 这些报告可以由上面三条命令重跑：`report.tcl` 的重跑产物与归档件只差 Date 与 `-file` 两行，其余逐字节相同（`build/evidence/r121_note_c4.txt`、
 `build/evidence/r121_report_archive.txt`）。SD 片源两个 100 帧滑窗的实测读数是 29.956 与 29.815 fps（`build/evidence/r87_boot_stat_drain.txt`），

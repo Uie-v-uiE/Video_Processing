@@ -2,7 +2,8 @@
 // 功能：被测模块 `proc_pipeline` #(.H_ACTIVE(1024))（u_pipe，stage_sel=9'd0 即九级全旁路）；
 //        覆盖点：全旁路链不凭空造出黑格或 X 格、每个输入列在输出 burst 里恰好出现一次、四个
 //        窗口级九条行缓存数组的槽位都被写过、行尾不越界写自己的行缓存，以及"把一列钉黑"的
-//        正对照证明探测器不是空转。
+//        正对照证明探测器不是空转；窗口 C（#129）再覆盖**帧边界**：内容行号进 tag、两臂只差
+//        `y_in` 的口径，判"全旁路必须是晚 L 个显示行的直通线"（L 由拟合给，并与 OFF_LINES 对账）。
 // 激励与检查：时钟 always #10 clk=~clk（20 ns = 50 MHz，与 clk_pix 同档），负沿置 rst_n=1 后
 //        等 4 个上升沿；每行喂 HA=1024 个有效拍（de=1、xc=col、din=patn(col)）再 LINE−HA=320
 //        个消隐拍（de=0、xc=1024..1343、din=16'h0000），yc 在整行喂完后才取 row+1，共 ROWS=12
@@ -273,6 +274,177 @@ module tb_v103_pipe_bypass;
         end
     endtask
 
+    // ================= 窗口 C（#129：C5c 的机理）：绕回连续流里链子必须是"晚 L 行的直通线" =================
+    // 顶层往链子里塞的是两本账：`din(pix_raw)` 带的是**请求行**（#54 (B) 的提前量 + #97/#98 的绕回 ⇒ 显示行 d
+    // 的 pix_raw 是源行 wrap((d+4)>>1)，见 `pl_video_top.v:276`），而旧写法的 `y_in(cy_d[3])` 是**显示行**
+    //（`cy = min(d>>1, IMG_H-1)`，`pl_video_top.v:243`：每帧从 0 重开、只钳不绕）。本体里两者只差一个常数，
+    // 帧边界那几行差的不是常数：绕回把源行 0,0,1,1 放进帧头 0..3 行的内容里，标签此时也叫 0,0,1,1，于是四个
+    // 窗口级的 `stale_row`（`y_in==0`）在帧头武装，而它的补法是发**当前那一拍**的原色（`proc_sobel.v:150` 的
+    // `d21`、`proc_box_blur.v` 的 `h2x`）—— 当前那一拍的内容已经是源行 2 ⇒ 帧头四行发的是前瞻一行的格子
+    //（顶层同一件事 = tb_v98 的 C5c：屏上 0..3 行给源行 2，原图抽头同一拍给 0,0,1,1）。
+    // 这里并行例化两条链，激励一字不差，只差 `STREAM_WRAP`：
+    //   u_pipe（默认 0 = 帧锚定，四把 rim 尺子判的那一版）  → cout0
+    //   u_wrap（1 = 绕回连续流，顶层现在用这一版）           → cout1
+    // 再叠一个标签口径的变量（两臂只差 `y_in` 怎么算），于是四格读数各说一件事：
+    //   锚定实例两臂都必须**坏**（否则 C11c 的零没有对照），绕回实例两臂都必须**不坏**。
+    // 判据把"晚几行"交给拟合（不把 OFF_LINES 抄进尺子，链子哪天改深度这把尺子不许先错 —— #54 那一族）。
+    localparam integer C_SRC  = 8;              // 一"帧"几个源行（链子只认 y_in 的数值，不认 IMG_H）
+    localparam integer C_ACT  = 2*C_SRC;        // 每帧有效显示行 = 源行 x2（与顶层 2:1 同形）
+    localparam integer C_BLK  = 4;              // 帧尾消隐行（真实是 25 行；机理只要求"de=0 的行存在过"）
+    localparam integer C_FR   = 6;              // 每臂跑 6 帧
+    localparam integer C_ADV  = 4;              // 内容相对显示行的提前量 = OFF_LINES + BILIN_ROWS - 2（pix_raw 的账）
+    localparam integer C_SAMP = 512;            // 在输出 burst 的第 512 格取样（避开 #111 的行首/行尾那一格）
+    localparam integer C_MAXR = 192;            // 行号数组上界（6 帧 x (16+4) = 120，留余量）
+
+    integer cin  [0:C_MAXR-1];                  // 第 i 个**喂入行**喂进去的内容源行号
+    integer cout0[0:C_MAXR-1];                  // 锚定实例（u_pipe）第 j 个输出 burst 解出的行号
+    integer cout1[0:C_MAXR-1];                  // 绕回实例（u_wrap）同一格
+    integer nin_rows = 0, nout0 = 0, nout1 = 0;
+    integer a0_bad = -1, a0_L = -1, a1_bad = -1, a1_L = -1, a_n = 0;
+    integer armA0_bad = -1, armA1_bad = -1, armA0_L = -1, armA1_L = -1, armA_n = 0;
+    integer armB0_bad = -1, armB1_bad = -1, armB0_L = -1, armB1_L = -1, armB_n = 0;
+    integer cs_pos0 = 0, cs_pos1 = 0, c11_wraps = 0, c11_ruler_bad = 0;
+    integer first0 = -1, first1 = -1;
+    reg     co_prev0 = 1'b0, co_prev1 = 1'b0;
+    wire        de_out_w;
+    wire [15:0] dout_w;
+
+    proc_pipeline #(.H_ACTIVE(HA), .STREAM_WRAP(1)) u_wrap (
+        .clk(clk), .rst_n(rst_n),
+        .stage_sel(sel), .threshold(8'd128),
+        .gamma_en(1'b0), .gamma_wr(1'b0), .gamma_idx(8'd0), .gamma_data(8'd0),
+        .rotate_active(1'b0),
+        .hs_in(1'b0), .vs_in(1'b0),
+        .de_in(de), .x_in(xc), .y_in(yc), .din(din),
+        .off_rows(), .de_out(de_out_w), .dout(dout_w)
+    );
+
+    function [15:0] patc;                       // 行号进 tag、列取低 7 位：一个像素自己说"我是哪一行"
+        input [7:0] r;
+        input [11:0] c;
+        begin patc = {1'b1, r, c[6:0]}; end
+    endfunction
+
+    function integer decr;                      // patc 的逆（只解行；带 X 给 -1）
+        input [15:0] p;
+        begin decr = (^p === 1'bx) ? -1 : p[14:7]; end
+    endfunction
+
+    function integer wrap_row;                  // 与顶层 cy_r 同一条"减一次就够"（#58：不留运行时取模）
+        input integer v;
+        begin wrap_row = (v >= C_SRC) ? (v - C_SRC) : v; end
+    endfunction
+
+    always @(posedge clk) begin                 // 两条链同一拍各数各的 burst
+        if (rst_n) begin
+            if (de_out  && !co_prev0) cs_pos0 = 0;
+            if (de_out  && cs_pos0 == C_SAMP  && nout0 < C_MAXR) begin
+                cout0[nout0] = decr(dout);   nout0 = nout0 + 1;
+            end
+            if (de_out)  cs_pos0 = cs_pos0 + 1;
+            if (de_out_w && !co_prev1) cs_pos1 = 0;
+            if (de_out_w && cs_pos1 == C_SAMP && nout1 < C_MAXR) begin
+                cout1[nout1] = decr(dout_w); nout1 = nout1 + 1;
+            end
+            if (de_out_w) cs_pos1 = cs_pos1 + 1;
+        end
+        co_prev0 = de_out;
+        co_prev1 = de_out_w;
+    end
+
+    task feed_c;                                // 一帧：C_ACT 个有效行（每行都带真实行消隐）+ C_BLK 行全消隐
+        input integer labmode;                  // 0 = 臂 A（显示行>>1，顶层 #129 之前的口径）；1 = 臂 B（内容自己的行号）
+        integer d, x, tmr, tml;
+        reg [7:0] cr, lr;
+        begin
+            for (d = 0; d < C_ACT + C_BLK; d = d + 1) begin
+                tmr = wrap_row((d + C_ADV) >> 1);
+                cr  = tmr[7:0];                             // 本行喂进链子的**内容**行号
+                tml = d >> 1;
+                lr  = (labmode == 0) ? tml[7:0] : cr;       // 喂给 `y_in` 的行标签（两臂唯一的差别）
+                if (d < C_ACT) begin
+                    if (nin_rows < C_MAXR) begin
+                        cin[nin_rows] = tmr;
+                        nin_rows = nin_rows + 1;
+                    end
+                    for (x = 0; x < HA; x = x + 1) begin
+                        @(posedge clk);
+                        de = 1'b1; xc = x[11:0]; yc = {4'b0, lr}; din = patc(cr, x[11:0]);
+                        #1;
+                    end
+                end else begin
+                    for (x = 0; x < HA; x = x + 1) begin
+                        @(posedge clk);
+                        de = 1'b0; xc = x[11:0]; yc = {4'b0, lr}; din = 16'h0000;
+                        #1;
+                    end
+                end
+                // 每一行后面都跟真实的行消隐（`LINE-HA` 拍）：链子的"行尾补跳"、`no_left_r[0] <= ~de_in`
+                // 与 `line_end` 全挂在这一段上。第一版只在帧尾留消隐，16 个有效行连成一串 ⇒ `de_out` 16 行
+                // 不落地 ⇒ 采样器每帧只数到 1 个 burst（out=6 / fed=96，覆盖地板当场红）。
+                for (x = 0; x < LINE - HA; x = x + 1) begin
+                    @(posedge clk);
+                    de = 1'b0; xc = HA + x; yc = {4'b0, lr}; din = 16'h0000;
+                    #1;
+                end
+            end
+        end
+    endtask
+
+    task fit_one;                               // 对一条序列找一个常数行延迟 L；只报数，不判定
+        input integer arr;                      // 0 = 锚定实例，1 = 绕回实例
+        integer L, j, bad, first, n, no, inL;
+        begin
+            no = (arr == 0) ? nout0 : nout1;
+            bad = 0; first = -1; n = 0;
+            for (L = 0; L <= 12; L = L + 1) begin
+                bad = 0; first = -1; n = 0;
+                for (j = 0; j < no; j = j + 1) begin
+                    inL = (j >= C_ACT) && ((j - L) >= 0) && ((j - L) < nin_rows);
+                    if (inL) begin
+                        n = n + 1;
+                        if (((arr == 0) ? cout0[j] : cout1[j]) != cin[j-L]) begin
+                            bad = bad + 1;
+                            if (first < 0) first = j;
+                        end
+                    end
+                end
+                if (bad < (arr == 0 ? a0_bad : a1_bad)) begin
+                    if (arr == 0) begin a0_bad = bad; a0_L = L; first0 = first; end
+                    else            begin a1_bad = bad; a1_L = L; first1 = first; end
+                    a_n = n;
+                end
+            end
+        end
+    endtask
+
+    task run_arm;                               // 清账 → 喂 6 帧 → 两条链各自拟合
+        input integer labmode;
+        input [8*56-1:0] nm;
+        integer f, ar, j;
+        begin
+            for (ar = 0; ar < C_MAXR; ar = ar + 1) begin
+                cin[ar] = -9; cout0[ar] = -9; cout1[ar] = -9;
+            end
+            nin_rows = 0; nout0 = 0; nout1 = 0; cs_pos0 = 0; cs_pos1 = 0;
+            co_prev0 = 1'b0; co_prev1 = 1'b0;
+            a0_bad = 9999; a0_L = -1; a1_bad = 9999; a1_L = -1; a_n = 0; first0 = -1; first1 = -1;
+            // 链子是 de 门控的：臂与臂之间不排空也不会串数据（没喂的拍不前进）；
+            // 上一臂留在行缓存里的尾巴算进本臂的热身（拟合跳过前 C_ACT 行）。
+            for (f = 0; f < C_FR; f = f + 1) feed_c(labmode);
+            for (ar = 1; ar < nin_rows; ar = ar + 1)          // 内容序列里真的"绕回"过几次（7 -> 0）
+                if (cin[ar] < cin[ar-1]) c11_wraps = c11_wraps + 1;
+            fit_one(0);
+            fit_one(1);
+            $display("C11 %0s: anchored bad=%0d L=%0d first_bad=%0d || wrapped bad=%0d L=%0d first_bad=%0d || judged=%0d fed=%0d out=%0d/%0d rows_per_frame=%0d",
+                     nm, a0_bad, a0_L, first0, a1_bad, a1_L, first1, a_n, nin_rows, nout0, nout1, C_ACT);
+            for (j = C_ACT; j < nout1; j = j + 1)
+                if (((j % C_ACT) < 6) && a1_L >= 0 && (j - a1_L) < nin_rows)
+                    $display("  C11 %0s out#%0d frameline=%0d wrapped=%0d anchored=%0d exp=%0d",
+                             nm, j, j % C_ACT, cout1[j], cout0[j], cin[j-a1_L]);
+        end
+    endtask
+
     initial begin
         for (k = 0; k < HA; k = k + 1) begin hist[k] = 0; mh[k] = 0; pres[k] = 0; end
         @(negedge clk); rst_n = 1;
@@ -385,6 +557,35 @@ module tb_v103_pipe_bypass;
         line("C10b the same detector does see a black column fed in",
              badrow_b >= ROWS-SETTLE && worst >= ROWS-SETTLE,
              "pair for C10a: forcing one input column black must light that very counter and that very histogram bin");
+
+        // ================= 窗口 C（#129 / C5c 的机理）：绕回实例必须是纯延迟线 =================
+        c11_ruler_bad = 0;
+        for (k = 0; k < C_SRC; k = k + 1)
+            if (decr(patc(k[7:0], 12'd512)) != k) c11_ruler_bad = c11_ruler_bad + 1;
+        line("C11r0 row ruler round-trips and holds no black", c11_ruler_bad == 0,
+             "every row number below is read out of the pixel, so the encoding must round-trip for all C_SRC rows");
+
+        run_arm(0, "armA(label=display row>>1, pre-#129 top)");
+        armA0_bad = a0_bad; armA1_bad = a1_bad; armA0_L = a0_L; armA1_L = a1_L; armA_n = a_n;
+        run_arm(1, "armB(label=content row, shipped top)");
+        armB0_bad = a0_bad; armB1_bad = a1_bad; armB0_L = a0_L; armB1_L = a1_L; armB_n = a_n;
+
+        line("C11pre1 each arm judged at least two whole frames", armA_n >= 2*C_ACT && armB_n >= 2*C_ACT,
+             "the fit compares an empty set otherwise; one output burst per fed row for 6 frames is the floor");
+        line("C11pre2 both chains emitted one burst per fed row", nout0 == nout1 && nout0 >= 2*C_ACT,
+             "the two instances share the burst index; if one of them ever dropped or invented a row the four readings below are not comparable");
+        line("C11pre3 the stimulus really wrapped (content row decreased)", c11_wraps > 0,
+             "the frame-boundary band this window is about must be reached at least once, else every zero below is an empty set");
+        line("C11c wrapped chain is a pure delay line, under both label conventions",
+             armA1_bad == 0 && armB1_bad == 0,
+             "STREAM_WRAP=1 (what the top feeds now) must emit exactly the input row L display rows late: the frame head's center already IS the row it should show, so the forward tap must not fire. Pre-fix reading with the same stimulus: anchored bad=20/80 judged at out#16..19 got=2 exp=0,0,1,1 (arm A) and bad=20 at out#28..31 (arm B) - that is tb_v98 C5c's 24 bad head cells");
+        line("C11d anchored chain is NOT a pure delay line (the control that makes C11c's zero mean something)",
+             armA0_bad != 0 && armB0_bad != 0,
+             "same stimulus, same ruler, only STREAM_WRAP differs: if the default (frame-anchored) instance also came out clean, C11c would be decoration and the four rim benches' contract would be untested here");
+        line("C11e one constant lag, equal to the chain's own OFF_LINES, in all four readings",
+             armA0_L == u_pipe.OFF_LINES && armB0_L == u_pipe.OFF_LINES &&
+             armA1_L == u_pipe.OFF_LINES && armB1_L == u_pipe.OFF_LINES,
+             "I1: the row offset has exactly one source (u_pipe.OFF_LINES); the fit is not allowed to paper over the boundary by choosing a different L per arm or per instance");
 
         $display("RESULT tb_v103_pipe_bypass %s nfail=%0d", (nfail == 0) ? "PASS" : "FAIL", nfail);
         $finish;

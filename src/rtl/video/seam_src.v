@@ -11,12 +11,11 @@ module seam_src #(
     input  wire        clk,
     input  wire        rst_n,
     input  wire [11:0] sx,          // zoom_mapper 的图像列（与地址同一拍）
-    input  wire        oob,         // 同一拍的"画面外"
     input  wire [11:0] seam,        // 缝位，单位 = 图像列
     input  wire        marker_on,   // 1 = 画那条 2 列宽的标记线
     input  wire        raw_left,    // 1 = 缝左边给原图（swap 只翻这一位）
     output wire        take_orig,   // 已推到混色级：这一格给原图
-    output wire        mark         // 已推到混色级：这一格画蓝线
+    output wire        mark         // 已推到混色级：这一格是标记线（**画面内**由顶层再与像素那一位 oob 相与）
 );
     // `sx` 站在 zoom_mapper 的输出那一拍（= 显示坐标之后第 3 拍），而混色级看的内容站在 `x_d[MIX_D]` 那一拍
     //（顶层把同一个抽头号交给了它）⇒ TAPS 就是"从 mapper 输出到混色级"那一段。晚/早几拍在这里只是把整条线
@@ -25,7 +24,11 @@ module seam_src #(
     // 少 200 多个触发器，也少一条 12 位布线。
     wire in_band = (sx == seam) || (sx == (seam - 12'd1));   // 蓝线宽 = 2 个**图像列**
     // 蓝线只画在**画面内**：画面外是黑的，线伸出画面就是用户说的"在整个屏幕上扫"。
-    wire mark_n = marker_on && in_band && !oob;
+    // ⚠ #477 第二笔：这一条"画面内"不在这里判。这里吃的是 mapper 的**活几何** `oob`，而屏上那一格黑不黑
+    //   由**与像素同环同尾巴**的那一位 `oob_out` 决定（#92 第一/三笔的成果）——两者在画面边沿可以差 1 格，
+    //   实测旧写法在 45° 两臂留下 24 个"线画在黑底上"的像素（用户念的"上面出头 / 下面没到底"）。
+    //   判据与填充必须是**同一个位**，否则线永远比画面短一截或长一截：门挪到顶层与 `oob_out` 相与。
+    wire mark_n = marker_on && in_band;
     // 缝左侧给原图还是处理图，只由 swap 那一个位决定（与旧几何同一个语义）。
     wire orig_n = (sx < seam) ? raw_left : ~raw_left;
 
@@ -36,14 +39,21 @@ module seam_src #(
         else        sh <= {mark_n, orig_n};
     end
     reg [TAPS-1:0] dq;
-    always @(posedge clk or negedge rst_n) begin
-        if (!rst_n) dq <= {TAPS{1'b0}};
-        else        dq <= {dq[TAPS-2:0], sh[1]};
-    end
     reg [TAPS-1:0] oq;
+    // ⚠ 移位写法要能吃下 **TAPS = 1**（#477：顶层把这条链接进行环之后，纯移位段只剩补齐"sx→pix_raw"
+    //   那一小段）。原来的 `dq[TAPS-2:0]` 在 TAPS=1 时是 `dq[-1:0]`，越界。循环写法对任何 TAPS≥1 都合法，
+    //   推出来的网表与逐位写一样（一位一线，没有级联进位）。
+    integer j;
     always @(posedge clk or negedge rst_n) begin
-        if (!rst_n) oq <= {TAPS{1'b1}};
-        else        oq <= {oq[TAPS-2:0], sh[0]};
+        if (!rst_n) begin
+            dq <= {TAPS{1'b0}};
+            oq <= {TAPS{1'b1}};
+        end else begin
+            for (j = 0; j < TAPS; j = j + 1) begin
+                dq[j] <= (j == 0) ? sh[1] : dq[j-1];
+                oq[j] <= (j == 0) ? sh[0] : oq[j-1];
+            end
+        end
     end
     assign mark      = dq[TAPS-1];
     assign take_orig = oq[TAPS-1];

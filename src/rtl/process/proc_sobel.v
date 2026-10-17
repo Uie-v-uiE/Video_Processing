@@ -4,7 +4,8 @@
 //         3×3 窗口靠两个行缓存 `lb0`/`lb1`（+ 一个搬原色的 `mc1`，都是 distributed RAM、按 `x_in` 直接索引），
 //         写侧只有 `if (de_in)` 这一道门 ⇒ 行首那一拍的 `x_in` 越界就是 #103 的形状，由 C10f/C10fs 逐条钉住。
 module proc_sobel #(
-    parameter H_ACTIVE = 640
+    parameter H_ACTIVE = 640,
+    parameter integer STREAM_WRAP = 0
 )(
     input  wire        clk,
     input  wire        rst_n,
@@ -82,7 +83,8 @@ module proc_sobel #(
         no_left_r  [0] <= ~de_in;
         no_right_r [0] <= de_in && (x_in == H_ACTIVE[11:0] - 12'd1);   // #103：坐标抽头对齐到 de 之后，武装位从 -2 改回 -1（正本见 proc_box_blur.v 的 #97 段）
         no_above_r [0] <= de_in && (y_in == 12'd1) && row_first;
-        stale_row_r[0] <= de_in && (y_in == 12'd0);
+    // STREAM_WRAP（1 = 绕回连续流）关掉 `stale_row` 这一族；正本见 proc_box_blur.v 的同名段。
+        stale_row_r[0] <= de_in && !STREAM_WRAP && (y_in == 12'd0);
         no_left_r  [1] <= no_left_r  [0];  no_left_r  [2] <= no_left_r  [1];
         no_right_r [1] <= no_right_r [0];  no_right_r [2] <= no_right_r [1];
         no_above_r [1] <= no_above_r [0];  no_above_r [2] <= no_above_r [1];

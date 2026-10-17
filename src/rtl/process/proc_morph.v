@@ -6,7 +6,8 @@
 // 错一行；blur/sharpen/sobel 用的是这个约定，新加的也用它。掩码只存 1 bit/像素（亮度判定在输入处做一次）
 // ⇒ 两条掩码行缓存 = 512 bit × 2；另加**一条** 16 bit 行缓存，只为旁路能还原原色（中心抽头只要上一行）。
 module proc_morph #(
-    parameter H_ACTIVE = 512
+    parameter H_ACTIVE = 512,
+    parameter integer STREAM_WRAP = 0
 )(
     input  wire        clk,
     input  wire        rst_n,
@@ -91,7 +92,8 @@ module proc_morph #(
         no_left_r  [0] <= ~de_in;                                     // 补跳那一拍 = 下一行第 0 槽
         no_right_r [0] <= de_in && (x_in == H_ACTIVE[11:0] - 12'd1);   // #103：坐标抽头对齐到 de 之后，武装位从 -2 改回 -1；拍 k 武装仍落槽位 k+1（正本见 proc_box_blur.v 的 #97 段）
         no_above_r [0] <= de_in && (y_in == 12'd1) && row_first;                    // 中心行 0，上面缺
-        stale_row_r[0] <= de_in && (y_in == 12'd0);                    // 中心行 −1：整行都是旧的
+    // STREAM_WRAP（1 = 绕回连续流）关掉 `stale_row` 这一族；正本见 proc_box_blur.v 的同名段。
+        stale_row_r[0] <= de_in && !STREAM_WRAP && (y_in == 12'd0);                    // 中心行 −1：整行都是旧的
         no_left_r  [1] <= no_left_r  [0];  no_left_r  [2] <= no_left_r  [1];
         no_right_r [1] <= no_right_r [0];  no_right_r [2] <= no_right_r [1];
         no_above_r [1] <= no_above_r [0];  no_above_r [2] <= no_above_r [1];

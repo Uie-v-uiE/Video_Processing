@@ -1,0 +1,114 @@
+Reading pref.tcl
+
+# 2020.4
+
+# vsim -c -L work_d work_d.tb_v103_pipe_bypass -do "run -all; quit -f" 
+# Start time: 11:07:27 on Oct 17,2026
+# ** Note: (vsim-3812) Design is being optimized...
+# //  ModelSim SE-64 2020.4 Oct 13 2020
+# //
+# //  Copyright 1991-2020 Mentor Graphics Corporation
+# //  All Rights Reserved.
+# //
+# //  ModelSim SE-64 and its associated documentation contain trade
+# //  secrets and commercial or financial information that are the property of
+# //  Mentor Graphics Corporation and are privileged, confidential,
+# //  and exempt from disclosure under the Freedom of Information Act,
+# //  5 U.S.C. Section 552. Furthermore, this information
+# //  is prohibited from disclosure under the Trade Secrets Act,
+# //  18 U.S.C. Section 1905.
+# //
+# Loading work.tb_v103_pipe_bypass(fast)
+# run -all
+# PASS C0r ruler pattern is invertible and holds no black | every judged column below is read out of the pixel, so the encoding must round-trip and must not contain the thing we count
+# CACHE at reset: total=1024 first=0 last=1023 | blur lb0/lb1=1024/1024 sharp lb0/lb1=1024/1024 sobel lb0/lb1=1024/1024 sobel mc1=1024 morph mb1/mc1=1024/1024
+# PASS C10dpre the cache probe sees every array | before any pixel is fed each of the nine arrays must read all X, so C10d's zero cannot come from a hierarchical name that points at nothing
+# A row6: burst=1024 out_px=1024 black_or_X=0 col_off=0 unparsable=0 || dec@pos0/1/2/1023=0/1/2/1023 val@pos0=8415 isX=0 || head-decode blur/sharp/sobel/morph=10/7/4/0
+# CACHE after A: total=0 first=-1 last=-1 | blur lb0/lb1=0/0 sharp lb0/lb1=0/0 sobel lb0/lb1=0/0 sobel mc1=0 morph mb1/mc1=0/0
+# A rows_judged=6 black_or_X_cells=0 col_mismatch=0 unparsable=0 bad_rows=0 || black worst col-1=0 best col1=0 || mismatch worst col1=6
+# OBS #111 head/tail: val@pos0=8415 isX=0 dec@pos0/1/2=0/1/2 dec@pos1023=1023 (head black + last column never emitted)
+# PASS C10pre window A judged a whole output burst | the judged row must be a full H_ACTIVE-long output burst, else the zeros below come from an empty set
+# PASS C10a bypassed chain invents no black or X cell | input has no black and all nine stages are bypassed => any black/X out inside the line is made by the chain (#103)
+# C10c columns emitted exactly once per judged row: off-count=0 first=-1 || cells out=6144 expected=6144 invented=0
+# PASS C10c every input column is emitted exactly once per row | ISSUES #111, NOT #103: the chain's data is one beat behind its own de_out, so the last column of every line falls off the end and a 0x0000 cell is inserted at the head (top hides it with pipe_dout_q; #102's left-edge line is the same defect)
+# PASS C10d every line-cache slot was written at least once | an unwritten slot reads X in xsim and 0 on the board: that is one black column per name
+# C10f out-of-range cache writes (de high && x_in >= H_ACTIVE): blur=0 sharp=0 sobel=0 morph=0 || first offender x_in=-1 -> HW slot -1 with din=00000000 || opportunity beats (de && x_in >= H_ACTIVE-1)=12
+# PASS C10fs the stimulus really pushed the coordinate to the line end (C10f's sample floor) | if this is 0, C10f's zeros prove nothing: the stimulus never reached the beat that can overflow the write address. Pair with sim/mut_control.sh: the pre-fix RTL must redden C10f under this same stimulus.
+# PASS C10f no window stage writes outside its own line cache | the coordinate taps sit one beat behind the de chain, so each line head writes x_in=1343: xsim drops that write, the board truncates it to slot 319 and stores the blanking value 0 => one black column at display column 320 (#103)
+# B row6: black=1 (input column 300 was forced black)
+# B rows_with_black=6 worst pos300 = 6 cells
+# PASS C10b the same detector does see a black column fed in | pair for C10a: forcing one input column black must light that very counter and that very histogram bin
+# PASS C11r0 row ruler round-trips and holds no black | every row number below is read out of the pixel, so the encoding must round-trip for all C_SRC rows
+# C11 armA(label=display row>>1, pre-#129 top): anchored bad=20 L=4 first_bad=16 || wrapped bad=0 L=4 first_bad=-1 || judged=80 fed=96 out=96/96 rows_per_frame=16
+#   C11 armA(label=display row>>1, pre-#129 top) out#16 frameline=0 wrapped=0 anchored=2 exp=0
+#   C11 armA(label=display row>>1, pre-#129 top) out#17 frameline=1 wrapped=0 anchored=2 exp=0
+#   C11 armA(label=display row>>1, pre-#129 top) out#18 frameline=2 wrapped=1 anchored=2 exp=1
+#   C11 armA(label=display row>>1, pre-#129 top) out#19 frameline=3 wrapped=1 anchored=2 exp=1
+#   C11 armA(label=display row>>1, pre-#129 top) out#20 frameline=4 wrapped=2 anchored=2 exp=2
+#   C11 armA(label=display row>>1, pre-#129 top) out#21 frameline=5 wrapped=2 anchored=2 exp=2
+#   C11 armA(label=display row>>1, pre-#129 top) out#32 frameline=0 wrapped=0 anchored=2 exp=0
+#   C11 armA(label=display row>>1, pre-#129 top) out#33 frameline=1 wrapped=0 anchored=2 exp=0
+#   C11 armA(label=display row>>1, pre-#129 top) out#34 frameline=2 wrapped=1 anchored=2 exp=1
+#   C11 armA(label=display row>>1, pre-#129 top) out#35 frameline=3 wrapped=1 anchored=2 exp=1
+#   C11 armA(label=display row>>1, pre-#129 top) out#36 frameline=4 wrapped=2 anchored=2 exp=2
+#   C11 armA(label=display row>>1, pre-#129 top) out#37 frameline=5 wrapped=2 anchored=2 exp=2
+#   C11 armA(label=display row>>1, pre-#129 top) out#48 frameline=0 wrapped=0 anchored=2 exp=0
+#   C11 armA(label=display row>>1, pre-#129 top) out#49 frameline=1 wrapped=0 anchored=2 exp=0
+#   C11 armA(label=display row>>1, pre-#129 top) out#50 frameline=2 wrapped=1 anchored=2 exp=1
+#   C11 armA(label=display row>>1, pre-#129 top) out#51 frameline=3 wrapped=1 anchored=2 exp=1
+#   C11 armA(label=display row>>1, pre-#129 top) out#52 frameline=4 wrapped=2 anchored=2 exp=2
+#   C11 armA(label=display row>>1, pre-#129 top) out#53 frameline=5 wrapped=2 anchored=2 exp=2
+#   C11 armA(label=display row>>1, pre-#129 top) out#64 frameline=0 wrapped=0 anchored=2 exp=0
+#   C11 armA(label=display row>>1, pre-#129 top) out#65 frameline=1 wrapped=0 anchored=2 exp=0
+#   C11 armA(label=display row>>1, pre-#129 top) out#66 frameline=2 wrapped=1 anchored=2 exp=1
+#   C11 armA(label=display row>>1, pre-#129 top) out#67 frameline=3 wrapped=1 anchored=2 exp=1
+#   C11 armA(label=display row>>1, pre-#129 top) out#68 frameline=4 wrapped=2 anchored=2 exp=2
+#   C11 armA(label=display row>>1, pre-#129 top) out#69 frameline=5 wrapped=2 anchored=2 exp=2
+#   C11 armA(label=display row>>1, pre-#129 top) out#80 frameline=0 wrapped=0 anchored=2 exp=0
+#   C11 armA(label=display row>>1, pre-#129 top) out#81 frameline=1 wrapped=0 anchored=2 exp=0
+#   C11 armA(label=display row>>1, pre-#129 top) out#82 frameline=2 wrapped=1 anchored=2 exp=1
+#   C11 armA(label=display row>>1, pre-#129 top) out#83 frameline=3 wrapped=1 anchored=2 exp=1
+#   C11 armA(label=display row>>1, pre-#129 top) out#84 frameline=4 wrapped=2 anchored=2 exp=2
+#   C11 armA(label=display row>>1, pre-#129 top) out#85 frameline=5 wrapped=2 anchored=2 exp=2
+# C11 armB(label=content row, shipped top): anchored bad=20 L=4 first_bad=28 || wrapped bad=0 L=4 first_bad=-1 || judged=80 fed=96 out=96/96 rows_per_frame=16
+#   C11 armB(label=content row, shipped top) out#16 frameline=0 wrapped=0 anchored=0 exp=0
+#   C11 armB(label=content row, shipped top) out#17 frameline=1 wrapped=0 anchored=0 exp=0
+#   C11 armB(label=content row, shipped top) out#18 frameline=2 wrapped=1 anchored=1 exp=1
+#   C11 armB(label=content row, shipped top) out#19 frameline=3 wrapped=1 anchored=1 exp=1
+#   C11 armB(label=content row, shipped top) out#20 frameline=4 wrapped=2 anchored=2 exp=2
+#   C11 armB(label=content row, shipped top) out#21 frameline=5 wrapped=2 anchored=2 exp=2
+#   C11 armB(label=content row, shipped top) out#32 frameline=0 wrapped=0 anchored=0 exp=0
+#   C11 armB(label=content row, shipped top) out#33 frameline=1 wrapped=0 anchored=0 exp=0
+#   C11 armB(label=content row, shipped top) out#34 frameline=2 wrapped=1 anchored=1 exp=1
+#   C11 armB(label=content row, shipped top) out#35 frameline=3 wrapped=1 anchored=1 exp=1
+#   C11 armB(label=content row, shipped top) out#36 frameline=4 wrapped=2 anchored=2 exp=2
+#   C11 armB(label=content row, shipped top) out#37 frameline=5 wrapped=2 anchored=2 exp=2
+#   C11 armB(label=content row, shipped top) out#48 frameline=0 wrapped=0 anchored=0 exp=0
+#   C11 armB(label=content row, shipped top) out#49 frameline=1 wrapped=0 anchored=0 exp=0
+#   C11 armB(label=content row, shipped top) out#50 frameline=2 wrapped=1 anchored=1 exp=1
+#   C11 armB(label=content row, shipped top) out#51 frameline=3 wrapped=1 anchored=1 exp=1
+#   C11 armB(label=content row, shipped top) out#52 frameline=4 wrapped=2 anchored=2 exp=2
+#   C11 armB(label=content row, shipped top) out#53 frameline=5 wrapped=2 anchored=2 exp=2
+#   C11 armB(label=content row, shipped top) out#64 frameline=0 wrapped=0 anchored=0 exp=0
+#   C11 armB(label=content row, shipped top) out#65 frameline=1 wrapped=0 anchored=0 exp=0
+#   C11 armB(label=content row, shipped top) out#66 frameline=2 wrapped=1 anchored=1 exp=1
+#   C11 armB(label=content row, shipped top) out#67 frameline=3 wrapped=1 anchored=1 exp=1
+#   C11 armB(label=content row, shipped top) out#68 frameline=4 wrapped=2 anchored=2 exp=2
+#   C11 armB(label=content row, shipped top) out#69 frameline=5 wrapped=2 anchored=2 exp=2
+#   C11 armB(label=content row, shipped top) out#80 frameline=0 wrapped=0 anchored=0 exp=0
+#   C11 armB(label=content row, shipped top) out#81 frameline=1 wrapped=0 anchored=0 exp=0
+#   C11 armB(label=content row, shipped top) out#82 frameline=2 wrapped=1 anchored=1 exp=1
+#   C11 armB(label=content row, shipped top) out#83 frameline=3 wrapped=1 anchored=1 exp=1
+#   C11 armB(label=content row, shipped top) out#84 frameline=4 wrapped=2 anchored=2 exp=2
+#   C11 armB(label=content row, shipped top) out#85 frameline=5 wrapped=2 anchored=2 exp=2
+# PASS C11pre1 each arm judged at least two whole frames | the fit compares an empty set otherwise; one output burst per fed row for 6 frames is the floor
+# PASS C11pre2 both chains emitted one burst per fed row | the two instances share the burst index; if one of them ever dropped or invented a row the four readings below are not comparable
+# PASS C11pre3 the stimulus really wrapped (content row decreased) | the frame-boundary band this window is about must be reached at least once, else every zero below is an empty set
+# PASS C11c wrapped chain is a pure delay line, under both label conventions | ut row L display rows late: the frame head's center already IS the row it should show, so the forward tap must not fire. Pre-fix reading with the same stimulus: anchored bad=20/80 judged at out#16..19 got=2 exp=0,0,1,1 (arm A) and bad=20 at out#28..31 (arm B) - that is tb_v98 C5c's 24 bad head cells
+# PASS C11d anchored chain is NOT a pure delay line (the control that makes C11c's zero mean something) | same stimulus, same ruler, only STREAM_WRAP differs: if the default (frame-anchored) instance also came out clean, C11c would be decoration and the four rim benches' contract would be untested here
+# PASS C11e one constant lag, equal to the chain's own OFF_LINES, in all four readings | I1: the row offset has exactly one source (u_pipe.OFF_LINES); the fit is not allowed to paper over the boundary by choosing a different L per arm or per instance
+# RESULT tb_v103_pipe_bypass PASS nfail=0
+# ** Note: $finish    : D:/Xilinx/Prj/pro/Video_Processing/sim/tb_v103_pipe_bypass.v(591)
+#    Time: 7096411 ns  Iteration: 0  Instance: /tb_v103_pipe_bypass
+# End time: 11:07:31 on Oct 17,2026, Elapsed time: 0:00:04
+# Errors: 0, Warnings: 0

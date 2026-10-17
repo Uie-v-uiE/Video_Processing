@@ -1134,6 +1134,288 @@ module tb_v98_top_seam;
     //   "列 = (pcol+1)>>1"，看着像两个抽头都偏一列，其实是探针自己晚了一拍（#92 同族，第 N 次）。
     //   所以这一段的窗用 `u_split.de`、坐标用 `u_split.x/y`（= 顶层的 `x_d[MIX_D]/y_d[MIX_D]`），
     //   与它同一拍的 `orig_pix/proc_pix` 才是同一格。期望按定义当场算在打印里，读的人不用推。
+    // ================= C13（新：follow=1 图像域缝路有没有按行错位）=================
+    // 为什么单独一段：`split_ctl_tb` 全程是 19'd0 ⇒ gp[11]=0 ⇒ `u_seam_src` 那条 18 拍旗标链在既有
+    //   162 枚判定里**一次都没被判到**（grep `seam_src_orig` 在本文件命中 0）。用户报的"旋转后画面
+    //   最下沿有一条错位的带 + 蓝线上面出头/下面没到底"正落在这条链上。
+    // ⚠ 前三版量法都不成立，逐版说明（都是尺子的 bug，不是设计的 bug）：
+    //   v1 把 `mem_col` 当真实源列去比 `< seam`：`mem_col = v[7:0]` 是**源列 mod 256**（tag 8 位、源宽 512）
+    //      ⇒ 真实源列 ≥256 的格子被期望式系统性判反。
+    //   v2/v3 改找"tag 在 0/255 之间跳"（= 真实列绕 256）：取到 0 行 —— 因为缝在源列 256，而 256 恰好是
+    //      tag 的最高位，**mod-256 天生看不见它**。
+    //   第四版把缝挪到**源列 128**（tag 里是 127→128，看得见），并且用**两个对称角度**把常数列偏移消掉：
+    //      旗标相对内容的错位有一个沿行方向的斜率 tan(角度)×（显示列/源列=2），它在 +45° 与 315° 两臂
+    //      符号相反；而"旗标打晚了几拍"造成的刚性列平移在两臂**同号** ⇒
+    //      V=(R(+45)−R(315))/2 = 行错位（单位：显示行），K=(R(+45)+R(315))/2 = 列平移。
+    //   内容自己的交叉列用 `orig_pix` 的 tag 找（C1/C5/C6 已经把"屏上 (x,y) 的内容 = 源 (x>>1, y>>1)"钉死），
+    //   每行可能有 2 个 127→128（真实列 128 与 384 撞同一个 tag）⇒ 取**离旗标最近**的那个，超过 24 列丢掉。
+    //   第四版把缝挪到源列 128 并加了两臂 ⇒ 跑出来 504 行有旗标翻转、**0 行有内容交叉**。C13DUMP 给了答案：
+    //   那一档是 `zoom_sel=4`（1.00x）+ 45°，旋转后的画面整个越出面板 ⇒ `pix_raw` 全黑 ⇒ tag=(0,0)，
+    //   内容根本不自报源列，尺子的第二条腿踩在空集上（v4 第一次跑没分路计数，所以看不出是哪条腿空；
+    //   现在 ARM 三个计数各自报，这就是"每一个 0 都要能指认它是哪一种 0"）。
+    //   第五版（现在这把）改两处，都是为尺子改的、与设计无关：
+    //     · 倍率换 0.50x（`zoom_sel=2`）：画面缩进面板，四周才有背景带，行内才有点亮的格子；
+    //     · 内容交叉判据从"tag 恰好在 127/128 之间跳"改成"**tag 列对同一个缝位做同一个谓词 `(col < seam)`
+    //       的结果发生翻转**"。0.50x 下 tag 每拍跨 2 列，恰好等于某值的跳变会被跨过；谓词翻转不会。
+    //       mod-256 别名让一行内可能有 2 次谓词翻转（真实列 128 与 384），加上画面左右沿的黑边各一次
+    //       ⇒ 每行记 6 个候选，取**离旗标最近**的那个（±24 列之外丢掉）。
+    //   两臂对称（+45°/315°）的意义不变：行错位 V 在两臂反号、常数列平移 K 在两臂同号 ⇒
+    //     V=(R(+45)−R(315))/2 = 行错位（显示行），K=(R(+45)+R(315))/2 = 列平移。
+    localparam integer C13_SEAM = 128;
+    localparam integer C13_SLOT = 6;                   // 每行最多记 6 个内容候选交叉列
+    localparam integer C13_NEAR = 24;                 // "算同一条缝"的列窗口
+    reg [11:0] c13_xf [0:599];                // 旗标翻转列（FFF = 本行没翻）
+    reg [11:0] c13_xe [0:599*C13_SLOT];       // 内容谓词翻转的列，槽 = y*C13_SLOT + k
+    reg [2:0]  c13_nx [0:599];                // 本行已记了几个交叉
+    reg  [9:0] c13_lo;                        // {上一格 tag 列(8), 上一格旗标, 上一格内容谓词}
+    reg  [11:0] c13_yn;
+    reg         c13_on = 1'b0;
+    integer c13_r, c13_k2, c13_a, c13_b, c13_dist, c13_bdist, c13_have;
+    integer c13_rows = 0, c13_sum = 0, c13_np = 0, c13_nm = 0, c13_rp = 0, c13_rm = 0;
+    integer c13_v = 0, c13_kc = 0;
+    // ⚠ 自诊断必须**分路**：v4 第一次跑两臂都 0 行，而 ARM 只报了联合计数 ⇒ 分不清是"旗标没翻"、
+    //   "内容没有 127/128 跳"、还是"有跳但离旗标超过 24 列被丢"。现在三个计数各自报，外加一段
+    //   按 32 列步进的原始 tag 转储（只有 3 行 × ~32 格，不淹日志）—— 尺子看不见时要能看见它为什么。
+    integer c13_nflip = 0, c13_ncross = 0, c13_nfar = 0, c13_ndump = 0;
+    reg      c13_dump = 1'b0;
+    // ================= C14（同一批激励的第二把尺子：蓝线的**症状**本身）=================
+    //   用户的话是"线上面出头、下面没到底，没到底的地方就是错位的画面条"。C13 量的是列，
+    //   这条直接量"线画在画面外"的像素数与"线的行范围 vs 画面的行范围"：
+    //     · c14_out —— `src_mark` 亮而 `oob_out`（与像素同环同尾巴的那一位，#92 第一/三笔钉过）说画面外
+    //       的拍数 = "出头"的像素，本应为 0；
+    //     · c14_rminm/rmaxm − c14_rminc/rmaxc —— 线的上下端与画面上下端的行差 = "出头/没到底"多少行。
+    //   复位值 0/599 是哨兵：没采到就用 coverage 地板（c14_mark）拦住，不让它空过。
+    integer c14_mark = 0, c14_out = 0, c14_inb = 0;
+    integer c14_rminm = 0, c14_rmaxm = 0, c14_rminc = 0, c14_rmaxc = 0;
+    integer c14_mark2 = 0, c14_out2 = 0, c14_top2 = 0, c14_bot2 = 0;
+    integer c14_mbase = 0, c14_obase = 0;      // 每臂开始时的总和，用来打印**本臂增量**
+    // ================= P16（只打印、不判定）：画面内相邻两格的自报源坐标**跳变直方图** =================
+    //   为什么先不判：0.50x + 45° 下"一格走几个源列/源行"由几何决定，我没先在板上量过它的分布，
+    //   现在写一个阈值就是拿"我觉得"当判据（#98/#477 都栽过一次）。先把直方图打出来：
+    //   若画面内部出现 |Δ| ≥ 9 的桶，那就是"屏上这一格其实来自别处"的冒烟点（绕回、越界折回、
+    //   写侧少写一行都会在那里现形）；若全落在小桶，则底边那条带**不在显示通路**，得去查存进去的帧。
+    //   只在**最近邻**臂计数（`bilin_en_tb=0`）：插值会把两格 tag 混成第三格，那不是"跳变"而是尺子脏。
+    integer p16_hist [0:10];
+    integer p16_pairs = 0, p16_d, p16_d2, p16_k;
+    reg [7:0] p16_prow, p16_pcol;
+    reg [11:0] p16_py;
+    reg        p16_have = 1'b0;
+    // ================= C13val：先证明"屏上这一格确实带着 px_val 的坐标 tag" =================
+    //   #477 的教训：C13 拿 `mem_col/mem_row` 当"内容自报的源坐标"，而那份内容当时是**图卡**
+    //   （渐变+网格，台架自己的注释就写了"图卡的渐变色 row/col 全不对就是它的形状"）⇒ 整条腿踩空。
+    //   这一条把腿钉住：不旋转 × 1.00x 下，屏上每格的 tag 必须等于它自己的显示标签坐标
+    //   （行 = y>>1 mod 128、列 = x mod 256，与 C1/C5/C6 同一个口径）。它不绿，任何基于 tag 的量法都不许当证据。
+    integer c13v_bad = 0, c13v_jud = 0, c13v_dr = 0, c13v_dc = 0;
+    reg       c13v_on = 1'b0;
+    always @(posedge dut.clk_pix) begin
+        if (c13v_on && dut.de_d[11] && !dut.oob_out &&
+            mix_y >= 12'd12 && mix_y <= 12'd586) begin
+            // 口径**照抄 C1**：内容是 `tap_raw = dut.orig_disp`，标签是 `mix_x/mix_y = x_d11/y_d11`
+            //（C1 用同一对式子判绿，所以我这里全不符只能是配错对，不是式子错）。
+            // 窗只取**本体行**：帧头 0..11 与屏底 587..599 落在 #97/#98 的请求行绕回带上，
+            // 那里"内容不等于本行标签"是**已经声明的**已知项（就是 C5c 那条红），不该混进这条地基判据。
+            c13v_jud = c13v_jud + 1;
+            c13v_dr  = dsub(mem_row(tap_raw), (mix_y[8:1] & 8'h7F));
+            c13v_dc  = dsub(mem_col(tap_raw), mix_x[7:0]);
+            if (c13v_dr != 0 || c13v_dc != 0) c13v_bad = c13v_bad + 1;
+        end
+    end
+    // 把台架那份 `px_val` 图重新写进 AXI 侧的 ddr[]，并给发布心跳留出拷贝时间 ⇒ 臂里的内容是真坐标图。
+    // ================= C15（不解析像素值的那把尺子）：画面的**边**落在哪儿 =================
+    //   为什么要它：tag 那条腿在 C13/P16 这一带已经证明不可用（#477：这里屏上不是 px_val 坐标图），
+    //   而用户报的恰恰是"边"的问题（只有底面异常、上左右正常、蓝线端点差一点）。
+    //   两条腿都不需要知道格子里画的是什么：
+    //     · 几何侧：mapper 自己那拍（`de_d[2]` + `x_d[2]/y_d[2]`，与图卡同一对口径）取每行
+    //       **最后一个 `!oob` 的列** = 几何说"画面在这行到哪结束"；
+    //     · 内容侧：`dut.de_d[11]` + `mix_x/mix_y` 与 `oob_out`（#92 之后这一位与像素同环同尾巴）
+    //       取同样一个"最后一个非越界的列" = 屏上那一行的画面实际到哪结束。
+    //   两者相减 = 画面向左/右偏了几列。它里面**混着**两件事：行错位（旋转时表现为列差，两臂 ±45° 反号）
+    //   与常数列平移（两臂同号）⇒ 还是用两臂拆开：V15=(D(+45)−D(315))/2 行、K15=(D(+45)+D(315))/2 列。
+    reg [11:0] c15_g [0:599];
+    reg [11:0] c15_c [0:599];
+    integer c15_r, c15_dg = 0, c15_dc2 = 0, c15_n = 0, c15_v = 0, c15_k = 0, c15_nA = 0, c15_nB = 0;
+    integer c15_mean = 0, c15_s1 = 0, c15_s2 = 0, c15_v2 = 0;
+    always @(posedge dut.clk_pix) begin
+        if (c13_on) begin
+            if (dut.de_d[2] && !dut.oob && dut.y_d[2] < 12'd600 &&
+                dut.x_d[2] > c15_g[dut.y_d[2]])
+                c15_g[dut.y_d[2]] = dut.x_d[2];
+            if (dut.de_d[11] && !dut.oob_out && mix_y < 12'd600 && mix_x > c15_c[mix_y])
+                c15_c[mix_y] = mix_x;
+        end
+    end
+    // C16（只打印）：**旋转时**把面板最上 3 行与最下 6 行的两个抽头并排打出来。
+    //   为什么现在才加：P100 那把探针只在 `angle=0` 跑，它在 rot=0 下已经量到"帧头两抽头差 2 个源行
+    //   （orig=行0 / proc=行2）"，而用户 2026-10-17 的新读数是"条带跟**屏幕下方**走，哪条边转到屏底就在哪条边出现"
+    //   ⇒ 要判的是**旋转时的帧尾**，而这一档从来没被看过（#477 待办①的另一半）。
+    //   打印量控制：只看 0/1/5 与 594..599，列只取 x=0 与 x=512，五臂合计 ~110 行。
+    reg c16_dump = 1'b0;
+    always @(posedge dut.clk_pix) begin
+        if (c16_dump && dut.u_split.de && (dut.u_split.x == 12'd0 || dut.u_split.x == 12'd512) &&
+            (dut.u_split.y == 12'd0 || dut.u_split.y == 12'd1 || dut.u_split.y == 12'd5 ||
+             (dut.u_split.y >= 12'd594 && dut.u_split.y <= 12'd599)))
+            $display("C16 y=%0d x=%0d | orig(%0d,%0d) proc(%0d,%0d) oob_out=%b mark=%b take_orig=%b",
+                     dut.u_split.y, dut.u_split.x,
+                     mem_row(dut.u_split.orig_pix), mem_col(dut.u_split.orig_pix),
+                     mem_row(dut.u_split.proc_pix), mem_col(dut.u_split.proc_pix),
+                     dut.oob_out, dut.u_split.src_mark, dut.u_split.src_orig);
+    end
+    task arm_coord_frame;
+        integer r2, c2;
+        begin
+            for (r2 = 0; r2 < SRC_H; r2 = r2 + 1)
+                for (c2 = 0; c2 < WPL; c2 = c2 + 1) begin
+                    p3 = px_val(r2, c2*4+3); p2 = px_val(r2, c2*4+2);
+                    p1 = px_val(r2, c2*4+1); p0 = px_val(r2, c2*4);
+                    ddr[r2*WPL + c2] = {p3, p2, p1, p0};
+                end
+            repeat (14) @(posedge dut.frame_start);   // 心跳每 4 帧一次 ⇒ 14 帧里至少有 3 次发布沿
+        end
+    endtask
+    // 一臂：设角度 → 等稳 → 采一帧 → 平均列偏差 R = (旗标翻转列 − 内容交叉列)
+    task c13_arm;
+        input [8:0] ang;
+        integer r, kk;
+        begin
+            for (r = 0; r < 600; r = r + 1) begin
+                c13_xf[r] = 12'hFFF; c13_nx[r] = 3'd0;
+            end
+            c13_yn = 12'hFFF;
+            // ⚠ 基线要在**采集之前**取：先前我把这两行写在后处理段（`c13_rows = 0;` 那一组后面），
+            //   于是每臂增量恒打 +0 —— 总和判据（C14a/C14pre）不受影响，但那条打印当时是废话。
+            c14_mbase = c14_mark; c14_obase = c14_out;
+            for (c15_r = 0; c15_r < 600; c15_r = c15_r + 1) begin
+                c15_g[c15_r] = 12'h0; c15_c[c15_r] = 12'h0;
+            end
+            c15_n = 0; c15_mean = 0;
+            force dut.angle  = ang;
+            force dut.rot_on = 1'b1;
+            // ⚠ 这一句在 v5 曾经写反（当时是 `force dut.fb_vis=0`，理由是"图卡才自报坐标"）——**恰好相反**：
+            //   带 (源行,源列) tag 的是台架经 `px_val` 写进 AXI 侧 `ddr[]`、再由发布心跳拷进帧缓存的那份图；
+            //   图卡是渐变+网格。所以这里不但不关 `fb_vis`，还要**重新铺一份坐标图并留出拷贝时间**。
+            //   这条腿由 C13val 单独钉住（不旋转×1.00x 下 tag 必须等于显示标签），它不绿整段就不算有依据。
+            arm_coord_frame;
+            repeat (3) @(posedge dut.frame_start);      // 等换角稳定，别采到过渡帧
+            c13_on = 1'b1;   c13_dump = 1'b1;   c16_dump = 1'b1;
+            @(posedge dut.frame_start);                 // 只采一帧：翻转列是行内属性，一帧够
+            repeat (2) @(posedge dut.frame_start);
+            c13_on = 1'b0;   c13_dump = 1'b0;   c16_dump = 1'b0;
+            c13_rows = 0; c13_sum = 0; c13_nflip = 0; c13_ncross = 0; c13_nfar = 0;
+            for (r = 0; r < 600; r = r + 1) begin
+                if (c13_xf[r] !== 12'hFFF) c13_nflip = c13_nflip + 1;
+                if (c13_nx[r] != 3'd0)     c13_ncross = c13_ncross + 1;
+                if (c13_xf[r] !== 12'hFFF && c13_nx[r] != 3'd0) begin
+                    c13_bdist = -1; c13_have = 0;
+                    for (kk = 0; kk < C13_SLOT; kk = kk + 1) begin
+                        if (kk < c13_nx[r]) begin
+                            c13_a = c13_xf[r];
+                            c13_b = c13_xe[r*C13_SLOT + kk];
+                            c13_dist = c13_a - c13_b;
+                            if (c13_dist < 0) c13_dist = -c13_dist;
+                            if (c13_bdist < 0 || c13_dist < c13_bdist) begin
+                                c13_bdist = c13_dist; c13_have = c13_b;
+                            end
+                        end
+                    end
+                    if (c13_bdist >= 0 && c13_bdist <= C13_NEAR) begin
+                        c13_rows = c13_rows + 1;
+                        c13_sum  = c13_sum + (c13_a - c13_have);   // 两个都走 integer ⇒ 符号是对的
+                        if (c13_rows <= 8)
+                            $display("C13 row=%0d ang=%0d 旗标列=%0d 内容交叉列=%0d 差=%0d",
+                                     r, ang, c13_a, c13_have, c13_a - c13_have);
+                    end else begin
+                        c13_nfar = c13_nfar + 1;
+                    end
+                end
+            end
+            $display("C13ARM ang=%0d 旗标翻转型=%0d 有内容交叉的行=%0d 判定的行=%0d 离旗标过远被丢=%0d 平均列偏差=%0d",
+                     ang, c13_nflip, c13_ncross, c13_rows, c13_nfar,
+                     c13_rows == 0 ? 0 : c13_sum / c13_rows);
+            // 本臂的 C14 增量（症状计数）：三臂各自报，别只报总和 —— 总和红了看不出是哪一档红的。
+            $display("C14ARM ang=%0d 标记像素+%0d 画在画面外+%0d", ang,
+                     c14_mark - c14_mbase, c14_out - c14_obase);
+            // P16 是**累计到本臂末**的最近邻臂读数（插值臂被 `!bilin_en_tb` 挡在门外）
+            $display("P16 ang=%0d 相邻对=%0d 直方|Δsrc|0..10: %0d %0d %0d %0d %0d %0d %0d %0d %0d %0d %0d",
+                     ang, p16_pairs, p16_hist[0], p16_hist[1], p16_hist[2], p16_hist[3], p16_hist[4],
+                     p16_hist[5], p16_hist[6], p16_hist[7], p16_hist[8], p16_hist[9], p16_hist[10]);
+            // C15：几何侧的画面右沿 vs 内容侧的画面右沿，按行取差再平均（只算两边都真的有画面的行）
+            // C15：几何侧的画面右沿 vs 内容侧的画面右沿，按行取差再平均（只算两边都真的有画面的行）。
+            // ⚠ 差值必须先塞进 integer 再相减：两个 12 位无符号 reg 直接相减会在 12 位里回绕，
+            //   "内容比几何靠左 3 列"会被读成 +4093 —— 这类符号账本仓里为 P100 那一族红过一回。
+            c15_mean = 0; c15_n = 0;
+            for (c15_r = 12; c15_r < 587; c15_r = c15_r + 1)
+                if (c15_g[c15_r] != 12'h0 && c15_c[c15_r] != 12'h0) begin
+                    c15_s1 = c15_g[c15_r];
+                    c15_s2 = c15_c[c15_r];
+                    c15_mean = c15_mean + (c15_s1 - c15_s2);
+                    c15_n = c15_n + 1;
+                end
+            if (c15_n != 0) c15_mean = c15_mean / c15_n;
+            $display("C15ARM ang=%0d 可判行=%0d 几何右沿-内容右沿 平均=%0d 列", ang, c15_n, c15_mean);
+        end
+    endtask
+    reg        c13_prn;                         // 本拍内容谓词：tag 列 < 当前缝位
+    always @(posedge dut.clk_pix) begin
+        if (c13_on && dut.u_split.de) begin
+            c13_prn = (mem_col(dut.u_split.orig_pix) < dut.split_eff);
+            // ---- C14 计数（症状本身，不看列）----
+            if (dut.u_split.src_mark) begin
+                c14_mark = c14_mark + 1;
+                if (dut.oob_out) c14_out = c14_out + 1;
+                if (c14_rminm == 0 || dut.u_split.y < c14_rminm) c14_rminm = dut.u_split.y;
+                if (dut.u_split.y > c14_rmaxm)                  c14_rmaxm = dut.u_split.y;
+            end
+            if (!dut.oob_out) begin
+                c14_inb = c14_inb + 1;
+                if (c14_rminc == 0 || dut.u_split.y < c14_rminc) c14_rminc = dut.u_split.y;
+                if (dut.u_split.y > c14_rmaxc)                  c14_rmaxc = dut.u_split.y;
+            end
+            // ---- P16：画面内相邻两格自报源坐标的跳变直方图（只统计最近邻臂，插值臂脏）----
+            if (!bilin_en_tb) begin
+                if (!dut.oob_out) begin
+                    if (p16_have && p16_py === dut.u_split.y) begin
+                        p16_d  = dsub(mem_row(dut.u_split.orig_pix), p16_prow);
+                        p16_d2 = dsub(mem_col(dut.u_split.orig_pix), p16_pcol);
+                        if (p16_d  < 0) p16_d  = -p16_d;
+                        if (p16_d2 < 0) p16_d2 = -p16_d2;
+                        if (p16_d2 > p16_d) p16_d = p16_d2;
+                        if (p16_d > 10) p16_d = 10;
+                        p16_hist[p16_d] = p16_hist[p16_d] + 1;
+                        p16_pairs = p16_pairs + 1;
+                    end
+                    p16_prow = mem_row(dut.u_split.orig_pix);
+                    p16_pcol = mem_col(dut.u_split.orig_pix);
+                    p16_py   = dut.u_split.y;
+                    p16_have = 1'b1;
+                end else begin
+                    p16_have = 1'b0;      // 跨出画面再进来的两格不相邻，不配算一次"跳变"
+                end
+            end
+            if (c13_yn !== dut.u_split.y) begin
+                c13_yn = dut.u_split.y;
+                c13_lo = {mem_col(dut.u_split.orig_pix), dut.u_split.src_orig, c13_prn};
+            end else begin
+                if (c13_xf[dut.u_split.y] === 12'hFFF && dut.u_split.src_orig !== c13_lo[1])
+                    c13_xf[dut.u_split.y] = dut.u_split.x;
+                // 内容自己对**同一个缝位**做同一个谓词，一翻转就是这一行"画面过缝"的那一列。
+                // mod-256 别名 + 画面左右黑边（越界格 tag=0 ⇒ 谓词恒真）会带进额外翻转 ⇒ 全记下，
+                // 判定时取离旗标最近的那个，超过 C13_NEAR 丢掉。
+                if (c13_nx[dut.u_split.y] < C13_SLOT && c13_prn !== c13_lo[0]) begin
+                    c13_xe[dut.u_split.y*C13_SLOT + c13_nx[dut.u_split.y]] = dut.u_split.x;
+                    c13_nx[dut.u_split.y] = c13_nx[dut.u_split.y] + 3'd1;
+                end
+                c13_lo = {mem_col(dut.u_split.orig_pix), dut.u_split.src_orig, c13_prn};
+                // 原始转储：三行、每 32 列一格，用来看"内容到底自报了什么源列"。尺子 0 命中时靠它定位。
+                if (c13_dump && (dut.u_split.x % 32 == 0) &&
+                    (dut.u_split.y == 12'd96 || dut.u_split.y == 12'd300 || dut.u_split.y == 12'd504))
+                    $display("C13DUMP y=%0d x=%0d tagrow=%0d tagcol=%0d pr=%b flag=%b mark=%b seam=%0d",
+                             dut.u_split.y, dut.u_split.x, mem_row(dut.u_split.orig_pix),
+                             mem_col(dut.u_split.orig_pix), c13_prn, dut.u_split.src_orig,
+                             dut.u_split.src_mark, dut.split_eff);
+            end
+        end
+    end
+
     integer p100_n = 0;
     always @(posedge dut.clk_pix) begin
         if (c5_on && dut.u_split.de && p100_n < 200 &&
@@ -1886,6 +2168,106 @@ module tb_v98_top_seam;
              "#167: display rows 0..5 are fetched from the previous frame's wrapped request rows; those beats and this frame's body beats must see ONE angle");
         line("C12b frozen-angle control is coherent too", c12_fz_bad == 0,
              "same two windows with speed=0: a red here would be a bench phase artifact, not the design");
+        // ================= C13：两臂（+45° / 315°）消掉常数列偏移，量旗标对内容的**行**配准 =================
+        // 放在最后一段，并且自己把设置还回去：前面 161 枚判定的激励一个字符都不动。
+        bilin_en_tb      = 1'b0;             // 最近邻：插值会把两格的 tag 混成第三格
+        zoom_en = 1'b1; zoom_manual = 1'b1; zoom_sel = 3'd2;   // 0.50x：画面缩进面板，行内才有点亮的格（1.00x+45° 全越界）
+        split_ctl_tb[9:0]  = 10'd128;        // 缝 = 图像列 128（auto_en=0 ⇒ split_eff 就是它；tag 看得见）
+        split_ctl_tb[11]   = 1'b1;           // follow ⇒ 缝量在图像列里
+        split_ctl_tb[13]   = 1'b0;           // 标记线开着（同一批旗标）
+        // ---- C13val：先证明内容确实带着 px_val 的坐标 tag（这是 C13/P16 那条腿的地基）----
+        c13v_bad = 0; c13v_jud = 0;
+        bilin_en_tb = 1'b0;
+        zoom_en = 1'b1; zoom_manual = 1'b1; zoom_sel = 3'd4;      // 1.00x：与 C1/C5/C6 同一口径
+        force dut.angle  = 9'd0;
+        force dut.rot_on = 1'b0;
+        arm_coord_frame;
+        c13v_on = 1'b1;
+        @(posedge dut.frame_start);
+        repeat (2) @(posedge dut.frame_start);
+        c13v_on = 1'b0;
+        release dut.angle; release dut.rot_on;
+        $display("C13VAL 判=%0d 不符=%0d 末次 dr=%0d dc=%0d", c13v_jud, c13v_bad, c13v_dr, c13v_dc);
+        // 暂时**不作判据**（2026-10-16 夜）：第一次跑就 1,749,150 判 / 1,749,114 不符——几乎全不符。
+        // 但同一轮里 P16 的直方图从"6.7 % 大跳（图卡渐变+网格）"变成"99 % 落在 0/1/2（平滑推进）"
+        // ⇒ 内容**确实换成了坐标图**，是我这条期望式子（列=x[7:0]、行=(y>>1) mod 128）在这扇窗里不成立
+        //   ——C1/C5 用的是采样点上的同一式子且判绿，两者必有一处口径不同（帧起点/写入行偏、或我这 14 帧
+        //   等到的其实是一份**半新半旧**的缓存）。没查清之前不留判据，只留这条打印与下面的 PROBE 说明。
+        //   待查项见任务 #48；查清之前，任何基于 tag 的读数（含 C13 的 V/K、P16 的大桶）都不当证据。
+        $display("PROBE C13val (not a criterion) tag leg unresolved: see task 48");
+        c14_mark = 0; c14_out = 0; c14_inb = 0;
+        c14_rminm = 0; c14_rmaxm = 0; c14_rminc = 0; c14_rmaxc = 0;
+        for (p16_k = 0; p16_k <= 10; p16_k = p16_k + 1) p16_hist[p16_k] = 0;
+        p16_pairs = 0; p16_have = 1'b0;
+        c13_arm(9'd45);
+        c13_np = c13_rows; c13_rp = (c13_rows == 0) ? 0 : c13_sum / c13_rows;
+        c15_dg = c15_mean; c15_nA = c15_n;
+        c13_arm(9'd315);
+        c13_nm = c13_rows; c13_rm = (c13_rows == 0) ? 0 : c13_sum / c13_rows;
+        c15_dc2 = c15_mean; c15_nB = c15_n;
+        // 第三臂 = **板上那一档**：`zoom=fit` + `bilin=1`（板子现读 `zman` 关、插值开着，而我前两臂是
+        //   手动 0.50x + 最近邻）。若底边那条带只在 fit+bilin 下出现，前两臂结构上就看不见它 ⇒ 这一臂
+        //   专供 C14 的"线画在画面外"计数（fit 会把画面缩放，插值会把 tag 混成第三格 ⇒ 这一臂的
+        //   V/K **不取**，只取它的 C14 增量；V/K 仍由 A/B 两臂决定， assignments 在上面已经落定）。
+        bilin_en_tb = 1'b1;
+        zoom_manual = 1'b0;
+        c13_arm(9'd45);
+        c13_v  = (c13_rp - c13_rm) / 2;             // 行错位（显示行）：两臂符号相反 ⇒ 这一步只留下它
+        c13_kc = (c13_rp + c13_rm) / 2;             // 列平移（拍数不对）：两臂同号 ⇒ 这一步只留下它
+        $display("C13 R(+45)=%0d/%0d 行  R(315)=%0d/%0d 行 ⇒ 行错位 V=%0d 列平移 K=%0d",
+                 c13_rp, c13_np, c13_rm, c13_nm, c13_v, c13_kc);
+        c15_v = (c15_dg - c15_dc2) / 2;
+        c15_k = (c15_dg + c15_dc2) / 2;
+        $display("C15 D(+45)=%0d/%0d 行  D(315)=%0d/%0d 行  =>  V15=%0d 显示行  K15=%0d 列  (第三臂 fit+bilin 的可判行=%0d 平均=%0d)",
+                 c15_dg, c15_nA, c15_dc2, c15_nB, c15_v, c15_k, c15_n, c15_mean);
+        line("C15pre edges really judged", (c15_nA >= 200) && (c15_nB >= 200),
+             "coverage floor: each arm needs >=200 rows where BOTH the geometry edge and the content edge exist");
+        // ⚠ C15a/C15b **暂不作判据**（2026-10-16 夜，第一次跑出来就懂了）：
+        //   读数 `D(+45)=−10/575 行`、`D(315)=−7/575 行` ⇒ 同号的那一半 K15=−8 列几乎就是我这条尺子
+        //   自带的**结构性**列差（几何侧采在第 2 级、内容侧采在第 11 级，两者差 9~10 列，C1 的
+        //   `tap_d = sx - 1 - mix_x` 就是同一件事）——所以 ±2 那个门是**我照抄出来的假红**，不是设计的缺陷。
+        //   真正有意思的是反号那一半 V15=−1 行（45° 下 1 列=1 行）：画面的边与它自己的几何在**行**上差 1~2 行，
+        //   量级与用户剩下的那句"蓝线差一点到底/底边那条斜带"对得上。但在把它写成判据之前必须先排除
+        //   "我这把尺子的行配点本身错了"（`oob_out` 携带的是**请求行**的 oob，而请求行比显示行早 4 行：
+        //   #54(B)/#97 的那对提前量），否则 V15 就是我量的假数。下一步排法见任务 #49。
+        $display("PROBE C15a (not a criterion) V15=%0d 行  PROBE C15b (not a criterion) K15=%0d 列", c15_v, c15_k);
+        // 缩放检验（比"换行配点"便宜也更硬）：真实的 X 行错位，列差应随 tan(角度) 放大；
+        // 量化噪声或结构性偏差不随角度放大。tan45=1.000，tan60=1.732 ⇒ 60° 那一档应当约 1.7 倍。
+        c15_k = c15_v;                                   // 45° 档的 V15 先存着（上面已经打印过）
+        bilin_en_tb = 1'b0; zoom_manual = 1'b1; zoom_sel = 3'd2;
+        c13_arm(9'd60);  c15_dg = c15_mean;
+        c13_arm(9'd300); c15_dc2 = c15_mean;
+        c15_v2 = (c15_dg - c15_dc2) / 2;
+        $display("C15SCALE V15(+/-45)=%0d 列   V15(+/-60)=%0d 列   判读：60 度那档约是 45 度的 1.7 倍 => 真有行错位；两档同量级 => 是量化/结构性，不是错位",
+                 c15_k, c15_v2);
+        c14_top2 = c14_rminm - c14_rminc; if (c14_top2 < 0) c14_top2 = -c14_top2;
+        c14_bot2 = c14_rmaxm - c14_rmaxc; if (c14_bot2 < 0) c14_bot2 = -c14_bot2;
+        $display("C14 标记像素=%0d 画在画面外的标记像素=%0d 线行范围=[%0d..%0d] 画面行范围=[%0d..%0d] 上端差=%0d 下端差=%0d",
+                 c14_mark, c14_out, c14_rminm, c14_rmaxm, c14_rminc, c14_rmaxc,
+                 c14_rminm - c14_rminc, c14_rmaxm - c14_rmaxc);
+        line("C14pre marker really painted", (c14_mark >= 300) && (c14_inb >= 1000),
+             "coverage floor: both arms must light the 2-image-column marker and show in-bounds picture, else C14a/C14b are greens on an empty set");
+        line("C14a marker never lands on background", c14_out == 0,
+             "用户念的上面出头：src_mark 亮而 oob_out=1 的拍数必须为 0 —— 这两个位现在过同一条环，不该再各说一套");
+        // ⚠ 这里**不留** "线的行范围 == 画面的行范围" 那种判据（我第一版写了，是错的尺子）：
+        //   标记线是画面内部的一条线，它的行包络由**几何**决定 —— 旋转 45° 时这条线的端点落在画面的
+        //   上/下沿，但线本身在屏上的行跨度天然比整幅画面窄（旧配置实测差 84/96 行，那大部分是几何，
+        //   不是缺陷）。能把"出头"这件事判死的只有上面那条像素计数。
+        split_ctl_tb[11] = 1'b0; split_ctl_tb[9:0] = 10'd0; split_ctl_tb[13] = 1'b1;
+        force dut.angle = 9'd0; release dut.angle; release dut.rot_on;
+        // ⚠ C13pre 跟着 C13 一起降级：给一把已经不判定的尺子留"覆盖率地板"，红了只会误导（没人欠它一个数）。
+        $display("PROBE C13pre (not a criterion) 两臂判定行=%0d/%0d  旗标翻转型=%0d 有交叉的行=%0d",
+                 c13_np, c13_nm, c13_nflip, c13_ncross);
+        // ⚠⚠ **C13 不作判据**（2026-10-16 自查出这把尺子是错的，见 #477）：内容的"自报源列"这一条腿
+        //   踩空了 —— `test_card` 画的是**网格 + 单调渐变**（`r=0x08+y[9:5]+x[9:7]`、`b=0x20+y[9:1]`），
+        //   像素值里根本没有 (源行, 源列) 这对 tag；带 tag 的是**台架自己推上去的那几帧**（C1/C5/C6 用的
+        //   `px_val`），而我这一段的 `force dut.fb_vis=0` 恰恰把内容换成了图卡 ⇒ `mem_col(orig_pix)`
+        //   解出来的其实是渐变的低位（主要由**行**决定）。所以 V/K 的绝对读数不能当证据用，
+        //   三臂之间那个"−1.5 行 / 0 行"的差别也不能拿来主张错位大小。
+        //   留打印、去掉判定：`PROBE C13 …`。真正判死"线出头/没到底"的是 C14a —— 它只用
+        //   `src_mark` 与 `oob_out` 两个位，不解析像素值，且旧配置 72 / 只补环 24 / 补环+改门 0 有牙。
+        $display("PROBE C13a (not a criterion) V=%0d K=%0d  依据已撤：图卡不编码坐标，见本段注释", c13_v, c13_kc);
+
         if (nfail == 0) $display("RESULT tb_v98_top_seam PASS");
         else            $display("RESULT tb_v98_top_seam FAIL nfail=%0d", nfail);
         $finish;

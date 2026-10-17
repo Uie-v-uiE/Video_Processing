@@ -38,6 +38,9 @@ if {![file exists $img]} { puts "REFUSE: no boot image at $img"; exit 1 }
 #     Partition Count: 30064771079 (=0x700000007，垃圾) → INVALID_LOAD_ADDRESS_FAIL, FSBL Status=0xE0000000
 #   而两次 program 的 "Verify Operation successful" 都比的是工具自己拼出来的东西 ⇒ 对可启动性零证明。
 #   所以现在喂 bit + 应用 ELF，FSBL 单独给；BOOT.bin 只留作 bootgen 侧的凭据与尺寸参考。
+#   ⚠ 上面这句的实测射程是 `program_flash`（那一条会拼头）。`hw_cfgmem` 这一支在 2025.2.1 里**强制**
+#     要 PROGRAM.ZYNQ_FSBL，而 `program_flash` 本机不存在 ⇒ 2026-10-17 #130 把 `.bin` 分支也补上 FSBL，
+#     理由与两次 27-3203 的复现读数写在下面 switch 的 default 分支里。
 set bitf [file join $root "build/system.bit"]
 if {[info exists ::env(VP_BIT)]} { set bitf [file normalize $::env(VP_BIT)] }
 set appf [file join $root "build/ps_app.elf"]
@@ -98,7 +101,19 @@ switch -- [string tolower [file extension $img]] {
     puts "FEED_MODE 原料（$img）⇒ 由工具打镜像，FSBL 单独给"
   }
   default {
-    puts "FEED_MODE 原样写盘（$img 已是完整 BOOT.bin，含 FSBL+位流+应用）⇒ 不设 ZYNQ_FSBL"
+    # #130（2026-10-17 12:0x）：这一支**也必须**给 ZYNQ_FSBL —— 不给的时候工具在擦除之前就退：
+    #   ERROR: [Labtools 27-3203] FSBL file not found. File is required to perform the configuration memory device operation.
+    # 今天连着两次复现（board/flash/flash_qspi_7.log 与 _8.log；第 8 次是断电重上、PL 回到 DONE=0 之后跑的，
+    # 读数一字不差 ⇒ 我原先"是 PL 已编程才要 FSBL"那条猜想被推翻）。而仓库里唯一一次记录成功的 cfgmem 写
+    # （board/flash/flash_qspi_6.log，2026-10-05 21:09）用的正是 FILES=BOOT.bin + ZYNQ_FSBL=fsbl.elf，
+    # 三行 Erase/Program/Verify successful。
+    # 上面那段 10-06 的"不许给"口径不是假的，但它的实测射程是 `program_flash -fsbl`（那条会把 FSBL+启动头
+    # **拼到 FILES 前面** ⇒ 镜像套镜像）。今天下午在同一台机器上证了：2025.2.1 在
+    # open_hw_manager + connect_hw_server 之后 `info commands program_flash` = 0（读数
+    # board/measured/probe_flash_read.log），而 hw_cfgmem 的属性表里也没有任何 READ/拼头口子
+    # （flash_qspi_7.log 的 CFGMEM_PROPS 那一行）。⇒ 两个接口不是一回事，那条禁令不适用于这一支。
+    lappend feed_props PROGRAM.ZYNQ_FSBL $fsbl
+    puts "FEED_MODE 完整镜像 + FSBL（FILES 已含 FSBL+位流+应用；ZYNQ_FSBL 是 hw_cfgmem 强制要的启动口粮）"
   }
 }
 foreach {name val} $feed_props {

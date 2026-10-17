@@ -49,12 +49,12 @@
 | `fb_rd5x` | 另一条读口方案（借 250 MHz 每像素发 5 次读），已被 `fb_bilin` 取代 | 未例化 | `tb_fb_rd5x` |
 | `tap_sched` | `fb_rd5x` 的 5 槽调度器 | 仅被未例化的 `fb_rd5x` 例化 | `tb_tap_sched` |
 | `bilin_lerp` | 双线性算术核（文件在 `process/` 下） | 见 process/ 表 | `tb_bilin_lerp` |
-| `raw_line_delay` | 原图抽头的行环形延迟：延迟恰 = LINES 行 + 1 拍且列不偏，消隐期钳读地址 | `pl_video_top.v:788` | `tb_v100_raw_delay` |
+| `raw_line_delay` | 原图抽头的行环形延迟：延迟恰 = LINES 行 + 1 拍且列不偏，消隐期钳读地址 | `pl_video_top.v:788（u_raw）、943（u_seam_ring）` | `tb_v100_raw_delay` |
 | `frame_commit_lock` | 提交锁：`allow_copy` 只给消隐窗口、窗口开启才 `start_copy`、带看门狗 `copy_abort` + 翻转位 | `pl_video_top.v:430` | `tb_v5_lock`、`tb_v6_vblank_copy`、`tb_v79_abort_toggle` |
-| `split_ctrl` | 分割线的**位置**发生器：手动百分比 / 自动扫描 / 跟随画面端点 / 交换两侧 | `pl_video_top.v:885` | `tb_v93_split_ctrl` |
-| `seam_src` | 把缝从显示列搬到图像列：在源坐标那一拍判定这一格属原图还是处理图，线跟着画面转 | `pl_video_top.v:904` | 无独立台架（经 `tb_v98` 的 C1~C3 覆盖） |
-| `split_display` | 逐像素二选一 + 2 图像列宽的标记线 + OOB 涂黑，输出一拍后的 RGB/de | `pl_video_top.v:911` | `tb_v97_seam_scan`（四份配置对照） |
-| `osd_overlay` | 5 行状态叠加（面板/FPS/Src；Pipe/Th/Gamma、Rot/Zoom、Split/Latency、Temp/无信号），5×7 字模 ×3。`FPS:` 这一格数的是**写进屏的新帧**，计数器是 `src/rtl/util/shown_rate.v`，顶层例化在 `src/rtl/top/pl_video_top.v:941`。这一格的计数写法换过一次：在换成数新帧之前，这一格数的是扫过屏的显示场 ⇒ 屏上恒读 59 或 60，那是面板场频不是片源帧率；两段的推导与验证记录在 `report/log/issues.md` #128、#157。端口 `osd_en`（0 = 输出逐位等于背景，由 `gpio_o[20]` 反相驱动） | `pl_video_top.v:999` | `tb_osd_lines`（T13 成对）、`tb_v794_osd_glyph`、`tb_v98` 的 C12 |
+| `split_ctrl` | 分割线的**位置**发生器：手动百分比 / 自动扫描 / 跟随画面端点 / 交换两侧 | `pl_video_top.v:904` | `tb_v93_split_ctrl` |
+| `seam_src` | 把缝从显示列搬到图像列：在源坐标那一拍判定这一格属原图还是处理图，线跟着画面转 | `pl_video_top.v:936` | 无独立台架（经 `tb_v98` 的 C1~C3 覆盖） |
+| `split_display` | 逐像素二选一 + 2 图像列宽的标记线 + OOB 涂黑，输出一拍后的 RGB/de | `pl_video_top.v:967` | `tb_v97_seam_scan`（四份配置对照） |
+| `osd_overlay` | 5 行状态叠加（面板/FPS/Src；Pipe/Th/Gamma、Rot/Zoom、Split/Latency、Temp/无信号），5×7 字模 ×3。`FPS:` 这一格数的是**写进屏的新帧**，计数器是 `src/rtl/util/shown_rate.v`，顶层例化在 `src/rtl/top/pl_video_top.v:997`。这一格的计数写法换过一次：在换成数新帧之前，这一格数的是扫过屏的显示场 ⇒ 屏上恒读 59 或 60，那是面板场频不是片源帧率；两段的推导与验证记录在 `report/log/issues.md` #128、#157。端口 `osd_en`（0 = 输出逐位等于背景，由 `gpio_o[20]` 反相驱动） | `pl_video_top.v:1055` | `tb_osd_lines`（T13 成对）、`tb_v794_osd_glyph`、`tb_v98` 的 C12 |
 | `test_card` | 图卡片源：移动块 + 帧号二值格 + 八色彩条，自带"通路在不在刷新"的判读点 | `pl_video_top.v:759` | `tb_v81_test_card`、`tb_v83_card_render` |
 | `color_bar` | 静止彩条（图卡的上一版） | 未例化 | `tb_v81_test_card` 里作对照例化 |
 | `gamma_lut` | 效果链级 0：256 项 8bit 表，PS 逐项目写入；组合读出、不加拍 | `proc_pipeline.v:102` | `tb_v88_gamma` |
@@ -65,7 +65,7 @@
 
 | 模块 | 职责 | 例化者 | 台架 |
 |------|------|--------|------|
-| `rgb2dvi` | RGB + de/hs/vs → 三路 TMDS：三套编码器 + 三套 5× 串化（channel0 走蓝，消隐期把 hs/vs 当控制符送进去） | `pl_video_top.v:1026` | — |
+| `rgb2dvi` | RGB + de/hs/vs → 三路 TMDS：三套编码器 + 三套 5× 串化（channel0 走蓝，消隐期把 hs/vs 当控制符送进去） | `pl_video_top.v:1082` | — |
 | `tmds_encoder` | 单通道 8b/10b：比较查表翻转 + 运行不一致度 + 特例码 | `rgb2dvi.v:22,26,30,25,29` | 无独立台架 |
 | `tmds_serializer` | 10bit 并→串（跑在 `clk_pix5x` 上） | `rgb2dvi.v:35,39,43,49` 起 | 无独立台架 |
 
@@ -73,7 +73,7 @@
 
 | 模块 | 职责 | 例化者 | 台架 |
 |------|------|--------|------|
-| `proc_pipeline` | 级 0 gamma + 五级效果的装配：链延迟 `LATENCY`=15、内容滞后 `OFF_LINES`=4 都由它声明 | `pl_video_top.v:800` | `tb_v86_pipe_sel`、`tb_v89_align`、`tb_rotate_window`、`tb_osd_lines` |
+| `proc_pipeline` | 级 0 gamma + 五级效果的装配：链延迟 `LATENCY`=15、内容滞后 `OFF_LINES`=4 都由它声明 | `pl_video_top.v:819` | `tb_v86_pipe_sel`、`tb_v89_align`、`tb_rotate_window`、`tb_osd_lines` |
 | `effect_ctrl` | AXI→像素域的准静态控制字同步（三对 `ASYNC_REG`）+ 九位 `stage_sel` 解码，只此一套口径 | `pl_video_top.v:198` | `tb_v86_pipe_sel` |
 | `proc_gray` | 级 1：RGB565 → 亮度 → RGB565 | `proc_pipeline.v:109` | `tb_proc_gray` |
 | `proc_invert` | 级 1 的第二选项：反色 | `proc_pipeline.v:113` | 无独立台架（`tb_v86`/`tb_v89` 覆盖） |
@@ -100,7 +100,7 @@
 
 | 模块 | 职责 | 例化者 | 台架 |
 |------|------|--------|------|
-| `key_debounce` | 低有效按键消抖 + 单拍脉冲（`CNT_MAX` 由调用处给） | `pl_video_top.v:136,139,139` | 无独立台架 |
+| `key_debounce` | 低有效按键消抖 + 单拍脉冲（`CNT_MAX` 由调用处给） | `pl_video_top.v:136,139` | 无独立台架 |
 | `key_long` | 同一按键的长按语义：短按松手才发、长按发**翻转位** | `pl_video_top.v:148` | `tb_v87_key_long` |
 | `src_mode` | 长按翻转位 → 四态片源模式（自动/锁 ETH/锁 SD/锁图卡），命令覆盖优先于按键 | `pl_video_top.v:157` | `tb_v82_src_mode` |
 | `src_arb` | DDR→帧缓存这台搬运机归谁：交换条件 + "两个引擎都空闲"才换手 + 让位延时 | `pl_video_top.v:421` | `tb_v796_src_arb` |
@@ -123,7 +123,7 @@
 | `ddr_bank_commit` | 换 bank 必须等本帧数据全部穿过 CDC，之后发 `commit_pulse` + 完成基址 | `eth_udp_video_top.v:330` | `tb_v6_pingpong`、`tb_v6_tail_bank` |
 | `link_monitor` | 链路健康计数：丢字、坏包、缺行、断流 ms、帧间隔 min/last/max/Σ，打包 10 条 lane + 心跳 | `eth_udp_video_top.v:284` | `tb_link_monitor` |
 | `eth_ctrl` | 发送侧仲裁与 GMII 出口复用（ARP/ICMP/UDP 三路） | `eth_udp_video_top.v:206` | 没有仿真台架直接例化这一层：原先那支单测随第二块板（RK-XCKU5P-F）的工程目录一并移出仓库，因此这一层只被顶层台架的端到端路径覆盖，这一列没有独立条目。另有一处缺口要写明：它的通用用户 FIFO 口在本层没有对端——`fifo_tx_data`/`fifo_tx_req`/`fifo_rec_en`/`fifo_rec_data` 只在 `eth_udp_video_top.v:114-116` 声明、`:219-220` 连进来，本层再没有别的驱动或读者 |
-| `snap_cross` | 「准静态总线 + 跳变沿」跨域器，带心跳丢失/变慢两种上报 | `system_top.v:214`、`pl_video_top.v:674,876,980` | `tb_link_monitor`、`tb_v95_zoom_snap` |
+| `snap_cross` | 「准静态总线 + 跳变沿」跨域器，带心跳丢失/变慢两种上报 | `system_top.v:214`、`pl_video_top.v:674,895,1036` | `tb_link_monitor`、`tb_v95_zoom_snap` |
 | `sync_fifo` | 同钟 FIFO（读出寄存一拍、空满比指针最高位；存储无异步复位 + `ram_style=block`） | `eth_udp_video_top.v:119`（ICMP 载荷） | `tb_sync_fifo` |
 | `crc32_d8` | 反射 CRC-32 逐字节核 | `udp_tx.v`、`gmii_rx_mac.v`、`arp.v`、`icmp.v` | `tb_crc32` |
 | `udp_tx` | 以太/IP/UDP 头的组装与发送（`udp_tx.v:44-47` 那批常数：`ETH_TYPE`、`MIN_DATA_NUM`）；FCS 由外挂的 `crc32_d8` 算、它填进帧尾。Z7 上 `tx_start_en` 恒 0：接着但从不启动 | `eth_udp_video_top.v:163` | `tb_eth_video` |

@@ -6,30 +6,40 @@
 名词先说一次：文中"检查脚本"指仓库里可独立复跑的只读核对工具，"发布前检查"指 `build/gates.sh` 逐项打印判定的那套检查，"未通过项"指这些检查打出的 FAIL 行；"候选件"指写好但默认不加载的约束文件；
 "名册"指实现后逐时钟、逐域那份端点读数表（`build/evidence/` 里的 roster 件），"名册差分"就是两张表逐格对比。
 
-## 1. `C5c`：帧头若干行的读侧绕回（`#98`）——台架上唯一一条故意留下的未通过项
+## 1. `C5c`：帧头那一带的读侧绕回（`#98`）——**已于 r132 关闭**（台账 #129 / #478）
 
-- **现象**：`build/tb_v98_report.txt` 第 55 行每轮都打
-  `FAIL C5c frame head is not the previous frame's tail | first OFF+BILIN output rows must carry their own source row on BOTH sides of the seam`；
-  板级可见性由队员 2026-10-02 报回（原话与四条补充观测抄在 `report/known_issues.md` §一 第 1 条与
-  `board/acceptance.md` E4/E4r 那两行）。
-- **已定位的原因**：帧头窗那一带有不符、本体行没有——件 `build/evidence/r104_c5head_band.txt` 的汇总行原文
-  `judged=本体行 3564 格不符 0 ｜ head rows=帧头窗 36 格 不符 24 ｜ OFF_LINES=4`，
-  分列行是"三个采样列各「头 12 格／不符 8」，三个采样列各「体 1188 格／不符 0」"；
-  `report/known_issues.md` §一 第 1 条把同一件事念成"错的 8 格全在最上面 6 个显示行
-  （`OFF_LINES` 4 加 `BILIN_ROWS` 2）……本体行一格都不错"。注意 版本戳：那份逐格件引的顶层台架是
-  `top_md5=2bf2ceeede07`，与 `report/06-validation.md` §2 那份 161 行的 `56c269602e18` 不是同一次跑。
-  后果的**大小**另有可复跑的位移核对台架 `sim/tb_head_rot_displace.v`（读数 `build/r105_tb_head_rot_displace.txt` 的
-  `RESULT tb_head_rot_displace PASS cells=49152 pairs=12 k=1..7`，同一件头部写着
-  "「哪几行带着上一帧」由顶层台架 C5c 判，不在这份件里"）；三条解释已被排除（角点出屏由
-  `sim/tb_zoom_fit_corners.v` 六档 4/4 命中；`zoom_fit` 与 `angle` 差一整帧；`fb_bilin` 末行末列抽头）。
-- **还没证明什么**：那条"改前必须报未通过、改后恰好只剩这一条通过"的**变异对照还不存在**
-  （`report/known_issues.md` §一 第 1 条末："留红是有意选择"）；上面那台位移核对量的是后果大小，
-  **不判**"哪几行带着上一帧"——件里自己写着"两份凭据各说各的"。
-- **现在的处置（是否影响演示）**：这一条按"写明过的未通过项"随检查脚本输出一起交出去，不算通过，也不藏；
-  采用口径是"除写明项外无未通过项"。影响的是观感：自动旋转时屏幕最上面一条里视频角的内容向左右散开，
-  停住时没有，板级那两行眼睛判读由队员报回并签在 `board/acceptance.md`。
-- **关掉它需要什么**：把读侧绕回窗口从"发请求那一拍"改成"数据写进环那一拍"（第一步已落在更早的一版上），
-  这一步落在读口调度上、会同时动数据通路 ⇒ 必须先建那条能报未通过的对照再动 RTL。
+- **关闭的判据读数**：`C5  judged=3564 bad=0 | head rows=36 wrong=0 (OFF_LINES=4, col=512)` 与
+  `PASS C5c frame head is not the previous frame's tail`。改前同一把尺子打的是 `head rows=36 wrong=24`
+  （= 4 个显示行 × 3 个采样列 × 2 帧），本体行一直是 0。整架两次都是 `RESULT tb_v98_top_seam PASS`、
+  165 条 PASS / 0 条 FAIL（通道 ModelSim `vsim`，2026-10-17 11:02:07→12:00:01 是"删旗标"那版树，
+  12:00:35→12:34:23 是交付的 `STREAM_WRAP` 版；凭据 `build/evidence/r132_c5c_after_preparam.log`
+  与 `build/evidence/r132_shipped_rack.log`）。规范通道（`build/sim/run_one.sh`，xsim）那一次还在跑，
+  **跑完之前 `data/metrics.csv` 第 15 行"整屏逐像素判据"不改**——那一格必须由指纹件绑定才算数。
+- **真因（不是当年写的那条）**：帧头那一带错的不是"带着上一帧的尾巴"，而是**处理抽头发了前瞻一行的格子**。
+  四个 3×3 窗口级在 `y_in==0` 时把窗口三行全换成"当前那一拍"的原色（`proc_sobel.v` 的 `d21`、
+  `proc_morph.v` 的 `c21`、blur/sharpen 的 `h2x`）。这个补救的前提是"帧头槽位在行缓存里坐的是上一帧末行"，
+  而 `#97`/`#98` 把读地址改成帧尾绕回之后，链子吃的是连续流（…298,298,299,299,0,0,1,1,2,2…），
+  帧头槽位的中心本来就是它该显示的那一行；"当前那一拍"比槽位自己的中心**早 2 个源行** ⇒ 屏上帧头 4 行错位。
+  这一条的因果由 `sim/tb_v103_pipe_bypass.v` 窗口 C 量出来（内容行号进像素 tag、"晚几行"交给拟合）：
+  同一激励并行例化两条链、只差 `STREAM_WRAP`，再叠一个 `y_in` 口径的变量，四格读数是
+  `anchored 臂A bad=20 first_bad=16（帧头） / anchored 臂B bad=20 first_bad=28（帧尾） /
+  wrapped 两臂都 bad=0`，`bestL=4 = u_pipe.OFF_LINES` ⇒ **换标签只是把带子从屏顶搬到屏底，前瞻抽头才是病**。
+- **改了什么**：① 四个窗口级新增参数 `STREAM_WRAP`（默认 0 = 台架那套帧锚定流），为 1 时不武装 `stale_row`；
+  `proc_pipeline` 透传，顶层 `pl_video_top.v:819` 传 1。② 顶层 `cy_chain`（`pl_video_top.v:811-816`）
+  让链子的行标签与它吃进去的内容同一本账。①②合起来才是这一条的绿：只改②，帧头变帧尾（上面第二格）。
+- **当年"故意留红"的口径现在换了形状**：这一条不再需要"留红当未通过项交出"，因为
+  **能红的对照已经存在** —— `C11d`（`STREAM_WRAP=0` 的锚定实例在同一激励下必须坏）。
+  红线画在"调用方声明自己喂的是哪种流"上：`tb_edge_rim` 的 D3/R7 与 `tb_edge_rim_bottom` 的 B1 判的是
+  帧锚定那一套契约，它们的既有读数继续有效（`build/evidence/r132_edge_rim_streamwrap0.log` 绿；
+  对照件 `r132_edge_rim_RED_if_flag_deleted.log` 是把旗标整根删掉那一版的红，两版并档就是这件事的账）。
+- **残余代价（不许写成"全部消除"）**：帧头那 4 个显示行的内容是在**上一帧**消隐前读回来的 ⇒ 那几行
+  位置对、值晚一帧（30 fps 下约 33 ms）。离线**没有**判据能量这一档——台架那幅坐标图逐帧不变，
+  `C5b/C5c` 只能看几何。板级可见性只有人眼能给：2026-10-17 队员原话
+  「现在很漂亮 基本上看起来没什么问题了 顶上的拖影我肉眼没看到」⇒ 记为"眼验未见"，
+  **不写成"已证明不可见"**。`board/acceptance.md` 的 E2 与 E4r 两行随之需要重读一次（今晚会一并改标注）。
+- **这一节原来引的旧件**（`build/evidence/r104_c5head_band.txt`、`build/r105_tb_head_rot_displace.txt`、
+  `top_md5=2bf2ceeede07` 那份 55 行报告）保留为历史：它们量的是**后果大小**与当时的错位形状，
+  不是现在的状态；现行状态以本节上面三段为准。`sim/tb_head_rot_displace.v` 仍只量位移、不判"哪几行带上一帧"。
 
 ## 2. 角度没有机读口（`#185` / `#247`）
 

@@ -1,0 +1,56 @@
+Reading pref.tcl
+
+# 2020.4
+
+# vsim -c -L work_c work_c.tb_edge_rim_bottom -do "run -all; quit -f" 
+# Start time: 11:01:26 on Oct 17,2026
+# ** Note: (vsim-3812) Design is being optimized...
+# //  ModelSim SE-64 2020.4 Oct 13 2020
+# //
+# //  Copyright 1991-2020 Mentor Graphics Corporation
+# //  All Rights Reserved.
+# //
+# //  ModelSim SE-64 and its associated documentation contain trade
+# //  secrets and commercial or financial information that are the property of
+# //  Mentor Graphics Corporation and are privileged, confidential,
+# //  and exempt from disclosure under the Freedom of Information Act,
+# //  5 U.S.C. Section 552. Furthermore, this information
+# //  is prohibited from disclosure under the Trade Secrets Act,
+# //  18 U.S.C. Section 1905.
+# //
+# Loading work.tb_edge_rim_bottom(fast)
+# run -all
+# BANDROW stage=0 row=0 cells=64
+# BANDROW stage=0 row=1 cells=64
+# BANDROW stage=0 row=2 cells=64
+# BANDROW stage=0 row=3 cells=1
+# BAND stage=0 ¨¨????¡è???=4096 ¨¨¡¤?????????????=193 ?????¡À???¨¨????¡ã=4 ?????¡ã=1 ???¨¨??(63)??¡§???=0
+# PASS B1 stage=0 affected rows are one contiguous band
+# PASS B2 stage=0 alternation propagates in 193 cells
+# PASS B3 stage=0 coverage floor 4096 cells
+# BANDROW stage=1 row=0 cells=64
+# BANDROW stage=1 row=1 cells=64
+# BANDROW stage=1 row=2 cells=64
+# BAND stage=1 ¨¨????¡è???=4096 ¨¨¡¤?????????????=192 ?????¡À???¨¨????¡ã=3 ?????¡ã=1 ???¨¨??(63)??¡§???=0
+# PASS B1 stage=1 affected rows are one contiguous band
+# PASS B2 stage=1 alternation propagates in 192 cells
+# PASS B3 stage=1 coverage floor 4096 cells
+# BANDROW stage=2 row=1 cells=1
+# BANDROW stage=2 row=3 cells=1
+# BAND stage=2 ¨¨????¡è???=4096 ¨¨¡¤?????????????=2 ?????¡À???¨¨????¡ã=2 ?????¡ã=2 ???¨¨??(63)??¡§???=0
+# FAIL B1 stage=2 ?????¡À???¨¨???????? 2 ??????¨¨????????????????¡ì????????¡ì?¡è????¨¨?????¨¨?????¨¦????????
+# PASS B2 stage=2 alternation propagates in 2 cells
+# PASS B3 stage=2 coverage floor 4096 cells
+# BANDROW stage=3 row=0 cells=64
+# BANDROW stage=3 row=1 cells=64
+# BANDROW stage=3 row=2 cells=64
+# BANDROW stage=3 row=3 cells=1
+# BAND stage=3 ¨¨????¡è???=4096 ¨¨¡¤?????????????=193 ?????¡À???¨¨????¡ã=4 ?????¡ã=1 ???¨¨??(63)??¡§???=0
+# PASS B1 stage=3 affected rows are one contiguous band
+# PASS B2 stage=3 alternation propagates in 193 cells
+# PASS B3 stage=3 coverage floor 4096 cells
+# RESULT tb_edge_rim_bottom FAIL nfail=1
+# ** Note: $finish    : D:/Xilinx/Prj/pro/Video_Processing/sim/tb_edge_rim_bottom.v(146)
+#    Time: 1352400 ns  Iteration: 1  Instance: /tb_edge_rim_bottom
+# End time: 11:01:27 on Oct 17,2026, Elapsed time: 0:00:01
+# Errors: 0, Warnings: 0

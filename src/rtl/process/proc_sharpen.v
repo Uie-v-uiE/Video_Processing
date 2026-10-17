@@ -5,7 +5,8 @@
 // 一圈亮边"）。5×中心 与 四邻之和 都是无符号，比完大小再夹到 [0, 满量程]。延迟与 blur 一致（固定 2 拍，与
 // bypass 无关）；整条链的延迟只有 `proc_pipeline.LATENCY` 一个出处。
 module proc_sharpen #(
-    parameter H_ACTIVE = 512
+    parameter H_ACTIVE = 512,
+    parameter integer STREAM_WRAP = 0
 )(
     input  wire        clk,
     input  wire        rst_n,
@@ -63,7 +64,8 @@ module proc_sharpen #(
         no_left_r  [0] <= ~de_in;                                     // 补跳那一拍 = 下一行第 0 槽
         no_right_r [0] <= de_in && (x_in == H_ACTIVE[11:0] - 12'd1);   // #103：坐标抽头对齐到 de 之后，武装位从 -2 改回 -1；拍 k 武装仍落槽位 k+1（正本见 proc_box_blur.v 的 #97 段）
         no_above_r [0] <= de_in && (y_in == 12'd1) && row_first;                    // 中心行 0，上面缺
-        stale_row_r[0] <= de_in && (y_in == 12'd0);                    // 中心行 −1：整行都是旧的
+    // STREAM_WRAP（1 = 绕回连续流）关掉 `stale_row` 这一族；正本见 proc_box_blur.v 的同名段。
+        stale_row_r[0] <= de_in && !STREAM_WRAP && (y_in == 12'd0);                    // 中心行 −1：整行都是旧的
         no_left_r  [1] <= no_left_r  [0];  no_left_r  [2] <= no_left_r  [1];
         no_right_r [1] <= no_right_r [0];  no_right_r [2] <= no_right_r [1];
         no_above_r [1] <= no_above_r [0];  no_above_r [2] <= no_above_r [1];

@@ -2,7 +2,8 @@
 // 级 2 滤波的第一路：3×3 均值模糊（逐光栅，bypass 时出中心像素）。proc_pipeline 里占 **3 拍**、
 // 内容偏移贡献 −1 行；行尾多跳与四条圈的旗标都在本文件，是四个窗口级的正本。
 module proc_box_blur #(
-    parameter H_ACTIVE = 640
+    parameter H_ACTIVE = 640,
+    parameter integer STREAM_WRAP = 0
 )(
     input  wire        clk,
     input  wire        rst_n,
@@ -73,7 +74,18 @@ module proc_box_blur #(
         no_left_r  [0] <= ~de_in;                                     // 补跳那一拍 = 下一行第 0 槽
         no_right_r [0] <= de_in && (x_in == H_ACTIVE[11:0] - 12'd1);   // 缺右邻：末列自己那一拍武装 ⇒ 落进行尾多跳那一格的中心（#103 把坐标抽头对齐到 de 之后，这里从 `-2` 改回 `-1`；旗标落在哪一格仍由 `tb_edge_rim` 量）
         no_above_r [0] <= de_in && (y_in == 12'd1) && row_first;       // 缺上邻：中心行 0（上面那一行不存在）
-        stale_row_r[0] <= de_in && (y_in == 12'd0);                    // 整行陈旧：中心行 −1 ⇒ 三行都用当前行
+    // ---- #129（正本；另外三级与 proc_pipeline/顶层各指回这里）：`STREAM_WRAP` = 上游喂的是**绕回连续流** ----
+    // 四个窗口级原本假定输入是**帧锚定**流：`y_in==0` 那一行的上一格在图里没有，行缓存里坐的是**上一帧的末行**，
+    // 于是补救办法是"三行都用当前那一拍"（`proc_sobel.v` 的 `d21`、`proc_morph.v` 的 `c21`、blur/sharpen 的 `h2x`）。
+    // 顶层从 #97/#98 起不是这么喂的：读地址在帧尾就绕回（`pl_video_top.v` 的 `cy_r`），链子吃的是
+    // …298,298,299,299,0,0,1,1,2,2… 一条**连续**流 ⇒ 帧头槽位的中心本来就是它该显示的那一行，
+    // 而"当前那一拍"比槽位自己的中心**早 2 个源行** ⇒ 屏上帧头 4 行发的是前瞻一行的格子
+    //（= tb_v98 长期红的 C5c：24 格 = 4 行 x 3 列 x 2 帧；= tb_v103 窗口 C 里锚定实例的 bad=20）。
+    // STREAM_WRAP=1 ⇒ 不再武装 `stale_row`（几何交给行缓存），图像边界仍由 `oob` 钉黑那条路管
+    //（`pl_video_top.v` 的 `pix_raw = oob_fb_d1 ? 16'h0000 : ...`）。
+    // 默认 0 = 台架那套帧锚定激励（`tb_edge_rim` 的 D3/R7、`tb_edge_rim_bottom` 的 B1 判的就是它），
+    // 一根旗标都不动 ⇒ 那四把尺子的既有读数继续有效；顶层显式传 1，凭据 tb_v103 的 C11c/C11d/C11e。
+        stale_row_r[0] <= de_in && !STREAM_WRAP && (y_in == 12'd0);                    // 整行陈旧：中心行 −1 ⇒ 三行都用当前行
         no_left_r  [1] <= no_left_r  [0];  no_left_r  [2] <= no_left_r  [1];
         no_right_r [1] <= no_right_r [0];  no_right_r [2] <= no_right_r [1];
         no_above_r [1] <= no_above_r [0];  no_above_r [2] <= no_above_r [1];
