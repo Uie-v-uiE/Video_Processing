@@ -4,7 +4,7 @@ FIG-02  模块级功能框图（图源文件，纯文本 = 唯一正本）
 覆盖：两颗真在跑的容器内部的**全部实例**——
   · `u_pl` = `pl_video_top` 的 32 只实例（显示通路）
   · `u_eth` = `eth_udp_video_top` 的 14 只实例（收包→写 DDR 链）
-  分母出处：`docs/walkthrough/subsystem-map.md` 第 5 节（32 只）与第 4 节（14 只）。
+  分母出处：本地学习文档 subsystem-map.md（不在包内）第 5 节（32 只）与第 4 节（14 只）。
 口径：
   * 节点 name = **实例名**（不是模块名），因为 `key_debounce` 有 `u_k1`/`u_k2` 两只、
     `snap_cross` 全工程有五只，只有实例名能定位到线上。
@@ -168,6 +168,6 @@ b12  b29  owner_eth_pix + fb_vis + eth_new + pub_consume/pub_pend   C   src/rtl/
     u_arb 的 owner_eth（AXI 域）─> 3 级同步成 owner_eth_pix（:520）─> 片源选择
 
   跨域点（`◆`）合计 8 处，全部点名在边表里；每一处的形态（格雷码 FIFO /
-  toggle+准静态总线 / 翻转位异拍 / 电平 3 级）在 `docs/walkthrough/clocking-and-reset.md` 第 3 节成表，
+  toggle+准静态总线 / 翻转位异拍 / 电平 3 级）在本地学习文档 clocking-and-reset.md（不在包内）第 3 节成表，
   本节不复制那张表。
 ==============================================================================

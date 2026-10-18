@@ -19,7 +19,7 @@
 | P07 runtime | `skills/runtime/*` | P01 | 已交付 8 条：原有 4 条壳齐（`register-map`、`pl-load-verify`、`dma-cache-coherency`、`host-bindings-and-reports`）+ 迁入 4 条（`atomic-register-window-readback`、`board-eth-uart`、`udp-offset-reasm`、`zynq-ddr-bandwidth`）；G2 现在 `条目=59 全合` |
 | P08 验证与增益 | `skills/_meta/`（旧包的 `skills/evals/` 那一层在 2026-10-04 c7b325f 重建后从未入库、不随包）| P04/P05 | 部分交付（协议与两跑原始件、陌生人演练与第三方审计各一份都在 `skills/_meta/` 一侧，条目级验证状态见 `skills/_meta/validation.md`）；**缺的是"同一模板连跑 3 次"的增益对照**，各条目 §7 一律 `【待验证】`，不念成已验证 |
 | P09 装配与门禁 … | … | 已交付：**技能包自检 `node skills/_meta/run-all-checks.mjs skills` 判 9 项、自测件 6、红=0、未测=0**；索引 `node skills/_meta/build-index.mjs skills --check` 条目=49、需改写=no；陌生人演练与第三方审计两份记录现落在 `skills/_meta/` 一侧。（旧包那把"12 项全绿"的读数在 `build/evidence/r120_gates_skill_a.txt`，是 2026-10-04 c7b325f 重建**前**那一版包的产物；同一次对照的第二跑 `..._b.txt` 已被记录在案的精简笔删掉、不随包 ⇒ "两跑逐字节一致"今天在盘上复跑不出来，只算历史记录。`gen_index --check 条目=58` 同属旧包读数，现役件是 `build-index.mjs`），其红项按原话入档 |
-| P11 学习文档 | `docs/walkthrough/*`（**不随包**，`.gitignore` 已列） | P13/P15b | 11 个文件已交付，5 篇因缺前置未写 |
+| P11 学习文档 | 本地学习文档那一层（**不随包**，`.gitignore` 已列） | P13/P15b | 11 个文件已交付，5 篇因缺前置未写 |
 | P13 `src/` … | … | 部分（`report/interface-table.md` 已落 1509 行；`report/src-map.md` 本轮由 `build/r120_src_map.mjs` 现算生成，83 文件 × 4 列；`src-audit` 装配页未写（`git ls-files` 与盘上都没有这一件 ⇒ 现不存在）；契约头改动受 B1 约束） |
 | P14 `sim/` … | … | 部分（`sim/README.md` 已落；回归清单目录与 `verification-claim` 装配页都未写（两者从未落盘 ⇒ 现不存在）⇒ "验证声明"只能停在"逐台架判据 + 门禁"这一档） |
 | P15a 构建与指纹 … | … | 已交付（`build/README.md`、`build/provenance.md` 194 行；两份逐轮说明件（探针清单与产物目录说明）已随轮次清理，探针条目并入 `build/coverage.md`） |
