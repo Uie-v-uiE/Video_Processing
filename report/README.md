@@ -40,6 +40,7 @@
 | `../README.md` | 总体功能、特点、三步复现、每个目录做什么（先读这页）；`../README_EN.md` 是英文版 |
 | `01-overview.md` 至 `08-limits.md` | 八章分章版：导读、架构、算法、资源、时序、验证、技能提炼、限制；每章末尾点名它依据的文件 |
 | `background_and_novelty.md` | 为什么做"同一帧逐像素对照"这种形态，与常见做法差在哪 |
+| `abstract_contract.md` | **已交出去、不能再改**的作品名字与简介当合同来对：逐句写"现场怎么兑现、凭据在哪件、谁念、现在什么状态" |
 | `architecture.md` | 数据通路与控制通路的分层：三路片源 → 跨时钟域缓冲 → 几何 → 效果链 → 对照合成 → OSD 与 HDMI |
 | `modules.md` | 每个 RTL 模块的端口、时序假设、被谁例化 |
 | `ps_vs_pl.md` | 同一件事为什么放在 PS 或放在 PL |
@@ -123,6 +124,7 @@ for f in report/{README,background_and_novelty,architecture,modules,ps_vs_pl,rot
 40-optimization,50-results,60-failure-analysis,70-reproduce,90-open-items,optimization_log,perf_report,\
 comparison-notes,timing_global,known_issues,known-limitations,build,commands,command_precedence,defaults,\
 host_guide,board_pins,demo_script,ai_collaboration,llm_collab,interface-table,repro-check,claims-vs-evidence,\
+abstract_contract,demo_talk_xiaosai,judge_qa_xiaosai,technical-document-contest,technical-document-brief,\
 submission-package,questions-for-team,acceptance-recipes,bench_mutation,final-gate,declarations}.md \
  report/0{1,2,3,4,5,6,7,8}-*.md \
  report/figures/{fig-01-system-level.txt,fig-02-module-level.txt,legend.md} \
