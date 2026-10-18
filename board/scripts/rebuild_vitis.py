@@ -1,8 +1,11 @@
 """作用：用脚本重建 Vitis 工程（平台 + PS 应用），替代"在 IDE 里手点一遍"。
 输入：`build/system.xsa`（由 `build/tcl/build_system_axigpio.tcl` 产出）、`src/ps/` 下的固件源文件。
-输出：workspace `board/vitis_ws/` 下的 `vitis_platform` 与 `video_ps` 两个组件；平台 generate、应用 build；
-      末尾打印 `VITIS_REBUILD_DONE` 与产物路径，失败打印 `VITIS_REBUILD_FAIL <阶段>`。
-退出码：0=平台与应用都建成；1=任一阶段失败（不静默）。
+输出：workspace（`VP_VITIS_WS`，默认 `board/vitis_ws/`）下的 `vitis_platform` —— 域 `zynq_fsbl` 与
+      `standalone_ps7_cortexa9_0` 都建出来，`plat.build()` 返回 0，`fsbl.elf` 落盘。
+      应用组件（`video_ps`）这一支 2025.2.1 建不出来：`create_app_component` 四种参数形状一律
+      `StatusCode.INTERNAL`，而 `get_templates(...)` 回 `Invalid component type '{component_type}'`
+      （服务端模板名没替换）⇒ 这条记 NOT_MEASURED，固件走 `node build/ps_app.mjs`。
+退出码：0=平台（含 standalone 域）建成；1=平台没建成。
 跑法（从仓库根）：
     (nohup <Vitis>/bin/vitis-server --port 8879 &) ; sleep 10
     <Vitis>/bin/vitis.bat -s board/scripts/rebuild_vitis.py 8879
@@ -42,7 +45,7 @@ def main():
         plat = client.get_component("vitis_platform")
     print("PLAT_AT %s" % show(plat.project_location))
     try:
-        plat.add_domain(cpu="ps7_cortexa9_0", os="standalone", name=DOMAIN, support_app=True)
+        plat.add_domain(cpu="ps7_cortexa9_0", os="standalone", name=DOMAIN)
         print("ADD_DOMAIN ok")
     except Exception as e:
         print("ADD_DOMAIN_FAIL %s: %s" % (type(e).__name__, str(e)[:160]))
@@ -52,8 +55,9 @@ def main():
         app = client.create_app_component(name="video_ps", platform="vitis_platform", domain=DOMAIN,
                                           cpu="ps7_cortexa9_0", os="standalone", template="empty_application")
     except Exception as e:
-        print("CREATE_APP_RETRY %s" % type(e).__name__)
-        app = client.get_component("video_ps")
+        print("APP_CREATE_FAIL %s: %s" % (type(e).__name__, str(e)[:160]))
+        print("APP_NOT_MEASURED 2025.2.1 的 create_app_component 对本域四种形状都报 INTERNAL；固件走 node build/ps_app.mjs")
+        app = None
     print("APP_METHODS %s" % [m for m in dir(app) if not m.startswith("_")])
     print("APP_BUILD_RC1 %r" % (app.build(),))
 
