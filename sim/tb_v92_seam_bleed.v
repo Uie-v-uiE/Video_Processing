@@ -91,6 +91,7 @@ module tb_v92_seam_bleed;
     // 诊断打印（不是判据）：抓"被测点落在第 MEAS_ROW 行第 0/1/2 列"那一拍，把各模块**自己的**边界旗标念出来。
     // 为什么要它：同一条 `x_d1==0` 判据在四个模块里对应的**实际列**并不相同，光看代码推不出来 —— 让 DUT 自己报。
     // #97：四家的单根 `border_r` 换成四根（左/右/上/陈旧），这里跟着念四根，只是把现场摆出来。
+    //   #129 之后 `stale_row` 仍在（默认武装），只是顶层用 `STREAM_WRAP=1` 不武装它 —— S 这一列在本台架里还是会出现。
     reg dbg_en = 0;
     always @(posedge clk) if (rst_n && dbg_en) begin
         if (d_blu && pc[0] % W <= 2 && pc[0] / W == MEAS_ROW)

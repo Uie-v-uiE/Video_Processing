@@ -793,18 +793,37 @@ module pl_video_top #(
 
     wire [15:0] pipe_dout;
     wire        pipe_de;
+    // ---- #129 第一笔：链子的行标签必须与它**吃进去的内容**同一本账（凭据 tb_v103 窗口 C、tb_v98 的 C5c）----
+    //   显示行 d 送进 `din(pix_raw)` 的是源行 wrap((d+OFF_LINES+BILIN_ROWS-2)>>1)：#54 (B) 那份提前量
+    //   （`y_right_adv` = y+OFF+BILIN）扣掉读口成对滞后的两行（`fb_bilin` 乒乓，见本文件 721 行那段）。
+    //   旧写法喂 `cy_d[3]`，而 `cy = min(d>>1, IMG_H-1)`（本文件 243 行：每帧从 0 重开、**只钳不绕**）
+    //   —— 本体里两本账只差一个常数（所以一直看不出来），帧边界那几行差的不是常数：#97/#98 的绕回把
+    //   源行 0,0,1,1 放进帧头 0..3 行的内容里，标签却也叫 0,0,1,1，于是四个窗口级的 `stale_row`
+    //   （`y_in==0`）在帧头武装，而它的"补救"是发**当前那一拍**的原色（`proc_sobel.v:150` 的 `d21`）——
+    //   当前那一拍的内容已经是源行 2 ⇒ 屏上帧头四行发的是前瞻一行的格子。
+    //   两臂实测（tb_v103 窗口 C，九级全旁路、内容行号进 tag、bestL=4 与 OFF_LINES 对账）：
+    //     臂 A（旧口径）judged=80 bad=20，坏在 out#16..19 = got=2 / exp=0,0,1,1 —— 与顶层 C5c 的
+    //       24 格（4 行 x 3 列 x 2 帧）同一件事；
+    //     臂 B（内容口径）同样 bad=20，但位置挪到帧尾 out#28..31 ⇒ **换标签挪不走它，前瞻抽头才是病**
+    //       （所以本笔与第二笔必须一起改：只改标签等于把带子从屏顶搬到屏底）。
+    //   ⚠ 改完 `cy_d` 这一路不再被消费，数组本身留到单独的删除轮（#66：删东西不混在改口径里）。
+    wire [12:0] y_chain_adv = {1'b0, y_d[3]} + {5'b0, pipe_off_rows} + BILIN_ROWS[12:0] - 13'd2;
+    wire [11:0] y_req_chain = y_chain_adv[11:0] >> 1;                 // 与 `y_req_row` 同一个算法，晚两行
+    wire [11:0] cy_chain    = (y_req_chain >= img_h_12) ? (y_req_chain - img_h_12) : y_req_chain;
     // #73：链子现在的"一行"是显示列 1024（相邻两拍内容是同一个源列的复制）。
     //   代价写死在这里，不许算作免费：行缓存宽度翻倍（约 +8 块 BRAM），而且 3x3 滤波的空间尺度
     //   从"源像素"变成"显示像素"（横向覆盖 1.5 个源列）⇒ 横方向的模糊/边缘比旧版略宽。
     //   要回到源域等距就得给整条链加时钟使能（#73 订正里那条支路）。
-    proc_pipeline #(.H_ACTIVE(2*IMG_W)) u_pipe (
+    // #129：STREAM_WRAP=1 —— 顶层喂的是绕回连续流，链子里那套"帧头整行陈旧"的前瞻补救在这条流上
+    //   会把帧头 4 行发成前瞻一行的格子（正本见 proc_box_blur.v 的 STREAM_WRAP 段；凭据 tb_v103 C11、tb_v98 C5c）。
+    proc_pipeline #(.H_ACTIVE(2*IMG_W), .STREAM_WRAP(1)) u_pipe (
         .clk(clk_pix), .rst_n(rst_pix_n),
         .stage_sel(sel_sync), .threshold(th_sync),
         .gamma_en(gm_en), .gamma_wr(gm_wr), .gamma_idx(gm_idx), .gamma_data(gm_data),
         .rotate_active(rot_on),
         .hs_in(hs_d[3]), .vs_in(vs_d[3]),
         .de_in(de_d[3]),                 // 整行都进链（旧版只喂右窗那 512 个）
-        .x_in(x_d[3]), .y_in(cy_d[3]),   // 链子里的"列"= 显示列，"行"= 源行（两个显示行同名，照旧）
+        .x_in(x_d[3]), .y_in(cy_chain),   // 链子里的"列"= 显示列，"行"= 源行（两个显示行同名，照旧）
         .din(pix_raw), .off_rows(pipe_off_rows),
         .de_out(pipe_de), .dout(pipe_dout)
     );
@@ -896,17 +915,54 @@ module pl_video_top #(
     // ---- V9-1：缝可以量在图像列里，于是那条线跟着画面一起转 ----
     //   `gp[11]`（follow）今天同时管两件事：`split_ctrl` 的扫描坐标系（端点按画面的两端量）与下面这一路
     //   的判据空间（线长在画面里）。以前它只管前者，所以"follow"名不副实。
-    //   ⚠ TAPS 由流水线深度推出来，不抄字面量（#68）：内容站在 `x_d[MIX_D]` 那一拍，而 `sx` 是 mapper 的
-    //   第 3 级输出 ⇒ 从 sx 到混色级要走 MIX_D+1−3 拍。差几拍在这里只是把整条线刚体平移几列，**不会**再
-    //   产生暗带（暗带的根因是"标签与内容不是同一份流"，这里两者是同一份流上的同一个位）。
-    localparam integer SEAM_TAPS = MIX_D + 1 - 3;
+    // ⚠ #477（#92 那一课的第二次应用）：**旗标必须与像素过同一条行环**。旧版这里只有一条 18 拍的纯移位链，
+    //   而原图抽头走的是 `u_raw`（`RAW_LINES` 行 + 1 拍）再 `LEFT_TAIL` 拍 ⇒ 旗标跟的是**本显示行**的几何，
+    //   像素却是 `RAW_LINES` 行之前的几何。0° 时缝是竖直的、每行同一个列，看不出差别；一旋转，图像列 128
+    //   那条线在屏上斜着走，行与行的列位置差 tan(角度) 列 ⇒ 整条缝与画面错开 `RAW_LINES` 个显示行
+    //   （屏上=画面最下沿一条错位的带；蓝线上面出头、下面没到底 —— 用户 2026-10-16 报的就是这个）。
+    //   修法不再猜拍数：**同一个 `raw_line_delay`、同一个 `LINES(RAW_LINES)`、同一组 `de_d[5]/x_d[5]/y_d[5]`**
+    //   给旗标单独开一条 2 位环，出来后接一条与原图抽头等长的 `LEFT_TAIL` 尾巴 ⇒ 行与列的配准由结构保证
+    //   （I1/I2：环深只有一个真源）。位宽 2 ⇒ 8×1024×2 bit = 16 Kbit = 1 块 RAMB36（这条要在 utilization.rpt
+    //   上核对，不许停在注释；当前 95.5/140）。
+    //   纯移位段现在只补"sx → `pix_raw`"那一小截：`pix_raw` 用的是 `bar_d2`，即 `sx` 之后第 2 拍，
+    //   而 `seam_src` 内部 `sh` 自己占 1 拍 ⇒ TAPS = 1。这一段的确切凭据是 tb_v98 的 **C14a**
+    //   （"线画在画面外"的像素数：旧写法 72 → 只补环 24 → 补环 + 改门 0）；我先前拿来报"错位几行"的
+    //   C13 是**一把错的尺子**（它把图卡的渐变低位当成了自报源列，见 #477 与 tb_v98 里那段降级注释），
+    //   所以这里不写"错位 = N 行"，只写由构造保证的两件事：同一个 `LINES` 真源、同一个 `oob_out` 判据。
+    localparam integer SX_TO_RAW = 2;                    // sx → pix_raw/bar_d2 的拍数（bar_d1、bar_d2 两级）
+    localparam integer SEAM_TAPS = SX_TO_RAW - 1;        // 减去 seam_src 内部 `sh` 那一拍
     wire seam_src_orig, seam_src_mark;
+    wire seam_raw_orig, seam_raw_mark;
     seam_src #(.TAPS(SEAM_TAPS)) u_seam_src (
         .clk(clk_pix), .rst_n(rst_pix_n),
-        .sx(sx), .oob(oob), .seam(split_eff),
+        .sx(sx), .seam(split_eff),
         .marker_on(split_marker_on), .raw_left(split_raw_left),
-        .take_orig(seam_src_orig), .mark(seam_src_mark)
+        .take_orig(seam_raw_orig), .mark(seam_raw_mark)
     );
+    wire [1:0] seam_ring;
+    raw_line_delay #(.LINES(RAW_LINES), .W(2*IMG_W), .DW(2)) u_seam_ring (
+        .clk(clk_pix), .rst_n(rst_pix_n),
+        .de(de_d[5]), .x(x_d[5]), .y(y_d[5]),
+        .d_in({seam_raw_mark, seam_raw_orig}), .d_out(seam_ring), .de_out()
+    );
+    // 尾巴与原图抽头的 skid **同长**（`orig_skid` 也是 LEFT_TAIL 拍）：两条环的入口同拍、出口同拍，
+    //   尾巴等长 ⇒ 旗标与像素到混色级必然同一拍，列也不会偏。复位值与 `seam_src` 一致（原图、不画线）。
+    reg [1:0] seam_tail [0:LEFT_TAIL-1];
+    integer t;
+    always @(posedge clk_pix or negedge rst_pix_n) begin
+        if (!rst_pix_n) begin
+            for (t = 0; t < LEFT_TAIL; t = t + 1) seam_tail[t] <= 2'b01;
+        end else begin
+            seam_tail[0] <= seam_ring;
+            for (t = 1; t < LEFT_TAIL; t = t + 1) seam_tail[t] <= seam_tail[t-1];
+        end
+    end
+    assign seam_src_orig = seam_tail[LEFT_TAIL-1][0];
+    // #477 第二笔：标记线的"在不在画面内"用**与像素同环同尾巴**的那一位 `oob_out`（屏上那一格黑不黑就是它，
+    //   #92 第一/三笔的成果），不用 mapper 的活几何 oob。两者在画面边沿可以差 1 格，旧写法实测在 45°
+    //   两臂留下 24 个"线画在黑底上"的像素（= 用户念的"上面出头 / 下面没到底"）。判据与填充同一个位 ⇒
+    //   线的端点与画面的端点由构造相等。凭据 tb_v98 的 C14a（旧写法 72/24 个像素，能红；此处须为 0）。
+    assign seam_src_mark = seam_tail[LEFT_TAIL-1][1] & ~oob_out;
 
     split_display u_split (
         .clk(clk_pix), .rst_n(rst_pix_n),

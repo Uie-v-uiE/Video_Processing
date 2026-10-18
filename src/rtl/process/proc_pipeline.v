@@ -24,7 +24,10 @@ module proc_pipeline #(
     //   −4 行、0 列。这不是笔误：行缓存式 3×3 滤波在收到第 y 行时才算得出第 y−1 行的窗口，因果性决定它必然
     //   滞后一行。顶层能补：帧缓存是随机地址的，把右窗读坐标对应的**显示行**提前 OFF_LINES 行，链子
     //   自己的滞后正好把它抵消（零 BRAM，见 pl_video_top 的 cy_r）。
-    parameter integer OFF_LINES = 4
+    parameter integer OFF_LINES = 4,
+    // STREAM_WRAP：透传给四个窗口级（0 = 台架那套帧锚定流，1 = 顶层的绕回连续流）。
+    //   正本说明与凭据在 proc_box_blur.v；顶层只在这里传一次，四个窗口级由它导出（I1：一个出处）。
+    parameter integer STREAM_WRAP = 0
 )(
     input  wire        clk,
     input  wire        rst_n,
@@ -116,20 +119,20 @@ assign off_rows = OFF_LINES[7:0];
     );
 
     // 级 2 滤波：两个选项串接，只开其中一个时另一个纯旁路
-    proc_box_blur #(.H_ACTIVE(H_ACTIVE)) u_blur (
+    proc_box_blur #(.H_ACTIVE(H_ACTIVE), .STREAM_WRAP(STREAM_WRAP)) u_blur (
         .clk(clk), .rst_n(rst_n), .bypass(~w_blur),
         .hs_in(hs_in), .vs_in(vs_in), .de_in(de1b),
         .x_in(x_blur), .y_in(y_blur), .din(d1b),
         .de_out(de2a), .dout(d2a)
     );
-    proc_sharpen #(.H_ACTIVE(H_ACTIVE)) u_sharp (
+    proc_sharpen #(.H_ACTIVE(H_ACTIVE), .STREAM_WRAP(STREAM_WRAP)) u_sharp (
         .clk(clk), .rst_n(rst_n), .bypass(~w_sharp),
         .de_in(de2a), .x_in(x_sharp), .y_in(y_sharp), .din(d2a),
         .de_out(de2b), .dout(d2b)
     );
 
     // 级 3 边缘
-    proc_sobel #(.H_ACTIVE(H_ACTIVE)) u_sobel (
+    proc_sobel #(.H_ACTIVE(H_ACTIVE), .STREAM_WRAP(STREAM_WRAP)) u_sobel (
         .clk(clk), .rst_n(rst_n), .bypass(~w_sobel),
         .vs_in(vs_in), .de_in(de2b),
         .x_in(x_sobel), .y_in(y_sobel), .din(d2b),
@@ -143,7 +146,7 @@ assign off_rows = OFF_LINES[7:0];
     );
 
     // 级 5 形态学
-    proc_morph #(.H_ACTIVE(H_ACTIVE)) u_morph (
+    proc_morph #(.H_ACTIVE(H_ACTIVE), .STREAM_WRAP(STREAM_WRAP)) u_morph (
         .clk(clk), .rst_n(rst_n), .mode(morph_mode), .threshold(threshold),
         .de_in(de4), .x_in(x_morph), .y_in(y_morph), .din(d4),
         .de_out(de_out), .dout(dout)
