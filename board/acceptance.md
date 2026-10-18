@@ -135,8 +135,12 @@ E2 由在场的人确认（原话"现在画面正常只有一条"，含 0.50× +
 - **QSPI 固化（本轮新增的一度，未完成）**：`board/tcl/flash_qspi.tcl` 一次写盘 `SF: 33554432 bytes @ 0x0 Erased: OK`
   → `Program Operation successful` → `Verify Operation successful` → `PROGRAM_RC 0`，进盘镜像
   `board/flash/BOOT.bin` md5 `acd8cdd5f060`（内含位流 `cb907d3e4898`），日志 `build/evidence/r132_flash_qspi_9_OK.log`。
-  ⚠ **验收还没闭合**：判据是"启动档拨到 QSPI、断电 10 秒后冷上电，屏上有画面且 COM6 出字"，
-  那一次读数还没回来；按 `report/log/issues.md` #405 自己定的口径，`Program/Verify successful` 对可启动性零证明。
+  ✅ **回显那一半已经回来**（2026-10-18 使用者原话："那个启动是有回显的"）：断电重上电之后 COM6 出字，
+  判据是"启动档拨到 QSPI、断电 10 秒后冷上电，屏上有画面且 COM6 出字"——"可启动性"这一步不再是零证明：
+  "Program/Verify successful 对可启动性零证明"（#405 的口径）已被这一次实行动作补上一半。
+  ⚠ **两点要说满**：① 这条读数是**口头确认级**，串口文本还没存进 `board/measured/`，存进来才升为可复跑凭据；
+  ② 判据里"屏上有画面"那一半本轮没有单独确认——此前那句"现在很漂亮"的眼验是在 JTAG 装板之后给的，
+     不是冷上电那一次。这一格因此记"半关"，不写成整格通过。
   ⚠ 另外这套工具**没有读回口**（`hw_cfgmem` 属性表无 READ，`info commands program_flash` = 0，
   读数在 `board/measured/probe_flash_read.log`）⇒ 写之前留不下现盘内容的第二份，下一次固化前先记这件事。
 - **给人复核时用的四条命令**（本轮就是这么起的态）：`split 50` → `split marker 0` → `zoom 0.5` → `rot auto 1`，

@@ -17,7 +17,7 @@
 | 轮次号（**r132，今天现核**） | r132 | 没有 `r132_chain.sh` 这种入口：这一版是**一次手工 batch**，命令行逐字在 `build/r132_streamwrap_build.log:9`；轮次账在 `report/log/issues.md` #478 |
 | 位流身份（r132） | `md5(前 12) = cb907d3e4898`，1975594 字节 | 本次现算 `md5sum build/system.bit` → `cb907d3e48982…`；`git cat-file -s HEAD:build/system.bit` = 1975594 = 盘上字节数 ⇒ **仓库里那份就是这一版**；同一身份也记在 `data/metrics.csv:5` 与 `README.md:58` |
 | `.xsa` 身份（r132） | `md5(前 12) = af0fc4abd01c`，853434 字节，11:36 | 本次现算 `md5sum build/system.xsa`；与位流同一分钟（位流 11:35） |
-| 板上现在跑的版本（r132） | **JTAG 那一份 = r132**；QSPI 已写入并逐字节比对一致，**冷启动自启未验** | 装板：`build/r132_program_pl.log`（11:40 起、11:41:20 退出，target `0ABC01A`）；固化：`build/evidence/r132_flash_qspi_9_OK.log`；"工具侧没有回读通道"记在 `report/log/issues.md` #479（`hw_cfgmem` 无 READ 属性、这批处理版没有 `program_flash`，探针输出 `board/measured/probe_flash_read.log`） |
+| 板上现在跑的版本（r132） | **JTAG 那一份 = r132**；QSPI 已写入并逐字节比对一致，**冷上电自启有回显**（2026-10-18 口头确认） | 装板：`build/r132_program_pl.log`（11:40 起、11:41:20 退出，target `0ABC01A`）；固化：`build/evidence/r132_flash_qspi_9_OK.log`；"工具侧没有回读通道"记在 `report/log/issues.md` #479（`hw_cfgmem` 无 READ 属性、这批处理版没有 `program_flash`，探针输出 `board/measured/probe_flash_read.log`） |
 | 工作区与 HEAD 是否同一份（r132 这一次） | 同一份（git 口径） | 本次实跑：对下面那条 r118 行点名的 12 个产物做 `git status --porcelain <那些路径>` → **空输出**；`build/power.rpt` 盘上 12951 字节 vs HEAD 12738 字节，差的是行尾（`core.autocrlf`），不是内容 |
 | 源码指纹（r132，本次现取） | `fpver=norm1`、`files=80`、`top=c778dc4416b3`、`rtl=93938780ccd6` | 本次实跑 `bash build/rtl_fingerprint.sh`（四行输出），与 #478/#479 记的那一对值一致 ⇒ 台架从 11:1x 起到现在没再动过 `src/rtl` |
 | —— 以下四行是 **r118 那一次**的读数，未随 r132 重取，留在这里是为了对照，不是现值 | | |
@@ -198,7 +198,7 @@ r118 的配对核对（本卡逐个打开确认，不看文件名猜）：
 | G5 | 本卡的"从零复现"能力**未演练**（见第 7 节） | 只能声明"来源可核对"，不能声明"可复现" |
 | G6 | §1–§6（指纹采集时刻、工具版本串、旋钮取值、报告字段名册）都还是 **r118 那一次**的读数 | clone 的人拿本卡核对 r132 时，能用的只有 §0 新那六行；任何"旋钮取值/工具版本"要念成 r132 的，都得先重取——**这张卡没做，所以不能这么说** |
 | G7 | r132 **没有链脚本入口**（不像 r118 有 `build/r118_chain.sh`） | 这一版"怎么生的"只剩 journal/log 里那条命令行；没有一条可重跑的同形链脚本 ⇒ 从零复现这一维比 r118 更弱，不是更强 |
-| G8 | 板上身份缺**冷启动自启**那一次读数 | QSPI 写了、逐字节比对过，但"断电重上电之后屏上是不是这一版"没人念过；工具侧又没有回读通道（#479），所以这一格只能靠一次上电观察来关 |
+| G8 **（半关，2026-10-18）** | 板上身份的**回显那一半**已确认：断电重上电后 COM6 出字（使用者口头确认）；还缺串口文本留档与"屏上有画面"那一半的单独确认 | 工具侧仍没有回读通道（#479）；把那次回显存进 `board/measured/` 就能从口头级升到可复跑凭据 |
 | G9 **（已关，2026-10-18）** | 这一轮的门禁件已经入库：`build/r132_gates.txt`（24 项 24 绿 / 0 红） | 项数争议由运行钉死：**24 项**；`data/metrics.csv:14` 的 22 是绿数被当项数，已改成 24；序列与踩到的自截断坑记在 `report/log/issues.md` #482 |
 
 
