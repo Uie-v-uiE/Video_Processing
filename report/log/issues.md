@@ -15300,4 +15300,67 @@ study 这一轮的 MOVE 是净收益，但没有第二把尺子验它；这句�
 - `bash build/checks/round_bit_pairing.sh`：`ROUND_BIT_PAIRING GREEN（当前号 cb907d3e4898，两个方向都无错配）`
   ——这一支正是为了防止"把新 md5 与旧轮次标签并排写"，而 `50-results.md` 那两行这次改的就是那个形状。
 - 规范通道台架 `tb_v98_top_seam` 仍在跑；整副 gates 仍**未重跑**（本轮单跑的只有上面第 20、21 两项）。
+### #482（2026-10-18 凌晨）整架交账、门禁跑到 ALL PASS，把"本轮没跑/上一版如此"那一批句子换成现读；两条尺子自己的坑一次踩全
+
+**一、台架交账（任务 #46/#52 等的那一次）**
+规范通道 `tb_v98_top_seam` 跑完：`RESULT tb_v98_top_seam PASS`，`^PASS` 165 行、`^FAIL` 0 行，
+件 `build/tb_v98_report.txt` 头部 `fpver=norm1 top_md5=c778dc4416b3 tb_md5=004949d96301 rtl_md5=93938780ccd6
+date=2026-10-17T23:55:25+08:00`——三枚都等于现树，门禁第 15 项按"认 md5 不认文件名"判它 fresh。
+耗时不是"约 108 分钟"：xsim 自己念的是 `elapsed = 03:21:55`（≈202 分钟），这一格也按实数改了。
+`tb_edge_rim` 同时补跑：`RESULT tb_edge_rim PASS`，31 条判定 / 0 条 FAIL ⇒ `build/tb_edge_rim_r132.txt`。
+第一次后台启动没带 `VP_VIVADO_BIN`（nohup 不继承交互 shell 的 export），`run_one.sh` 直接 REFUSE
+"找不到 xvlog（当前 空 ）"——这不是台架红，是环境没给；带上绝对路径重跑即过。
+
+**二、门禁四趟的真实序列（不写成"一趟就绿"）**
+1. 22 绿 / 2 红：`tb_edge_rim` 那格还在读 r118 那份件（`rtl=07570b1ac1b4` ≠ 现树），
+   `doc_cur` 的 D1b/D1c 盘上没有一份戳着本 bit（`cb907d3e4898`）的门禁件 ⇒ 两格红都是**凭据时效**。
+2. 3. 23 绿 / 1 红（两趟）：rim 已经补上，红的是 `doc_cur` 自己。原因很具体——
+   我用了 `bash build/gates.sh > build/r132_gates.txt`，**shell 在启动时就把这份文件截断成 0 字节**，
+   而 `doc_currency_check` 正好要读 `build/rNN_gates.txt` 当基准 ⇒ 它读到半成品，`tally.judged=0`，
+   D1c 直接走"基准读不到 ⇒ 这一层没判据"的空转分支。这一趟的 23 绿不是产品变好或变坏，是我在尺子底下写尺子要读的文件。
+   改成"先写到 /tmp，跑完再 `cp` 进仓库"之后，同一趟就是 24 绿 / 0 红。
+4. **24 绿 / 0 红**：末行 `GATES: ALL PASS（24 项全部判定）`，`build/r132_gates.txt` 是这一趟的原件。
+
+**三、第二条尺子坑：首页那句话的"形状"本身就是判据**
+`doc_currency_check` 的 D3 用 `(门禁全绿|gate-?green)[^。\n]{0,40}?\br(\d+)` 抓首页"全绿 = rNN"这一句，
+所以"本页不作门禁全绿声明；**r132 这一轮的门禁还没跑**"这种**诚实**的句子会被它读成"宣称全绿 = r132"⇒ 判红。
+中文那句要在"声明"后面用**句号**切断（或让 rNN 落到 40 个字符之外），英文那句要用 `no all-green claim` 而不是 `no gate-green claim`。
+D1c 反过来要**至少两句** `门禁 N 项 X 绿 / Y 红`（中英各一句，地板 2），并且这三数要与门禁件按
+"除本项外的绿数 + 本项假定绿"自洽——这就是它自己注释里说的唯一自洽点：
+基准件 24 项 23 绿 / 1 红 ⇒ 那句话应当念 **24 项 24 绿 / 0 红**，念成 23 绿 / 1 红反而不自洽。
+两个红数（22 绿/2 红 与 23 绿/1 红）在首页与本页都留下了，没有只念最后那一趟。
+
+**四、项数争议（#480 末段那条）关闭**
+运行给的数是 **24 项**（`判定 24 项`、`ALL PASS（24 项全部判定）`）。
+`data/metrics.csv:14` 原来写 22——那是某一轮的**绿数**被当成**项数**抄进表里；已改成 24，
+并在同一格写明"项数由脚本末行自己数出来"。`report/final-gate.md:70` 那句 24 项从此与运行一致。
+
+**五、这一轮改了哪些格（每一格都点名现读）**
+`README.md` 发布前检查那一格、`README_EN.md` 同一格与它前面那句"不作全绿声明"、
+`data/metrics.csv:14`（项数）、`:15`（整屏判据 165 条 / 0 FAIL + 三枚 md5 + 约 202 分钟）、
+`report/06-validation.md`（161/1 → 165/0、D2 关闭、"台架还没跑完"那句改成已交账）、
+`report/50-results.md`（两行"r118 那一次的件"改回现件 + 第 176 行那条跨批不可比 + 门禁序列）、
+`report/claims-vs-evidence.md`（三行都注明 r132 现件与 r118 读数是两件事）、
+`report/90-open-items.md`（编号 18 指标不同源 ⇒ 已闭合；编号 101 回到本表写法"未解决（A 组，**已于 r132 闭合**）"）、
+`board/signoff.md:149`（那句"指标表与报告不同源"现在是历史状态）、`report/technical-document.md:84`。
+另有 #481 里一处没落地的修正（`_tmp_a2.py` 因为字符串里嵌了 ASCII 双引号直接 SyntaxError，
+所以 claims-vs-evidence 与 90-open-items 那两改当时根本没跑）——本轮补齐，并把 SyntaxError 那次当成
+"脚本没跑就是没跑"的证据留在这一段，不假装它成功了。
+
+**六、判据复跑（同一条命令，交账前 / 交账后）**
+- `bash build/gates.sh`：**GATES: ALL PASS（24 项全部判定）**，退出码 0，24 判定行全 PASS。
+- `node src/host/doc_currency_check.mjs`：`CURRENCY: 干净`，身份句 2 句、门禁读数句 2 句（地板各 2）。
+- `node src/host/line_cite_check.mjs`：硬错 0（命中约 1540、候选约 738）。
+- `node src/host/metric_recheck.mjs`：判 117 个数、红 0、csv 认领 10/10。
+- `bash build/checks/round_bit_pairing.sh`：GREEN（当前号 cb907d3e4898）。
+
+**七、还没关的账（写清楚，别留给读者猜）**
+- QSPI 冷启动自启那一次读数（#51 / 来源卡 G8）：写了、逐字节比对过，工具侧没有回读通道，
+  "断电重上电之后屏上是不是这一版"仍要人眼给。
+- `report/study/` 那本（不入库）里 250 条 NOEV + 128 条 GONE 的行号锚点仍在原地，
+  只有 README 那条"行号会漂、对不上以信号名为准"的约定护着，没有第二把尺子验过。
+- `docs/walkthrough/myths.md` 还挂着"本轮未跑构建"的标记（同一批不入库的本地说教件）。
+- `board/hardware_setup.md:93,97` 两处把 `report/study/05_验证与上板/…` 当出处引用：
+  那本不入库，clone 之后打不开——要么换成入库件，要么就地标注"本地件"。这一条本轮没动，因为它是
+  出处归属问题而不是数字同步，需要一次点名决定。
 

@@ -34,18 +34,18 @@
 ## 2. 仿真台架（`sim/`）：像素域与协议域自己判自己
 
 `build/tb_v98_report.txt` 这份件里的计数按文件实数得到，不引用别的批次：
-`^PASS` 行 **161** 行、`^FAIL` 行 **1** 行、判定行
-`RESULT tb_v98_top_seam FAIL nfail=1`；判据名去掉重复之后是 **47** 个
+`^PASS` 行 **165** 行、`^FAIL` 行 **0** 行、判定行
+`RESULT tb_v98_top_seam PASS`；这一趟是 r132（件头部 `top_md5=c778dc4416b3 tb_md5=004949d96301 rtl_md5=93938780ccd6`，与现树同批）
 （同文件 `grep "^PASS" | 取第 2 列 | sort -u`）。整屏台架之外，`sim/` 下 `tb_*.v` 共 **81** 支
 （`ls sim/tb_*.v | wc -l` 数出）。
 
 `data/metrics.csv` 的"整屏逐像素判据 141 条"钉的是更早那一次全量台架（件自己写明
 `141 = 该文件里 ^PASS 行数 140 加 ^FAIL 行数 1`，头部 `top_md5=2bf2ceeede07`），
-与现在盘上这份头部 `top_md5=56c269602e18` 不同源 ⇒ **不同批次之间的条数不可比**，以当前件为准。
-这条差异在 `40-optimization.md` §8 登记为 D2。
+与现在盘上这份头部 `top_md5=c778dc4416b3` 不同源 ⇒ **不同批次之间的条数不可比**，以当前件为准。
+这条差异在 `40-optimization.md` §8 登记为 D2，**2026-10-18 关闭**：`data/metrics.csv` 第 15 行已重算成现件（165 条 = `^PASS` 165 + `^FAIL` 0），三枚 md5 与耗时（约 202 分钟）一并跟上。
 
 `FAIL C5c frame head is not the previous frame's tail …` 是那份件里唯一那条 FAIL；它当时是**公开声明、有意保留**的未通过项，登记在 `report/known_issues.md` §一 第 1 条（`#98`）。
-**这一条已于 r132 关闭**（同一把尺子改后 PASS，正本 `report/08-limits.md` §1、台账 #478）；上面那些条数（141/161/162 那一族）与"红数 == 1"这个形状都属于**上一版那次全量台架**，r132 的整屏台架本轮还没重跑完，跑完之后由 `build/tb98_report.sh` 交账再改这几格。
+**这一条已于 r132 关闭**（同一把尺子改后 PASS，正本 `report/08-limits.md` §1、台账 #478）；上面那些条数（141/161/162 那一族）与"红数 == 1"这个形状都属于**上一版那次全量台架**，r132 的整屏台架**已在 2026-10-18 00:00 交账**：`bash build/tb98_report.sh` 打出的件是 165 条判定 / 0 条 FAIL、末行 `RESULT tb_v98_top_seam PASS`，头部三枚 md5 与现树一致（门禁第 15 项按“认 md5 不认文件名”判它 fresh）。
 
 这些判据的形状值得说一句：一条主判据前面都挂一条**空集守卫**
 （`PASS C4a rows judged`、`PASS C5a judged rows`、`PASS C9pre rows judged`、`PASS C11pre …`、

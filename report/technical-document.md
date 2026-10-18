@@ -81,7 +81,7 @@ SD 卡 ─► PS 读裸帧 ─► AXI 写 ────────────�
 | RTL 文件 / 行数 | 80 个 / 11,768 行 | `src/rtl/` |
 | PS 侧 C 代码行数 | 2,544 行 | `src/ps/` |
 | 仿真台架 | 82 个 | `sim/`（取舍清单在 `sim/README.md`） |
-| 整屏逐像素判据 | 141 条（140 通过 + 1 条故意留下的 `C5c`） | `build/tb_v98_report.txt` |
+| 整屏逐像素判据 | 165 条判定 / 0 条 FAIL（曾长期红着的 `C5c` 已于 r132 关闭） | `build/tb_v98_report.txt`（头部 `top_md5=c778dc4416b3`，与现树同批） |
 | 上板人眼验收 | 36 行 | `board/verify_r87.md` |
 | 一键门禁 | 24 项（23 绿 / 1 条申报过的红） | `build/gates.sh` |
 

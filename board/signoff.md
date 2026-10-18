@@ -146,7 +146,7 @@
 - 观察项：`build/tb_v98_report.txt` 现在数得出多少条判定、唯一的 FAIL 是不是声明过的那条。
 - 前置状态（含回读到的值）：文件第 1 行 provenance 回读 `top_md5=56c269602e18 tb_md5=1c918c92200f rtl_md5=07570b1ac1b4 date=2026-10-04…`（那一次跑的日期时刻与 +08:00 时区后缀逐字在件里）。
 - 具体动作：`grep -c "^PASS" build/tb_v98_report.txt`、`grep -c "^FAIL" build/tb_v98_report.txt`、`grep -n "^FAIL" build/tb_v98_report.txt`。
-- 我看到/读到的原文：命中数 = **161 行 PASS + 1 行 FAIL = 162 条判定**；`:55` = `FAIL C5c frame head is not the previous frame's tail | first OFF+BILIN output rows must carry their own source row on BOTH sides of the seam`。警告：**`data/metrics.csv:15` 那一行还写着 `141`（并自述"141 = `^PASS` 行数 140 加 `^FAIL` 行数 1"，provenance 点名 `top_md5=2bf2ceeede07`）**——它点名的就是这份文件，而文件已经不是那一次跑的。这一格不在 `metric_recheck` 的覆盖范围里，所以那支护着它的检查脚本不会报未通过，但它是**指标表与报告不同源**的一条实物证据 ⇒ 进第 4 节与 `report/questions-for-team.md` 的 Q4，不改 `data/metrics.csv`。
+- 我看到/读到的原文：命中数 = **161 行 PASS + 1 行 FAIL = 162 条判定**；`:55` = `FAIL C5c frame head is not the previous frame's tail | first OFF+BILIN output rows must carry their own source row on BOTH sides of the seam`。警告：**`data/metrics.csv:15` 那一行还写着 `141`（并自述"141 = `^PASS` 行数 140 加 `^FAIL` 行数 1"，provenance 点名 `top_md5=2bf2ceeede07`）**——它点名的就是这份文件，而文件已经不是那一次跑的。这一格不在 `metric_recheck` 的覆盖范围里，所以那支护着它的检查脚本不会报未通过，但它是**指标表与报告不同源**的一条实物证据 ⇒ 进第 4 节与 `report/questions-for-team.md` 的 Q4，不改 `data/metrics.csv`。**2026-10-18 更新**：整架重跑交账（165 条判定 / 0 条 FAIL、`RESULT tb_v98_top_seam PASS`，件头部三枚 md5 与现树同批），这一格按当时选定的第 ① 种处置重算了 `data/metrics.csv:15`，所以那句「指标表与报告不同源」现在是历史状态，不是现值。
 - 判定：PASS（唯一 FAIL 是声明过的 C5c；`report/known_issues.md` 第 1 节把它写成对外口径，故意留着这条未通过项不掩盖）
 
 ### S16 发布前检查一把跑 `build/gates.sh`（项数、通过／未通过计数、未通过项是不是只有声明过的那条）
