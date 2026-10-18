@@ -35,7 +35,7 @@
 
 `build/tb_v98_report.txt` 这份件里的计数按文件实数得到，不引用别的批次：
 `^PASS` 行 **165** 行、`^FAIL` 行 **0** 行、判定行
-`RESULT tb_v98_top_seam PASS`；这一趟是 r132（件头部 `top_md5=c778dc4416b3 tb_md5=004949d96301 rtl_md5=93938780ccd6`，与现树同批）
+`RESULT tb_v98_top_seam PASS`；这一趟是 r132（件头部 `top_md5=c778dc4416b3 tb_md5=3975c335ab26 rtl_md5=93938780ccd6`，2026-10-19 因为台架注释里去掉三条库外路径而重盖过一次指纹：判定行数不变，与现树同批）
 （同文件 `grep "^PASS" | 取第 2 列 | sort -u`）。整屏台架之外，`sim/` 下 `tb_*.v` 共 **81** 支
 （`ls sim/tb_*.v | wc -l` 数出）。
 
