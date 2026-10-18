@@ -72,7 +72,7 @@
 | 3 | `RESULT PASS geom_check（ok=10 fail=0）`：新增的 `G5`（`bit19 == (生效倍率偏离 256)`，样本 4 违例 0）与 `G5b`（**4/4 真钳住**）都在里面；`G3x` 从"bit19 回 0"改成判同一枚不变量（命令表里**没有把角度归零的动词** ⇒ 旧写法判的是一个到不了的状态，理由见 `report/log/issues.md` 的 #200） | `build/evidence/verify_0930_2215.txt`（第一次跑出 2 条不通过的那一份）与随后的 `geom_check` 复跑 |
 | 4 | 从"读得到"升级为"能被判"：屏上 `Zoom` 那格、串口 `[STAT]`、lane23 回读三处现在说的是同一件事；开机档位这一次落在**文档默认档**（`zman=1 zsel=4`），所以上一张表第 4 行那句"没有确认"可以推进到"默认档已确认，呼吸/自动档另记" | 同上 + `build/board_temp_r97.txt` 里那两条 `[STAT]` |
 | 7 | `V9-6 温度格三方对账：4 条 [TEMP] 的 degC↔osd↔gpio 全部自洽`；**并第一次把板读值抄进交付件**：`degC=63.38 / 63.17 / 63.13`（`raw 0xAAF2/0xAAD7/0xAAD2`、`vccint 997–998 mV`、屏上 `TEMP:63C`、`gpio=0x63`） | `build/board_temp_r97.txt`、`data/metrics.csv`（新增"片上结温（板读 XADC）"那一行） |
-| 9 | 全设计 setup WNS **0.720 ns**、hold WHS **0.033 ns**（含自加的 0.8 ns 不确定度）、失败端点 **0 / 50890**、脉冲 WPWS 0.264 / 0 / 12526；资源 **14379 LUT / 8079 FF / 95 tile / 19 DSP** | `build/timing_summary.rpt`、`build/utilization.rpt` |
+| 9 | 全设计 setup WNS **0.687 ns**、hold WHS **0.004 ns**（本版不加载 RGMII 收口输入窗，那 5 个端点未参与检查；这一串取自 `build/timing_summary.rpt:151`，两跑逐字节一致的那份门禁件是 `build/r132_gates.txt`）、失败端点 **0 / 51027**、脉冲 WPWS 0.264 / 0 / 12582；资源 **14013 LUT / 8132 FF / 96 tile / 19 DSP** | `build/timing_summary.rpt`、`build/utilization.rpt` |
 
 这一版还欠的格，明写着不打勾：① 板级的 abort 注入（拷贝中途被看门狗打断之后撕裂帧不再显示）
 仍是仿真台架凭据齐、板级空着；② 整屏台架的前置守卫查出的原因是**激励侧没把屏交给 ETH**

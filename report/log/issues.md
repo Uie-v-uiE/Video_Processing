@@ -15394,6 +15394,11 @@ hold 0.004·0.048·0.067·0.121；51,027 端点；LUT 14,013（26.34 %）；FF 8
    与件里的字面串是否一致"。这是同一族错误的第三次（#479、#480、#483）⇒ 下一轮该给那支检加一条：
    文档句子若点名 `build/evidence/rNN_*` 或 `build/rNN_gates.txt`，句中的数必须能在那份件里逐字找到。
 
+**五之二、同一族又抓到三处（都在 #483 之后复扫时现形）**
+- `board/acceptance.md` 第 9 行还写着 r97 那版的 `0.720 / 0.033 / 0 / 50890 / 14379 LUT / 8079 FF / 95 tile`，出处却点名活的 `build/timing_summary.rpt` ⇒ 换成板上这一版（`0.687 / 0.004 / 0 / 51027 / 14013 / 8132 / 96`，`build/timing_summary.rpt:151`）。覆盖缺口本身不变：`board/` 的行不在任何自动对账射程里（A13 记的就是这件事）。
+- `report/60-failure-analysis.md` A13 的现象段说 `timing_summary.rpt:151` "现在是 0.739 / 0.052 / 51135" ⇒ 改成 0.687 那组，并把那一行标成"在 2026-10-18 之前"的历史状态，避免读起来像现值。
+- `report/08-limits.md` §11 的"现在的处置"写着 HEAD 与工作区那块 bit 是 `cd04907e1369…` ⇒ 那是 r118 的等价性；本轮为 r132 再核一遍（`md5sum build/system.bit` = `git show HEAD:build/system.bit | md5sum` = `cb907d3e4898…`，`git cat-file -s` = 1975594 = 盘上字节数），旧那句圈回 r118。
+
 **五、同类"引用活件却写旧值"还抓到两处**
 - `report/08-limits.md`：引 `build/timing_summary.rpt` 写 0.739 / 0.052 / 51135；现件 `:151` 是 0.687 / 0.004 / 51027、
   `:154` 是 `All user specified timing constraints are met`。已按真实行号与现读重写，r118 那组留在括号里做对照。

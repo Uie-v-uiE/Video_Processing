@@ -306,9 +306,9 @@
 ### A13 · 数字对账脚本只覆盖首页与指标表，`board/` 的实测读数在覆盖范围外
 
 - **现象（含证据）**：`board/acceptance.md:75` 第 9 行写
-  `全设计 setup WNS **0.720 ns**、hold WHS **0.033 ns**、失败端点 **0 / 50890**`，出处点名 `build/timing_summary.rpt`；
+  **在 2026-10-18 之前**那一行写的是 `全设计 setup WNS **0.720 ns**、hold WHS **0.033 ns**、失败端点 **0 / 50890**`——那是 r97 那一版构建的读数，而出处点名的是活的 `build/timing_summary.rpt`。本轮把这一行同步成板上这一版（0.687 / 0.004 / 0 / 51027，`build/timing_summary.rpt:151`）；**但覆盖缺口本身没变**：`board/` 那些行仍然不在任何自动对账的射程里，下一次改构建它们还是不会自己跟上。
   同一版构建的功耗读数（`动态 2.207 W、估算结温 52.5 °C`）今天只剩下的那份 `board/` 表里已经不写它了（`grep -rn "2\.207" board/` 零命中），它留在 `build/r97_gates.txt:16` 那行 `Dynamic (W) 2.207` 上。
-  `build/timing_summary.rpt:151` 现在是 `WNS 0.739 / WHS 0.052 / 失败端点 0 / 51135`，
+  `build/timing_summary.rpt:151` 现在是 `WNS 0.687 / WHS 0.004 / 失败端点 0 / 51027`（r132），
   `build/power.rpt` 现值 `Dynamic (W) 2.213`、`Total On-Chip Power (W) 2.391`、`Junction Temperature (C) 52.6`；
   `node src/host/metric_recheck.mjs` rc=0、判 117 个数红 0，但它的取数名单（`src/host/metric_recheck.mjs:274-283`）
   只有 `README.md` 与 `README_EN.md` 各五行 + `data/metrics.csv` ⇒ `board/` 那一行**不在任何对账检查的覆盖范围内**。
