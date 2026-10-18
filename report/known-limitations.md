@@ -42,7 +42,7 @@
 | `rgmii_rx` 捕获钟提前（BUFIO / MMCM 相移，`report/log/issues.md` 第 194、323 条） | 量过一轮，未采纳 | 收益假设 0.5/0.2 ns 还没有独立证据钉住 | 保持未采纳，收口 I/O 输入窗仍走下面复现路径那一节的口径 | `report/timing_global.md`、`report/log/issues.md` |
 | 旋转角度的机读回（`report/log/issues.md` 第 185 条） | OSD 上能看，串口读不到 | 要占一条空闲 lane，属功能取舍，归队伍定 | 眼睛判读继续，`ROT:` 那一格不进机器判据 | `board/acceptance.md` |
 
-另外：`build/gates.sh` 的 24 项里长期有 **1 条写明过的未通过项**（`C5c`），它是"已知且公开登记"的项，不是被忽略的失败；**这一条已在 r132 关闭**（#129，台账 `report/log/issues.md` #478：顶层整架 165 条 PASS / 0 条 FAIL），但 r132 这一轮的门禁还没重跑，末行以现跑为准；
+另外：`build/gates.sh` 的 24 项里长期有 **1 条写明过的未通过项**（`C5c`），它是"已知且公开登记"的项，不是被忽略的失败；**这一条已在 r132 关闭**（#129，台账 `report/log/issues.md` #478：顶层整架 165 条 PASS / 0 条 FAIL），r132 这一轮的门禁已重跑并全绿：`build/r132_gates.txt` 末行 `GATES: ALL PASS（24 项全部判定）`；
 本仓库的采纳口径是"除声明项外无未通过项"。
 
 ## 4. 复现演练：哪些命令是别人可跑的，哪些不是

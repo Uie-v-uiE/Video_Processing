@@ -50,9 +50,12 @@ setup/hold 行"，不报"这四颗钟没问题"——两者的区别见第 7 节
 
 ## 3. 本版与上一版：8 对读数逐位相同
 
-件 `build/evidence/r118_strict_b1.txt` 每行给一对"上一版 / 本版"的同一个读数并带差值字段 `d=+0.000 SAME`，
-共 8 对；末行 `B1 pairs_compared=8 losses=0 verdict=GREEN`：`clk_fpga_0` 1.571 / 0.048、
-`clkout0_1` 3.630 / 0.059、`sys_clk` 14.876 / 0.222、`eth_rxc` 0.739 / 0.052。
+件 `build/evidence/r118_strict_b1.txt` 每行给一对"r114 / r118"的同一个读数并带差值字段 `d=+0.000 SAME`，
+共 8 对；末行 `B1 pairs_compared=8 losses=0 verdict=GREEN`。八行原值（setup / hold）：`clk_fpga_0` 1.850 / 0.053、
+`clkout0_1` 3.630 / 0.059、`sys_clk` 14.876 / 0.222、`eth_rxc` 0.739 / 0.052——**这四对是那份冻结件里的 r118 读数，
+不是板上现在这一版**。2026-10-18 复核时发现本段曾被一次自动同步铲成 `clk_fpga_0` 1.571 / 0.048（那是 r132 的值），
+已按凭据原文回写。现读（r132，`build/timing_summary.rpt:151` 与同一份的 `Intra Clock Table`）是：
+`eth_rxc` 0.687 / 0.004、`clk_fpga_0` 1.571 / 0.048、`clkout0_1` 3.287 / 0.067、`sys_clk` 14.294 / 0.121。
 `build/r118_verdict.txt` 的 `R118 B1_strict … verdict=GREEN` 是同一件事的判定行，
 `report/timing/round_r118.md` §四把它登记为 B1 这项条件的结论。
 

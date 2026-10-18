@@ -320,7 +320,7 @@ build/evidence/r118_board/bitcycle_console.txt 首末两条记录
 04:45:26 → 04:47:07（相差 1 min 41 s）
 ```
 
-身份说明一句：板上现在跑的是 r132，位流 md5 前 12 位 `cb907d3e4898`（这一轮的门禁件还没重跑，身份暂由 `build/r132_streamwrap_build.log` 与位流本身锚定）。
+身份说明一句：板上现在跑的是 r132，位流 md5 前 12 位 `cb907d3e4898`）。这一轮的门禁件已经跑出来并入库：`build/r132_gates.txt`，末行 `GATES: ALL PASS（24 项全部判定）`，身份同时由它、`build/r132_streamwrap_build.log` 与位流本身三处锚定。
 
 
 ## 10. 第三轮（2026-10-05 早，板子连着）：上板那一半从"没跑"变成"跑过"
