@@ -134,7 +134,7 @@ E2 由在场的人确认（原话"现在画面正常只有一条"，含 0.50× +
   能量到的是几何（`C5b/C5c`）不是新鲜度，所以"晚一帧"这一档只能由人判。
 - **QSPI 固化（本轮新增的一度，未完成）**：`board/tcl/flash_qspi.tcl` 一次写盘 `SF: 33554432 bytes @ 0x0 Erased: OK`
   → `Program Operation successful` → `Verify Operation successful` → `PROGRAM_RC 0`，进盘镜像
-  进盘镜像 `BOOT.bin`（不随包） md5 `acd8cdd5f060`（内含位流 `cb907d3e4898`），日志 `build/evidence/r132_flash_qspi_9_OK.log`。
+  `BOOT.bin`（不随包） md5 `acd8cdd5f060`（内含位流 `cb907d3e4898`），日志 `build/evidence/r132_flash_qspi_9_OK.log`。
   ✅ **回显那一半已经回来**（2026-10-18 使用者原话："那个启动是有回显的"）：断电重上电之后 COM6 出字，
   判据是"启动档拨到 QSPI、断电 10 秒后冷上电，屏上有画面且 COM6 出字"——"可启动性"这一步不再是零证明：
   "Program/Verify successful 对可启动性零证明"（#405 的口径）已被这一次实行动作补上一半。
@@ -143,6 +143,12 @@ E2 由在场的人确认（原话"现在画面正常只有一条"，含 0.50× +
      不是冷上电那一次。这一格因此记"半关"，不写成整格通过。
   ⚠ 另外这套工具**没有读回口**（`hw_cfgmem` 属性表无 READ，`info commands program_flash` = 0，
   读数在 `board/measured/probe_flash_read.log`）⇒ 写之前留不下现盘内容的第二份，下一次固化前先记这件事。
+- **把这一格关掉要做的三步（板子在手边就行，约 2 分钟）**：
+  ① 启动拨码拨到 QSPI 档，整机断电 10 秒以上；② 终端先开着 COM6（115200-8N1）并把这一趟落盘，
+  文件名带上日期时间；③ 上电——先看屏上有没有画面，再跑一次 `bash board/scripts/board_health.sh`，
+  让串口那几行进同一个文件。两份读数（串口文本 + "屏上有画面"是谁在哪一刻看的这句话）都进了
+  `board/measured/` 之后，这一格从"半关"改"关"，简介里"断电自启"那半句才算整句兑清；
+  讲稿第 0 幕与问答 Q29 的念法同时升一级（现在念的是"口头确认级"，不能念成已留档）。
 - **给人复核时用的四条命令**（本轮就是这么起的态）：`split 50` → `split marker 0` → `zoom 0.5` → `rot auto 1`，
   看画面最下沿那条斜阶梯；再 `split marker 1` 同角度晃一次，蓝线应只贴在缝上；`rot auto 0` 停在 45°/60°
   各看四边；最后 `STAT` 读回（含 E6 那一度：谁都不碰按键时 `ROT:` 该读 0）。
