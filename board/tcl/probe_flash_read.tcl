@@ -1,4 +1,5 @@
 # board/tcl/probe_flash_read.tcl —— 只读探针：program_flash 在 hw_manager 里到底存不存在、`-read` 支持哪些写法
+# 作用/产出/退出码：探的是命令口在不在；产出只有 `-log` 指的那份日志，连不上硬件打 `REFUSE` 并 `exit 2`，探完 `exit 0`。
 #
 # 为什么单独一支：2025.2.1 的 `help program_flash` 在**没连硬件**的批处理里直接报
 # `ERROR: [Common 17-25] No topics matched`（实测 `.../Temp/hp.log`），那既不能证明命令不存在，

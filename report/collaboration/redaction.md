@@ -149,7 +149,7 @@ done
 | 逐字读回任一轮对话（S01 的 226 轮、S05 的 127 场正文） | 原件不随包（§3 的标识命中是主因） | 只能验登记卡的 SHA-256 / 行数 / 时间范围——但这些也需**同一台机器**才拿得到文件 |
 | 重跑 `metrics.md` §2–§3 的全部数字 | 缺输入文件 | 无法重跑 ⇒ 本档案在这些条目上一律不给"已验证"，只给"本机可复算" |
 | 核对 S05 表 127 行的 SHA12 与 `TOOLUSE` | 同上 | 同上 |
-| 复核 C1/C2/C5/C6 的判别实验 | **可以**——命令与件全部随包（`node src/host/metric_recheck.mjs`、`git show HEAD:build/system.bit \| md5sum`、`build/evidence/r119_*.txt`、`node build/r119_window_check.mjs`） | ✅ 这是本档案里**唯一对外可复现**的一半，也是我把纠错轨迹放在随包文件里的原因 |
+| 复核 C1/C2/C5/C6 的判别实验 | **可以**——命令与件全部随包（`node src/host/metric_recheck.mjs`、`git show HEAD:build/system.bit \| md5sum`、`build/evidence/r119_*.txt`、`node build/r119_window_check.mjs`） | 这是本档案里**唯一对外可复现**的一半，也是我把纠错轨迹放在随包文件里的原因 |
 | 复核 `corrections.md` C7 与 §4 第 7 行的折叠 | C7 可复现（件随包）；折叠后的标题需本机 | 部分可复现 |
 
 ⇒ 一句话：**纠错轨迹可第三方复现，成本统计与原文核对只能本机复现。**

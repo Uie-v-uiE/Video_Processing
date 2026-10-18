@@ -28,7 +28,7 @@
 | 时钟 | 周期 ns | setup slack / 相对余量 | hold slack / 相对余量 | 端点 | 该域最差路径（终点 / 级数 / 布线占比） |
 | --- | --- | --- | --- | --- | --- |
 
-> ⚠ 2026-10-17（r132）这一节只更新到 **setup/hold 余量与端点数**（现读自 `build/timing_summary.rpt`）；表里那些**路径名、级数、route 占比**仍是第 118 批那一次的名册——要跟着重导得再跑一轮 `build/tcl/` 那套逐域抽路径的件（登记在 `report/log/issues.md` #479 的待办里）。宁可留下这句，也不把新数配旧路径写成"同源"。
+> 2026-10-17（r132）这一节只更新到 **setup/hold 余量与端点数**（现读自 `build/timing_summary.rpt`）；表里那些**路径名、级数、route 占比**仍是第 118 批那一次的名册——要跟着重导得再跑一轮 `build/tcl/` 那套逐域抽路径的件（登记在 `report/log/issues.md` #479 的待办里）。宁可留下这句，也不把新数配旧路径写成"同源"。
 | `eth_rxc` | 8.000 | **0.687 / 8.59 %** | 0.004 / 0.05 % | 4835 | setup `u_eth/u_icmp/u_icmp_tx/check_buffer_reg[19]/D`，4 级，route 58.447 %；hold `u_eth/u_lm/full_d_reg/D`，1 级 LUT4，route 56.480 % |
 | `clk_fpga_0` | 10.000 | 1.571 / 15.71 % | 0.048 / 0.48 % | 15721 | setup `u_pl/u_bilin/u_fb/lo_reg_0_16/WEA[0]`，1 级 LUT6，route **93.584 %**；hold `…axilite_b2s/RD.r_channel_0/rd_data_fifo_0/memory_reg[31][9]_srl32/D`，0 级，route 43.472 % |
 | `clkout0_1` | 20.000 | 3.287 / 16.44 % | 0.067 / 0.34 % | 30071 | setup `u_pl/u_osd/ch_r_reg/ADDRARDADDR[6]`，21 级（含 9×CARRY4），route 59.150 %；hold `u_pl/u_pipe/u_sobel/no_right_r_reg[1]/D`，0 级，route 62.683 % |
