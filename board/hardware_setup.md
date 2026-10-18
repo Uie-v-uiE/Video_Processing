@@ -90,11 +90,11 @@ python src/host/video_sender.py --demo --ip 192.168.1.10 --port 5001 --fps 25
 | 主控板 | RK-ZYNQ7020-F（XC7Z020-CLG484-2） | `report/board_pins.md:1-3` | 已声明 |
 | 以太网 PHY | Realtek **RTL8211F-CG**（板载，RGMII，规格书 Track ID JATR-8275-15 Rev 1.4） | `report/timing/debt_ledger.md:56-57`、`report/timing/a1_sources.md:41` | 已声明（手册不在仓库内） |
 | 显示面板 | HDMI，分辨率 1024×600；**品牌/型号/供电【待你补】** | 时序：README.md 的「关键数字与出处」一节（像素钟 50 MHz、`H_TOTAL=1344`/`V_TOTAL=625` ⇒ 场频 59.5 Hz，出自 `src/rtl/video/video_timing_1024x600.v:18-20`） | 缺型号 |
-| 板载调试桥 | FTDI FT4232（USB-C，通道 A=JTAG、通道 B=UART） | `report/study/05_验证与上板/03_上板流程与踩坑.md:115` | 已声明 |
+| 板载调试桥 | FTDI FT4232（USB-C，通道 A=JTAG、通道 B=UART） | `report/70-reproduce.md:106`（同一句在仓库里的落点；`report/study/05_验证与上板/03_上板流程与踩坑.md:115` 是**本地件**，不入库） | 已声明 |
 | SD 卡 | FAT32；**容量/品牌/速度等级【待你补】** | README.md 的「项目简介（这个系统做什么）」一节（原引内容在本版 README 已无对应段落）、`src/host/make_sd_video.mjs` | 缺型号 |
 | 12 V 适配器 | **【待你补】** | `report/build.md:90` 只写"12V 电源" | 缺 |
 | HDMI 线 / 网线 / USB-C 线 | **【待你补】**（长度与规格仓库未记） | — | 缺 |
-| PC | Windows + Git Bash + Vivado/Vitis 2025.2.1 + Node v24 + Python 3（推流用） | `report/study/05_验证与上板/03_上板流程与踩坑.md:117-123`、`send_demo.bat:8-13` | 已声明 |
+| PC | Windows + Git Bash + Vivado/Vitis 2025.2.1 + Node v24 + Python 3（推流用） | `report/70-reproduce.md:47-51`（工具链逐条在仓库里的自探测行；`report/study/...:117-123` 是**本地件**，不入库）、`send_demo.bat:8-13` | 已声明 |
 
 BOM 的位置：本仓库**没有**独立的 BOM 文件（`find . -iname "*bom*"` 命中 0）。
 上表就是当前能给的最小 BOM，正式 BOM 属于声明层，不在这里新建。
