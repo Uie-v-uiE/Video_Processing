@@ -15560,3 +15560,25 @@ plain `表 14 页 22 shapes 9 media 9`。提交 `7127b96e` 后重导出：`860 �
 **这一轮的尺子自证**：`_tmp_pkg_parity.py` 判"包内 Word 与包内 md 不符段"，改前红（`不符=1` 加 1 处
 「不随包」残留）、改后两份都 0；`deliver_spec_check.mjs` 的 C7 有 `--c7-self` 12 项自检（含"引号里的
 原文不红、裸写的程度副词红"两向对照），这轮没动它。
+
+**同一口径推到 brief（#486 续）**：`report/technical-document-brief.md` 第 52 行原来也写着
+`build/r132_gates.txt`——导出时同样会被改成「仓库留档 gates.txt（剪枝件，不随包）」，而
+`technical-document-contest-brief.docx` 不会被改，包内两份又是一套话两样字。改成"判定行随包在
+`build/reports/` 下"（这一格在仓库与包里拼法一致，导出器不动它），brief 的 Word 那一段跟着对齐。
+对齐脚本第一次跑**换错了一段**：它的 `units()` 把整串 bullet 并成一个单元，于是 P50 被换成了"四条通路
+同时成立…- 板级 105 条…"整块。当场 `git checkout --` 还原（media 仍 2），改成"列表项自成一条"再跑才对。
+教训写进记忆：给 docx 换段之前必须先确认 md 侧单元边界。
+
+**包内终检（导出落盘后现跑，`_tmp_pkg_final.py`）**：
+
+```
+MANIFEST  src=ccb1a298 HEAD=ccb1a298 match=True  计数=860 实数=861(含 MANIFEST 自身)
+PARITY    official 不符=0 media=14 jpeg=4 | plain 不符=0 media=9 jpeg=0 | brief 不符=0 media=2
+DIRS      缺=无 顶层项=17（README/README_EN/src/sim/build/board/data/skills/report/MANIFEST/LICENSE/run_test.sh/.bat/send_demo.bat/_pruned）
+SKILLS    条目外壳 SKILL.md=49 个目录（二级条目 33 个，缺外壳 0）
+WORDS     contest 申报口径残留=0  brief=0  README=5（README 是包↔仓库对照说明，那 5 处是导出器按设计写的话）
+RUN       bash run_test.sh --dry-run 在包内跑通 rc=0（四步 NOT_MEASURED，不碰网络与板子）
+```
+
+第一次跑终检读的是**半写的包**（导出器最后一行还没打，MANIFEST 仍是上一版 `548b2078`，brief 那条残留
+因此报 1）。等 `-> /d/Xilinx/Prj/fin` 那行真打出来再跑，才是上面这组数——顺序本身记在这里，别学我先跑。
