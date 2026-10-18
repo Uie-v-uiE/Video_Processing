@@ -15625,3 +15625,20 @@ RUN       bash run_test.sh --dry-run 在包内跑通 rc=0（四步 NOT_MEASURED�
 `project-brief-for-ai.md` 的 44 处有相当一部分在照抄的原文引号里，替换会改到引文——等口径，见 #60）；
 `C2-4 tb=83 未列=0 幻影=0 PASS`；`C5` 符合；`doc_currency` 干净；`line_cite` CLEAN；
 `doc_enc_check` 520 份全干净；技能包自检 `判 53 项 红=0 PASS`、`build-index --check PASS`。
+
+**同一轮里补的三件（导出器把它们一个个照出来之后才做）**：
+
+- 五支台架注释里还写着 `skills/bench_self_inflicted_reds.md` 这类**库外卡片名**（那是 Obsidian 侧
+  一 trap 一目录那版方案的卡片，仓库里早已并成 6 个分组目录）。导出器的"技能旧名降级"自检数到 3 条
+  落不到文件的引用 ⇒ 拒绝落盘。没有猜映射（关键字配出来的现役目标有 0/2 命中的），改成去掉路径形状的
+  "技能包旧条目名 xxx（盘上无此路径）"。
+- 但 `sim/tb_v98_top_seam.v` 的注释一改，门禁第 15 项比的那枚 `tb_md5` 就对不上了（`build/gates.sh:324`
+  现算 vs `build/tb_v98_report.txt` 头部）。这支台架一次 40+ 帧 ≈ 75 分钟 ⇒ **本轮跑起来了，报告还没
+  重新盖章**（`build/tb98_report.sh` 等它的 run.log）。在这之前 `bash build/gates.sh` 第 15 项会判红，
+  这是**在飞状态**不是坏版本；随包的 r132 凭据件仍是它自己的那份（导出器取的是 `build/r132_gates.txt`）。
+- `board/README.md` 里"工程重建在 `board/vivado_system/`"这种带仓库根前缀的写法被死链自检判红：
+  那一层 `.gitignore` 挡着、包里根本没有 ⇒ 改成 `vivado_system/` 并写明"不入库也不随包"。
+- 清掉的：手点出来的旧 `board/zynq_video_sys.xpr` + `.srcs`（11 个跟踪文件，停在 10-05 形状、8 份 xci
+  而现役是 13 份）；`board/vitis_ws*` 生成目录（36 MB 级，留下 `build/evidence/board_rebuild_20261018/
+  vitis_platform_summary.txt` 那份字节与 md5 摘要）；工作区根目录这一侧的一次性脚本与日志、
+  `__pycache__`、仓库根那个 0 字节的 `=` 文件。
