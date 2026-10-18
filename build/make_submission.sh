@@ -224,7 +224,11 @@ while read -r n; do if [ -e "$n" ]; then rm -rf "$n"; echo "被否决轮次/中�
 # + 根上两份 README + `submit/`（评审阅读路径）+ `docs/`（本轮重新成为交付层；旧名单没有它，
 # 于是只被 docs 点名的件会被判成"没人要"而剪掉 ⇒ 包内少文件、文档里留指路，两头都错）。
 LIVE_SCOPE=(report skills README.md README_EN.md board data src sim build)
-{ grep -rhoE "[A-Za-z0-9_./-]+\.[A-Za-z0-9]{1,5}" "${LIVE_SCOPE[@]}" 2>/dev/null | sed 's|^\./||'; } > _cited.txt || true
+# 扩展名长度上限原来是 5，够不着 `.rgb565`（6 位）⇒ 文档按路径点名的测试图案
+# （`data/inputs/*_512x300.rgb565`）在指路射程里是"看不见"的，被下面那圈剪成"没人要"，
+# 而末尾的死链自检照 6 位的形状抓得到它 ⇒ 报死链、拒绝落盘（2026-10-18 实测 2 条）。
+# 只放宽采集侧（7 位），判定侧那条死链自检一个字没动。
+{ grep -rhoE "[A-Za-z0-9_./-]+\.[A-Za-z0-9]{1,7}" "${LIVE_SCOPE[@]}" 2>/dev/null | sed 's|^\./||'; } > _cited.txt || true
 # 射程念出来：数到 0 的那一层要能看出来（旧写法里 `docs submit skill` 三个名字在包内不存在，
 # grep 退 2 被 2>/dev/null 吃掉，set -e 直接把脚本打死——死因不在任何一行输出里）。
 echo "指路射程 $(for g in "${LIVE_SCOPE[@]}"; do printf '%s=%s ' "$g" "$( { find "$g" -type f 2>/dev/null | wc -l; } )"; done)"

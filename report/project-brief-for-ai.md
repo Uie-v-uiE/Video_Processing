@@ -2021,7 +2021,7 @@ bash run_test.sh           # → python src/host/one_click_test.py "$@"
   `.text >= 20000 B`（`:135-149`，原文症状"**空 ELF 看起来成功**"）。
 - 顺序固定：**先 `node build/ps_app.mjs` 出 ELF → 再 `make_boot_image.sh` 打镜像（`bootgen -arch zynq
   -image boot.bif -w -o BOOT.bin`）→ 最后 `flash_qspi.tcl` 写片**。镜像路径由 `VP_BOOT_IMAGE` 给，默认
-  `board/flash/BOOT.bin`；文件不在就直接 `REFUSE: no boot image` + `exit 1`（`board/tcl/flash_qspi.tcl:11,20,32`）。
+  flash 目录里的 `BOOT.bin`（构建产物，不随包）；文件不在就直接 `REFUSE: no boot image` + `exit 1`（`board/tcl/flash_qspi.tcl:11,20,32`）。
 
 ### 16.2 烧写：两种"跑起来"完全不是一回事
 

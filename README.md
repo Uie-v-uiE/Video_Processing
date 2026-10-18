@@ -56,7 +56,7 @@ JTAG 三步链见 `board/README.md`。
 ## 关键数字与出处
 
 板上现在这一版是 r132，位流身份 `build/system.bit md5=cb907d3e4898`（2026-10-17 11:35 那一跑产出，构建日志 `build/r132_streamwrap_build.log`；同一轮读数件 `build/utilization.rpt` / `build/timing_summary.rpt` / `build/power.rpt` 都是 11:36）。下面每一格读数都来自这一块位流那一次构建。
-装法两条都留了痕：JTAG 三步（`ps_jtag_boot` → `program_pl` → `ps_app_reload`）的读数在 `report/log/issues.md` #478；QSPI 固化写了一次并通过 `Verify Operation successful`（进盘镜像 `board/flash/BOOT.bin` md5 `acd8cdd5f060`，日志 `build/evidence/r132_flash_qspi_9_OK.log`），但**冷上电那一度还没验** ⇒ 本页不把它写成"已固化"，等读数回来再改。
+装法两条都留了痕：JTAG 三步（`ps_jtag_boot` → `program_pl` → `ps_app_reload`）的读数在 `report/log/issues.md` #478；QSPI 固化写了一次并通过 `Verify Operation successful`（进盘镜像 进盘镜像 `BOOT.bin`（flash 目录里的构建产物，不随包） md5 `acd8cdd5f060`，日志 `build/evidence/r132_flash_qspi_9_OK.log`），但**冷上电那一度还没验** ⇒ 本页不把它写成"已固化"，等读数回来再改。
 
 主时钟三条：显示像素钟 50 MHz（`clkout0_1`，H_TOTAL 1344 / V_TOTAL 625 ⇒ 场频 59.5 Hz）、PL 逻辑钟 100 MHz（`clk_fpga_0`）、以太网
 收包域 125 MHz（`eth_rxc`）；约束在 `src/constraints/`，含时钟、I/O 窗、时钟不确定度与异步组声明。实现后全设计最差 setup 余量

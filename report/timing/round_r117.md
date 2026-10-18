@@ -74,7 +74,7 @@ R117HOOK ... pins_after=1 replica_cells=10
 ```
 
 ⇒ 这根 239 引脚的广播网在官方树上确实折成 1 引脚、确实长出 10 颗 replica（闭合等式的两边都在）。
-重跑只重启实现段（`build/tcl/r117_resume_impl.tcl`，`system_top_opt.dcp` 是 03:58 那一份、综合网表没被碰过），
+重跑只重启实现段（仓库留档 `r117_resume_impl.tcl`（不随包），`system_top_opt.dcp` 是 03:58 那一份、综合网表没被碰过），
 判据 A1..A5 一字未改。另外一条与 #319/#320 同族的工具账：**A1 的出水口有兩個**——钩子跑在 run 自己的进程里，
 `puts` 落在 `impl_1/runme.log` 而不是顶层控制台，只读顶层会把"机制动了"读成 `MECHANISM_INERT`，
 所以正式判读用 `build/r117_a1_read.sh`（两处都读 + 自己算闭合等式）。

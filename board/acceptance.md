@@ -134,7 +134,7 @@ E2 由在场的人确认（原话"现在画面正常只有一条"，含 0.50× +
   能量到的是几何（`C5b/C5c`）不是新鲜度，所以"晚一帧"这一档只能由人判。
 - **QSPI 固化（本轮新增的一度，未完成）**：`board/tcl/flash_qspi.tcl` 一次写盘 `SF: 33554432 bytes @ 0x0 Erased: OK`
   → `Program Operation successful` → `Verify Operation successful` → `PROGRAM_RC 0`，进盘镜像
-  `board/flash/BOOT.bin` md5 `acd8cdd5f060`（内含位流 `cb907d3e4898`），日志 `build/evidence/r132_flash_qspi_9_OK.log`。
+  进盘镜像 `BOOT.bin`（不随包） md5 `acd8cdd5f060`（内含位流 `cb907d3e4898`），日志 `build/evidence/r132_flash_qspi_9_OK.log`。
   ✅ **回显那一半已经回来**（2026-10-18 使用者原话："那个启动是有回显的"）：断电重上电之后 COM6 出字，
   判据是"启动档拨到 QSPI、断电 10 秒后冷上电，屏上有画面且 COM6 出字"——"可启动性"这一步不再是零证明：
   "Program/Verify successful 对可启动性零证明"（#405 的口径）已被这一次实行动作补上一半。
