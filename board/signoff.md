@@ -294,9 +294,9 @@
 | L5 | E5 原话字面只覆盖"第一个" | PASS（限定） | **交裁决**：`report/questions-for-team.md` 的 Q2 |
 | L6 | 最差 20 条 hold 时钟偏斜的逐条重读（r92 那一次的读法） | NOT_MEASURED | **修**：`build/hold_paths.rpt` 在盘上，重跑一次 `report_timing` 的逐条读法即可，不需要人 |
 | L7 | SD 播放帧率的滑窗读数（本版） | NOT_MEASURED | **修**：`build/evidence/r87_boot_stat_drain.txt:4-5` 是 r87 的 `29.956 / 29.815 fps`；r118 只回读到 `sd=1 playing=1 frames=4398`（不随时间变化 ⇒ 上位机不在推流、SD 帧窗没在动），要重取需要板子在场 |
-| L8 | `data/metrics.csv:15` 写 141 条而 `build/tb_v98_report.txt` 现在数出 162 条（provenance 也不同一串） | FAIL（文档同源，不是功能） | **交裁决**：`data/metrics.csv` 不在可改范围（禁区），`report/questions-for-team.md` 的 Q4 |
-| L9 | `data/metrics.csv:14` 写门禁"22 项"而 `build/r118_gates.txt:53` 印"判定 24 项" | FAIL（文档同源，不是功能） | **交裁决**：同上，并进 `report/questions-for-team.md` 的 Q4（同一族，一次问） |
-| L10 | `data/metrics.csv:28` 写 `Max Ambient 57.5 ℃` 而 `build/power.rpt:38` 印 `57.4` | FAIL（文档同源，不在那个检查脚本的覆盖范围里） | **交裁决**：并进 `report/questions-for-team.md` 的 Q4；顺带记一句：`metric_recheck` 的 `fromPower()` 不取这一格，所以它永远不会报未通过 |
+| L8 | `data/metrics.csv:15` 写 141 条而 `build/tb_v98_report.txt` 现在数出 162 条（provenance 也不同一串） | 已修（2026-10-18 本轮） | **当时的处置是「交裁决」**：理由是「`data/metrics.csv` 不在可改范围（禁区）」。本轮用户的指示是「文档该同步的同步」，据此把第 15 行重算成现件：165 条判定 / 0 条 FAIL、头部三枚 md5 与现树同批、耗时按 xsim 自报约 202 分钟；复跑 `metric_recheck` 判 117 个数红 0、`round_bit_pairing` GREEN。改动账在 `report/log/issues.md` #482。 |
+| L9 | `data/metrics.csv:14` 写门禁"22 项"而 `build/r118_gates.txt:53` 印"判定 24 项" | 已修（2026-10-18 本轮） | 项数争议由运行钉死：`build/r132_gates.txt` 末行 `GATES: ALL PASS（24 项全部判定）`（两跑逐字节一致）；`data/metrics.csv:14` 改成 24 项——原来那个 22 是某一轮的绿数被当成项数抄进表。#480/#482。 |
+| L10 | `data/metrics.csv:28` 写 `Max Ambient 57.5 ℃` 而 `build/power.rpt:38` 印 `57.4` | 已修（本轮之前的同步里） | `data/metrics.csv:28` 现在写 `Max Ambient 57.4 ℃`，与 `build/power.rpt:39` 的 `Max Ambient (C) 57.4` 一致；结温 52.6 ℃ 与动态 2.213 W 同源同一份报告（工具置信度仍是 Low）。 |
 | L11 | `board_now.txt:1` 写的"刷入时刻"与 `bitcycle_console.txt` 里 `program_pl` 两步前缀的时刻、`board_verify_console.txt:1` 抬头的时刻相差约 2 分钟，件里没有那次刷入动作自身的日志行（逐字时刻都在那三件里，本表不复述） | NOT_MEASURED | **交裁决**：`report/questions-for-team.md` 的 Q3 |
 | L12 | S10 里"4 条 `[TEMP]` 的逐条 degC"没有单独被跟踪件（本版只有 2 条原始回显） | PASS（判定）+ 覆盖范围不足 | **修**：`board_verify_console.txt:15` 那条的计数下限是 `[TEMP]=2`，而电池那句念"4 条"——两个下限不同；把电池的 4 条也 grep 成被跟踪件（`build/evidence/r113_temp_lines.txt` 那种写法）就是修法 |
 | L13 | `#170/#171` 板级 abort 注入（S18） | NOT_MEASURED | **修**：需要 `--drop-packet` 注入 + 复看 `eth_ready`，机器能做，但无人值守下不碰板子 |
