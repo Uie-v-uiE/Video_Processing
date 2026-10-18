@@ -64,7 +64,7 @@ if (want('C0-4')) {
     && !/^\/(send_demo|run[_-]?\w*)\.(bat|cmd|sh)$/.test(t));
   const rootEntries = [...top].filter(t => /^\/(send_demo|run[_-]?\w*)\.(bat|cmd|sh)$/.test(t));
   const missing = [...requiredDirs].filter(d => !top.has(d));
-  const renamed = top.has('skill') ? 'skill/ 需改名 skill/' : '';
+  const renamed = top.has('skills') ? '顶层有 skills/，名册目录名按赛题应为 skill/' : '';
   say('C0-4', 'top-level-structure', top.size, `多余=${extra.length}[${extra.slice(0, 8).join(',')}] 缺目录=${missing.length}[${missing.join(',')}] ${renamed} 双击入口豁免=${rootEntries.length}`, extra.length || missing.length ? 'FAIL' : 'PASS');
 }
 // ---- C1-1 约束在 src/constraints（过程凭据里的实验用 .xdc 单列，不混进"活动约束集"）
