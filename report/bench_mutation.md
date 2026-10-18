@@ -1,6 +1,6 @@
 # 台架怎么被跑起来，以及"改前必须红"怎么做
 
-写法与判据为什么要能红：`skills/pitfalls/ruler-fake-greens/SKILL.md`；
+写法与判据为什么要能红：`skill/pitfalls/ruler-fake-greens/SKILL.md`；
 台架清单本身（文件名 → 被测模块 → 功能 → 预期结果）由 `node build/gen_sim_readme.mjs --apply`
 从每支 `sim/tb_*.v` 的三段头注释生成，落在 `sim/README.md`，那一页只有表格与运行命令。
 

@@ -3,7 +3,7 @@
 # 依赖：仓库根目录的本机 python3；只读文件、只改文本，不碰构建产物与硬件。
 # 输入：工作树里 EDITS 点名的六份文档（board/raw-vs-golden.md、build/provenance.md、
 #       report/technical-document.md、report/collaboration/README.md、
-#       skills/templates/project-skeleton/templates/skeleton.md、src/host/README.md）。
+#       skill/templates/project-skeleton/templates/skeleton.md、src/host/README.md）。
 # 输出：stdout 每条规则一行 HIT/OKAY/BAD，最后一行 APPLY/CHECK-ONLY 的总账；--apply 时把改后文本写回原文件。
 # 关键参数：第一个参数 check（默认，只判不写）或 apply；其余值按 check 处理（不会写盘）。
 # 退出码：0 全部命中；1 有不命中或行数不符 ⇒ 整批不落盘。
@@ -34,7 +34,7 @@ EDITS = [
         'report/collaboration/metrics.md           # 成本统计：全部现算，附命令与分母',
         'report/collaboration/redaction.md         # 脱敏台账（9 行处置 + 仓库既有命中的移交）',
     ], []),
-    ('skills/templates/project-skeleton/templates/skeleton.md', [], [], [
+    ('skill/templates/project-skeleton/templates/skeleton.md', [], [], [
         '`sim/run.sh`',
         '`docs/open-issues.md`',
     ]),

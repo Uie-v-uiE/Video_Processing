@@ -288,7 +288,7 @@ run_all() { # run_all <paths> <hw> <md> <root> <declarations>
     c2 "$hw";           line C2a "敏感信息——手写件（绝对路径/用户名/令牌/内网地址/机器名；串口名允许）" "$C2N" "$C2D" "$C2V"
     c2 "$GEN";          line C2b "敏感信息——工具生成件（处置口径不同：由导出器成包时剔除）" "$C2N" "生成件在仓库里留档不脱敏，交付包内由 build/make_submission.sh 判据 4 要求本机绝对路径=0；批准人【队伍未确认】；$C2D" "$C2V"
     c3 "$hw" "$decl";   line C3  "器件与版本声明一致性（权威值只允许 $decl 一处，其余是引用）" "$C3N" "$C3D" "$C3V"
-    line C3d "重复抄写权威值的文件数（抄写 vs 引用）" "$C3DUP" "只报数：P20 铁律 4 的红条件是「两处不一致」而不是「有两处」；把抄写改成引用要动 report/ 与 skills/，本轮是禁区 ⇒ 这条判据没有牙" "NOT_MEASURED"
+    line C3d "重复抄写权威值的文件数（抄写 vs 引用）" "$C3DUP" "只报数：P20 铁律 4 的红条件是「两处不一致」而不是「有两处」；把抄写改成引用要动 report/ 与 skill/，本轮是禁区 ⇒ 这条判据没有牙" "NOT_MEASURED"
     c4 "$hw";           line C4  "许可黑名单标记（仅供评估/禁止再分发/non-commercial/GPL/LGPL/AGPL/CC/confidential/保密/NDA/all rights reserved）" "$C4N" "$C4D" "$C4V"
     gencopy=$(tr '\n' '\0' < "$GEN" | xargs -0 grep -lE "Copyright 1986-2022 Xilinx|2022-2026 Advanced Micro Devices" 2>/dev/null | wc -l)
     line C4b "生成件里带 Xilinx/AMD 版权行的文件数（要求保留声明 ⇒ 不是违规，但要逐类登记）" "$NGEN" "带行文件 $gencopy；本行只报数：「是否每一类都在登记表里有行」要人读 docs/provenance-and-licenses.md，脚本动不了它 ⇒ 这条判据没有牙" "NOT_MEASURED"

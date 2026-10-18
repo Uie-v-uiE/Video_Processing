@@ -10,16 +10,16 @@ RGMII 还原成 GMII、重组以太网帧、按端口过滤，载荷由 PL 作 A
 
 片源有三路——网口的 UDP 视频流、SD 卡上的预转换帧序列、PL 自绘的测试图卡——由 `src_arb` 仲裁，长按按键切换。PL 内的 `link_monitor`
 持续统计收包数、丢包数与帧间隔，同一组计数既画在 OSD 上，也能经 AXI GPIO 用 xsdb 读回（GPIO_0 选要读哪一格、GPIO_1 取那一格的值），还能用串口命令
-清零。RTL 与上位机之外，仓库里还有 82 支 testbench（`sim/tb_*.v`）和 49 条与本题解耦的做法条目（`skills/`），工具报告全部可以用下面的命令重跑。
+清零。RTL 与上位机之外，仓库里还有 83 支 testbench（`sim/tb_*.v`）和 49 条与本题解耦的做法条目（`skill/`），工具报告全部可以用下面的命令重跑。
 
 ## 目录导览
 
 src/ —— `src/rtl/` 80 个 .v、`src/ps/` PS 侧 C、`src/constraints/` 9 份 .xdc（在用 2 份，其余 7 份是候选/实验件）、`src/host/` 26 支 .mjs 与 3 支 .py 上位机工具  
-sim/ —— 顶层 83 份 .v（其中 82 支 `tb_*.v`），跑法见 `sim/README.md` 表格下方那一行  
+sim/ —— 顶层 84 份 .v（其中 83 支 `tb_*.v`），跑法见 `sim/README.md` 表格下方那一行  
 build/ —— 7 份流程入口 TCL、检查器与 `build/report/` 下 7 份工具原始报告  
 board/ —— 上板工程、三步 JTAG 烧写脚本与实测输出（串口留档、板级校验读数）  
 data/ —— 测试数据与参考结果：`data/inputs/` 8 份输入序列、`data/golden/` 参考图、`data/metrics.csv` 第 1 行是表头、往下 28 行指标  
-skills/ —— 49 条 SKILL.md 技能条目，各写适用范围、使用方法、失效条件与已验证的复用结果  
+skill/ —— 49 条 SKILL.md 技能条目，各写适用范围、使用方法、失效条件与已验证的复用结果  
 report/ —— 设计报告、失败分析、复现说明与大模型协作记录  
 
 ## 从零复现
@@ -56,7 +56,7 @@ JTAG 三步链见 `board/README.md`。
 ## 关键数字与出处
 
 板上现在这一版是 r132，位流身份 `build/system.bit md5=cb907d3e4898`（2026-10-17 11:35 那一跑产出，构建日志 `build/r132_streamwrap_build.log`；同一轮读数件 `build/utilization.rpt` / `build/timing_summary.rpt` / `build/power.rpt` 都是 11:36）。下面每一格读数都来自这一块位流那一次构建。
-装法两条都留了痕：JTAG 三步（`ps_jtag_boot` → `program_pl` → `ps_app_reload`）的读数在 `report/log/issues.md` #478；QSPI 固化写了一次并通过 `Verify Operation successful`（进盘镜像 进盘镜像 `BOOT.bin`（flash 目录里的构建产物，不随包） md5 `acd8cdd5f060`，日志 `build/evidence/r132_flash_qspi_9_OK.log`），但**冷上电那一度还没验** ⇒ 本页不把它写成"已固化"，等读数回来再改。
+装法两条都留了痕：JTAG 三步（`ps_jtag_boot` → `program_pl` → `ps_app_reload`）的读数在 `report/log/issues.md` #478；QSPI 固化写了一次并通过 `Verify Operation successful`（进盘镜像 进盘镜像 `BOOT.bin`（flash 目录里的构建产物，不随包） md5 `acd8cdd5f060`，日志 `build/evidence/r132_flash_qspi_9_ok.log`），但**冷上电那一度还没验** ⇒ 本页不把它写成"已固化"，等读数回来再改。
 
 主时钟三条：显示像素钟 50 MHz（`clkout0_1`，H_TOTAL 1344 / V_TOTAL 625 ⇒ 场频 59.5 Hz）、PL 逻辑钟 100 MHz（`clk_fpga_0`）、以太网
 收包域 125 MHz（`eth_rxc`）；约束在 `src/constraints/`，含时钟、I/O 窗、时钟不确定度与异步组声明。实现后全设计最差 setup 余量

@@ -27,7 +27,7 @@
 死链 report/50-results.md -> docs/run-queue.md
 死链 report/50-results.md -> docs/timing/ROUND_r116.md
 死链 report/50-results.md -> docs/timing/ROUND_r118.md
-== 自检：死链 126 ／ 旧名残留 0 ／ 带绝对路径的脚本 17 （./board/firmware/ps_app.elf.md ./board/signoff.md ./build/README.md ./build/runs/ledger.md ./report/60-failure-analysis.md ./report/70-reproduce.md ./report/figures/legend.md ./scripts/check_repo_hygiene.sh ./skill/_meta/sources.md ./skill/pitfalls/_proposed-sources.md ./skill/pitfalls/who-else-writes-this-artifact/SKILL.md ./skill/pitfalls/win-bash-path-split/SKILL.md ./skill/prompts/_proposed-sources.md ./skill/references/build-report-field-map/fields-timing.md ./skill/templates/report-forms/SKILL.md ./skill/templates/script-template/SKILL.md ./src/host/lane30_watch.mjs ） ==
+== 自检：死链 126 ／ 旧名残留 0 ／ 带绝对路径的脚本 17 （./board/firmware/ps_app.elf.md ./board/signoff.md ./build/README.md ./build/runs/ledger.md ./report/60-failure-analysis.md ./report/70-reproduce.md ./report/figures/legend.md ./scripts/check_repo_hygiene.sh ./旧条目名 _meta/sources.md（盘上无此路径） ./旧条目名 pitfalls/_proposed-sources.md（盘上无此路径） ./旧条目名 pitfalls/who-else-writes-this-artifact/SKILL.md（盘上无此路径） ./旧条目名 pitfalls/win-bash-path-split/SKILL.md（盘上无此路径） ./旧条目名 prompts/_proposed-sources.md（盘上无此路径） ./skill/references/build-report-field-map/fields-timing.md ./旧条目名 templates/report-forms/SKILL.md（盘上无此路径） ./旧条目名 templates/script-template/SKILL.md（盘上无此路径） ./src/host/lane30_watch.mjs ） ==
 
 导出提交 8a3d58d：781 个文件 / 19M，剪掉 2740 条，死链 126，旧名残留 0，绝对路径 17
 包内自洽：入口脚本按 glob 找凭据的引用共核对 1 条（核对数为 0 时这一条是空的，别念成绿）

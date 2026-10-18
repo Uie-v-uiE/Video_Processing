@@ -37,7 +37,7 @@
   下面那条"已定位的原因"当时是**假设**，实测把它否证了一半：冻住角度确实只剩 1~2 行的静态行差（假设的预测成立），
   但帧头那几行真正发的不是"上一帧的尾巴"，而是**处理抽头提前发了下一行**——
   正本在 `report/08-limits.md` §1，两臂对照（帧锚定流 vs 绕回连续流）的量数在
-  `build/evidence/r132_winC_four_cells.log`（台架 `sim/tb_v103_pipe_bypass.v` 的窗口 C）。
+  `build/evidence/r132_winc_four_cells.log`（台架 `sim/tb_v103_pipe_bypass.v` 的窗口 C）。
   下面几段是**修之前**写的，原文保留，只由本条点明哪一句已被实测替换。
 
 - **现象（含证据）**：整屏逐像素判定里的 `C5c` 每一轮都判为不通过，`build/r118_gates.txt` 第 34 行
@@ -327,16 +327,16 @@
 
 ### A14 · 技能包装配：旧包量到 2 红 1 未测，今天的两条等价命令都判绿（这条债已还）
 
-- **现象（含证据）**：旧包的 `gates.mjs`（该件在 2026-10-04 c7b325f 重建技能包后**现不存在**，下面引的是它当时的原文，只报数不指路）`node skills/scripts/check/gates.mjs` 退出码 **1**，末行
+- **现象（含证据）**：旧包的 `gates.mjs`（该件在 2026-10-04 c7b325f 重建技能包后**现不存在**，下面引的是它当时的原文，只报数不指路）`node skill/_meta/check-skill-package.mjs` 退出码 **1**，末行
   `GATES 技能包：判定 12 项 绿=9 红=2 未测=1 —— 有红项，不提交`。红项两条：
-  `G2 条目外壳与 name … 判 38 项 不合=13 例:skills/scripts/contract_gen:缺 SKILL.md … FAIL`；
+  `G2 条目外壳与 name … 判 38 项 不合=13 例:skill/scripts/contract_gen:缺 SKILL.md … FAIL`；
   `G10 本队专有名 … 名单=78 命中=24 未标注=9 例:proc_pipeline zoom_snap system_top FAIL`。
-  未测一条：`G11 脚本 selftest 可跑 … 判 0 项 缺 skills/scripts/selftest/run_all.sh NOT_MEASURED`。（`run_all.sh` 与 `gates.mjs` 都**现不存在**；今天的等价件末行是 `SKILL-SELFTEST 判 16 项 不符=0 PASS` 与 `判 53 项：条目=49 索引=50 红=0 未测=0 PASS`。）
+  未测一条：`G11 脚本 selftest 可跑 … 判 0 项 缺 skill/_meta/run-all-checks.mjs NOT_MEASURED`。（`run_all.sh` 与 `gates.mjs` 都**现不存在**；今天的等价件末行是 `SKILL-SELFTEST 判 16 项 不符=0 PASS` 与 `判 53 项：条目=49 索引=50 红=0 未测=0 PASS`。）
 - **已定位的原因（可被判别）**：那 2 红 1 未测是**装配没完成**时的读数，不是检查脚本坏——`report/run-queue.md` 的 P04/P07/P09 三行现在都写
   "已交付"（P09 那句是 `技能包门禁 12 项全绿、无未测`），与今天两条 PASS 读数对得上，所以这一格是**已还的债**，留在 A 组只把旧读数与今读数并排给读者。
   **可判别处**：它随时能被重新判红——`check-skill-package.mjs` 的末行一旦从 `红=0` 变成 `红>0`，装配债就挂回来，尺子还在原位。
-- **判别方法**：`node skills/_meta/check-skill-package.mjs skills`（一个条目一行、判定在最后一个字段，末行 `判 53 项：条目=49 索引=50 红=0 未测=0 PASS`）
-  与 `node skills/_meta/check-selftest.mjs`（末行 `SKILL-SELFTEST 判 16 项 不符=0 PASS`）——旧包的 `--only G2,G10,G11` 开关没有等价物，件现不存在；
+- **判别方法**：`node skill/_meta/check-skill-package.mjs skill`（一个条目一行、判定在最后一个字段，末行 `判 53 项：条目=49 索引=50 红=0 未测=0 PASS`）
+  与 `node skill/_meta/check-selftest.mjs`（末行 `SKILL-SELFTEST 判 16 项 不符=0 PASS`）——旧包的 `--only G2,G10,G11` 开关没有等价物，件现不存在；
   这一族里唯一还开着的缺口不是装配，而是 P08 那格"同一模板连跑 3 次"的效果对照，它挂在 B13，不在这里重复计。
 - **现在的处置（是否影响演示）**：旧读数按原样留着（不通过 2 条、未测 1 条），今读数也按原样留着（`红=0 未测=0 PASS`），两边都不改写；
   工程侧的演示与技能包装配是两件事，互不影响。
@@ -513,16 +513,16 @@
 ### B13 · 技能条目的"基线 vs 用它之后"效果对比（15 分那一格的正面凭据）
 
 - **现象（缺口）**：旧包 `gates.mjs`（当时的原文，件**现不存在**，只报数不指路）的 G9 行打印
-  `降级标记计数 判 86 项 总309 …`；先前引过的 `skills/README.md` 那句"效果对比多数来自历史件而非本轮重跑，逐条标注在各条目 §7 内"
-  在今天这版 `skills/README.md`（全文 184 行）里**已经不存在**，那一处引用指不到出处，按 `report/90-open-items.md` 的规矩保持 `【待验证】` 标记而不是删掉；
-  仍然读实的是 `skills/prompts/` 四个模板的「已验证效果」一节逐份写"未量过，属建议"（`grep -A1 "^## 已验证效果" skills/prompts/*/SKILL.md` 四份同构）。
+  `降级标记计数 判 86 项 总309 …`；先前引过的 `skill/README.md` 那句"效果对比多数来自历史件而非本轮重跑，逐条标注在各条目 §7 内"
+  在今天这版 `skill/README.md`（全文 184 行）里**已经不存在**，那一处引用指不到出处，按 `report/90-open-items.md` 的规矩保持 `【待验证】` 标记而不是删掉；
+  仍然读实的是 `skill/prompts/` 四个模板的「已验证效果」一节逐份写"未量过，属建议"（`grep -A1 "^## 已验证效果" skill/prompts/*/SKILL.md` 四份同构）。
 - **已定位的原因（可被判别）**：这不是假设而是**没做**：看的是"同一模板连跑 3 次的产出差异"，
   跑完就有数，跑不出来就只能保持"未测试"。
-- **判别方法**：谁在任意题目上按 `skills/prompts/*/SKILL.md` 的 §5 连跑 3 次，把三次的表头一致性与
-  "是否只念全局 WNS"记进 `skills/evals/records/`——**这一路当前不在盘上**：`ls skills/evals` 报 No such file or directory，
+- **判别方法**：谁在任意题目上按 `skill/prompts/*/SKILL.md` 的 §5 连跑 3 次，把三次的表头一致性与
+  "是否只念全局 WNS"记进 `skill/evals/records/`——**这一路当前不在盘上**：`ls skill/evals` 报 No such file or directory，
   所以它既不是"空的"也不是"有红项"，而是那批 records 在这份包里从来没存在过 ⇒ `report/run-queue.md` 的 P08 行仍写"部分交付"、
   缺的正是"同一模板连跑 3 次的增益对照"，这一格只能明写"指不到"。
-- **现在的处置（是否影响演示）**：效果对比那一栏保持"未测试"，`skills/evals/records/` 不在盘上，指不到就明写指不到；
+- **现在的处置（是否影响演示）**：效果对比那一栏保持"未测试"，`skill/evals/records/` 不在盘上，指不到就明写指不到；
   演示不受影响。
 - **计划与成本**：3 次会话/条 × 4 条模板 ≈ 每条半小时，是这一篇里最便宜就能补上"效果"那一栏的一件事。
 
@@ -576,7 +576,7 @@
 | 串口命令表 | 105 条命令 / 97.9 s，`board_verify` 判红步骤 0，件 `build/evidence/r118_board/board_verify_console.txt` 的末行。同族历史件曾登记 **36** 份 `build/evidence/verify_*.batt.txt`（最早 `verify_0926_1910`、最新 `verify_1004_0447`），提交包精简后那一批**现不存在**（`ls build/evidence/verify_*.batt.txt` 零命中），仍在盘上的另一跑总判定是 `build/r104_board_verify_console.txt` | 电池覆盖的是**命令表的行为形状**，不含 A3 的 127 字节越界那一档（`board/cmd_overflow_probe.sh` 是另一支，且它当前只红在恢复不了的那一档） |
 | 几何最后一跳 | `RESULT PASS geom_check（ok=10 fail=0）`，同一份件；G 族含 G5/G5b 那两条"旋转钳不变量" | 不判逐像素源行 ⇒ #189 缺一条板级机器判定（`known_issues.md` §12 明写"本条没有板级机器判据"）不在这一格里闭合 |
 | 时序/资源 | 发布前检查 24 项判定、`build/r118_gates.txt` 末行 `GATES: 有红项（判定 24 项）` ⇒ **不是全部通过**；端点总数 51135 | 绝对值跨构建差不算收益也不算损失（规矩 35）；且收口 I/O 无窗（A5）⇒ "零违例"这句话只覆盖片内路径 |
-| 台架 | `sim/tb_*.v` 现算 **82** 支；`build/sim/run_sim.tcl` 是全量入口（通配符收全部） | 全量那一跑**没跑过**（一次批跑占整台机器）。`tb_link_monitor` 长期不通过且不在发布前检查里（A2）⇒ "82 支都过"这句话不能说 |
+| 台架 | `sim/tb_*.v` 现算 **83** 支；`build/sim/run_sim.tcl` 是全量入口（通配符收全部） | 全量那一跑**没跑过**（一次批跑占整台机器）。`tb_link_monitor` 长期不通过且不在发布前检查里（A2）⇒ "82 支都过"这句话不能说 |
 | 人眼判定 | E1/E2/E3/E4/E4r/E5/E6 在 `board/acceptance.md` 都带"谁点的头 + 什么时候 + 原话"，E4 的"四角在不在屏内"由队员 2026-10-04 判过（原话「现在屏幕没问题了四角都在屏幕内」） | 眼睛只分辨 0 档与 ≥1 档这类差分，分辨不了位移宽窄（A1 里那条被眼睛判掉的定量预测就是证据）；E6 的对照一半仍未做（B4） |
 | 文档一致性 | 四套文本检查都在树里可跑且当前全绿：`doc_enc_check`（手写件全干净）、`line_cite_check`（`D5: CLEAN`，硬错 0）、`doc_currency_check`（`CURRENCY: 干净`）、`metric_recheck`（判 117 个数红 0）；扫描份数与命中条数由那一次跑自己打印，随交付树变，重跑即得当下的数 | 这四套都不覆盖 `board/` 的实测读数 ⇒ A13 那一格是覆盖范围外，不是回归 |
 
@@ -603,10 +603,10 @@
 ## 取证清单（这一篇每一条都能当场重打开/重跑的东西）
 
 - 只读探测（命令写在正文对应那一条里，下面这串是它们的清单）：
-  `ls`（`report/`、`board/`、`build/evidence/`、`sim/`、`skills/`、`skills/_meta/`、`src/constraints/`、`data/golden/`）、`find`（`run_*.bat`）、`which`（vivado/xsdb/arm-none-eabi-gcc）、
+  `ls`（`report/`、`board/`、`build/evidence/`、`sim/`、`skill/`、`skill/_meta/`、`src/constraints/`、`data/golden/`）、`find`（`run_*.bat`）、`which`（vivado/xsdb/arm-none-eabi-gcc）、
   `node --version`、`python --version`、`python3 --version`、`bash --version`、`git --version`、`bash -n`（六支入口脚本）、`md5sum build/system.bit`、`md5sum build/ps_app.elf`、
-  `git log -1 --format=%ci -- build/ps_app.elf`、`grep -rn "2\.207" board/`、`ls sim/ | grep -i angle`、`grep -A1 "^## 已验证效果" skills/prompts/*/SKILL.md`、
-  `node skills/scripts/check/gates.mjs`（旧包件，2026-10-04 c7b325f 重建后**现不存在**；今天的等价件是 `node skills/_meta/check-skill-package.mjs skills` 与 `node skills/_meta/check-selftest.mjs`）、
+  `git log -1 --format=%ci -- build/ps_app.elf`、`grep -rn "2\.207" board/`、`ls sim/ | grep -i angle`、`grep -A1 "^## 已验证效果" skill/prompts/*/SKILL.md`、
+  `node skill/_meta/check-skill-package.mjs`（旧包件，2026-10-04 c7b325f 重建后**现不存在**；今天的等价件是 `node skill/_meta/check-skill-package.mjs skill` 与 `node skill/_meta/check-selftest.mjs`）、
   `node src/host/doc_enc_check.mjs`、`node src/host/line_cite_check.mjs`、`node src/host/doc_currency_check.mjs`、`node src/host/metric_recheck.mjs`、
   `python build/check_io_timing_coverage.py build/timing_summary.rpt`、`python build/check_ports.py --dup`、`node build/r119_window_check.mjs --self`、
   `grep -n link_monitor build/gates.sh`、`grep -n cmd_len src/ps/main.c`、`grep -n gapclr src/rtl/eth/link_monitor.v`

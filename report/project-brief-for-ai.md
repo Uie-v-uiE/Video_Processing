@@ -2051,7 +2051,7 @@ bash run_test.sh           # → python src/host/one_click_test.py "$@"
 - 屏幕只回放含 `FAIL/PASS/INFO/PROBE/DIAG` 的前 80 行 ⇒ **回放里没有的东西不等于没发生**，
   判据要读 `run.log` 原件。
 - 判定行以 `VERDICT <tb>:` 开头（`sim/README.md:24`），退出码含义 `:25`，原始输出与**源树指纹** `:26-27`。
-- 全量：`build/sim/run_sim.tcl`（82 支），可用 `SIM_TB`/`SIM_ONLY`/`SIM_VERBOSE`/`SIM_ARGS`。
+- 全量：`build/sim/run_sim.tcl`（83 支），可用 `SIM_TB`/`SIM_ONLY`/`SIM_VERBOSE`/`SIM_ARGS`。
 - **第二家仿真器（2026-10-15 实测，`实测`）**：本机 ModelSim SE-64 2020.4 可用；82 支台架已全部一次 `vlog -f`（164 份，rc=0），
   其中 **80 支跑到收尾**、2 支超单支 240 s 上限（`tb_v98_c8_edge_column`、`tb_v98_top_seam`；后者另已单独跑完整支 20 分 39 秒）。
   **已发现 2 条真·跨工具判定不同**：`tb_v100_fit_rot`（ModelSim `checks=373 errors=2` / xsim `errors=0`）、
@@ -2064,7 +2064,7 @@ bash run_test.sh           # → python src/host/one_click_test.py "$@"
 - `tb_v112_ip_csum` **两家都红** `errors=7`，但**这不是新 bug**：`report/log/issues.md:11232-11237` 记它是"一次失败的尺子……
   文件留着、**不进车道**"（抓取时机理解错了，等价性改由发出字节的差分承担）。
 - ⚠ **口径**：门禁 24 项只显式引用 `tb_v98_top_seam`（`build/gates.sh:307-375`）与 `tb_edge_rim`（`:388-418`）两支台架的**凭据件**，
-  外加 `build/run_one_ce.sh`（判定解析器的合成对照，不跑真台架）⇒ **"GATES: ALL PASS" 不等于"82 支台架全绿"**；
+  外加 `build/run_one_ce.sh`（判定解析器的合成对照，不跑真台架）⇒ **"GATES: ALL PASS" 不等于"83 支台架全绿"**；
   问"这件事有没有判据守着"要先问**它在不在车道里**。详见 `report/study/学习文档_合订本.md` §6.13"扩到整仓"小节。
 - 门禁另有 `build/run_one_ce.sh`（CDC 专项台架）与 `rtl_fingerprint`（同源指纹）。
 

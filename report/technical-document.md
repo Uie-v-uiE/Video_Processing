@@ -334,7 +334,7 @@ VP_QSPI_PART="mx25l25645g-qspi-x4-single" \
 | `build/` | 构建脚本与综合/实现报告、门禁、证据件 |
 | `board/` | 上板工程（Vivado 工程 + Vitis 平台）、运行脚本、实测输出、QSPI 固化脚本 |
 | `data/` | 测试向量、黄金参考、`metrics.csv` 指标表 |
-| `skills/` | 技能包（49 条，八节外壳） |
+| `skill/` | 技能包（49 条，八节外壳） |
 | `report/` | 设计报告分章、协作记录、限制与欠账 |
 
 指标表 `data/metrics.csv` 是数字的唯一出口，每行都点名它的证据文件；

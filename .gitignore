@@ -185,3 +185,6 @@ board/flash/*.log
 deep_course/
 local_docs/
 dcb_timing_chain_plan.md
+
+# Vitis 脚本重建的 workspace（36 MB 级，随跑随生成，不入库）
+board/vitis_ws*/

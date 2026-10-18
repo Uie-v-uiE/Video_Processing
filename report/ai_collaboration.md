@@ -61,13 +61,13 @@
 PHY 把 RXC 拉慢、簇链越界）。问题编号 #50 那一次的根因是空间的一条：FAT32 目录项偏移 20 的 16 位小端高簇字被按大端拼。
 转折点是把失败分支打印的"想去的位置 + 它是怎么算出来的 + 合法边界 + 当场分类"这四行几何量加上，第一次跑就打出
 `lba=536959104 clus=16778886 OUT-OF-RANGE`（`report/log/issues.md:703` 起的 #50；那四行仪器与读数在 `:797-811`，
-机制更正与"按住内核"那条在 `:772-780`）。做法当时写成一张旧包平铺卡；该卡没升格为通用条目，2026-10-04 提交 `c7b325f` 重建后那个旧名现不存在（`skills/pitfalls/failing-read-prints-geometry/SKILL.md`，现不存在），可复跑的落点就是上面那四行仪器与读数。
+机制更正与"按住内核"那条在 `:772-780`）。做法当时写成一张旧包平铺卡；该卡没升格为通用条目，2026-10-04 提交 `c7b325f` 重建后那个旧名现不存在（`旧条目名 pitfalls/failing-read-prints-geometry/SKILL.md（盘上无此路径）`，现不存在），可复跑的落点就是上面那四行仪器与读数。
 
 **第 2 段防"顺手改宽"。** 一次改多件事之后，任何一个数都无法归因到某一个改动。
 
 **第 3 段防"看起来完成了"。** "通过着却是错的"在这个仓库已经自成一族；现在这一族的成文位置是
-`skills/verify/mutation-controlled-coverage`（治"某条判定标准从来没判过不通过"）。当时写成的另一张旧包平铺卡
-`skills/pitfalls/criterion-blind-spot/SKILL.md` 在 2026-10-04 提交 `c7b325f` 重建后**现不存在**。
+`skill/verify/mutation-controlled-coverage`（治"某条判定标准从来没判过不通过"）。当时写成的另一张旧包平铺卡
+`旧条目名 pitfalls/criterion-blind-spot/SKILL.md（盘上无此路径）` 在 2026-10-04 提交 `c7b325f` 重建后**现不存在**。
 
 下面五条模板是实际在用的形状，可以直接抄。模板正文属于原话，一个字没动。
 
@@ -391,25 +391,25 @@ WNS 转正后**发布前检查第 14 项与冻结**都会跟着判通过。"
   "序指标，不是毫秒"；`--gapclr` 只归零帧间隔那三条 lane，其余 lane 仍是自启动以来（`health_read.mjs:14`、
   `report/log/issues.md:4021` 的 `gap_max` 终身保持语义）。换一个工程，这些限定要重新量，不能沿用。
 
-**已经作为可复用条目沉淀下来的（只指路，内容以 `skills/` 里那一份为准）：**现役 49 条的索引在 `skills/README.md`，
-按症状找条目用 `skills/references/symptom-router/SKILL.md`，本项目里被反复用到的两类做法各有成文条目：
-`skills/verify/mutation-controlled-coverage/SKILL.md`（变异对照怎么写）与
-`skills/references/symptom-router/SKILL.md`（按症状路由到条目）。
+**已经作为可复用条目沉淀下来的（只指路，内容以 `skill/` 里那一份为准）：**现役 49 条的索引在 `skill/README.md`，
+按症状找条目用 `skill/references/symptom-router/SKILL.md`，本项目里被反复用到的两类做法各有成文条目：
+`skill/verify/mutation-controlled-coverage/SKILL.md`（变异对照怎么写）与
+`skill/references/symptom-router/SKILL.md`（按症状路由到条目）。
 
 下面这批名字是 2026-10-04 提交 `c7b325f` 重建之前的旧包平铺写法，只报当时落过的名、不作指路，逐条注明现状：
 
-- `skills/pitfalls/criterion-blind-spot/SKILL.md`——"通过着错"那一族，§4 案例 A/B/C/E 是它的现场；旧名，重建后现不存在
-- `skills/prompts/llm-fpga-debug-workflow/SKILL.md`——交给模型的请求怎么写；旧名，重建后现不存在
-- `skills/prompts/eye-acceptance-loop/SKILL.md`——"发命令、人看屏"那一半的操作规程，§5 与 §6 第 4 笔的落点；旧名，重建后现不存在
-- `skills/pitfalls/frameid-loss-signature/SKILL.md`；旧名，重建后现不存在
-- `skills/pitfalls/artifact-freeze-and-freshness/SKILL.md`；旧名，重建后现不存在
-- `skills/pitfalls/failing-read-prints-geometry/SKILL.md`；旧名，重建后现不存在
-- `skills/pitfalls/cdc-pair-baseline-gate/SKILL.md`；旧名，重建后现不存在
-- `skills/references/bench-self-inflicted-reds/SKILL.md`；旧名，重建后现不存在
-- `skills/pitfalls/derived-clock-port-mux/SKILL.md`；旧名，重建后现不存在
-- `skills/pitfalls/arbiter-pending-pulse/SKILL.md`；旧名，重建后现不存在
-- `skills/runtime/zynq-ddr-bandwidth/SKILL.md`；旧名，重建后现不存在
-- `skills/zynq-video-rtl-debug/` 整个目录；旧包结构，重建后现不存在
+- `旧条目名 pitfalls/criterion-blind-spot/SKILL.md（盘上无此路径）`——"通过着错"那一族，§4 案例 A/B/C/E 是它的现场；旧名，重建后现不存在
+- `旧条目名 prompts/llm-fpga-debug-workflow/SKILL.md（盘上无此路径）`——交给模型的请求怎么写；旧名，重建后现不存在
+- `旧条目名 prompts/eye-acceptance-loop/SKILL.md（盘上无此路径）`——"发命令、人看屏"那一半的操作规程，§5 与 §6 第 4 笔的落点；旧名，重建后现不存在
+- `旧条目名 pitfalls/frameid-loss-signature/SKILL.md（盘上无此路径）`；旧名，重建后现不存在
+- `旧条目名 pitfalls/artifact-freeze-and-freshness/SKILL.md（盘上无此路径）`；旧名，重建后现不存在
+- `旧条目名 pitfalls/failing-read-prints-geometry/SKILL.md（盘上无此路径）`；旧名，重建后现不存在
+- `旧条目名 pitfalls/cdc-pair-baseline-gate/SKILL.md（盘上无此路径）`；旧名，重建后现不存在
+- `旧条目名 references/bench-self-inflicted-reds/SKILL.md（盘上无此路径）`；旧名，重建后现不存在
+- `旧条目名 pitfalls/derived-clock-port-mux/SKILL.md（盘上无此路径）`；旧名，重建后现不存在
+- `旧条目名 pitfalls/arbiter-pending-pulse/SKILL.md（盘上无此路径）`；旧名，重建后现不存在
+- `旧条目名 runtime/zynq-ddr-bandwidth/SKILL.md（盘上无此路径）`；旧名，重建后现不存在
+- `skill/zynq-video-rtl-debug/` 整个目录；旧包结构，重建后现不存在
 
 这批旧名不作指路用：重建后的条目按症状路由，而每个案例的③④两格已经把"当时错在哪"和"后来靠哪条判定标准挡住"
 就地写清了，读者不必再去旧包里找第二次解释。
@@ -459,8 +459,8 @@ WNS 转正后**发布前检查第 14 项与冻结**都会跟着判通过。"
    如果不是**跑完逐条 grep 复核每一条改动**就看不见——而"applied N"这行看起来完全是成功了的样子。规则：
    **同文件多条替换必须在同一份字符串上链式 replace**；跑完按清单逐条验证（新 token 用 `grep -Fc`），
    别信脚本自己报的数字。
-8. **判定标准的覆盖范围也是一个会漂的常量，而它漂的时候不会报警。** 往 `skills/` 加了一条新条目（S29）之后才想起来核对：
-   `src/host/doc_enc_check.mjs` 的 `SCOPE` 里**没有 `skills/`** ⇒ 发布前检查第 17 项连续多天打印"手写文件全部干净"，
+8. **判定标准的覆盖范围也是一个会漂的常量，而它漂的时候不会报警。** 往 `skill/` 加了一条新条目（S29）之后才想起来核对：
+   `src/host/doc_enc_check.mjs` 的 `SCOPE` 里**没有 `skill/`** ⇒ 发布前检查第 17 项连续多天打印"手写文件全部干净"，
    却从来没看过那 29 个**给评审读**的文件。补进范围后扫描数 314 → 343，一条不通过都没有——而"过去没坏"恰恰**不是**
    "判定标准有力"的证据（同一族的另一面：`doc_currency_check` 的 D4 只管路径存在性，所以 200 多处行号引用漂了几天
    也没有任何东西报警，见 #122 与 §4 案例 G）。规则：**新增一棵手写目录 = 同一次改动里改判定标准的范围**；

@@ -46,11 +46,11 @@ const EDITS = [
     '已交付（`board/raw-vs-golden.md` + logs/captures/compare/conditions，比对表 12 张全部脚本产出）',
     '已交付（`board/raw-vs-golden.md` 与 `board/compare/` 里 12 张比对表全部脚本产出；当时的日志／抓图条件卡那三层从未入库、不随包）', 1],
   ['report/run-queue.md',
-    '| P08 验证与增益 | `skills/evals/*` | P04/P05 | 部分交付（`evals/runbook.md` + `raw/` 两跑原始件 + `records/` 陌生人演练与第三方审计各一份）；',
-    '| P08 验证与增益 | `skills/_meta/`（旧包的 `skills/evals/` 那一层在 2026-10-04 c7b325f 重建后从未入库、不随包）| P04/P05 | 部分交付（协议与两跑原始件、陌生人演练与第三方审计各一份都在 `skills/_meta/` 一侧，条目级验证状态见 `skills/_meta/validation.md`）；', 1],
+    '| P08 验证与增益 | `skill/evals/*` | P04/P05 | 部分交付（`evals/runbook.md` + `raw/` 两跑原始件 + `records/` 陌生人演练与第三方审计各一份）；',
+    '| P08 验证与增益 | `skill/_meta/`（旧包的 `skill/evals/` 那一层在 2026-10-04 c7b325f 重建后从未入库、不随包）| P04/P05 | 部分交付（协议与两跑原始件、陌生人演练与第三方审计各一份都在 `skill/_meta/` 一侧，条目级验证状态见 `skill/_meta/validation.md`）；', 1],
   ['report/run-queue.md',
-    '已交付：**技能包门禁 12 项全绿、无未测**，两跑逐字节一致（`build/evidence/r120_gates_skill_a.txt` / `..._b.txt`）；索引 `gen_index --check` 条目=58 一致=yes；陌生人演练与第三方审计两份记录在 `skills/evals/records/`',
-    '已交付：**技能包自检 `node skills/_meta/run-all-checks.mjs skills` 判 9 项、自测件 6、红=0、未测=0**；索引 `node skills/_meta/build-index.mjs skills --check` 条目=49、需改写=no；陌生人演练与第三方审计两份记录现落在 `skills/_meta/` 一侧。（旧包那把"12 项全绿"的读数在 `build/evidence/r120_gates_skill_a.txt`，是 2026-10-04 c7b325f 重建**前**那一版包的产物；同一次对照的第二跑 `..._b.txt` 已被记录在案的精简笔删掉、不随包 ⇒ "两跑逐字节一致"今天在盘上复跑不出来，只算历史记录。`gen_index --check 条目=58` 同属旧包读数，现役件是 `build-index.mjs`）', 1],
+    '已交付：**技能包门禁 12 项全绿、无未测**，两跑逐字节一致（`build/evidence/r120_gates_skill_a.txt` / `..._b.txt`）；索引 `gen_index --check` 条目=58 一致=yes；陌生人演练与第三方审计两份记录在 `skill/evals/records/`',
+    '已交付：**技能包自检 `node skill/_meta/run-all-checks.mjs skills` 判 9 项、自测件 6、红=0、未测=0**；索引 `node skill/_meta/build-index.mjs skill --check` 条目=49、需改写=no；陌生人演练与第三方审计两份记录现落在 `skill/_meta/` 一侧。（旧包那把"12 项全绿"的读数在 `build/evidence/r120_gates_skill_a.txt`，是 2026-10-04 c7b325f 重建**前**那一版包的产物；同一次对照的第二跑 `..._b.txt` 已被记录在案的精简笔删掉、不随包 ⇒ "两跑逐字节一致"今天在盘上复跑不出来，只算历史记录。`gen_index --check 条目=58` 同属旧包读数，现役件是 `build-index.mjs`）', 1],
 
   // —— 本机隔离滚动目录：说清"从未入库、不随包"，别让读者去仓库里找 ——
   ['report/optimization_log.md',

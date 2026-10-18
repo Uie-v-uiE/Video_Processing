@@ -3,7 +3,7 @@
 ## 怎么跑（仓库根，两条命令）
 
 ```bash
-node skills/_meta/run-all-checks.mjs skills      # 技能包自证：三条元检查 + 六把脚本尺子的 --self（只判 skills/）
+node skill/_meta/run-all-checks.mjs skills      # 技能包自证：三条元检查 + 六把脚本尺子的 --self（只判 skill/）
 node build/checks/check_repo_consistency.mjs --list   # 全仓终审 C1–C12；--list 把 C3 死引用明细打全
 ```
 
@@ -61,8 +61,8 @@ node build/checks/check_repo_consistency.mjs --list   # 全仓终审 C1–C12；
   再用对照例证明改后的尺子仍然会红（`node build/checks/check_repo_consistency.mjs --self` 现算 `判 28 项 PASS`＝
   C2 6 例 + C3 17 例 + C9 5 例；C3 那 17 例里包含"嵌套路径会红/嵌套路径在盘上就不红"与"精简名单外的缺失照旧红"两对，
   落盘转录 `build/evidence/1006_c3_scope_selftest.txt`）。
-- 技能包那一层：现役自检是 `node skills/_meta/run-all-checks.mjs skills`（判 9 项、自测件 6、红=0、未测=0），
-  索引一致性 `node skills/_meta/build-index.mjs skills --check`（条目=49、需改写=no）。
+- 技能包那一层：现役自检是 `node skill/_meta/run-all-checks.mjs skills`（判 9 项、自测件 6、红=0、未测=0），
+  索引一致性 `node skill/_meta/build-index.mjs skill --check`（条目=49、需改写=no）。
   旧包那把 `gates.mjs` 的"12 项全绿、两跑逐字节一致"是 2026-10-04 重建**前**的读数：`gates.mjs` 与 `gen_index.mjs`
   现不存在，第二跑的转录件也已被记录在案的精简笔删掉、不随包 ⇒ 这一条今天复跑不出来，只算历史（本行原先写"全绿"是失实）。
   旧包 6 把脚本尺子 40 条对照的转录仍在 `build/evidence/r120_selftest.txt`（末行 `SELFTEST node=v24.21.0 scripts=6 判 40 项 pass=6 fail=0 nm=0 PASS`），

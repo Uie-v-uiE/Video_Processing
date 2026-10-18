@@ -49,7 +49,7 @@
 | 1.3 | `bash --version` 与 `git --version` | `<仓库根>` / Git Bash | 无 | `GNU bash, version 5.x…-release (x86_64-pc-msys)`、`git version 2.x` | **PASS**：`5.2.37(1)-release (x86_64-pc-msys)`、`2.52.0.windows.1` |
 | 1.4 | `which vivado vivado.bat xsdb xsdb.bat arm-none-eabi-gcc` | `<仓库根>` / Git Bash | 无 | 若五条全 `no … in (…)` ⇒ 工具不在 `PATH`，**必须**改用 `VP_VIVADO_BIN` / `VP_XSDB` / `PS_CC`（`report/build.md` §1 的变量表）| **PASS**：五个全部未命中（`which` rc=1）⇒ 本仓库走变量，不走 `PATH` |
 | 1.5 | `ls <Vivado>/bin/vivado.bat <Vitis>/bin/xsdb.bat`（`<Vivado>`/`<Vitis>` 换成实际安装目录）| `<仓库根>` / Git Bash | 无 | 两行路径都列出来 = 工具在位 | **PASS**：两份都存在（这里不写本机绝对路径，规矩见 `report/build.md` §1）|
-| 1.6 | `<Vivado>/bin/vivado.bat -version` | `<仓库根>` / Git Bash | 无（不建工程、不读板）| 打印 `vivado v2025.2.1 (64-bit)` 与 `SW Build …`；**版本必须是 2025.2.1 或文档里另记的版本**，否则时序/资源数不可比（`skills/references/tool-version-drift`）| **PASS（附一条未核实）**：版本串打印正确，但**退出码 = 1**。原因未查 ⇒ 标 `【未核实】`；读 `-version` 的判据应是版本串，**不是 rc** |
+| 1.6 | `<Vivado>/bin/vivado.bat -version` | `<仓库根>` / Git Bash | 无（不建工程、不读板）| 打印 `vivado v2025.2.1 (64-bit)` 与 `SW Build …`；**版本必须是 2025.2.1 或文档里另记的版本**，否则时序/资源数不可比（`skill/references/tool-version-drift`）| **PASS（附一条未核实）**：版本串打印正确，但**退出码 = 1**。原因未查 ⇒ 标 `【未核实】`；读 `-version` 的判据应是版本串，**不是 rc** |
 | 1.7 | `<Vitis>/gnu/aarch32/nt/gcc-arm-none-eabi/bin/arm-none-eabi-gcc.exe --version` | `<仓库根>` / Git Bash | 无 | `…(GCC) 13.3.0`，rc=0 ⇒ 编 PS 应用的能力**在**（这一条推翻本仓多处"本机没有 bare-metal 编译器"的说法，见 `report/60-failure-analysis.md` A4）| **PASS**：rc=0，`arm-xilinx-eabi-gcc.exe (GCC) 13.3.0` |
 | 1.8 | `netstat -an -p TCP \| grep 3121` | `<仓库根>` / Git Bash 或 cmd | 无（只问本机监听）| `TCP 0.0.0.0:3121 0.0.0.0:0 LISTENING` ⇒ `hw_server` 在听；**没有这一行就别往下走上板**，第 4 节第一步会 `CONNECT:` 空（这条形状出自 `board/acceptance.md` r96 那一行的教训与 `board/hardware_setup.md` 的探测表）| **PASS**：命中 1 行 `LISTENING` |
 
@@ -91,7 +91,7 @@ bash -n build/gates.sh build/board_verify.sh build/sim/run_one.sh build/sim/mut_
 | 3.1 | `export VP_VIVADO_BIN=<Vivado>/bin` 然后 `bash build/sim/run_one.sh tb_v98_top_seam` | `<仓库根>` / Git Bash | 1.4/1.5 确认了 `<Vivado>/bin` 里有 `xvlog`；**不能有别的 xsim 活着**（`run_one.sh` 自己会拒，两个 xsim 会往同一个 `run.log` 里写）| 末行一条 `RESULT tb_v98_top_seam PASS` 或 `FAIL nfail=N`；**当前树的期望值是 `FAIL nfail=1`，红在 `C5c`**（这一条是声明过、故意留红的判据，见 `report/60-failure-analysis.md` A1）| `NOT_MEASURED`（台架未跑；顶层那支一轮约 2 小时）|
 | 3.2 | `bash build/sim/run_one.sh tb_head_rot_displace` | 同上 | 同上 | `RESULT … PASS cells=49152 pairs=12` 这种形状；它只例化 `zoom_fit` + `zoom_mapper`，1~2 分钟 | `NOT_MEASURED` |
 | 3.3 | `bash build/sim/run_one.sh tb_link_monitor` | 同上 | 同上 | **期望值是只红一条 `F2e B`**（`sum=518 > 2x130`）；若你看到更多红，说明你那棵树弄坏了别的 ⇒ 这条能把你和"历史红"分开（`report/60-failure-analysis.md` A2）| `NOT_MEASURED` |
-| 3.4 | `bash build/sim/run_sim.tcl`（全量批跑，Vivado 模式）| `<仓库根>` / cmd 或 Git Bash | 1.4 之后；目录里 82 支 `tb_*.v` 全收（实测计数）| 每支一份判定行；**"放一支坏台架在目录里，每次批跑都会被它拖住"**（`sim/README.md`）——当前那支就是 3.3 | `NOT_MEASURED`（台架全量未跑）|
+| 3.4 | `bash build/sim/run_sim.tcl`（全量批跑，Vivado 模式）| `<仓库根>` / cmd 或 Git Bash | 1.4 之后；目录里 83 支 `tb_*.v` 全收（实测计数）| 每支一份判定行；**"放一支坏台架在目录里，每次批跑都会被它拖住"**（`sim/README.md`）——当前那支就是 3.3 | `NOT_MEASURED`（台架全量未跑）|
 | 3.5 | `bash build/sim/mut_control.sh <tb名> <判据名>` 或 `bash build/run_one_ce.sh` | `<仓库根>` / Git Bash | 不动 `src/rtl`（它拷到 `/tmp` 下做变异体）| 一条判定说自己抓住了缺陷，凭据是"把缺陷装回去它必须转成不通过"；这类对照还必须有一条**正向对照是通过的** | `NOT_MEASURED`（属台架动作）|
 
 ---
@@ -127,7 +127,7 @@ bash -n build/gates.sh build/board_verify.sh build/sim/run_one.sh build/sim/mut_
 | 5.6 | `python build/check_io_timing_coverage.py build/timing_summary.rpt` | 同上 | 无 | 十行 `IODEBT I1..I10 … GREEN/RED` + 末行 `result=` | **FAIL（真实红，不是脚本坏）**：`I3_output_covered bare_out_ports=4 want=0 RED`（其余 9 条 GREEN，含名单级两条 `I7_verbose_selfreconcile`、`I10_names_vs_source`）、`result=RED`，rc=1。含义见 `report/60-failure-analysis.md` A6 |
 | 5.7 | `python build/check_ports.py --dup` | 同上 | 无 | 一行汇总 `instances=… width_compared=… violations=0 PASS` | **PASS**：`instances=222 modules=80 skipped=0 width_compared=562 violations=0 PASS`，rc=0。（它同时解释了 5.1 为什么不动盘内件：这条命令的产物就是被门禁读走的那份文件）|
 | 5.8 | `node build/r119_window_check.mjs --self` 与 `node build/r119_window_check.mjs` | 同上 | 前者不需输入件；后者需 `build/evidence/r119_pin_skew_probe2.txt` | `--self`：造的每条畸形都**各自**动红，缺输入报 `NOT_MEASURED` 而不是绿 | **PASS**：`--self` → `造 10 条畸形动红 10 条；缺输入 2 条报 NOT_MEASURED 2 条 PASS`，rc=0（2026-10-05 复跑为 造 11 条畸形动红 11 条，缺输入仍报 `NOT_MEASURED` 而不是绿） |
-| 5.9 | `node skills/_meta/check-skill-package.mjs skills`（技能包装配检查；旧包的 `gates.mjs` 在 2026-10-04 c7b325f 重建后**现不存在**，本行只报旧名不指路）| 同上 | 无 | 每条一行、判定在最后一列；末行三态计数 | **PASS**：rc=0（2026-10-05 复跑同值），末行 `判 53 项：条目=49 索引=50 红=0 未测=0 PASS`。旧包那一版的 12 项读数（绿=9 红=2 未测=1；红在 `G2` 缺壳与 `G10` 专有名，未测在 `G11` 缺 selftest）是重建前的凭据，逐字见 `report/60-failure-analysis.md` A14；`G11` 那一维的等价命令是 `node skills/_meta/check-selftest.mjs`，实跑末行 `SKILL-SELFTEST 判 16 项 不符=0 PASS` |
+| 5.9 | `node skill/_meta/check-skill-package.mjs skill`（技能包装配检查；旧包的 `gates.mjs` 在 2026-10-04 c7b325f 重建后**现不存在**，本行只报旧名不指路）| 同上 | 无 | 每条一行、判定在最后一列；末行三态计数 | **PASS**：rc=0（2026-10-05 复跑同值），末行 `判 53 项：条目=49 索引=50 红=0 未测=0 PASS`。旧包那一版的 12 项读数（绿=9 红=2 未测=1；红在 `G2` 缺壳与 `G10` 专有名，未测在 `G11` 缺 selftest）是重建前的凭据，逐字见 `report/60-failure-analysis.md` A14；`G11` 那一维的等价命令是 `node skill/_meta/check-selftest.mjs`，实跑末行 `SKILL-SELFTEST 判 16 项 不符=0 PASS` |
 | 5.10 | `bash build/gates.sh build/evidence_rNN`（复核某一套归档件）| 同上 | 那目录里成套报告 | 同一套判定打在**那一版**产物上 | `NOT_MEASURED`（同 5.1，且它读归档目录里缺的文件时会回落到 `build/`）|
 | 5.11 | `bash build/make_submission.sh`（导出提交包）| `<仓库根>` / Git Bash | 发布前检查无未通过项才该导（`#240`：采用之前跑它会把**未采用**的位流打进包）| 包落在**仓库外**的目录；`_pruned.txt` 逐条写剪了什么；包内所有"路径式指路"自检，指不到就拒绝落盘 | `NOT_MEASURED`（禁跑；且盘上门禁有红项，照做也导不出）|
 
@@ -199,7 +199,7 @@ bash -n build/gates.sh build/board_verify.sh build/sim/run_one.sh build/sim/mut_
 | `node src/host/line_cite_check.mjs` | 0 | `D5: CLEAN（退出码只由硬错决定…）`；`扫 209 份交付文档 … 硬错 0 条；锚点命中 1051 条；候选 384 条` |
 | `node src/host/doc_currency_check.mjs` | 0 | `CURRENCY: 干净`；`D1b 基准：bit md5=cd04907e1369 → r118_gates.txt`；`D1c 基准：r118_gates.txt 行尾 PASS=22 / FAIL=1 / 判定项数=24` |
 | `node src/host/metric_recheck.mjs` | 0 | `== 数字对账：判 114 个数（首页层 60 个／解析到 10/10 行；红 0）／csv 认领 10/10 行／其余 18 行不点名这三份报告 ==` |
-| `node skills/scripts/check/gates.mjs` | **1** | `GATES 技能包：判定 12 项 绿=9 红=2 未测=1 —— 有红项，不提交 FAIL`；红项 `G2 … 不合=13`、`G10 … 未标注=9`；未测 `G11 … 缺 skills/scripts/selftest/run_all.sh`；`G9 降级标记计数 判 86 项 总309 填入=190 待验证=48 未核实=10 未实测=61`（本节是 §5/§9 那一次实跑的逐字转录（2026-10-05 复核：旧包件仍不存在）：被点的 `gates.mjs` 与 `run_all.sh` 都是 2026-10-04 c7b325f 重建前的旧包件，**现不存在**，只报当时读数不指路；今天复跑等价命令 `node skills/_meta/check-skill-package.mjs skills` 得 `判 53 项：条目=49 索引=50 红=0 未测=0 PASS`）|
+| `node skill/_meta/check-skill-package.mjs` | **1** | `GATES 技能包：判定 12 项 绿=9 红=2 未测=1 —— 有红项，不提交 FAIL`；红项 `G2 … 不合=13`、`G10 … 未标注=9`；未测 `G11 … 缺 skill/_meta/run-all-checks.mjs`；`G9 降级标记计数 判 86 项 总309 填入=190 待验证=48 未核实=10 未实测=61`（本节是 §5/§9 那一次实跑的逐字转录（2026-10-05 复核：旧包件仍不存在）：被点的 `gates.mjs` 与 `run_all.sh` 都是 2026-10-04 c7b325f 重建前的旧包件，**现不存在**，只报当时读数不指路；今天复跑等价命令 `node skill/_meta/check-skill-package.mjs skill` 得 `判 53 项：条目=49 索引=50 红=0 未测=0 PASS`）|
 | `python build/check_io_timing_coverage.py build/timing_summary.rpt` | **1** | `IODEBT I3_output_covered bare_out_ports=4 want=0 RED`；`IODEBT-SUMMARY … judged=10 … result=RED`；`--self` 12 条对照全过（读数件 `build/evidence/1006_d3/io_debt_after_d3.txt`） |
 | `python build/check_ports.py --dup` | 0 | `CHECK PORTS: instances=222 modules=80 skipped=0 width_compared=562 violations=0 PASS` |
 | `node build/r119_window_check.mjs --self` | 0 | `对照总结：造 10 条畸形动红 10 条；缺输入 2 条报 NOT_MEASURED 2 条 PASS` |
@@ -234,3 +234,15 @@ NOT_MEASURED=17 未归类=0 行=37`，行数不变、跑过的仍是 19 条。�
 "哪一格变过、为什么变"，而不是把旧读数抹平。
 第 8 节的 6 条"不可复现"不计入上面的分母（它们是缺输入/缺授权，不是一条待跑的命令）。
 
+
+## 10. 工程重建（2026-10-19 现跑，把"能重建"从一句话变成一条读数）
+
+| 步 | 命令 | 现跑读数 | 判 |
+|---|---|---|---|
+| Vivado 工程 + 位流 | `VP_PROJ_SUBDIR=board/vivado_system VP_OUTDIR=board/project vivado -mode batch -source build/tcl/build_system_axigpio.tcl` | 退出码 0；`build/evidence/board_rebuild_20261018/timing_summary.rpt` 首行结论 `All user specified timing constraints are met.`；`build/evidence/board_rebuild_20261018/utilization.rpt` 给 Slice LUT 14 013 / 53 200（26.34 %）、Block RAM Tile 96 / 140（68.57 %）；`system.bit` md5 前 12 位 `534a515ef8bd`、`system.xsa` `e025c863868d` | PASS（工程与位流建成） |
+| 与板上那一版的身份对照 | 现算 md5 对照 `build/system.bit` / `build/system.xsa` | 板上与随包那一份是 `cb907d3e4898` / `af0fc4abd01c`，与重建这一跑**不同**（尺寸相同：1 975 594 与 85 343 字节） | 只主张"可重建、时序收敛可复现"，不主张逐字节相同——实现阶段不保证，这条差异本身就是证据 |
+| Vitis 平台 | 起 `vitis-server --port <p>` 后 `vitis -s board/scripts/rebuild_vitis.py <p>` | 平台建成在 workspace（`VP_VITIS_WS` 指，默认 `board/vitis_ws/`；36 MB 级，跑完即删，`.gitignore` 挡住不入库），`plat.build()` 返回 0，产出 `zynq_fsbl/build/fsbl.elf` 与 `export/vitis_platform/sw/boot/fsbl.elf` | PASS（平台建成） |
+| Vitis 应用域 | 同一支脚本的后半段 | `plat.add_domain(...)` 两条错原文：`add_domain failed, status = StatusCode.INTERNAL` 与 `TypeError: bad argument type for built-in operation`；`create_app_component(platform=<对象>)` 报 `'Platform' object has no attribute 'startswith'`（改成平台名字符串后仍未建成） | **NOT_MEASURED**：PS 应用没走通 Vitis 这条口；固件侧的等价通路是 `node build/ps_app.mjs`（第 2 节那条），它产出 `ps_app.elf` |
+
+两条脚本的头部各写着它们自己那一段的输入输出与退出码；`board/vitis_ws*/` 与
+`board/vivado_system/` 都在 `.gitignore` 里，仓库与包里只留脚本与报告，不留 36 MB 级的生成目录。

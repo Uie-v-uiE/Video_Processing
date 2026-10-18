@@ -18,7 +18,7 @@
 | 合理使用片上资源，避免用大量片上资源去换有限收益 | `report/40-optimization.md` §5（点名"赛题 3.3.4 的考察点"）、`build/utilization.rpt` + `build/util_hier_probe.rpt` 逐实例分解、以及三笔**量过并否决**的账（校验和常数折叠、强制复制广播网、HDMI 源端窗） | **PASS（这条是本工程最强的一条）** | `bash build/timing_roster_diff.sh --self`；`node build/deliver_spec_check.mjs`（C2/C6 层） | 否决类的证据现在散在 `开发流水账` 与台账里；把它们压成 §5 的一张"收益／代价／判定"三列表（动作 A2） |
 | 保证工程可由他人从零复现 | `report/70-reproduce.md`（A/B/C 三条路径）、`report/repro-check.md` 的逐行判定、`build/tcl/*.tcl` + `build/sim/run_one.sh` + `node build/ps_app.mjs` | **PASS（未测 12 行是环境边界，不是没写）** | `node build/checks/check_repo_consistency.mjs \| grep '^C9 '` | 现跑（笔 `4dcefdd`）：判定列在内 61 行 = PASS 49 / FAIL 0 / **未测 12** / 判定列不成词 **0**。未测那 12 行里 10 行要一次真构建 + 真板（合理挂着），第 11 行 `C3c` 要换 ELF 对照，第 12 行是第三轮 `C4`：两跑健康计数的原件已被记录在案的精简笔删掉、包内指不到件，只能转述 ⇒ 不能算判定 |
 | 将设计过程中的判断依据写进报告，而不只是呈现结果 | `report/60-failure-analysis.md`、`声明与凭据对照`、`问题清单`、`未决项集中表`、`时序债务账`，加上两份"只判断不动手"的：`域划分候选评估`、`发侧跨域清单` | **PASS** | `node src/host/doc_currency_check.mjs`（CURRENCY 干净）；`node src/host/line_cite_check.mjs`（D5 硬错 0） | 判断类件的名字对评委不显眼：应在 `report/README.md` 的阅读路径里给它们一格（动作 A4） |
-| 将与大模型协作中获得的经验提炼为他人可复用的技能包 | `skills/`（49 条目 / 10 类 + `skills/README.md` 生成索引 + `skills/_meta/` 自检），`report/07-skill-distillation.md` 写"从哪些失败里总结、怎么验证有效、边界在哪" | **PASS** | `node skills/_meta/check-skill-package.mjs skills`（必须带参数）；`node build/checks/check_repo_consistency.mjs \| grep -E '^C(6\|12) '` | 见 §3.2 的加分项：技能包今天没标"是否绑定本题"，评委会难判断可复用性（动作 A3） |
+| 将与大模型协作中获得的经验提炼为他人可复用的技能包 | `skill/`（49 条目 / 10 类 + `skill/README.md` 生成索引 + `skill/_meta/` 自检），`report/07-skill-distillation.md` 写"从哪些失败里总结、怎么验证有效、边界在哪" | **PASS** | `node skill/_meta/check-skill-package.mjs skill`（必须带参数）；`node build/checks/check_repo_consistency.mjs \| grep -E '^C(6\|12) '` | 见 §3.2 的加分项：技能包今天没标"是否绑定本题"，评委会难判断可复用性（动作 A3） |
 
 ## 2. §3.3.5.1 工程包（五条）
 
@@ -34,19 +34,19 @@
 
 | 官方列的类型 | 现在的条目 | 状态 |
 |---|---|---|
-| 提示词工作流 | `skills/prompts/`（含"从算法描述推软硬件划分""从综合报告定位瓶颈"两类） | **PASS** |
-| 案例模板 | `skills/templates/`（工程骨架、报告模板、门禁脚本模板） | **PASS** |
-| 校验脚本 | `skills/scripts/`（`regmap_check`、时序名册差分、资源/时序检查、可复现性检查） | **PASS** |
-| 踩坑清单 | `skills/pitfalls/`（结构化：触发条件 + 排查步骤 + 来源失败） | **PASS** |
+| 提示词工作流 | `skill/prompts/`（含"从算法描述推软硬件划分""从综合报告定位瓶颈"两类） | **PASS** |
+| 案例模板 | `skill/templates/`（工程骨架、报告模板、门禁脚本模板） | **PASS** |
+| 校验脚本 | `skill/scripts/`（`regmap_check`、时序名册差分、资源/时序检查、可复现性检查） | **PASS** |
+| 踩坑清单 | `skill/pitfalls/`（结构化：触发条件 + 排查步骤 + 来源失败） | **PASS** |
 
-**每条是否写明"适用场景 / 使用方法 / 已验证效果 / 失效条件"**：由 `skills/_meta/check-skill-package.mjs`
+**每条是否写明"适用场景 / 使用方法 / 已验证效果 / 失效条件"**：由 `skill/_meta/check-skill-package.mjs`
 机检（现判 9 项 红 0），并在 `report/07-skill-distillation.md` 里给"从哪些失败里总结"。
 
 **加分项这一格要说老实话**：官方给的是"通用 **PYNQ** Skill 单独加分（换题目、换板卡仍可用）"。
 本工程**不使用 PYNQ 框架**（PS 侧是裸机 standalone + 自己的 host 脚本），所以：
 - 不该做的事：把本题技能硬贴成"PYNQ 技能"骗加分——评分人一跑就穿。
 - 该做的事（动作 A3）：给技能包每条目补一栏**"绑定程度"**（`本题专属` / `同族 FPGA 题目可复用` / `框架无关工具流程`），
-  并在 `skills/README.md` 说明"本工程不用 PYNQ，因此不申报 PYNQ 专项加分；
+  并在 `skill/README.md` 说明"本工程不用 PYNQ，因此不申报 PYNQ 专项加分；
   申报的是框架无关的那一批"（如"改前必须红的变异对照""逐时钟名册差分""判定行必须在末列"这三条）。
   这样这条加分从"含糊"变成"可核的取舍声明"。
 
@@ -64,7 +64,7 @@
 | 软硬件划分依据与接口设计 | `软硬件划分`（§3"为何最终选 PL 网口"、§6"自写 FIFO vs IP"就是依据式写法）＋ `report/interface-table.md`（1509 行寄存器与位序）＋ `report/host_guide.md` | **PASS** |
 | 优化过程（含前后性能与资源对比表） | `report/40-optimization.md`（§5 明写"赛题 3.3.4 的考察点"）、`优化流水账`、`data/metrics.csv` | **PASS（但"基线是哪一版"分散在批记录里** ⇒ 动作 A2） |
 | 大模型协作记录（提示词、模型回答、自我纠错轨迹、智能体工作流设计） | `report/collaboration/`（登记卡＋纠错轨迹＋提示词分栏＋成本统计＋脱敏台账）、`report/ai_collaboration.md`、`大模型协作记录` | **PASS** |
-| 技能包的提炼过程（从哪些失败总结、如何验证有效、边界如何确定） | `report/07-skill-distillation.md` ＋ `skills/_meta/validation.md` ＋ 每条目 SKILL 里的"来源失败/失效条件"段 | **PASS** |
+| 技能包的提炼过程（从哪些失败总结、如何验证有效、边界如何确定） | `report/07-skill-distillation.md` ＋ `skill/_meta/validation.md` ＋ 每条目 SKILL 里的"来源失败/失效条件"段 | **PASS** |
 | 复现说明（可供他人从零开始完整执行的操作步骤） | `report/70-reproduce.md` ＋ `复现步骤` ＋ `report/repro-check.md` | **FAIL（这条才是真缺口）**：C9 现跑 61 行判定 = PASS 36 / FAIL 0 / **未测 11 / 判定列不成词 14** |
 
 §3.3.5.3 的缺口只有一处、且分两半：未测那 11 行要一次真构建＋真板（合理的债，明写着）；
@@ -96,7 +96,7 @@
 | **A0** | 在 `report/README.md` 里加一张**"官方 §3.3.5.3 七条 ↔ 现有章节"索引表**（每条给文件与节号，不重写内容） | 六条内容都在盘上，但按官方那一格的问法找不到入口——评委照条款找会以为缺；加索引比补写三章便宜得多，也诚实得多 | `report/README.md` 里出现七个可点开的路径；`doc_currency` 干净、C3 死引用 0 |
 | **A1** | 把 `report/repro-check.md` 里 14 行"判定列不成词"补齐（已有读数的填 PASS/FAIL，真没跑的填 `未测` 并写缺哪件） | C9 是机检项，缺的是这份对照自己的表；纯文档机械活 | `check_repo_consistency.mjs \| grep '^C9 '`：不成词 = 0 **已达成（笔 `4dcefdd`）：现跑 `判定列在内=61 行 PASS=49 FAIL=0 未测=12 判定列不成词=0`。做法是把 §8.1 的判定列搬回末列、§9 那张第三轮表补判定列（件 `build/r124_repro_verdict_col.mjs`）；`C4` 那一格如实记 NOT_MEASURED（两跑健康计数的原件已被精简笔删掉、包内指不到件）** |
 | **A2** | `report/40-optimization.md` 顶部立一张"基线版 ↔ 提交版"总表，并把三笔**量过并否决**（校验和常数折叠、强制复制、HDMI 窗）压成"收益／代价／判定"三列 | 直接对着 §3.3.4 第 1、2 条的措辞；否决类证据现在散在 timing 目录 | 表内每个数点名一份 `build/evidence/` 件；`metric_recheck` 红 0 |
-| **A3** | `skills/README.md` 与每条 SKILL 的 frontmatter 加"绑定程度"一栏，并写明"本工程不用 PYNQ ⇒ 不申报 PYNQ 专项加分，申报框架无关那批" | 把一条含糊的加分变成可核的取舍声明，成本极低 | `check-skill-package.mjs skills` 仍全绿；新增栏位由该尺子一起数 |
+| **A3** | `skill/README.md` 与每条 SKILL 的 frontmatter 加"绑定程度"一栏，并写明"本工程不用 PYNQ ⇒ 不申报 PYNQ 专项加分，申报框架无关那批" | 把一条含糊的加分变成可核的取舍声明，成本极低 | `check-skill-package.mjs skill` 仍全绿；新增栏位由该尺子一起数 |
 | **A4** | `report/README.md` 的阅读路径里给两份"判断件"（`timing/eth_rxc_partition_options.md`、`timing/eth_tx_decoupling_inventory.md`）一格 | §3.3.4 第 4 条要的是"判断依据看得见"，现在得翻目录才找得到 | `doc_currency` 干净；首页指路 C3 死引用 0 |
 | **A5** | 合并后重导提交包：`bash build/make_submission.sh`（>25 min），包才会绑到新 HEAD | 今天所有改动都还没进包 | 导出器自检：文件数、死链、残留 token 三项为 0；包内 `MANIFEST` 与 HEAD 一致 |
 | **A7** | （做 A1 时挖出来的，已顺手做完）补终审 **C3 的射程洞**：路径正则的字符类缺 `/`、右边界不认反引号 ⇒ 三层路径与 `path` 写法**根本不进分母**，那条"死引用=0"是看不见不是没有 | §3.3.5.1 要"指路活"，一把读不到输入的尺子等于没有这条门；改对之后同一棵树从 628 条涨到 5244 条，抓到 13 条真缺口与四条假话（`board/firmware/`"在"、原理图裁图"在仓库内"、技能包"12 项全绿两跑一致"、`build/timing/` 那一层（本版不随包）） | `check_repo_consistency.mjs \| grep '^C3 '`：`检查路径引用=5244 死引用=0 历史精简=140`；`--self` 判 28 项（含"嵌套会红／嵌套在盘上就不红"与"精简名单外照旧红"两对对照），转录 `build/evidence/1006_c3_scope_selftest.txt`；台账 #391 |

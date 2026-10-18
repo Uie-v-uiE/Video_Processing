@@ -57,14 +57,14 @@ if (want('C0-4')) {
   // 2026-10-05 用户改口径：学习文档 `docs/` 从仓库撤出、只留本地 ⇒ `docs` 不再"必需存在"，
   // 但仍留在白名单里没意义（目录已 .gitignore），所以把它从白名单一并摘掉：
   // 将来谁再往仓库里加一个 docs/，会被本项判成"多余"而红，这是要的效果（撤出的决定不许被悄悄撤销）。
-  const allowDirs = new Set(['src', 'sim', 'build', 'board', 'data', 'skills', 'report']);
+  const allowDirs = new Set(['src', 'sim', 'build', 'board', 'data', 'skill', 'report']);
   const requiredDirs = allowDirs;
   const allowFiles = new Set(['/README.md', '/README_EN.md', '/LICENSE']);
   const extra = [...top].filter(t => !allowDirs.has(t) && !allowFiles.has(t) && !t.startsWith('/.')
     && !/^\/(send_demo|run[_-]?\w*)\.(bat|cmd|sh)$/.test(t));
   const rootEntries = [...top].filter(t => /^\/(send_demo|run[_-]?\w*)\.(bat|cmd|sh)$/.test(t));
   const missing = [...requiredDirs].filter(d => !top.has(d));
-  const renamed = top.has('skill') ? 'skills/ 需改名 skills/' : '';
+  const renamed = top.has('skill') ? 'skill/ 需改名 skill/' : '';
   say('C0-4', 'top-level-structure', top.size, `多余=${extra.length}[${extra.slice(0, 8).join(',')}] 缺目录=${missing.length}[${missing.join(',')}] ${renamed} 双击入口豁免=${rootEntries.length}`, extra.length || missing.length ? 'FAIL' : 'PASS');
 }
 // ---- C1-1 约束在 src/constraints（过程凭据里的实验用 .xdc 单列，不混进"活动约束集"）
@@ -208,7 +208,7 @@ if (want('C-PATHS')) {
     && !f.startsWith('report/log/'));
   const judged = scripts.filter(f => !SKIP_RE.test(path.basename(f)));
   const exempt = scripts.length - judged.length;
-  const LIT = /(?:\.\.\/)*(?:src|sim|build|data|skills|board|report)\/[\w.\-\/]*\.(?:v|sv|md|csv|txt|py|mjs|sh|tcl|bat|cmd|ps1|xdc|xci|json|rpt|html|png|mem|ld|h|c|elf|bit|xsa|out|mm|xva)/g;
+  const LIT = /(?:\.\.\/)*(?:src|sim|build|data|skill|board|report)\/[\w.\-\/]*\.(?:v|sv|md|csv|txt|py|mjs|sh|tcl|bat|cmd|ps1|xdc|xci|json|rpt|html|png|mem|ld|h|c|elf|bit|xsa|out|mm|xva)/g;
   // 行级豁免（按形状，不按名单）：注释行与"用例/断言"行里的路径是**被讨论的对象**，不是这脚本要读的文件。
   const CASE_LINE = /(^\s*(\/\/|#|\*|---|<!--))|===|!==|\bassert\b|用例|SELF|vendorBuyoff|expect/;
   const bad = []; let tpl = 0, n = 0, caseSkipped = 0;
@@ -386,14 +386,14 @@ if (want('C4b')) {
     p.join('、') || `符合（归档件=${rep.length} 资源行 5/5 时序行 4/4 原始件横幅=${raw.length}/${rep.length} 每份都有脚本能重出）`,
     (rep.length === 0 || !util || !tim || !emitter) ? 'NOT_MEASURED' : (p.length ? 'FAIL' : 'PASS'));
 }
-// ---- C5 四类目录齐 + skills/README 四要素 + report 章节齐
+// ---- C5 四类目录齐 + skill/README 四要素 + report 章节齐
 if (want('C5')) {
-  const need = ['board', 'data', 'skills', 'report'];
+  const need = ['board', 'data', 'skill', 'report'];
   const empty = need.filter(d => !tracked.some(f => f.startsWith(d + '/')));
-  const renamed = tracked.some(f => f.startsWith('skills/')) && !tracked.some(f => f.startsWith('skills/')) ? 'skills 现为 skill 需改名' : '';
-  const sreadme = read('skills/README.md') || read('skills/README.md');
+  const renamed = tracked.some(f => f.startsWith('skills/')) ? 'skills/ 与 skill/ 并存，名册目录要单一' : '';
+  const sreadme = read('skill/README.md');
   // §5.3 点名的四个词按**字面**判：同义词放行等于这把尺子量不到（第一版写的
-  // `/适用场景|scope/`、`/效果/i` 之类让 skills/README.md 一个"适用范围"都没有也报绿）。
+  // `/适用场景|scope/`、`/效果/i` 之类让 skill/README.md 一个"适用范围"都没有也报绿）。
   const four = [['适用范围', /适用范围/], ['使用方法', /使用方法/], ['失效条件', /失效条件/], ['已验证的复用结果', /已验证的复用结果|已验证复用结果/]];
   const missFour = four.filter(([, re]) => !re.test(sreadme)).map(([n]) => n);
   const rneed = [['选题背景与创新点', /背景|创新/], ['设计原理与功能框图', /原理|框图/], ['软硬件划分与接口设计', /划分|接口/], ['优化前后性能与资源对比', /对比|优化/], ['失败分析', /失败/], ['复现说明', /复现/], ['大模型协作记录', /协作|提示词|模型/]];
@@ -442,7 +442,7 @@ if (want('C5')) {
   const ct = collab.map(read).join('\n');
   const tri = [['提示词', /提示词|prompt/i], ['模型回答', /回答|原话|输出|response/], ['自我纠错', /纠错|更正|改口|撤回|retract/i]];
   const missTri = tri.filter(([, re]) => !re.test(ct)).map(([n]) => n);
-  const p = [...empty.map(d => d + ' 空'), ...(renamed ? [renamed] : []), ...(missFour.length ? ['skills/README 缺:' + missFour.join(',')] : []),
+  const p = [...empty.map(d => d + ' 空'), ...(renamed ? [renamed] : []), ...(missFour.length ? ['skill/README 缺:' + missFour.join(',')] : []),
     ...(missRep.length ? ['report 缺章节:' + missRep.join(',')] : []),
     ...(cmpRows < Number(process.env.VP_C5_CMP_ROWS || 30) ? [`带单位数字的改前/改后对比条目只数到 ${cmpRows} 条（地板 ${process.env.VP_C5_CMP_ROWS || 30}，§5.4 要求优化前后对比）`] : []),
     ...(failRows < Number(process.env.VP_C5_FAIL_ROWS || 8) ? [`带读数的失败/否决条目只数到 ${failRows} 条（地板 ${process.env.VP_C5_FAIL_ROWS || 8}，§5.4 要求失败分析）`] : []),

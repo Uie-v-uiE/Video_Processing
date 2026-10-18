@@ -8,7 +8,7 @@
 - **能**：某个模块在哪个文件、文件多大、那个文件头注的第一句是什么（逐字搬运，不改写）。
 - **不能**：数据流顺序、时钟域归属、寄存器位序。这些数据由各自的文档单点维护，这张表只提供
   四列，免得同一份数据出现两个口径。指路：数据通路看 `report/architecture.md`，时钟域看 `report/board_pins.md` 与
-  `report/build.md`，寄存器看 `skills/runtime/register-map-and-readback/SKILL.md`，
+  `report/build.md`，寄存器看 `skill/runtime/register-map-and-readback/SKILL.md`，
   台架（`sim/` 下的仿真测试例）与模块的对应关系看 `sim/README.md`。
 - 头注列为空的文件有 0 个；这一列由脚本原样抄头注，不代写内容。
 

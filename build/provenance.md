@@ -17,7 +17,7 @@
 | 轮次号（**r132，今天现核**） | r132 | 没有 `r132_chain.sh` 这种入口：这一版是**一次手工 batch**，命令行逐字在 `build/r132_streamwrap_build.log:9`；轮次账在 `report/log/issues.md` #478 |
 | 位流身份（r132） | `md5(前 12) = cb907d3e4898`，1975594 字节 | 本次现算 `md5sum build/system.bit` → `cb907d3e48982…`；`git cat-file -s HEAD:build/system.bit` = 1975594 = 盘上字节数 ⇒ **仓库里那份就是这一版**；同一身份也记在 `data/metrics.csv:5` 与 `README.md:58` |
 | `.xsa` 身份（r132） | `md5(前 12) = af0fc4abd01c`，853434 字节，11:36 | 本次现算 `md5sum build/system.xsa`；与位流同一分钟（位流 11:35） |
-| 板上现在跑的版本（r132） | **JTAG 那一份 = r132**；QSPI 已写入并逐字节比对一致，**冷上电自启有回显**（2026-10-18 口头确认） | 装板：`build/r132_program_pl.log`（11:40 起、11:41:20 退出，target `0ABC01A`）；固化：`build/evidence/r132_flash_qspi_9_OK.log`；"工具侧没有回读通道"记在 `report/log/issues.md` #479（`hw_cfgmem` 无 READ 属性、这批处理版没有 `program_flash`，探针输出 `board/measured/probe_flash_read.log`） |
+| 板上现在跑的版本（r132） | **JTAG 那一份 = r132**；QSPI 已写入并逐字节比对一致，**冷上电自启有回显**（2026-10-18 口头确认） | 装板：`build/r132_program_pl.log`（11:40 起、11:41:20 退出，target `0ABC01A`）；固化：`build/evidence/r132_flash_qspi_9_ok.log`；"工具侧没有回读通道"记在 `report/log/issues.md` #479（`hw_cfgmem` 无 READ 属性、这批处理版没有 `program_flash`，探针输出 `board/measured/probe_flash_read.log`） |
 | 工作区与 HEAD 是否同一份（r132 这一次） | 同一份（git 口径） | 本次实跑：对下面那条 r118 行点名的 12 个产物做 `git status --porcelain <那些路径>` → **空输出**；`build/power.rpt` 盘上 12951 字节 vs HEAD 12738 字节，差的是行尾（`core.autocrlf`），不是内容 |
 | 源码指纹（r132，本次现取） | `fpver=norm1`、`files=80`、`top=c778dc4416b3`、`rtl=93938780ccd6` | 本次实跑 `bash build/rtl_fingerprint.sh`（四行输出），与 #478/#479 记的那一对值一致 ⇒ 台架从 11:1x 起到现在没再动过 `src/rtl` |
 | —— 以下四行是 **r118 那一次**的读数，未随 r132 重取，留在这里是为了对照，不是现值 | | |

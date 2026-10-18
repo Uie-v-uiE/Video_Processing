@@ -13,7 +13,7 @@
   两处同编号互指；正文引用其他条目写"过程台账第 N 条"或"第 N 节"。
 - 凭据与包：凭据一律给仓库内真实路径。提交包按 §3.3.5.4 把报告展平进 `build/reports/`，
   评审在包里看到的是同一个文件换了目录——名字不变、内容不变（认 md5 不认路径）。
-- 版本身份：板上现在这一版是 r132（`build/system.bit` 的 md5 前 12 位 `cb907d3e4898`，2026-10-17 那一跑，构建日志 `build/r132_streamwrap_build.log`）。它是三步 JTAG 装上去的（读数在 `report/log/issues.md` #478），同一版也写进板载 QSPI 并通过 `Verify Operation successful`（进盘镜像 `board/flash/BOOT.bin` md5 `acd8cdd5f060`，日志 `build/evidence/r132_flash_qspi_9_OK.log`），但**QSPI 档冷上电自启的那一度还没验** ⇒ 这一句只到「片子里的字节是对的」，不写成「已固化」。更早的 r118/r126/r131 是历史批次，只用于定位凭据文件名。
+- 版本身份：板上现在这一版是 r132（`build/system.bit` 的 md5 前 12 位 `cb907d3e4898`，2026-10-17 那一跑，构建日志 `build/r132_streamwrap_build.log`）。它是三步 JTAG 装上去的（读数在 `report/log/issues.md` #478），同一版也写进板载 QSPI 并通过 `Verify Operation successful`（进盘镜像 `board/flash/BOOT.bin` md5 `acd8cdd5f060`，日志 `build/evidence/r132_flash_qspi_9_ok.log`），但**QSPI 档冷上电自启的那一度还没验** ⇒ 这一句只到「片子里的字节是对的」，不写成「已固化」。更早的 r118/r126/r131 是历史批次，只用于定位凭据文件名。
   仓库与板同源。凭据文件名里出现的 `rNN` 是当时的构建批次号，只用于定位文件、不表示进度；
   "当晚""随后一轮"这类说法都以公历日期和这些文件名锚定。
 - 时间口径：正文不写一天之内的钟点；需要区分同一天多次实测时，用公历日期、时长或凭据文件名。
@@ -32,7 +32,7 @@
   ② 顶层喂给链子的行标签换成与它吃进去的内容同一本账的 `cy_chain`。
   同一把尺子（`C5c`）改前红 `head rows=36 wrong=24`、改后 `PASS C5c frame head is not the previous frame's tail`
   （`build/evidence/r132_c5c_after_preparam.log`）。机理不是推的：两臂对照量出四格数
-  （`build/evidence/r132_winC_four_cells.log`，台架 `sim/tb_v103_pipe_bypass.v` 的窗口 C）。
+  （`build/evidence/r132_winc_four_cells.log`，台架 `sim/tb_v103_pipe_bypass.v` 的窗口 C）。
   **真因与下面第 3 条当年写的那句不一样**——帧头那几行错的不是"带着上一帧的尾巴"，而是**处理抽头提前发了下一行**；
   正本在 `report/08-limits.md` §1，改动账在 `report/log/issues.md` #478。
   残余代价（不许写成"全部消除"）：帧头那 4 个显示行几何上对了，但内容比同屏其余行**旧一帧**（≈33 ms），
@@ -81,9 +81,9 @@
   因此这条的优先级已上调——**并且真的补了对照再动**：窗口 C 的两臂（帧锚定 / 绕回连续流）就是那条对照，
   它先量出"标签那一臂单独改也只把错从帧头挪到帧尾（bad=20 两臂同数）"，才排除掉当初写的原因、落到抽头上。
 - **主凭据**：改前逐格证据 `build/evidence/r104_c5head_band.txt`；改后 PASS
-  `build/evidence/r132_c5c_after_preparam.log`；机理四格 `build/evidence/r132_winC_four_cells.log`；
+  `build/evidence/r132_c5c_after_preparam.log`；机理四格 `build/evidence/r132_winc_four_cells.log`；
   边界台架在两臂下的读数 `build/evidence/r132_edge_rim_streamwrap0.log`，
-  红控（把旗标删掉它必须红）`build/evidence/r132_edge_rim_RED_if_flag_deleted.log`。
+  红控（把旗标删掉它必须红）`build/evidence/r132_edge_rim_red_if_flag_deleted.log`。
 
 ### 2. 旋转支上的双线性小数位（`#104`）—— **已修**
 

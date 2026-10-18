@@ -23,7 +23,7 @@
 | §3.3.5.3 第 3 条·软硬件划分依据与接口设计 | `ps_vs_pl.md`（划分原则与两处接口）、`interface-table.md`（机器可读的寄存器与地址表）、`commands.md`＋`command_precedence.md`＋`defaults.md`（命令表、命令优先级裁决、上电默认档）、`../src/ps/main.c`（PS 侧实物） | 主张与证据的对照在 `claims-vs-evidence.md`；接口表与人读版说明若有冲突，以机器可读表为准 |
 | §3.3.5.3 第 4 条（也是 §3.3.4 第 1、2 条）·优化过程，含优化前后的性能与资源对比 | `40-optimization.md`、`optimization_log.md`（逐轮"基线 → 措施 → 实测"，末尾有跨全期累计对照）、`comparison-notes.md`（对比表怎么读、哪些差值不能算收益）、`perf_report.md`、`timing_global.md`、`../data/metrics.csv` | `data/metrics.csv` 有四行与现件不同源（第 14、15、25、27–28 行），逐条登记在 `90-open-items.md` 第 2C 节；要么重算指标，要么改文档一侧，需要一次裁决。`perf_report.md` 的表头声明了"走势表不要当当前值引用" |
 | §3.3.5.2 与 §3.3.5.3 第 5 条·大模型协作记录：提示词、模型回答、自我纠错轨迹、智能体工作流 | `ai_collaboration.md`（约束怎么给、模型怎么跑偏）、`llm_collab.md`（四个案例与工作流设计）、`collaboration/prompts-used.md`（提示词原文）、`collaboration/corrections.md`（被证伪与更正的轨迹）、`collaboration/sessions/`（逐会话档案） | 追加式工作记录在 `log/issues.md` 与 `log/overnight_log.md`，只作过程留痕，不当结论引用；"哪些交互可以公开"还没有对外口径 |
-| §3.3.5.2 与 §3.3.5.3 第 6 条·技能包的提炼过程：从哪些失败总结、如何验证有效、边界在哪 | `../skills/README.md`（总索引，由 `../skills/_meta/build-index.mjs` 现算）、`../skills/_meta/distillation-process.md`（提炼过程）、`../skills/_meta/validation.md`（本包自测读数与复跑命令）、`../skills/_meta/entry-map.md`（每条技能长自哪一类观察）、`../skills/_meta/check-skill-package.mjs`（形状判据） | 还欠一条"基线 vs 用它之后"的效果对比，登记在 `90-open-items.md` 第 2F 节 |
+| §3.3.5.2 与 §3.3.5.3 第 6 条·技能包的提炼过程：从哪些失败总结、如何验证有效、边界在哪 | `../skill/README.md`（总索引，由 `../skill/_meta/build-index.mjs` 现算）、`../skill/_meta/distillation-process.md`（提炼过程）、`../skill/_meta/validation.md`（本包自测读数与复跑命令）、`../skill/_meta/entry-map.md`（每条技能长自哪一类观察）、`../skill/_meta/check-skill-package.mjs`（形状判据） | 还欠一条"基线 vs 用它之后"的效果对比，登记在 `90-open-items.md` 第 2F 节 |
 | §3.3.5.3 第 7 条（也是 §3.3.4 第 4 条）·复现说明：他人可从零执行的步骤 | `70-reproduce.md`（环境自检 → 构建 → 仿真 → 上板 → 结果比对，逐命令写明执行目录、shell、外部设备状态与完成后应看到什么）、`reproduce/README.md`（提交包那一版）、`build.md`、`../build/README.md`、`../build/tcl/README.md`、`../sim/README.md`、`../board/README.md`、`../board/HANDS_ON.md（不随包）`、`../board/hardware_setup.md`、`../README.md` 的复现小节、`repro-check.md`（演练读数） | 两处欠：`70-reproduce.md` 第 6 节点出的与其它文档冲突的五处尚未改（逐条动作在 `90-open-items.md` 第 2D 节）；还没有第三方视角的一次干净复现演练，构建与上板那半需要一段可用时间 |
 | 失败分析（本仓库自加的一格，对应 §3.3.4 第 5 条"稳定性与可演示性"）：哪些场景仍然做不好、原因是什么 | `60-failure-analysis.md`（未解决与未测试分两组，每条四件：现象含证据、可判别的假设、判别方法、计划与成本）、`known_issues.md`（未修缺陷，以及"看着像问题其实是有意的"）、`known-limitations.md`、`../board/acceptance.md` 与 `../board/signoff.md`（逐格签收状态） | 未决项的集中登记在 `90-open-items.md`；那份表是快照，会随后续实测变动，以重跑第 5 节的命令为准 |
 
@@ -103,7 +103,7 @@
 |---|---|
 | `ai_collaboration.md`、`llm_collab.md` | 协作过程、具体案例（含被证伪的判断）、智能体工作流设计 |
 | `collaboration/` | 提示词原文、更正轨迹、逐会话档案 |
-| `../skills/` | 通用做法条目（索引在 `../skills/README.md`）；条目地图在 `../skills/_meta/entry-map.md`，提炼过程与验证读数在 `_meta/distillation-process.md` 与 `_meta/validation.md`，未升格为通用技能的经验记录在 `../skills/pitfalls/` |
+| `../skill/` | 通用做法条目（索引在 `../skill/README.md`）；条目地图在 `../skill/_meta/entry-map.md`，提炼过程与验证读数在 `_meta/distillation-process.md` 与 `_meta/validation.md`，未升格为通用技能的经验记录在 `../skill/pitfalls/` |
 | `log/` | 追加式工作记录（问题账 `issues.md`、流水 `overnight_log.md`、版本谱系 `version_lineage.md`、赛题核对表 `contest_checklist.md`）；只作过程留痕，不当结论引用 |
 | `study/` | 面向接手人的学习文档与英文海报稿；本地留档不随包（排除规则在 `../.gitignore`） |
 
@@ -133,13 +133,13 @@ submission-package,questions-for-team,acceptance-recipes,bench_mutation,final-ga
  data/metrics.csv data/README.md build/README.md build/tcl/README.md build/sim/names.md \
  build/provenance.md build/reports/index.md sim/README.md \
  board/{README,hardware_setup,acceptance,signoff,raw-vs-golden}.md \
- skills/README.md skills/_meta/{entry-map,validation,distillation-process}.md \
- skills/pitfalls README.md README_EN.md send_demo.bat; do
+ skill/README.md skill/_meta/{entry-map,validation,distillation-process}.md \
+ skill/pitfalls README.md README_EN.md send_demo.bat; do
   test -e "$f" && echo "EXISTS $f" || echo "ABSENT $f"
 done
 # ② 未决项计数现算（口径与分母只在 90-open-items.md 第 0–1 节定义，本页不复述数字）
 for p in "【待验证】" "【未核实】" "【未实测】" "NOT_MEASURED"; do
-  echo "$p $(grep -rho --exclude=90-open-items.md -- "$p" report/ board/ skills/ README.md | wc -l)"
+  echo "$p $(grep -rho --exclude=90-open-items.md -- "$p" report/ board/ skill/ README.md | wc -l)"
 done
 # ③ 交付一致性与死引用检查
 node build/checks/check_repo_consistency.mjs

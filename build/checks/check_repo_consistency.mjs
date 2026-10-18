@@ -3,7 +3,7 @@
 //
 // 设计约束：
 //  · 只读，不改任何文件；判定 token 放每行最后一个字段；每条打印分母；缺输入一律 NOT_MEASURED（绝不判通过）。
-//  · 能复用就别重造：C6 调 `skills/_meta/build-index.mjs skills --check`、C12 调 `skills/_meta/run-all-checks.mjs skills`（现役件；旧包 gates.mjs/gen_index.mjs 已随 2026-10-04 c7b325f 重建删除），C5 调用 P20 的卫生机检。
+//  · 能复用就别重造：C6 调 `skill/_meta/build-index.mjs skill --check`、C12 调 `skill/_meta/run-all-checks.mjs skills`（现役件；旧包 gates.mjs/gen_index.mjs 已随 2026-10-04 c7b325f 重建删除），C5 调用 P20 的卫生机检。
 //  · 每条红项都要能指出"缺什么"，不许只说"不通过"。
 // 退出码：0=无红 1=有红 2=有未测且无红 3=前置不满足
 import fs from 'node:fs';
@@ -72,7 +72,7 @@ if (!SELF) {
       for (const f of mdFiles()) {
         if (f === 'report/declarations.md') continue;
         const t = read(f) || '';
-        // 引文豁免：`skills/evals/records/` 存的是"陌生人演练/第三方审计的原话"，里面出现"2024.2（不是本包的 2025.2.1）"
+        // 引文豁免：`skill/evals/records/` 存的是"陌生人演练/第三方审计的原话"，里面出现"2024.2（不是本包的 2025.2.1）"
         // 这类对照句是**被审对象说的话**，不是本仓库另立权威。豁免只开这一个目录，且把豁免条数打出来（静默跳过=没有尺子）。
         const isQuote = /^skill\/evals\/records\//.test(f);
         for (const m of t.matchAll(devRe)) {
@@ -371,21 +371,21 @@ if (process.argv.includes('--self')) { process.exit(selftestC2()); }
 }
 // C6 索引一致（调用 gen_index --check）
 {
-  const s = sh('node', ['skills/_meta/build-index.mjs', 'skills', '--check']);
+  const s = sh('node', ['skill/_meta/build-index.mjs', 'skills', '--check']);
   row('C6', '技能包索引一致', `rc=${s.ok ? 0 : 1} ${s.out.trim().split(/\r?\n/).pop() || ''}`, s.ok ? 'PASS' : 'FAIL');
 }
 // C7 状态一致：README 一览表的"验证状态"与条目 §7 的内容不许互相打脸
 {
-  const rd = read('skills/README.md');
-  if (rd === null) row('C7', '验证状态三处一致', '缺 skills/README.md', 'NOT_MEASURED');
+  const rd = read('skill/README.md');
+  if (rd === null) row('C7', '验证状态三处一致', '缺 skill/README.md', 'NOT_MEASURED');
   else {
     let checked = 0, conflict = [];
     for (const l of rd.split(/\r?\n/)) {
       const m = l.match(/\|\s*`?((?:skill\/)?[a-z0-9_./-]+\/SKILL\.md)`?\s*\|.*\|\s*(待验证|已复跑[^|]*|不适用)\s*\|/);
       // 审计指出的洞：生成表每行的路径外面包着反引号，原正则的字符类里没有 ` ⇒ 一条都匹配不上，checked 恒 0，
-      // 这条"README 状态 ↔ 条目 §7"的判据从未生效（现在字符类容反引号，并容 `skills/` 前缀）。
+      // 这条"README 状态 ↔ 条目 §7"的判据从未生效（现在字符类容反引号，并容 `skill/` 前缀）。
       if (!m) continue;
-      let rel2 = m[1].startsWith('skills/') ? m[1] : 'skills/' + m[1];
+      let rel2 = m[1].startsWith('skill/') ? m[1] : 'skill/' + m[1];
       const sk = read(rel2);
       if (sk === null) { conflict.push(`${rel2} 文件不存在`); continue; }
       checked++;
@@ -463,7 +463,7 @@ function c9Judge(text) {
 }
 // C12 技能包四要素齐全：复用 P09 的 G1–G12
 {
-  const s = sh('node', ['skills/_meta/run-all-checks.mjs', 'skills']);
+  const s = sh('node', ['skill/_meta/run-all-checks.mjs', 'skills']);
   const out = s.out || '';
   // 只数 `G<数字> ` 开头的判据行：原来用"整行以 PASS 结尾"来数，把 gates.mjs 自己的汇总行也算成一项 ⇒ 报出"绿=13"。
   // 条目数本身是被判的数（D1c 那一族），所以这里再加一条对账：绿+红+未测 必须 == 12，否则本项不可信。

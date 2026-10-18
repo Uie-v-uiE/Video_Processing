@@ -1,4 +1,4 @@
-# `sim/` —— 82 支 RTL 台架的跑法与清单
+# `sim/` —— 83 支 RTL 台架的跑法与清单
 
 台架回答的是"这一支 RTL 在仿真里有没有按定义行事"，不看板子、不看时序。清单里每行给四件事：
 台架文件名、被测模块、覆盖点、以及**台架自己会打印什么**——最后那列是原话的形状（判定词在末行），
@@ -26,7 +26,7 @@ BOARD_MAC = 00:11:22:33:44:55   UDP_PORT = 16'd5001
 | 全部原始输出 | `/tmp/kx/<tb>.run/run.log`（屏幕只回放含 FAIL、PASS、INFO、PROBE、DIAG 的前 80 行） |
 | 这跑的是哪一棵源树 | 同目录 `prov.txt`：顶层、本台架、整棵 `src/rtl` 三枚校验和加时刻，逐支在**编译之前**取 |
 
-## 一次跑完 82 支
+## 一次跑完 83 支
 
 ```bash
 vivado -mode batch -nojournal -log sim/xsim.log -source build/sim/run_sim.tcl
@@ -54,6 +54,7 @@ vivado -mode batch -nojournal -log sim/xsim.log -source build/sim/run_sim.tcl
 | `tb_commit_strobe.v` | frame_commit_lock | 被测模块 `frame_commit_lock`（参数 IMG_H=300、DISP_H=600、WD_CYC=40）… | 每条判据打印 ` PASS <A1..A8/B1..B4 的名字> / <说明> /…；失败时 对应条目打印 ` FAIL <名字> / <说明> / <量值>` 并把… |
 | `tb_crc32.v` | crc32_d8 | 被测模块 `crc32_d8`（以太网反射 CRC 的逐字节累加器）；覆盖点＝复位初值、单字节更新、 crc_clr 清零… | 依次打印 PASS init / PASS crc updates / PASS…；失败时 对应段打印 FAIL init <crc 值>、 FAIL crc did… |
 | `tb_edge_rim.v` | proc_box_blur / proc_sharpen /… | 被测模块 `proc_box_blur / proc_sharpen / proc_sobel /… | 打印 `GOLDEN gmode=<0/1>: latency = (<列平移>…；失败时 打印对应 `FAIL R0/R0b/R1/R2…/R7/R8/R9 或… |
+| `tb_edge_rim_bottom.v` | proc_box_blur / proc_sharpen / proc_sobel / proc_morph | 帧底那一半：末行的**下邻**（`tb_edge_rim` 的 D3 量的是第 0 行的上邻，四个窗口级只声明了上沿旗标 `no_above`/`stale_row`，盘上原先没有一把尺子看过"末行的下邻"）；判据走差分，对输出平移量免疫 ⇒ 不必先算 `LATENCY` | 逐 stage 打印 `PASS B1 affected rows are one contiguous band`、`PASS B2 alternation propagates`、`PASS B3 覆盖地板`；失败时对应 `FAIL B1/B2/B3`；末尾 `RESULT tb_edge_rim_bottom PASS nfail=0` 或 `FAIL nfail=<n>` |
 | `tb_eth_video.v` | udp_tx + crc32_d8 + udp_rx + frame_reasm | 被测模块 `udp_tx + crc32_d8 + udp_rx + frame_reasm`（GMII 直环：u_tx 的… | 依次打印 `PASS udp payload len`、`PASS frame…；失败时 打印 `FAIL timeout tx`、`FAIL n_rec=<n>… |
 | `tb_fb_rd5x.v` | fb_rd5x | 被测模块 `fb_rd5x`（5 槽帧缓存读口，IMG_W=512、IMG_H=300）；覆盖点＝输出像素与请求的配准… | 逐条打印 `[CHK] <判据名> : OK`，并带 `[INFO]…；失败时 对应条目打 `: BAD` 并 errors 加一（错值处有 `[DIAG]… |
 | `tb_fb_roundtrip.v` | frame_buffer_w64 | 被测模块 `frame_buffer_w64`（W=512、H=300，PX=153600 像素 / WORDS=38400… | 打印 `写入完成 38400 字 + 2 次越界写，t=<时刻>`…；失败时 打印错位处 `MISMATCH(流水) p=<n> got=<h>… |

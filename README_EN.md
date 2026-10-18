@@ -6,7 +6,7 @@
 
 The host splits 512×300 RGB565 frames into UDP packets of at most 1392 bytes and sends them to port 5001 on the board. Reception does not go through the PS: the PL recovers GMII from RGMII, reassembles the Ethernet frame, filters by port and writes the payload into the ping-pong DDR frame buffers as an AXI master (only the SD path is DMA'd in by the PS). The PL then reads a frame back, runs the per-bit switchable effect chain (six pipeline stages, a 9-bit control word, one bit per algorithm) plus zoom, rotate and split blend, and drives 1024×600 HDMI through a ×2 expand. One vertical seam splits the screen: the left window is the original, the right window is the processed image in the same coordinate system, and the seam position comes from the control word (0–100 %). That view is both the demo and a measuring instrument: misalignment, dropped columns and out-of-range fill show up on both sides of the seam at once.
 
-Three sources feed it - the UDP video stream from the network, a pre-converted SD frame sequence, and a test card drawn by the PL - arbitrated by `src_arb` and switched by a long key press. `link_monitor` inside the PL keeps counting received packets, drops and frame gaps; the same counters go to the OSD, can be read back over AXI GPIO with xsdb (lane select in GPIO_0, value in GPIO_1), and can be cleared by serial commands. Beside the RTL and the host tools the repository carries 82 testbenches (`sim/tb_*.v`) and 49 practice entries decoupled from this topic (`skills/`), and every tool report can be re-run with the commands further down.
+Three sources feed it - the UDP video stream from the network, a pre-converted SD frame sequence, and a test card drawn by the PL - arbitrated by `src_arb` and switched by a long key press. `link_monitor` inside the PL keeps counting received packets, drops and frame gaps; the same counters go to the OSD, can be read back over AXI GPIO with xsdb (lane select in GPIO_0, value in GPIO_1), and can be cleared by serial commands. Beside the RTL and the host tools the repository carries 82 testbenches (`sim/tb_*.v`) and 49 practice entries decoupled from this topic (`skill/`), and every tool report can be re-run with the commands further down.
 
 ## Directory guide
 
@@ -15,7 +15,7 @@ sim/ —— 83 .v files at the top level (82 of them `tb_*.v`); the runner line 
 build/ —— 7 flow-entry TCL scripts, the checkers, and 7 raw tool reports under `build/report/`  
 board/ —— on-board project, the three-step JTAG flashing scripts and measured output (serial captures, board verify)  
 data/ —— test data and reference results: 8 sequences in `data/inputs/`, images in `data/golden/`, `data/metrics.csv` with a header row and 28 metric rows  
-skills/ —— 49 SKILL.md entries; each states scope, usage, failure conditions and verified reuse  
+skill/ —— 49 SKILL.md entries; each states scope, usage, failure conditions and verified reuse  
 report/ —— design report, failure analysis, reproduction notes and the LLM collaboration record  
 
 ## Reproducing from scratch

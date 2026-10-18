@@ -32,20 +32,20 @@ const EXEMPT = {
     { tok: 'number:2.7', why: 'HEAD 里该节编号错位（## 6 之下写成 ### 2.7），已改号为 6.1', need: '实际执行过的命令' },
   ],
   'report/ai_collaboration.md': [
-    { tok: 'path:skills/references/symptom-router/SKILL.md', why: '同一段重复点名同一份技能两次，省掉一次；指路仍在', need: 'skills/references/symptom-router/SKILL.md' },
+    { tok: 'path:skill/references/symptom-router/SKILL.md', why: '同一段重复点名同一份技能两次，省掉一次；指路仍在', need: 'skill/references/symptom-router/SKILL.md' },
   ],
   'report/figures/legend.md': [
     { tok: 'path:docs/walkthrough/clocking-and-reset.md', why: '学习文档那一层已撤出仓库，活指路换成不含死路径的说法（导出器要求正文 0 条）', need: '本地学习文档《时钟与复位》那一章' },
   ],
   // 三条是"死名 → 活名"的改口：旧路径本来就读不到，换成的新路径当场在文件里、也在盘上。
   'src/host/line_cite_check.mjs': [
-    { tok: 'path:skills/criterion_blind_spot.md', why: '旧包平铺名换成现役条目', need: 'skills/pitfalls/ruler-fake-greens/SKILL.md' },
+    { tok: 'path:skill/criterion_blind_spot.md', why: '旧包平铺名换成现役条目', need: 'skill/pitfalls/ruler-fake-greens/SKILL.md' },
   ],
   'src/host/metrics.mjs': [
-    { tok: 'path:skills/metrics_gap_sum.md', why: '旧包平铺名换成现役条目', need: 'skills/scripts/metrics-collector/SKILL.md' },
+    { tok: 'path:skill/metrics_gap_sum.md', why: '旧包平铺名换成现役条目', need: 'skill/scripts/metrics-collector/SKILL.md' },
   ],
   'build/r120_src_map.mjs': [
-    { tok: 'path:skills/runtime/register-map/SKILL.md', why: '目录名与现役条目对齐（生成器与 report/src-map.md 同一说法）', need: 'skills/runtime/register-map-and-readback/SKILL.md' },
+    { tok: 'path:旧条目名 runtime/register-map/SKILL.md（盘上无此路径）', why: '目录名与现役条目对齐（生成器与 report/src-map.md 同一说法）', need: 'skill/runtime/register-map-and-readback/SKILL.md' },
   ],
 };
 

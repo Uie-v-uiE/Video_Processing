@@ -3,8 +3,8 @@ r120 技能包扁平卡退役映射（唯一分派表，2026-10-04 定）
 
 用途：`skill/<snake>.md` 共 27 张旧卡 → `skill/<类别>/<kebab>/SKILL.md` 八节外壳条目。
 本表是**分派的唯一事实源**：批处理 agent 只能按这里给的路径建目录，不得自择类别。
-判据出处：`skill/scripts/check/gates.mjs` 的 G1/G2/G3/G4/G6/G9/G10/G12 与
-`skill/scripts/check/retire_flat.mjs` 的 C1–C5（C3 要求旧卡每条出处串在新条目里逐字可见）。
+判据出处：`skill/_meta/check-skill-package.mjs` 的 G1/G2/G3/G4/G6/G9/G10/G12 与
+`旧条目名 scripts/check/retire_flat.mjs（盘上无此路径）` 的 C1–C5（C3 要求旧卡每条出处串在新条目里逐字可见）。
 
 类别口径（来自 `skill/README.md`「验证状态口径」四节 + 已入库条目的先例）：
 - pitfalls = 会重复踩的失效模式/错法，正文含"怎么认出它"的签名；
@@ -44,5 +44,5 @@ r120 技能包扁平卡退役映射（唯一分派表，2026-10-04 定）
 | 27 | wns_logic_vs_route_lever.md | references/wns-logic-vs-route-lever | references | logic/route 占比 → 杠杆对照表 |
 
 不可逆动作的分工：agent 只建新条目，**不删旧卡**；旧卡删除由主 agent 在
-`node skill/scripts/check/retire_flat.mjs` 全绿后用 `--apply` 执行（一次删 27 张，
-删后立即 `node skill/scripts/check/gen_index.mjs` 重写索引并复跑 G1–G12）。
+`node 旧条目名 scripts/check/retire_flat.mjs（盘上无此路径）` 全绿后用 `--apply` 执行（一次删 27 张，
+删后立即 `node 旧条目名 scripts/check/gen_index.mjs（盘上无此路径）` 重写索引并复跑 G1–G12）。

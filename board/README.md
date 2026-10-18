@@ -22,10 +22,11 @@
 
 | 打开什么 | 里面是什么 | 字节 |
 |---|---|---:|
-| `board/zynq_video_sys.xpr` | Vivado 工程：器件 `xc7z020clg484-2`、源码清单、约束、BD 单元格、run 外壳 | 50 917 |
-| `board/zynq_video_sys.srcs/` | 10 份工程源件：`design_1.bd`（块设计）+ `design_1.bda` + 8 份 IP `.xci` | 643 529 |
+| （不在盘上，一条命令生成）`board/vivado_system/zynq_video_sys.xpr` | Vivado 工程：器件 `xc7z020clg484-2`、源码清单、约束、BD 单元格、run 外壳。由 `build/tcl/build_system_axigpio.tcl` 建，`.gitignore` 里 `vivado_system/` 一条挡住 ⇒ 仓库不存工程目录，只存那支脚本 | 重建 2026-10-19 rc=0 |
+| （同上）`board/vivado_system/zynq_video_sys.srcs/` | 工程源件：`design_1.bd` + 13 份 IP `.xci`（早先手点出来的那份 `.xpr`/`.srcs` 停在第 118 批的形状，与现役 RTL 不一致，已删） | 重建 2026-10-19 |
 | `board/vitis_platform/vitis-comp.json` | Vitis 平台描述：两个 domain（`zynq_fsbl` / `standalone_ps7_cortexa9_0`）、两颗 `ps7_cortexa9`、OS 清单、`flow=EMBEDDED` | 2 087 |
 | `board/vitis_platform/resources/` | 3 份 `qemu_args.txt`（顶层一份、两个 domain 各一份） | 4 633 |
+| `board/scripts/rebuild_vitis.py` | 平台与 PS 应用的重建脚本（`vitis -s` 那条 Python 通道）：先起 `vitis-server --port`，脚本里 `create_client(port=…, workspace=board/vitis_ws)` → `create_platform_component(hw_design=build/system.xsa)` → `generate_platform()` → `create_app_component(template=empty_application)` → 拷 `src/ps/*.c|h` → `build()` | 现跑见 §1b |
 
 **这四份的形状是两支脚本复制并当场验证出来的**，逐条 `VERIFY` 输出在 `board/measured/stage_2026-10-05.txt`：
 
@@ -135,7 +136,8 @@ VP_XSDB=<…>/xsdb.bat bash build/board_verify.sh --battery --geom --round=r118
 ## 5. 复现顺序
 
 ```
-第 0 节认版本 → 1) vivado -mode batch -source build/tcl/build_system_axigpio.tcl   （或者直接开 board/zynq_video_sys.xpr）
+第 0 节认版本 → 1) vivado -mode batch -source build/tcl/build_system_axigpio.tcl   （工程目录由它生成在 board/vivado_system/，仓库不存）
+              → 1b) （可选）起 vitis-server 后 vitis -s board/scripts/rebuild_vitis.py <port>   （重建 Vitis 平台与 PS 应用）
               → 2) node build/ps_app.mjs                                          （要改 PS 侧才需要）
               → 3) bash board/scripts/board_flash.sh --check                       （只读，先确认链是活的）
               → 4) bash board/scripts/board_flash.sh                               （真的把三件套放上板，JTAG）

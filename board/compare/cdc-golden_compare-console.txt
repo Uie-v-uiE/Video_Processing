@@ -1,4 +1,4 @@
-# CMD: node skill/scripts/golden_compare/golden_compare.mjs --golden build/cdc_baseline.txt --golden-format kv --golden-key '$1' --golden-values 'endpoints=@2,unsafe=@1' --produced build/frozen_r23_srcseen/cdc.rpt --produced-format kv --produced-key '$2>$3' --produced-values 'endpoints=@5,unsafe=@3' --produced-where '$1=Critical' --tolerance 0 --out-dir /tmp/p16b/cdc
+# CMD: node 旧条目名 scripts/golden_compare/golden_compare.mjs（盘上无此路径） --golden build/cdc_baseline.txt --golden-format kv --golden-key '$1' --golden-values 'endpoints=@2,unsafe=@1' --produced build/frozen_r23_srcseen/cdc.rpt --produced-format kv --produced-key '$2>$3' --produced-values 'endpoints=@5,unsafe=@3' --produced-where '$1=Critical' --tolerance 0 --out-dir /tmp/p16b/cdc
 # RUN_AT: 2026-10-04 11:56:08
 C1_key_coverage                判 4 项 黄金=4 产出=4 共有=4 产出缺=0 产出不明=0 PASS
 C2_value_vs_tolerance          判 8 项 容差=0 超上=0 键值增=0 键值减=0 值不可解析=0 PASS

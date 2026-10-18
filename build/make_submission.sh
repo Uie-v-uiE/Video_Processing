@@ -6,7 +6,7 @@
 # make_submission.sh — 从当前 git 跟踪集导出选题指南 §3.3.5.4 那份目录（final_submission/）。
 #
 # 四条判据，每条都是为了处理"仓库里合理、交出去不合理"：
-#  1) **按引用留凭据**：build/ 与 sim/ 跟踪了上千个文件。被交付文档、两份 README、skills/、板级
+#  1) **按引用留凭据**：build/ 与 sim/ 跟踪了上千个文件。被交付文档、两份 README、skill/、板级
 #     操作卡点名的才带；评委复核任何数字走的都是文档里那条指路，没被点名的留档在包里只是噪声。
 #  2) **被否决的轮次不进包**（HARD_DROP）：failed_/red_/rejected/notadopted/_wip/aborted 这些目录
 #     即使被文档点名也不带——文档还指着它们，就说明该改的是文档，不是把它们塞进包。
@@ -118,7 +118,7 @@ DOC_EXCLUDE=(report/log/contest_checklist.md)
 #    "src/host/ 下的件必须被活文档按路径点名"会把 main.c 剪掉，靠这一条才免检。
 #  · 新口径下 src/ps 与 src/rtl 一样不在裁剪池里，所以这一条当下不兜东西；名单留着是把
 #    "固件在哪"这件事写在脚本里，哪天有人把 src 加进 find，固件不会被静默剪出包。
-KEEP_ALWAYS_RE='\.(sh|tcl|py|ps1|bat|xdc|f|v|c|h)$|^src/(rtl|ps|constraints)/|^build/report/|^data/golden/|MANIFEST|README|^submit/|^skills/'
+KEEP_ALWAYS_RE='\.(sh|tcl|py|ps1|bat|xdc|f|v|c|h)$|^src/(rtl|ps|constraints)/|^build/report/|^data/golden/|MANIFEST|README|^submit/|^skill/'
 
 cd "$REPO"
 COMMIT="$(git rev-parse --short HEAD)"
@@ -133,7 +133,7 @@ prune() { if [ -e "$1" ]; then rm -rf "$1"; echo "$2 $1" >> _pruned.txt; fi; }
 
 # ---- 0. 活文档射程：由 find 现算，不留手写名单 ----
 # 手写名单会随目录长出新子树而**静默变窄**，而窄掉的那一层不会报错（规矩 47：射程漂移是无声的）：
-#   · 技能包本轮改成 `skills/<类别>/<条目>/SKILL.md`（三级），旧名单只写了两级 ⇒ 58 个条目全掉出射程；
+#   · 技能包本轮改成 `skill/<类别>/<条目>/SKILL.md`（三级），旧名单只写了两级 ⇒ 58 个条目全掉出射程；
 #   · `docs/` 重新成为交付层（那两次 docs→report 改名轮都退回了，见 report/log/issues.md），
 #     而旧名单里根本没有它 ⇒ 126 条"死链"的形状就是"文件在包里、指路在文档里、射程里没有它"。
 # 所以射程只由一条 find 算出，并打印**逐层计数**：某层归零即判这一层没扫成，不判这一层干净。
@@ -157,7 +157,7 @@ for L in $(find . -mindepth 1 -maxdepth 1 -type d 2>/dev/null | sed 's|^./||' | 
     exit 1
   fi
 done
-for must in README.md README_EN.md report/README.md skills/README.md report/src-map.md report/README.md; do
+for must in README.md README_EN.md report/README.md skill/README.md report/src-map.md report/README.md; do
   if ! grep -qxF "$must" _live_docs.txt; then
     echo "REFUSE：射程里缺必看入口 $must（评委照着翻的第一批文件）" >&2
     exit 1
@@ -200,7 +200,7 @@ for n in "${PRUNE_ONEOFF[@]}"; do prune "$n" "一次性脚本"; done
 # （2026-09-29 把两类目录一起剪时，`report/commands.md` 指着的 `build/evidence_r75/manifest.md5`
 # 就变死了，39 条死链全是这一类）。所以先读"活文档点哪些目录"，再决定剪谁。
 CRED_DIRS=$( { grep -rhoE '(build|board)/(evidence|frozen)_[A-Za-z0-9_.-]+/' \
-    report README.md README_EN.md skills board/README.md data/metrics.csv 2>/dev/null || true; } | sort -u )
+    report README.md README_EN.md skill board/README.md data/metrics.csv 2>/dev/null || true; } | sort -u )
 for d in build/evidence_* build/frozen_* board/evidence_* board/frozen_*; do
   if [ -d "$d" ]; then
     if printf '%s\n' "$CRED_DIRS" | grep -qF -- "$d/"; then
@@ -223,7 +223,7 @@ while read -r n; do if [ -e "$n" ]; then rm -rf "$n"; echo "被否决轮次/中�
 # 引用面 = 活文档全体 + 台账（`report/log/`，它的引用不算"包里必须有"，但它确实点了名，留着更稳）
 # + 根上两份 README + `submit/`（评审阅读路径）+ `docs/`（本轮重新成为交付层；旧名单没有它，
 # 于是只被 docs 点名的件会被判成"没人要"而剪掉 ⇒ 包内少文件、文档里留指路，两头都错）。
-LIVE_SCOPE=(report skills README.md README_EN.md board data src sim build)
+LIVE_SCOPE=(report skill README.md README_EN.md board data src sim build)
 # 扩展名长度上限原来是 5，够不着 `.rgb565`（6 位）⇒ 文档按路径点名的测试图案
 # （`data/inputs/*_512x300.rgb565`）在指路射程里是"看不见"的，被下面那圈剪成"没人要"，
 # 而末尾的死链自检照 6 位的形状抓得到它 ⇒ 报死链、拒绝落盘（2026-10-18 实测 2 条）。
@@ -518,13 +518,13 @@ done < <(find build -type f \( -name '*.rpt' -o -name '*.txt' \) 2>/dev/null | g
 #   死链自检抓不到它（它不是路径形状），但评委照着翻就是翻不到（2026-09-29 干跑时看到）。
 # ⚠ 名单也要由 find 现算：上一版写死 `report/*.md report/log/*.md board/*.md`，于是
 #   `report/timing/round_r117.md` 这类**大写名进了包、指路也没换**——小写化这一层对新加的 docs 层
-#   什么都没做（同一族的射程漂移）。`skills/**/SKILL.md` 是**故意不进**这张表的：§3.3.5.2 点名的
+#   什么都没做（同一族的射程漂移）。`skill/**/SKILL.md` 是**故意不进**这张表的：§3.3.5.2 点名的
 #   条目外壳就叫 `SKILL.md`，把它小写化等于自己造死链接；大写路径的整体处置是待决项 Q-P21-2。
 #   ⚠ 上面这句"故意不进"以前**只写在注释里，find 没有守卫** ⇒ 实测后果：包里 49 份 `SKILL.md` 被
 #   `mv` 成 `skill.md`，同时 `add_mv` 的**裸文件名映射**把交付文档里每一处 `…/SKILL.md` 指路也小写化，
 #   于是旧技能名那一层拿到的字面（取样在改写之前）再也匹配不上 ⇒ 包内自造 20 条死链（台账 #403）。
-#   守卫现在落在 find 上（`! -path './skills/*'`），不再靠注释。
-LOWER_SRC="$( { find . -name '*.md' ! -path './report/log/*' ! -path './skills/*' 2>/dev/null || true; } | sed 's|^\./||' | sort )"
+#   守卫现在落在 find 上（`! -path './skill/*'`），不再靠注释。
+LOWER_SRC="$( { find . -name '*.md' ! -path './report/log/*' ! -path './skill/*' 2>/dev/null || true; } | sed 's|^\./||' | sort )"
 LOWER_N="$(printf '%s\n' "$LOWER_SRC" | grep -c . || true)"
 for f in $LOWER_SRC; do
   if [ -f "$f" ]; then
@@ -574,12 +574,12 @@ printf 's|build/r[0-9][0-9]*_gates\\.txt|build/reports/gates.txt|g\n' >> _map.se
 # 因为台账那句是"当时读的是哪一篇"的凭据。
 printf 's|docs/walkthrough/\\([A-Za-z0-9_.-]*\\)\\.md|学习文档 \\1.md（本地留档，不随本包）|g\n' >> _map.sed
 
-# 技能包 2026-10-04 重建（28 张平铺卡 → `skills/<组>/<条目>/SKILL.md`）之前的旧条目名还留在
+# 技能包 2026-10-04 重建（28 张平铺卡 → `skill/<组>/<条目>/SKILL.md`）之前的旧条目名还留在
 # `report/*.md` 与协作记录里。包里**翻不到**的那些就地降级成文字，剩下的仍是指向真实条目的路径。
 # 名单由"包内实际有没有这个文件"现算，不写死 ⇒ 条目以后再加/再改名，这一层自己跟着变（射程不漂）。
-# ⚠ 这条正则是**射程本身**，只能按形状数、不能按层数写死：上一版写成 `skills/<一段>/<一段>.ext`，
-#   于是三层深的 `skills/pitfalls/<条目>/SKILL.md` 全都不匹配 —— 现测"被引用的技能路径共数 18 个"，
-#   而交付文档里点到 skills 的路径有 117 处 ⇒ 这一层几乎空转（少报方向，见台账 #373 的同类教训）。
+# ⚠ 这条正则是**射程本身**，只能按形状数、不能按层数写死：上一版写成 `skill/<一段>/<一段>.ext`，
+#   于是三层深的 `skill/pitfalls/<条目>/SKILL.md` 全都不匹配 —— 现测"被引用的技能路径共数 18 个"，
+#   而交付文档里点到 skill 的路径有 117 处 ⇒ 这一层几乎空转（少报方向，见台账 #373 的同类教训）。
 # ⚠ 取样范围必须与**改写范围、残留计数范围同一份**：上一版只对 `*.md` 取样生成规则，
 #   而 sed 与计数都覆盖 `*.v`/`*.mjs`/`*.csv` 那一整批 ⇒ 台架注释里的三个旧平铺卡名
 #   既没规则可改、又被计数判红（实测 REFUSE 剩 3 个，全是 `sim/*.v` 的注释）。
@@ -593,39 +593,39 @@ grep -vE '^\./build/reports/|^\./report/log/' > _txt.txt || true
 # 已经把文档里的 `SKILL.md` 换成 `skill.md`，技能那一层拿着旧字面生成的规则一条也匹配不上，
 # "降级 N 个"照样打印、包内残留照样是 20 条 —— 取样/改写/计数要同一份、同一个时刻才成立（台账 #403）。
 xargs -r sed -i -f _map.sed < _txt.txt
-SKILL_CITED="$( { xargs -d '\n' -a _txt.txt grep -hoE 'skills/[A-Za-z0-9_./-]+\.(md|sh|mjs|py)' 2>/dev/null || true; } | sort -u )"
+SKILL_CITED="$( { xargs -d '\n' -a _txt.txt grep -hoE 'skill/[A-Za-z0-9_./-]+\.(md|sh|mjs|py)' 2>/dev/null || true; } | sort -u )"
 : > _skill_map.sed
 SKILL_FIX_N=0
 while IFS= read -r p; do
   [ -n "$p" ] || continue
   _pl="$(printf '%s' "$p" | tr 'A-Z' 'a-z')"
   if [ ! -e "$p" ] && [ ! -e "$_pl" ]; then
-    # 平铺名（`skills/xxx.md`）降级后的字面不能再带 `skills/`，否则新写的这句话会被同一把
-    # 计数正则再抓一次 ⇒ 永远红；三层名保留"组/文件"，因为它不含 `skills/` 前缀也认得出位置。
+    # 平铺名（`skill/xxx.md`）降级后的字面不能再带 `skill/`，否则新写的这句话会被同一把
+    # 计数正则再抓一次 ⇒ 永远红；三层名保留"组/文件"，因为它不含 `skill/` 前缀也认得出位置。
     _grp="$(basename "$(dirname "$p")")"
-    if [ "$_grp" = "skills" ]; then _short="$(basename "$p")"; else _short="$_grp/$(basename "$p")"; fi
-    printf 's|%s|技能包旧条目 %s（重建前的名字，未随本包；现有条目索引见 skills/README.md）|g\n' \
+    if [ "$_grp" = "skill" ]; then _short="$(basename "$p")"; else _short="$_grp/$(basename "$p")"; fi
+    printf 's|%s|技能包旧条目 %s（重建前的名字，未随本包；现有条目索引见 skill/README.md）|g\n' \
       "$p" "$_short" >> _skill_map.sed
     SKILL_FIX_N=$((SKILL_FIX_N + 1))
   fi
 done < <(printf '%s\n' "$SKILL_CITED")
 echo "旧技能条目名就地降级 $SKILL_FIX_N 个（被引用的技能路径共数 $(printf '%s\n' "$SKILL_CITED" | grep -c . ) 个；取样范围=改写范围=计数范围）" >> _pruned.txt
 
-# 技能旧名那一族单独一遍，跑完立刻**自证**：再数一次"包里还有多少 `skills/…` 引用落不到文件"。
+# 技能旧名那一族单独一遍，跑完立刻**自证**：再数一次"包里还有多少 `skill/…` 引用落不到文件"。
 # 上一版的错就是把规则并进主映射（别的规则先改写过同一行 ⇒ 字面旧路径再匹配不上），打印了
 # "降级 73 个"却留下 20 条三层深的旧引用（台账 #374）。这条判据把"我说过改了"和"确实改完了"
 # 绑在一起：残留 > 0 就 REFUSE，不再让这一层可以空转（[[feedback-ruler-teeth-empty-sets]]）。
 # 第二遍 sed 的**可观测性**（#376 留下的三个候选，一次全照出来）：规则条数、清单行数、
-# 两遍前后"含 skills 形状引用的文件数"。若规则>0 而命中文件数不变，问题在清单/射程；
+# 两遍前后"含 skill 形状引用的文件数"。若规则>0 而命中文件数不变，问题在清单/射程；
 # 若命中数下降但仍 >0，问题在规则本身；若 _skill_map.sed 是空的，问题在生成段。
 SM_N="$( { grep -c '' _skill_map.sed || true; } )"
 TX_N="$( { grep -c '' _txt.txt || true; } )"
-HIT_BEFORE="$( { while IFS= read -r ff; do ff="${ff#./}"; [ -f "$ff" ] || continue; if grep -lqE 'skills/[A-Za-z0-9_./-]+\.(md|sh|mjs|py)' "$ff" 2>/dev/null; then printf 'X\n'; fi; done < _txt.txt; } | grep -c X || true )"
+HIT_BEFORE="$( { while IFS= read -r ff; do ff="${ff#./}"; [ -f "$ff" ] || continue; if grep -lqE 'skill/[A-Za-z0-9_./-]+\.(md|sh|mjs|py)' "$ff" 2>/dev/null; then printf 'X\n'; fi; done < _txt.txt; } | grep -c X || true )"
 HIT_BEFORE="${HIT_BEFORE:-0}"
 xargs -r sed -i -f _skill_map.sed < _txt.txt
-HIT_AFTER="$( { while IFS= read -r ff; do ff="${ff#./}"; [ -f "$ff" ] || continue; if grep -lqE 'skills/[A-Za-z0-9_./-]+\.(md|sh|mjs|py)' "$ff" 2>/dev/null; then printf 'X\n'; fi; done < _txt.txt; } | grep -c X || true )"
+HIT_AFTER="$( { while IFS= read -r ff; do ff="${ff#./}"; [ -f "$ff" ] || continue; if grep -lqE 'skill/[A-Za-z0-9_./-]+\.(md|sh|mjs|py)' "$ff" 2>/dev/null; then printf 'X\n'; fi; done < _txt.txt; } | grep -c X || true )"
 HIT_AFTER="${HIT_AFTER:-0}"
-echo "技能降级一遍可观测性：规则 $SM_N 条／改写清单 $TX_N 行／含 skills 引用的文件数 改前 $HIT_BEFORE → 改后 $HIT_AFTER" >> _pruned.txt
+echo "技能降级一遍可观测性：规则 $SM_N 条／改写清单 $TX_N 行／含 skill 引用的文件数 改前 $HIT_BEFORE → 改后 $HIT_AFTER" >> _pruned.txt
 # ⚠ 残留计数必须与**改写射程同面**：上一版对着整棵暂存树数，把 `report/log/`、`build/reports/` 这些
 #   按规矩**永不改写**的证据件也算进来 ⇒ 这一条永远不可能归零，REFUSE 成了假红（实测 47 个，
 #   其中多数在证据层）。现在只数 `_txt.txt` 里那份"主改写实际处理过的文件清单"。
@@ -991,7 +991,7 @@ cat > MANIFEST.txt <<EOF
   board/      工程/脚本/实测输出    <- project/**（板上那一版 .bit/.elf/.xsa）
                                      + tcl|scripts/**（JTAG 与串口脚本）+ output/**（实测输出）
   data/       测试数据与参考结果    <- data/golden/**、data/measured/**
-  skills/      技能包                <- skills/**（README.md 是索引；条目外壳按 §3.3.5.2 就叫 SKILL.md）
+  skill/      技能包                <- skill/**（README.md 是索引；条目外壳按 §3.3.5.2 就叫 SKILL.md）
   report/     设计报告 + 协作记录   <- 仓库里的 report/（交付文档），工作记录在 report/log/
   ——  以下两层是"其他组织方式"的一部分，对照说明同样写在 README.md / report/README.md：
   docs/       度量、名册与逐轮台账  <- 仓库里的 docs/（含 docs/timing/ 的逐时钟名册）；

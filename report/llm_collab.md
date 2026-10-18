@@ -107,9 +107,9 @@ bash build/sim/mut_control.sh tb_v101_fb_bilin L10 bilin_ky_fold
 逐条结论登记在 `report/log/issues.md` 条目 #127、#128；脚本侧的守卫是"每条还原方式都要预先写死该判不通过哪几条"
 的 `EXPDIFF` 行数守卫（临时副本与原件的 diff 多一行少一行都拒绝继续）。当时落成的三条旧条目名
 `criterion_blind_spot`、`bench_self_inflicted_reds`、`sim_hw_divergence_array_writes` 是 2026-10-04 之前的旧包写法，
-**现不存在**；现役的同类条目是 `skills/pitfalls/ruler-fake-greens/SKILL.md`（检查工具自己造的假通过）、
-`skills/rtl/width-and-overflow-audit/SKILL.md`（位宽与越界的界）与
-`skills/verify/mutation-controlled-coverage/SKILL.md`（变异对照怎么写），索引在 `skills/README.md`。
+**现不存在**；现役的同类条目是 `skill/pitfalls/ruler-fake-greens/SKILL.md`（检查工具自己造的假通过）、
+`skill/rtl/width-and-overflow-audit/SKILL.md`（位宽与越界的界）与
+`skill/verify/mutation-controlled-coverage/SKILL.md`（变异对照怎么写），索引在 `skill/README.md`。
 
 ---
 
@@ -142,7 +142,7 @@ bash build/sim/mut_control.sh tb_v101_fb_bilin L10 bilin_ky_fold
 判定标准侧新增 A11（残包只丢尾巴且必须明说），它是一条能判不通过的判定标准，不是一句承诺；
 读数在 `report/log/issues.md` 条目 #132–#135。旧条目名 `failing_read_prints_geometry`、
 `switch_feature_two_level_evidence` 是旧包写法，**现不存在**；现役同类条目见
-`skills/runtime/board-liveness-readback/SKILL.md`（命令答应与硬件真的动了没有）与 `skills/README.md` 索引。
+`skill/runtime/board-liveness-readback/SKILL.md`（命令答应与硬件真的动了没有）与 `skill/README.md` 索引。
 
 ---
 
@@ -167,7 +167,7 @@ bash build/sim/mut_control.sh tb_v101_fb_bilin L10 bilin_ky_fold
 **复跑与凭据**：`bash build/make_submission.sh > /tmp/exp.log 2>&1; echo rc=$?`（先看退出码再看输出）；
 修完之后导出器每次跑都强制自检死链、旧名残留、绝对路径三类，任一非 0 就**拒绝落盘**——
 也就是这一份文件所在的包能存在，本身就是这条判定标准在管着。读数在 `report/log/issues.md` 条目 #133、#106；
-现役条目 `skills/pitfalls/package-integrity/SKILL.md` 管的就是这一类。
+现役条目 `skill/pitfalls/package-integrity/SKILL.md` 管的就是这一类。
 
 ---
 
@@ -210,7 +210,7 @@ bash build/sim/mut_control.sh tb_v101_fb_bilin L10 bilin_ky_fold
 
 **复跑与凭据**：`bash build/gates.sh`（看末行是 `ALL PASS` 还是 `PARTIAL`，并数 `n/a` 的行数）；
 两份对照件 `build/r88_gates_naive.txt` 与 `build/r88_gates_partial.txt` 都在树里；
-三态口径（通过／不通过／未判）的成文条目是 `skills/verify/three-state-verdicts/SKILL.md`。
+三态口径（通过／不通过／未判）的成文条目是 `skill/verify/three-state-verdicts/SKILL.md`。
 
 ---
 
