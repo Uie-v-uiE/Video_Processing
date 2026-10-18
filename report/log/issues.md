@@ -15407,6 +15407,8 @@ hold 0.004·0.048·0.067·0.121；51,027 端点；LUT 14,013（26.34 %）；FF 8
 - 文档侧判据复跑：`line_cite_check` 硬错 0、`metric_recheck` 红 0、`doc_currency_check` 干净、`round_bit_pairing` GREEN、
   `bash build/gates.sh` 末行 `GATES: ALL PASS（24 项全部判定）`。
 
+**六之二、两跑逐字节一致这一步也真做了**：`bash build/gates.sh` 连跑两次（第一次退出码 0、第二次退出码 0），两份输出 `cmp` 相同 ⇒ 逐字节一致；两次的末行都是 `GATES: ALL PASS（24 项全部判定）`。上面 06-validation 与 judge_qa 里那句「两跑逐字节一致」从「照抄 r118 的做法」变成 r132 的实读。
+
 **七、还没做（别让它看起来已做完）**
 - 三份 docx 没有重新分页/重排；图片与页眉里的内容这次没碰 ⇒ 如果哪张图里写着旧数，本轮覆盖不到。
   本轮只 grep 过图源脚本（无旧数命中），**图本身没逐张看**。

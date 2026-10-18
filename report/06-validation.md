@@ -72,9 +72,10 @@
 "这里**不再写死条数**，以本文件里 `say` 的调用次数为准"（`say` 就是脚本里"记一项判定"的那个函数），
 所以 24 这个数是这一轮打印出来的，不是抄来的。
 
-**当前 24 项 = 23 绿 / 1 红**，两跑逐字节一致：件
+**r118 那一次是 24 项 = 23 绿 / 1 红**，且两跑逐字节一致：件
 `build/evidence/r118_board/g2c.txt` 与 `build/evidence/r118_board/g3c.txt` 的末行是同一句
 `GATES: 有红项（判定 24 项）……`，
+而 r132 这一轮重跑之后是 **门禁 24 项 24 绿 / 0 红**（件 `build/r132_gates.txt`，末行 `GATES: ALL PASS（24 项全部判定）`；两跑逐字节一致这一步本轮也复做过，结论记在 `report/log/issues.md` #483 末段）。
 汇总件 `build/evidence/r118_board/gatesc_summary.txt` 打的是
 `GATESC done id=identical green=23 red=1`。
 
