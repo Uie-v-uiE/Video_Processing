@@ -15642,3 +15642,16 @@ RUN       bash run_test.sh --dry-run 在包内跑通 rc=0（四步 NOT_MEASURED�
   而现役是 13 份）；`board/vitis_ws*` 生成目录（36 MB 级，留下 `build/evidence/board_rebuild_20261018/
   vitis_platform_summary.txt` 那份字节与 md5 摘要）；工作区根目录这一侧的一次性脚本与日志、
   `__pycache__`、仓库根那个 0 字节的 `=` 文件。
+
+**#487 收尾（06:47 现跑）**：那支 40+ 帧的整屏台架 01:13 起跑、03:54 跑完，判定行仍是
+`RESULT tb_v98_top_seam PASS`（`^PASS` 165、`^FAIL` 0）；`build/tb98_report.sh` 用新 run.log 重盖头部三枚
+指纹（`top_md5` 与 `rtl_md5` 不变，`tb_md5` 从 `004949d96301` 变 `3975c335ab26`——就是注释去掉三条库外
+路径那一改）。`bash build/gates.sh` 现跑 **`GATES: ALL PASS（24 项全部判定）`**，上一轮那条
+"改过台架，这份报告不算当前树"的红项关掉。引用旧 `tb_md5` 的两处文档（`report/06-validation.md:38`、
+`report/judge_qa_xiaosai.md:118`）跟着换，并写明重盖章原因。
+
+**包里放的是哪一份 v98 凭据**：随包的是门禁件 `build/reports/reports_gates.txt` 里第 15 项那一行
+（`顶层台架 tb_v98 top=c778dc4416b3 FAIL行=0 指纹(norm1):fresh fresh fresh 同一次跑且无 FAIL PASS`），
+165 行的原始 console（`build/tb_v98_report.txt`）留在仓库不随包——这是导出器既有的取舍（那支台架一次
+75 分钟，console 190 KB），不是这轮新加的决定。重建出来的工程目录（`vivado_system/`、`board/vitis_ws/`）
+同理不入库不随包，包里给的是脚本与摘要件。
