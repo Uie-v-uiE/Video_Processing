@@ -272,7 +272,8 @@ SD 卡、GPIO 和一个主循环，在这个规模上引入操作系统的开销
 | 固件 | `ps_app.elf`，链接在片内存储的高段 |
 | 启动镜像 | `BOOT.bin`，含引导程序、位流和应用程序 |
 | 烧写 | 板载 32 MB QSPI NOR，擦写后回读校验通过 |
-| 断电自启 | 冷上电串口出现 `Boot mode is QSPI`、`FPGA Done`、`SUCCESSFUL_HANDOFF`，随后 SD 自动播片，网口那一路也有画面 |
+| 断电自启 | 串口那半有件：`board/measured/qspi_coldboot_selfboot_ok_2026-10-06.txt` 第 14 行 `Boot mode is QSPI`、第 66 行 `FPGA Done`、第 109 行 `SUCCESSFUL_HANDOFF`（那是上一版镜像那一次冷上电；随后 SD 自动播片、网口那一路也有画面这两条是当时在场的眼睛判的）。板上这一版的同一次留档还欠，补法就是 1.4 那一格里写的：启动档拨在 QSPI、断电十秒以上再冷上电，
+把串口文本与屏上那一眼一起留下 |
 
 【照片 2｜板卡顶面特写】拍到并标出 PL 侧 RJ45、HDMI 座、启动拨码（QSPI 档）和板载配置闪存。
 
