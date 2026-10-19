@@ -300,7 +300,7 @@ RESULT board_verify PASS（判红的步骤：0）
 | r132 | `eth_rxc` | hold 0.004 ns | 收包有效位 → 字节计数（`u_rx_par/p_valid_reg/C → u_reasm/stat_bytes_reg[0]/D`） | — |
 | r118 | `eth_rxc` | setup 0.739 ns | IP 首部 → 校验和缓冲（`u_icmp_tx/ip_head_reg[4][16] → check_buffer_reg[19]/D`） | 11 级含 6 个 CARRY4，布线 58.4 %；同一只锥贡献前 3 档 0.739 / 0.873 / 0.961 |
 | r118 | `eth_rxc` | 第 4–12 档 | 帧尾标志 → 行数命中使能（`u_rx_par/p_eof_reg → u_reasm/rows_hit_reg[*]/CE`） | 4 级，布线 85 %；整族搬走的上界 +0.278 ns |
-| r118 | `clk_fpga_0` | setup 1.850 ns | 前 12 档同起点 `u_arb/owner_eth_reg/C`，终点是帧缓存 BRAM 的写使能与地址脚 | 1–4 级，布线 88.8–93.6 %；该域没有算法锥可拆，能动的是这只高扇出标志的复制与摆放 |
+| r118 | `clk_fpga_0` | setup 1.850 ns | 前 12 档同起点 `u_arb/owner_eth_reg/C`，终点是帧缓存 BRAM 的写使能与地址脚 | 1–4 级，布线 88.8–93.6 %；该域没有算法锥可拆。现版净表复核（`build/evidence/r132_owner_fanout.txt`）量到这只标志只驱动 5 个负载，所以可动的不是复制而是摆放，而摆放那一刀 r89 已量过并否决 |
 
 ### 3.4 优化前后的性能与资源对比
 

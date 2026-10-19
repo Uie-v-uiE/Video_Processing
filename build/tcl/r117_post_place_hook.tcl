@@ -25,6 +25,17 @@
 # NOTHING HERE LOOSENS A CONSTRAINT (H1): it adds 10 flip-flops and re-assigns loads.
 set hook_net  {u_pl/u_row/hi_reg_0[0]}
 set hook_load u_pl/u_row/hi_reg_4_i_1/I3
+# Optional re-aim for later rounds (defaults above keep r117's cut reproducible byte for byte):
+#   VP_HOOK_NET / VP_HOOK_LOAD must BOTH be given, or neither -- a half-overridden hook would aim
+#   the two independent lookups at different objects and the guard below would abort anyway.
+if {[info exists ::env(VP_HOOK_NET)] && $::env(VP_HOOK_NET) ne ""} {
+  if {![info exists ::env(VP_HOOK_LOAD)] || $::env(VP_HOOK_LOAD) eq ""} {
+    error "VP_HOOK_NET given without VP_HOOK_LOAD -- the two-lookup guard needs both to re-aim"
+  }
+  set hook_net $::env(VP_HOOK_NET)
+  set hook_load $::env(VP_HOOK_LOAD)
+  puts "R117HOOK_REAIMED net=$hook_net load=$hook_load"
+}
 
 set byname [get_nets -quiet $hook_net]
 set byload [get_nets -quiet -of [get_pins -quiet $hook_load]]

@@ -1,0 +1,12 @@
+r132 owner_eth fanout reading (probe: build/tcl/probe_owner_fanout.tcl on the r132 routed dcp, bit md5 cb907d3e4898)
+verdict: the flag on the worst clk_fpga_0 path drives 5 loads -- it is NOT a high-fanout net, so replication is not the lever
+OWNERDRV|pin=u_pl/u_arb/owner_eth_reg/Q
+OWNERNET|name=u_pl/u_arb/dbg_src[0]|loads=5
+  LOAD|u_pl/u_arb/burst_idx[31]_i_6/I0
+  LOAD|u_pl/u_arb/fb_wr_data[63]_i_3/I0
+  LOAD|u_pl/u_arb/m_axi_rready_i_2/I0
+  LOAD|u_pl/u_arb/burst_idx[31]_i_4/I3
+  LOAD|u_pl/u_arb/owner_eth_i_1/I5
+OWNERPEERS|probe=owner_sd_reg|pins=0
+OWNERPEERS|probe=owner_test_reg|pins=0
+OWNERPEERS|probe=owner_reg|pins=0

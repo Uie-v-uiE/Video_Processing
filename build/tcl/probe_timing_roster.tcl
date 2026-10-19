@@ -23,6 +23,7 @@ if {[info exists ::env(VP_LABEL)]} { set label $::env(VP_LABEL) }
 set n 2
 if {[info exists ::env(VP_N)]} { set n $::env(VP_N) }
 set dcp [file join $root "vivado_system/zynq_video_sys.runs/impl_1/system_top_routed.dcp"]
+if {[info exists ::env(VP_DCP)] && $::env(VP_DCP) ne ""} { set dcp $::env(VP_DCP) }
 if {![file exists $dcp]} { puts "REFUSE: no such dcp: $dcp"; exit 1 }
 open_checkpoint $dcp
 
