@@ -2,7 +2,7 @@
 
 对应赛题 §3.3.5.3 的"复现说明：一份可供他人从零开始完整执行的操作步骤"。
 与仓库根 `README.md` 的"复现三步"**同源**：这里把那三步展开成逐命令，并在第 6 节列出五处不一致及权威判定。
-`README.md`、`report/build.md`、`build/README.md`、`board/README.md` 不在本页的改动范围里，冲突只登记并给出应改动作。
+`README.md`、`report/build.md`、`build/README.md`、`board/README.md` 这四份不在本次改动范围里，冲突只登记并给出应改动作。
 
 **从零到屏幕出现画面的顺序**就是下面这几条命令，按顺序敲，每条后面写清了敲完该看到什么；
 每条的完整前置、shell 与判读在上板那一节（第 4 节）的对应行里。
@@ -89,8 +89,8 @@ bash -n build/gates.sh build/board_verify.sh build/sim/run_one.sh build/sim/mut_
 | 2.3 | `python build/build_ps_app.py`（或 `node build/ps_app.mjs`）| `<仓库根>` / Git Bash | 需 `PS_CC`（1.7 那条路径）与 `PS_BSP`（默认指仓库内 `vitis/platform/…/bsp`）；**不想动交付件时把 `PS_OUT` 指到别处**（`report/build.md` 变量表明写这条）| 产出 `ps_app.elf` 并通过四道自检（入口==`_boot`、`_vector_table`==0x0、`.text` ≥ 20 KB、五个符号都在）；任一不过 ⇒ 非零退出，因为"链接成功"不等于可执行 | `NOT_MEASURED`（构建未跑；`PS_CC` 未设时它第一步 REFUSE 的文案实读在 `report/build.md` 里，未实跑验证）|
 | 2.4 | `bash build/freeze_evidence.sh rNN` | `<仓库根>` / Git Bash | 2.1 完成且发布前检查无未通过项 | 成套拷进 `build/frozen_rNN_<短名>/` 并写 `MANIFEST`；**发布前检查有未通过项时它会 REFUSE**（`GATES: ALL PASS` 才允许出现，否则打 `PARTIAL` 或有红项 ⇒ 拒绝归档）| `NOT_MEASURED`（既不跑构建也不改盘内 `build/`）；盘上那份门禁（`build/r118_gates.txt`）是**有红项**那一支（见 5.1）⇒ 照做会得到 REFUSE，这是预期行为不是故障 |
 
-**为什么这一节只能整节 `NOT_MEASURED`**：一条构建的墙钟是几十分钟量级，且会原地覆写 `build/system.bit`、`*.rpt`
-这些**被文档按身份引用的件**。构建要批准才能跑，所以这一节给的是操作步骤 + `NOT_MEASURED`，不是"已验证"。
+**为什么第 2 节只能整节 `NOT_MEASURED`**：一条构建的墙钟是几十分钟量级，且会原地覆写 `build/system.bit`、`*.rpt`
+这些**被文档按身份引用的件**。构建要批准才能跑，所以第 2 节给的是操作步骤 + `NOT_MEASURED`，不是"已验证"。
 
 **只建 BD 就退出的快口（`build/tcl/build_system_axigpio.tcl` 自己写出的唯一调用形式，脚本用法头逐字）**：
 
@@ -161,7 +161,7 @@ bash build/tb98_report.sh [那份 run.log]
 ## 4. 上板（JTAG 三步 + 串口 + 推流）
 
 > 第 4 节 **NOT_MEASURED**：刷板与串口未跑（要板子与人手）。前置条件只读地验了一半（网络与 hw_server，见下表 4.0/4.1），
-> 板子是否上电、COM6 是否被占、HDMI 是否接了 1024×600 面板，没有确认。这一节就是"从零到画面"那几步。
+> 板子是否上电、COM6 是否被占、HDMI 是否接了 1024×600 面板，没有确认。第 4 节走的就是"从零到画面"那几步。
 
 | # | 命令 | 执行目录 / shell | 所需外部设备与状态 | 完成后应看到什么 | 判定 |
 |---|---|---|---|---|---|
@@ -222,7 +222,7 @@ bash build/board_verify.sh --self        # 只跑判据自己的五条对照（�
 
 两条必须一起读的形状：① 这支脚本**不刷板子**（头里"不做什么"那一节明写，下载顺序它指给 `report/build.md` §3），刷板是上面那支 bit_cycle 或人来做（4.3–4.5）；② 它自己打的 `drop_words → 0` 那一次 `eth_live` 是 `0`（件里 lane30 那行写着 `"why":"没有流"`），所以那一条**不算带流已验**；带流那一读在上面那支脚本的摘要里（`build/r116_bit_cycle.sh`，`eth_live=1 owner_eth=1`）。
 
-**手工三步 JTAG 的调用形态：`【未核实】`**——找过哪里：`build/board_verify.sh` 的用法头（它只指路"三件套（bit/xsa/elf）的下载顺序见 README.md 的'复现三步'第 3 步与 `report/build.md` §3"）、`build/r116_bit_cycle.sh` 的用法头（头里只有 `<标签> [位流路径]`；三步 `build/tcl/ps_jtag_boot.tcl` → `build/tcl/program_pl.tcl` → `build/tcl/ps_app_reload.tcl` 写在它的**体内** `:22-34`）、以及 `board/acceptance.md` E6 的前置那一格（点名三步与"全程不碰 KEY1/KEY2"，但没有命令行）。4.3–4.5 那三行是逐条列出这三步的调用形式（`xsdb.bat <tcl>` 与 `vivado -mode batch -source program_pl.tcl`），照第 4 节跑阶段 4 就用 `bash build/r116_bit_cycle.sh <标签> [位流路径]`，它自己会把三步跑掉；要单独手工重跑某一步，第 4 节不补一条出处查不到的命令。
+**手工三步 JTAG 的调用形态：`【未核实】`**——找过哪里：`build/board_verify.sh` 的用法头只指路"三件套（bit/xsa/elf）的下载顺序见 README.md 的'复现三步'第 3 步与 `report/build.md` §3"；`build/r116_bit_cycle.sh` 的用法头里只有 `<标签> [位流路径]`（三步 `build/tcl/ps_jtag_boot.tcl` → `build/tcl/program_pl.tcl` → `build/tcl/ps_app_reload.tcl` 写在它的**体内** `:22-34`）、以及 `board/acceptance.md` E6 的前置那一格（点名三步与"全程不碰 KEY1/KEY2"，但没有命令行）。4.3–4.5 那三行是逐条列出这三步的调用形式（`xsdb.bat <tcl>` 与 `vivado -mode batch -source program_pl.tcl`），照第 4 节跑阶段 4 就用 `bash build/r116_bit_cycle.sh <标签> [位流路径]`，它自己会把三步跑掉；要单独手工重跑某一步，第 4 节不补一条出处查不到的命令。
 
 **眼睛那一半不是命令。** `board/acceptance.md` E1–E6 给的是判法与条件；2026-10-04 在 r118 上由队员点头的是 E4（「现在屏幕没问题了四角都在屏幕内」）与 E6（「0度」，件 `build/evidence/r118_eyes/`），E6 的对照那一半登记为**未判**。屏幕读数不属于机器判据，也不进门禁（与第 8 节的"人眼判据 E1–E6"那一行是同一件事）。
 
@@ -255,7 +255,7 @@ bash build/gates.sh build/frozen_r19_arb   # 读某一组成套冻结件
 
 **警告（`build/gates.sh` 头部第 14–20 行写的自毁陷阱）**：不要把它的输出直接重定向成它自己要读的那份 `build/rNN_gates.txt`——`>` 会在第一项判据跑之前就把那个文件截断，而第 18 项恰恰要拿"盘上最新且 ALL PASS 的那一份"当基准。它给的正确姿势是两步：先重定向到临时目录里的一份、跑完之后再 `cp` 到位（要留旧份就先留备份）。这一条与 5.1 那行末尾说的"另有一条踩过的坑"是同一件事，两处一起念。
 
-**跑完应看到**（三种结尾逐字来自 `build/gates.sh:582-586`；`$NSAY`/`$NNA` 由脚本自己数，落到具体轮次是 `GATES: ALL PASS（24 项全部判定）` 这种形状）：
+**跑完应看到**：三种结尾逐字来自 `build/gates.sh:582-586`，`$NSAY`/`$NNA` 由脚本自己数，落到具体轮次是 `GATES: ALL PASS（24 项全部判定）` 这种形状：
 
 ```
 GATES: ALL PASS（$NSAY 项全部判定）
@@ -283,9 +283,9 @@ GATES: 有红项（判定 $NSAY 项）—— 不采纳，保留上一版
 |---|---|---|---|---|
 | 1 | 上位机三支 `.bat` | `report/build.md` §2 让跑 `src\host\run_sender.bat`、`run_video.bat <mp4>`、`run_serial.bat COM5` | **以根 README 为权威**：`find . -name "run_*.bat"` 只命中 `vivado_system/**/runme.bat`（Vivado 自己的），`src/host/` 下无 `.bat`（2026-10-05 复跑同结论）；而根 README 用的 `send_demo.bat` 实测存在 | 把那三行改成指向 `send_demo.bat` + `python src/host/video_sender.py`（改 `report/build.md`；**需队伍授权**）|
 | 2 | 台架名 | `report/known_issues.md` §1 的复现命令写 `bash build/sim/run_one.sh tb_video_pipeline_top` | **仓库内以 `sim/tb_v98_top_seam` 为权威**：仓库里没有名为 `tb_video_pipeline_top.v` 的台架文件；`tb_video_pipeline_top` 是导出时的改名（`build/sim/names.md`、`build/make_submission.sh` 的 `NAME_MAP`）| 该命令旁加一句"仓库名 = `tb_v98_top_seam`，包内名 = 此名"（已落在 `report/known_issues.md` §1 的第 38 行）|
-| 3 | 报告落哪 | `build/README.md` 说构建产出 `build/reports/` 里那六份 `.rpt` | **以盘上实测为权威**：六份报告平铺在 `build/` 根（`build/timing_summary.rpt` 等实测存在）；登记时 `ls build/reports` 报 `No such file or directory`，2026-10-05 复核 `build/reports/` 已在盘上、里面只有 `build/reports/index.md` 这一份索引。根 README 已写明"仓库平铺、提交包里展平进 `build/reports/`，同一批文件两种摆法" | `build/README.md` 那句补上"仓库内平铺"这一半（改 `build/README.md`；不在本页改动范围）|
-| 4 | 下载 bit 用哪支 tcl | `report/build.md` §2 用 `build\tcl\program_system.tcl`；根 README 与 `board/README.md` 用三步 `ps_jtag_boot → program_pl → ps_app_reload` | **以三步链为权威**（交付口径、且 `board/acceptance.md` 每一版的行 1 都是按这三步记的）。两支脚本**都存在**，所以这不是缺失而是两条路并存 | `build.md` 那行标注"老的一键下载路径，与三步链的关系 …"（改 `report/build.md`；不在本页改动范围）|
-| 5 | 板上现在跑哪一版的数字 | `board/README.md` 实测表写 WNS `0.720` / WHS `0.033` / `0 / 50890` / `2.207 W`，点名 `build/timing_summary.rpt`、`build/power.rpt` | **以报告原件 + 根 README 为权威**：实读 `build/timing_summary.rpt` = `0.739 / 0.052 / 0 / 51135`，`build/power.rpt` = `Total On-Chip Power (W) 2.391`；`metric_recheck` 判红 0，但它的取数名单（实读脚本 `:274-283`，2026-10-05 复核仍是两份首页 + `data/metrics.csv`）不含 `board/README.md` ⇒ 那两行在对账检查的覆盖范围外，不是脚本漏判 | 两个选项：把该表改成只指本版件不复述数字，或把它纳入 D6 的覆盖范围（改 `board/README.md` 或 `src/host/metric_recheck.mjs`；**都不在本页改动范围**）⇒ 已作为 A13 进 `report/60-failure-analysis.md` |
+| 3 | 报告落哪 | `build/README.md` 说构建产出 `build/reports/` 里那六份 `.rpt` | **以盘上实测为权威**：六份报告平铺在 `build/` 根（`build/timing_summary.rpt` 等实测存在）；登记时 `ls build/reports` 报 `No such file or directory`，2026-10-05 复核 `build/reports/` 已在盘上、里面只有 `build/reports/index.md` 这一份索引。根 README 已写明"仓库平铺、提交包里展平进 `build/reports/`，同一批文件两种摆法" | `build/README.md` 那句补上"仓库内平铺"这一半（改 `build/README.md`；不在本次改动范围）|
+| 4 | 下载 bit 用哪支 tcl | `report/build.md` §2 用 `build\tcl\program_system.tcl`；根 README 与 `board/README.md` 用三步 `ps_jtag_boot → program_pl → ps_app_reload` | **以三步链为权威**（交付口径、且 `board/acceptance.md` 每一版的行 1 都是按这三步记的）。两支脚本**都存在**，所以这不是缺失而是两条路并存 | `build.md` 那行标注"老的一键下载路径，与三步链的关系 …"（改 `report/build.md`；不在本次改动范围）|
+| 5 | 板上现在跑哪一版的数字 | `board/README.md` 实测表写 WNS `0.720` / WHS `0.033` / `0 / 50890` / `2.207 W`，点名 `build/timing_summary.rpt`、`build/power.rpt` | **以报告原件 + 根 README 为权威**：实读 `build/timing_summary.rpt` = `0.739 / 0.052 / 0 / 51135`，`build/power.rpt` = `Total On-Chip Power (W) 2.391`；`metric_recheck` 判红 0，但它的取数名单（实读脚本 `:274-283`，2026-10-05 复核仍是两份首页 + `data/metrics.csv`）不含 `board/README.md` ⇒ 那两行在对账检查的覆盖范围外，不是脚本漏判 | 两个选项：把该表改成只指本版件不复述数字，或把它纳入 D6 的覆盖范围（改 `board/README.md` 或 `src/host/metric_recheck.mjs`；**都不在本次改动范围**）⇒ 已作为 A13 进 `report/60-failure-analysis.md` |
 
 **另有一处不算冲突但必须一起念**：根 README 的"关键数字"第一行写着
 "本页不作门禁全绿声明……只以 `bash build/gates.sh` 打印的那一行为准"。第 5.1 条没跑，
@@ -337,7 +337,7 @@ GATES: 有红项（判定 $NSAY 项）—— 不采纳，保留上一版
 | `node src/host/line_cite_check.mjs` | 0 | `D5: CLEAN（退出码只由硬错决定…）`；`扫 209 份交付文档 … 硬错 0 条；锚点命中 1051 条；候选 384 条` |
 | `node src/host/doc_currency_check.mjs` | 0 | `CURRENCY: 干净`；`D1b 基准：bit md5=cd04907e1369 → r118_gates.txt`；`D1c 基准：r118_gates.txt 行尾 PASS=22 / FAIL=1 / 判定项数=24` |
 | `node src/host/metric_recheck.mjs` | 0 | `== 数字对账：判 114 个数（首页层 60 个／解析到 10/10 行；红 0）／csv 认领 10/10 行／其余 18 行不点名这三份报告 ==` |
-| `node skill/_meta/check-skill-package.mjs` | **1** | `GATES 技能包：判定 12 项 绿=9 红=2 未测=1 —— 有红项，不提交 FAIL`；红项 `G2 … 不合=13`、`G10 … 未标注=9`；未测 `G11 … 缺 skill/_meta/run-all-checks.mjs`；`G9 降级标记计数 判 86 项 总309 填入=190 待验证=48 未核实=10 未实测=61`（§9 是 §5 那一次实跑的逐字转录（2026-10-05 复核：旧包件仍不存在）：被点的 `gates.mjs` 与 `run_all.sh` 都是 2026-10-04 c7b325f 重建前的旧包件，**现不存在**，只报当时读数不指路；今天复跑等价命令 `node skill/_meta/check-skill-package.mjs skill` 得 `判 53 项：条目=49 索引=50 红=0 未测=0 PASS`）|
+| `node skill/_meta/check-skill-package.mjs` | **1** | `GATES 技能包：判定 12 项 绿=9 红=2 未测=1 —— 有红项，不提交 FAIL`；红项 `G2 … 不合=13`、`G10 … 未标注=9`；未测 `G11 … 缺 skill/_meta/run-all-checks.mjs`；`G9 降级标记计数 判 86 项 总309 填入=190 待验证=48 未核实=10 未实测=61`。§9 那一栏是 §5 那次实跑的逐字转录，2026-10-05 复核确认旧包件仍不存在：被点的 `gates.mjs` 与 `run_all.sh` 都是 2026-10-04 c7b325f 重建前的旧包件，**现不存在**，只报当时读数不指路；今天复跑等价命令 `node skill/_meta/check-skill-package.mjs skill` 得 `判 53 项：条目=49 索引=50 红=0 未测=0 PASS`。|
 | `python build/check_io_timing_coverage.py build/timing_summary.rpt` | **1** | `IODEBT I3_output_covered bare_out_ports=4 want=0 RED`；`IODEBT-SUMMARY … judged=10 … result=RED`；`--self` 12 条对照全过（读数件 `build/evidence/1006_d3/io_debt_after_d3.txt`） |
 | `python build/check_ports.py --dup` | 0 | `CHECK PORTS: instances=222 modules=80 skipped=0 width_compared=562 violations=0 PASS` |
 | `node build/r119_window_check.mjs --self` | 0 | `对照总结：造 10 条畸形动红 10 条；缺输入 2 条报 NOT_MEASURED 2 条 PASS` |
