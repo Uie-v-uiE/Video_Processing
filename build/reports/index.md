@@ -1,16 +1,16 @@
 # 原件目录索引（P15b · `build/reports/`）
 
 **这里不放大报告本身。** 原件一律留在它们本来的位置（`build/`、`build/evidence/`、`docs/timing/`、
-`src/constraints/`），本文件只做三件事：① 给出每个原件的**真实路径**与**它属于哪一轮**；
-② 用命令（不是手打）摘出每份的**头几行**（工具版本 / 日期 / 设计名）；③ 声明配对规矩。
+`src/constraints/`）。这张索引给出三样东西：每个原件的**真实路径**与**它属于哪一轮**、
+用命令（不是手打）摘出的每份**头几行**（工具版本 / 日期 / 设计名）、以及原件与解析件的配对规矩。
 
 > **配对规矩（P15b 铁律 5，与 P15a `build/provenance.md` 第 6 节同一条）**
 > 一份原件必须与它的解析件（`build/parsed/*.json`）或名册行（`build/roster/*.tsv`）**成对**出现，
 > 并且能用 `build/provenance.md` 第 5 节的指纹核上。
-> **只有一份时另一份不可信**：有解析件却没有原件（或原件指纹与卡上不符）⇒ 解析件里的数字全部作废；
-> 有原件却没有解析件 ⇒ 那份原件没人读过，不许引用来支持任何结论。
+> **只有一份时另一份不可信**：有解析件却没有原件（或原件指纹与卡上不符），解析件里的数字全部作废；
+> 有原件却没有解析件，那份原件没人读过，不许引用来支持任何结论。
 > 机器检法：`python build/p15b_parse_reports.py --check` 的 `GATE J5` 行（本轮读数：相符 9、
-> 找不到对应原件的解析件 0、指纹不符 0、缺解析件的原件 0 ⇒ 判定 PASS）。
+> 找不到对应原件的解析件 0、指纹不符 0、缺解析件的原件 0，判定 PASS）。
 
 ## 0. 本轮（r118）= 被解析的 9 份原件
 
@@ -73,7 +73,7 @@ md5sum build/*.rpt | cut -c1-12                  # 与 build/provenance.md 第 5
   这是 provenance 第 6 节缺口 G3 的内容，本索引不重复登记，也不替它补配对状态。
 - `build/sweep_*_timing.rpt`、`build/r8[78]_*.rpt`、`build/v64_repro_*.rpt`、`build/probe_*.rpt`、
   `build/roster_r11[34]rf_*.rpt`、`build/roster_roster_*.rpt`：都不是 r118，本轮**不解析、不引用其数字**；
-  要读它们请先按同一规矩配 provenance 指纹（没有卡 ⇒ 按「未配对」处理）。
+  要读它们请先按同一规矩配 provenance 指纹（没有卡就按「未配对」处理）。
 - 资源**按模块**归属需要的 `Utilization by Hierarchy`：r118 的 `build/utilization.rpt` 里**没有这一节**
   （`grep -n 'Utilization by Hierarchy' build/utilization.rpt` 无命中），仓里 `build/util_hier.rpt`
-  的日期是 9 月 25 日 ⇒ 本轮该维度 `NOT_MEASURED`，见 `report/build-notes.md`。
+  的日期是 9 月 25 日，因此本轮该维度 `NOT_MEASURED`，见 `report/build-notes.md`。

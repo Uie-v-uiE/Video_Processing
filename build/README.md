@@ -28,8 +28,8 @@ ls build/report/*.rpt | wc -l              # 归档报告数
 | `build/report.tcl` | `open_run impl_1` 后只重出 7 份报告，归档目录由 `VP_OUTDIR` 覆盖，默认 `build/report` | `build/report/` 下 7 份 `.rpt`，见第四节 |
 | `build/gen_bit.tcl` | 只补 `write_bitstream`，并把位流与 XSA 各拷一份到板侧目录（默认目录可用 `VP_BIT_DIR` 改） | 板侧目录下的位流与 XSA 拷贝 |
 
-注意：`build/tcl/build_pl_full.tcl` 的仓库根解析写成 `[file dirname [info script]] ..`，比入口少一层，
-根会落到 `build/`，于是 `add_files` 指向不存在的 `build/src/…` ⇒ **别当入口用**。
+`build/tcl/build_pl_full.tcl` 的仓库根解析写成 `[file dirname [info script]] ..`，比入口少一层，
+根会落到 `build/`，于是 `add_files` 指向不存在的 `build/src/…`，**这支不能当入口用**。
 判构建成败只看 `build/` 里产物的修改时间，不看退出码（这一类脚本报错之后仍然 `exit 0`）。
 
 ### 1.2 只读查询（不开综合，只读现成的实现结果）
@@ -94,9 +94,9 @@ ls build/report/*.rpt | wc -l              # 归档报告数
 失败按顺序看日志：先在这次构建自己的 console 件里 grep `SYNTH FAILED`、`ADDRESS PINNING FAILED`、
 `PORT_LOOKUP_FAILED`、`BUILD_STRATEGY_REJECTED`、`BUILD_HOOK_REJECTED`、`BUILD_PRPO_REJECTED`，
 命中哪个就是哪一步停的；一条都不中而缺末行 `SYSTEM BUILD DONE`，就再看 `…runs/synth_1/runme.log`
-与 `…runs/impl_1/runme.log`。`build/board_verify.sh` 对 `VP_XSDB` 判文件是否存在，缺 ⇒ `exit 2`。
+与 `…runs/impl_1/runme.log`。`build/board_verify.sh` 对 `VP_XSDB` 判文件是否存在，缺就 `exit 2`。
 
-注意：不要把 `bash build/gates.sh` 的输出直接重定向成它自己要读的那份 `build/rNN_gates.txt`：
+不要把 `bash build/gates.sh` 的输出直接重定向成它自己要读的那份 `build/rNN_gates.txt`：
 第一项判据跑之前文件就被截断，而文档时效那一项恰恰要拿"盘上最新且 ALL PASS 的那一份"当基准。
 正确姿势两步：先 `bash build/gates.sh > /tmp/g.txt 2>&1` 跑完，全绿之后再 `cp` 到位。
 
@@ -109,7 +109,7 @@ ls build/report/*.rpt | wc -l              # 归档报告数
 | `IMPL_STRATEGY` | 换 `impl_1` 的实现策略，策略名打进日志；非法名先念 `BUILD_STRATEGY_REJECTED` 再 `exit 1` | 工程默认档 `Vivado Implementation Defaults` |
 | `IMPL_POST_PLACE_HOOK` | 给 `STEPS.PLACE_DESIGN.TCL.POST` 挂一支外部 tcl | 日志念 `BUILD_POST_PLACE_HOOK none` |
 | `IMPL_PRPO=1` | 打开 post-route physopt 并设 `AggressiveExplore`（只动物理结果、不动网表） | 日志念 `BUILD_PRPO off` |
-| `VP_OUTDIR` / `VP_BIT_DIR` / `VP_PROJ_SUBDIR` / `VP_STOP_AT` | 报告归档目录 / 位流与 XSA 的拷贝落点 / 工程子目录 / 停在哪一步 | 各脚本文件头写的默认值 |
+| `VP_OUTDIR` / `VP_BIT_DIR` / `VP_PROJ_SUBDIR` / `VP_STOP_AT` | 报告归档目录 / 位流与 XSA 的拷贝落点 / 工程子目录 / 停在哪一步 | 各脚本自己声明的默认值 |
 | `PS_CC` / `PS_BSP` | 交叉编译器与 BSP 路径，重编 PS 固件用 | 没有默认值：不给就报缺，`PS_BSP` 还必须是绝对路径 |
 
 ## 三、报告：现在哪几版的综合/实现结果在仓里
@@ -130,11 +130,11 @@ ls build/report/*.rpt | wc -l              # 归档报告数
 
 ## 四、其它留档
 
-- `build/parsed/` —— 上面那几份 `.rpt` 的机读 JSON 版（`build/p15b_parse_reports.py` 产出）。
-- `build/sim/` —— 台架单次跑法与名字表（`build/sim/run_one.sh` 是入口，`build/sim/names.md` 是名字对照）。
-- `build/roster/`、`build/micro_rd/` —— 名册差分与读口探针的中间件。
-- `build/runs/` —— 两份台账：跑过哪几步、为什么这么定。它们是**过程记录**，不是操作手册；
+- `build/parsed/`：第三节那 7 份 `.rpt` 的机读 JSON 版（`build/p15b_parse_reports.py` 产出）。
+- `build/sim/`：台架单次跑法与名字表（`build/sim/run_one.sh` 是入口，`build/sim/names.md` 是名字对照）。
+- `build/roster/`、`build/micro_rd/`：名册差分与读口探针的中间件。
+- `build/runs/`：两份台账，记跑过哪几步、为什么这么定。它们是**过程记录**，不是操作手册；
   里面点名的逐轮件按本轮口径清掉了不少，读的时候以第三节那几处现存报告为准。
-- `build/coverage.md` —— 约束覆盖面核对（哪些 `.xdc` 真进了实现、哪些时钟有 uncertainty 声明）。
-- `build/provenance.md` —— 当前这一版产物是哪一次构建、各件的时刻与来源。
-- `build/tcl/README.md` —— `build/tcl/` 的分工说明。
+- `build/coverage.md`：约束覆盖面核对，列出哪些 `.xdc` 真进了实现、哪些时钟有 uncertainty 声明。
+- `build/provenance.md`：当前这一版产物出自哪一次构建，以及各件的时刻与来源。
+- `build/tcl/README.md`：`build/tcl/` 的分工说明。

@@ -49,9 +49,9 @@ node build/checks/check_repo_consistency.mjs
 ```
 
 - 第一条数出来的总数与上面那张表对不上时，先分清是"工作目录里多了不入库的件"还是"表写错了"。
-  本轮之后 `find data -type f | wc -l` = 29，`git ls-files data | wc -l` 也数到同一批
-  （`.gitignore` 挡的那几支原始抓取件（`ddr_dump.out` 与四支 `health_*.out`）已经从工作目录里删掉，
-  不再产生差额）。核对用这两条：`find data -type f | wc -l`、`git ls-files data | wc -l`。
+  本轮之后 `find data -type f | wc -l` = 29，`git ls-files data | wc -l` 也数到同一批：
+  `.gitignore` 挡的那几支原始抓取件（`ddr_dump.out` 与四支 `health_*.out`）已经从工作目录里删掉，不再产生差额。
+  核对用这两条：`find data -type f | wc -l`、`git ls-files data | wc -l`。
 - 第二条打印的是当前这份表的指纹。表内容一改，这串值就变：正文与指标表里出现的
   `md5=7273b71f26ca` 是 `build/evidence/r120_window_check.txt` 第 3 行
   `HEAD data/metrics.csv 7273b71f26ca` 那条记录的原文，用来认"当时随包的是哪一版表"，

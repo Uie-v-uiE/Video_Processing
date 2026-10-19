@@ -4,14 +4,14 @@
 `certutil -hashfile build/system.bit MD5`）。这一版与 r86 的差别只有四件：`link_monitor` 两个事件寄存器进复位、
 `osd_overlay` 的读地址起了一根线、四个模块文件头、**上电默认改成手动 1.00×**（第 1、9 条就是验它）。
 
-> 分工：这份是**这一版（r87）的快速过一遍**（36 条，按屏上看得见的效果排）；每条的深挖四要素配方在
-> `board/README.md`（31 行长清单）。两边不一致时以 `board/README.md`（实测输出）与 `build/` 里那一跑的日志为准为准，并把这份补上。
+> 分工：r87 这一版先看这一份，**快速过一遍**（36 条，按屏上看得见的效果排）；每条的深挖四要素配方在
+> `board/README.md`（31 行长清单）。两边不一致时，以 `board/README.md`（实测输出）与 `build/` 里那一跑的日志为准，再回头把这一份对齐。
 
 ## 怎么发命令（先看清，否则会得到假结果）
 
 - 一发一条：`powershell -ExecutionPolicy Bypass -File board/uart_cap_once.ps1 -Port COM6 -Cmd "<命令>" -Seconds 3 -Out build/evidence/v_<编号>.txt`
 - **带参数的命令不能走 `-Cmds`**（它按空格拆词，`"ROT SHOW"` 会变成两条）。
-- 读"开机状态"必须加 `-Drain`（不清缓冲会读到上一次会话的尾巴 —— 今天就这样读到过一条假的 `pub=1`）。
+- 读"开机状态"必须加 `-Drain`：不清缓冲会读到上一次会话的尾巴，今天就这样读到过一条假的 `pub=1`。
 - COM6 被别的终端占着会报 `UnauthorizedAccessException`：先关那个终端。
 - 屏上判据优先于串口回显：回显只证明 PS 写了，屏上那五行是 PL 自己画的。
 - **想让中文提示看得懂**：控制台先敲 `chcp 65001`（或换 UTF-8 终端 + 中文字体）。今天"回一长串空白"

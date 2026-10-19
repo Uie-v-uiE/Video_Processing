@@ -4,7 +4,7 @@
 被打开的设计：`vivado_system/zynq_video_sys.runs/impl_1/system_top_routed.dcp`（正式构建的已布线 DCP；
 路径写在探针脚本 `build/tcl/r115_baseline_probe.tcl:12`，件内 `Floorplan: checkpoint_system_top_routed` 与
 `Design State : Routed / Fully Routed` 两行互相印证），**只读出报告，没有改任何东西**。
-设计身份（每份报告自己的头部，不是我抄的）：Device `xc7z020clg484-2` / Speed File `-2 PRODUCTION 1.12 2019-11-22` / Tool `Vivado v.2025.2.1 (win64) Build 6403652`。
+设计身份（取自每份报告自己的头部）：Device `xc7z020clg484-2` / Speed File `-2 PRODUCTION 1.12 2019-11-22` / Tool `Vivado v.2025.2.1 (win64) Build 6403652`。
 
 树指纹（`bash build/rtl_fingerprint.sh`，fpver=norm1 对 CR 不敏感）：
 `files=80 top=56c269602e18 rtl=3969247aaf7f`

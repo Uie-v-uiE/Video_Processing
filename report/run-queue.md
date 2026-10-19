@@ -20,9 +20,9 @@
 | P08 验证与增益 | `skill/_meta/`（旧包的 `skill/evals/` 那一层在 2026-10-04 c7b325f 重建后从未入库、不随包）| P04/P05 | 部分交付（协议与两跑原始件、陌生人演练与第三方审计各一份都在 `skill/_meta/` 一侧，条目级验证状态见 `skill/_meta/validation.md`）；**缺的是"同一模板连跑 3 次"的增益对照**，各条目 §7 一律 `【待验证】`，不念成已验证 |
 | P09 装配与门禁 … | … | 已交付：**技能包自检 `node skill/_meta/run-all-checks.mjs skills` 判 9 项、自测件 6、红=0、未测=0**；索引 `node skill/_meta/build-index.mjs skill --check` 条目=49、需改写=no；陌生人演练与第三方审计两份记录现落在 `skill/_meta/` 一侧。（旧包那把"12 项全绿"的读数在 `build/evidence/r120_gates_skill_a.txt`，是 2026-10-04 c7b325f 重建**前**那一版包的产物；同一次对照的第二跑 `..._b.txt` 已被记录在案的精简笔删掉、不随包 ⇒ "两跑逐字节一致"今天在盘上复跑不出来，只算历史记录。`gen_index --check 条目=58` 同属旧包读数，现役件是 `build-index.mjs`），其红项按原话入档 |
 | P11 学习文档 | 本地学习文档那一层（**不随包**，`.gitignore` 已列） | P13/P15b | 11 个文件已交付，5 篇因缺前置未写 |
-| P13 `src/` … | … | 部分（`report/interface-table.md` 已落 1509 行；`report/src-map.md` 本轮由 `build/r120_src_map.mjs` 现算生成，83 文件 × 4 列；`src-audit` 装配页未写（`git ls-files` 与盘上都没有这一件 ⇒ 现不存在）；契约头改动受 B1 约束） |
-| P14 `sim/` … | … | 部分（`sim/README.md` 已落；回归清单目录与 `verification-claim` 装配页都未写（两者从未落盘 ⇒ 现不存在）⇒ "验证声明"只能停在"逐台架判据 + 门禁"这一档） |
-| P15a 构建与指纹 … | … | 已交付（`build/README.md`、`build/provenance.md` 194 行；两份逐轮说明件（探针清单与产物目录说明）已随轮次清理，探针条目并入 `build/coverage.md`） |
+| P13 `src/` … | … | 部分（`report/interface-table.md` 已落 1509 行；`report/src-map.md` 本轮由 `build/r120_src_map.mjs` 现算生成，83 文件 × 4 列；`src-audit` 装配页未写，`git ls-files` 与盘上都没有这一件 ⇒ 现不存在；契约头改动受 B1 约束） |
+| P14 `sim/` … | … | 部分（`sim/README.md` 已落；回归清单目录与 `verification-claim` 装配页都未写，两者从未落盘 ⇒ 现不存在。"验证声明"只能停在"逐台架判据 + 门禁"这一档） |
+| P15a 构建与指纹 … | … | 已交付（`build/README.md`、`build/provenance.md` 194 行；两份逐轮说明件，即探针清单与产物目录说明，已随轮次清理，探针条目并入 `build/coverage.md`） |
 | P15b 报告解析与名册 … | … | 已交付（`build/parsed/`、`build/roster/`、`build/coverage.md`、`report/build-notes.md` 均在盘上并入库） |
 | P15c 逐轮台账 … | … | 部分（`build/runs/ledger.md`、`build/runs/decisions.md` 在盘；两轮派发都被 150 回合上限截停 ⇒ 逐轮指针目录未核，缺口记在未决项） |
 | P16a 板级可复原 … | … | 进行中（`board/hardware_setup.md` 已落并随包；三件身份改由 `build/provenance.md` 与 `board/measured/` 的 IDENTITY 块承担——原先那层身份摘要卡已随目录精简删掉、不随包；`bringup-checklist.md` 从未落盘 ⇒ 现不存在） |
@@ -30,13 +30,13 @@
 | P16c 签核与指标 … | … | 已交付（`board/signoff.md` 29 项五件齐全、`report/measurements.md`、`signoff-questions.md`、`report/acceptance-recipes.md`） |
 | P17 `data/` … | … | 已交付（`data/golden/manifest.md` 214 行、`inputs/` 8 个向量、`generated/gen_inputs.mjs`、`data/README.md` 本轮补上；`data-format` 装配页未写（从未落盘 ⇒ 现不存在） |
 | P12 根 README … | … | 部分（`report/repro-check.md` 已出，判定读数是 `判定列在内=61 行 PASS=49 FAIL=0 未测=12 判定列不成词=0`（终审 C9 现跑）；14 行没有判定词的表格已补齐（判定列搬回末列），缺的是那 12 行未测，逐条构成见 `report/known-limitations.md` 第 4 节。更早一版 C9 按全文 token 计数读出 `PASS=91 FAIL=30 未测=32`，这一错位登记在 `report/claims-vs-evidence.md`） |
-| P18a 原理与划分 … | … | 未落地（`report/figures/` 已建；`20-principle.md`、`30-partition-if.md` 未写——批次到 150 回合上限，已登记不假装完成） |
+| P18a 原理与划分 … | … | 未交付（`report/figures/` 已建；`20-principle.md`、`30-partition-if.md` 未写——批次到 150 回合上限，已登记不假装完成） |
 | P18b 优化与结果 … | … | 已交付（`report/40-optimization.md`、`50-results.md`、`comparison-notes.md`；15 条抽查链路一步命中） |
 | P18c 失败·复现·未决 … | … | 已交付（`60-failure-analysis.md`、`70-reproduce.md`、`90-open-items.md`、`report/README.md`）；90 的表体行随每轮装配漂移，最后一轮 `gen_index` 后需再对一次 C8 |
-| P19 背景与创新点 … | … | 未落地（`10-background.md`、`prior-art-search.md`、`novelty-claims.md`、`report/claims-vs-evidence.md` 未写；立意与主张强度本就依赖 Q-P19-1/Q-P19-2 的队伍回答） |
+| P19 背景与创新点 … | … | 未交付（`10-background.md`、`prior-art-search.md`、`novelty-claims.md`、`report/claims-vs-evidence.md` 未写；立意与主张强度本就依赖 Q-P19-1/Q-P19-2 的队伍回答） |
 | P10 报告里技能包两章 | `report/07-skill-distillation.md`（submit 侧）与 P22 配对 | P08/P09/P22 | 部分（`report/07-skill-distillation.md` 已成文） |
 | P22 协作记录归档 … | … | 已交付（`report/collaboration/` 11 份：5 张会话登记卡含 127 行子会话表、纠错轨迹、提示词分栏、工作流差异、成本统计、脱敏台账）；与 `skill/evals/records/` 的双向引用缺口 6 条登记为 Q-P22-3 |
-| P20 许可与声明 … | … | 部分（`LICENSE` 在、`build/checks/check_repo_hygiene.sh` 在、`report/declarations.md` 本轮落地；**`report/` 本轮落地**：16 行第三方件，其中 12 行标 `未核`，风险最高的是第 12 行（厂商资料抄件与原理图裁图在跟踪集内）与第 13 行（`src/rtl/eth` 25 个文件无版权头、逐文件"逐字／改造"没有登记表）⇒ 处置写成 Q-P23-1；provenance 逐轮指纹页仍未单独成页；卫生机检整脚本 >300 s 未跑完 ⇒ 终审 C5 记 NOT_MEASURED，慢点定位到 C5 断链层，见 ISSUES #339 末段） |
+| P20 许可与声明 … | … | 部分（`LICENSE` 在、`build/checks/check_repo_hygiene.sh` 在、`report/declarations.md` 本轮交付；**`report/` 本轮交付**：16 行第三方件，其中 12 行标 `未核`，风险最高的是第 12 行（厂商资料抄件与原理图裁图在跟踪集内）与第 13 行（`src/rtl/eth` 25 个文件无版权头、逐文件"逐字／改造"没有登记表）⇒ 处置写成 Q-P23-1；provenance 逐轮指纹页仍未单独成页；卫生机检整脚本 >300 s 未跑完 ⇒ 终审 C5 记 NOT_MEASURED，慢点定位到 C5 断链层，见 ISSUES #339 末段） |
 | P21 提交前终审 … | … | 已交付（尺子 + 矩阵三份：`report/submission-checklist.md`、`report/final-gate.md`、`report/known-limitations.md`；定版读数件 `build/evidence/r120_final_gate.txt` = 绿 8 / 红 3 / 未测 1） |
 
 阻塞项（写在这里而不是藏起来）：

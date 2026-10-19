@@ -1,9 +1,9 @@
 # 无人值守运行台账（P23 第 6 节点的 `UNATTENDED.md`，本仓库用小写文件名）
 
 命名差异声明：P23 原文写的是 `RUN_REPORT.md / questions-for-team.md / UNATTENDED.md / report/run-queue.md`。
-赛题 3.3.5.4 要求目录与文件名纯英文小写，因此落地为
-运行汇总件（旧名 docs/ 这一层，2026-10-04 改名波已并入 report/；那一份汇总还没落盘，故此处不写路径）、`report/questions-for-team.md`、`report/unattended.md`（本文件）、`report/run-queue.md`。
-**内容结构逐条照 P23，只改文件名大小写。** 本文件是"实际执行过的动作清单"，与 `git log --stat` 必须对得上。
+赛题 3.3.5.4 要求目录与文件名纯英文小写，因此文件名改成
+运行汇总件（旧名 docs/ 这一层，2026-10-04 改名波已并入 report/；那一份汇总还没落盘，故此处不写路径）、`report/questions-for-team.md`、`report/unattended.md`（本台账）、`report/run-queue.md`。
+**内容结构逐条照 P23，只改文件名大小写。** 本台账是"实际执行过的动作清单"，与 `git log --stat` 必须对得上。
 
 ## 一、本轮（2026-10-04 09:1x–11:4x 本机时间）我自己执行过的动作
 
@@ -38,7 +38,7 @@
   `skill/README.md` 正文区（生成块之外）。理由：`_MANIFEST.md` 违反 3.3.5.4 的小写命名，且手写第二份索引必然与
   `gen_index.mjs` 漂移（G1 因此判红 3 项 → 现 0 项）。
 - 追加目录：`旧条目名 _meta/sources.md（盘上无此路径）`（178 行，插 4 项目录；旧包件名，**现不存在**，本行只报当时的改动不指路）、
-  `旧条目名 templates/project-skeleton/project-skeleton.md（盘上无此路径）`（114 行，插 8 项目录；旧包件名，**现不存在**——同一条目重建后的路径是 `skill/templates/project-skeleton/templates/skeleton.md`）——为过 G6。
+  `旧条目名 templates/project-skeleton/project-skeleton.md（盘上无此路径）`（114 行，插 8 项目录；旧包件名，**现不存在**——同一条目重建后的路径是 `skill/templates/project-skeleton/templates/skeleton.md`），这一改动是为了过 G6。
 
 ### push 状态
 `git push origin HEAD:main` 成功：`f5897d7..384a0b3`（10:47 本机，直连即可，未用代理）。
@@ -74,7 +74,7 @@
 | --- | --- | --- |
 | `node build/r119_window_check.mjs`（两跑 diff） | 窗件 + 成品离散读数，本轮补回 5 份输入的 md5 头 | `build/evidence/r120_window_check.txt` |
 | `node 旧条目名 scripts/check/retire_flat.mjs（盘上无此路径）` → `--apply` | 旧扁平卡删除前的映射/八节/出处证明，与之后的退役 | 输出转录在提交说明；映射表 `build/evidence/r120_migration_map.txt`（`retire_flat.mjs` 是重建前的旧包件名，**现不存在**；本行是当时跑过并留件的清单，只报数不指路）|
-| 一次性 skill 指路改写器（`--check`→`--apply`→再 `--check`） | 指路改口四条规则，改前 165 处、改后 0 处（幂等） | 本文件即其效果见证（该脚本跑完即废，已随 r120 轮次清理） |
+| 一次性 skill 指路改写器（`--check`→`--apply`→再 `--check`） | 指路改口四条规则，改前 165 处、改后 0 处（幂等） | 本台账即其效果见证（该脚本跑完即废，已随 r120 轮次清理） |
 | `node 旧条目名 scripts/check/gen_index.mjs（盘上无此路径）` + `--check` | 技能包索引重写与一致校验（条目 58 是当时旧件的读数） | 同上（`gen_index.mjs` **现不存在**；现役件 `skill/_meta/build-index.mjs` 本轮判 `条目=49`）|
 | `node skill/_meta/check-skill-package.mjs --full` ×2 | 技能包 12 项门禁，两跑逐字节一致 | `build/evidence/r120_gates_skill_a.txt`、`..._b.txt`（`gates.mjs` **现不存在**，两件转录是当时的凭据）|
 | `bash skill/_meta/run-all-checks.mjs` | 6 把脚本尺子 40 条对照（含反例与缺件 NOT_MEASURED） | `build/evidence/r120_selftest.txt`（`run_all.sh` **现不存在**；现役等价件 `skill/_meta/run-all-checks.mjs` 本轮判 `判 9 项 自测件=6 红=0 未测=0 PASS`）|
@@ -88,8 +88,8 @@
 
 **这一段仍欠、且不假装做过的**：
 1. `report/{10-background,20-principle,30-partition-if}.md`、`report/{prior-art-search,novelty-claims}.md`、
-   `report/claims-vs-evidence.md`、`report/`、provenance-and-licenses 一页 —— 派发批次到回合上限，未落地。
+   `report/claims-vs-evidence.md`、`report/`、provenance-and-licenses 一页：派发批次到回合上限，这些文件没有产出。
 2. 终审 C3 剩 3 条死引用、C4 命名违规 286、C9 复现 30 条 FAIL 未逐条归因、C5 卫生机检整脚本 >300 s，因此
    **交付终审不是全绿**（`build/evidence/r120_final_gate.txt`：绿 8 / 红 3 / 未测 1）。
 3. 需要眼睛与手的行（E6 的"按住 KEY1"那一半、拔卡观感、按键手感）仍未由人签。
-4. 改名 308 条含大写路径、脱敏 814 份工具产出原件 —— 都是不可逆/连带面，等裁决（Q-P21-2、Q-P20-2），未擅动。
+4. 改名 308 条含大写路径、脱敏 814 份工具产出原件：都是不可逆/连带面，等裁决（Q-P21-2、Q-P20-2），未擅动。

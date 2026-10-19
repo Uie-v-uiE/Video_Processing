@@ -2,7 +2,7 @@
 
 对应赛题 §3.3.5.3 的"复现说明：一份可供他人从零开始完整执行的操作步骤"。
 与仓库根 `README.md` 的"复现三步"**同源**：这里把那三步展开成逐命令，并在第 6 节列出五处不一致及权威判定。
-`README.md`、`report/build.md`、`build/README.md`、`board/README.md` 不在本文的改动范围里，冲突只登记并给出应改动作。
+`README.md`、`report/build.md`、`build/README.md`、`board/README.md` 不在本页的改动范围里，冲突只登记并给出应改动作。
 
 **从零到屏幕出现画面的顺序**就是下面这几条命令，按顺序敲，每条后面写清了敲完该看到什么；
 每条的完整前置、shell 与判读在上板那一节（第 4 节）的对应行里。
@@ -11,7 +11,7 @@
    看到：屏亮，OSD 五行出现在画面上。
 2. `node --version`（环境自检那节的第一行）——看到 `v24.`；工具不在 `PATH` 就按同节的变量说明改走 `VP_VIVADO_BIN`。
 3. `netstat -an -p TCP | grep 3121`——看到一行 `LISTENING`；没有这一行就先起 `hw_server`，否则后面每一步的 `CONNECT:` 都会空。
-4. `ping -n 4 192.168.1.10`——看到 4 个应答，说明板子已经起来、网口通。
+4. `ping -n 4 192.168.1.10`：看到 4 个应答，说明板子已经起来、网口通。
 5. `vivado -mode batch -source build/tcl/build_system_axigpio.tcl`（构建那节）——看到脚本按四件事播报，结束时
    `build/` 里有 `system.bit`、`system.xsa` 与那几份 `.rpt`。第一次跑这一条最花时间，一条构建的墙钟是几十分钟量级。
 6. `<Vitis>/bin/xsdb.bat build/tcl/ps_jtag_boot.tcl`——看到 `RST_SYSTEM: ok` 与 `DDR_ECHO: 10000000: 5A5AA5A5`。
@@ -67,7 +67,7 @@ bash -n build/gates.sh build/board_verify.sh build/sim/run_one.sh build/sim/mut_
 
 ## 2. 构建（出位流 / XSA / 报告）
 
-> 本节整节 **NOT_MEASURED**：跑构建要队伍批准，不在授权动作范围里。
+> 第 2 节整节 **NOT_MEASURED**：跑构建要队伍批准，不在授权动作范围里。
 > 下面每条都写清了执行目录、shell、前置与期望，第三方可以直接照做；每条后面写明没跑的原因。
 
 | # | 命令 | 执行目录 / shell | 前置与外部状态 | 完成后应看到什么 | 判定 |
@@ -84,7 +84,7 @@ bash -n build/gates.sh build/board_verify.sh build/sim/run_one.sh build/sim/mut_
 
 ## 3. 仿真（台架，不在出画面路径上）
 
-> 本节 **NOT_MEASURED**（台架未跑）。命令、前置、期望写全，跑法与判读同源 `sim/README.md`。
+> 第 3 节 **NOT_MEASURED**（台架未跑）。命令、前置、期望写全，跑法与判读同源 `sim/README.md`。
 
 | # | 命令 | 执行目录 / shell | 前置 | 完成后应看到什么 | 判定 |
 |---|---|---|---|---|---|
@@ -98,7 +98,7 @@ bash -n build/gates.sh build/board_verify.sh build/sim/run_one.sh build/sim/mut_
 
 ## 4. 上板（JTAG 三步 + 串口 + 推流）
 
-> 本节 **NOT_MEASURED**：刷板与串口未跑（要板子与人手）。前置条件只读地验了一半（网络与 hw_server，见下表 4.0/4.1），
+> 第 4 节 **NOT_MEASURED**：刷板与串口未跑（要板子与人手）。前置条件只读地验了一半（网络与 hw_server，见下表 4.0/4.1），
 > 板子是否上电、COM6 是否被占、HDMI 是否接了 1024×600 面板，没有确认。这一节就是"从零到画面"那几步。
 
 | # | 命令 | 执行目录 / shell | 所需外部设备与状态 | 完成后应看到什么 | 判定 |
@@ -145,9 +145,9 @@ bash -n build/gates.sh build/board_verify.sh build/sim/run_one.sh build/sim/mut_
 |---|---|---|---|---|
 | 1 | 上位机三支 `.bat` | `report/build.md` §2 让跑 `src\host\run_sender.bat`、`run_video.bat <mp4>`、`run_serial.bat COM5` | **以根 README 为权威**：`find . -name "run_*.bat"` 只命中 `vivado_system/**/runme.bat`（Vivado 自己的），`src/host/` 下无 `.bat`（2026-10-05 复跑同结论）；而根 README 用的 `send_demo.bat` 实测存在 | 把那三行改成指向 `send_demo.bat` + `python src/host/video_sender.py`（改 `report/build.md`；**需队伍授权**）|
 | 2 | 台架名 | `report/known_issues.md` §1 的复现命令写 `bash build/sim/run_one.sh tb_video_pipeline_top` | **仓库内以 `sim/tb_v98_top_seam` 为权威**：仓库里没有名为 `tb_video_pipeline_top.v` 的台架文件；`tb_video_pipeline_top` 是导出时的改名（`build/sim/names.md`、`build/make_submission.sh` 的 `NAME_MAP`）| 该命令旁加一句"仓库名 = `tb_v98_top_seam`，包内名 = 此名"（已落在 `report/known_issues.md` §1 的第 38 行）|
-| 3 | 报告落哪 | `build/README.md` 说构建产出 `build/reports/` 里那六份 `.rpt` | **以盘上实测为权威**：六份报告平铺在 `build/` 根（`build/timing_summary.rpt` 等实测存在）；登记时 `ls build/reports` 报 `No such file or directory`，2026-10-05 复核 `build/reports/` 已在盘上、里面只有 `build/reports/index.md` 这一份索引。根 README 已写明"仓库平铺、提交包里展平进 `build/reports/`，同一批文件两种摆法" | `build/README.md` 那句补上"仓库内平铺"这一半（改 `build/README.md`；不在本文改动范围）|
-| 4 | 下载 bit 用哪支 tcl | `report/build.md` §2 用 `build\tcl\program_system.tcl`；根 README 与 `board/README.md` 用三步 `ps_jtag_boot → program_pl → ps_app_reload` | **以三步链为权威**（交付口径、且 `board/acceptance.md` 每一版的行 1 都是按这三步记的）。两支脚本**都存在**，所以这不是缺失而是两条路并存 | `build.md` 那行标注"老的一键下载路径，与三步链的关系 …"（改 `report/build.md`；不在本文改动范围）|
-| 5 | 板上现在跑哪一版的数字 | `board/README.md` 实测表写 WNS `0.720` / WHS `0.033` / `0 / 50890` / `2.207 W`，点名 `build/timing_summary.rpt`、`build/power.rpt` | **以报告原件 + 根 README 为权威**：实读 `build/timing_summary.rpt` = `0.739 / 0.052 / 0 / 51135`，`build/power.rpt` = `Total On-Chip Power (W) 2.391`；`metric_recheck` 判红 0，但它的取数名单（实读脚本 `:274-283`，2026-10-05 复核仍是两份首页 + `data/metrics.csv`）不含 `board/README.md` ⇒ 那两行在对账检查的覆盖范围外，不是脚本漏判 | 两个选项：把该表改成只指本版件不复述数字，或把它纳入 D6 的覆盖范围（改 `board/README.md` 或 `src/host/metric_recheck.mjs`；**都不在本文改动范围**）⇒ 已作为 A13 进 `report/60-failure-analysis.md` |
+| 3 | 报告落哪 | `build/README.md` 说构建产出 `build/reports/` 里那六份 `.rpt` | **以盘上实测为权威**：六份报告平铺在 `build/` 根（`build/timing_summary.rpt` 等实测存在）；登记时 `ls build/reports` 报 `No such file or directory`，2026-10-05 复核 `build/reports/` 已在盘上、里面只有 `build/reports/index.md` 这一份索引。根 README 已写明"仓库平铺、提交包里展平进 `build/reports/`，同一批文件两种摆法" | `build/README.md` 那句补上"仓库内平铺"这一半（改 `build/README.md`；不在本页改动范围）|
+| 4 | 下载 bit 用哪支 tcl | `report/build.md` §2 用 `build\tcl\program_system.tcl`；根 README 与 `board/README.md` 用三步 `ps_jtag_boot → program_pl → ps_app_reload` | **以三步链为权威**（交付口径、且 `board/acceptance.md` 每一版的行 1 都是按这三步记的）。两支脚本**都存在**，所以这不是缺失而是两条路并存 | `build.md` 那行标注"老的一键下载路径，与三步链的关系 …"（改 `report/build.md`；不在本页改动范围）|
+| 5 | 板上现在跑哪一版的数字 | `board/README.md` 实测表写 WNS `0.720` / WHS `0.033` / `0 / 50890` / `2.207 W`，点名 `build/timing_summary.rpt`、`build/power.rpt` | **以报告原件 + 根 README 为权威**：实读 `build/timing_summary.rpt` = `0.739 / 0.052 / 0 / 51135`，`build/power.rpt` = `Total On-Chip Power (W) 2.391`；`metric_recheck` 判红 0，但它的取数名单（实读脚本 `:274-283`，2026-10-05 复核仍是两份首页 + `data/metrics.csv`）不含 `board/README.md` ⇒ 那两行在对账检查的覆盖范围外，不是脚本漏判 | 两个选项：把该表改成只指本版件不复述数字，或把它纳入 D6 的覆盖范围（改 `board/README.md` 或 `src/host/metric_recheck.mjs`；**都不在本页改动范围**）⇒ 已作为 A13 进 `report/60-failure-analysis.md` |
 
 **另有一处不算冲突但必须一起念**：根 README 的"关键数字"第一行写着
 "本页不作门禁全绿声明……只以 `bash build/gates.sh` 打印的那一行为准"。第 5.1 条没跑，
@@ -199,7 +199,7 @@ bash -n build/gates.sh build/board_verify.sh build/sim/run_one.sh build/sim/mut_
 | `node src/host/line_cite_check.mjs` | 0 | `D5: CLEAN（退出码只由硬错决定…）`；`扫 209 份交付文档 … 硬错 0 条；锚点命中 1051 条；候选 384 条` |
 | `node src/host/doc_currency_check.mjs` | 0 | `CURRENCY: 干净`；`D1b 基准：bit md5=cd04907e1369 → r118_gates.txt`；`D1c 基准：r118_gates.txt 行尾 PASS=22 / FAIL=1 / 判定项数=24` |
 | `node src/host/metric_recheck.mjs` | 0 | `== 数字对账：判 114 个数（首页层 60 个／解析到 10/10 行；红 0）／csv 认领 10/10 行／其余 18 行不点名这三份报告 ==` |
-| `node skill/_meta/check-skill-package.mjs` | **1** | `GATES 技能包：判定 12 项 绿=9 红=2 未测=1 —— 有红项，不提交 FAIL`；红项 `G2 … 不合=13`、`G10 … 未标注=9`；未测 `G11 … 缺 skill/_meta/run-all-checks.mjs`；`G9 降级标记计数 判 86 项 总309 填入=190 待验证=48 未核实=10 未实测=61`（本节是 §5/§9 那一次实跑的逐字转录（2026-10-05 复核：旧包件仍不存在）：被点的 `gates.mjs` 与 `run_all.sh` 都是 2026-10-04 c7b325f 重建前的旧包件，**现不存在**，只报当时读数不指路；今天复跑等价命令 `node skill/_meta/check-skill-package.mjs skill` 得 `判 53 项：条目=49 索引=50 红=0 未测=0 PASS`）|
+| `node skill/_meta/check-skill-package.mjs` | **1** | `GATES 技能包：判定 12 项 绿=9 红=2 未测=1 —— 有红项，不提交 FAIL`；红项 `G2 … 不合=13`、`G10 … 未标注=9`；未测 `G11 … 缺 skill/_meta/run-all-checks.mjs`；`G9 降级标记计数 判 86 项 总309 填入=190 待验证=48 未核实=10 未实测=61`（§9 是 §5 那一次实跑的逐字转录（2026-10-05 复核：旧包件仍不存在）：被点的 `gates.mjs` 与 `run_all.sh` 都是 2026-10-04 c7b325f 重建前的旧包件，**现不存在**，只报当时读数不指路；今天复跑等价命令 `node skill/_meta/check-skill-package.mjs skill` 得 `判 53 项：条目=49 索引=50 红=0 未测=0 PASS`）|
 | `python build/check_io_timing_coverage.py build/timing_summary.rpt` | **1** | `IODEBT I3_output_covered bare_out_ports=4 want=0 RED`；`IODEBT-SUMMARY … judged=10 … result=RED`；`--self` 12 条对照全过（读数件 `build/evidence/1006_d3/io_debt_after_d3.txt`） |
 | `python build/check_ports.py --dup` | 0 | `CHECK PORTS: instances=222 modules=80 skipped=0 width_compared=562 violations=0 PASS` |
 | `node build/r119_window_check.mjs --self` | 0 | `对照总结：造 10 条畸形动红 10 条；缺输入 2 条报 NOT_MEASURED 2 条 PASS` |
@@ -240,7 +240,7 @@ NOT_MEASURED=17 未归类=0 行=37`，行数不变、跑过的仍是 19 条。�
 | 步 | 命令 | 现跑读数 | 判 |
 |---|---|---|---|
 | Vivado 工程 + 位流 | `VP_PROJ_SUBDIR=board/vivado_system VP_OUTDIR=board/project vivado -mode batch -source build/tcl/build_system_axigpio.tcl` | 退出码 0；`build/evidence/board_rebuild_20261018/timing_summary.rpt` 首行结论 `All user specified timing constraints are met.`；`build/evidence/board_rebuild_20261018/utilization.rpt` 给 Slice LUT 14 013 / 53 200（26.34 %）、Block RAM Tile 96 / 140（68.57 %）；`system.bit` md5 前 12 位 `534a515ef8bd`、`system.xsa` `e025c863868d` | PASS（工程与位流建成） |
-| 与板上那一版的身份对照 | 现算 md5 对照 `build/system.bit` / `build/system.xsa` | 板上与随包那一份是 `cb907d3e4898` / `af0fc4abd01c`，与重建这一跑**不同**（尺寸相同：1 975 594 与 85 343 字节） | 只主张"可重建、时序收敛可复现"，不主张逐字节相同——实现阶段不保证，这条差异本身就是证据 |
+| 与板上那一版的身份对照 | 现算 md5 对照 `build/system.bit` / `build/system.xsa` | 板上与随包那一份是 `cb907d3e4898` / `af0fc4abd01c`，与重建这一跑**不同**（尺寸相同：1 975 594 与 85 343 字节） | 只主张"可重建、时序收敛可复现"，不主张逐字节相同；实现阶段不保证逐字节复现，这一处差异按原样登记 |
 | Vitis 平台 | 起 `vitis-server --port <p>` 后 `vitis -s board/scripts/rebuild_vitis.py <p>` | 平台建成在 workspace（`VP_VITIS_WS` 指，默认 `board/vitis_ws/`；36 MB 级，不入库也不随包），`plat.build()` 返回 0，产出 `zynq_fsbl/build/fsbl.elf` 与 `export/vitis_platform/sw/boot/fsbl.elf`（同一枚 584 820 字节、md5 前 12 位 `56c4e0c778d2`）；两个域都在：`zynq_fsbl` 与 `standalone_ps7_cortexa9_0` | PASS（平台与两个域建成） |
 | Vitis 应用域 | 同一支脚本的后半段 | 域这一条**已跑通**：`add_domain` 必须带 `name=`（只给 `cpu`+`os` 报 `StatusCode.INTERNAL`，再加 `support_app=True` 报 `bad argument type for built-in operation`，补上 `name="standalone_ps7_cortexa9_0"` 就 OK）。应用这一条没跑通：`create_app_component` 四种参数形状一律 `Cannot create application component, status = StatusCode.INTERNAL`，而 `get_templates()` 回 `Invalid component type '{component_type}'`（服务端模板名没替换） | **NOT_MEASURED**：PS 应用不走 Vitis 这条口；固件的等价通路是 `node build/ps_app.mjs`（第 2 节），它产出 `ps_app.elf` |
 

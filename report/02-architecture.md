@@ -1,6 +1,6 @@
 # 架构
 
-本章的数字口径以 `../data/metrics.csv` 与 `build/report/*.rpt` 为准；重复写出是为了让这一章能单独读懂。
+数字口径以 `../data/metrics.csv` 与 `build/report/*.rpt` 为准；读数在下面的表里重复写出，是为了让这份文件能被单独读懂。
 
 ## 软硬件划分：哪些在 PL、哪些在 PS、为什么
 
@@ -10,8 +10,9 @@ TMDS 编码（`report/architecture.md` §3）。PS 只做三件事：发命令�
 （`src/ps/main.c` 文件头、`report/architecture.md` §3）。
 
 这样切的结果是可核对的：实时数据面放 PL，显示链上每一级的延迟由流水线级数决定，与软件运行状态无关，
-CPU 占用接近 0；控制面留 PS，命令与状态各走一条独立的 GPIO 通道。两条路的取舍与对照实验记在
-`report/ps_vs_pl.md` §3。
+CPU 占用接近 0；控制面留 PS，命令与状态各走一条独立的 GPIO 通道——命令写 `axi_gpio_0` 与
+`axi_gpio_2`，状态按"先写 lane 号再读一个字"的窗口从 `axi_gpio_1` 取回（通道地址与 lane 分配见
+`report/architecture.md` §3）。两条路的取舍与对照实验记在 `report/ps_vs_pl.md` §3。
 
 ## 顶层与连线点名
 
@@ -26,7 +27,7 @@ CPU 占用接近 0；控制面留 PS，命令与状态各走一条独立的 GPIO
 
 ## 数据通路与缓冲
 
-通路按 `report/architecture.md` §1 的流程图，原样抄在那里：
+下面这段通路图与 `report/architecture.md` §1 的流程图同源，那份图原样抄在这里：
 ```
 PC ─UDP:5001─► RGMII ─► gmii_rx_mac ─► udp_rx_parser ─► frame_reasm   (eth_rxc 125 MHz)
         └─► dc_fifo（格雷码指针，eth_rxc → axi_clk 的跨域缓冲）
@@ -69,16 +70,15 @@ SD 卡 ─► PS sd_play.c DMA ─► 写进 PS 专用 bank，翻发布位 gpio_
 `used_in_synthesis false`。原因是 `clk_fpga_0` 由 PS7 IP 自己的约束文件创建，综合阶段还不存在这个时钟，
 提前声明会在综合里落空；这条记于 `report/architecture.md` §2。
 
-## 这一章管到哪里
+## 覆盖范围与边界
 
-- 只覆盖仓库里这一版工程。第二块板卡的那份工程目录已移出仓库，所以本章不写跨板卡的通路
-  （范围声明在 `report/architecture.md` 文件头）。
-- 本章只写结构与地址，不写实测读数。读数与出处集中在 `data/metrics.csv` 与 `build/` 下的报告原件，
-  逐时钟的余量读法在 `report/timing_global.md`，那里每个数旁边有它自己的产物文件。
-- 端口与地址的机器可读表在 `report/interface-table.md`，模块级的端口与时序假设在 `report/modules.md`；
-  本章与那两份说法不一致时，以那两份为准。
+写的只有仓库里这一版工程：第二块板卡的工程目录已移出仓库，跨板卡的通路因此不出现在上面任何一段里
+（范围声明在 `report/architecture.md` 文件头）。这里只写结构与地址，不写实测读数——读数与出处集中在
+`data/metrics.csv` 与 `build/` 下的报告原件，逐时钟的余量读法在 `report/timing_global.md`，那里每个数旁边
+有它自己的产物文件。端口与地址的机器可读表在 `report/interface-table.md`，模块级的端口与时序假设在
+`report/modules.md`；这两份与上面的说法不一致时，以那两份为准。
 
-## 本章依据的产物
+## 依据的产物
 - `report/architecture.md`
 - `report/ps_vs_pl.md`
 - `report/modules.md`

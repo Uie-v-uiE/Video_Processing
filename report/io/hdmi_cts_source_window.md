@@ -1,6 +1,6 @@
 # HDMI **源端（Source / TP1）** 时序量：可公开引用的原始出处与本工程的约束用法
 
-核查日期：2026-10-04（本文所有"核对日期"均为该日）。
+核查日期：2026-10-04（本核查记录里所有"核对日期"均为该日）。
 核查方式：把候选 PDF 全部下载到本地，用 `pdftotext -layout` 与 `pypdf` 两种独立抽取器取文，再对同一数字要求**至少两份独立文档**命中；只有一份命中的，在"判定"列降级标注。
 本轮**没有改动任何代码或约束文件**。
 
@@ -36,7 +36,7 @@
 | 17 | **接收端（TP2）量——本轮明确不用** | Sink max intra-pair skew：`≤225 MHz → 0.4 Tbit`；`>225 MHz → 0.15 Tbit + 111 psecs`；inter-pair `0.2 T character + 1.78 nsecs`；Sink TMDS Clock Jitter `0.30 Tbit` | 分档 | HDMI 1.3 **Table 4-19 "Sink AC Input Characteristics at TP2"**（镜像第 46 页） | **公开规范原文**——但**这正是前一次误用/本次排除掉的那一侧**，写在这里只为防止再被拿来当输出窗 |
 | 18 | LED（`led[0]` / `led[1]`）的对外时序窗 | **不存在** | — | HDMI 1.4 §4.2 Table 4-2/4-5 连接器引脚表里只有 `TMDS Data0/1/2 ±`、`TMDS Clock ±`、DDC、+5V、HPD、CEC——**没有 LED 这类指示脚**；本工程原理图/用户手册也没有"谁在采样这颗 LED"的条款 | **无法公开引用（因为该要求在业界不存在）** |
 
-### 1.1 由第 1 节公式代入的速率折算表（**本节是算术，不是任何文档里的原表**）
+### 1.1 由第 1 节公式代入的速率折算表（**§1.1 是算术，不是任何文档里的原表**）
 
 公式全部来自表行：`intra = 0.15×Tbit`、`inter(含钟↔数据) = 0.20×Tcharacter`、`rise/fall ≤ 0.4×Tbit`（下界 75 ps 固定）、`jitter ≤ 0.25×Tbit`。
 在 HDMI 1.x 的 8b/10b 且 TMDS 钟 = 像素钟模式下 `Tcharacter = 像素周期`、`TMDS 位速率 = 10 × 像素钟`（HDMI 1.4 §4.2.1 原文：`TMDS encoding converts the 8 bits per TMDS data channel into the 10 bit… rate of 10 bits per TMDS clock period`）。
@@ -83,8 +83,8 @@
 
 ## 三、能转成 Vivado 约束的形式
 
-下面每条都标了数从哪一行回来。**没有一条是 CTS 表**（CTS 表不可公开，见第四节）；凡"代理值"我都写代理。
-本工程的真实钟名（`src/constraints/clock_groups_impl.xdc` 注释）：`clk_pix`（像素 50 MHz）、`clk_pix5x`（TMDS 串行 250 MHz）、`sys_clk`（W17，20 ns）、MMCM 输出 `clkout0_1 / clkout1_1 / clkout2`。落约束前请先用 `get_clocks` 确认当前实现里到底哪个名字存在——**这一句是工具事实核对提示，不是规范内容**。
+每条都标了数从哪一行回来。**没有一条是 CTS 表**（CTS 表不可公开，见第四节）；凡代理值都明确标注。
+本工程的真实钟名（`src/constraints/clock_groups_impl.xdc` 注释）：`clk_pix`（像素 50 MHz）、`clk_pix5x`（TMDS 串行 250 MHz）、`sys_clk`（W17，20 ns）、MMCM 输出 `clkout0_1 / clkout1_1 / clkout2`。落约束前请先用 `get_clocks` 确认当前实现里到底哪个名字存在，**这一句是工具事实核对提示，不是规范内容**。
 
 ### 3.1 钟↔数据窗（`tmds_data_*` 对 `tmds_clk_p`）——**有规范原文，可写**
 
@@ -109,7 +109,7 @@ set_output_delay -clock tmds_clk_ref -min -4.000 [get_ports {tmds_data_p[*] tmds
 要点与诚实声明：
 - **窗是对称的**（±0.20 Tpixel），因为规范只给"两路单端信号之间的最大时间差"（HDMI 1.4 §4.2.4 正文定义），**没有给偏向哪一侧**；把不对称性当成规范要求的，就是编数。
 - `set_output_delay` 的 `±` 语义：Vivado 会把输出路径的 Tco 计入到达时刻，所以这个窗**已经包含**片内偏斜，板级走线失配必须自己从 4.000 / 2.694 ns 里减；本板 4 对走线等长，减项≈0（这句是板级判断，非引用）。
-- 若只约束 `tmds_data_p[*]`（把 `_n` 视为严格互补、由 OBUFDS 保证），窗值不变，但要在文档里写明"对内偏斜由器件互补驱动保证，未列入本窗"，并另立 #2（0.15 `Tbit`）为布线/器件规则，**不要**把它写成 `set_output_delay`——SDC 里没有"同一差分对 P/N 相对彼此"的窗语义。
+- 若只约束 `tmds_data_p[*]`（把 `_n` 视为严格互补、由 OBUFDS 保证），窗值不变，但要在文档里写明"对内偏斜由器件互补驱动保证，未列入本窗"，并另立 #2（0.15 `Tbit`）为布线/器件规则，**不要**把它写成 `set_output_delay`，SDC 里没有"同一差分对 P/N 相对彼此"的窗语义。
 
 ### 3.2 备选形式：`set_max_delay`——**能写，但它不是同一个量，交付文档里别混称**
 
@@ -132,7 +132,7 @@ set_max_delay -from [get_pins <tmds_clk 输出寄存器/CBU>] -to [get_ports {tm
 
 ```tcl
 ## 不给 set_output_delay：HDMI 规范/CTS 的连接器信号里没有这类指示脚（见第一节 #18），
-## 板上也没有任何东西对这两脚建立采样关系 ⇒ 外部窗不存在，硬套 TMDS 的 4.000/2.694 ns 属于伪造依据。
+## 板上也没有任何东西对这两脚建立采样关系，因此外部窗不存在，硬套 TMDS 的 4.000/2.694 ns 属于伪造依据。
 ## 若要过"未约束端口"这一关，二选一并写清是哪一种：
 ## (a) 工程约定窗（数值由本包自定，出处=无）：
 set_output_delay -clock clk_pix -max  10.000 [get_ports {led[0] led[1]}]
@@ -141,7 +141,7 @@ set_output_delay -clock clk_pix -min -10.000 [get_ports {led[0] led[1]}]
        交付文档里必须写成"工程约定值，无外部依据"。
 ## (b) 或者干脆不写，登记为"对外无采样器，无需窗"。
 ```
-我推荐 (b)，因为 (a) 一旦被读者当成有来源的数，性质就变了。
+推荐 (b)，因为 (a) 一旦被读者当成有来源的数，性质就变了。
 
 ---
 
@@ -155,8 +155,8 @@ set_output_delay -clock clk_pix -min -10.000 [get_ports {led[0] led[1]}]
    以及 [https://www.hdmi.org/resource/testing](https://www.hdmi.org/resource/testing)：
    > "The HDMI Compliance Test Specifications represent the minimum compliance testing required for Licensed Products."
    → 即 **CTS 挂在 Adopter Extranet（需资质+登录）之后**，其**逐测试频点的限值表**（例如 Diodes 报告里出现的 `HDMIAutomationConfig / Timing 101` 那一档档配置）、**Pass/Fail 余量规则**（同报告里 `Warning < 2 % / Critical < 0 %` 这类阈值是测试系统配置项而非 CTS 公开表）、**测试图案/EDID/夹具设置**，都不是公开可引用的。
-2. **TP1 掩码文件的顶点坐标**。Keysight 文档只暴露了"存在这个文件"这一事实——配置项 `MaskFile` 的取值是 `HDMI-TP1.msk, HDMI-TP2.msk, HDMI-TP5.msk, HDMI-DP++.msk`（"Select type of mask to use in HDMI 1.4b Eye Test"）。掩码的逐段坐标在规范插图里能读到（第一节 #6/#7），但**仪器真正加载的 `.msk` 内容不公开**，因此我不能声称"我的窗 = CTS 掩码"。
-3. **CTS 版本号要点名，别含混**。这次从公开材料里读到的版本号有：**CTS 1.2a / 1.3c / 1.4a**（Tektronix 文中逐个点名哪一项在哪版不再要求）、**HDMI CTS 1.4b**（Sony HDMI ATC 深圳出具的公开报告封面 `CTS Ver: HDMI CTS 1.4b`）、**CTS 2.0 / HDMI 2.0**（Diodes 报告文件名 `HDMI2.0-CTS2.0-compliance-test-report.pdf`，正文写 `HDMI Specification 2.0`）。**本板的 0.5–0.7425 Gbps 落在 HDMI 1.x/1.4b 的量程里**，所以对口版本应是 **HDMI CTS 1.4b**（或 1.4a），**而没有 1.4b 的任何一页**——只有关于它的第三方复述。
+2. **TP1 掩码文件的顶点坐标**。Keysight 文档只暴露了"存在这个文件"这一事实——配置项 `MaskFile` 的取值是 `HDMI-TP1.msk, HDMI-TP2.msk, HDMI-TP5.msk, HDMI-DP++.msk`（"Select type of mask to use in HDMI 1.4b Eye Test"）。掩码的逐段坐标在规范插图里能读到（第一节 #6/#7），但**仪器真正加载的 `.msk` 内容不公开**，因此不能声称"该窗 = CTS 掩码"。
+3. **CTS 版本号要点名，别含混**。这次从公开材料里读到的版本号有：**CTS 1.2a / 1.3c / 1.4a**（Tektronix 文中逐个点名哪一项在哪版不再要求）、**HDMI CTS 1.4b**（Sony HDMI ATC 深圳出具的公开报告封面 `CTS Ver: HDMI CTS 1.4b`）、**CTS 2.0 / HDMI 2.0**（Diodes 报告文件名 `HDMI2.0-CTS2.0-compliance-test-report.pdf`，正文写 `HDMI Specification 2.0`）。**本板的 0.5–0.7425 Gbps 落在 HDMI 1.x/1.4b 的量程里**，所以对口版本应是 **HDMI CTS 1.4b**（或 1.4a），**而没有 1.4b 的任何一页**，只有关于它的第三方复述。
 
 **交付文档应该怎么写（建议原话，别写成"已按 CTS 校验"）：**
 
@@ -164,17 +164,17 @@ set_output_delay -clock clk_pix -min -10.000 [get_ports {led[0] led[1]}]
 > **未做 HDMI CTS 合规验证**：CTS（对口版本 **HDMI CTS 1.4b**）仅通过 HDMI Adopter Extranet 分发，本工程非 Adopter、未获取其任何一页；上述引用中属于 CTS 的部分**全部是仪器厂商/公开实测报告的转述（代理）**，包含但不限于：采集量门槛（≥400,000 UI、≥10,000 波形、≥16 M 记录）、`HDMI-TP1.msk` 的几何内容、逐频点限值表。
 > 另注：眼图与抖动类量**无法用 SDC 表达**，SDC 里只落了互对偏斜窗；`led[0]/led[1]` 不属于 HDMI 连接器信号，**不套用任何 HDMI 窗**。
 
-三条红线（我在本文里已遵守）：没有把 0.20 Tcharacter 写成"CTS 表值"（它同时是规范原文，所以引规范）；没有把 400,000 UI / 10,000 波形说成规范条款（它们只有 Tektronix 转述，判代理）；没有给 LED 编一个 HDMI 依据。
+三条红线（这一轮已遵守）：没有把 0.20 Tcharacter 写成"CTS 表值"（它同时是规范原文，所以引规范）；没有把 400,000 UI / 10,000 波形说成规范条款（它们只有 Tektronix 转述，判代理）；没有给 LED 编一个 HDMI 依据。
 
 **仍然"无法核实"的具体条目**（试过、拿不到，别在别处当已知引用）：
-- HDMI 1.4 Table 4-24 中 rise/fall 那一格的**上界是否被 1.4 删掉**：在这份镜像里只读到 `75psec ≤ Rise time / fall time`，两份旧版（1.1/1.3）与 Tektronix 都仍是双界。→ 无法核实 1.4 的意图，本文只按"1.1/1.3 原文 + Tektronix 复述"引上界。
+- HDMI 1.4 Table 4-24 中 rise/fall 那一格的**上界是否被 1.4 删掉**：在这份镜像里只读到 `75psec ≤ Rise time / fall time`，两份旧版（1.1/1.3）与 Tektronix 都仍是双界。→ 无法核实 1.4 的意图，这里只按"1.1/1.3 原文 + Tektronix 复述"引上界。
 - HDMI 1.4 里 CTS 是否**仍测**钟↔数据互对偏斜：Tektronix 说 CTS 1.3c/1.4a 不再要求、CTS 1.2a 要求；而 Keysight 文档仍列有 7-6 项。→ 两者不能同时"核实到 CTS 原文"，只能并列引用并标明各自出处。
 - Diodes 的 HDMI 2.0 CTS 2.0 源端报告里**没有** inter-pair skew（HF1-3）这一项（该报告只出现 `HF1-1/2/4/5/6/7/8`）。→ 我不据此推断"CTS 2.0 没有此项"，只能说这份公开报告没测。
-- UG471 第 95 页（TMDS_33）本轮**未重新打开**（前一次的结论按题设沿用，不作为本文引用条目）。
+- UG471 第 95 页（TMDS_33）本轮**未重新打开**（前一次的结论按题设沿用，不作为这里引用的条目）。
 
 ---
 
-## 五、我实际打开过的 URL 清单
+## 五、实际打开过的 URL 清单
 
 | URL | 状态 | 取到了什么（或没取到什么） |
 |---|---|---|

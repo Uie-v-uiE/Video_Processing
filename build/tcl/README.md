@@ -1,6 +1,6 @@
 # Vivado / xsdb 脚本：现在到底跑哪几条
 
-> 这一页只写**今天还在用**的那几条，并把"看着能用、其实会骗人"的那几条点名。
+> **今天还在用**的那几条列在下面；"看着能用、其实会骗人"的那几条逐一点名。
 > 历史上这里还推荐过 `create_project.tcl` + `build_bitstream.tcl` 那套 V7 流程 —— 那两条已经
 > 不能描述现在的设计（工程里有 BD、有 AXI GPIO、有 `system_top`），文件先留着是因为
 > `report/log/changelog_v7.md` 与 `issues.md` 的若干条目按名字指它们；**不要**拿它们当构建入口。
@@ -19,7 +19,7 @@ set VIVADO=<Vivado>\bin\vivado.bat
 警告：**两个"根目录少解析一层"的陷阱脚本**：`build_system.tcl`、`build_pl_full.tcl` 用
 `[file dirname [info script]] ..`（少一层 `..`），`add_files` 指向 `build/src/...` 而**报错之后仍然 exit 0**
 （ISSUES #22 / #41 记过两次）。同一类 bug 在 `create_project.tcl`、`synth_pl_only.tcl` 里也还在。
-⇒ 要构建只认 `build_system_axigpio.tcl`；跑完必须自己去 `build/` 里核对报告的时间戳，
+因此构建只认 `build_system_axigpio.tcl`；跑完要自己去 `build/` 里核对报告的时间戳，
 **不要相信退出码**。
 
 ## 2. 上板（演示与验收走 JTAG；QSPI 那一支在 `board/tcl/flash_qspi.tcl`）
@@ -34,7 +34,7 @@ set VIVADO=<Vivado>\bin\vivado.bat
 | `build/board_verify.sh` | 刷完之后"机器能判的那一半"验收（有 `RESULT … PASS/FAIL nred=` 总判定，#69） |
 
 警告：`program_board.tcl` 属 V7 那条纯 PL 流程（下载 `output/video_pipeline.bit`），那个 bit 已从仓库删除
-⇒ 这条路径现在**跑不通**，留着只为对照旧文档里的数字。
+因此这条路径现在**跑不通**，留着只为对照旧文档里的数字。
 
 ## 3. 报告与探针（按需，都不改设计）
 

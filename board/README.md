@@ -14,9 +14,9 @@
 上表是 2026-10-06 19:36 用 `md5sum build/system.bit build/system.xsa build/ps_app.elf` 现量的，同一组数也印在 `board/measured/flash_20261006_1936.txt` 的 IDENTITY 段。
 
 有一处不吻合要提前知道：`build/gen_bit.tcl:12` 的归档目录默认值就是 `board/`，`:25-26` 会往那里写 `system.xsa` 与 `system.bit`。照默认跑一次 `vivado -mode batch -source build/gen_bit.tcl`，
-本目录会长出两份**未跟踪**的二进制（`.gitignore` 不挡它们）。用 `VP_BIT_DIR=build` 跑，或者跑完删掉—— 入库的那两份始终以 `build/` 为准。
+本目录会长出两份**未跟踪**的二进制（`.gitignore` 不挡它们）。用 `VP_BIT_DIR=build` 跑，或者跑完删掉；入库的那两份始终以 `build/` 为准。
 
-重编出来的 ELF 是另一颗，它没上过板；两颗的 md5 与 `.text`/`.rodata` 大小记在 `build/evidence/1005_ps_app_rebuild.txt`。 2026-10-06 把 PS 应用重链到 DDR 之后重编的那颗（md5 `57fa442a7eaf`）就是现在板上跑的这颗，10-05 那颗没上过板、已被它取代；要用自己重编的件，就得重刷 + 跑一次第 2 节末尾那条 `board_verify`。
+重编出来的 ELF 是另一颗，没上过板；两颗的 md5 与 `.text`/`.rodata` 大小记在 `build/evidence/1005_ps_app_rebuild.txt`。2026-10-06 把 PS 应用重链到 DDR 之后重编的那颗（md5 `57fa442a7eaf`）就是现在板上跑的这颗；10-05 那颗没上过板、已被它取代。要用自己重编的件，就得重刷 + 跑一次第 2 节末尾那条 `board_verify`。
 
 ## 1. 上板工程
 
@@ -107,7 +107,7 @@ VP_XSDB=<…>/xsdb.bat bash build/board_verify.sh --battery --geom --round=r118
 开机回读 → 读回口 → 105 条串口命令电池 → 几何"最后一跳"，日志留 `build/evidence/`，末行形如 `RESULT board_verify PASS（判红的步骤：0）`。`--round=` 必须给：
 没有版本身份的一手回显会被判红而不是写成一份名字叫旧轮的凭据（`build/board_verify.sh` 头部 #179）。 `--stream`（仲裁交接，约 2 分钟）与 `--self`（只测判据本身、不碰板子）两个开关见同一文件头。
 
-两条使用注意点：**COM6 一次只能被一个程序占着**（自己开着终端时脚本会拒绝，不是板子坏了）；**要看寄存器就先停止推流**，流在跑时读到的计数是中间值。
+两条使用约束：**COM6 一次只能被一个程序占着**（自己开着终端时脚本会拒绝，不是板子坏了）；**要看寄存器就先停止推流**，流在跑时读到的计数是中间值。
 
 ## 3. 实测输出
 

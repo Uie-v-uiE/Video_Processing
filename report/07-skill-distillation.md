@@ -1,7 +1,7 @@
 # 07 · 技能包的提炼过程：从哪些失败或观察中总结、如何验证有效、边界如何确定
 
-本章的数字口径以 `../data/metrics.csv` 与 `build/report/*.rpt` 为准；重复写出是为了让这一章能单独读懂。
-这一章对应赛题 §3.3.5.3 点名的两节（技能包的提炼过程 / 大模型协作记录），与 `skill/` 目录互相印证：每条技能旁边点名的证据文件
+数字口径以 `../data/metrics.csv` 与 `build/report/*.rpt` 为准；读数在下面重复写出，是为了让这份文件能被单独读懂。
+对应赛题 §3.3.5.3 点名的两节（技能包的提炼过程 / 大模型协作记录），与 `skill/` 目录互相印证：每条技能旁边点名的证据文件
 都必须在盘上存在，读数旁边放它的产物路径；被证伪的判断与原判断一起留着，不删负结果。
 
 ## A. 从哪些失败或观察中总结
@@ -11,10 +11,10 @@
 | 技能（条目路径见 `skill/README.md` 的一览表；下面这些名字是技能包重建前的条目名，现役条目在同一张一览里） | 来源类别 | 点名证据 |
 | --- | --- | --- |
 | `skill/pitfalls/checker-ran-on-nothing/` | 反复出现的症状 | `report/log/issues.md` 第 330 条（检查脚本在等的判定行，那一跑根本没有产出）、第 194 条（第 14 项没有计数下限） |
-| `skill/pitfalls/report-field-parse-breaks/` | 一次事故 | `report/log/issues.md` 第 331 条（首页身份句加了 Markdown 粗体，`ADJ_RNN` 跨不过 `**` ⇒ 检查抓到 0 句） |
+| `skill/pitfalls/report-field-parse-breaks/` | 一次事故 | `report/log/issues.md` 第 331 条（首页身份句加了 Markdown 粗体，`ADJ_RNN` 跨不过 `**`，检查因此抓到 0 句） |
 | `skill/pitfalls/tcl-query-empty-means-broken-ruler/` | 反复出现的症状 | `report/log/issues.md` 第 327 条（`catch` 存的是**返回码**，把成功的运行读成失败）、同族三次错结论记在同文件"Vivado Tcl 探针"那一族 |
 | `skill/prompts/criterion-before-code/` | 量出来的差异 | 两次"先定判定标准再动代码"把没有依据的猜测挡在前面：`report/log/issues.md` 里第 88 与第 147 条那一段，和 `sim/tb_icmp_rx_len.v` 那条台架记录 |
-| `skill/prompts/single-variable-ab/` | 量出来的差异 | 同一棵树重跑一次逐格复现基线 ⇒ `noise_ns=0.000`（件 `build/evidence/r115_*`），以及同一份 `opt.dcp` 重跑 place+route 逐位复现正式构建的读数（件 `build/evidence/r117_d0/`） |
+| `skill/prompts/single-variable-ab/` | 量出来的差异 | 同一棵树重跑一次逐格复现基线，读出 `noise_ns=0.000`（件 `build/evidence/r115_*`），以及同一份 `opt.dcp` 重跑 place+route 逐位复现正式构建的读数（件 `build/evidence/r117_d0/`） |
 | `skill/prompts/report-to-bottleneck/` | 量出来的差异 | 瓶颈重定位那一次：`build/evidence/r117_d0_console.txt` 量到真正的靶子是 239 引脚的广播网（FANOUT），不是先前指的 pblock |
 
 被证伪的判断与推翻它的那次运行一起列在下面，原判断不改写、也不删：
@@ -44,9 +44,9 @@
 | 文本检查脚本的确定性（同一输入两次跑逐字节一致） | `node src/host/doc_enc_check.mjs` ×2、`node src/host/line_cite_check.mjs` ×2 | `旧条目名 evals/raw/doc_enc_pass1.txt（盘上无此路径）`、`doc_enc_pass2.txt`、`line_cite_pass1.txt`、`line_cite_pass2.txt`（`cmp -s` 逐字节一致）—— 这四份是当时留在旧包 `evals/raw/` 的原始件，2026-10-04 c7b325f 重建技能包时连同 `evals/` 一层撤下、**现不存在**，本行只报当时的留档名不指路 | 已复跑 |
 | 技能包装配检查 G1–G12 真的会判未通过（旧包 12 项；现役那支判 53 项）| `node skill/_meta/check-skill-package.mjs`（现不存在）→ 现役 `node skill/_meta/check-skill-package.mjs skill` | 当时旧包 `gates.mjs` 的首轮输出（件现不存在，本行只报数不指路）：G1 违规=13、G6 越界=3、G7 表列与实际不同源、G8 死链=4 —— 四条全部可复现，随后逐条判"确实存在 / 是检查脚本自己的维度错" | 已复跑（含未通过项） |
 | 索引由目录生成、手改会被抓 | `node skill/_meta/build-index.mjs skill --check`（旧名 `gen_index.mjs --check`，件现不存在，本行只报旧名）| 与写入后的 README 比对；不一致 exit 1 | 已复跑：这次实跑 `INDEX 条目=49 类别=10 索引行=49 需改写=no PASS`，rc=0 |
-| 判定标准 selftest 正反例 | `bash skill/_meta/run-all-checks.mjs` | 该脚本此刻不存在 ⇒ `NOT_MEASURED` | 未复跑（被点的脚本不在盘上） |
+| 判定标准 selftest 正反例 | `bash skill/_meta/run-all-checks.mjs` | 该脚本此刻不存在，判 `NOT_MEASURED` | 未复跑（被点的脚本不在盘上） |
 
-上表第 2 行的处置过程本身就是一条自我纠错的记录：G1 把赛题自己规定的 `README.md` / `SKILL.md` 大写名当成违规、
+B 节那张表的第 2 行，处置过程本身就是一条自我纠错的记录：G1 把赛题自己规定的 `README.md` / `SKILL.md` 大写名当成违规、
 G7 的两个操作数取自两套"什么算条目"的定义（`gates.mjs` 与 `gen_index.mjs` 各数各的），
 G8 把 `{a,b}.tcl` 这种简写记法当路径。**修法是把检查脚本的量纲改对（同一生成器、同一扩展名判定标准、大写专名白名单），
 不是把通过门槛调低**；改完之后仍然剩下的未通过项（缺 `SKILL.md` 的条目、条目里的本队专有名、缺 selftest）一律保留。
@@ -69,7 +69,7 @@ G8 把 `{a,b}.tcl` 这种简写记法当路径。**修法是把检查脚本的�
 ## D. 大模型协作记录（同一章要求的另一半）
 
 - 原始轨迹在本仓库里以两种形式存在：`report/log/issues.md`（每条工具或判断事故，编号即时间轴）与
-  `report/log/overnight_log.md`（按小时的决策与读数）。本章引用它们的方式是**点名编号**，不转述成"讨论后决定"。
+  `report/log/overnight_log.md`（按小时的决策与读数）。引用这两份记录的方式是**点名编号**，不转述成"讨论后决定"。
 - 智能体工作流：这次交付由一个主 agent 加若干**只看文件、不共享上下文**的子 agent 完成，
   每个子 agent 的产物落进自己的目录（`skill/pitfalls/`、`skill/prompts/`、`skill/templates/`、
   `skill/runtime/`、`skill/scripts/`、`submit/`），主 agent 负责装配与发布前检查；
@@ -77,7 +77,7 @@ G8 把 `{a,b}.tcl` 这种简写记法当路径。**修法是把检查脚本的�
 - 审计：第三方 AI 的审计提示词原样存在 `skill/prompts/`（见其中"交给审计员的提示词"那一节），
   审计报告回来后逐条判"确实存在 / 不成立 / 需裁决"，修完必须重跑 G1–G12。
 
-## 本章依据的产物
+## 依据的产物
 
 `report/log/issues.md`、`report/log/overnight_log.md`、`report/timing/round_r117.md`、`report/timing/round_r118.md`、
 `report/timing_global.md`、`build/tcl/r117_post_place_hook.tcl`、`skill/README.md`、`skill/_meta/writer-contract.md`（旧名 `naming-and-format.md`）、

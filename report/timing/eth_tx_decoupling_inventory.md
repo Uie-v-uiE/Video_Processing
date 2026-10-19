@@ -1,7 +1,7 @@
 # ETH 发侧解耦（候选 B）跨域清单 —— 只读盘点，未动 RTL
 
-这份文档回答一个问题：**把 TX 协议栈（ARP 应答 / ICMP 应答 / UDP 视频 ack）从 `eth_rxc` 挪到一颗独立的
-125 MHz，中间到底要跨多少条边**。它是 `report/timing/eth_rxc_partition_options.md` 第 2 节那条候选 B 的
+**把 TX 协议栈（ARP 应答 / ICMP 应答 / UDP 视频 ack）从 `eth_rxc` 挪到一颗独立的
+125 MHz，中间到底要跨多少条边**？下面把每条边逐条数出来。它是 `report/timing/eth_rxc_partition_options.md` 第 2 节那条候选 B 的
 动手前置件：那张表里"今天没有同步器、只因两端同钟才安全"的点必须逐条安排掉，才允许改 RTL。
 
 口径：本轮**只读** —— 没跑综合/实现/仿真，没碰板子、COM6、`hw_server`、`xsdb`；所有数字来自已在盘上的报告
@@ -34,7 +34,7 @@ RX 侧 / TX 侧的信号，今天的源域与目的域**都是 `eth_rxc`**，表
 | 挂在树上的寄存器 | 2544 时钟负载（网表）；名册另一列 2546 | `build/clock_util.rpt:61`、`build/timing_summary.rpt:182` |
 | 这一族最差那条的归属 | `From Clock: eth_rxc / To Clock: eth_rxc`（同域内路径） | `build/evidence_r75/timing_summary.rpt:354-355` |
 
-最后那行是本清单的立论基础：**最差路径两端写同一个钟名**，说明发侧协议栈今天整个在这 8 ns 预算里被检查；
+最后那行是整张清单的立论基础：**最差路径两端写同一个钟名**，说明发侧协议栈今天整个在这 8 ns 预算里被检查；
 B 要买的就是把发侧那一半从这张表里搬走。
 
 ### 1.3 新 125 MHz 的来源（B 的钟从哪来）
@@ -45,7 +45,7 @@ B 要买的就是把发侧那一半从这张表里搬走。
   （`src/rtl/clocks/clk_gen.v:19`），CLKOUT0/1/2 已用（`:21`、`:24`、`:27`），
   **CLKOUT3…CLKOUT6 全空着没接**（`:43-47`），因此加一个 `.CLKOUT3_DIVIDE(8.000)` 就出 125 MHz，BUFG 照
   `src/rtl/clocks/clk_gen.v:53-56` 再加一只。它的输入是 `sys_clk`（`system_top.v:122`），所以新钟是
-  **`sys_clk` 的生成钟**、不是 PHY 恢复钟的派生 —— 这正是"解耦"要的形状，但也决定了约束归属（§5.4）。
+  **`sys_clk` 的生成钟**、不是 PHY 恢复钟的派生，这正是"解耦"要的形状，但也决定了约束归属（§5.4）。
 - 全仓 **0 条 `create_generated_clock`**；`create_clock` 只有 `rk_zynq7020.xdc:6` 与 `:36` 两条，MMCM
   输出钟名由工具自动派生（`clkout0_1`/`clkout1_1`/`clkout2` 见 `build/clock_util.rpt:60`、`:63`、`:65`）。
 - 新钟到 `AB22` 那只 ODDR 的**时钟区域可达性：未量**（现有读数只给了 `g2` 跨 5 个 load clock region，
@@ -137,7 +137,7 @@ B 要买的就是把发侧那一半从这张表里搬走。
 而 19 条按语义可并成 **4 条通道**：① ARP 事件（X07+X08）；② 对端地址快照（X01…X06，准静态，
 `arp_rx.v:157-158` 只在命中那一拍写）；③ ICMP 请求事件 + 参数快照（X09…X15）；④ ICMP 载荷字节流
 （X16–X18、X24，今天那只 `sync_fifo`）。
-**按通道算是 4 条、按信号算是 19 条（35 条全部要重新定性）** —— 这就是"一整轮而不是顺手改"的量化理由。
+**按通道算是 4 条、按信号算是 19 条（35 条全部要重新定性）**，这就是"一整轮而不是顺手改"的量化理由。
 
 ---
 
@@ -368,7 +368,7 @@ false path 掉了。
 ## 8. 这份清单对"一轮还是一处"的回答
 
 - **只改 `eth_udp_video_top.v` 一行时钟不够**：X22/X23（线速 9 位出口）与 X18/X24（`sync_fifo` 对侧读）在
-  结构上不允许"只换时钟、不换归属"。最小闭环 = 把 `eth_ctrl` + `icmp_dly` glue 迁到 TX 域（消掉 16 条）+
+  结构上不允许"只换时钟、不换归属"。最小自洽改动 = 把 `eth_ctrl` + `icmp_dly` glue 迁到 TX 域（消掉 16 条）+
   新写 4 条通道（§2.5）+ 把 `u_icmp_fifo` 换成 `dc_fifo` + §6 的 6 组约束 + §7 的 12 支台架与 3 项门禁/板侧
   复验 —— 这与 `report/timing/eth_rxc_partition_options.md` 第 2 节当时写的"一整轮"一致，现在有行号可查。
 - **B 的预期收益仍未量**：发侧从 4835 个 `eth_rxc` 端点（`build/timing_summary.rpt:182`）里搬走多少，只能

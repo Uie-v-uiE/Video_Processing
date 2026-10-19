@@ -78,7 +78,7 @@ setup 余量 0.687 ns，TNS 0 ns，setup 与 hold 的失败端点都是 0。
 | 保持时间 | 全设计最差那一格在 `eth_rxc`，**0.004 ns**；逐时钟 WHS 依次是 `clk_fpga_0` **0.048 ns**、`clkout0_1` **0.067 ns**、`sys_clk` **0.121 ns**、`eth_rxc` **0.004 ns** | `build/timing_summary.rpt`（Intra Clock Table 的 WHS 列）、`build/hold_paths.rpt`、`build/clock_uncertainty.rpt` |
 | BRAM / LUT / FF / DSP | BRAM **96 tile（68.57 %）**/ 140、LUT **14013（26.34 %）**、FF **8132（7.64 %）**、DSP **19（8.64 %）**/ 220 | `build/utilization.rpt`、`data/metrics.csv` 第 7-10 行 |
 | 功耗 | 动态 **2.213 W**，片上合计 **2.390 W**；估算结温 **52.6 °C**，环境 25.0 °C、Effective TJA 11.5 °C/W、Max Ambient 57.4 °C；工具置信度 **Low**，所以这一格是估算值而不是实测 | `build/power.rpt`；`data/metrics.csv` 第 20-21 行 |
-| 发布前检查 | 一键门禁 **24 项 24 绿 / 0 红**，末行 `GATES: ALL PASS（24 项全部判定）`；顶层整屏台架 **165 条判定 / 0 条 FAIL**，末行 `RESULT tb_v98_top_seam PASS`，件头部三枚指纹 `top_md5=c778dc4416b3 tb_md5=3975c335ab26 rtl_md5=93938780ccd6` 与现树同批 | `build/r132_gates.txt`、`build/tb_v98_report.txt`、`build/tb_edge_rim_r132.txt` |
+| 发布前检查 | 一键门禁 24 项 24 绿 / 0 红，末行 `GATES: ALL PASS（24 项全部判定）`；顶层整屏台架 **165 条判定 / 0 条 FAIL**，末行 `RESULT tb_v98_top_seam PASS`，件头部三枚指纹 `top_md5=c778dc4416b3 tb_md5=3975c335ab26 rtl_md5=93938780ccd6` 与现树同批 | `build/r132_gates.txt`、`build/tb_v98_report.txt`、`build/tb_edge_rim_r132.txt` |
 
 这几格各有边界。本版不加载 RGMII 收口的输入窗，`eth_ctl` 与 `eth_rxd[3:0]` 这 5 个收端点因此不在时序检查的
 覆盖范围内；hold 那一行只有 `eth_rxc` 带自加的 0.800 ns 不确定度（`src/constraints/rk_zynq7020.xdc:50`），

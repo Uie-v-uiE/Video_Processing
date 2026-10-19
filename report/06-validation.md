@@ -1,7 +1,7 @@
 # 验证：四类检查各自的适用范围，互不替代
 
-这一章回答评委必问的那一个问题：当前这一版到底被验过什么、每条结论出自哪份文件、
-以及每种检查**答得了**什么、**答不了**什么。检查分四类，彼此不能替代：
+当前这一版到底被验过什么、每条结论出自哪份文件、每种检查**答得了**什么、**答不了**什么，全部按四类检查
+分开写，因为这四类互相不能替代：
 
 | 类别 | 是什么 | 跑它的命令 |
 | --- | --- | --- |
@@ -10,7 +10,7 @@
 | 板级复验 | 在真板子上发命令、读回显、读回像素域真值 | `bash build/board_verify.sh --geom --battery` |
 | 人眼签收 | 屏幕上某个现象有没有，只有在场的人能判 | 按 `board/acceptance.md` 的 E1–E6 逐条演示 |
 
-三态贯穿全章：**PASS / FAIL / NOT_MEASURED**——"读不到输入"在这里既不是通过也不是失败，
+三态在四类检查里都成立：**PASS / FAIL / NOT_MEASURED**——"读不到输入"在这里既不是通过也不是失败，
 必须写成第三种状态。这条口径不是文档额外加的，而是三支脚本自己打印出来的（见第 1 节）。
 板上现在跑的是 r132，位流 md5 前 12 位 `cb907d3e4898`；下面凡是说"这一版""当前板上这一版"，
 指的都是这一块位流。
@@ -33,10 +33,11 @@
 
 ## 2. 仿真台架（`sim/`）：像素域与协议域自己判自己
 
-`build/tb_v98_report.txt` 这份件里的计数按文件实数得到，不引用别的批次：
-`^PASS` 行 **165** 行、`^FAIL` 行 **0** 行、判定行
-`RESULT tb_v98_top_seam PASS`；这一趟是 r132（件头部 `top_md5=c778dc4416b3 tb_md5=3975c335ab26 rtl_md5=93938780ccd6`，2026-10-19 因为台架注释里去掉三条库外路径而重盖过一次指纹：判定行数不变，与现树同批）
-（同文件 `grep "^PASS" | 取第 2 列 | sort -u`）。整屏台架之外，`sim/` 下 `tb_*.v` 共 **81** 支
+`build/tb_v98_report.txt` 这份件里的计数按文件实数得到，不引用别的批次：数法是同文件
+`grep "^PASS" | 取第 2 列 | sort -u`，读出 `^PASS` 行 **165** 行、`^FAIL` 行 **0** 行，判定行
+`RESULT tb_v98_top_seam PASS`。这一趟是 r132，件头部
+`top_md5=c778dc4416b3 tb_md5=3975c335ab26 rtl_md5=93938780ccd6`；2026-10-19 因为台架注释里去掉三条库外路径
+而重盖过一次指纹，判定行数不变，与现树同批。整屏台架之外，`sim/` 下 `tb_*.v` 共 **81** 支
 （`ls sim/tb_*.v | wc -l` 数出）。
 
 `data/metrics.csv` 的"整屏逐像素判据 141 条"钉的是更早那一次全量台架（件自己写明
@@ -47,10 +48,10 @@
 `FAIL C5c frame head is not the previous frame's tail …` 是那份件里唯一那条 FAIL；它当时是**公开声明、有意保留**的未通过项，登记在 `report/known_issues.md` §一 第 1 条（`#98`）。
 **这一条已于 r132 关闭**（同一把尺子改后 PASS，正本 `report/08-limits.md` §1、台账 #478）；上面那些条数（141/161/162 那一族）与"红数 == 1"这个形状都属于**上一版那次全量台架**，r132 的整屏台架**已在 2026-10-18 00:00 交账**：`bash build/tb98_report.sh` 打出的件是 165 条判定 / 0 条 FAIL、末行 `RESULT tb_v98_top_seam PASS`，头部三枚 md5 与现树一致（门禁第 15 项按“认 md5 不认文件名”判它 fresh）。
 
-这些判据的形状值得说一句：一条主判据前面都挂一条**空集守卫**
+判据的形状是统一的：一条主判据前面都挂一条**空集守卫**
 （`PASS C4a rows judged`、`PASS C5a judged rows`、`PASS C9pre rows judged`、`PASS C11pre …`、
 `PASS C12pre …`），守卫行自己把"这一格判了几行"印出来。件里那些
-`… else C4b below means nothing` / `a green on an empty set (#78)` 就是这个意思：
+`… else C4b below means nothing` / `a green on an empty set (#78)` 说的就是这件事：
 **没有样本的通过不许存在**。
 
 台架答不了的四件事（`report/known_issues.md` §三那张表逐条点名）：
@@ -75,7 +76,9 @@
 **r118 那一次是 24 项 = 23 绿 / 1 红**，且两跑逐字节一致：件
 `build/evidence/r118_board/g2c.txt` 与 `build/evidence/r118_board/g3c.txt` 的末行是同一句
 `GATES: 有红项（判定 24 项）……`，
-而 r132 这一轮重跑之后是 **门禁 24 项 24 绿 / 0 红**（件 `build/r132_gates.txt`，末行 `GATES: ALL PASS（24 项全部判定）`；两跑逐字节一致这一步本轮也复做过，结论记在 `report/log/issues.md` #483 末段）。
+而 r132 这一轮重跑之后是 **门禁 24 项 24 绿 / 0 红**：件 `build/r132_gates.txt` 的末行是
+`GATES: ALL PASS（24 项全部判定）`；两跑逐字节一致这一步本轮也复做过，结论记在
+`report/log/issues.md` #483 末段。
 汇总件 `build/evidence/r118_board/gatesc_summary.txt` 打的是
 `GATESC done id=identical green=23 red=1`。
 
@@ -104,15 +107,15 @@
 2. 两项警告类的分支 `say "端口宽度警告 8-689" "NOLOG" "无凭据=未验" 0`
    与 `say "多驱动 net 8-685x" "NOLOG" "无凭据=未验" 0`——**没有凭据直接判未通过**，
    不判"没发现所以干净"。
-3. `naa()` 那两支（`methodology CRIT —— … 这一项没门禁（#164：过去空结果被当合法的 0 念成 PASS）`
-   与 `cdc.rpt Critical 行 —— … 空集合不是通过`）走的是第三态：计入 `未判`，
+3. `naa()` 那两支走的是第三态：`methodology CRIT —— … 这一项没门禁（#164：过去空结果被当合法的 0 念成 PASS）`
+   与 `cdc.rpt Critical 行 —— … 空集合不是通过` 都计入 `未判`，
    于是结尾只能出 `GATES: PARTIAL`，而 `build/freeze_evidence.sh` 就 grep 那一行、自然拒绝把这一版
    成套留档。
 
 ## 4. 板级复验（`build/board_verify.sh` 的 geom + battery）
 
-下面这段是 `build/evidence/r118_board/board_verify_console.txt` 里那几行的原文照抄
-（取证时刻只在原始记录件里，本节不把它当叙述用）：
+下面这段是 `build/evidence/r118_board/board_verify_console.txt` 里那几行的原文照抄；
+取证时刻只在原始记录件里，不拿它当叙述用：
 
 ```text
 == board_verify 2026-10-04 04:47:07 ==
@@ -144,8 +147,8 @@ RESULT board_verify PASS（判红的步骤：0）
   b: eth_live=1 owner_eth=1 drop_words=0 pkt_err=? frames_bad=? drop_seen=?
 ```
 
-**同一份摘要里** `pkt_err=? frames_bad=? drop_seen=?`——三个字段没读出来，
-`report/log/issues.md` #318 把"读不出来的字段"显式化成 `?`。，因此这三格是 NOT_MEASURED，
+**同一份摘要里** `pkt_err=? frames_bad=? drop_seen=?`：三个字段没读出来。
+`report/log/issues.md` #318 把"读不出来的字段"显式化成 `?`，因此这三格是 NOT_MEASURED，
 不许写成 0，也不许拿上一版（r116）那两次带流读数替它答（`board/acceptance.md` E6 那行
 明写那两句不给 r118 借用，件在 `build/evidence/r116_board/`）。
 
@@ -155,13 +158,13 @@ RESULT board_verify PASS（判红的步骤：0）
 所以结论那句"机器那一半 10 条全部通过"**不能整体算作当前这一版已验**：
 其中一批行的读数属于更早那几版，当前板上这一版被重新盖章的是上面点名的 geom + battery + 串口留档。
 
-板级复验答不了三件事：不判时序窗（那 5 个收端点没有约束，静态时序分析不参与，见
-`report/05-timing.md` §6）、不判屏上观感（第 5 节）
-（`board/acceptance.md` 首页那句"验收那一路只走 JTAG"；把版本固化进板载 QSPI 是 2026-10-05 按要求另做的一次，不在本节射程）。
+板级复验答不了两件事：时序窗（那 5 个收端点没有约束，静态时序分析不参与，见
+`report/05-timing.md` §6）和屏上观感（归第 5 节）。`board/acceptance.md` 首页那句"验收那一路只走 JTAG"
+划的是同一条界：把版本固化进板载 QSPI 是 2026-10-05 按要求另做的一次，不在板级复验的射程里。
 
 ## 5. 人眼签收（`board/acceptance.md` E1–E6）
 
-这一节的存在理由在 `report/known_issues.md` §三那张表的最后一行：
+把人眼签收单列一类，理由写在 `report/known_issues.md` §三那张表的最后一行：
 "人眼判据是外部输入——屏幕上'有没有那条线'由队员判，智能体没有看屏幕的能力。
 凡是依赖人眼的结论，本仓库都记成'待眼睛'或'用户回报'，**不混进机器判据**"。
 
@@ -176,7 +179,7 @@ RESULT board_verify PASS（判红的步骤：0）
   `uart_stat.txt` 的 `[STAT] … osd=1`；刷进 PL 的那块按 `md5sum build/system.bit`
   = `cd04907e1369da35d21c4090d552f5ee` 对回 `build/evidence/r118_board/board_now.txt` 点名的 r118 身份。
   **对照那一半仍未做**：表里那行现在写的是"对照那一半仍未做（按住 KEY1 那一次）：
-  它需要再断一次电，所以只登记'未判'，不写成过"。本节照抄这个"未判"。
+  它需要再断一次电，所以只登记'未判'，不写成过"。这一格跟着表里走，同样只登记"未判"。
 - **E4**（旋转整幅在屏内、四角不戳出）：原话「**现在屏幕没问题了四角都在屏幕内**」，
   登记原文是 `2026-10-04 08:3x 由队员判完`（板上 r118，bit `cd04907e1369`），判法就是那一行左列那一套：
   `src 2` 图卡 + `bilin on` + 手动 `zoom 1.0` + `zoom fit 0` + `rot auto`，走到 45°/60° 档看四角。
@@ -206,19 +209,19 @@ E1 / E2 / E3 的点头分别登记在 2026-09-30（r92/r93，原话"现在都很
 
 ## 3b r132 这一轮为什么红过两趟
 
-发布前检查这一轮不是一把就绿的。第一趟是 22 绿 2 红，两个红项都只关系到凭据时效：「边缘条带」那一格还在
-读 r118 那份件，里面的 `rtl=07570b1ac1b4` 与现树的 `93938780ccd6` 不是同一批；「文档时效」的 D1b 与 D1c
-则因为当时盘上没有一份戳着这块位流的门禁件。把那支台架补跑一次（`build/tb_edge_rim_r132.txt`，31 条判定
-0 条 FAIL）并把门禁件入库成 `build/r132_gates.txt` 之后，读到的是 24 项 24 绿。
+发布前检查这一轮不是一把就绿的。第一趟读数是 22 绿 2 红，两个红项都只关系到凭据时效：「边缘条带」那一格
+还在读 r118 那份件，里面的 `rtl=07570b1ac1b4` 与现树的 `93938780ccd6` 不是同一批；「文档时效」的 D1b 与 D1c
+红，是因为当时盘上没有一份戳着这块位流的门禁件。把边缘条带那支台架补跑一次（`build/tb_edge_rim_r132.txt`，
+31 条判定 0 条 FAIL），再把门禁件入库成 `build/r132_gates.txt`，读到的是 24 项 24 绿。
 
-中间还有两趟是 23 绿 1 红，红的那一格就是「文档时效」自己。原因很实在：那条命令一边跑一边把自己的门禁件
-截断重写，检查器去读基准时读到的是半成品。改成先写到别处、跑完再入库，同一趟就全绿了。
+中间还有两趟是 23 绿 1 红，红的那一格就是「文档时效」自己。原因不在设计上：那条命令一边跑一边把自己的
+门禁件截断重写，检查器去读基准时读到的是半成品。改成先写到别处、跑完再入库，同一趟命令重跑就全绿。
 
 长期红着的顶层判据 `C5c` 在这一批翻绿：整架重跑 165 条判定、0 条 FAIL，末行 `RESULT tb_v98_top_seam PASS`。
 2026-10-19 又跑了一趟，起因是台架注释里去掉三条库外路径，`tb_md5` 因此从 `004949d96301` 变成
 `3975c335ab26`；重盖章之后门禁仍是 24 项全部判定、`GATES: ALL PASS`。
 
-## 本章依据的产物
+## 依据的产物
 - `build/tb_v98_report.txt`
 - `build/sim/run_one.sh`、`sim/`（`tb_*.v` 计数）、`sim/prim/`
 - `build/gates.sh`

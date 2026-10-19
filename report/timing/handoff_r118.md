@@ -18,13 +18,13 @@
 * 全局逐域"到极限"的判定与代价面：`report/timing_global.md` 第 6、7、9 节；`report/timing/round_r117.md`、
   `report/timing/round_r118.md`。工具账 `report/log/issues.md` #325–#330。
 
-## 二、还差的（三项，都不是设计问题，是我这边的管道）
+## 二、还差的（三项，都不是设计问题，是文档/管道层的）
 
 1. **首页/英文首页/`data/metrics.csv` 的逐时钟数字还没换成 r118 那一版**。现在这两行末尾各挂了一句
    "同步状态声明"（README.md 关键数字表中「逐时钟 setup 余量」那一行，原引内容在本版 README 已无对应段落；另 `README_EN.md:70`），明写板上是 r118、本行数仍属 r116 的件 —— 这是**准确的红**：
    `metric_recheck` / `doc_currency` 会照实判红（已推的提交 `b5a774b`）。
 2. **改口之后的最终门禁两跑**（B4 的最后一条）与**提交包重导**没跑完。
-3. 一个未落地的小修：`build/r118_rotate.py` 的"尺子输出文件"用了 `/tmp/kx/...`，
+3. 一个还没做完的小修：`build/r118_rotate.py` 的"尺子输出文件"用了 `/tmp/kx/...`，
    而 **MSYS 的 /tmp ≠ Python 的 /tmp**（#330 第 3 条），因此它把"读不到自己的尺子文件"报成"尺子没过"。
    修法就一行：把那两个 `> /tmp/kx/...` 改成仓库内目录（`build/evidence/r118_board/`）。
 
@@ -52,7 +52,7 @@ python build/r118_commit.py && git push origin main    # 提交 + 推送（信�
   （凭据 `build/evidence/r117/dvi_guide_scan.txt`）。
 
 
-## 五、05:04 的实况：最终门禁跑到了，但撞在我自己造的"自指死锁"上（不是设计红）
+## 五、05:04 的实况：最终门禁跑到了，但撞在脚本自己的"自指死锁"上（不是设计红）
 
 `build/r118_tail3.sh` 跑完两跑门禁：**`metric_recheck 红=0`**（说明 r118 首页改口的数是对的、也解析满 10/10 行），
 但门禁仍判"有红项"，于是按脚本的硬停把首页三件套 `git checkout` 回去了（现在盘上 = 提交 `0b10e7e` 的状态：
@@ -75,7 +75,7 @@ python build/r118_commit.py && git push origin main    # 提交 + 推送（信�
   D1b 在 `NOW_MARK` 之后用 `ADJ_RNN` 取"紧邻的轮号"，而首页写的是
   `板上现在跑的是 **r118**`（粗体星号夹在标记与轮号之间），因此取不到编号，因此那句身份句不计入。
   同一条句式的英文行 `the board now runs **r118**` 一样取不到。
-* 所以现在的选择只有两个，我选了第一个并停下来：
+* 所以现在的选择只有两个，按 ① 停下：
   ① 不放宽判据、不提交未核过的首页（当前状态）；
   ② 下一步一行改尺子：让 `ADJ_RNN` 允许 `\*{0,2}` 前缀（或在首页身份句里去掉那对粗体），
      然后 `VP_CLAIM=24,23,1 python build/r118_rotate.py` → 定版 cp → 两跑核对，
@@ -99,8 +99,8 @@ python build/r118_commit.py && git push origin main    # 提交 + 推送（信�
   对照那一半（按住 KEY1 到链跑完应读 1）**仍未做**，登记为"未判"，需要再断一次电。
 * **板上一步的坑**：07:39 那一次 `ps_jtag_boot.tcl` 死在 `targets -set 1`（`tid2ctx`）——冷上电后 hw_server 还没重新枚举链路。等它枚举成 `1=APU / 2=ARM#0 / 3=ARM#1 / 4=xc7z020`，**脚本一字未改就过了**（只读探针 `build/tcl/probe_target_select.tcl`，五种选择写法全 rc=0）。下次遇到"冷上电后第一步就 REFUSE"，先重连一次看枚举表。
 * **一处身份债补上了（ISSUES #332）**：`git show HEAD:build/system.bit | md5sum` 量出来 HEAD 里那块还是 **r116 的 `bb2fb707aebc`** —— r118 那两支提交只带了文档，bit / xsa / `build/*.rpt` / `build/report/` / `build/tb_v98_report.txt` 全悬在工作区。
-  根因三条都写在 #332 里（路径清单写了当时并不存在的 `report/acceptance.md`——那个名字从未落地、不在本包内，因此 `git add` 原子失败只暂存 4 条，因此打印子进程输出时又踩 cp936 解码崩溃）。
-  **本节之后的规矩**：提交完必须**读回 HEAD** 验位流身份，不许只读工作区。
+  根因三条都写在 #332 里（路径清单写了当时并不存在的 `report/acceptance.md`——那个名字从未存在过、不在本包内，因此 `git add` 原子失败只暂存 4 条，因此打印子进程输出时又踩 cp936 解码崩溃）。
+  **此后的规矩**：提交完必须**读回 HEAD** 验位流身份，不许只读工作区。
 * **另一处工具账（ISSUES #333）**：为追加 #332 留的那份 `ISSUES_before332.md` 备份被 D5 当成交付文档扫，连带把 D1c 也拖红（23/1 → 21/3）。备份证明成"纯前缀"之后删掉；纪律是**快照不要落成仓库里的 `.md`**。
 * **门禁的实际形状（件 `build/evidence/r118_board/`）**：`g1b` 22 绿/2 红（基准件是旧的）→ 删备份 → `g1c` 22 绿/2 红（D1c 仍读着旧基准）→ 定版 → **`g2c`/`g3c` 23 绿/1 红且逐字节一致**（唯一红 = 声明过的 `C5c`，`build/tb_v98_report.txt` 里那条 `FAIL C5c …` + `RESULT tb_v98_top_seam FAIL nfail=1`），`doc_currency` 打印 **CURRENCY: 干净**。
 * **交付侧**：首页三件套已是 r118 的官方读数，并且**这次位流与实现报告一起进 git**（身份由 `git show HEAD:build/system.bit | md5sum` 读回验证，件 `build/evidence/r118_eyes/head_bit_md5.txt`）；提交包按 #332 的规矩在提交之后重导。

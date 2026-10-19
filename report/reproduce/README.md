@@ -1,9 +1,9 @@
 # 复现：构建 → 台架 → 门禁 → 上板复验
 
 这一页只放**逐字抄自脚本自己用法头**的命令，每条后面点名它出自哪一支脚本的哪一行。
-脚本头里没找到的命令一律标 **`【未核实】`** 并说明找过哪里——不为凑齐四阶段补一条"看起来对"的命令。
+脚本头里没找到的命令一律标 **`【未核实】`** 并说明找过哪里。也不为凑齐四阶段补一条"看起来对"的命令。
 
-## 0. 前置：工具怎么定位（本节不写任何一台机器的绝对路径）
+## 0. 前置：工具怎么定位（这一节不写任何一台机器的绝对路径）
 
 | 变量 | 指哪儿 | 谁读它 | 不设会怎样（脚本自己打印的那一句） |
 | --- | --- | --- | --- |
@@ -17,7 +17,7 @@
 `report/build.md` §1 把这条做成了可跑的对照：拿一个不存在的 `VP_VIVADO_BIN` 去跑
 `bash build/roll_isolated.sh`，拒绝发生在 `mkdir`/`sed` **之前**，`rc=2`。
 警告 `VP_XSDB` 要**显式赋值**（别把 `export` 关进子 shell），否则 `board_verify.sh` 一进来就 REFUSE
-一步不走——`report/log/issues.md` #317 记的正是这个形状。
+一步不走；`report/log/issues.md` #317 记的正是这个形状。
 
 ---
 
@@ -35,7 +35,7 @@ vivado -mode batch -source 本脚本 -tclargs bd_only
 **完整构建（综合 + 实现 + `build/system.bit` + `build/system.xsa` + 那几份报告）的调用形式：`【未核实】`。**
 找过哪里：这支脚本的第 1–7 行（头里只有一句 `# System with AXI GPIO on GP0 + PL ETH video sink`）、
 全文 `grep -n "usage|用法|-mode batch"`（只命中第 247 行那一处）、没有任何 `puts "用法…"` 行。
-同一支入口在**文档**里有记录（不满足本章"逐字抄自脚本用法头"，所以只指路不照抄）：
+同一支入口在**文档**里有记录（不满足本页"逐字抄自脚本用法头"的规矩，所以只指路不照抄）：
 `report/build.md` §2、`build/tcl/README.md` §1。后者还钉了一句要一起读的警告——
 "要构建只认 `build_system_axigpio.tcl`；跑完必须自己去 `build/` 里核对报告的时间戳，
 **不要相信退出码**"（同节点名两支历史脚本 `add_files` 指错路径、报错之后仍 exit 0）。
@@ -53,7 +53,7 @@ vivado -mode batch -source 本脚本 -tclargs bd_only
 `VP_R116_IO_WINDOW off（RGMII 输入窗留在候选件 …原因见上方注释）`。
 **不该看到**：`PORT_LOOKUP_FAILED`、`ADDRESS PINNING FAILED`、`SYNTH FAILED`、
 `BUILD_STRATEGY_REJECTED`、`BUILD_HOOK_REJECTED`、`BUILD_PRPO_REJECTED`。
-`build/ps_app.elf` 的重编（`build/tcl/README.md` §1 末提到的那一步）**不在本章四阶段里**：
+`build/ps_app.elf` 的重编（`build/tcl/README.md` §1 末提到的那一步）**不在本页四阶段里**：
 r118 没重编应用，门禁身份行就是证据——`build/r118_gates_final.txt` 的 `ps_app.elf md5=d0b07f84a068`
 与上一版同一枚。
 
@@ -127,7 +127,7 @@ GATES: 有红项（判定 $NSAY 项）—— 不采纳，保留上一版
 唯一红是声明过的 `C5c`；两跑逐字节一致的凭据是 `build/evidence/r118_board/g2c.txt`、`g3c.txt`、
 `gatesc_summary.txt`（`GATESC done id=identical green=23 red=1`）。
 警告 采纳判据（`report/timing/round_r118.md` §二 B4：红数 == 1 且两跑一致）与脚本那句"不采纳"
-是两条不同口径的句子，要一起念——理由在 `report/06-validation.md` §3。
+是两条不同口径的句子，要一起念，理由在 `report/06-validation.md` §3。
 **读不到输入时不该看成通过**，脚本自己给的四种形状：缺报告 → `FATAL 缺报告：…` 且 `exit 2`（`:31-33`）；
 解析不到数字 → `FATAL 解析不到 $v —— 报告格式变了？不要拿空值当 0 判绿` 且 `exit 2`（`:161-166`，
 读不到时还把候选行原样打出来）；缺凭据文件 → `say … "NOLOG" "无凭据=未验" 0`；
@@ -195,16 +195,16 @@ bash build/board_verify.sh --self        # 只跑判据自己的五条对照（�
 两条必须一起读的形状：① 这支脚本**不刷板子**（头里"不做什么"那一节明写，下载顺序它指给
 `report/build.md` §3），刷板是上面那支 bit_cycle 或人来做；
 ② 它自己打的 `drop_words → 0` 那一次 `eth_live` 是 `0`（件里 lane30 那行写着 `"why":"没有流"`），
-所以那一条**不算带流已验**——带流那一读在上面那支脚本的摘要里。
+所以那一条**不算带流已验**；带流那一读在上面那支脚本的摘要里。
 
 **手工三步 JTAG 的调用形态：`【未核实】`。** 找过哪里：`build/board_verify.sh` 的用法头
 （它只指路"三件套（bit/xsa/elf）的下载顺序见 README.md 的'复现三步'第 3 步与 `report/build.md` §3"）、
 `build/r116_bit_cycle.sh` 的用法头（头里只有 `<标签> [位流路径]`；三步
 `build/tcl/ps_jtag_boot.tcl` → `build/tcl/program_pl.tcl` → `build/tcl/ps_app_reload.tcl`
 写在它的**体内** `:22-34`）、以及 `board/acceptance.md` E6 的前置那一格（点名三步与"全程不碰
-KEY1/KEY2"，但没有命令行）。，因此照本页跑阶段 4 就用
+KEY1/KEY2"，但没有命令行）。因此照本页跑阶段 4 就用
 `bash build/r116_bit_cycle.sh <标签> [位流路径]`，它自己会把三步跑掉；要单独手工重跑某一步，
-本章不补一条我没找到出处的命令。
+本页不补一条出处查不到的命令。
 
 **眼睛那一半不是命令。** `board/acceptance.md` E1–E6 给的是判法与条件；2026-10-04 在 r118 上
 由队员点头的是 E4（「现在屏幕没问题了四角都在屏幕内」）与 E6（「0度」，件 `build/evidence/r118_eyes/`），
@@ -232,7 +232,7 @@ E6 的对照那一半登记为**未判**。屏幕读数不属于机器判据，�
 `build/evidence/r118_eyes/state.txt` 末段那三行注释）；③ 门禁的输出别重定向回它自己要读的那份
 `rNN_gates.txt`（阶段 3 的 警告）。
 
-## 本章依据的产物
+## 本页依据的产物
 - 五支脚本的用法头与被引行：`build/tcl/build_system_axigpio.tcl`（`:1-7`、`:2`、`:45`、`:247`、
   `:280-296`、`:304`、末尾 `puts` 群）、`build/sim/run_one.sh`（`:2`、`:11-12`、`:46-48`、`:58`、`:73-95`、`:117`）、
   `build/gates.sh`（`:11-12`、`:14-20`、`:31-33`、`:96`、`:161-166`、`:175-183`、`:363`、`:582-586`）、

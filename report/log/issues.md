@@ -15655,3 +15655,34 @@ RUN       bash run_test.sh --dry-run 在包内跑通 rc=0（四步 NOT_MEASURED�
 165 行的原始 console（`build/tb_v98_report.txt`）留在仓库不随包——这是导出器既有的取舍（那支台架一次
 75 分钟，console 190 KB），不是这轮新加的决定。重建出来的工程目录（`vivado_system/`、`board/vitis_ws/`）
 同理不入库不随包，包里给的是脚本与摘要件。
+
+### #488 文档文风：把机器话改成能读的句子（2026-10-19）
+
+诉求：交付文档读起来"太 AI 话"，要求去掉自指与套话并顺结构。做法是把读者可见的文档按互不相交的
+归属分成十一批，让十一路并行重写；每路先读同一份约束页（禁改的十二类字符串与保留槽写在里面），
+改完按各自的归属交回报告。工作记录目录（`report/log/`、`build/runs/`、`report/collaboration/sessions/`）
+这一轮没动：那里的 `⇒` 与逐轮读数是追加式历史，改写等于篡改当时的判断，是否要动另等签核。
+
+改完之后的现跑读数（全部在同一次工作树状态上跑的）：
+`bash build/gates.sh` 退出码 0，末行 `GATES: ALL PASS（24 项全部判定）`；
+`node src/host/doc_currency_check.mjs` 输出 CURRENCY: 干净；
+`node src/host/line_cite_check.mjs` 输出 D5: CLEAN（硬错 0、锚点命中 1546）；
+`node src/host/metric_recheck.mjs` 判 114 个数、红 0；
+`node src/host/doc_enc_check.mjs` 扫 521 个手写文件全部干净；
+`node build/deliver_spec_check.mjs` 判 18 项、红 1，红的那项仍是 C7 里那两处 `⚠`（落在逐字引文内，处置等签核）；
+工作树根的 `_contest_check.py` 输出 RESULT: PASS，`_doc_gate_xiaosai.py` 输出 DOC GATES: ALL PASS (0)。
+
+顺手修掉的三处真缺陷，不是风格：
+① `report/90-open-items.md` §0 那句"技能包目录叫 `skill/` 而不是 `skill/`"是 #487 改名时把两侧同名
+   留下的自相矛盾句，改写成"当时用复数名、与名单上的 `skill` 不同形，复数名已在 #487 改掉"，并明确
+   874 那个读数是改名前的、不回填。
+② `skill/README.md` 有一段几乎原样重复两遍（"另有两道检查……没有写成已验证"），删掉前一遍的尾巴，
+   保留措辞完整的那一句。这一族在 # 35 那次学习文档整本重复里记过。
+③ `README_EN.md` 的门禁格写的是 `tb_md5=004949d96301`，而 `build/tb_v98_report.txt` 现在这一版是
+   `3975c335ab26`（#487 重盖章后没跟着同步）；同一格开头还写着"本页不作门禁全绿声明"，与它自己后半句
+   "24 green / 0 red"互相打脸。两处一起改：指纹换成现值，声明换成钉版句
+   "The all-green gate set quoted below is r132"。
+
+一条判据形状被这次改写逼出来：D1c 要求中英首页各抓到一句"门禁 N 项 X 绿 / Y 红"（地板 2 句），
+而中文首页那格当时写成 `**24 项 24 绿 / 0 红**`——`门禁` 与数字之间夹了粗体标记，正则的 `\s*` 跨不过去，
+于是只剩英文一句、D1c 判"空转"。修法是把粗体挪开而不是放宽判据；改完门禁回到 24 项全绿。

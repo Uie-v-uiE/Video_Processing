@@ -1,7 +1,7 @@
 # A3 债务清单 — 现有约束集的账（2026-10-03 夜，r114 树 = 板上那一版）
 
-这一份只用**已读过的行**说话。每个数后面紧跟它的工件；工件路径 + md5 在 `report/timing/baseline_index.md`。
-按 H1，本清单**不为任何一条债补约束**（补约束=改变被分析的对象，必须走候选→测量→采纳，见 `report/timing/cut_ledger.tsv` 的 C4）。
+这份账只列已读过的行，每个数后面紧跟它的工件；工件路径 + md5 在 `report/timing/baseline_index.md`。
+按 H1，不为任何一条债补约束（补约束等于改变被分析的对象，必须走候选→测量→采纳，见 `report/timing/cut_ledger.tsv` 的 C4）。
 
 ## 0. 当前工程真正加载的约束文件（顺序即加载顺序）
 
@@ -53,8 +53,8 @@
 差异被"缺约束"藏住了。
 
 **23:44 更新：输入侧的窗数字第一次有了出处，而且旧候选件用错了行。**
-本机就有 PHY 手册（`（本机厂商资料目录）/ZYNQ7020/Board_Resource/芯片手册/C187932_以太网芯片_RTL8211F-CG_规格书….PDF`，
-69 页，Track ID JATR-8275-15 Rev 1.4），`Table 60 RGMII Timing Parameters`（手册页 60 = PDF 第 67 页）给的是：
+本机就有 PHY 手册：`（本机厂商资料目录）/ZYNQ7020/Board_Resource/芯片手册/C187932_以太网芯片_RTL8211F-CG_规格书….PDF`，
+69 页，Track ID JATR-8275-15 Rev 1.4。`Table 60 RGMII Timing Parameters`（手册页 60 = PDF 第 67 页）给的是：
 `TsetupR`/`TholdR` min **1.0** typ 2（发射端内部延迟集成时）、`TskewR` **1.0–1.8–2.6**（PCB 延迟模式，并要求时钟比数据多走 >1.5/<2.0 ns）、
 `Tcyc@1000M` 7.2/8/8.8。**±0.500 那张表里对应的是 `TskewT`（发射端*没有*内部延迟时的输出偏差），不是收口该用的窗**——
 所以 `r114_io_async.xdc:39-43` 的数错了行，新候选件 `src/constraints/r115_io_window_candidate.xdc` 改取
@@ -79,17 +79,17 @@ PHY 到底站在哪一边**仍然没读出来**（TXDLY/RXDLY 与 RXD1/RXD0 复�
 | `set_clock_groups -asynchronous` 三组 | `clock_groups_impl.xdc:28-31` | 三组互异步的理由 + 四条跨域路径各自的结构保证（dc_fifo 格雷码 / 翻转+3FF / 3 级像素+3FF / 3FF 控制字）都写在该文件 `:19-23`，历史假违例（缺 `-include_generated_clocks` ⇒ WNS≈−6.7）写在 `:16-17` | ✅ 逐条写了 |
 | `BITSTREAM.GENERAL.COMPRESS TRUE` | `:77` | 交付体积，与时序无关 | ✅（不是时序债务，列在这里只为闭合） |
 
-## 4. `ASYNC_REG` 覆盖（#262 落地后的实测状态）
+## 4. `ASYNC_REG` 覆盖（#262 上到网表后的实测状态）
 
-`build/tcl/probe_r114_async_netlist.tcl` 在**布线后网表**上量的（件 `build/evidence/r114_async_netlist_pre_console.txt` = 落地前，
-`build/evidence/r114_async_reg_post.txt` = 落地后）：
+`build/tcl/probe_r114_async_netlist.tcl` 在**布线后网表**上量的（件 `build/evidence/r114_async_netlist_pre_console.txt` = 上到网表前，
+`build/evidence/r114_async_reg_post.txt` = 上到网表后）：
 
 - 名字含 gray 的单元 116 颗，其中触发器型（`FD*`）84 颗；
-- 落地前 `marked_true=0` → 落地后 **`marked_true=56`**；
+- 上到网表前 `marked_true=0` → 上到网表后 **`marked_true=56`**；
 - **`report_methodology` 的 TIMING-10（Missing property on synchronizer）仍然是 1**（件 `build/evidence/r115_base/methodology.txt` SUMMARY 行）。
   所以剩下的那一处**没有被识别**：格雷码链不是它。这是本轮的一条"未知对象"债务（G12 要求它被列进下一轮候选，不许"未知原因但绿了"）。
-  所以教训已记（#290）：**属性有没有落地**不能拿 methodology 的计数当凭据，它数的是"检查项"，不是"我的属性"。
-   durable 的尺子是 `report_cdc -details` 点名到具体那对触发器（注意：仓库里 9 月那份 `build/cdc_details.rpt` 是**过期件**，不许引用）。
+  所以教训已记（#290）：**属性有没有上到网表**不能拿 methodology 的计数当凭据，它数的是"检查项"，不是属性本身。
+   durable 的尺子是 `report_cdc -details` 点名到具体那对触发器（仓库里 9 月那份 `build/cdc_details.rpt` 是**过期件**，不许引用）。
 
 ## 5. 异步组外跨域路径没有界（#266）
 
@@ -98,7 +98,7 @@ PHY 到底站在哪一边**仍然没读出来**（TXDLY/RXDLY 与 RXD1/RXD0 复�
 Setup/Hold 两列都写 `clock_group`，因此这两对**被整体排除**，没有任何 `set_max_delay -datapath_only` 给出界。
 按附录 1：界**叠不到**被排除的时钟对上（写在 `set_clock_groups` 之上会得到 0 条例外）。
 所以这条债**不能靠加约束消**；能做的只有收窄排除策略，而那会改变 WNS 的计算对象 = H1 的松动。
-结论按提示词原样写：这是**工具语义边界**，不是我的疏漏，但也不能说它无害——跨域数据完全靠结构（§3 那四条）保证，STA 不参与。
+这条的判定：这是**工具语义边界**，不是漏做，也不能说它无害：跨域数据完全靠结构（§3 那四条）保证，STA 不参与。
 
 ## 6. `check_timing` 与 `report_methodology` 的类别计数（G4 的基线侧）
 
@@ -131,7 +131,7 @@ r116 的变化与**仍然欠的那一半**：
 3. **输出侧那 6 个端口的债要谁签**：要么补一份可引用的 DVI/HDMI 窗口数（外部资料），
    要么由用户批准把它们声明为异步/不检查（那是 H1 的放宽，要进松动台账）。夜里两样都没有，因此债继续挂着。
 
-### §2 追加的追加（r116 构建回来后，02:57 实测）：债的数字落地，且"没有来源"这一句现在有了出处
+### §2 追加的追加（r116 构建回来后，02:57 实测）：债的数字定下来，且"没有来源"这一句现在有了出处
 
 `build/evidence/r116/r116_check_timing.txt`（`check_timing -verbose`，正式构建那份）：
 

@@ -1,7 +1,7 @@
 # 读数说明与字段位置表（P15b · `report/build-notes.md`）
 
 口径：**读数基准 = r118**（`build/provenance.md:1`；位流 `cd04907e1369`，`build/provenance.md:134`）。
-本文配在每一份表旁边说四件事：**它能证明什么、不能证明什么、告警条数该怎么读、字段在原件的第几行第几列**
+这里在每一份表旁边配四件事：**它能证明什么、不能证明什么、告警条数该怎么读、字段在原件的第几行第几列**
 （P15b 铁律 4 + 铁律 1）。与 `build/reports/index.md`（原件索引）、`build/coverage.md`（约束覆盖面）互引，不重复维护。
 所有行/列是 2026-10-04 用 `grep -n` / `sed -n` / `awk` **现取**的，没有一处按记忆写列序；
 机器版全表 = `python build/p15b_parse_reports.py --fieldmap`（269 行，逐条带定位串；2026-10-05 由 `--check` 的 J1 分母复核仍是 269）。
@@ -90,7 +90,7 @@ GATE J6 同一输入跑两次逐字节一致        比对 11 个文件，不一
 GATE-SUMMARY judged=6 PASS=5 FAIL=0 NOT_MEASURED=1   分母：J1=269 J2=8 J3=40 J4=6 J5=9 J6=11
 ```
 `--check` 里 J4 记 `NOT_MEASURED` 是因为该模式按设计不跑反例；`python build/p15b_parse_reports.py --self`
-（只写系统临时目录，不动 `build/` 任何真件）2026-10-05 复跑得 `GATE-SELF judged=6 分母=反例 7 条 … 判定=PASS` 与 `SELFRESULT GREEN`，因此补测判定 `PASS`，两处的原始行都留在本节。
+（只写系统临时目录，不动 `build/` 任何真件）2026-10-05 复跑得 `GATE-SELF judged=6 分母=反例 7 条 … 判定=PASS` 与 `SELFRESULT GREEN`，因此补测判定 `PASS`，两处的原始行都留在 §5。
 
 ## 6. 明写的 `NOT_MEASURED`（要重跑构建/只读探针才能拿到的数，留给后一轮）
 

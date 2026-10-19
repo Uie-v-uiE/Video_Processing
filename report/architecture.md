@@ -63,7 +63,7 @@ bank，PS 全程不碰这些字节；SD 回放那路由 PS 的 SD 控制器 DMA 
 | 时钟 | 频率 | 来源 | 谁用 |
 |------|------|------|------|
 | `sys_clk` | 50 MHz（周期 20 ns，引脚 W17） | 板载振荡器，`src/constraints/rk_zynq7020.xdc:5-6` | MMCM 输入、按键、心跳/LED；OSD 的 `FPS:` 那一格的计数口径在这个域与 `clk_pix` 之间改过一次，见下一行 |
-| `clk_pix` = `clkout0` | 50 MHz | MMCM CLKOUT0 ÷20，`src/rtl/clocks/clk_gen.v:21` | 栅格、映射、特效链、混合、OSD、`shown_rate`（OSD `FPS:` 那一格现在数"写进屏的新帧"，`src/rtl/util/shown_rate.v`，顶层例化 `src/rtl/top/pl_video_top.v:997`；在这一格改成数新帧之前，它数的是扫过屏的显示场，也就是约 60 Hz 的面板场频 ⇒ 屏上恒读 59 或 60。两种计数口径的推导与验证记录在 `report/log/issues.md` #128、#157 两节） |
+| `clk_pix` = `clkout0` | 50 MHz | MMCM CLKOUT0 ÷20，`src/rtl/clocks/clk_gen.v:21` | 栅格、映射、特效链、混合、OSD、`shown_rate`（OSD `FPS:` 那一格现在数"写进屏的新帧"，`src/rtl/util/shown_rate.v`，顶层例化 `src/rtl/top/pl_video_top.v:997`；在这一格改成数新帧之前，它数的是扫过屏的显示场，也就是约 60 Hz 的面板场频，所以屏上恒读 59 或 60。两种计数口径的推导与验证记录在 `report/log/issues.md` #128、#157 两节） |
 | `clk_pix5x` = `clkout1` | 250 MHz | MMCM CLKOUT1 ÷4，`clk_gen.v:24` | TMDS 串化（`rgb2dvi`） |
 | `clk_200m` = `clkout2` | 200 MHz | MMCM CLKOUT2 ÷5，`clk_gen.v:27` | IDELAYCTRL 参考 |
 | `axi_clk` = `clk_fpga_0` | 100 MHz | PS FCLK0，`system_top.v:83` | AXI 读写、GPIO、两个搬运引擎 |
@@ -131,7 +131,7 @@ lane0~9 是链路健康计数（`src/rtl/eth/link_monitor.v:187-196`），lane23
 | 片源看门狗 | PS 心跳超时 500 ms；ETH 让位静默 2×10^6 个 axi 拍 = 20 ms | `pl_video_top.v:586,421` |
 | 链路存活判定 | `LIVE_MS` = 200 ms @125 MHz（`stall_ms < 200` 即 lane7.bit3） | `eth_udp_video_top.v:284-286`、`system_top.v:241-246` |
 | 按键 | 消抖计数 10^6（20 ms）；长按 3×10^7 = 0.6 s，松开臂 10^7 = 0.2 s | `pl_video_top.v:136-148` |
-| RGMII 输入延迟 | `IDELAY_VALUE` = **31**（FIXED 抽头，参考 200 MHz ⇒ 每拍 156 ps）。这一档原本是 26：IDDR 与 fabric 合到同一棵钟树之后，按 `4.854−3.171=1.683 ns` 补了 +11 拍；后来在同一份已布线设计上把 FIXED 抽头的可用档位逐档扫了一遍，取收口窗最宽的那一档，于是 26 抬到 31。扫描的读数、它买到多少、两端仍是违例读数，全部在 `report/05-timing.md` 的"片外到达窗"一节 | `src/rtl/top/system_top.v:172`、`src/rtl/eth/rgmii_rx.v:68-71`、`report/timing/round_r118.md` §一 |
+| RGMII 输入延迟 | `IDELAY_VALUE` = **31**（FIXED 抽头，参考 200 MHz，每拍 156 ps）。这一档原本是 26：IDDR 与 fabric 合到同一棵钟树之后，按 `4.854−3.171=1.683 ns` 补了 +11 拍；后来在同一份已布线设计上把 FIXED 抽头的可用档位逐档扫了一遍，取收口窗最宽的那一档，于是 26 抬到 31。扫描的读数、它买到多少、两端仍是违例读数，全部在 `report/05-timing.md` 的"片外到达窗"一节 | `src/rtl/top/system_top.v:172`、`src/rtl/eth/rgmii_rx.v:68-71`、`report/timing/round_r118.md` §一 |
 | OSD 版式 | 5 行（`N_LINES`）、5×7 字模 ×3 放大（18×21）、每行 32 格、起点 (16,12) | `src/rtl/video/osd_overlay.v:9-19` |
 
 ## 5. 改哪里要看什么

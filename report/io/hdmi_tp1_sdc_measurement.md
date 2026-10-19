@@ -8,13 +8,13 @@
 不是工具出具的指纹绑定，所以这句话记为**推断**，严格绑定要等 `report/run-queue.md` 里 P15a 的来源卡补齐。
 
 规范侧的数字与逐条出处在 `report/io/hdmi_cts_source_window.md`（三版 HDMI 规范本体 + Keysight/Tektronix 复述）。
-本文只回答一件事：**这些数能不能变成约束，以及变成什么。**
+下面只说一件事：**这些数能不能变成约束，以及变成什么。**
 
 ---
 
 ## 一、第一次 load：把 ±0.20 `Tcharacter` 当输出窗挂到片内串行钟上（件 `build/evidence/r119_xdc_loads_probe3.txt`）
 
-先纠正一个我自己的错：**`.xdc` 里不能写 Tcl 控制流**。
+先记一条纠错：**`.xdc` 里不能写 Tcl 控制流**。
 第一版候选件在文件里写了"读不到参考钟就 REFUSE"的守卫，Vivado 解析时逐行报
 `CRITICAL WARNING: [Designutils 20-1307] Command 'if' is not supported in the xdc constraint file.`
 （`if` 两行 + `puts` 一行，件 `build/evidence/r119_xdc_loads_probe2.txt` 第 42–56 行），
@@ -84,7 +84,7 @@
 各自 `_n` 与 `p` 差 0.001 ns。`led[0]/led[1]` 是 8.880/8.613 ns，但它们的启动钟是 `sys_clk`（另一条域），
 **不参与、也不能拿去比 TMDS 的窗**（取证文档表行 #18：LED 没有可引用的对外窗）。
 
-**这三行能说什么、不能说什么**（同一条读数说明，别越界）：
+**这三行能说什么、不能说什么**（逐条限定证据射程）：
 - 能说：在 r118 这个已布线成品上，**FPGA 内部（串行器时钟脚 → 封装脚）**的钟↔数据离散 ≤ 0.065 ns、
   P↔N 离散 ≤ 0.001 ns，都在规范上限的 1/60 与 1/300 以内。
 - 不能说：连接器（TP1）上的总离散。板级走线、连接器与线缆的离散不在这条路径里，

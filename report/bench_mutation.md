@@ -11,11 +11,11 @@
 - `bash build/sim/mut_control.sh <tb名> <判据名>`：机械装回**已修好的那一刀**（#103 的 C10f 就是这么补上凭据的）。
   它把整个 `src/rtl` 复制到 `/tmp` 下的副本里，用固定的几条 `sed` 还原改前的延迟线写法，
   **diff 必须恰好是那几行**否则直接退出；然后只编译"变异体 + 目标台架"，断言指定的那条判据变红。
-  因为它不动 `src/rtl`，所以在跑的构建与台架报告的 `rtl_md5` 都不会被作废——这是它存在的理由。
+  因为它不动 `src/rtl`，所以在跑的构建与台架报告的 `rtl_md5` 都不会被作废。这就是 `mut_control.sh` 存在的理由。
 - 判据**自己**的反例：台架/检查器自带的 `--self` 或 `*_gate_ce.sh`
   （`bash build/rim_gate_ce.sh`、`bash build/tb98_gate_ce.sh`、`node src/host/ps_hb_check.mjs --self`、
   `node src/host/doc_enc_check.mjs --self`）。要求是"每条故意坏掉的输入**只**红在它对应那一格"，
-  并且**必须有一条正对照是绿的**——不然一个"永远红"的判据会被误当成有牙。
+  并且**必须有一条正对照是绿的**，否则一个"永远红"的判据会被误当成有牙。
 
 执行过的记录在 `report/log/issues.md`：#103（C10f 红→绿一对）、#124（E1/E2 的 drop 两条红在 134/32、201/48，
 ep 两条仍绿）、#93（C9 族）、#102（边缘条带四条圈）。
@@ -43,5 +43,5 @@ ep 两条仍绿）、#93（C9 族）、#102（边缘条带四条圈）。
   `tb_v571_allow_lead`、`tb_sync_fifo`、`tb_tap_sched`）：判据便宜、能锁算法行为，留着。
 
 **必须修的（是注释在骗人，不是台架有问题）：** `build/sim/run_sim.tcl` 开头声称
-`axi_frame_saver.v` / `axi_frame_writer.v` "各自都有台架"——按现名搜只有带后缀的变体有。
+`axi_frame_saver.v` / `axi_frame_writer.v` "各自都有台架"。按现名搜，只有带后缀的变体有。
 这类"文档/注释对不上树"的条目统一记在 `report/log/issues.md` 的注释精简那一类里处理。

@@ -2,7 +2,7 @@
 
 口径：每条一行，状态只允许 `PASS`（盘上有件且命令实跑过）、`FAIL`（有缺口，写清缺什么）、
 `NOT_MEASURED`（读不到输入或需要人/需要工具链，不能判）。**不写"应该没问题"**。
-本清单的每一格都能用右侧命令当场复核；命令在仓库根执行。文件计数一列会随交付树变，以命令现算为准。
+每一格都能用右侧命令当场复核；命令在仓库根执行。文件计数一列会随交付树变，以命令现算为准。
 
 | # | 交付项 | 位置 | 状态 | 复核命令 |
 | --- | --- | --- | --- | --- |
@@ -30,9 +30,9 @@
 | 22 | 已知限制与未修项 | `report/90-open-items.md`（未决项唯一集中表） + `report/known-limitations.md`（面向读者的限制陈述） | PASS | `head -5 report/known-limitations.md` |
 | 23 | 学习文档**不上传** | 三条都在 `.gitignore` 里：`report/study/`（`:107`）、本地学习文档那一层（`.gitignore:158`）、**整棵本地文档目录（`.gitignore:178`，2026-10-05 用户要求"学习文档撤出 GitHub"）** ⇒ 不入库也不随包 | PASS（`git ls-files report/study docs \| wc -l` 本轮复跑 = 0；导出器从 `git archive HEAD` 起步，所以包内也不会有。撤出时的连带两处也一起改了：`deliver_spec_check.mjs` 的 C0-4 把 `docs` 从"允许"与"必需"两张表同时摘掉 ⇒ 再加回来会判"多余"而红；`build/make_submission.sh` 那句"docs/ 随包"的假话改成实情，并加一条能红的活指路自检） | `git ls-files report/study docs \| wc -l`；`grep -n "^docs/" .gitignore` |
 
-## 这份清单自身怎么被检查
+## 交付清单自身怎么被检查
 
-- 第 7/11/15/19/20/21 行的状态由 `build/checks/check_repo_consistency.mjs` 现算，本文件只**引用它的行**，不重抄数字；
+- 第 7/11/15/19/20/21 行的状态由 `build/checks/check_repo_consistency.mjs` 现算，这里只**引用它的行**，不重抄数字；
   数字漂了会以 `C7/C8`（三处一致 / 未决项汇总）的形式报红，而不是悄悄漂移。
-- 本文件里出现的 `【待验证】`/`NOT_MEASURED` 都在 `report/90-open-items.md` 有对应行；
+- 清单里出现的 `【待验证】`/`NOT_MEASURED` 都在 `report/90-open-items.md` 有对应行；
   反过来，未决项表里"文档缺口"若被补上，这一张表的对应行必须同批改（C8 会数）。
