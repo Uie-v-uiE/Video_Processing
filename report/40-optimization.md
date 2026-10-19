@@ -14,10 +14,10 @@
 
 ## 0. 这一章实际引用的原始文件
 
-规划中的单一事实源是 `build/parsed/`、`build/roster/`、`build/runs/` 与 `report/measurements.md`。
+规划中的单一事实源是 `build/parsed/`、`build/roster/`、`build/runs/` 与 `report/50-results.md`。
 这一章开工时前四样里只有 `build/runs/`（逐批次记录文件）还没生成，其余三样
 （`build/roster/roster_r118.tsv`、`build/roster/roster_r118_probe.tsv`、`build/parsed/*.json`、
-`report/measurements.md`）与这一章写作同时完成，因此这一章逐格引用的是名册与差分的**原件**，
+`report/50-results.md`）与这一章写作同时完成，因此这一章逐格引用的是名册与差分的**原件**，
 并与生成的那三样做过交叉核对；核对结果与两处不同源登记在 `report/comparison-notes.md` §7。
 `build/runs/` 生成后这一章改为引用它；在那之前，凡是"某一批次的名册"都指 §0 那张表点名的原件。
 
@@ -216,7 +216,7 @@ V17 同时削掉 `eth_rxc` setup（全设计绝对最紧那一格）与 `eth_rxc
 | D4 | `report/timing/debt_ledger.md` 2026-10-04 那条追加节：拿接收端窗口去约束发送脚"方向是错的" | `report/timing_global.md` §4 与 §6.4 那两处仍写"要外部 DVI/HDMI **窗口数**"、"要面板/接收端的手册窗口数" | **以更晚的追加节为准**（源端 TP1 / HDMI CTS，件 `report/io/hdmi_cts_source_window.md`）。这一章只引路径不重述其数 |
 | D5 | `build/evidence/r117_after.txt:3` 头部位流身份写 `bb2fb707aebc`（那是第 116 批的位流） | `build/evidence/r117_bit_md5.txt` 与 `build/r117_verdict_declined.txt` 都给第 117 批 = `beda9298331d` | **以批次专属件为准**（beda9298331d）。差因由 `report/log/issues.md` #332 记录："第 118 批那两支提交只带了文档，bit/xsa/`build/*.rpt` 全悬在工作区"，探针读的是当时的 `build/system.bit`。这一章引用第 117 批读数时不引用那份头部 |
 | D6 | `build/power.rpt:39` 打 `Max Ambient (C) 57.4` | `data/metrics.csv` 第 28 行的测量条件列写 "Max Ambient **57.5** ℃" | **以 power.rpt 为准**（57.4）。`data/metrics.csv` 不改，列为差异 |
-| D7 | `grep -n` 当前 `build/power.rpt` 给 `Effective TJA :38`、`Max Ambient :39`、`Junction :40`、`Confidence :41` | `report/measurements.md` §1 的同几格引作 `build/power.rpt:37-38` 与 `:40` | **数值两边相同**，只有行号漂移 1 行，所以不改数、不改判据，登记后由作者决定统一哪一侧的引用（与 `data/metrics.csv` 的 G3 是同一批，见 `report/measurements.md` §5） |
+| D7 | `grep -n` 当前 `build/power.rpt` 给 `Effective TJA :38`、`Max Ambient :39`、`Junction :40`、`Confidence :41` | `report/50-results.md` §1 的同几格引作 `build/power.rpt:37-38` 与 `:40` | **数值两边相同**，只有行号漂移 1 行，所以不改数、不改判据，登记后由作者决定统一哪一侧的引用（与 `data/metrics.csv` 的 G3 是同一批，见 `report/50-results.md` §5） |
 
 ## 9. 这一章依据的产物（一次找齐）
 
@@ -224,7 +224,7 @@ V17 同时削掉 `eth_rxc` setup（全设计绝对最紧那一格）与 `eth_rxc
 `report/timing/roster_round116.tsv`、`report/timing/debt_ledger.md`、`report/timing/round_r116.md`、
 `report/timing/round_r117.md`、`report/timing/round_r118.md`、`report/timing/cut_ledger.tsv`、
 `report/timing/loosen_ledger.tsv`、`report/timing/gates_g1_g12.md`、`report/timing/uncertainty_hold_ab.md`、
-`report/timing/rgmii_window_model.md`、`report/run-queue.md`；
+`report/timing/rgmii_window_model.md`、`report/unattended.md`；
 `build/evidence/`（`r105_ab_rolls.txt`、`r107_rowok_bank_equiv.txt`、`r108_csum_diff.txt`、
 `r109_clk01_before.txt`、`r109_clk01_after.txt`、`r110_attrib.txt`、`r112_verdict.txt`、`r112_util_attrib.txt`、
 `r113_roll_abc_verdict.txt`、`r113_roster_diff.txt`、`r114_after.txt`、`r114_after_roster_probefmt.txt`、

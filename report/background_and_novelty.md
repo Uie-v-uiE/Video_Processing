@@ -58,7 +58,7 @@
    行环在消隐期读到错列，行行都有一格）与一类"缩放碰到分割线时出现的色带"
    （同一文件第 68 条那一族，相位差 9 列）。
    **代价**：两套抽头都要养。行延迟环的级数由效果链倒推（`OFF_LINES = 4`、混合域 `MIX_D` 只从
-   `u_pipe.LATENCY` 取，见 `report/architecture.md` §4），任何一级效果改延迟都要重推这条对齐；
+   `u_pipe.LATENCY` 取，见 `report/02-architecture.md` §关键常数），任何一级效果改延迟都要重推这条对齐；
    这套对齐的帧头部分曾经留有一条写明过的未通过项 `C5c`（**已于 r132 修掉**，正本 `report/08-limits.md` §1）（错的格全在最上面 6 个显示行，
    即 `OFF_LINES` 4 加 `BILIN_ROWS` 2；见 `report/08-limits.md` §1）。
 2. **链路健康做成硬件自计数、三方可对账**：同一组计数器有三个独立出口——OSD 直接印在屏上、
@@ -79,9 +79,9 @@
 4. **消隐期内原子提交的 DDR 乒乓 + 拷贝看门狗**：显示侧永远只读一整帧；拷贝赶不上消隐窗口就
    整笔作废并保留上一帧（宁可不动，不可撕裂）。看门狗跨时钟域用翻转式脉冲同步器
    （`report/log/issues.md` 第 36 条的修法），核对方式是相位扫描 30/30。
-   证据：`sim/tb_v79_abort_toggle.v`、`sim/tb_v5_vblast.v`、`report/architecture.md`。
+   证据：`sim/tb_v79_abort_toggle.v`、`sim/tb_v5_vblast.v`、`report/02-architecture.md`。
    **代价**：可写的窗口只有消隐那一段（`disp_quiet` 从第 600 行起、末行只到 `x ≤ 1279`，
-   判超用的门限 67200 个 axi 拍，见 `report/architecture.md` §4），因此帧率与画幅同时被这个窗口卡住。
+   判超用的门限 67200 个 axi 拍，见 `report/02-architecture.md` §关键常数），因此帧率与画幅同时被这个窗口卡住。
 5. **一条可复用的设计规则：窗口类滤波必须做在目标域**。否则旋转与平滑互相打架（转的时候模糊跟着抖）。
    规则被固化为仿真台架 `sim/tb_rotate_window.v` 与本条报告。
    条目那一半当时写成旧技能包平铺卡 `rotate-window-target-domain`，同一次重建（c7b325f）后

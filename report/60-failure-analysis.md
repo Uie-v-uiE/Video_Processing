@@ -136,7 +136,7 @@
   编一次是第三条命令：`PS_CC=<上面那条路径> PS_BSP=<绝对 BSP 路径> node build/ps_app.mjs`，
   跑通记录在 `build/evidence/1005_ps_app_rebuild.txt`（打印 `ENTRY _boot@0x000000cc` 与 `OK`，重建产物与在板那颗的两组 md5/section 都在该件里）。
 - **现在的处置（是否影响演示）**：改的是**结论**不是代码。这一句在交付文档里的四处副本
-  （`report/declarations.md`、`report/known-limitations.md` 第 2 节、`report/submission-checklist.md` 第 2 行、
+  （`report/declarations.md`、`report/08-limits.md` §12、`report/submission-checklist.md` 第 2 行、
   本页 A3）现在写的都是同一句口径：**能重建，但重建那颗与板上那颗 md5 不同，因此仍要重刷 + `board_verify` 复验**。
   A3 那一条因此从"没救"降级为"app 已经重编过一份，只差第三步重载与一次探针"；
   演示不受影响，受影响的是"PS 侧改动一律算没修"这条口径的依据。
@@ -332,7 +332,7 @@
   `G2 条目外壳与 name … 判 38 项 不合=13 例:skill/scripts/contract_gen:缺 SKILL.md … FAIL`；
   `G10 本队专有名 … 名单=78 命中=24 未标注=9 例:proc_pipeline zoom_snap system_top FAIL`。
   未测一条：`G11 脚本 selftest 可跑 … 判 0 项 缺 skill/_meta/run-all-checks.mjs NOT_MEASURED`。（`run_all.sh` 与 `gates.mjs` 都**现不存在**；今天的等价件末行是 `SKILL-SELFTEST 判 16 项 不符=0 PASS` 与 `判 53 项：条目=49 索引=50 红=0 未测=0 PASS`。）
-- **已定位的原因（可被判别）**：那 2 红 1 未测是**装配没完成**时的读数，不是检查脚本坏——`report/run-queue.md` 的 P04/P07/P09 三行现在都写
+- **已定位的原因（可被判别）**：那 2 红 1 未测是**装配没完成**时的读数，不是检查脚本坏——`report/unattended.md` 的 P04/P07/P09 三行现在都写
   "已交付"（P09 那句是 `技能包门禁 12 项全绿、无未测`），与今天两条 PASS 读数对得上，所以这一格是**已还的债**，留在 A 组只把旧读数与今读数并排给读者。
   **可判别处**：它随时能被重新判红：`check-skill-package.mjs` 的末行一旦从 `红=0` 变成 `红>0`，装配债就挂回来，尺子还在原位。
 - **判别方法**：`node skill/_meta/check-skill-package.mjs skill`（一个条目一行、判定在最后一个字段，末行 `判 53 项：条目=49 索引=50 红=0 未测=0 PASS`）
@@ -520,7 +520,7 @@
   跑完就有数，跑不出来就只能保持"未测试"。
 - **判别方法**：谁在任意题目上按 `skill/prompts/*/SKILL.md` 的 §5 连跑 3 次，把三次的表头一致性与
   "是否只念全局 WNS"记进 `skill/evals/records/`——**这一路当前不在盘上**：`ls skill/evals` 报 No such file or directory，
-  所以它既不是"空的"也不是"有红项"，而是那批 records 在这份包里从来没存在过，因此 `report/run-queue.md` 的 P08 行仍写"部分交付"、
+  所以它既不是"空的"也不是"有红项"，而是那批 records 在这份包里从来没存在过，因此 `report/unattended.md` 的 P08 行仍写"部分交付"、
   缺的正是"同一模板连跑 3 次的增益对照"，这一格只能明写"指不到"。
 - **现在的处置（是否影响演示）**：效果对比那一栏保持"未测试"，`skill/evals/records/` 不在盘上，指不到就明写指不到；
   演示不受影响。
@@ -549,7 +549,7 @@
   若保留，`node src/host/doc_currency_check.mjs` 与 D4 类指路检查要能读到那句声明。
 - **现在的处置（是否影响演示）**：两件候选约束默认不加载，保留意义是"这一族规范量不能这样进 SDC"的反例凭据；
   留着就必须同行自带声明。演示不受影响。
-- **计划与成本**：零构建成本；已进 `report/questions-for-team.md` 的合并范围（该文件 `:17` 仍是 Q-P20-2，
+- **计划与成本**：零构建成本；已进 questions-for-team 那份小清单的合并范围（那份已删，原编号 Q-P20-2 落在 `report/90-open-items.md` 的编号 2 那一格，
   D2 这一条**还没有独立行**，因此已登记进 `report/90-open-items.md`，见那里）。
 
 ### B16 · 构建期参数检查不存在（`IMG_H > 512` 时行位图折叠）
@@ -590,7 +590,7 @@
 2. **A 组每条的"计划与成本"是排序材料**，按"谁来动、动一次要多久"写，不是承诺。
 3. **不声称任何一条"已解决"，除非给出复跑命令 + 输入 + 期望 + 实际四件**。
    已经修完并复验的三个例子（拔卡冻帧、处理侧那条钉在显示列 320 的黑线、0 字节 `ping` 打死应答器）
-   的编号与复验读数登记在 `report/known_issues.md` §四 与 `report/known-limitations.md` 第 9 节，
+   的编号与复验读数登记在 `report/known_issues.md` §四 与 `report/08-limits.md` §17，
    不在这里重新宣称。
 4. **严重度不下调**：A3 那条按最终状态写成"要断电"，不写成"可恢复"；
    A13 那条即使它难看（是本包文档里的抄件）也照写。
@@ -598,7 +598,7 @@
    现跑读数是 **418** 段（`grep -c '^### #'` = 157 与 `grep -c '^## '` = 261 之和），
    最大的 `^### #NNN` 编号是 **367**（`grep -oE '^### #[0-9]+' report/log/issues.md | grep -oE '[0-9]+' | sort -n | tail -1`）。
    这一页只收"能被判别"的那些；纯过程性的不通过（命令写错、检查脚本自己先错那一族）在
-   `report/ai_collaboration.md` 与记录文件里，不重复列。
+   `report/collaboration/README.md` 与记录文件里，不重复列。
 
 ## 取证清单（这一页每一条都能当场重打开/重跑的东西）
 
@@ -613,7 +613,7 @@
 - 打开读过的文件（绝对路径 = 仓库根 `（仓库根）/` 下）：
   `report/known_issues.md`、`report/log/issues.md`（#216/#218 一节、#233/#235 一节、C5c 两节、F2e 一节、#259/#269 两节）、
   `board/README.md`、`board/acceptance.md`、`report/build.md`、`build/README.md`、`sim/README.md`、
-  `report/io/hdmi_tp1_sdc_measurement.md`、`board/hardware_setup.md`、`report/questions-for-team.md`、`report/run-queue.md`、
+  `report/io/hdmi_tp1_sdc_measurement.md`、`board/hardware_setup.md`、`report/90-open-items.md`、`report/unattended.md`、
   `README.md`、`build/r118_gates.txt`、`build/evidence/r118_board/board_now.txt`、
   `build/evidence/r118_board/board_verify_console.txt`、`src/host/metric_recheck.mjs`
 - 计数分母（这一页与 `report/90-open-items.md` 共用）：

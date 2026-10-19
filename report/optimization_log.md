@@ -147,7 +147,7 @@ set_clock_groups -asynchronous \
 `src/host/*`（Node 工具集）、`sim/tb_v5*.v`、`sim/tb_v6*.v`、`build/sim/run_sim.tcl`、
 `sim/tb_eth_video.v`（修好第三版就失效的参数引用）、
 `build/tcl/{build_v6,program_pl,ps_jtag_boot,set_src}.tcl`、`build/*.{bit,xsa,rpt}`、
-`report/log/v6_root_cause.md`、`report/log/v6_board_measurement.md`、`report/ai_collaboration.md`、
+`report/log/v6_root_cause.md`、`report/log/v6_board_measurement.md`、`report/collaboration/README.md`、
 `skill/zynq-video-rtl-debug/*`、`旧条目名 pitfalls/frameid-loss-signature/SKILL.md（盘上无此路径）`（这两个是 2026-10-04 c7b325f 重建前的旧包名，**现不存在**；本行是当时那一版的变更清单，只报数不指路）
 
 ---

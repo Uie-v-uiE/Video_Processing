@@ -2166,7 +2166,7 @@ bash run_test.sh           # → python src/host/one_click_test.py "$@"
 
 **C. 未决汇总**：编号 201-402、501-507；状态列只允许 6 个值 —— `report/90-open-items.md:10-12,32-43`。
 **缺陷册与工作日志是两个文件**：`report/known_issues.md`（按编号的缺陷册）与
-`report/log/issues.md`（追加式工作日志）；另 `report/known-limitations.md`。RTL 注释里写作
+`report/log/issues.md`（追加式工作日志）；另 `report/08-limits.md`。RTL 注释里写作
 `report/log/ISSUES.md`、`OVERNIGHT_LOG.md` 的是历史大写名，盘上实为 `issues.md`/`overnight_log.md`
 （`system_top.v:271`、`sd_play.c:15`），因此**照抄打不开**。
 

@@ -86,4 +86,4 @@ setup 余量 0.687 ns，TNS 0 ns，setup 与 hold 的失败端点都是 0。
 门禁全绿的那一套是 r132，取 `build/r132_gates.txt`；这一轮中间红过两趟，那笔账在 `report/06-validation.md`。
 上面这些报告由那三条命令重跑，`report.tcl` 的重跑产物与归档件只差 Date 与 `-file` 两行（细节与 SD 片源两个
 滑窗的 29.956 / 29.815 fps 都写在 `report/build.md` 与 `report/06-validation.md`）。边界与限制的逐条登记在
-`report/known-limitations.md`，缺陷与有意保留的未通过项在 `report/known_issues.md`，未决项在 `report/90-open-items.md`。
+`report/08-limits.md`，缺陷与有意保留的未通过项在 `report/known_issues.md`，未决项在 `report/90-open-items.md`。

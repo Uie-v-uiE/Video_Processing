@@ -2,8 +2,8 @@
 
 这一页的每条按五项读：**现象**（看得见的是什么）、**已定位的原因**（已经证明到哪一步、指得出哪份件）、**还没证明什么**、**现在的处置（是否影响演示）**、**关掉它需要什么**。每条正文里紧跟读数点名的路径就是它的凭据，文末《本页依据的产物》是汇总。
 分界线画在"已证明"与"还没证明"之间：前一条必须指得出件，后一条不许被前一条的语气带过去。
-逐条缺陷的登记原文按编号在 `report/log/issues.md`（记录文件），人话版在 `report/known_issues.md`，本页只做交付视角的挑与摆。
-名词先说一次：文中"检查脚本"指仓库里可独立复跑的只读核对工具，"发布前检查"指 `build/gates.sh` 逐项打印判定的那套检查，"未通过项"指这些检查打出的 FAIL 行；"候选件"指写好但默认不加载的约束文件；
+逐条缺陷的登记原文按编号在 `report/log/issues.md`（记录文件），人话版在 `report/known_issues.md`，本页只做交付视角的挑与摆；未决项集中登记在 `report/90-open-items.md`，那里不重复编号，这里只给指路。
+名词先说一次：文中"检查脚本"指仓库 `src/host/`、`build/checks/` 里可独立复跑的只读核对工具，"发布前检查"指 `build/gates.sh` 逐项打印判定的那套检查，"未通过项"指这些检查打出的 FAIL 行；"候选件"指写好但默认不加载的约束文件；
 "名册"指实现后逐时钟、逐域那份端点读数表（`build/evidence/` 里的 roster 件），"名册差分"就是两张表逐格对比。
 
 ## 1. `C5c`：帧头那一带的读侧绕回（`#98`）——**已于 r132 关闭**（台账 #129 / #478）
@@ -15,6 +15,7 @@
   12:00:35→12:34:23 是交付的 `STREAM_WRAP` 版；凭据 `build/evidence/r132_c5c_after_preparam.log`
   与 `build/evidence/r132_shipped_rack.log`）。规范通道（`build/sim/run_one.sh`，xsim）那一次还在跑，
   **跑完之前 `data/metrics.csv` 第 15 行"整屏逐像素判据"不改**。那一格必须由指纹件绑定才算数。
+- **关闭之后门禁的形状**：`build/gates.sh` 的 24 项里，`C5c` 曾是那条长期写明过的未通过项——它属于"已知且公开登记"，不是被忽略的失败；关掉之后 r132 这一轮的门禁重跑并全绿，`build/r132_gates.txt` 末行是 `GATES: ALL PASS（24 项全部判定）`。采纳口径是"除声明项外无未通过项"，所以这句话现在才敢念。
 - **真因（不是当年写的那条）**：帧头那一带错的不是"带着上一帧的尾巴"，而是**处理抽头发了前瞻一行的格子**。
   四个 3×3 窗口级在 `y_in==0` 时把窗口三行全换成"当前那一拍"的原色（`proc_sobel.v` 的 `d21`、
   `proc_morph.v` 的 `c21`、blur/sharpen 的 `h2x`）。这个补救的前提是"帧头槽位在行缓存里坐的是上一帧末行"，
@@ -86,6 +87,8 @@
   那两颗 LED 更没有窗可套（§2.2 与结论表 #18：HDMI 连接器信号里没有这类指示脚），
   把 TMDS 的 4.000 ns 借过去等于伪造依据；`tmds_*_n` 是否被同一对约束覆盖那一问
   （`report/timing/debt_ledger.md` §2 那句"这一条我没有官方出处（A1 未读）"）仍未答。
+- **量到了哪一格（离散量这一维度）**：HDMI CTS 的 Source 侧 TP1 判据是**眼图掩模 + 抖动 + 占空比 + 边沿速率**，正式表格文本只发给 HDMI Adopter（NDA），公开能引用的只有规范正文与仪器厂商应用笔记的转述。眼图、抖动、占空比、边沿速率需要示波器/探头与合规测试治具，这一维度是 `【未实测】`——没做过眼图级量测，只量到离散参数；板级走线（连接器/线材）对离散的影响也没有单独量过。布线后逐脚实测：互对最差 **0.065 ns**（限 4.000 ns）、对内最差 **0.001 ns**（限 0.300 ns），凭据 `build/evidence/r119_window_check.txt`（含 5 份输入的现算 md5 头），口径与边界见 `report/io/hdmi_tp1_sdc_measurement.md`。出图与推流不依赖这组候选约束，演示路径不受影响；对外口径只到"离散量已测"，不含眼图那四项。
+- **为什么 skew 不能直接绑进窗**：`skew ≤ 0.20 Tcharacter` 是**单边的离散上限**，`set_output_delay` 表达的是**双边捕获窗**，两者量纲不同。把前者当后者绑上去，实测直接把三条数据道判成 `−3.48 / −3.46 / −3.47 ns` 的"违反"——量纲用错，不是设计错（登记在 `report/log/issues.md` 第 335 条），发布前检查项不接受这种绑法。
 - **现在的处置（是否影响演示）**：屏那一路的对外时序今天仍不出具结论——**一条 `set_output_delay` 都没进默认约束**
   （窗留在候选件里，开关 `VP_R119_TMDS_WINDOW`；**已经量过一轮**：挂上它之后新纳检的 `clkout1_1` 那 6 个输出口
   端点整批红（setup −5.408 / hold −1.923 ns，件 `build/evidence/1006d_tmdswindow_timing_summary.rpt`），
@@ -100,7 +103,7 @@
   窗 = 0.20 `Tcharacter` = 50 MHz 档 ±4.000 ns，并按同节第二条把板级走线失配从窗里**减掉**而不是忽略）；
   两颗 LED 的 (b) 已经做了（见上一条），不再待办；
   然后一次带名册差分的构建 + `check_timing -verbose` 复问缺口 6 → 0，
-  同时把该文文末那句"未做 HDMI CTS 合规验证"跟着写进交付文档。
+  同时把该文文末那句"未做 HDMI CTS 合规验证"跟着写进交付文档。绑之前要先定"对外声称符合到哪一档"——档位没定，窗就没有落点。
 
 ## 4. 五个 RGMII 收端点当前没有被约束覆盖（窗退回候选件）
 
@@ -212,6 +215,11 @@
   "与黄金参考逐像素一致"这句不说，因为参考图不能自动生成，只能人工比对。
 - **现在的处置（是否影响演示）**：对外说法只到"一家仿真器 + 占位原语 + 人工比对"，两条越界的话（"两家仿真都过"、
   "与黄金参考逐像素一致"）都不说；演示用的画面与判定都来自这一家仿真与板上读数，不受影响。
+- **眼睛与手感那一格怎么签**：需要人眼/手感验收的项（屏上四角、碎影、按键手感、SD 拔卡观感）没有机器可读的输入口
+  （旋转角度那一格见第 2 节），所以检查脚本与文档写作侧不代签，由队伍成员签字确认。已收到并如实登记的两条原话是
+  **"现在屏幕没问题了四角都在屏幕内"**（E4）与**"0度"**（E6 冷上电读 0，件 `build/evidence/r118_eyes/`）；
+  E6 的另一半（按住 KEY1 不放时应当读 1 度）**仍未判**，那一半不写进结论，登记在 `report/60-failure-analysis.md` 的 B4。
+  凭据 `board/acceptance.md`、`board/signoff.md`。
 - **关掉它需要什么**：第二家可发许可的仿真器（环境里只有 xsim：ModelSim 的许可证由新版 FlexNet 签发、自带客户端判
   inconsistent，`report/known_issues.md` §三第一行）；一份能一键重跑的 golden 生成脚本；
   眼睛那一半不需要"关掉"：它是外部输入，`board/acceptance.md` 的正确用法就是把它空着等人点头。
@@ -244,16 +252,116 @@
 - **关掉它需要什么**：在板上这一版逐行重跑那 10 行与那三格眼睛判定，或把没重跑的各行明确改标
   "本版未验"；同时按 #333 停止在仓库里留 `*.md` 备份（它会自动进入检查器的覆盖范围）。
 
+## 12. PS 侧固件：ELF 能重建，但重建那颗要重新上板复验才算板上验证过
+
+- **事实（实测）**：`src/ps/` 可以用一条命令编成可上板的 ELF——
+  `PS_CC=<Vitis>/gnu/aarch32/nt/gcc-arm-none-eabi/bin/arm-none-eabi-gcc.exe PS_BSP=<仓库根>/vitis/platform/ps7_cortexa9_0/standalone_ps7_cortexa9_0/bsp node build/ps_app.mjs`，
+  编译器自述 `arm-xilinx-eabi-gcc (GCC) 13.3.0`，跑完打印 `ENTRY _boot@0x000000cc` 与 `OK`。
+  凭据 `build/evidence/1005_ps_app_rebuild.txt`（含逐条命令与两个 md5）。
+- **边界**：重跑 `node build/ps_app.mjs` 得到的那颗，与随包并在板上跑过验收的那颗 `d0b07f84a068…` **不同**
+  （差在源码比入库 ELF 新；实测数字只记在 `build/evidence/1005_ps_app_rebuild.txt`；那颗更早、由 IDE 侧构建）。
+  所以"`src/ps/` 改了"到"板上已修好"之间缺的是**重刷 + `board_verify` 复验**这一步，不是一次编译。
+  边界为什么画在这里：md5 不同就是两颗不同的程序，编译通过只证明源码能变成 ELF，不证明板上跑的就是它。
+- **两个入口条件**：`PS_BSP` 要给**绝对路径**——Windows 侧 gcc 拿相对路径会去找 `vitis\platform\…\Xilinx.spec` 而读不到该文件；
+  `build/ps_app.mjs` 里 `PS_CC` 的默认安装位置与实际安装位置不一致时会直接打印 `FATAL: arm-none-eabi-gcc 不存在`，
+  这句只说明默认值没指对，按上面的写法显式给 `PS_CC` 就能编。
+- **现在的处置（是否影响演示）**：演示走的是板上那颗已验收的 ELF，重建入口留着不碍事；`src/ps/` 的任何改动在重刷复验之前都不算上板生效。
+- **关掉它需要什么**：显式给 `PS_CC`/`PS_BSP` 重建，重刷上板，再跑一遍 `board_verify` 电池并把记录落进 `build/evidence/`；
+  板上那颗的身份与逐轮 `board_verify` 记录本来就在 `build/evidence/`。变量表（`PS_CC`/`PS_BSP`/`PS_OUT`）在 `report/build.md`。
+
+## 13. 复现演练：哪些命令是别人可跑的，哪些不是
+
+- **现算读数**：`report/repro-check.md` 的判定分母是 **61 行**，判定列读数 **PASS=49 / FAIL=0 / 未测=12**，
+  判定列不成词 **0 行**（先前那 14 行是表形问题：§8.1 把判定写在第 4 列、§9 那张第三轮表根本没有判定列；
+  两处都改成了"判定在末列"，换列件是 `build/r124_repro_verdict_col.mjs`，只动列序与一个判定词的写法）。
+  这一层由 `node build/checks/check_repo_consistency.mjs` 的 C9 打印，同一份件现在打印的末行是
+  `C9 A/B/C 路径复现演练 判 9 项 判定列在内=61 行 PASS=49 FAIL=0 未测=12 判定列不成词=0`，判 PASS。
+- **旧口径的读数留在这里**：更早一版 C9 数的是整篇文本里 `PASS`/`FAIL`/`NOT_MEASURED` 的**出现次数**，读出
+  `PASS=91 FAIL=30 未测=32` 并据此把 C9 判成未通过。那两个数与本件的条数分母不同源
+  （`report/repro-check.md` §1：第一轮 43、第二轮 38、两轮相加 81），
+  这条错位本身登记在 `report/claims-vs-evidence.md`。计数口径换成"只读每行判定列"之后 C9 的输入变了，数字随之变；
+  保留旧数是为了让手上还拿着旧读数的人能对上账。
+- **12 行未测的构成**：路径 B 的 9 行（`B1`/`B1b`/`B2`/`B3`/`B3b`/`B4`/`B4b`/`B5`/`B6`，都要真跑一次构建或全量仿真）、
+  结果比对的 `M4`、换 ELF 对照的 `C3c`（见第 12 节：重建那颗与板上那颗 md5 不同），
+  以及第三轮那张表的 `C4`：两跑健康计数的原件（`health_r118docround_a.json` 与 `_b.json`）已被记录在案的
+  精简笔删掉、不随包，因此正文里那串读数是当时的转述，包内指不到件，所以它不能算成一条判定。
+- **现在的处置（是否影响演示）**：交付口径是"环境自检与只读结果比对两类命令可由第三方在本机复跑，上板那一半（JTAG 三步、
+  串口电池、推流）已实测跑过"；构建与全量仿真那 10 行需要在场的时间与一次完整构建，不声称第三方可以照抄复现全部结果。
+  演示走的是复现说明里"接线、构建、三步上板、推流"那条最短路径。
+- **关掉它需要什么**：在场的机器与时间——把路径 B 那 9 行逐条真跑一次构建或全量仿真、补 `M4` 的结果比对；
+  `C3c` 要等第 12 节那比重建 ELF 的对照跑完；`C4` 只能重测一次两跑健康计数并留原件。
+  凭据 `report/repro-check.md` §1 与 §9（逐条命令、期望输出、实跑摘要、判定）。
+
+## 14. 检查脚本自己的两处不足
+
+- **一处慢到只能记未测**：`build/checks/check_repo_hygiene.sh` 的断链层每 token 派生 4 个进程，因此整脚本 >300 s 未返回，终审 C5 记 `NOT_MEASURED`
+  （读数件 `build/evidence/r120_final_gate.txt`）。C1 层已用"一次 awk 替代逐成分派生"修掉
+  （同样 400 条路径：266 s 降到 0.14 s，六个计数逐位相同）；C5 层照同一配方还没改，
+  登记在 `report/log/issues.md` 第 339 条末段。补齐要跑的：C5 层换同一配方，再重跑终审把读数落件。
+- **三处判定口径错位**，未通过项报在检查脚本身上而不是设计上：C2 的取路径正则吞全角标点（6 条未通过 → 0 条）、
+  C3 把行文碎片/运行期产物/被 `.gitignore` 排除的学习文档当成"指路"（66 → 3）、
+  C1 把"别处引用版本号"当违规（改成只有取值不同才算未通过，并另放一个故意写错的文件来证明它仍会报未通过）。
+  教训与规矩写在 `report/log/issues.md` 第 339 条。错位为什么要紧：它把"检查器读法不对"念成"设计有失败"，
+  对外口径会被这两个来源不同的红带偏。
+
+## 15. 命名合规没做完
+
+- **现象（现算读数）**：改名之前的那次快照是全仓跟踪文件 **3601 个**，其中 **308 个路径含大写字母**
+  （末段含大写 266 + 中间段含大写 45 − 两段都含的 3 = 308），惯例名（README/LICENSE/NOTICE/Makefile/.git\*）
+  点名豁免 22 个，因此检查脚本报 **违规=286**。改名波之后同一条命令读到 `跟踪文件=3666 违规=10 点名豁免=72`，
+  判据是"违规=0 才算过"，因此这一项仍未通过。
+- **已定位的原因**：计数从 230 涨到 286 的增量在交付文档自身新增的路径——`git diff --name-status HEAD~2 HEAD` 现算得
+  新增 61 条含大写段的路径、删掉 1 条。
+- **现在的处置（是否影响演示）**：惯例名已点名豁免，其余要改名会断 `build/frozen_r*/MANIFEST` 的 md5 配对
+  （目录名随构建轮次变化，属不可逆连带面），因此待裁决，不挡演示。
+  逐段核对方法与第一次对账的登记见 `report/log/issues.md` 第 337 条，裁决问题记在 `report/90-open-items.md` §2A 编号 4（Q-P21-2）。
+- **关掉它需要什么**：先裁 Q-P21-2——要么改名并重建各轮 MANIFEST 的 md5 配对，要么把豁免规则写进判据本身；
+  判据"违规=0 才算过"在裁决前不改口。凭据：`node build/checks/check_repo_consistency.mjs` 的 C4 那一行、`build/evidence/r120_final_gate.txt`。
+
+## 16. 工具版本绑定的东西
+
+- **现象**：全部时序/资源数字来自 **Vivado/Vitis 2025.2.1（build 6403652）** 与 **xc7z020clg484-2** 这一颗器件
+  （权威声明：`report/declarations.md`）。
+- **边界在哪、为什么**：数字是那一版工具与那一颗器件算出来的，不是器件无关量。换版本或换器件，`ps7_init`、BD 地址、
+  实现策略与**全部发布前检查项的读数作废**；7 系列原语（`IDDR/IDELAYE2/IDELAYCTRL/OSERDESE2/MMCME2_BASE`）在别的家族整段失效。
+- **现在的处置（是否影响演示）**：演示与复现步骤都按这一版工具走，各条读数不外推到别的版本；
+  复现说明第一篇就是版本与器件的环境自检，跑一遍即可确认一致。
+- **凭据**：`build/timing_summary.rpt`、`build/utilization.rpt`、`build/power.rpt`、`report/declarations.md`。
+
+## 17. 行为层面的已知缺陷
+
+| 现象 | 状态 | 凭据 |
+| --- | --- | --- |
+| 收侧 ARP/ICMP 没有错误源（判不了"收到的东西坏了"这条路） | **未修**。顶层把**原始** `gmii_rx_dv`/`gmii_rxd` 直接交给 `u_arp`（`src/rtl/eth/eth_udp_video_top.v:129-131`）与 `u_icmp`（`:142-144`），而同一份顶层 `:186-192` 已经产出带 FCS 判定的干净流给视频那条路 ⇒ ICMP 校验和只采不验（`src/rtl/eth/icmp_rx.v:240-241` 存下 `icmp_checksum`，全模块没有一处比较它）、ARP 学到的地址被误码帧钉死。正常链路下不触发 | `report/known_issues.md` §17、`report/60-failure-analysis.md` A8、`report/log/issues.md` 第 205 条 |
+
+两条**曾经**登记在行为缺陷表、现在已修并有复验读数的，写在这里防止被念成未修：
+
+- **SD 播放中拔卡画面永久冻帧、插回不恢复**（`report/log/issues.md` 第 94 条）：修法是给 PS 片源补心跳与清零条件
+  （心跳在 `src/ps/main.c:253`，读失败那一拍停心跳在 `:271-277`，卡插回自动重挂在 `:1590`），
+  复测原话"拔下 SD 卡已经可以重新播放画面，并且串口也回应了这个自动重挂的消息"登记在 `report/known_issues.md` §四。
+- **一条 0 字节 `ping` 把 ICMP 应答器永久打死**（第 216、218 条）：根因在收侧 `src/rtl/eth/icmp_rx.v` 的
+  `st_rx_data` 出口条件在 0 载荷时回绕，修法是把 `total_length == 28` 记成旗标（`src/rtl/eth/icmp_rx.v:210`）
+  并让该状态当拍收束（`:261`）；台架 `sim/tb_icmp_rx_len.v` 钉住这一族。板级复验读数在 `build/r104_board_ping.txt`：
+  普通 `ping -n 4` **4/4**、`ping -l 0` **3/3**、`ping -l 32` **4/4**，全部 0 % 丢失；
+  同一族在 `build/r114_board_ping.txt` 重读过一次，同样 4/4、3/3、4/4。
+
+ARP/ICMP 那一行怎么补：给收侧接上与视频那条路同一份带 FCS 判定的干净流（顺带让 `icmp_checksum` 真的被比较、
+让 `u_arp` 不再被误码帧钉死学到的地址），补完要在带误码的链路上复验一次；登记原文按第 205 条走。
+
 ## 本页依据的产物
 - `report/known_issues.md`（§一 第 1 条、§20、§二、§三）
 - `board/acceptance.md`（机器判据表的版本戳、E1–E6 各行、结论）
-- `report/log/issues.md`（#185/#186、#247、#259、#266、#276、#290、#302、#311、#312、#313、#314、#316、#318、#323、#328、#332、#333）
+- `report/log/issues.md`（#185/#186、#247、#259、#266、#276、#290、#302、#311、#312、#313、#314、#316、#318、#323、#328、#332、#333、#335、#337、#339、#205、#216/#218、#94、#478）
 - `report/timing_global.md`（§4、§4c、§4e、§6、§7、§9）
 - `report/timing/round_r117.md`、`report/timing/round_r118.md`、`report/timing/round_r116.md`
 - `report/timing/cut_ledger.tsv`、`report/timing/loosen_ledger.tsv`、`report/timing/debt_ledger.md`
 - `report/timing/rgmii_window_model.md`（§6、§7、§7.5）
 - `report/io/hdmi_cts_source_window.md`（§一 结论表、§二 前提纠正、§3.1/§3.4 的约束形式、§四 公开性边界）
-- `build/tb_v98_report.txt`、`build/r118_gates_final.txt`
+- `report/io/hdmi_tp1_sdc_measurement.md`（第 3 节离散量的口径与边界）、`report/repro-check.md` §1 与 §9（第 13 节逐条命令与判定）、
+  `report/claims-vs-evidence.md`（第 13 节旧计数错位的登记处）、`report/build.md`（第 12 节 `PS_CC`/`PS_BSP`/`PS_OUT` 变量表）、
+  `report/declarations.md`（第 16 节工具版本与器件的权威声明）、`report/90-open-items.md`（Q-P21-2，第 15 节的裁决问题）、
+  `board/signoff.md`（第 9 节眼睛原话的签收面）
+- `build/tb_v98_report.txt`、`build/r118_gates_final.txt`、`build/r132_gates.txt`（第 1 节门禁末行）
 - `build/evidence/r104_c5head_band.txt`、`build/r105_tb_head_rot_displace.txt`、
   `build/evidence/r111_angle_readback.txt`、`build/evidence/r113_ff_init.txt`、
   `build/evidence/r113_ff_init_probe.txt`、`build/r113_powup_rejudge.txt`、
@@ -261,9 +369,13 @@
   `build/evidence/r115_window/probe3_console.txt`、`build/evidence/r117/dvi_guide_scan.txt`、
   `build/evidence/r118_after.txt`、`build/evidence/r118_after_roster_probefmt.txt`、
   `build/evidence/r118_board/board_verify_console.txt`、`build/evidence/r118_eyes/head_bit_md5.txt`
+- `build/evidence/r119_window_check.txt`（第 3 节逐脚离散）、`build/evidence/1005_ps_app_rebuild.txt`（第 12 节重建记录）、
+  `build/evidence/r120_final_gate.txt`（第 14/15 节终审读数）、`build/r104_board_ping.txt` 与 `build/r114_board_ping.txt`（第 17 节板级复验）
+- `build/ps_app.mjs`、`build/r124_repro_verdict_col.mjs`、`build/checks/check_repo_hygiene.sh`、`build/checks/check_repo_consistency.mjs`、
+  `sim/tb_icmp_rx_len.v`、`src/ps/main.c`、`src/rtl/eth/eth_udp_video_top.v`、`src/rtl/eth/icmp_rx.v`（第 17 节行号锚点逐条对原文）
 - `build/tcl/build_system_axigpio.tcl`、`src/constraints/rk_zynq7020.xdc`、
   `src/constraints/clock_groups_impl.xdc`
-- `src/host/video_sender.py`（推流侧参数入口，见 `report/reproduce/README.md`）、`data/metrics.csv`
+- `src/host/video_sender.py`（推流侧参数入口，见 `report/70-reproduce.md` §4 上板）、`data/metrics.csv`
 - `sim/tb_head_rot_displace.v`、`sim/tb_zoom_fit_corners.v`、`sim/tb_v111_key_boot.v`（存在性逐条核对过；
   判定内容按上面点名的件引用）
 - `board/verify_r87.md`（第 10 条指的路径，核对存在）

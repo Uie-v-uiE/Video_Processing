@@ -16,10 +16,10 @@
 代价在窗口级：它是三拍不是两拍。`H_ACTIVE` 这一版传进去的是 1024 个有效拍，同级相邻两列在源图上只差
 半格，所以横向的模糊、锐化、Sobel 的半径是**半个源像素**（同一文件头第 9–15 行）。处理链的内容
 固定滞后 −4 行，抵消手法是顶层把右窗的读坐标提前 `OFF_LINES` 行（`proc_pipeline.v:23–27`，
-抵消的那条坐标链记于 `report/architecture.md` §4 的 `cy_r`）。
+抵消的那条坐标链记于 `report/02-architecture.md` §关键常数 的 `cy_r`）。
 
 这 15 拍不只是声明值：`src/rtl/process/proc_pipeline.v:20` 写着"tb_v86 实测 de_in→de_out 再与声明值比"，
-也就是说台架会逐拍量一遍再对回去；台架是 `sim/tb_v86_pipe_sel.v`，装配与各级映射见 `report/modules.md`
+也就是说台架会逐拍量一遍再对回去；台架是 `sim/tb_v86_pipe_sel.v`，装配与各级映射见 `report/src-map.md`
 的 process/ 表。
 
 ## 缩放与旋转（逆映射加双线性读口）
@@ -27,20 +27,20 @@
 屏幕坐标 (x,y) 到源坐标 (sx,sy) 用定点逆映射，`inv_scale` 取 Q8 定点（256 = 1.0×、
 512 = 0.5×）；缩放与旋转同级、3 级流水，输出 `sx,sy,oob,frac_x,frac_y`；旋转用 360 项 Q8 的
 sin 与 cos 两个 ROM。出处 `src/rtl/process/zoom/zoom_mapper.v` 文件头第 2–10 行、
-`src/rtl/process/rotate/sin_rom.v` 与 `cos_rom.v`（例化行见 `report/modules.md`）。读口
+`src/rtl/process/rotate/sin_rom.v` 与 `cos_rom.v`（例化行见 `report/src-map.md`）。读口
 `src/rtl/process/bilin/fb_bilin.v` 每个源像素用满它天然的 4 个 50 MHz 拍、单读口每拍一次、全程留在
 像素时钟这一个域里（不借助更快的域），`bilin_en = 0` 时逐位等于最近邻（该文件头第 2–6 行）。
 
 代价有两条，一条在控制器、一条在读口。控制器这一条：旋转一开，真正生效的倍率被 `zoom_ctrl` 收进
 "这个角度刚好装得下"那一档，因此旋转态不提供放大，手动 1.33×/1.5×/2.0× 会被拉回装得下的那一档
 （档号不丢，关掉旋转立刻回去），而 0° 不收这一档
-（`report/architecture.md` §4 的缩放表、`report/demo_script.md` §2）。读口这一条：双线性用的是乒乓读口，
-这一对的结果要下一对才读得到，于是多 2 显示行的延迟（`BILIN_ROWS`，`report/architecture.md` §4）。
+（`report/02-architecture.md` §关键常数 的缩放表、`report/demo_script.md` §2）。读口这一条：双线性用的是乒乓读口，
+这一对的结果要下一对才读得到，于是多 2 显示行的延迟（`BILIN_ROWS`，`report/02-architecture.md` §关键常数）。
 
 依据分三支台架：`sim/tb_zoom_mapper.v` 管 1.0× 恒等、0.5× 的中心与越界、控制器的三角波（见
 `report/rotation_and_effects.md` §5）；`sim/tb_v94_zoom_sel.v` 的 T8a~T8f 管旋转生效时倍率被收进哪
-一档；`sim/tb_v101_fb_bilin.v` 管读口。三支台架的职责记于 `report/modules.md` 与
-`report/architecture.md` §5。
+一档；`sim/tb_v101_fb_bilin.v` 管读口。三支台架的职责记于 `report/src-map.md` 与
+`report/02-architecture.md` §改动位置与对应台架。
 
 ## 形态学（3×3 腐蚀与膨胀）
 
@@ -53,8 +53,8 @@ sin 与 cos 两个 ROM。出处 `src/rtl/process/zoom/zoom_mapper.v` 文件头�
 3×3 窗口，这里只有一遍，所以这一格被明确旁路。另外加一条 16 bit 行缓存，只为旁路时能还原原色。
 出处 `src/rtl/process/proc_pipeline.v:59–60` 与 `proc_morph.v:7`。
 
-凭据是 `sim/tb_v84_morph.v` 与 `sim/tb_edge_rim.v`，后者管边缘那一圈的内容；映射见 `report/modules.md`
-的 proc_morph 行与 `report/architecture.md` §5 的四个窗口级台架表。
+凭据是 `sim/tb_v84_morph.v` 与 `sim/tb_edge_rim.v`，后者管边缘那一圈的内容；映射见 `report/src-map.md`
+的 proc_morph 行与 `report/02-architecture.md` §改动位置与对应台架 的四个窗口级台架表。
 
 ## OSD（屏上状态叠加）
 
@@ -67,7 +67,7 @@ Split/Latency、Temp/无信号），字模是 5×7 点阵再放大 3 倍（`CHAR
 代价在字格几何：其中含不是 2 的幂的除法与取余（`/31`、`/18`、`%18`），组合链的级数因此偏高。另一处
 代价在 `FPS:` 那一格的口径：它数的是"写进屏的新帧"，而它以前数的是扫过屏的显示场，两者不是一回事（计数所在的模块
 `src/rtl/util/shown_rate.v`）；换计数依据必须与上板的那一版一起念，否则屏上的数与报告里的数对不上
-（`report/architecture.md` §2 表末、`report/demo_script.md` §0 第 3 步那条注意事项）。
+（`report/02-architecture.md` §时钟域与跨域做法 表末、`report/demo_script.md` §0 第 3 步那条注意事项）。
 
 凭据分两支：`sim/tb_osd_lines.v` 的 T13 判"关掉叠层后逐位等于背景"，`sim/tb_v794_osd_glyph.v` 管字格；
 三处凭据的位置记于 `report/demo_script.md` 开头段。
@@ -84,7 +84,7 @@ Split/Latency、Temp/无信号），字模是 5×7 点阵再放大 3 倍（`CHAR
 第 5–7 行；这两笔记在 `report/log/issues.md` 的第 31 与第 32 条）。
 
 凭据是 `sim/tb_v6_pingpong.v` 与 `sim/tb_v5_bank.v`，分别管乒乓与 bank 那两件事；例化与台架行见
-`report/modules.md` 的 eth/ 与 axi/ 表。
+`report/src-map.md` 的 eth/ 与 axi/ 表。
 
 ## 覆盖范围与边界
 
@@ -104,7 +104,7 @@ Split/Latency、Temp/无信号），字模是 5×7 点阵再放大 3 倍（`CHAR
 - `src/rtl/video/osd_overlay.v`
 - `src/rtl/eth/axi_frame_saver64.v`
 - `src/ps/main.c`
-- `report/architecture.md`
-- `report/modules.md`
+- `report/02-architecture.md`
+- `report/src-map.md`
 - `report/rotation_and_effects.md`
 - `report/demo_script.md`

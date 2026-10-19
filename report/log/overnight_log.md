@@ -6192,7 +6192,7 @@ B1 严格名册：**8 对 (域,类型) 逐位复现 r114** ⇒ 片内中性，�
 - P12–P22 按 `skill_prompts/` 的 30 条任务并行落地，已可见的有 `report/{40,50,60,90,README}.md`、
   `report/io/`、`board/{signoff.md,raw-vs-golden.md,hardware_setup.md,firmware/,logs/,captures/,compare/,conditions/}`、
   `build/{provenance.md,roster/,parsed/,runs/ledger.md,artifacts/,probe-guard.md}`、`data/golden/manifest.md`、
-  `docs/{interface-table.md,measurements.md,repro-check.md,run-queue.md,questions-for-team*.md,unattended.md}`、
+  `docs/{interface-table.md,50-results.md,repro-check.md,unattended.md,questions-for-team*.md,unattended.md}`、
   `LICENSE`、`scripts/check_repo_{hygiene.sh,consistency.mjs}`、`report/collaboration/`、`report/figures/`。
 - 技能包重构：28 张扁平卡往「条目 = 目录 + `SKILL.md`」迁移；索引由 `gen_index.mjs` 生成、
   门禁 G1–G12 由 `gates.mjs` 判、退役核对 `retire_flat.mjs` 当前 `红=3`（26 张未迁完、5 个脚本目录缺壳、
@@ -6208,7 +6208,7 @@ B1 严格名册：**8 对 (域,类型) 逐位复现 r114** ⇒ 片内中性，�
 - 终审 C1–C12 第二轮：`绿=4 红=6 未测=2`。红 = C2（`data/metrics.csv` 6 行指标没指到存在的证据文件）、
   C3（64 条死引用，多为装配期悬空指路）、C4（230 个含大写路径，全仓射程洞）、C9（复现演练 13 条 FAIL）、
   C12（技能包门禁 4 红）；未测 = C1（缺 `docs/declarations.md`）、C5（卫生机检 60 s 未返回）。
-  这些保留为红，写进 `report/90-open-items.md` 与 `docs/questions-for-team.md`，不靠放宽判据变绿。
+  这些保留为红，写进 `report/90-open-items.md` 与 `docs/90-open-items.md`，不靠放宽判据变绿。
 - 推送：`8627be5`（r119 取证与量测）、`b1424cd`（`submit/` + 运行台账）、`384a0b3`（卫生与 #336）、
   `157d332`（终审尺子与 #337）、`ab640e9`（审计处置 + 尺子补牙 + #338）、`4b419f2`（台账与 push 凭据）
   已推 `main`。直连被 `Connection was reset` 拒后改用**逐命令**代理 7897 成功，

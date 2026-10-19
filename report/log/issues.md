@@ -13174,14 +13174,14 @@ D1b 就是取不到 ⇒ `claims=0` ⇒ 它自带的"≥2"射程地板把整项�
   改了就不再是那份报告：md5 绑定会断、`build/verify_evidence.sh` 一类尺子会判不同源。
 - **B 类 = 我们手写的文档与代码**里出现的本机路径。这类**必须**换成角色名或 `【填入】`（P20 铁律 5、P00 铁律 9）。
 
-**已做的处置**：本轮新写的两份文档（`docs/run-queue.md`、`skill/_meta/entry-template.md`）里的提示词集绝对路径
+**已做的处置**：本轮新写的两份文档（`docs/unattended.md`、`skill/_meta/entry-template.md`）里的提示词集绝对路径
 已改成"队伍的本地提示词集 `skill_prompts/…`（不随包）"这种写法，命中数由 1 变 0（复查命令已跑）。
 A 类 814 份与 B 类残留 2 份**没有动**，原因是：
 ① 它们**早已随前几轮的 push 进入公开历史**，现在删正文并不会把已公开的内容收回；
 ② 收回只能改写历史 + 强推，那是本仓库的禁止动作（除非队伍明确批准并要求）；
 ③ 动它们会打断 md5 绑定的凭据链。
 
-**要队伍裁决的三选一**（已写进 `docs/questions-for-team.md`）：
+**要队伍裁决的三选一**（已写进 `docs/90-open-items.md`）：
 (a) 接受"A 类是工具原件、含本机名"随包公开，并在 `docs/provenance-and-licenses.md` 里写明理由；
 (b) 只把**今后新产出**的证据件做落盘脱敏（写日志前把 `Host :` 行替换成 `Host : <本机>`，并在尺子里加一条允许这个替换），
     历史 814 份保留；
@@ -13247,7 +13247,7 @@ G10（名单为空判 PASS；命中项 `path.basename(x ? '' : '')` 恒空串，
 C10 缺文件时 `0<=0` 判绿），以及 `build/r119_window_check.mjs` 的 W7–W10 对**全 0 读数**判 PASS、W6 接受"裸 add_files"当已把门。
 五把 P04 脚本尺子（`golden_compare`/`report_metrics`/`regmap_check`/`contract_gen`/`repro_check`）
 对"结构完整但全 0"的输入同样判绿，`repro_check.mjs:315` 还是 `(x?'PASS':'PASS')` 的死三元 + `:303` 的 `bad += 0` 空操作——
-这几把归 P04 那一路修，我没有顺手改（列进红项与 `docs/questions-for-team.md`）。
+这几把归 P04 那一路修，我没有顺手改（列进红项与 `docs/90-open-items.md`）。
 
 **修法与读数**（全部实跑，件 `build/evidence/r120_gates_skill_a.txt` 与 `_b.txt`，两跑逐字节一致）：
 空集/全 0 一律加地板或降成 `NOT_MEASURED`；G8 白名单加 `skill/` 之后**当场抓到 5 条死链**
@@ -13531,7 +13531,7 @@ C7 现在按"这个字符串在文件里出现过"判红 ⇒ 量的是提及。�
 因为 §2.4 强制"表格列出 81 个台架"、§0.4 强制目录表，把被条款要求的内容算进长度
 就成了"同一份文件必须既长又短"。
 读数（2026-10-04 20:41 实跑）：超线 5 份 =
-  `report/reproduce/README.md` 散文 151（表 14）
+  `report/70-reproduce.md` 散文 151（表 14）
   `build/README.md` 散文 109（表 76）
   `report/README.md` 散文 61（表 53）
   `report/collaboration/README.md` 散文 53（表 61）
@@ -13543,12 +13543,12 @@ C7 现在按"这个字符串在文件里出现过"判红 ⇒ 量的是提及。�
 
 #357 续（同一天，把一把新尺子拆成两档而不是去 mass-edit 文档）：
 统一上限 45 行会把 §5.4 点名要的**章节正文**也按导览的尺子量——
-`report/reproduce/README.md` 散文 151 行里几乎每行都是"某命令逐字抄自某脚本第几行"，
+`report/70-reproduce.md` 散文 151 行里几乎每行都是"某命令逐字抄自某脚本第几行"，
 按 45 行判红就等于命令把这些行删掉，那是毁凭据不是修文档。
 于是按"这一条保护什么"拆两档：`<目录>/README.md`（导览，6 份）硬门 45；
 更深的 README（章节，13 份）宽门 160，超了照样红。
 现跑读数：红=2 —— `build/README.md` 散文 109、`report/README.md` 散文 61；
-`report/reproduce/README.md` 151 落在章节门内不判红（160）。
+`report/70-reproduce.md` 151 落在章节门内不判红（160）。
 两档上限都可覆写（VP_CLEN_CAP / VP_CLEN_DEEP），对照：VP_CLEN_CAP=25 会把 board(25) 之外再逼出红，
 VP_CLEN_CAP=200 会让 6 份导览全绿——证明这把尺子的牙齿在"导览"那一档上。
 
@@ -13659,7 +13659,7 @@ C4 原来只要求 `build/report/` 里有名字带 util / timing 的件——一
 `git grep` 数过 92 处只有这两处在二级目录里。
 改完实跑：`RESULT tb_edge_rim PASS`、`VERDICT tb_edge_rim: … || FAIL 行数=0 || PASS 行数=31`、`rc=0`。
 **为什么这条值得立案**：§6.2 要求文档里每条命令真实可执行，而 `sim/README.md` 表格下方那一行、
-`report/reproduce/README.md` 阶段 2 的用法头抄的都是这一支 —— 脚本自己把入口写死了位置，
+`report/70-reproduce.md` 阶段 2 的用法头抄的都是这一支 —— 脚本自己把入口写死了位置，
 挪目录时没人替它重算，`bash -n` 也照样绿。**下一次任何"整目录搬家"必须连 `dirname` 的层数一起改，
 并把 `echo "$ROOT"` 打进一次真实调用看它落在哪。**
 
@@ -13701,12 +13701,12 @@ rim 那一半本轮已用修好的入口重跑并出新件 `build/tb_edge_rim_r1
 顺带核对一个子代理的交代：它说 `board/firmware/ps_app.elf.md:83` 有一条指向 `build/README.md:20-20` 的旧行号引用——
 `grep -an 'build/README.md:' board/firmware/ps_app.elf.md` **0 命中**，所以那条"待修"不存在，不动。
 - **#368（2026-10-04 22:0x，导出器的报告展平把交付层自己的指路弄断了）**：`build/make_submission.sh` 的"报告展平"段（`find build -type f \( -name '*.rpt' -o -name '*.txt' \)` → `build/reports/`）**没有排除 `build/report/`**（单数），于是包里 `build/report/power.rpt` 变成 `build/reports/power.rpt`，而 README.md / README_EN.md 按 §4.4 写的正是 `build/report/{timing_summary,utilization,power}.rpt` ⇒ 首页两行最该被评委点开的指路在包里全断（实测 `死链 README.md -> build/report/power.rpt` ×3，英文同样 ×3）。同一列里还有第二个后果：`build/*.rpt` 根层那 7 份与 `build/report/` 里 7 份**同名**（cdc/clock_util/methodology/power/route_status/timing_summary/utilization 全部重叠，实测逐名比对），展平后包里留的是加了目录前缀的碰撞名（`build/reports/build_power.rpt` 这一类）。修法 = 把 `! -path './build/report/*'` 加进那条 find（`build/report/` 就是仓库层也是 §4.4 点名的交付层，包形状应与仓库一致），并在循环后打印"原位保留 N 个 / 搬走 M 个"两个计数（这一层以前一声不吭，N=0 和 M=0 都看不出来）。**未做**：本轮先记账，改脚本前必须停掉正在跑的 `make_submission.sh`（同一文件被后台实例读着，边跑边改会造出假的语法错，见 [[env-windows-fpga-pc]] 夜轮那条）。
-- **#369（死链 184 条的成分，先分类再动手）**：上一轮 `--dry`（提交 5045c27）报 `死链 184`，因此**包根本没落盘**——盘上那份还是 ef68bb3 的旧导出。按目标查仓库：唯一目标 127 个里**只有 5 个真在被跟踪集里**（3 个是 #368 的 `build/report/*.rpt`，2 个是 `data/inputs/*.rgb565`），其余 122 个**在仓库里就不存在**。按来源数：`report/90-open-items.md` 68、`report/collaboration/` 16、`report/ai_collaboration.md` 11、`report/unattended.md` 8、`report/repro-check.md` 7、`skill/templates/` 6、`report/submission-checklist.md` 5、`report/run-queue.md` 4、`report/claims-vs-evidence.md` 4、`build/runs/` 4、`board/hardware_setup.md` 4。分三类：①#368 那 6 条是导出器造的；②技能包重建（任务 #200）之前的旧结构名（`skill/_meta/check-skill-package.mjs`、`skill/pitfalls/*/skill.md`、`skill/...`）与 build/ 旧脚本名（`build/implement.sh`、`build/make-bitstream.sh`、`build/clean.sh`）；③过程台账**如实抄录**了不随包文件的原文路径（`docs/walkthrough/*（不随包）`、`data/parts/installed_devices.txt`、`board/HANDS_ON.md`）。②要逐条改口或删句，③要按"逐字抄录的过程件"处理——**不改尺子**：仓库既有规则明确 `不随包` 标注不豁免死链（[[feedback-rotation-script-escaping]] 的 D4b 那条），放宽它等于把门卖给统计数。
+- **#369（死链 184 条的成分，先分类再动手）**：上一轮 `--dry`（提交 5045c27）报 `死链 184`，因此**包根本没落盘**——盘上那份还是 ef68bb3 的旧导出。按目标查仓库：唯一目标 127 个里**只有 5 个真在被跟踪集里**（3 个是 #368 的 `build/report/*.rpt`，2 个是 `data/inputs/*.rgb565`），其余 122 个**在仓库里就不存在**。按来源数：`report/90-open-items.md` 68、`report/collaboration/` 16、`report/collaboration/README.md` 11、`report/unattended.md` 8、`report/repro-check.md` 7、`skill/templates/` 6、`report/submission-checklist.md` 5、`report/unattended.md` 4、`report/claims-vs-evidence.md` 4、`build/runs/` 4、`board/hardware_setup.md` 4。分三类：①#368 那 6 条是导出器造的；②技能包重建（任务 #200）之前的旧结构名（`skill/_meta/check-skill-package.mjs`、`skill/pitfalls/*/skill.md`、`skill/...`）与 build/ 旧脚本名（`build/implement.sh`、`build/make-bitstream.sh`、`build/clean.sh`）；③过程台账**如实抄录**了不随包文件的原文路径（`docs/walkthrough/*（不随包）`、`data/parts/installed_devices.txt`、`board/HANDS_ON.md`）。②要逐条改口或删句，③要按"逐字抄录的过程件"处理——**不改尺子**：仓库既有规则明确 `不随包` 标注不豁免死链（[[feedback-rotation-script-escaping]] 的 D4b 那条），放宽它等于把门卖给统计数。
 - **#370（导出器三刀 + 残余死链的成分，2026-10-04 22:0x）**：本轮把 #368/#369 分类落成三刀，都在导出层，仓库正文一字不改（台账那句"当时读的是哪个名字"是凭据）：①`build/report/` 不再被展平，并加"原位保留 N 个 / 搬走 M 个"两个计数 + `N<1 就 REFUSE`（这一层以前一声不吭）；②`build/rNN_gates(.final).txt` 的引用就地换成包里那份 `build/reports/gates.txt`（`HARD_DROP_RE` 的 `^build/r[0-9]+_` 把逐轮件全剪了，凭据却在首页被点名）；③包内翻不到的 `skill/<组>/<旧条目>/…` 与 `docs/walkthrough/*.md` 就地降级成非路径文字——旧条目名单**由"暂存区里到底有没有这个文件"现算**，不写死，以后技能包再改名这一层自己跟着变。**自己踩回来的那一条**：第 22 分钟我一边跑 `--dry` 一边改这个脚本，正在执行的 bash 按新的字节偏移重读，`line 188: syntax error near unexpected token ';'` 而 `bash -n` 全绿、任务通知还写 exit 0（尾部 `echo` 的码）——[[env-windows-fpga-pc]] 夜轮那条今天又付了一次学费。**残余 38 个未跟踪目标读出来的两类真相**：a) 有干净现名的 4 个（`src/ps/main.c`→`src/host/ps/main.c`、`report/acceptance.md`→`board/acceptance.md`、`docs/perf_report.md`→`report/perf_report.md`、`docs/questions-for-team-P12.md`→`report/questions-for-team-p12.md`）；b) **盘上有、仓库里没有**的操作件：`.gitignore:154 board/HANDS_ON.md`、`:136 board/uart_*.txt`、`:91 build/ps7_init.tcl`，`board/bringup-checklist.md` 与 `docs/**` 是没 add/本地留档。⇒ §5.1 要交的"烧写与运行脚本"里有一张被四份文档点名的操作卡根本没入库；`HANDS_ON.md` 这个名字本身撞 §0.3（纯英文小写），所以像"为了小写规矩顺手 ignore"，**改法是改名 `board/hands-on.md` 再跟踪**，不是解除 ignore 留着大写名——这条要定：改名并入库，还是把四份文档里对它的点名撤掉。
 - **#371（死链 184 里 `build/report/` 那三条的真根因，比 #368 说的深一层）**：`bash -x` 追到 `FLAT_KEEP_N=0` 就断，读出**两个**事实。① 真凶不是"报告展平"，而是 `PRUNE_ONEOFF` 名单里赫然写着 `build/report/` —— 导出器把 §4.4 点名的那一整个交付层当成"一次性脚本"剪掉，所以暂存区里根本没有该目录，首页三条凭据（`timing_summary` / `utilization` / `power`）自然全断。修法 = 从 `PRUNE_ONEOFF` 撤掉这一项，并把 `^build/report/` 加进 `KEEP_ALWAYS_RE`（形状规则，不再靠逐个点名）。#368 里"是展平搬走的"这个归因**只说对了后果的一半**，登记在此更正。② 我自己新加的那条计数守卫在 `set -euo pipefail` 下是**哑雷**：`FLAT_KEEP_N="$(find build/report ... 2>/dev/null | wc -l | tr -d ' ')"`，目录不存在时 `find` 退 1，pipefail 让整条赋值失败，errexit 直接杀掉脚本 ⇒ REFUSE 那句根本来不及打印，任务通知还写 exit 0。改法 = 子壳里 `{ find … || true; }`。**规矩**：在有 `set -e` 的脚本里，任何"数一个可能不存在的目录"的子壳都必须自己兜底，并且新加地板时必须同时验一次"目标不存在"这一支会怎么表现——只验"目标存在时数得对"不够（这次恰好是 0 那支撑住了结论，但它死得没声音）。
 - **#372（两条正面核对，写给交付清单用，2026-10-04 22:4x）**：① §4.5 的"脚本与报告一一对应"实测成立——`build/report.tcl` 用 `[file join $outdir …]` 逐条写 `timing_summary/utilization/cdc/methodology/power/route_status/clock_util` 七个名字，`ls build/report` 现数正好同样七个文件，名字与脚本一字节不差（先前我用 `grep -oE "build/report/[a-z_]+\.rpt"` 去核，**0 命中**，那是因为路径由变量拼出来的，不是脚本没写；换成 grep `-file` 才对得上——核别人的脚本时按字面路径数会得出假否定）。② §1.3a 的双击入口逐条读过：`run_test.sh` 与 `run_test.bat` 都写满四步（ping → 连读回口 → 发 `data/` 内置片源 → 计数对账）、都用 `cd "$(dirname "$0")"` / `cd /d "%~dp0"` 钉在仓库根、绝对路径 grep 0 命中、退出码含义写在头部；`send_demo.bat` 是通用发送入口（`--input <文件>` 传任意视频）。这两条都只是**读码核对**，不等于在评审机上跑过。
 - **#373（我自己那层新尺子的射程洞，被自己打印的计数抓到）**：#370 第③刀的正则写成 `skill/<一段>/<一段>\.ext`，只够得着两层深；真实引用是三层（`skill/pitfalls/<条目>/SKILL.md`），于是这一层几乎空转——现测打印出来是"被引用的技能路径共数 18 个 ⇒ 降级 10 个"，而同一样本放宽后数到 **96** 个不同路径（`grep -rhoE 'skill/[A-Za-z0-9_./-]+\.(md|sh|mjs|py)' --include='*.md' report board skills README.md README_EN.md | sort -u | wc -l`）。**没有那行计数我不会发现**（这正是 [[feedback-ruler-teeth-empty-sets]] 要的"比较次数地板"）：新增一层判断时必须把"扫到了多少"和"改了多少"一起打出来，两个数一起看才有牙。正则已放宽成 `skill/[A-Za-z0-9_./-]+\.(md|sh|mjs|py)`。同一轮另一次读数：`bash build/make_submission.sh` 在 `timeout 1500` 下跑到 `空目录 删=4 余=0` 那行就被 timeout 杀掉（RC=124），**包仍未落盘**；导出这一跑在今天的机器负载下要 25 分钟以上，下一跑把上限提到 3000。
-- **#374（导出实测：死链 184 → 94，两处仍在，一层是我自己没修干净）**：同一笔 `2556f94` 上重跑 `bash build/make_submission.sh`（上限提到 3000 s，上一跑 1500 s 被 timeout 砍在 `空目录` 那行 = RC=124）实测 **导出提交 2556f94：986 个文件 / 22M，剪掉 2440 条，死链 94，旧名残留 0，绝对路径 0 ⇒ 仍拒绝落盘**。三条刀的账：`build/report/` 那一族 6 条确实没了（交付层现在在暂存区里，计数守卫也从 REFUSE 走到正常路径）；`docs/walkthrough/` 那一族由"同行声明豁免行 1715"这一层与我新加的正则一起消化；技能旧名那层**打印 96 条引用 / 就地降级 73 条**，但包内实测只剩两层深的形状被换了（`技能包旧条目 _meta/entry-template.md（…）`），**三层深的 `skill/pitfalls/<条目>/skill.md` 有 20 处原样留着**（在 `report/90-open-items.md` 里）⇒ 这一层的规则没能覆盖它自己声称要覆盖的形状，**具体机制未定位**（候选：规则文件里被前一条更宽的形状先吃掉、或生成清单时 `sort -u` 与 sed 分隔符相互作用），按规矩记为"未定"，不写成已修。残余 94 的成分（按目标目录数）：skills 52（其中 20 是上面那族）／`board/HANDS_ON.md` 4／`board/bringup-checklist.md` 2／`board/run/*` 2／`build/ps7_init.tcl` 1／`data/parts` 2／`data/inputs` 2／`docs/*` 若干／`report/acceptance.md` 2。来源最集中的三份：`report/90-open-items.md` 30、`report/ai_collaboration.md` 11、`skill/templates/project-skeleton/templates/skeleton.md` 6。**要人定的那一半没变**：`board/HANDS_ON.md`、`board/bringup-checklist.md`、`build/ps7_init.tcl`、`data/parts/installed_devices.txt` 都是"盘上有、仓库里没有"，改名入库还是撤掉点名不是我该替队伍决定的；`skeleton.md` 里的 `sim/run.sh` 是技能模板给"你的工程"画的形状，不是本仓库的指路，要不要为它开例外也一并待定。
+- **#374（导出实测：死链 184 → 94，两处仍在，一层是我自己没修干净）**：同一笔 `2556f94` 上重跑 `bash build/make_submission.sh`（上限提到 3000 s，上一跑 1500 s 被 timeout 砍在 `空目录` 那行 = RC=124）实测 **导出提交 2556f94：986 个文件 / 22M，剪掉 2440 条，死链 94，旧名残留 0，绝对路径 0 ⇒ 仍拒绝落盘**。三条刀的账：`build/report/` 那一族 6 条确实没了（交付层现在在暂存区里，计数守卫也从 REFUSE 走到正常路径）；`docs/walkthrough/` 那一族由"同行声明豁免行 1715"这一层与我新加的正则一起消化；技能旧名那层**打印 96 条引用 / 就地降级 73 条**，但包内实测只剩两层深的形状被换了（`技能包旧条目 _meta/entry-template.md（…）`），**三层深的 `skill/pitfalls/<条目>/skill.md` 有 20 处原样留着**（在 `report/90-open-items.md` 里）⇒ 这一层的规则没能覆盖它自己声称要覆盖的形状，**具体机制未定位**（候选：规则文件里被前一条更宽的形状先吃掉、或生成清单时 `sort -u` 与 sed 分隔符相互作用），按规矩记为"未定"，不写成已修。残余 94 的成分（按目标目录数）：skills 52（其中 20 是上面那族）／`board/HANDS_ON.md` 4／`board/bringup-checklist.md` 2／`board/run/*` 2／`build/ps7_init.tcl` 1／`data/parts` 2／`data/inputs` 2／`docs/*` 若干／`report/acceptance.md` 2。来源最集中的三份：`report/90-open-items.md` 30、`report/collaboration/README.md` 11、`skill/templates/project-skeleton/templates/skeleton.md` 6。**要人定的那一半没变**：`board/HANDS_ON.md`、`board/bringup-checklist.md`、`build/ps7_init.tcl`、`data/parts/installed_devices.txt` 都是"盘上有、仓库里没有"，改名入库还是撤掉点名不是我该替队伍决定的；`skeleton.md` 里的 `sim/run.sh` 是技能模板给"你的工程"画的形状，不是本仓库的指路，要不要为它开例外也一并待定。
 - **#375（自绑判据第一次就把自己拦下了，但它自己也有一处过宽）**：把"技能旧名降级"改成独立规则文件 + 独立一遍 sed + 跑完立即数残留之后，实跑 `bash build/make_submission.sh`（提交 `2785c16`）在改写段就 **REFUSE：包内仍有 47 个 skills 开头的引用落不到文件**（RC=1，包不落盘）——判据起作用了。但 47 这个数**比死链自检看到的 20 还大**，读码找到原因：我这遍计数对着**整棵暂存树**数，把 `report/log/`、`build/reports/` 这些按规矩**永不改写**的证据层也算了进去 ⇒ 这一条不可能归零，是**假红**。改成只数 `_txt.txt`（主改写实际处理过的文件清单），判据与射程同面才谈得上"能吃干净"。**记这条是为了别再犯**：新加一条"自证残留"的判据时，必须先问它的样本面是不是就是被改写过的那一面，否则它只会一直红，并把交付卡死。另记：`make_submission.sh` 这次是**被自己的新判据提前拦停**，所以没有产出新的死链数；最近一次完整读数仍是 `导出提交 2556f94：死链 94 / 旧名 0 / 绝对路径 0`。
 - **#376（把"规则没生效"和"规则不该这么写"分开的隔离实验，2026-10-04 22:4x）**：`30abdfe` 那一跑仍然 `REFUSE：包内仍有 47 个 skills 开头的引用落不到文件`（RC=1，包不落盘），而判据计数行两行都在：`旧技能条目名就地降级 73 个（被引用的技能路径共数 96 个）` / `技能旧名独立一遍后仍未落地的引用 47 个`。**同一棵暂存树上做手写对照**（`cd /tmp/sub.TQDkkU`，即上一次成功跑完的 staging）：现数引用 72 个、按同一条存在性判据生成规则 47 条、把这 47 条规则手写到 `report/90-open-items.md` 的副本上再 `sed -i -f` ⇒ **该文件里 `skill/pitfalls/` 残留 0 行，全被换成 `技能包旧条目 pitfalls/_proposed-sources.md（…）`**。结论分两半：规则的**形状与存在性判据是对的**（手写一遍就能吃干净，#373/#374 那个"三层深匹配不上"的猜测被否定）；不对的是**导出器里那一遍 `xargs -r sed -i -f _skill_map.sed < _txt.txt` 实际没作用到这些文件**——机制仍未定位（候选按可疑度排：`_skill_map.sed` 在该点是否真有内容、`_txt.txt` 那一面的文件与暂存树里真正含引用的文件是否同一批、两遍 sed 的 cwd 是否同一个目录）。**这条 REFUSE 现在是有效的门**：它宁可不出包，也不让"打印了降级 73 个"当成"改完了"。下一轮先按这三个候选把那一遍 sed 的可观测性补上（打印 `_skill_map.sed` 行数 + `_txt.txt` 行数 + 命中文件数），再做第二次手写对照，别再猜。
 - **#377（2026-10-05 早，板子连着的一轮：演练清单收红 + 两把尺子的维度修正 + `bilin` 死分支定位）**：① `report/repro-check.md` 补第三节"第三轮"表并把 C1/C2/C3a/C3b/C4 五格的判定列换成实跑读数（凭据 `build/evidence/verify_1005_0741.txt` 与同前缀的 `.geom.txt`/`.batt.txt`/`.serial.raw`/`.health.json`，另有 `build/evidence/r116_board/health_r118docround_{a,b}.json` 两次健康读回）；`C3c` 仍 NOT_MEASURED——这台机器没有 `arm-none-eabi-gcc`，应用源码重建不了 ELF。② 尺子第一把：`build/checks/check_repo_consistency.mjs` 的 **C9**（A/B/C 路径复现演练）原来数的是"整行里有没有 PASS/FAIL 字样"，于是把**证据列里出现的 FAIL**（例如某件报告自带一行 `FAIL行=1`）当成演练判红——实测 30 条红全是这一类，而演练本身一条没红。改成**只数判定列**：行名要匹配 `^[SABCM]\d+[a-z]?$`、判定取该行最后一个非空格、地板 `rows < 40 ⇒ NOT_MEASURED`、判定列不成词的 14 行**如实报数不判红**。改后读数 `判定列在内=61 行 PASS=36 FAIL=0 未测=11 判定列不成词=14` PASS。③ 尺子第二把：**C3** 的"这个点名不指路"豁免词表原来自己抄了一份，与 `src/host/doc_currency_check.mjs` 的 `NOSHIP_MARK` 会各自漂——改成**从对方源码里读**（`const NOSHIP_MARK = […]`，按引号对提取；解析不出就让这一项 NOT_MEASURED，而不是退回自家用词），并加两档豁免：**同一行**写了声明词才放行、``` 围栏内的原文回显只报数；配套三条反买通对照（有声明⇒不红／没声明⇒必须红／隔行声明⇒仍然红）。④ 唯一剩下的 C3 死引用是 `board/logs/index.md` L01 那一格：那句是 `build/evidence/r118_board/board_verify_console.txt:63` 的**原样回显**，而回显里点名的 `board/uart_script_capture.txt` 是本机捕获、不随包。按 ③ 的规矩处理——**被引原文一个字不改**，在同一格里补一句声明，死引用 1⇒0。⑤ `bilin` 那条"源码说待接、板上真能切"的矛盾定位成 `dispatch()` 里的死分支（前缀匹配吃掉全等匹配），立案在 `report/known_issues.md` 第 21 节，板上四条命令的探针件 `build/evidence/1005_bilin_probe.txt`（15 行；与原始捕获的差别只有去掉 PowerShell 写出的开头三字节 BOM，正文逐字未动。`.txt` 一族按 `.gitattributes` 头部那段说明**不钉换行**，所以这一条只报行数不报 md5——报了就会在某次重 checkout 之后漂，是 #202/#333 同一族）。⑥ 我自己这一轮的两处账：`build/r116_bit_cycle.sh` 的摘要行把三条计数器打成 `?`（正则经 bash+node 两层转义后过匹配、且取值键路径写错），改成按对象键取值，并用落盘的 JSON 离线重放核出真实读数（`pkt_err=0 frames_bad=1 drop_seen=0`）；另一次是**拿源码 grep 命中当板上行为**，差点据此改演示文档口径——决定实验在板上，规矩记在第 21 节末段。
@@ -13818,7 +13818,7 @@ rim 那一半本轮已用修好的入口重跑并出新件 `build/tb_edge_rim_r1
   **顺带清掉的是四条假话**（它们当时都不在 C3 分母里，所以一直绿着）：`board/hardware_setup.md` 说位流/XSA/ELF 的身份卡
   在 `board/firmware/`（那层已删，身份实际在 `build/provenance.md` 与 `board/measured/` 的 IDENTITY 块）、说 4 张原理图裁图
   "在仓库内"（`report/notice.md:62` 也跟着说"被跟踪裁图=4"）、`board/raw-vs-golden.md` 说比对条件卡与两份索引在三层目录里、
-  `report/run-queue.md` 说 `board/firmware/` 在并且技能包"门禁 12 项全绿、索引条目=58"（现役是 `run-all-checks` 判 9 项、
+  `report/unattended.md` 说 `board/firmware/` 在并且技能包"门禁 12 项全绿、索引条目=58"（现役是 `run-all-checks` 判 9 项、
   `build-index` 条目=49；`..._b.txt` 那第二跑也已不在包内 ⇒ "两跑逐字节一致"只算历史记录）。
   **A1 那一半**：`report/repro-check.md` §8.1 的判定列原本在第 4 列（第 5 列是"与第一轮的差异"），§9 第三轮那张表末列是凭据路径——
   两处都违反"判定必须在末列"，C9 读出来就是 14 行"判定列不成词"。换列件 `build/r124_repro_verdict_col.mjs`：只动列序，
@@ -13888,12 +13888,12 @@ rim 那一半本轮已用修好的入口重跑并出新件 `build/tb_edge_rim_r1
   ③ **抄死的易变 md5 会在六处一起失实**：`4ed58740785c…`（重建那颗 ELF）是今天上午量的，之后 `src/ps/main.c`
   删了一条永远走不到的 `not_wired("bilin")` 分支（笔 `0bc578d`），今晚重链得到 `c0f9f79a…`，
   `.text` 小 52 B、`.rodata` 小 220 B。同一句话散在 `board/README.md`、`report/60-failure-analysis.md`（两处）、
-  `report/figures/legend.md`、`report/known-limitations.md`、`report/known_issues.md`、`src/ps/README.md`，
+  `report/figures/legend.md`、`report/08-limits.md`、`report/known_issues.md`、`src/ps/README.md`，
   改口脚本 `build/r125_elf_md5_rotate.mjs`（`--check` 逐条命中数必须为 1，否则整体不写），口径是**正文只指证据件、不抄数字**。
   ④ **"本工程从不向 QSPI 写入"这一句今晚被我自己做假了**（队伍要求固化，已写入并硬件回读校验，见
   `board/measured/flash_qspi_2026-10-05.txt`）。它散在 9 处（`board/acceptance.md` 首页口径、`board/hardware_setup.md`
   那行"本工程从不做"、`build/README.md` §1.3 标题、`build/tcl/README.md` §2 标题、`report/demo_script.md` 那句"永远不要"、
-  `report/known_issues.md` 的理由列、`report/measurements.md` 注释、`docs/walkthrough/system-overview.md`、
+  `report/known_issues.md` 的理由列、`report/50-results.md` 注释、`docs/walkthrough/system-overview.md`、
   `report/06-validation.md` 的射程声明），本轮统一改成"**演示与验收只走 JTAG；QSPI 那一次是 2026-10-05 按要求另做的**"，
   并且没有顺手把"断电重上能自启"写成通过（那一判要人手拨启动模式）。FT2232 的 EEPROM 仍然没碰，这条不改口。
   ⑤ 一条工具账：`bash` 里内联 `node -e '…'` 写替换串，`"$1"build/system.xsa""` 这种"引号套引号"是 JS 语法错，
@@ -13926,7 +13926,7 @@ rim 那一半本轮已用修好的入口重跑并出新件 `build/tb_edge_rim_r1
   `build/r125_fact_hold.mjs` 对 HEAD 与工作树比记号，跑出两类假丢失——
   ① 句末句点/单位合并让 `30.0` 这类数掉出正则边界（同一字面还在，换个写法就"消失"）；
   ② 两处**修正**被当成丢失：`report/repro-check.md` 把 ## 6 之下错编号的 `### 2.7` 改回 `6.1`，
-  `report/ai_collaboration.md` 把同一段重复点名同一份技能条目省掉一次。
+  `report/collaboration/README.md` 把同一段重复点名同一份技能条目省掉一次。
   做法：先按字面子串数一遍（`substrCount`）作降级；确属修正的进 `EXEMPT` 名单，
   但每条必须带一个 `need` 依据串，**在改写后的文里当场数得到才放行**，数不到就照旧红并打
   `EXEMPT-REFUSED`；记号本轮没少而名单里还留着则打 `EXEMPT-IDLE`（名单可减不可只增）。
@@ -13971,7 +13971,7 @@ rim 那一半本轮已用修好的入口重跑并出新件 `build/tb_edge_rim_r1
   的另一半：**同面不只是路径同面，还要"这句话是不是在指路"同面。**
   只改了提交分支那份 `build/make_submission.sh`：主线那份今晚不跑导出，改一把当场不跑的尺子等于加未测代码；
   要同步就在下次真导主线包时一起做，并同时核 `report/` 里那 77 条（任务清单 #215 那一格仍欠）。
-  同批：`report/technical-document.md` 新增 §2.4"用到的技术"（13 行，每行的器件与文件都能对着盘上核），
+  同批：`report/technical-document-contest.md` 新增 §2.4"用到的技术"（13 行，每行的器件与文件都能对着盘上核），
   因为首页 `report/README.md` 那张表一直写着这一节该有，而正文以前只散在 §2.1 与 §3。
 
 - **#401（2026-10-06 凌晨，导出器两条判据的"射程/地板"各修一半）**：连着两次 REFUSE/FAIL 都不是包的问题，是判据自己看错了对象。
@@ -14015,7 +14015,7 @@ rim 那一半本轮已用修好的入口重跑并出新件 `build/tb_edge_rim_r1
   四域统一加严 hold 不确定度、HDMI 源端互对窗）**原样**迁入 `report/08-limits.md` 新第 12 节，
   数字与措辞没动——迁走记录不许把事实一起迁走；
   ② `report/40-optimization.md` §0 改成点名随包原件（`build/roster/roster_r118.tsv`、
-  `roster_r118_probe.tsv`、`build/parsed/*.json`、`report/measurements.md`），不再指逐批次记录；
+  `roster_r118_probe.tsv`、`build/parsed/*.json`、`report/50-results.md`），不再指逐批次记录；
   ③ 重跑生成件：`report/90-open-items.md` 407 行 / 397 条 → **370 行 / 360 条**
   （`build/submit_open_items.mjs --write`，表内"共 360 处"与 `grep -cE` 数到的行数当场一致），
   `report/README.md` 字节数列重算（改 1 格、已对 9 格）。
@@ -14030,7 +14030,7 @@ rim 那一半本轮已用修好的入口重跑并出新件 `build/tb_edge_rim_r1
 
 - 承 #402/#403：`build/runs/` 迁走后重导一轮 = `690 文件 / 14M、剪 489 条、死链 55（上一轮 62）、
   旧名残留 0、绝对路径 0`，仍 REAL_RC=1 拒绝落盘。明细里 `-> skill/` 一族 **21 条**，其中
-  **20 条是 `skill/<组>/<旧条目>/skill.md` 这个小写外壳形状**（集中在 `report/ai_collaboration.md`、
+  **20 条是 `skill/<组>/<旧条目>/skill.md` 这个小写外壳形状**（集中在 `report/collaboration/README.md`、
   `report/collaboration/`）。
 - 根因不是文档写错：交付树里那些行本来是大写 `SKILL.md`，同一行在暂存树里变成小写。小写化那一层的
   find 只排除了 `./report/log/`，把 `skill/**/SKILL.md` 也 `mv` 成 `skill.md`（§3.3.5.2 点名要求
@@ -14287,7 +14287,7 @@ rim 那一半本轮已用修好的入口重跑并出新件 `build/tb_edge_rim_r1
 
 ### 415 §6.1 第一行把 PL 侧那只 MMCM 算到了 PS 头上（同一张表的第二处错，随 #414 一起改）
 
-- 修 #414 时按"这张表还有没有别的列/句在说同一件事"往下扫，撞上 `report/technical-document.md` §6.1 第一行："时钟全部由 PS 侧 MMCM 与 BUFG 树产生，`clk_fpga_0` 100 MHz、`clkout1_1` 250 MHz 同源"。两处不实：`clkout1_1` 不在 PS 侧，也不是与 `clk_fpga_0` 同源。
+- 修 #414 时按"这张表还有没有别的列/句在说同一件事"往下扫，撞上 `report/technical-document-contest.md` §6.1 第一行："时钟全部由 PS 侧 MMCM 与 BUFG 树产生，`clk_fpga_0` 100 MHz、`clkout1_1` 250 MHz 同源"。两处不实：`clkout1_1` 不在 PS 侧，也不是与 `clk_fpga_0` 同源。
 - 证据：`build/report/clock_util.rpt` 的 g4 行——`clkout1_1` 的驱动脚是 `u_pl/u_clk/u_bufg_5x/O`、net 是 `u_pl/u_clk/clk_pix5x`；`src/rtl/clocks/clk_gen.v:15` 例化的是 PL 硬原语 `MMCME2_BASE`，`src/rtl/top/pl_video_top.v:128` 处 `clk_gen u_clk` 的 `.clk_in(sys_clk)` 是板上那 50 MHz；g0 行才是 PS7 的 `…/FCLK_CLK_0_BUFG/O`。⇒ 时钟树是两支：PS 出 `clk_fpga_0`，PL 那只 MMCM 出 `clk_pix`（= `clkout0_1` 50 MHz）与 `clk_pix5x`（= `clkout1_1` 250 MHz）与 200 MHz 抽头参考。
 - 改法仍走工具：把这一条作为第 7 组替换塞进 `build/fix_clock_roles.mjs`（三棵树同改，命中 3 份；重跑时前 6 组报"已在位 33"，幂等三态按 #414 那版判定）。改后四把文档尺子：DELIVER-SPEC 判 18 项红 0、`r125_fact_hold` 消失记号 0 且记号数只增不减（number 170→171、path 66→67、cite 6→8）、D5 硬错 0、`metric_recheck` 红 0/117。
 - 教训（与 #414 同族，但机制不同）：**修一处事实错之后，要顺着"同一件事还被谁说过"扫一遍，而不是修完那一格就走**。这次撞上的第二处不在表格里，在下一节的第一个要点里——它讲的是同一批时钟，用词却把 PL 的原语说成 PS 的。
@@ -14301,7 +14301,7 @@ rim 那一半本轮已用修好的入口重跑并出新件 `build/tb_edge_rim_r1
   2. `report/perf_report.md:205-208`——`min/avg/max = 20 / 33.34 / 51 ms` 属于"长跑那一行"：9000 帧 / 1,989,000 个包 / 5.02 分钟；
   3. `board/evidence_r41/metrics_r41_soak300.md` 里 `gap_sum/gap_segments` = **33.3434 ms**（8999 段），而 600 帧那一轮（`metrics_r41_clean30.md:210`）自报 `avg_gap_ms = 33.3255` ⇒ 原第 25 行写"一轮 600 帧"是**轮次挂错**，不是口径之争。
 - 量级旁证：33.34 ms 恰等于 1 ÷ 29.99 fps 的一帧周期；真做"编码 + 排队 + 显示 16.8 ms"不会刚好落在一帧周期上。
-- 落地走工具不走手改：`build/r127_latency_rename.mjs`（三棵树、12 条规则、四态判定 命中/已改口/本树无此句/坏，Σ 必须等于规则×树，写盘前逐文件要求行数不变）。改到 8 处：`data/metrics.csv`、`report/measurements.md`、`report/technical-document.md`（两处措辞 + §7 结果表行）、`report/08-limits.md`、`report/50-results.md`（正文与表行）、`board/raw-vs-golden.md` 的 U7 源头行、主树 `report/90-open-items.md` 第 19 条处置格。
+- 落地走工具不走手改：`build/r127_latency_rename.mjs`（三棵树、12 条规则、四态判定 命中/已改口/本树无此句/坏，Σ 必须等于规则×树，写盘前逐文件要求行数不变）。改到 8 处：`data/metrics.csv`、`report/50-results.md`、`report/technical-document-contest.md`（两处措辞 + §7 结果表行）、`report/08-limits.md`、`report/50-results.md`（正文与表行）、`board/raw-vs-golden.md` 的 U7 源头行、主树 `report/90-open-items.md` 第 19 条处置格。
 - **一条机制账（本轮最值钱的一条）**：`report/90-open-items.md` 在提交分支里是**生成件**——由 `build/submit_open_items.mjs` 从现存文档现扫标记生成。第一次手改它的单元格，`build/r125_fact_hold.mjs` 立刻判 `DERIVED … 与生成器现算结果不一致`。正确路径是改**源头**（`board/raw-vs-golden.md:110`）再 `node build/submit_open_items.mjs --write`。**手改生成件 = 造一个当下看起来对、下一次生成就被抹掉的绿。**
 - 另一条：`number:600` 从技术文档消失后 `fact_hold` 先判红（依据消失 ⇒ 照旧红）。这次消失是**改正的结果**，所以按它自己的办法进豁免表，并带 `need: '9000 帧 / 300 s'` 守卫——正确口径哪天又丢了，豁免自动失效、重新变红。
 - 改后尺子全绿：DELIVER-SPEC 判 18 项红 0、`fact_hold` RESULT=OK（消失记号 0、豁免生效 1）、D5 硬错 0、`metric_recheck` 判 117 个数红 0 且 csv 认领 10/10、`doc_currency` 干净。
@@ -15152,7 +15152,7 @@ rim 那一半本轮已用修好的入口重跑并出新件 `build/tb_edge_rim_r1
   （WNS 0.687、WHS 0.004、端点 51027、逐时钟 setup eth_rxc 0.687 / clk_fpga_0 1.571 / clkout0_1 3.287 /
   sys_clk 14.294，hold 0.004 / 0.048 / 0.067 / 0.121，LUT 14013 26.34 %、FF 8132 7.64 %、BRAM 96 68.57 %、
   DSP 19，动态 2.213 W / 片上 2.390 W / 结温 52.6 ℃ / Max Ambient 57.4 ℃，bit `cb907d3e4898`）；
-  `report/modules.md` 九处 `pl_video_top.v:` 行号锚点按今天逐条 grep 重指（#129 那一刀在 793 行之后插了 19 行，
+  `report/src-map.md` 九处 `pl_video_top.v:` 行号锚点按今天逐条 grep 重指（#129 那一刀在 793 行之后插了 19 行，
   所以 800 以上的锚点整体后移）。**`metrics.csv` 第 15 行"整屏逐像素判据"仍写 141**：那一格必须由规范通道
   那一次跑绑定指纹才能改，正在跑，没跑完就不动——半改只会让 D5/D6 更红。
 
@@ -15162,12 +15162,12 @@ rim 那一半本轮已用修好的入口重跑并出新件 `build/tb_edge_rim_r1
   （明写"这里的数字取自第 118 批那一次构建 `cd04907e1369`，不是当前 r132 `cb907d3e4898`，现读看 README 那一节"），
   教案里的推导样本因此不再是"现读声明"，也就不需要把 0.739/95.5 那串数字逐个改一遍（改了反而毁掉推导的自洽）。
   同一轮还改了：`board/verify_r87.md` 里"C5c 注定还是红"那句（已在 r132 关闭、本轮门禁未重跑）、
-  `report/measurements.md` 板读 XADC 那一行降级为"r113 那一次，r132 没重测"。
+  `report/50-results.md` 板读 XADC 那一行降级为"r113 那一次，r132 没重测"。
 - **今晚文档同步的边界（有意没做的，不是漏）**：① `data/metrics.csv` 第 15 行"整屏逐像素判据 141 条"没改 ——
   规范通道 `build/sim/run_one.sh tb_v98_top_seam`（xsim）还在跑，跑完先出 `build/tb_v98_report.txt`
   （`build/tb98_report.sh`，带 top/tb/rtl 三枚 md5）再改这一格；② `bash build/gates.sh` 本轮未跑 ⇒ 凡是
   "门禁 24 项 / 23 绿 / 1 红"的说法一律写成"上一版如此、本轮未跑"；③ 逐时钟**名册**（路径名/级数/route 占比）
-  未整份重导，`report/05-timing.md` 与 `report/technical-document.md` §6.2 各挂了版本口径；
+  未整份重导，`report/05-timing.md` 与 `report/technical-document-contest.md` §6.2 各挂了版本口径；
   ④ `docs/` 整棵在 `.gitignore:178` 里（本机教案，不进仓库也不上传）；⑤ QSPI 那句"已固化"统一降级为
   "已写入 + 逐字节回读一致，冷上电自启那一次未验"。
 
@@ -15225,7 +15225,7 @@ tracked 那 16 条 NOEV 逐条人看后修了 10 处，用的是一条"预期计
 study 这一轮的 MOVE 是净收益，但没有第二把尺子验它；这句话写在这里，就是为了让下一轮别把它当成已核对。
 
 **五、判据读数（同一条命令，改前 / 中间 / 改后）**
-- 改前：`build/evidence/r132_d5_before_anchor_remap.log`（硬错 7，全在 `report/modules.md` 的例化者列）。
+- 改前：`build/evidence/r132_d5_before_anchor_remap.log`（硬错 7，全在 `report/src-map.md` 的例化者列）。
 - 中间：硬错 9（第一铲）。
 - 改后：硬错 0，退出码 0；`build/evidence/r132_d5_after_anchor_remap.log`。原样摘要：
   `D5 引用核对：扫 222 份交付文档（report/log 与 report/study 的追加式/笔记档案不参与）⇒ 硬错 0 条（文件不在树里 / 行号越过文件末尾 / D5b 例化者列指错 / D5d 逐字抄的回声对不上）；锚点命中 1540 条；锚点候选 738 条；取不出代码锚点 805 条；回声转述待人看 4 条；厂商树引用 29 条不参与；旧名同行带免检词 1 条不参与（与导出器同一口径）`
@@ -15366,7 +15366,7 @@ D1c 反过来要**至少两句** `门禁 N 项 X 绿 / Y 红`（中英各一句�
 ### #483（2026-10-18 凌晨）三份 Word 交付件跟上 r132；顺带发现我上一铲把一段"引用冻结凭据"的文字改坏了
 
 **一、Word 交付件是 r118 的快照，而仓库与板已经是 r132**
-`report/technical-document-contest.docx`、`-official.docx`、`-brief.docx` 里写的是在板位流 `cd04907e1369`、WNS 0.739、
+`report/technical-document-contest-official.docx`、`-official.docx`、`-brief.docx` 里写的是在板位流 `cd04907e1369`、WNS 0.739、
 51,135 端点、整屏判据"141 条通过 140 条"、门禁"24 项绿 23 项"、LUT 14,154（26.61 %）、FF 8,188（7.70 %）、
 BRAM 95.5（68.21 %）、整屏台架约 108 分钟，还有"断电冷上电自启成立"。评审读的就是这三份，它们与仓库现读互相矛盾。
 
@@ -15434,7 +15434,7 @@ hold 0.004·0.048·0.067·0.121；51,027 端点；LUT 14,013（26.34 %）；FF 8
 而「启动有回显」是另一件事：它证明 Boot ROM 真的从 flash 起了 FSBL/应用（PS 跑起来了），
 它不证明 flash 里那位图元与 `build/system.bit` 逐位相同。两句话必须同时在，缺一句就会被读成「自启已全面证明」。
 另外顺带发现：交付件里 r118 那一版的表格早就留着一格 「断电自启 ‖ 串口出现 FSBL 横幅、Boot mode …」
-（`report/technical-document-contest.docx` 的电路成果表）——也就是说**启动回显这件事在 r118 就被量过**，
+（`report/technical-document-contest-official.docx` 的电路成果表）——也就是说**启动回显这件事在 r118 就被量过**，
 本轮不是第一次看到回显，只是第一次把它与 r132 这块位流绑在一起说。
 
 **三、动了哪些地方**
@@ -15550,7 +15550,7 @@ plain `表 14 页 22 shapes 9 media 9`。提交 `7127b96e` 后重导出：`860 �
   `report/60-failure-analysis.md`、`report/collaboration/redaction.md` 各 1 处），5 → 2 份。
 
 **剩下的两条红是有意留着不动的**：C7 还判 2 份文件带 `⚠`（`report/project-brief-for-ai.md` 44 处、
-`report/technical-document.md` 1 处）。这些标记里有相当一部分在**照抄的原文引号内**（例如
+`report/technical-document-contest.md` 1 处）。这些标记里有相当一部分在**照抄的原文引号内**（例如
 `project-brief-for-ai.md:1379` 引的那句"⚠ 只写 `eth_rxc` 一个对象"），批量替换会把引文改掉——那是
 造假不是改风格。要么逐处判（44 处、代价与收益不成比例），要么给尺子加"引号内不判"的形状豁免
 （那是改判定我的东西，要用户点头）。另一条 C0-3 是 `build/evidence/` 里 4 个文件名带大写
@@ -15563,7 +15563,7 @@ plain `表 14 页 22 shapes 9 media 9`。提交 `7127b96e` 后重导出：`860 �
 
 **同一口径推到 brief（#486 续）**：`report/technical-document-brief.md` 第 52 行原来也写着
 `build/r132_gates.txt`——导出时同样会被改成「仓库留档 gates.txt（剪枝件，不随包）」，而
-`technical-document-contest-brief.docx` 不会被改，包内两份又是一套话两样字。改成"判定行随包在
+`technical-document-contest-official.docx` 不会被改，包内两份又是一套话两样字。改成"判定行随包在
 `build/reports/` 下"（这一格在仓库与包里拼法一致，导出器不动它），brief 的 Word 那一段跟着对齐。
 对齐脚本第一次跑**换错了一段**：它的 `units()` 把整串 bullet 并成一个单元，于是 P50 被换成了"四条通路
 同时成立…- 板级 105 条…"整块。当场 `git checkout --` 还原（media 仍 2），改成"列表项自成一条"再跑才对。

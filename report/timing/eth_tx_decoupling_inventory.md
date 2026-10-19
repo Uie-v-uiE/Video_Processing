@@ -180,7 +180,7 @@ X07（`arp_rx_done`）与 X09（`icmp_rec_pkt_done`）是 RX 侧单拍脉冲，�
 - `u_ctrl` 的通用用户 FIFO 口对端不存在：`fifo_tx_data` / `fifo_tx_req` / `fifo_rec_en` /
   `fifo_rec_data` 只在 `src/rtl/eth/eth_udp_video_top.v:114-116` 声明、`:219-220` 连进去，本层再无驱动
   或读者；综合确实报过 `[Synth 8-3848] Net fifo_tx_data … does not have driver`
-  （`report/log/issues.md:10549-10551`），`report/modules.md:125` 已登记这个缺口。
+  （`report/log/issues.md:10549-10551`），`report/src-map.md` §eth/（`eth_ctrl` 那一行的台架格） 已登记这个缺口。
 - `src/rtl/top/pl_video_top.v:103-106` 那四个 `eth_wr_*` 口被
   `src/rtl/top/system_top.v:303-306` 驱动，但 `pl_video_top.v` 全文除端口声明外**没有任何使用点**
   （`grep eth_wr_` 只命中 103-106）。与 B 无因果，只是钉一条：`eth_gmii_clk`
@@ -347,7 +347,7 @@ false path 掉了。
 
 - `arp`、`arp_rx`、`arp_tx`、`rgmii_tx`、`rgmii_rx`、`gmii_to_rgmii`：没有任何台架例化。
 - `eth_ctrl`：没有任何台架例化；`sim/tb_icmp_tx_cksum.v:10` 那一处只是注释引用源码行。
-  同一缺口已登记在 `report/modules.md:125`。
+  同一缺口已登记在 `report/src-map.md` §eth/（`eth_ctrl` 那一行的台架格）。
 - `eth_udp_video_top`、`system_top`：没有任何台架例化。`grep -l` 命中的
   `sim/tb_link_monitor.v`、`sim/tb_v5_bank.v`、`sim/tb_v6_ingress_integrity.v`、`sim/tb_v6_pingpong.v`、
   `sim/tb_v796_src_arb.v`、`sim/tb_v113_key_powup.v` 全是注释或复刻，不是例化（`sim/tb_v5_bank.v:4` 自己
@@ -384,7 +384,7 @@ false path 掉了。
 | `gmii_tx_clk == gmii_rx_clk` 的三处独立声明 | 读出来 | `gmii_to_rgmii.v:25`、`eth_udp_video_top.v:5`、`eth_ctrl.v:3` |
 | 35 条 crossing 的位宽 / 驱动 / 接收 / 行号，其中 33 条完全没有同步器（含 §3.2：X11/X21 那三条三级链不算同步器） | 读出来 | §2.2、§2.3 证据列（本轮打开 17 个 `.v` 文件）；`grep ASYNC_REG src/rtl/eth/` 只命中 4 族，全不在 TX 协议栈内；`arp_tx.v:66-76`、`icmp_tx.v:103-113` 无 `ASYNC_REG` |
 | `dc_fifo` 可复用、`sync_fifo` 不可 | 读出来 | `dc_fifo.v:8`、`:13`、`:27`；`sync_fifo.v:2`、`:9`、`:24-27` |
-| 台架覆盖矩阵；`fifo_tx_data` 无驱动、`eth_wr_*` 无使用 | 读出来 | §7.1–§7.3 的例化行与空命中；`report/log/issues.md:10549-10551`、`report/modules.md:125`；`pl_video_top.v:103-106` |
+| 台架覆盖矩阵；`fifo_tx_data` 无驱动、`eth_wr_*` 无使用 | 读出来 | §7.1–§7.3 的例化行与空命中；`report/log/issues.md:10549-10551`、`report/src-map.md` §eth/（`eth_ctrl` 那一行的台架格）；`pl_video_top.v:103-106` |
 | BUFG 8/32、MMCM 2/4、BUFIO 0/16；CLKOUT3…6 空闲、VCO/8 = 125 MHz | 读出来 | `build/clock_util.rpt:43`、`:48`、`:45`（2026-10-04 04:37 路由后报告）；`clk_gen.v:19`、`:43-47` |
 | `eth_rxc` 名册行 0.739 / 0.052 / 4835 / 2546；最差路径两端同钟 | 读出来 | `build/timing_summary.rpt:182`；`build/evidence_r75/timing_summary.rpt:354-355` |
 | 默认只加载 2 份 XDC；`set_max_delay` 一条都不生效 | 读出来 | `build_system_axigpio.tcl:31`、`:36-37`；`r114_io_async.xdc:57-63` 未加载 |

@@ -167,20 +167,22 @@
 | **无公式的派生量数** | **0**（未在此登记的派生数视为不存在；若读到未登记的派生数即为 FAIL） | 人工核对：`grep -n "%" report/40-optimization.md report/50-results.md`，把每一处对上 §2 或"原始数直接来自件"的例外（下面列的三条） |
 | 三处**不算派生量**的百分数（是件里印出来的） | `utilization.rpt` 的 `26.61 / 7.70 / 68.21 / 8.64 / 24.05 / 25.00 / 50.00 / 13.50 / 2.50`（占比列）；名册 `margin_pct`；发布前检查行的 `BRAM 95.5/68.21%`、`Slice LUT 14154/26.61%` | `build/utilization.rpt:35,37,40,106,121,161`；`build/r118_gates.txt:14,15`；`build/evidence/r118_after_roster_probefmt.txt` |
 
-## 7. 与 `report/measurements.md`、`build/roster/` 的交叉核对（判定标准 5）
+## 7. 与 `report/50-results.md`、`build/roster/` 的交叉核对（判定标准 5）
 
 **时序**：这次核对开工时这两样都不存在，因此当时判 `NOT_MEASURED`（等 P15b/P15c/P16c 生成）。
-写作期间 `build/roster/`、`build/parsed/`、`report/measurements.md` 由并行 agent 生成，核对已补跑；
+写作期间 `build/roster/`、`build/parsed/`、`report/50-results.md` 由并行 agent 生成，核对已补跑；
 **`build/runs/`（P15c 那份逐轮记录）仍缺**，因此与之的核对仍是 `NOT_MEASURED`。
 
 | 核对项 | 命令（可复跑） | 结果 |
 | --- | --- | --- |
 | 名册四域八格 | `cut -f1,2,4,5,6,7,8,9,10,13 build/roster/roster_r118.tsv \| grep -v '^#' \| sed '/^$/d' > /tmp/a2.txt`<br>`cut -f1,2,4,5,6,7,8,9,10,13 report/timing/roster_baseline.tsv \| grep -v '^#' \| sed '/^$/d' > /tmp/b2.txt`<br>`diff /tmp/a2.txt /tmp/b2.txt; echo rc=$?` | 实际输出：**`rc=0`（两份逐字节相同）**，各 9 行，因此 `build/roster/roster_r118.tsv` 的八格与这里引用的 `report/timing/roster_baseline.tsv`（= 基线那一版）与 `build/evidence/r118_strict_b1.txt` 完全一致：1.850/0.053、3.630/0.059、0.739/0.052、14.876/0.222；`rel_margin_setup` 0.185000/0.181500/0.092375/0.743800；`intra_endpoint_total` 15721/30179/4835/323。**判定标准 5 的"无不同值"在这一项成立** |
 | 探针名册 `margin_pct` | `cat build/roster/roster_r118_probe.tsv`（第 2–6、13–14 行） | 与 §2 引用的 `*_after_roster_probefmt.txt` 同源同行号（该 tsv 的 `source_line` 列直接指回原件行号），无不同值 |
-| 核心指标行 | 逐条对读 `report/measurements.md` §1 与 `report/50-results.md` §1/§2（WNS 0.739、WHS 0.052、LUT 14154/26.61 %、FF 8188/7.70 %、BRAM 95.5/140 68.21 %、DSP 19/220 8.64 %、Dynamic 2.213 W、结温估算 52.6 ℃、WPWS 0.264、BUFIO 0） | **数值全部相同**，判定标准 5 的"无不同值"成立 |
-| 行号引用 | `grep -n "Effective TJA\|Max Ambient\|Junction Temperature\|Confidence Level" build/power.rpt` | 当前件给 `:38/:39/:40/:41`；`report/measurements.md` §1 引作 `:37-38` 与 `:40`，**行号漂移 1 行，数值本身两边一致**（登记为差异 D7，不改判定标准、不改数，交作者裁决由谁统一） |
-| 指标表↔报告的不同源 | 读 `report/measurements.md` §5 的 G1/G2/G3 | 与 `report/40-optimization.md` §8 登记的 D2/D1/D6 **是同一批差异**（141↔161、22↔24 项、57.5↔57.4 ℃），两边结论相同：以件为准、不动 `data/metrics.csv` |
-| 板级 XADC | `cat build/evidence/r118_serial_raw.txt` | 板上现役那一版空闲态 60.65–60.85 ℃（`report/measurements.md` §1 与 `build/evidence/r118_board/board_verify_console.txt` 同一份原始回显），`report/50-results.md` §4 那一格已按两版本两工况列出，不相减 |
+| 核心指标行 | 逐条对读 `report/50-results.md` §1 与 `report/50-results.md` §1/§2（WNS 0.739、WHS 0.052、LUT 14154/26.61 %、FF 8188/7.70 %、BRAM 95.5/140 68.21 %、DSP 19/220 8.64 %、Dynamic 2.213 W、结温估算 52.6 ℃、WPWS 0.264、BUFIO 0） | **数值全部相同**，判定标准 5 的"无不同值"成立 |
+| 行号引用 | `grep -n "Effective TJA\|Max Ambient\|Junction Temperature\|Confidence Level" build/power.rpt` | 当前件给 `:38/:39/:40/:41`；`report/50-results.md` §1 引作 `:37-38` 与 `:40`，**行号漂移 1 行，数值本身两边一致**（登记为差异 D7，不改判定标准、不改数，交作者裁决由谁统一） |
+| 指标表↔报告的不同源 | 读 `report/50-results.md` §6 的 G1/G2/G3 | 与 `report/40-optimization.md` §8 登记的 D2/D1/D6 **是同一批差异**（141↔161、22↔24 项、57.5↔57.4 ℃），两边结论相同：以件为准、不动 `data/metrics.csv` |
+| 板级 XADC | `cat build/evidence/r118_serial_raw.txt` | 板上现役那一版空闲态 60.65–60.85 ℃（`report/50-results.md` §1 与 `build/evidence/r118_board/board_verify_console.txt` 同一份原始回显），`report/50-results.md` §4 那一格已按两版本两工况列出，不相减 |
+| 片上合计功耗口径 | `report/50-results.md` §1「片上合计功耗（本版）…2.390…W」与 `report/50-results.md` §1「片上合计 2.391 W」——都指 `build/power.rpt` 的 `Total On-Chip Power (W)` 那一行 | 两处小数不同（**2.390**／**2.391**），本表不裁决、不改任一文档现有数字 | **需发起者判定**：以 `build/power.rpt` 现读那一格为准统一一侧 |
+| 逐轮位流身份（从 `report/50-results.md` §2 与 §3 并入） | r94 `a1465f29c9e4`、r96 `76d6442991e0`、r97 `ef03eea4886e`、r104 `680f38f5794c`、r108 `25bf35a9900e`、r110 `2bf95588978f`、r113 `b94f4da6cdff`、r118 `cd04907e1369`（`build/evidence/r118_bit_md5.txt`） | 这八枚前 12 位只在 `report/50-results.md` §2 与 §3 成表；四份里除 r94/r96/r97/r118 外没有逐轮位流名，`report/perf_report.md` §11 另有 `2b7e11e27e70`(r86)、`1818ce4be15e`(r87)、`be753623afb8`(r88)、`883dd3b7654d`(r92) | 原样保留；删 `50-results.md` 或 `perf_report.md` 之前，这几枚身份得靠本行与 `data/metrics.csv` 兜住 |
 
 ## 8. 没有做过的事
 

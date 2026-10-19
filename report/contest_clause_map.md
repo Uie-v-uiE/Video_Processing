@@ -63,7 +63,7 @@
 | 设计原理与功能框图 | `架构章`（§1 数据从哪来/到哪去、§2 时钟与复位、§3 软硬件划分、§4 关键常数、§5 改哪里要看什么、§6 未覆盖范围）＋ `算法章`（效果链/缩放旋转/形态学/OSD/打包逐段）＋ `架构章` ＋ `report/figures/` | **PASS** |
 | 软硬件划分依据与接口设计 | `软硬件划分`（§3"为何最终选 PL 网口"、§6"自写 FIFO vs IP"就是依据式写法）＋ `report/interface-table.md`（1509 行寄存器与位序）＋ `report/host_guide.md` | **PASS** |
 | 优化过程（含前后性能与资源对比表） | `report/40-optimization.md`（§5 明写"赛题 3.3.4 的考察点"）、`优化流水账`、`data/metrics.csv` | **PASS（但"基线是哪一版"分散在批记录里** ⇒ 动作 A2） |
-| 大模型协作记录（提示词、模型回答、自我纠错轨迹、智能体工作流设计） | `report/collaboration/`（登记卡＋纠错轨迹＋提示词分栏＋成本统计＋脱敏台账）、`report/ai_collaboration.md`、`大模型协作记录` | **PASS** |
+| 大模型协作记录（提示词、模型回答、自我纠错轨迹、智能体工作流设计） | `report/collaboration/`（登记卡＋纠错轨迹＋提示词分栏＋成本统计＋脱敏台账）、`report/collaboration/README.md`、`大模型协作记录` | **PASS** |
 | 技能包的提炼过程（从哪些失败总结、如何验证有效、边界如何确定） | `report/07-skill-distillation.md` ＋ `skill/_meta/validation.md` ＋ 每条目 SKILL 里的"来源失败/失效条件"段 | **PASS** |
 | 复现说明（可供他人从零开始完整执行的操作步骤） | `report/70-reproduce.md` ＋ `复现步骤` ＋ `report/repro-check.md` | **FAIL（这条才是真缺口）**：C9 现跑 61 行判定 = PASS 36 / FAIL 0 / **未测 11 / 判定列不成词 14** |
 

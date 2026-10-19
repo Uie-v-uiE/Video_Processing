@@ -24,7 +24,7 @@
 
 **记录文件说明**：规划中的逐批次记录目录 `build/runs/` 还没生成（不存在），所以这张表逐格指向原件路径。
 已经生成的 `build/roster/`（`build/roster/roster_r118.tsv`、`build/roster/roster_r118_probe.tsv`）、
-`build/parsed/`、`report/measurements.md` 与这张表做过交叉核对，结果与不同源登记在
+`build/parsed/`、`report/50-results.md` 与这张表做过交叉核对，结果与不同源登记在
 `report/comparison-notes.md` §7；`build/runs/` 生成后，这张表的逐格引用改指向它。
 
 ## 1. 结果与指标表（照赛题表头；表头与 `data/metrics.csv` 同列）
@@ -147,7 +147,7 @@
 | 越界读写的机会计数 | 190464 | 拍 | OSD 字模索引在 1024×600 有效区整屏走一遍时越出数组上界的拍数；这道"最少触发次数"让"屏上没现象"与"真的被门住了"可区分 | `data/metrics.csv` 第 17 行；`build/evidence/r86_osd_t18_teeth_addr.txt` |
 | 缩放范围 | 0.25 – 2.00（八档） | 倍 | `ZOOM_X100 = 25 33 50 75 100 133 150 200`；手动/自动呼吸/Fit 三种来源，倍率与来源都可从 lane23 回读 | `data/metrics.csv` 第 18 行；`board/verify_r87.md` |
 | 片源与仲裁 | 3 路 + AUTO | — | ETH（PL 硬件收包链）/ SD（PS 读裸帧）/ TEST（自研动态图卡）；拔线与拔卡都已在板上复验 | `data/metrics.csv` 第 19 行 |
-| 片上结温（板读 XADC） | 当前版：**60.65 – 60.85**；第 113 批：61.2 – 61.7（`data/metrics.csv` 第 29 行原样） | ℃ | 警告 **两个版本、两种工况**：当前版那两条取自 `build/evidence/r118_serial_raw.txt`（`[TEMP] degC=60.65 …` 与 `… 60.85 …`），而 `report/measurements.md` §1 明写那一次是**空闲态**（`uart_stat.txt` 的 `frames=4398` 两次不变），所以不是满载结温；第 113 批那一行带的是 `bash build/board_verify.sh --geom --battery` 负载。**区间都是被跟踪原始回显的极值，不是精度声明**；跨批次/跨工况不相减（`report/comparison-notes.md` N7） | `build/evidence/r118_serial_raw.txt`；`build/evidence/r113_temp_lines.txt`、`build/evidence/r113_serial_raw.txt`；`report/measurements.md` §1 |
+| 片上结温（板读 XADC） | 当前版：**60.65 – 60.85**；第 113 批：61.2 – 61.7（`data/metrics.csv` 第 29 行原样） | ℃ | 警告 **两个版本、两种工况**：当前版那两条取自 `build/evidence/r118_serial_raw.txt`（`[TEMP] degC=60.65 …` 与 `… 60.85 …`），而 `report/50-results.md` §1 明写那一次是**空闲态**（`uart_stat.txt` 的 `frames=4398` 两次不变），所以不是满载结温；第 113 批那一行带的是 `bash build/board_verify.sh --geom --battery` 负载。**区间都是被跟踪原始回显的极值，不是精度声明**；跨批次/跨工况不相减（`report/comparison-notes.md` N7） | `build/evidence/r118_serial_raw.txt`；`build/evidence/r113_temp_lines.txt`、`build/evidence/r113_serial_raw.txt`；`report/50-results.md` §1 |
 | 变异对照分支 | 5 | 条 | `build/sim/mut_control.sh`：一次变异只许让它声称要抓的那一条判为未通过 | `data/metrics.csv` 第 16 行 |
 | 人眼判据（验收表） | 36 | 行 | 全功能上板验收表；屏幕现象只能由人判，机器判据不冒充眼睛 | `data/metrics.csv` 第 21 行；`board/verify_r87.md` |
 | 当前版眼睛判过的两格 | E6 读 **0**；E4 原话「现在屏幕没问题了四角都在屏幕内」 | — | E6 的**对照那一半仍未做**（按住 KEY1 应读 1），表里登记为"未判"；E1/E2/E3 的点头分属第 92、93、103 批，不给当前这一版借用 | `build/evidence/r118_eyes/`；`report/06-validation.md` §5；`board/acceptance.md` |
@@ -175,7 +175,7 @@
 | 检查 24 项 / 23 通过 1 未通过 | §1、§3 | `report/06-validation.md` §3、`report/timing/round_r118.md` §五 | 一致；但与 `data/metrics.csv` 第 14 行的"22 项"**不同值**，已登记为差异 D1，以检查件为准 |
 | 整屏逐像素判据 165/0 | §1 | `report/06-validation.md` §2 与 `build/tb_v98_report.txt`（同一件同一次 `grep -c`） | 一致；`data/metrics.csv` 第 15 行已重算成同一个数，差异 D2（不同源、跨批次不可比）于 2026-10-18 关闭 |
 | 其余几笔不同值（"3 类 vs 7 类"、第 117 批位流身份、`Max Ambient` 57.4/57.5） | §3、§2 | 见 `40-optimization.md` §8 差异清单 D3/D5/D6 | 全部以证据文件为准，未自行取舍 |
-| 与 `build/roster/roster_r118.tsv`、`report/measurements.md` 的交叉核对 | §1、§2 | 八格名册 `diff` 给 `rc=0`（逐字节相同）；指标行数值全同；唯一新登记的是 `build/power.rpt` **行号漂移 1 行**（值相同） | 判定条件 5 对这两样成立；对仍缺失的 `build/runs/` 为 `NOT_MEASURED`。命令与输出贴 `report/comparison-notes.md` §7（D7） |
+| 与 `build/roster/roster_r118.tsv`、旧 `50-results.md` 的交叉核对 | §1、§2 | 八格名册 `diff` 给 `rc=0`（逐字节相同）；指标行数值全同；唯一新登记的是 `build/power.rpt` **行号漂移 1 行**（值相同） | 判定条件 5 对这两样成立；对仍缺失的 `build/runs/` 为 `NOT_MEASURED`。命令与输出贴 `report/comparison-notes.md` §7（D7） |
 
 ## 7. 这一章依据的产物
 

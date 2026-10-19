@@ -46,6 +46,14 @@
 `build/utilization.rpt` 只给合计 96 tile / 19 DSP，不带实例层次；分层件 `build/util_hier.rpt` 出自更早一次实现，
 未与本报告同一轮重生成，所以不当作当前值念。
 
+历史两轮的逐实例归属留档（不是当前值，念的时候要点名批次）：#31 实现后 `build/util_hier.rpt` 给
+`u_pl/u_fb`（`frame_buffer_w64`）RAMB36 **80**、`u_eth/u_cdc`（`dc_fifo`）RAMB36 **9**、`u_pipe/u_blur` 与
+`u_pipe/u_sobel` 各 RAMB18 **1**，`system_top` 合计 RAMB36 **89** + RAMB18 **3** = **90.5** 个 tile
+（`report/perf_report.md` §4b，帧缓存占其中约 88 %）；第 88 批一次只读 DCP 查询 `build/r88_resource_owners.txt`
+给 93 块 RAMB36 里 `u_pl/u_bilin` 一家占 **80**、4044 个 RAMD64E 里效果链四个 3×3 窗口级占 **2912（72 %）**、
+打包器 **928**（`report/perf_report.md` §11.4）。单元数与 tile 数是两种口径：93 是 `RAMB36/FIFO*` 单元数，
+tile 数是 93 + 6×0.5 = 96（见上一节），两种数都对、念的时候要说是哪一种。两处都属历史轮次，不进上面的当前表。
+
 ## 时序余量的出处（`data/metrics.csv`，其证据文件列为 `build/timing_summary.rpt`）
 - setup WNS = **0.687 ns**：第 5 行「全局 setup WNS,核心,0.687,ns,失败 setup 端点 0 / 总端点 51027；
   板上 r132 bit cb907d3e4898」。WNS 是全设计最负的 setup slack，单位是 ns。
@@ -82,7 +90,10 @@
 
 ## 与资源配套的功能性读数（`data/metrics.csv`）
 - SD 本地播放帧率 **29.8 – 30.0 fps**：第 12 行「SD 本地播放帧率,实测,29.8 – 30.0,fps,…100 帧滑窗读数；
-  串口 115200-8N1」。
+  串口 115200-8N1」。两个滑窗样本的逐字读数 `29.956 fps`、`29.815 fps`（回显原样留在 `report/50-results.md`
+  第 1 节的 `[SD] frame 1900/2000` 那一段，源件 `build/evidence/r87_boot_stat_drain.txt` 第 4–5 行）；
+  整卡连续播完的自开播累计 ≈29.85 fps、以及 SD 与 ETH 同时在的两条源并发 165 s 零失败出自
+  `report/perf_report.md` §6b（bit `efc89779`，凭据 `build/frozen_r32_sdfix/`，elf `c00b6553`；修根因前这条工况必停在第 3584 帧）。
 - UDP 入口负载 **9.2 MB/s**：第 13 行「UDP 入口负载,口径,9.2,MB/s,512×300×2 B × 30 fps 的计算值…
   **这是负载口径不是实测带宽**」。
 - 越界读写的机会计数 **190464 拍**：第 17 行「越界读写的机会计数,功能正确性,190464,拍,…」。

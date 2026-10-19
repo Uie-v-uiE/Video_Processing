@@ -79,4 +79,4 @@ node build/checks/check_repo_consistency.mjs
 | `measured/sender_during_sd.txt` | 0 处指路 |
 | `measured/lane30_watch.out`、`measured/lane30_watch.tcl` | 一次打点的现场与它的驱动脚本；工具本体是 `src/host/lane30_watch.mjs`，脚本不该住在这一层 |
 | `measured/ddr_dump_20260921_15fps.out.gz` | 460 KB 的 bank 原始抓取，只有 `src/host/ddr_stale.mjs` 能读；它与 `.gitignore` 挡住 `ddr_dump.out` 是同一条口径（原始抓取属凭据，不属数据层）。判读表本身留在 `measured/README.md` |
-| `measured/board_measure_r06_r07.md`、`measured/board_measure_r09.md` | 判读文档不是数据，且全仓 0 处指路（同一批读数在 `report/measurements.md` 里已有）；`board_measure_r08.md` **留着**，因为交付文档按名字引它当凭据 |
+| `measured/board_measure_r06_r07.md`、`measured/board_measure_r09.md` | 判读文档不是数据，且全仓 0 处指路（同一批读数在 `report/50-results.md` 里已有）；`board_measure_r08.md` **留着**，因为交付文档按名字引它当凭据 |

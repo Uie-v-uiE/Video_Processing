@@ -8,7 +8,7 @@
 一块 Zynq-7020（器件 `xc7z020clg484-2`，出处 `build/utilization.rpt` 报告头那一行
 `| Device       : xc7z020clg484-2`）上的实时视频图像处理通路。几何、滤波、显示全部在 PL 完成；
 PS 只发命令、读计数、把 SD 卡上的帧 DMA 进自己那块 DDR，不中转 ETH 视频字节
-（软硬件划分见 `report/architecture.md` §3；`src/ps/main.c` 文件头第 2 行写的是同一件事：
+（软硬件划分见 `report/02-architecture.md` §软硬件划分；`src/ps/main.c` 文件头第 2 行写的是同一件事：
 「PS control plane + SD 卡本地回放。UDP 视频数据通路仍然整个在 PL」）。
 
 输出是 1024×600 的 HDMI 画面，画面里有一条竖缝：缝一侧是未处理的画面，另一侧是同一坐标系下
@@ -19,10 +19,10 @@ PS 只发命令、读计数、把 SD 卡上的帧 DMA 进自己那块 DDR，不�
 
 `RGMII 上的 UDP 视频流`、`SD 卡裸帧`、`PL 自绘动态图卡` 任一路进来，PL 先用逆映射做缩放与旋转，
 再走固定 15 拍的效果链滤波，最后上 HDMI 1024×600。选路发生在两层：进帧缓存之前由仲裁器决定哪一路
-拿到搬运引擎，读出之后再由 `fb_vis` 决定像素取自帧缓存还是现场画的图卡（`report/architecture.md` §1）。
+拿到搬运引擎，读出之后再由 `fb_vis` 决定像素取自帧缓存还是现场画的图卡（`report/02-architecture.md` §数据通路与缓冲）。
 选中的那一路经行缓存与效果链后与分割线合成：原图抽头与处理抽头同拍并排，分割线逐像素二选一。
 完整链路图与关键常数（源画幅 512×300 RGB565、显示时序 `H_TOTAL 1344 / V_TOTAL 625`）记于
-`report/architecture.md` §1 与 §4，逐模块的端口与被例化关系记于 `report/modules.md`。
+`report/02-architecture.md` §数据通路与缓冲 与 §关键常数，逐模块的端口与被例化关系记于 `report/src-map.md`。
 
 演示时现象由屏幕和串口自己给出，操作顺序按 `report/demo_script.md`。屏左上角 OSD 第 0 行打印
 `1024X600 FPS:59 SRC:ETH`，`SRC:` 那一格写的就是当前真正上屏的那一路（`report/demo_script.md` §0 第 3 步；
@@ -37,9 +37,9 @@ OSD 共 5 行，`N_LINES = 5` 见 `src/rtl/video/osd_overlay.v:19`）。拔网�
 | 数字 | 值与单位 | 落在哪份件上 |
 |---|---|---|
 | 器件 | `xc7z020clg484-2` | `build/utilization.rpt` 报告头 |
-| 片源画幅与格式 | 512×300 RGB565 | `report/architecture.md` §4 |
-| 显示画幅与时序 | 1024×600，`H_TOTAL 1344 / V_TOTAL 625` | `report/architecture.md` §4 |
-| 效果链固有延迟 | 15 拍 | `report/architecture.md` §4、`src/rtl/process/proc_pipeline.v` |
+| 片源画幅与格式 | 512×300 RGB565 | `report/02-architecture.md` §关键常数 |
+| 显示画幅与时序 | 1024×600，`H_TOTAL 1344 / V_TOTAL 625` | `report/02-architecture.md` §关键常数 |
+| 效果链固有延迟 | 15 拍 | `report/02-architecture.md` §关键常数、`src/rtl/process/proc_pipeline.v` |
 | OSD 行数 | 5 行（`N_LINES = 5`） | `src/rtl/video/osd_overlay.v:19` |
 | SD 本地播放帧率 | 29.8 – 30.0 fps | `data/metrics.csv` 第 12 行 |
 | 端到端时延 | 未报（见第 5 节） | `data/metrics.csv` 第 20 行 |
@@ -62,7 +62,7 @@ OSD 共 5 行，`N_LINES = 5` 见 `src/rtl/video/osd_overlay.v:19`）。拔网�
 3. **三片源自适应仲裁是可逆的**：ETH ⇄ SD 让位在无人干预下发生。判据不是"曾收过包"（那种条件一旦
    成立就不会回落，ARP 一个包就能触发），而是"最近真有帧，且量它的那个时钟还准"，后者是板上读得到
    的物理事实。凭据 `src/rtl/util/src_arb.v` 与其仿真台架 `sim/tb_v796_src_arb.v`（职责与例化点
-   `src/rtl/top/pl_video_top.v:421` 记于 `report/modules.md`，取舍与反面对照记于
+   `src/rtl/top/pl_video_top.v:421` 记于 `report/src-map.md` §top/，取舍与反面对照记于
    `report/background_and_novelty.md` §3 第 6 条）。
 
 ## 5. 限制与未实测
@@ -77,10 +77,10 @@ OSD 共 5 行，`N_LINES = 5` 见 `src/rtl/video/osd_overlay.v:19`）。拔网�
 
 ## 依据的产物
 - `README.md`
-- `report/architecture.md`
+- `report/02-architecture.md`
 - `report/background_and_novelty.md`
 - `report/demo_script.md`
-- `report/modules.md`
+- `report/src-map.md`
 - `report/08-limits.md`
 - `report/known_issues.md`
 - `report/log/issues.md`

@@ -154,13 +154,13 @@
 - 观察项：`bash build/gates.sh` 在板上这一版上判多少项、几项通过几项未通过、未通过的是不是只有 C5c 那一项。
 - 前置状态（含回读到的值）：刷板前那一次发布前检查回读 `build/evidence/r118_board/board_now.txt:3` = `刷板前那一次门禁：绿=21 红=3（其中 2 条是文档时效，改口后由最终两跑复验）`（件里的原话，"门禁／绿／红"是脚本的用词，见第 0 节用词对照）。
 - 具体动作：读 `build/r118_gates.txt` 的第 34 行（唯一 FAIL 项）与第 53/54 行（范围句与结论句）；再读 `build/evidence/r118_board/gatesd_summary.txt` 那两行版本声明汇总。
-- 我看到/读到的原文：`build/r118_gates.txt:34` = `  顶层台架 tb_v98    top=56c269602e18 FAIL行=1 指纹(norm1):fresh fresh fresh 同一次跑且无 FAIL      FAIL`；`:53` = `…# 结尾必须把**范围**一起念出来：判定 24 项、未判 0 项。`；`:54` = `GATES: 有红项（判定 24 项）—— 不采纳，保留上一版`；`gatesd_summary.txt:1-2` = `GATESD done id=identical green=23 red=1` + 同一条 tb_v98 FAIL。警告：`build/gates.sh:582` 是那句结论的出处——**只要有任何红项就固定打印"不采纳，保留上一版"**，而板上跑的确实是板上这一版（S1、S3）。所以那半句是脚本对未通过项的固定用语，不是一次"板子退回上一版"的动作；这个反差进 `report/questions-for-team.md` 的 Q5。本条判的是"发布前检查跑完并点名了项数与唯一未通过项"，成立。
+- 我看到/读到的原文：`build/r118_gates.txt:34` = `  顶层台架 tb_v98    top=56c269602e18 FAIL行=1 指纹(norm1):fresh fresh fresh 同一次跑且无 FAIL      FAIL`；`:53` = `…# 结尾必须把**范围**一起念出来：判定 24 项、未判 0 项。`；`:54` = `GATES: 有红项（判定 24 项）—— 不采纳，保留上一版`；`gatesd_summary.txt:1-2` = `GATESD done id=identical green=23 red=1` + 同一条 tb_v98 FAIL。警告：`build/gates.sh:582` 是那句结论的出处——**只要有任何红项就固定打印"不采纳，保留上一版"**，而板上跑的确实是板上这一版（S1、S3）。所以那半句是脚本对未通过项的固定用语，不是一次"板子退回上一版"的动作；这个反差进 `report/90-open-items.md` 的 Q5。本条判的是"发布前检查跑完并点名了项数与唯一未通过项"，成立。
 - 判定：PASS
 
 ### S17 数字对账检查（metrics.csv / 两份首页 ↔ 三份报告）
 
 - 观察项：`data/metrics.csv` 与两份首页里点名那三份报告的每个数，是否都等于报告现在的值。
-- 前置状态（含回读到的值）：S11/S12/S13 的三份报告读数；`data/metrics.csv` 未被改动（只新建 `report/measurements.md`）。
+- 前置状态（含回读到的值）：S11/S12/S13 的三份报告读数；`data/metrics.csv` 未被改动（只新建 `report/50-results.md`）。
 - 具体动作：`node src/host/metric_recheck.mjs`（正跑）与 `node src/host/metric_recheck.mjs --self`（反例必须报未通过）。
 - 我看到/读到的原文：`build/evidence/p16c/metric_recheck_before.txt` = `OK` 行 **70** 条、`RED` 行 **0** 条、`rc=0`，汇总行见 S11。警告：同一个检查脚本在**写完四份文档之后**重跑变成 `判 86 个数（首页层 32 个／解析到 6/10 行；红 4）… rc=1`（件 `build/evidence/p16c/metric_recheck_after.txt`），四条红全是 `RED row=README.md 里找不到「…」这一行`；`metric_recheck` 从不打开那四份新建文档（它只读 `data/metrics.csv` + 三份 `.rpt` + 两份 `README`），未通过的成因是 `README.md` 在两次跑之间被别的写入者重写（它不归这份签核表管），因此本条 PASS 指的是下面那三次读数，成因与归属见第 4 节 L14。
 - 判定：PASS。三次读数都记着：第一次 判 114／红 0／`rc=0`；写完四份文档后 判 86／红 4／`rc=1`；收尾重跑 判 117／红 0／`rc=0`，`OK` 行 73 条（件 `build/evidence/p16c/metric_recheck_final2.txt`）；中间那 4 条未通过的成因与归属见 L14
@@ -179,7 +179,7 @@
 - 前置状态（含回读到的值）：`board/acceptance.md:91` 记的件是 `build/r99_tb_shown_rate_console.txt` 与 `build/mut_shown_rate_r97.txt`（两份都还在盘上）。
 - 具体动作：`grep -c "^PASS\|^FAIL" build/r99_tb_shown_rate_console.txt`；或复跑 `bash build/sim/run_one.sh tb_shown_rate`（跑法见 `report/build.md`）。
 - 我看到/读到的原文：`board/acceptance.md:91` = `RESULT tb_shown_rate PASS（13 条判据、0 FAIL，控制台 build/r99_tb_shown_rate_console.txt）`——那是 **r99 那一棵树**上的重跑；r118 树上没有重跑过这一支台架。
-- 判定：PASS（读数属 r99，本版未重跑，已在 measurements.md 逐轮列出）
+- 判定：PASS（读数属 r99，本版未重跑，已在 50-results.md 逐轮列出）
 
 ## 2. 眼睛判据（机器判不了；只引队员原话 + 时间 + 当时状态）
 
@@ -247,7 +247,7 @@
 - 观察项：同一块板上，15 fps / 30 fps / 图卡三档在屏上是否分别读 ≈15 / ≈30 / ≈59（旧版 r97 三档都读 59/60）。
 - 前置状态（含回读到的值）：串口 `src 1` 钉住网络那一路；上位机 `python src/host/video_sender.py --demo --fps 15`（再换 `--fps 30`），最后 `src 0` 钉图卡。警告：这一格**只能看屏**：`board/acceptance.md:84-85` 明写"串口既没有 `[LINK]` 回包也没有 `FPS` 的数字回读（`src/ps/main.c` 里没有任何 fps 读者，实测 grep）"。机器那一半见 S19。
 - 具体动作：三档各看屏 L0 那一格一次，档间只换推流参数与 `src`，不动别的。
-- 我看到/读到的原文：`board/acceptance.md:86` = `**过**（用户 2026-10-01 15:3x 在 **r101** 上目视三档，原话"第一个我看了和你说的都符合"；`；同一句在 `report/log/issues.md:8984-8985` 记成 = `E5 闭合：三档（--fps 15 / --fps 30 / src 0 图卡）用户在 **r101** 上目视，原话"**第一个我看了和你说的都符合**"，因此board/acceptance.md 的 E5 行由"待队员判"改"过"`。警告：原话字面只点名"**第一个**"，两句记录句都写"三档目视/闭合"——这差别不能替队员定，已进 `report/questions-for-team.md` 的 Q2。板上那一刻是 r101，不是本版 r118。
+- 我看到/读到的原文：`board/acceptance.md:86` = `**过**（用户 2026-10-01 15:3x 在 **r101** 上目视三档，原话"第一个我看了和你说的都符合"；`；同一句在 `report/log/issues.md:8984-8985` 记成 = `E5 闭合：三档（--fps 15 / --fps 30 / src 0 图卡）用户在 **r101** 上目视，原话"**第一个我看了和你说的都符合**"，因此board/acceptance.md 的 E5 行由"待队员判"改"过"`。警告：原话字面只点名"**第一个**"，两句记录句都写"三档目视/闭合"——这差别不能替队员定，已进 `report/90-open-items.md` 的 Q2。板上那一刻是 r101，不是本版 r118。
 - 判定：PASS（这条只能由人的眼睛判，机器读不到 `FPS:`：签收人=队员，判读时间 2026-10-01 15:3x，当时板上是 r101；板上这一版**没有重判过**，且三档的覆盖范围待确认）
 
 ### E6 冷上电那一度：屏上 `ROT:` 那一格应当读 0
@@ -269,7 +269,7 @@
 ## 3. 历史轮次的机器判据（只登记，不覆盖、不当本版用）
 
 `board/acceptance.md` 是**按行记版本**的（`:8-12` 明写"把某一行的数当这一版验过之前，先看这一行有没有 r94 字样"）。
-这份文件的第 1 节全部点名 r118 的件；下面这几条只有历史轮的件，逐轮的数在 `report/measurements.md` 里全列，
+这份文件的第 1 节全部点名 r118 的件；下面这几条只有历史轮的件，逐轮的数在 `report/50-results.md` 里全列，
 不挑最好的一行（P16c 铁律 6）：
 
 | 判据 | 哪一版 | 读数出处（原件行） | 本版是否重跑 |
@@ -288,20 +288,20 @@
 | # | 欠的那格 | 判定 | 后续（三选一：修 / 判为误报并给依据 / 交裁决） |
 |---|---|---|---|
 | L1 | S8 空闲态 `drop_words=0` 是零样本 | NOT_MEASURED | **修**：S7 那两次带流读数已经把同一判据作实了；这一条不是设计缺陷，是记录口径，处理方式=只按 S7 念，S8 永远不升 PASS |
-| L2 | E4b 左缘沿对角的宽彩条 | NOT_MEASURED | **交裁决**：要队员的眼睛，`report/questions-for-team.md` 的 Q1 |
-| L3 | E6b 按住 KEY1 的对照读数 | NOT_MEASURED | **交裁决**：要队员再断一次电，`report/questions-for-team.md` 的 Q6 |
-| L4 | E4r 第二问"只贴在最上面几行"的逐字回答 | NOT_MEASURED | **交裁决**：`report/questions-for-team.md` 的 Q7 |
-| L5 | E5 原话字面只覆盖"第一个" | PASS（限定） | **交裁决**：`report/questions-for-team.md` 的 Q2 |
+| L2 | E4b 左缘沿对角的宽彩条 | NOT_MEASURED | **交裁决**：要队员的眼睛，`report/90-open-items.md` 的 Q1 |
+| L3 | E6b 按住 KEY1 的对照读数 | NOT_MEASURED | **交裁决**：要队员再断一次电，`report/90-open-items.md` 的 Q6 |
+| L4 | E4r 第二问"只贴在最上面几行"的逐字回答 | NOT_MEASURED | **交裁决**：`report/90-open-items.md` 的 Q7 |
+| L5 | E5 原话字面只覆盖"第一个" | PASS（限定） | **交裁决**：`report/90-open-items.md` 的 Q2 |
 | L6 | 最差 20 条 hold 时钟偏斜的逐条重读（r92 那一次的读法） | NOT_MEASURED | **修**：`build/hold_paths.rpt` 在盘上，重跑一次 `report_timing` 的逐条读法即可，不需要人 |
 | L7 | SD 播放帧率的滑窗读数（本版） | NOT_MEASURED | **修**：`build/evidence/r87_boot_stat_drain.txt:4-5` 是 r87 的 `29.956 / 29.815 fps`；r118 只回读到 `sd=1 playing=1 frames=4398`（不随时间变化 ⇒ 上位机不在推流、SD 帧窗没在动），要重取需要板子在场 |
 | L8 | `data/metrics.csv:15` 写 141 条而 `build/tb_v98_report.txt` 现在数出 162 条（provenance 也不同一串） | 已修（2026-10-18 本轮） | **当时的处置是「交裁决」**：理由是「`data/metrics.csv` 不在可改范围（禁区）」。本轮用户的指示是「文档该同步的同步」，据此把第 15 行重算成现件：165 条判定 / 0 条 FAIL、头部三枚 md5 与现树同批、耗时按 xsim 自报约 202 分钟；复跑 `metric_recheck` 判 117 个数红 0、`round_bit_pairing` GREEN。改动账在 `report/log/issues.md` #482。 |
 | L9 | `data/metrics.csv:14` 写门禁"22 项"而 `build/r118_gates.txt:53` 印"判定 24 项" | 已修（2026-10-18 本轮） | 项数争议由运行钉死：`build/r132_gates.txt` 末行 `GATES: ALL PASS（24 项全部判定）`（两跑逐字节一致）；`data/metrics.csv:14` 改成 24 项——原来那个 22 是某一轮的绿数被当成项数抄进表。#480/#482。 |
 | L10 | `data/metrics.csv:28` 写 `Max Ambient 57.5 ℃` 而 `build/power.rpt:38` 印 `57.4` | 已修（本轮之前的同步里） | `data/metrics.csv:28` 现在写 `Max Ambient 57.4 ℃`，与 `build/power.rpt:39` 的 `Max Ambient (C) 57.4` 一致；结温 52.6 ℃ 与动态 2.213 W 同源同一份报告（工具置信度仍是 Low）。 |
-| L11 | `board_now.txt:1` 写的"刷入时刻"与 `bitcycle_console.txt` 里 `program_pl` 两步前缀的时刻、`board_verify_console.txt:1` 抬头的时刻相差约 2 分钟，件里没有那次刷入动作自身的日志行（逐字时刻都在那三件里，本表不复述） | NOT_MEASURED | **交裁决**：`report/questions-for-team.md` 的 Q3 |
+| L11 | `board_now.txt:1` 写的"刷入时刻"与 `bitcycle_console.txt` 里 `program_pl` 两步前缀的时刻、`board_verify_console.txt:1` 抬头的时刻相差约 2 分钟，件里没有那次刷入动作自身的日志行（逐字时刻都在那三件里，本表不复述） | NOT_MEASURED | **交裁决**：`report/90-open-items.md` 的 Q3 |
 | L12 | S10 里"4 条 `[TEMP]` 的逐条 degC"没有单独被跟踪件（本版只有 2 条原始回显） | PASS（判定）+ 覆盖范围不足 | **修**：`board_verify_console.txt:15` 那条的计数下限是 `[TEMP]=2`，而电池那句念"4 条"——两个下限不同；把电池的 4 条也 grep 成被跟踪件（`build/evidence/r113_temp_lines.txt` 那种写法）就是修法 |
 | L13 | `#170/#171` 板级 abort 注入（S18） | NOT_MEASURED | **修**：需要 `--drop-packet` 注入 + 复看 `eth_ready`，机器能做，但无人值守下不碰板子 |
 | L14 | `data/metrics.csv` 之外的那支护着首页数字的检查脚本，在同一次核对的**中途**报过未通过：第一次 `判 114 个数…红 0`/`rc=0`（件 `build/evidence/p16c/metric_recheck_before.txt`）→ 写完四份文档后 `判 86 个数（首页层 32／解析到 6/10 行）…红 4`/`rc=1`（件 `metric_recheck_after.txt`、`metric_recheck_final.txt`），4 条未通过全是 `RED row=README.md 里找不到「全设计 setup WNS」这一行`一类的**首页形状**问题 → 收尾重跑又回到 `判 117 个数（首页层 63／解析到 10/10 行）…红 0`/`rc=0`、`OK` 行 73 条（件 `metric_recheck_final2.txt`）| FAIL（中途那 4 条）→ 现为红 0 | **判为误报并给依据**（依据三条，全部可复跑）：①`metric_recheck` 一生只打开 `data/metrics.csv` + 三份 `.rpt` + `README.md` + `README_EN.md`（`src/host/metric_recheck.mjs:50,73,86,211,287,289` 就是全部读文件入口），新建的四份文档不在它的覆盖范围里；②被打开过的是 `README.md` 自己：它的体积与修改时间在那几次跑之间连续变过（14278 B → 36822 B → 36980 B → 40683 B → 45715 B，逐条时间在件里），**写这份签核表时它还在被别的写入者改**，而这一页从未对它发起写；③同族检查 `doc_currency_check` 的过期指路 106 → 132 → 135 条，**逐条出处里这四份文档 = 0 条**（件 `build/evidence/p16c/doc_currency_final2.txt`；`DELIVERY` 名单 `src/host/doc_currency_check.mjs:175` 根本不含 `docs/` 与 `board/` 的非 README 文件）。`line_cite_check`（D5）与 `doc_enc_check` 在写完四份文档后仍是 `D5: CLEAN 硬错 0`／`扫了 536 个手写文件：全部干净`，两支都 `rc=0`。⇒ 中途那 4 条未通过**不需要改判定标准、也不需要改首页**（两者都在禁区）；留给队里的只有一句话：确认 `README.md` 现在这版的行名是否要继续喂 `metric_recheck.mjs` 的 `FRONT` 名单（要改就是**扩大覆盖范围**，不许降低计数下限）|
-| L15 | 同一次并发重写之后，`report/measurements.md` 第 5 节登记的三处"指标表 ↔ 报告不同源"里，`data/metrics.csv` 那一侧没变、**首页那一侧的数字与形状都可能已经不是所引用的那一版** | NOT_MEASURED | **修**：重跑 `node src/host/metric_recheck.mjs` 并把它点名的行号重新抄一遍（不需要人，只需要 `README.md` 停止变动） |
+| L15 | 同一次并发重写之后，`report/50-results.md` 第 5 节登记的三处"指标表 ↔ 报告不同源"里，`data/metrics.csv` 那一侧没变、**首页那一侧的数字与形状都可能已经不是所引用的那一版** | NOT_MEASURED | **修**：重跑 `node src/host/metric_recheck.mjs` 并把它点名的行号重新抄一遍（不需要人，只需要 `README.md` 停止变动） |
 
 ## 5. 三态计数与"PASS 必须有回读 + 证据"的自证
 

@@ -241,7 +241,7 @@ PS CPU：主循环仅 `uart_poll`，不参与视频搬移。
 | 时序 | `build/timing_summary.rpt` |
 | 资源 | `build/utilization.rpt` |
 | 功耗 | `build/power.rpt` |
-| 架构 | `report/architecture.md` |
+| 架构 | `report/02-architecture.md` |
 | 优化过程 | `report/optimization_log.md` |
 | 上位机 | `report/host_guide.md` |
 | 构建 | `build/tcl/build_system_axigpio.tcl` |

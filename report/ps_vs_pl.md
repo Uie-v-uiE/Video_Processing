@@ -1,7 +1,7 @@
 # PS 方案与 PL 方案的取舍（含最终那一版的结论）
 
 这份记录回答一个问题：视频数据面为什么放在 PL（可编程逻辑），PS（芯片上的 ARM 核）为什么只留控制。
-下面依次是三代各自的做法与最终版本的职责切分。结构细节的落点是 `report/architecture.md`，
+下面依次是三代各自的做法与最终版本的职责切分。结构细节的落点是 `report/02-architecture.md`，
 逐时钟时序读数是 `report/05-timing.md`，板上实测数字是 `data/metrics.csv`。
 
 术语先对齐：GEM0 是 PS 侧的以太网 MAC 外设，lwIP 是跑在 PS 上的软件 TCP/IP 栈；RGMII 是 PL 侧

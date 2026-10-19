@@ -85,7 +85,7 @@
 - **凭据**：`report/log/issues.md:12782-12790`（#316 全文，含立的那两条规矩）；
   活标本两件：`build/evidence/r118_board/board_verify_console.txt:18,21`（同一份读数里 `"eth_live":0 … "why":"没有流"` + `drop_words → 0`）与
   `build/evidence/r116_board/health_r118build_a.json`（`"eth_live":1,"owner_eth":1` 与 `"drop_words":0` 同一份，另有 `pkt_err":0`、`"flags_bits":{"drop_seen":"0","stream_live":"1"}`）；
-  用它写的两格在 `report/measurements.md` 第 1 节"ETH 入流零丢字"那两行。
+  用它写的两格在 `report/50-results.md` §1"ETH 入流零丢字"那两行。
 - **失效条件**：如果这个计数器在你这一路根本没有"活样本"出口（读不出非零值），那"0"就什么也不说；先做一条能把它顶非零的注入。
 
 ## R7 冷上电三步链 + 全程不碰按键（把"上电那一度"做成可判的状态）
@@ -124,7 +124,7 @@
 ```bash
 cd <仓库根>
 # ① 只验指标表那一列（这是 0 容忍真正管的东西）
-awk -F'|' '/^\| /{ n=NF-1; if(n>=7) print $n }' report/measurements.md \
+awk -F'|' '/^\| /{ n=NF-1; if(n>=7) print $n }' report/50-results.md \
   | grep -oE '`(build|board|data|src|sim|report)/[^`、]+`' | tr -d '`' \
   | sed -E 's/:[0-9].*$//' | sort > /tmp/ev2.txt
 tot=$(wc -l < /tmp/ev2.txt); miss=0
@@ -132,7 +132,7 @@ while read -r p; do [ -f "$p" ] || { miss=$((miss+1)); echo "MISS $p"; }; done <
 echo "逐格点名=$tot 缺=$miss 唯一=$(sort -u /tmp/ev2.txt | wc -l)"
 
 # ② 全文清点，分三桶：A=真指路却不在盘上（必须 0）／B=通配或占位写法／C=目录句
-for doc in report/measurements.md board/signoff.md report/acceptance-recipes.md board/signoff-questions.md; do
+for doc in report/50-results.md board/signoff.md report/acceptance-recipes.md board/signoff-questions.md; do
   A=0;B=0;C=0;T=0
   while read -r p; do T=$((T+1)); [ -f "$p" ] && continue
     case "$p" in *"("*|*"*"*|*"NN"*|*"<"*|*"（"*) B=$((B+1));; */) C=$((C+1));; *) A=$((A+1)); echo "A MISS $p";; esac
@@ -144,7 +144,7 @@ done
 
 - **怎么记录**：把两段的输出都落进 `build/evidence/p16c/evidence_existence.txt`（或你这一轮的证据目录），
   并在文档里写"逐格点名 n / 缺 m / 唯一 k"，而不是只写"已核对"。
-- **凭据**：实得 `逐格点名=122 缺=0 唯一=48`（`report/measurements.md` 的证据文件列，100 % 命中）；
+- **凭据**：实得 `逐格点名=122 缺=0 唯一=48`（`report/50-results.md` 的证据文件列，100 % 命中）；
   全文四份文档的分桶结果与逐条 B/C 清单在 `build/evidence/p16c/evidence_existence.txt`。
 - **失效条件 1**：带通配符或占位的写法（`build/tb_edge_rim_r*.txt`、`build/evidence/rNN_serial_raw.txt`、`build/evidence/<本轮>/…`）
   会被判成 B 桶而不是 A 桶。那是**写法**，不是指路；但一份文档里 B 桶变多通常说明有人在用通配糊弄指路，要逐条看。
@@ -210,7 +210,7 @@ sed -n '1p' build/evidence/rNN_bit_md5.txt
 - **凭据**：`board/acceptance.md:30-42`（r96 那一节，`:32` 那句就是原话：`上表的原行**不覆盖**（留作历史读数）`）与
   `board/acceptance.md:48-59`（r97 那一节同写法）；`:9-10` 那句"先看这一行有没有'r94'字样"是同一条规矩的读法侧。
 - **失效条件**：`build/` 下那些**单文件**报告（`build/tb_v98_report.txt`、`build/timing_summary.rpt`）没有"另开一节"的保护，
-  下一轮直接覆盖，因此所以指标表引用它们时必须同时引 provenance 行（`report/measurements.md` 第 5 节 G1 就是这么抓出来的）。
+  下一轮直接覆盖，因此所以指标表引用它们时必须同时引 provenance 行（`report/50-results.md` §6 G1 就是这么抓出来的）。
 
 ## R14 摘要行里出现 `?` = 尺子读不出来，判原始件而不是那行摘要
 
@@ -253,5 +253,5 @@ sed -n '1p' build/evidence/rNN_bit_md5.txt
 | S6 / S7 / S8（默认档、带流零丢字、零样本） | R6 + R14 | 带流那半 PASS；空闲那半 NOT_MEASURED |
 | S1（位流身份） | R10 | PASS；刷入时刻待澄清 ⇒ 第 1 轮 Q3 |
 | 指标表每行的"证据文件"列 | R9 | 命中率与缺项见 `build/evidence/p16c/evidence_existence.txt` |
-| 逐轮读数怎么不漂 | R13 + R14 | 三条不同源登记在 `report/measurements.md` 第 5 节 |
+| 逐轮读数怎么不漂 | R13 + R14 | 三条不同源登记在 `report/50-results.md` §6 |
 | 温度 / 三方对账 | R8 | PASS；"4 条逐条值没有单独被跟踪件"这条射程不足记在 `board/signoff.md` L12 |

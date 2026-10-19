@@ -48,7 +48,7 @@
 
 表里 `inv_scale` 那一行是定点写法：倍率先乘一个固定的二进制比例、再存成整数，所以码值与倍率之间只差那一个比例；
 inv 越大，逆映射采样得越"散"，画面上显示的原始图就越小。这一行循环的是自动呼吸那一路，手动档与拟合档
-另有其表（见 `report/architecture.md` 的缩放表与 `report/defaults.md`）。
+另有其表（见 `report/02-architecture.md` 的缩放表与 `report/defaults.md`）。
 
 映射（无旋转）：
 
