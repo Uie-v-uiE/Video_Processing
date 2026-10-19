@@ -21,13 +21,21 @@
 **4. 松动台账是不是空的？不空的话每条的非时序证据是什么？**
 空的（`report/timing/loosen_ledger.tsv` 数据行 0，只剩表头）。没有批准人在场时按 H1/G3 一条都不松。
 两处"看起来该放松但没放松"（eth_rxc 的 hold 不确定度 0.800 没调小；RGMII ±0.5 ns 输入窗没绑进工程）写在台账注释里，
-**并给的是反向证据**：绑上真窗之后实测 WHS −2.885 / THS −14.344（件 `build/evidence/r114_io_roll_console5.txt` 的 `[Route 35-57]`）——
+**并给的是反向证据**：r114 那版窗绑上去实测 WHS −2.885 / THS −14.344（件 `build/evidence/r114_io_roll_console5.txt` 的 `[Route 35-57]`）；
+现版 r132 把改对之后的窗（`[1.2, 2.8]`，#304/#309 之后）滚了一次，给 setup **−0.846** / hold **−0.870**、
+两个角各红那 5 个端点（件 `build/evidence/r132_rgmiiwindow_roster.txt`）——两个数是不同形状的窗，不许说成同一个窗量了两次。
 方向是"先修捕获钟再绑约束"，不是"去掉约束让它绿"。
 
 **5. `unconstrained_endpoints` 和 `io_unconstrained_ports` 现在是多少？**
 0 与 **11**（输入 5：`eth_rx_ctl`、`eth_rxd[0..3]`；输出 6：`led[0]`、`led[1]`、`tmds_clk_p`、`tmds_data_p[0..2]`）。
+现版两件都在：只读探针 `build/evidence/r132_check_timing_verbose.txt` 与名册表 `build/roster/roster_r132.tsv`
+（`ROSTER-BUILT rows=8 io_unconstrained_ports=11`），与 r118 那一轮同一个数。
 所以**按 H5 直接判红**：这两个数不为 0 时 WNS 数字无意义。这一格把"设计所有域都绿"从结论降级成了"未被约束覆盖"——
-默认不加载输入窗的那一版至今是 `0 / 11`，把窗绑上去的那一版是 `0 / 6`（绑窗那一次的读数在后半第 5 问）。
+默认不加载输入窗的那一版至今是 `0 / 11`，把窗绑上去的那一版是 `0 / 6`。
+**这两组数现在都有现版的件**：不加载那一版 `build/timing_summary.rpt:99` 打 5 个输入（HIGH）、`:106` 打 6 个输出（HIGH）；
+加载那一版 `build/evidence/r132_rgmiiwindow_timing_summary.rpt:99` 打 **0** 个输入、`:106` 仍是 6 个输出
+⇒ 窗把 H5 的输入那一半真的清掉了，代价是这 5 个脚两个角各红；输出那一半没被这刀碰过，
+TMDS 的窗要的是 skew 不是采样窗（#335），所以 `0 / 6` 里那 6 个还在账上。
 
 **6. `report_methodology` 警告类别计数相比基线增加了吗？增加算成本还是收益？**
 **没测**（快车道滚的报告清单里还没有 methodology，见 gates 表 G4 行），写"未测"，不写绿。

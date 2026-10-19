@@ -41,7 +41,9 @@ WHS = -0.747 ns   THS Failing Endpoints = 25742   WPWS = 0.264 ns   TPWS Failing
    所以这一条**不能在夜里自行采纳**：G3 要求"每条松动/每条会让读数变差的改动都要有批准人"，用户睡了。
    台账见 `report/timing/loosen_ledger.tsv`（本轮 0 条：我没放松任何东西，也没加严到工程里）。
 3. 但它必须先被知道，否则下一轮的 C4（补 I/O 窗口）会把两笔债混在一起：
-   RGMII 真窗 → hold −2.885（r114 量过，件 `build/evidence/r114_io_roll_console5.txt`）；
+   RGMII 真窗 → hold −2.885（r114 量过，件 `build/evidence/r114_io_roll_console5.txt`；
+   那是 ±0.500 那一版窗的数，窗本身取自规格表错行 #304/#309。现版 r132 用改对之后的 `[1.2, 2.8]` 窗
+   重滚一次，给 setup −0.846 / hold −0.870，件 `build/evidence/r132_rgmiiwindow_roster.txt`）；
    统一悲观带 → hold −0.747（今夜量出）。**两个数来自不同的检查对象，永不相减**（附录 1 的量纲红线）。
 
 ## 3. 交给用户决定的一件事

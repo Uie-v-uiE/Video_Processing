@@ -1099,3 +1099,38 @@ PW 由小到大：`eth_rxc` 3.500 < `clk_fpga_0` 3.870 < `sys_clk` 7.000 < `clko
 凭据：`build/timing_summary.rpt`（10-17 11:36；逐时钟 WNS/WHS/WPWS 与端点总数取自第 175 行起的
 `Intra Clock Table`，上面 12 条取自报告里按时钟分段的 `Max Delay Paths` / `Min Delay Paths`，8 条同域 +
 4 条跨域）、`build/route_status.rpt`、`build/utilization.rpt`（同一分钟）、`build/system.bit`（11:35）。
+
+## 时序补账轮（2026-10-20 01:19–02:00，不动 RTL、不动现行约束、不采纳任何一刀）
+
+这一轮不往上面任何一列加数：它量的是"上一版名册之后这十三版欠的账"，四臂里三条判不采纳、一条判 NOT RUN。
+逐格读数、判据与件名都在 [`report/timing/round_r132.md`](timing/round_r132.md)，这里只记账面结论：
+
+- **基线名册重导**：探针件 + 名册表两条独立通道给同一组数（`clkout0_1` 3.287/0.067、`clk_fpga_0` 1.571/0.048、
+  `eth_rxc` 0.687/0.004、`sys_clk` 14.294/0.121），台账挂着的那笔"逐域名册整份重导"从此销账；
+  与 r118 相减 `comparisons_made=32 red=7 verdict=RED`，那 7 格是 r118→r132 之间几笔 RTL 改动的代价，
+  钉住 WNS 的 `eth_rxc/setup` 一格从 0.739 收到 0.687（−0.052 ns = 周期 8 ns 的 0.65 %）。
+  **"能不能优回去"按这张表答**：判据是 WNS ≥ 0，抬回 0.739 买的是余量不是正确性，
+  而本仓量过的刀都是"这一格涨一点、别处跌更多"⇒ 现版不再投时序优化轮（见 `eth_rxc_partition_options.md` 第 8 节）。
+- **臂 A（HDMI 源端窗进构建）**：`clkout1_1` 从 `NOWRITE` 变成 setup −5.408 / hold −1.923，
+  但这条红不是设计不合格——工具把 4 ns 位周期当成了"钟到数据"的采样窗，规范那条是 skew。
+  这件事 2026-10-04 已判完（`debt_ledger.md` 追加一节 + #335），本轮先重做了一遍才查到，
+  过程账记 **#493**；一度写好的第三版候选件撤销，`git rm`。
+- **臂 B（RGMII 输入窗进构建）**：setup −0.846 / hold −0.870、两个角各红 5 个端点（就是窗覆盖的那 5 个脚），
+  总端点 51,027→51,032 多的正是这 5 个第一次被纳入分析的输入端点；输入侧未约束端口 5→**0**、
+  输出侧 6 个原样在。严格逐格判据不过（别域两格 setup 在缩）⇒ 不采纳，退回候选件。
+  旧的 −2.885 与本轮不是同一个原因的两次测量（窗形状不同，#304/#309）。
+- **臂 C（复制 `owner_eth` 旗标）判 NOT RUN**：净表量到这只旗标只驱动 5 个负载，
+  高扇出名册 r132 与 r118 两轮都没有它 ⇒ 前提不成立，省下的一次构建记在案，免得下次再跑。
+- **臂 D（同量纲的问法，只读探针）**：现版逐脚 clock-to-pin 互对最差 0.065 ns（上限 4.000）、
+  对内最差 0.001 ns（上限 0.300）；16 行读数与 r119 逐字相同，原因有件——那一段 99.951 % 是逻辑、
+  route 0.049 %，不随 fabric 布线走。新判定器 `build/r132_pin_skew_judge.mjs` 造 6 条畸形动红 6 条。
+- **工具侧两笔**：`check_timing -verbose` 的正文是打印的、`puts [check_timing -verbose]` 交出空串，
+  链子因此差点空跑报喜（**#494**，收尾链现已逐件判退出码并把"跑出红"与"没跑成"分开）；
+  名字级的那把 I/O 债尺子（`build/check_io_timing_coverage.py`，有 `IODEBT_VERBOSE` 入口）第一次吃现版件，
+  十条里九条 GREEN，唯一红项仍是 `I3_output_covered bare_out_ports=4`。
+
+件：`build/evidence/r132_after_roster_probefmt.txt`、`r132_rgmiiwindow_{roster,diff_vs_r132.txt,timing_summary.rpt,utilization.rpt}`、
+`r132_tmdswindow_{roster,diff_vs_r132.txt}`、`r132_pin_skew_probe.txt`、`r132_arm_d_verdict.txt`、
+`r132_arm_d_selftest.txt`、`r132_check_timing_verbose.txt`、`r132_roster_tsv_diff.txt`、
+`r132_io_debt_checker_with_verbose.txt`、`build/roster/roster_r132.tsv`；门禁 `build/evidence/r132_gates_run2.txt`
+（末行 `GATES: ALL PASS（24 项全部判定）`）。设计一件没动：板上那一版仍是 bit md5 `cb907d3e4898`。

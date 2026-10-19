@@ -37,9 +37,10 @@
 | §3 B4 噪声底 | `build/evidence/r115_noise_cal_console.txt` + `/tmp/kx/r115_noise/noise.txt` | ✅ **noise_ns = 0.000**（两空白滚的头条四数与最差路径身份逐位相同才算 0） |
 | §4 C 切割清单 | [`cut_ledger.tsv`](cut_ledger.tsv) | ✅ 每条一个附录 2 的根因标签 |
 | §4 D 打分与排序 | [`score.md`](score.md) | ✅ |
-| §4 E1 逐轮花名册 | [`roster_round115.tsv`](roster_round115.tsv) · [`roster_round116.tsv`](roster_round116.tsv) | ✅ r115：8 行、32 次比较、**4 红**。**r116**：8 行、生成器打印 `comparisons_made=24`（另 8 对双侧 NA）、`reds=2`、末列 `verdict` 只有 `eth_rxc` 一行 RED ⇒ **这是第二把尺子给的同一条结论**（与 `build/evidence/r116_roster_diff.txt` 的 `judged=6/pairs=8/result=RED` 独立相符）。两端各有指纹：A=`roster_baseline.tsv`（B3 冻结基线）、B=`build/evidence/r116_roster_e1.tsv`（生成命令与来源报告写在文件头两行） |
+| §4 E1 逐轮花名册 | [`roster_round115.tsv`](roster_round115.tsv) · [`roster_round116.tsv`](roster_round116.tsv) · 比值口径的两张在 `build/roster/`（`roster_r118.tsv` 与 **现版 `roster_r132.tsv`**，相减件 `build/evidence/r132_roster_tsv_diff.txt`） | ✅ r115：8 行、32 次比较、**4 红**。**r116**：8 行、生成器打印 `comparisons_made=24`（另 8 对双侧 NA）、`reds=2`、末列 `verdict` 只有 `eth_rxc` 一行 RED ⇒ **这是第二把尺子给的同一条结论**（与 `build/evidence/r116_roster_diff.txt` 的 `judged=6/pairs=8/result=RED` 独立相符）。两端各有指纹：A=`roster_baseline.tsv`（B3 冻结基线）、B=`build/evidence/r116_roster_e1.tsv`（生成命令与来源报告写在文件头两行）。**r132**：`ROSTER-BUILT rows=8 io_unconstrained_ports=11`，对 r118 相减 `comparisons_made=32 both_NA=8 red=7 verdict=RED`（那 7 格是 r118→r132 之间几笔 RTL 改动的代价账，本轮不动它；探针百分数口径的那张表还欠着，见 `round_r132.md` 第六节第 2 条） |
 | §7 L1/L2/L3 逐域极限判定（G4） | [`limit_audit_r116.md`](limit_audit_r116.md) | ✅ 写完：四域逐域判"顶住的是逻辑还是布线"；`clk_fpga_0` 判**未到极限**，D0 那一次只读量（件 `build/evidence/r117_d0/`）把根因从"离得远"改成正读数 **`FANOUT`**（239 引脚网吃 5.690 ns）⇒ `build/r117_fb_pblock_fastlane.sh` 那一支自拒（`PB_EXISTING_BOX=` 空）且方向已被推翻；快车道赢的那一支（`build/tcl/repl117_roll3.tcl`，见下面 r117 索引）在正式构建里判 **DECLINED**（件 `build/r117_verdict_declined.txt`） |
-| r116 结果页（先看这份） | [`round_r116.md`](round_r116.md) | ✅ V1..V5 全部填成**实测读数**、一格没空；V6 是板侧实测＋回刷 r114 的 A/B 对照；尺子修补与 r117 链的落点在本页第六节，所以没有一格是"提前涂绿"的 |
+| r132 结果页（**先看这份**） | [`round_r132.md`](round_r132.md) | ✅ 现版补账：基线逐域名册有探针件、臂 B（RGMII 输入窗）在现版滚出 setup −0.846 / hold −0.870 并解释清"多的 5 个端点是覆盖变宽"、臂 A 的红按 #335 收回（量纲错，不是设计债）、臂 C 判 NOT RUN（owner_eth 扇出实测 5）、臂 D 用同量纲的问法给互对 0.065 / 对内 0.001 ns、`check_timing -verbose` 与名册表 `build/roster/roster_r132.tsv` 都换成现版件。欠的三条写在同一页第六节 |
+| r116 结果页（那一轮的读数） | [`round_r116.md`](round_r116.md) | ✅ V1..V5 全部填成**实测读数**、一格没空；V6 是板侧实测＋回刷 r114 的 A/B 对照；尺子修补与 r117 链的落点在本页第六节，所以没有一格是"提前涂绿"的 |
 | §4 E3 松动台账 | [`loosen_ledger.tsv`](loosen_ledger.tsv) | ✅ **空**（数据行 0；没有批准人在场时一条都不松，见 H1/G3） |
 | §4 E2 + G1..G12 判定表 | [`gates_g1_g12.md`](gates_g1_g12.md) | ✅ 逐条填完：**r115 那一版判 RED**（G1 四格红 ⇒ C1 那把刀拒绝；G4 明写"未测"不当绿） |
 | 附录 3 交付前 12 问 | [`twelve_questions.md`](twelve_questions.md) | ✅ 12 条都有答案，无留空（前后两段分别是 r115 滚与 r116 构建的读数） |
@@ -75,7 +76,8 @@
 换来的是①可复用的名册尺子（三件各自带能红的对照）②噪声底 0.000 的正式标定
 ③一把"机制确实动了但代价落在最紧的域上"的负结果 ④后续顺序由这组读数定死：
 **先 C3（`CLKTOPO`，把 eth_rxc 的捕获钟相位提前），再 C4（补 I/O 窗口）**，
-因为 C4 一绑上去 hold 就是 −2.885 ns，顺序反过来就是"用缺约束换绿灯"。
+因为 C4 一绑上去 hold 就是红的（现版 r132 滚了一次给 −0.870，件 `build/evidence/r132_rgmiiwindow_roster.txt`；
+r114 那轮念的 −2.885 是 ±0.500 那一版窗的数，窗本身取自规格表错行，#304/#309），顺序反过来就是"用缺约束换绿灯"。
 
 
 ## r116/r117 工件索引（上面那份结论讲的是 r115 那一滚，保留在此作历史）

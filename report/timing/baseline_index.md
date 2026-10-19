@@ -16,7 +16,7 @@
 | `timing_summary_setup.txt` | 8e455009f4e7fb6456f51f04e486705e | `report_timing_summary -setup` |
 | `timing_summary_hold.txt` | 66a8089d2ee972bc46b1f6d03043636b | `report_timing_summary -hold` |
 | `timing_summary_verbose.txt` | d43135520fd351d7c930a7fd868ab700 | `report_timing_summary -verbose` |
-| `check_timing_verbose.txt` | 550b45d95449e31ac6465cd0f7fc68be | `check_timing -verbose`（**I/O 债务的权威名单就这一份**） |
+| `check_timing_verbose.txt` | 550b45d95449e31ac6465cd0f7fc68be | `check_timing -verbose`（**这份基线树上 I/O 债务的权威名单就这一份**；现版 r132 的同名件是 `build/evidence/r132_check_timing_verbose.txt`，两份点名的端口逐字相同——念"现在是多少"用后者，念"基线长什么样"用这一份） |
 | `check_timing.txt` 警告 | ff0582cd7cd3e1a6165a59ef6889ef37 | 件内 Command 行写的是 **`report_timing`**，不是 `check_timing` ⇒ **文件名与内容不符**（工具侧的账，见 debt_ledger §6 与 ISSUES） |
 | `setup_nworst.txt` | 227c29b99e085b08419e2081d996a36c | `report_timing -nworst … -unique_pins`（setup） |
 | `hold_nworst.txt` | 91e7c265d4c206c53e8b4805097c46fc | 同上（hold） |

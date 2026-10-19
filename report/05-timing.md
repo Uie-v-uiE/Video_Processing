@@ -28,11 +28,16 @@
 | 时钟 | 周期 ns | setup slack / 相对余量 | hold slack / 相对余量 | 端点 | 该域最差路径（终点 / 级数 / 布线占比） |
 | --- | --- | --- | --- | --- | --- |
 
-> 2026-10-17（r132）这一节只更新到 **setup/hold 余量与端点数**（现读自 `build/timing_summary.rpt`）；表里那些**路径名、级数、route 占比**仍是第 118 批那一次的名册——要跟着重导得再跑一轮 `build/tcl/` 那套逐域抽路径的件（登记在 `report/log/issues.md` #479 的待办里）。宁可留下这句，也不把新数配旧路径写成"同源"。
-| `eth_rxc` | 8.000 | **0.687 / 8.59 %** | 0.004 / 0.05 % | 4835 | setup `u_eth/u_icmp/u_icmp_tx/check_buffer_reg[19]/D`，4 级，route 58.447 %；hold `u_eth/u_lm/full_d_reg/D`，1 级 LUT4，route 56.480 % |
-| `clk_fpga_0` | 10.000 | 1.571 / 15.71 % | 0.048 / 0.48 % | 15721 | setup `u_pl/u_bilin/u_fb/lo_reg_0_16/WEA[0]`，1 级 LUT6，route **93.584 %**；hold `…axilite_b2s/RD.r_channel_0/rd_data_fifo_0/memory_reg[31][9]_srl32/D`，0 级，route 43.472 % |
-| `clkout0_1` | 20.000 | 3.287 / 16.44 % | 0.067 / 0.34 % | 30071 | setup `u_pl/u_osd/ch_r_reg/ADDRARDADDR[6]`，21 级（含 9×CARRY4），route 59.150 %；hold `u_pl/u_pipe/u_sobel/no_right_r_reg[1]/D`，0 级，route 62.683 % |
-| `sys_clk` | 20.000 | 14.294 / **71.47 %** | 0.121 / 0.61 % | 323 | setup `u_pl/u_ang/angle_reg[3]/D`，5 级，route 74.015 %；hold `u_pl/u_k2/cnt_reg[8]/D`，0 级，route 50.893 % |
+> **2026-10-20 更新（r132 补账轮）：这张表整行都是现版的数**。余量与端点数读 `build/timing_summary.rpt`
+> 与名册表 `build/roster/roster_r132.tsv`（两条通道逐格相同），**路径名、级数、route 占比**读只读探针名册
+> `build/evidence/r132_after_roster_probefmt.txt`（原件 `build/roster_r132_<clk>_<setup|hold>.rpt` 16 份）。
+> `report/log/issues.md` #479 末段挂着的那笔"逐域名册整份重导"到此销账；这一轮顺手纠正的走法记 #493。
+> 下面这些路径身份与 2026-10-17 那版表格**不是同一批**：起点/终点、级数与布线占比都换了读法，
+> 旧的那份留在 `report/timing/round_r118.md`，不要把新数配旧路径写成同源。
+| `eth_rxc` | 8.000 | **0.687 / 8.59 %** | 0.004 / 0.05 % | 4835 | setup `u_eth/u_icmp/u_icmp_tx/ip_head_reg[4][10]/R`，5 级（LUT3、LUT4、LUT5 各 1 + LUT6 2），route 79.959 %；hold `u_eth/u_reasm/stat_bytes_reg[0]/D`，3 级（CARRY4 2 + LUT6 1），route 78.011 % |
+| `clk_fpga_0` | 10.000 | 1.571 / 15.71 % | 0.048 / 0.48 % | 15721 | setup `u_pl/u_bilin/u_fb/lo_reg_0_40/ADDRARDADDR[7]`，1 级 LUT3，route **92.711 %**；hold `u_eth/u_saver/q_data_reg_448_511_36_38/RAMA/I`，1 级 LUT5，route 32.193 % |
+| `clkout0_1` | 20.000 | 3.287 / 16.43 % | 0.067 / 0.34 % | 30071 | setup `u_pl/u_osd/ch_r_reg/ADDRARDADDR[6]`，22 级（CARRY4 9、LUT2 2、LUT3 2、LUT4 3、LUT6 5、MUXF7 1），route 64.487 %；hold `u_pl/u_blur/lb1_reg_0_127_11_11/DP.HIGH/WADR2`，0 级，route 57.985 % |
+| `sys_clk` | 20.000 | 14.294 / **71.47 %** | 0.121 / 0.60 % | 323 | setup `u_pl/u_ang/angle_reg[6]/D`，4 级（CARRY4 1 + LUT4 1 + LUT6 2），route 71.549 %；hold `u_pl/u_ang/fs_s_reg[1]/D`，0 级，route 28.162 % |
 | `clkfbout`、`clkfbout_1` | 20.000 | `slack=NOWRITE` / `margin_pct=NA` | 同左 | 这两行没有 setup/hold；`build/timing_summary.rpt` 只有脉冲宽度行 18.408 ns / 3 端点 | — |
 | `clkout1_1` | 4.000 | `NOWRITE` / `NA` | 同左 | 脉冲宽度 2.408 ns / 10 端点 | — |
 | `clkout2` | 5.000 | `NOWRITE` / `NA` | 同左 | 脉冲宽度 **0.264 ns** / 3 端点（全设计最小 WPWS 就是这一行） | — |
@@ -151,10 +156,19 @@ setup/hold 行"，不报"这四颗钟没问题"；两者的区别见第 7 节。
   除这一项之外全部通过。要留意两处结论的写法不同：检查脚本结尾按"有未通过项"机械印的是
   "不采纳，保留上一版"（`build/r118_gates_final.txt` 末行），而这一版是按预登记的 B4 条件
   （未通过项必须正好 1 个、且就是声明过的 C5c）被采纳上板的（`report/timing/round_r118.md` §二）。
-  2026-10-17 更新：上面这一整段说的是 **r118 那一次**的门禁形状；那条 C5c 已在 r132 关闭（`report/08-limits.md` §1、台账 #478），所以"发布门里红数 == 1"这个形状**目前是历史读数**，r132 的门禁与整屏台架本轮都还没重跑。
+  2026-10-17 更新：上面这一整段说的是 **r118 那一次**的门禁形状；那条 C5c 已在 r132 关闭（`report/08-limits.md` §1、台账 #478），所以"发布门里红数 == 1"这个形状**目前是历史读数**。
+  2026-10-20 再更新：门禁在补账轮重跑过一趟，件 `build/evidence/r132_gates_run2.txt`，末行
+  `GATES: ALL PASS（24 项全部判定）`；整屏台架那 165 条判据这一轮**没有重跑**（链子在飞的时候不起 xsim，
+  见 `report/timing/round_r132.md` 末行），念的还是 r132 当时归档的那份件。
 - **还有一处没覆盖**：同一份 `report/timing/debt_ledger.md` §2 记着输出侧有 6 个端口没有
   output delay（`led[0]`、`led[1]`、`tmds_clk_p`、`tmds_data_p[0]`…`tmds_data_p[2]`），
   合计 `io_unconstrained_ports` = 11，这一半也没有数。
+  **2026-10-20 把"没有数"说清楚成两截**：这 11 个口的**名字与计数**现在有现版件
+  （`build/evidence/r132_check_timing_verbose.txt`，名册表 `build/roster/roster_r132.tsv` 那一列同一数），
+  TMDS 那一路也**有同量纲的数**了——逐脚 clock-to-pin 离散互对最差 0.065 ns、对内最差 0.001 ns
+  （上限 4.000 / 0.300，件 `build/evidence/r132_pin_skew_probe.txt`）。
+  仍然没有的是两笔：连接器上那一段离散（探针只到封装脚）与眼图/抖动/占空比/上升下降
+  （`set_output_delay` 装不下 skew，见 #335）。LED 那两颗要写成"不查"必须先进放宽账本（当前 0 条）。
 
 ## 7. 这份清单不支持的三类说法
 

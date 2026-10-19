@@ -1,4 +1,13 @@
 # build/tcl/probe_check_timing.tcl -- read-only: the current build's own check_timing -verbose.
+# 作用: 把现版成品的 `check_timing -verbose` 全文落成一件，供名册表的 `io_unconstrained_ports` 列引用。
+# 输入: 环境变量 VP_DCP（可换 dcp）、VP_OUT（可换输出件名）；无命令行参数。
+# 输出/产出物: 一个文本件，默认 `build/evidence/r132_check_timing_verbose.txt`（三行头注 + 工具正文）。
+# 前置条件: 那个 dcp 存在（缺 ⇒ `REFUSE:` 并 exit 1）；正文为空 ⇒ `PROBE-EMPTY` 并 exit 4；
+#           正文里没有名册表要的那两句 ⇒ `PROBE-NO-PATTERN` 并 exit 4。
+# 关键参数: 正文靠 `-file` 拿——`puts [check_timing -verbose]` 交出的是**空串**（正文是打印的），
+#           这是 2026-10-20 第一版踩到的坑，记在 `report/log/issues.md` #494；
+#           同形写法见 `build/tcl/c2_scratch_probe.tcl:42` 与 `build/tcl/mf114_roll.tcl:176`。
+# 退出码: 0=件写好；1=没有 DCP；4=正文缺失或形状不对。
 # Why: build/roster/roster_r118.tsv's io_unconstrained_ports column is defined as "check_timing 的
 #   HIGH 两类之和（端口对象单位）" (see that file's header), and the only artifact behind it was
 #   r114's. A roster for r132 cannot be produced without re-running it on the routed dcp.

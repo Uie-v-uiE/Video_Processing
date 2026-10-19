@@ -194,6 +194,20 @@
   （`--self` 五条自对照：造 10 条畸形动红 10 条，缺输入 2 条报 `NOT_MEASURED`，rc=0）。
   这一族已经量到最差互对 0.065 ns / 对内 0.001 ns（件 `build/evidence/r119_window_check.txt`），因此
   "FPGA 内部到封装脚"这一段有数了，缺的是**板级走线到连接器**那一段。
+- **2026-10-20 追加（r132 这一轮把上面两条"判别方法"在现版重跑了一遍）**：
+  ① 名字级那条从此不借用旧件——现版 `-verbose` 件 `build/evidence/r132_check_timing_verbose.txt` 直接喂给
+  `build/check_io_timing_coverage.py`（它有 `IODEBT_VERBOSE` 这个入口，不用改尺子），十条里九条 GREEN：
+  `I7_verbose_selfreconcile no_input_delay=7/5+2 no_output_delay=12/6+6 GREEN`、
+  `I10_names_vs_source 输入集合逐字相同、输出无幽灵名 GREEN`，唯一红的还是
+  `I3_output_covered bare_out_ports=4`（屏那一路四组端口名），读数留在
+  `build/evidence/r132_io_debt_checker_with_verbose.txt`。
+  ② 那条同量纲的问法在现版重跑（`build/r132_arm_d.sh` + 新判定器 `build/r132_pin_skew_judge.mjs`）：
+  互对 0.065 / 对内 0.001 ns，与 r119 逐字相同；相同的原因有件——那一段 99.951 % 是逻辑、route 0.049 %，
+  本来就不随 fabric 布线走。上面"任何一份输出约束挂上去之后端点名册转成不通过、还是仍然通过"这一问，
+  现版给的是**第三种答案**：`set_output_delay` 那个容器装不下 skew（#335），所以它既不能证明设计不合格，
+  放宽它也不等于满足规范，问法要换成逐脚离散（已换，见 `report/timing/round_r132.md` 四c）。
+  ③ 顺手记一个坑：`puts [check_timing -verbose]` 交出的是**空串**（正文是打印的），
+  第一版探针因此写了 196 字节的空件而链子照样 rc=0，改成仓库既有的 `-file` 形状才对（#494）。
 - **现在的处置（是否影响演示）**：`build/timing_summary.rpt` 上那些 "MET" 一律注明不含芯片到面板那一段，不念成"对外时序满足"；
   `check_io_timing_coverage.py` 今天不进取发布前检查（接进去会立刻多一条真不通过 `I3_output_covered`，而"发布前检查 N 项"那句
   要在四处文档同一笔改，#242 的规矩），所以它现在是一份单独跑的尺子，不是一条门禁项。

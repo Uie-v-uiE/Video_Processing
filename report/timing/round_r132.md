@@ -189,6 +189,13 @@ J4 对内 P/N     max角=[0.001, 0.001, 0.001, 0.001] min角=[0.001, 0.001, 0.00
   四个有 intra 路径的域的 `wns_setup/wns_hold` 与第三节的探针名册**逐格相同**
   （1.571/0.048、3.287/0.067、0.687/0.004、14.294/0.121）——两条独立通道给同一组数，
   这是报告 1.4 那八对读数的第二件凭据。四族 `NA` 就是 `NOWRITE` 那四族，按 §1 口径不是解析失败。
+- 还有一件是顺手量到的、且**不用改尺子**：`build/check_io_timing_coverage.py` 有 `IODEBT_VERBOSE` 这个输入口，
+  把现版那份 `-verbose` 件喂进去，十条判定里九条 GREEN
+  （`I7_verbose_selfreconcile no_input_delay=7/5+2 no_output_delay=12/6+6`、
+  `I10_names_vs_source 输入集合逐字相同、输出无幽灵名`），唯一红的仍是
+  `I3_output_covered bare_out_ports=4`（屏那一路四组端口名）。
+  ⇒ H5 这条债的**名字级自洽**第一次跑在现版件上，不再借用 r114/r115 那一份；
+  读数 `build/evidence/r132_io_debt_checker_with_verbose.txt`。
 - 对冻结基线 `build/roster/roster_r118.tsv` 相减（`build/evidence/r132_roster_tsv_diff.txt`）：
   `comparisons_made=32 both_NA=8 red=7 verdict=RED`。红在 7 个相对余量格上：
   四个域的 setup 全在缩（`clk_fpga_0` 0.185→0.1571、`clkout0_1` 0.1815→0.16435、
@@ -216,6 +223,9 @@ J4 对内 P/N     max角=[0.001, 0.001, 0.001, 0.001] min角=[0.001, 0.001, 0.00
 - `u_pl/u_arb/owner_eth_reg/Q` 驱动的网络叫 `u_pl/u_arb/dbg_src[0]`，**负载 5 个**；
 - 高扇出名册（`report_high_fanout_nets`）在 r132 与 r118 两轮里都没有 owner 这一条，
   榜首是 2546 负载的 `u_eth/u_rgmii/u_rgmii_rx/gmii_rx_clk`；
+  这段名册不是上面那支 owner 探针打的，出自 `build/tcl/probe_timing_roster.tcl:119`，
+  件 `build/evidence/r132_after_roster_probefmt.txt` 的 20 行 `FANOUT|`（r118 同形件
+  `build/evidence/r118_after_roster_probefmt.txt` 里也没有 owner）；
 - 所以"复制这只旗标"不会改变布线距离，这一臂要量的东西不成立，省下的一次构建记在这儿，
   免得下次又有人去跑它。
 
@@ -248,6 +258,43 @@ J4 对内 P/N     max角=[0.001, 0.001, 0.001, 0.001] min角=[0.001, 0.001, 0.00
    按规矩 35 它只能当"这条红在现版复现了扫描末端值"来讲，不能当"某刀收益 +0.315"的第二证。
 
 链子在飞的时候不起台架也不起第二次探针：这台机器 15.7 G 内存，实现线程与 xsim 会互相挤。
+
+## 八、文档同步（2026-10-20 02:35，"把新数抄到该抄的地方"）
+
+这一轮的量不在这一页之外产生任何设计改动，但它改了 18 份文档的说法。逐份改了什么与为什么：
+
+- **销账的那笔**：`report/05-timing.md` 的逐域表原来自己写着"路径名、级数、route 占比仍是第 118 批的名册"
+  （#479 挂的债）。现在四域八行的路径身份全部换成现版探针读数（件见第一节），那句话改成
+  "整行都是现版的数"，并留一句"旧的那份留在 `round_r118.md`，不要把新数配旧路径写成同源"。
+  同一页另两处：门禁"r132 还没重跑"改成已重跑（件 `build/evidence/r132_gates_run3.txt`，
+  末行 `GATES: ALL PASS（24 项全部判定）`；整屏台架 165 条这一轮**没有**重跑，仍念 r132 当时那份件），
+  输出侧"这一半也没有数"改成两截——名字与计数有现版件、TMDS 有同量纲的数，欠的是连接器与眼图。
+- **−2.885 那一族**：`report/timing/README.md`、`twelve_questions.md` 第 4/5 问、
+  `gates_g1_g12.md` 的 G11/G12、`uncertainty_hold_ab.md`、`timing_global.md` 第 4d/§5、
+  `40-optimization.md` 的 V9 行与结论句——每处都把"−2.885"归位成"±0.500 那一版窗的数（取错行 #304/#309）"，
+  并把现版的 −0.846/−0.870 与之并列。G11 那句"三条里只有第一条是实测判负"按现版改成"第一与第三条"，
+  因为第三条现在有一种以上口径且其中一种是完整构建。
+- **名字不再借旧件**：`baseline_index.md` 把"权威名单就这一份"限定到那份基线树；
+  `build-notes.md` 两行加了"2026-10-20 起这一行的借用半句过期"；
+  `eth_tx_decoupling_inventory.md` 的 TX 名单加上现版件的行号（`:82-90`，与旧件逐字相同）。
+- **P5 那行的性质变了**：`score.md` 两处"没有来源数（UG471 + DVI T&M Guide 都没有）"改成
+  "来源数是 skew 上限、不是 SDC 的窗；现版按同量纲问法量到互对 0.065 / 对内 0.001 ns"。
+  可打性不变（不可打），但欠的两笔从此写得具体：连接器离散与眼图/抖动/占空比。
+  同一页 C2 段的 hold 四个数换成现版（0.004/0.048/0.067/0.121），旧数留在括号里。
+- **台账**：`debt_ledger.md` 追加一节（§1–§2 在现版的落点、两笔未抵的债 + 新增一笔窗的形状问题），
+  并在 §2 开头那句"件 md5 550b45d95449"后面标清那是 r115 的一份、现版件在哪——
+  这是 #493 那条规矩在账本上的自我执行。`optimization_log.md` 加"时序补账轮"一节（0 采纳、四臂下落、件名清单）。
+- **指标表**：`data/metrics.csv` 加四行（逐域 setup 名册、对外未约束端口计数、TMDS 逐脚到达离散、
+  RGMII 输入窗候选件现版读数），每行点名自己的证据件；"全局 setup 失败端点"那行加了指向窗那一行的引用。
+  `metric_recheck` 复跑：判 114 个数、红 0，csv 认领 10/10 行，其余 22 行不点名那三份报告。
+- **两处自己踩到的**：`build/tcl/probe_check_timing.tcl` 与 `probe_owner_fanout.tcl` 是我这一轮新写的探针，
+  头部没按仓库的要素写（`deliver_spec` 的 C4 因此判红 2 项），补齐要素后 C4 绿、总红 2 → 1（剩那条是 #60 挂着待签核的 C7）。
+  `round_r132.md` 第五节里"高扇出名册"那条原来挂在 owner 探针名下，实际出自
+  `build/tcl/probe_timing_roster.tcl:119`（件 `r132_after_roster_probefmt.txt` 的 20 行 `FANOUT|`，
+  r118 同形件里同样没有 owner）——归属已经改对，这属于 #493 说的"把每条读数指到能支持它的那件"。
+- **申报文档本体**：`report/technical-document-contest.md` 与它的 Word 快照在本轮前一段已经改完并通过
+  `python ../_word_align_dp.py` 的核对（rewrite=0、equal=127），这一节的文档改动没有再触碰申报正文，
+  所以 Word 不需要再同步一次。
 
 ## 七、这一轮的过程账（一件，写进 ISSUES）
 

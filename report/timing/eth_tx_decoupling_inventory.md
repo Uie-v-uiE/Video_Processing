@@ -275,6 +275,8 @@ false path 掉了。
   `:58`（`eth_txd[*]`）。这笔账已立案：`report/timing/debt_ledger.md:76`（"文件里没有写当初理由"）、
   `report/timing_global.md:113`（RGMII 发送是源同步，"假路"是在说芯片到 PHY 不检查）。
   `build/check_timing_verbose.rpt:83-87` 点名 `eth_tx_ctl`/`eth_txd[0..3]`，而 `eth_tx_clk` 不在名单里
+  （**现版同一件事有现版件**：`build/evidence/r132_check_timing_verbose.txt:82-90`，MEDIUM 那六个是
+  `eth_rst_n`、`eth_tx_ctl`、`eth_txd[0..3]`，`eth_tx_clk` 同样不在名单里——两件的名单逐字相同）
   （口径见 `build/check_io_timing_coverage.py:128` 的第 ③ 条；同文件 `:129` 把它列为 `CLOCK_OUTPUTS`）。
 - `set_clock_uncertainty -hold 0.800` 只打在 `eth_rxc`（`src/constraints/rk_zynq7020.xdc:50`），
   其余三域没有这一行。
