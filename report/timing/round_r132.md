@@ -46,11 +46,44 @@
 不是"我读不到"——所以"250 MHz 串行域不设检查项"这句话的根据是**没有可量的同沿路径**，
 真正欠的是**对外那一段**（源端窗口、走线失配扣除、眼图），那正是臂 A 要量的。
 
-## 四、臂 A（HDMI 源端窗）与臂 B（RGMII 输入窗）
+## 四、臂 A（HDMI 源端窗，绑在 `clkout1_1` 上）——量到了，但红得不该算数
 
-`【链子跑完后填】`。两臂各是一次隔离构建：产物只落 `build/isolated_r132_tmdswindow/` 与
-`build/isolated_r132_rgmiiwindow/`，`build/` 里被文档点名的那套一个不碰。
-要念的格子：声明行、八对差分、全设计 WNS/WHS/失败端点、资源四项，以及 B 那 5 个 I/O 端点的红数。
+链子 01:19:07 起飞、01:34:53 出件（`build/isolated_r132_tmdswindow/`，探针件
+`build/evidence/r132_tmdswindow_roster.txt`、差分 `..._diff_vs_r132.txt`、摘要 `..._timing_summary.rpt`）。
+
+- **P1 在位**：控制台里 `VP_R119_TMDS_WINDOW loaded`，窗确实进了实现。
+- **`clkout1_1` 从此可量了**：基线是 `NOWRITE`（没有同沿路径），带窗之后
+  setup **−5.408 ns**（TNS −32.363，6 个失败端点 / 该族 6 个）、hold **−1.923 ns**（THS −11.455）。
+  全设计那句随之变成 `Timing constraints are not met`。
+- **别域逐格**（对 r132 基线）：`clk_fpga_0` 1.571→1.585、`clkout0_1` 3.287→4.002、
+  `sys_clk` 14.294→14.822 都在涨；`eth_rxc` setup 0.687→**0.554 在缩**（hold 0.004→0.055 在涨）
+  ⇒ 严格 P2 不过。差分尺子那边 `D1_no_new_violation new=2 RED`、`D2_pairs_compared pairs=16 GREEN`。
+
+**但这个红不是"我们的 HDMI 输出违反规范"**。摘要里第一条违例路径把原因写死了：
+
+```
+Slack (VIOLATED) : -5.408ns     Source: u_pl/u_dvi/u_ser0/u_master/CLK (OSERDESE2, clkout1_1)
+Requirement      :  4.000ns     (clkout1_1 rise@4.000 - clkout1_1 rise@0.000)
+Data Path Delay  :  2.034ns     Logic Levels: 1 (OBUFDS=1)
+Clock Path Skew  : -3.300ns     (SCD 4.991ns 走 MMCM；端口侧 DCD 只有 1.596ns)
+```
+
+工具把"一个 4 ns 位周期"当成了规范里"钟到数据"的窗口，而 −5.408 里单是时钟路径偏斜就占 −3.300 ——
+比的是不同位槽的沿。取证文档 `report/io/hdmi_cts_source_window.md` 规定的形状是
+`create_clock -period 20.000 -name tmds_clk_ref [get_ports tmds_clk_p]` 再对数据口
+`set_output_delay ±4.000`：0.20 Tcharacter 是**连接器上**钟与数据的互对偏斜，参考对象只能是面板上
+看到的 20 ns 钟。r119 候选件头部那段"参考时钟对象由 pin 反查得到（clkout1_1）"的推理，
+把"哪条钟驱动触发器"当成了"对外窗以哪条钟为参考"——在 serdes 输出上这两件事不是一回事。
+
+所以这一臂**不采纳**，但债的形状变了：从"缺一次量名册的构建"变成"**候选件绑错了参考钟**"。
+第二版候选件 `src/constraints/r132_hdmi_source_window_v2.xdc`（开关 `VP_R132_TMDS_V2=1`，
+默认同样不加载）按文档形状重写，由臂 D 去量，见第六节。
+
+## 四b、臂 B（RGMII 输入窗）
+
+`【链子跑完后填】`。要看的是那 5 个脚（`eth_rxd[0..3]` + `eth_rx_ctl`，上升沿与 `clock_fall` 各一组）
+第一次被检查之后 `eth_rxc` 的 hold 与 I/O 端点红数，以及别域是否被牵连。
+
 
 ## 五、臂 C（复制 owner_eth）判 NOT RUN——前提被净表读数否掉
 
@@ -67,12 +100,14 @@
 "能动的只有摆放"，而摆放这一类刀在本工程量过两次（赢 1 格跌 4 格那两条，见
 `report/optimization_log.md` 的 r89 与 r117 小节），要再动得按名册差分重新立案。
 
-## 六、这一轮还欠的三件（不写成做完）
+## 六、这一轮还欠的四件（不写成做完）
 
-1. `check_timing -verbose` 的现版件——`build/r115_roster_build.py` 那张名册表的
-   `io_unconstrained_ports` 一列要它，r114 那份已经隔了十几版；
-2. 由它生成 `build/roster/roster_r132.tsv` 与探针版 `roster_r132_probe.tsv`（口径见
+1. **臂 D**：第二版窗（`VP_R132_TMDS_V2=1`，链子 `build/r132_arm_d.sh`）的读数——它才是"对外那一段
+   到底差多少"的第一次有效测量；在那之前 4.1 第 1 条仍写"没有结论"；
+2. `check_timing -verbose` 的现版件——`build/r115_roster_build.py` 那张名册表的
+   `io_unconstrained_ports` 一列要它，r114 那份已经隔了十几版（探针 `build/tcl/probe_check_timing.tcl` 已备好）；
+3. 由它生成 `build/roster/roster_r132.tsv` 与探针版 `roster_r132_probe.tsv`（口径见
    `build/roster/roster_r118.tsv` 头部三行注释）；
-3. 四、两节的数落进本页，并把结论回填到报告 1.4 注、4.1 第 1 条与 4.2 那句"一挂就红"。
+4. 臂 B 与臂 D 的数落进本页，并把结论回填到报告 1.4 注、4.1 第 1 条与 4.2 那句"一挂就红"。
 
 链子在飞的时候不起台架也不起第二次探针：这台机器 15.7 G 内存，实现线程与 xsim 会互相挤。

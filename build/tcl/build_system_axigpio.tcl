@@ -81,6 +81,22 @@ if {[info exists ::env(VP_R119_TMDS_WINDOW)] && $::env(VP_R119_TMDS_WINDOW) eq "
   puts "VP_R119_TMDS_WINDOW off（候选件 src/constraints/r119_hdmi_source_window.xdc，缺的是一次量名册的构建）"
 }
 
+# 6c) HDMI 源端窗的**第二版候选件**（2026-10-20，默认不加载）
+#   与 6b 只差参考时钟的对象：6b 绑内部串行钟 clkout1_1（4 ns），本版把 20 ns 的钟定义在输出端口
+#   tmds_clk_p 上——规范给的 0.20 Tcharacter 是连接器上钟与数据的互对偏斜，参考对象只能是面板看到的钟。
+#   为什么换：VP_R119_TMDS_WINDOW=1 那一轮量到 clkout1_1 从"无同沿路径"变成 setup -5.408 / hold -1.923 ns，
+#   而违例里 Clock Path Skew 就占 -3.300 ns（件 build/evidence/r132_tmdswindow_timing_summary.rpt 第一条路径），
+#   说明那一版比的是不同位槽的沿，不是对外窗本身。逐条写在 src/constraints/r132_hdmi_source_window_v2.xdc 头部。
+#   开法：VP_R132_TMDS_V2=1。默认关的理由与 6b 同：新增约束先量名册，别域不许变差，量完不采纳就是声明代替测量。
+if {[info exists ::env(VP_R132_TMDS_V2)] && $::env(VP_R132_TMDS_V2) eq "1"} {
+  set hwxdc [add_files -fileset constrs_1 -norecurse [file join $root src constraints r132_hdmi_source_window_v2.xdc]]
+  set_property used_in_synthesis false $hwxdc
+  set_property used_in_implementation true $hwxdc
+  puts "VP_R132_TMDS_V2 loaded（HDMI 源端 TP1 窗，参考钟定义在 tmds_clk_p 上；量完之前别念成已采纳）"
+} else {
+  puts "VP_R132_TMDS_V2 off（候选件 src/constraints/r132_hdmi_source_window_v2.xdc）"
+}
+
 create_bd_design design_1
 create_bd_cell -type ip -vlnv xilinx.com:ip:processing_system7:5.5 processing_system7_0
 set ps [get_bd_cells processing_system7_0]
