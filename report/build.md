@@ -208,3 +208,13 @@ cp build/system.bit build/system.xsa build/ps_app.elf \
 当前回退链（2026-09-23 07:1x，四块 bit 实体都在各自目录里）：
 `frozen_r19_arb`（`545a27a1`，**明早默认**）→ `frozen_r18_abort`（`534f7760`，从 git 历史复原）
 → `frozen_r17_cdc`（`11998af8`）→ `frozen_r13`（`0f46ec91`，最后一次上过板验证的功能集）。
+
+### 7.1 哪些件只留在仓库、不进提交包
+
+- 逐轮门禁归档与实测留件在 `build/evidence/` 一族：含位流身份行所在的 `build/evidence/r132_gates_run1.txt`
+  （第 3 行，md5 前 12 位 `cb907d3e4898`）、集成阶段逐域关键路径前 12 档的端点读数
+  `build/evidence/r124_tiers_ladder.txt`、资源三笔增减所对的逐层件。这些是本地留档，不随包；
+  申报正文（`report/technical-document-contest.md`）只指路径，不写随不随包。
+- `board/scripts/make_boot_image.sh` 产出的 flash 目录里的 `BOOT.bin` 是构建产物，同样只在盘上，不随包。
+- 集成阶段的实测做法（申报 1.6 删减前的原话）：集成之后按域取关键路径的前 12 档逐个量到端点，
+  被实测否掉的优化回退掉；读数件即上面的 `build/evidence/r124_tiers_ladder.txt`。

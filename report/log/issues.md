@@ -15686,3 +15686,36 @@ RUN       bash run_test.sh --dry-run 在包内跑通 rc=0（四步 NOT_MEASURED�
 一条判据形状被这次改写逼出来：D1c 要求中英首页各抓到一句"门禁 N 项 X 绿 / Y 红"（地板 2 句），
 而中文首页那格当时写成 `**24 项 24 绿 / 0 红**`——`门禁` 与数字之间夹了粗体标记，正则的 `\s*` 跨不过去，
 于是只剩英文一句、D1c 判"空转"。修法是把粗体挪开而不是放宽判据；改完门禁回到 24 项全绿。
+
+### #489 文档去重与重新包装：作品报告只留一份 md 与一份带 logo 的 Word（2026-10-19）
+
+诉求：作品报告留一份 md 加页眉带"芯辰大海·FPGA·点亮未来"的那份 Word，其余按"内容/功能/定位重复"清掉；
+技术文档与海报按现在的版本重新包装。
+
+删了十四份（独有内容先并进存活者，再删）：旧全版技术文档与其简版、无 logo 的两份 Word、旧协作记录
+`ai_collaboration.md`、面向读者的 `known-limitations.md`、`demo_3min.md`、`measurements.md`、
+`architecture.md`、`report/reproduce/` 那一层、两份队伍提问清单、`modules.md`、`run-queue.md`。
+存活者的行数变化：08-limits 269→381、src-map 101→263、unattended 95→137、02-architecture 86→208、
+70-reproduce 248→423、collaboration/corrections 381→597、demo_talk 164→197、contest 技术文档 413→535、
+90-open-items 553→572、04-resources 98→109、comparison-notes 190→192。
+
+`board/evidence_r41/` 那七份指标采集件**一份没删**：按内容反查，drop200/drop2000/nopause60/nopause120
+的原始读数是 `report/perf_report.md` §6b 那张表的唯一凭据（那张表自己声明"每一行都对应一份 json"），
+116.7 fps 那一格还 cascades 到 `data/metrics.csv` 与答辩材料；`soak300b` 与 `soak300` 互为复跑佐证。
+`perf_report.md` 与 `measurements.md` 的取舍也不同：前者被 `data/metrics.csv` 的证据列与
+`doc_currency_check.mjs` 的射程点名，删它等于把尺子的射程挖空，所以留它、删后者。
+
+并进来之后模板尺子红了六项（1.1/1.3/1.6/4.1 四节超汉字上限、`不随包` 残留 8 处、旧文档那句
+"接收外部 HDMI 信号"的说法被当成失实主张），修法是把工程细节与仓库侧搬运说明搬回仓库文档，
+申报正文只留功能/指标/流程/可扩展性；那处冲突的完整记录留在本台账，不在申报文档里重复引文。
+
+Word 件跟着 md 走：通用对齐器换 18 段（首轮 4 格 REFUSE 是表格残差，按它自带的 EXTRA 规矩补映射后过），
+`word/media/` 前后都是 14 件，手工贴进去的图一张没动。海报按 headless Edge 那条通道重出
+`poster_a4_print.pdf` 与 `poster_a4_300dpi.png`（2480×3508），并把两处没有否决凭据的说法
+（"6 cuts rejected" 里的 per-beat checksum 与 compile-time constant hoisting、"four self-checks"）
+改成有凭据的读数。工作树根的 `_doc_gate_xiaosai.py` 的文件名册去掉已删的 `demo_3min.md`。
+
+现跑读数：`bash build/gates.sh` rc=0 / `GATES: ALL PASS（24 项全部判定）`；`doc_currency` CURRENCY: 干净；
+`line_cite` D5: CLEAN（硬错 0）；`metric_recheck` 判 114 红 0；`deliver_spec` 判 18 红 1（C7 那两处引文内
+`⚠`，仍是待签核的 #60）；`_contest_check.py` RESULT: PASS；`_doc_gate_xiaosai.py` DOC GATES: ALL PASS (0)，
+talk 字数 5293→6548（演示话稿并了三分钟稿那一版）。
