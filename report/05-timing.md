@@ -33,7 +33,9 @@
 > `build/evidence/r132_after_roster_probefmt.txt`（原件 `build/roster_r132_<clk>_<setup|hold>.rpt` 16 份）。
 > `report/log/issues.md` #479 末段挂着的那笔"逐域名册整份重导"到此销账；这一轮顺手纠正的走法记 #493。
 > 下面这些路径身份与 2026-10-17 那版表格**不是同一批**：起点/终点、级数与布线占比都换了读法，
-> 旧的那份留在 `report/timing/round_r118.md`，不要把新数配旧路径写成同源。
+> 旧的那份留在同形件 `build/evidence/r118_after_roster_probefmt.txt`（那一张表的八行 dest 逐条能在那件里找到，
+> 例如 `u_pl/u_bilin/u_fb/lo_reg_0_16/WEA[0]`、`u_eth/u_icmp/u_icmp_tx/check_buffer_reg[19]/D`），
+> 不要把新数配旧路径写成同源。
 | `eth_rxc` | 8.000 | **0.687 / 8.59 %** | 0.004 / 0.05 % | 4835 | setup `u_eth/u_icmp/u_icmp_tx/ip_head_reg[4][10]/R`，5 级（LUT3、LUT4、LUT5 各 1 + LUT6 2），route 79.959 %；hold `u_eth/u_reasm/stat_bytes_reg[0]/D`，3 级（CARRY4 2 + LUT6 1），route 78.011 % |
 | `clk_fpga_0` | 10.000 | 1.571 / 15.71 % | 0.048 / 0.48 % | 15721 | setup `u_pl/u_bilin/u_fb/lo_reg_0_40/ADDRARDADDR[7]`，1 级 LUT3，route **92.711 %**；hold `u_eth/u_saver/q_data_reg_448_511_36_38/RAMA/I`，1 级 LUT5，route 32.193 % |
 | `clkout0_1` | 20.000 | 3.287 / 16.43 % | 0.067 / 0.34 % | 30071 | setup `u_pl/u_osd/ch_r_reg/ADDRARDADDR[6]`，22 级（CARRY4 9、LUT2 2、LUT3 2、LUT4 3、LUT6 5、MUXF7 1），route 64.487 %；hold `u_pl/u_blur/lb1_reg_0_127_11_11/DP.HIGH/WADR2`，0 级，route 57.985 % |
