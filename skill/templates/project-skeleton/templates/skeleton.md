@@ -103,4 +103,4 @@
 2. `build/reports` 下每个件的**非可打印字符占比**接近 0（是人能读的文本），头部三行齐。
 3. `deliverables/evidence` 下每个件名都能解析出轮次标识；按某一标识过滤，结果集非空。
 4. 全量搜 `docs/` 与 `build/reports/` 里的盘符/用户主目录形式，命中数 = 0。
-5. 任一条读不到，该项记为 `NOT_MEASURED`，并写进 `docs/open-issues.md`，不许默认成通过。
+5. 任一条读不到，该项记为 `NOT_MEASURED`，并在 `docs` 目录下新建一份 open-issues.md 记下它，不许默认成通过。
