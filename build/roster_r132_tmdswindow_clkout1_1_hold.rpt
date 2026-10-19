@@ -1,0 +1,273 @@
+Copyright 1986-2022 Xilinx, Inc. All Rights Reserved. Copyright 2022-2026 Advanced Micro Devices, Inc. All Rights Reserved.
+---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+| Tool Version : Vivado v.2025.2.1 (win64) Build 6403652 Thu Mar 19 19:48:24 GMT 2026
+| Date         : Tue Oct 20 01:34:41 2026
+| Host         : Uie-laptop running 64-bit major release  (build 9200)
+| Command      : report_timing -delay_type min -nworst 1 -max_paths 4 -from clkout1_1 -to clkout1_1 -file D:/Xilinx/Prj/pro/Video_Processing/build/roster_r132_tmdswindow_clkout1_1_hold.rpt
+| Design       : system_top
+| Device       : 7z020-clg484
+| Speed File   : -2  PRODUCTION 1.12 2019-11-22
+| Design State : Routed
+---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+
+Timing Report
+
+Slack (VIOLATED) :        -1.923ns  (arrival time - required time)
+  Source:                 u_pl/u_dvi/u_ser1/u_master/CLK
+                            (rising edge-triggered cell OSERDESE2 clocked by clkout1_1  {rise@0.000ns fall@2.000ns period=4.000ns})
+  Destination:            tmds_data_p[1]
+                            (output port clocked by clkout1_1  {rise@0.000ns fall@2.000ns period=4.000ns})
+  Path Group:             clkout1_1
+  Path Type:              Min at Fast Process Corner
+  Requirement:            0.000ns  (clkout1_1 rise@0.000ns - clkout1_1 rise@0.000ns)
+  Data Path Delay:        0.970ns  (logic 0.969ns (99.897%)  route 0.001ns (0.103%))
+  Logic Levels:           1  (OBUFDS=1)
+  Output Delay:           -4.000ns
+  Clock Path Skew:        -1.181ns (DCD - SCD - CPR)
+    Destination Clock Delay (DCD):    0.595ns
+    Source Clock Delay      (SCD):    1.579ns
+    Clock Pessimism Removal (CPR):    0.198ns
+  Clock Uncertainty:      0.074ns  ((TSJ^2 + DJ^2)^1/2) / 2 + PE
+    Total System Jitter     (TSJ):    0.071ns
+    Discrete Jitter          (DJ):    0.131ns
+    Phase Error              (PE):    0.000ns
+
+    Location             Delay type                Incr(ns)  Path(ns)    Netlist Resource(s)
+  -------------------------------------------------------------------    -------------------
+                         (clock clkout1_1 rise edge)
+                                                      0.000     0.000 r  
+    W17                                               0.000     0.000 r  sys_clk (IN)
+                         net (fo=0)                   0.000     0.000    sys_clk
+    W17                  IBUF (Prop_ibuf_I_O)         0.252     0.252 r  sys_clk_IBUF_inst/O
+                         net (fo=1, routed)           0.674     0.926    sys_clk_IBUF
+    BUFGCTRL_X0Y4        BUFG (Prop_bufg_I_O)         0.026     0.952 r  sys_clk_IBUF_BUFG_inst/O
+                         net (fo=186, routed)         0.595     1.547    u_pl/u_clk/sys_clk_IBUF_BUFG
+    MMCME2_ADV_X1Y0      MMCME2_ADV (Prop_mmcme2_adv_CLKIN1_CLKOUT1)
+                                                     -1.150     0.397 r  u_pl/u_clk/u_mmcm/CLKOUT1
+                         net (fo=1, routed)           0.529     0.926    u_pl/u_clk/clkout1
+    BUFGCTRL_X0Y2        BUFG (Prop_bufg_I_O)         0.026     0.952 r  u_pl/u_clk/u_bufg_5x/O
+                         net (fo=8, routed)           0.627     1.579    u_pl/u_dvi/u_ser1/clk_pix5x
+    OLOGIC_X1Y18         OSERDESE2                                    r  u_pl/u_dvi/u_ser1/u_master/CLK
+  -------------------------------------------------------------------    -------------------
+    OLOGIC_X1Y18         OSERDESE2 (Prop_oserdese2_CLK_OQ)
+                                                      0.177     1.756 r  u_pl/u_dvi/u_ser1/u_master/OQ
+                         net (fo=1, routed)           0.001     1.757    u_pl/u_dvi/u_ser1/serq
+    U17                  OBUFDS (Prop_obufds_I_O)     0.792     2.549 r  u_pl/u_dvi/u_ser1/u_obuf/O
+                         net (fo=0)                   0.000     2.549    tmds_data_p[1]
+    U17                                                               r  tmds_data_p[1] (OUT)
+  -------------------------------------------------------------------    -------------------
+
+                         (clock clkout1_1 rise edge)
+                                                      0.000     0.000 r  
+    W17                                               0.000     0.000 r  sys_clk (IN)
+                         net (fo=0)                   0.000     0.000    sys_clk
+    W17                  IBUF (Prop_ibuf_I_O)         0.440     0.440 r  sys_clk_IBUF_inst/O
+                         net (fo=1, routed)           0.731     1.171    sys_clk_IBUF
+    BUFGCTRL_X0Y4        BUFG (Prop_bufg_I_O)         0.029     1.200 r  sys_clk_IBUF_BUFG_inst/O
+                         net (fo=186, routed)         0.862     2.062    u_pl/u_clk/sys_clk_IBUF_BUFG
+    MMCME2_ADV_X1Y0      MMCME2_ADV (Prop_mmcme2_adv_CLKIN1_CLKOUT1)
+                                                     -1.467     0.595 r  u_pl/u_clk/u_mmcm/CLKOUT1
+                         clock pessimism             -0.198     0.397    
+                         clock uncertainty            0.074     0.472    
+                         output delay                 4.000     4.472    
+  -------------------------------------------------------------------
+                         required time                         -4.472    
+                         arrival time                           2.549    
+  -------------------------------------------------------------------
+                         slack                                 -1.923    
+
+Slack (VIOLATED) :        -1.922ns  (arrival time - required time)
+  Source:                 u_pl/u_dvi/u_ser1/u_master/CLK
+                            (rising edge-triggered cell OSERDESE2 clocked by clkout1_1  {rise@0.000ns fall@2.000ns period=4.000ns})
+  Destination:            tmds_data_n[1]
+                            (output port clocked by clkout1_1  {rise@0.000ns fall@2.000ns period=4.000ns})
+  Path Group:             clkout1_1
+  Path Type:              Min at Fast Process Corner
+  Requirement:            0.000ns  (clkout1_1 rise@0.000ns - clkout1_1 rise@0.000ns)
+  Data Path Delay:        0.971ns  (logic 0.970ns (99.897%)  route 0.001ns (0.103%))
+  Logic Levels:           1  (OBUFDS=1)
+  Output Delay:           -4.000ns
+  Clock Path Skew:        -1.181ns (DCD - SCD - CPR)
+    Destination Clock Delay (DCD):    0.595ns
+    Source Clock Delay      (SCD):    1.579ns
+    Clock Pessimism Removal (CPR):    0.198ns
+  Clock Uncertainty:      0.074ns  ((TSJ^2 + DJ^2)^1/2) / 2 + PE
+    Total System Jitter     (TSJ):    0.071ns
+    Discrete Jitter          (DJ):    0.131ns
+    Phase Error              (PE):    0.000ns
+
+    Location             Delay type                Incr(ns)  Path(ns)    Netlist Resource(s)
+  -------------------------------------------------------------------    -------------------
+                         (clock clkout1_1 rise edge)
+                                                      0.000     0.000 r  
+    W17                                               0.000     0.000 r  sys_clk (IN)
+                         net (fo=0)                   0.000     0.000    sys_clk
+    W17                  IBUF (Prop_ibuf_I_O)         0.252     0.252 r  sys_clk_IBUF_inst/O
+                         net (fo=1, routed)           0.674     0.926    sys_clk_IBUF
+    BUFGCTRL_X0Y4        BUFG (Prop_bufg_I_O)         0.026     0.952 r  sys_clk_IBUF_BUFG_inst/O
+                         net (fo=186, routed)         0.595     1.547    u_pl/u_clk/sys_clk_IBUF_BUFG
+    MMCME2_ADV_X1Y0      MMCME2_ADV (Prop_mmcme2_adv_CLKIN1_CLKOUT1)
+                                                     -1.150     0.397 r  u_pl/u_clk/u_mmcm/CLKOUT1
+                         net (fo=1, routed)           0.529     0.926    u_pl/u_clk/clkout1
+    BUFGCTRL_X0Y2        BUFG (Prop_bufg_I_O)         0.026     0.952 r  u_pl/u_clk/u_bufg_5x/O
+                         net (fo=8, routed)           0.627     1.579    u_pl/u_dvi/u_ser1/clk_pix5x
+    OLOGIC_X1Y18         OSERDESE2                                    r  u_pl/u_dvi/u_ser1/u_master/CLK
+  -------------------------------------------------------------------    -------------------
+    OLOGIC_X1Y18         OSERDESE2 (Prop_oserdese2_CLK_OQ)
+                                                      0.177     1.756 r  u_pl/u_dvi/u_ser1/u_master/OQ
+                         net (fo=1, routed)           0.001     1.757    u_pl/u_dvi/u_ser1/serq
+    U17                  OBUFDS (Prop_obufds_I_OB)    0.793     2.550 r  u_pl/u_dvi/u_ser1/u_obuf/OB
+                         net (fo=0)                   0.000     2.550    tmds_data_n[1]
+    V17                                                               r  tmds_data_n[1] (OUT)
+  -------------------------------------------------------------------    -------------------
+
+                         (clock clkout1_1 rise edge)
+                                                      0.000     0.000 r  
+    W17                                               0.000     0.000 r  sys_clk (IN)
+                         net (fo=0)                   0.000     0.000    sys_clk
+    W17                  IBUF (Prop_ibuf_I_O)         0.440     0.440 r  sys_clk_IBUF_inst/O
+                         net (fo=1, routed)           0.731     1.171    sys_clk_IBUF
+    BUFGCTRL_X0Y4        BUFG (Prop_bufg_I_O)         0.029     1.200 r  sys_clk_IBUF_BUFG_inst/O
+                         net (fo=186, routed)         0.862     2.062    u_pl/u_clk/sys_clk_IBUF_BUFG
+    MMCME2_ADV_X1Y0      MMCME2_ADV (Prop_mmcme2_adv_CLKIN1_CLKOUT1)
+                                                     -1.467     0.595 r  u_pl/u_clk/u_mmcm/CLKOUT1
+                         clock pessimism             -0.198     0.397    
+                         clock uncertainty            0.074     0.472    
+                         output delay                 4.000     4.472    
+  -------------------------------------------------------------------
+                         required time                         -4.472    
+                         arrival time                           2.550    
+  -------------------------------------------------------------------
+                         slack                                 -1.922    
+
+Slack (VIOLATED) :        -1.909ns  (arrival time - required time)
+  Source:                 u_pl/u_dvi/u_ser2/u_master/CLK
+                            (rising edge-triggered cell OSERDESE2 clocked by clkout1_1  {rise@0.000ns fall@2.000ns period=4.000ns})
+  Destination:            tmds_data_p[2]
+                            (output port clocked by clkout1_1  {rise@0.000ns fall@2.000ns period=4.000ns})
+  Path Group:             clkout1_1
+  Path Type:              Min at Fast Process Corner
+  Requirement:            0.000ns  (clkout1_1 rise@0.000ns - clkout1_1 rise@0.000ns)
+  Data Path Delay:        0.986ns  (logic 0.985ns (99.899%)  route 0.001ns (0.101%))
+  Logic Levels:           1  (OBUFDS=1)
+  Output Delay:           -4.000ns
+  Clock Path Skew:        -1.180ns (DCD - SCD - CPR)
+    Destination Clock Delay (DCD):    0.595ns
+    Source Clock Delay      (SCD):    1.577ns
+    Clock Pessimism Removal (CPR):    0.198ns
+  Clock Uncertainty:      0.074ns  ((TSJ^2 + DJ^2)^1/2) / 2 + PE
+    Total System Jitter     (TSJ):    0.071ns
+    Discrete Jitter          (DJ):    0.131ns
+    Phase Error              (PE):    0.000ns
+
+    Location             Delay type                Incr(ns)  Path(ns)    Netlist Resource(s)
+  -------------------------------------------------------------------    -------------------
+                         (clock clkout1_1 rise edge)
+                                                      0.000     0.000 r  
+    W17                                               0.000     0.000 r  sys_clk (IN)
+                         net (fo=0)                   0.000     0.000    sys_clk
+    W17                  IBUF (Prop_ibuf_I_O)         0.252     0.252 r  sys_clk_IBUF_inst/O
+                         net (fo=1, routed)           0.674     0.926    sys_clk_IBUF
+    BUFGCTRL_X0Y4        BUFG (Prop_bufg_I_O)         0.026     0.952 r  sys_clk_IBUF_BUFG_inst/O
+                         net (fo=186, routed)         0.595     1.547    u_pl/u_clk/sys_clk_IBUF_BUFG
+    MMCME2_ADV_X1Y0      MMCME2_ADV (Prop_mmcme2_adv_CLKIN1_CLKOUT1)
+                                                     -1.150     0.397 r  u_pl/u_clk/u_mmcm/CLKOUT1
+                         net (fo=1, routed)           0.529     0.926    u_pl/u_clk/clkout1
+    BUFGCTRL_X0Y2        BUFG (Prop_bufg_I_O)         0.026     0.952 r  u_pl/u_clk/u_bufg_5x/O
+                         net (fo=8, routed)           0.625     1.577    u_pl/u_dvi/u_ser2/clk_pix5x
+    OLOGIC_X1Y20         OSERDESE2                                    r  u_pl/u_dvi/u_ser2/u_master/CLK
+  -------------------------------------------------------------------    -------------------
+    OLOGIC_X1Y20         OSERDESE2 (Prop_oserdese2_CLK_OQ)
+                                                      0.177     1.754 r  u_pl/u_dvi/u_ser2/u_master/OQ
+                         net (fo=1, routed)           0.001     1.755    u_pl/u_dvi/u_ser2/serq
+    U15                  OBUFDS (Prop_obufds_I_O)     0.808     2.563 r  u_pl/u_dvi/u_ser2/u_obuf/O
+                         net (fo=0)                   0.000     2.563    tmds_data_p[2]
+    U15                                                               r  tmds_data_p[2] (OUT)
+  -------------------------------------------------------------------    -------------------
+
+                         (clock clkout1_1 rise edge)
+                                                      0.000     0.000 r  
+    W17                                               0.000     0.000 r  sys_clk (IN)
+                         net (fo=0)                   0.000     0.000    sys_clk
+    W17                  IBUF (Prop_ibuf_I_O)         0.440     0.440 r  sys_clk_IBUF_inst/O
+                         net (fo=1, routed)           0.731     1.171    sys_clk_IBUF
+    BUFGCTRL_X0Y4        BUFG (Prop_bufg_I_O)         0.029     1.200 r  sys_clk_IBUF_BUFG_inst/O
+                         net (fo=186, routed)         0.862     2.062    u_pl/u_clk/sys_clk_IBUF_BUFG
+    MMCME2_ADV_X1Y0      MMCME2_ADV (Prop_mmcme2_adv_CLKIN1_CLKOUT1)
+                                                     -1.467     0.595 r  u_pl/u_clk/u_mmcm/CLKOUT1
+                         clock pessimism             -0.198     0.397    
+                         clock uncertainty            0.074     0.472    
+                         output delay                 4.000     4.472    
+  -------------------------------------------------------------------
+                         required time                         -4.472    
+                         arrival time                           2.563    
+  -------------------------------------------------------------------
+                         slack                                 -1.909    
+
+Slack (VIOLATED) :        -1.908ns  (arrival time - required time)
+  Source:                 u_pl/u_dvi/u_ser2/u_master/CLK
+                            (rising edge-triggered cell OSERDESE2 clocked by clkout1_1  {rise@0.000ns fall@2.000ns period=4.000ns})
+  Destination:            tmds_data_n[2]
+                            (output port clocked by clkout1_1  {rise@0.000ns fall@2.000ns period=4.000ns})
+  Path Group:             clkout1_1
+  Path Type:              Min at Fast Process Corner
+  Requirement:            0.000ns  (clkout1_1 rise@0.000ns - clkout1_1 rise@0.000ns)
+  Data Path Delay:        0.987ns  (logic 0.986ns (99.899%)  route 0.001ns (0.101%))
+  Logic Levels:           1  (OBUFDS=1)
+  Output Delay:           -4.000ns
+  Clock Path Skew:        -1.180ns (DCD - SCD - CPR)
+    Destination Clock Delay (DCD):    0.595ns
+    Source Clock Delay      (SCD):    1.577ns
+    Clock Pessimism Removal (CPR):    0.198ns
+  Clock Uncertainty:      0.074ns  ((TSJ^2 + DJ^2)^1/2) / 2 + PE
+    Total System Jitter     (TSJ):    0.071ns
+    Discrete Jitter          (DJ):    0.131ns
+    Phase Error              (PE):    0.000ns
+
+    Location             Delay type                Incr(ns)  Path(ns)    Netlist Resource(s)
+  -------------------------------------------------------------------    -------------------
+                         (clock clkout1_1 rise edge)
+                                                      0.000     0.000 r  
+    W17                                               0.000     0.000 r  sys_clk (IN)
+                         net (fo=0)                   0.000     0.000    sys_clk
+    W17                  IBUF (Prop_ibuf_I_O)         0.252     0.252 r  sys_clk_IBUF_inst/O
+                         net (fo=1, routed)           0.674     0.926    sys_clk_IBUF
+    BUFGCTRL_X0Y4        BUFG (Prop_bufg_I_O)         0.026     0.952 r  sys_clk_IBUF_BUFG_inst/O
+                         net (fo=186, routed)         0.595     1.547    u_pl/u_clk/sys_clk_IBUF_BUFG
+    MMCME2_ADV_X1Y0      MMCME2_ADV (Prop_mmcme2_adv_CLKIN1_CLKOUT1)
+                                                     -1.150     0.397 r  u_pl/u_clk/u_mmcm/CLKOUT1
+                         net (fo=1, routed)           0.529     0.926    u_pl/u_clk/clkout1
+    BUFGCTRL_X0Y2        BUFG (Prop_bufg_I_O)         0.026     0.952 r  u_pl/u_clk/u_bufg_5x/O
+                         net (fo=8, routed)           0.625     1.577    u_pl/u_dvi/u_ser2/clk_pix5x
+    OLOGIC_X1Y20         OSERDESE2                                    r  u_pl/u_dvi/u_ser2/u_master/CLK
+  -------------------------------------------------------------------    -------------------
+    OLOGIC_X1Y20         OSERDESE2 (Prop_oserdese2_CLK_OQ)
+                                                      0.177     1.754 r  u_pl/u_dvi/u_ser2/u_master/OQ
+                         net (fo=1, routed)           0.001     1.755    u_pl/u_dvi/u_ser2/serq
+    U15                  OBUFDS (Prop_obufds_I_OB)    0.809     2.564 r  u_pl/u_dvi/u_ser2/u_obuf/OB
+                         net (fo=0)                   0.000     2.564    tmds_data_n[2]
+    U16                                                               r  tmds_data_n[2] (OUT)
+  -------------------------------------------------------------------    -------------------
+
+                         (clock clkout1_1 rise edge)
+                                                      0.000     0.000 r  
+    W17                                               0.000     0.000 r  sys_clk (IN)
+                         net (fo=0)                   0.000     0.000    sys_clk
+    W17                  IBUF (Prop_ibuf_I_O)         0.440     0.440 r  sys_clk_IBUF_inst/O
+                         net (fo=1, routed)           0.731     1.171    sys_clk_IBUF
+    BUFGCTRL_X0Y4        BUFG (Prop_bufg_I_O)         0.029     1.200 r  sys_clk_IBUF_BUFG_inst/O
+                         net (fo=186, routed)         0.862     2.062    u_pl/u_clk/sys_clk_IBUF_BUFG
+    MMCME2_ADV_X1Y0      MMCME2_ADV (Prop_mmcme2_adv_CLKIN1_CLKOUT1)
+                                                     -1.467     0.595 r  u_pl/u_clk/u_mmcm/CLKOUT1
+                         clock pessimism             -0.198     0.397    
+                         clock uncertainty            0.074     0.472    
+                         output delay                 4.000     4.472    
+  -------------------------------------------------------------------
+                         required time                         -4.472    
+                         arrival time                           2.564    
+  -------------------------------------------------------------------
+                         slack                                 -1.908    
+
+
+
+

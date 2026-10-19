@@ -1,0 +1,233 @@
+Copyright 1986-2022 Xilinx, Inc. All Rights Reserved. Copyright 2022-2026 Advanced Micro Devices, Inc. All Rights Reserved.
+--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+| Tool Version : Vivado v.2025.2.1 (win64) Build 6403652 Thu Mar 19 19:48:24 GMT 2026
+| Date         : Tue Oct 20 01:51:41 2026
+| Host         : Uie-laptop running 64-bit major release  (build 9200)
+| Command      : report_timing -delay_type max -nworst 1 -max_paths 4 -from clk_fpga_0 -to clk_fpga_0 -file D:/Xilinx/Prj/pro/Video_Processing/build/roster_r132_rgmiiwindow_clk_fpga_0_setup.rpt
+| Design       : system_top
+| Device       : 7z020-clg484
+| Speed File   : -2  PRODUCTION 1.12 2019-11-22
+| Design State : Routed
+--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+
+Timing Report
+
+Slack (MET) :             1.493ns  (required time - arrival time)
+  Source:                 u_pl/u_arb/owner_eth_reg/C
+                            (rising edge-triggered cell FDCE clocked by clk_fpga_0  {rise@0.000ns fall@5.000ns period=10.000ns})
+  Destination:            u_pl/u_bilin/u_fb/lo_reg_0_25/ENARDEN
+                            (rising edge-triggered cell RAMB36E1 clocked by clk_fpga_0  {rise@0.000ns fall@5.000ns period=10.000ns})
+  Path Group:             clk_fpga_0
+  Path Type:              Setup (Max at Slow Process Corner)
+  Requirement:            10.000ns  (clk_fpga_0 rise@10.000ns - clk_fpga_0 rise@0.000ns)
+  Data Path Delay:        7.824ns  (logic 0.559ns (7.144%)  route 7.265ns (92.856%))
+  Logic Levels:           1  (LUT5=1)
+  Clock Path Skew:        0.020ns (DCD - SCD + CPR)
+    Destination Clock Delay (DCD):    2.384ns = ( 12.384 - 10.000 ) 
+    Source Clock Delay      (SCD):    2.460ns
+    Clock Pessimism Removal (CPR):    0.097ns
+  Clock Uncertainty:      0.154ns  ((TSJ^2 + TIJ^2)^1/2 + DJ) / 2 + PE
+    Total System Jitter     (TSJ):    0.071ns
+    Total Input Jitter      (TIJ):    0.300ns
+    Discrete Jitter          (DJ):    0.000ns
+    Phase Error              (PE):    0.000ns
+
+    Location             Delay type                Incr(ns)  Path(ns)    Netlist Resource(s)
+  -------------------------------------------------------------------    -------------------
+                         (clock clk_fpga_0 rise edge)
+                                                      0.000     0.000 r  
+    PS7_X0Y0             PS7                          0.000     0.000 r  u_bd/design_1_i/processing_system7_0/inst/PS7_i/FCLKCLK[0]
+                         net (fo=1, routed)           0.994     0.994    u_bd/design_1_i/processing_system7_0/inst/FCLK_CLK_unbuffered[0]
+    BUFGCTRL_X0Y16       BUFG (Prop_bufg_I_O)         0.085     1.079 r  u_bd/design_1_i/processing_system7_0/inst/buffer_fclk_clk_0.FCLK_CLK_0_BUFG/O
+                         net (fo=4375, routed)        1.381     2.460    u_pl/u_arb/FCLK_CLK0
+    SLICE_X42Y66         FDCE                                         r  u_pl/u_arb/owner_eth_reg/C
+  -------------------------------------------------------------------    -------------------
+    SLICE_X42Y66         FDCE (Prop_fdce_C_Q)         0.433     2.893 r  u_pl/u_arb/owner_eth_reg/Q
+                         net (fo=269, routed)         2.202     5.095    u_pl/u_row/hi_reg_0[0]
+    SLICE_X48Y50         LUT5 (Prop_lut5_I1_O)        0.126     5.221 r  u_pl/u_row/lo_reg_0_24_i_1/O
+                         net (fo=10, routed)          5.063    10.284    u_pl/u_bilin/u_fb/lo_reg_0_24_1
+    RAMB36_X4Y0          RAMB36E1                                     r  u_pl/u_bilin/u_fb/lo_reg_0_25/ENARDEN
+  -------------------------------------------------------------------    -------------------
+
+                         (clock clk_fpga_0 rise edge)
+                                                     10.000    10.000 r  
+    PS7_X0Y0             PS7                          0.000    10.000 r  u_bd/design_1_i/processing_system7_0/inst/PS7_i/FCLKCLK[0]
+                         net (fo=1, routed)           0.905    10.906    u_bd/design_1_i/processing_system7_0/inst/FCLK_CLK_unbuffered[0]
+    BUFGCTRL_X0Y16       BUFG (Prop_bufg_I_O)         0.077    10.983 r  u_bd/design_1_i/processing_system7_0/inst/buffer_fclk_clk_0.FCLK_CLK_0_BUFG/O
+                         net (fo=4375, routed)        1.401    12.384    u_pl/u_bilin/u_fb/FCLK_CLK0
+    RAMB36_X4Y0          RAMB36E1                                     r  u_pl/u_bilin/u_fb/lo_reg_0_25/CLKARDCLK
+                         clock pessimism              0.097    12.480    
+                         clock uncertainty           -0.154    12.326    
+    RAMB36_X4Y0          RAMB36E1 (Setup_ramb36e1_CLKARDCLK_ENARDEN)
+                                                     -0.549    11.777    u_pl/u_bilin/u_fb/lo_reg_0_25
+  -------------------------------------------------------------------
+                         required time                         11.777    
+                         arrival time                         -10.284    
+  -------------------------------------------------------------------
+                         slack                                  1.493    
+
+Slack (MET) :             1.546ns  (required time - arrival time)
+  Source:                 u_pl/u_arb/owner_eth_reg/C
+                            (rising edge-triggered cell FDCE clocked by clk_fpga_0  {rise@0.000ns fall@5.000ns period=10.000ns})
+  Destination:            u_pl/u_bilin/u_fb/lo_reg_0_40/ADDRARDADDR[7]
+                            (rising edge-triggered cell RAMB36E1 clocked by clk_fpga_0  {rise@0.000ns fall@5.000ns period=10.000ns})
+  Path Group:             clk_fpga_0
+  Path Type:              Setup (Max at Slow Process Corner)
+  Requirement:            10.000ns  (clk_fpga_0 rise@10.000ns - clk_fpga_0 rise@0.000ns)
+  Data Path Delay:        7.654ns  (logic 0.556ns (7.265%)  route 7.098ns (92.735%))
+  Logic Levels:           1  (LUT3=1)
+  Clock Path Skew:        0.012ns (DCD - SCD + CPR)
+    Destination Clock Delay (DCD):    2.376ns = ( 12.376 - 10.000 ) 
+    Source Clock Delay      (SCD):    2.460ns
+    Clock Pessimism Removal (CPR):    0.097ns
+  Clock Uncertainty:      0.154ns  ((TSJ^2 + TIJ^2)^1/2 + DJ) / 2 + PE
+    Total System Jitter     (TSJ):    0.071ns
+    Total Input Jitter      (TIJ):    0.300ns
+    Discrete Jitter          (DJ):    0.000ns
+    Phase Error              (PE):    0.000ns
+
+    Location             Delay type                Incr(ns)  Path(ns)    Netlist Resource(s)
+  -------------------------------------------------------------------    -------------------
+                         (clock clk_fpga_0 rise edge)
+                                                      0.000     0.000 r  
+    PS7_X0Y0             PS7                          0.000     0.000 r  u_bd/design_1_i/processing_system7_0/inst/PS7_i/FCLKCLK[0]
+                         net (fo=1, routed)           0.994     0.994    u_bd/design_1_i/processing_system7_0/inst/FCLK_CLK_unbuffered[0]
+    BUFGCTRL_X0Y16       BUFG (Prop_bufg_I_O)         0.085     1.079 r  u_bd/design_1_i/processing_system7_0/inst/buffer_fclk_clk_0.FCLK_CLK_0_BUFG/O
+                         net (fo=4375, routed)        1.381     2.460    u_pl/u_arb/FCLK_CLK0
+    SLICE_X42Y66         FDCE                                         r  u_pl/u_arb/owner_eth_reg/C
+  -------------------------------------------------------------------    -------------------
+    SLICE_X42Y66         FDCE (Prop_fdce_C_Q)         0.433     2.893 r  u_pl/u_arb/owner_eth_reg/Q
+                         net (fo=269, routed)         1.732     4.625    u_pl/u_row/hi_reg_0[0]
+    SLICE_X44Y48         LUT3 (Prop_lut3_I1_O)        0.123     4.748 r  u_pl/u_row/lo_reg_0_8_i_8/O
+                         net (fo=20, routed)          5.366    10.114    u_pl/u_bilin/u_fb/lo_reg_0_24_0[7]
+    RAMB36_X5Y5          RAMB36E1                                     r  u_pl/u_bilin/u_fb/lo_reg_0_40/ADDRARDADDR[7]
+  -------------------------------------------------------------------    -------------------
+
+                         (clock clk_fpga_0 rise edge)
+                                                     10.000    10.000 r  
+    PS7_X0Y0             PS7                          0.000    10.000 r  u_bd/design_1_i/processing_system7_0/inst/PS7_i/FCLKCLK[0]
+                         net (fo=1, routed)           0.905    10.906    u_bd/design_1_i/processing_system7_0/inst/FCLK_CLK_unbuffered[0]
+    BUFGCTRL_X0Y16       BUFG (Prop_bufg_I_O)         0.077    10.983 r  u_bd/design_1_i/processing_system7_0/inst/buffer_fclk_clk_0.FCLK_CLK_0_BUFG/O
+                         net (fo=4375, routed)        1.393    12.376    u_pl/u_bilin/u_fb/FCLK_CLK0
+    RAMB36_X5Y5          RAMB36E1                                     r  u_pl/u_bilin/u_fb/lo_reg_0_40/CLKARDCLK
+                         clock pessimism              0.097    12.472    
+                         clock uncertainty           -0.154    12.318    
+    RAMB36_X5Y5          RAMB36E1 (Setup_ramb36e1_CLKARDCLK_ADDRARDADDR[7])
+                                                     -0.659    11.659    u_pl/u_bilin/u_fb/lo_reg_0_40
+  -------------------------------------------------------------------
+                         required time                         11.659    
+                         arrival time                         -10.114    
+  -------------------------------------------------------------------
+                         slack                                  1.546    
+
+Slack (MET) :             1.801ns  (required time - arrival time)
+  Source:                 u_pl/u_arb/owner_eth_reg/C
+                            (rising edge-triggered cell FDCE clocked by clk_fpga_0  {rise@0.000ns fall@5.000ns period=10.000ns})
+  Destination:            u_pl/u_bilin/u_fb/lo_reg_0_44/ADDRARDADDR[1]
+                            (rising edge-triggered cell RAMB36E1 clocked by clk_fpga_0  {rise@0.000ns fall@5.000ns period=10.000ns})
+  Path Group:             clk_fpga_0
+  Path Type:              Setup (Max at Slow Process Corner)
+  Requirement:            10.000ns  (clk_fpga_0 rise@10.000ns - clk_fpga_0 rise@0.000ns)
+  Data Path Delay:        7.405ns  (logic 0.552ns (7.454%)  route 6.853ns (92.546%))
+  Logic Levels:           1  (LUT3=1)
+  Clock Path Skew:        0.013ns (DCD - SCD + CPR)
+    Destination Clock Delay (DCD):    2.364ns = ( 12.364 - 10.000 ) 
+    Source Clock Delay      (SCD):    2.460ns
+    Clock Pessimism Removal (CPR):    0.109ns
+  Clock Uncertainty:      0.154ns  ((TSJ^2 + TIJ^2)^1/2 + DJ) / 2 + PE
+    Total System Jitter     (TSJ):    0.071ns
+    Total Input Jitter      (TIJ):    0.300ns
+    Discrete Jitter          (DJ):    0.000ns
+    Phase Error              (PE):    0.000ns
+
+    Location             Delay type                Incr(ns)  Path(ns)    Netlist Resource(s)
+  -------------------------------------------------------------------    -------------------
+                         (clock clk_fpga_0 rise edge)
+                                                      0.000     0.000 r  
+    PS7_X0Y0             PS7                          0.000     0.000 r  u_bd/design_1_i/processing_system7_0/inst/PS7_i/FCLKCLK[0]
+                         net (fo=1, routed)           0.994     0.994    u_bd/design_1_i/processing_system7_0/inst/FCLK_CLK_unbuffered[0]
+    BUFGCTRL_X0Y16       BUFG (Prop_bufg_I_O)         0.085     1.079 r  u_bd/design_1_i/processing_system7_0/inst/buffer_fclk_clk_0.FCLK_CLK_0_BUFG/O
+                         net (fo=4375, routed)        1.381     2.460    u_pl/u_arb/FCLK_CLK0
+    SLICE_X42Y66         FDCE                                         r  u_pl/u_arb/owner_eth_reg/C
+  -------------------------------------------------------------------    -------------------
+    SLICE_X42Y66         FDCE (Prop_fdce_C_Q)         0.433     2.893 r  u_pl/u_arb/owner_eth_reg/Q
+                         net (fo=269, routed)         2.010     4.903    u_pl/u_row/hi_reg_0[0]
+    SLICE_X47Y47         LUT3 (Prop_lut3_I1_O)        0.119     5.022 r  u_pl/u_row/lo_reg_0_12_i_14/O
+                         net (fo=20, routed)          4.843     9.865    u_pl/u_bilin/u_fb/lo_reg_0_12_0[1]
+    RAMB36_X5Y16         RAMB36E1                                     r  u_pl/u_bilin/u_fb/lo_reg_0_44/ADDRARDADDR[1]
+  -------------------------------------------------------------------    -------------------
+
+                         (clock clk_fpga_0 rise edge)
+                                                     10.000    10.000 r  
+    PS7_X0Y0             PS7                          0.000    10.000 r  u_bd/design_1_i/processing_system7_0/inst/PS7_i/FCLKCLK[0]
+                         net (fo=1, routed)           0.905    10.906    u_bd/design_1_i/processing_system7_0/inst/FCLK_CLK_unbuffered[0]
+    BUFGCTRL_X0Y16       BUFG (Prop_bufg_I_O)         0.077    10.983 r  u_bd/design_1_i/processing_system7_0/inst/buffer_fclk_clk_0.FCLK_CLK_0_BUFG/O
+                         net (fo=4375, routed)        1.382    12.364    u_pl/u_bilin/u_fb/FCLK_CLK0
+    RAMB36_X5Y16         RAMB36E1                                     r  u_pl/u_bilin/u_fb/lo_reg_0_44/CLKARDCLK
+                         clock pessimism              0.109    12.473    
+                         clock uncertainty           -0.154    12.319    
+    RAMB36_X5Y16         RAMB36E1 (Setup_ramb36e1_CLKARDCLK_ADDRARDADDR[1])
+                                                     -0.652    11.667    u_pl/u_bilin/u_fb/lo_reg_0_44
+  -------------------------------------------------------------------
+                         required time                         11.667    
+                         arrival time                          -9.865    
+  -------------------------------------------------------------------
+                         slack                                  1.801    
+
+Slack (MET) :             1.803ns  (required time - arrival time)
+  Source:                 u_pl/u_arb/owner_eth_reg/C
+                            (rising edge-triggered cell FDCE clocked by clk_fpga_0  {rise@0.000ns fall@5.000ns period=10.000ns})
+  Destination:            u_pl/u_bilin/u_fb/lo_reg_0_40/ADDRARDADDR[12]
+                            (rising edge-triggered cell RAMB36E1 clocked by clk_fpga_0  {rise@0.000ns fall@5.000ns period=10.000ns})
+  Path Group:             clk_fpga_0
+  Path Type:              Setup (Max at Slow Process Corner)
+  Requirement:            10.000ns  (clk_fpga_0 rise@10.000ns - clk_fpga_0 rise@0.000ns)
+  Data Path Delay:        7.402ns  (logic 0.560ns (7.565%)  route 6.842ns (92.435%))
+  Logic Levels:           1  (LUT3=1)
+  Clock Path Skew:        0.012ns (DCD - SCD + CPR)
+    Destination Clock Delay (DCD):    2.376ns = ( 12.376 - 10.000 ) 
+    Source Clock Delay      (SCD):    2.460ns
+    Clock Pessimism Removal (CPR):    0.097ns
+  Clock Uncertainty:      0.154ns  ((TSJ^2 + TIJ^2)^1/2 + DJ) / 2 + PE
+    Total System Jitter     (TSJ):    0.071ns
+    Total Input Jitter      (TIJ):    0.300ns
+    Discrete Jitter          (DJ):    0.000ns
+    Phase Error              (PE):    0.000ns
+
+    Location             Delay type                Incr(ns)  Path(ns)    Netlist Resource(s)
+  -------------------------------------------------------------------    -------------------
+                         (clock clk_fpga_0 rise edge)
+                                                      0.000     0.000 r  
+    PS7_X0Y0             PS7                          0.000     0.000 r  u_bd/design_1_i/processing_system7_0/inst/PS7_i/FCLKCLK[0]
+                         net (fo=1, routed)           0.994     0.994    u_bd/design_1_i/processing_system7_0/inst/FCLK_CLK_unbuffered[0]
+    BUFGCTRL_X0Y16       BUFG (Prop_bufg_I_O)         0.085     1.079 r  u_bd/design_1_i/processing_system7_0/inst/buffer_fclk_clk_0.FCLK_CLK_0_BUFG/O
+                         net (fo=4375, routed)        1.381     2.460    u_pl/u_arb/FCLK_CLK0
+    SLICE_X42Y66         FDCE                                         r  u_pl/u_arb/owner_eth_reg/C
+  -------------------------------------------------------------------    -------------------
+    SLICE_X42Y66         FDCE (Prop_fdce_C_Q)         0.433     2.893 r  u_pl/u_arb/owner_eth_reg/Q
+                         net (fo=269, routed)         1.872     4.765    u_pl/u_row/hi_reg_0[0]
+    SLICE_X43Y47         LUT3 (Prop_lut3_I1_O)        0.127     4.892 r  u_pl/u_row/lo_reg_0_8_i_3/O
+                         net (fo=20, routed)          4.970     9.862    u_pl/u_bilin/u_fb/lo_reg_0_24_0[12]
+    RAMB36_X5Y5          RAMB36E1                                     r  u_pl/u_bilin/u_fb/lo_reg_0_40/ADDRARDADDR[12]
+  -------------------------------------------------------------------    -------------------
+
+                         (clock clk_fpga_0 rise edge)
+                                                     10.000    10.000 r  
+    PS7_X0Y0             PS7                          0.000    10.000 r  u_bd/design_1_i/processing_system7_0/inst/PS7_i/FCLKCLK[0]
+                         net (fo=1, routed)           0.905    10.906    u_bd/design_1_i/processing_system7_0/inst/FCLK_CLK_unbuffered[0]
+    BUFGCTRL_X0Y16       BUFG (Prop_bufg_I_O)         0.077    10.983 r  u_bd/design_1_i/processing_system7_0/inst/buffer_fclk_clk_0.FCLK_CLK_0_BUFG/O
+                         net (fo=4375, routed)        1.393    12.376    u_pl/u_bilin/u_fb/FCLK_CLK0
+    RAMB36_X5Y5          RAMB36E1                                     r  u_pl/u_bilin/u_fb/lo_reg_0_40/CLKARDCLK
+                         clock pessimism              0.097    12.472    
+                         clock uncertainty           -0.154    12.318    
+    RAMB36_X5Y5          RAMB36E1 (Setup_ramb36e1_CLKARDCLK_ADDRARDADDR[12])
+                                                     -0.653    11.665    u_pl/u_bilin/u_fb/lo_reg_0_40
+  -------------------------------------------------------------------
+                         required time                         11.665    
+                         arrival time                          -9.862    
+  -------------------------------------------------------------------
+                         slack                                  1.803    
+
+
+
+

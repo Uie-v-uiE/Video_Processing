@@ -15806,3 +15806,62 @@ ever touched by software`，与报告第 2 轮找茬后的说法一致（SD 那�
 
 现跑读数：`_doc_gate_xiaosai.py` DOC GATES: ALL PASS (0)（含海报那句"previous frame's pixels are fixed"
 的在位检查）；PDF 1 页 1684×2384 pt = A1；PNG 3509×4967 = A1 @150 dpi。
+
+### #493 开一条构建臂之前要查的是"这条债的结论在哪一页"，不是"这条债还没还"
+
+臂 A 起飞前我读到的只有两句话：候选件 `src/constraints/r119_hdmi_source_window.xdc` 头部写着
+"缺的是一次量名册的构建"，账本 `report/timing/debt_ledger.md` 那一条写着"还欠：一次构建量名册"。
+量出来 `clkout1_1` setup −5.408 ns 之后，我的动作是**按取证文档规定的形状重写一版候选件**
+（把 20 ns 参考钟打在 `tmds_clk_p` 上）并起名 `r132_hdmi_source_window_v2.xdc`，准备再滚一次构建。
+写完之后才去查这个形状有没有人试过：`src/constraints/r119b_hdmi_tp1_pinclk.xdc` 就是它，
+件 `build/evidence/r119_xdc_loads_probe4_pinclk.txt` 给出 −4.897 / −4.873 / −4.890 ns，
+`report/timing/debt_ledger.md` 的"追加（2026-10-04 09:4x）"一节与 #335 早就把结论写死了——
+规范那条 `Inter-Pair Skew max 0.20 Tcharacter` 是**两脚到达时刻之差的上限**，`set_output_delay` 是**采样窗**，
+量纲不同，所以负数是约束侧的形状错，不是设计债；换参考钟只是换个方向红。
+代价说清楚：一次隔离构建的 16 分钟是白花的，但更贵的是那份新候选件——它一旦进仓库就是第三份会漂的副本，
+而且下次有人按它去挂开关，还会再红一次。已 `git rm`。
+
+**为什么会漏**：欠账的两半住在两个文件里。"还欠一次构建"写在候选件头部与账本正文，
+"这次构建已经跑过并且判完了"写在同一个账本的**追加小节**里，追加小节没有回改上面那条"还欠"。
+所以只读第一条命中就开工，读到的必然是旧状态。
+
+**新立的规矩**：要为一条候选约束开构建臂之前，先按三个键各查一次并把读数抄进结果页——
+① 候选件文件名本身（`grep -rn <文件名>`，看有没有人写过它的第二版）；
+② 证据目录里同类探针的前缀（`ls build/evidence | grep <主题>`，本例是 `r119_pin_skew_probe*` 与 `_probe4_`）；
+③ 账本与 ISSUES 里同一主题的**追加**小节（`grep -n "追加" report/timing/debt_ledger.md`）。
+三条里任何一条给出"这个形状试过"，就先读它的结论再决定要不要建。
+顺手把账本改口：那条"还欠一次构建量名册"上面已经加了指针，指向追加小节与 #335，
+免得下一个读第一条命中的人再走一遍。
+
+**替代动作与它的红能力**：臂 D 改成只读探针（`build/tcl/probe_tmds_pin_skew.tcl` 打在板上那一版
+routed dcp 上，不起构建），判定换成新尺子 `build/r132_pin_skew_judge.mjs`（J1 计数地板、
+J2/J3 互对两个角、J4 对内、J5 上限由 `data/metrics.csv` 的像素钟推，不手抄）。
+它先在 r119 那份探针件上复现账本记着的两个数：互对 0.065 ns、对内 0.001 ns，
+`--self` 造 6 条畸形动红 6 条（少一脚、max 角推后 6 ns、min 角推后 6 ns、对内拉开 0.5 ns、
+像素钟行改名、件整个不存在）。为什么复用 `build/r119_window_check.mjs` 不行：那把尺子的五个输入路径
+写死在 r119 那一轮，换一版成品要改它，而它正在被那轮的结论引用——改判定自己的东西要另开授权。
+
+### #494 `check_timing` 的正文是打印出来的：`puts [check_timing …]` 交出空串，而链子照样 rc=0
+
+**症状**：`build/tcl/probe_check_timing.tcl` 第一版写 `puts $fh [check_timing -verbose]`，
+件出来只有 196 字节——三行注释头加一行 `CATCH:`（空），HIGH 计数 0。
+下游 `build/r115_roster_build.py` 立刻 `ROSTERFAIL check_timing 里没念到 no-input/no-output-delay 两句`。
+而链子 `build/r132_after.sh` 那一次**以 0 收尾**：探针 rc=0、python rc=1 都没被读，
+"跑过了"与"跑到东西了"是两件事，后者才是判据。
+
+**根因**：`check_timing` 把报告**打印**到会话输出（`build/r132_after.log` 第 116 行起那两句
+`There are 5 input ports with no input delay specified. (HIGH)` 就是它打的），返回值是空串；
+要有件就得用 `-file`。仓库里先头两支探针早就是这个形状：`build/tcl/c2_scratch_probe.tcl:42`、
+`build/tcl/mf114_roll.tcl:176` 都写 `catch {check_timing -verbose -file …}`。
+所以这不是工具行为没人知道，是**新写探针时没先看同类探针怎么写的**。
+
+**判别动作**：探针写完要当场验三件——件字节数、下游解析器吃不吃得下、以及故意把输入换成不存在的路径，
+看链条是否报 NOT_MEASURED 而不是 rc=0。本次改完后 3,770 字节、`ROSTER-BUILT rows=8 io_unconstrained_ports=11`。
+
+**新立的规矩**：
+- 收尾链的退出码逐件判，且**把"跑出红"与"没跑成"分开**：`build/r132_after.sh` 现在对
+  名册相减那一步只认 `ROSTERDIFF-SUMMARY` 行在不在（不在才算没量到），
+  红本身不改成非零；否则下一次真出结论时链条会假装失败，人就会开始忽略它的退出码。
+- 写探针之前先 `grep -rn "<要跑的命令名>" build/tcl/`，看仓库里有没有同命令的既有形状。
+  这条与 #493 是同一条规矩的两个方向：#493 说的是**别重做已经做完的判定**，
+  这里说的是**别重犯已经修好的写法**。

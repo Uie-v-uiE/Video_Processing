@@ -1,0 +1,24 @@
+# if {![file exists $dcp]} { puts "PROBE-REFUSE"; exit 3 }
+PIN| tmds_clk_p | max | data_path_delay=2.074ns
+PIN| tmds_clk_p | min | data_path_delay=1.034ns
+PIN| tmds_clk_n | max | data_path_delay=2.075ns
+PIN| tmds_clk_n | min | data_path_delay=1.035ns
+PIN| tmds_data_p[0] | max | data_path_delay=2.033ns
+PIN| tmds_data_p[0] | min | data_path_delay=0.994ns
+PIN| tmds_data_n[0] | max | data_path_delay=2.034ns
+PIN| tmds_data_n[0] | min | data_path_delay=0.995ns
+PIN| tmds_data_p[1] | max | data_path_delay=2.009ns
+PIN| tmds_data_p[1] | min | data_path_delay=0.970ns
+PIN| tmds_data_n[1] | max | data_path_delay=2.010ns
+PIN| tmds_data_n[1] | min | data_path_delay=0.971ns
+PIN| tmds_data_p[2] | max | data_path_delay=2.025ns
+PIN| tmds_data_p[2] | min | data_path_delay=0.986ns
+PIN| tmds_data_n[2] | max | data_path_delay=2.026ns
+PIN| tmds_data_n[2] | min | data_path_delay=0.987ns
+PIN| led[0] | max | data_path_delay=8.927ns
+PIN| led[0] | min | data_path_delay=3.716ns
+PIN| led[1] | max | data_path_delay=9.186ns
+PIN| led[1] | min | data_path_delay=3.860ns
+CLKINFO| clkout1_1 period=4.000
+# puts "PROBE-SKEW-DONE"
+PROBE-SKEW-DONE
