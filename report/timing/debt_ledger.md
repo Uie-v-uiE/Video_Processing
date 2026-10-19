@@ -233,7 +233,8 @@ TMDS 那一节（正文第 95 页）只给 **I/O 标准与属性**（`Table 1-52
   **旧的 −2.885 与本轮这两个数不是同一个原因**（前者出自 ±0.500 那一版窗，取自规格表错行，#304/#309），
   引用时要分开念，不许把三件事说成"同一个窗量了三次"。
 - **§2 的对外计数从此有现版件**：探针 `build/tcl/probe_check_timing.tcl` 在现版 routed dcp 上重跑出
-  `build/evidence/r132_check_timing_verbose.txt`，`io_unconstrained_ports` 仍是 **11**（输入 5 / 输出 6，
+  `build/evidence/r132_check_timing_verbose.txt`（3,770 字节；`build/r132_after.log` 01:57:36 那一行念的是
+  字节数与 HIGH 计数，不是哈希，要 md5 就现算），`io_unconstrained_ports` 仍是 **11**（输入 5 / 输出 6，
   端口名字与上面 §2 开头那份 r115 件逐字相同）⇒ "覆盖面这十三版没动过"这句有现版的件了，
   名册表 `build/roster/roster_r132.tsv` 的那一列不再借用 r114/r115 那份。
 - **§1 的"只量到离散量"换成现版读数**：互对最差 **0.065 ns**（上限 0.20 `Tcharacter` = 4.000）、
