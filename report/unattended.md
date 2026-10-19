@@ -45,7 +45,7 @@
 `384a0b3..157d332`（10:47 之后，直连）。`157d332..ab640e9`（**10:31 UTC / 12:31 本机：直连被 `Recv failure: Connection was reset` 拒绝，
 改用逐命令代理 `git -c http.proxy=http://127.0.0.1:7897 -c https.proxy=… push` 成功**）。
 **代理只在那一条命令里生效，没有写进任何 git 配置**：紧随其后 `git config --get http.proxy`、
-`--get https.proxy`、`--global --get http.proxy` 三条都返回空（原文已贴进当轮输出）⇒ 队伍要求的"用完取消"没有遗留项可取消。
+`--get https.proxy`、`--global --get http.proxy` 三条都返回空（原文已贴进当轮输出），因此队伍要求的"用完取消"没有遗留项可取消。
 本轮没有设置过任何持久代理，也未改 `git config` 的任何键（P23 禁止改配置，未越线）。
 
 ## 二、派出的子任务（P23 第 4 节：作者与审计分离）
@@ -89,7 +89,7 @@
 **这一段仍欠、且不假装做过的**：
 1. `report/{10-background,20-principle,30-partition-if}.md`、`report/{prior-art-search,novelty-claims}.md`、
    `report/claims-vs-evidence.md`、`report/`、provenance-and-licenses 一页 —— 派发批次到回合上限，未落地。
-2. 终审 C3 剩 3 条死引用、C4 命名违规 286、C9 复现 30 条 FAIL 未逐条归因、C5 卫生机检整脚本 >300 s ⇒
+2. 终审 C3 剩 3 条死引用、C4 命名违规 286、C9 复现 30 条 FAIL 未逐条归因、C5 卫生机检整脚本 >300 s，因此
    **交付终审不是全绿**（`build/evidence/r120_final_gate.txt`：绿 8 / 红 3 / 未测 1）。
 3. 需要眼睛与手的行（E6 的"按住 KEY1"那一半、拔卡观感、按键手感）仍未由人签。
 4. 改名 308 条含大写路径、脱敏 814 份工具产出原件 —— 都是不可逆/连带面，等裁决（Q-P21-2、Q-P20-2），未擅动。

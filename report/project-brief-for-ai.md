@@ -150,10 +150,10 @@ grep -n "frame_done\|commit\|owner_eth" src/rtl/eth/eth_udp_video_top.v | head
 - 为什么不用 Soft-EM/PYNQ 网络栈：数据面全在 PL，PS 不参与收包。`src/ps/main.c:1571` 注释原文
   "UDP RX is in PL"；PL 侧收包链是 `src/rtl/eth/`（4505 行）。
 - 为什么几何常量集中在顶层：`src/rtl/top/system_top.v:134-135` 原文——"原来 512/300/0x1000_0000 在下面
-  两个例化上各写一遍字面量……没有任何东西阻止两边不一致 ⇒ 现象是'写进去的帧几何与读出来的显示几何
+  两个例化上各写一遍字面量……没有任何东西阻止两边不一致，因此现象是'写进去的帧几何与读出来的显示几何
   对不上'（整幅错位/撕裂），既不是综合错误也不是仿真必红。换分辨率因此从'全文搜字面量'变成'改这四行'"。
 - 为什么 DDR 第三个 bank 要单列：`system_top.v:142-143` 原文——"这个数**必须与固件里的 FRAME_ADDR
-  一致**：`src/ps/sd_play.c` 与 `src/ps/main.c` 各有一处，改这里不改那边 ⇒ 现象是'PS 片源在屏上不动'"。
+  一致**：`src/ps/sd_play.c` 与 `src/ps/main.c` 各有一处，改这里不改那边，因此现象是'PS 片源在屏上不动'"。
 
 重取：`grep -n "create_clock\|set_false_path\|set_clock_uncertainty\|IOSTANDARD" src/constraints/rk_zynq7020.xdc`
 
@@ -260,7 +260,7 @@ grep -rn "rotate_mapper\|frame_buffer_db\|udp_rx " src/rtl/ | grep -v "^src/rtl/
 
 原语是 **`MMCME2_BASE`**（`:15`）—— BASE 变体**不含内置 BUFG**，所以四路输出每路都要自己挂 BUFG（`:53-56`）。
 `.BANDWIDTH("OPTIMIZED")`（`:16`）、`.CLKIN1_PERIOD(20.000)`（`:17`，对应 50 MHz 晶振）、
-`.DIVCLK_DIVIDE(1)`（`:18`）、**`.CLKFBOUT_MULT_F(20.000)`**（`:19`）⇒ **VCO = 50/1 × 20 = 1000 MHz**
+`.DIVCLK_DIVIDE(1)`（`:18`）、**`.CLKFBOUT_MULT_F(20.000)`**（`:19`），因此**VCO = 50/1 × 20 = 1000 MHz**
 （算式写在 `:3`）；`.CLKFBOUT_PHASE(0.0)`（`:20`）。
 
 | 输出 | 分频 | 算得 | 相位 / 占空 | 行号 |
@@ -273,9 +273,9 @@ grep -rn "rotate_mapper\|frame_buffer_db\|udp_rx " src/rtl/ | grep -v "^src/rtl/
 `.CLKFBOUT(clkfbout)/.CLKFBIN(clkfbout_buf)`（`:33-35`，反馈必须先过 `BUFG u_bufg_fb`）、
 `.PWRDWN(1'b0)`（`:48`）、**`.RST(~rst_n)`（`:49`，MMCM 复位是高有效）**、`.LOCKED(locked)`（`:50`）。
 CLKFBOUTB/CLKOUT0B/1B/2B 与 CLKOUT3-6 全部悬空（`:36-47`）。
-CLKOUT3/4/5/6 与所有 B 输出悬空 ⇒ **`未找到`** 任何"用第二路相位做时钟域交叠"的设计。
+CLKOUT3/4/5/6 与所有 B 输出悬空，因此**`未找到`** 任何"用第二路相位做时钟域交叠"的设计。
 
-**两颗 MMCM 是同一 module 的两次例化 ⇒ 参数完全相同 ⇒ 两颗 VCO 都是 1000 MHz。**
+**两颗 MMCM 是同一 module 的两次例化，因此参数完全相同，因此两颗 VCO 都是 1000 MHz。**
 - MMCM#2（显示）：`pl_video_top.v:128-131`，输出接 `clk_pix`/`clk_pix5x`，`clk_200m` 接 `clk_200m_unused`（`:127`）。
 - MMCM#1（IDELAY 参考）：`system_top.v:121-125`，`.rst_n(1'b1)`（不复位），只取 `clk_200m` 与 `mmcm_locked`，
   它的 `clk_pix`/`clk_pix5x` 挂 `clk_pix_unused, clk_pix5x_unused`（`:119,123`）。
@@ -328,7 +328,7 @@ PS 的时钟、DDR 控制器、网口 MAC 都**不在 C 代码里**初始化—�
 均 **0 命令命中**（检索式：`grep -rn "set_max_delay\|set_bus_skew\|create_generated_clock\|set_multicycle_path" src/constraints/rk_zynq7020.xdc src/constraints/clock_groups_impl.xdc`）。
 ⚠ **口径**：若把检索面扩大到整个 `src/constraints/`，**禁用集会命中四条真 `set_max_delay -datapath_only`**
 （`r114_io_async.xdc:57,59,61,63`；`:50-51` 给 UG949 的理由，`:64` 自我交代 `set_bus_skew` 还没写）
-⇒ 那是一条**没被采纳的替代路线**，不是遗漏；说"未找到"时永远要带上文件清单。
+所以那是一条**没被采纳的替代路线**，不是遗漏；说"未找到"时永远要带上文件清单。
 
 | # | 源域 → 宿域 | 内容 | 机制 | 级数 / 深度 | 出处 |
 |---|---|---|---|---|---|
@@ -354,14 +354,14 @@ PS 的时钟、DDR 控制器、网口 MAC 都**不在 C 代码里**初始化—�
    "14 位加法 + 二进制转格雷 + 比较"整条锥体从 `wr_en → ENARDEN` 上摘下来，代价是可用深度从
    `DEPTH−1` 变成 `DEPTH`，由 `sim/tb_cdc_capacity` 的 C1 钉住（改前 8191、改后 8192）。
 2. `dc_fifo` 的存储写块**故意不带复位**（`:59-63` "memory write: no reset → BRAM-friendly"），
-   而指针块各带自己域的异步复位（`:50` 用 `wr_rst_n`、`:70` 用 `rd_rst_n`）⇒ **读写两侧各归各的复位**
+   而指针块各带自己域的异步复位（`:50` 用 `wr_rst_n`、`:70` 用 `rd_rst_n`），因此**读写两侧各归各的复位**
    （ISSUES #182）。`sync_fifo` 同形（`sync_fifo.v:30-33` vs `:36-49`）。
 3. `link_active` 在跨进 axi 域之前多打一拍（`eth_udp_video_top.v:381-386`，`:384`
    `link_active_r <= |s_pkts[15:0]`）。`:373-380` 原文强调"判据是**结构判据**，台架判不了这一条：
    RTL 仿真没有门延迟"（#209 CDC-10）。**这句话在本文里有普适意义**：CDC 的正确性不能靠功能仿真证明。
 
 `ASYNC_REG = "TRUE"` 的属性覆盖由 `dc_fifo.v:23-26` 注释点名的一把专用扫描尺子负责，但那支脚本
-在本仓**未找到**（`find . -iname '*scan_async_reg*'` → 0 命中）⇒ **别把它当可执行入口**；能跑的是
+在本仓**未找到**（`find . -iname '*scan_async_reg*'` → 0 命中），因此**别把它当可执行入口**；能跑的是
 门禁第 6 项（§17）。CDC 整体基线在 `build/cdc_baseline.txt`，门禁第 6 项做**配对集合**比对（见 §17）。
 
 重取：
@@ -379,7 +379,7 @@ grep -rn "ram_style\|(* .*)" src/rtl/eth/dc_fifo.v
 `src/rtl/eth/gmii_to_rgmii.v:1-3` 文件头原文：
 
 > "gmii_to_rgmii — 纯连线壳：把厂商的 rgmii_rx / rgmii_tx 拼在一起，并让 `gmii_tx_clk = gmii_rx_clk`
-> （RGMII 只有 RXC/TXC 两根时钟，这里 TX 侧沿用的是收侧恢复出来的那一路 125 MHz ⇒ 整个 ETH 逻辑
+> （RGMII 只有 RXC/TXC 两根时钟，这里 TX 侧沿用的是收侧恢复出来的那一路 125 MHz，因此整个 ETH 逻辑
 > 实际是**单时钟域**，各模块里的"tx 域"就是 rx 域）"
 
 实现就是 `gmii_to_rgmii.v:25` 一行 `assign gmii_tx_clk = gmii_rx_clk;`。
@@ -402,18 +402,18 @@ IDDR #(.DDR_CLK_EDGE("SAME_EDGE_PIPELINED"), .INIT_Q1(1'b0), .INIT_Q2(1'b0), .SR
      u_iddr_rxd (.Q1(gmii_rxd[i]), .Q2(gmii_rxd[4+i]), .C(rgmii_rxc_bufg), .CE(1'b1),
                  .D(rgmii_rxd_delay[i]), .R(1'b0), .S(1'b0));
 ```
-- `SAME_EDGE_PIPELINED` ⇒ Q1 = **上升沿**采样值、Q2 = **下降沿**采样值，两颗都从同一个时钟沿读出。
+- `SAME_EDGE_PIPELINED`，因此Q1 = **上升沿**采样值、Q2 = **下降沿**采样值，两颗都从同一个时钟沿读出。
 - **位段映射**：`Q1 → gmii_rxd[i]`（字节低 4 位）、`Q2 → gmii_rxd[4+i]`（高 4 位）——即
   **RGMII 上升沿传低半字节、下降沿传高半字节**（`rgmii_rx.v:2` 与 `rgmii_tx.v:1-3` 都写了这条）。
 - `gmii_rx_dv = gmii_rxdv_t[0] & gmii_rxdv_t[1]`（`:48`）：**两个沿都看到 1 才算有效**，这是抗噪写法。
 - `gmii_rx_clk = rgmii_rxc_bufg`（`:47`）—— 直接把打了 BUFG 的 RXC 当 GMII 时钟输出。
 - ⚠ `RX_CTL` 在 RGMII 上**只承担 GMII 的 `RX_DV`**，交不出 `RX_ER`。`rgmii_rx.v:6` 原文"RGMII 没有
   GMII 的 RX_ER 通道，本模块交不出错误标志"，同一句在 `eth_udp_video_top.v:156-157`、`udp_rx.v:3-5`、
-  `arp_rx.v:4-5`、`icmp_rx.v:5` 各重复一次 ⇒ 顶层因此把 `.gmii_rx_er(1'b0)` 硬接（`eth_udp_video_top.v:189`），
+  `arp_rx.v:4-5`、`icmp_rx.v:5` 各重复一次，因此顶层因此把 `.gmii_rx_er(1'b0)` 硬接（`eth_udp_video_top.v:189`），
   `gmii_rx_mac` 里的 `er_seen` 恒 0。
 
 **IDELAYE2**（`:67-84` 控制路、`:108-125` 数据路）：`.IDELAY_TYPE("FIXED")`、`.IDELAY_VALUE(IDELAY_VALUE)`，
-`C/CE/CINVCTRL/CNTVALUEIN/DATAIN/INC/LD/LDPIPEEN/REGRST` 全部静态 tie ⇒ **板上不可动态调，改 tap
+`C/CE/CINVCTRL/CNTVALUEIN/DATAIN/INC/LD/LDPIPEEN/REGRST` 全部静态 tie，因此**板上不可动态调，改 tap
 只能重新综合**。`.REFCLK_FREQUENCY(200.0)` 出现在 `:70` 与 `:111`，是硬编码的字面量，与 `clk_gen.v:27`
 的 1000/5=200 MHz 是**隐式联动**（没有任何检查保证两者一致）。`IDELAYCTRL` 的 `.RDY()` 悬空、`.RST(1'b0)`
 （`:58-63`），并挂 `(* IODELAY_GROUP = "rgmii_rx_delay" *)` 让工具把 5 颗 IDELAYE2 与这顆 CTRL 分到同一
@@ -438,12 +438,12 @@ IO 组（否则 DRC 报缺参考）。
 
 **发送侧**（`rgmii_tx.v`）：5 个 `ODDR`，`.DDR_CLK_EDGE("SAME_EDGE")`；TX_CTL 的 `D1=D2=gmii_tx_en`
 （两沿同送，`:19-31`），数据 `D1=gmii_txd[i]`/`D2=gmii_txd[4+i]`（`:37-49`）；
-`rgmii_txc = gmii_tx_clk`（`:16`）。**没有 ODELAY**（全文件 0 命中）。⇒ 输出侧的建立/保持余量完全靠
+`rgmii_txc = gmii_tx_clk`（`:16`）。**没有 ODELAY**（全文件 0 命中）。，因此输出侧的建立/保持余量完全靠
 ODDR 的对齐与 PHY 那边的窗，本工程故意不写 `set_output_delay`（§10.4）。
 
 **为什么 5 个 IDDR 与下游 fabric 吃同一只 BUFG**（`rgmii_rx.v:3-5` 原文，这是本工程最贵的一课之一）：
 原来 IDDR 吃 **BUFIO**（SCD = 3.171 ns）、fabric 吃 **BUFG**（DCD = 4.854 ns），两棵钟树差 **1.616 ns**
-而那条数据路径只有 1.855 ns ⇒ 综合器插 hold buffer 硬补，"每次重建在 ±1 ps 上掷硬币"（r62 量到
+而那条数据路径只有 1.855 ns，因此综合器插 hold buffer 硬补，"每次重建在 ±1 ps 上掷硬币"（r62 量到
 +0.001、r63b 量到 +0.052）。改成同吃 BUFG 后偏差变成设计值，但**采样沿被往后推了 1.683 ns**，
 于是数据侧必须补同样的量（这就是 `IDELAY_VALUE` 从 15 变 26 的由来，后来 r116 又按实测曲线推到 31，
 见 §11.5）。资源报告里 `BUFIO = 0` 是这条改动的直接证据。
@@ -458,7 +458,7 @@ ODDR 的对齐与 PHY 那边的窗，本工程故意不写 `set_output_delay`（
   时必须先说是哪一版。
 - 帧长：**只在帧尾比 `cnt >= 16'd64`**（`:76`）。**没有最大帧长校验**（`cnt` 是 16 位；`saw_sfd` 只置不用，
   全文件仅 `:31/:84/:98` 三处）。
-- CRC32：内建一份 `crc32_d8`（`:37-47`），`crc_en = (state==S_DATA) && gmii_rx_dv`（`:35`）⇒ 覆盖
+- CRC32：内建一份 `crc32_d8`（`:37-47`），`crc_en = (state==S_DATA) && gmii_rx_dv`（`:35`），因此覆盖
   **整帧含 4 字节 FCS**；`crc_clr` 打在 `S_PRE` 且字节==`8'hD5` 那一拍（`:42`），`:43-44` 原文解释为什么
   不能打在第一个数据字节当拍（"`crc_clr` 优先级会吞掉第 0 字节"）。
   判据是**残值比较**：`wire fcs_ok = (crc_q == FCS_RESIDUE);`（`:48`），
@@ -467,9 +467,9 @@ ODDR 的对齐与 PHY 那边的窗，本工程故意不写 `set_output_delay`（
 - **地址过滤在这个模块里完全没有**（`grep -n "BOARD_MAC\|ff_ff_ff\|des_mac" gmii_rx_mac.v` → 0 命中）。
   DA 过滤只存在于厂商路径（`udp_rx.v:145-146`、`arp_rx.v:126-127`、`icmp_rx.v:182-183`，判据都是
   "本机 MAC 或 `48'hff_ff_ff_ff_ff_ff`"两选一，**不认多播位**）。而主线用的 `udp_rx_parser.v`
-  **一行 DA 都不看** ⇒ **任何目的 MAC 的 UDP 包，只要 IPv4 + UDP + 端口 5001 对得上就会被接受**。
+  **一行 DA 都不看**，因此**任何目的 MAC 的 UDP 包，只要 IPv4 + UDP + 端口 5001 对得上就会被接受**。
 - 输出契约：`m_valid / m_sof / m_eof / m_good / m_bad`，**每拍先清 0 的单拍脉冲**（`:63-67`），数据
-  `m_data` 与 valid 一起寄存输出（`:107-109`）⇒ 相对输入晚 1 拍。`m_sof` 在 `cnt==0` 那拍 = DA[0]
+  `m_data` 与 valid 一起寄存输出（`:107-109`），因此相对输入晚 1 拍。`m_sof` 在 `cnt==0` 那拍 = DA[0]
   （`:109`）；`m_eof` 在 `gmii_rx_dv` 掉下来那拍且 `state==S_DATA`（`:69-75`）。
   `:71-74` 原文（时序契约的凭据）："**m_eof 与 m_good/m_bad 同拍**，表示'上一个 m_valid 的字节就是帧的
   最后一个字节'……V7.9.5 之前 `m_eof` 声明了、复位清了、却没有任何一处写 1"。
@@ -495,7 +495,7 @@ ODDR 的对齐与 PHY 那边的窗，本工程故意不写 `set_output_delay`（
 接受条件（`:137-143`，在 `ihl != 0 && bcnt == 14 + {10'd0, ihl, 2'b00}` 那一拍决策）：
 `proto_chk == 16'h0800`（IPv4）`&& b14[7:4] == 4'h4`（版本 4）`&& b23 == 8'd17`（UDP）
 `&& {b20,b21} == 16'h0000`（**无分片偏移**）；端口不符就丢（`:153`）。
-`:133-136` 记录 V7.9.6 修掉的一个统计假阳性：`ihl` 同拍还是旧值 0 ⇒ `bcnt==14` 也成立 ⇒ 每帧误发一次
+`:133-136` 记录 V7.9.6 修掉的一个统计假阳性：`ihl` 同拍还是旧值 0，因此 `bcnt==14` 也成立，因此每帧误发一次
 `stat_drop_filt`。
 
 **两个必须知道的"没做"**：
@@ -515,12 +515,12 @@ arp_rx.v` → 0 命中）。它只有两个寄存器 `src_mac[47:0]`/`src_ip[31:
 目的 IP == BOARD_IP 且 op ∈ {1,2} 那一拍整拍写入并同拍发 `arp_rx_done`（`:151-160`，写入时把影子
 寄存器清 0）。取的是**发送方** SHA/SPA（`:145-148`）。顶层把这对寄存器直接当"唯一邻居"回给
 `arp_tx`/`icmp_tx`/`udp_tx` 的 `des_mac/des_ip`（`eth_udp_video_top.v:136-137,150,169-170`）
-⇒ **谁最后发过 ARP，回包就给谁**；没有并发邻居的概念。
+所以**谁最后发过 ARP，回包就给谁**；没有并发邻居的概念。
 
 **ICMP 回显的缓冲 = 一根 8bit×2048 同步 FIFO**（`sync_fifo #(.DATA_W(8), .ADDR_W(11)) u_icmp_fifo`，
-`eth_udp_video_top.v:119-124`），且 `full/empty/level` 三口**全部空接** ⇒ 满了静默丢、无告警。
+`eth_udp_video_top.v:119-124`），且 `full/empty/level` 三口**全部空接**，因此满了静默丢、无告警。
 回显节流：`icmp_dly[5:0]` 在收完包时装 `6'd20`、倒数到 1 时发 `icmp_tx_start_en`
-（`:94-109`，`:102` 装 20、`:106` 发使能）⇒ 等 **20 个 `gmii_rx_clk` 周期（160 ns）** 再启动应答。
+（`:94-109`，`:102` 装 20、`:106` 发使能），因此等 **20 个 `gmii_rx_clk` 周期（160 ns）** 再启动应答。
 `icmp_rx.v:196-203` 有 `total_length < 28` 的长度守卫，防 16 位减法回绕（凭据 `tb_icmp_len_wrap.v`
 R1/R1b/R2）；`:104-110` 是"一条 0 字节请求让应答器永久变哑"的逃生口（凭据
 `build/r101_216_deathpoint.txt`）。ICMP 的 reply checksum 是**增量**算的（奇偶配对
@@ -532,7 +532,7 @@ R1/R1b/R2）；`:104-110` 是"一条 0 字节请求让应答器永久变哑"的�
 才需要）：帧布局存在三个数组 `preamble[7:0]`/`eth_head[13:0]`/`ip_head[6:0]`
 （`udp_tx.v:52-54`，32bit 一项）；IP 首部校验和**非增量、4 拍**（`:234-249`：一次加 10 个 16 位项 →
 折叠 → 再折叠 → 取反写进 `ip_head[2][15:0]`）；`icmp_tx.v:272-292` 把它拆成 5 拍，`:274-276` 原文记录
-原因："原来 10 项一拍 ⇒ 5 级 CARRY4、0.741 ns 最差路径"；`check_buffer` 位宽砍到 20 bit
+原因："原来 10 项一拍，因此5 级 CARRY4、0.741 ns 最差路径"；`check_buffer` 位宽砍到 20 bit
 （`:75-80`，上界 `10×65535 = 655350 < 2^20`）。`udp_tx.v` 里源/目的端口硬编码 1234、UDP 校验和恒 0
 （`:220`），**与收侧过滤的 5001 无关**。
 发送仲裁在 `eth_ctrl.v`：`protocol_sw[1:0]`，`2'b00=ARP / 2'b01=UDP / 2'b10=ICMP`（`:94-108`），优先级
@@ -548,7 +548,7 @@ always 块里**（否则 `arp_tx_en` 连高两拍、ARP 帧第 0 字节被重发
 - 4 字节偏移的收集式在 `:126-130`，逐拍移位：`S_OFF0: off<={24'd0,p_data}`、`S_OFF1: off[15:8]<=p_data`、
   `S_OFF2: off[23:16]<=p_data`、`S_OFF3: off[31:24]<=p_data`（状态定义 `:37`）。
 - 完整头的拼接表达式 `:105`：`wire [31:0] hdr = {p_data, off[23:0]};`，`:104` 原文
-  "4-byte **little-endian** offset, complete in the S_OFF3 cycle"。⇒ **低地址=低字节**，与小端主机一致。
+  "4-byte **little-endian** offset, complete in the S_OFF3 cycle"。，因此**低地址=低字节**，与小端主机一致。
 - 几何参数：`parameter IMG_W=512 :9`、`IMG_H=300 :10`、`FRAME_BYTES=307200 :11`、
   `localparam integer ROW_STRIDE = IMG_W * 2 = 1024 :86`。
 - **行号用除法不用移位**（`:84-85` 原文）：
@@ -564,23 +564,23 @@ always 块里**（否则 `arp_tx_en` 连高两拍、ARP 帧第 0 字节被重发
   永不成立（**画面是黑纹而不是报错**）。台架里当场喊；综合忽略 initial"。
 - **写地址** `:151`：`wr_addr <= off[18:1]`（19 位字下标，单位 = 16bit 像素），
   `wr_en <= (off < FRAME_BYTES)`（`:152`）。数据由相邻两个载荷字节拼成：`:141-142` 存低字节
-  `pix_lo` + `have_lo<=1`，`:150` `wr_data <= {p_data, pix_lo}` ⇒ **线上是低字节在前**（LE 像素）。
+  `pix_lo` + `have_lo<=1`，`:150` `wr_data <= {p_data, pix_lo}`，因此**线上是低字节在前**（LE 像素）。
 - **越界** 走 `:152-161`：`wr_en` 拉 0，并把 `stat_oob_off` +1（`:161`）。`:144-149`（ISSUES #201）原文记录
   改前症状："发包方选的偏移能把字写到帧缓存之外（`off[18:1]` 最大 131071，帧只有 153600 字节 = 76800 个
   字，越界后落在谁身上由下游 `axi_frame_saver64` 的乘法决定，而**它自己没有上界检查**）"，凭据
   `build/r98_201_before.txt`，尺子 `sim/tb_reasm_bounds.v` 的 R1。
 - **重叠没有任何保护**：`:154-158` 的位图写是幂等的（写 1），`rows_hit` 只在**该行首次被写**时 +1
   （`:100` `new_row_w = (row_idx < IMG_H) && !row_covered`）。同一行被两个包各写一次只会覆盖数据，
-  **不产生任何计数**。⇒ "重传安全"只是"数据被重写一遍"，不是被检测出来的特性。
-- **包序倒退没有专门分支**（这是已知缺陷，见 §18：偏移倒退时不清零 ⇒ 上一帧残字写进刚清零的 bank）。
+  **不产生任何计数**。，因此"重传安全"只是"数据被重写一遍"，不是被检测出来的特性。
+- **包序倒退没有专门分支**（这是已知缺陷，见 §18：偏移倒退时不清零，因此上一帧残字写进刚清零的 bank）。
   唯一的清零条件是 `:133-138` 的 `if (hdr < 32'd4)`（即偏移回到帧开头附近）。
 - **非对齐尾字节**：`have_lo` 是"攒了一半"的旗（`:41`），载荷奇数字节时最后那个高字节永远凑不成第二个字，
   帧尾 `p_eof` 分支 `:211` 直接 `have_lo<=0` 丢掉，**既不报错也不计数**。偏移头本身 4 字节，但若发送方给的
-  `off` 是奇数，`off[0]` 会一直保留（`:163` `off<=off+2`），导致 `off[18:1]` 与真实字节位置差半个字 ⇒
+  `off` 是奇数，`off[0]` 会一直保留（`:163` `off<=off+2`），导致 `off[18:1]` 与真实字节位置差半个字，因此
   **RTL 里对 `off[0]` 没有任何检查**（检索式 `off\[0\]`、`odd`，0 命中）。这就是上位机文档要求
   "载荷长度必须是 8 的倍数"的根因之一（另一半见 §7.6）。
 - **帧完成三门**（`:182`，逐字）：
-  `if (rows_hit >= IMG_H[15:0] && bytes_ok && !bad_frame)` ⇒ `frame_done<=1`（`:183`），同拍清
+  `if (rows_hit >= IMG_H[15:0] && bytes_ok && !bad_frame)`，因此 `frame_done<=1`（`:183`），同拍清
   `cov`/`rok0..4`/`rows_hit`/`bad_frame` 并 `stat_frames+1`（`:184-188`）。
   `bytes_ok = cov_sat | (cov_end & p_valid)`（`:70`）。`cov`/`pend` 是**饱和累加器**（`:56-66`：
   `CW=$clog2(FRAME_BYTES+1)`、`SAT=FRAME_BYTES`、`SAT1=FRAME_BYTES-1`），`:5-7` 原文记录为什么：v5.1 之前
@@ -602,7 +602,7 @@ cdc_data = {1'b0, fb_wr_addr, fb_wr_data};   // 正常写：1 个 flush 位 + 19
 cdc_wr   = (fb_wr_en || reasm_flush || flush_pend) && !fifo_full;
 ```
 - **为什么 36 位**：把"一个写令牌"的**地址、数据、flush 位装在同一个条目里原子过跨域**，读侧再拆
-  （`:315-320`）⇒ **不存在地址与数据被撕开的窗口**。若拆成两条 18/19 位通道，就得自己造握手。
+  （`:315-320`），因此**不存在地址与数据被撕开的窗口**。若拆成两条 18/19 位通道，就得自己造握手。
   第 36 位是 flush 标记，读侧解码：`sav_en <= cdc_d1_v && !cdc_d1[35]`（`:315`）、
   `sav_flush <= cdc_d1_v && cdc_d1[35]`（`:316`）。
 - **为什么 8192 深**：`:296-297` 原文"8192 条 = 4096 个 64bit 字 = 16 KB，足以吸收'显示拷贝独占 HP0
@@ -611,7 +611,7 @@ cdc_wr   = (fb_wr_en || reasm_flush || flush_pend) && !fifo_full;
   线速进来的……每包 698 个 16bit 写。原来读侧限成'每 3 个 axi 周期取 1 条' = 66 MB/s < 125 MB/s，
   **单包就能把 512 深的 CDC 灌满 → 稳定丢 ~46% 的字**，表现为板上'每隔一个 16bit 空洞'的黑纹……
   现在 1 条/周期（200 MB/s）"。实现是 `:312` `fifo_rd <= !fifo_empty && !sv_full;`。
-- **溢出丢弃的唯一路径**：`:263-265` 里的 `&& !fifo_full` ⇒ 满时那一拍的写**凭空消失，FIFO 自己不发
+- **溢出丢弃的唯一路径**：`:263-265` 里的 `&& !fifo_full`，因此满时那一拍的写**凭空消失，FIFO 自己不发
   溢出标志**（`dc_fifo.v:53,61` 两处都是 `if (wr_en && !wr_full)`）。被丢的字由 `link_monitor` 的
   `drop_words` 计数（见 §7.8），那是"**板上唯一真实的丢数据通道**"（`link_monitor.v:69` 原文）。
 - `flush_pend` 一位缓冲（`:267-271`）：同拍既来 flush 又来数据时把 flush 押后一拍，只在
@@ -641,10 +641,10 @@ cdc_wr   = (fb_wr_en || reasm_flush || flush_pend) && !fifo_full;
 分两次写'时后一次会把前一次的半字覆盖成 0：分包长度不是 8 的倍数（如 1396）时**每帧 111 处 = 222 个
 16bit 黑洞**，屏上均匀散布的黑点"。表达式 `:83-84`：
 `m_axi_wstrb = {{{2{keep_r[3]}},{2{keep_r[2]}},{2{keep_r[1]}},{2{keep_r[0]}}}`。
-⇒ **上位机侧"载荷长度必须是 8 的倍数"这条规矩，根因就在这三行。**
+所以**上位机侧"载荷长度必须是 8 的倍数"这条规矩，根因就在这三行。**
 
 **为什么要流水化**（`:2-3` + `:5-7`，ISSUES #31）："v6.2 之前每字走完 `S_AW→S_W→S_B`，在途深度恒 1
-⇒ HP0 写延迟（~40 拍，被显示拷贝抢端口时上百拍）直接成为吞吐上限 ≈ **20 MB/s** ⇒ 板上'每包固定从第
+所以HP0 写延迟（~40 拍，被显示拷贝抢端口时上百拍）直接成为吞吐上限 ≈ **20 MB/s**，因此板上'每包固定从第
 48 字节起丢字'"。`:7-8`（ISSUES #32）紧接着警告："**加深缓冲治不了它：瓶颈是平均排空速率不是深度**，
 v6.2 把 CDC 做到 8192 时上板毫无改善。"——这是"用缓冲区掩盖带宽不足"这个常见错误答案的直接否定。
 
@@ -653,7 +653,7 @@ v6.2 把 CDC 做到 8192 时上板毫无改善。"——这是"用缓冲区掩�
 （8192 条）。"
 
 ⚠ **这段原文里的 94 % 今天复算不出来**：按 `build/utilization.rpt:41`，可用 FF = 106400，
-`51200 / 106400 = 48 %`。⇒ 本文对外只 publish 能复算的 **48 %**；94 % 只能作为"源码注释当时的声称"引用，
+`51200 / 106400 = 48 %`。，因此本文对外只 publish 能复算的 **48 %**；94 % 只能作为"源码注释当时的声称"引用，
 不能当读数搬运（学习文档 §3.5 与 v25 修订记录第 ⑤ 条记着同一件事与同一处理口径）。
 
 **一条被实测钉死的 Verilog 写法**（`:104-107`，原文值得整段搬）："存储写必须**独占一个不带异步复位的
@@ -693,11 +693,11 @@ drain."（所以它没上板）。
 5. 输出：`assign sav_base = bank ? BANK1 : BANK0;`（`:79`）给写侧；`assign pack_flush = sav_flush |
    (force_flush && (TAIL_GUARD ? tail_drained : 1'b1));`（`:80`）；兜底 `:74-75` 在
    `saver_idle && !switch_req` 时清 `force_flush`。
-6. 复位初值：`:55-60` ⇒ `bank<=1'b0; completed_base<=BANK0; commit_pulse<=0;` ⇒
+6. 复位初值：`:55-60`，因此 `bank<=1'b0; completed_base<=BANK0; commit_pulse<=0;`，因此
    **上电第一个可显示的 bank 是 BANK0**。
 
 **`TAIL_GUARD` 为什么存在**（`:6-7` 原文）：`=1` 修 v6.4 的"帧尾 4 字节偶发丢失"——"旧判据只看
-`saver_idle`，它对 8192 深的 CDC 和后面的读流水**完全不可见** ⇒ 帧尾几个 16bit 被写进**下一帧**的 bank
+`saver_idle`，它对 8192 深的 CDC 和后面的读流水**完全不可见**，因此帧尾几个 16bit 被写进**下一帧**的 bank
 （板上 HDMI 右下角少 2 像素）"。参数默认 `1'b0`（`:11`），顶层传 **`1'b1`**（`eth_udp_video_top.v:331`）。
 
 **为什么它要单独成模块**（`:4-5` 原文）："抄的那份永远不会因真代码改错而变红"——这是本项目对
@@ -711,9 +711,9 @@ drain."（所以它没上板）。
 
 全部在 `gmii_rx_clk`/`eth_rxc` 125 MHz 域。时基：`localparam integer TC = CLK_HZ/1000 = 125000`（`:36`）、
 `DW = $clog2(TC+1)`（`:41`）。`:38-40` 原文记录一条**类型宽度事故**：原来把分频寄存器写成 `[15:0]`，
-装不下 125000 ⇒ `ms_div == TC-1` 恒假 ⇒ **ms_tick / stall / gap / 心跳在板上全死**，取证是
+装不下 125000，因此 `ms_div == TC-1` 恒假，因此**ms_tick / stall / gap / 心跳在板上全死**，取证是
 `WARNING [Synth 8-6014] Unused sequential element ms_div_reg was removed`。每 1 ms：`ms_tick<=1`（`:60`）
-并 `lm_hb <= ~lm_hb`（`:61`）⇒ **心跳位每 1 ms 翻转一次**。
+并 `lm_hb <= ~lm_hb`（`:61`），因此**心跳位每 1 ms 翻转一次**。
 
 | 计数器 | 语义 | 位宽 | 清零 | 赋值行 |
 |---|---|---|---|---|
@@ -728,14 +728,14 @@ drain."（所以它没上板）。
 
 - **gap 量的到底是什么**：`frame_done → frame_done`，即**两次完整帧提交之间过了多少个 ms tick**。
   不是包间隔，也不是帧起始间隔。第一个 `frame_done` 只建立 `have_base`（`:137`、`:150`），从第二个起才
-  产 min/max ⇒ `gap_valid` 需要 ≥2 帧（`:78`）。`:133-134` 原文记了一个**已知偏差不修**："ms tick 与
+  产 min/max，因此 `gap_valid` 需要 ≥2 帧（`:78`）。`:133-134` 原文记了一个**已知偏差不修**："ms tick 与
   `frame_done` 同拍时这一条间隔少计 1 ms……记下，不修"。
 - **为什么改成"直接数"**：`:46-51` 原文——原来是"两个 32 位毫秒计相减"，那是**全设计最差 setup 路径**
   （ISSUES #95）。位宽不换的理由同段："宁可饱和也不许绕回（16 位回卷曾把 `gap_max` 永久污染，且之后更大
-  的间隔读起来反而更小 ⇒ **两个方向都说谎**），但不需要 32 位：数到 `0x1FFFF` 钉住，`gap_new` 见 `bit[16]`
+  的间隔读起来反而更小，因此**两个方向都说谎**），但不需要 32 位：数到 `0x1FFFF` 钉住，`gap_new` 见 `bit[16]`
   报 `0xFFFF`"。读数式 `:87`：`wire [15:0] gap_new = gap_cnt[16] ? 16'hFFFF : gap_cnt[15:0];`
 - **为什么 `drop_words` 必须延迟"事件谓词本身"**：`:82-85` 原文——"`(req_d && full_d)` 与
-  `(req && full)` 延一拍**不等价**……台架 E1 实测 DUT 31 / 参考 32"。⇒ 正确写法是把
+  `(req && full)` 延一拍**不等价**……台架 E1 实测 DUT 31 / 参考 32"。，因此正确写法是把
   `drop_ev_d <= cdc_wr_req && cdc_full`（`:105`）整体打一拍。
 - **16 位字段一律饱和不回卷**：`:88-92`（`bad16/err16/ep16`），原文"健康数字回卷到 0 会被读成'没问题'，
   **这是比少报更坏的错**"。
@@ -747,7 +747,7 @@ drain."（所以它没上板）。
 
 `eth_ctrl.v`(167 行) 的职责是**发送侧协议仲裁**（见 §7.3 末），与观测面无关。
 `snap_cross.v` 的字段布局与 3 级同步链见 §6 C3；它的 `hb_gone`/`hb_slow` 是"**源时钟没了 / 源时钟被拉慢**"
-两个独立旗标（`system_top.v:238` 把它们编进 lane31，注释原文："板级实测拔线时 RXC≈2.5 MHz ⇒ 只有 bit1
+两个独立旗标（`system_top.v:238` 把它们编进 lane31，注释原文："板级实测拔线时 RXC≈2.5 MHz，因此只有 bit1
 会亮"）——这正是 `src_arb` 的 `eth_tb_ok` 判据来源（§8.2）。
 
 重取：
@@ -788,8 +788,8 @@ grep -n "IDDR\|IDELAYE2\|ODDR\|REFCLK_FREQUENCY\|IDELAY_VALUE" src/rtl/eth/rgmii
 行号：现役四段参数在 `video_timing_1024x600.v:19-20`，极性与注释在 `:5,21`，H_TOTAL/V_TOTAL 的算式在
 包装文件的 `:22` 与文件头 `:3-4`。`video_timing_720p.v:2` 自陈"**本树无人例化**"。
 
-两个场事件脉冲：`frame_start = de_act && h_cnt==0 && v_cnt==0` 寄存一拍 ⇒ **落在第一个有效像素那一拍**
-（`x=0,y=0` 同拍，`:68`）；`frame_done = h_cnt==H_TOTAL-1 && v_cnt==V_TOTAL-1` 寄存 ⇒ 落在场消隐末拍（`:69`）。
+两个场事件脉冲：`frame_start = de_act && h_cnt==0 && v_cnt==0` 寄存一拍，因此**落在第一个有效像素那一拍**
+（`x=0,y=0` 同拍，`:68`）；`frame_done = h_cnt==H_TOTAL-1 && v_cnt==V_TOTAL-1` 寄存，因此落在场消隐末拍（`:69`）。
 "行尾才加 `v_cnt`"这个次序被 `raw_line_delay.v:70` 显式引用为依赖项。
 
 派生的顶层常数：消隐行数 `625-600 = 25`（`pl_video_top.v:397-398` `DISP_V_LINES=600`/`DISP_V_LAST=624`）、
@@ -810,13 +810,13 @@ grep -n "IDDR\|IDELAYE2\|ODDR\|REFCLK_FREQUENCY\|IDELAY_VALUE" src/rtl/eth/rgmii
 - `quiet` 只服务**一个方向**：`:61-64`——`!eth_wanted` 时递增并**饱和在 `32'hFFFF_FFFF`**；`eth_wanted`
   一到立刻清零（原文"ETH 一活就清零（**回抢不等**）"）。
 - **唯一的主人赋值点在 `if (both_idle)` 之内**（`:66-76`）：`if (eth_wanted) owner_eth <= 1;
-  else if (quiet >= T_OFF_CYC) owner_eth <= 0;`。除 `both_idle` 之外没有任何路径能改主人 ⇒
+  else if (quiet >= T_OFF_CYC) owner_eth <= 0;`。除 `both_idle` 之外没有任何路径能改主人，因此
   **不会切断任何一次拷贝**。
 - 复位：`owner_eth <= 1'b0`（注释"配置完成时两边都没东西，先给 PS"）、`quiet <= 0`、
   **`why_ps <= 3'b011`**（`:57-59` 原文："复位值取'没有流 + 时基还没验'（011），不取 000：000 的意思是
   '一切正常、是被人钉住的'，那是刚上电时最不该撒的谎"）。
 
-`T_OFF_CYC = 2_000_000` 量的是**哪个钟**：`:18` 原文"AXI 域 100 MHz ⇒ 2_000_000 = **20 ms**"，
+`T_OFF_CYC = 2_000_000` 量的是**哪个钟**：`:18` 原文"AXI 域 100 MHz，因此2_000_000 = **20 ms**"，
 `:19`"这是**第二级**滞回：第一级是 `stall_ms > LIVE_MS`（默认 200 ms）"；时钟就是 `clk = axi_clk`（`:22`，
 顶层 `pl_video_top.v:421-422` 递 fclk0）。
 
@@ -830,8 +830,8 @@ grep -n "IDDR\|IDELAYE2\|ODDR\|REFCLK_FREQUENCY\|IDELAY_VALUE" src/rtl/eth/rgmii
 `[1]`=时基准但没有流、`[0]`=时基本身不可信。**#174 这一刀**（`:68-72`）：`why_ps` 必须与 `owner_eth`
 写在**同一个决定点**（即 `both_idle` 之内）。挂在无条件那一支会导致"拷贝期间（主人被互锁冻住）翻
 `eth_live`，屏上/上位机读到的'为什么 PS 拿着'会跟着变，而主人一次都没换"。台架
-`sim/tb_src_arb_why.v` 的 `W5` 钉这件事、`W7` 是反配对（"真换手那一拍必须重新快照 ⇒ 不许修成'再也不更新'"）。
-⇒ **拷贝期间 `why_ps` 是冻住的**，这是可观测行为，不是 bug。
+`sim/tb_src_arb_why.v` 的 `W5` 钉这件事、`W7` 是反配对（"真换手那一拍必须重新快照，因此不许修成'再也不更新'"）。
+所以**拷贝期间 `why_ps` 是冻住的**，这是可观测行为，不是 bug。
 
 `eth_tb_ok` 的物理来源（`:11-14`，板级实测 2026-09-23）：断链时 RTL8211 **不停 RXC 而是拉到 ≈2.5 MHz**，
 `stall_ms` 以约 1/48 速度爬，`stall_ms < 200` 会连着骗人十几秒。取法在
@@ -841,10 +841,10 @@ grep -n "IDDR\|IDELAYE2\|ODDR\|REFCLK_FREQUENCY\|IDELAY_VALUE" src/rtl/eth/rgmii
 **"手递手交接"（handover）的逐跳**（回答"切片源会不会撕裂"要看这段）：
 1. `:41-43` 原文：手动锁**只改"谁想要总线"，不改"什么时候能换手"**——"直接在输出上加一个 mux 是最容易
    想到的写法，也是错的 —— 那会在一次拷贝中途把选择位翻掉，留下**半开的 AXI 读突发**"。
-2. 旧写法有两个病（`:4-8`）：`eth_mode = 3FF(|s_pkts)` ⇒ ARP 就触发；拔线不回 0 ⇒ PS 被永久锁死（ISSUES #47）。
+2. 旧写法有两个病（`:4-8`）：`eth_mode = 3FF(|s_pkts)`，因此ARP 就触发；拔线不回 0，因此PS 被永久锁死（ISSUES #47）。
 3. `owner_eth` 一变，顶层 `eth_mode`（`pl_video_top.v:428`）同拍切换**14 处 mux**：AXI AR `:709-713`、
    R `:714,465-467,703-705`、帧缓存写源 `:716-718`、`start`/`allow_wr`/`abort` 三处 `eth_mode?…:1'b0`
-   （`:457,459,460`）。两个引擎同在 `axi_clk` ⇒ 这一位**不跨域、不需要 CDC**，安全性全靠 `both_idle` 互锁。
+   （`:457,459,460`）。两个引擎同在 `axi_clk`，因此这一位**不跨域、不需要 CDC**，安全性全靠 `both_idle` 互锁。
 4. 显示侧**不切**：像素域只把**结果**跨过来（`op0/op1/op2` 3 级，`:517-522`）。`:512-513` 原文：
    "这里再复制一份'活着'就会出现'ETH 那一位还在说谎、SD 帧却永远不被消费'的死锁 —— 板上的 STALL 钉在
    9999 正是它"。（⚠ `:513` 提到的 STALL=9999 是 OSD 的**显示钉值**，不是 9999 ms，见 `system_top.v:252-254`。）
@@ -862,9 +862,9 @@ grep -n "IDDR\|IDELAYE2\|ODDR\|REFCLK_FREQUENCY\|IDELAY_VALUE" src/rtl/eth/rgmii
    没流（bit1）或时基不可信（bit0）"）。
 
 `src_arb` 位宽红线：`dbg_src` 在 `system_top.v:221-227` 声明 `wire [15:0] dbg_src;`，原文警告——
-"位宽必须与 `pl_video_top.dbg_src` 一模一样（r54 起是 16 bit）。这里以前写过 `[5:0]` ⇒ 综合只给一条
+"位宽必须与 `pl_video_top.dbg_src` 一模一样（r54 起是 16 bit）。这里以前写过 `[5:0]`，因此综合只给一条
 `Synth 8-689` 警告就把模式高位**静默丢掉**：TEST(10) 读起来像自动(00)、SD(11) 像 ETH(01)（ISSUES #57）"。
-⇒ 门禁第 14 项专门量这个（§17）。
+所以门禁第 14 项专门量这个（§17）。
 
 ### 8.3 两条 DDR→显示 BRAM 的搬运引擎（同口分时，两代实现）
 
@@ -885,18 +885,18 @@ skid 必须显式分布式 RAM 的理由在 `:50-52`（Synth 8-4767 掉触发器
 ### 8.4 帧提交锁与消隐窗（`src/rtl/video/frame_commit_lock.v`）
 
 它锁的是**"什么时候允许把 DDR 里那一帧写进显示 BRAM"**，物理理由（`pl_video_top.v:6-7`）：
-显示 BRAM 的读口正被光栅逐像素扫描，写口在有效期内改内容 = 屏幕上同一条扫描线前后半不同帧 ⇒ **撕裂**。
+显示 BRAM 的读口正被光栅逐像素扫描，写口在有效期内改内容 = 屏幕上同一条扫描线前后半不同帧，因此**撕裂**。
 所以写只准在 V 消隐的 25 行窗口里发生。
 
 实现（逐行）：
 - 像素侧：`bs_d0/1/2` 三级打 `blank_safe`（`:46,53`），`blank_pix = bs_d2`（`:57`）；
   `vs_d0/vs_d1` 抓 `vsync` 上升沿 `vs_rise`（`:45,52,56`）；`blank_tog` 在 `vs_rise` 翻转（`:59-63`）。
-- AXI 侧两条独立 3FF：`(* ASYNC_REG="TRUE" *) b0,b1,b2` 打 `blank_tog` ⇒ `vsync_req = b1 ^ b2`
-  （`:64-69`，**用翻转位而不是电平**是为了给出"场开始"这一事件）；`d0,d1,d2` 打 `blank_pix` ⇒
+- AXI 侧两条独立 3FF：`(* ASYNC_REG="TRUE" *) b0,b1,b2` 打 `blank_tog`，因此 `vsync_req = b1 ^ b2`
+  （`:64-69`，**用翻转位而不是电平**是为了给出"场开始"这一事件）；`d0,d1,d2` 打 `blank_pix`，因此
   `assign allow_copy_axi = d1 & d2;`（`:71-76`，**两级与而不是异拍**——它是电平窗，不是事件）。
 - 拷贝起点：`:78-80` 原文（v6 那次改动）"start the copy at the **OPENING** of the allow window, not at the
   vsync edge. With 1024x600 (V_FP=3, V_SYNC=6) vsync only rises 9 blank lines into a 25-line window, which
-  **throws away a third of the copy budget**." ⇒ 预算账：窗口 25 行 = 25×1344 = 33600 像素拍，
+  **throws away a third of the copy budget**."，因此预算账：窗口 25 行 = 25×1344 = 33600 像素拍，
   顶层 `VBLANK_AXI_AXI_CYC = 67200`（`pl_video_top.v:446`，axi 100 MHz 拍）；超窗观测位
   `copy_overrun`（`:448-452`）挂在 `led[0]` 的 mux 上（`:1039`，正常 1.5 Hz、越窗 6 Hz）。
 - `pending` 位（`:40-42`）：提交来了但窗口没开，先记着，窗口开时补发。
@@ -915,7 +915,7 @@ skid 必须显式分布式 RAM 的理由在 `:50-52`（Synth 8-4767 掉触发器
   而全片才 140 块**；拆成 `D_LO = 2^15 = 32768` + `D_HI = 8192`（`:33-35`，用 `bitsof()` 函数 `:23-30`
   算出来）实测 **80 块**（对照实验在 `tmp_ramtest/fbtest.v`，v0=128 / v5=80）。
 - 端口：写 64bit（`wr_data = {p3,p2,p1,p0}` `:15`）在 `wr_clk`，读是**16bit 随机地址 + 原始 64bit 字**
-  两个逻辑口共用**一个物理读口**（`rd_data`/`rd_data64` `:19-20`）在 `rd_clk`（`:12,17`）⇒ 双时钟 BRAM。
+  两个逻辑口共用**一个物理读口**（`rd_data`/`rd_data64` `:19-20`）在 `rd_clk`（`:12,17`），因此双时钟 BRAM。
 - **读延迟 1 拍**（`:3,62-68`）：`q_lo/q_hi/sel_hi/sel_lane/blank` 全部寄存一级；两块**每拍都读**、
   用 `sel_hi` 选（`:70`）；车道 mux `:72-79`；越界**夹回黑**而不是产 X（`blank :67,80`，`:63-64` 原文
   "地址用掩码夹住不产 X"）。
@@ -934,11 +934,11 @@ skid 必须显式分布式 RAM 的理由在 `:50-52`（Synth 8-4767 掉触发器
   数学系 `yp_math = IMAGE_H/2 - y_in`，显示系 `yp_disp = y_in - IMAGE_H/2`（`rotate_mapper.v:26-27` 同形）。
   s1 旋转 `:42-55`（Q8 三角表），s2 乘 `inv_scale` `:58-66`：旋转支 `>>>16`（Q8×Q8=Q16），
   非旋转支 `>>>8`。
-- **越界填什么**：`:103-108`——`sx_c<0 || >=IMAGE_W` 等 ⇒ `x_out/y_out = 0`、`oob = 1`、`frac = 0`。
-  ⇒ 填的是**图内第 0 像素 + 一个越界旗标**，不是直接填黑；"黑"是后面 `fb_bilin`/`pix_raw` 用 `oob` 决定的。
+- **越界填什么**：`:103-108`——`sx_c<0 || >=IMAGE_W` 等，因此 `x_out/y_out = 0`、`oob = 1`、`frac = 0`。
+  所以填的是**图内第 0 像素 + 一个越界旗标**，不是直接填黑；"黑"是后面 `fb_bilin`/`pix_raw` 用 `oob` 决定的。
 - **小数与旋转的纵向翻转**（`:70-94`，#104/#189）：`rot_fx = rot_xs[15:8]`（`:75`）；
   `rot_fy` 需要 `256 - ceil(f·256)`，且 `rot_y_has_frac` **必须看完整 16 bit**（`:81-86`，`:76-80` 原文
-  "只看高字节会把 (0,1/256) 读成没有小数 ⇒ 沿角度方向稀疏错一行鬼影，**实测 0.27 %**"）。
+  "只看高字节会把 (0,1/256) 读成没有小数，因此沿角度方向稀疏错一行鬼影，**实测 0.27 %**"）。
   floor/frac 自洽靠 `>>>8` 朝 −∞ 取整（`:90-94`）。
 - **倍率唯一出处在 `zoom_ctrl` 不在顶层**：`:16-21` 原文给出理由——否则"屏上那格与真正在用的 `inv`
   不是一回事"（#52/#59/#66 那一族），lane23 是判据。八档表（Q8 倒数尺度，**数越大倍率越小**）`:44-53`：
@@ -950,15 +950,15 @@ skid 必须显式分布式 RAM 的理由在 `:50-52`（Synth 8-4767 掉触发器
 
   `:44-46` 原文解释 1023 而不是 1024：**10 bit 天花板**。呼吸带参数 `INV_LO=256`、`INV_HI=512`、`STEP=2`
   （`:6-8`），呼吸只在 `[256,512]` 走（`:38-39`），手动档允许越界到 2.0×/0.25×（逆映射 inv 变小 = 采样窗
-  内收不越界；inv 变大 = 四周填黑）。`!enable` ⇒ `inv_scale <= INV_LO(=256=1.0×)`、`zoom_active <= 0`（`:101-104`）。
+  内收不越界；inv 变大 = 四周填黑）。`!enable`，因此 `inv_scale <= INV_LO(=256=1.0×)`、`zoom_active <= 0`（`:101-104`）。
 - **`zoom_code`（OSD 上那一格）不做除法**：`:57-62` 原文强调不能做运行时除法（**#58 组合除法器 −5.014 ns**），
   改成与相邻档中点比大小的 7 级比较（`:76-83`，阈值 900/644/427/299/224/182/150），寄存一拍（`:95`），
   且 `:93-94` 要求它"只跟上一拍的 `inv_scale`，不进组合链"（V7.9.4 教训）。
 - **旋转钳制**：`:64-74`——`inv_raw = fit_en ? inv_fit : inv_scale`（`:64`）、
   `rot_clamp = rotate_en && (inv_raw < inv_fit)`（`:72`）、`inv_used = rot_clamp ? inv_fit : inv_raw`（`:73`）。
-  ⇒ 旋转时画面**不会大于刚好装得下**那一档；取较大 `inv` = 画面较小。`rotate_active` 的定义是
+  所以旋转时画面**不会大于刚好装得下**那一档；取较大 `inv` = 画面较小。`rotate_active` 的定义是
   `angle != 0`（`angle_ctrl.v:18`），`:66-71` 注释明确 **0° 不参与钳**。
-- **`zoom_fit` 的几何式**（`:2-7`）：`W' = s(W·|cos| + H·|sin|)`，要求装得下 ⇒
+- **`zoom_fit` 的几何式**（`:2-7`）：`W' = s(W·|cos| + H·|sin|)`，要求装得下，因此
   `inv_x = (W·C + H·S)/W`、`inv_y = (W·S + H·C)/H`，取较大者。**除法折成乘 elaborate 期常数 + 定长移位**：
   `REC_W = (2^NSHIFT + W/2)/W`、`NSHIFT = 20`（`:11,26-30`，`:26` 原文又点了 #58 那一课），
   `ix = (nx*REC_W) >> NSHIFT`（`:44-45`），余量 `fit_raw = imax + (imax>>8) + 2`（`:48-51`，
@@ -969,7 +969,7 @@ skid 必须显式分布式 RAM 的理由在 `:50-52`（Synth 8-4767 掉触发器
   `round(fn(angle_deg)*256)`），内容**硬编码 auto-generated**（不是固件下发），`cos(0°)=256`（`cos_rom.v:9`）。
 - **角度不是 24 bit 累加器，是 9 bit 十进制度 0..359**：`output reg [8:0] angle`（`angle_ctrl.v:15`）。
   自动步进 `:33-34` `up = {1'b0,angle} + {7'd0,speed}`（10 bit 加），取模**用减 360**而不是到 359 回 0
-  （`:31-32` 原文"360 = 7·51 + 3"）。`speed[2:0]` ⇒ 每帧最多走 **7°**（`:14,31`）。
+  （`:31-32` 原文"360 = 7·51 + 3"）。`speed[2:0]`，因此每帧最多走 **7°**（`:14,31`）。
   帧边界步进吃的 `frame_tgl` 是**翻转位**（不是脉冲），3 级 `ASYNC_REG` 同步（`:24-29`）；
   `:4-6` 原文给理由："帧中换角 = 上半下半两个角，那一行错开"，`:20-23` 记 CDC-11 事故（#65 / r54 构建 #34）。
   发射点在 `pl_video_top.v:304-314`（`rot_fs_tog` 由 `fs_de_d` + `wrap_row_next/now` 决定），
@@ -979,21 +979,21 @@ skid 必须显式分布式 RAM 的理由在 `:50-52`（Synth 8-4767 掉触发器
   （≈318 ns），落在总线稳定**之后**（`:41-42`，`dly[7:0]` 移位 `:30,36`）。打包式 `:27`：
   `in_bus = {rot_forced, zman, zsel, zoom_code, zoom_active, zoom_dir, inv_scale}`（20 bit，
   `rot_forced` 放最高位使低 19 位不动，`:25-26`）。
-  撕裂反例写在 `pl_video_top.v:649`："对照是'19 位各自打两拍 ⇒ 读到半新一半旧'（#52/#59）"；判据 tb_v95。
+  撕裂反例写在 `pl_video_top.v:649`："对照是'19 位各自打两拍，因此读到半新一半旧'（#52/#59）"；判据 tb_v95。
   `:6-7` 还写明**晚一拍会发上一帧值**（目的域永久落后一档，tb_v95 末态检查红）。
 
 ### 8.7 双线性读侧（`src/rtl/process/bilin/fb_bilin.v` + `bilin_lerp.v`）
 
 **为什么是"每源像素 4 拍"**：`fb_bilin.v:4-5,39-40`——一个源像素要覆盖 **2 个显示列 × 2 个显示行**
-（因为 `OUT_W = 2*IMG_W`，源图放在右半屏），而单读口 BRAM 每拍只能读 1 次 ⇒ 4 个 `clk_pix` 拍刚好用完，
+（因为 `OUT_W = 2*IMG_W`，源图放在右半屏），而单读口 BRAM 每拍只能读 1 次，因此4 个 `clk_pix` 拍刚好用完，
 **没有多余的读带宽**。这就是历史上那版"5× 快时钟"方案被放弃的背景（§11.4）。
 
 - 地址生成 `:42-45`：`pxl = sy*IMG_W + sx`，`w_a = pxl[18:2]`（64bit 字下标），`lane = pxl[1:0]`，
   `w_b = w_a + ROW_WORDS`，`ROW_WORDS = IMG_W/4 = 128`（`:34`）。
-  `:41` 原文点出选型理由：**`IMG_W` 是 2 幂 ⇒ `sy*IMG_W` 综合成连线（不要乘法器）**，是 4 倍 ⇒ 整除。
+  `:41` 原文点出选型理由：**`IMG_W` 是 2 幂，因此 `sy*IMG_W` 综合成连线（不要乘法器）**，是 4 倍，因此整除。
 - 四相位调度 `:37-38,56`：`col0 = ~x[0]`、`row0 = ~y[0]` 组成 (row0,col0) 四种相位，依次发 A、A+1、B、B+1。
 - 越界折回 `:51-54`：末列/末行把小数钉 0 **且抽头折回图内**（`kx_use/ky_use`）。`:49-50` 原文：
-  若只做"小数钉 0"会读到填充区（**硬件 0 / xsim X，而 X×0 = X ⇒ 污染整行**）。
+  若只做"小数钉 0"会读到填充区（**硬件 0 / xsim X，而 X×0 = X，因此污染整行**）。
 - 抽头暂存：A 行凑齐时把 `{p10,p00}` 写进 `tap_hold[0:IMG_W-1]`（**512×32，block RAM** `:142,153`），
   B 行到达时喂 lerp（`:157-162`）；读的是 2 拍前的 `j`：`tap_r <= tap_hold[j_d1]`（`:152`）。
 - 结果缓冲乒乓：`res[0:2*IMG_W-1]`（**1024×17，正好一块 RAMB36** `:180-184`），写
@@ -1001,19 +1001,19 @@ skid 必须显式分布式 RAM 的理由在 `:50-52`（Synth 8-4767 掉触发器
   `:194-195` 原文：本模块**不声明 LAT**，由 `sim/tb_v101_fb_bilin.v` 用"唯一平移量搜索"量出并钉住；
   乒乓极性错了的症状是"每一行前半新后半旧的撕裂"。
 - 标签链纪律 `:83-85` 原文：**"不许给标签另开一条延迟链：标签与内容不同级就是错"**（四级 d1..d4 `:86-117`）。
-- 内容整体晚 **1 对显示行 = 2 个显示行** ⇒ 顶层喂给 mapper 的行号必须再加 `BILIN_ROWS`
+- 内容整体晚 **1 对显示行 = 2 个显示行**，因此顶层喂给 mapper 的行号必须再加 `BILIN_ROWS`
   （`:182` 原文；顶层 `pl_video_top.v:276` `y_right_adv = y + pipe_off_rows + BILIN_ROWS`）。
 - **`BILIN_ROWS` 必须是偶数**（顶层 `pl_video_top.v:249` 原文）："`row0 = ~y[0]` 定成对奇偶，奇数会让一对
-  分属两个源行 ⇒ A/B 错行。凭据 **tb_v89 T1、tb_v101 L3/L6、tb_v98 C1c/C1d/C1h**"；定义 `:250 = 2`。
+  分属两个源行，因此A/B 错行。凭据 **tb_v89 T1、tb_v101 L3/L6、tb_v98 C1c/C1d/C1h**"；定义 `:250 = 2`。
 
 **算术核 `bilin_lerp.v`**（两级，横向→纵向）：
 - 权重格式 **Q8**（`fx/fy` 8 bit 表示 [0,1)，`:15-16`），`:6` 原文"**两两权重之和恒为 256**"。
 - 位扩展用**复制低位**：`rep5 = {v, v[2:0]}`、`rep6 = {v, v[1:0]}`（`:20-21`）。`:4-5` 原文：
-  "**全 1 展开正好 255 ⇒ 纯白不因展开变灰**"。⚠ 这与效果链的"复制高位 `{r5,r5[4:2]}`"是**两种不同口径**
+  "**全 1 展开正好 255，因此纯白不因展开变灰**"。⚠ 这与效果链的"复制高位 `{r5,r5[4:2]}`"是**两种不同口径**
   （见 §8.8 末）。
 - 横向 `:29-30,39-44`：`wx0 = 256 - fx`、`wx1 = fx`，`tr = r00*wx0 + r10*wx1`（寄存一拍，17 bit 封顶）。
 - 纵向 `:51-55`：`wy0 = 256 - fy1`、`wy1 = fy1`，`or_r = tr*wy0 + br*wy1 + 26'd32768`
-  ⇒ **一次 `+2^15` 再 `>>16` 四舍五入**（`:7` 原文）。
+  所以**一次 `+2^15` 再 `>>16` 四舍五入**（`:7` 原文）。
 - 取位 `:59-61` `vr = or_r[24:16]`，回 565 `:67` `{vr[7:3], vg[7:2], vb[7:3]}`。
   `:6,57` 结论：**不需要饱和**（权重和恒 256 保证 ≤255，由 tb 判据 2 强制）。
 
@@ -1038,10 +1038,10 @@ skid 必须显式分布式 RAM 的理由在 `:50-52`（Synth 8-4767 掉触发器
 `w_dilate = stage_sel[8] & ~stage_sel[7]`（`:59-60`，**同时为 1 两个都不做**）；`morph_mode` 编码 `:61`
 （erode→`2'd1`，dilate→`2'd2`，否则 0）。
 **旁路不在 pipeline 里做 mux**，而是把 `~w_x` 接进每个算子的 `.bypass`，真正的透传在算子自己的输出寄存器里
-（如 `proc_gray.v:32` `dout <= bypass ? din : gray`）。⚠ **de 链不受 bypass 影响**（`:17` 原文）⇒ 延迟恒 15。
+（如 `proc_gray.v:32` `dout <= bypass ? din : gray`）。⚠ **de 链不受 bypass 影响**（`:17` 原文），因此延迟恒 15。
 
 `H_ACTIVE` 语义警告（`:9-12` 原文，答错"模糊半径"就是这里）："`H_ACTIVE` 是一行有多少个**有效拍**，不是显示
-屏有多宽。顶层现在传 `#(.H_ACTIVE(2*IMG_W))` = 1024 个有效拍 ⇒ **3×3 窗口的空间尺度现在就是按 1024 列算的**……
+屏有多宽。顶层现在传 `#(.H_ACTIVE(2*IMG_W))` = 1024 个有效拍，因此**3×3 窗口的空间尺度现在就是按 1024 列算的**……
 横向模糊/锐化/Sobel 的半径因此是**半个源像素**"。顶层例化确在 `pl_video_top.v:800`。
 （各算子文件头的默认值 640/512 **一律不生效**：`proc_box_blur.v:5`、`proc_sharpen.v:8`、`proc_sobel.v:7`、
 `proc_morph.v:9`。）
@@ -1052,8 +1052,8 @@ skid 必须显式分布式 RAM 的理由在 `:50-52`（Synth 8-4767 掉触发器
   `:3-4` 原文说三张读表**复制三份**）。组合读出的直接证据：
   `:51` `wire [15:0] y16 = {tr[r8][7:3], tg[g8][7:2], tb[b8][7:3]};`（地址就是**当拍输入**）+
   `:52` `assign dout = en ? y16 : din;`，且 `output wire [15:0] dout`（`:16`）——**全模块没有 dout 寄存器**
-  ⇒ 0 拍。`:4` 原文给出取舍："**用表不用幂函数**：PL 里做 `in^(1/γ)` 要堆 DSP 或做对数/指数近似"。
-  ⇒ **γ→曲线的数学不在 RTL 树里**（`未找到`；检索式 `pow|exp|gamma` 于 `gamma_lut.v` 只命中存储与边沿写）。
+  所以0 拍。`:4` 原文给出取舍："**用表不用幂函数**：PL 里做 `in^(1/γ)` 要堆 DSP 或做对数/指数近似"。
+  所以**γ→曲线的数学不在 RTL 树里**（`未找到`；检索式 `pow|exp|gamma` 于 `gamma_lut.v` 只命中存储与边沿写）。
   曲线由 **PS 固件算好后逐项写入表项**（`:1-2` 原文"256 项 8-bit 表，PS 通过第二个控制字的通道 2 逐项写入"；
   固件侧 `src/ps/main.c:379` 用 `pow`，链接要 `-lm`）。写口只在 **`wr` 翻转沿**写（`:34-39` prev/do_wr 边沿检测，
   `:31-33` 记 ISSUES #52"上电那一拍被当成一次写"的事故）。
@@ -1067,7 +1067,7 @@ skid 必须显式分布式 RAM 的理由在 `:50-52`（Synth 8-4767 掉触发器
   `:118-120` 取 `rp[13:9]`。位宽：R/B 用 9 bit 和、G 用 10 bit 和（`:104,107,110`）。
   行缓存：`lb0/lb1` 各 `H_ACTIVE` 项 16 bit，`ram_style="distributed"`（`:19-20`）。
   **边界 = clamp-to-edge（复制中心）**：缺左邻复制 `p01/p11/p21`、缺右邻复制中心列（`:89-91`），
-  缺上邻复制中心行、**陈旧行**用当前行三行替换（`:95-101`）。⇒ **"边界补零/补黑"是错的**。
+  缺上邻复制中心行、**陈旧行**用当前行三行替换（`:95-101`）。，因此**"边界补零/补黑"是错的**。
   3 拍：`de_d1<=de_in; de_d2<=de_d1; de_out<=de_d2`（`:144-146`）。
   行尾补跳一拍：`shift_w = de_in || line_end`（`:38`），`run/owed/line_end` `:31-37`（`:25-30` 记 #92 第四笔；
   `:33` 原文警告"拿 `de_d1 && !de_in` 当行尾会在**每个 de 断点**多跳一次"）；读地址钉末列 `x_rd` clamp `:42`；
@@ -1113,7 +1113,7 @@ skid 必须显式分布式 RAM 的理由在 `:50-52`（Synth 8-4767 掉触发器
 （`:82` 注释"288 个触发器（Slice 寄存器 7936 的 3.6 %）"），`xd[1] <= x_in` 起跳（`:89`），抽头
 `x_blur = xd[2] :95`、`x_sharp = xd[5] :96`、`x_sobel = xd[8] :97`、`x_morph = xd[12] :98`
 （`:74` 原文：抽头号 = 该级 de_in 之前累积拍数）。`:75-81` 记 **#103 根因**：旧版写 `xd[0] <= x_in`
-使 `xd[k]` 其实是 k+1 拍 ⇒ 列标签比数据晚一拍 ⇒ ①末列槽 `H_ACTIVE-1` 永不写、②行首消隐值
+使 `xd[k]` 其实是 k+1 拍，因此列标签比数据晚一拍，因此①末列槽 `H_ACTIVE-1` 永不写、②行首消隐值
 `1343 mod 1024 = 319` 越界写黑线。判据 `sim/tb_v103_pipe_bypass.v` C10d/C10f。
 
 ### 8.9 原图路与处理路（差一整拍这件事）
@@ -1125,20 +1125,20 @@ skid 必须显式分布式 RAM 的理由在 `:50-52`（Synth 8-4767 掉触发器
   （`:1001-1005`），`de_o` 是 `de_d[MIX_D]` 再打一拍（`:925`）。
 - **原图路的延迟构成**（`:820-829`）：`raw_line_delay`（含 1 拍 RAM 读出）+ `orig_skid[0:14]`（`LEFT_TAIL =
   PROC_LAT = 15` 拍，`:817,826-849`）= **`PROC_LAT + 1`**，而链子本身只有 `PROC_LAT` 拍
-  ⇒ **处理抽头比原图早一整拍**，对照显示必须按这条补偿。
-- 历史错位 **#92**：`r59b` 只把 `x_sel` 提到 `MIX_D`，而 `x/y/de/hs/vs` 停在**第 11 级** ⇒ 屏上 `de` 比同拍
-  像素**早 9 列**（`:913-914` 原文与凭据）；同类：`u_split` 曾用 `x_d[11]` ⇒ 判定比内容旧 9 列，被
+  所以**处理抽头比原图早一整拍**，对照显示必须按这条补偿。
+- 历史错位 **#92**：`r59b` 只把 `x_sel` 提到 `MIX_D`，而 `x/y/de/hs/vs` 停在**第 11 级**，因此屏上 `de` 比同拍
+  像素**早 9 列**（`:913-914` 原文与凭据）；同类：`u_split` 曾用 `x_d[11]`，因此判定比内容旧 9 列，被
   `sim/tb_v98_top_seam.v` 的 C-tap 钉住（`split_display.v:11`）。
 - 环外地址补偿：`:725`（`BILIN_ROWS` 补偿）、`:741,743-748`（`x_d[2]/y_d[2]/de_d[2]`；第一版错接 `[3]`
-  ⇒ k=4/5 全错，`sx` 站在第 2 级）。右窗提前量 `:276` `y_right_adv = y + pipe_off_rows + BILIN_ROWS`；
+  所以k=4/5 全错，`sx` 站在第 2 级）。右窗提前量 `:276` `y_right_adv = y + pipe_off_rows + BILIN_ROWS`；
   `:277` 有 `>>1`；`:346` mapper 入口 `cy_r` 提前 `OFF_LINES`。
 - `raw_line_delay`：**延 LINES 行 + 1 拍，列不偏**（`src/rtl/video/raw_line_delay.v:5-7`）。第一版实现把
-  `line_cache` 串起来，"延 N 行又多 N 拍 ⇒ 列偏 N 格"，被 `tb_v100_raw_delay` 当场打掉（`:6-7`）——
+  `line_cache` 串起来，"延 N 行又多 N 拍，因此列偏 N 格"，被 `tb_v100_raw_delay` 当场打掉（`:6-7`）——
   **模块级台架看不见这个错**，这是本项目"延迟必须按行环形"这条规矩的凭据来源。
   `DW = 17` 的理由（`:16-21`）：`oob` 标签必须与像素过**同一条环**，绕环只走等长 skid 会差
   (4 行, 1 列)，右沿最后一列被别的格子的越界位按黑（症状原文"上边缘有东西闪"）。
   `:38-42`：`LINES` **刻意不给默认值**（唯一合法出处是顶层 `RAW_LINES = u_pipe.OFF_LINES`）；17 位仍在
-  RAMB36 的 18 位宽度模式内，**但要在 utilization 上核对**（LINES=4 ⇒ RLOG=3 ⇒ 8 行 ≈ 4 块 RAMB36，
+  RAMB36 的 18 位宽度模式内，**但要在 utilization 上核对**（LINES=4，因此RLOG=3，因此8 行 ≈ 4 块 RAMB36，
   级联要 8 块）。
 - 顶层例化：`u_raw #(.LINES(RAW_LINES), .W(2*IMG_W=1024), .DW(17))`（`:788-792`），
   `de/x/y` 取 `*_d[5]`（`:789-791`），输出 `raw_ring[16:0] = {oob_raw, pix_raw}` → `orig_skid[0]`（`:840-841`）。
@@ -1158,7 +1158,7 @@ skid 必须显式分布式 RAM 的理由在 `:50-52`（Synth 8-4767 掉触发器
   `oob_l = oob_r = oob_out`（**同一位喂两口**，`:924`）。输出 `r/g/b` 只给 `u_osd`（`:1020`）。
 - 10 位 pos 与 1024 列的关系：见 §13/§18 —— **`split pos` 在寄存器上只有 10 位，PS 侧夹到 1023 且必须明说夹了**。
 - 跨域：19 位的 `split_ctl` 在 axi 域**每 ~1.3 ms 整字抄一次并发翻转**（`:859-875`，`sp_ref` 到
-  `17'h1FFFF` 翻转 ⇒ 131072 个 axi 拍 = 1.31072 ms），再由 `snap_cross #(.W(19))` 打进像素域（`:876-880`）。
+  `17'h1FFFF` 翻转，因此131072 个 axi 拍 = 1.31072 ms），再由 `snap_cross #(.W(19))` 打进像素域（`:876-880`）。
   `:858` 原文"每 ~1.3 ms 整字抄一次"。
 
 ### 8.11 OSD（`src/rtl/video/osd_overlay.v`，525 行）
@@ -1193,11 +1193,11 @@ skid 必须显式分布式 RAM 的理由在 `:50-52`（Synth 8-4767 掉触发器
   中间还有 `copy_start`/`copy_done` 用于分类"这时间花在拷贝还是在等窗口"。
 - 六个字一组：`lq_c1/lq_c2/lq_tot/lq_max/lq_stat/lq_ms` → `dbg_lat`（`:642`）。live 口
   `lat_c1/c2/tot/max/lat_n/lat_clamp`（`:613-617`）**在顶层无读者**（`:640-641` 原文：留给台架 tb_v90）。
-- **武装协议**：`lat_arm = (lm_lane == 5'd25)`（`system_top.v:236`）⇒ **指到 lane25 就把这一组五个字同时抄进
+- **武装协议**：`lat_arm = (lm_lane == 5'd25)`（`system_top.v:236`），因此**指到 lane25 就把这一组五个字同时抄进
   快照**。`:232-234` 原文给理由（#59）："逐 lane 各读各的会读到不同轮，于是板级 11 组读数里 **4 组破坏了
   恒等式 `tot ≥ c1 + c2`**。读的顺序必须是 25→26→27→28→29，因为 25 既是'轮次/钳位位'也是武装位
   （`health_read.mjs` 的 want 列表就是这个顺序，改那里的时候记得一起看）"。
-  域说明同段：`gpio_o` 由 axi 写更新、`frame_latency` 也在 axi 域 ⇒ **这不是跨域信号**。
+  域说明同段：`gpio_o` 由 axi 写更新、`frame_latency` 也在 axi 域，因此**这不是跨域信号**。
 - lane24 = `dbg_lat[5*32 +: 32]` = `q_ms = {14'd0, pair_ok, 本轮 sticky, ms[15:0]}`
   （`system_top.v:229-231` 原文："与 `q_tot` 同一轮的 ms —— 屏上 Latency 那一格的机器对照"）。
 - 跨到像素域给 OSD：`lat_ms/lat_valid/lat_sticky/lat_tog` → `snap_cross #(.W(18), .HB_TO_MS(1000),
@@ -1213,19 +1213,19 @@ skid 必须显式分布式 RAM 的理由在 `:50-52`（Synth 8-4767 掉触发器
 1. 1→9 的 xor/xnor 选择是**算出来的，不是查表**：
    `:20` `wire [3:0] n1 = ones(din)`（`:13-18` 是内联 `function`，结构化展开成 LUT）；
    `:21` `wire use_xnor = (n1 > 4'd4) || (n1 == 4'd4 && din[0] == 1'b0);`
-   ⇒ **1 多（>4）走 XNOR；正好 4 个 1 用 LSB `din[0]` 做 tie-break；<4 走 XOR**。
+   所以**1 多（>4）走 XNOR；正好 4 个 1 用 LSB `din[0]` 做 tie-break；<4 走 XOR**。
    `:25-36` 的 `always @(*)`：`q_m[0] = din[0]`（递归种子），XNOR 支 `q_m[i] = ~(q_m[i-1] ^ din[i])` 且
    `q_m[8] = 1'b0`；XOR 支 `q_m[i] = q_m[i-1] ^ din[i]` 且 `q_m[8] = 1'b1`。
-   ⇒ **`q_m[8]` 就是 xor/xnor 标志位（1=XOR、0=XNOR）**，它不参与后续 1 计数（`:39` 只切 `q_m[7:0]`）。
+   所以**`q_m[8]` 就是 xor/xnor 标志位（1=XOR、0=XNOR）**，它不参与后续 1 计数（`:39` 只切 `q_m[7:0]`）。
 2. DCS 平衡：`cnt` 是 `reg signed [5:0]`（`:38`，范围 −32…+31，**代码里没有任何饱和/钳位逻辑**，注释也未
    讨论溢出——引用时别说"计数器有保护"）。三条优先分支：
-   - `:54-62` **第一优先**：`if (cnt == 0 || n1q == n0q)` ⇒ `dout[9] = ~q_m[8]`、`dout[8] = q_m[8]`、
+   - `:54-62` **第一优先**：`if (cnt == 0 || n1q == n0q)`，因此 `dout[9] = ~q_m[8]`、`dout[8] = q_m[8]`、
      `dout[7:0] = q_m[8] ? q_m[7:0] : ~q_m[7:0]`；`cnt += q_m[8] ? (n1q-n0q) : (n0q-n1q)`。
-   - `:63-67` **同向修正**：`else if ((cnt>0 && n1q>n0q) || (cnt<0 && n0q>n1q))` ⇒ `dout[9]=1`、
+   - `:63-67` **同向修正**：`else if ((cnt>0 && n1q>n0q) || (cnt<0 && n0q>n1q))`，因此 `dout[9]=1`、
      `dout[7:0]=~q_m[7:0]`、`cnt += {2'b00,q_m[8],1'b0} + (n0q-n1q)`（**那个拼接就是 ±2 的修正项**）。
    - `:68-72` **反向**：`dout[9]=0`、`dout[7:0]=q_m[7:0]`、`cnt -= {2'b00,~q_m[8],1'b0} + …`。
    ⚠ 有符号算术口径（值得写进文档，因为它"看起来会算错"）：`cnt + (n0q - n1q)` 里 `n0q/n1q` 是 4 bit
-   无符号，但整个表达式因 `cnt` 为 signed 而具有 signed 类型，操作数先扩展到 6 bit 再相减 ⇒ 负差值正确
+   无符号，但整个表达式因 `cnt` 为 signed 而具有 signed 类型，操作数先扩展到 6 bit 再相减，因此负差值正确
    （括号**不构成** self-determined 上下文）。
 3. 消隐期（`de == 0`）`:46-53`：`cnt` 清零，按 `{c1,c0}` 直接输出 4 条 ID 码（**硬编码字面量**）：
    `2'b00 → 10'b1101010100`（`:49`）、`2'b01 → 10'b0010101011`（`:50`）、`2'b10 → 10'b0101010100`（`:51`）、
@@ -1243,19 +1243,19 @@ Master D1-D8 + Slave D3/D4, Slave SHIFTOUT → Master SHIFTIN"。
 - 级联环：`wire shift1, shift2;`（`:12`），SLAVE `.SHIFTOUT1/2`（`:64-65`）接 MASTER `.SHIFTIN1/2`
   （`:43-44`）；SLAVE 自己的 SHIFTIN 钉 `1'b0`（`:81-82`），MASTER 的 SHIFTOUT 悬空（`:26-27`）。
 - 时钟配对：`:31-32,69-70` **`.CLK(clk_pix5x)`（250 MHz = FCLK）、`.CLKDIV(clk_pix)`（50 MHz）**，
-  严格 5:1 且同 MMCM 同相位。算术（这就是"为什么是 5×"）：DDR 每个 FCLK 周期出 2 bit ⇒ 一个 10 bit 符号
-  要 **5 个 FCLK 周期** ⇒ `FCLK = (10/2) × CLKDIV = 5 × CLKDIV`；线速率 50 MHz × 10 = **500 Mbps**。
-- 三态整体旁路 ⇒ **输出常开**：`OCE = 1'b1`（`:41,:79`）、`T1..T4 = 1'b0`、`TCE = 1'b0`（`:50,:88`）、
+  严格 5:1 且同 MMCM 同相位。算术（这就是"为什么是 5×"）：DDR 每个 FCLK 周期出 2 bit，因此一个 10 bit 符号
+  要 **5 个 FCLK 周期**，因此 `FCLK = (10/2) × CLKDIV = 5 × CLKDIV`；线速率 50 MHz × 10 = **500 Mbps**。
+- 三态整体旁路，因此**输出常开**：`OCE = 1'b1`（`:41,:79`）、`T1..T4 = 1'b0`、`TCE = 1'b0`（`:50,:88`）、
   `TBYTEIN = 1'b0`，`TQ/TFB/TBYTEOUT/OFB` 全悬空（`:24,28-30,:62-67`）。
 - 只有 MASTER 出脚：`.OQ(serq)`（`:25`），SLAVE 的 `.OQ()` 悬空（`:63`）。差分由
   `OBUFDS u_obuf (.I(serq), .O(data_p), .OB(data_n));`（`:91`）生成。复位 `RST = ~rst_n`（`:42,:80`，两颗同时）。
 - `未找到`：`SERDESTODDR` 之类额外属性（检索式 `SERDESTODDR|(* .*_TO_DDR`）；也**没有任何关于 OSERDESE2
   需要 `SYSRESET`/`INIT` 的注释**（检索式 `SYSRESET|OSERDESE2.*INIT` 覆盖 `src/`、`report/`、`docs/`）
-  ⇒ 若要引用那条约束，**必须另找 UG471/DS 原文并注明"仓库内无出处"**。
+  所以若要引用那条约束，**必须另找 UG471/DS 原文并注明"仓库内无出处"**。
 
 **顶层 `rgb2dvi.v`（53 行）**：`:21` 通道映射"DVI: **channel0=Blue+HS/VS, channel1=Green, channel2=Red**"。
 3 个编码器并行同 `clk_pix` 域：`u_enc_b` 带 `.c0(hs) .c1(vs)`（`:22-25`），`u_enc_g`/`u_enc_r` 的
-`.c0/.c1` 钉 `1'b0`（`:26-33`）⇒ **HS/VS 只随蓝通道走**，另两路消隐期恒输出 `2'b00` 那条 ID 码。
+`.c0/.c1` 钉 `1'b0`（`:26-33`），因此**HS/VS 只随蓝通道走**，另两路消隐期恒输出 `2'b00` 那条 ID 码。
 **串化器是四颗**（`:35-46,49-52`）：`u_ser0/1/2` 对应 data[0]/[1]/[2]，`u_ser_clk` 的 `din` 是
 **常量 `10'b1111100000`**（=0x3E0，5 个 1 + 5 个 0，TMDS 时钟通道标准字）——**时钟通道没有编码器实例**。
 ⚠ `:48` 的注释写"constant **0x3FF** pattern = pixel clock"，**这句注释是错的**，以 `:51` 的代码为准。
@@ -1301,7 +1301,7 @@ proc_pipeline.v:27   OFF_LINES = 4         ← 第二个真源
 `:21` 的"谁把 gamma 改成寄存读出，LATENCY 必须同时改 16"。
 
 `OFF_LINES = 4` 的物理含义（`:23-26` 原文，逐句）：
-> "内容偏移（以'喂进来的流的一行'为单位）：**四个窗口级各贡献 −1 行**，点运算级不贡献 ⇒ 整链固定
+> "内容偏移（以'喂进来的流的一行'为单位）：**四个窗口级各贡献 −1 行**，点运算级不贡献，因此整链固定
 > −4 行、0 列。这不是笔误：行缓存式 3×3 滤波在收到第 y 行时才算得出第 y−1 行的窗口，因果性决定它必然
 > 滞后一行。顶层能补：帧缓存是随机地址的，把右窗读坐标对应的**显示行**提前 OFF_LINES 行，链子
 > 自己的滞后正好把它抵消（零 BRAM，见 pl_video_top 的 `cy_r`）。"
@@ -1322,8 +1322,8 @@ proc_pipeline.v:27   OFF_LINES = 4         ← 第二个真源
 | 各级算子坐标 | `xd[2]/xd[5]/xd[8]/xd[12]`（`proc_pipeline.v:98-101`） | 该级 de_in 之前**累积**拍数（`:74` 原文） |
 
 `#92` 事故的完整形状（一次改动制造了三个判据）：`:913-914` 记录"只把 `x_sel` 提到 `MIX_D`，
-`x/y/de/hs/vs` 停在第 11 级 ⇒ 屏上 `de` 比同拍像素**早 9 列**"；`split_display.v:11` 记录同类
-"曾用 `x_d[11]` ⇒ 判定比内容旧 9 列，被 `tb_v98_top_seam` C-tap 钉住"。
+`x/y/de/hs/vs` 停在第 11 级，因此屏上 `de` 比同拍像素**早 9 列**"；`split_display.v:11` 记录同类
+"曾用 `x_d[11]`，因此判定比内容旧 9 列，被 `tb_v98_top_seam` C-tap 钉住"。
 **症状命名法**（值得原样传给下一个 AI）："边界偏了几列/几行"永远是"控制链与数据链不同深"，
 不是"数据算错了"。
 
@@ -1334,7 +1334,7 @@ proc_pipeline.v:27   OFF_LINES = 4         ← 第二个真源
 原图路： pix_raw → u_raw(raw_line_delay, 含 1 拍 RAM 读出)
               → orig_skid[0..14]（LEFT_TAIL = PROC_LAT = 15 拍）  抽头 = orig_skid[14]
 ```
-⇒ 原图路总延迟 = `PROC_LAT + 1`，比处理抽头**多一拍**（`pl_video_top.v:820-829`）。
+所以原图路总延迟 = `PROC_LAT + 1`，比处理抽头**多一拍**（`pl_video_top.v:820-829`）。
 `oob_skid[0:14]` 与 `orig_skid` 并行同深（`:826-849`），`oob_out = oob_skid[14]`（`:849`）。
 任何"屏上左右两半对齐/接缝对齐"的问题，先问这两条链的级数是否一致。
 
@@ -1390,13 +1390,13 @@ set_clock_groups -asynchronous \
 ```
 逐条理由（文件头原文，`:3-8` 与 `:19-26`）：
 1. **为什么要拆文件**：`clk_fpga_0` 由 PS7 IP 自己的 XDC 创建（`FCLKCLK[0]`），**综合阶段还不存在**；
-   `-quiet` 只能压住 `get_clocks` 的报错、压不住命令本身 ⇒ 每个 run 都吃一条
+   `-quiet` 只能压住 `get_clocks` 的报错、压不住命令本身，因此每个 run 都吃一条
    `CRITICAL WARNING [Vivado 12-4739] set_clock_groups: No valid object(s) found for
    '-group [get_clocks -quiet clk_fpga_0]'`，而且**整条命令不生效**（`eth_rxc`/`sys_clk` 两组一起废掉）。
    XDC 里又不允许写控制流（`if` 会报 `[Designutils 20-1307] Command 'if' is not supported in the xdc
-   constraint file`）⇒ 唯一正规解法是"按时机分文件"。
-   ⇒ **拆分不改变任何时序数字**（综合阶段这条约束在拆分前也是失败的，等于不存在）。
-2. **`-include_generated_clocks` 不能少**：否则 `clk_pix` 被当独立钟与 `eth_rxc` 做 setup ⇒
+   constraint file`），因此唯一正规解法是"按时机分文件"。
+   所以**拆分不改变任何时序数字**（综合阶段这条约束在拆分前也是失败的，等于不存在）。
+2. **`-include_generated_clocks` 不能少**：否则 `clk_pix` 被当独立钟与 `eth_rxc` 做 setup，因此
    历史上 **WNS ≈ −6.7 的假违例**（`:14-17`，issues #18）。它抓的是工具自动推导的
    `clkout0_1`(50 M)/`clkout1_1`(250 M)/`clkout2`(200 M)。
 3. **`clk_pix` 与 `clk_pix5x` 有意同组**（`:25-26` 原文）："同 MMCM、5:1、0° 相位，让 TMDS 并串转换按
@@ -1421,7 +1421,7 @@ set_clock_groups -asynchronous \
   `eth_rx_ctl`、`eth_rxd[0]`、`eth_rxd[1]`、`eth_rxd[2]`、`eth_rxd[3]`（`:57-61`）。
   另有 **2 个**输入口无 input delay 但被 false path 覆盖（**MEDIUM**）：`key1_n`、`key2_n`。
 - §4 `checking unconstrained_internal_endpoints (0)`：0 个引脚未被最大延迟约束。
-⇒ **"约束真的作用在对象上"这句话在本项目有一个明确的例外**：RGMII 那 5 个口。引用"全约束满足"
+所以**"约束真的作用在对象上"这句话在本项目有一个明确的例外**：RGMII 那 5 个口。引用"全约束满足"
 （routed 报告 `:154` 的 `All user specified timing constraints are met.`，`:155` 是空行）时必须带上这条口径。
 
 ---
@@ -1440,12 +1440,12 @@ set_clock_groups -asynchronous \
 
 三条必须一起说的限定（文件头原文）：
 1. 扫描只完成一个策略就中断——`report_timing_summary` 的 **`-check_summary_only` 在 Vivado 2025.2.1 不是
-   合法选项**，命令报错且未被 `catch` ⇒ 脚本退出。**所以这份文件是部分结果，不足以支撑"所有策略都无收益"**。
+   合法选项**，命令报错且未被 `catch`，因此脚本退出。**所以这份文件是部分结果，不足以支撑"所有策略都无收益"**。
 2. "这里只证明「`Performance_Explore` 这一档 = 未指定策略的结果」，**不对 Vivado 的默认策略名做任何断言**
    （工程里没留下该字符串，且报告未记录）"。
 3. 支撑当时决策（转去改 RTL，即 V7.4）的实际证据只有两条：①这一档 = 基线；②最差 10 条 `eth_rxc` 路径
    **同构且逻辑深度 11 级**。
-⇒ **结论：本工程不靠换策略救时序，靠改 RTL。** 引用时不要说"试过所有策略都不行"。
+所以**结论：本工程不靠换策略救时序，靠改 RTL。** 引用时不要说"试过所有策略都不行"。
 
 ### 11.2 真正换来时序的六次 RTL 改写（每次都带凭据）
 
@@ -1471,14 +1471,14 @@ set_clock_groups -asynchronous \
 ### 11.3 `set_clock_uncertainty -hold 0.800`：一条"方向与放松判据相反"的约束
 
 完整推理链（`rk_zynq7020.xdc:37-49`，逐句可引）：
-1. 机制：起点 IDDR 走 BUFIO（SCD 3.171 ns），终点 fabric FF 走 BUFG（DCD 4.854 ns）⇒ 两棵钟树差
-   **1.616 ns**，而那条数据路径只有 **1.855 ns**（预算 8.000 ns）⇒ 工具**垫得出来**，但每次布线垫多少是随机的：
+1. 机制：起点 IDDR 走 BUFIO（SCD 3.171 ns），终点 fabric FF 走 BUFG（DCD 4.854 ns），因此两棵钟树差
+   **1.616 ns**，而那条数据路径只有 **1.855 ns**（预算 8.000 ns），因此工具**垫得出来**，但每次布线垫多少是随机的：
    r62 只剩 `WHS +0.001`、r63b 是 `+0.052` —— 同一份 RTL 的两个数是"掷硬币"的直接证据。
 2. 做法：**给 hold 加 0.5 → 0.8 ns 的要求**（不是放松），逼工具把余量做成设计值。
    `:41-42` 原文："这一行方向与'放松判据'相反……（Setup 不受影响，`-hold` 的不确定性不参与 setup 检查；
    数据路径还有 6 ns 的 setup 余量，垫得起）"。
 3. 加严到 0.8 的过程（`:47`）：r79 试验（2026-09-27）"0.5 那一档工具只做到 WHS +0.051（<0.4 的自定验收）
-   ⇒ 再加严到 0.8"。
+   所以再加严到 0.8"。
 4. ⚠⚠ **`WHS ≥ 0.4` 是这条实验自己给自己定的验收线，不是发布门禁。** 发布门禁第 3 条是
    `WHS >= 0`（`build/gates.sh:199`），本设计 routed 实际 WHS = **0.052**。**别拿 0.4 判构建红**
    （这是上一版里出现过的危险误述，特此钉死）。
@@ -1488,25 +1488,25 @@ set_clock_groups -asynchronous \
 ### 11.4 被放弃的"5× 快时钟"读口方案（`fb_rd5x` + `tap_sched` 留档）
 
 `src/rtl/process/bilin/fb_rd5x.v:2-8` 与 `tap_sched.v:9-11,43-47` 记录了两个数：
-- "右窗 4 抽头 + 左窗 1 字恰好占满 ⇒ **不新增任何 BRAM**；⚠ 不许在同一组阵列上再加一个逻辑读口：
+- "右窗 4 抽头 + 左窗 1 字恰好占满，因此**不新增任何 BRAM**；⚠ 不许在同一组阵列上再加一个逻辑读口：
   实测把帧缓存从 80 块 RAMB36 **顶到 160 块，全片才 140**"（`tap_sched.v:9-10`）。
-- "**快域做 `base+ROWW` 加法再进 5:1 mux** 实测需约 **5.3 ns（−1.277 ns / 1400 个失败端点）** ⇒ 整条读口
+- "**快域做 `base+ROWW` 加法再进 5:1 mux** 实测需约 **5.3 ns（−1.277 ns / 1400 个失败端点）**，因此整条读口
   判红"，所以纪律是"四抽头字号 + 左窗字号**全在慢域算好打一拍**，快域只做一次 5 选 1 mux"
   （`tap_sched.v:43-47`、`fb_rd5x.v:38-47`）。
-⇒ 现役 `fb_bilin` 用"**一个源像素吃满 4 个 50 MHz 拍**"换掉了这套东西
+所以现役 `fb_bilin` 用"**一个源像素吃满 4 个 50 MHz 拍**"换掉了这套东西
 （`fb_bilin.v:4-5,39-40`，见 §8.7）。回答"为什么不用快时钟多留读带宽"应当引这两个实测数。
 
 ### 11.5 IDELAY tap 扫描：一次"只读实验"和它的极限
 
 `system_top.v:162-171`（原文要点，全部来自**已布线 DCP 上的只读 `set_property`**，
 件 `build/evidence/r115_window/probe3_console.txt`）：
-- 窗 = `r116_rgmii_input_window.xdc:32-35`（RTL8211F RXDLY 开着 ⇒ 数据沿落在它自己的捕获沿前
+- 窗 = `r116_rgmii_input_window.xdc:32-35`（RTL8211F RXDLY 开着，因此数据沿落在它自己的捕获沿前
   **[1.2, 2.8] ns**）；
 - `IDELAY_VALUE` 从 0 扫到 31：**hold −2.822 → −0.870（+63 ps/拍）**、**setup +2.005 → −0.846（−92 ps/拍）**
-  ⇒ 两条曲线的**交点在 tap 31**（用 0.155 ns/拍的斜率差解出 31.1），也就是 `min(hold, setup)` 的最大值；
-  tap 26 的 min 是 −1.185，tap 31 是 −0.870 ⇒ **顶层取 31**。
+  所以两条曲线的**交点在 tap 31**（用 0.155 ns/拍的斜率差解出 31.1），也就是 `min(hold, setup)` 的最大值；
+  tap 26 的 min 是 −1.185，tap 31 是 −0.870，因此**顶层取 31**。
 - ⚠ 极限陈述（`:169-171` 原文）："这一族**在 0…31 全范围内都关不掉**：hold 查慢角（钟网络 5.008）、
-  setup 查快角（1.597），钟网络的角间差 **3.4 ns 远大于数据路径的 0.47 ns** ⇒ 需要 `D_slow/D_fast ≥ 1.45`
+  setup 查快角（1.597），钟网络的角间差 **3.4 ns 远大于数据路径的 0.47 ns**，因此需要 `D_slow/D_fast ≥ 1.45`
   而 IDELAY 主导的路径只有 **1.15**。这是'极限判据'的内容，**不是'再找个点'**。"
 - ⚠ **tap 31 是"报告里最好"，不是"硅片最好"**（`report/timing/rgmii_window_model.md:376-377,393,406`）。
 - 斜率四个口径互不一致（78 / 156 / ~63 / ~88 ps/tap），见 §7.1 —— 引用前先说用哪个。
@@ -1592,14 +1592,14 @@ set_clock_groups -asynchronous \
 - `system_top_methodology_drc_routed.rpt`：`Checks found: 446`，`DPIR-1 Asynchronous driver check 2` 等
   全是 **Warning** 级（门禁第 4 项要 `CRITICAL WARNING` 计数 = 0，`build/gates.sh:205`）。
 - `grep -n "VIOLATION" system_top_drc_routed.rpt` → 0 命中（正向对照：同一次 `grep -n "Checks found"` 命中
-  `:27`）⇒ 本报告里没有 VIOLATION 段落。
+  `:27`），因此本报告里没有 VIOLATION 段落。
 
 ### 12.5 构建耗时：三处口径互不一致，引用前现读
 
 "约 20 分钟"（`build/README.md:89`）、"25 分钟"（`build/gates.sh:256` 注释）、
 "约 40 分钟一轮完整构建"（`src/host/card_preview.mjs:5`）。
 **日志里没有整轮 elapsed 行**（检索式 `grep -rn "elapsed" build/ | grep -v "Time (s)"` 只命中工具单步行，
-如 `build/r106_critpath_console.txt:59,65`）⇒ 要准确数字就读 run 的 `STATS.ELAPSED`：
+如 `build/r106_critpath_console.txt:59,65`），因此要准确数字就读 run 的 `STATS.ELAPSED`：
 ```tcl
 puts [get_property STATS.ELAPSED [get_runs impl_1]]
 ```
@@ -1673,7 +1673,7 @@ grep -n "Total On-Chip\|Static\|PS7" vivado_system/zynq_video_sys.runs/impl_1/sy
 `system_top.v:265-267` 有一条**踩过的坑**（原文）："⚠ 别写成 `gpio_cfg2_o`：那是 PS 侧 +0x08 的 gamma 窗口
 （**命名差一位是这里的坑**）"。
 
-⚠ **`split pos` 只有 10 位** ⇒ PS 侧必须夹到 1023，**而且必须回显"夹了"**（`main.c:125-136,165-169`）。
+⚠ **`split pos` 只有 10 位**，因此PS 侧必须夹到 1023，**而且必须回显"夹了"**（`main.c:125-136,165-169`）。
 回答"能不能用 `split px 1500`"的正确答案是：会被夹，且固件明说夹了。
 
 ### 13.4 `gpio_cfg2_o[31:0]`（gamma 表 + 温度）
@@ -1719,7 +1719,7 @@ mrd GPIO_1                     # 读
 | 8 / 9 | `in_pkts` / `in_bytes` | | |
 
 mux 实现：`system_top.v:237-247`（**if/else-if 组合链，没有 case、没有寄存器**）。特别注意
-`:244` `lm_lane > 5'd9` → `32'hDEAD_BEEF` ⇒ **lane10-22 全部落这一条**，而 lane23-31 在前面已被逐条截走。
+`:244` `lm_lane > 5'd9` → `32'hDEAD_BEEF`，因此**lane10-22 全部落这一条**，而 lane23-31 在前面已被逐条截走。
 计数器出处：`src/rtl/eth/link_monitor.v:187-196,202-203`（flag5 在 `:158`）。
 
 ### 13.6 `status[31:0]`：**没有读者，别当观测面**
@@ -1730,7 +1730,7 @@ assign status = {zoom_dir, zoom_active, inv_used, eth_ready, locked, rotate_acti
                  5'b0 /* 原 en_sync：随 #66 五位控制一起退役，位保留填 0（与 gpio_o[4:0] 同样处理：
                         不重排，JTAG 侧的读法就不会错位） */, src_use, 2'b00};
 ```
-它在 `system_top.v:45` 声明、`:319` 连接，然后**没有任何外部口** ⇒ 综合当死逻辑剪掉。
+它在 `system_top.v:45` 声明、`:319` 连接，然后**没有任何外部口**，因此综合当死逻辑剪掉。
 要状态就读上面的 lane。`:1044-1045` 还有一条口径说明：这里给的是 **`inv_used`**（拟合模式下"屏上到底是什么
 倍率"），不是 `inv_scale`。
 
@@ -1768,25 +1768,25 @@ grep -n "_BIT\|GEOM_MASK\|GM_" src/ps/main.c | head -40
   行缓冲 `CMD_BUF 128`（`:311-313`，旧值 48 静默截断的账在 `:1423-1425`），半行残包超时
   `RX_IDLE_MS 3000`（`:315-319`），CR 折 LF（`:1483`），超长一行只报一条（`:1501-1505`）。
 - **为什么发布不走 `ctrl_apply()`**：`main.c:204-207` 原文——30 fps 每秒往串口推约 2 KB，而 115200 只有
-  11.5 KB/s、`xil_printf` 是轮询阻塞实现，板上 PLAY 10 s 收回 28549 B 全是 `[CTRL]` 行 ⇒
+  11.5 KB/s、`xil_printf` 是轮询阻塞实现，板上 PLAY 10 s 收回 28549 B 全是 `[CTRL]` 行，因此
   `ps_publish()` 调**不出声**的 `ctrl_write()`（`:242-251`）。
 
 ### 14.2 心跳与"PS 片源为什么不会被判死"
 
 `ps_keepalive()`（`main.c:261-269`）：`ps_hold==1` 时每满 `PS_HB_MS = 100u`（`:260`）就再调一次
-`ps_publish()`（`:268`）⇒ **keep 的是"翻转位心跳"，不是硬件看门狗**。它撑的是 PL 侧
-`src_life` 的 500 ms 活判据（`src_life.v:10-12` 原文给出比例账：30 fps 每帧 33 ms ⇒ 15 帧余量；
-固件 100 ms ⇒ 5 帧余量；"短到拔卡半秒回图卡、长到不误判一次 SD 读超时"）。
+`ps_publish()`（`:268`），因此**keep 的是"翻转位心跳"，不是硬件看门狗**。它撑的是 PL 侧
+`src_life` 的 500 ms 活判据（`src_life.v:10-12` 原文给出比例账：30 fps 每帧 33 ms，因此15 帧余量；
+固件 100 ms，因此5 帧余量；"短到拔卡半秒回图卡、长到不误判一次 SD 读超时"）。
 `100 ms : 500 ms = 1:5` 由 `sim/tb_v102_src_life.v` 的 **S12** 钉住（`main.c:257-258` 明写这条对应关系）。
 停心跳的**唯一入口**是 `ps_source_lost()`（`main.c:273-278`，由 `sd_play` 读失败时调用）。
 
 PL 侧换算（`src_life.v:31-32`）：`HB_CYCLES = (CLK_HZ/1000)*HB_TIMEOUT_MS = 25_000_000`、
 `HB_FRAMES = HB_CYCLES/840_000 + 1 = 29+1 = 30` 帧 ≈ **504 ms**（一帧 = 1344×625 = 840_000 拍）。
 `:29-30` 原文记第一版的算术事故："**先除后乘**……而 `HB_TIMEOUT_MS*CLK_HZ` = 2.5e10 会在 32 位 integer 里
-回绕 ⇒ 500 ms 变成一帧"（`src_life.v:12-14`）。
+回绕，因此500 ms 变成一帧"（`src_life.v:12-14`）。
 `have_src = mode_ps ? ps_src_now : ((mode_eth || eth_owner) || ps_src_now)`（`:56-57`）——
 `:22-23,52-54` 说明"锁 ETH 按语义保留最后一帧，**不参与看门狗**"。这个模块修的原始病（`:5-7`）：
-原来 `have_src = eth_link_pix | ps_src_seen` 两位都**只会被置 1** ⇒ "AUTO 下拔掉 SD 卡，画面永久冻在最后
+原来 `have_src = eth_link_pix | ps_src_seen` 两位都**只会被置 1**，因此"AUTO 下拔掉 SD 卡，画面永久冻在最后
 一帧、插回也不恢复"。
 
 ### 14.3 gamma 下发协议（逐点，不是批量口）
@@ -1797,7 +1797,7 @@ PL 侧换算（`src_life.v:31-32`）：`HB_CYCLES = (CLK_HZ/1000)*HB_TIMEOUT_MS 
 FIFO 16 字节 ≈ 1.4 ms 的账在 `:303-310`）；写完**一次性** `gm_w |= GM_EN` 并同字提交 γ×10 显示格
 （`:414-418`，`:415-416` 原文"表与屏同一笔"）。总时长 **≈2.6 ms**（`:286-287`）。
 **掉 `wr` 沿的后果**：PL 只看边沿（`main.c:80,284-286` 原文"PL 看的是 `wr` 的边沿……**这条约束是真实的，
-别删**"）⇒ 两次写之间没翻转 = 那一项**根本没进 LUT**，表残缺但不报错。
+别删**"），因此两次写之间没翻转 = 那一项**根本没进 LUT**，表残缺但不报错。
 `gamma_tick()`（`:348-364`）是 Auto 呼吸：每 `gm_ms`（默认 2000 ms，下限 200，`:323,329`）走一步
 `gm_step`，在 `lo..hi` 之间来回（`:357-362`）。
 
@@ -1808,7 +1808,7 @@ FIFO 16 字节 ≈ 1.4 ms 的账在 `:303-310`）；写完**一次性** `gm_w |=
 （`:750-753`）。电压 `:755` `(raw * 3000) >> 16` mV。
 **`temp_formula_check.mjs` 校验的就是同一条**：它从 `main.c` 源码里抠出三个常数（`:25-37`），与逐字抄 BSP 宏
 的浮点参考式（`:41`）在**全 65536 码段**比对（`:47-52`），容差由推导给出（`:53-61`），另有三锚点（`:68-72`）
-与三个**变异反例**（`:84-88`）。⇒ 回答"温度对不对"有机械答案，不需要板子。
+与三个**变异反例**（`:84-88`）。，因此回答"温度对不对"有机械答案，不需要板子。
 
 ### 14.5 命令全集（派发器 `dispatch()` `main.c:890-1394`）
 
@@ -1853,7 +1853,7 @@ FIFO 16 字节 ≈ 1.4 ms 的账在 `:303-310`）；写完**一次性** `gm_w |=
 
 **为什么自己写**（`:4-6` 原文）：BSP 里没有 `xilffs`；卡上布局自家生成；只读目录扫描 200 行够用。
 **不支持长文件名的真正原因**：生成器只产 8.3 名（`:5-6`；`src/host/make_sd_video.mjs:13`），
-固件侧对 LFN 属性 `0x0F` 项直接跳过（`:251`）。⇒ **任意工具拷进去的长名素材读不到**。
+固件侧对 LFN 属性 `0x0F` 项直接跳过（`:251`）。，因此**任意工具拷进去的长名素材读不到**。
 
 | 项 | 内容 | 行号 |
 |---|---|---|
@@ -1868,8 +1868,8 @@ FIFO 16 字节 ≈ 1.4 ms 的账在 `:303-310`）；写完**一次性** `gm_w |=
 | 读 | 每次最多 **64 扇区**；读前 `DCacheFlushRange`（脏行回写会盖 DMA，`:86-89`）；`XSdPs_ReadPolled` 一次重试 | `:90-130` |
 | 零拷贝 | DMA 直接落 PL 要读的 DDR，**无 memcpy 无二级缓冲** | `:12-13,744,756` |
 
-**#50 那次 bug 的形状**（`:230-232` 与 `:96-107`）：`dir_lookup` 的高簇字曾按**大端**拼 ⇒
-首簇 ≥ 65536 的文件簇号翻成天文数字 ⇒ 症状是"3584 帧定点坏点"。
+**#50 那次 bug 的形状**（`:230-232` 与 `:96-107`）：`dir_lookup` 的高簇字曾按**大端**拼，因此
+首簇 ≥ 65536 的文件簇号翻成天文数字，因此症状是"3584 帧定点坏点"。
 `dir_selftest`（`:267-289`）不只是正例：它带**两条反例断言**——旧大端写法必须真给出 16777218 那个样本值
 （`:283-285`）、新旧必须**给出不同答案**（`:286-287`），否则"判据是照抄实现"。
 
@@ -1894,13 +1894,13 @@ FIFO 16 字节 ≈ 1.4 ms 的账在 `:303-310`）；写完**一次性** `gm_w |=
 
 - `sd_recover_tick()`（`sd_play.c:607-639`）：每 2 s 才动一次（`:622`）、**最多 30 次**（`:625-628`，约 1 分钟），
   且 `if (mounted) return` 早退；资格条件：本上电周期挂载过 `seen_mounted` **且**丢卡瞬间正在播
-  `want_play`（`:612-619`，`want_play` 只在 mounted 时跟随 playing ⇒ **`stop` 后插卡不会自动开播**）。
+  `want_play`（`:612-619`，`want_play` 只在 mounted 时跟随 playing，因此**`stop` 后插卡不会自动开播**）。
 - 为什么不复用 `sd_mount`：`sd_mount` 第一行就是 `if (mounted) return 0;`（`:475`），而拔出卡没有任何路径
-  清 `mounted` ⇒ 插回去是"假挂载"，每次读都失败（`:547-550,577-579`）。
+  清 `mounted`，因此插回去是"假挂载"，每次读都失败（`:547-550,577-579`）。
 - 为什么必须清驱动的 `IsReady`：`:555-563` 原文引驱动 `xsdps.c:156-159`
   （`if (InstancePtr->IsReady == XIL_COMPONENT_IS_READY) return XST_DEVICE_IS_STARTED;`，
   "If this API is getting called twice, return value accordingly"），并写
-  "**我们的代码里没有任何一处清 `IsReady` ⇒ 第二次初始化永远在第一步就被挡回**"；
+  "**我们的代码里没有任何一处清 `IsReady`，因此第二次初始化永远在第一步就被挡回**"；
   手工修法在 `sd_remount()`（`:565-574`，**`:572` 那一行清 `Sd.IsReady`**）。
   ⚠ `:555` 还有一句更正："#45 那句归因是错的"——**旧文档把病因记成"每上电周期只成功一次"，
   真相是守卫没被清**。引用 #45 时以 `sd_play.c:555-563` 为准。
@@ -1924,9 +1924,9 @@ grep -n "0x1FF\|IsReady\|clus_of\|64\|CLUS" src/ps/sd_play.c | head -30
 - 包：`[u32 小端 帧内偏移][RGB565 载荷]`。Python 侧 `udp_push.py:4-6`（打包式
   `struct.pack("<I", off) + chunk` `:69`），Node 侧 `video_sender.mjs:9`（`p.writeUInt32LE(off,0)` `:198`）。
 - **载荷长度必须是 8 的倍数且 ≤ 1392 B**（`udp_push.py:6-8`）。理由原文：非 8 倍数时包边界落在 64bit DDR 字
-  中间，打包器分两次推同一字**互相覆盖** ⇒ 规律黑点；`--mtu-payload` 给非 8 倍数是**复现缺陷**的对照，
+  中间，打包器分两次推同一字**互相覆盖**，因此规律黑点；`--mtu-payload` 给非 8 倍数是**复现缺陷**的对照，
   不是用法（`:6-7,96-97`）。
-- 1392 + 4 头 = 1396；> 1472 会被 IP 分片而**收包链不分片** ⇒ 会警告（`:98-100`）。
+- 1392 + 4 头 = 1396；> 1472 会被 IP 分片而**收包链不分片**，因此会警告（`:98-100`）。
 - 每帧包数 **221 = ceil(307200 / 1392)**（`one_click_test.py:25`、`video_sender.mjs:220`）。
   对账式：`exp_pkts = frames × 221`、`exp_bytes = frames × 307200`（`:110-111`）。
 - 限速：Python 侧按**累计字节数推时间戳**而不是叠加 sleep（`udp_push.py:74-90`，`:75-76` 原文理由
@@ -1964,7 +1964,7 @@ grep -n "0x1FF\|IsReady\|clus_of\|64\|CLUS" src/ps/sd_play.c | head -30
    `[TX] …发包含丢共 M 包，主动丢了 D 包`（`:224-242`），判据 `sent_pkts == exp_pkts`（`:239`）。
 4. **COLLECT**：再读一次，增量对账 `d(8)==exp_pkts && d(9)==exp_bytes`，顺带报
    `drop_words`/`frames_bad`/`bad_pkts` 增量（`:249-255`）。片源不足时重复补足后截帧（`:112-123`）。
-**`--dry-run` 免板**：跳过 xsdb 与 COLLECT，只跑 PING/SEND 的参数装配 ⇒ 可以在无板环境证明"脚本能跑"，
+**`--dry-run` 免板**：跳过 xsdb 与 COLLECT，只跑 PING/SEND 的参数装配，因此可以在无板环境证明"脚本能跑"，
 **但不能证明板上行为**（这是本文多处 `需板端` 的原因）。
 
 ---
@@ -2033,10 +2033,10 @@ bash run_test.sh           # → python src/host/one_click_test.py "$@"
 - **全仓没有** `write_cfgmem` / `program_cfgmem` / `program_hw_targets`
   （`grep -rn "write_cfgmem\|program_cfgmem\|program_hw_targets" .` → 0 命中）。
 - ⚠ **喂法红线**（`flash_qspi.tcl:33-40,86-103` 原文）：已打好的 `BOOT.bin` 走 `PROGRAM.FILES` 且**不给**
-  `PROGRAM.ZYNQ_FSBL`；给 `.bit`/`.mcs` 才单给 FSBL 让工具打镜像。**否则镜像套镜像** ⇒ flash 开头的分区表
+  `PROGRAM.ZYNQ_FSBL`；给 `.bit`/`.mcs` 才单给 FSBL 让工具打镜像。**否则镜像套镜像**，因此flash 开头的分区表
   成垃圾、报 `INVALID_LOAD_ADDRESS_FAIL, FSBL Status=0xE0000000`（`flash_qspi.tcl:38` 逐字——**这是状态码，不是跳址**）；
   ⚠ "板上完全不出串口输出"这一句**出处不在这里**：有凭据的那条是
-  `board/scripts/make_boot_image.sh:17,43`（镜像把 IHT 的分区表偏移三字段留成 0 ⇒ 启动 ROM 读不懂，
+  `board/scripts/make_boot_image.sh:17,43`（镜像把 IHT 的分区表偏移三字段留成 0，因此启动 ROM 读不懂，
   实测"DONE 不亮、串口零字节"），那是**另一种坏法**；"JTAG 手工下 ELF 仍能跑"则是**机理（推断）**，
   仓库里没有把两件事成对记录的同一次凭据。
   而 JTAG 手工下 ELF 仍能跑——**这两件同时成立就是镜像包错了**。
@@ -2048,7 +2048,7 @@ bash run_test.sh           # → python src/host/one_click_test.py "$@"
 - 单支：`bash build/sim/run_one.sh <tb>`。原始输出在 **`/tmp/kx/<tb>.run/run.log`**
   （`sim/README.md:26`；目录由 `build/sim/run_one.sh:49` 建，`:120` 警告"已 `cd` 进去、自调必须用绝对路径"）。
   ⚠ 那是 **Git Bash** 视角的路径，PowerShell 里换 `$env:TEMP\kx\...`。
-- 屏幕只回放含 `FAIL/PASS/INFO/PROBE/DIAG` 的前 80 行 ⇒ **回放里没有的东西不等于没发生**，
+- 屏幕只回放含 `FAIL/PASS/INFO/PROBE/DIAG` 的前 80 行，因此**回放里没有的东西不等于没发生**，
   判据要读 `run.log` 原件。
 - 判定行以 `VERDICT <tb>:` 开头（`sim/README.md:24`），退出码含义 `:25`，原始输出与**源树指纹** `:26-27`。
 - 全量：`build/sim/run_sim.tcl`（83 支），可用 `SIM_TB`/`SIM_ONLY`/`SIM_VERBOSE`/`SIM_ARGS`。
@@ -2060,11 +2060,11 @@ bash run_test.sh           # → python src/host/one_click_test.py "$@"
   关于 timescale 的实测边界：三条嫌疑 DUT（`src/rtl/process/rotate/rotate_mapper.v:1`、`src/rtl/process/zoom/zoom_ctrl.v:1`、
   `src/rtl/util/key_debounce.v:1`）**本来就写了** ``timescale 1ns/1ps``，所以"差异来自 DUT 缺 timescale"这个问法当时就问错了对象；
   真正缺 directive 的是 `src/rtl` 80 支里的 **13 支，全部在 `src/rtl/eth/`**。测量层面留着的事实是：整清单强制
-  `vlog -timescale 1ns/1ps` 重编后，那五支的判定计数一字不变 ⇒ 只能主张"统一 timescale 不改变这五支的判定"。
+  `vlog -timescale 1ns/1ps` 重编后，那五支的判定计数一字不变，因此只能主张"统一 timescale 不改变这五支的判定"。
 - `tb_v112_ip_csum` **两家都红** `errors=7`，但**这不是新 bug**：`report/log/issues.md:11232-11237` 记它是"一次失败的尺子……
   文件留着、**不进车道**"（抓取时机理解错了，等价性改由发出字节的差分承担）。
 - ⚠ **口径**：门禁 24 项只显式引用 `tb_v98_top_seam`（`build/gates.sh:307-375`）与 `tb_edge_rim`（`:388-418`）两支台架的**凭据件**，
-  外加 `build/run_one_ce.sh`（判定解析器的合成对照，不跑真台架）⇒ **"GATES: ALL PASS" 不等于"83 支台架全绿"**；
+  外加 `build/run_one_ce.sh`（判定解析器的合成对照，不跑真台架），因此**"GATES: ALL PASS" 不等于"83 支台架全绿"**；
   问"这件事有没有判据守着"要先问**它在不在车道里**。详见 `report/study/学习文档_合订本.md` §6.13"扩到整仓"小节。
 - 门禁另有 `build/run_one_ce.sh`（CDC 专项台架）与 `rtl_fingerprint`（同源指纹）。
 
@@ -2077,7 +2077,7 @@ bash run_test.sh           # → python src/host/one_click_test.py "$@"
 - **解析不到即 `exit 2`**：`for v in wns whs tnsfail whsfail eps bram bramp lut lutp reg dyn crit rerr cdcc`
   逐项查空/`NA`（`:173-177`），外加一行数字形状检查
   `[[ "$wns$whs$bramp$lutp" =~ ^[0-9.+\-]+$ ]]`（`:178`）。
-  `:72-77` 记录了为什么要有这一段：r60 时 TNS 在违例时是**负数**（−6.457），旧 awk 只给 WNS/WHS 留符号位 ⇒
+  `:72-77` 记录了为什么要有这一段：r60 时 TNS 在违例时是**负数**（−6.457），旧 awk 只给 WNS/WHS 留符号位，因此
   脚本打印"读不到"然后 `exit 2`——**停下来是对的，但它把最该看见的数字（WNS −0.482 / 19 个失败端点）
   换成了"读不到"这句话**。现在四列都允许带符号，且**读不到时把候选行原样打出来**（"尺子读不懂被测对象，
   必须说'我读的是这一行'，不许只说'读不到'"）。
@@ -2120,7 +2120,7 @@ bash run_test.sh           # → python src/host/one_click_test.py "$@"
 （条目号沿用项目自己的编号：**第 1/2 项各含多个 `say` 判定行**，所以"编号到 23"与实际
 **24 条判定**不是一回事；`grep -o 'say "[^"]*"' build/gates.sh | sort -u | wc -l` = 24，
 门禁件结尾自报"判定 24 项、未判 0 项"。另 `data/metrics.csv` "门禁自检项"行填的是 **22**
-（那是更旧的"自检项"口径）⇒ **引用条数前先说清口径**。）
+（那是更旧的"自检项"口径），因此**引用条数前先说清口径**。）
 
 重取：`grep -n 'say "\|naa "' build/gates.sh`
 
@@ -2169,7 +2169,7 @@ bash run_test.sh           # → python src/host/one_click_test.py "$@"
 **缺陷册与工作日志是两个文件**：`report/known_issues.md`（按编号的缺陷册）与
 `report/log/issues.md`（追加式工作日志）；另 `report/known-limitations.md`。RTL 注释里写作
 `report/log/ISSUES.md`、`OVERNIGHT_LOG.md` 的是历史大写名，盘上实为 `issues.md`/`overnight_log.md`
-（`system_top.v:271`、`sd_play.c:15`）⇒ **照抄打不开**。
+（`system_top.v:271`、`sd_play.c:15`），因此**照抄打不开**。
 
 ---
 

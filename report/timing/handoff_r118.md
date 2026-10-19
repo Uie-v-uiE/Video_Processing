@@ -9,10 +9,10 @@
   件 `build/evidence/r115_window/probe3_console.txt`）。
 * **B1 严格名册判据 = GREEN**：`build/evidence/r118_strict_b1.txt` — 8 对（4 域 × setup/hold）**逐格与 r114 逐位相同**
   （`eth_rxc` 0.739 / 0.052、`clk_fpga_0` 1.850 / 0.053、`clkout0_1` 3.630 / 0.059、`sys_clk` 14.876 / 0.222）。
-  ⇒ 这一刀在片内是**可证明中性**的；它的收益只在片外到达窗，不写成 WNS 收益（规矩 35）。
+  所以这一刀在片内是**可证明中性**的；它的收益只在片外到达窗，不写成 WNS 收益（规矩 35）。
 * **r117 官方名册的实测判负**：`build/r117_verdict_declined.txt` — C9 复制那根 239 引脚广播网机制成立
   （239→1 引脚、10 颗 replica）且 `clk_fpga_0` 1.850→2.104，但 `clkout0_1` / `sys_clk` / `eth_rxc` setup 与
-  `eth_rxc` hold 四格一起跌 ⇒ 预登记的严格判据不过，按 H7 回滚；钩子与数都留在树里。
+  `eth_rxc` hold 四格一起跌，因此预登记的严格判据不过，按 H7 回滚；钩子与数都留在树里。
 * **RGMII 输入窗退回候选件**：`src/constraints/r116_rgmii_input_window.xdc`，默认不加载，
   `VP_R116_IO_WINDOW=1` 复现；绑窗时 4 条发布硬门红的原因与证明留在 `report/timing_global.md` 第 6/9 节。
 * 全局逐域"到极限"的判定与代价面：`report/timing_global.md` 第 6、7、9 节；`report/timing/round_r117.md`、
@@ -25,7 +25,7 @@
    `metric_recheck` / `doc_currency` 会照实判红（已推的提交 `b5a774b`）。
 2. **改口之后的最终门禁两跑**（B4 的最后一条）与**提交包重导**没跑完。
 3. 一个未落地的小修：`build/r118_rotate.py` 的"尺子输出文件"用了 `/tmp/kx/...`，
-   而 **MSYS 的 /tmp ≠ Python 的 /tmp**（#330 第 3 条）⇒ 它把"读不到自己的尺子文件"报成"尺子没过"。
+   而 **MSYS 的 /tmp ≠ Python 的 /tmp**（#330 第 3 条），因此它把"读不到自己的尺子文件"报成"尺子没过"。
    修法就一行：把那两个 `> /tmp/kx/...` 改成仓库内目录（`build/evidence/r118_board/`）。
 
 ## 三、一条命令接上（顺序不能换）
@@ -61,7 +61,7 @@ python build/r118_commit.py && git push origin main    # 提交 + 推送（信�
 原因是一条**自指**：`doc_currency` 的 D1c 层拿"盘上最新的 `rNN_gates.txt`"当基准去核对首页那句
 "门禁 24 项 23 绿 / 1 红"，而首页引用的那一份在这一刻还是**改口之前**的 21 绿 / 3 红（其中 2 条正是文档时效本身）；
 只有先把这一跑定稿成 `build/r118_gates.txt`、让 D1c 有个能吻合的基准，红数才会真的回到 1。
-⇒ 修法（下次照做，别改判据）：**两跑之后再定版跑第三跑** ——
+所以修法（下次照做，别改判据）：**两跑之后再定版跑第三跑** ——
 `bash build/gates.sh > /tmp/kx/fC.txt 2>&1; cp -f /tmp/kx/fC.txt build/r118_gates.txt` 之后再跑一次核对：
 第二次的红项应当只剩声明过的 `C5c`（`grep -c ' FAIL$'` == 1），这时才提交首页、重导包、推送。
 顺序必须是"先落一份能吻合的门禁件，再要求首页与它吻合"，否则这条判据永远把自己判红。
@@ -73,7 +73,7 @@ python build/r118_commit.py && git push origin main    # 提交 + 推送（信�
   `doc_currency` 自己打印 **CURRENCY: 干净**）。**没有提交**，因为发布门禁的第 18 项仍判红 ——
   而它红的原因不是数字不对，是 D1b 那层的**射程地板**：`抓到 0 句板态身份句（地板 2）`。
   D1b 在 `NOW_MARK` 之后用 `ADJ_RNN` 取"紧邻的轮号"，而首页写的是
-  `板上现在跑的是 **r118**`（粗体星号夹在标记与轮号之间）⇒ 取不到编号 ⇒ 那句身份句不计入。
+  `板上现在跑的是 **r118**`（粗体星号夹在标记与轮号之间），因此取不到编号，因此那句身份句不计入。
   同一条句式的英文行 `the board now runs **r118**` 一样取不到。
 * 所以现在的选择只有两个，我选了第一个并停下来：
   ① 不放宽判据、不提交未核过的首页（当前状态）；
@@ -99,7 +99,7 @@ python build/r118_commit.py && git push origin main    # 提交 + 推送（信�
   对照那一半（按住 KEY1 到链跑完应读 1）**仍未做**，登记为"未判"，需要再断一次电。
 * **板上一步的坑**：07:39 那一次 `ps_jtag_boot.tcl` 死在 `targets -set 1`（`tid2ctx`）——冷上电后 hw_server 还没重新枚举链路。等它枚举成 `1=APU / 2=ARM#0 / 3=ARM#1 / 4=xc7z020`，**脚本一字未改就过了**（只读探针 `build/tcl/probe_target_select.tcl`，五种选择写法全 rc=0）。下次遇到"冷上电后第一步就 REFUSE"，先重连一次看枚举表。
 * **一处身份债补上了（ISSUES #332）**：`git show HEAD:build/system.bit | md5sum` 量出来 HEAD 里那块还是 **r116 的 `bb2fb707aebc`** —— r118 那两支提交只带了文档，bit / xsa / `build/*.rpt` / `build/report/` / `build/tb_v98_report.txt` 全悬在工作区。
-  根因三条都写在 #332 里（路径清单写了当时并不存在的 `report/acceptance.md`——那个名字从未落地、不在本包内 ⇒ `git add` 原子失败只暂存 4 条 ⇒ 打印子进程输出时又踩 cp936 解码崩溃）。
+  根因三条都写在 #332 里（路径清单写了当时并不存在的 `report/acceptance.md`——那个名字从未落地、不在本包内，因此 `git add` 原子失败只暂存 4 条，因此打印子进程输出时又踩 cp936 解码崩溃）。
   **本节之后的规矩**：提交完必须**读回 HEAD** 验位流身份，不许只读工作区。
 * **另一处工具账（ISSUES #333）**：为追加 #332 留的那份 `ISSUES_before332.md` 备份被 D5 当成交付文档扫，连带把 D1c 也拖红（23/1 → 21/3）。备份证明成"纯前缀"之后删掉；纪律是**快照不要落成仓库里的 `.md`**。
 * **门禁的实际形状（件 `build/evidence/r118_board/`）**：`g1b` 22 绿/2 红（基准件是旧的）→ 删备份 → `g1c` 22 绿/2 红（D1c 仍读着旧基准）→ 定版 → **`g2c`/`g3c` 23 绿/1 红且逐字节一致**（唯一红 = 声明过的 `C5c`，`build/tb_v98_report.txt` 里那条 `FAIL C5c …` + `RESULT tb_v98_top_seam FAIL nfail=1`），`doc_currency` 打印 **CURRENCY: 干净**。

@@ -12,7 +12,7 @@
    `timing/clock-tree-changes-checklist`、`references/where-to-search`。
 2. **尺子给出的假绿**。空集通过、X 当 0、单位不同相减、射程静默变窄、正对照永远不动、
    豁免名单买通、判定词不在行尾。→ `verify/*` 五条全部、`pitfalls/ruler-fake-greens`。
-3. **改动的代价面看不见**。只盯最差路径 ⇒ 采纳了"局部变好、别处变差"；
+3. **改动的代价面看不见**。只盯最差路径，因此采纳了"局部变好、别处变差"；
    复制驱动机制动了但四格跌；资源换时序量下来是负的；绝对 slack 差被当成收益。
    → `timing/global-timing-roster`、`timing/reduce-fanout-and-congestion`、
    `rtl/resource-vs-timing-tradeoffs`。

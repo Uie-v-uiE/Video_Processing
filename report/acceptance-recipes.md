@@ -37,14 +37,14 @@
   为什么不能靠串口：`report/log/issues.md:4693-4696`（#100：`ROT SHOW` 只念 `auto/speed/deg/frame`、`STAT` 末尾的 `geom=` 里也只有位字段，**串口没有任何"当前角度"读数**）；
   以及 `report/log/issues.md:11816-11818`（#274：串口读不到角度——`status` 口那 9 位在 `system_top` 没有读者）。
   误读实例：`board/acceptance.md:90` 里那句「1 rot 在走 zoom 是 0.52 没有 3 没有」——`0.52` 不是任何一格的标签，
-  全树搜 `0.52x` 只在 `src/rtl/process/zoom/zoom_ctrl.v:59` 的一句**注释**里出现 ⇒ 已回问出处，未证实之前不当倍率读数用。
+  全树搜 `0.52x` 只在 `src/rtl/process/zoom/zoom_ctrl.v:59` 的一句**注释**里出现，因此已回问出处，未证实之前不当倍率读数用。
 - **失效条件**：`osd=0`（OSD 关着）时这一格根本不存在；先读 `[STAT] … osd=1` 再谈看它（`build/evidence/r118_eyes/uart_stat.txt:1`）。
 
 ## R3 把旋转"冻"在当前角度，再 ±1° 走
 
 - **什么时候用**：要判"某个固定角度下四角在不在屏内 / 左缘有没有彩条"。
 - **怎么设置状态**：`src 2` + `bilin on` + 手动 `zoom 1.0` + **`zoom fit 0`**（钳制要在"拟合关着"时才看得见）+ `rot auto 1 speed 0`。
-- **怎么看**：发 `rot auto 0` ⇒ 板子**冻在当前角度**（不是归零！），看屏 `ROT:` 那一格记下度数；要精调就按板上 **KEY1/KEY2** 走 ±1°。
+- **怎么看**：发 `rot auto 0`，因此板子**冻在当前角度**（不是归零！），看屏 `ROT:` 那一格记下度数；要精调就按板上 **KEY1/KEY2** 走 ±1°。
   串口没有"把角度归零"的动词，所以别去命令表里找它。
 - **怎么记录**：记三件：冻住后的度数（眼睛读）、`rot show` 的回读（`auto/speed`）、以及四角/左缘各答一句原话。
 - **凭据**：`board/acceptance.md:72-75`（这套设态与"冻在当前角度"的写法）；
@@ -59,7 +59,7 @@
 - **怎么看**：只看 `split show` 回包的 `marker=` 那一栏。
 - **怎么记录**：把 `split show` 那一行原样入库；电池里把它做成一条判据而不是散文。
 - **凭据**：`report/log/issues.md:4690-4692`（#102 那一节记的毛病：`我第一次发过 SPLIT MARKER 0 之后，再发 SPLIT 20 用户就看到屏幕中间多出一条竖线`
-  ⇒ **`SPLIT <百分比>` 会把标记线的使能位重新打开**；修法是"`split <n>` 只改位置，不碰 marker 位"，并在电池里补一条"`split 50` 之后 marker 位不变"）；
+  所以**`SPLIT <百分比>` 会把标记线的使能位重新打开**；修法是"`split <n>` 只改位置，不碰 marker 位"，并在电池里补一条"`split 50` 之后 marker 位不变"）；
   落地成判据的那一组四条在 `report/log/issues.md:6803-6806`（#105，判"**写缝位不许清掉 marker 位**"，板上 105 条全绿，件 `build/r95_batt_from_default.txt`）。
 - **失效条件**：如果你的命令表本来就把 marker 与缝位合在一个字里，这条配方要换成"读回控制字的**位**"而不是读回显。
 
@@ -99,7 +99,7 @@
 - **凭据**：`build/evidence/r118_eyes/state.txt:8-10,16-17`（三步 rc 与 `md5sum build/system.bit` 逐条对回归档件）+
   同目录 `step1_boot.txt:3-6`、`step3_app.txt:4,11,22`、`uart_stat.txt`、`uart_stat2.txt`（两次 3 s 间隔的 `frames=4398` 不变）；
   **操作账**（很值钱）：`state.txt:13-16` 记 07:39 那一次死在 `targets -set 1`（`hw_server` 冷上电后还没重新枚举链路），
-  等它枚举成 `1=APU / 2=ARM#0 / 3=ARM#1 / 4=xc7z020` 之后**原脚本一字未改就过了** ⇒ "冷上电后第一步就 REFUSE" ≠ 板子或脚本坏了，
+  等它枚举成 `1=APU / 2=ARM#0 / 3=ARM#1 / 4=xc7z020` 之后**原脚本一字未改就过了**，因此"冷上电后第一步就 REFUSE" ≠ 板子或脚本坏了，
   先重连一次看枚举表（只读探针 `build/tcl/probe_target_select.tcl`），再决定要不要动脚本（`report/log/issues.md:13095-13097`）。
 - **失效条件**：需要按住按键的那一组（对照组）要**再断一次电**，不能在上一次会话里补做（`board/acceptance.md:98`）。
 
@@ -113,7 +113,7 @@
 - **凭据**：`build/evidence/r118_board/board_verify_console.txt:15,61`；`build/evidence/r118_serial_raw.txt:1,3`（两条 `[TEMP]` 全文）；
   为什么必须是被跟踪件：`report/log/issues.md:11795-11808`（#273 那一节：以前靠手抄三条读数，这一轮改成脚本自己产出并被跟踪的回显）与
   `build/board_temp_r97.txt:6-7`（"原始捕获文件 `board/uart_script_capture.txt`（已被 `.gitignore` 挡住）（已被 `.gitignore` 挡住） 被 `.gitignore` 挡着……所以这里把那三条抄成随包件——指路必须指到一个真在包里的文件"）。
-- **失效条件**：`board/uart_script_capture.txt` 此刻在盘上但**不随包**（`.gitignore:134` 命中 `board/uart_*.txt`）⇒ 只当"现场核对"用，别当交付凭据。
+- **失效条件**：`board/uart_script_capture.txt` 此刻在盘上但**不随包**（`.gitignore:134` 命中 `board/uart_*.txt`），因此只当"现场核对"用，别当交付凭据。
   另一条：不同工况（空载 / SD 在播 / 电池负载）的温度**不可比**（`build/board_temp_r97.txt:4` 就把"抓的时候 SD 在播"写进头注）。
 
 ## R9 凭据存在性清点（一条命令，指到目录 = 0 容忍）
@@ -169,7 +169,7 @@ sed -n '1p' build/evidence/rNN_bit_md5.txt
 
 - **怎么记录**：四个值写进同一份汇总件（`state.txt` 那种形状），并把"板上现在 = rNN"那句的来源点名到 `board_now.txt:1`。
 - **凭据**：`report/log/issues.md:13075-13094`（#332 全文：r118 那支"采纳笔"**只带了文档没带 bit/报告**，
-  是 `git show HEAD:build/system.bit | md5sum` 抓出来的 ⇒ 规矩改成"提交之后**读回 HEAD** 验身份"）；
+  是 `git show HEAD:build/system.bit | md5sum` 抓出来的，因此规矩改成"提交之后**读回 HEAD** 验身份"）；
   今天跑出来的四个值同源：`cd04907e1369da35d21c4090d552f5ee`（`board/signoff.md` S1 逐条引了出处）。
 - **失效条件**：只做工作区 md5 的话，"文档写 r118、盘上是上一版"这种形状抓不住（#332 就是这么发生的）；
   只信 `board_now.txt` 的自述也不行——它自己那句刷入时间还和链子日志差 2 分钟（`board/signoff-questions.md` 第 1 轮 Q3）。
@@ -179,14 +179,14 @@ sed -n '1p' build/evidence/rNN_bit_md5.txt
 - **什么时候用**：眼睛报回一条"看起来像缺陷"的现象，你怀疑它是切换瞬间的暂态，或者怀疑它属于上一版。
 - **怎么用**：两种同族做法，都只动一个变量：
   ① **只改推流节奏**：25 fps 看一遍 → 29.76 fps 复推再看一遍 → 若两档现象相同，说明它不随节奏出现。
-  ② **回刷上一版做对照**：把上一版的位流重新刷上板，同一判据读两遍，与本版两遍逐格对比 ⇒ 归属就落到"是不是这一版带来的"。
-- **怎么记录**：把 A/B 四个读数（本版两次 + 上一版两次）都留件；写结论时只说"未复现"或"逐格相同 ⇒ 归属某版"，
+  ② **回刷上一版做对照**：把上一版的位流重新刷上板，同一判据读两遍，与本版两遍逐格对比，因此归属就落到"是不是这一版带来的"。
+- **怎么记录**：把 A/B 四个读数（本版两次 + 上一版两次）都留件；写结论时只说"未复现"或"逐格相同，因此归属某版"，
   不要顺手写"所以是软件问题/硬件问题"。
-- **凭据**：①的做法在 `board/acceptance.md:90`（`我用**只改推流节奏**做了对照（29.76 fps 一条、复推 25 fps 仍一条）⇒ **未复现**，判为切换瞬间的暂态，不记缺陷`）；
+- **凭据**：①的做法在 `board/acceptance.md:90`（`我用**只改推流节奏**做了对照（29.76 fps 一条、复推 25 fps 仍一条），因此**未复现**，判为切换瞬间的暂态，不记缺陷`）；
   ②的做法在 `report/log/issues.md:12803-12816`（#318：`frames_bad=1` 用**回刷 r114 做 A/B** 查清了归属，件
   `build/evidence/r116_board/cycle_r114back.log`（`*.log` 已被 `.gitignore` 挡住）、`health_r114back_a.json`）；两次读数包数在涨的那一份是 R6 要的活样本证据。
 - **失效条件**：如果这个现象的发生率本来就低（例：`#189` 台架量到 ≈0.27 %，3726 个旋转态像素命中 10 个），
-  **A/B 的"没看到"不等于"没有"** ⇒ 要换机器尺子（R12）。出处 `board/acceptance.md:90` 末尾那句限定。
+  **A/B 的"没看到"不等于"没有"**，因此要换机器尺子（R12）。出处 `board/acceptance.md:90` 末尾那句限定。
 
 ## R12 眼睛只判"有没有 / 哪个档"，宽窄与稀疏度交给机器
 
@@ -196,7 +196,7 @@ sed -n '1p' build/evidence/rNN_bit_md5.txt
 - **怎么记录**：问题原文与回答原文都逐字入库；预测被打脸的那一句要留着并写明"被打脸"。
 - **凭据**：`report/known_issues.md` 第 1 节末尾（`我给的定量预测被眼睛判掉了一半 … **眼睛在"宽窄"这一档是饱和的**；
   它真正分辨得开的是"有没有每帧换角"`）；机器那一侧的读数 `build/r105_tb_head_rot_displace.txt`（`RESULT … PASS cells=49152 pairs=12`；
-  45° k=1/2/7 最大 5/9/31 源像素，k=0 那一档三个角度各扫两遍逐位相同 ⇒ 台架自己不漂）；
+  45° k=1/2/7 最大 5/9/31 源像素，k=0 那一档三个角度各扫两遍逐位相同，因此台架自己不漂）；
   另一处同族教训 `report/log/issues.md:10080-10089`。
 - **失效条件**：如果这个现象**只有**眼睛能看（例如 OSD 上那格数字，`src/ps/main.c` 里根本没有 fps 读者），
   就别硬造机器判据；那条永远不进门禁（`board/acceptance.md:84-85`）。
@@ -210,7 +210,7 @@ sed -n '1p' build/evidence/rNN_bit_md5.txt
 - **凭据**：`board/acceptance.md:30-42`（r96 那一节，`:32` 那句就是原话：`上表的原行**不覆盖**（留作历史读数）`）与
   `board/acceptance.md:48-59`（r97 那一节同写法）；`:9-10` 那句"先看这一行有没有'r94'字样"是同一条规矩的读法侧。
 - **失效条件**：`build/` 下那些**单文件**报告（`build/tb_v98_report.txt`、`build/timing_summary.rpt`）没有"另开一节"的保护，
-  下一轮直接覆盖 ⇒ 所以指标表引用它们时必须同时引 provenance 行（`report/measurements.md` 第 5 节 G1 就是这么抓出来的）。
+  下一轮直接覆盖，因此所以指标表引用它们时必须同时引 provenance 行（`report/measurements.md` 第 5 节 G1 就是这么抓出来的）。
 
 ## R14 摘要行里出现 `?` = 尺子读不出来，判原始件而不是那行摘要
 
@@ -230,7 +230,7 @@ sed -n '1p' build/evidence/rNN_bit_md5.txt
 - **怎么用**：先读 `STAT` 确认初态；不在默认档就先设回默认档，再跑那一串。
   如果某条中间判据的**前提**是上一条命令造成的（比如要先 `rot auto 0` 再看角度），就让**串自己构造那个前提**，
   而不是假设起点是干净的。
-- **怎么记录**：把"起点是哪一档"写进输出（本仓库那种 `NOTE 初态 = 文档默认档（zsel=4 zman=1 mode=0 AUTO）⇒ 上面那条"回到初态"是在默认档上证的` 就是标准写法）。
+- **怎么记录**：把"起点是哪一档"写进输出（本仓库那种 `NOTE 初态 = 文档默认档（zsel=4 zman=1 mode=0 AUTO），因此上面那条"回到初态"是在默认档上证的` 就是标准写法）。
 - **凭据**：`report/log/issues.md:6795-6802`（#178 那一课：判据的 precondition 必须由串自己造出来，
   件 `build/r95_batt_before_178_verdict.txt`（离线复现第 83 条 FAIL）→ `build/r95_batt_from_parked.txt` → `build/r95_batt_from_default.txt`（`RESULT PASS`）；
   里面还有一句反面提醒："别把它读成'起点无关所以随便跑'"）；

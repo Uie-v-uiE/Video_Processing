@@ -15,7 +15,7 @@
 - **判定只有三态**：`PASS` / `FAIL` / `NOT_MEASURED`。读不到输入等于 `NOT_MEASURED`，不等于 `PASS`。
 - **眼睛项的记法照 `board/acceptance.md`**：引队员原话 + 判读日期 + 当时板上是哪块位流。
   没有原话就不写"过"，也不写"经确认无误"。
-- **板上这一版是哪一版**：板上 = **r132**，位流 md5 `cb907d3e4898`（身份件 `build/r132_streamwrap_build.log`）。**但本页下面那些机器读数与签署是 r118 那一次签的**（S1~S8 引的证据文件名都带 r118）；r132 这一版重放了顶层整架（165 条 / 0 FAIL）、四把 rim 尺子（`build/tb_edge_rim_r132.txt`：31 条 / 0 FAIL）并把门禁跑到全绿（`build/r132_gates.txt`：24 项 24 绿 / 0 红，台账 #478/#482）；**还没在本版重放的是板级那一半**（串口 105 条命令回归、board_verify 那几格与眼睛判定的 S 项）⇒ 这一页仍然算「待重签」，只是缺的那一半已经从「机器 + 板级」缩成「只剩板级」。
+- **板上这一版是哪一版**：板上 = **r132**，位流 md5 `cb907d3e4898`（身份件 `build/r132_streamwrap_build.log`）。**但本页下面那些机器读数与签署是 r118 那一次签的**（S1~S8 引的证据文件名都带 r118）；r132 这一版重放了顶层整架（165 条 / 0 FAIL）、四把 rim 尺子（`build/tb_edge_rim_r132.txt`：31 条 / 0 FAIL）并把门禁跑到全绿（`build/r132_gates.txt`：24 项 24 绿 / 0 红，台账 #478/#482）；**还没在本版重放的是板级那一半**（串口 105 条命令回归、board_verify 那几格与眼睛判定的 S 项），因此这一页仍然算「待重签」，只是缺的那一半已经从「机器 + 板级」缩成「只剩板级」。
 - **前置状态里的 rNN**（r92/r94/r96/r97/r99/r101/r103/r104/r108/r113/r116/r118）是**产出那份读数时的构建编号**，
   不是叙述用的轮次号；凡出处不是板上这一版的读数，判定旁边都标了编号，不借给本版用
   （这条规矩的出处是 `board/acceptance.md` E6 格里那句"那两句不给 r118 借用"与 `report/log/issues.md` 的 #332）。
@@ -34,7 +34,7 @@
 - 观察项：PL 里现在跑的位流是不是板上这一版那块，工作区、git HEAD、归档件三处是否同源。
 - 前置状态（含回读到的值）：`md5sum build/system.bit` 回读 `（本轮 r132 位流见 `build/system.bit`，md5 前 12 位 cb907d3e4898；这一行等门禁重跑时按 32 位现填）`；`git show HEAD:build/system.bit | md5sum` 回读同一串；`md5sum build/evidence/r118_bit/system.bit` 回读同一串；`build/evidence/r118_bit_md5.txt:1` 印 `cd04907e1369`。
 - 具体动作：跑上面三条 md5，再 `sed -n '1p' build/evidence/r118_board/board_now.txt` 与 `sed -n '1,6p' build/evidence/r118_board/board_verify_console.txt` 对读。
-- 我看到/读到的原文：`board_verify_console.txt:4` = `  build/system.bit  md5=cd04907e  2026-10-04 …`（行末那一段是该次取数的时刻，逐字在件里）；`board_now.txt:1` = `板上现在 = r118（刷入时刻见该件，bit_cycle rc=0 board_verify rc=0）`。警告：`board_now.txt` 首行那个精确到秒的刷入时刻，在 `bitcycle_console.txt` 里没有对应行——同一份件里能读到的只有 `program_pl` 那一步前缀里的时刻与 `pl rc=0 PROGRAMMED=2`，以及 `board_verify_console.txt:1` 抬头自带的时刻；三者的先后差距在分钟量级 ⇒ 位流身份三处同源这一条成立，那句刷入时刻的指代进了 `report/questions-for-team.md` 的 Q3。
+- 我看到/读到的原文：`board_verify_console.txt:4` = `  build/system.bit  md5=cd04907e  2026-10-04 …`（行末那一段是该次取数的时刻，逐字在件里）；`board_now.txt:1` = `板上现在 = r118（刷入时刻见该件，bit_cycle rc=0 board_verify rc=0）`。警告：`board_now.txt` 首行那个精确到秒的刷入时刻，在 `bitcycle_console.txt` 里没有对应行——同一份件里能读到的只有 `program_pl` 那一步前缀里的时刻与 `pl rc=0 PROGRAMMED=2`，以及 `board_verify_console.txt:1` 抬头自带的时刻；三者的先后差距在分钟量级，因此位流身份三处同源这一条成立，那句刷入时刻的指代进了 `report/questions-for-team.md` 的 Q3。
 - 判定：PASS
 
 ### S2 三步 JTAG 链（PS 起来 → 烧 PL → 重载应用）在冷上电后是否都成功
@@ -58,7 +58,7 @@
 - 观察项：105 条命令电池是否全部通过，跑完之后板子是否回到文档默认档。
 - 前置状态（含回读到的值）：`board_verify_console.txt:19` 回读进入时 `lane23 zoom → {"zsel":4,"zman":1,"inv_scale":256,"x100_actual":100,…,"verdict":"OK"}`；`:44` 回读 `进来时 CFG_DATA0 = 0x30400000（几何位 0x400000）`。
 - 具体动作：`node src/host/uart_cmd_check.mjs --port COM6`（或整把 `bash build/board_verify.sh --battery --geom`），再读 `RESULT PASS uart_cmd_check` 那一行与末态那条 `ok`。
-- 我看到/读到的原文：`board_verify_console.txt:63` = `RESULT PASS uart_cmd_check  (105 条命令, 97.9 s, 捕获 board/uart_script_capture.txt)`；`:59` = `ok   末态 = 演示默认档（thr=80 src=1 zoom=1 bilin=1 zsel=4 zman=1 sel=000 gm=0.00 mode=0 geom=00400000 osd=1）—— 与起点无关（#177）`；`:60` = `NOTE 初态 = 文档默认档（zsel=4 zman=1 mode=0 AUTO）⇒ 上面那条"回到初态"是在默认档上证的`。警告：那句里的 `board/uart_script_capture.txt` 是**工具本机重写、被 `.gitignore` 挡住的捕获件**（`git check-ignore -v` 命中 `.gitignore:134:board/uart_*.txt`）：它此刻在盘上，但**不随包**；随包复核要用 `board_verify_console.txt:63` 这一行与 `build/evidence/r118_serial_raw.txt`（`board_verify_console.txt:15`：`落点=build/evidence/r118_serial_raw.txt 行数=4 [TEMP]=2 判定=绿（地板 2）`）。
+- 我看到/读到的原文：`board_verify_console.txt:63` = `RESULT PASS uart_cmd_check  (105 条命令, 97.9 s, 捕获 board/uart_script_capture.txt)`；`:59` = `ok   末态 = 演示默认档（thr=80 src=1 zoom=1 bilin=1 zsel=4 zman=1 sel=000 gm=0.00 mode=0 geom=00400000 osd=1）—— 与起点无关（#177）`；`:60` = `NOTE 初态 = 文档默认档（zsel=4 zman=1 mode=0 AUTO），因此上面那条"回到初态"是在默认档上证的`。警告：那句里的 `board/uart_script_capture.txt` 是**工具本机重写、被 `.gitignore` 挡住的捕获件**（`git check-ignore -v` 命中 `.gitignore:134:board/uart_*.txt`）：它此刻在盘上，但**不随包**；随包复核要用 `board_verify_console.txt:63` 这一行与 `build/evidence/r118_serial_raw.txt`（`board_verify_console.txt:15`：`落点=build/evidence/r118_serial_raw.txt 行数=4 [TEMP]=2 判定=绿（地板 2）`）。
 - 判定：PASS
 
 ### S5 几何"最后一跳"：命令 → 像素域 lane23/CFG_DATA0 真的用了它
@@ -66,7 +66,7 @@
 - 观察项：几何命令是否真的落到像素域寄存器，并且收尾把 19 个几何位带回默认档。
 - 前置状态（含回读到的值）：`board_verify_console.txt:24` 回读 `进来时 CFG_DATA0 = 0x30400000（几何位 0x400000）`。
 - 具体动作：`bash build/board_verify.sh --geom`（或读 `geom_check` 段的 10 条 `ok` 与 `RESULT` 行）。
-- 我看到/读到的原文：`board_verify_console.txt:36` = `RESULT PASS geom_check（ok=10 fail=0）`；`:26` = `ok   G1a \`zoom fit 1\` ⇒ lane23.bit19（zoom_fit）= 1  lane23=0x800e4903 alive=1`；`:31` = `ok   G5b 四次里至少真的钳住一次（bit19=1 且 inv>256）—— 不然 G5 是空判据  钳住=4/4`；`:35` = `ok   G4 整串跑完，CFG_DATA0 的 19 个几何位回到演示默认档…末 19 位=0x400000 默认=0x400000（与进来时差 0x0）`。**这一次跑的 G5b 明确带着"防空判定"那半**，所以 G5 不是一次空过。
+- 我看到/读到的原文：`board_verify_console.txt:36` = `RESULT PASS geom_check（ok=10 fail=0）`；`:26` = `ok   G1a \`zoom fit 1\`，因此lane23.bit19（zoom_fit）= 1  lane23=0x800e4903 alive=1`；`:31` = `ok   G5b 四次里至少真的钳住一次（bit19=1 且 inv>256）—— 不然 G5 是空判据  钳住=4/4`；`:35` = `ok   G4 整串跑完，CFG_DATA0 的 19 个几何位回到演示默认档…末 19 位=0x400000 默认=0x400000（与进来时差 0x0）`。**这一次跑的 G5b 明确带着"防空判定"那半**，所以 G5 不是一次空过。
 - 判定：PASS
 
 ### S6 上电默认档位（ACCEPTANCE 机器判据第 4 行那一格，本版重读）
@@ -74,13 +74,13 @@
 - 观察项：刷完之后不碰任何命令，开机默认档是不是文档默认档（1.00×）。
 - 前置状态（含回读到的值）：板上 = r132（S1）、`uart_stat.txt` 与 `uart_stat2.txt` 回读 `[STAT] … zsel=4 zman=1 … geom=00400000 osd=1`。
 - 具体动作：读 `build/evidence/r118_board/board_verify_console.txt:19` 的 `lane23 zoom` JSON；或串口发一条 `STAT`。
-- 我看到/读到的原文：`board_verify_console.txt:19` = `  lane23 zoom → {"raw":2147893504,"alive":1,"zoom_fit":0,"zman":1,"zsel":4,"zcode":4,"zoom_active":0,"zoom_dir":0,"inv_scale":256,"x100_actual":100,"rule":"manual_tier","inv_expected":256,"inv_ok":true,"code_ok":true,"verdict":"OK"}`；`build/evidence/r118_eyes/uart_stat.txt:1` = `[STAT] ctrl thr=80 src=1 zoom=1 bilin=1 zsel=4 zman=1 pub=1 sd=1 frames=4398 playing=1 sel=000 gm=0.00 (PL owns UDP datapath) mode=0 geom=00400000 osd=1`。这一格在 `board/acceptance.md:35`（r94 那一行）与 `:39`（r96"没有盖章"那一行）历史上漂过两次，本版这三次回读彼此一致 ⇒ 以本件为准，历史两行不覆盖。
+- 我看到/读到的原文：`board_verify_console.txt:19` = `  lane23 zoom → {"raw":2147893504,"alive":1,"zoom_fit":0,"zman":1,"zsel":4,"zcode":4,"zoom_active":0,"zoom_dir":0,"inv_scale":256,"x100_actual":100,"rule":"manual_tier","inv_expected":256,"inv_ok":true,"code_ok":true,"verdict":"OK"}`；`build/evidence/r118_eyes/uart_stat.txt:1` = `[STAT] ctrl thr=80 src=1 zoom=1 bilin=1 zsel=4 zman=1 pub=1 sd=1 frames=4398 playing=1 sel=000 gm=0.00 (PL owns UDP datapath) mode=0 geom=00400000 osd=1`。这一格在 `board/acceptance.md:35`（r94 那一行）与 `:39`（r96"没有盖章"那一行）历史上漂过两次，本版这三次回读彼此一致，因此以本件为准，历史两行不覆盖。
 - 判定：PASS
 
 ### S7 带真实流量时的收包链零丢字（板上这一版那一次带流跑）
 
 - 观察项：147 Mbps 真实流量在跑的时候，PL 收包链自己数的丢字/坏包是不是 0。
-- 前置状态（含回读到的值）：`build/evidence/r118_board/bitcycle_console.txt:23` = `2) program_pl build/evidence/r118_bit/system.bit`（该行的前缀里带着那次动作的时刻 ⇒ 板上那一刻就是板上这一版）；`:26-28` = 起流 50 s、两次读数相隔 25 s（逐字时刻在件里）；`build/evidence/r116_board/sender_r118build.log:1-2` 回读 `[TX] -> 192.168.1.10:5001  512x300 RGB565 @60fps  pace=0.0 MB/s`、`[TX] 3001 帧 / 50.02 s = 60.00 fps`（该件是发送侧脚本的本机日志，被 `.gitignore` 的 `*.log` 规则挡住，不入库也不随包；随包复核要用同目录那两份 `health_r118build_*.json`。该件第 2 行后半是被 GBK 截断的中文，只念能读清的三个数）。
+- 前置状态（含回读到的值）：`build/evidence/r118_board/bitcycle_console.txt:23` = `2) program_pl build/evidence/r118_bit/system.bit`（该行的前缀里带着那次动作的时刻，因此板上那一刻就是板上这一版）；`:26-28` = 起流 50 s、两次读数相隔 25 s（逐字时刻在件里）；`build/evidence/r116_board/sender_r118build.log:1-2` 回读 `[TX] -> 192.168.1.10:5001  512x300 RGB565 @60fps  pace=0.0 MB/s`、`[TX] 3001 帧 / 50.02 s = 60.00 fps`（该件是发送侧脚本的本机日志，被 `.gitignore` 的 `*.log` 规则挡住，不入库也不随包；随包复核要用同目录那两份 `health_r118build_*.json`。该件第 2 行后半是被 GBK 截断的中文，只念能读清的三个数）。
 - 具体动作：读 `build/evidence/r116_board/health_r118build_a.json` 与 `_b.json` 两个 JSON 的 `src_state.eth_live`、`owner_eth`、`drop_words`、`pkt_err`、`flags_bits.drop_seen`。
 - 我看到/读到的原文：A 件 = `"eth_live":1,"owner_eth":1` / `"drop_words":0` / `"pkt_err":0` / `"flags_bits":{"drop_seen":"0",…"stream_live":"1"}` / `"pkts":221001,"bytes":307508160`；B 件同五个字段为 `1 / 0 / 0 / "0" / 558689`（包数在涨说明两次是不同时刻的真读数，不是同一份拷贝）。警告：两件**放在 `build/evidence/r116_board/` 目录里**但内容是 r118 那一滚（`cycle_r118build.log`、`health_r118build_*.json` 都以 r118build 命名）；目录名与内容不同源这件事按原样记，不改名。`cycle_r118build.log:31-32` 的摘要行自己写的是 `a: eth_live=1 owner_eth=1 drop_words=0 pkt_err=? frames_bad=? drop_seen=?`——摘要器读不出后三个字段（`?`），所以判的是 JSON 原文而不是那行摘要。
 - 判定：PASS
@@ -90,7 +90,7 @@
 - 观察项：`board_verify` 第 2 步读到的 `drop_words → 0` 能不能当作链路健康的凭据。
 - 前置状态（含回读到的值）：同一份读数里 `board_verify_console.txt:18` 回读 `lane30 src_state → {"eth_tb_ok":1,"eth_live":0,…,"why_no_stream":1,…,"why":"没有流"}`；`:17` 回读 `frames=4398`（`uart_stat.txt:1` 也是 4398，两次 3 s 间隔不变）。
 - 具体动作：对照 `report/log/issues.md:12782`（#316 规矩①：凡是"计数器=0"的板侧判据必须同一份读数里带 `eth_live=1`）。
-- 我看到/读到的原文：`board_verify_console.txt:21` = `  drop_words → 0`，与 `:18` 的 `"eth_live":0` 在同一份读数里 ⇒ 这正是 #316 抓过的**零样本通过**形状：没有流量时它不可能不丢。带流的那一半见 S7，不是这一条。
+- 我看到/读到的原文：`board_verify_console.txt:21` = `  drop_words → 0`，与 `:18` 的 `"eth_live":0` 在同一份读数里，因此这正是 #316 抓过的**零样本通过**形状：没有流量时它不可能不丢。带流的那一半见 S7，不是这一条。
 - 判定：NOT_MEASURED
 
 ### S9 链路内时延同源一致（屏上那一格 ↔ 回读的那个计数）
@@ -130,7 +130,7 @@
 - 观察项：`build/power.rpt` 的动态功耗与估算结温是否等于文档念的数，且置信度那格是否如实。
 - 前置状态（含回读到的值）：报告头回读 `| Device : xc7z020clg484-2 |`、`| Design State : routed |`、`| Process : typical |`、`| Date : Sun Oct  4 … 2026 |`（那一行的时刻逐字在件里）。
 - 具体动作：`sed -n '1,14p;30,45p' build/power.rpt`。
-- 我看到/读到的原文：`build/power.rpt:36` = `| Dynamic (W)              | 2.213        |`；`:39` = `| Junction Temperature (C) | 52.6         |`；`:40` = `| Confidence Level         | Low          |`；`:38` = `| Max Ambient (C)          | 57.4         |`；`:42` = `| Simulation Activity File | ---          |`。警告：`data/metrics.csv:28` 那行写 `Max Ambient 57.5 ℃` 而报告现在印的是 **57.4**：这一格不在 `metric_recheck` 的覆盖范围里（它只取 `Dynamic (W)` 与 `Junction Temperature (C)`），所以没人回头读它 ⇒ 记为文档差异，见第 4 节。
+- 我看到/读到的原文：`build/power.rpt:36` = `| Dynamic (W)              | 2.213        |`；`:39` = `| Junction Temperature (C) | 52.6         |`；`:40` = `| Confidence Level         | Low          |`；`:38` = `| Max Ambient (C)          | 57.4         |`；`:42` = `| Simulation Activity File | ---          |`。警告：`data/metrics.csv:28` 那行写 `Max Ambient 57.5 ℃` 而报告现在印的是 **57.4**：这一格不在 `metric_recheck` 的覆盖范围里（它只取 `Dynamic (W)` 与 `Junction Temperature (C)`），所以没人回头读它，因此记为文档差异，见第 4 节。
 - 判定：PASS
 
 ### S14 时钟结构判据（#57：收口只有一棵时钟树，不靠 slack 碰运气）
@@ -146,7 +146,7 @@
 - 观察项：`build/tb_v98_report.txt` 现在数得出多少条判定、唯一的 FAIL 是不是声明过的那条。
 - 前置状态（含回读到的值）：文件第 1 行 provenance 回读 `top_md5=56c269602e18 tb_md5=1c918c92200f rtl_md5=07570b1ac1b4 date=2026-10-04…`（那一次跑的日期时刻与 +08:00 时区后缀逐字在件里）。
 - 具体动作：`grep -c "^PASS" build/tb_v98_report.txt`、`grep -c "^FAIL" build/tb_v98_report.txt`、`grep -n "^FAIL" build/tb_v98_report.txt`。
-- 我看到/读到的原文：命中数 = **161 行 PASS + 1 行 FAIL = 162 条判定**；`:55` = `FAIL C5c frame head is not the previous frame's tail | first OFF+BILIN output rows must carry their own source row on BOTH sides of the seam`。警告：**`data/metrics.csv:15` 那一行还写着 `141`（并自述"141 = `^PASS` 行数 140 加 `^FAIL` 行数 1"，provenance 点名 `top_md5=2bf2ceeede07`）**——它点名的就是这份文件，而文件已经不是那一次跑的。这一格不在 `metric_recheck` 的覆盖范围里，所以那支护着它的检查脚本不会报未通过，但它是**指标表与报告不同源**的一条实物证据 ⇒ 进第 4 节与 `report/questions-for-team.md` 的 Q4，不改 `data/metrics.csv`。**2026-10-18 更新**：整架重跑交账（165 条判定 / 0 条 FAIL、`RESULT tb_v98_top_seam PASS`，件头部三枚 md5 与现树同批），这一格按当时选定的第 ① 种处置重算了 `data/metrics.csv:15`，所以那句「指标表与报告不同源」现在是历史状态，不是现值。
+- 我看到/读到的原文：命中数 = **161 行 PASS + 1 行 FAIL = 162 条判定**；`:55` = `FAIL C5c frame head is not the previous frame's tail | first OFF+BILIN output rows must carry their own source row on BOTH sides of the seam`。警告：**`data/metrics.csv:15` 那一行还写着 `141`（并自述"141 = `^PASS` 行数 140 加 `^FAIL` 行数 1"，provenance 点名 `top_md5=2bf2ceeede07`）**——它点名的就是这份文件，而文件已经不是那一次跑的。这一格不在 `metric_recheck` 的覆盖范围里，所以那支护着它的检查脚本不会报未通过，但它是**指标表与报告不同源**的一条实物证据，因此进第 4 节与 `report/questions-for-team.md` 的 Q4，不改 `data/metrics.csv`。**2026-10-18 更新**：整架重跑交账（165 条判定 / 0 条 FAIL、`RESULT tb_v98_top_seam PASS`，件头部三枚 md5 与现树同批），这一格按当时选定的第 ① 种处置重算了 `data/metrics.csv:15`，所以那句「指标表与报告不同源」现在是历史状态，不是现值。
 - 判定：PASS（唯一 FAIL 是声明过的 C5c；`report/known_issues.md` 第 1 节把它写成对外口径，故意留着这条未通过项不掩盖）
 
 ### S16 发布前检查一把跑 `build/gates.sh`（项数、通过／未通过计数、未通过项是不是只有声明过的那条）
@@ -162,7 +162,7 @@
 - 观察项：`data/metrics.csv` 与两份首页里点名那三份报告的每个数，是否都等于报告现在的值。
 - 前置状态（含回读到的值）：S11/S12/S13 的三份报告读数；`data/metrics.csv` 未被改动（只新建 `report/measurements.md`）。
 - 具体动作：`node src/host/metric_recheck.mjs`（正跑）与 `node src/host/metric_recheck.mjs --self`（反例必须报未通过）。
-- 我看到/读到的原文：`build/evidence/p16c/metric_recheck_before.txt` = `OK` 行 **70** 条、`RED` 行 **0** 条、`rc=0`，汇总行见 S11。警告：同一个检查脚本在**写完四份文档之后**重跑变成 `判 86 个数（首页层 32 个／解析到 6/10 行；红 4）… rc=1`（件 `build/evidence/p16c/metric_recheck_after.txt`），四条红全是 `RED row=README.md 里找不到「…」这一行`；`metric_recheck` 从不打开那四份新建文档（它只读 `data/metrics.csv` + 三份 `.rpt` + 两份 `README`），未通过的成因是 `README.md` 在两次跑之间被别的写入者重写（它不由本文件拥有）⇒ 本条 PASS 指的是下面那三次读数，成因与归属见第 4 节 L14。
+- 我看到/读到的原文：`build/evidence/p16c/metric_recheck_before.txt` = `OK` 行 **70** 条、`RED` 行 **0** 条、`rc=0`，汇总行见 S11。警告：同一个检查脚本在**写完四份文档之后**重跑变成 `判 86 个数（首页层 32 个／解析到 6/10 行；红 4）… rc=1`（件 `build/evidence/p16c/metric_recheck_after.txt`），四条红全是 `RED row=README.md 里找不到「…」这一行`；`metric_recheck` 从不打开那四份新建文档（它只读 `data/metrics.csv` + 三份 `.rpt` + 两份 `README`），未通过的成因是 `README.md` 在两次跑之间被别的写入者重写（它不由本文件拥有），因此本条 PASS 指的是下面那三次读数，成因与归属见第 4 节 L14。
 - 判定：PASS（三次读数都记着：第一次 判 114／红 0／`rc=0`；写完四份文档后 判 86／红 4／`rc=1`；收尾重跑 判 117／红 0／`rc=0`，`OK` 行 73 条（件 `build/evidence/p16c/metric_recheck_final2.txt`）。中间那 4 条未通过的成因与归属见 L14）
 
 ### S18 #170/#171 的板级 abort 注入（拷贝中途被看门狗打断后撕裂帧不再显示）
@@ -197,9 +197,9 @@
 ### E2 缩放 + 自动旋转时不出现整行错位、画面不出屏
 
 - 观察项：`zoom 0.5` + `rot auto 1` 下，屏上有没有整行错位、有没有左右错开的水平界线。
-- 前置状态（含回读到的值）：`board/acceptance.md:90` 记 r93 那两次的状态回读件 `build/evidence/r93_e2b_capture.txt`、`build/evidence/r93_ab_state_capture.txt`；10-01 那一次的状态件是 `build/r95_eye_park.txt`（末态 `geom=00400A00` ⇒ rot auto=1、speed=2、fit=0）。
+- 前置状态（含回读到的值）：`board/acceptance.md:90` 记 r93 那两次的状态回读件 `build/evidence/r93_e2b_capture.txt`、`build/evidence/r93_ab_state_capture.txt`；10-01 那一次的状态件是 `build/r95_eye_park.txt`（末态 `geom=00400A00`，因此rot auto=1、speed=2、fit=0）。
 - 具体动作：`split 50` + `split marker 0`（关掉辅助叠加层才好判）→ `zoom 0.5` → `rot auto 1`；对照做法是**只改推流节奏**（25 fps ↔ 29.76 fps 各看一遍同一格）。
-- 我看到/读到的原文：`board/acceptance.md:90` = `**过（2026-09-30 06:5x–07:0x，在场的人原话"现在画面正常只有一条"）**`；同格另引 2026-10-01 22:1x 那句 = `1 rot 在走 zoom 是 0.52 没有 3 没有`，且该格自己写明 `0.52` 这个数字**在屏上找不到能显示它的格子**（`Rot:` 印十进制度数、`Zoom:` 只有八档标签）⇒ 它不当倍率读数用；问"有没有整行错位/沿角度的细鬼影"答**没有**，问"`split 50` 缝两侧同一行有没有上下错开"答**没有**。该格还如实留了两条限定：① 当时标记线有没有关没问到 ⇒"缝两侧"那一判是在标记状态未证下给的；② #189 的发生率台架量到 ≈0.27 % ⇒ 这一格"过"的意义是"没看到错位"，不是"逐行验过"（逐行那部分靠 `sim/tb_zoom_frac.v` 的 S1/S2/S3，件 `build/r103_tb_zoom_frac.txt`）。
+- 我看到/读到的原文：`board/acceptance.md:90` = `**过（2026-09-30 06:5x–07:0x，在场的人原话"现在画面正常只有一条"）**`；同格另引 2026-10-01 22:1x 那句 = `1 rot 在走 zoom 是 0.52 没有 3 没有`，且该格自己写明 `0.52` 这个数字**在屏上找不到能显示它的格子**（`Rot:` 印十进制度数、`Zoom:` 只有八档标签），因此它不当倍率读数用；问"有没有整行错位/沿角度的细鬼影"答**没有**，问"`split 50` 缝两侧同一行有没有上下错开"答**没有**。该格还如实留了两条限定：① 当时标记线有没有关没问到，因此"缝两侧"那一判是在标记状态未证下给的；② #189 的发生率台架量到 ≈0.27 %，因此这一格"过"的意义是"没看到错位"，不是"逐行验过"（逐行那部分靠 `sim/tb_zoom_frac.v` 的 S1/S2/S3，件 `build/r103_tb_zoom_frac.txt`）。
 - 判定：PASS（这条只能由人的眼睛判，机器无法复现：签收人=在场队员，判读时间 2026-09-30 06:5x–07:0x 与 2026-10-01 22:1x，当时板上是 r92/r93 与 r103；板上这一版**没有重判过**，所以它不构成板上这一版已验证；带上面两条限定）
 
 ### E3 移动白线与红块连续、无撕裂
@@ -239,7 +239,7 @@
 - 观察项：把每帧角度步数钉成 0，顶部那条还存不存在。
 - 前置状态（含回读到的值）：板上 = r108，bit `25bf35a9900e`（`board/acceptance.md:78` 同一行点名）；设态由驱动串口完成。
 - 具体动作：`rot auto 1 speed 0`（角度停住）看顶部；再 `rot auto 1 speed 2` 看它是不是只贴在最上面几行。
-- 我看到/读到的原文：`board/acceptance.md:78` 的结果列 = `**已答（2026-10-02 21:5x，板上 r108，bit 25bf35a9900e）：`speed 0` 角度停住时顶部干净，动起来才有 ⇒ 这是「每帧换角 × 帧头 6 行」的交互，不是纯帧头绕回**`。警告：那是 ACCEPTANCE 的**记录句**，不是逐字引号里的队员话；它的逐字对应句是 E4c 那两条「停住的时候没有」「角在顶部的时候才会有」。第二个问题（"是不是只贴在**最上面几行**"）没有在原件里找到针对"行数"这一维的逐字回答 ⇒ 只判第一问。
+- 我看到/读到的原文：`board/acceptance.md:78` 的结果列 = `**已答（2026-10-02 21:5x，板上 r108，bit 25bf35a9900e）：`speed 0` 角度停住时顶部干净，动起来才有，因此这是「每帧换角 × 帧头 6 行」的交互，不是纯帧头绕回**`。警告：那是 ACCEPTANCE 的**记录句**，不是逐字引号里的队员话；它的逐字对应句是 E4c 那两条「停住的时候没有」「角在顶部的时候才会有」。第二个问题（"是不是只贴在**最上面几行**"）没有在原件里找到针对"行数"这一维的逐字回答，因此只判第一问。
 - 判定：PASS（第一问；第二问记 NOT_MEASURED，见 E4b 同一族的欠账）
 
 ### E5 OSD 的 `FPS:` 那一格数的是写进屏的新帧
@@ -247,7 +247,7 @@
 - 观察项：同一块板上，15 fps / 30 fps / 图卡三档在屏上是否分别读 ≈15 / ≈30 / ≈59（旧版 r97 三档都读 59/60）。
 - 前置状态（含回读到的值）：串口 `src 1` 钉住网络那一路；上位机 `python src/host/video_sender.py --demo --fps 15`（再换 `--fps 30`），最后 `src 0` 钉图卡。警告：这一格**只能看屏**：`board/acceptance.md:84-85` 明写"串口既没有 `[LINK]` 回包也没有 `FPS` 的数字回读（`src/ps/main.c` 里没有任何 fps 读者，实测 grep）"。机器那一半见 S19。
 - 具体动作：三档各看屏 L0 那一格一次，档间只换推流参数与 `src`，不动别的。
-- 我看到/读到的原文：`board/acceptance.md:86` = `**过**（用户 2026-10-01 15:3x 在 **r101** 上目视三档，原话"第一个我看了和你说的都符合"；`；同一句在 `report/log/issues.md:8984-8985` 记成 = `E5 闭合：三档（--fps 15 / --fps 30 / src 0 图卡）用户在 **r101** 上目视，原话"**第一个我看了和你说的都符合**" ⇒ board/acceptance.md 的 E5 行由"待队员判"改"过"`。警告：原话字面只点名"**第一个**"，两句记录句都写"三档目视/闭合"——这差别不能替队员定，已进 `report/questions-for-team.md` 的 Q2。板上那一刻是 r101，不是本版 r118。
+- 我看到/读到的原文：`board/acceptance.md:86` = `**过**（用户 2026-10-01 15:3x 在 **r101** 上目视三档，原话"第一个我看了和你说的都符合"；`；同一句在 `report/log/issues.md:8984-8985` 记成 = `E5 闭合：三档（--fps 15 / --fps 30 / src 0 图卡）用户在 **r101** 上目视，原话"**第一个我看了和你说的都符合**"，因此board/acceptance.md 的 E5 行由"待队员判"改"过"`。警告：原话字面只点名"**第一个**"，两句记录句都写"三档目视/闭合"——这差别不能替队员定，已进 `report/questions-for-team.md` 的 Q2。板上那一刻是 r101，不是本版 r118。
 - 判定：PASS（这条只能由人的眼睛判，机器读不到 `FPS:`：签收人=队员，判读时间 2026-10-01 15:3x，当时板上是 r101；板上这一版**没有重判过**，且三档的覆盖范围待确认）
 
 ### E6 冷上电那一度：屏上 `ROT:` 那一格应当读 0
@@ -351,7 +351,7 @@ grep -o '`[^`]*`' board/signoff.md | tr -d '`' | grep -E '^(build|board|data|src
 实得：② = `PASS 条目=25  缺回读=0  缺点名件=0`；
 ③ = 逐条结果（点名/命中/A 真缺/B 写法/C 目录）列在件 build/evidence/p16c/evidence_existence.txt 里，
 本文件不复述目录名——复述会把它们变成新的点名，清点就永远在数自己；**A 桶（真指路却不在盘上）= 0**。
-⇒ **缺"前置回读"或"原文观察"的条目数 = 0；被记为 PASS 但无回读或无证据的条目数 = 0。**
+所以**缺"前置回读"或"原文观察"的条目数 = 0；被记为 PASS 但无回读或无证据的条目数 = 0。**
 检查脚本的前后两次输出对照，以及"那 4 条首页形状问题的成因不在本文件"的静态覆盖范围证据，整体落在 `build/evidence/p16c/rulers_before_after.txt`（见第 4 节 L14）。
 
 

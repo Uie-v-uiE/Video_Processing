@@ -191,7 +191,7 @@ bash build/board_verify.sh --self        # 只跑判据自己的五条对照（�
 `[SERIAL] 落点=build/evidence/r118_serial_raw.txt 行数=4 [TEMP]=2 判定=绿（地板 2）`、
 `ok   V9-6 温度格三方对账：4 条 [TEMP] 的 degC↔osd↔gpio 全部自洽`，末行
 `RESULT board_verify PASS（判红的步骤：0）`；红那一支是
-`RESULT board_verify FAIL nred=$NRED ⇒ 这一版不能采纳`（`:265`）。
+`RESULT board_verify FAIL nred=$NRED，因此这一版不能采纳`（`:265`）。
 两条必须一起读的形状：① 这支脚本**不刷板子**（头里"不做什么"那一节明写，下载顺序它指给
 `report/build.md` §3），刷板是上面那支 bit_cycle 或人来做；
 ② 它自己打的 `drop_words → 0` 那一次 `eth_live` 是 `0`（件里 lane30 那行写着 `"why":"没有流"`），
@@ -202,7 +202,7 @@ bash build/board_verify.sh --self        # 只跑判据自己的五条对照（�
 `build/r116_bit_cycle.sh` 的用法头（头里只有 `<标签> [位流路径]`；三步
 `build/tcl/ps_jtag_boot.tcl` → `build/tcl/program_pl.tcl` → `build/tcl/ps_app_reload.tcl`
 写在它的**体内** `:22-34`）、以及 `board/acceptance.md` E6 的前置那一格（点名三步与"全程不碰
-KEY1/KEY2"，但没有命令行）。⇒ 照本页跑阶段 4 就用
+KEY1/KEY2"，但没有命令行）。，因此照本页跑阶段 4 就用
 `bash build/r116_bit_cycle.sh <标签> [位流路径]`，它自己会把三步跑掉；要单独手工重跑某一步，
 本章不补一条我没找到出处的命令。
 
@@ -226,8 +226,8 @@ E6 的对照那一半登记为**未判**。屏幕读数不属于机器判据，�
 
 三条会让复现"看起来失败"的实测坑（都在件里有账）：
 ① 第一次连不上板先看 `hw_server`——`board/acceptance.md` r96 那一节第 1 行写着
-"`CONNECT:` 空 ⇒ 本机没有 hw_server 在听 3121，起了 `Vitis/bin/hw_server.bat` 之后拿到 `tcfchan#0`"，
-并把"复现时这一条要先做"钉在表里；② 刚断电重上电时链子可能还没重枚举 ⇒ 第一步死在 `targets -set 1`，
+"`CONNECT:` 空，因此本机没有 hw_server 在听 3121，起了 `Vitis/bin/hw_server.bat` 之后拿到 `tcfchan#0`"，
+并把"复现时这一条要先做"钉在表里；② 刚断电重上电时链子可能还没重枚举，因此第一步死在 `targets -set 1`，
 `build/r116_bit_cycle.sh` 会打 `REFUSE DDR_ECHO 没过`（现场记录与恢复过程在
 `build/evidence/r118_eyes/state.txt` 末段那三行注释）；③ 门禁的输出别重定向回它自己要读的那份
 `rNN_gates.txt`（阶段 3 的 警告）。

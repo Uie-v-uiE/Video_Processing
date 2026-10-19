@@ -19,11 +19,11 @@
   四个 3×3 窗口级在 `y_in==0` 时把窗口三行全换成"当前那一拍"的原色（`proc_sobel.v` 的 `d21`、
   `proc_morph.v` 的 `c21`、blur/sharpen 的 `h2x`）。这个补救的前提是"帧头槽位在行缓存里坐的是上一帧末行"，
   而 `#97`/`#98` 把读地址改成帧尾绕回之后，链子吃的是连续流（…298,298,299,299,0,0,1,1,2,2…），
-  帧头槽位的中心本来就是它该显示的那一行；"当前那一拍"比槽位自己的中心**早 2 个源行** ⇒ 屏上帧头 4 行错位。
+  帧头槽位的中心本来就是它该显示的那一行；"当前那一拍"比槽位自己的中心**早 2 个源行**，因此屏上帧头 4 行错位。
   这一条的因果由 `sim/tb_v103_pipe_bypass.v` 窗口 C 量出来（内容行号进像素 tag、"晚几行"交给拟合）：
   同一激励并行例化两条链、只差 `STREAM_WRAP`，再叠一个 `y_in` 口径的变量，四格读数是
   `anchored 臂A bad=20 first_bad=16（帧头） / anchored 臂B bad=20 first_bad=28（帧尾） /
-  wrapped 两臂都 bad=0`，`bestL=4 = u_pipe.OFF_LINES` ⇒ **换标签只是把带子从屏顶搬到屏底，前瞻抽头才是病**。
+  wrapped 两臂都 bad=0`，`bestL=4 = u_pipe.OFF_LINES`，因此**换标签只是把带子从屏顶搬到屏底，前瞻抽头才是病**。
 - **改了什么**：① 四个窗口级新增参数 `STREAM_WRAP`（默认 0 = 台架那套帧锚定流），为 1 时不武装 `stale_row`；
   `proc_pipeline` 透传，顶层 `pl_video_top.v:819` 传 1。② 顶层 `cy_chain`（`pl_video_top.v:811-816`）
   让链子的行标签与它吃进去的内容同一本账。①②合起来才是这一条的绿：只改②，帧头变帧尾（上面第二格）。
@@ -32,10 +32,10 @@
   红线画在"调用方声明自己喂的是哪种流"上：`tb_edge_rim` 的 D3/R7 与 `tb_edge_rim_bottom` 的 B1 判的是
   帧锚定那一套契约，它们的既有读数继续有效（`build/evidence/r132_edge_rim_streamwrap0.log` 绿；
   对照件 `r132_edge_rim_red_if_flag_deleted.log` 是把旗标整根删掉那一版的红，两版并档就是这件事的账）。
-- **残余代价（不许写成"全部消除"）**：帧头那 4 个显示行的内容是在**上一帧**消隐前读回来的 ⇒ 那几行
+- **残余代价（不许写成"全部消除"）**：帧头那 4 个显示行的内容是在**上一帧**消隐前读回来的，因此那几行
   位置对、值晚一帧（30 fps 下约 33 ms）。离线**没有**判据能量这一档——台架那幅坐标图逐帧不变，
   `C5b/C5c` 只能看几何。板级可见性只有人眼能给：2026-10-17 队员原话
-  「现在很漂亮 基本上看起来没什么问题了 顶上的拖影我肉眼没看到」⇒ 记为"眼验未见"，
+  「现在很漂亮 基本上看起来没什么问题了 顶上的拖影我肉眼没看到」，因此记为"眼验未见"，
   **不写成"已证明不可见"**。`board/acceptance.md` 的 E2 与 E4r 两行随之需要重读一次（今晚会一并改标注）。
 - **这一节原来引的旧件**（`build/evidence/r104_c5head_band.txt`、`build/r105_tb_head_rot_displace.txt`、
   `top_md5=2bf2ceeede07` 那份 55 行报告）保留为历史：它们量的是**后果大小**与当时的错位形状，
@@ -44,7 +44,7 @@
 ## 2. 角度没有机读口（`#185` / `#247`）
 
 - **现象**：`status` 口里那 9 位 `angle`（`src/rtl/top/pl_video_top.v:1102`）在 `system_top.v`
-  里只被声明与连接、没有任何读者 ⇒ 综合按 unused 删掉，于是"屏上 `ROT:` 读几"这件事只能靠眼睛。
+  里只被声明与连接、没有任何读者，因此综合按 unused 删掉，于是"屏上 `ROT:` 读几"这件事只能靠眼睛。
   凭据 `build/evidence/r111_angle_readback.txt`（那份件里同时记着一次把 lane0 的健康快照误读成
   `status` 的错，读之前要先认口）。
 - **已定位的原因**：上电那一度的**机理**钉住了——`src/rtl/top/system_top.v:260` 这一域的
@@ -89,7 +89,7 @@
 - **现在的处置（是否影响演示）**：屏那一路的对外时序今天仍不出具结论——**一条 `set_output_delay` 都没进默认约束**
   （窗留在候选件里，开关 `VP_R119_TMDS_WINDOW`；**已经量过一轮**：挂上它之后新纳检的 `clkout1_1` 那 6 个输出口
   端点整批红（setup −5.408 / hold −1.923 ns，件 `build/evidence/1006d_tmdswindow_timing_summary.rpt`），
-  同一轮四个老域的八个读数里七个变差（唯一变好是 `clkout0_1` 的 setup 3.630→3.945 ns）⇒ 判 DECLINE，
+  同一轮四个老域的八个读数里七个变差（唯一变好是 `clkout0_1` 的 setup 3.630→3.945 ns），因此判 DECLINE，
   仍不进默认集；逐域读数在 `report/timing/eth_rxc_partition_options.md` 第 6 节）。
   但"六颗端口一概欠账"这句已经不准确了：`led[0]/led[1]` 与 `eth_mdc`/`eth_mdio` 现在走的是 §3.4 的 (b)——
   在 `build/check_io_timing_coverage.py` 的豁免表里**逐条写了可核的理由与出处**
@@ -106,7 +106,7 @@
 
 - **现象**：板上这一版不加载 `src/constraints/r116_rgmii_input_window.xdc`，构建默认打印
   `VP_R116_IO_WINDOW off（RGMII 输入窗留在候选件 …原因见上方注释）`
-  （`build/tcl/build_system_axigpio.tcl:45-52`）⇒ `eth_rx_ctl` + `eth_rxd[3:0]` 这 5 个收端点
+  （`build/tcl/build_system_axigpio.tcl:45-52`），因此 `eth_rx_ctl` + `eth_rxd[3:0]` 这 5 个收端点
   回到"没检查"状态（`report/timing/round_r117.md` §〇 末）。
 - **已定位的原因**：这一族在合法 `τ ∈ [0,31]` 内**关不掉**：hold 要 τ ≥ 44.8、setup 要 τ ≤ 21.8，
   两个集合不相交；去掉那条 0.800 的带只把下界挪到 32.1（`report/log/issues.md` #311，
@@ -118,7 +118,7 @@
   `report/timing/round_r117.md` §四与 `report/timing/round_r118.md` §四末）；
   而"报告最优点"与"硅片眼心"不是同一个数：钟网络到 IDDR C 脚的那个 C **这颗片子没测过**
   （`report/log/issues.md` #314，`report/timing/rgmii_window_model.md` §7.5(7) 登记为未定）。
-  ⇒ 这 5 个端点未参与检查，首页那一行就按这个口径写（`report/timing_global.md` §9 第 ④ 条）。
+  所以这 5 个端点未参与检查，首页那一行就按这个口径写（`report/timing_global.md` §9 第 ④ 条）。
 - **现在的处置（是否影响演示）**：默认关着走（开关 `VP_R116_IO_WINDOW` 不开），窗留在候选件里；对外口径念成
   "片内路径零违例 + 收口 I/O 当前无窗"，不念成"收口已通过"。演示不受影响：板上这一版的串口命令电池与
   几何判定都在不带窗的这一版上跑通过（件 `build/evidence/r118_board/board_verify_console.txt`）。
@@ -130,7 +130,7 @@
 - **现象**：`eth_rxc` 收口那 5 格的出口只有一个——把到 IDDR 的捕获钟做短**并且**让它的角间差小下来
   （`report/log/issues.md` #311 末：要 `C_slow − C_fast` 从 3.411 降到 ≈ ≤1.2 才可能有解）。
 - **已定位的原因**：这项改动**不能单独落**，代价已经先算出来了：捕获沿提前之后 IDDR 与 BUFG 域之间出现
-  ~3.07 ns 发射/捕获差，而那一族最重的锥实测要 7.066 ns @ 8.000 ns 周期 ⇒ 预算被吃掉之后大概率违例
+  ~3.07 ns 发射/捕获差，而那一族最重的锥实测要 7.066 ns @ 8.000 ns 周期，因此预算被吃掉之后大概率违例
   （`report/log/issues.md` #313；周期与锥长见 `build/evidence/r118_after.txt` 的 `eth_rxc` 那一段
   `Data Path Delay: 7.066ns`）；`gmii_rx_clk` 那根广播网扇出 2546
   （`build/evidence/r118_after_roster_probefmt.txt` 的 `FANOUT|fo=2546|net=u_eth/u_rgmii/u_rgmii_rx/gmii_rx_clk`）。
@@ -159,7 +159,7 @@
   注意 两处件不同次：`report/timing_global.md` §4 那一行末写的"还没跑真件"是更早一版时写下的话，
   #302 那条才是带真件读数的一次——引用时挑对，别把旧句当现状。
 - **还没证明什么**：其余三域在统一口径下的 hold 余量到底是多少（名册里 0.048 / 0.067 / 0.121
-  这三格**一分没扣** ⇒ 跨域比大小没有意义，`report/05-timing.md` §7 第 2 条就是这么写的）。
+  这三格**一分没扣**，因此跨域比大小没有意义，`report/05-timing.md` §7 第 2 条就是这么写的）。
 - **现在的处置（是否影响演示）**：保持只有 `eth_rxc` 那一行带自加不确定度，其余三域一分没扣；因此对外只在同一域内比大小，
   跨域比大小不做（`report/05-timing.md` §7 第 2 条）。演示与时序结论都不受影响。
 - **关掉它需要什么**：给三个域加同量级的 hold 不确定度（这是**加严**方向），
@@ -169,12 +169,12 @@
 ## 7. 异步时钟组把四条跨域路从所有检查的覆盖范围里拿走了，而界叠不上去（`#266` / `#276`）
 
 - **现象**：`src/constraints/clock_groups_impl.xdc:28-31` 一条 `set_clock_groups -asynchronous` 三组互斥
-  ⇒ 组与组之间完全不做时序分析；全 `src/constraints/` 里 `set_max_delay` 命中 0
+  所以组与组之间完全不做时序分析；全 `src/constraints/` 里 `set_max_delay` 命中 0
   （`report/timing_global.md` §4c 第 1 条，两个来源都是报告与 XDC 原文，不是叙述）。
 - **已定位的原因**：`report_cdc`（`build/cdc.rpt`）**一条都没念**那四条被组排除的路——不是它们安全，
   是它们不在检查的覆盖范围里（§4c）；而且界**叠不到**被排除的时钟对上：把 `set_max_delay -datapath_only`
   写在 `set_clock_groups` 之上之后，`report_exceptions` 的 A/B 两滚表体都是 13 行、
-  `-datapath_only` 出现 0 次 ⇒ 四条路一条都没生效（`report/log/issues.md` #276，
+  `-datapath_only` 出现 0 次，因此四条路一条都没生效（`report/log/issues.md` #276，
   同口径另见 `report/timing/debt_ledger.md` §5）。
 - **还没证明什么**：那四条路的**布线 skew 有没有界**——"结构保证"不等于"有界保证"，
   工具可以把格雷码指针的两级 FF 放到对角两端；§4c 点名的那项要求（"列出组间所有跨域寄存器路径、
@@ -183,7 +183,7 @@
 - **现在的处置（是否影响演示）**：四条路维持"不在覆盖范围内"的状态，对外不念"跨域已闭合"；
   动约束的顺序是先加属性与界、再谈数字变化（§4c）。演示用的网口与屏都在这四条路之外照常跑。
 - **关掉它需要什么**：先加属性与界再谈数字变化（顺序不能反，§4c）；而真正要动的是**排除口径本身**，
-  那会改变 WNS 的计算对象 ⇒ 属 H1 的松动，必须单独一次带名册差分的构建去做，不能靠叠约束顺手完成。
+  那会改变 WNS 的计算对象，因此属 H1 的松动，必须单独一次带名册差分的构建去做，不能靠叠约束顺手完成。
 
 ## 8. `TIMING-10` 那条计数不点名对象，所以不能当"属性上没上"的代理（`#262` / `#290`）
 
@@ -219,7 +219,7 @@
 ## 10. 端到端时延那一格：读数出口在，数不在
 
 - **现象**：`data/metrics.csv` 有一行"端到端时延,未报,—,—,…本表不填没有复核过的数"，
-  另一行原写"端到端时延,核心,33.34,ms"，2026-10-07 按凭据改名"入流帧间隔（PL 内）"（`gap_sum/gap_segments` 自报 33.3434 ms）⇒ 同名两行的矛盾消失，端到端那一格仍是未报。
+  另一行原写"端到端时延,核心,33.34,ms"，2026-10-07 按凭据改名"入流帧间隔（PL 内）"（`gap_sum/gap_segments` 自报 33.3434 ms），因此同名两行的矛盾消失，端到端那一格仍是未报。
 - **已定位的原因**：出口是存在的——OSD 的 `Latency` lane 与 JTAG 回读，且板级那一次
   `lat.osd_ms_matches_tot → true`（`build/evidence/r118_board/board_verify_console.txt` 的读回口段）。
 - **还没证明什么**：板上这一版带流跑时的端到端时延值。表里那一格写得很硬：
@@ -237,9 +237,9 @@
   `build/evidence/r118_eyes/head_bit_md5.txt`；`report/log/issues.md` #333 给的是"快照落 `*.txt` 或交给 git"。
 - **还没证明什么**：**端点名册逐位相同不等于提交物身份相同**，也不等于那一版的板级/眼睛复验都跟上了。
   `board/acceptance.md` 里那 10 行机器判定各自带着件内版本戳（那一版是哪一版，戳里写着），
-  E1/E2/E3/E5 那几格仍是 2026-09-30 / 10-01 在 r92/r93/r101/r103 那几版上的点头 ⇒ 这几格不搬到板上这一版
+  E1/E2/E3/E5 那几格仍是 2026-09-30 / 10-01 在 r92/r93/r101/r103 那几版上的点头，因此这几格不搬到板上这一版
   （`report/timing/round_r118.md` §四末"现行句的基线必须是本版的件"）。
-- **现在的处置（是否影响演示）**：2026-10-18 为 r132 再核一遍——`md5sum build/system.bit` 与 `git show HEAD:build/system.bit | md5sum` 都是 `cb907d3e4898…`，`git cat-file -s HEAD:build/system.bit` = 1975594 = 盘上字节数 ⇒ HEAD 与工作区仍是同一块；仓库里不再留 `*.md` 备份；
+- **现在的处置（是否影响演示）**：2026-10-18 为 r132 再核一遍——`md5sum build/system.bit` 与 `git show HEAD:build/system.bit | md5sum` 都是 `cb907d3e4898…`，`git cat-file -s HEAD:build/system.bit` = 1975594 = 盘上字节数，因此HEAD 与工作区仍是同一块；仓库里不再留 `*.md` 备份；
   没重跑的行各自带着版本戳交出去，不写成板上这一版的结论。演示按板上这一版实际跑通的那几格走。
 - **关掉它需要什么**：在板上这一版逐行重跑那 10 行与那三格眼睛判定，或把没重跑的各行明确改标
   "本版未验"；同时按 #333 停止在仓库里留 `*.md` 备份（它会自动进入检查器的覆盖范围）。

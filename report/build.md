@@ -196,7 +196,7 @@ cp build/system.bit build/system.xsa build/ps_app.elf \
    冻结目录里就没有那一版的 bit 了。**它后来被救回来了** —— 因为本仓库恰好把
    `build/system.bit` 也入库，`git show 7578217:build/system.bit | md5sum` 正是 `534f7760…`，
    已复原成 `frozen_r18_abort/system.bit`。**这次没丢是运气，不是流程**：换个不入库 bit 的
-   布局（`.gitignore` 里 `frozen_*/*.bit` 就是排除的）它就真没了 ⇒ 规矩仍然是实体拷贝。
+   布局（`.gitignore` 里 `frozen_*/*.bit` 就是排除的）它就真没了，因此规矩仍然是实体拷贝。
 2. **下板之前先 `md5sum build/system.bit` 和 MANIFEST 对前缀**；对不上就去 `build/frozen_*/` 取，
    别硬下——同名不同内容今晚发生过两次。
 3. 门禁**任何一条红**都不采纳：保留上一版当明早默认，把这一版挪去 `build/failed_rNN/`

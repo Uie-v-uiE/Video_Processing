@@ -22,7 +22,7 @@
 **① 错误断言原文**（条目 #321，起于 `report/log/issues.md:12854`；引文见 `:12859-12861`）
 
 > 后果有两种，且**两种都长成红**，所以没有任何一条读数能把它们区分开：
-> ① 首页把 −0.846 写对了 ⇒ 读成 null ⇒ 红；② 首页写 0.846（丢了负号）⇒ 也红。
+> ① 首页把 −0.846 写对了，因此读成 null，因此红；② 首页写 0.846（丢了负号），因此也红。
 > 这就是 rule 46 那一类："一条判据若正例与反例给同一个答案，它就没有射程。"
 
 （同条目 `:12857` 给出坏掉的取数式：`src/host/metric_recheck.mjs` 首页那一层的四个式子全写成
@@ -50,7 +50,7 @@ node src/host/metric_recheck.mjs 2>&1 | grep -i SELFSIGN-SUMMARY
 - 影响范围：首页 headline slack 四处取数 + 所有引用首页数字的交付文档行。
   当晚一次正常跑给出 23 条 `RED` 清单（`report/log/issues.md:12867-12868`）；
   **本次复跑同一命令的 `^RED` 行数是 4**（`node src/host/metric_recheck.mjs 2>&1 | grep -c "^RED"` = 4）
-  ⇒ 差额不是矛盾，是改口轮已经走完（`report/timing/round_r116.md` 第六节是那 23 条的去处）。
+  所以差额不是矛盾，是改口轮已经走完（`report/timing/round_r116.md` 第六节是那 23 条的去处）。
 - 由此产生的技能条目：`旧条目名 pitfalls/report-field-parse-breaks/SKILL.md（盘上无此路径）:70`、`:110`（`:110` 直接点名 #321）—— 这些行号是当时旧包平铺卡的读数，那些卡在 2026-10-04 c7b325f 重建后**现不存在**，本行只报数不指路。
 
 ---
@@ -61,7 +61,7 @@ node src/host/metric_recheck.mjs 2>&1 | grep -i SELFSIGN-SUMMARY
 
 > `git log --oneline -- build/system.bit` 的最后一支停在 `cd33367`（r116 收口），也就是说 r118 那两支提交
 > （`1601548`/`5fb0740`）只带了文档，**没带 bit / xsa / `build/*.rpt` / `build/report/` / `build/tb_v98_report.txt`**
-> ……`COMMIT staged=4` ⇒ `git add` 是原子的，一条路径不存在就整批不暂存……
+> ……`COMMIT staged=4`，因此 `git add` 是原子的，一条路径不存在就整批不暂存……
 > 脚本死在这里，**但它死之前那一步已经"看起来成功了"**，所以我把它当完成了。
 
 会话指针：`S01`，北京时间 2026-10-04 07:4x–07:5x，人工轮次区间 H225（07:38「我现在已经重新上电了让我判什么」）
@@ -95,7 +95,7 @@ d420db6 r118 的位流与实现报告第一次真正进 git（#332），并补�
   清单里每条路径先做存在性计数再 `git add`，缺一条 REFUSE 整批（`report/log/issues.md:13088-13090`）。
 - 影响范围：所有"采纳笔"（位流、`.xsa`、`build/*.rpt`、`build/report/`、台架报告）。
   这是 rule 42 的**复发**（`report/log/issues.md:13085` 自陈：我以为那条规矩已经变成了脚本，
-  可是脚本对自己的产物只打印、不核对）⇒ 光有脚本不等于有判据。
+  可是脚本对自己的产物只打印、不核对），因此光有脚本不等于有判据。
 - 由此产生的技能条目：`旧条目名 pitfalls/exit-zero-nothing-written/SKILL.md（盘上无此路径）:89`、`:109`（`:109` 点名 #332）—— 当时旧包平铺卡的行号，那些卡 c7b325f 重建后**现不存在**，只报数不指路。
 
 ---
@@ -133,14 +133,14 @@ ls build/evidence/r118_eyes/ISSUES_before332.md
 - `build/evidence/r118_board/g1b.txt:59` = `GATES: 有红项（判定 24 项）—— 不采纳，保留上一版`（这一轮 21 绿/3 红）
 - `build/evidence/r118_board/gatesc_summary.txt:1` = `GATESC done id=identical green=23 red=1`（删备份并定版之后）
 - `node src/host/line_cite_check.mjs` = `D5: CLEAN`、硬错 0 条
-- `ls …/ISSUES_before332.md` = `No such file or directory` ⇒ 删除动作确实发生，且**已随 C2 的修法把 #332/#333 正文入库**
+- `ls …/ISSUES_before332.md` = `No such file or directory`，因此删除动作确实发生，且**已随 C2 的修法把 #332/#333 正文入库**
 
 **③ 更正后的结论与影响范围**
 
 - 结论：一个"只读保险"动作可以制造判红，而且**红的位置离动作很远**（备份在 `build/evidence/`，
   红在门禁第 14/18 项）。纪律改为：给会被扫描的文件留快照时落到 `*.txt`（不在 D5/D1 的扫描形状里）
   或直接靠 git（HEAD 本身就是那份快照），**不要在仓库里造一份带旧行号的 `.md`**（`report/log/issues.md:13109`）。
-- 连带面：D1c 会因为基准件恰好是这次 3 红的运行而**被拖着红第二项**（`:13103`）⇒ 脏数据能串两项。
+- 连带面：D1c 会因为基准件恰好是这次 3 红的运行而**被拖着红第二项**（`:13103`），因此脏数据能串两项。
 - **对本次交付的直接约束**：我这 7 个文件全在 `report/collaboration/`（射程内），
   所以写入前基线 `扫了 534 个手写文件：全部干净` / `D5: CLEAN 硬错 0`，
   写入后复跑读数见 §5；两份读数的差值只允许来自"文件数变多"，不允许出现硬错。
@@ -153,9 +153,9 @@ ls build/evidence/r118_eyes/ISSUES_before332.md
 
 **① 错误断言原文**（条目 #334，起于 `report/log/issues.md:13111`；`:13122-13124`、`:13132-13134`）
 
-> 同一个脚本读 `get_property CLOCK [get_ports tmds_*]` ⇒ **十个端口全部 `clock=` 空**。
+> 同一个脚本读 `get_property CLOCK [get_ports tmds_*]`，因此**十个端口全部 `clock=` 空**。
 > 这**不是**"TMDS 输出没有时钟"，而是 `CLOCK` 这个属性在 port 对象上不是"驱动时钟"的意思……
-> 如果我就此写"输出脚无时钟 ⇒ 只能 set_max_delay 或干脆不管"，就是把工具的沉默当证据。
+> 如果我就此写"输出脚无时钟，因此只能 set_max_delay 或干脆不管"，就是把工具的沉默当证据。
 > ……探针**报错会把自己打死**，而打死之后留下的"缺行"看起来像"没有这个东西"。
 
 会话指针：`S01`，北京时间 2026-10-04 09:0x，无人值守段（H226 之后）。
@@ -186,7 +186,7 @@ grep -an "^LAUNCH|" build/evidence/r119_tmds_launch_probe.txt   # 换问法之�
 - 落点：`report/timing/debt_ledger.md:188-197`（窗数到手、参考钟来自只读反证件）。
 - **缺口（如实）**：`skill/` 里**没有任何条目引用 #334**（`grep -rIn "#334" skill/` 本次实跑 = 0 命中）；
   最接近的一条是 `旧条目名 pitfalls/tcl-query-empty-means-broken-ruler/SKILL.md（盘上无此路径）:104`（该卡是重建前的旧包名，**现不存在**；同一族现在的成文位置是 `skill/pitfalls/tcl-and-probe-traps/SKILL.md`），
-  它的证据列表点名 #279/#286/#319/#320 而没有 #334 ⇒ 见 §6 未闭合项 U3。
+  它的证据列表点名 #279/#286/#319/#320 而没有 #334，因此见 §6 未闭合项 U3。
 
 ---
 
@@ -221,21 +221,21 @@ grep -an "GATES|CTRL" build/evidence/r119_window_check.txt           # 换同量
 `11:5x` 我读它是 **24 行**，除 GATES 那行外还有 `:13`–`:22` 十条 `CTRL Wx 期望=FAIL 实读=FAIL`
 与 `:24` 的 `对照总结：造 10 条畸形动红 10 条；缺输入 2 条报 NOT_MEASURED 2 条 PASS`；
 `12:4x` 复跑 `wc -l` 得 **11 行**，那 13 行对照记录**已经不在这个件里**了（`grep -an "CTRL" …` 无输出）。
-⇒ 我当时写下的 `:12`/`:13-22`/`:24` 三个锚点在收尾时已全部越界 ⇒ 本次改成 `:11` 并在 C8 里单独立条。
+所以我当时写下的 `:12`/`:13-22`/`:24` 三个锚点在收尾时已全部越界，因此本次改成 `:11` 并在 C8 里单独立条。
 "十条畸形各自动红"这件事现在的可核出处是 `report/timing/debt_ledger.md:208`
 （"件 `build/evidence/r119_window_check.txt`（`--self` 十条畸形各自动红；缺读数件报 `NOT_MEASURED`）"）
 与 `report/log/issues.md` 里 #335 的记述，而**不是**那份已被改小的件本身。
 
 **③ 更正后的结论与影响范围**
 
-- 结论：`.xdc` 里写 Tcl 控制流会被解析器**整块跳过**且 rc=0 ⇒ 约束件只能是纯 SDC 子集；
-  skew 是"两脚到达时刻之差的上限"，`set_output_delay` 是"采样窗"，**不同量纲** ⇒
+- 结论：`.xdc` 里写 Tcl 控制流会被解析器**整块跳过**且 rc=0，因此约束件只能是纯 SDC 子集；
+  skew 是"两脚到达时刻之差的上限"，`set_output_delay` 是"采样窗"，**不同量纲**，因此
   这是记在**约束侧**的量纲错，不是设计时序债，也**不许**靠放宽窗把它变绿。
 - 影响范围：`src/constraints/r119_hdmi_source_window.xdc`、`src/constraints/r119b_hdmi_tp1_pinclk.xdc`
   两个候选件默认不加载（开关 `VP_R119_TMDS_WINDOW=1`），去留是**队伍裁决项**（`report/timing/debt_ledger.md:211-212`）。
   这笔债现在拆成两笔且都不能用"窗已过"来抵：① 板级走线/连接器离散未量（规范对象是 Source Connector，
   本表只覆盖 FPGA 内部到封装脚）；② 眼图/抖动/占空比/上升下降未量（SDC 无容器）。见 `:209-210`。
-- **缺口（如实）**：`grep -rIn "#335" skill/` 本次实跑 = 0 命中 ⇒ 没有技能条目引用这条，见 §6 未闭合项 U3。
+- **缺口（如实）**：`grep -rIn "#335" skill/` 本次实跑 = 0 命中，因此没有技能条目引用这条，见 §6 未闭合项 U3。
 
 ---
 
@@ -255,24 +255,24 @@ grep -an "GATES|CTRL" build/evidence/r119_window_check.txt           # 换同量
 
 **② 判别实验**
 
-- 方向判别（角色关系）：本作品在 HDMI 链路里是 **Source** ⇒ 对应 HDMI CTS 的 **TP1 Source Eye Mask**，
+- 方向判别（角色关系）：本作品在 HDMI 链路里是 **Source**，因此对应 HDMI CTS 的 **TP1 Source Eye Mask**，
   不是 Sink 侧 TP2 的接收窗；取证与逐条可引用性判定写在 `report/io/hdmi_cts_source_window.md`（文件已确认存在）。
   UG471 那条也复查过：整本按页抽文本扫过，TMDS 一节（正文第 95 页）只给电气属性，没有任何窗口时间数
-  （`report/timing/debt_ledger.md:147-152`）⇒ "本机没有"从断言升级为**查过的否定**。
+  （`report/timing/debt_ledger.md:147-152`），因此"本机没有"从断言升级为**查过的否定**。
 - 量纲判别（实测）：窗真挂上后两条数据道立刻判红，数值见 §C5 的 `_probe3.txt:113` 与 `_probe4_pinclk.txt:113`；
   换成同量纲的问法（在已布线成品逐脚量 clock-to-pin 到达时刻离散）后，
   互对最差 **0.065 ns**（上限 0.20 `Tcharacter` = 4.000 ns）、对内最差 **0.001 ns**（上限 0.15 `Tbit` = 0.300 ns），
   件 `build/evidence/r119_window_check.txt:11`（判 10 项红 0 未测 0；行号成因见 §C5 末与 §C8）。
-- 本次复算：`grep -an "GATES" build/evidence/r119_window_check.txt` ⇒ 仍是 `判定 10 项 红=0 未测=0 PASS`。
+- 本次复算：`grep -an "GATES" build/evidence/r119_window_check.txt`，因此仍是 `判定 10 项 红=0 未测=0 PASS`。
 
 **③ 更正后的结论与影响范围**
 
 - 结论：**"查不到窗"其实是问错了对象**（拿接收窗约束发送脚）；纠正方向后窗数有了（0.20 Tcharacter），
-  但**同一轮又证明不能把它写成 `set_output_delay`** ⇒ 最终形态是"源端离散上限"判据 + 两笔未量的债。
+  但**同一轮又证明不能把它写成 `set_output_delay`**，因此最终形态是"源端离散上限"判据 + 两笔未量的债。
 - 影响范围：那 6 个端口的账本（TMDS 4 组与 `led[0..1]` **分家**：LED 是 `LVCMOS33`，与 HDMI 合规无关，
   不能借 CTS 的数，要写"不查"必须先进放宽账本，而账本当前 0 条）。见 `:185-186`、`:197`。
 - 本条里**哪一步是人做的**必须写明：方向纠正是**用户指出**的（`:174` 逐字这么写），不是模型自查出来的；
-  量纲错才是探针量出来的。⇒ 写进 `workflow.md` §5 的"人手步骤清单"。
+  量纲错才是探针量出来的。，因此写进 `workflow.md` §5 的"人手步骤清单"。
 
 ---
 
@@ -280,7 +280,7 @@ grep -an "GATES|CTRL" build/evidence/r119_window_check.txt           # 换同量
 
 **① 错误断言（我本次差点写下的话）**
 
-> `build/evidence/r119_tmds_launch_probe.txt` 里查不到 `PORT| … | clock=` 行 ⇒ 第二支探针也没打出端口层读数。
+> `build/evidence/r119_tmds_launch_probe.txt` 里查不到 `PORT| … | clock=` 行，因此第二支探针也没打出端口层读数。
 
 现场（本档案写作过程中，2026-10-04 本地 11:5x）：我跑 `grep -c "PORT" build/evidence/r119_tmds_launch_probe.txt` 得 **0**，
 并据此准备在 C4 里写"第二支探针同样读空"。
@@ -300,13 +300,13 @@ python -c "d=open('build/evidence/r119_tmds_launch_probe.txt','rb').read();
 
 - 该件里**根本没有 `PORT|` 这个前缀**（它的行前缀是 `LAUNCH|`，尾部实读 `LAUNCH| led[0] | {Path Group: (none)}`）；
 - `grep` 判它为 binary 的真因：**字节 3779–3780 处 utf-8 解码失败**（`invalid continuation byte`），
-  文件 5,737 字节、**无 NUL 字节**、无 U+FFFD 替换符 ⇒ 是一段被按字节截断的多字节中文；
+  文件 5,737 字节、**无 NUL 字节**、无 U+FFFD 替换符，因此是一段被按字节截断的多字节中文；
 - `PORT| … | clock=` 那十行在**另一份件**里：`build/evidence/r119_tmds_clock_probe.txt:67-76`。
 
 **③ 更正后的结论与影响范围**
 
 - 结论：0 命中有两种成因（前缀名记错 / 尺子把文件当二进制而吞掉匹配），**必须分开证**；
-  只跑 `grep -c` 不能区分二者 ⇒ 凡"查不到"的断言，要么补 `grep -a` + `head`，要么补一次字节级解码检查。
+  只跑 `grep -c` 不能区分二者，因此凡"查不到"的断言，要么补 `grep -a` + `head`，要么补一次字节级解码检查。
 - 影响范围：这条与本仓库 #307/#330/#316 那一族（中文按字节截断会让整份证据文件对 `grep` 呈"二进制"，
   看起来就像"没记录"）同因；本档案内所有"查不到"式断言都按这条补了判别命令（C4、C5、C6 各条都给了行号实读）。
 - 落点：本条只落在这里（**没有**对应技能条目，也**不**新建 `skill/` 内容——本任务边界禁止改 `skill/`）。
@@ -332,7 +332,7 @@ sed -n '11p' build/evidence/r119_window_check.txt        # GATES 那一行在这
 ```
 
 本次实跑：`11 build/evidence/r119_window_check.txt`；`grep -an "CTRL"` **无输出**；`:12` 空行；
-`:11` = `GATES r119 窗件：判定 10 项 红=0 未测=0 PASS`。⇒ 三个锚点**全部越界**。
+`:11` = `GATES r119 窗件：判定 10 项 红=0 未测=0 PASS`。，因此三个锚点**全部越界**。
 
 **③ 更正后的结论与影响范围**
 

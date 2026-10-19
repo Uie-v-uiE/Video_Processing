@@ -11,7 +11,7 @@
   一律删略为 `<主机名略>` / `<临时目录>`（P23 敏感信息边界）。
 - 两轮的允许范围不同，必须分开念：
   - 第一轮：只跑只读探测与只读检查；不跑构建、台架全量、`xsim`、`xsdb`、串口、刷板，
-    也不跑 `bash build/gates.sh`（它会写证据件，且当时已有实例在跑）⇒ §2.3 的 B5 记 `NOT_MEASURED`。
+    也不跑 `bash build/gates.sh`（它会写证据件，且当时已有实例在跑），因此§2.3 的 B5 记 `NOT_MEASURED`。
   - 第二轮：任务书把 `bash build/gates.sh` 加进可跑名单（它只打印判定，唯一写盘的是 `build/ports_check.txt`，
     跑前跑后 md5 相同 = `09bd398acd567aff83e5b09ef0f576ee`，`git status` 不脏），其余禁止项不变；
     HEAD `1c4e26b` 那批实跑了 **6 次** `bash build/gates.sh`（逐次读数见 §8.3）。
@@ -39,7 +39,7 @@
 
 （第三轮只解锁了上板那一半：JTAG 三步 + 推流 + `board_verify --battery --geom`；构建与全量仿真仍 NOT_MEASURED。
 本行的五个数由 `build/checks/check_repo_consistency.mjs` 的 C9 同一套式子现算：判定列在内 =61，另有 14 行的判定列不是三态词（§9 那张表的最后一列是凭据名，所以不计判定）。
-⇒ 上面两行的旧分母按当时口径保留，不改写。）
+所以上面两行的旧分母按当时口径保留，不改写。）
 
 注意 上面这张表与 §6 判定标准② 那一行的分母（第一轮写的是"39 条 = PASS 25 / FAIL 0 / NOT_MEASURED 14"）**对不上**：
 差在 §2.2 把 A7 拆成两条命令、§2.6 的 3 项与 §2.5 的 M1/M2 属同一次跑的重复计数。第一轮没随表格更新那一句，
@@ -164,14 +164,14 @@ Linux 分支：S1/S8 的 Linux 形状（`ls /dev/ttyUSB*` 等）**【未在 Linu
 - Markdown 链接（`[x](y)` 形式）：**14 条，命中 14/14**（含本件与 `report/questions-for-team-p12.md`，两件均已落盘）。
 - 并发会话带来的**实时漂移**抓到一次：第一轮量时 `data/measured/` 是空的，第二轮已有 20 个件，
   README §3.1 那一行已改成"20 个件 + 索引在它自己的 `data/measured/README.md`"（该索引文件 `test -f` 通过）。
-  同一行里点名的 `data/README.md` 到清单收尾时 `test -f` 仍为 **MISSING** ⇒ README 明写它不存在、只作陈述不作链接。
+  同一行里点名的 `data/README.md` 到清单收尾时 `test -f` 仍为 **MISSING**，因此README 明写它不存在、只作陈述不作链接。
 - `test -f` 逐条清单过长不贴全文，抽取与判定命令本身可复跑（见上"抽取方式"）。
 - **第二轮（HEAD `1c4e26b`）复测**：同一抽取方式在改完的 README（490 行）上跑出 **总数 70 / 命中 63 / 未命中 7**，
   未命中那 7 条逐条是 `build.md`、`known_issues.md`、`_pruned.txt`、`xsdb.bat`、`.bat`（裸文件名或扩展名提及，
   实体分别是 `report/build.md`、`report/known_issues.md`、包内件、`<Vitis>/bin/xsdb.bat` 占位、§8 那条"`.bat` 不要用 `[ -x ]` 判"），
   加上 `data/README.md`、`report/declarations.md` 两条**正文自己写明不存在**的；
-  Markdown 本地链接 **16/16 命中**；把全仓检查项 C3 的正则原样复制过来只判 README.md ⇒ **88 条指路、死 0**（§8.3）。
-  ⇒ 判定标准③ 的命中数报的是 **63/70 + 16/16 + 88/88**，未命中数 = 0（7 条例外逐条已声明，不是漏网）。
+  Markdown 本地链接 **16/16 命中**；把全仓检查项 C3 的正则原样复制过来只判 README.md，因此**88 条指路、死 0**（§8.3）。
+  所以判定标准③ 的命中数报的是 **63/70 + 16/16 + 88/88**，未命中数 = 0（7 条例外逐条已声明，不是漏网）。
 
 ## 5. 被排除、**没有**写进 README 的命令（P12 停止条件：命令没实跑过就不写）
 
@@ -247,7 +247,7 @@ Linux 分支：S1/S8 的 Linux 形状（`ls /dev/ttyUSB*` 等）**【未在 Linu
 
 ## 7. 演练记录（原样，不润色、不补解释）
 
-第 6 节判定标准⑥ 写的是"回答原样贴在 §7"，而这一节现在没有内容 ⇒ 独立会话演练的那份回答没落到本件里，
+第 6 节判定标准⑥ 写的是"回答原样贴在 §7"，而这一节现在没有内容，因此独立会话演练的那份回答没落到本件里，
 这一条在本件内指不到凭据；README 的回改记录在 §6 判定标准⑥ 那一格里仍然可查。
 
 ## 8. 第二轮复跑记录（P12 收尾那一轮，HEAD 从 `157d332` 走到 `1c4e26b`）
@@ -338,14 +338,14 @@ build/evidence/r118_board/bitcycle_console.txt 首末两条记录
 三条如实：
 
 1. **frames_bad=1 是读到的数，不是判出来的事**：两趟同值，同时 drop_words=0、pkt_err=0。
-   它是不是一帧启动窗口的填充计数，没有做判别实验 ⇒ 不下结论，只登记（要收口需要一次带构建的对账）。
+   它是不是一帧启动窗口的填充计数，没有做判别实验，因此不下结论，只登记（要收口需要一次带构建的对账）。
 2. **这一跑暴露两处检查器自身的问题**（都改了/登记了）：
    build/r116_bit_cycle.sh 的摘要行把 pkt_err / frames_bad / drop_seen 打成 `?` —— 它用正则去扫 JSON 文本，
    而反斜杠经过 bash 与 node 两层引号后退化成永远匹配不上的式子，且 drop_seen 实际住在 flags_bits 下面。
    现在改成按对象取键、取不到打 NA，并把 lat 整个 JSON 打出来（同一份 JSON 重放：pkt_err=0 frames_bad=1 drop_seen=0）。
    另一处：C3（本件判定分母里的一项）与 doc_currency 的豁免话术不是一套，同一批"不入库指路"一边放行一边判红
-   ⇒ 现在 C3 从对面源码读那张词表（读不到就整项不判），并补了两支能红/能绿对照。
+   所以现在 C3 从对面源码读那张词表（读不到就整项不判），并补了两支能红/能绿对照。
 3. **C3c 仍不判**：这一行要的是"换一份 ELF 再读一遍"的对照。ELF 可以用 `node build/ps_app.mjs` 重建
    （`arm-none-eabi-gcc` 在 `<Vitis>/gnu/aarch32/nt/gcc-arm-none-eabi/bin/`，实测记录
-   `build/evidence/1005_ps_app_rebuild.txt`），但重建那颗 md5 与板上那颗不同 ⇒ 这一行欠的不是编译器，
+   `build/evidence/1005_ps_app_rebuild.txt`），但重建那颗 md5 与板上那颗不同，因此这一行欠的不是编译器，
    是一次重刷加 `board_verify` 复验。在那之前 ps_app 那一路的改动只算源码级，不许写成"板上已验"。

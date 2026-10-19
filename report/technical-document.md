@@ -219,7 +219,7 @@ SD 卡 FAT32 目录读取与裸帧推送、XADC 采样、把状态回显到串�
 ### 6.4 仍然欠的账（不因为停手而消失）
 
 - 四个域都没有 `set_clock_uncertainty` 的 setup 项，只有 `eth_rxc` 有一条自加的 hold 带
-  （`src/constraints/rk_zynq7020.xdc:50`）⇒ 四列 hold 不是同一把尺子；
+  （`src/constraints/rk_zynq7020.xdc:50`），因此四列 hold 不是同一把尺子；
 - 屏那一路 6 个 TMDS 输出口没有对外时序结论：HDMI 的"钟↔数据 ≤0.20 Tcharacter"是展宽不是捕获窗，
   按 `set_output_delay` 挂上去量出来是 −5.408 / −1.923 ns 整批红，判 DECLINE（§6.3 同源）；
 - 异步时钟组把 4 条跨域路从检查范围里拿走了，`set_max_delay -datapath_only` 那份候选约束从未进默认集；

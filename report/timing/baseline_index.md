@@ -40,7 +40,7 @@
 
 警告 **md5 的口径**：上面所有哈希都是**工作树磁盘字节**的哈希。仓库的 `.gitattributes` 故意不覆盖 `*.txt`/`*.tsv`
 （理由写在它文件头：`MANIFEST.md5` 按磁盘字节盖章，加 `eol=lf` 会让下一次 checkout 改已盖印章的件的字节——台账 #202 同族），
-而 `git add` 时报了 "LF will be replaced by CRLF the next time Git touches it" ⇒ **换一台机器 checkout 后这些哈希会变**。
+而 `git add` 时报了 "LF will be replaced by CRLF the next time Git touches it"，因此**换一台机器 checkout 后这些哈希会变**。
 所以这份索引的凭据按"同一棵树上的磁盘状态"引用；名册本身是**可重算的**：
 只要 `timing_summary.txt` 与 `check_timing_verbose.txt` 两份源件在，重新跑一遍生成器就能拿回同一张表（列语义已钉死在尺子里）。
 
@@ -56,7 +56,7 @@
 
 `/tmp/kx/r115_noise/noise.txt`（驱动日志 `build/evidence/r115_noise_cal_console.txt`）：
 同一份 `4c895816c4f2` 的 `system_top_opt.dcp`，mode=none 连滚两遍（n1 22:31→22:38 = 6.4 min；n2 22:38→22:43），
-五个读数 **N1 两滚都完成 / N2 输入一致 / N3 头条四个数逐位相等 / N4 最差路径身份相等** 全绿 ⇒
+五个读数 **N1 两滚都完成 / N2 输入一致 / N3 头条四个数逐位相等 / N4 最差路径身份相等** 全绿，因此
 
 ```
 NOISE-SUMMARY noise_ns=0.000 cmp=equal identity=equal dcp_md5=4c895816c4f2 fp=…rtl=3969247aaf7f

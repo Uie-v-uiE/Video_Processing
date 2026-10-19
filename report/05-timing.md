@@ -106,7 +106,7 @@ setup/hold 行"，不报"这四颗钟没问题"——两者的区别见第 7 节
 `u_pl/u_row/hi_reg_0[0]` 从 239 引脚折到 1、长出 10 颗 replica（`report/timing/round_r117.md` §二之二
 把 `R117HOOK … pins_before=239 / pins_after=1 replica_cells=10` 两行原文抄在里面，
 那一版的位流是 `beda9298331d`）。
-⇒ 结论是"**生效了，代价落在含最紧两格在内的四格上**"，不是"这一处没动"。
+所以结论是"**生效了，代价落在含最紧两格在内的四格上**"，不是"这一处没动"。
 动手之前预登记的通过条件是严格口径"任何一格相对余量不许变小"
 （`report/timing/round_r118.md` §二 B1 那一段），四格跌即不采纳，件
 `build/r117_verdict_declined.txt`，登记行 `report/timing/cut_ledger.tsv` 的 C9 行末列
@@ -118,12 +118,12 @@ setup/hold 行"，不报"这四颗钟没问题"——两者的区别见第 7 节
 **单独写成一份可指路的件** `build/evidence/r118_strict_b1.txt`，交付承诺按它判
 （`report/timing_global.md` §9 第 4 段）。形状与基线那一版那次的 C1 复制相同
 （`report/log/issues.md` #288、`report/timing_global.md` §4e：机制动了、目标族 +0.456 ns，
-代价是 `eth_rxc` hold 0.050→0.035 ⇒ 放弃）。
+代价是 `eth_rxc` hold 0.050→0.035，因此放弃）。
 
 ## 6. RGMII 输入窗：0…31 全档无解 ⇒ 退回候选件，代价写在下面
 
 - **为什么退回**：绑上窗之后 `build/gates.sh` 的四条发布硬条件（WNS ≥ 0、失败 setup 端点 == 0、
-  WHS ≥ 0、失败 hold 端点 == 0）机械判为未通过，而脚本结尾写死"有未通过项 ⇒ 不采纳，保留上一版"。
+  WHS ≥ 0、失败 hold 端点 == 0）机械判为未通过，而脚本结尾写死"有未通过项，因此不采纳，保留上一版"。
   处置是**默认不加载**、原件与全部证明留在仓里当候选件，复现带窗那一版只要
   `VP_R116_IO_WINDOW=1` 再构建一次（构建脚本自己写着理由：
   `build/tcl/build_system_axigpio.tcl:28-52`，加载分支打印
@@ -134,11 +134,11 @@ setup/hold 行"，不报"这四颗钟没问题"——两者的区别见第 7 节
   撤掉的是"这一版新增的约束"，
   上一版本来也没有它（`report/timing/round_r117.md` §〇）。
 - **为什么它无解**：`report/log/issues.md` #311 的两条区间——
-  hold 要 τ ≥ 44.8、setup 要 τ ≤ 21.8，合法 τ 只有 0…31 ⇒ 不相交；去掉那条 0.800 的带只把下界挪到
+  hold 要 τ ≥ 44.8、setup 要 τ ≤ 21.8，合法 τ 只有 0…31，因此不相交；去掉那条 0.800 的带只把下界挪到
   32.1，仍与 21.8 不相交。分量层的同一件事：钟网络 hold 查慢角 DCD 5.008 / setup 查快角 DCD 1.597，
   角间差 **3.411 ns**，而数据侧两角只差 **0.467 ns**（件与推导见
   `report/timing_global.md` §6.1、`report/timing/limit_audit_r116.md`）。
-- **代价**：这一版没有窗 ⇒ `eth_rx_ctl` 与 `eth_rxd[3:0]` 这 5 个收端点
+- **代价**：这一版没有窗，因此 `eth_rx_ctl` 与 `eth_rxd[3:0]` 这 5 个收端点
   **没有被任何输入延迟约束覆盖**。`report/timing/debt_ledger.md` §2 把那 5 个名字点得很清楚，
   并且写着现行 `eth_rxc` 的 WHS 0.052 是"假设数据恰好在时钟沿到达"量出来的**片内**数，
   不含 PHY→FPGA 走线与 PHY 内部延迟那一段。所以第 2 节那格的读法是"片内这一族 MET"，
@@ -167,7 +167,7 @@ setup/hold 行"，不报"这四颗钟没问题"——两者的区别见第 7 节
 2. **四个域的 WHS 不是同一套约束下量出来的。** 本版只有 `eth_rxc` 在保持方向加了自算的不确定度
    （`set_clock_uncertainty -hold 0.800 [get_clocks eth_rxc]`，`src/constraints/rk_zynq7020.xdc:50`；
    `report/timing_global.md` §4 "自加不确定度"那一行写的就是这个不对称），其余三域一分没扣。
-   ⇒ 第 2 节那四个 hold 数（0.052 / 0.053 / 0.059 / 0.222）只可同域比较，不可跨域比大小；
+   所以第 2 节那四个 hold 数（0.052 / 0.053 / 0.059 / 0.222）只可同域比较，不可跨域比大小；
    "四域 hold 余量差不多"是约束写法造出来的形状，不是设计事实。
    把同一 0.800 带给每个钟量过一次，那一次只是量，没有被采纳：
    全设计 WHS −0.747 / 25,742 失败端点（`report/log/issues.md` #302）。
@@ -176,7 +176,7 @@ setup/hold 行"，不报"这四颗钟没问题"——两者的区别见第 7 节
    （`report/timing/rgmii_window_model.md` §6/§7.5，这一条也记在 `report/timing/round_r117.md` §四
    与 `report/timing/round_r118.md` §四末）。也不能写"换短钟也关不掉"——
    BUFIO 的快角 DCD 还没实测（`report/log/issues.md` #323：本机两本官方手册按
-   "同一行既有数字又落在钟语境里"筛，命中 0 页 ⇒ 手册里没有这个数，只能说到"没查到"）。
+   "同一行既有数字又落在钟语境里"筛，命中 0 页，因此手册里没有这个数，只能说到"没查到"）。
 
 ## 8. "到极限"这句话能说到哪一步
 

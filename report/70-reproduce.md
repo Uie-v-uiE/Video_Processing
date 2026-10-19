@@ -132,7 +132,7 @@ bash -n build/gates.sh build/board_verify.sh build/sim/run_one.sh build/sim/mut_
 | 5.11 | `bash build/make_submission.sh`（导出提交包）| `<仓库根>` / Git Bash | 发布前检查无未通过项才该导（`#240`：采用之前跑它会把**未采用**的位流打进包）| 包落在**仓库外**的目录；`_pruned.txt` 逐条写剪了什么；包内所有"路径式指路"自检，指不到就拒绝落盘 | `NOT_MEASURED`（禁跑；且盘上门禁有红项，照做也导不出）|
 
 **包内能直接跑的检查只有四项**（`doc_enc_check`、`line_cite_check`、`doc_currency_check`、`metric_recheck`，根 README 自己写了这条边界，
-并且说 D1b 那一层在包里会念"本目录没有 bit 产物 ⇒ 这一层不判"——那是**声明不可判，不是通过**）；
+并且说 D1b 那一层在包里会念"本目录没有 bit 产物，因此这一层不判"——那是**声明不可判，不是通过**）；
 `ps_hb_check`、`board_verify` 与需要 RTL 源重跑的台架**要回仓库跑**。
 
 ---

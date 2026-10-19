@@ -25,10 +25,10 @@
 
 ## 2. 方法学告警怎么读：条数是代价，不是错误
 
-- `build/methodology.rpt:26` `Checks found: 446`；规则行 `:30-36` 的计数相加 = 2+1+336+98+1+1+7 = **446**（逐行 `grep -n` 复核，行数相加与总数相符 ⇒ 没有漏行）。
-- 全部 7 条规则的 Severity 都是 `Warning`（`build/methodology.rpt:30-36` 第 2 个竖线单元格），原件里**没有判定列** ⇒ 「446」是一个**代价数**：`SYNTH-5 336`（`Mapped onto distributed RAM because of timing constraints`）读作"为了把 BRAM 用满而接受的分布式 RAM 推断条数"，读作"错误"就是误读。
+- `build/methodology.rpt:26` `Checks found: 446`；规则行 `:30-36` 的计数相加 = 2+1+336+98+1+1+7 = **446**（逐行 `grep -n` 复核，行数相加与总数相符，因此没有漏行）。
+- 全部 7 条规则的 Severity 都是 `Warning`（`build/methodology.rpt:30-36` 第 2 个竖线单元格），原件里**没有判定列**，因此「446」是一个**代价数**：`SYNTH-5 336`（`Mapped onto distributed RAM because of timing constraints`）读作"为了把 BRAM 用满而接受的分布式 RAM 推断条数"，读作"错误"就是误读。
 - **只计数不断言的检查器不能当结论**：`check_timing`（r118 内嵌段 `build/timing_summary.rpt:57-140`）输出的是 `no_clock (0) … latch_loops (0)` 这类分级计数，`HIGH/MEDIUM` 是分级不是判定；`report_cdc`（`build/cdc.rpt:15-25`）给 `Safe/Unsafe/Unknown` 三列计数，同样不判定。这两类的任何"通过"必须由**外部判据**（门禁/名册 G1G2）说话，解析件不许自己写 PASS。
-- **某类告警清零可能只是被豁免**：`no_output_delay` 的 12 = HIGH 6（`:106`）+ MEDIUM 6（`:108`），后者之所以降到 MEDIUM 是因为 `rk_zynq7020.xdc:55-58` 写了 `set_false_path`。同理 `no_input_delay` 的 2 个 MEDIUM 来自 `:59-60`。⇒ "这一类清零"必须先问"是不是有 false_path 把它拿掉了"，`build/coverage.md` M6 就是这条。
+- **某类告警清零可能只是被豁免**：`no_output_delay` 的 12 = HIGH 6（`:106`）+ MEDIUM 6（`:108`），后者之所以降到 MEDIUM 是因为 `rk_zynq7020.xdc:55-58` 写了 `set_false_path`。同理 `no_input_delay` 的 2 个 MEDIUM 来自 `:59-60`。，因此"这一类清零"必须先问"是不是有 false_path 把它拿掉了"，`build/coverage.md` M6 就是这条。
 
 ## 3. 字段位置表（原件 + 行 + 列 + 现取命令）
 
@@ -76,7 +76,7 @@
   原件 `build/cdc.rpt:15` 表头有 14 个 token（`No ASYNC_REG` 被空格切成两格），数据行 17 切成 15 个 token（`No Common Primary Clock` 占 4 格），
   于是"第 6 列"实际落在 CDC Type 上（`Primary`）。真值在 `sections.table.rows[].cells.col11..col15`（`build/cdc.rpt:17` → 103/102/1/0/2）。
   影响面：`parsed_cdc.rpt.json` 的 18 个 `cdc[…]` 命名字段。**门神抓不到它**：J1 只验"记录的行/列能重取出记录的值"（自洽即 PASS），不验"字段名与值同义"。
-- **D-2**：`report/timing/roster_round116.tsv:1` 的文件头写的是「r115 轮名册（E1）」，与文件名不一致 ⇒ 引用前先按文件名定轮次、正文头只当模板残留（`build/reports/index.md:53` 同一条，此处登记）。
+- **D-2**：`report/timing/roster_round116.tsv:1` 的文件头写的是「r115 轮名册（E1）」，与文件名不一致，因此引用前先按文件名定轮次、正文头只当模板残留（`build/reports/index.md:53` 同一条，此处登记）。
 
 ## 5. 门禁实跑读数（判定放最后一个字段，打印分母）
 
@@ -90,7 +90,7 @@ GATE J6 同一输入跑两次逐字节一致        比对 11 个文件，不一
 GATE-SUMMARY judged=6 PASS=5 FAIL=0 NOT_MEASURED=1   分母：J1=269 J2=8 J3=40 J4=6 J5=9 J6=11
 ```
 `--check` 里 J4 记 `NOT_MEASURED` 是因为该模式按设计不跑反例；`python build/p15b_parse_reports.py --self`
-（只写系统临时目录，不动 `build/` 任何真件）2026-10-05 复跑得 `GATE-SELF judged=6 分母=反例 7 条 … 判定=PASS` 与 `SELFRESULT GREEN` ⇒ 补测判定 `PASS`，两处的原始行都留在本节。
+（只写系统临时目录，不动 `build/` 任何真件）2026-10-05 复跑得 `GATE-SELF judged=6 分母=反例 7 条 … 判定=PASS` 与 `SELFRESULT GREEN`，因此补测判定 `PASS`，两处的原始行都留在本节。
 
 ## 6. 明写的 `NOT_MEASURED`（要重跑构建/只读探针才能拿到的数，留给后一轮）
 

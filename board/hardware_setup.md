@@ -108,12 +108,12 @@ BOM 的位置：本仓库**没有**独立的 BOM 文件（`find . -iname "*bom*"
   `find . -not -path "./.git/*" -iname "*bom*"` 命中 0）。
 - 板卡原理图：`ZYNQ7020-F+V1.1原理图.pdf` **第 8 页**（PHY2 的 strap 引脚表：`23 TXDLY/RXD1`、
   `24 RXDLY/RXD0`）。出处：`report/timing/rgmii_window_model.md:108-110`、
-  `report/timing/round_r116.md:31`（结论："RXDLY/TXDLY 都由 4.7K 上拉到 IODVDD ⇒ PHY 把 2 ns 延时加在 RXC 上"）。
+  `report/timing/round_r116.md:31`（结论："RXDLY/TXDLY 都由 4.7K 上拉到 IODVDD，因此PHY 把 2 ns 延时加在 RXC 上"）。
 - 从原理图裁出来的 4 个图件（`phy2_straps.png`、`rxd_area.png`、`strap_rxdly_1.png`、`strap_txdly_1.png`）
   曾经入库，现已随目录精简删掉、**不随包**；这一节因此只保留图件名与它们所裁的那一页页码，
   拿不到裁图的人按上面两条引文（原理图第 8 页 + `report/timing/rgmii_window_model.md:108-110`）复原读数。
 - PHY 时序参数抄件：`build/evidence/r115_rtl8211f_delay_source.txt`（Table 60 那一组，出处 `report/timing/rgmii_window_model.md:90`）。
-- 警告：**原理图 PDF 与 PHY 规格书都不在仓库内**（在板卡资料目录，路径含机器字样 ⇒ 按 `report/build.md:16-20`
+- 警告：**原理图 PDF 与 PHY 规格书都不在仓库内**（在板卡资料目录，路径含机器字样，因此按 `report/build.md:16-20`
   的规矩不写进交付文档）。拿不到原件的人只能按"引文 + 裁图"复原第 8 页的那两处读数，
   不能按原图复原。是否随包、或给公开下载链接，要由队伍答复；这一条与上面那 11 处同批登记在 `report/questions-for-team.md`。
 

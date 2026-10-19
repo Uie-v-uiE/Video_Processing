@@ -26,7 +26,7 @@
 
 **5. `unconstrained_endpoints` 和 `io_unconstrained_ports` 现在是多少？**
 0 与 **11**（输入 5：`eth_rx_ctl`、`eth_rxd[0..3]`；输出 6：`led[0]`、`led[1]`、`tmds_clk_p`、`tmds_data_p[0..2]`）。
-⇒ **按 H5 直接判红**：这两个数不为 0 时 WNS 数字无意义。这一格把"设计所有域都绿"从结论降级成了"未被约束覆盖"——
+所以**按 H5 直接判红**：这两个数不为 0 时 WNS 数字无意义。这一格把"设计所有域都绿"从结论降级成了"未被约束覆盖"——
 默认不加载输入窗的那一版至今是 `0 / 11`，把窗绑上去的那一版是 `0 / 6`（绑窗那一次的读数在后半第 5 问）。
 
 **6. `report_methodology` 警告类别计数相比基线增加了吗？增加算成本还是收益？**
@@ -46,7 +46,7 @@
 驱动脚本的 F1/F6 因为形状猜错判过假红（`^ROLLDONE` 锚点、route_status 里根本没有 "successful"），已按实测形状改对。
 
 **9. 有几次尝试触到了 H7 的 3 次上限？回滚了吗？回滚先只读跑过吗？**
-没有一把刀用满 3 次。C1 是**第 1 次**就被名册判负 ⇒ 直接拒绝，没重试（也不换口径重试）。
+没有一把刀用满 3 次。C1 是**第 1 次**就被名册判负，因此直接拒绝，没重试（也不换口径重试）。
 这一版没有需要回滚的源改动（`src/` 一字未动）；被"回滚"的是两把**文档/脚本**层的错尺子，
 回滚能力先只读验过：`bash -n` + 各 `--self` + 用现成滚重跑 `--analyze`（不重烧 GPU）确认它们回到能判的形状。
 
@@ -67,7 +67,7 @@ r116 那一版是真刷过板并板级复验的：bit `bb2fb707aebc`、三步 JT
 离 §7 差什么：L2 要"至少 3 条互相独立的候选被 D1 实测收益 < noise_ns"——这里只新增 1 条（C1，且是判负不是判平）；
 L1 的分段占比有分解读数（最差的 eth_rxc 那族 route 占 58 %、级数 11，件 `build/evidence/r115_base/timing_summary.txt`
 与 `da_levels.txt`），但没按 §7 要求把"四段占比 + 不可再压"论证完；L3 因为这一版什么都不采纳而自动成立。
-三条不齐 ⇒ 不许用那个词。
+三条不齐，因此不许用那个词。
 
 （L1 那半句的分段读数是 `Data Path Delay: 7.066ns (logic 2.936ns 41.553% route 4.130ns 58.447%)` 与
 `Logic Levels: 11 (CARRY4=6 …)`，出自件 `build/evidence/r115_base/check_timing.txt` 的第一条路径
@@ -81,11 +81,11 @@ L1 的分段占比有分解读数（最差的 eth_rxc 那族 route 占 58 %、�
 **1. 有没有任何一个域的 rel_margin 变小了？**
 两刀都落在 `src/` 上，所以这一格的答案由名册差分给：件 `build/evidence/r116_roster_diff.txt` 末行 `judged=6 pairs=8 result=RED`，
 变小的两格正是 `eth_rxc` 的 setup（0.739→−0.846）与 hold（0.052→−0.870）；变好的两格是 `clk_fpga_0` 1.850→1.976 与 `clkout0_1` 3.630→3.698；`sys_clk` 14.876→14.876 一格不动。
-**刀 1 是纯加严**（5 个端口从"无检查"变"有检查"）、**刀 2 只改 I/O 延迟线参数**（网表里除 IDELAYE2 的 `IDELAY_VALUE` 外无差别）⇒
+**刀 1 是纯加严**（5 个端口从"无检查"变"有检查"）、**刀 2 只改 I/O 延迟线参数**（网表里除 IDELAYE2 的 `IDELAY_VALUE` 外无差别），因此
 若差分显示某个**与 I/O 无关**的域变差，那一定是实现阶段的重排副作用，不是这两刀的直接效果——这一条判法写在 `build/r116_batch_plan.md` V4。
 
 **2. 这一版的 WNS 变化，D1 反事实跑了几次？噪声底是多少？**
-答：噪声底 `noise_ns = 0.000`（r115 两次空白滚逐位复现）。同尺反事实 **2 次**：① 对照滚 A 从 `impl_1/system_top_opt.dcp` 重跑 place+route，**逐格复现 r116 正式名册**（件 `build/evidence/r117_fb_pblock/a/roll_console.txt` 的 `ROW` 行 vs `build/evidence/r116_after_roster.txt`）⇒ 这台工具的跨构建差不是骰子；② 复制滚 B 与 A 只差一个变量（`phys_opt_design -force_replication_on_nets`），所以 +0.033 / +0.187 / +0.298 直接归因给那一刀（件 `build/evidence/r117_repl3/b_console.txt`）。
+答：噪声底 `noise_ns = 0.000`（r115 两次空白滚逐位复现）。同尺反事实 **2 次**：① 对照滚 A 从 `impl_1/system_top_opt.dcp` 重跑 place+route，**逐格复现 r116 正式名册**（件 `build/evidence/r117_fb_pblock/a/roll_console.txt` 的 `ROW` 行 vs `build/evidence/r116_after_roster.txt`），因此这台工具的跨构建差不是骰子；② 复制滚 B 与 A 只差一个变量（`phys_opt_design -force_replication_on_nets`），所以 +0.033 / +0.187 / +0.298 直接归因给那一刀（件 `build/evidence/r117_repl3/b_console.txt`）。
 **不拿 WNS 变化当收益**（rule 35）。刀 2 的收益是**同一只已布线 DCP 上、同一把尺、逐档扫出来的**
 （`probe3_console.txt`：τ 26→31 让最差格从 −1.185 到 −0.870，+0.315 ns），
 它不需要反事实，因为它不是跨构建比较。噪声底 r115 已钉：`noise_ns = 0.000`（空白滚逐格复现基线名册）。
@@ -104,15 +104,15 @@ L1 的分段占比有分解读数（最差的 eth_rxc 那族 route 占 58 %、�
 所以它换不来任何绿色，也就不构成"为绿而放宽"。留着的代价写在 §7.5(8)（它把 τ 的最优点从 21~26 推到 31）。
 
 **5. `unconstrained_endpoints` / `io_unconstrained_ports` 现在是多少？**
-r115 是 `0 / 11`。刀 1 专门打这 11 里的 5 个 ⇒ 按字面应当落到 `0 / 6`。
-**实测（件 `build/evidence/r116/r116_check_timing.txt`）：`unconstrained_internal_endpoints = 0`；真正没有 input delay 的输入端口 = 0（5→0，另有 2 个是既有 false_path 覆盖、这一版没动它）；没有 output delay 的输出端口 = **6**（`led[0..1]`、`tmds_clk_p`、`tmds_data_p[0..2]`）⇒ 第二数非 0 ⇒ H5 按字面判红。**这 6 个端口缺的是**外部规范数**，
-当时本机板级资料没有、两次在线取原文也没拿到可引用的一页 ⇒ 按"没有来源就不写数"，H5 这一条**当时判不满**；
-这一格后来换了状态：数取回来了（HDMI 1.4 §4.2.4 Table 4-24 的**互对偏斜上限** 0.20 Tcharacter（它是散布、不是捕获窗，50 MHz 档 = 4 ns ⇒ SDC 里因此写成 ±4.000 半窗且只挂 `tmds_data_*`），逐条判定写在 `report/io/hdmi_cts_source_window.md`、扫档件 `build/evidence/r117/dvi_guide_scan.txt`），约束写成候选件 `src/constraints/r119_hdmi_source_window.xdc`（默认不加载，`VP_R119_TMDS_WINDOW=1` 复现），欠的是一次量名册的构建；欠账本体仍在 `debt_ledger.md` §2 追加节。
+r115 是 `0 / 11`。刀 1 专门打这 11 里的 5 个，因此按字面应当落到 `0 / 6`。
+**实测（件 `build/evidence/r116/r116_check_timing.txt`）：`unconstrained_internal_endpoints = 0`；真正没有 input delay 的输入端口 = 0（5→0，另有 2 个是既有 false_path 覆盖、这一版没动它）；没有 output delay 的输出端口 = **6**（`led[0..1]`、`tmds_clk_p`、`tmds_data_p[0..2]`），因此第二数非 0，因此H5 按字面判红。**这 6 个端口缺的是**外部规范数**，
+当时本机板级资料没有、两次在线取原文也没拿到可引用的一页，因此按"没有来源就不写数"，H5 这一条**当时判不满**；
+这一格后来换了状态：数取回来了（HDMI 1.4 §4.2.4 Table 4-24 的**互对偏斜上限** 0.20 Tcharacter（它是散布、不是捕获窗，50 MHz 档 = 4 ns，因此SDC 里因此写成 ±4.000 半窗且只挂 `tmds_data_*`），逐条判定写在 `report/io/hdmi_cts_source_window.md`、扫档件 `build/evidence/r117/dvi_guide_scan.txt`），约束写成候选件 `src/constraints/r119_hdmi_source_window.xdc`（默认不加载，`VP_R119_TMDS_WINDOW=1` 复现），欠的是一次量名册的构建；欠账本体仍在 `debt_ledger.md` §2 追加节。
 
 **6. `report_methodology` 警告类别计数增加了吗？**
 答：**没增**：带窗那一版类仍是 3（TIMING-9/10/18），实例 `Checks found` 446→**441**，其中 `TIMING-18` 从 7→**2**（少掉的 5 条就是这 5 个第一次被检查的 RGMII 输入）。警告 盘上现在的 `build/methodology.rpt` 是**不带窗**那一版的 `446 / TIMING-18=7`，与带窗那份是两个对象，不许互相顶替。按 G4 这只当成本，带窗那一版的成本是**降**的；它同时是第二把尺子（checks 口径 2 ≠ 端口口径 6），两数永不相减。
 基线 446 = 2+1+336+98+1+1+7；r115 候选滚曾出现新类 `TIMING-15 Large hold violation 5`。
-那一次真绑上窗之后**并没有多出 TIMING-15**（类仍是 3，`build/r116_gates.txt` 第 18 行的 methodology CRIT 也是 0）⇒ 这条预期按实测改口，成本落在 G1 与 H5 那两条红上，不落在告警计数上。
+那一次真绑上窗之后**并没有多出 TIMING-15**（类仍是 3，`build/r116_gates.txt` 第 18 行的 methodology CRIT 也是 0），因此这条预期按实测改口，成本落在 G1 与 H5 那两条红上，不落在告警计数上。
 
 **7. 判定器"做了多少次比较"？**
 答（三个 N 各有各的行，不互相冒充）：名册差分 `judged=6 / pairs=8`（`build/evidence/r116_roster_diff.txt` 的 `ROSTERDIFF-SUMMARY`）；数字对账 `判 115 个数（首页层 61 个／解析到 10/10 行）` + `SELFSIGN-SUMMARY 判 6 条`（`node src/host/metric_recheck.mjs`；那一次跑完抄进 `build/r116_gates.txt` 第 54 行的 `判=115 首页=61`）；指路对账 `CURRENCY 6 条`（`node src/host/doc_currency_check.mjs`）。
@@ -125,7 +125,7 @@ r115 是 `0 / 11`。刀 1 专门打这 11 里的 5 个 ⇒ 按字面应当落到
 
 **9. 有几次尝试触到 H7 的 3 次上限？**
 探针层面：`r115_window_true_probe.tcl` 连撞 3 次接口形状（`-min/-max` 合写、`report_timing_summary -check_timing_override`、
-`read_xdc -unmerged`）+ 1 次 CJK 注释打断解析 ⇒ 第 4 次换了一支新探针（`probe2/probe3`）而不是继续改同一支，
+`read_xdc -unmerged`）+ 1 次 CJK 注释打断解析，因此第 4 次换了一支新探针（`probe2/probe3`）而不是继续改同一支，
 并把四条都记进 #307/#308。**设计层面的刀没有触到 3 次**：刀 1/刀 2 各一次落刀。
 
 **10. 有没有哪句话用了板级口吻但没上板？**
@@ -142,5 +142,5 @@ r115 是 `0 / 11`。刀 1 专门打这 11 里的 5 个 ⇒ 按字面应当落到
 `eth_rxc` 的 I/O 那 5 格：L1（逐域判定）✅、L2（杠杆全枚举并量过：数据延时/相位/带子/策略/复制）✅、
 **L3（同一 DCP 反事实复现）只对刀 2 的 +0.315 成立，对"结构无解"这句还没有独立复现**
 ——它现在是**推导**（从两条实测直线外推出区间不相交），不是"另一把尺子量出来的同一结论"。
-⇒ 这句话的强度只能写到"在 0…31 全档实测 + 分量不等式两条互相印证之下无解"，
+所以这句话的强度只能写到"在 0…31 全档实测 + 分量不等式两条互相印证之下无解"，
 不许写成"已证明是器件边界"。器件边界那句要等 BUFIO 的慢/快角 DCD 实测回来才能说——那支 40 秒只读探针仍未跑（`report/timing_global.md` 第 7 节、ISSUES #323）。

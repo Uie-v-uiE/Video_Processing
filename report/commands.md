@@ -33,7 +33,7 @@
 
 阈值与极性都不是手写的：上表那两个时间分别是 `key_long` 的 `HOLD_CYC` = 30_000_000 与 `ARM_CYC` =
 10_000_000 在 50 MHz 下的换算（`src/rtl/top/pl_video_top.v:148`）；短按改到松手发在同一条线里
-（`src/rtl/util/key_long.v` 的 `short_pulse`，注释写明以前在按下沿发 ⇒ 每次长按必然先转 1°）；
+（`src/rtl/util/key_long.v` 的 `short_pulse`，注释写明以前在按下沿发，因此每次长按必然先转 1°）；
 LED 那两位是 `src/rtl/top/pl_video_top.v:1095-1098`。引脚号出自 `src/constraints/rk_zynq7020.xdc:8-9`。
 
 **长按为什么要留反馈**：四种现象——"长按没反应""切 SD 要按两次""看着像自己变成彗星图""屏上写的和放的对不上"——
@@ -50,7 +50,7 @@ LED 那两位是 `src/rtl/top/pl_video_top.v:1095-1098`。引脚号出自 `src/c
 （`{fb_vis, owner_eth}` = 01），标签必须写 `TEST`——画的是 mux 那一路，不是仲裁的想法
 （`sim/tb_osd_lines.v` 的 T3a..T3d：`SD*` / `TEST*` / 01 那一支 / 不带星号的 `ETH`）。
 叠层总开关是另一件事，由 T16 钉（关掉时逐位等于背景、开着时同一片格子必须画得出字）。
-显示 ETH 时长按一次 ⇒ `SRC:SD*`。
+显示 ETH 时长按一次，因此 `SRC:SD*`。
 
 ---
 
@@ -283,7 +283,7 @@ help 与开机横幅里那句旧写法清单现在只点 `SRC0 SRC1 TH80 ZOOM0 Z
 `cfg1` 排满与这一条无关：bilin 的开关位走的是 `gpio_o[19]`（那只字还有 `gpio_o[21]`/`[25]` 两个空位），
 它欠的从来不是"能不能用串口关回去"，只是"JTAG 侧读不读得到"。
 
-**注意：缝位只有 10 位**（`report/log/issues.md` 第 77 条）。屏幕宽 1024 而字段 `[22:13]` 装到 1023 ⇒
+**注意：缝位只有 10 位**（`report/log/issues.md` 第 77 条）。屏幕宽 1024 而字段 `[22:13]` 装到 1023，因此
 `split 100`、`split px 1024`、从画面空间 100% 换回屏幕空间，这三种写法都被**夹到 1023 并在回显里说出来**；
 回显与屏上 Split 格那个百分比都由**存进去的值**反算（所以 100% 会念成 99%，左边永远留一列原图）。
 以前不夹的症状在板上复现过：缝跳到第 0 列，并且在"换空间"那条写口上还**悄悄打开自动扫描**
@@ -349,7 +349,7 @@ gamma/温度窗口在 `0x41220000 + 0x08`（`CFG_DATA1`）。物理位到逻辑�
 
 **`sd remount` 为什么需要它，以及为什么现在同一上电周期也能成功**：驱动 `XSdPs_CfgInitialize` 开头有一句
 `if (IsReady == XIL_COMPONENT_IS_READY) return XST_DEVICE_IS_STARTED;`，而仓里原本没有任何一处清 `IsReady`
-⇒ 第二次初始化第一步就被挡回（`xsdps.c:156-159`，那段推导抄在 `src/ps/sd_play.c` 的重挂注释里）。
+所以第二次初始化第一步就被挡回（`xsdps.c:156-159`，那段推导抄在 `src/ps/sd_play.c` 的重挂注释里）。
 现在 `sd_remount()` 先清 `IsReady` 再挂（`src/ps/sd_play.c:572`）。主循环还有一条
 `sd_recover_tick()`：卡插回来自己重挂、重挂成功自己接回回放，每 2 s 一次、最多 30 次，
 停手时会明说让你敲 `sd remount` 或重下 elf（`src/ps/sd_play.c:596-631`）。
@@ -360,7 +360,7 @@ gamma/温度窗口在 `0x41220000 + 0x08`（`CFG_DATA1`）。物理位到逻辑�
 
 改代码之前的一次板上探测（卡在原位、同一上电周期已挂载成功过一次）回的是
 `[SD] remount failed: XSdPs_CfgInitialize failed`，记录在 `build/evidence/r71_remount_probe.txt`；
-同一次还看到 `stat` 的 `pub=` 在 0 与 1 之间跳 ⇒ 固件心跳 100 ms 真的在板上跑。
+同一次还看到 `stat` 的 `pub=` 在 0 与 1 之间跳，因此固件心跳 100 ms 真的在板上跑。
 当时唯一恢复手段是重跑 JTAG 三件套（`build/tcl/ps_jtag_boot.tcl` → `build/tcl/program_pl.tcl` →
 `build/tcl/ps_app_reload.tcl`，约 90 s，**不必拔电源**），凭据 `build/evidence/r71_after_recover.txt`
 （恢复后 `[SD] frame 700: last 100 frames 29.999 fps (since play 29.807)`；这条每 100 帧的自动打印后来按用户要求去掉了，播放时的节奏改由 `stat` 与 `sd` 的摘要念）。现在它是**备用路径**，不是唯一路径。**不写卡、不动 flash。**

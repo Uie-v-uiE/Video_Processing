@@ -28,7 +28,7 @@
   `src/rtl/process/rotate/sin_rom.v` 与 `cos_rom.v`（例化行见 `report/modules.md`）。读口
   `src/rtl/process/bilin/fb_bilin.v` 每个源像素用满它天然的 4 个 50 MHz 拍、单读口每拍一次、全程留在
   像素时钟这一个域里（不借助更快的域），`bilin_en = 0` 时逐位等于最近邻（该文件头第 2–6 行）。
-- 代价：旋转一开，真正生效的倍率被 `zoom_ctrl` 收进"这个角度刚好装得下"那一档 ⇒ 旋转态不提供放大，
+- 代价：旋转一开，真正生效的倍率被 `zoom_ctrl` 收进"这个角度刚好装得下"那一档，因此旋转态不提供放大，
   手动 1.33×/1.5×/2.0× 会被拉回装得下的那一档（档号不丢，关掉旋转立刻回去），而 0° 不收这一档
   （`report/architecture.md` §4 的缩放表、`report/demo_script.md` §2）。双线性那对乒乓读口，这一对的
   结果要下一对才读得到，于是多 2 显示行的延迟（`BILIN_ROWS`，`report/architecture.md` §4）。

@@ -171,7 +171,7 @@
 | `0x1010_0000` | PS 片源专用第三 bank（SD 回放 / FILL） | `PS_DDR_BASE` / `PS_BASE_ADDR` | `FRAME_ADDR`（两处各一份） | `system_top.v:140-144` `pl_video_top.v:16` `main.c:46` `sd_play.c:35` |
 | 一帧字节数 | 307200 = 512×300×2（RGB565） | `FRAME_BYTES` 参数（顶层传 `IMG_W*IMG_H*2`） | `FRAME_BYTES (512u*300u*2u)` | `frame_reasm.v:11` `eth_udp_video_top.v:235` `main.c:40` `sd_play.c:34` |
 
-原文风险声明（照抄条件句，不改写）：**改这里不改那边 ⇒ 现象是"PS 片源在屏上不动"**（`system_top.v:142-143`）。
+原文风险声明（照抄条件句，不改写）：**改这里不改那边，因此现象是"PS 片源在屏上不动"**（`system_top.v:142-143`）。
 
 ---
 
@@ -201,7 +201,7 @@
 
 读序硬要求（原文）：lane25→26→27→28→29 必须按这个顺序读，因为 25 既是"轮次/钳位位"也是武装位；
 `src/host/health_read.mjs` 的 want 列表就是这个顺序（`system_top.v:232-234`）。
-位宽硬要求：`dbg_src` 的线宽必须与端口一模一样（r54 起 16 bit）；曾写过 `[5:0]` ⇒ 综合只给一条
+位宽硬要求：`dbg_src` 的线宽必须与端口一模一样（r54 起 16 bit）；曾写过 `[5:0]`，因此综合只给一条
 `Synth 8-689` 警告就静默丢掉模式高位（`system_top.v:224-226`，门禁第 14 项 `build/check_ports.py` 拦这一族）。
 
 ---
@@ -321,7 +321,7 @@
 交叉核对：`bash build/orphan_rtl.sh build/evidence_r75/r75_build_console.txt` 用综合日志当 oracle，
 报 14 个名字（其中 12 个与本表一致，`pl_demo_top`/`shown_rate`/`tap_sched`/`icmp_*` 的差集是因为
 r75 那一版的源码与今天不同、且该脚本的"台架引用"列按 `grep -lw` 统计）。
-**该日志是 2026-09-27 的 r75 构建，不是本轮实测** ⇒ 只当旁证，本轮不做可达性结论（`NOT_MEASURED`）。
+**该日志是 2026-09-27 的 r75 构建，不是本轮实测**，因此只当旁证，本轮不做可达性结论（`NOT_MEASURED`）。
 
 ### G-4 未被任何构建脚本引用的约束文件（`src/constraints/`）
 

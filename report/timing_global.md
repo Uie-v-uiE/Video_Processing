@@ -37,7 +37,7 @@
 **同一次构建里"其他地方"动了什么**：
 `eth_rxc` 0.713 → **0.445**（−0.268），同一次构建里 `clkout0_1` 3.799 → **4.467**（+0.668）、`clk_fpga_0` 1.186 → 1.135（−0.051）、
 `sys_clk` 15.157 → 14.463（−0.694）。全设计失败端点仍 **0**、`check_timing` 无 loops/no_clock。
-⇒ 三次重跑实测证明：同一份 `opt.dcp` 重跑 place+route **逐位复现**（不是骰子），所以这几个数是**一次网表改动的确定性重排**，
+所以三次重跑实测证明：同一份 `opt.dcp` 重跑 place+route **逐位复现**（不是骰子），所以这几个数是**一次网表改动的确定性重排**，
 **四域要一起念**——只念"全局 WNS 余量减小"或者只念"显示域余量增大"都是半句话。
 
 ### 2b. r113 对 r112 的名册差分（实测，`build/evidence/r113_roster_diff.txt`）
@@ -52,7 +52,7 @@ sys_clk    setup 14.463 -> 14.463 hold 0.133 -> 0.133
 改后那侧由 `build/tcl/probe_timing_roster.tcl` 直接问 r113 的 routed dcp（B 侧 slack 带着
 `(required time - arrival time)` 后缀、还带级数/route%/终点，A 侧是纯数字 —— 形状不同，才不是把同一个文件读两遍）。
 **为什么该相同**：#256 那次修复只改 FF 的 INIT 属性，不改网表结构（同一批 FDRE、同一些连接），
-而这台工具的放置/布线是确定性的（#254 已实证：同一份 opt.dcp 重跑逐位复现正式构建的数字）⇒
+而这台工具的放置/布线是确定性的（#254 已实证：同一份 opt.dcp 重跑逐位复现正式构建的数字），因此
 时序一位不动，只有位流内容变了（`build/system.bit` md5 从 `897fa9d93956` 变成 `b94f4da6cdff`）。
 所以 r113 的口径是：**功能修复，时序中性**——四个域、setup 与 hold 两边都是这个结论，不是只看头条。
 
@@ -67,7 +67,7 @@ sys_clk    setup 14.463 -> 14.463 hold 0.133 -> 0.133
    （UG949 的流程就是"先问工具，再逐条审"）。命令都包在 catch 里：这个版本没有它就明说 `QOR_ERR=`，
    而不是让探针死在半路。**下一次改动的候选顺序 = 工具建议名册 ∪ 扇出/放置抓手，再按域排代价**，
    而不是"哪条最疼改哪条"。
-- `eth_rxc` 那条的 6.089 ns 走线里，第一跳 `p_eof`（**fo=8**）就吃 **2.141 ns**：起点 `SLICE_X57Y34`、终点整片 `rows_hit` 在 `X28~X31` ⇒ 距离。
+- `eth_rxc` 那条的 6.089 ns 走线里，第一跳 `p_eof`（**fo=8**）就吃 **2.141 ns**：起点 `SLICE_X57Y34`、终点整片 `rows_hit` 在 `X28~X31`，因此距离。
   换实现指令（`place_design -directive Explore`）**一格不差**；Pblock 那块因进位链半内半外**没做成单变量**（1716 里 255 出块）。
 - 所以候选只剩两类，都要按全局判据交账：
   ① **扇出复制（官方 9410 那条路）**：目标是 `rok4[51]_i_1_n_0` **fo=305** 与 `u_reasm/wr_en_reg_1` **fo=547** 这两根广播。
@@ -78,12 +78,12 @@ sys_clk    setup 14.463 -> 14.463 hold 0.133 -> 0.133
      `-fanout_opt`（"Do cell-duplication based optimization on high-fanout timing critical nets"）、
      `-force_replication_on_nets`（"Force replication optimization on nets"）、
      `-critical_cell_opt`（"Replicates cells on timing critical nets…"），
-     而且 help 明说复制对象名字带 `_replica` ⇒ **"机制动没动"是数得出来的**（正对照必须能红）。
+     而且 help 明说复制对象名字带 `_replica`，因此**"机制动没动"是数得出来的**（正对照必须能红）。
      A/B 因此定成：两滚都 `place_design → phys_opt_design → route_design`，
      **唯一变量**是 B 那滚的 phys_opt 多带 `-force_replication_on_nets {那些网}`
      （入口 `build/r114_replication_ab.sh`，这个检查脚本自带 3 条对照，`--self` 全部通过；
      `MAX_FANOUT` 属性那条路还没验（要开设计 `list_property`），所以现在**不许**写成"已按官方 MAX_FANOUT 做"）。
-     它是**实现级**改动（不动 RTL），代价面是复制出来的 cell 会挤占别人 ⇒ 必须看 `report_utilization`、`report_route_status`
+     它是**实现级**改动（不动 RTL），代价面是复制出来的 cell 会挤占别人，因此必须看 `report_utilization`、`report_route_status`
      与**其余三域**有没有变差（名册差分 D1..D6）；
   ② 修 Pblock 表达式（把共享进位链的 `u_eth/u_rx_mac` 一起收进来）再滚一次；只允许"加不加这块 Pblock"一个变量（#223）。
 - 警告 明确不做：`#179`（icmp_rx 校验和，70.5 % route，量过收益上限低）、`#141`（BRAM 换 setup，量过之后未采纳）、
@@ -130,10 +130,10 @@ r114 第一件事就是量它们）。写形式与出处，是为了不让下一
 实读（两个独立来源）：
 - `src/constraints/clock_groups_impl.xdc:28-31` 只有一条命令：`set_clock_groups -asynchronous` 三组
   （`eth_rxc` / `clk_fpga_0` / `sys_clk` 及其 `-include_generated_clocks` 生成钟）。
-  ⇒ **组与组之间的路径完全不做时序分析**，这是官方允许的写法（也解释了为什么 `timing_summary` 的
+  所以**组与组之间的路径完全不做时序分析**，这是官方允许的写法（也解释了为什么 `timing_summary` 的
   Inter Clock Table 只剩 `sys_clk↔clkout0_1` 一对，231 + 19 端点——那一对在同一组**内**，仍然被分析）。
 - `build/cdc.rpt`（`report_cdc`，12:04 那份）里只有那一对：`Safely Timed`，Unsafe 0，No ASYNC_REG 0。
-  ⇒ 也就是说**被组排除掉的那四条跨域路，`report_cdc` 一条都没念**——不是它们安全，是它们不在覆盖范围里。
+  所以也就是说**被组排除掉的那四条跨域路，`report_cdc` 一条都没念**——不是它们安全，是它们不在覆盖范围里。
 
 XDC 头部（第 19-24 行）把这四条写成"跨域数据由结构保证，不靠时序分析"：
 `dc_fifo` 格雷码 + 2FF（eth_rxc↔clk_fpga_0 视频流）、翻转 + 3FF 边沿检测（`ddr_bank_commit` 帧事件）、
@@ -184,24 +184,24 @@ hold 0.050/0.056/0.059/0.133），与本文第 2 节的表同源同数，逐条�
 **D6 那条未通过已经查到根（#263）**，这一条值得单独留在方法里：`report_design_analysis` 在本工具里
 **没有 `-fanout` 模式**（实测：`build/evidence/r113_help_fanout_console.txt`），设计级高扇出名册要用
 `report_high_fanout_nets -file … -max_nets … -fanout_greater_than …`。前两版探针调了不存在的模式，
-`catch` 把错误吞了、报告文件没写、行数为 0 ⇒ 差分那侧只能判未通过。
+`catch` 把错误吞了、报告文件没写、行数为 0，因此差分那侧只能判未通过。
 问出这件事只花 40 秒：一个**不开设计**的 batch 里 `help <命令名>`，就能拿到官方选项表——
 "报告形状要量不许猜"由此有了一条便宜到没有借口的执行方式。
 同一个检查脚本上还挂着两处形状读错，一并改了：`route_pct` 恒空（真实行里百分数在**括号内**，
 `Data Path Delay: 3.498ns (logic … route 2.843ns (81.275%))`，而原先写的匹配模式要求 `ns` 后直接跟百分号），
 以及 `get_nets` 认带 `[n]` 位下标的网名时 `[` `]` 是 **GLOB 类字符**（`rok4[51]_i_1_n_0` 这种最该被抓的广播
-会被裸 pattern 判成不存在 ⇒ 集合空、假对照；一律用 `-filter {NAME eq {…}}`）。
+会被裸 pattern 判成不存在，因此集合空、假对照；一律用 `-filter {NAME eq {…}}`）。
 补差分的重跑入口是 `build/r113_roster_refanout.sh`（只读、产物带 `_rf` 后缀不覆盖上一份快照；
 台架 xsim 在飞时 REFUSE——这台机 15.7 G 内存，开 routed dcp 会挤它）。
 
-接进发布前检查会改动"门禁 N 项"那四处句子的条数 ⇒ 必须与那些句子**同一笔**改（#242/D1c 那一课；那四处句子是被机器读的形状）。
+接进发布前检查会改动"门禁 N 项"那四处句子的条数，因此必须与那些句子**同一笔**改（#242/D1c 那一课；那四处句子是被机器读的形状）。
 所以这三个脚本暂时只进构建链与本文，不进发布前检查的项数。
 
 ## 4d. 2026-10-03 实测：把"真实到达窗"写进约束之后，全局名册第一次说实话（件 `build/evidence/r114_io_roll_console5.txt`）
 
 同一份 `system_top_opt.dcp` 起两次重跑 place→phys_opt→route，**唯一变量**是候选约束
 `src/constraints/r114_io_async.xdc`（RGMII 收口 ±0.500 ns，上升沿 + 下降沿）。A 滚逐位复现正式构建
-（`WNS 0.445 / WHS 0.050 / 失败端点 0`，逐钟八格全 MET）⇒ 这一次重跑的可信度不靠"看起来一样"。B 那次：
+（`WNS 0.445 / WHS 0.050 / 失败端点 0`，逐钟八格全 MET），因此这一次重跑的可信度不靠"看起来一样"。B 那次：
 
 | 域 | setup A→B | hold A→B | 读数 |
 |---|---|---|---|
@@ -212,15 +212,15 @@ hold 0.050/0.056/0.059/0.133），与本文第 2 节的表同源同数，逐条�
 
 两件事必须一起说：**输入侧欠账清了**（`check_timing` 的 HIGH 无输入延迟端口 5 → 0），
 **旧的那个 0.050 从来不是设计值**——它是"RXD/RX_CTL 与 RXC 同时到达"这个隐含假设给的。
-落点 2 级逻辑、走线 0 % ⇒ 不是布线挤的，是片外窗与 IDDR 采样沿的关系本来就没对上（r92 的 IDELAY 是在
+落点 2 级逻辑、走线 0 %，因此不是布线挤的，是片外窗与 IDDR 采样沿的关系本来就没对上（r92 的 IDELAY 是在
 **没有约束建模**的前提下调到"屏上看着对"的）。所以这次改动的正确读法不是"hold 变差了 2.9 ns"，
 而是"口径改了，账才第一次算对"；修法排在下一步——**只剩一个单变量**：在带窗口径下扫 `IDELAY_VALUE`（现值 26）找眼心
 （"两沿写重了"这个解释已被变体 A 否掉：去掉 `-clock_fall` 之后每一个数与两沿那一版逐位相同，见 `report/log/issues.md` #275/#278）。
 
-再往下一层（`report/log/issues.md` #282/#285）：两批扫档把"数据侧还能不能再补"量到底了——模型 (a) 四档 −4.522/−3.703/−2.885/−2.570、模型 (b)（PHY RX 内部延迟打开，窗沿后 1.5–2.5 ns）三档 −2.522/−2.018/−1.703，斜率 ≈63 ps/tap 两批一致；那条 hold 报告的算术把病因指到**捕获钟网络延迟 DCD = 5.008 ns**（r92/#57 把 IDDR 从 BUFIO 搬进 BUFG 的那只钟）上，SCD = 0、required ≈9.84 ns 而 arrival 只有 7.11 ns ⇒ 要补 ≈2.7 ns，而数据侧最多再买 0.43 ns。⇒ 全局口径下这次改动的结论是"②已被数据否掉、只剩①：让 IDDR 吃更早的钟"，且 r92 那笔判断的前提（当时没有任何 `set_input_delay`）已经不再成立，这句写在 `src/rtl/eth/rgmii_rx.v` 的头注里（改的是注释，代码不变已由"去掉 // 行后逐字符相等"证明）。
+再往下一层（`report/log/issues.md` #282/#285）：两批扫档把"数据侧还能不能再补"量到底了——模型 (a) 四档 −4.522/−3.703/−2.885/−2.570、模型 (b)（PHY RX 内部延迟打开，窗沿后 1.5–2.5 ns）三档 −2.522/−2.018/−1.703，斜率 ≈63 ps/tap 两批一致；那条 hold 报告的算术把病因指到**捕获钟网络延迟 DCD = 5.008 ns**（r92/#57 把 IDDR 从 BUFIO 搬进 BUFG 的那只钟）上，SCD = 0、required ≈9.84 ns 而 arrival 只有 7.11 ns，因此要补 ≈2.7 ns，而数据侧最多再买 0.43 ns。，因此全局口径下这次改动的结论是"②已被数据否掉、只剩①：让 IDDR 吃更早的钟"，且 r92 那笔判断的前提（当时没有任何 `set_input_delay`）已经不再成立，这句写在 `src/rtl/eth/rgmii_rx.v` 的头注里（改的是注释，代码不变已由"去掉 // 行后逐字符相等"证明）。
 
 另一条实测（`report/log/issues.md` #276）：`set_max_delay -datapath_only` 叠在 `set_clock_groups -asynchronous` 之上
-**不落进 `report_exceptions`**（A/B 两滚表体都是 13 行，`-datapath_only` 出现 0 次）⇒ 四条跨域界一条都没生效。
+**不落进 `report_exceptions`**（A/B 两滚表体都是 13 行，`-datapath_only` 出现 0 次），因此四条跨域界一条都没生效。
 "给同步器一条带理由的界"要动的是**排除口径本身**（那一对钟要不要继续整组互相排除），会改 WNS 的算法范围，
 属于必须单独一次构建、带名册差分去做的决定，不能靠叠约束顺手完成。
 
@@ -273,21 +273,21 @@ r116 那一版的名册（件 `build/evidence/r116_after_roster.txt`、差分 `b
 
 L1（延迟分解，件 `build/evidence/r116/r116_io_hold.rpt`、`..._SETUP.rpt`）：
 `Data Path Delay 3.928 ns = logic 100.000 % + route 0.000 %`，逻辑只有 `IBUF`+`IDELAYE2` 两级器件原语；
-required 侧是 `DCD 5.008 + 不确定度 0.835 + IDDR hold 0.155 = 5.998 ns`。⇒ **主项是钟网络的插入延迟**，
+required 侧是 `DCD 5.008 + 不确定度 0.835 + IDDR hold 0.155 = 5.998 ns`。，因此**主项是钟网络的插入延迟**，
 数据侧已无对象可优化（布线 0）。
 L2（≥3 条独立候选实测，负结果按 §7 的要求写在这里而不是删掉）：
 ① **IDELAY tap 扫满 0…31**（件 `build/evidence/r115_window/probe3_console.txt`）：
-`HOLD(τ) = −2.822 + 0.0630τ`、`SETUP(τ) = +2.005 − 0.0920τ` ⇒ hold 要 τ ≥ 44.8、setup 要 τ ≤ 21.8，
-合法区间 0…31 ⇒ **两个集合不相交**。τ=31 是 min(hold,setup) 的最大点，比出货值 26 抬 +0.315 ns（本版已采纳）。
+`HOLD(τ) = −2.822 + 0.0630τ`、`SETUP(τ) = +2.005 − 0.0920τ`，因此hold 要 τ ≥ 44.8、setup 要 τ ≤ 21.8，
+合法区间 0…31，因此**两个集合不相交**。τ=31 是 min(hold,setup) 的最大点，比出货值 26 抬 +0.315 ns（本版已采纳）。
 ② **MMCM 负相移**（r115 副本树，件 `build/evidence/r115_c2_scratch/option_a_console.txt`）：
-`−225°` 的相位提前被 MMCM+BUFG 自己的网络延迟吃掉还有余，捕获沿反而**推迟 0.911 ns** ⇒ 判为未采纳。
-③ **Pblock**（r113 实测 + 本版 `build/tcl/pb117_roll.tcl`：那一格取空就当场拒绝开跑）⇒ 没做成单变量实验。
-④ **统一 0.800 hold 带**（r115）：全设计 WHS −0.747 / 25,742 失败端点 ⇒ 那是"把欠账照出来"，不是收益，本版不动它。
-L3：名册差分里 `eth_rxc` 之外的三域 setup 全部持平或余量增大，四域 hold 逐格不动 ⇒ 没有拆东墙补西墙。
+`−225°` 的相位提前被 MMCM+BUFG 自己的网络延迟吃掉还有余，捕获沿反而**推迟 0.911 ns**，因此判为未采纳。
+③ **Pblock**（r113 实测 + 本版 `build/tcl/pb117_roll.tcl`：那一格取空就当场拒绝开跑），因此没做成单变量实验。
+④ **统一 0.800 hold 带**（r115）：全设计 WHS −0.747 / 25,742 失败端点，因此那是"把欠账照出来"，不是收益，本版不动它。
+L3：名册差分里 `eth_rxc` 之外的三域 setup 全部持平或余量增大，四域 hold 逐格不动，因此没有拆东墙补西墙。
 **角间差不等式（这一格的物理极限的真正形状）**：hold 查慢角 `DCD 5.008`、setup 查快角 `DCD 1.597`
 （同一只钟的两个角，件里两个数都有），差 **3.411 ns**；而数据侧两角只差 **0.467 ns**。
 要同时满足需要 `D_slow/D_fast ≥ 1.73`（保留带子）/ ≥ 1.45（去掉带子），实测这条 IDELAY 主导的路径只有 **1.15**。
-⇒ 在这一代器件 + 当前结构（IDDR 与 4,835 端点的 125 MHz 流水线共用一只 BUFG）下，**不存在能同时满足两条检查的采样点**。
+所以在这一代器件 + 当前结构（IDDR 与 4,835 端点的 125 MHz 流水线共用一只 BUFG）下，**不存在能同时满足两条检查的采样点**。
 出口只有一个，写在下面第 7 节末（把捕获钟做短且角间不散），而那是一次**架构改动**、不是又一档约束。
 
 ### 6.2 `clk_fpga_0` —— 审计时判"未到极限"，本版把靶子从猜测换成读数，并在便宜通道上量到一把**余量增大的改动**
@@ -303,7 +303,7 @@ RAMB36_X3Y1  RAMB36E1 (Setup_..._WEA[0])    -0.476
 Clock Path Skew −0.039 ns（DCD 2.321 / SCD 2.456）  Clock Uncertainty 0.154 ns
 ```
 
-⇒ 根因标签 **FANOUT**（不是"两端离得远所以画个框"；本审计先给过的那个 Pblock 杠杆是**错的**，
+所以根因标签 **FANOUT**（不是"两端离得远所以画个框"；本审计先给过的那个 Pblock 杠杆是**错的**，
 框住目的地不会把源拉过来，后来的实测把它推翻了——负结果与被推翻的说法都留在这里，不删）。
 负载清点（件 `build/evidence/r117_d0/nethelp_console.txt`）：`HIERGROUP u_pl/u_row = 239`、
 `LOAD_TILE_UNIQUE=99`，且**两路独立取名一致**（`AGREE load_vs_name=1`）。
@@ -320,7 +320,7 @@ Clock Path Skew −0.039 ns（DCD 2.321 / SCD 2.456）  Clock Uncertainty 0.154 
 | 代价 | — | Slice 寄存器 8,188 → **8,198（+10）**，LUT/BRAM/DSP 不动 | 复制吃 10 只 FF |
 
 噪声底 `noise_ns = 0.000`（r115 两次空白重跑逐位复现），所以这三格移动都大于噪声底、是三处余量增大；
-`eth_rxc` 一格没动 ⇒ G1 成立。**采纳入口已经写好**：`build/tcl/r117_post_place_hook.tcl`
+`eth_rxc` 一格没动，因此G1 成立。**采纳入口已经写好**：`build/tcl/r117_post_place_hook.tcl`
 （挂在 `STEPS.PLACE_DESIGN.TCL.POST`，取名不一致就 `error` 停下而不是悄悄换目标），
 件 `build/evidence/r117_repl3/b_console.txt`。
 
@@ -358,16 +358,16 @@ SETUP 要 D_fast ≤ 4 + C_fast − 0.035 − 0.259 − 2.8 = 1.556 → τ ≤ 8
 ⇒ τ ∈ [0, 8.7] 全区间两检查同号为正，最平衡点 τ ≈ 4~5（hold +0.54 / setup +0.44）
 ```
 
-⇒ **这一族在短钟网络下是可关的，而且不需要放宽任何东西**（带子留着也算得出正）。
-但整段推导吊在"专用走线 ≈ 0.5/0.2 ns"那一个没量过的数上 ⇒ 动它之前先花 40 秒把
+所以**这一族在短钟网络下是可关的，而且不需要放宽任何东西**（带子留着也算得出正）。
+但整段推导吊在"专用走线 ≈ 0.5/0.2 ns"那一个没量过的数上，因此动它之前先花 40 秒把
 **BUFIO 的慢/快 DCD 实测**问回来（只读探针，看 `ILOGIC_X* IDDR/C` 的到达时间；r92 当年只留了慢角 3.171）。
 
 先把"手册里到底有没有这个数"查完（两遍扫描，件 `build/evidence/r117/bufio_delay_scan.txt` 与
 `build/evidence/r117/bufio_delay_scan2.txt`，扫描器 `build/clock_io_delay_scan.py` / `..._scan2.py`）**：
 UG472（114 页）的 BUFIO 一节都是定性叙述（"BUFIO 只驱动 I/O 钟资源"、"给 ISERDES/OSERDES 的 CLK 提供低偏差钟"），
-没给插入延迟的 ns/ps 数；UG471（188 页）+ UG472 按"同一行既有 `数字+ns/ps` 又落在钟语境里"筛 ⇒ **命中 0 页**。
+没给插入延迟的 ns/ps 数；UG471（188 页）+ UG472 按"同一行既有 `数字+ns/ps` 又落在钟语境里"筛，因此**命中 0 页**。
 警告 这句只到"没筛出来"，**不许写成"手册里没有"**：表体常把单位放在表头，逐行筛法本来就容易漏
-（同一类教训：告警计数不能当 WNS 的代理，ISSUES #290）。⇒ 那个 0.5/0.2 ns 在这页里始终是**假设**，
+（同一类教训：告警计数不能当 WNS 的代理，ISSUES #290）。，因此那个 0.5/0.2 ns 在这页里始终是**假设**，
 只用来回答"值不值得动"，不用来支撑任何"已证明"的说法；关闭它的唯一办法还是上面那 40 秒实测。
 
 如果实测角间差仍然 > 1.7 ns，这个区间再次变成空集，那时要说的就不是"换树"而是
@@ -375,7 +375,7 @@ UG472（114 页）的 BUFIO 一节都是定性叙述（"BUFIO 只驱动 I/O 钟�
 
 **代价面（这项改动不能单独落的原因）**：短钟把 IDDR 的捕获沿提前之后，`IDDR → 下游流水线`就变成
 "发射沿 1.93、捕获沿 5.008"的跨树路，工具会为这些路在数据上插 ~3.07 ns 延迟；而这条流水线里最重的锥是
-`gmii_rx_mac` 的 FCS-32（实测 7.066 ns 数据+布线，8 ns 周期）⇒ 预算被吃掉之后只剩 ~4.9 ns，
+`gmii_rx_mac` 的 FCS-32（实测 7.066 ns 数据+布线，8 ns 周期），因此预算被吃掉之后只剩 ~4.9 ns，
 大概率从 MET 掉进违例。所以它的完整形状是：**IDDR（+紧邻第一级）吃短钟，跨到 BUFG 域经过一级同步 FIFO**，
 这是一次架构改动，门槛与 r92 当年放弃 BUFR 的理由是同一个（GMII 下游跨区）。
 动手前的三件只读事：① BUFIO 慢/快 DCD；② `gmii_rx_clk` 的 2,546 个负载落在几个时钟区；
@@ -418,7 +418,7 @@ UG472（114 页）的 BUFIO 一节都是定性叙述（"BUFIO 只驱动 I/O 钟�
 
 **r117 = τ=31 + C9（对 239 引脚广播网强制复制）**，输入窗按发布前检查退回候选件（原因写在
 `build/tcl/build_system_axigpio.tcl` 的约束加载处：绑窗后有 4 条发布前检查硬项判未通过，而 `build/gates.sh` 自己的结论句是
-"有红项 ⇒ 不采纳，保留上一版"；约束原件与全部证明留在 `src/constraints/r116_rgmii_input_window.xdc`，
+"有红项，因此不采纳，保留上一版"；约束原件与全部证明留在 `src/constraints/r116_rgmii_input_window.xdc`，
 `VP_R116_IO_WINDOW=1` 一条命令复现）。对照 = **r114 官方名册**，且必须同生成器配对
 （件 `build/evidence/r114_after_roster_probefmt.txt` → `build/evidence/r117_roster_diff_vs_r114.txt`；
 拿 `roster_from_summary.sh` 那份去减探针那份会被口径闸门判 REFUSE，账在 `report/log/issues.md` #326）。
@@ -431,11 +431,11 @@ UG472（114 页）的 BUFIO 一节都是定性叙述（"BUFIO 只驱动 I/O 钟�
 | `eth_rxc` hold | 0.052 ns | **0.044 ns** | 余量减小，且这是全设计最薄那一格 |
 | `sys_clk` setup | 14.876 ns | **14.815 ns** | 余量减小 |
 
-⇒ **C9 判为未采纳**（`build/r117_verdict_declined.txt`）：开跑之前登记的严格口径是"任何一格 rel_margin 不许变小"，
+所以**C9 判为未采纳**（`build/r117_verdict_declined.txt`）：开跑之前登记的严格口径是"任何一格 rel_margin 不许变小"，
 四格余量减小就判未采纳；`build/timing_roster_diff.sh` 的 D3 门槛是"掉 25 % 以上的域数"，对同一份数据给 `result=GREEN`。
 **两个检查脚本判语不一致这件事没有靠放宽任何一方来消除**（#328），而是把严格那个独立成可指路的件
 `build/evidence/r118_strict_b1.txt`。这与 r115 那次 C1 复制改动的情形完全相同（`report/log/issues.md` #288）：
-机制动了，代价落在最紧的域上 ⇒ 不做。
+机制动了，代价落在最紧的域上，因此不做。
 
 **r118 = 只带 τ=31**（`IDELAY_VALUE` 26→31，r116 在同一份已布线 DCP 上把 0…31 扫满量出来的收口眼心；
 `HOLD(τ) = −2.822 + 0.0630τ`、`SETUP(τ) = +2.005 − 0.0920τ`，`min(hold,setup)` 最大点在 τ=31，
@@ -452,5 +452,5 @@ B3 资源中性 / B4 发布前检查末行原话「判定 24 项」里未通过�
 策略扫描、同 DCP 重跑、灰码 ASYNC_REG、τ 扫档）已经逐次量过并给出余量增大／判未采纳；
 ③ 唯一还能改变结论的只剩**架构那项改动**（IDDR 吃短捕获钟 + 一级同步 FIFO 再进 BUFG 流水线），
 它的门槛与代价面在第 7 节，动它之前还欠一个 40 秒只读实测（BUFIO 快/慢角 DCD，#323）；
-④ `eth_rxc` 的收口 I/O 在当前结构下被证明关不掉（0…31 全档区间不相交），本版不为它建窗 ⇒
+④ `eth_rxc` 的收口 I/O 在当前结构下被证明关不掉（0…31 全档区间不相交），本版不为它建窗，因此
 那 5 个端点是**未检查**，而"未检查 ≠ 满足"必须写在首页那一行里（H5）。

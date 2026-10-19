@@ -12,7 +12,7 @@
 
 盘上还有三个 **没有被任何脚本 add_files** 的候选约束件：`r114_io_async.xdc`、`r114_io_varianta_rise_only.xdc`、
 `r114_io_variantb_phy_delay.xdc`（22:59 `grep -n xdc build/tcl/build_system_axigpio.tcl` 只命中上面两行）。
-⇒ 它们是 C4 那把刀的**实验材料**，不是现行约束集的一部分；本轮名册的口径按"现行两文件"算。
+所以它们是 C4 那把刀的**实验材料**，不是现行约束集的一部分；本轮名册的口径按"现行两文件"算。
 另有 `build/micro_rd/gen/*.xdc` 三个属于迷你探针工程，与本设计无关。
 
 ## 1. 每个时钟：周期来源 / 被约束端点数
@@ -27,28 +27,28 @@
 | `clkout2` | 5.000 | MMCM 输出（CLKOUT2，IDELAY 参考 200 MHz） | 无 intra 路径行 | 同上 |
 | `clkfbout` / `clkfbout_1` | 20.000 | MMCM 反馈 | 无 intra 路径行 | 同上 |
 
-`unconstrained_endpoints` = **0**（`check_timing -verbose` 自己那行 "pins that are not constrained for maximum delay."）⇒ H5 的端点那一半是干净的。
-`io_unconstrained_ports` = **11**（端口对象单位：输入 5 + 输出 6）⇒ **H5 的另一半不为 0，本轮判红**，见 §2。
+`unconstrained_endpoints` = **0**（`check_timing -verbose` 自己那行 "pins that are not constrained for maximum delay."），因此H5 的端点那一半是干净的。
+`io_unconstrained_ports` = **11**（端口对象单位：输入 5 + 输出 6），因此**H5 的另一半不为 0，本轮判红**，见 §2。
 
 ## 2. 每个外部端口的 I/O 时序覆盖（债务主体）
 
 `check_timing -verbose`（件 md5 550b45d95449）点名：
 
 - **没有 input delay 的 5 个输入**：`eth_rx_ctl`、`eth_rxd[0]`…`eth_rxd[3]`
-  ⇒ 这正是 RGMII 的 4 位数据 + 控制。它们由 `eth_rxc`（8 ns，DDR）源同步驱动，
+  所以这正是 RGMII 的 4 位数据 + 控制。它们由 `eth_rxc`（8 ns，DDR）源同步驱动，
   但 `set_input_delay` 在整棵 `src/constraints/` 里 **0 次**（22:56 实测 grep：只命中 `create_clock`/`set_clock_uncertainty`/`set_false_path`/`set_property` 四类）。
-  ⇒ **债务的真实含义**：现行名册里 eth_rxc 的 WHS 0.052 是"假设数据恰好在时钟沿到达"量出来的片内数，
+  所以**债务的真实含义**：现行名册里 eth_rxc 的 WHS 0.052 是"假设数据恰好在时钟沿到达"量出来的片内数，
   它**不包含** PHY→FPGA 走线与 PHY 内部延迟的那一段。
 - **没有 output delay 的 6 个输出**：`led[0]`、`led[1]`、`tmds_clk_p`、`tmds_data_p[0]`…`tmds_data_p[2]`
-  ⇒ TMDS 的负极性腿（`tmds_*_n`）不在名单里：差分对的 N 腿由同一对约束覆盖是工具的默认行为，
+  所以TMDS 的负极性腿（`tmds_*_n`）不在名单里：差分对的 N 腿由同一对约束覆盖是工具的默认行为，
   但**这一条我没有官方出处**（A1 未读），所以只报"check_timing 没点它们的名"这个事实，不写"所以无需约束"的结论。
   LED 是两个静态指示脚；TMDS 那 4 个（时钟 + 3 数据）是真的对外接口，需要面板/接收端的手册窗口数。
 - **已有 false path 的（MEDIUM）**：输入 `key1_n`、`key2_n`；输出 `eth_rst_n`、`eth_tx_clk`、`eth_tx_ctl`、`eth_txd[0..3]`。
 
 **这笔债的量级已经测过，不是猜的**：把 ±0.500 ns 的 RGMII 输入窗（候选件 `r114_io_async.xdc:39-43`，四条 `set_input_delay`）
-绑到同一份 `system_top_opt.dcp` 重跑 place+route ⇒ 终态 **WNS = 0.437 / WHS = −2.885 ns / THS = −14.344 ns**
+绑到同一份 `system_top_opt.dcp` 重跑 place+route，因此终态 **WNS = 0.437 / WHS = −2.885 ns / THS = −14.344 ns**
 （件 `build/evidence/r114_io_roll_console5.txt` 的 `[Route 35-57]` 行；变体 A 只声明上升沿 `r114_io_varianta_rise_only.xdc`，
-读数逐位相同 ⇒ 印证附录 1 那条"rise-only 与 both-edge 给完全相同的数字"）。
+读数逐位相同，因此印证附录 1 那条"rise-only 与 both-edge 给完全相同的数字"）。
 也就是说：**加上真实窗口，收口现在就是红的**（对照名册里 eth_rxc 的 WHS 0.052 是"没有这条约束"时的数）；
 差异被"缺约束"藏住了。
 
@@ -61,12 +61,12 @@
 **min 1.000 / max 2.600（两种模式的并集）**，推导与重算见 `report/timing/rgmii_window_model.md` §6（**该窗下现行结构预测 WHS ≈ −1.38**：把 §1 那条 −2.522 的 tap0 分量按实测斜率
 63 ps/tap 补回 tap 26 的 IDELAYE2 ≈2.293，再把 min 换成 1.000 得 4.614 − 5.998 = −1.384；
 同一套分量拿 ±0.5 那档回去算得 −2.884，与 r114 实测 −2.885 逐位对上，所以这套算法可信）。
-PHY 到底站在哪一边**仍然没读出来**（TXDLY/RXDLY 与 RXD1/RXD0 复用，原理图第 8 页；本机读不到寄存器 ⇒ #131/#170），
+PHY 到底站在哪一边**仍然没读出来**（TXDLY/RXDLY 与 RXD1/RXD0 复用，原理图第 8 页；本机读不到寄存器，因此#131/#170），
 所以取并集而不是宣称某一种模式；输出侧那 6 个端口仍然**没有来源数**，继续挂账。
 
 **00:12 追补（同一把尺子量两块 DCP，纯只读，件 `build/evidence/r115_c2_scratch/option_a_main_console.txt`）**：
 真窗（min 1.000 / max 2.600）下**主树**（没有 MMCM 的原版）实测 `hold −1.385 / setup −0.186`，
-与 §6 用分量算出的 −1.38 对上（分量模型自校验）。00:16 更正一处（这一段我写错过一次算术，趁现在改掉）：沿动的时候 hold 与 setup 的 required **同向**移动（到达时刻由外部 PHY 决定），所以不存在“守恒、找不到点”那回事；真正互相交换的是**数据延迟**（IDELAY）——这也正是 F3 那条 tap 扫描走进死胡同的原因。报告自己的 skew 才是事实：**主树 5.008 vs 副本树 5.919**（件 `option_a_main_console.txt` / `option_a_console.txt` 的 `Clock Path Skew` 行） ⇒ MMCM 那一刀把捕获沿**推迟了 0.911 ns**，`-225°` 的相位提前被 MMCM+BUFG 自己的网络延迟吃掉还有余，所以它连主树都没追上（hold -1.426 vs -1.385、setup -0.972 vs -0.186）。⇒ 靶子改写成“**把到 IDDIR 的 ~5-6 ns 时钟网络延迟降下来**”，降下来 hold 与 setup 一起变好；下一轮唯一值得试的结构刀是 BUFIO/同区那一族。窗模型的残余风险不变：`TskewR` 那行讲的是 PCB **时钟走线**（要多走 1.5-2.0 ns），我却当数据散布用了，可能是第二次混行（第一次是 `TskewT` 的 ±0.5，见 ISSUES #304），所以 -1.385 / -0.186 只代表“该窗模型下的读数”，不代表板上真实差额；定模型要有人读那两行与 strap/寄存器现值（本机读不到，#131/#170）。输出侧那 6 个端口仍然**没有来源数**，继续挂账。
+与 §6 用分量算出的 −1.38 对上（分量模型自校验）。00:16 更正一处（这一段我写错过一次算术，趁现在改掉）：沿动的时候 hold 与 setup 的 required **同向**移动（到达时刻由外部 PHY 决定），所以不存在“守恒、找不到点”那回事；真正互相交换的是**数据延迟**（IDELAY）——这也正是 F3 那条 tap 扫描走进死胡同的原因。报告自己的 skew 才是事实：**主树 5.008 vs 副本树 5.919**（件 `option_a_main_console.txt` / `option_a_console.txt` 的 `Clock Path Skew` 行），因此MMCM 那一刀把捕获沿**推迟了 0.911 ns**，`-225°` 的相位提前被 MMCM+BUFG 自己的网络延迟吃掉还有余，所以它连主树都没追上（hold -1.426 vs -1.385、setup -0.972 vs -0.186）。，因此靶子改写成“**把到 IDDIR 的 ~5-6 ns 时钟网络延迟降下来**”，降下来 hold 与 setup 一起变好；下一轮唯一值得试的结构刀是 BUFIO/同区那一族。窗模型的残余风险不变：`TskewR` 那行讲的是 PCB **时钟走线**（要多走 1.5-2.0 ns），我却当数据散布用了，可能是第二次混行（第一次是 `TskewT` 的 ±0.5，见 ISSUES #304），所以 -1.385 / -0.186 只代表“该窗模型下的读数”，不代表板上真实差额；定模型要有人读那两行与 strap/寄存器现值（本机读不到，#131/#170）。输出侧那 6 个端口仍然**没有来源数**，继续挂账。
 
 ## 3. 每条既有例外的"当初理由"
 
@@ -87,24 +87,24 @@ PHY 到底站在哪一边**仍然没读出来**（TXDLY/RXDLY 与 RXD1/RXD0 复�
 - 名字含 gray 的单元 116 颗，其中触发器型（`FD*`）84 颗；
 - 落地前 `marked_true=0` → 落地后 **`marked_true=56`**；
 - **`report_methodology` 的 TIMING-10（Missing property on synchronizer）仍然是 1**（件 `build/evidence/r115_base/methodology.txt` SUMMARY 行）。
-  ⇒ 剩下的那一处**没有被识别**：格雷码链不是它。这是本轮的一条"未知对象"债务（G12 要求它被列进下一轮候选，不许"未知原因但绿了"）。
-  ⇒ 教训已记（#290）：**属性有没有落地**不能拿 methodology 的计数当凭据，它数的是"检查项"，不是"我的属性"。
+  所以剩下的那一处**没有被识别**：格雷码链不是它。这是本轮的一条"未知对象"债务（G12 要求它被列进下一轮候选，不许"未知原因但绿了"）。
+  所以教训已记（#290）：**属性有没有落地**不能拿 methodology 的计数当凭据，它数的是"检查项"，不是"我的属性"。
    durable 的尺子是 `report_cdc -details` 点名到具体那对触发器（注意：仓库里 9 月那份 `build/cdc_details.rpt` 是**过期件**，不许引用）。
 
 ## 5. 异步组外跨域路径没有界（#266）
 
 `report_exceptions`（件 `build/evidence/r115_base/exceptions.txt`）的表体只有一类跨钟行：
 `{clkfbout clkfbout_1 clkout0_1 clkout1_1 clkout2 sys_clk} → {clk_fpga_0}` 与 `{eth_rxc} → {clk_fpga_0}`，
-Setup/Hold 两列都写 `clock_group` ⇒ 这两对**被整体排除**，没有任何 `set_max_delay -datapath_only` 给出界。
+Setup/Hold 两列都写 `clock_group`，因此这两对**被整体排除**，没有任何 `set_max_delay -datapath_only` 给出界。
 按附录 1：界**叠不到**被排除的时钟对上（写在 `set_clock_groups` 之上会得到 0 条例外）。
-⇒ 这条债**不能靠加约束消**；能做的只有收窄排除策略，而那会改变 WNS 的计算对象 = H1 的松动。
+所以这条债**不能靠加约束消**；能做的只有收窄排除策略，而那会改变 WNS 的计算对象 = H1 的松动。
 结论按提示词原样写：这是**工具语义边界**，不是我的疏漏，但也不能说它无害——跨域数据完全靠结构（§3 那四条）保证，STA 不参与。
 
 ## 6. `check_timing` 与 `report_methodology` 的类别计数（G4 的基线侧）
 
 - `report_methodology`：**Checks found: 446 = DPIR-1 2 + LUTAR-1 1 + SYNTH-5 336 + SYNTH-6 98 + TIMING-9 1 + TIMING-10 1 + TIMING-18 7**
   （七项相加 446，闭合；只从 SUMMARY 表取数，整份文件 `grep -o` 会把每类多算一次）。
-  TIMING-18（Missing input or output delay）7 条 = §2 那 11 个端口的**另一种量纲**（checks/pins，不是端口数）⇒ 两个数永不相减（附录 1 的量纲红线）。
+  TIMING-18（Missing input or output delay）7 条 = §2 那 11 个端口的**另一种量纲**（checks/pins，不是端口数），因此两个数永不相减（附录 1 的量纲红线）。
 - 工具侧的一条新账：`build/evidence/r115_base/check_timing.txt` **文件名与内容不符**——
   它里面的 `| Command :` 是 `report_timing`，不是 `check_timing`（22:59 实测）。
   本轮所有 I/O 债务的读数一律取自 `check_timing_verbose.txt`（它的 Command 行是 `check_timing -verbose`）。
@@ -127,9 +127,9 @@ r116 的变化与**仍然欠的那一半**：
    "缺口变小 + 红变可见"是这一笔的全部含义。
 2. **没有放宽任何东西**：`loosen_ledger.tsv` 本轮仍然 0 条。`eth_rxc` 上那条 0.800 的 `-hold` 不确定度
    与输入窗**双重计**同一条保护带，去掉它能把 hold 从 −1.185 抬到 −0.385，但**仍然不是绿**
-   （setup 那边 τ ≤ 21.8 不动）⇒ 既然换不来绿，就不去碰 H1，代价写在 §7.5 表里。
+   （setup 那边 τ ≤ 21.8 不动），因此既然换不来绿，就不去碰 H1，代价写在 §7.5 表里。
 3. **输出侧那 6 个端口的债要谁签**：要么补一份可引用的 DVI/HDMI 窗口数（外部资料），
-   要么由用户批准把它们声明为异步/不检查（那是 H1 的放宽，要进松动台账）。夜里两样都没有 ⇒ 债继续挂着。
+   要么由用户批准把它们声明为异步/不检查（那是 H1 的放宽，要进松动台账）。夜里两样都没有，因此债继续挂着。
 
 ### §2 追加的追加（r116 构建回来后，02:57 实测）：债的数字落地，且"没有来源"这一句现在有了出处
 
@@ -148,7 +148,7 @@ r116 的变化与**仍然欠的那一半**：
 （7-series SelectIO 官方手册，188 页）整本按页抽文本扫过（脚本 `/tmp/tmds_scan.py`，命中页 7/95/100/103/185），
 TMDS 那一节（正文第 95 页）只给 **I/O 标准与属性**（`Table 1-52 Allowed Attributes of the TMDS I/O Standard`、
 50 Ω 上拉到 3.3 V、`TMDS_33` 只在 HR bank、VCCO 3.3 V），**没有任何接收端 setup/hold 窗口或 UI 数**；
-其余命中页是属性表与 DC 特性表。⇒ 这一族数在**本机**确实不存在，要它必须来自外部规范或你的批准；
+其余命中页是属性表与 DC 特性表。，因此这一族数在**本机**确实不存在，要它必须来自外部规范或你的批准；
 我不拿"看起来宽松"的数凑绿灯（H1/§0 的伪装形状）。
 
 **03:19 把"外部也查过"这半句做实（三次在线尝试的具体去处与为什么不能用，不再重复查）**：
@@ -163,8 +163,8 @@ TMDS 那一节（正文第 95 页）只给 **I/O 标准与属性**（`Table 1-52
 [AD9397](https://www.ic-components.ee/files/b5/AD9397KSTZ-100.pdf) 都是**重定时器/开关/编码器芯片**的
 手册，它们给的是自己那对脚的 skew/jitter 预算，不是"面板作为 sink 需要什么窗口"；
 后两者按 `set_output_delay` 的口径要换算成 UI 才能用，而换算规则（哪个沿是参考沿、跨 chip 的传播算谁的）
-我没有可引用的出处 ⇒ **拿来填数就是我批评过的"用看起来宽松的数凑绿灯"**。
-⇒ 结论不变但依据更硬：**这一族数要么由用户提供规范正文，要么由用户批准"不检查"（=放宽，进松动台账）**；
+我没有可引用的出处，因此**拿来填数就是我批评过的"用看起来宽松的数凑绿灯"**。
+所以结论不变但依据更硬：**这一族数要么由用户提供规范正文，要么由用户批准"不检查"（=放宽，进松动台账）**；
 下一轮不要再花第三次在线检索，直接把这两条路摆给用户。在线两次尝试（03 日夜里与本次）也没拿到可引用的一页，
 能查到的都是接收器/重定时器芯片的数据手册（例如 TI DS34RT5110、ADI AD8190）而不是 DVI  sink 的窗口表。
 
@@ -187,7 +187,7 @@ TMDS 那一节（正文第 95 页）只给 **I/O 标准与属性**（`Table 1-52
 
 ## §2 追加之二（2026-10-04 09:1x，取数之后）：窗数**有了**，候选件也就位了，但"进默认构建"还差一次量名册的构建
 
-- 数：钟↔数据（Source at TP1，互对偏斜 max）= **0.20 Tcharacter**；当前 50 MHz 档 ⇒ 半窗 **±4.000 ns**。
+- 数：钟↔数据（Source at TP1，互对偏斜 max）= **0.20 Tcharacter**；当前 50 MHz 档，因此半窗 **±4.000 ns**。
   逐条出处与"哪些只能作第三方代理"都在 `report/io/hdmi_cts_source_window.md` 第一节（三版规范 + Keysight/Tektronix 复述互相印证）。
 - 件：`src/constraints/r119_hdmi_source_window.xdc`（自己会在参考时钟对象读不到或端口数不等于 6 时 REFUSE），
   挂载开关 `VP_R119_TMDS_WINDOW=1`（与 `VP_R116_IO_WINDOW` 同一形状，**默认关**）。
@@ -201,7 +201,7 @@ TMDS 那一节（正文第 95 页）只给 **I/O 标准与属性**（`Table 1-52
 - 事实：`set_output_delay` 两版都真的挂上了（`Path Group` 从 `(none)` 变成有钟），
   但互对窗给出 `−3.482/−3.458/−3.474 ns`（件 `build/evidence/r119_xdc_loads_probe3.txt`），
   换成打在钟脚上的 20 ns 参考钟给出 `−4.897/−4.873/−4.890 ns`（件 `_probe4_pinclk.txt`）。
-  规范那条是 **skew（两脚到达时刻之差的上限）**，`set_output_delay` 是**采样窗**，两者不同量纲 ⇒ 这是**记在约束侧的量纲错**，
+  规范那条是 **skew（两脚到达时刻之差的上限）**，`set_output_delay` 是**采样窗**，两者不同量纲，因此这是**记在约束侧的量纲错**，
   不是设计的时序债，也**不许**靠放宽窗把它变绿。（ISSUES #335）
 - 换问法之后：在已布线成品（`system_top_routed.dcp`）逐脚量 clock-to-pin `Data Path Delay`，
   互对最差 **0.065 ns**（上限 0.20 `Tcharacter` = 4.000 ns）、对内最差 **0.001 ns**（上限 0.15 `Tbit` = 0.300 ns），

@@ -21,17 +21,17 @@
 ## A2 命令选项集探针（40 秒一次，量的是本机工具到底有什么）
 
 探针脚本 `build/tcl/r115_help_shapes.tcl` 与它的 console（`build/evidence/r115_help_shapes_console.txt`、
-`build/evidence/r114_help2_console.txt`、`build/evidence/r114_help_probe_console.txt`）都是过程件、已随轮次清理 ⇒ 复算 = 在没有 design 的 Vivado Tcl 里跑一遍 `help <cmd>` 批（实测 40 秒一支）。量到并**改变了做法**的几条：
+`build/evidence/r114_help2_console.txt`、`build/evidence/r114_help_probe_console.txt`）都是过程件、已随轮次清理，因此复算 = 在没有 design 的 Vivado Tcl 里跑一遍 `help <cmd>` 批（实测 40 秒一支）。量到并**改变了做法**的几条：
 
-- `report_timing_summary` **没有** `-extended / -numeric_summary / -to` ⇒ 逐域数字只能从它的 Intra Clock Table 解析，不能靠额外旗标。
+- `report_timing_summary` **没有** `-extended / -numeric_summary / -to`，因此逐域数字只能从它的 Intra Clock Table 解析，不能靠额外旗标。
 - `report_design_analysis` 实测可用：`-complexity -congestion -timing -routes -logic_level_distribution -routed_vs_estimated -qor_summary`；**是 `-routes` 不是 `-routing`，也没有 `-fanout`**。
 - 本机**没有** `set_max_fanout`、没有 `report_methodology -rules`（只有 `-checks`）、没有 `get_false_paths/get_clock_groups/get_timing_exceptions`（只有 `report_exceptions`）、没有 `get_input_delays/get_output_delays` 命令。
-- `get_ports` **没有** `-direction` ⇒ 端口清单要从 RTL 端口表或 `report_exceptions` 反推，不能一条命令问出来。
+- `get_ports` **没有** `-direction`，因此端口清单要从 RTL 端口表或 `report_exceptions` 反推，不能一条命令问出来。
 - 时钟对象上**没有** `*UNCERT*` 属性（时钟只有 CLASS/FILE_NAME/INPUT_JITTER/…/WAVEFORM/WEIGHT 那一串），
-  `set_clock_uncertainty` 也不返回对象列表 ⇒ "**四个域各自有没有 hold 不确定度**"这件事问不出来（ISSUES #295），
+  `set_clock_uncertainty` 也不返回对象列表，因此"**四个域各自有没有 hold 不确定度**"这件事问不出来（ISSUES #295），
   只能用"两滚差分"间接量（C2 那一刀，`build/uncertainty_uniform_ab.sh`）。
 - 网对象只认**裸分层路径**（`get_nets -quiet a/b/c`）；`-filter "NAME == {…}"` / `FULL_NAME` / `-hier`+短名三种形式实测恒空。
-  ⇒ `build/tcl/mf114_roll.tcl` 的取网逻辑按这条重写，并在取回后再做一次 `NAME` 字面相等核对。
+  所以`build/tcl/mf114_roll.tcl` 的取网逻辑按这条重写，并在取回后再做一次 `NAME` 字面相等核对。
 
 ## A1 的取文档通道：打通了**一半**，而这一半改掉了候选约束的数
 

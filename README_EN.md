@@ -2,11 +2,28 @@
 
 [中文](README.md) · English
 
-## Introduction (what the system does)
+## Introduction
 
-The host splits 512×300 RGB565 frames into UDP packets of at most 1392 bytes and sends them to port 5001 on the board. Reception does not go through the PS: the PL recovers GMII from RGMII, reassembles the Ethernet frame, filters by port and writes the payload into the ping-pong DDR frame buffers as an AXI master (only the SD path is DMA'd in by the PS). The PL then reads a frame back, runs the per-bit switchable effect chain (six pipeline stages, a 9-bit control word, one bit per algorithm) plus zoom, rotate and split blend, and drives 1024×600 HDMI through a ×2 expand. One vertical seam splits the screen: the left window is the original, the right window is the processed image in the same coordinate system, and the seam position comes from the control word (0–100 %). That view is both the demo and a measuring instrument: misalignment, dropped columns and out-of-range fill show up on both sides of the seam at once.
+The host splits 512×300 RGB565 frames into UDP packets of at most 1392 bytes and sends them to port 5001 on
+the board. No software touches individual pixels on this path. The PL recovers GMII from RGMII, reassembles
+the Ethernet frame, filters by port and writes the payload into the ping-pong DDR frame buffers as an AXI
+master; only the SD path is DMA'd in by the PS. The PL then reads a frame back, runs it through the effect
+chain of six pipeline stages switched bit by bit by a 9-bit control word, through zoom and rotation, through
+the split blend and the five-line OSD, and drives 1024×600 HDMI through a ×2 expand. Whatever combination of
+algorithms is active, the chain latency stays 15 cycles.
 
-Three sources feed it - the UDP video stream from the network, a pre-converted SD frame sequence, and a test card drawn by the PL - arbitrated by `src_arb` and switched by a long key press. `link_monitor` inside the PL keeps counting received packets, drops and frame gaps; the same counters go to the OSD, can be read back over AXI GPIO with xsdb (lane select in GPIO_0, value in GPIO_1), and can be cleared by serial commands. Beside the RTL and the host tools the repository carries 82 testbenches (`sim/tb_*.v`) and 49 practice entries decoupled from this topic (`skill/`), and every tool report can be re-run with the commands further down.
+One vertical seam splits the screen. The left window shows the original, the right window shows the processed
+image in the same coordinate system, and the seam position is a run-time parameter in the range 0 to 100 %.
+This layout is both the demo and an instrument: misalignment, dropped columns and out-of-range fill become
+visible on both sides of the seam at the same moment.
+
+Three sources feed the chain, the UDP video stream from the network, a pre-converted SD frame sequence, and a
+test card drawn by the PL. `src_arb` arbitrates them and a long key press switches. Inside the PL,
+`link_monitor` keeps counting received packets, drops and frame gaps. The same counters go to the OSD, can be
+read back over AXI GPIO with xsdb, where GPIO_0 selects a lane and GPIO_1 returns its value, and can be
+cleared by serial commands. Besides the RTL and the host tools, the repository carries 83 testbenches
+(`sim/tb_*.v`) and 49 practice entries decoupled from this topic (`skill/`). The commands further down re-run
+every tool report.
 
 ## Directory guide
 
@@ -51,7 +68,7 @@ The board now runs r132, bitstream identity `build/system.bit md5=cb907d3e4898` 
 `build/r132_streamwrap_build.log`; the 2026-10-17 11:36 reports `build/utilization.rpt` / `timing_summary.rpt` / `power.rpt` are that same run).
 Every reading below comes from that build. This page deliberately makes no claim of an all-green gate set for the build on the board; run `bash build/gates.sh` and read its last line.
 
-Main clocks: pixel clock 50 MHz (`clkout0_1`, H_TOTAL 1344 / V_TOTAL 625 ⇒ 59.5 Hz field), PL logic clock 100 MHz (`clk_fpga_0`), Ethernet capture domain 125 MHz (`eth_rxc`); constraints live in `src/constraints/` and cover clocks, I/O delays, clock uncertainty and async groups. After implementation the design-wide worst setup slack is 0.687 ns with failing setup and hold endpoints 0 / 51027, so intra-die paths are met (WNS 0.687 ns / TNS 0 ns / 0 failing endpoints), and both directions are 0.
+Main clocks: pixel clock 50 MHz (`clkout0_1`, H_TOTAL 1344 / V_TOTAL 625, so 59.5 Hz field), PL logic clock 100 MHz (`clk_fpga_0`), Ethernet capture domain 125 MHz (`eth_rxc`); constraints live in `src/constraints/` and cover clocks, I/O delays, clock uncertainty and async groups. After implementation the design-wide worst setup slack is 0.687 ns with failing setup and hold endpoints 0 / 51027, so intra-die paths are met (WNS 0.687 ns / TNS 0 ns / 0 failing endpoints), and both directions are 0.
 
 | Row name (machine-read) | Reading | Source |
 | --- | --- | --- |
