@@ -334,6 +334,17 @@ J4 对内 P/N     max角=[0.001, 0.001, 0.001, 0.001] min角=[0.001, 0.001, 0.00
 `_doc_gate_xiaosai.py` ALL PASS；申报正文 `technical-document-contest.md` 这一批未触碰，
 Word 快照对齐器 dry 给 rewrite=0（所以没有再同步一次的需要）。门禁 24 项在 02:0x 重跑一趟，仍全绿。
 
+第五、六批（02:29–02:32）补的是两类漏网的现在时：
+**讲稿与答辩**（`report/demo_talk_xiaosai.md` 的加演一幕、`report/judge_qa_xiaosai.md` 的四域 WNS/WHS
+与"最紧那条是什么"的追问答案）念的仍是 r118 的 0.739/0.052 与"11 级里 6 级进位链、行覆盖使能广播"——
+现版是 0.687/0.004 与"5 级 LUT 混合、布线占八成、ICMP 状态机打到一只复位脚"，
+最紧路径的归属换了人，这一条正是名册差分要防的事，写进答案里当面对追问；
+**资源百分比**（`report/04-resources.md` 的"68.21 % 是最紧的一项"、`report/project-brief-for-ai.md`
+的门槛表与采样表、`report/comparison-notes.md` 的对读行）把上一版的 68.21 / 26.61 / 7.70 当现值念，
+改成 68.57 / 26.34 / 7.64 并把旧值留在括号里标成上一版。
+之后门禁再跑两趟（`build/evidence/r132_gates_run5.txt`、`r132_gates_run6.txt`），都是 24 项全部判定、0 红；
+`_doc_gate_xiaosai.py` 在讲稿改字之后仍 ALL PASS（talk=6553、qa=10310）。
+
 ## 七、这一轮的过程账（一件，写进 ISSUES）
 
 臂 A 的红其实是 16 天前就判完的结论，我按"第一条命中"开了一次不必要的构建，
