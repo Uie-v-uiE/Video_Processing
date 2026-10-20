@@ -32,9 +32,9 @@
 | # | 指标 | 软件算出（来源 + 口径） | 参考侧（来源 + 口径） | 差值 | manifest 基准条目 | 判定 |
 | --- | --- | --- | --- | --- | --- | --- |
 | B1 | CDC Critical 配对/端点/unsafe | 仓库留档 `cdc.rpt`（frozen_r23 那一份，轮次留档不随包）（kv 抽取 `endpoints=@5`、`unsafe=@3`） | `build/cdc_baseline.txt`（`endpoints=@2,unsafe=@1`）；容差 0 | 0 | 无 | **PASS**（V01，判 18 项，红 0） |
-| B2 | 全局 setup WNS / hold WHS / 失败端点 / LUT/FF/BRAM/DSP / 动态功耗 | `build/timing_summary.rpt`、`build/utilization.rpt`、`build/power.rpt` 现读 | `data/metrics.csv` + 根 README 首页那 60 个数 | 逐数 0 超差（114 个数） | 无 | **PASS（射程内）**；`data/metrics.csv` 另 18 行不在该尺射程 ⇒ `NOT_MEASURED`（V08） |
+| B2 | 全局 setup WNS / hold WHS / 失败端点 / LUT/FF/BRAM/DSP / 动态功耗 | `build/timing_summary.rpt`、`build/utilization.rpt`、`build/power.rpt` 现读 | `data/metrics.csv` + 根 README 首页那 60 个数 | 逐数 0 超差（114 个数） | 无 | **PASS（射程内）**；`data/metrics.csv` 另 22 行不在该尺射程（表 32 行，其中 10 行点名那三份报告） ⇒ `NOT_MEASURED`（V08） |
 | B3 | 逐时钟相对余量（r116 相对冻结基线） | `build/evidence/r116_roster_e1.tsv` 的 `rel_margin_*` | `report/timing/roster_baseline.tsv`（B3 冻结基线） | `eth_rxc` −0.198125 / −0.115250 | 无 | **RED**（V02：comparisons_made=32、both_NA=8、red=2） |
-| B4 | 顶层整屏台架条数 | `build/tb_v98_report.txt` 现数 161 + 1 = 162 | `data/metrics.csv:15` 声称的 141（点名 `top_md5=2bf2ceeede07`） | 无法比：该指纹的件盘上 **0 件** | 无 | **NOT_MEASURED**（V11；基准摘要不符 = 不许继续用） |
+| B4 | 顶层整屏台架条数 | `build/tb_v98_report.txt` 现数 161 + 1 = 162 | `data/metrics.csv:15` 现值 **165 条**（2026-10-18 按现件重算，点名 `build/tb_v98_report.txt`）；141 是这一行当时的旧值，已不在表里 | 无法比：该指纹的件盘上 **0 件** | 无 | **NOT_MEASURED**（V11；基准摘要不符 = 不许继续用） |
 | B5 | `gapclr` 同拍竞争（F2e B） | `build/r97_180_before.txt` `FAIL F2e B lane5 kept pre-clear history: sum=518 > 2x130` | 判据定义 `sim/tb_link_monitor.v` 的 F2e（A 腿是控制：`sum=130 ≤ 2×130`） | 518 vs 260 上限 | 无 | **FAIL（长期红，已声明）**；预验显示 `base红=1 → cut红=0`（V: `build/evidence/r174_f2e_preverify.txt`），修复**未进真树** |
 | B6 | 尺子能不能变红（变异/对照） | `temp_formula_check.mjs` 3 支变异 + `r115_roster_build.py --self` 5 条对照 | 各自的期望红点 | 全部命中唯一红点 | 无 | **PASS**（V04/V09） |
 
@@ -102,7 +102,7 @@
 | --- | --- | --- | --- |
 | U1 | 板级抓帧件（屏上/帧缓存的真实像素） | 仓库里没有 ⇒ 表 A 对 manifest 全 `NOT_MEASURED` | P16a 运行脚本 + 一支读帧缓存的尺子（`src/host/ddr_verify.mjs` 目前只吃图案） |
 | U2 | `data/golden/` 13 件的可复现产生程序 | manifest §8 记 13 件全含糊 | Q-P04-1 / Q-P17-2（队伍定权威产生方式，不替定） |
-| U3 | `data/metrics.csv:15` 的 141 条 | 点名的指纹盘上 0 件 ⇒ 该行是**陈旧数**；`metric_recheck` 射程不含它（它只认 timing/utilization/power 三份报告） | 队伍决定：重跑台架把新数写进该行，或把该行改成 `NOT_MEASURED`（不改 `data/`） |
+| U3 | （已闭 2026-10-18）`data/metrics.csv:15` 当时那格的 141 条 | 点名的指纹盘上 0 件 ⇒ 那格当时是**陈旧数**，已重算成 165/0；`metric_recheck` 射程不含它（它只认 timing/utilization/power 三份报告） | 队伍决定：重跑台架把新数写进该行，或把该行改成 `NOT_MEASURED`（不改 `data/`） |
 | U4 | `data/golden/manifest.md` §5 打印 `磁盘 N=14 表里 N=14`，本轮现算是 **13/13** | 差 1 件，没有动 `data/`，只登记差异 | P17 复核（可能是登记日之后删过/改名，也可能是那一次的计数口径） |
 | U5 | Zynq 功耗档/供电读数 | 全仓库无一件自报 ⇒ 每张条件卡的"功耗模式"格都是 `【待补】` | 队伍给硬件侧口径 |
 | U6 | `r117_board/` 是空目录 | r117 那一轮没有板级实测件可登记 | 队伍确认那轮是否真的没上板 |

@@ -63,7 +63,7 @@
 | 基线那一版 | 相对余量与资源都按它起算的那一次 | `build/evidence/r114_after.txt`、`report/timing/roster_baseline.tsv` |
 | 带输入窗那一版 | 多带一份输入窗约束的那一次构建 | `build/evidence/r116_after.txt`、`report/timing/roster_round116.tsv` |
 | 撤掉输入窗那一版 | 把那份输入窗撤回去的那一次构建 | `build/evidence/r117_after_roster_probefmt.txt` |
-| 板上现役那一版 | 现在烧在板上的那一版（身份行在 `README.md` 首页） | `build/evidence/r118_after_roster_probefmt.txt`、`build/r118_gates.txt` |
+| 板上现役那一版 | 现在烧在板上的那一版（身份行在 `README.md` 首页） | `build/evidence/r132_after_roster_probefmt.txt`、`build/evidence/r132_gates_run3.txt`（2026-10-20 补账轮重导；r118 那两件仍在原处，念当时读数用它们） |
 
 单轮次只出现一次的比较（例如 P11–P16），行名里不再写轮次号，改为直接点名两件凭据件：
 照着件名读，轮次号自己就在里面。
@@ -75,7 +75,7 @@
 | 派生量 | 公式 | 两个原始数（出处） | 说明 |
 | --- | --- | --- | --- |
 | `rel_margin_setup` | `wns_setup / period_ns` | 周期取名册 `period_ns` 列；`wns_setup` 取 `report_timing_summary` 的 Intra Clock Table — 件 `report/timing/roster_baseline.tsv` 第 2 行口径注释"rel_margin_* = wns_* / period_ns（§4 E2 强制）" | 定义来自名册自己的口径注释，不是这张登记表另发明的 |
-| `margin_pct` | 同上，由名册生成器打印 | `build/evidence/r118_after_roster_probefmt.txt` 的 `ROSTER\|setup\|clk=…\|period=…\|slack=…\|margin_pct=…` 行 | **直接引用打印值**，不重算（`report/05-timing.md` §1 同口径） |
+| `margin_pct` | 同上，由名册生成器打印 | `build/evidence/r132_after_roster_probefmt.txt`（现版那份；`margin_pct` 的写法两版相同） 的 `ROSTER\|setup\|clk=…\|period=…\|slack=…\|margin_pct=…` 行 | **直接引用打印值**，不重算（`report/05-timing.md` §1 同口径） |
 | `io_unconstrained_ports` | `check_timing -verbose` 的 HIGH 两类之和（端口对象单位） | `report/timing/roster_baseline.tsv` 第 2 行注释：输入 5 + 输出 6 = 11 | 单位是**端口**，与 §7 的 TIMING-18 不同量纲 |
 | `unconstrained_endpoints` | `check_timing -verbose` 自己那行 "pins that are not constrained for maximum delay" | `report/timing/debt_ledger.md` §1：实测 0 | 单位是**设计级一个数** |
 | **同一个名字下并存两套口径（口径冲突，已登记不合并）** | `rel_margin_*` 是**比值**（如 `0.185000`），`margin_pct` 是**百分数**（如 `18.50`）；两者同量不同单位 | 比值侧：`build/roster/roster_r118.tsv` 第 4 行"口径冲突（两把尺子并存）…**判据 G1/G2 用本表 ⇒ 裁决以本表为准"；百分数侧：`build/roster/roster_r118_probe.tsv` 第 3 行与 `build/evidence/r118_after_roster_probefmt.txt`（百分数侧的件按轮命名，每一轮各有一份） | 因此 §2.2 的 Q1/Q2/Q3 里凡引"百分点"的都注明是**打印百分数那一套**给出的；两套的数不相减 |
@@ -154,7 +154,7 @@
 
 | 项 | 口径来源 | 注意 |
 | --- | --- | --- |
-| "判定 24 项 / 未判 0 项" | 发布前检查件末行自己打印（`build/r118_gates.txt:53`）；条数以文件内 `say` 调用次数为准，脚本头部明写"不再写死条数"（`report/06-validation.md` §3） | 与 `data/metrics.csv` 第 14 行的"22 项"不同值，差异 D1，以件为准 |
+| "判定 24 项 / 未判 0 项" | 发布前检查件末行自己打印（`build/r118_gates.txt:53`）；条数以文件内 `say` 调用次数为准，脚本头部明写"不再写死条数"（`report/06-validation.md` §3） | `data/metrics.csv` 第 14 行已按现件改成 24 项，D1 这条差异关闭（2026-10-19 那一轮做的；本轮再跑两趟都是 24 项全判定） |
 | "23 绿 / 1 红" | `build/evidence/r118_board/gatesc_summary.txt`：`GATESC done id=identical green=23 red=1`，且两跑逐字节一致（这一格是脚本打印的状态词，原样引用） | 唯一红 = 公开声明保留的 `C5c`（`report/known_issues.md` §一 第 1 条），**不是新失败** |
 | "发布前检查通过 ≠ 已验证" | 三条件可指路的理由：`build/gates.sh` 头部"数字全部来自 Vivado 报告本身，不重新跑构建"；`build/tcl/README.md` §1"不要相信退出码"；板上现役那一版的 B4 采纳判据与脚本结尾那句"不采纳，保留上一版"是**两条不同口径的句子**（`report/06-validation.md` §3） | 只念对自己有利的那一句 = 把发布前检查当装饰 |
 | 三态 | `PASS / FAIL / NOT_MEASURED`；出问题的分支在脚本里有独立 token（`NO-VERDICT-LINE` 退出码 4、`GATES: PARTIAL`、摘要里的 `?`）（`report/06-validation.md` §1） | 读不到输入 = NOT_MEASURED，绝不等于 PASS |
@@ -165,7 +165,7 @@
 | --- | --- | --- |
 | `report/40-optimization.md` 与 `report/50-results.md` 里出现的比值/百分比/差值条目 | §2 登记 **20 条 Δ（P1–P20）+ 8 条比值（Q1–Q8）= 28 条** | 逐条见 §2 的表；每条都有"公式"列与前后两个出处 |
 | **无公式的派生量数** | **0**（未在此登记的派生数视为不存在；若读到未登记的派生数即为 FAIL） | 人工核对：`grep -n "%" report/40-optimization.md report/50-results.md`，把每一处对上 §2 或"原始数直接来自件"的例外（下面列的三条） |
-| 三处**不算派生量**的百分数（是件里印出来的） | `utilization.rpt` 的 `26.61 / 7.70 / 68.21 / 8.64 / 24.05 / 25.00 / 50.00 / 13.50 / 2.50`（占比列）；名册 `margin_pct`；发布前检查行的 `BRAM 95.5/68.21%`、`Slice LUT 14154/26.61%` | `build/utilization.rpt:35,37,40,106,121,161`；`build/r118_gates.txt:14,15`；`build/evidence/r118_after_roster_probefmt.txt` |
+| 三处**不算派生量**的百分数（是件里印出来的） | `utilization.rpt` 的 `26.61 / 7.70 / 68.21 / 8.64 / 24.05 / 25.00 / 50.00 / 13.50 / 2.50`（占比列）；名册 `margin_pct`；发布前检查行的 `BRAM 95.5/68.21%`、`Slice LUT 14154/26.61%` | `build/utilization.rpt:35,37,40,106,121,161`；`build/r118_gates.txt:14,15`；`build/evidence/r132_after_roster_probefmt.txt`（**2026-10-20 现版同一列**：LUT 14013 / 26.34 %、BRAM 96 / 68.57 %，件 `build/evidence/r132_rgmiiwindow_utilization.rpt` 与基线逐字相同） |
 
 ## 7. 与 `report/50-results.md`、`build/roster/` 的交叉核对（判定标准 5）
 

@@ -15,10 +15,10 @@
 | 报告形状测量（写解析之前） | `build/tcl/probe_report_shape_pin.tcl` | `r119_shape_tmds_data_p_0_.txt`（第 22 行是 `Data Path Delay`，**没有** `data arrival time` 这一行） |
 | 已布线成品的逐脚 clock-to-pin 离散 | `build/tcl/probe_tmds_pin_skew.tcl` 打在 `system_top_routed.dcp` | `r119_pin_skew_probe2.txt`（互对最差 0.065 ns、对内 0.001 ns）；失败的第一版 `r119_pin_skew_probe.txt` 一并保留 |
 | 窗件尺子 | `node build/r119_window_check.mjs` 与 `--self` | `build/evidence/r119_window_check.txt`：判 10 项红 0；`--self` 十条畸形各自动红、两条缺输入报 `NOT_MEASURED`；两跑逐字节一致 |
-| 仓库门禁 | `bash build/gates.sh` × 2 | 两跑逐字节一致；判定 24 项、23 绿、**1 红 = 已声明的 C5c**（顶层台架 `tb_v98` FAIL 行=1） |
+| 仓库门禁 | `bash build/gates.sh` × 2 | 两跑逐字节一致；判定 24 项、23 绿、**1 红 = 已声明的 C5c**（顶层台架 `tb_v98` FAIL 行=1；r118 那一轮）——**2026-10-20 重跑两趟：24 项全判定、0 红**，件 `build/evidence/r132_gates_run2.txt` 与 `r132_gates_run3.txt`，末行都是 `GATES: ALL PASS（24 项全部判定）` |
 | 技能包门禁 | `node 旧条目名 scripts/check/gen_index.mjs（盘上无此路径）` + `gates.mjs`（两个都是 2026-10-04 c7b325f 重建前的旧包件名、**现不存在**；今天这一格由 `skill/_meta/build-index.mjs` + `skill/_meta/check-skill-package.mjs` 承担）| 最近一次：判定 12 项 = 9 绿、**2 红（G2 缺壳、G10 专有名未标注）**、1 未测（G11 selftest） |
 | 敏感信息扫描 | `git grep -lI -e <用户名> -e <本机名>` 全仓 / 只看向导类文件 | 结果记进 ISSUES #336：工具产出原件 814 份含 `Host :`/临时绝对路径；手写文档 2 份含临时路径 |
-| 位流身份读回 | `md5sum build/system.bit` = `cb907d3e4898…`（r132 这一轮；门禁件尚未重跑） | 支撑 `system_top_routed.dcp` 与板上位流同轮的**推断**（目录与时间戳对应，非工具指纹绑定） |
+| 位流身份读回 | `md5sum build/system.bit` = `cb907d3e4898…`（r132 这一轮；门禁件已在 2026-10-20 重跑，见 `build/evidence/r132_gates_run3.txt`） | 支撑 `system_top_routed.dcp` 与板上位流同轮的**推断**（目录与时间戳对应，非工具指纹绑定） |
 
 ### 我写/改的文件（全部随下列提交入库）
 - `8627be5`：`src/constraints/r119_hdmi_source_window.xdc`（改写成纯 SDC）、

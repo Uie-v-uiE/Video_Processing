@@ -1,6 +1,6 @@
 # 读数说明与字段位置表（P15b · `report/build-notes.md`）
 
-口径：**读数基准 = r118**（`build/provenance.md:1`；位流 `cd04907e1369`，`build/provenance.md:134`）。
+口径：**`build/provenance.md` 的 §1–§6 逐条读数基准 = r118**（`build/provenance.md:1`；位流 `cd04907e1369`，`build/provenance.md:134`）；**2026-10-20 起逐域名册这一族已经换到现版**（位流 `cb907d3e4898`，件 `build/evidence/r132_after_roster_probefmt.txt` 与 `build/roster/roster_r132.tsv`），本文件里点名的 r118 名册仍按 r118 念——两边不相减。
 这里在每一份表旁边配四件事：**它能证明什么、不能证明什么、告警条数该怎么读、字段在原件的第几行第几列**
 （P15b 铁律 4 + 铁律 1）。与 `build/reports/index.md`（原件索引）、`build/coverage.md`（约束覆盖面）互引，不重复维护。
 所有行/列是 2026-10-04 用 `grep -n` / `sed -n` / `awk` **现取**的，没有一处按记忆写列序；
@@ -11,7 +11,7 @@
 | 表 | 能证明 | 不能证明 |
 |---|---|---|
 | `build/parsed/parsed_timing_summary.rpt.json` + `build/roster/roster_r118.tsv` | 8 路域各自的 setup/hold 最差值、失败端点数、端点总数（分母）、脉宽检查数 | 不能证明"设计整体时序收敛"：I/O 口没有窗（`build/coverage.md` C5/M6），且 4 路域在原件 Intra 表里只有名字（`build/timing_summary.rpt:184,185,187,188` ⇒ 名册写 `NA`，不是 0） |
-| `build/roster/roster_r118_probe.tsv` | 逐钟最差路径的 slack/逻辑级数/布线占比/终点名（探针尺子） | 与上一行是**两把尺子、两种单位**：`rel_margin_*` 是比值（0.185000），本表 `margin_pct` 是百分数（18.50）。裁决 G1/G2 只用比值那张；本表 `NOWRITE` = 该域没有可读路径，**不是 0** |
+| `build/roster/roster_r118_probe.tsv` | 逐钟最差路径的 slack/逻辑级数/布线占比/终点名（探针尺子） | 与上一行是**两把尺子、两种单位**：`rel_margin_*` 是比值（0.185000），本表 `margin_pct` 是百分数（18.50）。裁决 G1/G2 只用比值那张；本表 `NOWRITE` = 该域**没有同沿路径**，不是 0、也不是“读不到”（口径见 `report/timing/debt_ledger.md` §1 与 `report/timing/round_r132.md` 第三节） |
 | `build/parsed/parsed_utilization.rpt.json` | 器件级资源用量（如 `Slice LUTs 14154 / 26.61%`，`build/utilization.rpt:35`） | **不能按模块归属**：r118 件里没有 `Utilization by Hierarchy` 一节（`grep -n 'Utilization by Hierarchy' build/utilization.rpt` 0 命中 ⇒ 解析件写 `utilization_by_hierarchy_present = NOT_MEASURED`）；仓里 `build/util_hier.rpt` 的日期是 9 月 25 日，不是 r118 ⇒ 该维度 `NOT_MEASURED`（铁律 6：不许把隔离统计当整体增量） |
 | `build/parsed/parsed_methodology.rpt.json` | 方法学检查的**条数**与规则号 | 见第 2 节：条数是代价不是错误，本表不带判定列 |
 | `build/parsed/parsed_cdc.rpt.json` | 9 行跨域统计的原文（`sections.table.rows[]`） | `field_positions[]` 里 `cdc[…].Endpoints/Safe/Unsafe` 的**字段名与值不同义**（见第 4 节缺陷 D-1）⇒ 只用 `sections.table.rows[].cells.col11..col15` |

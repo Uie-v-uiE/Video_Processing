@@ -86,7 +86,7 @@
 每条都标了数从哪一行回来。**没有一条是 CTS 表**（CTS 表不可公开，见第四节）；凡代理值都明确标注。
 本工程的真实钟名（`src/constraints/clock_groups_impl.xdc` 注释）：`clk_pix`（像素 50 MHz）、`clk_pix5x`（TMDS 串行 250 MHz）、`sys_clk`（W17，20 ns）、MMCM 输出 `clkout0_1 / clkout1_1 / clkout2`。落约束前请先用 `get_clocks` 确认当前实现里到底哪个名字存在，**这一句是工具事实核对提示，不是规范内容**。
 
-### 3.1 钟↔数据窗（`tmds_data_*` 对 `tmds_clk_p`）——**有规范原文，可写**
+### 3.1 钟↔数据窗（`tmds_data_*` 对 `tmds_clk_p`）——**有规范原文，可写**（2026-10-20 限定：可写的是**数**，不是这个容器。规范那条是互对偏斜上限（skew），`set_output_delay` 是采样窗；两版形状挂进 SDC 都只造违例，判为量纲错，见 `report/log/issues.md` #335）
 
 形状（**50 MHz 档，窗 ±4.000 ns**；**74.25 MHz 档，窗 ±2.6936 ns**）：
 

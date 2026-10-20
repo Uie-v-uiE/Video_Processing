@@ -65,7 +65,7 @@
 
 - **现象**：`check_timing -verbose` 点名 6 个"没有任何 output delay 的端口"
   `led[0]`、`led[1]`、`tmds_clk_p`、`tmds_data_p[0]`…`tmds_data_p[2]`
-  （读数表在 `report/timing/debt_ledger.md` §2 追加的追加；另有 6 条 MEDIUM 是既有 false path 覆盖，
+  （读数表在 `report/timing/debt_ledger.md` §2 追加的追加，现版同名件是 `build/evidence/r132_check_timing_verbose.txt`；另有 6 条 MEDIUM 是既有 false path 覆盖，
   `report/timing_global.md` §4 那张表把 HIGH/MEDIUM 分开念）。
 - **已定位的原因**：屏（TMDS）那一路现在报的"MET"**不包含芯片到面板那一段**，而 LED/MDIO
   连"我是假路"那句话都没写过（`report/timing_global.md` §4）；
@@ -102,7 +102,7 @@
 - **关掉它需要什么**：4 对 TMDS 按该文 §3.1 的形状落 XDC（参考钟取转发出去的 TMDS 钟道、
   窗 = 0.20 `Tcharacter` = 50 MHz 档 ±4.000 ns，并按同节第二条把板级走线失配从窗里**减掉**而不是忽略）；
   两颗 LED 的 (b) 已经做了（见上一条），不再待办；
-  然后一次带名册差分的构建 + `check_timing -verbose` 复问缺口 6 → 0，
+  带名册差分的构建 2026-10-20 在 r132 上滚过了（`clkout1_1` setup −5.408，那条红判为量纲错，#335、过程账 #493），`check_timing -verbose` 也有现版件（`build/evidence/r132_check_timing_verbose.txt`，缺口仍是 6 个输出）；所以这里真正还欠的不是"再滚一次构建"，是连接器那一段离散与眼图/抖动/占空比/边沿速率，
   同时把该文文末那句"未做 HDMI CTS 合规验证"跟着写进交付文档。绑之前要先定"对外声称符合到哪一档"——档位没定，窗就没有落点。
 
 ## 4. 五个 RGMII 收端点当前没有被约束覆盖（窗退回候选件）
@@ -125,8 +125,8 @@
 - **现在的处置（是否影响演示）**：默认关着走（开关 `VP_R116_IO_WINDOW` 不开），窗留在候选件里；对外口径念成
   "片内路径零违例 + 收口 I/O 当前无窗"，不念成"收口已通过"。演示不受影响：板上这一版的串口命令电池与
   几何判定都在不带窗的这一版上跑通过（件 `build/evidence/r118_board/board_verify_console.txt`）。
-- **关掉它需要什么**：`VP_R116_IO_WINDOW=1` 复现带窗那一版（`build/tcl/build_system_axigpio.tcl:42`
-  写的是"一条命令复现"），但那一项发布前检查会判未通过；真正关掉它的是第 5 节那项架构改动，不是再挪一档 τ。
+- **关掉它需要什么**：`VP_R116_IO_WINDOW=1` 复现带窗那一版（`build/tcl/build_system_axigpio.tcl:57`
+  写的是"一条命令复现"），但那一项发布前检查会判未通过——**2026-10-20 在现版滚过一次**：setup −0.846 / hold −0.870、两个角各红那 5 个端点，输入侧未约束端口 5→0、输出侧 6 个原样在（件 `build/evidence/r132_rgmiiwindow_roster.txt` 与那份摘要的 `:99`/`:106`）；真正关掉它仍是第 5 节那项架构改动，不是再挪一档 τ。
 
 ## 5. 唯一还能改变结论的是架构那项改动（`#194` → `#311`/`#313`，前置实测还欠着）
 

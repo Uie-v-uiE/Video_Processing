@@ -85,7 +85,7 @@ bash -n build/gates.sh build/board_verify.sh build/sim/run_one.sh build/sim/mut_
 | # | 命令 | 执行目录 / shell | 前置与外部状态 | 完成后应看到什么 | 判定 |
 |---|---|---|---|---|---|
 | 2.1 | `vivado -mode batch -source build/tcl/build_system_axigpio.tcl` | `<仓库根>` / Git Bash 或 cmd（`vivado` 换成 `<Vivado>/bin/vivado.bat` 全路径，或把 `bin` 加进 `PATH`）| 磁盘余量（一轮实现会写 `vivado_system/`）、无第二个 Vivado 在跑（`report/log/issues.md` 的 #234/#251 记过"改正在跑的脚本 / 起第二个实例"两类自己弄坏构建的情况）| 脚本自己按四件事播报：建工程 → 收 RTL/约束/BD（清单 `build/tcl/set_src.tcl`）→ 综合 → 实现出位流；产物 `build/system.bit`、`build/system.xsa`、`build/*.rpt`（**平铺在 `build/`**，见第 6 节冲突 3）；中途失败会打印停在哪一步且不留下半套 | `NOT_MEASURED`（构建需批准，未跑）|
-| 2.2 | `md5sum build/system.bit` | `<仓库根>` / Git Bash | 2.1 跑过，或盘上已有本版位流 | 32 位 md5；拿它认身份，**不认文件名**（`report/known_issues.md` §3"位流与固件不入库/靠 md5 认身份"那条）| **PASS**：读到 `cd04907e1369…`（2026-10-05 复跑同值，见第 9 节），与 `build/r118_gates.txt` 的身份行 `system.bit md5=cd04907e1369` 逐字相同 ⇒ 盘上那份就是 r118 |
+| 2.2 | `md5sum build/system.bit` | `<仓库根>` / Git Bash | 2.1 跑过，或盘上已有本版位流 | 32 位 md5；拿它认身份，**不认文件名**（`report/known_issues.md` §3"位流与固件不入库/靠 md5 认身份"那条）| **PASS（当时那一次）**：读到 `cd04907e1369…`（2026-10-05 复跑同值，见第 9 节），与 `build/r118_gates.txt` 的身份行 `system.bit md5=cd04907e1369` 逐字相同 ⇒ 那次盘上那份就是 r118。**2026-10-20 盘上是 r132**：`md5sum build/system.bit` = `cb907d3e48982bf9e219f2492a7fc9ea`，与 build/evidence/r132_gates_run3.txt:3 的身份行 `system.bit md5=cb907d3e4898` 逐字相同 |
 | 2.3 | `python build/build_ps_app.py`（或 `node build/ps_app.mjs`）| `<仓库根>` / Git Bash | 需 `PS_CC`（1.7 那条路径）与 `PS_BSP`（默认指仓库内 `vitis/platform/…/bsp`）；**不想动交付件时把 `PS_OUT` 指到别处**（`report/build.md` 变量表明写这条）| 产出 `ps_app.elf` 并通过四道自检（入口==`_boot`、`_vector_table`==0x0、`.text` ≥ 20 KB、五个符号都在）；任一不过 ⇒ 非零退出，因为"链接成功"不等于可执行 | `NOT_MEASURED`（构建未跑；`PS_CC` 未设时它第一步 REFUSE 的文案实读在 `report/build.md` 里，未实跑验证）|
 | 2.4 | `bash build/freeze_evidence.sh rNN` | `<仓库根>` / Git Bash | 2.1 完成且发布前检查无未通过项 | 成套拷进 `build/frozen_rNN_<短名>/` 并写 `MANIFEST`；**发布前检查有未通过项时它会 REFUSE**（`GATES: ALL PASS` 才允许出现，否则打 `PARTIAL` 或有红项 ⇒ 拒绝归档）| `NOT_MEASURED`（既不跑构建也不改盘内 `build/`）；盘上那份门禁（`build/r118_gates.txt`）是**有红项**那一支（见 5.1）⇒ 照做会得到 REFUSE，这是预期行为不是故障 |
 
@@ -263,7 +263,7 @@ GATES: PARTIAL —— 判定 $NSAY 项全过，但有 $NNA 项因缺凭据未判
 GATES: 有红项（判定 $NSAY 项）—— 不采纳，保留上一版
 ```
 
-本轮那一版的实际结尾在件里：`build/r118_gates_final.txt` 末行 `GATES: 有红项（判定 24 项）—— 不采纳，保留上一版`，倒数第二行把范围一起念出来"判定 24 项、未判 0 项"；24 项 = 23 绿 / 1 红，唯一红是声明过的 `C5c`；两跑逐字节一致的凭据是 `build/evidence/r118_board/g2c.txt`、`g3c.txt`、`gatesc_summary.txt`（`GATESC done id=identical green=23 red=1`）。
+本轮那一版的实际结尾在件里：`build/r118_gates_final.txt` 末行 `GATES: 有红项（判定 24 项）—— 不采纳，保留上一版`，倒数第二行把范围一起念出来"判定 24 项、未判 0 项"；24 项 = 23 绿 / 1 红，唯一红是声明过的 `C5c`；**2026-10-20 同一串命令在 r132 上两跑都是 24 项全判定、0 红**（件 `build/evidence/r132_gates_run2.txt`、build/evidence/r132_gates_run3.txt），那条红随 C5c 关闭而消失；两跑逐字节一致的凭据是 `build/evidence/r118_board/g2c.txt`、`g3c.txt`、`gatesc_summary.txt`（`GATESC done id=identical green=23 red=1`）。
 
 采纳判据（`report/timing/round_r118.md` §二 B4：红数 == 1 且两跑一致）与脚本那句"不采纳"是两条不同口径的句子，要一起念，理由在 `report/06-validation.md` §3。
 

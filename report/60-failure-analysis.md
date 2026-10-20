@@ -174,7 +174,7 @@
   `tmds_clk_p`、`tmds_clk_n`、`tmds_data_p`、`tmds_data_n`（`led`/`eth_mdc`/`eth_mdio` 已按 §3.4(b) 走带理由的豁免，
   理由逐条给行号，见 `report/08-limits.md`）。
   名单级两条现在是**绿**的，而且是靠逐行数名字数出来的：`I7_verbose_selfreconcile` 读
-  `build/check_timing_verbose.rpt` 那份 `-verbose` 件，要求每段 `There are N …` 等于它下面点名的行数、
+  `build/check_timing_verbose.rpt` 那份 `-verbose` 件（**当时那份是 r114 的**；2026-10-20 同一把尺子改吃现版件，九条 GREEN，见本页末「2026-10-20 追加」），要求每段 `There are N …` 等于它下面点名的行数、
   且小标题总数等于 HIGH+MEDIUM 两段之和（实测 `no_input_delay=7/5+2`、`no_output_delay=12/6+6`）；
   `I10_names_vs_source` 再要求工具那份 HIGH 名单与我从 RTL+XDC 推出来的那份逐个名字对得上
   （输入侧集合相等；输出侧无幽灵名，我判 BARE 的每个引脚都被点名，差分对的负端按实测口径除外）。
@@ -216,7 +216,7 @@
   LED/MDIO 各一条带理由的豁免，理由长度由检查项钉住：`I6_exempt_integrity` 要求 ≥30 字）。
   成本 ≈ 一次 XDC 改动 + 一次实现（不用重综合，约 10 分钟）。
 
-### A7 · `clk_fpga_0` 那一格停在 18.5 %，对症那项改动量过、按严格口径未采纳
+### A7 · `clk_fpga_0` 那一格停在 18.5 %（现版 r132 读 15.71 %，件 `build/evidence/r132_after_roster_probefmt.txt`），对症那项改动量过、按严格口径未采纳
 
 - **现象（含证据）**：根首页"逐时钟 setup 余量"那一行自己写了这是名册上唯一"明知未到极限"的一格。
   证据件（三份都在盘上）：`build/evidence/r117_roster_diff_vs_r114.txt`、`build/r117_verdict_declined.txt`、
@@ -589,7 +589,7 @@
 |---|---|---|
 | 串口命令表 | 105 条命令 / 97.9 s，`board_verify` 判红步骤 0，件 `build/evidence/r118_board/board_verify_console.txt` 的末行。同族历史件曾登记 **36** 份 `build/evidence/verify_*.batt.txt`（最早 `verify_0926_1910`、最新 `verify_1004_0447`），提交包精简后那一批**现不存在**（`ls build/evidence/verify_*.batt.txt` 零命中），仍在盘上的另一跑总判定是 `build/r104_board_verify_console.txt` | 电池覆盖的是**命令表的行为形状**，不含 A3 的 127 字节越界那一档（`board/cmd_overflow_probe.sh` 是另一支，且它当前只红在恢复不了的那一档） |
 | 几何最后一跳 | `RESULT PASS geom_check（ok=10 fail=0）`，同一份件；G 族含 G5/G5b 那两条"旋转钳不变量" | 不判逐像素源行 ⇒ #189 缺一条板级机器判定（`known_issues.md` §12 明写"本条没有板级机器判据"）不在这一格里闭合 |
-| 时序/资源 | 发布前检查 24 项判定、`build/r118_gates.txt` 末行 `GATES: 有红项（判定 24 项）` ⇒ **不是全部通过**；端点总数 51135 | 绝对值跨构建差不算收益也不算损失（规矩 35）；且收口 I/O 无窗（A5）⇒ "零违例"这句话只覆盖片内路径 |
+| 时序/资源 | 发布前检查 24 项判定、`build/r118_gates.txt` 末行 `GATES: 有红项（判定 24 项）` ⇒ **不是全部通过**；端点总数 51135（那是 r118 那份件的形状。2026-10-20 重跑两趟都是 `GATES: ALL PASS（24 项全部判定）`、端点总数 51027，件 `build/evidence/r132_gates_run2.txt`、`r132_gates_run3.txt`） | 绝对值跨构建差不算收益也不算损失（规矩 35）；且收口 I/O 无窗（A5）⇒ "零违例"这句话只覆盖片内路径 |
 | 台架 | `sim/tb_*.v` 现算 **83** 支；`build/sim/run_sim.tcl` 是全量入口（通配符收全部） | 全量那一跑**没跑过**（一次批跑占整台机器）。`tb_link_monitor` 长期不通过且不在发布前检查里（A2）⇒ "82 支都过"这句话不能说 |
 | 人眼判定 | E1/E2/E3/E4/E4r/E5/E6 在 `board/acceptance.md` 都带"谁点的头 + 什么时候 + 原话"，E4 的"四角在不在屏内"由队员 2026-10-04 判过（原话「现在屏幕没问题了四角都在屏幕内」） | 眼睛只分辨 0 档与 ≥1 档这类差分，分辨不了位移宽窄（A1 里那条被眼睛判掉的定量预测就是证据）；E6 的对照一半仍未做（B4） |
 | 文档一致性 | 四套文本检查都在树里可跑且当前全绿：`doc_enc_check`（手写件全干净）、`line_cite_check`（`D5: CLEAN`，硬错 0）、`doc_currency_check`（`CURRENCY: 干净`）、`metric_recheck`（判 117 个数红 0）；扫描份数与命中条数由那一次跑自己打印，随交付树变，重跑即得当下的数 | 这四套都不覆盖 `board/` 的实测读数 ⇒ A13 那一格是覆盖范围外，不是回归 |

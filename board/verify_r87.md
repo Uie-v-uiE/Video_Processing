@@ -87,5 +87,5 @@
 
 - 捕获都放 `build/evidence/v_<编号>.txt`，判完连同"哪几条不对"一起回报；按结果决定要不要再上一版。
 - 全绿的话接着做的是：两份整屏台架报告（正在跑，`tb_v98_top_seam` ≈11:35、`tb_edge_rim` ≈12:23）→ `build/gates.sh` → `freeze_evidence.sh 87` → 更新 `PERF_REPORT` / `CONTEST_CHECKLIST` / `board/README` 版本卡 → `make_submission.sh`。
-- 曾经有一格长期是红的：门禁第 15 项里的 `C5c`（`#98` 帧头绕回那一族）。**它在 r132 关闭了**（#129，台账 `report/log/issues.md` #478：`head rows=36 wrong=0`、整架 165 条 PASS / 0 条 FAIL）；但 r132 这一轮的门禁还没重跑，所以这一格现在写"未跑"而不是"已绿"，冻结集也仍停在 r75 直到重跑。
+- 曾经有一格长期是红的：门禁第 15 项里的 `C5c`（`#98` 帧头绕回那一族）。**它在 r132 关闭了**（#129，台账 `report/log/issues.md` #478：`head rows=36 wrong=0`、整架 165 条 PASS / 0 条 FAIL）；r132 这一轮的门禁已在 2026-10-20 重跑：`build/evidence/r132_gates_run3.txt` 末行 `GATES: ALL PASS（24 项全部判定）`，这一格从此写“已绿”；`C5c` 那条红是 r118 的形状，不是现件的形状。
 

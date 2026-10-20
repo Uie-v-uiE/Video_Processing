@@ -15,7 +15,7 @@ PowerShell 脚本或任意串口终端发送，也可以通过 `xsdb` 直接写�
 回一行 `[CMD] 不认: <整行>` 并打印 help。
 
 板上现在跑的是 r132，位流 `build/system.bit` 的 md5 前 12 位 = `cb907d3e4898`
-（身份段在 `build/r118_gates.txt` 开头，板上读数在 `build/evidence/r118_board/board_now.txt`）。
+（身份段在 `build/r118_gates.txt` 开头，板上读数在 `build/evidence/r118_board/board_now.txt`；2026-10-20 起同一形状有现版件：身份与新鲜度两行在 build/evidence/r132_gates_run3.txt:2-3，逐域余册在 `build/evidence/r132_after_roster_probefmt.txt`）。
 认版本只认 md5，不认文件名：`bit/xsa/elf` 是一套，换 bit 必须重下 elf。
 
 一条命令敲下去，只有三种结局：**写了位**（回显里带着写进去的值）、**明确拒绝**（回一句话说清该敲什么、

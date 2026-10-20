@@ -297,6 +297,43 @@ J4 对内 P/N     max角=[0.001, 0.001, 0.001, 0.001] min角=[0.001, 0.001, 0.00
   `python ../_word_align_dp.py` 的核对（rewrite=0、equal=127），这一节的文档改动没有再触碰申报正文，
   所以 Word 不需要再同步一次。
 
+## 九、第二批文档同步（02:07 起，把"数已换、件与行号还没换"的那一批扫干净）
+
+上面第八节只覆盖这一轮直接点名的那十几份。之后按"任何一处把旧读数当现版念、或把现版主张引到旧件"
+的口径把整棵文档树扫了一遍，又落 33 份文件（三批锚点级替换共 70 条，每条都要求在原文件里唯一命中）。
+分五类，每类都能举出具体一处：
+
+1. **旧数换成现版数**：`report/05-timing.md` §2 标题那一行还写"板上现在跑的是 r118"（位流 `cd04907e1369`）；
+   `report/project-brief-for-ai.md` 的采样表两行（0.739/51135/0.052 与逐钟 intra）；
+   `report/50-results.md` 的交叉核对行；`report/claims-vs-evidence.md` 引的
+   `build/timing_summary.rpt:151` 那串（现件同一行是 0.687／0 of 51027）。旧数没删，都改成"当时那版 +
+   现版同一位"两串并排，因为这几张表的作用就是跨版本对照。
+2. **现版主张引到旧件**：`margin_pct`、逐域终点名、`check_timing` 名单这三类指路统一换成
+   `build/evidence/r132_after_roster_probefmt.txt` / `build/roster/roster_r132.tsv` /
+   `build/evidence/r132_check_timing_verbose.txt`，旧件保留并注明"念当时读数用它们"。
+3. **行号漂移**（#493 说的同一件事的另一种形态）：`build/tcl/build_system_axigpio.tcl` 的两处 `puts`
+   因本轮改注释从 :63/:69 漂到 :81/:87，RGMII 那块从 :42 漂到 :57；引文逐条重新打开核过再改。
+   存在性门（`line_cite_check`）对这种漂移是瞎的——它只报硬错 0，所以这一类只能人读。
+4. **"还欠一次带窗量名册的构建"这类句子**：臂 A/B 已经在现版滚过，凡是把它当未做的地方
+   （`report/timing/README.md`、`twelve_questions.md`、`40-optimization.md`、`08-limits.md`、
+   `report/50-results.md`、`build/tcl/build_system_axigpio.tcl` 自己的两行 puts 与 6b 注释）
+   都改成"滚过了、结果是量纲错／两角各红那 5 个端点，仍不采纳"，并给出现版件名。
+5. **"输出侧没有来源数"整类**：`report/timing/rgmii_window_model.md` 末段、
+   `report/project-brief-for-ai.md` 的 TMDS 那一行、`report/io/hdmi_cts_source_window.md` §3.1 与
+   `report/timing/score.md` 的 P5——统一改成"数有出处（skew 上限），但 SDC 装不下它；
+   现版按逐脚离散量到互对 0.065 / 对内 0.001 ns；真正没数的是连接器离散与眼图那四项"。
+
+**这一批顺带抓到的一件**：`build/checks/check_repo_consistency.mjs` 的 C2 在指标表加到 32 行之后报
+`行=32 全指到=31 缺或无路径=1`，红的是 `入流帧间隔` 那行里 `report/perf_report.md:195` 的写法——
+正则把 `path:195` 整个当成文件名。改的是**引文写法**（行号挪到反引号外），没动那把尺子；
+重跑 `行=32 全指到=32 缺或无路径=0 PASS`。同一处也解释了 `board/raw-vs-golden.md` 里 B4/U3 两行为什么
+还写着"141 条 / 陈旧数"：那格 2026-10-18 就重算成 165/0 了，标成已闭。
+
+复跑：`line_cite_check` D5 CLEAN、`doc_currency_check` 干净、`doc_enc_check` 干净、
+`metric_recheck` 判 114 个数红 0、`deliver_spec_check` 红=1（只剩 #60 挂着待签核的 C7）、
+`_doc_gate_xiaosai.py` ALL PASS；申报正文 `technical-document-contest.md` 这一批未触碰，
+Word 快照对齐器 dry 给 rewrite=0（所以没有再同步一次的需要）。门禁 24 项在 02:0x 重跑一趟，仍全绿。
+
 ## 七、这一轮的过程账（一件，写进 ISSUES）
 
 臂 A 的红其实是 16 天前就判完的结论，我按"第一条命中"开了一次不必要的构建，

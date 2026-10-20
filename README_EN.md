@@ -31,7 +31,7 @@ src/ —— 80 .v files in `src/rtl/`, PS-side C in `src/ps/`, 9 .xdc files in `
 sim/ —— 83 .v files at the top level (82 of them `tb_*.v`); the runner line under the table in `sim/README.md`  
 build/ —— 7 flow-entry TCL scripts, the checkers, and 7 raw tool reports under `build/report/`  
 board/ —— on-board project, the three-step JTAG flashing scripts and measured output (serial captures, board verify)  
-data/ —— test data and reference results: 8 sequences in `data/inputs/`, images in `data/golden/`, `data/metrics.csv` with a header row and 28 metric rows  
+data/ —— test data and reference results: 8 sequences in `data/inputs/`, images in `data/golden/`, `data/metrics.csv` with a header row and 32 metric rows (four added by the 2026-10-20 timing-debt round)  
 skill/ —— 49 SKILL.md entries; each states scope, usage, failure conditions and verified reuse  
 report/ —— design report, failure analysis, reproduction notes and the LLM collaboration record  
 

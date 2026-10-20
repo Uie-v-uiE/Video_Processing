@@ -46,7 +46,7 @@
   （`board/acceptance.md` 的规矩是"原行不覆盖、新开一节"，`build/` 里那份单文件报告没有这个保护）；
   若两者都不是，因此这条指标表与报告不同源就继续红着（不改 `data/metrics.csv`）。出处：`report/50-results.md` §6 G1/G2/G3。
 
-### Q5 · 门禁结论那句"不采纳，保留上一版"，要不要跟"板上实际跑的是 r118"对齐措辞？
+### Q5 · 门禁结论那句"不采纳，保留上一版"，要不要跟"板上实际跑的是 r118"对齐措辞？（**2026-10-20 前提换了**：板上与仓库同一版是 r132，`build/evidence/r132_gates_run3.txt` 末行是 `GATES: ALL PASS（24 项全部判定）`，不再有那条红 ⇒ 这一问剩下的只是历史措辞怎么留）
 
 - **看哪里**：`build/r118_gates.txt:54` 印 `GATES: 有红项（判定 24 项）—— 不采纳，保留上一版`；
   同一句的出处是 `build/gates.sh:582`——**只要有任何红项就走这条打印**；而 `build/evidence/r118_board/board_now.txt:1` 写"板上现在 = r118"、`board_verify_console.txt:66` 写 `RESULT board_verify PASS（判红的步骤：0）`。

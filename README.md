@@ -24,7 +24,7 @@ DDR 的乒乓帧缓存。显示侧把整帧读回来，先过缩放与旋转，�
 src/ —— `src/rtl/` 80 个 .v、`src/ps/` PS 侧 C、`src/constraints/` 9 份 .xdc（在用 2 份，其余 7 份是候选/实验件）、`src/host/` 26 支 .mjs 与 3 支 .py 上位机工具  
 sim/ —— 顶层 84 份 .v（其中 83 支 `tb_*.v`），跑法见 `sim/README.md` 表格下方那一行  
 build/ 与 board/ —— 7 份流程入口 TCL、检查器与 `build/report/` 下 7 份工具原始报告；上板工程、三步 JTAG 烧写脚本与实测输出（串口留档、板级校验读数）  
-data/ —— 测试数据与参考结果：`data/inputs/` 8 份输入序列、`data/golden/` 参考图、`data/metrics.csv` 表头一行加 28 行指标  
+data/ —— 测试数据与参考结果：`data/inputs/` 8 份输入序列、`data/golden/` 参考图、`data/metrics.csv` 表头一行加 32 行指标（2026-10-20 时序补账轮新加四行：逐域名册、对外未约束端口计数、TMDS 逐脚到达离散、RGMII 输入窗候选件现版读数）  
 skill/ 与 report/ —— 49 条 SKILL.md 技能条目（各写适用范围、使用方法、失效条件与复用结果）；设计报告、失败分析、复现说明与大模型协作记录  
 
 ## 从零复现

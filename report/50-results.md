@@ -37,13 +37,13 @@
 | 显示像素时钟 | 核心 | 50 | MHz | 面板 1024×600；H_TOTAL 1344、V_TOTAL 625，算出场频 59.5 Hz；由 PL 侧 MMCM 从 50 MHz 输入合成 | 约束一次生效 | `src/constraints/` 与 `build/timing_summary.rpt` |
 | 显示分辨率与场频 | 核心 | 1024×600 @59.5 | — | 双窗输出（左窗原图 / 右窗处理图） | 连续显示 | `board/verify_r87.md` 第 1 行 |
 | 全局 setup WNS | 核心 | **0.687** | ns | 失败 setup 端点 0 / 总端点 51027；板上这一版 bit `cb907d3e4898`；**本版不带 RGMII 输入窗** | 一次布线后报告 | `build/timing_summary.rpt`（Design Timing Summary）、`build/r132_streamwrap_build.log` |
-| 全局 setup 失败端点 | 核心 | 0 | 个 | 总端点 51027；片内路径零违例；**收口 I/O 那 5 个端点当前无输入窗 = 未检查**（未检查不等于满足） | 一次布线后报告 | `build/r118_gates.txt:11` |
-| 全局 hold WHS | 核心 | **0.004** | ns | 失败 hold 端点 0 / 总端点 51027；WPWS 0.264；这一格是片内族 | 一次布线后报告 | `build/r118_gates.txt:12` |
-| `eth_rxc`（8.000 ns）setup / hold | 核心（逐时钟） | 0.687 / 0.004 | ns | 名册行 `margin_pct=8.59 / 0.05`；该域 4835 端点、失败 0 | 一次布线后报告（只读开 routed dcp） | `build/evidence/r118_after_roster_probefmt.txt` 第 5–6 行 |
-| `clk_fpga_0`（10.000 ns）setup / hold | 核心（逐时钟） | 1.571 / 0.048 | ns | `margin_pct=15.71 / 0.48`；15721 端点；setup 那格 route **93.584 %**、1 级 LUT6 | 同上 | 同上 第 1–2 行 |
-| `clkout0_1`（20.000 ns）setup / hold | 核心（逐时钟） | 3.287 / 0.067 | ns | `margin_pct=16.44 / 0.34`；30071 端点；setup 那格 21 级（含 9×CARRY4） | 同上 | 同上 第 13–14 行 |
+| 全局 setup 失败端点 | 核心 | 0 | 个 | 总端点 51027；片内路径零违例；**收口 I/O 那 5 个端点当前无输入窗 = 未检查**（未检查不等于满足） | 一次布线后报告 | `build/timing_summary.rpt:151`（同一行印 setup 失败端点 0 / 总端点 51027）与门禁件 `build/evidence/r132_gates_run3.txt:10` |
+| 全局 hold WHS | 核心 | **0.004** | ns | 失败 hold 端点 0 / 总端点 51027；WPWS 0.264；这一格是片内族 | 一次布线后报告 | `build/evidence/r132_gates_run3.txt:12`（WHS 0.004 PASS） |
+| `eth_rxc`（8.000 ns）setup / hold | 核心（逐时钟） | 0.687 / 0.004 | ns | 名册行 `margin_pct=8.59 / 0.05`；该域 4835 端点、失败 0 | 一次布线后报告（只读开 routed dcp） | `build/evidence/r132_after_roster_probefmt.txt` 第 5–6 行 |
+| `clk_fpga_0`（10.000 ns）setup / hold | 核心（逐时钟） | 1.571 / 0.048 | ns | `margin_pct=15.71 / 0.48`；15721 端点；setup 那格 route **92.711 %**、1 级 LUT3（2026-10-20 现版件重读；r118 那版是 93.584 %、LUT6） | 同上 | 同上 第 1–2 行 |
+| `clkout0_1`（20.000 ns）setup / hold | 核心（逐时钟） | 3.287 / 0.067 | ns | `margin_pct=16.43 / 0.34`；30071 端点；setup 那格 22 级（CARRY4 9、LUT2 2、LUT3 2、LUT4 3、LUT6 5、MUXF7 1） | 同上 | 同上 第 13–14 行 |
 | `sys_clk`（20.000 ns）setup / hold | 核心（逐时钟） | 14.294 / 0.121 | ns | `margin_pct=71.47 / 0.61`；323 端点 | 同上 | 同上 第 3–4 行 |
-| `clkfbout`/`clkfbout_1`/`clkout1_1`/`clkout2` | 核心（逐时钟） | `NOWRITE` / `NA` | — | 名册里这两族没有同沿路径行；**"NA"不等于"这一族没问题"** | 同上 | 同上 第 7–12、15–16 行；读法写在 `report/timing/debt_ledger.md` §1 |
+| `clkfbout`/`clkfbout_1`/`clkout1_1`/`clkout2` | 核心（逐时钟） | `NOWRITE` / `NA` | — | 名册里这四族没有**同沿**路径行；**"NA"不等于"这一族没问题"**。2026-10-20 补一件事：给 `clkout1_1` 挂上候选窗之后它就有同沿路径了（setup −5.408 / hold −1.923），但那条红是量纲错不是设计债（#335），所以这一族的现版结论仍走逐脚离散（件 `build/evidence/r132_pin_skew_probe.txt`） | 同上 | 同上 第 7–12、15–16 行；读法写在 `report/timing/debt_ledger.md` §1 |
 | 跨域两行 `sys_clk↔clkout0_1` | 核心 | setup 3.695 / hold 0.200（231 端点）；setup 14.757 / hold 0.165（19 端点） | ns | `build/timing_summary.rpt` 的 Inter Clock Table 里就这两对；其余跨域对被 `set_clock_groups -asynchronous` 整组排除 | 一次布线后报告 | `report/05-timing.md` §2（引同一件） |
 | Slice LUT 占用 | 资源 | 14013（26.34 %） | 个 | 实现后 Routed 报告 | 一次构建 | `build/utilization.rpt:35` |
 | Slice 寄存器占用 | 资源 | 8132（7.64 %） | 个 | 同上 | 一次构建 | `build/utilization.rpt:40` |
@@ -162,7 +162,7 @@
 | 逐实例 BRAM/DSP 归属（当前版） | **NOT_MEASURED**（`report/04-resources.md` 写的是【未实测】） | `build/utilization.rpt` 只给合计 95.5 tile / 19 DSP，不带实例层次；分层件 `build/util_hier.rpt` 是更旧一批的产物，未与本报告同批重生成，所以不当当前值念 |
 | 实测入口吞吐（MB/s） | NOT_MEASURED | `data/metrics.csv` 里没有哪一行直接写"实测 MB/s"（第 13 行是负载口径、第 22/23 行是帧率与丢帧计数） |
 | 收口 I/O 那 5 个端点的**板级真实差额** | NOT_MEASURED | 当前版没有窗，静态时序分析因此不检查这 5 个端点；窗模型自身还有 `TskewR` 混行风险，所以不许写"板上真实 hold 差额就是 −0.870" |
-| 输出侧 6 个端口（`led[0..1]`、`tmds_clk_p`、`tmds_data_p[0..2]`）的对外窗 | 部分收口：2 颗 LED 已按"无外部时序接口"逐条登记理由（`build/check_io_timing_coverage.py` 的豁免表，`rk_zynq7020.xdc:10-11` + `system_top.v:116/117`），4 组 TMDS 的窗仍在候选件里待量 | 2026-10-04 那条追加节纠正方向（本作品是 **Source**，对应 HDMI CTS 的 TP1 源端眼图而不是接收窗）；同日晚些时候取到数（互对偏斜 max 0.20 `Tcharacter`，对应 50 MHz 档半窗 ±4.000 ns）后仍欠**一次带窗量名册的构建**；候选件默认不加载（`VP_R119_TMDS_WINDOW=1`）。逐条可引用性判定在 `report/io/hdmi_cts_source_window.md` |
+| 输出侧 6 个端口（`led[0..1]`、`tmds_clk_p`、`tmds_data_p[0..2]`）的对外窗 | 部分收口：2 颗 LED 已按"无外部时序接口"逐条登记理由（`build/check_io_timing_coverage.py` 的豁免表，`rk_zynq7020.xdc:10-11` + `system_top.v:116/117`），4 组 TMDS 的窗仍在候选件里；2026-10-20 在现版滚过一次（`clkout1_1` setup −5.408）并判那条红是量纲错（#335），改按逐脚离散问：现版互对 0.065 / 对内 0.001 ns（件 `build/evidence/r132_pin_skew_probe.txt`） | 2026-10-04 那条追加节纠正方向（本作品是 **Source**，对应 HDMI CTS 的 TP1 源端眼图而不是接收窗）；同日晚些时候取到数（互对偏斜 max 0.20 `Tcharacter`，对应 50 MHz 档半窗 ±4.000 ns）后仍欠**一次带窗量名册的构建**；候选件默认不加载（`VP_R119_TMDS_WINDOW=1`）。逐条可引用性判定在 `report/io/hdmi_cts_source_window.md` |
 | 1000M 线速下的零丢包 | NOT_MEASURED | 第 116 批那次带流是 147 Mbps（源是 512×300 的帧率上限），没把 RX 打到线速 |
 | 当前版的 `pkt_err` / `frames_bad` / `drop_seen` | NOT_MEASURED（件里显式打 `?`） | `report/log/issues.md` #318 把"读不出来的字段"显式化；不许写 0、不许借用上一版 |
 
@@ -170,12 +170,12 @@
 
 | 引用的数 | 这张表 | 既有章节 | 判定 |
 | --- | --- | --- | --- |
-| 0.739 / 0.052 / 14154 / 8188 / 95.5 / 19 / 2.213 W | §1、§2 | `report/04-resources.md`、`report/05-timing.md` §2、`data/metrics.csv` 第 5–11 行 | 一致（同一批件） |
+| 0.739 / 0.052 / 14154 / 8188 / 95.5 / 19 / 2.213 W（**2026-10-20 现版同位**：0.687 / 0.004 / 14013 / 8132 / 96 / 19 / 2.213 W）| §1、§2 | `report/04-resources.md`、`report/05-timing.md` §2、`data/metrics.csv` 第 5–11 行 | 一致（同一批件） |
 | 名册 8 对逐位相同 | §2 | `report/05-timing.md` §3、`report/timing/round_r118.md` §四 | 一致（同一件 `build/evidence/r118_strict_b1.txt`） |
 | 检查 24 项 / 23 通过 1 未通过 | §1、§3 | `report/06-validation.md` §3、`report/timing/round_r118.md` §五 | 一致；但与 `data/metrics.csv` 第 14 行的"22 项"**不同值**，已登记为差异 D1，以检查件为准 |
 | 整屏逐像素判据 165/0 | §1 | `report/06-validation.md` §2 与 `build/tb_v98_report.txt`（同一件同一次 `grep -c`） | 一致；`data/metrics.csv` 第 15 行已重算成同一个数，差异 D2（不同源、跨批次不可比）于 2026-10-18 关闭 |
 | 其余几笔不同值（"3 类 vs 7 类"、第 117 批位流身份、`Max Ambient` 57.4/57.5） | §3、§2 | 见 `40-optimization.md` §8 差异清单 D3/D5/D6 | 全部以证据文件为准，未自行取舍 |
-| 与 `build/roster/roster_r118.tsv`、旧 `50-results.md` 的交叉核对 | §1、§2 | 八格名册 `diff` 给 `rc=0`（逐字节相同）；指标行数值全同；唯一新登记的是 `build/power.rpt` **行号漂移 1 行**（值相同） | 判定条件 5 对这两样成立；对仍缺失的 `build/runs/` 为 `NOT_MEASURED`。命令与输出贴 `report/comparison-notes.md` §7（D7） |
+| 与 `build/roster/roster_r118.tsv`、旧 `50-results.md` 的交叉核对 | §1、§2 | 八格名册 `diff` 给 `rc=0`（逐字节相同）；**2026-10-20 另一次**现版对 r118 相减给 `comparisons_made=32 red=7 verdict=RED`（件 `build/evidence/r132_roster_tsv_diff.txt`）——那是 r118→r132 之间几笔 RTL 改动的代价账，不是那次核对失效；指标行数值全同；唯一新登记的是 `build/power.rpt` **行号漂移 1 行**（值相同） | 判定条件 5 对这两样成立；对仍缺失的 `build/runs/` 为 `NOT_MEASURED`。命令与输出贴 `report/comparison-notes.md` §7（D7） |
 
 ## 7. 这一章依据的产物
 

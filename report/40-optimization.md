@@ -188,7 +188,7 @@ V17 同时削掉 `eth_rxc` setup（全设计绝对最紧那一格）与 `eth_rxc
 | 第 105、111 批的构建侧资源与告警 | NOT_MEASURED | 两批都不是构建批（第 105 批是隔离改前/改后试跑、第 111 批是 JTAG 只读回读）；`build/` 下不存在这两批的检查件（`r105_gates.txt`、`r111_gates.txt` 这两个文件名从未生成过） |
 | 第 115 批的正式资源行 | NOT_MEASURED | 本批 0 采纳，没有正式构建可量 |
 | 第 117 批正式构建的资源行 | NOT_MEASURED | 判负未采纳，只有隔离试跑那一次的 +10 FF 有件；正式资源行未进发布物，也不进 §2 那张表 |
-| 第 119 批的名册与资源 | NOT_MEASURED | 只读探针 + 默认关的候选件，未做过一次"带窗量名册"的构建（`report/timing/debt_ledger.md` 2026-10-04 那条追加节明写还欠这一次） |
+| 第 119 批的名册与资源 | NOT_MEASURED | 只读探针 + 默认关的候选件，当时未做过一次“带窗量名册”的构建（`report/timing/debt_ledger.md` 2026-10-04 那条追加节明写还欠这一次）——**这一笔 2026-10-20 还掉了**：r132 滚了一次带窗的隔离构建，`clkout1_1` 可量，给 setup −5.408 / hold −1.923，但那条红是量纲错（#335），窗仍不采纳；过程账 #493，件 `build/evidence/r132_tmdswindow_roster.txt` |
 | 板级 `drop_words` 在本版的三个字段 | **NOT_MEASURED**（件里显式打 `?`） | `pkt_err=? frames_bad=? drop_seen=?`（`report/log/issues.md` #318 把读不出来的字段显式化），不许写成 0，也不许拿第 116 批那两次带流读数替它答 |
 
 ## 7. "到极限"这句话允许的完整形状

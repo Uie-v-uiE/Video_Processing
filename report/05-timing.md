@@ -8,18 +8,18 @@
 
 - **setup slack / hold slack**：`report_timing` 的 `Slack` 行，逐时钟清单对每个域取最差那一格。
 - **相对余量 = slack ÷ 周期**：清单文件自己把这个商印成 `margin_pct` 字段（件
-  `build/evidence/r118_after_roster_probefmt.txt` 的
+  `build/evidence/r132_after_roster_probefmt.txt` 的
   `ROSTER|setup|clk=…|period=…|slack=…|margin_pct=…` 行）。下面直接引用它，不重算、不换算法。
 - **端点数**取同一次构建的 `build/timing_summary.rpt`（Intra Clock Table 的
   `TNS Total Endpoints` / `THS Total Endpoints`、Inter Clock Table 的跨域两行）。
-  发布前检查件 `build/r118_gates_final.txt` 末段的"端点总数 51135"来自同一次构建；那份件的新鲜度行
+  发布前检查件 `build/evidence/r132_gates_run3.txt` 末段的“端点总数 51027”来自同一次构建；那份件的新鲜度行
   记录位流与时序报告在这一次构建里前后写出，相隔 34 s。
 - 产出这三样的工具（`report/timing_global.md` §5 点名）：`build/tcl/probe_timing_roster.tcl`（改后侧，
   只读打开已布线 dcp）、`build/roster_from_summary.sh`（改前侧，从归档的 `timing_summary.rpt` 重建清单）、
   `build/timing_roster_diff.sh`（逐域配对，输出 D1..D6 六类差分结论）。
 
-## 2. 逐时钟清单（板上现在跑的是 r118，板与仓库同一版；位流身份 `build/r118_gates_final.txt` 的
-`身份：system.bit md5=cd04907e1369`）
+## 2. 逐时钟清单（板上现在跑的是 r132，板与仓库同一版；位流身份 `build/evidence/r132_gates_run3.txt` 的
+`身份：system.bit md5=cb907d3e4898`）
 
 下面"上一版"一律指本仓库此前采纳的那一版，它的清单件是
 `build/evidence/r114_after_roster_probefmt.txt`；"复制实验版"指带强制复制广播网的那一版，

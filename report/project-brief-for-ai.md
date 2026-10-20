@@ -1414,8 +1414,8 @@ set_clock_groups -asynchronous \
 
 | 没写什么 | 为什么 | 债账出处 |
 |---|---|---|
-| `eth_rxd/rx_ctl` 的 `set_input_delay` | **缺的是"有出处的窗"，不是窗本身**。绑上窗之后 hold 与 setup 在 tap 0…31 全范围内都关不掉（§11.5），于是先用候选件 + 开关，默认不加载 | `r116_rgmii_input_window.xdc:32-35`、`report/timing/debt_ledger.md §2`、`build/check_timing_verbose.rpt` §5（`:57-61` 点名 5 个口，级别 **HIGH**） |
-| TMDS 的 `set_output_delay` | **接收端 / HDMI 规范的窗口数值在本仓没有出处**，写进去等于**假判据**；`:37-40` 另加一句：LED 是 LVCMOS33 直驱、HDMI 连接器引脚表里没有这类信号 ⇒ 没有可引用的对外窗 | `r116_rgmii_input_window.xdc:37-40`、`r119_hdmi_source_window.xdc:45-47`、`debt_ledger.md §2` |
+| `eth_rxd/rx_ctl` 的 `set_input_delay` | **缺的是"有出处的窗"，不是窗本身**。绑上窗之后 hold 与 setup 在 tap 0…31 全范围内都关不掉（§11.5），于是先用候选件 + 开关，默认不加载 | `r116_rgmii_input_window.xdc:32-35`、`report/timing/debt_ledger.md §2`、`build/check_timing_verbose.rpt` §5（`:57-61` 点名 5 个口，那是 r114 的一份；现版同名件 `build/evidence/r132_check_timing_verbose.txt` 的 `:58-64` 名单逐字相同，级别 **HIGH**） |
+| TMDS 的 `set_output_delay` | 这句 2026-10-20 改口：**方向是 Source 侧 TP1**（不是接收端），规范那条是**互对偏斜上限** 0.20 `Tcharacter`（HDMI 1.4 §4.2.4 Table 4-24，50 MHz 档 = 4.000 ns），**有出处**；但 `set_output_delay` 装的是采样窗，装不下 skew，所以两版窗形状都只会造违例，那是量纲错不是设计债（#335）。现版按同量纲问法量到互对最差 0.065 ns、对内最差 0.001 ns（件 `build/evidence/r132_pin_skew_probe.txt`），欠的是连接器离散与眼图那四项；`:37-40` 另加一句：LED 是 LVCMOS33 直驱、HDMI 连接器引脚表里没有这类信号 ⇒ 没有可引用的对外窗 | `r116_rgmii_input_window.xdc:37-40`、`r119_hdmi_source_window.xdc:45-47`、`debt_ledger.md §2` |
 | `create_generated_clock` | 一个都没有——派生钟完全交给工具推导 | `grep -rn create_generated_clock src/constraints/` → 0 命中 |
 | `set_max_delay` / `set_multicycle_path` / `set_bus_skew` | 跨域一律用结构（FIFO / 翻转 / 3FF）而不是时序约束 | `clock_groups_impl.xdc:19-23`；现役两份 XDC grep 0 命中。⚠ 禁用集 `r114_io_async.xdc:57-63` 有**四条真 `set_max_delay -datapath_only`**，是一条未采纳的替代路线（`:50-51` 引 UG949 给理由，`:64` 自我交代 `set_bus_skew` 未写） |
 | PHY 寄存器读写（MDIO 时序机） | strap 已固定工作模式；写这条要另起位时序机 | `system_top.v:113-117` |
@@ -1538,10 +1538,10 @@ set_clock_groups -asynchronous \
 
 | 口径 | 值 | 行 |
 |---|---|---|
-| Design（WNS/TNS/失败端点/总端点 · WHS/THS/失败/总 · WPWS/TPWS/失败/总） | **0.739** / 0.000 / **0** / 51135 · **0.052** / 0.000 / **0** / 51135 · 0.264 / 0.000 / 0 / 12634 | `:149-152` |
+| Design（WNS/TNS/失败端点/总端点 · WHS/THS/失败/总 · WPWS/TPWS/失败/总） | **0.739** / 0.000 / **0** / 51135 · **0.052** / 0.000 / **0** / 51135 · 0.264 / 0.000 / 0 / 12634 （**这一列是 2026-10-05 那次采样的 r118 读数**；现版 r132 同一行是 0.687 / 0 / 51027 · 0.004 / 0 / 51027 · 0.264 / 0 / 12582，读自 `build/timing_summary.rpt:151` 与 build/evidence/r132_gates_run3.txt:10,:12）| `:149-152` |
 | 判定行 | `All user specified timing constraints are met.` | `:154`（`:155` 是空行） |
 | Clock Summary | `clk_fpga_0` 10.000、`eth_rxc` 8.000、`sys_clk` 20.000、`clkfbout`/`clkfbout_1` 20.000、`clkout0_1` 20.000（50 MHz）、`clkout1_1` 4.000（250）、`clkout2` 5.000（200） | `:159-168` |
-| 逐钟 intra | `clk_fpga_0` WNS 1.850 / WHS 0.053（15721 ep）；`eth_rxc` **0.739 / 0.052**（4835）；`sys_clk` 14.876 / 0.222（323）；`clkout0_1` 3.630 / 0.059（**30179** ep）；`clkout1_1` 仅 WPWS 2.408（10）；`clkout2` 仅 WPWS 0.264（3） | `:181-187` |
+| 逐钟 intra（r118 那次）| `clk_fpga_0` WNS 1.850 / WHS 0.053（15721 ep）；`eth_rxc` **0.739 / 0.052**（4835）；**现版 r132 同列**：1.571 / 0.048（15721）、0.687 / 0.004（4835）、sys_clk 14.294 / 0.121（323）、clkout0_1 3.287 / 0.067（30071），件 `build/evidence/r132_after_roster_probefmt.txt` 与 `build/roster/roster_r132.tsv`；`sys_clk` 14.876 / 0.222（323）；`clkout0_1` 3.630 / 0.059（**30179** ep）；`clkout1_1` 仅 WPWS 2.408（10）；`clkout2` 仅 WPWS 0.264（3） | `:181-187` |
 | inter | `clkout0_1 → sys_clk` 14.757 / 0.165（19 ep）；`sys_clk → clkout0_1` 3.695 / 0.200（231 ep） | `:198-199` |
 | User Ignored | **10 条**跨组（`eth_rxc` / `sys_clk` / `clk_fpga_0` 双向 / →`clkout0_1` / `(none)`→`sys_clk` …） | 表体 `:218-227`（`:217` 是分隔线，数进去就成 11 了） |
 

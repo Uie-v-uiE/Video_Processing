@@ -32,7 +32,7 @@
 ### S1 板上位流身份：三处读数是不是同一块 bit
 
 - 观察项：PL 里现在跑的位流是不是板上这一版那块，工作区、git HEAD、归档件三处是否同源。
-- 前置状态（含回读到的值）：`md5sum build/system.bit` 回读 `（本轮 r132 位流见 `build/system.bit`，md5 前 12 位 cb907d3e4898；这一行等门禁重跑时按 32 位现填）`；`git show HEAD:build/system.bit | md5sum` 回读同一串；`md5sum build/evidence/r118_bit/system.bit` 回读同一串；`build/evidence/r118_bit_md5.txt:1` 印 `cd04907e1369`。
+- 前置状态（含回读到的值）：`md5sum build/system.bit` 回读 `（本轮 r132 位流见 `build/system.bit`，md5 前 12 位 cb907d3e4898；2026-10-20 门禁已重跑（件 build/evidence/r132_gates_run3.txt），32 位全串现读为 cb907d3e48982bf9e219f2492a7fc9ea）`；`git show HEAD:build/system.bit | md5sum` 回读同一串；`md5sum build/evidence/r118_bit/system.bit` 回读同一串；`build/evidence/r118_bit_md5.txt:1` 印 `cd04907e1369`。
 - 具体动作：跑上面三条 md5，再 `sed -n '1p' build/evidence/r118_board/board_now.txt` 与 `sed -n '1,6p' build/evidence/r118_board/board_verify_console.txt` 对读。
 - 我看到/读到的原文：`board_verify_console.txt:4` = `  build/system.bit  md5=cd04907e  2026-10-04 …`（行末那一段是该次取数的时刻，逐字在件里）；`board_now.txt:1` = `板上现在 = r118（刷入时刻见该件，bit_cycle rc=0 board_verify rc=0）`。警告：`board_now.txt` 首行那个精确到秒的刷入时刻，在 `bitcycle_console.txt` 里没有对应行——同一份件里能读到的只有 `program_pl` 那一步前缀里的时刻与 `pl rc=0 PROGRAMMED=2`，以及 `board_verify_console.txt:1` 抬头自带的时刻；三者的先后差距在分钟量级，因此位流身份三处同源这一条成立，那句刷入时刻的指代进了 `report/90-open-items.md` 的 Q3。
 - 判定：PASS
@@ -253,7 +253,7 @@
 ### E6 冷上电那一度：屏上 `ROT:` 那一格应当读 0
 
 - 观察项：断电重上电、只跑三步 JTAG 链、全程不碰按键之后，屏第二行 `ROT:` 读几度。
-- 前置状态（含回读到的值）：板子断电 ≥10 s 冷上电；`build/evidence/r118_eyes/state.txt:8-10` 记三步 `rc=0` 与各自的原文读数（`DDR_ECHO 10000000: 5A5AA5A5` / `PROGRAMMED xc7z020_1 <- build/system.bit` / `DOW ok`）；`state.txt:16-17` 记刷进去的位流 `md5sum build/system.bit = （本轮 r132 位流见 `build/system.bit`，md5 前 12 位 cb907d3e4898；这一行等门禁重跑时按 32 位现填） == build/evidence/r118_bit/system.bit`；`uart_stat.txt:1` 与 `uart_stat2.txt:1-2` 回读 `… osd=1`（`state.txt:18-20` 解释这一位为什么重要：OSD 叠加开着，`ROT:` 那一格才会被画出来）。
+- 前置状态（含回读到的值）：板子断电 ≥10 s 冷上电；`build/evidence/r118_eyes/state.txt:8-10` 记三步 `rc=0` 与各自的原文读数（`DDR_ECHO 10000000: 5A5AA5A5` / `PROGRAMMED xc7z020_1 <- build/system.bit` / `DOW ok`）；`state.txt:16-17` 记刷进去的位流 `md5sum build/system.bit = （本轮 r132 位流见 `build/system.bit`，md5 前 12 位 cb907d3e4898；2026-10-20 门禁已重跑（件 build/evidence/r132_gates_run3.txt），32 位全串现读为 cb907d3e48982bf9e219f2492a7fc9ea） == build/evidence/r118_bit/system.bit`；`uart_stat.txt:1` 与 `uart_stat2.txt:1-2` 回读 `… osd=1`（`state.txt:18-20` 解释这一位为什么重要：OSD 叠加开着，`ROT:` 那一格才会被画出来）。
 - 具体动作：按 `board/acceptance.md:95-97` 写好的前置走一遍（断电 ≥10 s → 只跑 `ps_jtag_boot.tcl` → `program_pl.tcl` → `ps_app_reload.tcl` → 全程不碰 KEY1/KEY2），然后**只看屏第二行 `ROT:` 那一格**（串口读不到角度，见 `report/log/issues.md:11816-11818`）。
 - 我看到/读到的原文：`board/acceptance.md:98` = `**过（2026-10-04 07:52 前，队员原话「0度」）**；条件按本节前置逐条满足…`；同一句在 `report/log/issues.md:13092` 记成 = `队员 2026-10-04 07:5x 在 r118 上判，原话「0度」`；更早一次（板上 r113，bit `b94f4da6cdff`）的原话是 `report/log/issues.md:11812` = `**原话**：「是0已经修复了」`。
 - 判定：PASS（这条只能由人的眼睛判：签收人=队员，判读时间 2026-10-04 07:5x，当时板上是板上这一版；机器那一半的网表实测 `build/evidence/r113_ff_init_probe.txt` + 判定 `build/r113_powup_rejudge.txt` 证的是成因，不代替眼睛）

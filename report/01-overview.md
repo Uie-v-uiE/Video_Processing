@@ -71,7 +71,7 @@ OSD 共 5 行，`N_LINES = 5` 见 `src/rtl/video/osd_overlay.v:19`）。拔网�
   只给读数出口（OSD 的 Latency lane、JTAG 回读），没填复核过的值；第 25 行的 33.34 ms 是以往某一次
   性能记录的数，未与当前位流对账（四处口径落后的登记见 `build/evidence/r121_note_metrics.txt` 第 2 行）。
 - 整屏逐像素检查里曾经唯一那条**写明过的未通过项** `C5c`（帧头若干行的读侧绕回）**已于 r132 关闭**：同一把尺子改前红、改后 PASS，机理由两臂对照量出，残余代价是帧头那 4 行内容旧一帧（≈33 ms，离线量不到）。
-  现读法与正本在 `report/08-limits.md` §1、条目状态在 `report/known_issues.md` §一 第 1 条、改动账在 `report/log/issues.md` #478/#479/#480；整屏台架与门禁**本轮还没重跑**，所以引用它们条数的那几格仍是上一版的读数。
+  现读法与正本在 `report/08-limits.md` §1、条目状态在 `report/known_issues.md` §一 第 1 条、改动账在 `report/log/issues.md` #478/#479/#480；门禁在 2026-10-20 的补账轮重跑过两趟（`build/evidence/r132_gates_run2.txt`、`r132_gates_run3.txt`，都是 24 项全判定、0 红）；整屏台架那 165 条这一轮**没有**重跑（链子在飞时不起 xsim，见 `report/timing/round_r132.md` 末行），所以引用它条数的那几格念的还是 r132 当时归档的件。
 - 器件版本、构建命令与逐条复现步骤在 `report/70-reproduce.md`；
   还没做到的事集中在 `report/90-open-items.md`。
 
