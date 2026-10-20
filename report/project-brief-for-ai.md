@@ -1422,7 +1422,7 @@ set_clock_groups -asynchronous \
 
 ### 10.5 `check_timing` 的实际读数
 
-`build/check_timing_verbose.rpt`：
+`build/check_timing_verbose.rpt`（r114 的一份；现版同名件 `build/evidence/r132_check_timing_verbose.txt` 的名单逐字相同，念「现在是多少」吃它）：
 - §5 `checking no_input_delay (7)`：**5 个输入口没有 input delay（HIGH）** —— 逐字列出
   `eth_rx_ctl`、`eth_rxd[0]`、`eth_rxd[1]`、`eth_rxd[2]`、`eth_rxd[3]`（`:57-61`）。
   另有 **2 个**输入口无 input delay 但被 false path 覆盖（**MEDIUM**）：`key1_n`、`key2_n`。

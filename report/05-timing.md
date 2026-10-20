@@ -41,7 +41,7 @@
 | `clkout0_1` | 20.000 | 3.287 / 16.43 % | 0.067 / 0.34 % | 30071 | setup `u_pl/u_osd/ch_r_reg/ADDRARDADDR[6]`，22 级（CARRY4 9、LUT2 2、LUT3 2、LUT4 3、LUT6 5、MUXF7 1），route 64.487 %；hold `u_pl/u_blur/lb1_reg_0_127_11_11/DP.HIGH/WADR2`，0 级，route 57.985 % |
 | `sys_clk` | 20.000 | 14.294 / **71.47 %** | 0.121 / 0.60 % | 323 | setup `u_pl/u_ang/angle_reg[6]/D`，4 级（CARRY4 1 + LUT4 1 + LUT6 2），route 71.549 %；hold `u_pl/u_ang/fs_s_reg[1]/D`，0 级，route 28.162 % |
 | `clkfbout`、`clkfbout_1` | 20.000 | `slack=NOWRITE` / `margin_pct=NA` | 同左 | 这两行没有 setup/hold；`build/timing_summary.rpt` 只有脉冲宽度行 18.408 ns / 3 端点 | — |
-| `clkout1_1` | 4.000 | `NOWRITE` / `NA` | 同左 | 脉冲宽度 2.408 ns / 10 端点 | — |
+| `clkout1_1` | 4.000 | `NOWRITE` / `NA`（挂上候选窗就有同沿路径：setup −5.408，但那是量纲错，#335）| 同左 | 脉冲宽度 2.408 ns / 10 端点 | — |
 | `clkout2` | 5.000 | `NOWRITE` / `NA` | 同左 | 脉冲宽度 **0.264 ns** / 3 端点（全设计最小 WPWS 就是这一行） | — |
 
 跨域两行（`build/timing_summary.rpt` 的 Inter Clock Table，这份表里只有这两对）：
