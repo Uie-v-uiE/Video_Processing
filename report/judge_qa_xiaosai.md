@@ -43,11 +43,11 @@ PS 侧 DDR 的乒乓帧缓存**（例程只到收包）、**链路自己数自�
 **答**："**布局布线之后**的 `report_timing_summary`：四个受检时钟域 setup/hold 全满足，
 51,027 个端点失败 0；最差的是 125 MHz 那个域，0.687 纳秒。我不用综合后的数字当结论。
 另外我专门查过约束**有没有命中对象**——命中集合为空的那种绿我不念。"
-**硬答案**：`build/timing_summary.rpt`；四域 WNS/WHS：`sys_clk` 14.876/0.222、`clk_fpga_0` 1.850/0.053、
-`clk_pix` 3.630/0.059、`eth_rxc` 0.739/0.052 ns。
-**追问（最紧那条是什么）**："`u_icmp_tx/ip_head_reg[4][16] → check_buffer_reg[19]/D`，11 级逻辑里 6 级是
-CARRY4、布线占 58.4 %；第 4 到第 12 档是 `u_rx_par/p_eof_reg → u_reasm/rows_hit_reg[*]/CE`，4 级、布线 85 %。
-也就是说最紧的不是乘法器，是行覆盖使能的广播。"
+**硬答案**：`build/timing_summary.rpt`（现版这一版是 r132，位流 md5 前 12 位 `cb907d3e4898`）；四域 WNS/WHS：`sys_clk` 14.294/0.121、`clk_fpga_0` 1.571/0.048、
+`clk_pix` 3.287/0.067、`eth_rxc` 0.687/0.004 ns（2026-10-20 按现版 r132 的名册重读，件 `build/evidence/r132_after_roster_probefmt.txt` 与 `build/roster/roster_r132.tsv` 逐格相同）。
+**追问（最紧那条是什么）**：现版 r132 是 `u_icmp/u_icmp_tx/ip_head_reg[4][10]/R`，5 级逻辑
+（LUT3、LUT4、LUT5 各一枚 + LUT6 两枚）、布线占 79.959 %；同域 hold 最差是 `u_reasm/stat_bytes_reg[0]/D`，3 级（CARRY4 两枚 + LUT6 一枚）、布线 78.011 %。
+也就是说最紧的不是乘法器，是 ICMP 发送状态机打到一只复位脚上——r118 那一版才是行覆盖使能的广播（那版 11 级里 6 级 CARRY4、布线 58.4 %），换版之后归属换了人，这条正是名册差分要防的事：不重读就照念上一版的终点。"
 
 ### Q6 0.687 纳秒余量，温度电压一抖会不会挂？
 **答**："这一版是带工艺/电压/温度角的静态时序结果，PVT 已经折进角里了；而且结温我实测过六次，
