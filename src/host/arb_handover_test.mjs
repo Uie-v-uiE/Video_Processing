@@ -82,7 +82,7 @@ const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 /* ---------------------- 串口：把 PS 的状态保住，别拿它当牺牲品 ---------------------- */
 /**
  * 跑一次 uart_cap_once.ps1，返回抓到的文本（失败就返回空串，不影响判据）。
- * 注意 PowerShell 的坑（见 board/uart_cap_once.ps1 头部）：多命令走 -Cmds 逗号分隔，
+ * 注意 PowerShell 的坑（见 board/scripts/uart_cap_once.ps1 头部）：多命令走 -Cmds 逗号分隔，
  * 脚本本体保持 ASCII。
  */
 function uart(cmds, seconds) {

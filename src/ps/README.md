@@ -1,45 +1,62 @@
-# PS 侧固件（`main.c` / `sd_play.c` / `lscript_ocm.ld`）
+# PS 裸机固件
 
-## 重编 ELF 的步骤（本机不可跑，见末行）
+`src/ps/` 放 Zynq PS 侧裸机应用：
 
-1. Vivado：`build/create_project.tcl` 建工程（器件型号、导入 RTL/IP/约束，停在综合之前）→
-   `build/tcl/build_system_axigpio.tcl` 出 `build/system.xsa`（要构建只认这一支；两条同族历史脚本 `add_files`
-   指错路径、报错后仍 exit 0）。
-2. Vitis：File → New → Platform from XSA，选 `build/system.xsa`；BSP 需 `lwip`、`xuartps`、`xgpio`。
-3. New Application，应用名 `video_ps`，源文件用本目录的 `main.c`、`sd_play.c`、`sd_play.h`，
-   链接脚本换成本目录的 `lscript_ocm.ld`（OCM 启动版）。
-4. DDR 分配：PS 帧缓冲在 `0x10100000`（`src/ps/main.c:46` 的 `FRAME_ADDR`，
-   行 19 的注释同时写明 ETH 用 `0x10000000` 与 `0x10080000` 两块）。
-5. 控制台：UART0 115200 8N1，走 FT2232 的第二通道；板上读回不走串口，读回用 JTAG（`micro_rd.tcl`）。
-6. 下载顺序（bit → 应用）与三步命令见 `report/build.md` §3；日常刷板用
-   `bash build/r116_bit_cycle.sh <标签> [位流路径]`，它自己会把三步跑掉。
+| 文件 | 作用 |
+|---|---|
+| `main.c` | 启动、UART 命令分派、AXI GPIO 控制/回读、XADC 温度、`link` 帧间隔统计 |
+| `sd_play.c` / `sd_play.h` | FAT32 解析、目录查找、簇链读取、SD 帧序列播放 |
+| `lscript_ocm.ld` | OCM 启动链接脚本 |
 
-## EMIO GPIO 位表（第一控制字，32 位）
+PS 不参与像素通路。它写控制字、读健康状态，并在 SD 回放时把帧写进 DDR；ETH 视频字节不经过 PS。
 
-| 位 | 含义 | 现值来源 |
-|---|---|---|
-| `[4:0]` | 老五位效果使能，已退役（读回恒 0） | `src/ps/main.c:55` |
-| `[15:8]` | 阈值 | 同上 |
-| `[16]` | `src_sel` 0=图卡 1=DDR | 同上 |
-| `[17]` | `zoom_en` | 同上 |
-| `[18]` | `publish` | 同上 |
-| `[19]` | `bilin` | 同上 |
-| `[20]` | OSD 关位 | `src/ps/main.c:57` |
-| `[22]` | 模式翻转位 | `src/ps/main.c:63` |
-| `[24:23]` | 模式码 00 自动 / 01 ETH / 11 SD / 10 TEST | `src/ps/main.c:59`（编码表）、`:64`（位起点） |
-| `[26]` | `gapclr` | `src/ps/main.c:62` |
-| `[31:27]` | lane 号 | 同上 |
+## 构建
 
-第二控制字（BD 里的 `axi_gpio_2`，双通道 ×32 位纯输出）见 `src/ps/main.c` 的
-`/* ---- V8-2：第二条控制字` 一节。
+```bash
+PS_CC=<Vitis>/gnu/aarch32/nt/gcc-arm-none-eabi/bin/arm-none-eabi-gcc.exe \
+PS_BSP=<平台构建生成的 BSP 目录> \
+PS_OUT=board/project/ps_app.elf \
+python build/build_ps_app.py
+```
 
-## 重建这颗 ELF
+`PS_BSP` 必须指向一个已经 generate 过的 Zynq standalone BSP（里面有 `include/` 与 `lib/libxil.a`）。没有平台时先按 `board/vitis_platform/README.md` 用 `board/scripts/rebuild_vitis.py` 重建。
 
-上面 1–3 步在本机就能跑：编译器在 `<Vitis>/gnu/aarch32/nt/gcc-arm-none-eabi/bin/arm-none-eabi-gcc.exe`
-（自述 `arm-xilinx-eabi-gcc (GCC) 13.3.0`，它不在 `PATH` 上，所以要显式给 `PS_CC`），
-`PS_BSP` 要给**绝对路径**（给相对路径时 gcc 会去找 `vitis\platform\…\Xilinx.spec` 而读不到）。实跑记录在
-`build/evidence/1005_ps_app_rebuild.txt`：编译与链接都成功，尾部打印 `ENTRY _boot@0x000000cc` 与 `OK`。
-重建出来那颗与随包这颗不同（两颗的 md5 与 section 大小记在 `build/evidence/1005_ps_app_rebuild.txt`），**没有**替换随包这颗：仓库里 `build/ps_app.elf`
-是 `d0b07f84a0683db203086fb816ac71d7`（`build/r118_gates_final.txt` 的 `ps_app.elf md5=d0b07f84a068`），
-板上复验过的行为只绑这一颗；换 ELF 之后必须再跑一次 `bash build/board_verify.sh` 才谈得上等价。
-另有一条本机事实：`python3` 这个别名不存在（`python` 是 3.12），宿主脚本一律写 `python`。
+编译脚本会检查 `_start`、`_boot`、`_vector_table`、`MMUTable`、`main` 和 `XSdPs_CardInitialize` 是否在 ELF 里，防止把空镜像下到板上。
+
+## 启动
+
+- JTAG：`board/scripts/board_flash.sh` 做 `ps7_init` → PL → ELF → GPIO 回读；
+- QSPI：`board/scripts/make_boot_image.sh` 打 `BOOT.bin`，`board/tcl/flash_qspi.tcl` 写入；
+- 断电后从 QSPI 启动；JTAG 下载是易失的。
+
+## 控制字
+
+| 位 | 含义 |
+|---|---|
+| 8:0 | 效果链九位选择：灰度、反色、模糊、锐化、Sobel、二值化、判决反相、腐蚀、膨胀 |
+| 18:9 | 几何控制：缝位、auto/follow/swap/marker、rot_auto、rot_speed、zoom_fit |
+| 19 | 双线性开关 |
+| 20 | OSD 开关 |
+| 26 | 帧间隔统计清零 |
+| 31:27 | AXI GPIO lane 号 |
+
+新增控制位往高位加，不重排已有位；RTL 位定义、固件写出的字和上位机掩码三处保持同源。
+
+## 命令
+
+`stat`、`temp`、`link` / `link clr`、`src`、`pipe`、`zoom`、`rot`、`split`、`gamma`、`osd`、`sd`、`play`、`stop`、`fill`、`autoplay`、`th`、`echo`、`help`。
+
+- `link` 从 PL `link_monitor` 读 `gap_last/min/max/sum`、`gap_valid`、`live`；
+- `link clr` 在读之前清零；
+- `sd file n` 选段后 `play` 从该段续播；
+- `temp` 打印 XADC 温度、VCCINT、OSD 编码和 GPIO 回读。
+
+命令表、帮助行和分派三处要一起改；只在源码里写函数、不接进 `dispatch`，板上会回“不认”。
+
+## SD 回放
+
+`sd_play.c` 自解析 FAT32 BPB、目录和簇链，不依赖文件系统库。卡必须是 FAT32，帧序列由 `src/host/make_sd_video.mjs` 生成。`sd files` 列出段，`sd file n` 选段，`play` 播放，`stop` 停止。
+
+## 温度
+
+XADC 读片上温度与 VCCINT；`[TEMP]` 行同时打印 `degC`、`raw`、`vccint`、`osd` 和 `gpio`，把驱动读数、OSD 编码和 PL 侧同步链回读三件事对在一起。

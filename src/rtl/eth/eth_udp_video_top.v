@@ -2,8 +2,13 @@
 // ETH UDP video top — ghosting-fix v5：DDR ping-pong + burst saver，提交脉冲带 completed base。
 // 链路：gmii_to_rgmii → gmii_rx_mac(自算 FCS) → udp_rx_parser → frame_reasm → dc_fifo(BRAM CDC)
 //      → axi_frame_saver64 → ddr_bank_commit；控制面 arp/icmp/eth_ctrl，观测面 link_monitor。
-// 时钟域：gmii_rx_clk 与 gmii_tx_clk 是**同一根**（收侧恢复出来的 125 MHz）；与 axi_clk(HP0 100 MHz)
-// 之间只准过 dc_fifo 的格雷码指针与 ddr_bank_commit 的 3 级同步器，其余一律禁止组合跨域。
+// 时钟域（r135 起）：
+//   · gmii_rx_clk（PHY 恢复的 125 MHz）只保留 IDDR 与 gmii_rx_cdc 的**写侧**；
+//   · 全部协议逻辑（MAC/ARP/ICMP/UDP/重组/统计/发送）吃 clk_eth（MMCM 125 MHz），
+//     收侧字节流由 gmii_rx_cdc 的异步 FIFO 搬过来；
+//   · clk_eth 与 axi_clk(HP0 100 MHz) 之间只准过 dc_fifo 的格雷码指针与
+//     ddr_bank_commit 的 3 级同步器，其余一律禁止组合跨域。
+//   · USE_MMCM_CLK=0 可退回"全栈跑恢复钟"的旧路径（A/B 用），默认 1。
 module eth_udp_video_top #(
     parameter IMG_W      = 512,
     parameter IMG_H      = 300,
@@ -11,13 +16,19 @@ module eth_udp_video_top #(
     parameter [15:0] UDP_PORT = 16'd5001,
     parameter [47:0] BOARD_MAC = 48'h00_11_22_33_44_55,
     parameter [31:0] BOARD_IP  = {8'd192,8'd168,8'd1,8'd10},
-    parameter IDELAY_VALUE = 15
+    parameter IDELAY_VALUE = 15,
+    parameter CAPTURE_STYLE = "BUFG",     // "BUFG" 现路径 / "BUFIO" Alex 源同步路径
+    parameter CAPTURE_TARGET = "XILINX",  // simulation 用 "SIM"
+    parameter USE_MMCM_CLK = 1,           // 1 = 逻辑/发送在 clk_eth，0 = 旧路径（收侧恢复钟）
+    parameter TX_STYLE = "ODDR0"           // "ODDR0"（0° 同沿、时钟也过 ODDR，r139 上板验证）/ "FWD0"（旧 0° 转发）/ "ODDR90"（本板不通）
 )(
     input  wire        rgmii_rxc,
     input  wire        rst_n,
     input  wire        axi_clk,
     input  wire        axi_rst_n,
     input  wire        idelay_clk,
+    input  wire        eth_clk,
+    input  wire        eth_clk90,
     input  wire        copy_hold,
 
     input  wire        rgmii_rx_ctl,
@@ -26,12 +37,8 @@ module eth_udp_video_top #(
     output wire        rgmii_tx_ctl,
     output wire [3:0]  rgmii_txd,
 
-    output wire        fb_wr_en,
-    output wire [18:0] fb_wr_addr,
-    output wire [15:0] fb_wr_data,
     output wire        frame_done,
     output wire        link_active,
-    output wire        eth_gmii_clk,
 
     output wire [31:0] ddr_commit_base,
     output wire        ddr_commit_pulse,
@@ -55,14 +62,23 @@ module eth_udp_video_top #(
     output wire [31:0] stat_bytes,
     output wire [31:0] stat_bad,
 
-    // v7.6 (P0-A)：链路健康快照总线 + 两个跳变信号，全部在 eth_rxc 域。
+    // v7.6 (P0-A)：链路健康快照总线 + 两个跳变信号，r135 起在 logic_clk（clk_eth）域。
     // 跨域（像素域 OSD / PS 侧 GPIO）由消费方用 snap_cross 完成。
     output wire [319:0] lm_bus,
     output wire         lm_bus_tog,
     output wire         lm_hb,
     // v7.6c：帧间隔统计清零的选择位（来自 PS 侧 GPIO，fclk0 域的电平）。gap_max 是
     // 终身保持的，一次长空闲就会污染它（还会因回卷读小），所以测量前要有归零入口。
-    input  wire         gapclr_sel
+    input  wire         gapclr_sel,
+    // 遥测用：PL 内部帧时延（axi 域 live 口）。在 eth top 里过一条 snap_cross 到 125 MHz。
+    input  wire [15:0]  lat_ms_axi,
+    input  wire         lat_ok_axi,
+    input  wire         lat_sticky_axi,
+    input  wire         lat_tog_axi,
+    // 处理窗完整性（像素域）：上一帧处理侧非灰像素数 + 有效 + 更新翻转
+    input  wire [15:0]  pane_bad_pix,
+    input  wire         pane_valid_pix,
+    input  wire         pane_tog_pix
 );
     localparam [31:0] BANK0 = BASE_ADDR;
     localparam [31:0] BANK1 = BASE_ADDR + 32'h0008_0000;
@@ -70,13 +86,73 @@ module eth_udp_video_top #(
     wire gmii_rx_clk, gmii_rx_dv, gmii_tx_clk, gmii_tx_en;
     wire [7:0] gmii_rxd, gmii_txd;
 
-    gmii_to_rgmii #(.IDELAY_VALUE(IDELAY_VALUE)) u_rgmii (
+    // ---- 逻辑域：clk_eth（MMCM 125 MHz）/ 旧路径 = 恢复钟 ----
+    // 声明必须排在 u_rgmii 之前：tx_clk 端口要用它（Verilog-2001 隐式 net 会先占位，
+    // 后面再 wire 声明就是重复定义）。
+    wire logic_clk = (USE_MMCM_CLK != 0) ? eth_clk : gmii_rx_clk;
+    // r156：复位去同步后的扇出很大（r155 报告里 rst_l_sync[2] → u_lm/pkt_err[*]/CLR
+    // 是全设计最差路径，route 5.49 ns / 3002 个端点）。复位是慢变量，第三级多复制几份
+    // 不会改变行为：所有副本同一个时钟沿更新、同一个异步复位。max_fanout 让综合把
+    // 一条长走线拆成几段，而不是把复位改成打一拍。
+    (* ASYNC_REG = "TRUE" *) reg [1:0] rst_l_sync;
+    (* max_fanout = 32 *) reg rst_l_sync2;
+    always @(posedge logic_clk or negedge rst_n) begin
+        if (!rst_n) begin
+            rst_l_sync  <= 2'b00;
+            rst_l_sync2 <= 1'b0;
+        end else begin
+            rst_l_sync  <= {rst_l_sync[0], 1'b1};
+            rst_l_sync2 <= rst_l_sync[1];
+        end
+    end
+    wire logic_rst_n = rst_l_sync2;
+    // r161 timing round: the worst routed path is still this reset net into u_lm's async CLRs
+    // (1.104 ns, 3002 endpoints). Give the observation block its own reset synchronizer so
+    // its CLR tree starts next to u_lm; same slow reset, same clock edge, no functional change.
+    (* ASYNC_REG = "TRUE" *) reg [1:0] rst_lm_sync;
+    (* max_fanout = 32 *) reg rst_lm_sync2;
+    always @(posedge logic_clk or negedge rst_n) begin
+        if (!rst_n) begin
+            rst_lm_sync  <= 2'b00;
+            rst_lm_sync2 <= 1'b0;
+        end else begin
+            rst_lm_sync  <= {rst_lm_sync[0], 1'b1};
+            rst_lm_sync2 <= rst_lm_sync[1];
+        end
+    end
+    wire lm_rst_n = rst_lm_sync2;
+
+    gmii_to_rgmii #(
+        .IDELAY_VALUE(IDELAY_VALUE),
+        .CAPTURE_STYLE(CAPTURE_STYLE),
+        .CAPTURE_TARGET(CAPTURE_TARGET),
+        .USE_MMCM_TX(USE_MMCM_CLK != 0),
+        .TX_STYLE(TX_STYLE)
+    ) u_rgmii (
         .idelay_clk(idelay_clk),
         .gmii_rx_clk(gmii_rx_clk), .gmii_rx_dv(gmii_rx_dv), .gmii_rxd(gmii_rxd),
         .gmii_tx_clk(gmii_tx_clk), .gmii_tx_en(gmii_tx_en), .gmii_txd(gmii_txd),
+        .tx_clk(logic_clk), .tx_clk90(eth_clk90),
         .rgmii_rxc(rgmii_rxc), .rgmii_rx_ctl(rgmii_rx_ctl), .rgmii_rxd(rgmii_rxd),
         .rgmii_txc(rgmii_tx_clk), .rgmii_tx_ctl(rgmii_tx_ctl), .rgmii_txd(rgmii_txd)
     );
+
+    // 收侧字节流：新路径过一级异步 FIFO（只有 IDDR 留在恢复钟域），旧路径直通。
+    wire       rx_dv_l;
+    wire [7:0] rx_d_l;
+    generate
+    if (USE_MMCM_CLK != 0) begin : g_rx_cdc
+        gmii_rx_cdc u_rx_cdc (
+            .rx_clk(gmii_rx_clk), .rx_rst_n(rst_n),
+            .rx_dv(gmii_rx_dv), .rx_d(gmii_rxd),
+            .clk(logic_clk), .rst_n(logic_rst_n),
+            .out_dv(rx_dv_l), .out_d(rx_d_l)
+        );
+    end else begin : g_rx_direct
+        assign rx_dv_l = gmii_rx_dv;
+        assign rx_d_l  = gmii_rxd;
+    end
+    endgenerate
 
     wire        arp_rx_done, arp_rx_type, arp_tx_en, arp_tx_done;
     wire [47:0] src_mac;
@@ -93,8 +169,9 @@ module eth_udp_video_top #(
     reg  [15:0] icmp_tx_byte_num;
     reg  [5:0]  icmp_dly;
     reg         icmp_tx_start_en;
-    always @(posedge gmii_rx_clk or negedge rst_n) begin
-        if (!rst_n) begin
+    wire        icmp_start_g, udp_start_g;   // eth_ctrl 仲裁后给出的实际启动脉冲
+    always @(posedge logic_clk or negedge logic_rst_n) begin
+        if (!logic_rst_n) begin
             icmp_dly <= 0; icmp_tx_start_en <= 0; icmp_tx_byte_num <= 0;
         end else begin
             icmp_tx_start_en <= 0;
@@ -117,7 +194,7 @@ module eth_udp_video_top #(
 
     wire [7:0] icmp_fifo_q;
     sync_fifo #(.DATA_W(8), .ADDR_W(11)) u_icmp_fifo (
-        .clk(gmii_rx_clk), .rst_n(rst_n),
+        .clk(logic_clk), .rst_n(logic_rst_n),
         .wr_en(icmp_rec_en), .wr_data(icmp_rec_data),
         .full(), .empty(), .level(),
         .rd_en(icmp_tx_req), .rd_data(icmp_fifo_q)
@@ -127,9 +204,9 @@ module eth_udp_video_top #(
         .BOARD_MAC(BOARD_MAC), .BOARD_IP(BOARD_IP),
         .DES_MAC(48'hff_ff_ff_ff_ff_ff), .DES_IP({8'd192,8'd168,8'd1,8'd102})
     ) u_arp (
-        .rst_n(rst_n),
-        .gmii_rx_clk(gmii_rx_clk), .gmii_rx_dv(gmii_rx_dv), .gmii_rxd(gmii_rxd),
-        .gmii_tx_clk(gmii_tx_clk), .gmii_tx_en(arp_gmii_tx_en), .gmii_txd(arp_gmii_txd),
+        .rst_n(logic_rst_n),
+        .gmii_rx_clk(logic_clk), .gmii_rx_dv(rx_dv_l), .gmii_rxd(rx_d_l),
+        .gmii_tx_clk(logic_clk), .gmii_tx_en(arp_gmii_tx_en), .gmii_txd(arp_gmii_txd),
         .arp_rx_done(arp_rx_done), .arp_rx_type(arp_rx_type),
         .src_mac(src_mac), .src_ip(src_ip),
         .arp_tx_en(arp_tx_en), .arp_tx_type(1'b1),
@@ -140,12 +217,12 @@ module eth_udp_video_top #(
     icmp #(
         .BOARD_MAC(BOARD_MAC), .BOARD_IP(BOARD_IP)
     ) u_icmp (
-        .rst_n(rst_n),
-        .gmii_rx_clk(gmii_rx_clk), .gmii_rx_dv(gmii_rx_dv), .gmii_rxd(gmii_rxd),
-        .gmii_tx_clk(gmii_tx_clk), .gmii_tx_en(icmp_gmii_tx_en), .gmii_txd(icmp_gmii_txd),
+        .rst_n(logic_rst_n),
+        .gmii_rx_clk(logic_clk), .gmii_rx_dv(rx_dv_l), .gmii_rxd(rx_d_l),
+        .gmii_tx_clk(logic_clk), .gmii_tx_en(icmp_gmii_tx_en), .gmii_txd(icmp_gmii_txd),
         .rec_pkt_done(icmp_rec_pkt_done), .rec_en(icmp_rec_en), .rec_data(icmp_rec_data),
         .rec_byte_num(icmp_rec_byte_num),
-        .tx_start_en(icmp_tx_start_en), .tx_data(icmp_fifo_q),
+        .tx_start_en(icmp_start_g), .tx_data(icmp_fifo_q),
         .tx_byte_num(icmp_tx_byte_num),
         .des_mac(src_mac), .des_ip(src_ip),
         .tx_done(icmp_tx_done), .tx_req(icmp_tx_req)
@@ -155,19 +232,27 @@ module eth_udp_video_top #(
     // 而 udp_rx 不看帧长、也没有错误标志可看（RGMII 只有 4 数据 + 1 控制，RX_CTL 在 rgmii_rx.v 里
     // 只当 gmii_rx_dv 用，**板上根本没有 RX_ER 这根线**）⇒ frame_reasm 的 p_good 只能硬接 1 ⇒
     // 遥测/OSD 里的"坏包"是构造性为 0 的死数字。现在错误源由 gmii_rx_mac 逐字节算 FCS-32 自己造。
-    // 发侧维持今天的状态（tx_start_en 恒 0，Z7 上 UDP 发送接着但没人启动）。判据：tb_v795_rx_chain C1..C5。
+    // 发侧维持今天的状态（tx_start_en 恒 0，Z7 上 UDP 发送接着但没人启动）。判据：tb_rx_chain C1..C5。
     wire        crc_en, crc_clr;
     wire [31:0] crc_data, crc_next;
     assign crc_d8 = udp_gmii_txd;
 
+    // 网络遥测（2026-10-20）：每秒向最后一个 ARP 请求方发一包 32B 状态，走 udp_tx。
+    // 目标 MAC/IP 是 ARP 模块捕获的 PC；没有 ARP（|src_mac==0）就不发。
+    wire        tel_start;
+    wire [15:0] tel_len;
+    wire [7:0]  tel_data;
+    wire [47:0] tel_mac;
+    wire [31:0] tel_ip;
+
     udp_tx #(.BOARD_MAC(BOARD_MAC), .BOARD_IP(BOARD_IP)) u_udp_tx (
-        .clk        (gmii_tx_clk),
-        .rst_n      (rst_n),
-        .tx_start_en(1'b0),                       // 与今天一致：Z7 不发 UDP
-        .tx_data    (8'd0),
-        .tx_byte_num(16'd0),
-        .des_mac    (src_mac),
-        .des_ip     (src_ip),
+        .clk        (logic_clk),
+        .rst_n      (logic_rst_n),
+        .tx_start_en(udp_start_g),
+        .tx_data    (tel_data),
+        .tx_byte_num(tel_len),
+        .des_mac    (tel_mac),
+        .des_ip     (tel_ip),
         .crc_data   (crc_data),
         .crc_next   (crc_next[31:24]),
         .tx_done    (udp_tx_done),
@@ -178,14 +263,14 @@ module eth_udp_video_top #(
         .crc_clr    (crc_clr)
     );
     crc32_d8 u_crc_tx (
-        .clk(gmii_tx_clk), .rst_n(rst_n), .data(crc_d8),
+        .clk(logic_clk), .rst_n(logic_rst_n), .data(crc_d8),
         .crc_en(crc_en), .crc_clr(crc_clr), .crc_data(crc_data), .crc_next(crc_next));
 
     wire [7:0] rx_m_data;
     wire       rx_m_valid, rx_m_sof, rx_m_eof, rx_m_good, rx_m_bad;
     gmii_rx_mac u_rx_mac (
-        .clk(gmii_rx_clk), .rst_n(rst_n),
-        .gmii_rxd(gmii_rxd), .gmii_rx_dv(gmii_rx_dv),
+        .clk(logic_clk), .rst_n(logic_rst_n),
+        .gmii_rxd(rx_d_l), .gmii_rx_dv(rx_dv_l),
         .gmii_rx_er(1'b0),          // RGMII 没有 RX_ER 通道；真正的判定在 FCS 那一级
         .m_data(rx_m_data), .m_valid(rx_m_valid), .m_sof(rx_m_sof),
         .m_eof(rx_m_eof), .m_good(rx_m_good), .m_bad(rx_m_bad)
@@ -195,7 +280,7 @@ module eth_udp_video_top #(
     wire [15:0] p_pay_len;
     wire        st_drop_bad, st_drop_filt, st_udp_ok;
     udp_rx_parser #(.UDP_PORT(UDP_PORT)) u_rx_par (        // 目的端口过滤：P0-C 最后那条债
-        .clk(gmii_rx_clk), .rst_n(rst_n),
+        .clk(logic_clk), .rst_n(logic_rst_n),
         .s_data(rx_m_data), .s_valid(rx_m_valid), .s_sof(rx_m_sof),
         .s_eof(rx_m_eof), .s_good(rx_m_good), .s_bad(rx_m_bad),
         .p_data(p_data), .p_valid(p_valid), .p_sof(p_sof), .p_eof(p_eof), .p_good(p_good),
@@ -204,7 +289,7 @@ module eth_udp_video_top #(
     );
 
     eth_ctrl u_ctrl (
-        .clk(gmii_rx_clk), .rst_n(rst_n),
+        .clk(logic_clk), .rst_n(logic_rst_n),
         .arp_rx_done(arp_rx_done), .arp_rx_type(arp_rx_type),
         .arp_tx_en(arp_tx_en), .arp_tx_type(), .arp_tx_done(arp_tx_done),
         .arp_gmii_tx_en(arp_gmii_tx_en), .arp_gmii_txd(arp_gmii_txd),
@@ -212,7 +297,8 @@ module eth_udp_video_top #(
         .icmp_gmii_tx_en(icmp_gmii_tx_en), .icmp_gmii_txd(icmp_gmii_txd),
         .icmp_rec_en(icmp_rec_en), .icmp_rec_data(icmp_rec_data),
         .icmp_tx_req(icmp_tx_req), .icmp_tx_data(),
-        .udp_tx_start_en(1'b0), .udp_tx_done(udp_tx_done),
+        .udp_tx_start_en(tel_start), .udp_tx_done(udp_tx_done),
+        .udp_start_g(udp_start_g), .icmp_start_g(icmp_start_g),
         .udp_gmii_tx_en(udp_gmii_tx_en), .udp_gmii_txd(udp_gmii_txd),
         .udp_rec_data(p_data), .udp_rec_en(p_valid),   // 这条 rec 转发路径本设计无人消费；接真字节而不是硬 0
         .udp_tx_req(udp_tx_req), .udp_tx_data(),
@@ -221,6 +307,11 @@ module eth_udp_video_top #(
         .gmii_tx_en(gmii_tx_en), .gmii_txd(gmii_txd)
     );
 
+    // 收侧重组输出：r135 起只在内部喂 CDC/打包器，不再作为端口引到像素顶层
+    // （pl_video_top 的 eth_wr_* 那一束从来没有消费者，见 report/figures/fig-01 的 N5 注释）。
+    wire        fb_wr_en;
+    wire [18:0] fb_wr_addr;
+    wire [15:0] fb_wr_data;
     wire [31:0] s_frames, s_pkts, s_bytes, s_badc, s_oob;
     // V7.9.6：原来这里要用"上一个字节没到、这一字节到了"自己凑一个 sof，
     // 因为厂商 udp_rx 不给边界；parser 直接给 p_sof/p_eof，那段推导随之删掉。
@@ -233,7 +324,7 @@ module eth_udp_video_top #(
     //   改分辨率就会让它提前成立（提交半幅黑帧）或永不成立（不出 frame_done）。
     //   现值 512*300*2=307200 与默认**逐字节相同** ⇒ 这一刀对今天的行为是免费的。
     frame_reasm #(.IMG_W(IMG_W), .IMG_H(IMG_H), .FRAME_BYTES(IMG_W*IMG_H*2)) u_reasm (
-        .clk(gmii_rx_clk), .rst_n(rst_n),
+        .clk(logic_clk), .rst_n(logic_rst_n),
         .p_data(p_data), .p_valid(p_valid),
         .p_sof(p_sof), .p_eof(p_eof), .p_good(p_good),   // ← 这一位从此是**真值**（原来是 1'b1）
         .wr_en(fb_wr_en), .wr_addr(fb_wr_addr), .wr_data(fb_wr_data),
@@ -242,6 +333,55 @@ module eth_udp_video_top #(
         .frame_abort(reasm_fabort), .rows_missed(reasm_rows_miss),
         .stat_frames(s_frames), .stat_pkts(s_pkts),
         .stat_bytes(s_bytes), .stat_bad(s_badc), .stat_oob_off(s_oob)
+    );
+
+    // rows_missed 只在作废那一拍更新（sticky 的"上一次为什么作废"），单看它会误读成
+    // "当前帧还在缺 300 行"。配一个累计作废计数，遥测一次给"发生了几次 + 最后一次缺多少"。
+    reg [15:0] eth_abort_cnt;
+    always @(posedge logic_clk or negedge logic_rst_n) begin
+        if (!logic_rst_n) eth_abort_cnt <= 16'd0;
+        else if (reasm_fabort) eth_abort_cnt <= eth_abort_cnt + 1'b1;
+    end
+
+    // 时延从 axi 域（100 MHz）跨到逻辑域（125 MHz）：源总线每帧整拍更新（≥16 ms），
+    // 与 pl_video_top 到像素域用的是同一套 snap_cross 口径；心跳也来自 axi 域的同一个翻转位。
+    reg lat_hb_axi;
+    always @(posedge axi_clk or negedge axi_rst_n) begin
+        if (!axi_rst_n) lat_hb_axi <= 1'b0;
+        else            lat_hb_axi <= lat_tog_axi;
+    end
+    wire [17:0] lat_bus_eth;
+    wire        lat_gone_eth;
+    snap_cross #(.W(18), .DST_HZ(125_000_000), .HB_TO_MS(1000), .SLOW_MS(200)) u_lat_eth (
+        .dst_clk(logic_clk), .dst_rst_n(logic_rst_n),
+        .bus({lat_ok_axi, ~lat_sticky_axi, lat_ms_axi}),
+        .bus_tog(lat_tog_axi), .hb_tog(lat_hb_axi),
+        .bus_q(lat_bus_eth), .hb_gone(lat_gone_eth), .hb_slow()
+    );
+    wire        lat_ok_eth = lat_bus_eth[17] & lat_bus_eth[16] & ~lat_gone_eth;
+    wire [15:0] lat_ms_eth = lat_bus_eth[15:0];
+
+    // 处理窗完整性从像素域跨到逻辑域；与像素域 OSD 同一个翻转位做心跳。
+    wire [16:0] pane_bus_eth;
+    wire        pane_gone_eth;
+    snap_cross #(.W(17), .DST_HZ(125_000_000), .HB_TO_MS(1000), .SLOW_MS(200)) u_pane_eth (
+        .dst_clk(logic_clk), .dst_rst_n(logic_rst_n),
+        .bus({pane_valid_pix, pane_bad_pix}), .bus_tog(pane_tog_pix), .hb_tog(pane_tog_pix),
+        .bus_q(pane_bus_eth), .hb_gone(pane_gone_eth), .hb_slow()
+    );
+    wire        pane_valid_eth = pane_bus_eth[16] & ~pane_gone_eth;
+    wire [15:0] pane_bad_eth   = pane_bus_eth[15:0];
+
+    udp_telemetry #(.TICK_DIV(125_000_000)) u_tel (
+        .clk(logic_clk), .rst_n(logic_rst_n),
+        .en(|src_mac), .des_mac(src_mac), .des_ip(src_ip),
+        .stat_frames(s_frames), .stat_pkts(s_pkts), .stat_bad(s_badc),
+        .rows_missed(reasm_rows_miss), .aborts(eth_abort_cnt), .link_active(|s_pkts),
+        .lat_ms(lat_ms_eth), .lat_ok(lat_ok_eth),
+        .pane_bad(pane_bad_eth), .pane_valid(pane_valid_eth),
+        .start_en(tel_start), .tx_byte_num(tel_len), .tx_data(tel_data),
+        .tx_req(udp_tx_req), .tx_done(udp_tx_done),
+        .out_des_mac(tel_mac), .out_des_ip(tel_ip)
     );
 
     wire [35:0] fifo_dout;
@@ -264,8 +404,8 @@ module eth_udp_video_top #(
     wire [35:0] cdc_data = fb_wr_en ? {1'b0, fb_wr_addr, fb_wr_data}
                                     : {1'b1, 19'd0, 16'd0};
 
-    always @(posedge gmii_rx_clk or negedge rst_n) begin
-        if (!rst_n) flush_pend <= 1'b0;
+    always @(posedge logic_clk or negedge logic_rst_n) begin
+        if (!logic_rst_n) flush_pend <= 1'b0;
         else if (reasm_flush && fb_wr_en && !fifo_full) flush_pend <= 1'b1;
         else if (flush_pend && !fb_wr_en && !fifo_full) flush_pend <= 1'b0;
     end
@@ -275,17 +415,25 @@ module eth_udp_video_top #(
     // gapclr_sel 是 fclk0 域的电平，进本域必须先 3FF（工程里 src_sel/allow_copy 同一套路）。
     // 它是准静态控制位、不是脉冲，所以同步后直接当电平用，不需要握手。
     (* ASYNC_REG = "TRUE" *) reg gc0, gc1, gc2;
-    always @(posedge gmii_rx_clk or negedge rst_n) begin
-        if (!rst_n) {gc2, gc1, gc0} <= 3'b0;
+    always @(posedge logic_clk or negedge logic_rst_n) begin
+        if (!logic_rst_n) {gc2, gc1, gc0} <= 3'b0;
         else        {gc2, gc1, gc0} <= {gc1, gc0, gapclr_sel};
     end
 
     wire cdc_wr_req = fb_wr_en || reasm_flush || flush_pend;
+    // fix3 的 eth_rxc 保持余量最差一条就是 `u_cdc/rgray_s1 → u_lm/full_d`（0.053 ns）：
+    // 格雷码指针同步器的输出经过整条 14 位满比较 + 远距离走线直接进 link_monitor。这里把
+    // `fifo_full` 先在本域寄存一拍再给观测面，源与目的都回到触发器；写使能仍然用组合满判据（不丢深度）。
+    reg cdc_full_r;
+    always @(posedge logic_clk or negedge logic_rst_n) begin
+        if (!logic_rst_n) cdc_full_r <= 1'b0;
+        else        cdc_full_r <= fifo_full;
+    end
     link_monitor #(
         .CLK_HZ(125_000_000), .LIVE_MS(16'd200)
     ) u_lm (
-        .clk(gmii_rx_clk), .rst_n(rst_n),
-        .cdc_wr_req(cdc_wr_req), .cdc_full(fifo_full),
+        .clk(logic_clk), .rst_n(lm_rst_n),
+        .cdc_wr_req(cdc_wr_req), .cdc_full(cdc_full_r),
         .frame_done(frame_done), .frame_abort(reasm_fabort),
         .frame_err(reasm_ferr), .rows_missed(reasm_rows_miss),
         .in_pkts(s_pkts), .in_bytes(s_bytes), .gapclr(gc2),
@@ -296,7 +444,7 @@ module eth_udp_video_top #(
     // 8192 条 = 4096 个 64bit 字 = 16 KB，足以吸收「显示拷贝独占 HP0 一整个
     // V-blank」期间到达的入包数据（15 MBps × 672 µs ≈ 1260 字）。
     dc_fifo #(.DATA_W(36), .ADDR_W(13)) u_cdc (
-        .wr_clk(gmii_rx_clk), .wr_rst_n(rst_n),
+        .wr_clk(logic_clk), .wr_rst_n(logic_rst_n),
         .wr_en(cdc_wr),
         .wr_data(cdc_data),
         .wr_full(fifo_full),
@@ -326,13 +474,13 @@ module eth_udp_video_top #(
     wire       pack_flush;
 
     // v6.4 的「帧尾 4 字节偶发丢失」修在这里：换页必须等本帧数据全部穿过 CDC。这段 glue 抽成独立
-    // 模块是为了让 tb_v6_pingpong / tb_v6_tail_bank 例化**上板的实现**而不是 TB 里的手抄副本。
+    // 模块是为了让 tb_fb_pingpong / tb_tail_bank 例化**上板的实现**而不是 TB 里的手抄副本。
     ddr_bank_commit #(
         .BANK0(BANK0), .BANK1(BANK1), .TAIL_GUARD(1'b1)
     ) u_commit (
-        .gmii_clk      (gmii_rx_clk),
+        .gmii_clk      (logic_clk),
         .axi_clk       (axi_clk),
-        .rst_n         (rst_n),
+        .rst_n         (logic_rst_n),
         .axi_rst_n     (axi_rst_n),
         .frame_done    (frame_done),
         .saver_idle    (saver_idle),
@@ -379,10 +527,9 @@ module eth_udp_video_top #(
     //   改前红凭据 `build/r98_cdc_details.txt`（CDC-10，`u_eth/u_reasm/stat_pkts_reg[9]/C →
     //   u_pl/el0_reg/D`，深度 3），改后必须看不见 `eth_rxc>clkout0_1` 这条 Critical 行。
     reg link_active_r;
-    always @(posedge gmii_rx_clk or negedge rst_n) begin
-        if (!rst_n) link_active_r <= 1'b0;
-        else        link_active_r <= |s_pkts[15:0];
+    always @(posedge logic_clk or negedge logic_rst_n) begin
+        if (!logic_rst_n) link_active_r <= 1'b0;
+        else        link_active_r <= |s_pkts;
     end
     assign link_active = link_active_r;
-    assign eth_gmii_clk = gmii_rx_clk;
 endmodule

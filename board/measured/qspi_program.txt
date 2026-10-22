@@ -1,0 +1,25 @@
+==== IDENTITY ====
+RUN_AT      2026-10-22 21:39
+TOOL        Vivado 2025.2.1 batch, board/tcl/flash_qspi.tcl
+PART        mx25l25645g-qspi-x4-single (W25Q256 class, 32 MB, x4 single)
+BOOT_BIN    board/flash/BOOT.bin   md5 4ce4b568155d997bfe9db3f3056d7b96  bytes 2377296
+FSBL        vitis/fin2_plat/zynq_fsbl/fsbl.elf   md5 fdb7a8cb36d60207cd7f132c21d5652e
+BIT         board/project/system.bit   md5 9734f3ec30195945e45585341ada8d0f  (r171)
+APP         board/project/ps_app.elf   md5 9ff967573b322c09d6917c94888be5c9  (r171)
+
+==== WRITE ====
+ERASE       Erase Operation successful.
+PROGRAM     Program Operation successful.
+VERIFY      Verify Operation successful. (on-chip readback compare)
+RC          PROGRAM_RC 0
+DONE        [Labtoolstcl 44-377] Flash programming completed successfully
+ELAPSED     2 min 14 s
+FULL_LOG    board/flash/flash_qspi_r171.log
+
+==== COLD BOOT ====
+STATUS      PENDING — the write and on-chip verify are done; a real cold boot needs a
+            power cycle / PS_POR_B. A JTAG rst -system is NOT a POR and does not re-run
+            the boot ROM. After the power cycle, read COM6 and run health/battery.
+NOTE        The previous QSPI image could not be backed up: Vivado 2025.2.1 exposes no
+            program_flash / hw_cfgmem READ path in this installation (board/measured/
+            probe_flash_read.log). The old image was overwritten by this write.

@@ -16,7 +16,7 @@
 //        errors 加一，末行改为 `RESULT tb_head_rot_displace FAIL errors=<n> D1=<n> D2=<n> D3=<n>`。
 // tb_head_rot_displace —— #167 里**映射这一半**的那把尺子：旋转态下"上一帧的角度"与"这一帧的角度"
 // 会把画面挪开多少源像素。它**不判**"帧头到底吃了哪一帧"（那是顶层台架 `C5c` 判的，凭据
-// build/tb_v98_report.txt 与 build/evidence/r104_c5head_band.txt），它量的是**后果的大小**——
+// build/reports/tb_video_pipeline_top_report.txt 与 board/output/c5head_band.txt），它量的是**后果的大小**——
 // 正是 2026-10-02 早上眼睛答不出来的那一档（"1 档与 7 档看不出差"），因为那一档眼睛饱和在可见阈之上。
 //
 // 与 #162 同一套规矩：**只用 DUT 自己的输出**（`zoom_mapper` 的 `x_out/y_out/oob` 与 `zoom_fit` 的

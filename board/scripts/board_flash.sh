@@ -6,8 +6,8 @@
 # 关键参数（全用环境变量传，脚本里不写死任何机器路径）：
 #   VP_XSDB        <Vitis>/bin/xsdb.bat 的绝对路径，必填
 #   VP_VIVADO_BIN  <Vivado>/bin 的绝对路径，必填（这一步的 program_pl 走 vivado 而不是 xsdb）
-#   VP_BIT         位流路径，透传给 build/tcl/program_pl.tcl；不设就是 build/system.bit
-#   VP_ELF         应用路径，透传给 build/tcl/ps_app_reload.tcl；不设就是 build/ps_app.elf
+#   VP_BIT         位流路径，透传给 board/tcl/program_pl.tcl；不设就是 board/project/system.bit
+#   VP_ELF         应用路径，透传给 board/tcl/ps_app_reload.tcl；不设就是 board/project/ps_app.elf
 #   VP_OUT_DIR     落件目录，默认 board/measured
 # 实跑过两遍（2026-10-05，板子就是那一版 r118 三件套）：
 #   board/measured/flash_20261005_1026.txt  = --check，FLASH: GREEN，没有任何写动作
@@ -29,8 +29,8 @@ say() { printf '%s\n' "$*"; }
 VP_XSDB=${VP_XSDB:-}
 VP_VIVADO_BIN=${VP_VIVADO_BIN:-}
 VP_OUT_DIR=${VP_OUT_DIR:-board/measured}
-BIT=${VP_BIT:-build/system.bit}
-ELF=${VP_ELF:-build/ps_app.elf}
+BIT=${VP_BIT:-board/project/system.bit}
+ELF=${VP_ELF:-board/project/ps_app.elf}
 CHECK_ONLY=0
 [ "${1:-}" = "--check" ] && CHECK_ONLY=1
 
@@ -40,9 +40,9 @@ MISS=""
 [ "$CHECK_ONLY" = 1 ] || { [ -d "$VP_VIVADO_BIN" ] || MISS="$MISS VP_VIVADO_BIN=$VP_VIVADO_BIN"; }
 [ -f "$BIT" ] || MISS="$MISS $BIT"
 [ -f "$ELF" ] || MISS="$MISS $ELF"
-[ -f build/tcl/ps_jtag_boot.tcl ] || MISS="$MISS build/tcl/ps_jtag_boot.tcl"
-[ -f build/tcl/program_pl.tcl ] || MISS="$MISS build/tcl/program_pl.tcl"
-[ -f build/tcl/ps_app_reload.tcl ] || MISS="$MISS build/tcl/ps_app_reload.tcl"
+[ -f board/tcl/ps_jtag_boot.tcl ] || MISS="$MISS board/tcl/ps_jtag_boot.tcl"
+[ -f board/tcl/program_pl.tcl ] || MISS="$MISS board/tcl/program_pl.tcl"
+[ -f board/tcl/ps_app_reload.tcl ] || MISS="$MISS board/tcl/ps_app_reload.tcl"
 if [ -n "$MISS" ]; then
   say "REFUSE: 缺$MISS"
   say "        工具在 Vivado/Vitis 安装树里、不在 PATH 上：先 find <安装根> -maxdepth 3 -name xsdb.bat 定位，再用环境变量传进来。"
@@ -62,7 +62,7 @@ trap 'rm -rf "$TMP" 2>/dev/null || true' EXIT
   say "==== IDENTITY ===="
   say "RUN_AT      $(date '+%Y-%m-%d %H:%M:%S')  mode=$([ "$CHECK_ONLY" = 1 ] && echo check-only || echo FLASH)"
   say "GIT_HEAD    $(git rev-parse --short HEAD 2>/dev/null || echo unknown)"
-  for f in "$BIT" "$ELF" build/system.xsa; do
+  for f in "$BIT" "$ELF" board/project/system.xsa; do
     [ -f "$f" ] && say "MD5_12      $(md5sum "$f" | cut -c1-12)  $f" || say "MD5_12      MISSING     $f"
   done
   say "TOOL        xsdb=$VP_XSDB"
@@ -70,13 +70,13 @@ trap 'rm -rf "$TMP" 2>/dev/null || true' EXIT
 } > "$TMP/head.txt"
 
 # ---- 0) 只读扫链：hw_server 看不看得见 PS 那颗 A9，这一条对板子没有任何副作用 ----
-# 用 build/tcl/scan_jtag.tcl：它只做 open_hw_manager / connect_hw_server / open_hw_target + 打印清单，
+# 用 board/tcl/scan_jtag.tcl：它只做 open_hw_manager / connect_hw_server / open_hw_target + 打印清单，
 # 没有 rst/con/mwr，所以 --check 真的不碰板子。
 # 上一版这里写的是 build/tcl/r116_jtag_health.tcl —— 仓库里从来没有这个文件，xsdb 直接报
 # "couldn't read file"，而判据抓的两个标记（JTAG_TARGETS_END / APU_SELECT rc=0）其实出自
 # r116_jtag_recover.tcl，那支是**发系统复位**的：既指错文件，又把"复位"藏进只读路径里（台账 #405）。
 # 现在：被调文件不在就 REFUSE（缺件不是红，是没量过），并且把"比了几次"念出来。
-SCAN_TCL=build/tcl/scan_jtag.tcl
+SCAN_TCL=board/tcl/scan_jtag.tcl
 if [ ! -f "$SCAN_TCL" ]; then
   say "REFUSE: 扫链要调的 $SCAN_TCL 不在仓库里 ⇒ 这一项什么都没查，不判红也不判绿"; exit 2
 fi
@@ -89,17 +89,15 @@ SCAN_OK=0; [ "$SCAN_APU" -ge 2 ] && SCAN_OK=1
 RC1=1; RC2=1; RC3=1; RB=1
 if [ "$CHECK_ONLY" = 0 ]; then
   say "STEP 1/3 ps_jtag_boot （xsdb：rst -system + ps7_init + DDR 自检；会冲掉 PL 上现有的位流）"
-  "$VP_XSDB" -quiet build/tcl/ps_jtag_boot.tcl > "$TMP/s1.txt" 2>&1; RC1=$?
+  "$VP_XSDB" -quiet board/tcl/ps_jtag_boot.tcl > "$TMP/s1.txt" 2>&1; RC1=$?
   sed 's/^/  /' "$TMP/s1.txt"
   say "STEP 2/3 program_pl （vivado：把 $BIT 配进 PL）"
-  if [ "$BIT" = "build/system.bit" ]; then
-    "$VP_VIVADO_BIN/vivado.bat" -mode batch -nojournal -source build/tcl/program_pl.tcl > "$TMP/s2.txt" 2>&1; RC2=$?
-  else
-    VP_BIT="$BIT" "$VP_VIVADO_BIN/vivado.bat" -mode batch -nojournal -source build/tcl/program_pl.tcl > "$TMP/s2.txt" 2>&1; RC2=$?
-  fi
+  # Always pass the path explicitly: program_pl.tcl's own default is build/system.bit,
+  # which does not exist when the current artifact is staged under build/r<NNN>/.
+  VP_BIT="$BIT" "$VP_VIVADO_BIN/vivado.bat" -mode batch -nojournal -source board/tcl/program_pl.tcl > "$TMP/s2.txt" 2>&1; RC2=$?
   sed 's/^/  /' "$TMP/s2.txt"
   say "STEP 3/3 ps_app_reload （xsdb：rst -processor + dow $ELF + con）"
-  "$VP_XSDB" -quiet build/tcl/ps_app_reload.tcl "$ELF" > "$TMP/s3.txt" 2>&1; RC3=$?
+  "$VP_XSDB" -quiet board/tcl/ps_app_reload.tcl "$ELF" > "$TMP/s3.txt" 2>&1; RC3=$?
   sed 's/^/  /' "$TMP/s3.txt"
   # 回读一次控制字：PL 没配上时这条 mrd 取不到数，所以它是"三步真的都落地了"的最短判据
   "$VP_XSDB" -quiet board/rdbck.tcl > "$TMP/rb.txt" 2>&1; RB=$?
@@ -119,6 +117,9 @@ if [ "$CHECK_ONLY" = 0 ]; then
   grep -aqE 'DDR_ECHO: 10000000:[[:space:]]+5A5AA5A5' "$TMP/s1.txt" || addfail "没读到 DDR_ECHO=5A5AA5A5"
   grep -aq 'PROGRAMMED' "$TMP/s2.txt" || addfail "program_pl 没打 PROGRAMMED"
   grep -aq 'DOW: ok' "$TMP/s3.txt" || addfail "应用没 dow 进去"
+  # xsdb 对"脚本不存在"也返回 0（2026-10-20 实测：rdbck.tcl 被剪掉，rc 仍是 0）
+  # ⇒ 光看 rc 会假绿；必须要求回读正文里真的出现 GPIO 那一行。
+  grep -aqE 'GPIO@0x41200000 = 41200000:' "$TMP/rb.txt" || addfail "回读没有 GPIO@0x41200000 那一行（脚本缺失或没连上 APU）"
 fi
 
 {
@@ -129,11 +130,11 @@ fi
   if [ "$CHECK_ONLY" = 0 ]; then
     say "==== STEPS 1-3 rc ===="
     say "rc ps_jtag_boot=$RC1  rc program_pl=$RC2  rc ps_app_reload=$RC3  rc readback_gpio=$RB"
-    say "==== STEP 1 ps_jtag_boot (build/tcl/ps_jtag_boot.tcl) ===="
+    say "==== STEP 1 ps_jtag_boot (board/tcl/ps_jtag_boot.tcl) ===="
     cat "$TMP/s1.txt"
-    say "==== STEP 2 program_pl (build/tcl/program_pl.tcl, bit=$BIT) ===="
+    say "==== STEP 2 program_pl (board/tcl/program_pl.tcl, bit=$BIT) ===="
     cat "$TMP/s2.txt"
-    say "==== STEP 3 ps_app_reload (build/tcl/ps_app_reload.tcl, elf=$ELF) ===="
+    say "==== STEP 3 ps_app_reload (board/tcl/ps_app_reload.tcl, elf=$ELF) ===="
     cat "$TMP/s3.txt"
     say "==== READBACK (board/rdbck.tcl) ===="
     cat "$TMP/rb.txt"
@@ -144,11 +145,11 @@ fi
 
 cat "$OUT"
 if [ -z "$FAIL" ]; then
-  say "FLASH: GREEN  件=$OUT"
-  [ "$CHECK_ONLY" = 1 ] && say "FLASH: 这只是前置检查（--check）。板上状态没有被这一跑改动。"
+  say "FLASH: GREEN  件=$OUT" | tee -a "$OUT"
+  [ "$CHECK_ONLY" = 1 ] && say "FLASH: 这只是前置检查（--check）。板上状态没有被这一跑改动。" | tee -a "$OUT"
   exit 0
 fi
-say "FLASH: RED —— 没过的项目：$FAIL"
-say "        件=$OUT"
-say "        只有扫链那项红 ⇒ 先看板子供电与 hw_server（netstat -an -p TCP | grep 3121），别先看代码。"
+say "FLASH: RED —— 没过的项目：$FAIL" | tee -a "$OUT"
+say "        件=$OUT" | tee -a "$OUT"
+say "        只有扫链那项红 ⇒ 先看板子供电与 hw_server（netstat -an -p TCP | grep 3121），别先看代码。" | tee -a "$OUT"
 exit 1

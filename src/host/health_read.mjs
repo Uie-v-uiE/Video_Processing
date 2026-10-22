@@ -64,7 +64,7 @@ const LANES = [
 ];
 
 // ============================ lane30 译码（一份实现，两处用）============================
-// 位序来自 RTL：pl_video_top.v 的 `assign dbg_src = {...}`，与台架 tb_v796_src_arb.v 的
+// 位序来自 RTL：pl_video_top.v 的 `assign dbg_src = {...}`，与台架 tb_src_arb.v 的
 // G1 表逐位对齐。台架证明的是**硬件里那 16 位的内容**；这一份 JS 是第二个独立实现，
 // 它自己也要有判据（--selfcheck）——否则"读回 0x310"被译成"没有流"而其实位挪了一格，
 // 板级报告就会把一句译码错误写成结论。（#59 的教训：屏上/读回两边各译各的。）
@@ -85,7 +85,7 @@ function decodeSrc(src) {
 }
 
 // ============================ lane23 译码（V8-8 最后一跳）============================
-// 位序唯一出处：pl_video_top.v 的 `assign dbg_zoom = {...}`；台架 tb_v95_zoom_snap.v 的 Z2 段
+// 位序唯一出处：pl_video_top.v 的 `assign dbg_zoom = {...}`；台架 tb_zoom_snap.v 的 Z2 段
 // 逐字段钉住同一张表。这一份 JS 是**第三个读者**（RTL / 台架 / 这里），所以它也要有判据（S4 段）。
 function decodeZoom(v) {
   if (v === undefined) return null;
@@ -368,7 +368,7 @@ if (get('json', false) === true) {
     // "模式被钉住 / 时基不可信 / both_idle 从不成立 / 判据说谎"四种解释（见 ISSUES #49）。
     // 再加 why_ps 三位把最后一格也填上：前三位说的是"输入现在长什么样"，
     // 后三位说的是"**做判决那一拍**看到了什么"（寄存器，见 src_arb.v）——两者不一致就说明
-    // 换手被 busy 挡住了，而不是判据说谎。位序与台架 G1 表逐位对齐（tb_v796_src_arb.v）。
+    // 换手被 busy 挡住了，而不是判据说谎。位序与台架 G1 表逐位对齐（tb_src_arb.v）。
     src_state: decodeSrc(src),
     // lane23（V8-8 最后一跳）：像素域**正在用**的缩放状态 + 两条同源判据：
     //   ① 手动档（zman=1）：inv_scale 必须等于"256 ÷ 该档倍率"（由倍率定义推导，不查表）；

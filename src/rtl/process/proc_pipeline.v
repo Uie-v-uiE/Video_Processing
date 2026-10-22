@@ -27,7 +27,10 @@ module proc_pipeline #(
     parameter integer OFF_LINES = 4,
     // STREAM_WRAP：透传给四个窗口级（0 = 台架那套帧锚定流，1 = 顶层的绕回连续流）。
     //   正本说明与凭据在 proc_box_blur.v；顶层只在这里传一次，四个窗口级由它导出（I1：一个出处）。
-    parameter integer STREAM_WRAP = 0
+    parameter integer STREAM_WRAP = 0,
+    // Source-frame height for the wrapped-stream image-boundary clamp. 0 keeps
+    // the legacy frame-anchored behaviour used by the module testbenches.
+    parameter integer V_ACTIVE = 0
 )(
     input  wire        clk,
     input  wire        rst_n,
@@ -81,7 +84,7 @@ assign off_rows = OFF_LINES[7:0];
     //     ② 每行第一个有效拍上 `x_in` 还停在消隐末尾（顶层一屏数到 1343）⇒ **写地址越界**：xsim 把这一笔
     //        丢掉，硬件按地址位截断成 `1343 mod 1024 = 319` ⇒ 每行往 319 号槽写进消隐期的 0x0000，
     //        读回它的是真实列 320 那一拍 ⇒ 板上一根钉死在显示列 320（源列 160）的 1 像素纯黑竖线。
-    //   判据：`sim/tb_v103_pipe_bypass.v` 的 C10d（槽位完整性）与 C10f（越界写），改前两条都红。
+    //   判据：`sim/tb_pipe_bypass.v` 的 C10d（槽位完整性）与 C10f（越界写），改前两条都红。
     reg [11:0] xd [1:12];               // 这条链是**纯寄存器**、每拍一跳、不参与任何运算 ⇒ 不会把组合链拉长；每一跳 12 bit，代价 = 2×12×12 = 288 个触发器（Slice 寄存器 7936 的 3.6 %）
     reg [11:0] yd [1:12];
     integer cp;
@@ -95,10 +98,46 @@ assign off_rows = OFF_LINES[7:0];
             end
         end
     end
+    // ⚠ 行标签必须和**本级输入内容**同一行，不能只补拍数（I2）。每个窗口级自身有
+    //   **1 个显示行**的内容滞后（中心抽头取上一行）；上游每多一级，本级输入内容就再晚一行。
+    //   上面的 `yd[]` 只补了**拍**（2/5/8/12），所以 sharpen/sobel/morph 的 `y_in` 比它们
+    //   真正吃的内容**超前 1/2/3 个显示行** ⇒ V_ACTIVE 边界夹取武装在错误的源行上，
+    //   帧顶/帧底那一行仍把另一端的行当邻居（#495 的 0° 白线；C22 在 y=0/599 各量到
+    //   一整行 sob=ffff，而中心 tag 是对的 ⇒ 病在邻行，不在中心）。
+    //   修法：按**行**记一份输入标签历史，每个窗口级取自己输内容那一行的标签：
+    //     blur 0 行（顶层原始流）→ yd[2]；sharpen 1 行；sobel 2 行；morph 3 行。
+    //   历史只在**有效行尾**更新（不是每个 hs，否则场消隐的假行号会挤进来）；更新点比
+    //   各级 line_end 早 2..12 拍（各级 de 是顶层 de 的延迟），所以本级 line_end 采到的是
+    //   刚更新过的正确行号。
+    reg [11:0] run_p;
+    reg        de_p1;
+    always @(posedge clk or negedge rst_n) begin
+        if (!rst_n) begin run_p <= 12'd0; de_p1 <= 1'b0; end
+        else begin
+            if (de_in) run_p <= run_p + 12'd1; else run_p <= 12'd0;
+            de_p1 <= de_in;
+        end
+    end
+    wire line_end_p = (run_p == H_ACTIVE[11:0]) && de_p1 && !de_in;
+    wire line_start_p = de_in && !de_p1;   // 每行第一个有效像素：本行标签此刻已经有效
+    reg [11:0] yl0, yl1, yl2, yl3;      // 输入流本行 / 上一行 / 上两行 / 上三行的源行标签
+    // ⚠ 必须在**行首**采样，不能等行尾：below 抽头在整行都在吃当前输入行，而行尾采样
+    //   会把 yl* 整整晚一行 —— 帧底那条白线就是这么来的（C22SOB yrow_d=299 yin=299，
+    //   但 q20..q22=0/0/0，实际 below 已经是下一帧第 0 行；wrbot 因 yin 还是 299 而不武装）。
+    //   行首采样后，本级输入内容是 n−k ⇒ 取 yl[k]（k=1/2/3），below 与中心都对得上。
+    always @(posedge clk or negedge rst_n) begin
+        if (!rst_n) begin yl0 <= 12'd0; yl1 <= 12'd0; yl2 <= 12'd0; yl3 <= 12'd0; end
+        else if (line_start_p) begin yl0 <= y_in; yl1 <= yl0; yl2 <= yl1; yl3 <= yl2; end
+    end
     wire [11:0] x_blur = xd[2],  y_blur = yd[2];
-    wire [11:0] x_sharp = xd[5], y_sharp = yd[5];
-    wire [11:0] x_sobel = xd[8], y_sobel = yd[8];
-    wire [11:0] x_morph = xd[12], y_morph = yd[12];
+    // STREAM_WRAP=0 是台架那套帧锚定流（V_ACTIVE=0 时边界夹取本来就不武装），
+    // 保持原来的拍数标签，别动既有模块判据；顶层 STREAM_WRAP=1 才用行历史。
+    wire [11:0] y_sharp = (STREAM_WRAP != 0) ? yl1 : yd[5];
+    wire [11:0] y_sobel = (STREAM_WRAP != 0) ? yl2 : yd[8];
+    wire [11:0] y_morph = (STREAM_WRAP != 0) ? yl3 : yd[12];
+    wire [11:0] x_sharp = xd[5];
+    wire [11:0] x_sobel = xd[8];
+    wire [11:0] x_morph = xd[12];
 
     // 级 0 明暗：gamma。**组合读出，不占拍数**，所以它不在上面那串逐拍账里。
     wire [15:0] d0;
@@ -119,20 +158,20 @@ assign off_rows = OFF_LINES[7:0];
     );
 
     // 级 2 滤波：两个选项串接，只开其中一个时另一个纯旁路
-    proc_box_blur #(.H_ACTIVE(H_ACTIVE), .STREAM_WRAP(STREAM_WRAP)) u_blur (
+    proc_box_blur #(.H_ACTIVE(H_ACTIVE), .STREAM_WRAP(STREAM_WRAP), .V_ACTIVE(V_ACTIVE)) u_blur (
         .clk(clk), .rst_n(rst_n), .bypass(~w_blur),
         .hs_in(hs_in), .vs_in(vs_in), .de_in(de1b),
         .x_in(x_blur), .y_in(y_blur), .din(d1b),
         .de_out(de2a), .dout(d2a)
     );
-    proc_sharpen #(.H_ACTIVE(H_ACTIVE), .STREAM_WRAP(STREAM_WRAP)) u_sharp (
+    proc_sharpen #(.H_ACTIVE(H_ACTIVE), .STREAM_WRAP(STREAM_WRAP), .V_ACTIVE(V_ACTIVE)) u_sharp (
         .clk(clk), .rst_n(rst_n), .bypass(~w_sharp),
         .de_in(de2a), .x_in(x_sharp), .y_in(y_sharp), .din(d2a),
         .de_out(de2b), .dout(d2b)
     );
 
     // 级 3 边缘
-    proc_sobel #(.H_ACTIVE(H_ACTIVE), .STREAM_WRAP(STREAM_WRAP)) u_sobel (
+    proc_sobel #(.H_ACTIVE(H_ACTIVE), .STREAM_WRAP(STREAM_WRAP), .V_ACTIVE(V_ACTIVE)) u_sobel (
         .clk(clk), .rst_n(rst_n), .bypass(~w_sobel),
         .vs_in(vs_in), .de_in(de2b),
         .x_in(x_sobel), .y_in(y_sobel), .din(d2b),
@@ -146,7 +185,7 @@ assign off_rows = OFF_LINES[7:0];
     );
 
     // 级 5 形态学
-    proc_morph #(.H_ACTIVE(H_ACTIVE), .STREAM_WRAP(STREAM_WRAP)) u_morph (
+    proc_morph #(.H_ACTIVE(H_ACTIVE), .STREAM_WRAP(STREAM_WRAP), .V_ACTIVE(V_ACTIVE)) u_morph (
         .clk(clk), .rst_n(rst_n), .mode(morph_mode), .threshold(threshold),
         .de_in(de4), .x_in(x_morph), .y_in(y_morph), .din(d4),
         .de_out(de_out), .dout(dout)

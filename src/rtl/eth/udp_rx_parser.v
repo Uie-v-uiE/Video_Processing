@@ -133,7 +133,7 @@ module udp_rx_parser #(
                 // V7.9.6 修：`ihl` 在 bcnt==14 这一拍**才被存进去**，同拍读到的还是旧值 0 ⇒
                 // `bcnt == 14 + ihl*4` 在 bcnt==14 也成立，每帧都会提前判定一次，而那时 proto(b23)
                 // 还没采到 ⇒ **每帧误发一次 stat_drop_filt**（载荷随后在真正的 bcnt==34 仍被正确接受，
-                // 所以只污染统计、不影响画面）。判据：tb_v795_rx_chain 的 C1"不误报丢弃"。
+                // 所以只污染统计、不影响画面）。判据：tb_rx_chain 的 C1"不误报丢弃"。
                 if ((ihl != 4'd0) && bcnt == (16'd14 + {10'd0, ihl, 2'b00})) begin
                     udp_off <= bcnt;
                     pay_start <= bcnt + 16'd8;   // 这一拍的 bcnt 就是 udp_off，尾界同理提前算

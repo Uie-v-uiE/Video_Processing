@@ -1,8 +1,0 @@
-HEAD 探针件 build/evidence/r132_pin_skew_probe.txt 9d552ac0294d
-HEAD metrics data/metrics.csv 1f1969a4db2f
-HEAD 读数器=nodev24.21.0
-J5 上限可推导            像素钟=50MHz ⇒ Tcharacter=20.000 Tbit=2.000 互对上限=4.000ns 对内上限=0.300ns PASS
-J1 计数地板              期望 8 脚×2 角 缺 max=[] 缺 min=[] 未量到行=0 PASS
-J2 互对max角             逐道=[0.041, 0.065, 0.049] 最差=0.065ns 上限=4.000 PASS
-J3 互对min角             逐道=[0.040, 0.064, 0.048] 最差=0.064ns 上限=4.000 PASS
-J4 对内 P/N              max角=[0.001, 0.001, 0.001, 0.001] min角=[0.001, 0.001, 0.001, 0.001] 最差=0.001ns 上限=0.300 PASS

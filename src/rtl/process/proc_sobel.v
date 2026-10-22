@@ -5,7 +5,8 @@
 //         写侧只有 `if (de_in)` 这一道门 ⇒ 行首那一拍的 `x_in` 越界就是 #103 的形状，由 C10f/C10fs 逐条钉住。
 module proc_sobel #(
     parameter H_ACTIVE = 640,
-    parameter integer STREAM_WRAP = 0
+    parameter integer STREAM_WRAP = 0,
+    parameter integer V_ACTIVE = 0
 )(
     input  wire        clk,
     input  wire        rst_n,
@@ -64,46 +65,65 @@ module proc_sobel #(
     wire line_end = owed && de_d1 && !de_in;
     wire shift_w  = de_in || line_end;
 
-    // ---------------------------------------------------------------- #97：四条圈的旗标（数由 tb_edge_rim 量，推导正本在 proc_box_blur.v）
+    // ---------------------------------------------------------------- #97：四条圈的旗标（数由 tb_display_edge_rim 量，推导正本在 proc_box_blur.v）
     // ① 拍 k 武装的旗标落在槽位 k+1；② 行尾补跳那一拍落在**下一行第 0 槽**（旧代码在这里塞 1 ⇒ 第 0 列被
     // 旁路 = 用户念的"左边一条带"）；③ 中心行 = 输入行 − 1 ⇒ 每帧第一格吃的中心是上一帧的末行（"上边缘那条
     // 带"）。四个窗口级用同一套旗标，这是 tb_v92/tb_v84 能差分验证的前提（"开关某一级时不许画面跳一行"）。
-    reg [11:0] y_row_d;                    // this display line's y_in, latched at line end
+    localparam integer WRAP_CLAMP = (STREAM_WRAP != 0) && (V_ACTIVE > 0);
+    reg [11:0] y_row_d;                    // center tap's source row
+    reg [11:0] y_row_d2;                   // above tap's source row
     always @(posedge clk or negedge rst_n)
-        if (!rst_n) y_row_d <= 12'h0FFF;
-        else if (line_end) y_row_d <= y_in;
+        if (!rst_n) begin y_row_d <= 12'h0FFF; y_row_d2 <= 12'h0FFF; end
+        else if (line_end) begin y_row_d <= y_in; y_row_d2 <= y_row_d; end
     wire row_first = (y_in != y_row_d);    // x2 raster: only the FIRST display row of a
                                            // source row can be missing the row above
-    reg [2:0] no_left_r, no_right_r, no_above_r, stale_row_r;
+    reg [2:0] no_left_r, no_right_r, no_above_r, no_below_r, stale_row_r;
     // ⚠ 复位只写在这**一个**块里（两个驱动源 = Synth 8-6859，bit 里恒 0 而仿真看不出来，#61）。
     always @(posedge clk or negedge rst_n)
     if (!rst_n) begin
-        no_left_r <= 3'b0; no_right_r <= 3'b0; no_above_r <= 3'b0; stale_row_r <= 3'b0;
+        no_left_r <= 3'b0; no_right_r <= 3'b0; no_above_r <= 3'b0; no_below_r <= 3'b0; stale_row_r <= 3'b0;
     end else if (shift_w) begin
         no_left_r  [0] <= ~de_in;
         no_right_r [0] <= de_in && (x_in == H_ACTIVE[11:0] - 12'd1);   // #103：坐标抽头对齐到 de 之后，武装位从 -2 改回 -1（正本见 proc_box_blur.v 的 #97 段）
-        no_above_r [0] <= de_in && (y_in == 12'd1) && row_first;
+        no_above_r [0] <= de_in && !WRAP_CLAMP && (y_in == 12'd1) && row_first;
+        no_below_r [0] <= de_in && !WRAP_CLAMP && (y_in == 12'd0) && row_first;   // 中心行 = 上一帧末行，下面缺（正本见 proc_box_blur.v）
     // STREAM_WRAP（1 = 绕回连续流）关掉 `stale_row` 这一族；正本见 proc_box_blur.v 的同名段。
         stale_row_r[0] <= de_in && !STREAM_WRAP && (y_in == 12'd0);
         no_left_r  [1] <= no_left_r  [0];  no_left_r  [2] <= no_left_r  [1];
         no_right_r [1] <= no_right_r [0];  no_right_r [2] <= no_right_r [1];
         no_above_r [1] <= no_above_r [0];  no_above_r [2] <= no_above_r [1];
+        no_below_r [1] <= no_below_r [0];  no_below_r [2] <= no_below_r [1];
         stale_row_r[1] <= stale_row_r[0];  stale_row_r[2] <= stale_row_r[1];
     end
     wire no_left = no_left_r[2], no_right = no_right_r[2];
-    wire no_above = no_above_r[2], stale_row = stale_row_r[2];
+    wire no_above = no_above_r[2], no_below = no_below_r[2], stale_row = stale_row_r[2];
+    wire wr_top = WRAP_CLAMP && (y_row_d == 12'd0) && (y_row_d2 != 12'd0);
+    wire wr_bot = WRAP_CLAMP && (y_row_d == (V_ACTIVE[11:0] - 12'd1)) && (y_in != (V_ACTIVE[11:0] - 12'd1));
+    // See proc_box_blur.v: hold the boundary decision across the last-column extra slot.
+    reg wr_top_q, wr_bot_q, extra_q;
+    always @(posedge clk or negedge rst_n) begin
+        if (!rst_n) begin wr_top_q <= 1'b0; wr_bot_q <= 1'b0; extra_q <= 1'b0; end
+        else begin
+            extra_q <= line_end;
+            if (line_end) begin wr_top_q <= wr_top; wr_bot_q <= wr_bot; end
+        end
+    end
+    wire wr_top_use = extra_q ? wr_top_q : wr_top;
+    wire wr_bot_use = extra_q ? wr_bot_q : wr_bot;
     // 缺的邻居复制中心（水平 h**、垂直 p** 两级），于是最外圈不再"直出原图"。
     wire [7:0] h00 = no_left ? q01 : q00;   wire [7:0] h02 = no_right ? q01 : q02;
     wire [7:0] h10 = no_left ? q11 : q10;   wire [7:0] h12 = no_right ? q11 : q12;
     wire [7:0] h20 = no_left ? q21 : q20;   wire [7:0] h22 = no_right ? q21 : q22;
     wire [7:0] h01 = q01, h11 = q11, h21 = q21;
-    wire [7:0] p00 = stale_row ? h20 : (no_above ? h10 : h00);
-    wire [7:0] p01 = stale_row ? h21 : (no_above ? h11 : h01);
-    wire [7:0] p02 = stale_row ? h22 : (no_above ? h12 : h02);
+    wire [7:0] p00 = stale_row ? h20 : ((no_above || wr_top_use) ? h10 : h00);
+    wire [7:0] p01 = stale_row ? h21 : ((no_above || wr_top_use) ? h11 : h01);
+    wire [7:0] p02 = stale_row ? h22 : ((no_above || wr_top_use) ? h12 : h02);
     wire [7:0] p10 = stale_row ? h20 : h10;
     wire [7:0] p11 = stale_row ? h21 : h11;
     wire [7:0] p12 = stale_row ? h22 : h12;
-    wire [7:0] p20 = h20, p21 = h21, p22 = h22;
+    wire [7:0] p20 = stale_row ? h20 : ((no_below || wr_bot_use) ? h10 : h20);
+    wire [7:0] p21 = stale_row ? h21 : ((no_below || wr_bot_use) ? h11 : h21);
+    wire [7:0] p22 = stale_row ? h22 : ((no_below || wr_bot_use) ? h12 : h22);
 
     // 边界判据用的坐标：与 p11（窗口中心抽头）同一时刻的 x/y；抽头深度（d1 还是 d2）与 blur/sharpen/morph
     // 保持一致，由 tb_v92 的量出来定、不靠推。以前本级**完全没有**边界判据（`y_in` 端口甚至从没被用过）⇒

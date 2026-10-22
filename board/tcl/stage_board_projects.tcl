@@ -2,22 +2,22 @@
 #
 # 依赖：Vivado 2025.2.1 批处理模式；`vivado_system/zynq_video_sys.xpr` 已由
 #        `build/tcl/build_system_axigpio.tcl` 建好并跑完实现（本脚本不重综合、不重布线）；
-#        `build/system.bit` 与 `build/system.xsa` 在盘上。
+#        `board/project/system.bit` 与 `board/project/system.xsa` 在盘上。
 # 用法："<Vivado>/bin/vivado.bat" -mode batch -nojournal -log <目录>/stage.log \
 #          -source board/tcl/stage_board_projects.tcl        （约 1–2 分钟）
 # 参数：
 #   | 变量 | 作用 | 默认 |
 #   | --- | --- | --- |
 #   | `VP_BOARD_DIR` | 上板工程的落点 | `board`（工程与文档同级，仓库里已是这个形状） |
-#   | `VP_STAGE_BIT` | 设为 1 时把 `build/system.bit`/`.xsa` 也复制一份进落点；默认不复制，只核对字节 | 未设 |
-#   | `VP_STAGE_FORCE` | 设为 1 时即使位流字节数与 `build/system.bit` 不一致也继续（默认不一致就 REFUSE） | 未设 |
+#   | `VP_STAGE_BIT` | 设为 1 时把 `board/project/system.bit`/`.xsa` 也复制一份进落点；默认不复制，只核对字节 | 未设 |
+#   | `VP_STAGE_FORCE` | 设为 1 时即使位流字节数与 `board/project/system.bit` 不一致也继续（默认不一致就 REFUSE） | 未设 |
 #
 # 为什么要它：交付要求 `board/` 放"上板工程"。工程本体是构建脚本的产物，直接复制一份进 `board/`
 # 会有两个风险：复制不完整（少 .srcs 里的约束或 BD 的 .bd 文件）与复制的不是板上那一版。
 # 所以这个脚本做三件事：① 复制工程目录；② 用复制出来的那份**真的 open_project**，
 # 打印器件/约束文件数/运行状态；③ 比 `board/zynq_video_sys.srcs` 里 BD 的 `.bd` 是否真在其中、
-# 以及 `build/system.bit` 的字节可读，读不到就 REFUSE。验证结果打在日志里，`board/README.md` 引用的就是这份日志。
-# 位流与 .xsa 不在 `board/` 里再存一份：仓库已在 `build/system.bit`、`build/system.xsa` 跟踪它们，
+# 以及 `board/project/system.bit` 的字节可读，读不到就 REFUSE。验证结果打在日志里，`board/README.md` 引用的就是这份日志。
+# 位流与 .xsa 不在 `board/` 里再存一份：仓库已在 `board/project/system.bit`、`board/project/system.xsa` 跟踪它们，
 # 复制一份只多 3 MB 且会出现"两份位流哪个是板上那版"的歧义；`board/flash/make_boot_image.sh` 直接从 `build/` 取。
 set root [file normalize [file join [file dirname [info script]] .. ..]]
 set src_proj [file join $root "vivado_system/zynq_video_sys.xpr"]

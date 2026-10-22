@@ -53,9 +53,11 @@ set_clock_uncertainty -hold 0.800 [get_clocks eth_rxc]
 # 每次综合都报 `CRITICAL WARNING [Constraints 18-513] ... -from ... contains no valid
 # startpoints`，是一条**空约束**（不约束任何东西，只制造噪声），已删除。
 set_false_path -to   [get_ports eth_rst_n]
-set_false_path -to   [get_ports eth_tx_clk]
-set_false_path -to   [get_ports eth_tx_ctl]
-set_false_path -to   [get_ports {eth_txd[*]}]
+# RGMII 发侧的真约束在 `eth_tx_impl.xdc`（只在 implementation 生效）：旧实现
+# `assign rgmii_txc = gmii_tx_clk` 把"TXC = 收侧恢复钟"直接送出，时钟与数据没有可约束的
+# 相位关系，所以历史上这里三行全是 set_false_path。现在 TXC/TXD 都由 clk_eth/clk_eth90
+# 过 ODDR，可以建 generated clock + output delay；放到 impl 文件是因为 generated clock
+# 的源是设计内部的 BUFG 引脚，综合阶段按工程流程取不到它。
 set_false_path -from [get_ports key1_n]
 set_false_path -from [get_ports key2_n]
 

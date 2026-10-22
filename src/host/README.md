@@ -1,43 +1,100 @@
-# src/host 上位机（PC 侧）
+# 上位机工具
 
-## 这个目录现在只放什么
+`src/host/` 放 PC 侧工具：推流、遥测、仪表、自检、串口判据和 JTAG 读回。板上固件在 `src/ps/`，RTL 在 `src/rtl/`。
 
-**只放 PC 侧的上位机工具**：推流/发送（`video_sender.mjs` / `video_sender.py` / `udp_push.py`）、
-一键测试（`one_click_test.*`）、各把读回与判据尺子（`health_read.mjs`、`ps_hb_check.mjs`、
-`uart_cmd_check.mjs`、`geom_check.mjs`…）。**板上裸机固件不在这里** —— `main.c` / `sd_play.c` /
-`sd_play.h` / `lscript_ocm.ld` 在 `src/ps/`，与 `src/rtl/`、`src/constraints/` 同级
-（口径改过两次：r122 曾把固件收进 `src/host/ps/`，本轮搬回 `src/ps/`）。
-`build/deliver_spec_check.mjs` 的 C1-2 现在按扩展名分家判（固件必须在 `src/ps/`、
-PC 侧必须在 `src/host/`），`--c1-2-self` 那六条对照钉着它会判红。
-本目录的 `ps_hb_check.mjs` 文件名恰好以 `ps_` 开头，它是 PC 侧尺子，
-不要因为名字里有 `ps` 就把它跟着固件一起搬走。
+## 依赖
 
-## 环境依赖
+- Python 3.10+：只用标准库（`argparse`、`socket`、`struct`、`subprocess`），不需要 pyserial。
+- Node.js 18+：只用内置模块（`node:dgram`、`node:child_process`），零第三方包。
+- JTAG 读回需要 Vitis 的 `xsdb`，路径用环境变量 `VP_XSDB` 或 `--xsdb` 给。
+- 串口命令判据调用 `board/scripts/uart_cmd_script.ps1`，需要 PowerShell 与空闲的 COM6。
 
-- Node 24（本机实测 v24.21.0）：`.mjs` 只用内置模块（`node:dgram`/`node:child_process`），零第三方包。
-- Python 3.12（本机实测 3.12.10）：`.py` 只用标准库（`argparse`/`socket`/`struct`/`subprocess`），零第三方包，**不需要 pyserial**（读回不走串口）。
-- 一键测试的第 ②④ 步走 JTAG：需要 Vitis 的 `xsdb` 与正在运行的 `hw_server`，路径由环境变量 `VP_XSDB` 或 `--xsdb` 给；没有板子时加 `--dry-run`（不碰网络与板子）。
+## 推流
 
-## 使用方法
+```bash
+python src/host/video_sender.py --demo --seconds 8
+python src/host/video_sender.py --input clip.mp4
+python src/host/udp_push.py --pattern edge --fps 15 --drop-every 100
+```
 
-- 双击入口：仓库根 `run_test.bat`（调 Node 侧）。跨平台入口：`bash run_test.sh`（调 Python 侧，参数原样转给脚本）。
-- 命令行：`node src/host/one_click_test.mjs` 或 `python src/host/one_click_test.py`；通用发送工具是 `src/host/video_sender.mjs` / `video_sender.py` / `udp_push.py`。
-- 跑完应看到：`[1/4] PING`、`[2/4] CONNECT`、`[3/4] SEND`、`[4/4] COLLECT` 四行读数（判定词 `PASS`/`FAIL`/`NOT_MEASURED` 在每行末尾）+ 一行 `ONE-CLICK` 总结论，退出码 0；`xsdb` 的原始回读留在 `data/measured/one_click_*.out`（该件要板上真跑一轮才生成，仓库里没有这一件）。
-- 通路口径（不是网络读回）：板侧固件没有 UDP 回包，"连接"与"回收"读的都是 AXI GPIO 的 lane —— lane 号写 GPIO_0 的 bit[31:27]、值从 GPIO_1 读，与 `health_read.mjs` 同一套；lane8=收到的 UDP 包数、lane9=有效字节数、lane0=drop_words、lane1=frames_bad|bad_pkts。
+- 目标板卡 `192.168.1.10`，UDP 5001；源画幅固定 512×300、RGB565。
+- 每包不超过 1392 字节，载荷前 4 字节是帧内偏移。
+- `--demo` 不需要 ffmpeg；`--input` 需要 ffmpeg。
+- `udp_push.py --drop-every 100` 用于故障注入：每 100 包丢 1 包。
 
-## 命令行语法参数表
+## 遥测与仪表
 
-| 参数名 | 含义 | 默认值 | 示例 |
-| --- | --- | --- | --- |
-| `--ip` | 板卡地址：第 ① 步 ping、第 ③ 步发送目标 | `192.168.1.10` | `--ip 192.168.1.20` |
-| `--port` | UDP 目标端口，转给发送脚本 | `5001` | `--port 5001` |
-| `--clip` | 内置测试片源，相对仓库根（两实现读同一份） | `data/inputs/wordid_512x300.rgb565` | `--clip data/inputs/rand64_512x300.rgb565` |
-| `--frames` | 发多少帧；片源整帧数不足则重复补足后截到该帧数 | `5` | `--frames 2` |
-| `--fps` | 转给发送脚本的帧率：Python 侧 `udp_push.py` 按它分帧停，Node 侧 `video_sender.mjs` 的 stdin 模式只按 `--pace-mbps` 匀速 | `15` | `--fps 30` |
-| `--pace-mbps` | 发送限速 MB/s（保护板端入包 FIFO），0 = 不限速 | `15` | `--pace-mbps 0` |
-| `--gpio0` | 写 lane 号的 GPIO_0 基址，十六进制不带 0x | `41200000` | `--gpio0 41200000` |
-| `--gpio1` | 读 lane 值的 GPIO_1 基址，十六进制不带 0x | `41210000` | `--gpio1 41210000` |
-| `--hw-port` | hw_server 端口 | `3121` | `--hw-port 3121` |
-| `--xsdb` | xsdb 可执行文件 | 环境变量 `VP_XSDB`，没给则 `xsdb.bat` | `--xsdb D:/Xilinx/Vitis/2025.2/bin/xsdb.bat` |
-| `--dry-run` | 只打印将要做什么：不 ping、不连板、不发包 | 关 | `--dry-run` |
-| `--help` | 打印参数全表 | 关 | `--help` |
+```bash
+python src/host/telemetry_listen.py 13
+python src/host/instrument_dashboard.py
+```
+
+- 遥测从 UDP 1234 发出，1 Hz，32 字节；发给最后一个 ARP 请求方。
+- 先 `ping 192.168.1.10` 一次，再启动监听；Windows 防火墙要放行 UDP 1234。
+- 字段包括帧数、包数、坏包、作废、缺行、PL 内部时延、处理窗完整性。
+
+## 自检
+
+```bash
+python src/host/link_selftest.py 192.168.1.10 6
+```
+
+三阶段：干净流 → 每 100 包丢 1 包 → 干净流。判据取每秒变化量：
+
+- 干净段：帧率 ≥ 8 fps，作废最多一次启动作废，至少一次有效时延 ≤ 200 ms；
+- 故障段：作废 ≥ 5 次/秒，帧率 < 5 fps；
+- 恢复段：回到干净流水平。
+
+末尾打印 `PASS link_selftest` 或失败阶段。
+
+## 串口判据
+
+```bash
+node src/host/uart_cmd_check.mjs --port COM6
+```
+
+105 条命令逐条对回声，末态必须回到初态。判据文件是 `board/scripts/cmd_battery_v81.txt`，传输走 `board/scripts/uart_cmd_script.ps1`。
+
+## JTAG 读回
+
+```bash
+node src/host/health_read.mjs --gpio0 41200000 --gpio1 41210000
+node src/host/health_read.mjs --gapclr
+```
+
+- 通过 AXI GPIO 读 PL 的 10 条 lane：丢字、坏包/作废、停滞、帧间隔、CDC、flags、包数、字节数。
+- `--gapclr` 在读之前把帧间隔统计清零（lane3/4/5）。
+- 需要 `VP_XSDB` 指向 `xsdb.bat`，并且 hw_server 在 `localhost:3121`。
+
+## 几何与指标
+
+```bash
+node src/host/geom_check.mjs
+node src/host/metrics.mjs --out board/evidence --tag clean30
+node src/host/metric_recheck.mjs
+```
+
+- `geom_check.mjs` 检查命令 → CFG_DATA0 → lane23 的几何最后一跳。
+- `metrics.mjs` 采集帧率、包率、作废、时延和帧间隔。
+- `metric_recheck.mjs` 把 `data/metrics.csv` 的数字对回实现报告。
+
+## 一键测试
+
+```bash
+python src/host/one_click_test.py
+node src/host/one_click_test.mjs
+```
+
+四步：ping、连接、发送、收集；每步末尾给 `PASS` / `FAIL` / `NOT_MEASURED`，最后一行是 `ONE-CLICK` 总结论。没有板子时加 `--dry-run`，不碰网络和板子。
+
+## 参数
+
+| 参数 | 含义 | 默认 |
+|---|---|---|
+| `--ip` | 板卡地址 | `192.168.1.10` |
+| `--port` | UDP 目标端口 | `5001` |
+| `--fps` | 推流帧率 | 30 |
+| `--pace-mbps` | 发送限速 MB/s，0 = 不限速 | 20 |
+| `--gpio0` / `--gpio1` | AXI GPIO 基址 | `41200000` / `41210000` |
+| `--xsdb` | xsdb 可执行文件 | 环境变量 `VP_XSDB` |
+| `--dry-run` | 只打印计划，不 ping、不连板、不发包 | 关 |

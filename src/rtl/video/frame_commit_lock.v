@@ -42,8 +42,10 @@ module frame_commit_lock #(
         end
     end
 
-    reg vs_d0, vs_d1;
-    reg bs_d0, bs_d1, bs_d2;
+    // 这两条是像素域 → axi 域的同步器（不是普通打拍）：标 ASYNC_REG 让工具把它们放在一起，
+    // 否则会被当成普通逻辑挪位/优化（同一课在 effect_ctrl / dc_fifo 上都踩过）。
+    (* ASYNC_REG = "TRUE" *) reg vs_d0, vs_d1;
+    (* ASYNC_REG = "TRUE" *) reg bs_d0, bs_d1, bs_d2;
     always @(posedge pix_clk or negedge pix_rst_n) begin
         if (!pix_rst_n) begin
             {vs_d1,vs_d0} <= 2'b0;
@@ -73,7 +75,15 @@ module frame_commit_lock #(
         if (!axi_rst_n) {d2,d1,d0} <= 3'b0;
         else {d2,d1,d0} <= {d1,d0,blank_pix};
     end
-    assign allow_copy_axi = d1 & d2;
+    // `allow_copy_axi` 要回到像素域（pl_video_top 的 ac0/ac1）。原来它直接是 d1&d2 这个组合式，
+    // report_cdc 把那一整对报成 CDC-10 Critical（组合逻辑直接进同步器）；多一级寄存器把源变成触发器。
+    // 代价是 allow 的落沿晚一个 axi 拍（≈2 像素），VB_X_GUARD 预留了 64 像素，够。
+    reg allow_copy_q;
+    always @(posedge axi_clk or negedge axi_rst_n) begin
+        if (!axi_rst_n) allow_copy_q <= 1'b0;
+        else            allow_copy_q <= d1 & d2;
+    end
+    assign allow_copy_axi = allow_copy_q;
 
     // v6: start the copy at the OPENING of the allow window, not at the vsync
     // edge. With 1024x600 (V_FP=3, V_SYNC=6) vsync only rises 9 blank lines
@@ -102,7 +112,7 @@ module frame_commit_lock #(
     // 收不收得到取决于建立/保持窗口里的亚稳。⚠ **电平型 3 级同步在这里并不能修好它**（实测与裸采逐相位一模
     // 一样）；正确形式是**翻转式脉冲同步器**，与本文件像素域→axi 那一侧的 `blank_tog` 完全对称（已有模板）。
     // 这条**不会体现在 `report_cdc` 里**（那份报告只有"时钟对 + 端点数"的粒度，不点名信号；build#17 与 #18 的
-    // cdc.rpt 逐行相同），证据是台架相位扫描 `sim/tb_v79_abort_toggle.v`：错开 4 ns 时裸采 0/3、翻转式 3/3。
+    // cdc.rpt 逐行相同），证据是台架相位扫描 `sim/tb_abort_toggle.v`：错开 4 ns 时裸采 0/3、翻转式 3/3。
     always @(posedge axi_clk or negedge axi_rst_n) begin
         if (!axi_rst_n) abort_tgl <= 1'b0;
         else if (copy_abort) abort_tgl <= ~abort_tgl;

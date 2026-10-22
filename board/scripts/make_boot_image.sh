@@ -2,8 +2,9 @@
 # board/scripts/make_boot_image.sh —— 把 FSBL + 位流 + PS 应用打成一个 QSPI 启动镜像 BOOT.bin
 #
 # 依赖：bootgen（Vivado/Vitis 2025.2.1 安装树里的 `bin/bootgen.bat`，不在 PATH）；
-#       三份输入都在盘上：`vitis/platform/zynq_fsbl/build/fsbl.elf`、`build/system.bit`、`build/ps_app.elf`。
-# 用法：VP_VIVADO_BIN="D:/Software/Vivado/2025.2.1/Vivado/bin" bash board/scripts/make_boot_image.sh
+#       三份输入都在盘上：`vitis/fin2_plat/zynq_fsbl/fsbl.elf`（旧布局 `vitis/platform/zynq_fsbl/build/fsbl.elf` 也认）、
+#       `board/project/system.bit`、`board/project/ps_app.elf`。
+# 用法：VP_VIVADO_BIN=<Vivado>/bin bash board/scripts/make_boot_image.sh
 # 参数：
 #   | 变量 | 作用 | 默认 |
 #   | --- | --- | --- |
@@ -27,13 +28,20 @@ BG="$VP_VIVADO_BIN/bootgen.bat"
 [ -f "$BG" ] || die "找不到 bootgen：$BG"
 
 out="${VP_BOOT_OUT:-$root/board/flash}"
-fsbl="${VP_FSBL:-$root/vitis/platform/zynq_fsbl/build/fsbl.elf}"
-bit="${VP_BIT:-$root/build/system.bit}"
-app="${VP_APP:-$root/build/ps_app.elf}"
+fsbl="${VP_FSBL:-}"
+if [ -z "$fsbl" ]; then
+  for cand in "$root/vitis/fin2_plat/zynq_fsbl/fsbl.elf" "$root/vitis/platform/zynq_fsbl/build/fsbl.elf"; do
+    [ -s "$cand" ] && { fsbl="$cand"; break; }
+  done
+fi
+[ -n "$fsbl" ] || fsbl="$root/vitis/fin2_plat/zynq_fsbl/fsbl.elf"
+bit="${VP_BIT:-$root/board/project/system.bit}"
+app="${VP_APP:-$root/board/project/ps_app.elf}"
 for f in "$fsbl" "$bit" "$app"; do [ -s "$f" ] || die "输入缺件或为空：$f"; done
 
 mkdir -p "$out"
 win() { if command -v cygpath >/dev/null 2>&1; then cygpath -w "$1" | tr '\\' '/'; else printf '%s\n' "$1"; fi; }
+rel() { python -c 'import os,sys; print(os.path.relpath(sys.argv[1], sys.argv[2]).replace("\\\\","/"))' "$1" "$2" 2>/dev/null || printf '%s\n' "$1"; }
 
 bif="$out/boot.bif"
 {
@@ -43,16 +51,22 @@ bif="$out/boot.bif"
   # IHT+0x10/+0x14/+0x20（分区表偏移那一组）全是 0 ⇒ 启动 ROM 读不懂，冷上电零字节、DONE 不亮。
   # 对照：厂商 SD/BOOT.BIN 那三个位置是 0x00001700 / 0x00018008 / 0x00018008；
   #      补上 [bootloader] 之后我们这份变成 0x00001700 / 0x0001f6f4 / 0x0001f6f4（同一形状）。
-  printf '   [bootloader] '; win "$fsbl"
-  win "$bit"
-  win "$app"
+  # BIF 里的路径相对 BIF 文件本身写，换一台机器解包也不会带着本机盘符。
+  printf '   [bootloader] '; rel "$fsbl" "$out"
+  rel "$bit" "$out"
+  rel "$app" "$out"
   printf '}\n'
 } > "$bif"
 
 img="$out/BOOT.bin"
-"$BG" -arch zynq -image "$(win "$bif")" -w -o "$(win "$img")" > "$out/bootgen.log" 2>&1 \
+rm -f "$img"
+# 在 BIF 所在目录跑：BIF 里的路径是相对 BIF 文件写的，bootgen 按当前目录解析。
+# 生成前先删旧镜像 —— bootgen 读不到输入时也返回 0，旧文件会让“成功”变成假绿。
+( cd "$out" && "$BG" -arch zynq -image boot.bif -w -o BOOT.bin ) > "$out/bootgen.log" 2>&1 \
   || { tail -20 "$out/bootgen.log" >&2; die "bootgen 失败，日志 $out/bootgen.log"; }
-
+grep -q "\[ERROR\]" "$out/bootgen.log" && { tail -20 "$out/bootgen.log" >&2; die "bootgen 日志里有 ERROR"; }
+grep -q "Bootimage generated successfully" "$out/bootgen.log" \
+  || { tail -20 "$out/bootgen.log" >&2; die "bootgen 没有打印成功行"; }
 [ -s "$img" ] || die "bootgen 报成功但 $img 不在盘上或为空"
 say "BOOT_IMAGE $img"
 say "BOOT_BYTES $(wc -c < "$img")"

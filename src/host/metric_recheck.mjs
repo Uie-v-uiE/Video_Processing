@@ -130,7 +130,7 @@ const KINDS = {
     // 这一行整行留着 r103 的四个数、自相矛盾了两天而没人抓住 ⇒ 这一行进尺子的射程）。
     // 报告侧的数就是 fromTiming 里那张 `periods`（Intra Clock Table 每行的 WNS 列），不另起第二份真值。
     clocks: (c, s) => {
-        const names = ['eth_rxc', 'clk_fpga_0', 'clkout0_1', 'sys_clk'];
+        const names = ['eth_rxc', 'clk_fpga_0', 'clkout0_1', 'sys_clk', 'clkout3'];
         const rows = [];
         for (const n of names) {
             const m = c.match(new RegExp('`' + n + '`[^*]*\\*\\*(' + '[-' + MINUS + ']?[0-9]+\\.[0-9]+)\\s*ns\\*\\*'));
@@ -174,7 +174,7 @@ const KINDS = {
     // `metrics.csv` 的 WHS 对得上"这条直觉**完全掩盖**了"最差那一格已经换到 `clk_fpga_0`"。
     // 所以除了四个数各自对回报告，还要判**归属**：点名那一格的报告 WHS 必须等于报告里的最小 WHS。
     whs: (c, s) => {
-        const names = ['eth_rxc', 'clk_fpga_0', 'clkout0_1', 'sys_clk'];
+        const names = ['eth_rxc', 'clk_fpga_0', 'clkout0_1', 'sys_clk', 'clkout3'];
         const rows = [];
         for (const n of names) {
             const m = c.match(new RegExp('`' + n + '`[^*]*\\*\\*(' + '[-' + MINUS + ']?[0-9]+\\.[0-9]+)\\s*ns\\*\\*'));
@@ -204,22 +204,25 @@ const RULES = [
 ];
 
 function run(self) {
-    const T = fromTiming('build/timing_summary.rpt');
-    const U = fromUtil('build/utilization.rpt');
-    const P = fromPower('build/power.rpt');
+    const T = fromTiming('build/reports/build_timing_summary.rpt');
+    const U = fromUtil('build/reports/build_utilization.rpt');
+    const P = fromPower('build/reports/power.rpt');
     const SRC = { timing: T, util: U, power: P };
     let rows = readRows(fs.readFileSync(CSV, 'utf8'));
     rows.shift();                                            // 表头
-    if (self) rows.push(['全局 setup WNS', '核心', '+9.999', 'ns', '自检：故意写错的一条', '一次构建', 'build/timing_summary.rpt']);
+    // data/metrics.csv 是 5 列（名称,数值,单位,口径,证据）；本检查器的规则表仍按 7 列
+    // （名称,类别,数值,单位,口径,构建,证据）读旧夹具。只在 5 列行上补齐两列，7 列夹具不动。
+    rows = rows.map(f => f.length === 5 ? [f[0], '', f[1], f[2], f[3], '', f[4]] : f);
+    if (self) rows.push(['全局 setup WNS', '核心', '+9.999', 'ns', '自检：故意写错的一条', '一次构建', 'build/reports/build_timing_summary.rpt']);
     // 第二条 fixture 测的是"点了报告、却没人认领"这一格（旧写法只 other++，静默）：
     // 删掉下面那个 orphan 判红，这条 fixture 就不红了 ⇒ 它就是那一格的"改前必须红"。
-    if (self) rows.push(['自检：没有规则认领的一行', '核心', '+1.000', 'MHz', '自检：故意写错的一条', '一次构建', 'build/timing_summary.rpt']);
+    if (self) rows.push(['自检：没有规则认领的一行', '核心', '+1.000', 'MHz', '自检：故意写错的一条', '一次构建', 'build/reports/build_timing_summary.rpt']);
     let red = 0, judged = 0, other = 0;
 
     // 首页那五行也一起判（#213 起了这个头，#159 扩到"四行 26 个数"，本轮 #224 补到每份五行：
     //   逐时钟 setup 与逐时钟 hold 是刚被抓出来的两行 stale；现在的条数由脚本自己念，不在注释里钉死）：
-    // README 的表格里写着 WNS、逐资源占用与功耗，并点名 `build/timing_summary.rpt` /
-    // `build/utilization.rpt` / `build/power.rpt`，可**没有任何检查器回去读那三份报告**——
+    // README 的表格里写着 WNS、逐资源占用与功耗，并点名 `build/reports/build_timing_summary.rpt` /
+    // `build/reports/build_utilization.rpt` / `build/reports/power.rpt`，可**没有任何检查器回去读那三份报告**——
     // metrics.csv 有 D6 管，首页没有。于是"首页引用的是哪份报告"与"那份报告现在说什么"之间的
     // 账是空的，跨版一定会烂。⚠ 这条判据的"改前必须红"不用我造：第一次跑就抓到首页功耗行
     // 写 2.212 W / 52.6 °C 而报告是 2.211 / 52.5，占用行写 14333 / 8079 而报告是 14334 / 8127
@@ -236,21 +239,23 @@ function run(self) {
             periods: {
                 eth_rxc: { wns: -0.846, whs: -0.870 }, clk_fpga_0: { wns: 2.009, whs: 0.053 },
                 clkout0_1: { wns: 3.885, whs: 0.059 }, sys_clk: { wns: 15.174, whs: 0.222 },
+                clkout3: { wns: 1.461, whs: 0.090 },
             },
-            per: { eth_rxc: { period: 8 }, clk_fpga_0: { period: 10 }, clkout0_1: { period: 20 }, sys_clk: { period: 20 } },
+            per: { eth_rxc: { period: 8 }, clk_fpga_0: { period: 10 }, clkout0_1: { period: 20 }, sys_clk: { period: 20 }, clkout3: { period: 8 } },
         };
-        const clockCell = (vEth, vFpga, vPix, vSys, pEth, pFpga, pPix, pSys) =>
+        const clockCell = (vEth, vFpga, vPix, vSys, vClk3, pEth, pFpga, pPix, pSys, pClk3) =>
             '125 MHz 收包域 `eth_rxc` **' + vEth + ' ns**（占它 8 ns 周期的 ' + pEth + ' %）；'
             + '100 MHz `clk_fpga_0` **' + vFpga + ' ns**（占它 10 ns 周期的 ' + pFpga + ' %）；'
             + '50 MHz 显示域 `clkout0_1` **' + vPix + ' ns**（占它 20 ns 周期的 ' + pPix + ' %）；'
-            + '`sys_clk` **' + vSys + ' ns**（占它 20 ns 周期的 ' + pSys + ' %）';
+            + '`sys_clk` **' + vSys + ' ns**（占它 20 ns 周期的 ' + pSys + ' %）；'
+            + '125 MHz ETH 逻辑域 `clkout3` **' + vClk3 + ' ns**（占它 8 ns 周期的 ' + pClk3 + ' %）';
         const holdCell = '全设计最差那一格在 `eth_rxc`，**' + MINUS + '0.870 ns**；'
-            + '`clk_fpga_0` **0.053 ns**；`clkout0_1` **0.059 ns**；`sys_clk` **0.222 ns**';
+            + '`clk_fpga_0` **0.053 ns**；`clkout0_1` **0.059 ns**；`sys_clk` **0.222 ns**；`clkout3` **0.090 ns**';
         const fixtures = [
             ['wns/good', KINDS.wns('| x | **' + MINUS + '0.846 ns**（失败 setup/hold 端点 **5 / 51140**） | r |', rep), true],
             ['wns/bad', KINDS.wns('| x | **' + MINUS + '9.999 ns**（失败 setup/hold 端点 **5 / 51140**） | r |', rep), false],
-            ['clocks/good', KINDS.clocks(clockCell(MINUS + '0.846', '2.009', '3.885', '15.174', MINUS + '10.57', '20.09', '19.43', '75.87'), rep), true],
-            ['clocks/bad', KINDS.clocks(clockCell(MINUS + '0.846', '2.009', '3.885', '15.174', '10.57', '20.09', '19.43', '75.87'), rep), false],
+            ['clocks/good', KINDS.clocks(clockCell(MINUS + '0.846', '2.009', '3.885', '15.174', '1.461', MINUS + '10.57', '20.09', '19.43', '75.87', '18.3'), rep), true],
+            ['clocks/bad', KINDS.clocks(clockCell(MINUS + '0.846', '2.009', '3.885', '15.174', '1.461', '10.57', '20.09', '19.43', '75.87', '18.3'), rep), false],
             ['whs/good', KINDS.whs(holdCell, rep), true],
             ['whs/bad', KINDS.whs(holdCell.replace(MINUS + '0.870', MINUS + '0.871'), rep), false],
         ];
@@ -324,7 +329,7 @@ function run(self) {
         const art = (f[6] || '');
         const named = NAMED.test(art);
         if (named) csvNamed++;
-        const rule = RULES.find(r => r.name === name);
+        const rule = RULES.find(r => r.name === name || r.name.replace(/ ?占用$/, '') === name);
         if (rule) csvClaimed++;
         if (!rule) {
             if (named) {
@@ -385,8 +390,8 @@ function run(self) {
         const got = fixtureRed;
         // 逐时钟那一行是这一层新加的形状，它不在 csv 里、没法用上面那条 fixture 测牙，
         // 所以就地用两段假首页 + 三份假报告读数验它"能红也能绿"（规矩：检查器自己带对照）。
-        const fakeSrc = { periods: { eth_rxc: { wns: 0.812 }, clk_fpga_0: { wns: 1.358 }, clkout0_1: { wns: 2.674 }, sys_clk: { wns: 15.036 } } };
-        const goodCell = '`eth_rxc` **0.812 ns**；`clk_fpga_0` **1.358 ns**；`clkout0_1` **2.674 ns**；`sys_clk` **15.036 ns**';
+        const fakeSrc = { periods: { eth_rxc: { wns: 0.812 }, clk_fpga_0: { wns: 1.358 }, clkout0_1: { wns: 2.674 }, sys_clk: { wns: 15.036 }, clkout3: { wns: 1.461 } } };
+        const goodCell = '`eth_rxc` **0.812 ns**；`clk_fpga_0` **1.358 ns**；`clkout0_1` **2.674 ns**；`sys_clk` **15.036 ns**；`clkout3` **1.461 ns**';
         const badCell = goodCell.replace('**2.674 ns**', '**1.061 ns**');          // 就是 r103 那一版留在首页的错数
         const shortCell = goodCell.replace('；`sys_clk` **15.036 ns**', '');         // 首页少点一个名 = 形状变了
         // 报告侧能动的对照：假报告少一个时钟域（新增/删除时钟域是构建侧的事，不该只由首页一侧决定）
@@ -396,8 +401,8 @@ function run(self) {
         const repShortN = diff(goodCell, threeSrc);
         // 逐时钟 hold 那一行的对照，重点是**归属**这一维：四个数都对、只把"最差那一格"指错域，
         // 正是今天首页那条 stale 行的形状（它指 `eth_rxc`，而 r104 最小 WHS 在 `clk_fpga_0`）。
-        const whsSrc = { periods: { clk_fpga_0: { whs: 0.053 }, eth_rxc: { whs: 0.056 }, clkout0_1: { whs: 0.068 }, sys_clk: { whs: 0.121 } } };
-        const whsGood = '最差那一格在 `clk_fpga_0`；`clk_fpga_0` **0.053 ns**；`eth_rxc` **0.056 ns**；`clkout0_1` **0.068 ns**；`sys_clk` **0.121 ns**';
+        const whsSrc = { periods: { clk_fpga_0: { whs: 0.053 }, eth_rxc: { whs: 0.056 }, clkout0_1: { whs: 0.068 }, sys_clk: { whs: 0.121 }, clkout3: { whs: 0.090 } } };
+        const whsGood = '最差那一格在 `clk_fpga_0`；`clk_fpga_0` **0.053 ns**；`eth_rxc` **0.056 ns**；`clkout0_1` **0.068 ns**；`sys_clk` **0.121 ns**；`clkout3` **0.090 ns**';
         const whsWrongOwner = whsGood.replace('最差那一格在 `clk_fpga_0`', '最差那一格在 `eth_rxc`');
         const wdiff = (cell) => KINDS.whs(cell, whsSrc).filter(([, g, e]) => g !== e).length;
         const whsGoodN = wdiff(whsGood), whsOwnN = wdiff(whsWrongOwner);
@@ -405,15 +410,15 @@ function run(self) {
         const nRep = Object.keys(SRC.timing.periods || {}).length;
         // 百分数那一半的对照：正常 0 红、改错一个数能红、报告读不到周期时必须红
         // （分母没了这句就没有凭据，绝不许"抓不到就不判"——#12 注释里那个 12 % 的教训）。
-        const pctSrc = { periods: fakeSrc.periods, per: { eth_rxc: { period: 8 }, clk_fpga_0: { period: 10 }, clkout0_1: { period: 20 } } };
-        const pctCell = '`eth_rxc` **0.812 ns**（占它 8 ns 周期的 10.2 %）；`clk_fpga_0` **1.358 ns**（13.6 %）；`clkout0_1` **2.674 ns**（13.4 %）；`sys_clk` **15.036 ns**';
+        const pctSrc = { periods: fakeSrc.periods, per: { eth_rxc: { period: 8 }, clk_fpga_0: { period: 10 }, clkout0_1: { period: 20 }, clkout3: { period: 8 } } };
+        const pctCell = '`eth_rxc` **0.812 ns**（占它 8 ns 周期的 10.2 %）；`clk_fpga_0` **1.358 ns**（13.6 %）；`clkout0_1` **2.674 ns**（13.4 %）；`sys_clk` **15.036 ns**；`clkout3` **1.461 ns**（18.3 %）';
         const pctBadCell = pctCell.replace('13.4 %', '10.0 %');
         const okRow = ([, g, e]) => g !== null && e !== null && Math.abs(g - e) < 1e-6;
         const pctN = KINDS.clocks(pctCell, pctSrc).filter((r) => !okRow(r)).length;
         const pctBadN = KINDS.clocks(pctBadCell, pctSrc).filter((r) => !okRow(r)).length;
         const pctNoPerN = KINDS.clocks(pctCell, { periods: fakeSrc.periods }).filter((r) => !okRow(r)).length;
         // 形状对照：英文版那行用 ASCII 分号，必须**照样**按时钟归位（第一版就是在这里凭空造出两条红）。
-        const pctEnCell = '`eth_rxc` **0.812 ns** (10.2 % of its 8 ns period, the design worst); `clk_fpga_0` **1.358 ns** (13.6 %); `clkout0_1` **2.674 ns** (13.4 %); `sys_clk` **15.036 ns**';
+        const pctEnCell = '`eth_rxc` **0.812 ns** (10.2 % of its 8 ns period, the design worst); `clk_fpga_0` **1.358 ns** (13.6 %); `clkout0_1` **2.674 ns** (13.4 %); `sys_clk` **15.036 ns**; `clkout3` **1.461 ns** (18.3 %)';
         const pctEnN = KINDS.clocks(pctEnCell, pctSrc).filter((r) => !okRow(r)).length;
         const pctEnBadN = KINDS.clocks(pctEnCell.replace('13.6 %', '19.9 %'), pctSrc).filter((r) => !okRow(r)).length;
         // 本轮新加的两格射程都要有牙（#194：死分支与"没有计数的判据"都算检查器缺陷）：

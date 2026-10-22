@@ -97,7 +97,11 @@ module axi_frame_saver64 #(
     // 打包器把「凑满一个 64bit 字的片段」推入 FIFO 的两个时机：
     //   1) 来了新的字索引 ⇒ 先把正在拼的旧字推走；2) flush ⇒ 把半截字推走。
     // 两处推的内容完全相同（都是 cur_*），所以合并成一个写脉冲。
-    // 原样保留 v6.4 语义：FIFO 满时该字被丢弃（第二处还会清 cur_dirty）。
+    // FIFO 满时 `pack_we` 挡住写；**flush 分支也不许清 cur_dirty**（2026-10-22 #508）。
+    // 老语义在满 + flush 时清 dirty，等于把这半截字永久丢掉，commit 却照样成立；
+    // 现在保持 dirty，等 FIFO 有空位由同一个 flush（force_flush 是电平）或下一个字的
+    // idx_chg 再推。`idx_chg` 撞满在系统流里不可达：推送间隔 ≥4 个像素、读流水只有 3 级，
+    // 满时在途的只会是同一 64bit 字的后续 lane（tb_eth_ingress_integrity +STALL 钉住）。
     wire push_now = enable && ((wr_en && idx_chg) || (flush && cur_dirty && !wr_en));
     wire pack_we  = push_now && !fifo_full;
 
@@ -137,7 +141,12 @@ module axi_frame_saver64 #(
                             default: begin cur_data[63:48] <= wr_data; cur_keep[3] <= 1'b1; end
                         endcase
                     end
-                end else if (flush && cur_dirty) begin
+                end else if (flush && cur_dirty && !fifo_full) begin
+                    // 满的时候不许清 dirty：这一拍 pack_we 也被 !fifo_full 挡住了，清掉就等于
+                    // 把这半截字永久丢掉（台架 tb_saver_tail_full 的 red 就是这个）。保持 dirty，
+                    // 等 FIFO 有空格时同一个 flush（或下一个字的 idx_chg）再推一次。
+                    // 代价：满 + flush 同时发生时 saver_idle 会多等一个排空窗口；这正是 commit
+                    // 应该等的"本帧尾字还没落地"，不是卡死（force_flush 是电平，会一直保持到提交）。
                     cur_dirty <= 1'b0;
                     cur_keep  <= 4'b0;
                 end

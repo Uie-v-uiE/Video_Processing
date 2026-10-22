@@ -30,9 +30,9 @@
 #include "xuartps.h"
 #include "xadcps.h"               /* V8-7 片上温度：PS 侧 XADC，PL 零改动 */
 #include "sleep.h"
-#include "xiltimer.h"             /* V9-5 的 gamma Auto：XTime / XTime_GetTime / COUNTS_PER_SECOND
-                                   * —— 与 sd_play.c 用的是同一个入口（`xtime_l.h` 不在这套手搓
-                                   * app 的 -I 列表里，今天第一次编译就报 No such file） */
+#include "xtime_l.h"              /* V9-5 的 gamma Auto：XTime / XTime_GetTime / COUNTS_PER_SECOND。
+                                   * 直接走 BSP 的 xtime_l.h：2025.2 的域 BSP 不再生成独立的 xiltimer
+                                   * 库，但 xtime_l.o 就在 libxil.a 里，符号与计数值同源。 */
 #include "sd_play.h"
 
 #define FRAME_W     512
@@ -48,6 +48,9 @@
 #define AXI_GPIO_BASE 0x41200000u
 #define GPIO_DATA     (AXI_GPIO_BASE + 0x00u)
 #define GPIO_TRI      (AXI_GPIO_BASE + 0x04u)
+/* 第二片 AXI GPIO 是输入口：gpio_o[31:27] 选健康 lane，这里读回那条 32bit 快照。
+ * 地址与 BD 的 axi_gpio_1 一致；health_read.mjs 的 JTAG 路径读的是同一个口。 */
+#define LM_DATA       (AXI_GPIO_BASE + 0x10000u)
 #define PUBLISH_BIT   18u
 #define BILIN_BIT     19u     /* 右窗双线性插值开关：0 = 最近邻（同一条通路，小数钉 0） */
 /* OSD 叠层开关。**1 = 关掉**（与几何字那条 `gp[13]=1 才是关` 同一极性口径）⇒ 复位、或 PS 从没写过
@@ -254,8 +257,11 @@ void ps_publish(void)
  * 为什么要有这一条：`stop` / `play 0` / `frame N` / `FILL` 之后 PS 不再每帧发布，而屏上那张
  * 画**是要留住的**。PL 现在按"最近有没有收到发布"判片源存在 ⇒ 没人替 PS 说话就会落图卡，
  * 那是拿掉一个红（拔卡冻帧）换来一个新红（一切暂停就丢画面），不划算。
- * 100 ms 与 PL 那侧的 500 ms 是同一件事的两半，比例 1:5 由 `sim/tb_v102_src_life.v` 的 S12 钉住
- *（改这里就要改那里，两边各自成立不等于合起来成立）。
+ * 心跳周期是 100 ms，PL 那侧的看门狗是 500 ms（`pl_video_top.v` 的 PS_SRC_TIMEOUT_MS，
+ * `tb_src_life` 的 S12 按它判）。2026-10-20 曾试过把心跳降到 250 ms 以减少全帧重搬，
+ * 但 `build/gates.sh` 的 A2 判据是 `hb*3 <= timeout`（250*3=750 > 500），当场判红 ⇒ 回退到
+ * 100 ms。这条比例不是"越省越好"，是给主循环最长阻塞（gamma_set ~2.6 ms、一次 SD 读）
+ * 留出故障余量；要改先改判据并说明新的余量，不能只改常数。
  * 重发的是**同一帧**：DDR 里那张画没动，PL 重新搬一遍，屏幕上看不出差别。 */
 #define PS_HB_MS 100u
 static void ps_keepalive(void)
@@ -280,7 +286,7 @@ void ps_source_lost(void)
 /* ---- V8-3：Gamma 表 ----
  * 曲线**在 PS 这边算**，PL 只负责"写进去什么就查什么" ⇒ "算错曲线"与"接错线"是两件事，
  * 各自的凭据也分开：算错的凭据是本函数自带的端点 + 单调自检（打 [GAMMA] 那行，板子上直接读），
- * 接错的凭据是 `sim/tb_v88_gamma`（八条，含"关着就必须一动不动"那条反例）。
+ * 接错的凭据是 `sim/tb_gamma`（八条，含"关着就必须一动不动"那条反例）。
  *
  * 两项之间必须 usleep：PL 看的是 `wr` 的**边沿**，而 AXI 连发的间隔可以短到一个像素拍都不到
  * （协议前提写在 gamma_lut.v 头部）。5 µs ⇒ 256 项约 2.6 ms，人看不出来，
@@ -312,6 +318,7 @@ static void gamma_set(u32 g100);       /* 前向声明，真正的定义在下�
 static char cmd_buf[CMD_BUF];
 static int  cmd_len = 0;                /* 已收字节数（含行尾 '\n'） */
 static u8   cmd_toolong = 0;            /* 一次超长只报一条，不许刷屏 */
+static u8   cmd_discard = 0;            /* 本行已超长：整行丢弃，绝不派发截断后的前缀 */
 /* #94 同族的另一件"异常"：**残包**。半行留在 buf 里可以留到永远 —— 于是脚本发断/终端抖一下
  * 之后，"我敲的下一条命令"会与那半行拼成一句谁都没敲过的东西（症状是"板子执行了一句我没打过的话"，
  * 最难查的一类）。所以半行搁置超过 RX_IDLE_MS 就丢掉并**明说丢了**（静默丢与不丢一样坏）。
@@ -434,7 +441,10 @@ static int parse_gamma(const char *s, u32 *g100)
     u32 ip = 0, fp = 0, nd = 0;
 
     if (p == 0 || *p == 0) return 0;
-    while (*p >= '0' && *p <= '9') { ip = ip * 10u + (u32)(*p - '0'); p++; }
+    while (*p >= '0' && *p <= '9') {
+        if (ip > 1000000u) return 0;              /* 溢出前拒绝，别让 u32 回绕成一个小 gamma */
+        ip = ip * 10u + (u32)(*p - '0'); p++;
+    }
     if (*p != '.') {
         if (*p) return 0;
         *g100 = ip;                       /* 不带小数点：按 γ×100 收 */
@@ -563,7 +573,7 @@ static void ctrl_set_bilin(u8 on)
  *   ① 逐像素比对/取证时叠字盖住了画面左上角那一块，量到的不是画面本身；
  *   ② 拍摄/截屏要一张干净画面。
  * 开关只碰输出级的那个"字形 vs 背景"选择，不碰任何数据通路 ⇒ 关掉时屏上每一格
- * 必须逐位等于"这一层不存在"（判据在 `sim/tb_osd_lines.v`，配了正对照）。 */
+ * 必须逐位等于"这一层不存在"（判据在 `sim/tb_osd_overlay.v`，配了正对照）。 */
 static void ctrl_set_osd(u8 on)
 {
     cur_osd = on ? 1 : 0;
@@ -627,6 +637,7 @@ static void print_sel_names(u32 sel)
 
 static void cmd_help(void);
 static void cmd_fill(void);
+void uart_keepalive(void);
 
 /* 上电自动挂载 + 自动播放（用户要的"上电就有画面"）。
  * 为什么默认开：PL 侧的片源仲裁（ISSUES #49）已经保证"ETH 有流时 PS 让位、停流后自动接回"，
@@ -695,6 +706,7 @@ static void cmd_fill(void)
     int i;
     for (i = 0; i < FRAME_W * FRAME_H; i++) {
         int x = i % FRAME_W, y = i / FRAME_W;
+        if ((i & 0x3FFF) == 0) uart_keepalive();
         u16 c;
         if (y < 8)            c = 0x07E0;
         else if (x < 256 && y < 150)  c = 0xF800;
@@ -725,8 +737,11 @@ static void cmd_src(int n)
         ctrl_publish_mode(MODE_ETH, "ETH = 网络推流");
         break;
     case 2:                                             /* SD：也是 DDR，只是把回放踢起来 */
+        if (!sd_play(1)) {                              /* #197：先判成不成，再改片源 */
+            xil_printf("[SD] play refused: %s\r\n", sd_err());
+            return;
+        }
         ctrl_set_src(1);
-        if (!sd_play(1)) xil_printf("[SD] play refused: %s\r\n", sd_err());
         ctrl_publish_mode(MODE_SD, "SD = 卡里回放（帧缓存走 DDR）");
         break;
     default:
@@ -754,13 +769,29 @@ static int    temp_th_deg = 85;      /* 告警阈值，°C —— spec 第 3 节
 static s32 temp_mc_of(u16 raw) { return (s32)((((u64)raw) * 503975ULL) >> 16) - 273150; }
 static s32 volt_mv_of(u16 raw) { return (s32)((((u64)raw) * 3000ULL) >> 16); }  /* 满量程 3.0 V */
 
+/* XADC 的基址宏在 2025.2 的新 BSP 里叫 XPAR_XADCPS_0_BASEADDR；老 BSP 的驱动表叫
+ * XPAR_XXADCPS_0_BASEADDR。两个名字都认，免得"BSP 明明有 ADC、elf 却报读不到"。 */
+#if defined(XPAR_XADCPS_0_BASEADDR)
+#define VP_XADC_BASEADDR XPAR_XADCPS_0_BASEADDR
+#elif defined(XPAR_XXADCPS_0_BASEADDR)
+#define VP_XADC_BASEADDR XPAR_XXADCPS_0_BASEADDR
+#endif
+/* 老式（非 SDT）BSP 的 LookupConfig 收的是 DeviceId；SDT BSP 收的是基址。 */
+#ifdef VP_XADC_BASEADDR
+#if defined(SDT)
+#define VP_XADC_LOOKUP VP_XADC_BASEADDR
+#else
+#define VP_XADC_LOOKUP XPAR_XADCPS_0_DEVICE_ID
+#endif
+#endif
+
 static void xadc_init(void)
 {
-#ifdef XPAR_XXADCPS_0_BASEADDR
-    XAdcPs_Config *cfg = XAdcPs_LookupConfig(XPAR_XXADCPS_0_BASEADDR);
+#ifdef VP_XADC_BASEADDR
+    XAdcPs_Config *cfg = XAdcPs_LookupConfig(VP_XADC_LOOKUP);
     if (cfg == NULL) {
-        xil_printf("[TEMP] LookupConfig(0x%x) 返回空 ⇒ BSP 的 xadcps 配置表里没有这颗"
-                   "（elf 与 BSP 不配套）\r\n", (u32)XPAR_XXADCPS_0_BASEADDR);
+        xil_printf("[TEMP] LookupConfig(%u) 返回空 ⇒ BSP 的 xadcps 配置表里没有这颗"
+                   "（elf 与 BSP 不配套）\r\n", (u32)VP_XADC_LOOKUP);
         return;
     }
     (void)XAdcPs_CfgInitialize(&xadc_inst, cfg, cfg->BaseAddress);
@@ -887,6 +918,46 @@ static void cmd_temp(int n, char **tk)
                    (mc < 0) ? "-" : "", (int)(a / 1000), (int)((a / 10) % 100));
 }
 
+/* 链路健康读数：把 link_monitor 的 10 条 lane 从 AXI GPIO 读回来。
+ * 为什么在 PS 里再开一条串口出口：帧间隔/断流/坏包这些量一直在 PL 里数，
+ * 但以前只有 JTAG 的 health_read.mjs 和 1 Hz 遥测能看；现场答辩时串口是最顺手的口。
+ * 读法照 health_read.mjs：先写 lane 号到 gpio_o[31:27]，再读 0x41210000。
+ * 读之前把当前控制字存下来，读完用 ctrl_write() 整字恢复；否则会顺手改掉 zoom/publish。 */
+static int cmd_link(int nt, char **tk)
+{
+    u32 v, l[10];
+    int i;
+
+    if (nt >= 2 && ci_eq(tk[1], "CLR")) {
+        v = ctrl_write();
+        Xil_Out32(GPIO_DATA, v | (1u << 26));       /* gapclr：清 lane3/4/5 */
+        for (volatile u32 d = 0; d < 200000u; d++) { }
+        ctrl_write();
+        xil_printf("[LINK] gap statistics cleared\r\n");
+        return 0;
+    }
+    v = ctrl_write();
+    for (i = 0; i < 10; i++) {
+        Xil_Out32(GPIO_DATA, (v & 0x07FFFFFFu) | ((u32)i << 27));
+        l[i] = Xil_In32(LM_DATA);
+    }
+    ctrl_write();
+    xil_printf("[LINK] drop=%u badpkt=%u aborts=%u rows_max=%u stall=%ums "
+               "gap_last=%ums gap_min=%ums gap_max=%ums gap_sum=%ums gap_valid=%u live=%u\r\n",
+               (unsigned)l[0],
+               (unsigned)(l[1] >> 16), (unsigned)(l[1] & 0xFFFFu),
+               (unsigned)(l[2] >> 16), (unsigned)(l[2] & 0xFFFFu),
+               (unsigned)(l[3] & 0xFFFFu),
+               (unsigned)(l[4] & 0xFFFFu), (unsigned)(l[4] >> 16),
+               (unsigned)l[5],
+               (unsigned)((l[7] >> 4) & 1u), (unsigned)((l[7] >> 3) & 1u));
+    xil_printf("[LINK] lanes: %08x %08x %08x %08x %08x %08x %08x %08x %08x %08x\r\n",
+               (unsigned)l[0], (unsigned)l[1], (unsigned)l[2], (unsigned)l[3],
+               (unsigned)l[4], (unsigned)l[5], (unsigned)l[6], (unsigned)l[7],
+               (unsigned)l[8], (unsigned)l[9]);
+    return 0;
+}
+
 static int dispatch(char **tk, int nt)
 {
     u32 en;
@@ -1006,7 +1077,7 @@ static int dispatch(char **tk, int nt)
         /* 与 bilin 同一种"开关在硬件里是真的"的写法：`gpio_o[20]`（反相）→ 顶层一条独立同步链
          * → `osd_overlay` 的输出级选择。以前这条命令是 `not_wired` 提示，那份提示的理由
          * （"加 en 端口要连改三处台架例化；输出前加 mux 要碰字形那一路"）今天仍然成立，
-         * 只是都做完了：三处例化 = tb_osd_lines / tb_v794_osd_glyph / tb_v90_latency，
+         * 只是都做完了：三处例化 = tb_osd_overlay / tb_osd_glyph_rom / tb_latency，
          * 而 mux 没有新加一级 —— 它就是把"字形还是背景"那个选择多喂一个输入。 */
         const char *arg = (nt >= 2) ? tk[1] : tk[0] + 3;   /* OSD 是 3 个字母 */
         int b = -1;
@@ -1322,28 +1393,33 @@ static int dispatch(char **tk, int nt)
         /* 2026-09-26 用户实测撞上的坑：`play` 分支原来**不看参数**，`play 0` 也是"开始播"，
          * 而停播是另一个裸词 `stop` —— 于是一句最自然的"play 0"不但停不下来，还回一句
          * "[SD] playing"，看起来像命令坏了。这里把 0/off/stop 收进同一条出口。
-         * ⚠ 故意**保留**开播时钉源到 SD 那一步（`ctrl_set_src(1)`）：串口电池与演示流程都按
-         *   "play 之后源就是 SD"来判，动它是另一次改动，要连电池一起改口径（已在 ISSUES 记一笔）。 */
+         * ⚠ 开播时钉源到 SD（`ctrl_set_src(1)`）现在放在 `sd_play(1)` **成功之后**（#197）；
+         *   命令被拒时片源保持原样，串口电池与演示流程仍按"play 成功后源就是 SD"判断。 */
         const char *arg = (nt >= 2) ? tk[1] : (const char *)0;
         if (arg && (ci_eq(arg, "0") || ci_eq(arg, "OFF") || ci_eq(arg, "STOP"))) {
             (void)sd_play(0);
-            xil_printf("[SD] stopped at frame %d\r\n", (int)sd_frame_now());
+            xil_printf("[SD] stopped; next frame %d\r\n", (int)sd_frame_now());
             return 0;
         }
         if (arg && !(ci_eq(arg, "1") || ci_eq(arg, "ON"))) {
             xil_printf("[SD] play 只认 0/off/stop 或 1/on（不带参数=开播）\r\n");
             return 0;
         }
+        /* #197：先确认 SD 真的能播，再切片源。反过来写的话，命令被拒也会把屏切到
+         * 一个没有帧可播的源上——被拒的命令不许改观感。 */
+        if (!sd_play(1)) {
+            xil_printf("[SD] play refused: %s\r\n", sd_err());
+            return 0;
+        }
         ctrl_set_src(1);
-        if (!sd_play(1)) xil_printf("[SD] play refused: %s\r\n", sd_err());
         /* 旧文案写的是"cable must stay out"——那是 #49 之前没有仲裁时的规矩，
          * 现在停流会自动交回，留着这句话只会误导下一个操作的人。 */
-        else xil_printf("[SD] playing (stop / play 0 结束; ETH 有流时会自动让位)\r\n");
+        xil_printf("[SD] playing (stop / play 0 结束; ETH 有流时会自动让位)\r\n");
         return 0;
     }
     if (ci_eq(tk[0], "STOP")) {
         (void)sd_play(0);
-        xil_printf("[SD] stopped at frame %d\r\n", (int)sd_frame_now());
+        xil_printf("[SD] stopped; next frame %d\r\n", (int)sd_frame_now());
         return 0;
     }
     if (ci_eq(tk[0], "FILL")) { cmd_fill(); return 0; }
@@ -1364,9 +1440,10 @@ static int dispatch(char **tk, int nt)
         const char *arg = (nt >= 2) ? tk[1] : tk[0] + 8;   /* AUTOPLAY 是 8 个字母 */
         if (!strict_int(arg, &v) || (v != 0 && v != 1)) { xil_printf("[SD] autoplay 要跟 0 或 1\r\n"); return 0; }
         autoplay = v;
-        xil_printf("[SD] autoplay %s (only affects the next boot)\r\n", v ? "on" : "off");
+        xil_printf("[SD] autoplay %s (session only; reset/re-download returns to 1)\r\n", v ? "on" : "off");
         return 0;
     }
+    if (ci_eq(tk[0], "LINK")) { return cmd_link(nt, tk); }
     if (ci_pre(tk[0], "TEMP")) { cmd_temp(nt, tk); return 0; }
     if (ci_eq(tk[0], "STAT") || ci_eq(tk[0], "STATUS")) {
         /* 字段顺序不许动：串口电池与 uart_cmd_check.mjs 都按 "[STAT] ctrl thr=…" 的前缀解析，
@@ -1398,7 +1475,7 @@ static void cmd_help(void)
     xil_printf("  V8 语法: src auto|0|1|2 | pipe <九位>|pipe show | th 80 | zoom on|off|auto|<倍率> | bilin on|off |"
                " osd on|off |"
                " gamma off|1.8 | frame N | sd [files|file n|remount] | play | stop | fill | autoplay 0|1 | temp [th <°C>] |"
-               " stat | help\r\n");
+               " link [clr] | stat | help\r\n");
     xil_printf("  pipe 九位一位一级（gray/invert/blur/sharpen/sobel/binary/bin_pol/erode/dilate）；"
                "五位是 V7 老位序，给了只回一句等价的九位、不生效。**其余长度一律拒**\r\n");
     xil_printf("  屏上 Pipe 那一格不是这串 0/1：它是五位、每位的 0..3 表示\"这一级选了第几个算法\"，"
@@ -1448,8 +1525,9 @@ static void uart_poll(void)
                            "(residue, not a lost byte; re-type that line)\r\n",
                            cmd_len - keep, (unsigned)RX_IDLE_MS);
                 cmd_len = keep;
-                cmd_toolong = 0;
             }
+            cmd_toolong = 0;
+            cmd_discard = 0;
         }
     }
 
@@ -1457,19 +1535,26 @@ static void uart_poll(void)
      * 行分隔认 CR 也认 LF（两者都存成 '\n'）⇒ 终端发 LF / CR / CRLF 都能用，这条一直没变。 */
     for (;;) {
         int i, n = 0;
+        char line[CMD_BUF];
         for (i = 0; i < cmd_len; i++) {
             if (cmd_buf[i] == '\n') { n = i + 1; break; }
         }
         if (n == 0) break;                       /* 没有完整行 */
-        cmd_buf[n - 1] = 0;                      /* 行尾换成语义上的 0 */
-        nt = tokenize(cmd_buf, tk);
-        if (nt > 0 && dispatch(tk, nt) < 0) {
-            xil_printf("[CMD] 不认: %s\r\n", cmd_buf);
-            cmd_help();
-        }
+        if (n > cmd_len) n = cmd_len;            /* 防御：残包/重入改过 cmd_len */
+        memcpy(line, cmd_buf, (size_t)(n - 1));
+        line[n - 1] = 0;
+        /* 先把这一行从缓冲区摘掉，再派发。dispatch 会经 sd_play -> uart_keepalive
+         * -> rx_fill 重入，如果此时 tk 还指向 cmd_buf，新到的字节会改掉正在执行的参数。 */
         memmove(cmd_buf, cmd_buf + n, (size_t)(cmd_len - n));
         cmd_len -= n;
-        cmd_toolong = 0;                         /* 新的一行重新允许报一次超长 */
+        nt = tokenize(line, tk);
+        if (nt > 0 && dispatch(tk, nt) < 0) {
+            xil_printf("[CMD] 不认: %s\r\n", line);
+            cmd_help();
+        }
+        /* 超长行丢弃期间不能清 cmd_discard：这一行后面还有字节没到，
+         * 清了就会把它的后半截当新行。等它的行尾到了再清。 */
+        if (!cmd_discard) cmd_toolong = 0;
     }
 }
 
@@ -1490,8 +1575,18 @@ static void rx_fill(void)
             *   固件却回一句"line unfinished（残包）"把它丢掉 + 多打一条提示。
             *   现在换行支也判界（`cmd_len < CMD_BUF`）：行满就**不再追加**，多出来的那个行尾被丢掉，
             *   派发读到的永远是数组内的字节。板级指纹见 `board/cmd_overflow_probe.sh` 的 O1/O2。 */
-            if (cmd_len > 0 && cmd_len < CMD_BUF) { cmd_buf[cmd_len++] = '\n'; }
+            if (cmd_discard) {
+                /* 超长行的字节在溢出那一拍已经截掉，这里只清状态；前面已经收完的行
+                 * 仍留在缓冲里，留给 uart_poll 照常派发（#502）。 */
+                cmd_discard = 0;
+                cmd_toolong = 0;
+                xil_printf("\r\n[CMD!] 整行已丢弃：超过 %d 字节，未执行任何前缀\r\n", CMD_BUF - 1);
+            } else if (cmd_len > 0 && cmd_len < CMD_BUF) {
+                cmd_buf[cmd_len++] = '\n';
+            }
             if (cmd_echo) xil_printf("\r\n");     /* 行尾也回显：看不见回车也算一种"没反应" */
+        } else if (cmd_discard) {
+            /* 丢掉这一行剩下的字节，直到行尾 */
         } else {
             if (cmd_len < CMD_BUF - 1) {
                 cmd_buf[cmd_len++] = (char)ch;
@@ -1499,8 +1594,14 @@ static void rx_fill(void)
                  * "打一个 S 看见 SS"（2026-09-29 用户报）。默认关；没有本地回显的终端自己 `echo 1`。 */
                 if (cmd_echo) XUartPs_SendByte(STDIN_BASEADDRESS, ch);
             } else if (!cmd_toolong) {                     /* 用户只能靠"再发一次"猜有没有收到 */
+                int k, keep = 0;
+                for (k = cmd_len - 1; k >= 0; k--) {
+                    if (cmd_buf[k] == '\n') { keep = k + 1; break; }
+                }
+                cmd_len = keep;                            /* 把这一行已收的前缀也截掉 */
                 cmd_toolong = 1;
-                xil_printf("\r\n[CMD!] 这行超过 %d 字节，多出来的丢掉（不是没收到，是太长）\r\n",
+                cmd_discard = 1;
+                xil_printf("\r\n[CMD!] 这行超过 %d 字节，整行丢弃（不是只丢多出来的尾巴）\r\n",
                            CMD_BUF - 1);
             }
         }
@@ -1516,10 +1617,39 @@ void uart_keepalive(void)
     rx_fill();
 }
 
+/* 上电默认档只在这里写一次。
+ * QSPI 冷启动和 JTAG 下载的加载路径不同：实测冷启动后 cur_sel/cur_split 会带着
+ * 非默认值（串口第一行 STAT 是 sel=1FF / geom=83A00A00），JTAG 下载则是默认档。
+ * 与其依赖启动代码把每一个静态字都初始化对，不如在 main 入口把**用户看得见的状态**
+ * 明确落回演示默认：效果全关、缝在正中、手动 1.00×、OSD/双线性开、src=SD。
+ * 这样无论从哪条路径起来，第一条 STAT 和屏幕都是同一档。 */
+static void control_defaults(void)
+{
+    cur_thr      = 80;
+    cur_src      = 1;
+    cur_zoom     = 1;
+    cur_bilin    = 1;
+    cur_osd      = 1;
+    cur_zsel     = 4;
+    cur_zman     = 1;
+    cur_sel      = 0;
+    cur_split    = (512u << SPLIT_POS_SHIFT);
+    cur_gamma    = 0;
+    gm_w         = GM_TEMP_NONE;
+    cur_mode_ovr = MODE_AUTO;
+    mode_tog_lvl = 0;
+    pub_lvl      = 0;
+    ps_hold      = 0;
+    autoplay     = 1;
+    temp_th_deg  = 85;
+    cmd_echo     = 0;
+}
+
 int main(void)
 {
     u32 rb, rb2;
 
+    control_defaults();
     Xil_ExceptionInit();
     Xil_DCacheEnable();
     Xil_ICacheEnable();

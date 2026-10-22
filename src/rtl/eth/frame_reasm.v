@@ -86,19 +86,44 @@ module frame_reasm #(
     localparam integer ROW_STRIDE = IMG_W * 2;
     wire [31:0] row_idx = off / ROW_STRIDE;
     wire [8:0]  ridx  = row_idx[8:0];
-    wire [2:0]  rbank = ridx[8:6];
-    wire [5:0]  roff  = ridx[5:0];
+
+    // 行覆盖流水（r135）：原来 off → 64:1 bank 读 → 5:1 bank 选 → 独热移位 → rows_hit CE
+    // 全在同一个 125 MHz 拍里，fix3 的 WNS 就是这条（off_reg[11] 扇出 132、6 级、7.341 ns）。
+    // 现在 word 写入时只把 ridx 打进一拍，下一拍再查/置位：off 只驱动一个 9 位寄存器，
+    // 位图访问从寄存器出发，路径被切掉最长的一段。语义不变（同一行连续字：第一字置位后
+    // 第二字下一拍已经读得到 1；跨帧时 p_eof / 帧头清位同时把在途的 cov_we 杀掉）。
+    reg [8:0] cov_ridx;
+    reg       cov_we;
+    // r152：`|bank_one`（= 这一行本帧第一次出现）原来是 rows_hit 16 个 CE 的组合驱动。
+    // r151 布线后它是最差内部路径（wr_addr_reg[10] → rows_hit_reg[*]/CE，6.311 ns，
+    // 其中 route 4.826 ns、扇出 16），因为 bank 读的 5:1 选择 + 64:1 位选 + 行号比较
+    // 全压在一个 CE 上。这里只把“是否新行”寄存一拍，rows_hit 的加一改由这个单 bit
+    // 触发器驱动；bank 的置位仍在原拍完成，所以同一行连续字的第二次读已经看得到 1，
+    // 不会重复计数。代价是 rows_hit 比原来晚一拍更新，而 frame_done 判的是“整行早已
+    // 写过的行数”，最后一行在帧尾之前至少已收到几百个字，晚一拍不影响判定。
+    reg       cov_new;
+    // r155：stat_bad 的 32 位 CE 原来由 rows_hit/cov/bad_frame 的比较锥直接驱动，
+    // r154 布线后它是 125 MHz 域最差路径（rows_hit_reg[5] → stat_bad_reg[28]/CE，
+    // 5 级逻辑、route 5.3 ns）。统计计数器晚一拍没有功能影响，所以把“这一拍要不要
+    // 加一”寄存成单 bit，CE 由它驱动；比较锥只剩一个负载，走线不再分叉到 32 位。
+    reg       stat_bad_inc;
+    // A9: 4 ms idle timer with a 12-bit prescaler. It drives one bit into the
+    // header-clear cone; the counters stay out of the byte/row path.
+    reg [11:0] idle_div;
+    reg [6:0]  idle_cnt;
+    reg        idle_clear;
+    reg        gap_pending;
+
+    wire [2:0]  rbank = cov_ridx[8:6];
+    wire [5:0]  roff  = cov_ridx[5:0];
     wire        row_covered =
           (rbank == 3'd0) ? rok0[roff]
         : (rbank == 3'd1) ? rok1[roff]
         : (rbank == 3'd2) ? rok2[roff]
         : (rbank == 3'd3) ? rok3[roff]
         :                    rok4[roff];
-    // 独热化（r110 刀 4① / ISSUES #238）：公共的"新行"拆成每 bank 一根使能网。
-    // ⚠ 必须放在 row_covered 的定义**之后**：拷贝树自测里我把它插在定义之前，
-    //    xvlog 直接 [VRFC 10-3380] identifier 'row_covered' is used before its declaration（pristine 0 错 vs patched 2 错）。
-    wire        new_row_w = (row_idx < IMG_H) && !row_covered;
-    // rbank<=4 由 row_idx<IMG_H(=300) 保证（ridx<=299 ⇒ rbank=ridx[8:6]<=4）；>=5 时 new_row_w 本已为 0。
+    wire        new_row_w = (cov_ridx < IMG_H) && !row_covered;
+    // rbank<=4 由 cov_ridx<IMG_H(=300) 保证（ridx<=299 ⇒ rbank=ridx[8:6]<=4）。
     wire [4:0]  bank_one  = new_row_w ? (5'b00001 << rbank) : 5'b00000;
 
     // 4-byte little-endian offset, complete in the S_OFF3 cycle
@@ -108,6 +133,7 @@ module frame_reasm #(
         if (!rst_n) begin
             st<=S_OFF0; off<=0; pix_lo<=0; have_lo<=0;
             pkt_pay<=0; pkt_active<=0; cov<=0; pend<=0; bad_frame<=0;
+            cov_ridx<=0; cov_we<=0; cov_new<=0; stat_bad_inc<=0; gap_pending<=0;
             wr_en<=0; wr_addr<=0; wr_data<=0; flush<=0;
             frame_done<=0; frame_err<=0;
             frame_abort<=0; rows_missed<=0;
@@ -116,6 +142,23 @@ module frame_reasm #(
             rok0<=0; rok1<=0; rok2<=0; rok3<=0; rok4<=0; rows_hit<=0;
         end else begin
             wr_en<=0; flush<=0; frame_done<=0; frame_err<=0; frame_abort<=0;
+            if (stat_bad_inc) stat_bad <= stat_bad + 1'b1;
+            stat_bad_inc <= 1'b0;
+            if (idle_clear) gap_pending <= 1'b1;
+
+            // 上一拍 word 的行覆盖（流水级）。跨帧清位与 p_eof 在下面把 cov_we 清掉，
+            // 所以在途的旧帧更新不会落到新帧的 rows_hit / rok 上。
+            if (cov_we) begin
+                cov_new <= (cov_ridx < IMG_H) && !row_covered;
+                if (cov_ridx < IMG_H) begin
+                    if (bank_one[0]) rok0[roff] <= 1'b1;
+                    if (bank_one[1]) rok1[roff] <= 1'b1;
+                    if (bank_one[2]) rok2[roff] <= 1'b1;
+                    if (bank_one[3]) rok3[roff] <= 1'b1;
+                    if (bank_one[4]) rok4[roff] <= 1'b1;
+                end
+            end else cov_new <= 1'b0;
+            if (cov_new) rows_hit <= rows_hit + 16'd1;
 
             if (p_valid) begin
                 if (p_sof) begin
@@ -130,11 +173,16 @@ module frame_reasm #(
                             off[31:24]<=p_data; st<=S_DATA;
                             pkt_start <= hdr;
                             pend      <= (hdr >= FRAME_BYTES) ? SAT : hdr[CW-1:0];
-                            if (hdr < 32'd4) begin
+                            if (hdr < 32'd4 || gap_pending) begin
                                 cov<=0;
                                 rok0<=0; rok1<=0; rok2<=0; rok3<=0; rok4<=0;
                                 rows_hit<=0;
                                 bad_frame<=0;
+                                gap_pending<=0;
+                                cov_we<=0;
+                                // 旧帧最后一个字可能在这一拍正好算出 cov_new；新帧从 0 行开始时
+                                // 必须把它一起清掉，否则下一拍会给新帧凭空加 1 行（#152 回归）。
+                                cov_new<=0;
                             end
                         end
                         S_DATA: begin
@@ -150,15 +198,12 @@ module frame_reasm #(
                                 wr_data<={p_data,pix_lo};
                                 wr_addr<=off[18:1];
                                 wr_en  <=(off < FRAME_BYTES);
-                                if (off < FRAME_BYTES) begin
-                                    if (bank_one[0]) rok0[roff] <= 1'b1;
-                                    if (bank_one[1]) rok1[roff] <= 1'b1;
-                                    if (bank_one[2]) rok2[roff] <= 1'b1;
-                                    if (bank_one[3]) rok3[roff] <= 1'b1;
-                                    if (bank_one[4]) rok4[roff] <= 1'b1;
-                                    if (|bank_one) rows_hit <= rows_hit + 16'd1;
-                                end else
+                                cov_ridx <= ridx;
+                                cov_we   <= (off < FRAME_BYTES);
+                                if (off >= FRAME_BYTES)
                                     stat_oob_off<=stat_oob_off+1;
+                                if (off >= FRAME_BYTES)
+                                    bad_frame<=1'b1;   // 越界包把本帧作废，别让字节账把它拼成完整帧
                                 have_lo<=0;
                                 off<=off+2;
                             end
@@ -173,6 +218,7 @@ module frame_reasm #(
 
             if (p_eof && pkt_active) begin
                 flush<=1;
+                cov_we<=0;
                 stat_pkts<=stat_pkts+1;
                 if (p_good) begin
                     // Completeness gate: no failed packet this frame, every source row touched,
@@ -184,6 +230,7 @@ module frame_reasm #(
                         cov<=0;
                         rok0<=0; rok1<=0; rok2<=0; rok3<=0; rok4<=0;
                         rows_hit<=0;
+                        cov_new<=0;   // 只在本帧已提交、rows_hit 正要清零时杀掉在途脉冲
                         bad_frame<=0;
                         stat_frames<=stat_frames+1;
                     end else begin
@@ -194,17 +241,26 @@ module frame_reasm #(
                             if (!pend_sat) pend <= pend + 1'b1;
                         end
                         if (last_pkt) begin
-                            stat_bad    <= stat_bad + 1;
+                            stat_bad_inc <= 1'b1;
                             frame_abort <= 1'b1;
                             // 行数够但字节不够的作废，rows_missed 会是 0 —— 这不是
                             // bug，是在说"缺的不是行，是最后一包的字节"。
                             rows_missed <= (rows_hit >= IMG_H[15:0]) ? 16'd0
                                               : (IMG_H[15:0] - rows_hit);
+                            // 作废帧不把字节账和行位图留给下一帧；否则下一帧丢首包时
+                            // 两帧的账会拼在一起（A9 的另一条入口）。
+                            cov<=0;
+                            rok0<=0; rok1<=0; rok2<=0; rok3<=0; rok4<=0;
+                            rows_hit<=0;
+                            bad_frame<=0;
+                            cov_we<=0;
+                            cov_new<=0;
+                            gap_pending<=0;
                         end
                     end
                     stat_bytes <= stat_bytes + pkt_pay + (p_valid ? 32'd1 : 32'd0);
                 end else begin
-                    stat_bad<=stat_bad+1;
+                    stat_bad_inc<=1'b1;
                     frame_err<=1;
                     bad_frame<=1;   // voids the frame: see "byte accounting"
                 end
@@ -214,6 +270,21 @@ module frame_reasm #(
     end
 // 界（#146 那一族的写法）：bank 数写死在 5。IMG_H 一旦超过 5*64，行覆盖就记丢、
 // frame_done 永不成立（画面是黑纹而不是报错）。台架里当场喊；综合忽略 initial。
+always @(posedge clk or negedge rst_n) begin
+    if (!rst_n) begin
+        idle_div<=0; idle_cnt<=0; idle_clear<=0;
+    end else begin
+        idle_clear<=1'b0;
+        if (p_valid) begin
+            idle_div<=0; idle_cnt<=0;
+        end else if (idle_div == 12'hFFF) begin
+            idle_div<=0;
+            if (idle_cnt == 7'd123) begin idle_cnt<=0; idle_clear<=1'b1; end
+            else idle_cnt<=idle_cnt+1'b1;
+        end else idle_div<=idle_div+1'b1;
+    end
+end
+
 initial begin
     if (IMG_H > 5 * 64)
         $error("frame_reasm: IMG_H=%0d exceeds 5 x 64 row-coverage banks (320); add banks and widen rbank", IMG_H);

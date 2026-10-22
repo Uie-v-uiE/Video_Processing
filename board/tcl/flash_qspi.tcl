@@ -41,9 +41,9 @@ if {![file exists $img]} { puts "REFUSE: no boot image at $img"; exit 1 }
 #   ⚠ 上面这句的实测射程是 `program_flash`（那一条会拼头）。`hw_cfgmem` 这一支在 2025.2.1 里**强制**
 #     要 PROGRAM.ZYNQ_FSBL，而 `program_flash` 本机不存在 ⇒ 2026-10-17 #130 把 `.bin` 分支也补上 FSBL，
 #     理由与两次 27-3203 的复现读数写在下面 switch 的 default 分支里。
-set bitf [file join $root "build/system.bit"]
+set bitf [file join $root "board/project/system.bit"]
 if {[info exists ::env(VP_BIT)]} { set bitf [file normalize $::env(VP_BIT)] }
-set appf [file join $root "build/ps_app.elf"]
+set appf [file join $root "board/project/ps_app.elf"]
 if {[info exists ::env(VP_APP)]} { set appf [file normalize $::env(VP_APP)] }
 foreach f [list $bitf $appf] {
   if {![file exists $f]} { puts "REFUSE: 原料不在 $f"; exit 1 }
@@ -56,13 +56,13 @@ puts "PART $part  OFFSET $offs  SERVER $url"
 
 open_hw
 if {[catch {connect_hw_server -url $url} err]} { puts "REFUSE: connect_hw_server: $err"; exit 1 }
-if {[catch {open_hw_target} err]} { puts "REFUSE: open_hw_target: $err（板子没上电或 JTAG 链空）"; close_hw_server; exit 1 }
+if {[catch {open_hw_target} err]} { puts "REFUSE: open_hw_target: $err（板子没上电或 JTAG 链空）"; catch {disconnect_hw_server}; exit 1 }
 
 set pl [get_hw_devices xc7z020*]
 puts "PL_DEVICES: $pl"
 if {[llength $pl] == 0} {
     puts "REFUSE: JTAG 链上没有 xc7z020（板子没上电 / 线没插 / hw_server 看到的是空链）"
-    close_hw_target; close_hw_server; exit 1
+    close_hw_target; catch {disconnect_hw_server}; exit 1
 }
 current_hw_device [lindex $pl 0]
 refresh_hw_device -update_hw_probes false [current_hw_device]
@@ -72,7 +72,7 @@ set parts [get_cfgmem_parts $part]
 puts "PART_HITS [llength $parts]"
 if {[llength $parts] == 0} {
     puts "REFUSE: 部件库里没有 $part（换 VP_QSPI_PART，可选项用 get_cfgmem_parts *25q256* 现查）"
-    close_hw_target; close_hw_server; exit 1
+    close_hw_target; catch {disconnect_hw_server}; exit 1
 }
 
 set cm [create_hw_cfgmem -hw_device [current_hw_device] [lindex $parts 0]]
@@ -83,12 +83,23 @@ puts "CFGMEM_COMPAT $compat"
 # PROGRAM.START_ADDRESS（写死会 17-142 中断），所以先 list_property 再逐个设，缺的只报 SKIP。
 set props [list_property $cm]
 puts "CFGMEM_PROPS $props"
-set fsbl [file join $root "vitis/platform/zynq_fsbl/build/fsbl.elf"]
+# FSBL 路径：2026-10-22 当前 Vitis 工作区是 `vitis/fin2_plat/zynq_fsbl/fsbl.elf`；
+# 旧布局 `vitis/platform/zynq_fsbl/build/fsbl.elf` 保留为第二候选。VP_FSBL 优先。
+set fsbl ""
+if {[info exists ::env(VP_FSBL)]} { set fsbl [file normalize $::env(VP_FSBL)] }
+if {![file exists $fsbl]} {
+    foreach cand [list \
+        [file join $root "vitis/fin2_plat/zynq_fsbl/fsbl.elf"] \
+        [file join $root "vitis/platform/zynq_fsbl/build/fsbl.elf"]] {
+        if {[file exists $cand]} { set fsbl $cand; break }
+    }
+}
+puts "FSBL $fsbl"
 # PROGRAM.FILES 只收 .bit/.bin/.mcs（实测 44-518 "Valid file type extension .mcs or .bin"），
 # 应用 ELF 不能直接进这一层——它已经在 bootgen 打好的 BOOT.bin 里了。
 # 只有喂位流时才需要 ZYNQ_FSBL（那时工具负责打镜像）；喂 BOOT.bin 时**必须不给**，
 # 否则就是镜像套镜像（本文件上面那段实测说明）。
-if {![file exists $fsbl]} { puts "REFUSE: no FSBL at $fsbl"; close_hw_target; close_hw_server; exit 1 }
+if {![file exists $fsbl]} { puts "REFUSE: no FSBL at $fsbl"; close_hw_target; catch {disconnect_hw_server}; exit 1 }
 set feed_props [list \
     PROGRAM.FILES         [list $img] \
     PROGRAM.BLANK_CHECK   {0} \
@@ -130,8 +141,8 @@ set rc [catch {program_hw_cfgmem $cm} err]
 puts "PROGRAM_RC $rc"
 # 2025.2.1 的 hw_cfgmem 没有 STATUS 属性（17-54），成败只看 program_hw_cfgmem 的返回码
 # 与它自己打的 Erase/Program/Verify successful 三行。
-if {$rc != 0} { puts "PROGRAM_ERR $err"; close_hw_target; close_hw_server; exit 1 }
+if {$rc != 0} { puts "PROGRAM_ERR $err"; close_hw_target; catch {disconnect_hw_server}; exit 1 }
 puts "FLASH_QSPI DONE"
 close_hw_target
-close_hw_server
+catch {disconnect_hw_server}
 exit 0

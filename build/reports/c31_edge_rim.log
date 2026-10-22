@@ -1,0 +1,111 @@
+# vsim -c -work work_r160v work.tb_video_pipeline_top "+c31only" -do "run -all; quit -f" -l quick_c31_final.log 
+# Start time: 22:03:35 on Oct 21,2026
+# ** Note: (vsim-3812) Design is being optimized...
+# ** Warning: ../../src/rtl/hdmi/tmds_serializer.v(23): (vopt-2685) [TFMPC] - Too few port connections for 'u_master'.  Expected 30, found 27.
+# ** Warning: ../../src/rtl/hdmi/tmds_serializer.v(23): (vopt-2718) [TFMPC] - Missing connection for port 'TSELECT'.
+# ** Warning: ../../src/rtl/hdmi/tmds_serializer.v(23): (vopt-2718) [TFMPC] - Missing connection for port 'STATUS'.
+# ** Warning: ../../src/rtl/hdmi/tmds_serializer.v(23): (vopt-2718) [TFMPC] - Missing connection for port 'OB'.
+# ** Warning: ../../src/rtl/hdmi/tmds_serializer.v(61): (vopt-2685) [TFMPC] - Too few port connections for 'u_slave'.  Expected 30, found 27.
+# ** Warning: ../../src/rtl/hdmi/tmds_serializer.v(61): (vopt-2718) [TFMPC] - Missing connection for port 'TSELECT'.
+# ** Warning: ../../src/rtl/hdmi/tmds_serializer.v(61): (vopt-2718) [TFMPC] - Missing connection for port 'STATUS'.
+# ** Warning: ../../src/rtl/hdmi/tmds_serializer.v(61): (vopt-2718) [TFMPC] - Missing connection for port 'OB'.
+# ** Warning: ../../src/rtl/top/pl_video_top.v(134): (vopt-2685) [TFMPC] - Too few port connections for 'u_clk'.  Expected 8, found 6.
+# ** Warning: ../../src/rtl/top/pl_video_top.v(134): (vopt-2718) [TFMPC] - Missing connection for port 'clk_eth90'.
+# ** Warning: ../../src/rtl/top/pl_video_top.v(134): (vopt-2718) [TFMPC] - Missing connection for port 'clk_eth'.
+# ** Warning: ../../sim/tb_video_pipeline_top.v(102): (vopt-2685) [TFMPC] - Too few port connections for 'dut'.  Expected 56, found 49.
+# ** Warning: ../../sim/tb_video_pipeline_top.v(102): (vopt-2718) [TFMPC] - Missing connection for port 'pane_tog_o'.
+# ** Warning: ../../sim/tb_video_pipeline_top.v(102): (vopt-2718) [TFMPC] - Missing connection for port 'pane_valid_o'.
+# ** Warning: ../../sim/tb_video_pipeline_top.v(102): (vopt-2718) [TFMPC] - Missing connection for port 'pane_bad_o'.
+# ** Warning: ../../sim/tb_video_pipeline_top.v(102): (vopt-2718) [TFMPC] - Missing connection for port 'lat_tog_o'.
+# ** Warning: ../../sim/tb_video_pipeline_top.v(102): (vopt-2718) [TFMPC] - Missing connection for port 'lat_sticky_o'.
+# ** Warning: ../../sim/tb_video_pipeline_top.v(102): (vopt-2718) [TFMPC] - Missing connection for port 'lat_ok_o'.
+# ** Warning: ../../sim/tb_video_pipeline_top.v(102): (vopt-2718) [TFMPC] - Missing connection for port 'lat_ms_o'.
+# ** Note: (vsim-12126) Error and warning message counts have been restored: Errors=0, Warnings=19.
+# //  ModelSim SE-64 2020.4 Oct 13 2020
+# //
+# //  Copyright 1991-2020 Mentor Graphics Corporation
+# //  All Rights Reserved.
+# //
+# //  ModelSim SE-64 and its associated documentation contain trade
+# //  secrets and commercial or financial information that are the property of
+# //  Mentor Graphics Corporation and are privileged, confidential,
+# //  and exempt from disclosure under the Freedom of Information Act,
+# //  5 U.S.C. Section 552. Furthermore, this information
+# //  is prohibited from disclosure under the Trade Secrets Act,
+# //  18 U.S.C. Section 1905.
+# //
+# Loading sv_std.std
+# Loading work.tb_video_pipeline_top(fast)
+# Loading work.fb_bilin(fast)
+# Loading work.split_display(fast)
+# run -all
+# unisims_sim ⚠ OSERDESE2 是占位模型（不串行化）⇒ 判据只许读并行像素，不许读 DVI 引脚
+# unisims_sim ⚠ OSERDESE2 是占位模型（不串行化）⇒ 判据只许读并行像素，不许读 DVI 引脚
+# unisims_sim ⚠ OSERDESE2 是占位模型（不串行化）⇒ 判据只许读并行像素，不许读 DVI 引脚
+# unisims_sim ⚠ OSERDESE2 是占位模型（不串行化）⇒ 判据只许读并行像素，不许读 DVI 引脚
+# unisims_sim ⚠ OSERDESE2 是占位模型（不串行化）⇒ 判据只许读并行像素，不许读 DVI 引脚
+# unisims_sim ⚠ OSERDESE2 是占位模型（不串行化）⇒ 判据只许读并行像素，不许读 DVI 引脚
+# unisims_sim ⚠ OSERDESE2 是占位模型（不串行化）⇒ 判据只许读并行像素，不许读 DVI 引脚
+# unisims_sim ⚠ OSERDESE2 是占位模型（不串行化）⇒ 判据只许读并行像素，不许读 DVI 引脚
+# [tb_video_pipeline_top.v:151] [Xborn0] 初始化现场 p3=8003 p2=8002 p1=8001 p0=8000 -> ddr[0]=8003800280018000
+# [tb_video_pipeline_top.v:255] [Xborn] 从机 rvalid=0 其中字含X=0 | fb 写=0 拍 其中数据含X=0
+# [tb_video_pipeline_top.v:257] [Xborn] 阵列（lo 32768 + hi 8192 = 40960 字）里含 X 的字数=40960，首个下标=0
+# [tb_video_pipeline_top.v:259] [Xborn] 有效拍=1843200：rd_addr 是 X 的=0，fb_rd 是 X 的=1843200
+# [tb_video_pipeline_top.v:262] [Xborn3] gp(19位几何)=0000010100100000000 inv_used= 256 sx=   0 sy=   0 oob=1 rd_addr=     0
+# [tb_video_pipeline_top.v:266] [Xborn4] 归属链 mode=00 owner_eth=0 owner_pix=0 src_use=1 eth_link_pix=0 ps_now=0 have_src=0 fb_vis=0 | fb_out=xxxx orig_disp=0000
+# [tb_video_pipeline_top.v:271] [Xborn5] mapper fx=00 fy=00 sx=   0 sy=   0 oob=1 | bilin addr_q=     0 fb_word=xxxxxxxxxxxxxxxx tap_r=xxxxxxxx res_q=1xxxx lerp=xxxx v_d2=0 asm_d2=0
+# [tb_video_pipeline_top.v:277] [Xborn6] w_a=     0 w_b=   128 lane=0 | a_hold=xxxxxxxxxxxxxxxx b_hold=xxxxxxxxxxxxxxxx | p00=xxxx p10=xxxx p01=xxxx p11=xxxx | oob_d2=1 kx=1 ky=1 bilin_en=0
+# [Xborn1] rvalid#1 w0=0 beat=0 len=15 rdata=8003800280018000 ddr[0]=8003800280018000
+# [Xborn1] rvalid#2 w0=0 beat=1 len=15 rdata=8007800680058004 ddr[1]=8007800680058004
+# [tb_video_pipeline_top.v:234] [Xborn2] fb写#1 addr=0 data=8003800280018000
+# [Xborn1] rvalid#3 w0=0 beat=2 len=15 rdata=800b800a80098008 ddr[2]=800b800a80098008
+# [tb_video_pipeline_top.v:234] [Xborn2] fb写#2 addr=1 data=8007800680058004
+# [Xborn1] rvalid#4 w0=0 beat=3 len=15 rdata=800f800e800d800c ddr[3]=800f800e800d800c
+# [tb_video_pipeline_top.v:234] [Xborn2] fb写#3 addr=2 data=800b800a80098008
+# [Xborn1] rvalid#5 w0=0 beat=4 len=15 rdata=8013801280118010 ddr[4]=8013801280118010
+# [Xborn1] rvalid#6 w0=0 beat=5 len=15 rdata=8017801680158014 ddr[5]=8017801680158014
+# [tb_video_pipeline_top.v:424] GEOM x_d[3]=359 期望src=179 顶层src=319 dx=116 | de3=1 oob=0 sy=299 y3=6
+# [tb_video_pipeline_top.v:444] DBG2 x_sel=342 y11=6 | 屏上=0000 期望列= 86 期望行=  3 Δcol=85 Δrow=-3
+# [tb_video_pipeline_top.v:424] GEOM x_d[3]=360 期望src=180 顶层src=319 dx=117 | de3=1 oob=0 sy=299 y3=6
+# [tb_video_pipeline_top.v:444] DBG2 x_sel=343 y11=6 | 屏上=0000 期望列= 87 期望行=  3 Δcol=85 Δrow=-3
+# [tb_video_pipeline_top.v:424] GEOM x_d[3]=361 期望src=180 顶层src=318 dx=118 | de3=1 oob=0 sy=299 y3=6
+# [tb_video_pipeline_top.v:444] DBG2 x_sel=344 y11=6 | 屏上=0000 期望列= 88 期望行=  3 Δcol=84 Δrow=-3
+# [tb_video_pipeline_top.v:424] GEOM x_d[3]=362 期望src=181 顶层src=318 dx=119 | de3=1 oob=0 sy=299 y3=6
+# [tb_video_pipeline_top.v:424] GEOM x_d[3]=363 期望src=181 顶层src=317 dx=120 | de3=1 oob=0 sy=299 y3=6
+# [tb_video_pipeline_top.v:424] GEOM x_d[3]=364 期望src=182 顶层src=317 dx=121 | de3=1 oob=0 sy=299 y3=6
+# [tb_video_pipeline_top.v:353] DBG 左窗 x=100 y=300 | 顶层源坐标 sx_l=457 sy_l=164 oob=0 | tap_raw=d1d2 解出(81,210) fb_out=cbca rd_addr=21106
+# [tb_video_pipeline_top.v:353] DBG 左窗 x=101 y=300 | 顶层源坐标 sx_l=456 sy_l=164 oob=0 | tap_raw=d1d1 解出(81,209) fb_out=cbc9 rd_addr=21107
+# [tb_video_pipeline_top.v:353] DBG 左窗 x=102 y=300 | 顶层源坐标 sx_l=456 sy_l=164 oob=0 | tap_raw=d1d1 解出(81,209) fb_out=cbc9 rd_addr=21106
+# [tb_video_pipeline_top.v:353] DBG 左窗 x=103 y=300 | 顶层源坐标 sx_l=455 sy_l=164 oob=0 | tap_raw=cfd0 解出(79,208) fb_out=cbc8 rd_addr=21107
+# [tb_video_pipeline_top.v:353] DBG 左窗 x=104 y=300 | 顶层源坐标 sx_l=455 sy_l=164 oob=0 | tap_raw=cfd0 解出(79,208) fb_out=cbc8 rd_addr=21105
+# [tb_video_pipeline_top.v:353] DBG 左窗 x=105 y=300 | 顶层源坐标 sx_l=454 sy_l=164 oob=0 | tap_raw=cfcf 解出(79,207) fb_out=cbc7 rd_addr=21106
+# [tb_video_pipeline_top.v:353] DBG 左窗 x=106 y=300 | 顶层源坐标 sx_l=454 sy_l=164 oob=0 | tap_raw=cfcf 解出(79,207) fb_out=cbc7 rd_addr=21105
+# [tb_video_pipeline_top.v:353] DBG 左窗 x=107 y=300 | 顶层源坐标 sx_l=453 sy_l=164 oob=0 | tap_raw=cfce 解出(79,206) fb_out=cbc6 rd_addr=21106
+# C31 only-s0 n=1172704 bad=0 worst row=0 cnt=0
+# C31 only-s0 bottom y=590 bad=0
+# C31 only-s0 bottom y=591 bad=0
+# C31 only-s0 bottom y=592 bad=0
+# C31 only-s0 bottom y=593 bad=0
+# C31 only-s0 bottom y=594 bad=0
+# C31 only-s0 bottom y=595 bad=0
+# C31 only-s0 bottom y=596 bad=0
+# C31 only-s0 bottom y=597 bad=0
+# C31 only-s0 bottom y=598 bad=0
+# C31 only-s0 bottom y=599 bad=0
+# C31 only-s1 n=1172704 bad=0 worst row=0 cnt=0
+# C31 only-s1 bottom y=590 bad=0
+# C31 only-s1 bottom y=591 bad=0
+# C31 only-s1 bottom y=592 bad=0
+# C31 only-s1 bottom y=593 bad=0
+# C31 only-s1 bottom y=594 bad=0
+# C31 only-s1 bottom y=595 bad=0
+# C31 only-s1 bottom y=596 bad=0
+# C31 only-s1 bottom y=597 bad=0
+# C31 only-s1 bottom y=598 bad=0
+# C31 only-s1 bottom y=599 bad=0
+# PASS C31 rotated 185deg split seam picks the tap from the pixel's own 9-bit source column | valid 9-bit column tag; before the sx line-alignment fix the last two display rows were entirely on the wrong tap
+# RESULT tb_video_pipeline_top PASS (c31only nfail=0)
+# ** Note: $finish    : ../../sim/tb_video_pipeline_top.v(1970)
+#    Time: 336000090 ns  Iteration: 2  Instance: /tb_video_pipeline_top
+# End time: 22:08:13 on Oct 21,2026, Elapsed time: 0:04:38
+# Errors: 0, Warnings: 19

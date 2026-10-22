@@ -11,12 +11,12 @@ PL 侧一律走 literal 地址（0x41200000 / 0x10000000），所以 BSP 只要 
   PS_BSP   一个已经 generate 过的 zynq BSP 目录（里面有 include/ 与 lib/libxil.a）；
            默认指**仓库内**的那份：vitis/platform/ps7_cortexa9_0/standalone_ps7_cortexa9_0/bsp
   PS_OBJ   中间产物目录（默认 build/ps_obj）
-  PS_OUT   输出 ELF 的路径（默认 build/ps_app.elf；想验证脚本而不动交付件时指到别处）
+  PS_OUT   输出 ELF 的路径（默认 board/project/ps_app.elf；想验证脚本而不动交付件时指到别处）
 
 用法：python3 build/build_ps_app.py [--clean]
 
 没有现成平台时怎么得到一个（一次性，手工，之后就能一直用本脚本）：
-  Vitis → New → Platform → 选 build/system.xsa → BSP 勾 uartps/xsdps/xgpiops → Generate。
+  Vitis → New → Platform → 选 board/project/system.xsa → BSP 勾 uartps/xsdps/xgpiops → Generate。
   把生成目录里的 standalone_ps7_cortexa9_0/bsp 指给 PS_BSP 即可。
 
 退出码：2 输入不在 / 1 编译或链接失败 / 3 成品自检不过（"链接成功"不等于可执行，见下面
@@ -33,10 +33,16 @@ import sys
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 CC = os.environ.get("PS_CC") or "arm-none-eabi-gcc"
 BSP = os.environ.get("PS_BSP") or os.path.join(
-    ROOT, "vitis", "platform", "ps7_cortexa9_0", "standalone_ps7_cortexa9_0", "bsp")
+    ROOT, "vitis", "fin2_plat", "ps7_cortexa9_0",
+    "standalone_domain", "bsp", "ps7_cortexa9_0")
 SRC = os.path.join(ROOT, "src", "ps")
 OBJ = os.environ.get("PS_OBJ") or os.path.join(ROOT, "build", "ps_obj")
 OUT = os.environ.get("PS_OUT") or os.path.join(ROOT, "build", "ps_app.elf")
+
+if not os.path.isdir(BSP):
+    print("FATAL: 没有 BSP：%s" % BSP)
+    print("  先按 board/vitis_platform/README.md 重建平台，或把 PS_BSP 指到已有 BSP。")
+    sys.exit(2)
 
 BSP_ASM = ["asm_vectors.S", "boot.S", "translation_table.S"]
 REQUIRED_SYMBOLS = [(r"\bT _start\b", "_start"), (r"\bT _boot\b", "_boot"),
@@ -63,7 +69,7 @@ def run(args):
     """编译告警走 stderr，而成功时不会随返回值带回来 ⇒ 必须自己转发，否则 -Wall/-Wextra 等于没开。
     args 是**给编译器的参数**，编译器本体由 CC 决定（这里拼上）。"""
     proc = subprocess.run([CC] + args, cwd=OBJ, stdout=subprocess.PIPE, stderr=subprocess.PIPE,
-                          universal_newlines=True)
+                          encoding="utf-8", errors="replace")
     if proc.stdout and proc.stdout.strip():
         sys.stdout.write(proc.stdout)
     if proc.stderr and proc.stderr.strip():
@@ -77,7 +83,7 @@ def run(args):
 def capture(exe, args):
     try:
         return subprocess.run([exe] + args, stdout=subprocess.PIPE, stderr=subprocess.STDOUT,
-                              universal_newlines=True).stdout
+                              encoding="utf-8", errors="replace").stdout
     except OSError as e:
         print("FATAL: 跑不起来 %s（%s）—— 设 PS_CC 或把工具链的 bin 放进 PATH" % (exe, e))
         sys.exit(2)
@@ -90,7 +96,7 @@ def cflags():
             # ② newlib memcpy 的半字快路径：预编译的库改不了，只能按它的前提来——
             #    **MMU 关掉时非对齐访问一定 fault**（SCTLR.A=0 的豁免只在 MMU 开着时成立），
             #    而 MMU 是标准启动 boot.S 开的 ⇒ 这条选项 + 链上那三个 BSP 启动文件，两条一起才成立。
-            "-mno-unaligned-access", "-DSDT",
+            "-mno-unaligned-access",
             "-ffunction-sections", "-fdata-sections", "-Wall", "-Wextra", "-Wno-unused-parameter",
             "-O2", "-I" + os.path.join(BSP, "include"), "-specs=" + os.path.join(BSP, "Xilinx.spec")]
 
@@ -109,7 +115,9 @@ def compile_units(objs):
     # handler)、boot.S(_boot：设 VBAR、六个模式的栈、CPACR+FPEXC、L2/SCU、开 MMU 再 b _start)、
     # translation_table.S(MMUTable)。链接脚本的 ENTRY 改成 _boot 之后这三个对象没人引用，
     # --gc-sections 会全裁；裁掉的后果今晚全数兑现过（#42 与"异常可诊断"那两族）。
-    asm_dir = os.path.join(BSP, "libsrc", "standalone", "src", "arm", "cortexa9", "gcc")
+    asm_dir = os.path.join(BSP, "libsrc", "standalone_v9_4", "src", "arm", "cortexa9", "gcc")
+    if not os.path.isdir(asm_dir):
+        asm_dir = os.path.join(BSP, "libsrc", "standalone", "src", "arm", "cortexa9", "gcc")
     for f in BSP_ASM:
         p = os.path.join(asm_dir, f)
         need(p, "BSP startup asm")
@@ -130,7 +138,7 @@ def link(objs, lds):
     run(cflags() + objs + ["-Wl,--gc-sections", "-Wl,-n", "-Wl,--no-warn-mismatch",
                            "-T" + lds, "-L" + os.path.join(BSP, "lib"), "-Wl,--start-group",
                            # -lm 是 gamma 曲线（pow）要的；放进 group 是因为 newlib 的 libm 反过来依赖 libc
-                           "-lxil", "-lxilstandalone", "-lxiltimer", "-lgcc", "-lc", "-lm",
+                           "-lxil", "-lgcc", "-lc", "-lm",
                            "-Wl,--end-group", "-o", OUT])
 
 
@@ -207,7 +215,7 @@ def main():
     link(objs, lds)
     self_check()
     print("OK  " + OUT)
-    print("板上跑法（JTAG，不写 flash）：xsdb> source build/tcl/ps_jtag_boot.tcl（含 ps7_init）")
+    print("板上跑法（JTAG，不写 flash）：xsdb> source board/tcl/ps_jtag_boot.tcl（含 ps7_init）")
     print("                             xsdb> targets -set -filter {name =~ \"ps7_cortexa9_0*\"} ; download <elf> ; con")
 
 

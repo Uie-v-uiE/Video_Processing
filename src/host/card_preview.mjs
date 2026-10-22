@@ -3,7 +3,7 @@
  * card_preview.mjs —— 把 test_card 的像素转储渲染成 PNG。
  *
  * 为什么要有：图卡"好不好看"以前只有一轮完整构建 + 上板看屏幕才能回答（约 40 分钟）。
- * 这里用 RTL 仿真倒出来的像素（`sim/tb_v83_card_render.v` 产出的 card_dump.txt）直接出图，
+ * 这里用 RTL 仿真倒出来的像素（`sim/tb_card_render.v` 产出的 card_dump.txt）直接出图，
  * 一分钟就能看到最终效果，**顺带把"颜色对不对"这类判读也提前**。
  *
  * 用法：node src/host/card_preview.mjs <card_dump.txt 路径> [输出前缀]

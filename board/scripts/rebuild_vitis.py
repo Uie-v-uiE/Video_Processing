@@ -1,5 +1,5 @@
 """作用：用脚本重建 Vitis 工程（平台 + PS 应用），替代"在 IDE 里手点一遍"。
-输入：`build/system.xsa`（由 `build/tcl/build_system_axigpio.tcl` 产出）、`src/ps/` 下的固件源文件。
+输入：`board/project/system.xsa`（由 `build/tcl/build_system_axigpio.tcl` 产出）、`src/ps/` 下的固件源文件。
 输出：workspace（`VP_VITIS_WS`，默认 `board/vitis_ws/`）下的 `vitis_platform` —— 域 `zynq_fsbl` 与
       `standalone_ps7_cortexa9_0` 都建出来，`plat.build()` 返回 0，`fsbl.elf` 落盘。
       应用组件（`video_ps`）这一支 2025.2.1 建不出来：`create_app_component` 四种参数形状一律
@@ -20,7 +20,9 @@ import vitis
 
 REPO = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 WS = os.environ.get("VP_VITIS_WS") or os.path.join(REPO, "board", "vitis_ws")
-XSA = os.path.join(REPO, "build", "system.xsa")
+XSA = os.path.join(REPO, "board", "project", "system.xsa")
+if not os.path.exists(XSA):
+    XSA = os.path.join(REPO, "build", "system.xsa")
 PS_SRC = os.path.join(REPO, "src", "ps")
 DOMAIN = "standalone_ps7_cortexa9_0"
 
@@ -49,28 +51,31 @@ def main():
         print("ADD_DOMAIN ok")
     except Exception as e:
         print("ADD_DOMAIN_FAIL %s: %s" % (type(e).__name__, str(e)[:160]))
-    print("GENERATE_RC %r" % (show(plat.build),))
+    build_rc = show(plat.build)
+    print("GENERATE_RC %r" % (build_rc,))
 
+    app = None
     try:
         app = client.create_app_component(name="video_ps", platform="vitis_platform", domain=DOMAIN,
                                           cpu="ps7_cortexa9_0", os="standalone", template="empty_application")
     except Exception as e:
         print("APP_CREATE_FAIL %s: %s" % (type(e).__name__, str(e)[:160]))
-        print("APP_NOT_MEASURED 2025.2.1 的 create_app_component 对本域四种形状都报 INTERNAL；固件走 node build/ps_app.mjs")
-        app = None
-    print("APP_METHODS %s" % [m for m in dir(app) if not m.startswith("_")])
-    print("APP_BUILD_RC1 %r" % (app.build(),))
+        print("APP_NOT_MEASURED 2025.2.1 的 create_app_component 对本域返回 INTERNAL；"
+              "固件改走 python build/build_ps_app.py")
 
-    # 应用源目录不靠猜 getter：建完之后在 workspace 里找 `video_ps/**/src`
-    roots = [os.path.join(r, d) for r, ds, _ in os.walk(WS) for d in ds
-             if d == "src" and os.sep + "video_ps" in r]
-    print("APP_SRC_ROOTS %d %s" % (len(roots), roots[:2]))
-    if roots:
-        for f in sorted(os.listdir(PS_SRC)):
-            if f.endswith((".c", ".h")):
-                shutil.copyfile(os.path.join(PS_SRC, f), os.path.join(roots[0], f))
-        print("COPIED_PS %s -> %s" % (PS_SRC, roots[0]))
-        print("APP_BUILD_RC2 %r" % (app.build(),))
+    if app is not None:
+        print("APP_METHODS %s" % [m for m in dir(app) if not m.startswith("_")])
+        print("APP_BUILD_RC1 %r" % (app.build(),))
+        # 应用源目录不靠猜 getter：建完之后在 workspace 里找 `video_ps/**/src`
+        roots = [os.path.join(r, d) for r, ds, _ in os.walk(WS) for d in ds
+                 if d == "src" and os.sep + "video_ps" in r]
+        print("APP_SRC_ROOTS %d %s" % (len(roots), roots[:2]))
+        if roots:
+            for f in sorted(os.listdir(PS_SRC)):
+                if f.endswith((".c", ".h")):
+                    shutil.copyfile(os.path.join(PS_SRC, f), os.path.join(roots[0], f))
+            print("COPIED_PS %s -> %s" % (PS_SRC, roots[0]))
+            print("APP_BUILD_RC2 %r" % (app.build(),))
     elf = []
     for r, _, fs in os.walk(WS):
         for f in fs:
@@ -79,7 +84,7 @@ def main():
     print("ELFS %d %s" % (len(elf), elf[:3]))
     print("VITIS_REBUILD_DONE ws=%s" % WS)
     vitis.dispose()
-    return 0
+    return 0 if build_rc == 0 else 1
 
 
 if __name__ == "__main__":

@@ -28,7 +28,7 @@ module src_arb #(
                           //   顶层 pl_video_top 里有一行适配器把模式翻译成这里的 sel。
     input  wire row_busy,     // ETH 引擎（axi_frame_writer_gated）正在拷贝
     input  wire fill_busy,    // PS 引擎（axi_frame_writer64）正在拷贝
-    output reg  owner_eth,    // 1 = AXI 读口与帧缓存写口归 ETH 引擎
+    output wire owner_eth,    // 1 = AXI 读口与帧缓存写口归 ETH 引擎
     // V8-7：PS 拿着屏幕**为什么**拿着 —— 三个输入在**判决同一个时钟沿**上的快照。
     // 为什么只要"寄存"、不许在这里再算一遍：屏上/上位机看到的"原因"必须与主人是同一份输入产生的，
     // 否则就是 #55 那一类"两个地方各说一套"（那次是 CARD/PS 标签反了）。
@@ -45,6 +45,12 @@ module src_arb #(
     wire force_ps  = (sel == 2'd10);
 
     reg [31:0] quiet;
+    // r154：owner_eth 要驱动搬运器的地址、数据与控制 mux，实测扇出 234，r152 的最差
+    // setup 路径就是它到帧缓存写地址（route 7.46 ns）。它是 ms 级慢变量，换手只在两个
+    // 引擎都空闲时发生；用 max_fanout 让综合复制同一拍更新的寄存器副本，功能不变，
+    // 只是把一条长走线拆成几段。不要改成打一拍：新主人可能在下一拍就开始搬运。
+    (* max_fanout = 32 *) reg owner_eth_r;
+    assign owner_eth = owner_eth_r;
     wire       both_idle = ~row_busy & ~fill_busy;
     // 时基不准时一律当作"没有流"：宁可让 PS 接管（它至少能立刻出画面），
     // 也不要在一个无法证实的电平上锁死显示端。
@@ -52,7 +58,7 @@ module src_arb #(
 
     always @(posedge clk or negedge rst_n) begin
         if (!rst_n) begin
-            owner_eth <= 1'b0;      // 配置完成时两边都没东西，先给 PS
+            owner_eth_r <= 1'b0;      // 配置完成时两边都没东西，先给 PS
             quiet     <= 32'd0;
             // 复位值取"没有流 + 时基还没验"（011），不取 000：
             // 000 的意思是"一切正常、是被人钉住的"，那是刚上电时最不该撒的谎。
@@ -71,8 +77,8 @@ module src_arb #(
                 // 台架 `sim/tb_src_arb_why.v`：`W5` 钉这件事（改前红），`W7` 是它的反配对
                 //（真换手那一拍必须重新快照 ⇒ 不许修成"再也不更新"）。
                 why_ps <= {force_ps, ~eth_live, ~eth_tb_ok};
-                if (eth_wanted)             owner_eth <= 1'b1;
-                else if (quiet >= T_OFF_CYC) owner_eth <= 1'b0;
+                if (eth_wanted)             owner_eth_r <= 1'b1;
+                else if (quiet >= T_OFF_CYC) owner_eth_r <= 1'b0;
             end
         end
     end

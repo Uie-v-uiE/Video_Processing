@@ -177,7 +177,7 @@ const CITE_ART = new RegExp(
 //     谁要复核这条口径，跑 `--list-adv` 数一遍两类出处即可，不必信上面这些数。
 //     剩下没被上面六类盖住的 24 条也各有归属：退役台架与 wip 脚本的名字（P2 那轮 sim/ 剔除 #108、
 //     `build/wip_*.sh` 清理 #123 删掉的）、`board/uart_*` 系列的调查留痕（与③同族，只是文件名不含 sd_），
-//     以及**历史叙述里那句"当时找错了路径"**（如 `issues.md:435` 讲的 `build/build/system.bit` ——
+//     以及**历史叙述里那句"当时找错了路径"**（如 `issues.md:435` 讲的 `build/board/project/system.bit` ——
 //     它点名的是"root 少一级"这个已修缺陷，不是让人去打开这个文件）。
 //     逐条身份（谁指谁、属哪一类）的表在 `report/log/d4c_pointers.md`，那份表自带"条数只对快照那一分钟负责"的声明。
 //     （它故意留在日记区：那页的内容就是"盘上不存在的路径"清单，放进交付区会被导出器的死链自检整批拒发
@@ -266,7 +266,7 @@ function handWrittenFiles(dir, out, relBase) {
 // `build/*gates*.txt` 两种命名都有（早期 gates_rNN.txt，后来 rNN_gates.txt），
 // 取"编号最大且写着 GATES: ALL PASS"的那一套。文件名里的编号就是它判的那次构建。
 // ---- D1b：把"板上现在跑哪一轮"这句话念回**盘上的产物**（#221 的由来；起因是一句"现在是 r80"）----
-// 基准的来历不是另一句文案，而是 `build/system.bit` 的 md5 → 哪一份 `build/rNN_gates.txt` 戳了同一个 md5
+// 基准的来历不是另一句文案，而是 `board/project/system.bit` 的 md5 → 哪一份 `build/rNN_gates.txt` 戳了同一个 md5
 // （那一份是门禁件自己写的"身份："段，见 `build/gates.sh`）。
 // ⚠ 基准**不能**复用 D3 的"最新且 ALL PASS 的冻结集"：本仓冻结停在 r75，而板上跑的是被采纳的 r104——
 //   采纳与冻结本来就是两件事（`report/known_issues.md` §20），拿冻结集当"现在"会把每一句诚实的话集体误报。
@@ -277,12 +277,15 @@ const NOW_MARK = /(板上这一[套版]|板上现在|现在跑的是|当前跑�
 const ADJ_RNN = /^\s*(?:现在|当前)?\s*(?:是|为|跑的是|=|:)?\s*[（(]?\s*r(\d{2,3})/i;
 function currentBoardRound() {
     let h = '';
-    try { h = createHash('md5').update(readFileSync(path.join(ROOT, 'build', 'system.bit'))).digest('hex').slice(0, 12); }
-    catch {
-        // 分两种：**这棵树根本没有 bit 产物**（提交包就是这样：二进制不随包）⇒ 这一层不可判，明说而不是判红；
-        // 而在仓库里（bit 在、却没有一份门禁件戳它）才是"基准读不到"，必须红——门禁在仓库里跑，牙留在那边。
-        const noBit = !existsSync(path.join(ROOT, 'build', 'system.bit'));
-        return { nn: 0, why: noBit ? '本目录没有 build/system.bit（多半是提交包，不是仓库）' : '读不到 build/system.bit', absent: noBit };
+    const bitPaths = [path.join(ROOT, 'build', 'system.bit'), path.join(ROOT, 'board', 'project', 'system.bit')];
+    for (const p of bitPaths) {
+        if (!existsSync(p)) continue;
+        try { h = createHash('md5').update(readFileSync(p)).digest('hex').slice(0, 12); break; } catch { /* try next */ }
+    }
+    if (!h) {
+        // 这棵树根本没有 bit 产物（真正的提交包可以这样）⇒ 不可判，明说而不是判红；
+        // 仓库里 bit 在、却没有一份门禁件戳它才是"基准读不到"，必须红。
+        return { nn: 0, why: '本目录没有 build/system.bit 或 board/project/system.bit（多半是提交包，不是仓库）', absent: true };
     }
     let best = 0, name = '';
     for (const f of readdirSync(path.join(ROOT, 'build'))) {
@@ -324,7 +327,7 @@ function d1bScan(docs, cur) {
 // 为什么单独一层：D1b 只判"板上现在跑哪一轮"这个**轮号**，D6 只判**报告里的数**；
 // 而"门禁 22 项 21 绿 / 1 红"这句既不在 timing_summary 里、也不是轮号，谁都管不到 ——
 // 它偏偏是讲稿里会被念出来的一句。基准 = D1b 已经认出来的那一份 `build/rNN_gates.txt`
-// （由 `build/system.bit` 的 md5 反查得到），读法是"行尾那个字段"，不是 grep 全文
+// （由 `board/project/system.bit` 的 md5 反查得到），读法是"行尾那个字段"，不是 grep 全文
 // （同一行里 `FAIL行=0` 这种测量列会被 grep 数成红项——这仓库栽过第六次的那一族）。
 // 只判**相邻**的那句：这一句里出现当前轮号、或带"板上这一版/现在"这类现在时标记；
 // 否则算历史句（"写那一节那天板上是 r80…"），只数不判。
@@ -434,7 +437,7 @@ function scanTree() {
     }
     const cur = currentBoardRound();
     const b = d1bScan(d1bDocs, cur);
-    // 提交包里没有二进制（`build/system.bit` 不存在）⇒ 这一层**不可判**，明写在汇总里而不是判红；
+    // 提交包里没有二进制（`board/project/system.bit` 不存在）⇒ 这一层**不可判**，明写在汇总里而不是判红；
     // 仓库里（bit 在、却没有门禁件戳它）仍然是红——牙留在门禁跑的那一侧。
     const brows = (cur.nn > 0 || cur.absent) ? b.rows
         : [`D1b 判不了：${cur.why}（bit md5=${cur.bit || '读不到'}）⇒ 板态身份句这一层没有基准，不许念成绿的`];
@@ -500,7 +503,7 @@ if (argv.includes('--self')) {
     // ——门禁那一句 `build/*gates*.txt` 是命名规则，不是指路（`build/gates.sh` 本身在盘上）。
     const d4art = checkPaths({ 'report/perf_report.md': ['门禁读数见 `build/r99_gates_nope.txt`'], }, () => false).rows;
     const d4artok = checkPaths({ 'README.md': ['跑 `bash build/gates.sh`，认 `build/*gates*.txt` 里编号最大且',
-        '`ALL PASS` 的那一份；`$OUT/build/system.bit` 由脚本决定；`build/frozen_rNN/MANIFEST.md5` 是命名规则'], },
+        '`ALL PASS` 的那一份；`$OUT/board/project/system.bit` 由脚本决定；`build/frozen_rNN/MANIFEST.md5` 是命名规则'], },
         (tok) => tok === 'build/gates.sh').rows;
     // 范围对照（#141 那一类：尺子的作用范围会无声漂移）：同一句指路写在日记里**不许判红**，
     // 但必须进"只报数"那一堆 —— 两边都查，缺一边就是范围漂了。
@@ -515,12 +518,12 @@ if (argv.includes('--self')) {
     const fakeCur = { nn: 104, bit: 'deadbeefcafe', name: 'r104_gates.txt' };
     n += yes('D1b：把板态身份句念成 r80（基准 r104）',
         d1bScan({ 'report/ai_collaboration.md': [
-            '板上这一套现在是 r80（`build/system.bit` md5 `1906b6764ae4`，门禁 19/20，唯一红项 = 第 15 项的 `C5c`）'] },
+            '板上这一套现在是 r80（`board/project/system.bit` md5 `1906b6764ae4`，门禁 19/20，唯一红项 = 第 15 项的 `C5c`）'] },
             fakeCur).rows, /D1b/);
     n += yes('D1b：英文身份句念错轮号', d1bScan({ 'README_EN.md': [
         'Design-wide setup WNS (the board now runs r91, flashed at 04:10)'] }, fakeCur).rows, /D1b/);
     const d1bok = d1bScan({
-        'report/ai_collaboration.md': ['写这一节那天（2026-09-26）板上是 r80（`build/system.bit` md5 `1906b6764ae4`）—— 这句**按日期读**，板上现在跑哪一轮请看 `README.md` 首页那一行'],
+        'report/ai_collaboration.md': ['写这一节那天（2026-09-26）板上是 r80（`board/project/system.bit` md5 `1906b6764ae4`）—— 这句**按日期读**，板上现在跑哪一轮请看 `README.md` 首页那一行'],
         'README.md': ['| 全设计 setup WNS | **0.812 ns**（板上这一版 r104，2026-10-02 01:18 三步 JTAG 刷入，`bit 680f38f5794c`）'],
         'README_EN.md': ['| Design-wide setup WNS | **0.812 ns** (the board now runs r104, flashed at 01:18 on 2026-10-02)'],
     }, fakeCur).rows;
@@ -572,7 +575,7 @@ if (argv.includes('--self')) {
         '板上这一版 r104，门禁 22 项 21 绿 / 2 红'] }, fakeCur, fixtureGates(23, 20, 2, 'pass')).rows, /D1c/);
     // 地板对照：基准读得到、文档里一句"N 项 X 绿 / Y 红"都没有 ⇒ 必须报"这一层没接上"，不许静默 0 条
     n += yes('D1c：那一行改了形状（一句都没抓到）⇒ 报空转而不是 0 条', d1cScan({
-        'README.md': ['| 全设计 setup WNS | **0.812 ns**（板上这一版 r104；门禁清单见 `build/r104_gates.txt`）'] },
+        'README.md': ['| 全设计 setup WNS | **0.812 ns**（板上这一版 r104；门禁清单见 `build/reports/gates.txt`）'] },
         fakeCur, t104).rows, /D1c 空转/);
     const hasBase = cur0.nn > 0 || cur0.absent;   // 包里没有二进制 ⇒ 已声明为不可判，这条对照仍算过（仓库里必须有基准）
     console.log(`  ${hasBase ? 'PASS' : 'FAIL'} D1b 基准：`

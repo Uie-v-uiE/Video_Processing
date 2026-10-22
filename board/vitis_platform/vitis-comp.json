@@ -3,7 +3,7 @@
   "type": "PLATFORM",
   "configuration": {
     "description": "",
-    "xsa": "build/system.xsa",
+    "xsa": "board/project/system.xsa",
     "xsaPathInPlatform": "platform/hw/system.xsa",
     "emulationXsa": "",
     "emulationXsaPathInPlatform": "",

@@ -8,7 +8,8 @@
 ## 时序数字不受影响：综合阶段这条约束在拆分前**也是失败的**（等于不存在）。
 ##
 ## 三组互相异步：
-##   eth_rxc        125 MHz，PHY 恢复出来的收包时钟（RGMII 域，整个协议栈 + frame_reasm）
+##   eth_rxc        125 MHz，PHY 恢复出来的收包时钟（r135 起只剩 IDDR + gmii_rx_cdc 写侧；
+##                  协议栈已搬到 MMCM 的 clk_eth，见 eth_udp_video_top 的 USE_MMCM_CLK）
 ##   clk_fpga_0     100 MHz，PS FCLK0（全部 AXI 事务）
 ##   sys_clk 及其全部生成钟 50/250/200 MHz，
 ##                  用 -include_generated_clocks 才能把 MMCM 的

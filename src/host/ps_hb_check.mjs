@@ -1,7 +1,7 @@
 // src/host/ps_hb_check.mjs —— #94 的"固件那一半"的机器凭据
 //
 // 为什么要它：#94 的红（AUTO 下拔掉 SD 卡 ⇒ 屏幕永久冻在最后一帧）修在**两处**：
-//   PL  那边 `src_life` 把"片源存在性"从两位粘滞位换成活判据（凭据 = `sim/tb_v102_src_life.v`，13 条）；
+//   PL  那边 `src_life` 把"片源存在性"从两位粘滞位换成活判据（凭据 = `sim/tb_src_life.v`，13 条）；
 //   PS  那边固件必须**替片源说话**（`ps_hold` + 100 ms 心跳），否则"暂停/定点/FILL"这些
 //       "屏上这张是要留住的"状态会被新判据误读成"没片源"⇒ 拿掉一个红换来一个新红。
 // 而 FW 这一半以前只有"读代码看起来对"—— 没有机器判据的东西在下一次改动时就是裸奔。
@@ -26,7 +26,7 @@ const F = {
     sd:     'src/ps/sd_play.c',
     top:    'src/rtl/top/pl_video_top.v',
     life:   'src/rtl/util/src_life.v',
-    tb102:  'sim/tb_v102_src_life.v',
+    tb102:  'sim/tb_src_life.v',
 };
 
 // 判据里出现的每一个常数都从源码抠（见 A10），所以这里不放任何"我记得的数"。

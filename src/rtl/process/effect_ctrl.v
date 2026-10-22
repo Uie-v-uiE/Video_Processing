@@ -64,7 +64,7 @@ module effect_ctrl (
     //   u_osd/g_reg/D` 正是 clkout0_1 那条 27 级的关键路径（r63b/r63c/r64b 三份报告都指着它），多一次 /100 与
     //   /10 就是往全设计最差的链上加深度（先例：Latency 从 #59 起就是"axi 域逐次除法做完再按翻转位跨域"）。
     always @(*) begin
-        {gamma_en, gamma_wr, gamma_data, gamma_idx, gamma_disp, temp_disp} = gm_sync;   // 代价说清楚：温度那一格的十进制口径由 PS 说了算、PL 只照画 ⇒ "屏上写的数"与 `temp` 打印的数必然同源（判据 tb_osd_lines T15 钉的就是"画的是编码，不是猜的"）
+        {gamma_en, gamma_wr, gamma_data, gamma_idx, gamma_disp, temp_disp} = gm_sync;   // 代价说清楚：温度那一格的十进制口径由 PS 说了算、PL 只照画 ⇒ "屏上写的数"与 `temp` 打印的数必然同源（判据 tb_osd_overlay T15 钉的就是"画的是编码，不是猜的"）
     end
 
     wire [8:0] sel_pix = sel_sync[8:0];

@@ -36,6 +36,22 @@ add_files -fileset constrs_1 -norecurse [file join $root src constraints rk_zynq
 set cgxdc [add_files -fileset constrs_1 -norecurse [file join $root src constraints clock_groups_impl.xdc]]
 set_property used_in_synthesis false $cgxdc
 set_property used_in_implementation true $cgxdc
+# 准静态 CDC 的 max_delay：50 MHz 像素域与 125 MHz ETH 域来自两颗独立 MMCM，
+# 4 ns 的 setup 要求是“同主钟生成钟”模型给出来的，不是设计契约。细节与判据见文件头。
+set qsxdc [add_files -fileset constrs_1 -norecurse [file join $root src constraints cdc_quasi_static_impl.xdc]]
+set_property used_in_synthesis false $qsxdc
+set_property used_in_implementation true $qsxdc
+# RGMII 发侧 output delay：**默认不加**（VP_TX_CONSTRAIN=1 才加载）。
+# 原因（r138 实测）：生产默认 TX_STYLE="FWD0"（0° 转发 TXC，本板 RTL8211F 只吃这一相位，
+# 板级 ping 20/20）；这份按"PHY 在 TXC 引脚沿采样"写的 ±1.0 约束会把 5 个 hold 端点判红
+# （clkout3→eth_txc，WHS -2.036）。硬件却是通的 ⇒ 说明 PHY 内部对 TXC 有 ~2 ns 延迟，
+# 而手册窗口/内部延迟还没量到。先用 VP_TX_CONSTRAIN=1 做候选核对，量到 PHY 参数后再改默认，
+# 不拿一份对不上的窗口把数字"调绿"。
+if {[info exists ::env(VP_TX_CONSTRAIN)] && $::env(VP_TX_CONSTRAIN) eq "1"} {
+    set etxdc [add_files -fileset constrs_1 -norecurse [file join $root src constraints eth_tx_impl.xdc]]
+    set_property used_in_synthesis false $etxdc
+    set_property used_in_implementation true $etxdc
+}
 
 # r116: RGMII 收口 5 个输入的**有出处输入窗**（H5 的债，只加严不放宽：这 5 个端口从来没被检查过）。
 # 与 clock_groups 一样**只在实现阶段生效** —— 输入窗不影响综合网表，这样"网表逐字节不变、
@@ -66,7 +82,7 @@ if {[info exists ::env(VP_R116_IO_WINDOW)] && $::env(VP_R116_IO_WINDOW) eq "1"} 
 # 6b) HDMI **源端（TP1）** 对外窗（2026-10-04 取到数之后新加的候选件，默认同样不加载）
 #   数字与出处：钟↔数据 = 0.20 Tcharacter（HDMI 1.4 §4.2.4 Table 4-24，1.3/1.1 同值；
 #   逐条判定与"哪些只能作第三方代理"写在 report/io/hdmi_cts_source_window.md）。
-#   当前档 50 MHz 像素钟 ⇒ 半窗 ±4.000 ns；参考时钟对象由 pin 反查得到（clkout1_1，件 build/evidence/r119_ser_clock_probe.txt）。
+#   当前档 50 MHz 像素钟 ⇒ 半窗 ±4.000 ns；参考时钟对象由 pin 反查得到（clkout1_1，件 board/output/ser_clock_probe.txt）。
 #   为什么默认关：**新增约束必须先用一轮构建量名册**（别域不许变差），量过之前带进发布物就是用声明代替测量。
 #   这一条在 2026-10-20（r132 补账轮）真的走完了：`VP_R119_TMDS_WINDOW=1` 滚了一次隔离构建，
 #   `clkout1_1` 从 `NOWRITE` 变成可量，给 setup −5.408 / hold −1.923。但那不是设计违反规范——
@@ -89,7 +105,7 @@ if {[info exists ::env(VP_R119_TMDS_WINDOW)] && $::env(VP_R119_TMDS_WINDOW) eq "
 
 # 6c) 2026-10-20 记一笔：这一轮有人（我）看到臂 A 的 −5.408 ns 后写了一版"绑到引脚 20 ns 钟"的新候选件，
 #   准备再滚一次构建。查账本才发现这条路 2026-10-04 已经走过并判完：`src/constraints/r119b_hdmi_tp1_pinclk.xdc`
-#   就是那个形状，探针件 `build/evidence/r119_xdc_loads_probe4_pinclk.txt` 给出 −4.897/−4.873/−4.890 ns，
+#   就是那个形状，探针件 `board/output/xdc_loads_probe4_pinclk.txt` 给出 −4.897/−4.873/−4.890 ns，
 #   而 `report/timing/debt_ledger.md` 的追加一节与 ISSUES #335 把结论写死了：规范那条是 **skew（两脚到达时刻
 #   之差的上限）**，`set_output_delay` 是**采样窗**，两者不同量纲 ⇒ 负数是量纲错，不是设计时序债，
 #   也不许靠放宽窗把它变绿。所以这里**不再加第三种形状**；现版要复核这条债，跑只读探针

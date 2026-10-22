@@ -1,0 +1,8 @@
+play 1
+pipe 000010000
+split video
+split 50
+split swap 0
+split marker 0
+osd off
+stat

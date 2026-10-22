@@ -30,7 +30,9 @@ module src_mode (
     // 而沿要被 3 级链认下来才是采样时刻 —— 中间这段时间里 `ov_code` 早就是新值了，
     // 看着没事，实则是"采到了沿之后才写的码"，一旦两笔写之间被中断插进来就变味。
     // 延迟线对齐之后，取到的必然是**沿出发那一刻**已经站住的码，两笔写隔多久都无所谓。
-    reg [1:0] ovc0, ovc1, ovc2;
+    // 这条 2bit × 3 级是同步器（不是普通延迟线）：单独标出来，report_cdc 才不会把它记成
+    // CDC-2「missing ASYNC_REG」（fix3 的 clk_fpga_0→clkout0_1 那 2 个 No_ASYNC_REG 就是它）。
+    (* ASYNC_REG = "TRUE" *) reg [1:0] ovc0, ovc1, ovc2;
     reg        prev;              // 链尾已经认过的稳定值
     reg        oprev;
     reg [2:0]  settle;            // 复位后的"灌满期"计数

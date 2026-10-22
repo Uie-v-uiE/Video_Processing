@@ -2,7 +2,7 @@
 // MMCME2_BASE.v —— **只给仿真用**的 MMCM 行为模型（放在 sim/prim/，不在 src/rtl 里）
 // 本机 xsim 没有 UNISIM 行为库：2026-09-25 实测 `xelab` 报 `ERROR [VRFC 10-2063] Module <MMCME2_BASE> not found`
 //   ⇒ 任何例化 `clk_gen` 的顶层在仿真里根本起不来（`pl_video_top` 就是那一个）⇒ ISSUES #62 风险② 的物理原因之一；
-//   有了这一份，任务 #49（`tb_v98_top_seam`）才可能例化真顶层。
+//   有了这一份，任务 #49（`tb_video_pipeline_top`）才可能例化真顶层。
 // 关键设计：**分频比一个都不写在这里**，全部从例化参数读回来 ⇒ 不会有"RTL 改了比例、模型还按老的跑"的第二处说法。
 //   真实出处：src/rtl/clocks/clk_gen.v（CLKIN1_PERIOD=20 ns、MULT_F=20 ⇒ VCO 1000 MHz、CLKOUT0_DIVIDE_F=20 ⇒ 50 MHz 像素钟、CLKOUT1_DIVIDE=4 ⇒ 250 MHz、CLKOUT2_DIVIDE=5 ⇒ 200 MHz）。
 module MMCME2_BASE #(

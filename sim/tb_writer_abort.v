@@ -91,7 +91,7 @@ module tb_writer_abort;
     end
 
     // ---- 判据 ----
-    // 声明风格照 `tb_v94_zoom_sel` 的 `chk`（**非 ANSI**）：ANSI 端口写法与 `sformatf` 都不是
+    // 声明风格照 `tb_zoom_sel` 的 `chk`（**非 ANSI**）：ANSI 端口写法与 `sformatf` 都不是
     // Verilog-2001（今天两版都栽在这儿）。⇒ 说明文字走字面量，数字单独走 `v1`。
     // 判据名一律 ASCII：日志名带中文时 100 字节字段会从左边被截掉，`grep <标签>` 就找不到那一条（r94 撞过）。
     integer fails = 0, checks = 0;

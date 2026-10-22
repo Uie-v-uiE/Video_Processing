@@ -1,0 +1,10 @@
+== clean1 6s ==
+   beacons=8 dt=7.0s  frames=19.0/s  aborts=0.1/s  bad=0.1/s  lat=16ms/5
+PASS clean1: clean stream flows, aborts +1 (¡Ü1 startup), lat 16ms
+== fault 6s ==
+   beacons=7 dt=6.0s  frames=0.0/s  aborts=13.0/s  bad=13.0/s  lat=0ms/0
+PASS fault: injected drops are visible in aborts
+== clean2 6s ==
+   beacons=7 dt=6.0s  frames=22.2/s  aborts=0.0/s  bad=0.0/s  lat=17ms/6
+PASS clean2: clean stream flows, aborts +0 (¡Ü1 startup), lat 17ms
+PASS link_selftest: clean¡úfault¡úclean all judged from the wire

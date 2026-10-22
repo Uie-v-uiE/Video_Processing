@@ -183,15 +183,22 @@ module udp_rx (
                         else if (cnt == 5'd5) udp_byte_num[7:0] <= gmii_rxd;
                         else if (cnt == 5'd7) begin
                             //有效数据字节长度，（UDP首部8个字节，所以减去8）
-                            data_byte_num <= udp_byte_num - 16'd8;
+                            // 小于 8 的长度是畸形包：不给 data_byte_num 留 0xFFFF 的减一
+                            // 下溢，也不把后续帧字节当成本包载荷。
+                            data_byte_num <= (udp_byte_num >= 16'd8) ? (udp_byte_num - 16'd8)
+                                                                     : 16'd0;
                             skip_en       <= 1'b1;
                             cnt           <= 5'd0;
                         end
                     end
                 end
                 st_rx_data: begin
-                    //接收数据          
-                    if (gmii_rx_dv) begin
+                    //接收数据
+                    if (data_byte_num == 16'd0) begin      // 零长/畸形包：直接收尾，不读载荷
+                        skip_en <= 1'b1;
+                        rec_en  <= 1'b0;
+                        data_cnt <= 16'd0;
+                    end else if (gmii_rx_dv) begin
                         data_cnt <= data_cnt + 16'd1;
                         rec_data <= gmii_rxd;
                         rec_en   <= 1'b1;
@@ -201,6 +208,10 @@ module udp_rx (
                             rec_pkt_done <= 1'b1;
                             rec_byte_num <= data_byte_num;
                         end
+                    end else begin                         // 截断帧：dv 先掉，别在数据态等下一帧
+                        skip_en <= 1'b1;
+                        rec_en  <= 1'b0;
+                        data_cnt <= 16'd0;
                     end
                 end
                 st_rx_end: begin  //单包数据接收完成   

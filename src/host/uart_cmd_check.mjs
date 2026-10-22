@@ -5,7 +5,7 @@
 /**
  * uart_cmd_check.mjs —— V8 命令层的验收判据（不是"看看有没有回应"，是逐条对回声 + 收尾对初态）
  *
- *   node src/host/uart_cmd_check.mjs [--file board/cmd_battery_v81.txt] [--port COM6] [--dry]
+ *   node src/host/uart_cmd_check.mjs [--file board/scripts/cmd_battery_v81.txt] [--port COM6] [--dry]
  *
  * 为什么单独有个判据器：命令层是"人敲一条、板子回一行"的东西，没有判据就只能靠人眼逐条读，
  * 而人眼读最容易漏的是**该拒的没拒**（老解析器连 `THE` 都当 `TH` 用）。所以这里每条命令
@@ -23,18 +23,18 @@
  *      改成"必须没有 sel= 回声 + 必须回一句正好九个字符的等价串"。
  *      ⚠ 由此带出一条电池自己的过期：结尾那条 `pipe 00000` 以前是"全旁路还原"，现在它不还原任何东西，
  *      于是板上 `sel` 被留在前面那条 `pipe 000100000` 的 0x008 ⇒ 末态 ≠ 初态，本判据会红。
- *      红得对（改了状态就是改了状态），要修的是 `board/cmd_battery_v81.txt` 那一行改成 `pipe 000000000`
+ *      红得对（改了状态就是改了状态），要修的是 `board/scripts/cmd_battery_v81.txt` 那一行改成 `pipe 000000000`
  *      —— 判据不许为了能绿而把 `sel` 从元组里摘出去。
  *
- * 传输走 board/uart_cmd_script.ps1（PowerShell 自带 SerialPort，本机没有 pyserial），
+ * 传输走 board/scripts/uart_cmd_script.ps1（PowerShell 自带 SerialPort，本机没有 pyserial），
  * 它按行发、每条前面 echo `>> <行>`，所以捕获能按命令切片。
  */
 import { execFileSync } from 'node:child_process';
 import { readFileSync, existsSync } from 'node:fs';
 
-const PS1 = 'board/uart_cmd_script.ps1';
+const PS1 = 'board/scripts/uart_cmd_script.ps1';
 const get = (n, d) => { const i = process.argv.indexOf('--' + n); return i < 0 ? d : process.argv[i + 1]; };
-const FILE = String(get('file', 'board/cmd_battery_v81.txt'));
+const FILE = String(get('file', 'board/scripts/cmd_battery_v81.txt'));
 const PORT = String(get('port', 'COM6'));
 const OUT = String(get('out', 'board/uart_script_capture.txt'));
 const DRY = process.argv.includes('--dry');
@@ -137,7 +137,7 @@ const EXPECT = [
   [/src=1/],                                                // SRC2：粘着写法也要认（数下标那种写法就是从这里翻车的）
   [/\[BILIN\] 只认/, /!bilin=/],                             // bilin 2：第三态不存在，必须拒
   [/thr=80/],                                              // TH80：把阈值恢复成 80
-  // ---- V8-7 温度八条（与 board/cmd_battery_v81.txt 结尾那八条一一对位）----
+  // ---- V8-7 温度八条（与 board/scripts/cmd_battery_v81.txt 结尾那八条一一对位）----
   // sane=1 是这一组里唯一"不许靠放松判据变绿"的一条：raw 读到 0（FIFO 没对齐 / XADC 没释放复位）
   // 会译成 -273.15 °C，读到满码会译成 230 °C，两种都被 sane 挡下；VCCINT 必须在 0.8..1.3 V。
   // 注意 raw 的十六进制是**大写**：`xil_printf` 用的字母表是 0123456789ABCDEF，`%04x` 也一样。
@@ -382,7 +382,7 @@ for (let i = 0; i < lines.length; i++) {
  * #66：`en=`（老五位的投影）随五位一起从 STAT 行里删了，它那一格由 `sel=%03x` 顶上 ——
  * 这不是放松：`en` 只有五位、而且是投影，`sel` 是效果链那九位的原值（看得见的是超集）。
  * ⚠ 因此电池结尾那条 `pipe 00000` 现在不再"全旁路还原"（五位不再生效），末态 sel 会比初态多一个
- *   0x008 ⇒ 这一条会红，红的是电池（`board/cmd_battery_v81.txt` 该把那一行改成 `pipe 000000000`），
+ *   0x008 ⇒ 这一条会红，红的是电池（`board/scripts/cmd_battery_v81.txt` 该把那一行改成 `pipe 000000000`），
  *   不是判据。把 `sel` 从元组里摘掉可以让它变绿，但那是把唯一看得见效果链的格子挖掉 ⇒ 不做。
  * 十六进制那两格（sel/geom）大小写都收：`%x` 走的是 xil_printf 的大写字母表（见上面 TEMP 那段）。 */
 const cap2 = cap.split(/\r?\n/);
@@ -442,7 +442,7 @@ if (stats.length >= 1) {
  * 为什么这一段要写在 JS 里、而不是塞进上面那张正则表：这一格的分工是"PS 算十进制、PL 只照画"，
  * 三段账里唯一需要**算术**才能对上的就是"读数 → 两位十进制"（四舍五入 + BCD 拼），正则做不到。
  * 所以这里在判据器里**另写一份**编码器，与 `src/ps/main.c:temp_code_of` 互为反例源：
- * 谁改了其中一份而没改另一份，这一段就红（同一个手法见 tb_osd_lines 的字模金表）。
+ * 谁改了其中一份而没改另一份，这一段就红（同一个手法见 tb_osd_overlay 的字模金表）。
  * 反例：拿没有 `osd=`/`gpio=` 字段的旧捕获跑 —— 必须红，否则这条判据就是在空集上过。 */
 {
     const T3 = /\[TEMP\] degC=(-?\d+)\.(\d+) raw=0x[0-9A-F]{4} vccint=(\d+)mv th=\d+C over=(\d) sane=(\d) osd=(\S+) gpio=0x([0-9A-F]{2})/g;

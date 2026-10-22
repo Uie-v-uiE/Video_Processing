@@ -4,7 +4,7 @@
 // V7.9.5（ISSUES #38 第 1 步）**自己算 FCS-32**：原来 m_good 只判"长度 ≥64 且没有 ER"，而 RGMII 收侧
 // 根本没有 ER 这根线（RX_CTL 在 rgmii_rx.v 里只当 gmii_rx_dv 用）⇒ "没有 ER"恒真、收侧没有任何错误源，
 // 这才是顶层 p_good 被硬接 1 的真实原因。唯一的错误源得自己造：整帧（DA..FCS[3]）喂给发送侧同一个
-// crc32_d8，一帧算完留下的**残值**是内容无关的常数，拿它当判据（由 sim/tb_v795_rx_fcs.v 量出并钉住）。
+// crc32_d8，一帧算完留下的**残值**是内容无关的常数，拿它当判据（由 sim/tb_rx_fcs.v 量出并钉住）。
 module gmii_rx_mac (
     input  wire       clk,      // 125 MHz GMII clock (from rgmii_rx domain)
     input  wire       rst_n,
@@ -71,7 +71,7 @@ module gmii_rx_mac (
                     // 帧尾脉冲。约定：**m_eof 与 m_good/m_bad 同拍**，表示"上一个 m_valid 的字节就是
                     // 帧的最后一个字节"（最后一个字节本身在上一拍已随 m_valid 出去了）。V7.9.5 之前
                     // m_eof 声明了、复位清了、却没有任何一处写 1 ⇒ 例化它的下游永远等不到包边界
-                    //（sim/tb_v795_rx_chain.v 的 C1 抓到的，此前没有顶层例化过本模块）。
+                    //（sim/tb_rx_chain.v 的 C1 抓到的，此前没有顶层例化过本模块）。
                     m_eof <= 1'b1;
                     if (!er_seen && !gmii_rx_er && (cnt >= 16'd64) && fcs_ok) begin
                         m_good <= 1'b1;
