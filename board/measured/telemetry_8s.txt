@@ -1,15 +1,15 @@
 listening udp/1234 for 13s ...
-192.168.1.10 ver=1 link=1 frames=266 pkts=78480 bad=92 last_abort_rows=300 aborts=92 lat_ms=-- pane_bad=-- tick=254 sport=1234
-192.168.1.10 ver=1 link=1 frames=266 pkts=78481 bad=93 last_abort_rows=300 aborts=93 lat_ms=-- pane_bad=-- tick=255 sport=1234
-192.168.1.10 ver=1 link=1 frames=271 pkts=79586 bad=93 last_abort_rows=300 aborts=93 lat_ms=10 pane_bad=-- tick=256 sport=1234
-192.168.1.10 ver=1 link=1 frames=301 pkts=86216 bad=93 last_abort_rows=300 aborts=93 lat_ms=6 pane_bad=-- tick=257 sport=1234
-192.168.1.10 ver=1 link=1 frames=331 pkts=92846 bad=93 last_abort_rows=300 aborts=93 lat_ms=11 pane_bad=-- tick=258 sport=1234
-192.168.1.10 ver=1 link=1 frames=361 pkts=99476 bad=93 last_abort_rows=300 aborts=93 lat_ms=6 pane_bad=-- tick=259 sport=1234
-192.168.1.10 ver=1 link=1 frames=391 pkts=106106 bad=93 last_abort_rows=300 aborts=93 lat_ms=7 pane_bad=-- tick=260 sport=1234
-192.168.1.10 ver=1 link=1 frames=421 pkts=112736 bad=93 last_abort_rows=300 aborts=93 lat_ms=13 pane_bad=-- tick=261 sport=1234
-192.168.1.10 ver=1 link=1 frames=450 pkts=119366 bad=94 last_abort_rows=289 aborts=94 lat_ms=7 pane_bad=-- tick=262 sport=1234
-192.168.1.10 ver=1 link=1 frames=480 pkts=125996 bad=94 last_abort_rows=289 aborts=94 lat_ms=1 pane_bad=-- tick=263 sport=1234
-192.168.1.10 ver=1 link=1 frames=506 pkts=131742 bad=94 last_abort_rows=289 aborts=94 lat_ms=7 pane_bad=-- tick=264 sport=1234
-192.168.1.10 ver=1 link=1 frames=506 pkts=131742 bad=94 last_abort_rows=289 aborts=94 lat_ms=-- pane_bad=-- tick=265 sport=1234
-192.168.1.10 ver=1 link=1 frames=506 pkts=131742 bad=94 last_abort_rows=289 aborts=94 lat_ms=-- pane_bad=-- tick=266 sport=1234
+192.168.1.10 ver=1 link=1 frames=264 pkts=78142 bad=92 last_abort_rows=300 aborts=92 lat_ms=-- pane_bad=-- tick=113 sport=1234
+192.168.1.10 ver=1 link=1 frames=264 pkts=78143 bad=93 last_abort_rows=300 aborts=93 lat_ms=-- pane_bad=-- tick=114 sport=1234
+192.168.1.10 ver=1 link=1 frames=264 pkts=78143 bad=93 last_abort_rows=300 aborts=93 lat_ms=-- pane_bad=-- tick=115 sport=1234
+192.168.1.10 ver=1 link=1 frames=294 pkts=84773 bad=93 last_abort_rows=300 aborts=93 lat_ms=7 pane_bad=-- tick=116 sport=1234
+192.168.1.10 ver=1 link=1 frames=324 pkts=91403 bad=93 last_abort_rows=300 aborts=93 lat_ms=13 pane_bad=-- tick=117 sport=1234
+192.168.1.10 ver=1 link=1 frames=354 pkts=98033 bad=93 last_abort_rows=300 aborts=93 lat_ms=6 pane_bad=-- tick=118 sport=1234
+192.168.1.10 ver=1 link=1 frames=384 pkts=104663 bad=93 last_abort_rows=300 aborts=93 lat_ms=13 pane_bad=-- tick=119 sport=1234
+192.168.1.10 ver=1 link=1 frames=414 pkts=111293 bad=93 last_abort_rows=300 aborts=93 lat_ms=4 pane_bad=-- tick=120 sport=1234
+192.168.1.10 ver=1 link=1 frames=444 pkts=117923 bad=93 last_abort_rows=300 aborts=93 lat_ms=10 pane_bad=-- tick=121 sport=1234
+192.168.1.10 ver=1 link=1 frames=474 pkts=124553 bad=93 last_abort_rows=300 aborts=93 lat_ms=2 pane_bad=-- tick=122 sport=1234
+192.168.1.10 ver=1 link=1 frames=504 pkts=131183 bad=93 last_abort_rows=300 aborts=93 lat_ms=8 pane_bad=-- tick=123 sport=1234
+192.168.1.10 ver=1 link=1 frames=505 pkts=131404 bad=93 last_abort_rows=300 aborts=93 lat_ms=7 pane_bad=-- tick=124 sport=1234
+192.168.1.10 ver=1 link=1 frames=505 pkts=131404 bad=93 last_abort_rows=300 aborts=93 lat_ms=-- pane_bad=-- tick=125 sport=1234
 OK 13 beacon(s) in 13s

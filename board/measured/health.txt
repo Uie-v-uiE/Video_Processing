@@ -1,49 +1,49 @@
 ==== IDENTITY ====
-RUN_AT      2026-10-22 23:36:35
+RUN_AT      2026-10-23 07:18:24
 HOST        UIE-LAPTOP  PWD=/d/Xilinx/Prj/fin2
 GIT_HEAD    unknown
 MD5_12      9734f3ec3019  board/project/system.bit
 MD5_12      f4d4425138a2  board/project/system.xsa
-MD5_12      9ff967573b32  board/project/ps_app.elf
+MD5_12      aaf2c867e0d0  board/project/ps_app.elf
 ==== SERIAL (port=COM6 seconds=8 cmds=stat,temp,stat) ====
 SENT 3/3  CAPTURED_LEN 390
 [STAT] ctrl thr=80 src=1 zoom=1 bilin=1 zsel=4 zman=1 pub=1 sd=1 frames=1957 playing=1 sel=000 gm=0.00 (PL owns UDP datapath) mode=0 geom=00400000 osd=1
-[TEMP] degC=57.05 raw=0xA7BB vccint=997mv th=85C over=0 sane=1 osd=57C gpio=0x57
-[STAT] ctrl thr=80 src=1 zoom=1 bilin=1 zsel=4 zman=1 pub=1 sd=1 frames=1957 playing=1 sel=000 gm=0.00 (PL owns UDP datapath) mode=0 geom=00400000 osd=1
+[TEMP] degC=62.47 raw=0xAA7C vccint=997mv th=85C over=0 sane=1 osd=62C gpio=0x62
+[STAT] ctrl thr=80 src=1 zoom=1 bilin=1 zsel=4 zman=1 pub=0 sd=1 frames=1957 playing=1 sel=000 gm=0.00 (PL owns UDP datapath) mode=0 geom=00400000 osd=1
 -- raw capture --
 [STAT] ctrl thr=80 src=1 zoom=1 bilin=1 zsel=4 zman=1 pub=1 sd=1 frames=1957 playing=1 sel=000 gm=0.00 (PL owns UDP datapath) mode=0 geom=00400000 osd=1
-[TEMP] degC=57.05 raw=0xA7BB vccint=997mv th=85C over=0 sane=1 osd=57C gpio=0x57
-[STAT] ctrl thr=80 src=1 zoom=1 bilin=1 zsel=4 zman=1 pub=1 sd=1 frames=1957 playing=1 sel=000 gm=0.00 (PL owns UDP datapath) mode=0 geom=00400000 osd=1
+[TEMP] degC=62.47 raw=0xAA7C vccint=997mv th=85C over=0 sane=1 osd=62C gpio=0x62
+[STAT] ctrl thr=80 src=1 zoom=1 bilin=1 zsel=4 zman=1 pub=0 sd=1 frames=1957 playing=1 sel=000 gm=0.00 (PL owns UDP datapath) mode=0 geom=00400000 osd=1
 
 ==== JTAG READBACK (board/tcl/rdddr.tcl, mrd only) ====
-GPIO = 41200000:   000B5000
+GPIO = 41200000:   000F5000
 
 DDR  head:
   10000000:
-  0004BDF7
+  00000000
   10000004:
-  00007B7F
+  00000000
   10000008:
-  0000FEF7
+  00000000
   1000000C:
-  0000F77D
+  00000000
   10000010:
-  0000FFBF
+  00000000
   10000014:
-  000039BE
+  00000000
   10000018:
-  0000EFBF
+  00000000
   1000001C:
-  0000E6FF
+  00000000
 ==== CORE VECTORS (board/tcl/pswhy.tcl) ====
-pc: pc: 00206b34
+pc: pc: 00206b38
 
-lr: lr: 00206cac
+lr: lr: 0020adec
 
-sp: sp: ffff5cc8
+sp: sp: ffff5df0
 
-cpsr: cpsr: 800f005f
-       n (Bits [31]):  1      z (Bits [30]):  0      c (Bits [29]):  0
+cpsr: cpsr: 200f005f
+       n (Bits [31]):  0      z (Bits [30]):  0      c (Bits [29]):  1
        v (Bits [28]):  0      q (Bits [27]):  0  it (Bits [15:25]):  0
        j (Bits [24]):  0  ge (Bits [19:16]):  f       e (Bits [9]):  0
         a (Bits [8]):  0       i (Bits [7]):  0       f (Bits [6]):  1

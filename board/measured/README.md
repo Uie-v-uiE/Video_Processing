@@ -10,5 +10,6 @@
 | `uart_battery.txt` | 串口命令电池 |
 | `sd_playback.txt` | SD 选段续播 |
 | `pane_integrity.txt` | 185° 处理窗完整性 |
-| `link_gap.txt` | 帧间隔统计（最终复验后生成） |
-| `cold_boot.txt` | QSPI 断电冷启动（最终复验后生成） |
+| `link_gap.txt` | 帧间隔统计（冷启动后实测） |
+| `cold_boot.txt` | QSPI 断电冷启动（实测） |
+| `uart_battery_capture.txt` | 105 条命令的原始串口捕获 |

@@ -8,11 +8,11 @@ A host PC sends 512×300 RGB565 frames as UDP datagrams of at most 1392 bytes to
 
 | Claim | How to check | Reading |
 |---|---|---|
-| A frame is committed only when complete | Row-coverage bitmap, byte gate, abort counter | 241 frames in 8 s, 30.01 fps; abort count does not grow under a clean stream |
+| A frame is committed only when complete | Row-coverage bitmap, byte gate, abort counter | 241 frames in 8 s, 29.95 fps; abort count does not grow under a clean stream |
 | The processed pane does not leak the source | Non-gray pixel count with only grayscale enabled and split video | `pane_bad=0` at 185°, 30 fps, count valid |
-| The instrument can be made to fail | Clean → 1 packet in 100 dropped → clean | 19.0 fps / 0 fps with 13.0 aborts per second / 22.2 fps, PASS |
+| The instrument can be made to fail | Clean → 1 packet in 100 dropped → clean | 22.0 fps / 0 fps with 14.3 aborts per second / 18.9 fps, PASS |
 | Effect latency is configuration-independent | Cycle-by-cycle alignment in the full video bench and OSD latency | Constant 15 pixel clocks; PL-internal frame latency 2–16 ms |
-| Frame-gap statistics are readable | Serial `link clr` → stream → stop → `link` | New firmware built; on-board re-verification pending |
+| Frame-gap statistics are readable | Serial `link clr` → stream → stop → `link` | `gap_valid=1` while streaming; `stall` grows after stop; `gap_max=22,061 ms` after restart |
 
 ## Implementation readings
 
@@ -25,7 +25,7 @@ Device: `xc7z020clg484-2`. Tools: Vivado / Vitis 2025.2.1.
 | Resources | LUT 14,967 (28.13%), FF 9,095 (8.55%), BRAM 98 (70.00%), DSP 19 (8.64%) |
 | Power / junction | 2.228 W dynamic (2.406 W total) / 52.8 °C, tool estimate with low confidence |
 | Simulation | 19 standard regressions (17 plus `eth_ingress_integrity` and `saver_tail_full`), `fail=0`; full-video C17/C25/C26 arms PASS |
-| Board | QSPI image written with on-chip verify; serial, network telemetry, fault injection, continuous stream and temperature pass; cold boot and `link` need final re-verification |
+| Board | QSPI image written with on-chip verify; cold boot, serial `link`, network telemetry, fault injection, continuous stream and temperature all pass |
 | Display | 1024×600 at 59.5 Hz; source 512×300 at 30 fps |
 
 ## Build and run

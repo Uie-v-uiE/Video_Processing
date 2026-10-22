@@ -16,6 +16,7 @@ VP_XSDB=<Vitis>/bin/xsdb.bat bash board/scripts/board_health.sh
 | JTAG | 读到 AXI GPIO 与 DDR 头 8 字 | 通过 |
 | 异常向量 | 三条异常地址为 0 | 通过 |
 | 总判定 | `HEALTH: GREEN` | 通过 |
+| QSPI 冷启动 | 断电重上后 PL DONE=1、EOS=1、无 CRC/IDCODE 错误；`stat`/`link` 有回显；ping 5/5 | 通过 |
 
 ```bash
 python src/host/link_selftest.py 192.168.1.10 6
@@ -23,9 +24,9 @@ python src/host/link_selftest.py 192.168.1.10 6
 
 | 阶段 | 预期 | 实测 |
 |---|---|---|
-| 干净流 | 帧率 ≥ 8 fps，作废最多一次启动作废，至少一次有效时延 ≤ 200 ms | 19.0 fps，作废 +1 |
-| 注入丢包 | 作废 ≥ 5 次/秒，帧率 < 5 fps | 0 fps，13.0 次作废/秒 |
-| 恢复流 | 回到干净流水平 | 22.2 fps，作废 0 |
+| 干净流 | 帧率 ≥ 8 fps，作废最多一次启动作废，至少一次有效时延 ≤ 200 ms | 22.0 fps，作废 0 |
+| 注入丢包 | 作废 ≥ 5 次/秒，帧率 < 5 fps | 0 fps，14.3 次作废/秒 |
+| 恢复流 | 回到干净流水平 | 18.9 fps，作废 +1（启动） |
 | 总判定 | `PASS link_selftest` | 通过 |
 
 ```bash
@@ -45,7 +46,7 @@ link clr
 link
 ```
 
-预期 `gap_last/min/max/sum` 有值，`gap_valid=1`；停流后 `gap_last` 增大，`gap_max` 更新。新固件已编译，待上板复验。
+实测：推流中 `gap_last=28 ms`、`gap_min=16 ms`、`gap_max=49 ms`、`gap_valid=1`；停流后 `stall` 增长到 5645 ms，`gap_last/gap_max` 保持最后一帧的值；重启后 `gap_max` 记录 22 061 ms 的长间隔。通过。
 
 ## 2 人眼验收
 

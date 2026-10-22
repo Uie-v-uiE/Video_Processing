@@ -11,15 +11,15 @@ Block RAM Tile,98（70.00%）,tile,实现后布线报告；整帧显示缓存是
 DSP48,19（8.64%）,个,坐标映射 8、插值 6、拟合 3、模糊 1、缝位 1,build/reports/build_utilization.rpt
 完整视频台架,quick_c17 / 0,PASS / nfail,185° 分割、C17 处理窗完整性、C25/C26 帧边界专项,build/reports/tb_video_pipeline_top_report.txt
 标准回归,19 / 0,PASS / fail,17 支标准台架加 eth_ingress_integrity 与 saver_tail_full,build/reports/regression.txt
-板上连续推流,241 / 8.03 / 30.01,帧 / 秒 / fps,内置测试图，30 fps，8 秒,board/measured/telemetry_8s.txt
-三阶段链路自检,19.0 / 0 / 22.2,fps,干净流 / 每 100 包丢 1 包 / 恢复流；故障段 13.0 次作废每秒,board/measured/link_selftest.txt
+板上连续推流,241 / 8.05 / 29.95,帧 / 秒 / fps,内置测试图，30 fps，8 秒,board/measured/telemetry_8s.txt
+三阶段链路自检,22.0 / 0 / 18.9,fps,干净流 / 每 100 包丢 1 包 / 恢复流；故障段 14.3 次作废每秒,board/measured/link_selftest.txt
 PL 内部帧时延,2–16,ms,帧提交到开始扫描；不含编码、网线和交换机,board/measured/telemetry_8s.txt
 处理窗完整性,pane_bad=0 / pane_valid=1,—,185°、split video 50%、灰度单级、30 fps 连续流,board/measured/pane_integrity.txt
-帧间隔统计,NOT_MEASURED,—,新固件已编译；串口 link 待上板复验,report/limits.md
+帧间隔统计,gap_last=28 / gap_max=49 / gap_valid=1,—,推流中；停流 stall 增长；重启后 gap_max=22061 ms,board/measured/link_gap.txt
 串口命令电池,105 / PASS,条 / 结果,命令清单逐条回声，末态回到初态,board/measured/uart_battery.txt
 SD 选段续播,621,—,sd file 1 → play → 3.6 s → stop；帧计数大于一个文件,board/measured/sd_playback.txt
 QSPI 写入,PROGRAM_RC 0,—,擦除、写入、硬件回读校验,board/measured/qspi_program.txt
-QSPI 冷启动,NOT_MEASURED,—,断电重上后串口有启动回显、ping 通；待现场签收,report/limits.md
+QSPI 冷启动,PASS,—,断电重上后 PL DONE=1、EOS=1、无 CRC/IDCODE 错误；串口 stat/link 有回显；ping 5/5,board/measured/cold_boot.txt
 实现后动态功耗,2.228,W,实现后功耗报告；估算结温 52.8 °C，置信度低,build/reports/power.rpt
 板上温度,57–62,°C,连续推流后 XADC 读数；sane=1,board/measured/health.txt
 端到端时延,NOT_MEASURED,—,现有读数只到 PL 内部；玻璃到玻璃没有测,report/limits.md
