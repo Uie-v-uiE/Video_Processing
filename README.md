@@ -94,7 +94,7 @@ python src/host/link_selftest.py 192.168.1.10 6
 node src/host/uart_cmd_check.mjs --port COM6
 ```
 
-完整步骤与每条命令的期望结果在 [`report/reproduction.md`](report/reproduction.md)；串口命令逐条说明在 [`report/commands.md`](report/commands.md)。
+完整步骤与每条命令的期望结果在 [`report/reproduction.md`](report/reproduction.md)；串口命令逐条说明在 [`report/commands.md`](report/commands.md)；器件、工具与第三方声明在 [`report/declarations.md`](report/declarations.md)。
 
 ## 目录
 
