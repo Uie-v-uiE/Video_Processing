@@ -21,7 +21,7 @@
 - 块设计 `design_1`、PS7 配置、AXI GPIO 与 AXI HP0；
 - 源文件路径使用 `$PPRDIR/../../src/...`，工程内没有本机绝对路径。
 
-重建并验证：
+先跑 `build/build.tcl`，产生 `vivado_system/` 与 `build/system.bit`/`system.xsa`；再重建并验证：
 
 ```bash
 vivado -mode batch -nojournal -log build/stage.log \
@@ -36,7 +36,7 @@ VERIFY abs_path_lines=0
 STAGE_BOARD_PROJECTS DONE
 ```
 
-工程不带 `.gen/`、`.runs/`、`.cache/` 等构建产物。打开工程后如果提示 output products 缺失，跑一次 `vivado -mode batch -source build/build.tcl -tclargs bd_only` 就会生成。完整位流由 `build/build.tcl` 一条命令构建。
+工程不带 `.gen/`、`.runs/`、`.cache/` 等构建产物。BD wrapper 已在 `.srcs/` 内；打开工程后直接综合，Vivado 会按 `design_1.bd` 生成其余输出产物。完整位流由 `build/build.tcl` 一条命令构建。
 
 ## 3 Vitis 平台
 

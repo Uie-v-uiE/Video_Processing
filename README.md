@@ -59,6 +59,8 @@ PS_OUT=board/project/ps_app.elf \
 python build/ps/build_ps_app.py
 
 # Vitis 平台（可选）
+<Vitis>/bin/vitis-server.bat --port 8879 &
+sleep 10
 VP_VITIS_WS=<工作目录> <Vitis>/bin/vitis.bat -s build/vitis/rebuild_vitis.py 8879
 
 # 上板

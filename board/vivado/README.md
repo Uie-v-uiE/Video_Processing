@@ -7,7 +7,7 @@
 - 块设计 `design_1`、PS7、AXI GPIO、AXI HP0；
 - 源文件路径 `$PPRDIR/../../src/...`，工程内没有本机绝对路径。
 
-重建并验证：
+先跑 `build/build.tcl`，产生 `vivado_system/` 与 `build/system.bit`/`system.xsa`；再重建并验证：
 
 ```bash
 vivado -mode batch -nojournal -log build/stage.log \

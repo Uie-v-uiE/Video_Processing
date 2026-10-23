@@ -52,7 +52,7 @@ vivado -mode batch -source build/build.tcl -tclargs bd_only
 
 ## 4 重建 Vivado 工程
 
-`board/vivado/zynq_video_sys.xpr` 是从构建脚本生成并整理过的工程。重建：
+`board/vivado/zynq_video_sys.xpr` 是从构建脚本生成并整理过的工程。先执行第 3 节，产生 `vivado_system/` 与 `build/system.bit`/`system.xsa`；重建：
 
 ```bash
 vivado -mode batch -nojournal -log build/stage.log \
