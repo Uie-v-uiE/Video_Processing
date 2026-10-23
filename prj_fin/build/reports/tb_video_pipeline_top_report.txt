@@ -1,0 +1,44 @@
+# provenance fpver=norm1 top_md5=421acdc3cf2e tb_md5=77de271627c5 rtl_md5=a30931b06287 date=2026-10-22T19:23:13+08:00 src=/tmp/kx/tb_video_pipeline_top.run/run.log
+PASS C0a ruler encodes position in the pixel | px_val / decoder / mod-256 signed diff must agree, incl. 0, small values, both edges, both wrap directions
+PASS C0a3 no black cell exists in the pattern | the panel-level ruler equates black with outside-the-picture, so the pattern must not contain black
+PASS C0a2 golden array actually holds it | read back ddr[0] and the last word after init: a correct function is not a correct array
+PASS C0d a real source is on screen | less than half of left-pane samples are black, else nothing was copied
+PASS C0b enough frames ran | at least 3 frames, otherwise every count below is void
+PASS C0c the AXI copy is alive | AXI bursts present, 8-byte aligned, never read outside the PS window
+PASS C0f whole fb word space written | de-duplicated write-word index count must cover the full frame once
+PASS C1i read-port phase same stage as src | col0/row0/pair_odd/req_vld must come from the calibrated label stage, not from a comment
+PASS C1g VIEWPORT col: src == x_d[2]>>1 | single viewport: src column == display column >>1 at the calibrated stage (k=2 is the only zero)
+PASS C1h VIEWPORT row: src == wrap((y_d[2]+OFF+BILIN)>>1) | row-wise definition now includes the #97 frame-head wrap; floor c1_wrapn proves the wrap window was judged
+PASS C0e RULER self-consistent | out-of-range bucket must be a subset of the mismatch set
+PASS C1a content-check coverage | in-line left-pane samples below 50k means nothing was measured
+PASS C1e PRECONDITION no X inside the measurement window | with X present every dcol/drow below is false-green on an empty set (#78)
+PASS C1c content column == display column >> 1 | single-viewport geometry, content-level evidence (was a NOTE before #78)
+PASS C1d content row == display row >> 1 (outside ring warm-up) | row-wise content alignment of the raw tap; warm-up rows are counted, not hidden
+C4 idx=0 ang=0 zoom=100% zsel=4 æœ‰ç”»é¢è¡Œ=780 æ— ç”»é¢è¡Œ=0 **å¤šæ®µè¡Œ=0** ç¬¬1åˆ—[0..0] æœ«åˆ—[1023..1023] | angle=0 rot_on=0
+PASS C4a rows judged | this (angle, zoom) cell must actually have content rows, else C4b below means nothing
+PASS C4b one run per row | a rotated rectangle meets every panel row in ONE contiguous run; 2+ runs = #93's stray diagonal bar / left-edge line
+C4 idx=1 ang=45 zoom=100% zsel=4 æœ‰ç”»é¢è¡Œ=780 æ— ç”»é¢è¡Œ=0 **å¤šæ®µè¡Œ=0** ç¬¬1åˆ—[0..178] æœ«åˆ—[639..1023] | angle=45 rot_on=1
+PASS C4a rows judged | this (angle, zoom) cell must actually have content rows, else C4b below means nothing
+PASS C4b one run per row | a rotated rectangle meets every panel row in ONE contiguous run; 2+ runs = #93's stray diagonal bar / left-edge line
+PASS C5a judged rows | the 0deg x 100% cell must give >=500 judged rows, else C5b/C5c below mean nothing
+PASS C5b body rows carry their own source row | decoded tag row == panel row/2 below the pipeline head; any off-by-N is the read-side advance (cy_r)
+PASS C5c frame head is not the previous frame's tail | first OFF+BILIN output rows must carry their own source row on BOTH sides of the seam
+PASS C6a line head carries the line's own column 0 | at 0deg x 100% the picture fills the screen, so NO background-based ruler can see a wrapped line head; the tag's column must be 0 (= #97's left band candidate)
+PASS C8a raw tap's first column of every body row is the row's own column 0 | #10ÿÿÿšÿÿÿçÿÿÿœÿÿÿŒÿÿÿèÿÿÿˆÿÿÿ„ÿÿÿæÿÿÿšÿÿÿŸÿÿÿäÿÿÿœÿÿÿ€ÿÿÿæÿÿÿ­ÿÿÿˆÿÿÿæÿÿÿæÿÿÿˆ— 16ÿÿÿ‰ÿÿÿäÿÿÿ˜ÿÿÿ¬ÿÿÿçÿÿÿ¸ÿÿÿ—
+PASS C8b proc tap's first column of every body row is the row's own column 0 | ÿÿÿåÿÿÿ¸ÿÿÿ¼ÿÿÿåÿÿÿÿÿÿ½ÿÿÿäÿÿÿšÿÿÿ¹ÿÿÿéÿÿÿ¼šC8aÿÿÿ¿ÿÿÿåÿÿÿ¸ÿÿÿÿÿÿçÿÿÿ—ÿÿÿŒÿÿÿéÿÿÿ°ÿÿÿ½ÿÿÿèÿÿÿ¸ÿÿÿ¯
+PASS C18pre frame-buffer writes really happened | coverage floor: both the ETH and PS copy paths must have written, else C18 is a green on an empty set
+PASS C18 frame-buffer writes all land inside blanking | PS/SD publish used to start the DDR->BRAM copy at active frame_start, racing the beam; every write must be gated by frame_commit_lock's allow window
+PASS C19pre 0deg split pane counter valid | coverage: the pane counter must be enabled at 0deg split video, else C19a is empty
+PASS C19a 0deg split processed pane has no non-gray pixel | user line: with split video at 0deg the processed pane must not show an original-color row
+PASS C20 bilinear frame head/tail rows carry their own source row | board default bilin=1; C5/C5c are blind here (they run with bilin=0). A pair-buffer slip shows as a head/tail tag-row jump
+PASS C21 bilinear processed frame head/tail rows carry their own source row | invert keeps the tag decodable; a chain line-buffer/frame-boundary slip shows as a head/tail tag-row jump at bilin=1
+PASS C22 Sobel of a uniform-row ramp is clean at the frame top/bottom | a stale above/below tap from the other frame edge produces a bright line here even when the centre row tag is correct
+PASS C17pre coverage floor | both arms must cover a whole rotated frame, else C17a/C17b are greens on an empty set
+PASS C17a processed pane has no unprocessed pixel under rotation | gray stage makes every processed pixel grey; any coloured cell means that cell bypassed the chain (user report: processed pane bottom edge unprocessed)
+PASS C17b the colour control actually produces non-grey cells | pair for C17a: same geometry with gray off must light the detector, else C17a's zero is blind
+PASS C17s coverage floor | 185 deg split-video arm must cover both panes to make C17sa meaningful
+PASS C17sa 185 split-video processed pane has no unprocessed pixel (swap 0/1) | user report: processed pane bottom edge shows an original line at 185 deg only with split video + effect
+PASS C17sb pane integrity counter zero (same arm, hardware counter) | the on-board counter must see the same zero as the bench: non-gray pixels in the processed pane at 185 deg
+PASS C25 raw pane has no processed line at the rotated image bottom | swap1: a processed (non-black grey) row inside the original pane at the image edge; black background is excluded, threshold 200 px/row
+PASS C26 Sobel split-video at 185deg has no inverted tap row | same geometry as C25 but the real effect; processed pane must stay grey and the raw pane must not contain a processed row
+RESULT tb_video_pipeline_top PASS nfail=0 (quick_c17)

@@ -1,0 +1,61 @@
+# QSPI cold boot — new firmware
+
+The board was powered down for 10 s and powered up again. No JTAG programming
+was performed before the serial reads below; the running image came from QSPI.
+
+## PL boot state (read-only JTAG register dump)
+REGISTER.BOOT_STATUS                                                string        true       00000000000000000000000000000001
+REGISTER.BOOT_STATUS.BIT00_0_STATUS_VALID                           string        true       1
+REGISTER.BOOT_STATUS.BIT01_0_FALLBACK                               string        true       0
+REGISTER.BOOT_STATUS.BIT02_0_INTERNAL_PROG                          string        true       0
+REGISTER.BOOT_STATUS.BIT03_0_WATCHDOG_TIMEOUT_ERROR                 string        true       0
+REGISTER.BOOT_STATUS.BIT04_0_ID_ERROR                               string        true       0
+REGISTER.BOOT_STATUS.BIT05_0_CRC_ERROR                              string        true       0
+REGISTER.BOOT_STATUS.BIT06_0_WRAP_ERROR                             string        true       0
+REGISTER.BOOT_STATUS.BIT07_0_SECURITY_ERROR                         string        true       0
+REGISTER.BOOT_STATUS.BIT08_1_STATUS_VALID                           string        true       0
+REGISTER.BOOT_STATUS.BIT09_1_FALLBACK                               string        true       0
+REGISTER.BOOT_STATUS.BIT10_1_INTERNAL_PROG                          string        true       0
+REGISTER.BOOT_STATUS.BIT11_1_WATCHDOG_TIMEOUT_ERROR                 string        true       0
+REGISTER.BOOT_STATUS.BIT12_1_ID_ERROR                               string        true       0
+REGISTER.BOOT_STATUS.BIT13_1_CRC_ERROR                              string        true       0
+REGISTER.BOOT_STATUS.BIT14_1_WRAP_ERROR                             string        true       0
+REGISTER.BOOT_STATUS.BIT15_1_SECURITY_ERROR                         string        true       0
+REGISTER.BOOT_STATUS.BIT16_RESERVED                                 string        true       0000000000000000
+REGISTER.CONFIG_STATUS.BIT00_CRC_ERROR                              string        true       0
+REGISTER.CONFIG_STATUS.BIT04_END_OF_STARTUP_(EOS)_STATUS            string        true       1
+REGISTER.CONFIG_STATUS.BIT08_MODE_PIN_M[0]                          string        true       1
+REGISTER.CONFIG_STATUS.BIT09_MODE_PIN_M[1]                          string        true       1
+REGISTER.CONFIG_STATUS.BIT10_MODE_PIN_M[2]                          string        true       1
+REGISTER.CONFIG_STATUS.BIT13_DONE_INTERNAL_SIGNAL_STATUS            string        true       1
+REGISTER.CONFIG_STATUS.BIT14_DONE_PIN                               string        true       1
+REGISTER.CONFIG_STATUS.BIT15_IDCODE_ERROR                           string        true       0
+
+## Serial after cold boot
+=== CAPTURE START 3 commands ===
+>> stat
+[STAT] ctrl thr=80 src=1 zoom=1 bilin=1 zsel=4 zman=1 pub=0 sd=1 frames=1957 playing=1 sel=000 gm=0.00 (PL owns UDP datapath) mode=0 geom=00400000 osd=1
+>> temp
+[TEMP] degC=61.79 raw=0xAA23 vccint=998mv th=85C over=0 sane=1 osd=62C gpio=0x62
+>> link
+[LINK] drop=0 badpkt=0 aborts=0 rows_max=0 stall=60326ms gap_last=0ms gap_min=0ms gap_max=0ms gap_sum=0ms gap_valid=0 live=0
+[LINK] lanes: 00000000 00000000 0000EBA6 00000000 00000000 00000000 00000000 00000000 00000000 00000000
+=== CAPTURE END ===
+
+
+## ICMP
+
+正在 Ping 192.168.1.10 具有 32 字节的数据:
+来自 192.168.1.10 的回复: 字节=32 时间=1ms TTL=128
+来自 192.168.1.10 的回复: 字节=32 时间=1ms TTL=128
+来自 192.168.1.10 的回复: 字节=32 时间=1ms TTL=128
+来自 192.168.1.10 的回复: 字节=32 时间=1ms TTL=128
+来自 192.168.1.10 的回复: 字节=32 时间=1ms TTL=128
+
+192.168.1.10 的 Ping 统计信息:
+    数据包: 已发送 = 5，已接收 = 5，丢失 = 0 (0% 丢失)，
+往返行程的估计时间(以毫秒为单位):
+    最短 = 1ms，最长 = 1ms，平均 = 1ms
+
+## Health snapshot
+
