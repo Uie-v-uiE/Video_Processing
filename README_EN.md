@@ -110,7 +110,6 @@ data/golden/       human comparison images
 data/metrics.csv   metrics table
 skill/             skill package distilled from the project
 report/            design report, verification, optimization, reproduction, collaboration
-deliverables/      technical document and poster (local only, not in GitHub)
 ```
 
 ## Limits

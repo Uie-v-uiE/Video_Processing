@@ -123,7 +123,6 @@ data/golden/        人眼比对参考图
 data/metrics.csv    指标表
 skill/              与大模型协作提炼的技能包
 report/             设计报告、验证、优化、复现、协作记录
-deliverables/       技术文档与海报（仅本地，不进 GitHub）
 ```
 
 ## 边界
