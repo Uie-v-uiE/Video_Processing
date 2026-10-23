@@ -35,7 +35,7 @@
 - `board/project/system.bit`、`system.xsa`、`ps_app.elf` 由本仓库的 `build/build.tcl`、`build/vitis/rebuild_vitis.py` 和 `build/ps/build_ps_app.py` 生成。
 - `board/flash/BOOT.bin` 由 `board/scripts/make_boot_image.sh` 用包内 FSBL、位流和应用打包；三件套 MD5 在 `boot_manifest.txt`。
 - `board/vivado` 是构建脚本生成并整理过的工程；`board/vitis` 是平台描述，实际平台由 `build/vitis/rebuild_vitis.py` 重建。
-- 技术文档与海报是本地交付件，不在 GitHub；正文源在 `report/design-report.md`。
+- 技术文档正文源在 `report/design-report.md`；排版生成件由文档脚本从该源渲染。
 
 ## 5 复现环境边界
 
