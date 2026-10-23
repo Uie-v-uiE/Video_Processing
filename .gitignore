@@ -2,7 +2,7 @@
 vivado_system/
 vivado_system_*/
 vivado_r*/
-vitis/
+/vitis/
 .Xil/
 sim_work/
 xsim.dir/
