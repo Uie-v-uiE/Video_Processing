@@ -10,7 +10,9 @@
 4. `reproduction.md`：从零构建、仿真、PS 应用、Vivado/Vitis 工程、上板与 QSPI。
 5. `limits.md`：仍然成立的限制与未修项。
 6. `llm-collaboration.md` 与 `collaboration/`：大模型参与方式、会话卡、纠错轨迹、提示词、工作流、成本与脱敏记录。
-7. `skill-distillation.md`：技能包从哪些失败里总结、怎么验证、边界在哪。
+7. `issues/key-issues.md`：20 条关键缺陷的现象、根因、判据、修复与证据；完整台账在 FIN/records。
+8. `interface-table.md`：控制字、遥测、串口、lane、地址与视频常数。
+9. `skill-distillation.md`：技能包从哪些失败里总结、怎么验证、边界在哪。
 
 ## 图件
 
@@ -23,7 +25,8 @@
 | 时序、资源、CDC、功耗报告 | `build/reports/` |
 | 完整视频台架与回归判定行 | `build/reports/`、`sim/results/`、`sim/README.md` |
 | 板上启动、串口、遥测、自检日志 | `board/measured/` |
-| 控制字、遥测字段、串口命令 | `design-report.md` 附录 A |
+| 控制字、遥测字段、串口命令 | `interface-table.md`、`design-report.md` 附录 A |
+| 关键缺陷与根因 | `issues/key-issues.md` |
 | 实测与参考比对 | `board/compare/` |
 | 大模型协作详细档案 | `report/collaboration/` |
 | 技能包索引 | `skill/README.md`、`report/skill-distillation.md` |

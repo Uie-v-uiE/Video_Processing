@@ -172,3 +172,46 @@ flash/            BOOT.bin 与打包日志
 - 改 PS 固件后必须重编 ELF、重刷、再重打 BOOT.bin；只重编不重刷，板上仍是旧固件。
 - 重打 BOOT.bin 后 QSPI 里的镜像不会自动更新，必须重新写 flash 并断电验证。
 - 查看寄存器前停止推流；推流中读到的计数是中间值，不是稳定快照。
+
+## 12 保留与移除
+
+取舍标准只有一条：能重建、能复现、或能支撑报告里一个结论的留下；旧轮读数、一次性破坏性探针、被新脚本替代的旧脚本、重复 TCL 去掉。不是按“功能大不大”删。
+
+### 12.1 核心保留
+
+| 内容 | 为什么必须留 |
+|---|---|
+| `project/system.bit`、`.xsa`、`ps_app.elf` | 板上实际运行的三件套；md5 是身份 |
+| `flash/BOOT.bin` | QSPI 冷启动的镜像 |
+| `vivado/`、`vitis/` | 可重建的上板工程；不是构建产物副本 |
+| `scripts/`、`tcl/` | 上板、健康、UART、QSPI、JTAG 的运行入口 |
+| `measured/` 中的当前证据 | 冷启动、帧间隔、遥测、自检、电池、温度、QSPI 回读 |
+| `compare/`、`measured/README.md` | 实测与参考结果的对照口径 |
+
+### 12.2 支持性保留
+
+| 内容 | 性质 |
+|---|---|
+| `measured/pane_integrity.txt` | 显示侧同一 RTL 的 185° 证据；不是本次构建新测，但支撑处理窗结论 |
+| `measured/sd_playback.txt` | SD 续播证据；`link` 改动不涉及 SD 路径 |
+| `measured/uart_battery_capture.txt` | 105 条命令电池的原始捕获，供逐条复核 |
+| `measured/flash_jtag.txt` | JTAG 三步链证据；QSPI 冷启动另见 `cold_boot.txt` |
+| `flash/bootgen.log` | 镜像打包日志，证明 BOOT.bin 的生成过程 |
+
+这些文件都很小；删掉不会影响构建，但会让报告里的对应结论失去板上证据，所以保留并标明性质。
+
+### 12.3 移除的内容
+
+| 内容 | 为什么去掉 |
+|---|---|
+| `output/`、旧 `compare/` 的 cdc/roster/temp/ddr 日志 | 旧轮读数，和当前交付结论不同批；留着会让人拿旧数对当前结论 |
+| `raw-vs-golden.md`、`signoff*.md`、`demo_rehearsal.txt` | 旧的人眼/签收记录，已被 `acceptance.md` 与当前实测替代 |
+| `uart_capture.txt`、`uart_script_capture.txt` | 每次跑都重写的本机捕获；原始电池捕获已以中性名保留 |
+| `cmd_overflow_probe.sh` | 一次性、可能把命令通道钉死的破坏性探针；不属于交付验收 |
+| `rebuild_project.sh`、`stage_vitis_platform.sh`、`serial_bytes.ps1` | 被 `build/build.tcl`、`build/vitis/rebuild_vitis.py`、`uart_cmd_script.ps1` 替代 |
+| `sd_boundary_0deg.txt` | 旧轮 SD 边界读数 |
+| 旧 `tcl/probe_flash_read.tcl`、`program_and_check.tcl`、`program_system.tcl` | 一次性探针或重复流程；保留的是实际使用的 JTAG/QSPI 脚本 |
+| `stage_board_projects.tcl` | 已移到 `build/tcl/`，它属于构建链，不属于板上运行脚本 |
+
+一句话：核心文件是“重建/上板必需”，支持性文件是“报告结论的证据”，移除的是“旧轮、一次性、被替代”。
+

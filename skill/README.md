@@ -11,8 +11,9 @@
 | 案例模板 | `templates/` | 工程骨架、接口契约、报告表单、脚本模板 |
 | 校验脚本 | `scripts/` | 黄金比对、指标采集、寄存器映射检查、复现检查、契约生成 |
 | 踩坑清单 | `pitfalls/` | 判据假绿、CDC、约束覆盖、文档轮换、构建竞态、工具探针陷阱等 |
+| 框架专项 | `frameworks/` | Vivado/板卡侧与 PYNQ Overlay 两条通用技能；PYNQ 卡不绑定本项目，作为通用技能单独提交 |
 
-另有 `runtime/`（板上运行时事实）、`references/`（速查表）和 `zynq-video-rtl-debug/`（L0–L4 分层调试）。
+另有 `runtime/`（板上运行时事实）、`references/`（速查表）、`zynq-video-rtl-debug/`（L0–L4 分层调试）和 `frameworks/`（Vivado/板卡、PYNQ 两条框架专项）。
 
 ## 条目正文
 
@@ -47,6 +48,8 @@
 | 上板没画面、没反应、ping 不通 | `zynq-video-rtl-debug/SKILL.md`、`runtime/board-eth-uart/SKILL.md` |
 | 回读的一组数不自洽 | `runtime/atomic-register-window-readback/SKILL.md` |
 | 算出来的 fps/带宽好得不像话 | `pitfalls/metrics-gap-sum/SKILL.md` |
+| PYNQ Overlay 加载、寄存器、DMA、中断出问题 | `frameworks/pynq-overlay-development/SKILL.md` |
+| Vivado/Vitis 工程、BD、约束、上板分诊 | `frameworks/fpga-board-development/SKILL.md` |
 
 ## 索引
 
@@ -121,7 +124,11 @@
 ### `zynq-video-rtl-debug/`（1 条）
 - `zynq-video-rtl-debug/SKILL.md`
 
-共 57 条。
+### `frameworks/`（2 条）
+- `frameworks/fpga-board-development/SKILL.md`
+- `frameworks/pynq-overlay-development/SKILL.md`
+
+共 59 条。
 
 ## 验证与边界
 

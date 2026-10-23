@@ -466,6 +466,8 @@ VP_HW_URL=<host:port> vivado -mode batch -source board/tcl/flash_qspi.tcl
 | 板上读数 | `board/measured/` |
 | 设计报告与图件 | `report/design-report.md`、`report/figures/` |
 | 验证与优化 | `report/verification.md`、`report/optimization.md` |
+| 关键问题台账 | `report/issues/key-issues.md` |
+| 接口表 | `report/interface-table.md` |
 | 复现 | `report/reproduction.md` |
 | 局限 | `report/limits.md` |
 | 大模型协作 | `report/llm-collaboration.md` |
