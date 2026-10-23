@@ -19,6 +19,7 @@
 | 板级说明、验收、硬件连接 | `board/README.md` |
 | 构建与实现报告索引 | `build/reports/index.md` |
 | 仿真结果索引 | `sim/results/README.md` |
+| 完整 Issue 记录 | `records/README.md` |
 | 技能包 | `skill/README.md` |
 | 源码阅读入口 | `src/README.md`、`src/rtl/README.md` |
 
