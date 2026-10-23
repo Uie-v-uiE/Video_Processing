@@ -9,9 +9,9 @@ PL 侧一律走 literal 地址（0x41200000 / 0x10000000），所以 BSP 只要 
   PS_CC    arm-none-eabi-gcc 的前缀或完整路径。不设就假定工具链已在 PATH 上
            （把 <Vitis>/gnu/aarch32/nt/gcc-arm-none-eabi/bin 放进 PATH 即可）
   PS_BSP   一个已经 generate 过的 zynq BSP 目录（里面有 include/ 与 lib/libxil.a）；
-           默认指**仓库内**的那份：vitis/platform/ps7_cortexa9_0/standalone_ps7_cortexa9_0/bsp
+           默认先在 `board/vitis_ws/` 里找平台构建生成的 BSP，再退回旧工作区 `vitis/`
   PS_OBJ   中间产物目录（默认 build/ps_obj）
-  PS_OUT   输出 ELF 的路径（默认 board/project/ps_app.elf；想验证脚本而不动交付件时指到别处）
+  PS_OUT   输出 ELF 的路径（默认 build/ps_app.elf；要覆盖交付件时显式指到 board/project/ps_app.elf）
 
 用法：python3 build/ps/build_ps_app.py [--clean]
 
@@ -30,14 +30,32 @@ import shutil
 import subprocess
 import sys
 
-ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+ROOT = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+
+
+def find_bsp():
+    legacy = [
+        os.path.join(ROOT, "vitis", "fin2_plat", "ps7_cortexa9_0",
+                     "standalone_domain", "bsp", "ps7_cortexa9_0"),
+        os.path.join(ROOT, "vitis", "platform", "ps7_cortexa9_0",
+                     "standalone_ps7_cortexa9_0", "bsp"),
+    ]
+    for cand in legacy:
+        if os.path.isfile(os.path.join(cand, "include", "xparameters.h")):
+            return cand
+    ws = os.path.join(ROOT, "board", "vitis_ws")
+    if os.path.isdir(ws):
+        for base, dirs, files in os.walk(ws):
+            if os.path.basename(base) == "lib" and "libxil.a" in files:
+                return os.path.dirname(base)
+    return legacy[0]
+
+
 CC = os.environ.get("PS_CC") or "arm-none-eabi-gcc"
-BSP = os.environ.get("PS_BSP") or os.path.join(
-    ROOT, "vitis", "fin2_plat", "ps7_cortexa9_0",
-    "standalone_domain", "bsp", "ps7_cortexa9_0")
+BSP = os.path.abspath(os.environ.get("PS_BSP") or find_bsp())
 SRC = os.path.join(ROOT, "src", "ps")
-OBJ = os.environ.get("PS_OBJ") or os.path.join(ROOT, "build", "ps_obj")
-OUT = os.environ.get("PS_OUT") or os.path.join(ROOT, "build", "ps_app.elf")
+OBJ = os.path.abspath(os.environ.get("PS_OBJ") or os.path.join(ROOT, "build", "ps_obj"))
+OUT = os.path.abspath(os.environ.get("PS_OUT") or os.path.join(ROOT, "build", "ps_app.elf"))
 
 if not os.path.isdir(BSP):
     print("FATAL: 没有 BSP：%s" % BSP)

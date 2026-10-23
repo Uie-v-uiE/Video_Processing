@@ -10,7 +10,7 @@
     (nohup <Vitis>/bin/vitis-server --port 8879 &) ; sleep 10
     <Vitis>/bin/vitis.bat -s build/vitis/rebuild_vitis.py 8879
 为什么要显式起 server：`create_client()` 不带 port 时在本机报
-`'utf-8' codec can't decode byte 0xd5`（2026-10-19 实测，见 report/log/issues.md #487）。
+`'utf-8' codec can't decode byte 0xd5`（本机实测，见 `report/issues/key-issues.md` 的 Vitis 条目）。
 """
 import os
 import shutil
@@ -18,7 +18,7 @@ import sys
 
 import vitis
 
-REPO = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+REPO = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 WS = os.environ.get("VP_VITIS_WS") or os.path.join(REPO, "board", "vitis_ws")
 XSA = os.path.join(REPO, "board", "project", "system.xsa")
 if not os.path.exists(XSA):

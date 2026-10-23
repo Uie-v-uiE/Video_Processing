@@ -2,7 +2,7 @@
 # board/scripts/make_boot_image.sh —— 把 FSBL + 位流 + PS 应用打成一个 QSPI 启动镜像 BOOT.bin
 #
 # 依赖：bootgen（Vivado/Vitis 2025.2.1 安装树里的 `bin/bootgen.bat`，不在 PATH）；
-#       三份输入都在盘上：`vitis/fin2_plat/zynq_fsbl/fsbl.elf`（旧布局 `vitis/platform/zynq_fsbl/build/fsbl.elf` 也认）、
+#       三份输入都在盘上：`board/vitis_ws/` 下平台构建生成的 `fsbl.elf`（也可用 VP_FSBL 指定）、
 #       `board/project/system.bit`、`board/project/ps_app.elf`。
 # 用法：VP_VIVADO_BIN=<Vivado>/bin bash board/scripts/make_boot_image.sh
 # 参数：
@@ -30,11 +30,15 @@ BG="$VP_VIVADO_BIN/bootgen.bat"
 out="${VP_BOOT_OUT:-$root/board/flash}"
 fsbl="${VP_FSBL:-}"
 if [ -z "$fsbl" ]; then
-  for cand in "$root/vitis/fin2_plat/zynq_fsbl/fsbl.elf" "$root/vitis/platform/zynq_fsbl/build/fsbl.elf"; do
+  for cand in "$root/vitis/fin2_plat/zynq_fsbl/fsbl.elf" \
+              "$root/vitis/platform/zynq_fsbl/build/fsbl.elf"; do
     [ -s "$cand" ] && { fsbl="$cand"; break; }
   done
 fi
-[ -n "$fsbl" ] || fsbl="$root/vitis/fin2_plat/zynq_fsbl/fsbl.elf"
+if [ -z "$fsbl" ] && [ -d "$root/board/vitis_ws" ]; then
+  fsbl="$(find "$root/board/vitis_ws" -type f -name fsbl.elf -print -quit)"
+fi
+[ -n "$fsbl" ] || die "找不到 fsbl.elf：先按 board/vitis/README.md 重建平台，或用 VP_FSBL 指定"
 bit="${VP_BIT:-$root/board/project/system.bit}"
 app="${VP_APP:-$root/board/project/ps_app.elf}"
 for f in "$fsbl" "$bit" "$app"; do [ -s "$f" ] || die "输入缺件或为空：$f"; done

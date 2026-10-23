@@ -83,22 +83,27 @@ puts "CFGMEM_COMPAT $compat"
 # PROGRAM.START_ADDRESS（写死会 17-142 中断），所以先 list_property 再逐个设，缺的只报 SKIP。
 set props [list_property $cm]
 puts "CFGMEM_PROPS $props"
-# FSBL 路径：2026-10-22 当前 Vitis 工作区是 `vitis/fin2_plat/zynq_fsbl/fsbl.elf`；
-# 旧布局 `vitis/platform/zynq_fsbl/build/fsbl.elf` 保留为第二候选。VP_FSBL 优先。
+# FSBL 路径：VP_FSBL 优先；否则在 board/vitis_ws 下找平台构建生成的 fsbl.elf，
+# 兼容旧布局 vitis/fin2_plat 与 vitis/platform。
 set fsbl ""
 if {[info exists ::env(VP_FSBL)]} { set fsbl [file normalize $::env(VP_FSBL)] }
 if {![file exists $fsbl]} {
-    foreach cand [list \
-        [file join $root "vitis/fin2_plat/zynq_fsbl/fsbl.elf"] \
-        [file join $root "vitis/platform/zynq_fsbl/build/fsbl.elf"]] {
-        if {[file exists $cand]} { set fsbl $cand; break }
+    foreach pat [list \
+        [file join $root board vitis_ws * zynq_fsbl build fsbl.elf] \
+        [file join $root board vitis_ws * * zynq_fsbl build fsbl.elf] \
+        [file join $root vitis fin2_plat zynq_fsbl fsbl.elf] \
+        [file join $root vitis platform zynq_fsbl build fsbl.elf]] {
+        foreach cand [glob -nocomplain $pat] {
+            if {[file exists $cand]} { set fsbl $cand; break }
+        }
+        if {$fsbl ne ""} break
     }
 }
 puts "FSBL $fsbl"
 # PROGRAM.FILES 只收 .bit/.bin/.mcs（实测 44-518 "Valid file type extension .mcs or .bin"），
 # 应用 ELF 不能直接进这一层——它已经在 bootgen 打好的 BOOT.bin 里了。
-# 只有喂位流时才需要 ZYNQ_FSBL（那时工具负责打镜像）；喂 BOOT.bin 时**必须不给**，
-# 否则就是镜像套镜像（本文件上面那段实测说明）。
+# hw_cfgmem 这一支两种原料都要求 FSBL 在盘上：喂位流时工具用它打镜像，
+# 喂 BOOT.bin 时它只作为启动口粮，不会再拼一次头。
 if {![file exists $fsbl]} { puts "REFUSE: no FSBL at $fsbl"; close_hw_target; catch {disconnect_hw_server}; exit 1 }
 set feed_props [list \
     PROGRAM.FILES         [list $img] \

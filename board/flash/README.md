@@ -12,7 +12,7 @@
 VP_VIVADO_BIN=<Vitis>/bin bash board/scripts/make_boot_image.sh
 ```
 
-脚本从 `vitis/fin2_plat/zynq_fsbl/fsbl.elf`、`board/project/system.bit` 和 `board/project/ps_app.elf` 取输入，生成 `BOOT.bin`。`boot.bif` 里用相对路径，换一台机器解包不会带本机盘符。
+脚本默认在 `board/vitis_ws/` 下找平台构建生成的 `fsbl.elf`（也可用 `VP_FSBL` 指定），再取 `board/project/system.bit` 和 `board/project/ps_app.elf`，生成 `BOOT.bin`。`boot.bif` 里用相对路径，换一台机器解包不会带本机盘符。
 
 期望结果：
 

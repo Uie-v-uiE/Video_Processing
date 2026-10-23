@@ -18,7 +18,7 @@
 # 打印器件/约束文件数/运行状态；③ 比 `board/vivado/zynq_video_sys.srcs` 里 BD 的 `.bd` 是否真在其中、
 # 以及 `board/project/system.bit` 的字节可读，读不到就 REFUSE。验证结果打在日志里，`board/README.md` 引用的就是这份日志。
 # 位流与 .xsa 不在 `board/` 里再存一份：仓库已在 `board/project/system.bit`、`board/project/system.xsa` 跟踪它们，
-# 复制一份只多 3 MB 且会出现"两份位流哪个是板上那版"的歧义；`board/flash/make_boot_image.sh` 直接从 `build/` 取。
+# 复制一份只多 3 MB 且会出现"两份位流哪个是板上那版"的歧义；`board/scripts/make_boot_image.sh` 直接从 `board/project/` 取。
 set root [file normalize [file join [file dirname [info script]] .. ..]]
 proc fix_pprdir_refs {txt} {
     # The project sits at board/vivado; source refs need exactly ../../.

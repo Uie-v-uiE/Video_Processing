@@ -29,4 +29,4 @@ PS_OUT=board/project/ps_app.elf \
 python build/ps/build_ps_app.py
 ```
 
-平台重建成功后，`rebuild_vitis.py` 会在 workspace 里留下平台与 FSBL；BSP 路径由脚本打印。`vitis/` 只保存平台描述与 QEMU 参数，不保存 16 MB 级 BSP 和构建中间产物。
+平台重建成功后，`rebuild_vitis.py` 会在 workspace 里留下平台与 FSBL；BSP 路径由脚本打印。`board/vitis/` 只保存平台描述与 QEMU 参数，不保存 16 MB 级 BSP 和构建中间产物。
