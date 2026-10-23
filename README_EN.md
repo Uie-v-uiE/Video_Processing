@@ -82,6 +82,7 @@ node src/host/uart_cmd_check.mjs --port COM6
 ```
 
 The full step-by-step procedure is in [`report/reproduction.md`](report/reproduction.md).
+The serial command reference is [`report/commands.md`](report/commands.md) (Chinese).
 
 ## Layout
 

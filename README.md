@@ -94,7 +94,7 @@ python src/host/link_selftest.py 192.168.1.10 6
 node src/host/uart_cmd_check.mjs --port COM6
 ```
 
-完整步骤与每条命令的期望结果在 [`report/reproduction.md`](report/reproduction.md)。
+完整步骤与每条命令的期望结果在 [`report/reproduction.md`](report/reproduction.md)；串口命令逐条说明在 [`report/commands.md`](report/commands.md)。
 
 ## 目录
 
@@ -122,7 +122,7 @@ data/inputs/        测试向量
 data/golden/        人眼比对参考图
 data/metrics.csv    指标表
 skill/              与大模型协作提炼的技能包
-report/             设计报告、验证、优化、复现、协作记录
+report/             设计报告、验证、优化、复现、命令手册、协作记录
 ```
 
 ## 边界
