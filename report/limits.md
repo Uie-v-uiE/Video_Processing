@@ -36,9 +36,9 @@
 
 ## 5 工具与环境
 
-**Vitis 应用组件。** Vitis 2025.2.1 的 `create_app_component` 在当前平台会返回 `StatusCode.INTERNAL`，应用组件建不出来。PS 应用不依赖 IDE，由 `build/build_ps_app.py` 直接编译；平台的 FSBL 和 BSP 可以正常重建。
+**Vitis 应用组件。** Vitis 2025.2.1 的 `create_app_component` 在当前平台会返回 `StatusCode.INTERNAL`，应用组件建不出来。PS 应用不依赖 IDE，由 `build/ps/build_ps_app.py` 直接编译；平台的 FSBL 和 BSP 可以正常重建。
 
-**Vivado 工程 output products。** `board/zynq_video_sys.xpr` 带源文件、约束和块设计，但 `.gen/` 里的 output products 不入库。打开工程后如果提示缺失，跑一次 `bd_only` 或完整构建就会生成。
+**Vivado 工程 output products。** `board/vivado/zynq_video_sys.xpr` 带源文件、约束和块设计，但 `.gen/` 里的 output products 不入库。打开工程后如果提示缺失，跑一次 `bd_only` 或完整构建就会生成。
 
 **功耗与结温。** Vivado 报告的 2.228 W 动态、2.406 W 总功耗和 52.8 °C 结温没有仿真活动文件，置信度为低，只能作为量级参考；板上 XADC 的 57–62 °C 是实测，两者不能混写。
 

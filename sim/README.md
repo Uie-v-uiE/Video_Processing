@@ -1,6 +1,10 @@
 # `sim/`：RTL 台架怎么跑、每支回答什么
 
-台架回答一个问题：这一支 RTL 在仿真里有没有按定义行事。它不看板子，也不看时序；时序在 `build/` 的实现报告里，板上行为在 `board/` 的读数里。
+台架回答一个问题：这一支 RTL 在仿真里有没有按定义行事。它不看板子，也不看时序；时序在 `build/reports/` 的实现报告里，板上行为在 `board/` 的读数里。
+
+## 最终交付结果
+
+19 支标准回归 `fail=0`；完整视频台架的 C17/C25/C26 专项 PASS。判定副本在 `sim/results/`：`regression.txt`、`tb_video_pipeline_top_report.txt`、`udp_checksum.txt`、`c31_edge_rim.log`。
 
 ## 跑一支
 

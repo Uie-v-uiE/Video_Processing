@@ -1,0 +1,28 @@
+Final metrics vs implementation reports and board logs
+=======================================================
+
+Timing (routed):
+  WNS 1.341 ns, WHS 0.025 ns, TNS 0, THS 0, 0 failing endpoints
+  source: build/reports/build_timing_summary.rpt
+  -> matches data/metrics.csv rows "全局 setup WNS" and "全局 hold WHS"
+
+Resources (routed):
+  LUT 14967 (28.13%), FF 9095 (8.55%), BRAM 98 (70.00%), DSP 19 (8.64%)
+  source: build/reports/build_utilization.rpt
+  -> matches data/metrics.csv resource rows
+
+Power (tool estimate, low confidence):
+  dynamic 2.228 W, total 2.406 W, junction 52.8 C
+  source: build/reports/power.rpt
+  -> matches the metrics table; not a board power measurement
+
+Board:
+  8 s stream: 241 frames / 8.05 s / 29.95 fps; 13 telemetry beacons
+  self-test: 22.0 / 0 / 18.9 fps; fault 14.3 aborts/s
+  frame gap: gap_last 28 ms, gap_max 49 ms; restart gap_max 22061 ms
+  cold boot: DONE=1, EOS=1, no CRC/IDCODE errors, ping 5/5
+  UART battery: 105 commands, 97.8 s, PASS
+  source: board/measured/
+
+Reference images in data/golden/ are for human comparison only; the
+automated verdicts are the benches and the on-board counters.

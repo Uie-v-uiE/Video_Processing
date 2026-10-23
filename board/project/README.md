@@ -4,7 +4,7 @@
 |---|---|---|
 | `system.bit` | PL 位流 | `vivado -mode batch -source build/tcl/build_system_axigpio.tcl` |
 | `system.xsa` | 与位流同批的硬件描述 | 同上 |
-| `ps_app.elf` | PS 裸机应用 | `build/build_ps_app.py` |
+| `ps_app.elf` | PS 裸机应用 | `build/ps/build_ps_app.py` |
 
 三件套必须同批生成。换位流不换 XSA，Vitis 平台的地址映射会对不上；换 PS 源码不重编 ELF，板上仍是旧固件。
 
@@ -19,7 +19,7 @@ md5sum board/project/system.bit board/project/system.xsa board/project/ps_app.el
 ## 重新生成顺序
 
 1. 改 RTL 或约束：跑 `build/tcl/build_system_axigpio.tcl`，更新 `system.bit` 与 `system.xsa`；
-2. 改 PS 源码：跑 `build/build_ps_app.py`，更新 `ps_app.elf`；
+2. 改 PS 源码：跑 `build/ps/build_ps_app.py`，更新 `ps_app.elf`；
 3. 重打 QSPI 镜像：`board/scripts/make_boot_image.sh`；
 4. JTAG 验证：`board/scripts/board_flash.sh`；
 5. QSPI 固化：`board/tcl/flash_qspi.tcl`，断电重上。

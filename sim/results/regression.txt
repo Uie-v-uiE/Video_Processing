@@ -1,0 +1,135 @@
+==== pipe_bypass ====
+# PASS C11r0 row ruler round-trips and holds no black | every row number below is read out of the pixel, so the encoding must round-trip for all C_SRC rows
+# PASS C11pre1 each arm judged at least two whole frames | the fit compares an empty set otherwise; one output burst per fed row for 6 frames is the floor
+# PASS C11pre2 both chains emitted one burst per fed row | the two instances share the burst index; if one of them ever dropped or invented a row the four readings below are not comparable
+# PASS C11pre3 the stimulus really wrapped (content row decreased) | the frame-boundary band this window is about must be reached at least once, else every zero below is an empty set
+# PASS C11c wrapped chain is a pure delay line, under both label conventions | y rows late: the frame head's center already IS the row it should show, so the forward tap must not fire. Pre-fix reading with the same stimulus: anchored bad=20/80 judged at out#16..19 got=2 exp=0,0,1,1 (arm A) and bad=20 at out#28..31 (arm B) - that is tb_video_pipeline_top C5c's 24 bad head cells
+# PASS C11d anchored chain is NOT a pure delay line (the control that makes C11c's zero mean something) | same stimulus, same ruler, only STREAM_WRAP differs: if the default (frame-anchored) instance also came out clean, C11c would be decoration and the four rim benches' contract would be untested here
+# PASS C11e one constant lag, equal to the chain's own OFF_LINES, in all four readings | I1: the row offset has exactly one source (u_pipe.OFF_LINES); the fit is not allowed to paper over the boundary by choosing a different L per arm or per instance
+# RESULT tb_pipe_bypass PASS nfail=0
+RESULT pipe_bypass PASS
+==== pipe_sel ====
+# PASS tb_pipe_sel
+RESULT pipe_sel PASS
+==== morph ====
+# PASS tb_morph
+RESULT morph PASS
+==== edge_rim_wrap_clamp ====
+# PASS A1 fixed arm: no mixed 8/31 window
+# PASS A2 fixed arm keeps the first row (gray8 cells=32)
+# PASS A3 fixed arm keeps the last row (gray31 cells=30)
+# PASS A4 negative control: legacy arm mixes the opposite edge (32 cells)
+# PASS A5 coverage: 512 cells per arm
+# RESULT tb_edge_rim_wrap_clamp PASS nfail=0
+RESULT edge_rim_wrap_clamp PASS
+==== edge_rim_wrap_diff ====
+# PASS D2 sobel fixed arm coverage: move0=33 move1=33
+# PASS D1 morph fixed arm: first and last row influence are disjoint
+# PASS D2 morph fixed arm coverage: move0=49 move1=48
+# PASS D0 blur-old negative control: legacy arms overlap in 14 cells
+# PASS D0 sharpen-old negative control: legacy arms overlap in 14 cells
+# PASS D0 sobel-old negative control: legacy arms overlap in 14 cells
+# PASS D0 morph-old negative control: legacy arms overlap in 14 cells
+# RESULT tb_edge_rim_wrap_diff PASS nfail=0
+RESULT edge_rim_wrap_diff PASS
+==== edge_rim_bottom_wrap ====
+# PASS B3 stage=1 coverage floor 4096 cells
+# PASS B1 stage=2 affected rows are one contiguous band
+# PASS B2 stage=2 alternation propagates in 1 cells
+# PASS B3 stage=2 coverage floor 4096 cells
+# PASS B1 stage=3 affected rows are one contiguous band
+# PASS B2 stage=3 alternation propagates in 131 cells
+# PASS B3 stage=3 coverage floor 4096 cells
+# RESULT tb_edge_rim_bottom_wrap PASS nfail=0
+RESULT edge_rim_bottom_wrap PASS
+==== display_edge_rim ====
+# PASS R9 x2-duplicated columns: all 64 display cols == definition
+# PASS R0 ruler integrity: 4 frames per run, all four stages share one de
+# PASS R1 interior == the definition at the measured latency
+# PASS R2/D1 left column == clamp-to-edge and responds to its neighbour (golden judged 52)
+# PASS R3 top row == clamp-to-edge (judged 52)
+# PASS R4/D2 last column == clamp-to-edge and responds (golden judged 52)
+# PASS R5/D3 screen row 0 == its own window, no stale row (golden judged 52)
+# RESULT tb_display_edge_rim PASS
+RESULT display_edge_rim PASS
+==== raw_delay ====
+# PASS T1 稳态逐格对齐（列一格不偏） | 输出第 (row,k) 格必须是第 row-LINES 行的同一列 k
+# PASS T5 跨过槽位回绕仍对齐 | 喂到 13 行 > 2^RLOG=8 ⇒ 环回绕之后判据仍然成立
+# PASS T3 de 与数据同为一拍延迟 | d_out 与 de_out 都只延后一拍 ⇒ 不允许出现“数据到了、de 还没到”（#54 那一族的另一种）
+# PASS T4 LINES=0 是组合直通 | 深度 0 ⇒ 直通且不推 RAM
+# PASS ��一列（不是消隐期地址的格子） | #102：消隐期 x 还在数 ⇒ 旧写法让行首读到 `x[H_TOTAL-1]` 低位那一格；行首要等于自己那一列
+# PASS ��动（预读只许占用消隐那一拍） | 把中间任何一列挪动就是 #92 第一笔那族整列错位；这一条就是那一族的护栏
+# PASS T6 覆盖面不是空跑 | 逐格判据加起来要有几百格的覆盖面，否则差一格也可能被空窗混过去
+# RESULT tb_raw_delay PASS
+RESULT raw_delay PASS
+==== rows ====
+# PASS no commit on 2/4 rows
+# PASS commit after all rows done_cnt=1
+# PASS no commit when bytes complete but one row missing
+# PASS tb_rows
+RESULT rows PASS
+==== udp_reasm ====
+# PASS bad counted
+# PASS duplicate overwrite
+# PASS second frame after jump
+# PASS no mixed frame (A9)
+# PASS clean frame after A9
+# PASS row-short frame aborted
+# PASS no mix after aborted frame
+# PASS tb_udp_reasm ALL
+RESULT udp_reasm PASS
+==== reasm_bounds ====
+# PASS R1 packet whose byte_off is outside the frame buffer must emit zero writes
+# PASS R2 the same packet must still be counted in stat_oob_off (no silent drop)
+# PASS R3 last legal word pair (indices 126,127) still writes both words
+# PASS R4 a complete frame (64 packets, all 256 bytes) still commits exactly once
+# PASS R4a opportunity floor: all 64 packets were accepted (stat_pkts==64, no bad)
+# RESULT tb_reasm_bounds PASS
+RESULT reasm_bounds PASS
+==== udp_telemetry ====
+# PASS tb_udp_telemetry starts=2 pkts=2
+RESULT udp_telemetry PASS
+==== eth_ctrl_arb ====
+# PASS tb_eth_ctrl_arb order=ICMP,UDP,ARP no mid-frame switch
+RESULT eth_ctrl_arb PASS
+==== eth_top_rgmii ====
+# PASS tb_eth_top_rgmii tx_bytes=72
+RESULT eth_top_rgmii PASS
+==== split_ctrl ====
+#   PASS T8a 插了 31 % 消隐之后，一步仍是 64 个**有效像素**（不按拍计）
+#   PASS T8b 消隐期间输出不越界（min/max 仍落在 range 内）
+#   PASS T9  speed=0 ⇒ 扫描值钉住不动（且钉的正是手工位置那一点）
+#   PASS T10 打开 auto 的第一次变化是 +1（从手工位置 300 续扫，不回 0）
+#   PASS T11 range 写成 80 20 时：仍夹在 [256,768]，两端都取到，步长合规
+#   PASS T12 默认档（TICK_BITS=16）一步恰好 65536 个有效像素 = 64 行
+#   PASS T13 样本数 > 0（这里要求 35 万个有效像素，否则上面全是空判据）
+# PASS tb_split_ctrl
+RESULT split_ctrl PASS
+==== osd_overlay ====
+# PASS T16 osd_en=0 => 输出逐位等于背景（关掉=这层不存在），开着在同一片格子里画出了字（对照）
+# PASS T17 激励把索引推到越界 190464 拍（最大索引 255 > 数组上界 159）⇒ 机会确实出现过
+# PASS T18 越界的那 190464 拍里没有一次 s_in_char=1 ⇒ 读到什么都不画，#127 第 2 条是'被门住的越界读'而不是屏上缺陷
+# RESULT tb_osd_overlay PASS
+RESULT osd_overlay PASS
+==== link_monitor ====
+# PASS F2e A control: a clean clear leaves sum=130 (<= 2 x 130)
+# PASS F2e B a clear landing on the accounting edge still zeroes lane5
+# PASS snap_cross starts with hb_gone=1
+# PASS snap_cross captured 100/100 intact snapshots
+# PASS hb_slow clear while the heartbeat is at nominal rate
+# PASS hb_gone asserts when the source clock stops
+# PASS production timebase: 87 ms_ticks in 10906664 cycles (125000/ms)
+# RESULT tb_link_monitor PASS
+RESULT link_monitor PASS
+==== eth_ingress_integrity ====
+# PASS cdc peak probe alive
+# PASS packer peak probe alive
+# PASS ingress lossless
+# PASS partial frame not committed
+# PASS tb_eth_ingress_integrity
+RESULT eth_ingress_integrity PASS
+==== saver_tail_full ====
+# PASS fifo_full observed (depth 512)
+# PASS tb_saver_tail_full
+RESULT saver_tail_full PASS
+MSIM DONE fail=0

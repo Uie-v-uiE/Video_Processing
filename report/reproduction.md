@@ -24,9 +24,11 @@ src/ps/           PS 裸机固件
 src/constraints/  引脚、时钟、CDC 约束
 src/host/         PC 侧推流、遥测、仪表、自检
 sim/              台架
-build/tcl/        构建入口
+build/build.tcl   Vivado 主入口
+build/tcl/        Vivado 构建与 board 工程 staging TCL
+build/vitis/      Vitis 平台重建
+build/ps/         PS 应用编译
 build/sim/        仿真入口
-build/checks/     机检脚本
 build/reports/    实现报告
 board/            Vivado/Vitis 工程、上板脚本、实测输出
 data/             测试输入、金标图像、指标表
@@ -37,24 +39,24 @@ report/           设计与验证文档
 ## 3 构建位流
 
 ```bash
-vivado -mode batch -source build/tcl/build_system_axigpio.tcl
+vivado -mode batch -source build/build.tcl
 ```
 
 脚本建工程、建块设计、综合、实现、出位流、XSA，并生成时序、资源、CDC、方法学和功耗报告。产物默认在 `build/` 与 `vivado_system/`。只建工程和块设计：
 
 ```bash
-vivado -mode batch -source build/tcl/build_system_axigpio.tcl -tclargs bd_only
+vivado -mode batch -source build/build.tcl -tclargs bd_only
 ```
 
 期望结果：`BD_ONLY_DONE` 或完整构建结束时的 `BITSTREAM`/报告生成行；时序报告的失败端点为 0。
 
 ## 4 重建 Vivado 工程
 
-`board/zynq_video_sys.xpr` 是从构建脚本生成并整理过的工程。重建：
+`board/vivado/zynq_video_sys.xpr` 是从构建脚本生成并整理过的工程。重建：
 
 ```bash
 vivado -mode batch -nojournal -log build/stage.log \
-  -source board/tcl/stage_board_projects.tcl
+  -source build/tcl/stage_board_projects.tcl
 ```
 
 期望结果：
@@ -69,13 +71,13 @@ STAGE_BOARD_PROJECTS DONE
 
 ## 5 重建 Vitis 平台
 
-Vitis 平台描述在 `board/vitis_platform/`。重建平台与 FSBL：
+Vitis 平台描述在 `board/vitis/`。重建平台与 FSBL：
 
 ```bash
 <Vitis>/bin/vitis-server.bat --port 8879 &
 sleep 10
 VP_VITIS_WS=<工作目录> <Vitis>/bin/vitis.bat \
-  -s board/scripts/rebuild_vitis.py 8879
+  -s build/vitis/rebuild_vitis.py 8879
 ```
 
 期望结果：`Platform Build Finished successfully.`、`GENERATE_RC 0`，并生成 `zynq_fsbl/build/fsbl.elf`。Vitis 2025.2.1 的 `create_app_component` 在本域会返回 `StatusCode.INTERNAL`，这是工具限制；PS 应用不依赖 IDE，直接用下一节的编译脚本。
@@ -86,7 +88,7 @@ VP_VITIS_WS=<工作目录> <Vitis>/bin/vitis.bat \
 PS_CC=<Vitis>/gnu/aarch32/nt/gcc-arm-none-eabi/bin/arm-none-eabi-gcc.exe \
 PS_BSP=<平台构建生成的 BSP 目录> \
 PS_OUT=board/project/ps_app.elf \
-python build/build_ps_app.py
+python build/ps/build_ps_app.py
 ```
 
 期望结果：`ENTRY _boot@... _vector_table@... OK`、`OK board/project/ps_app.elf`，`.text` 约 60 KB。脚本会检查 `_start`、`_boot`、`_vector_table`、`MMUTable`、`main` 和 `XSdPs_CardInitialize` 是否在 ELF 里，防止把空镜像下到板上。

@@ -14,18 +14,18 @@
 
 ## 2 Vivado 工程
 
-`zynq_video_sys.xpr` 与 `zynq_video_sys.srcs/` 是从构建 TCL 生成并整理过的工程，包含：
+`vivado/zynq_video_sys.xpr` 与 `vivado/zynq_video_sys.srcs/` 是从构建 TCL 生成并整理过的工程，包含：
 
 - 器件 `xc7z020clg484-2`；
-- 86 份 RTL 源文件与 2 份约束；
+- 99 份 RTL 源文件与 3 份约束；
 - 块设计 `design_1`、PS7 配置、AXI GPIO 与 AXI HP0；
-- 源文件路径使用 `$PPRDIR/../src/...`，工程内没有本机绝对路径。
+- 源文件路径使用 `$PPRDIR/../../src/...`，工程内没有本机绝对路径。
 
 重建并验证：
 
 ```bash
 vivado -mode batch -nojournal -log build/stage.log \
-  -source board/tcl/stage_board_projects.tcl
+  -source build/tcl/stage_board_projects.tcl
 ```
 
 期望结果：
@@ -36,11 +36,11 @@ VERIFY abs_path_lines=0
 STAGE_BOARD_PROJECTS DONE
 ```
 
-工程不带 `.gen/`、`.runs/`、`.cache/` 等构建产物。打开工程后如果提示 output products 缺失，跑一次 `vivado -mode batch -source build/tcl/build_system_axigpio.tcl -tclargs bd_only` 就会生成。完整位流由 `build/tcl/build_system_axigpio.tcl` 一条命令构建。
+工程不带 `.gen/`、`.runs/`、`.cache/` 等构建产物。打开工程后如果提示 output products 缺失，跑一次 `vivado -mode batch -source build/build.tcl -tclargs bd_only` 就会生成。完整位流由 `build/build.tcl` 一条命令构建。
 
 ## 3 Vitis 平台
 
-`vitis_platform/` 是平台工程描述：
+`board/vitis/` 是平台工程描述：
 
 | 文件 | 内容 |
 |---|---|
@@ -53,10 +53,10 @@ STAGE_BOARD_PROJECTS DONE
 <Vitis>/bin/vitis-server.bat --port 8879 &
 sleep 10
 VP_VITIS_WS=<工作目录> <Vitis>/bin/vitis.bat \
-  -s board/scripts/rebuild_vitis.py 8879
+  -s build/vitis/rebuild_vitis.py 8879
 ```
 
-期望结果：`Platform Build Finished successfully.`、`GENERATE_RC 0`，并生成 `zynq_fsbl/build/fsbl.elf`。Vitis 2025.2.1 的 `create_app_component` 在本域返回 `StatusCode.INTERNAL`，应用组件建不出来；PS 应用不依赖 IDE，由 `build/build_ps_app.py` 直接编译。
+期望结果：`Platform Build Finished successfully.`、`GENERATE_RC 0`，并生成 `zynq_fsbl/build/fsbl.elf`。Vitis 2025.2.1 的 `create_app_component` 在本域返回 `StatusCode.INTERNAL`，应用组件建不出来；PS 应用不依赖 IDE，由 `build/ps/build_ps_app.py` 直接编译。
 
 PS 应用：
 
@@ -64,7 +64,7 @@ PS 应用：
 PS_CC=<Vitis>/gnu/aarch32/nt/gcc-arm-none-eabi/bin/arm-none-eabi-gcc.exe \
 PS_BSP=<平台构建生成的 BSP 目录> \
 PS_OUT=board/project/ps_app.elf \
-python build/build_ps_app.py
+python build/ps/build_ps_app.py
 ```
 
 ## 4 JTAG 上板
@@ -157,8 +157,9 @@ python src/host/link_selftest.py 192.168.1.10 6
 
 ```text
 project/          位流、XSA、PS 应用
-zynq_video_sys.*  Vivado 工程
-vitis_platform/   Vitis 平台描述
+vivado/           Vivado 工程（.xpr + .srcs）
+vitis/            Vitis 平台描述
+compare/          实测与参考结果对账
 tcl/              JTAG、QSPI、工程 staging 脚本
 scripts/          一键上板、健康快照、UART、镜像打包
 measured/         一手实测日志

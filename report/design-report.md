@@ -46,6 +46,20 @@
 设计不追求 1080p 或多路视频。当前器件有 140 个 BRAM tile，整帧缓存和旋转窗口已经占去 70%，把画幅提高到 1024×600 需要约四倍存储，超出该器件的可用范围。这个边界在设计中明确保留，不用缩放开关伪装成更高画幅。
 
 
+### 1.4 同类工作与差异
+
+前人在同一块板或同一类问题上已经做过很多工作，本设计没有声称在吞吐或通用性上超过它们。
+
+Alex Forencich 的 `verilog-ethernet` 提供了成熟的 RGMII/MAC/UDP 栈，吞吐和通用性都更好；本设计保留自研栈，是因为整条链的提交点、行覆盖判据和 DDR 写口是专门为“整帧才提交”设计的。换栈要同时改 RGMII 边界、UDP 过滤、重组和 AXI 写 DDR 四个已验证的边界，收益不在 MAC 吞吐上。
+
+Xilinx 的 VDMA 与视频处理 IP 提供通用的 AXI Video 通路，适合快速搭 1080p 平台；本设计的目标不是通用 IP，而是在 512×300、30 fps 的小画幅上把同帧 A/B、固定 15 拍效果链和在线遥测绑在一起。把画幅做大需要换存储架构，当前 BRAM 70% 的边界是明确的。
+
+PYNQ Overlay 走的是 Python/PS 控制、PL 加速的路线，适合快速实验；本设计的像素通路完全在 PL，PS 只做命令和 SD 回放，因此不依赖 PYNQ 运行时，也没有申报 PYNQ 专项加分。两者解决的不是同一个问题。
+
+商用视频分析仪能把时延、丢帧和画质测得更准，但它是外部仪器；本设计把帧数、坏包、作废、缺行、时延、处理窗完整性和帧间隔做进同一条网线和同一条串口，代价是精度和量程不如专用仪器，收益是现场不需要额外设备。
+
+学术界的 FPGA 视频流水线常以 1080p、全帧 DDR 和更高吞吐为目标；本设计选择小画幅、片内整帧缓存和固定延迟，把可观测性和可复现性放在吞吐之前。这些取舍在 `report/limits.md` 里有逐条边界。
+
 ## 2 系统总体方案
 
 ### 2.1 系统组成
@@ -292,8 +306,8 @@ RGMII 的 TskewT 规格是 ±0.5 ns。本板的 RGMII 引脚都在 HR bank，没
 README.md             项目简介与复现入口
 src/                  RTL、PS 固件、约束、上位机工具
 sim/                  单元、集成与完整视频台架
-build/                构建 TCL、检查脚本、实现报告
-board/                Vivado/Vitis 工程、上板脚本、实测输出
+build/                构建入口、Vitis/PS/sim 脚本、实现报告
+board/                Vivado/Vitis 工程、上板脚本、实测输出、对账
 data/                 测试输入、金标图像与指标表
 skill/                与大模型协作提炼的技能包
 report/               设计报告、验证、优化、协作记录、图件
@@ -301,12 +315,12 @@ technical_document.pdf/docx
 poster.pdf/png
 ```
 
-`board/` 里的 Vivado 工程由 `build/tcl/build_system_axigpio.tcl` 生成，工程文件已按仓库相对路径整理，源文件与约束缺失为 0，工程文件内没有本机绝对路径。Vitis 平台描述在 `board/vitis_platform/`，FSBL 与平台可用 `board/scripts/rebuild_vitis.py` 重建；PS 应用由 `build/build_ps_app.py` 直接编译，不依赖 IDE 手点。
+`board/vivado/` 里的 Vivado 工程由 `build/build.tcl` 生成，工程文件已按仓库相对路径整理，源文件与约束缺失为 0，工程文件内没有本机绝对路径。Vitis 平台描述在 `board/vitis/`，FSBL 与平台可用 `build/vitis/rebuild_vitis.py` 重建；PS 应用由 `build/ps/build_ps_app.py` 直接编译，不依赖 IDE 手点。
 
 ### 6.2 构建
 
 ```bash
-vivado -mode batch -source build/tcl/build_system_axigpio.tcl
+vivado -mode batch -source build/build.tcl
 ```
 
 这条命令建工程、建块设计、综合、实现、出位流、XSA 和时序/资源/CDC/功耗报告。只建工程与块设计时加 `-tclargs bd_only`。
@@ -315,8 +329,8 @@ PS 应用：
 
 ```bash
 PS_CC=<Vitis>/gnu/aarch32/nt/gcc-arm-none-eabi/bin/arm-none-eabi-gcc.exe \
-PS_BSP=board/vitis_platform/bsp \
-python build/build_ps_app.py
+PS_BSP=<平台构建生成的 BSP 目录> \
+python build/ps/build_ps_app.py
 ```
 
 ### 6.3 仿真
@@ -368,7 +382,7 @@ VP_HW_URL=<host:port> vivado -mode batch -source board/tcl/flash_qspi.tcl
 
 ### 7.4 可复现的工程包
 
-构建、仿真、上板、QSPI 固化和 Vitis 平台重建都有脚本。Vivado 工程已在 `board/` 内按相对路径整理并现场打开验证；台架有判定行；板上读数有日志。工程包不是“能编译的一堆源码”，而是“别人能从头跑到屏幕亮起来的一条路径”。
+构建、仿真、上板、QSPI 固化和 Vitis 平台重建都有脚本。Vivado 工程已在 `board/vivado/` 内按相对路径整理并现场打开验证；台架有判定行；板上读数有日志。工程包不是“能编译的一堆源码”，而是“别人能从头跑到屏幕亮起来的一条路径”。
 
 
 ## 8 局限与后续工作

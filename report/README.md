@@ -9,7 +9,7 @@
 3. `optimization.md`：时序与资源优化的五轮过程、被否决的尝试、物理边界。
 4. `reproduction.md`：从零构建、仿真、PS 应用、Vivado/Vitis 工程、上板与 QSPI。
 5. `limits.md`：仍然成立的限制与未修项。
-6. `llm-collaboration.md`：大模型参与方式、七个修正案例、没有交给模型的事。
+6. `llm-collaboration.md` 与 `collaboration/`：大模型参与方式、会话卡、纠错轨迹、提示词、工作流、成本与脱敏记录。
 7. `skill-distillation.md`：技能包从哪些失败里总结、怎么验证、边界在哪。
 
 ## 图件
@@ -21,10 +21,12 @@
 | 内容 | 位置 |
 |---|---|
 | 时序、资源、CDC、功耗报告 | `build/reports/` |
-| 完整视频台架与回归判定行 | `build/reports/`、`sim/README.md` |
+| 完整视频台架与回归判定行 | `build/reports/`、`sim/results/`、`sim/README.md` |
 | 板上启动、串口、遥测、自检日志 | `board/measured/` |
 | 控制字、遥测字段、串口命令 | `design-report.md` 附录 A |
-| 技能包索引与检查 | `skill/README.md`、`skill/_meta/check-skill-package.mjs` |
+| 实测与参考比对 | `board/compare/` |
+| 大模型协作详细档案 | `report/collaboration/` |
+| 技能包索引 | `skill/README.md`、`report/skill-distillation.md` |
 
 ## 写作口径
 

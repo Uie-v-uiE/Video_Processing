@@ -20,5 +20,11 @@ build/edge_profile/
 board/vitis_ws*/
 __pycache__/
 *.pyc
-# Local-only learning material, never pushed
+# Local-only learning material and deliverables, never pushed
 learning/
+deliverables/
+technical_document.docx
+technical_document.pdf
+poster.png
+poster.pdf
+poster.pptx

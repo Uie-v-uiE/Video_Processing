@@ -16,10 +16,10 @@ PS 不参与像素通路。它写控制字、读健康状态，并在 SD 回放�
 PS_CC=<Vitis>/gnu/aarch32/nt/gcc-arm-none-eabi/bin/arm-none-eabi-gcc.exe \
 PS_BSP=<平台构建生成的 BSP 目录> \
 PS_OUT=board/project/ps_app.elf \
-python build/build_ps_app.py
+python build/ps/build_ps_app.py
 ```
 
-`PS_BSP` 必须指向一个已经 generate 过的 Zynq standalone BSP（里面有 `include/` 与 `lib/libxil.a`）。没有平台时先按 `board/vitis_platform/README.md` 用 `board/scripts/rebuild_vitis.py` 重建。
+`PS_BSP` 必须指向一个已经 generate 过的 Zynq standalone BSP（里面有 `include/` 与 `lib/libxil.a`）。没有平台时先按 `board/vitis/README.md` 用 `build/vitis/rebuild_vitis.py` 重建。
 
 编译脚本会检查 `_start`、`_boot`、`_vector_table`、`MMUTable`、`main` 和 `XSdPs_CardInitialize` 是否在 ELF 里，防止把空镜像下到板上。
 
