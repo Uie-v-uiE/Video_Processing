@@ -1,6 +1,6 @@
 prj_fin documentation snapshot
 source_commit 70cf2bf0
 files 197
-size_mb 8.63
+size_mb 8.99
 top_level README.md, PROJECT_README.md, PROJECT_README_EN.md, deliverables/, report/, learning/, board/, build/, sim/, src/, skill/, data/
 note technical_document.docx/pdf has 7 embedded generated figures and 4 physical-photo placeholders (fig 3/8/9/11).
