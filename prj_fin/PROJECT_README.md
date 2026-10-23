@@ -129,4 +129,4 @@ report/             设计报告、验证、优化、复现、命令手册、协
 
 遥测时延只覆盖 PL 内部（帧提交到开始扫描），不是玻璃到玻璃。RGMII 发侧在 HR bank 上没有 ODELAYE2，0° 转发仍有约 0.845 ns 的 TskewT 保持缺口；90° 与 −45° 都被否决。BRAM 70% 由整帧缓存决定，512×300 以上画幅放不下。185° 细线已由 RTL 和台架闭环；E1–E5 已现场确认，含 ETH 与 SD 插拔。逐条说明在 [`report/limits.md`](report/limits.md)。
 
-[English version](README_EN.md)
+[English version](PROJECT_README_EN.md)
