@@ -82,6 +82,11 @@ def main():
             if f.endswith(".elf"):
                 elf.append(os.path.join(r, f))
     print("ELFS %d %s" % (len(elf), elf[:3]))
+    bsp = []
+    for r, _, fs in os.walk(WS):
+        if os.path.basename(r) == "lib" and "libxil.a" in fs:
+            bsp.append(os.path.dirname(r))
+    print("BSP_DIRS %s" % bsp)
     print("VITIS_REBUILD_DONE ws=%s" % WS)
     vitis.dispose()
     return 0 if build_rc == 0 else 1

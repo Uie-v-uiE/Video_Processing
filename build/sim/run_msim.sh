@@ -4,9 +4,10 @@
 # 输出落在 build/msim/：compile.log、<tb>.log；判定行照旧 PAS/FAIL 由台架自己打。
 set -u
 ROOT=$(cd "$(dirname "$0")/../.." && pwd)
-MS=${MSIM_BIN:-/d/Software/ModelSim/modelsim/win64}
+MS=${MSIM_BIN:-}
+[ -n "$MS" ] || { echo "REFUSE: 设 MSIM_BIN 指到 ModelSim 的 win64（或 Linux）目录"; exit 2; }
 for e in vlib vlog vsim; do
-    [ -x "$MS/$e.exe" ] || { echo "REFUSE: $MS/$e.exe 不存在（设 MSIM_BIN）"; exit 2; }
+    [ -x "$MS/$e.exe" ] || [ -x "$MS/$e" ] || { echo "REFUSE: $MS/$e(.exe) 不存在（设 MSIM_BIN）"; exit 2; }
 done
 [ $# -ge 1 ] || { echo "usage: run_msim.sh <tb> [...]"; exit 2; }
 

@@ -1,6 +1,6 @@
 the_design:
 {
-   [bootloader] ..\..\vitis\fin2_plat\zynq_fsbl\fsbl.elf
+   [bootloader] fsbl.elf
 ..\project\system.bit
 ..\project\ps_app.elf
 }

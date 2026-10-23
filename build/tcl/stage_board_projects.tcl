@@ -62,10 +62,12 @@ set part [get_property PART [current_project]]
 set runs [get_runs]
 set constrs [get_files -of [get_filesets constrs_1]]
 set srcs [get_files -of [get_filesets sources_1]]
+set wrap [get_files -quiet design_1_wrapper.v]
 puts "VERIFY project=[current_project]"
 puts "VERIFY part=$part"
 puts "VERIFY runs=[llength $runs] : $runs"
-puts "VERIFY sources=[llength $srcs] constraints=[llength $constrs]"
+puts "VERIFY sources=[llength $srcs] constraints=[llength $constrs] wrapper=[llength $wrap]"
+if {[llength $wrap] == 0} { puts "REFUSE: 工程缺 design_1_wrapper.v（BD wrapper 必须在 .srcs 内）"; close_project; exit 1 }
 puts "VERIFY bit_bytes=[file size $bit] xsa_bytes=[file size $xsa]"
 # 复制最容易漏的是 BD/IP 与约束：逐个问文件在不在，缺一个就 REFUSE（不数数量、只认路径存活）。
 set missing 0

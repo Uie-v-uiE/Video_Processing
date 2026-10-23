@@ -11,14 +11,14 @@
 在仓库根执行。用 ModelSim 时：
 
 ```bash
-bash build/sim/run_msim.sh tb_crc32
+MSIM_BIN=<ModelSim>/win64 bash build/sim/run_msim.sh tb_crc32
 ```
 
-脚本会先编译整棵 `src/rtl`、`sim/prim` 和指定的台架，再跑仿真，最后打印 `RESULT <tb> PASS` 或 `FAIL`。用 xsim 时入口是 `build/sim/run_one.sh <tb>`，判定行是 `VERDICT <tb>: ...`。
+`MSIM_BIN` 指到 ModelSim 的 `win64`（或 Linux）目录。脚本会先编译整棵 `src/rtl`、`sim/prim` 和指定的台架，再跑仿真，最后打印 `RESULT <tb> PASS` 或 `FAIL`。用 xsim 时入口是 `build/sim/run_one.sh <tb>`，判定行是 `VERDICT <tb>: ...`。
 
 同一时刻只能有一个仿真器写同一个 work 目录。脚本会在门口检查，发现已有 xsim 或 ModelSim 在跑就拒绝启动，避免两跑的行混进同一份日志。
 
-## 一次跑完 88 支
+## 一次跑完 92 支
 
 ```bash
 vivado -mode batch -nojournal -log sim/xsim.log -source build/sim/run_sim.tcl

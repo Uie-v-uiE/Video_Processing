@@ -307,10 +307,13 @@ save_bd_design
 # 所以留一个只建 BD 就退出的口子：`vivado -mode batch -source 本脚本 -tclargs bd_only`。
 if {[lindex $argv 0] eq "bd_only"} { puts "BD_ONLY_DONE"; exit 0 }
 make_wrapper -files [get_files design_1.bd] -top
-set wrap [file join $proj_dir ${proj_name}.gen sources_1 bd design_1 hdl design_1_wrapper.v]
-if {![file exists $wrap]} {
-  set wrap [lindex [glob -nocomplain [file join $proj_dir ${proj_name}.srcs sources_1 bd design_1 hdl design_1_wrapper.v]] 0]
+set wrap_gen [file join $proj_dir ${proj_name}.gen sources_1 bd design_1 hdl design_1_wrapper.v]
+set wrap [file join $proj_dir ${proj_name}.srcs sources_1 bd design_1 hdl design_1_wrapper.v]
+if {![file exists $wrap_gen]} {
+  set wrap_gen [lindex [glob -nocomplain [file join $proj_dir ${proj_name}.srcs sources_1 bd design_1 hdl design_1_wrapper.v]] 0]
 }
+file mkdir [file dirname $wrap]
+file copy -force $wrap_gen $wrap
 add_files -norecurse $wrap
 puts "WRAPPER: $wrap"
 puts "TOP: system_top.v (maintained, includes PL ETH)"

@@ -38,7 +38,7 @@ COM6 一次只能被一个程序占用。Vitis 串口终端自带本地回显；
 
 | 时钟 | 来源 | 用途 |
 |---|---|---|
-| `sys_clk` 100 MHz | 板载晶振 W17 | MMCM 与 PS 参考 |
+| `sys_clk` 50 MHz | 板载时钟 W17（20 ns 约束） | MMCM 与 PS 参考 |
 | `clkout0_1` 50 MHz | PL 内 MMCM | 像素、几何、效果链 |
 | `clkout3` 125 MHz | PL 内 MMCM | 以太网协议逻辑 |
 | `eth_rxc` 125 MHz | PHY 恢复时钟 | IDDR 采样与异步 FIFO 写侧 |

@@ -7,7 +7,7 @@
 | 项 | 要求 |
 |---|---|
 | 器件 | `xc7z020clg484-2`，Zynq-7020 开发板 |
-| 工具 | Vivado / Vitis 2025.2.1；Vitis 自带 `arm-none-eabi-gcc` |
+| 工具 | Vivado / Vitis 2025.2.1；Vitis 自带 `arm-none-eabi-gcc`；ModelSim（跑 `run_msim.sh` 时用 `MSIM_BIN` 指到安装目录） |
 | 主机 | Windows 10/11 或 Linux；Python 3.10+；Node.js 18+（可选，主机工具） |
 | 板卡 | PL 侧 RJ45、HDMI 输出、microSD、QSPI、USB-C JTAG/UART 桥 |
 | 网络 | PC 有线网卡 `192.168.1.100/24`，板卡 `192.168.1.10/24`，直连千兆 |
@@ -62,12 +62,12 @@ vivado -mode batch -nojournal -log build/stage.log \
 期望结果：
 
 ```text
-VERIFY missing_files=0 of 102
+VERIFY missing_files=0 of 97
 VERIFY abs_path_lines=0
 STAGE_BOARD_PROJECTS DONE
 ```
 
-102 是源文件与约束文件的总数；`missing_files=0` 表示复制出来的工程每个文件都在盘上；`abs_path_lines=0` 表示工程文件里没有本机绝对路径。打开工程后应看到器件 `xc7z020clg484-2`、约束集和块设计。
+97 = 92 份手写 RTL + 1 份 BD wrapper + 1 个块设计 + 3 份生效约束；`missing_files=0` 表示复制出来的工程每个文件都在盘上；`abs_path_lines=0` 表示工程文件里没有本机绝对路径。打开工程后应看到器件 `xc7z020clg484-2`、约束集和块设计。
 
 ## 5 重建 Vitis 平台
 
@@ -98,14 +98,14 @@ python build/ps/build_ps_app.py
 快速回归：
 
 ```bash
-bash build/sim/run_msim.sh rows udp_reasm reasm_bounds udp_telemetry \
+MSIM_BIN=<ModelSim>/win64 bash build/sim/run_msim.sh rows udp_reasm reasm_bounds udp_telemetry \
      eth_ctrl_arb eth_top_rgmii split_ctrl osd_overlay link_monitor
 ```
 
 完整视频台架与专项台架：
 
 ```bash
-bash build/sim/run_msim.sh video_pipeline_top
+MSIM_BIN=<ModelSim>/win64 bash build/sim/run_msim.sh video_pipeline_top
 ```
 
 期望结果：每支台架末尾有 `RESULT ... PASS`；完整视频台架的 C17/C25/C26 专项 PASS，nfail=0。没有判定行的日志不算通过。
@@ -130,7 +130,7 @@ FLASH: GREEN
 VP_XSDB=<Vitis>/bin/xsdb.bat bash board/scripts/board_health.sh
 ```
 
-期望结果：串口有 `[STAT]`，JTAG 读到 GPIO 与 DDR 头，三条异常向量为 0，`HEALTH: GREEN`。
+期望结果：串口有 `[STAT]`，JTAG 读到 GPIO 与 DDR 头，三条异常向量标签可读，`HEALTH: GREEN`。
 
 ## 9 网络与主机工具
 
@@ -167,7 +167,7 @@ link
 ## 10 QSPI 固化
 
 ```bash
-bash board/scripts/make_boot_image.sh
+VP_VIVADO_BIN=<Vitis>/bin bash board/scripts/make_boot_image.sh
 VP_HW_URL=<host:port> vivado -mode batch -source board/tcl/flash_qspi.tcl
 ```
 

@@ -7,7 +7,7 @@
 | `zynq_fsbl` | `ps7_cortexa9_0` | QSPI 启动的 FSBL |
 | `standalone_ps7_cortexa9_0` | `ps7_cortexa9_0` | 裸机应用与 BSP |
 
-硬件指向 `board/project/system.xsa`；`resources/` 下是三个 QEMU 参数文件。
+硬件指向 `board/project/system.xsa`（`vitis-comp.json` 的路径字段以仓库根为基准）；`resources/` 下是三个 QEMU 参数文件。真正重建用 `build/vitis/rebuild_vitis.py`，它直接读 XSA，不依赖这个描述文件。
 
 ## 重建
 
@@ -29,4 +29,4 @@ PS_OUT=board/project/ps_app.elf \
 python build/ps/build_ps_app.py
 ```
 
-平台重建成功后，`rebuild_vitis.py` 会在 workspace 里留下平台与 FSBL；BSP 路径由脚本打印。`board/vitis/` 只保存平台描述与 QEMU 参数，不保存 16 MB 级 BSP 和构建中间产物。
+平台重建成功后，`rebuild_vitis.py` 会在 workspace 里留下平台与 FSBL，并打印 `BSP_DIRS` 供下一步使用。`board/vitis/` 只保存平台描述与 QEMU 参数，不保存 16 MB 级 BSP 和构建中间产物。

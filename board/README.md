@@ -17,7 +17,7 @@
 `vivado/zynq_video_sys.xpr` 与 `vivado/zynq_video_sys.srcs/` 是从构建 TCL 生成并整理过的工程，包含：
 
 - 器件 `xc7z020clg484-2`；
-- 99 份 RTL 源文件与 3 份约束；
+- 92 份手写 RTL、1 份 BD wrapper、1 个块设计、3 份生效约束；
 - 块设计 `design_1`、PS7 配置、AXI GPIO 与 AXI HP0；
 - 源文件路径使用 `$PPRDIR/../../src/...`，工程内没有本机绝对路径。
 
@@ -31,7 +31,7 @@ vivado -mode batch -nojournal -log build/stage.log \
 期望结果：
 
 ```text
-VERIFY missing_files=0 of 102
+VERIFY missing_files=0 of 97
 VERIFY abs_path_lines=0
 STAGE_BOARD_PROJECTS DONE
 ```
@@ -88,7 +88,7 @@ VP_XSDB=<Vitis>/bin/xsdb.bat bash board/scripts/board_health.sh
 ## 5 QSPI 固化与冷启动
 
 ```bash
-bash board/scripts/make_boot_image.sh
+VP_VIVADO_BIN=<Vitis>/bin bash board/scripts/make_boot_image.sh
 VP_HW_URL=<host:port> vivado -mode batch -source board/tcl/flash_qspi.tcl
 ```
 
@@ -134,12 +134,11 @@ python src/host/link_selftest.py 192.168.1.10 6
 | `qspi_program.txt` | QSPI 擦除、写入、回读校验 |
 | `cold_boot.txt` | 断电重上后的启动模式、PL 状态、串口回显 |
 | `flash_jtag.txt` | JTAG 三步链与 GPIO 回读 |
-| `health.txt` | 串口 + JTAG + 异常向量快照 |
+| `health.txt` | 串口 + JTAG + 异常向量 + XADC 温度快照 |
 | `telemetry_8s.txt` | 8 秒推流的 1 Hz 遥测 |
 | `link_selftest.txt` | 干净 → 丢包 → 恢复三阶段自检 |
 | `uart_battery.txt` | 105 条串口命令电池 |
 | `link_gap.txt` | `link clr`、推流、停流后的帧间隔统计 |
-| `temperature.txt` | 连续推流后的温度读数 |
 
 历史轮次的原始日志不放在提交目录；需要追溯时看本机归档或 Git 历史。
 

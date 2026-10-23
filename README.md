@@ -48,9 +48,9 @@ Zynq-7020 上的一条全硬件视频通路，加上一套能从网线和串口�
 vivado -mode batch -source build/build.tcl
 
 # 台架
-bash build/sim/run_msim.sh rows udp_reasm reasm_bounds udp_telemetry \
+MSIM_BIN=<ModelSim>/win64 bash build/sim/run_msim.sh rows udp_reasm reasm_bounds udp_telemetry \
      eth_ctrl_arb eth_top_rgmii split_ctrl osd_overlay link_monitor
-bash build/sim/run_msim.sh video_pipeline_top
+MSIM_BIN=<ModelSim>/win64 bash build/sim/run_msim.sh video_pipeline_top
 
 # PS 应用
 PS_CC=<Vitis>/gnu/aarch32/nt/gcc-arm-none-eabi/bin/arm-none-eabi-gcc.exe \
@@ -82,7 +82,7 @@ src/rtl/            PL 源码：顶层、以太网、显示、几何、效果、
 src/ps/             PS 裸机：main.c、sd_play.c、链接脚本
 src/constraints/    引脚、时钟组、准静态 CDC、候选 IO 窗
 src/host/           推流、遥测、仪表、自检、串口判据
-sim/                88 支台架；sim/results/ 汇总最终判定
+sim/                92 支台架；sim/results/ 汇总最终判定
 build/build.tcl     Vivado 主入口
 build/tcl/          Vivado 构建与 board 工程 staging TCL
 build/vitis/        Vitis 平台重建脚本
@@ -107,6 +107,6 @@ deliverables/       技术文档与海报（仅本地，不进 GitHub）
 
 ## 边界
 
-遥测时延只覆盖 PL 内部（帧提交到开始扫描），不是玻璃到玻璃。RGMII 发侧在 HR bank 上没有 ODELAYE2，0° 转发仍有约 0.845 ns 的 TskewT 保持缺口；90° 与 −45° 都被否决。BRAM 70% 由整帧缓存决定，512×300 以上画幅放不下。185° 细线已由 RTL 和台架闭环，人眼目视仍建议做一次。逐条说明在 [`report/limits.md`](report/limits.md)。
+遥测时延只覆盖 PL 内部（帧提交到开始扫描），不是玻璃到玻璃。RGMII 发侧在 HR bank 上没有 ODELAYE2，0° 转发仍有约 0.845 ns 的 TskewT 保持缺口；90° 与 −45° 都被否决。BRAM 70% 由整帧缓存决定，512×300 以上画幅放不下。185° 细线已由 RTL 和台架闭环；E1–E3 已现场目视，未见异常，长时稳定性 E4/E5 未签收。逐条说明在 [`report/limits.md`](report/limits.md)。
 
 [English version](README_EN.md)

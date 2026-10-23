@@ -17,27 +17,31 @@
 
 | 台架 | 覆盖点 | 关键判据 | 结果 |
 |---|---|---|---|
-| `tb_crc32` | 以太网 FCS | 已知向量逐字节一致 | PASS |
-| `tb_udp_parser` | UDP 端口、长度、偏移 | 非法包必须拒绝，合法包必须放行 | PASS |
+| `tb_crc32` | 以太网 FCS | 已知向量逐字节一致 | 未纳入标准回归 |
+| `tb_udp_parser` | UDP 端口、长度、偏移 | 非法包必须拒绝，合法包必须放行 | 未纳入标准回归 |
 | `tb_udp_reasm` | 按偏移重组 | 乱序、缺包、重复包下的提交/作废 | PASS |
 | `tb_reasm_bounds` | 重组边界 | 越界偏移不得写坏相邻行 | PASS |
 | `tb_rows` | 行覆盖与提交 | 字节够但行不全时不得提交 | PASS |
 | `tb_eth_ingress_integrity` | 入包链完整性 | 坏包、短包、超长包计数与丢弃 | PASS |
-| `tb_saver` | AXI 打包写 DDR | 16→64 位拼接、突发长度、尾字 | PASS |
+| `tb_saver` | AXI 打包写 DDR | 16→64 位拼接、突发长度、尾字 | 未纳入标准回归 |
 | `tb_saver_tail_full` | 满 FIFO + flush | 尾字在 flush 后仍保留 | PASS |
 | `tb_eth_ctrl_arb` | ARP/ICMP/UDP 共用 GMII | 帧不被打断，长度与顺序正确 | PASS |
 | `tb_eth_top_rgmii` | RGMII → AXI 全链 | 端到端字节一致 | PASS |
 | `tb_udp_telemetry` | 遥测发送 | 以太网头、IP、UDP、载荷、IP 校验和 | PASS |
 | `tb_link_monitor` | 链路计数 | 帧间隔、作废、坏包、flags | PASS |
-| `tb_zoom_mapper` | 缩放逆映射 | 1.0 倍恒等、0.5 倍中心、越界 | PASS |
-| `tb_zoom_sel` | 旋转下的倍率选择 | 画面不转出边界 | PASS |
-| `tb_fb_bilinear` | 双线性读口 | 四邻点权重与旁路 | PASS |
-| `tb_proc_gray` / `tb_sharpen` / `tb_morph` | 效果级 | 逐像素与参考模型一致 | PASS |
-| `tb_split_ctrl` / `tb_split` | 竖缝位置与取像素 | 两侧同帧、同坐标 | PASS |
+| `tb_zoom_mapper` | 缩放逆映射 | 1.0 倍恒等、0.5 倍中心、越界 | 未纳入标准回归 |
+| `tb_zoom_sel` | 旋转下的倍率选择 | 画面不转出边界 | 未纳入标准回归 |
+| `tb_fb_bilinear` | 双线性读口 | 四邻点权重与旁路 | 未纳入标准回归 |
+| `tb_proc_gray` / `tb_sharpen` | 效果级 | 逐像素与参考模型一致 | 未纳入标准回归 |
+| `tb_morph` | 效果级 | 逐像素与参考模型一致 | PASS |
+| `tb_split_ctrl` | 竖缝位置与取像素 | 两侧同帧、同坐标 | PASS |
+| `tb_split` | 竖缝位置与取像素 | 两侧同帧、同坐标 | 未纳入标准回归 |
 | `tb_osd_overlay` | OSD 叠加 | 字模、位置、延迟 | PASS |
 | `tb_video_pipeline_top` | 完整显示链 | quick_c17；C17/C25/C26 专项 PASS，nfail=0 | PASS |
 
-标准回归 17 支，加上 `eth_ingress_integrity` 与 `saver_tail_full`，交付版本的汇总为 `fail=0`。完整视频台架的 185° 专项判定行是 `RESULT tb_video_pipeline_top PASS nfail=0 (quick_c17)`。
+标准回归 19 支（17 支原有台架加 `eth_ingress_integrity`、`saver_tail_full`），交付版本的汇总为 `fail=0`。
+
+标 PASS 的 19 支在 `sim/results/regression.txt` 都有判定行；标“未纳入标准回归”的台架源码在 `sim/`，本包未附运行日志，不作为交付结论。完整视频台架的 185° 专项判定行是 `RESULT tb_video_pipeline_top PASS nfail=0 (quick_c17)`。
 
 ## 3 专项判据
 
@@ -59,7 +63,7 @@ C22 针对效果链窗口级的行标签与内容是否同拍。优化前，帧�
 
 C31 使用 9 位列标签帧 `{1'b1, row[5:0], col[8:0]}`，直接检查每一格选中的抽头。优化前，旋转时帧尾两整行各 1028 格不符；把竖缝的 `sx` 先过 2 行环、再进 `seam_src` 后，swap 两态全帧为 0。
 
-两条判据都保留了“改前红、改后绿”的日志，变异对照不是事后补的。
+两条判据都给出了改前/改后读数；包内完整视频台架报告保留 C22 的 PASS 行，C31 的逐行复验在 `sim/results/c31_edge_rim.log`，改前红的历史读数保存在本地归档。
 
 ### 3.3 UDP 校验和
 
@@ -95,8 +99,8 @@ C31 使用 9 位列标签帧 `{1'b1, row[5:0], col[8:0]}`，直接检查每一�
 | 处理窗 | 185°、split video 50%、灰度单级 | `pane_bad=0` 且有效 | 通过 |
 | 帧间隔 | `link clr` → 推流 → 停流 → 重启 → `link` | 推流中 `gap_valid=1`；停流 `stall` 增长；重启后 `gap_max` 记录长间隔 | 通过（`gap_max=22 061 ms`） |
 | 串口命令 | 105 条命令清单 | 逐条回声，末态回到初态 | 通过 |
-| 温度 | 连续推流后 `temp` | `sane=1`，读数合理 | 57–62 °C |
-| HDMI 画面 | 人眼 | 左右同帧、几何一致、OSD 与串口一致 | 待现场签收 |
+| 温度 | 连续推流后 `temp` | `sane=1`，读数合理 | 61.8–63.8 °C |
+| HDMI 画面 | 人眼 | 左右同帧、几何一致、OSD 与串口一致 | E1–E3 目视未见异常；E4/E5 未签收 |
 
 ## 5 判据自身怎么被检查
 
@@ -107,7 +111,7 @@ C31 使用 9 位列标签帧 `{1'b1, row[5:0], col[8:0]}`，直接检查每一�
 
 ## 6 没覆盖的部分
 
-- HDMI 画面的主观观感、线缆兼容性和面板色彩不在机器判据里，需要人眼签收；
+- HDMI 画面的 E1–E3 已现场目视，未见异常，但没有仪器凭据；E4/E5 的长时稳定性和面板色彩仍未签收；
 - 遥测时延不覆盖编码、网线和交换机，不能写成端到端时延；
 - RGMII 发送侧的 TskewT 保持缺口没有在 RTL 内消除，当前靠 0° 转发和板上长期 ping 稳定；
 - 功耗与结温是工具估算，未做板上功耗测量；

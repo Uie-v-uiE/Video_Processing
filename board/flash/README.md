@@ -3,8 +3,10 @@
 | 文件 | 内容 |
 |---|---|
 | `BOOT.bin` | FSBL + 位流 + PS 应用，写入板载 QSPI |
+| `fsbl.elf` | 打包时使用的 FSBL，供原样重打 |
 | `boot.bif` | bootgen 的镜像描述，路径相对 BIF 文件本身 |
 | `bootgen.log` | 打包日志 |
+| `boot_manifest.txt` | 三份输入与镜像的 MD5 |
 
 ## 重新打包
 
@@ -12,7 +14,7 @@
 VP_VIVADO_BIN=<Vitis>/bin bash board/scripts/make_boot_image.sh
 ```
 
-脚本默认在 `board/vitis_ws/` 下找平台构建生成的 `fsbl.elf`（也可用 `VP_FSBL` 指定），再取 `board/project/system.bit` 和 `board/project/ps_app.elf`，生成 `BOOT.bin`。`boot.bif` 里用相对路径，换一台机器解包不会带本机盘符。
+脚本优先取同目录的 `fsbl.elf`，再取 `board/vitis_ws/` 下平台构建生成的 FSBL（也可用 `VP_FSBL` 指定），然后取 `board/project/system.bit` 和 `board/project/ps_app.elf`，生成 `BOOT.bin`。`boot.bif` 里用相对路径，换一台机器解包不会带本机盘符。当前镜像的三件套读数在 `boot_manifest.txt`。
 
 期望结果：
 
@@ -20,6 +22,8 @@ VP_VIVADO_BIN=<Vitis>/bin bash board/scripts/make_boot_image.sh
 BOOT_IMAGE .../board/flash/BOOT.bin
 BOOT_BYTES ...
 BOOT_MD5 ...
+FSBL_MD5 ...
+BOOT_MANIFEST .../board/flash/boot_manifest.txt
 MAKE_BOOT_IMAGE DONE
 ```
 

@@ -2,8 +2,8 @@
 # board/scripts/make_boot_image.sh —— 把 FSBL + 位流 + PS 应用打成一个 QSPI 启动镜像 BOOT.bin
 #
 # 依赖：bootgen（Vivado/Vitis 2025.2.1 安装树里的 `bin/bootgen.bat`，不在 PATH）；
-#       三份输入都在盘上：`board/vitis_ws/` 下平台构建生成的 `fsbl.elf`（也可用 VP_FSBL 指定）、
-#       `board/project/system.bit`、`board/project/ps_app.elf`。
+#       三份输入都在盘上：`board/flash/fsbl.elf`（随包）、`board/project/system.bit`、
+#       `board/project/ps_app.elf`。重建平台后也可用 VP_FSBL 指向 board/vitis_ws 里的 FSBL。
 # 用法：VP_VIVADO_BIN=<Vivado>/bin bash board/scripts/make_boot_image.sh
 # 参数：
 #   | 变量 | 作用 | 默认 |
@@ -30,7 +30,8 @@ BG="$VP_VIVADO_BIN/bootgen.bat"
 out="${VP_BOOT_OUT:-$root/board/flash}"
 fsbl="${VP_FSBL:-}"
 if [ -z "$fsbl" ]; then
-  for cand in "$root/vitis/fin2_plat/zynq_fsbl/fsbl.elf" \
+  for cand in "$out/fsbl.elf" \
+              "$root/vitis/fin2_plat/zynq_fsbl/fsbl.elf" \
               "$root/vitis/platform/zynq_fsbl/build/fsbl.elf"; do
     [ -s "$cand" ] && { fsbl="$cand"; break; }
   done
@@ -72,11 +73,24 @@ grep -q "\[ERROR\]" "$out/bootgen.log" && { tail -20 "$out/bootgen.log" >&2; die
 grep -q "Bootimage generated successfully" "$out/bootgen.log" \
   || { tail -20 "$out/bootgen.log" >&2; die "bootgen 没有打印成功行"; }
 [ -s "$img" ] || die "bootgen 报成功但 $img 不在盘上或为空"
+boot_md5="$(md5sum "$img" | cut -d' ' -f1)"
+bit_md5="$(md5sum "$bit" | cut -d' ' -f1)"
+app_md5="$(md5sum "$app" | cut -d' ' -f1)"
+fsbl_md5="$(md5sum "$fsbl" | cut -d' ' -f1)"
+{
+  printf 'BOOT_IMAGE %s\n' "$(basename "$img")"
+  printf 'BOOT_BYTES %s\n' "$(wc -c < "$img")"
+  printf 'BOOT_MD5 %s\n' "$boot_md5"
+  printf 'BIT_MD5 %s\n' "$bit_md5"
+  printf 'APP_MD5 %s\n' "$app_md5"
+  printf 'FSBL_MD5 %s\n' "$fsbl_md5"
+} > "$out/boot_manifest.txt"
 say "BOOT_IMAGE $img"
 say "BOOT_BYTES $(wc -c < "$img")"
-say "BOOT_MD5   $(md5sum "$img" | cut -d' ' -f1)"
-say "BIT_MD5    $(md5sum "$bit" | cut -d' ' -f1)"
-say "BIT_MD5_12 $(md5sum "$bit" | cut -c1-12)"
-say "APP_MD5    $(md5sum "$app" | cut -d' ' -f1)"
-say "FSBL_MD5   $(md5sum "$fsbl" | cut -d' ' -f1)"
+say "BOOT_MD5   $boot_md5"
+say "BIT_MD5    $bit_md5"
+say "BIT_MD5_12 $(printf '%s' "$bit_md5" | cut -c1-12)"
+say "APP_MD5    $app_md5"
+say "FSBL_MD5   $fsbl_md5"
+say "BOOT_MANIFEST $out/boot_manifest.txt"
 say "MAKE_BOOT_IMAGE DONE"
