@@ -4,6 +4,13 @@ A fully hardware video path on Zynq-7020, with an observation instrument that ca
 
 A host PC sends 512×300 RGB565 frames as UDP datagrams of at most 1392 bytes to port 5001. The PL receives them from RGMII, passes them through the MAC, UDP filtering and offset-based frame reassembly, and writes complete frames into a DDR ping-pong buffer. The display side reads a frame back, applies scaling, arbitrary-angle rotation, bilinear interpolation and a six-stage effect chain, then overlays OSD text and expands the result ×2 to a 1024×600, 59.5 Hz HDMI output. Pixels never pass through the PS. A vertical seam in the middle of the screen shows the source on the left and the processed version of the same frame on the right; both sides share the same geometry engine and a fixed 15-cycle effect chain.
 
+## Highlights
+
+- **All-PL video path**: RGMII ingest, frame reassembly, DDR ping-pong, geometry, effects, OSD and HDMI all run in the PL; pixels never pass through the PS.
+- **Same-frame A/B seam**: the source and processed panes share one geometry engine and one set of row tags, so the seam compares the same frame rather than two independently scaled paths.
+- **A falsifiable instrument**: frame commit, `pane_bad`, `link` frame-gap statistics and fault injection can all be made to fail; the self-test compares per-second deltas instead of flattering absolutes.
+- **Positive timing margin**: WNS improves from 1.029 ns before optimisation to 1.341 ns, with WHS 0.025 ns, TNS/THS 0 and zero failing endpoints.
+
 ## What can be checked
 
 | Claim | How to check | Reading |
@@ -40,6 +47,18 @@ Device: `xc7z020clg484-2`. Tools: Vivado / Vitis 2025.2.1.
 | Design report | `report/design-report.md`, `report/verification.md`, `report/optimization.md`, `report/collaboration/`, `report/skill-distillation.md`, `report/reproduction.md` |
 
 `board/` uses two project folders: `board/vivado/` contains the `.xpr` and `.srcs`; `board/vitis/` contains the platform descriptor and QEMU arguments. Source paths use `$PPRDIR/../../src/...`; there are no absolute host paths in the project.
+
+## TCL build flow and timing convergence
+
+`build/build.tcl` forwards to `build/tcl/build_system_axigpio.tcl`: project and block design, synthesis, implementation, bitstream/XSA, then timing, utilisation, CDC, methodology and power reports. `build/tcl/stage_board_projects.tcl` stages the project into `board/vivado` and opens it for verification.
+
+| Stage | WNS | WHS | Failing endpoints | Note |
+|---|---:|---:|---:|---|
+| Before optimisation | 1.029 ns | — | — | Worst setup on the cross-MMCM processing-window bus |
+| After reset-tree replication | 1.172 ns | — | — | Local link-monitor reset tree duplicated |
+| Final | 1.341 ns | 0.025 ns | 0 | TNS/THS = 0; worst path is reset recovery |
+
+Source: `build/reports/build_timing_summary.rpt` and `report/optimization.md`. The final WHS is 0.025 ns; it was around 0.048 ns during optimisation. That final change is placement noise and remains positive, so it is not claimed as an optimisation gain.
 
 ## Build and reproduce
 

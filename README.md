@@ -4,6 +4,13 @@ Zynq-7020 上的一条全硬件视频通路，加上一套能从网线和串口�
 
 上位机把 512×300、RGB565 的帧切成不超过 1392 字节的 UDP 报文发到 5001 端口。PL 从 RGMII 开始收包，经 MAC、UDP 过滤、按帧内偏移重组，写入 DDR 乒乓缓存；显示侧读回整帧，做缩放、任意角度旋转、双线性插值和六级效果处理，与 OSD 一起按 ×2 展开到 1024×600、59.5 Hz HDMI。像素通路不经过 PS。屏幕中间的竖缝左侧是原图、右侧是同一帧的处理图，两侧共用几何算子和固定 15 拍的效果链。
 
+## 亮点
+
+- **全 PL 视频通路**：RGMII 收包、帧重组、DDR 乒乓、几何、效果链、OSD、HDMI 都在 PL 内完成，像素不经过 PS。
+- **同帧 A/B 竖缝**：原图和处理图共用同一套几何与行标签，竖缝两侧是同一帧，不是两路各自缩放。
+- **可证伪的观测仪表**：帧提交三条件、`pane_bad`、`link` 帧间隔和故障注入都能被打红；自检用每秒变化量，不用好看的绝对值。
+- **收敛到正余量**：优化前 WNS 1.029 ns，最终 1.341 ns、WHS 0.025 ns、TNS/THS 为 0、失败端点 0。
+
 ## 可复核的结果
 
 | 结论 | 怎么看 | 读数 |
@@ -40,6 +47,18 @@ Zynq-7020 上的一条全硬件视频通路，加上一套能从网线和串口�
 | 设计报告七项 | `report/design-report.md`、`report/verification.md`、`report/optimization.md`、`report/collaboration/`、`report/skill-distillation.md`、`report/reproduction.md` |
 
 `board/` 采用两个工程文件夹：`board/vivado/` 放 `.xpr` 与 `.srcs`，`board/vitis/` 放平台描述与 QEMU 参数；源码路径使用 `$PPRDIR/../../src/...`，工程内没有本机绝对路径。
+
+## TCL 构建流程与时序收敛
+
+`build/build.tcl` 转发到 `build/tcl/build_system_axigpio.tcl`：建工程与块设计 → 综合 → 实现 → 位流/XSA → 时序、资源、CDC、方法学和功耗报告。`build/tcl/stage_board_projects.tcl` 再把工程整理到 `board/vivado` 并现场打开验证。
+
+| 阶段 | WNS | WHS | 失败端点 | 说明 |
+|---|---:|---:|---:|---|
+| 优化前 | 1.029 ns | — | — | 最差 setup 在跨 MMCM 的处理窗总线 |
+| 复位树复制后 | 1.172 ns | — | — | 复制 link-monitor 本地复位树 |
+| 最终 | 1.341 ns | 0.025 ns | 0 | TNS/THS 为 0；最差路径回到复位恢复 |
+
+数据源是 `build/reports/build_timing_summary.rpt` 与 `report/optimization.md`。WHS 最终为 0.025 ns；优化过程中曾在 0.048 ns 附近，最终下降是布局扰动，仍为正，不作为优化收益宣称。
 
 ## 构建与复现
 
@@ -109,6 +128,6 @@ deliverables/       技术文档与海报（仅本地，不进 GitHub）
 
 ## 边界
 
-遥测时延只覆盖 PL 内部（帧提交到开始扫描），不是玻璃到玻璃。RGMII 发侧在 HR bank 上没有 ODELAYE2，0° 转发仍有约 0.845 ns 的 TskewT 保持缺口；90° 与 −45° 都被否决。BRAM 70% 由整帧缓存决定，512×300 以上画幅放不下。185° 细线已由 RTL 和台架闭环；E1–E4 已现场确认，E5 的 SD 拔插未单独签收。逐条说明在 [`report/limits.md`](report/limits.md)。
+遥测时延只覆盖 PL 内部（帧提交到开始扫描），不是玻璃到玻璃。RGMII 发侧在 HR bank 上没有 ODELAYE2，0° 转发仍有约 0.845 ns 的 TskewT 保持缺口；90° 与 −45° 都被否决。BRAM 70% 由整帧缓存决定，512×300 以上画幅放不下。185° 细线已由 RTL 和台架闭环；E1–E5 已现场确认，含 ETH 与 SD 插拔。逐条说明在 [`report/limits.md`](report/limits.md)。
 
 [English version](README_EN.md)
