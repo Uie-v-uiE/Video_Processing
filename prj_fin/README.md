@@ -16,6 +16,7 @@
 | 协作记录 | `report/collaboration/README.md` |
 | 学习手册 | `learning/architecture_learning_guide.md` |
 | 演示视频拍摄手册 | `learning/demo_video_shooting_guide.md` |
+| 分区拍摄与剪辑脚本 | `learning/demo_highlight_shooting_plan.md` |
 | 学习资料历史与参考 | `learning/archive/`、`learning/reference/` |
 | 板级说明、验收、硬件连接 | `board/README.md` |
 | 构建与实现报告索引 | `build/reports/index.md` |
