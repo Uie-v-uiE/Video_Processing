@@ -12,4 +12,4 @@
 | `sim/` | xsim 运行入口 |
 | `reports/` | 时序、资源、CDC、功耗、回归与完整视频台架判定 |
 
-文档生成器（技术文档 DOCX/PDF、海报 PPTX 导出）是本地交付工具，放在 `tools/docs/`，不属于构建链，也不进入 GitHub。
+文档生成器（技术文档 DOCX/PDF、海报 PPTX 导出）是本地交付工具，放在 `tools/docs/`，不属于构建链；main 不收录，生成方法与参数归档在 FIN/records/design。
