@@ -138,16 +138,16 @@ description: 给智能体的提示词模板：把一轮改动压成"唯一变量
 
 ## 7. 已验证的效果
 
-- `build/r114_replication_ab.sh`（本仓库，某轮）：这份脚本就是第 2 步的落地件——头部写死"两滚都 `place → phys_opt → route`，变量只有一个"，判读列 V1/V2/V2b/V2c/V3/V4/V5，结论口径"V2b/V2c 任一红 ⇒ `verdict=MECHANISM_INERT`……头条 WNS 的绝对差只念不判"；并写明"为什么不是 `set_max_fanout`：那条命令在本工具里不存在（help 回 `No topics matched`），前两版脚本写给它，两滚'没差别'会变成假结论"。
-- `build/evidence/r117_repl3/B_console.txt`（某轮）：单变量那一滚的执行记录，含 `R3_AGREE / R3_BEFORE / R3_AFTER / R3_REPLICA_CELLS` 与四域 `ROW` 读数（机制闭合等式：目标网引脚 239→1、10 颗 replica、端点 15721→15731；见 `docs/timing/README.md` 某轮 的 r116/r117 追加索引）。
-- `docs/timing/README.md`（某轮）时间线一节：`22:43 B4 完成：noise_ns=0.000（N1–N4 全绿）`，以及"两滚完成：**A 滚名册与基线逐格相同**（32 次比较全绿）；B 滚 `REPLICA_CELLS` 0→310（机制动了）"→ 同节 `23:12` 记 "F1–F4/F6 绿、**F5 红 4 格** ⇒ C1 **拒绝**"，即第 2 步"机制绿、代价红 ⇒ DECLINE"的一次真实执行；`docs/timing/cut_ledger.tsv`（同一轮台账）里 C9 行的状态写 `declined(official r117 … four cells lose)`。
-- `report/TIMING_GLOBAL.md`（某轮）第 2 节："同一份 `opt.dcp` 重跑 place+route **逐位复现**（不是骰子）"⇒ 第 4 步的低成本复算在这台工具上是合法对照；第 2b 节给的是"名册八对逐位相同 ⇒ 功能修复、时序中性"这种成对判据写法。
-- `docs/timing/cut_ledger.tsv`（某轮）C5 行：`excluded(until C1 measured)`，理由原文"多变量，会把 C1 的单变量性打掉"；C2 行"必须与 C1 分开跑（单变量 #223）"。
+- `build/r114_replication_ab.sh`（本仓库，项目实测）：这份脚本就是第 2 步的落地件——头部写死"两滚都 `place → phys_opt → route`，变量只有一个"，判读列 V1/V2/V2b/V2c/V3/V4/V5，结论口径"V2b/V2c 任一红 ⇒ `verdict=MECHANISM_INERT`……头条 WNS 的绝对差只念不判"；并写明"为什么不是 `set_max_fanout`：那条命令在本工具里不存在（help 回 `No topics matched`），前两版脚本写给它，两滚'没差别'会变成假结论"。
+- `build/evidence/r117_repl3/B_console.txt`（项目实测）：单变量那一滚的执行记录，含 `R3_AGREE / R3_BEFORE / R3_AFTER / R3_REPLICA_CELLS` 与四域 `ROW` 读数（机制闭合等式：目标网引脚 239→1、10 颗 replica、端点 15721→15731；见 `docs/timing/README.md` 项目实测 的 r116/r117 追加索引）。
+- `docs/timing/README.md`（项目实测）时间线一节：`22:43 B4 完成：noise_ns=0.000（N1–N4 全绿）`，以及"两滚完成：**A 滚名册与基线逐格相同**（32 次比较全绿）；B 滚 `REPLICA_CELLS` 0→310（机制动了）"→ 同节 `23:12` 记 "F1–F4/F6 绿、**F5 红 4 格** ⇒ C1 **拒绝**"，即第 2 步"机制绿、代价红 ⇒ DECLINE"的一次真实执行；`docs/timing/cut_ledger.tsv`（同一轮台账）里 C9 行的状态写 `declined(official r117 … four cells lose)`。
+- `report/TIMING_GLOBAL.md`（项目实测）第 2 节："同一份 `opt.dcp` 重跑 place+route **逐位复现**（不是骰子）"⇒ 第 4 步的低成本复算在这台工具上是合法对照；第 2b 节给的是"名册八对逐位相同 ⇒ 功能修复、时序中性"这种成对判据写法。
+- `docs/timing/cut_ledger.tsv`（项目实测）C5 行：`excluded(until C1 measured)`，理由原文"多变量，会把 C1 的单变量性打掉"；C2 行"必须与 C1 分开跑（单变量 #223）"。
 - 基线对比（不用本模板）：`【待验证】`。需同一提示词连跑 3 次并比较"是否出现只念头条绝对值的结论"；目前 0 次，**还差 3 次**。
 
 ## 8. 提炼来源与边界
 
-- 提炼来源：`build/r114_replication_ab.sh`、`build/evidence/r117_repl3/B_console.txt`、`docs/timing/cut_ledger.tsv`、`docs/timing/README.md`、`docs/timing/ROUND_r116.md`、`docs/timing/ROUND_r117.md`（判负记录）、`report/TIMING_GLOBAL.md` 第 2/2b/3 节、`skill/pitfalls/ab-revert-control-run/SKILL.md`（某轮，#113：新红先退回未改状态用同一版台架再跑）、`report/log/ISSUES.md` #223（单变量纪律与"同树重复滚 = 零散布"的结案）、#254、#288、#319/#320（选项名与目标网名未核实造成的假"没差别"）、#328（四格变差判负）。
+- 提炼来源：`build/r114_replication_ab.sh`、`build/evidence/r117_repl3/B_console.txt`、`docs/timing/cut_ledger.tsv`、`docs/timing/README.md`、`docs/timing/ROUND_r116.md`、`docs/timing/ROUND_r117.md`（判负记录）、`report/TIMING_GLOBAL.md` 第 2/2b/3 节、`skill/pitfalls/ab-revert-control-run/SKILL.md`（项目实测，#113：新红先退回未改状态用同一版台架再跑）、`report/log/ISSUES.md` #223（单变量纪律与"同树重复滚 = 零散布"的结案）、#254、#288、#319/#320（选项名与目标网名未核实造成的假"没差别"）、#328（四格变差判负）。
 - 迁移要点：V3/V4/V5 的三个阈值都要由你自己的噪声底推出来；把"复制单元数"这一类机制计数换成你手段的对应可数读数（要两个不同来源，规矩：一条形状行的两个操作数不许同源）。
 - 失效边界：工具放置/布线不确定（跨构建同树重跑数字会漂）时，第 4 步的"检查点复算"只给方向不给结论，收益判定必须回到同变量双跑；当只有全量构建可用（无中间检查点）时，一轮只能验一条，模板第 1 步的"其余候选 excluded"就变成硬性。
 - 边界：本模板不判定功能对错（见 `../criterion-before-code/`），也不重新划定架构侧（见 `../hw-sw-partition/`）。

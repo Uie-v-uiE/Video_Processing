@@ -14,7 +14,7 @@ clock	period_ns	src	wns_setup	tns_setup	nfp_setup	wns_hold	tns_hold	nfp_hold	rel
 【填入】	【填入】	【填入】	【填入或NA】	【填入或NA】	【填入或NA】	【填入或NA】	【填入或NA】	【填入或NA】	【算式：wns/period】	【算式：whs/period】	【填入】	【填入】	【填入】
 ```
 
-列名与口径的出处（示例取值，需按自身工程替换）：本仓库 `docs/timing/roster_baseline.tsv`（某轮）用的就是这 13 列；它的文件头把口径写死在两行注释里（`rel_margin_* = wns_* / period_ns`、`io_unconstrained_ports = check_timing 的 HIGH 两类之和`）。
+列名与口径的出处（示例取值，需按自身工程替换）：本仓库 `docs/timing/roster_baseline.tsv`（项目实测）用的就是这 13 列；它的文件头把口径写死在两行注释里（`rel_margin_* = wns_* / period_ns`、`io_unconstrained_ports = check_timing 的 HIGH 两类之和`）。
 
 ## 2. 填这张表的六条硬规矩
 

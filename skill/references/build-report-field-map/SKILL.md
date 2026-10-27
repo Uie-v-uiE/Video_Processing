@@ -29,7 +29,7 @@ description: 查"某个数字在工具报告的哪一行哪一列"的速查表�
   `build/timing_summary.rpt`、`build/utilization.rpt`、`build/power.rpt`、`build/cdc.rpt`、
   `build/route_status.rpt`、`build/clock_util.rpt`、`build/methodology.rpt`。
 - 能跑 `grep -n` / `awk`；字段表复算命令在本页 §5 给出。
-- 核对日期 某轮，来源类型全部为"件"（我本次打开过这些文件并读到引用行）。
+- 核对日期 项目实测，来源类型全部为"件"（我本次打开过这些文件并读到引用行）。
 
 ## 5. 使用方法
 
@@ -67,7 +67,7 @@ description: 查"某个数字在工具报告的哪一行哪一列"的速查表�
 
 ## 7. 已验证的效果
 
-- 本次直读并复算的行（某轮，全部为打开该文件后取到的原文行号）：
+- 本次直读并复算的行（项目实测，全部为打开该文件后取到的原文行号）：
   `build/timing_summary.rpt:3`（Tool Version 行）、`:145`（段落标题）、`:149`（列名行）、`:151`（数据行）、
   `:218-222 / :354-358 / :533-537`（逐时钟 Setup/Hold）、`:44-52`（内嵌 Report Methodology 表）；
   `build/utilization.rpt:33-40`（Slice LUTs / Registers）、`:106`（Block RAM Tile）、`:122`（DSP48E1 only）；

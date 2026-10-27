@@ -45,7 +45,7 @@ description: 报告模板条目：四张表的表头与填写口径——指标�
 | `acceptance-record.md` | 上板或整机验收、要把机器判据与人眼判据分开签时 |
 | `collab-record.md` | 要交付"提示词/回答/被哪个读数推翻/落成哪条规矩"的协作记录时 |
 
-槽位计数自检（命令 `grep -o '【填入' <文件> | wc -l`，实跑 某轮）：`metrics-table.md` 24 ·
+槽位计数自检（命令 `grep -o '【填入' <文件> | wc -l`，实跑 项目实测）：`metrics-table.md` 24 ·
 `timing-readout.md` 28 · `optimization-compare.md` 65 · `acceptance-record.md` 15 · `collab-record.md` 6 ·
 本 `SKILL.md` 3。实例化到陌生工程后，目标文件里这些数应当归 0（第 5.1 节第 2 步就是这条检查）。
 
@@ -96,25 +96,25 @@ description: 报告模板条目：四张表的表头与填写口径——指标�
 
 ## 7. 已验证的效果
 
-- 表头形状核对（本次实跑，某轮，仓库 `D:/Xilinx/Prj/pro/Video_Processing`）：
+- 表头形状核对（本次实跑，项目实测，仓库 `D:/Xilinx/Prj/pro/Video_Processing`）：
   命令 `head -1 data/metrics.csv` 实际输出
   `指标名称,类别,数值,单位,测量条件,测试次数或时长,证据文件`（与 `metrics-table.md` 第 1 节逐字一致；
-  该文件 mtime 某轮）。期望输出 = 该文件第一行本身，故本次只核对列名与列序，不核对表内数值。
-- 逐域花名册列名与口径来源：`docs/timing/roster_baseline.tsv`（某轮）13 列与文件头的两行口径注释；
-  差分表列名来源：`docs/timing/roster_round116.tsv`（某轮）含 `b_*` 对照列、
+  该文件 mtime 项目实测）。期望输出 = 该文件第一行本身，故本次只核对列名与列序，不核对表内数值。
+- 逐域花名册列名与口径来源：`docs/timing/roster_baseline.tsv`（项目实测）13 列与文件头的两行口径注释；
+  差分表列名来源：`docs/timing/roster_round116.tsv`（项目实测）含 `b_*` 对照列、
   四条 `_delta` 列与 `verdict` 列（`RED` 只落在 `eth_rxc` 那一行）。
-- "没采纳的刀也要有表"的落地形状：`docs/timing/cut_ledger.tsv`（某轮）`status` 列；
-  `report/OPTIMIZATION_LOG.md`（某轮）把"哪些刀落地、哪些被证据否掉"写在同一份文档。
-- 验收表形状来源：`board/ACCEPTANCE.md`（某轮）机器判据表（`# | 判据 | 读数 | 凭据` + 按行记版本），
-  `board/VERIFY_r87.md`（某轮）"命令 → 该看见什么 → 看不见说明什么"三段式。
-- 协作记录五栏形状来源：`report/LLM_COLLAB.md`（某轮）例 1–例 6 与第 5 节表格。
+- "没采纳的刀也要有表"的落地形状：`docs/timing/cut_ledger.tsv`（项目实测）`status` 列；
+  `report/OPTIMIZATION_LOG.md`（项目实测）把"哪些刀落地、哪些被证据否掉"写在同一份文档。
+- 验收表形状来源：`board/ACCEPTANCE.md`（项目实测）机器判据表（`# | 判据 | 读数 | 凭据` + 按行记版本），
+  `board/VERIFY_r87.md`（项目实测）"命令 → 该看见什么 → 看不见说明什么"三段式。
+- 协作记录五栏形状来源：`report/LLM_COLLAB.md`（项目实测）例 1–例 6 与第 5 节表格。
 - 空目录演练（把这些表复制进新目录、只改 `【填入】` 后由重算脚本判绿）：`【待验证】`。
   本次只在原仓库核对列名与列序，未在第二目录跑完整流程；还差：一次新目录演练 + 一次"故意改错一格必须红"的记录。
 
 ## 8. 提炼来源与边界
 
 - 提炼来源：`data/metrics.csv`（口径行与实测行分行、逐轮差值写在测量条件里、"未报"也占一行）、
-  `report/PERF_REPORT.md`（某轮，"同一份数字抄在第二个地方就会漂移，所以这里只给指路、不复制数值"的时效声明）、
+  `report/PERF_REPORT.md`（项目实测，"同一份数字抄在第二个地方就会漂移，所以这里只给指路、不复制数值"的时效声明）、
   `report/TIMING_GLOBAL.md`（逐域名册与"绝对差只念不判"）、`docs/timing/*.tsv`（列名与差分形状）、
   `board/ACCEPTANCE.md` 与 `board/VERIFY_r87.md`（按行记版本、未盖章明写）、`report/LLM_COLLAB.md`（协作记录五栏）、
   `src/host/metric_recheck.mjs` 与 `src/host/line_cite_check.mjs`（"文档里的每个数必须能对回报告""行号引用必须落在锚点上"两把尺子）。

@@ -25,7 +25,7 @@ description: 从寄存器契约表（TSV）生成主机侧打包/解包骨架与
 
 ## 4. 前置条件
 
-- 工具探针：脚本自身不打印版本，但 C4 会**用自己的解释器**（`process.execPath`）对两份产物各跑一次 `node --check`；本仓 `run_all.sh` 的汇总行会念出 `node=v24.21.0`（某轮 实测）。没有 node 的环境直接不适用。
+- 工具探针：脚本自身不打印版本，但 C4 会**用自己的解释器**（`process.execPath`）对两份产物各跑一次 `node --check`；本仓 `run_all.sh` 的汇总行会念出 `node=v24.21.0`（项目实测）。没有 node 的环境直接不适用。
 - 在仓库根执行（`--contract` 与 `--out-dir` 都是相对 cwd 的路径）。
 - 输入：一张 TSV（制表符分隔，`#` 开头行被丢弃）。上面 10 个必填字段必须**同名列存在**，另允许可选列（`name` 用来点出问题行；本仓示例表还带三列证据，本脚本不读它们）。
 - 输入缺失的行为：缺 `--contract`、缺 `--out-dir`、路径不存在、文件为空、只有表头 ⇒ 打印两行 `GEN 读不到输入 … NOT_MEASURED` + `GEN 读不到输入 判 0 项 NOT_MEASURED` 并以 **2** 退出；无法识别的参数 ⇒ 以 **3** 退出。都不产出半截文件。
@@ -67,7 +67,7 @@ description: 从寄存器契约表（TSV）生成主机侧打包/解包骨架与
 
 ## 7. 已验证的效果
 
-- 正例（本仓 某轮 实跑，表 = 上面点名的 14 列示例件，产物写临时目录）：
+- 正例（本仓 项目实测 实跑，表 = 上面点名的 14 列示例件，产物写临时目录）：
   `C1_required_fields 判 110 项 行=11 检查=110 缺=0 PASS` / `C3_widest_input_recheck 判 33 项 行=11 判=33 破=0 判不了=0 PASS` /
   `C2_emit_coverage 判 22 项 应生成=11 实际=11 漏=0 多余=0 PASS` / `C4_generated_parses 判 2 项 regmap_host.mjs:语法过 regmap_host_stub.mjs:语法过 PASS` /
   `C5_units_and_domain_in_code 判 22 项 行=11 判=22 缺=0 PASS`，末行 `… 判 189 项 未判 0 项 红 0 项 PASS`（exit 0）。
@@ -86,7 +86,7 @@ description: 从寄存器契约表（TSV）生成主机侧打包/解包骨架与
 ## 8. 提炼来源与边界
 
 - 来源证据：`skill/scripts/contract_gen/contract_gen.mjs` 的 C1–C5 实现（第 81–225 行）与文件头"缺字段 ⇒ 退出码 3、不臆造默认值"的设计约束；
-  本目录的 `run_all.sh` 逐条对照（上面第 7 节全部来自本会话实跑）；`skill/evals/records/audit-某轮.md` 已登记同族问题（`printed` 计数器不自增 ⇒ 退出 3 那行的分母只有 C1 的数，不是全跑数）。
+  本目录的 `run_all.sh` 逐条对照（上面第 7 节全部来自本会话实跑）；`skill/evals/records/audit-项目实测.md` 已登记同族问题（`printed` 计数器不自增 ⇒ 退出 3 那行的分母只有 C1 的数，不是全跑数）。
 - 边界：本条目管"表 → 可跑骨架 + 可跑断言"，不管表从哪来（`skill/templates/interface-contract/`）、不管表与 RTL/文档是否一致（`regmap_check`）、
   不管主机代码是否真的调用它（生成的骨架不认识总线：GPIO 整字 / AXI-Lite / 串口都由调用方注入）。
 - 迁移要改三处：① `REQUIRED` 十列换成你自己的字段名；② `PROTECTED` 守卫表换成你工程的不可写目录前缀；③ 反例件（缺格 / 最宽输入与量程不符）各造一份，

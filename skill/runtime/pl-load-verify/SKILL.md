@@ -105,7 +105,7 @@ L1 必须是第一层：它是这条链里唯一不依赖任何软件配合、�
 
 恢复顺序（彻底断电是兜底，不是第一步）：`rst -system`（或先 halt APU）→ 重新初始化 PS → 重编 PL → 重载应用 → 重新起流量再读数。
 
-- 本仓取证：`report/log/ISSUES.md` `#315`（某轮）—— 三步链自己报全绿之后串口哑掉，`targets` 显示两个 A9 均 `(Running)`；用 `build/tcl/r116_jtag_recover.tcl` 的 `rst -system` 恢复后串口立刻回 1428 字节，凭据 `build/r116_recover_console.txt`。
+- 本仓取证：`report/log/ISSUES.md` `#315`（项目实测）—— 三步链自己报全绿之后串口哑掉，`targets` 显示两个 A9 均 `(Running)`；用 `build/tcl/r116_jtag_recover.tcl` 的 `rst -system` 恢复后串口立刻回 1428 字节，凭据 `build/r116_recover_console.txt`。
 - 该故障在别的器件家族/别的加载通路（Linux 固件加载、PR 通路）上的表现与恢复粒度是否相同：`【未在本队取证】`。
 
 ### 5-E PYNQ 对位写法
@@ -139,12 +139,12 @@ L1 必须是第一层：它是这条链里唯一不依赖任何软件配合、�
   - 复跑命令：`bash build/r116_bit_cycle.sh <标签> [位流路径]`（它按 `rst -system → ps_jtag_boot → program_pl(VP_BIT) → ps_app_reload → 带流读两次` 串起来）。
   - 输入路径：`build/evidence/r118_bit/system.bit`（摘要 `build/evidence/r118_bit/md5.txt` = `cd04907e1369`）。
   - 期望输出：日志里 `boot rc=0`、`pl rc=0 PROGRAMMED=2`、`app rc=0 FLOW_DONE=1`，且两次带流读数 `eth_live=1 owner_eth=1 drop_words=0`。
-  - 实际输出摘要：`build/evidence/r118_board/bitcycle_console.txt`（某轮 起，逐行 `recover rc=0` / `boot rc=0` / `pl rc=0 PROGRAMMED=2` / `app rc=0 FLOW_DONE=1` / 读数 a、b 两次 `eth_live=1 owner_eth=1 drop_words=0`）；原始控制台在 `build/evidence/r116_board/cycle_r118build.log`，同一次跑里还带着 Vivado `INFO: [Labtools 27-3164] End of startup status: HIGH` 与 `DDR_ECHO: 10000000:   5A5AA5A5`。⇒ 判定 PASS。
+  - 实际输出摘要：`build/evidence/r118_board/bitcycle_console.txt`（项目实测 起，逐行 `recover rc=0` / `boot rc=0` / `pl rc=0 PROGRAMMED=2` / `app rc=0 FLOW_DONE=1` / 读数 a、b 两次 `eth_live=1 owner_eth=1 drop_words=0`）；原始控制台在 `build/evidence/r116_board/cycle_r118build.log`，同一次跑里还带着 Vivado `INFO: [Labtools 27-3164] End of startup status: HIGH` 与 `DDR_ECHO: 10000000:   5A5AA5A5`。⇒ 判定 PASS。
 - 用它之后（开机自检式的"从设备在不在位流上"闭环）：
   - 复跑命令：`"$VP_XSDB" build/tcl/ps_app_reload.tcl` 后 `powershell -File board/uart_cap_once.ps1 -Seconds 20`。
   - 输入路径：`build/ps_app.elf` + 当轮位流。
   - 期望输出：横幅里出现 `[CFG] axi_gpio_2 @41220000 ok`（基址是示例取值）。
-  - 实际输出摘要：`build/frozen_r45_v8morph/uart_r45_banner.txt` 第 5 行正是这句话（该冻结集日期 某轮）；`build/frozen_r48_osdsrc/uart_r48_boot.txt` 里两条自检同时成立（`axi_gpio_2` 与 gamma 窗口）。⇒ 判定 PASS。
+  - 实际输出摘要：`build/frozen_r45_v8morph/uart_r45_banner.txt` 第 5 行正是这句话（该冻结集日期 项目实测）；`build/frozen_r48_osdsrc/uart_r48_boot.txt` 里两条自检同时成立（`axi_gpio_2` 与 gamma 窗口）。⇒ 判定 PASS。
 - 不用它的基线（这一步省掉了什么）：`report/log/ISSUES.md` `#315` 记录的正是"没做 5-D 前置复位"的一次 —— 三步链 rc 全 0、`board_verify` 红 3 条，之后才回推出"刷 PL 前先 `rst -system`"这条改动。⇒ 有凭据，判定 PASS。
 - 表 5-A 的 L4/L5 递增长度：本仓只做过"零样本读数"与"满速一轮"两端，中间档位的逐档判据 `【待验证】`（要跑的是：同一份位流下把帧率按档提上去，每档留一份读数件）。
 - UltraScale+ / Versal、Linux 固件加载形态下的同类判据：`【待验证】`，本仓无对应件，5-E 之外的对位写法不宣称可用。

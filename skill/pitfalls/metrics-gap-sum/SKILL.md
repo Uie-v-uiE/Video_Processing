@@ -84,7 +84,7 @@ description: 把硬件计数器读回来的数折算成能被别人复查的指�
 
 ## 7. 已验证的效果
 
-- 本轮实跑（某轮，只算式不打硬件）：`node src/host/metrics.mjs --selftest`
+- 本轮实跑（项目实测，只算式不打硬件）：`node src/host/metrics.mjs --selftest`
   打 14 条 `PASS` 加收尾 `PASS metrics selftest`，`rc=0`；其中第 6 步要的那条反面对照是
   `PASS 错用 N 作分母会得到不同的 fps（证明上一条判据不是恒真）`，第 7 步那条是
   `PASS avg 落在 [min,max] 之外时必须自曝`，并在自检里真打出一行

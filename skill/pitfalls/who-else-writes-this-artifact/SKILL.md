@@ -34,7 +34,7 @@ description: 判"这份产物是谁、在什么时候、被谁写的"：当两�
 ## 5. 使用方法
 
 1. 读任何产物前先问它是谁写的：`stat -c '%y %n' build/timing_summary.rpt`（示例取值）。
-   完成后应看到：一个精确到秒的 mtime；**不要**用 `ls --time-style=+…` 当凭据（本仓实测这台机上它不可信，`report/log/ISSUES.md` 某轮 一节）。
+   完成后应看到：一个精确到秒的 mtime；**不要**用 `ls --time-style=+…` 当凭据（本仓实测这台机上它不可信，`report/log/ISSUES.md` 项目实测 一节）。
 2. 判有没有别的进程正在写同一类产物：
    `tasklist //FI "IMAGENAME eq xsim.exe"`（Windows）/ `pgrep -a xsim`（Linux）。
    完成后应看到：0 行或明确的 PID 列表；本仓形状是门口先数、非空就 `REFUSE: 已经有 xsim 在跑（它会把行写进同一份 run.log）` 并 `exit 3`（`sim/run_one.sh:58-60`）。
@@ -58,7 +58,7 @@ description: 判"这份产物是谁、在什么时候、被谁写的"：当两�
 
 - 步骤 1：
   通过 = mtime 落在你预期的那一次运行窗口内。
-  失败 = mtime 比你以为的更早/更晚 ⇒ `FAIL`，产物被别的动作覆盖过（本仓 某轮 那节记的正是"我把『仍是 r103』写进三处档案，而 bit 早在 23:26 被覆盖"）。
+  失败 = mtime 比你以为的更早/更晚 ⇒ `FAIL`，产物被别的动作覆盖过（本仓 项目实测 那节记的正是"我把『仍是 r103』写进三处档案，而 bit 早在 23:26 被覆盖"）。
   读不到输入 = stat 报错 ⇒ `NOT_MEASURED`，先确认路径与目录（冻结目录缺文件会回落到 `build/`，见 `build/gates.sh:26`）。
 - 步骤 2：
   通过 = 没有活的写者。
@@ -87,23 +87,23 @@ description: 判"这份产物是谁、在什么时候、被谁写的"：当两�
 
 ## 7. 已验证的效果
 
-- 本轮实跑（某轮，只读）：
+- 本轮实跑（项目实测，只读）：
   `grep -a "provenance" build/tb_v98_report.txt` 打出头部
-  `# provenance fpver=norm1 top_md5=56c269602e18 tb_md5=1c918c92200f rtl_md5=07570b1ac1b4 date=某轮+08:00 src=/tmp/kx/tb_v98_top_seam.run/run.log`；
-  而 `data/metrics.csv` 第 15 行点名的同一文件名头像是 `top_md5=2bf2ceeede07 … 日期 某轮`，计数 140 PASS/1 FAIL。
+  `# provenance fpver=norm1 top_md5=56c269602e18 tb_md5=1c918c92200f rtl_md5=07570b1ac1b4 date=项目实测+08:00 src=/tmp/kx/tb_v98_top_seam.run/run.log`；
+  而 `data/metrics.csv` 第 15 行点名的同一文件名头像是 `top_md5=2bf2ceeede07 … 日期 项目实测`，计数 140 PASS/1 FAIL。
   本轮实测该文件当前是 161 个 `^PASS` + 1 个 `^FAIL` ⇒ **同名文件已被原地覆盖**，引用它的文档行需要按本轮身份改写（这正是本条要防的形状；改文档本身不在本轮范围内，因为我不被允许改 `data/`）。
-- 本轮实跑（某轮）：`md5sum build/system.bit` 与 `git show HEAD:build/system.bit | md5sum` 都是 `cd04907e1369`
+- 本轮实跑（项目实测）：`md5sum build/system.bit` 与 `git show HEAD:build/system.bit | md5sum` 都是 `cd04907e1369`
   ⇒ 位流身份当前自洽（对照件 `board/ACCEPTANCE.md` E6 行点名的 r118 身份）。
-- 基线（不用本条，历史件）：`report/log/ISSUES.md` 某轮 一节（现抄在 `sim/run_one.sh:50-54`）——第二次 `run_one.sh` 不会让第一次停下，两个 xsim 往同一份 `run.log` 写，`tb98_report.sh` 把"上一跑的 C5c"与"这一跑的 C5c"拼成一份报告，而它头部 md5 全对。
-- 基线（进程探针）：`report/log/ISSUES.md` #244（某轮）——`ps -W | grep -qi "vivado.exe"` 恒不匹配（这台 MSYS 把映像名截成 `D:\Sof` 这种路径前缀），看守因此报假警；真值由 `tasklist //FI "IMAGENAME eq vivado.exe"` 数到 2 个。
-- 基线（在飞混读）：`report/log/ISSUES.md` #225（某轮 12:4x）——构建在飞时跑文本尺子，`metric_recheck` 汇总从「判 59 个数」掉到「判 52 个数」，真因是计数口径只对绿行 `judged++`。
+- 基线（不用本条，历史件）：`report/log/ISSUES.md` 项目实测 一节（现抄在 `sim/run_one.sh:50-54`）——第二次 `run_one.sh` 不会让第一次停下，两个 xsim 往同一份 `run.log` 写，`tb98_report.sh` 把"上一跑的 C5c"与"这一跑的 C5c"拼成一份报告，而它头部 md5 全对。
+- 基线（进程探针）：`report/log/ISSUES.md` #244（项目实测）——`ps -W | grep -qi "vivado.exe"` 恒不匹配（这台 MSYS 把映像名截成 `D:\Sof` 这种路径前缀），看守因此报假警；真值由 `tasklist //FI "IMAGENAME eq vivado.exe"` 数到 2 个。
+- 基线（在飞混读）：`report/log/ISSUES.md` #225（项目实测 12:4x）——构建在飞时跑文本尺子，`metric_recheck` 汇总从「判 59 个数」掉到「判 52 个数」，真因是计数口径只对绿行 `judged++`。
 - 未验证：本轮没有并发起重复跑来做"两写者"判别实验（会污染现场），所以步骤 2/3 的当前可复现性记 `【待验证】`。
 
 ## 8. 提炼来源与边界
 
 - 证据：`sim/run_one.sh:49-61`、`sim/run_one.sh:73-95`（编译前记指纹）、`sim/run_one.sh:101`（编译成功才发布 prov 并删旧 run.log，#169）；
   `build/gates.sh:26`（回落）、`build/gates.sh:38-57`（新鲜度与"有 RTL 比 bit 新"）、`build/gates.sh:335-345`、`build/gates.sh:366`；
-  `report/log/ISSUES.md` #169/#225/#244/#318 与 某轮、某轮 两个日期小节；`report/BUILD.md` §7（同名覆盖与实体冻结）。
+  `report/log/ISSUES.md` #169/#225/#244/#318 与 项目实测、项目实测 两个日期小节；`report/BUILD.md` §7（同名覆盖与实体冻结）。
 - 件：`build/tb_v98_report.txt`、`data/metrics.csv`、`build/system.bit`、`build/r109_lane_before.txt`（坏尺子活标本，台账点名）。
 - 工具行为断言的来源行见 `skill/pitfalls/_proposed-sources.md`。
 - 停止适用的条件：每跑一个独占运行目录 + 每版产物独立命名 + 聚合判据自带身份行时，本条降级为"读身份行"一步。

@@ -71,7 +71,7 @@ description: 寄存器契约一致性检查：以 22 列契约表为单一真相
 
 ## 7. 已验证的效果
 
-本会话（某轮）在仓库根实跑，输入是本仓示例取值，需按自身工程替换。
+本项目实测在仓库根实跑，输入是本仓示例取值，需按自身工程替换。
 
 - 全跑（22 列表 + 块图脚本）：末行 `REGMAP skill/scripts/regmap_check/axi_gpio_contract.tsv 判 908 项 未判 0 项 红 3 项 FAIL`（exit 1），三条红是真实漂移：
   `K2 bits_range_overlap 判 34 项 rows=32 wellformed=31 overlap_or_illegal=2 at:gpio0.lane_sel:bad_index=lane,gpio1.lane_25_arm~index~overlaps~gpio1.lanes_24_29@0x41210000+0x00[25] FAIL`、
@@ -87,7 +87,7 @@ description: 寄存器契约一致性检查：以 22 列契约表为单一真相
 ## 8. 提炼来源与边界
 
 - 来源证据：`skill/scripts/regmap_check/regmap_check.mjs` 的 K1–K8 实现与文件头判据清单；表件 `skill/scripts/regmap_check/axi_gpio_contract.tsv`（本仓示例取值）与 `skill/scripts/regmap_check/contract.tsv`（10/14 列旧词表，说明"两把尺子两套词表"这件事在本仓真实存在）；
-  `skill/evals/records/audit-某轮.md` 已登记本脚本 K1/K7/K8 的"全 0 输入判绿"族问题（第 6 节 K6 那条是本会话新测到的同族）。
+  `skill/evals/records/audit-项目实测.md` 已登记本脚本 K1/K7/K8 的"全 0 输入判绿"族问题（第 6 节 K6 那条是本会话新测到的同族）。
 - 边界：只管"契约表 ↔ 四方文本"的一致，不管时序/资源读数，不管主机代码是否真的按表打包（那是 `contract_gen` 生成的骨架 + 台架）。
 - 迁移要改三处：① `COLS` 22 列名（与你的表头逐字符一致）；② K5 反向基址的正则（本仓是 `0x4` 开头 + `0x412` 段，必须换成你的地址段）；
   ③ K6 的钉址行正则（本仓块图脚本的 `foreach` 行形状）。反例件要成对：一条"多钉"、一条"没钉"。

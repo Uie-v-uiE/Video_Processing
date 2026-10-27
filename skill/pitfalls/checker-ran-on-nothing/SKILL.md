@@ -77,15 +77,15 @@ description: 让"判据其实没执行"这件事可判：当聚合结论（如 `
 - 基线（不用本条）：同一份 `build/tb_v98_report.txt` 里既有 `RESULT tb_v98_top_seam FAIL nfail=1` 又有 161 行 PASS；
   只看"有没有 FAIL 行"或只看汇总行都可能把这一跑念成"没数"。实测命令
   `bash sim/run_one.sh --verdict tb_v98_top_seam build/tb_v98_report.txt`
-  输出 `VERDICT tb_v98_top_seam: RESULT tb_v98_top_seam FAIL nfail=1 || FAIL 行数=1 || PASS 行数=161`，`rc=3`（某轮 本机实跑）。
+  输出 `VERDICT tb_v98_top_seam: RESULT tb_v98_top_seam FAIL nfail=1 || FAIL 行数=1 || PASS 行数=161`，`rc=3`（项目实测 本机实跑）。
 - 负对照（同一把尺子必须拒"别人的日志替这支台架答复"）：
   `bash sim/run_one.sh --verdict tb_notthere build/tb_v98_report.txt`
-  输出 `VERDICT tb_notthere: NO-VERDICT-LINE（这支台架一条判定都没打，去数判据条数） || FAIL 行数=1 || PASS 行数=161`，`rc=4`（某轮 本机实跑）。
+  输出 `VERDICT tb_notthere: NO-VERDICT-LINE（这支台架一条判定都没打，去数判据条数） || FAIL 行数=1 || PASS 行数=161`，`rc=4`（项目实测 本机实跑）。
 - 用它之后的差别（"未判"被念出来）：`report/log/ISSUES.md` #333 记的同一轮门禁，
   件 `build/evidence/r118_board/g1b.txt`（23 绿/1 红）→ 出现新红后 `21 绿/3 红`，随后定版两跑回到 `23 绿/1 红`
   （件 `build/evidence/r118_board/gatesc_summary.txt`）；这三份件是仓库里已有的历史读数，本轮**未重跑门禁**（重跑会写 `build/ports_check.txt`），
   所以"本轮重跑能复现 23/1"这一条记 `【待验证】`。
-- 空集通过的历史基线：`report/log/ISSUES.md` #316（某轮 前后）——`board_verify` 打印 `drop_words → 0` 的那一刻 `eth_live=0`，
+- 空集通过的历史基线：`report/log/ISSUES.md` #316（项目实测 前后）——`board_verify` 打印 `drop_words → 0` 的那一刻 `eth_live=0`，
   这个 0 属"没流量所以不可能丢"；带流重测后才有 `eth_live=1 … drop_words=0` 两次一致。修法是判据里加同一份读数的 `eth_live=1`。
 - 计数对不上时的分母形状：本仓 `build/gates.sh:357` 那条 `[ "$NJ" = "3" ]` 地板（少一枚指纹判定就判红），
   它对应的事故是 `report/log/ISSUES.md` #203（`set -u` 下函数少传一个参数，命令替换只让**子 shell** 退出，本项照报 PASS）。

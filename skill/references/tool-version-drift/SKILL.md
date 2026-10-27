@@ -73,7 +73,7 @@ description: 查"哪些事实绑在哪个工具版本上"的速查表：当同�
 
 ## 7. 已验证的效果
 
-- 本次实跑的版本自报（某轮，同一台 Windows + Git Bash 主机）：
+- 本次实跑的版本自报（项目实测，同一台 Windows + Git Bash 主机）：
   `node --version` → `v24.21.0`；`python --version` → `Python 3.12.10`；`bash --version` → `GNU bash, version 5.2.37(1)-release (x86_64-pc-msys)`。
 - 本次实跑的版本一致性核对：`build/timing_summary.rpt:3`、`build/utilization.rpt:3`、`build/cdc.rpt:3`、
   `build/clock_util.rpt:3`、`build/methodology.rpt:3`、`build/power.rpt:3` 六件的 `Tool Version` 全是
