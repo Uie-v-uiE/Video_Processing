@@ -1,6 +1,6 @@
 # 项目文档合集
 
-这个目录是最终提交项目的文档快照，对应源码仓库 `main` 的 `70cf2bf0`。代码、工程和可执行脚本在仓库根目录；本目录只收文档、图片、报告和结果索引，方便按文档阅读和评审。
+这个目录是最终提交项目的完整文档快照，对应源码仓库 `main` 的比赛提交树。代码、工程和可执行脚本在仓库根目录；本目录收文档、图片、报告、历史记录和结果索引，方便按文档阅读和评审。
 
 ## 入口
 
@@ -15,7 +15,8 @@
 | 关键 Issue 台账 | `report/issues/key-issues.md` |
 | 协作记录 | `report/collaboration/README.md` |
 | 学习手册 | `learning/architecture_learning_guide.md` |
-| 演示视频拍摄脚本 | `learning/demo_video_shooting_guide.md` |
+| 演示视频拍摄手册 | `learning/demo_video_shooting_guide.md` |
+| 学习资料历史与参考 | `learning/archive/`、`learning/reference/` |
 | 板级说明、验收、硬件连接 | `board/README.md` |
 | 构建与实现报告索引 | `build/reports/index.md` |
 | 仿真结果索引 | `sim/results/README.md` |

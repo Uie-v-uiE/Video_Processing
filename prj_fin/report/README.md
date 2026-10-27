@@ -1,6 +1,6 @@
 # 设计报告与证据
 
-`report/` 放四类内容：设计报告、验证与优化、复现说明、协作记录。数字只在设计报告和验证文档里各出现一次，支撑材料放 `build/reports/` 与 `board/measured/`。
+`report/` 放四类内容：设计报告、验证与优化、复现说明、协作记录。主要读数以设计报告和验证文档为准，支撑材料放 `build/reports/` 与 `board/measured/`。
 
 ## 阅读顺序
 
@@ -10,7 +10,7 @@
 4. `reproduction.md`：从零构建、仿真、PS 应用、Vivado/Vitis 工程、上板与 QSPI。
 5. `limits.md`：仍然成立的限制与未修项。
 6. `llm-collaboration.md` 与 `collaboration/`：大模型参与方式、会话卡、纠错轨迹、提示词、工作流、成本与脱敏记录。
-7. `issues/key-issues.md`：20 条关键缺陷的现象、根因、判据、修复与证据；完整台账在 FIN/records。
+7. `issues/key-issues.md`：20 条关键缺陷的现象、根因、判据、修复与证据；完整台账在 docs 分支 `records/` 与 FIN/records。
 8. `interface-table.md`：控制字、遥测、串口、lane、地址与视频常数。
 9. `commands.md`：串口命令手册，逐条说明参数、成功回显和非法输入。
 10. `declarations.md`：器件、工具链、第三方与自研边界。

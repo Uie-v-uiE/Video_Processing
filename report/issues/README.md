@@ -5,7 +5,7 @@
 ## 怎么读
 
 - `key-issues.md`：精选 20 条，按“现象 → 根因 → 判据 → 修复/状态 → 证据”写。适合评委和接手的人。
-- 完整台账：`FIN/records/issues/issues-full.md`（本地记录，不随 GitHub）。它含早期轮次的过程细节、未采纳方案和逐条读数，适合追溯。
+- 完整台账：`FIN/records/issues/issues-full.md`；docs 分支保留同一份全量归档，main 只放 20 条精选。它含早期轮次的过程细节、未采纳方案和逐条读数，适合追溯。
 - 当前仍未修的边界看 [`../limits.md`](../limits.md)，不要在本目录找“最新版本结论”。
 
 ## 状态词
@@ -25,4 +25,4 @@
 
 ## 证据
 
-每条点名一个主证据；台架判定行在 `sim/results/` 或 `build/reports/`，板上读数在 `board/measured/`，时序/资源在 `build/reports/`。原始过程台账在本机 `FIN/records/issues/`，不进入 GitHub。
+每条点名一个主证据；台架判定行在 `sim/results/` 或 `build/reports/`，板上读数在 `board/measured/`，时序/资源在 `build/reports/`。原始过程台账在 FIN；docs 分支保留全量归档，main 只保留精选 20 条。

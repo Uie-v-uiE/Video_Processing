@@ -6,10 +6,9 @@ A host PC sends 512×300 RGB565 frames as UDP datagrams of at most 1392 bytes to
 
 ## Highlights
 
-- **All-PL video path**: RGMII ingest, frame reassembly, DDR ping-pong, geometry, effects, OSD and HDMI all run in the PL; pixels never pass through the PS.
-- **Same-frame A/B seam**: the source and processed panes share one geometry engine and one set of row tags, so the seam compares the same frame rather than two independently scaled paths.
-- **A falsifiable instrument**: frame commit, `pane_bad`, `link` frame-gap statistics and fault injection can all be made to fail; the self-test compares per-second deltas instead of flattering absolutes.
-- **Positive timing margin**: WNS improves from 1.029 ns before optimisation to 1.341 ns, with WHS 0.025 ns, TNS/THS 0 and zero failing endpoints.
+- **Same-frame A/B seam (comparable)**: the source and processed panes share one geometry engine, one set of row tags and a fixed 15-cycle effect chain, so the seam compares the same frame rather than two independently scaled paths.
+- **Frame-commit gates + a falsifiable instrument (trustworthy)**: a frame is committed only when the byte gate, row-coverage bitmap and bad-packet gate all pass; `pane_bad`, `link` frame-gap statistics and three-stage fault injection can all make the instrument fail.
+- **Full-PL + QSPI closed loop (deliverable)**: RGMII ingest, frame reassembly, DDR ping-pong, geometry, effects, OSD and HDMI all run in the PL; QSPI cold boot restarts without a host, and serial, UDP telemetry and AXI GPIO read the same counters.
 
 ## What can be checked
 
@@ -21,6 +20,7 @@ A host PC sends 512×300 RGB565 frames as UDP datagrams of at most 1392 bytes to
 | Effect latency is configuration-independent | Cycle-by-cycle alignment in the full video bench and OSD latency | Constant 15 pixel clocks; PL-internal frame latency 2–16 ms |
 | Frame-gap statistics are readable | Serial `link clr` → stream → stop → restart → `link` | `gap_valid=1` while streaming; `stall` grows after stop; `gap_max=22,061 ms` after restart |
 | QSPI cold boot | Write, on-chip verify, power cycle | `DONE=1`, `EOS=1`, no CRC/IDCODE errors; `stat` and `link` respond |
+| Timing closes with positive margin | Same script before and after optimisation | WNS 1.029 → 1.341 ns; WHS 0.025 ns; TNS/THS 0; zero failing endpoints |
 
 ## Implementation readings
 

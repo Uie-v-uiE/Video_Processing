@@ -21,8 +21,8 @@ board/vitis_ws*/
 __pycache__/
 *.pyc
 # Local-only learning material and deliverables, never pushed
-learning/
-deliverables/
+/learning/
+/deliverables/
 technical_document.docx
 technical_document.pdf
 poster.png
