@@ -34,17 +34,16 @@ Zynq-7020 上的一条全硬件视频通路，加上一套能从网线和串口�
 | 仿真 | 19 支标准回归 `fail=0`；完整视频台架 C17/C25/C26 专项 PASS |
 | 板上 | QSPI 冷启动、8 秒推流、遥测、三阶段自检、105 条串口电池、温度均通过 |
 
-## 提交内容对照
+## 工程组成
 
-| 赛题要求 | 本仓库 |
+| 内容 | 位置 |
 |---|---|
-| 完整工程与源码（RTL、PS 软件） | `src/rtl/`、`src/ps/`、`src/constraints/` |
-| 仿真/验证结果，说明功能正确性 | `sim/`、`sim/results/`、`build/reports/regression.txt`、`report/verification.md` |
-| 综合与实现报告（资源、频率、性能） | `build/reports/` |
-| 上板工程、运行脚本、实测输出与参考比对 | `board/vivado/`、`board/vitis/`、`board/project/`、`board/scripts/`、`board/tcl/`、`board/measured/`、`board/compare/` |
-| 可复现构建脚本 | `build/build.tcl`、`build/tcl/`、`build/vitis/`、`build/ps/`、`build/sim/` |
-| 技能包 | `skill/`，入口 `skill/README.md` |
-| 设计报告七项 | `report/design-report.md`、`report/verification.md`、`report/optimization.md`、`report/collaboration/`、`report/skill-distillation.md`、`report/reproduction.md` |
+| PL RTL、PS 固件与上位机脚本 | `src/rtl/`、`src/ps/`、`src/host/`、`src/constraints/` |
+| 仿真台架与判定结果 | `sim/`、`sim/results/`、`build/reports/regression.txt`、`report/verification.md` |
+| 综合、实现与资源报告 | `build/build.tcl`、`build/tcl/`、`build/reports/` |
+| 上板工程、运行脚本与实测日志 | `board/vivado/`、`board/vitis/`、`board/project/`、`board/scripts/`、`board/tcl/`、`board/measured/`、`board/compare/` |
+| 项目文档 | `report/design-report.md`、`report/verification.md`、`report/optimization.md`、`report/reproduction.md`、`report/commands.md`、`report/declarations.md`、`report/limits.md` |
+| 技能包 | `skill/README.md` |
 
 `board/` 采用两个工程文件夹：`board/vivado/` 放 `.xpr` 与 `.srcs`，`board/vitis/` 放平台描述与 QEMU 参数；源码路径使用 `$PPRDIR/../../src/...`，工程内没有本机绝对路径。
 

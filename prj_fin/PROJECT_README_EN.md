@@ -34,17 +34,16 @@ Device: `xc7z020clg484-2`. Tools: Vivado / Vitis 2025.2.1.
 | Simulation | 19 standard regressions, `fail=0`; full-video C17/C25/C26 arms PASS |
 | Board | QSPI cold boot, 8 s stream, telemetry, three-stage self-test, 105-command UART battery and temperature all pass |
 
-## Submission mapping
+## Repository contents
 
-| Requirement | Location |
+| Area | Location |
 |---|---|
-| Complete source (RTL, PS software) | `src/rtl/`, `src/ps/`, `src/constraints/` |
-| Simulation and verification results | `sim/`, `sim/results/`, `build/reports/regression.txt`, `report/verification.md` |
-| Synthesis and implementation reports | `build/reports/` |
-| Board project, scripts, measurements and comparisons | `board/vivado/`, `board/vitis/`, `board/project/`, `board/scripts/`, `board/tcl/`, `board/measured/`, `board/compare/` |
-| Reproducible build scripts | `build/build.tcl`, `build/tcl/`, `build/vitis/`, `build/ps/`, `build/sim/` |
-| Skill package | `skill/`, index at `skill/README.md` |
-| Design report | `report/design-report.md`, `report/verification.md`, `report/optimization.md`, `report/collaboration/`, `report/skill-distillation.md`, `report/reproduction.md` |
+| PL RTL, PS firmware and host tools | `src/rtl/`, `src/ps/`, `src/host/`, `src/constraints/` |
+| Simulation benches and verdicts | `sim/`, `sim/results/`, `build/reports/regression.txt`, `report/verification.md` |
+| Synthesis, implementation and resource reports | `build/build.tcl`, `build/tcl/`, `build/reports/` |
+| Board projects, scripts and measurements | `board/vivado/`, `board/vitis/`, `board/project/`, `board/scripts/`, `board/tcl/`, `board/measured/`, `board/compare/` |
+| Project documentation | `report/design-report.md`, `report/verification.md`, `report/optimization.md`, `report/reproduction.md`, `report/commands.md`, `report/declarations.md`, `report/limits.md` |
+| Skill package | `skill/README.md` |
 
 `board/` uses two project folders: `board/vivado/` contains the `.xpr` and `.srcs`; `board/vitis/` contains the platform descriptor and QEMU arguments. Source paths use `$PPRDIR/../../src/...`; there are no absolute host paths in the project.
 
