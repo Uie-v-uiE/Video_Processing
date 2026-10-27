@@ -1,0 +1,8 @@
+# 合成夹具：缺"工具版本"字段的读数件（盖章时 tool 只能记哨兵，不许编一个版本）
+# 内容纯属虚构，不对应任何真实工程、器件或板卡。
+command: demo-runner --report evidence/read-no-tool.txt
+timestamp: 2026-01-06T02:40:11Z
+metric name=value
+worst_margin 0.398
+occupancy_pct 62.0
+samples 128

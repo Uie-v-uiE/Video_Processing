@@ -1,0 +1,20 @@
+工程入库后把三处口径对上：README 目录导览、build.md 的工程位置行，并清掉被通配符带进来的工具噪声
+
+- `README.md` 目录导览补一行 `vivado_system/` 与 `vitis/`：原来只列到 7 个目录，clone 下来的人
+  看见这两棵却没处说明。写法按盘上实测：`.xpr` 在 `vivado_system/zynq_video_sys.xpr`（在树里，
+  `git ls-files` 读回 315 支），挡掉的噪声是 `.jou/.log/.str`、`.ip_user_files`、`.cache`（这些
+  在 `git ls-files` 里计数为 0）。
+- `report/build.md` §0 表里那一行还写着 "`vivado_system/`（已 gitignore，用 … 重建）"，
+  这句自 2026-10-07 起失实：工程本体已随仓库交付。改成"交付 + 重建入口仍在，改 BD/IP 配置以
+  重建产物为准"。
+- `.gitignore` 末尾补两条并把已跟踪的 29 支工具噪声退跟踪（`git rm --cached`，盘上文件不动）：
+  `vivado_system/**/*.pb`（28 支 `vivado.pb`/`*_utilization_synth.pb`）与 `vivado_system/.*.rpt`
+  （r119 那一支临时读数 `.r119_tmp.rpt`）。根因是同一天为"工程入库"加的 `!vivado_system/**`
+  写在文件末尾，按后写优先把顶层的 `*.pb` 例外盖掉了——豁免名单扩大时必须把被它盖住的
+  原例外重新压回去。第一版写成 `vivado_system/**.pb` 是没牙的：git 的 `**` 只有在它是**整个路径段**
+  时才跨目录，`**.pb` 匹配不到任何一层，`git check-ignore -v` 读回的还是那条 negation
+  （看着像加了、实际 28 支仍以 `??` 站未跟踪列表里）。改成 `vivado_system/**/*.pb`（让 `**` 独占一个路径段）
+  之后 `check-ignore` 才点名这条新规则。
+- 实测：DELIVER-SPEC 判 18 项 跟踪文件=3567 红=0 未测=0；doc_enc 302 个手写文件干净；
+  fact_hold OK（改写 2 份，消失记号 0）；D5 硬错 0；doc_currency 干净；metric_recheck 判 117 个数红 0。
+- 未动 RTL/位流；板侧本轮未复验（`ping` 无回包、重启 hw_server 后 JTAG `targets` 仍空，属人手侧）。

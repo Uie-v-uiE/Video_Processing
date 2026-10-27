@@ -1,0 +1,3 @@
+GATESC done id=identical green=23 red=1
+  顶层台架 tb_v98    top=56c269602e18 FAIL行=1 指纹(norm1):fresh fresh fresh 同一次跑且无 FAIL      FAIL
+FINAL_WRITTEN yes

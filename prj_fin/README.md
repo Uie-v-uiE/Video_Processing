@@ -1,6 +1,6 @@
 # 项目文档合集
 
-这个目录是最终提交项目的完整文档快照，对应源码仓库 `main` 的比赛提交树。代码、工程和可执行脚本在仓库根目录；本目录收文档、图片、报告、历史记录和结果索引，方便按文档阅读和评审。
+这个目录是最终提交项目的完整文档快照，对应源码仓库 `main` 的比赛提交树。代码、工程和可执行脚本在仓库根目录；本目录收当前文档、历史报告、学习资料、原始记录和结果索引，方便按文档阅读和追溯。
 
 ## 入口
 
@@ -19,6 +19,9 @@
 | 学习资料历史与参考 | `learning/archive/`、`learning/reference/` |
 | 板级说明、验收、硬件连接 | `board/README.md` |
 | 构建与实现报告索引 | `build/reports/index.md` |
+| 历史报告与技能包历史 | `records/previous_report/`、`records/skill_archive/` |
+| 跨工作区文档归档 | `records/docs_archive/README.md` 与 `MANIFEST.tsv` |
+| 协作原始文档、Issue 全量、清单 | `records/collaboration_raw/`、`records/`、`records/manifests/` |
 | 仿真结果索引 | `sim/results/README.md` |
 | 完整 Issue 记录 | `records/README.md` |
 | 技能包 | `skill/README.md` |

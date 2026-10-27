@@ -1,0 +1,6 @@
+data/metrics.csv 与盘上件的四处口径落后（本会话只登记，未改数，等下一轮单独做）：
+  1) 第 14 行"门禁自检项 22 项" vs build/gates.sh 两跑自报"判定 24 项"（build/evidence/r121_gates_after_doc_wave.txt 末行、build/r118_gates.txt 末行）。
+  2) 第 15 行"整屏逐像素判据 141 条" vs build/tb_v98_report.txt 现值 ^PASS=161 / ^FAIL=1（该件 provenance 行 top=56c269602e18，2026-10-04 01:47）。
+  3) 第 16 行"变异对照分支 5 条" vs build/sim/mut_control.sh 实际 case 标签 7 个（其 REFUSE 提示又只列 6 个）。
+  4) 第 28 行条件列"Max Ambient 57.5" vs build/report/power.rpt:39 的 57.4；第 29 行 XADC 61.2–61.7 自述为 r113 那一版，板上现为 r118（同轮串口只两条 60.65/60.85）。
+  另：Vitis/xsdb 版本串盘上无原文（build/provenance.md:84 标未核实），README 里那句"Vivado/Vitis 2025.2.1"沿用 metrics.csv 的共用条件声明。

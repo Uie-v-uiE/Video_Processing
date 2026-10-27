@@ -1,0 +1,363 @@
+<!DOCTYPE html><html lang="zh-CN"><head><meta charset="utf-8"><title>基于 Zynq-7020 的多源视频实时处理与同帧对照显示系统 · 技术文档</title><style>
+@page { size: A4; margin: 16mm 14mm; }
+body { font-family: "Segoe UI","Microsoft YaHei",sans-serif; font-size: 9.6pt; line-height: 1.5; color: #16181d; }
+h1 { font-size: 17pt; border-bottom: 2px solid #2b5fd9; padding-bottom: 4pt; }
+h2 { font-size: 13pt; margin-top: 14pt; border-left: 4px solid #2b5fd9; padding-left: 6pt; }
+h3 { font-size: 11pt; margin-top: 11pt; color: #23324a; }
+h4 { font-size: 10pt; color: #3a4658; }
+p, li { text-align: justify; }
+code { font-family: "Cascadia Mono",Consolas,monospace; font-size: 8.8pt; background: #f2f4f8; padding: 0 2pt; border-radius: 2pt; }
+pre { background: #f7f8fa; border: 1px solid #dfe3ea; padding: 6pt; page-break-inside: avoid; }
+pre code { background: none; padding: 0; font-size: 8.4pt; }
+table { border-collapse: collapse; width: 100%; margin: 6pt 0; font-size: 8.6pt; page-break-inside: auto; }
+th, td { border: 1px solid #c9d0dc; padding: 2.5pt 4pt; vertical-align: top; }
+th { background: #eef2f8; }
+td.c, th.c { text-align: center; } td.r, th.r { text-align: right; }
+blockquote { margin: 5pt 0; padding: 3pt 8pt; border-left: 3px solid #9fb2cc; background: #f6f8fb; color: #33404f; }
+.url { color: #6b7686; font-size: 8pt; word-break: break-all; }
+hr { border: none; border-top: 1px solid #d8dee8; margin: 10pt 0; }
+</style></head><body>
+<h1>技术文档：Zynq-7020 多源视频实时处理与显示系统</h1>
+<p>版本对应位流 <code>build/system.bit</code>（md5 前 12 位 <code>cd04907e1369</code>），工具链 Vivado / Vitis 2025.2.1，</p>
+<p>器件 <code>xc7z020-clg484-2</code>。上板跑通且有报告可查的条目才写进来，没量过的直接写"没量过"。</p>
+<h2>1. 作品是什么</h2>
+<h3>1.1 一句话</h3>
+<p>系统跑在一块 Zynq-7020 板上。三路视频源（网线推流、SD 卡裸帧、自研测试图卡）在 PL 里做缩放、</p>
+<p>旋转、九位控制字的算法链和同帧左右对比叠加，输出到 1024×600 的 HDMI 屏。</p>
+<p>链路健康计数、帧率、温度、当前几何参数直接叠在屏上，同一组数也能从串口与 JTAG 读回。</p>
+<h3>1.2 功能清单与验证方式</h3>
+<table>
+<thead><tr><th>功能</th><th>实现位置</th><th>怎么确认它真的在工作</th></tr></thead><tbody>
+<tr><td>HDMI 输入接收（TMDS 去串化）</td><td><code>src/rtl/hdmi/</code></td><td>顶层台架逐像素比对；屏上出现源画面</td></tr>
+<tr><td>RGMII 千兆收包 + GMII 域转换</td><td><code>src/rtl/eth/rgmii_rx.v</code>、<code>gmii_to_rgmii.v</code></td><td><code>sim/tb_link_monitor.v</code> 与整屏台架；PL 自己数的丢帧计数为 0</td></tr>
+<tr><td>UDP 视频推流接收（512×300 RGB565）</td><td><code>src/rtl/eth/</code>（帧重组、端口过滤）</td><td>600 帧一轮与 300 s / 9000 帧长跑，丢帧/坏帧/重复帧均为 0</td></tr>
+<tr><td>ARP 请求与 ICMP ping 应答（纯 RTL）</td><td><code>src/rtl/eth/arp_rx.v</code>、<code>arp_tx.v</code>、<code>icmp_rx.v</code>、<code>icmp_tx.v</code></td><td>主机 <code>ping</code> 有回包；<code>sim/tb_icmp_ping0.v</code> 等四条回归</td></tr>
+<tr><td>SD 卡裸帧播放（PS 读，不做解码）</td><td><code>src/ps/sd_play.c</code></td><td>串口 <code>[STAT]</code> 与屏上帧号；29.8–30.0 fps</td></tr>
+<tr><td>自研动态测试图卡（第三源）</td><td><code>src/rtl/video/</code>（渐变底 + 移动块 + 帧号）</td><td>拔网线拔卡后屏不黑；长按按键切源</td></tr>
+<tr><td>帧缓存与乒乓读写</td><td>DDR（AXI）+ BRAM 行环</td><td>整屏台架的逐像素判据；BRAM 95.5/140 tile</td></tr>
+<tr><td>缩放 0.25–2.00（八档）+ 自动呼吸 + Fit</td><td><code>src/rtl/process/zoom/</code></td><td>lane23 回读倍率与来源；屏上量格</td></tr>
+<tr><td>旋转 + 双线性插值</td><td><code>src/rtl/process/rotate/</code>、<code>bilin/</code></td><td><code>sim/tb_v96</code> 的映射判据 M1/M2/M4/M6；整屏台架</td></tr>
+<tr><td>效果链（gamma / 颜色 / 滤波 / 边缘 / 阈值 / 形态学）</td><td><code>src/rtl/process/proc_pipeline.v</code> 等 11 个文件</td><td>每级一条旁路判据；固定 15 拍延迟由 <code>tb_v86</code> 实测钉住</td></tr>
+<tr><td>同帧左右对比（左原图 / 右处理图，缝位置可调）</td><td><code>src/rtl/video/split_ctrl.v</code> + 顶层混合</td><td>串口 <code>split &lt;n&gt;</code> 后 marker 位不变的判据；屏上看缝</td></tr>
+<tr><td>OSD 叠加（帧率、丢帧、温度、几何参数）</td><td><code>src/rtl/video/osd_overlay.v</code></td><td>36 行人眼验收表逐条；<code>[TEMP]</code> 回显与屏上三字符对账</td></tr>
+<tr><td>链路健康自诊断（计数 + 自动回落）</td><td><code>src/rtl/eth/link_monitor.v</code> + 顶层仲裁</td><td>拔线/拔卡现场复验；AUTO 回落到可用源</td></tr>
+<tr><td>QSPI 固化（断电自启）</td><td><code>board/scripts/make_boot_image.sh</code> + <code>board/tcl/flash_qspi.tcl</code></td><td>断电自启整条成立（<code>Boot mode is QSPI</code> → <code>FPGA Done !</code> → <code>SUCCESSFUL_HANDOFF</code>），两格读数与凭据在 §8.3</td></tr>
+</tbody></table>
+<h3>1.3 三个创新点</h3>
+<ol>
+<li><strong>同一帧内的左右对比显示</strong>：原图与处理图按列号逐像素实时切换，分割线位置是一个运行时参数</li>
+</ol>
+<p>   （<code>split_ctrl.v</code>）。算法效果在同一帧里直接对照得出来，不接采集卡、不录屏。</p>
+<ol>
+<li><strong>0.25–2.00 倍八档缩放、任意角度旋转与双线性插值共用一套坐标算子</strong>：<code>zfit</code> 用 3 颗 DSP 算适配系数，</li>
+</ol>
+<p>   <code>zmap</code> 用 8 颗做逐像素映射，旋转走逆映射、<code>bilin_lerp</code> 做两次线性插值；倍率是八档定点数</p>
+<p>   （25/33/50/75/100/133/150/200），另有自动呼吸档与 Fit 档，当前倍率与来源都能从 lane23 读回，屏上那一格与它同源。</p>
+<p>   旋转态四角有没有出屏不靠人眼，由一条两端夹逼的台架检查判掉（逐段实现见 §3.3）。</p>
+<ol>
+<li><strong>一条把几何运算做到固定延迟的效果链</strong>：六级算法、九位控制字，任意组合下整链延迟恒为 15 拍、</li>
+</ol>
+<p>   内容偏移恒为 −4 行，坐标按每一级自己的节拍打标。整链延迟对外只有一个数 <code>u_pipe.LATENCY</code>，</p>
+<p>   叠加算法时读口调度不用重算，某一级有没有真的生效也成了能检查的问题。</p>
+<h2>2. 系统组成</h2>
+<h3>2.1 时钟与域</h3>
+<table>
+<thead><tr><th>域</th><th>频率</th><th>周期</th><th>用途</th><th>setup WNS</th><th>hold WHS</th></tr></thead><tbody>
+<tr><td><code>sys_clk</code></td><td>50 MHz</td><td>20.000 ns</td><td>板载晶振输入、按键、慢速控制</td><td>14.876 ns</td><td>0.222 ns</td></tr>
+<tr><td><code>clk_fpga_0</code></td><td>100 MHz</td><td>10.000 ns</td><td>AXI 全互连与帧缓存写侧（PS FCLK0）</td><td>1.850 ns</td><td>0.053 ns</td></tr>
+<tr><td><code>clkout0_1</code></td><td>50 MHz</td><td>20.000 ns</td><td>显示读出、几何、效果链、OSD（<code>clk_pix</code>）</td><td>3.630 ns</td><td>0.059 ns</td></tr>
+<tr><td><code>eth_rxc</code></td><td>125 MHz</td><td>8.000 ns</td><td>RGMII 收发、协议栈、仲裁</td><td>0.739 ns</td><td>0.052 ns</td></tr>
+<tr><td><code>clkout1_1</code></td><td>250 MHz</td><td>4.000 ns</td><td>TMDS 串行化（OSERDESE2）</td><td>不纳检（见 §6.4）</td><td>—</td></tr>
+</tbody></table>
+<p>全设计 51,135 个端点，setup 与 hold 的失败端点都是 0。读数出自 <code>build/timing_summary.rpt</code>：</p>
+<p>第 151 行是汇总行，第 154 行是 "All user specified timing constraints are met"。</p>
+<h3>2.2 数据流</h3>
+<pre><code>HDMI in ─► 去串化 ─► 采样对齐 ─► 写 DDR 帧缓存（乒乓） ─┐
+网线 ─► RGMII ─► GMII ─► 帧重组 ─► 端口过滤 ─────────────┤
+SD 卡 ─► PS 读裸帧 ─► AXI 写 ────────────────────────────┤
+测试图卡 ─► 自研发生器 ──────────────────────────────────┘
+                                             ▼
+                              仲裁器（AUTO / ETH / SD / TEST）
+                                             ▼
+                    缩放 zfit/zmap ─► 旋转 + 双线性 ─► 效果链（6 级）
+                                             ▼
+                     同帧混合（split）─► OSD 叠加 ─► HDMI 编码 ─► 屏
+                                             ▲
+              PS 裸机 app（命令解析、寄存器、XADC、SD、串口回显）</code></pre>
+<h3>2.3 规模</h3>
+<table>
+<thead><tr><th>项</th><th>数量</th><th>来源</th></tr></thead><tbody>
+<tr><td>RTL 文件 / 行数</td><td>80 个 / 11,768 行</td><td><code>src/rtl/</code></td></tr>
+<tr><td>PS 侧 C 代码行数</td><td>2,544 行</td><td><code>src/ps/</code></td></tr>
+<tr><td>仿真台架</td><td>82 个</td><td><code>sim/</code>（取舍清单在 <code>sim/README.md</code>）</td></tr>
+<tr><td>整屏逐像素判据</td><td>141 条（140 通过 + 1 条故意留下的 <code>C5c</code>）</td><td><code>build/tb_v98_report.txt</code></td></tr>
+<tr><td>上板人眼验收</td><td>36 行</td><td><code>board/verify_r87.md</code></td></tr>
+<tr><td>一键门禁</td><td>24 项（23 绿 / 1 条申报过的红）</td><td><code>build/gates.sh</code></td></tr>
+</tbody></table>
+<h3>2.4 用到的技术</h3>
+<table>
+<thead><tr><th>用了什么</th><th>在哪儿</th><th>为什么是它</th></tr></thead><tbody>
+<tr><td><code>IDDR</code> + <code>IDELAYE2</code> 抽头</td><td><code>src/rtl/eth/rgmii_rx.v</code></td><td>RGMII 是 125 MHz 双沿 4 位，只有片内双沿触发器能还原成单沿字节流；抽头用来挪采样沿找眼心</td></tr>
+<tr><td><code>OSERDESE2</code> 串化</td><td><code>src/rtl/hdmi/tmds_serializer.v</code></td><td>TMDS 每位要 5 倍时钟串行输出， fabric 里做 7:1 只有这根原语</td></tr>
+<tr><td><code>MMCME2_BASE</code> 时钟综合</td><td><code>src/rtl/clocks/clk_gen.v</code></td><td>一片板钟要同时供出像素钟、5 倍串行钟与显示读出钟，相位与倍频都得在一个地方定</td></tr>
+<tr><td>BRAM 与 LUTRAM 分工</td><td><code>src/rtl/eth/dc_fifo.v</code>、<code>src/rtl/eth/axi_frame_saver64.v</code> 等（<code>ram_style</code> 显式指定）</td><td>行环要 2× 行缓冲，放 BRAM；打包 FIFO 用 LUTRAM 才不跟行环抢 BRAM 数量</td></tr>
+<tr><td>DDR 帧缓存 + AXI 全互连</td><td>BD 里的 Zynq7 PS 与 <code>src/rtl/axi/</code></td><td>一帧 1024×600×2 B 放不进片内，读写分离靠 AXI，写侧由 owner 信号独占</td></tr>
+<tr><td>三级同步 + <code>ASYNC_REG</code></td><td><code>src/rtl/eth/dc_fifo.v</code>、<code>src/rtl/eth/eth_udp_video_top.v</code></td><td>跨时钟域的格雷码指针必须让工具把两级放在同一只 SLICE 里，否则亚稳态窗口不受约束</td></tr>
+<tr><td>AXI GPIO 作控制通道</td><td><code>src/rtl/top/pl_video_top.v</code>（<code>axi_gpio_2</code> 等）</td><td>九位控制字与 gamma 窗口要软件随时改，而不动 BD 的中断与地址分配</td></tr>
+<tr><td>XADC 读结温</td><td><code>src/rtl/process/effect_ctrl.v</code>、<code>src/ps/main.c</code></td><td>板上没有独立温度传感器，器件自己的系统监控是唯一的实时读数</td></tr>
+<tr><td>裸机 standalone 应用</td><td><code>src/ps/</code>（Vitis 平台在 <code>board/vitis_platform/</code>）</td><td>只需要 UART、SD、GPIO 与一段主循环；带操作系统的栈在这里是成本不是收益</td></tr>
+<tr><td>QSPI NOR 固化启动</td><td><code>board/tcl/flash_qspi.tcl</code>、<code>board/scripts/make_boot_image.sh</code></td><td>演示要断电自起，bootgen 出的镜像写进板载 32 MB flash</td></tr>
+<tr><td>xsim 台架</td><td><code>build/sim/run_one.sh</code>（82 个 <code>sim/tb_*.v</code>）</td><td>判据要能对着 RTL 反复跑；工具链自带的仿真器不需要另装环境</td></tr>
+<tr><td>Node.js 与 Python 上位机</td><td><code>src/host/</code>（<code>.mjs</code> 26 支、<code>.py</code> 3 支）</td><td>推流、串口取数、文档尺子都要一条命令能跑，不引第三方依赖</td></tr>
+<tr><td>XDC 约束面</td><td><code>src/constraints/</code></td><td>时钟组、输入输出窗、不确定度与 <code>ASYNC_REG</code> 都写在约束里，不是靠综合猜测</td></tr>
+</tbody></table>
+<h2>3. PL 侧实现</h2>
+<h3>3.1 输入与网络</h3>
+<p>RGMII 的 4 位 DDR 数据在 <code>rgmii_rx.v</code> 里用 IDDR 还原成 GMII 单沿流，IDELAY 的抽头值取 31。</p>
+<p>抽头值是扫出来的：0–31 全档下 hold 每档约 +63 ps、setup 每档约 −92 ps，两线交点在 31.1，</p>
+<p>取整数 31（<code>report/timing/rgmii_window_model.md</code>，这份不随包，在仓库历史里）。</p>
+<p>收包链在 PL 内完成以太网帧头解析、ARP 表项、ICMP echo 应答，PS 不参与转发，</p>
+<p>推流端口打开时板子仍然能被 ping 通。</p>
+<p>坏帧、重复帧与被丢弃的字数由帧重组模块自己数出，<code>link_monitor.v</code> 用 125 MHz 域里的毫秒计数</p>
+<p>（<code>TC = CLK_HZ/1000</code>）判断链路是否静默，静默超过整定时间就请求仲裁器换源。</p>
+<p>512×300 RGB565 限速 30 fps 跑了 600 帧一轮与 300 s（9000 帧）长跑，</p>
+<p>丢帧 / 坏帧 / 重复帧都是 0，实测帧率 29.99 fps、平均帧间隔 33.34 ms。</p>
+<p>不限速打到目标 120 fps（约 36 MB/s、287 Mbps）的 960 帧里仍未丢字，</p>
+<p>入流能力只报下界：≥116.7 fps，过载点没顶到，不给推测值。</p>
+<h3>3.2 帧缓存与仲裁</h3>
+<p>写侧由 AXI 全互连把三路源写进 DDR 的乒乓帧缓冲，读侧按显示扫描取数。</p>
+<p>三路源共用 bank0，同一时刻只能有一个 owner，状态就是 <code>pl_video_top.v:152</code> 的</p>
+<p><code>M_AUTO / M_ETH / M_TEST / M_SD</code>；owner 变化经 3 级同步送给写侧，</p>
+<p>这一路的 CDC 检查排在门禁第 6 项，逐轮记录在仓库历史的 <code>report/timing/</code> 下（本版不随包）。</p>
+<p>AUTO 下拔网线、拔 SD 卡都做过板级复验：能切走，插回能切回，不需要复位。</p>
+<h3>3.3 几何：缩放与旋转</h3>
+<p>缩放分两步：<code>zfit</code> 用 DSP 算出适配系数（3 个 DSP48），<code>zmap</code> 做逐像素坐标映射（8 个 DSP48）。</p>
+<p>倍率是 8 档定点数（25/33/50/75/100/133/150/200，即 0.25–2.00 倍），另有自动呼吸档与 Fit 档，</p>
+<p>当前倍率与来源都能从 lane23 读回。旋转用逆映射加双线性插值：<code>rotate/</code> 生成目标像素的源坐标，</p>
+<p><code>bilin_lerp</code> 做两次线性插值（6 个 DSP48），读口按 <code>BILIN_ROWS = 2</code> 的行缓存供数。</p>
+<p>旋转态下四角有没有出屏由一条两端夹逼的台架检查判掉，不靠人眼。</p>
+<p>DSP 合计 19 个，按实例分是 <code>u_lerp</code> 6 + <code>u_blur</code> 1 + <code>u_split_ctrl</code> 1 + <code>u_zfit</code> 3 + <code>u_zmap</code> 8。</p>
+<p>gamma 一级不占 DSP，它用 LUTRAM 查表，不做乘法。</p>
+<h3>3.4 效果链</h3>
+<p><code>proc_pipeline.v</code> 的六级顺序是 gamma、颜色、滤波、边缘、阈值、形态学。</p>
+<p>控制字 9 位（<code>gpio_cfg[8:0]</code>，一位一个算法），级 5 的腐蚀与膨胀两位互斥，</p>
+<p>同时置 1 时两个都不做（<code>proc_pipeline.v:59-60</code>）。</p>
+<p>四个窗口级各自维护自己的列标签，抽头号按该级之前累积的拍数取：blur 用 2、sharp 用 5、</p>
+<p>sobel 用 8、morph 用 12，所以任意组合下整链延迟固定 15 拍、内容偏移固定 −4 行。</p>
+<p>顶层不许自己另写一个延迟数，只取 <code>u_pipe.LATENCY</code>；<code>tb_v86</code> 实测 <code>de_in → de_out</code> 再与它比，</p>
+<p>任何一处漂移都会有测试变红。</p>
+<h3>3.5 同帧对比与 OSD</h3>
+<p><code>split_ctrl.v</code> 输出一个按百分比定位的缝，顶层逐像素决定这一列取原图还是取处理图，</p>
+<p>左右两半因此来自同一帧的同一时刻。串口 <code>split &lt;n&gt;</code> 之后 marker 位不变，</p>
+<p>这条检查防的是参数改了而通路没跟着改。</p>
+<p>OSD 叠五行（<code>src/rtl/video/osd_overlay.v</code> 的 <code>at(0)</code>…<code>at(4)</code>）：①面板尺寸/帧率/片源，②效果位/二值化阈值/gamma，③角度/缩放档，④分割线位置/链路内时延打点，⑤片上温度与异常句。</p>
+<p>字模索引在 1024×600 有效区整屏走一遍会越出数组上界 190,464 拍，</p>
+<p>这个数划出了可用样本的下限，屏上没现象时能区分"没机会触发"与"真的被门住"。</p>
+<p>温度对账有三路：驱动读数、屏上三字符、写进 PL 的 gpio 值。</p>
+<h2>4. PS 侧实现</h2>
+<p>裸机 app（<code>src/ps/main.c</code> 等，2,544 行）跑在 <code>ps7_cortexa9_0</code>，BSP 用仓库内的</p>
+<p><code>vitis/platform/.../bsp</code>，做五件事：串口 115200-8N1 命令解析、寄存器整字写、</p>
+<p>SD 卡 FAT32 目录读取与裸帧推送、XADC 采样、状态回显。</p>
+<p>控制字只有一种写法：PS 一次整字写 <code>gpio_cfg</code>，PL 侧统一打三级同步再分发，</p>
+<p>单个位不许各改各的（<code>effect_ctrl.v:31</code> 把这条写成注释）。</p>
+<p>两个运行时开关各占一个空位，各走一条独立同步链：<code>gpio_o[19]</code> 是双线性开关、</p>
+<p><code>gpio_o[20]</code> 是 OSD 总开关（反相，复位值 = 有 OSD）。</p>
+<p>倍率、来源、手动/自动标志、bilin 状态都从 lane23 读回，串口与 JTAG 两条路都读得到，</p>
+<p>开关在硬件里到底是什么状态由读数说话，不靠看屏幕。</p>
+<h2>5. 软硬件划分依据</h2>
+<table>
+<thead><tr><th>任务</th><th>放在</th><th>原因</th></tr></thead><tbody>
+<tr><td>TMDS 去串化、RGMII 收发、帧重组</td><td>PL</td><td>125 MHz DDR 采样与逐字校验，软件来不及</td></tr>
+<tr><td>ARP/ICMP 应答</td><td>PL</td><td>推流占满 CPU 通道时仍要能 ping 通</td></tr>
+<tr><td>逐像素效果链、缩放、旋转、双线性</td><td>PL</td><td>50 MHz 像素率下每像素 20 ns 预算</td></tr>
+<tr><td>同帧混合与 OSD 叠加</td><td>PL</td><td>必须与扫描同步，不能等软件</td></tr>
+<tr><td>FAT32 解析、SD 读、串口命令、XADC</td><td>PS</td><td>事务性、低频、需要文件系统</td></tr>
+<tr><td>参数整定与演示脚本</td><td>PS + 上位机</td><td>人要能改，且要留日志</td></tr>
+</tbody></table>
+<p>划分按每像素预算定，与哪边写得方便无关：像素率 50 MHz 时一像素 20 ns，</p>
+<p>任何进软件的逐像素操作都会掉帧，链路上因此没有一处逐像素的软件参与。</p>
+<h2>6. 时序与状态</h2>
+<h3>6.1 收敛方法</h3>
+<ul>
+<li>时钟树分两支：<code>clk_fpga_0</code> 100 MHz 由 PS7 的 FCLK_CLK0 给（<code>build/report/clock_util.rpt</code> 的 g0 行，驱动脚是 <code>…/FCLK_CLK_0_BUFG/O</code>）；显示与算法那几支由 PL 侧一只 <code>MMCME2_BASE</code> 产生（<code>src/rtl/clocks/clk_gen.v:15</code>，喂进来的是 <code>sys_clk</code> 50 MHz，见 <code>src/rtl/top/pl_video_top.v:128</code>），<code>clkout0_1</code> = <code>clk_pix</code> 50 MHz、<code>clkout1_1</code> = <code>clk_pix5x</code> 250 MHz 都出自这只 MMCM；</li>
+<li>RGMII 收口的 IDDR 与延迟抽头按 §3.1 的实测交点定；</li>
+<li>跨域一律 3 级同步 + <code>ASYNC_REG</code>，格雷码指针链单独钉（<code>dc_fifo</code> 四颗 FF）；</li>
+<li>时钟分组显式声明（<code>src/constraints/clock_groups_impl.xdc</code>），异步组之外的跨域路才受检查；</li>
+<li>关键路径按域逐个量，不只看全局最差那条：每域前 12 档都取过端点（<code>build/evidence/r124_tiers_ladder.txt</code>）。</li>
+</ul>
+<h3>6.2 关键路径在哪</h3>
+<p><code>eth_rxc</code> 的 0.739 ns 落在 <code>u_icmp_tx/ip_head_reg[4][16] → check_buffer_reg[19]/D</code> 上，</p>
+<p>11 级逻辑含 6 个 CARRY4，布线占 58.4 %。同一只锥贡献前 3 档（0.739 / 0.873 / 0.961），</p>
+<p>第 4–12 档全部是 <code>u_rx_par/p_eof_reg → u_reasm/rows_hit_reg[*]/CE</code>，4 级逻辑、布线占 85 %。</p>
+<p>这一档的瓶颈是使能广播，校验和锥整族搬走的上界因此只有 +0.278 ns（1.017 − 0.739）。</p>
+<p><code>clk_fpga_0</code> 的 1.850 ns 前 12 档全部同起点 <code>u_pl/u_arb/owner_eth_reg/C</code>，</p>
+<p>终点是帧缓存 BRAM 的写使能与地址脚，逻辑只有 1–4 级、布线占 88.8–93.6 %。</p>
+<p>这个域没有算法锥可拆，能动的是这只高扇出旗标的复制与摆放。</p>
+<h3>6.3 试过并被实测否掉的优化</h3>
+<table>
+<thead><tr><th>做法</th><th>结果</th><th>依据</th></tr></thead><tbody>
+<tr><td>校验和摊到每拍一项</td><td><code>eth_rxc</code> 0.739→0.691、<code>clk_fpga_0</code> −0.123、<code>sys_clk</code> 14.876→14.068，判负回退</td><td><code>report/log/issues.md</code>（台账不随包） #380</td></tr>
+<tr><td>编译期常量抽出发一拍</td><td>更差：常量并入同一拍使加法树变深，端点只从 4835 减到 4819</td><td>#382</td></tr>
+<tr><td>强制复制 239 引脚广播网</td><td>本域赢 1 格、另三域跌 4 格（含最紧两格），判负</td><td><code>report/timing/round_r117.md</code>（不随包）</td></tr>
+<tr><td>Pblock 约束摆放</td><td>载链逃出边界报 Place 30-439，且未换来收益</td><td>#186</td></tr>
+<tr><td>BRAM 换 setup</td><td>+0.182 ns 相对 +0.516 不够，砍掉 FF 后仍剩 4 级 ⇒ 拥塞主导</td><td>#122</td></tr>
+<tr><td>RGMII 输入窗挂上</td><td>挂窗即 −2.885 ns，退回候选件</td><td><code>report/timing/rgmii_window_model.md</code>（这份不随包，在仓库历史里）</td></tr>
+</tbody></table>
+<p>结论写在 <code>report/timing/eth_rxc_partition_options.md</code>（不随包） 第 8 节：本版不再安排时序优化轮。</p>
+<p>当前是零违例、约束全满足的状态，再动它换到的是余量，换不到正确性。</p>
+<h3>6.4 仍然欠的账（不因为停手而消失）</h3>
+<ul>
+<li>四个域都没有 <code>set_clock_uncertainty</code> 的 setup 项，只有 <code>eth_rxc</code> 有一条自加的 hold 带</li>
+</ul>
+<p>  （<code>src/constraints/rk_zynq7020.xdc:50</code>），四列 hold 用的不是同一套测量条件；</p>
+<ul>
+<li>屏那一路 6 个 TMDS 输出口没有对外时序结论：HDMI 的"钟↔数据 ≤0.20 Tcharacter"是展宽不是捕获窗，</li>
+</ul>
+<p>  按 <code>set_output_delay</code> 挂上去量出来是 −5.408 / −1.923 ns 整批红，判 DECLINE（§6.3 同源）；</p>
+<ul>
+<li>异步时钟组把 4 条跨域路从检查范围里拿走了，<code>set_max_delay -datapath_only</code> 那份候选约束从未进默认集；</li>
+<li>端到端时延只有出口（OSD 的 <code>Latency</code> lane）没有值，指标表那一格写 <code>未报</code>；33.34 ms 是 PL 内的<strong>入流帧间隔</strong>，</li>
+</ul>
+<p>  原先挂在"端到端时延"名下且轮次写成"一轮 600 帧"，本轮按凭据改名并把轮次写成 9000 帧 / 300 s（台账 #416）。</p>
+<h2>7. 验证与实测</h2>
+<h3>7.1 功能正确性怎么确认</h3>
+<p>功能正确性分三层，各层互不替代。</p>
+<ol>
+<li>模块级是 82 个 testbench（<code>sim/</code>），每条检查项都要求能红：靠空集通过的检查项本身算失败。</li>
+</ol>
+<p>   5 支变异对照（<code>build/sim/mut_control.sh</code>）钉住一次变异只许红它声称红的那一条。</p>
+<ol>
+<li>整屏台架是 <code>tb_v98</code>，跑一遍全设计得 141 条逐像素判据（140 通过 + 1 条申报过的 <code>C5c</code>），</li>
+</ol>
+<p>   报告头部带编译时戳与 RTL/台架 md5。</p>
+<ol>
+<li>板级这一层只能由人做：36 行人眼验收（<code>board/verify_r87.md</code>），每行给命令、预期现象，</li>
+</ol>
+<p>   以及这一行不通意味着什么。屏幕现象由看屏幕的人判，机器检查不代替眼睛。</p>
+<h3>7.2 性能与资源</h3>
+<table>
+<thead><tr><th>指标</th><th>数值</th><th>条件</th></tr></thead><tbody>
+<tr><td>显示</td><td>1024×600 @ 59.5 Hz</td><td>像素钟 50 MHz，H_TOTAL 1344 / V_TOTAL 625</td></tr>
+<tr><td>入流零丢包</td><td>0 丢帧 / 0 坏帧</td><td>512×300@30 fps，限速 15 MB/s，600 帧一轮</td></tr>
+<tr><td>长跑</td><td>0 丢帧 / 0 重复帧</td><td>300 s、9000 帧，实测 29.99 fps</td></tr>
+<tr><td>入流下界</td><td>≥116.7 fps 不丢字</td><td>不限速、目标 120 fps、960 帧；过载点未顶到</td></tr>
+<tr><td>入流帧间隔（PL 内）</td><td>33.34 ms（min 20 / max 51）</td><td>PL 收包链相邻两帧之间隔；9000 帧 / 300 s 那一轮；不含编码、网线与交换机排队</td></tr>
+<tr><td>SD 播放</td><td>29.8–30.0 fps</td><td>预转换 RGB565，板上不解码</td></tr>
+<tr><td>Slice LUT</td><td>14,154（26.61 %）</td><td>实现后报告</td></tr>
+<tr><td>Slice 寄存器</td><td>8,188（7.70 %）</td><td>同上</td></tr>
+<tr><td>BRAM tile</td><td>95.5 / 140（68.21 %）</td><td>帧缓存乒乓 + 行环是主要去向</td></tr>
+<tr><td>DSP48</td><td>19 / 220（8.64 %）</td><td>逐实例见 §3.3</td></tr>
+<tr><td>动态功耗</td><td>2.213 W</td><td>工具估算，置信度 Low（无仿真活动文件输入）</td></tr>
+<tr><td>结温</td><td>52.6 ℃（估算）／61.2–61.7 ℃（板读 XADC）</td><td>估算是工具值；板读是六次读数极值</td></tr>
+</tbody></table>
+<h3>7.3 优化前后的对比</h3>
+<p>本版绝对值取自 <code>build/utilization.rpt</code>，与 <code>data/metrics.csv</code> 同源，指标表每行都点名它的证据文件：</p>
+<p>Slice LUT 14,154（26.61 %）、寄存器 8,188（7.70 %）、BRAM 95.5/140 tile（68.21 %）、DSP48 19/220（8.64 %）。</p>
+<p>逐轮增减只保留有件可查的三笔，出处是 <code>data/metrics.csv</code> 的资源行与 <code>build/evidence/</code> 的逐层件：</p>
+<table>
+<thead><tr><th>变化</th><th>量</th><th>这一格为什么变</th></tr></thead><tbody>
+<tr><td>收包链把 <code>pay_start</code> / <code>pay_end</code> 两个 16 位界提前一拍寄存</td><td>寄存器 +22</td><td>用触发器换掉 <code>p_good</code> 锥里的一级加法；与"加寄存器换走线"同族</td></tr>
+<tr><td>行覆盖使能独热化</td><td>LUT −243（其中 −66 能归到这一刀，其余没有归属）</td><td>没有归属的那部分不念成收益</td></tr>
+<tr><td>两只按键去抖的武装门 + 校验和累加器 32→20</td><td>LUT +35（+66 与 −31 相减）、寄存器 +34（+46 与 −12）</td><td>净账由两份逐层件相减闭合</td></tr>
+</tbody></table>
+<p>帧缓存与行环是 BRAM 占用的大头。打包 FIFO 从触发器改成 LUTRAM 释放了约 5 万个 FF，</p>
+<p>代价是 BRAM 一度顶到 98.93 %，随后回落到本版的 68.21 %。</p>
+<p>余量侧的逐轮读数（含 <code>eth_rxc</code> 从 0.445 ns 走到 0.739 ns 那两刀）在仓库历史里那份</p>
+<p><code>report/timing/</code> 逐轮页中（本版不随包），这里不重复列；那些数要摆在同一套测量条件下才可比。</p>
+<p>WNS 的绝对差不算收益也不算损失，只有同一域自己的关键路径锥动了才算，且别的域不许变差。</p>
+<p>上表最后一列因此写"为什么变"，不写"变好了多少"。</p>
+<h2>8. 复现</h2>
+<h3>8.1 从零建工程并跑门禁</h3>
+<p><code>board/</code> 里那份上板工程由两支脚本落位并验证：<code>board/tcl/stage_board_projects.tcl</code>、</p>
+<p><code>board/scripts/stage_vitis_platform.sh</code>，检查项与实跑读数记在 <code>board/measured/stage_2026-10-05.txt</code>。</p>
+<pre><code># Vivado：建工程 → 综合 → 实现 → 位流（约 2 小时，含时序报告）
+&lt;DV&gt;/bin/vivado.bat -mode batch -source build/tcl/build_system_axigpio.tcl
+# 一键门禁（24 项）
+bash build/gates.sh
+# 整屏台架（约 108 分钟）
+bash build/sim/run_one.sh tb_v98</code></pre>
+<h3>8.2 上板（JTAG）</h3>
+<pre><code>export VP_XSDB="&lt;Vivado&gt;/../Vitis/bin/xsdb.bat"
+bash build/board_verify.sh --geom --battery      # 串口回显与几何判据，留原始日志</code></pre>
+<h3>8.3 固化到 QSPI（断电自启）</h3>
+<p>板载 32 MB QSPI NOR（丝印 W25Q256FV，3.3 V，挂在 PS 的 MIO1/2/3/4/5/6 = CS/DQ0/DQ1/DQ2/DQ3/CLK）。</p>
+<pre><code>export VP_VIVADO_BIN="&lt;Vivado&gt;/bin"
+bash board/scripts/make_boot_image.sh        # FSBL + bit + app → board/flash/BOOT.bin（生成件，不随包）
+VP_QSPI_PART="mx25l25645g-qspi-x4-single" \
+  "&lt;Vivado&gt;/bin/vivado.bat" -mode batch -source board/tcl/flash_qspi.tcl</code></pre>
+<p>三个坑是实测踩到的。</p>
+<ol>
+<li>bootgen 的 bif：<code>the_design:</code> + 花括号里逐行一个文件、不写逗号，**但 FSBL 那一行必须带</li>
+</ol>
+<p>   <code>[bootloader]</code>**。缺这个属性时 bootgen 照样打印 <code>Bootimage generated successfully</code>，</p>
+<p>   产出的镜像头里分区表偏移那三个字段（IHT+0x10 / +0x14 / +0x20）却全是 0，启动 ROM 找不到</p>
+<p>   分区，冷上电的表现是串口一个字节都不出、<code>DONE</code> 不亮。依据两条：</p>
+<p>   <code>bootgen -bif_help bootloader</code> 写明该属性支持 zynq；厂商镜像同三个字段是</p>
+<p>   <code>0x00001700 / 0x00018008 / 0x00018008</code>，补上属性之后本工程这份变成同一形状（数值差来自 FSBL 大小）。</p>
+<ol>
+<li>部件名不能照板子丝印填：丝印是 W25Q256FV，可 Vivado 部件库里 <code>w25q256jw*</code> 那一支的</li>
+</ol>
+<p>   <code>COMPATIBLE_PARTS</code> 只列 zynquplus，配 zynq7000 会在擦写那一步判 <code>Labtoolstcl 44-655</code>；</p>
+<p>   要看的是这张兼容表，不是型号后缀。同为 32 MB / x4 的 macronix 档实测擦写与回读校验都通过。</p>
+<ol>
+<li><code>hw_cfgmem</code> 的属性：2025.2.1 没有 <code>PROGRAM.BBF_FILE</code>、<code>START_ADDRESS</code> 与 <code>STATUS</code></li>
+</ol>
+<p>   （写死会 17-142、17-54 中断），而 <code>PROGRAM.ZYNQ_FSBL</code> 又必须设，缺它报 <code>[Labtools 27-3203]</code>。</p>
+<p>擦写另有两条规矩：先把启动模式拨到 JTAG 再写（QSPI 档下工具报 <code>[Xicom 50-100]</code>，</p>
+<p>这时写进去的东西它报成功也不可信），以及 <code>program_flash -erase_all</code> 在这颗片上失败、扇区擦可用。</p>
+<p>写完拨回 QSPI、断电重上，两格都量过了：</p>
+<table>
+<thead><tr><th>断电自启</th><th>实测读数</th><th>凭据</th></tr></thead><tbody>
+<tr><td>位流（PL 配置）</td><td><strong>成立</strong>：串口出 FSBL 横幅、<code>Boot mode is QSPI</code>、<code>QSPI is in 4-bit mode</code>，随后 <code>DMA Done !</code>、<code>FPGA Done !</code></td><td><code>board/measured/qspi_coldboot_selfboot_ok_2026-10-06.txt</code></td></tr>
+<tr><td>应用（PS 侧 <code>src/ps</code>）</td><td><strong>成立</strong>：<code>SUCCESSFUL_HANDOFF</code> 之后 <code>[CFG] axi_gpio_2 @41220000 ok</code>、<code>[CFG] gamma window @41220008 ok</code>、<code>[TEMP] PS-XADC @F8007100 ok</code>，接着 <code>[CTRL] … src=1</code>，SD 自动播起片，ETH 那一路也出画面</td><td>同一份回显（4,895 字节）</td></tr>
+</tbody></table>
+<p>应用这一格第一次量的时候并不成立：串口停在 <code>Handoff Address: 0x00000000</code> →</p>
+<p><code>No Execution Address JTAG handoff</code>（那一份回显留在</p>
+<p><code>board/measured/qspi_coldboot_2026-10-06_fsbl_from_flash.txt</code>，它同时是"头部修好了、位流确实从 flash 起来了"的凭据）。</p>
+<p>读平台自带的 FSBL 源码能对上——<code>image_mover.c</code> 的</p>
+<p><code>LoadBootImage()</code> 遇到"PS 分区且加载地址为 0"直接跳出分区循环（它自己的注释写着</p>
+<p>loop will break on PS load address zero），交接地址因此从未被赋值；而 <code>readelf -l</code> 实测</p>
+<p><code>fsbl.elf</code> 与本应用的第一个 LOAD 段都是 <code>VirtAddr 0x00000000</code>（OCM 低 192 KB 别名窗），</p>
+<p>真把应用装到 0，就是 FSBL 一边执行一边覆盖自己。所以修法只有一个方向：<strong>应用链到 DDR</strong>。</p>
+<ul>
+<li><code>src/ps/lscript_ocm.ld</code> 的 <code>MEMORY</code> 第一段 <code>ORIGIN</code> 从 <code>0x00000000</code> 改成 <code>0x00200000</code>。</li>
+</ul>
+<p>  这个基址是量出来的：PL 的三个 bank 在 <code>0x10000000</code> / <code>0x10080000</code> / <code>0x10100000</code></p>
+<p>  （<code>system_top.v</code>、<code>eth_udp_video_top.v</code>、<code>main.c</code> 的 <code>FRAME_ADDR</code>），中间这一大片全仓零引用；</p>
+<p>  上界受 <code>translation_table.S</code> 的映射窗限制（只把 <code>[0x00100000, 0x3FFFFFFF]</code> 当 cacheable）。</p>
+<p>  第二段 <code>0xFFFF0000</code>（各模式栈）不动。</p>
+<ul>
+<li>两支构建脚本（<code>build/ps_app.mjs</code> 与零依赖的 <code>build/build_ps_app.py</code>）里那条旧判据</li>
+</ul>
+<p>  "<code>_vector_table</code> 必须在 0x0，否则 FATAL"本身就是这个坑的守门人，换成三条等值判据：</p>
+<p>  入口 = <code>_boot</code>、<code>_vector_table</code> = 第一个 LOAD 的 <code>VirtAddr</code>、且该基址落在</p>
+<p>  <code>[0x00100000, 0x3FEF0000]</code> 且不为 0；<code>readelf -l</code> 取不到 LOAD 行时判"这条没跑，不算通过"。</p>
+<ul>
+<li>位流与 C 语句一个字没动；重编后的 ELF 是 <code>build/ps_app.elf</code> md5 <code>57fa442a7eaf</code>，</li>
+</ul>
+<p>  重打的 <code>BOOT.bin</code> 是 2,435,868 字节 / md5 <code>f62b1b8cc3bd</code>（三份输入里位流仍是 <code>cd04907e1369</code>）。</p>
+<p>在这块<strong>自启的板子</strong>上跑了机器能判的那一半：<code>bash build/board_verify.sh --battery --geom --round=r126</code></p>
+<p>⇒ <code>RESULT board_verify PASS（判红的步骤：0）</code>，串口电池 105 条命令 98.2 s 全过、跑完回到初态且末态</p>
+<p>= 演示默认档，几何那一跳退出码 0，温度格三方对账自洽。原始回显在 <code>build/evidence/r126_serial_raw.txt</code> 与 <code>build/evidence/verify_1006_1944.txt</code>（这两份不随包，读数已抄在上面）。</p>
+<p>所以演示可以直接断电上电，§8.2 那三步 JTAG 加载仍然可用——换了 app 不想重刷 PL 时就用它。</p>
+<p>写入的逐条结果记在 <code>board/measured/flash_qspi_2026-10-05.txt</code>，里面有镜像与三份输入的 md5、</p>
+<p>Erase/Program/Verify 三行成功、耗时 137 s。<code>PROGRAM.VERIFY=1</code>（或 <code>program_flash -verify</code>）那一步是从</p>
+<p>flash 读回逐字节比对，<code>Verify successful</code> 只证明片上内容与 <code>BOOT.bin</code> 一致；</p>
+<p>"断电后能自己起来"要另一次上电才算量过——上面那两格就是这么来的。</p>
+<p>对照实验也留在包里：把厂商那份 BOOT.BIN 写进同一颗 flash 再冷上电，<code>DONE</code> 亮、串口打出 U-Boot</p>
+<p>（<code>board/measured/qspi_vendor_control_2026-10-06.txt</code>），说明板子、拨码、启动 ROM、这颗 flash</p>
+<p>和写入流程都没问题，问题只可能在镜像本身。</p>
+<h2>9. 文档与目录</h2>
+<table>
+<thead><tr><th>目录</th><th>内容</th></tr></thead><tbody>
+<tr><td><code>src/</code></td><td>RTL（<code>rtl/</code>）、PS 裸机（<code>ps/</code>）、上位机工具（<code>host/</code>）、约束（<code>constraints/</code>）</td></tr>
+<tr><td><code>sim/</code></td><td>82 个台架与运行脚本，<code>sim/README.md</code> 是取舍清单</td></tr>
+<tr><td><code>build/</code></td><td>构建脚本与综合/实现报告、门禁、证据件</td></tr>
+<tr><td><code>board/</code></td><td>上板工程（Vivado 工程 + Vitis 平台）、运行脚本、实测输出、QSPI 固化脚本</td></tr>
+<tr><td><code>data/</code></td><td>测试向量、黄金参考、<code>metrics.csv</code> 指标表</td></tr>
+<tr><td><code>skills/</code></td><td>技能包（49 条，八节外壳）</td></tr>
+<tr><td><code>report/</code></td><td>设计报告分章、协作记录、限制与欠账</td></tr>
+</tbody></table>
+<p>指标表 <code>data/metrics.csv</code> 是数字的唯一出口，每行都点名它的证据文件。</p>
+<p>这里的数字与它同源，两处不一致时以证据件为准。</p>
+</body></html>

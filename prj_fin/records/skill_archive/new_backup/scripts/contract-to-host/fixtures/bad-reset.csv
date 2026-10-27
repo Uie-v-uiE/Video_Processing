@@ -1,0 +1,4 @@
+name,offset,width,access,policy,reset,doc
+CTRL,0x00,32,RW,bit0=en,0x00000001,总开关与运行使能
+DBG,0x10,16,RO,tick = raw * 2,0x0001FFFF,复位值超出 16 位 ⇒ 应只红这一条
+DAC,0x18,12,RW,mv = count * 0.8,0x000,输出档位

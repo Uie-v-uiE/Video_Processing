@@ -1,0 +1,10 @@
+# 合成夹具：一份"完整读数"的形状（命令、工具版本、时间戳、读数行都在）
+# 内容纯属虚构，不对应任何真实工程、器件或板卡。
+command: demo-runner --report evidence/read-full.txt
+tool_version: v0.0-fixture-1
+timestamp: 2026-01-05T09:12:33Z
+metric name=value
+worst_margin 0.412
+occupancy_pct 61.5
+samples 128
+note 每个读数都带单位，缺单位的行不参与判定

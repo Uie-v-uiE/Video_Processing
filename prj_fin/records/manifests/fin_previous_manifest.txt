@@ -1,0 +1,14 @@
+EXPORT_AT   2026-10-22 21:26:35
+SOURCE      fin2 working tree, release r171 (cold-start flashed 2026-10-22 19:11)
+DEST        /d/Xilinx/Prj/fin
+FILES       1396
+SIZE        100M
+MD_COUNT    195 (markdown files)
+BIT         9734f3ec3019
+XSA         f4d4425138a2
+ELF         9ff967573b32
+TIMING      WNS 1.341 ns / WHS 0.025 ns / TNS 0 / THS 0
+RESOURCES   LUT 14967 (28.13%) / FF 9095 (8.55%) / BRAM 98 (70.00%) / DSP 19
+BOARD       r171 cold-start flashed 2026-10-22 19:11: FLASH GREEN, health GREEN, 105 serial commands PASS in 98 s, 11 telemetry beacons in 13 s after ping; firmware 9ff967573b32 adds sd file+play resume and the r169 serial/state fixes; saver full-FIFO flush tail fix (#508) with red->green tb_saver_tail_full; self-test 18.9 / 0.2 / 22.2 fps and 240 frames / 8.00 s / 30.00 fps from r159; C22 6/48 -> 0; C31 1028 -> 0
+CURRENT_DOC report/technical-report.md
+INDEX       report/README.md

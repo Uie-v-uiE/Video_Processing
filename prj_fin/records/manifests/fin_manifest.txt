@@ -1,0 +1,5 @@
+FIN package
+files 592
+size_mb 22.9
+submission: release + deliverables
+records: report_archive, issues, collaboration_raw, learning, board_measured_raw, build_logs, previous_report, data_measured, manifests

@@ -1,0 +1,28 @@
+  docs/walkthrough/mechanics.md:642 以及 `Slice Registers` 是否成倍增加（现役 8132，同文件 `:40`）。
+  docs/walkthrough/mechanics.md:736 推断失败时的可见症状不是报错，而是**两份数字同时变脸**：`DSP` 掉、`Slice LUTs` 涨（`:35`，现役 14013），
+  docs/walkthrough/mechanics.md:877 `clkout0_1` 3.287 / 0.067（30071）。`data/metrics.csv:5`、`:7` 抄的是头条那两格并注明
+  docs/walkthrough/mechanics.md:982 现役只有 `eth_rxc` 被扣 0.800 ns，所以它的 WHS 0.004 是**已经付过这笔账**的数，
+### docs/walkthrough/mechanics.md                        4 行
+  docs/walkthrough/glossary.md:605 时序报告的裕量单位是 ns（本工程读数 0.687 ns，`data/metrics.csv` 第 5 行）。
+### docs/walkthrough/glossary.md                         1 行
+### docs/walkthrough/myths.md                            0 行
+### docs/walkthrough/design-choices.md                   0 行
+### docs/walkthrough/code-reading.md                     0 行
+SKIP(无文件) docs/walkthrough/comparison-notes.md
+### docs/course/04-rgmii-rx-frame-reassembly.md          0 行
+### docs/course/08-constraints-and-timing.md             0 行
+### docs/course/09-verification-system.md                0 行
+### report/build-notes.md                                0 行
+### report/timing_global.md                              0 行
+### report/comparison-notes.md                           0 行
+### report/90-open-items.md                              0 行
+### report/repro-check.md                                0 行
+### report/unattended.md                                 0 行
+### report/submission-package.md                         0 行
+### report/01-overview.md                                0 行
+### report/project-brief-for-ai.md                       0 行
+### report/demo_talk_xiaosai.md                          0 行
+### report/judge_qa_xiaosai.md                           0 行
+### report/host_guide.md                                 0 行
+### board/signoff-questions.md                           0 行
+### board/raw-vs-golden.md                               0 行

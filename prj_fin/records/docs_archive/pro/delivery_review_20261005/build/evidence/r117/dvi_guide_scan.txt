@@ -1,0 +1,76 @@
+== PAGE 1 ==
+  | DVI Test and Measurement Guide
+== PAGE 3 ==
+  | The test and measurement guidelines contained in this document are developed in order to aid the
+  | the DVI interface, the PC 2001 Design Guide has a requirement that states host systems, which output
+  | elaboration on the requirements and test procedures described in the original specification, and describes
+  | specific test hardware and recommended measurement equipment and techniques that should be used. As
+  | more than one silicon vendor is required to interface with each other, the ability to guarantee compliance
+  | the DVI transmission link. This test and measurement guide thus focuses on the system level
+  | manufacturers. The test and measurement guide enables independent testing of the transmitter system, the
+  | Necessary equipment:
+  | Testing the cable requires measuring a known eye diagram that can be input to the cable and then
+== PAGE 4 ==
+  | receiver testing as described below, an equivalent source board is described. Such a board will allow
+  | a transmitter, as well as adding various amounts of jitter and skew to the TMDS transmission. Cable
+  | Necessary Equipment (for eye measurement characterization):
+  | • DVI Equivalent Source Board
+  | Finally, testing the receiver system requires a slightly different approach then measuring the eye diagram.
+  | pixel errors even when receiving a worst-case eye diagram. In order to validate this requirement, control of
+  | the input eye diagram is required, which as noted, is accomplished by the equivalent source board. The
+  | second piece of hardware required is a receiver test board, which can check the output of the receiver
+  | system will require the transmission of specific patterns, as described in chapter 6. A less rigorous, but
+  | Necessary equipment:
+  | • DVI Equivalent Source Board
+  | With the release of this test and measurement guide, we are requesting feedback from the user community
+  | available, while the equivalent source boards (ESB) and Pixel Error Rate Test board are in development
+  | It should also be noted that this first version of the test and measurement guide does not cover all DVI
+== PAGE 5 ==
+  | This document provides measurement guidelines for the evaluation of DVI components against the DVI
+  | assembly. In practice, test point access will require a mated connector to be present to give access to the
+  | the transmitter component, connector, and interconnecting circuit board network. The receiver similarly
+  | document includes recommendations for test fixtures, test equipment, and test methods for the evaluation
+  | Although skew, rise time, and jitter test procedures are described, the critical measure of DVI component
+  | the response to degraded eye patterns. The eye pattern masks of the DVI specification are essential for the
+  | For the eye pattern and jitter measurement to be able to guarantee the 10-9 pixel error rate, more than one
+  | billion acquisitions are required. But this takes too long to be practical and the statistical inference method
+  | is applied (in this document this method is called Method I) to reduce the number of acquisitions to a
+  | reasonable number. However, oftentimes due to the systematic jitter and/or noise in the system the
+== PAGE 7 ==
+  | degradation. Two variations for the TPA board are required, one with a DVI receptacle (TPA-R) and one
+  | Because the test setups in some cases will be done with the plug version and measurements made on the
+  | on an FR4 substrate layer using guarded microstrip construction and porting to test equipment using SMA
+  | be read if required by the graphics controller.
+  | may be required, but will degrade the signal measured. The TPA-R board will require an external power
+== PAGE 9 ==
+  | The clock reference that is transmitted on the T.M.D.S. link contains low-frequency jitter components that are
+  | the clock recovery unit is to remove these high frequency jitter components, producing a clock that will give an
+  | recovery unit may be any circuit, including a full T.M.D.S. receiver, provided that it meets the requirements of the
+  | recovery circuit should be measured using the test configuration shown in Figure 2-4. Gain should be recorded for
+  | the following discrete jitter frequencies driven by a waveform generator: 0.5, 1.0, 1.5, 2.0, 2.5, 3.0, 3.3, 3.6, 4.0, 4.4,
+  | Jitter Frequency (MHz)
+== PAGE 10 ==
+  | 2.4 Equivalent source test boards
+  | generator, a clock source, which can add jitter of a controlled frequency and amplitude, a TMDS source, and a DVI
+  | Figure 2-5 Equivalent Source Board
+  | In practice, it is often simpler to provide an equivalent source board as a system of multiple boards, as shown below.
+  | jitter into the clock of a controlled frequency and amplitude. Currently this board is designed to provide up to 2
+  | MHz of jitter, although future iterations will allow up to 10 MHz of jitter, for a more comprehensive measurement.
+  | Clk/Jitter board
+  | Jitter
+  | Jitter
+  | Figure 2-6, Jitter Clock Source Board
+  | Equivalent
+  | Equivalent
+== PAGE 11 ==
+  | used. The maximum clock speed for the pattern generation function is 85 MHz, so testing at 165 MHz will require
+  | capabilities to vary the rise time, skew and amplitude of the differential data signals. Figure 2.8 shows the complete
+  | system of boards for the Equivalent Source Board, including the use of a TPA-P or TPA-R board to be used to
+== PAGE 12 ==
+  | described in the next section. Collectively, the three boards are considered an equivalent source system, and will be
+  | shown as a single board for simplicity throughout the remainder of this guide.
+  | Figure 2.8 Equivalent Source Board System
+  | TMDS Equivalent Source:
+  | pair. The equivalent source provides T.M.D.S. signals with adjustments to certain parameters to enable these
+  | are swing voltage, jitter, rise time, and skew.
+  | It is recommended that a transmitter with variable swing voltage be used fo

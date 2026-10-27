@@ -1,0 +1,18 @@
+report/build-notes.md                    0 行
+report/timing_global.md                  2 行
+report/comparison-notes.md               2 行
+report/90-open-items.md                  1 行
+report/repro-check.md                    1 行
+report/unattended.md                     1 行
+report/submission-package.md             0 行
+report/01-overview.md                    0 行
+report/project-brief-for-ai.md           0 行
+report/host_guide.md                     0 行
+board/signoff-questions.md               1 行
+board/raw-vs-golden.md                   1 行
+report/demo_talk_xiaosai.md              0 行
+report/judge_qa_xiaosai.md               1 行
+MISS report/technical-document-contest.md :: 141 条通过 140 条；24 项绿 23 项
+MISS report/technical-document-contest.md :: 已固化到 QSPI
+句子改写：report/technical-document-contest.md
+句子改写：report/technical-document-brief.md

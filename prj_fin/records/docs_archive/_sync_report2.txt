@@ -1,0 +1,52 @@
+README_EN.md:50 改
+README_EN.md:54 改
+README_EN.md:63 改
+### README_EN.md 共 3 行
+report/measurements.md:38 改
+report/measurements.md:42 改
+report/measurements.md:50 改
+report/measurements.md:51 改
+report/measurements.md:55 改
+report/measurements.md:124 改
+report/measurements.md:125 改
+### report/measurements.md 共 7 行
+report/technical-document.md:3 改
+report/technical-document.md:24 改
+report/technical-document.md:245 改
+report/technical-document.md:255 改
+report/technical-document.md:255 改
+report/technical-document.md:255 改
+### report/technical-document.md 共 6 行
+05-timing.md: 名册未重跑的 caveat 已插入
+report/architecture.md:125 改
+### report/architecture.md 共 1 行
+report/demo_script.md:27 改
+report/demo_script.md:41 改
+### report/demo_script.md 共 2 行
+report/command_precedence.md:187 改
+report/command_precedence.md:373 改
+### report/command_precedence.md 共 2 行
+report/commands.md:14 改
+report/commands.md:37 改
+### report/commands.md 共 2 行
+board/hardware_setup.md:52 改
+### board/hardware_setup.md 共 1 行
+report/08-limits.md:46 改
+report/08-limits.md:162 改
+### report/08-limits.md 共 2 行
+report/modules.md:60 改
+### report/modules.md 共 1 行
+report/defaults.md:33 改
+### report/defaults.md 共 1 行
+board/README.md:9 改
+### board/README.md 共 1 行
+board/acceptance.md:7 改
+### board/acceptance.md 共 1 行
+board/signoff.md:35 改
+board/signoff.md:51 改
+board/signoff.md:75 改
+board/signoff.md:216 改
+board/signoff.md:256 改
+### board/signoff.md 共 5 行
+### report/known-limitations.md 共 0 行
+### report/final-gate.md 共 0 行

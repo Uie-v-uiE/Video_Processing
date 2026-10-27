@@ -1,0 +1,22 @@
+Vitis 平台脚本重建的落盘摘要（2026-10-19）
+命令：起 vitis-server --port <p> 后 vitis -s board/scripts/rebuild_vitis.py <p>（workspace 由 VP_VITIS_WS 指）
+workspace 目录 36 MB 级，不入库不随包：board/vitis_ws*/ 已在 .gitignore
+
+产物（跑完把 workspace 删掉了，这里留字节与 md5 前 12 位）：
+  vitis_platform/zynq_fsbl/build/fsbl.elf size=584820 md5=56c4e0c778d2
+  vitis_platform/export/vitis_platform/sw/boot/fsbl.elf size=584820 md5=56c4e0c778d2
+  vitis_platform/vitis-comp.json size=1238 md5=17752a332ed2
+
+脚本 stdout 关键行（三次跑合在一起，含失败那两次的原文）：
+  [INFO]: Successfully Created Application sources at D:/Xilinx/Prj/pro/Video_Processing/board/vitis_ws4/vitis_platform/zynq_fsbl
+  Platform FSBL Boot domain added successfully.
+  PLAT_AT D:\Xilinx\Prj\pro\Video_Processing\board\vitis_ws4\vitis_platform
+  ADD_DOMAIN_FAIL TypeError: Platform.add_domain() got an unexpected keyword argument 'processor'
+  GENERATE_RC 0
+  [INFO]: Successfully Created Application sources at D:/Xilinx/Prj/pro/Video_Processing/board/vitis_ws5/vitis_platform/zynq_fsbl
+  Platform FSBL Boot domain added successfully.
+  PLAT_AT D:\Xilinx\Prj\pro\Video_Processing\board\vitis_ws5\vitis_platform
+  ADD_DOMAIN_FAIL TypeError: bad argument type for built-in operation
+  GENERATE_RC 0
+  ADD_DOMAIN_KW {'cpu': 'ps7_cortexa9_0', 'os': 'standalone'}
+  ADD_DOMAIN_FAIL Exception: [31m[31madd_domain failed, status = StatusCode.INTERNAL,

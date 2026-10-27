@@ -1,0 +1,5 @@
+== 台架计数 ==
+帧计数 frames_total = 7425 frames
+丢帧 dropped = 3 frames
+校验错误 crc_err = 0 errors
+寄存器回读数 = 17 regs

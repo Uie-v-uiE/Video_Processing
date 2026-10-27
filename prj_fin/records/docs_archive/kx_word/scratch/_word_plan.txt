@@ -1,0 +1,22 @@
+counts: rewrite=3 rewrite2=0 equal=122 forced=0 insert=3 docx-only=9 blob=0
+INSERT   md:251  after-body:245  图9 到图11 是上位机用同一套算法在 PC 上重算的参考画面，与屏上实拍对照，检查硬件实现是否与软件模型一致。看的是列对齐与边界：图9 看竖缝两侧是否同帧，图
+INSERT   md:384  after-body:380  ## 附录 证据层与读数出口
+INSERT   md:386  after-body:380  数字的唯一出口是 `data/metrics.csv`，每行点名它的证据文件；文档读数与该冻结件同源，不一致时以证据件为准。逐轮改动的账面在 `report/o
+DOCX-ONLY p95   # Vivado：建工程 → 综合 → 实现 → 位流
+DOCX-ONLY p96   <DV>/bin/vivado.bat -mode batch -source build/tcl/build_system_axigpio.tcl
+DOCX-ONLY p97   bash build/gates.sh                                # 发布前自动检查（24 项）
+DOCX-ONLY p98   export VP_XSDB="<Vivado>/../Vitis/bin/xsdb.bat"
+DOCX-ONLY p99   bash build/board_verify.sh --geom --battery        # 板级回显与几何判据，留原始日志
+DOCX-ONLY p100  export VP_VIVADO_BIN="<Vivado>/bin"
+DOCX-ONLY p101  bash board/scripts/make_boot_image.sh              # 第一级引导 + 位流 + 应用 → BOOT.bin
+DOCX-ONLY p102  VP_QSPI_PART="mx25l25645g-qspi-x4-single" \
+DOCX-ONLY p103    "<Vivado>/bin/vivado.bat" -mode batch -source board/tcl/flash_qspi.tcl
+REWRITE md:347  p154 
+    MD : 最疼的一次是全绿并不代表对。有五支台架、56 条检查项全部通过，我把那一轮记成了通过。后来翻综合报告才发现被测的那条逻辑根本不存在——边界判断的一侧接了常数，被综合直接优化掉了。此后每条判据
+    DOC: 最疼的一次是全绿并不代表对。有五支台架、56 条检查项全部通过，我把那一轮记成了通过。后来翻综合报告才发现被测的那条逻辑根本不存在——边界判断的一侧接了常数，被综合直接优化掉了。此后我要求每
+REWRITE md:349  p155 
+    MD : 第二次收获来自一个被实测推翻的假设。原本以为拔线之后 PHY 会停止输出接收时钟，所以判断链路静默只看计数是否增长。真拔一次线，计数确实不涨，但画面也没有交还给 SD 片源。查下去才知道这颗
+    DOC: 第二次收获来自一个被实测推翻的假设。原本以为拔线之后 PHY 会停止输出接收时钟，所以判断链路静默只看计数是否增长。真拔一次线，计数确实不涨，但画面也没有交还给 SD 片源。查下去才知道这颗
+REWRITE md:351  p156 
+    MD : 第三点体会是时序要靠算和扫，不能靠猜。RGMII 采样沿的位置是先建模再取整得到的（图7 就是那一次扫描的结果）；同样的做法用在时钟不确定度上，给四个域统一加 0.8 ns 之后量出两万多条
+    DOC: 第三点体会是时序要靠算和扫，不能靠猜。RGMII 采样沿的位置是先建模再取整得到的（图7 就是那一次扫描的结果）；同样的做法用在时钟不确定度上，给四个域统一加 0.8 ns 之后量出两万多条

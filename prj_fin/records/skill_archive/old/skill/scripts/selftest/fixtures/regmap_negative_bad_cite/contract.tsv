@@ -1,0 +1,15 @@
+# 寄存器契约表（单一真相源）：AXI GPIO_0 控制字 0x41200000 的 gpio_o 位段# 列：名称 偏移 位域 读写属性 复位值 写副作用 读副作用 中断号 单位与量程 最宽输入 时钟域 三处证据
+# 证据格式 <相对路径>:<行号>:<这一行里必须出现的串>；行号是 2026-10-04 打开文件核对得到的实测值。
+# 这张表由 skill/scripts/regmap_check/regmap_check.mjs 与 skill/scripts/contract_gen/contract_gen.mjs 共同消费。
+name	offset	bits	access	reset	w_side_effect	r_side_effect	interrupt	unit_range	widest_input	clock_domain	rtl_evidence	ps_evidence	doc_evidence
+ctrl_v7_retired	0x41200000	[4:0]	W(保留位, PS 恒写 0, PL 侧已无读者)	0	无(入口与兜底合流已随 #66 删净)	无	none	0..0	0	fclk0/axi 域电平	src/rtl/top/system_top.v:262:gpio_o[4:0]	src/ps/main.c:211:[4:0]	report/COMMANDS.md:231:gpio_o[4:0]
+threshold	0x41200000	[15:8]	R/W(写后立刻生效)	80	改二值化判决阈值(电平)	无(读回即当前值)	none	0..255	255	fclk0/axi 域电平, 进像素域走 3 级同步	src/rtl/top/system_top.v:264:gpio_o[15:8]	src/ps/main.c:299:cur_thr	report/COMMAND_PRECEDENCE.md:70:gpio_o[15:8]
+src_sel	0x41200000	[16]	R/W	0	改"PS 这一路有没有货"旗标	无	none	0..1	1	fclk0/axi 域电平	src/rtl/top/system_top.v:264:gpio_o[16]	src/ps/main.c:214:cur_src	report/COMMAND_PRECEDENCE.md:59:gpio_o[16]
+zoom_en	0x41200000	[17]	R/W	1	缩放呼吸发电机的总开关	无	none	0..1	1	fclk0/axi 域电平	src/rtl/top/system_top.v:280:gpio_o[17]	src/ps/main.c:215:cur_zoom	report/COMMAND_PRECEDENCE.md:51:gpio_o[17]
+ps_publish	0x41200000	[18]	W(翻转位)	0	每翻一次 = 请求把 DDR 那一帧搬上屏一次	读回是电平不是沿	none	0..1	1	fclk0/axi 域电平	src/rtl/top/system_top.v:288:gpio_o[18]	src/ps/main.c:215:pub_lvl	report/ARCHITECTURE.md:31:gpio_o[18]
+bilin_en	0x41200000	[19]	R/W	1	右窗双线性/最近邻 A-B 对照	无	none	0..1	1	fclk0/axi 域电平, 进像素域走 3 级同步	src/rtl/top/system_top.v:286:gpio_o[19]	src/ps/main.c:216:BILIN_BIT	report/COMMAND_PRECEDENCE.md:72:gpio_o[19]
+osd_off	0x41200000	[20]	R/W(反相)	0	写 1 = 关掉 OSD 叠层(复位 = 屏上有叠层)	无	none	0..1	1	fclk0/axi 域电平, 走独立 3 级同步链	src/rtl/top/system_top.v:287:gpio_o[20]	src/ps/main.c:217:OSD_OFF_BIT	report/COMMANDS.md:119:gpio_o[20]
+mode_tog	0x41200000	[22]	W(翻转位)	0	第二笔写才让模式码生效	无	none	0..1	1	fclk0/axi 域电平	src/rtl/top/system_top.v:293:gpio_o[22]	src/ps/main.c:218:MODE_TOG_BIT	report/COMMAND_PRECEDENCE.md:56:[22]
+mode_code	0x41200000	[24:23]	R/W	0	钉住片源(00 自动/01 ETH/10 TEST/11 SD)	无	none	0..3	3	fclk0/axi 域电平	src/rtl/top/system_top.v:293:gpio_o[24:23]	src/ps/main.c:218:MODE_CODE_BIT	report/COMMAND_PRECEDENCE.md:56:gpio_o[24:23]
+gapclr	0x41200000	[26]	W(电平, 拉高后要落下)	0	置位期间把帧间隔统计归零并撤销基准	读回是电平	none	0..1	1	fclk0/axi 域电平, 进目的域走 3FF	src/rtl/top/system_top.v:203:gpio_o[26]	src/host/health_read.mjs:37:gpio_o[26]	report/log/CHANGELOG_V7.md:403:gpio_o[26]
+lane_sel	0x41200000	[31:27]	W	0	选状态窗口的 lane 号(先写号再读 GPIO_1)	无	none	0..31	31	fclk0/axi 域电平	src/rtl/top/system_top.v:219:gpio_o[31:27]	src/host/health_read.mjs:279:n << 27	report/ARCHITECTURE.md:101:[31:27]

@@ -1,0 +1,8 @@
+# #141 隔离测量（2026-10-01 10:12-10:33，OUT=build/isolated_r100_141，正式 build/ 那套一字未动）
+补丁：src/rtl/eth/icmp_tx.v 把 st_tx_data 里三处 16 位减法挪到 st_idle 那拍寄存（tx_data_num_m1/_m2/real_tx_m1）
+行为：sim/tb_icmp_ping0.v 打完补丁仍 RESULT PASS；等价性由 tx_data_num 只在复位与 st_idle 被写（隔 >=20 拍）担保
+结构判据：r99 的 build/timing_summary.rpt 里 real_add_cnt 出现 12 次（它就是最差那一格），隔离版里出现 0 次 ⇒ 这一族彻底离开关键路径
+数字：WNS 0.284 -> 0.525 ns（两版失败端点都 0）；最差 hold 0.051 不变；Slice Registers 8078 -> 8126 = +48 个 FF
+读法（规矩 35）：+0.241 ns 的 WNS 差**在同一批放置抖动 0.4 ns 之内**，所以这句不写成收益；
+          可写的是那条结构判据 + 成本 +48 FF。采纳与否由 r100 决定，树已回退到与板上 r99 一致。
+隔离位流 md5：044005ab4fe0
