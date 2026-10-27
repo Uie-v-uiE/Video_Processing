@@ -37,7 +37,7 @@ description: 脚本模板条目：一支带四行元信息头、自动探测工�
 
 模板文件：`script-template.sh`（同目录，一层深，无二级引用）。
 
-槽位计数自检（`grep -o '【填入】' | wc -l`，实跑 某轮）：`script-template.sh` = 1 处正文提示；
+槽位计数自检（`grep -o '【填入】' | wc -l`，实跑 项目实测）：`script-template.sh` = 1 处正文提示；
 本 `SKILL.md` = 1 处；另有 15 个环境变量槽位在 `SLOTS` 段（`TOOL_BIN_DIR REQ_TOOL VERSION_CMD REPORT_DIR
 ARCHIVE ROUND R_TIMING R_RESOURCE R_STATUS DONE_TOKEN ROW_RE COL_WNS COL_EP MIN_PARSED SRC_DIR`），
 外加一个可选旋钮 `STAGE`（设了才写检查点）。它们的默认值全为空 ⇒ 不填就跑不起来（这正是设计，见第 6 节 rc=3 分支）。
@@ -92,18 +92,18 @@ ARCHIVE ROUND R_TIMING R_RESOURCE R_STATUS DONE_TOKEN ROW_RE COL_WNS COL_EP MIN_
 
 ## 7. 已验证的效果
 
-- 本模板自身实跑记录（某轮，工作目录 `D:/Xilinx/Prj/pro/Video_Processing/skill/templates/script-template/`）：
+- 本模板自身实跑记录（项目实测，工作目录 `D:/Xilinx/Prj/pro/Video_Processing/skill/templates/script-template/`）：
   - 命令 1 `bash -n script-template.sh` ⇒ 输出为空（语法通过）。
   - 命令 2 `bash script-template.sh`（不填任何槽位）⇒ 实际输出 `REFUSE: 没设报告目录（当前 REPORT_DIR=）`，`rc=3`（期望：第一步拒绝且不产出半截产物）。
   - 命令 3 `bash script-template.sh --self` ⇒ 实际输出 7 行 `PASS 反例：…`（正例 + 6 条反例，含"带符号负裕量必须判红""读不到那一行 ⇒ PARTIAL""射程地板""缺报告 ⇒ REFUSE""空正则 ⇒ REFUSE""探测不到可执行文件 ⇒ REFUSE"）与 `SELF: 全绿（7 条）`，`rc=0`。
   - 输入件：`--self` 自建的四份合成读数（`0.739 0.000 0 51135 …` / `-0.482 -6.457 19 51135 …` / `14154 8188 95.5` / `DONE_MARKER here`），写在 `mktemp -d` 目录里，跑完即删。
   - 一次调试中被抓住的真缺陷（记在这里而不是删掉）：反例最初用 `env` 传变量，这台机器 `PATH` 上有个 `env` 垫片会把子进程输出吞掉 ⇒ 所有反例 rc=0、正例被误判通过；改成生成 `export` 包装脚本并**同时要求收尾行首词对上**之后，"没跑成"再也伪装不成绿。
 - 约定来源（本仓库真实件，示例取值，需按自身工程替换）：
-  - 退出码分态与"红/没数分开"：`build/gates.sh`（某轮）`exit 2` = 缺报告，收尾三态 `GATES: ALL PASS（N 项全部判定）` / `GATES: 有红项（判定 N 项）` / `GATES: PARTIAL —— 判定 N 项全过，但有 M 项因缺凭据未判`；`sim/run_one.sh`（某轮）注释写明"0 绿 / 1 编译或例化失败 / 2 REFUSE / 3 判红 / 4 认不出判定行"，并解释"3 与 4 必须分开：红是结论，'没数'不是结论"。
+  - 退出码分态与"红/没数分开"：`build/gates.sh`（项目实测）`exit 2` = 缺报告，收尾三态 `GATES: ALL PASS（N 项全部判定）` / `GATES: 有红项（判定 N 项）` / `GATES: PARTIAL —— 判定 N 项全过，但有 M 项因缺凭据未判`；`sim/run_one.sh`（项目实测）注释写明"0 绿 / 1 编译或例化失败 / 2 REFUSE / 3 判红 / 4 认不出判定行"，并解释"3 与 4 必须分开：红是结论，'没数'不是结论"。
   - 逐项四列打印：`build/gates.sh:175` 的 `say()` 用 `printf "  %-22s %-12s %-28s %s\n"`。
   - 读不到就打印候选行、数字要带符号：`build/gates.sh:62-67`（TNS 违例时是负数，原式只给 WNS/WHS 留了符号位 ⇒ awk 不匹配 ⇒ 把 WNS −0.482 / 19 个失败端点换成一句"读不到"）。
-  - 拒绝发生在写产物之前：`report/BUILD.md`（某轮）第 1 节贴的 `REFUSE: 找不到 xvlog … rc=2` 实跑输出。
-  - 管道吃退出码：`report/LLM_COLLAB.md` 例 4（某轮）"判断脚本成不成，`cmd > file 2>&1; echo rc=$?`，永远不要读被 pipe 掉的命令的状态"。
+  - 拒绝发生在写产物之前：`report/BUILD.md`（项目实测）第 1 节贴的 `REFUSE: 找不到 xvlog … rc=2` 实跑输出。
+  - 管道吃退出码：`report/LLM_COLLAB.md` 例 4（项目实测）"判断脚本成不成，`cmd > file 2>&1; echo rc=$?`，永远不要读被 pipe 掉的命令的状态"。
 - 空目录演练（把骨架复制进新目录只改槽位跑到产出凭据）：`【待验证】`——本次只在仓库内实跑 `--self` 与 REFUSE 路径，未在第二个目录建过工程。还差：一次新目录演练 + 该演练的 `RESULT:` 行留档。
 
 ## 8. 提炼来源与边界

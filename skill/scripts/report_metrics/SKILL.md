@@ -68,7 +68,7 @@ description: 从真实 Vivado 报告文本里按"表头右对齐到列末"取 WN
 
 ## 7. 已验证的效果
 
-本会话（某轮）在仓库根实跑；两份报告是本仓示例取值，需按自身工程替换。
+本项目实测在仓库根实跑；两份报告是本仓示例取值，需按自身工程替换。
 
 - 只取数（不给阈值/baseline）：`METRICS …/metrics.csv …/metrics.md 取到字段=42 判 82 项 未判 2 项 红 0 项 NOT_MEASURED`（exit 2），其中
   `R1_field_shape 判 22 项 请求字段=22 取到=42 取不到=0 命中多次=0 PASS`、`R3_whole_vs_parts 判 4 项 lut 14154==14154 reg 8188==8188 bram 93<=95.5<=98 PASS`、

@@ -145,13 +145,13 @@ bash build/gates.sh build/frozen_rNN_<短名>   # 复核某一组成套冻结件
   - 复跑命令：`bash build/gates.sh`（内含 `metric_recheck` / `doc_currency_check` / `line_cite_check` 那三把尺子）
   - 输入路径：`data/metrics.csv`、`README.md` 首页表、`build/*.rpt`
   - 期望输出：`红 0` + `CURRENCY: 干净` + `D5: CLEAN`
-  - 实际输出摘要：`build/evidence/r113_step5_gates3_console.txt`（某轮–14:53:41）打出 `== 数字对账：判 68 个数（首页层 58 个／解析到 10/10 行；红 0）／csv 认领 10/10 行／其余 18 行不点名这三份报告 ==`、`CURRENCY: 干净`、`D5: CLEAN（退出码只由硬错决定…）`、`扫了 397 个手写文件：全部干净`，同一次还打出"门禁现状：24 项 23 绿 / 1 红"与"两跑逐字节一致 rc=1/1" ⇒ 判定 PASS。
+  - 实际输出摘要：`build/evidence/r113_step5_gates3_console.txt`（项目实测–14:53:41）打出 `== 数字对账：判 68 个数（首页层 58 个／解析到 10/10 行；红 0）／csv 认领 10/10 行／其余 18 行不点名这三份报告 ==`、`CURRENCY: 干净`、`D5: CLEAN（退出码只由硬错决定…）`、`扫了 397 个手写文件：全部干净`，同一次还打出"门禁现状：24 项 23 绿 / 1 红"与"两跑逐字节一致 rc=1/1" ⇒ 判定 PASS。
   - 该尺子接入前抓到的真实漂移（基线对照）：`data/metrics.csv` 第 14 行记载 D6 接上"第一次就抓到首页四格还是 r103 的数"；同族的三次成因写在 `src/host/metric_recheck.mjs` 文件头（`#145`/`#138` 与"50 MHz 显示域 12 % 实为 5.9 %"的除错分母）。⇒ 判定 PASS（有件、有日期、有对照）。
 - 零样本判据在坏样本上确实会红（§5.2 第三条）
   - 复跑命令：`node src/host/health_read.mjs --json`（对照 `report/log/ISSUES.md` `#316` 的两步）
   - 输入路径：板上 `build/system.bit`（本仓 r116/r118 各一轮）+ `src/host/video_sender.mjs` 图案流
   - 期望输出：`计数=0` 必须与 `eth_live=1` 同现
-  - 实际输出摘要：`build/evidence/r118_board/bitcycle_console.txt`（某轮）两次带流读数 `eth_live=1 owner_eth=1 drop_words=0`；同一次里 `pkt_err=?`、`frames_bad=?`、`drop_seen=?` 三个键是 `?` ⇒ 正是 §5.2 第一条的成因（内联正则被吃掉转义），落成 `build/r116_ab_summary.mjs` 之后才打成 `ABSENT`。⇒ 判定 PASS（两半都有件）。
+  - 实际输出摘要：`build/evidence/r118_board/bitcycle_console.txt`（项目实测）两次带流读数 `eth_live=1 owner_eth=1 drop_words=0`；同一次里 `pkt_err=?`、`frames_bad=?`、`drop_seen=?` 三个键是 `?` ⇒ 正是 §5.2 第一条的成因（内联正则被吃掉转义），落成 `build/r116_ab_summary.mjs` 之后才打成 `ABSENT`。⇒ 判定 PASS（两半都有件）。
 - 检查器自己能红（§5.4）
   - 复跑命令：`python3 build/check_ports.py` 的三条反例 + `node src/host/metric_recheck.mjs --self`
   - 输入路径：`build/ports_check_width_ce.txt`（反例件，存在）

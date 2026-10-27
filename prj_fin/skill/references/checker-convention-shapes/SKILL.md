@@ -20,7 +20,7 @@ description: 查本仓库判据的"形状约定"：写新检查器或改现有�
 - **本层不是判据**：任何结论都不能靠本页自称成立，只能靠 `evals/` 的记录或实测输出；本页写的是"本仓脚本现在怎么印"，不是"你该怎么判"。
 - 不适用：官方工具的退出码语义（Vivado/xsim/xsdb 的 rc）——那类要按版本绑定，见 `skill/references/tool-version-drift/SKILL.md`。
 - 不适用：外队工程——本表的 token 与文件名是本仓约定（示例取值，需按自身工程替换），迁移时要整列重写。
-- 失效：脚本改了措辞（例如把 `n/a` 换成别的词）而不带对照，本页那一行随之作废；核对日期 某轮。
+- 失效：脚本改了措辞（例如把 `n/a` 换成别的词）而不带对照，本页那一行随之作废；核对日期 项目实测。
 - 不许越界：本页不给出"该把阈值改成多少"。
 
 ## 4. 前置条件
@@ -76,7 +76,7 @@ description: 查本仓库判据的"形状约定"：写新检查器或改现有�
 
 ## 7. 已验证的效果
 
-- 本次直读的形状（某轮，逐条打开文件核对）：
+- 本次直读的形状（项目实测，逐条打开文件核对）：
   `build/gates.sh:173-183`（`NSAY`/`NNA` 与 `say`/`naa` 两个计数器）、`build/gates.sh:581-586`（三态结论行与退出码 1/1/0）、
   `build/gates.sh:32`（缺报告 FATAL exit 2）、`build/gates.sh:164`（解析不到变量即 exit 2）；
   `sim/run_one.sh:36-44`（`NO-VERDICT-LINE` + rc=4；rc=3 判红；rc=0 绿）、`sim/run_one.sh:58-60`（`REFUSE …` exit 3）、
@@ -87,7 +87,7 @@ description: 查本仓库判据的"形状约定"：写新检查器或改现有�
   `build/gates_cdc_test.sh:12-20`（五个 case T1–T5，"全部符合预期才 0"）；
   `build/r95_timing_round.sh:113`（`word()`：0→ADOPT、2→NOT_MEASURED、其余→DECLINE）；
   `build/r115_fanout_ab.sh:41`（`line …` 只有第 4 个参数等于 `RED` 才置 R=1，`GREEN`/`INFO` 不置）。
-- 本次实跑（某轮）：`node src/host/line_cite_check.mjs` 打印
+- 本次实跑（项目实测）：`node src/host/line_cite_check.mjs` 打印
   `D5: CLEAN（退出码只由硬错决定；soft 158 条是给人排队的候选…）`，rc=0；
   同轮 `bash sim/run_one.sh --verdict …` 得 rc=3 与 rc=4 各一次（见 `checker-ran-on-nothing` §7）。
 - 未实测：`build/ports_floor.sh`、`build/gates_cdc_test.sh`、`build/run_one_ce.sh` 本轮**没有真的执行**

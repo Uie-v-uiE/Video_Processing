@@ -68,7 +68,7 @@ description: 把黄金参考表与实际产出表做逐键、逐值、带绝对�
 
 ## 7. 已验证的效果
 
-本会话（某轮）实跑，均在仓库根；命令里的表是本仓示例取值，需按自身工程替换。
+本项目实测实跑，均在仓库根；命令里的表是本仓示例取值，需按自身工程替换。
 
 - 正例（`fixtures/golden_compare_positive/golden.tsv` vs 同目录 `produced.tsv`，`--golden-key '$1' --golden-values 'endpoints=@2,unsafe=@1'`）：
   `GOLDEN golden.tsv vs produced.tsv 判 18 项 未判 0 项 红 0 项 PASS`（exit 0），四行分别 `C1 判 4 / C2 判 8 / C3 判 4 / C4 判 2` 全 PASS。

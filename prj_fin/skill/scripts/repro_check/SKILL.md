@@ -66,16 +66,16 @@ description: 可复现性双向检查：编译前 capture 源码树指纹（去 
 
 ## 7. 已验证的效果
 
-本会话（某轮）实跑：capture/verify 都在 `mktemp -d` 的临时树里跑（`--root` 指临时树、cwd 也切到临时树），`--report`/`--declare` 用的是本仓真件（示例取值，需按自身工程替换）。
+本项目实测实跑：capture/verify 都在 `mktemp -d` 的临时树里跑（`--root` 指临时树、cwd 也切到临时树），`--report`/`--declare` 用的是本仓真件（示例取值，需按自身工程替换）。
 
 - capture：`CAP_written 判 1 项 <临时目录>/ev/fingerprint_manifest.txt 行数=14 回读一致=yes PASS` + `CAP_surface 判 1 项 root=… 文件=2 聚合=84dfdefebec1（norm2） 与仓库尺子同形=fda32463591b（norm1） 两种口径下不同的文件数=1 PASS`，末行 `判 2 项 未判 0 项 红 0 项 PASS`（exit 0）。
 - verify 全判（`--recorded` 用 capture 念出的 `aggregate_norm1_findshape`、`--manifest` 是临时目录里 `md5sum` 造的清单 + `--strict-set`）：
   `V2_fingerprint_binds_content 判 4 项 LF=84dfdefebec1 CRLF=84dfdefebec1 加尾随空白=84dfdefebec1 改内容=4f69f4c5ab0f 三项行尾/空白不变 + 改内容必须变 PASS`、
   `V3_same_tool_version 判 2 项 报告版本=2025.2.1 声明=2025.2.1 一致（取自 …/report/BUILD.md） 报告头 Date=Sun Oct  4 04:37:30 2026 PASS`、
-  `V5_captured_before_build 判 1 项 证据=某轮+08:00 报告=Sun Oct  4 04:37:30 2026 先后成立 PASS`、
+  `V5_captured_before_build 判 1 项 证据=项目实测+08:00 报告=Sun Oct  4 04:37:30 2026 先后成立 PASS`、
   `V6_compat_with_repo_ruler 判 2 项 记录文件 … 里 rtl=fda32463591b 我用 norm1 口径(与 build/rtl_fingerprint.sh 同形)算=fda32463591b 同=yes；norm2 口径=84dfdefebec1，两种口径下取值不同的文件=1/2 PASS`、
   `V7_manifest_parity 判 2 项 清单=2 核对=2 md5 不符=0 缺文件=0 …  PASS`，末行 `判 14 项 未判 0 项 红 0 项 PASS`（exit 0）。
-- 反例 V5（报告头 Date 早于 captured_at，用本仓反例件）：`V5_captured_before_build 判 1 项 证据=某轮+08:00 报告=Sun Sep 27 03:00:42 2026 先后不成立（编译后采集的指纹不能证明同源） FAIL`（exit 1）。
+- 反例 V5（报告头 Date 早于 captured_at，用本仓反例件）：`V5_captured_before_build 判 1 项 证据=项目实测+08:00 报告=Sun Sep 27 03:00:42 2026 先后不成立（编译后采集的指纹不能证明同源） FAIL`（exit 1）。
 - 反例 V1（把证据文件副本里的 `aggregate=` 改一个字符）：`V1_same_source 判 2 项 证据 aggregate=94dfdefebec1 现算=84dfdefebec1 同=no；证据 files=2 现扫=2 同=yes FAIL`（exit 1）。
 - 成对提交对照（`--evidence` 指向不存在的文件）：`V4_pair_required 判 1 项 evidence=缺 report=在（声明：两者必须成对提交，只有一份时另一份不可信） NOT_MEASURED`，末行 `判 8 项 未判 6 项 红 1 项 FAIL`（exit 1）。
   ⚠ 同一次实跑还暴露一个缺陷：`V1_same_source` 被打了**两行**（一行 `判 0 项 …不存在 NOT_MEASURED`，紧接一行 `判 2 项 证据 aggregate=空 … FAIL`），所以"缺输入"在这一支里同时是未测与红 ⇒ 判读要以 V4 行为准，已进待修清单。
@@ -87,7 +87,7 @@ description: 可复现性双向检查：编译前 capture 源码树指纹（去 
 
 - 来源证据：`skill/scripts/repro_check/repro_check.mjs` 的 V1–V7 与文件头"指纹绑内容不绑行尾""证据与报告必须成对提交"两条约束；
   口径 `norm1` 的对账对象是仓库既有尺子 `build/rtl_fingerprint.sh`（本仓示例取值，需按自身工程替换）；反例件 `skill/scripts/selftest/fixtures/repro_negative/report_head.rpt`；
-  `skill/evals/records/audit-某轮.md` 登记了 V7 的死三元（`(… ? 'PASS' : 'PASS')`）与 `bad += 0` 空操作——本会话第 7 节的"重复 V1 行"是同一族（看起来有判据、其实没牙/没分家）。
+  `skill/evals/records/audit-项目实测.md` 登记了 V7 的死三元（`(… ? 'PASS' : 'PASS')`）与 `bad += 0` 空操作——本会话第 7 节的"重复 V1 行"是同一族（看起来有判据、其实没牙/没分家）。
 - 边界：capture 只采源码身份，不调工具、不采二进制；verify 只读现成报告，不重新生成报告。两者之间发生的任何源码改动都会被 V1 抓到（这正是设计）。
 - 迁移要改四处：① `FPVER_COMPAT` 与你仓库既有尺子的口径（不一致就别指望 V6）；② `INCLUDE` 扩展名集合；③ V3 的版本声明件与键名（`--declare-key`）；
   ④ 时间基准（Vivado Date 用本地时间，别的工具未必）+ 两条反例件（一份"Date 早于 captured_at"、一份"改一个字符"）。

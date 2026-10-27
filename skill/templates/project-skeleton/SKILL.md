@@ -33,7 +33,7 @@ description: 工程骨架模板条目：给出可交付 FPGA 赛题仓库的目�
 ## 5. 使用方法（在陌生工程里实例化）
 
 模板文件：`project-skeleton.md`（同目录，一层深）。
-槽位计数自检（命令 `grep -o '【填入' project-skeleton.md | wc -l`，实跑 某轮）= 14；本 `SKILL.md` 同法 = 1。
+槽位计数自检（命令 `grep -o '【填入' project-skeleton.md | wc -l`，实跑 项目实测）= 14；本 `SKILL.md` 同法 = 1。
 实例化完成时这两个数应当归 0（对目标文件再跑一次同一命令即可判定）。
 
 ### 5.1 步骤
@@ -78,14 +78,14 @@ description: 工程骨架模板条目：给出可交付 FPGA 赛题仓库的目�
 
 ## 7. 已验证的效果
 
-- 本仓库的真实目录树（`ls` 实测 某轮，仓库根）：顶层含 `src/ sim/ build/ board/ data/ report/ skill/` 与根 `README.md`、`LICENSE`；`src/` 下是 `constraints/ host/ ps/ rtl/`；`data/` 下是 `golden/ measured/`；`report/` 下有 `log/`。模板第 1 节的树由此抽象而来，不是设想图。
-- 条文口径来源（本地核对，某轮）：`report/log/CONTEST_CHECKLIST.md:21`（文件名纯英文小写口径 + 大写名作为文档化例外的处理方式）、`:120`（采用其他组织方式须在 README 给出目录对照说明）；同文件"提交包结构（推荐目录）"一行写明"仓库里文档按三类放（`report/` 交付物、`report/log/` 工作记录、`report/study/` 本地学习件不入库）"，并说明导出脚本会照官方目录另出一份提交包。
-- 工具路径拒绝的正对照（模板 A2 的落地形态）：`report/BUILD.md`（某轮）第 1 节末尾贴出的实跑输出——把变量指向不存在路径后脚本打印 `REFUSE: 找不到 xvlog（当前 …）` 且 `rc=2`，并写明"拒绝发生在 `mkdir`/`sed` 之前"。
+- 本仓库的真实目录树（`ls` 实测 项目实测，仓库根）：顶层含 `src/ sim/ build/ board/ data/ report/ skill/` 与根 `README.md`、`LICENSE`；`src/` 下是 `constraints/ host/ ps/ rtl/`；`data/` 下是 `golden/ measured/`；`report/` 下有 `log/`。模板第 1 节的树由此抽象而来，不是设想图。
+- 条文口径来源（本地核对，项目实测）：`report/log/CONTEST_CHECKLIST.md:21`（文件名纯英文小写口径 + 大写名作为文档化例外的处理方式）、`:120`（采用其他组织方式须在 README 给出目录对照说明）；同文件"提交包结构（推荐目录）"一行写明"仓库里文档按三类放（`report/` 交付物、`report/log/` 工作记录、`report/study/` 本地学习件不入库）"，并说明导出脚本会照官方目录另出一份提交包。
+- 工具路径拒绝的正对照（模板 A2 的落地形态）：`report/BUILD.md`（项目实测）第 1 节末尾贴出的实跑输出——把变量指向不存在路径后脚本打印 `REFUSE: 找不到 xvlog（当前 …）` 且 `rc=2`，并写明"拒绝发生在 `mkdir`/`sed` 之前"。
 - 空目录演练（P03 的验收方式：把骨架 + 构建脚本复制到新目录只改槽位跑一遍）：`【待验证】`——本条目未在新目录真跑过（本次只读仓库、只写 `skill/prompts/` 与 `skill/templates/`，未被授权建第二个目录）。还差：一次完整的空目录演练记录。
 
 ## 8. 提炼来源与边界
 
-- 提炼来源：`report/log/CONTEST_CHECKLIST.md`（某轮，条文对照与未达成清单）、`report/BUILD.md`（某轮，环境变量表与"脚本不许写死绝对路径"的规矩）、`build/make_submission.sh` 头部四条判据（某轮：按引用留凭据 / 被否决轮次不进包 / 交付名工程化 + 生成新旧名对照 / 导出后自检不过就不落盘）、`data/metrics.csv`（某轮，"一行一指标带凭据路径"的落地形态）。
+- 提炼来源：`report/log/CONTEST_CHECKLIST.md`（项目实测，条文对照与未达成清单）、`report/BUILD.md`（项目实测，环境变量表与"脚本不许写死绝对路径"的规矩）、`build/make_submission.sh` 头部四条判据（项目实测：按引用留凭据 / 被否决轮次不进包 / 交付名工程化 + 生成新旧名对照 / 导出后自检不过就不落盘）、`data/metrics.csv`（项目实测，"一行一指标带凭据路径"的落地形态）。
 - 平台相关、迁移要改的地方：目录本身与家族无关；要改的是第 3 节归档内容清单（Versal 与 7 系列的产物名不同）、`MANIFEST.md5` 里"三件套"的具体件（有的流程还有处理器侧镜像或设备树），以及第 6 节 A2 的盘符写法。
 - 失效条件：仓库已经按另一套推荐结构交付过一轮（重排会让所有 `文件:行号` 引用与文档门禁一起失效）；此时把本模板当"职责口径检查表"用，不要动目录。
 - 边界：本模板给目录与命名，不给构建流程（`../script-template/`）、不给读数表头（`../report-forms/`）、不给寄存器契约（`../interface-contract/`）。

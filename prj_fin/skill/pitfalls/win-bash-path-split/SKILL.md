@@ -90,7 +90,7 @@ description: 处理 Windows 上 Git Bash/MSYS 与工具、Node 各看各的路�
   （同文件 `:1275`、`:1876` 两档同形）⇒ 五份读数为空，扫档判据当时读的是"什么都没有"。台账 `report/log/ISSUES.md` #280 末尾。
 - 命令行长度那一支的基线形状（台账原文，本轮未复现长清单现场）：`sim/run_one.sh:67-71` 的注释记"清单拼在命令行上会被 Windows 命令行长度上限截成一句『参数太多』，而 xv.log 里连 ERROR 都没有 ⇒ 脚本只看 `^ERROR` 就往下走，最后报成看不懂的 `Cannot find design unit`"；
   同形事故另见 `report/log/ISSUES.md` 第 556 行、第 2755 行。判 `【未实测】`（本轮没有把清单放回命令行去撞它）。
-- 用它之后的形状（本轮 某轮 实跑，只读）：
+- 用它之后的形状（本轮 项目实测 实跑，只读）：
   `bash sim/run_one.sh --verdict tb_v98_top_seam build/tb_v98_report.txt` 打出
   `VERDICT tb_v98_top_seam: RESULT tb_v98_top_seam FAIL nfail=1 || FAIL 行数=1 || PASS 行数=161`，`rc=3`
   ⇒ 离线分支排在 Vivado 存在性检查**之前**，所以"没有工具路径也能读旧日志"这一条被证明可用（`sim/run_one.sh:8-9` 声明了这个顺序，本轮实跑吻合）。

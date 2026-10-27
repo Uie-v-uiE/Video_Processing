@@ -86,12 +86,12 @@ description: 当"码页/编码"改变读数而不是改变行为时使用：GBK 
 
 ## 7. 已验证的效果
 
-- 本轮实跑（某轮，只读，逐字节数 >127 的 Tcl 文件）：
+- 本轮实跑（项目实测，只读，逐字节数 >127 的 Tcl 文件）：
   `python -c` 扫 `build/tcl/*.tcl` 得 `NONASCII_FILES=65`，最高的一份是 `build/tcl/build_system_axigpio.tcl`（6834 个字节）。
   ⇒ 结论只能写成这样：台账里"探针脚本全文 ASCII"那条规矩（`report/log/ISSUES.md` #307 的处理与"规矩升级"句）**没有对应的机器判据**，
   所以它只落在个别探针上；本轮新增 0 个 ASCII 化的 Tcl。
 - 基线（不用本条时的错判，件为台账）：
-  1. `report/log/ISSUES.md` #307（某轮）——`build/tcl/r115_window_true_probe.tcl` 死在 `rowline`，报错把整个 `foreach` 体贴出来当命令，位置是一句中文注释；
+  1. `report/log/ISSUES.md` #307（项目实测）——`build/tcl/r115_window_true_probe.tcl` 死在 `rowline`，报错把整个 `foreach` 体贴出来当命令，位置是一句中文注释；
   2. 该文件第 5810–5811 行——把"渲染不出中文"读成"固件在打空格"（同处第 5844 行给出 ASCII 化之后的对照读数）；
   3. 该文件第 784 行——看到 shell 乱码输出，就当成"那份抓取里有停止行"，引用了一条根本不存在的证据；
   4. 该文件第 1938–1941 行——BOM（`EF BB BF`）让 `program_system.tcl` 第一行报 `invalid command name "？#"`；

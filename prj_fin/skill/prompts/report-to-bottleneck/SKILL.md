@@ -145,16 +145,16 @@ description: 给智能体的提示词模板：把综合/实现/时序/方法学�
 
 ## 7. 已验证的效果
 
-- `report/TIMING_GLOBAL.md`（本仓库，某轮）第 1 节第 5 条把"每一刀改完必须交名册差分"写成规矩；第 2 节给出 r112 的四域同表读数（`eth_rxc` WNS 0.445 / 相对余量 5.56 %、`clk_fpga_0` 1.135 / 11.35 %、`clkout0_1` 4.467 / 22.34 %、`sys_clk` 14.463 / 72.3 %），并写出同轮 `eth_rxc` −0.268 与 `clkout0_1` +0.668 的同时移动——这正是本模板第 1 步强制的形状。
-- `docs/timing/roster_round116.tsv`（某轮）：花名册落地件，列含 `rel_margin_setup/rel_margin_hold`、`unconstrained_endpoints`、`io_unconstrained_ports` 与 `verdict`；唯一红行是 `eth_rxc`（`wns_setup` −0.846、5 个失败端点、`verdict=RED`），其余七行 GREEN——按域判定而不是按全局判定。
-- `docs/timing/uncertainty_hold_ab.md`（某轮）：第 2 步覆盖面复查的直接证据——四个域里只有 `eth_rxc` 报告带 `Clock Uncertainty: 0.800` 那一行，其余三域"就是没有不确定度那一行"；把三条都垫上 0.800 之后设计级 hold 头条变成 `WHS = -0.747 ns / THS Failing Endpoints = 25742`。⇒ "hold 余量跨域不可比"是被量出来的，不是推的。
-- `docs/timing/cut_ledger.tsv`（某轮）：候选表落地件，列名与第 5 步表头同构（`target_root_cause/means/expected_gain_ns/affected_domains/mechanism_evidence/risk/cost_tier/status`）；C9 一行状态为 `declined(official r117 … four cells lose; strict A2/A3 fails)`，C5 一行写 `excluded(until C1 measured)` 理由是"多变量，会把 C1 的单变量性打掉"。
-- `build/check_io_timing_coverage.py`（某轮）头部的 I1–I6 判据（含"计数地板：被数到的用户端口位数 >= 20 且报告四项都解析到，空转不许当绿"）——第 2 步"未检查不等于满足"的机器化版本。
+- `report/TIMING_GLOBAL.md`（本仓库，项目实测）第 1 节第 5 条把"每一刀改完必须交名册差分"写成规矩；第 2 节给出 r112 的四域同表读数（`eth_rxc` WNS 0.445 / 相对余量 5.56 %、`clk_fpga_0` 1.135 / 11.35 %、`clkout0_1` 4.467 / 22.34 %、`sys_clk` 14.463 / 72.3 %），并写出同轮 `eth_rxc` −0.268 与 `clkout0_1` +0.668 的同时移动——这正是本模板第 1 步强制的形状。
+- `docs/timing/roster_round116.tsv`（项目实测）：花名册落地件，列含 `rel_margin_setup/rel_margin_hold`、`unconstrained_endpoints`、`io_unconstrained_ports` 与 `verdict`；唯一红行是 `eth_rxc`（`wns_setup` −0.846、5 个失败端点、`verdict=RED`），其余七行 GREEN——按域判定而不是按全局判定。
+- `docs/timing/uncertainty_hold_ab.md`（项目实测）：第 2 步覆盖面复查的直接证据——四个域里只有 `eth_rxc` 报告带 `Clock Uncertainty: 0.800` 那一行，其余三域"就是没有不确定度那一行"；把三条都垫上 0.800 之后设计级 hold 头条变成 `WHS = -0.747 ns / THS Failing Endpoints = 25742`。⇒ "hold 余量跨域不可比"是被量出来的，不是推的。
+- `docs/timing/cut_ledger.tsv`（项目实测）：候选表落地件，列名与第 5 步表头同构（`target_root_cause/means/expected_gain_ns/affected_domains/mechanism_evidence/risk/cost_tier/status`）；C9 一行状态为 `declined(official r117 … four cells lose; strict A2/A3 fails)`，C5 一行写 `excluded(until C1 measured)` 理由是"多变量，会把 C1 的单变量性打掉"。
+- `build/check_io_timing_coverage.py`（项目实测）头部的 I1–I6 判据（含"计数地板：被数到的用户端口位数 >= 20 且报告四项都解析到，空转不许当绿"）——第 2 步"未检查不等于满足"的机器化版本。
 - 基线对比（不用本模板的产出差异）：`【待验证】`。需同一提示词连跑 3 次并比对表头一致性与"是否只念全局 WNS"；目前 0 次，**还差 3 次**。
 
 ## 8. 提炼来源与边界
 
-- 提炼来源：`report/TIMING_GLOBAL.md` 第 1/2/3 节与第 5 节；`docs/timing/README.md`（某轮）的"本轮结论一句话"与噪声底标定（`noise_ns = 0.000`，22:43）；`docs/timing/ROUND_r116.md`、`docs/timing/ROUND_r117.md`（某轮，判负记录）；`report/log/ISSUES.md` #254（同检查点重跑逐位复现）、#265（hold 不确定度只覆盖一个域）、#288（复制杠杆的真实代价落在最紧域）、#291/#293（花名册必须同生成器配对，混口径 REFUSE）、#319/#320（命令选项与目标网名要先核实，否则两跑"没差别"是假结论）、#328（四格变差判负）；`build/r114_replication_ab.sh`（某轮）头部 V1–V5 与 `MECHANISM_INERT` 口径。
+- 提炼来源：`report/TIMING_GLOBAL.md` 第 1/2/3 节与第 5 节；`docs/timing/README.md`（项目实测）的"本轮结论一句话"与噪声底标定（`noise_ns = 0.000`，22:43）；`docs/timing/ROUND_r116.md`、`docs/timing/ROUND_r117.md`（项目实测，判负记录）；`report/log/ISSUES.md` #254（同检查点重跑逐位复现）、#265（hold 不确定度只覆盖一个域）、#288（复制杠杆的真实代价落在最紧域）、#291/#293（花名册必须同生成器配对，混口径 REFUSE）、#319/#320（命令选项与目标网名要先核实，否则两跑"没差别"是假结论）、#328（四格变差判负）；`build/r114_replication_ab.sh`（项目实测）头部 V1–V5 与 `MECHANISM_INERT` 口径。
 - 迁移要点（平台相关行必须改）：
   - 7 系列 ↔ UltraScale+ ↔ Versal：把"复制单元 `_replica` 是否出现""BUFIO/BUFG 用量""BRAM 地址口"这三类读数换成对应家族的真实资源名；不确定度与时钟分组的命令名也要按版本核实后再写进手段列。
   - 阈值 80 % route 占比来自本仓库实测记录，换器件/换工具版本要重新取一条同类读数，不许照抄。

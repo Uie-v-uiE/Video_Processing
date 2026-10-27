@@ -92,16 +92,16 @@ description: 处理"工具报告没变坏、解析器先失灵"这一类：当�
   旧解析式只给 WNS/WHS 留符号位 ⇒ 脚本打印 `FATAL 读不到 timing summary` 并 `exit 2`，
   把最该看见的两个数（WNS −0.482 / 19 个失败端点）换成了"读不到"这句话；
   代码里的这段说明在 `build/gates.sh:62-67`。本轮**未重跑那一次构建的现场**，故"负 TNS 现在能被读出"的当次数值记 `【未实测】`。
-- 用它之后（本轮实跑，某轮，命令与输出原样）：
+- 用它之后（本轮实跑，项目实测，命令与输出原样）：
   `awk '/^[ ]*[-+]?[0-9]+\.[0-9]+…（同 build/gates.sh:69 的形状）/' build/timing_summary.rpt`
   → `wns=0.739 whs=0.052 tnsfail=0 whsfail=0 eps=51135`；
   与 `data/metrics.csv` 第 5–7 行的读数（0.739 / 0.052 / 0 / 51135）一致（该 csv 行点名 `build/timing_summary.rpt`）。
-- CDC 尾巴数列（本轮实跑 某轮）：`build/gates.sh:100` 的 `rows` 式子作用于 `build/cdc.rpt` 得
+- CDC 尾巴数列（本轮实跑 项目实测）：`build/gates.sh:100` 的 `rows` 式子作用于 `build/cdc.rpt` 得
   `clk_fpga_0>clkout0_1 103 1`、`sys_clk>eth_rxc 1968 2`；同文件第 17–18 行是这两条 Critical 原始行。
-- 分组取的字段（本轮实跑 某轮）：`build/gates.sh:279-284` 的分组 awk 对 `build/timing_summary.rpt` 产出
+- 分组取的字段（本轮实跑 项目实测）：`build/gates.sh:279-284` 的分组 awk 对 `build/timing_summary.rpt` 产出
   `clk_fpga_0|1.850|0|setup`、`eth_rxc|0.739|0|setup`、`sys_clk|14.876|0|setup`（及各自 hold 行），
   另有 `clkfbout`、`clkfbout_1`、`clkout1_1`、`clkout2` 四组打出 `NA`——这四组的成因本轮未查，只登记读数。
-- 缩进 FAIL 计数：`bash sim/run_one.sh --verdict tb_v98_top_seam build/tb_v98_report.txt` 打出 `FAIL 行数=1 || PASS 行数=161`（某轮 实跑）；
+- 缩进 FAIL 计数：`bash sim/run_one.sh --verdict tb_v98_top_seam build/tb_v98_report.txt` 打出 `FAIL 行数=1 || PASS 行数=161`（项目实测 实跑）；
   同一份文件用严格 `^PASS` 也是 161（本轮 `grep -ac '^PASS'` 实测），
   而 `data/metrics.csv` 第 15 行写的是 140/1 且点名另一枚 `top_md5=2bf2ceeede07`；当前盘上这份报告的头行是 `top_md5=56c269602e18`（两份不是同一次跑，属同名覆盖，见 `who-else-writes-this-artifact`）。
 

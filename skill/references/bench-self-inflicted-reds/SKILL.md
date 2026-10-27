@@ -100,7 +100,7 @@ description: 查"判据/台架自己造的红（和绿）"的十个签名对照�
   "末态类判据抓不到时序错"由那份台架两次变异的读数量出（红 3 条 vs 红 1 条）—— 台架名 `sim/tb_v95_zoom_snap.v` 是本仓示例取值，需按自身工程替换。
 - 第 0 步的顺序（旧树先跑）在本仓的凭据：`sim/tb_cdc_capacity` 对旧 `dc_fifo` 打出 `first_full_after_accepts=8191`、
   红两条，改后五条全绿，变异对照 `MUTATION OK`（`report/log/ISSUES.md` #139，凭据 `build/r88_cdc_capacity*.txt`）。
-- 出处记录（某轮 用 `grep -n "^## "` 核对三节标题存在）：`report/log/OVERNIGHT_LOG.md` §35（同一份新台架一次凑齐三种假红，
+- 出处记录（项目实测 用 `grep -n "^## "` 核对三节标题存在）：`report/log/OVERNIGHT_LOG.md` §35（同一份新台架一次凑齐三种假红，
   硬件其实全对）、§41（"查不到"被自己的阳性对照证伪）、§43（批处理工具的源码回显被当成执行输出），
   以及 `report/log/ISSUES.md` #60（一条什么都没判的判据报成 PASS）。
 - 未实测：两次变异（"沿翻倍" / "只删延迟保留末态"）的**具体红项编号清单**与 `sim/tb_v94_zoom_sel.v` 那三种签名的

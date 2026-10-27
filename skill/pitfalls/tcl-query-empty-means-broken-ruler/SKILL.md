@@ -86,16 +86,16 @@ description: 在 Vivado Tcl 查询返回空集合时，先判"我的过滤器坏
 
 ## 7. 已验证的效果
 
-- 基线（不用本条时得到的错结论）：`report/log/ISSUES.md` #279（某轮）记下三处"0"被当成事实写进文档与计划
+- 基线（不用本条时得到的错结论）：`report/log/ISSUES.md` #279（项目实测）记下三处"0"被当成事实写进文档与计划
   （`ODDRCELL_COUNT=0`、`IDELAY_BY_REF=0`、`MF-REFUSE … 名册没认出网`）。本轮没有重跑那三支探针（要开 Vivado 批处理 + 有 DCP 现场），
   所以"换 `==` 之后 ODDR 到底有几颗"记 `【未实测】`。
 - 用它之后（件里可查的实测对照，同一份 DCP）：
   坏写法报错原文 `build/evidence/r114_idelay_prop_console4.txt:63`；
-  好写法计数 `build/evidence/r114_idelay_set_console.txt:55` = `IDELAY_N=5`（某轮 落盘）。
+  好写法计数 `build/evidence/r114_idelay_set_console.txt:55` = `IDELAY_N=5`（项目实测 落盘）。
 - 四种查找形式的并排对照（本轮实跑 `grep -a` 读到的原文行号）：
   `build/evidence/probe_mf114_netname_console.txt:94 / :97 / :100 / :103` 四行都是 `F0_plain=1 F1_hier=0 F2_NAMEfull=0 F3_FULLNAME=0 F4_NAMEshort_hier=0`，
-  负对照 `:106` 为全 0（探针落盘 某轮）。
-- 选项清单对照：`build/evidence/r117_d0/nethelp_console.txt:395` `PO_OPTION_COUNT=31`，`:404` `-skeleton_clustering present=0`（某轮 落盘）。
+  负对照 `:106` 为全 0（探针落盘 项目实测）。
+- 选项清单对照：`build/evidence/r117_d0/nethelp_console.txt:395` `PO_OPTION_COUNT=31`，`:404` `-skeleton_clustering present=0`（项目实测 落盘）。
 - 本轮未做的事（如实）：我没有重新执行任何 `vivado -mode batch` 探针（需要 DCP 现场与许可证），因此本条的效果证据全部来自**已有件**而不是我这一轮的实跑；
   我这一轮实跑的只有对那几份件的 `grep -n` 直读。
 

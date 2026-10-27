@@ -49,10 +49,10 @@
 ## 4. 示例取值来源（看形状，不是抄数字）
 
 - 逐轮资源差值与"没有归属就不念成收益"的写法：`data/metrics.csv` 的"Slice LUT 占用/寄存器占用"两行
-  （本仓库，某轮；每行测量条件里都是一串逐轮差值 + 报告出处）。
-- 状态列与"机制证据/风险/代价档"的分栏：`docs/timing/cut_ledger.tsv`（某轮）
+  （本仓库，项目实测；每行测量条件里都是一串逐轮差值 + 报告出处）。
+- 状态列与"机制证据/风险/代价档"的分栏：`docs/timing/cut_ledger.tsv`（项目实测）
   的 `status` 列取值（`fired` / `blocked(no source numbers)` / `rejected(measured)` /
   `declined(official … four cells lose)` / `excluded(until C1 measured)`）。
 - "机制动了但代价落在最紧的域 ⇒ 判负"与"头条绝对差不记收益"：`report/TIMING_GLOBAL.md`
-  （某轮）第 2/3 节；`build/r114_replication_ab.sh`（某轮）头部 V1–V5 判读口径。
-- 优化过程与**没采纳**的那些放在同一份文档：`report/OPTIMIZATION_LOG.md`（某轮）。
+  （项目实测）第 2/3 节；`build/r114_replication_ab.sh`（项目实测）头部 V1–V5 判读口径。
+- 优化过程与**没采纳**的那些放在同一份文档：`report/OPTIMIZATION_LOG.md`（项目实测）。

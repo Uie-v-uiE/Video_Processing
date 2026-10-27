@@ -65,14 +65,14 @@ C4 的价值：硬件定义里缺了某个通道时，编译不报错，现象�
 
 以下均来自本仓库的真实契约，**示例取值，需按自身工程替换**：
 
-- 窄通道 + 位域 + 反相位 + 窗口读回的写法：`report/ARCHITECTURE.md` 第 3 节（某轮）
+- 窄通道 + 位域 + 反相位 + 窗口读回的写法：`report/ARCHITECTURE.md` 第 3 节（项目实测）
   的通道表（四个通道各写地址、方向、位域清单与 `文件:行` 出处），
   以及同节"先写 lane 号再读一个字"的窗口协议说明与 `lane` 归属列表。
-- 上电默认与"怎么验"的成对写法：`report/DEFAULTS.md`（某轮）第 1 节那张表
+- 上电默认与"怎么验"的成对写法：`report/DEFAULTS.md`（项目实测）第 1 节那张表
   （每行给"默认 / 写在哪 `文件:行` / 屏上与回读怎么验"，并明写"所有条目都是从初始化代码读出来的，不是从记忆抄的"）。
-- 窗口读回的撕裂与快照口：`skill/runtime/atomic-register-window-readback/SKILL.md`（某轮）第 2、4、5、6 条动作。
-- 越界写两侧行为不同（仿真丢、硬件截断）：`report/LLM_COLLAB.md`（某轮）例 1 第五版根因。
-- 上电初值实测回读一类检查器：`build/check_powup_init.sh`（某轮）。
+- 窗口读回的撕裂与快照口：`skill/runtime/atomic-register-window-readback/SKILL.md`（项目实测）第 2、4、5、6 条动作。
+- 越界写两侧行为不同（仿真丢、硬件截断）：`report/LLM_COLLAB.md`（项目实测）例 1 第五版根因。
+- 上电初值实测回读一类检查器：`build/check_powup_init.sh`（项目实测）。
 
 ## 6. 主机侧配套（这张表要能被代码直接消费）
 

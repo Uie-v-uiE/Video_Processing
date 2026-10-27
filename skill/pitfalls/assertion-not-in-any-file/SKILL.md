@@ -83,10 +83,10 @@ description: 用于验收"自己（或模型）刚写下的断言"：当一句�
 
 ## 7. 已验证的效果
 
-- 本轮实跑（某轮）：`node src/host/line_cite_check.mjs` 输出
+- 本轮实跑（项目实测）：`node src/host/line_cite_check.mjs` 输出
   `D5: CLEAN（退出码只由硬错决定；…）`，"扫 128 份交付文档 … 硬错 0 条"，rc=0
   ⇒ 本次新建的这批条目（含本文件）在被扫描集合内且没有引入行号硬错。
-- 本轮实跑（某轮）：`node --version` → `v24.21.0`，与 `report/BUILD.md` §1 写的"需要 Node 24"同主版本线。
+- 本轮实跑（项目实测）：`node --version` → `v24.21.0`，与 `report/BUILD.md` §1 写的"需要 Node 24"同主版本线。
 - 基线（不用本条时的真实事故，全部来自台账，本轮未重演）：
   `report/log/ISSUES.md` #324（提交信息声称改了而文件没改）、第 9702 行一节（先把结论写进提交信息才去跑工具）、
   第 4394–4399 行（推理里"引用"了一行 `FAIL C2d coverage`，任何文件里都不存在）、

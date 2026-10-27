@@ -85,7 +85,7 @@ description: 让"任意角几何 + 3×3 邻域滤波"同时成立：当逆映射
 
 ## 7. 已验证的效果
 
-- 本轮实跑（某轮，**只读**，未起仿真）：打开本仓台架 `sim/tb_rotate_window.v` 核对到第 5 步要的那条反向判据
+- 本轮实跑（项目实测，**只读**，未起仿真）：打开本仓台架 `sim/tb_rotate_window.v` 核对到第 5 步要的那条反向判据
   确实存在并且两档都有——开启档打 `FAIL no intermediate blur value under rotate_active=1` /
   `PASS blur active with rotate_active=1`，关闭档打 `FAIL blur inactive at angle0` /
   `PASS blur active with rotate_active=0`，收尾 `PASS tb_rotate_window ALL`；

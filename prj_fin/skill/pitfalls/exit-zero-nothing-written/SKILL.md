@@ -52,7 +52,7 @@ description: 用于"脚本自报成功而产物其实没变"这一类：退出�
    完成后应看到：要么 REFUSE 要么产物确实变了；不允许"改了 2/3 处却报成功"。
 8. 把每轮的身份写进被跟踪的件里，用一条命令可回读：
    本仓形状 `git show HEAD:build/system.bit | md5sum` 与 `md5sum build/system.bit` 对照（`report/log/ISSUES.md` #332 就是用它抓出"采纳笔没把位流提交进去"）。
-   完成后应看到：两个 12 位前缀相等（本轮 某轮 实测两侧都是 `cd04907e1369`）。
+   完成后应看到：两个 12 位前缀相等（本轮 项目实测两侧都是 `cd04907e1369`）。
 
 ## 6. 判读与失败分叉
 
@@ -91,22 +91,22 @@ description: 用于"脚本自报成功而产物其实没变"这一类：退出�
 
 ## 7. 已验证的效果
 
-- 本轮实跑（某轮，只读）：`md5sum build/system.bit | cut -c1-12` 与 `git show HEAD:build/system.bit | md5sum | cut -c1-12`
+- 本轮实跑（项目实测，只读）：`md5sum build/system.bit | cut -c1-12` 与 `git show HEAD:build/system.bit | md5sum | cut -c1-12`
   都打出 `cd04907e1369` ⇒ 步骤 8 这条核对在当前仓库是**绿的**；
   同一枚前缀被 `board/ACCEPTANCE.md` 的 E6 行点名（"板上现在跑的是 r118，bit `cd04907e1369`"）。
 - 基线（不用本条时的历史事故，都来自仓库件，本轮未重演）：
   1. `build/tcl/README.md:19-23`：`build_system.tcl`、`build_pl_full.tcl` 少解析一层 ⇒ `add_files` 报错却 `exit 0`（台账 `report/log/ISSUES.md` #22/#41）；
-  2. `report/log/ISSUES.md` 某轮 03:3x 一节：`rm -rf "$OUT"` 报 `Device or resource busy` 后继续走完并打印"导出成功"，修法只留一条"失败必须停"（现件 `build/make_submission.sh:723` 注释 + `:731`）；
-  3. `report/log/ISSUES.md` #327（某轮）：`catch` 返回码当哨兵 ⇒ `impl_1/runme.log:514/571` 证明切割已成立，脚本却把自己的载体打死；
-  4. `report/log/ISSUES.md` #324（某轮）：提交信息说"第 7 节补了『查过手册』"，那次 python 的 assert 挂了 ⇒ 文件其实没改；
+  2. `report/log/ISSUES.md` 项目实测 03:3x 一节：`rm -rf "$OUT"` 报 `Device or resource busy` 后继续走完并打印"导出成功"，修法只留一条"失败必须停"（现件 `build/make_submission.sh:723` 注释 + `:731`）；
+  3. `report/log/ISSUES.md` #327（项目实测）：`catch` 返回码当哨兵 ⇒ `impl_1/runme.log:514/571` 证明切割已成立，脚本却把自己的载体打死；
+  4. `report/log/ISSUES.md` #324（项目实测）：提交信息说"第 7 节补了『查过手册』"，那次 python 的 assert 挂了 ⇒ 文件其实没改；
   5. `report/log/ISSUES.md` #329 续（该文件第 13037 行）：补丁命令第三个锚点断言失败 ⇒ **前两处替换根本没落盘**；
-  6. `report/log/ISSUES.md` 某轮 一节（该文件第 9001 行）：xsdb 没起 `hw_server` ⇒ `targets -set 1` 报 `Invalid target`，而脚本照样 `exit 0`。
+  6. `report/log/ISSUES.md` 项目实测 一节（该文件第 9001 行）：xsdb 没起 `hw_server` ⇒ `targets -set 1` 报 `Invalid target`，而脚本照样 `exit 0`。
 - 未验证的部分：本轮没有重跑构建、导出器或任何 Tcl 钩子（都需要长时间与工具现场），
   所以"步骤 6 的故意失败现在仍会停下"这一条记 `【待验证】`。
 
 ## 8. 提炼来源与边界
 
-- 证据：`build/tcl/README.md` §1；`report/log/ISSUES.md` #22/#41/#327/#329/#332/#324 与 某轮、某轮 两个日期小节；件 `build/make_submission.sh:723`、`build/roll_isolated.sh:22/27/30`、`build/board_verify.sh:116-118`（脚本原先无总判定、无论中间红成都 `exit 0` 的那段注释）。
+- 证据：`build/tcl/README.md` §1；`report/log/ISSUES.md` #22/#41/#327/#329/#332/#324 与 项目实测、项目实测 两个日期小节；件 `build/make_submission.sh:723`、`build/roll_isolated.sh:22/27/30`、`build/board_verify.sh:116-118`（脚本原先无总判定、无论中间红成都 `exit 0` 的那段注释）。
 - 工具行为断言的来源行见 `skill/pitfalls/_proposed-sources.md`。
 - 停止适用的条件：当你的流程里每个动作都产出一个"必须新写入"的身份件（md5 + 时间戳 + 由门禁回读），本条被那条门禁吸收。
 - 迁移到新题目/新板卡要改的地方：
