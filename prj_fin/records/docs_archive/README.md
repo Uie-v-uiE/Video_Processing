@@ -7,7 +7,7 @@
 - 范围：`D:\Xilinx\Prj` 下除 `FIN` 外的目录；
 - 类型：`.md`、`.docx`、`.pdf`、`.pptx`、`.html`，以及文件名属于 README/guide/report/note/design/plan/review/issue/checklist/spec/summary/说明/报告/记录/笔记/指南/手册/清单/方案 的 `.txt`；
 - 去重：与 FIN 已有文件哈希相同、或与本次已收文件哈希相同的，跳过；
-- 结果：853 个唯一文档，约 65 MiB，保留原 `D:\Xilinx\Prj` 下的相对路径；
+- 结果：958 个唯一文档，约 69 MiB，保留原 `D:\Xilinx\Prj` 下的相对路径；
 - 清单：`MANIFEST.tsv` 记录 `source_path`、字节数和 MD5。
 
 ## 来源分布
@@ -15,16 +15,16 @@
 | 来源 | 文件数 |
 |---|---:|
 | `pro/` 各 worktree 和归档 | 698 |
+| `fin2_local_archive/` | 109 |
 | `Video_Processing/` | 89 |
 | `IMU/` | 31 |
 | `kx_word/` | 13 |
 | `fin2/` | 13 |
-| `fin2_local_archive/` | 2 |
-| 根目录及其他 | 7 |
+| `prj_fin/` 与根目录 | 5 |
 
 `pro/` 里包含旧分支、交付评审、打包归档和记录 worktree 的文档；`IMU/` 和 `kx_word/` 是 Prj 下的其他资料，也一并收进来，避免散落。它们不是本项目比赛提交内容。
 
-`Video_Processing/report/log/` 那 9 份是 v6/v8 时期的板级调试记录（RGMII 起桥、根因分析、版本谱系、逐板实测），按路径哈希比对才补进来；`fin2_local_archive/` 的两份是清理前的原始学习手册与上位机指南，FIN 其它区保存的是清理后的版本，这里留未清理的原文。
+`Video_Processing/report/log/` 那 9 份是 v6/v8 时期的板级调试记录（RGMII 起桥、根因分析、版本谱系、逐板实测），按路径哈希比对才补进来。`fin2_local_archive/report_old_20261022/` 存的是上一版提交包 report 的**清理前原文**（109 份，含 `timing/` 22 份逐轮时序记录和 `log/` 12 份开发日志）；`../previous_report/` 存的是同一棵树去掉日期与本机路径之后的版本，两份都在，便于对照清理动作。
 
 ## 没有收进来的东西
 
