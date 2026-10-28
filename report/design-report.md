@@ -269,7 +269,7 @@ RGMII 的 TskewT 规格是 ±0.5 ns。本板的 RGMII 引脚都在 HR bank，没
 | 连续流 | 8 秒内置测试图，30 fps | 241 帧 / 8.05 s = 29.95 fps | 通过 |
 | 1 Hz 遥测 | ping 后监听 13 秒 | 13 包，帧计数连续增长 | 通过 |
 | 三阶段自检 | 干净 → 每 100 包丢 1 包 → 干净 | 22.0 fps；0 fps + 14.3 次作废每秒；18.9 fps | 通过 |
-| 处理窗完整性 | 185°，split video 50%，灰度单级 | `pane_bad=0`，计数有效 | 通过 |
+| 处理窗完整性 | 185°，`split video`、缝位 50%，灰度单级 | `pane_bad=0`，计数有效 | 通过 |
 | 帧间隔统计 | `link clr` 后推流、停流、重启 | 推流中 `gap_last=28 ms`、`gap_max=49 ms`、`gap_valid=1`；停流 `stall` 增长；重启后 `gap_max=22 061 ms` | 通过 |
 | 串口命令 | 105 条命令清单 | 全部按预期回声，末态回到初态 | 通过 |
 | 温度 | 连续推流 | 板上读数 61.8–63.8 °C，`sane=1` | 通过 |
@@ -450,9 +450,9 @@ VP_HW_URL=<host:port> vivado -mode batch -source board/tcl/flash_qspi.tcl
 | `link` / `link clr` | 读帧间隔统计 / 清零 |
 | `src auto\|0\|1\|2` | 片源自动、图卡、网络、SD |
 | `pipe <九位>` / `pipe show` | 设置 / 查看效果链 |
-| `zoom on\|off\|auto\|<倍率>` | 缩放开关、自动、手动倍率 |
+| `zoom on\|off\|auto\|<倍率>` | 缩放呼吸开关、自动、手动倍率 |
 | `rot auto\|0\|1` / `rot speed 0..7` | 自动旋转 / 每帧角度 |
-| `split screen\|video <0..100>` / `split swap` | 竖缝模式、位置、左右交换 |
+| `split screen\|video` / `split <0..100>` / `split swap` | 竖缝模式、位置、左右交换 |
 | `gamma <1.00..3.00>\|off\|auto` | gamma 曲线 |
 | `osd on\|off` | OSD 开关 |
 | `sd files` / `sd file n` / `play` / `stop` | SD 卡选段、播放、停止 |

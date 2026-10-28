@@ -96,7 +96,7 @@ C31 使用 9 位列标签帧 `{1'b1, row[5:0], col[8:0]}`，直接检查每一�
 | 连续流 | `video_sender.py --demo --seconds 8` | 约 240 帧 / 8 s，30 fps | 241 帧 / 8.05 s = 29.95 fps |
 | 遥测 | `telemetry_listen.py 13`，先 ping | 13 包左右，帧计数连续 | 13 包 |
 | 自检 | `link_selftest.py` | 三段判定通过 | PASS（22.0 / 0 / 18.9 fps） |
-| 处理窗 | 185°、split video 50%、灰度单级 | `pane_bad=0` 且有效 | 通过 |
+| 处理窗 | 185°、`split video`、缝位 50%、灰度单级 | `pane_bad=0` 且有效 | 通过 |
 | 帧间隔 | `link clr` → 推流 → 停流 → 重启 → `link` | 推流中 `gap_valid=1`；停流 `stall` 增长；重启后 `gap_max` 记录长间隔 | 通过（`gap_max=22 061 ms`） |
 | 串口命令 | 105 条命令清单 | 逐条回声，末态回到初态 | 通过 |
 | 温度 | 连续推流后 `temp` | `sane=1`，读数合理 | 61.8–63.8 °C |

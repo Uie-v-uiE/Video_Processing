@@ -26,7 +26,7 @@
 
 `link` 的字段含义：
 
-- `drop`：丢弃的字节/包计数；
+- `drop`：CDC FIFO 满时被丢掉的 32 位字数，不是网络丢包计数；干净流下应保持 0；
 - `badpkt`：坏包计数；
 - `aborts`：未收满/缺行/坏包导致的作废帧数；
 - `rows_max`：一次作废里最多缺了多少行；
@@ -76,11 +76,11 @@
 
 | 命令 | 作用 | 成功回显 | 非法/备注 |
 |---|---|---|---|
-| `zoom on` / `zoom off` | 开/关右窗缩放（老写法 `ZOOM1`/`ZOOM0`） | `[CTRL] ... zoom=1/0` | 它也是手动档与呼吸的闸门 |
+| `zoom on` / `zoom off` | 开/关右窗缩放自动呼吸的节拍（老写法 `ZOOM1`/`ZOOM0`） | `[CTRL] ... zoom=1/0` | 关掉只是停住呼吸，倍率留在当前值；它不是倍率，也不是双线性开关 |
 | `zoom 1.5` | 手动定档，取最近一档 | `[ZOOM] 1.5 → 最近档 1.50x（八档：...）` | 八档：0.25/0.33/0.50/0.75/1.00/1.33/1.50/2.00 |
 | `zoom auto` | 回到呼吸自动档 | `[CTRL] zoom_step=... (自动呼吸)` | — |
 | `zoom fit [0/1]` | 倍率跟着旋转角度定 | `[ZOOM] fit=1...` | 不带参数等于 1；屏上 Zoom 标 `(Fit)` |
-| `bilin on` / `bilin off` | 双线性 / 最近邻 | `[BILIN] bilin=on/off` | 1.00 倍和旋转态下可能看不出差别，这是几何决定的，不是开关坏了 |
+| `bilin on` / `bilin off` | 双线性 / 最近邻 | `[BILIN] bilin=on/off` | 只在非整数倍率或旋转态下看得出差别；1.00 倍且 0° 时两种读法逐像素相同，不是开关坏了 |
 | `bilin show` | 念开关状态和对照序列 | 多行 | — |
 | `osd on` / `osd off` | 开/关五行叠字 | `[OSD] osd=on/off` | 关掉只影响叠字，画面和计数不变 |
 | `osd show` | 念 OSD 状态 | 多行 | — |
@@ -123,7 +123,7 @@
 | `play` / `play 1` | 开始播放 | `[SD] playing ...` | 不带参数=开播；`play 0/off/stop` 停止 |
 | `stop` | 停止播放 | `[SD] stopped; next frame ...` | — |
 | `frame 1200` | 只显示第 1200 帧 | 屏上换帧；状态看 `stat` | 非十进制/负数报错 |
-| `autoplay 0/1` | 下一次上电是否自动播放 | `[SD] autoplay on/off (only affects the next boot)` | 只影响下一次上电 |
+| `autoplay 0/1` | 当前会话的自动播放标志 | `[SD] autoplay on/off (session only; reset/re-download returns to 1)` | 只活在本次运行；reset 或重下固件后回到 1，所以它不能用来关掉下次上电的自动播放 |
 | `fill` | 写一张四色诊断帧 | `[CTRL]` 两行 + 屏上四色块 | 查通路用，不写 SD |
 
 SD 卡要求 FAT32；插拔后如果 `sd files` 失败，先等 2–3 秒再 `sd remount`。`src 2` 会钉住 SD 并开始播；`src 1` 回网络源。
@@ -135,12 +135,12 @@ SD 卡要求 FAT32；插拔后如果 `sd files` 失败，先等 2–3 秒再 `sd
 | 老写法 | 等价新写法 | 说明 |
 |---|---|---|
 | `SRC0` / `SRC1` / `SRC2` | `src 0/1/2` | 片源 |
-| `ZOOM0` / `ZOOM1` | `zoom off/on` | 开关，不是倍率 |
+| `ZOOM0` / `ZOOM1` | `zoom off/on` | 呼吸开关，不是倍率 |
 | `TH80` | `th 80` | 阈值 |
 | `BILIN0` / `BILIN1` | `bilin off/on` | 双线性 |
 | `OSD0` / `OSD1` | `osd off/on` | 叠字 |
 | `FRAME12` | `frame 12` | SD 帧号 |
-| `AUTOPLAY0/1` | `autoplay 0/1` | 上电自动播放 |
+| `AUTOPLAY0/1` | `autoplay 0/1` | 会话内自动播放标志（reset 后回 1） |
 | `pipe 11000` / `01010` / `pipe 00000` | 无 | 五位老写法只翻译成九位，不写寄存器 |
 
 ## 9 OSD 五行
@@ -161,6 +161,7 @@ OSD 第一行是片源 512×300，不是面板 1024×600；`Latency` 只覆盖 P
 
 ```text
 src 1
+zoom fit 0
 zoom 1.0
 rot auto 0
 rot speed 0
@@ -169,6 +170,7 @@ split 50
 split swap 0
 split marker 0
 osd on
+gamma off
 pipe 000010000
 stat
 ```
