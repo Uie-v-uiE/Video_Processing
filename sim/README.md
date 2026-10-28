@@ -1,121 +1,121 @@
-# `sim/`：台架怎么跑、每支回答什么
+# `sim/`: how to run the benches and what each answers
 
-台架只回答一个问题：这一支 RTL 在仿真里有没有按定义行事。它不看板子，也不看时序；时序在 `hw/reports/` 的实现报告里，板上行为在 `hw/` 的读数里。
+A bench answers one question: does this RTL behave as defined in simulation. It does not look at the board or at timing; timing lives in the implementation reports under `hw/reports/`, and board behaviour in the readings under `hw/`.
 
-## 最终交付结果
+## Delivered result
 
-19 支标准回归 `fail=0`；完整视频台架的 C17/C25/C26 专项 PASS。判定副本在 `sim/results/`：`regression.txt`、`tb_video_pipeline_top_report.txt`、`udp_checksum.txt`、`c31_edge_rim.log`。
+19 benches in the standard regression with `fail=0`; the full-video bench passes the C17/C25/C26 specials. Verdict copies are in `sim/results/`: `regression.txt`, `tb_video_pipeline_top_report.txt`, `udp_checksum.txt` and `c31_edge_rim.log`.
 
-## 跑一支
+## Running one bench
 
-在仓库根执行。用 ModelSim 时：
+Run from the repository root. With ModelSim:
 
 ```bash
 MSIM_BIN=<ModelSim>/win64 bash scripts/sim/run_msim.sh tb_crc32
 ```
 
-`MSIM_BIN` 指到 ModelSim 的 `win64`（或 Linux）目录。脚本会先编译整棵 `src/rtl`、`sim/prim` 和指定的台架，再跑仿真，最后打印 `RESULT <tb> PASS` 或 `FAIL`。用 xsim 时入口是 `scripts/sim/run_one.sh <tb>`，判定行是 `VERDICT <tb>: ...`。
+`MSIM_BIN` points at ModelSim's `win64` (or Linux) directory. The script compiles all of `src/rtl`, `sim/prim` and the named bench, runs it, and prints `RESULT <tb> PASS` or `FAIL`. With xsim the entry point is `scripts/sim/run_one.sh <tb>` and the verdict line is `VERDICT <tb>: ...`.
 
-同一时刻只能有一个仿真器写同一个 work 目录。脚本会在门口检查，发现已有 xsim 或 ModelSim 在跑就拒绝启动，避免两跑的行混进同一份日志。
+Only one simulator may write a given work directory at a time. The script checks this up front and refuses to start if an xsim or ModelSim run already owns it, so two runs cannot mix lines in one log.
 
-## 一次跑完 92 支
+## Running all 92
 
 ```bash
 vivado -mode batch -nojournal -log sim/xsim.log -source scripts/sim/run_sim.tcl
-# SIM_TB=tb_crc32,tb_timing 只跑点名的几支；SIM_ONLY=1 只编译；SIM_VERBOSE=1 打整段流水
+# SIM_TB=tb_crc32,tb_timing runs only the named benches; SIM_ONLY=1 compiles only; SIM_VERBOSE=1 prints the full pipeline
 ```
 
-每支台架出一行 `RESULT <tb> ...`。编译失败打 `XVLOG FAILED` 并以 1 退出；某支例化失败打 `RESULT <tb> ELAB_FAIL`，不中断其余。
+Each bench prints one `RESULT <tb> ...` line. A compile failure prints `XVLOG FAILED` and exits with 1; a bench that fails to elaborate prints `RESULT <tb> ELAB_FAIL` and the rest continue.
 
-## 判定怎么读
+## Reading a verdict
 
-台架只有三种结局：通过、失败、没测到。判定行在末行，`FAIL` 行带具体数值。退出码分开：0 通过，1 编译或例化失败，2 拒绝启动，3 有判据没过，4 一条判定都没打。
+There are only three outcomes: pass, fail, not measured. The verdict is the last line and a `FAIL` line carries concrete values. Exit codes are distinct: 0 pass, 1 compile or elaboration failure, 2 refused to start, 3 a check failed, 4 no verdict at all.
 
-“没测到”不是通过。台架没打印判定行、编译没找到模块、样本集为空，都算没测到；这类结果不能写成绿色。
+"Not measured" is not a pass. No verdict line, a missing module at compile time, or an empty sample set all count as not measured, and such a result must never be written up as green.
 
-## 三条口径
+## Three rules
 
-- 完整清单以 `sim/` 下 92 个 `tb_*.v` 文件头为准；本页按验证域给出索引，不复制每支台架的逐条判据。
-- 文件名里的 `v98`、`v103` 是历史迭代编号，不承担信息；判据看的是“被测模块 + 覆盖点”，不是文件名里的轮次。
-- 台架通过不等于板上通过。这一层证明的是 RTL 行为；板级读数和人眼验收在 `hw/acceptance.md` 与 `docs/verification.md`。
+- The complete list is the 92 `tb_*.v` headers under `sim/`. This page indexes them by verification area and does not duplicate each bench's checks.
+- The `v98` and `v103` in some file names are historical iteration numbers and carry no information; what matters is the module under test plus the covered point.
+- A passing bench is not a passing board. This layer proves RTL behaviour; board readings and human acceptance live in `hw/acceptance.md` and `docs/verification.md`.
 
-## 按验证域分组
+## Grouped by verification area
 
-### 顶层视频链
+### Top-level video chain
 
-| 台架 | 回答什么 |
+| Bench | Answers |
 |---|---|
-| `tb_video_pipeline_top.v` | 顶层坐标图判据链：几何、行标签、竖缝和越界填黑在同一帧里是否对齐 |
-| `tb_pipe_bypass.v` | 全旁路链不凭空造黑格或 X 格，每个输入列在输出里恰好出现一次 |
-| `tb_display_edge_rim.v` | 效果窗口级的上/下/左/右边界夹取和行标签是否同一拍 |
-| `tb_edge_rim_bottom_wrap.v` | 绕回连续流下帧底最后一行的下邻是本行，不是下一帧第 0 行 |
-| `tb_edge_rim_wrap_clamp.v` | 绕回流下图像上下边界的 3×3 夹取；带一个必须变红的旧行为对照 |
-| `tb_edge_rim_wrap_diff.v` | 首行/末行窗口影响是否交叉污染；用负对照证明尺子能红 |
-| `tb_c8_edge_column.v` | 每一行第 0 格的抽头与原图/处理图选择 |
-| `tb_seam_scan.v` | 分屏蓝线列数、左右内容选择、de 透传、越界涂黑 |
+| `tb_video_pipeline_top.v` | Top-level coordinate and pattern checks: geometry, row tags, seam and out-of-range fill aligned within one frame |
+| `tb_pipe_bypass.v` | An all-bypass chain invents no black or X cells; every input column appears exactly once at the output |
+| `tb_display_edge_rim.v` | The effect-window stages clamp top, bottom, left and right edges, with row tags on the same beat |
+| `tb_edge_rim_bottom_wrap.v` | Under the wrapped continuous stream, the bottom row's neighbour below is itself, never row 0 of the next frame |
+| `tb_edge_rim_wrap_clamp.v` | 3×3 clamping at the image top and bottom under the wrapped stream, with a legacy-behaviour arm that must turn red |
+| `tb_edge_rim_wrap_diff.v` | Whether first-row and last-row window effects leak into each other; a negative control proves the ruler can turn red |
+| `tb_c8_edge_column.v` | Cell 0 of every row: tap selection and source/processed choice |
+| `tb_seam_scan.v` | Seam line width, left/right content selection, `de` pass-through and out-of-range fill |
 
-### 网络、重组与遥测
+### Network, reassembly and telemetry
 
-| 台架 | 回答什么 |
+| Bench | Answers |
 |---|---|
-| `tb_eth_top_rgmii.v` | RGMII 双沿、IDDR/IDELAY、CDC、ARP 应答和回发时钟的整链闭环 |
-| `tb_udp_reasm.v` | 正序、乱序、重复包、坏包、断帧后再成帧是否互不污染 |
-| `tb_rows.v` | 源行没写满不许提交，所有行到齐后只提交一次 |
-| `tb_rows_prod.v` | 产线 512×300 下缺行、字节不足、300 行写满三种帧形的提交取舍 |
-| `tb_cover_gate.v` | 丢过一包的帧不提交且计入坏包；完整帧和恢复帧正常提交 |
-| `tb_eth_ingress_integrity.v` | 逐级计数定位丢字，并量 CDC/打包 FIFO 的峰值占用 |
-| `tb_udp_telemetry.v` | 遥测帧从 GMII 口逐字节抓取，DA/SA/IP/UDP/载荷/校验和全部比对 |
-| `tb_rx_fcs.v` | 收侧 FCS 的量具自校与标准帧校验 |
-| `tb_gmii_rx_cdc.v` | 恢复时钟到逻辑时钟的 GMII 字节流不丢不重，帧间空隙保留 |
+| `tb_eth_top_rgmii.v` | Full RGMII loop: dual-edge sampling, IDDR/IDELAY, CDC, ARP reply and the returned clock |
+| `tb_udp_reasm.v` | In-order, out-of-order, duplicate, bad and broken-then-restarted frames never contaminate each other |
+| `tb_rows.v` | A frame with unwritten source rows must not commit; once all rows arrive it commits exactly once |
+| `tb_rows_prod.v` | Production 512×300 cases: missing rows, short byte count, and all 300 rows written |
+| `tb_cover_gate.v` | A frame missing a packet never commits and counts as bad; complete and recovered frames commit normally |
+| `tb_eth_ingress_integrity.v` | Per-stage counters locate dropped words and measure peak CDC and packer FIFO occupancy |
+| `tb_udp_telemetry.v` | Telemetry frames captured byte by byte at GMII: DA/SA/IP/UDP/payload/checksum all compared |
+| `tb_rx_fcs.v` | Self-check of the receive FCS ruler plus standard-frame validation |
+| `tb_gmii_rx_cdc.v` | GMII bytes crossing from the recovered clock to the logic clock are neither lost nor duplicated, and inter-frame gaps survive |
 
-### DDR、帧缓存与提交
+### DDR, frame buffer and commit
 
-| 台架 | 回答什么 |
+| Bench | Answers |
 |---|---|
-| `tb_fb_roundtrip.v` | 38400 个字写入/读回的地址和数据是否逐位一致 |
-| `tb_fb_pingpong.v` | 提交后等 saver idle 再翻 bank，每帧落进自己的 commit 记录 |
-| `tb_fb_rd5x.v` | 5 槽帧缓存读口的输出像素与请求配准 |
-| `tb_tail_bank.v` | 帧尾最后两个 lane 在反压放开时不会被提前翻页甩进下一帧 |
-| `tb_saver.v` | 64 个连续 16 位像素攒成 64 位 burst，尾部两拍能清空 |
-| `tb_writer_abort.v` | abort 后在途的 R 读拍不串进下一帧，outstanding 计数能回落 |
-| `tb_commit_strobe.v` | 帧提交脉冲与行标签/覆盖条件同拍 |
-| `tb_allow_lead.v` | blank_safe 拉低到 de 起来之间，allow 是否提前落 0 |
+| `tb_fb_roundtrip.v` | 38,400 words written and read back with identical address and data |
+| `tb_fb_pingpong.v` | After commit, the bank flips only once the saver is idle; each frame lands in its own commit record |
+| `tb_fb_rd5x.v` | The five-read frame-buffer port registers output pixels against requests |
+| `tb_tail_bank.v` | The last two lanes of a frame are not flipped into the next frame when back-pressure releases |
+| `tb_saver.v` | 64 consecutive 16-bit pixels form one 64-bit burst, and the last two beats drain |
+| `tb_writer_abort.v` | In-flight reads after an abort do not leak into the next frame, and the outstanding count returns to zero |
+| `tb_commit_strobe.v` | The commit pulse, row tags and coverage conditions land on the same beat |
+| `tb_allow_lead.v` | `allow` drops to 0 before `de` rises after `blank_safe` goes low |
 
-### 几何、效果、OSD 与片源
+### Geometry, effects, OSD and sources
 
-| 台架 | 回答什么 |
+| Bench | Answers |
 |---|---|
-| `tb_zoom_scan.v` | 缩放扫描行的 floor+frac 自洽、源列单调、中心格不动、左右 OOB 对称 |
-| `tb_zoom_fit_corners.v` | 多个角度下拟合倍率能把源图四角留在屏内，钉 1.00x 的正对照会掉角 |
-| `tb_zoom_frac.v` | 缩放支与旋转支的坐标和小数描述同一格 |
-| `tb_rotate_mapper.v` | 0° 恒等映射与 90° 中心不越界、输出不出 X |
-| `tb_rotate_window.v` | 旋转开启时效果链仍被施加，不被强制旁路 |
-| `tb_bilinear_core.v` | 双线性四抽头的恒等、边界和系数组合 |
-| `tb_osd_overlay.v` | 五行 OSD 整串逐字符、位宽饱和、片源标签、效果码和缩放档 |
-| `tb_osd_glyph_rom.v` | 字形并行使能与串行区间比较的等价性 |
-| `tb_gamma.v` | gamma LUT 的写协议和 en=0 透明 |
-| `tb_test_card.v`、`tb_card_render.v` | 测试图卡的静止帧、跨帧变化和整卡逐像素落位 |
-| `tb_src_life.v` | 复位无源、发布转有源、停发超时、重新发布解除 |
-| `tb_src_arb.v`、`tb_src_arb_why.v` | 三路片源仲裁与换手判决那一拍的输入快照 |
+| `tb_zoom_scan.v` | Zoom scan lines: floor+frac consistency, monotonic source column, fixed centre cell, symmetric out-of-range |
+| `tb_zoom_fit_corners.v` | At several angles the fitted zoom keeps all four corners on screen; the 1.00× positive control must clip |
+| `tb_zoom_frac.v` | The zoom and rotation branches describe the same cell with their coordinate and fraction |
+| `tb_rotate_mapper.v` | 0° is an identity map; 90° keeps the centre in range and produces no X |
+| `tb_rotate_window.v` | The effect chain still applies when rotation is on and is not forced to bypass |
+| `tb_bilinear_core.v` | Four-tap bilinear identity, boundaries and coefficient combinations |
+| `tb_osd_overlay.v` | All five OSD rows character by character, bit-width saturation, source label, effect code and zoom step |
+| `tb_osd_glyph_rom.v` | Parallel glyph enables are equivalent to the serial interval comparison |
+| `tb_gamma.v` | Gamma LUT write protocol and transparency when `en=0` |
+| `tb_test_card.v`, `tb_card_render.v` | Test card still frame, cross-frame change, and per-pixel placement of the whole card |
+| `tb_src_life.v` | Reset leaves no source, publishing makes one live, a timeout after silence, and republishing clears it |
+| `tb_src_arb.v`, `tb_src_arb_why.v` | Three-source arbitration and the input snapshot taken on the handover beat |
 
-### 控制、按键、时钟与底层
+### Control, keys, clocks and low level
 
-| 台架 | 回答什么 |
+| Bench | Answers |
 |---|---|
-| `tb_link_monitor.v` | 丢字、坏包、断流后的快照和帧间隔 min/last/max/sum |
-| `tb_split_ctrl.v` | 分屏位置、扫描方向和手自动切换 |
-| `tb_zoom_sel.v`、`tb_zoom_snap.v` | 缩放档位选择与跨域快照 |
-| `tb_key_boot.v`、`tb_key_powup.v`、`tb_key_long.v` | 上电初值、去抖窗、短按/长按阈值 |
-| `tb_src_mode.v` | 长按翻转位到片源模式格雷码的映射 |
-| `tb_timing.v` | x/y 计数、de 有效拍数、每帧一次 frame_done |
-| `tb_cdc_capacity.v` | 异步 FIFO 的满/空边界和 8192 格容量 |
-| `tb_crc32.v` | 以太网反射 CRC 的初值、单字节更新和清零 |
-| `tb_uart_decode_bits.v` | 串口命令里 5 个 0/1 字符到位序的约定 |
-| `tb_unisim_sim.v` | 三路输出时钟的频率、周期和 locked |
+| `tb_link_monitor.v` | Dropped words, bad packets, post-stall snapshots and frame-gap min/last/max/sum |
+| `tb_split_ctrl.v` | Seam position, scan direction and automatic/manual switching |
+| `tb_zoom_sel.v`, `tb_zoom_snap.v` | Zoom step selection and the cross-domain snapshot |
+| `tb_key_boot.v`, `tb_key_powup.v`, `tb_key_long.v` | Power-up value, debounce window, short/long press thresholds |
+| `tb_src_mode.v` | Long-press toggle bit mapped to the source-mode gray code |
+| `tb_timing.v` | x/y counters, active `de` beats, one `frame_done` per frame |
+| `tb_cdc_capacity.v` | Asynchronous FIFO full/empty boundaries and the 8192-slot capacity |
+| `tb_crc32.v` | Ethernet reflected CRC: init value, single-byte update and clear |
+| `tb_uart_decode_bits.v` | The five 0/1 characters in a serial command mapped to bit order |
+| `tb_unisim_sim.v` | Frequency, period and `locked` for the three output clocks |
 
-## 全部台架文件
+## All bench files
 
-`sim/` 下共 92 支 `tb_*.v`。完整文件名如下，逐支判据写在文件头注释里：
+There are 92 `tb_*.v` files under `sim/`. Each file's header comment carries its own checks:
 
 ```text
 tb_abort_toggle.v      tb_align.v             tb_allow_lead.v        tb_bank.v
@@ -143,6 +143,6 @@ tb_video_pipeline_top.v tb_writer_abort.v     tb_zoom_fit_corners.v  tb_zoom_fra
 tb_zoom_mapper.v       tb_zoom_scan.v         tb_zoom_sel.v          tb_zoom_snap.v
 ```
 
-## 清单之外
+## Outside this list
 
-清单之外没有别的口径：某支台架怎么判、判据几跳，写在该文件头注释里，与本页同一处来源。新增或修改台架时，先改文件头判据，再同步本页对应分组和 `sim/results/`。
+There is no other rule set: how a bench judges, and how many cycles it waits, is written in its header comment, which is the same source this page summarises. When adding or changing a bench, update the header first, then the matching group here and `sim/results/`.

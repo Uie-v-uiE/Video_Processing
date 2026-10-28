@@ -1,76 +1,76 @@
-# 板上验收
+# Board acceptance
 
-验收分两半：机器能判的，和人眼判的。机器那一半必须给出命令、预期和日志；人眼那一半必须有人签收，不能用“看过”代替结论。
+Acceptance has two halves: what a machine can judge, and what a human must sign off. The machine half must give commands, expectations and logs; the human half needs a signature, because "I looked at it" is not a conclusion.
 
-## 1 机器验收
+## 1 Machine acceptance
 
-前置条件：板卡上电、USB-C 接好、COM6 没有被终端占用、hw_server 在 3121 监听、PL 已配置、PS 应用已下载。
+Prerequisites: board powered, USB-C connected, COM6 not held by a terminal, hw_server listening on 3121, PL configured, PS application downloaded.
 
 ```bash
 VP_XSDB=<Vitis>/bin/xsdb.bat bash hw/scripts/board_health.sh
 ```
 
-| 项 | 预期 | 实测 |
+| Item | Expected | Measured |
 |---|---|---|
-| 串口 | `stat,temp,stat` 都有回显；首末 `stat` 除 `pub=` 外一致 | 通过 |
-| JTAG | 读到 AXI GPIO 与 DDR 头 8 字 | 通过 |
-| 异常向量 | 三条异常向量标签可读（本机读数非 0） | 通过 |
-| 总判定 | `HEALTH: GREEN` | 通过 |
-| QSPI 冷启动 | 断电重上后 PL DONE=1、EOS=1、无 CRC/IDCODE 错误；`stat`/`link` 有回显；ping 5/5 | 通过 |
+| Serial | `stat,temp,stat` all answer; first and last `stat` agree except `pub=` | pass |
+| JTAG | reads AXI GPIO and eight DDR header words | pass |
+| Exception vectors | three labels readable with non-zero values | pass |
+| Verdict | `HEALTH: GREEN` | pass |
+| QSPI cold boot | after a power cycle PL DONE=1, EOS=1, no CRC/IDCODE error; `stat`/`link` answer; ping 5/5 | pass |
 
 ```bash
 python src/host/link_selftest.py 192.168.1.10 6
 ```
 
-| 阶段 | 预期 | 实测 |
+| Stage | Expected | Measured |
 |---|---|---|
-| 干净流 | 帧率 ≥ 8 fps，作废最多一次启动作废，至少一次有效时延 ≤ 200 ms | 22.0 fps，作废 0 |
-| 注入丢包 | 作废 ≥ 5 次/秒，帧率 < 5 fps | 0 fps，14.3 次作废/秒 |
-| 恢复流 | 回到干净流水平 | 18.9 fps，作废 +1（启动） |
-| 总判定 | `PASS link_selftest` | 通过 |
+| Clean | at least 8 fps, at most the single boot-time abort, at least one valid latency of 200 ms or less | 22.0 fps, 0 aborts |
+| Injected loss | at least 5 aborts/s, under 5 fps | 0 fps, 14.3 aborts/s |
+| Recovery | back to clean level | 18.9 fps, +1 abort (boot) |
+| Verdict | `PASS link_selftest` | pass |
 
 ```bash
 python src/host/telemetry_listen.py 13
 ```
 
-预期 13 个 1 Hz 遥测包，帧计数连续增长；先 ping 一次板子，让板子记住 PC 的 MAC/IP。
+Expect 13 beacons at 1 Hz with a rising frame count. Ping the board once first so it learns the PC MAC and IP.
 
 ```bash
-python src/host/uart_cmd_check.mjs --port COM6
+node src/host/uart_cmd_check.mjs --port COM6
 ```
 
-预期 105 条命令按预期回声，末态回到初态。帧间隔统计单独验：
+Expect all 105 commands to answer as specified and the final state to equal the initial state. The frame-gap statistics are checked separately:
 
 ```text
 link clr
 link
 ```
 
-实测：推流中 `gap_last=28 ms`、`gap_min=16 ms`、`gap_max=49 ms`、`gap_valid=1`；停流后 `stall` 增长到 5645 ms，`gap_last/gap_max` 保持最后一帧的值；重启后 `gap_max` 记录 22 061 ms 的长间隔。通过。
+Measured: while streaming `gap_last=28 ms`, `gap_min=16 ms`, `gap_max=49 ms`, `gap_valid=1`; after the stream stops, `stall` grows to 5645 ms while `gap_last` and `gap_max` keep the last frame values; after a restart `gap_max` records the 22,061 ms gap. Pass.
 
-## 2 人眼验收
+## 2 Human acceptance
 
-现场签收以下三条：
+Signed off on site:
 
-| # | 检查项 | 判据 | 签收人 | 结论 | 备注 |
+| # | Item | Check | Signed by | Result | Note |
 |---|---|---|---|---|---|
-| E1 | 同帧对照 | 竖缝左侧原图、右侧同一帧处理图；几何关系一致 | 现场目视 | 未见异常 | 无仪器凭据 |
-| E2 | 几何边界 | 缩放或旋转时不出现整行错位、边缘不出现未处理带 | 现场目视 | 未见异常 | 无仪器凭据 |
-| E3 | OSD 一致性 | OSD 的源尺寸、帧率、旋转/缩放、缝位、温度与串口 `stat`/`temp` 一致 | 现场目视 | 未见异常 | 无仪器凭据 |
-| E4 | 显示稳定性 | 连续运行 10 分钟无花屏、闪屏、冻帧 | 现场观察 | 通过 | 连续挂机数日，未见异常 |
-| E5 | 故障恢复 | 停流后画面停在最后一帧，恢复推流后自动继续；拔插 SD 后能回落 | link_selftest + 现场 | 通过 | 停流/恢复由自测覆盖；ETH 与 SD 插拔均现场确认，无异常 |
+| E1 | Same-frame comparison | left of the seam is the source, right is the same frame processed; geometry matches | visual, on site | nothing abnormal | no instrument record |
+| E2 | Geometry edges | zoom or rotation produces no whole-row shift and no unprocessed band at the edges | visual, on site | nothing abnormal | no instrument record |
+| E3 | OSD agreement | source size, frame rate, rotation/zoom, seam position and temperature agree with `stat` and `temp` | visual, on site | nothing abnormal | no instrument record |
+| E4 | Display stability | ten minutes of continuous running with no tearing, flashing or frozen frames | observed on site | pass | ran for days with nothing abnormal |
+| E5 | Fault recovery | after the stream stops the picture holds the last frame and resumes on restart; SD removal falls back | link_selftest plus on-site check | pass | stop/resume covered by the self-test; ETH and SD hot-plug both confirmed on site |
 
-E1/E2 是设计的核心判据；E3 用串口读数对照；E4 是连续稳定性，E5 是故障恢复。没有签收的项不写成通过。
+E1 and E2 are the core checks of the design; E3 compares against serial readings; E4 covers continuous stability; E5 covers recovery. Anything unsigned is not written as a pass.
 
-## 3 当前状态
+## 3 Current state
 
-机器验收全部通过；E1–E3 已现场目视，E4 连续挂机数日未见花屏、闪屏或冻帧，E5 的 ETH 与 SD 插拔均现场确认无异常。HDMI 面板、线缆和观感问题不在机器判据里，不能用 `pane_bad=0` 代替。
+All machine checks pass. E1-E3 were inspected on site, E4 ran for days without tearing, flashing or frozen frames, and E5 ETH and SD hot-plug were confirmed. Panel, cable and perceived picture quality are outside the machine checks; `pane_bad=0` does not stand in for them.
 
-## 4 已知限制
+## 4 Known limits
 
-- 遥测时延只覆盖 PL 内部，不是玻璃到玻璃；
-- RGMII 发送侧有约 0.845 ns 的 TskewT 保持缺口；
-- BRAM 70%，当前画幅不能提高到 1080p；
-- 帧头几行可能比同屏其余行旧一帧，只有人眼能判断是否可接受。
+- Telemetry latency covers the PL only, not glass-to-glass.
+- The RGMII transmit side has about 0.845 ns of TskewT hold margin missing.
+- BRAM is at 70%, so the frame cannot grow to 1080p.
+- The first few rows of a frame may be one frame older than the rest, and only a human can judge whether that is acceptable.
 
-逐条说明在 `docs/limits.md`。
+Details are in `docs/limits.md`.

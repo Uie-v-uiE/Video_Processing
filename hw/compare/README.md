@@ -1,25 +1,25 @@
-# 实测与参考结果比对
+# Measured versus reference
 
-这一页把交付读数对回实现报告和板上日志。数字只在 `data/metrics.csv` 和设计报告里各出现一次；这里给“读数 ↔ 证据”的对照，不另造一套数。
+This page maps delivered readings back to the implementation reports and the board logs. Each number appears once in `data/metrics.csv` and once in the design report; here we only give the reading-to-evidence mapping and never invent a second set of numbers.
 
-| 指标 | 交付读数 | 参考/证据 | 比对结果 |
+| Metric | Delivered reading | Reference / evidence | Result |
 |---|---|---|---|
-| 全局 setup WNS | 1.341 ns | `hw/reports/build_timing_summary.rpt` | 一致 |
-| 全局 hold WHS | 0.025 ns | `hw/reports/build_timing_summary.rpt` | 一致 |
-| TNS / THS | 0 / 0 | `hw/reports/build_timing_summary.rpt` | 一致 |
-| LUT / FF | 14 967（28.13%）/ 9 095（8.55%） | `hw/reports/build_utilization.rpt` | 一致 |
-| BRAM / DSP | 98（70.00%）/ 19（8.64%） | `hw/reports/build_utilization.rpt` | 一致 |
-| 动态功耗 | 2.228 W | `hw/reports/power.rpt` | 一致（工具估算） |
-| 8 秒推流 | 241 帧 / 8.05 s / 29.95 fps | `hw/measured/telemetry_8s.txt` | 与发送端 241 帧一致 |
-| 三阶段自检 | 22.0 / 0 / 18.9 fps；故障段 14.3 次作废/秒 | `hw/measured/link_selftest.txt` | PASS |
-| 帧间隔 | 推流 `gap_last=28 ms`、`gap_max=49 ms`；重启后 `gap_max=22 061 ms` | `hw/measured/link_gap.txt` | 通过 |
-| QSPI 冷启动 | `DONE=1`、`EOS=1`、无 CRC/IDCODE 错误；ping 5/5 | `hw/measured/cold_boot.txt` | 通过 |
-| 串口电池 | 105 条 / 97.8 s / PASS | `hw/measured/uart_battery.txt`、`uart_battery_capture.txt` | 通过 |
-| 处理窗完整性 | `pane_bad=0`、`pane_valid=1` | `hw/measured/pane_integrity.txt` | 通过 |
+| Global setup WNS | 1.341 ns | `hw/reports/build_timing_summary.rpt` | matches |
+| Global hold WHS | 0.025 ns | `hw/reports/build_timing_summary.rpt` | matches |
+| TNS / THS | 0 / 0 | `hw/reports/build_timing_summary.rpt` | matches |
+| LUT / FF | 14,967 (28.13%) / 9,095 (8.55%) | `hw/reports/build_utilization.rpt` | matches |
+| BRAM / DSP | 98 (70.00%) / 19 (8.64%) | `hw/reports/build_utilization.rpt` | matches |
+| Dynamic power | 2.228 W | `hw/reports/power.rpt` | matches (tool estimate) |
+| 8-second stream | 241 frames / 8.05 s / 29.95 fps | `hw/measured/telemetry_8s.txt` | matches the sender's 241 frames |
+| Three-stage self-test | 22.0 / 0 / 18.9 fps; 14.3 aborts/s in the fault stage | `hw/measured/link_selftest.txt` | PASS |
+| Frame gaps | streaming `gap_last=28 ms`, `gap_max=49 ms`; `gap_max=22,061 ms` after restart | `hw/measured/link_gap.txt` | pass |
+| QSPI cold boot | `DONE=1`, `EOS=1`, no CRC/IDCODE error; ping 5/5 | `hw/measured/cold_boot.txt` | pass |
+| Serial battery | 105 commands / 97.8 s / PASS | `hw/measured/uart_battery.txt`, `uart_battery_capture.txt` | pass |
+| Processed-pane integrity | `pane_bad=0`, `pane_valid=1` | `hw/measured/pane_integrity.txt` | pass |
 
-## 对账口径
+## Reconciliation rules
 
-- 时序/资源/功耗：以 `hw/reports/` 的布线后报告为准；工具估算功耗只看量级。
-- 板上读数：以 `hw/measured/` 的原始日志为准；测试条件写在 `data/metrics.csv` 的“测量条件”列。
-- 参考图：`data/golden/` 是人眼比对参照，不是自动黄金参考；逐像素正确性由台架和板上计数负责。
-- 旧版 `metric_recheck.mjs` 依赖旧的 README 表格式，不再作为最终门禁；本页的表由交付读数与报告逐项人工对照。
+- Timing, resources and power: post-route reports under `hw/reports/` are authoritative; the power estimate is read for order of magnitude only.
+- Board readings: raw logs under `hw/measured/` are authoritative, and the test conditions are recorded in the measurement-condition column of `data/metrics.csv`.
+- Reference images: `data/golden/` is for human comparison, not an automatic golden reference; per-pixel correctness is covered by the benches and the on-board counters.
+- The older `metric_recheck.mjs` depended on an earlier README table format and is no longer a final gate; this table is reconciled by hand against the delivered readings and reports.

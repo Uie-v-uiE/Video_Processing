@@ -1,34 +1,34 @@
-# 上板工程、脚本与实测输出
+# Hardware projects, scripts and measurements
 
-`hw/` 放四类东西：板上运行的位流/XSA/固件、可重建的 Vivado 与 Vitis 工程、上板脚本、实测输出。
+`hw/` holds four kinds of material: the artifacts that run on the board (bitstream, XSA, firmware), the rebuildable Vivado and Vitis projects, the board scripts, and the measurement logs.
 
-## 1 板上三件套
+## 1 The three board artifacts
 
-| 文件 | 是什么 |
+| File | What it is |
 |---|---|
-| `project/system.bit` | PL 位流，显示与以太网主通路 |
-| `project/system.xsa` | 与位流同批导出的硬件描述，供 Vitis 建平台 |
-| `project/ps_app.elf` | PS 裸机应用，命令解析、SD 回放、温度与链路读数 |
+| `project/system.bit` | PL bitstream for the display and Ethernet path |
+| `project/system.xsa` | hardware description exported with the bitstream, used by Vitis to build the platform |
+| `project/ps_app.elf` | PS bare-metal application: command parsing, SD playback, temperature and link readings |
 
-三件套按 md5 核对身份，不靠文件名认版本。生成命令与校验值以构建输出为准。
+The three are identified by MD5, not by file name. The generating commands and checksums are whatever the build produced.
 
-## 2 Vivado 工程
+## 2 Vivado project
 
-`vivado/zynq_video_sys.xpr` 与 `vivado/zynq_video_sys.srcs/` 是从构建 TCL 生成并整理过的工程，包含：
+`vivado/zynq_video_sys.xpr` and `vivado/zynq_video_sys.srcs/` are generated and staged by the build TCL and contain:
 
-- 器件 `xc7z020clg484-2`；
-- 92 份手写 RTL、1 份 BD wrapper、1 个块设计、3 份生效约束；
-- 块设计 `design_1`、PS7 配置、AXI GPIO 与 AXI HP0；
-- 源文件路径使用 `$PPRDIR/../../src/...`，工程内没有本机绝对路径。
+- the `xc7z020clg484-2` part;
+- 92 hand-written RTL files, one BD wrapper, one block design and three active constraint sets;
+- block design `design_1`, the PS7 configuration, AXI GPIO and AXI HP0;
+- source paths of the form `$PPRDIR/../../src/...`, with no local absolute path.
 
-先跑 `scripts/build.tcl`，产生 `vivado_system/` 与 `scripts/system.bit`/`system.xsa`；再重建并验证：
+Run `scripts/build.tcl` first to produce `vivado_system/` and `hw/reports/system.bit` / `system.xsa`, then restage and verify:
 
 ```bash
-vivado -mode batch -nojournal -log scripts/stage.log \
+vivado -mode batch -nojournal -log hw/reports/stage.log \
   -source scripts/tcl/stage_board_projects.tcl
 ```
 
-期望结果：
+Expected:
 
 ```text
 VERIFY missing_files=0 of 97
@@ -36,38 +36,38 @@ VERIFY abs_path_lines=0
 STAGE_BOARD_PROJECTS DONE
 ```
 
-工程不带 `.gen/`、`.runs/`、`.cache/` 等构建产物。BD wrapper 已在 `.srcs/` 内；打开工程后直接综合，Vivado 会按 `design_1.bd` 生成其余输出产物。完整位流由 `scripts/build.tcl` 一条命令构建。
+The project ships without `.gen/`, `.runs/` or `.cache/`. The BD wrapper is already inside `.srcs/`; open the project and synthesise, and Vivado generates the remaining output products from `design_1.bd`. The full bitstream comes from the single `scripts/build.tcl` command.
 
-## 3 Vitis 平台
+## 3 Vitis platform
 
-`hw/vitis/` 是平台工程描述：
+`hw/vitis/` describes the platform:
 
-| 文件 | 内容 |
+| File | Content |
 |---|---|
-| `vitis-comp.json` | 两个 domain：`zynq_fsbl` 与 `standalone_ps7_cortexa9_0`；硬件指向 `hw/project/system.xsa` |
-| `resources/` | 三个 `qemu_args.txt` |
+| `vitis-comp.json` | two domains, `zynq_fsbl` and `standalone_ps7_cortexa9_0`; hardware points at `hw/project/system.xsa` |
+| `resources/` | three `qemu_args.txt` files |
 
-重建平台与 FSBL：
+Rebuild the platform and FSBL:
 
 ```bash
 <Vitis>/bin/vitis-server.bat --port 8879 &
 sleep 10
-VP_VITIS_WS=<工作目录> <Vitis>/bin/vitis.bat \
+VP_VITIS_WS=<workspace> <Vitis>/bin/vitis.bat \
   -s scripts/vitis/rebuild_vitis.py 8879
 ```
 
-期望结果：`Platform Build Finished successfully.`、`GENERATE_RC 0`，并生成 `zynq_fsbl/build/fsbl.elf`。Vitis 2025.2.1 的 `create_app_component` 在本域返回 `StatusCode.INTERNAL`，应用组件建不出来；PS 应用不依赖 IDE，由 `scripts/ps/build_ps_app.py` 直接编译。
+Expected: `Platform Build Finished successfully.`, `GENERATE_RC 0`, and `zynq_fsbl/build/fsbl.elf`. `create_app_component` in Vitis 2025.2.1 returns `StatusCode.INTERNAL` on this platform, so application components cannot be created; the PS application does not need the IDE and is compiled by `scripts/ps/build_ps_app.py`.
 
-PS 应用：
+PS application:
 
 ```bash
 PS_CC=<Vitis>/gnu/aarch32/nt/gcc-arm-none-eabi/bin/arm-none-eabi-gcc.exe \
-PS_BSP=<平台构建生成的 BSP 目录> \
+PS_BSP=<BSP from the platform build> \
 PS_OUT=hw/project/ps_app.elf \
 python scripts/ps/build_ps_app.py
 ```
 
-## 4 JTAG 上板
+## 4 JTAG bring-up
 
 ```bash
 VP_XSDB=<Vitis>/bin/xsdb.bat \
@@ -75,46 +75,46 @@ VP_VIVADO_BIN=<Vivado>/bin \
 bash hw/scripts/board_flash.sh
 ```
 
-脚本依次做：扫链、PS `ps7_init`、下载 PL、下载 ELF、回读 AXI GPIO。末行 `FLASH: GREEN` 才算通过。`--check` 只做前置检查与只读扫链，不碰板子。
+The script scans the chain, runs PS `ps7_init`, downloads the PL, downloads the ELF and reads back AXI GPIO. Only the final `FLASH: GREEN` counts. `--check` performs the pre-checks and a read-only chain scan without touching the board.
 
-健康快照：
+Health snapshot:
 
 ```bash
 VP_XSDB=<Vitis>/bin/xsdb.bat bash hw/scripts/board_health.sh
 ```
 
-只读拍一张：串口 `stat,temp,stat`、JTAG 读 GPIO 与 DDR 头、三条异常向量，末行 `HEALTH: GREEN` 才算通过。
+It takes one read-only snapshot: `stat,temp,stat` over serial, GPIO and DDR header over JTAG, the three exception vectors, and only `HEALTH: GREEN` counts.
 
-## 5 QSPI 固化与冷启动
+## 5 QSPI and cold boot
 
 ```bash
 VP_VIVADO_BIN=<Vitis>/bin bash hw/scripts/make_boot_image.sh
 VP_HW_URL=<host:port> vivado -mode batch -source hw/tcl/flash_qspi.tcl
 ```
 
-`make_boot_image.sh` 把 FSBL、位流和应用打成一个 `flash/BOOT.bin`；`boot.bif` 里的路径相对 BIF 文件本身，不写本机盘符。`flash_qspi.tcl` 擦除、写入并做硬件回读比对，末行 `PROGRAM_RC 0` 才算通过。写入后断电重上，在串口看启动回显；JTAG 下载是易失的，QSPI 才是断电自启的交付物。
+`make_boot_image.sh` packs FSBL, bitstream and application into `flash/BOOT.bin`; paths inside `boot.bif` are relative to the BIF file itself, never a local drive letter. `flash_qspi.tcl` erases, programs and verifies by hardware readback, and only the final `PROGRAM_RC 0` counts. Power-cycle after writing and watch the boot messages on serial; a JTAG download is volatile, and the QSPI image is the artifact that boots without a host.
 
-## 6 串口命令
+## 6 Serial commands
 
-串口是 USB-C 桥的 B 通道，`COM6`，115200 8N1。常用命令：
+Serial is channel B of the USB-C bridge, `COM6`, 115200 8N1.
 
-| 命令 | 作用 |
+| Command | Purpose |
 |---|---|
-| `stat` | 控制状态、帧计数、效果选择、几何字 |
-| `temp` | XADC 温度、VCCINT、OSD 编码与 GPIO 回读 |
-| `link` / `link clr` | 帧间隔的最近值、最小/最大值、累计值和清零 |
-| `src auto\|0\|1\|2` | 片源自动、图卡、网络、SD |
-| `pipe <九位>` / `pipe show` | 效果链 |
-| `zoom on\|off\|auto\|<倍率>` | 缩放 |
-| `rot auto\|0\|1` / `rot speed 0..7` | 自动旋转与每帧角度 |
-| `split screen\|video <0..100>` | 竖缝模式与位置 |
-| `sd files` / `sd file n` / `play` / `stop` | SD 选段、播放、停止 |
+| `stat` | control state, frame counts, effect selection, geometry words |
+| `temp` | XADC temperature, VCCINT, OSD encoding and GPIO readback |
+| `link` / `link clr` | latest, min/max and cumulative frame gap; clear |
+| `src auto\|0\|1\|2` | source: auto, test card, network, SD |
+| `pipe <nine bits>` / `pipe show` | effect chain |
+| `zoom on\|off\|auto\|<ratio>` | zoom |
+| `rot auto\|0\|1` / `rot speed 0..7` | automatic rotation and degrees per frame |
+| `split screen\|video <0..100>` | seam mode and position |
+| `sd files` / `sd file n` / `play` / `stop` | SD selection and playback |
 
-串口一次只能被一个程序占用；查看寄存器前先停止推流，流在跑时读到的是中间值。
+Only one program may own the serial port at a time. Stop the stream before reading registers; while streaming, most counters are mid-flight values.
 
-## 7 网络与主机工具
+## 7 Network and host tools
 
-板卡地址 `192.168.1.10`，PC 地址 `192.168.1.100`，PL 侧 RJ45 直连千兆。
+Board `192.168.1.10`, PC `192.168.1.100`, direct gigabit link on the PL-side RJ45.
 
 ```bash
 ping 192.168.1.10
@@ -123,94 +123,93 @@ python src/host/telemetry_listen.py 13
 python src/host/link_selftest.py 192.168.1.10 6
 ```
 
-遥测从 UDP 1234 发出，发给最后一个 ARP 请求方；先 ping 一次板子，再启动监听。Windows 防火墙可能拦截 UDP 1234。
+Telemetry leaves from UDP 1234 to the last ARP requester, so ping the board once before starting the listener. Windows Firewall may block UDP 1234.
 
-## 8 实测输出
+## 8 Measurements
 
-`measured/` 只放支撑结论的一手日志：
+`measured/` holds only first-hand logs that support a conclusion:
 
-| 文件 | 内容 |
+| File | Content |
 |---|---|
-| `qspi_program.txt` | QSPI 擦除、写入、回读校验 |
-| `cold_boot.txt` | 断电重上后的启动模式、PL 状态、串口回显 |
-| `flash_jtag.txt` | JTAG 三步链与 GPIO 回读 |
-| `health.txt` | 串口 + JTAG + 异常向量 + XADC 温度快照 |
-| `telemetry_8s.txt` | 8 秒推流的 1 Hz 遥测 |
-| `link_selftest.txt` | 干净 → 丢包 → 恢复三阶段自检 |
-| `uart_battery.txt` | 105 条串口命令电池 |
-| `link_gap.txt` | `link clr`、推流、停流后的帧间隔统计 |
+| `qspi_program.txt` | QSPI erase, program and verify |
+| `cold_boot.txt` | boot mode, PL state and serial output after a power cycle |
+| `flash_jtag.txt` | three-step JTAG chain and GPIO readback |
+| `health.txt` | serial + JTAG + exception vectors + XADC snapshot |
+| `telemetry_8s.txt` | 1 Hz telemetry during an 8-second stream |
+| `link_selftest.txt` | clean → loss → recovery self-test |
+| `uart_battery.txt` | the 105-command battery |
+| `link_gap.txt` | frame-gap statistics after `link clr`, streaming and stopping |
 
-历史轮次的原始日志不放在提交目录；需要追溯时看本机归档或 Git 历史。
+Raw logs from earlier rounds are not kept in the deliverable; use the local archive or Git history to trace them.
 
-## 9 人眼验收
+## 9 Human acceptance
 
-机器判不了屏幕。以下三条由现场签收：
+The machine cannot judge a picture. Three items are signed off on site:
 
-- 竖缝两侧是同一帧的原图与处理图，几何关系一致；
-- 缩放或旋转时不出现整行错位；
-- OSD 各格读数与串口 `stat`、`temp` 一致。
+- both sides of the seam are the same frame, with matching geometry;
+- zooming or rotating produces no whole-row misalignment;
+- every OSD field agrees with `stat` and `temp` on the serial port.
 
-逐项状态与签收人写在 `acceptance.md`。
+Per-item status and sign-off live in `acceptance.md`.
 
-## 10 目录
+## 10 Layout
 
 ```text
-project/          位流、XSA、PS 应用
-vivado/           Vivado 工程（.xpr + .srcs）
-vitis/            Vitis 平台描述
-compare/          实测与参考结果对账
-tcl/              JTAG、QSPI、工程 staging 脚本
-scripts/          一键上板、健康快照、UART、镜像打包
-measured/         一手实测日志
-flash/            BOOT.bin 与打包日志
+project/          bitstream, XSA, PS application
+vivado/           Vivado project (.xpr + .srcs)
+vitis/            Vitis platform descriptor
+compare/          measured-versus-reference reconciliation
+tcl/              JTAG, QSPI and staging scripts
+scripts/          one-shot bring-up, health, UART, boot-image packaging
+measured/         first-hand measurement logs
+flash/            BOOT.bin and the packaging log
 ```
 
-## 11 注意
+## 11 Cautions
 
-- JTAG 报 `Cannot halt processor core` 时，先断电重上，再跑 `board_flash.sh`；不要靠反复 `rst -system` 硬顶。
-- 改 PS 固件后必须重编 ELF、重刷、再重打 BOOT.bin；只重编不重刷，板上仍是旧固件。
-- 重打 BOOT.bin 后 QSPI 里的镜像不会自动更新，必须重新写 flash 并断电验证。
-- 查看寄存器前停止推流；推流中读到的计数是中间值，不是稳定快照。
+- On `Cannot halt processor core`, power-cycle and rerun `board_flash.sh`; do not fight it with repeated `rst -system`.
+- After changing PS firmware, rebuild the ELF, re-download it and repackage BOOT.bin. A rebuild without a re-download leaves the old firmware on the board.
+- Repackaging BOOT.bin does not update QSPI; write the flash again and verify after a power cycle.
+- Stop the stream before reading registers; counters read mid-stream are not a stable snapshot.
 
-## 12 保留与移除
+## 12 What is kept and what is not
 
-取舍标准只有一条：能重建、能复现、或能支撑报告里一个结论的留下；旧轮读数、一次性破坏性探针、被新脚本替代的旧脚本、重复 TCL 去掉。不是按“功能大不大”删。
+One rule decides: keep what can be rebuilt, reproduced, or used to support a conclusion in the report; drop old-round readings, one-shot destructive probes, scripts replaced by newer ones, and duplicate TCL. Size is not the criterion.
 
-### 12.1 核心保留
+### 12.1 Core
 
-| 内容 | 为什么必须留 |
+| Item | Why it must stay |
 |---|---|
-| `project/system.bit`、`.xsa`、`ps_app.elf` | 板上实际运行的三件套；md5 是身份 |
-| `flash/BOOT.bin` | QSPI 冷启动的镜像 |
-| `vivado/`、`vitis/` | 可重建的上板工程；不是构建产物副本 |
-| `scripts/`、`tcl/` | 上板、健康、UART、QSPI、JTAG 的运行入口 |
-| `measured/` 中的当前证据 | 冷启动、帧间隔、遥测、自检、电池、温度、QSPI 回读 |
-| `compare/`、`measured/README.md` | 实测与参考结果的对照口径 |
+| `project/system.bit`, `.xsa`, `ps_app.elf` | the three artifacts that actually run; MD5 is the identity |
+| `flash/BOOT.bin` | the image that boots from QSPI |
+| `vivado/`, `vitis/` | rebuildable board projects, not copies of build output |
+| `scripts/`, `tcl/` | entry points for bring-up, health, UART, QSPI and JTAG |
+| current evidence in `measured/` | cold boot, frame gaps, telemetry, self-test, battery, temperature, QSPI readback |
+| `compare/`, `measured/README.md` | the reconciliation rules between measurement and reference |
 
-### 12.2 支持性保留
+### 12.2 Supporting
 
-| 内容 | 性质 |
+| Item | Nature |
 |---|---|
-| `measured/pane_integrity.txt` | 显示侧同一 RTL 的 185° 证据；不是本次构建新测，但支撑处理窗结论 |
-| `measured/sd_playback.txt` | SD 续播证据；`link` 改动不涉及 SD 路径 |
-| `measured/uart_battery_capture.txt` | 105 条命令电池的原始捕获，供逐条复核 |
-| `measured/flash_jtag.txt` | JTAG 三步链证据；QSPI 冷启动另见 `cold_boot.txt` |
-| `flash/bootgen.log` | 镜像打包日志，证明 BOOT.bin 的生成过程 |
+| `measured/pane_integrity.txt` | 185° evidence from the same RTL; not measured in this build, but it supports the processed-pane conclusion |
+| `measured/sd_playback.txt` | SD resume evidence; the `link` change does not touch the SD path |
+| `measured/uart_battery_capture.txt` | raw capture of the 105-command battery, for line-by-line rechecking |
+| `measured/flash_jtag.txt` | evidence for the three-step JTAG chain; cold boot is in `cold_boot.txt` |
+| `flash/bootgen.log` | packaging log showing how BOOT.bin was produced |
 
-这些文件都很小；删掉不会影响构建，但会让报告里的对应结论失去板上证据，所以保留并标明性质。
+These files are small. Deleting them would not break the build, but the matching report conclusions would lose their board evidence, so they stay with their nature stated.
 
-### 12.3 移除的内容
+### 12.3 Removed
 
-| 内容 | 为什么去掉 |
+| Item | Why |
 |---|---|
-| `output/`、旧 `compare/` 的 cdc/roster/temp/ddr 日志 | 旧轮读数，和当前交付结论不同批；留着会让人拿旧数对当前结论 |
-| `raw-vs-golden.md`、`signoff*.md`、`demo_rehearsal.txt` | 旧的人眼/签收记录，已被 `acceptance.md` 与当前实测替代 |
-| `uart_capture.txt`、`uart_script_capture.txt` | 每次跑都重写的本机捕获；原始电池捕获已以中性名保留 |
-| `cmd_overflow_probe.sh` | 一次性、可能把命令通道钉死的破坏性探针；不属于交付验收 |
-| `rebuild_project.sh`、`stage_vitis_platform.sh`、`serial_bytes.ps1` | 被 `scripts/build.tcl`、`scripts/vitis/rebuild_vitis.py`、`uart_cmd_script.ps1` 替代 |
-| `sd_boundary_0deg.txt` | 旧轮 SD 边界读数 |
-| 旧 `tcl/probe_flash_read.tcl`、`program_and_check.tcl`、`program_system.tcl` | 一次性探针或重复流程；保留的是实际使用的 JTAG/QSPI 脚本 |
-| `stage_board_projects.tcl` | 已移到 `scripts/tcl/`，它属于构建链，不属于板上运行脚本 |
+| `output/` and the old cdc/roster/temp/ddr logs in `compare/` | earlier-round readings from a different build; keeping them invites comparing old numbers with current conclusions |
+| `raw-vs-golden.md`, `signoff*.md`, `demo_rehearsal.txt` | old human/sign-off records superseded by `acceptance.md` and the current measurements |
+| `uart_capture.txt`, `uart_script_capture.txt` | per-run local captures; the raw battery capture is kept under a neutral name |
+| `cmd_overflow_probe.sh` | one-shot destructive probe that could wedge the command channel; not part of acceptance |
+| `rebuild_project.sh`, `stage_vitis_platform.sh`, `serial_bytes.ps1` | superseded by `scripts/build.tcl`, `scripts/vitis/rebuild_vitis.py` and `uart_cmd_script.ps1` |
+| `sd_boundary_0deg.txt` | earlier-round SD boundary reading |
+| old `tcl/probe_flash_read.tcl`, `program_and_check.tcl`, `program_system.tcl` | one-shot probes or duplicated flows; the scripts actually used are kept |
+| `stage_board_projects.tcl` | moved to `scripts/tcl/`; it belongs to the build chain, not to board operation |
 
-一句话：核心文件是“重建/上板必需”，支持性文件是“报告结论的证据”，移除的是“旧轮、一次性、被替代”。
-
+In one line: core files are needed to rebuild or bring up the board, supporting files are the board evidence behind a report conclusion, and what was removed was old, one-shot or superseded.

@@ -1,42 +1,43 @@
-# 文档索引
+# Documentation index
 
-`docs/` 放设计、验证、优化、复现、接口与限制这几类文档。主要读数以设计报告和验证文档为准，支撑材料在 `hw/reports/` 与 `hw/measured/`。
+`docs/` holds the design, verification, optimisation, bring-up, interface and limit documents. The design report and the verification document are the reference for every number; supporting evidence lives in `hw/reports/` and `hw/measured/`.
 
-## 阅读顺序
+## Reading order
 
-1. `design-report.md`：系统是什么、为什么这样划分、关键算法与时序、结果与边界。
-2. `verification.md`：台架矩阵、专项判据、板上验收、没有覆盖的部分。
-3. `optimization.md`：时序与资源优化的过程、被否决的尝试、物理边界。
-4. `reproduction.md`：从零构建、仿真、PS 应用、Vivado/Vitis 工程、上板与 QSPI。
-5. `limits.md`：仍然成立的限制与未修项。
-6. `issues/key-issues.md`：关键缺陷的现象、根因、判据、修复与证据。
-7. `interface-table.md`：控制字、遥测、串口、lane、地址与视频常数。
-8. `commands.md`：串口命令手册，逐条说明参数、成功回显和非法输入。
-9. `declarations.md`：器件、工具链、第三方与自研边界。
+1. `design-report.md` — what the system is, why it is split this way, the key algorithms and timing, results and boundaries.
+2. `verification.md` — the bench matrix, special-purpose checks, board acceptance, and what is not covered.
+3. `optimization.md` — how timing and resources were improved, which attempts were rejected, and where the physical limits are.
+4. `reproduction.md` — build, simulate, compile the PS application, rebuild the Vivado/Vitis projects, program the board and write QSPI.
+5. `limits.md` — the limits that still stand, plus unfixed items.
+6. `issues/key-issues.md` — the defects that changed the design: symptom, root cause, check, fix and evidence.
+7. `interface-table.md` — control bits, telemetry, serial commands, lane numbers, addresses and video constants.
+8. `commands.md` — the serial command reference, with parameters, expected replies and rejected inputs.
+9. `declarations.md` — device, toolchain, third-party components and where the in-house boundary sits.
+10. `demo.md` — the demonstration script: commands, on-screen evidence and subtitle text for each part, with the three-gate and cold-boot shots spelled out.
 
-## 图件
+## Figures
 
-`figures/` 放设计报告用的系统图、入包链、显示链、效果链延迟与时序资源图。其中同帧左右对照的渲染示例由测试帧生成，不是屏幕照片，报告里按这个口径引用。
+`figures/` holds the diagrams used by the design report: system overview, packet-ingest chain, display chain, effect-chain latency and the timing/resource plots. The same-frame comparison image is rendered from a test frame, not photographed from the panel; the report cites it that way.
 
-## 证据在哪
+## Where the evidence lives
 
-| 内容 | 位置 |
+| Item | Location |
 |---|---|
-| 时序、资源、CDC、功耗报告 | `hw/reports/` |
-| 完整视频台架与回归判定行 | `hw/reports/`、`sim/results/`、`sim/README.md` |
-| 板上启动、串口、遥测、自检日志 | `hw/measured/` |
-| 控制字、遥测字段、串口命令 | `interface-table.md`、`commands.md`、`design-report.md` 附录 A |
-| 器件、工具链、第三方声明 | `declarations.md` |
-| 关键缺陷与根因 | `issues/key-issues.md` |
-| 实测与参考比对 | `hw/compare/` |
+| Timing, resource, CDC and power reports | `hw/reports/` |
+| Full-video bench and regression verdicts | `hw/reports/`, `sim/results/`, `sim/README.md` |
+| Board boot, serial, telemetry and self-test logs | `hw/measured/` |
+| Control bits, telemetry fields, serial commands | `interface-table.md`, `commands.md`, appendix A of `design-report.md` |
+| Device, toolchain and third-party declarations | `declarations.md` |
+| Defects and root causes | `issues/key-issues.md` |
+| Measured-versus-reference comparison | `hw/compare/` |
 
-## 写作口径
+## Writing rules
 
-- 数字必须带测量条件和证据；没有量过的项写 `NOT_MEASURED`，不写"应该没问题"。
-- 不写版本演进的流水账；优化只写"优化前/优化后"和代价。
-- 不出现本机路径、日期和工具安装路径；仓库内路径用相对路径。
-- 人眼判据和机器判据分开写，不把"台架绿"写成"板上也绿"。
+- Every number carries its measurement conditions and evidence. Anything not measured is written as `NOT_MEASURED`, never as "should be fine".
+- No changelog of versions. Optimisation is written as before/after plus the cost.
+- No local paths, dates or tool installation paths. Repository paths stay relative.
+- Human-eye checks and machine checks are kept apart. A green bench is never described as a green board.
 
-## 当前边界
+## Current boundaries
 
-片内存储决定画幅上限、RGMII 发送侧的保持缺口、遥测时延只覆盖 PL 内部、HDMI 画面需人眼签收。逐条说明在 `limits.md`。
+On-chip memory sets the maximum frame size, the RGMII transmit side has a hold-margin gap, telemetry latency covers the PL only, and the HDMI picture still needs a human to sign it off. Each item is explained in `limits.md`.

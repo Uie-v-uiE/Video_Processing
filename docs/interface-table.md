@@ -1,126 +1,126 @@
-# 接口表
+# Interface tables
 
-这份表给软件、固件和 PL 三方对照用。位定义的唯一出处是 RTL 与 `src/ps/main.c`；本页只做索引，改位序时三处必须一起改。
+This page is the shared reference for software, firmware and PL. The bit definitions live in the RTL and in `src/ps/main.c`; this page only indexes them. Changing a bit order means changing all three together.
 
-## 1 地址与片源
+## 1 Addresses and sources
 
-| 区域 | 地址 | 用途 |
+| Region | Address | Purpose |
 |---|---|---|
-| ETH 乒乓 bank 0 | `0x1000_0000` | 网络帧，PL AXI HP0 写、显示读 |
-| ETH 乒乓 bank 1 | `0x1008_0000` | 网络帧第二块 |
-| PS 片源帧 | `0x1010_0000` | SD 回放 / FILL 诊断帧，避开 ETH 两个 bank |
-| AXI GPIO 0 | `0x4120_0000` | 控制字 / lane 选择 |
-| AXI GPIO 1 | `0x4121_0000` | 只读健康快照 |
-| AXI GPIO 2 | `0x4122_0000` | 通道 1 = `CFG_DATA0`，通道 2 = `CFG_DATA1` |
+| ETH ping-pong bank 0 | `0x1000_0000` | network frames, written by the PL over AXI HP0, read by the display |
+| ETH ping-pong bank 1 | `0x1008_0000` | second network frame buffer |
+| PS source frame | `0x1010_0000` | SD playback and the FILL diagnostic frame, clear of both ETH banks |
+| AXI GPIO 0 | `0x4120_0000` | control word and lane select |
+| AXI GPIO 1 | `0x4121_0000` | read-only health snapshot |
+| AXI GPIO 2 | `0x4122_0000` | channel 1 = `CFG_DATA0`, channel 2 = `CFG_DATA1` |
 
-## 2 `0x4120_0000` 控制字
+## 2 Control word at `0x4120_0000`
 
-| 位 | 含义 |
+| Bit | Meaning |
 |---|---|
-| `[4:0]` | 旧五位效果使能；已退役，读回恒 0 |
-| `[15:8]` | 阈值（默认 80） |
-| `[16]` | `src_sel`：0 = 图卡，1 = DDR |
-| `[17]` | `zoom_en`：呼吸自动缩放开关 |
+| `[4:0]` | legacy five-bit effect enable; retired, reads back as 0 |
+| `[15:8]` | threshold (default 80) |
+| `[16]` | `src_sel`: 0 = test card, 1 = DDR |
+| `[17]` | `zoom_en`: automatic zoom breathing |
 | `[18]` | `publish` |
-| `[19]` | `bilin`：1 = 双线性，0 = 最近邻 |
-| `[20]` | OSD 关位（反相；1 = 关） |
-| `[22]` | 模式翻转位 |
-| `[24:23]` | 模式码：00 自动 / 01 ETH / 11 SD / 10 TEST |
-| `[26]` | `gapclr`：清 link_monitor 的 `gap_*` |
-| `[31:27]` | 健康 lane 号 |
+| `[19]` | `bilin`: 1 = bilinear, 0 = nearest neighbour |
+| `[20]` | OSD off (active high) |
+| `[22]` | mode toggle |
+| `[24:23]` | mode: 00 auto, 01 ETH, 11 SD, 10 TEST |
+| `[26]` | `gapclr`: clears the `gap_*` counters in `link_monitor` |
+| `[31:27]` | health lane number |
 
-## 3 `0x4122_0000 + 0x00`（`CFG_DATA0`）
+## 3 `0x4122_0000 + 0x00` (`CFG_DATA0`)
 
-| 位 | 含义 |
+| Bit | Meaning |
 |---|---|
-| `[8:0]` | `stage_sel`：灰度、反色、模糊、锐化、Sobel、二值化、判决反相、腐蚀、膨胀 |
-| `[9]` | `rot_auto`：自动旋转 |
-| `[12:10]` | `rot_speed`：每帧 0–7° |
-| `[22:13]` | `split_pos`：缝位，显示列 0–1023（1024 在 PS 侧夹到 1023 并回显） |
+| `[8:0]` | `stage_sel`: grayscale, invert, blur, sharpen, Sobel, threshold, inverted decision, erode, dilate |
+| `[9]` | `rot_auto`: automatic rotation |
+| `[12:10]` | `rot_speed`: 0–7° per frame |
+| `[22:13]` | `split_pos`: seam position in display columns, 0–1023 (the PS clamps 1024 to 1023 and reports the clamp) |
 | `[23]` | `split_auto` |
-| `[24]` | `split_follow`：1 = 缝量在画面列里，跟着旋转 |
-| `[25]` | `split_swap`：只交换左右内容，不换缝位 |
-| `[28:26]` | `zcode`：八档缩放 0.25–2.0 |
-| `[29]` | `zman`：手动缩放档 |
-| `[30]` | `split_marker_off`：1 = 关掉缝的标记线 |
-| `[31]` | `zoom_fit`：倍率按角度定，画面整幅在屏内 |
+| `[24]` | `split_follow`: 1 = seam measured in image columns and follows rotation |
+| `[25]` | `split_swap`: swaps the two panes only, never the seam position |
+| `[28:26]` | `zcode`: one of eight zoom steps from 0.25× to 2.0× |
+| `[29]` | `zman`: manual zoom step |
+| `[30]` | `split_marker_off`: 1 hides the seam marker |
+| `[31]` | `zoom_fit`: zoom chosen from the current angle so the whole image stays on screen |
 
-## 4 `0x4122_0000 + 0x08`（`CFG_DATA1`）
+## 4 `0x4122_0000 + 0x08` (`CFG_DATA1`)
 
-| 位 | 含义 |
+| Bit | Meaning |
 |---|---|
-| `[31]` | gamma 使能 |
-| `[30]` | gamma 写翻转位 |
-| `[29:22]` | gamma 数据 |
-| `[21:14]` | gamma 表索引 |
-| `[13:8]` | OSD 的 gamma 显示值（γ×10） |
-| `[7:0]` | OSD 温度，两位 BCD：`[7:4]` 十位、`[3:0]` 个位；任一 nibble > 9 画 `--` |
+| `[31]` | gamma enable |
+| `[30]` | gamma write toggle |
+| `[29:22]` | gamma data |
+| `[21:14]` | gamma table index |
+| `[13:8]` | gamma value shown in the OSD (γ×10) |
+| `[7:0]` | OSD temperature, two BCD digits: `[7:4]` tens, `[3:0]` units; a nibble above 9 draws `--` |
 
-## 5 遥测信标（UDP 1234，32 字节，小端）
+## 5 Telemetry beacon (UDP 1234, 32 bytes, little-endian)
 
-| 偏移 | 长度 | 含义 |
+| Offset | Length | Meaning |
 |---:|---:|---|
-| 0 | 4 | 固定标识 `VDEO` |
-| 4 | 1 | 版本 |
-| 5 | 1 | bit0 = 链路有效 |
-| 6 | 4 | 累计帧数 |
-| 10 | 4 | 累计包数 |
-| 14 | 4 | 坏包数 |
-| 18 | 2 | 最后一次作废缺行数 |
-| 20 | 4 | 自由运行秒计数 |
-| 24 | 2 | 累计作废帧数 |
-| 26 | 2 | PL 内部时延（ms） |
-| 28 | 2 | 源端口 |
-| 30 | 1 | bit0 = 时延有效，bit1 = 处理窗计数有效 |
-| 31 | 1 | 处理窗非灰像素数（饱和到 255） |
+| 0 | 4 | magic `VDEO` |
+| 4 | 1 | version |
+| 5 | 1 | bit0 = link alive |
+| 6 | 4 | frames received |
+| 10 | 4 | packets received |
+| 14 | 4 | bad packets |
+| 18 | 2 | missing rows in the last abort |
+| 20 | 4 | free-running seconds |
+| 24 | 2 | aborted frames |
+| 26 | 2 | PL-internal latency (ms) |
+| 28 | 2 | source port |
+| 30 | 1 | bit0 = latency valid, bit1 = processed-pane count valid |
+| 31 | 1 | non-gray pixels in the processed pane (saturates at 255) |
 
-信标发给最后一个 ARP 请求方；先 ping 一次板子，再启动监听。
+The beacon goes to the last ARP requester, so ping the board once before starting the listener.
 
-## 6 健康 lane
+## 6 Health lanes
 
-| lane | 内容 |
+| Lane | Content |
 |---|---|
-| 0 | `drop_words`：被 FIFO full 挡掉的 16 位字数 |
-| 1 | 低 16 = 作废帧数，高 16 = 坏包数 |
-| 2 | 低 16 = 距上一帧的 `stall` 毫秒，高 16 = 最大缺行 |
-| 3 | `gap_last`（ms） |
-| 4 | 低 16 = `gap_min`，高 16 = `gap_max` |
-| 5 | `gap_sum`（ms） |
-| 6 | CDC 从“没满”跳到“满”的次数 |
-| 7 | flags：bit0 丢过字、bit1 作废过帧、bit2 灌满过、bit3 流活着、bit4 间隔已校准 |
-| 8 | 收到的 UDP 包数 |
-| 9 | 收到的有效字节数 |
-| 23 | 缩放状态：倍率、档号、手动/拟合、方向 |
-| 30 | 源仲裁状态：owner、模式、原因位 |
-| 31 | 源时钟：bit0 消失、bit1 被拉慢 |
+| 0 | `drop_words`: 16-bit words blocked by a full FIFO |
+| 1 | low 16 = aborted frames, high 16 = bad packets |
+| 2 | low 16 = `stall` in ms since the last frame, high 16 = maximum missing rows |
+| 3 | `gap_last` (ms) |
+| 4 | low 16 = `gap_min`, high 16 = `gap_max` |
+| 5 | `gap_sum` (ms) |
+| 6 | number of CDC transitions from not-full to full |
+| 7 | flags: bit0 dropped words, bit1 aborted frames, bit2 filled up, bit3 stream alive, bit4 gaps calibrated |
+| 8 | UDP packets received |
+| 9 | valid bytes received |
+| 23 | zoom state: ratio, step, manual/fit, direction |
+| 30 | source arbitration: owner, mode, reason bits |
+| 31 | source clocks: bit0 missing, bit1 slowed |
 
-## 7 串口命令
+## 7 Serial commands
 
-| 命令 | 作用 |
+| Command | Purpose |
 |---|---|
-| `stat` | 控制状态、帧计数、效果选择、几何字 |
-| `temp` | XADC 温度、VCCINT、OSD 编码与 GPIO 回读 |
-| `link` / `link clr` | 帧间隔统计 / 清零 `gap_*` |
-| `src auto\|0\|1\|2` | 自动、图卡、ETH、SD |
-| `pipe <九位>` / `pipe show` | 九位效果链 |
-| `zoom on\|off\|auto\|<倍率>` | 缩放开关、自动、手动倍率（`zoom 1` 是开关，`zoom 1.0` 是倍率） |
-| `rot auto\|0\|1` / `rot speed 0..7` | 自动旋转 / 每帧角度 |
-| `split screen\|video <0..100>` / `split swap\|follow\|marker` | 竖缝 |
+| `stat` | control state, frame counts, effect selection, geometry words |
+| `temp` | XADC temperature, VCCINT, OSD encoding, GPIO readback |
+| `link` / `link clr` | frame-gap statistics / clear `gap_*` |
+| `src auto\|0\|1\|2` | auto, test card, ETH, SD |
+| `pipe <nine bits>` / `pipe show` | nine-bit effect chain |
+| `zoom on\|off\|auto\|<ratio>` | zoom on/off, automatic, manual ratio (`zoom 1` is a switch; `zoom 1.0` is a ratio) |
+| `rot auto\|0\|1` / `rot speed 0..7` | automatic rotation / degrees per frame |
+| `split screen\|video <0..100>` / `split swap\|follow\|marker` | seam |
 | `gamma <1.00..3.00>\|off\|auto` | gamma |
 | `osd on\|off` | OSD |
-| `sd files` / `sd file n` / `play` / `stop` | SD 选段、播放、停止 |
-| `frame N` / `fill` / `autoplay` / `th` / `echo` | 跳帧、诊断帧、自动播放、阈值、回显 |
+| `sd files` / `sd file n` / `play` / `stop` | pick and play SD content |
+| `frame N` / `fill` / `autoplay` / `th` / `echo` | jump to frame, diagnostic frame, autoplay, threshold, echo |
 
-## 8 视频与网络常数
+## 8 Video and network constants
 
-| 项 | 值 |
+| Item | Value |
 |---|---|
-| 源画幅 / 格式 | 512×300 / RGB565 |
-| 显示画幅 | 1024×600 @ 59.5 Hz |
-| 显示时序 | H 1344 = 1024 + 44 + 88 + 188；V 625 = 600 + 3 + 6 + 16；像素钟 50 MHz |
-| 帧字节数 | 307200 |
-| UDP 视频入口 | 5001，载荷 ≤ 1392 B，前 4 B 为帧内偏移 |
-| 遥测出口 | 1234，1 Hz，32 B |
-| 板卡地址 | 192.168.1.10 |
-| PC 地址 | 192.168.1.100 |
-| 串口 | COM6，115200 8N1 |
+| Source size / format | 512×300 / RGB565 |
+| Display | 1024×600 @ 59.5 Hz |
+| Display timing | H 1344 = 1024 + 44 + 88 + 188; V 625 = 600 + 3 + 6 + 16; 50 MHz pixel clock |
+| Frame size | 307,200 bytes |
+| UDP video input | 5001, payload ≤ 1392 B, first 4 B are the intra-frame offset |
+| Telemetry output | 1234, 1 Hz, 32 B |
+| Board address | 192.168.1.10 |
+| PC address | 192.168.1.100 |
+| Serial | COM6, 115200 8N1 |

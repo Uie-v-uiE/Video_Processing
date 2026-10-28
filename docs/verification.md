@@ -1,120 +1,120 @@
-# 验证
+# Verification
 
-验证的目标不是“跑过”，而是回答三个问题：判据能不能红，红了能不能定位，绿了能不能复现。
+Verification is not about "it ran". It answers three questions: can a check turn red, does a red check say where to look, and can a green check be reproduced.
 
-## 1 验证分层
+## 1 Layers
 
-| 层 | 对象 | 主要手段 | 回答什么 |
+| Layer | Object | Method | Question answered |
 |---|---|---|---|
-| 单元 | CRC、UDP 解析、重组边界、缩放映射、双线性、效果级、OSD、CDC | 定向激励 + 逐拍比对 | 单个模块的契约是否成立 |
-| 集成 | RGMII → AXI 入包链；DDR → TMDS 显示链 | 真实接口时序 + 端到端帧比对 | 模块之间的握手、延迟和背压是否正确 |
-| 完整视频 | 旋转、八档缩放、双线性、六级效果、竖缝、OSD、边界 | 长帧序列 + 逐像素判据 | 组合场景下是否仍然同帧、同几何 |
-| 板级 | 启动、串口、网络、遥测、SD、故障注入、连续流 | 实测日志 + 三态判定 | 设计在真实板卡和真实链路上是否成立 |
+| Unit | CRC, UDP parsing, reassembly bounds, zoom mapping, bilinear, effect stages, OSD, CDC | Directed stimulus with cycle-by-cycle comparison | Does one module keep its contract? |
+| Integration | RGMII → AXI ingest chain; DDR → TMDS display chain | Real interface timing plus end-to-end frame comparison | Are handshakes, latency and back-pressure between modules correct? |
+| Full video | Rotation, eight zoom steps, bilinear, six effect stages, seam, OSD, edges | Long frame sequences with per-pixel checks | Does it stay same-frame and same-geometry in combination? |
+| Board | Boot, serial, network, telemetry, SD, fault injection, continuous stream | Measured logs plus three-state verdicts | Does it hold on a real board and a real link? |
 
-每一层都输出判定行。判定行在报告末尾，不在中间；没有判定行的日志只算过程记录，不算结论。
+Every layer prints a verdict line at the end of the log, never in the middle. A log without a verdict line is a process record, not a conclusion.
 
-## 2 台架矩阵
+## 2 Bench matrix
 
-| 台架 | 覆盖点 | 关键判据 | 结果 |
+| Bench | Covers | Key check | Result |
 |---|---|---|---|
-| `tb_crc32` | 以太网 FCS | 已知向量逐字节一致 | 未纳入标准回归 |
-| `tb_udp_parser` | UDP 端口、长度、偏移 | 非法包必须拒绝，合法包必须放行 | 未纳入标准回归 |
-| `tb_udp_reasm` | 按偏移重组 | 乱序、缺包、重复包下的提交/作废 | PASS |
-| `tb_reasm_bounds` | 重组边界 | 越界偏移不得写坏相邻行 | PASS |
-| `tb_rows` | 行覆盖与提交 | 字节够但行不全时不得提交 | PASS |
-| `tb_eth_ingress_integrity` | 入包链完整性 | 坏包、短包、超长包计数与丢弃 | PASS |
-| `tb_saver` | AXI 打包写 DDR | 16→64 位拼接、突发长度、尾字 | 未纳入标准回归 |
-| `tb_saver_tail_full` | 满 FIFO + flush | 尾字在 flush 后仍保留 | PASS |
-| `tb_eth_ctrl_arb` | ARP/ICMP/UDP 共用 GMII | 帧不被打断，长度与顺序正确 | PASS |
-| `tb_eth_top_rgmii` | RGMII → AXI 全链 | 端到端字节一致 | PASS |
-| `tb_udp_telemetry` | 遥测发送 | 以太网头、IP、UDP、载荷、IP 校验和 | PASS |
-| `tb_link_monitor` | 链路计数 | 帧间隔、作废、坏包、flags | PASS |
-| `tb_zoom_mapper` | 缩放逆映射 | 1.0 倍恒等、0.5 倍中心、越界 | 未纳入标准回归 |
-| `tb_zoom_sel` | 旋转下的倍率选择 | 画面不转出边界 | 未纳入标准回归 |
-| `tb_fb_bilinear` | 双线性读口 | 四邻点权重与旁路 | 未纳入标准回归 |
-| `tb_proc_gray` / `tb_sharpen` | 效果级 | 逐像素与参考模型一致 | 未纳入标准回归 |
-| `tb_morph` | 效果级 | 逐像素与参考模型一致 | PASS |
-| `tb_split_ctrl` | 竖缝位置与取像素 | 两侧同帧、同坐标 | PASS |
-| `tb_split` | 竖缝位置与取像素 | 两侧同帧、同坐标 | 未纳入标准回归 |
-| `tb_osd_overlay` | OSD 叠加 | 字模、位置、延迟 | PASS |
-| `tb_video_pipeline_top` | 完整显示链 | quick_c17；C17/C25/C26 专项 PASS，nfail=0 | PASS |
+| `tb_crc32` | Ethernet FCS | byte-by-byte match against known vectors | not in the standard regression |
+| `tb_udp_parser` | UDP port, length, offset | illegal packets rejected, legal packets passed | not in the standard regression |
+| `tb_udp_reasm` | offset-based reassembly | commit/abort under reordering, loss and duplicates | PASS |
+| `tb_reasm_bounds` | reassembly bounds | out-of-range offsets must not corrupt the neighbouring row | PASS |
+| `tb_rows` | row coverage and commit | a frame with enough bytes but missing rows must not commit | PASS |
+| `tb_eth_ingress_integrity` | ingest integrity | bad, short and oversized packets counted and dropped | PASS |
+| `tb_saver` | AXI packer into DDR | 16→64-bit packing, burst length, tail word | not in the standard regression |
+| `tb_saver_tail_full` | full FIFO plus flush | the tail word survives the flush | PASS |
+| `tb_eth_ctrl_arb` | ARP/ICMP/UDP sharing GMII | frames are never cut, length and order correct | PASS |
+| `tb_eth_top_rgmii` | RGMII → AXI full chain | end-to-end byte match | PASS |
+| `tb_udp_telemetry` | telemetry transmit | Ethernet header, IP, UDP, payload, IP checksum | PASS |
+| `tb_link_monitor` | link counters | frame gaps, aborts, bad packets, flags | PASS |
+| `tb_zoom_mapper` | inverse zoom mapping | identity at 1.0×, centre at 0.5×, out-of-range | not in the standard regression |
+| `tb_zoom_sel` | zoom choice under rotation | the image never rotates out of the panel | not in the standard regression |
+| `tb_fb_bilinear` | bilinear read port | four-tap weights and bypass | not in the standard regression |
+| `tb_proc_gray` / `tb_sharpen` | effect stages | per-pixel match with the reference model | not in the standard regression |
+| `tb_morph` | effect stages | per-pixel match with the reference model | PASS |
+| `tb_split_ctrl` | seam position and pixel fetch | same frame and same coordinates on both sides | PASS |
+| `tb_split` | seam position and pixel fetch | same frame and same coordinates on both sides | not in the standard regression |
+| `tb_osd_overlay` | OSD overlay | glyphs, position, latency | PASS |
+| `tb_video_pipeline_top` | full display chain | quick_c17; C17/C25/C26 specials PASS, nfail=0 | PASS |
 
-标准回归 19 支（17 支原有台架加 `eth_ingress_integrity`、`saver_tail_full`），交付版本的汇总为 `fail=0`。
+The standard regression has 19 benches (17 existing plus `eth_ingress_integrity` and `saver_tail_full`) and the delivered summary reads `fail=0`.
 
-标 PASS 的 19 支在 `sim/results/regression.txt` 都有判定行；标“未纳入标准回归”的台架源码在 `sim/`，本包未附运行日志，不作为交付结论。完整视频台架的 185° 专项判定行是 `RESULT tb_video_pipeline_top PASS nfail=0 (quick_c17)`。
+Those 19 have verdict lines in `sim/results/regression.txt`. The benches marked "not in the standard regression" keep their sources in `sim/` but ship without logs, so they are not part of the delivered conclusion. The 185° special in the full-video bench is `RESULT tb_video_pipeline_top PASS nfail=0 (quick_c17)`.
 
-## 3 专项判据
+## 3 Special checks
 
-### 3.1 帧提交
+### 3.1 Frame commit
 
-重组器只有在整帧字节数到齐、所有源行都被覆盖、且本帧没有坏包时才提交。台架在“字节数够、只覆盖 3/4 行”的激励下要求不提交；把行计数改成“每写一个字加一”的变异体会报：
+The reassembler commits only when every byte has arrived, every source row has been written and no bad packet appeared in the frame. The bench feeds a frame with a full byte count covering only 3/4 of the rows and requires no commit; a mutant that increments the row counter on every written word reports:
 
 ```text
 FAIL commit with full byte count but only 3/4 rows
 ```
 
-恢复源码后通过。这条判据区分了“字节门”和“行覆盖门”，也解释了板上作废计数里的缺行数为什么是原因而不是速率。
+With the source restored it passes. This check separates the byte gate from the row-coverage gate, and explains why the board's abort counter reports missing rows as a cause rather than a rate.
 
-`tb_udp_reasm` 的 A9 段让上一帧丢尾、下一帧丢头，中间静默超过 4 ms；判据要求两帧不混，恢复后的第 3 帧仍能干净提交。
+The A9 section of `tb_udp_reasm` drops the tail of one frame and the head of the next, with more than 4 ms of silence between them; the check requires the two frames not to mix and the third frame after recovery to commit cleanly.
 
-### 3.2 一行串色
+### 3.2 Cross-colour on one row
 
-C22 针对效果链窗口级的行标签与内容是否同拍。优化前，帧顶/帧底各出现 6/48 个满白像素；把行标签按上游窗口级的一行内容滞后对齐后，计数为 0。
+C22 checks whether the window stages of the effect chain see row tags and data in the same beat. Before the fix, 6 and 48 fully white pixels appeared at the top and bottom edges; after aligning the row tag with a one-line delay from the upstream stage, the count is 0.
 
-C31 使用 9 位列标签帧 `{1'b1, row[5:0], col[8:0]}`，直接检查每一格选中的抽头。优化前，旋转时帧尾两整行各 1028 格不符；把竖缝的 `sx` 先过 2 行环、再进 `seam_src` 后，swap 两态全帧为 0。
+C31 uses a 9-bit row tag frame `{1'b1, row[5:0], col[8:0]}` and checks the tap selected in every cell. Before the fix, two full rows at the frame tail had 1028 mismatching cells each under rotation; after routing the seam `sx` through a two-row ring before `seam_src`, the whole frame reads 0 in both swap states.
 
-两条判据都给出了改前/改后读数；包内完整视频台架报告保留 C22 的 PASS 行，C31 的逐行复验在 `sim/results/c31_edge_rim.log`，改前红的历史读数保存在 FIN 项目记录。
+Both checks carry before/after readings. The full-video report in the package keeps C22's PASS line, the C31 re-verification is `sim/results/c31_edge_rim.log`, and the pre-fix red readings are kept in the project records outside this repository.
 
-### 3.3 UDP 校验和
+### 3.3 UDP checksum
 
-`tb_udp_telemetry` 从 GMII 口按帧偏移抓取字节，逐字节比对以太网头、IP 目的地址、UDP 端口与载荷。IPv4 头校验和的判据是：把 IP 头 10 个 16 位字相加（含校验和字段）再折叠，结果应为 `16'hffff`。故意少加一项时，台架报 `FAIL ip checksum sum=003c`；恢复源码后通过。
+`tb_udp_telemetry` captures bytes from the GMII port at frame offsets and compares the Ethernet header, IP destination, UDP ports and payload byte by byte. The IPv4 header check is: add the ten 16-bit words of the header, including the checksum field, and fold; the result must be `16'hffff`. Omitting one term on purpose makes the bench report `FAIL ip checksum sum=003c`; with the source restored it passes.
 
-### 3.4 仪表能被注入故障打红
+### 3.4 The instrument goes red under injected faults
 
-三阶段自检使用网络遥测的每秒变化量，不使用绝对值：
+The three-stage self-test uses per-second deltas from the network telemetry, never absolute values:
 
-| 阶段 | 激励 | 判据 | 实测 |
+| Stage | Stimulus | Check | Measured |
 |---|---|---|---|
-| 干净流 | 内置测试图，30 fps | 帧率 ≥ 8 fps，作废最多一次启动作废，至少一次有效时延 ≤ 200 ms | 22.0 fps，作废 0 |
-| 故障 | 每 100 包丢 1 包 | 作废 ≥ 5 次/秒，帧率 < 5 fps | 0 fps，14.3 次作废/秒 |
-| 恢复 | 干净流 | 回到干净流水平 | 18.9 fps，作废 +1（启动） |
+| Clean | built-in pattern, 30 fps | ≥ 8 fps, at most the one boot-time abort, at least one valid latency ≤ 200 ms | 22.0 fps, 0 aborts |
+| Fault | drop one packet in 100 | ≥ 5 aborts/s, < 5 fps | 0 fps, 14.3 aborts/s |
+| Recovery | clean stream | back to clean-stream level | 18.9 fps, +1 abort (boot) |
 
-故障段的作废计数上升、帧率下降，恢复段回到正常水平。这个结果证明仪表对人为破坏有反应，不是只会显示一个好看的数。
+Aborts rise and frame rate falls in the fault stage; both return to normal in recovery. The instrument reacts to deliberate damage instead of only showing a nice number.
 
-## 4 板级验收
+## 4 Board acceptance
 
-板级验收使用以下条件：
+Conditions:
 
-- 板卡：Zynq-7020 开发板，PL 侧 RJ45，HDMI 1024×600 面板；
-- 网络：PC 有线网卡 192.168.1.100，板卡 192.168.1.10，直连千兆；
-- 串口：USB-C 桥的 B 通道，COM6，115200 8N1；
-- 启动：QSPI 镜像写入后断电重上；JTAG 仅用于调试和临时下载。
+- Board: Zynq-7020 development board, PL-side RJ45, HDMI 1024×600 panel.
+- Network: PC wired NIC 192.168.1.100, board 192.168.1.10, direct gigabit link.
+- Serial: channel B of the USB-C bridge, COM6, 115200 8N1.
+- Boot: QSPI image written, then power-cycled; JTAG only for debug and temporary download.
 
-| 项目 | 方法 | 预期 | 实测 |
+| Item | Method | Expected | Measured |
 |---|---|---|---|
-| 冷启动 | QSPI 写入 + 硬件回读 + 断电重上 | PL DONE、EOS、无 CRC/IDCODE 错误；串口 `stat`/`link` 有回显；ping 5/5 | 通过 |
-| 连续流 | `video_sender.py --demo --seconds 8` | 约 240 帧 / 8 s，30 fps | 241 帧 / 8.05 s = 29.95 fps |
-| 遥测 | `telemetry_listen.py 13`，先 ping | 13 包左右，帧计数连续 | 13 包 |
-| 自检 | `link_selftest.py` | 三段判定通过 | PASS（22.0 / 0 / 18.9 fps） |
-| 处理窗 | 185°、split video 50%、灰度单级 | `pane_bad=0` 且有效 | 通过 |
-| 帧间隔 | `link clr` → 推流 → 停流 → 重启 → `link` | 推流中 `gap_valid=1`；停流 `stall` 增长；重启后 `gap_max` 记录长间隔 | 通过（`gap_max=22 061 ms`） |
-| 串口命令 | 105 条命令清单 | 逐条回声，末态回到初态 | 通过 |
-| 温度 | 连续推流后 `temp` | `sane=1`，读数合理 | 61.8–63.8 °C |
-| HDMI 画面 | 人眼/连续运行 | 左右同帧、几何一致、OSD 与串口一致；连续挂机数日无花屏/闪屏/冻帧；ETH/SD 插拔后恢复 | E1–E5 已确认；面板色彩仍为主观项 |
+| Cold boot | QSPI write + hardware readback + power cycle | PL DONE and EOS, no CRC/IDCODE error; `stat`/`link` reply; ping 5/5 | pass |
+| Continuous stream | `video_sender.py --demo --seconds 8` | about 240 frames in 8 s, 30 fps | 241 frames in 8.05 s = 29.95 fps |
+| Telemetry | `telemetry_listen.py 13` after a ping | about 13 beacons, frame count monotonic | 13 beacons |
+| Self-test | `link_selftest.py` | all three stages pass | PASS (22.0 / 0 / 18.9 fps) |
+| Processed pane | 185°, split video 50%, grayscale only | `pane_bad=0` and valid | pass |
+| Frame gaps | `link clr` → stream → stop → restart → `link` | `gap_valid=1` while streaming; `stall` grows after stop; `gap_max` records the long gap | pass (`gap_max=22,061 ms`) |
+| Serial commands | 105-command list | every command answers, final state equals initial | pass |
+| Temperature | `temp` after continuous streaming | `sane=1`, plausible reading | 61.8–63.8 °C |
+| HDMI picture | human eye, continuous run | same frame left/right, matching geometry, OSD agrees with serial; days of running without tearing, flashing or frozen frames; recovery after ETH/SD hot-plug | E1–E5 confirmed; panel colour remains subjective |
 
-## 5 判据自身怎么被检查
+## 5 How the checks themselves are checked
 
-- **变异对照**：给一个已知坏的输入，判据必须红；恢复源码后必须绿。
-- **两跑一致**：确定性检查同一输入跑两次，输出应逐字节一致；不确定的板级读数不做逐字节比较。
-- **三态判定**：`PASS`、`FAIL`、`NOT_MEASURED`。读不到输入永远不等于通过。
-- **证据指路**：每条结论点名一份日志或报告；日志里的判定行在末尾，引用时不转述成“测试通过”。
+- **Mutation contrast**: feed a known-bad input and the check must turn red; restore the source and it must turn green.
+- **Repeat runs**: deterministic checks run twice and compare byte for byte; non-deterministic board readings are not compared that way.
+- **Three states**: `PASS`, `FAIL`, `NOT_MEASURED`. An unreadable input is never a pass.
+- **Evidence pointer**: every conclusion names a log or report, and the verdict line is quoted from the end of that file instead of being paraphrased into "the test passed".
 
-## 6 没覆盖的部分
+## 6 What is not covered
 
-- HDMI 画面的 E1–E5 已现场确认（E1–E3 目视，E4 连续挂机数日，E5 覆盖 ETH 与 SD 插拔）；面板色彩仍是主观项，没有机器判据；
-- 遥测时延不覆盖编码、网线和交换机，不能写成端到端时延；
-- RGMII 发送侧的 TskewT 保持缺口没有在 RTL 内消除，当前靠 0° 转发和板上长期 ping 稳定；
-- 功耗与结温是工具估算，未做板上功耗测量；
-- 只验证了单路 512×300 输入，没有验证 1080p、多路输入或压缩码流。
+- HDMI E1–E5 are confirmed on the bench (E1–E3 visually, E4 over days of continuous running, E5 covering ETH and SD hot-plug); panel colour stays subjective with no machine check.
+- Telemetry latency excludes encoding, cable and switch, so it is not end-to-end latency.
+- The RGMII transmit hold gap is not removed in RTL; the design relies on 0° forwarding and long clean ping runs.
+- Power and junction temperature are tool estimates; no board-level power measurement was made.
+- Only one 512×300 input is verified. 1080p, multiple inputs and compressed streams are not.
 
-这些边界在 `limits.md` 里有逐条说明，不用“未测”冒充“通过”。
+`limits.md` explains each of these, so that "not measured" is never passed off as "passing".

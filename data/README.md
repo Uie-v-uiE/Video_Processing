@@ -1,25 +1,25 @@
-# 数据层
+# Data
 
-`data/` 放三类东西：测试输入、软件侧参考图、指标表。
+`data/` holds three kinds of material: test inputs, software reference images and the metrics table.
 
-## 测试输入
+## Test inputs
 
-`inputs/` 放固定向量：正常帧、全零、随机、截断 299 行、超长 1.5 帧、0 字节和 1 像素边界包。生成脚本是 `generated/gen_inputs.mjs`，重跑一条命令就能得到相同字节：
+`inputs/` holds fixed vectors: a normal frame, all-zero, random, a truncated 299-row frame, an oversized 1.5-frame burst, a zero-byte packet and a one-pixel edge packet. They are produced by `generated/gen_inputs.mjs`; rerunning the command reproduces the same bytes:
 
 ```bash
 node data/generated/gen_inputs.mjs --write
 ```
 
-## 参考图
+## Reference images
 
-`golden/` 放软件侧渲染的参考图：源图、各旋转角度、效果组合和左右并排预览。它用于人眼比对，不是自动判据的唯一来源；逐像素比对以台架为准。文件清单与用途在 `golden/README.md`。
+`golden/` holds software-rendered images: the source, several rotation angles, effect combinations and a side-by-side preview. They support human comparison and are not the only source of an automatic verdict; per-pixel comparison runs on the benches. The file list and purpose are in `golden/README.md`.
 
-## 指标表
+## Metrics table
 
-`metrics.csv` 是交付版本的指标表，每行给指标、数值、单位、测量条件和证据路径。数字只在这里和设计报告里各出现一次；不要建第二份表，否则两处会各自漂移。
+`metrics.csv` is the delivered metrics table: one row per metric with value, unit, measurement condition and evidence path. Each number appears here and in the design report, nowhere else; a second table would drift on its own.
 
-读不到输入时写 `NOT_MEASURED`，不写“通过”。端到端时延、玻璃到玻璃延迟这类没有测的量，在表里明确保留为未测。
+When an input cannot be read, write `NOT_MEASURED`, never "pass". Quantities that were not measured, such as end-to-end or glass-to-glass latency, stay explicitly unmeasured in the table.
 
-## 证据
+## Evidence
 
-板上原始日志在 `hw/measured/`，实现报告在 `hw/reports/`，台架判定行在 `hw/reports/regression.txt` 与 `hw/reports/tb_video_pipeline_top_report.txt`。指标表只指路，不复制日志正文。
+Raw board logs are in `hw/measured/`, implementation reports in `hw/reports/`, and bench verdicts in `hw/reports/regression.txt` and `hw/reports/tb_video_pipeline_top_report.txt`. The metrics table only points at them and does not copy log bodies.

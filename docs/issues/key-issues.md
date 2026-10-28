@@ -1,167 +1,167 @@
-# 关键问题台账（精选）
+# Key issues
 
-编号沿用早期台账；这里只保留真正改变过设计或判据的条目，完整过程记录不入库。
+Numbering follows the earlier ledger. Only entries that changed the design or the checks are kept; the full process record is not published.
 
-## 1. #27–35 · 入包链丢字：拖影和黑横纹的真正根因
+## 1. #27-35 - words dropped in the ingest chain: the real cause of ghosting and black bands
 
-**现象**：静止画面也撕裂；每隔一个 16 位出现黑横纹；加深缓冲没有改善。
-**根因**：UDP 分包长度不是 8 的倍数，打包器按 16 位半字对齐后确定性错位；打包器每写一个字都等 AXI B 响应，吞吐被往返延迟钉死；FIFO 被综合成触发器，资源爆掉。
-**判据**：`tb_udp_reasm` 按帧内偏移逐字比对；`tb_saver` 检查 16→64 位拼接、突发长度和尾字。
-**修复**：发送端载荷强制 8 的倍数；打包器改成写地址/写数据并行握手，B 响应只回收计数；FIFO 用分布式 RAM 实现。**状态**：已修。
-**证据**：`src/rtl/eth/axi_frame_saver64.v`、`sim/tb_udp_reasm.v`、`sim/results/regression.txt`。
+**Symptom** the picture tears even when still; every other 16-bit halfword shows a black band; deeper buffering changes nothing.
+**Root cause** UDP payloads were not multiples of 8 bytes, so the packer misaligned every 16-bit halfword deterministically; the packer waited for an AXI B response per word, pinning throughput to the round trip; the FIFO was inferred as flip-flops and blew up the resource budget.
+**Check** `tb_udp_reasm` compares words by intra-frame offset; `tb_saver` checks 16-to-64-bit packing, burst length and the tail word.
+**Fix** the sender pads payloads to multiples of 8; the packer handshakes write address and data in parallel and only counts B responses; the FIFO uses distributed RAM. **Status** fixed.
+**Evidence** `src/rtl/eth/axi_frame_saver64.v`, `sim/tb_udp_reasm.v`, `sim/results/regression.txt`.
 
-## 2. #38 · `p_good` 硬接 1，坏包统计是死的
+## 2. #38 - `p_good` tied high, so the bad-packet counter was dead
 
-**现象**：坏包计数长期为 0，看起来链路从不丢包。
-**根因**：`frame_reasm.p_good` 在两个板的顶层都硬接 1，`stat_bad` 没有真实输入。
-**判据**：故意注入坏包/FCS 错包，`bad` 必须增长；`flags` 的丢过字/作废过帧位必须能置起。
-**修复**：把 MAC 的坏包标志接进重组器，坏包计数和作废计数分开。**状态**：已修。
-**证据**：`src/rtl/eth/frame_reasm.v`、`hw/measured/link_selftest.txt`。
+**Symptom** the bad-packet count stayed at 0 and the link looked perfect.
+**Root cause** `frame_reasm.p_good` was tied to 1 in both board tops, so `stat_bad` had no real input.
+**Check** inject bad packets or FCS errors and the count must rise; the dropped-word and aborted-frame flags must be able to set.
+**Fix** the MAC bad-packet flag feeds the reassembler, and bad packets are counted separately from aborts. **Status** fixed.
+**Evidence** `src/rtl/eth/frame_reasm.v`, `hw/measured/link_selftest.txt`.
 
-## 3. #42 / #44 · PS 启动链：浮点陷进 Undefined，手工镜像丢了启动文件
+## 3. #42 / #44 - PS bring-up: floating point trapped as undefined, hand-linked image lost the boot files
 
-**现象**：JTAG 下载后 PS 应用不跑，PC 落在异常向量；换手工链接的 ELF 后四件事一起坏。
-**根因**：CPACR 没开，VFP 指令陷成 Undefined Instruction；手工链接的 standalone 镜像漏了 `boot.S`、`asm_vectors.S`、`translation_table.S`，入口、向量表、MMU 都没了。
-**判据**：ELF 必须有 `_boot`、`_start`、`_vector_table`、`MMUTable`；异常向量地址为 0；串口和 GPIO 回读都要有。
-**修复**：编译脚本强制把三个 BSP 启动文件链进来，并做符号/入口自检。**状态**：已修。
-**证据**：`scripts/ps/build_ps_app.py`、`src/ps/lscript_ocm.ld`、`hw/measured/health.txt`。
+**Symptom** the PS application did not run after a JTAG download and the PC landed in an exception vector; a hand-linked ELF broke four things at once.
+**Root cause** CPACR was not enabled, so VFP instructions trapped as Undefined Instruction; the hand-linked standalone image omitted `boot.S`, `asm_vectors.S` and `translation_table.S`, losing entry point, vector table and MMU.
+**Check** the ELF must contain `_boot`, `_start`, `_vector_table` and `MMUTable`; exception vectors sit at 0; serial and GPIO readback must both work.
+**Fix** the build script forces the three BSP start-up files into the link and self-checks symbols and entry points. **Status** fixed.
+**Evidence** `scripts/ps/build_ps_app.py`, `src/ps/lscript_ocm.ld`, `hw/measured/health.txt`.
 
-## 4. #45 · `XSdPs_CfgInitialize` 每个上电周期只能成功一次
+## 4. #45 - `XSdPs_CfgInitialize` succeeds once per power cycle
 
-**现象**：第一次 `sd` 能挂载，之后同样的命令失败；重下 ELF 才恢复。
-**根因**：SD 驱动初始化在每个核上电周期只成功一次，第二次必失败。
-**判据**：`sd remount` 必须能在不重新上电的情况下恢复；失败要打印下一步。
-**处置**：不自动挂载，第一次失败后提示 `sd remount` 或重下 ELF；这是规避，不是根因修复。**状态**：规避。
-**证据**：`src/ps/sd_play.c`、`hw/measured/sd_playback.txt`。
+**Symptom** the first `sd` mounts, identical later commands fail, and only re-downloading the ELF recovers.
+**Root cause** the SD driver initialises once per core power cycle and fails on the second attempt.
+**Check** `sd remount` must recover without a power cycle, and a failure must print the next step.
+**Response** no automatic mount; after the first failure the firmware suggests `sd remount` or an ELF re-download. This is a workaround, not a root-cause fix. **Status** worked around.
+**Evidence** `src/ps/sd_play.c`, `hw/measured/sd_playback.txt`.
 
-## 5. #46 · 把“自首次播放起的累计平均”当帧率，读数离谱 20 倍
+## 5. #46 - cumulative average since first play reported as frame rate, off by 20x
 
-**现象**：播放一段时间后报的 fps 明显偏高，和窗口内实际帧率对不上。
-**根因**：分子用了自首次播放以来的总帧数，分母用了当前窗口时间。
-**判据**：同一窗口内的帧数增量 ÷ 时间增量；平均值必须落在 min/max 之间。
-**修复**：改成窗口速率，标签写清窗口；`metrics.mjs` 加自相矛盾检查。**状态**：已修。
-**证据**：`src/host/metrics.mjs`、`data/metrics.csv`。
+**Symptom** the reported fps drifted high after a while and did not match the actual window rate.
+**Root cause** the numerator counted every frame since first playback while the denominator used the current window.
+**Check** frames gained in the window divided by time gained in the window; the average must sit between min and max.
+**Fix** window rate, with the label naming the window; `metrics.mjs` gained a self-consistency check. **Status** fixed.
+**Evidence** `src/host/metrics.mjs`, `data/metrics.csv`.
 
-## 6. #48 · 只读 META.TXT 第一个扇区，制造“卡少了 4 个文件”的假缺口
+## 6. #48 - reading only the first sector of META.TXT invented a 4-file gap
 
-**现象**：SD 卡上文件明明存在，固件报清单被截断。
-**根因**：只读了 META.TXT 的第一个扇区，清单从中途截断。
-**判据**：`sd files` 的文件数必须与卡上实际文件数一致；跨扇区清单要能读全。
-**修复**：按 FAT32 簇链读完整文件，不假设单扇区。**状态**：已修。
-**证据**：`src/ps/sd_play.c`、`hw/measured/sd_playback.txt`。
+**Symptom** files existed on the card but the firmware reported a truncated list.
+**Root cause** only the first sector of META.TXT was read, cutting the list mid-way.
+**Check** the file count from `sd files` must equal the card contents; a list spanning sectors must read completely.
+**Fix** read the whole file through the FAT32 cluster chain instead of assuming one sector. **Status** fixed.
+**Evidence** `src/ps/sd_play.c`, `hw/measured/sd_playback.txt`.
 
-## 7. #50 · SD 第 3584 帧必然读失败：FAT32 高簇字按大端拼了
+## 7. #50 - frame 3584 always failed: high cluster word assembled big-endian
 
-**现象**：播到第 8 个文件的第一帧必失败，报“文件找不到”。
-**根因**：目录项里的 FAT32 高 16 位簇号被按大端拼，簇链跳到错误位置。
-**判据**：跨文件边界连续播放；`sd file n` 选段后能从该段续播。
-**修复**：按小端拼高/低簇字；`play` 不再把 `nxt` 归零，从选中段续播。**状态**：已修。
-**证据**：`src/ps/sd_play.c`、`hw/measured/sd_playback.txt`。
+**Symptom** the first frame of the eighth file always failed with "file not found".
+**Root cause** the high 16 bits of the FAT32 cluster number were assembled big-endian, sending the chain to the wrong cluster.
+**Check** playback across a file boundary; `sd file n` followed by `play` resumes from that clip.
+**Fix** assemble high and low cluster words little-endian, and stop `play` from zeroing `nxt`. **Status** fixed.
+**Evidence** `src/ps/sd_play.c`, `hw/measured/sd_playback.txt`.
 
-## 8. #54 · 窗口级效果链“数据与 Valid 错位”，总延迟写的还是错数
+## 8. #54 - window stages misaligned data and valid, total latency also wrong
 
-**现象**：模糊/锐化/Sobel/形态学打开后，行边界出现固定错位，OSD 总延迟与实际不符。
-**根因**：窗口级的内容比行标签多滞后一行；顶层的总延迟常数没有把窗口级算进去。
-**判据**：C22 逐行比较行标签与内容；C31 用 9 位列标签帧检查每个像素选中的抽头。
-**修复**：行首采输入行标签历史 `yl1/yl2/yl3`；竖缝 `sx` 先过 2 行环再进 `seam_src`。**状态**：已修。
-**证据**：`sim/tb_video_pipeline_top.v` 的 C22/C31 段、`sim/results/c31_edge_rim.log`。
+**Symptom** with blur, sharpen, Sobel or morphology enabled, row boundaries shifted and the OSD latency disagreed with the hardware.
+**Root cause** window-stage content lagged the row tag by one line, and the top-level latency constant ignored the window stages.
+**Check** C22 compares row tags against content line by line; C31 uses a 9-bit row tag frame and checks the tap selected in every pixel.
+**Fix** capture input row-tag history `yl1/yl2/yl3` at line start; route the seam `sx` through a two-row ring before `seam_src`. **Status** fixed.
+**Evidence** C22/C31 sections of `sim/tb_video_pipeline_top.v`, `sim/results/c31_edge_rim.log`.
 
-## 9. #58 · 在 100 MHz 域里做组合除法器
+## 9. #58 - combinational divider in the 100 MHz domain
 
-**现象**：WNS −5.014 ns，96 个失败端点。
-**根因**：新加的门禁逻辑在 100 MHz 域里做了一个组合除法器。
-**判据**：实现后 WNS ≥ 0、失败端点 0；新逻辑必须先看它落在哪个时钟域。
-**修复**：除法移出组合路径/换定点移位。**状态**：已修。
-**证据**：`hw/reports/build_timing_summary.rpt`、`docs/optimization.md`。
+**Symptom** WNS -5.014 ns with 96 failing endpoints.
+**Root cause** new gating logic implemented a combinational divider in the 100 MHz domain.
+**Check** post-implementation WNS at or above zero with no failing endpoints; check which clock domain new logic lands in first.
+**Fix** move the division out of the combinational path or replace it with fixed-point shifts. **Status** fixed.
+**Evidence** `hw/reports/build_timing_summary.rpt`, `docs/optimization.md`.
 
-## 10. #60 / #61 · 台架与综合的两类假绿
+## 10. #60 / #61 - two kinds of false green, in the bench and in synthesis
 
-**现象**：判据在 X 条件下两个分支都不走，静默绿；综合把两个 always 块争抢的旗标接成常量，台架 56 条全绿但硬件那根线恒 0。
-**根因**：`if (!cond)` 对 X 的开放性；仿真按后写覆盖，综合按常量优化。
-**判据**：判据必须能被打红；关键旗标要有 `default`/唯一驱动；综合后网表要复查。
-**修复**：台架加 `!==`/显式 X 检查；旗标改成单 always 驱动。**状态**：已修。
-**证据**：`sim/` 相关台架、`docs/verification.md`。
+**Symptom** a check went quietly green because both branches skipped on X; synthesis tied a flag driven by two always blocks to a constant, so 56 benches passed while the wire was stuck at 0.
+**Root cause** `if (!cond)` is open to X, simulation takes the last assignment while synthesis optimises to a constant.
+**Check** a check must be able to turn red; critical flags need a `default` or a single driver; recheck the netlist after synthesis.
+**Fix** benches use `!==` or explicit X checks; flags moved to a single always block. **Status** fixed.
+**Evidence** the relevant benches in `sim/`, `docs/verification.md`.
 
-## 11. #62 · “分割线 0–100% 可调”与“左右各 512 的固定双窗几何”数学上不相容
+## 11. #62 - "0-100% seam" and "fixed two 512-wide windows" were mathematically incompatible
 
-**现象**：缝位一改，左右窗口的几何就对不上。
-**根因**：两套几何各自维护，分割线被当成两个独立窗口。
-**判据**：一个视口、一条地址流、逐像素选择；缝位变化不改变两侧坐标。
-**修复**：统一成单视口 + 逐像素二选一。**状态**：已修。
-**证据**：`src/rtl/video/split_display.v`、`sim/tb_split_ctrl.v`。
+**Symptom** moving the seam broke the geometry of both panes.
+**Root cause** two separate geometry paths, with the seam treated as two independent windows.
+**Check** one viewport, one address stream, per-pixel selection; moving the seam must not change either side's coordinates.
+**Fix** one viewport with a per-pixel select. **Status** fixed.
+**Evidence** `src/rtl/video/split_display.v`, `sim/tb_split_ctrl.v`.
 
-## 12. #63 · `zoom 1` 与 `zoom 1.0` 不是一回事
+## 12. #63 - `zoom 1` and `zoom 1.0` are not the same command
 
-**现象**：想回到 1.00 倍，输入 `zoom 1` 却把呼吸自动缩放打开了。
-**根因**：V7 的开关语义与 V8 的倍率语义撞在同一个词上。
-**判据**：命令回声必须写清“开关”还是“倍率”；`zoom 1.0` 必须落在最近档 1.00。
-**修复**：帮助行和拒绝消息明确区分；`zoom 1.0` 走倍率解析。**状态**：已修。
-**证据**：`src/ps/main.c`、`src/host/uart_cmd_check.mjs`。
+**Symptom** asking for 1.00x with `zoom 1` turned automatic breathing on.
+**Root cause** the V7 switch semantics and the V8 ratio semantics collided on the same word.
+**Check** the reply must say "switch" or "ratio"; `zoom 1.0` must land on the 1.00 step.
+**Fix** the help line and rejection message distinguish them, and `zoom 1.0` goes through ratio parsing. **Status** fixed.
+**Evidence** `src/ps/main.c`, `src/host/uart_cmd_check.mjs`.
 
-## 13. #66 · `src 0/1/2` 只写 1 bit，模式覆盖位没接
+## 13. #66 - `src 0/1/2` wrote one bit and left the mode override unconnected
 
-**现象**：串口切源后，屏幕仍被自动仲裁抢回去。
-**根因**：`src` 只写 `src_sel`，V8-2 的 mode 覆盖位没有接进控制字。
-**判据**：切源后读回 lane30，`owner`/`mode` 必须与命令一致；长按要能释放覆盖。
-**修复**：把 mode 覆盖位接进控制字；`src auto` 释放。**状态**：已修。
-**证据**：`src/ps/main.c`、`src/rtl/top/pl_video_top.v`、`hw/measured/health.txt`。
+**Symptom** after a serial source change the automatic arbiter took the source back.
+**Root cause** `src` wrote only `src_sel`; the V8-2 mode override bit was never wired into the control word.
+**Check** after switching, lane 30 must report an `owner`/`mode` matching the command, and a long press must release the override.
+**Fix** wire the mode override into the control word; `src auto` releases it. **Status** fixed.
+**Evidence** `src/ps/main.c`, `src/rtl/top/pl_video_top.v`, `hw/measured/health.txt`.
 
-## 14. #67 · `pipe` 收 8 位却按 9 位解释
+## 14. #67 - `pipe` accepted 8 bits but interpreted 9
 
-**现象**：输入八位效果串后，实际生效的位数与屏幕显示对不上。
-**根因**：解析器接受了 8 位，内部按 9 位补零解释。
-**判据**：只接受 9 位；5 位老写法只回等价串、不写寄存器；其他长度一律拒。
-**修复**：解析器只认 9 位，老写法走翻译出口。**状态**：已修。
-**证据**：`src/ps/main.c`、`src/host/uart_cmd_check.mjs`。
+**Symptom** an eight-bit effect string produced stages that disagreed with the display.
+**Root cause** the parser accepted 8 bits and zero-padded to 9 internally.
+**Check** accept exactly 9 bits; five-bit legacy spellings only return the equivalent string without writing registers; every other length is rejected.
+**Fix** the parser accepts 9 bits only and legacy spellings go through the translation path. **Status** fixed.
+**Evidence** `src/ps/main.c`, `src/host/uart_cmd_check.mjs`.
 
-## 15. #68 · 混色级的列标签比内容旧 9 列
+## 15. #68 - the colour-stage column tag was 9 columns older than its content
 
-**现象**：竖缝在缩放/旋转时位置偏，缝周围出现颜色条。
-**根因**：`split_display` 用 `x_d[11]` 判缝，而两路像素到第 20 级才到；列标签与内容不同拍。
-**判据**：9 位列标签帧逐格检查；缝两侧同帧、同坐标。
-**修复**：把缝位判断移到与像素同拍的级；C31 覆盖旋转帧尾。**状态**：已修。
-**证据**：`src/rtl/video/split_display.v`、`sim/results/c31_edge_rim.log`。
+**Symptom** the seam sat in the wrong place under zoom or rotation, with colour bands around it.
+**Root cause** `split_display` decided the seam from `x_d[11]` while the two pixel streams only arrived at stage 20, so tag and content were on different beats.
+**Check** a 9-bit row-tag frame checked cell by cell; both sides same frame and same coordinates.
+**Fix** move the seam decision to the stage where the pixels are, and C31 covers the rotated frame tail. **Status** fixed.
+**Evidence** `src/rtl/video/split_display.v`, `sim/results/c31_edge_rim.log`.
 
-## 16. #69 · `board_verify.sh` 没有总判定，各步退出码被管道吃掉
+## 16. #69 - `board_verify.sh` had no verdict and pipelines ate exit codes
 
-**现象**：前面步骤红了，脚本仍然以 0 退出。
-**根因**：没有汇总判定行；`cmd | tee` 的退出码来自 `tee`，不是 `cmd`。
-**判据**：末尾必须有一行总判定，写明判定项数/失败项；退出码服从总判定。
-**修复**：加总判定行和三态；管道用 `PIPESTATUS`/显式检查。**状态**：历史脚本已修；最终包改用 `hw/scripts/board_health.sh` 与 `hw/measured/` 的判定行。
-**证据**：`hw/README.md`、`hw/measured/README.md`。
+**Symptom** earlier steps failed while the script still exited 0.
+**Root cause** no summary verdict line, and `cmd | tee` returns the exit code of `tee`.
+**Check** the end must carry one verdict line naming the number of checks and failures, and the exit code must follow it.
+**Fix** add the verdict line and three states; use `PIPESTATUS` or explicit checks. **Status** historical script fixed; the final package uses `hw/scripts/board_health.sh` and the verdicts in `hw/measured/`.
+**Evidence** `hw/README.md`, `hw/measured/README.md`.
 
-## 17. #98 · 帧头若干行：读侧绕回与内容旧一帧
+## 17. #98 - first rows of a frame: read-side wrap served one-frame-old content
 
-**现象**：帧头几行出现上一帧的尾巴/拖影。
-**根因**：处理抽头提前发了下一行；四个窗口级的行缓存读到了绕回后的内容。
-**判据**：C5c 帧头行必须携带自己的源行；`STREAM_WRAP=1` 只对连续流生效。
-**修复**：窗口级加 `STREAM_WRAP`；顶层行标签换成与内容同一本账的 `cy_chain`。**状态**：已修；残余代价是帧头 4 行内容比同屏其余行旧一帧（≈33 ms），只能人眼判。
-**证据**：`sim/tb_pipe_bypass.v`、`docs/verification.md`、`docs/limits.md`。
+**Symptom** the top rows showed the tail of the previous frame.
+**Root cause** the processing tap advanced one line early and the four window line buffers read content after wrapping.
+**Check** C5c requires top rows to carry their own source line; `STREAM_WRAP=1` applies to the continuous stream only.
+**Fix** window stages gained `STREAM_WRAP`, and the top-level row tag moved to `cy_chain`, the same ledger as the content. **Status** fixed; the residual cost is four top rows one frame older than the rest of the screen (about 33 ms), which only a human can judge.
+**Evidence** `sim/tb_pipe_bypass.v`, `docs/verification.md`, `docs/limits.md`.
 
-## 18. #181 / A9 · 上一帧丢尾、下一帧丢头，拼成一整帧
+## 18. #181 / A9 - tail of one frame and head of the next stitched into a whole frame
 
-**现象**：链路短暂静默后，屏幕出现半旧半新的混合帧。
-**根因**：重组器只按字节数和行覆盖提交，静默期间两帧的账被拼在一起。
-**判据**：`tb_udp_reasm` 的 A9 段让上一帧丢尾、下一帧丢头，中间静默超过 4 ms；要求两帧不混，恢复后的第 3 帧干净。
-**修复**：4 ms idle timer + 12 位预分频，`idle_clear` 只驱动一个单 bit 进入 header 清位锥；未预分频版本和 `last_hdr` 版本都因 WNS 被否决。**状态**：已修。
-**证据**：`src/rtl/eth/frame_reasm.v`、`sim/tb_udp_reasm.v`、`docs/optimization.md`。
+**Symptom** after a short silent gap the screen showed a mixed frame.
+**Root cause** the reassembler committed on byte count and row coverage alone, so two frames' accounts were joined across the silence.
+**Check** the A9 section of `tb_udp_reasm` drops the tail of one frame and the head of the next with more than 4 ms between them, and requires the frames not to mix and the third frame after recovery to be clean.
+**Fix** a 4 ms idle timer with a 12-bit prescaler, where `idle_clear` drives one bit into the header-clear cone; both the unprescaled version and the `last_hdr` version were rejected on WNS. **Status** fixed.
+**Evidence** `src/rtl/eth/frame_reasm.v`, `sim/tb_udp_reasm.v`, `docs/optimization.md`.
 
-## 19. #507 / #508 · 续播游标与满 FIFO 尾字
+## 19. #507 / #508 - resume cursor and the tail word behind a full FIFO
 
-**现象**：`sd file n` 选段后 `play` 从第 0 帧开始；满 FIFO + flush 时尾字丢失。
-**根因**：`play` 把 `nxt` 归零；saver 在满 FIFO/flush 分支把未写完的尾字清掉。
-**判据**：`sd file 1` → `play` 后帧计数大于一个文件；`tb_saver_tail_full` 要求 514/514 逐字对。
-**修复**：`play` 从选中游标续播；满 FIFO + flush 保留尾字。**状态**：已修。
-**证据**：`src/ps/sd_play.c`、`src/rtl/eth/axi_frame_saver64.v`、`sim/results/regression.txt`、`hw/measured/sd_playback.txt`。
+**Symptom** `play` restarted at frame 0 after `sd file n`, and the tail word was lost when the FIFO was full and flushed.
+**Root cause** `play` zeroed `nxt`, and the saver cleared an unfinished tail word on the full-FIFO/flush branch.
+**Check** after `sd file 1` and `play`, the frame count exceeds one file; `tb_saver_tail_full` requires 514 of 514 words.
+**Fix** `play` resumes from the selected cursor, and the full-FIFO/flush path preserves the tail word. **Status** fixed.
+**Evidence** `src/ps/sd_play.c`, `src/rtl/eth/axi_frame_saver64.v`, `sim/results/regression.txt`, `hw/measured/sd_playback.txt`.
 
-## 20. 本轮新增 · `link` 命令不可达与 BSP 路径错误
+## 20. Added in this round - `link` unreachable and a wrong BSP path
 
-**现象**：源码里有 `cmd_link`，板上敲 `link` 回“不认”；文档把 `PS_BSP` 指向只有平台描述的目录，按字面编译找不到 BSP。
-**根因**：`cmd_link` 没有接进 `dispatch`；平台描述目录没有 BSP，文档把“平台描述”当成了“BSP 目录”。
-**判据**：板上串口 `link` 必须返回 `[LINK] ... gap_valid=...`；编译脚本必须在 BSP 缺失时提前退出并指路。
-**修复**：接回分派和帮助行，重编 ELF 并写 QSPI；BSP 改成“平台构建生成的 BSP 目录”，脚本加前置检查。**状态**：已修。
-**证据**：`src/ps/main.c`、`hw/measured/link_gap.txt`、`scripts/ps/build_ps_app.py`、`docs/declarations.md`。
+**Symptom** `cmd_link` existed in the source but the board answered "unknown command", and the documentation pointed `PS_BSP` at a directory holding only the platform descriptor, so a literal build could not find the BSP.
+**Root cause** `cmd_link` was never wired into `dispatch`, and the platform descriptor directory was mistaken for a BSP.
+**Check** the board must answer `[LINK] ... gap_valid=...`, and the build script must exit early with directions when the BSP is missing.
+**Fix** reconnect the dispatcher and help line, rebuild the ELF and rewrite QSPI; document `PS_BSP` as the generated BSP directory and add the pre-check. **Status** fixed.
+**Evidence** `src/ps/main.c`, `hw/measured/link_gap.txt`, `scripts/ps/build_ps_app.py`, `docs/declarations.md`.
 
-## 仍未修 / 边界
+## Still open
 
-RGMII 发侧约 0.845 ns 的 TskewT 保持缺口、复位恢复路径、hold 0.025 ns、BRAM 70%、端到端时延未测、HDMI 人眼项。逐条见 [`../limits.md`](../limits.md)；不要把这些写成本目录里的“已修”。
+The RGMII transmit hold gap of about 0.845 ns, the reset-recovery path, the 0.025 ns hold margin, BRAM at 70%, unmeasured end-to-end latency and the HDMI human-eye items. Each is described in [`../limits.md`](../limits.md); none of them belongs in this file as "fixed".

@@ -1,70 +1,70 @@
-# 硬件连接
+# Hardware setup
 
-## 1 板卡与接口
+## 1 Board and connectors
 
-| 接口 | 连接 | 说明 |
+| Connector | Connects to | Notes |
 |---|---|---|
-| 12 V DC | 板载电源座 | 板卡主供电；上电前确认 HDMI、网线、SD 卡已插好 |
-| USB-C | PC USB-A | 板载 FT4232：通道 A 为 JTAG，通道 B 为 UART（COM6） |
-| HDMI OUT | 1024×600 面板 | 板 → 屏，单向 |
-| RJ45 | PC 有线网卡 | 接 PL 侧 PHY（RTL8211F-CG），不是 PS 网口 |
-| microSD | 板载 SD 槽 | FAT32，放预转换帧序列 |
-| KEY1 / KEY2 | 板载按键 | 换源 / 角度 ±1° |
+| 12 V DC | on-board jack | main supply; confirm HDMI, Ethernet and SD are seated before power-up |
+| USB-C | PC USB-A | on-board FT4232: channel A is JTAG, channel B is UART (COM6) |
+| HDMI OUT | 1024x600 panel | board to panel, one direction |
+| RJ45 | PC wired NIC | PL-side PHY (RTL8211F-CG), not the PS port |
+| microSD | on-board slot | FAT32, holds the pre-converted frame sequence |
+| KEY1 / KEY2 | on-board keys | source select / angle plus or minus one degree |
 
-## 2 网络
+## 2 Network
 
-| 项 | 值 |
+| Item | Value |
 |---|---|
-| 板卡 IP | `192.168.1.10/24` |
-| PC 有线网卡 | `192.168.1.100/24` |
-| 视频入口 | UDP 5001 |
-| 遥测出口 | UDP 1234 |
-| 链路 | 直连千兆，建议关闭 PC 网卡的节能与巨型帧 |
+| Board IP | `192.168.1.10/24` |
+| PC wired NIC | `192.168.1.100/24` |
+| Video input | UDP 5001 |
+| Telemetry output | UDP 1234 |
+| Link | direct gigabit; disable NIC power saving and jumbo frames |
 
-先 `ping 192.168.1.10`，通了再推流。ping 由 PL 内的 ICMP 应答，通不通同时验证了位流和 PHY。
+Ping `192.168.1.10` before streaming. The reply comes from the PL ICMP responder, so a successful ping checks both the bitstream and the PHY.
 
-## 3 串口
+## 3 Serial
 
-| 项 | 值 |
+| Item | Value |
 |---|---|
-| 端口 | COM6（FT4232 通道 B） |
-| 波特率 | 115200 |
-| 数据位 / 校验 / 停止位 | 8 / None / 1 |
-| 流控 | 无 |
+| Port | COM6 (FT4232 channel B) |
+| Baud | 115200 |
+| Data / parity / stop | 8 / None / 1 |
+| Flow control | none |
 
-COM6 一次只能被一个程序占用。Vitis 串口终端自带本地回显；如果看到每个字符两遍，执行 `echo 0`。
+Only one program may own COM6. The Vitis serial terminal echoes locally; if every character appears twice, run `echo 0`.
 
-## 4 时钟与复位
+## 4 Clocks and reset
 
-| 时钟 | 来源 | 用途 |
+| Clock | Source | Use |
 |---|---|---|
-| `sys_clk` 50 MHz | 板载时钟 W17（20 ns 约束） | MMCM 与 PS 参考 |
-| `clkout0_1` 50 MHz | PL 内 MMCM | 像素、几何、效果链 |
-| `clkout3` 125 MHz | PL 内 MMCM | 以太网协议逻辑 |
-| `eth_rxc` 125 MHz | PHY 恢复时钟 | IDDR 采样与异步 FIFO 写侧 |
-| `clk_fpga_0` 100 MHz | PS FCLK0 | AXI 控制与 DDR 写侧 |
+| `sys_clk` 50 MHz | board oscillator W17 (20 ns constraint) | MMCM and PS reference |
+| `clkout0_1` 50 MHz | PL MMCM | pixel, geometry, effect chain |
+| `clkout3` 125 MHz | PL MMCM | Ethernet protocol logic |
+| `eth_rxc` 125 MHz | PHY-recovered clock | IDDR sampling and async-FIFO write |
+| `clk_fpga_0` 100 MHz | PS FCLK0 | AXI control and DDR write side |
 
-复位异步断言、本域同步释放。PS 复位由 `ps7_init` 和 JTAG `rst -system` 控制；PL 复位由板上按键和内部同步链控制。
+Resets assert asynchronously and release synchronously in each domain. The PS reset is driven by `ps7_init` and JTAG `rst -system`; the PL reset by the board key and the internal synchroniser chain.
 
-## 5 上电顺序
+## 5 Power-up order
 
-1. 插好 HDMI、网线、SD 卡；
-2. 接 USB-C 到 PC；
-3. 接 12 V 电源；
-4. 等串口出现启动回显；
-5. `ping 192.168.1.10`；
-6. 需要调试时再跑 JTAG 三步链。
+1. Seat HDMI, Ethernet and the SD card.
+2. Connect USB-C to the PC.
+3. Apply 12 V.
+4. Wait for boot messages on serial.
+5. `ping 192.168.1.10`.
+6. Run the JTAG three-step chain only when debugging.
 
-## 6 断电与恢复
+## 6 Power-down and recovery
 
-- 改拨码、换 SD 卡、插拔网线前先断电；
-- JTAG 报 `Cannot halt processor core` 时，断电 10 秒再上电，不要反复 `rst -system`；
-- 写 QSPI 前确认启动模式拨到 QSPI，写入后断电重上验证；
-- 不要在没有备份的情况下擦除启动介质；当前 QSPI 镜像可由 `BOOT.bin` 重新生成。
+- Power down before changing DIP switches, the SD card or the Ethernet cable.
+- On `Cannot halt processor core`, power off for ten seconds and power up again; repeated `rst -system` makes it worse.
+- Confirm the boot mode is set to QSPI before writing, and verify after a power cycle.
+- Do not erase the boot medium without a backup; the current QSPI image can be regenerated from `BOOT.bin`.
 
-## 7 安全边界
+## 7 Safety boundaries
 
-- QSPI 擦写不可逆，确认镜像和拨码后再执行；
-- 不要写 FT4232 的 EEPROM；改 USB 序列号会让 hw_server 认错目标；
-- 不要把 5 V 器件直接接到 3.3 V 的 PL IO；
-- 插拔 HDMI 前断电，避免热插拔浪涌。
+- QSPI erase is irreversible; confirm the image and the switch position first.
+- Do not write the FT4232 EEPROM; changing the USB serial number makes hw_server target the wrong device.
+- Do not connect 5 V devices directly to 3.3 V PL I/O.
+- Power down before plugging or unplugging HDMI to avoid hot-plug surges.

@@ -1,62 +1,62 @@
-# PS 裸机固件
+# PS bare-metal firmware
 
-`src/ps/` 放 Zynq PS 侧裸机应用：
+`src/ps/` holds the Zynq PS application:
 
-| 文件 | 作用 |
+| File | Purpose |
 |---|---|
-| `main.c` | 启动、UART 命令分派、AXI GPIO 控制/回读、XADC 温度、`link` 帧间隔统计 |
-| `sd_play.c` / `sd_play.h` | FAT32 解析、目录查找、簇链读取、SD 帧序列播放 |
-| `lscript_ocm.ld` | OCM 启动链接脚本 |
+| `main.c` | boot, UART command dispatch, AXI GPIO control and readback, XADC temperature, `link` frame-gap statistics |
+| `sd_play.c` / `sd_play.h` | FAT32 parsing, directory lookup, cluster-chain reads, SD frame playback |
+| `lscript_ocm.ld` | OCM boot linker script |
 
-PS 不参与像素通路。它写控制字、读健康状态，并在 SD 回放时把帧写进 DDR；ETH 视频字节不经过 PS。
+The PS never touches pixels. It writes control words, reads health state and writes frames into DDR during SD playback; Ethernet video bytes never pass through it.
 
-## 构建
+## Build
 
 ```bash
 PS_CC=<Vitis>/gnu/aarch32/nt/gcc-arm-none-eabi/bin/arm-none-eabi-gcc.exe \
-PS_BSP=<平台构建生成的 BSP 目录> \
+PS_BSP=<BSP from the platform build> \
 PS_OUT=hw/project/ps_app.elf \
 python scripts/ps/build_ps_app.py
 ```
 
-`PS_BSP` 必须指向一个已经 generate 过的 Zynq standalone BSP（里面有 `include/` 与 `lib/libxil.a`）。没有平台时先按 `hw/vitis/README.md` 用 `scripts/vitis/rebuild_vitis.py` 重建。
+`PS_BSP` must point at a generated Zynq standalone BSP (with `include/` and `lib/libxil.a`). Without a platform, rebuild one with `scripts/vitis/rebuild_vitis.py` as described in `hw/vitis/README.md`.
 
-编译脚本会检查 `_start`、`_boot`、`_vector_table`、`MMUTable`、`main` 和 `XSdPs_CardInitialize` 是否在 ELF 里，防止把空镜像下到板上。
+The build script checks that `_start`, `_boot`, `_vector_table`, `MMUTable`, `main` and `XSdPs_CardInitialize` are present in the ELF, so an empty image cannot reach the board.
 
-## 启动
+## Boot
 
-- JTAG：`hw/scripts/board_flash.sh` 做 `ps7_init` → PL → ELF → GPIO 回读；
-- QSPI：`hw/scripts/make_boot_image.sh` 打 `BOOT.bin`，`hw/tcl/flash_qspi.tcl` 写入；
-- 断电后从 QSPI 启动；JTAG 下载是易失的。
+- JTAG: `hw/scripts/board_flash.sh` runs `ps7_init` -> PL -> ELF -> GPIO readback.
+- QSPI: `hw/scripts/make_boot_image.sh` packs `BOOT.bin`, and `hw/tcl/flash_qspi.tcl` writes it.
+- After power loss the board boots from QSPI; a JTAG download is volatile.
 
-## 控制字
+## Control word
 
-| 位 | 含义 |
+| Bits | Meaning |
 |---|---|
-| 8:0 | 效果链九位选择：灰度、反色、模糊、锐化、Sobel、二值化、判决反相、腐蚀、膨胀 |
-| 18:9 | 几何控制：缝位、auto/follow/swap/marker、rot_auto、rot_speed、zoom_fit |
-| 19 | 双线性开关 |
-| 20 | OSD 开关 |
-| 26 | 帧间隔统计清零 |
-| 31:27 | AXI GPIO lane 号 |
+| 8:0 | nine effect bits: grayscale, invert, blur, sharpen, Sobel, threshold, inverted decision, erode, dilate |
+| 18:9 | geometry: seam position, auto/follow/swap/marker, rot_auto, rot_speed, zoom_fit |
+| 19 | bilinear enable |
+| 20 | OSD enable |
+| 26 | clear frame-gap statistics |
+| 31:27 | AXI GPIO lane number |
 
-新增控制位往高位加，不重排已有位；RTL 位定义、固件写出的字和上位机掩码三处保持同源。
+New control bits go at the high end; existing bits are never reordered. The RTL definition, the word the firmware writes and the host masks must stay in step.
 
-## 命令
+## Commands
 
-`stat`、`temp`、`link` / `link clr`、`src`、`pipe`、`zoom`、`rot`、`split`、`gamma`、`osd`、`sd`、`play`、`stop`、`fill`、`autoplay`、`th`、`echo`、`help`。
+`stat`, `temp`, `link` / `link clr`, `src`, `pipe`, `zoom`, `rot`, `split`, `gamma`, `osd`, `sd`, `play`, `stop`, `fill`, `autoplay`, `th`, `echo`, `help`.
 
-- `link` 从 PL `link_monitor` 读 `gap_last/min/max/sum`、`gap_valid`、`live`；
-- `link clr` 在读之前清零；
-- `sd file n` 选段后 `play` 从该段续播；
-- `temp` 打印 XADC 温度、VCCINT、OSD 编码和 GPIO 回读。
+- `link` reads `gap_last/min/max/sum`, `gap_valid` and `live` from the PL `link_monitor`.
+- `link clr` clears them before a reading.
+- `sd file n` selects a clip and `play` resumes from it.
+- `temp` prints XADC temperature, VCCINT, the OSD encoding and the GPIO readback.
 
-命令表、帮助行和分派三处要一起改；只在源码里写函数、不接进 `dispatch`，板上会回“不认”。
+The command table, the help lines and the dispatcher must change together; a function that exists in the source but is not wired into `dispatch` makes the board answer "unknown command".
 
-## SD 回放
+## SD playback
 
-`sd_play.c` 自解析 FAT32 BPB、目录和簇链，不依赖文件系统库。卡必须是 FAT32，帧序列由 `src/host/make_sd_video.mjs` 生成。`sd files` 列出段，`sd file n` 选段，`play` 播放，`stop` 停止。
+`sd_play.c` parses the FAT32 BPB, directories and cluster chains itself and depends on no filesystem library. The card must be FAT32 and the frame sequence is produced by `src/host/make_sd_video.mjs`. `sd files` lists clips, `sd file n` selects one, `play` starts and `stop` stops.
 
-## 温度
+## Temperature
 
-XADC 读片上温度与 VCCINT；`[TEMP]` 行同时打印 `degC`、`raw`、`vccint`、`osd` 和 `gpio`，把驱动读数、OSD 编码和 PL 侧同步链回读三件事对在一起。
+The XADC supplies die temperature and VCCINT. The `[TEMP]` line prints `degC`, `raw`, `vccint`, `osd` and `gpio`, which puts the driver reading, the OSD encoding and the PL-side synchroniser readback side by side.

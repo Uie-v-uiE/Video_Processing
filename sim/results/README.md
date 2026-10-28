@@ -1,12 +1,12 @@
-# 仿真结果
+# Simulation results
 
-`sim/results/` 保存交付版本直接引用的判定副本。原始日志中的版本号已去掉，判定行保持原样。
+`sim/results/` keeps the verdict copies the deliverable cites directly. Build identifiers have been removed from the original logs; the verdict lines are unchanged.
 
-| 文件 | 内容 |
+| File | Content |
 |---|---|
-| `regression.txt` | 19 支标准回归汇总，`fail=0`；含各台架自己打印的 `RESULT ... PASS` 行 |
-| `tb_video_pipeline_top_report.txt` | 完整视频台架 C17/C25/C26 专项判定，`nfail=0` |
-| `udp_checksum.txt` | UDP/IP 校验和专项复验 |
-| `c31_edge_rim.log` | C31 帧尾两行抽头复验，swap 两态全帧 0 格不符 |
+| `regression.txt` | summary of the 19-bench standard regression, `fail=0`, including each bench's own `RESULT ... PASS` line |
+| `tb_video_pipeline_top_report.txt` | full-video bench C17/C25/C26 verdicts, `nfail=0` |
+| `udp_checksum.txt` | UDP/IP checksum re-verification |
+| `c31_edge_rim.log` | C31 re-verification of the last two rows' taps; zero mismatching cells across the whole frame in both swap states |
 
-判定读法：`PASS` 只在日志末尾有判定行时成立；没有判定行的日志只是过程记录，不算通过。
+How to read a verdict: `PASS` holds only when a verdict line sits at the end of the log. A log without one is a process record, not a pass.

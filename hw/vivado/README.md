@@ -1,20 +1,20 @@
-# Vivado 工程
+# Vivado project
 
-`zynq_video_sys.xpr` + `zynq_video_sys.srcs/` 是从 `scripts/build.tcl` 生成并整理过的工程：
+`zynq_video_sys.xpr` plus `zynq_video_sys.srcs/` is generated and staged by `scripts/build.tcl`:
 
-- 器件 `xc7z020clg484-2`；
-- 92 份手写 RTL、1 份 BD wrapper、1 个块设计、3 份生效约束；
-- 块设计 `design_1`、PS7、AXI GPIO、AXI HP0；
-- 源文件路径 `$PPRDIR/../../src/...`，工程内没有本机绝对路径。
+- part `xc7z020clg484-2`;
+- 92 hand-written RTL files, one BD wrapper, one block design, three active constraint sets;
+- block design `design_1`, PS7, AXI GPIO, AXI HP0;
+- source paths `$PPRDIR/../../src/...`, with no local absolute path.
 
-先跑 `scripts/build.tcl`，产生 `vivado_system/` 与 `scripts/system.bit`/`system.xsa`；再重建并验证：
+Run `scripts/build.tcl` first to produce `vivado_system/` and `hw/reports/system.bit` / `system.xsa`, then restage and verify:
 
 ```bash
-vivado -mode batch -nojournal -log scripts/stage.log \
+vivado -mode batch -nojournal -log hw/reports/stage.log \
   -source scripts/tcl/stage_board_projects.tcl
 ```
 
-期望：
+Expected:
 
 ```text
 VERIFY missing_files=0 of 97
@@ -22,4 +22,4 @@ VERIFY abs_path_lines=0
 STAGE_BOARD_PROJECTS DONE
 ```
 
-工程不带 `.gen/`、`.runs/`、`.cache/`。BD wrapper 已在 `.srcs/` 内；打开工程后直接综合，Vivado 会按 `design_1.bd` 生成其余输出产物。`bd_only` 只用于单独检查 BD，不生成 wrapper。
+The project ships without `.gen/`, `.runs/` or `.cache/`. The BD wrapper is already in `.srcs/`; open the project and synthesise, and Vivado generates the remaining output products from `design_1.bd`. The `bd_only` flow checks the block design alone and does not generate the wrapper.

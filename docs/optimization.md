@@ -1,83 +1,83 @@
-# 时序与资源优化
+# Timing and resource optimisation
 
-优化的目标不是把 WNS 数字做大，而是把最差路径从“结构造成的长路径”换成“结构允许的短路径”，同时不让功能、资源或可复现性变差。每一轮只改一类东西，改完用同一套回归、同一套实现报告和同一组时钟名册比较。
+The goal was never a larger WNS number. It was to move the worst path from "long because of the structure" to "short, as the structure allows", without damaging function, resources or reproducibility. Each round changed one class of thing, then compared against the same regression, the same implementation reports and the same per-clock register.
 
-## 1 优化前的状态
+## 1 State before optimisation
 
-优化前的全局 WNS 是 1.029 ns，最差路径在 50 MHz 像素域到 125 MHz 以太网域的处理窗总线上。这条总线跨两颗独立 MMCM，工具按同主钟关系算出 4 ns 的 setup 要求，但这个要求没有可签字的相位界。设计并不靠这个 4 ns 工作：源域整拍保持，目的域等同步后的翻转沿再采，总线至少保持一帧。
+Global WNS was 1.029 ns, with the worst path on the processed-pane bus crossing from the 50 MHz pixel domain into the 125 MHz Ethernet domain. That bus spans two independent MMCMs, so the tool applies a 4 ns setup requirement derived from the shared primary clock — a requirement with no phase boundary anyone can sign off. The design never relies on that 4 ns: the source side holds the value for a whole beat and the destination side samples it on a synchronised toggle, so the bus stays stable for at least one frame.
 
-同时，AXI 域的 `owner_eth` 扇出达到 234，驱动搬运器的地址、数据和控制 mux；125 MHz 域的 ICMP 校验和 UDP 发送校验和也各有长组合路径。复位树 `rst_l_sync2` 驱动 3002 个异步清零端，是后续最差路径的来源。
+At the same time, `owner_eth` in the AXI domain had a fan-out of 234, driving address, data and control muxes in the frame mover. The ICMP checksum and the UDP transmit checksum each formed long combinational paths in the 125 MHz domain. The reset tree `rst_l_sync2` drove 3002 asynchronous clear pins and later became the source of the worst path.
 
-## 2 五轮优化
+## 2 Five rounds
 
-| 轮次 | 动作 | 观察 | 结论 |
+| Round | Change | Observation | Kept? |
 |---|---|---|---|
-| 1 | 协议逻辑离开 PHY 恢复时钟；恢复时钟域只保留 IDDR 采样与异步 FIFO 写侧 | 恢复时钟域路径变短，跨域边界清晰 | 保留 |
-| 2 | 处理窗总线加 `set_max_delay -datapath_only 10 ns`，约束位间 skew | 原 1.029 ns 路径让开，余量 8.7 ns | 保留 |
-| 3 | `owner_eth` 加 `max_fanout`，综合复制寄存器副本 | AXI 域 1.201 → 2.159 ns，代价 8 个触发器 | 保留 |
-| 4 | `stat_bad` 使能寄存成单 bit；ICMP 校验第二拍 6 项加法拆成 4+3 | ETH 逻辑域 1.245 → 1.727 ns | 保留 |
-| 5 | UDP 发送 IPv4 头校验和从 1 拍 10 项拆成 4 拍：5+5+折叠+折叠 | 全设计 WNS 1.172 → 1.341 ns，代价 38 LUT、12 FF | 保留 |
+| 1 | Move protocol logic off the PHY-recovered clock; leave only IDDR sampling and the async-FIFO write side on it | Shorter paths in that domain, a clean crossing boundary | Yes |
+| 2 | Add `set_max_delay -datapath_only 10 ns` on the processed-pane bus to bound bit-to-bit skew | The 1.029 ns path disappears; 8.7 ns margin | Yes |
+| 3 | Add `max_fanout` on `owner_eth` so synthesis replicates it | AXI domain 1.201 → 2.159 ns, cost 8 flip-flops | Yes |
+| 4 | Register `stat_bad` into a single bit; split the second-beat ICMP checksum from 6 terms into 4+3 | Ethernet logic domain 1.245 → 1.727 ns | Yes |
+| 5 | Split the IPv4 header checksum in UDP transmit from 10 terms in one beat into 4 beats: 5+5+fold+fold | Global WNS 1.172 → 1.341 ns, cost 38 LUTs and 12 FFs | Yes |
 
-最终全局 WNS 1.341 ns、WHS 0.025 ns，TNS=THS=0，失败端点 0。最差路径回到复位恢复：`phy_rst_cnt_reg[23] → rst_lm_sync2_reg/CLR`，数据路径 1.927 ns，其中走线 1.443 ns。最差 hold 在像素域 `u_blur/dout_reg[15] → u_sharp/q22_reg[15]`，数据 0.428 ns，其中 0.346 ns 是时钟偏斜，余量 0.025 ns，仍为正。
+The final result is WNS 1.341 ns, WHS 0.025 ns, TNS = THS = 0, zero failing endpoints. The worst path is back on reset recovery — `phy_rst_cnt_reg[23] → rst_lm_sync2_reg/CLR`, data path 1.927 ns of which 1.443 ns is routing. The worst hold is in the pixel domain, `u_blur/dout_reg[15] → u_sharp/q22_reg[15]`: 0.428 ns data, 0.346 ns of it clock skew, 0.025 ns margin. Positive, but thin.
 
-## 3 逐时钟结果
+## 3 Per clock
 
-| 时钟域 | 周期 | WNS | WHS | 说明 |
+| Clock | Period | WNS | WHS | Note |
 |---|---:|---:|---:|---|
-| `sys_clk` | 20 ns | 14.797 ns | 0.067 ns | 板载 50 MHz 输入 |
-| `clkout0_1` | 20 ns | 3.264 ns | 0.025 ns | 像素与算法域 |
-| `eth_rxc` | 8 ns | 3.247 ns | 0.071 ns | PHY 恢复时钟，只用采样与 FIFO 写 |
-| `clk_fpga_0` | 10 ns | 2.159 ns | 0.060 ns | PS FCLK0，AXI 与 DDR 写侧 |
-| `clkout3` | 8 ns | 1.727 ns | 0.068 ns | 以太网协议逻辑 |
+| `sys_clk` | 20 ns | 14.797 ns | 0.067 ns | 50 MHz board input |
+| `clkout0_1` | 20 ns | 3.264 ns | 0.025 ns | pixel and algorithm domain |
+| `eth_rxc` | 8 ns | 3.247 ns | 0.071 ns | PHY-recovered clock, sampling and FIFO write only |
+| `clk_fpga_0` | 10 ns | 2.159 ns | 0.060 ns | PS FCLK0, AXI and DDR write side |
+| `clkout3` | 8 ns | 1.727 ns | 0.068 ns | Ethernet protocol logic |
 
-全局最差 1.341 ns 低于所有逐时钟 setup 余量，是因为它来自复位恢复检查，不在普通 setup 表里。看时序不能只看全局一行，也不能只把逐时钟表里的最小值当成全设计结论；两类检查要分开读。
+The global 1.341 ns is lower than every per-clock setup margin because it comes from a reset-recovery check, which is not part of the ordinary setup table. Reading timing means reading both tables: the global line alone, or the smallest per-clock number alone, gives the wrong conclusion.
 
-## 4 复位树
+## 4 Reset tree
 
-`rst_l_sync2` 的 3002 个异步清零端是设计里最大的扇出之一。尝试过三种做法：
+The 3002 asynchronous clear pins on `rst_l_sync2` are one of the largest fan-outs in the design. Three options were tried:
 
-1. 给 `rst_l_sync2` 加 `max_fanout`：综合没有触发复制，触发器数不变，WNS 不动。
-2. 用 BUFG 把复位送上全局网络：WNS 从 1.104 ns 降到 1.078 ns，撤回。
-3. 复制 link-monitor 的本地复位树：WNS 从 1.104 ns 提到 1.172 ns，保留。
+1. `max_fanout` on `rst_l_sync2`: synthesis did not replicate, flip-flop count unchanged, WNS unchanged.
+2. Route the reset through a BUFG: WNS dropped from 1.104 to 1.078 ns. Withdrawn.
+3. Replicate the link-monitor's local reset tree: WNS rose from 1.104 to 1.172 ns. Kept.
 
-这些结果说明“复位是高扇出，所以上全局网络”并不成立。复位恢复路径的瓶颈是 CLR 端到寄存器的物理距离和恢复检查，不是时钟网络的质量。要继续压这条路径，需要把协议模块里几个大块的异步复位改成同步复位，或者把复位拆成多个区域副本；前者会改变复位语义，后者会引入新的布局约束。当前选择停在这里，把边界写清楚。
+The lesson is that "high fan-out, therefore put it on a global buffer" does not hold. The reset-recovery path is limited by the physical distance from CLR to the register and by the recovery check, not by clock-network quality. Going further means converting several protocol blocks to synchronous reset, which changes semantics, or splitting the reset into per-region copies, which adds placement constraints. The design stops here and documents the boundary.
 
-## 5 被否决的尝试
+## 5 Rejected attempts
 
-| 尝试 | 预期 | 实测 | 判定 |
+| Attempt | Expected | Measured | Verdict |
 |---|---|---|---|
-| post-route phys_opt（AggressiveExplore） | 再挤一点 setup | WNS 与默认流程逐位相同 | 不采纳，不写进生产流程 |
-| 单独 `phys_opt_design -hold_fix` | 改善 hold | WHS 不变 | 不采纳 |
-| ARP/ICMP 各加本地复位同步器 | 让 CLR 树就近落地 | post-route WNS 0.920 ns，比优化前更差 | 撤回，保留反例 |
-| 把 `rst_l_sync2` 的 `max_fanout` 从 32 压到 8 | 减少扇出 | WNS 1.316 ns，只换到 12 ps hold | 否决 |
-| 帧重组加 4 ms 空闲超时 | 关闭混帧提交 | 功能台架转绿，但 WNS 0.986 ns | 否决（未预分频版本，计时器压到字节/行路径） |
-| 帧重组加 32 位 `last_hdr` 比较 | 修混帧 | 回归通过，但 WNS 1.293 ns | 否决，当前布局对清零锥敏感 |
+| post-route `phys_opt` (AggressiveExplore) | squeeze setup further | bit-identical WNS to the default flow | not adopted |
+| standalone `phys_opt_design -hold_fix` | improve hold | WHS unchanged | not adopted |
+| local reset synchronisers for ARP/ICMP | bring the CLR tree closer | post-route WNS 0.920 ns, worse than before | withdrawn, kept as a counter-example |
+| lower `max_fanout` on `rst_l_sync2` from 32 to 8 | reduce fan-out | WNS 1.316 ns, only 12 ps of hold gained | rejected |
+| 4 ms idle timeout in frame reassembly | stop mixed-frame commits | bench green, but WNS 0.986 ns | rejected (unprescaled timer sat on the byte/row path) |
+| 32-bit `last_hdr` compare in frame reassembly | fix mixed frames | regression passed, WNS 1.293 ns | rejected; the current placement is sensitive to the clear cone |
 
-这些尝试的价值不在“失败”，而在把边界量出来：当前布局上，动 `frame_reasm` 的清零锥，代价不是那几级逻辑本身；继续压复位恢复，收益和风险不成比例。
+The value of these attempts is not that they failed — it is that they mark the boundary. On this placement, touching the clear cone of `frame_reasm` costs far more than the few logic levels involved, and pushing reset recovery further has a poor risk-to-gain ratio.
 
-A9 最终用另一条形状落地：4 ms idle timer 加 12 位预分频，`idle_clear` 只驱动一个单 bit 进入 header 清位锥，计数器不挂在字节/行路径上。`tb_udp_reasm` 的 A9 段让上一帧丢尾、下一帧丢头，中间静默超过 4 ms；判据要求两帧不混，恢复后的第 3 帧仍能干净提交。最终 WNS 1.341 ns。
+A9 was finally solved in another shape: a 4 ms idle timer with a 12-bit prescaler, where `idle_clear` drives a single bit into the header clear cone and the counter never sits on the byte/row path. The A9 section of `tb_udp_reasm` drops the tail of one frame and the head of the next, with more than 4 ms of silence between them; the check requires the two frames not to mix and the third frame after recovery to commit cleanly. Final WNS 1.341 ns.
 
-## 6 资源账
+## 6 Resource account
 
-| 资源 | 用量 | 占比 | 说明 |
+| Resource | Used | Share | Where it goes |
 |---|---:|---:|---|
-| LUT | 14 967 | 28.13% | 协议栈、几何、效果、OSD |
-| FF | 9 095 | 8.55% | 流水线、计数器、同步器 |
-| BRAM | 98 tile | 70.00% | 整帧缓存为主 |
-| DSP48 | 19 | 8.64% | 坐标、插值、窗口运算 |
+| LUT | 14,967 | 28.13% | protocol stack, geometry, effects, OSD |
+| FF | 9,095 | 8.55% | pipelines, counters, synchronisers |
+| BRAM | 98 tiles | 70.00% | mostly the full-frame buffer |
+| DSP48 | 19 | 8.64% | coordinates, interpolation, window arithmetic |
 
-BRAM 的 70% 是这套设计最紧的资源。98 个 tile 里约 80 个是旋转与双线性的整帧显示缓存，1.5 个是竖缝 `sx` 的 2 行环，以太网侧约 10 个是 DDR 写方向的异步 FIFO，其余是效果链与 OSD 的行缓存。它不是零散浪费，而是当前几何方案的直接代价。把整帧缓存换成 DDR 行缓存或分块处理可以降 BRAM，但会引入新的带宽和时序问题，属于架构级改动，在当前画幅下不划算。
+BRAM is the tightest resource. Of the 98 tiles, about 80 hold the full-frame display buffer for rotation and bilinear interpolation, 1.5 form the two-row seam ring, about 10 are the DDR write FIFO, and the rest are effect and OSD line buffers. This is the direct cost of the geometry scheme, not scattered waste. Moving to DDR line buffers or tiling would cut BRAM but adds bandwidth and timing problems — architectural work that does not pay off at this frame size.
 
-DSP 19 颗的分布也能对上：`u_lerp` 6、`u_blur` 1、`u_split_ctrl` 1、`u_zfit` 3、`u_zmap` 8。gamma 是 LUTRAM 查表，不使用 DSP；这纠正了“效果链吃掉 DSP”的直觉。
+The 19 DSPs also add up: `u_lerp` 6, `u_blur` 1, `u_split_ctrl` 1, `u_zfit` 3, `u_zmap` 8. Gamma is a LUTRAM table and uses none, which corrects the intuition that the effect chain eats DSPs.
 
-## 7 功耗与温度
+## 7 Power and temperature
 
-Vivado 报告的动态功耗为 2.228 W，总功耗 2.406 W，结温 52.8 °C。这份报告没有仿真活动文件，置信度为低，只能作为量级参考。板上 XADC 在连续推流时读到 61.8–63.8 °C，`sane=1`，这是实测温度，不是工具估算。两者不能混写。
+Vivado reports 2.228 W dynamic, 2.406 W total and 52.8 °C junction with no simulation activity file. Confidence is low; treat it as an order of magnitude. The on-chip XADC reads 61.8–63.8 °C during continuous streaming with `sane=1`, which is a measurement. The two must not be quoted interchangeably.
 
-## 8 物理边界
+## 8 Physical boundary
 
-RGMII 的 TskewT 规格是 ±0.5 ns。本板 RGMII 引脚在 HR bank，没有 ODELAYE2；0° 转发时仍有约 0.845 ns 的保持余量缺口。90° 相位会把链路打断，−45° 把缺口减到 0.366 ns 但板上 ping 只剩 1/6，均已撤回。当前生产位流使用 0°、时钟也过 ODDR，板上长时间 ping 稳定。这条缺口由 pinout 和 bank 类型决定，属于物理边界，不是 RTL 能消掉的时序债。
+The RGMII TskewT specification is ±0.5 ns. This board's RGMII pins sit in an HR bank without ODELAYE2, so 0° forwarding still leaves about 0.845 ns of hold margin missing. A 90° phase breaks the link; −45° cuts the gap to 0.366 ns but drops ping to 1 in 6; both were withdrawn. Production forwards at 0° with the clock through ODDR, and long ping runs stay clean. The gap comes from the pinout and the bank type — a physical boundary, not timing debt that RTL can remove.
 
-## 9 结论
+## 9 Conclusion
 
-这套设计的时序优化已经把能由结构解决的长路径解决掉：处理窗总线、仲裁器扇出、ICMP 与 UDP 校验和、局部复位树。剩下的最差路径是复位恢复，继续压需要改复位语义；hold 余量 0.025 ns，继续压需要改写口结构；BRAM 70% 由整帧缓存决定，继续降需要改几何架构。当前版本停在这三条边界上，数字真实，代价清楚。
+The optimisation has removed the long paths that structure could remove: the processed-pane bus, the arbiter fan-out, the ICMP and UDP checksums, the local reset trees. What remains is reset recovery, which needs a change of reset semantics to improve; a 0.025 ns hold margin, which needs restructured ports; and BRAM at 70%, which is dictated by the full-frame buffer. The current version stops at these three boundaries, with real numbers and a clear account of the cost.

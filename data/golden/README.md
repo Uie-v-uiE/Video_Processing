@@ -1,14 +1,14 @@
-# 参考图
+# Reference images
 
-这里放软件侧渲染的参考图，用于人眼比对，不是台架的自动输入。
+Software-rendered images for human comparison; they are not automatic bench inputs.
 
-| 文件 | 内容 |
+| File | Content |
 |---|---|
-| `src.png` | 源图 |
-| `rot_000.png`、`rot_030.png`、`rot_045.png`、`rot_090.png`、`rot_180.png`、`rot_270.png` | 同一源图在各角度下的软件渲染 |
-| `proc_00111.png`、`proc_10000.png`、`proc_all.png` | 若干效果组合的软件渲染 |
-| `dual_preview.png` | 原图/处理图左右并排预览 |
+| `src.png` | source image |
+| `rot_000.png`, `rot_030.png`, `rot_045.png`, `rot_090.png`, `rot_180.png`, `rot_270.png` | software render of the same source at each angle |
+| `proc_00111.png`, `proc_10000.png`, `proc_all.png` | software renders of several effect combinations |
+| `dual_preview.png` | side-by-side preview of source and processed panes |
 
-这些图由早期 host 侧预览工具生成，渲染脚本不在当前树内，不能一键重跑。它们的作用是给现场人眼一个参照：旋转后的画面该是什么方向、效果链打开后该是什么质感。逐像素正确性由 `sim/` 的台架和板上处理窗完整性计数负责，不靠这些 PNG。
+These images came from an early host-side preview tool whose render script is no longer in the tree, so they cannot be regenerated with one command. Their job is to give a human on site a reference for which way a rotated picture should face and what an effect chain should feel like. Per-pixel correctness is covered by the benches in `sim/` and by the on-board processed-pane count, not by these PNGs.
 
-`proc_*` 文件名里的数字是早期五位效果位口径，不是当前的九位 `pipe` 控制字；看文件名时不要把它当成当前 `stage_sel`。
+The digits in the `proc_*` names follow the old five-bit effect encoding, not the current nine-bit `pipe` control word; do not read them as the current `stage_sel`.

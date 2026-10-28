@@ -1,16 +1,16 @@
-# 实现与验证报告
+# Implementation and verification reports
 
-| 文件 | 内容 |
+| File | Content |
 |---|---|
-| `build_timing_summary.rpt` | 时序：WNS/WHS/TNS/THS，逐时钟与跨域 |
-| `build_utilization.rpt` | 资源：LUT/FF/BRAM/DSP |
-| `cdc.rpt` | 跨时钟域检查 |
-| `methodology.rpt` | Vivado 方法学检查 |
-| `power.rpt` | 功耗与结温估算 |
-| `route_status.rpt` | 布线状态 |
-| `clock_util.rpt` | 时钟资源使用 |
-| `check_timing_verbose.rpt` | 未约束/恢复/移除检查 |
-| `regression.txt` | 标准回归汇总 |
-| `tb_video_pipeline_top_report.txt` | 完整视频台架 C17/C25/C26 判定 |
-| `udp_checksum.txt` | UDP 校验和专项复验 |
-| `c31_edge_rim.log` | 帧尾两行抽头专项复验 |
+| `build_timing_summary.rpt` | timing: WNS/WHS/TNS/THS, per clock and per crossing |
+| `build_utilization.rpt` | resources: LUT/FF/BRAM/DSP |
+| `cdc.rpt` | clock-domain crossing checks |
+| `methodology.rpt` | Vivado methodology checks |
+| `power.rpt` | power and junction-temperature estimate |
+| `route_status.rpt` | routing status |
+| `clock_util.rpt` | clock resource usage |
+| `check_timing_verbose.rpt` | unconstrained, recovery and removal checks |
+| `regression.txt` | standard regression summary |
+| `tb_video_pipeline_top_report.txt` | full-video bench C17/C25/C26 verdicts |
+| `udp_checksum.txt` | UDP checksum re-verification |
+| `c31_edge_rim.log` | re-verification of the last two rows' taps |

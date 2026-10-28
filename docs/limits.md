@@ -1,56 +1,56 @@
-# 局限与未修项
+# Limits and unfixed items
 
-这份清单只写当前仍然成立的边界。已经修好的问题不重复列；没有量过的项不写成“应该没问题”。
+This list records the boundaries that still stand. Fixed problems are not repeated, and nothing unmeasured is written as "should be fine".
 
-## 1 物理与时序边界
+## 1 Physical and timing boundaries
 
-**RGMII 发送侧保持缺口。** 本板 RGMII 引脚都在 HR bank，没有 ODELAYE2。0° 转发时仍有约 0.845 ns 的 TskewT 保持余量缺口。90° 相位会把链路打断；−45° 把缺口减到 0.366 ns，但板上 ping 只剩 1/6，已经撤回。当前生产位流使用 0°、时钟也过 ODDR，板上长时间 ping 稳定。这条缺口由 pinout 和 bank 类型决定，不是再调几行 RTL 能消掉的。
+**RGMII transmit hold gap.** On this board every RGMII pin sits in an HR bank, which has no ODELAYE2. Forwarding at 0° still leaves about 0.845 ns of TskewT hold margin missing. A 90° phase breaks the link; −45° reduces the gap to 0.366 ns but drops ping to 1 in 6, so both were withdrawn. The production bitstream forwards at 0° and clocks through ODDR, and long ping runs on the board stay clean. The gap follows from the pinout and the bank type; no amount of RTL editing removes it.
 
-**复位恢复路径。** 全设计最差 WNS 1.341 ns 来自 `phy_rst_cnt_reg[23] → rst_lm_sync2_reg/CLR` 的复位恢复检查，不是普通数据路径。继续压它需要把协议模块里几个大块的异步复位改成同步复位，或者把复位拆成多个区域副本；前者改变复位语义，后者引入新的布局约束。当前没有做。
+**Reset recovery path.** The worst WNS of 1.341 ns comes from the reset-recovery check on `phy_rst_cnt_reg[23] → rst_lm_sync2_reg/CLR`, not from an ordinary data path. Pushing it further means converting the asynchronous resets in several protocol blocks to synchronous resets, or splitting the reset into per-region copies. The first changes reset semantics; the second adds new placement constraints. Neither is done.
 
-**Hold 余量。** 最差 WHS 0.025 ns，位于像素域 `u_blur/dout_reg[15] → u_sharp/q22_reg[15]`，其中 0.346 ns 是时钟偏斜。它仍然为正，但继续压需要改写口结构，风险和收益不成比例。
+**Hold margin.** The worst WHS is 0.025 ns on `u_blur/dout_reg[15] → u_sharp/q22_reg[15]` in the pixel domain, of which 0.346 ns is clock skew. It is positive, but improving it means restructuring the port interfaces, and the risk does not match the gain.
 
-**RGMII 输入窗与 HDMI 源端窗。** 工程里保留了候选约束文件，但默认不加载。RGMII 输入窗在合法 IDELAY 档内关不掉，加载后会有 5 个 I/O 端点判红；HDMI 源端窗的负数来自量纲错，不是设计债。这两条没有带进生产位流，报告里作为边界保留。
+**RGMII input window and HDMI source window.** Both candidate constraint files stay in the repository but are not loaded by default. The RGMII input window cannot be closed inside the legal IDELAY range and turns five I/O endpoints red when loaded; the negative numbers in the HDMI source window came from a unit-scale mistake, not from design debt. Neither is in the production bitstream; both are kept as documented boundaries.
 
-## 2 资源与画幅
+## 2 Resources and frame size
 
-**BRAM 70%。** 98 个 BRAM tile 里约 80 个是旋转与双线性的整帧显示缓存，1.5 个是竖缝 `sx` 的 2 行环，以太网侧约 10 个是 DDR 写方向的异步 FIFO，其余是效果链和 OSD。这个分布由当前几何方案决定，不是零散浪费。
+**BRAM at 70%.** Of the 98 BRAM tiles, about 80 hold the full-frame display buffer needed by rotation and bilinear interpolation, 1.5 form the two-row ring for the seam `sx`, about 10 are the asynchronous FIFO in the DDR write direction, and the rest are effect-chain and OSD line buffers. The distribution follows from the geometry scheme; it is not scattered waste.
 
-**不能上 1080p。** 512×300 的整帧缓存已占 70%；1024×600 需要约四倍存储，这颗器件放不下。把整帧缓存换成 DDR 行缓存或分块处理可以降 BRAM，但会引入新的带宽和时序问题，属于架构级改动。当前设计不声称支持 1080p，也不把缩放开关说成更高画幅。
+**No 1080p.** The 512×300 full-frame buffer already takes 70%; 1024×600 needs roughly four times the storage and does not fit. Replacing the full-frame buffer with DDR line buffers or tile processing would cut BRAM but brings new bandwidth and timing problems — an architectural change. The design claims neither 1080p nor a "higher resolution" that a zoom switch cannot deliver.
 
-**单路输入。** 当前只验证单路 512×300 网络视频、单路 SD 回放和 PL 测试图卡；没有验证多路同时输入、压缩码流或更高帧率。
+**Single input.** Only one 512×300 network stream, one SD playback path and the PL test card are verified. Simultaneous inputs, compressed streams and higher frame rates are not.
 
-## 3 时延口径
+## 3 What "latency" means here
 
-**遥测时延只覆盖 PL 内部。** 从帧提交到开始扫描，包含等待消隐和 DDR 搬运，不包含编码、网线和交换机。它不是玻璃到玻璃的端到端时延，不能写成端到端延迟。
+**Telemetry latency covers the PL only.** It runs from frame commit to the start of scan and includes waiting for blanking and the DDR transfer. Encoding, cable and switch queuing are not included. It is not glass-to-glass latency and must not be described as end-to-end.
 
-**时延分辨率是一帧。** 读数带 ±1 帧的量化；停流后时延自动变成无效值，不会拿旧数冒充新数。
+**Latency resolution is one frame.** Readings carry ±1 frame of quantisation. After the stream stops, the latency field becomes invalid instead of repeating an old value.
 
-**帧间隔统计的饱和。** `gap_cnt` 是 17 位毫秒计数，超过 `0x1FFFF` 后饱和在 `0xFFFF`，不回卷。这样最大值不会被回卷污染，但超过 65.5 秒的间隔只能读到饱和值。
+**Frame-gap saturation.** `gap_cnt` is a 17-bit millisecond counter that saturates at `0xFFFF` instead of wrapping, so a maximum is never polluted by a wrap; gaps beyond 65.5 s can only be read as the saturated value.
 
-## 4 人眼判据
+## 4 Human-eye checks
 
-**HDMI 画面。** 185° 细线已经由 RTL 和台架闭环，处理窗完整性计数为 0；E1–E5（左右同帧、几何一致、OSD 与串口一致、连续挂机数日、ETH/SD 插拔恢复）已现场确认，未见异常；显示器线缆和面板色彩仍属主观项。
+**HDMI picture.** The 185° thin-line case is closed in RTL and on the bench, with a processed-pane integrity count of 0. E1–E5 (same frame left and right, matching geometry, OSD agreeing with the serial port, days of continuous running, recovery after ETH/SD hot-plug) have been checked on the bench with nothing abnormal seen. Cable quality and panel colour remain subjective.
 
-**帧顶几行的陈旧。** 读侧提前取行可能让帧头几行比同屏其余行旧一帧，离线没有判据能量到，只有看屏幕的人能判断是否可接受。它不是原来那条底边细线。
+**Stale rows at the top.** The read side fetches rows ahead, so the first few rows of a frame can be one frame older than the rest of the screen. No offline check can measure this; only a viewer can decide whether it is acceptable. It is not the bottom-edge line from earlier rounds.
 
-## 5 工具与环境
+## 5 Tools and environment
 
-**Vitis 应用组件。** Vitis 2025.2.1 的 `create_app_component` 在当前平台会返回 `StatusCode.INTERNAL`，应用组件建不出来。PS 应用不依赖 IDE，由 `scripts/ps/build_ps_app.py` 直接编译；平台的 FSBL 和 BSP 可以正常重建。
+**Vitis application components.** `create_app_component` in Vitis 2025.2.1 returns `StatusCode.INTERNAL` on this platform, so the application component cannot be created. The PS application does not depend on the IDE; `scripts/ps/build_ps_app.py` compiles it directly. The platform FSBL and BSP rebuild normally.
 
-**Vivado 工程 output products。** `hw/vivado/zynq_video_sys.xpr` 带源文件、约束和块设计，但 `.gen/` 里的 output products 不入库。打开工程后如果提示缺失，跑一次 `bd_only` 或完整构建就会生成。
+**Vivado output products.** `hw/vivado/zynq_video_sys.xpr` carries the sources, constraints and block design, but the `.gen/` output products are not committed. If Vivado reports them missing after opening the project, run the `bd_only` flow once or a full build.
 
-**功耗与结温。** Vivado 报告的 2.228 W 动态、2.406 W 总功耗和 52.8 °C 结温没有仿真活动文件，置信度为低，只能作为量级参考；板上 XADC 的 61.8–63.8 °C 是实测，两者不能混写。
+**Power and junction temperature.** The Vivado report gives 2.228 W dynamic, 2.406 W total and 52.8 °C junction without a simulation activity file; confidence is low, so the numbers are order-of-magnitude only. The on-chip XADC reads 61.8–63.8 °C under continuous streaming, which is a measurement. The two must not be mixed.
 
-**平台迁移。** 技能包里的 IDELAY、BUFIO、ODDR 用法绑定 7 系列；AXI GPIO 控制面绑定当前 PS 配置。换到 UltraScale+ 或另一块板卡时，这些条目需要重新验证，不能直接套用。
+**Porting.** The IDELAY, BUFIO and ODDR usages are bound to 7-series devices, and the AXI GPIO control plane is bound to the current PS configuration. Moving to UltraScale+ or another board requires re-verifying these items rather than copying them.
 
-## 6 功能边界
+## 6 Functional boundaries
 
-- 没有做 PYNQ Overlay。PS 侧是裸机 standalone，主机工具是 Python/Node；技能包不申报 PYNQ 专项加分。
-- 没有做端到端时延、编码延迟或网络排队测量。
-- 没有做多路视频合成、压缩码流、音频或存储录制。
-- 没有做安全启动、加密位流或远程升级。
-- SD 回放只支持 FAT32 下的预转换帧序列，不支持任意容器格式；片源转换在上位机完成。
-- 自动旋转只支持每帧 0–7° 的速度档，不支持设定绝对角度；绝对角度由按键 ±1° 步进。
+- No PYNQ overlay. The PS side is bare-metal standalone and the host tools are Python/Node; nothing here claims PYNQ credit.
+- No end-to-end latency, encoder delay or network-queue measurements.
+- No multi-stream compositing, compressed streams, audio or recording.
+- No secure boot, encrypted bitstream or remote update.
+- SD playback accepts only pre-converted frame sequences on FAT32, not arbitrary containers; conversion happens on the host.
+- Auto-rotation offers speeds of 0–7° per frame but no absolute angle target; absolute angles come from the ±1° keys.
 
-这些边界不影响当前演示，但在现场说明或落地时应主动说明，避免把“没有验证”说成“已经支持”。
+These boundaries do not affect the current demonstration, but they should be stated on site and before deployment, so that "not verified" is never presented as "supported".

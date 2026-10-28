@@ -1,209 +1,198 @@
-# 多源视频流多效果变换处理系统
+# Multi-Source Video Processing System
 
-## 基于 Zynq-7020 的全硬件视频通路与可观测性设计
+## An all-hardware video path and its instrumentation on Zynq-7020
 
-## 摘要
+## Abstract
 
-系统在一颗 Zynq-7020 上实现了一条从千兆网口到 HDMI 显示器的全硬件视频通路。上位机把 512×300、RGB565 的帧切成不超过 1392 字节的 UDP 报文发到 5001 端口；PL 从 RGMII 开始收包，经 MAC、UDP 过滤和按帧内偏移重组后写入 DDR 乒乓缓存，再由显示侧读回，做缩放、任意角度旋转、双线性插值和六级效果处理，最后与 OSD 一起按 ×2 展开成 1024×600、59.5 Hz 的 HDMI 输出。像素通路不经过 PS，PS 只负责命令解析、状态回读和 SD 卡回放。
+The system implements a complete video path from a gigabit Ethernet port to an HDMI display on a single Zynq-7020. A host PC splits 512×300 RGB565 frames into UDP datagrams of at most 1392 bytes and sends them to port 5001. The PL receives them from RGMII, runs MAC, UDP filtering and offset-based reassembly, writes whole frames into a DDR ping-pong buffer, reads them back, applies scaling, arbitrary-angle rotation, bilinear interpolation and a six-stage effect chain, and drives a 1024×600, 59.5 Hz HDMI output with the OSD overlay and a ×2 expansion. Pixels never pass through the PS; the PS handles command parsing, status readback and SD playback.
 
-设计把“视频节点能不能说清楚自己刚刚做了什么”作为核心问题。屏幕中间的竖缝把同一帧的原图与处理图按像素并排，两侧共用几何算子和同一条固定 15 个像素时钟的效果链，任何几何错位、少列或越界填黑都会直接出现在缝上。PL 每秒从网口回一包 32 字节遥测，报告帧数、包数、坏包、作废帧、最后一次作废缺行数、PL 内部时延和处理窗完整性；串口另有 `link` 命令读出帧间隔的最近值、最小值、最大值和累计值，并支持清零。主机侧的三阶段自检会人为注入丢包，要求读数变红再恢复，使这套观测成为可被证伪的仪表，而不是装饰。
+The design treats one question as central: can a video node explain what it just did? A vertical seam puts the source frame and the processed version of the same frame side by side at pixel granularity. Both sides share the geometry engine and one effect chain fixed at 15 pixel clocks, so any geometry slip, missing column or out-of-range fill shows up on the seam. Every second the PL sends a 32-byte telemetry beacon over the network with frame count, packet count, bad packets, aborted frames, missing rows in the last abort, PL-internal latency and processed-pane integrity. A serial `link` command reports the latest, minimum, maximum and cumulative frame gap and can clear them. A three-stage host self-test injects packet loss and requires the readings to turn red and recover, which is what makes the instrumentation falsifiable rather than decorative.
 
-实现后的静态时序为 WNS 1.341 ns、WHS 0.025 ns，TNS 与 THS 均为 0，失败端点 0；资源为 LUT 28.13%、FF 8.55%、BRAM 70.00%、DSP 19 颗。板上连续推流 8 秒收到 241 帧，折合 29.95 fps；三阶段自检在干净流、注入丢包和恢复流下分别读到 22.0 fps、0 fps 且 14.3 次作废每秒、18.9 fps，判定通过。QSPI 镜像经过擦除、写入和硬件回读校验，断电冷启动验证通过；新固件的串口 `link` 命令可直接读出帧间隔统计。
+The implemented design closes timing at WNS 1.341 ns and WHS 0.025 ns, with TNS and THS at zero and no failing endpoints; utilisation is LUT 28.13%, FF 8.55%, BRAM 70.00% and 19 DSPs. On the board, an 8-second stream delivers 241 frames, or 29.95 fps. The three-stage self-test reads 22.0 fps on a clean stream, 0 fps with 14.3 aborts per second under injected loss, and 18.9 fps after recovery, and passes. The QSPI image passed erase, program and hardware verify, and cold boot from a power cycle was confirmed; the new firmware's `link` command reads the frame-gap statistics directly.
 
-**关键词**：Zynq-7020；RGMII；UDP 视频；乒乓缓存；双线性插值；同帧对照；可观测性；时序收敛
+**Keywords:** Zynq-7020; RGMII; UDP video; ping-pong buffer; bilinear interpolation; same-frame comparison; observability; timing closure
 
 ---
 
-## 1 选题背景与设计目标
+## 1 Background and goals
 
-### 1.1 应用背景
+### 1.1 Where this is used
 
-远程视频节点通常只有一根网线，现场没有 PC，也没有额外的采集设备。操作者需要同时知道三件事：画面有没有收到、处理有没有生效、显示延迟是多少。传统演示往往只报一个帧率，遇到掉帧时无法区分是网络丢包、DDR 写入失败，还是显示侧卡住。
+A remote video node usually gets one cable. There is no PC on site and no capture hardware. The operator needs three things at once: whether the picture arrived, whether processing took effect, and how much latency the display adds. Most demonstrations report a frame rate and stop there, so a dropped frame cannot be attributed to the network, to a failed DDR write or to a stalled display.
 
-广播与安防的置信度监测、工业视觉的调试与验收也有同样的需求。处理前后的画面必须来自同一帧、同一个几何位置，否则“算法没生效”和“链路丢帧”会被混为一谈。教学场景则需要一条能整条重跑的工程，学生可以自己把判据跑红，而不是只相信结论。
+Broadcast and security confidence monitoring, and industrial-vision commissioning, ask the same questions. Before and after must come from the same frame at the same geometric position; otherwise "the algorithm did nothing" and "the link dropped a frame" look identical. Teaching needs a project that can be rerun end to end, where students can turn a check red themselves instead of trusting a conclusion.
 
-### 1.2 三个工程问题
+### 1.2 Three engineering questions
 
-设计围绕三个问题展开。
+**Did the frame arrive whole?** UDP does not retransmit, and one lost packet can invalidate a frame. Watching the screen only shows "it stutters sometimes"; it does not say which layer failed.
 
-第一，帧到底收全了没有。UDP 不重传，丢一个包就可能让整帧作废；只看屏幕，看到的是“偶尔卡一下”，说不清问题在哪一层。
+**Are the processed and source panes the same frame at the same position?** Once rotation and scaling enter, the two halves can easily compute different coordinates, and a visible difference may come from the algorithm or from geometry.
 
-第二，处理图与原图是不是同一帧、同一个几何位置。旋转和缩放一旦引入，左右两半很容易各算各的坐标，屏幕上的差异可能来自算法，也可能来自几何错位。
+**How much time passes between a completed frame and its first visible line?** That number decides whether the node suits remote monitoring or closed-loop control, and most demonstrations do not report it.
 
-第三，从收完一帧到它开始上屏，中间压了多少时间。这个数决定系统能否用于远程监看或闭环控制，但多数演示不报告它。
+### 1.3 Goals and boundaries
 
-### 1.3 设计目标与边界
+- One 512×300 RGB565 network stream at 30 fps in; 1024×600 at 59.5 Hz out.
+- Packet ingest, reassembly, buffering, geometry, effects, blending, OSD and TMDS encoding all inside the PL; no pixel through the PS.
+- Three sources — Ethernet, SD card and a PL-drawn test card — with automatic fallback when the stream stalls or the card is removed.
+- Eight zoom steps, arbitrary-angle rotation, bilinear interpolation and a six-stage effect chain whose latency does not depend on configuration.
+- Same-frame comparison, 1 Hz network telemetry, serial status commands and a host self-test that can inject faults.
+- Build, simulation, board bring-up and QSPI programming reproducible from scripts.
 
-设计目标如下：
+The design does not chase 1080p or multiple streams. This device has 140 BRAM tiles, and the full-frame buffer plus the rotation window already take 70%; moving to 1024×600 needs roughly four times the storage, beyond what the part offers. The boundary is stated rather than hidden behind a zoom switch.
 
-- 单路 512×300、RGB565、30 fps 网络视频输入，输出 1024×600、59.5 Hz HDMI；
-- 收包、拼帧、缓存、几何、效果、混合、OSD 和 TMDS 编码全部在 PL 内完成，像素不经过 PS；
-- 支持以太网、SD 卡和 PL 测试图卡三路片源，断流或拔卡时自动回落；
-- 缩放八档、旋转任意角度、双线性插值、六级效果链，链路延迟不随配置变化；
-- 同帧左右对照、1 Hz 网络遥测、串口状态命令、可注入故障的主机自检；
-- 构建、仿真、上板和 QSPI 固化均可由脚本复现。
+### 1.4 Related work and differences
 
-设计不追求 1080p 或多路视频。当前器件有 140 个 BRAM tile，整帧缓存和旋转窗口已经占去 70%，把画幅提高到 1024×600 需要约四倍存储，超出该器件的可用范围。这个边界在设计中明确保留，不用缩放开关伪装成更高画幅。
+A great deal of work already exists on this board and this class of problem, and this design does not claim higher throughput or wider generality.
 
+Alex Forencich's `verilog-ethernet` provides a mature RGMII/MAC/UDP stack with better throughput and generality. This design keeps its own stack because the commit point, the row-coverage check and the DDR write port are built specifically for "commit a whole frame only". Swapping the stack would mean changing four verified boundaries at once — RGMII, UDP filtering, reassembly and the AXI write — and the gain would not be MAC throughput.
 
-### 1.4 同类工作与差异
+Xilinx VDMA and video-processing IP provide a general AXI Video path and are a fast route to a 1080p platform. The goal here is not a general IP block but tying same-frame A/B, a fixed 15-beat effect chain and live telemetry together at 512×300/30 fps. A larger frame needs a different memory architecture, and the 70% BRAM boundary is explicit.
 
-前人在同一块板或同一类问题上已经做过很多工作，本设计没有声称在吞吐或通用性上超过它们。
+A PYNQ overlay puts Python and the PS in control and accelerates in the PL, which suits rapid experiments. Here the pixel path is entirely in the PL and the PS only issues commands and plays SD content, so the design does not depend on the PYNQ runtime and claims no PYNQ-specific credit. The two solve different problems.
 
-Alex Forencich 的 `verilog-ethernet` 提供了成熟的 RGMII/MAC/UDP 栈，吞吐和通用性都更好；本设计保留自研栈，是因为整条链的提交点、行覆盖判据和 DDR 写口是专门为“整帧才提交”设计的。换栈要同时改 RGMII 边界、UDP 过滤、重组和 AXI 写 DDR 四个已验证的边界，收益不在 MAC 吞吐上。
+A commercial video analyser measures latency, dropped frames and picture quality more accurately, but it is external equipment. This design puts frame count, bad packets, aborts, missing rows, latency, processed-pane integrity and frame gaps on the same cable and the same serial port. The cost is accuracy and range compared with a dedicated instrument; the benefit is that nothing extra is needed on site.
 
-Xilinx 的 VDMA 与视频处理 IP 提供通用的 AXI Video 通路，适合快速搭 1080p 平台；本设计的目标不是通用 IP，而是在 512×300、30 fps 的小画幅上把同帧 A/B、固定 15 拍效果链和在线遥测绑在一起。把画幅做大需要换存储架构，当前 BRAM 70% 的边界是明确的。
+Academic FPGA video pipelines often target 1080p, full-frame DDR traffic and higher throughput. This design chooses a small frame, on-chip full-frame storage and fixed latency, putting observability and reproducibility ahead of throughput. Each trade-off is listed in `docs/limits.md`.
 
-PYNQ Overlay 走的是 Python/PS 控制、PL 加速的路线，适合快速实验；本设计的像素通路完全在 PL，PS 只做命令和 SD 回放，因此不依赖 PYNQ 运行时，也没有申报 PYNQ 专项加分。两者解决的不是同一个问题。
+## 2 System overview
 
-商用视频分析仪能把时延、丢帧和画质测得更准，但它是外部仪器；本设计把帧数、坏包、作废、缺行、时延、处理窗完整性和帧间隔做进同一条网线和同一条串口，代价是精度和量程不如专用仪器，收益是现场不需要额外设备。
+### 2.1 Composition
 
-学术界的 FPGA 视频流水线常以 1080p、全帧 DDR 和更高吞吐为目标；本设计选择小画幅、片内整帧缓存和固定延迟，把可观测性和可复现性放在吞吐之前。这些取舍在 `docs/limits.md` 里有逐条边界。
+![Figure 1. System overview. Data flows left to right; support logic and off-chip devices sit below.](figures/fig1-system-clean.png)
 
-## 2 系统总体方案
+Five parts: the host PC, the on-board gigabit PHY, the PL Ethernet and display logic, the PS bare-metal firmware, and the HDMI panel. The host scales any video to 512×300 and splits it into UDP datagrams. The PHY is an RTL8211F-CG on the PL-side RJ45. The PL runs the protocol stack, frame reassembly, DDR buffering, geometry and effects. The PS writes control words and reads status over AXI GPIO, and writes frames into DDR during SD playback. The panel receives 1024×600 HDMI timing.
 
-### 2.1 系统组成
+### 2.2 Data path
 
-![图 1 系统整体框图。数据流自左向右，下方为支撑逻辑与片外器件。](figures/fig1-system-clean.png)
+![Figure 2. Ethernet ingest chain. RGMII sampling, MAC, UDP filtering, offset-based reassembly, CDC and AXI packing into DDR.](figures/fig3-eth-chain-clean.png)
 
-系统由五部分组成：PC 上位机、板载千兆 PHY、PL 以太网与显示逻辑、PS 裸机固件、HDMI 显示器。上位机把任意视频缩放到 512×300 并切成 UDP 报文；板载 PHY 使用 RTL8211F-CG，接在 PL 侧 RJ45 上；PL 完成协议栈、帧重组、DDR 缓存、几何与效果处理；PS 通过 AXI GPIO 写控制字、读状态，并在 SD 回放时把帧写进 DDR；显示器接收 1024×600 的 HDMI 时序。
+The receive side starts at RGMII. Four data bits and the control line are sampled with IDDR on the PHY-recovered clock and moved into the 125 MHz logic domain through an asynchronous FIFO. MAC, ARP, ICMP, UDP port filtering, offset-based reassembly and statistics all live in that domain. The reassembler emits a commit pulse only when every byte has arrived, every source row has been written and the frame carries no bad packet. After commit, 16-bit pixels are packed into 64-bit words and written into the DDR ping-pong buffer by the PL acting as an AXI HP0 master.
 
-### 2.2 数据通路
+If a half-received frame is followed by more than 4 ms of silence, an idle timer discards it, so the tail of one frame cannot be joined to the head of the next. The timer uses a 12-bit prescaler and drives a single bit into the header-clear cone; the 4 ms counter never sits on the byte or row path.
 
-![图 2 以太网入包链。RGMII 采样后经 MAC、UDP 过滤、按偏移重组、CDC 和 AXI 打包写入 DDR。](figures/fig3-eth-chain-clean.png)
+![Figure 3. Display path. Readback, bilinear interpolation, effect chain, seam, OSD and TMDS encoding in order; the source tap and the processed chain are selected per pixel at the seam.](figures/fig4-pl-display-clean.png)
 
-接收侧从 RGMII 开始。四个数据位和控制位先用 IDDR 在 PHY 恢复时钟上采样，再通过异步 FIFO 搬到 125 MHz 的逻辑时钟域。MAC、ARP、ICMP、UDP 端口过滤、按帧内偏移重组和统计都在这个时钟域完成。重组器只有在整帧字节数到齐、所有源行都被覆盖、且本帧没有坏包时才发出提交脉冲；提交之后，16 位像素被打包成 64 位字，由 PL 作为 AXI HP0 主设备写入 DDR 乒乓缓存。
+The display side reads the whole frame back from DDR into a 64-bit-wide frame buffer, then runs a fixed-point inverse mapping to obtain source coordinates and bilinear weights. Scaling and rotation share the same coordinate engine. After interpolation the pixels enter the six-stage effect chain, and the processed result is selected per pixel against a four-display-line source tap at the seam. Five OSD rows are overlaid, and the result is expanded ×2 into HDMI.
 
-如果一帧收了一半后链路静默超过 4 ms，idle timer 会把半帧作废，防止上一帧的尾和下一帧的头拼成一整帧。计时器用 12 位预分频，只把一个单 bit 送进 header 清位锥，不把 4 ms 计数器挂在字节/行路径上。
+### 2.3 Hardware/software split
 
-![图 3 显示通路。读回、双线性、效果链、竖缝、OSD 和 TMDS 编码依次进行，原图旁路与处理链在竖缝处逐像素二选一。](figures/fig4-pl-display-clean.png)
-
-显示侧从 DDR 读回整帧，先写进 64 位宽的帧缓存，再做定点逆映射，得到源坐标和双线性权重。缩放和旋转共用同一组坐标算子；插值之后进入六级效果链，处理结果与一条 4 显示行的原图抽头在竖缝处逐像素二选一，最后叠五行 OSD，按 ×2 展开送到 HDMI。
-
-### 2.3 软硬件划分
-
-| 功能 | 放在哪里 | 理由 |
+| Function | Where | Why |
 |---|---|---|
-| RGMII 采样、MAC、ARP/ICMP、UDP 过滤、帧重组 | PL | 实时字节流，不能受 CPU 调度和中断延迟影响 |
-| DDR 乒乓写、显示读回、缩放/旋转/插值、效果链、竖缝、OSD、TMDS | PL | 逐像素处理，延迟由流水线级数决定 |
-| 命令解析、状态回读、SD 文件系统、温度采样 | PS 裸机 | 低速控制面，需要文件和字符串处理 |
-| 推流、遥测监听、仪表、故障注入 | PC | 现场不需要在板上增加存储和显示 |
+| RGMII sampling, MAC, ARP/ICMP, UDP filtering, reassembly | PL | real-time byte stream, cannot tolerate CPU scheduling or interrupt latency |
+| DDR ping-pong write, display readback, scaling/rotation/interpolation, effects, seam, OSD, TMDS | PL | per-pixel work whose latency follows pipeline depth |
+| Command parsing, status readback, SD file system, temperature sampling | PS bare metal | low-speed control plane that needs files and strings |
+| Streaming, telemetry listening, dashboard, fault injection | PC | no need to add storage or a display to the board |
 
-这样划分的结果是：像素通路每一级的延迟由硬件级数决定，与软件运行状态无关；控制面留在 PS，命令和状态各走独立的 GPIO 通道。代价是控制字要跨时钟域，收益是显示链不受 CPU 调度影响。
+The pixel path therefore has a latency set by hardware stages, independent of software state, while the control plane stays on the PS with its own GPIO channels. The cost is that control words cross clock domains; the benefit is that the display chain never waits for a CPU.
 
-### 2.4 三路片源与仲裁
+### 2.4 Three sources and arbitration
 
-片源有三路：网口 UDP 视频、SD 卡预转换帧序列、PL 自绘测试图卡。`src_arb` 根据链路活跃度、帧请求和拔卡事件决定哪一路拿到搬运引擎。链路静默或拔卡时，仲裁自动回落到还在工作的一路，屏幕不会永久冻在最后一帧。
+Three sources share the mover: the UDP stream, a pre-converted SD frame sequence and the PL test card. `src_arb` decides which one owns the mover based on link activity, frame requests and card-removal events. When the link stalls or the card is pulled, arbitration falls back to a source that still works, so the screen never freezes on the last frame forever.
 
-ETH 和 SD 的帧各有自己的 DDR bank。PL 只在收到完整的帧提交脉冲之后才切换显示读口，因此屏幕上不会出现半新半旧的帧。图卡不进内存，由 PL 按同一份源坐标现场绘制。
+Ethernet and SD frames have their own DDR banks. The PL switches the display read port only after a complete commit pulse, so the screen never shows half of one frame and half of another. The test card never enters memory; the PL draws it on the fly from the same source coordinates.
 
+## 3 Key techniques
 
-## 3 关键技术与实现
+### 3.1 All-PL Ethernet receive and reassembly
 
-### 3.1 全 PL 以太网接收与帧重组
+The hard part is not parsing; it is deciding when a frame may be committed. UDP does not retransmit, packets can arrive out of order, go missing or be duplicated. Committing on the received byte count alone would show half a new frame beside half an old one.
 
-以太网接收的难点不在协议解析，而在“什么时候可以提交一帧”。UDP 没有重传，包可能乱序、丢失或重复；如果按收到的字节数直接提交，屏幕上会出现半帧新、半帧旧。
+The reassembler keeps a row-coverage bitmap and a byte gate per frame. Each packet is written at its intra-frame offset and updates the bitmap. Commit requires three conditions at once: the full 307,200 bytes, all 300 source rows covered, and no bad packet in this frame. If any condition fails, the frame is dropped, the abort counter increments and the number of missing rows in that abort is recorded. That missing-row count is a cause, not a rate: it separates "the network lost a packet and killed the frame" from "the display side stalled".
 
-重组器为每一帧维护一张行覆盖位图和一个字节门。每个包按帧内偏移写入对应的行，写完更新覆盖位图；只有同时满足三个条件才提交：整帧字节数达到 307200、所有 300 行都被覆盖、本帧没有坏包。任何一个条件不满足，整帧作废，作废计数加一，并记录最后一次作废缺了多少行。这个“缺行数”是原因，不是速率：它能把“网络丢包毁掉整帧”和“显示侧卡住”区分开。
+The bench exercises this check with a mutation: with enough bytes but only 3/4 of the rows, a row counter that degrades to "increment on every word" makes the bench report `FAIL commit with full byte count but only 3/4 rows`. A check that can turn red is a check that really looks at row coverage.
 
-台架对这条判据做了变异对照：在字节数已经够、但只覆盖 3/4 行的激励下，如果行计数退化成“每写一个字加一”，台架会报 `FAIL commit with full byte count but only 3/4 rows`。判据能红，才说明它真的在看行覆盖。
+ARP, ICMP and UDP share the transmit GMII. Requests are queued and only granted when the medium is genuinely idle, so one frame is never swapped mid-transmission. Even with the stream saturating the link, the board still answers ping: the control path is not starved by the data path.
 
-发送侧由 ARP、ICMP 和 UDP 三路共用 GMII。请求先记账，等介质真正空闲才兑现，避免一帧发到一半被另一路换掉。推流占满带宽时，板子仍能 ping 通，控制通路不被数据通路拖死。
+### 3.2 Display and geometry
 
-### 3.2 显示与几何引擎
+The geometry engine maps the 512×300 source onto the 1024×600 panel. Each display pixel is inverse-mapped once: display coordinates are multiplied back into source coordinates, yielding `sx, sy`, an out-of-range flag and bilinear weights. The zoom factor is Q8 fixed point across eight steps from 0.25× to 2.0×; the rotation angle covers 0–359° with one 360-entry Q8 sine table and one cosine table. Scaling and rotation share these operators, so the source and processed panes see the same geometry instead of computing two sets of coordinates.
 
-几何引擎把 512×300 的源画面映射到 1024×600 的面板。每个显示像素先做一次逆映射：显示坐标乘回源坐标，得到 `sx, sy`、越界标志和双线性权重。缩放系数用 Q8 定点，八档覆盖 0.25 到 2.0 倍；旋转角度为 0 到 359°，正弦和余弦各用一张 360 项的 Q8 查找表。缩放和旋转共用这组算子，所以原图和处理图看到的是同一个几何，不会各算一套坐标。
+Interpolation is bilinear. Each source pixel needs four neighbours, and the read port fetches them in step with the pixel clock. With `bilin_en=0` the datapath degrades bit-for-bit to nearest neighbour, which makes the cost of interpolation measurable. The read port is single-ported and returns a pair one pair late, so it costs two display lines compared with nearest neighbour; the top level cancels that delay in the coordinates.
 
-插值使用双线性。每个源像素需要四个邻点，读口按像素时钟的节拍把它们取齐；`bilin_en=0` 时逐位退化为最近邻，方便对照“插值本身带来了多少差异”。读口是单口的，一对结果要下一对才读得到，因此比最近邻多两显示行的延迟；这个延迟在顶层坐标里一起抵消。
+When rotation is enabled, the controller pulls the zoom factor to the step where the rotated image just fits, so it cannot rotate off-screen. The manual step is remembered and restored as soon as rotation stops; 0° is exempt.
 
-旋转打开时，控制器把倍率收进“当前角度刚好装得下”的一档，避免转出画面。手动档号不会丢，关掉旋转后立刻恢复；0° 不受这条限制。
+The seam draws a 2-pixel marker by default, using the same out-of-range test as the image, so its ends never leave the picture. The marker can be turned off, and should be for pixel measurements, because it would otherwise be mistaken for a vertical line.
 
-竖缝默认画一条 2 像素宽的标记线，位置与画面几何使用同一个越界判据，线的端点不会跑到画面外。标记线可以关闭，做像素测量时应当关闭，因为它本身会被误认成一条竖线。
+### 3.3 Six-stage effect chain with fixed latency
 
-### 3.3 六级效果链与恒定延迟
+Stage 0 is gamma, a lookup table read combinationally, costing no pipeline beat. Stages 1 to 5 are:
 
-效果链的级 0 是 gamma。它是一张查找表，组合读出，不占流水拍。级 1 到 5 依次是：
-
-| 级 | 功能 | 拍数 | 说明 |
+| Stage | Function | Beats | Notes |
 |---|---|---:|---|
-| 0 | gamma | 0 | LUTRAM 查表，逐位旁路 |
-| 1 | 灰度 / 反色 | 1 + 1 | 两个控制位，可串联 |
-| 2 | 箱式模糊 / 锐化 | 3 | 共用 3×3 窗口读法 |
-| 3 | Sobel | 3 | 边缘强度 |
-| 4 | 二值化 | 1 | 带判决反相位 |
-| 5 | 腐蚀 / 膨胀 | 3 | 两位互斥，同时置位时都不做 |
+| 0 | gamma | 0 | LUTRAM lookup, bitwise bypass |
+| 1 | grayscale / invert | 1 + 1 | two control bits, can be chained |
+| 2 | box blur / sharpen | 3 | shared 3×3 window read |
+| 3 | Sobel | 3 | edge strength |
+| 4 | threshold | 1 | includes the inverted-decision bit |
+| 5 | erode / dilate | 3 | mutually exclusive; both set means neither runs |
 
-九位控制字逐位对应一个算法：灰度、反色、模糊、锐化、Sobel、二值化、判决反相、腐蚀、膨胀。其中腐蚀与膨胀互斥，两位同时置位时两个都不做。无论打开哪些级、怎样串联，链路延迟都保持 15 个像素时钟：1 + 1 + 3 + 3 + 3 + 1 + 3 = 15。旁路路径按同样的级数延迟，因此这个常数与配置无关。
+The nine control bits map one-to-one onto the algorithms: grayscale, invert, blur, sharpen, Sobel, threshold, inverted decision, erode, dilate. Whatever is enabled, the chain latency stays at 15 pixel clocks: 1 + 1 + 3 + 3 + 3 + 1 + 3 = 15. Bypass paths are delayed by the same number of stages, so the constant does not depend on configuration.
 
-![图 4 六级效果链的累计拍数。任意组合都停在 15 拍，竖缝两侧因此可以在同一拍对齐。](figures/fig8-latency-ladder.png)
+![Figure 4. Accumulated beats through the six-stage chain. Any combination stops at 15, which lets both sides of the seam align on the same beat.](figures/fig8-latency-ladder.png)
 
-这个常数是竖缝能够作为量具的前提。如果延迟随配置变化，缝两侧就会出现固定错位，观测到的差异无法归因于算法或几何。
+That constant is what makes the seam usable as an instrument. If latency moved with configuration, the two sides would carry a fixed offset and any observed difference could no longer be attributed to the algorithm or the geometry.
 
-### 3.4 同帧对照与 OSD
+### 3.4 Same-frame comparison and OSD
 
-竖缝切在同一条几何链的输出上。左半是原图，右半是同一帧经效果链处理后的结果；两侧共用同一组坐标、同一拍。缝的位置可以按屏幕列设置，也可以按画面列设置；后者会跟着旋转走，适合检查旋转状态下的边界。读口为原图保留了一条 4 显示行的抽头，处理链的 15 拍延迟与这条抽头在顶层对齐，所以竖缝两侧是同一帧、同一几何位置。
+The seam cuts the output of one geometry chain. The left half is the source, the right half is the same frame after the effect chain; both share the same coordinates and the same beat. The seam position can be set in display columns or in image columns; the latter follows rotation and is the right choice for checking boundaries under rotation. The read port keeps a four-display-line tap for the source, and the 15-beat chain is aligned against that tap at the top level, so both sides of the seam are the same frame at the same position.
 
-![图 5 同帧左右对照的渲染示例。左半为原图，右半为同一帧经 Sobel 链处理后的结果；这是测试帧渲染，不是屏幕照片。](figures/fig9-split-demo.png)
+![Figure 5. Rendered same-frame comparison. Left is the source, right is the same frame after the Sobel chain; this is a test-frame render, not a screen photograph.](figures/fig9-split-demo.png)
 
-OSD 画五行：源画面尺寸与帧率、效果链与阈值、旋转与缩放、缝位与 PL 内部时延、温度。第一行显示 512×300，因为这些参数描述的是片源，不是面板。OSD 的绘制不改变竖缝的几何，也不参与处理窗完整性计数。
+The OSD draws five rows: source size and frame rate, effect chain and threshold, rotation and zoom, seam position and PL-internal latency, temperature. Row 0 shows 512×300 because those parameters describe the source, not the panel. Drawing the OSD changes neither the seam geometry nor the processed-pane count.
 
-### 3.5 可观测性：遥测、串口与帧间隔统计
+### 3.5 Observability: telemetry, serial and frame gaps
 
-可观测性由三个出口组成，它们读的是同一组计数。
+Three outlets read the same counters.
 
-**网络遥测。** PL 每秒从 UDP 1234 向最后一个 ARP 请求方发一包 32 字节信标。字段包括：累计帧数、累计包数、坏包数、累计作废帧数、最后一次作废缺行数、自由运行秒计数、PL 内部时延、源端口和处理窗完整性计数。信标不经过 PS，也不需要串口或 JTAG。
+**Network telemetry.** Once per second the PL sends a 32-byte beacon from UDP 1234 to the last ARP requester: frame count, packet count, bad packets, aborted frames, missing rows in the last abort, free-running seconds, PL-internal latency, source port and the processed-pane integrity count. It goes through neither the PS nor a serial port.
 
-**串口状态。** PS 固件提供 `stat`、`temp`、`link`、`sd`、`play`、`src`、`pipe`、`zoom`、`rot`、`split`、`gamma`、`osd` 等命令。其中 `link` 读出帧间隔统计：`stall` 是距上一帧的实时毫秒数；`gap_last` 是最近一次完整帧间隔；`gap_min` 和 `gap_max` 是自上次清零以来的最小值和最大值；`gap_sum` 是累计间隔；`gap_valid` 表示统计已经由至少两帧校准。`link clr` 清零 `gap_*`，但不改 `stall`。`gap_last`/`gap_max` 在帧完成时更新，因此停流期间增长的是 `stall`，下一帧到达时长间隔才写入 `gap_last`/`gap_max`。帧间隔按毫秒计数，计数到 `0x1FFFF` 后饱和在 `0xFFFF`，不回卷，避免最大值被回卷污染。
+**Serial status.** The PS firmware offers `stat`, `temp`, `link`, `sd`, `play`, `src`, `pipe`, `zoom`, `rot`, `split`, `gamma` and `osd`. `link` reports the frame-gap statistics: `stall` is the live millisecond count since the last frame; `gap_last` is the most recent complete gap; `gap_min` and `gap_max` are the extremes since the last clear; `gap_sum` is the cumulative gap; `gap_valid` says the statistics have been calibrated by at least two frames. `link clr` clears `gap_*` but not `stall`. `gap_last` and `gap_max` update when a frame completes, so a stalled link grows `stall`, and the long gap is written only when the next frame arrives. Gaps are counted in milliseconds and saturate at `0xFFFF` instead of wrapping, so a maximum is never polluted by a wrap.
 
-**AXI GPIO 健康快照。** 主机可以通过 JTAG 选择 lane，读回链路计数、缩放状态、时延快照和仲裁输入。`health_read` 工具把 10 条 lane 读两遍，单调计数器只允许第二遍不小于第一遍，用来发现快照刷新时的撕裂。
+**AXI GPIO health snapshot.** Over JTAG the host selects a lane and reads link counters, zoom state, latency snapshots and arbitration inputs. The `health_read` tool reads all ten lanes twice and requires monotonic counters not to decrease on the second pass, which catches tearing during a snapshot refresh.
 
-网络遥测和串口读的是同一组 PL 计数器。遥测适合长时间、无连接观察；串口适合现场逐项排查；GPIO 适合在推流停止后读一个确定值。三个出口互为对照，任何一个数对不上，都能回到 RTL 里找原因。
+Telemetry and serial read the same PL counters. Telemetry suits long unattended observation, serial suits on-site step-by-step checks, GPIO suits reading one definite value once the stream has stopped. The three cross-check each other; when two disagree, the answer is in the RTL.
 
-处理窗完整性计数只在“只开灰度、并且竖缝按画面列扫描”时有效。此时处理侧的每个像素都应该是灰的，任何非灰像素都意味着处理侧漏进了原图或旁路。计数器在像素域按帧统计，经跨时钟域快照送到遥测，载荷给出饱和到 255 的计数和一个有效位。
+The processed-pane count is valid only when grayscale is the only stage enabled and the seam scans in image columns. Every pixel on the processed side should then be gray, and any non-gray pixel means the source leaked in or a bypass fired. The counter works per frame in the pixel domain, crosses domains as a snapshot, and the beacon carries a count saturated at 255 plus a valid bit.
 
-主机侧的三阶段自检把上述读数变成可执行的判据。干净流要求帧率不低于 8 fps、作废帧最多一次启动作废、至少一次有效时延且不超过 200 ms；故障段每 100 包丢 1 包，要求作废帧至少 5 次每秒、帧率低于 5 fps；恢复段回到干净流水平。判据取每秒的变化量，而不是绝对值。这个自检可以当面把仪表打红，再让它恢复。
+The host three-stage self-test turns the readings into an executable check. A clean stream must hold at least 8 fps, at most the single boot-time abort, and at least one valid latency no greater than 200 ms. The fault stage drops one packet in 100 and requires at least 5 aborts per second with the frame rate below 5 fps. Recovery must return to the clean level. The check compares per-second deltas, never absolute values, and it can turn the instrument red in front of an audience and then let it recover.
 
+## 4 Timing and resource optimisation
 
-## 4 时序与资源优化
+### 4.1 Clock domains
 
-### 4.1 时钟域划分
-
-设计有五个主要时钟域：
-
-| 时钟域 | 频率 | 用途 |
+| Domain | Frequency | Use |
 |---|---:|---|
-| `sys_clk` | 50 MHz | 板载时钟输入（20 ns 约束），供 MMCM 和 PS 参考 |
-| `clkout0_1` | 50 MHz | 像素时钟，显示、几何、效果链 |
-| `clkout3` | 125 MHz | 以太网协议逻辑 |
-| `eth_rxc` | 125 MHz | PHY 恢复时钟，只用于 IDDR 采样和异步 FIFO 写侧 |
-| `clk_fpga_0` | 100 MHz | PS FCLK0，AXI 控制与 DDR 写侧 |
+| `sys_clk` | 50 MHz | board clock input (20 ns constraint), feeds the MMCM and the PS reference |
+| `clkout0_1` | 50 MHz | pixel clock: display, geometry, effect chain |
+| `clkout3` | 125 MHz | Ethernet protocol logic |
+| `eth_rxc` | 125 MHz | PHY-recovered clock, only IDDR sampling and the async-FIFO write side |
+| `clk_fpga_0` | 100 MHz | PS FCLK0: AXI control and DDR write side |
 
-恢复时钟只用于 IDDR 采样和异步 FIFO 写侧。协议逻辑放在 MMCM 产生的 125 MHz，显示在 50 MHz，控制面是 100 MHz 的 AXI 时钟。像素时钟和串化时钟来自同一颗 MMCM，保持 5:1 的固定关系；ETH 逻辑时钟来自另一颗 MMCM。
+Protocol logic runs on the MMCM's 125 MHz, the display on 50 MHz and the control plane on the 100 MHz AXI clock. Pixel and serialiser clocks come from the same MMCM at a fixed 5:1 ratio; the Ethernet logic clock comes from the other MMCM.
 
-跨域分三类处理：字节流用格雷码指针的异步 FIFO；帧提交、时延、处理窗计数这类慢变量用“源域整拍保持 + 目的域同步翻转沿再采样”的快照器；单 bit 电平和复位用三级同步器，复位异步断言、本域同步释放。
+Crossings fall into three classes: byte streams through a gray-code-pointer asynchronous FIFO; slow variables such as frame commit, latency and processed-pane counts through a snapshot that holds a whole beat in the source domain and samples it on a synchronised toggle edge in the destination; single-bit levels and resets through three-stage synchronisers, with reset asserted asynchronously and released synchronously in each domain.
 
-处理窗总线是准静态的：源域整拍更新，目的域等到同步后的翻转沿才采。它不按两颗独立 MMCM 之间的 4 ns setup 去收，而是用 `set_max_delay -datapath_only 10 ns` 约束位间 skew。这条约束把“总线至少保持一帧”的设计意图写进时序报告，也解释了为什么优化前那条 1.029 ns 的处理窗总线路径在优化后不再出现。
+The processed-pane bus is quasi-static: the source side updates it for a whole beat and the destination samples only after the synchronised toggle. It is not closed against a 4 ns setup derived from two independent MMCMs; instead `set_max_delay -datapath_only 10 ns` bounds the bit-to-bit skew. That constraint writes the design intent — the bus holds for at least one frame — into the timing report, and explains why the 1.029 ns processed-pane path from before the optimisation no longer appears.
 
-### 4.2 优化方法与结果
+### 4.2 Method and results
 
-优化按“先动结构，再动约束，最后动布局”的顺序进行。每一轮只改一类东西，改完用同一份回归和同一套时序报告比较，避免把布局扰动当成逻辑收益。
+Optimisation followed structure first, constraints second, placement last. Each round changed one class of thing and compared against the same regression and the same timing reports, so placement noise could not be mistaken for a logic gain.
 
-| 优化项 | 做法 | 结果 | 代价 |
+| Item | Change | Result | Cost |
 |---|---|---|---|
-| 时钟域重构 | 协议逻辑离开恢复时钟，恢复时钟域只保留采样与 FIFO 写侧 | 处理窗总线路径从 1.029 ns 让开 | 跨域 FIFO 与同步器 |
-| 准静态跨域契约 | 处理窗总线加 10 ns 位间 skew 约束 | 该路径余量 8.7 ns，最差路径回到真实同步路径 | 无额外逻辑 |
-| 仲裁器 `owner_eth` 扇出 | 对慢变量加 `max_fanout`，综合复制寄存器副本 | AXI 域从 1.201 ns 提到 2.159 ns | 8 个触发器 |
-| 125 MHz 计数与校验 | `stat_bad` 使能寄存成单 bit；ICMP 校验拆拍 | ETH 逻辑域从 1.245 ns 提到 1.727 ns | 少量 LUT/FF |
-| UDP 发送校验和 | 10 项加法拆成 4 拍：5 + 5 + 折叠 + 折叠 | 全设计 WNS 提到 1.341 ns | 38 个 LUT、12 个触发器 |
-| 复位树局部复制 | 复制 link-monitor 本地复位树 | WNS 从 1.104 ns 提到 1.172 ns | 局部触发器 |
+| Clock-domain restructuring | protocol logic leaves the recovered clock; only sampling and FIFO write stay on it | the 1.029 ns processed-pane path goes away | crossing FIFO and synchronisers |
+| Quasi-static crossing contract | 10 ns bit-skew constraint on the processed-pane bus | 8.7 ns margin there; the worst path returns to a real synchroniser | no extra logic |
+| Arbiter `owner_eth` fan-out | `max_fanout` on the slow variable, replicated by synthesis | AXI domain 1.201 → 2.159 ns | 8 flip-flops |
+| 125 MHz counters and checksums | `stat_bad` enable registered into one bit; ICMP checksum split across beats | Ethernet logic domain 1.245 → 1.727 ns | a few LUTs and FFs |
+| UDP transmit checksum | 10-term add split into four beats: 5 + 5 + fold + fold | global WNS to 1.341 ns | 38 LUTs, 12 FFs |
+| Local reset-tree replication | replicate the link-monitor local reset tree | WNS 1.104 → 1.172 ns | local flip-flops |
 
-最终实现后的读数是 WNS 1.341 ns、WHS 0.025 ns，TNS 和 THS 都为 0，失败端点 0。全设计最差路径是复位恢复路径 `phy_rst_cnt_reg[23] → rst_lm_sync2_reg/CLR`，不是数据路径；最差 hold 在像素域 `u_blur/dout_reg[15] → u_sharp/q22_reg[15]`，余量 0.025 ns，仍为正。
+Final readings: WNS 1.341 ns, WHS 0.025 ns, TNS and THS zero, no failing endpoints. The worst path is reset recovery, `phy_rst_cnt_reg[23] → rst_lm_sync2_reg/CLR`, not a data path. The worst hold is in the pixel domain, `u_blur/dout_reg[15] → u_sharp/q22_reg[15]`, with 0.025 ns of margin — still positive.
 
-![图 6 逐时钟 setup 余量与资源占用。全局最差 1.341 ns 来自复位恢复路径，逐时钟数据路径的余量更高。](figures/fig2-timing-resource.png)
+![Figure 6. Per-clock setup margin and resource use. The global 1.341 ns comes from a reset-recovery path; the per-clock data paths have more margin.](figures/fig2-timing-resource.png)
 
-逐时钟余量如下：
-
-| 时钟域 | 周期 | WNS | WHS |
+| Domain | Period | WNS | WHS |
 |---|---:|---:|---:|
 | `sys_clk` | 20 ns | 14.797 ns | 0.067 ns |
 | `clkout0_1` | 20 ns | 3.264 ns | 0.025 ns |
@@ -211,137 +200,132 @@ OSD 画五行：源画面尺寸与帧率、效果链与阈值、旋转与缩放�
 | `clk_fpga_0` | 10 ns | 2.159 ns | 0.060 ns |
 | `clkout3` | 8 ns | 1.727 ns | 0.068 ns |
 
-### 4.3 复位树与校验和拆分
+### 4.3 Reset tree and checksum splitting
 
-复位树是这套设计里最容易被忽略的时序债。`rst_l_sync2` 驱动 3002 个异步清零端，布线后要走 5.4 ns。给这个寄存器加 `max_fanout` 没有触发复制；改用 BUFG 把复位送上全局网络，WNS 反而从 1.104 ns 降到 1.078 ns，已经撤回。后来只复制 link-monitor 的本地复位树，WNS 从 1.104 ns 提到 1.172 ns。要让全设计最差路径离开复位恢复，需要把协议模块里几个大块的异步复位改成同步复位，这会改变复位语义，必须重跑 ARP/ICMP 台架和全量回归，当前没有做。
+The reset tree is the most easily ignored timing debt here. `rst_l_sync2` drives 3002 asynchronous clear pins and needs 5.4 ns of routing after placement. `max_fanout` on that register did not trigger replication. Routing the reset through a BUFG dropped WNS from 1.104 to 1.078 ns and was withdrawn. Replicating only the link-monitor's local reset tree raised WNS from 1.104 to 1.172 ns and was kept. Moving the worst path off reset recovery would mean converting several protocol blocks to synchronous reset, which changes reset semantics and requires rerunning the ARP/ICMP benches and the full regression; that is not done here.
 
-UDP 发送的 IPv4 头校验和是另一个典型。10 项加法放在一拍内完成，功能正确，但成为全设计最差路径：6 级 CARRY4，logic 2.921 ns，route 3.565 ns。把它拆成四拍后，功能由 `tb_udp_telemetry`、`tb_eth_top_rgmii`、`tb_rows` 和 `tb_udp_reasm` 四支台架复验，代价是 38 个 LUT 和 12 个触发器。拆完以后，最差路径回到复位恢复，继续拆校验和已经没有收益。
+The IPv4 header checksum in UDP transmit is the other example. Ten terms in one beat were functionally correct but became the global worst path: six CARRY4 levels, 2.921 ns of logic and 3.565 ns of routing. Splitting it across four beats was re-verified by `tb_udp_telemetry`, `tb_eth_top_rgmii`, `tb_rows` and `tb_udp_reasm`, at a cost of 38 LUTs and 12 flip-flops. After the split the worst path returned to reset recovery, and further splitting has no payoff.
 
-### 4.4 资源去向
+### 4.4 Where the resources go
 
-实现后的资源占用为：
-
-| 资源 | 用量 | 占比 | 主要去向 |
+| Resource | Used | Share | Main use |
 |---|---:|---:|---|
-| LUT | 14 967 | 28.13% | 协议栈、几何、效果链、OSD |
-| FF | 9 095 | 8.55% | 流水线、计数器、同步器 |
-| BRAM | 98 tile | 70.00% | 旋转与双线性的整帧缓存 |
-| DSP48 | 19 | 8.64% | 坐标映射、插值、窗口运算 |
+| LUT | 14,967 | 28.13% | protocol stack, geometry, effects, OSD |
+| FF | 9,095 | 8.55% | pipelines, counters, synchronisers |
+| BRAM | 98 tiles | 70.00% | full-frame buffer for rotation and bilinear |
+| DSP48 | 19 | 8.64% | coordinate mapping, interpolation, windows |
 
-98 个 BRAM 里，约 80 个是旋转与双线性需要的整帧显示缓存，1.5 个是竖缝 `sx` 的 2 行环，以太网侧约 10 个主要是 DDR 写方向的异步 FIFO，其余是效果链和 OSD 的行缓存。这个分布说明 70% 不是零散浪费，而是旋转和双线性需要的整帧存储。要把这一项显著降下来，只能改几何引擎的存储方案，例如把整帧缓存换成 DDR 行缓存或分块处理；这属于架构级改动，在当前画幅和器件上不划算。
+Of the 98 BRAM tiles, about 80 hold the full-frame display buffer required by rotation and bilinear interpolation, 1.5 form the two-row seam ring, about 10 are the DDR write FIFO, and the rest are effect and OSD line buffers. The 70% is therefore not scattered waste but the cost of storing a whole frame for rotation and interpolation. Reducing it significantly means changing how the geometry engine stores data — DDR line buffers or tiling — which is architectural work that does not pay off at this frame size and on this part.
 
-DSP 的使用也集中在坐标与窗口运算：`u_lerp` 6 颗、`u_blur` 1 颗、`u_split_ctrl` 1 颗、`u_zfit` 3 颗、`u_zmap` 8 颗。gamma 是 LUTRAM 查表，不使用 DSP。
+DSP use is equally concentrated: `u_lerp` 6, `u_blur` 1, `u_split_ctrl` 1, `u_zfit` 3, `u_zmap` 8. Gamma is a LUTRAM table and uses none.
 
-### 4.5 物理边界
+### 4.5 Physical boundary
 
-RGMII 的 TskewT 规格是 ±0.5 ns。本板的 RGMII 引脚都在 HR bank，没有 ODELAYE2，0° 转发时实测仍有约 0.845 ns 的保持余量缺口。试过 90° 相位和 −45° 补偿：前者直接把链路打断，后者把缺口减到 0.366 ns，但板上 ping 只剩 1/6，已经撤回。当前生产位流使用 0°、时钟也过 ODDR 的方案，板上长时间 ping 稳定。这个缺口由 pinout 和 bank 类型决定，不是再调几行 RTL 能消掉的；报告把它写成边界，不写成“已解决”。
+The RGMII TskewT specification is ±0.5 ns. Every RGMII pin on this board sits in an HR bank without ODELAYE2, and 0° forwarding still leaves about 0.845 ns of hold margin missing. A 90° phase broke the link outright; −45° reduced the gap to 0.366 ns but dropped ping to 1 in 6, and both were withdrawn. Production forwards at 0° with the clock through ODDR, and long ping runs stay clean. The gap follows from the pinout and the bank type; no RTL edit removes it. The report calls it a boundary, not a solved item.
 
+## 5 Verification and results
 
-## 5 验证与结果
+### 5.1 Strategy
 
-### 5.1 验证策略
+Four layers:
 
-验证分四层：
+1. Unit benches: CRC, UDP parsing, reassembly bounds, zoom mapping, bilinear, effect stages, OSD, CDC, arbitration.
+2. Integration benches: the full RGMII-to-AXI ingest chain and the full DDR-to-TMDS display chain.
+3. A full-video bench that runs rotation, eight zoom steps, bilinear, six effect stages, the seam, the OSD and boundary cases together.
+4. Board acceptance: JTAG/QSPI boot, serial commands, network streaming, telemetry, fault injection, continuous streaming and temperature.
 
-1. 单元台架：CRC、UDP 解析、重组边界、缩放映射、双线性、效果链、OSD、CDC、仲裁等；
-2. 集成台架：从 RGMII 到 AXI 的完整入包链，从 DDR 到 TMDS 的完整显示链；
-3. 完整视频台架：旋转、八档缩放、双线性、六级效果、竖缝、OSD 和边界条件一起跑；
-4. 板级验收：JTAG/QSPI 启动、串口命令、网络推流、遥测、故障注入、连续流和温度。
+Each layer produces verdict lines that can be rechecked; "it looks normal" is never a conclusion.
 
-每一层都给出可复核的判定行，不用“看起来正常”代替结论。
+### 5.2 Simulation
 
-### 5.2 仿真结果
+The standard regression has 19 benches (17 existing plus `eth_ingress_integrity` and `saver_tail_full`), covering Ethernet, display, geometry, effects and CDC. The delivered regression reads `fail=0`, and the full-video bench passes the 185° split, C17 processed-pane integrity and the C25/C26 frame-boundary specials.
 
-标准回归共 19 支（17 支原有台架加 `eth_ingress_integrity`、`saver_tail_full` 两支补齐），覆盖以太网、显示、几何、效果和 CDC。交付版本的回归结果为 `fail=0`；完整视频台架的 185° 分割、C17 处理窗完整性、C25/C26 帧边界专项均 PASS。
+Two cross-colour defects on a single row were closed with dedicated checks. C22 tests whether the effect chain's window stages see row tags and data in the same beat: before the fix, 6 and 48 fully white pixels appeared at the top and bottom edges; after, 0. C31 tags every cell with a 9-bit row label and checks which tap it selects: before the fix, two full rows at the frame tail had 1028 mismatching cells under rotation; after routing the seam `sx` through a two-row ring, the whole frame reads 0 in both swap states.
 
-显示侧的两条一行串色由专项判据闭合。C22 针对效果链窗口级的行标签与内容是否同拍：优化前帧顶/帧底各 6/48 个满白像素，优化后为 0。C31 用 9 位列标签帧标出每一格应选的抽头：优化前旋转时帧尾两整行各 1028 格不符，优化后 swap 两态全帧为 0。
+Frame-commit, UDP checksum, ICMP checksum, CDC snapshots and arbitration handover all have mutations that turn them red. The checks are themselves checked: a known-bad input must turn them red, and restoring the source must turn them green.
 
-帧重组的提交判据、UDP 校验和、ICMP 校验和、CDC 快照和仲裁交接都有能红的变异对照。判据本身也经过自检：给一个已知坏的输入，它必须红；恢复源码后，它必须绿。
+### 5.3 Board results
 
-### 5.3 板级结果
+Acceptance ran on a Zynq-7020 development board. The PL-side RJ45 connects to the PC's wired NIC, board at 192.168.1.10 and PC at 192.168.1.100; serial is COM6 on the USB-C bridge at 115200 8N1; HDMI drives a 1024×600 panel.
 
-板级验收在 Zynq-7020 开发板上完成。PL 侧 RJ45 接 PC 有线网卡，板卡地址 192.168.1.10，PC 地址 192.168.1.100；串口为 USB-C 桥的 COM6，115200 8N1；HDMI 接 1024×600 面板。
-
-| 项目 | 条件 | 读数 | 判定 |
+| Item | Condition | Reading | Verdict |
 |---|---|---|---|
-| QSPI 写入/回读 | 擦除、写入、硬件回读校验 | `PROGRAM_RC 0` | 通过 |
-| 冷启动 | 断电重上 | PL DONE=1，EOS=1，CRC/IDCODE 错误均为 0；串口 `stat`/`link` 有回显；ping 5/5 | 通过 |
-| 连续流 | 8 秒内置测试图，30 fps | 241 帧 / 8.05 s = 29.95 fps | 通过 |
-| 1 Hz 遥测 | ping 后监听 13 秒 | 13 包，帧计数连续增长 | 通过 |
-| 三阶段自检 | 干净 → 每 100 包丢 1 包 → 干净 | 22.0 fps；0 fps + 14.3 次作废每秒；18.9 fps | 通过 |
-| 处理窗完整性 | 185°，split video 50%，灰度单级 | `pane_bad=0`，计数有效 | 通过 |
-| 帧间隔统计 | `link clr` 后推流、停流、重启 | 推流中 `gap_last=28 ms`、`gap_max=49 ms`、`gap_valid=1`；停流 `stall` 增长；重启后 `gap_max=22 061 ms` | 通过 |
-| 串口命令 | 105 条命令清单 | 全部按预期回声，末态回到初态 | 通过 |
-| 温度 | 连续推流 | 板上读数 61.8–63.8 °C，`sane=1` | 通过 |
-| HDMI 画面 | 人眼/连续运行 | 左右同帧、几何一致、OSD 与串口一致；连续挂机数日无花屏/闪屏/冻帧；ETH/SD 插拔后恢复 | E1–E5 已确认；面板色彩仍为主观项 |
+| QSPI write/readback | erase, program, hardware verify | `PROGRAM_RC 0` | pass |
+| Cold boot | power cycle | PL DONE=1, EOS=1, zero CRC/IDCODE errors; `stat`/`link` respond; ping 5/5 | pass |
+| Continuous stream | 8 s of the built-in pattern at 30 fps | 241 frames / 8.05 s = 29.95 fps | pass |
+| 1 Hz telemetry | listen 13 s after a ping | 13 beacons, frame count rising monotonically | pass |
+| Three-stage self-test | clean → one packet in 100 dropped → clean | 22.0 fps; 0 fps with 14.3 aborts/s; 18.9 fps | pass |
+| Processed-pane integrity | 185°, split video 50%, grayscale only | `pane_bad=0`, count valid | pass |
+| Frame-gap statistics | `link clr`, stream, stop, restart | while streaming `gap_last=28 ms`, `gap_max=49 ms`, `gap_valid=1`; `stall` grows after stop; `gap_max=22,061 ms` after restart | pass |
+| Serial commands | 105-command list | every command answers as expected, final state equals initial | pass |
+| Temperature | continuous streaming | 61.8–63.8 °C, `sane=1` | pass |
+| HDMI picture | human eye, continuous run | same frame left/right, matching geometry, OSD agrees with serial; days of running without tearing, flashing or frozen frames; recovery after ETH/SD hot-plug | E1–E5 confirmed; panel colour remains subjective |
 
-时延的读数是 PL 内部时延：从帧提交到开始扫描，包含等待消隐和 DDR 搬运，不包含编码、网线和交换机。它不是玻璃到玻璃的端到端时延，报告里必须这样说明。
+The latency reading is PL-internal: from frame commit to the start of scan, including blanking wait and the DDR transfer, excluding encoding, cable and switch. It is not glass-to-glass, and the report says so.
 
-### 5.4 资源、时序与功耗
+### 5.4 Resources, timing and power
 
-| 指标 | 读数 |
+| Metric | Reading |
 |---|---|
-| 器件 | `xc7z020clg484-2` |
-| 工具链 | Vivado / Vitis 2025.2.1 |
-| 全局 WNS / WHS | 1.341 ns / 0.025 ns |
+| Device | `xc7z020clg484-2` |
+| Toolchain | Vivado / Vitis 2025.2.1 |
+| Global WNS / WHS | 1.341 ns / 0.025 ns |
 | TNS / THS | 0 / 0 |
-| 失败端点 | 0 / 56 043 |
-| LUT / FF | 14 967（28.13%）/ 9 095（8.55%） |
-| BRAM / DSP | 98 tile（70.00%）/ 19（8.64%） |
-| 动态功耗 | 2.228 W（工具估算，总 2.406 W） |
-| 结温 | 52.8 °C（工具估算） |
+| Failing endpoints | 0 / 56,043 |
+| LUT / FF | 14,967 (28.13%) / 9,095 (8.55%) |
+| BRAM / DSP | 98 tiles (70.00%) / 19 (8.64%) |
+| Dynamic power | 2.228 W (tool estimate, 2.406 W total) |
+| Junction temperature | 52.8 °C (tool estimate) |
 
-功耗和结温来自 Vivado 的估算报告，没有加入仿真活动文件，置信度为低；板上的温度读数来自 XADC，范围为 61.8–63.8 °C。两类数不能混为一谈。
+Power and junction temperature come from the Vivado estimate without a simulation activity file, so confidence is low. The on-board reading comes from the XADC and runs 61.8–63.8 °C. The two must not be conflated.
 
-### 5.5 结果讨论
+### 5.5 Discussion
 
-这套设计的强项是“可核对”。帧率、作废、缺行、时延、处理窗完整性和帧间隔都有硬件计数器，遥测、串口和 GPIO 读的是同一组数；同帧竖缝提供了一个像素级的视觉基准；故障注入证明仪表能被打红。弱项同样明确：BRAM 已到 70%，画幅不能继续提高；RGMII 发送侧有物理保持缺口；时延只覆盖 PL 内部；HDMI 的 E1–E5 已现场确认；面板色彩仍是主观项。
+The strength is that everything can be checked. Frame rate, aborts, missing rows, latency, processed-pane integrity and frame gaps all have hardware counters, and telemetry, serial and GPIO read the same numbers. The seam provides a pixel-level visual reference, and fault injection proves the instrument can turn red. The weaknesses are equally clear: BRAM is at 70% and the frame cannot grow; the RGMII transmit side has a physical hold gap; latency covers the PL only; HDMI E1–E5 are confirmed on the bench, while panel colour remains subjective.
 
+## 6 Engineering and reproduction
 
-## 6 工程化与复现
-
-### 6.1 目录结构
+### 6.1 Layout
 
 ```text
-README.md             项目简介与复现入口
-src/                  RTL、PS 固件、约束、上位机工具
-sim/                  单元、集成与完整视频台架
-scripts/                构建入口、Vitis/PS/sim 脚本、实现报告
-hw/                Vivado/Vitis 工程、上板脚本、实测输出、对账
-data/                 测试输入、金标图像与指标表
-docs/               设计报告、验证、优化、协作记录、图件
-technical_document.pdf/docx
-poster.pdf/png
+README.md             project overview and entry point
+src/                  RTL, PS firmware, constraints, host tools
+sim/                  unit, integration and full-video benches
+scripts/              build entry, Vitis/PS/sim scripts
+hw/                   Vivado/Vitis projects, board scripts, reports and measurements
+data/                 test inputs, golden images, metrics table
+docs/                 design, verification, optimisation, commands, interface, limits
 ```
 
-`hw/vivado/` 里的 Vivado 工程由 `scripts/build.tcl` 生成，工程文件已按仓库相对路径整理，源文件与约束缺失为 0，工程文件内没有本机绝对路径。Vitis 平台描述在 `hw/vitis/`，FSBL 与平台可用 `scripts/vitis/rebuild_vitis.py` 重建；PS 应用由 `scripts/ps/build_ps_app.py` 直接编译，不依赖 IDE 手点。
+The Vivado project in `hw/vivado/` is generated by `scripts/build.tcl` and staged with relative paths: no missing sources or constraints, and no local absolute paths in the project files. The Vitis platform descriptor is in `hw/vitis/`; FSBL and platform rebuild with `scripts/vitis/rebuild_vitis.py`. The PS application is compiled by `scripts/ps/build_ps_app.py` without touching the IDE.
 
-### 6.2 构建
+### 6.2 Build
 
 ```bash
 vivado -mode batch -source scripts/build.tcl
 ```
 
-这条命令建工程、建块设计、综合、实现、出位流、XSA 和时序/资源/CDC/功耗报告。只建工程与块设计时加 `-tclargs bd_only`。
+This creates the project and block design, runs synthesis and implementation, writes the bitstream, XSA and the timing, resource, CDC and power reports. Add `-tclargs bd_only` to stop after the project and block design.
 
-PS 应用：
+PS application:
 
 ```bash
 PS_CC=<Vitis>/gnu/aarch32/nt/gcc-arm-none-eabi/bin/arm-none-eabi-gcc.exe \
-PS_BSP=<平台构建生成的 BSP 目录> \
+PS_BSP=<BSP from the platform build> \
+PS_OUT=hw/project/ps_app.elf \
 python scripts/ps/build_ps_app.py
 ```
 
-### 6.3 仿真
+### 6.3 Simulation
 
 ```bash
 bash scripts/sim/run_msim.sh rows udp_reasm reasm_bounds udp_telemetry \
      eth_ctrl_arb eth_top_rgmii split_ctrl osd_overlay link_monitor
 ```
 
-完整视频台架与专项台架的判定行写在 `sim/README.md` 与 `hw/reports/`。跑完看 `RESULT` 行，不看“有没有报错”。
+Verdict lines for the full-video and special benches are in `sim/README.md` and `hw/reports/`. Read the `RESULT` lines, not "did anything print an error".
 
-### 6.4 上板
+### 6.4 Board
 
 ```bash
 VP_XSDB=<Vitis>/bin/xsdb.bat VP_VIVADO_BIN=<Vivado>/bin \
@@ -351,121 +335,115 @@ python src/host/telemetry_listen.py 13
 python src/host/link_selftest.py 192.168.1.10 6
 ```
 
-QSPI 固化：
+QSPI:
 
 ```bash
 VP_VIVADO_BIN=<Vitis>/bin bash hw/scripts/make_boot_image.sh
 VP_HW_URL=<host:port> vivado -mode batch -source hw/tcl/flash_qspi.tcl
 ```
 
-写入后断电重上，在串口看启动回显，再跑 `stat`、`link` 和遥测。JTAG 下载是易失的；QSPI 镜像才是断电自启的交付物。
+Power-cycle after writing, watch the boot messages on the serial port, then run `stat`, `link` and the telemetry listener. A JTAG download is volatile; the QSPI image is the deliverable that boots without a host.
 
-### 6.5 交付物身份
+### 6.5 Identity of the deliverables
 
-位流、XSA 和固件都放在 `hw/project/`，按 md5 核对身份，不靠文件名。Vivado 工程、Vitis 平台描述、上位机工具和台架都在仓库内，报告中的每个数字都能回到对应的实现报告或板上日志。
+Bitstream, XSA and firmware live in `hw/project/` and are identified by MD5, not by file name. The Vivado project, Vitis platform descriptor, host tools and benches are all in the repository, so every number in this report can be traced back to an implementation report or a board log.
 
+## 7 What the design contributes
 
-## 7 创新点与工程价值
+### 7.1 Turning the comparison into an instrument
 
-### 7.1 把对照做成量具
+The seam is not a filter effect. It is a per-pixel comparison of the same frame at the same coordinates, which turns "did processing happen, is the geometry right" from a judgement call into something that can be checked column by column. Both halves share the geometry engine and the 15-beat chain, so a difference on the seam can only come from the algorithm or the geometry, never from two independent scalers.
 
-竖缝不是滤镜，而是同帧、同坐标的逐像素对照。它让“处理有没有发生、几何有没有错”从主观判断变成可以逐列检查的对象。左右两半共用几何算子和固定 15 拍的效果链，缝上的差异只可能来自算法或几何本身，不会来自“两路各算各的”。
+### 7.2 An instrument that can be made to fail
 
-### 7.2 仪表必须能被打红
+Telemetry carries aborted frames and the missing rows of the last abort, which answers "why did it drop" rather than only "how many". The processed-pane count answers whether the source leaked into the processed side. The three-stage self-test switches between a clean stream, deterministic loss and recovery, and requires aborts to rise and the frame rate to fall in the fault stage. If the instrument did not react to deliberate damage, the whole observation scheme would be worthless.
 
-遥测里有累计作废帧数和最后一次缺行数，能回答“为什么掉帧”，而不是只回答“掉了多少”。处理窗完整性计数回答“处理侧有没有漏进原图”。三阶段自检在干净流、确定性丢包和恢复流之间切换，故障段要求作废计数上升、帧率下降；如果仪表对人为破坏没有反应，这套观测就不成立。
+### 7.3 All-hardware path and fixed latency
 
-### 7.3 全硬件通路与恒定延迟
+Pixels never touch the PS: ingest, reassembly, buffering, geometry, effects, blending, OSD and TMDS encoding all run in the PL. Effect-chain latency does not move with configuration, and every display stage has a latency set by its hardware depth. For remote monitoring and closed-loop control, that is worth more than two extra filters.
 
-像素通路不经过 PS，收包、拼帧、缓存、几何、效果、混合、OSD 和 TMDS 编码都在 PL 内完成。效果链的延迟不随配置变化，显示链每一级的延迟由硬件级数决定。对远程监看和闭环控制，这比多堆两级滤镜更有价值。
+### 7.4 A reproducible package
 
-### 7.4 可复现的工程包
+Build, simulation, board bring-up, QSPI programming and Vitis platform rebuild all have scripts. The Vivado project is staged with relative paths in `hw/vivado/` and was opened and checked; benches print verdicts; board readings are logged. The package is not "a pile of sources that compiles" but a path someone else can run from zero to a lit screen.
 
-构建、仿真、上板、QSPI 固化和 Vitis 平台重建都有脚本。Vivado 工程已在 `hw/vivado/` 内按相对路径整理并现场打开验证；台架有判定行；板上读数有日志。工程包不是“能编译的一堆源码”，而是“别人能从头跑到屏幕亮起来的一条路径”。
+## 8 Limits and further work
 
+**RGMII transmit side.** The HR bank has no ODELAYE2, and 0° forwarding still leaves about 0.845 ns of TskewT hold margin missing. Both the 90° and −45° compensation routes were rejected on the board. The current scheme pings cleanly for long runs, but the gap is a physical boundary, not a solved item.
 
-## 8 局限与后续工作
+**BRAM and frame size.** About 80 of the 98 BRAM tiles are the full-frame buffer for rotation and bilinear interpolation, 70% of the part. Moving to 1024×600 needs roughly four times the storage and does not fit. Cutting BRAM means changing how the geometry engine stores frames — architectural work.
 
-**RGMII 发送侧。** HR bank 没有 ODELAYE2，0° 转发仍有约 0.845 ns 的 TskewT 保持缺口。90° 和 −45° 两条补偿路线都在板上被否决。当前方案在板上长时间 ping 稳定，但这条缺口是物理边界，不是已解决项。
+**Latency definition.** Telemetry latency covers the PL only, from frame commit to the start of scan, excluding encoding, cable and switch. It is not glass-to-glass.
 
-**BRAM 与画幅。** 98 个 BRAM 中约 80 个是旋转与双线性的整帧缓存，占 70%。把画幅提高到 1024×600 需要约四倍存储，这颗器件放不下。要降 BRAM，只能改几何引擎的存储方案，属于架构级改动。
+**Human-eye checks.** The 185° thin-line case is closed in RTL and on the bench, and the processed-pane count is 0. E1–E5 (same frame left/right, matching geometry, OSD readings, days of continuous running, ETH/SD hot-plug recovery) were confirmed on site with nothing abnormal. Cable quality and panel colour remain subjective.
 
-**时延口径。** 遥测时延只覆盖 PL 内部，从帧提交到开始扫描，不含编码、网线和交换机。它不是玻璃到玻璃的端到端时延。
+**Reset semantics.** The worst path is still reset recovery. Converting the large asynchronous resets to synchronous resets would push WNS further but changes reset semantics and requires rerunning the ARP/ICMP benches and the full regression. It is not done.
 
-**人眼判据。** 185° 细线已由 RTL 和台架闭环，处理窗完整性计数为 0；E1–E5（左右同帧、几何一致、OSD 读数、连续挂机数日、ETH/SD 插拔恢复）已现场确认，未见异常；显示器线缆和面板色彩仍属于主观项。
+**Porting.** The IDELAY, BUFIO and ODDR usages are tied to 7-series devices, and the AXI GPIO control plane is tied to the current PS configuration. Moving to UltraScale+ or another board requires re-verifying these items rather than copying them.
 
-**复位语义。** 全设计最差路径仍是复位恢复。把大块异步复位改成同步复位可以继续压 WNS，但会改变复位语义，需要重跑 ARP/ICMP 台架和全量回归；当前没有做。
+## 9 Conclusion
 
-**平台迁移。** 技能包里的 IDELAY、BUFIO、ODDR 用法绑定 7 系列；AXI GPIO 控制面绑定当前 PS 配置。换到 UltraScale+ 或另一块板卡时，这些条目需要重新验证，不能直接套用。
+The system ties a complete hardware video path to an observation scheme that can be shown to fail. It outputs 1024×600 at 59.5 Hz from a 512×300/30 fps source, keeps the effect-chain latency at 15 pixel clocks, provides a pixel-level same-frame comparison, and reports frame count, bad packets, aborts, missing rows, latency, processed-pane integrity and frame gaps over telemetry and a serial port. The three-stage self-test proves the instrument turns red; the QSPI image passed program and verify, and cold boot from a power cycle was confirmed.
 
+The value is not in the number of effects. It is that every claim has a reading, every reading has an outlet, and every outlet can be cross-checked. That is harder to argue with than two more filters, and easier to explain on site.
 
-## 9 结论
+## Appendix A Key interfaces
 
-这套系统把一条全硬件视频通路和一套可被证伪的观测手段绑在一起。它能在 512×300、30 fps 的输入下稳定输出 1024×600、59.5 Hz 的画面，效果链延迟恒为 15 个像素时钟，同帧竖缝提供像素级对照，遥测和串口提供帧数、坏包、作废、缺行、时延、处理窗完整性和帧间隔统计。三阶段自检能证明仪表会变红；QSPI 镜像完成写入与回读校验，断电冷启动验证通过。
+### A.1 Control word
 
-设计的价值不在于效果数量，而在于每个结论都有读数、每个读数都有出口、每个出口都能被对照。这比再堆两级滤镜更难被质疑，也更容易在现场讲清楚。
-
-
-## 附录 A 关键接口
-
-### A.1 控制字
-
-| 位 | 含义 |
+| Bits | Meaning |
 |---|---|
-| 8:0 | 效果链九位选择：灰度、反色、模糊、锐化、Sobel、二值化、判决反相、腐蚀、膨胀 |
-| 18:9 | 几何控制：缝位、auto/follow/swap/marker、rot_auto、rot_speed、zoom_fit |
-| 19 | 双线性开关 |
-| 20 | OSD 开关 |
-| 26 | 帧间隔统计清零 |
+| 8:0 | nine effect-chain bits: grayscale, invert, blur, sharpen, Sobel, threshold, inverted decision, erode, dilate |
+| 18:9 | geometry: seam position, auto/follow/swap/marker, rot_auto, rot_speed, zoom_fit |
+| 19 | bilinear enable |
+| 20 | OSD enable |
+| 26 | clear frame-gap statistics |
 
-### A.2 遥测字段
+### A.2 Telemetry fields
 
-| 偏移 | 长度 | 含义 |
+| Offset | Length | Meaning |
 |---:|---:|---|
-| 0 | 4 | 固定标识 `VDEO` |
-| 4 | 1 | 版本 |
-| 5 | 1 | bit0 链路有效 |
-| 6 | 4 | 累计帧数 |
-| 10 | 4 | 累计包数 |
-| 14 | 4 | 坏包数 |
-| 18 | 2 | 最后一次作废缺行数 |
-| 20 | 4 | 自由运行秒计数 |
-| 24 | 2 | 累计作废帧数 |
-| 26 | 2 | PL 内部时延（ms） |
-| 28 | 2 | 源端口 |
-| 30 | 1 | bit0 时延有效，bit1 处理窗计数有效 |
-| 31 | 1 | 处理窗非灰像素计数（饱和到 255） |
+| 0 | 4 | magic `VDEO` |
+| 4 | 1 | version |
+| 5 | 1 | bit0 link alive |
+| 6 | 4 | frames received |
+| 10 | 4 | packets received |
+| 14 | 4 | bad packets |
+| 18 | 2 | missing rows in the last abort |
+| 20 | 4 | free-running seconds |
+| 24 | 2 | aborted frames |
+| 26 | 2 | PL-internal latency (ms) |
+| 28 | 2 | source port |
+| 30 | 1 | bit0 latency valid, bit1 processed-pane count valid |
+| 31 | 1 | non-gray pixels in the processed pane (saturates at 255) |
 
----
+### A.3 Serial commands
 
-### A.3 串口命令
-
-| 命令 | 作用 |
+| Command | Purpose |
 |---|---|
-| `stat` | 打印控制状态、帧计数、效果选择、几何字 |
-| `temp` | 打印 XADC 温度、VCCINT、OSD 编码与 GPIO 回读 |
-| `link` / `link clr` | 读帧间隔统计 / 清零 |
-| `src auto\|0\|1\|2` | 片源自动、图卡、网络、SD |
-| `pipe <九位>` / `pipe show` | 设置 / 查看效果链 |
-| `zoom on\|off\|auto\|<倍率>` | 缩放开关、自动、手动倍率 |
-| `rot auto\|0\|1` / `rot speed 0..7` | 自动旋转 / 每帧角度 |
-| `split screen\|video <0..100>` / `split swap` | 竖缝模式、位置、左右交换 |
-| `gamma <1.00..3.00>\|off\|auto` | gamma 曲线 |
-| `osd on\|off` | OSD 开关 |
-| `sd files` / `sd file n` / `play` / `stop` | SD 卡选段、播放、停止 |
+| `stat` | print control state, frame counts, effect selection, geometry words |
+| `temp` | print XADC temperature, VCCINT, OSD encoding and GPIO readback |
+| `link` / `link clr` | read / clear frame-gap statistics |
+| `src auto\|0\|1\|2` | source: auto, test card, network, SD |
+| `pipe <nine bits>` / `pipe show` | set / show the effect chain |
+| `zoom on\|off\|auto\|<ratio>` | zoom switch, automatic, manual ratio |
+| `rot auto\|0\|1` / `rot speed 0..7` | automatic rotation / degrees per frame |
+| `split screen\|video <0..100>` / `split swap` | seam mode, position, pane swap |
+| `gamma <1.00..3.00>\|off\|auto` | gamma curve |
+| `osd on\|off` | OSD |
+| `sd files` / `sd file n` / `play` / `stop` | SD selection and playback |
 
-## 附录 B 证据位置
+## Appendix B Where the evidence lives
 
-| 内容 | 位置 |
+| Item | Location |
 |---|---|
-| 设计源码 | `src/rtl/`、`src/ps/`、`src/constraints/` |
-| 上位机工具 | `src/host/` |
-| 台架 | `sim/`，判定行见 `sim/README.md` |
-| 实现报告 | `hw/reports/` |
-| 板上读数 | `hw/measured/` |
-| 设计报告与图件 | `docs/design-report.md`、`docs/figures/` |
-| 验证与优化 | `docs/verification.md`、`docs/optimization.md` |
-| 关键问题台账 | `docs/issues/key-issues.md` |
-| 接口表 | `docs/interface-table.md` |
-| 复现 | `docs/reproduction.md` |
-| 局限 | `docs/limits.md` |
+| Design sources | `src/rtl/`, `src/ps/`, `src/constraints/` |
+| Host tools | `src/host/` |
+| Benches | `sim/`, verdicts in `sim/README.md` |
+| Implementation reports | `hw/reports/` |
+| Board readings | `hw/measured/` |
+| Design report and figures | `docs/design-report.md`, `docs/figures/` |
+| Verification and optimisation | `docs/verification.md`, `docs/optimization.md` |
+| Defect ledger | `docs/issues/key-issues.md` |
+| Interface tables | `docs/interface-table.md` |
+| Reproduction | `docs/reproduction.md` |
+| Limits | `docs/limits.md` |

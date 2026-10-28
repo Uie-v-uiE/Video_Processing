@@ -1,28 +1,28 @@
-# 问题台账（ISSUES）
+# Defect ledger
 
-这里放设计过程中真正改变过判断的缺陷与纠错记录。编号沿用原台账，便于和旧记录、台架名、技能条目对照；编号不是发布版本号。
+This directory records the defects that actually changed a decision. Numbering follows the original ledger so entries can be cross-referenced with older notes, bench names and skill cards; the numbers are not release versions.
 
-## 怎么读
+## How to read it
 
-- `key-issues.md`：精选 20 条，按“现象 → 根因 → 判据 → 修复/状态 → 证据”写。适合接手的人。
-- 本目录只放 20 条精选；完整过程台账含早期轮次细节、未采纳方案与逐条读数，不入库。
-- 当前仍未修的边界看 [`../limits.md`](../limits.md)，不要在本目录找“最新版本结论”。
+- `key-issues.md` — 20 entries in the form symptom → root cause → check → fix/status → evidence. Written for whoever picks this up next.
+- Only those 20 entries are in this repository. The full process ledger, with early-round detail, rejected options and per-run readings, is not published.
+- Boundaries that are still open live in [`../limits.md`](../limits.md); do not look for "current conclusions" here.
 
-## 状态词
+## Status words
 
-| 词 | 含义 |
+| Word | Meaning |
 |---|---|
-| 已修 | 代码已改，且有台架或板上读数 |
-| 部分生效 | RTL/台架已改，但整链或板级复验没做完 |
-| 未修 | 已确认，代码没动 |
-| 搁置 | 做过或评估过，代价大于收益，不采纳 |
-| 误报 | 逐行核对后不成立，留案防止重复调查 |
-| NOT_MEASURED | 读不到输入，不能判 |
+| fixed | code changed, with a bench or board reading to show it |
+| partly | RTL or bench changed, but the full-chain or board re-check is incomplete |
+| open | confirmed, code untouched |
+| shelved | tried or evaluated; the cost outweighs the benefit; not adopted |
+| false alarm | did not survive line-by-line checking; kept so it is not investigated twice |
+| NOT_MEASURED | input unreadable, so no verdict |
 
-## 和协作记录的分工
+## Division of labour
 
-每条都带同一个问题编号或同一个台架名，能直接回到代码、台架和板上日志，不重复描述同一件事。
+Every entry carries the issue number or the bench name, so it leads straight back to code, bench and board log instead of retelling the same story.
 
-## 证据
+## Evidence
 
-每条点名一个主证据；台架判定行在 `sim/results/` 或 `hw/reports/`，板上读数在 `hw/measured/`，时序/资源在 `hw/reports/`。原始过程台账不入库，仓库内保留精选 20 条。
+Each entry names one primary piece of evidence. Bench verdicts are in `sim/results/` or `hw/reports/`, board readings in `hw/measured/`, timing and resources in `hw/reports/`. The raw process ledger stays out of the repository; the 20 selected entries are kept here.

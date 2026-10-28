@@ -1,64 +1,64 @@
-# 复现
+# Reproduction
 
-复现分五步：拿到源码、构建位流、跑台架、构建 PS 应用、上板或固化 QSPI。每一步都给出前置条件、命令和期望结果；没有期望结果的操作不算一步。
+Five steps: get the sources, build the bitstream, run the benches, build the PS application, and either bring up the board over JTAG or write QSPI. Every step lists prerequisites, commands and the expected result — an operation without an expected result does not count as a step.
 
-## 1 前置条件
+## 1 Prerequisites
 
-| 项 | 要求 |
+| Item | Requirement |
 |---|---|
-| 器件 | `xc7z020clg484-2`，Zynq-7020 开发板 |
-| 工具 | Vivado / Vitis 2025.2.1；Vitis 自带 `arm-none-eabi-gcc`；ModelSim（跑 `run_msim.sh` 时用 `MSIM_BIN` 指到安装目录） |
-| 主机 | Windows 10/11 或 Linux；Python 3.10+；Node.js 18+（可选，主机工具） |
-| 板卡 | PL 侧 RJ45、HDMI 输出、microSD、QSPI、USB-C JTAG/UART 桥 |
-| 网络 | PC 有线网卡 `192.168.1.100/24`，板卡 `192.168.1.10/24`，直连千兆 |
-| 串口 | FT4232 的 B 通道，`COM6`，115200 8N1 |
-| 显示 | 1024×600 HDMI 面板 |
+| Device | `xc7z020clg484-2`, Zynq-7020 development board |
+| Tools | Vivado / Vitis 2025.2.1; the `arm-none-eabi-gcc` shipped with Vitis; ModelSim (point `MSIM_BIN` at its install directory for `run_msim.sh`) |
+| Host | Windows 10/11 or Linux; Python 3.10+; Node.js 18+ (optional, host tools) |
+| Board | PL-side RJ45, HDMI output, microSD, QSPI, USB-C JTAG/UART bridge |
+| Network | PC wired NIC `192.168.1.100/24`, board `192.168.1.10/24`, direct gigabit link |
+| Serial | FT4232 channel B, `COM6`, 115200 8N1 |
+| Display | 1024×600 HDMI panel |
 
-工具路径用环境变量传入，脚本里不写死任何机器路径。
+Tool locations arrive through environment variables; no script hardcodes a machine path.
 
-## 2 目录
+## 2 Layout
 
 ```text
-src/rtl/          PL 源码
-src/ps/           PS 裸机固件
-src/constraints/  引脚、时钟、CDC 约束
-src/host/         PC 侧推流、遥测、仪表、自检
-sim/              台架
-scripts/build.tcl   Vivado 主入口
-scripts/tcl/        Vivado 构建与 board 工程 staging TCL
-scripts/vitis/      Vitis 平台重建
-scripts/ps/         PS 应用编译
-scripts/sim/        仿真入口
-hw/reports/    实现报告
-hw/            Vivado/Vitis 工程、上板脚本、实测输出
-data/             测试输入、金标图像、指标表
-docs/           设计与验证文档
+src/rtl/           PL sources
+src/ps/            PS bare-metal firmware
+src/constraints/   pin, clock and CDC constraints
+src/host/          host-side streaming, telemetry, dashboard, self-test
+sim/               testbenches
+scripts/build.tcl  Vivado entry point
+scripts/tcl/       Vivado build and board-project staging TCL
+scripts/vitis/     Vitis platform rebuild
+scripts/ps/        PS application build
+scripts/sim/       simulation entry points
+hw/reports/        implementation reports
+hw/                Vivado/Vitis projects, board scripts, measurements
+data/              test inputs, golden images, metrics table
+docs/              design and verification documents
 ```
 
-## 3 构建位流
+## 3 Build the bitstream
 
 ```bash
 vivado -mode batch -source scripts/build.tcl
 ```
 
-脚本建工程、建块设计、综合、实现、出位流、XSA，并生成时序、资源、CDC、方法学和功耗报告。产物默认在 `scripts/` 与 `vivado_system/`。只建工程和块设计：
+The script creates the project and block design, runs synthesis and implementation, writes the bitstream and XSA, and generates the timing, resource, CDC, methodology and power reports. Outputs go to `hw/reports/` and `vivado_system/`. To build only the project and block design:
 
 ```bash
 vivado -mode batch -source scripts/build.tcl -tclargs bd_only
 ```
 
-期望结果：`BD_ONLY_DONE` 或完整构建结束时的 `BITSTREAM`/报告生成行；时序报告的失败端点为 0。
+Expected: `BD_ONLY_DONE`, or the `BITSTREAM` and report lines at the end of a full build; zero failing endpoints in the timing report.
 
-## 4 重建 Vivado 工程
+## 4 Rebuild the Vivado project
 
-`hw/vivado/zynq_video_sys.xpr` 是从构建脚本生成并整理过的工程。先执行第 3 节，产生 `vivado_system/` 与 `scripts/system.bit`/`system.xsa`；重建：
+`hw/vivado/zynq_video_sys.xpr` is the project generated and staged by the build scripts. Run step 3 first so `vivado_system/` and `hw/reports/system.bit` / `system.xsa` exist, then:
 
 ```bash
-vivado -mode batch -nojournal -log scripts/stage.log \
+vivado -mode batch -nojournal -log hw/reports/stage.log \
   -source scripts/tcl/stage_board_projects.tcl
 ```
 
-期望结果：
+Expected:
 
 ```text
 VERIFY missing_files=0 of 97
@@ -66,50 +66,50 @@ VERIFY abs_path_lines=0
 STAGE_BOARD_PROJECTS DONE
 ```
 
-97 = 92 份手写 RTL + 1 份 BD wrapper + 1 个块设计 + 3 份生效约束；`missing_files=0` 表示复制出来的工程每个文件都在盘上；`abs_path_lines=0` 表示工程文件里没有本机绝对路径。打开工程后应看到器件 `xc7z020clg484-2`、约束集和块设计。
+97 = 92 hand-written RTL files + 1 BD wrapper + 1 block design + 3 active constraint sets. `missing_files=0` means every file of the copied project exists on disk; `abs_path_lines=0` means the project files contain no local absolute path. Opening the project should show `xc7z020clg484-2`, the constraint sets and the block design.
 
-## 5 重建 Vitis 平台
+## 5 Rebuild the Vitis platform
 
-Vitis 平台描述在 `hw/vitis/`。重建平台与 FSBL：
+The platform descriptor is in `hw/vitis/`. Rebuild the platform and FSBL:
 
 ```bash
 <Vitis>/bin/vitis-server.bat --port 8879 &
 sleep 10
-VP_VITIS_WS=<工作目录> <Vitis>/bin/vitis.bat \
+VP_VITIS_WS=<workspace> <Vitis>/bin/vitis.bat \
   -s scripts/vitis/rebuild_vitis.py 8879
 ```
 
-期望结果：`Platform Build Finished successfully.`、`GENERATE_RC 0`，并生成 `zynq_fsbl/build/fsbl.elf`。Vitis 2025.2.1 的 `create_app_component` 在本域会返回 `StatusCode.INTERNAL`，这是工具限制；PS 应用不依赖 IDE，直接用下一节的编译脚本。
+Expected: `Platform Build Finished successfully.`, `GENERATE_RC 0`, and `zynq_fsbl/build/fsbl.elf` written. `create_app_component` in Vitis 2025.2.1 returns `StatusCode.INTERNAL` on this platform — a tool limitation. The PS application does not need the IDE; the next section compiles it directly.
 
-## 6 构建 PS 应用
+## 6 Build the PS application
 
 ```bash
 PS_CC=<Vitis>/gnu/aarch32/nt/gcc-arm-none-eabi/bin/arm-none-eabi-gcc.exe \
-PS_BSP=<平台构建生成的 BSP 目录> \
+PS_BSP=<BSP from the platform build> \
 PS_OUT=hw/project/ps_app.elf \
 python scripts/ps/build_ps_app.py
 ```
 
-期望结果：`ENTRY _boot@... _vector_table@... OK`、`OK hw/project/ps_app.elf`，`.text` 约 60 KB。脚本会检查 `_start`、`_boot`、`_vector_table`、`MMUTable`、`main` 和 `XSdPs_CardInitialize` 是否在 ELF 里，防止把空镜像下到板上。
+Expected: `ENTRY _boot@... _vector_table@... OK` and `OK hw/project/ps_app.elf`, with `.text` around 60 KB. The script checks that `_start`, `_boot`, `_vector_table`, `MMUTable`, `main` and `XSdPs_CardInitialize` are present in the ELF, so an empty image cannot reach the board unnoticed.
 
-## 7 跑台架
+## 7 Run the benches
 
-快速回归：
+Quick regression:
 
 ```bash
 MSIM_BIN=<ModelSim>/win64 bash scripts/sim/run_msim.sh rows udp_reasm reasm_bounds udp_telemetry \
      eth_ctrl_arb eth_top_rgmii split_ctrl osd_overlay link_monitor
 ```
 
-完整视频台架与专项台架：
+Full-video and special benches:
 
 ```bash
 MSIM_BIN=<ModelSim>/win64 bash scripts/sim/run_msim.sh video_pipeline_top
 ```
 
-期望结果：每支台架末尾有 `RESULT ... PASS`；完整视频台架的 C17/C25/C26 专项 PASS，nfail=0。没有判定行的日志不算通过。
+Expected: `RESULT ... PASS` at the end of every bench; the full-video bench passes C17/C25/C26 with nfail=0. A log without a verdict line is not a pass.
 
-## 8 上板（JTAG）
+## 8 Board bring-up over JTAG
 
 ```bash
 VP_XSDB=<Vitis>/bin/xsdb.bat \
@@ -117,21 +117,21 @@ VP_VIVADO_BIN=<Vivado>/bin \
 bash hw/scripts/board_flash.sh
 ```
 
-脚本依次做：扫链、PS `ps7_init`、下载 PL、下载 ELF、回读 AXI GPIO。期望结果：
+The script scans the chain, runs PS `ps7_init`, downloads the PL, downloads the ELF and reads back AXI GPIO. Expected:
 
 ```text
 FLASH: GREEN
 ```
 
-健康快照：
+Health snapshot:
 
 ```bash
 VP_XSDB=<Vitis>/bin/xsdb.bat bash hw/scripts/board_health.sh
 ```
 
-期望结果：串口有 `[STAT]`，JTAG 读到 GPIO 与 DDR 头，三条异常向量标签可读，`HEALTH: GREEN`。
+Expected: `[STAT]` on the serial port, GPIO and DDR header over JTAG, the three exception-vector labels readable, and `HEALTH: GREEN`.
 
-## 9 网络与主机工具
+## 9 Network and host tools
 
 ```bash
 ping 192.168.1.10
@@ -140,37 +140,37 @@ python src/host/telemetry_listen.py 13
 python src/host/link_selftest.py 192.168.1.10 6
 ```
 
-期望结果：
+Expected:
 
-- 8 秒推流约 241 帧，30 fps；
-- 13 秒收到 13 个 1 Hz 遥测包，帧计数连续增长；
-- 三阶段自检 `PASS`：干净流 ≥ 8 fps，故障段作废 ≥ 5 次/秒且帧率 < 5 fps，恢复流回到干净流水平。
+- about 241 frames in 8 seconds, 30 fps;
+- 13 beacons in 13 seconds at 1 Hz, with the frame count rising monotonically;
+- the three-stage self-test reports `PASS`: clean stream ≥ 8 fps, fault stage ≥ 5 aborts/s with frame rate < 5 fps, recovery back to clean-stream level.
 
-串口命令电池：
+Serial command battery:
 
 ```bash
 node src/host/uart_cmd_check.mjs --port COM6
 ```
 
-期望结果：全部命令按预期回声，末态回到初态。
+Expected: every command answers as specified and the final state equals the initial state.
 
-帧间隔统计：
+Frame-gap statistics:
 
 ```text
 link clr
 link
 ```
 
-期望结果：`gap_last/min/max/sum` 有值，`gap_valid=1`；停流后 `gap_last` 增大，`gap_max` 更新。
+Expected: `gap_last/min/max/sum` carry values and `gap_valid=1`; after the stream stops, `gap_last` grows and `gap_max` updates.
 
-## 10 QSPI 固化
+## 10 Writing QSPI
 
 ```bash
 VP_VIVADO_BIN=<Vitis>/bin bash hw/scripts/make_boot_image.sh
 VP_HW_URL=<host:port> vivado -mode batch -source hw/tcl/flash_qspi.tcl
 ```
 
-期望结果：
+Expected:
 
 ```text
 Erase Operation successful.
@@ -179,18 +179,18 @@ Verify Operation successful.
 PROGRAM_RC 0
 ```
 
-写入后断电重上，在串口看启动回显，再跑 `ping`、`stat`、`link` 和遥测。QSPI 镜像包含 FSBL、位流和应用；JTAG 下载是易失的，断电后会回到 QSPI。
+Power-cycle after writing, watch the boot messages on the serial port, then run `ping`, `stat`, `link` and the telemetry listener. The QSPI image contains FSBL, bitstream and application; a JTAG download is volatile and disappears on power loss.
 
-## 11 常见问题
+## 11 Common problems
 
-**JTAG 报 `Cannot halt processor core`。** PS 可能停在异常状态或 QSPI 启动过程中。先断电重上，再跑 `board_flash.sh`；不要靠反复 `rst -system` 硬顶。
+**JTAG reports `Cannot halt processor core`.** The PS may be in an exception state or still booting from QSPI. Power-cycle first, then rerun `board_flash.sh`; do not fight it with repeated `rst -system`.
 
-**串口没有回显。** 确认 COM6 没有被终端占用；确认波特率 115200；确认 PL 已配置、PS 应用已下载。`health_read` 的 JTAG 段能读到 GPIO 和 DDR 头，说明 PL 与总线是活的，问题在 PS 或串口。
+**No serial echo.** Check that COM6 is not held by a terminal, that the baud rate is 115200, and that the PL is configured with the PS application downloaded. If `health_read` still reads GPIO and the DDR header over JTAG, the PL and bus are alive and the problem is on the PS or serial side.
 
-**ping 不通。** 先确认 PC 网卡是 `192.168.1.100/24`，板卡是 `192.168.1.10`；再确认网线在 PL 侧 RJ45，不是 PS 网口；最后跑 `board_health.sh` 看 PL 是否配置。
+**Ping fails.** Confirm the PC NIC is `192.168.1.100/24` and the board is `192.168.1.10`; confirm the cable is in the PL-side RJ45, not the PS port; then run `board_health.sh` to see whether the PL is configured.
 
-**遥测收不到。** 信标发给最后一个 ARP 请求方；先 ping 一次板子，再启动监听。Windows 防火墙可能拦截 UDP 1234。
+**No telemetry.** The beacon goes to the last ARP requester — ping the board once before starting the listener. Windows Firewall may block UDP 1234.
 
-**SD 不播放。** 先 `sd remount`，再 `sd files` 看卡上段；`sd file n` 选段后 `play`。卡必须是 FAT32，帧序列由 `src/host/make_sd_video.mjs` 生成。
+**SD does not play.** Run `sd remount`, then `sd files` to list the clips; select with `sd file n` and start with `play`. The card must be FAT32, and the frame sequence is produced by `src/host/make_sd_video.mjs`.
 
-**Vivado 工程打开报 output products 缺失。** 工程文件只带源与约束；块设计的 output products 在 `.gen/` 里，不入库。跑一次 `bd_only` 或完整构建就会生成。
+**Vivado reports missing output products.** The project carries sources and constraints only; block-design output products live in `.gen/` and are not committed. Run the `bd_only` flow once or a full build.
