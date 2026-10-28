@@ -101,7 +101,7 @@ report/            design, verification, optimization, reproduction, commands, l
 
 ## Limits
 
-Telemetry latency covers the PL only, from frame commit to the start of scan; it is not glass-to-glass. The RGMII transmit pins sit in an HR bank without ODELAYE2, so 0° forwarding still carries about 0.845 ns of TskewT hold margin missing; both 90° and −45° alternatives were rejected on the board. The frame size stays at 512×300 because the whole frame has to fit in on-chip BRAM. Details are in [`report/limits.md`](report/limits.md).
+Telemetry latency covers the PL only, from frame commit to the start of scan; it is not glass-to-glass. The RGMII transmit pins sit in a bank without output delay cells, so the forwarding phase stays at 0° and its hold margin is tight; the other two phases were rejected on the board. The frame size stays at 512×300 because the whole frame has to fit in on-chip memory. Details are in [`report/limits.md`](report/limits.md).
 
 ## License
 
