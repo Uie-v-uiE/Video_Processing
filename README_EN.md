@@ -1,87 +1,68 @@
 # Multi-Source Video Processing System
 
-A fully hardware video path on Zynq-7020, with an observation instrument that can be read back over the network and the serial port.
+A complete video path inside one FPGA: frames arrive on the Ethernet port, leave on HDMI, and the CPU never touches a pixel.
 
-A host PC sends 512×300 RGB565 frames as UDP datagrams of at most 1392 bytes to port 5001. The PL receives them from RGMII, passes them through the MAC, UDP filtering and offset-based frame reassembly, and writes complete frames into a DDR ping-pong buffer. The display side reads a frame back, applies scaling, arbitrary-angle rotation, bilinear interpolation and a six-stage effect chain, then overlays OSD text and expands the result ×2 to a 1024×600, 59.5 Hz HDMI output. Pixels never pass through the PS. A vertical seam in the middle of the screen shows the source on the left and the processed version of the same frame on the right; both sides share the same geometry engine and a fixed 15-cycle effect chain.
+A host PC sends 512×300 RGB565 frames as UDP datagrams to the board. The PL receives them from RGMII, reassembles frames by intra-frame offset, writes whole frames into a DDR ping-pong buffer, reads them back for geometry and effects, and drives a 1024×600 HDMI output. A movable vertical seam splits the screen between the source frame and the processed version of the same frame. The PS only issues commands.
 
-## Highlights
+## Why it looks like this
 
-- **Same-frame A/B seam (comparable)**: the source and processed panes share one geometry engine, one set of row tags and a fixed 15-cycle effect chain, so the seam compares the same frame rather than two independently scaled paths.
-- **Frame-commit gates + a falsifiable instrument (trustworthy)**: a frame is committed only when the byte gate, row-coverage bitmap and bad-packet gate all pass; `pane_bad`, `link` frame-gap statistics and three-stage fault injection can all make the instrument fail.
-- **Full-PL + QSPI closed loop (deliverable)**: RGMII ingest, frame reassembly, DDR ping-pong, geometry, effects, OSD and HDMI all run in the PL; QSPI cold boot restarts without a host, and serial, UDP telemetry and AXI GPIO read the same counters.
+The starting question was narrow: is what the remote viewer sees the complete, processed, current frame? Split into three, it asks whether the frame arrived whole, whether processing actually happened, and whether a failure can be explained.
 
-## What can be checked
+The first question became the **three-gate frame commit**: every byte present, every source row written, no bad packet. Only then does the display switch frames, so a frame missing one packet never shows up as half a frame — the screen keeps the previous one.
 
-| Claim | How to check | Reading |
-|---|---|---|
-| A frame is committed only when complete | Row-coverage bitmap, byte gate, abort counter | 241 frames in 8 s, 29.95 fps; abort count does not grow under a clean stream |
-| The processed pane does not leak the source | Non-gray pixel count with only grayscale enabled and split video | `pane_bad=0` at 185°, 30 fps, count valid |
-| The instrument can be made to fail | Clean → 1 packet in 100 dropped → clean | 22.0 fps / 0 fps with 14.3 aborts per second / 18.9 fps, PASS |
-| Effect latency is configuration-independent | Cycle-by-cycle alignment in the full video bench and OSD latency | Constant 15 pixel clocks; PL-internal frame latency 2–16 ms |
-| Frame-gap statistics are readable | Serial `link clr` → stream → stop → restart → `link` | `gap_valid=1` while streaming; `stall` grows after stop; `gap_max=22,061 ms` after restart |
-| QSPI cold boot | Write, on-chip verify, power cycle | `DONE=1`, `EOS=1`, no CRC/IDCODE errors; `stat` and `link` respond |
-| Timing closes with positive margin | Same script before and after optimisation | WNS 1.029 → 1.341 ns; WHS 0.025 ns; TNS/THS 0; zero failing endpoints |
+The second became the **same-frame comparison**: the two panes are two read windows into one frame, sharing one geometry engine and one fixed-latency effect chain. Any difference across the seam can only come from the algorithm, never from two independent scalers.
 
-## Implementation readings
+The third became the **on-chip instrument**: aborted frames, missing rows, bad packets, frame gaps and processed-pane integrity are counters in hardware; serial, UDP telemetry and GPIO read the same numbers, and injected packet loss can turn the instrument red on demand.
 
-Device: `xc7z020clg484-2`. Tools: Vivado / Vitis 2025.2.1.
+Those requirements also explain why there are no vendor video IP blocks here: a stock video pipeline moves frames as a stream, with nowhere to put "is this frame complete", and no reason to keep two read windows for comparison. So RGMII sampling, CRC, ARP/ICMP/UDP, offset-based reassembly, the DDR ping-pong, rotation, scaling, bilinear interpolation, the six-stage effect chain, OSD and HDMI timing are all written in-house; device-specific code is confined to the clocking, DDR interface and serialiser primitives.
 
-| Item | Reading |
-|---|---|
-| Timing | WNS 1.341 ns, WHS 0.025 ns, TNS = THS = 0, failed endpoints 0 |
-| Per-clock setup | `clk_fpga_0` 2.159 ns; `eth_rxc` 3.247 ns; `sys_clk` 14.797 ns; `clkout0_1` 3.264 ns; `clkout3` 1.727 ns |
-| Resources | LUT 14,967 (28.13%), FF 9,095 (8.55%), BRAM 98 (70.00%), DSP 19 (8.64%) |
-| Simulation | 19 standard regressions, `fail=0`; full-video C17/C25/C26 arms PASS |
-| Board | QSPI cold boot, 8 s stream, telemetry, three-stage self-test, 105-command UART battery and temperature all pass |
+## Features
 
-## Repository contents
+- **Three sources**: UDP stream, SD-card raw-frame playback, and a PL-drawn test card, switched at run time and sharing one display path.
+- **Geometry**: arbitrary-angle rotation 0–359°, eight zoom steps 0.25×–2.00×, bilinear or nearest-neighbour; zoom can auto-fit to the current angle.
+- **Effects**: grayscale, invert, 3×3 blur, 3×3 sharpen, Sobel, threshold (with inverted decision), erode, dilate, plus a bypassable gamma stage; nine control bits, any combination, fixed total latency.
+- **Same-frame A/B**: the seam follows either display columns or image columns, can swap sides and hide its marker.
+- **OSD**: source and resolution, frame rate, effect projection, angle, zoom, seam position, PL-internal latency, die temperature.
+- **Observation**: serial `stat`/`temp`/`link`, 1 Hz UDP telemetry, AXI GPIO.
+- **Controls**: on-board keys for angle, serial commands for everything else.
 
-| Area | Location |
-|---|---|
-| PL RTL, PS firmware and host tools | `src/rtl/`, `src/ps/`, `src/host/`, `src/constraints/` |
-| Simulation benches and verdicts | `sim/`, `sim/results/`, `build/reports/regression.txt`, `report/verification.md` |
-| Synthesis, implementation and resource reports | `build/build.tcl`, `build/tcl/`, `build/reports/` |
-| Board projects, scripts and measurements | `board/vivado/`, `board/vitis/`, `board/project/`, `board/scripts/`, `board/tcl/`, `board/measured/`, `board/compare/` |
-| Project documentation | `report/design-report.md`, `report/verification.md`, `report/optimization.md`, `report/reproduction.md`, `report/commands.md`, `report/declarations.md`, `report/limits.md` |
-| Skill package | `skill/README.md` |
+## Data flow
 
-`board/` uses two project folders: `board/vivado/` contains the `.xpr` and `.srcs`; `board/vitis/` contains the platform descriptor and QEMU arguments. Source paths use `$PPRDIR/../../src/...`; there are no absolute host paths in the project.
+```text
+host ──UDP 5001──> RGMII ─> MAC ─> UDP filter ─> reassembly by offset ─> three-gate commit
+                                                                         │
+                                                                         ▼
+                                                              DDR ping-pong (AXI HP)
+                                                                         │
+                                        ┌────────────────────────────────┴──────────┐
+                                        ▼                                           ▼
+                                 left pane: source                    right pane: geometry + effects
+                                        └──────────────────┬────────────────────────┘
+                                                           ▼
+                                                   OSD ─> 1024×600 HDMI
+```
 
-## TCL build flow and timing convergence
-
-`build/build.tcl` forwards to `build/tcl/build_system_axigpio.tcl`: project and block design, synthesis, implementation, bitstream/XSA, then timing, utilisation, CDC, methodology and power reports. `build/tcl/stage_board_projects.tcl` stages the project into `board/vivado` and opens it for verification.
-
-| Stage | WNS | WHS | Failing endpoints | Note |
-|---|---:|---:|---:|---|
-| Before optimisation | 1.029 ns | — | — | Worst setup on the cross-MMCM processing-window bus |
-| After reset-tree replication | 1.172 ns | — | — | Local link-monitor reset tree duplicated |
-| Final | 1.341 ns | 0.025 ns | 0 | TNS/THS = 0; worst path is reset recovery |
-
-Source: `build/reports/build_timing_summary.rpt` and `report/optimization.md`. The final WHS is 0.025 ns; it was around 0.048 ns during optimisation. That final change is placement noise and remains positive, so it is not claimed as an optimisation gain.
-
-## Build and reproduce
+## Quick start
 
 ```bash
 vivado -mode batch -source build/build.tcl
-MSIM_BIN=<ModelSim>/win64 bash build/sim/run_msim.sh rows udp_reasm reasm_bounds udp_telemetry \
-     eth_ctrl_arb eth_top_rgmii split_ctrl osd_overlay link_monitor
+
+MSIM_BIN=<ModelSim>/win64 bash build/sim/run_msim.sh rows udp_reasm reasm_bounds \
+     udp_telemetry eth_ctrl_arb eth_top_rgmii split_ctrl osd_overlay link_monitor
+
 PS_CC=<Vitis>/gnu/aarch32/nt/gcc-arm-none-eabi/bin/arm-none-eabi-gcc.exe \
-PS_BSP=<BSP generated by the platform build> \
-PS_OUT=board/project/ps_app.elf \
+PS_BSP=<BSP from the platform build> PS_OUT=board/project/ps_app.elf \
 python build/ps/build_ps_app.py
-<Vitis>/bin/vitis-server.bat --port 8879 &
-sleep 10
-VP_VITIS_WS=<workspace> <Vitis>/bin/vitis.bat -s build/vitis/rebuild_vitis.py 8879
+
 VP_XSDB=<Vitis>/bin/xsdb.bat VP_VIVADO_BIN=<Vivado>/bin bash board/scripts/board_flash.sh
 VP_HW_URL=localhost:3121 vivado -mode batch -source board/tcl/flash_qspi.tcl
+
 python src/host/video_sender.py --demo --seconds 8
 python src/host/telemetry_listen.py 13
-python src/host/link_selftest.py 192.168.1.10 6
 node src/host/uart_cmd_check.mjs --port COM6
 ```
 
-The full step-by-step procedure is in [`report/reproduction.md`](report/reproduction.md).
-The serial command reference is [`report/commands.md`](report/commands.md) (Chinese); device, toolchain and third-party declarations are in [`report/declarations.md`](report/declarations.md).
+Step-by-step instructions with expected output are in [`report/reproduction.md`](report/reproduction.md); the serial command reference is [`report/commands.md`](report/commands.md).
 
 ## Layout
 
@@ -90,30 +71,40 @@ src/rtl/           PL source: top, Ethernet, display, geometry, effects, AXI, HD
 src/ps/            PS bare-metal: main.c, sd_play.c, linker script
 src/constraints/   pins, clock groups, quasi-static CDC, IO candidates
 src/host/          sender, telemetry, dashboard, self-test, UART checks
-sim/               92 benches; sim/results/ holds the final verdicts
-build/build.tcl    Vivado entry
-build/tcl/         Vivado build and board-project staging TCL
-build/vitis/       Vitis platform rebuild
-build/ps/          PS application build
-build/sim/         xsim runner
-build/reports/     timing, resources, CDC, power, regressions, full-video bench
-board/vivado/      Vivado project (.xpr + .srcs)
-board/vitis/       Vitis platform descriptor and QEMU arguments
-board/project/     bitstream, XSA, PS application
-board/scripts/     board bring-up, health, UART, boot image
-board/tcl/         JTAG and QSPI single-step scripts
-board/measured/    measured logs
-board/flash/       BOOT.bin and packaging log
-board/compare/     measured vs reference comparison
-data/inputs/       test vectors
-data/golden/       human comparison images
-data/metrics.csv   metrics table
-skill/             skill package distilled from the project
-report/            design report, verification, optimization, reproduction, collaboration
+sim/               benches; sim/results/ holds final verdicts
+build/             Vivado entry, TCL, Vitis platform, PS build, sim runners, reports
+board/             Vivado project, Vitis platform, bitstream/XSA/ELF, scripts, measurements
+data/              test vectors and comparison images
+report/            design, verification, optimization, reproduction, commands, limits
 ```
+
+## Documentation
+
+| Document | Content |
+|---|---|
+| [`report/design-report.md`](report/design-report.md) | Design report: goals, architecture, key techniques, trade-offs |
+| [`report/verification.md`](report/verification.md) | Verification strategy, bench verdicts, board results |
+| [`report/optimization.md`](report/optimization.md) | Timing and resource optimisation, including rejected options |
+| [`report/reproduction.md`](report/reproduction.md) | From an empty directory to a running board |
+| [`report/commands.md`](report/commands.md) | Serial command reference |
+| [`report/interface-table.md`](report/interface-table.md) | Register and interface tables |
+| [`report/limits.md`](report/limits.md) | Boundaries and known limitations |
+| [`sim/README.md`](sim/README.md) | Bench index and verdict rules |
+
+## Measurements
+
+- 241 frames in an 8-second stream, 29.95 fps; the abort counter stays flat under a clean stream.
+- Grayscale-only, image-column seam at 185°: processed-pane integrity count is 0 and valid.
+- Three-stage fault injection: 22.0 fps clean → 0 fps with about 14.3 aborts per second at one dropped packet in 100 → 18.9 fps after recovery.
+- After a stop and restart, the hardware remembers a maximum frame gap of 22,061 ms.
+- With the bitstream in QSPI the board boots without a host, and `stat`/`link` respond.
 
 ## Limits
 
-Telemetry latency covers the PL only: from frame commit to the start of scan. It is not glass-to-glass. The RGMII transmit pins are in an HR bank without ODELAYE2; 0° forwarding still has about 0.845 ns of TskewT hold margin missing, and both 90° and −45° were rejected on the board. BRAM at 70% is dominated by the full-frame buffers needed for rotation and bilinear interpolation, so a 512×300 source cannot be raised to 1080p on this device. The 185° thin-line case is closed in RTL and the bench, but an eye check is still recommended. Details are in [`report/limits.md`](report/limits.md).
+Telemetry latency covers the PL only, from frame commit to the start of scan; it is not glass-to-glass. The RGMII transmit pins sit in an HR bank without ODELAYE2, so 0° forwarding still carries about 0.845 ns of TskewT hold margin missing; both 90° and −45° alternatives were rejected on the board. The frame size stays at 512×300 because the whole frame has to fit in on-chip BRAM. Details are in [`report/limits.md`](report/limits.md).
+
+## License
+
+MIT, see [`LICENSE`](LICENSE).
 
 [中文版](README.md)

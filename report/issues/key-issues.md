@@ -1,6 +1,6 @@
 # 关键问题台账（精选）
 
-编号沿用原台账；这里只保留真正改变过设计或判据的条目。完整台账在 `FIN/records/issues/issues-full.md`。
+编号沿用早期台账；这里只保留真正改变过设计或判据的条目，完整过程记录不入库。
 
 ## 1. #27–35 · 入包链丢字：拖影和黑横纹的真正根因
 
@@ -160,7 +160,7 @@
 **根因**：`cmd_link` 没有接进 `dispatch`；平台描述目录没有 BSP，文档把“平台描述”当成了“BSP 目录”。
 **判据**：板上串口 `link` 必须返回 `[LINK] ... gap_valid=...`；编译脚本必须在 BSP 缺失时提前退出并指路。
 **修复**：接回分派和帮助行，重编 ELF 并写 QSPI；BSP 改成“平台构建生成的 BSP 目录”，脚本加前置检查。**状态**：已修。
-**证据**：`src/ps/main.c`、`board/measured/link_gap.txt`、`build/ps/build_ps_app.py`、`report/collaboration/corrections.md`。
+**证据**：`src/ps/main.c`、`board/measured/link_gap.txt`、`build/ps/build_ps_app.py`、`report/declarations.md`。
 
 ## 仍未修 / 边界
 

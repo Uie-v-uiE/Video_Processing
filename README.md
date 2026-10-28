@@ -1,99 +1,75 @@
 # 多源视频流多效果变换处理系统
 
-Zynq-7020 上的一条全硬件视频通路，加上一套能从网线和串口读回来的观测仪表。
+Zynq-7020 上的一条完整视频通路：网线进来，屏幕出去，中间不经过 CPU。
 
-上位机把 512×300、RGB565 的帧切成不超过 1392 字节的 UDP 报文发到 5001 端口。PL 从 RGMII 开始收包，经 MAC、UDP 过滤、按帧内偏移重组，写入 DDR 乒乓缓存；显示侧读回整帧，做缩放、任意角度旋转、双线性插值和六级效果处理，与 OSD 一起按 ×2 展开到 1024×600、59.5 Hz HDMI。像素通路不经过 PS。屏幕中间的竖缝左侧是原图、右侧是同一帧的处理图，两侧共用几何算子和固定 15 拍的效果链。
+上位机把 512×300、RGB565 的画面切成 UDP 报文发到板上，PL 从 RGMII 一路收到 DDR，再从 DDR 读回来做几何与效果，最后送到 1024×600 的 HDMI。屏幕中间有一条可调的竖缝，左边是原图，右边是同一帧的处理结果。CPU 只负责发命令，不碰一个像素。
 
-## 亮点
+## 为什么是这样
 
-- **同帧 A/B 竖缝（可比）**：原图和处理图共用同一套几何、行标签和固定 15 拍效果链，竖缝两侧是同一帧，不是两路各自缩放。
-- **帧提交三条件 + 可证伪仪表（可信）**：整帧字节、行覆盖位图、无坏包三门同时成立才提交；`pane_bad`、`link` 帧间隔和三阶段故障注入都能把仪表打红。
-- **全 PL + QSPI 闭环（可交付）**：RGMII 收包、帧重组、DDR 乒乓、几何、效果、OSD、HDMI 都在 PL 内完成；QSPI 断电自启，串口、UDP 遥测和 AXI GPIO 读同一组计数器。
+这条通路的起点是一个很具体的问题：远端看到的画面，到底是不是完整的、处理过的、当前这一帧？把它拆开就是三个追问——帧收全了吗，处理真的发生了吗，出了问题能不能说清原因。
 
-## 可复核的结果
+第一个追问定下了**帧提交的三条件**：整帧字节到齐、每一行都被写过、没有坏包，三条同时成立才换页。所以缺一包的帧不会以半帧或黑条的形式出现，而是根本不出现，屏幕停在上一帧。
 
-| 结论 | 怎么看 | 读数 |
-|---|---|---|
-| 帧收满才提交 | 行覆盖位图、字节门与作废计数 | 8 秒推流 241 帧，29.95 fps；作废计数不随干净流增长 |
-| 处理窗没有漏进原图 | 灰度单级 + split video 下的非灰像素计数 | 185°、30 fps 连续流下 `pane_bad=0`，计数有效 |
-| 仪表能被打红 | 干净流 → 每 100 包丢 1 包 → 干净流 | 22.0 fps / 0 fps + 14.3 次作废每秒 / 18.9 fps，PASS |
-| 效果链延迟不随配置变 | 完整视频台架的逐拍对齐与 OSD 时延 | 恒 15 个像素时钟；板上 PL 内部帧时延 2–16 ms |
-| 帧间隔统计可读 | 串口 `link clr` → 推流 → 停流 → 重启 → `link` | 推流中 `gap_valid=1`；停流 `stall` 增长；重启后 `gap_max=22 061 ms` |
-| QSPI 断电自启 | 写入、硬件回读、断电重上 | `DONE=1`、`EOS=1`、无 CRC/IDCODE 错误；`stat`/`link` 有回显 |
-| 时序收敛到正余量 | 优化前后同脚本对照 | WNS 1.029 → 1.341 ns；WHS 0.025 ns；TNS/THS=0；失败端点 0 |
+第二个追问定下了**同帧对照**：竖缝两侧不是两路视频，而是同一帧的两个取数窗口，共用同一套坐标算子和同一条固定节拍的效果链。缝上的差异只可能来自算法，不会来自两次独立的缩放。
 
-## 实现读数
+第三个追问定下了**板上的仪表**：作废帧、缺行、坏包、帧间隔、处理窗完整性都做成计数器，串口、网口和 GPIO 读到的是同一组数，并且可以用人为丢包把表打红。
 
-器件 `xc7z020clg484-2`，工具 Vivado / Vitis 2025.2.1。
+这三件事也决定了"不用现成 IP"：厂商的视频通路把帧当流来搬，中间没有位置放"这一帧收全了吗"的判断，更不会为了对照留两个取数窗口。于是从 RGMII 采样、CRC、ARP/ICMP/UDP、按偏移拼帧、DDR 乒乓，到旋转、缩放、双线性、六级效果、OSD 和 HDMI 时序，全部自己写；器件相关的部分收敛到时钟、DDR 接口和串行器这几处原语。
 
-| 项 | 读数 |
-|---|---|
-| 时序 | WNS 1.341 ns，WHS 0.025 ns，TNS = THS = 0，失败端点 0 |
-| 逐时钟 setup | `clk_fpga_0` 2.159 ns；`eth_rxc` 3.247 ns；`sys_clk` 14.797 ns；`clkout0_1` 3.264 ns；`clkout3` 1.727 ns |
-| 资源 | LUT 14 967（28.13%），FF 9 095（8.55%），BRAM 98（70.00%），DSP 19（8.64%） |
-| 仿真 | 19 支标准回归 `fail=0`；完整视频台架 C17/C25/C26 专项 PASS |
-| 板上 | QSPI 冷启动、8 秒推流、遥测、三阶段自检、105 条串口电池、温度均通过 |
+## 功能
 
-## 工程组成
+- **三路片源**：网口 UDP 推流、SD 卡裸帧回放、PL 自绘测试图卡，运行时切换，共用同一条显示通路。
+- **几何**：0–359° 任意角旋转、八档 0.25×–2.00× 缩放、双线性插值与最近邻可切；倍率可跟随角度自动定标，保证旋转后整幅仍在屏内。
+- **效果链**：灰度、反色、3×3 模糊、3×3 锐化、Sobel 边缘、二值化（含判决反相）、腐蚀、膨胀，加一级可旁路的 gamma；九位控制字任意组合，整链延迟固定。
+- **同帧 A/B**：竖缝在屏幕列或画面列两种坐标下可调，可左右换位、可隐藏分界线。
+- **OSD**：片源与分辨率、帧率、效果投影、角度、倍率、缝位、PL 内时延、片上温度。
+- **观测**：串口 `stat`/`temp`/`link`、1 Hz UDP 遥测、AXI GPIO，三处读同一组计数。
+- **交互**：板载按键调角度，串口命令控制片源、缩放、效果、分割线与回放。
 
-| 内容 | 位置 |
-|---|---|
-| PL RTL、PS 固件与上位机脚本 | `src/rtl/`、`src/ps/`、`src/host/`、`src/constraints/` |
-| 仿真台架与判定结果 | `sim/`、`sim/results/`、`build/reports/regression.txt`、`report/verification.md` |
-| 综合、实现与资源报告 | `build/build.tcl`、`build/tcl/`、`build/reports/` |
-| 上板工程、运行脚本与实测日志 | `board/vivado/`、`board/vitis/`、`board/project/`、`board/scripts/`、`board/tcl/`、`board/measured/`、`board/compare/` |
-| 项目文档 | `report/design-report.md`、`report/verification.md`、`report/optimization.md`、`report/reproduction.md`、`report/commands.md`、`report/declarations.md`、`report/limits.md` |
-| 技能包 | `skill/README.md` |
+## 数据流
 
-`board/` 采用两个工程文件夹：`board/vivado/` 放 `.xpr` 与 `.srcs`，`board/vitis/` 放平台描述与 QEMU 参数；源码路径使用 `$PPRDIR/../../src/...`，工程内没有本机绝对路径。
+```text
+上位机 ──UDP 5001──> RGMII ─> MAC ─> UDP 过滤 ─> 按帧内偏移重组 ─> 帧提交三条件
+                                                                   │
+                                                                   ▼
+                                                          DDR 乒乓缓存（AXI HP）
+                                                                   │
+                                      ┌────────────────────────────┴───────────┐
+                                      ▼                                        ▼
+                              左窗：原图（直通）                    右窗：几何 + 六级效果
+                                      └───────────────┬────────────────────────┘
+                                                      ▼
+                                              OSD 叠字 ─> 1024×600 HDMI
+```
 
-## TCL 构建流程与时序收敛
+PS 只经串口和 AXI GPIO 下发控制字；帧数据不经过 ARM 核。
 
-`build/build.tcl` 转发到 `build/tcl/build_system_axigpio.tcl`：建工程与块设计 → 综合 → 实现 → 位流/XSA → 时序、资源、CDC、方法学和功耗报告。`build/tcl/stage_board_projects.tcl` 再把工程整理到 `board/vivado` 并现场打开验证。
-
-| 阶段 | WNS | WHS | 失败端点 | 说明 |
-|---|---:|---:|---:|---|
-| 优化前 | 1.029 ns | — | — | 最差 setup 在跨 MMCM 的处理窗总线 |
-| 复位树复制后 | 1.172 ns | — | — | 复制 link-monitor 本地复位树 |
-| 最终 | 1.341 ns | 0.025 ns | 0 | TNS/THS 为 0；最差路径回到复位恢复 |
-
-数据源是 `build/reports/build_timing_summary.rpt` 与 `report/optimization.md`。WHS 最终为 0.025 ns；优化过程中曾在 0.048 ns 附近，最终下降是布局扰动，仍为正，不作为优化收益宣称。
-
-## 构建与复现
+## 快速开始
 
 ```bash
-# Vivado：建工程、块设计、综合、实现、位流、XSA、报告
+# 1. 建工程、块设计、综合、实现、位流、XSA 与报告
 vivado -mode batch -source build/build.tcl
 
-# 台架
-MSIM_BIN=<ModelSim>/win64 bash build/sim/run_msim.sh rows udp_reasm reasm_bounds udp_telemetry \
-     eth_ctrl_arb eth_top_rgmii split_ctrl osd_overlay link_monitor
-MSIM_BIN=<ModelSim>/win64 bash build/sim/run_msim.sh video_pipeline_top
+# 2. 跑台架（ModelSim；也可用 build/sim/run_sim.tcl 走 xsim）
+MSIM_BIN=<ModelSim>/win64 bash build/sim/run_msim.sh rows udp_reasm reasm_bounds \
+     udp_telemetry eth_ctrl_arb eth_top_rgmii split_ctrl osd_overlay link_monitor
 
-# PS 应用
+# 3. 编译 PS 应用（不需要打开 Vitis IDE）
 PS_CC=<Vitis>/gnu/aarch32/nt/gcc-arm-none-eabi/bin/arm-none-eabi-gcc.exe \
-PS_BSP=<平台构建生成的 BSP 目录> \
-PS_OUT=board/project/ps_app.elf \
+PS_BSP=<平台构建生成的 BSP 目录> PS_OUT=board/project/ps_app.elf \
 python build/ps/build_ps_app.py
 
-# Vitis 平台（可选）
-<Vitis>/bin/vitis-server.bat --port 8879 &
-sleep 10
-VP_VITIS_WS=<工作目录> <Vitis>/bin/vitis.bat -s build/vitis/rebuild_vitis.py 8879
-
-# 上板
-VP_XSDB=<Vitis>/bin/xsdb.bat VP_VIVADO_BIN=<Vivado>/bin \
-  bash board/scripts/board_flash.sh
+# 4. 上板并固化
+VP_XSDB=<Vitis>/bin/xsdb.bat VP_VIVADO_BIN=<Vivado>/bin bash board/scripts/board_flash.sh
 VP_HW_URL=localhost:3121 vivado -mode batch -source board/tcl/flash_qspi.tcl
 
-# 主机侧
+# 5. 推流与观测
 python src/host/video_sender.py --demo --seconds 8
 python src/host/telemetry_listen.py 13
-python src/host/link_selftest.py 192.168.1.10 6
 node src/host/uart_cmd_check.mjs --port COM6
 ```
 
-完整步骤与每条命令的期望结果在 [`report/reproduction.md`](report/reproduction.md)；串口命令逐条说明在 [`report/commands.md`](report/commands.md)；器件、工具与第三方声明在 [`report/declarations.md`](report/declarations.md)。
+完整步骤和每条命令的预期结果在 [`report/reproduction.md`](report/reproduction.md)，串口命令逐条说明在 [`report/commands.md`](report/commands.md)。
 
 ## 目录
 
@@ -102,30 +78,54 @@ src/rtl/            PL 源码：顶层、以太网、显示、几何、效果、
 src/ps/             PS 裸机：main.c、sd_play.c、链接脚本
 src/constraints/    引脚、时钟组、准静态 CDC、候选 IO 窗
 src/host/           推流、遥测、仪表、自检、串口判据
-sim/                92 支台架；sim/results/ 汇总最终判定
+sim/                仿真台架；sim/results/ 汇总最终判定
 build/build.tcl     Vivado 主入口
 build/tcl/          Vivado 构建与 board 工程 staging TCL
 build/vitis/        Vitis 平台重建脚本
 build/ps/           PS 应用直接编译脚本
-build/sim/          xsim 运行入口
+build/sim/          xsim / ModelSim 运行入口
 build/reports/      时序、资源、CDC、功耗、回归与完整视频台架
 board/vivado/       Vivado 工程（.xpr + .srcs）
 board/vitis/        Vitis 平台描述与 QEMU 参数
 board/project/      位流、XSA、PS 应用
-board/scripts/      上板、健康、UART、镜像打包
+board/scripts/      上板、健康检查、串口、镜像打包
 board/tcl/          JTAG、QSPI 单步脚本
-board/measured/     一手实测日志
+board/measured/     板上实测日志
 board/flash/        BOOT.bin 与打包日志
 board/compare/      实测与参考结果的比对
 data/inputs/        测试向量
 data/golden/        人眼比对参考图
-data/metrics.csv    指标表
-skill/              与大模型协作提炼的技能包
-report/             设计报告、验证、优化、复现、命令手册、协作记录
+report/             设计、验证、优化、复现、命令手册、接口表、局限
 ```
+
+## 文档
+
+| 文档 | 内容 |
+|---|---|
+| [`report/design-report.md`](report/design-report.md) | 设计报告：目标、方案、关键技术、取舍 |
+| [`report/verification.md`](report/verification.md) | 验证策略、台架判定与板级结果 |
+| [`report/optimization.md`](report/optimization.md) | 时序与资源的优化过程，含被否决的方案 |
+| [`report/reproduction.md`](report/reproduction.md) | 从空目录到点亮的完整步骤 |
+| [`report/commands.md`](report/commands.md) | 串口命令手册 |
+| [`report/interface-table.md`](report/interface-table.md) | 寄存器与接口表 |
+| [`report/limits.md`](report/limits.md) | 边界与已知限制 |
+| [`report/issues/key-issues.md`](report/issues/key-issues.md) | 关键问题台账：根因与判据 |
+| [`sim/README.md`](sim/README.md) | 台架索引与判定口径 |
+
+## 实测
+
+- 8 秒推流收到 241 帧，29.95 fps；干净流下作废计数不增长。
+- 灰度单级 + 画面坐标竖缝、185° 旋转下，处理窗完整性计数为 0 且有效。
+- 三阶段故障注入：干净流 22.0 fps → 每 100 包丢 1 包时 0 fps、作废约 14.3 次每秒 → 恢复 18.9 fps。
+- 停流重启后，硬件记住的最大帧间隔为 22 061 ms。
+- 位流写入 QSPI 后断电重上自启，串口 `stat`/`link` 有回显。
 
 ## 边界
 
-遥测时延只覆盖 PL 内部（帧提交到开始扫描），不是玻璃到玻璃。RGMII 发侧在 HR bank 上没有 ODELAYE2，0° 转发仍有约 0.845 ns 的 TskewT 保持缺口；90° 与 −45° 都被否决。BRAM 70% 由整帧缓存决定，512×300 以上画幅放不下。185° 细线已由 RTL 和台架闭环；E1–E5 已现场确认，含 ETH 与 SD 插拔。逐条说明在 [`report/limits.md`](report/limits.md)。
+遥测时延只覆盖 PL 内部（帧提交到开始扫描），不是玻璃到玻璃。RGMII 发侧在 HR bank 上没有 ODELAYE2，0° 转发仍有约 0.845 ns 的 TskewT 保持缺口，90° 与 −45° 两条补偿路线都在板上被否决。画幅停在 512×300 是因为整帧缓存要装进片内 BRAM，再大就得换存储架构。逐条说明在 [`report/limits.md`](report/limits.md)。
+
+## 许可
+
+MIT，见 [`LICENSE`](LICENSE)。
 
 [English version](README_EN.md)

@@ -32,7 +32,6 @@ build/sim/        仿真入口
 build/reports/    实现报告
 board/            Vivado/Vitis 工程、上板脚本、实测输出
 data/             测试输入、金标图像、指标表
-skill/            技能包
 report/           设计与验证文档
 ```
 
