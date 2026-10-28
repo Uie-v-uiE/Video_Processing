@@ -50,6 +50,7 @@ def parse_args():
     p.add_argument("--raw", metavar="WxH", help="--input 是裸 RGB565 帧流时的源分辨率，如 1024x600")
     p.add_argument("--demo", action="store_true", help="先 ping 板子，再推内置测试视频")
     p.add_argument("--no-ping", action="store_true", help="跳过 ping（板子已知可达时用）")
+    p.add_argument("--loop", action="store_true", help="循环发送同一个文件，Ctrl+C 停")
     return p.parse_args()
 
 
@@ -123,15 +124,18 @@ def test_frame(n):
     return b"".join(rows)
 
 
-def ffmpeg_pipe(path, fps):
+def ffmpeg_pipe(path, fps, loop=False):
     """让 ffmpeg 把任意片源解成 512×300 rgb565le 裸帧，走 stdout。
     返回 (Popen, None) 或 (None, 原因)；调用方负责关闭。"""
     exe = shutil.which("ffmpeg")
     if not exe:
         return None, "没找到 ffmpeg：可以用 --demo 发内置测试图，或先装 ffmpeg 再发自己的视频。"
-    cmd = [exe, "-hide_banner", "-loglevel", "error", "-i", path,
-           "-vf", "scale=%d:%d:force_original_aspect_ratio=decrease,""pad=%d:%d:(ow-iw)/2:(oh-ih)/2" % (OUT_W, OUT_H, OUT_W, OUT_H), "-pix_fmt", "rgb565le",
-           "-f", "rawvideo", "-r", "%.6g" % fps, "-"]
+    cmd = [exe, "-hide_banner", "-loglevel", "error"]
+    if loop:
+        cmd += ["-stream_loop", "-1"]
+    cmd += ["-i", path,
+            "-vf", "scale=%d:%d:force_original_aspect_ratio=decrease,""pad=%d:%d:(ow-iw)/2:(oh-ih)/2" % (OUT_W, OUT_H, OUT_W, OUT_H), "-pix_fmt", "rgb565le",
+            "-f", "rawvideo", "-r", "%.6g" % fps, "-"]
     try:
         p = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
     except OSError as e:
@@ -201,7 +205,7 @@ def main():
             if src_size:
                 fh = open(a.input, "rb")
             else:
-                pipe, why = ffmpeg_pipe(a.input, a.fps)
+                pipe, why = ffmpeg_pipe(a.input, a.fps, a.loop)
                 if pipe is None:
                     print("FATAL: " + why)
                     return 2
@@ -214,6 +218,9 @@ def main():
                 raw_len = src_size[0] * src_size[1] * 2
                 chunk = fh.read(raw_len)
                 if len(chunk) < raw_len:
+                    if a.loop:
+                        fh.seek(0)
+                        continue
                     print("[TX] 裸帧文件读完")
                     break
                 payload = resize_raw(chunk, *src_size)
