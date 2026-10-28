@@ -28,9 +28,9 @@ There is no fourth outcome where a command is accepted and does nothing. The com
 
 `link` fields:
 
-- `drop` — bytes or packets dropped;
-- `badpkt` — bad packets;
-- `aborts` — frames discarded for missing bytes, missing rows or bad packets;
+- `drop` — 32-bit words dropped when the CDC FIFO is full; not network packet loss, and it should stay 0 on a clean stream;
+- `badpkt` — bad packets received (FCS/length); a packet the sender never sent does not increment it;
+- `aborts` — frames rejected by the byte gate, row-coverage gate or bad-packet gate; one frame increments once even if several packets are missing;
 - `rows_max` — worst missing-row count in one abort;
 - `stall` — milliseconds since the last valid frame;
 - `gap_last` / `gap_min` / `gap_max` / `gap_sum` — latest, minimum, maximum and cumulative frame gap;
@@ -78,21 +78,21 @@ The on-screen `Pipe:` field is not this nine-bit string; it is five digits, each
 
 | Command | Purpose | Reply | Rejected / notes |
 |---|---|---|---|
-| `zoom on` / `zoom off` | enable/disable right-pane zoom (legacy `ZOOM1`/`ZOOM0`) | `[CTRL] ... zoom=1/0` | also gates manual stepping and breathing |
+| `zoom on` / `zoom off` | start/stop the right-pane automatic breathing (legacy `ZOOM1`/`ZOOM0`) | `[CTRL] ... zoom=1/0` | stopping freezes the current ratio; it is neither a ratio nor the bilinear switch |
 | `zoom 1.5` | pick the nearest manual step | `[ZOOM] 1.5 → 最近档 1.50x（八档：...）` | steps: 0.25/0.33/0.50/0.75/1.00/1.33/1.50/2.00 |
 | `zoom auto` | return to automatic breathing | `[CTRL] zoom_step=... (自动呼吸)` | — |
 | `zoom fit [0/1]` | choose zoom from the rotation angle | `[ZOOM] fit=1...` | no argument means 1; the OSD shows `(Fit)` |
-| `bilin on` / `bilin off` | bilinear / nearest neighbour | `[BILIN] bilin=on/off` | at 1.00× and under rotation the difference may be invisible; that is geometry, not a broken switch |
+| `bilin on` / `bilin off` | bilinear / nearest neighbour | `[BILIN] bilin=on/off` | visible only at non-integer ratios or while rotating; at 1.00× and 0° the two modes are pixel-identical, not a broken switch |
 | `bilin show` | print the switch state and the comparison sequence | multi-line | — |
 | `osd on` / `osd off` | show/hide the five text rows | `[OSD] osd=on/off` | only affects the overlay; picture and counters keep running |
 | `osd show` | print OSD state | multi-line | — |
 | `th 120` | threshold for the binary stage | `[CTRL] ... thr=120` | 0–255, clamped; legacy `TH120` |
 | `gamma 1.8` | write the 256-entry gamma curve | `[GAMMA] g=1.80 ...` | 1.00–3.00, also accepts 180; affects the processed pane only |
 | `gamma off` / `gamma on` | disable/enable gamma | `[GAMMA] off/...` | table is kept, switching is fast |
-| `gamma auto 1.0 3.0 0.2 2000` | sweep gamma automatically | `[GAMMA] auto：...` | 100≤lo<hi≤300, 0<step≤hi−lo, ms≥200 |
+| `gamma auto 1.0 3.0 20 2000` | sweep gamma automatically | `[GAMMA] auto：...` | 100≤lo<hi≤300, 0<step≤hi−lo (step is an integer γ×100, 20 = 0.20), ms≥200 |
 | `gamma manual` / `gamma show` | stop the sweep / print state | multi-line | — |
 
-`zoom 1` is the old on/off spelling, not 1.00×. Write `zoom 1.0` for a 1.00× ratio. This is the easiest mistake to make during a demonstration.
+`zoom 1` is the old on/off spelling, not 1.00×. Write `zoom 1.0` for a 1.00× ratio. This is the easiest mistake to make during a demonstration. The eight steps (0.25–2.00) are the manual range; automatic breathing only moves between 1.00 and 0.50.
 
 ## 6 Geometry: rotation and seam
 
@@ -125,7 +125,7 @@ The on-screen `Pipe:` field is not this nine-bit string; it is five digits, each
 | `play` / `play 1` | start playback | `[SD] playing ...` | no argument starts playback; `play 0/off/stop` stops |
 | `stop` | stop playback | `[SD] stopped; next frame ...` | — |
 | `frame 1200` | show frame 1200 only | the panel changes frame; check `stat` | non-decimal or negative values are rejected |
-| `autoplay 0/1` | auto-play at the next boot | `[SD] autoplay on/off (only affects the next boot)` | affects the next boot only |
+| `autoplay 0/1` | current-session auto-play flag | `[SD] autoplay on/off (session only; reset/re-download returns to 1)` | lives only in this run; reset or re-download returns to 1, so it cannot disable the next boot's SD autoplay |
 | `fill` | write a four-colour diagnostic frame | two `[CTRL]` lines plus four colour blocks | for path checks; does not write the SD card |
 
 The card must be FAT32. If `sd files` fails after a hot-plug, wait two or three seconds and run `sd remount`. `src 2` pins SD and starts playback; `src 1` returns to the network source.
@@ -137,12 +137,12 @@ Older tools and scripts still contain these:
 | Legacy | Current | Note |
 |---|---|---|
 | `SRC0` / `SRC1` / `SRC2` | `src 0/1/2` | source |
-| `ZOOM0` / `ZOOM1` | `zoom off/on` | switch, not a ratio |
+| `ZOOM0` / `ZOOM1` | `zoom off/on` | breathing switch, not a ratio |
 | `TH80` | `th 80` | threshold |
 | `BILIN0` / `BILIN1` | `bilin off/on` | bilinear |
 | `OSD0` / `OSD1` | `osd off/on` | overlay |
 | `FRAME12` | `frame 12` | SD frame number |
-| `AUTOPLAY0/1` | `autoplay 0/1` | autoplay at boot |
+| `AUTOPLAY0/1` | `autoplay 0/1` | current-session auto-play flag (reset returns to 1) |
 | `pipe 11000` / `01010` / `pipe 00000` | none | five-bit spellings are translated but never written to registers |
 
 ## 9 The five OSD rows
@@ -163,6 +163,7 @@ Restore defaults before a demonstration or acceptance run:
 
 ```text
 src 1
+zoom fit 0
 zoom 1.0
 rot auto 0
 rot speed 0
@@ -171,6 +172,7 @@ split 50
 split swap 0
 split marker 0
 osd on
+gamma off
 pipe 000010000
 stat
 ```
@@ -192,5 +194,6 @@ The first sends every line of `hw/scripts/cmd_battery_v81.txt` and compares repl
 4. `rot auto 1` may also set speed to 2 and switch zoom to fit; set `rot speed 2` and `zoom fit 0` first if you do not want that.
 5. After `link clr`, `gap_valid` needs at least two frames; `stall` growing after the stream stops is normal.
 6. `temp`'s `osd=` and `gpio=` should agree with `degC=`; if they do not, check the PS→PL synchronisation chain before touching the threshold.
+7. `aborts` counts frames, while the sender's "dropped N packets" counts packets; do not expect a 1:1 match. `badpkt` only rises for packets that arrive malformed.
 7. Enable either the terminal's local echo or the board's `echo`, never both, or every character appears twice.
 8. A line carries at most 128 bytes and 8 tokens; send long-parameter commands one at a time.

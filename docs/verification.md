@@ -96,7 +96,7 @@ Conditions:
 | Continuous stream | `video_sender.py --demo --seconds 8` | about 240 frames in 8 s, 30 fps | 241 frames in 8.05 s = 29.95 fps |
 | Telemetry | `telemetry_listen.py 13` after a ping | about 13 beacons, frame count monotonic | 13 beacons |
 | Self-test | `link_selftest.py` | all three stages pass | PASS (22.0 / 0 / 18.9 fps) |
-| Processed pane | 185°, split video 50%, grayscale only | `pane_bad=0` and valid | pass |
+| Processed pane | 185°, `split video`, seam at 50%, grayscale only | `pane_bad=0` and valid | pass |
 | Frame gaps | `link clr` → stream → stop → restart → `link` | `gap_valid=1` while streaming; `stall` grows after stop; `gap_max` records the long gap | pass (`gap_max=22,061 ms`) |
 | Serial commands | 105-command list | every command answers, final state equals initial | pass |
 | Temperature | `temp` after continuous streaming | `sane=1`, plausible reading | 61.8–63.8 °C |

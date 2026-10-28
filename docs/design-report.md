@@ -255,7 +255,7 @@ Acceptance ran on a Zynq-7020 development board. The PL-side RJ45 connects to th
 | Continuous stream | 8 s of the built-in pattern at 30 fps | 241 frames / 8.05 s = 29.95 fps | pass |
 | 1 Hz telemetry | listen 13 s after a ping | 13 beacons, frame count rising monotonically | pass |
 | Three-stage self-test | clean → one packet in 100 dropped → clean | 22.0 fps; 0 fps with 14.3 aborts/s; 18.9 fps | pass |
-| Processed-pane integrity | 185°, split video 50%, grayscale only | `pane_bad=0`, count valid | pass |
+| Processed-pane integrity | 185°, `split video`, seam at 50%, grayscale only | `pane_bad=0`, count valid | pass |
 | Frame-gap statistics | `link clr`, stream, stop, restart | while streaming `gap_last=28 ms`, `gap_max=49 ms`, `gap_valid=1`; `stall` grows after stop; `gap_max=22,061 ms` after restart | pass |
 | Serial commands | 105-command list | every command answers as expected, final state equals initial | pass |
 | Temperature | continuous streaming | 61.8–63.8 °C, `sane=1` | pass |
@@ -425,9 +425,9 @@ The value is not in the number of effects. It is that every claim has a reading,
 | `link` / `link clr` | read / clear frame-gap statistics |
 | `src auto\|0\|1\|2` | source: auto, test card, network, SD |
 | `pipe <nine bits>` / `pipe show` | set / show the effect chain |
-| `zoom on\|off\|auto\|<ratio>` | zoom switch, automatic, manual ratio |
+| `zoom on\|off\|auto\|<ratio>` | zoom breathing switch, automatic, manual ratio |
 | `rot auto\|0\|1` / `rot speed 0..7` | automatic rotation / degrees per frame |
-| `split screen\|video <0..100>` / `split swap` | seam mode, position, pane swap |
+| `split screen\|video` / `split <0..100>` / `split swap` | seam mode, position, pane swap |
 | `gamma <1.00..3.00>\|off\|auto` | gamma curve |
 | `osd on\|off` | OSD |
 | `sd files` / `sd file n` / `play` / `stop` | SD selection and playback |

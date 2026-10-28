@@ -103,13 +103,13 @@ The beacon goes to the last ARP requester, so ping the board once before startin
 | `link` / `link clr` | frame-gap statistics / clear `gap_*` |
 | `src auto\|0\|1\|2` | auto, test card, ETH, SD |
 | `pipe <nine bits>` / `pipe show` | nine-bit effect chain |
-| `zoom on\|off\|auto\|<ratio>` | zoom on/off, automatic, manual ratio (`zoom 1` is a switch; `zoom 1.0` is a ratio) |
+| `zoom on\|off\|auto\|<ratio>` | zoom breathing switch, automatic, manual ratio (`zoom 1` is a switch; `zoom 1.0` is a ratio) |
 | `rot auto\|0\|1` / `rot speed 0..7` | automatic rotation / degrees per frame |
-| `split screen\|video <0..100>` / `split swap\|follow\|marker` | seam |
+| `split screen\|video` / `split <0..100>` / `split swap\|follow\|marker` | seam |
 | `gamma <1.00..3.00>\|off\|auto` | gamma |
 | `osd on\|off` | OSD |
 | `sd files` / `sd file n` / `play` / `stop` | pick and play SD content |
-| `frame N` / `fill` / `autoplay` / `th` / `echo` | jump to frame, diagnostic frame, autoplay, threshold, echo |
+| `frame N` / `fill` / `autoplay` / `th` / `echo` | jump to frame, diagnostic frame, current-session autoplay flag, threshold, echo |
 
 ## 8 Video and network constants
 

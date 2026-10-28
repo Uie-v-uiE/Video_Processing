@@ -105,9 +105,9 @@ Serial is channel B of the USB-C bridge, `COM6`, 115200 8N1.
 | `link` / `link clr` | latest, min/max and cumulative frame gap; clear |
 | `src auto\|0\|1\|2` | source: auto, test card, network, SD |
 | `pipe <nine bits>` / `pipe show` | effect chain |
-| `zoom on\|off\|auto\|<ratio>` | zoom |
+| `zoom on\|off\|auto\|<ratio>` | zoom breathing switch, automatic, manual ratio |
 | `rot auto\|0\|1` / `rot speed 0..7` | automatic rotation and degrees per frame |
-| `split screen\|video <0..100>` | seam mode and position |
+| `split screen\|video` / `split <0..100>` | seam mode and position |
 | `sd files` / `sd file n` / `play` / `stop` | SD selection and playback |
 
 Only one program may own the serial port at a time. Stop the stream before reading registers; while streaming, most counters are mid-flight values.
