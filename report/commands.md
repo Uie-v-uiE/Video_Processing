@@ -87,7 +87,7 @@
 | `th 120` | 二值化阈值 | `[CTRL] ... thr=120` | 0..255；越界夹住；老写法 `TH120` |
 | `gamma 1.8` | 写 256 项 gamma 曲线 | `[GAMMA] g=1.80 ...` | 1.00..3.00，也收 180；只作用于处理侧 |
 | `gamma off` / `gamma on` | 关/开 gamma | `[GAMMA] off/...` | 表保留，来回切很快 |
-| `gamma auto 1.0 3.0 0.2 2000` | 自动扫 gamma | `[GAMMA] auto：...` | 100≤lo<hi≤300、0<step≤hi−lo、ms≥200 |
+| `gamma auto 1.0 3.0 20 2000` | 自动扫 gamma | `[GAMMA] auto：...` | 100≤lo<hi≤300、0<step≤hi−lo（step 是 γ×100 的整数，20 = 0.20）、ms≥200 |
 | `gamma manual` / `gamma show` | 停自动 / 念状态 | 多行 | — |
 
 `zoom 1` 是 V7 的开关写法，不是 1.00 倍；要 1.00 倍必须写 `zoom 1.0`。这是最容易在演示里敲错的一条。
