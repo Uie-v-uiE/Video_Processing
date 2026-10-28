@@ -43,7 +43,7 @@ def find_bsp():
     for cand in legacy:
         if os.path.isfile(os.path.join(cand, "include", "xparameters.h")):
             return cand
-    ws = os.path.join(ROOT, "board", "vitis_ws")
+    ws = os.path.join(ROOT, "hw", "vitis_ws")
     if os.path.isdir(ws):
         for base, dirs, files in os.walk(ws):
             if os.path.basename(base) == "lib" and "libxil.a" in files:
@@ -54,8 +54,8 @@ def find_bsp():
 CC = os.environ.get("PS_CC") or "arm-none-eabi-gcc"
 BSP = os.path.abspath(os.environ.get("PS_BSP") or find_bsp())
 SRC = os.path.join(ROOT, "src", "ps")
-OBJ = os.path.abspath(os.environ.get("PS_OBJ") or os.path.join(ROOT, "build", "ps_obj"))
-OUT = os.path.abspath(os.environ.get("PS_OUT") or os.path.join(ROOT, "build", "ps_app.elf"))
+OBJ = os.path.abspath(os.environ.get("PS_OBJ") or os.path.join(ROOT, "scripts", "ps_obj"))
+OUT = os.path.abspath(os.environ.get("PS_OUT") or os.path.join(ROOT, "hw", "project", "ps_app.elf"))
 
 if not os.path.isdir(BSP):
     print("FATAL: 没有 BSP：%s" % BSP)

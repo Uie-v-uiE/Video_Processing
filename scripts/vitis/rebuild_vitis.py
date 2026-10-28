@@ -19,10 +19,10 @@ import sys
 import vitis
 
 REPO = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-WS = os.environ.get("VP_VITIS_WS") or os.path.join(REPO, "board", "vitis_ws")
-XSA = os.path.join(REPO, "board", "project", "system.xsa")
+WS = os.environ.get("VP_VITIS_WS") or os.path.join(REPO, "hw", "vitis_ws")
+XSA = os.path.join(REPO, "hw", "project", "system.xsa")
 if not os.path.exists(XSA):
-    XSA = os.path.join(REPO, "build", "system.xsa")
+    XSA = os.path.join(REPO, "hw", "reports", "system.xsa")
 PS_SRC = os.path.join(REPO, "src", "ps")
 DOMAIN = "standalone_ps7_cortexa9_0"
 

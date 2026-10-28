@@ -26,7 +26,7 @@ proc fix_pprdir_refs {txt} {
 }
 
 set src_proj [file join $root "vivado_system/zynq_video_sys.xpr"]
-set dst [file normalize [file join $root "board" "vivado"]]
+set dst [file normalize [file join $root "hw" "vivado"]]
 if {[info exists ::env(VP_BOARD_DIR)]} { set dst [file normalize $::env(VP_BOARD_DIR)] }
 if {![file exists $src_proj]} { puts "REFUSE: 没有已建好的工程 $src_proj（先跑 scripts/tcl/build_system_axigpio.tcl）"; exit 1 }
 
