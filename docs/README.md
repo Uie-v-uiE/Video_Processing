@@ -13,8 +13,7 @@
 7. `interface-table.md` — control bits, telemetry, serial commands, lane numbers, addresses and video constants.
 8. `commands.md` — the serial command reference, with parameters, expected replies and rejected inputs.
 9. `declarations.md` — device, toolchain, third-party components and where the in-house boundary sits.
-11. `glossary.md` — one English term per object, with the Chinese original.
-10. `demo.md` — the demonstration script: commands, on-screen evidence and subtitle text for each part, with the three-gate and cold-boot shots spelled out.
+10. `glossary.md` — one English term per object, with the Chinese original.
 
 ## Figures
 

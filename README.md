@@ -109,7 +109,6 @@ Step-by-step instructions with the expected output for every command are in [`do
 | [`docs/commands.md`](docs/commands.md) | Serial command reference |
 | [`docs/interface-table.md`](docs/interface-table.md) | Register and interface tables |
 | [`docs/limits.md`](docs/limits.md) | Boundaries and known limitations |
-| [`docs/demo.md`](docs/demo.md) | Demonstration script: commands, evidence and on-screen text |
 | [`docs/glossary.md`](docs/glossary.md) | Chinese-to-English term table used across the documents |
 | [`sim/README.md`](sim/README.md) | Bench index and verdict rules |
 
