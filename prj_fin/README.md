@@ -15,8 +15,6 @@
 | 关键 Issue 台账 | `report/issues/key-issues.md` |
 | 协作记录 | `report/collaboration/README.md` |
 | 学习手册 | `learning/architecture_learning_guide.md` |
-| 演示视频拍摄手册 | `learning/demo_video_shooting_guide.md` |
-| 分区拍摄与剪辑脚本 | `learning/demo_highlight_shooting_plan.md` |
 | 学习资料历史与参考 | `learning/archive/`、`learning/reference/` |
 | 板级说明、验收、硬件连接 | `board/README.md` |
 | 构建与实现报告索引 | `build/reports/index.md` |
@@ -29,6 +27,8 @@
 | 源码阅读入口 | `src/README.md`、`src/rtl/README.md` |
 
 ## 说明
+
+- 演示脚本（拍摄、分镜、亮点镜头）只在本地 `FIN/learning/` 保留，文档分支不收录。
 
 - 技术文档按固定模板分五部分，页眉 Logo 和页码保留；非实物的框图、流程图和界面示意已生成并嵌入，图 3、8、9、11 仍是留给实物照片的图位。
 - 报告中的板级日志、实现报告和仿真判定分别收在 `board/measured/`、`build/reports/` 和 `sim/results/`，正文引用可在本目录内对照。

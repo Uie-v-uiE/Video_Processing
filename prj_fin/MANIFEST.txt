@@ -1,7 +1,7 @@
 prj_fin documentation snapshot
 source_commit 034344f7
-files 1560
-size_mb 88.23
+files 1557
+size_mb 88.15
 top_level README.md, PROJECT_README.md, PROJECT_README_EN.md, deliverables/, report/, learning/, records/, board/, build/, sim/, src/, skill/, data/
 note technical_document.docx/pdf has 7 embedded generated figures and 4 physical-photo placeholders (fig 3/8/9/11).
 note poster is the Impeccable cream/burnt-orange version.
