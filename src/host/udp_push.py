@@ -28,7 +28,7 @@ import time
 W, H = 512, 300
 FRAME_BYTES = W * H * 2
 HDR = 4
-WHITE = (0xF8 << 8) | 0xFC          # RGB565 白：R=31 G=63 B=31
+WHITE = 0xFFFF                       # RGB565 白：R=31 G=63 B=31
 BLACK = 0
 
 
