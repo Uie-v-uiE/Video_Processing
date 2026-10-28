@@ -17,7 +17,7 @@
  *   node health_read.mjs [--gpio0 41200000] [--gpio1 41210000] [--once] [--gapclr]
  *   --gapclr 读之前把「帧间隔统计」归零（lane3/4/5）；其余 lane 仍是自启动以来。
  *   前置：板子上电、bit 已下载、hw_server 在跑（见 host_guide.md）。
- *   两个基地址在 build/v76_build.log 的 `ADDR GPIO0 = …` / `ADDR GPIO1 = …` 行里。
+ *   两个基地址在 scripts/v76_build.log 的 `ADDR GPIO0 = …` / `ADDR GPIO1 = …` 行里。
  *
  * 默认把 10 条 lane 读两遍：单调计数器的第二遍只允许 >= 第一遍，变小就意味着
  * 采到了快照刷新的那一拍（撕烈），会单独报出来。非单调 lane（stall/gap/flags）
@@ -254,7 +254,7 @@ if (get('selfcheck', false) === true) {
 const HEAD = [
   `catch {connect -host localhost -port ${PORT}}`,
   `targets -set -filter {name =~ "*#0"}`,
-  // 读 PL 外设用 stop/con（和 build/tcl/set_src.tcl 同一套路）：A9 停在断点时
+  // 读 PL 外设用 stop/con（和 scripts/tcl/set_src.tcl 同一套路）：A9 停在断点时
   // mrd/mwr 走 CoreSight 直接打到 GP0 从端口，绕过 D-Cache 也不会有 MMU 参与。
   // 不用 ddr_verify 的 rst -processor —— 那会停掉正在跑的 ELF，而这里不该伤到
   // PS 侧的状态。最后一步再 con 回去。
@@ -390,7 +390,7 @@ if (get('json', false) === true) {
     drop_words: l.lane0,
     // V8-6 链路内时延。PL 只报**拍数**（不在硬件里做除法，理由见 frame_latency.v 文件头与 ISSUES #58），
     // 换算集中在这一个常量：fclk0 = 100 MHz ⇒ 1 拍 = 10 ns。换 fclk 频率只改这里，并同步改
-    // build/tcl/build_system_axigpio.tcl 的 PCW_FPGA0_PERIPHERAL_FREQMHZ（两处不一致就会报偏心数）。
+    // scripts/tcl/build_system_axigpio.tcl 的 PCW_FPGA0_PERIPHERAL_FREQMHZ（两处不一致就会报偏心数）。
     //   lane29 c1（等消隐窗口） lane28 c2（整帧搬运） lane27 tot（提交→开始扫描）
     //   lane26 max（历轮最大） lane25 = {n_meas[15:0], 15'd0, clamped}
     //   lane24 = {14'd0, pair_ok, 本轮sticky, ms[15:0]} ← 屏上 Latency 那一格画的**就是**这个 ms

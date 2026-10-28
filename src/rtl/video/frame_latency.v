@@ -153,7 +153,7 @@ module frame_latency (
     //   （commit 落在除法中途），`tot_new` 已经是新一轮的数了，于是屏上那一格的"`--` 与否"描述的是
     //   别的轮。这里在**起除的那一拍**把"本轮是否被钳位"锁下来（`dclamp`），收尾只用它。
     //   尺子：`sim/tb_latency.v` 的 T18（改前红 `T18a`，反配对 `T18c` 钉"下一轮干净必须回 0"），
-    //   凭据 `build/r97_185186_before.txt`。
+    //   凭据 `scripts/r97_185186_before.txt`。
     reg         dclamp;
     wire [17:0] rnext = {rem[16:0], dnd[31]};       // 移进一位后的余数（18 bit 才装得下比较）
     wire [17:0] rsub  = rnext - {1'b0, DIV_MS};     // 减法必须在 18 bit 里做：rnext 可能 ≥ 2^17

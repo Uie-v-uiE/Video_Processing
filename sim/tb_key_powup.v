@@ -18,15 +18,15 @@
 // 立案背景（ISSUES #256，根因终于量出来了）：
 //   `src/rtl/top/system_top.v:250` 把 u_pl 的 `sys_rst_n` 恒接 `1'b1`
 //     ⇒ `key_debounce` 里 `if (!rst_n) key_stable <= 1'b1;` 是**死支**。
-//   综合实测（`board/output/ff_init.txt`，两份 dcp 各量一遍、每遍 COMPARED=96）：
+//   综合实测（`hw/output/ff_init.txt`，两份 dcp 各量一遍、每遍 COMPARED=96）：
 //     `u_pl/u_k1/key_stable_reg` = FDRE、**INIT=1'b0**（想要的是 1=松着）；
 //     `u_pl/u_ang/angle_reg[*]` = FDRE、INIT=1'b0（这个与想要的一致）。
 //   ⇒ 上电"线上松着（4.7 k 上拉）、寄存器说按着"，去抖窗走完那一沿在下游 `key_long` 里就是
 //     一次"松手" ⇒ 白补一枚短按 ⇒ `ROT:` 就是 1 度；而 `angle_reg` 的 INIT=0 解释了
 //     **为什么每次配置都正好是 1**（不是 2、3）：重配一次就"清零 + 白送一度"。
 //   修法 = 把上电语义写进声明（`key_stable = 1'b1` 等）。带着"复位恒 1"再综合一次，仍量到
-//     FDRE INIT=1'b1 ⇒ 位流真的带上了（`board/output/init_tied_rst.txt`）。
-//   改前三腿对照的凭据：`board/output/powup_verdict.txt` + `build/evidence/pu113/`
+//     FDRE INIT=1'b1 ⇒ 位流真的带上了（`hw/output/init_tied_rst.txt`）。
+//   改前三腿对照的凭据：`hw/output/powup_verdict.txt` + `scripts/evidence/pu113/`
 //     （r110 红：inc=1 angle=1；r112 带武装门**同样红** ⇒ 武装门没打中这个因；fix 绿）。
 //
 // 为什么这支不能拿 tb_v111 代替：那一支是先拉复位再放开，恰好把这个坑盖住（复位一放寄存器就是 1）。

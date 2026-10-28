@@ -11,7 +11,7 @@
 
 ## 阅读顺序
 
-1. 先读 `report/design-report.md` 的系统图和时钟域，再看 RTL 顶层。
+1. 先读 `docs/design-report.md` 的系统图和时钟域，再看 RTL 顶层。
 2. 想跟像素走：`src/rtl/top/pl_video_top.v` → `video/` → `process/zoom/` → `process/bilin/` → `process/proc_pipeline.v` → `video/split_display.v` → `video/osd_overlay.v`。
 3. 想跟网络走：`src/rtl/eth/eth_udp_video_top.v` → `rgmii_rx.v` → `gmii_rx_mac.v` → `udp_rx_parser.v` → `frame_reasm.v` → `dc_fifo.v` → `axi_frame_saver64.v`。
 4. 想跟控制走：`src/ps/main.c` 的 `dispatch` → AXI GPIO → `pl_video_top` 的三级同步链。
@@ -19,9 +19,9 @@
 ## 构建与仿真
 
 ```bash
-vivado -mode batch -source build/build.tcl
-bash build/sim/run_msim.sh rows udp_reasm reasm_bounds udp_telemetry \
+vivado -mode batch -source scripts/build.tcl
+bash scripts/sim/run_msim.sh rows udp_reasm reasm_bounds udp_telemetry \
      eth_ctrl_arb eth_top_rgmii split_ctrl osd_overlay link_monitor
 ```
 
-工程与台架的详细说明在 `build/README.md`、`sim/README.md`。
+工程与台架的详细说明在 `scripts/README.md`、`sim/README.md`。

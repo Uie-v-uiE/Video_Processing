@@ -61,7 +61,7 @@ function arg(name, def) {
   return (v === undefined || v.startsWith('--')) ? true : v;
 }
 
-// 一行结论 = `[步/4] 名字 读数…… 判定词`：判定词永远是最后一个字段（与 build/deliver_spec_check.mjs 同口径）
+// 一行结论 = `[步/4] 名字 读数…… 判定词`：判定词永远是最后一个字段（与 scripts/deliver_spec_check.mjs 同口径）
 const line = (n, tag, fields, verdict) => console.log(`[${n}/4] ${tag} ${fields} ${verdict}`);
 const say = (n, tag, fields, ok) => line(n, tag, fields, ok ? 'PASS' : 'FAIL');
 

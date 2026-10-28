@@ -388,7 +388,7 @@ module osd_overlay #(
         // 26 = '*'：片源行用它标"这是手动锁住的"（模式≠自动）
         font[26][0]=5'b00000; font[26][1]=5'b00100; font[26][2]=5'b10101;
         font[26][3]=5'b01110; font[26][4]=5'b10101; font[26][5]=5'b00100; font[26][6]=5'b00000;
-        // 44~52：后补的 5 个符号 + 大写 Z + 短线。位图与 `build/glyphs_draft.txt` 逐项一致，
+        // 44~52：后补的 5 个符号 + 大写 Z + 短线。位图与 `scripts/glyphs_draft.txt` 逐项一致，
         // 台架 tb_osd_overlay 里**另抄一遍**同一批位图当反例源（谁改了另一处就红）。
         // 28~43 是小写 a c e i l m n o p r s t u x y 让出来的空洞：5×7 字模做不出真正的降部
         //（p/q/y 尤其明显），不是"画得不好"而是**这个字号画不出**⇒ 屏上只有大写。
@@ -479,7 +479,7 @@ module osd_overlay #(
     //   原来 `ch = chars[ch_addr]` 吃的是**本拍刚装配出来**的 `chars`：`chars` 不是寄存器，是 160 格的
     //   大组合 mux（装配段是 `always @(*)`），于是"值 → 十进制拆位 → 全表装配 → 选中格 → 字模 → 选行 →
     //   颜色"串成**一条**组合链 —— 这就是 `clkout0_1` 最差那 8 条同族路径（凭据
-    //   `build/probe_clk_r109clk01.rpt`：`u_split_ctrl/prod`(乘法的 DSP PREG) → … → `u_osd/chars[2]` →
+    //   `scripts/probe_clk_r109clk01.rpt`：`u_split_ctrl/prod`(乘法的 DSP PREG) → … → `u_osd/chars[2]` →
     //   `glyph_idx[4]` → `u_osd/{r,g,b}_reg`，**23 级**、route 占 77.5 %、logic 只占 22.5 %）。
     //   现在寄存器边界落在**装配段与译码段之间**：地址用与被寄存的 `s_*` **同源同拍**的那一对
     //   （`line`/`cidx` 未寄存版），所以一拍之后 `ch` 与 `s_line/s_cidx/s_pix_x/s_pix_y/s_in_char`

@@ -1,21 +1,21 @@
 ## src/constraints/r119_hdmi_source_window.xdc —— HDMI **源端（TP1）** 对外窗（候选件，默认不加载）
 ##
 ## 本文件必须是纯 SDC/XDC 子集：不写 `if` / `puts` / `error` / `expr`。
-##   理由（2026-10-04 实测，件 build/evidence/r119_xdc_loads_probe2.txt 第 42–56 行原文）：
+##   理由（2026-10-04 实测，件 scripts/evidence/r119_xdc_loads_probe2.txt 第 42–56 行原文）：
 ##   Vivado 2025.2.1 解析 .xdc 时对这三行报
 ##     CRITICAL WARNING: [Designutils 20-1307] Command 'if' is not supported in the xdc constraint file.
 ##     CRITICAL WARNING: [Designutils 20-1307] Command 'puts' is not supported in the xdc constraint file.
 ##   ——上一版本文件在这里写了 Tcl 守卫（读不到时钟就 REFUSE），守卫被解析器整块跳过，
 ##   于是"防呆"变成"防呆失效且不报错"，这比没有守卫更危险。检查与 REFUSE 挪到
-##   build/tcl/build_system_axigpio.tcl 的 VP_R119_TMDS_WINDOW 块（那里是 Tcl 脚本，`if`/`error` 合法）。
+##   scripts/tcl/build_system_axigpio.tcl 的 VP_R119_TMDS_WINDOW 块（那里是 Tcl 脚本，`if`/`error` 合法）。
 ##   同形状的写法参照 src/constraints/r116_rgmii_input_window.xdc（纯 SDC，已被一轮带窗构建量过）。
 ##
 ## 为什么是"源端"而不是"接收窗"：`tmds_clk_p/_n`、`tmds_data_p[0..2]/_n` 是本工程（Source）的**输出**，
 ## 所以对应的是 HDMI 源端合规里 TP1 的那一组量，不是 Sink 侧 TP2 的接收窗。
 ## 这个方向是 2026-10-04 用户指出来才纠正的（此前记成"要面板/接收端的窗口数"，还试过 UG471——
-## UG471 只有 TMDS_33 的电气属性，没有窗时间；见 report/timing/debt_ledger.md §2 的那段追加）。
+## UG471 只有 TMDS_33 的电气属性，没有窗时间；见 docs/timing/debt_ledger.md §2 的那段追加）。
 ##
-## 窗宽的数字（逐条可指回出处，全部见 report/io/hdmi_cts_source_window.md 第一节结论表）：
+## 窗宽的数字（逐条可指回出处，全部见 docs/io/hdmi_cts_source_window.md 第一节结论表）：
 ##   * 钟↔数据（互对偏斜，Source at TP1，max）= **0.20 Tcharacter**
 ##     出处：《HDMI Specification 1.4》§4.2.4 Table 4-24 "Source AC Characteristics at TP1" 行
 ##     `Inter-Pair Skew at Source Connector, max | 0.20 Tcharacter`（同表在 1.3 Table 4-16 / 1.1 Table 4-13
@@ -24,13 +24,13 @@
 ##     出处：`data/metrics.csv` 第 3 行"显示像素时钟,核心,50,MHz"（同一行的 H_TOTAL 1344、V_TOTAL 625 ⇒ 场频 59.5 Hz）；
 ##     10 bit/character 且 TMDS 钟 = 像素钟的关系出自 HDMI 1.4 §4.2.1（同一份取证文档的表行）。
 ##   ⇒ 半窗 = 0.20 × 20.000 = **4.000 ns**（这是从上面两个数算出来的，不是抄来的第三个数）。
-##     这两个数与下面的 4.000 是否一致，由只读尺子 build/r119_window_check.mjs 判（不靠人眼）。
+##     这两个数与下面的 4.000 是否一致，由只读尺子 scripts/r119_window_check.mjs 判（不靠人眼）。
 ##
 ## 参考时钟对象的身份（不是猜的）：四条 TMDS 串行器的 CLK 脚在实现网表里同属一条时钟
 ##   `u_pl/u_dvi/u_ser_clk|u_ser0|u_ser1|u_ser2/u_master/CLK → clock=clkout1_1 period=4.000`
-##   实测件：`build/evidence/r119_ser_clock_probe.txt`（只读探针 `build/tcl/probe_ser_clock.tcl` 打在
+##   实测件：`scripts/evidence/r119_ser_clock_probe.txt`（只读探针 `scripts/tcl/probe_ser_clock.tcl` 打在
 ##   `vivado_system/zynq_video_sys.runs/impl_1/system_top_opt.dcp` 上）。
-##   对照：`report_clock_networks` 只列 3 条主钟（`build/evidence/r119_clock_networks.rpt`），
+##   对照：`report_clock_networks` 只列 3 条主钟（`scripts/evidence/r119_clock_networks.rpt`），
 ##   所以"用哪条钟做参考"必须由 pin 反查，不能按主钟表挑。
 ##
 ## 为什么不进默认构建（与 RGMII 输入窗同一形状）：这是一次**新增约束**，会改变实现看出去的边界，

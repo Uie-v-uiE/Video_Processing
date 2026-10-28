@@ -4,7 +4,7 @@
 // 退出码：脚本内无显式 exit ⇒ 随最后一条命令（正常跑完为 0）
 // src/host/line_cite_check.mjs —— D5：交付文档里的 `文件.扩展名:行号` 引用，判"语义锚点在不在附近"
 //
-// 为什么要有它（ISSUES #122）：README/report/skill 里有 200+ 处 `pl_video_top.v:834` 这种引用，
+// 为什么要有它（ISSUES #122）：README/docs 里有 200+ 处 `pl_video_top.v:834` 这种引用，
 // 而 `doc_currency_check.mjs` 的 D4 只管**路径存在性**，**行号漂了什么都不会红**：
 // 位流编得出来、台架全过、门禁全绿，文档却指着另一个地方。今晚给 16 个模块头补定位那一批
 // 就实地把若干引用平移了 1~4 行（同一批里还有早就漂了、一直没人核对的老错）。
@@ -32,14 +32,14 @@ import { readFileSync, readdirSync, statSync, existsSync } from 'node:fs';
 import path from 'node:path';
 
 const ROOT = path.resolve(import.meta.dirname, '..', '..');
-const DOC_DIRS = ['.', 'report', 'report/log', 'skill', 'board'];
-// **追加式档案不参与核对**（`report/log/` 的四本日记）：与 `doc_currency_check.mjs` 同一口径——
+const DOC_DIRS = ['.', 'report', 'docs/log', 'skill', 'board'];
+// **追加式档案不参与核对**（`docs/log/` 的四本日记）：与 `doc_currency_check.mjs` 同一口径——
 // 把过去的记录改成迎合检查器，等于销毁证据；而档案里的假路径（`tb_x.v:123` 那一类是**举例子**）
 // 会被硬错判据抓住，制造一批根本不该存在的"文档 bug"。
-const SKIP_DOCS = ['report/log/', 'report/study/'];
+const SKIP_DOCS = ['docs/log/', 'docs/study/'];
 const CODE_EXT = new Set(['.v', '.c', '.h', '.mjs', '.sh', '.tcl', '.ps1']);
 // 被引文件在这些目录里不存在（生成的、厂商树），引用它们本来就不该判红
-const SKIP_DIR = new Set(['.git', 'vivado_system', 'xsim.dir', 'node_modules', '.Xil', 'dist', 'study', 'report/study']);
+const SKIP_DIR = new Set(['.git', 'vivado_system', 'xsim.dir', 'node_modules', '.Xil', 'dist', 'study', 'docs/study']);
 // 锚点里不算数的词：文件名、常见英文、工具名——它们出现在任何地方都不证明"指对了地方"
 const STOP = new Set(['the', 'and', 'for', 'with', 'this', 'that', 'from', 'then', 'else', 'wire', 'reg',
                       'input', 'output', 'module', 'begin', 'end', 'node', 'bash', 'git', 'docs', 'src',
@@ -156,12 +156,12 @@ function echoVerdict(fileText, quote, winText) {
 }
 
 // 「文件不在树里」这一类要与导出器同一口径：导出器按**同行**的免检词决定不算死链
-// （`build/make_submission.sh` 的 `SKIP_RE`，配合 §5.4 的逐字协作记录形状）。
+// （`scripts/make_submission.sh` 的 `SKIP_RE`，配合 §5.4 的逐字协作记录形状）。
 // 两处若各用一套规则，就会出现"D5 判红、导出器放行"或反过来，谁都对不上谁。
 // 词表从那个文件现读（不抄第二份）；读不到就退回"一律判红"，宁严不松（rule 44 的反买通）。
 const SKIP_RE_FROM_EXPORTER = (() => {
   try {
-    const sh = readFileSync(path.join(ROOT, 'build/make_submission.sh'), 'utf8').match(/^SKIP_RE='(.*)'$/m);
+    const sh = readFileSync(path.join(ROOT, 'scripts/make_submission.sh'), 'utf8').match(/^SKIP_RE='(.*)'$/m);
     return sh ? new RegExp(sh[1]) : null;
   } catch (e) { return null; }
 })();
@@ -253,7 +253,7 @@ function resolveTarget(cited, linesByFile) {
 // 被引行必须以本行第 1 列的模块名打头 —— 那一列的语义就是"它在哪里被例化"，
 // 指到别的代码上就是死引用。为什么这条可以是**硬错**而普通锚点不命中只能算 soft：
 // 列名把语义钉死了（不存在"指的是所在函数开头"那种合理解释），
-// 而它的"改前红"标本就是今晚 `report/modules.md` 那 28 条（命中 0 条）。
+// 而它的"改前红"标本就是今晚 `docs/modules.md` 那 28 条（命中 0 条）。
 function instColOf(docLines, idx) {
   for (let j = idx; j >= 0 && j > idx - 400; j--) {
     const l = docLines[j] || '';
@@ -291,7 +291,7 @@ function instViol(docLines, idx, citeText, linesByFile) {
 // 厂商树里的文件名：文档会引 `xsdps.c:156-159` 这种驱动行号，那些文件不在"我写的东西"范围，
 // 但也不该被判成"文件在树里找不到"——那是我的扫描范围，不是文档的错。
 // ⚠ 只靠"从 `vitis/` 现派生"是有条件的：**提交包里没有 `vitis/`**，于是包内跑 D5 会把这句正当的厂商引用
-//   判成硬错（03:4x 实测：包内 `report/commands.md:267` 红，而仓库里同一行被跳过、硬错 0）。
+//   判成硬错（03:4x 实测：包内 `docs/commands.md:267` 红，而仓库里同一行被跳过、硬错 0）。
 //   ⇒ 下面这份小名单是**交付文档真正点名过的厂商文件**（不是整棵 BSP 的 700 个名字），随判据同文件走，
 //     包内也成立。它不是免检通道：`vendorBuyoff()` 会判红"名单里出现了我自己写的文件"，
 //     所以往里塞 `zoom_mapper.v` 这类第一方文件不会让引用变绿，只会让判据变红（#172 那次 `*.log` 被整类放掉的教训）。
@@ -348,7 +348,7 @@ function selfTest(code) {
       if (r.ok === want) pass++;
     }
   }
-  // D5b 自己的对照（#208）：一个真实标本 —— `report/modules.md` 的"例化者"列曾经指着 axi 域那一段。
+  // D5b 自己的对照（#208）：一个真实标本 —— `docs/modules.md` 的"例化者"列曾经指着 axi 域那一段。
   // ⚠ 行号**按内容现算**，不许写死（规矩 43）：今晚 r109 在 pl_video_top.v 里插了 26 行，
   //   原来那个"对号 :859"的固定标本就自己过期了 —— 尺子的 fixture 跟着源码漂，是它自己红、不是设计红。
   const pvTop = readFileSync('src/rtl/top/pl_video_top.v', 'utf8').split(/\r?\n/);
@@ -462,7 +462,7 @@ const optVal = (name, dflt) => {
   const a = process.argv.find((x) => x.startsWith(name + '='));
   return a ? (Number(a.split('=')[1]) || dflt) : dflt;
 };
-console.log(`D5 引用核对：扫 ${docs.length} 份交付文档（report/log 与 report/study 的追加式/笔记档案不参与）⇒ 硬错 ${fails.length} 条（文件不在树里 / 行号越过文件末尾 / D5b 例化者列指错 / D5d 逐字抄的回声对不上）`
+console.log(`D5 引用核对：扫 ${docs.length} 份交付文档（docs/log 与 docs/study 的追加式/笔记档案不参与）⇒ 硬错 ${fails.length} 条（文件不在树里 / 行号越过文件末尾 / D5b 例化者列指错 / D5d 逐字抄的回声对不上）`
   + `；锚点命中 ${oks.length} 条；锚点候选 ${soft.length} 条；取不出代码锚点 ${needs.length} 条；回声转述待人看 ${echoNeed.length} 条；厂商树引用 ${skipped} 条不参与；旧名同行带免检词 ${notTrackedExempt} 条不参与（与导出器同一口径）`);
 if (fails.length) { console.log('\n--- 硬错（必定是坏引用）---'); fails.slice(0, listN).forEach((f) => console.log('  ' + f)); if (fails.length > listN) console.log(`  …还有 ${fails.length - listN} 条`); }
 if (args.has('--list-soft')) {

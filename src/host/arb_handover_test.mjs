@@ -14,7 +14,7 @@
  *
  * 覆盖范围要说清楚，别夸大：
  *   · 本脚本证明的是 **owner 位的交接时序**（谁拥有 AXI 读口 + 帧缓存写口）。
- *   · 它**不**证明屏幕上真有画面、也不证明画面不撕裂 —— 那两条仍然是眼睛的活（`board/README.md`）。
+ *   · 它**不**证明屏幕上真有画面、也不证明画面不撕裂 —— 那两条仍然是眼睛的活（`hw/README.md`）。
  *
  * 用法（前置：板子上电、目标 bit 已下载、hw_server 在跑、PC 网卡直连**PL 侧** RJ45）：
  *   node arb_handover_test.mjs                 # 完整一轮：静默→推流→停→再推
@@ -82,7 +82,7 @@ const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 /* ---------------------- 串口：把 PS 的状态保住，别拿它当牺牲品 ---------------------- */
 /**
  * 跑一次 uart_cap_once.ps1，返回抓到的文本（失败就返回空串，不影响判据）。
- * 注意 PowerShell 的坑（见 board/scripts/uart_cap_once.ps1 头部）：多命令走 -Cmds 逗号分隔，
+ * 注意 PowerShell 的坑（见 hw/scripts/uart_cap_once.ps1 头部）：多命令走 -Cmds 逗号分隔，
  * 脚本本体保持 ASCII。
  */
 function uart(cmds, seconds) {
@@ -202,7 +202,7 @@ function judge(samples, t1, t2, t3, t4) {
   // AUTO 模式下 PS 占着屏只有两种正当理由：没流（bit1）或时基不可信（bit0）；
   // 而"锁 PS"（bit2）本测试从不设置 ⇒ 出现即说明有人把模式钉住了，交接其实是假的。
   // ⚠ 板上若是 r54 之前的 bit，这一条必然红（三位还没出生，恒 0）—— 那是**正确的红**：
-  //    先按 md5 核对 bit，别去改判据。（凭据 `build/frozen_*/MANIFEST.md`。）
+  //    先按 md5 核对 bit，别去改判据。（凭据 `scripts/frozen_*/MANIFEST.md`。）
   const whyBad = samples.filter((x) => x.ms >= t2 && x.ms < t3 &&
       x.ms > t2 + Math.max(HBACK_MS, (backMs || 0) + 1000) &&
       ((WHY(x.v) & 0b011) === 0 || WHY_PS(x.v) === 1));

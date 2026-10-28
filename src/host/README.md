@@ -7,7 +7,7 @@
 - Python 3.10+：只用标准库（`argparse`、`socket`、`struct`、`subprocess`），不需要 pyserial。
 - Node.js 18+：只用内置模块（`node:dgram`、`node:child_process`），零第三方包。
 - JTAG 读回需要 Vitis 的 `xsdb`，路径用环境变量 `VP_XSDB` 或 `--xsdb` 给。
-- 串口命令判据调用 `board/scripts/uart_cmd_script.ps1`，需要 PowerShell 与空闲的 COM6。
+- 串口命令判据调用 `hw/scripts/uart_cmd_script.ps1`，需要 PowerShell 与空闲的 COM6。
 
 ## 推流
 
@@ -53,7 +53,7 @@ python src/host/link_selftest.py 192.168.1.10 6
 node src/host/uart_cmd_check.mjs --port COM6
 ```
 
-105 条命令逐条对回声，末态必须回到初态。判据文件是 `board/scripts/cmd_battery_v81.txt`，传输走 `board/scripts/uart_cmd_script.ps1`。
+105 条命令逐条对回声，末态必须回到初态。判据文件是 `hw/scripts/cmd_battery_v81.txt`，传输走 `hw/scripts/uart_cmd_script.ps1`。
 
 ## JTAG 读回
 
@@ -70,7 +70,7 @@ node src/host/health_read.mjs --gapclr
 
 ```bash
 node src/host/geom_check.mjs
-node src/host/metrics.mjs --out board/evidence --tag clean30
+node src/host/metrics.mjs --out hw/evidence --tag clean30
 node src/host/metric_recheck.mjs
 ```
 

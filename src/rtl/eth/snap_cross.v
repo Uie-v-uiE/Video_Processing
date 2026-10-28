@@ -22,8 +22,8 @@ module snap_cross #(
     //   （system_top.v:250 那条死复位，`snap_cross.dst_rst_n` 是它传下来的），于是
     //   `if (!dst_rst_n)` 分支**永远走不到** ⇒ 上电值只由位流里的 INIT 承载，不写声明初值它
     //   就是 1'b0，而复位分支写的是 1'b1 ⇒ "心跳没来过"这件事在配置完成后的一拍会被误报。
-    //   尺子：build/scan_dead_reset_init.py（改前 WANT1 root=pl_demo_top init_miss=1，
-    //   件 build/evidence/r113_dead_reset_scan.txt；改后必须 init_miss=0）。
+    //   尺子：scripts/scan_dead_reset_init.py（改前 WANT1 root=pl_demo_top init_miss=1，
+    //   件 scripts/evidence/r113_dead_reset_scan.txt；改后必须 init_miss=0）。
     // ⚠ 这里只声明"修法与尺子"，不改任何时序结论：`pl_demo_top` **不在当前位流里**（正式构建的是
     //   `system_top`），所以这一处对 r114 的名册与 WNS 是无感的，不能拿来当收益讲。
     output reg             hb_gone = 1'b1,

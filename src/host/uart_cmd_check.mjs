@@ -5,7 +5,7 @@
 /**
  * uart_cmd_check.mjs —— V8 命令层的验收判据（不是"看看有没有回应"，是逐条对回声 + 收尾对初态）
  *
- *   node src/host/uart_cmd_check.mjs [--file board/scripts/cmd_battery_v81.txt] [--port COM6] [--dry]
+ *   node src/host/uart_cmd_check.mjs [--file hw/scripts/cmd_battery_v81.txt] [--port COM6] [--dry]
  *
  * 为什么单独有个判据器：命令层是"人敲一条、板子回一行"的东西，没有判据就只能靠人眼逐条读，
  * 而人眼读最容易漏的是**该拒的没拒**（老解析器连 `THE` 都当 `TH` 用）。所以这里每条命令
@@ -23,20 +23,20 @@
  *      改成"必须没有 sel= 回声 + 必须回一句正好九个字符的等价串"。
  *      ⚠ 由此带出一条电池自己的过期：结尾那条 `pipe 00000` 以前是"全旁路还原"，现在它不还原任何东西，
  *      于是板上 `sel` 被留在前面那条 `pipe 000100000` 的 0x008 ⇒ 末态 ≠ 初态，本判据会红。
- *      红得对（改了状态就是改了状态），要修的是 `board/scripts/cmd_battery_v81.txt` 那一行改成 `pipe 000000000`
+ *      红得对（改了状态就是改了状态），要修的是 `hw/scripts/cmd_battery_v81.txt` 那一行改成 `pipe 000000000`
  *      —— 判据不许为了能绿而把 `sel` 从元组里摘出去。
  *
- * 传输走 board/scripts/uart_cmd_script.ps1（PowerShell 自带 SerialPort，本机没有 pyserial），
+ * 传输走 hw/scripts/uart_cmd_script.ps1（PowerShell 自带 SerialPort，本机没有 pyserial），
  * 它按行发、每条前面 echo `>> <行>`，所以捕获能按命令切片。
  */
 import { execFileSync } from 'node:child_process';
 import { readFileSync, existsSync } from 'node:fs';
 
-const PS1 = 'board/scripts/uart_cmd_script.ps1';
+const PS1 = 'hw/scripts/uart_cmd_script.ps1';
 const get = (n, d) => { const i = process.argv.indexOf('--' + n); return i < 0 ? d : process.argv[i + 1]; };
-const FILE = String(get('file', 'board/scripts/cmd_battery_v81.txt'));
+const FILE = String(get('file', 'hw/scripts/cmd_battery_v81.txt'));
 const PORT = String(get('port', 'COM6'));
-const OUT = String(get('out', 'board/uart_script_capture.txt'));
+const OUT = String(get('out', 'hw/uart_script_capture.txt'));
 const DRY = process.argv.includes('--dry');
 /* `--replay <捕获文件>`：不发送、直接判一份**已经存在的**捕获。
  * 存在的理由有两条：① 判据自己要能离线复验（不必每次上板、不占串口）；
@@ -137,7 +137,7 @@ const EXPECT = [
   [/src=1/],                                                // SRC2：粘着写法也要认（数下标那种写法就是从这里翻车的）
   [/\[BILIN\] 只认/, /!bilin=/],                             // bilin 2：第三态不存在，必须拒
   [/thr=80/],                                              // TH80：把阈值恢复成 80
-  // ---- V8-7 温度八条（与 board/scripts/cmd_battery_v81.txt 结尾那八条一一对位）----
+  // ---- V8-7 温度八条（与 hw/scripts/cmd_battery_v81.txt 结尾那八条一一对位）----
   // sane=1 是这一组里唯一"不许靠放松判据变绿"的一条：raw 读到 0（FIFO 没对齐 / XADC 没释放复位）
   // 会译成 -273.15 °C，读到满码会译成 230 °C，两种都被 sane 挡下；VCCINT 必须在 0.8..1.3 V。
   // 注意 raw 的十六进制是**大写**：`xil_printf` 用的字母表是 0123456789ABCDEF，`%04x` 也一样。
@@ -209,7 +209,7 @@ const EXPECT = [
   [/\[SPLIT\] 100% -> pos=1023\/1024/, /已夹到 10 位上限/],
   [/\[SPLIT\] pos=1023\/1024（显示列） = 99% manual/, /!auto/],
   // 再钉**更坏的那条写口**：换空间那一路不清 auto，所以旧固件在这里 1024<<13 点亮的 bit23 会留下来
-  //   —— 板上复现（build/probe_split100b_old.txt）：`split screen` 的回显是
+  //   —— 板上复现（scripts/probe_split100b_old.txt）：`split screen` 的回显是
   //   "pos=1024/1024 = 100%，auto 仍开着"，紧接着 `split show` 是 "pos=0/1024 = 0% auto"：
   //   用户要"整屏处理图"，拿到的是"整屏原图 + 自动扫描悄悄开起来"，而回显还说这状态是 inherited 的。
   //   修完之后这四条应当读成 506/512 → 512/512 → 1023/1024（明说夹了）→ manual。
@@ -269,7 +269,7 @@ const EXPECT = [
 /* `--align`：只做"判据表与命令表逐行对位"这一件事就退出（不碰串口、不需要板子）。
  * 为什么值得单独立一个模式：EXPECT 是**按下标**取的，电池里插一条命令就会让后面每一条错一位 ——
  * 症状是"一大片 FAIL"，最容易被误诊成固件坏了，真正的原因只是判据表没跟着插。
- * 每次动过 board/cmd_battery_*.txt 或这张表，先跑这个（几秒钟）。 */
+ * 每次动过 hw/cmd_battery_*.txt 或这张表，先跑这个（几秒钟）。 */
 if (process.argv.includes('--align')) {
   const bat = readFileSync(FILE, 'utf8').replace(/^\ufeff/, '').split(/\r?\n/)
     .filter((l) => l.trim() && !l.trim().startsWith('#'));
@@ -292,7 +292,7 @@ function seg(capture, line, i) {
   return { seg: capture.slice(nl + 1, b < 0 ? capture.length : b), at: (b < 0 ? capture.length : b) };
 }
 
-/* #177：演示默认档（唯一出处 report/defaults.md 第一节）。`pub` 每帧翻不参与；`frames/playing/sd` 是状态量。
+/* #177：演示默认档（唯一出处 docs/defaults.md 第一节）。`pub` 每帧翻不参与；`frames/playing/sd` 是状态量。
  * ⚠ 这一段与下面的 `--self` 必须放在**碰串口之前**：判据自己的对照实验不该驱动板子，
  *   而过去它排在捕获之后 ⇒ `node src/host/uart_cmd_check.mjs --self` 会把 100 条电池重发一遍，
  *   既占了 COM6，又把我为眼睛判据钉在板上的那一态冲掉（2026-09-30 早上撞的）。
@@ -382,7 +382,7 @@ for (let i = 0; i < lines.length; i++) {
  * #66：`en=`（老五位的投影）随五位一起从 STAT 行里删了，它那一格由 `sel=%03x` 顶上 ——
  * 这不是放松：`en` 只有五位、而且是投影，`sel` 是效果链那九位的原值（看得见的是超集）。
  * ⚠ 因此电池结尾那条 `pipe 00000` 现在不再"全旁路还原"（五位不再生效），末态 sel 会比初态多一个
- *   0x008 ⇒ 这一条会红，红的是电池（`board/scripts/cmd_battery_v81.txt` 该把那一行改成 `pipe 000000000`），
+ *   0x008 ⇒ 这一条会红，红的是电池（`hw/scripts/cmd_battery_v81.txt` 该把那一行改成 `pipe 000000000`），
  *   不是判据。把 `sel` 从元组里摘掉可以让它变绿，但那是把唯一看得见效果链的格子挖掉 ⇒ 不做。
  * 十六进制那两格（sel/geom）大小写都收：`%x` 走的是 xil_printf 的大写字母表（见上面 TEMP 那段）。 */
 const cap2 = cap.split(/\r?\n/);
@@ -416,7 +416,7 @@ else if (stats[0] !== stats[stats.length - 1]) {
     fail++;
   } else if (badF.length) {
     const shown = badF.map(([k, v]) => { const m = fieldOf(last, k); return `${k}=${m ? m[2] : ';缺失'}≠${v}`; });
-    console.log(`FAIL 电池跑完板子不在演示默认档（report/defaults.md 第一节）：` + shown.join('  '));
+    console.log(`FAIL 电池跑完板子不在演示默认档（docs/defaults.md 第一节）：` + shown.join('  '));
     fail++;
   } else console.log(`ok   末态 = 演示默认档（${DEFAULT_TUPLE.map(([k, v]) => k + '=' + v).join(' ')}）—— 与起点无关（#177）`);
 }

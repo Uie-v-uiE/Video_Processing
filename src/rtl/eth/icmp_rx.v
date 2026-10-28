@@ -103,7 +103,7 @@ module icmp_rx (
                 if (skip_en) next_state = st_rx_end;
                 // #218：这一态原来只有 `skip_en` 一条出路，而它在数据段里只由"数到声明的最后一个字节"点亮。
                 //   线在数满之前空下来（截断帧，或声明长度比实到大）就永远出不去 ⇒ 这一包之后所有 ICMP
-                //   都不再应答，直到重配 PL（板上实测：build/r101_216_deathpoint.txt）。
+                //   都不再应答，直到重配 PL（板上实测：scripts/r101_216_deathpoint.txt）。
                 //   GMII 的定义里 rx_dv 在整个帧内保持为高，所以它掉下来就等价于"这帧结束了"：
                 //   作废这一包（不拉 rec_pkt_done，不给畸形帧生成应答），交给 st_rx_end 收尾回 idle。
                 else if (!gmii_rx_dv) next_state = st_rx_end;
@@ -194,7 +194,7 @@ module icmp_rx (
                         else if (cnt == 5'd3) total_length[7:0] <= gmii_rxd;
                         else if (cnt == 5'd4)
                             // #206 的界（红前凭据 sim/tb_icmp_len_wrap.v 的 R1/R1b/R2；2026-10-01 在**没有**本守卫的
-                            //   树上重跑仍是 nfail=3，改后绿见 build/r100_206_after.txt）：
+                            //   树上重跑仍是 nfail=3，改后绿见 scripts/r100_206_after.txt）：
                             //   IP 总长至少要装下 20(IP 头) + 8(ICMP 头)。写小于 28 的畸形包会让下面这个 16 位减法
                             //   回绕成 ~65516，解析机一直停在 st_rx_data 把**紧随其后的一包**吃掉，
                             //   而 st_rx_data 永远置不了 error_en ⇒ 回不去。所以长度不够直接判错，不去算它。
@@ -262,7 +262,7 @@ module icmp_rx (
                         // #218：IP 总长正好 28（`ping -l 0`）是**合法**包，只是数据段为空。
                         //   原来这一态唯一的出口是"数到第 len-1 个字节"，而 len=0 时那个比较值回绕成 0xFFFF，
                         //   于是这一拍之后再也出不去：板上量到的后果是**一条 0 字节请求让应答器永久变哑**
-                        //   （红前凭据 build/r102_218_before.txt 的 K1..K4，逐轮曲线 build/r101_216_deathpoint.txt）。
+                        //   （红前凭据 scripts/r102_218_before.txt 的 K1..K4，逐轮曲线 scripts/r101_216_deathpoint.txt）。
                         //   这里进来的这一拍就收束：照旧发一次 rec_pkt_done（它就是应答的触发），
                         //   长度写 0 ⇒ 发侧按 #188 的口径补到 MIN_DATA_NUM，回复内容不受影响。
                         skip_en       <= 1'b1;

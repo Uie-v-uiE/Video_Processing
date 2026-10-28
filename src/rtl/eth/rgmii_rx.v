@@ -11,7 +11,7 @@
 //   内部路径变好，采样点落没落在眼里必须由 1000M 实流量的 `bad`/`drop_words` 判。
 // ⚠⚠ 上面那句前提（"没有 set_input_delay"）在 2026-10-03 被今天的工作改掉了，别再照它推理：
 //   候选窗 `src/constraints/r114_io_async.xdc`（±0.500 ns，RGMII 规范给的沿对齐公差）+ 变体 B
-//   （沿后 1.5–2.5 ns）都在快车道上量过了（件 board/output/io_roll_console5.txt、
+//   （沿后 1.5–2.5 ns）都在快车道上量过了（件 hw/output/io_roll_console5.txt、
 //   r114_idelay_sweep_console.txt、r114_sweepB_console.txt；结论 ISSUES #282/#285）：
 //     · 窗一建起来，`eth_rxc` 的 hold 立刻 -2.885 / 5 个失败端点，落点就是本模块的 u_iddr_rx_ctl/D；
 //     · 报告里 DCD = 5.008 ns（正是第 4 行那只 BUFG），SCD = 0 ⇒ 当年"搬进 BUFG 消偏斜"这一步

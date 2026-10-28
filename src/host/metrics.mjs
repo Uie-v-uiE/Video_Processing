@@ -7,7 +7,7 @@
  * metrics.mjs —— 一条命令做完"推流 N 秒 → 读回硬件计数器 → 算成指标"，并把原始读数一起存档。
  *
  * 用法：
- *   node src/host/metrics.mjs --fps 30 --seconds 20 [--drop-every 0] [--tag r32] [--out board/evidence_r32]
+ *   node src/host/metrics.mjs --fps 30 --seconds 20 [--drop-every 0] [--tag r32] [--out hw/evidence_r32]
  *   node src/host/metrics.mjs --selftest                 不打板子，验算式本身
  *
  * 为什么要这么一条命令（而不是手敲两遍 health_read）：
@@ -161,7 +161,7 @@ const FPS     = Number(get('fps', 15));
 const SECONDS = Number(get('seconds', 15));
 const DROP    = Number(get('drop-every', 0));
 const TAG     = String(get('tag', 'run'));
-const OUT     = String(get('out', 'board/evidence_metrics'));
+const OUT     = String(get('out', 'hw/evidence_metrics'));
 const IP      = String(get('ip', '192.168.1.10'));
 const NO_PACE = get('no-pace', false) === true;
 const COUNT   = Math.max(1, Math.round(FPS * SECONDS));
@@ -188,7 +188,7 @@ const md = [
   `# 指标采集 ${TAG}（${new Date().toISOString()}）`,
   ``,
   `命令：\`node src/host/metrics.mjs --fps ${FPS} --seconds ${SECONDS}${DROP ? ` --drop-every ${DROP}` : ''}${NO_PACE ? ' --no-pace' : ''} --tag ${TAG}\``,
-  `bit：见同目录 \`MANIFEST.txt\` 或 \`build/gates.sh\` 当时的报告；板子为 Zynq7020。`,
+  `bit：见同目录 \`MANIFEST.txt\` 或 \`scripts/gates.sh\` 当时的报告；板子为 Zynq7020。`,
   ``,
   `| 项 | 值 |`,
   `|---|---|`,

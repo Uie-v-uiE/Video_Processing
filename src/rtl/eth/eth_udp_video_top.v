@@ -308,7 +308,7 @@ module eth_udp_video_top #(
     );
 
     // 收侧重组输出：r135 起只在内部喂 CDC/打包器，不再作为端口引到像素顶层
-    // （pl_video_top 的 eth_wr_* 那一束从来没有消费者，见 report/figures/fig-01 的 N5 注释）。
+    // （pl_video_top 的 eth_wr_* 那一束从来没有消费者，见 docs/figures/fig-01 的 N5 注释）。
     wire        fb_wr_en;
     wire [18:0] fb_wr_addr;
     wire [15:0] fb_wr_data;
@@ -524,7 +524,7 @@ module eth_udp_video_top #(
     //   `.eth_new(frame_ready && eth_link_pix)`），假掉线若盖住 `frame_start` 那一拍就少计一帧。
     //   寄存一拍 ⇒ 跨域变回"触发器→触发器"，同步器吃到的是一拍前就稳定下来的电平。
     //   ⚠ 判据是**结构**判据，台架判不了这一条：RTL 仿真没有门延迟，`|s_pkts` 在仿真里永不出毛刺。
-    //   改前红凭据 `build/r98_cdc_details.txt`（CDC-10，`u_eth/u_reasm/stat_pkts_reg[9]/C →
+    //   改前红凭据 `scripts/r98_cdc_details.txt`（CDC-10，`u_eth/u_reasm/stat_pkts_reg[9]/C →
     //   u_pl/el0_reg/D`，深度 3），改后必须看不见 `eth_rxc>clkout0_1` 这条 Critical 行。
     reg link_active_r;
     always @(posedge logic_clk or negedge logic_rst_n) begin

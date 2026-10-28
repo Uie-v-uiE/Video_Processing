@@ -155,7 +155,7 @@ module tb_c8_edge_column;
                 // ⚠ #78：这里先从函数里取到**各自的临时寄存器**再拼 ——
                 //   一行里连调四次同一个函数时，xsim 在这个大台架里给出的低 40 位是 X
                 //   （同样写法在 20 行的隔离实验 `仓库回归台架 xtest（不在本包内）` 里是干净的 ⇒ 结论：还没找到真因，
-                //    见 report/log/ISSUES.md #78 的"未定论"段）。
+                //    见 docs/log/ISSUES.md #78 的"未定论"段）。
                 p3 = px_val(ii, jj*4+3); p2 = px_val(ii, jj*4+2);
                 p1 = px_val(ii, jj*4+1); p0 = px_val(ii, jj*4);
                 ddr[ii*WPL + jj] = {p3, p2, p1, p0};
@@ -1332,7 +1332,7 @@ module tb_c8_edge_column;
         //   标签描述的是 17 拍之前那个地址取回的内容。能真正判定标签与内容同列的只有两条路：
         //   ① 屏上是我喂的那张坐标图（内容判据，已在下面做成硬判据 C1a/C1b/C1c（探针先证伪了
         //      “没搬进来”那个解释，真正错的是尺子取错级数）；② 板上看缝左右 10 列有没有暗带
-        //      （board/README.md 第 12 行，r59a 之后必看的眼睛判据）。
+        //      （hw/README.md 第 12 行，r59a 之后必看的眼睛判据）。
         //   留在这里当判据只会造出一条不可能成立的判据 ⇒ 打数、不判。
         $display("[tb_video_pipeline_top.v:513] OBS C-tap 观测（不判定）：样本 %0d 格、偏差非零 %0d 格、首格偏差 %0d",
                  tap_cnt, tap_bad, tap_mode);
@@ -1393,7 +1393,7 @@ module tb_c8_edge_column;
         //   OFF_LINES 个显示行里 `raw_line_delay` 装的还是上一帧尾部（旧状下地址夹在 299）那一行。
         //   #97 第四笔把帧尾那几个请求改成绕回（0,0,1,1）之后，这一族从"解释得通"升级成"逐格正确"：
         //   C1d-b 现在要求**每一个被跳过的帧头格子都解出本行自己要的那一源行**（见采样处注释），
-        //   于是屏顶那几行不再只归眼睛 —— 板级项（`board/README.md` 第 33 行）退化成一次复核。
+        //   于是屏顶那几行不再只归眼睛 —— 板级项（`hw/README.md` 第 33 行）退化成一次复核。
         //   跳过条件由 `u_pipe.OFF_LINES` 推出来（不写字面量 4），跳过的格数照 print，
         //   剩下的样本里 Δrow 必须为 0 —— 不是"允许 ±1"。
         //   ⚠ 走 `line()` 的 tag/说明**必须是 ASCII**：这个 task 的实参是定宽向量，而含 ≥0x80 字节的
@@ -1767,7 +1767,7 @@ module tb_c8_edge_column;
         // ---- C11（#171 的端到端那一半）：一次 abort 必须把"这一帧已就绪"丢掉 ----
         // 口径先说死：**RTL 已经改完了，这里拿不到"改前红"**，所以这一条记为**回归判据**；
         // #171 的鉴别证据在模块级变异对照里（把 `frame_commit_lock.v` 单文件退回 HEAD，
-        // `sim/tb_commit_strobe.v` 的 B1/B2/B3/B4/A8 五条就红 —— 见 build/r96_commit_strobe_mutation.txt）。
+        // `sim/tb_commit_strobe.v` 的 B1/B2/B3/B4/A8 五条就红 —— 见 scripts/r96_commit_strobe_mutation.txt）。
         // 顶层这一支只有一行换序 + 一行注释，它本身不需要再花一次 75 分钟的整屏跑去"证明能红"；
         // 但它值得在这里被钉住，因为**上位机看到的那一位**（`status` 里的 `eth_ready`）就是这一条。
         // 注入走 `force dut.u_cmt.copy_abort`：顶层没暴露 `WD_CYC`，等 20 ms 看门狗不值得；

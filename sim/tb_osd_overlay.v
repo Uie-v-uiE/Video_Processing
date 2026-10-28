@@ -467,7 +467,7 @@ module tb_osd_overlay;
         if (errors == 0) $display("[tb_osd_overlay.v:375] PASS T9 两种状态 × 五行：每个非空格都译得出字模号，空格必须译成 63");
 
         // ================= T10 新字模逐像素扫（按码点找格子，不手写第几格） =================
-        // 位图是 TB 自己抄的（`build/glyphs_draft.txt` 那份），与 RTL 互为反例源：谁改了 RTL 的一行位图没改这里，亮像素数就对不上。
+        // 位图是 TB 自己抄的（`scripts/glyphs_draft.txt` 那份），与 RTL 互为反例源：谁改了 RTL 的一行位图没改这里，亮像素数就对不上。
         defaults(); settle;
         scan_code(1, 8'h49, G_I,    "T10a");    // PIPE 的 I（#67 新画，号 54）
         scan_code(1, 8'h4D, G_M,    "T10b");    // GAMMA 的两个 M（#67 新画，号 55）

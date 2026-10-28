@@ -10,7 +10,7 @@
 //        B1 要求除这一对相邻行之外**任何行都不许动**；帧末那行要是动了，就是 B1 红。
 //        B2 正对照：必须真有格子跟着变（不然 B1 是空集上的绿 —— 本仓 #60 那一课）。
 //        B3 覆盖地板：被判格子数与每行采样数都要够。
-// 跑法：bash build/sim/run_one.sh tb_edge_rim_bottom_wrap      （或 iverilog/ModelSim 同名单独跑）
+// 跑法：bash scripts/sim/run_one.sh tb_edge_rim_bottom_wrap      （或 iverilog/ModelSim 同名单独跑）
 // 退出码：判定行以 `RESULT tb_edge_rim_bottom_wrap PASS|FAIL` 结尾；FAIL 时点名是哪一条 B*。
 module tb_edge_rim_bottom_wrap;
     localparam integer W = 64, H = 64, FW = H*W;
@@ -147,10 +147,10 @@ module tb_edge_rim_bottom_wrap;
     end
 endmodule
 
-// 这一行不是装饰：`build/sim/run_one.sh` 把 src/rtl + sim/tb_*.v + sim/prim/*.v 交给**同一次 xvlog**，
+// 这一行不是装饰：`scripts/sim/run_one.sh` 把 src/rtl + sim/tb_*.v + sim/prim/*.v 交给**同一次 xvlog**，
 //   而 `default_nettype` 是跨文件延续的编译期状态。本文件第 2 行开了 none 又不还回去，排在后面的
 //   `sim/prim/unisims_sim.v`（`module BUFG (input I, output O)` 这种隐式 net 口）就被判
 //   `VRFC 10-1103 / 10-3594 / 10-8530` ⇒ 规范通道整架在 xelab 之前就起不来
-//   （2026-10-17 12:5x 撞到，那一跑的 `XVLOG FAILED` 八行原文在 build/sim 那条通道的输出里）。
+//   （2026-10-17 12:5x 撞到，那一跑的 `XVLOG FAILED` 八行原文在 scripts/sim 那条通道的输出里）。
 //   同族的 `sim/tb_display_edge_rim.v` 一直在文件尾还回去（它 462 行），这里照它的写法补齐。
 `default_nettype wire

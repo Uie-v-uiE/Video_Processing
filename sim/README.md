@@ -1,6 +1,6 @@
 # `sim/`：台架怎么跑、每支回答什么
 
-台架只回答一个问题：这一支 RTL 在仿真里有没有按定义行事。它不看板子，也不看时序；时序在 `build/reports/` 的实现报告里，板上行为在 `board/` 的读数里。
+台架只回答一个问题：这一支 RTL 在仿真里有没有按定义行事。它不看板子，也不看时序；时序在 `hw/reports/` 的实现报告里，板上行为在 `hw/` 的读数里。
 
 ## 最终交付结果
 
@@ -11,17 +11,17 @@
 在仓库根执行。用 ModelSim 时：
 
 ```bash
-MSIM_BIN=<ModelSim>/win64 bash build/sim/run_msim.sh tb_crc32
+MSIM_BIN=<ModelSim>/win64 bash scripts/sim/run_msim.sh tb_crc32
 ```
 
-`MSIM_BIN` 指到 ModelSim 的 `win64`（或 Linux）目录。脚本会先编译整棵 `src/rtl`、`sim/prim` 和指定的台架，再跑仿真，最后打印 `RESULT <tb> PASS` 或 `FAIL`。用 xsim 时入口是 `build/sim/run_one.sh <tb>`，判定行是 `VERDICT <tb>: ...`。
+`MSIM_BIN` 指到 ModelSim 的 `win64`（或 Linux）目录。脚本会先编译整棵 `src/rtl`、`sim/prim` 和指定的台架，再跑仿真，最后打印 `RESULT <tb> PASS` 或 `FAIL`。用 xsim 时入口是 `scripts/sim/run_one.sh <tb>`，判定行是 `VERDICT <tb>: ...`。
 
 同一时刻只能有一个仿真器写同一个 work 目录。脚本会在门口检查，发现已有 xsim 或 ModelSim 在跑就拒绝启动，避免两跑的行混进同一份日志。
 
 ## 一次跑完 92 支
 
 ```bash
-vivado -mode batch -nojournal -log sim/xsim.log -source build/sim/run_sim.tcl
+vivado -mode batch -nojournal -log sim/xsim.log -source scripts/sim/run_sim.tcl
 # SIM_TB=tb_crc32,tb_timing 只跑点名的几支；SIM_ONLY=1 只编译；SIM_VERBOSE=1 打整段流水
 ```
 
@@ -37,7 +37,7 @@ vivado -mode batch -nojournal -log sim/xsim.log -source build/sim/run_sim.tcl
 
 - 完整清单以 `sim/` 下 92 个 `tb_*.v` 文件头为准；本页按验证域给出索引，不复制每支台架的逐条判据。
 - 文件名里的 `v98`、`v103` 是历史迭代编号，不承担信息；判据看的是“被测模块 + 覆盖点”，不是文件名里的轮次。
-- 台架通过不等于板上通过。这一层证明的是 RTL 行为；板级读数和人眼验收在 `board/acceptance.md` 与 `report/verification.md`。
+- 台架通过不等于板上通过。这一层证明的是 RTL 行为；板级读数和人眼验收在 `hw/acceptance.md` 与 `docs/verification.md`。
 
 ## 按验证域分组
 

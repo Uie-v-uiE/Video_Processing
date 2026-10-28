@@ -249,7 +249,7 @@ module tb_test_card;
 
         // ---- T20 模式格雷码环：验 `pl_video_top` 里手推的那条下一状态式 ----
         // 顶层写的是 `mode <= {mode[0], ~mode[1]}`（AUTO 00 → ETH 01 → SD 11 → TEST 10 → AUTO）。这里只验**式子本身**，
-        // 顶层接没接对是板级长按判据（`board/README.md`）；四个编码重抄一遍而不引用 RTL，是为了让"改一边忘一边"能红。
+        // 顶层接没接对是板级长按判据（`hw/README.md`）；四个编码重抄一遍而不引用 RTL，是为了让"改一边忘一边"能红。
         begin : gray_ring
             reg [1:0] m, m0, m1, m2, m3;
             m = 2'd0;

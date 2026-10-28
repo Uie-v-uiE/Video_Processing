@@ -16,7 +16,7 @@
 //   拼成一句谁都没敲过的话 ⇒ 症状与心跳那一族一样是"板子做了我没让它做的事"，凭据也放在这里。
 //
 // ⚠ 这里**不编译、不上板**：它钉的是"三处源码之间的约定还成立"（节拍/超时/调用点/恢复键），
-//   行为级的凭据在 tb_v102（PL）与 `board/README.md` 的眼睛那一行（整机）。
+//   行为级的凭据在 tb_v102（PL）与 `hw/README.md` 的眼睛那一行（整机）。
 import { readFileSync } from 'node:fs';
 import path from 'node:path';
 

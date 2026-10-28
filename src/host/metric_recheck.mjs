@@ -204,25 +204,25 @@ const RULES = [
 ];
 
 function run(self) {
-    const T = fromTiming('build/reports/build_timing_summary.rpt');
-    const U = fromUtil('build/reports/build_utilization.rpt');
-    const P = fromPower('build/reports/power.rpt');
+    const T = fromTiming('hw/reports/build_timing_summary.rpt');
+    const U = fromUtil('hw/reports/build_utilization.rpt');
+    const P = fromPower('hw/reports/power.rpt');
     const SRC = { timing: T, util: U, power: P };
     let rows = readRows(fs.readFileSync(CSV, 'utf8'));
     rows.shift();                                            // 表头
     // data/metrics.csv 是 5 列（名称,数值,单位,口径,证据）；本检查器的规则表仍按 7 列
     // （名称,类别,数值,单位,口径,构建,证据）读旧夹具。只在 5 列行上补齐两列，7 列夹具不动。
     rows = rows.map(f => f.length === 5 ? [f[0], '', f[1], f[2], f[3], '', f[4]] : f);
-    if (self) rows.push(['全局 setup WNS', '核心', '+9.999', 'ns', '自检：故意写错的一条', '一次构建', 'build/reports/build_timing_summary.rpt']);
+    if (self) rows.push(['全局 setup WNS', '核心', '+9.999', 'ns', '自检：故意写错的一条', '一次构建', 'hw/reports/build_timing_summary.rpt']);
     // 第二条 fixture 测的是"点了报告、却没人认领"这一格（旧写法只 other++，静默）：
     // 删掉下面那个 orphan 判红，这条 fixture 就不红了 ⇒ 它就是那一格的"改前必须红"。
-    if (self) rows.push(['自检：没有规则认领的一行', '核心', '+1.000', 'MHz', '自检：故意写错的一条', '一次构建', 'build/reports/build_timing_summary.rpt']);
+    if (self) rows.push(['自检：没有规则认领的一行', '核心', '+1.000', 'MHz', '自检：故意写错的一条', '一次构建', 'hw/reports/build_timing_summary.rpt']);
     let red = 0, judged = 0, other = 0;
 
     // 首页那五行也一起判（#213 起了这个头，#159 扩到"四行 26 个数"，本轮 #224 补到每份五行：
     //   逐时钟 setup 与逐时钟 hold 是刚被抓出来的两行 stale；现在的条数由脚本自己念，不在注释里钉死）：
-    // README 的表格里写着 WNS、逐资源占用与功耗，并点名 `build/reports/build_timing_summary.rpt` /
-    // `build/reports/build_utilization.rpt` / `build/reports/power.rpt`，可**没有任何检查器回去读那三份报告**——
+    // README 的表格里写着 WNS、逐资源占用与功耗，并点名 `hw/reports/build_timing_summary.rpt` /
+    // `hw/reports/build_utilization.rpt` / `hw/reports/power.rpt`，可**没有任何检查器回去读那三份报告**——
     // metrics.csv 有 D6 管，首页没有。于是"首页引用的是哪份报告"与"那份报告现在说什么"之间的
     // 账是空的，跨版一定会烂。⚠ 这条判据的"改前必须红"不用我造：第一次跑就抓到首页功耗行
     // 写 2.212 W / 52.6 °C 而报告是 2.211 / 52.5，占用行写 14333 / 8079 而报告是 14334 / 8127

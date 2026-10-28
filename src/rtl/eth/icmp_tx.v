@@ -76,7 +76,7 @@ module icmp_tx (
     //   所以 bit31:20 恒 0，宽度不参与任何一位信息——但**参与进位链**：r110 全设计最差那条
     //   `ip_head_reg[4][18] → check_buffer_reg[17]/D` 是 10 级 / 6 个 CARRY4、route 61.3 %，
     //   32 位进位链里有 12 位在为恒零的半截买单。凭据：`sim/tb_tx_bytes.v` 把发出去的 72 个字节
-    //   逐字节打全，改前/改后必须完全相同（`build/evidence/r112_tx_bytes_{base,cut}.txt`）。
+    //   逐字节打全，改前/改后必须完全相同（`scripts/evidence/r112_tx_bytes_{base,cut}.txt`）。
     reg [19:0] check_buffer;  //ip首部校验和
     reg [31:0] check_buffer_icmp;  //ip首部校验和
     reg [1:0] tx_bit_sel;
@@ -360,7 +360,7 @@ module icmp_tx (
                     //   这一支只处理"零载荷"，把它直接送到补位/结束；**下面那一串一个字没动**，
                     //   所以任何合法长度（含 8 字节短 ping 的补位内容）走的是原来那条路。
                     //   尺子：`sim/tb_icmp_ping0.v`（T1 钉这一支；T2/T3/T5 钉"别把合法路径改掉"，
-                    //   改前红凭据 `build/r98_188_before.txt`）。
+                    //   改前红凭据 `scripts/r98_188_before.txt`）。
                     if (tx_data_num == 16'd0) begin
                         tx_req <= 1'b0;
                         if (real_add_cnt < real_tx_m1)

@@ -3,7 +3,7 @@
 ## 为什么单独一个文件：clk_fpga_0 由 PS7 IP 自己的 XDC 创建（FCLKCLK[0]），
 ## 综合阶段还不存在；而 XDC 文件里不能用 if/catch（[Designutils 20-1307]）。
 ## 于是把它拆出来，用 add_files + set_property used_in_synthesis false 绑定到
-## 只在实现阶段生效（见 build/tcl/build_system_axigpio.tcl 的 constrs_1 部分）。
+## 只在实现阶段生效（见 scripts/tcl/build_system_axigpio.tcl 的 constrs_1 部分）。
 ##
 ## 时序数字不受影响：综合阶段这条约束在拆分前**也是失败的**（等于不存在）。
 ##

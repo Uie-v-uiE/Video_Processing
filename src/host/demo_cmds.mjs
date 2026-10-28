@@ -1,8 +1,8 @@
-// src/host/demo_cmds.mjs —— 把 `report/demo_script.md` 代码块里的命令**逐条抽出来**，两个用途：
-//   --emit <file>   抽成一份可发的脚本（`board/demo_rehearsal.txt`），板子上逐条跑一遍
+// src/host/demo_cmds.mjs —— 把 `docs/demo_script.md` 代码块里的命令**逐条抽出来**，两个用途：
+//   --emit <file>   抽成一份可发的脚本（`hw/demo_rehearsal.txt`），板子上逐条跑一遍
 //   --check <capture>  对着串口回包判"演示目录里没有任何一条命令是板子不认的 / 是'硬件待接'"
 //
-// 为什么要它：`report/demo_script.md` 顶部写的是"照抄就能演"。这句话要么是被验过的，
+// 为什么要它：`docs/demo_script.md` 顶部写的是"照抄就能演"。这句话要么是被验过的，
 //   要么就是又一份"文档里有、板上没有"（#67 那一族的反面：帮助/清单与硬件不符）。
 //   抽命令这件事交给脚本而不是我手抄，是为了**清单与文档不能各说各话**：
 //   文档改一行，脚本抽出来的就少一行/多一行，`--check` 会拿新的那份去问板子。
@@ -39,10 +39,10 @@ if (argv[0] === '--emit') {
     // 骨架：首尾各补一条 `stat`（第 0 步与第 8 步本来就要求敲它，只是第 0 步那条落在表格里、
     // 不在代码块里）。没有这对基线，"回到初态"就没有可比的两条数 —— 而那正是这一项要判的事。
     const list = ['stat', ...cmds, 'stat'];
-    writeFileSync(path.resolve(ROOT, argv[1] || 'board/demo_rehearsal.txt'),
-                  '# 由 src/host/demo_cmds.mjs --emit 从 report/demo_script.md 抽出，不要手改\n'
+    writeFileSync(path.resolve(ROOT, argv[1] || 'hw/demo_rehearsal.txt'),
+                  '# 由 src/host/demo_cmds.mjs --emit 从 docs/demo_script.md 抽出，不要手改\n'
                   + list.join('\n') + '\n', { encoding: 'utf8' });
-    console.log(`emit ${list.length} 条（含首尾 stat 基线）-> ${argv[1] || 'board/demo_rehearsal.txt'}`);
+    console.log(`emit ${list.length} 条（含首尾 stat 基线）-> ${argv[1] || 'hw/demo_rehearsal.txt'}`);
     process.exit(0);
 }
 if (argv[0] === '--check') {

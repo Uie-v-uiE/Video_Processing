@@ -194,7 +194,7 @@ module frame_reasm #(
                                 // 偏移能把字写到帧缓存**之外**（`off[18:1]` 最大 131071，帧只有 153600 字节
                                 // =76800 个字，越界后落在谁身上由下游 `axi_frame_saver64` 的乘法决定，而它
                                 // 自己没有上界检查）。尺子：`sim/tb_reasm_bounds.v` 的 R1，改前红凭据
-                                // `build/r98_201_before.txt`（越界包发了 2 次写、最大字索引 145 > 128）。
+                                // `scripts/r98_201_before.txt`（越界包发了 2 次写、最大字索引 145 > 128）。
                                 wr_data<={p_data,pix_lo};
                                 wr_addr<=off[18:1];
                                 wr_en  <=(off < FRAME_BYTES);

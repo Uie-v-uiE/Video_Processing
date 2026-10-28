@@ -28,7 +28,7 @@ ROOT = os.path.abspath(os.path.join(os.path.dirname(os.path.abspath(__file__)), 
 MEASURED = os.path.join(ROOT, "data", "measured")
 
 # 结论行里有中文：Windows 控制台默认 GBK，不改码就会打出乱码，而落盘的东西要求 UTF-8
-# （同一件事见 build/board_verify.sh 的 to_utf8），Node 那侧写的也是 UTF-8。
+# （同一件事见 scripts/board_verify.sh 的 to_utf8），Node 那侧写的也是 UTF-8。
 for _s in (sys.stdout, sys.stderr):
     try:
         _s.reconfigure(encoding="utf-8", errors="replace")

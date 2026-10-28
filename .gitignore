@@ -5,6 +5,7 @@ vivado_r*/
 /vitis/
 .Xil/
 sim_work/
+hw/reports/msim/
 xsim.dir/
 *.jou
 *.pb
@@ -15,9 +16,9 @@ xsim.dir/
 *.hwdef
 *.hwh
 *.ltx
-build/ps_obj*/
-build/edge_profile/
-board/vitis_ws*/
+scripts/ps_obj*/
+scripts/edge_profile/
+hw/vitis_ws*/
 __pycache__/
 *.pyc
 # Local-only learning material and deliverables, never pushed

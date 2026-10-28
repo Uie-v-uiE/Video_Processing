@@ -252,10 +252,10 @@ module pl_video_top #(
     // 且提前量必须加在 **mapper 的显示行输入**上而不是输出的源行上 —— 链子的滞后发生在显示栅格上，缩放/旋转
     // 之后"源行差 4"≠"显示行差 4"。#52 在这之上又叠了双线性读口行方向的 2 行（一对的结果要在这对的第二行
     // 才算得出）：请求行 = (Y+OFF+2)>>1，而实际显示的是上一对算出的 ⇒ 源行 = 它 −1 ✓；`u_raw` 那条行环不动。
-    // ⚠ BILIN_ROWS 必须**偶数**（`row0 = ~y[0]` 定成对奇偶，奇数会让一对分属两个源行 ⇒ A/B 错行）。凭据 tb_v89 T1、tb_v101 L3/L6、tb_video_pipeline_top C1c/C1d/C1h；缝连续性的最终凭据是眼睛（board/README.md 第 12 行）。
+    // ⚠ BILIN_ROWS 必须**偶数**（`row0 = ~y[0]` 定成对奇偶，奇数会让一对分属两个源行 ⇒ A/B 错行）。凭据 tb_v89 T1、tb_v101 L3/L6、tb_video_pipeline_top C1c/C1d/C1h；缝连续性的最终凭据是眼睛（hw/README.md 第 12 行）。
     localparam integer BILIN_ROWS = 2;
     // bilin 的运行时 on/off：`gpio_o[19]`（#83）→ 这条 3 级同步 → `bilin_en_pix`。
-    //   为什么走 gpio_o 而不是 cfg1：cfg1 的 32 位已满（report/COMMANDS.md §5 的位表），那是一次新跨域。
+    //   为什么走 gpio_o 而不是 cfg1：cfg1 的 32 位已满（docs/COMMANDS.md §5 的位表），那是一次新跨域。
     //   复位默认取 **1** ⇒ 上电画面与它是 localparam 常量那一版逐位相同（"加了口子但观感不变"可查）。
     (* ASYNC_REG = "TRUE" *) reg be0, be1, be2;
     always @(posedge clk_pix or negedge rst_pix_n) begin
@@ -294,7 +294,7 @@ module pl_video_top #(
     //   （`OFF_LINES + BILIN_ROWS`）的内容是在**上一帧**的绕回请求行取回来的：上面两条式子给出的
     //   `y_req_row >= IMG_H` 从显示行 594 就开始成立 ⇒ 挂在 `frame_start` 换角，等于"帧头 6 行吃上一帧
     //   的角度、其余吃这一帧的"，每帧换角时这几行就整体错开一档。眼睛那一半已经对上：
-    //   `board/ACCEPTANCE.md` 的 **E4r**（动起来才有顶部分散细线、角度停住就干净），
+    //   `hw/ACCEPTANCE.md` 的 **E4r**（动起来才有顶部分散细线、角度停住就干净），
     //   而 `sim/tb_head_rot_displace.v` 量的是这一档错开的**大小**（k=1..7 度每帧的位移表）。
     //   翻拍点因此挪到**最后一个不绕回的行（今天=593）的行尾消隐**：那一刻本帧要显示的行全部请求完了，
     //   而下一帧帧头的请求还没开始 ⇒ 帧头与主体吃到同一个角度。`de` 掉下去到第 594 行第一个像素之间
@@ -972,7 +972,7 @@ module pl_video_top #(
         .split_eff(split_eff), .raw_on_left(split_raw_left), .shown_pct(split_pct_w)
     );
     // 标记线：gp[13]=1 才是"关" ⇒ 复位/PS 没写过时屏上仍有那条 2 px 蓝线，
-    //   与 r59a 的观感口径一致（board/README.md 第 12 行说的就是"故意画的"）。
+    //   与 r59a 的观感口径一致（hw/README.md 第 12 行说的就是"故意画的"）。
     wire split_marker_on = ~gp[13];
 
     // ---- V9-1：缝可以量在图像列里，于是那条线跟着画面一起转 ----
@@ -1082,10 +1082,10 @@ module pl_video_top #(
     // #128：OSD 的 `FPS:` 格改数**写进屏的新帧**。原来这段数的是显示场的 `vs` 下降沿
     //   （`vs_pix_d0/d1 → vs_tick → 三级同步 → vs_sys`），窗口又是 `sys_clk` 的 1.000 s，
     //   而面板是 1344×625@50 MHz ⇒ 读数恒在 59/60，与片源是 30 fps、15 fps 还是没片源无关
-    //   （`report/MODULES.md` 早就把这条口径写明了，所以这是改口径，不是抓到的新 bug）。
+    //   （`docs/MODULES.md` 早就把这条口径写明了，所以这是改口径，不是抓到的新 bug）。
     //   现在计数搬到 `clk_pix` 域、判据抽进 `src/rtl/util/shown_rate.v`（三个片源都共用顶层现成的线：
     //   ETH 的 `frame_ready && eth_link_pix`、PS/SD 的 `pub_consume && pub_pend`、图卡的 `frame_start`），
-    //   窗口常数一字未改（板载 50 MHz ⇒ 正好 1.000 s，依据 `report/ARCHITECTURE.md` 那行）。
+    //   窗口常数一字未改（板载 50 MHz ⇒ 正好 1.000 s，依据 `docs/ARCHITECTURE.md` 那行）。
     //   顺带少了一对跨域：原来 `fps_q` 在 sys_clk 里寄存、像素域直读。
     //   ⚠ `vs_d11` 这个别名留给 `de_d11/hs_d11` 那一行共用，删掉它要把那行一起拆，本刀不顺手做
     //     （#66 那一族：删东西要单独一轮，别和改口径混在一起）。判据与尺子：`sim/tb_shown_rate.v`（S1..S7）。

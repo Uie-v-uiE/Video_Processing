@@ -22,4 +22,4 @@ node data/generated/gen_inputs.mjs --write
 
 ## 证据
 
-板上原始日志在 `board/measured/`，实现报告在 `build/reports/`，台架判定行在 `build/reports/regression.txt` 与 `build/reports/tb_video_pipeline_top_report.txt`。指标表只指路，不复制日志正文。
+板上原始日志在 `hw/measured/`，实现报告在 `hw/reports/`，台架判定行在 `hw/reports/regression.txt` 与 `hw/reports/tb_video_pipeline_top_report.txt`。指标表只指路，不复制日志正文。

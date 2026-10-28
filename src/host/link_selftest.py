@@ -107,7 +107,7 @@ def phase(name, drop, errors):
     i1 = mark()
     st = stats(i0, i1)
     if st is None:
-        print(f"FAIL {name}: only {i1 - i0} beacon(s) — board/ARP/firewall?")
+        print(f"FAIL {name}: only {i1 - i0} beacon(s) — hw/ARP/firewall?")
         errors.append(name)
         return
     print(f"   beacons={st['n']} dt={st['dt']:.1f}s  frames={st['fps']:.1f}/s  "

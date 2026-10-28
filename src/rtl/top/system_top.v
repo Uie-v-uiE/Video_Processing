@@ -118,7 +118,7 @@ module system_top #(
         if (!(&phy_rst_cnt)) phy_rst_cnt <= phy_rst_cnt + 1'b1;
     end
     assign eth_rst_n = phy_rst_cnt[23];
-    // 本工程的数据面不碰 MDIO（`report/BOARD_PINS.md:62` 就是这么记的：RGMII 走 16-27，MDIO 52-53 不用），
+    // 本工程的数据面不碰 MDIO（`docs/BOARD_PINS.md:62` 就是这么记的：RGMII 走 16-27，MDIO 52-53 不用），
     // PHY 的工作模式由板上 strap 定 ⇒ MDIO 高阻、MDC 钉 0。综合报 `Synth 8-3917 port eth_mdc driven by
     // constant 0` 是**陈述而不是缺陷**；要真做 PHY 寄存器读写得另起一个位时序机，那一版再来消它。
     assign eth_mdio  = 1'bz;
@@ -184,7 +184,7 @@ module system_top #(
         // r116 把它改成 31，理由不是那段算术而是**工具在真窗下的实测曲线**：
         //   窗 = src/constraints/r116_rgmii_input_window.xdc（RTL8211F RXDLY 开着 ⇒ 数据沿落在
         //   它自己的捕获沿前 [1.2, 2.8] ns）；在这份窗下把 IDELAY_VALUE 从 0 扫到 31（只读，
-        //   set_property 在已布线 DCP 上有效，件 build/evidence/r115_window/probe3_console.txt）：
+        //   set_property 在已布线 DCP 上有效，件 scripts/evidence/r115_window/probe3_console.txt）：
         //     hold  −2.822 → −0.870（+63 ps/拍），setup +2.005 → −0.846（−92 ps/拍）
         //   ⇒ 两条曲线的交点在 tap 31（0.155 ns/拍 的斜率差解出 31.1），也就是
         //      min(hold, setup) 的最大值；tap 26 的 min 是 −1.185，tap 31 是 −0.870。
@@ -247,7 +247,7 @@ module system_top #(
     // 毫秒内从 1 变 0"就是**可机器判定**的，不必等任何人看屏幕。
     // ⚠ 位宽必须与 `pl_video_top.dbg_src` **一模一样**（r54 起是 16 bit）。这里以前写过 [5:0] ⇒ 综合只给一条
     //   `Synth 8-689` 警告就把模式高位**静默丢掉**：TEST(10) 读起来像自动(00)、SD(11) 像 ETH(01)（ISSUES #57）。
-    //   这类"名字连对、宽度被吞"现在由门禁第 14 项的位宽判据当场拦（`build/check_ports.py` 的反例之一就是这根线）。
+    //   这类"名字连对、宽度被吞"现在由门禁第 14 项的位宽判据当场拦（`scripts/check_ports.py` 的反例之一就是这根线）。
     wire [15:0] dbg_src;
     wire [31:0] dbg_zoom;              // V8-8 lane23：像素域在用的缩放状态（pl_video_top 里已跨好）
     wire [6*32-1:0] dbg_lat;             // V8-6/V8-5：lane25..29 与 lane24

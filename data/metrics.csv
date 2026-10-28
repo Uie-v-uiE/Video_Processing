@@ -2,25 +2,25 @@
 器件与工具链,xc7z020clg484-2 / Vivado+Vitis 2025.2.1,—,Zynq-7020 CLG484 速度等级 2；全部脚本在该版本跑过,README.md
 源画幅与格式,512×300 RGB565,—,上位机切成不超过 1392 字节的 UDP 包发往 5001,README.md
 显示画幅与场频,1024×600 @59.5,—,像素钟 50 MHz；H_TOTAL 1344、V_TOTAL 625,README.md
-全局 setup WNS,1.341,ns,实现后布线报告；失败端点 0 / 56 043,build/reports/build_timing_summary.rpt
-全局 hold WHS,0.025,ns,实现后布线报告；失败端点 0,build/reports/build_timing_summary.rpt
-TNS / THS,0 / 0,ns,setup 与 hold 的失败路径总和均为 0,build/reports/build_timing_summary.rpt
-Slice LUT,14 967（28.13%）,个,实现后布线报告,build/reports/build_utilization.rpt
-Slice 寄存器,9 095（8.55%）,个,实现后布线报告,build/reports/build_utilization.rpt
-Block RAM Tile,98（70.00%）,tile,实现后布线报告；整帧显示缓存是主要去向,build/reports/build_utilization.rpt
-DSP48,19（8.64%）,个,坐标映射 8、插值 6、拟合 3、模糊 1、缝位 1,build/reports/build_utilization.rpt
-完整视频台架,quick_c17 / 0,PASS / nfail,185° 分割、C17 处理窗完整性、C25/C26 帧边界专项,build/reports/tb_video_pipeline_top_report.txt
-标准回归,19 / 0,PASS / fail,17 支标准台架加 eth_ingress_integrity 与 saver_tail_full,build/reports/regression.txt
-板上连续推流,241 / 8.05 / 29.95,帧 / 秒 / fps,内置测试图，30 fps，8 秒,board/measured/telemetry_8s.txt
-三阶段链路自检,22.0 / 0 / 18.9,fps,干净流 / 每 100 包丢 1 包 / 恢复流；故障段 14.3 次作废每秒,board/measured/link_selftest.txt
-PL 内部帧时延,2–16,ms,帧提交到开始扫描；不含编码、网线和交换机,board/measured/telemetry_8s.txt
-处理窗完整性,pane_bad=0 / pane_valid=1,—,185°、split video 50%、灰度单级、30 fps 连续流,board/measured/pane_integrity.txt
-帧间隔统计,gap_last=28 / gap_max=49 / gap_valid=1,—,推流中；停流 stall 增长；重启后 gap_max=22061 ms,board/measured/link_gap.txt
-串口命令电池,105 / PASS,条 / 结果,命令清单逐条回声，末态回到初态,board/measured/uart_battery.txt
-SD 选段续播,621,—,sd file 1 → play → 3.6 s → stop；帧计数大于一个文件,board/measured/sd_playback.txt
-QSPI 写入,PROGRAM_RC 0,—,擦除、写入、硬件回读校验,board/measured/qspi_program.txt
-QSPI 冷启动,PASS,—,断电重上后 PL DONE=1、EOS=1、无 CRC/IDCODE 错误；串口 stat/link 有回显；ping 5/5,board/measured/cold_boot.txt
-实现后动态功耗,2.228,W,实现后功耗报告；估算结温 52.8 °C，置信度低,build/reports/power.rpt
-板上温度,57–62,°C,连续推流后 XADC 读数；sane=1,board/measured/health.txt
-端到端时延,NOT_MEASURED,—,现有读数只到 PL 内部；玻璃到玻璃没有测,report/limits.md
-RGMII 发侧保持缺口,约 0.845,ns,HR bank 无 ODELAYE2；0° 转发；90° 与 −45° 均否决,report/limits.md
+全局 setup WNS,1.341,ns,实现后布线报告；失败端点 0 / 56 043,hw/reports/build_timing_summary.rpt
+全局 hold WHS,0.025,ns,实现后布线报告；失败端点 0,hw/reports/build_timing_summary.rpt
+TNS / THS,0 / 0,ns,setup 与 hold 的失败路径总和均为 0,hw/reports/build_timing_summary.rpt
+Slice LUT,14 967（28.13%）,个,实现后布线报告,hw/reports/build_utilization.rpt
+Slice 寄存器,9 095（8.55%）,个,实现后布线报告,hw/reports/build_utilization.rpt
+Block RAM Tile,98（70.00%）,tile,实现后布线报告；整帧显示缓存是主要去向,hw/reports/build_utilization.rpt
+DSP48,19（8.64%）,个,坐标映射 8、插值 6、拟合 3、模糊 1、缝位 1,hw/reports/build_utilization.rpt
+完整视频台架,quick_c17 / 0,PASS / nfail,185° 分割、C17 处理窗完整性、C25/C26 帧边界专项,hw/reports/tb_video_pipeline_top_report.txt
+标准回归,19 / 0,PASS / fail,17 支标准台架加 eth_ingress_integrity 与 saver_tail_full,hw/reports/regression.txt
+板上连续推流,241 / 8.05 / 29.95,帧 / 秒 / fps,内置测试图，30 fps，8 秒,hw/measured/telemetry_8s.txt
+三阶段链路自检,22.0 / 0 / 18.9,fps,干净流 / 每 100 包丢 1 包 / 恢复流；故障段 14.3 次作废每秒,hw/measured/link_selftest.txt
+PL 内部帧时延,2–16,ms,帧提交到开始扫描；不含编码、网线和交换机,hw/measured/telemetry_8s.txt
+处理窗完整性,pane_bad=0 / pane_valid=1,—,185°、split video 50%、灰度单级、30 fps 连续流,hw/measured/pane_integrity.txt
+帧间隔统计,gap_last=28 / gap_max=49 / gap_valid=1,—,推流中；停流 stall 增长；重启后 gap_max=22061 ms,hw/measured/link_gap.txt
+串口命令电池,105 / PASS,条 / 结果,命令清单逐条回声，末态回到初态,hw/measured/uart_battery.txt
+SD 选段续播,621,—,sd file 1 → play → 3.6 s → stop；帧计数大于一个文件,hw/measured/sd_playback.txt
+QSPI 写入,PROGRAM_RC 0,—,擦除、写入、硬件回读校验,hw/measured/qspi_program.txt
+QSPI 冷启动,PASS,—,断电重上后 PL DONE=1、EOS=1、无 CRC/IDCODE 错误；串口 stat/link 有回显；ping 5/5,hw/measured/cold_boot.txt
+实现后动态功耗,2.228,W,实现后功耗报告；估算结温 52.8 °C，置信度低,hw/reports/power.rpt
+板上温度,57–62,°C,连续推流后 XADC 读数；sane=1,hw/measured/health.txt
+端到端时延,NOT_MEASURED,—,现有读数只到 PL 内部；玻璃到玻璃没有测,docs/limits.md
+RGMII 发侧保持缺口,约 0.845,ns,HR bank 无 ODELAYE2；0° 转发；90° 与 −45° 均否决,docs/limits.md

@@ -4,11 +4,11 @@
 // 退出码：脚本内无显式 exit ⇒ 随最后一条命令（正常跑完为 0）
 // src/host/doc_enc_check.mjs —— 手写的文件必须是 UTF-8，而且不许有"打坏的字"
 //
-// 为什么要它：`report/commands.md` 第 5 节有一整段（bilin 那几行）在某个时刻被 cp936 控制台
+// 为什么要它：`docs/commands.md` 第 5 节有一整段（bilin 那几行）在某个时刻被 cp936 控制台
 // 写坏了 —— 2026-09-26 才发现（`grep` 把整个文件当二进制、编辑器里是一串看不出意思的块）。
 // 这类事故的讨厌之处是**它不改变任何行为**：位流照编、台架照跑、门禁照绿，
 // 坏的是"演示时念给自己听的那份清单"，而那份清单要给评审看。
-// 所以判据要能自己跑：`build/gates.sh` 第 17 项。
+// 所以判据要能自己跑：`scripts/gates.sh` 第 17 项。
 //
 // 边界（说清楚，不然就是假红）：
 //   * 只扫**手写**的扩展名（.md .v .c .h .mjs .sh .ps1 .tcl）。`*.txt` 一律不扫 ——
@@ -16,7 +16,7 @@
 //     把它们"修成 UTF-8"才是破坏凭据（原始件不许动）。
 //   * .ps1 / .tcl 允许开头那一个 BOM（Windows 侧写出来的，Vivado 与 PowerShell 都认），但只允许第 0 个字符。
 //   * 扫描范围是**点名**的几棵树（见 SCOPE）：`vitis/**` 是 Xilinx 的 BSP/FSBL（版权行本来就不是 UTF-8），
-//     报它红等于让门禁永远不绿，改它更是破坏第三方件；`build/uram_probe/` 是被 md5 引用的早期探针原始件，
+//     报它红等于让门禁永远不绿，改它更是破坏第三方件；`scripts/uram_probe/` 是被 md5 引用的早期探针原始件，
 //     注释在这条判据出现之前就已经坏了 —— 见 ALLOW_BAD 那段。
 //   * 什么算坏：解不出 UTF-8；或行里出现 C0/C1 控制符（\t \r \n 除外）、U+FFFD 替换符、
 //     落单的代理对、私用区 E000-F8FF（cp936 打坏最常见的落点）。
@@ -30,12 +30,12 @@ const EXT = new Set(['.md', '.v', '.c', '.h', '.mjs', '.sh', '.ps1', '.tcl']);
 // 只扫**我写的东西**所在的那几棵树。为什么不是"整仓库扫一遍"：
 //   `vitis/platform/**` 是 Xilinx 的 BSP/FSBL 源码（版权行里就有非 UTF-8 的字节），
 //   把它们报成红等于让门禁永远不会绿，而"修它们"是破坏第三方件 —— 两条都不接受。
-const SCOPE = ['report/', 'board', 'src', 'sim', 'tools', 'build/tcl'];   // 文档目录与手写正文的扫描范围
-// 明确点名放行的一类：早期探针的原始件。`build/uram_probe/uram_probe.v` 的中文注释在
+const SCOPE = ['docs/', 'board', 'src', 'sim', 'tools', 'scripts/tcl'];   // 文档目录与手写正文的扫描范围
+// 明确点名放行的一类：早期探针的原始件。`scripts/uram_probe/uram_probe.v` 的中文注释在
 // 出现这个判据**之前**就已经坏掉（字节丢失，不可恢复），而它的结论被
-// `build/frozen_r57_remap/manifest.md5`（仓库留档、不随包）与两份报告按 md5 引用 —— 改一个字节就等于伪造凭据。
+// `scripts/frozen_r57_remap/manifest.md5`（仓库留档、不随包）与两份报告按 md5 引用 —— 改一个字节就等于伪造凭据。
 // 所以这里放行，并把"不要再拿它当可读文本来引用"这句话留在这。
-const ALLOW_BAD = ['build/uram_probe/uram_probe.v'];
+const ALLOW_BAD = ['scripts/uram_probe/uram_probe.v'];
 const BOM_OK_EXT = new Set(['.ps1', '.tcl']);     // Windows 侧写出来的脚本常带开头 BOM，工具认它
 const SKIP_DIR = new Set(['.git', 'vivado_system', 'xsim.dir', 'node_modules', '.Xil', 'dist']);
 

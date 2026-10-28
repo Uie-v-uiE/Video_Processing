@@ -116,7 +116,7 @@ module tb_key_boot;
 
         // ---- A：上电那次低电平（1.5×去抖窗）随后回高 ----
         // ⚠ 这四条按**应该怎样**判（不是描述现状）：r112 的武装门要求"复位释放后那次低电平
-        //    既不被确认成按下、也不发事件"。改前的红就是凭据 `board/output/key_boot_before.txt`
+        //    既不被确认成按下、也不发事件"。改前的红就是凭据 `hw/output/key_boot_before.txt`
         //    （那份件里 A 腿的 INFO 实测 `k1_up=0`、`angle=1`、`short_pulse 累计=1` ⇒ A1/A2/A3/A5 四条同时红，
         //    件里数到的 FAIL 是 3 条，因为当时 A1 还写成"描述现状"；A1 的改前读数直接从它自己那行 INFO 读）。
         fresh_boot(); rst_n = 1; #1;
