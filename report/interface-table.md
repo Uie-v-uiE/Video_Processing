@@ -103,13 +103,13 @@
 | `link` / `link clr` | 帧间隔统计 / 清零 `gap_*` |
 | `src auto\|0\|1\|2` | 自动、图卡、ETH、SD |
 | `pipe <九位>` / `pipe show` | 九位效果链 |
-| `zoom on\|off\|auto\|<倍率>` | 缩放开关、自动、手动倍率（`zoom 1` 是开关，`zoom 1.0` 是倍率） |
+| `zoom on\|off\|auto\|<倍率>` | 缩放呼吸开关、自动、手动倍率（`zoom 1` 是开关，`zoom 1.0` 是倍率） |
 | `rot auto\|0\|1` / `rot speed 0..7` | 自动旋转 / 每帧角度 |
-| `split screen\|video <0..100>` / `split swap\|follow\|marker` | 竖缝 |
+| `split screen\|video` / `split <0..100>` / `split swap\|follow\|marker` | 竖缝 |
 | `gamma <1.00..3.00>\|off\|auto` | gamma |
 | `osd on\|off` | OSD |
 | `sd files` / `sd file n` / `play` / `stop` | SD 选段、播放、停止 |
-| `frame N` / `fill` / `autoplay` / `th` / `echo` | 跳帧、诊断帧、自动播放、阈值、回显 |
+| `frame N` / `fill` / `autoplay` / `th` / `echo` | 跳帧、诊断帧、会话内自动播放标志、阈值、回显 |
 
 ## 8 视频与网络常数
 

@@ -105,12 +105,12 @@ VP_HW_URL=<host:port> vivado -mode batch -source board/tcl/flash_qspi.tcl
 | `link` / `link clr` | 帧间隔的最近值、最小/最大值、累计值和清零 |
 | `src auto\|0\|1\|2` | 片源自动、图卡、网络、SD |
 | `pipe <九位>` / `pipe show` | 效果链 |
-| `zoom on\|off\|auto\|<倍率>` | 缩放 |
+| `zoom on\|off\|auto\|<倍率>` | 缩放呼吸开关、自动、手动倍率 |
 | `rot auto\|0\|1` / `rot speed 0..7` | 自动旋转与每帧角度 |
-| `split screen\|video <0..100>` | 竖缝模式与位置 |
+| `split screen\|video` / `split <0..100>` | 竖缝模式与位置 |
 | `sd files` / `sd file n` / `play` / `stop` | SD 选段、播放、停止 |
 
-串口一次只能被一个程序占用；查看寄存器前先停止推流，流在跑时读到的是中间值。
+串口一次只能被一个程序占用。`link` 读的是健康快照，推流中也可以读；用 JTAG 直读内部寄存器时，流在跑读到的是中间值。
 
 ## 7 网络与主机工具
 

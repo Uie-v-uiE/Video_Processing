@@ -1498,7 +1498,7 @@ static void cmd_help(void)
 
 
 /* 一行输入 → 切 token → dispatch()。缓冲区现在 128（见 CMD_BUF 那行：老值 48 会**静默截断**），
- * 装得下 spec §14 里最长的几条多参数命令（`gamma auto 1.0 3.0 0.2 2000`）。
+ * 装得下 spec §14 里最长的几条多参数命令（`gamma auto 1.0 3.0 20 2000`）。
  * 半行搁置超过 RX_IDLE_MS 会被丢掉（残包），见 rx_fill / uart_poll 那两条。 */
 static void uart_poll(void)
 {
