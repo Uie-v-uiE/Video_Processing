@@ -5,7 +5,7 @@
 | 文件 | 内容 |
 |---|---|
 | `technical_document.docx` / `.pdf` | 按赛事模板生成的技术文档；非实物框图/流程图/界面示意已生成并嵌入 |
-| `poster.png` / `.pdf` / `.pptx` | A4 英文海报，最终选用 Impeccable 奶油/焦橙版 |
+| `poster.png` / `.pdf` / `.pptx` | AMD 模板风格 16:9 英文海报（湖南工业大学），生成脚本在 `records/design/tools/make_amd_template_poster.py` |
 
 技术文档由 `tools/docs/make_technical_template.py` 在赛事模板上填充，框图由 `tools/docs/make_technical_figures.py` 生成。模板页眉的赛事 Logo 和页码保留在 DOCX/PDF 中。
 

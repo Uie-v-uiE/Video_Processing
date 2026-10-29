@@ -1,9 +1,10 @@
 # 海报风格对比（归档）
 
-最终选用的是 `poster_impeccable.*`（奶油/焦橙版）；提交件在 `../../../submission/deliverables/poster.*`。本目录是六个风格版本，均使用同一组最终读数：WNS 1.341 ns、WHS 0.025 ns、BRAM 70.00%、效果链 15 cycles。
+最终选用的是 `poster_amd_template.*`（AMD 模板 16:9 横版，湖南工业大学）；提交件在 `../../../submission/deliverables/poster.*`。本目录保留早期六个 A4 竖版方案和最终的 AMD 模板方案，均使用同一组最终读数：WNS 1.341 ns、WHS 0.025 ns、BRAM 70.00%、效果链 15 cycles。
 
 | 文件 | 风格 |
 |---|---|
+| `poster_amd_template.*` | AMD 模板 16:9 横版，湖南工业大学，最终选用 |
 | `poster_dark_scope.*` | 深色仪表 / 遥测 |
 | `poster_swiss_grid.*` | 瑞士网格 / 数据表 |
 | `poster_blueprint.*` | 蓝图技术稿 |
