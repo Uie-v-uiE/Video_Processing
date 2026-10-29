@@ -109,7 +109,7 @@ The on-screen `Pipe:` field is not this nine-bit string; it is five digits, each
 | `split auto` / `split manual` | sweep automatically / stop where it is | `[SPLIT] auto/manual ...` | — |
 | `split swap 0/1` | swap the two panes | `[SPLIT] swap=1（只换内容，不换缝位）` | the seam position does not move |
 | `split follow 0/1` | choose display columns or image columns | `[SPLIT] follow=...` | same bit as `screen/video` |
-| `split marker 0/1` | show/hide the 2 px blue line | `[SPLIT] marker=...` | 1 hides it — the bit is inverted |
+| `split marker 0/1` | show/hide the 2 px blue line | `[SPLIT] marker=...` | 0 hides it, 1 shows it (the register bit is marker_off, so the command value is inverted) |
 | `split show` | print position, coordinate space and flags | `[SPLIT] pos=...` | — |
 
 `split range` and `split speed` are still build-time parameters; the current command layer rejects them, so keep them out of demonstration scripts.
@@ -190,7 +190,7 @@ The first sends every line of `hw/scripts/cmd_battery_v81.txt` and compares repl
 
 1. `zoom 1` is a switch; `zoom 1.0` is a 1.00× ratio.
 2. The nine-bit `pipe` string and the five-digit `Pipe:` field are different encodings; use `pipe show`.
-3. `split swap` changes content only, never the seam position; `split marker 1` hides the blue line.
+3. `split swap` changes content only, never the seam position; `split marker 0` hides the blue line (`1` shows it).
 4. `rot auto 1` may also set speed to 2 and switch zoom to fit; set `rot speed 2` and `zoom fit 0` first if you do not want that.
 5. After `link clr`, `gap_valid` needs at least two frames; `stall` growing after the stream stops is normal.
 6. `temp`'s `osd=` and `gpio=` should agree with `degC=`; if they do not, check the PS→PL synchronisation chain before touching the threshold.
