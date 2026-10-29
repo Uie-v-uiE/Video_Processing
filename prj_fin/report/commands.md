@@ -107,7 +107,7 @@
 | `split auto` / `split manual` | 自动扫 / 停在当前位 | `[SPLIT] auto/manual ...` | — |
 | `split swap 0/1` | 左右内容互换 | `[SPLIT] swap=1（只换内容，不换缝位）` | 缝位不变 |
 | `split follow 0/1` | 切屏幕列 / 画面列坐标 | `[SPLIT] follow=...` | 与 `screen/video` 同一位 |
-| `split marker 0/1` | 显示/隐藏 2 px 蓝线 | `[SPLIT] marker=...` | 1 = 隐藏（这一位是反着写的） |
+| `split marker 0/1` | 显示/隐藏 2 px 蓝线 | `[SPLIT] marker=...` | 0 = 隐藏、1 = 显示（寄存器位是 marker_off，命令值取反） |
 | `split show` | 念缝位、坐标空间和旗标 | `[SPLIT] pos=...` | — |
 
 `split range` 和 `split speed` 还是构建参数，当前命令层会明确拒绝，不要写进演示脚本。
@@ -188,7 +188,7 @@ node src/host/uart_cmd_check.mjs --replay board/uart_script_capture.txt
 
 1. `zoom 1` 是开关，`zoom 1.0` 才是 1.00 倍。
 2. `pipe` 的 9 位和屏上 `Pipe:` 五位不是同一种写法；解释屏上内容用 `pipe show`。
-3. `split swap` 只换内容，不换缝位；`split marker 1` 是隐藏蓝线。
+3. `split swap` 只换内容，不换缝位；`split marker 0` 是隐藏蓝线（`1` 是显示）。
 4. `rot auto 1` 可能顺带把 speed 设为 2、把 zoom 切到 fit；不想要就先 `rot speed 2`/`zoom fit 0`，再开 auto。
 5. `link clr` 后 `gap_valid` 需要至少两帧才变 1；停流后 `stall` 会增长，这是正常读数。
 6. `temp` 的 `osd=` 和 `gpio=` 应与 `degC=` 对得上；对不上先查 PS→PL 的同步链，不要先改温度阈值。
