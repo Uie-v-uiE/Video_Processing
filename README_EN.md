@@ -1,4 +1,4 @@
-# Multi-Source Video Processing System
+# Multi-Source Video Same-Frame Comparison System
 
 A fully hardware video path on Zynq-7020, with an observation instrument that can be read back over the network and the serial port.
 

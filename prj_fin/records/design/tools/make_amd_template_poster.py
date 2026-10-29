@@ -146,16 +146,16 @@ def rule(x, y, w, color=RGBColor(190, 190, 190), width=0.8):
 
 
 # ---- top ----
-text(0.28, 0.08, 3.2, 0.18, "(c) 2026 Uie  |  AMD FPGA Innovation Design Competition", size=7.5,
+text(0.28, 0.08, 3.2, 0.18, "(c) 2026 Uie_Team  |  AMD FPGA Innovation Design Competition", size=7.5,
      color=GRAY, font="Arial")
 text(0.42, 0.33, 8.6, 0.55, "ONE FRAME. TWO TRUTHS.", size=31, bold=True,
      font="Times New Roman", color=INK)
 text(0.44, 0.88, 8.5, 0.30, "A full-hardware video node on Zynq-7020", size=13.5, bold=False,
      font="Times New Roman", color=GRAY)
-text(0.44, 1.16, 8.3, 0.25, "多源视频流多效果变换处理系统", size=11, bold=False,
+text(0.44, 1.16, 8.3, 0.25, "多源视频同帧对照处理系统", size=11, bold=False,
      font="Microsoft YaHei", color=PURPLE)
 text(0.44, 1.43, 8.3, 0.38,
-     [("Team Member: ", True, 10.5, INK), ("Uie  ·  Hunan University of Technology (湖南工业大学), Hunan Province", False, 10.5, INK)],
+     [("Team: ", True, 10.5, INK), ("Uie_Team  ·  Hunan University of Technology (湖南工业大学), Hunan Province", False, 10.5, INK)],
      font="Times New Roman")
 
 # school emblem + name (top right)
