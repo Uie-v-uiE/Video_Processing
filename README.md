@@ -1,4 +1,4 @@
-# Multi-Source Video Processing System
+# Multi-Source Video Same-Frame Comparison System
 
 A complete video path inside one FPGA: frames arrive on the Ethernet port, leave on HDMI, and the CPU never touches a pixel.
 

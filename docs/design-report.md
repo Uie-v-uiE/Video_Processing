@@ -1,4 +1,4 @@
-# Multi-Source Video Processing System
+# Multi-Source Video Same-Frame Comparison System
 
 ## An all-hardware video path and its instrumentation on Zynq-7020
 
