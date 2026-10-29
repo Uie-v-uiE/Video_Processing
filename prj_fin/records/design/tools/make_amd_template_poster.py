@@ -72,7 +72,7 @@ def rich(x, y, w, h, paragraphs, font="Times New Roman", size=9,
     return box
 
 
-def bar(x, y, w, h, label):
+def bar(x, y, w, h, label, size=15):
     shp = slide.shapes.add_shape(MSO_SHAPE.RECTANGLE, Inches(x), Inches(y), Inches(w), Inches(h))
     shp.fill.solid()
     shp.fill.fore_color.rgb = BLACK
@@ -88,7 +88,7 @@ def bar(x, y, w, h, label):
     r = p.add_run()
     r.text = label
     r.font.name = "Arial Black"
-    r.font.size = Pt(15)
+    r.font.size = Pt(size)
     r.font.bold = True
     r.font.color.rgb = WHITE
     return shp
@@ -171,7 +171,7 @@ pic(ASSETS / "amd_logo_black.png", 8.98, 0.92, 1.25, 0.30)
 text(8.98, 1.25, 1.25, 0.20, "ZYNQ-7020", size=7.5, bold=True, font="Arial", color=GRAY)
 
 # board photo
-pic(ASSETS / "poster_board.jpg", 11.15, 0.12, 1.90, 1.43)
+pic(ASSETS / "poster_overview.jpg", 11.00, 0.12, 2.00, 1.00)
 text(11.10, 1.62, 1.95, 0.31, "RK-ZYNQ7020-F V1.0\nxc7z020clg484-2 · 1 GbE", size=7.2,
      color=GRAY, font="Arial")
 
@@ -194,34 +194,36 @@ text(0.34, 6.48, 3.70, 0.64,
      "1. 1 GbE UDP: offset reassembly; commit = bytes + 300 rows + no bad packet.\n"
      "2. Same-frame A/B: one coordinate stream, one row map, 15-cycle chain.\n"
      "3. Telemetry: aborts, rows_max, gaps, pane_bad; drop 1/100 reddens it.",
-     size=6.7, font="Times New Roman", color=INK, spacing=0.90)
+     size=7.0, font="Times New Roman", color=INK, spacing=0.90)
 
 # ---- middle column ----
 bar(4.30, 2.02, 4.15, 0.38, "SYSTEM ARCHITECTURE")
-pic(ASSETS / "poster_arch.png", 4.30, 2.48, 4.15, 1.87)
+pic(ASSETS / "poster_arch_simple.png", 4.30, 2.48, 4.15, 1.87)
 text(4.30, 4.38, 4.15, 0.24,
      "RGMII -> UDP -> DDR ping-pong -> geometry -> effects -> A/B seam -> HDMI",
-     size=7.0, color=GRAY, font="Arial")
+     size=6.8, color=GRAY, font="Arial")
 
-card(4.30, 4.80, 4.15, 1.10, "THREE-GATE COMMIT",
+bar(4.30, 4.62, 4.15, 0.30, "CREATIVE DESIGN", size=12.5)
+
+card(4.30, 5.00, 4.15, 1.02, "THREE-GATE COMMIT",
      "A frame is committed only when 307200 bytes arrived, all 300 source rows were written, and no packet failed. Otherwise the last good frame stays on screen and aborts + rows_max expose the reason.")
-card(4.30, 6.02, 4.15, 1.10, "SAME-FRAME A/B",
-     "Original and processed panes share one source-coordinate stream, one row map and one 15-cycle effect chain. The seam is a per-pixel select; rotation or stacked effects cannot make the panes disagree.")
+card(4.30, 6.10, 4.15, 1.02, "SAME-FRAME A/B",
+     "The original tap is delay-aligned to the 15-cycle processed path; both panes share one coordinate stream and one row map. The seam is a per-pixel select; rotation or stacked effects cannot make the panes disagree.")
 
 # ---- right column ----
 bar(8.65, 2.02, 4.40, 0.38, "RESULT")
-text(8.70, 2.48, 4.30, 0.55,
-     "RGMII -> HDMI entirely in PL; PS only control, SD playback and telemetry. 1024x600 at 59.5 Hz, 1 GbE UDP ingest.",
-     size=9.2, font="Times New Roman", color=INK)
+text(8.70, 2.48, 4.30, 0.58,
+     "RGMII -> HDMI entirely in PL; PS only control, SD playback and serial status. 1024x600 at 59.5 Hz; 74 Mb/s payload on 1 GbE; PL-internal latency 2-16 ms.",
+     size=8.9, font="Times New Roman", color=INK)
 
 rows = [
     ("Setup WNS", "1.341 ns  ·  0 failing endpoints"),
     ("Hold WHS", "0.025 ns  ·  positive margin"),
     ("BRAM", "70.0%  ·  98 / 140 tiles"),
-    ("8 s stream", "241 frames  ·  29.95 fps"),
+    ("8.05 s stream", "241 frames  ·  29.95 fps"),
     ("UART battery", "105 commands  ·  PASS"),
     ("QSPI cold boot", "DONE / EOS  ·  no CRC error"),
-    ("Fault injection", "22.0 / 0 / 18.9 fps  ·  PASS"),
+    ("Fault inject (C/L/R)", "22.0 / 0 / 18.9 fps  ·  PASS"),
     ("LUT / FF / DSP", "28.13 / 8.55 / 8.64 %"),
 ]
 y0 = 3.15
@@ -230,27 +232,17 @@ for i, (k, v) in enumerate(rows):
     fill = RGBColor(248, 248, 248) if i % 2 == 0 else WHITE
     shp = slide.shapes.add_shape(MSO_SHAPE.RECTANGLE, Inches(8.70), Inches(yy), Inches(4.30), Inches(0.25))
     shp.fill.solid(); shp.fill.fore_color.rgb = fill; shp.line.fill.background()
-    text(8.76, yy + 0.03, 1.35, 0.19, k, size=8.0, bold=True, font="Arial", color=GRAY)
-    text(10.10, yy + 0.03, 2.82, 0.19, v, size=8.4, bold=False, font="Arial", color=INK)
+    text(8.76, yy + 0.03, 1.35, 0.19, k, size=8.2, bold=True, font="Arial", color=GRAY)
+    text(10.10, yy + 0.03, 2.82, 0.19, v, size=8.6, bold=False, font="Arial", color=INK)
 
 text(8.70, 5.43, 4.30, 0.22, "OBSERVABILITY", size=10.5, bold=True, font="Arial Black", color=PURPLE)
-text(8.70, 5.68, 4.30, 0.58,
-     "link / 1 Hz UDP telemetry: aborts, rows_max, stall, gap_min/max and pane_bad. The same counters are readable over UART, JTAG and the wire.",
-     size=8.6, font="Times New Roman", color=INK)
-# fault badge
-shp = slide.shapes.add_shape(MSO_SHAPE.ROUNDED_RECTANGLE, Inches(8.70), Inches(6.34), Inches(4.30), Inches(0.40))
-shp.adjustments[0] = 0.15
-shp.fill.solid(); shp.fill.fore_color.rgb = RGBColor(245, 236, 241)
-shp.line.color.rgb = PURPLE; shp.line.width = Pt(0.9)
-tf = shp.text_frame; tf.margin_left = Inches(0.12); tf.margin_top = 0; tf.margin_bottom = 0
-tf.vertical_anchor = MSO_ANCHOR.MIDDLE
-p = tf.paragraphs[0]; p.alignment = PP_ALIGN.CENTER
-r = p.add_run(); r.text = "DROP 1 IN 100  ->  ABORTS RISE  ->  RECOVERY"
-r.font.name = "Arial"; r.font.size = Pt(8.6); r.font.bold = True; r.font.color.rgb = PURPLE
-
-text(8.70, 6.84, 4.30, 0.28,
-     "Conclusion: one frame, two panes, one wire-readable account.  Next: 1080p, dual-stream, close RGMII TX hold.",
-     size=6.7, font="Times New Roman", color=GRAY)
+text(8.70, 5.66, 4.30, 0.58,
+     "UART link gives stall and gap_min/max; the 1 Hz PL UDP beacon gives frames, packets, aborts, rows_max, pane_bad and latency. Both read the same counters.",
+     size=8.2, font="Times New Roman", color=INK)
+text(8.70, 6.20, 4.30, 0.20, "CONCLUSION / NEXT", size=8.4, bold=True, font="Arial", color=PURPLE)
+text(8.70, 6.45, 4.30, 0.62,
+     "One frame, two panes, one wire-readable account. Next: close RGMII TX hold margin; larger device for higher resolution.",
+     size=8.0, font="Times New Roman", color=INK)
 
 # footer
 rule(0.30, 7.18, 12.75, color=RGBColor(190, 190, 190), width=0.7)
