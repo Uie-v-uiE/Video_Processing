@@ -154,8 +154,11 @@ text(0.44, 0.88, 8.5, 0.30, "A full-hardware video node on Zynq-7020", size=13.5
      font="Times New Roman", color=GRAY)
 text(0.44, 1.16, 8.3, 0.25, "多源视频同帧对照处理系统", size=11, bold=False,
      font="Microsoft YaHei", color=PURPLE)
-text(0.44, 1.43, 8.3, 0.38,
-     [("Team: ", True, 10.5, INK), ("Uie_Team  ·  Hunan University of Technology (湖南工业大学), Hunan Province", False, 10.5, INK)],
+text(0.44, 1.39, 8.3, 0.23,
+     [("Team: ", True, 10.0, INK), ("Uie_Team  ·  Member: Wang Xu (王旭)", False, 10.0, INK)],
+     font="Times New Roman")
+text(0.44, 1.63, 8.3, 0.22,
+     [("Advisors: ", True, 9.5, INK), ("Tan Huisheng (谭会生), Liang Jiaojiao (梁娇娇)", False, 9.5, INK)],
      font="Times New Roman")
 
 # school emblem + name (top right)
@@ -219,22 +222,23 @@ rows = [
     ("UART battery", "105 commands  ·  PASS"),
     ("QSPI cold boot", "DONE / EOS  ·  no CRC error"),
     ("Fault injection", "22.0 / 0 / 18.9 fps  ·  PASS"),
+    ("LUT / FF / DSP", "28.13 / 8.55 / 8.64 %"),
 ]
 y0 = 3.15
 for i, (k, v) in enumerate(rows):
-    yy = y0 + i * 0.30
+    yy = y0 + i * 0.27
     fill = RGBColor(248, 248, 248) if i % 2 == 0 else WHITE
-    shp = slide.shapes.add_shape(MSO_SHAPE.RECTANGLE, Inches(8.70), Inches(yy), Inches(4.30), Inches(0.28))
+    shp = slide.shapes.add_shape(MSO_SHAPE.RECTANGLE, Inches(8.70), Inches(yy), Inches(4.30), Inches(0.25))
     shp.fill.solid(); shp.fill.fore_color.rgb = fill; shp.line.fill.background()
-    text(8.76, yy + 0.04, 1.35, 0.20, k, size=8.2, bold=True, font="Arial", color=GRAY)
-    text(10.10, yy + 0.04, 2.82, 0.20, v, size=8.6, bold=False, font="Arial", color=INK)
+    text(8.76, yy + 0.03, 1.35, 0.19, k, size=8.0, bold=True, font="Arial", color=GRAY)
+    text(10.10, yy + 0.03, 2.82, 0.19, v, size=8.4, bold=False, font="Arial", color=INK)
 
-text(8.70, 5.48, 4.30, 0.22, "OBSERVABILITY", size=10.5, bold=True, font="Arial Black", color=PURPLE)
-text(8.70, 5.74, 4.30, 0.68,
+text(8.70, 5.43, 4.30, 0.22, "OBSERVABILITY", size=10.5, bold=True, font="Arial Black", color=PURPLE)
+text(8.70, 5.68, 4.30, 0.58,
      "link / 1 Hz UDP telemetry: aborts, rows_max, stall, gap_min/max and pane_bad. The same counters are readable over UART, JTAG and the wire.",
      size=8.6, font="Times New Roman", color=INK)
 # fault badge
-shp = slide.shapes.add_shape(MSO_SHAPE.ROUNDED_RECTANGLE, Inches(8.70), Inches(6.55), Inches(4.30), Inches(0.42))
+shp = slide.shapes.add_shape(MSO_SHAPE.ROUNDED_RECTANGLE, Inches(8.70), Inches(6.34), Inches(4.30), Inches(0.40))
 shp.adjustments[0] = 0.15
 shp.fill.solid(); shp.fill.fore_color.rgb = RGBColor(245, 236, 241)
 shp.line.color.rgb = PURPLE; shp.line.width = Pt(0.9)
@@ -242,7 +246,11 @@ tf = shp.text_frame; tf.margin_left = Inches(0.12); tf.margin_top = 0; tf.margin
 tf.vertical_anchor = MSO_ANCHOR.MIDDLE
 p = tf.paragraphs[0]; p.alignment = PP_ALIGN.CENTER
 r = p.add_run(); r.text = "DROP 1 IN 100  ->  ABORTS RISE  ->  RECOVERY"
-r.font.name = "Arial"; r.font.size = Pt(9); r.font.bold = True; r.font.color.rgb = PURPLE
+r.font.name = "Arial"; r.font.size = Pt(8.6); r.font.bold = True; r.font.color.rgb = PURPLE
+
+text(8.70, 6.84, 4.30, 0.28,
+     "Conclusion: one frame, two panes, one wire-readable account.  Next: 1080p, dual-stream, close RGMII TX hold.",
+     size=6.7, font="Times New Roman", color=GRAY)
 
 # footer
 rule(0.30, 7.18, 12.75, color=RGBColor(190, 190, 190), width=0.7)
