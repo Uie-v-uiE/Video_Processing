@@ -1,9 +1,9 @@
 Copyright 1986-2022 Xilinx, Inc. All Rights Reserved. Copyright 2022-2026 Advanced Micro Devices, Inc. All Rights Reserved.
 ---------------------------------------------------------------------------------------------------------------------------------------------
 | Tool Version : Vivado v.2025.2.1 (win64) Build 6403652 Thu Mar 19 19:48:24 GMT 2026
-| Date         : Thu Oct 22 19:05:39 2026
+| Date         : Sun Nov  1 07:46:15 2026
 | Host         : Uie-laptop running 64-bit major release  (build 9200)
-| Command      : report_methodology -file D:/Xilinx/Prj/fin2/build/r171/methodology.rpt
+| Command      : report_methodology -file D:/Xilinx/Harness/Project/timing/submission/c2_timing/methodology.rpt
 | Design       : system_top
 | Device       : xc7z020clg484-2
 | Speed File   : -2
@@ -49,7 +49,8 @@ Related violations: <none>
 LUTAR-1#1 Warning
 LUT drives async reset alert  
 LUT cell u_idelay_clkgen/rst_l_sync[1]_i_1, with 2 or more inputs, drives asynchronous preset/clear pin(s) u_eth/rst_l_sync2_reg/CLR, u_eth/rst_l_sync_reg[0]/CLR,
-u_eth/rst_l_sync_reg[1]/CLR, u_eth/rst_lm_sync2_reg/CLR,
+u_eth/rst_l_sync_reg[1]/CLR, u_eth/rst_lm_sync2_a_reg/CLR,
+u_eth/rst_lm_sync2_b_reg/CLR, u_eth/rst_lm_sync2_c_reg/CLR,
 u_eth/rst_lm_sync_reg[0]/CLR, u_eth/rst_lm_sync_reg[1]/CLR. The LUT may glitch and trigger an unexpected reset, even if it is a properly timed path.
 Related violations: <none>
 

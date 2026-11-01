@@ -20,7 +20,7 @@ A host PC sends 512×300 RGB565 frames as UDP datagrams of at most 1392 bytes to
 | Effect latency is configuration-independent | Cycle-by-cycle alignment in the full video bench and OSD latency | Constant 15 pixel clocks; PL-internal frame latency 2–16 ms |
 | Frame-gap statistics are readable | Serial `link clr` → stream → stop → restart → `link` | `gap_valid=1` while streaming; `stall` grows after stop; `gap_max=22,061 ms` after restart |
 | QSPI cold boot | Write, on-chip verify, power cycle | `DONE=1`, `EOS=1`, no CRC/IDCODE errors; `stat` and `link` respond |
-| Timing closes with positive margin | Same script before and after optimisation | WNS 1.029 → 1.341 ns; WHS 0.025 ns; TNS/THS 0; zero failing endpoints |
+| Timing closes with positive margin | Same script before and after optimisation | WNS 1.029 → 1.368 ns; WHS 0.048 ns; TNS/THS 0; zero failing endpoints |
 
 ## Implementation readings
 
@@ -28,7 +28,7 @@ Device: `xc7z020clg484-2`. Tools: Vivado / Vitis 2025.2.1.
 
 | Item | Reading |
 |---|---|
-| Timing | WNS 1.341 ns, WHS 0.025 ns, TNS = THS = 0, failed endpoints 0 |
+| Timing | WNS 1.368 ns, WHS 0.048 ns, TNS = THS = 0, failed endpoints 0 |
 | Per-clock setup | `clk_fpga_0` 2.159 ns; `eth_rxc` 3.247 ns; `sys_clk` 14.797 ns; `clkout0_1` 3.264 ns; `clkout3` 1.727 ns |
 | Resources | LUT 14,967 (28.13%), FF 9,095 (8.55%), BRAM 98 (70.00%), DSP 19 (8.64%) |
 | Simulation | 19 standard regressions, `fail=0`; full-video C17/C25/C26 arms PASS |
@@ -55,9 +55,9 @@ Device: `xc7z020clg484-2`. Tools: Vivado / Vitis 2025.2.1.
 |---|---:|---:|---:|---|
 | Before optimisation | 1.029 ns | — | — | Worst setup on the cross-MMCM processing-window bus |
 | After reset-tree replication | 1.172 ns | — | — | Local link-monitor reset tree duplicated |
-| Final | 1.341 ns | 0.025 ns | 0 | TNS/THS = 0; worst path is reset recovery |
+| Final | 1.368 ns | 0.048 ns | 0 | TNS/THS = 0; worst path is reset recovery (architecture floor, see report/timing-opt-report.md) |
 
-Source: `build/reports/build_timing_summary.rpt` and `report/optimization.md`. The final WHS is 0.025 ns; it was around 0.048 ns during optimisation. That final change is placement noise and remains positive, so it is not claimed as an optimisation gain.
+Source: `build/reports/build_timing_summary.rpt` and `report/optimization.md`. The final WHS is 0.048 ns after the link-monitor reset-tree split (see report/timing-opt-report.md).
 
 ## Build and reproduce
 

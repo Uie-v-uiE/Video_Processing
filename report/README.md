@@ -33,6 +33,7 @@
 | 实测与参考比对 | `board/compare/` |
 | 大模型协作详细档案 | `report/collaboration/` |
 | 技能包索引 | `skill/README.md`、`report/skill-distillation.md` |
+| `timing-opt-report.md` | 时序优化专项报告（C2 复位分发树拆分与架构地板结论，2026-11） |
 
 ## 写作口径
 

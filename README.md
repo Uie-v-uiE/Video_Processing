@@ -20,7 +20,7 @@ Zynq-7020 上的一条全硬件视频通路，加上一套能从网线和串口�
 | 效果链延迟不随配置变 | 完整视频台架的逐拍对齐与 OSD 时延 | 恒 15 个像素时钟；板上 PL 内部帧时延 2–16 ms |
 | 帧间隔统计可读 | 串口 `link clr` → 推流 → 停流 → 重启 → `link` | 推流中 `gap_valid=1`；停流 `stall` 增长；重启后 `gap_max=22 061 ms` |
 | QSPI 断电自启 | 写入、硬件回读、断电重上 | `DONE=1`、`EOS=1`、无 CRC/IDCODE 错误；`stat`/`link` 有回显 |
-| 时序收敛到正余量 | 优化前后同脚本对照 | WNS 1.029 → 1.341 ns；WHS 0.025 ns；TNS/THS=0；失败端点 0 |
+| 时序收敛到正余量 | 优化前后同脚本对照 | WNS 1.029 → 1.368 ns；WHS 0.048 ns；TNS/THS=0；失败端点 0 |
 
 ## 实现读数
 
@@ -28,7 +28,7 @@ Zynq-7020 上的一条全硬件视频通路，加上一套能从网线和串口�
 
 | 项 | 读数 |
 |---|---|
-| 时序 | WNS 1.341 ns，WHS 0.025 ns，TNS = THS = 0，失败端点 0 |
+| 时序 | WNS 1.368 ns，WHS 0.048 ns，TNS = THS = 0，失败端点 0 |
 | 逐时钟 setup | `clk_fpga_0` 2.159 ns；`eth_rxc` 3.247 ns；`sys_clk` 14.797 ns；`clkout0_1` 3.264 ns；`clkout3` 1.727 ns |
 | 资源 | LUT 14 967（28.13%），FF 9 095（8.55%），BRAM 98（70.00%），DSP 19（8.64%） |
 | 仿真 | 19 支标准回归 `fail=0`；完整视频台架 C17/C25/C26 专项 PASS |
@@ -55,9 +55,9 @@ Zynq-7020 上的一条全硬件视频通路，加上一套能从网线和串口�
 |---|---:|---:|---:|---|
 | 优化前 | 1.029 ns | — | — | 最差 setup 在跨 MMCM 的处理窗总线 |
 | 复位树复制后 | 1.172 ns | — | — | 复制 link-monitor 本地复位树 |
-| 最终 | 1.341 ns | 0.025 ns | 0 | TNS/THS 为 0；最差路径回到复位恢复 |
+| 最终 | 1.368 ns | 0.048 ns | 0 | TNS/THS 为 0；最差路径为复位恢复（架构地板，见 report/timing-opt-report.md） |
 
-数据源是 `build/reports/build_timing_summary.rpt` 与 `report/optimization.md`。WHS 最终为 0.025 ns；优化过程中曾在 0.048 ns 附近，最终下降是布局扰动，仍为正，不作为优化收益宣称。
+数据源是 `build/reports/build_timing_summary.rpt` 与 `report/optimization.md`。WHS 最终为 0.048 ns（link-monitor 复位分发树拆分后，见 report/timing-opt-report.md）。
 
 ## 构建与复现
 
