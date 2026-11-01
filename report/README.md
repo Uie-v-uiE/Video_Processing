@@ -105,6 +105,7 @@
 | `../skill/` | 通用做法条目（索引在 `../skill/README.md`）；条目地图在 `../skill/_meta/entry-map.md`，提炼过程与验证读数在 `_meta/distillation-process.md` 与 `_meta/validation.md`，未升格为通用技能的经验记录在 `../skill/pitfalls/` |
 | `log/` | 追加式工作记录（问题账 `issues.md`、流水 `overnight_log.md`、版本谱系 `version_lineage.md`、赛题核对表 `contest_checklist.md`）；只作过程留痕，不当结论引用 |
 | `study/` | 面向接手人的学习文档与英文海报稿；本地留档不随包（排除规则在 `../.gitignore`） |
+| `timing-opt-report.md` | 时序优化专项报告（C2 复位分发树拆分与架构地板结论，2026-11） |
 
 ## 4. 只有十分钟
 
