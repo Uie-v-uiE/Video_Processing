@@ -87,7 +87,7 @@ QSPI 固化使用 `board/scripts/make_boot_image.sh` 和 `board/tcl/flash_qspi.t
 
 ## 设计报告
 
-最终报告位于 `report/design_report.pdf` 和 `report/design_report.docx`，正文 22 页，包含系统组成、软硬件划分、接口设计、时序与资源优化、实测结果、大模型协作记录、技能包提炼和复现说明。Markdown 源稿在 `report/design-report.md`，验证、优化、复现和协作记录分别见 `report/` 下对应文件。
+GitHub 仓库中的最终报告位于 `report/design_report.pdf` 和 `report/design_report.docx`，正文 22 页，包含系统组成、软硬件划分、接口设计、时序与资源优化、实测结果、大模型协作记录、技能包提炼和复现说明。平台提交时设计报告单独上传，`源码.rar` 不重复包含这两个文件。Markdown 源稿在 `report/design-report.md`，验证、优化、复现和协作记录分别见 `report/` 下对应文件。
 
 ## 大模型协作
 
