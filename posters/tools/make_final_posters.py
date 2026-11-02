@@ -223,7 +223,7 @@ def build(lang):
     by_id(s, 30).height = Inches(0.28)
 
     # Replace template pictures at the same positions/sizes.
-    replace_pic(s, by_id(s, 42), os.path.join(ASSETS, "strip_zh_pad.png" if cn else "strip_en_pad.png"))
+    replace_pic(s, by_id(s, 42), os.path.join(ASSETS, "left_single_zh.png" if cn else "left_single_en.png"))
     replace_pic(s, by_id(s, 44), os.path.join(ROOT, "records", "design", "poster_bi", "assets", "arch_zh.png" if cn else "arch_en.png"))
     replace_pic(s, by_id(s, 40), LOGO)
     replace_pic(s, by_id(s, 47), os.path.join(ASSETS, "system_thumb.jpg"))
