@@ -4,7 +4,7 @@
 
 ## 最终交付结果
 
-19 支标准回归 `fail=0`；完整视频台架的 C17/C25/C26 专项 PASS。判定副本在 `sim/results/`：`regression.txt`、`tb_video_pipeline_top_report.txt`、`udp_checksum.txt`、`c31_edge_rim.log`。
+19 支标准回归 `fail=0`；完整视频台架的 完整视频台架专项/完整视频专项/完整视频专项 专项 PASS。判定副本在 `sim/results/`：`regression.txt`、`tb_video_pipeline_top_report.txt`、`udp_checksum.txt`、`c31_edge_rim.log`。
 
 ## 跑一支
 

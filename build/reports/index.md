@@ -11,6 +11,6 @@
 | `clock_util.rpt` | 时钟资源使用 |
 | `check_timing_verbose.rpt` | 未约束/恢复/移除检查 |
 | `regression.txt` | 标准回归汇总 |
-| `tb_video_pipeline_top_report.txt` | 完整视频台架 C17/C25/C26 判定 |
+| `tb_video_pipeline_top_report.txt` | 完整视频台架 完整视频台架专项/完整视频专项/完整视频专项 判定 |
 | `udp_checksum.txt` | UDP 校验和专项复验 |
 | `c31_edge_rim.log` | 帧尾两行抽头专项复验 |

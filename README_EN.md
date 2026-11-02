@@ -31,7 +31,7 @@ Device: `xc7z020clg484-2`. Tools: Vivado / Vitis 2025.2.1.
 | Timing | WNS 1.368 ns, WHS 0.048 ns, TNS = THS = 0, failed endpoints 0 |
 | Per-clock setup | `clk_fpga_0` 2.159 ns; `eth_rxc` 3.247 ns; `sys_clk` 14.797 ns; `clkout0_1` 3.264 ns; `clkout3` 1.727 ns |
 | Resources | LUT 14,967 (28.13%), FF 9,095 (8.55%), BRAM 98 (70.00%), DSP 19 (8.64%) |
-| Simulation | 19 standard regressions, `fail=0`; full-video C17/C25/C26 arms PASS |
+| Simulation | 19 standard regressions, `fail=0`; full-video 完整视频台架专项/完整视频专项/完整视频专项 arms PASS |
 | Board | QSPI cold boot, 8 s stream, telemetry, three-stage self-test, 105-command UART battery and temperature all pass |
 
 ## Repository contents

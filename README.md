@@ -1,131 +1,102 @@
 # 多源视频同帧对照处理系统
 
-Zynq-7020 上的一条全硬件视频通路，加上一套能从网线和串口读回来的观测仪表。
+Zynq-7020 上的视频处理工程。系统从千兆网口接收 512×300、RGB565 视频，在 PL 内完成帧重组、DDR 乒乓缓存、缩放、旋转、双线性插值、六级效果、同帧左右对照和 OSD，最终输出 1024×600 HDMI。像素数据不经过 PS，PS 仅负责命令解析、状态回读和 SD 卡回放。
 
-上位机把 512×300、RGB565 的帧切成不超过 1392 字节的 UDP 报文发到 5001 端口。PL 从 RGMII 开始收包，经 MAC、UDP 过滤、按帧内偏移重组，写入 DDR 乒乓缓存；显示侧读回整帧，做缩放、任意角度旋转、双线性插值和六级效果处理，与 OSD 一起按 ×2 展开到 1024×600、59.5 Hz HDMI。像素通路不经过 PS。屏幕中间的竖缝左侧是原图、右侧是同一帧的处理图，两侧共用几何算子和固定 15 拍的效果链。
+## 主要功能
 
-## 亮点
+- 网络视频接收：RGMII、MAC、UDP 过滤、按帧内偏移重组；整帧字节、行覆盖位图和坏包计数同时满足才提交。
+- 显示与处理：缩放、任意角度旋转、双线性插值、六级效果处理；效果链延迟固定为 15 个像素时钟。
+- 同帧对照：屏幕竖缝左侧为原图，右侧为同一帧的处理结果，两侧共用几何运算和源坐标。
+- 状态监测：帧数、坏包、处理窗完整性、链路帧间隔和时延可通过串口、UDP 遥测和 AXI GPIO 读取。
+- 启动与回放：QSPI 启动、SD 卡帧序列回放、三阶段链路故障注入自检。
 
-- **同帧 A/B 竖缝（可比）**：原图和处理图共用同一套几何、行标签和固定 15 拍效果链，竖缝两侧是同一帧，不是两路各自缩放。
-- **帧提交三条件 + 可证伪仪表（可信）**：整帧字节、行覆盖位图、无坏包三门同时成立才提交；`pane_bad`、`link` 帧间隔和三阶段故障注入都能把仪表打红。
-- **全 PL + QSPI 闭环（可交付）**：RGMII 收包、帧重组、DDR 乒乓、几何、效果、OSD、HDMI 都在 PL 内完成；QSPI 断电自启，串口、UDP 遥测和 AXI GPIO 读同一组计数器。
+## 目录
 
-## 可复核的结果
-
-| 结论 | 怎么看 | 读数 |
-|---|---|---|
-| 帧收满才提交 | 行覆盖位图、字节门与作废计数 | 8 秒推流 241 帧，29.95 fps；作废计数不随干净流增长 |
-| 处理窗没有漏进原图 | 灰度单级 + split video 下的非灰像素计数 | 185°、30 fps 连续流下 `pane_bad=0`，计数有效 |
-| 仪表能被打红 | 干净流 → 每 100 包丢 1 包 → 干净流 | 22.0 fps / 0 fps + 14.3 次作废每秒 / 18.9 fps，PASS |
-| 效果链延迟不随配置变 | 完整视频台架的逐拍对齐与 OSD 时延 | 恒 15 个像素时钟；板上 PL 内部帧时延 2–16 ms |
-| 帧间隔统计可读 | 串口 `link clr` → 推流 → 停流 → 重启 → `link` | 推流中 `gap_valid=1`；停流 `stall` 增长；重启后 `gap_max=22 061 ms` |
-| QSPI 断电自启 | 写入、硬件回读、断电重上 | `DONE=1`、`EOS=1`、无 CRC/IDCODE 错误；`stat`/`link` 有回显 |
-| 时序收敛到正余量 | 优化前后同脚本对照 | WNS 1.029 → 1.368 ns；WHS 0.048 ns；TNS/THS=0；失败端点 0 |
-
-## 实现读数
-
-器件 `xc7z020clg484-2`，工具 Vivado / Vitis 2025.2.1。
-
-| 项 | 读数 |
+| 目录 | 内容 |
 |---|---|
-| 时序 | WNS 1.368 ns，WHS 0.048 ns，TNS = THS = 0，失败端点 0 |
-| 逐时钟 setup | `clk_fpga_0` 2.159 ns；`eth_rxc` 3.247 ns；`sys_clk` 14.797 ns；`clkout0_1` 3.264 ns；`clkout3` 1.727 ns |
-| 资源 | LUT 14 967（28.13%），FF 9 095（8.55%），BRAM 98（70.00%），DSP 19（8.64%） |
-| 仿真 | 19 支标准回归 `fail=0`；完整视频台架 C17/C25/C26 专项 PASS |
-| 板上 | QSPI 冷启动、8 秒推流、遥测、三阶段自检、105 条串口电池、温度均通过 |
+| `src/rtl/` | PL 源码：顶层、以太网、显示、几何、效果、AXI、HDMI |
+| `src/ps/` | PS 裸机程序：`main.c`、`sd_play.c`、链接脚本 |
+| `src/host/` | PC 侧工具：推流、遥测、链路自检、串口检查 |
+| `src/constraints/` | 引脚、时钟组、CDC、RGMII/HDMI 约束 |
+| `sim/` | 仿真台架、原语模型和判定结果 |
+| `build/` | Vivado/Vitis 构建脚本、仿真入口、实现报告 |
+| `board/` | Vivado/Vitis 工程、上板脚本、实测日志、QSPI 镜像、比对数据 |
+| `data/` | 测试输入、参考图像、指标表 |
+| `skill/` | 开发过程中整理的技能包，共 59 条 |
+| `report/` | 设计报告、验证、优化、复现、协作记录和接口表 |
+| `README.md` / `LICENSE` | 项目说明与 MIT 许可证 |
 
-## 工程组成
+## 构建
 
-| 内容 | 位置 |
-|---|---|
-| PL RTL、PS 固件与上位机脚本 | `src/rtl/`、`src/ps/`、`src/host/`、`src/constraints/` |
-| 仿真台架与判定结果 | `sim/`、`sim/results/`、`build/reports/regression.txt`、`report/verification.md` |
-| 综合、实现与资源报告 | `build/build.tcl`、`build/tcl/`、`build/reports/` |
-| 上板工程、运行脚本与实测日志 | `board/vivado/`、`board/vitis/`、`board/project/`、`board/scripts/`、`board/tcl/`、`board/measured/`、`board/compare/` |
-| 项目文档 | `report/design-report.md`、`report/verification.md`、`report/optimization.md`、`report/reproduction.md`、`report/commands.md`、`report/declarations.md`、`report/limits.md` |
-| 技能包 | `skill/README.md` |
-
-`board/` 采用两个工程文件夹：`board/vivado/` 放 `.xpr` 与 `.srcs`，`board/vitis/` 放平台描述与 QEMU 参数；源码路径使用 `$PPRDIR/../../src/...`，工程内没有本机绝对路径。
-
-## TCL 构建流程与时序收敛
-
-`build/build.tcl` 转发到 `build/tcl/build_system_axigpio.tcl`：建工程与块设计 → 综合 → 实现 → 位流/XSA → 时序、资源、CDC、方法学和功耗报告。`build/tcl/stage_board_projects.tcl` 再把工程整理到 `board/vivado` 并现场打开验证。
-
-| 阶段 | WNS | WHS | 失败端点 | 说明 |
-|---|---:|---:|---:|---|
-| 优化前 | 1.029 ns | — | — | 最差 setup 在跨 MMCM 的处理窗总线 |
-| 复位树复制后 | 1.172 ns | — | — | 复制 link-monitor 本地复位树 |
-| 最终 | 1.368 ns | 0.048 ns | 0 | TNS/THS 为 0；最差路径为复位恢复（架构地板，见 report/timing-opt-report.md） |
-
-数据源是 `build/reports/build_timing_summary.rpt` 与 `report/optimization.md`。WHS 最终为 0.048 ns（link-monitor 复位分发树拆分后，见 report/timing-opt-report.md）。
-
-## 构建与复现
+完整的 PL 构建入口是 `build/build.tcl`：
 
 ```bash
-# Vivado：建工程、块设计、综合、实现、位流、XSA、报告
 vivado -mode batch -source build/build.tcl
+```
 
-# 台架
-MSIM_BIN=<ModelSim>/win64 bash build/sim/run_msim.sh rows udp_reasm reasm_bounds udp_telemetry \
-     eth_ctrl_arb eth_top_rgmii split_ctrl osd_overlay link_monitor
-MSIM_BIN=<ModelSim>/win64 bash build/sim/run_msim.sh video_pipeline_top
+该脚本调用 `build/tcl/build_system_axigpio.tcl`，完成建工程、块设计、综合、实现、位流、XSA 以及时序、资源、CDC、方法学和功耗报告。只建工程和块设计可使用：
 
-# PS 应用
+```bash
+vivado -mode batch -source build/build.tcl -tclargs bd_only
+```
+
+`build/tcl/stage_board_projects.tcl` 不是第二次综合或实现。它把已经生成的 Vivado 工程复制到 `board/vivado/`，并打开复制后的工程核对器件、约束和块设计文件是否齐全，属于上板工程整理与验证脚本。
+
+PS 应用和启动镜像由独立脚本生成：
+
+```bash
 PS_CC=<Vitis>/gnu/aarch32/nt/gcc-arm-none-eabi/bin/arm-none-eabi-gcc.exe \
-PS_BSP=<平台构建生成的 BSP 目录> \
-PS_OUT=board/project/ps_app.elf \
+PS_BSP=<平台构建生成的 BSP 目录> PS_OUT=board/project/ps_app.elf \
 python build/ps/build_ps_app.py
 
-# Vitis 平台（可选）
-<Vitis>/bin/vitis-server.bat --port 8879 &
-sleep 10
-VP_VITIS_WS=<工作目录> <Vitis>/bin/vitis.bat -s build/vitis/rebuild_vitis.py 8879
+VP_VIVADO_BIN=<Vitis>/bin bash board/scripts/make_boot_image.sh
+```
 
-# 上板
-VP_XSDB=<Vitis>/bin/xsdb.bat VP_VIVADO_BIN=<Vivado>/bin \
-  bash board/scripts/board_flash.sh
-VP_HW_URL=localhost:3121 vivado -mode batch -source board/tcl/flash_qspi.tcl
+## 仿真
 
-# 主机侧
+```bash
+MSIM_BIN=<ModelSim>/win64 bash build/sim/run_msim.sh rows udp_reasm reasm_bounds \
+    udp_telemetry eth_ctrl_arb eth_top_rgmii split_ctrl osd_overlay link_monitor
+MSIM_BIN=<ModelSim>/win64 bash build/sim/run_msim.sh video_pipeline_top
+```
+
+每支台架末尾应出现 `RESULT ... PASS`。完整视频台架包含处理窗完整性、帧边界和显示链专项检查，判定结果在 `sim/results/`。
+
+## 上板与测量
+
+```bash
+VP_XSDB=<Vitis>/bin/xsdb.bat VP_VIVADO_BIN=<Vivado>/bin bash board/scripts/board_flash.sh
 python src/host/video_sender.py --demo --seconds 8
 python src/host/telemetry_listen.py 13
 python src/host/link_selftest.py 192.168.1.10 6
 node src/host/uart_cmd_check.mjs --port COM6
 ```
 
-完整步骤与每条命令的期望结果在 [`report/reproduction.md`](report/reproduction.md)；串口命令逐条说明在 [`report/commands.md`](report/commands.md)；器件、工具与第三方声明在 [`report/declarations.md`](report/declarations.md)。
+QSPI 固化使用 `board/scripts/make_boot_image.sh` 和 `board/tcl/flash_qspi.tcl`。JTAG 下载是易失的，断电后会回到 QSPI 镜像。完整步骤见 `report/reproduction.md`。
 
-## 目录
+## 主要结果
 
-```text
-src/rtl/            PL 源码：顶层、以太网、显示、几何、效果、AXI、HDMI
-src/ps/             PS 裸机：main.c、sd_play.c、链接脚本
-src/constraints/    引脚、时钟组、准静态 CDC、候选 IO 窗
-src/host/           推流、遥测、仪表、自检、串口判据
-sim/                92 支台架；sim/results/ 汇总最终判定
-build/build.tcl     Vivado 主入口
-build/tcl/          Vivado 构建与 board 工程 staging TCL
-build/vitis/        Vitis 平台重建脚本
-build/ps/           PS 应用直接编译脚本
-build/sim/          xsim 运行入口
-build/reports/      时序、资源、CDC、功耗、回归与完整视频台架
-board/vivado/       Vivado 工程（.xpr + .srcs）
-board/vitis/        Vitis 平台描述与 QEMU 参数
-board/project/      位流、XSA、PS 应用
-board/scripts/      上板、健康、UART、镜像打包
-board/tcl/          JTAG、QSPI 单步脚本
-board/measured/     一手实测日志
-board/flash/        BOOT.bin 与打包日志
-board/compare/      实测与参考结果的比对
-data/inputs/        测试向量
-data/golden/        人眼比对参考图
-data/metrics.csv    指标表
-skill/              与大模型协作提炼的技能包
-report/             设计报告、验证、优化、复现、命令手册、协作记录
-```
+| 项 | 读数 |
+|---|---|
+| 时序 | WNS 1.368 ns，WHS 0.048 ns，TNS = THS = 0，失败端点 0 |
+| 资源 | LUT 14 965（28.13%），FF 9 097（8.55%），BRAM 98（70.00%），DSP 19（8.64%） |
+| 连续流 | 241 帧 / 8.03 s = 30.01 fps（最终版位流，JTAG 下载） |
+| 链路自检 | 22.2 / 0 / 18.9 fps，PASS |
+| 效果链延迟 | 固定 15 个像素时钟；PL 内部帧时延 2–16 ms |
+| 功耗（估算） | 2.407 W |
 
-## 边界
+## 设计报告
 
-遥测时延只覆盖 PL 内部（帧提交到开始扫描），不是玻璃到玻璃。RGMII 发侧在 HR bank 上没有 ODELAYE2，0° 转发仍有约 0.845 ns 的 TskewT 保持缺口；90° 与 −45° 都被否决。BRAM 70% 由整帧缓存决定，512×300 以上画幅放不下。185° 细线已由 RTL 和台架闭环；E1–E5 已现场确认，含 ETH 与 SD 插拔。逐条说明在 [`report/limits.md`](report/limits.md)。
+最终报告位于 `report/design_report.pdf` 和 `report/design_report.docx`，正文 22 页，包含系统组成、软硬件划分、接口设计、时序与资源优化、实测结果、大模型协作记录、技能包提炼和复现说明。Markdown 源稿在 `report/design-report.md`，验证、优化、复现和协作记录分别见 `report/` 下对应文件。
 
-[English version](README_EN.md)
+## 大模型协作
+
+开发过程中使用大模型辅助代码检索、测试脚本编写、报告整理和问题定位。由人确定目标、架构和验收标准，模型负责提出候选修改和检查方案，所有结论均通过仿真、实现报告或板上日志复核。完整的会话卡、提示词和纠错轨迹在 `report/collaboration/`。
+
+## 复现
+
+器件为 `xc7z020clg484-2`，工具为 Vivado/Vitis 2025.2.1。PC 与板卡使用 `192.168.1.100/24` 和 `192.168.1.10/24` 直连，串口为 115200 8N1。具体命令、期望输出和常见问题见 `report/reproduction.md`。
+
+## 许可证
+
+MIT License，见 `LICENSE`。

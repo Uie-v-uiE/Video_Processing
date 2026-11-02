@@ -108,7 +108,7 @@ MSIM_BIN=<ModelSim>/win64 bash build/sim/run_msim.sh rows udp_reasm reasm_bounds
 MSIM_BIN=<ModelSim>/win64 bash build/sim/run_msim.sh video_pipeline_top
 ```
 
-期望结果：每支台架末尾有 `RESULT ... PASS`；完整视频台架的 C17/C25/C26 专项 PASS，nfail=0。没有判定行的日志不算通过。
+期望结果：每支台架末尾有 `RESULT ... PASS`；完整视频台架的 完整视频台架专项/完整视频专项/完整视频专项 专项 PASS，nfail=0。没有判定行的日志不算通过。
 
 ## 8 上板（JTAG）
 

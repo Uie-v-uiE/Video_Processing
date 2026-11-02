@@ -37,7 +37,7 @@
 | `tb_split_ctrl` | 竖缝位置与取像素 | 两侧同帧、同坐标 | PASS |
 | `tb_split` | 竖缝位置与取像素 | 两侧同帧、同坐标 | 未纳入标准回归 |
 | `tb_osd_overlay` | OSD 叠加 | 字模、位置、延迟 | PASS |
-| `tb_video_pipeline_top` | 完整显示链 | quick_c17；C17/C25/C26 专项 PASS，nfail=0 | PASS |
+| `tb_video_pipeline_top` | 完整显示链 | quick_c17；完整视频台架专项/完整视频专项/完整视频专项 专项 PASS，nfail=0 | PASS |
 
 标准回归 19 支（17 支原有台架加 `eth_ingress_integrity`、`saver_tail_full`），交付版本的汇总为 `fail=0`。
 

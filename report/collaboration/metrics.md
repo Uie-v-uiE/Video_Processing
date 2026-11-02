@@ -10,7 +10,7 @@
 | 关键 Issue | 20 | `report/issues/key-issues.md` |
 | 技能条目 | 59 | `skill/` 下 59 个 `SKILL.md` |
 | 标准回归 | 19 | `sim/results/regression.txt`，`fail=0` |
-| 完整视频专项 | C17/C25/C26 | `sim/results/tb_video_pipeline_top_report.txt`，`nfail=0` |
+| 完整视频专项 | 完整视频台架专项/完整视频专项/完整视频专项 | `sim/results/tb_video_pipeline_top_report.txt`，`nfail=0` |
 | 串口命令电池 | 105 | `board/measured/uart_battery_capture.txt` |
 | 提交树文件数 | 见 `build/make_release.py` 的构建输出 | release 构建日志 |
 
