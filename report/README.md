@@ -2,11 +2,11 @@
 
 `report/` 放四类内容：设计报告、验证与优化、复现说明、协作记录。主要读数以设计报告和验证文档为准，支撑材料放 `build/reports/` 与 `board/measured/`。
 
-最终排版稿为 `design_report.pdf` 和 `design_report.docx`（22 页，按赛事模板组织，含附录 A 大模型协作记录、附录 B 技能包提炼、附录 C 复现说明）。`design-report.md` 是内容源稿。
+GitHub 仓库中的最终排版稿为 `design_report.pdf` 和 `design_report.docx`（22 页，按赛事模板组织，含附录 A 大模型协作记录、附录 B 技能包提炼、附录 C 复现说明）。平台提交时设计报告单独上传，源码包不重复包含这两个文件。`design-report.md` 是内容源稿。
 
 ## 阅读顺序
 
-1. `design_report.pdf` / `.docx`：最终设计报告；`design-report.md` 是内容源稿。
+1. `design_report.pdf` / `.docx`（GitHub 仓库）：最终设计报告；`design-report.md` 是内容源稿。
 2. `verification.md`：台架矩阵、专项判据、板上验收、没有覆盖的部分。
 3. `optimization.md`：时序与资源优化的五轮过程、被否决的尝试、物理边界。
 4. `reproduction.md`：从零构建、仿真、PS 应用、Vivado/Vitis 工程、上板与 QSPI。
