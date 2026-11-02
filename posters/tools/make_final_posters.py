@@ -228,7 +228,7 @@ def build(lang):
     pic.left = Inches(0.55); pic.top = Inches(2.65); pic.width = Inches(2.90); pic.height = Inches(1.63)
 
     # Center: detailed 4x3 architecture diagram.
-    replace_pic(s, by_id(s, 44), os.path.join(ASSETS, "arch_v2_zh.png" if cn else "arch_v2_en.png"))
+    replace_pic(s, by_id(s, 44), os.path.join(ASSETS, "arch_v3_zh.png" if cn else "arch_v3_en.png"))
     replace_pic(s, by_id(s, 40), LOGO)
     # Right top: previous board+screen photo, already close to the template aspect.
     replace_pic(s, by_id(s, 47), os.path.join(ROOT, "records", "design", "poster_bi", "assets", "overview.jpg"))
