@@ -22,7 +22,7 @@
 #      （冻结后更正：本行原写"11 条"，按 `grep -c expect(` 实为 12；位流与报告未动，
 #        MANIFEST.txt 不在 MANIFEST_BODY.txt 的校验清单内，所以改这一行不影响 md5sum -c。）
 #
-# 门禁（bash build/gates.sh，七项全绿；CDC 按 build/cdc_baseline.txt 的**配对集合**判）：
+# 门禁（bash build/gates.sh，七项全绿；CDC 按 build/CDC_BASELINE.txt 的**配对集合**判）：
 #   WNS +0.764 / WHS +0.062 / 0 失败 setup 端点 / 0 失败 hold 端点（23840 端点）/
 #   Slice LUT 7577(14.24%) / Slice 寄存器 6026 / BRAM 90.5 tile(64.64%) / Dynamic 2.159 W /
 #   methodology 0 CRIT / 0 布线错误 / cdc Critical 3 行 = 基线配对无新增
@@ -30,7 +30,7 @@
 #   WNS 比 #28 的 +1.001 低 0.24 —— 那是多出来的 8 位可观测 + 灌满期计数器的代价，
 #   换来的是"板级红能自己定位"。两个数都在报告里，不做挑选。
 #
-# L1 回归 47/47 PASS：build/sim/results/regression_v79_r39.txt（含新台架 tb_v82_src_mode）
+# L1 回归 47/47 PASS：sim/results/regression_v79_r39.txt（含新台架 tb_v82_src_mode）
 #
 # 怎么确认"这块 bit 里真的是新逻辑"（不靠我口头保证）：
 #   build/cdc_details.rpt 里那条跨域的源脚写作 `u_pl/u_mode/mode_reg[1:0]`。

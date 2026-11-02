@@ -13,7 +13,7 @@
 | `system.xsa` | **6d9cc73d** | 与 bit 同一次导出（RTL 动过 ⇒ 与 r54 的 662c0d5f 不同，符合预期） |
 | `ps_app.elf` | **812790ec** | **与 r54 逐字节相同**：这一版 PS 侧零改动，故意沿用，便于把差异全部归到 PL |
 
-警告：后台任务通知把 build #36 报成 "exit code 1" —— 那是 `grep -c` 找不到匹配时的返回码，不是构建失败。
+⚠ 后台任务通知把 build #36 报成 "exit code 1" —— 那是 `grep -c` 找不到匹配时的返回码，不是构建失败。
 判据看日志末行 `SYSTEM BUILD DONE` 与 `^ERROR` 计数（本仓库的老坑，见 `skill/`）。
 
 ## 门禁十四项：ALL PASS（凭据 `gates_r55.txt`，当场跑）
@@ -45,7 +45,7 @@
 顺带一条 CDC 的账（不判红所以必须手写下来）：门禁打印里"基线里有而本版没有 `eth_rxc>clk_fpga_0`"
 是**已结案的旧账**（基线文件 5~13 行，U14），r55 后该行端点数仍是 271（`cdc.rpt` 第 21 行），
 少的那 1 个 unsafe 是 #24 删的、不是这次删的。而另一行"同配对端点数增长 `clk_fpga_0>clkout0_1`(17→71)"
-这次去查了，**查出新问题**：见 `report/issues.md` #65（两个 unsafe 端点是 CDC-11 发射扇出，
+这次去查了，**查出新问题**：见 `report/ISSUES.md` #65（两个 unsafe 端点是 CDC-11 发射扇出，
 V8-5 那条时延快照把 `bus_tog`/`hb_tog` 接了同一根线）。修法在 r56，凭据 `cdc_who_r55_console.txt`
 与 `cdc_details.rpt`。**⇒ 这一版仍带着那 2 个 unsafe 端点上板**，功能侧无已知影响（见 #65 的"为什么值得修"）。
 

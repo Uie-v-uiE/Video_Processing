@@ -1,133 +1,143 @@
-# 模块清单（`src/rtl/` 逐目录）
+# 模块详解（第三版 + 第四版 V6 数据通路见 §7）
 
-这份表按 `src/rtl/` 的目录列出每个 RTL 文件是什么、被谁例化、有没有对应的仿真台架。
-"台架"在下文一律指 `sim/` 下的 Verilog 测试例（testbench），它不跑在板上。读这张表之前先对齐三件事：
+对应路径均在 `src/rtl/` 下。
 
-1. **例化者**一栏只写当前代码里真实存在的例化位置（`文件:行`）。写"未例化"就是从综合顶层不可达；
-   写"仅台架"是只有 `sim/` 下的测试例例化它。这个判断另用综合日志复核了一遍：综合日志里的
-   `Synth 8-6157`（`synthesizing module 'X'`）只对从顶层可达的模块出现，下面 13 个文件不在那些行里，
-   复核脚本与它的通过条件写在 `build/orphan_rtl.sh:2-13`（它报的是"这一版构建里没有"，不是"永远没用"）——
-   `axi_frame_saver`、`axi_frame_saver_burst`、`axi_frame_writer`、`color_bar`、`fb_rd5x`、
-   `frame_buffer`、`frame_buffer_db`、`line_cache`、`pl_demo_top`、`rotate_mapper`、
-   `tap_sched`、`udp_rx`、`video_timing_720p`（13 个）。
-2. 综合收录的文件清单来自 `build/tcl/build_system_axigpio.tcl:24-30`（各目录整体 + 两个顶层），
-   综合顶层是 `system_top`（同文件 `:288`）；不在这份清单里的文件谈不上可达性。
-3. 原理、常数、时钟域、"改动某处要先看哪个台架"都在 `report/architecture.md`。
+---
 
-## top/
+## 1. top/system_top.v
 
-| 模块 | 职责 | 例化者 | 台架 |
-|------|------|--------|------|
-| `system_top` | 板上顶层：PS Block Design + PL ETH + PL 视频三者的连线，lane 读回口在这一层 | 综合顶层 | 无（发布前检查第 14 项用 `build/check_ports.py` 检查接线） |
-| `pl_video_top` | 显示主通路：栅格、几何、帧缓存读写、两条抽头、混合、OSD、TMDS、仲裁与观测 | `system_top.v:258`、`pl_demo_top.v:20` | `tb_v98_top_seam`（唯一例化它的台架；发布前检查第 15 项读它的报告） |
-| `pl_demo_top` | 无 PS 的纯 PL 演示顶层（GPIO 全钉常量） | 未例化，且不在构建清单里 | — |
+**职责：** PS Block Design + PL 视频 + PL 以太网顶层连线。
 
-## clocks/
+**要点：**
+- `design_1_wrapper`：PS7 + AXI GPIO + HP0
+- `eth_udp_video_top`：协议栈
+- `pl_video_top`：显示/效果/缩放
+- `.zoom_en(1'b1)`：右屏无极缩放上电常开
+- `clk_gen`：另供 200 MHz 给 IDELAYCTRL
 
-| 模块 | 职责 | 例化者 | 台架 |
-|------|------|--------|------|
-| `clk_gen` | `MMCME2_BASE`：50 → 50 / 250 / 200 MHz，VCO 1000 MHz | `pl_video_top.v:128`、`system_top.v:121` | — |
+---
 
-## axi/
+## 2. top/pl_video_top.v（显示主通路）
 
-| 模块 | 职责 | 例化者 | 台架 |
-|------|------|--------|------|
-| `axi_frame_writer_gated` | ETH 路：DDR→显示帧缓存的整帧读回，只在 `allow_wr` 窗口内发 AR | `pl_video_top.v:454` | `tb_v5_gated`、`tb_v5_copy`、`tb_v5_vblast`、`tb_v57_first_ar`、`tb_v58_full_done`、`tb_v6_vblank_copy` |
-| `axi_frame_writer64` | PS 路：同一件事，由 `ps_frame_start` 触发起一次整帧搬运 | `pl_video_top.v:692` | 无独立台架 |
-| `axi_frame_writer` | 16bit 宽度的早期版本 | 未例化 | 无 |
+**职责：** 双窗扫描、坐标映射、FB 时分读、右窗效果、OSD、HDMI。
 
-## video/
+| 子块 | 说明 |
+|------|------|
+| `zoom_ctrl` / `zoom_mapper` | 右屏自动缩放；INV_LO=256，INV_HI=512，STEP=2 |
+| `rotate_mapper` | 左窗旋转；右窗缩放后可再旋转 |
+| FB 读地址 | `left_d[2]` 选择 rotate 或 zoom 坐标；`rd_addr` 移位加法后打拍 |
+| `proc_pipeline` | 仅在右窗 `de` 上运行；输入为缩放后像素 |
+| `split_display` | 左右独立 oob；中间蓝线 |
+| `osd_overlay` | 状态叠加 |
+| CDC | `ze*`/`ef*`/`fs*` 标 `ASYNC_REG` |
 
-| 模块 | 职责 | 例化者 | 台架 |
-|------|------|--------|------|
-| `video_timing` | 参数化栅格发生器（消隐/极性都可配），产出 `x,y,hs,vs,de,frame_start` | `video_timing_1024x600.v:17`、`video_timing_720p.v` | `tb_timing` |
-| `video_timing_1024x600` | 本项目的显示时序：1024×600，H_TOTAL 1344 / V_TOTAL 625 | `pl_video_top.v:226` | `tb_v6_vblank_copy` 用（顶层由 `tb_v98` 覆盖） |
-| `video_timing_720p` | 720p 时序 | 未例化 | — |
-| `frame_buffer_w64` | 显示帧缓存：64bit 写口（4×RGB565）+ 16bit 随机读，读延迟 1 拍 | `fb_bilin.v:65`、`fb_rd5x.v:103` | `tb_fb_roundtrip` |
-| `frame_buffer` / `frame_buffer_db` | 16bit 时代的整帧 RAM / 双缓冲 | 未例化 | 无（`tb_fb_roundtrip` 测的是 `frame_buffer_w64`） |
-| `fb_bilin` | 显示侧唯一读口：双线性，每个源像素用满它天然的 4 个 50 MHz 拍；`bilin_en=0` 逐位等于最近邻 | `pl_video_top.v:732` | `tb_v101_fb_bilin` |
-| `fb_rd5x` | 另一条读口方案（借 250 MHz 每像素发 5 次读），已被 `fb_bilin` 取代 | 未例化 | `tb_fb_rd5x` |
-| `tap_sched` | `fb_rd5x` 的 5 槽调度器 | 仅被未例化的 `fb_rd5x` 例化 | `tb_tap_sched` |
-| `bilin_lerp` | 双线性算术核（文件在 `process/` 下） | 见 process/ 表 | `tb_bilin_lerp` |
-| `raw_line_delay` | 原图抽头的行环形延迟：延迟恰 = LINES 行 + 1 拍且列不偏，消隐期钳读地址 | `pl_video_top.v:788` | `tb_v100_raw_delay` |
-| `frame_commit_lock` | 提交锁：`allow_copy` 只给消隐窗口、窗口开启才 `start_copy`、带看门狗 `copy_abort` + 翻转位 | `pl_video_top.v:430` | `tb_v5_lock`、`tb_v6_vblank_copy`、`tb_v79_abort_toggle` |
-| `split_ctrl` | 分割线的**位置**发生器：手动百分比 / 自动扫描 / 跟随画面端点 / 交换两侧 | `pl_video_top.v:885` | `tb_v93_split_ctrl` |
-| `seam_src` | 把缝从显示列搬到图像列：在源坐标那一拍判定这一格属原图还是处理图，线跟着画面转 | `pl_video_top.v:904` | 无独立台架（经 `tb_v98` 的 C1~C3 覆盖） |
-| `split_display` | 逐像素二选一 + 2 图像列宽的标记线 + OOB 涂黑，输出一拍后的 RGB/de | `pl_video_top.v:911` | `tb_v97_seam_scan`（四份配置对照） |
-| `osd_overlay` | 5 行状态叠加（面板/FPS/Src；Pipe/Th/Gamma、Rot/Zoom、Split/Latency、Temp/无信号），5×7 字模 ×3。`FPS:` 这一格数的是**写进屏的新帧**，计数器是 `src/rtl/util/shown_rate.v`，顶层例化在 `src/rtl/top/pl_video_top.v:941`。这一格的计数写法换过一次：在换成数新帧之前，这一格数的是扫过屏的显示场 ⇒ 屏上恒读 59 或 60，那是面板场频不是片源帧率；两段的推导与验证记录在 `report/log/issues.md` #128、#157。端口 `osd_en`（0 = 输出逐位等于背景，由 `gpio_o[20]` 反相驱动） | `pl_video_top.v:999` | `tb_osd_lines`（T13 成对）、`tb_v794_osd_glyph`、`tb_v98` 的 C12 |
-| `test_card` | 图卡片源：移动块 + 帧号二值格 + 八色彩条，自带"通路在不在刷新"的判读点 | `pl_video_top.v:759` | `tb_v81_test_card`、`tb_v83_card_render` |
-| `color_bar` | 静止彩条（图卡的上一版） | 未例化 | `tb_v81_test_card` 里作对照例化 |
-| `gamma_lut` | 效果链级 0：256 项 8bit 表，PS 逐项目写入；组合读出、不加拍 | `proc_pipeline.v:102` | `tb_v88_gamma` |
-| `frame_latency` | 链路内时延：commit→起拷→拷完→该帧开始扫描，分三段量并在 axi 域除成 ms | `pl_video_top.v:624` | `tb_v90_latency` |
-| `line_cache` | 早期"左扫效果→右读行缓"的行列缓存 | 未例化 | 无 |
+**延迟：** mapper3 + addr1 + BRAM1 + proc7，sideband 与此对齐。
 
-## hdmi/
+---
 
-| 模块 | 职责 | 例化者 | 台架 |
-|------|------|--------|------|
-| `rgb2dvi` | RGB + de/hs/vs → 三路 TMDS：三套编码器 + 三套 5× 串化（channel0 走蓝，消隐期把 hs/vs 当控制符送进去） | `pl_video_top.v:1026` | — |
-| `tmds_encoder` | 单通道 8b/10b：比较查表翻转 + 运行不一致度 + 特例码 | `rgb2dvi.v:22,26,30,25,29` | 无独立台架 |
-| `tmds_serializer` | 10bit 并→串（跑在 `clk_pix5x` 上） | `rgb2dvi.v:35,39,43,49` 起 | 无独立台架 |
+## 3. eth/ — 协议栈
 
-## process/
+### 3.1 rgmii_rx / rgmii_tx
+BUFIO + IDDR（SAME_EDGE_PIPELINED）/ ODDR；IDELAY_VALUE=15。
 
-| 模块 | 职责 | 例化者 | 台架 |
-|------|------|--------|------|
-| `proc_pipeline` | 级 0 gamma + 五级效果的装配：链延迟 `LATENCY`=15、内容滞后 `OFF_LINES`=4 都由它声明 | `pl_video_top.v:800` | `tb_v86_pipe_sel`、`tb_v89_align`、`tb_rotate_window`、`tb_osd_lines` |
-| `effect_ctrl` | AXI→像素域的准静态控制字同步（三对 `ASYNC_REG`）+ 九位 `stage_sel` 解码，只此一套口径 | `pl_video_top.v:198` | `tb_v86_pipe_sel` |
-| `proc_gray` | 级 1：RGB565 → 亮度 → RGB565 | `proc_pipeline.v:109` | `tb_proc_gray` |
-| `proc_invert` | 级 1 的第二选项：反色 | `proc_pipeline.v:113` | 无独立台架（`tb_v86`/`tb_v89` 覆盖） |
-| `proc_box_blur` | 级 2：3×3 均值模糊，两条行缓存、三拍 de 链 | `proc_pipeline.v:119` | `tb_v84_morph`、`tb_v85_sharpen`、`tb_v89_align`、`tb_v92_seam_bleed`、`tb_edge_rim` |
-| `proc_sharpen` | 级 2 的第二选项：3×3 锐化（与模糊同级、非串联） | `proc_pipeline.v:125` | `tb_v85_sharpen`、`tb_v89_align`、`tb_edge_rim` |
-| `proc_sobel` | 级 3：Sobel 梯度幅值，白边黑底 | `proc_pipeline.v:132` | `tb_v89_align`、`tb_v92_seam_bleed`、`tb_edge_rim` |
-| `proc_binary` | 级 4：阈值二值化，`pol` 选判决方向（亮于/暗于阈值算白） | `proc_pipeline.v:140` | 无独立台架（`tb_v86` 逐档、`tb_v89` 整链） |
-| `proc_morph` | 级 5：3×3 腐蚀 / 膨胀；两位同时为 1 时明确旁路 | `proc_pipeline.v:146` | `tb_v84_morph`、`tb_v89_align`、`tb_edge_rim` |
-| `bilin_lerp` | 双线性算术核，两级流水（先横后纵），与抽头怎么来完全解耦 | `fb_bilin.v:172` | `tb_bilin_lerp` |
+### 3.2 arp / icmp / udp
+- ARP：who-has → 板卡 MAC `00:11:22:33:44:55`
+- ICMP：echo reply；载荷 **自写 `sync_fifo`**；tx 启动延迟 20 拍
+- UDP：解析后交 `frame_reasm`
 
-## process/rotate/ 与 process/zoom/
+### 3.3 frame_reasm
+协议 `[u32 LE offset][RGB565]`；`wr_addr=offset/2`；满 307200 B 帧完成；坏帧计数不重传。
 
-| 模块 | 职责 | 例化者 | 台架 |
-|------|------|--------|------|
-| `angle_ctrl` | 角度寄存器：短按 ±1°、自动旋转按帧走 `speed[2:0]` 度、0..359 环回 | `pl_video_top.v:183` | `tb_v100_fit_rot`（T3） |
-| `sin_rom` / `cos_rom` | 360 项 Q8 三角表（角度 0..359，值是 10 位有符号：`cos(0)=10'sd256`，不是 255） | `zoom_mapper.v:22`、`zoom_fit.v:20` | — |
-| `rotate_mapper` | 独立的旋转逆映射器 | 未例化（旋转已并进 `zoom_mapper`） | `tb_rotate_mapper` |
-| `zoom_mapper` | 唯一的视口逆映射：缩放 ⊕ 旋转同级，3 级流水，出 `sx,sy,oob,frac_x,frac_y` | `pl_video_top.v:343` | `tb_zoom_mapper`、`tb_v96_zoom_scan` |
-| `zoom_ctrl` | 缩放来源选择与自动呼吸：八档表 + 手动档 + 拟合档，外加旋转态那一钳：旋转生效时倍率不许超出 fit 档，整幅画面因此在屏内，代价是旋转时不给放大，手动档号不丢；`inv_used` 是唯一读数、`rot_forced` 只喂 OSD 的 `(Fit)` | `pl_video_top.v:325` | `tb_v94_zoom_sel`（T8a~T8f）、`tb_v100_fit_rot`、`tb_zoom_mapper` |
-| `zoom_fit` | 按角度算出"刚好装得下"的 `inv_fit` | `pl_video_top.v:322` | `tb_v100_fit_rot` |
-| `zoom_snap` | 把像素域真在用的缩放状态打成准静态总线 + 合法跨域沿，供 lane23 回读 | `pl_video_top.v:652` | `tb_v95_zoom_snap` |
+### 3.4 自写 FIFO
 
-## util/
+**sync_fifo.v（同钟）**
+- 深度 `2^ADDR_W`，读出寄存一拍
+- `empty`/`full` 用指针最高位比较
+- **存储阵列无复位** + `ram_style="block"` → 推断 BRAM  
+  （避免异步复位导致落到寄存器堆，拖垮 eth_rxc@125M 时序）
 
-| 模块 | 职责 | 例化者 | 台架 |
-|------|------|--------|------|
-| `key_debounce` | 低有效按键消抖 + 单拍脉冲（`CNT_MAX` 由调用处给） | `pl_video_top.v:136,139,139` | 无独立台架 |
-| `key_long` | 同一按键的长按语义：短按松手才发、长按发**翻转位** | `pl_video_top.v:148` | `tb_v87_key_long` |
-| `src_mode` | 长按翻转位 → 四态片源模式（自动/锁 ETH/锁 SD/锁图卡），命令覆盖优先于按键 | `pl_video_top.v:157` | `tb_v82_src_mode` |
-| `src_arb` | DDR→帧缓存这台搬运机归谁：交换条件 + "两个引擎都空闲"才换手 + 让位延时 | `pl_video_top.v:421` | `tb_v796_src_arb` |
-| `src_life` | "此刻还有没有片源"的在线条件：PS 发布心跳 500 ms 看门狗，没有就落图卡 | `pl_video_top.v:588` | `tb_v102_src_life` |
-| `ps_publish` | PS 发布翻转位的跨域 + 挂起：一次发布恰好一次消费 | `pl_video_top.v:564` | `tb_ps_publish` |
+**dc_fifo.v（跨钟）**
+- 写 `wr_clk` / 读 `rd_clk` 独立
+- 指针转 Gray，两级同步到对侧
+- 打包 36-bit：`{1'b0, addr[18:0], data[15:0]}`，读 `dout[34:16]` / `[15:0]`
+- 写口无复位，便于 BRAM
 
-## eth/
+### 3.5 axi_frame_writer / axi_frame_saver
+PS `FILL` 或 DDR 诊断路径；ETH 主路径为 BRAM 直写。
 
-| 模块 | 职责 | 例化者 | 台架 |
-|------|------|--------|------|
-| `eth_udp_video_top` | RGMII→协议栈→拼帧→CDC→打包写 DDR 的容器，含乒乓基址与提交脉冲 | `system_top.v:154` | `tb_v6_pingpong`、`tb_v6_ingress_integrity`、`tb_v5_bank`、`tb_link_monitor` |
-| `gmii_to_rgmii` | RGMII ↔ GMII 的壳：BUFG 收钟 + IDELAYCTRL + 收/发两侧 | `eth_udp_video_top.v:73` | — |
-| `rgmii_rx` | IDDR(`SAME_EDGE_PIPELINED`) **吃 BUFG**（IO 与 fabric 现在共用同一棵钟树）+ IDELAYE2(FIXED, 参考 200 MHz, `IDELAY_VALUE=31`) | `gmii_to_rgmii.v:28` | — |
-| `rgmii_tx` | ODDR 双沿拼 4bit + TX_CTL | `gmii_to_rgmii.v:42` | — |
-| `gmii_rx_mac` | 去前导/SFD、按字节数与自己算的 FCS-32 判包好坏，出 `m_good/m_bad` | `eth_udp_video_top.v:186` | `tb_v795_rx_fcs` |
-| `udp_rx_parser` | 按下标解 IPv4/UDP + 目的端口过滤，出 `p_sof/p_eof/p_good` | `eth_udp_video_top.v:197` | `tb_udp_parser`、`tb_v795_rx_chain` |
-| `frame_reasm` | `[u32 LE offset][RGB565]` 拼帧：凑满 307200 B 才算一帧，坏帧计数、缺行上报 | `eth_udp_video_top.v:235` | `tb_udp_reasm`、`tb_v50_rows`、`tb_v50_rows_prod`、`tb_v6_cover_gate`、`tb_link_monitor` |
-| `dc_fifo` | eth_rxc→axi_clk 的 36bit 数据 FIFO（格雷码 + 双级同步，BRAM 推断） | `eth_udp_video_top.v:298` | `tb_v6_pingpong`、`tb_v6_ingress_integrity`、`tb_v6_tail_bank` |
-| `axi_frame_saver64` | 16bit→64bit 打包 + AXI3 写 DDR：`AWLEN=0` 的单拍写、AW/W 并行挂出、在途 OST=8（B 只回收计数） | `eth_udp_video_top.v:354` | `tb_v5_bank`、`tb_v6_pingpong`、`tb_v6_tail_bank`、`tb_v6_ingress_integrity` |
-| `ddr_bank_commit` | 换 bank 必须等本帧数据全部穿过 CDC，之后发 `commit_pulse` + 完成基址 | `eth_udp_video_top.v:330` | `tb_v6_pingpong`、`tb_v6_tail_bank` |
-| `link_monitor` | 链路健康计数：丢字、坏包、缺行、断流 ms、帧间隔 min/last/max/Σ，打包 10 条 lane + 心跳 | `eth_udp_video_top.v:284` | `tb_link_monitor` |
-| `eth_ctrl` | 发送侧仲裁与 GMII 出口复用（ARP/ICMP/UDP 三路） | `eth_udp_video_top.v:206` | 没有仿真台架直接例化这一层：原先那支单测随第二块板（RK-XCKU5P-F）的工程目录一并移出仓库，因此这一层只被顶层台架的端到端路径覆盖，这一列没有独立条目。另有一处缺口要写明：它的通用用户 FIFO 口在本层没有对端——`fifo_tx_data`/`fifo_tx_req`/`fifo_rec_en`/`fifo_rec_data` 只在 `eth_udp_video_top.v:114-116` 声明、`:219-220` 连进来，本层再没有别的驱动或读者 |
-| `snap_cross` | 「准静态总线 + 跳变沿」跨域器，带心跳丢失/变慢两种上报 | `system_top.v:214`、`pl_video_top.v:674,876,980` | `tb_link_monitor`、`tb_v95_zoom_snap` |
-| `sync_fifo` | 同钟 FIFO（读出寄存一拍、空满比指针最高位；存储无异步复位 + `ram_style=block`） | `eth_udp_video_top.v:119`（ICMP 载荷） | `tb_sync_fifo` |
-| `crc32_d8` | 反射 CRC-32 逐字节核 | `udp_tx.v`、`gmii_rx_mac.v`、`arp.v`、`icmp.v` | `tb_crc32` |
-| `udp_tx` | 以太/IP/UDP 头的组装与发送（`udp_tx.v:44-47` 那批常数：`ETH_TYPE`、`MIN_DATA_NUM`）；FCS 由外挂的 `crc32_d8` 算、它填进帧尾。Z7 上 `tx_start_en` 恒 0：接着但从不启动 | `eth_udp_video_top.v:163` | `tb_eth_video` |
-| `arp` → `arp_rx` / `arp_tx` | who-has 请求与应答，MAC/IP 由参数给（外部样例那一批，文件头 `arp.v:3,7`） | `eth_udp_video_top.v:126` → `arp.v:46,62` | — |
-| `icmp` → `icmp_rx` / `icmp_tx` | echo reply，载荷走下面的 `sync_fifo`（同一批外部样例） | `eth_udp_video_top.v:140` → `icmp.v:56,76` | — |
-| `udp_rx` | 外部样例的收侧包装层 | 未例化（收侧换成了上面的自研那一对） | `tb_eth_video` 仍直接测它 |
-| `axi_frame_saver` / `axi_frame_saver_burst` | 16bit 与早期 burst 两版打包器 | 未例化 | `tb_v5_saver`（测 `_burst`） |
+---
+
+## 4. video/
+
+| 模块 | 说明 |
+|------|------|
+| video_timing_1024x600 | H=1344 V=625 @50M |
+| frame_buffer | 512×300×16b 双口 BRAM |
+| split_display | 左右像素选择 + oob_l/oob_r + 蓝线 |
+| osd_overlay | 三行状态；3× 放大；空格空白字模 |
+| color_bar | 彩条源；右路用 zoom 后坐标采样 |
+| line_cache | 历史模块，**top 中已不再例化** |
+
+---
+
+## 5. process/
+
+### 5.1 proc_pipeline
+```
+gray → binary → box_blur → sobel → invert
+```
+每级 `bypass`；固定约 7 拍延迟。窗滤行缓地址用**右窗屏幕坐标**（目标域）。
+
+### 5.2 rotate/*
+`rotate_mapper` 逆映射 + sin/cos ROM；`angle_ctrl` 按键 ±1°。
+
+### 5.3 zoom/*
+
+**zoom_ctrl.v**
+- 输出 `inv_scale[9:0]` Q8
+- 默认 INV_LO=256（1.0× 最大），INV_HI=512（0.5×），STEP=2
+- `enable=0` 时锁定 256
+- `dir`：0 向缩小，1 回原始
+
+**zoom_mapper.v**
+```
+// 无旋转
+sx = W/2 + ((x-W/2)*inv)>>8
+sy = H/2 + ((y-H/2)*inv)>>8
+// 有旋转：先 Q8 旋转再 *inv，inv=256 时与 rotate_mapper 一致
+```
+- `inv` 用 **10-bit 有符号**（避免 256 被当成 −256）
+- 3 级流水；OOB 黑；`frac_x/frac_y` 预留双线性
+
+---
+
+## 6. 时钟与复位
+
+- `clk_gen`：MMCM 50 / 250 / 200
+- `eth_rst_n`：sys_clk 计数约 168 ms
+- ETH 逻辑：`eth_rst_n & mmcm_locked`
+
+---
+
+## 7. 第四版 V6.x 数据通路（UDP → DDR 乒乓 → V-blank 原子拷贝）
+
+第四版把「边收边写显示 BRAM」改成「入包写 DDR 乒乓 bank → 提交锁在 V-blank 窗口把整帧
+拷进显示 BRAM」。第三版的 `axi_frame_saver` / `axi_frame_writer` / `frame_buffer`
+仍在树内（`sim/tb_v5_saver.v` 等历史 TB 使用），但已不在综合路径上。
+
+| 模块 | 位置 | 职责 | 关键点 |
+|------|------|------|--------|
+| `eth_udp_video_top` | `src/rtl/eth/` | RGMII→ARP/ICMP/UDP→reasm→CDC→打包器 的容器 | V6.1 起 CDC 读侧每拍一条；V6.2 起 `dc_fifo ADDR_W=13` + `sv_full` 反压 |
+| `frame_reasm` | `src/rtl/eth/` | offset 拼帧 + 提交门限 | `rows_hit==IMG_H` **且** 累计 `FRAME_BYTES`；`stat_bad` 每帧一次 |
+| `axi_frame_saver64` | `src/rtl/eth/` | 16bit→64bit 打包 + AXI3 写 | **V6.3：AW/W 同拍挂出、`OST=8` 在途、B 只回收计数**；**V6.4：`WSTRB` 按 16bit lane 生成**（部分字不再互相覆盖）；`AWLEN=0`；`FW=9` 不可加深（DRC UTLZ-1） |
+| `frame_buffer_w64` | `src/rtl/video/` | 64bit 宽显示帧 BRAM，双窗时分读 | — |
+| `axi_frame_writer_gated` | `src/rtl/axi/` | 提交后整帧 DDR→显示 BRAM，只在 `allow_wr` 窗口内发 AR/写 BRAM | `MAX_OUT=4`、`BEATS=16`、`SK=6` |
+| `frame_commit_lock` | `src/rtl/video/` | 新帧就绪锁到 V-blank 上升沿才启动拷贝；拷贝未完不换 bank | `allow_rise` 边沿触发 |
+| `pl_video_top` | `src/rtl/top/` | 显示主通路 + 拷贝调度 + 观测位 | `disp_quiet`（V-blank + 尾部保护）、`copy_overrun`→`led[0]` |
+
+### 为什么根因在 `axi_frame_saver64` 的写通道
+`AWLEN=0` 的单拍写若走完 `AW→W→B` 才发下一笔，在途深度恒为 1 ⇒ 吞吐 = 64bit ÷ 往返延迟。
+HP0 空手 RTT ≈40 拍 ⇒ 上限 20 MB/s，而主机给 15 MB/s（仅 1.3× 余量），显示拷贝一抢端口
+RTT 就涨到上百拍 ⇒ 平均掉到 15 MB/s 以下，每包包尾按 16bit 粒度被丢（= 拖影/黑横纹）。
+改成 AW/W 并行挂出、各自保持到被接收后，吞吐由握手决定（≤2 拍/字 ≈ 400 MB/s）。
+板级验证：15/30/60 fps 回读全部 100.0%，见 `report/V6_BOARD_MEASUREMENT.md`。
