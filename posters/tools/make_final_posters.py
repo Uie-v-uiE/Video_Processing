@@ -132,82 +132,90 @@ def build(lang):
 
     # Left intro text, above the strip.
     if cn:
-        intro = ("远程视频节点通常只有一根网线，没有 PC。操作者需要知道画面是否收到、处理是否生效、延迟多大。"
-                 "本作品在 Zynq-7020 上完成全硬件处理：512×300 视频经千兆网口输入，整帧满足提交条件后写入 DDR；"
-                 "显示侧读回同一帧，左侧原图、右侧处理结果。")
+        intro = ("远程视频节点通常只有一根网线，没有 PC。操作者需要同时知道：画面收到没有、处理生效没有、画面多旧。"
+                 "本作品在一颗 Zynq-7020 上给出全部答案：512×300 RGB565 从千兆网口输入，三闸整帧提交，两侧读回同一帧，"
+                 "竖缝是逐像素决定而不是两张截图。")
     else:
-        intro = ("Remote video nodes usually have one Ethernet cable and no PC. The operator needs to know whether the "
-                 "frame arrived, whether processing took effect, and how old the picture is. This node performs the path "
-                 "on one Zynq-7020: a 512×300 stream enters through GbE, whole frames are committed after three conditions, "
-                 "and both panes read back the same frame.")
-    set_text(by_id(s, 7), [(intro, 8.8 if cn else 8.2, False, GRAY)], font=font, line=0.98)
+        intro = ("Remote video nodes usually have one Ethernet cable and no PC. The operator must know whether the frame "
+                 "arrived, whether processing took effect, and how old the picture is. This node answers all three on one "
+                 "Zynq-7020: 512×300 RGB565 enters GbE, whole frames pass a three-condition commit, both panes read back the "
+                 "same frame, and the seam selects per pixel.")
+    set_text(by_id(s, 7), [(intro, 8.4 if cn else 7.8, False, GRAY)], font=font, line=0.97)
 
     # Application and key issues at the template's left text positions.
-    app = ("广播、安防和工业视觉的现场监测：现场没有采集设备时，一根网线可同时传输画面、处理结果和链路状态。" if cn else
-           "Confidence monitoring for broadcast, security and industrial vision: one cable carries the picture, processing result and link status.")
-    b = add_box(s, 0.25, 3.90, 3.90, 0.62)
-    set_text(b, [(app, 9.2, False, GRAY)], font=font, line=0.98)
+    app = ("广播、安防、工业视觉的现场监测：没有采集设备时，一根网线同时带回画面、处理结果和链路状态；"
+           "同帧对照可用于算法验收与故障定位。" if cn else
+           "Confidence monitoring for broadcast, security and industrial vision: one cable carries the picture, processing "
+           "result and link status; same-frame comparison supports algorithm acceptance and fault isolation.")
+    b = add_box(s, 0.25, 3.90, 3.90, 0.66)
+    set_text(b, [(app, 8.8, False, GRAY)], font=font, line=0.98)
     key = ("关键技术问题\n"
-           "1. 千兆 UDP 重组：按帧内偏移重组，字节数、行覆盖和坏包计数同时满足才提交。\n"
-           "2. 同帧对照：两侧共用几何运算和 15 拍效果链，竖缝逐像素选择。\n"
-           "3. 状态监测：作废帧、缺行数、帧间隔和时延可通过串口、遥测和 GPIO 读取。\n"
-           "4. 存储：DDR 乒乓帧缓存 + 板载测试图卡。" if cn else
+           "1. 千兆 UDP 重组：按帧内偏移拼帧，整帧字节、行覆盖位图、无坏包三闸同时成立才提交。\n"
+           "2. 同帧 A/B：两窗共用几何、行标签和固定 15 拍效果链，竖缝逐列二选一。\n"
+           "3. 可观测：作废帧、缺行数、pane_bad、link 帧间隔经串口/UDP/GPIO 回读。\n"
+           "4. 存储与片源：DDR3 乒乓缓存；UDP / SD 回放 / 板载图卡三路片源。\n"
+           "5. 启动与测试：QSPI 固化断电自启；UART 命令电池 105 条。" if cn else
            "Key technical issues addressed\n"
-           "1. GbE UDP reassembly: offset-based reassembly; commit only when bytes, row coverage and bad-packet count pass.\n"
-           "2. Same-frame comparison: both panes share geometry and a fixed 15-cycle effect chain; the seam selects per pixel.\n"
-           "3. Status monitoring: aborts, missing rows, frame gaps and latency are readable through serial, telemetry and GPIO.\n"
-           "4. Storage: DDR ping-pong frame buffer + on-board test card.")
-    b = add_box(s, 0.25, 4.62, 3.90, 1.95)
+           "1. GbE UDP reassembly: offset reassembly; commit only when bytes, row coverage and no-bad-packet gates all pass.\n"
+           "2. Same-frame A/B: both panes share geometry, row labels and the fixed 15-cycle chain; seam selects per column.\n"
+           "3. Observability: aborts, missing rows, pane_bad and link gaps via serial/UDP/GPIO.\n"
+           "4. Storage & sources: DDR3 ping-pong; UDP / SD playback / on-board test card.\n"
+           "5. Boot & test: QSPI cold boot; 105-command UART battery.")
+    b = add_box(s, 0.25, 4.62, 3.90, 2.00)
     parts = key.split("\n")
-    paras = [(parts[0], 10.2, True, DARK)]
+    paras = [(parts[0], 10.0, True, DARK)]
     for line in parts[1:]:
-        paras.append((line, 8.8, False, GRAY))
-    set_text(b, paras, font=font, line=0.97)
+        paras.append((line, 8.3, False, GRAY))
+    set_text(b, paras, font=font, line=0.95)
 
     # Center cards: template card positions/shapes retained.
-    ingress = ("接收与缓存\n1. RGMII → MAC → UDP 过滤 → 按偏移重组；\n2. 字节、行覆盖和坏包计数同时满足才提交；\n3. PL 作为 AXI HP0 主设备写入 DDR 乒乓缓存。" if cn else
-               "Ingress & storage\n1. RGMII → MAC → UDP filter → offset reassembly;\n2. Commit only when bytes, row coverage and bad-packet count pass;\n3. PL writes DDR ping-pong as AXI HP0 master.")
-    display = ("显示与处理\n1. 显示侧读回整帧，经几何、双线性和六级效果；\n2. 同帧对照：左原图右处理图，竖缝逐像素选择；\n3. OSD + HDMI 1024×600，状态经串口/遥测/GPIO 回读。" if cn else
-               "Display & processing\n1. Read back the frame; geometry, bilinear and six-stage effects;\n2. Same-frame comparison: left original, right processed, per-pixel seam;\n3. OSD + HDMI 1024×600; status via serial/telemetry/GPIO.")
+    ingress = ("接收与缓存\n1. RGMII + MAC + UDP 过滤，按帧内偏移重组；\n2. 三闸提交：整帧字节、行覆盖位图、无坏包；\n3. DDR3 乒乓缓存，AXI HP0 64 位突发；\n4. 三路片源：UDP / SD 回放 / 板载图卡；\n5. 整帧收满才切换显示，坏包/缺行作废；\n6. 输入带宽约 74 Mb/s。" if cn else
+               "Ingress & storage\n1. RGMII + MAC + UDP filter, offset reassembly;\n2. Three gates: bytes, row-coverage bitmap, no bad packet;\n3. DDR3 ping-pong, AXI HP0 64-bit bursts;\n4. Three sources: UDP / SD playback / on-board test card;\n5. Switch only after a whole frame; bad packet/missing row abort;\n6. Input bandwidth about 74 Mb/s.")
+    display = ("显示与处理\n1. 8 档缩放 + 0–359° 旋转 + 双线性；\n2. 六级效果链，延迟恒 15 拍；\n3. 同帧 A/B 竖缝，逐列选择；\n4. 五行 OSD + HDMI 1024×600；\n5. 串口/UDP/GPIO 回读同一组计数。" if cn else
+               "Display & processing\n1. 8-step zoom + 0–359° rotation + bilinear;\n2. Six-stage effect chain, fixed 15-cycle latency;\n3. Same-frame A/B seam, per-column selection;\n4. Five-line OSD + HDMI 1024×600;\n5. Serial/UDP/GPIO read the same counters.")
     for sid, text in [(46, ingress), (45, display)]:
         sh = by_id(s, sid)
         parts = text.split("\n")
         paras = [(parts[0], 9.8, True, DARK)]
         for line in parts[1:]:
-            paras.append((line, 8.2, False, GRAY))
-        set_text(sh, paras, font=font, line=0.92)
+            paras.append((line, 8.8, False, GRAY))
+        set_text(sh, paras, font=font, line=0.94)
 
     # Right column: innovation points and result, in the template's existing text block.
     right = ("创新设计\n"
-             "1. 同帧对照：两侧共用几何运算、行标签和 15 拍效果链，比较的是同一帧。\n"
-             "2. 提交条件与状态监测：字节数、行覆盖和坏包计数同时满足才提交；作废帧、缺行数和帧间隔可解释。\n"
+             "1. 同帧 A/B：两窗共用几何、行标签与 15 拍链，缝上比较同一帧。\n"
+             "2. 三闸提交：字节、行覆盖、坏包同时成立才提交，半帧不上屏。\n"
+             "3. 可证伪仪表：pane_bad、link 帧间隔、1/100 丢包可打红。\n"
+             "4. 全 PL + QSPI：收/显/效果/OSD 全在 PL，断电自启。\n"
              "结果\n"
-             "RGMII → HDMI 全部在 PL 内，PS 仅控制；1024×600 @ 59.5 Hz。\n"
-             "时序：WNS 1.368 / WHS 0.048 ns，失败端点 0。\n"
-             "8 秒推流 241 帧 = 30.01 fps；自检 22.2/0/18.9 PASS。\n"
-             "串口 105 条 PASS；QSPI 启动通过。\n"
-             "展望：DDR 瓦片缓存 / 1080p 链路 / RGMII 眼图 / 远程升级。" if cn else
+             "WNS 1.368 / WHS 0.048 ns，0 违例；LUT 28.13%，BRAM 70.00%。\n"
+             "8 s 241 帧 = 30.01 fps；自检 22.2/0/18.9；UART 105 条 PASS。\n"
+             "1024×600 @ 59.5 Hz，74 Mb/s；效果链恒 15 拍；QSPI 启动通过。\n"
+             "展望\n"
+             "DDR 瓦片缓存提升分辨率；压缩/升级链路支持 1080p；补 RGMII 眼图与远程升级。" if cn else
              "CREATIVE DESIGN\n"
-             "1. Same-frame comparison: both panes share geometry, row labels and the fixed 15-cycle chain; the seam compares one frame.\n"
-             "2. Commit conditions + status monitoring: bytes, row coverage and bad-packet count must pass; aborts, missing rows and frame gaps explain failures.\n"
+             "1. Same-frame A/B: both panes share geometry, row labels and the 15-cycle chain; the seam compares one frame.\n"
+             "2. Three-gate commit: bytes, row coverage and no bad packet commit together; a half frame never reaches the screen.\n"
+             "3. Falsifiable meters: pane_bad, link gaps and 1/100 packet loss turn the instrument red.\n"
+             "4. All-PL + QSPI: receive/display/effects/OSD in PL; cold boot from QSPI.\n"
              "RESULT\n"
-             "RGMII → HDMI entirely in PL; PS only control. 1024×600 @ 59.5 Hz.\n"
-             "Timing: WNS 1.368 / WHS 0.048 ns, zero failures.\n"
-             "8 s stream: 241 frames @ 30.01 fps; selftest 22.2/0/18.9 PASS.\n"
-             "UART 105 commands PASS; QSPI boot validated.\n"
-             "Next: DDR tile cache / 1080p link / RGMII eye diagram / remote update.")
+             "WNS 1.368 / WHS 0.048 ns, zero violations; LUT 28.13%, BRAM 70.00%.\n"
+             "8 s: 241 frames = 30.01 fps; selftest 22.2/0/18.9; UART 105 commands PASS.\n"
+             "1024×600 @ 59.5 Hz, 74 Mb/s; fixed 15-cycle chain; QSPI boot validated.\n"
+             "NEXT\n"
+             "DDR tile cache for higher resolution; compression/link upgrade for 1080p; RGMII eye diagram and remote update.")
     sh = by_id(s, 41)
     parts = right.split("\n")
     paras = []
     for line in parts:
-        if line in ("创新设计", "结果", "CREATIVE DESIGN", "RESULT"):
-            paras.append((line, 10.4, True, RED))
+        if line in ("创新设计", "结果", "展望", "CREATIVE DESIGN", "RESULT", "NEXT"):
+            paras.append((line, 10.2, True, RED))
         else:
-            paras.append((line, 8.8, False, GRAY))
-    set_text(sh, paras, font=font, line=0.94)
+            paras.append((line, 8.4, False, GRAY))
+    set_text(sh, paras, font=font, line=0.93)
 
     # Platform caption under the product photo.
-    plat = "系统测试 · 系统输出" if cn else "On-board test · system output"
+    plat = "系统整体 · 测试现场" if cn else "System overview · test setup"
     set_text(by_id(s, 30), [(plat, 8.2, False, GRAY)], font=font, align=PP_ALIGN.CENTER)
     by_id(s, 30).left = Inches(10.98)
     by_id(s, 30).width = Inches(2.30)
@@ -215,10 +223,16 @@ def build(lang):
     by_id(s, 30).height = Inches(0.28)
 
     # Replace template pictures at the same positions/sizes.
-    replace_pic(s, by_id(s, 42), os.path.join(ASSETS, "poster_split_strip.png"))
-    replace_pic(s, by_id(s, 44), os.path.join(ASSETS, "poster_arch_cn_pad.png" if cn else "poster_arch_en_pad.png"))
+    replace_pic(s, by_id(s, 42), os.path.join(ASSETS, "strip_zh_pad.png" if cn else "strip_en_pad.png"))
+    replace_pic(s, by_id(s, 44), os.path.join(ROOT, "records", "design", "poster_bi", "assets", "arch_zh.png" if cn else "arch_en.png"))
     replace_pic(s, by_id(s, 40), LOGO)
-    replace_pic(s, by_id(s, 47), os.path.join(ASSETS, "poster_board_thumb.jpg"))
+    replace_pic(s, by_id(s, 47), os.path.join(ASSETS, "system_thumb.jpg"))
+
+    # Bottom-left test/performance line, as in the previous poster.
+    foot = ("测试：UART 命令电池(105) · link selftest · 遥测监听　|　性能：30.01 fps　|　素材：可商用风景视频" if cn else
+            "Test: UART battery (105) · link selftest · telemetry listen　|　Performance: 30.01 fps　|　Asset: royalty-free scenery")
+    b = add_box(s, 0.28, 7.22, 8.30, 0.22)
+    set_text(b, [(foot, 8.4, False, GRAY)], font=font)
 
     out = os.path.join(OUT, f"poster_{lang}_editable.pptx")
     prs.save(out)
