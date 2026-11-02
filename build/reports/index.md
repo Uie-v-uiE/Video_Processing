@@ -2,8 +2,10 @@
 
 | 文件 | 内容 |
 |---|---|
-| `build_timing_summary.rpt` | 时序：WNS/WHS/TNS/THS，逐时钟与跨域 |
-| `build_utilization.rpt` | 资源：LUT/FF/BRAM/DSP |
+| `timing_summary.rpt` | 最终版时序：WNS 1.368 ns、WHS 0.048 ns、TNS/THS 为 0、失败端点 0 |
+| `utilization.rpt` | 最终版资源：LUT 14 965、FF 9 097、BRAM 98、DSP 19 |
+| `build_timing_summary.rpt` | 优化前基线时序（WNS 1.341 ns、WHS 0.025 ns），用于 2.5 节前后对照 |
+| `build_utilization.rpt` | 优化前基线资源（LUT 14 967、FF 9 095），用于 2.5 节前后对照 |
 | `cdc.rpt` | 跨时钟域检查 |
 | `methodology.rpt` | Vivado 方法学检查 |
 | `power.rpt` | 功耗与结温估算 |
