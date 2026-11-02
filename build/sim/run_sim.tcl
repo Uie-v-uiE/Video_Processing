@@ -21,7 +21,7 @@
 # fixed ones, so the filter is gone.  Superseded modules (axi_frame_saver.v,
 # axi_frame_writer.v) stay in the tree and still have their own testbenches.
 
-set ws [file normalize [file join [file dirname [info script]] ..]]
+set ws [file normalize [file join [file dirname [info script]] .. ..]]
 set rtl_dir [file join $ws src rtl]
 set simdir  [file join $ws sim]
 set work    [file join $ws sim_work]
@@ -45,6 +45,10 @@ foreach d [glob -nocomplain -directory $rtl_dir *] {
 set rtl [lsort -unique $rtl]
 
 set tbs [lsort [glob -nocomplain [file join $simdir tb_*.v]]]
+if {[llength $tbs] == 0} {
+    puts "SIM FAIL: no testbenches matched $simdir/tb_*.v"
+    exit 2
+}
 # 加新模块要**这里与 build/sim/run_one.sh 两处一起加**：只加一边会"单台架跑绿、全量回归判 ELAB_FAIL"
 # —— 红的是清单，不是 RTL（2026-09-23 撞到）。
 # 仿真用的厂商原语占位件（sim/prim/）：本机 xsim 没有 UNISIM 库，缺了它们**任何例化 clk_gen 的
@@ -83,9 +87,21 @@ puts "SIM_ARGS: $simargs"
 
 set npass 0
 set nfail 0
+set nrun 0
 foreach tf $tbs {
+    # 文件名不一定等于模块名（tb_edge_rim_bottom.v 的模块是 tb_display_edge_rim_bottom），
+    # 旧写法用 file rootname 当 xelab 目标 ⇒ 全量回归必 ELAB_FAIL。从源文件里取 module 名。
     set tb [file rootname [file tail $tf]]
+    if {[catch {set fh [open $tf r]; set txt [read $fh]; close $fh} emsg]} {
+        puts "RESULT $tb READ_FAIL"; puts $emsg; incr nfail; continue
+    }
+    if {[regexp -line {^[ \t]*module[ \t]+([A-Za-z_][A-Za-z0-9_$]*)} $txt -> modname]} {
+        set tb $modname
+    } else {
+        puts "WARN $tf has no module declaration; falling back to $tb"
+    }
     if {[llength $want] > 0 && [lsearch -exact $want $tb] < 0} { continue }
+    incr nrun
     puts "==== $tb ===="
     if {[catch {eval exec xelab {-debug typical} $tb -s $tb} msg]} {
         puts "RESULT $tb ELAB_FAIL"
@@ -116,5 +132,9 @@ foreach tf $tbs {
     puts "RESULT $tb $verdict"
     if {$verdict eq "FAIL" || $verdict eq "ELAB_FAIL"} { incr nfail } else { incr npass }
 }
+if {$nrun == 0} {
+    puts "SIM FAIL: no testbench selected (SIM_TB=$want)"
+    exit 2
+}
 puts "SIM DONE pass=$npass fail=$nfail"
-exit 0
+exit [expr {$nfail == 0 ? 0 : 1}]

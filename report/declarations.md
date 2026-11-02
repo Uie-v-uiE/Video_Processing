@@ -1,42 +1,45 @@
-# 器件、工具链与板卡声明（本仓库唯一权威源）
+# 器件、工具链与第三方声明
 
-这里是**器件型号与工具版本的唯一权威源**。赛题 §3.3.3.1 允许 2026.1（推荐）或 2025.2，
-用其他版本须在报告里说明并保证脚本可复现；§3.3.3.2 要求声明器件型号。
-其余文档出现这些值时，都必须能在下面的权威块里对上同一个值——
-`build/checks/check_repo_hygiene.sh` 的 C3 判据逐处比对，**取值不同才算红**，同值的抄写只登记条数（改抄写为引用要动 `report/` 与 `skill/`，属另一轮）。
+## 1 器件与板卡
 
-<!-- BEGIN-AUTHORITATIVE -->
-part: xc7z020clg484-2
-vivado: 2025.2.1
-vivado_build: 6403652
-os: Windows 10.0.26300.9550
-node: v24.21.0
-board: RK-ZYNQ7020-F
-<!-- END-AUTHORITATIVE -->
+| 项 | 取值 |
+|---|---|
+| FPGA | `xc7z020clg484-2`（Zynq-7020，-2 速度等级） |
+| 板卡 | `RK-ZYNQ7020-F` |
+| 外部存储 | 板载 DDR3；QSPI NOR；microSD |
+| 网络 | PL 侧 RJ45，RTL8211F-CG |
+| 显示 | HDMI，1024×600 面板 |
 
-## 每个值从哪来（逐条可复核）
+## 2 工具链
 
-| 字段 | 取值 | 依据 | 复核命令（在仓库根执行） |
-| --- | --- | --- | --- |
-| `part` | `xc7z020clg484-2` | 构建脚本里写死的器件串；`-2` 是 PRODUCTION 速度等级 | `grep -rn "xc7z020" build/tcl/build_system_axigpio.tcl` |
-| `vivado` | `2025.2.1` | 本机安装目录与所有报告头一致 | `ls /<盘>/Software/Vivado`（作者机器装在 `<盘>:\Software\Vivado\2025.2.1`，这一句是叙述不是指令） |
-| `vivado_build` | `6403652` | 任一综合/实现报告头的 `Date`/`Tool Version` 行 | `head -5 build/utilization.rpt` |
-| `os` | `Windows 10.0.26300.9550` | 本机 `ver` 输出（**注意**：这是 Windows 的版本号格式，不代表 Linux 环境） | `cmd //c ver` |
-| `node` | `v24.21.0` | 本轮实跑 `node --version`；所有 `.mjs` 尺子用它跑 | `node --version` |
-| `board` | `RK-ZYNQ7020-F` | 板卡手册封面与 `report/board_pins.md` 第一行 | `head -3 report/board_pins.md` |
+| 工具 | 版本/用途 |
+|---|---|
+| Vivado | 2025.2.1，综合、实现、位流、XSA、时序/资源/CDC/功耗报告 |
+| Vitis | 2025.2.1，平台与 FSBL 构建；PS 应用也由脚本直接编译 |
+| 仿真 | Vivado xsim；ModelSim 作为可选快速回归 |
+| 主机 | Python 3（标准库）、Node.js 18+、PowerShell 5+ |
+| 可选 | ffmpeg，仅用于把 mp4 解成裸帧；内置测试图不需要 |
 
-## 这份声明与"版本相关事实"的关系
+时序、资源、功耗数字都在上表工具版本和 `xc7z020clg484-2` 上测得；换工具版本或器件需要重跑，数字不能直接沿用。
 
-- 工具**行为**随版本变化这件事现在**逐条写在各条目的 `失效条件` 一节里**（三个可操作问句见 `skill/_meta/distillation-process.md` 第三节）；旧包那张逐行绑版本的 `旧条目名 references/tool-version-drift/SKILL.md（盘上无此路径）` 在 2026-10-04 c7b325f 重建技能包时没保留、**现不存在**，
-  那条路径**现不存在**（这里只报旧名，不指路）；权威块只回答"交付包用的是哪一版"。
-- 板卡的电气/管脚事实不在这里，见 `report/board_pins.md` 与 `board/hardware_setup.md`。
-- 复现步骤（评委按哪条命令跑）在 `report/70-reproduce.md`；器件声明不替代它。
+## 3 第三方与自研边界
 
-## 已知边界（不伪装）
+- 使用 Xilinx 提供的 PS7、AXI GPIO、AXI HP 等 IP 与 Vitis 运行库；这些组件的版权归各自权利人。
+- RTL 视频通路、以太网协议栈、PS 裸机固件、上位机推流/遥测/自检工具由本项目编写；未使用第三方视频处理 IP。
+- 仿真中的 PHY/AXI 从机模型在 `sim/prim/` 内，为本项目测试用模型，不声称是厂商模型。
+- 本项目**不使用 PYNQ**。技能包里的 `frameworks/pynq-overlay-development` 是通用框架技能，作为独立技能提交，不声称在本项目上板验证。
+- 技能包里的 Vivado/板卡框架卡是通用做法，具体到本项目的读数以 `build/reports/` 和 `board/measured/` 为准。
 
-- 本报告里所有时序/资源数字都是在**上面这一版工具**上、对**这一颗器件**测出来的；
-  换版本或换器件必须重跑，不能沿用数字。
-- Vitis 与 Vivado 同源安装（都在 `<盘>:\Software\Vivado\2025.2.1` 树下），
-  PS 侧应用的 ELF **可以**在本机重建（`node build/ps_app.mjs`，用 `PS_CC`/`PS_BSP` 指到安装位置；实测记录
-  `build/evidence/1005_ps_app_rebuild.txt`），重建那颗与在板那颗 md5 不同，因此"板上已修好"仍需重刷 + `board_verify` 复验。
-- `board/` 的板卡称呼是开发方的命名习惯，不是厂商型号全称；厂商手册封面用的同样是 `RK-ZYNQ7020-F`。
+## 4 交付物来源
+
+- `board/project/system.bit`、`system.xsa`、`ps_app.elf` 由本仓库的 `build/build.tcl`、`build/vitis/rebuild_vitis.py` 和 `build/ps/build_ps_app.py` 生成。
+- `board/flash/BOOT.bin` 由 `board/scripts/make_boot_image.sh` 用包内 FSBL、位流和应用打包；三件套 MD5 在 `boot_manifest.txt`。
+- `board/vivado` 是构建脚本生成并整理过的工程；`board/vitis` 是平台描述，实际平台由 `build/vitis/rebuild_vitis.py` 重建。
+- 技术文档正文源在 `report/design-report.md`；排版生成件由文档脚本从该源渲染。
+
+## 5 复现环境边界
+
+- 网络地址：PC `192.168.1.100/24`，板卡 `192.168.1.10/24`；视频端口 `UDP 5001`，遥测端口 `UDP 1234`。
+- 串口：`COM6`（按机器识别），115200 8N1。
+- 工具路径通过环境变量传入：`VP_VIVADO_BIN`、`VP_XSDB`、`VP_VITIS_WS`、`PS_CC`、`PS_BSP`、`MSIM_BIN`；脚本不写死本机路径。
+- 工具版本、器件型号和板卡型号只在本页与 README 的实现读数中定值；其他文档引用同一组值。

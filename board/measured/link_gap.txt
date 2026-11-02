@@ -1,0 +1,68 @@
+# Frame-gap statistics — new firmware
+
+`link clr` clears gap_last/min/max/sum. `stall` is the live "ms since the last
+completed frame"; it is not cleared by `link clr`. gap_last and gap_max update
+when a frame completes, so a long silence appears in gap_max when the next
+frame arrives.
+
+| phase | stall | gap_last | gap_min | gap_max | gap_sum | gap_valid | live |
+|---|---:|---:|---:|---:|---:|---:|---:|
+| clear + read | 22927 | 0 | 0 | 0 | 0 | 0 | 0 |
+| streaming | 0 | 28 | 16 | 49 | 4858 | 1 | 1 |
+| after stop | 5645 | 35 | 16 | 49 | 9999 | 1 | 0 |
+| after restart | 2845 | 34 | 16 | 22061 | 32999 | 1 | 0 |
+
+The restart row is the bad-interval case: `gap_max=22061 ms` is the long
+silence between the last frame of the previous stream and the first frame of
+the restart, recorded when that frame completed. The 8-bit/16-bit counters
+saturate instead of wrapping; the maximum never rolls over.
+
+## Raw captures
+
+### clear + read
+```
+=== CAPTURE START 3 commands ===
+>> stat
+[STAT] ctrl thr=80 src=1 zoom=1 bilin=1 zsel=4 zman=1 pub=1 sd=1 frames=1957 playing=1 sel=000 gm=0.00 (PL owns UDP datapath) mode=0 geom=00400000 osd=1
+>> link clr
+[LINK] gap statistics cleared
+>> link
+[LINK] drop=0 badpkt=0 aborts=0 rows_max=0 stall=22927ms gap_last=0ms gap_min=0ms gap_max=0ms gap_sum=0ms gap_valid=0 live=0
+[LINK] lanes: 00000000 00000000 0000598F 00000000 00000000 00000000 00000000 00000000 00000000 00000000
+=== CAPTURE END ===
+
+
+```
+
+### streaming
+```
+=== CAPTURE START 1 commands ===
+>> link
+[LINK] drop=0 badpkt=0 aborts=1 rows_max=300 stall=0ms gap_last=28ms gap_min=16ms gap_max=49ms gap_sum=4858ms gap_valid=1 live=1
+[LINK] lanes: 00000000 00000001 012C0000 0000001C 00310010 000012FA 00000000 0000001A 00007EE8 02B11002
+=== CAPTURE END ===
+
+
+```
+
+### after stream stop
+```
+=== CAPTURE START 1 commands ===
+>> link
+[LINK] drop=0 badpkt=0 aborts=1 rows_max=300 stall=5645ms gap_last=35ms gap_min=16ms gap_max=49ms gap_sum=9999ms gap_valid=1 live=0
+[LINK] lanes: 00000000 00000001 012C160D 00000023 00310010 0000270F 00000000 00000012 000103DA 0582F002
+=== CAPTURE END ===
+
+
+```
+
+### after restarting frames
+```
+=== CAPTURE START 1 commands ===
+>> link
+[LINK] drop=0 badpkt=0 aborts=3 rows_max=300 stall=2845ms gap_last=34ms gap_min=16ms gap_max=22061ms gap_sum=32999ms gap_valid=1 live=0
+[LINK] lanes: 00000000 00000003 012C0B1D 00000022 562D0010 000080E7 00000000 00000012 00011DC0 060F9002
+=== CAPTURE END ===
+
+
+```

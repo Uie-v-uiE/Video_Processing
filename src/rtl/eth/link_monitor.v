@@ -14,6 +14,12 @@ module link_monitor #(
 )(
     input  wire        clk,
     input  wire        rst_n,
+    // timing-opt C2（2026-11-01）：rst_n 的同沿同值副本（顶层 rst_lm_sync2 第三级复制，
+    // 同一 always 块同一异步复位）。三个复位分组各吃一份，把 539 个 FDCE/CLR 的单点扇出
+    // 拆成三段；副本与 rst_n 同一释放沿，行为零变化。分组：lm_bus 快照块用 rst_n2、
+    // 计数器块用 rst_n3、时基/节流块用 rst_n。
+    input  wire        rst_n2,
+    input  wire        rst_n3,
 
     // 探针（都是源模块的寄存器输出）
     input  wire        cdc_wr_req,     // 这一拍想往 CDC 写（数据或 flush）
@@ -91,8 +97,8 @@ module link_monitor #(
     wire [15:0] err16 = (pkt_err     > 32'h0000FFFF) ? 16'hFFFF : pkt_err[15:0];
     wire [15:0] ep16  = (cdc_ep      > 32'h0000FFFF) ? 16'hFFFF : cdc_ep[15:0];
 
-    always @(posedge clk or negedge rst_n) begin
-        if (!rst_n) begin
+    always @(posedge clk or negedge rst_n3) begin
+        if (!rst_n3) begin
             drop_words<=0; frames_bad<=0; pkt_err<=0; cdc_ep<=0;
             rows_miss_max<=0; stall_ms<=0;
             gap_last<=0; gap_min<=0; gap_max<=0; gap_sum<=0;
@@ -195,8 +201,8 @@ module link_monitor #(
     wire [31:0] lane8 = in_pkts;                          // 收到的包数
     wire [31:0] lane9 = in_bytes;                         // 收到的有效字节
 
-    always @(posedge clk or negedge rst_n) begin
-        if (!rst_n) begin
+    always @(posedge clk or negedge rst_n2) begin
+        if (!rst_n2) begin
             lm_bus<=0; lm_bus_tog<=0;
         end else if (upd) begin
             lm_bus <= {lane9, lane8, lane7, lane6, lane5,

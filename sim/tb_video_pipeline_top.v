@@ -1,0 +1,2960 @@
+`timescale 1ns/1ps
+// 功能：被测模块 `pl_video_top`（例化名 dut）；覆盖点：顶层坐标图判据链（C0a..C12）加 C8cself（期望
+//        函数自证）与 C12 里"每帧换角"那一族（帧头请求拍与本帧主体拍用的是同一个角度）。
+// 激励与检查：sys_clk `always #10.0`（20 ns、50 MHz）、axi_clk `always #5.0`（100 MHz），复位在 C0a
+//        几行尺子自证之后释放——`repeat(4)@(posedge sys_clk)` 才把 sys_rst_n/axi_rst_n 置 1，再空跑
+//        `repeat(10)@(posedge axi_clk)`；数据由台架自建 AXI 从机模型提供 ddr[0:FRAME_WORDS-1]
+//        =300×128=38400 个 64bit 字（512×300 像素，每像素编成 {1'b1, row mod 128, col mod 256}），
+//        ps_publish 每 4 帧翻一次，跑到 frames_done≥FRAMES_MIN+3（一帧 1344×625 拍 = 16.8 ms）；
+//        缩放段按 C2_TBL 的八档 1023/776/512/341/256/192/171/128 各扫一轮并把 bilin_en_tb 钉 0；
+//        C12 段只拨运行时口子 split_ctl_tb[14]=1（rot_auto）、[17:15]=3'd3（每帧 3 度）跑 7 个
+//        dut.frame_start，再把 speed 钉回 3'd0 跑 5 帧作对照，不 force dut.angle；判定条件：读数走
+//        `dut.` 层次引用、偏移用模 256 有符号差 dsub==0，C8a/C8b 要样本 >500 且不符 ==0、C8c 八档各
+//        要 `c8c_bad[c2_k]==0`、C8cself 要 `c8c_sb1==0 && c8c_sb3==0 && (512-c8c_sb2)>200`
+//        （exp_col/exp_row 在 inv=256 退化成 >>1、在 1023 必须大多数列不同）、C12pre 要
+//        `c12_rot_cmp>=4 && c12_fz_cmp>=3`、C12c 要 `c12_rot_step>=3`、C12a/b 要 `c12_rot_bad==0`
+//        与 `c12_fz_bad==0`（第 0..5 行的请求拍角==同帧第 100 行 x=512 的主体角）。
+// 预期结果：通过时每条判据各打一行 `PASS <C 标签> | <说明>`，C12 另打
+//        `C12 rot: cmp=<n> bad=0 steps=<n> | frozen: cmp=<n> bad=0 | angle now=<n>`，
+//        末行 `RESULT tb_video_pipeline_top PASS`；失败时那条打 `FAIL <C 标签>`、nfail 加一，
+//        C8/C8c 的不符格另打反例行 `C8OBAD`/`C8PBAD`（各前 6 格）与 `C8CBAD`（前 3 格），
+//        C12 的角不一致体现在同一行 `C12 rot:` 的 bad 计数不为 0，
+//        末行改打 `RESULT tb_video_pipeline_top FAIL nfail=<n>`。
+// tb_video_pipeline_top —— 唯一例化顶层 pl_video_top 的台架：DDR 帧是坐标图、每个像素值就是它自己的坐标（16 bit = {1'b1 非黑标志, 行 mod 128, 列 mod 256}），验"屏上任意一点解出的 (row,col) 与'它该来自哪里'一减为零"；差值一律用模 256 的有符号差（dsub，判据红先看量程够不够）；读数全走 `dut.` 层次引用、不读 DVI 引脚（sim/prim/unisims_sim.v 的 OSERDESE2 是占位件、不串行化，读它就等于信它）。
+// 判据索引：C0a/C0a2/C0a3、C0b..C0f 尺子与拷贝通路自证 · C-tap 混色级列标签与内容同列（差一拍就是一条可见的竖带）· C1 系列 内容级对齐与级数标定 · C2/C7 八档缩放的列/行等于定义 · C3 面板级几何 · C4 旋转形状（每行至多一段非黑）· C5/C6/C8 帧头、屏上第 0 格、两抽头行首 · C9a..C9e 缝旁黑列 · M2/M3 右窗行偏移只报数（跨帧恒定是把这一条转成硬判据的前提，一帧一变 = 还有一条没建模的反馈路径）。每条的期望值与反例写在自己代码段开头。
+// 跑法：bash sim/run_one.sh tb_video_pipeline_top
+module tb_video_pipeline_top;
+
+    localparam [31:0] PS_BASE      = 32'h1010_0000;   // 与 pl_video_top 的 PS_BASE_ADDR 同值
+    localparam integer SRC_W       = 512;
+    localparam integer SRC_H       = 300;
+    localparam integer WPL         = SRC_W / 4;       // 一行几个 64bit 字
+    localparam integer FRAME_WORDS = SRC_H * WPL;
+    localparam integer FRAMES_MIN  = 3;               // 至少跑够 3 帧（1 帧 = 1344×625 拍）
+    localparam integer H_TOTAL     = 1344;
+    localparam integer V_TOTAL     = 625;
+    // 只跑 C4 的 0°/45° 两臂并在 C17 后收工（顶层底边判据的快速复核）。
+    // 默认不设 plusarg = 原全量行为，门的判据与读数一个字不变。
+    reg quick_c17 = 1'b0;
+    initial quick_c17 = $test$plusargs("quick_c17");
+
+    // ---------------- 时钟 / 复位 ----------------
+    reg sys_clk = 0;                     // 50 MHz → clk_gen 出 50/250/200
+    reg axi_clk = 0;                     // 100 MHz
+    always #10.0 sys_clk = ~sys_clk;
+    always #5.0  axi_clk = ~axi_clk;
+    reg sys_rst_n = 0, axi_rst_n = 0;
+
+    // ---------------- PS 侧控制（axi 域电平） ----------------
+    reg  [8:0]  stage_sel   = 9'd0;      // 全旁路
+    reg  [7:0]  threshold   = 8'd80;
+    reg  [31:0] gamma_ctl   = 32'd0;
+    reg         src_sel     = 1'b1;      // 1 = DDR 片源
+    reg         zoom_en     = 1'b0;      // 呼吸关掉：倍数一直动就没法逐像素比
+    reg  [2:0]  zoom_sel    = 3'd4;      // 1.00x
+    reg         zoom_manual = 1'b1;
+    reg  [1:0]  mode_ovr    = 2'd0;
+    reg         mode_tog    = 1'b0;
+    reg         ps_publish  = 1'b0;      // 下面有个进程按帧翻它（真实固件是"每帧写完翻一次"）
+    reg         lat_arm     = 1'b0;
+
+    // #94 之后**必须有**这一条，否则整份台架会被自己的新判据污染：`have_src` 现在是"最近 30 帧收到过一次发布"的活判据
+    //（`src_life`，500 ms @ 16.8 ms/帧），而下面 C2 的八档扫描要跑 40+ 帧 ⇒ 不持续敲发布位，扫到中途屏幕就**正确地**落到测试图卡。
+    //   图卡的渐变色（`orig==proc`、row/col 全不对就是它的形状）采进来会读成"不符"—— 红的是激励缺心跳，不是几何。
+    // ⚠ 节拍必须**与 frame_start 同拍无关**：`pub_consume` 就在 frame_start 那一拍评估，发布沿与消费同拍会改变拷贝的相位/重叠，
+    //   而这份台架的 AXI 从机模型对"拷贝怎么起头"是敏感的（板上 30 fps 连续拷贝没问题）⇒ 用时间基准、每 4 帧翻一次，
+    //   与固件 `ps_keepalive()` 的 100 ms 同量级、远快于 30 帧的看门狗。
+    initial forever #(H_TOTAL * V_TOTAL * 20.0 * 4) begin
+        ps_publish = ~ps_publish;
+    end
+
+
+    // ---------------- 以太网侧全安静 ----------------
+    reg eth_link = 0, eth_live = 0, eth_tb_ok = 0, eth_frame = 0, eth_commit = 0;
+    reg [31:0] eth_ddr_base = 32'd0;
+    reg key1_n = 1, key2_n = 1;
+
+    // ---------------- AXI 读通道 ----------------
+    wire [31:0] m_axi_araddr;  wire [5:0] m_axi_arid;  wire [7:0] m_axi_arlen;
+    wire [2:0]  m_axi_arsize;  wire [1:0] m_axi_arburst;
+    wire        m_axi_arvalid, m_axi_arready;
+    wire        m_axi_rvalid,  m_axi_rready, m_axi_rlast;
+    wire [63:0] m_axi_rdata;   wire [5:0] m_axi_rid;   wire [1:0] m_axi_rresp;
+    wire [15:0] dbg_src;  wire [6*32-1:0] dbg_lat;  wire [31:0] dbg_zoom, status;
+    wire        copy_hold, tmds_clk_p, tmds_clk_n;
+    wire [2:0]  tmds_data_p, tmds_data_n;
+    wire [1:0]  led;
+
+    // 双线性开关接到台架的**激励**上（端口那里 #88 的来龙去脉只讲一遍，见下面例化处）。
+    // ⚠ #92：C2b 问的是"这一格解出来是不是定义要的那个源列"，而双线性**按定义**会把 `(sx,sy)`
+    //   与它的右邻/下邻混成一格 —— 混出来的 16 位 tag 谁都不是。bilin=1 时它在 inv=1023 那档
+    //   给出 68920/77400 = 89 % 的"inbad"，那不是错位，是**尺子把插值当成了 bug**
+    //   （bilin=0 ⇒ 最近邻 ⇒ C2b 才成立）。所以扫描段把它钉成 0，别再去松判据。
+    reg         bilin_en_tb = 1'b1;
+    // r83：OSD 叠层总开关（`gpio_o[20]` 反相）。默认 0 = OSD 开着，与固件默认一致。
+    reg         osd_off_tb  = 1'b0;
+    // ⚠ #78：这份 tie 必须是 **19 位**。r62（V9）把 `split_ctl` 从 14 位加宽到 19 位时
+    //   只改了综合树里的两个顶层（`ports_check` 抓到了 `pl_demo_top`），**台架不在综合树里 ⇒ 没人抓它**：
+    //   14 位的 tie 接到 19 位端口，xsim 把高位填成 Z ⇒ `gp[18:14]=zzzzz` ⇒ `fit_en` 是 Z ⇒
+    //   `inv_used = fit_en ? inv_fit : inv_scale` 出 X ⇒ sx/sy/rd_addr 全 X ⇒ **fb_rd 100% 是 X**
+    //   （证据 `[Xborn3] gp(19位几何)=zzzzz00000000000000`）。与上面那一条是同一个洞的两面。
+    reg  [18:0] split_ctl_tb = 19'd0;   // 缝位/auto/follow/swap/marker/旋转三位/fit 全默认
+    pl_video_top dut (
+        .sys_clk(sys_clk), .sys_rst_n(sys_rst_n), .axi_clk(axi_clk), .axi_rst_n(axi_rst_n),
+        .stage_sel(stage_sel), .threshold(threshold), .gamma_ctl(gamma_ctl),
+        .src_sel(src_sel), .zoom_en(zoom_en), .mode_ovr(mode_ovr), .mode_ovr_tog(mode_tog),
+        // ⚠ #88 的**根因就这一行**：这个输入原来在台架里**根本没接**（#83 加端口时只改了 `pl_demo_top`，而门禁第 14 项的
+        //   端口审计当时只看 `src/rtl`，**台架不在综合树里 ⇒ 没人抓它**）⇒ 悬空成 Z ⇒ 顶层 `kx/ky` 是 X ⇒ `bilin_lerp`
+        //   输出 X ⇒ 结果缓冲每一格都被写成 X ⇒ `fb_rd` 在 1843200 个有效拍里 X 了 1843188 个（见 [Xborn5]/[Xborn6]）——
+        //   于是 C1e 与它下游的 C1c/C0d/C0e 一起红了好几天，而**症状读起来像"顶层内容通路坏了"**。
+        //   现在接台架的 `bilin_en_tb`：默认 1 = 双线性开（与固件默认一致），扫描段改成 0 的理由在那个 reg 上面。
+        .bilin_en_axi(bilin_en_tb),
+        .osd_off_axi(osd_off_tb),        // r83：反相位，1 = 关掉叠层（判据 C12）
+        .zoom_sel_async(zoom_sel), .zoom_manual_async(zoom_manual),
+        .split_ctl(split_ctl_tb),      // #51 新输入：不接=悬空 X（#7 那一族）⇒ 钉成 0
+        .ps_publish(ps_publish), .key1_n(key1_n), .key2_n(key2_n), .led(led),
+        .dbg_src(dbg_src), .dbg_lat(dbg_lat), .dbg_zoom(dbg_zoom), .lat_arm(lat_arm),
+        .tmds_clk_p(tmds_clk_p), .tmds_clk_n(tmds_clk_n),
+        .tmds_data_p(tmds_data_p), .tmds_data_n(tmds_data_n),
+        .m_axi_araddr(m_axi_araddr), .m_axi_arid(m_axi_arid), .m_axi_arlen(m_axi_arlen),
+        .m_axi_arsize(m_axi_arsize), .m_axi_arburst(m_axi_arburst),
+        .m_axi_arvalid(m_axi_arvalid), .m_axi_arready(m_axi_arready),
+        .m_axi_rdata(m_axi_rdata), .m_axi_rid(m_axi_rid), .m_axi_rresp(m_axi_rresp),
+        .m_axi_rlast(m_axi_rlast), .m_axi_rvalid(m_axi_rvalid), .m_axi_rready(m_axi_rready),
+        .eth_link(eth_link), .eth_live(eth_live), .eth_tb_ok(eth_tb_ok),
+        .eth_frame(eth_frame), .eth_ddr_base(eth_ddr_base), .eth_commit(eth_commit),
+        .status(status), .copy_hold(copy_hold)
+    );
+
+    // 坐标即值的那张图。⚠ #78：真因不是端口写法，而是**在一条表达式里连调四次同一个 function 再拼接**，
+    //   xsim 在这个大台架里给出 `ddr[0]=000300xxxxxxxxxx`（低 40 位 X）；拆成四个临时寄存器再拼（见下面的 initial）就干净了。
+    //   同样的写法在 20 行的隔离实验 `仓库回归台架 xtest（不在本包内）` 里是**干净的** ⇒ xsim 的根因还没查出来（见 ISSUES #78 的"未定论"段）。
+    //   教训不是"别那样写"，而是：**尺子的模型必须在初始化之后回读一格**（C0a2）—— 旧版只直接调 `px_val(200,177)`
+    //   验函数本身，于是"函数对、数组是 X"这种形状它看不见。
+    function [15:0] px_val; input [31:0] r; input [31:0] c;
+        // ⚠ 位 15 **钉成 1**（#92 收尾）。原来写 `{r[7:0],c[7:0]}` ⇒ 源格 (0,0)、(256,0) 这些 `(row mod 256)==0 && col==0`
+        //   的格子编出来就是 **16'h0000**，而面板级那把尺子（C3）判"这一格在不在画面里"用的就是"是不是全黑"：图案自己的
+        //   黑格与"画面外的黑"在引脚上**长得一模一样** ⇒ 0.50x/0.75x 各有两行的左沿量到"晚两列"（`C3DEV` 报的正是
+        //   `prow=406/407`、`461` 这种成对行 = 一个源行），红的是尺子的前提，不是硬件。位 15 当"非黑"标志 ⇒ 黑色重新变成"画面外"的唯一签名。
+        //   代价：行标签从 8 位变 7 位 ⇒ `mem_row` 是 `row mod 128`。判据全是"小偏移"检测（Δrow 差 1/2/4 行照样看得见），
+        //   但**所有绝对行号期望都要按 mod 128 写**（299 → 43 恰好与原来同值；200 → 72）。C0a3 直接把"没有一格是黑的"当成判据在跑。
+        begin px_val = {1'b1, r[6:0], c[7:0]}; end
+    endfunction
+    function [7:0] mem_row; input [15:0] v; begin mem_row = v[14:8]; end endfunction
+    function [7:0] mem_col; input [15:0] v; begin mem_col = v[7:0];  end endfunction
+    // 模 256 的有符号差（-128..127）
+    function integer dsub; input [7:0] a; input [7:0] b; integer d;
+        begin
+            d = a - b;
+            while (d >  127) d = d - 256;
+            while (d < -128) d = d + 256;
+            dsub = d;
+        end
+    endfunction
+
+    reg [63:0] ddr [0:FRAME_WORDS-1];
+    integer ii, jj, c0a3_r, c0a3_c, c0a3_black;
+    reg [15:0] p3, p2, p1, p0;
+    initial begin
+        for (ii = 0; ii < SRC_H; ii = ii + 1)
+            for (jj = 0; jj < WPL; jj = jj + 1) begin
+                // ⚠ #78：这里先从函数里取到**各自的临时寄存器**再拼 ——
+                //   一行里连调四次同一个函数时，xsim 在这个大台架里给出的低 40 位是 X
+                //   （同样写法在 20 行的隔离实验 `仓库回归台架 xtest（不在本包内）` 里是干净的 ⇒ 结论：还没找到真因，
+                //    见 report/log/ISSUES.md #78 的"未定论"段）。
+                p3 = px_val(ii, jj*4+3); p2 = px_val(ii, jj*4+2);
+                p1 = px_val(ii, jj*4+1); p0 = px_val(ii, jj*4);
+                ddr[ii*WPL + jj] = {p3, p2, p1, p0};
+                if (ii == 0 && jj == 0)
+                    $display("[tb_video_pipeline_top.v:151] [Xborn0] 初始化现场 p3=%h p2=%h p1=%h p0=%h -> ddr[0]=%h",
+                             p3, p2, p1, p0, ddr[0]);
+            end
+    end
+
+    // ---------------- AXI 从机（一次一个突发） ----------------
+    integer ar_bursts = 0, r_beats = 0, odd_align = 0, out_of_window = 0;
+    reg        busy = 0;
+    reg [31:0] w0 = 0;
+    reg [7:0]  beat = 0, len = 0;
+    // ⚠ rdata 必须是**当前 beat 的组合读出**。早先版本先把它打一拍再用，于是
+    //   每个突发的**第一拍**送给 DUT 的是上一个突发的旧字 ⇒ 那会造出一条假的"内容错位"，
+    //   形状还很规则（每 16 拍错 1 拍）—— 这类"尺子先错"的账在本项目记了好几回（skill 签名一/八）。
+    assign m_axi_arready = !busy;
+    assign m_axi_rvalid  = busy;
+    assign m_axi_rdata   = ddr[w0 + beat];
+    assign m_axi_rid     = 6'd0;
+    assign m_axi_rresp   = 2'b00;
+    assign m_axi_rlast   = (beat == len);
+    always @(posedge axi_clk or negedge axi_rst_n) begin
+        if (!axi_rst_n) begin
+            busy <= 0; beat <= 0;
+        end else begin
+            if (m_axi_arvalid && m_axi_arready) begin
+                if (m_axi_araddr[2:0] != 3'b000) odd_align = odd_align + 1;
+                if (m_axi_araddr < PS_BASE || m_axi_araddr >= PS_BASE + FRAME_WORDS*8) begin
+                    out_of_window = out_of_window + 1;     // 读到 PS 窗口外 ⇒ 后面所有"内容不对"都不算数
+                    w0   <= 32'd0;
+                end else begin
+                    w0   <= (m_axi_araddr - PS_BASE) >> 3;
+                end
+                len   <= m_axi_arlen;
+                beat  <= 8'd0;
+                busy  <= 1'b1;
+                ar_bursts <= ar_bursts + 1;
+            end else if (busy) begin
+                if (m_axi_rready) begin
+                    r_beats <= r_beats + 1;
+                    if (beat == len) busy <= 1'b0;
+                    else             beat <= beat + 8'd1;
+                end
+            end
+        end
+    end
+
+    // ---------------- 观测（层次引用） ----------------
+    wire        mix_de    = dut.de_d11;
+    wire [11:0] mix_x     = dut.x_d11;
+    wire [11:0] mix_y     = dut.y_d11;
+    wire [15:0] tap_raw   = dut.orig_disp;     // 链子之前（已过 orig_skid）
+    wire [15:0] tap_proc  = dut.pipe_dout;     // 链子之后
+    wire        left_pane = dut.left_pane;
+
+    integer n_l = 0, n_r = 0, bad_l = 0, bad_r_col = 0;
+    integer sxv = 0, labv = 0;
+    integer tap_cnt = 0, tap_bad = 0, tap_d = 0, tap_mode = -999;
+    integer hist [0:13];                        // 右窗 Δrow 直方图（-7..+6）
+    integer hl_c [0:9], hl_r [0:9];             // 左窗的 Δcol / Δrow 直方图（-5..+5 之外记进端点格）
+    integer m2_mode = -999, m2_varies = 0, dr, dx, dl_r, dl_c;
+    integer frames_done = 0, nfail = 0, i0, i1;
+    integer dumped = 0, black_l = 0;            // 前 8 个样本（帧中间）+ 左窗全黑点数
+
+    always @(posedge dut.frame_start) frames_done = frames_done + 1;
+
+    // ---------------- P1：链子在第一级（blur）到底有没有"武装 / 多跳"过（#92 第四笔的顶层追问） ----------------
+    // 台架 `tb_v89` 里四个窗口级 + 整链的逐列恒等已经全绿，可顶层 C2 的 484 一模一样还在 ⇒
+    // 病灶要么在顶层喂给链子的**标签级**（链子吃 `de_d[3]/x_d[3]`，行环吃 `de_d[5]/x_d[5]`），
+    // 要么在混色级怎么消费链子的输出。先把"有没有武装/有没有跳"数出来——
+    // 这是三行代码换一个 40 分钟周期，比继续推便宜。计数不判红，判据等数字出来再写。
+    integer p_arm = 0, p_flush = 0, p_piped = 0, p_mixde = 0, p_runmax = 0, p_runmin = 99999;
+    always @(posedge dut.clk_pix) begin
+        if (dut.u_pipe.u_blur.de_in === 1'b1 && dut.u_pipe.u_blur.x_in === 12'd1023) p_arm = p_arm + 1;
+        if (dut.u_pipe.u_blur.line_end === 1'b1)                                     p_flush = p_flush + 1;
+        // v5 的判据是"行尾那一拍 run 正好等于 H_ACTIVE(=1024)"。顶层每行到底数出几个有效像素，
+        // 这里当场量出来：min/max 都是 1024 ⇒ 会武装；不是 ⇒ 差几个就是链子的 de 窗与 H_ACTIVE
+        // 的差（这一条数就是下一次该怎么写 `owed` 的唯一依据，不许靠猜）。
+        if (dut.u_pipe.u_blur.de_d1 === 1'b1 && dut.u_pipe.u_blur.de_in === 1'b0) begin
+            if (dut.u_pipe.u_blur.run > p_runmax) p_runmax = dut.u_pipe.u_blur.run;
+            if (dut.u_pipe.u_blur.run < p_runmin) p_runmin = dut.u_pipe.u_blur.run;
+        end
+        if (dut.pipe_de === 1'b1)                                                    p_piped = p_piped + 1;
+        if (dut.de_d[11] === 1'b1)                                                   p_mixde = p_mixde + 1;
+    end
+
+    // ---- #78 ⓪：先找 X 的**出生地**，再谈机制（每层都带分母，不许只看"有没有"）----
+    //   四层：从机送出的字 → 写进 fb 的字 → fb 阵列本身 → 读出的字。
+    //   阵列里就有一堆 X ⇒ 病在写侧；阵列干净而读出是 X ⇒ 病在读侧（撞沿 / 地址是 X / 选块）。
+    integer xb_rvalid = 0, xb_rdataX = 0, xb_wren = 0, xb_wdataX = 0;
+    integer xb_rdX = 0, xb_addrX = 0, xb_arrX = 0, xb_firstX = -1, xb_k, xb_cyc = 0;
+    reg     xb_done = 0;
+    always @(posedge axi_clk) begin
+        if (m_axi_rvalid) begin
+            xb_rvalid = xb_rvalid + 1;
+            if ((m_axi_rdata ^ m_axi_rdata) !== 64'd0) xb_rdataX = xb_rdataX + 1;
+            // 头 6 拍把"索引三件套 + 读出来的字"并排打出来：X 是在**索引**上还是在**数组**里，一眼分得开
+            if (xb_rvalid <= 6)
+                $display("[Xborn1] rvalid#%0d w0=%0d beat=%0d len=%0d rdata=%h ddr[%0d]=%h",
+                         xb_rvalid, w0, beat, len, m_axi_rdata, w0 + beat, ddr[w0 + beat]);
+        end
+        if (dut.aw_wr_en) begin
+            xb_wren = xb_wren + 1;
+            if ((dut.aw_wr_data ^ dut.aw_wr_data) !== 64'd0) xb_wdataX = xb_wdataX + 1;
+            if (xb_wren <= 3)
+                $display("[tb_video_pipeline_top.v:234] [Xborn2] fb写#%0d addr=%0d data=%h", xb_wren, dut.aw_wr_addr, dut.aw_wr_data);
+        end
+    end
+    always @(posedge dut.clk_pix) begin
+        if (dut.de_d[5]) begin
+            xb_cyc  = xb_cyc + 1;
+            if ((dut.u_bilin.addr_q ^ dut.u_bilin.addr_q) !== 19'd0) xb_addrX = xb_addrX + 1;
+            if ((dut.fb_rd   ^ dut.fb_rd)       !== 16'd0) xb_rdX   = xb_rdX   + 1;
+        end
+        if (!xb_done && frames_done >= 4) begin
+            xb_done = 1;
+            for (xb_k = 0; xb_k < 32768; xb_k = xb_k + 1)
+                if ((dut.u_bilin.u_fb.lo[xb_k] ^ dut.u_bilin.u_fb.lo[xb_k]) !== 64'd0) begin
+                    xb_arrX = xb_arrX + 1;
+                    if (xb_firstX < 0) xb_firstX = xb_k;
+                end
+            for (xb_k = 0; xb_k < 8192; xb_k = xb_k + 1)
+                if ((dut.u_bilin.u_fb.hi[xb_k] ^ dut.u_bilin.u_fb.hi[xb_k]) !== 64'd0) begin
+                    xb_arrX = xb_arrX + 1;
+                    if (xb_firstX < 0) xb_firstX = 32768 + xb_k;
+                end
+            $display("[tb_video_pipeline_top.v:255] [Xborn] 从机 rvalid=%0d 其中字含X=%0d | fb 写=%0d 拍 其中数据含X=%0d",
+                     xb_rvalid, xb_rdataX, xb_wren, xb_wdataX);
+            $display("[tb_video_pipeline_top.v:257] [Xborn] 阵列（lo 32768 + hi 8192 = 40960 字）里含 X 的字数=%0d，首个下标=%0d",
+                     xb_arrX, xb_firstX);
+            $display("[tb_video_pipeline_top.v:259] [Xborn] 有效拍=%0d：rd_addr 是 X 的=%0d，fb_rd 是 X 的=%0d",
+                     xb_cyc, xb_addrX, xb_rdX);
+            // 几何那一路的 X 是分开的第二个症状（地址 X ⇒ 读哪儿都是 X）：把源头三格一起念出来
+            $display("[tb_video_pipeline_top.v:262] [Xborn3] gp(19位几何)=%b inv_used=%d sx=%d sy=%d oob=%b rd_addr=%d",
+                     dut.gp, dut.inv_used, dut.sx, dut.sy, dut.oob, dut.u_bilin.addr_q);
+            // r69 之后新加的一条（#88 的 X 到底生在哪）：阵列已证干净（上面那条"含 X 的字数"只报填充区），
+            // 而屏上内容仍是 X ⇒ 嫌疑只剩"**这一格该显示谁**"那一束控制位。全部用 %b：X 会直接显形。
+            //   fb_vis = (mode_card ? 0 : (mode_eth|mode_ps) ? 1 : src_use) && have_src
+            //   ⇒ mode 里有一位是 X，这三个 compare 就都是 X，pix_raw 整条流跟着变 X。
+            $display("[tb_video_pipeline_top.v:266] [Xborn4] 归属链 mode=%b owner_eth=%b owner_pix=%b src_use=%b eth_link_pix=%b ps_now=%b have_src=%b fb_vis=%b | fb_out=%h orig_disp=%h",
+                     dut.mode, dut.owner_eth, dut.owner_eth_pix, dut.src_use, dut.eth_link_pix,
+                     dut.ps_src_now, dut.have_src, dut.fb_vis, dut.fb_out, dut.orig_disp);
+            // 第二层（同一次运行里接着往下看一格）：`u_bilin` 的**写**把 X 存进结果缓冲时，
+            //   读口才"干净阵列读出 X"—— 所以要把写侧的四元组与插值输入一起摆出来。
+            //   为什么必须有这一层：帧缓存阵列已证干净（上面那条只报填充区），而 fb_out 是 X，
+            //   中间只剩 `tap_hold`/`res` 两块 RAM 与 `bilin_lerp` ⇒ 谁的 X 一测就分得开。
+            $display("[tb_video_pipeline_top.v:271] [Xborn5] mapper fx=%h fy=%h sx=%d sy=%d oob=%b | bilin addr_q=%d fb_word=%h tap_r=%h res_q=%h lerp=%h v_d2=%b asm_d2=%b",
+                     dut.zfrac_x, dut.zfrac_y, dut.sx, dut.sy, dut.oob,
+                     dut.u_bilin.addr_q, dut.u_bilin.fb_word, dut.u_bilin.tap_r,
+                     dut.u_bilin.res_q, dut.u_bilin.lerp_pix, dut.u_bilin.v_d2, dut.u_bilin.asm_d2);
+            // 第三层：四个抽头逐个摆出来（哪个先 X，缺口就在哪一行的哪一路）。`fb_word` 已证来自干净阵列，
+            //   所以 X 只可能生在 a_hold/b_hold 的**锁存时机**、tap_hold 的读回、或 lerp 的加权上。
+            $display("[tb_video_pipeline_top.v:277] [Xborn6] w_a=%d w_b=%d lane=%d | a_hold=%h b_hold=%h | p00=%h p10=%h p01=%h p11=%h | oob_d2=%b kx=%b ky=%b bilin_en=%b",
+                     dut.u_bilin.w_a, dut.u_bilin.w_b, dut.u_bilin.lane,
+                     dut.u_bilin.a_hold, dut.u_bilin.b_hold,
+                     dut.u_bilin.p00_y0, dut.u_bilin.p10_y0c, dut.u_bilin.p01, dut.u_bilin.p11,
+                     dut.u_bilin.oob_d2, dut.u_bilin.kx_d2, dut.u_bilin.ky_d2, dut.u_bilin.bilin_en);
+        end
+    end
+
+    // ---- 探针（本轮的 NOTE C1/C2 缺口就是为了它）：到底有没有写进显示帧缓存？----
+    //   只数三个东西：① `u_fb.wr_en` 的拍数（= 真正落到帧缓存的字）；② 搬运机自己的
+    //   `active`/`row`（它跑到第几行了）；③ `copy_hold` 有多常挂着。
+    //   有了这三条，"屏上大片 X"到底是"没搬进来"还是"搬进来了但我读的预期地址不对"就分得开。
+    integer fb_wr_pulses = 0, hold_cyc = 0, aw_active_cyc = 0, last_row = -1;
+    // ⚠ 关于 `dut.aw_wr_en` 是不是"被显示那一颗"的写口：是。`pl_video_top.v:661-666` 把
+    //   `aw_wr_en/aw_wr_addr/aw_wr_data` 三根线**直接**接到 `u_fb`(`frame_buffer_w64`) 的
+    //   `wr_en/wr_addr/wr_data`（第 683-686 行），而 `wr_addr` 按端口注释是**64 位字下标 = 像素号 >>2**。
+    //   所以" pulses = 115200 = 3×38400"讲的确实是显示帧缓存被整帧写满三次。
+    //   上一轮我把它说成"那是 AXI 写通道的 enable、不是帧缓存写口"是**我读错了名字没读接线**，
+    //   这条订正同时留下一道判据：数**去重之后**到底有多少个字下标被写过 ——
+    //   如果整帧 38400 个字都写到过，那"屏上读回 X"就一定发生在 `frame_buffer_w64` 里面
+    //   （lo/hi 两块 RAM 的分法或读出 mux），而不是"没搬进来"；差多少就摆多少。
+    reg         wseen [0:38399];
+    integer     wdistinct = 0, i0b = 0, xlo = 9999, xhi = -1, nxread = 0;
+    always @(*) begin end
+    initial for (i0b = 0; i0b < 38400; i0b = i0b + 1) wseen[i0b] = 1'b0;
+    // C18: every frame-buffer write must land inside the display blanking gate.
+    // The ETH path has always used frame_commit_lock for this; the PS/SD path
+    // used to start on ps_frame_start (active frame start) and raced the beam.
+    integer c18_n = 0, c18_bad = 0;
+    always @(posedge dut.axi_clk) if (dut.aw_wr_en === 1'b1) begin
+        c18_n = c18_n + 1;
+        if (dut.allow_copy !== 1'b1) begin
+            c18_bad = c18_bad + 1;
+            if (c18_bad <= 5)
+                $display("C18BAD aw_wr_en outside blanking: addr=%0d allow=%b fill_busy=%b row_busy=%b",
+                         dut.aw_wr_addr, dut.allow_copy, dut.fill_busy, dut.row_busy);
+        end
+    end
+
+    always @(posedge dut.axi_clk) if (dut.aw_wr_en === 1'b1 && dut.aw_wr_addr <= 38399) begin
+        if (wseen[dut.aw_wr_addr] !== 1'b1) begin
+            wseen[dut.aw_wr_addr] = 1'b1;
+            wdistinct = wdistinct + 1;
+        end
+    end
+
+    integer xr_rd = 0, xr_out = 0, xr_hold = 0, n_blank = 0;   // X 是从哪一级进来的（声明必须在使用之前）
+    // X 的来源分层数（active 期间才数）：`fb_rd`（BRAM 原始读出）/ `fb_pix_hold` / `fb_out`。
+    //   哪一层先出现 X，缺口就在哪一层 —— 今天这条就是为 #54 那个"内容判据做不到"准备的。
+    always @(posedge dut.clk_pix) begin
+        if (dut.de_d[4]) begin
+            n_blank = n_blank + 1;
+            if ((dut.fb_rd ^ dut.fb_rd) !== 16'd0)      xr_rd  = xr_rd + 1;
+            if ((dut.fb_pix_hold ^ dut.fb_pix_hold) !== 16'd0) xr_hold = xr_hold + 1;
+            if ((dut.fb_out ^ dut.fb_out) !== 16'd0)    xr_out = xr_out + 1;
+        end
+    end
+
+    always @(posedge dut.axi_clk) begin
+        if (dut.aw_wr_en === 1'b1) fb_wr_pulses = fb_wr_pulses + 1;   // 用连过去的网线，不引用端口名
+        if (dut.copy_hold === 1'b1)  hold_cyc = hold_cyc + 1;
+        if (dut.u_aw.active === 1'b1) begin
+            aw_active_cyc = aw_active_cyc + 1;
+            last_row = dut.u_aw.row;
+        end
+    end
+
+    // ⚠ 只量**拷贝已经落地的帧**：第一版没设这个门，样本全来自第 1 帧的第 300 行 ——
+    //   那时 DDR→帧缓存的第一次拷贝还没完成（`fill_busy` 还挂着、那些行在仿真里是 X），
+    //   屏上落回测试图卡，于是"内容对不上"是**我的采样时刻错了**，不是顶层错了。
+    //   （同一族前科：读 DUT 输出读在同步链灌满之前。）
+    // 采样门：不是"数够帧数"，而是**显示帧缓存的每一个字下标都至少被写过一次**（C0f 那个计数）。
+    //   第一版用 `frames_done >= 2` 当门，可那只能保证"过了两帧"，不能保证"拷完了一帧"——
+    //   于是前几帧读到的还是 RAM 出生时的 X，而 X 让比较既不成立也不失败（见第十签名）。
+    //   换成这个门之后，"还有 X"就真的只剩一种解释：写口与读口对不上（地址映射），而不是"还没搬完"。
+    wire measure_ok = (wdistinct >= 38400);
+    always @(posedge dut.clk_pix) begin
+        if (mix_de && measure_ok) begin
+            if (left_pane) begin
+                n_l = n_l + 1;
+                // ---- C-tap：只比 DUT 自己的两个坐标，不碰帧缓存内容 ----
+                //   内容站在第 3+1+1+PROC_LAT=20 级，标签用的是 x_d[11] ⇒ 今天差 9 列（#68）
+                if (dut.oob == 1'b0) begin
+                    tap_cnt = tap_cnt + 1;
+                    // 内容列（读地址那一拍之前的 sx_l 再减 1 拍 rd_addr_q）对比混色级标签列
+                    sxv  = dut.sx;
+                    labv = mix_x;
+                    if (labv >= 512) labv = labv - 512;
+                    tap_d = sxv - 1 - labv;
+                    if (tap_mode == -999) tap_mode = tap_d;
+                    if (tap_d != 0) tap_bad = tap_bad + 1;
+                end
+                if ((tap_raw ^ tap_raw) !== 16'd0) begin        // X 格不参与比对计数（理由见 C1e 那段）
+                    n_l = n_l - 1;
+                end else begin
+                dl_c = dsub(mem_col(tap_raw), mix_x[7:0]);
+                dl_r = dsub(mem_row(tap_raw), mix_y[8:1] & 8'h7F);   // #92：行标签现在是 mod 128
+                if (dl_c != 0 || dl_r != 0) bad_l = bad_l + 1;
+                if (tap_raw == 16'h0000) black_l = black_l + 1;
+                if (dl_c >= -5 && dl_c <= 5) hl_c[dl_c + 5] = hl_c[dl_c + 5] + 1; else hl_c[0] = hl_c[0] + 1;
+                if (dl_r >= -5 && dl_r <= 5) hl_r[dl_r + 5] = hl_r[dl_r + 5] + 1; else hl_r[0] = hl_r[0] + 1;
+                end
+                // 前 8 个样本把"原始 16 bit / 我期望的 (row,col) / 解出来的 (row,col)"三样并排打出来：
+                // 50 % 这一类**形状规则**的错，八成是尺子（映射/相位/端序）而不是硬件。
+                if (dumped < 8 && mix_y == 12'd300 && mix_x > 12'd99 && mix_x < 12'd108) begin
+                    dumped = dumped + 1;
+                    // 关键探针：**同时看顶层自己算出来的源坐标**（sx_l/sy_l）与读回来的字。
+                    // 只打 tap_raw 分不开"我的期望错了"与"帧缓存里的内容不是这张图"两种情况。
+                    $display("[tb_video_pipeline_top.v:353] DBG 左窗 x=%0d y=%0d | 顶层源坐标 sx_l=%0d sy_l=%0d oob=%0d | tap_raw=%04x 解出(%0d,%0d) fb_out=%04x rd_addr=%0d",
+                             mix_x, mix_y, dut.sx, dut.sy, dut.oob,
+                             tap_raw, mem_row(tap_raw), mem_col(tap_raw),
+                             dut.fb_out, dut.u_bilin.addr_q);
+                end
+            end else begin
+                n_r = n_r + 1;
+                dx = dsub(mem_col(tap_proc), (mix_x - 12'd512));
+                dr = dsub(mem_row(tap_proc), (mix_y >> 1) & 8'h7F);
+                if (dx != 0) bad_r_col = bad_r_col + 1;
+                if (dr >= -7 && dr <= 6) hist[dr + 7] = hist[dr + 7] + 1;
+                if (m2_mode == -999) m2_mode = dr;
+                else if (dr != m2_mode) m2_varies = m2_varies + 1;
+            end
+        end
+    end
+
+    // ---- C1 的尺子（本轮重做；#68 同族第三次错在这把尺子上）----
+    //   内容站在第 3+1+1+LATENCY = 20 级，第一版却拿 `x_d11`（第 11 级）去比 ⇒ 98.5 % 的格子
+    //   "Δcol 超出 ±5"，而同一份台架的 `bad_l` 只有 38 % —— 两个数互相矛盾，红的是尺子不是硬件。
+    //   这一版**不自己数级数**：列标签直接读 `u_split.x_sel`（r59a 起它就是与两个像素抽头同级的
+    //   那一列，问名字要、不抄算式），行标签只有第 11 级有（r59a 刻意不动 OSD 坐标），
+    //   所以只在一行**中段**采样：两端各 24 列里第 11 级的行标签已经跳到下一行而内容还在本行。
+    //   de 用 `de_d11`（= 一行的有效窗口，与上面同一个道理：靠"行中段"而不是靠数级数对齐）。
+    wire [11:0] c1_col = dut.u_split.x_sel;
+    wire [11:0] c1_row = dut.y_d11;
+    integer c1_n = 0, c1_skip = 0, c1_colbad = 0, c1_rowbad = 0, c1_zero = 0;
+    integer c1_fcol = -999, c1_frow = -999, c1_varies = 0, c1_dumped = 0;
+    integer c1_dx, c1_dy, c1_hasx = 0, c1_gx = 0, c1_gy = 0, c1_n3 = 0;
+    integer c1_geom_bad = 0, c1_geom_bad_row = 0, c1_gdump = 0;
+    integer c1_kbad [0:5], c1_k;                     // 级数标定用
+    integer c1_pbad [0:5];                           // C1i：读口的相位量与第 k 级标签不符数（r63/#79）
+    integer c1_kn, c1_ktrue;                         // "几何 0 不符"的级数有几个、是哪一级
+    integer c1_clamp = 0;                            // 期望落在"设计上夹紧那两行"的格数（#97 第四笔之后也照判，见下）
+    integer c1_adv = 0, c1_exp = 0, c1_wrapn = 0;     // C1h 的期望行：先算请求行，再按帧头绕回的定义折一次；c1_wrapn = 落在绕回窗里的格数（地板用）
+    integer c1_ring  = 0;                            // 行环热身被跳过的格数（#54 第 5 条，见采样处注释）
+    integer c1_ring_n = 0;                           // 其中"已过了开机那两帧、可正名"的格数（地板用）
+    integer c1_ring_unexpl = 0;                      // 被跳过的格子里"内容不是本行自己要的那一源行"的个数（必须 0）
+    localparam integer C1_WARM = 2;                  // = pl_video_top 的 BILIN_ROWS：乒乓缓冲在帧首多出来的那一对
+    // #54 第 5 条的仪器（Δrow ≠ 0 到底长什么样）：按 Δrow 值分 10 桶 + 按列位置分 16 桶
+    integer c1_rdh [0:9], c1_rdbk [0:15], c1_rdump;
+    always @(posedge dut.clk_pix) begin
+        if (mix_de && left_pane && measure_ok) begin
+            if (dut.oob || c1_col < 25 || c1_col > (512 - 25)) begin
+                c1_skip = c1_skip + 1;         // 出界填空黑 / 行首行尾那 24 列：标签与内容不同行，不计
+            end else if (c1_row < (dut.pipe_off_rows + C1_WARM)) begin
+                // #54 第 5 条：不是尺子的错也不是地址的错，是**行环的开机热身** —— 原图抽头走 `raw_line_delay #(.LINES(RAW_LINES = u_pipe.OFF_LINES))`，
+                //   一帧的头 OFF_LINES 个显示行里环装的是**上一帧尾部**那一行；旧状下那个地址被夹到 299、编码只剩低 8 位 ⇒ 解出来正好是 43 = 0x2B
+                //   （实测 3704 个 Δrow≠0 的样本**全部**是 +43、且只出现在 `y11 = 0..3`）⇒ 跳过 C1d 并**数出来**（例外要说得清、要见数）。
+                // #97 第四笔把这一族升级：例外从"解释成上一帧帧底"改成**逐格正名 = 本行自己要的那一源行** —— 环深 8、`rslot = y−4 mod 8`，
+                //   帧尾那 OFF_LINES 行（596..599）正好落在 4..7 号槽 ⇒ 帧头 0..3 读到的是上一帧的帧尾请求，绕回之后那个请求行是 0,0,1,1，与 `y>>1` 逐格相等。
+                //   （有条件：`2*IMG_H mod 环深 == 0` 才成立 ⇒ 哪天行数或 RAW_LINES 变了，这一条会红，而不是悄悄变成"又热了一次身"。）
+                c1_ring = c1_ring + 1;
+                // r63/#79 的规矩不变：例外必须**说得出内容是什么**才许跳过。变的是那句话的内容 ——
+                //   旧版"必须等于 43（=299 的低 8 位）"钉的是**病灶**，修好之后它反而会红。
+                //   开机头两帧不在话下（环里还是初值 0，那是"没数据"不是"数据错"）⇒ 只从第三帧起判，
+                //   并另记一个可判格数当覆盖地板，否则这条又变成"空集上成立"（#78 同一族）。
+                if (frames_done >= 3) begin
+                    c1_ring_n = c1_ring_n + 1;
+                    if (mem_row(tap_raw) !== ((c1_row >> 1) & 8'h7F)) c1_ring_unexpl = c1_ring_unexpl + 1;
+                end
+            end else begin
+                c1_n   = c1_n + 1;
+                // X 探测（Verilog-2001 合法写法）：任何一位是 X/Z，异或回来就是 X ⇒ `!== 0` 成立。
+                // 为什么必须有这一条：第一版 C1c 在**整屏都是 X** 的数据上判成了 PASS
+                // （`dsub(X,..) != 0` 是 X ⇒ if 不成立 ⇒ 计数器不涨 ⇒ "零个错"）——
+                // 这是"判据在空集上成立"的形状，比假红更危险。
+                if ((tap_raw ^ tap_raw) !== 16'd0) begin
+                    c1_hasx = c1_hasx + 1;
+                    nxread = nxread + 1;
+                    if (c1_col < xlo) xlo = c1_col;
+                    if ({20'd0, c1_col} > xhi) xhi = c1_col;   // ⚠ 必须把无符号那侧显式扩到位宽，
+                    //   否则 `integer` 的 -1 在无符号比较里被换算成巨大值 ⇒ 这一格永远不更新（实测踩过）
+                end
+                // r59b-1 之后"这一格该来自源图哪一格"只有**一处**答案：顶层自己要的地址 (sx, sy)。
+                //   比这个不是"抄顶层算式"—— 被验的命题就是"送进链子/送上屏的那一格，是不是地址发生器
+                //   当时要的那一格"（管道对齐），而"几何本身对不对"另由 C1f 单独看（源列 = 显示列 >>1）。
+                // 期望值只依赖**显示标签**（第 20 级的列 + 第 11 级的行），不引用顶层内部坐标：
+                //   单视口 + 手动 1.00x + 不旋转 时，显示 (X,Y) 这一格的内容必须就是源 (X>>1, Y>>1)。
+                //   这才是"整屏一个视口"这句话的内容级证据；内部坐标那条路（sx/sy）由 C1g/C1h 单独看。
+                c1_dx  = dsub(mem_col(tap_raw), (c1_col >> 1));
+                c1_dy  = dsub(mem_row(tap_raw), (c1_row >> 1) & 8'h7F);   // 同上：小偏移检测不受影响
+                // 视口几何：源列必须等于**同一级**的显示列 >>1（整屏一个视口的定义就是这一条）。
+                //   取 x_d[3] 而不是 x_sel：sx/sy 是第 3 级的标签，跨级比就是重犯 #68。
+                // sx/sy 是 mapper 的输出：复位后前几拍与越界那一拍本身就是 X，
+                //   不挡的话"几何不符"的计数会跟"内容 X"的计数撞在一起（本轮就这么误判过一次）。
+                if ((({ dut.sx, dut.sy }) ^ ({ dut.sx, dut.sy })) === 24'd0) begin
+                    c1_n3  = c1_n3 + 1;
+                    // 级数标定：mapper 输出到底与第几级的显示列同源，用数据说话（我推理两次错过一级）
+                    for (c1_k = 0; c1_k < 6; c1_k = c1_k + 1)
+                        if (dsub((dut.x_d[c1_k] >> 1), dut.sx) != 0) c1_kbad[c1_k] = c1_kbad[c1_k] + 1;
+                    // C1i（r63/#79）：换读口那次差点死在"相位接错一级"上（C1c 抓到 Δcol 24.8 %）。
+                    //   这条把"读口的四个相位量必须与 `sx` 同一级标签同源"变成常设判据：
+                    //   对**每一级**都数一遍 ⇒ 判据用的级数不是抄来的字面量，是同一份标定量出来的。
+                    for (c1_k = 0; c1_k < 6; c1_k = c1_k + 1) begin
+                        if (dut.u_bilin.col0     !== ~dut.x_d[c1_k][0]) c1_pbad[c1_k] = c1_pbad[c1_k] + 1;
+                        if (dut.u_bilin.row0     !== ~dut.y_d[c1_k][0]) c1_pbad[c1_k] = c1_pbad[c1_k] + 1;
+                        if (dut.u_bilin.pair_odd !==  dut.y_d[c1_k][1]) c1_pbad[c1_k] = c1_pbad[c1_k] + 1;
+                        if (dut.u_bilin.req_vld  !==  dut.de_d[c1_k])   c1_pbad[c1_k] = c1_pbad[c1_k] + 1;
+                    end
+                    c1_gx  = dsub((dut.x_d[3] >> 1), dut.sx);   // 列：源列必须 = 同级的显示列 >>1
+                    if (c1_gx != 0) begin
+                        c1_geom_bad = c1_geom_bad + 1;
+                        if (c1_gdump < 6) begin               // 前 10 处摆原始数：形状规则 = 尺子错
+                            c1_gdump = c1_gdump + 1;
+                            $display("[tb_video_pipeline_top.v:424] GEOM x_d[3]=%0d 期望src=%0d 顶层src=%0d dx=%0d | de3=%0d oob=%0d sy=%0d y3=%0d",
+                                     dut.x_d[3], (dut.x_d[3] >> 1), dut.sx, c1_gx,
+                                     dut.de_d[3], dut.oob, dut.sy, dut.y_d[3]);
+                        end
+                    end
+                    // 行：地址带着 #54 (B) 的提前量，所以期望是 (y + OFF_LINES) >> 1，不是 y >> 1。
+                    //   提前量取顶层自己声明的 u_pipe.OFF_LINES（台架里独立算，不抄内部信号）。
+                    // r63/#52 追加的第二项 `12'd2` 是**双线性读口的行方向代价补偿**（顶层 `BILIN_ROWS`）：
+                    //   乒乓缓冲让"显示在第 Y 行的内容"来自上一对请求 ⇒ 请求行必须提前 2 个显示行，
+                    //   否则整幅画面会在垂直方向错一行。这条与 `MIX_D` 无关（列方向仍是 2 拍）。
+                    //   ⚠ 顶层哪天改了 BILIN_ROWS，这里必须同步改 —— 两处都是"设计上的提前量"，
+                    //   不是判据松紧。为什么不用字面量算进去再判：那样 C1h 就退化成"期望 = 实测"。
+                    // #97 第四笔 / #98：帧底没有行可提前 ⇒ 请求行是**绕回**的，不是夹到 299。
+                    //   期望式子必须带上这一项 —— 不带的话这条判据把修好的那几行当成几何错位
+                    //   （10:41 实测：红 1852 格、全在 y_d[2]>=596，而同一轮 C5c 正往相反方向红）。
+                    // ⚠ 这一把尺子**跟着设计的定义走**（它就是"mapper 有没有发出这一行的定义行号"），
+                    //   所以 #98 这一笔的凭据**不是它**，而是 C5c（面板级、期望只含 `屏上行>>1`、
+                    //   不含绕回式的任何一项）。把它写在这里是因为上一轮就差点拿 C1h 当凭据自证 ——
+                    //   #78/#88 记过的同一族：例外/期望 keyed 在被验对象上，就永远测不出漏。
+                    c1_adv = (dut.y_d[2] + {4'd0, dut.pipe_off_rows[3:0]} + 12'd2) >> 1;
+                    c1_exp = (c1_adv >= 12'd300) ? (c1_adv - 12'd300) : c1_adv;   // 绕回 = 减一次 SRC_H
+                    c1_gy  = dsub(c1_exp, dut.sy);
+                    // 落在绕回窗里的格数（`req ≥ 300` ⇔ `y ≥ 600 − OFF − BILIN`）：地板用，没有它
+                    // 上面那一条退化成"永远走 else"，绿得毫无意义。
+                    if (c1_adv >= 12'd300) c1_wrapn = c1_wrapn + 1;
+                    // 期望**恰好等于末行 299** 的格数：绕回之后 299 仍然是合法行（y_d[2]=592、593），
+                    // 数出来是为了证明"这里没有第二个例外"——旧写法 `if (dut.sy >= 299) skip` 拿被验
+                    // 对象当例外条件，那一族从此修不红（#78/#88）。
+                    if (c1_exp == (12'd300 - 1)) c1_clamp = c1_clamp + 1;
+                    if (c1_gy != 0) c1_geom_bad_row = c1_geom_bad_row + 1;
+                end
+                if (c1_dx == 0) c1_zero = c1_zero + 1;
+                else            c1_colbad = c1_colbad + 1;
+                if (c1_dy != 0) begin
+                    c1_rowbad = c1_rowbad + 1;
+                    // #54 第 5 条的仪器：Δrow ≠ 0 的**形状**是什么？按 Δrow 值与列位置分桶，
+                    //   再留 6 个原始样本。"集中在行边界"与"散布在全行"是两种完全不同的病，
+                    //   光有一个 3704 的总数改不动任何东西。
+                    if (c1_dy >= -4 && c1_dy <= 3) c1_rdh[c1_dy + 4] = c1_rdh[c1_dy + 4] + 1;
+                    else if (c1_dy > 3)  c1_rdh[8] = c1_rdh[8] + 1;
+                    else                 c1_rdh[9] = c1_rdh[9] + 1;
+                    c1_rdbk[c1_col / 32] = c1_rdbk[c1_col / 32] + 1;
+                    if (c1_rdump < 6) begin
+                        c1_rdump = c1_rdump + 1;
+                        $display("ROWMIX col=%0d y11=%0d | screen=%h dec(%0d,%0d) exp(%0d,%0d) dcol=%0d drow=%0d sx=%0d sy=%0d off=%0d",
+                                 c1_col, c1_row, tap_raw, mem_row(tap_raw), mem_col(tap_raw),
+                                 (c1_row >> 1), (c1_col >> 1), c1_dx, c1_dy,
+                                 dut.sx, dut.sy, dut.pipe_off_rows);
+                    end
+                end
+                if (c1_fcol == -999) begin c1_fcol = c1_dx; c1_frow = c1_dy; end
+                else if (c1_dx != c1_fcol || c1_dy != c1_frow) c1_varies = c1_varies + 1;
+                if (c1_dumped < 3) begin
+                    c1_dumped = c1_dumped + 1;
+                    $display("[tb_video_pipeline_top.v:444] DBG2 x_sel=%0d y11=%0d | 屏上=%04x 期望列=%03d 期望行=%03d Δcol=%0d Δrow=%0d",
+                             c1_col, c1_row, tap_raw, c1_col[7:0], (c1_row >> 1), c1_dx, c1_dy);                end
+            end
+        end
+    end
+
+    // C2（#92 的尺子）：用户看到的是"贴在屏幕左边缘的一条、内容属于画面自己边缘的那一线"，而且**宽度随缩放变**。
+    //   现有的 C1c 对这件事**没有牙**：它明确跳过 `c1_col < 25`（行首那 24 列的*行*标签与内容不同行），而那正是症状所在的位置。
+    //   所以这一格换一条**不引用 DUT 的 oob** 的期望：TB 自己按定义算逆映射 —— 画面列 = x>>1（r59b 的 ×2 复制）；
+    //   源列 = IW/2 + floor((画面列 − IW/2)·inv/256)（向 −∞ 取整，与 tb_v96 的 exp_sx 同一式子）⇒ "这一列该是背景黑"由台架自己判，
+    //   DUT 的 oob 若漏了这里就红 —— **拿 oob 当期望永远测不出漏**。只在**行方向安全的中段**采样（`C2_YLO/C2_YHI`），
+    //   这样"该黑"只可能由**列**越界造成，不必再复制一份带 OFF/BILIN 补偿的行算式（那会引入新错源）。八档全扫、每档采 2 帧。
+    localparam integer C2_YLO = 240, C2_YHI = 360;   // 采样行界必须**严格落在最小那一档（0.25x）的画面里面**：0.25x 纵向只有 600*256/1023≈150 行、居中 ⇒ y∈[225,375]
+                                                       // 压在它的上下边界上时量到的"画面里有黑格"是**纵向**边界（那几行源行越界 ⇒ 设计上就是黑的），与要量的横向问题无关
+                                                       // ⇒ 收紧到 [240,360]：四档缩小倍率下都严格在画面内，边界效应交给 C3 的行结算去数
+    // 八档表（TB 自己抄的一份，与 zoom_ctrl 的 tbl 互为反例源）：Verilog-2001 没有数组字面量，
+    //   所以写成函数而不是 `'{...}` —— 那个是 SystemVerilog，xvlog 在 -i2v 下不认。
+    function [9:0] C2_TBL; input [3:0] i;
+        begin
+            case (i)
+                4'd0: C2_TBL = 10'd1023;   4'd1: C2_TBL = 10'd776;
+                4'd2: C2_TBL = 10'd512;    4'd3: C2_TBL = 10'd341;
+                4'd4: C2_TBL = 10'd256;    4'd5: C2_TBL = 10'd192;
+                4'd6: C2_TBL = 10'd171;    default: C2_TBL = 10'd128;
+            endcase
+        end
+    endfunction
+    reg        c2_on = 1'b0;
+    reg  [3:0] c2_k  = 4'd0;             // 当前在采哪一档（0..7；四位是为了能数到 8 停下来）
+    integer c2_viol [0:7], c2_nout [0:7], c2_nin [0:7], c2_inbad [0:7], c2_invbad [0:7];
+    integer c2_geol [0:7], c2_geor [0:7], c2_measl [0:7], c2_measr [0:7];
+    integer c2_leakl [0:7], c2_leakr [0:7], c2_blank [0:7], c2_rows [0:7];
+    integer c2_e, c2_bdump = 0;
+    // 坏格落在**哪几个列对**上：484 这种数只说"每行错一对"，说不清是哪一对，而"哪一对"才决定修法
+    //（行尾 ⇒ 末列折回；行首 ⇒ 乒乓/首拍；中间 ⇒ 地址级）。所以逐列对记一位。
+    reg [511:0] c2_ibv [0:7];
+    integer c2_ib_np, c2_ib_f, c2_ib_l, c2_ib_q;
+    // 坏格的**差值形状**：18:11 那一轮的教训是"全局 dump 配额被第一档吃光，后面几档一个字没留下"
+    //（30 行全花在 code 4 上，code 5/6/7 只有总数没有形状）。所以差值按档累计，打印也只按档配额。
+    integer c2_dm1 [0:7], c2_dp1 [0:7], c2_doth [0:7], c2_ibc [0:7], c2_dd;
+    integer c2_tbc [0:7];      // C2TAIL：每档允许摆几行行尾（见下面那段注释）
+    // ---- C7（#102 的尺子）：**同一批采样点上的"行"标签** ----
+    // 为什么 C2 绿着而用户看得见左缘一条线：C2 只比 `mem_col(sel)`（列），C1d 比行但**明确跳过
+    // 源列 < 25 的那一窗**，C6 只看屏上第 0 列的**列**标签 ⇒ "最左若干源列画的是哪一行"今天
+    // **一个数都没有**。用户 09-27 的矩阵（2.0x 看不见 / 0.5–1.0x 存在且宽度随倍率走 / 只在左边 /
+    // 内容与左侧对齐但"有些延迟"）里那句"延迟"说的就是**行**：一列被错行复用，看起来就像边缘
+    // 有一条跟着画面走的细带。所以这一条把行标签补在**与 C2 完全相同的采样窗**上（同拍、同点、
+    // 同一份逆映射表），两把尺子的差别只剩"比的是哪一半位"。
+    // 期望行的来源**不引用顶层的任何补偿项**（`OFF`/`BILIN`/绕回一个都不进）：
+    //   图像行 = (屏上行 >>1)，再按该档 inv 逆缩放。为什么敢这样定：C5b 已经在 1.00x 证明
+    //   "屏上第 Y 行画的就是图像行 Y>>1"（那是面板级、只用引脚建的坐标系），
+    //   而 inv=256 时下面的式子恰好退化成它自己 ⇒ 这一条不是抄 DUT，是把已判绿的那条定义
+    //   沿用到另外七档。若它红了而形状显示"所有列同差一行"，那是**我的复合算错了一档**，
+    //   不是硬件错 —— 所以差值按 ±1/±2 分桶打出来，一眼分得开（同一族教训：#68/#78/#92/#98）。
+    integer c7_rbad [0:7], c7_rn [0:7], c7_rm1 [0:7], c7_rp1 [0:7], c7_rblk [0:7];
+    integer c7_rdc [0:7];                            // 每档允许的原始样本数（全局配额会被第一档吃光）
+    reg  [511:0] c7_rbv [0:7];                       // 坏格的"源列对"位图（哪几列被错行）
+    integer c7_np, c7_f, c7_l, c7_q, c7_dr, c7_er;
+
+    initial begin
+        for (c2_e = 0; c2_e < 8; c2_e = c2_e + 1) begin
+            c2_viol[c2_e]=0; c2_nout[c2_e]=0; c2_nin[c2_e]=0; c2_inbad[c2_e]=0;
+            c2_invbad[c2_e]=0; c2_rows[c2_e]=0;
+            c7_rbad[c2_e]=0; c7_rn[c2_e]=0; c7_rm1[c2_e]=0; c7_rp1[c2_e]=0; c7_rblk[c2_e]=0;
+            c7_rdc[c2_e]=0;
+            c7_rbv[c2_e]=512'd0;
+            c2_geol[c2_e]=-1; c2_geor[c2_e]=-1; c2_measl[c2_e]=-1; c2_measr[c2_e]=-1;
+            c2_leakl[c2_e]=-1; c2_leakr[c2_e]=-1; c2_blank[c2_e]=0;
+            c2_ibv[c2_e]=512'd0;
+            c2_dm1[c2_e]=0; c2_dp1[c2_e]=0; c2_doth[c2_e]=0; c2_ibc[c2_e]=0; c2_tbc[c2_e]=0;
+        end
+    end
+
+    function integer c2_exp_col; input integer x; input integer vi;
+        integer d, p;
+        begin
+            d = (x >> 1) - (512/2);
+            p = d * vi;
+            c2_exp_col = (((p >= 0) ? (p / 256) : -(((-p) + 255) / 256)) + (512/2));
+        end
+    endfunction
+
+    // C7：同一套逆映射，作用在**行**上。中心与高度都取本 TB 自己的源几何（`SRC_H`），
+    // 与 `zoom_mapper` 里那两条 `IMAGE_H/2` 是同一件事的两处写法（一个是设计、一个是台架的期望）。
+    // 取整方向与 `c2_exp_col` 逐字符相同（向 −∞ 取整），这样"列与行是同一把尺子"这句话在代码上
+    // 就是真的，不是注释里说的。inv=256 时它恰好退化成 `y>>1` —— 那正是 C5b 已经在面板上判绿的
+    // 那一条定义 ⇒ 这一条不是抄 DUT，是把已判绿的定义沿用到另外七档。
+    function integer c2_exp_row; input integer y; input integer vi;
+        integer d, p;
+        begin
+            d = (y >> 1) - (SRC_H/2);
+            p = d * vi;
+            c2_exp_row = (((p >= 0) ? (p / 256) : -(((-p) + 255) / 256)) + (SRC_H/2));
+        end
+    endfunction
+
+    always @(posedge dut.clk_pix) begin
+        // ⚠ 采样必须**整束同一级**：第一版用 `mix_de`/`mix_y`（第 11 级）去配 `u_split.x_sel`
+        //   （第 20 级），于是每行开头 9 拍采到上一行的消隐尾（"首列 x=1335" 就是这么来的），
+        //   结果 "该黑不黑" 报了 460800/460800 —— 红的是尺子，不是硬件（#68 同族，我重犯的）。
+        if (c2_on && dut.de_d[dut.MIX_D] && dut.y_d[dut.MIX_D] >= C2_YLO
+            && dut.y_d[dut.MIX_D] <= C2_YHI) begin
+            c2_e = c2_exp_col(dut.u_split.x_sel, C2_TBL(c2_k));
+            if (dut.inv_used !== C2_TBL(c2_k)) c2_invbad[c2_k] = c2_invbad[c2_k] + 1;
+            if (c2_e < 0 || c2_e > 511) begin
+                c2_nout[c2_k] = c2_nout[c2_k] + 1;
+                if (dut.u_split.sel !== 16'h0000) begin
+                    c2_viol[c2_k] = c2_viol[c2_k] + 1;
+                    if (dut.u_split.x_sel < 512 && c2_leakl[c2_k] < 0) c2_leakl[c2_k] = dut.u_split.x_sel;
+                    if (dut.u_split.x_sel >= 512) c2_leakr[c2_k] = dut.u_split.x_sel;
+                end
+            end else begin
+                c2_nin[c2_k] = c2_nin[c2_k] + 1;
+                // ---- C7：与上面**同一拍、同一个采样点**，只是比"行"那一半位（#102 缺的那把尺子）----
+                c7_er = c2_exp_row(dut.y_d[dut.MIX_D], C2_TBL(c2_k));
+                if (c7_er < 0 || c7_er > (SRC_H-1)) begin
+                    // 这一档的画面纵向没铺到这条带 ⇒ 不参与行判定，但**必须数出来**：
+                    // 少了这一位，"C7 全绿"就可能只是"样本集为空"（#78/#94 那一族的第三种死法）。
+                    c7_rblk[c2_k] = c7_rblk[c2_k] + 1;
+                end else begin
+                    c7_rn[c2_k] = c7_rn[c2_k] + 1;
+                    c7_dr = dsub(mem_row(dut.u_split.sel), c7_er[6:0]);   // 位图与 tag 都是 mod 128
+                    if (c7_dr != 0) begin
+                        c7_rbad[c2_k] = c7_rbad[c2_k] + 1;
+                        c7_rbv[c2_k][dut.u_split.x_sel >> 1] = 1'b1;
+                        if      (c7_dr == -1) c7_rm1[c2_k] = c7_rm1[c2_k] + 1;
+                        else if (c7_dr ==  1) c7_rp1[c2_k] = c7_rp1[c2_k] + 1;
+                        if (c7_rdc[c2_k] < 3) begin
+                            c7_rdc[c2_k] = c7_rdc[c2_k] + 1;
+                            // 摆"哪一路抽头错的"：orig 错 proc 对 ⇒ 原图那条环（#98 那一族）；
+                            // 两路都错 ⇒ 错误在进链之前（mapper 的行号或读口的地址）。
+                            $display("C7BAD code=%0d x=%0d y=%0d 解出行=%0d 期望行=%0d 差=%0d | sel=%h take_orig=%b orig=%h(r%0d) proc=%h(r%0d) oob=%b oob_out=%b sx=%0d sy=%0d",
+                                     c2_k, dut.u_split.x_sel, dut.y_d[dut.MIX_D],
+                                     mem_row(dut.u_split.sel), (c7_er & 8'h7F), c7_dr,
+                                     dut.u_split.sel, dut.u_split.take_orig,
+                                     dut.u_split.orig_pix, mem_row(dut.u_split.orig_pix),
+                                     dut.u_split.proc_pix, mem_row(dut.u_split.proc_pix),
+                                     dut.oob, dut.oob_out, dut.sx, dut.sy);
+                        end
+                    end
+                end
+                if (c2_geol[c2_k] < 0) c2_geol[c2_k] = dut.u_split.x_sel;
+                c2_geor[c2_k] = dut.u_split.x_sel;
+                if (dut.u_split.sel !== 16'h0000) begin
+                    if (c2_measl[c2_k] < 0) c2_measl[c2_k] = dut.u_split.x_sel;
+                    c2_measr[c2_k] = dut.u_split.x_sel;
+                end else begin
+                    c2_blank[c2_k] = c2_blank[c2_k] + 1;
+                    // 诊断（不是判据）：画面里出现黑格时，把**这一拍两个抽头与 oob 标签**一起摆出来。
+                    //   为什么必须摆原始的三样而不是继续推：改完 #92 那两笔之后，0.25x 那档还剩
+                    //   "定义的最后一列是黑的"（blank = 242 = 一列 × 121 行 × 2 帧），而"是 oob 标签
+                    //   在那儿翻了"还是"像素本身是 (0,0) 那格黑"这两种情形，在黑/非黑这一层**长得一样**，
+                    //   推出来两次互相矛盾的模型（#68/#78 那一族每一轮都是"再推一遍"输的）。
+                    if (c2_bdump < 6) begin
+                        c2_bdump = c2_bdump + 1;
+                        $display("C2BLK x_sel=%0d sx=%0d sy=%0d oob=%b oob_out=%b | orig=%h proc=%h sel=%h | inv=%0d bilin=%b jd=%0d",
+                                 dut.u_split.x_sel, dut.sx, dut.sy, dut.oob, dut.oob_out,
+                                 dut.u_split.orig_pix, dut.u_split.proc_pix, dut.u_split.sel,
+                                 dut.inv_used, bilin_en_tb, dut.u_bilin.jd);
+                    end
+                end
+                c2_dd = dsub(mem_col(dut.u_split.sel), c2_e);
+                if (c2_dd != 0) begin
+                    c2_inbad[c2_k] = c2_inbad[c2_k] + 1;
+                    c2_ibv[c2_k][dut.u_split.x_sel >> 1] = 1'b1;
+                    if      (c2_dd == -1) c2_dm1 [c2_k] = c2_dm1 [c2_k] + 1;
+                    else if (c2_dd ==  1) c2_dp1 [c2_k] = c2_dp1 [c2_k] + 1;
+                    else                  c2_doth[c2_k] = c2_doth[c2_k] + 1;
+                    // 诊断（不是判据）：r70 那轮量到"1.00x/1.33x/1.5x 三档各 484 格对不上，
+                    // 而 0.25x~0.75x 是 0、2.0x 也是 0" —— 484 = 2 列 × 121 行 × 2 帧 = **每行恰好一个列对**，
+                    // 这种"只错一对"的形状必须知道它是**哪一对**才修得动（行首？行尾？中间？）。
+                    // 只把数打出来不猜：#68/#78/#92 三轮的账都是"再推一遍"输的。
+                    if (c2_ibc[c2_k] < 4) begin
+                        c2_ibc[c2_k] = c2_ibc[c2_k] + 1;
+                        // 摆**同一拍 mux 自己的两个抽头**，不摆 fb_bilin 的内部（那是另一级，
+                        // 拿它配这一拍就是 #68/#92 反复交的税）。哪一路是错的，一眼就分得开：
+                        //   orig 错 proc 对 ⇒ 原图那条延迟线（raw_line_delay/orig_skid）；
+                        //   两路都错 ⇒ 错误在进链之前（mapper 坐标或 fb_bilin 的地址）。
+                        $display("C2IBAD code=%0d x_sel=%0d pair=%0d 解出col=%0d 期望col=%0d 差=%0d | sel=%h take_orig=%b orig=%h(c%0d) proc=%h(c%0d) oob_out=%b y=%0d",
+                                 c2_k, dut.u_split.x_sel, (dut.u_split.x_sel >> 1), mem_col(dut.u_split.sel),
+                                 c2_e, c2_dd, dut.u_split.sel, dut.u_split.take_orig,
+                                 dut.u_split.orig_pix, mem_col(dut.u_split.orig_pix),
+                                 dut.u_split.proc_pix, mem_col(dut.u_split.proc_pix),
+                                 dut.oob_out, dut.y_d[dut.MIX_D]);
+                    end
+                end
+            end
+            // ---- C2TAIL：把**行尾 6 列**在同一拍上摆开（诊断，不是判据；每档限 6 行）----
+            // 为什么需要它：模块级与整链级（`tb_v89` 的 ID 判据）已经逐列恒等，可顶层每行最后一列对
+            // 仍然少一格 ⇒ 病灶只可能在**顶层特有**的那几环：链子吃的标签级是 `de_d[3]/x_d[3]`
+            // 而行环吃的是 `de_d[5]/x_d[5]`；链子输出又多寄存了一拍（`pipe_dout_q`，#92 第一笔）；
+            // 混色级吃的标签是 `x_d[MIX_D]`。这三件事在行中间互相抵消、只在行尾露馅 ⇒
+            // 必须同拍看到"读口给的什么、链子给的什么、混色级吃的什么、标签说什么"。
+            // 教训（#68/#78/#92 每一轮都是"再推一遍"输的）：摆原始数，一眼就分得开。
+            if (c2_tbc[c2_k] < 6 && dut.u_split.x_sel >= (2*512-6) && dut.u_split.x_sel <= (2*512-1)) begin
+                c2_tbc[c2_k] = c2_tbc[c2_k] + 1;
+                $display("C2TAIL code=%0d x=%0d exp=%0d | mix sel=%h(c%0d) orig=%h(c%0d) proc=%h(c%0d) | chain_out=%h(c%0d) chain_de=%b mix_de=%b | fb jd=%0d res=%h(c%0d) asm=%b | blur de=%b x=%0d owed=%b lend=%b",
+                         c2_k, dut.u_split.x_sel, c2_exp_col(dut.u_split.x_sel, C2_TBL(c2_k)),
+                         dut.u_split.sel, mem_col(dut.u_split.sel),
+                         dut.u_split.orig_pix, mem_col(dut.u_split.orig_pix),
+                         dut.u_split.proc_pix, mem_col(dut.u_split.proc_pix),
+                         dut.pipe_dout, mem_col(dut.pipe_dout), dut.pipe_de,
+                         dut.de_d[dut.MIX_D], dut.u_bilin.jd, dut.u_bilin.res_q[15:0],
+                         mem_col(dut.u_bilin.res_q[15:0]), dut.u_bilin.asm_d2,
+                         dut.u_pipe.u_blur.de_in, dut.u_pipe.u_blur.x_in,
+                         dut.u_pipe.u_blur.owed, dut.u_pipe.u_blur.line_end === 1'b1);
+            end
+        end
+    end
+
+    // C3（#92 的第二把尺子：面板级）。C2 采的是 `de_d[MIX_D] + x_sel + u_split.sel` —— **全部在内容那一级**，所以它量的是
+    // "内容 vs 内容自己的标签"；而用户看的是**屏上**：面板只认 `de_osd/vs_osd/r_osd/g_osd/b_osd` 这五根线，它把"de 为高的
+    // 第几拍"当成第几列 ⇒ 两套坐标系之间差 N 拍，屏上就整体偏 N 列，而 C2 一个数都看不见（#92 的"屏幕左边缘一条从视频里切出来的线"）。
+    // 所以这一格**只用输出引脚**建坐标系：面板列号 = 本行 de 为高的第几拍，面板行号 = vs 上升沿之后第几个 de 跑 ⇒ 判据不引用任何内部标签。
+    // 两条必须一起说的限制：① 只数 `p_row >= C3_ROW0` 的行（OSD 那个框在 y∈[12, 12+5*31)，会把自己涂成非黑）；
+    //   ② 采这段时间把那条 2 px 标记线**关掉**（gp[13]=1 = `split marker 0`）：缝位钉在 0 时 `x_sel==seam` 恰好在屏上画两格蓝，不关掉就是在量台架自己。
+
+    // C4（#93 的第一把尺子：旋转下的"形状"）。为什么按形状而不按坐标：在台架里复算 `zoom_mapper` 的逆映射（sin/cos 的 Q 格式、中心取整、越界钉 0）
+    //   就等于把被测代码再抄一遍——抄错也一起错（#88 那一课）。而用户那三句话本身是**形状**陈述 ⇒ 有一个不依赖坐标的签名：
+    //   **一条旋转后的矩形画面，被任何一条水平线切到的部分只能是一段连续区间** ⇒ "某一行非黑段数 > 1"就是多出来的那两道。
+    //   黑 = 画面外由 C0a3 先证明，再关掉 2 px 缝标记、排除 OSD 框所在的行；⚠ 这一段走最近邻（bilin off）：插值会把两格的 tag
+    //   混成第三格，那时"非黑"仍成立但"这一格是哪一格"不再成立。第二维必须加**倍率**：1.00x 画面铺满整屏 ⇒ 屏上没有一列背景 ⇒
+    //   多出来的东西**贴在**同一个非黑段上、段数还是 1 ⇒ "每行一段"结构上必然成立、红不了（"绿着不等于验过"的几何版）；0.50x 只占 x∈[256,767]。
+    localparam integer C4_NA   = 12;                   // 4 个角度 × 3 个倍率（0..3=1.00x，4..7=0.50x，8..11=0.25x）
+    reg        c4_on = 1'b0;
+    // ⚠ 扫描下标用 `integer` 而不是定宽 reg，是被两回坑之后定的：
+    //   · 定宽 [1:0] 配 `c4_a < 4`：数到 3 回卷成 0 ⇒ for 永不退出，xsim 安静跑到超时，
+    //     看起来像"台架卡死"（其实是循环变量装不下上界）；
+    //   · 定宽 [2:0] 配 `c4_a < 3'd8`：Verilog 的比较是**自定宽**的，那个 8 先被截成 0 ⇒
+    //     条件恒假 ⇒ 整个 C4 一档都不跑，而台架**全绿**（八档一个样本都没采）。
+    //   `integer` 两头都不怕，而它只是台架里的循环变量，不进硬件。
+    integer  c4_a  = 0;
+    // ⚠ Verilog-2001 的数组声明要的是**范围**（`[0:N-1]`），`[N]` 是 SystemVerilog 写法：
+    //   xvlog 在 -i2v 下报 "single value range is not allowed"，整个台架模块被忽略（#88 那一族的另一张脸）。
+    integer    c4_rows2[0:C4_NA-1], c4_zero[0:C4_NA-1], c4_bad[0:C4_NA-1];
+    integer    c4_fmin[0:C4_NA-1], c4_fmax[0:C4_NA-1], c4_lmin[0:C4_NA-1], c4_lmax[0:C4_NA-1];
+    integer    c4_run, c4_r1s, c4_r1e, c4_r2s, c4_dump = 0;   // c4_dump 是**跨档累计**的上限，见下面 16
+    reg        c4_prev_nb = 1'b0, c4_nb;
+    integer    c4_e;
+
+    initial begin
+        for (c4_e = 0; c4_e < C4_NA; c4_e = c4_e + 1) begin
+            c4_rows2[c4_e]=0; c4_zero[c4_e]=0; c4_bad[c4_e]=0;
+            c4_fmin[c4_e]=-1; c4_fmax[c4_e]=-1; c4_lmin[c4_e]=-1; c4_lmax[c4_e]=-1;
+        end
+    end
+
+    localparam integer C3_ROW0 = 210;              // 离开 OSD 那个框（含 vs 沿约定的余量）
+    reg        c3_vs_d = 1'b0, c3_de_d = 1'b0;
+    integer    c3_prow = 0, c3_pcol = 0, c3_pw = 0, c3_first = -1, c3_last = -1;
+    integer    c3_rows [0:7], c3_empty [0:7], c3_fmin [0:7], c3_fmax [0:7];
+    integer    c3_lmin [0:7], c3_lmax [0:7], c3_wbad [0:7], c3_rbad [0:7];
+    integer    c3_devdump = 0;
+    integer    c3_e;
+
+    initial begin
+        for (c3_e = 0; c3_e < 8; c3_e = c3_e + 1) begin
+            c3_rows[c3_e]=0; c3_empty[c3_e]=0; c3_wbad[c3_e]=0; c3_rbad[c3_e]=0;
+            c3_fmin[c3_e]=-1; c3_fmax[c3_e]=-1; c3_lmin[c3_e]=-1; c3_lmax[c3_e]=-1;
+        end
+    end
+
+    always @(posedge dut.clk_pix) begin
+        // 块内一律**阻塞赋值**：这几个 reg 只有本块写，读到的就是"上一拍的值"，
+        // 与 DUT 的非阻塞更新在同一个沿上不抢先后（读 DUT 的寄存器输出同理：非阻塞更新
+        // 发生在 NBA 区，本块在 active 区读到的必是本拍之前的值 ⇒ 五根线天然同拍）。
+        // ⚠ 记账**每拍都在跑**，只有"结算进哪一档"才看 `c2_on`：第一版把整段包在 `if (c2_on)`
+        //   里，于是 `c3_prow` 只在采样那两帧里涨，第一次 vs 上升沿读到一个"半帧"的行数 ⇒
+        //   `c3_rbad` 每档白红一次。面板的行数是**整帧**才数得清的东西，不能跟着采样窗开停。
+        if (dut.vs_osd && !c3_vs_d) begin            // 帧首：面板行号归零
+            if (c2_on && c3_prow !== 600)            // 一帧必须正好 600 个 de 跑
+                c3_rbad[c2_k] = c3_rbad[c2_k] + 1;
+            c3_prow = 0;
+        end
+        c3_vs_d = dut.vs_osd;
+        if (dut.de_osd && !c3_de_d) begin            // 行首
+            c3_pcol = 0; c3_pw = 0; c3_first = -1; c3_last = -1;
+            c4_run = 0; c4_prev_nb = 1'b0; c4_r1s = -1; c4_r1e = -1; c4_r2s = -1;
+        end else if (dut.de_osd) c3_pcol = c3_pcol + 1;
+        if (dut.de_osd) begin
+            c3_pw = c3_pw + 1;
+            if ({dut.r_osd, dut.g_osd, dut.b_osd} !== 24'd0) begin
+                if (c3_first < 0) c3_first = c3_pcol;
+                c3_last = c3_pcol;
+            end
+            // C4：同一拍顺手数"这一行的非黑段有几段"（与上面那三行用的是同一束线，不分二级）
+            c4_nb = ({dut.r_osd, dut.g_osd, dut.b_osd} !== 24'd0);
+            if (c4_nb && !c4_prev_nb) begin
+                c4_run = c4_run + 1;
+                if (c4_run == 1) c4_r1s = c3_pcol;
+                if (c4_run == 2) c4_r2s = c3_pcol;
+            end
+            if (c4_nb && c4_run == 1) c4_r1e = c3_pcol;
+            c4_prev_nb = c4_nb;
+        end
+        if (!dut.de_osd && c3_de_d) begin            // 行尾：结算这一行
+            if (c2_on) begin
+                if (c3_pw !== 1024) c3_wbad[c2_k] = c3_wbad[c2_k] + 1;  // 有效窗口必须正好 1024 列
+                if (c3_prow >= C3_ROW0) begin
+                    if (c3_first < 0) c3_empty[c2_k] = c3_empty[c2_k] + 1;   // 画面没铺到这一行
+                    else begin
+                        c3_rows[c2_k] = c3_rows[c2_k] + 1;
+                        if (c3_fmin[c2_k] < 0) begin
+                            c3_fmin[c2_k] = c3_first; c3_fmax[c2_k] = c3_first;
+                            c3_lmin[c2_k] = c3_last;  c3_lmax[c2_k] = c3_last;
+                        end else begin
+                            // 偏离档内众数边界的行**当场摆出来**（前 6 行）：0.50x/0.75x 两档量到
+                            // "某些行的左沿晚两列 = 晚一个源列"，而同一档的内容级三条（inbad/viol/blank）
+                            // 全是 0 ⇒ 这不是几何平移，是"某些行的第一格恰好是黑的"。黑有两种：
+                            // 越界回黑（那是 bug）与图卡自己的 (0,0)/(256,0) 那格（那是图案）。
+                            // 光靠黑/非黑分不开这两者，所以把这一行的行标签 `y_d[MIX_D]` 一起打出来：
+                            // 台架自己按定义算一次源行，就知道是不是图案的黑格（#92：先量，别猜）。
+                            if ((c3_first != c3_fmin[c2_k] || c3_last != c3_lmax[c2_k]) && c3_devdump < 6) begin
+                                c3_devdump = c3_devdump + 1;
+                                $display("C3DEV code=%0d prow=%0d first=%0d last=%0d |档内 first[%0d..%0d] last[%0d..%0d] y_d[MIX_D]=%0d geol=%0d geor=%0d",
+                                         c2_k, c3_prow, c3_first, c3_last,
+                                         c3_fmin[c2_k], c3_fmax[c2_k], c3_lmin[c2_k], c3_lmax[c2_k],
+                                         dut.y_d[dut.MIX_D], c2_geol[c2_k], c2_geor[c2_k]);
+                            end
+                            if (c3_first < c3_fmin[c2_k]) c3_fmin[c2_k] = c3_first;
+                            if (c3_first > c3_fmax[c2_k]) c3_fmax[c2_k] = c3_first;
+                            if (c3_last  < c3_lmin[c2_k]) c3_lmin[c2_k] = c3_last;
+                            if (c3_last  > c3_lmax[c2_k]) c3_lmax[c2_k] = c3_last;
+                        end
+                    end
+                end
+            end
+            if (c4_on && c3_prow >= C3_ROW0) begin
+                if (c4_run == 0) c4_zero[c4_a] = c4_zero[c4_a] + 1;      // 这一行没画面（0.50x 与大角度下都正常）
+                else if (c4_run == 1) begin
+                    c4_rows2[c4_a] = c4_rows2[c4_a] + 1;
+                    if (c4_fmin[c4_a] < 0) begin
+                        c4_fmin[c4_a] = c4_r1s; c4_fmax[c4_a] = c4_r1s;
+                        c4_lmin[c4_a] = c4_r1e; c4_lmax[c4_a] = c4_r1e;
+                    end else begin
+                        if (c4_r1s < c4_fmin[c4_a]) c4_fmin[c4_a] = c4_r1s;
+                        if (c4_r1s > c4_fmax[c4_a]) c4_fmax[c4_a] = c4_r1s;
+                        if (c4_r1e < c4_lmin[c4_a]) c4_lmin[c4_a] = c4_r1e;
+                        if (c4_r1e > c4_lmax[c4_a]) c4_lmax[c4_a] = c4_r1e;
+                    end
+                end else begin                                              // 两段以上 = #93 那两道多出来的东西
+                    c4_bad[c4_a] = c4_bad[c4_a] + 1;
+                    // 上限 16 而不是 8：现在有八档，前四档（1.00x）注定一段都没有，
+                    // 全部配额该留给真正可能看见病的后四档；这个计数器只由本块写，所以
+                    // 不在激励里按档清零（两个进程写同一根激励位 = #94 那一族的错）。
+                    if (c4_dump < 16) begin
+                        c4_dump = c4_dump + 1;
+                        $display("C4RUN ang=%0d zoomsel=%0d prow=%0d 段数=%0d 第1段=[%0d,%0d] 第2段从=%0d 末段到=%0d | y_d[MIX_D]=%0d sx=%0d sy=%0d oob_out=%b",
+                                 c4_ang_of(c4_a), c4_pct_of(c4_a), zoom_sel, c3_prow, c4_run, c4_r1s, c4_r1e, c4_r2s, c3_last,
+                                 dut.y_d[dut.MIX_D], dut.sx, dut.sy, dut.oob_out);
+                    end
+                end
+            end
+            c3_prow = c3_prow + 1;
+        end
+        c3_de_d = dut.de_osd;
+    end
+
+    // ============================ C5（#97 追加二：行维那把缺的尺子）============================
+    // C2/C3/C4 判的都是**列**与**段数**：顶边那一条带画的是"这张图自己的最后一行"，
+    // 它不改变左右沿、不改变段数 ⇒ 三把尺子一起绿，而屏上有东西。C5 判"这一格画的是哪一源行"：
+    // 图卡把 (源行, 源列) 写进像素 tag（`px_val`），逐行解 tag 就能把行内容钉成数。
+    // 取点在 `split_display` 的输出（r/g/b + de_o/vs_o），**不是 OSD 之后**：
+    // OSD 那个框盖住屏上最上面一百来行，取在它后面等于什么都没看（而这一条要看的恰恰是那几行）。
+    // 只在 `angle=0 × 1.00x`（C4 的第 0 格）判：那一档"源行 = 显示行 / 2"是定义，别档不是。
+    localparam integer C5_COL = 512;                 // 圈内、离两沿都远的一列
+    // #97 追加七（10:5x）：**一列不够**。混色级是"缝左原图 / 缝右处理图"，而两路各自的帧头滞后
+    //   是**两件不同的事**（原图那路 = `raw_line_delay` 的槽，处理那路 = 链子的行缓存），
+    //   只采一列等于只看一面 —— 上一轮 C1d-b 那一条"帧头正名"就是死在没有样本上（c1_ring 实测 0，
+    //   行标签与内容在行首不同行 ⇒ 那几格从来落不进 C1 的采样窗）。现在三列一起采，
+    //   哪一列红就是哪一路的红（DIAG 打的是屏上列号）。
+    localparam integer C5_LA = 300, C5_RA = 900;     // 缝的左右两侧各取一列（缝在中间那一档）
+    integer c5_prow = 0, c5_pcol = 0, c5_vs_d = 0, c5_de_d = 0;
+    integer c19_bad = 0, c19_val = 0;
+    // C20: bilinear-on frame-head/tail probe. C5/C5c run with bilin_en=0 (C4 arm);
+    // the board default is bilin=1, so the frame-buffer pair buffer is unjudged at the
+    // first/last display rows. Sample the raw tap's row tag at u_split (sel=0 makes
+    // proc_disp=orig_disp) with bilinear ON.
+    integer c20_on = 0, c20_n = 0, c20_bad = 0, c20_dump = 0;
+    integer c20_hd = 0, c20_tl = 0, c20_hb = 0, c20_tb = 0;
+    // C21: the same head/tail row check on the PROCESSED tap, still bilin=1. Invert is a
+    // point op, so ~proc_pix is the original tag and the four window stages only add their
+    // fixed line delay. This separates "chain content is the wrong row" from "the 3x3
+    // filter draws an edge on the image boundary row".
+    integer c21_on = 0, c21_n = 0, c21_bad = 0, c21_dump = 0;
+    integer c21_hd = 0, c21_tl = 0, c21_hb = 0, c21_tb = 0;
+    reg [15:0] c21_px;
+    // C22: horizontal-ramp frame. Every source row is one uniform grey whose luma rises
+    // slowly with the row (adjacent rows differ by <=2). The ideal Sobel is therefore
+    // ~0 everywhere, including the clamped image top/bottom. If the first/last display
+    // line mixes the previous frame's boundary row into the 3x3 window, that line lights
+    // up. Unlike C5/C20/C21 this judges the NEIGHBOURS, not only the centre tag.
+    integer c22_on = 0, c22_n = 0, c22_topn = 0, c22_topbad = 0;
+    integer c22_botn = 0, c22_botbad = 0, c22_bodybad = 0, c22_dump = 0;
+    integer c22_lum = 0, c22_mtop = 0, c22_mbot = 0, c22_mbody = 0;
+    reg [15:0] c22_px;
+    integer c22s_dump = 0;
+    always @(posedge dut.clk_pix) begin
+        if (c22_on && dut.u_pipe.u_sobel.de_out && dut.u_pipe.u_sobel.dout == 16'hFFFF && c22s_dump < 12) begin
+            c22s_dump = c22s_dump + 1;
+            $display("C22SOB yrow_d=%0d yin=%0d yrow_d2=%0d wrtop=%b wrbot=%b | q %0d %0d %0d / %0d %0d %0d / %0d %0d %0d",
+                     dut.u_pipe.u_sobel.y_row_d, dut.u_pipe.u_sobel.y_in, dut.u_pipe.u_sobel.y_row_d2,
+                     dut.u_pipe.u_sobel.wr_top_use, dut.u_pipe.u_sobel.wr_bot_use,
+                     dut.u_pipe.u_sobel.q00, dut.u_pipe.u_sobel.q01, dut.u_pipe.u_sobel.q02,
+                     dut.u_pipe.u_sobel.q10, dut.u_pipe.u_sobel.q11, dut.u_pipe.u_sobel.q12,
+                     dut.u_pipe.u_sobel.q20, dut.u_pipe.u_sobel.q21, dut.u_pipe.u_sobel.q22);
+        end
+    end
+    integer c5_bad = 0, c5_judged = 0, c5_head = 0, c5_head_bad = 0, c5_dump = 0;
+    integer c6_n = 0, c6_bad = 0, c6_dump = 0;         // C6：屏上每行第 0 格的**源列**（1.00x 下没有背景可比）
+    integer j5 = 0;                                    // 本拍采到的那一列是第几列（0=左 1=中 2=右）
+    integer c5_head_c [0:2];                           // 各列的"帧头窗"可判格数（覆盖地板）
+    integer c5_headbad_c [0:2];                        // 各列帧头窗里内容不符的格数
+    integer c5_jud_c [0:2], c5_badc_c [0:2];           // 各列本体的可判/不符格数
+    integer c5_off;
+    reg [15:0] c5_px;
+    reg [7:0] c5_got, c5_exp;
+    wire c5_on = c4_on && (c4_a == 0);               // C4 第 0 格 = 不旋转 × 100 %
+
+    always @(posedge dut.clk_pix) begin
+        if (dut.vs_o && !c5_vs_d) c5_prow = 0;
+        c5_vs_d = dut.vs_o;
+        if (dut.de_o && !c5_de_d) c5_pcol = 0;
+        else if (dut.de_o) c5_pcol = c5_pcol + 1;
+        if (dut.de_o && c5_on && (c5_pcol == 0 || c5_pcol == C5_LA || c5_pcol == C5_COL || c5_pcol == C5_RA)) begin
+            c5_px  = {dut.r[7:3], dut.g[7:2], dut.b[7:3]};   // 888 → 565 复原（展开是位复制，无损）
+            c5_got = mem_row(c5_px);                          // tag 里的源行是 mod 128
+            c5_exp = ((c5_prow >> 1) & 8'h7F);
+            j5 = (c5_pcol == C5_LA) ? 0 : (c5_pcol == C5_COL) ? 1 : 2;
+            if (c5_pcol == 0) begin
+                // C6：**屏上每一行的第 0 格**不许是上一行末尾那一格。
+                // `raw_line_delay` 是 (4 行 + 1 拍) 的环 ⇒ 原图抽头天生比标签晚一格，
+                // 而 #92 第三笔把 oob 与像素**打包过环**，所以"背景档"下第 0 格是黑的（C2 看得见）。
+                // 但在 `1.00x`（画面铺满、没有背景）这一格没有任何尺子判过：
+                // 若那一格真的是上一行的末列，用户看到的就是"左边缘一条从视频里切出来的线"，
+                // 而 C2/C4 全都只会绿（没有背景带可以比）。tag 里有源列 ⇒ 直接判。
+                c6_n = c6_n + 1;
+                if (mem_col(c5_px) !== 8'd0) begin
+                    c6_bad = c6_bad + 1;
+                    if (c6_dump < 6) begin
+                        c6_dump = c6_dump + 1;
+                        $display("C6HEAD prow=%0d px=%h 源列tag=%0d 期望=0 | 源行tag=%0d",
+                                 c5_prow, c5_px, mem_col(c5_px), c5_got);
+                    end
+                end
+            end else if (c5_prow < (c5_off + 2)) begin  // 帧头那一窗：OFF_LINES 行 + 读口成对滞后的 2 行
+                c5_head = c5_head + 1;
+                c5_head_c[j5] = c5_head_c[j5] + 1;
+                if (dsub(c5_got, c5_exp) != 0) begin
+                    c5_head_bad = c5_head_bad + 1;
+                    c5_headbad_c[j5] = c5_headbad_c[j5] + 1;
+                end
+                if (c5_dump < 18) begin        // 3 列 × 帧头窗 6 行（`OFF+2`）：只放 4 行就看不见 4/5 行
+                    c5_dump = c5_dump + 1;
+                    $display("C5HEAD col=%0d prow=%0d px=%h 源行tag=%0d 定义=%0d | 屏上这一格来自哪一行的判决",
+                             c5_pcol, c5_prow, c5_px, c5_got, c5_exp);
+                end
+            end else begin
+                c5_judged = c5_judged + 1;
+                c5_jud_c[j5] = c5_jud_c[j5] + 1;
+                if (dsub(c5_got, c5_exp) != 0) begin
+                    c5_bad = c5_bad + 1;
+                    c5_badc_c[j5] = c5_badc_c[j5] + 1;
+                end
+            end
+        end
+        // 行号必须在**行尾**加一：少了这一句，`c5_prow` 永远停在 0 ⇒ 每一格都被当成"帧头那几行"，
+        // C5a 的 judged 会是 0（覆盖地板正确地红）、C5c 把整帧都算成陈旧行 —— 第一跑就是这么红的，
+        // 红的是尺子，不是被测对象（本仓第四次撞到同一族，见 ISSUES #94 的"台架相位"那条）。
+        if (!dut.de_o && c5_de_d) c5_prow = c5_prow + 1;
+        c5_de_d = dut.de_o;
+    end
+    // C20: with bilinear ON, the raw tap's decoded row must still be the display row/2
+    // (allow +-1 for the 1.00x vertical blend). A head/tail pair-buffer slip shows up as
+    // a row about 128/2 away (source 299 vs 0).
+    always @(posedge dut.clk_pix) begin
+        if (c20_on && dut.u_split.de &&
+            (dut.u_split.x == 12'd300 || dut.u_split.x == 12'd512 || dut.u_split.x == 12'd900)) begin
+            c20_n = c20_n + 1;
+            if (dut.u_split.y < 12'd8) begin c20_hd = c20_hd + 1; end
+            if (dut.u_split.y >= 12'd592) begin c20_tl = c20_tl + 1; end
+            if (dsub(mem_row(dut.u_split.orig_pix), (dut.u_split.y[8:1] & 8'h7F)) > 1 ||
+                dsub(mem_row(dut.u_split.orig_pix), (dut.u_split.y[8:1] & 8'h7F)) < -1) begin
+                c20_bad = c20_bad + 1;
+                if (dut.u_split.y < 12'd8) c20_hb = c20_hb + 1;
+                if (dut.u_split.y >= 12'd592) c20_tb = c20_tb + 1;
+                if (c20_dump < 18) begin
+                    c20_dump = c20_dump + 1;
+                    $display("C20BAD x=%0d y=%0d px=%h tagrow=%0d exp=%0d",
+                             dut.u_split.x, dut.u_split.y, dut.u_split.orig_pix,
+                             mem_row(dut.u_split.orig_pix), (dut.u_split.y >> 1) & 8'h7F);
+                end
+            end
+        end
+    end
+    always @(posedge dut.clk_pix) begin
+        if (c21_on && dut.u_split.de &&
+            (dut.u_split.x == 12'd300 || dut.u_split.x == 12'd512 || dut.u_split.x == 12'd900)) begin
+            c21_n = c21_n + 1;
+            c21_px = ~dut.u_split.proc_pix;      // invert is a 16-bit complement; this is the tag
+            if (dut.u_split.y < 12'd8) begin c21_hd = c21_hd + 1; end
+            if (dut.u_split.y >= 12'd592) begin c21_tl = c21_tl + 1; end
+            if (dsub(mem_row(c21_px), (dut.u_split.y[8:1] & 8'h7F)) > 1 ||
+                dsub(mem_row(c21_px), (dut.u_split.y[8:1] & 8'h7F)) < -1) begin
+                c21_bad = c21_bad + 1;
+                if (dut.u_split.y < 12'd8) c21_hb = c21_hb + 1;
+                if (dut.u_split.y >= 12'd592) c21_tb = c21_tb + 1;
+                if (c21_dump < 18) begin
+                    c21_dump = c21_dump + 1;
+                    $display("C21BAD x=%0d y=%0d proc=%h inv=%h tagrow=%0d exp=%0d",
+                             dut.u_split.x, dut.u_split.y, dut.u_split.proc_pix, c21_px,
+                             mem_row(c21_px), (dut.u_split.y >> 1) & 8'h7F);
+                end
+            end
+        end
+    end
+    always @(posedge dut.clk_pix) begin
+        if (c22_on && dut.u_split.de && !dut.u_split.take_orig &&
+            (dut.u_split.x == 12'd300 || dut.u_split.x == 12'd512 || dut.u_split.x == 12'd900)) begin
+            c22_n = c22_n + 1;
+            c22_px = dut.u_split.proc_pix;
+            c22_lum = (c22_px[15:11] * 77 + c22_px[10:5] * 150 + c22_px[4:0] * 29) >> 8;
+            if (dut.u_split.y < 12'd8) begin
+                c22_topn = c22_topn + 1;
+                if (c22_lum > 32) c22_topbad = c22_topbad + 1;
+                if (c22_lum > c22_mtop) c22_mtop = c22_lum;
+                if (c22_lum > 32 && c22_dump < 18) begin
+                    c22_dump = c22_dump + 1;
+                    $display("C22TOPBAD y=%0d x=%0d sob=%h lum=%0d", dut.u_split.y, dut.u_split.x, c22_px, c22_lum);
+                end
+            end else if (dut.u_split.y >= 12'd592) begin
+                c22_botn = c22_botn + 1;
+                if (c22_lum > 32) c22_botbad = c22_botbad + 1;
+                if (c22_lum > c22_mbot) c22_mbot = c22_lum;
+                if (c22_lum > 32 && c22_dump < 18) begin
+                    c22_dump = c22_dump + 1;
+                    $display("C22BOTBAD y=%0d x=%0d sob=%h lum=%0d", dut.u_split.y, dut.u_split.x, c22_px, c22_lum);
+                end
+            end else begin
+                if (c22_lum > 32) c22_bodybad = c22_bodybad + 1;
+                if (c22_lum > c22_mbody) c22_mbody = c22_lum;
+            end
+        end
+    end
+
+    // ---- C8（#102 的判据：**每一行的第一格**，两个抽头各自判）----
+    //   为什么必须有它，而 C5/C6/C7 都不够：C5/C7 采样列在 300/512/900，**从来不判第 0 列**；
+    //   C6 判第 0 列但只看"屏上那一格"，而屏上是缝选中的那一路（今天 = 处理抽头），
+    //   且它只比**列**不比行。P100 量到的两条病灶恰好都躲在第 0 列：
+    //     · 原图抽头的第 0 列摆的是"源列 160"（= 消隐期地址读回来的格子）⇒ 用户念的左缘细线；
+    //     · 处理抽头的第 0 列在帧头那几行摆的是别的行（这一条归 C5c 判，不在 C8 的窗里）。
+    //   所以 C8 把窗限定在**本体行**（`y ≥ OFF+BILIN`），只问一件事：第 0 列是不是本行的第一列。
+    //   两路分开数、分开判 ⇒ 红了直接说出是哪一路（不再需要跑板子上做 `split` A/B）。
+    integer c8_os = 0, c8_ob = 0, c8_ps = 0, c8_pb = 0, c8_odump = 0, c8_pdump = 0;
+    always @(posedge dut.clk_pix) begin
+        if (c5_on && dut.u_split.de && dut.u_split.x == 12'd0
+            && dut.u_split.y >= (c5_off + 2) && dut.u_split.y < 12'd595) begin
+            // 期望：源列 = 0，源行 = 面板行 >>1（`px_val` 的 tag 是 mod 128/256，用 dsub 判小偏移）
+            c8_os = c8_os + 1;
+            if (mem_col(dut.u_split.orig_pix) !== 8'd0
+                || dsub(mem_row(dut.u_split.orig_pix), ((dut.u_split.y >> 1) & 8'h7F)) != 0) begin
+                c8_ob = c8_ob + 1;
+                if (c8_odump < 6) begin
+                    c8_odump = c8_odump + 1;
+                    $display("C8OBAD y=%0d 原图第0列=(行%0d,列%0d) 定义=(行%0d,列0) oob=%b",
+                             dut.u_split.y, mem_row(dut.u_split.orig_pix), mem_col(dut.u_split.orig_pix),
+                             (dut.u_split.y >> 1) & 8'h7F, dut.u_split.oob);
+                end
+            end
+            c8_ps = c8_ps + 1;
+            if (mem_col(dut.u_split.proc_pix) !== 8'd0
+                || dsub(mem_row(dut.u_split.proc_pix), ((dut.u_split.y >> 1) & 8'h7F)) != 0) begin
+                c8_pb = c8_pb + 1;
+                if (c8_pdump < 6) begin
+                    c8_pdump = c8_pdump + 1;
+                    $display("C8PBAD y=%0d 处理第0列=(行%0d,列%0d) 定义=(行%0d,列0) oob=%b",
+                             dut.u_split.y, mem_row(dut.u_split.proc_pix), mem_col(dut.u_split.proc_pix),
+                             (dut.u_split.y >> 1) & 8'h7F, dut.u_split.oob);
+                end
+            end
+        end
+    end
+
+    // ---- C8c（#102 的机器那一半，2026-10-02 从副本台架并回来）：**原图抽头**在八档、整行所有列上
+    //   都得解出定义要的坐标。为什么 C2/C7 绿着还不够：它们比的是 `u_split.sel`（缝选中的那一路 =
+    //   此刻屏上那一路），而 P100 量到的两条病灶都在**没被屏选中的原图抽头**上（消隐期地址读回来的格子）。
+    //   C8 确实判 `orig_pix`，但窗只有 `x==0`、且只在 1.00x 那一档（`c5_on`）⇒ 0.5x/0.25x 的第 0 列
+    //   与其余各列的原图抽头，今天一个数都没有。这一条把两件事一起扩：**同一拍、同一个采样窗、
+    //   同一份逆映射表**（与 C2/C7 逐字符同窗），比 orig_pix 的列与行两半位，八档全扫。
+    //   期望值不引用任何顶层补偿项（与 C7 同一条规矩）。tag 是 mod 128/256 的（`px_val` 就这么编），
+    //   所以比"小偏移"用 dsub，与 C8/C7 同一把尺。
+    //   ⚠ 副本里我写过一句"自证在里面（inv=256 必须与 C8a 同结论）"，**那时候代码里并没有这条**
+    //   （规矩 25：注释里的工作 around / 声称就是缺陷报告）。并回来时把它补成真的：下面 C8cself 那条
+    //   只算尺子自己的期望函数——inv=256 必须退化成 `>>1`（列与行各一次），而 inv=1023 必须与它不同，
+    //   否则"八档全绿"可能只是期望函数根本没跟着表走。
+    integer c8c_n [0:7], c8c_bad [0:7], c8c_skip [0:7], c8c_dump [0:7];
+    integer c8c_i, c8c_np, c8c_f, c8c_l, c8c_q;
+    integer c8c_ec, c8c_er2, c8c_dc, c8c_dr2;
+    integer c8c_sb1, c8c_sb2, c8c_sb3;
+    reg [511:0] c8c_bv [0:7];
+    initial begin
+        for (c8c_i = 0; c8c_i < 8; c8c_i = c8c_i + 1) begin
+            c8c_n[c8c_i]=0; c8c_bad[c8c_i]=0; c8c_skip[c8c_i]=0; c8c_dump[c8c_i]=0;
+            c8c_bv[c8c_i]=512'd0;
+        end
+        c8c_sb1=0; c8c_sb2=0; c8c_sb3=0;
+        for (c8c_q = 0; c8c_q < 512; c8c_q = c8c_q + 1) begin
+            if (c2_exp_col(c8c_q, 256) !== (c8c_q >> 1)) c8c_sb1 = c8c_sb1 + 1;
+            if (c2_exp_col(c8c_q, 1023) === c2_exp_col(c8c_q, 256)) c8c_sb2 = c8c_sb2 + 1;
+        end
+        for (c8c_q = 0; c8c_q < SRC_H; c8c_q = c8c_q + 1)
+            if (c2_exp_row(c8c_q, 256) !== (c8c_q >> 1)) c8c_sb3 = c8c_sb3 + 1;
+    end
+
+    always @(posedge dut.clk_pix) begin
+        if (c2_on && dut.de_d[dut.MIX_D] && dut.y_d[dut.MIX_D] >= C2_YLO
+            && dut.y_d[dut.MIX_D] <= C2_YHI) begin
+            c8c_n[c2_k] = c8c_n[c2_k] + 1;
+            c8c_ec = c2_exp_col(dut.u_split.x_sel, C2_TBL(c2_k));
+            if (c8c_ec < 0 || c8c_ec > 511) begin
+                c8c_skip[c2_k] = c8c_skip[c2_k] + 1;      // 定义说这一格在画面外：不比内容，但必须数出来
+            end else begin
+                c8c_er2 = c2_exp_row(dut.y_d[dut.MIX_D], C2_TBL(c2_k));
+                if (c8c_er2 < 0 || c8c_er2 > (SRC_H-1)) begin
+                    c8c_skip[c2_k] = c8c_skip[c2_k] + 1;  // 纵向跑出采样带，同上不参与判定
+                end else begin
+                    c8c_dc  = dsub(mem_col(dut.u_split.orig_pix), c8c_ec[7:0]);
+                    c8c_dr2 = dsub(mem_row(dut.u_split.orig_pix), c8c_er2[6:0]);
+                    if (c8c_dc != 0 || c8c_dr2 != 0) begin
+                        c8c_bad[c2_k] = c8c_bad[c2_k] + 1;
+                        c8c_bv[c2_k][dut.u_split.x_sel >> 1] = 1'b1;
+                        if (c8c_dump[c2_k] < 3) begin
+                            c8c_dump[c2_k] = c8c_dump[c2_k] + 1;
+                            $display("C8CBAD code=%0d x=%0d y=%0d orig=%h 解出=(列%0d,行%0d) 定义=(列%0d,行%0d) dcol=%0d drow=%0d oob=%b oob_out=%b proc=%h sx=%0d sy=%0d",
+                                     c2_k, dut.u_split.x_sel, dut.y_d[dut.MIX_D], dut.u_split.orig_pix,
+                                     mem_col(dut.u_split.orig_pix), mem_row(dut.u_split.orig_pix),
+                                     c8c_ec[7:0], c8c_er2[6:0], c8c_dc, c8c_dr2,
+                                     dut.oob, dut.oob_out, dut.u_split.proc_pix, dut.sx, dut.sy);
+                        end
+                    end
+                end
+            end
+        end
+    end
+
+    // `OFF_LINES` 从**被测对象**取，不抄字面量（#68 那条老规矩：抄来的数会变成"我相信我自己"）。
+    initial c5_off = dut.u_pipe.OFF_LINES;
+
+    // ---- C12 的采样：只看 u_osd 输出上的 rose 字形色（与延迟无关，不需要标签对齐）----
+    integer osd_rose = 0, osd_cells = 0, osd_rose_on = 0, osd_rose_off = 0, osd_rose_n_on = 0;
+    reg     osd_count = 1'b0;
+    always @(posedge dut.clk_pix) if (osd_count && dut.u_osd.de_out) begin
+        osd_cells = osd_cells + 1;
+        if ({dut.u_osd.r, dut.u_osd.g, dut.u_osd.b} === 24'hFF0090) osd_rose = osd_rose + 1;
+    end
+
+    // ================= P100（#98/#102 的探针：**面板级、两个抽头一起量**，只打印不判定）=================
+    // 为什么已有的 C5/C6/C7 三个都不够：它们判的是**引脚上那一格**，而引脚上是谁由缝位决定 ——
+    //   台架把 `split_ctl_tb` 钉在 0 ⇒ `left=(x_sel<0)=0` ⇒ `take_orig=~left... ` 见 split_display，
+    //   实测结果是**整屏都是处理抽头**。而用户念的两条症状（屏顶带、左缘细线）在 r79 那次
+    //   用 `split 0` / `split 100` 的屏上 A/B 已经钉在**原图抽头**上 ⇒ 顶层台架对被判的那一路
+    //   是**全盲**的（P98 量的是链路中间的 `raw_ring`，不是屏上那一格）。
+    // 这一段的办法不是去动缝位（那会把 C2/C3/C4/C5/C6/C7 的既有数全改一遍、凭据作废重来），
+    //   而是直接取 `u_split` 的两个**输入**：`orig_pix` / `proc_pix` 与混色级同一拍、同一格，
+    //   缝选谁都在它旁边 —— 于是一次跑就把两路各自的 (源行, 源列) 摆出来，不必猜。
+    // ⚠ 这一跑仍然在 `c5_on` 的窗里（0° × 1.00x × 最近邻、标记线关）：与 C5/C6 同一激励，
+    //   两边的数才能对着读。行数只取**帧头 10 行 + 帧尾 5 行 + 中间一行**，列只取**左右各 3 列**
+    //   ⇒ 一帧 90 条、上限 200 条，不会把日志淹掉（P98 的教训：探针要能被读完）。
+    // ⚠ **采样必须落在混色级自己的标签上，不能落在引脚上**：`split_display` 的输出是打拍的，
+    //   引脚 `de_o` 拉高的那一拍，`sel` 已经是**上一拍**的内容 ⇒ 第一版这里自发把两路都读成
+    //   "列 = (pcol+1)>>1"，看着像两个抽头都偏一列，其实是探针自己晚了一拍（#92 同族，第 N 次）。
+    //   所以这一段的窗用 `u_split.de`、坐标用 `u_split.x/y`（= 顶层的 `x_d[MIX_D]/y_d[MIX_D]`），
+    //   与它同一拍的 `orig_pix/proc_pix` 才是同一格。期望按定义当场算在打印里，读的人不用推。
+    // ================= C13（新：follow=1 图像域缝路有没有按行错位）=================
+    // 为什么单独一段：`split_ctl_tb` 全程是 19'd0 ⇒ gp[11]=0 ⇒ `u_seam_src` 那条 18 拍旗标链在既有
+    //   162 枚判定里**一次都没被判到**（grep `seam_src_orig` 在本文件命中 0）。用户报的"旋转后画面
+    //   最下沿有一条错位的带 + 蓝线上面出头/下面没到底"正落在这条链上。
+    // ⚠ 前三版量法都不成立，逐版说明（都是尺子的 bug，不是设计的 bug）：
+    //   v1 把 `mem_col` 当真实源列去比 `< seam`：`mem_col = v[7:0]` 是**源列 mod 256**（tag 8 位、源宽 512）
+    //      ⇒ 真实源列 ≥256 的格子被期望式系统性判反。
+    //   v2/v3 改找"tag 在 0/255 之间跳"（= 真实列绕 256）：取到 0 行 —— 因为缝在源列 256，而 256 恰好是
+    //      tag 的最高位，**mod-256 天生看不见它**。
+    //   第四版把缝挪到**源列 128**（tag 里是 127→128，看得见），并且用**两个对称角度**把常数列偏移消掉：
+    //      旗标相对内容的错位有一个沿行方向的斜率 tan(角度)×（显示列/源列=2），它在 +45° 与 315° 两臂
+    //      符号相反；而"旗标打晚了几拍"造成的刚性列平移在两臂**同号** ⇒
+    //      V=(R(+45)−R(315))/2 = 行错位（单位：显示行），K=(R(+45)+R(315))/2 = 列平移。
+    //   内容自己的交叉列用 `orig_pix` 的 tag 找（C1/C5/C6 已经把"屏上 (x,y) 的内容 = 源 (x>>1, y>>1)"钉死），
+    //   每行可能有 2 个 127→128（真实列 128 与 384 撞同一个 tag）⇒ 取**离旗标最近**的那个，超过 24 列丢掉。
+    //   第四版把缝挪到源列 128 并加了两臂 ⇒ 跑出来 504 行有旗标翻转、**0 行有内容交叉**。C13DUMP 给了答案：
+    //   那一档是 `zoom_sel=4`（1.00x）+ 45°，旋转后的画面整个越出面板 ⇒ `pix_raw` 全黑 ⇒ tag=(0,0)，
+    //   内容根本不自报源列，尺子的第二条腿踩在空集上（v4 第一次跑没分路计数，所以看不出是哪条腿空；
+    //   现在 ARM 三个计数各自报，这就是"每一个 0 都要能指认它是哪一种 0"）。
+    //   第五版（现在这把）改两处，都是为尺子改的、与设计无关：
+    //     · 倍率换 0.50x（`zoom_sel=2`）：画面缩进面板，四周才有背景带，行内才有点亮的格子；
+    //     · 内容交叉判据从"tag 恰好在 127/128 之间跳"改成"**tag 列对同一个缝位做同一个谓词 `(col < seam)`
+    //       的结果发生翻转**"。0.50x 下 tag 每拍跨 2 列，恰好等于某值的跳变会被跨过；谓词翻转不会。
+    //       mod-256 别名让一行内可能有 2 次谓词翻转（真实列 128 与 384），加上画面左右沿的黑边各一次
+    //       ⇒ 每行记 6 个候选，取**离旗标最近**的那个（±24 列之外丢掉）。
+    //   两臂对称（+45°/315°）的意义不变：行错位 V 在两臂反号、常数列平移 K 在两臂同号 ⇒
+    //     V=(R(+45)−R(315))/2 = 行错位（显示行），K=(R(+45)+R(315))/2 = 列平移。
+    localparam integer C13_SEAM = 128;
+    localparam integer C13_SLOT = 6;                   // 每行最多记 6 个内容候选交叉列
+    localparam integer C13_NEAR = 24;                 // "算同一条缝"的列窗口
+    reg [11:0] c13_xf [0:599];                // 旗标翻转列（FFF = 本行没翻）
+    reg [11:0] c13_xe [0:599*C13_SLOT];       // 内容谓词翻转的列，槽 = y*C13_SLOT + k
+    reg [2:0]  c13_nx [0:599];                // 本行已记了几个交叉
+    reg  [9:0] c13_lo;                        // {上一格 tag 列(8), 上一格旗标, 上一格内容谓词}
+    reg  [11:0] c13_yn;
+    reg         c13_on = 1'b0;
+    integer c13_r, c13_k2, c13_a, c13_b, c13_dist, c13_bdist, c13_have;
+    integer c13_rows = 0, c13_sum = 0, c13_np = 0, c13_nm = 0, c13_rp = 0, c13_rm = 0;
+    integer c13_v = 0, c13_kc = 0;
+    // ⚠ 自诊断必须**分路**：v4 第一次跑两臂都 0 行，而 ARM 只报了联合计数 ⇒ 分不清是"旗标没翻"、
+    //   "内容没有 127/128 跳"、还是"有跳但离旗标超过 24 列被丢"。现在三个计数各自报，外加一段
+    //   按 32 列步进的原始 tag 转储（只有 3 行 × ~32 格，不淹日志）—— 尺子看不见时要能看见它为什么。
+    integer c13_nflip = 0, c13_ncross = 0, c13_nfar = 0, c13_ndump = 0;
+    reg      c13_dump = 1'b0;
+    // ================= C14（同一批激励的第二把尺子：蓝线的**症状**本身）=================
+    //   用户的话是"线上面出头、下面没到底，没到底的地方就是错位的画面条"。C13 量的是列，
+    //   这条直接量"线画在画面外"的像素数与"线的行范围 vs 画面的行范围"：
+    //     · c14_out —— `src_mark` 亮而 `oob_out`（与像素同环同尾巴的那一位，#92 第一/三笔钉过）说画面外
+    //       的拍数 = "出头"的像素，本应为 0；
+    //     · c14_rminm/rmaxm − c14_rminc/rmaxc —— 线的上下端与画面上下端的行差 = "出头/没到底"多少行。
+    //   复位值 0/599 是哨兵：没采到就用 coverage 地板（c14_mark）拦住，不让它空过。
+    integer c14_mark = 0, c14_out = 0, c14_inb = 0;
+    integer c14_rminm = 0, c14_rmaxm = 0, c14_rminc = 0, c14_rmaxc = 0;
+    integer c14_mark2 = 0, c14_out2 = 0, c14_top2 = 0, c14_bot2 = 0;
+    integer c14_mbase = 0, c14_obase = 0;      // 每臂开始时的总和，用来打印**本臂增量**
+    // ================= P16（只打印、不判定）：画面内相邻两格的自报源坐标**跳变直方图** =================
+    //   为什么先不判：0.50x + 45° 下"一格走几个源列/源行"由几何决定，我没先在板上量过它的分布，
+    //   现在写一个阈值就是拿"我觉得"当判据（#98/#477 都栽过一次）。先把直方图打出来：
+    //   若画面内部出现 |Δ| ≥ 9 的桶，那就是"屏上这一格其实来自别处"的冒烟点（绕回、越界折回、
+    //   写侧少写一行都会在那里现形）；若全落在小桶，则底边那条带**不在显示通路**，得去查存进去的帧。
+    //   只在**最近邻**臂计数（`bilin_en_tb=0`）：插值会把两格 tag 混成第三格，那不是"跳变"而是尺子脏。
+    integer p16_hist [0:10];
+    integer p16_pairs = 0, p16_d, p16_d2, p16_k;
+    reg [7:0] p16_prow, p16_pcol;
+    reg [11:0] p16_py;
+    reg        p16_have = 1'b0;
+    // ================= C13val：先证明"屏上这一格确实带着 px_val 的坐标 tag" =================
+    //   #477 的教训：C13 拿 `mem_col/mem_row` 当"内容自报的源坐标"，而那份内容当时是**图卡**
+    //   （渐变+网格，台架自己的注释就写了"图卡的渐变色 row/col 全不对就是它的形状"）⇒ 整条腿踩空。
+    //   这一条把腿钉住：不旋转 × 1.00x 下，屏上每格的 tag 必须等于它自己的显示标签坐标
+    //   （行 = y>>1 mod 128、列 = x mod 256，与 C1/C5/C6 同一个口径）。它不绿，任何基于 tag 的量法都不许当证据。
+    integer c13v_bad = 0, c13v_jud = 0, c13v_dr = 0, c13v_dc = 0;
+    reg       c13v_on = 1'b0;
+    always @(posedge dut.clk_pix) begin
+        if (c13v_on && dut.de_d[11] && !dut.oob_out &&
+            mix_y >= 12'd12 && mix_y <= 12'd586) begin
+            // 口径**照抄 C1**：内容是 `tap_raw = dut.orig_disp`，标签是 `mix_x/mix_y = x_d11/y_d11`
+            //（C1 用同一对式子判绿，所以我这里全不符只能是配错对，不是式子错）。
+            // 窗只取**本体行**：帧头 0..11 与屏底 587..599 落在 #97/#98 的请求行绕回带上，
+            // 那里"内容不等于本行标签"是**已经声明的**已知项（就是 C5c 那条红），不该混进这条地基判据。
+            c13v_jud = c13v_jud + 1;
+            c13v_dr  = dsub(mem_row(tap_raw), (mix_y[8:1] & 8'h7F));
+            c13v_dc  = dsub(mem_col(tap_raw), mix_x[7:0]);
+            if (c13v_dr != 0 || c13v_dc != 0) c13v_bad = c13v_bad + 1;
+        end
+    end
+    // 把台架那份 `px_val` 图重新写进 AXI 侧的 ddr[]，并给发布心跳留出拷贝时间 ⇒ 臂里的内容是真坐标图。
+    // ================= C15（不解析像素值的那把尺子）：画面的**边**落在哪儿 =================
+    //   为什么要它：tag 那条腿在 C13/P16 这一带已经证明不可用（#477：这里屏上不是 px_val 坐标图），
+    //   而用户报的恰恰是"边"的问题（只有底面异常、上左右正常、蓝线端点差一点）。
+    //   两条腿都不需要知道格子里画的是什么：
+    //     · 几何侧：mapper 自己那拍（`de_d[2]` + `x_d[2]/y_d[2]`，与图卡同一对口径）取每行
+    //       **最后一个 `!oob` 的列** = 几何说"画面在这行到哪结束"；
+    //     · 内容侧：`dut.de_d[11]` + `mix_x/mix_y` 与 `oob_out`（#92 之后这一位与像素同环同尾巴）
+    //       取同样一个"最后一个非越界的列" = 屏上那一行的画面实际到哪结束。
+    //   两者相减 = 画面向左/右偏了几列。它里面**混着**两件事：行错位（旋转时表现为列差，两臂 ±45° 反号）
+    //   与常数列平移（两臂同号）⇒ 还是用两臂拆开：V15=(D(+45)−D(315))/2 行、K15=(D(+45)+D(315))/2 列。
+    reg [11:0] c15_g [0:599];
+    reg [11:0] c15_c [0:599];
+    integer c15_r, c15_dg = 0, c15_dc2 = 0, c15_n = 0, c15_v = 0, c15_k = 0, c15_nA = 0, c15_nB = 0;
+    integer c15_mean = 0, c15_s1 = 0, c15_s2 = 0, c15_v2 = 0;
+    always @(posedge dut.clk_pix) begin
+        if (c13_on) begin
+            if (dut.de_d[2] && !dut.oob && dut.y_d[2] < 12'd600 &&
+                dut.x_d[2] > c15_g[dut.y_d[2]])
+                c15_g[dut.y_d[2]] = dut.x_d[2];
+            if (dut.de_d[11] && !dut.oob_out && mix_y < 12'd600 && mix_x > c15_c[mix_y])
+                c15_c[mix_y] = mix_x;
+        end
+    end
+    // C16（只打印）：**旋转时**把面板最上 3 行与最下 6 行的两个抽头并排打出来。
+    //   为什么现在才加：P100 那把探针只在 `angle=0` 跑，它在 rot=0 下已经量到"帧头两抽头差 2 个源行
+    //   （orig=行0 / proc=行2）"，而用户 2026-10-17 的新读数是"条带跟**屏幕下方**走，哪条边转到屏底就在哪条边出现"
+    //   ⇒ 要判的是**旋转时的帧尾**，而这一档从来没被看过（#477 待办①的另一半）。
+    //   打印量控制：只看 0/1/5 与 594..599，列只取 x=0 与 x=512，五臂合计 ~110 行。
+    reg c16_dump = 1'b0;
+    always @(posedge dut.clk_pix) begin
+        if (c16_dump && dut.u_split.de && (dut.u_split.x == 12'd0 || dut.u_split.x == 12'd512) &&
+            (dut.u_split.y == 12'd0 || dut.u_split.y == 12'd1 || dut.u_split.y == 12'd5 ||
+             (dut.u_split.y >= 12'd594 && dut.u_split.y <= 12'd599)))
+            $display("C16 y=%0d x=%0d | orig(%0d,%0d) proc(%0d,%0d) oob_out=%b mark=%b take_orig=%b",
+                     dut.u_split.y, dut.u_split.x,
+                     mem_row(dut.u_split.orig_pix), mem_col(dut.u_split.orig_pix),
+                     mem_row(dut.u_split.proc_pix), mem_col(dut.u_split.proc_pix),
+                     dut.oob_out, dut.u_split.src_mark, dut.u_split.src_orig);
+    end
+    task arm_coord_frame;
+        integer r2, c2;
+        begin
+            for (r2 = 0; r2 < SRC_H; r2 = r2 + 1)
+                for (c2 = 0; c2 < WPL; c2 = c2 + 1) begin
+                    p3 = px_val(r2, c2*4+3); p2 = px_val(r2, c2*4+2);
+                    p1 = px_val(r2, c2*4+1); p0 = px_val(r2, c2*4);
+                    ddr[r2*WPL + c2] = {p3, p2, p1, p0};
+                end
+            repeat (14) @(posedge dut.frame_start);   // 心跳每 4 帧一次 ⇒ 14 帧里至少有 3 次发布沿
+        end
+    endtask
+    // C22 stimulus: one uniform grey per source row, slow vertical ramp (5-bit luma 0..31).
+    // Adjacent rows differ by at most one code, so the correct Sobel is ~0 everywhere.
+    task arm_bars_frame;
+        integer r2, c2, g5i, g6i;
+        reg [15:0] bp;
+        begin
+            for (r2 = 0; r2 < SRC_H; r2 = r2 + 1) begin
+                g5i = (r2 * 31) / (SRC_H - 1);
+                g6i = (r2 * 63) / (SRC_H - 1);
+                bp  = {g5i[4:0], g6i[5:0], g5i[4:0]};
+                for (c2 = 0; c2 < WPL; c2 = c2 + 1)
+                    ddr[r2*WPL + c2] = {bp, bp, bp, bp};
+            end
+            repeat (14) @(posedge dut.frame_start);
+        end
+    endtask
+    task arm_frame9;
+        integer r2, c2;
+        begin
+            for (r2 = 0; r2 < SRC_H; r2 = r2 + 1)
+                for (c2 = 0; c2 < WPL; c2 = c2 + 1) begin
+                    p3 = px_val9(r2, c2*4+3); p2 = px_val9(r2, c2*4+2);
+                    p1 = px_val9(r2, c2*4+1); p0 = px_val9(r2, c2*4);
+                    ddr[r2*WPL + c2] = {p3, p2, p1, p0};
+                end
+            repeat (14) @(posedge dut.frame_start);
+        end
+    endtask
+    // 一臂：设角度 → 等稳 → 采一帧 → 平均列偏差 R = (旗标翻转列 − 内容交叉列)
+    task c13_arm;
+        input [8:0] ang;
+        integer r, kk;
+        begin
+            for (r = 0; r < 600; r = r + 1) begin
+                c13_xf[r] = 12'hFFF; c13_nx[r] = 3'd0;
+            end
+            c13_yn = 12'hFFF;
+            // ⚠ 基线要在**采集之前**取：先前我把这两行写在后处理段（`c13_rows = 0;` 那一组后面），
+            //   于是每臂增量恒打 +0 —— 总和判据（C14a/C14pre）不受影响，但那条打印当时是废话。
+            c14_mbase = c14_mark; c14_obase = c14_out;
+            for (c15_r = 0; c15_r < 600; c15_r = c15_r + 1) begin
+                c15_g[c15_r] = 12'h0; c15_c[c15_r] = 12'h0;
+            end
+            c15_n = 0; c15_mean = 0;
+            force dut.angle  = ang;
+            force dut.rot_on = 1'b1;
+            // ⚠ 这一句在 v5 曾经写反（当时是 `force dut.fb_vis=0`，理由是"图卡才自报坐标"）——**恰好相反**：
+            //   带 (源行,源列) tag 的是台架经 `px_val` 写进 AXI 侧 `ddr[]`、再由发布心跳拷进帧缓存的那份图；
+            //   图卡是渐变+网格。所以这里不但不关 `fb_vis`，还要**重新铺一份坐标图并留出拷贝时间**。
+            //   这条腿由 C13val 单独钉住（不旋转×1.00x 下 tag 必须等于显示标签），它不绿整段就不算有依据。
+            arm_coord_frame;
+            repeat (3) @(posedge dut.frame_start);      // 等换角稳定，别采到过渡帧
+            c13_on = 1'b1;   c13_dump = 1'b1;   c16_dump = 1'b1;
+            @(posedge dut.frame_start);                 // 只采一帧：翻转列是行内属性，一帧够
+            repeat (2) @(posedge dut.frame_start);
+            c13_on = 1'b0;   c13_dump = 1'b0;   c16_dump = 1'b0;
+            c13_rows = 0; c13_sum = 0; c13_nflip = 0; c13_ncross = 0; c13_nfar = 0;
+            for (r = 0; r < 600; r = r + 1) begin
+                if (c13_xf[r] !== 12'hFFF) c13_nflip = c13_nflip + 1;
+                if (c13_nx[r] != 3'd0)     c13_ncross = c13_ncross + 1;
+                if (c13_xf[r] !== 12'hFFF && c13_nx[r] != 3'd0) begin
+                    c13_bdist = -1; c13_have = 0;
+                    for (kk = 0; kk < C13_SLOT; kk = kk + 1) begin
+                        if (kk < c13_nx[r]) begin
+                            c13_a = c13_xf[r];
+                            c13_b = c13_xe[r*C13_SLOT + kk];
+                            c13_dist = c13_a - c13_b;
+                            if (c13_dist < 0) c13_dist = -c13_dist;
+                            if (c13_bdist < 0 || c13_dist < c13_bdist) begin
+                                c13_bdist = c13_dist; c13_have = c13_b;
+                            end
+                        end
+                    end
+                    if (c13_bdist >= 0 && c13_bdist <= C13_NEAR) begin
+                        c13_rows = c13_rows + 1;
+                        c13_sum  = c13_sum + (c13_a - c13_have);   // 两个都走 integer ⇒ 符号是对的
+                        if (c13_rows <= 8)
+                            $display("C13 row=%0d ang=%0d 旗标列=%0d 内容交叉列=%0d 差=%0d",
+                                     r, ang, c13_a, c13_have, c13_a - c13_have);
+                    end else begin
+                        c13_nfar = c13_nfar + 1;
+                    end
+                end
+            end
+            $display("C13ARM ang=%0d 旗标翻转型=%0d 有内容交叉的行=%0d 判定的行=%0d 离旗标过远被丢=%0d 平均列偏差=%0d",
+                     ang, c13_nflip, c13_ncross, c13_rows, c13_nfar,
+                     c13_rows == 0 ? 0 : c13_sum / c13_rows);
+            // 本臂的 C14 增量（症状计数）：三臂各自报，别只报总和 —— 总和红了看不出是哪一档红的。
+            $display("C14ARM ang=%0d 标记像素+%0d 画在画面外+%0d", ang,
+                     c14_mark - c14_mbase, c14_out - c14_obase);
+            // P16 是**累计到本臂末**的最近邻臂读数（插值臂被 `!bilin_en_tb` 挡在门外）
+            $display("P16 ang=%0d 相邻对=%0d 直方|Δsrc|0..10: %0d %0d %0d %0d %0d %0d %0d %0d %0d %0d %0d",
+                     ang, p16_pairs, p16_hist[0], p16_hist[1], p16_hist[2], p16_hist[3], p16_hist[4],
+                     p16_hist[5], p16_hist[6], p16_hist[7], p16_hist[8], p16_hist[9], p16_hist[10]);
+            // C15：几何侧的画面右沿 vs 内容侧的画面右沿，按行取差再平均（只算两边都真的有画面的行）
+            // C15：几何侧的画面右沿 vs 内容侧的画面右沿，按行取差再平均（只算两边都真的有画面的行）。
+            // ⚠ 差值必须先塞进 integer 再相减：两个 12 位无符号 reg 直接相减会在 12 位里回绕，
+            //   "内容比几何靠左 3 列"会被读成 +4093 —— 这类符号账本仓里为 P100 那一族红过一回。
+            c15_mean = 0; c15_n = 0;
+            for (c15_r = 12; c15_r < 587; c15_r = c15_r + 1)
+                if (c15_g[c15_r] != 12'h0 && c15_c[c15_r] != 12'h0) begin
+                    c15_s1 = c15_g[c15_r];
+                    c15_s2 = c15_c[c15_r];
+                    c15_mean = c15_mean + (c15_s1 - c15_s2);
+                    c15_n = c15_n + 1;
+                end
+            if (c15_n != 0) c15_mean = c15_mean / c15_n;
+            $display("C15ARM ang=%0d 可判行=%0d 几何右沿-内容右沿 平均=%0d 列", ang, c15_n, c15_mean);
+        end
+    endtask
+    reg        c13_prn;                         // 本拍内容谓词：tag 列 < 当前缝位
+    always @(posedge dut.clk_pix) begin
+        if (c13_on && dut.u_split.de) begin
+            c13_prn = (mem_col(dut.u_split.orig_pix) < dut.split_eff);
+            // ---- C14 计数（症状本身，不看列）----
+            if (dut.u_split.src_mark) begin
+                c14_mark = c14_mark + 1;
+                if (dut.oob_out) c14_out = c14_out + 1;
+                if (c14_rminm == 0 || dut.u_split.y < c14_rminm) c14_rminm = dut.u_split.y;
+                if (dut.u_split.y > c14_rmaxm)                  c14_rmaxm = dut.u_split.y;
+            end
+            if (!dut.oob_out) begin
+                c14_inb = c14_inb + 1;
+                if (c14_rminc == 0 || dut.u_split.y < c14_rminc) c14_rminc = dut.u_split.y;
+                if (dut.u_split.y > c14_rmaxc)                  c14_rmaxc = dut.u_split.y;
+            end
+            // ---- P16：画面内相邻两格自报源坐标的跳变直方图（只统计最近邻臂，插值臂脏）----
+            if (!bilin_en_tb) begin
+                if (!dut.oob_out) begin
+                    if (p16_have && p16_py === dut.u_split.y) begin
+                        p16_d  = dsub(mem_row(dut.u_split.orig_pix), p16_prow);
+                        p16_d2 = dsub(mem_col(dut.u_split.orig_pix), p16_pcol);
+                        if (p16_d  < 0) p16_d  = -p16_d;
+                        if (p16_d2 < 0) p16_d2 = -p16_d2;
+                        if (p16_d2 > p16_d) p16_d = p16_d2;
+                        if (p16_d > 10) p16_d = 10;
+                        p16_hist[p16_d] = p16_hist[p16_d] + 1;
+                        p16_pairs = p16_pairs + 1;
+                    end
+                    p16_prow = mem_row(dut.u_split.orig_pix);
+                    p16_pcol = mem_col(dut.u_split.orig_pix);
+                    p16_py   = dut.u_split.y;
+                    p16_have = 1'b1;
+                end else begin
+                    p16_have = 1'b0;      // 跨出画面再进来的两格不相邻，不配算一次"跳变"
+                end
+            end
+            if (c13_yn !== dut.u_split.y) begin
+                c13_yn = dut.u_split.y;
+                c13_lo = {mem_col(dut.u_split.orig_pix), dut.u_split.src_orig, c13_prn};
+            end else begin
+                if (c13_xf[dut.u_split.y] === 12'hFFF && dut.u_split.src_orig !== c13_lo[1])
+                    c13_xf[dut.u_split.y] = dut.u_split.x;
+                // 内容自己对**同一个缝位**做同一个谓词，一翻转就是这一行"画面过缝"的那一列。
+                // mod-256 别名 + 画面左右黑边（越界格 tag=0 ⇒ 谓词恒真）会带进额外翻转 ⇒ 全记下，
+                // 判定时取离旗标最近的那个，超过 C13_NEAR 丢掉。
+                if (c13_nx[dut.u_split.y] < C13_SLOT && c13_prn !== c13_lo[0]) begin
+                    c13_xe[dut.u_split.y*C13_SLOT + c13_nx[dut.u_split.y]] = dut.u_split.x;
+                    c13_nx[dut.u_split.y] = c13_nx[dut.u_split.y] + 3'd1;
+                end
+                c13_lo = {mem_col(dut.u_split.orig_pix), dut.u_split.src_orig, c13_prn};
+                // 原始转储：三行、每 32 列一格，用来看"内容到底自报了什么源列"。尺子 0 命中时靠它定位。
+                if (c13_dump && (dut.u_split.x % 32 == 0) &&
+                    (dut.u_split.y == 12'd96 || dut.u_split.y == 12'd300 || dut.u_split.y == 12'd504))
+                    $display("C13DUMP y=%0d x=%0d tagrow=%0d tagcol=%0d pr=%b flag=%b mark=%b seam=%0d",
+                             dut.u_split.y, dut.u_split.x, mem_row(dut.u_split.orig_pix),
+                             mem_col(dut.u_split.orig_pix), c13_prn, dut.u_split.src_orig,
+                             dut.u_split.src_mark, dut.split_eff);
+            end
+        end
+    end
+
+    integer p100_n = 0;
+    always @(posedge dut.clk_pix) begin
+        if (c5_on && dut.u_split.de && p100_n < 200 &&
+            (dut.u_split.y < 10 || dut.u_split.y == 12'd300 || dut.u_split.y >= 12'd595) &&
+            (dut.u_split.x < 12'd3  || dut.u_split.x > 12'd1020)) begin
+            p100_n = p100_n + 1;
+            $display("PROBE P100 x=%0d y=%0d 定义(行%0d,列%0d) | 原图(行%0d,列%0d) 处理(行%0d,列%0d) | oob=%b take_orig=%b sel=%h",
+                     dut.u_split.x, dut.u_split.y, (dut.u_split.y >> 1) & 8'h7F, (dut.u_split.x >> 1) & 8'hFF,
+                     mem_row(dut.u_split.orig_pix), mem_col(dut.u_split.orig_pix),
+                     mem_row(dut.u_split.proc_pix),  mem_col(dut.u_split.proc_pix),
+                     dut.u_split.oob, dut.u_split.take_orig, dut.u_split.sel);
+        end
+    end
+
+    // ================= P98（#98 的探针：**只打印，不判定**）=================
+    // 为什么要它：C5c 量到"帧头 0..3 行的内容是源行 1"，而按 C1h（mapper 第 3 级的 sy 逐格对过）
+    //   + C1d（环出口 = 标签行 >>1）推，帧头该读到的是**尾行 596..599 写进 4..7 号槽**的内容，
+    //   而那两个式子谁也没说"环的写入口那一拍摆着哪一源行" —— 中间隔着 fb_bilin 的乒乓。
+    //   再推第三种模型没有意义，直接把**写侧每一尾行的 tag**与**读侧每一头行的 tag**打成表：
+    //   一次跑完就知道差的是"写进去的东西"还是"槽的对齐"。
+    //   每行只在 `x_d[5]==0` 那一拍打一条 ⇒ 10 条尾行 + 8 条头行，不把日志淹掉。
+    integer p98_w = 0, p98_r = 0, p98_m = 0;
+    always @(posedge dut.clk_pix) begin
+        if (c5_on && dut.de_d[5] && dut.x_d[5] == 12'd0) begin
+            if (dut.y_d[5] >= 12'd588 && p98_w < 12) begin
+                p98_w = p98_w + 1;
+                $display("P98W 写侧 y_d5=%0d 槽=%0d | pix_raw tag=(行%0d,列%0d) oob=%b | sy=%0d y_d2=%0d",
+                         dut.y_d[5], dut.y_d[5][2:0], mem_row(dut.pix_raw), mem_col(dut.pix_raw),
+                         dut.oob_fb_d1, dut.sy, dut.y_d[2]);
+            end
+            if (dut.y_d[5] < 12'd8 && p98_r < 8) begin
+                p98_r = p98_r + 1;
+                $display("P98R 读侧 y_d5=%0d 读槽=%0d | 环出口 tag=(行%0d,列%0d) | 写入口同拍 tag=行%0d",
+                         dut.y_d[5], dut.y_d[5][2:0] - 3'd4,
+                         mem_row(dut.raw_ring[15:0]), mem_col(dut.raw_ring[15:0]),
+                         mem_row(dut.pix_raw));
+            end
+            // P98M（r80 那一轮补的"帧中间对照"）：头尾两段的数都有了，但**没有一个数说"帧中间
+            //   地址说要哪一行、环里走的又是哪一行"** ⇒ 头那几行的偏差没法归一（是"读口滞后"还是
+            //   "绕回窗早了/晚了两行"，只有拿中间的常数当零点才分得开）。同一拍的地址三件
+            //   （`y_req_row` 请求行 / `cy_r` 折回本帧的行号）与两路的 tag 一起打，中间段的
+            //   "环出口 − 定义"就是这一把尺子的零点，头/尾的数才读得懂。
+            if (dut.y_d[5] >= 12'd300 && dut.y_d[5] < 12'd304 && p98_m < 8) begin
+                p98_m = p98_m + 1;
+                $display("PROBE P98M y_d5=%0d 定义行=%0d | 请求 y_req_row=%0d cy_r=%0d | 环入口 tag=(行%0d,列%0d) 环出口 tag=(行%0d,列%0d)",
+                         dut.y_d[5], (dut.y_d[5] >> 1) & 8'h7F, dut.y_req_row, dut.cy_r,
+                         mem_row(dut.pix_raw), mem_col(dut.pix_raw),
+                         mem_row(dut.raw_ring[15:0]), mem_col(dut.raw_ring[15:0]));
+            end
+        end
+    end
+
+    // ================= P101（#98 第二问：**链子的传递函数**，只打印不判定）=================
+    // P100 已经量到：帧头 0..5 显示行上**原图抽头逐格等于定义、处理抽头恒等于源行 2**。
+    //   两路吃的是同一个 `pix_raw`，所以病灶在 `u_pipe` 内部（它的行缓存/绕过 mux 在帧头怎么走的），
+    //   不在地址侧。要把"内部哪一级开始重复"说出来，只需要链子**入口**的 (标签行, 内容 tag) 与
+    //   **出口**的同一列对在一起 —— 入口在顶层第 3 级（`de_d[3]/x_d[3]/y_d[3]`，din = pix_raw），
+    //   出口就是 P100 里那一列 `处理(行,列)`（同一列号 300，两处的数直接对着读）。
+    integer p101_n = 0;
+    always @(posedge dut.clk_pix) begin
+        if (c5_on && dut.de_d[3] && dut.x_d[3] == 12'd300 && p101_n < 40 &&
+            (dut.y_d[3] < 12'd12 || dut.y_d[3] >= 12'd588)) begin
+            p101_n = p101_n + 1;
+            $display("PROBE P101 链入口 y_d3=%0d cy_d3=%0d | din tag=(行%0d,列%0d) oob_fb=%b",
+                     dut.y_d[3], dut.cy_d[3], mem_row(dut.pix_raw), mem_col(dut.pix_raw), dut.oob_fb_d1);
+        end
+    end
+
+    // ---- C9（2026-09-27 23:3x 用户报的"效果开着时，跟着分割线走的一条黑线"）----
+    //   为什么现有判据看不见它，两条都成立才怪：
+    //     ① 台架把缝钉在 0 ⇒ 整屏只有处理抽头，"缝旁"那一档**结构上不存在**；
+    //     ② `stage_sel` 全程 0（全旁路）⇒ 任何只在效果链开着时才坏的列都无从现形。
+    //   所以这一段把缝挪到正中、只开灰度，并且**只看亮度不看 tag**：
+    //   灰度把 RGB→亮度之后 tag 就不存在了，而图案每一格位 15 恒为 1 ⇒ 红通道最低也有 0xF8，
+    //   灰度之后仍然远不是黑 ⇒ "画面内出现一整列近黑"就是缺陷本身，与它是什么颜色无关。
+    //   成对写（本仓那条老规矩）：C9a 判"没有整列近黑"，C9b 判"确实有整列是亮的"——
+    //   没有 C9b，C9a 的零可能只是探测器瞎了。
+    localparam integer C9_SEAM = 512;
+    integer c9_blk[0:1023], c9_rows = 0, c9_k = 0, c9_any = 0, c9_burst = 0, c9_px = 0;
+    integer c9_de_d = 0;
+    integer c9_worst = 0, c9_wcol = -1, c9_best = 0, c9_bcol = -1, c9_border = 0;
+    reg    c9_on = 1'b0;
+    // ---- C17：处理抽头在旋转态整屏是否还有"非灰度"像素（= 该处理没处理）----
+    //   C9 只判"整列近黑"，判不到"这一格根本没进灰度级"：原图的彩色 tag 与灰度后的
+    //   `{y[7:3], y[7:2], y[7:3]}` 在 565 上可区分（灰度的 r/g/b 高 5 位相等）。
+    //   三臂共用一把尺子：灰度态必须 0 个非灰；同几何关掉灰度必须数得到大量非灰（证明探测器有牙）。
+    integer c17_on = 0, c17_n = 0, c17_bad = 0, c17_dump = 0;
+    integer c17c_on = 0, c17c_n = 0, c17c_bad = 0;
+    // 185° split-video arm: count only the processed pane. `take_orig` is combinational at the
+    // split input; the pixel at de_o is one cycle later, so delay the selector one cycle.
+    integer c17s_on = 0, c17s_n = 0, c17s_bad = 0, c17s_raw_n = 0, c17s_raw_gray = 0;
+    // C25: per-row raw-pane "non-black grey" histogram. The user's swap1 symptom is a
+    // processed (grey) row inside the original pane at the rotated image bottom edge;
+    // the old total counter folded it into black background. Black is excluded here.
+    integer c25_nz [0:599];
+    integer c25_raw [0:599];
+    integer c25_k = 0, c25_worst = 0, c25_wrow = 0, c25_max = 0;
+    // C28: the decisive tap-side judge. The user's line is a row where the seam flag
+    // selects the OTHER tap, so type-only counters (which classify by take_orig) are blind.
+    // Compare take_orig against the side implied by the RAW pixel's source-column tag.
+    integer c28_on = 0, c28_n = 0, c28_bad = 0, c28_dump = 0;
+    integer c28_row [0:599];
+    integer c28_rowmax = 0, c28_rowworst = 0, c28_maxall = 0;
+    integer c28_k = 0;
+    reg [7:0] c28_col;
+    reg       c28_exp;
+    integer c29_dump = 0;
+    integer c30_dump = 0;
+    // C31: valid seam-side judge. The old tag frame has only col[7:0] for a 512-wide
+    // source, so col 285 aliases to 29 and C28's "expected side" is wrong for the upper
+    // half (C30 showed sx=285 vs tagcol=29, i.e. a 256 alias). This frame spends the
+    // row field on the missing column bit: {1, row[5:0], col[8:0]}.
+    function [15:0] px_val9; input [31:0] r; input [31:0] c;
+        begin px_val9 = {1'b1, r[5:0], c[8:0]}; end
+    endfunction
+    function [8:0] mem_col9; input [15:0] v; begin mem_col9 = v[8:0]; end endfunction
+    integer c31_on = 0, c31_n = 0, c31_bad = 0, c31_dump = 0, c31_k = 0;
+    integer c31_rowmax = 0, c31_rowworst = 0, c31_maxall = 0;
+    integer c31_row [0:599];
+    reg [8:0] c31_col;
+    reg       c31_exp;
+    always @(posedge dut.clk_pix) begin
+        if (c31_on && dut.u_split.de && !dut.oob_out) begin
+            c31_n = c31_n + 1;
+            c31_col = mem_col9(dut.u_split.orig_pix);
+            c31_exp = (c31_col < 9'd256) ? (split_ctl_tb[12] ? 1'b0 : 1'b1) : split_ctl_tb[12];
+            if (dut.u_split.take_orig !== c31_exp) begin
+                c31_bad = c31_bad + 1;
+                if (dut.u_split.y < 600) c31_row[dut.u_split.y] = c31_row[dut.u_split.y] + 1;
+                if (c31_dump < 12) begin
+                    c31_dump = c31_dump + 1;
+                    $display("C31BAD y=%0d x=%0d col9=%0d exp=%b act=%b swap=%b",
+                             dut.u_split.y, dut.u_split.x, c31_col, c31_exp,
+                             dut.u_split.take_orig, split_ctl_tb[12]);
+                end
+            end
+        end
+    end
+    task c31_clear;
+        begin
+            for (c31_k = 0; c31_k < 600; c31_k = c31_k + 1) c31_row[c31_k] = 0;
+            c31_n = 0; c31_bad = 0; c31_dump = 0; c31_rowmax = 0; c31_rowworst = 0;
+        end
+    endtask
+    task c31_report;
+        input [8*10-1:0] tag;
+        integer kk, shown;
+        begin
+            for (kk = 0; kk < 600; kk = kk + 1)
+                if (c31_row[kk] > c31_rowmax) begin c31_rowmax = c31_row[kk]; c31_rowworst = kk; end
+            if (c31_rowmax > c31_maxall) c31_maxall = c31_rowmax;
+            $display("C31 %0s n=%0d bad=%0d worst row=%0d cnt=%0d", tag, c31_n, c31_bad,
+                     c31_rowworst, c31_rowmax);
+            shown = 0;
+            for (kk = 0; kk < 600 && shown < 8; kk = kk + 1)
+                if (c31_row[kk] > 32) begin
+                    $display("C31 %0s row y=%0d bad=%0d", tag, kk, c31_row[kk]);
+                    shown = shown + 1;
+                end
+            for (kk = 590; kk < 600; kk = kk + 1)
+                $display("C31 %0s bottom y=%0d bad=%0d", tag, kk, c31_row[kk]);
+        end
+    endtask
+    task c25_clear;
+        begin
+            for (c25_k = 0; c25_k < 600; c25_k = c25_k + 1) begin
+                c25_nz[c25_k] = 0; c25_raw[c25_k] = 0;
+            end
+            c25_worst = 0; c25_wrow = 0;
+        end
+    endtask
+    task c25_report;
+        input [8*10-1:0] tag;
+        integer kk, shown;
+        begin
+            for (kk = 0; kk < 600; kk = kk + 1)
+                if (c25_nz[kk] > c25_worst) begin c25_worst = c25_nz[kk]; c25_wrow = kk; end
+            if (c25_worst > c25_max) c25_max = c25_worst;
+            $display("C25 %0s worst row=%0d nz=%0d raw=%0d", tag, c25_wrow, c25_worst,
+                     (c25_wrow < 600) ? c25_raw[c25_wrow] : 0);
+            shown = 0;
+            for (kk = 0; kk < 600 && shown < 8; kk = kk + 1)
+                if (c25_nz[kk] > 64) begin
+                    $display("C25 %0s y=%0d nz=%0d raw=%0d", tag, kk, c25_nz[kk], c25_raw[kk]);
+                    shown = shown + 1;
+                end
+            for (kk = 590; kk < 600; kk = kk + 1)
+                $display("C25 %0s bottom y=%0d nz=%0d raw=%0d", tag, kk, c25_nz[kk], c25_raw[kk]);
+        end
+    endtask
+    reg take_orig_d = 0;
+    always @(posedge dut.clk_pix) take_orig_d <= dut.u_split.take_orig;
+    reg [11:0] c17_x = 12'd0, c17_y = 12'd0;
+    function c17_is_gray; input [7:0] rr, gg, bb;
+        begin c17_is_gray = (rr[7:3] == gg[7:3]) && (gg[7:3] == bb[7:3]); end
+    endfunction
+    // ⚠ 列号**不许**靠"数 de 脉冲"得来：这一路 `de_o` 一行内不止一个 burst
+    //   （第一版就是这么写的，量到 `c9_rows=4200`/两帧 —— 那是 2100 个"行"，而面板只有 600 行，
+    //   这个说不通的数就是尺子坏掉的自供）。于是直方图被摊平到错误的列上，
+    //   C9a 的"没有整列黑"是**在一张废图上判的**。改成取混色级自己的 `x`，
+    //   并让它自己报出"这一窗里有多少个 de burst / 多少像素"，好让下一个人一眼看出对齐对不对。
+    // ⚠ 分母用 `c9_burst`（窗内**结束**的 1024 像素行数），不能用 `c9_rows`：后者连 c9_on=0 的
+    //   那几帧预热也算，两帧的窗它会报 3000 而真行只有 1200 ⇒ "某列半数以上近黑"这条**永远达不到**，
+    //   于是 C9a/C9e 的绿是"分母虚高"给的，C9b 的红是分母给的，两边都没有牙（2026-09-28 那份现场）。
+    reg [11:0] c9_x = 12'd0;
+    always @(posedge dut.clk_pix) begin
+        c9_x <= dut.x_d[dut.MIX_D];          // split_display 的输出晚一拍 ⇒ 列号也晚一拍去对
+        if (c9_on && dut.de_o) begin
+            c9_px = c9_px + 1;
+            if (c9_x >= 12'd1024) begin
+                // 消隐期/异常：列号越界就**不数**，但要让它可见（下面按 burst 报数），
+                // 否则直方图又会悄悄摊到错误的格上。
+            end else if ((dut.r < 8'd16) && (dut.g < 8'd16) && (dut.b < 8'd16)) begin
+                c9_blk[c9_x] = c9_blk[c9_x] + 1;
+                c9_any = c9_any + 1;
+            end
+        end
+        if (!dut.de_o && c9_de_d) begin
+            c9_rows = c9_rows + 1;
+            if (c9_on) c9_burst = c9_burst + 1;
+        end
+        c9_de_d = dut.de_o;
+        c17_x <= dut.x_d[dut.MIX_D];
+        c17_y <= dut.y_d[dut.MIX_D];
+        if (dut.de_o && c17_on) begin
+            c17_n = c17_n + 1;
+            if (!c17_is_gray(dut.r, dut.g, dut.b)) begin
+                c17_bad = c17_bad + 1;
+                if (c17_dump < 12) begin
+                    c17_dump = c17_dump + 1;
+                    $display("C17BAD x=%0d y=%0d rgb=%02x/%02x/%02x", c17_x, c17_y, dut.r, dut.g, dut.b);
+                end
+            end
+        end
+        if (dut.de_o && c17c_on) begin
+            c17c_n = c17c_n + 1;
+            if (!c17_is_gray(dut.r, dut.g, dut.b)) c17c_bad = c17c_bad + 1;
+        end
+        if (dut.de_o && c17s_on) begin
+            if (!take_orig_d) begin
+                c17s_n = c17s_n + 1;
+                if (!c17_is_gray(dut.r, dut.g, dut.b)) begin
+                    c17s_bad = c17s_bad + 1;
+                    if (c17_dump < 12) begin
+                        c17_dump = c17_dump + 1;
+                        $display("C17S_BAD x=%0d y=%0d rgb=%02x/%02x/%02x swap=%b",
+                                 c17_x, c17_y, dut.r, dut.g, dut.b, split_ctl_tb[12]);
+                    end
+                end
+            end else begin
+                c17s_raw_n = c17s_raw_n + 1;
+                if (c17_is_gray(dut.r, dut.g, dut.b)) c17s_raw_gray = c17s_raw_gray + 1;
+                if (c17_y < 600) begin
+                    c25_raw[c17_y] = c25_raw[c17_y] + 1;
+                    if (c17_is_gray(dut.r, dut.g, dut.b) && ((dut.r | dut.g | dut.b) != 8'd0))
+                        c25_nz[c17_y] = c25_nz[c17_y] + 1;
+                end
+            end
+        end
+    end
+
+    always @(posedge dut.clk_pix) begin
+        if (c28_on && dut.u_split.de && !dut.oob_out) begin
+            c28_n = c28_n + 1;
+            c28_col = mem_col(dut.u_split.orig_pix);
+            c28_exp = (c28_col < 8'd128) ? (split_ctl_tb[12] ? 1'b0 : 1'b1) : split_ctl_tb[12];
+            if (dut.u_split.take_orig !== c28_exp) begin
+                c28_bad = c28_bad + 1;
+                if (dut.u_split.y < 600) c28_row[dut.u_split.y] = c28_row[dut.u_split.y] + 1;
+                if (c28_dump < 12) begin
+                    c28_dump = c28_dump + 1;
+                    $display("C28BAD y=%0d x=%0d col=%0d exp=%b act=%b swap=%b",
+                             dut.u_split.y, dut.u_split.x, c28_col, c28_exp,
+                             dut.u_split.take_orig, split_ctl_tb[12]);
+                end
+            end
+        end
+    end
+    task c28_clear;
+        begin
+            for (c28_k = 0; c28_k < 600; c28_k = c28_k + 1) c28_row[c28_k] = 0;
+            c28_n = 0; c28_bad = 0; c28_dump = 0; c28_rowmax = 0; c28_rowworst = 0;
+        end
+    endtask
+    task c28_report;
+        input [8*10-1:0] tag;
+        integer kk, shown;
+        begin
+            for (kk = 0; kk < 600; kk = kk + 1)
+                if (c28_row[kk] > c28_rowmax) begin c28_rowmax = c28_row[kk]; c28_rowworst = kk; end
+            $display("C28 %0s n=%0d bad=%0d worst row=%0d cnt=%0d",
+                     tag, c28_n, c28_bad, c28_rowworst, c28_rowmax);
+            shown = 0;
+            for (kk = 0; kk < 600 && shown < 8; kk = kk + 1)
+                if (c28_row[kk] > 32) begin
+                    $display("C28 %0s row y=%0d bad=%0d", tag, kk, c28_row[kk]);
+                    shown = shown + 1;
+                end
+            for (kk = 590; kk < 600; kk = kk + 1)
+                $display("C28 %0s bottom y=%0d bad=%0d", tag, kk, c28_row[kk]);
+        end
+    endtask
+    function integer c4_ang_of; input integer a;
+        begin
+            case (a % 4) 0: c4_ang_of = 0;   1: c4_ang_of = 45;
+                         2: c4_ang_of = 90; default: c4_ang_of = 168; endcase
+        end
+    endfunction
+    // 这一档到底是几倍：由台架按**定义**报，不打印内部寄存器（Q8.8 的 inv 256 = 1.00x）。
+    // 用它是因为报告里"0.50x 有没有背景带"这件事要一眼能读出来，而不是让明天的人去反推 index。
+    function integer c4_pct_of; input integer a;
+        begin
+            case (a / 4) 0: c4_pct_of = 100;  1: c4_pct_of = 50;  default: c4_pct_of = 25;
+            endcase
+        end
+    endfunction
+
+    // ---- C12（任务 #167 的两端夹逼：把「每帧换角 × 帧头 6 行」这一族盖进同一条判据）----
+    //   只吃 DUT 自己的信号（`dut.angle`/`dut.de`/`dut.y`/`dut.x`/`dut.y_req_row`），不在台架外面
+    //   重算正/逆映射（2026-10-01 23:15 我在 RTL 外面建模判"角点出屏"报了假阳性，错在约定不一致）。
+    //   判的一件事：**屏上第 0..5 行的内容被请求的那一拍**用的角度，与**它显示所在那一帧的主体拍**
+    //   用的角度是不是同一个值。r109 之前不是同一个（`angle_ctrl` 挂在 `frame_start`，而帧头的内容来自
+    //   上一帧的绕回请求行 —— 见 `src/rtl/top/pl_video_top.v` 的 #167 那一段与 E4r 的眼睛读数）。
+    localparam [11:0] C12_IMGH = SRC_H;              // 300：与顶层 `y_req_row >= IMG_H` 同一个界
+    integer c12_k = 0, c12_cmp = 0, c12_bad = 0, c12_step = 0;
+    integer c12_rot_cmp = 0, c12_rot_bad = 0, c12_rot_step = 0;
+    integer c12_fz_cmp = 0, c12_fz_bad = 0;
+    reg [8:0] c12_head = 9'h1FF, c12_body = 9'h1FF, c12_fs = 9'h1FF, c12_fs_prev = 9'h1FF;
+    reg c12_head_ok = 1'b0;      // 第一帧还没有"上一帧的绕回行"可参考 ⇒ 不许拿哨兵值去比（#163 那一族）
+    reg c12_on = 1'b0;
+    always @(posedge dut.clk_pix) if (c12_on && dut.de === 1'b1) begin
+        if (dut.y_req_row >= C12_IMGH && dut.x == 12'd512) begin
+            c12_head    = dut.angle;      // 绕回请求行的行中段：这几拍取的内容喂的是**下一帧**第 0..5 行
+            c12_head_ok = 1'b1;
+        end
+        if (dut.y == 12'd100 && dut.x == 12'd512 && c12_head_ok === 1'b1) begin
+            c12_body = dut.angle;         // 本帧主体（第 100 行同一列）
+            c12_cmp  = c12_cmp + 1;
+            if (c12_head !== c12_body) c12_bad = c12_bad + 1;
+        end
+    end
+
+    task line(input [8*96-1:0] tag, input ok, input [8*170-1:0] txt);
+        begin
+            if (!ok) nfail = nfail + 1;
+            $display("%s %0s | %0s", ok ? "PASS" : "FAIL", tag, txt);
+        end
+    endtask
+
+    initial begin
+        // Fast seam-only arm for iterating C28: no C0..C22, just load the tag frame and
+        // measure the tap side at 185deg with seam=128.
+        if ($test$plusargs("c28only")) begin
+            stage_sel = 9'd1;
+            split_ctl_tb[13] = 1'b1; split_ctl_tb[11] = 1'b1; split_ctl_tb[10] = 1'b0;
+            split_ctl_tb[9:0] = 10'd128; split_ctl_tb[12] = 1'b0;
+            zoom_en = 1'b1; zoom_manual = 1'b1; zoom_sel = 3'd4;
+            bilin_en_tb = 1'b0; osd_off_tb = 1'b1;
+            force dut.angle = 9'd185; force dut.rot_on = 1'b1;
+            repeat (4) @(posedge sys_clk);
+            sys_rst_n = 1; axi_rst_n = 1;
+            repeat (10) @(posedge axi_clk);
+            repeat (16) @(posedge dut.frame_start);
+            c28_clear; c28_on = 1'b1;
+            repeat (2) @(posedge dut.frame_start);
+            c28_on = 1'b0;
+            c28_report("only-s0");
+            c28_clear; split_ctl_tb[12] = 1'b1;
+            repeat (2) @(posedge dut.frame_start);
+            c28_on = 1'b1;
+            repeat (2) @(posedge dut.frame_start);
+            c28_on = 1'b0;
+            c28_report("only-s1");
+            $finish;
+        end
+        if ($test$plusargs("c31only")) begin
+            stage_sel = 9'd1;
+            split_ctl_tb[13] = 1'b1; split_ctl_tb[11] = 1'b1; split_ctl_tb[10] = 1'b0;
+            split_ctl_tb[9:0] = 10'd256; split_ctl_tb[12] = 1'b0;
+            zoom_en = 1'b1; zoom_manual = 1'b1; zoom_sel = 3'd4;
+            bilin_en_tb = 1'b0; osd_off_tb = 1'b1;
+            force dut.angle = 9'd185; force dut.rot_on = 1'b1;
+            repeat (4) @(posedge sys_clk);
+            sys_rst_n = 1; axi_rst_n = 1;
+            repeat (10) @(posedge axi_clk);
+            arm_frame9;
+            c31_clear; c31_on = 1'b1;
+            repeat (2) @(posedge dut.frame_start);
+            c31_on = 1'b0;
+            c31_report("only-s0");
+            c31_clear; split_ctl_tb[12] = 1'b1;
+            repeat (2) @(posedge dut.frame_start);
+            c31_on = 1'b1;
+            repeat (2) @(posedge dut.frame_start);
+            c31_on = 1'b0;
+            c31_report("only-s1");
+            line("C31 rotated 185deg split seam picks the tap from the pixel's own 9-bit source column",
+                 c31_n > 100000 && c31_maxall < 32,
+                 "valid 9-bit column tag; before the sx line-alignment fix the last two display rows were entirely on the wrong tap");
+            $display("RESULT tb_video_pipeline_top %0s (c31only nfail=%0d)",
+                     (nfail == 0) ? "PASS" : "FAIL", nfail);
+            $finish;
+        end
+        for (i0 = 0; i0 < 6; i0 = i0 + 1) c1_kbad[i0] = 0;
+        for (i0 = 0; i0 < 6; i0 = i0 + 1) c1_pbad[i0] = 0;
+        // C5 的三条列账（2026-09-27 11:1x 的教训）：**标量 `integer` 的初值是 0，数组元素的初值是 X**
+        //   ⇒ 不清零的 `c5_head_c[j5] = c5_head_c[j5] + 1` 永远是 X，而 `X > 5` 既不是真也不是假，
+        //   `line()` 就在"算术上坏了"的基础上判红。这是本仓第七次撞"X 的出生地"，同族还有 #88。
+        for (i0 = 0; i0 < 3; i0 = i0 + 1) begin
+            c5_head_c[i0] = 0; c5_headbad_c[i0] = 0; c5_jud_c[i0] = 0; c5_badc_c[i0] = 0;
+        end
+        for (i0 = 0; i0 < 10; i0 = i0 + 1) c1_rdh[i0] = 0;
+        for (i0 = 0; i0 < 16; i0 = i0 + 1) c1_rdbk[i0] = 0;
+        c1_rdump = 0;
+        for (i0 = 0; i0 < 14; i0 = i0 + 1) hist[i0] = 0;
+        for (i0 = 0; i0 < 10; i0 = i0 + 1) begin hl_c[i0] = 0; hl_r[i0] = 0; end
+
+        // ---- C0a 尺子校准：在任何测量之前先证明尺子对 ----
+        //   #78 之后覆盖加宽：0 与"小列号"那一组是当年漏掉的（整数取位给 X 恰好不在 (200,177) 上出现），
+        //   还有帧底/帧右两个边界（编码是 8 bit，299/511 会回绕，回绕方向也要一起验）。
+        line("C0a ruler encodes position in the pixel", mem_row(px_val(200,177)) == 8'd72 && mem_col(px_val(200,177)) == 8'd177
+             && px_val(0,0) == 16'h8000 && mem_row(px_val(0,2)) == 8'd0 && mem_col(px_val(0,2)) == 8'd2
+             && mem_row(px_val(1,255)) == 8'd1  && mem_col(px_val(1,255)) == 8'hFF
+             && mem_row(px_val(299,511)) == 8'd43 && mem_col(px_val(299,511)) == 8'd255
+             && dsub(8'd2, 8'd254) == 4 && dsub(8'd254, 8'd2) == -4 && dsub(8'd0, 8'd255) == 1,
+             "px_val / decoder / mod-256 signed diff must agree, incl. 0, small values, both edges, both wrap directions");
+        // C0a3：**全帧 300×512 格没有一格编码成 16'h0000**。这条不是装饰：面板级尺子只能用
+        // "是不是全黑"判断"在不在画面里"，只要图案里存在一个黑格，那条尺子就永远有假红可找。
+        begin
+            c0a3_black = 0;
+            for (c0a3_r = 0; c0a3_r < 300; c0a3_r = c0a3_r + 1)
+                for (c0a3_c = 0; c0a3_c < 512; c0a3_c = c0a3_c + 1)
+                    if (px_val(c0a3_r, c0a3_c) == 16'h0000) c0a3_black = c0a3_black + 1;
+        end
+        line("C0a3 no black cell exists in the pattern", c0a3_black == 0,
+             "the panel-level ruler equates black with outside-the-picture, so the pattern must not contain black");
+
+
+        // ---- 复位释放 ----
+        repeat (4) @(posedge sys_clk);
+        sys_rst_n = 1; axi_rst_n = 1;
+        repeat (10) @(posedge axi_clk);
+
+        // ---- C0a2 模型回读（#78 新增的那一格）----
+        //   放在复位之后再读：两个 initial 块（DDR 建模 vs 这一段）在 t=0 的先后是不确定的，
+        //   而且"验函数"与"验被写进数组的东西"是两件事 —— 这次骗过所有人的正是后者。
+        //   读首尾两格：尾格 (299,508..511) 同时钉住"行号 8 bit 回绕"与"数组最后一个字真的写到了"。
+        //   读首尾两格：尾格 (299,508..511) 同时钉住"行号 8 bit 回绕"与"数组最后一个字真的写到了"。
+        // ⚠ #92 那一轮把图案换成 `{1'b1, r[6:0], c[7:0]}`（位 15 当"非黑"标志）之后，**这两个字面量
+        //   一直没跟着改** ⇒ 18:11 那一轮它红了，红的是尺子：判据里写的还是老编码
+        //   （`0003_0002_0001_0000` / `2BFF_…`），而新图案第一字是 `8003_8002_8001_8000`、
+        //   尾字是行 299 mod 128 = 43 = 0x2B 再并上位 15 ⇒ 0xABFF…。C0a 当时改了、C0a2 漏了。
+        //   数按 `px_val` 手推（不是照抄实现），C0a 已经把"函数对不对"钉住，这里只补"数组里真的是它"。
+        line("C0a2 golden array actually holds it", ddr[0] == 64'h8003_8002_8001_8000
+             && ddr[FRAME_WORDS-1] == 64'hABFF_ABFE_ABFD_ABFC,
+             "read back ddr[0] and the last word after init: a correct function is not a correct array");
+
+        // ---- 跑到够帧数（发布位每帧翻一次，模拟"PS 每帧写完敲一次"） ----
+        // 刻意**不用** fork/join_any/disable fork：那是 SystemVerilog 构造，而这份台架按 Verilog 编译。
+        // 一次等"一帧的时间"再看帧计数，最多等 12 帧 ⇒ 天然有上界，不会挂死
+        // （第一版 tb_v99 挂死那一课的教训：挂死的台架比红的台架糟，全量回归是顺序跑的）。
+        i1 = 0;
+        // A blanking-gated PS copy lands one display frame after the publish (it must
+        // wait for the current frame's V-blank), so wait for a complete frame in the
+        // buffer, not just a fixed count of frame starts.
+        while ((frames_done < FRAMES_MIN + 3 || !measure_ok) && i1 < 24) begin
+            #(H_TOTAL * V_TOTAL * 20.0);          // 一帧 = 840000 拍 × 20 ns = 16.8 ms
+            // 发布位由下面 `lm_hb` 那个进程统一翻（原来这里也翻一次：两个进程写同一根激励位
+            // 就是"谁最后写算谁"，而 #94 之后这件事会直接决定屏幕画不画帧缓存 ⇒ 只留一个写者）
+            i1 = i1 + 1;
+        end
+        // The copy lands in the V-blank immediately before this frame start; give
+        // the panel one whole frame of samples before the C0d content check.
+        repeat (1) @(posedge dut.frame_start);
+
+        $display("[tb_video_pipeline_top.v:496] PROBE fb_wr_pulses=%0d (一帧要 %0d)  copy_hold 拍了 %0d  u_aw.active=%0d 最后到的 row=%0d",
+                 fb_wr_pulses, FRAME_WORDS, hold_cyc, aw_active_cyc, last_row);
+        $display("[tb_video_pipeline_top.v:498] DIAG fb_vis=%0d owner_eth=%0d fill_busy=%0d row_busy=%0d eth_live=%0d tb_ok=%0d dbg_src=%04x tap_raw 全黑比例 %0d/%0d",
+                 dut.fb_vis, dut.owner_eth, dut.fill_busy, dut.row_busy, eth_live, eth_tb_ok,
+                 dbg_src, black_l, n_l);
+        line("C0d a real source is on screen",
+             n_l > 0 && black_l * 2 < n_l, "less than half of left-pane samples are black, else nothing was copied");
+        line("C0b enough frames ran", frames_done >= FRAMES_MIN, "at least 3 frames, otherwise every count below is void");
+        line("C0c the AXI copy is alive", ar_bursts > 100 && r_beats > 800 && odd_align == 0 && out_of_window == 0,
+             "AXI bursts present, 8-byte aligned, never read outside the PS window");
+        // ⚠ 这一条**降级为只报数**（当天第二次尺子先错，账记进 #68）：
+        //   原来拿当拍的 sx_l（第 3 级地址）比当拍的标签，而这两者描述的不是同一个像素——
+        //   标签描述的是 17 拍之前那个地址取回的内容。能真正判定标签与内容同列的只有两条路：
+        //   ① 屏上是我喂的那张坐标图（内容判据，已在下面做成硬判据 C1a/C1b/C1c（探针先证伪了
+        //      “没搬进来”那个解释，真正错的是尺子取错级数）；② 板上看缝左右 10 列有没有暗带
+        //      （board/README.md 第 12 行，r59a 之后必看的眼睛判据）。
+        //   留在这里当判据只会造出一条不可能成立的判据 ⇒ 打数、不判。
+        $display("[tb_video_pipeline_top.v:513] OBS C-tap 观测（不判定）：样本 %0d 格、偏差非零 %0d 格、首格偏差 %0d",
+                 tap_cnt, tap_bad, tap_mode);
+        $display("[tb_video_pipeline_top.v:515] INFO C-tap 样本 %0d 格、偏 %0d 格、首格偏差 %0d（0 才是对的）",
+                 tap_cnt, tap_bad, tap_mode);
+        // ---- C1 系列：内容级对齐（本轮升成硬判据）----
+        //   这段的历史留着，别让它假装从来没错过：
+        //   第一版写的不判定理由是"DDR 模型太快 ⇒ 屏上大片 X"，探针把这句**证伪**了
+        //   （fb_wr_pulses = 115200 = 3 x 38400、copy_hold 一次没挂、左窗全黑只有 1.6 %、
+        //    dbg_src=0308 解出来是一个真坐标）⇒ 搬运是好的、内容就是我喂的那张坐标图。
+        //   真正错的是尺子取错级数：拿第 11 级的标签比第 20 级的内容（#68 同族第三次）。
+        //   现在列标签改成**问名字要**（u_split.x_sel）+ 只在一行中段采样；
+        //   老的 stage-11 那套计数保留作对照，并补一条自洽判据 C0e：
+        //   "超出量程"的样本按定义必是"不符"集合的子集，一旦 bad_l < hl_c[0] 红的是台架自己
+        //   （今天这对 38 % 与 98.5 % 就是这么露馅的）。
+        line("C0f whole fb word space written", wdistinct == 38400,
+             "de-duplicated write-word index count must cover the full frame once");
+        $display("[tb_video_pipeline_top.v:529] X 读回 %0d 格，落在列 %0d..%0d；去重写过的字下标 %0d/38400",
+                 nxread, xlo, xhi, wdistinct);
+        // r59b-1 的核心主张，而且它**不需要**帧缓存里真有内容（只看顶层自己的两个同级标签）
+        //   ⇒ 在 #54 那条"拷贝路径建模"补上之前，这一条就是新几何唯一能当场成立的机器判据。
+        $display("[tb_video_pipeline_top.v:533] 级数标定：源列 == 第 k 级显示列 >>1 的不符数（样本 %0d）", c1_n3);
+        for (i0 = 0; i0 < 6; i0 = i0 + 1)
+            $display("[tb_video_pipeline_top.v:535] k=%0d 不符 %0d", i0, c1_kbad[i0]);
+        // 标定实测（826259 格）：k=2 是唯一一处不符为 0 —— 这就是 mapper 那三级寄存器与
+        //   `x_d[k] = x(T-1-k)` 这个下标约定的合力：mapper 输出 = 输入延迟 3 拍 = x_d[2]。
+        //   写成 k=2 而不是"存在某个 k"：判据要能红，就必须钉死一个具体的级数（改几何时会红给它看）。
+        // C1i：先要求"几何唯一级"存在，再要求**那一级**的相位不符数为 0（两级都靠测量，不靠字面量）。
+        c1_kn = 0; c1_ktrue = 0;
+        for (i0 = 0; i0 < 6; i0 = i0 + 1)
+            if (c1_kbad[i0] == 0) begin c1_kn = c1_kn + 1; c1_ktrue = i0; end
+        $display("[tb_video_pipeline_top.v] OBS C1i 标定级数：几何 0 不符的 k 有 %0d 个（k=%0d），该级相位不符 %0d（其余级：k=2 相位 %0d）",
+                 c1_kn, c1_ktrue, c1_pbad[c1_ktrue], c1_pbad[2]);
+        line("C1i read-port phase same stage as src", c1_kn == 1 && c1_pbad[c1_ktrue] == 0,
+             "col0/row0/pair_odd/req_vld must come from the calibrated label stage, not from a comment");
+        line("C1g VIEWPORT col: src == x_d[2]>>1", c1_n3 > 50000 && c1_kbad[2] == 0,
+             "single viewport: src column == display column >>1 at the calibrated stage (k=2 is the only zero)");
+        $display("[tb_video_pipeline_top.v:541] C1h 期望落在帧底夹紧行的格数 %0d、落在帧头绕回窗的格数 %0d；行不符 %0d",
+                 c1_clamp, c1_wrapn, c1_geom_bad_row);
+        line("C1h VIEWPORT row: src == wrap((y_d[2]+OFF+BILIN)>>1)", c1_geom_bad_row == 0 && c1_wrapn > 1000,
+             "row-wise definition now includes the #97 frame-head wrap; floor c1_wrapn proves the wrap window was judged");
+        $display("[tb_video_pipeline_top.v:544] C1g/C1h 样本 %0d 格；列不符(旧口径) %0d", c1_n3, c1_geom_bad);
+        $display("[tb_video_pipeline_top.v:545] X 分层：有效拍 %0d | fb_rd 是 X 的 %0d | fb_pix_hold 是 X 的 %0d | fb_out 是 X 的 %0d",
+                 n_blank, xr_rd, xr_hold, xr_out);
+        line("C0e RULER self-consistent", n_l > 0 && bad_l >= hl_c[0],
+             "out-of-range bucket must be a subset of the mismatch set");
+        line("C1a content-check coverage", c1_n > 50000,
+             "in-line left-pane samples below 50k means nothing was measured");
+        $display("[tb_video_pipeline_top.v:551] C1 样本 %0d 格（跳过出界/行首尾 %0d）；Δcol 首值 %0d、Δrow 首值 %0d、跳变 %0d 次",
+                 c1_n, c1_skip, c1_fcol, c1_frow, c1_varies);
+        // #78（2026-09-26 01:45）：这一段以前是"明知不成立所以只报数"，理由写的是
+        //   "台架没把 DDR→显示帧缓存建模到位"。**那个理由错了**：真因是两个台架 bug
+        //   （split_ctl 加宽到 19 位后台架还接 14 位 ⇒ 高位 Z ⇒ inv_used/sx/sy/rd_addr 全 X；
+        //    以及 DDR 初始化里"一个表达式连调四次函数"在 xsim 给 X）。修完之后
+        //   窗口内 X 占比实测 0/826259、Δcol 不符 0 ⇒ **X 前置与 Δcol 从今天起是硬判据**。
+        //   行方向（01:58 也解释了，于是 C1d 同样是硬判据）：当年那 3704 个 Δrow≠0 **全是 +43**，
+        //   而 43 = 0x2B = 299 的低 8 位 ⇒ 病不是地址、不是尺子，是**行环的开机热身**：一帧头
+        //   OFF_LINES 个显示行里 `raw_line_delay` 装的还是上一帧尾部（旧状下地址夹在 299）那一行。
+        //   #97 第四笔把帧尾那几个请求改成绕回（0,0,1,1）之后，这一族从"解释得通"升级成"逐格正确"：
+        //   C1d-b 现在要求**每一个被跳过的帧头格子都解出本行自己要的那一源行**（见采样处注释），
+        //   于是屏顶那几行不再只归眼睛 —— 板级项（`board/README.md` 第 33 行）退化成一次复核。
+        //   跳过条件由 `u_pipe.OFF_LINES` 推出来（不写字面量 4），跳过的格数照 print，
+        //   剩下的样本里 Δrow 必须为 0 —— 不是"允许 ±1"。
+        //   ⚠ 走 `line()` 的 tag/说明**必须是 ASCII**：这个 task 的实参是定宽向量，而含 ≥0x80 字节的
+        //   字符串一被赋给定宽向量就按字节砍掉 bit7（#55 记过），症状是判据名在日志里全是乱码 ——
+        //   树上那些老 `line()` 就是这个形状，新写的两条改成 ASCII，中文放进直接的 $display（那条不截）。
+        $display("[tb_video_pipeline_top.v:564]        C1 样本 %0d 格（跳过出界/行首尾 %0d）；X 格 %0d；Δcol 不符 %0d、Δrow 不符 %0d；Δcol 首值 %0d、Δrow 首值 %0d、跳变 %0d 次",
+                 c1_n, c1_skip, c1_hasx, c1_colbad, c1_rowbad,
+                 c1_fcol, c1_frow, c1_varies);
+        line("C1e PRECONDITION no X inside the measurement window", c1_hasx == 0,
+             "with X present every dcol/drow below is false-green on an empty set (#78)");
+        line("C1c content column == display column >> 1", c1_colbad == 0,
+             "single-viewport geometry, content-level evidence (was a NOTE before #78)");
+        $display("[tb_video_pipeline_top.v:571] OBS C1d 行方向原始计数（硬判据在它下面一行）：Δrow 不符 %0d、跨帧恒定 = %0d",
+                 c1_rowbad, (c1_varies == 0) ? 1 : 0);
+        // #54 第 5 条解释完就转硬：跳过的两族例外都要见数（环热身 c1_ring、帧底夹紧 c1_clamp），
+        //   剩下的样本里 Δrow 必须为 0 —— 不是"允许 ±1"，那一档放宽过就等于没有判据。
+        line("C1d content row == display row >> 1 (outside ring warm-up)", c1_rowbad == 0,
+             "row-wise content alignment of the raw tap; warm-up rows are counted, not hidden");
+        $display("C1d 例外计数：行环热身跳过 %0d 格（其中可判 %0d 格）、期望落在帧底夹紧 %0d 格（照判不跳过）、出界/行首尾跳过 %0d 格",
+                 c1_ring, c1_ring_n, c1_clamp, c1_skip);
+        // 例外自己也要被验一遍 —— 但这一族的验法**换了地方**：本轮把这句话从"必须等于 43（病灶）"
+        //   改成"必须等于本行自己要的那一源行"（正名）之后，地板量出来 `c1_ring = 0`
+        //   ⇒ 这一族的样本**一直是空的**：C1 的采样窗要求列在 [25,487]（行标签与内容在行首不同行），
+        //   实测"行标签 < OFF+2 且列在那一窗"这一组合一次都没成立过（本轮 c1_ring=0），
+        //   也就是帧头那几格从来没进过 C1 的账 —— 为什么没进账不重要，重要的是它没进。
+        //   所以旧版那条 `C1d-b PASS` 是**空集上的绿**（本仓记到第五次的同一族），
+        //   而它这次红了 —— 红得对，只是红的位置该改：判"帧头内容"的活儿由 **C5c** 干，
+        //   而且从今天起 C5c 在缝的两侧各采一列（原图那一路与处理那一路是两件不同的事）。
+        //   这里只留 OBS + 计数，不留一条永远不会红的判据。
+        $display("OBS C1d-b (retired): warm-up branch samples = %0d (judged %0d, unexplained %0d) => 空集，判据搬到 C5c",
+                 c1_ring, c1_ring_n, c1_ring_unexpl);
+        // Δrow 的形状（#54 第 5 条）：值分布 + 列分布 + 原始样本，三样一起看才知道该修谁
+        $display("ROWMIX values drow=-4..+3 | big+ big- : %0d %0d %0d %0d %0d %0d %0d %0d | %0d %0d",
+                 c1_rdh[0], c1_rdh[1], c1_rdh[2], c1_rdh[3], c1_rdh[4], c1_rdh[5], c1_rdh[6],
+                 c1_rdh[7], c1_rdh[8], c1_rdh[9]);
+        $display("ROWMIX cols bucket=32 (0..7): %0d %0d %0d %0d %0d %0d %0d %0d",
+                 c1_rdbk[0], c1_rdbk[1], c1_rdbk[2], c1_rdbk[3], c1_rdbk[4], c1_rdbk[5],
+                 c1_rdbk[6], c1_rdbk[7]);
+        $display("ROWMIX cols bucket=32 (8..15): %0d %0d %0d %0d %0d %0d %0d %0d",
+                 c1_rdbk[8], c1_rdbk[9], c1_rdbk[10], c1_rdbk[11], c1_rdbk[12], c1_rdbk[13],
+                 c1_rdbk[14], c1_rdbk[15]);
+        $display("[tb_video_pipeline_top.v:573] 观测（老尺子，仅供以后对比）：左窗 n=%0d 不符=%0d；右窗列不符=%0d",
+                 n_l, bad_l, bad_r_col);
+        // ⚠ 这一条原来写的是 `... 恒定 = %0s ...", m2_mode, (m2_varies==0)?"是":"否", n_r` ——
+        //   三元式里两个字符串字面量在 Verilog 里会**折成较短操作数的位宽**（实测：整行输出成乱码，
+        //   连前面的 `%0d` 都被带歪），所以这里一律改成数字 + 单独一句中文说明。
+        //   见 `技能包旧条目名 bench_verilog_subset（盘上无此路径）` 第 9 类。
+        $display("[tb_video_pipeline_top.v:579] M2 右窗行偏移（全旁路，今天只报数）：众数=%0d 变化次数=%0d 样本=%0d",
+                 m2_mode, m2_varies, n_r);
+        for (i0 = 0; i0 < 14; i0 = i0 + 1)
+            if (hist[i0] != 0) $display("[tb_video_pipeline_top.v:582] Δrow%0d : %0d 点", i0 - 7, hist[i0]);
+        // 左窗的两条直方图 = **尺子诊断**：如果 Δ 全挤在 +1/-1 或奇偶两格，那是映射/相位/端序的问题，
+        // 不是硬件错位；如果是一条宽分布，才是真的没对齐。
+        for (i0 = 1; i0 < 10; i0 = i0 + 1)
+            if (hl_c[i0] != 0) $display("[tb_video_pipeline_top.v:586] 左窗 Δcol%0d : %0d 点", i0 - 5, hl_c[i0]);
+        for (i0 = 1; i0 < 10; i0 = i0 + 1)
+            if (hl_r[i0] != 0) $display("[tb_video_pipeline_top.v:588] 左窗 Δrow%0d : %0d 点", i0 - 5, hl_r[i0]);
+        if (hl_c[0] != 0) $display("[tb_video_pipeline_top.v:589] 左窗 Δcol 超出±5 : %0d 点（量程不够 / 内容根本不是这张图）", hl_c[0]);
+        if (hl_r[0] != 0) $display("[tb_video_pipeline_top.v:590] 左窗 Δrow 超出±5 : %0d 点", hl_r[0]);
+        $display("[tb_video_pipeline_top.v:591] ⇒ 非 0 是**已知的**：`cy_r` 提前 OFF_LINES 行补的是链子内容滞后，全旁路时链子不滞后。");
+        $display("[tb_video_pipeline_top.v:592] V8-4b（单流 + 链前/链后两抽头）之后这一格必须是 0，届时把 M2 转成硬判据。");
+        // ⚠ 原来这一条写成 `line("M3 ...", m2_varies == 0 || 1'b1, ...)` —— 那个 `|| 1'b1`
+        //   使它**永远不可能红**，是仓库自己定的规矩里明令禁止的"假判据"（见
+        //   `技能包旧条目名 bench_self_inflicted_reds（盘上无此路径）`）。今天右窗的内容期望还没修对（见上面 C1/C2 那段），
+        //   所以这里**没有任何一条**关于行偏移的判据能成立 ⇒ 老老实实只报数，
+        //   等 C1/C2 的前置条件（两个自相矛盾的计数器先一致）满足后，再把"跨帧恒定 + 恒等于 +OFF_LINES"
+        //   一起转成硬判据 —— 那时它才有可能是红的。
+        $display("[tb_video_pipeline_top.v:599] OBS M3 右窗行偏移跨帧是否恒定（不判定，内容期望未修对）：恒定 = %0d（1=恒定，0=一帧一变），变化次数 %0d",
+                 (m2_varies == 0) ? 1 : 0, m2_varies);
+        $display("[tb_video_pipeline_top.v:601] INFO 统计 frames=%0d ar=%0d r=%0d odd=%0d outwin=%0d n_l=%0d bad_l=%0d n_r=%0d bad_r_col=%0d",
+                 frames_done, ar_bursts, r_beats, odd_align, out_of_window, n_l, bad_l, n_r, bad_r_col);
+        // ================= C2：八档缩放全扫，量"画面比几何偏了几列"（#92）=================
+        // 上面一整轮 C1 判据的期望是按 **1.00x 手动档**写的（`zoom_sel=4`），那一档画面正好铺满
+        // 整屏 ⇒ 没有背景带可量。0.50x 时画面只该占 x∈[256,767]，两侧各 256 列背景 ⇒
+        // #92 的"贴边那一线"就在这里现形，并且报出来是**几列**（用户说肉眼量不出来）。
+        // ============================ C4（#93 的尺子，先量后修）============================
+        // 放在 C2 之前、且**自己把设置还回去**：C2 那八档的数是 r74/r75 门禁第 15 项的凭据，
+        // 一个字符都不许被这一轮动到。这一轮只**报数 + 判形状**，不碰 RTL（用户 2026-09-26 17:0x
+        // 的原话是"你先别修，先把这条记下来"，而 #93 的 (C) 段说的就是"先有这把尺子"）。
+        split_ctl_tb[13] = 1'b1;             // 缝标记关掉：不然"第二段"就是台架自己画的那条蓝线
+        bilin_en_tb      = 1'b0;             // 最近邻：插值会把两格的 tag 混成第三格，形状判据不需要它
+        zoom_en = 1'b1; zoom_manual = 1'b1;              // 倍率由下面每一档自己钉，别让呼吸把期望漂走
+        for (c4_a = 0; c4_a < (quick_c17 ? 2 : C4_NA); c4_a = c4_a + 1) begin
+            case (c4_a % 4)
+                0: force dut.angle = 9'd0;
+                1: force dut.angle = 9'd45;
+                2: force dut.angle = 9'd90;
+                default: force dut.angle = 9'd168;
+            endcase
+            // 强设不是 snap 过的：等它稳定，别采到换角那一帧。`angle==0` 时把 rot_on 关掉，
+            // 与 C1 阶段那个"没旋转"的世界同形。
+            force dut.rot_on = ((c4_a % 4) == 0) ? 1'b0 : 1'b1;
+            case (c4_a / 4)
+                0:   zoom_sel = 3'd4;          // inv 256  = 1.00x：无背景带，本维结构上看不见细线
+                1:   zoom_sel = 3'd2;          // inv 512  = 0.50x：两侧各 256 列背景
+                default: zoom_sel = 3'd0;      // inv 1023 = 0.25x：两侧各 384 列背景（最敏感的一档）
+            endcase
+            repeat (3) @(posedge dut.frame_start);
+            c4_on = 1'b1;
+            repeat (2) @(posedge dut.frame_start);
+            c4_on = 1'b0;
+            // 无画面行**只报不判**：0.50x/0.25x 画面只占 300/150 行高，屏上下各有一带黑的行是**对的**。
+            // 判的只有两件事：这一档真有足够多的行被量到（覆盖地板），以及每一行至多一段。
+            $display("C4 idx=%0d ang=%0d zoom=%0d%% zsel=%0d 有画面行=%0d 无画面行=%0d **多段行=%0d** 第1列[%0d..%0d] 末列[%0d..%0d] | angle=%0d rot_on=%b",
+                     c4_a, c4_ang_of(c4_a), c4_pct_of(c4_a), zoom_sel,
+                     c4_rows2[c4_a], c4_zero[c4_a], c4_bad[c4_a],
+                     c4_fmin[c4_a], c4_fmax[c4_a], c4_lmin[c4_a], c4_lmax[c4_a],
+                     dut.angle, dut.rot_on);
+            // 覆盖地板：没有 200 行的话，下面那条"每行一段"就是空集上的绿（#60 那一课）
+            line("C4a rows judged", c4_rows2[c4_a] > 200,
+                 "this (angle, zoom) cell must actually have content rows, else C4b below means nothing");
+            line("C4b one run per row", c4_bad[c4_a] == 0,
+                 "a rotated rectangle meets every panel row in ONE contiguous run; 2+ runs = #93's stray diagonal bar / left-edge line");
+        end
+        // ---- C5（#97 追加二：行维）----
+        $display("C5  judged=%0d bad=%0d | head rows=%0d wrong=%0d (OFF_LINES=%0d, col=%0d)",
+                 c5_judged, c5_bad, c5_head, c5_head_bad, c5_off, C5_COL);
+        line("C5a judged rows", c5_judged > 500,
+             "the 0deg x 100% cell must give >=500 judged rows, else C5b/C5c below mean nothing");
+        line("C5b body rows carry their own source row", c5_bad == 0,
+             "decoded tag row == panel row/2 below the pipeline head; any off-by-N is the read-side advance (cy_r)");
+        $display("C5 分列（帧头窗 = 最上面 OFF+2 行）：col%0d 头 %0d 格/不符 %0d、体 %0d 格/不符 %0d || col%0d 头 %0d/%0d、体 %0d/%0d || col%0d 头 %0d/%0d、体 %0d/%0d",
+                 C5_LA, c5_head_c[0], c5_headbad_c[0], c5_jud_c[0], c5_badc_c[0],
+                 C5_COL, c5_head_c[1], c5_headbad_c[1], c5_jud_c[1], c5_badc_c[1],
+                 C5_RA, c5_head_c[2], c5_headbad_c[2], c5_jud_c[2], c5_badc_c[2]);
+        line("C5c frame head is not the previous frame's tail",
+             c5_head_bad == 0 && c5_head_c[0] > 5 && c5_head_c[1] > 5 && c5_head_c[2] > 5,
+             "first OFF+BILIN output rows must carry their own source row on BOTH sides of the seam");
+        $display("C6  每行第0格 judged=%0d 源列不是0的=%0d", c6_n, c6_bad);
+        line("C6a line head carries the line's own column 0", c6_n > 500 && c6_bad == 0,
+             "at 0deg x 100% the picture fills the screen, so NO background-based ruler can see a wrapped line head; the tag's column must be 0 (= #97's left band candidate)");
+        // ---- C8（#102）：两路抽头各自的"每行第一格"，本体行窗 ----
+        $display("C8  第0列：原图 样本 %0d 格、不符 %0d 格 || 处理 样本 %0d 格、不符 %0d 格",
+                 c8_os, c8_ob, c8_ps, c8_pb);
+        line("C8a raw tap's first column of every body row is the row's own column 0",
+             c8_os > 500 && c8_ob == 0,
+             "#102：行环在行首读到的是消隐期那个地址的格子（实测=源列 160），不是本行第一列");
+        line("C8b proc tap's first column of every body row is the row's own column 0",
+             c8_ps > 500 && c8_pb == 0,
+             "同一格在处理抽头上的对照面：C8a 绿而屏上仍有线时，问题就落在这一路");
+        release dut.angle;
+        release dut.rot_on;
+        c4_on = 1'b0;
+        force dut.angle = 9'd0;                // 还回 C1 阶段那个"没旋转"的世界，再让 angle_ctrl 接管
+        release dut.angle;
+        repeat (2) @(posedge dut.frame_start);
+        split_ctl_tb[13] = 1'b0;
+        bilin_en_tb      = 1'b1;
+        zoom_en = 1'b0; zoom_sel = 3'd4;
+        repeat (2) @(posedge dut.frame_start);
+        zoom_en     = 1'b1;                  // 顶层的 enable 门：不打开，zoom_ctrl 根本不换倍率
+        zoom_manual = 1'b1;                  // 停在手动档，别让呼吸把期望漂走
+        // C3 要把那条 2 px 标记线关掉（见上面 C3 注释第 ② 条）：缝位=0 时它正好落在屏上最左几列，
+        // 不关掉的话"屏上第一个非黑列"量的就是台架自己画的蓝线。C2 不受影响（它看的是 mux 之前的 sel）。
+        split_ctl_tb[13] = 1'b1;             // = `split marker 0`
+        // 这一轮量的是**几何** ⇒ 走最近邻。双线性按定义会把相邻两格的 16 位 tag 混成第三格，
+        // 那时 C2b"这一格该解出定义要的那个源列"永远成立不了（bilin=1 时 inv=1023 那档
+        // inbad = 68920/77400 = 89 % —— 那是插值，不是错位；尺子不许把别人的活计判成红）。
+        bilin_en_tb = 1'b0;
+        repeat (2) @(posedge dut.frame_start);
+        line("C18pre frame-buffer writes really happened", c18_n > 100000,
+             "coverage floor: both the ETH and PS copy paths must have written, else C18 is a green on an empty set");
+        line("C18 frame-buffer writes all land inside blanking", c18_bad == 0,
+             "PS/SD publish used to start the DDR->BRAM copy at active frame_start, racing the beam; every write must be gated by frame_commit_lock's allow window");
+
+        // ---- C19: 0deg split-video gray. The board line only exists when the
+        // original pane is present (split 100% removes it), so check the
+        // hardware pane-integrity counter at the frame top/bottom here.
+        stage_sel = 9'd1;                       // gray only; non-gray on the processed side = leak
+        split_ctl_tb[13] = 1'b1;                // marker off
+        split_ctl_tb[11] = 1'b1;                // follow: seam in image columns
+        split_ctl_tb[10] = 1'b0;                // static
+        split_ctl_tb[9:0] = 10'd256;            // 50%
+        split_ctl_tb[12] = 1'b0;                // swap
+        zoom_en = 1'b1; zoom_sel = 3'd4;        // 1.00x
+        bilin_en_tb = 1'b0; osd_off_tb = 1'b1;
+        force dut.angle = 9'd0; force dut.rot_on = 1'b0;
+        repeat (3) @(posedge dut.frame_start);
+        repeat (2) @(posedge dut.frame_start);
+        c19_bad = dut.pane_bad_o; c19_val = dut.pane_valid_o;
+        $display("C19 0deg split gray: pane_valid=%0d pane_bad=%0d", c19_val, c19_bad);
+        line("C19pre 0deg split pane counter valid", c19_val === 1,
+             "coverage: the pane counter must be enabled at 0deg split video, else C19a is empty");
+        line("C19a 0deg split processed pane has no non-gray pixel", c19_bad == 0,
+             "user line: with split video at 0deg the processed pane must not show an original-color row");
+        release dut.angle; release dut.rot_on;
+        split_ctl_tb = 19'd0; stage_sel = 9'd0; zoom_sel = 3'd4; bilin_en_tb = 1'b1; osd_off_tb = 1'b0;
+
+        // ---- C20: bilinear ON at 0deg, raw tap frame-head/tail row identity ----
+        // C5/C5c only judge this with bilin_en=0 (the C4 arm sets it). The board runs
+        // bilin=1; the fb_bilin pair buffer is the block whose frame-boundary state is
+        // not exercised at bilin=1. sel=0 routes orig_disp to the processed tap, so the
+        // split output is still the raw tag frame and `u_split.orig_pix` is the raw tap.
+        stage_sel = 9'd0;
+        split_ctl_tb[13] = 1'b1;                // marker off
+        split_ctl_tb[11] = 1'b1;                // follow (same seam path as the board)
+        split_ctl_tb[10] = 1'b0;
+        split_ctl_tb[9:0]  = 10'd0;
+        split_ctl_tb[12] = 1'b0;
+        zoom_en = 1'b1; zoom_sel = 3'd4;
+        bilin_en_tb = 1'b1; osd_off_tb = 1'b1;
+        force dut.angle = 9'd0; force dut.rot_on = 1'b0;
+        repeat (4) @(posedge dut.frame_start);
+        c20_on = 1'b1;
+        repeat (2) @(posedge dut.frame_start);
+        c20_on = 1'b0;
+        $display("C20 bilinear 0deg raw tap: n=%0d bad=%0d (head n=%0d bad=%0d, tail n=%0d bad=%0d)",
+                 c20_n, c20_bad, c20_hd, c20_hb, c20_tl, c20_tb);
+        line("C20 bilinear frame head/tail rows carry their own source row", c20_n > 3000 && c20_bad == 0,
+             "board default bilin=1; C5/C5c are blind here (they run with bilin=0). A pair-buffer slip shows as a head/tail tag-row jump");
+        release dut.angle; release dut.rot_on;
+        split_ctl_tb = 19'd0; stage_sel = 9'd0; zoom_sel = 3'd4; bilin_en_tb = 1'b1; osd_off_tb = 1'b0;
+
+        // ---- C21: processed tap, bilin=1, invert (point op) at the frame head/tail ----
+        stage_sel = 9'd2;                       // invert only: ~proc_pix is the source tag
+        split_ctl_tb[13] = 1'b1;
+        split_ctl_tb[11] = 1'b1;
+        split_ctl_tb[10] = 1'b0;
+        split_ctl_tb[9:0]  = 10'd0;             // raw_left=1 => processed everywhere
+        split_ctl_tb[12] = 1'b0;
+        zoom_en = 1'b1; zoom_sel = 3'd4;
+        bilin_en_tb = 1'b1; osd_off_tb = 1'b1;
+        force dut.angle = 9'd0; force dut.rot_on = 1'b0;
+        repeat (4) @(posedge dut.frame_start);
+        c21_on = 1'b1;
+        repeat (2) @(posedge dut.frame_start);
+        c21_on = 1'b0;
+        $display("C21 bilinear 0deg processed tap: n=%0d bad=%0d (head n=%0d bad=%0d, tail n=%0d bad=%0d)",
+                 c21_n, c21_bad, c21_hd, c21_hb, c21_tl, c21_tb);
+        line("C21 bilinear processed frame head/tail rows carry their own source row", c21_n > 3000 && c21_bad == 0,
+             "invert keeps the tag decodable; a chain line-buffer/frame-boundary slip shows as a head/tail tag-row jump at bilin=1");
+        release dut.angle; release dut.rot_on;
+        split_ctl_tb = 19'd0; stage_sel = 9'd0; zoom_sel = 3'd4; bilin_en_tb = 1'b1; osd_off_tb = 1'b0;
+
+        // ---- C22: Sobel on a horizontal grey ramp; the image top/bottom must stay black ----
+        // This is the neighbour-side judge C5/C20/C21 lack: centre row tags can be right
+        // while the above/below tap is the other frame's boundary row, which is exactly
+        // what paints the user's one-line edge at 0deg.
+        stage_sel = 9'h10;                      // Sobel only
+        split_ctl_tb[13] = 1'b1;
+        split_ctl_tb[11] = 1'b1;
+        split_ctl_tb[10] = 1'b0;
+        split_ctl_tb[9:0]  = 10'd0;             // raw_left=1 => processed everywhere
+        split_ctl_tb[12] = 1'b0;
+        zoom_en = 1'b1; zoom_sel = 3'd4;
+        bilin_en_tb = 1'b1; osd_off_tb = 1'b1;
+        force dut.angle = 9'd0; force dut.rot_on = 1'b0;
+        arm_bars_frame;
+        repeat (2) @(posedge dut.frame_start);
+        c22_on = 1'b1;
+        repeat (2) @(posedge dut.frame_start);
+        c22_on = 1'b0;
+        $display("C22 Sobel ramp: n=%0d | top n=%0d bad=%0d max=%0d | bot n=%0d bad=%0d max=%0d | body bad=%0d max=%0d",
+                 c22_n, c22_topn, c22_topbad, c22_mtop, c22_botn, c22_botbad, c22_mbot, c22_bodybad, c22_mbody);
+        line("C22 Sobel of a uniform-row ramp is clean at the frame top/bottom", c22_topn > 0 && c22_botn > 0 && c22_topbad == 0 && c22_botbad == 0 && c22_bodybad == 0,
+             "a stale above/below tap from the other frame edge produces a bright line here even when the centre row tag is correct");
+        arm_coord_frame;                        // restore the tag frame for C17 below
+        release dut.angle; release dut.rot_on;
+        split_ctl_tb = 19'd0; stage_sel = 9'd0; zoom_sel = 3'd4; bilin_en_tb = 1'b1; osd_off_tb = 1'b0;
+
+        // ---- quick_c17：在 C8 之后直接跑 C17，跳过 xsim 上很慢的 C9 三臂（默认全量不进来）----
+        if (quick_c17) begin
+            c17_on = 0; c17c_on = 0; c17_n = 0; c17_bad = 0; c17c_n = 0; c17c_bad = 0; c17_dump = 0;
+            split_ctl_tb[13] = 1'b1;
+            split_ctl_tb[9:0] = 10'd0;
+            osd_off_tb = 1'b1;
+            bilin_en_tb = 1'b0;
+            zoom_en = 1'b1; zoom_manual = 1'b1; zoom_sel = 3'd2;
+            force dut.angle = 9'd45;
+            force dut.rot_on = 1'b1;
+            stage_sel = 9'd1;
+            repeat (3) @(posedge dut.frame_start);
+            c17_on = 1;
+            repeat (2) @(posedge dut.frame_start);
+            c17_on = 0;
+            stage_sel = 9'd0;
+            repeat (2) @(posedge dut.frame_start);
+            c17c_on = 1;
+            repeat (2) @(posedge dut.frame_start);
+            c17c_on = 0;
+            // ---- 用户 2026-10-20 报的原始条件：185° + split video(follow=1) + 效果 + swap ----
+            // 45° 整屏臂看不见它；这里只数**处理抽头那一侧**（源头缝位 256，swap 两态各跑两帧）。
+            // take_orig 是 split 输入级的组合位，输出像素晚一拍 ⇒ 用 take_orig_d 对齐。
+            split_ctl_tb[13] = 1'b1;             // marker off
+            split_ctl_tb[11] = 1'b1;             // follow: seam in image columns
+            split_ctl_tb[10] = 1'b0;             // static seam (no auto scan)
+            split_ctl_tb[9:0] = 10'd256;
+            split_ctl_tb[12] = 1'b0;             // swap 0
+            force dut.angle = 9'd185;
+            force dut.rot_on = 1'b1;
+            stage_sel = 9'd1;                    // gray only
+            zoom_sel = 3'd4;                     // 1.00x: image bottom edge sits on the panel bottom
+            bilin_en_tb = 1'b0; osd_off_tb = 1'b1;
+            repeat (3) @(posedge dut.frame_start);
+            c25_clear;
+            c17s_on = 1;
+            repeat (2) @(posedge dut.frame_start);
+            c17s_on = 0;
+            c25_report("swap0b0");
+            split_ctl_tb[12] = 1'b1;             // swap 1
+            repeat (3) @(posedge dut.frame_start);
+            c25_clear;
+            c17s_on = 1;
+            repeat (2) @(posedge dut.frame_start);
+            c17s_on = 0;
+            c25_report("swap1b0");
+            // The board runs bilin=1; repeat both swaps with the interpolation on.
+            bilin_en_tb = 1'b1;
+            split_ctl_tb[12] = 1'b0;
+            repeat (3) @(posedge dut.frame_start);
+            c25_clear;
+            c17s_on = 1;
+            repeat (2) @(posedge dut.frame_start);
+            c17s_on = 0;
+            c25_report("swap0b1");
+            split_ctl_tb[12] = 1'b1;
+            repeat (3) @(posedge dut.frame_start);
+            c25_clear;
+            c17s_on = 1;
+            repeat (2) @(posedge dut.frame_start);
+            c17s_on = 0;
+            c25_report("swap1b1");
+            release dut.angle;
+            release dut.rot_on;
+            split_ctl_tb[11] = 1'b0; split_ctl_tb[12] = 1'b0; split_ctl_tb[9:0] = 10'd0;
+            $display("C17 quick rot45 x 0.50x: gray judged=%0d non-gray=%0d || colour control judged=%0d non-gray=%0d",
+                     c17_n, c17_bad, c17c_n, c17c_bad);
+            $display("C17S rot185 split-video gray: processed judged=%0d non-gray=%0d raw judged=%0d gray=%0d",
+                     c17s_n, c17s_bad, c17s_raw_n, c17s_raw_gray);
+            line("C17pre coverage floor", c17_n > 100000 && c17c_n > 100000,
+                 "both arms must cover a whole rotated frame, else C17a/C17b are greens on an empty set");
+            line("C17a processed pane has no unprocessed pixel under rotation", c17_bad == 0,
+                 "gray stage makes every processed pixel grey; any coloured cell means that cell bypassed the chain (user report: processed pane bottom edge unprocessed)");
+            line("C17b the colour control actually produces non-grey cells", c17c_bad > 1000,
+                 "pair for C17a: same geometry with gray off must light the detector, else C17a's zero is blind");
+            line("C17s coverage floor", c17s_n > 100000,
+                 "185 deg split-video arm must cover both panes to make C17sa meaningful");
+            line("C17sa 185 split-video processed pane has no unprocessed pixel (swap 0/1)", c17s_bad == 0,
+                 "user report: processed pane bottom edge shows an original line at 185 deg only with split video + effect");
+            line("C17sb pane integrity counter zero (same arm, hardware counter)", dut.pane_valid_o === 1'b1 && dut.pane_bad_o === 16'd0,
+                 "the on-board counter must see the same zero as the bench: non-gray pixels in the processed pane at 185 deg");
+            line("C25 raw pane has no processed line at the rotated image bottom",
+                 c17s_raw_n > 100000 && c25_max < 200,
+                 "swap1: a processed (non-black grey) row inside the original pane at the image edge; black background is excluded, threshold 200 px/row");
+            // C26: the board's actual effect (Sobel) at the same 185deg split arm.
+            stage_sel = 9'h10;
+            split_ctl_tb[13] = 1'b1; split_ctl_tb[11] = 1'b1; split_ctl_tb[10] = 1'b0;
+            split_ctl_tb[9:0] = 10'd256; split_ctl_tb[12] = 1'b0;
+            force dut.angle = 9'd185; force dut.rot_on = 1'b1;
+            bilin_en_tb = 1'b0;
+            c17s_n = 0; c17s_bad = 0; c17s_raw_n = 0; c17s_raw_gray = 0; c25_max = 0;
+            repeat (3) @(posedge dut.frame_start);
+            c25_clear; c17s_on = 1; repeat (2) @(posedge dut.frame_start); c17s_on = 0;
+            c25_report("sob0b0");
+            c25_clear; split_ctl_tb[12] = 1'b1; repeat (3) @(posedge dut.frame_start);
+            c17s_on = 1; repeat (2) @(posedge dut.frame_start); c17s_on = 0;
+            c25_report("sob1b0");
+            bilin_en_tb = 1'b1; split_ctl_tb[12] = 1'b0;
+            c25_clear; repeat (3) @(posedge dut.frame_start);
+            c17s_on = 1; repeat (2) @(posedge dut.frame_start); c17s_on = 0;
+            c25_report("sob0b1");
+            c25_clear; split_ctl_tb[12] = 1'b1; repeat (3) @(posedge dut.frame_start);
+            c17s_on = 1; repeat (2) @(posedge dut.frame_start); c17s_on = 0;
+            c25_report("sob1b1");
+            release dut.angle; release dut.rot_on;
+            stage_sel = 9'd0; split_ctl_tb[11] = 1'b0; split_ctl_tb[12] = 1'b0; split_ctl_tb[9:0] = 10'd0;
+            $display("C26 rot185 split-video Sobel: processed judged=%0d non-gray=%0d raw judged=%0d worst raw-row nz=%0d",
+                     c17s_n, c17s_bad, c17s_raw_n, c25_max);
+            line("C26 Sobel split-video at 185deg has no inverted tap row",
+                 c17s_n > 100000 && c17s_bad == 0 && c25_max < 200,
+                 "same geometry as C25 but the real effect; processed pane must stay grey and the raw pane must not contain a processed row");
+            // C28: expected tap side from the raw pixel's own source-column tag.
+            stage_sel = 9'd1;
+            split_ctl_tb[13] = 1'b1; split_ctl_tb[11] = 1'b1; split_ctl_tb[10] = 1'b0;
+            split_ctl_tb[9:0] = 10'd128; split_ctl_tb[12] = 1'b0;
+            zoom_en = 1'b1; zoom_sel = 3'd4; bilin_en_tb = 1'b0; osd_off_tb = 1'b1;
+            force dut.angle = 9'd185; force dut.rot_on = 1'b1;
+            repeat (3) @(posedge dut.frame_start);
+            c28_clear; c28_on = 1'b1;
+            repeat (2) @(posedge dut.frame_start);
+            c28_on = 1'b0;
+            c28_report("swap0");
+            if (c28_rowmax > c28_maxall) c28_maxall = c28_rowmax;
+            c28_clear; split_ctl_tb[12] = 1'b1;
+            repeat (3) @(posedge dut.frame_start);
+            c28_on = 1'b1;
+            repeat (2) @(posedge dut.frame_start);
+            c28_on = 1'b0;
+            c28_report("swap1");
+            if (c28_rowmax > c28_maxall) c28_maxall = c28_rowmax;
+            release dut.angle; release dut.rot_on;
+            stage_sel = 9'd0; split_ctl_tb[11] = 1'b0; split_ctl_tb[12] = 1'b0;
+            split_ctl_tb[9:0] = 10'd0; bilin_en_tb = 1'b1;
+            // C28 is OBS, not a judge: the tag frame stores only col[7:0], so source
+            // col 285 aliases to 29 and the "expected side" is wrong for the upper half
+            // (C30: sxal=285, pixcol=29). C31 uses a 9-bit column tag frame instead.
+            $display("OBS C28 old 8-bit col tag: n=%0d bad=%0d maxall=%0d (mod-256 alias, not a fault)",
+                     c28_n, c28_bad, c28_maxall);
+            if (nfail == 0) $display("RESULT tb_video_pipeline_top PASS nfail=0 (quick_c17)");
+            else            $display("RESULT tb_video_pipeline_top FAIL nfail=%0d (quick_c17)", nfail);
+            $finish;
+        end
+
+        // ---- C9（用户 2026-09-27 23:3x 报的那一条）：缝挪到正中 + 只开灰度 ----
+        //   为什么这一档以前必然看不见它：① 缝在 0 ⇒ "缝旁"那一档在屏上不存在；
+        //   ② `stage_sel` 全程 0 ⇒ 只在效果开着时才坏的列无从现形。两条都是台架的窗，不是设计无辜。
+        for (c9_k = 0; c9_k < 1024; c9_k = c9_k + 1) c9_blk[c9_k] = 0;  // ⚠ `integer` 数组的初值是 X，必须清（#94 那一族）
+        c9_rows = 0; c9_de_d = 0; c9_any = 0; c9_burst = 0; c9_px = 0;
+        split_ctl_tb[9:0] = 10'd512;          // 缝在正中：左半原图、右半处理（不写 C9_SEAM[9:0]：对无位宽参数做部分选择不稳）
+        stage_sel         = 9'd1;             // 只开灰度 = 用户念的 `pipe 100000000`
+        repeat (3) @(posedge dut.frame_start);   // 等 sel_sync 与缝的 snap 都落定，别采到换档那一帧
+        c9_on = 1'b1;
+        repeat (2) @(posedge dut.frame_start);
+        c9_on = 1'b0;
+        stage_sel = 9'd0;
+        split_ctl_tb[9:0] = 10'd0;            // 全部还回去：C2/C3/C7 已有的数不能被这一档重定基线
+        repeat (2) @(posedge dut.frame_start);
+        c9_worst = 0; c9_wcol = -1; c9_best = 999999; c9_bcol = -1;
+        for (c9_k = 1; c9_k < 1023; c9_k = c9_k + 1) begin
+            if (c9_blk[c9_k] > c9_worst) begin c9_worst = c9_blk[c9_k]; c9_wcol = c9_k; end
+            if (c9_blk[c9_k] < c9_best)  begin c9_best  = c9_blk[c9_k]; c9_bcol  = c9_k; end
+        end
+        $display("C9 gray x seam=%0d: lines-in-window %0d (de-edges %0d) near-black-cells %0d || darkest col%0d=%0d rows, brightest col%0d=%0d rows || at seam col%0d=%0d col%0d=%0d col%0d=%0d",
+                 C9_SEAM, c9_burst, c9_rows, c9_any, c9_wcol, c9_worst, c9_bcol, c9_best,
+                 C9_SEAM-1, c9_blk[C9_SEAM-1], C9_SEAM, c9_blk[C9_SEAM], C9_SEAM+1, c9_blk[C9_SEAM+1]);
+        line("C9pre rows judged", c9_burst >= 550,
+             "this window must have judged nearly the whole frame, else C9a below is a green on an empty set");
+        line("C9a no full-height black column with gray on and seam mid", c9_worst * 2 < c9_burst,
+             "the line the user reported at 23:3x: no column inside the picture may be majority near-black");
+        line("C9c columns at the seam are not black either",
+             (c9_blk[C9_SEAM-1] * 2 < c9_burst) && (c9_blk[C9_SEAM] * 2 < c9_burst) &&
+             (c9_blk[C9_SEAM+1] * 2 < c9_burst),
+             "the user says the line appears where the divider passes; the seam's own columns are the suspect set");
+        // ---- C9b：把**同一把尺子**拿到"已知有一条条黑列"的那一档去，它必须数到东西 ----
+        // 原来这一格判的是"最亮列几乎全亮"，而 best 的初值就是 0 ⇒ 探测器全瞎也照样 PASS，
+        // 也就是说 C9a 的那个 0 从来没被证明不是瞎。这一档改成"必须数到黑"（0.50x 有背景带）。
+        for (c9_k = 0; c9_k < 1024; c9_k = c9_k + 1) c9_blk[c9_k] = 0;
+        c9_rows = 0; c9_de_d = 0; c9_any = 0; c9_burst = 0; c9_px = 0;
+        stage_sel  = 9'd5;                    // 灰度 + 模糊：这一档顺带覆盖"窗口级开着"的情形
+        zoom_sel   = 3'd2;                    // 0.50x ⇒ 左右各 256 列黑背景（C4 那一维量过）
+        split_ctl_tb[9:0] = 10'd512;
+        repeat (3) @(posedge dut.frame_start);
+        c9_on = 1'b1;
+        repeat (2) @(posedge dut.frame_start);
+        c9_on = 1'b0;
+        stage_sel = 9'd0;
+        zoom_sel  = 3'd4;
+        split_ctl_tb[9:0] = 10'd0;            // 还回去：后面的 C2/C3/C7 不能被这一档重定基线
+        c9_border = 0;
+        for (c9_k = 1; c9_k < 1023; c9_k = c9_k + 1)
+            if (c9_blk[c9_k] * 2 >= c9_burst) c9_border = c9_border + 1;
+        $display("C9b 0.50x gray+blur: lines-in-window %0d (de-edges %0d) near-black-cells %0d || whole-dark columns %0d (border should give ~512)",
+                 c9_burst, c9_rows, c9_any, c9_border);
+        line("C9bpre rows judged", c9_burst >= 550,
+             "the control window must have judged nearly a whole frame, else C9b means nothing");
+        line("C9b detector does see known black columns", c9_border >= 100,
+             "pair for C9a: on a cell where a dark column is guaranteed, this same counter must light up");
+
+        // ---- C9e（2026-09-28 08:4x，板上量出来的那一档）：处理抽头铺满整屏 x 1.5x x 只开灰度 ----
+        //   为什么必须换这一档：C9a 那档缝在 512、左半给原图，而板上的黑列在**内部列 128**
+        //   （显示列 256）——正好落在被原图盖住的那一半里，**结构上就看不见**。
+        //   板上三条事实：`split swap 0` 之后线消失 ⇒ 属于处理抽头；`zoom 1.0` 下线不在 256 ⇒ 跟着缩放走；
+        //   效果全关、bilin 关、SD 片源下仍在 ⇒ 与效果链内容无关。
+        for (c9_k = 0; c9_k < 1024; c9_k = c9_k + 1) c9_blk[c9_k] = 0;
+        c9_rows = 0; c9_de_d = 0; c9_any = 0; c9_burst = 0; c9_px = 0;
+        stage_sel    = 9'd1;                  // 只开灰度 = 用户念的 pipe 100000000
+        bilin_en_tb  = 1'b0;                  // 板上 bilin 关着也看得见，别把变量加回来
+        zoom_en      = 1'b1;
+        zoom_sel     = 3'd6;                  // ZOOM_X100[6]=150 ⇒ 1.5x（板上量到线的那一档）
+        split_ctl_tb[9:0] = 10'd0;            // 缝=0 ⇒ 整屏都是处理抽头，内部列 128 不再被原图盖住
+        repeat (3) @(posedge dut.frame_start);
+        c9_on = 1'b1;
+        repeat (2) @(posedge dut.frame_start);
+        c9_on = 1'b0;
+        stage_sel = 9'd0; zoom_en = 1'b1; zoom_sel = 3'd4;
+        // ⚠ 这两行**必须还成 zoom_en=1 / bilin_en_tb=1**，不是"还成台架初值"：
+        //   C5/C8/C9 这一段前面（`zoom_en = 1'b1;` 那一行）已经把缩放门打开了，而后面的
+        //   C2/C3/C7 八档扫描只自己写 `zoom_sel`，**倍率能不能生效全靠 zoom_en**。
+        //   2026-09-28 那份里 C2pre 的 `invbad` 等于全部采样数（247808）、`viol` 等于 `nout`，
+        //   就是"门没开、倍率从没换过"的签名；C2a/C2b/C2c/C3c/C7 一整族因此全红。
+        //   双线性是第二个漏（C9 三档为"别把两格混成第三格"把它关掉），红了同一族里的边缘判据。
+        //   两个都是**台架漏状态**，不是设计变了 —— r80 那份冻结件里这些条目都是 PASS。
+        bilin_en_tb = 1'b1;
+        c9_worst = 0; c9_wcol = -1;
+        for (c9_k = 1; c9_k < 1023; c9_k = c9_k + 1)
+            if (c9_blk[c9_k] > c9_worst) begin c9_worst = c9_blk[c9_k]; c9_wcol = c9_k; end
+        $display("C9e full-processed x 1.5x x gray: lines-in-window %0d (de-edges %0d) px %0d near-black %0d || darkest col %0d = %0d rows",
+                 c9_burst, c9_rows, c9_px, c9_any, c9_wcol, c9_worst);
+        line("C9epre rows judged", c9_burst >= 550,
+             "this window must have judged nearly the whole frame, else C9e below is a green on an empty set");
+        line("C9e no majority-dark column, processed tap full-screen at 1.5x", c9_worst * 2 < c9_burst,
+             "board shows a full-height near-black column at internal col 128 (display 256) here; ISSUES #103");
+
+        // ================= C17（用户 2026-10-20 报的那条：处理后区域最下方有没处理的像素）=================
+        //   取板上验收同一档：0.50x + 旋转 + 灰度，缝=0（整屏处理抽头）、OSD 与标记线都关。
+        //   判据只问一件事：灰度态整屏是否还有非灰像素。原图 tag 的 r/g/b 高 5 位一般不相等，
+        //   灰度级把它们变成相等 ⇒ 任何非灰格都是"没走处理链"。同几何关掉灰度的那一臂是正对照。
+        c17_on = 0; c17c_on = 0; c17_n = 0; c17_bad = 0; c17c_n = 0; c17c_bad = 0; c17_dump = 0;
+        split_ctl_tb[13] = 1'b1;             // marker off
+        split_ctl_tb[9:0] = 10'd0;           // whole panel processed
+        osd_off_tb = 1'b1;                   // OSD off: no coloured text in the sample window
+        bilin_en_tb = 1'b0;
+        zoom_en = 1'b1; zoom_manual = 1'b1; zoom_sel = 3'd2;   // 0.50x
+        force dut.angle = 9'd45;
+        force dut.rot_on = 1'b1;
+        stage_sel = 9'd1;                    // gray only
+        repeat (3) @(posedge dut.frame_start);
+        c17_on = 1;
+        repeat (2) @(posedge dut.frame_start);
+        c17_on = 0;
+        stage_sel = 9'd0;                    // same geometry, colour control (detector must light up)
+        repeat (2) @(posedge dut.frame_start);
+        c17c_on = 1;
+        repeat (2) @(posedge dut.frame_start);
+        c17c_on = 0;
+        release dut.angle;
+        release dut.rot_on;
+        stage_sel = 9'd0;
+        zoom_sel = 3'd4; bilin_en_tb = 1'b1; osd_off_tb = 1'b0; split_ctl_tb[13] = 1'b1;
+        repeat (2) @(posedge dut.frame_start);
+        $display("C17 rot45 x 0.50x: gray judged=%0d non-gray=%0d || colour control judged=%0d non-gray=%0d",
+                 c17_n, c17_bad, c17c_n, c17c_bad);
+        line("C17pre coverage floor", c17_n > 100000 && c17c_n > 100000,
+             "both arms must cover a whole rotated frame, else C17a/C17b are greens on an empty set");
+        line("C17a processed pane has no unprocessed pixel under rotation", c17_bad == 0,
+             "gray stage makes every processed pixel grey; any coloured cell means that cell bypassed the chain (user report: processed pane bottom edge unprocessed)");
+        line("C17b the colour control actually produces non-grey cells", c17c_bad > 1000,
+             "pair for C17a: same geometry with gray off must light the detector, else C17a's zero is blind");
+        if (quick_c17) begin
+            if (nfail == 0) $display("RESULT tb_video_pipeline_top PASS nfail=0 (quick_c17)");
+            else            $display("RESULT tb_video_pipeline_top FAIL nfail=%0d (quick_c17)", nfail);
+            $finish;
+        end
+
+        // ⚠ 八档扫描**自己关双线性**，不靠远处某次"恢复"。C2b/C7 是纯几何尺子（期望值里
+        //   一个补偿项都不引用），而插值按定义会把相邻两格混成第三格 ⇒ 开着跑必然红在
+        //   `inbad`（解不出定义值）上。2026-09-28 那份 nfail=13 的 12 条 C2b/C7 就是这个漏：
+        //   上一个块（C9）末尾把 `bilin_en_tb` 恢复成 1，而这一段在它**后面**跑。
+        //   归因凭据：同一版台架、未改 RTL 的基线跑（rtl=f3b40bf991c0）红名单一模一样 ⇒ 与 #103 无关；
+        //   r80 冻结件（tb=54570ada5045）里这些条目全 PASS、`inbad` 那一列八档全是 0。
+        bilin_en_tb = 1'b0;
+        // ================= C12（r83）：OSD 总开关在**整屏引脚上**有效 =================
+        // 为什么顶层还要一条：`tb_osd_overlay` 的 T13 判的是模块内"关掉=逐位等于背景"，它证明不了
+        //   `gpio_o[20] → 那一位自己的 3 级同步 → u_osd` 这条**接线**是通的（#88 的教训就是
+        //   "端口加了、台架没接 ⇒ 悬空成 Z"，而那次是门禁抓不到台架）。
+        // 判据只看一件事：屏上有没有那个 rose 色（8'hFF/8'h00/8'h90）的字形像素。
+        //   成对：开着必须数得到（>0），关掉必须一个都没有（=0）。少一半就是空判据。
+        osd_rose = 0; osd_cells = 0; osd_off_tb = 1'b0;
+        osd_count = 1'b1; repeat (2) @(posedge dut.frame_start); osd_count = 1'b0;
+        osd_rose_on = osd_rose; osd_rose_n_on = osd_cells;
+        osd_rose = 0; osd_cells = 0; osd_off_tb = 1'b1;
+        repeat (4) @(posedge dut.clk_pix);                 // 跨域链 3 拍 + 余量：别采到换档那一拍
+        osd_count = 1'b1; repeat (2) @(posedge dut.frame_start); osd_count = 1'b0;
+        osd_rose_off = osd_rose;
+        $display("C12 osd switch at the panel: rose cells ON=%0d (over %0d px) OFF=%0d",
+                 osd_rose_on, osd_rose_n_on, osd_rose_off);
+        line("C12pre the rose probe does see glyphs when OSD is on", osd_rose_on > 1000 && osd_rose_n_on > 200000,
+             "pair for C12a: with OSD on, the panel must actually carry glyph cells, else C12a's zero is a blind probe");
+        line("C12a osd off removes every glyph cell at the panel", osd_rose_off == 0,
+             "gpio_o[20] must reach u_osd through its own 3-stage chain; ISSUES r83 OSD switch");
+        osd_off_tb = 1'b0;
+
+        $display("C2 table  code inv  nin     nout     inbad viol measl measr geol geor leakl leakr blank invbad | C3 rows empt wbad rbad fmin fmax lmin lmax");
+        for (c2_k = 4'd0; c2_k < 4'd8; c2_k = c2_k + 4'd1) begin
+            zoom_sel = c2_k[2:0];
+            repeat (3) @(posedge dut.frame_start);      // 准静态量：跨几帧再采，别采到换档那一拍
+            c2_on = 1'b1;
+            repeat (2) @(posedge dut.frame_start);
+            c2_on = 1'b0;
+            // 每一档**当场**把数与判据打出来：整轮八档要 40 帧（一个多小时），
+            // 攒到最后才打就等于"要等一小时才知道尺子对不对"（#88 那一轮就是这么过的）。
+            $display("C2 row    %0d %4d %8d %8d %6d %4d %5d %5d %4d %4d %5d %5d %5d %4d | %4d %4d %3d %3d %4d %4d %4d %4d",
+                     c2_k, C2_TBL(c2_k), c2_nin[c2_k], c2_nout[c2_k], c2_inbad[c2_k], c2_viol[c2_k],
+                     c2_measl[c2_k], c2_measr[c2_k], c2_geol[c2_k], c2_geor[c2_k],
+                     c2_leakl[c2_k], c2_leakr[c2_k], c2_blank[c2_k], c2_invbad[c2_k],
+                     c3_rows[c2_k], c3_empty[c2_k], c3_wbad[c2_k], c3_rbad[c2_k],
+                     c3_fmin[c2_k], c3_fmax[c2_k], c3_lmin[c2_k], c3_lmax[c2_k]);
+            // 坏格的**列对形状**当场算清（484 这种总数只说"每行错几格"，不说错在哪一对；
+            // 行尾 / 行首 / 中间 是三套完全不同的修法，留给下一轮猜就是再花两小时）。
+            c2_ib_np = 0; c2_ib_f = -1; c2_ib_l = -1;
+            for (c2_ib_q = 0; c2_ib_q < 512; c2_ib_q = c2_ib_q + 1)
+                if (c2_ibv[c2_k][c2_ib_q]) begin
+                    c2_ib_np = c2_ib_np + 1;
+                    if (c2_ib_f < 0) c2_ib_f = c2_ib_q;
+                    c2_ib_l = c2_ib_q;
+                end
+            $display("C2SHAPE code=%0d inv=%0d inbad=%0d badpairs=%0d firstpair=%0d lastpair=%0d dm1=%0d dp1=%0d dother=%0d",
+                     c2_k, C2_TBL(c2_k), c2_inbad[c2_k], c2_ib_np, c2_ib_f, c2_ib_l,
+                     c2_dm1[c2_k], c2_dp1[c2_k], c2_doth[c2_k]);
+            // ---- C7（#102）：同一点、同一拍，比的是**行**那一半位 ----
+            c7_np = 0; c7_f = -1; c7_l = -1;
+            for (c7_q = 0; c7_q < 512; c7_q = c7_q + 1)
+                if (c7_rbv[c2_k][c7_q]) begin
+                    c7_np = c7_np + 1;
+                    if (c7_f < 0) c7_f = c7_q;
+                    c7_l = c7_q;
+                end
+            $display("C7 row    code=%0d inv=%0d rn=%0d rblk=%0d rbad=%0d badpairs=%0d firstpair=%0d lastpair=%0d dm1=%0d dp1=%0d dother=%0d",
+                     c2_k, C2_TBL(c2_k), c7_rn[c2_k], c7_rblk[c2_k], c7_rbad[c2_k], c7_np, c7_f, c7_l,
+                     c7_rm1[c2_k], c7_rp1[c2_k], c7_rbad[c2_k] - c7_rm1[c2_k] - c7_rp1[c2_k]);
+            line("C7pre sampled", c7_rn[c2_k] > 20000 && c7_rblk[c2_k] < 20000,
+                 "the row ruler needs samples in the SAME window C2 judges (rblk<20000 = 采样带纵向没跑出画面)");
+            line("C7 row matches definition", c7_rbad[c2_k] == 0,
+                 "each sampled cell must decode to the source ROW the definition asks for, all 8 zoom steps");
+            line("C2pre inv took", c2_invbad[c2_k] == 0 && c2_nin[c2_k] > 20000,
+                 "inv_used must equal the table value, and the code must have been sampled");
+            line("C3pre marker off", dut.split_marker_on === 1'b0,
+                 "the 2px seam marker would itself be a non-black column at the panel edge (#92)");
+            line("C3a panel active window", c3_wbad[c2_k] == 0 && c3_rbad[c2_k] == 0,
+                 "every measured line must be exactly 1024 de-high columns and the frame 600 lines");
+            line("C3b panel rows judged", c3_rows[c2_k] > 100,
+                 "C3 must actually have content rows to judge, else the edge numbers below are void");
+            // ① 倍率真的吃进去了 ② 背景里不许有内容 ③ 画面内不许有黑格
+            line("C2a bg black", c2_viol[c2_k] == 0 && c2_blank[c2_k] == 0,
+                 "no content in background / no black hole inside the picture");
+            line("C2b col matches definition", c2_inbad[c2_k] == 0,
+                 "each in-window column must decode to the source column the definition asks for");
+            line("C2c edges match definition", c2_leakl[c2_k] < 0 && c2_measl[c2_k] == c2_geol[c2_k]
+                 && c2_measr[c2_k] == c2_geor[c2_k],
+                 "measured picture edges == geometric edges (content stage, in columns)");
+            // ---- C8c：同一批采样点上的**原图抽头**（#102 机器那一半），坏格也按列对记形状 ----
+            c8c_np = 0; c8c_f = -1; c8c_l = -1;
+            for (c8c_q = 0; c8c_q < 512; c8c_q = c8c_q + 1)
+                if (c8c_bv[c2_k][c8c_q]) begin
+                    c8c_np = c8c_np + 1;
+                    if (c8c_f < 0) c8c_f = c8c_q;
+                    c8c_l = c8c_q;
+                end
+            $display("C8c rawtap  code=%0d inv=%0d n=%0d skip=%0d bad=%0d badpairs=%0d firstpair=%0d lastpair=%0d",
+                     c2_k, C2_TBL(c2_k), c8c_n[c2_k], c8c_skip[c2_k], c8c_bad[c2_k], c8c_np, c8c_f, c8c_l);
+            line("C8cpre sampled", c8c_n[c2_k] > 20000 && (c8c_n[c2_k] - c8c_skip[c2_k]) > 20000,
+                 "the raw-tap ruler must judge a real pile of cells in the SAME window C2/C7 use (skip = 定义说在画面外/带外)");
+            line("C8c raw tap matches definition", c8c_bad[c2_k] == 0,
+                 "the RAW tap (not the seam-selected one) must decode to the source col+row the definition asks, all 8 zoom steps");
+            // C8cself：尺子自己的期望函数（只算一次，八档共用）。这一条**不碰 DUT**，
+            // 它防的是"八档全绿其实是因为期望函数不跟着逆映射表动"这种最阴的空转（规矩 30(a)/46(a)）。
+            if (c2_k == 0) begin
+                $display("C8cself ruler  inv256列不合>>1的=%0d/512  inv256行不合>>1的=%0d/%0d  1023与256相同的列=%0d/512（必须 0/0/大）",
+                         c8c_sb1, c8c_sb3, SRC_H, 512 - c8c_sb2);
+                line("C8cself expectation degenerates at 256 and moves at 1023",
+                     c8c_sb1 == 0 && c8c_sb3 == 0 && (512 - c8c_sb2) > 200,
+                     "exp_col(x,256)==x>>1 and exp_row(y,256)==y>>1 (the 1.00x identity C5b already proved on the panel), while the 1023 step must differ on most columns");
+            end
+            // 面板级同一件事：屏上画面的左右沿必须落在定义说的那两列，而且**逐行一致**
+            //（fmin!=fmax 就是"这一行的边在抖"，那是另一种病，不许用区间糊过去）。
+            line("C3c panel edges match definition", c3_fmin[c2_k] == c3_fmax[c2_k]
+                 && c3_lmin[c2_k] == c3_lmax[c2_k]
+                 && c3_fmin[c2_k] == c2_geol[c2_k] && c3_lmax[c2_k] == c2_geor[c2_k],
+                 "the panel's own first/last non-black column == the geometric edges, same on every row");
+            // _coverage floor_：背景侧只在有背景的档（inv>=341，即 code 0..3）要求样本数，
+            //   1.00x 与放大档本来就没有背景列 —— 那种档要求 nout>0 会永远是 0，等于假红。
+            if (c2_k < 4'd4)
+                line("C2d coverage", c2_nout[c2_k] > 20000 && c2_nin[c2_k] > 20000,
+                     "zoom-out codes must actually have background columns to judge");
+        end
+        zoom_en  = 1'b0;                     // 还回 C1 阶段那对值：复跑/对照不许被这一轮改动
+        zoom_sel = 3'd4;
+        split_ctl_tb[13] = 1'b0;             // 标记线也还回去（与 C1 阶段同一个形状）
+        bilin_en_tb = 1'b1;
+        // P1 的账（报数，不判红）：arm 应当约等于"行数 × 帧数"，flush 与 arm 同量级才说明
+        // 顶层真的多跳了那一拍；p_piped 与 p_mixde 差多少 = 链子的 de 与混色级取的标签差几拍。
+        $display("P1 chain-blur: arm(x==1023&de)=%0d flush=%0d run@行尾 min=%0d max=%0d | pipe_de=%0d mix_de_d11=%0d (差 %0d)",
+                 p_arm, p_flush, p_runmin, p_runmax, p_piped, p_mixde, p_piped - p_mixde);
+        // ---- C11（#171 的端到端那一半）：一次 abort 必须把"这一帧已就绪"丢掉 ----
+        // 口径先说死：**RTL 已经改完了，这里拿不到"改前红"**，所以这一条记为**回归判据**；
+        // #171 的鉴别证据在模块级变异对照里（把 `frame_commit_lock.v` 单文件退回 HEAD，
+        // `sim/tb_commit_strobe.v` 的 B1/B2/B3/B4/A8 五条就红 —— 见 build/r96_commit_strobe_mutation.txt）。
+        // 顶层这一支只有一行换序 + 一行注释，它本身不需要再花一次 75 分钟的整屏跑去"证明能红"；
+        // 但它值得在这里被钉住，因为**上位机看到的那一位**（`status` 里的 `eth_ready`）就是这一条。
+        // 注入走 `force dut.u_cmt.copy_abort`：顶层没暴露 `WD_CYC`，等 20 ms 看门狗不值得；
+        // 这一拍会经过 v7.9 那套**翻转式脉冲同步器**（`abort_tgl` → `copy_abort_pix`），
+        // 也就是说这条判据同时在检查"脉冲真的跨过来了"，不是直接改像素域的位。
+        // ⚠ 前提必须**自己构造**（#187：上一版这里只把 `eth_link` 摆成 1 就等 12 拍，于是
+        //   `eth_has_frame` 从来没被置起来，C11/C11b 是在空样本上打的 PASS —— 守卫把它们拦住了，
+        //   但拦住不等于判过）。现在真的发一次提交：`eth_commit` = 顶层的 `commit_req`（pl_video_top.v:406），
+        //   等 `u_cmt` 走完"消隐开窗 → start_copy → copy_done"，`frame_ready_pix` 那一拍才会把锁存置 1
+        //   （#171 之后它是脉冲，不是电平）。等不到就把这一段的状态打出来 —— 红也要红得能读。
+        // 归属必须先**真的**交给 ETH：顶层把 `eth_live`/`eth_tb_ok` 直接接到 `src_arb` 的判据上
+        // （pl_video_top.v:402 `eth_mode = owner_eth`，:430 搬运机的 `.enable(eth_mode)`）。
+        // 上一版这里只摆了 `eth_link` ⇒ 仲裁不把屏交给 ETH ⇒ `u_cmt` 起了 `copy_active` 却永远等不到
+        // `copy_done`（今天实测：等满 3,000,000 拍时 `pending=0 copy_active=1`），
+        // 于是 C11pre 红在"前提构造不出来"上——红的是我的激励，不是设计。
+        // 这两位是硬件的**输入口**而不是内部结果，所以拿来造前提是干净的（#187 那一课的对称面）。
+        eth_link = 1'b1; eth_live = 1'b1; eth_tb_ok = 1'b1;
+        repeat (2000) @(negedge axi_clk);          // 先让仲裁把屏交过来，再提交（别在交接中途拍 commit）
+        @(negedge axi_clk); eth_commit = 1'b1;
+        @(negedge axi_clk); eth_commit = 1'b0;
+        for (ii = 0; ii < 3000000 && dut.eth_has_frame !== 1'b1; ii = ii + 1) @(negedge axi_clk);
+        $display("DBG C11pre waited %0d axi cycles: eth_has_frame=%b eth_link_pix=%b u_cmt.pending=%b u_cmt.copy_active=%b owner_eth=%b row_busy=%b row_done=%b",
+                 ii, dut.eth_has_frame, dut.eth_link_pix, dut.u_cmt.pending, dut.u_cmt.copy_active,
+                 dut.owner_eth, dut.row_busy, dut.row_done);
+        line("C11pre frame is latched", dut.eth_has_frame === 1'b1 && dut.eth_link_pix === 1'b1,
+             "empty-set guard: a committed frame must be latched before judging whether abort drops it");
+        force dut.u_cmt.copy_abort = 1'b1;
+        @(posedge axi_clk);
+        release dut.u_cmt.copy_abort;
+        repeat (30) @(posedge axi_clk);
+        line("C11 abort clears the latched frame", dut.eth_has_frame === 1'b0,
+             "after one copy_abort pulse the pixel domain must stop claiming a good ETH frame (#171)");
+        line("C11b eth_ready reads 0 after abort", dut.eth_ready === 1'b0,
+             "the host-side status bit is derived from that latch; reading 1 here means the abort was swallowed");
+        // ---- C12（任务 #167）：先"每帧换角"，再用"钉住角度"作对照，四条各打一行 ----
+        //   相位一：`rot_auto=1`、`speed=3 度/帧`（顶层 gp[14] 与 gp[17:15]，pl_video_top.v:176-177）；
+        //   相位二：同一个采样结构，只把 `speed` 钉成 0 ⇒ 两窗必然相等，红就只能落在"换角"这一件事上。
+        //   ⚠ 激励位是本仓已有的**运行时口子**（串口 `rot auto 1` / `rot speed <n>` 走的同一批位），
+        //      不是台架私造的旁路；`dut.angle` 由 angle_ctrl 自己走，台架不 force（force 会把这一刀掩盖掉）。
+        c12_cmp = 0; c12_bad = 0; c12_step = 0; c12_head_ok = 1'b0;
+        c12_on = 1'b1;
+        split_ctl_tb[14] = 1'b1;                    // rot_auto
+        split_ctl_tb[17:15] = 3'd3;                 // 每帧 3 度
+        c12_fs_prev = dut.angle;
+        for (c12_k = 0; c12_k < 7; c12_k = c12_k + 1) begin
+            @(posedge dut.frame_start);
+            c12_fs = dut.angle;
+            if (c12_fs !== c12_fs_prev) c12_step = c12_step + 1;
+            c12_fs_prev = c12_fs;
+        end
+        c12_on = 1'b0;
+        c12_rot_cmp = c12_cmp; c12_rot_bad = c12_bad; c12_rot_step = c12_step;
+        c12_cmp = 0; c12_bad = 0; c12_head_ok = 1'b0; c12_on = 1'b1;
+        split_ctl_tb[17:15] = 3'd0;                 // 钉住角度：自动还开着，但一步不走
+        for (c12_k = 0; c12_k < 5; c12_k = c12_k + 1) @(posedge dut.frame_start);
+        c12_on = 1'b0;
+        split_ctl_tb[14] = 1'b0;                    // 还回去：不许把旋转自动留给后面的复跑
+        c12_fz_cmp = c12_cmp; c12_fz_bad = c12_bad;
+        $display("C12 rot: cmp=%0d bad=%0d steps=%0d | frozen: cmp=%0d bad=%0d | angle now=%0d",
+                 c12_rot_cmp, c12_rot_bad, c12_rot_step, c12_fz_cmp, c12_fz_bad, dut.angle);
+        line("C12pre both phases judged real frames", (c12_rot_cmp >= 4) && (c12_fz_cmp >= 3),
+             "coverage floor: head-vs-body compared on >=4 rotating and >=3 frozen frames, else C12a/b are greens on an empty set");
+        line("C12c rotating stimulus really steps the angle", c12_rot_step >= 3,
+             "positive control / the ruler's own teeth: if the angle never moved, C12a would be trivially green");
+        line("C12a head request beat uses the frame's own angle", c12_rot_bad == 0,
+             "#167: display rows 0..5 are fetched from the previous frame's wrapped request rows; those beats and this frame's body beats must see ONE angle");
+        line("C12b frozen-angle control is coherent too", c12_fz_bad == 0,
+             "same two windows with speed=0: a red here would be a bench phase artifact, not the design");
+        // ================= C13：两臂（+45° / 315°）消掉常数列偏移，量旗标对内容的**行**配准 =================
+        // 放在最后一段，并且自己把设置还回去：前面 161 枚判定的激励一个字符都不动。
+        bilin_en_tb      = 1'b0;             // 最近邻：插值会把两格的 tag 混成第三格
+        zoom_en = 1'b1; zoom_manual = 1'b1; zoom_sel = 3'd2;   // 0.50x：画面缩进面板，行内才有点亮的格（1.00x+45° 全越界）
+        split_ctl_tb[9:0]  = 10'd128;        // 缝 = 图像列 128（auto_en=0 ⇒ split_eff 就是它；tag 看得见）
+        split_ctl_tb[11]   = 1'b1;           // follow ⇒ 缝量在图像列里
+        split_ctl_tb[13]   = 1'b0;           // 标记线开着（同一批旗标）
+        // ---- C13val：先证明内容确实带着 px_val 的坐标 tag（这是 C13/P16 那条腿的地基）----
+        c13v_bad = 0; c13v_jud = 0;
+        bilin_en_tb = 1'b0;
+        zoom_en = 1'b1; zoom_manual = 1'b1; zoom_sel = 3'd4;      // 1.00x：与 C1/C5/C6 同一口径
+        force dut.angle  = 9'd0;
+        force dut.rot_on = 1'b0;
+        arm_coord_frame;
+        c13v_on = 1'b1;
+        @(posedge dut.frame_start);
+        repeat (2) @(posedge dut.frame_start);
+        c13v_on = 1'b0;
+        release dut.angle; release dut.rot_on;
+        $display("C13VAL 判=%0d 不符=%0d 末次 dr=%0d dc=%0d", c13v_jud, c13v_bad, c13v_dr, c13v_dc);
+        // 暂时**不作判据**（2026-10-16 夜）：第一次跑就 1,749,150 判 / 1,749,114 不符——几乎全不符。
+        // 但同一轮里 P16 的直方图从"6.7 % 大跳（图卡渐变+网格）"变成"99 % 落在 0/1/2（平滑推进）"
+        // ⇒ 内容**确实换成了坐标图**，是我这条期望式子（列=x[7:0]、行=(y>>1) mod 128）在这扇窗里不成立
+        //   ——C1/C5 用的是采样点上的同一式子且判绿，两者必有一处口径不同（帧起点/写入行偏、或我这 14 帧
+        //   等到的其实是一份**半新半旧**的缓存）。没查清之前不留判据，只留这条打印与下面的 PROBE 说明。
+        //   待查项见任务 #48；查清之前，任何基于 tag 的读数（含 C13 的 V/K、P16 的大桶）都不当证据。
+        $display("PROBE C13val (not a criterion) tag leg unresolved: see task 48");
+        c14_mark = 0; c14_out = 0; c14_inb = 0;
+        c14_rminm = 0; c14_rmaxm = 0; c14_rminc = 0; c14_rmaxc = 0;
+        for (p16_k = 0; p16_k <= 10; p16_k = p16_k + 1) p16_hist[p16_k] = 0;
+        p16_pairs = 0; p16_have = 1'b0;
+        c13_arm(9'd45);
+        c13_np = c13_rows; c13_rp = (c13_rows == 0) ? 0 : c13_sum / c13_rows;
+        c15_dg = c15_mean; c15_nA = c15_n;
+        c13_arm(9'd315);
+        c13_nm = c13_rows; c13_rm = (c13_rows == 0) ? 0 : c13_sum / c13_rows;
+        c15_dc2 = c15_mean; c15_nB = c15_n;
+        // 第三臂 = **板上那一档**：`zoom=fit` + `bilin=1`（板子现读 `zman` 关、插值开着，而我前两臂是
+        //   手动 0.50x + 最近邻）。若底边那条带只在 fit+bilin 下出现，前两臂结构上就看不见它 ⇒ 这一臂
+        //   专供 C14 的"线画在画面外"计数（fit 会把画面缩放，插值会把 tag 混成第三格 ⇒ 这一臂的
+        //   V/K **不取**，只取它的 C14 增量；V/K 仍由 A/B 两臂决定， assignments 在上面已经落定）。
+        bilin_en_tb = 1'b1;
+        zoom_manual = 1'b0;
+        c13_arm(9'd45);
+        c13_v  = (c13_rp - c13_rm) / 2;             // 行错位（显示行）：两臂符号相反 ⇒ 这一步只留下它
+        c13_kc = (c13_rp + c13_rm) / 2;             // 列平移（拍数不对）：两臂同号 ⇒ 这一步只留下它
+        $display("C13 R(+45)=%0d/%0d 行  R(315)=%0d/%0d 行 ⇒ 行错位 V=%0d 列平移 K=%0d",
+                 c13_rp, c13_np, c13_rm, c13_nm, c13_v, c13_kc);
+        c15_v = (c15_dg - c15_dc2) / 2;
+        c15_k = (c15_dg + c15_dc2) / 2;
+        $display("C15 D(+45)=%0d/%0d 行  D(315)=%0d/%0d 行  =>  V15=%0d 显示行  K15=%0d 列  (第三臂 fit+bilin 的可判行=%0d 平均=%0d)",
+                 c15_dg, c15_nA, c15_dc2, c15_nB, c15_v, c15_k, c15_n, c15_mean);
+        line("C15pre edges really judged", (c15_nA >= 200) && (c15_nB >= 200),
+             "coverage floor: each arm needs >=200 rows where BOTH the geometry edge and the content edge exist");
+        // ⚠ C15a/C15b **暂不作判据**（2026-10-16 夜，第一次跑出来就懂了）：
+        //   读数 `D(+45)=−10/575 行`、`D(315)=−7/575 行` ⇒ 同号的那一半 K15=−8 列几乎就是我这条尺子
+        //   自带的**结构性**列差（几何侧采在第 2 级、内容侧采在第 11 级，两者差 9~10 列，C1 的
+        //   `tap_d = sx - 1 - mix_x` 就是同一件事）——所以 ±2 那个门是**我照抄出来的假红**，不是设计的缺陷。
+        //   真正有意思的是反号那一半 V15=−1 行（45° 下 1 列=1 行）：画面的边与它自己的几何在**行**上差 1~2 行，
+        //   量级与用户剩下的那句"蓝线差一点到底/底边那条斜带"对得上。但在把它写成判据之前必须先排除
+        //   "我这把尺子的行配点本身错了"（`oob_out` 携带的是**请求行**的 oob，而请求行比显示行早 4 行：
+        //   #54(B)/#97 的那对提前量），否则 V15 就是我量的假数。下一步排法见任务 #49。
+        $display("PROBE C15a (not a criterion) V15=%0d 行  PROBE C15b (not a criterion) K15=%0d 列", c15_v, c15_k);
+        // 缩放检验（比"换行配点"便宜也更硬）：真实的 X 行错位，列差应随 tan(角度) 放大；
+        // 量化噪声或结构性偏差不随角度放大。tan45=1.000，tan60=1.732 ⇒ 60° 那一档应当约 1.7 倍。
+        c15_k = c15_v;                                   // 45° 档的 V15 先存着（上面已经打印过）
+        bilin_en_tb = 1'b0; zoom_manual = 1'b1; zoom_sel = 3'd2;
+        c13_arm(9'd60);  c15_dg = c15_mean;
+        c13_arm(9'd300); c15_dc2 = c15_mean;
+        c15_v2 = (c15_dg - c15_dc2) / 2;
+        $display("C15SCALE V15(+/-45)=%0d 列   V15(+/-60)=%0d 列   判读：60 度那档约是 45 度的 1.7 倍 => 真有行错位；两档同量级 => 是量化/结构性，不是错位",
+                 c15_k, c15_v2);
+        c14_top2 = c14_rminm - c14_rminc; if (c14_top2 < 0) c14_top2 = -c14_top2;
+        c14_bot2 = c14_rmaxm - c14_rmaxc; if (c14_bot2 < 0) c14_bot2 = -c14_bot2;
+        $display("C14 标记像素=%0d 画在画面外的标记像素=%0d 线行范围=[%0d..%0d] 画面行范围=[%0d..%0d] 上端差=%0d 下端差=%0d",
+                 c14_mark, c14_out, c14_rminm, c14_rmaxm, c14_rminc, c14_rmaxc,
+                 c14_rminm - c14_rminc, c14_rmaxm - c14_rmaxc);
+        line("C14pre marker really painted", (c14_mark >= 300) && (c14_inb >= 1000),
+             "coverage floor: both arms must light the 2-image-column marker and show in-bounds picture, else C14a/C14b are greens on an empty set");
+        line("C14a marker never lands on background", c14_out == 0,
+             "用户念的上面出头：src_mark 亮而 oob_out=1 的拍数必须为 0 —— 这两个位现在过同一条环，不该再各说一套");
+        // ⚠ 这里**不留** "线的行范围 == 画面的行范围" 那种判据（我第一版写了，是错的尺子）：
+        //   标记线是画面内部的一条线，它的行包络由**几何**决定 —— 旋转 45° 时这条线的端点落在画面的
+        //   上/下沿，但线本身在屏上的行跨度天然比整幅画面窄（旧配置实测差 84/96 行，那大部分是几何，
+        //   不是缺陷）。能把"出头"这件事判死的只有上面那条像素计数。
+        split_ctl_tb[11] = 1'b0; split_ctl_tb[9:0] = 10'd0; split_ctl_tb[13] = 1'b1;
+        force dut.angle = 9'd0; release dut.angle; release dut.rot_on;
+        // ⚠ C13pre 跟着 C13 一起降级：给一把已经不判定的尺子留"覆盖率地板"，红了只会误导（没人欠它一个数）。
+        $display("PROBE C13pre (not a criterion) 两臂判定行=%0d/%0d  旗标翻转型=%0d 有交叉的行=%0d",
+                 c13_np, c13_nm, c13_nflip, c13_ncross);
+        // ⚠⚠ **C13 不作判据**（2026-10-16 自查出这把尺子是错的，见 #477）：内容的"自报源列"这一条腿
+        //   踩空了 —— `test_card` 画的是**网格 + 单调渐变**（`r=0x08+y[9:5]+x[9:7]`、`b=0x20+y[9:1]`），
+        //   像素值里根本没有 (源行, 源列) 这对 tag；带 tag 的是**台架自己推上去的那几帧**（C1/C5/C6 用的
+        //   `px_val`），而我这一段的 `force dut.fb_vis=0` 恰恰把内容换成了图卡 ⇒ `mem_col(orig_pix)`
+        //   解出来的其实是渐变的低位（主要由**行**决定）。所以 V/K 的绝对读数不能当证据用，
+        //   三臂之间那个"−1.5 行 / 0 行"的差别也不能拿来主张错位大小。
+        //   留打印、去掉判定：`PROBE C13 …`。真正判死"线出头/没到底"的是 C14a —— 它只用
+        //   `src_mark` 与 `oob_out` 两个位，不解析像素值，且旧配置 72 / 只补环 24 / 补环+改门 0 有牙。
+        $display("PROBE C13a (not a criterion) V=%0d K=%0d  依据已撤：图卡不编码坐标，见本段注释", c13_v, c13_kc);
+
+        if (nfail == 0) $display("RESULT tb_video_pipeline_top PASS");
+        else            $display("RESULT tb_video_pipeline_top FAIL nfail=%0d", nfail);
+        $finish;
+    end
+endmodule

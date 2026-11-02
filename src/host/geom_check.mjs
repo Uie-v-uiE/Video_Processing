@@ -42,7 +42,7 @@ if (process.argv.includes('--help') || process.argv.includes('-h')) {
 const XSDB = String(arg('--xsdb', process.env.VP_XSDB || 'xsdb.bat'));
 const JPORT = String(arg('--jtag', '3121'));
 const COM = String(arg('--com', 'COM6'));
-const SENDER = 'board/uart_cmd_script.ps1';
+const SENDER = 'board/scripts/uart_cmd_script.ps1';
 const GPIO0 = '0x41200000', GPIO1 = '0x41210000', CFG1 = '0x41220000';
 
 let fail = 0, okn = 0;

@@ -34,7 +34,7 @@ module zoom_ctrl #(
     // ---- V8-8：八档"用户能点出来的倍率"表（Q8 倒数尺度，纯常数，不做除法，#58）----
     // 档号与下面 OSD 那张表**同一个约定**：0=0.25 1=0.33 2=0.50 3=0.75 4=1.00 5=1.33 6=1.50 7=2.00。
     // 为什么两张表能互相对上：`zoom_code` 是拿 inv 与**相邻两档的中点**比大小得到的 ⇒ 表值代回自己那一档必然
-    //   落在自己的区间里 —— 这条不是巧合，是台架判据（tb_v94_zoom_sel 逐档验 `code(TBL[i]) == i`，改哪边都会红）。
+    //   落在自己的区间里 —— 这条不是巧合，是台架判据（tb_zoom_sel 逐档验 `code(TBL[i]) == i`，改哪边都会红）。
     // 呼吸仍然只在 [INV_LO, INV_HI]（默认 1.0x…0.5x）里走；手动档允许到 2.0x/0.25x：`zoom_mapper` 是**逆**映射，
     //   inv 变小只是采样窗收进画面内部（不越界），inv 变大则四周填黑 —— 两种都不需要动 mapper。
     function [9:0] tbl;
@@ -68,7 +68,7 @@ module zoom_ctrl #(
     //   ② **0° 不在钳之内**：顶层递进来的 `rotate_en` 就是 `angle_ctrl.v:18` 的 `rotate_active = (angle != 0)`，
     //     所以角度正好 0° 时这一支整个不参与（`inv_used == inv_raw`）。这里原先写的是"0° 因为 ±0.5 LSB
     //     的表余量给 259 ⇒ 也在钳"——那是把 `zoom_fit` 的**输出**当成了生效条件，实测口径见 #162，
-    //     注释一直留到本轮（r97）才改。两条口径都由 tb_v94_zoom_sel 的 T8 钉住（T8a 是"不旋转时一个字都不改"的负对照）。
+    //     注释一直留到本轮（r97）才改。两条口径都由 tb_zoom_sel 的 T8 钉住（T8a 是"不旋转时一个字都不改"的负对照）。
     wire       rot_clamp = rotate_en && (inv_raw < inv_fit);
     assign inv_used   = rot_clamp ? inv_fit : inv_raw;
     assign rot_forced = rot_clamp;

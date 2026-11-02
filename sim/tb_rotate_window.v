@@ -39,7 +39,7 @@ module tb_rotate_window;
         .clk(clk), .rst_n(rst_n),
         .stage_sel(sel), .threshold(8'd80),
         // gamma 关：本台架量的是"旋转窗口 + 效果链"的行列对齐，gamma 是逐像素映射，
-        // 关掉它对判据无影响（开着也是逐位透明，见 tb_v88_gamma 的第 1 条）。
+        // 关掉它对判据无影响（开着也是逐位透明，见 tb_gamma 的第 1 条）。
         .gamma_en(1'b0), .gamma_wr(1'b0), .gamma_idx(8'd0), .gamma_data(8'd0),
         .rotate_active(rot),
         .hs_in(1'b0), .vs_in(1'b0),

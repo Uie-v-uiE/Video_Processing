@@ -1,0 +1,6 @@
+the_design:
+{
+   [bootloader] fsbl.elf
+..\project\system.bit
+..\project\ps_app.elf
+}

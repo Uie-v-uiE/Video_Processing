@@ -25,7 +25,7 @@
 #include "xil_io.h"
 #include "xil_printf.h"
 #include "xparameters.h"
-#include "xiltimer.h"
+#include "xtime_l.h"
 #include "xsdps.h"
 
 #include "sd_play.h"
@@ -66,6 +66,10 @@ static u32  fps_num = 15u, fps_den = 1u;
 static int  playing;
 static u32  nxt;                    /* 下一帧索引 */
 static u32  open_idx = 0xFFFFFFFFu; /* 当前打开的文件号 */
+static u32  open_off = 0xFFFFFFFFu; /* 当前游标对应的帧内偏移（顺序播放时正好是下一帧） */
+
+/* main.c 提供：只把 UART 收到的字节搬进 RX 缓冲，不派发命令。目录扫描/搬帧期间都要喂。 */
+extern void uart_keepalive(void);
 static u32  ff_clus, ff_blk;        /* 当前簇 / 簇内已用的扇区数 */
 static u32  fed_cnt;
 static XTime last_t, fed_t0, rpt_t;
@@ -243,6 +247,7 @@ static u32 dir_lookup(const char *dotted)
         u32 b;
         for (b = 0; b < spc; b++) {
             int e;
+            uart_keepalive();
             if (read_secs(clus_lba(c, b), 1u, Sec) != 0) return 0;
             for (e = 0; e < 16; e++) {
                 const u8 *d = &Sec[e * 32];
@@ -318,17 +323,26 @@ static int parse_meta(void)
     if (!meta_line("FRAMES", v, sizeof v)) { err = "META: no FRAMES line"; return -1; }
     total_frames = (u32)strtoul(v, 0, 10);
     if (meta_line("FPS", v, sizeof v)) {
+        unsigned long ipart = strtoul(v, 0, 10);
         const char *dot = strchr(v, '.');
-        fps_num = (u32)strtoul(v, 0, 10);
+        fps_num = 15u;
         fps_den = 1u;
-        if (dot) {
-            const char *q = dot + 1;
-            u32 frac = 0u, scale = 1u;
-            while (*q >= '0' && *q <= '9') { frac = frac * 10u + (u32)(*q - '0'); scale *= 10u; q++; }
-            fps_num = fps_num * scale + frac;
+        if (ipart > 0u && ipart <= 1000u) {
+            u32 frac = 0u, scale = 1u, nd = 0u;
+            if (dot) {
+                const char *q = dot + 1;
+                while (*q >= '0' && *q <= '9') {
+                    if (nd < 3u) {                       /* 只收三位小数，别让 scale 回绕 */
+                        frac = frac * 10u + (u32)(*q - '0');
+                        scale *= 10u;
+                        nd++;
+                    }
+                    q++;
+                }
+            }
+            fps_num = (u32)ipart * scale + frac;
             fps_den = scale;
         }
-        if (fps_num == 0u) { fps_num = 15u; fps_den = 1u; }
     }
     if (meta_line("FRAME_BYTES", v, sizeof v) &&
         (u32)strtoul(v, 0, 10) != FRAME_BYTES) {
@@ -506,7 +520,7 @@ int sd_mount(void)
         /* "放不下"要按**文件长度**判，不能按缓冲区尾字节是否非 0 判：
          * 簇里文件后面是上一个文件留下的垃圾，拿尾字节当信号会把完整的清单报成截断
          * （今晚第一版修完就是这么假阳的：files=9 全对，却照样打了 WARN）。 */
-        meta_trunc = (found_size > (u32)sizeof(Meta)) ? 1u : 0u;
+        meta_trunc = (found_size >= (u32)sizeof(Meta)) ? 1u : 0u;
         if (nsec > cap) nsec = cap;
         if (nsec > spc) nsec = spc;               /* 不越过首簇边界（只有簇内是连续的） */
         if (read_secs(clus_lba(clus, 0u), nsec, Meta) != 0) return -1;
@@ -538,6 +552,7 @@ int sd_mount(void)
 
     mounted  = 1;
     open_idx = 0xFFFFFFFFu;
+    open_off = 0xFFFFFFFFu;
     fed_cnt  = 0;
     fed_t0   = 0;
     return 0;
@@ -567,6 +582,7 @@ int sd_remount(void)
     playing  = 0;
     mounted  = 0;
     open_idx = 0xFFFFFFFFu;
+    open_off = 0xFFFFFFFFu;
     FatLba   = 0xFFFFFFFFu;
     nxt      = 0;
     Sd.IsReady = 0u;          /* 驱动的"已初始化"旗标：不清它就永远 XST_DEVICE_IS_STARTED */
@@ -585,6 +601,7 @@ static void card_gone(void)
     playing  = 0;
     mounted  = 0;
     open_idx = 0xFFFFFFFFu;
+    open_off = 0xFFFFFFFFu;
     FatLba   = 0xFFFFFFFFu;
     ps_source_lost();
 }
@@ -712,22 +729,31 @@ static void dir_diag(const char *name)
 static int open_at(u32 i, u32 off)
 {
     u32 clus, skip, bpc = spc * 512u;
+    u64 byte_off, skip64;
 
     if (i >= nfiles) { err = "file index out of range"; return -1; }
+    /* #198：顺序播放时 ff_clus/ff_blk 已经在上一帧结束时推到了下一帧开头，
+     * 这里直接命中，别再从根目录扫一遍。前缀不匹配（换文件/跳帧/回绕）才走慢路径。 */
+    if (i == open_idx && off == open_off) return 0;
+    uart_keepalive();                       /* 目录扫描本身也要让串口出水 */
     clus = dir_lookup(fname[i]);
     if (!clus) {
         err = "frame file not found on card";
         dir_diag(fname[i]);
         return -1;
     }
-    skip = (off * FRAME_BYTES) / bpc;                   /* 整簇跳过：只走 FAT，不读数据 */
+    byte_off = (u64)off * (u64)FRAME_BYTES;
+    skip64 = byte_off / bpc;                          /* 64 位算，卡上的 FFAMES 再大也不回绕 */
+    if (skip64 > 0xFFFFFFFFu) { err = "frame byte offset out of range"; return -1; }
+    skip = (u32)skip64;
     while (skip--) {
         clus = fat_next(clus);
         if (clus >= EOC) { err = "cluster chain too short"; return -1; }
     }
     ff_clus  = clus;
-    ff_blk   = ((off * FRAME_BYTES) % bpc) / 512u;
+    ff_blk   = (u32)((byte_off % bpc) / 512u);
     open_idx = i;
+    open_off = off;
     return 0;
 }
 
@@ -737,7 +763,6 @@ static int open_at(u32 i, u32 off)
  */
 /* 喂帧期间必须给 UART 留一个出水口：一帧约 300 KB，整帧读完后才回主循环轮询的话，
  * 板上 autoplay 期间命令要发好几遍才中一次（实测就是这么来的）。见 main.c 的 uart_keepalive。 */
-extern void uart_keepalive(void);
 
 static int feed_cur(void)
 {
@@ -760,6 +785,7 @@ static int feed_cur(void)
         ff_blk  += nsec;
         if (ff_blk == spc) { ff_blk = 0u; ff_clus = fat_next(ff_clus); }
     }
+    if (open_off != 0xFFFFFFFFu) open_off++;   /* 游标已到下一帧 */
     return 0;
 }
 
@@ -790,8 +816,11 @@ static int show_frame(u32 idx)
 int sd_show(u32 idx)
 {
     if (idx >= total_frames) { err = "frame index out of range"; return -1; }
-    nxt = idx;
-    return show_frame(idx);
+    /* #197：先让这一帧真的上屏，成功后才挪游标；失败时游标保持原样，
+     * 这样"命令被拒"不会顺手改变下一次 PLAY 的起点。 */
+    int rc = show_frame(idx);
+    if (rc == 0) nxt = idx;
+    return rc;
 }
 
 /* V8-9 段表访问器（见 sd_play.h 那段注释）。越界返回 0/NULL：宁可让命令层报"只认 0..n-1"，
@@ -815,7 +844,8 @@ int sd_play(int on)
     if (on && !mounted) { err = "not mounted"; return 0; }
     playing = on ? 1 : 0;
     if (playing) {
-        nxt = 0;
+        /* 从当前 nxt 续播：sd_mount 把它清 0，sd_show/sd file 把它设到目标帧。
+         * 以前这里写 nxt=0，于是 `sd file 1` 选好段后再 `play` 会被拉回第 0 帧。 */
         XTime_GetTime(&last_t);
         XTime_GetTime(&rpt_t);          /* 速率窗口从本次播放开始算，别把上一次会话的空闲算进来 */
         rpt_cnt = fed_cnt;
@@ -861,6 +891,7 @@ void sd_tick(void)
          * 清干净再报，操作者按一次 PLAY 就会从簇链头重新走；仍不行就是控制器要重初始化，
          * 见 ISSUES #45/#50（重下 elf 约 20 秒）。 */
         open_idx = 0xFFFFFFFFu;
+        open_off = 0xFFFFFFFFu;
         FatLba   = 0xFFFFFFFFu;
         xil_printf("[SD] playback stopped at frame %d: %s (PLAY retries; if it keeps failing, `sd remount`)\r\n",
                    (int)nxt, err);

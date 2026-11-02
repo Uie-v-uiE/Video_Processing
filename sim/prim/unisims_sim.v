@@ -51,3 +51,42 @@ module OSERDESE2 #(
     always @(posedge CLKDIV) q <= dvec[0];
     initial $display("unisims_sim ⚠ OSERDESE2 是占位模型（不串行化）⇒ 判据只许读并行像素，不许读 DVI 引脚");
 endmodule
+
+// ---- r135: RGMII 收侧原语的行为模型（ModelSim 没有 UNISIM 库）----
+// IDDR 的 SAME_EDGE_PIPELINED 语义：Q1=正沿数据、Q2=负沿数据（同一字节的两半）。
+module IDDR #(
+    parameter DDR_CLK_EDGE = "SAME_EDGE_PIPELINED",
+    parameter INIT_Q1 = 1'b0,
+    parameter INIT_Q2 = 1'b0,
+    parameter SRTYPE = "SYNC"
+)(
+    input  wire C, CE, D, R, S,
+    output reg  Q1 = INIT_Q1,
+    output reg  Q2 = INIT_Q2
+);
+    always @(posedge C) if (CE && !R && !S) Q1 <= D;
+    always @(negedge C) if (CE && !R && !S) Q2 <= D;
+endmodule
+
+// IDELAYE2 FIXED：按 78 ps/tap 的标称值延时（只用于功能仿真，不代表硅片实测斜率）。
+module IDELAYE2 #(
+    parameter IDELAY_TYPE = "FIXED",
+    parameter IDELAY_VALUE = 0,
+    parameter REFCLK_FREQUENCY = 200.0,
+    parameter DELAY_SRC = "IDATAIN"
+)(
+    input  wire C, CE, CINVCTRL, DATAIN, IDATAIN, INC, LD, LDPIPEEN, REGRST,
+    input  wire [4:0] CNTVALUEIN,
+    output wire DATAOUT,
+    output wire [4:0] CNTVALUEOUT
+);
+    assign #(IDELAY_VALUE * 0.078) DATAOUT = (DELAY_SRC == "DATAIN") ? DATAIN : IDATAIN;
+    assign CNTVALUEOUT = IDELAY_VALUE;
+endmodule
+
+module IDELAYCTRL (
+    input  wire REFCLK, RST,
+    output wire RDY
+);
+    assign RDY = 1'b1;
+endmodule

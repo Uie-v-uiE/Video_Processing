@@ -1,7 +1,7 @@
 `timescale 1ns/1ps
 `default_nettype none
 // 作用：量 3×3 窗口级在**帧底**的边缘处理——本帧最后一行的邻域里，到底有没有吃进"下一帧的第 0 行"。
-//        它是 `tb_edge_rim` 的 D3（屏上第 0 行不许随上一帧的末行变）的**镜像**：D3 管上沿，这一支管下沿。
+//        它是 `tb_display_edge_rim` 的 D3（屏上第 0 行不许随上一帧的末行变）的**镜像**：D3 管上沿，这一支管下沿。
 // 为什么单独一支：四个窗口级只声明了上沿旗标（`no_above = y_in==1`、`stale_row = y_in==0`），
 //        盘上没有任何一把尺子看过"末行的下邻"。用户报的"旋转后画面最下沿有一条没处理的像素"落在这格里。
 // 判据形状（差分，对输出平移量免疫，不需要先算 LATENCY）：
@@ -10,9 +10,9 @@
 //        B1 要求除这一对相邻行之外**任何行都不许动**；帧末那行要是动了，就是 B1 红。
 //        B2 正对照：必须真有格子跟着变（不然 B1 是空集上的绿 —— 本仓 #60 那一课）。
 //        B3 覆盖地板：被判格子数与每行采样数都要够。
-// 跑法：bash build/sim/run_one.sh tb_edge_rim_bottom      （或 iverilog/ModelSim 同名单独跑）
-// 退出码：判定行以 `RESULT tb_edge_rim_bottom PASS|FAIL` 结尾；FAIL 时点名是哪一条 B*。
-module tb_edge_rim_bottom;
+// 跑法：bash build/sim/run_one.sh tb_display_edge_rim_bottom      （或 iverilog/ModelSim 同名单独跑）
+// 退出码：判定行以 `RESULT tb_display_edge_rim_bottom PASS|FAIL` 结尾；FAIL 时点名是哪一条 B*。
+module tb_display_edge_rim_bottom;
     localparam integer W = 64, H = 64, FW = H*W;
 
     reg clk = 0, rst_n = 0;
@@ -48,7 +48,7 @@ module tb_edge_rim_bottom;
     wire        ded = (stage == 2'd0) ? de_bu : (stage == 2'd1) ? de_sh :
                       (stage == 2'd2) ? de_so : de_mo;
 
-    // 采集：与 tb_edge_rim 同一口径 —— 采**第三、第四帧**（头两帧行缓存是 X，dev(X,·) 永远不算不符）
+    // 采集：与 tb_display_edge_rim 同一口径 —— 采**第三、第四帧**（头两帧行缓存是 X，dev(X,·) 永远不算不符）
     reg [15:0] capA [0:FW-1];                // 第三帧
     reg [15:0] capB [0:FW-1];                // 第四帧
     integer ndeo = 0;
@@ -141,8 +141,8 @@ module tb_edge_rim_bottom;
         end
         // ⚠ 这里以前是 `nfail = 0; $display("RESULT … done")` —— 汇总行**永远不会说 FAIL**，
         //   而本文件头承诺的是 `PASS|FAIL`：一条不会红的汇总行不是判据，是装饰（I6）。
-        if (nfail == 0) $display("RESULT tb_edge_rim_bottom PASS nfail=0");
-        else            $display("RESULT tb_edge_rim_bottom FAIL nfail=%0d", nfail);
+        if (nfail == 0) $display("RESULT tb_display_edge_rim_bottom PASS nfail=0");
+        else            $display("RESULT tb_display_edge_rim_bottom FAIL nfail=%0d", nfail);
         $finish;
     end
 endmodule
@@ -152,5 +152,5 @@ endmodule
 //   `sim/prim/unisims_sim.v`（`module BUFG (input I, output O)` 这种隐式 net 口）就被判
 //   `VRFC 10-1103 / 10-3594 / 10-8530` ⇒ 规范通道整架在 xelab 之前就起不来
 //   （2026-10-17 12:5x 撞到，那一跑的 `XVLOG FAILED` 八行原文在 build/sim 那条通道的输出里）。
-//   同族的 `sim/tb_edge_rim.v` 一直在文件尾还回去（它 462 行），这里照它的写法补齐。
+//   同族的 `sim/tb_display_edge_rim.v` 一直在文件尾还回去（它 462 行），这里照它的写法补齐。
 `default_nettype wire

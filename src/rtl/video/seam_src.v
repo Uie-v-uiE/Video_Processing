@@ -33,28 +33,32 @@ module seam_src #(
     wire orig_n = (sx < seam) ? raw_left : ~raw_left;
 
     reg [1:0] sh;                   // {mark, orig}，两级一起走同一条链 ⇒ 不会各自新旧
-    integer i;
     always @(posedge clk or negedge rst_n) begin
         if (!rst_n) sh <= 2'b01;    // 复位：给"原图、不画线"，与旧代码 oob 时的观感一致
         else        sh <= {mark_n, orig_n};
     end
-    reg [TAPS-1:0] dq;
-    reg [TAPS-1:0] oq;
-    // ⚠ 移位写法要能吃下 **TAPS = 1**（#477：顶层把这条链接进行环之后，纯移位段只剩补齐"sx→pix_raw"
-    //   那一小段）。原来的 `dq[TAPS-2:0]` 在 TAPS=1 时是 `dq[-1:0]`，越界。循环写法对任何 TAPS≥1 都合法，
-    //   推出来的网表与逐位写一样（一位一线，没有级联进位）。
-    integer j;
-    always @(posedge clk or negedge rst_n) begin
-        if (!rst_n) begin
-            dq <= {TAPS{1'b0}};
-            oq <= {TAPS{1'b1}};
-        end else begin
-            for (j = 0; j < TAPS; j = j + 1) begin
-                dq[j] <= (j == 0) ? sh[1] : dq[j-1];
-                oq[j] <= (j == 0) ? sh[0] : oq[j-1];
+    generate
+    if (TAPS == 0) begin : g_tap0
+        assign mark      = sh[1];
+        assign take_orig = sh[0];
+    end else begin : g_taps
+        reg [TAPS-1:0] dq;
+        reg [TAPS-1:0] oq;
+        // ⚠ 移位写法要能吃下 **TAPS = 1**（#477）。循环写法对任何 TAPS≥1 都合法。
+        integer j;
+        always @(posedge clk or negedge rst_n) begin
+            if (!rst_n) begin
+                dq <= {TAPS{1'b0}};
+                oq <= {TAPS{1'b1}};
+            end else begin
+                for (j = 0; j < TAPS; j = j + 1) begin
+                    dq[j] <= (j == 0) ? sh[1] : dq[j-1];
+                    oq[j] <= (j == 0) ? sh[0] : oq[j-1];
+                end
             end
         end
+        assign mark      = dq[TAPS-1];
+        assign take_orig = oq[TAPS-1];
     end
-    assign mark      = dq[TAPS-1];
-    assign take_orig = oq[TAPS-1];
+    endgenerate
 endmodule

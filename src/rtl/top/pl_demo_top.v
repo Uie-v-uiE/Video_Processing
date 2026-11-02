@@ -61,10 +61,6 @@ module pl_demo_top (
         .m_axi_rlast(1'b0),
         .m_axi_rvalid(1'b0),
         .m_axi_rready(),
-        .eth_wr_clk(sys_clk),
-        .eth_wr_en(1'b0),
-        .eth_wr_addr(19'd0),
-        .eth_wr_data(16'd0),
         .eth_link(1'b0),
         .eth_live(1'b0),          // 这个 top 没有 ETH 通路：仲裁从复位起就归 PS 侧
         .eth_tb_ok(1'b0),         // 同上：没有 eth_rxc，时基当然也不健康（#49/#52 那两个条件之一）

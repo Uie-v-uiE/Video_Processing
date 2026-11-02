@@ -44,7 +44,7 @@ module fb_rd5x #(
     wire [16:0] wrd_l = pxl_l[18:2];
 
     // 抽头越界保护：最后一列/行的 +1 抽头落在图外 ⇒ 把小数钉成 0，
-    // 让 bilin_lerp 在 fx=0/fy=0 时恒等于 p00（这条性质由 tb_bilin_lerp 判据 2 保证）。
+    // 让 bilin_lerp 在 fx=0/fy=0 时恒等于 p00（这条性质由 tb_bilinear_core 判据 2 保证）。
     // 图外的字地址本身不会读出 X：frame_buffer_w64 对读地址做了掩码夹取（见其注释）。
     wire [7:0] fx_use = (!bilin_en || sx_r >= IMG_W-1) ? 8'd0 : fx_r;
     wire [7:0] fy_use = (!bilin_en || sy_r >= IMG_H-1) ? 8'd0 : fy_r;

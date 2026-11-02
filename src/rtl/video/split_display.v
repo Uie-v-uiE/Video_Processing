@@ -33,6 +33,10 @@ module split_display (
     input  wire [1:0]  angle_idx,
     input  wire        oob_l,
     input  wire        oob_r,
+    // 处理窗完整性探针：仅当"只开 gray + split video"时使能，统计处理侧出现的非灰像素。
+    // 这是把"处理窗最下沿有没有未处理带"从看屏幕变成线上读数的唯一入口；不改变任何像素。
+    input  wire        integrity_en,
+    output wire        proc_bad,
     output reg  [7:0]  r,
     output reg  [7:0]  g,
     output reg  [7:0]  b,
@@ -46,6 +50,13 @@ module split_display (
     wire        oob  = left ? oob_l : oob_r;
     wire        take_orig = seam_in_src ? src_orig : (raw_left ? left : ~left);
     wire [15:0] sel  = oob ? 16'h0000 : (take_orig ? orig_pix : proc_pix);
+    // 与台架 C17 的尺子同一口径：RGB888 展开后比高 5 位（RGB565 转灰度天然有 ±1 LSB 的量化差）。
+    wire [7:0]  pr8 = {proc_pix[15:11], proc_pix[15:13]};
+    wire [7:0]  pg8 = {proc_pix[10:5],  proc_pix[10:9]};
+    wire [7:0]  pb8 = {proc_pix[4:0],   proc_pix[4:2]};
+    wire        proc_gray = (pr8[7:3] == pg8[7:3]) && (pg8[7:3] == pb8[7:3]);
+    // 只在处理侧被选中、且不在越界黑区时判；原图侧/黑区不参与。
+    assign proc_bad = integrity_en && de && !take_orig && !oob && !proc_gray;
     wire [4:0]  r5   = sel[15:11];
     wire [5:0]  g6   = sel[10:5];
     wire [4:0]  b5   = sel[4:0];

@@ -233,18 +233,24 @@ module udp_tx (
                 end
                 st_check_sum: begin  //IP首部校验
                     cnt <= cnt + 5'd1;
+                    // r162 timing: the 10-term 16-bit sum in one cycle was the r161 worst
+                    // path (ip_head[4][16] -> check_buffer[18], WNS 1.172). Split it over
+                    // the two free cycles, then fold twice and invert combinationally in
+                    // the last cycle. Same one's-complement value, shorter carry chain.
                     if (cnt == 5'd0) begin
-                        check_buffer <= ip_head[0][31:16] + ip_head[0][15:0] + ip_head[1][31:16] +
-                            ip_head[1][15:0] + ip_head[2][31:16] + ip_head[2][15:0] + ip_head[3][
-                            31:16] + ip_head[3][15:0] + ip_head[4][31:16] + ip_head[4][15:0];
-                    end else if (cnt == 5'd1)  //可能出现进位,累加一次
+                        check_buffer <= ip_head[0][31:16] + ip_head[0][15:0] +
+                                        ip_head[1][31:16] + ip_head[1][15:0] +
+                                        ip_head[2][31:16];
+                    end else if (cnt == 5'd1) begin
+                        check_buffer <= check_buffer + ip_head[2][15:0] +
+                                        ip_head[3][31:16] + ip_head[3][15:0] +
+                                        ip_head[4][31:16] + ip_head[4][15:0];
+                    end else if (cnt == 5'd2) begin  //可能出现进位,累加一次
                         check_buffer <= check_buffer[31:16] + check_buffer[15:0];
-                    else if (cnt == 5'd2) begin  //可能再次出现进位,累加一次
-                        check_buffer <= check_buffer[31:16] + check_buffer[15:0];
-                    end else if (cnt == 5'd3) begin  //按位取反 
+                    end else if (cnt == 5'd3) begin  //第二次折叠 + 按位取反
                         skip_en          <= 1'b1;
                         cnt              <= 5'd0;
-                        ip_head[2][15:0] <= ~check_buffer[15:0];
+                        ip_head[2][15:0] <= ~(check_buffer[31:16] + check_buffer[15:0]);
                     end 
                 end
                 st_preamble: begin  //发送前导码+帧起始界定符

@@ -148,6 +148,37 @@ module tb_udp_reasm;
         repeat (5) @(posedge clk);
         expect_eq(s_frames, 2, "second frame after jump");
 
+        // 6) A9: previous frame loses its tail, next loses its first; the
+        // prescaled 4 ms idle timer must keep the two from committing as one.
+        for (k = 0; k < 63; k = k + 1)
+            send_pkt(k*4, 16'h3000+k, 16'h4000+k, 1);
+        repeat (520000) @(posedge clk);
+        for (k = 1; k < 64; k = k + 1)
+            send_pkt(k*4, 16'h5000+k, 16'h6000+k, 1);
+        repeat (5) @(posedge clk);
+        expect_eq(s_frames, 2, "no mixed frame (A9)");
+
+        // 7) a clean frame afterwards must still commit
+        for (k = 0; k < 64; k = k + 1)
+            send_pkt(k*4, 16'h7000+k, 16'h8000+k, 1);
+        repeat (5) @(posedge clk);
+        expect_eq(s_frames, 3, "clean frame after A9");
+
+        // 8) bytes-complete but row0-missing frame must abort and clear its state
+        for (k = 0; k < 8; k = k + 1)
+            send_pkt(32 + k*4, 16'hB000+k, 16'hC000+k, 1);    // duplicate row1 first
+        for (k = 0; k < 56; k = k + 1)
+            send_pkt(32 + k*4, 16'h9000+k, 16'hA000+k, 1);   // rows 1..7, last offset 252
+        repeat (5) @(posedge clk);
+        expect_eq(s_frames, 3, "row-short frame aborted");
+
+        // 9) the next frame loses its first packet; the aborted frame's byte/row
+        //    state must not turn it into a mixed commit.
+        for (k = 1; k < 64; k = k + 1)
+            send_pkt(k*4, 16'hD000+k, 16'hE000+k, 1);
+        repeat (5) @(posedge clk);
+        expect_eq(s_frames, 3, "no mix after aborted frame");
+
         if (errors == 0) $display("PASS tb_udp_reasm ALL");
         else $display("FAIL tb_udp_reasm errors=%0d", errors);
         $finish;

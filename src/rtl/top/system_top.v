@@ -1,7 +1,15 @@
 `timescale 1ns/1ps
 // system_top：FPGA 顶层（构建脚本的 top）。design_1_wrapper(PS7+AXI) + clk_gen(IDELAY 参考) +
 // eth_udp_video_top(自研收包，占 HP0 写 DDR) + pl_video_top(显示通路) + snap_cross(观测 lane 复用回 AXI)。
-module system_top (
+module system_top #(
+    // "BUFG" = 现 RGMII 捕获；"BUFIO" = Alex 源同步捕获（A/B 用）
+`ifdef ETH_CAPTURE_BUFIO
+    parameter CAPTURE_STYLE = "BUFIO",
+`else
+    parameter CAPTURE_STYLE = "BUFG",
+`endif
+    parameter CAPTURE_TARGET = "XILINX"
+) (
     inout  wire        DDR_cas_n,
     inout  wire        DDR_cke,
     inout  wire        DDR_ck_n,
@@ -117,20 +125,29 @@ module system_top (
     assign eth_mdc   = 1'b0;
 
     wire clk_pix_unused, clk_pix5x_unused, mmcm_locked;
-    wire clk_200m;
+    wire clk_200m, clk_eth, clk_eth90;
     clk_gen u_idelay_clkgen (
         .clk_in(sys_clk), .rst_n(1'b1),
         .clk_pix(clk_pix_unused), .clk_pix5x(clk_pix5x_unused),
-        .clk_200m(clk_200m), .locked(mmcm_locked)
+        .clk_200m(clk_200m),
+        .clk_eth(clk_eth), .clk_eth90(clk_eth90),
+        .locked(mmcm_locked)
     );
 
-    wire        eth_wr_en, eth_frame_done, eth_link;
-    wire [18:0] eth_wr_addr;
-    wire [15:0] eth_wr_data;
+    // ETH 复位：`eth_rst_n` 是 sys_clk 域的计数器，`mmcm_locked` 也是慢变量。两者相与后
+    // 作为**原始异步复位**下发；u_eth 内部对它做 async-assert / sync-deassert（逻辑域同步到
+    // clk_eth，收侧同步到恢复钟）。不再在这里先同步到 eth_rxc —— 那样没有链路（RX 钟停/退化）时
+    // 整个逻辑域会被复位钉死，而 r135 起协议栈本来就已经搬到 clk_eth，不依赖 RX 钟存在。
+    wire eth_rst_async = eth_rst_n & mmcm_locked;
+
+    wire        eth_frame_done, eth_link;
     // （r55）u_eth 的四个统计口在本层**故意不接**：eth_pkts/eth_bytes/eth_bad 原来送进 pl_video_top 用两级
     // 触发器跨 16 位总线，而那个同步值没有读者；eth_frames 同样没人用（OSD 的 FPS 是像素域数 vsync 得来的）。
     // 计数的正路是 link_monitor → snap_cross → lane1/8/9（ISSUES #64）；端口本身留着是对的：一批台架
-    // （tb_v50_rows / tb_v6_* / tb_udp_reasm / tb_link_monitor）直接读它们。
+    // （tb_rows / tb_v6_* / tb_udp_reasm / tb_link_monitor）直接读它们。
+    // r135：`eth_wr_*`（fb_wr_en/addr/data）与 `eth_gmii_clk` 这一束从 u_eth 到 pl_video_top 的线
+    // 已删除 —— pl_video_top 里从来没有消费者（fig-01 的 N5 注释记过这件事），留着只会让
+    // "ETH 直接写像素 BRAM"这条不存在的路径看起来像真的。
     // ---- V7.9.6（P0-C ③）：几何与 DDR 基址只在这里出现一次 ----
     // 原来 512/300/0x1000_0000 在下面两个例化上各写一遍字面量，两个模块自己都有 parameter，但**没有任何东西阻止两边不一致** ⇒ 现象是"写进去的帧几何与读出来的显示几何对不上"（整幅错位/撕裂），既不是综合错误也不是仿真必红。换分辨率因此从"全文搜字面量"变成"改这四行"。
     localparam [15:0] VIDEO_W    = 16'd512;      // 帧缓冲宽（像素）
@@ -144,11 +161,14 @@ module system_top (
     localparam [31:0] PS_DDR_BASE = 32'h1010_0000;
     localparam [15:0] UDP_VIDEO_PORT = 16'd5001; // PC 推流的目的端口（收侧过滤用同一个常数）
 
-    wire        eth_gmii_clk;
     wire [31:0] eth_ddr_base;
     wire        eth_commit;
     wire        pl_copy_hold;
     wire [319:0] eth_lm_bus;
+    wire [15:0] lat_ms_axi;              // frame_latency 的 ms（axi 域）→ eth 遥测
+    wire        lat_ok_axi, lat_sticky_axi, lat_tog_axi;
+    wire [15:0] pane_bad_pix;            // 处理窗完整性（像素域）→ eth 遥测
+    wire        pane_valid_pix, pane_tog_pix;
     wire        eth_lm_tog, eth_lm_hb;
 
     eth_udp_video_top #(
@@ -157,6 +177,8 @@ module system_top (
         .UDP_PORT(UDP_VIDEO_PORT),
         .BOARD_MAC(48'h00_11_22_33_44_55),
         .BOARD_IP({8'd192,8'd168,8'd1,8'd10}),
+        .CAPTURE_STYLE(CAPTURE_STYLE),
+        .CAPTURE_TARGET(CAPTURE_TARGET),
         // #57：IDDR 与 fabric 同吃 BUFG 之后，采样沿往后推 1.683 ns（BUFIO→BUFG 之差），
         // 数据侧要补同样的量：200 MHz 参考 ⇒ 156 ps/拍 ⇒ +10.8 拍，取 15+11=26（0~31 之内）。
         // r116 把它改成 31，理由不是那段算术而是**工具在真窗下的实测曲线**：
@@ -169,10 +191,13 @@ module system_top (
         //   ⚠ 这一族**在 0~31 全范围内都关不掉**：hold 查慢角（钟网络 5.008）、setup 查快角（1.597），
         //      钟网络的角间差 3.4 ns 远大于数据路径的 0.47 ns ⇒ 需要 D_slow/D_fast ≥ 1.45 而
         //      IDELAY 主导的路径只有 1.15。这是"极限判据"的内容，不是"再找个点"。
-        .IDELAY_VALUE(31)
+        .IDELAY_VALUE(31),
+        .TX_STYLE("ODDR0")           // 0° 相位 + 时钟也过 ODDR（目标表 60 TskewT ±0.5 ns）
     ) u_eth (
         .rgmii_rxc(eth_rxc),
-        .rst_n(eth_rst_n & mmcm_locked),
+        .rst_n(eth_rst_async),
+        .eth_clk(clk_eth),
+        .eth_clk90(clk_eth90),
         .axi_clk(fclk0),
         .axi_rst_n(fclk0_rst_n),
         .idelay_clk(clk_200m),
@@ -182,12 +207,8 @@ module system_top (
         .rgmii_tx_clk(eth_tx_clk),
         .rgmii_tx_ctl(eth_tx_ctl),
         .rgmii_txd(eth_txd),
-        .fb_wr_en(eth_wr_en),
-        .fb_wr_addr(eth_wr_addr),
-        .fb_wr_data(eth_wr_data),
         .frame_done(eth_frame_done),
         .link_active(eth_link),
-        .eth_gmii_clk(eth_gmii_clk),
         .ddr_commit_base(eth_ddr_base),
         .ddr_commit_pulse(eth_commit),
         .m_axi_awaddr(m_awaddr), .m_axi_awlen(m_awlen),
@@ -200,6 +221,9 @@ module system_top (
         .stat_frames(), .stat_pkts(),                     // r55：这四个统计口在本层不接，理由见
         .stat_bytes(), .stat_bad(),                      // 上面那段注释（数走 link_monitor 的 lane）
         .lm_bus(eth_lm_bus), .lm_bus_tog(eth_lm_tog), .lm_hb(eth_lm_hb),
+        .lat_ms_axi(lat_ms_axi), .lat_ok_axi(lat_ok_axi),
+        .lat_sticky_axi(lat_sticky_axi), .lat_tog_axi(lat_tog_axi),
+        .pane_bad_pix(pane_bad_pix), .pane_valid_pix(pane_valid_pix), .pane_tog_pix(pane_tog_pix),
         .gapclr_sel(gpio_o[26])          // 测量前把帧间隔统计归零（见 link_monitor 尾部）
     );
 
@@ -247,7 +271,7 @@ module system_top (
     assign gpio1_i = lm_rd;
 
     // 片源仲裁的两个输入，都取自已经 u_lm_axi 同步进 fclk0 的现成信号 ⇒ 顶层不新增跨域，也**不在这里做
-    // 相与**：判据的组合归 src_arb 管（那里才台架验得到，见 tb_v796_src_arb 的 E 段）。
+    // 相与**：判据的组合归 src_arb 管（那里才台架验得到，见 tb_src_arb 的 E 段）。
     //   · eth_live = 快照 lane7.bit3 = (stall_ms < 200)，"最近真的收到过完整帧"；
     //   · eth_tb_ok = 量它的源时基仍准。板级实测：断链时 RTL8211 不停 RXC 而是拉到 ~2.5 MHz ⇒ stall_ms 慢约
     //     48 倍地爬，单看那一位会永远判"活着" ⇒ 仲裁死死占住 ETH、SD 再也接不回画面（屏上 STALL=9999 是
@@ -293,6 +317,9 @@ module system_top (
         .mode_ovr(gpio_o[24:23]), .mode_ovr_tog(gpio_o[22]),
         .key1_n(key1_n), .key2_n(key2_n), .led(led),
         .dbg_src(dbg_src), .dbg_lat(dbg_lat), .dbg_zoom(dbg_zoom), .lat_arm(lat_arm),
+        .lat_ms_o(lat_ms_axi), .lat_ok_o(lat_ok_axi),
+        .lat_sticky_o(lat_sticky_axi), .lat_tog_o(lat_tog_axi),
+        .pane_bad_o(pane_bad_pix), .pane_valid_o(pane_valid_pix), .pane_tog_o(pane_tog_pix),
         .tmds_clk_p(tmds_clk_p), .tmds_clk_n(tmds_clk_n),
         .tmds_data_p(tmds_data_p), .tmds_data_n(tmds_data_n),
         .m_axi_araddr(m_araddr), .m_axi_arid(m_arid), .m_axi_arlen(m_arlen8),
@@ -300,10 +327,6 @@ module system_top (
         .m_axi_arvalid(m_arvalid), .m_axi_arready(m_arready),
         .m_axi_rdata(m_rdata), .m_axi_rid(m_rid), .m_axi_rresp(m_rresp),
         .m_axi_rlast(m_rlast), .m_axi_rvalid(m_rvalid), .m_axi_rready(m_rready),
-        .eth_wr_clk(eth_gmii_clk),
-        .eth_wr_en(eth_wr_en),
-        .eth_wr_addr(eth_wr_addr),
-        .eth_wr_data(eth_wr_data),
         .eth_link(eth_link),
         .eth_live(eth_live),
         .eth_tb_ok(eth_tb_ok),

@@ -4,7 +4,7 @@
 //   同一拍对应 y + OFF_LINES（#54 (B)：数据不能提前，只有地址能提前）⇒ 两个抽头要逐像素混就得把入口补延后 N 行。
 // 结构是**一块 1W1R 的行环形 RAM**：写槽 = y 的低几位、读槽 = (y − LINES) 的同一几位，同拍写本行、读 LINES 行前
 //   的同一列 ⇒ 延迟恰好 = LINES 行 + 1 拍、**列不偏**。**不是**几级 `line_cache` 串起来（第一版就是，被
-//   `tb_v100_raw_delay` 当场打掉）：串 N 个 = 延后 N 行**又**多花 N 拍 ⇒ 列偏 N 格，而这种错在模块级台架看不见。
+//   `tb_raw_delay` 当场打掉）：串 N 个 = 延后 N 行**又**多花 N 拍 ⇒ 列偏 N 格，而这种错在模块级台架看不见。
 module raw_line_delay #(
     parameter integer LINES = 4,     // 延后几行（唯一合法来源：u_pipe.OFF_LINES）
     parameter integer W     = 512,   // 一行多少个**有效**像素（4b 之后是源列数，不是面板列数）

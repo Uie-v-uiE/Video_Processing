@@ -7,10 +7,12 @@ module clk_gen (
     output wire clk_pix,
     output wire clk_pix5x,
     output wire clk_200m,
+    output wire clk_eth,      // 125 MHz（ETH MAC / AXIS logic）
+    output wire clk_eth90,    // 125 MHz 90°（RGMII TX，数据眼中心；本板 PHY 不采用）
     output wire locked
 );
     wire clkfbout, clkfbout_buf;
-    wire clkout0, clkout1, clkout2;
+    wire clkout0, clkout1, clkout2, clkout3, clkout4;
 
     MMCME2_BASE #(
         .BANDWIDTH          ("OPTIMIZED"),
@@ -27,6 +29,12 @@ module clk_gen (
         .CLKOUT2_DIVIDE     (5),      // 200 MHz IDELAY ref
         .CLKOUT2_PHASE      (0.0),
         .CLKOUT2_DUTY_CYCLE (0.5),
+        .CLKOUT3_DIVIDE     (8),      // 125 MHz ETH logic
+        .CLKOUT3_PHASE      (0.0),
+        .CLKOUT3_DUTY_CYCLE (0.5),
+        .CLKOUT4_DIVIDE     (8),      // 125 MHz 90° for RGMII TX
+        .CLKOUT4_PHASE      (90.0),
+        .CLKOUT4_DUTY_CYCLE (0.5),
         .REF_JITTER1        (0.010),
         .STARTUP_WAIT       ("FALSE")
     ) u_mmcm (
@@ -40,9 +48,9 @@ module clk_gen (
         .CLKOUT1B   (),
         .CLKOUT2    (clkout2),
         .CLKOUT2B   (),
-        .CLKOUT3    (),
+        .CLKOUT3    (clkout3),
         .CLKOUT3B   (),
-        .CLKOUT4    (),
+        .CLKOUT4    (clkout4),
         .CLKOUT5    (),
         .CLKOUT6    (),
         .PWRDWN     (1'b0),
@@ -54,4 +62,6 @@ module clk_gen (
     BUFG u_bufg_pix (.I(clkout0),  .O(clk_pix));
     BUFG u_bufg_5x  (.I(clkout1),  .O(clk_pix5x));
     BUFG u_bufg_200 (.I(clkout2),  .O(clk_200m));
+    BUFG u_bufg_eth (.I(clkout3),  .O(clk_eth));
+    BUFG u_bufg_eth90(.I(clkout4), .O(clk_eth90));
 endmodule

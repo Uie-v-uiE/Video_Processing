@@ -70,6 +70,16 @@ module pl_video_top #(
     //   lane29=c1（等消隐）lane28=c2（搬运）lane27=tot（提交→上屏）lane26=max lane25={n_meas,clamped}
     // 换算成时间戳在 `src/host/health_read.mjs` 里做（一个常量：fclk0=100 MHz ⇒ 1 拍 = 10 ns）。
     output wire [6*32-1:0] dbg_lat,
+    // 网络遥测用的同一份时延（axi 域）：ms + valid + sticky + 每次更新翻转一位。
+    // 屏上 `LATENCY:` 画的就是 lat_ms_axi，这里只是再给 eth 侧一条只读出口。
+    output wire [15:0] lat_ms_o,
+    output wire        lat_ok_o,
+    output wire        lat_sticky_o,
+    output wire        lat_tog_o,
+    // 处理窗完整性：上一帧处理侧非灰像素数 + 有效位 + 更新翻转（像素域，给 eth 遥测）
+    output wire [15:0] pane_bad_o,
+    output wire        pane_valid_o,
+    output wire        pane_tog_o,
     // V8-8 最后一跳（lane23）：像素域**正在用**的缩放状态，已跨到 axi 域。
     //   位图（含 V9-2 的 bit19=zoom_fit）**唯一出处在文件尾 `assign dbg_zoom` 上面那段**，这里不抄
     //   第二遍 —— 抄两遍就是 #66 那一族的病（改一处忘一处，症状是"脚本读错档"）。
@@ -100,10 +110,6 @@ module pl_video_top #(
     input  wire        m_axi_rvalid,
     output wire        m_axi_rready,
 
-    input  wire        eth_wr_clk,
-    input  wire        eth_wr_en,
-    input  wire [18:0] eth_wr_addr,
-    input  wire [15:0] eth_wr_data,
     input  wire        eth_link,
     // "最近真的有帧"（axi_clk(fclk0) 域电平，取自健康快照 lane7.bit3 = stall_ms < 200）。
     // eth_tb_ok：量这位的**源时基**（eth_rxc）还准不准 —— 板级实测断链时 RTL8211 不停 RXC 而是把它
@@ -246,7 +252,7 @@ module pl_video_top #(
     // 且提前量必须加在 **mapper 的显示行输入**上而不是输出的源行上 —— 链子的滞后发生在显示栅格上，缩放/旋转
     // 之后"源行差 4"≠"显示行差 4"。#52 在这之上又叠了双线性读口行方向的 2 行（一对的结果要在这对的第二行
     // 才算得出）：请求行 = (Y+OFF+2)>>1，而实际显示的是上一对算出的 ⇒ 源行 = 它 −1 ✓；`u_raw` 那条行环不动。
-    // ⚠ BILIN_ROWS 必须**偶数**（`row0 = ~y[0]` 定成对奇偶，奇数会让一对分属两个源行 ⇒ A/B 错行）。凭据 tb_v89 T1、tb_v101 L3/L6、tb_v98 C1c/C1d/C1h；缝连续性的最终凭据是眼睛（board/README.md 第 12 行）。
+    // ⚠ BILIN_ROWS 必须**偶数**（`row0 = ~y[0]` 定成对奇偶，奇数会让一对分属两个源行 ⇒ A/B 错行）。凭据 tb_v89 T1、tb_v101 L3/L6、tb_video_pipeline_top C1c/C1d/C1h；缝连续性的最终凭据是眼睛（board/README.md 第 12 行）。
     localparam integer BILIN_ROWS = 2;
     // bilin 的运行时 on/off：`gpio_o[19]`（#83）→ 这条 3 级同步 → `bilin_en_pix`。
     //   为什么走 gpio_o 而不是 cfg1：cfg1 的 32 位已满（report/COMMANDS.md §5 的位表），那是一次新跨域。
@@ -280,7 +286,7 @@ module pl_video_top #(
     // 全都看不见（C5 就是为这一格写的尺子）。绕回后仍走一遍逆缩放 ⇒ 小于 1.00x 不多出一条顶带。
     // ⚠ **取模的对象是"请求行"，窗也必须按"写进环的那一拍"来开**（r77 踩在这里；P98 探针量的就是环写
     //   侧每拍摆的 `sy(r−2)`）：本式比旧窗早两行，帧头 0..7 才逐格等于定义 `prow>>1`。**减一次就够**：
-    //   `y_req_row` 最大 302 ⇒ 不需要除法器/取模（#58）。凭据 tb_v98 的 C5c/C5b；C1h 跟着本式改 ⇒ 不能当尺子。
+    //   `y_req_row` 最大 302 ⇒ 不需要除法器/取模（#58）。凭据 tb_video_pipeline_top 的 C5c/C5b；C1h 跟着本式改 ⇒ 不能当尺子。
     wire [11:0] cy_r = (y_req_row >= IMG_H) ? (y_req_row - IMG_H) : y_req_row;
 
     // ---- #167 的这一刀（r109，任务 #167/#88）：把换角的**翻转拍点**从"帧首"挪到"绕回开始前的那一拍" ----
@@ -350,7 +356,7 @@ module pl_video_top #(
 
     // 混色级要的列坐标必须由**流水线深度**推出来，不许再抄字面量 11（ISSUES #68）。
     //   内容站在：3(`cx/cy` 打到 mapper 与左路的打拍) + 1(`rd_addr_q`) + 1(BRAM 读出) + PROC_LAT = 20 级。
-    //   以前 `u_split` 拿的是 `x_d[11]` ⇒ 缝的判定比内容旧 9 列（台架 `tb_v98_top_seam` 的 C-tap 钉住）。
+    //   以前 `u_split` 拿的是 `x_d[11]` ⇒ 缝的判定比内容旧 9 列（台架 `tb_video_pipeline_top` 的 C-tap 钉住）。
     localparam MIX_D = 3 + 1 + 1 + u_pipe.LATENCY;
     localparam SB = (MIX_D > 16) ? (MIX_D + 1) : 16;
     reg        de_d[0:SB-1], hs_d[0:SB-1], vs_d[0:SB-1], left_d[0:SB-1];
@@ -478,7 +484,7 @@ module pl_video_top #(
     // U11（R22）：`eth_link` 是 eth_rxc 域的电平，原来在像素域被**裸采样** 4 处，而同一个文件里
     // `src_sel` 早就走了 3 级同步 —— 一处对一处错。现在统一成 3 级（多 60 ns，对毫秒级的"链路断"不可见）。
     // ⚠ 证据只是**行级**的：`cdc.rpt` 里 `eth_rxc→clkout0_1` 那一行端点数 84→51、被标记 16→1，而这份
-    //   报告不点名信号 ⇒ 它只能证明"这一类端点变少了"，逐信号的凭据要写台架（见 R23/tb_v79_abort_toggle）。
+    //   报告不点名信号 ⇒ 它只能证明"这一类端点变少了"，逐信号的凭据要写台架（见 R23/tb_abort_toggle）。
     // ⚠ `copy_abort` **不能**照这个模板同步 —— 它是 axi_clk 上只有 1 拍（10 ns）的脉冲，电平型 3 级同步
     //   会整拍漏掉它（比裸采样更糟）⇒ 要的是翻转式脉冲同步器（`abort_tgl`，下面这条链 = 3 级 + 异拍出沿）。
     (* ASYNC_REG = "TRUE" *) reg ab0, ab1, ab2;
@@ -499,15 +505,8 @@ module pl_video_top #(
     // 冻住的最后一帧在屏上**没有任何说法**，看上去就是"板子卡死" ⇒ 把这件事印出来。
     // 判据用 `eth_live`（健康快照 lane7.bit3：200 ms 内真的见过帧）而不是 `eth_link`（那位自配置以来
     // 只置不清、拔线不回 0，正是 #47 的根）；跨域按仓库规矩 3 级同步，与上面 eth_link_pix 同构。
-    (* ASYNC_REG = "TRUE" *) reg lv0, lv1, lv2;
-    always @(posedge clk_pix or negedge rst_pix_n) begin
-        if (!rst_pix_n) {lv2,lv1,lv0} <= 3'b0;
-        else {lv2,lv1,lv0} <= {lv1, lv0, eth_live};
-    end
-    wire eth_live_pix = lv2;
-    // "屏上这一路本该是 ETH _live 却没有"：钉在 ETH 模式，或仲裁此刻把屏交给 ETH。
-    // AUTO 模式不判 —— 那时 src_arb 已经把屏交回 PS/图卡，屏上画的就不是冻结的 ETH 帧。
-    wire no_sig = (mode_eth | owner_eth_pix) & ~eth_live_pix;
+    // 2026-10-20：OSD 的 "ETH is no signal" 那一句按用户要求删除。像素域的 eth_live 副本
+    // 只服务那一句，随之删掉；`eth_live` 本身仍进 src_arb（片源仲裁的活判据），不动。
 
     // 像素域要的是**仲裁结果**而不是第二份判据（判据归 src_arb；这里再复制一份"活着"就会出现
     // "ETH 那一位还在说谎、SD 帧却永远不被消费"的死锁 —— 板上的 STALL 钉在 9999 正是它）。
@@ -581,7 +580,7 @@ module pl_video_top #(
     //   原来这里 `have_src = eth_link_pix | ps_src_seen`，两位都只会被置 1 ⇒ AUTO 下拔掉 SD 卡，画面
     //   **永久冻在最后一帧**、插回也不恢复（`fb_vis` 恒 1，"两路都没片源就画图卡"那条根本进不去）。
     //   判据取自**已有的发布握手**（`ps_publish` 同步出来的 `new_tog`）+ 一条看门狗 ⇒ **不新增 GPIO 位、
-    //   不新增异步配对**（`cdc.rpt` 若因此多出一行，就是接错了）。三条语义由 tb_v102_src_life 逐条钉。
+    //   不新增异步配对**（`cdc.rpt` 若因此多出一行，就是接错了）。三条语义由 tb_src_life 逐条钉。
     //   `ps_no_pub` 今天只上屏；要做成寄存器回读得走 `zoom_snap` 那条像素→axi 的正路（#85），不在这里塞一根裸线进 axi 口（#61/#65 交过的税）。
     localparam integer PS_SRC_TIMEOUT_MS = 500;
     wire ps_src_now, have_src, ps_no_pub;
@@ -689,12 +688,61 @@ module pl_video_top #(
 
     assign m_axi_arid = 6'd0;
 
+    // ---- PS/SD copy must start in vertical blanking, not at active frame start ----
+    // `pub_consume` is evaluated at display `frame_start`, so `ps_frame_start` is
+    // one pixel-clock after the first ACTIVE pixel. Starting the DDR->BRAM copy
+    // there overwrites rows the beam is about to read (and races the same BRAM
+    // addresses) for the first ~11 display rows -> a moving top band / flicker.
+    // Latch the publish and start at the opening of the blanking window, exactly
+    // like the ETH path's frame_commit_lock. The 38.4k-word copy takes ~384 us
+    // and the blank is ~671 us, so it finishes before the next active line.
+    // Latch the RAW publish edge in the AXI domain, not `ps_frame_start`:
+    // `ps_frame_start` is consumed at display frame_start (up to 16.7 ms later)
+    // and the copy then waits for that frame's blank, so it can start up to
+    // 33.4 ms after the PS finished the SD read -- exactly when `sd_tick` starts
+    // DMA-ing the NEXT frame into the same DDR buffer. That race shows up as
+    // moving packet-loss-like lines. The raw edge waits only for the next blank
+    // (<=16.7 ms) and finishes well before the next SD read (33.3 ms).
+    (* ASYNC_REG = "TRUE" *) reg psp0, psp1;
+    always @(posedge axi_clk or negedge axi_rst_n) begin
+        if (!axi_rst_n) {psp1,psp0} <= 2'b0;
+        else            {psp1,psp0} <= {psp0, ps_publish};
+    end
+    wire ps_pub_edge_axi = psp0 ^ psp1;
+    // Start only at the OPENING of the blanking window, not any time it is
+    // already high: a publish landing late in a blank would otherwise start
+    // the 408 us copy with less than 408 us of blank left and spill into the
+    // first active line. Waiting for the next opening keeps the whole budget.
+    reg allow_copy_d;
+    always @(posedge axi_clk or negedge axi_rst_n) begin
+        if (!axi_rst_n) allow_copy_d <= 1'b0;
+        else            allow_copy_d <= allow_copy;
+    end
+    wire allow_copy_rise = allow_copy & ~allow_copy_d;
+    reg ps_copy_pend;
+    reg ps_copy_req;
+    wire ps_copy_start = ps_copy_req && !eth_mode;
+    always @(posedge axi_clk or negedge axi_rst_n) begin
+        if (!axi_rst_n) begin
+            ps_copy_pend <= 1'b0;
+            ps_copy_req  <= 1'b0;
+        end else begin
+            // 先在允许窗口里记下请求，下一拍再按当时的 owner 放行。
+            // 如果 ETH 在同一个沿抢到 owner，这一拍会取消，而不是让 u_aw 起来后
+            // 地址 mux 已切到 row、fill_busy 永远不落（一拍竞争会把 PS 锁死）。
+            ps_copy_req <= ps_copy_pend && allow_copy_rise && !fill_busy && !row_busy
+                           && !eth_mode && src_sel;
+            if (ps_pub_edge_axi) ps_copy_pend <= 1'b1;
+            else if (ps_copy_start) ps_copy_pend <= 1'b0;
+        end
+    end
+
     axi_frame_writer64 #(
         .IMG_W(IMG_W), .IMG_H(IMG_H), .BASE_ADDR(PS_BASE_ADDR)
     ) u_aw (
         .clk(axi_clk), .rst_n(axi_rst_n),
         .enable(eth_mode ? 1'b0 : src_sel),
-        .frame_start(eth_mode ? 1'b0 : ps_frame_start),
+        .frame_start(ps_copy_start),
         .base_addr(PS_BASE_ADDR),
         .frame_busy(fill_busy), .frame_done(fill_done),
         .fb_wr_en(fill_wr_en), .fb_wr_addr(fill_wr_addr), .fb_wr_data(fill_wr_data),
@@ -736,7 +784,7 @@ module pl_video_top #(
         .wr_clk(axi_clk), .wr_en(aw_wr_en), .wr_addr(aw_wr_addr), .wr_data(aw_wr_data),
         .sx(sx_fb), .sy(sy_fb), .fx(zfrac_x), .fy(zfrac_y),
         .bilin_en(bilin_en_pix),
-        // ⚠ 相位量必须与 `sx/sy` **同一级**，而"哪一级"是量出来的不是推出来的：tb_v98 自带的级数标定
+        // ⚠ 相位量必须与 `sx/sy` **同一级**，而"哪一级"是量出来的不是推出来的：tb_video_pipeline_top 自带的级数标定
         //   （`sx` vs 第 k 级显示列 >>1，样本 822555）给 k=0 全错｜k=1 412166｜**k=2 0**｜k=3 410389｜
         //   k=4/5 全错 ⇒ sx 站在第 2 级。第一版这里接的是 [3]（照 "MIX_D = 3+1+1+LATENCY" 的那个 3）
         //   ⇒ 地址与列奇偶错一拍 ⇒ "每源像素的 4 拍"跨到相邻源像素，屏上四分之一格子错列（C1c 的 Δcol）。
@@ -772,6 +820,17 @@ module pl_video_top #(
     wire [15:0] pix_raw = oob_fb_d1 ? 16'h0000 : (fb_vis ? fb_out : bar_d2);
     wire        oob_raw = oob_fb_d1;
 
+    // 旋转/缩放后视频边缘落在画面内部：3×3 窗口的外侧是黑背景。处理链若直接吃黑，
+    // 视频边沿会被混出一条暗带；原图抽头不滤波，所以只有处理侧看得见。链子入口做 clamp-to-edge：
+    // `oob` 时用最后一个有效像素，原图抽头仍走 `pix_raw`（边缘外保持黑）。
+    // 0° 满屏时 `oob` 基本不亮，因此这一刀不改变 0° 画面。
+    reg [15:0] pix_chain_edge;
+    always @(posedge clk_pix or negedge rst_pix_n) begin
+        if (!rst_pix_n) pix_chain_edge <= 16'h0000;
+        else if (de_d[3] && !oob_fb_d1) pix_chain_edge <= pix_raw;
+    end
+    wire [15:0] pix_chain = oob_fb_d1 ? pix_chain_edge : pix_raw;
+
     // ---- r59b-2（#73）：原图抽头必须过一条**行环**，缝两侧才是同一行画面 ----
     //   单流之后地址只有一份，而它的行号带着 #54 (B) 的提前量 `cy_r = (y+OFF_LINES)>>1` —— 那个提前量是
     //   给链子准备的（链子内容天生滞后 4 行），原图抽头不需要它。补偿不是再开一个读口（第二个逻辑读口
@@ -793,7 +852,7 @@ module pl_video_top #(
 
     wire [15:0] pipe_dout;
     wire        pipe_de;
-    // ---- #129 第一笔：链子的行标签必须与它**吃进去的内容**同一本账（凭据 tb_v103 窗口 C、tb_v98 的 C5c）----
+    // ---- #129 第一笔：链子的行标签必须与它**吃进去的内容**同一本账（凭据 tb_v103 窗口 C、tb_video_pipeline_top 的 C5c）----
     //   显示行 d 送进 `din(pix_raw)` 的是源行 wrap((d+OFF_LINES+BILIN_ROWS-2)>>1)：#54 (B) 那份提前量
     //   （`y_right_adv` = y+OFF+BILIN）扣掉读口成对滞后的两行（`fb_bilin` 乒乓，见本文件 721 行那段）。
     //   旧写法喂 `cy_d[3]`，而 `cy = min(d>>1, IMG_H-1)`（本文件 243 行：每帧从 0 重开、**只钳不绕**）
@@ -815,8 +874,8 @@ module pl_video_top #(
     //   从"源像素"变成"显示像素"（横向覆盖 1.5 个源列）⇒ 横方向的模糊/边缘比旧版略宽。
     //   要回到源域等距就得给整条链加时钟使能（#73 订正里那条支路）。
     // #129：STREAM_WRAP=1 —— 顶层喂的是绕回连续流，链子里那套"帧头整行陈旧"的前瞻补救在这条流上
-    //   会把帧头 4 行发成前瞻一行的格子（正本见 proc_box_blur.v 的 STREAM_WRAP 段；凭据 tb_v103 C11、tb_v98 C5c）。
-    proc_pipeline #(.H_ACTIVE(2*IMG_W), .STREAM_WRAP(1)) u_pipe (
+    //   会把帧头 4 行发成前瞻一行的格子（正本见 proc_box_blur.v 的 STREAM_WRAP 段；凭据 tb_v103 C11、tb_video_pipeline_top C5c）。
+    proc_pipeline #(.H_ACTIVE(2*IMG_W), .STREAM_WRAP(1), .V_ACTIVE(IMG_H)) u_pipe (
         .clk(clk_pix), .rst_n(rst_pix_n),
         .stage_sel(sel_sync), .threshold(th_sync),
         .gamma_en(gm_en), .gamma_wr(gm_wr), .gamma_idx(gm_idx), .gamma_data(gm_data),
@@ -824,7 +883,7 @@ module pl_video_top #(
         .hs_in(hs_d[3]), .vs_in(vs_d[3]),
         .de_in(de_d[3]),                 // 整行都进链（旧版只喂右窗那 512 个）
         .x_in(x_d[3]), .y_in(cy_chain),   // 链子里的"列"= 显示列，"行"= 源行（两个显示行同名，照旧）
-        .din(pix_raw), .off_rows(pipe_off_rows),
+        .din(pix_chain), .off_rows(pipe_off_rows),
         .de_out(pipe_de), .dout(pipe_dout)
     );
 
@@ -839,7 +898,7 @@ module pl_video_top #(
     //   原图那一路 = `raw_line_delay`(1 拍 RAM 读出) + `orig_skid`(PROC_LAT 拍) = **PROC_LAT+1 拍**，而链子
     //   自己只有 PROC_LAT 拍 ⇒ 处理抽头比原图抽头**早一整拍** = 混色级早一整列。1.00x 时画面铺满整屏看不出
     //   来；一缩小，左边界就把"画面自己最左那一列"甩进背景带、右边界少一列 —— 用户念的"贴在边上的一条线"
-    //   这一笔占一列。凭据 tb_v98：C1c 独立钉住"原图抽头与 `x_d[MIX_D]` 同级"⇒ 要动的是链子这一路；
+    //   这一笔占一列。凭据 tb_video_pipeline_top：C1c 独立钉住"原图抽头与 `x_d[MIX_D]` 同级"⇒ 要动的是链子这一路；
     //   C2 在 inv=512 与 inv=1023 两档都量到"内容左右沿 = 定义左右沿 − 1"（**恒为一列、不随倍率变** ⇒ 是整拍之差，不是取整偏差）。
     reg [15:0] pipe_dout_q;
     always @(posedge clk_pix or negedge rst_pix_n) begin
@@ -865,6 +924,10 @@ module pl_video_top #(
         end
     end
     wire [15:0] orig_disp = orig_skid[LEFT_TAIL-1];   // 链子之前的抽头，与 pipe_dout 同一级
+    // 全旁路（sel=0 且 gamma 关）时，处理侧直接给原图抽头：链子的旁路中心是"上一显示行"的
+    // p11，旋转到视频边缘时那个中心可能落在图外，屏上只剩处理侧一条边线；此时两路本来就该
+    // 逐位相同，用 orig_disp 是有定义的行为，不是遮盖。0° 满屏时两者本来就相同。
+    wire [15:0] proc_disp = ((sel_sync == 9'd0) && !gm_en) ? orig_disp : pipe_dout_q;
     wire        oob_out   = oob_skid[LEFT_TAIL-1];
 
     wire de_d11 = de_d[11], hs_d11 = hs_d[11], vs_d11 = vs_d[11];
@@ -925,17 +988,26 @@ module pl_video_top #(
     //   （I1/I2：环深只有一个真源）。位宽 2 ⇒ 8×1024×2 bit = 16 Kbit = 1 块 RAMB36（这条要在 utilization.rpt
     //   上核对，不许停在注释；当前 95.5/140）。
     //   纯移位段现在只补"sx → `pix_raw`"那一小截：`pix_raw` 用的是 `bar_d2`，即 `sx` 之后第 2 拍，
-    //   而 `seam_src` 内部 `sh` 自己占 1 拍 ⇒ TAPS = 1。这一段的确切凭据是 tb_v98 的 **C14a**
+    //   而 `seam_src` 内部 `sh` 自己占 1 拍 ⇒ TAPS = 1。这一段的确切凭据是 tb_video_pipeline_top 的 **C14a**
     //   （"线画在画面外"的像素数：旧写法 72 → 只补环 24 → 补环 + 改门 0）；我先前拿来报"错位几行"的
-    //   C13 是**一把错的尺子**（它把图卡的渐变低位当成了自报源列，见 #477 与 tb_v98 里那段降级注释），
+    //   C13 是**一把错的尺子**（它把图卡的渐变低位当成了自报源列，见 #477 与 tb_video_pipeline_top 里那段降级注释），
     //   所以这里不写"错位 = N 行"，只写由构造保证的两件事：同一个 `LINES` 真源、同一个 `oob_out` 判据。
     localparam integer SX_TO_RAW = 2;                    // sx → pix_raw/bar_d2 的拍数（bar_d1、bar_d2 两级）
-    localparam integer SEAM_TAPS = SX_TO_RAW - 1;        // 减去 seam_src 内部 `sh` 那一拍
+    // fb_bilin 的乒乓结果缓冲让 pix_raw 晚 2 个显示行；seam_src 若吃 mapper 当拍 sx，
+    // 旋转时缝标志会拿后两行的源列判当前行（C31 valid 9-bit tag: y=598/599 whole row）。
+    // 先把 sx 过 LINES=BILIN_ROWS 的行环，再用 SEAM_TAPS=0 抵掉行环的 1 拍读出。
+    localparam integer SEAM_TAPS = 0;
+    wire [11:0] sx_align;
+    raw_line_delay #(.LINES(2), .W(2*IMG_W), .DW(12)) u_sx_align (
+        .clk(clk_pix), .rst_n(rst_pix_n),
+        .de(de_d[2]), .x(x_d[2]), .y(y_d[2]),
+        .d_in(sx), .d_out(sx_align), .de_out()
+    );
     wire seam_src_orig, seam_src_mark;
     wire seam_raw_orig, seam_raw_mark;
     seam_src #(.TAPS(SEAM_TAPS)) u_seam_src (
         .clk(clk_pix), .rst_n(rst_pix_n),
-        .sx(sx), .seam(split_eff),
+        .sx(sx_align), .seam(split_eff),
         .marker_on(split_marker_on), .raw_left(split_raw_left),
         .take_orig(seam_raw_orig), .mark(seam_raw_mark)
     );
@@ -961,8 +1033,31 @@ module pl_video_top #(
     // #477 第二笔：标记线的"在不在画面内"用**与像素同环同尾巴**的那一位 `oob_out`（屏上那一格黑不黑就是它，
     //   #92 第一/三笔的成果），不用 mapper 的活几何 oob。两者在画面边沿可以差 1 格，旧写法实测在 45°
     //   两臂留下 24 个"线画在黑底上"的像素（= 用户念的"上面出头 / 下面没到底"）。判据与填充同一个位 ⇒
-    //   线的端点与画面的端点由构造相等。凭据 tb_v98 的 C14a（旧写法 72/24 个像素，能红；此处须为 0）。
+    //   线的端点与画面的端点由构造相等。凭据 tb_video_pipeline_top 的 C14a（旧写法 72/24 个像素，能红；此处须为 0）。
     assign seam_src_mark = seam_tail[LEFT_TAIL-1][1] & ~oob_out;
+
+    // ---- 处理窗完整性探针（只统计，不改像素）----
+    // 只在"gray 单级 + split video"时有效：此时处理侧每个像素都应该是灰的，
+    // 非灰像素只能是"处理侧漏进了原图/旁路"——正是用户报的底边未处理带。
+    wire pv_en = (sel_sync == 9'd1) && gp[11];
+    wire split_proc_bad;
+    reg [15:0] pv_cnt, pv_lat;
+    reg        pv_tog, pv_valid;
+    always @(posedge clk_pix or negedge rst_pix_n) begin
+        if (!rst_pix_n) begin
+            pv_cnt <= 16'd0; pv_lat <= 16'd0; pv_tog <= 1'b0; pv_valid <= 1'b0;
+        end else if (frame_start) begin
+            pv_lat   <= pv_cnt;
+            pv_valid <= pv_en;
+            pv_tog   <= ~pv_tog;
+            pv_cnt   <= 16'd0;
+        end else if (split_proc_bad && pv_cnt != 16'hFFFF) begin
+            pv_cnt <= pv_cnt + 1'b1;
+        end
+    end
+    assign pane_bad_o   = pv_lat;
+    assign pane_valid_o = pv_valid;
+    assign pane_tog_o   = pv_tog;
 
     split_display u_split (
         .clk(clk_pix), .rst_n(rst_pix_n),
@@ -970,15 +1065,16 @@ module pl_video_top #(
         //   而 `x/y/de/hs/vs` 留在第 11 级 ⇒ 面板上的 `de` 比同一拍的像素早 9 列（MIX_D − 11）：屏上最左
         //   9 列画的是**上一行末尾那 9 格**（= 用户念的"贴在屏幕左边缘的一条线"），最右 9 列落进消隐丢掉
         //   （对着黑底看不见），而 OSD 一格都不动（它的 x/y 与 de 同源、跟着一起错）—— 三条观察同一件事。
-        //   凭据 tb_v98 的 C3：面板坐标系**只用输出引脚**建立、不引用任何内部标签，改前量到"画面左右沿 =
+        //   凭据 tb_video_pipeline_top 的 C3：面板坐标系**只用输出引脚**建立、不引用任何内部标签，改前量到"画面左右沿 =
         //   定义 +8 列"（= 本笔 +9 与上一笔 −1 之和）且带宽不变 ⇒ 整幅平移不是尺寸错；C3a 排除"消隐窗口不匹配"。
         .x(x_d[MIX_D]), .y(y_d[MIX_D]), .de(de_d[MIX_D]), .hs(hs_d[MIX_D]), .vs(vs_d[MIX_D]),
         .x_sel(x_d[MIX_D]), .marker(split_marker_on),
         .seam(split_eff), .raw_left(split_raw_left),   // 与内容同级的那一路坐标（#68）；OSD 用的 x/y 不动
         .seam_in_src(gp[11]), .src_orig(seam_src_orig), .src_mark(seam_src_mark),
-        .orig_pix(orig_disp), .proc_pix(pipe_dout_q),
+        .orig_pix(orig_disp), .proc_pix(proc_disp),
         .oob_l(oob_out), .oob_r(oob_out),   // 越界对两个抽头是同一件事（同一份源坐标）⇒ 一位喂两口
         .angle_idx(angle[1:0]),
+        .integrity_en(pv_en), .proc_bad(split_proc_bad),
         .r(r), .g(g), .b(b),
         .de_out(de_o), .hs_out(hs_o), .vs_out(vs_o)
     );
@@ -1042,6 +1138,13 @@ module pl_video_top #(
     wire        lat_ok_pix = lat_bus_q[17] & lat_bus_q[16] & ~lat_gone;
     wire [15:0] lat_ms_pix = lat_bus_q[15:0];
 
+    // 给 eth 遥测：同一轮、axi 域的 live 口。跨到 125 MHz 由 eth top 里的 snap_cross 做，
+    // 这里不复制第二套同步器（一个发射位只能有一个目的域同步链，仓库 CDC 规矩）。
+    assign lat_ms_o     = lat_ms_axi;
+    assign lat_ok_o     = lat_ok_axi;
+    assign lat_sticky_o = lat_sticky_axi;
+    assign lat_tog_o    = lat_tog_axi;
+
 
     // ---- Split 那一格由 split_ctrl 的 shown_pct 真驱动（缝的执行者见 ISSUES #62 / split_ctrl 文件头）----
     // 除法是 elaboration 常数（PANE_W 等是参数），综合折成一个数、不留硬件；以前这一格是个死数
@@ -1052,7 +1155,9 @@ module pl_video_top #(
     // #67：OSD 第一行那格从"片源 512×300"换成**面板 1024×600**，所以递进去的是面板那一份。
     // ×2 这条关系在本文件里只有一个出处（`proc_pipeline.H_ACTIVE`、`raw_line_delay.W` 用的也是它），
     // 不是在这儿另抄一遍 1024/600 —— 谁改了窗口展开的倍数，屏上那格就跟着改。
-    osd_overlay #(.OUT_W(2*IMG_W), .OUT_H(2*IMG_H)) u_osd (
+    // 第一行画**片源**尺寸（512×300），不再画面板 1024×600：五行里其余信息都是包源/几何的，
+    // 尺寸与它们同一口径更合理（用户 2026-10-20 定）。字格/位置仍是面板像素，屏上位置不变。
+    osd_overlay #(.OUT_W(IMG_W), .OUT_H(IMG_H)) u_osd (
         .clk(clk_pix), .rst_n(rst_pix_n),
         // #92：跟着上面那一束一起提到 `MIX_D`。它与 `de_o` 的相对关系**一格都不变**
         //   （`de_o` 是 `de_d[MIX_D]` 再打一拍，这里的 `x/y` 就是同一拍的值 ⇒ 仍是"早一拍"，
@@ -1069,7 +1174,6 @@ module pl_video_top #(
         .lat_ms(lat_ms_pix), .lat_ok(lat_ok_pix),
         .src_eff({fb_vis, owner_eth_pix}),   // 屏幕上真的这一路：CARD / PS / ETH
         .mode(mode),
-        .no_sig(no_sig),                     // V9-4：屏上印 "ETH is no signal"
         .temp_disp(tmp_disp),                // V9-6：片上温度那一格（L4 常驻）
         .bg_pix(16'h0),
         .osd_en(osd_en),                // r83：0 = 输出逐位等于背景（见 osd_overlay 端口注释）

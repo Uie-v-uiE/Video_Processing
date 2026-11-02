@@ -13,15 +13,14 @@ module osd_overlay #(
     parameter CHAR_H = 21,          // 7*3
     parameter LINE_GAP = 10,
     parameter MAX_CHARS = 32,
-    // 第 5 行只有一件事：没有 ETH 信号时印 "ETH IS NO SIGNAL"，其余时间整行空格。
-    // 前四行的字段/顺序/空格是定好的格式，动不得，所以新话只能另起一行。
+    // 第 5 行是常驻的片上温度（V9-6）。原 "ETH IS NO SIGNAL" 那一句已按用户要求删除
+    // （2026-10-20），不再有 `no_sig` 端口。
     // 高度账：5×(21+10) = 155 px < 600 ✓，字格尺寸一个都没动。
     parameter N_LINES = 5,
-    // 第一行画**面板**尺寸并放在行首。
-    // ⚠ 顶层递进来的是面板那一份（`2*IMG_W` / `2*IMG_H` —— 与 `proc_pipeline.H_ACTIVE`、
-    //   `raw_line_delay.W` 同一个 ×2 关系），不是片源尺寸：屏上画的数与真实扫描的列/行数同源。
-    parameter OUT_W = 1024,
-    parameter OUT_H = 600
+    // 第一行画**片源**尺寸并放在行首（2026-10-20：从面板 1024×600 改成片源 512×300，
+    // 与其余"包源/几何"信息同一口径）。字格/位置仍是面板像素。
+    parameter OUT_W = 512,
+    parameter OUT_H = 300
 )(
     input  wire        clk,
     input  wire        rst_n,
@@ -43,9 +42,6 @@ module osd_overlay #(
     input  wire        lat_ok,       // 0 ⇒ 没有可信测量，画 `--`：不许把不成立的数画到屏上
     input  wire [1:0]  src_eff,      // {fb_vis, owner_eth}：屏幕上真的这一路
     input  wire [1:0]  mode,         // 00 自动 01 ETH 11 SD 10 TEST（与 src_mode 同序；`*` 由它派生）
-    // 顶层判的是"屏上挂的是 ETH 帧、但 200 ms 没等到新帧"。画面会冻在最后一帧，
-    // 没有这一句就会被当成"板子卡死"，所以必须在屏上说清楚。
-    input  wire        no_sig,
     // 片上温度（PS 侧 XADC）。两位**十进制 BCD**（[7:4]=十位、[3:0]=个位），
     //   任一半字节 >9 就是"还没有可信读数"⇒ 画 `--`（与 `lat_ok=0` 同一规矩）；量程只有 0..99 °C。
     //   为什么 PS 把十进制算好了再传：下面是一整块组合逻辑，而 `u_pipe/xd_reg → u_osd/g_reg/D`
@@ -182,7 +178,7 @@ module osd_overlay #(
 
     // 排版：一行一行"打字符"，数字按**实际位数**打、不打前导零
     // 不按固定格：格式定的是 `Th:80`、`Split:50%`，固定三位右对齐会打出 `Th:080` / `Split: 50%`。
-    // 代价是"某一格在第几列"不再是常数 ⇒ 判据（tb_osd_lines）按**整串比对**，更不容易被"挪一格"糊过去。
+    // 代价是"某一格在第几列"不再是常数 ⇒ 判据（tb_osd_overlay）按**整串比对**，更不容易被"挪一格"糊过去。
     task at;  input integer ln;  begin col = ln * MAX_CHARS; end endtask
     // ⚠ **屏上没有小写**：小写一律在 `put` 里折成大写。
     //   折算放在**写这一侧**而不是读那一侧：读侧 `ch→gi→font→b_reg` 是全设计最差路径的主体，
@@ -272,7 +268,7 @@ module osd_overlay #(
         // L1: PIPE:11000 TH:80 GAMMA:1.8 —— 这一行的两个分隔是**单空格**（字段、顺序、值都没动，只动空格数）。
         // 原因：格距 18 px 而左半窗只有 512 px ⇒ 一行最多 28 格就贴到分割线
         //（`PIPE:11000  TH:80  GAMMA:1.8` 恰好 28 格）；收成 26 格 ≈ 468 px，留 44 px 余量。
-        // 判据 tb_osd_lines 既比整串，也比"每行最右一个非空格的 x 必须 < PANE_W"。
+        // 判据 tb_osd_overlay 既比整串，也比"每行最右一个非空格的 x 必须 < PANE_W"。
         at(1);
         puts("Pipe:", 5);
         put(pc1); put(pc2); put(pc3); put(pc4); put(pc5);
@@ -306,11 +302,7 @@ module osd_overlay #(
         else putd3(lt_h, (lt_rem / 8'd10), (lt_rem % 8'd10));
         puts("ms", 2);
 
-        // L4: TEMP:47C  ETH IS NO SIGNAL —— 常驻片上温度，异常句跟在后面。
-        // 温度落在这一行而不是 L1：前四行的字段/顺序/空格是定好的格式，只允许改空格数。
-        // 最宽激励 26 格 ⇒ 右沿 16+26*18 = 484 < 511，温度与异常句并存也不压到分割线。
-        // `no_sig` 由顶层从 eth_live 推：拔线/停推流时画面冻在最后一帧，
-        // 没有这一句会被当成"板子卡死"。
+        // L4: TEMP:47C —— 常驻片上温度。原 "ETH IS NO SIGNAL" 已按用户要求删除。
         at(4);
         puts("Temp:", 5);
         // 两个半字节都是十进制数字才画数，否则画 `--`（与 `lat_ok=0` 同一规矩）。上电时 effect_ctrl
@@ -321,10 +313,6 @@ module osd_overlay #(
             put("C");
         end else begin
             puts("--", 2);
-        end
-        if (no_sig) begin
-            puts("  ETH is no ", 12);
-            puts("signal", 6);
         end
     end
 
@@ -401,7 +389,7 @@ module osd_overlay #(
         font[26][0]=5'b00000; font[26][1]=5'b00100; font[26][2]=5'b10101;
         font[26][3]=5'b01110; font[26][4]=5'b10101; font[26][5]=5'b00100; font[26][6]=5'b00000;
         // 44~52：后补的 5 个符号 + 大写 Z + 短线。位图与 `build/glyphs_draft.txt` 逐项一致，
-        // 台架 tb_osd_lines 里**另抄一遍**同一批位图当反例源（谁改了另一处就红）。
+        // 台架 tb_osd_overlay 里**另抄一遍**同一批位图当反例源（谁改了另一处就红）。
         // 28~43 是小写 a c e i l m n o p r s t u x y 让出来的空洞：5×7 字模做不出真正的降部
         //（p/q/y 尤其明显），不是"画得不好"而是**这个字号画不出**⇒ 屏上只有大写。
         // 空洞留在表里不动号：金表钉的是 0..27 那段历史号。

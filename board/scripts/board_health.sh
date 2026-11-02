@@ -14,7 +14,7 @@
 # 退出码：0=三段都拿到读数（末行 HEALTH: GREEN）；1=至少一段没拿到（末行 HEALTH: RED 并点名是哪段）；2=REFUSE
 #
 # 这支脚本什么都不写：不 rst、不 dow、不 mwr，也不往串口发会改板上控制字的命令。
-# 三段用的是 board/ 里已经在跑的单步工具（board/uart_cap_once.ps1、board/rdddr.tcl、board/pswhy.tcl），
+# 三段用的是 board/ 里已经在跑的单步工具（board/scripts/uart_cap_once.ps1、board/tcl/rdddr.tcl、board/tcl/pswhy.tcl），
 # 这里只负责按顺序跑、判每一段有没有真的拿到数、以及把"这份数出自哪一版三件套"写在同一件里。
 # 为什么末行要有总判定、为什么件名不能带轮号：build/board_verify.sh 头部 #179 与 #273 那两条教训。
 set -u
@@ -50,15 +50,15 @@ trap 'rm -rf "$TMP"' EXIT
   say "RUN_AT      $(date '+%Y-%m-%d %H:%M:%S')"
   say "HOST        ${COMPUTERNAME:-$(uname -n)}  PWD=$PWD"
   say "GIT_HEAD    $(git rev-parse --short HEAD 2>/dev/null || echo unknown)"
-  for f in build/system.bit build/system.xsa build/ps_app.elf; do
+  for f in board/project/system.bit board/project/system.xsa board/project/ps_app.elf; do
     if [ -f "$f" ]; then say "MD5_12      $(md5sum "$f" | cut -c1-12)  $f"
     else say "MD5_12      MISSING     $f"; fi
   done
 } > "$TMP/id.txt"
 
 # ---- 1) 串口：只发不改态的三条，收尾那条与开头那条必须逐字相同 ----
-# uart_cap_once.ps1 的 -Cmds 按 [,\s]+ 拆词，所以这里只放不带空格的命令（带空格的走 board/uart_cmd_script.ps1）
-PSPORT=$(powershell -NoProfile -ExecutionPolicy Bypass -File board/uart_cap_once.ps1 \
+# uart_cap_once.ps1 的 -Cmds 按 [,\s]+ 拆词，所以这里只放不带空格的命令（带空格的走 board/scripts/uart_cmd_script.ps1）
+PSPORT=$(powershell -NoProfile -ExecutionPolicy Bypass -File board/scripts/uart_cap_once.ps1 \
   -Port "$VP_PORT" -Seconds "$VP_SEC" -Drain -Cmds "stat,temp,stat" \
   -Out "$TMPW\\serial.txt" 2>&1)
 {
@@ -69,10 +69,10 @@ PSPORT=$(powershell -NoProfile -ExecutionPolicy Bypass -File board/uart_cap_once
 } > "$TMP/serial.log"
 
 # ---- 2) JTAG 回读：AXI GPIO 控制字 + DDR 头 8 个字（rdddr.tcl 里全是 mrd） ----
-"$VP_XSDB" -quiet board/rdddr.tcl > "$TMP/jtag.txt" 2>&1
+"$VP_XSDB" -quiet board/tcl/rdddr.tcl > "$TMP/jtag.txt" 2>&1
 
 # ---- 3) 异常向量：核停在哪儿、是不是 trap 进 Undefined 了（pswhy.tcl 只 stop/rrd/mrd/con） ----
-"$VP_XSDB" -quiet board/pswhy.tcl > "$TMP/why.txt" 2>&1
+"$VP_XSDB" -quiet board/tcl/pswhy.tcl > "$TMP/why.txt" 2>&1
 
 # ---- 判：每一段单独判，红的话点名是哪段 ----
 NRED=0
@@ -91,9 +91,9 @@ S_SAME=0; [ -n "$FIRST_STAT" ] && [ "$FIRST_STAT" = "$LAST_STAT" ] && S_SAME=1
 {
   cat "$TMP/id.txt"
   cat "$TMP/serial.log"
-  say "==== JTAG READBACK (board/rdddr.tcl, mrd only) ===="
+  say "==== JTAG READBACK (board/tcl/rdddr.tcl, mrd only) ===="
   cat "$TMP/jtag.txt"
-  say "==== CORE VECTORS (board/pswhy.tcl) ===="
+  say "==== CORE VECTORS (board/tcl/pswhy.tcl) ===="
   cat "$TMP/why.txt"
   say "==== VERDICT ===="
   say "serial(SENT 3/3 且有 [STAT]) = $S_SERIAL"

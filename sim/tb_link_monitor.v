@@ -102,7 +102,7 @@ module tb_link_monitor;
     wire [LMW-1:0] lm_bus;
     wire           lm_bus_tog, lm_hb;
     link_monitor #(.CLK_HZ(1000), .SETTLE(32), .LIVE_MS(16'd200)) u_lm (
-        .clk(clk), .rst_n(rst_n),
+        .clk(clk), .rst_n(rst_n), .rst_n2(rst_n), .rst_n3(rst_n),
         .cdc_wr_req(cdc_wr_req), .cdc_full(cdc_full),
         .frame_done(frame_done), .frame_abort(frame_abort),
         .frame_err(frame_err), .rows_missed(rows_missed),
@@ -177,7 +177,7 @@ module tb_link_monitor;
     wire [LMW-1:0] p_lm_bus;
     wire           p_lm_tog, p_lm_hb;
     link_monitor #(.CLK_HZ(125_000_000), .SETTLE(32), .LIVE_MS(16'd200)) u_lm_prod (
-        .clk(clk), .rst_n(rst_n),
+        .clk(clk), .rst_n(rst_n), .rst_n2(rst_n), .rst_n3(rst_n),
         .cdc_wr_req(1'b0), .cdc_full(1'b0),
         .frame_done(1'b0), .frame_abort(1'b0), .frame_err(1'b0),
         .rows_missed(16'd0), .in_pkts(32'd0), .in_bytes(32'd0), .gapclr(1'b0),
@@ -222,7 +222,7 @@ module tb_link_monitor;
     wire [LMW-1:0] sy_bus;
     wire        sy_tog, sy_hb;
     link_monitor #(.CLK_HZ(1000), .SETTLE(32), .LIVE_MS(16'd200)) u_lm_syn (
-        .clk(clk), .rst_n(sy_rst),
+        .clk(clk), .rst_n(sy_rst), .rst_n2(sy_rst), .rst_n3(sy_rst),
         .cdc_wr_req(1'b0), .cdc_full(1'b0),
         .frame_done(sy_done), .frame_abort(1'b0), .frame_err(1'b0),
         .rows_missed(16'd0), .in_pkts(32'd0), .in_bytes(32'd0), .gapclr(sy_clr),

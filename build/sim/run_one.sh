@@ -3,7 +3,7 @@
 #
 # 编译清单与 run_sim.tcl 同口径：src/rtl 整棵树 + sim/prim 占位件 + sim/tb_*.v。
 # 以前这里是手写的一小串文件，结果是"改了 pl_video_top 想快点看一眼"时 xelab 直接报
-# Cannot find design unit —— 顶层唯一的台架 tb_v6_vblank_copy 根本不在清单里（2026-09-23 撞到）。
+# Cannot find design unit —— 顶层唯一的台架 tb_fb_vblank_copy 根本不在清单里（2026-09-23 撞到）。
 # 工具路径只有一个说法：VP_VIVADO_BIN 指到 <Vivado>/bin（清单见 report/build.md §1）；找不到就第一步 REFUSE。
 # ⚠ 这两道 REFUSE 排在 `--verdict` 分支**之后**：判定解析是纯文本工作，不该要求现场有 Vivado、
 #   也不该因为有别人的 xsim 在跑就不让我离线读一份旧日志（#166 的对照实验因此必须能离线跑）。
@@ -17,7 +17,7 @@ if [ "$TB" = "--verdict" ]; then
     V=$(grep -a "RESULT $TB" "$LOG" | tail -1)
     [ -n "$V" ] || V=$(grep -aE "^(PASS|FAIL) $TB( ALL)?$" "$LOG" | tail -1)
     # 第二种收尾**带字段**的那一支（#104 尾账，2026-09-30）：只有 **FAIL** 会带字段
-    #（`FAIL tb_v90_latency errors=3`、超时那一支 `FAIL <tb> timeout`），PASS 一律顶格无后缀 ⇒
+    #（`FAIL tb_latency errors=3`、超时那一支 `FAIL <tb> timeout`），PASS 一律顶格无后缀 ⇒
     # 放宽只给 FAIL、且必须紧跟 errors= / timeout 这两个词。为什么不一视同仁地放宽：
     # 判据行里有 `  PASS tb_x c1` 这种"名字紧跟着别的东西"的形状，放宽到任意后缀会把**一条判据**
     # 当成本台架的判定（#163 那一课：兜底不许变成"谁都能冒充"）。
@@ -99,15 +99,15 @@ if [ ! -d xsim.dir/work ]; then echo "XVLOG 没建出 work 库，xv.log 尾部�
 $V/xelab $TB -s snap > el.log 2>&1
 if grep -q "^ERROR" el.log; then echo "XELAB FAILED"; grep -A3 "^ERROR" el.log | head -20; rm -f prov.tmp; exit 1; fi
 mv -f prov.tmp prov.txt && rm -f run.log
-$V/xsim snap -R > run.log 2>&1
+$V/xsim snap -R ${VP_XSIM_ARGS:-} > run.log 2>&1
 # ⚠ 过滤词表必须包含台架**专门为了回答"缺口在哪"而打的那些行**（PROBE/DIAG/NOTE/OBS）：
-#   2026-09-25 台架 tb_v98 数出"帧缓存到底被写了多少字"的那条 PROBE 就是被这个过滤器挡在
+#   2026-09-25 台架 tb_video_pipeline_top 数出"帧缓存到底被写了多少字"的那条 PROBE 就是被这个过滤器挡在
 #   run.log 里的，我因此多绕了一趟临时目录才看到它 —— 而那份 console 才是要留在报告里的凭据。
 grep -aE "FAIL|PASS|INFO|PROBE|DIAG|NOTE|OBS |GOLDEN|^D[123] |error|Error" run.log | head -80
 tail -2 run.log
 # 统一收尾 token（2026-09-29 07:46，#104）：L1 的 `run_sim.tcl` 会给每支台架补一行 `RESULT <tb> …`，
 # 逐支跑以前没有 ⇒ 只打 `PASS <tb>[ ALL]` 的那几支（tb_sync_fifo / tb_udp_parser / tb_proc_gray /
-# tb_v794_osd_glyph / tb_rotate_window）在 `grep ^RESULT` 眼里等于"没判定"。这里补一行，
+# tb_osd_glyph_rom / tb_rotate_window）在 `grep ^RESULT` 眼里等于"没判定"。这里补一行，
 # 并把 FAIL 行数一起报出来：判定与计数同源，省得再拿"0 个 FAIL"当结论。
 # 统一收尾 token + **退出码要能表达"判红"**（#166，2026-09-30）：
 #   以前这一支脚本无论台架判成什么都 exit 0 ⇒ 链里 `run_one.sh … || die` 的"没断链"被读成"过了"，
