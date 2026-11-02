@@ -129,8 +129,9 @@ def build(lang):
     set_text(by_id(s, 8), [("作品介绍" if cn else "INTRODUCTION", 19, True, WHITE)], font=font, align=PP_ALIGN.CENTER, anchor=MSO_ANCHOR.MIDDLE)
     set_text(by_id(s, 43), [("系统架构" if cn else "SYSTEM ARCHITECTURE", 13, True, DARK)], font=font, align=PP_ALIGN.CENTER, anchor=MSO_ANCHOR.MIDDLE)
     set_text(by_id(s, 11), [("典型应用场景" if cn else "Typical application case", 11.5, True, DARK)], font=font)
+    by_id(s, 11).top = Inches(4.38)
 
-    # Left intro text, above the strip.
+    # Left intro text, above the image.
     if cn:
         intro = ("远程视频节点通常只有一根网线，没有 PC。操作者需要同时知道：画面收到没有、处理生效没有、画面多旧。"
                  "本作品在一颗 Zynq-7020 上给出全部答案：512×300 RGB565 从千兆网口输入，三闸整帧提交，两侧读回同一帧，"
@@ -142,12 +143,12 @@ def build(lang):
                  "same frame, and the seam selects per pixel.")
     set_text(by_id(s, 7), [(intro, 8.4 if cn else 7.8, False, GRAY)], font=font, line=0.97)
 
-    # Application and key issues at the template's left text positions.
+    # Application and key issues below the 16:9 image.
     app = ("广播、安防、工业视觉的现场监测：没有采集设备时，一根网线同时带回画面、处理结果和链路状态；"
            "同帧对照可用于算法验收与故障定位。" if cn else
            "Confidence monitoring for broadcast, security and industrial vision: one cable carries the picture, processing "
            "result and link status; same-frame comparison supports algorithm acceptance and fault isolation.")
-    b = add_box(s, 0.25, 3.90, 3.90, 0.66)
+    b = add_box(s, 0.25, 4.65, 3.90, 0.58)
     set_text(b, [(app, 8.8, False, GRAY)], font=font, line=0.98)
     key = ("关键技术问题\n"
            "1. 千兆 UDP 重组：按帧内偏移拼帧，整帧字节、行覆盖位图、无坏包三闸同时成立才提交。\n"
@@ -161,12 +162,12 @@ def build(lang):
            "3. Observability: aborts, missing rows, pane_bad and link gaps via serial/UDP/GPIO.\n"
            "4. Storage & sources: DDR3 ping-pong; UDP / SD playback / on-board test card.\n"
            "5. Boot & test: QSPI cold boot; 105-command UART battery.")
-    b = add_box(s, 0.25, 4.62, 3.90, 2.00)
+    b = add_box(s, 0.25, 5.35, 3.90, 1.55)
     parts = key.split("\n")
-    paras = [(parts[0], 10.0, True, DARK)]
+    paras = [(parts[0], 9.6, True, DARK)]
     for line in parts[1:]:
-        paras.append((line, 8.3, False, GRAY))
-    set_text(b, paras, font=font, line=0.95)
+        paras.append((line, 8.0, False, GRAY))
+    set_text(b, paras, font=font, line=0.94)
 
     # Center cards: template card positions/shapes retained.
     ingress = ("接收与缓存\n1. RGMII + MAC + UDP 过滤，按帧内偏移重组；\n2. 三闸提交：整帧字节、行覆盖位图、无坏包；\n3. DDR3 乒乓缓存，AXI HP0 64 位突发；\n4. 三路片源：UDP / SD 回放 / 板载图卡；\n5. 整帧收满才切换显示，坏包/缺行作废；\n6. 输入带宽约 74 Mb/s。" if cn else
@@ -214,19 +215,23 @@ def build(lang):
             paras.append((line, 8.4, False, GRAY))
     set_text(sh, paras, font=font, line=0.93)
 
-    # Platform caption under the product photo.
-    plat = "系统整体 · 测试现场" if cn else "System overview · test setup"
+    # Caption under the board+screen photo.
+    plat = "系统输出 · 上板实测" if cn else "System output · on-board test"
     set_text(by_id(s, 30), [(plat, 8.2, False, GRAY)], font=font, align=PP_ALIGN.CENTER)
     by_id(s, 30).left = Inches(10.98)
     by_id(s, 30).width = Inches(2.30)
     by_id(s, 30).top = Inches(1.70)
     by_id(s, 30).height = Inches(0.28)
 
-    # Replace template pictures at the same positions/sizes.
-    replace_pic(s, by_id(s, 42), os.path.join(ASSETS, "left_single_zh.png" if cn else "left_single_en.png"))
-    replace_pic(s, by_id(s, 44), os.path.join(ROOT, "records", "design", "poster_bi", "assets", "arch_zh.png" if cn else "arch_en.png"))
+    # Left: one 16:9 split image, not a wide strip.
+    pic = replace_pic(s, by_id(s, 42), os.path.join(ROOT, "records", "design", "assets", "poster_frame_split.png"))
+    pic.left = Inches(0.55); pic.top = Inches(2.65); pic.width = Inches(2.90); pic.height = Inches(1.63)
+
+    # Center: detailed 4x3 architecture diagram.
+    replace_pic(s, by_id(s, 44), os.path.join(ASSETS, "arch_v2_zh.png" if cn else "arch_v2_en.png"))
     replace_pic(s, by_id(s, 40), LOGO)
-    replace_pic(s, by_id(s, 47), os.path.join(ASSETS, "system_thumb.jpg"))
+    # Right top: previous board+screen photo, already close to the template aspect.
+    replace_pic(s, by_id(s, 47), os.path.join(ROOT, "records", "design", "poster_bi", "assets", "overview.jpg"))
 
     # Bottom-left test/performance line, as in the previous poster.
     foot = ("测试：UART 命令电池(105) · link selftest · 遥测监听　|　性能：30.01 fps　|　素材：可商用风景视频" if cn else
