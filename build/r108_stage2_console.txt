@@ -1,0 +1,10 @@
+[stage2 18:37:39] 顶层台架（约 100 分钟）
+[stage2 20:45:09] tb_v98 rc=3（0=绿 3=判红 2=REFUSE 1=编译失败 4=不认形状）
+[stage2 20:45:10] tb98_report rc=0
+[stage2 20:45:29] tb_icmp_ping0 rc=0
+[stage2 20:45:47] tb_v795_rx_chain rc=0
+[stage2 20:46:04] tb_udp_reasm rc=0
+[stage2 20:46:25] tb_edge_rim rc=0
+[stage2 20:46:26] rim_report rc=0
+[stage2 20:47:02] 门禁 rc=1 绿=19 红=3
+[stage2 20:47:03] stage2 结束（采纳段自己会等这个标记）

@@ -1,0 +1,7 @@
+build/roster_r113rf_fanout.rpt
+build/roster_r118_after_clk_fpga_0_setup.rpt
+build/roster_r118_after_clkfbout_setup.rpt
+build/roster_r118_after_eth_rxc_hold.rpt
+build/roster_r118_after_fanout.rpt
+build/roster_r118_after_sys_clk_hold.rpt
+build/roster_r118_after_sys_clk_setup.rpt

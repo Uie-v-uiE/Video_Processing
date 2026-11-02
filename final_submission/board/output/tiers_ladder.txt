@@ -1,0 +1,89 @@
+# 逐时钟前 12 档实测（只读探针，约束集＝r118 那两份，不保存工程、不改任何 .xdc 内容）
+# 生成：build/tcl/r124_tiers_probe.tcl（VP_TIERS_REPORT_ONLY=1，读已 Complete 的 impl_1）
+# Vivado：2025.2.1；件内 slack 一律是 setup（Max at Slow Process Corner）或 hold（Min at Fast Process Corner）的 WNS/WHS 读数
+#
+# 准入门（这份读数能不能被当作 r118 的）：
+#   ① 实现期约束集实测 = `rk_zynq7020.xdc clock_groups_impl.xdc`（fileset 里原本还挂着
+#      `r119_hdmi_source_window.xdc`，探针在内存里 remove_files 摘掉，未 save_project）
+#   ② 重跑实现后四域 intra 读数与 r118 归档件逐位相同：
+#      eth_rxc 0.739 / 4835 端点、clk_fpga_0 1.850 / 15721、sys_clk 14.876 / 323、clkout0_1 3.630 / 30179
+#      ⇒ 本件的 ns 可以直接引用（放置与布线在本工具上是确定性的，同约束集同网表复现同一档）。
+#
+# 口径（别和 r120 那次混读）：
+#   `-nworst 1 -max_paths 12` ＝ 每个端点只取最差一条、共取 12 个端点 ⇒ 下面每行是一个**不同端点**。
+#   r120 那次数的是端点重数（0.739x5 之类），两者不矛盾：同一档的多个位属于同一只锥。
+#   本报告只列档，不改任何采纳判据；按 rule 35，绝对 ns 差不算收益也不算损失。
+
+## eth_rxc（周期 8.000 ns）setup 前 12 档
+# 档 | slack | 终点 | 起点 | 数据路径 | 布线 | 布线占比 | 逻辑级数
+1  0.739ns  check_buffer_reg[19]/D       u_eth/u_icmp/u_icmp_tx/ip_head_reg[4][16]/C  7.066ns route 4.130ns 58.4%  levels 11
+2  0.873ns  check_buffer_reg[17]/D       u_eth/u_icmp/u_icmp_tx/ip_head_reg[4][16]/C  7.036ns route 4.127ns 58.7%  levels 11
+3  0.961ns  check_buffer_reg[18]/D       u_eth/u_icmp/u_icmp_tx/ip_head_reg[4][16]/C  6.866ns route 3.871ns 56.4%  levels 11
+4  1.017ns  rows_hit_reg[10]/CE          u_eth/u_rx_par/p_eof_reg/C                   6.649ns route 5.663ns 85.2%  levels 4
+5  1.017ns  rows_hit_reg[11]/CE          u_eth/u_rx_par/p_eof_reg/C                   6.649ns route 5.663ns 85.2%  levels 4
+6  1.017ns  rows_hit_reg[8]/CE           u_eth/u_rx_par/p_eof_reg/C                   6.649ns route 5.663ns 85.2%  levels 4
+7  1.017ns  rows_hit_reg[9]/CE           u_eth/u_rx_par/p_eof_reg/C                   6.649ns route 5.663ns 85.2%  levels 4
+8  1.019ns  rows_hit_reg[12]/CE          u_eth/u_rx_par/p_eof_reg/C                   6.648ns route 5.662ns 85.2%  levels 4
+9  1.019ns  rows_hit_reg[13]/CE          u_eth/u_rx_par/p_eof_reg/C                   6.648ns route 5.662ns 85.2%  levels 4
+10 1.019ns  rows_hit_reg[14]/CE          u_eth/u_rx_par/p_eof_reg/C                   6.648ns route 5.662ns 85.2%  levels 4
+11 1.019ns  rows_hit_reg[15]/CE          u_eth/u_rx_par/p_eof_reg/C                   6.648ns route 5.662ns 85.2%  levels 4
+12 1.041ns  rows_hit_reg[6]/CE           u_eth/u_rx_par/p_eof_reg/C                   6.623ns route 5.637ns 85.1%  levels 4
+# 小结：第 1–3 档是同一只 icmp_tx 校验和锥（11 级、布线约 58 %）；第 4–12 档**全部**是
+#   `p_eof_reg → rows_hit_reg[*]/CE` 这一只使能广播（4 级、布线约 85 %）。
+#   ⇒ 该域的接棒者不是另一只加法器，而是一条被布线主导的 CE 网；把校验和锥搬走之后本域会停在 1.017 ns。
+
+## clk_fpga_0（周期 10.000 ns）setup 前 12 档
+1  1.850ns  lo_reg_0_16/WEA[0]           u_pl/u_arb/owner_eth_reg/C  7.544ns route 7.060ns 93.6%  levels 1
+2  1.983ns  lo_reg_0_33/ADDRARDADDR[3]   u_pl/u_arb/owner_eth_reg/C  7.401ns route 6.917ns 93.5%  levels 1
+3  2.128ns  lo_reg_0_32/WEA[0]           u_pl/u_arb/owner_eth_reg/C  7.266ns route 6.467ns 89.0%  levels 4
+4  2.130ns  hi_reg_12/WEA[0]             u_pl/u_arb/owner_eth_reg/C  7.254ns route 6.770ns 93.3%  levels 1
+5  2.134ns  lo_reg_0_60/ADDRARDADDR[0]   u_pl/u_arb/owner_eth_reg/C  7.238ns route 6.754ns 93.3%  levels 1
+6  2.136ns  hi_reg_8/WEA[0]              u_pl/u_arb/owner_eth_reg/C  7.195ns route 6.396ns 88.9%  levels 4
+7  2.149ns  lo_reg_0_62/ADDRARDADDR[0]   u_pl/u_arb/owner_eth_reg/C  7.226ns route 6.742ns 93.3%  levels 1
+8  2.175ns  hi_reg_0/WEA[0]              u_pl/u_arb/owner_eth_reg/C  7.206ns route 6.722ns 93.3%  levels 1
+9  2.274ns  lo_reg_0_33/WEA[0]           u_pl/u_arb/owner_eth_reg/C  7.124ns route 6.325ns 88.8%  levels 4
+10 2.275ns  lo_reg_0_19/ADDRARDADDR[3]   u_pl/u_arb/owner_eth_reg/C  7.108ns route 6.624ns 93.2%  levels 1
+11 2.318ns  lo_reg_0_33/ADDRARDADDR[4]   u_pl/u_arb/owner_eth_reg/C  7.066ns route 6.582ns 93.2%  levels 1
+12 2.348ns  lo_reg_0_58/ADDRARDADDR[9]   u_pl/u_arb/owner_eth_reg/C  6.824ns route 6.326ns 92.7%  levels 1
+# 小结：12 档**全部**是同一个起点 `u_pl/u_arb/owner_eth_reg`（仲裁器的"这一拍归 ETH"旗标）打到
+#   帧缓冲 BRAM（`u_pl/u_bilin/u_fb/*`）的写使能与地址脚，逻辑只有 1–4 级、布线占 88.8–93.6 %。
+#   ⇒ 这个域的 1.850 ns 不是算出来的，是一只高扇出旗标的布线摆出来的。
+
+## clkout0_1（周期 20.000 ns）setup 前 12 档
+1  3.630ns  u_pl/u_osd/ch_r_reg/ADDRARDADDR[6]  u_pl/x_d_reg[20][3]/C        15.834ns route 9.366ns 59.2%  levels 22
+2  3.975ns  u_pl/u_zmap/y_out_reg[8]/D          u_pl/u_zfit/inv_fit_reg[2]/C 15.521ns route 9.188ns 59.2%  levels 14
+3  4.222ns  u_pl/u_osd/ch_r_reg/ADDRARDADDR[7]  u_pl/x_d_reg[20][3]/C        15.241ns route 9.087ns 59.6%  levels 21
+4  4.339ns  u_pl/u_osd/ch_r_reg/ADDRARDADDR[4]  u_pl/x_d_reg[20][3]/C        15.124ns route 8.986ns 59.4%  levels 21
+5  4.469ns  u_pl/u_zmap/frac_y_reg[6]/D         u_pl/u_zfit/inv_fit_reg[2]/C 15.309ns route 8.981ns 58.7%  levels 14
+6  4.494ns  u_pl/u_zmap/x_out_reg[6]/D          u_pl/u_zfit/inv_fit_reg[2]/C 15.248ns route 8.920ns 58.5%  levels 14
+7  4.494ns  u_pl/u_zmap/x_out_reg[2]/D          u_pl/u_zfit/inv_fit_reg[2]/C 15.245ns route 8.917ns 58.5%  levels 14
+8  4.543ns  u_pl/u_zmap/frac_x_reg[7]/D         u_pl/u_zfit/inv_fit_reg[2]/C 15.199ns route 8.871ns 58.4%  levels 14
+9  4.545ns  u_pl/u_zmap/frac_x_reg[4]/D         u_pl/u_zfit/inv_fit_reg[2]/C 15.195ns route 8.867ns 58.4%  levels 14
+10 4.573ns  u_pl/u_zmap/frac_x_reg[3]/D         u_pl/u_zfit/inv_fit_reg[2]/C 15.171ns route 8.843ns 58.3%  levels 14
+11 4.576ns  u_pl/u_zmap/frac_x_reg[2]/D         u_pl/u_zfit/inv_fit_reg[2]/C 15.167ns route 8.839ns 58.3%  levels 14
+12 4.588ns  u_pl/u_zmap/x_out_reg[1]/D          u_pl/u_zfit/inv_fit_reg[2]/C 15.154ns route 8.826ns 58.2%  levels 14
+# 小结：第 1/3/4 档是 OSD 读侧那 22 级锥；其余 9 档全是 `u_zfit/inv_fit_reg → u_zmap/*`（14 级）。
+#   ⇒ 这一族的余量比第 1 档宽 0.345 ns 起，动 OSD 读侧之后接棒的是缩放映射那一族。
+
+## sys_clk（周期 20.000 ns）setup 前 12 档
+1  14.876ns  u_pl/u_ang/angle_reg[3]/D  u_pl/u_ang/angle_reg[2]/C  5.030ns route 3.723ns 74.0%  levels 5
+2  14.975ns  u_pl/u_ang/angle_reg[6]/D  u_pl/u_ang/angle_reg[2]/C  4.951ns route 3.320ns 67.1%  levels 8
+3  15.136ns  u_pl/u_ang/angle_reg[5]/D  u_pl/u_ang/angle_reg[2]/C  4.787ns route 3.261ns 68.1%  levels 7
+4  15.958ns  u_pl/u_ang/angle_reg[4]/D  u_pl/u_ang/angle_reg[2]/C  4.008ns route 2.848ns 71.1%  levels 5
+5  15.973ns  u_pl/u_k2/cnt_reg[0]/CE    u_pl/u_k2/cnt_reg[15]/C    3.799ns route 2.959ns 77.9%  levels 3
+6  15.973ns  u_pl/u_k2/cnt_reg[1]/CE    u_pl/u_k2/cnt_reg[15]/C    3.799ns route 2.959ns 77.9%  levels 3
+7  15.973ns  u_pl/u_k2/cnt_reg[2]/CE    u_pl/u_k2/cnt_reg[15]/C    3.799ns route 2.959ns 77.9%  levels 3
+8  15.973ns  u_pl/u_k2/cnt_reg[3]/CE    u_pl/u_k2/cnt_reg[15]/C    3.799ns route 2.959ns 77.9%  levels 3
+9  15.973ns  u_pl/u_k2/cnt_reg[4]/CE    u_pl/u_k2/cnt_reg[15]/C    3.799ns route 2.959ns 77.9%  levels 3
+10 16.031ns  u_pl/u_k2/cnt_reg[13]/CE   u_pl/u_k2/cnt_reg[15]/C    3.798ns route 2.958ns 77.9%  levels 3
+11 16.031ns  u_pl/u_k2/cnt_reg[14]/CE   u_pl/u_k2/cnt_reg[15]/C    3.798ns route 2.958ns 77.9%  levels 3
+12 16.031ns  u_pl/u_k2/cnt_reg[15]/CE   u_pl/u_k2/cnt_reg[15]/C    3.798ns route 2.958ns 77.9%  levels 3
+# 小结：该域余量最松（14.876 ns／74.4 %），前四档是角度寄存器自己那一拍，第 5 档起是按键计数器 CE。
+
+## hold（前 12 档只列首末，全部为同域 hold）
+eth_rxc      first 0.052ns  last 0.062ns
+clk_fpga_0   first 0.053ns  last 0.077ns
+sys_clk      first 0.222ns  last 0.254ns
+clkout0_1    first 0.059ns  last 0.075ns
+# 注：只有 `eth_rxc` 有 `set_clock_uncertainty -hold 0.800`（`src/constraints/rk_zynq7020.xdc:50`），
+#   其余三域的 hold 没有不确定度带 ⇒ 四列 hold 不可互比（台账里那条两把尺子的口径仍然成立）。

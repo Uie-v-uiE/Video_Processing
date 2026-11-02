@@ -1,0 +1,3 @@
+[SD] frame 200: last 100 frames 29.999 fps (since play 29.719)
+[SD] frame 300: last 100 frames 29.999 fps (since play 29.803)
+

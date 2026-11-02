@@ -1,0 +1,53 @@
+r104 顶层台架的「帧头窗」逐格读数（用户 2026-10-02 早间报的旋转碎影归因到这一带，所以把关键行落盘）
+
+来源（逐字摘，不写结论）：
+- 汇总与判据：build/tb_v98_report.txt（PASS/FAIL 行），它的 provenance 行是
+  fpver=norm1 top_md5=2bf2ceeede07 tb_md5=36d0de483e6d rtl_md5=8997a62b75ba date=2026-10-01T23:27:45+08:00
+- 逐格行：那份报告 src= 字段指向的那次跑的原始 run.log（/tmp 下、不被 git 跟踪 ⇒ 这里把它的关键行抄进来）
+- 判据号：C5c，就是 report/KNOWN_ISSUES.md 第一节那条**故意留红**的判据
+
+下面 C5 汇总行里的数： judged=本体行 3564 格不符 0 ｜ head rows=帧头窗 36 格 不符 24 ｜ OFF_LINES=4
+下面分列行的数：三个采样列各「头 12 格／不符 8」，三个采样列各「体 1188 格／不符 0」
+逐格行里的字段：prow=显示行号（从 0 起），定义=尺子按定义要的源行，源行tag=那一格真正解出来的源行
+
+这份凭据能证的：
+1. 错的那 8 格全在帧头窗（最上面 6 个显示行 = OFF_LINES 4 + BILIN_ROWS 2，见 src/rtl/top/pl_video_top.v 里
+   那个必须是偶数的 localparam），屏上就是**顶部一小条**，不是满屏。
+2. 顶部前 4 行显示的是源行 2 的内容，而定义要的是源行 0、0、1、1 ⇒ 差 1~2 个源行。
+3. 本体行（第 6 行往下）在这些档上**一格都不错** ⇒ 这一族只活在帧头。
+
+这份凭据**不能**证的：
+- 「为什么只有转起来才看得见」。帧头的请求是本帧末尾几行发出的（早 OFF+BILIN 行），这一条是从
+  代码读出来的事实、不是这里量出来的：每帧换一次的角度是在帧首消隐里锁存的，所以帧头那几行吃的
+  是**上一帧的角度**；角度不变时它退化成上面那 1~2 行的差，肉眼看不出来。
+- C5c 只在 0 度 × 100 % 那一档量过。「每帧换角 × 帧头」这两个维度从来没有同一条判据覆盖过（已立案）。
+
+--- 逐字摘录（run.log）---
+C5  judged=3564 bad=0 | head rows=36 wrong=24 (OFF_LINES=4, col=512)
+C5 分列（帧头窗 = 最上面 OFF+2 行）：col300 头 12 格/不符 8、体 1188 格/不符 0 || col512 头 12/8、体 1188/0 || col900 头 12/8、体 1188/0
+
+--- 帧头窗逐格（三个采样列全部 18 行）---
+C5HEAD col=300 prow=0 px=8296 源行tag=2 定义=0 | 屏上这一格来自哪一行的判决
+C5HEAD col=512 prow=0 px=8200 源行tag=2 定义=0 | 屏上这一格来自哪一行的判决
+C5HEAD col=900 prow=0 px=82c2 源行tag=2 定义=0 | 屏上这一格来自哪一行的判决
+C5HEAD col=300 prow=1 px=8296 源行tag=2 定义=0 | 屏上这一格来自哪一行的判决
+C5HEAD col=512 prow=1 px=8200 源行tag=2 定义=0 | 屏上这一格来自哪一行的判决
+C5HEAD col=900 prow=1 px=82c2 源行tag=2 定义=0 | 屏上这一格来自哪一行的判决
+C5HEAD col=300 prow=2 px=8296 源行tag=2 定义=1 | 屏上这一格来自哪一行的判决
+C5HEAD col=512 prow=2 px=8200 源行tag=2 定义=1 | 屏上这一格来自哪一行的判决
+C5HEAD col=900 prow=2 px=82c2 源行tag=2 定义=1 | 屏上这一格来自哪一行的判决
+C5HEAD col=300 prow=3 px=8296 源行tag=2 定义=1 | 屏上这一格来自哪一行的判决
+C5HEAD col=512 prow=3 px=8200 源行tag=2 定义=1 | 屏上这一格来自哪一行的判决
+C5HEAD col=900 prow=3 px=82c2 源行tag=2 定义=1 | 屏上这一格来自哪一行的判决
+C5HEAD col=300 prow=4 px=8296 源行tag=2 定义=2 | 屏上这一格来自哪一行的判决
+C5HEAD col=512 prow=4 px=8200 源行tag=2 定义=2 | 屏上这一格来自哪一行的判决
+C5HEAD col=900 prow=4 px=82c2 源行tag=2 定义=2 | 屏上这一格来自哪一行的判决
+C5HEAD col=300 prow=5 px=8296 源行tag=2 定义=2 | 屏上这一格来自哪一行的判决
+C5HEAD col=512 prow=5 px=8200 源行tag=2 定义=2 | 屏上这一格来自哪一行的判决
+C5HEAD col=900 prow=5 px=82c2 源行tag=2 定义=2 | 屏上这一格来自哪一行的判决
+
+--- C5 三条判据与总结行 ---
+PASS C5a judged rows | the 0deg x 100% cell must give >=500 judged rows, else C5b/C5c below mean nothing
+PASS C5b body rows carry their own source row | decoded tag row == panel row/2 below the pipeline head; any off-by-N is the read-side advance (cy_r)
+FAIL C5c frame head is not the previous frame's tail | first OFF+BILIN output rows must carry their own source row on BOTH sides of the seam
+RESULT tb_v98_top_seam FAIL nfail=1

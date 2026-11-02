@@ -1,0 +1,18 @@
+ROSTERDIFF-ROW clk_fpga_0/setup slack 1.135ns  (required time - arrival time)->1.850 margin_pct 11.35->18.50
+ROSTERDIFF-ROW clk_fpga_0/hold slack 0.056ns  (arrival time - required time)->0.053 margin_pct 0.56->0.53
+ROSTERDIFF-ROW clkout0_1/setup slack 4.467ns  (required time - arrival time)->3.630 margin_pct 22.34->18.15
+ROSTERDIFF-ROW clkout0_1/hold slack 0.059ns  (arrival time - required time)->0.059 margin_pct 0.29->0.29
+ROSTERDIFF-ROW eth_rxc/setup slack 0.445ns  (required time - arrival time)->0.739 margin_pct 5.56->9.24
+ROSTERDIFF-ROW eth_rxc/hold slack 0.050ns  (arrival time - required time)->0.052 margin_pct 0.62->0.65
+ROSTERDIFF-ROW sys_clk/setup slack 14.463ns  (required time - arrival time)->14.876 margin_pct 72.31->74.38
+ROSTERDIFF-ROW sys_clk/hold slack 0.133ns  (arrival time - required time)->0.222 margin_pct 0.67->1.11
+ROSTERDIFF-HEADLINE wns 0.445->（绝对差不算收益也不算损失，rule 35）
+ROSTERDIFF D1_no_new_violation    new=0              expect=0 GREEN
+ROSTERDIFF D2_pairs_compared      pairs=8            floor>=8 GREEN
+ROSTERDIFF D3_margin_cost         big_loss=8         lost>25%的域数=0 RED
+ROSTERDIFF D4_hold_covered        hold_pairs=8       want>=2 GREEN
+ROSTERDIFF D5_no_empty_readings   empty_in_B=0       expect=0 GREEN
+ROSTERDIFF D6_fanout_inventory    fanout_rows=0      want>=1 RED
+ROSTERDIFF-COST 变差的域: clk_fpga_0/hold:0.056ns  (arrival time - required time)->0.053(相对余量-5.4%) clkfbout/setup:MISSING clkfbout/hold:MISSING clkfbout_1/setup:MISSING clkfbout_1/hold:MISSING clkout0_1/setup:4.467ns  (required time - arrival time)->3.630(相对余量-18.8%) clkout1_1/setup:MISSING clkout1_1/hold:MISSING clkout2/setup:MISSING clkout2/hold:MISSING
+ROSTERDIFF-GAIN 变好的域: clk_fpga_0/setup:1.135ns  (required time - arrival time)->1.850(相对余量+63.0%) eth_rxc/setup:0.445ns  (required time - arrival time)->0.739(相对余量+66.2%) eth_rxc/hold:0.050ns  (arrival time - required time)->0.052(相对余量+4.8%) sys_clk/setup:14.463ns  (required time - arrival time)->14.876(相对余量+2.9%) sys_clk/hold:0.133ns  (arrival time - required time)->0.222(相对余量+65.7%)
+ROSTERDIFF-SUMMARY a=build/evidence/r113_after_roster.txt b=build/evidence/r114_after_roster.txt judged=6 pairs=8 result=RED

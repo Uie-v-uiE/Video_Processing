@@ -1,0 +1,13 @@
+INFO R1 off=288 越界包：写次数=0（其中越界 0）最大字索引=0 stat_oob_off +2
+PASS R1 packet whose byte_off is outside the frame buffer must emit zero writes
+PASS R2 the same packet must still be counted in stat_oob_off (no silent drop)
+INFO R3 末字包：写次数=2 最大字索引=127 数据=5678/0000
+PASS R3 last legal word pair (indices 126,127) still writes both words
+INFO R4 整帧：写次数=128 最大字索引=127 frame_done=1 stat_frames=1 stat_bad=0
+PASS R4 a complete frame (64 packets, all 256 bytes) still commits exactly once
+PASS R4a opportunity floor: all 64 packets were accepted (stat_pkts==64, no bad)
+RESULT tb_reasm_bounds PASS
+INFO: [Common 17-206] Exiting xsim at Fri Oct  2 15:23:38 2026...
+exit
+INFO: [Common 17-206] Exiting xsim at Fri Oct  2 15:23:38 2026...
+VERDICT tb_reasm_bounds: RESULT tb_reasm_bounds PASS || FAIL 行数=0 || PASS 行数=5

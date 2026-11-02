@@ -1,0 +1,17 @@
+== mutation diff（必须恰好 1 对 = 2 行）==
+54c54
+<     wire        ky_use = !bilin_en || sy >= IMG_H-1;   // 纵向抽头折回
+---
+>     wire        ky_use = !bilin_en;   // 纵向抽头折回
+mut_src=692e9659fa11
+mut_diff_lines=2
+tb_md5=f5ca0d10bce1
+rtl_md5_real=2b3c5945a9e0
+date=2026-09-29T08:46:11+08:00
+== 控制跑里的 L10 ==
+[tb_v101.v]      L9/L10 counts: oob_word_reads=1360 oob_used_unfolded=256 words=38400 (B=672 A=8)
+[tb_v101.v]      L10 first offender: t=1067050000 tap=vertical-B sy_then=299 ky_d2=0
+[tb_v101.v] PASS L9 bilin padding read happened | if 0 the last row was never reached: L10 proves nothing
+[tb_v101.v] FAIL L10 padding word never used | oob beat folded into the picture with ky_d2=0
+[tb_v101.v] RESULT tb_v101_fb_bilin FAIL errors=1
+MUTATION OK: L10 在 mutation 'bilin_ky_fold' 下报红 ⇒ 这条判据有力。

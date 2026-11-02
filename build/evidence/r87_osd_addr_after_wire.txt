@@ -1,0 +1,14 @@
+== mutation diff（必须恰好 1 对 = 2 行）==
+489c489
+<     wire [15:0] ch_addr = s_line * MAX_CHARS + s_cidx;
+---
+>     wire [15:0] ch_addr = s_line * MAX_CHARS + s_cidx + 6*MAX_CHARS;
+mut_src=9470c94b51a2
+mut_diff_lines=2
+tb_md5=e745688de8b7
+rtl_md5_real=670f10b0315a
+date=2026-09-29T09:48:51+08:00
+== 控制跑里的 T18 ==
+FAIL T18 有 152764 拍在**画像素**（s_in_char=1）时索引越界 ⇒ in_char 那道门失效，屏上会取到别一行的字模
+RESULT tb_osd_lines FAIL (42 errors)
+MUTATION OK: T18 在 mutation 'osd_addr' 下报红 ⇒ 这条判据有力。

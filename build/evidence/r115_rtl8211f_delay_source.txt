@@ -1,0 +1,167 @@
+# RTL8211F-CG RGMII 延时：规格书原文抄件 + 原理图读数（2026-10-04 00:3x，r115 夜轮）
+# 规格书：D:/Xilinx/Resource/ZYNQ7020/Board_Resource/芯片手册/C187932_以太网芯片_RTL8211F-CG_规格书_REALTEK(瑞昱)以太网芯片规格书.PDF
+# 原理图：D:/Xilinx/Resource/ZYNQ7020/Board_Resource/ZYNQ7020-F+V1.1原理图.pdf  第 8 页（PHY1/PHY2 同页，上下两半）
+# 抽取方式：pypdf 文本层逐页抽相关行（不裁不改），PDF 页号是 1-based，页脚印的章节号一并给出。
+# 结论性读数写在 docs/timing/rgmii_window_model.md；这份只是「数从哪儿来」的凭据。
+
+===== 规格书 PDF 第 16 页（整页文本层原文，不筛不改）=====
+RTL8211F(I)-CG/RTL8211FD(I)-CG 
+Datasheet 
+Integrated 10/100/1000M Ethernet Precision Transceiver 9 Track ID: JATR-8275-15   Rev. 1.4
+ 
+ 
+6.5. Reset 
+Table 5.   Reset 
+Pin No. Pin Name Type Description 
+12 PHYRSTB I/PU Hardware Reset. Active low. 
+For a complete PHY reset, this pin must be asserted low for at least 10ms. 
+All registers will be cleared after a hardware reset. 
+Note: See section 7.17, page 30 for more details. 
+ 
+6.6. Mode Selection (Hardware Configuration) 
+Table 6.   Mode Selection (Hardware Configuration) 
+Pin No. Pin Name Type Description 
+22 PHYAD0 O/LI/PU 
+27 PHYAD1 O/LI/PD 
+26 PHYAD2 O/LI/PD 
+PHYAD[2:0]:  
+PHY Address Configuration. 
+23 PLLOFF O/LI/PD ALDPS Mode PLL Off Configuration. 
+Pull up to stop PLL when entering ALDPS mode. 
+Note:  
+Whole system power consumption in typical ALDPS mode is 43.8mW for the 
+RTL8211F(I), and 90mW for the RTL8211FD(I). 
+Whole system power consumption in ALDPS low power mode (with PLL turned 
+off) is 13.6mW for the RTL8211F(I), and 26.8 mW for the RTL8211FD(I). 
+All with 1.8V RGMII. 
+24 TXDLY O/LI/PD RGMII Transmit Clock Timing Control. 
+Pull up to add 2ns delay to TXC for TXD latching 
+25 RXDLY O/LI/PU RGMII Recei ver Clock Timing Control. 
+Pull up to add 2ns delay to RXC for RXD latching 
+32 CFG_EXT  O/LI/PD I/O Pad External Power Source Mode Configuration. 
+Pull up to use the external power source for the I/O pad. 
+Pull down to use the integrated LDO to transform the desired voltage for the I/O 
+pad. 
+===== 规格书 PDF 第 23 页（整页文本层原文，不筛不改）=====
+RTL8211F(I)-CG/RTL8211FD(I)-CG 
+Datasheet 
+Integrated 10/100/1000M Ethernet Precision Transceiver 16 Track ID: JATR-8275-15   Rev. 1.4
+ 
+ 
+7.8. Hardware Configuration 
+The I/O pad voltage, interface mode, and PHY addre ss can be set by the CONF IG pins. The respective 
+value mapping of CONFIG with the configurable vector is listed in Table 10. To set the CONFIG pins, an 
+external pull-high or pull-low via resistor is required. 
+Table 10. CONFIG Pins vs. Configuration Register 
+CONFIG Pin Configuration 
+RXD3 PHYAD[0] 
+RXC PHYAD[1] 
+RXCTL PHYAD[2] 
+RXD2 PLLOFF 
+RXD1 TXDLY 
+RXD0 RXDLY 
+LED0 CFG_EXT 
+LED1 CFG_LDO[0] 
+LED2 CFG_LDO[1] 
+ 
+Table 11. Configuration Register Definitions 
+Configuration Description 
+PHYAD[2:0] PHY Address. 
+PHYAD sets the PHY address for the device. The RTL8211F(I)/RTL8211FD(I)  supports PHY 
+addresses from 0x01 to 0x07.  
+Note 1: An MDIO command with PHY address=0 is a broadcast from the MAC; each PHY 
+device should respond. This function can be disabled by setting Page 0xa43, Reg24, bit[13]=0 
+(See section 8.3.16, page 44). 
+Note 2: The RTL8211F(I)/RTL8211FD(I)  with PHYAD[2:0]=000 can automatically 
+remember the first non-zero PHY address. This function can be enabled by setting Page 0xa43, 
+Reg24, bit[6] = 1 (See section 8.3.16, page 44). 
+PLLOFF ALDPS Mode PLL Off Configuration. 
+1: Stop PLL when entering ALDPS mode (via 4.7k-ohm to DVDD_RG) 
+0: PLL continue toggling when entering ALDPS mode (via 4.7k-ohm to GND) 
+TXDLY RGMII Transmit Clock Timing Control. 
+1: Add 2ns delay to TXC for TXD latching (via 4.7k-ohm to DVDD_RG) 
+0: No delay (via 4.7k-ohm to GND) 
+RXDLY RGMII Receive Cl ock Timing Control. 
+1: Add 2ns delay to RXC for RXD latching (via 4.7k-ohm to DVDD_RG) 
+0: No delay (via 4.7k-ohm to GND) 
+CFG_EXT RGMII I/O Pad External Power Source Mode Configuration. 
+1: Use the external power source for the RGMII I/O pad (via 4.7k-ohm to 3.3V) 
+0: Use the integrated LDO to transform the desired voltage for the RGMII I/O pad (via 
+4.7k-ohm to GND) 
+===== 规格书 PDF 第 67 页（整页文本层原文，不筛不改）=====
+RTL8211F(I)-CG/RTL8211FD(I)-CG 
+Datasheet 
+Integrated 10/100/1000M Ethernet Precision Transceiver 60 Track ID: JATR-8275-15   Rev. 1.4
+ 
+ 
+Table 60. RGMII Timing Parameters 
+Symbol Description Min Typical Max Units 
+Tcyc * Clock Cycle Duration (1000Mbps) 7.2 8 8.8 ns 
+ Clock Cycle Duration (100Mbps) 36 40 44 ns 
+ Clock Cycle Duration (10Mbps) 360 400 440 ns 
+Duty_G Duty Cycle for 1000 45 50 55 % 
+Duty_T Duty Cycle for 10/100 40 50 60 % 
+tR TXC/RXC Rise Time (20%~80%) - - 0.75 ns 
+tF TXC/RXC Fall Time (20%~80%) - - 0.75 ns 
+TsetupT Data to Clock Output Setup Time at transmitter 
+(with delay integrated at transmitter) 
+1.2 2 - ns 
+TholdT Clock to Data Output Hold Time at transmitter 
+(with delay integrated at transmitter) 
+1.2 2 - ns 
+TsetupR Data to Clock Input  Setup Time at receiver  
+(with delay integrated at transmitter) 
+1.0 2 - ns 
+TholdR Clock to Data Input  Hold Time at receiver  
+(with delay integrated at transmitter) 
+1.0 2 - ns 
+TskewT ** Data to Clock Output Skew Time at transmitter 
+(without delay integrated) 
+-0.5 0 0.5 ns 
+TskewR ** Data to Clock I nput Skew Time at receiver 
+(with PCB delay integrated) 
+This implies that PC board design will require 
+clocks to be routed such that an additional trace 
+delay of greater than 1.5ns and less than 2.0ns 
+will be added to the associated clock signal. 
+1 1.8 2.6 ns 
+*Note: Duty cycle may be stretched/shrunk during speed changes or while transitioning to a received packet's clock domain 
+as long as minimum duty cycle is not violated and stretchi ng occurs for no more than thr ee Tcyc of the lowest speed 
+transitioned between. 
+**Note: For 10/100Mbps, the max value of Skew Time is unspecified. 
+ 
+===== 原理图第 8 页：strap 电阻读数（图件 build/evidence/r115_sch_p8/）=====
+
+用 pypdfium2 把第 8 页按 4x 渲染（3368x2380），再按文本层坐标裁小图；裁图工具留在
+`build/render_sch_crop.py`（4x 渲染 + 按点坐标裁块，可重复使用）。读到的连接关系：
+
+  PHY1（上半，PL 侧那一路的候选之一）
+    PHY1_RXD0  --R57 4.7K--> PHY1_IODVDD      （上拉）
+    PHY1_RXD1  --R59 4.7K--> PHY1_IODVDD      （上拉）
+    PHY1_RXD3  --R61 4.7K--> PHY1_IODVDD      （上拉）
+    PHY1_RXCK  --R62 4.7K--> PHY1_IODVDD      （上拉）
+    PHY1_RXCTL --R63 4.7K--> GND              （下拉）
+    PHY1_MDIO  --R55 1.5K--> PHY1_IODVDD      （上拉，MDIO 双向线）
+    PHY1_RSET  --R50 2.49K--> GND
+    PHY1_INT_N --R58 4.7K--> VCC_3V3
+    页面上另有便签 "PHY1 ADDR 001"
+  PHY2（下半，另一只网口）
+    PHY2_RXD0  --R72 4.7K--> PHY2_IODVDD      （上拉）
+    PHY2_RXD1  --R73 4.7K--> PHY2_IODVDD      （上拉）
+    PHY2_RXD3  --R75 4.7K--> PHY2_IODVDD
+    PHY2_RXCK  --R76 4.7K--> PHY2_IODVDD
+    PHY2_RXCTL --R77 4.7K--> GND
+    便签 "PHY2 ADDR 001"
+
+  图件：strap_rxdly_1.png / strap_txdly_1.png（引脚表那一列，RXD0=RXDLY、RXD1=TXDLY）、
+        rxd_area.png（PHY1 电阻块，本抄件上表的直接来源）、phy2_straps.png（PHY2 电阻块）。
+
+  与规格书对上：Table 10 给 RXD0=RXDLY、RXD1=TXDLY；Table 11 给
+    "1: Add 2ns delay to RXC for RXD latching (via 4.7k-ohm to DVDD_RG)"
+    "0: No delay (via 4.7k-ohm to GND)"
+  板上 RXD0/RXD1 走的是"4.7K 到 IODVDD"= 上拉 = **1**，所以两只 PHY 的
+  RXDLY 与 TXDLY 都是**开**的（延时加在 RXC/TXC 上，不是加在数据上）。
+
+  未定（不圆场）：便签写 "ADDR 001"，但按 RXD3=PHYAD0（上拉=1）、RXCK=PHYAD1（上拉=1）、
+  RXCTL=PHYAD2（下拉=0）读出来是 0b011，两者对不上；地址位序或便签口径我没查实，
+  这一条不影响延时结论（延时只看 RXD0/RXD1 两颗电阻），所以只登记。

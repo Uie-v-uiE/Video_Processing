@@ -1,0 +1,77 @@
+# 改前/改后读数 r110_after  生成 2026-10-03 03:02:23
+# DCP：vivado_system/zynq_video_sys.runs/impl_1/system_top_routed.dcp  mtime=2026-10-03 03:00:21
+# 位流身份：2bf95588978f
+# 口径：判的是**同一个时钟 / 同一条锥**自己动没动；全局 WNS 的绝对差不算收益也不算损失（rule 35）。
+----- 时钟 eth_rxc（rc=0）-----
+CLOCK period=8.000 ns  waveform=0.000 4.000
+  Slack (MET) :             0.713ns  (required time - arrival time)
+  Source:                 u_eth/u_icmp/u_icmp_tx/ip_head_reg[4][18]/C
+  Destination:            u_eth/u_icmp/u_icmp_tx/check_buffer_reg[17]/D
+  Data Path Delay:        7.094ns  (logic 2.746ns (38.708%)  route 4.348ns (61.292%))
+  Logic Levels:           10  (CARRY4=6 LUT3=1 LUT4=3)
+  Slack (MET) :             1.062ns  (required time - arrival time)
+  Source:                 u_eth/u_rgmii/u_rgmii_rx/rxdata_bus[0].u_iddr_rxd/C
+  Destination:            u_eth/u_rx_mac/u_crc_rx/crc_data_reg[7]/D
+  Data Path Delay:        6.475ns  (logic 0.729ns (11.258%)  route 5.746ns (88.742%))
+  Logic Levels:           2  (LUT4=1 LUT5=1)
+  Slack (MET) :             1.071ns  (required time - arrival time)
+  Source:                 u_eth/u_icmp/u_icmp_tx/ip_head_reg[4][18]/C
+  Destination:            u_eth/u_icmp/u_icmp_tx/check_buffer_reg[30]/D
+  Data Path Delay:        6.801ns  (logic 3.132ns (46.051%)  route 3.669ns (53.949%))
+  Logic Levels:           13  (CARRY4=9 LUT3=1 LUT4=2 LUT6=1)
+  Slack (MET) :             1.075ns  (required time - arrival time)
+  Source:                 u_eth/u_icmp/u_icmp_tx/ip_head_reg[4][18]/C
+  Destination:            u_eth/u_icmp/u_icmp_tx/check_buffer_reg[31]/D
+  Data Path Delay:        6.798ns  (logic 3.073ns (45.206%)  route 3.725ns (54.794%))
+  Logic Levels:           13  (CARRY4=9 LUT3=1 LUT4=2 LUT6=1)
+PATHS printed: 4  (floor: 0 means report_timing gave nothing for clock eth_rxc)
+PROBE clock=eth_rxc 打到路径的地板检查=OK rc=0
+----- 时钟 clk_fpga_0（rc=0）-----
+CLOCK period=10.000 ns  waveform=0.000 5.000
+  Slack (MET) :             1.186ns  (required time - arrival time)
+  Source:                 u_pl/u_arb/owner_eth_reg/C
+  Destination:            u_pl/u_bilin/u_fb/lo_reg_0_6/ADDRARDADDR[11]
+  Data Path Delay:        8.083ns  (logic 0.484ns (5.988%)  route 7.599ns (94.012%))
+  Logic Levels:           1  (LUT3=1)
+  Slack (MET) :             1.340ns  (required time - arrival time)
+  Source:                 u_pl/u_arb/owner_eth_reg/C
+  Destination:            u_pl/u_bilin/u_fb/lo_reg_0_4/ADDRARDADDR[11]
+  Data Path Delay:        8.083ns  (logic 0.484ns (5.988%)  route 7.599ns (94.012%))
+  Logic Levels:           1  (LUT3=1)
+  Slack (MET) :             1.421ns  (required time - arrival time)
+  Source:                 u_pl/u_arb/owner_eth_reg/C
+  Destination:            u_pl/u_bilin/u_fb/lo_reg_0_13/ADDRARDADDR[7]
+  Data Path Delay:        7.791ns  (logic 0.505ns (6.482%)  route 7.286ns (93.518%))
+  Logic Levels:           1  (LUT3=1)
+  Slack (MET) :             1.445ns  (required time - arrival time)
+  Source:                 u_pl/u_arb/owner_eth_reg/C
+  Destination:            u_pl/u_bilin/u_fb/lo_reg_0_15/ADDRARDADDR[7]
+  Data Path Delay:        7.768ns  (logic 0.505ns (6.501%)  route 7.263ns (93.499%))
+  Logic Levels:           1  (LUT3=1)
+PATHS printed: 4  (floor: 0 means report_timing gave nothing for clock clk_fpga_0)
+PROBE clock=clk_fpga_0 打到路径的地板检查=OK rc=0
+----- 时钟 clkout0_1（rc=0）-----
+CLOCK period=20.000 ns  waveform=0.000 10.000
+  Slack (MET) :             3.799ns  (required time - arrival time)
+  Source:                 u_pl/u_mode/mode_q_reg[0]/C
+  Destination:            u_pl/u_pipe/u_gray/dout_reg[8]/D
+  Data Path Delay:        15.910ns  (logic 4.854ns (30.509%)  route 11.056ns (69.491%))
+  Logic Levels:           19  (CARRY4=9 LUT2=3 LUT3=3 LUT5=1 LUT6=2 RAMD64E=1)
+  Slack (MET) :             3.849ns  (required time - arrival time)
+  Source:                 u_pl/u_mode/mode_q_reg[0]/C
+  Destination:            u_pl/u_pipe/u_gray/dout_reg[2]/D
+  Data Path Delay:        15.860ns  (logic 4.862ns (30.656%)  route 10.998ns (69.344%))
+  Logic Levels:           19  (CARRY4=9 LUT2=3 LUT3=3 LUT5=1 LUT6=2 RAMD64E=1)
+  Slack (MET) :             3.953ns  (required time - arrival time)
+  Source:                 u_pl/x_d_reg[20][4]/C
+  Destination:            u_pl/u_osd/ch_r_reg/ADDRARDADDR[4]
+  Data Path Delay:        15.568ns  (logic 5.952ns (38.232%)  route 9.616ns (61.768%))
+  Logic Levels:           22  (CARRY4=9 LUT1=1 LUT2=1 LUT3=2 LUT4=4 LUT5=1 LUT6=4)
+  Slack (MET) :             3.962ns  (required time - arrival time)
+  Source:                 u_pl/u_mode/mode_q_reg[0]/C
+  Destination:            u_pl/u_pipe/u_gray/dout_reg[14]/D
+  Data Path Delay:        15.712ns  (logic 4.927ns (31.357%)  route 10.785ns (68.643%))
+  Logic Levels:           19  (CARRY4=9 LUT2=3 LUT3=3 LUT5=1 LUT6=2 RAMD64E=1)
+PATHS printed: 4  (floor: 0 means report_timing gave nothing for clock clkout0_1)
+PROBE clock=clkout0_1 打到路径的地板检查=OK rc=0
+PROBE-SUMMARY label=r110_after 落件=build/evidence/r110_after.txt fail=0

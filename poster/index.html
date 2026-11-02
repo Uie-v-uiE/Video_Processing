@@ -1,0 +1,292 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Same-Frame Pixel-Level A/B Display · Zynq-7020 · Finals Poster</title>
+<style>
+  :root{
+    --ink:#0b1220; --ink2:#2b3646; --mut:#5b6879; --line:#d8dee7;
+    --acc:#0a5cff; --acc2:#0b7a5e; --chip:#f2f5fa; --bg:#ffffff;
+  }
+  *{box-sizing:border-box; -webkit-font-smoothing:antialiased;}
+  html,body{margin:0; padding:0; background:#1a1f27;}
+  body{font-family:"Segoe UI","Helvetica Neue",Arial,"Noto Sans",sans-serif; color:var(--ink);}
+  .sheet{width:2480px; height:3508px; background:var(--bg); position:relative; overflow:hidden;
+         margin:0 auto; padding:62px 88px 58px;}
+  svg{display:block; width:100%; height:300px;}
+  /* 打印用：画布是 2480×3508 px = A4 @ 300 dpi，缩到 210×297 mm 一页出，边距归零 */
+  @page{size:210mm 297mm; margin:0;}
+  @media print{
+    html,body{background:#fff;}
+    .sheet{margin:0; zoom:0.32;}
+  }
+  .hair{position:absolute; left:88px; right:88px; height:6px; background:var(--ink);}
+  .hair.top{top:42px;} .hair.bot{bottom:40px;}
+
+  /* ---------- header ---------- */
+  .brand{display:flex; align-items:flex-start; justify-content:space-between;}
+  .track{font-size:27px; letter-spacing:.2em; text-transform:uppercase; color:var(--mut); font-weight:600; max-width:1500px; line-height:1.3;}
+  .amd{display:flex; align-items:center; gap:14px;}
+  .amd .wm{font-weight:900; font-size:62px; letter-spacing:.01em; color:var(--ink); font-family:Arial Black,Arial,sans-serif; line-height:1;}
+  .amd .chev{width:0;height:0;border-top:29px solid transparent;border-bottom:29px solid transparent;border-left:29px solid var(--ink); margin-left:-4px;}
+  .amd .cap{font-size:21px; color:var(--mut); max-width:380px; line-height:1.22; letter-spacing:.03em;}
+  h1{font-size:82px; line-height:1.02; margin:28px 0 0; font-weight:800; letter-spacing:-.014em;}
+  h1 .thin{font-weight:300; color:var(--ink2); font-size:54px; letter-spacing:-.005em;}
+  .lede{font-size:32px; line-height:1.36; color:var(--ink2); margin:20px 0 0;}
+  .lede b{color:var(--ink); font-weight:700;}
+  .metastrip{display:flex; gap:40px; margin:20px 0 0; font-size:24px; color:var(--mut); flex-wrap:wrap;}
+  .metastrip b{color:var(--ink); font-weight:700;}
+
+  /* ---------- pipeline ---------- */
+  .pipe{display:flex; align-items:stretch; margin:26px 0 0;}
+  .st{flex:1; border:3px solid var(--line); border-radius:14px; padding:14px 14px 16px; background:#fbfcfe;}
+  .st + .arw{width:36px; display:flex; align-items:center; justify-content:center; color:var(--ink); font-size:30px; flex:0 0 36px;}
+  .st .k{font-size:20px; letter-spacing:.13em; text-transform:uppercase; color:var(--acc); font-weight:700;}
+  .st .t{font-size:27px; font-weight:700; margin-top:5px; line-height:1.16;}
+  .st .s{font-size:20px; color:var(--mut); margin-top:5px; line-height:1.28;}
+  .st.alt{background:#f6faf8; border-color:#cfe3da;} .st.alt .k{color:var(--acc2);}
+
+  /* ---------- columns ---------- */
+  .cols{display:flex; gap:48px; margin:30px 0 0;}
+  .col{flex:1;}
+  .col.wide{flex:1.3;}
+  h2{font-size:29px; margin:0 0 14px; padding-bottom:10px; border-bottom:5px solid var(--ink);
+     text-transform:uppercase; letter-spacing:.1em; font-weight:800;}
+  h2 .n{color:var(--acc); font-weight:800;}
+  .item{margin:0 0 18px;}
+  .item h3{font-size:28px; margin:0 0 5px; line-height:1.18;}
+  .item h3 .tag{display:inline-block; font-size:19px; vertical-align:middle; margin-left:10px; padding:3px 11px;
+                border-radius:999px; background:var(--chip); color:var(--ink2); font-weight:700; letter-spacing:.03em;}
+  .item p{font-size:24px; line-height:1.4; color:var(--ink2); margin:0 0 7px;}
+  .item p code{font-family:Consolas,"Courier New",monospace; font-size:22px; background:#f4f6f9; padding:2px 7px; border-radius:6px; color:var(--ink);}
+  .note{font-size:21px; color:var(--mut); line-height:1.34; margin:5px 0 0;}
+
+  /* ---------- metrics ---------- */
+  table{width:100%; border-collapse:collapse; font-size:24px;}
+  th,td{text-align:left; padding:10px 11px; border-bottom:2px solid var(--line); vertical-align:top;}
+  thead th{font-size:20px; text-transform:uppercase; letter-spacing:.12em; color:var(--mut); border-bottom:4px solid var(--ink);}
+  td.v{font-weight:800; color:var(--ink); white-space:nowrap; font-variant-numeric:tabular-nums;}
+  td.c{color:var(--mut); font-size:20px;}
+  .bars{margin:16px 0 0;}
+  .bar{display:flex; align-items:center; gap:14px; margin-bottom:10px; font-size:22px;}
+  .bar .lbl{width:130px; color:var(--ink2); font-weight:600;}
+  .bar .trk{flex:1; height:26px; background:#eef1f6; border-radius:8px; overflow:hidden;}
+  .bar .fill{height:100%; background:linear-gradient(90deg,var(--acc),#4f8bff);}
+  .bar .pct{width:320px; color:var(--ink); font-weight:800; font-variant-numeric:tabular-nums; white-space:nowrap;}
+  .grid2{display:grid; grid-template-columns:1fr 1fr; gap:18px; margin:18px 0 0;}
+  .card{border:3px solid var(--line); border-radius:14px; padding:16px 18px; background:#fbfcfe;}
+  .card .big{font-size:44px; font-weight:800; letter-spacing:-.01em; font-variant-numeric:tabular-nums; line-height:1.05;}
+  .card .cap{font-size:20px; color:var(--mut); margin-top:5px; line-height:1.32;}
+  .card .cap b{color:var(--ink2);}
+
+  /* ---------- footer ---------- */
+  .foot{margin:30px 0 0;}
+  .foot .rule{height:3px; background:var(--line); margin-bottom:14px;}
+  .foot .src{font-size:20px; color:var(--mut); line-height:1.4;}
+  .foot .src b{color:var(--ink2);}
+  .foot .ids{font-family:Consolas,monospace; font-size:19px; color:var(--ink2); margin-top:7px;}
+  .kicker{display:inline-block; font-size:20px; letter-spacing:.14em; text-transform:uppercase;
+          color:var(--ink); background:#eaf0ff; border-radius:6px; padding:4px 12px; font-weight:800;}
+</style>
+</head>
+<body>
+<div class="sheet">
+  <div class="hair top"></div>
+
+  <div class="brand">
+    <div class="track">2026 National FPGA Innovation Design Competition · Beginner Track · Finals Poster</div>
+    <div class="amd"><span class="cap">Built on an AMD&nbsp;Zynq-7000 SoC</span><span class="wm">AMD</span><span class="chev"></span></div>
+  </div>
+
+  <h1>Same-Frame Pixel-Level A/B Display<br><span class="thin">the picture itself becomes the measurement instrument</span></h1>
+
+  <p class="lede">A <b>Zynq-7020</b> fabric receives 512&#215;300 RGB565 video over GbE, SD card or its own generated test pattern,
+  applies geometry and effects entirely in the PL, and drives 1024&#215;600 HDMI in which <b>every column left of an adjustable seam is the
+  unprocessed frame and every column right of it is the processed one</b> &#8212; one read address, one clock cycle, one scanline.
+  No capture card, no screen recording, no second panel: misalignment, dropped columns and out-of-range fill become visible <i>on the panel</i>.</p>
+
+  <div class="metastrip">
+    <span>Device <b>xc7z020clg484-2</b></span><span>Tools <b>Vivado / Vitis 2025.2.1</b></span>
+    <span>RTL <b>80 files &#183; 11,768 lines</b></span><span>Firmware <b>2,544 lines bare-metal C</b></span>
+    <span>Testbenches <b>82</b></span><span>Full-screen pixel criteria <b>141</b></span>
+  </div>
+
+  <div class="pipe">
+    <div class="st"><div class="k">Ingress</div><div class="t">RGMII &#8594; GMII</div><div class="s">IDDR + IDELAY, frame reassembly, port filter, ARP &amp; ICMP answered in RTL</div></div>
+    <div class="arw">&#8250;</div>
+    <div class="st"><div class="k">Storage</div><div class="t">DDR ping-pong</div><div class="s">3 banks, BRAM row rings, single-owner arbiter ETH | SD | TEST</div></div>
+    <div class="arw">&#8250;</div>
+    <div class="st alt"><div class="k">Geometry</div><div class="t">Zoom &#183; Rotate &#183; Bilinear</div><div class="s">8 fixed-point ratios 0.25&#8211;2.00&#215;, angle-driven auto-fit</div></div>
+    <div class="arw">&#8250;</div>
+    <div class="st alt"><div class="k">Effects</div><div class="t">6-stage chain</div><div class="s">9-bit control word, fixed 15-cycle latency at any combination</div></div>
+    <div class="arw">&#8250;</div>
+    <div class="st"><div class="k">Display</div><div class="t">A/B seam &#8594; OSD &#8594; TMDS</div><div class="s">1024&#215;600 @ 59.5 Hz from a 50 MHz pixel clock, &#215;2 serialise</div></div>
+  </div>
+
+  <div class="cols">
+    <div class="col">
+      <h2><span class="n">01</span> &nbsp;What is new</h2>
+
+      <div class="item"><h3>One frame, two images<span class="tag">display = instrument</span></h3>
+        <p>The seam mixes original and processed pixels <b>per column, per clock</b>; its position is a runtime parameter (0&#8211;100&nbsp;%)
+        and can be pinned in image space so it survives zoom and rotation. That turns a demo trick into a measuring device:
+        geometry errors appear as a step, a gap or a black wedge <i>across the seam</i>.</p>
+        <p class="note">Kept criterion: after <code>split &lt;n&gt;</code> the seam marker must not move &#8212; a parameter change without a datapath change fails.</p></div>
+
+      <div class="item"><h3>One coordinate operator for zoom, rotation and interpolation<span class="tag">fixed point</span></h3>
+        <p><code>zfit</code> solves the fit factor in 3 DSP48 blocks, <code>zmap</code> maps every pixel through 8 DSP48 blocks,
+        rotation runs inverse-mapped with two linear interpolations. Eight ratios from 0.25&#215; to 2.00&#215; plus auto-breath and auto-fit,
+        so a rotated frame <b>always stays inside the panel</b> &#8212; checked by a two-sided bench test, not by an eye.</p>
+        <p class="note">Ratio, source and fit state read back over AXI GPIO: the on-screen cell and the register value are the same number.</p></div>
+
+      <div class="item"><h3>A datapath whose latency is a constant<span class="tag">15 cycles, always</span></h3>
+        <p>Six pipeline stages, nine independently switchable algorithms, each window stage keeping its own column tag &#8212;
+        so total latency is <b>15 cycles and content offset &#8722;4 rows for every combination</b>. The fabric exposes one number,
+        <code>u_pipe.LATENCY</code>; the read scheduler never re-derives it, and any drift fails a bench test.</p>
+        <p class="note">That invariant is what keeps the A/B seam honest while effects are switched live.</p></div>
+    </div>
+
+    <div class="col wide">
+      <h2><span class="n">02</span> &nbsp;Measured, with its condition</h2>
+      <table>
+        <thead><tr><th>Item</th><th>Value</th><th>Condition</th></tr></thead>
+        <tbody>
+          <tr><td>Panel</td><td class="v">1024&#215;600 @ 59.5 Hz</td><td class="c">50 MHz pixel clock, H 1344 / V 625</td></tr>
+          <tr><td>Ingress, zero loss</td><td class="v">0 dropped &#183; 0 corrupt</td><td class="c">600-frame run, 512&#215;300 @ 30 fps, 15 MB/s</td></tr>
+          <tr><td>Long run</td><td class="v">29.99 fps &#183; 0 repeat</td><td class="c">300 s, 9,000 frames, counted in hardware</td></tr>
+          <tr><td>Ingress head-room</td><td class="v">&#8805; 116.7 fps</td><td class="c">unthrottled, 960 frames, no lost word; overload point not reached &#8212; a bound, not a maximum</td></tr>
+          <tr><td>SD playback</td><td class="v">29.8&#8211;30.0 fps</td><td class="c">pre-converted RGB565, no decode on board</td></tr>
+          <tr><td>PL frame interval</td><td class="v">33.34 ms</td><td class="c">received frames only, min 20 / max 51 ms &#8212; excludes PC encode, cable and switch queueing</td></tr>
+          <tr><td>Timing closure</td><td class="v">WNS +0.739 &#183; WHS +0.052 ns</td><td class="c">post-route; 0 of 51,135 setup endpoints failing; 100 / 125 MHz domains</td></tr>
+          <tr><td>Cold-boot standalone</td><td class="v">QSPI &#8594; FSBL &#8594; bit &#8594; app</td><td class="c">power cycle, no host: <i>Boot mode is QSPI</i> &#8594; <i>FPGA Done!</i> &#8594; <i>SUCCESSFUL_HANDOFF</i>, SD playback starts itself</td></tr>
+          <tr><td>Junction temperature</td><td class="v">61.2&#8211;61.7 &#176;C</td><td class="c">on-die XADC, six readings; tool estimate 52.6 &#176;C and 2.213 W dynamic (confidence Low) are separate quantities</td></tr>
+        </tbody>
+      </table>
+
+      <div class="bars">
+        <div class="bar"><span class="lbl">LUT</span><span class="trk"><span class="fill" style="width:26.6%"></span></span><span class="pct">14,154 of 53,200 &#183; 26.61 %</span></div>
+        <div class="bar"><span class="lbl">Registers</span><span class="trk"><span class="fill" style="width:7.7%"></span></span><span class="pct">8,188 of 106,400 &#183; 7.70 %</span></div>
+        <div class="bar"><span class="lbl">BRAM</span><span class="trk"><span class="fill" style="width:68.2%"></span></span><span class="pct">95.5 of 140 tiles &#183; 68.21 %</span></div>
+        <div class="bar"><span class="lbl">DSP48</span><span class="trk"><span class="fill" style="width:8.6%"></span></span><span class="pct">19 of 220 &#183; 8.64 %</span></div>
+      </div>
+
+      <div class="grid2">
+        <div class="card"><div class="big">24 items / 1 red</div><div class="cap">pre-release gate: the single red is declared, not deleted &#8212; frame-head rows read the previous frame&#8217;s geometry (kept on the record)</div></div>
+        <div class="card"><div class="big">6 cuts rejected</div><div class="cap">tried and turned down after measurement: per-beat checksum spread &#183; compile-time constant hoisting &#183; forced replication of the 239-fanout net &#183; Pblock &#183; BRAM-for-setup &#183; &#177;0.5 ns input window &#8212; readings published, not hidden</div></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="cols">
+    <div class="col">
+      <h2><span class="n">03</span> &nbsp;Verification &amp; reproducibility</h2>
+      <div class="item">
+        <p>Three layers that do not substitute for each other: <b>82 unit testbenches</b>; a <b>full-screen bench</b> walking the whole design
+        into 141 per-pixel criteria with RTL and bench md5 in the report header; and a <b>board layer only a person can judge</b> &#8212; 36 eye-check
+        rows, each giving command, expected image and what a &quot;no&quot; would mean.</p>
+        <p>Every criterion must be able to turn red: passing on an empty set counts as failure, and each fix carries a mutation control that reddens
+        exactly the criterion it claims. One command rebuilds every report; one command exports the submission and refuses to write it if a dead link,
+        a stale name or an absolute path remains.</p>
+        <p><span class="kicker">Skill pack</span>&nbsp; 49 practice entries decoupled from this topic &#8212; scope, usage, <b>failure conditions</b>,
+        verified reuse, including the negative results.</p>
+      </div>
+    </div>
+    <div class="col">
+      <h2><span class="n">04</span> &nbsp;Control plane &amp; open scope</h2>
+      <div class="item">
+        <p>A few hundred lines of bare-metal C give a serial command surface (source select, seam, zoom, angle, threshold, gamma table, counter clear)
+        and three register windows that read back the state the panel shows. The PS never touches the video path: ingress, reassembly, ARP, ICMP and the
+        health counters are all fabric, so the board answers <code>ping</code> while streaming, and hot-unplugging the cable or the card switches source
+        and switches back without a reset.</p>
+        <p class="note">Open by design, with numbers attached: five ingress endpoints have no window after that constraint was withdrawn; the four TMDS
+        output groups are declared BARE after measurement; the rotation angle has no serial read-back. These are listed rather than resolved by loosening a check.</p>
+      </div>
+    </div>
+  </div>
+
+  <div class="cols">
+    <div class="col">
+      <h2><span class="n">05</span> &nbsp;What the panel shows</h2>
+      <svg viewBox="0 0 1000 470" width="100%" height="auto" role="img" aria-label="One scanline, two images">
+        <rect x="4" y="4" width="992" height="380" rx="10" fill="#0b1220"/>
+        <text x="24" y="46" fill="#dbe3ef" font-size="25" font-family="Consolas,monospace">SRC:ETH 512x300 100.0%   FPS:29.99 drop:0   Zoom 1.00 Rot 0   Split 48</text>
+        <g>
+          <rect x="24" y="70" width="440" height="290" fill="#12305a"/>
+          <rect x="492" y="70" width="440" height="290" fill="#12305a"/>
+          <g fill="#1f4f95">
+            <rect x="24" y="70" width="440" height="58"/><rect x="24" y="186" width="440" height="58"/><rect x="24" y="302" width="440" height="58"/>
+          </g>
+          <g fill="#8fb4e6">
+            <rect x="492" y="70" width="440" height="58"/><rect x="492" y="186" width="440" height="58"/><rect x="492" y="302" width="440" height="58"/>
+          </g>
+          <line x1="472" y1="76" x2="472" y2="364" stroke="#ffffff" stroke-width="6"/>
+          <polygon points="472,68 458,46 486,46" fill="#ffffff"/>
+          <text x="700" y="20" fill="#ffffff" font-size="24" text-anchor="middle" font-family="Segoe UI,Arial">seam = split 48 %</text>
+          <text x="244" y="230" fill="#e8eefb" font-size="27" text-anchor="middle" font-family="Segoe UI,Arial">original</text>
+          <text x="712" y="230" fill="#0b1220" font-size="27" text-anchor="middle" font-family="Segoe UI,Arial">processed</text>
+        </g>
+        <text x="24" y="410" fill="#5b6879" font-size="23" font-family="Segoe UI,Arial">one read address &#183; one clock cycle &#183; one scanline</text>
+        <text x="24" y="446" fill="#5b6879" font-size="23" font-family="Segoe UI,Arial">the seam can be swept, held, or pinned to image content under zoom and rotation</text>
+      </svg>
+      <p class="note">Schematic of the on-screen state, drawn from the OSD cells and the seam parameter &#8212; not a photograph; no frame-grab instrument was used.</p>
+    </div>
+
+    <div class="col">
+      <h2><span class="n">06</span> &nbsp;Per-domain slack, post-route</h2>
+      <svg viewBox="0 0 1000 470" width="100%" height="auto" role="img" aria-label="Setup slack per clock domain">
+        <g font-family="Segoe UI,Arial" font-size="25" fill="#2b3646">
+          <text x="0" y="46">sys_clk 50 MHz</text><text x="0" y="136">clkout0_1 50 MHz</text><text x="0" y="226">clk_fpga_0 100 MHz</text><text x="0" y="316">eth_rxc 125 MHz</text>
+        </g>
+        <g>
+          <rect x="300" y="24" width="660" height="34" fill="#eef1f6" rx="4"/><rect x="300" y="24" width="660" height="34" fill="#0a5cff" rx="4"/>
+          <rect x="300" y="114" width="660" height="34" fill="#eef1f6" rx="4"/><rect x="300" y="114" width="161" height="34" fill="#0a5cff" rx="4"/>
+          <rect x="300" y="204" width="660" height="34" fill="#eef1f6" rx="4"/><rect x="300" y="204" width="82" height="34" fill="#0a5cff" rx="4"/>
+          <rect x="300" y="294" width="660" height="34" fill="#eef1f6" rx="4"/><rect x="300" y="294" width="33" height="34" fill="#0a5cff" rx="4"/>
+        </g>
+        <g font-family="Segoe UI,Arial" font-size="25" fill="#0b1220" font-weight="700">
+          <text x="972" y="48" text-anchor="end" fill="#fff">WNS 14.876 ns</text>
+          <text x="472" y="138">WNS 3.630 ns</text>
+          <text x="392" y="228">WNS 1.850 ns</text>
+          <text x="344" y="318">WNS 0.739 ns</text>
+        </g>
+        <g font-family="Segoe UI,Arial" font-size="23" fill="#5b6879">
+          <text x="0" y="382">bar length = setup slack, linear, same scale on all four rows</text>
+          <text x="0" y="416">hold WHS: 0.222 &#183; 0.059 &#183; 0.053 &#183; 0.052 ns &#8212; only <tspan font-family="Consolas,monospace">eth_rxc</tspan> carries a hold uncertainty</text>
+          <text x="0" y="450">so those four numbers are not comparable across domains, and are quoted per domain</text>
+        </g>
+      </svg>
+      <p class="note">0 of 51,135 setup endpoints failing. The 125 MHz domain is the tight one: its worst family is a row-coverage enable broadcast, not an adder &#8212; attribution recorded with the ladder of 12 tiers.</p>
+    </div>
+
+    <div class="col">
+      <h2><span class="n">07</span> &nbsp;Reproduce &amp; lessons</h2>
+      <div class="item">
+        <p><code>vivado -mode batch -source build/build.tcl</code><br><span class="note">project &#8594; synth &#8594; implement &#8594; bitstream, about 20 min</span></p>
+        <p><code>bash build/gates.sh</code><br><span class="note">24 pre-release items; the last line is the verdict</span></p>
+        <p><code>bash build/sim/run_one.sh tb_video_pipeline_top</code><br><span class="note">full-screen bench, 141 per-pixel criteria, about 2 h</span></p>
+        <p><code>bash build/sim/mut_control.sh &lt;tb&gt; &lt;criterion&gt;</code><br><span class="note">puts the bug back in: that criterion must turn red, and only it</span></p>
+        <p><code>bash build/make_submission.sh</code><br><span class="note">export + four self-checks; refuses to write a package with a dead link</span></p>
+      </div>
+      <div class="card" style="margin-top:6px"><div class="cap" style="font-size:24px; line-height:1.45">
+        <b>Three things this project actually learned.</b>
+        ① A number without its condition is not a result &#8212; every metric row names the file it came from, and absolute WNS deltas are deliberately not
+        counted as gain.
+        ② The check needs a test too: a criterion that cannot turn red, or that passes on an empty set, is treated as a failure of the tooling, not of the design.
+        ③ Negative results are cheap to keep and expensive to lose &#8212; six timing cuts are published as rejected with their readings, which is what makes
+        the accepted ones credible.
+      </div></div>
+    </div>
+  </div>
+
+  <div class="foot">
+    <div class="rule"></div>
+    <div class="src">Every number above comes from a report shipped with the submission &#8212;
+      <b>build/reports/gates.txt</b> (24 items, identity line), <b>build/timing_summary.rpt</b>, <b>build/utilization.rpt</b>,
+      <b>data/metrics.csv</b> (each row naming its own evidence file) and the cold-boot serial capture under <b>board/</b>.
+      No frame-grab instrument was used, so no claim on this poster depends on one; the frame-interval row is explicitly a PL-internal measurement.
+      Tool-estimated power/temperature and on-die XADC readings are printed as two different quantities.</div>
+    <div class="ids">board build &#183; system.bit md5 cd04907e1369 &#183; system.xsa md5 934ebdbaa13b &#183; ps_app.elf md5 57fa442a7eaf &#183; QSPI image BOOT.bin md5 f62b1b8cc3bd</div>
+  </div>
+</div>
+</body>
+</html>

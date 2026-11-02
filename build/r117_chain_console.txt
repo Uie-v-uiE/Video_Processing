@@ -1,0 +1,5 @@
+[r117 03:41:42] r116 门禁件到位；再等 150 s 让第二跑与拷贝落定
+[r117 03:44:22] 指纹 rc=0 —— build/evidence/r117_tree_fp.txt
+[r117 03:44:22] 构建起飞（钩子 = /d/Xilinx/Prj/pro/Video_Processing/build/tcl/r117_post_place_hook.tcl）
+[r117 03:44:53] 构建 rc=1
+[r117 03:44:53] 没有位流 —— 构建没走完，链停在这里

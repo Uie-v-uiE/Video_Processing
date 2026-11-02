@@ -1,0 +1,6 @@
+# 实现策略扫描（同一份网表，逐策略重跑 impl_1）—— 2026-09-27 22:01
+# ⚠ 这个文件不是脚本写的：脚本在我 22:29 终止第三个策略时会话被杀，没来得及落盘；
+#   下面三行是从 build/r80_sweep.log 原样抄的（grep '^SWEEP .* WNS'），逐策略报告在 build/sweep_<策略>_timing.rpt。
+strategy\tWNS\tWHS\tfail_endpoints\tall_constraints_met\ttotal_power_W
+Performance_Explore 0.066 	0.056 	0 	YES	-
+Performance_ExplorePostRoutePhysOpt 0.066 	0.056 	0 	YES	-

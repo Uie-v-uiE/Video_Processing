@@ -1,0 +1,10 @@
+[pb113 09:06:58] roll A（PB_MODE=none）开始，输出 /tmp/kx/pb113/A
+[pb113 09:15:40] roll A 完成 rc=0  PB: 
+[pb113 09:15:40] roll B（PB_MODE=pblock）开始，输出 /tmp/kx/pb113/B
+[pb113 09:16:17] ABORT: roll B 没跑到 ROLLDONE（rc=4）—— 断链，不产对照
+[pb113 09:17:54] 跳过 roll A（--only-B，沿用它已完成的产物）
+[pb113 09:17:54] roll B（PB_MODE=pblock）开始，输出 /tmp/kx/pb113/B
+[pb113 09:18:34] ABORT: roll B 没跑到 ROLLDONE（rc=4）—— 断链，不产对照
+[pb113 09:21:20] 跳过 roll A（--only-B，沿用它已完成的产物）
+[pb113 09:21:21] roll B（PB_MODE=pblock）开始，输出 /tmp/kx/pb113/B
+[pb113 09:24:01] ABORT: roll B 没跑到 ROLLDONE（rc=4）—— 断链，不产对照

@@ -1,0 +1,8 @@
+# r101（bit ddf972657525，2026-10-01 14:46 三步 JTAG 上板）串口电池那一跑里的 [TEMP] 逐条读数
+# 来源 build/r101_board_verify_console.txt 与 board/uart_script_capture.txt；RESULT PASS uart_cmd_check (105 条, 97.2 s)、board_verify PASS 判红 0 步
+[TEMP] degC=62.64 raw=0xAA92 vccint=997mv th=0C over=1 sane=1 osd=63C gpio=0x63
+[TEMP] th=200C
+[TEMP] degC=62.62 raw=0xAA90 vccint=998mv th=200C over=0 sane=1 osd=63C gpio=0x63
+[TEMP] th 要跟十进制 0..200（°C），已退回 85
+[TEMP] th 要跟十进制 0..200（°C），已退回 85
+[TEMP] degC=62.78 raw=0xAAA5 vccint=998mv th=85C over=0 sane=1 osd=63C gpio=0x63

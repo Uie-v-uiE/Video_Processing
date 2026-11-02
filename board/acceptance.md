@@ -1,76 +1,37 @@
-# 板上验收
+# 板上验收表（交付这一版）
 
-验收分两半：机器能判的，和人眼判的。机器那一半必须给出命令、预期和日志；人眼那一半必须有人签收，不能用“看过”代替结论。
+一张表说清"这一版在真板子上被验过什么"。每行都点名它的凭据；**没验到的写在最后一节，不打勾**。
+上板方式只走 JTAG（`ps_jtag_boot → program_pl → ps_app_reload`），本工程不向 QSPI/SPI flash 写入。
 
-## 1 机器验收
+## 机器判据（脚本读回来的）
 
-前置条件：板卡上电、USB-C 接好、COM6 没有被终端占用、hw_server 在 3121 监听、PL 已配置、PS 应用已下载。
+| # | 判据 | 读数 | 凭据 |
+|---|---|---|---|
+| 1 | PS 起来 + PL 烧写 + 应用重载三歩都成功 | `PS7_INIT: ok` / `PROGRAMMED … system.bit` / `DOW: ok` | `build/evidence/r90_flash_1_psboot.txt`、`_2_program.txt`、`_3_app.txt` |
+| 2 | 串口命令电池（100 条，含该拒的必须拒） | `RESULT PASS uart_cmd_check (100 条命令, 93.3 s)` | `build/evidence/r90_board_verify.txt`、`board/uart_script_capture.txt` |
+| 3 | 几何"最后一跳"：命令 → 像素域真的用了它 | `RESULT PASS geom_check（ok=8 fail=0）`；自动旋转下 inv 493 → 507；收尾 19 个几何位与进来时逐位相同 | 同上 |
+| 4 | 上电默认档位 | `lane23 zsel=4 zman=1 inv=256 x100_actual=100 verdict=OK`（屏上画 1.00×） | `board/uart_script_capture.txt` 的开机回读段 |
+| 5 | 以太推流期间链路健康 | Python 上位机 `--demo --fps 25`：**300 帧 / 12.02 s = 24.97 fps、66300 包**；板上累计 `pkts=496659`、`drop_words=0`、`丢过字=0`、`流活着=1`、屏幕归 ETH | `build/evidence/r90_tx.txt`（发送端）、`build/evidence/r90_health.txt`（`node src/host/health_read.mjs --once` 在推流中读的） |
+| 6 | 链路内时延同源一致 | 屏上 `Latency=6ms` 与回读 `tot/100000=6` 一致（ok） | `build/evidence/r90_health.txt` |
+| 7 | 温度格三方对账 | `4 条 [TEMP] 的 degC↔osd↔gpio 全部自洽` | `build/evidence/r90_board_verify.txt` |
+| 8 | SD 卡本地播放 | `sd=1 playing=1`，帧率 29.8 – 30.0 fps（100 帧滑窗） | `board/uart_script_capture.txt`、`data/metrics.csv` |
+| 9 | 时序/资源读数与报告一致 | 全设计 setup WNS +0.516 ns、失败端点 0 / 50885；BRAM 95 tile、LUT 14358、FF 8075、DSP 19 | `build/timing_summary.rpt`、`build/utilization.rpt` |
 
-```bash
-VP_XSDB=<Vitis>/bin/xsdb.bat bash board/scripts/board_health.sh
-```
+第 5 行里有两个数要如实写出来：`作废过帧=1`、`缺行峰值=300` —— 那是推流起始那一帧没收齐被整帧丢掉
+（三重提交门限的行为，不是丢字），所以"一个字都没丢"讲的是**字级**，不是"每帧都到齐"。
 
-| 项 | 预期 | 实测 |
-|---|---|---|
-| 串口 | `stat,temp,stat` 都有回显；首末 `stat` 除 `pub=` 外一致 | 通过 |
-| JTAG | 读到 AXI GPIO 与 DDR 头 8 字 | 通过 |
-| 异常向量 | 三条异常向量标签可读（本机读数非 0） | 通过 |
-| 总判定 | `HEALTH: GREEN` | 通过 |
-| QSPI 冷启动 | 断电重上后 PL DONE=1、EOS=1、无 CRC/IDCODE 错误；`stat`/`link` 有回显；ping 5/5 | 通过 |
+## 要肉眼确认的（机器判不了，所以先空着）
 
-```bash
-python src/host/link_selftest.py 192.168.1.10 6
-```
+| # | 看什么 | 怎么起 | 看不到时先看哪一格 |
+|---|---|---|---|
+| E1 | 分割线以左是原画面、以右是处理后的同一帧，两侧几何一致 | 双击 `send_demo.bat`，串口 `split 50` | `STAT` 的 `src`/`sel`；OSD 的 Split 格 |
+| E2 | 缩放/旋转时不出现整行错位、画面不出屏 | `zoom 0.5` → `rot auto 1`（`split 50` + 关标记线最好判） | 台架 `C2/C3/C9` 三段（数到的列/行） |
+| E3 | 移动白线与红块连续、无撕裂 | `send_demo.bat`（内置测试图每帧都动） | `pkts`/`drop_words`；OSD 的 FPS 格 |
 
-| 阶段 | 预期 | 实测 |
-|---|---|---|
-| 干净流 | 帧率 ≥ 8 fps，作废最多一次启动作废，至少一次有效时延 ≤ 200 ms | 22.0 fps，作废 0 |
-| 注入丢包 | 作废 ≥ 5 次/秒，帧率 < 5 fps | 0 fps，14.3 次作废/秒 |
-| 恢复流 | 回到干净流水平 | 18.9 fps，作废 +1（启动） |
-| 总判定 | `PASS link_selftest` | 通过 |
+这三条只有看的人点头之后才写"过"。本轮结束时 E1–E3 由在场的人口头确认了吗 —— 见下面"结论"。
 
-```bash
-python src/host/telemetry_listen.py 13
-```
+## 结论
 
-预期 13 个 1 Hz 遥测包，帧计数连续增长；先 ping 一次板子，让板子记住 PC 的 MAC/IP。
-
-```bash
-python src/host/uart_cmd_check.mjs --port COM6
-```
-
-预期 105 条命令按预期回声，末态回到初态。帧间隔统计单独验：
-
-```text
-link clr
-link
-```
-
-实测：推流中 `gap_last=28 ms`、`gap_min=16 ms`、`gap_max=49 ms`、`gap_valid=1`；停流后 `stall` 增长到 5645 ms，`gap_last/gap_max` 保持最后一帧的值；重启后 `gap_max` 记录 22 061 ms 的长间隔。通过。
-
-## 2 人眼验收
-
-现场签收以下三条：
-
-| # | 检查项 | 判据 | 签收人 | 结论 | 备注 |
-|---|---|---|---|---|---|
-| E1 | 同帧对照 | 竖缝左侧原图、右侧同一帧处理图；几何关系一致 | 现场目视 | 未见异常 | 无仪器凭据 |
-| E2 | 几何边界 | 缩放或旋转时不出现整行错位、边缘不出现未处理带 | 现场目视 | 未见异常 | 无仪器凭据 |
-| E3 | OSD 一致性 | OSD 的源尺寸、帧率、旋转/缩放、缝位、温度与串口 `stat`/`temp` 一致 | 现场目视 | 未见异常 | 无仪器凭据 |
-| E4 | 显示稳定性 | 连续运行 10 分钟无花屏、闪屏、冻帧 | 现场观察 | 通过 | 连续挂机数日，未见异常 |
-| E5 | 故障恢复 | 停流后画面停在最后一帧，恢复推流后自动继续；拔插 SD 后能回落 | link_selftest + 现场 | 通过 | 停流/恢复由自测覆盖；ETH 与 SD 插拔均现场确认，无异常 |
-
-E1/E2 是设计的核心判据；E3 用串口读数对照；E4 是连续稳定性，E5 是故障恢复。没有签收的项不写成通过。
-
-## 3 当前状态
-
-机器验收全部通过；E1–E3 已现场目视，E4 连续挂机数日未见花屏、闪屏或冻帧，E5 的 ETH 与 SD 插拔均现场确认无异常。HDMI 面板、线缆和观感问题不在机器判据里，不能用 `pane_bad=0` 代替。
-
-## 4 已知限制
-
-- 遥测时延只覆盖 PL 内部，不是玻璃到玻璃；
-- RGMII 发送侧有约 0.845 ns 的 TskewT 保持缺口；
-- BRAM 70%，当前画幅不能提高到 1080p；
-- 帧头几行可能比同屏其余行旧一帧，只有人眼能判断是否可接受。
-
-逐条说明在 `report/limits.md`。
+- 机器判据 9 条全部通过，凭据都在表里点名；
+- 已知未修项（大角度旋转角点出屏、SD 播放中拔卡冻帧等）在 `docs/KNOWN_ISSUES.md`，这里不重复；
+- 门禁的**项数与红绿以 `bash build/gates.sh` 打印的那一行为准**，本表不复制它，以免两处漂。

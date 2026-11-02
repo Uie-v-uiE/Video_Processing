@@ -1,0 +1,3 @@
+WROTE /d/Xilinx/Prj/pro/Video_Processing/build/tb_edge_rim_r106.txt (57 行) rtl_md5=8997a62b75ba
+PASS R5/D3 screen row 0 == its own window, no stale row (golden judged 52)
+RESULT tb_edge_rim PASS

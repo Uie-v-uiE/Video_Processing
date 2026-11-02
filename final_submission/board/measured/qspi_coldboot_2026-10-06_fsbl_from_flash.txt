@@ -1,0 +1,78 @@
+
+CAPTURE_OPEN 18:47:38 window=900s cold-boot-2
+
+Xilinx First Stage Boot Loader 
+Release 2025.2	Oct  6 2026-16:29:46
+Devcfg driver initialized 
+Silicon Version 3.1
+Boot mode is QSPI
+Single Flash Information
+FlashID=0xEF 0x40 0x19
+WINBOND 256M Bits
+QSPI is in single flash connection
+QSPI is in 4-bit mode
+QSPI Init Done 
+Flash Base Address: 0xFC000000
+Reboot status register: 0x60400000
+Multiboot Register: 0x0000C000
+Image Start Address: 0x00000000
+Partition Header Offset:0x00000C80
+Partition Count: 21474836485
+Partition Number: 21474836481
+Header Dump
+Image Word Len: 0x00086660
+Data Word Len: 0x00086660
+Partition Word Len:0x00086660
+Load Addr: 0x00000000
+Exec Addr: 0x00000000
+Partition Start: 0x00008380
+Partition Attr: 0x00000020
+Partition Checksum Offset: 0x00000000
+Section Count: 0x00000001
+Checksum: 0xFFE646EE
+Bitstream
+In FsblHookBeforeBitstreamDload function 
+PCAP:StatusReg = 0xF800700000000000
+PCAP:device ready
+PCAP:Clear done
+Level Shifter Value = 0xA0000000A 
+Devcfg Status register = 0xF800700000000000 
+PCAP:Fabric is Initialized done
+PCAP register dump:
+PCAP CTRL 0xF8007000: 0x4C00E07F
+PCAP LOCK 0xF8007004: 0x0000001A
+PCAP CONFIG 0xF8007008: 0x00000508
+PCAP ISR 0xF800700C: 0x0802000B
+PCAP IMR 0xF8007010: 0xFFFFFFFF
+PCAP STATUS 0xF8007014: 0x00000A30
+PCAP DMA SRC ADDR 0xF8007018: 0x00100001
+PCAP DMA DEST ADDR 0xF800701C: 0xFFFFFFFF
+PCAP DMA SRC LEN 0xF8007020: 0x00086660
+PCAP DMA DEST LEN 0xF8007024: 0x00086660
+PCAP ROM SHADOW CTRL 0xF8007028: 0xFFFFFFFF
+PCAP MBOOT 0xF800702C: 0x0000C000
+PCAP SW ID 0xF8007030: 0x00000000
+PCAP UNLOCK 0xF8007034: 0x757BDF0D
+PCAP MCTRL 0xF8007080: 0x30800100
+
+DMA Done ! 
+
+FPGA Done ! 
+In FsblHookAfterBitstreamDload function 
+Partition Number: 21474836482
+Header Dump
+Image Word Len: 0x000050E3
+Data Word Len: 0x000050E3
+Partition Word Len:0x000050E3
+Load Addr: 0x00000000
+Exec Addr: 0x000000CC
+Partition Start: 0x0008E9E0
+Partition Attr: 0x00000010
+Partition Checksum Offset: 0x00000000
+Section Count: 0x00000003
+Checksum: 0xFFF62037
+Application
+Handoff Address: 0x00000000
+In FsblHookBeforeHandoff function 
+No Execution Address JTAG handoff 
+CAPTURE_END 19:02:38 total_bytes=2136

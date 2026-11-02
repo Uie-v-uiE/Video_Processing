@@ -1,0 +1,7 @@
+src 2
+zoom 1.0
+bilin on
+rot speed 0
+rot auto 1
+zoom fit 0
+STAT

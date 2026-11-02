@@ -1,0 +1,5 @@
+torn=False valid=True  c1=  454378 c2= 38485 tot=  888984 c3_ms=3.961 n=65535
+torn=False valid=True  c1=  208708 c2= 38488 tot=  513099 c3_ms=2.659 n=65535
+torn=True  valid=False c1=  619785 c2= 38488 tot=  616616 c3_ms=None n=65535
+torn=True  valid=False c1= 1620342 c2= 38484 tot=   84528 c3_ms=None n=65535
+torn=True  valid=False c1=  250576 c2= 38487 tot=  101034 c3_ms=None n=65535

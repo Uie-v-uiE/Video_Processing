@@ -1,0 +1,22 @@
+E6 在 r118 上由人眼判过（读 0，原话「0度」），并把两处"现行句借用了上一版的件"改回本版
+
+眼睛那一半：冷上电（断电 ≥10 s）+ 只跑三步 JTAG 链 + 全程不碰 KEY1/KEY2，屏第二行 `ROT:` 读 **0**。
+件 `build/evidence/r118_eyes/`（STATE.txt 汇总、三份原始控制台、两份 [STAT] 回显、head_bit_md5.txt 是上一笔
+按 #332 补的"读回 HEAD 验身份"）。对照组（按住 KEY1 到链跑完、应读 1 度）仍未做——需要再断一次电，
+所以文档里只登记"未判"，不写成过。
+
+改回本版的地方：ACCEPTANCE 的 r118 身份句原先把 01:50 PASS / 02:14 带 147 Mbps 流量两次读数写在 r118 名下，
+而那两次量的是 r116（件 `build/evidence/r116_board/`、ISSUES #318）。r118 自己的板级复验在
+`build/evidence/r118_board/board_verify_console.txt`：判红步骤 0、`geom_check ok=10 fail=0`、`drop_words → 0`、
+`uart_cmd_check` 105 条命令。这是 #332 同一族规矩（"现行句的基线必须是本版的件"）在本仓库的第二次落地。
+
+两条工具账入册：#332（r118 的采纳笔漏了位流与报告的三条根因 + 补法：提交后读回 HEAD）、
+#333（我给 ISSUES 追加前留的那份 `.md` 备份被 D5 当交付文档扫、连带把 D1c 拖红 ⇒ 快照不要落成仓库里的 `.md`；
+删之前先证明它是纯前缀：`bak == git show HEAD` 逐字符、`cur.startswith(head)`、`git diff --numstat` = `23 0`）。
+另记一条操作坑：冷上电后 hw_server 未重新枚举时 `targets -set 1` 会死在 `tid2ctx`，枚举表出来后原脚本一字未改就过了
+（只读探针 `build/tcl/probe_target_select.tcl`）。
+
+文档同步：`report/log/OVERNIGHT_LOG.md` 补 2026-10-04 08:0x 早间单（板上是哪块、这一夜量过并判负的两把刀、
+还欠的三条），`docs/timing/ROUND_r118.md` 补 §五、`docs/timing/HANDOFF_r118.md` 补 §八。
+门禁形状没被这些改动改变：定版两跑 **23 绿 / 1 红**且逐字节一致（唯一红 = 声明过的 `C5c`），
+`doc_currency` 打印 **CURRENCY: 干净**。

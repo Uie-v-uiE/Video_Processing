@@ -1,0 +1,18 @@
+# 覆盖域数=8（roster 的行数 = 原件 Clock Summary 的时钟行数）；判据分母：wns_setup 的分母 = TNS Total Endpoints（=intra_endpoint_total 列），wns_hold 的分母 = THS Total Endpoints（同列同值），失败端点数 = nfp_setup / nfp_hold；setup 与 hold 各占同行两列，不合并、不只报全局 WNS
+# NA = 该域在 Intra Clock Table 里只有名字没有 intra 路径（原件那几行的形状见 parsed/parsed_timing_summary.rpt.json 的 intra_clock_table.rows[].line），**不是**解析失败；解析失败在本口径里写 NOT_MEASURED
+# 口径冲突（两把尺子并存，见 构建流水账）：本表 rel_margin_* 是**比值**（0.185000 = wns/period），探针名册 margin_pct 是**百分数**（18.50）；判据 G1/G2 用本表 ⇒ 裁决以本表为准
+# 名册缺口 gaps=loaded_xdc=2 loaded_declared_clocks=3 reported_clocks=8 rostered=8 gap=0 [none] | 候选件独占名=1 [r119b_tmclk] | 报告里有这个名字但**本轮加载的约束**没提过=5 [clkfbout,clkfbout_1,clkout0_1,clkout1_1,clkout2]（约束里声明的时钟名 vs 进表域数；算法见 build/p15b_parse_reports.py::clock_gap_count）
+# label=r118 built_from_original_Date=Sun Oct  4 04:37:30 2026 src_reports=build/timing_summary.rpt,build/timing_summary.rpt generator=build/r115_roster_build.py
+# 口径 rel_margin_* = wns_* / period_ns（§4 E2 强制）；io_unconstrained_ports = check_timing 的 HIGH 两类之和（端口对象单位：输入 5 + 输出 6）
+# unconstrained_endpoints = check_timing 自己那行『pins that are not constrained for maximum delay』（设计级一个数，逐行重复填，22:40 实测 0）
+# 附加列 intra_endpoint_total = 该域在 Intra Clock Table 里的 TNS Total Endpoints，只给 §4 D 的加权用（13 列的名字与顺序按 B2 原样，没动）
+clock	period_ns	src	wns_setup	tns_setup	nfp_setup	wns_hold	tns_hold	nfp_hold	rel_margin_setup	rel_margin_hold	unconstrained_endpoints	io_unconstrained_ports	intra_endpoint_total
+clk_fpga_0	10	PS7_FCLKCLK0(BD)	1.850	0.000	0	0.053	0.000	0	0.185000	0.005300	0	11	15721
+clkfbout	20	MMCM_generated	NA	NA	NA	NA	NA	NA	NA	NA	0	11	NA
+clkfbout_1	20	MMCM_generated	NA	NA	NA	NA	NA	NA	NA	NA	0	11	NA
+clkout0_1	20	MMCM_generated	3.630	0.000	0	0.059	0.000	0	0.181500	0.002950	0	11	30179
+clkout1_1	4	MMCM_generated	NA	NA	NA	NA	NA	NA	NA	NA	0	11	NA
+clkout2	5	MMCM_generated	NA	NA	NA	NA	NA	NA	NA	NA	0	11	NA
+eth_rxc	8	create_clock(XDC)	0.739	0.000	0	0.052	0.000	0	0.092375	0.006500	0	11	4835
+sys_clk	20	create_clock(XDC)	14.876	0.000	0	0.222	0.000	0	0.743800	0.011100	0	11	323
+

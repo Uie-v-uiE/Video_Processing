@@ -1,0 +1,6 @@
+name,offset,width,access,policy,reset,doc
+CTRL,0x00,32,RW,bit0=en,0x00000001,总开关与运行使能
+STATUS,0x04,32,RO,低 16 位为帧计数,0x00000000,状态字（只读）
+IE,0x06,8,RW,按位使能,0x00,故意把 offset 挪进 STATUS 的区间 ⇒ 应只红这一条
+ISC,0x0C,8,self-clear,W1C 读即清,0x00,中断挂起（读回后自动清零）
+DBG,0x10,16,RO,tick = raw * 2,0x0000,调试计数（单位见 policy）

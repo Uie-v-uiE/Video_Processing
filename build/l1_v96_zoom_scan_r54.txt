@@ -1,0 +1,18 @@
+PASS M0 there exists a pipeline alignment that makes every pixel exact
+  INFO 流水线延迟 = 2 拍（台架扫出来的，不是抄 RTL 注释的）
+PASS M1 inv=512: floor+frac exact on all 255 columns, both sides of the centre
+PASS M1b inv=256 (1.0x) must be the identity map
+PASS M2 0.25x: source column strictly increases along the screen row
+PASS M4 0.25x: left and right OOB runs are equal (symmetric rounding)
+  INFO M4: left OOB=63 cols, right OOB=63 cols (screen row through the centre)
+PASS M3a centre pixel maps to centre (no rotation)
+PASS M3b centre pixel maps to centre (45 deg)
+PASS M3c centre pixel maps to centre (300 deg)
+PASS M5 at 90 deg a horizontal screen run becomes a vertical source run
+  INFO M5: pairs=121 max|dsx|=0 min|dsy|=2 (inv=512 => expect ~2 px per screen px)
+  INFO M6 breathing step=8, screen column CX+64: source column under it moves
+PASS M6 crawl matches the definition (max 2 px/step, total 64 px over a sweep)
+PASS tb_v96_zoom_scan
+INFO: [Common 17-206] Exiting xsim at Fri Sep 25 04:57:56 2026...
+exit
+INFO: [Common 17-206] Exiting xsim at Fri Sep 25 04:57:56 2026...

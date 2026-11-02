@@ -1,0 +1,8 @@
+torn=False valid=True  c1=  352711 c2= 38491 tot=  419905 c3_ms=0.287 n= 3224 sat=False
+torn=False valid=True  c1=  742225 c2= 38488 tot=  809419 c3_ms=0.287 n= 3338 sat=False
+torn=False valid=True  c1=  818062 c2= 38486 tot=  885256 c3_ms=0.287 n= 3455 sat=False
+torn=False valid=True  c1= 1445208 c2= 38488 tot= 1512403 c3_ms=0.287 n= 3560 sat=False
+torn=False valid=True  c1= 1519898 c2= 38488 tot= 1587092 c3_ms=0.287 n= 3687 sat=False
+torn=False valid=True  c1=  646565 c2= 38489 tot=  713759 c3_ms=0.287 n= 3793 sat=False
+torn=False valid=True  c1= 1556856 c2= 38488 tot= 1624051 c3_ms=0.287 n= 3909 sat=False
+torn=False valid=True  c1=  163420 c2= 38485 tot=  230614 c3_ms=0.287 n= 4024 sat=False

@@ -1,0 +1,11 @@
+=== 34:   顶层台架 tb_v98    top=56c269602e18 FAIL行=1 指纹(norm1):fresh fresh fresh 同一次跑且无 FAIL      FAIL
+             ——报告里有 1 行 FAIL 没有 RESULT…PASS 汇总行（台架跑完了、是它自己判红的，先读 FAIL 那几行的数） 
+=== 47:   文档时效 doc_cur   扫了 124 个文档 红行=2 身份句=2 门禁读数句=2 self 变异 10（D1b 身份句 2 + D1c 门禁读数句 5，含固定点与反买通各一条）+ 对照 4 全过 + 不随包豁免的三条对照全过、全树 0 条、身份句抓到 >= 2、门禁读数句抓到 >= 2 FAIL
+               README.md:56 D1c 那句门禁读数与 r118_gates.txt 对不上（绿首页=23 基准=22（除本项外的 21 格 + 本项按绿算）；红首页=1 基准=2）：| 全设计 setup WNS | **0.739 ns**，失败 setup/hold 端点 **0 / 51135*
+               README.en.md:70 D1c 那句门禁读数与 r118_gates.txt 对不上（绿首页=23 基准=22（除本项外的 21 格 + 本项按绿算）；红首页=1 基准=2）：| Design-wide setup WNS | **0.739 ns**, failing setup/hold e
+=== 51:   文档行号锚点 doc_cite 命中=541 候选=317 self 15 条对照全过（含厂商豁免 2 条）、硬错 0、命中 >= 300 FAIL
+               build/evidence/r118_eyes/ISSUES_before332.md:3641  pl_video_top.v:1067  超出文件长度（1051 行）
+               build/evidence/r118_eyes/ISSUES_before332.md:4465  pl_video_top.v:1099  超出文件长度（1051 行）
+               build/evidence/r118_eyes/ISSUES_before332.md:5282  pl_video_top.v:1107  超出文件长度（1051 行）
+               build/evidence/r118_eyes/ISSUES_before332.md:5282  proc_pipeline.v:153  超出文件长度（152 行）
+               build/evidence/r118_eyes/ISSUES_before332.md:9505  D5d 抄的回声不在被引那几行：main.c:1186 引「[GAMMA] auto 的 step …」，这个文件里它在第 1243 行附近

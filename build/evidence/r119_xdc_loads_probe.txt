@@ -1,0 +1,64 @@
+
+****** Vivado v2025.2.1 (64-bit)
+  **** SW Build 6403652 on Thu Mar 19 19:48:24 GMT 2026
+  **** IP Build 6403511 on Thu Mar 19 12:41:45 MDT 2026
+  **** SharedData Build 6403650 on Thu Mar 19 14:02:13 MDT 2026
+  **** Start of session at: Sun Oct  4 09:14:00 2026
+    ** Copyright 1986-2022 Xilinx, Inc. All Rights Reserved.
+    ** Copyright 2022-2026 Advanced Micro Devices, Inc. All Rights Reserved.
+
+source build/tcl/probe_r119_xdc_loads.tcl -notrace
+Command: open_checkpoint vivado_system/zynq_video_sys.runs/impl_1/system_top_opt.dcp
+
+Starting open_checkpoint Task
+
+Time (s): cpu = 00:00:01 ; elapsed = 00:00:00.061 . Memory (MB): peak = 331.613 ; gain = 4.711
+INFO: [Device 21-403] Loading part xc7z020clg484-2
+Netlist sorting complete. Time (s): cpu = 00:00:00 ; elapsed = 00:00:00.358 . Memory (MB): peak = 819.848 ; gain = 0.000
+INFO: [Netlist 29-17] Analyzing 2897 Unisim elements for replacement
+INFO: [Netlist 29-28] Unisim Transformation completed in 2 CPU seconds
+INFO: [Project 1-479] Netlist was created with Vivado 2025.2.1
+INFO: [Project 1-570] Preparing netlist for logic optimization
+Read ShapeDB Complete: Time (s): cpu = 00:00:00 ; elapsed = 00:00:00.183 . Memory (MB): peak = 963.023 ; gain = 5.227
+INFO: [Timing 38-478] Restoring timing data from binary archive.
+INFO: [Timing 38-479] Binary timing data restore complete.
+INFO: [Project 1-856] Restoring constraints from binary archive.
+INFO: [Project 1-853] Binary constraint restore complete.
+INFO: [Designutils 20-5722] Start Reading Physical Databases.
+Reading placement.
+Read Netlist Cache: Time (s): cpu = 00:00:00 ; elapsed = 00:00:00.003 . Memory (MB): peak = 1500.070 ; gain = 0.000
+Reading placer database...
+Read Device Cache: Time (s): cpu = 00:00:00 ; elapsed = 00:00:00.022 . Memory (MB): peak = 1500.070 ; gain = 0.000
+Read PlaceDB: Time (s): cpu = 00:00:00 ; elapsed = 00:00:00.001 . Memory (MB): peak = 1500.070 ; gain = 0.000
+Read placeStorage: Time (s): cpu = 00:00:00 ; elapsed = 00:00:00.102 . Memory (MB): peak = 1500.070 ; gain = 0.000
+Read PulsedLatchDB: Time (s): cpu = 00:00:00 ; elapsed = 00:00:00 . Memory (MB): peak = 1500.070 ; gain = 0.000
+Reading routing.
+Read RouteStorage: Time (s): cpu = 00:00:00 ; elapsed = 00:00:00.010 . Memory (MB): peak = 1500.070 ; gain = 0.000
+Read Physdb Files: Time (s): cpu = 00:00:00 ; elapsed = 00:00:00.156 . Memory (MB): peak = 1500.070 ; gain = 0.000
+Restored from archive | CPU: 0.000000 secs | Memory: 0.000000 MB |
+Finished XDEF File Restore: Time (s): cpu = 00:00:00 ; elapsed = 00:00:00.225 . Memory (MB): peak = 1500.070 ; gain = 0.000
+Netlist sorting complete. Time (s): cpu = 00:00:00 ; elapsed = 00:00:00.016 . Memory (MB): peak = 1500.070 ; gain = 0.000
+INFO: [Project 1-111] Unisim Transformation Summary:
+  A total of 1035 instances were transformed.
+  RAM128X1D => RAM128X1D (MUXF7(x2), RAMD64E(x4)): 336 instances
+  RAM64M => RAM64M (RAMD64E(x4)): 651 instances
+  RAM64X1D => RAM64X1D (RAMD64E(x2)): 48 instances
+
+INFO: [Project 1-604] Checkpoint was created with Vivado v2025.2.1 (64-bit) build 6403652
+open_checkpoint: Time (s): cpu = 00:00:33 ; elapsed = 00:00:30 . Memory (MB): peak = 1500.070 ; gain = 1181.117
+Parsing XDC File [D:/Xilinx/Prj/pro/Video_Processing/src/constraints/r119_hdmi_source_window.xdc]
+CRITICAL WARNING: [Designutils 20-1307] Command 'if' is not supported in the xdc constraint file. [D:/Xilinx/Prj/pro/Video_Processing/src/constraints/r119_hdmi_source_window.xdc:42]
+CRITICAL WARNING: [Designutils 20-1307] Command 'if' is not supported in the xdc constraint file. [D:/Xilinx/Prj/pro/Video_Processing/src/constraints/r119_hdmi_source_window.xdc:48]
+CRITICAL WARNING: [Designutils 20-1307] Command 'puts' is not supported in the xdc constraint file. [D:/Xilinx/Prj/pro/Video_Processing/src/constraints/r119_hdmi_source_window.xdc:56]
+Finished Parsing XDC File [D:/Xilinx/Prj/pro/Video_Processing/src/constraints/r119_hdmi_source_window.xdc]
+READ_XDC rc=0 msg=D:/Xilinx/Prj/pro/Video_Processing/src/constraints/r119_hdmi_source_window.xdc
+OD_COUNT_exp=2 got=0
+PORTS=6
+OD| tmds_data_p[2]
+OD| tmds_data_p[1]
+OD| tmds_data_p[0]
+OD| tmds_data_n[2]
+OD| tmds_data_n[1]
+OD| tmds_data_n[0]
+PROBE5-DONE
+INFO: [Common 17-206] Exiting Vivado at Sun Oct  4 09:14:34 2026...

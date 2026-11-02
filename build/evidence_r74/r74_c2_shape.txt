@@ -1,0 +1,16 @@
+C2 row    0 1023    62436   185372      0    0   384   641  384  641    -1    -1     0    0 |  300  480   0   0  384  384  641  641
+C2SHAPE code=0 inv=1023 inbad=0 badpairs=0 firstpair=-1 lastpair=-1 dm1=0 dp1=0 dother=0
+C2 row    1  776    81796   166012      0    0   344   681  344  681    -1    -1     0    0 |  380  400   0   0  344  344  681  681
+C2SHAPE code=1 inv=776 inbad=0 badpairs=0 firstpair=-1 lastpair=-1 dm1=0 dp1=0 dother=0
+C2 row    2  512   123904   123904      0    0   256   767  256  767    -1    -1     0    0 |  480  300   0   0  256  256  767  767
+C2SHAPE code=2 inv=512 inbad=0 badpairs=0 firstpair=-1 lastpair=-1 dm1=0 dp1=0 dother=0
+C2 row    3  341   186340    61468      0    0   128   897  128  897    -1    -1     0    0 |  632  148   0   0  128  128  897  897
+C2SHAPE code=3 inv=341 inbad=0 badpairs=0 firstpair=-1 lastpair=-1 dm1=0 dp1=0 dother=0
+C2 row    4  256   247808        0      0    0     0  1023    0 1023    -1    -1     0    0 |  780    0   0   0    0    0 1023 1023
+C2SHAPE code=4 inv=256 inbad=0 badpairs=0 firstpair=-1 lastpair=-1 dm1=0 dp1=0 dother=0
+C2 row    5  192   247808        0      0    0     0  1023    0 1023    -1    -1     0    0 |  780    0   0   0    0    0 1023 1023
+C2SHAPE code=5 inv=192 inbad=0 badpairs=0 firstpair=-1 lastpair=-1 dm1=0 dp1=0 dother=0
+C2 row    6  171   247808        0      0    0     0  1023    0 1023    -1    -1     0    0 |  780    0   0   0    0    0 1023 1023
+C2SHAPE code=6 inv=171 inbad=0 badpairs=0 firstpair=-1 lastpair=-1 dm1=0 dp1=0 dother=0
+C2 row    7  128   247808        0      0    0     0  1023    0 1023    -1    -1     0    0 |  780    0   0   0    0    0 1023 1023
+C2SHAPE code=7 inv=128 inbad=0 badpairs=0 firstpair=-1 lastpair=-1 dm1=0 dp1=0 dother=0

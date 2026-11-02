@@ -1,0 +1,17 @@
+C1 声明唯一权威源 判 1 项 权威=part/vivado/vivado_build/os/node/board 比过=46 同值抄写=0+46 器件冲突=0 版本冲突=0 引文豁免=0 PASS
+C2 指标数字指得到证据 判 2 项 行=28 全指到=28 缺或无路径=0 PASS
+C3 文档内路径存活 判 3 项 扫=120 份 检查路径引用=569 死引用=0 豁免=碎片54/运行期0/台账197/同行声明14/围栏回显6（词表 5 词，与 doc_currency 同一套） PASS
+C4 文件名纯小写 ASCII 判 4 项 跟踪文件=1122 违规=0 点名豁免=71[LICENSE=1,README.md=20,README_EN.md=1,SKILL.md=49] 名单上限=5 名 PASS
+tr: unknown option -- _
+Try 'tr --help' for more information.
+tr: unknown option -- _
+Try 'tr --help' for more information.
+C5 许可与卫生机检 判 5 项 被调脚本 300 s 未返回（本轮实测到 300 s 仍在跑）⇒ 记未测；慢在哪一行见 report/log/issues.md #339 末段 NOT_MEASURED
+C6 技能包索引一致 判 6 项 rc=0 INDEX 条目=49 类别=10 索引行=49 需改写=no PASS PASS
+C7 验证状态三处一致 判 7 项 对=0 冲突=0 NOT_MEASURED
+C8 未决项汇总一致 判 8 项 正文标记总数=887 NOT_MEASURED=497 【未实测】=82 【待验证】=83 【待你补】=35 【未核实】=62 【队伍未确认】=43 【填入】=85 汇总表行=267 未认领的标记类=0 PASS
+C9 A/B/C 路径复现演练 判 9 项 判定列在内=61 行 PASS=36 FAIL=0 未测=11 判定列不成词=14 PASS
+C10 证据时间线自洽 判 10 项 两件齐=是 读数件→判读件 先后=正确 PASS
+C11 失败与未测记录可见 判 11 项 已登记候选件=4/4 内含失败/未测字样=28 PASS
+C12 技能包门禁（run-all-checks 的 M1–M3 与 S1–S6） 判 12 项 绿=9 红=0 未测=0 判据行=9 加总对账=9/9 PASS
+GATES 终审 C1–C12：判定 12 项 绿=10 红=0 未测=2 仍有未测项 NOT_MEASURED

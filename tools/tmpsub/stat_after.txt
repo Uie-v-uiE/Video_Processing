@@ -1,0 +1,5 @@
+﻿=== CAPTURE START 1 commands ===
+>> STAT
+[STAT] ctrl thr=80 src=1 zoom=1 bilin=1 zsel=4 zman=1 pub=0 sd=1 frames=4398 playing=1 sel=000 gm=0.00 (PL owns UDP datapath) mode=0 geom=00400000 osd=1
+=== CAPTURE END ===
+

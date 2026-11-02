@@ -1,0 +1,19 @@
+records/20261007 这一支：把这台机器上为这个项目产生的全部记录原样归档（不是提交物）
+
+内容 = 可读副本整棵（cp -a）+ tools/（git 之外那把工具）+ media/sd.mp4 + 一份 RECORDS-README.md。
+仓库半 1219 件按 main 的文档层铺（e805e6f）再叠 all 独有的 83 支过程件与三把本地尺子——这一点不是审美选择：
+ARCH/LEARNING 两层尺子里每一条 文件:行号 引的都是 main 那一版，第一版误铺 all 那版时尺子当场报
+EMPTY_LINE/OUT_OF_RANGE（report/host_guide.md 在两支分别是 234 行与 188 行），改回后重跑读
+ARCH 判=3101 OK=3101、LEARNING 判=1092 OK=1092。
+
+各层件数：LEARNING 10/4004 行、ARCH 11/5616 行、study_docs 141（138 份 .md）/4.1M、poster 3、PDF 5、
+final_submission 3142/141M（e805e6f 于 18:25:43 那一跑，MANIFEST 声明 3141）、根下四份本地件、
+media 1（sd.mp4 66 996 905 B）、tools 1638。整支 6176 件 / 272M，最大单件 64 MiB（GitHub 硬门 100 MB 以下）。
+
+没进来并写明理由：sd_stage（1.3G，分片中间物，可由 make_sd_video 重出）、c2_scratch_1003（99M Vivado 临时树）、
+旧 submission/（49M，已被 final_submission 取代，两份留档旧包在 tools/pkg_archive）、四棵工作树/临时树、
+dvi_tm_guide.pdf（第三方手册抄件，不推公开仓库）。
+
+这一支不跑交付门禁：deliver_spec 那 18 项与四把文本尺子管的是 main 与提交包的形状；tools/ 里保留本机路径是故意的，
+那些脚本本来就不随包。密钥面扫过：password|api_key|secret_token|PRIVATE KEY|ghp_ 这一类命中 3 份，
+全是 check_repo_hygiene.sh 自带的反例内容。

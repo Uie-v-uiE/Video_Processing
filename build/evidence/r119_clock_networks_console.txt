@@ -1,0 +1,74 @@
+
+****** Vivado v2025.2.1 (64-bit)
+  **** SW Build 6403652 on Thu Mar 19 19:48:24 GMT 2026
+  **** IP Build 6403511 on Thu Mar 19 12:41:45 MDT 2026
+  **** SharedData Build 6403650 on Thu Mar 19 14:02:13 MDT 2026
+  **** Start of session at: Sun Oct  4 09:10:00 2026
+    ** Copyright 1986-2022 Xilinx, Inc. All Rights Reserved.
+    ** Copyright 2022-2026 Advanced Micro Devices, Inc. All Rights Reserved.
+
+source build/tcl/probe_clock_networks.tcl -notrace
+Command: open_checkpoint vivado_system/zynq_video_sys.runs/impl_1/system_top_opt.dcp
+
+Starting open_checkpoint Task
+
+Time (s): cpu = 00:00:00 ; elapsed = 00:00:00.050 . Memory (MB): peak = 331.145 ; gain = 4.699
+INFO: [Device 21-403] Loading part xc7z020clg484-2
+Netlist sorting complete. Time (s): cpu = 00:00:01 ; elapsed = 00:00:00.322 . Memory (MB): peak = 821.164 ; gain = 0.000
+INFO: [Netlist 29-17] Analyzing 2897 Unisim elements for replacement
+INFO: [Netlist 29-28] Unisim Transformation completed in 1 CPU seconds
+INFO: [Project 1-479] Netlist was created with Vivado 2025.2.1
+INFO: [Project 1-570] Preparing netlist for logic optimization
+Read ShapeDB Complete: Time (s): cpu = 00:00:00 ; elapsed = 00:00:00.144 . Memory (MB): peak = 964.578 ; gain = 5.488
+INFO: [Timing 38-478] Restoring timing data from binary archive.
+INFO: [Timing 38-479] Binary timing data restore complete.
+INFO: [Project 1-856] Restoring constraints from binary archive.
+INFO: [Project 1-853] Binary constraint restore complete.
+INFO: [Designutils 20-5722] Start Reading Physical Databases.
+Reading placement.
+Read Netlist Cache: Time (s): cpu = 00:00:00 ; elapsed = 00:00:00.002 . Memory (MB): peak = 1501.309 ; gain = 0.000
+Reading placer database...
+Read Device Cache: Time (s): cpu = 00:00:00 ; elapsed = 00:00:00.019 . Memory (MB): peak = 1501.309 ; gain = 0.000
+Read PlaceDB: Time (s): cpu = 00:00:00 ; elapsed = 00:00:00.001 . Memory (MB): peak = 1501.309 ; gain = 0.000
+Read placeStorage: Time (s): cpu = 00:00:00 ; elapsed = 00:00:00.082 . Memory (MB): peak = 1501.309 ; gain = 0.000
+Read PulsedLatchDB: Time (s): cpu = 00:00:00 ; elapsed = 00:00:00 . Memory (MB): peak = 1501.309 ; gain = 0.000
+Reading routing.
+Read RouteStorage: Time (s): cpu = 00:00:00 ; elapsed = 00:00:00.008 . Memory (MB): peak = 1501.309 ; gain = 0.000
+Read Physdb Files: Time (s): cpu = 00:00:00 ; elapsed = 00:00:00.125 . Memory (MB): peak = 1501.309 ; gain = 0.000
+Restored from archive | CPU: 0.000000 secs | Memory: 0.000000 MB |
+Finished XDEF File Restore: Time (s): cpu = 00:00:00 ; elapsed = 00:00:00.178 . Memory (MB): peak = 1501.309 ; gain = 0.000
+Netlist sorting complete. Time (s): cpu = 00:00:00 ; elapsed = 00:00:00.014 . Memory (MB): peak = 1501.309 ; gain = 0.000
+INFO: [Project 1-111] Unisim Transformation Summary:
+  A total of 1035 instances were transformed.
+  RAM128X1D => RAM128X1D (MUXF7(x2), RAMD64E(x4)): 336 instances
+  RAM64M => RAM64M (RAMD64E(x4)): 651 instances
+  RAM64X1D => RAM64X1D (RAMD64E(x2)): 48 instances
+
+INFO: [Project 1-604] Checkpoint was created with Vivado v2025.2.1 (64-bit) build 6403652
+open_checkpoint: Time (s): cpu = 00:00:28 ; elapsed = 00:00:25 . Memory (MB): peak = 1501.309 ; gain = 1183.574
+INFO: [Timing 38-35] Done setting XDC timing constraints.
+report_clock_networks: Time (s): cpu = 00:00:13 ; elapsed = 00:00:07 . Memory (MB): peak = 1610.797 ; gain = 109.488
+CLOCKNET rc=0 msg=build/evidence/r119_clock_networks.rpt
+CN| Copyright 1986-2022 Xilinx, Inc. All Rights Reserved. Copyright 2022-2026 Advanced Micro Devices, Inc. All Rights Reserved.
+CN| ---------------------------------------------------------------------------------------------------------------------------------------------
+CN| | Tool Version : Vivado v.2025.2.1 (win64) Build 6403652 Thu Mar 19 19:48:24 GMT 2026
+CN| | Date         : Sun Oct  4 09:10:35 2026
+CN| | Host         : Uie-laptop running 64-bit major release  (build 9200)
+CN| | Command      : report_clock_networks -file build/evidence/r119_clock_networks.rpt
+CN| | Design       : system_top
+CN| | Device       : 7z020-clg484
+CN| | Speed File   : -2  PRODUCTION 1.12 2019-11-22
+CN| | Design State : Optimized
+CN| ---------------------------------------------------------------------------------------------------------------------------------------------
+CN| Clock Networks Report
+CN| Constrained Clocks
+CN| -------------------
+CN| Clock clk_fpga_0 (100MHz)(endpoints: 4375 clock, 0 nonclock)
+CN| PS7/FCLKCLK[0] (u_bd/design_1_i/processing_system7_0/inst/PS7_i)
+CN| Clock sys_clk (50MHz)(endpoints: 5707 clock, 3 nonclock)
+CN| Port sys_clk
+CN| Clock eth_rxc (125MHz)(endpoints: 2545 clock, 1 nonclock)
+CN| Port eth_rxc
+CN_TOTAL_LINES 20
+PROBE3-DONE
+INFO: [Common 17-206] Exiting Vivado at Sun Oct  4 09:10:35 2026...

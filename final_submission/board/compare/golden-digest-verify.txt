@@ -1,0 +1,16 @@
+# CMD: manifest §6 的摘要重算命令去掉 head -5（本轮 14 条全算）
+# RUN_AT: 2026-10-04 11:57:05
+OK   data/golden/README.md
+OK   data/golden/src.png
+OK   data/golden/rot_000.png
+OK   data/golden/rot_030.png
+OK   data/golden/rot_045.png
+OK   data/golden/rot_090.png
+OK   data/golden/rot_180.png
+OK   data/golden/rot_270.png
+OK   data/golden/proc_00111.png
+OK   data/golden/proc_10000.png
+OK   data/golden/proc_all.png
+OK   data/golden/dual_preview.png
+OK   data/golden/frame_640x360.mem
+rc=0

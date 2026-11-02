@@ -1,0 +1,30 @@
+T0 18:18:00
+CREATE rc=0 18:19:03
+2
+SYNTH rc=0 18:29:56
+# if {![file exists $xpr]} { puts "NO_PROJECT $xpr"; exit 1 }
+# puts "SYNTH_PROGRESS $st"
+SYNTH_PROGRESS 100%
+# if {$st ne "100%"} { puts "SYNTH_FAILED [get_property STATUS [get_runs synth_1]]"; exit 1 }
+REPORT rc=0 18:31:30
+#   if {![file exists [file join $outdir $f]]} { puts "REPORT_MISSING $f"; set ok 0 }
+# puts "REPORT_DIR $outdir"
+REPORT_DIR D:/Xilinx/Prj/pro/Video_Processing/build/c4_probe_main_report
+GENBIT rc=0 18:32:34
+# if {![file exists $xpr]} { puts "NO_PROJECT $xpr"; exit 1 }
+#   if {![file exists [file join $board $f]]} { puts "ARTIFACT_MISSING $f"; set ok 0 }
+# puts "ARCHIVE_DIR $board"
+ARCHIVE_DIR D:/Xilinx/Prj/pro/Video_Processing/build/c4_probe_board
+build/c4_probe_board:
+system.bit
+system.xsa
+
+build/c4_probe_main_report:
+cdc.rpt
+clock_util.rpt
+methodology.rpt
+power.rpt
+route_status.rpt
+timing_summary.rpt
+utilization.rpt
+ALLDONE 18:32:34

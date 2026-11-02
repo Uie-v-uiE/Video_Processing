@@ -1,0 +1,83 @@
+PASS C0a ruler encodes position in the pixel | px_val / decoder / mod-256 signed diff must agree, incl. 0, small values, both edges, both wrap directions
+PASS C0a3 no black cell exists in the pattern | the panel-level ruler equates black with outside-the-picture, so the pattern must not contain black
+PASS C0a2 golden array actually holds it | read back ddr[0] and the last word after init: a correct function is not a correct array
+[tb_v98_top_seam.v:496] PROBE fb_wr_pulses=38400 (一帧要 38400)  copy_hold 拍了 0  u_aw.active=40800 最后到的 row=299
+[tb_v98_top_seam.v:498] DIAG fb_vis=1 owner_eth=0 fill_busy=0 row_busy=0 eth_live=0 tb_ok=0 dbg_src=0300 tap_raw 全黑比例 0/292270
+PASS C0d a real source is on screen | less than half of left-pane samples are black, else nothing was copied
+PASS C0b enough frames ran | at least 3 frames, otherwise every count below is void
+PASS C0c the AXI copy is alive | AXI bursts present, 8-byte aligned, never read outside the PS window
+[tb_v98_top_seam.v:513] OBS C-tap 观测（不判定）：样本 292270 格、偏差非零 291102 格、首格偏差 -112
+[tb_v98_top_seam.v:515] INFO C-tap 样本 292270 格、偏 291102 格、首格偏差 -112（0 才是对的）
+PASS C0f whole fb word space written | de-duplicated write-word index count must cover the full frame once
+[tb_v98_top_seam.v] OBS C1i 标定级数：几何 0 不符的 k 有 1 个（k=2），该级相位不符 0（其余级：k=2 相位 0）
+PASS C1i read-port phase same stage as src | col0/row0/pair_odd/req_vld must come from the calibrated label stage, not from a comment
+PASS C1g VIEWPORT col: src == x_d[2]>>1 | single viewport: src column == display column >>1 at the calibrated stage (k=2 is the only zero)
+PASS C1h VIEWPORT row: src == wrap((y_d[2]+OFF+BILIN)>>1) | row-wise definition now includes the #97 frame-head wrap; floor c1_wrapn proves the wrap window was judged
+PASS C0e RULER self-consistent | out-of-range bucket must be a subset of the mismatch set
+PASS C1a content-check coverage | in-line left-pane samples below 50k means nothing was measured
+PASS C1e PRECONDITION no X inside the measurement window | with X present every dcol/drow below is false-green on an empty set (#78)
+PASS C1c content column == display column >> 1 | single-viewport geometry, content-level evidence (was a NOTE before #78)
+[tb_v98_top_seam.v:571] OBS C1d 行方向原始计数（硬判据在它下面一行）：Δrow 不符 0、跨帧恒定 = 1
+PASS C1d content row == display row >> 1 (outside ring warm-up) | row-wise content alignment of the raw tap; warm-up rows are counted, not hidden
+OBS C1d-b (retired): warm-up branch samples = 0 (judged 0, unexplained 0) => 空集，判据搬到 C5c
+[tb_v98_top_seam.v:599] OBS M3 右窗行偏移跨帧是否恒定（不判定，内容期望未修对）：恒定 = 1（1=恒定，0=一帧一变），变化次数 0
+[tb_v98_top_seam.v:601] INFO 统计 frames=6 ar=2400 r=38400 odd=0 outwin=0 n_l=292270 bad_l=292270 n_r=306540 bad_r_col=304200
+PROBE P100 x=0 y=0 定义(行0,列0) | 原图(行0,列0) 处理(行2,列0) | oob=0 take_orig=0 sel=8200
+PROBE P100 x=1 y=0 定义(行0,列0) | 原图(行0,列0) 处理(行2,列0) | oob=0 take_orig=0 sel=8200
+PROBE P100 x=2 y=0 定义(行0,列1) | 原图(行0,列1) 处理(行2,列1) | oob=0 take_orig=0 sel=8201
+PROBE P101 链入口 y_d3=0 cy_d3=0 | din tag=(行2,列149) oob_fb=0
+PROBE P100 x=1021 y=0 定义(行0,列254) | 原图(行0,列254) 处理(行2,列254) | oob=0 take_orig=0 sel=82fe
+PROBE P100 x=1022 y=0 定义(行0,列255) | 原图(行0,列255) 处理(行2,列255) | oob=0 take_orig=0 sel=82ff
+PROBE P100 x=1023 y=0 定义(行0,列255) | 原图(行0,列255) 处理(行2,列255) | oob=0 take_orig=0 sel=82ff
+PROBE P100 x=0 y=1 定义(行0,列0) | 原图(行0,列0) 处理(行2,列0) | oob=0 take_orig=0 sel=8200
+PROBE P100 x=1 y=1 定义(行0,列0) | 原图(行0,列0) 处理(行2,列0) | oob=0 take_orig=0 sel=8200
+PROBE P100 x=2 y=1 定义(行0,列1) | 原图(行0,列1) 处理(行2,列1) | oob=0 take_orig=0 sel=8201
+PROBE P101 链入口 y_d3=1 cy_d3=0 | din tag=(行2,列149) oob_fb=0
+PROBE P100 x=1021 y=1 定义(行0,列254) | 原图(行0,列254) 处理(行2,列254) | oob=0 take_orig=0 sel=82fe
+PROBE P100 x=1022 y=1 定义(行0,列255) | 原图(行0,列255) 处理(行2,列255) | oob=0 take_orig=0 sel=82ff
+PROBE P100 x=1023 y=1 定义(行0,列255) | 原图(行0,列255) 处理(行2,列255) | oob=0 take_orig=0 sel=82ff
+PROBE P100 x=0 y=2 定义(行1,列0) | 原图(行1,列0) 处理(行2,列0) | oob=0 take_orig=0 sel=8200
+PROBE P100 x=1 y=2 定义(行1,列0) | 原图(行1,列0) 处理(行2,列0) | oob=0 take_orig=0 sel=8200
+PROBE P100 x=2 y=2 定义(行1,列1) | 原图(行1,列1) 处理(行2,列1) | oob=0 take_orig=0 sel=8201
+PROBE P101 链入口 y_d3=2 cy_d3=1 | din tag=(行3,列149) oob_fb=0
+PROBE P100 x=1021 y=2 定义(行1,列254) | 原图(行1,列254) 处理(行2,列254) | oob=0 take_orig=0 sel=82fe
+PROBE P100 x=1022 y=2 定义(行1,列255) | 原图(行1,列255) 处理(行2,列255) | oob=0 take_orig=0 sel=82ff
+PROBE P100 x=1023 y=2 定义(行1,列255) | 原图(行1,列255) 处理(行2,列255) | oob=0 take_orig=0 sel=82ff
+PROBE P100 x=0 y=3 定义(行1,列0) | 原图(行1,列0) 处理(行2,列0) | oob=0 take_orig=0 sel=8200
+PROBE P100 x=1 y=3 定义(行1,列0) | 原图(行1,列0) 处理(行2,列0) | oob=0 take_orig=0 sel=8200
+PROBE P100 x=2 y=3 定义(行1,列1) | 原图(行1,列1) 处理(行2,列1) | oob=0 take_orig=0 sel=8201
+PROBE P101 链入口 y_d3=3 cy_d3=1 | din tag=(行3,列149) oob_fb=0
+PROBE P100 x=1021 y=3 定义(行1,列254) | 原图(行1,列254) 处理(行2,列254) | oob=0 take_orig=0 sel=82fe
+PROBE P100 x=1022 y=3 定义(行1,列255) | 原图(行1,列255) 处理(行2,列255) | oob=0 take_orig=0 sel=82ff
+PROBE P100 x=1023 y=3 定义(行1,列255) | 原图(行1,列255) 处理(行2,列255) | oob=0 take_orig=0 sel=82ff
+PROBE P100 x=0 y=4 定义(行2,列0) | 原图(行2,列0) 处理(行2,列0) | oob=0 take_orig=0 sel=8200
+PROBE P100 x=1 y=4 定义(行2,列0) | 原图(行2,列0) 处理(行2,列0) | oob=0 take_orig=0 sel=8200
+PROBE P100 x=2 y=4 定义(行2,列1) | 原图(行2,列1) 处理(行2,列1) | oob=0 take_orig=0 sel=8201
+PROBE P101 链入口 y_d3=4 cy_d3=2 | din tag=(行4,列149) oob_fb=0
+PROBE P100 x=1021 y=4 定义(行2,列254) | 原图(行2,列254) 处理(行2,列254) | oob=0 take_orig=0 sel=82fe
+PROBE P100 x=1022 y=4 定义(行2,列255) | 原图(行2,列255) 处理(行2,列255) | oob=0 take_orig=0 sel=82ff
+PROBE P100 x=1023 y=4 定义(行2,列255) | 原图(行2,列255) 处理(行2,列255) | oob=0 take_orig=0 sel=82ff
+PROBE P100 x=0 y=5 定义(行2,列0) | 原图(行2,列0) 处理(行2,列0) | oob=0 take_orig=0 sel=8200
+PROBE P100 x=1 y=5 定义(行2,列0) | 原图(行2,列0) 处理(行2,列0) | oob=0 take_orig=0 sel=8200
+PROBE P100 x=2 y=5 定义(行2,列1) | 原图(行2,列1) 处理(行2,列1) | oob=0 take_orig=0 sel=8201
+PROBE P101 链入口 y_d3=5 cy_d3=2 | din tag=(行4,列149) oob_fb=0
+PROBE P100 x=1021 y=5 定义(行2,列254) | 原图(行2,列254) 处理(行2,列254) | oob=0 take_orig=0 sel=82fe
+PROBE P100 x=1022 y=5 定义(行2,列255) | 原图(行2,列255) 处理(行2,列255) | oob=0 take_orig=0 sel=82ff
+PROBE P100 x=1023 y=5 定义(行2,列255) | 原图(行2,列255) 处理(行2,列255) | oob=0 take_orig=0 sel=82ff
+PROBE P100 x=0 y=6 定义(行3,列0) | 原图(行3,列0) 处理(行3,列0) | oob=0 take_orig=0 sel=8300
+PROBE P100 x=1 y=6 定义(行3,列0) | 原图(行3,列0) 处理(行3,列0) | oob=0 take_orig=0 sel=8300
+PROBE P100 x=2 y=6 定义(行3,列1) | 原图(行3,列1) 处理(行3,列1) | oob=0 take_orig=0 sel=8301
+PROBE P101 链入口 y_d3=6 cy_d3=3 | din tag=(行5,列149) oob_fb=0
+PROBE P100 x=1021 y=6 定义(行3,列254) | 原图(行3,列254) 处理(行3,列254) | oob=0 take_orig=0 sel=83fe
+PROBE P100 x=1022 y=6 定义(行3,列255) | 原图(行3,列255) 处理(行3,列255) | oob=0 take_orig=0 sel=83ff
+PROBE P100 x=1023 y=6 定义(行3,列255) | 原图(行3,列255) 处理(行3,列255) | oob=0 take_orig=0 sel=83ff
+PROBE P100 x=0 y=7 定义(行3,列0) | 原图(行3,列0) 处理(行3,列0) | oob=0 take_orig=0 sel=8300
+PROBE P100 x=1 y=7 定义(行3,列0) | 原图(行3,列0) 处理(行3,列0) | oob=0 take_orig=0 sel=8300
+PROBE P100 x=2 y=7 定义(行3,列1) | 原图(行3,列1) 处理(行3,列1) | oob=0 take_orig=0 sel=8301
+PROBE P101 链入口 y_d3=7 cy_d3=3 | din tag=(行5,列149) oob_fb=0
+PROBE P100 x=1021 y=7 定义(行3,列254) | 原图(行3,列254) 处理(行3,列254) | oob=0 take_orig=0 sel=83fe
+PROBE P100 x=1022 y=7 定义(行3,列255) | 原图(行3,列255) 处理(行3,列255) | oob=0 take_orig=0 sel=83ff
+PROBE P100 x=1023 y=7 定义(行3,列255) | 原图(行3,列255) 处理(行3,列255) | oob=0 take_orig=0 sel=83ff
+INFO: xsimkernel Simulation Memory Usage: 14064 KB (Peak: 14064 KB), Simulation CPU Usage: 5332577 ms
+INFO: [Common 17-206] Exiting xsim at Thu Oct  1 09:41:24 2026...
+VERDICT tb_v98_top_seam: RESULT tb_v98_top_seam FAIL nfail=1 || FAIL 行数=1 || PASS 行数=140

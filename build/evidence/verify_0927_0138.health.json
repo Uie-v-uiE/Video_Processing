@@ -1,0 +1,2 @@
+[HEALTH] 读不到 GPIO_0 的当前值，拒绝继续（否则会踩掉 src_sel/特效/阈值）。
+[HEALTH] 先确认 JTAG 与 hw_server 可用：xsdb 里 mrd 0x41200000

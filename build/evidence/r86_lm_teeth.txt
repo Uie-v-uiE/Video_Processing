@@ -1,0 +1,58 @@
+
+****** xsim v2025.2.1 (64-bit)
+  **** SW Build 6403652 on Thu Mar 19 19:48:24 GMT 2026
+  **** IP Build 6403511 on Thu Mar 19 12:41:45 MDT 2026
+  **** SharedData Build 6403650 on Thu Mar 19 14:02:13 MDT 2026
+  **** Start of session at: Tue Sep 29 05:14:28 2026
+    ** Copyright 1986-2022 Xilinx, Inc. All Rights Reserved.
+    ** Copyright 2022-2026 Advanced Micro Devices, Inc. All Rights Reserved.
+
+source xsim.dir/snap/xsim_script.tcl
+# xsim {snap} -autoloadwcfg -runall
+Time resolution is 1 ps
+run -all
+PASS drop_words starts at 0
+PASS two complete frames commit
+PASS clean frames raise no abort
+PASS gap min=132 last=132 max=132 sum=132 ms
+PASS B2 statistics registers self-consistent (min=last=max=132 sum=132)
+PASS B2-mut forced gap_sum is caught（判据不是假绿）
+PASS stream_live set while flowing
+PASS published byte/pkt counters match reasm
+PASS lane packing has no width error
+PASS lost middle packet aborts the frame exactly once
+PASS rows_miss_max publishes the missing-row count
+PASS frames_bad reaches the snapshot
+PASS aborted frame is not committed
+PASS abort_seen latches
+PASS bad packet raises pkt_err (1)
+PASS negative control: no fifo_full, no drops
+PASS FALSIFIER: drop_words=84 after blocking the CDC port
+PASS cdc_episodes=1
+FAIL E1 drop_words=134 但参考数到 32 计数器与事件不再一一对应
+PASS E1 cdc_episodes == 参考计数 (1)
+FAIL E2 drop_words=201 但参考数到 48 满只高一拍的边界事件被丢或被重记
+PASS E2 单拍进满边沿计数一致 (ep=68)
+PASS drop_seen flag latches
+PASS snapshot keeps refreshing while stalled
+PASS stall_ms=597 after 400 ms of silence
+PASS stream_live clears when the stream dies
+PASS a new frame clears stall_ms
+PASS a >65.5 s gap saturates at 0xFFFF instead of wrapping
+PASS gapclr zeroes the interval stats and re-baselines cleanly
+PASS gapclr leaves drop/bad/pkts/bytes alone
+PASS interval stats re-calibrate after the clear
+PASS snap_cross starts with hb_gone=1
+PASS snap_cross captured 100/100 intact snapshots
+PASS hb_slow clear while the heartbeat is at nominal rate
+[tb_link_monitor.v:357] PASS hb_slow asserts when the source clock is degraded (拔线工况)
+[tb_link_monitor.v:360] PASS hb_gone correctly stays clear (它看不见这件事，正是加 hb_slow 的理由)
+PASS hb_gone asserts when the source clock stops
+[tb_link_monitor.v:371] PASS the last snapshot survives the source clock dying (显示端仍能看到数字)
+INFO pubs=330387 frames=9 aborts=3 drops=201 stall=65535
+PASS production timebase: 87 ms_ticks in 10904023 cycles (125000/ms)
+RESULT tb_link_monitor FAIL (2 errors)
+$finish called at time : 87232187500 ps : File "D:/Xilinx/Prj/pro/Video_Processing/sim/tb_link_monitor.v" Line 443
+run: Time (s): cpu = 00:00:00 ; elapsed = 00:00:10 . Memory (MB): peak = 227.711 ; gain = 0.000
+exit
+INFO: [Common 17-206] Exiting xsim at Tue Sep 29 05:14:40 2026...

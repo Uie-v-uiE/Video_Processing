@@ -1,0 +1,17 @@
+r53（bit 096f976d / elf bd42a2d4）：lane24 同源判据复验 + 缩放手动档的读回
+推流 video_sender --test move --fps 15
+2026-09-25 03:50:11
+
+r1 torn=False match=True osd_ms=14 tot_cyc=1471429 usable=2 aligned=True n_meas=14489 drop=0
+r2 torn=False match=True osd_ms=11 tot_cyc=1159997 usable=2 aligned=True n_meas=14724 drop=0
+r3 torn=False match=True osd_ms=7 tot_cyc=710409 usable=2 aligned=True n_meas=14935 drop=0
+r4 torn=False match=True osd_ms=15 tot_cyc=1574698 usable=2 aligned=True n_meas=15141 drop=0
+r5 torn=False match=True osd_ms=4 tot_cyc=406293 usable=2 aligned=True n_meas=15415 drop=0
+r6 torn=False match=True osd_ms=4 tot_cyc=492604 usable=2 aligned=True n_meas=15635 drop=0
+r7 torn=False match=True osd_ms=5 tot_cyc=598681 usable=2 aligned=True n_meas=15853 drop=0
+r8 torn=False match=True osd_ms=11 tot_cyc=1143721 usable=2 aligned=True n_meas=16083 drop=0
+
+== 人读一遍
+时延：c1=252620 c2=38484 tot=319814 max=1747161 拍（3.20 ms） 轮数=16299
+  屏上 Latency=3ms  回读 tot/100000=3  ⇒ 同源一致 ok
+结论：入包链一个字都没丢 —— 这正是屏幕上看不出来的那部分证据。

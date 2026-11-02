@@ -1,0 +1,17 @@
+﻿=== CAPTURE START 3 commands ===
+[SD] frame 2415: last 100 frames 29.999 fps (since play 29.837)
+>> rot auto
+rot auto
+[ROT] auto=1：顺带把缩放切到 fit（屏上 Zoom 格标 (Fit)）；不想这样就先 zoom fit 0 再 rot auto 1
+[CTRL] AXI_GPIO=0x000F5000 sel=000 thr=80 src=1 zoom=1 pub=1 bilin=1
+[CTRL]   zoom_step=4 1.00x (自动呼吸)
+>> rot show
+rot show
+[ROT] auto=1 speed=2 deg/frame zoom=fit（KEY1/KEY2 的 ±1° 一直有效）
+>> rot auto 0
+rot auto 0
+[ROT] auto=0（停在当前角度；缩放那一路不变）
+[CTRL] AXI_GPIO=0x000B5000 sel=000 thr=80 src=1 zoom=1 pub=0 bilin=1
+[CTRL]   zoom_step=4 1.00x (自动呼吸)
+=== CAPTURE END ===
+

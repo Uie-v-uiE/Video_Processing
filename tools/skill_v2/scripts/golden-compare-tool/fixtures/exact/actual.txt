@@ -1,0 +1,5 @@
+name value unit
+lut 1234 cells
+ff 876 cells
+dsp 12 tiles
+bram 24 rambs

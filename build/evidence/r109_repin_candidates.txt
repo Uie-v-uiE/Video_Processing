@@ -1,0 +1,31 @@
+# 映射：report/MODULES.md 里指向 src/rtl/top/pl_video_top.v 的例化引用 —— 现在应该指到哪一行（来源：report/MODULES.md 的行号 + 尺子点名的模块）
+# 用法：采纳那一笔按这张表改 report/MODULES.md 的行号，然后 node src/host/line_cite.mjs 与门禁第 20 项都要复跑
+
+  clk_gen                report/MODULES.md:27    旧=128   新=128  
+  axi_frame_writer_gated report/MODULES.md:33    旧=428   新=454    <== 需要重锚
+  axi_frame_writer64     report/MODULES.md:34    旧=666   新=692    <== 需要重锚
+  video_timing_1024x600  report/MODULES.md:42    旧=226   新=226  
+  fb_bilin               report/MODULES.md:46    旧=706   新=732    <== 需要重锚
+  raw_line_delay         report/MODULES.md:50    旧=762   新=788    <== 需要重锚
+  frame_commit_lock      report/MODULES.md:51    旧=404   新=430    <== 需要重锚
+  split_ctrl             report/MODULES.md:52    旧=859   新=885    <== 需要重锚
+  seam_src               report/MODULES.md:53    旧=878   新=904    <== 需要重锚
+  split_display          report/MODULES.md:54    旧=885   新=911    <== 需要重锚
+  osd_overlay            report/MODULES.md:55    旧=915   新=999    <== 需要重锚
+  test_card              report/MODULES.md:56    旧=733   新=759    <== 需要重锚
+  frame_latency          report/MODULES.md:59    旧=598   新=624    <== 需要重锚
+  rgb2dvi                report/MODULES.md:66    旧=1000  新=1026   <== 需要重锚
+  proc_pipeline          report/MODULES.md:74    旧=774   新=800    <== 需要重锚
+  effect_ctrl            report/MODULES.md:75    旧=198   新=198  
+  angle_ctrl             report/MODULES.md:89    旧=183   新=183  
+  zoom_mapper            report/MODULES.md:92    旧=317   新=343    <== 需要重锚
+  zoom_ctrl              report/MODULES.md:93    旧=299   新=325    <== 需要重锚
+  zoom_fit               report/MODULES.md:94    旧=296   新=322    <== 需要重锚
+  zoom_snap              report/MODULES.md:95    旧=626   新=652    <== 需要重锚
+  key_debounce           report/MODULES.md:101   旧=136   新=136  
+  key_long               report/MODULES.md:102   旧=148   新=148  
+  src_mode               report/MODULES.md:103   旧=157   新=157  
+  src_arb                report/MODULES.md:104   旧=395   新=421    <== 需要重锚
+  src_life               report/MODULES.md:105   旧=562   新=588    <== 需要重锚
+  ps_publish             report/MODULES.md:106   旧=538   新=564    <== 需要重锚
+  snap_cross             report/MODULES.md:124   旧=648   新=674    <== 需要重锚

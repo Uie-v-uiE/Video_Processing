@@ -1,0 +1,9 @@
+r104 眼睛判「旋转时屏顶碎影」这一格的末态回读（2026-10-02 08:0x，串口两条只读命令，逐字捕获）
+捕获方式：board/uart_cap_once.ps1 -Port COM6 -Cmd STAT / -Cmd "rot show"（带空格的命令必须走 -Cmd，-Cmds 会把空格拆开）
+此刻板上跑的位流 = r104：build/system.bit md5 前 12 位 = 680f38f5794c
+--- [STAT] ---
+[STAT] ctrl thr=80 src=1 zoom=1 bilin=1 zsel=4 zman=1 pub=1 sd=1 frames=4398 playing=1 sel=000 gm=0.00 (PL owns UDP datapath) mode=1 geom=00400000 osd=1
+
+--- [ROT] show ---
+[ROT] auto=0 speed=0 deg/frame zoom=now???KEY1/KEY2 ??? ??1?? ???????????????
+

@@ -1,0 +1,11 @@
+# OOC 归因  模块=icmp_tx  改前=HEAD^  改后=工作树（src/rtl/eth/icmp_tx.v）  标签=r112
+OOC A =547
+OOC A =374
+| Slice LUTs*             |  547 |     0 |          0 |     53200 |  1.03 |
+| Slice Registers         |  374 |     0 |          0 |    106400 |  0.35 |
+OOC B =507
+OOC B =362
+| Slice LUTs*             |  507 |     0 |          0 |     53200 |  0.95 |
+| Slice Registers         |  362 |     0 |          0 |    106400 |  0.34 |
+build/ooc_two_rev.sh: line 37: LUTs*: syntax error: operand expected (error token is "*")
+口径：OOC 的绝对数不等于设计内该层的数（设计里有跨层优化与复制），这里只念**同一把刀自己的差**。

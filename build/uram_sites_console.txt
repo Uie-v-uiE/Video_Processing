@@ -1,0 +1,71 @@
+
+****** Vivado v2025.2.1 (64-bit)
+  **** SW Build 6403652 on Thu Mar 19 19:48:24 GMT 2026
+  **** IP Build 6403511 on Thu Mar 19 12:41:45 MDT 2026
+  **** SharedData Build 6403650 on Thu Mar 19 14:02:13 MDT 2026
+  **** Start of session at: Fri Sep 25 07:34:21 2026
+    ** Copyright 1986-2022 Xilinx, Inc. All Rights Reserved.
+    ** Copyright 2022-2026 Advanced Micro Devices, Inc. All Rights Reserved.
+
+source build/tcl/uram_sites.tcl
+# set root [file normalize [file join [file dirname [info script]] .. ..]]
+# set impl_dir [file join $root vivado_system zynq_video_sys.runs impl_1]
+# set dcp ""
+# foreach p [list [file join $impl_dir system_top_routed.dcp]] {
+#     if {[file exists $p]} { set dcp $p; break }
+# }
+# if {$dcp eq ""} {
+#     set c [catch {exec find $impl_dir -maxdepth 1 -name "*routed*.dcp"} r]
+#     if {!$c} { set dcp [lindex [split [string trim $r] \n] end] }
+# }
+# if {$dcp eq "" || ![file exists $dcp]} { puts "NO_DCP（构建还在跑？或已�??下一次构建�?�盖�?"; exit 1 }
+# puts "DCP $dcp  mtime [clock format [file mtime $dcp]]"
+DCP D:/Xilinx/Prj/pro/Video_Processing/vivado_system/zynq_video_sys.runs/impl_1/system_top_routed.dcp  mtime Fri Sep 25 07:32:09 +0800 2026
+# open_checkpoint $dcp
+Command: open_checkpoint D:/Xilinx/Prj/pro/Video_Processing/vivado_system/zynq_video_sys.runs/impl_1/system_top_routed.dcp
+
+Starting open_checkpoint Task
+
+Time (s): cpu = 00:00:00 ; elapsed = 00:00:00.065 . Memory (MB): peak = 332.793 ; gain = 5.754
+INFO: [Device 21-403] Loading part xc7z020clg484-2
+Netlist sorting complete. Time (s): cpu = 00:00:01 ; elapsed = 00:00:00.254 . Memory (MB): peak = 822.270 ; gain = 0.000
+INFO: [Netlist 29-17] Analyzing 1727 Unisim elements for replacement
+INFO: [Netlist 29-28] Unisim Transformation completed in 0 CPU seconds
+INFO: [Project 1-479] Netlist was created with Vivado 2025.2.1
+INFO: [Project 1-570] Preparing netlist for logic optimization
+Read ShapeDB Complete: Time (s): cpu = 00:00:00 ; elapsed = 00:00:00.073 . Memory (MB): peak = 948.125 ; gain = 6.668
+INFO: [Timing 38-478] Restoring timing data from binary archive.
+INFO: [Timing 38-479] Binary timing data restore complete.
+INFO: [Project 1-856] Restoring constraints from binary archive.
+INFO: [Project 1-853] Binary constraint restore complete.
+INFO: [Designutils 20-5722] Start Reading Physical Databases.
+Reading placement.
+Read Netlist Cache: Time (s): cpu = 00:00:00 ; elapsed = 00:00:00.023 . Memory (MB): peak = 1573.449 ; gain = 0.000
+Reading placer database...
+Read Device Cache: Time (s): cpu = 00:00:00 ; elapsed = 00:00:00.016 . Memory (MB): peak = 1573.449 ; gain = 0.000
+Read PlaceDB: Time (s): cpu = 00:00:00 ; elapsed = 00:00:00 . Memory (MB): peak = 1573.449 ; gain = 0.000
+Read placeStorage: Time (s): cpu = 00:00:00 ; elapsed = 00:00:00.585 . Memory (MB): peak = 1575.359 ; gain = 1.910
+Read PulsedLatchDB: Time (s): cpu = 00:00:00 ; elapsed = 00:00:00 . Memory (MB): peak = 1575.359 ; gain = 0.000
+Reading routing.
+Read RouteStorage: Time (s): cpu = 00:00:01 ; elapsed = 00:00:00.243 . Memory (MB): peak = 1588.578 ; gain = 13.219
+Read Physdb Files: Time (s): cpu = 00:00:01 ; elapsed = 00:00:00.883 . Memory (MB): peak = 1588.578 ; gain = 15.129
+Restored from archive | CPU: 1.000000 secs | Memory: 0.000000 MB |
+Finished XDEF File Restore: Time (s): cpu = 00:00:01 ; elapsed = 00:00:00.926 . Memory (MB): peak = 1588.578 ; gain = 16.113
+Netlist sorting complete. Time (s): cpu = 00:00:00 ; elapsed = 00:00:00.008 . Memory (MB): peak = 1605.375 ; gain = 0.000
+INFO: [Project 1-111] Unisim Transformation Summary:
+  A total of 363 instances were transformed.
+  RAM256X1S => RAM256X1S (MUXF7(x2), MUXF8, RAMS64E(x4)): 80 instances
+  RAM64M => RAM64M (RAMD64E(x4)): 283 instances
+
+INFO: [Project 1-604] Checkpoint was created with Vivado v2025.2.1 (64-bit) build 6403652
+open_checkpoint: Time (s): cpu = 00:00:30 ; elapsed = 00:00:25 . Memory (MB): peak = 1613.426 ; gain = 1295.965
+# puts "SITES_RAMB36   [llength [get_sites -quiet -filter {TYPE == \"RAMB36\"}]]   ;# 期望 140（�?�照�?"
+SITES_RAMB36   0   ;# 期望 140（�?�照�?
+# puts "SITES_DSP48E1  [llength [get_sites -quiet -filter {TYPE == \"DSP48E1\"}]]  ;# 对照"
+SITES_DSP48E1  0  ;# 对照
+# puts "SITES_URAM288  [llength [get_sites -quiet -filter {TYPE == \"URAM288\"}]]  ;# 这就�?�?�?"
+SITES_URAM288  0  ;# 这就�?�?�?
+# puts "SITES_IOB      [llength [get_sites -quiet -filter {TYPE == \"IOB\"}]]      ;# 对照（应有几百）"
+SITES_IOB      0      ;# 对照（应有几百）
+ERROR: [Common 17-54] The object 'site' does not have a property 'TYPE'.
+INFO: [Common 17-206] Exiting Vivado at Fri Sep 25 07:34:50 2026...

@@ -1,0 +1,2 @@
+[stage3 03:41:56] stage2 的门禁件已在，开始 clk_fpga_0 的 pblock 预验（两滚 ≈ 18 分钟）
+[stage3 03:44:58] 预验 rc=0 —— 读数在 build/evidence/r117_fb_pblock/driver.log

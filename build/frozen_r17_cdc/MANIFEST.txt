@@ -1,0 +1,13 @@
+# build#17 (R22: V7.7 + eth_link 3 级同步 + effect_ctrl ASYNC_REG) —— 本轮门禁最好、且与仓库源码一致的那一版
+# WNS +0.447 / WHS +0.066 / 0 失败端点 / BRAM 90.5 / Dynamic 2.183 W / 12497 根线全布通
+# cdc: eth_rxc→clkout0_1 端点 84→51、被标记 16→1；clk_fpga_0→clkout0_1 未归类 13→0
+# 明早默认下这一块；有异样立刻回退 build/frozen_r13/（同一功能，未加同步）
+11998af819262b5cf2328eff5ef358ab *system.bit
+9e60ef94c790225a7c448f1314fd8b00 *system.xsa
+3837c7fc34a77a58815a8afd15fab5e4 *ps_app.elf
+5f61a365fe33abd59662c2a464c340b7 *timing_summary.rpt
+ef780b6036163fb1bb0d9403cee38e80 *utilization.rpt
+69d21f22632df152fb018149110e1cd9 *power.rpt
+87881f89933dc27efe175ddb0cead9f6 *route_status.rpt
+05dfb7a92fe8be29e11668da191433d2 *cdc.rpt
+08640c07bc59a4ec41b5850075fa86b1 *methodology.rpt

@@ -1,0 +1,33 @@
+# r112 资源净账的**设计内**归属（两份逐层件相减，闭合到个位）
+
+- 改前件：`build/evidence/r110_util_hier.txt`（md5 `7bb717786c53`，源 `build/util_hier_probe.rpt` 在 07:09:55 那份 = **r110 布线件**的逐层数）
+- 改后件：`build/util_hier_probe.rpt`（md5 `44aae824ce4f`，09:13:25 由 `build/tcl/probe_util_hier.tcl` 现跑现出，开的是 r112 的 `impl_1/system_top_routed.dcp`）
+- 探针只读（开 DCP、出报告），不改任何源。列序：`Total LUTs | Logic LUTs | LUTRAMs | SRLs | FFs | RAMB36 | RAMB18 | DSP`。
+
+| 实例 | 模块 | r110 | r112 | 差 |
+|---|---|---|---|---|
+| `system_top` | (top) | 14119 \| 9934 \| 4044 \| 141 \| 8154 | 14154 \| 9970 \| 4044 \| 140 \| 8188 | **+35 LUT / +34 FF** |
+| `u_pl` | pl_video_top（含两只 `key_debounce`，见下） | 9527 \| … \| 3562 FF | 9593 \| … \| 3608 FF | **+66 LUT / +46 FF** |
+| `u_eth/u_icmp/u_icmp_tx` | icmp_tx | 537 \| 374 FF | 506 \| 362 FF | **−31 LUT / −12 FF** |
+| `u_eth/u_reasm` | frame_reasm | 668 \| 546 FF | 668 \| 546 FF | **0 / 0** |
+
+## 三条读得出的结论
+1. **净账闭合**：`+66 − 31 = +35`（LUT）、`+46 − 12 = +34`（FF），与 `system_top` 那一行的差**逐位相等**⇒
+   这一轮的代价全部归到了具名模块，没有"归不到"的余量（#246 的规矩：归不到的部分不写首页）。
+   旁证：`LUTRAMs` 4044→4044 未动、`RAMB36/18`、`DSP` 全未动；`SRLs` 141→140（−1，综合端移走一根延迟线，未归到模块 ⇒ 只记在这里不进首页）。
+2. **刀 A 的账落在 `u_pl` 自己身上**：`report_utilization -hierarchical -depth 3` 里**没有** `u_k1`/`u_k2` 行
+   （`key_debounce` 被综合展平进 `u_pl` 的桶）。这 +66 LUT / +46 FF 与两腿 OOC 的 `2×(+33 LUT / +23 FF)`
+   （`build/evidence/r112_ooc_key_debounce.txt`）**逐位对上**⇒ 展平只是报表层的事，代价本身两处一致。
+3. **`u_reasm` 一格没动**（668/546 → 668/546）：这是 #253 那条"新成为最差的那一族 RTL 没改"的**设计内资源旁证**——
+   它的 slack 从 >1.174 ns 变成 0.445 ns 与它自己的逻辑无关，只与放它去哪儿有关。
+
+## 与 OOC 那份的差异（不藏）
+`u_icmp_tx` 设计内是 **−31 LUT**，OOC 单实例是 **−40 LUT**（`r112_ooc_icmp_tx.txt`）。
+差 9 个 LUT 属两口径的正常差（OOC 看不到跨模块共享与综合端复制），**FF 两边都是 −12**，
+且 −12 与"累加器 32→20 位"的算术逐位对上（`32−20=12`）。首页要写就写设计内那份。
+
+## ⚠ 这条证据差点被我毁掉（工具账，见 ISSUES #254）
+`probe_util_hier.tcl` 的输出路径是**固定**的 `build/util_hier_probe.rpt`，不随轮次改名。
+我 09:12 起这一轮探针时，盘上那份正是 **r110 的**逐层数（07:09:55）——第一次 `cp` 抢在它被覆盖前 1 秒把它救成
+`build/evidence/r110_util_hier.txt`（本条的改前件）。**先看清目标文件是谁的、再跑会覆写它的脚本**，
+并且这条要落成机制（让探针自己按旧件的 mtime 归档），不然下一次就是真的丢凭据。

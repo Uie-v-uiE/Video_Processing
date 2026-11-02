@@ -1,0 +1,32 @@
+交付波：81 份台架三段头、325 份脚本三要素、七个构建入口与一键测试双实现
+
+判据（node build/deliver_spec_check.mjs）改前读数：DELIVER-SPEC 判 14 项 红=8 未测=1 FAIL。
+本轮关闭的格子与凭据：
+
+- C2-3 台架三段头：81 份 sim/tb_*.v 各补「功能/激励与检查/预期结果」，内容取自各文件自身的
+  例化模块名与判据表达式。尺子 build/sim_header_guard.mjs 判 81 项 红=0；
+  纯度用 build/sim_pure_insert.mjs 证明（HEAD 每行按序出现在工作树）判 81 项 红=0，
+  git diff --numstat 对 81 份文件全为「N 增 0 删」。
+- C2-4 sim/README 表格：改由 build/gen_sim_readme.mjs --apply 从三段头生成（81 行、未列 0），
+  原页里的跑法与变异对照说明挪到 report/bench_mutation.md，表格成为唯一名单来源。
+- C1-5 脚本三要素：build/script_header_stamp.mjs --apply 给 245 份缺要素的脚本补
+  「用途/输入/输出/退出码」，四行都只写该文件里能证明的信号（同行邻接的读/写路径、
+  文件内真的写了的 exit N、自身描述句），推不出用途的 5 份手写；
+  结果 缺要素=0 自我描述=0，复跑 --check 判 325 项 待写=0。
+  写入前有两个地板：结果必须变长、换行数与行数必须等于「原行数 + 4」，
+  第一次 --apply 因此拦下 29 份 CRLF 文件（期望值算错，已改对后全部通过）。
+- C4 七个入口：build/{create_project,add_sources,build,synth,impl,report,gen_bit}.tcl 落盘，
+  主脚本 build/tcl/build_system_axigpio.tcl 加 VP_PROJ_SUBDIR/VP_OUTDIR/VP_STOP_AT 三个开关（只加不改默认）；
+  分步验证件 build/evidence/r121_c4_verify.txt：CREATE rc=0 → SYNTH rc=0 → REPORT → GENBIT rc=0，
+  归档出的 system.bit md5=cd04907e1369da35d21c4090d552f5ee 与板上 r118 位流逐字节相同。
+- C1-3/C1-4 上位机：新增 src/host/one_click_test.{mjs,py}（ping→读回→发 data/ 内置片源→计数对账）、
+  根目录 run_test.bat / run_test.sh 双击入口、src/host/README.md（三节，行=32）。
+  两实现的 --dry-run 与 127.0.0.1 回路自测过；本机无板 ⇒ 真 ping/真 xsdb/真板端计数 NOT_MEASURED，
+  README 里按 NOT_MEASURED 写。
+- 尺子自身两处口径改对并留档：C1-1 只数活动 xdc（过程凭据里的 3 份单列计数不判红）；
+  C2-3/C2-4 射程改 sim/tb_*.v（3 份厂商行为模型不计）。
+- 撞名清除：build/report 原来是一份**同名普通文件**（launch clock 表），挡住 §4.4 要求的
+  build/report/ 目录 ⇒ git mv 到 build/report.txt 并同批改口 7 处引用。
+
+已知仍红：C3 根 README 一页与中英小节对应、C4 的 build/report/ 归档与 .tcl 头要素词表、
+C7 风格波（人称 30、程度副词或 TBD 13、emoji 64、勾叉 3 份）。

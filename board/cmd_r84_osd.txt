@@ -1,0 +1,6 @@
+stat
+osd off
+stat
+osd show
+osd on
+stat

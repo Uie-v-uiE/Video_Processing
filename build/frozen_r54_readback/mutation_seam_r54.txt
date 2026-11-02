@@ -1,0 +1,19 @@
+### MUT-A: split_display 的标记分支去掉 `&& de`（消隐期也涂蓝）
+FAIL S5 with de=0 the seam does not paint a fresh marker (keeps prior pixel) (t=20651000)
+FAIL tb_v97_seam_scan errors=1
+
+### MUT-B: oob 恒 0（越界不再填黑）
+FAIL S4 out-of-range is black and the marker currently wins over OOB (documented) (t=20611000)
+FAIL tb_v97_seam_scan errors=1
+
+### C) 交付版（两次变异都改回之后，与 /tmp 备份逐字节相同）
+PASS S1 exactly two marker columns and no stray marker colour anywhere else
+PASS S2 non-marker columns match their own side (L=orig R=proc)
+PASS S3 de survives the seam logic on all 1024 columns
+PASS S4 out-of-range is black and the marker currently wins over OOB (documented)
+PASS S5 with de=0 the seam does not paint a fresh marker (keeps prior pixel)
+PASS S6a PANE_W=1 marks exactly two columns (0 and 1)
+PASS S6b PANE_W=0 must not paint the whole line (x==PANE_W-1 must never match)
+PASS S6c PANE_W=1024 puts the marker on the last column only
+PASS S6d PANE_W=1024 keeps the whole screen on the original side
+PASS tb_v97_seam_scan

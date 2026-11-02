@@ -1,0 +1,28 @@
+`timescale 1ns/1ps
+// 级 1 颜色的第二路：RGB565 逐位取反。与 proc_gray **串接**（所以两个各占自己的 1 拍），~w_inv 时纯旁路。
+// 定位：只被 `process/proc_pipeline.v` 例化，clk_pix 单域不跨钟；16 位进 16 位出、不动 `de` 的时序 ⇒
+//         本级只由 `bypass`（那一位的权重）决定生效与否，所以"反相"与"去色"是可以各切各的两笔效果。
+module proc_invert (
+    input  wire        clk,
+    input  wire        rst_n,
+    input  wire        bypass,
+    input  wire        de_in,
+    input  wire [15:0] din,
+    output reg         de_out,
+    output reg  [15:0] dout
+);
+    wire [4:0] r5 = ~din[15:11];
+    wire [5:0] g6 = ~din[10:5];
+    wire [4:0] b5 = ~din[4:0];
+    wire [15:0] inv = {r5, g6, b5};
+
+    always @(posedge clk or negedge rst_n) begin
+        if (!rst_n) begin
+            de_out <= 1'b0;
+            dout   <= 16'd0;
+        end else begin
+            de_out <= de_in;
+            dout   <= bypass ? din : inv;
+        end
+    end
+endmodule

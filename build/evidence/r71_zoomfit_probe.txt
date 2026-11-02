@@ -1,0 +1,14 @@
+﻿=== CAPTURE START 2 commands ===
+>> zoom fit
+zoom fit
+[CTRL] AXI_GPIO=0x000F5000 sel=000 thr=80 src=1 zoom=1 pub=1 bilin=1
+[CTRL]   zoom_step=4 1.00x (自动呼吸)
+[ZOOM] fit=1（此刻真的在用的 inv 由角度算出来，屏上 Zoom 格标 (Fit)；关掉之后回到呼吸自动档）
+>> zoom fit 0
+zoom fit 0
+[CTRL] AXI_GPIO=0x000B5000 sel=000 thr=80 src=1 zoom=1 pub=0 bilin=1
+[CTRL]   zoom_step=4 1.00x (自动呼吸)
+[ZOOM] fit=0（不再由角度定；关掉之后回到呼吸自动档）
+[SD] frame 2015: last 100 frames 29.468 fps (since play 29.836)
+=== CAPTURE END ===
+

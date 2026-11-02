@@ -1,0 +1,245 @@
+#-----------------------------------------------------------
+# Vivado v2025.2.1 (64-bit)
+# SW Build 6403652 on Thu Mar 19 19:48:24 GMT 2026
+# IP Build 6403511 on Thu Mar 19 12:41:45 MDT 2026
+# SharedData Build 6403650 on Thu Mar 19 14:02:13 MDT 2026
+# Start of session at: Thu Sep 24 17:21:13 2026
+# Process ID         : 10260
+# Current directory  : D:/Xilinx/Prj/pro/Video_Processing
+# Command line       : vivado.exe -mode batch -nojournal -log build/log_r45_bdonly4.txt -source build/tcl/build_system_axigpio.tcl -tclargs bd_only
+# Log file           : D:/Xilinx/Prj/pro/Video_Processing/build/log_r45_bdonly4.txt
+# Journal file       : 
+# Running On         : Uie-laptop
+# Platform           : Windows Server 2016 or Windows 10
+# Operating System   : 26200
+# Processor Detail   : 12th Gen Intel(R) Core(TM) i5-12450H
+# CPU Frequency      : 2496 MHz
+# CPU Physical cores : 8
+# CPU Logical cores  : 12
+# Host memory        : 16873 MB
+# Swap memory        : 21474 MB
+# Total Virtual      : 38348 MB
+# Available Virtual  : 23789 MB
+#-----------------------------------------------------------
+source build/tcl/build_system_axigpio.tcl
+# set root [file normalize [file join [file dirname [info script]] .. ..]]
+# set proj_dir [file join $root vivado_system]
+# set proj_name zynq_video_sys
+# set part xc7z020clg484-2
+# set outdir [file join $root build]
+# file mkdir $outdir
+# create_project $proj_name $proj_dir -part $part -force
+create_project: Time (s): cpu = 00:00:13 ; elapsed = 00:00:08 . Memory (MB): peak = 541.020 ; gain = 222.387
+# set_property target_language Verilog [current_project]
+# set rtl_files {}
+# foreach d {util clocks video process process/rotate process/zoom process/bilin axi hdmi eth} {
+#   foreach f [glob -nocomplain [file join $root src rtl $d *.v]] { lappend rtl_files $f }
+# }
+# lappend rtl_files [file join $root src rtl top pl_video_top.v]
+# lappend rtl_files [file join $root src rtl top system_top.v]
+# add_files -norecurse $rtl_files
+# add_files -fileset constrs_1 -norecurse [file join $root src constraints rk_zynq7020.xdc]
+# set cgxdc [add_files -fileset constrs_1 -norecurse [file join $root src constraints clock_groups_impl.xdc]]
+# set_property used_in_synthesis false $cgxdc
+# set_property used_in_implementation true $cgxdc
+# create_bd_design design_1
+Wrote  : <D:\Xilinx\Prj\pro\Video_Processing\vivado_system\zynq_video_sys.srcs\sources_1\bd\design_1\design_1.bd> 
+# create_bd_cell -type ip -vlnv xilinx.com:ip:processing_system7:5.5 processing_system7_0
+# set ps [get_bd_cells processing_system7_0]
+# apply_bd_automation -rule xilinx.com:bd_rule:processing_system7 \
+#   -config {make_external "FIXED_IO, DDR" Master "Disable" Slave "Disable" apply_board_preset "0"} $ps
+WARNING: [Boardtcl 53-1] No current board_part set.
+# set_property -dict [list \
+#   CONFIG.PCW_FPGA0_PERIPHERAL_FREQMHZ {100} \
+#   CONFIG.PCW_EN_CLK0_PORT {1} CONFIG.PCW_EN_RST0_PORT {1} \
+#   CONFIG.PCW_USE_M_AXI_GP0 {1} \
+#   CONFIG.PCW_USE_S_AXI_HP0 {1} CONFIG.PCW_S_AXI_HP0_DATA_WIDTH {64} \
+#   CONFIG.PCW_ENET0_PERIPHERAL_ENABLE {1} \
+#   CONFIG.PCW_ENET0_ENET0_IO {MIO 16 .. 27} \
+#   CONFIG.PCW_ENET0_GRP_MDIO_ENABLE {1} CONFIG.PCW_ENET0_GRP_MDIO_IO {MIO 52 .. 53} \
+#   CONFIG.PCW_UART0_PERIPHERAL_ENABLE {1} CONFIG.PCW_UART0_UART0_IO {MIO 10 .. 11} \
+#   CONFIG.PCW_QSPI_PERIPHERAL_ENABLE {1} CONFIG.PCW_QSPI_GRP_SINGLE_SS_ENABLE {1} \
+#   CONFIG.PCW_SD0_PERIPHERAL_ENABLE {1} CONFIG.PCW_SD0_SD0_IO {MIO 40 .. 45} \
+#   CONFIG.PCW_SD0_GRP_CD_ENABLE {1} CONFIG.PCW_SD0_GRP_CD_IO {MIO 9} \
+#   CONFIG.PCW_GPIO_EMIO_GPIO_ENABLE {0} \
+#   CONFIG.PCW_GPIO_MIO_GPIO_ENABLE {1} CONFIG.PCW_GPIO_MIO_GPIO_IO {MIO} \
+#   CONFIG.PCW_MIO_0_PULLUP {enabled} CONFIG.PCW_MIO_0_IOTYPE {LVCMOS 3.3V} \
+#   CONFIG.PCW_MIO_0_DIRECTION {inout} CONFIG.PCW_MIO_0_SLEW {slow} \
+#   CONFIG.PCW_MIO_12_PULLUP {enabled} CONFIG.PCW_MIO_12_IOTYPE {LVCMOS 3.3V} \
+#   CONFIG.PCW_MIO_12_DIRECTION {inout} CONFIG.PCW_MIO_12_SLEW {slow} \
+#   CONFIG.PCW_PRESET_BANK0_VOLTAGE {LVCMOS 3.3V} \
+#   CONFIG.PCW_PRESET_BANK1_VOLTAGE {LVCMOS 1.8V} \
+#   CONFIG.PCW_UIPARAM_DDR_PARTNO {MT41K256M16 RE-125} \
+#   CONFIG.PCW_UIPARAM_DDR_BUS_WIDTH {32 Bit} \
+#   CONFIG.PCW_UIPARAM_DDR_DRAM_WIDTH {16 Bits} \
+# ] $ps
+# create_bd_cell -type ip -vlnv xilinx.com:ip:axi_gpio:2.0 axi_gpio_0
+# set_property -dict [list \
+#   CONFIG.C_GPIO_WIDTH {32} \
+#   CONFIG.C_ALL_OUTPUTS {1} \
+#   CONFIG.C_INTERRUPT_PRESENT {0} \
+# ] [get_bd_cells axi_gpio_0]
+# create_bd_cell -type ip -vlnv xilinx.com:ip:axi_gpio:2.0 axi_gpio_1
+# set_property -dict [list \
+#   CONFIG.C_GPIO_WIDTH {32} \
+#   CONFIG.C_ALL_INPUTS {1} \
+#   CONFIG.C_INTERRUPT_PRESENT {0} \
+# ] [get_bd_cells axi_gpio_1]
+# create_bd_cell -type ip -vlnv xilinx.com:ip:axi_gpio:2.0 axi_gpio_2
+# set_property -dict [list \
+#   CONFIG.C_IS_DUAL {1} \
+#   CONFIG.C_GPIO_WIDTH {32} \
+#   CONFIG.C_GPIO2_WIDTH {32} \
+#   CONFIG.C_ALL_OUTPUTS {1} \
+#   CONFIG.C_ALL_OUTPUTS_2 {1} \
+#   CONFIG.C_INTERRUPT_PRESENT {0} \
+# ] [get_bd_cells axi_gpio_2]
+# create_bd_cell -type ip -vlnv xilinx.com:ip:axi_interconnect:2.1 axi_gp0_ic
+# set_property -dict [list CONFIG.NUM_MI {3} CONFIG.NUM_SI {1}] [get_bd_cells axi_gp0_ic]
+# create_bd_cell -type ip -vlnv xilinx.com:ip:axi_interconnect:2.1 axi_mem_intercon
+# set_property -dict [list CONFIG.NUM_MI {1} CONFIG.NUM_SI {1}] [get_bd_cells axi_mem_intercon]
+# connect_bd_net [get_bd_pins processing_system7_0/FCLK_CLK0] \
+#   [get_bd_pins axi_gp0_ic/ACLK] \
+#   [get_bd_pins axi_gp0_ic/S00_ACLK] \
+#   [get_bd_pins axi_gp0_ic/M00_ACLK] \
+#   [get_bd_pins axi_gpio_0/s_axi_aclk] \
+#   [get_bd_pins axi_gpio_1/s_axi_aclk] \
+#   [get_bd_pins axi_gpio_2/s_axi_aclk] \
+#   [get_bd_pins axi_gp0_ic/M01_ACLK] \
+#   [get_bd_pins axi_gp0_ic/M02_ACLK] \
+#   [get_bd_pins axi_mem_intercon/ACLK] \
+#   [get_bd_pins axi_mem_intercon/S00_ACLK] \
+#   [get_bd_pins axi_mem_intercon/M00_ACLK] \
+#   [get_bd_pins processing_system7_0/S_AXI_HP0_ACLK] \
+#   [get_bd_pins processing_system7_0/M_AXI_GP0_ACLK]
+# connect_bd_net [get_bd_pins processing_system7_0/FCLK_RESET0_N] \
+#   [get_bd_pins axi_gp0_ic/ARESETN] \
+#   [get_bd_pins axi_gp0_ic/S00_ARESETN] \
+#   [get_bd_pins axi_gp0_ic/M00_ARESETN] \
+#   [get_bd_pins axi_gpio_0/s_axi_aresetn] \
+#   [get_bd_pins axi_gpio_1/s_axi_aresetn] \
+#   [get_bd_pins axi_gpio_2/s_axi_aresetn] \
+#   [get_bd_pins axi_gp0_ic/M01_ARESETN] \
+#   [get_bd_pins axi_gp0_ic/M02_ARESETN] \
+#   [get_bd_pins axi_mem_intercon/ARESETN] \
+#   [get_bd_pins axi_mem_intercon/S00_ARESETN] \
+#   [get_bd_pins axi_mem_intercon/M00_ARESETN]
+# connect_bd_intf_net [get_bd_intf_pins processing_system7_0/M_AXI_GP0] \
+#   [get_bd_intf_pins axi_gp0_ic/S00_AXI]
+# connect_bd_intf_net [get_bd_intf_pins axi_gp0_ic/M00_AXI] \
+#   [get_bd_intf_pins axi_gpio_0/S_AXI]
+# connect_bd_intf_net [get_bd_intf_pins axi_gp0_ic/M01_AXI] \
+#   [get_bd_intf_pins axi_gpio_1/S_AXI]
+# connect_bd_intf_net [get_bd_intf_pins axi_gp0_ic/M02_AXI] \
+#   [get_bd_intf_pins axi_gpio_2/S_AXI]
+# connect_bd_intf_net [get_bd_intf_pins axi_mem_intercon/M00_AXI] \
+#   [get_bd_intf_pins processing_system7_0/S_AXI_HP0]
+# make_bd_intf_pins_external [get_bd_intf_pins axi_mem_intercon/S00_AXI]
+# foreach p [get_bd_intf_ports] {
+#   if {[string match *S00* $p]} { catch {set_property name M_AXI_HP0 $p} }
+# }
+# create_bd_port -dir O -type clk -freq_hz 100000000 FCLK_CLK0
+# connect_bd_net [get_bd_pins processing_system7_0/FCLK_CLK0] [get_bd_ports FCLK_CLK0]
+# create_bd_port -dir O -type rst FCLK_RESET0_N
+# set_property CONFIG.POLARITY ACTIVE_LOW [get_bd_ports FCLK_RESET0_N]
+# connect_bd_net [get_bd_pins processing_system7_0/FCLK_RESET0_N] [get_bd_ports FCLK_RESET0_N]
+# proc bd_port_names {} {
+#   set r {}
+#   foreach p [get_bd_ports] { lappend r [get_property NAME $p] }
+#   return $r
+# }
+# foreach {pin newname} {
+#   axi_gpio_0/gpio_io_o   GPIO_0_tri_o
+#   axi_gpio_1/gpio_io_i   GPIO_1_tri_i
+#   axi_gpio_2/gpio_io_o   GPIO_2_tri_o
+#   axi_gpio_2/gpio2_io_o  GPIO_3_tri_o
+# } {
+#   set before [bd_port_names]
+#   make_bd_pins_external [get_bd_pins $pin]
+#   set fresh {}
+#   foreach n [bd_port_names] { if {[lsearch -exact $before $n] < 0} { lappend fresh $n } }
+#   if {[llength $fresh] != 1} { puts "PORT_LOOKUP_FAILED $pin fresh={$fresh}"; exit 1 }
+#   set_property name $newname [get_bd_ports $fresh]
+#   puts "PORT $pin -> $newname"
+# }
+WARNING: [BD 41-1306] The connection to interface pin </axi_gpio_0/gpio_io_o> is being overridden by the user with net <axi_gpio_0_gpio_io_o>. This pin will not be connected as a part of interface connection <GPIO>, and might not recreate the connectivity as expected using the writ_bd_tcl command.
+PORT axi_gpio_0/gpio_io_o -> GPIO_0_tri_o
+WARNING: [BD 41-1306] The connection to interface pin </axi_gpio_1/gpio_io_i> is being overridden by the user with net <gpio_io_i_0_1>. This pin will not be connected as a part of interface connection <GPIO>, and might not recreate the connectivity as expected using the writ_bd_tcl command.
+PORT axi_gpio_1/gpio_io_i -> GPIO_1_tri_i
+WARNING: [BD 41-1306] The connection to interface pin </axi_gpio_2/gpio_io_o> is being overridden by the user with net <axi_gpio_2_gpio_io_o>. This pin will not be connected as a part of interface connection <GPIO>, and might not recreate the connectivity as expected using the writ_bd_tcl command.
+PORT axi_gpio_2/gpio_io_o -> GPIO_2_tri_o
+WARNING: [BD 41-1306] The connection to interface pin </axi_gpio_2/gpio2_io_o> is being overridden by the user with net <axi_gpio_2_gpio2_io_o>. This pin will not be connected as a part of interface connection <GPIO2>, and might not recreate the connectivity as expected using the writ_bd_tcl command.
+PORT axi_gpio_2/gpio2_io_o -> GPIO_3_tri_o
+# puts "BD PORTS: [get_bd_ports]"
+BD PORTS: /DDR_addr /DDR_ba /DDR_cas_n /DDR_ck_n /DDR_ck_p /DDR_cke /DDR_cs_n /DDR_dm /DDR_dq /DDR_dqs_n /DDR_dqs_p /DDR_odt /DDR_ras_n /DDR_reset_n /DDR_we_n /FCLK_CLK0 /FCLK_RESET0_N /FIXED_IO_ddr_vrn /FIXED_IO_ddr_vrp /FIXED_IO_mio /FIXED_IO_ps_clk /FIXED_IO_ps_porb /FIXED_IO_ps_srstb /GPIO_0_tri_o /GPIO_1_tri_i /GPIO_2_tri_o /GPIO_3_tri_o /M_AXI_HP0_araddr /M_AXI_HP0_arburst /M_AXI_HP0_arcache /M_AXI_HP0_arlen /M_AXI_HP0_arlock /M_AXI_HP0_arprot /M_AXI_HP0_arqos /M_AXI_HP0_arready /M_AXI_HP0_arsize /M_AXI_HP0_arvalid /M_AXI_HP0_awaddr /M_AXI_HP0_awburst /M_AXI_HP0_awcache /M_AXI_HP0_awlen /M_AXI_HP0_awlock /M_AXI_HP0_awprot /M_AXI_HP0_awqos /M_AXI_HP0_awready /M_AXI_HP0_awsize /M_AXI_HP0_awvalid /M_AXI_HP0_bready /M_AXI_HP0_bresp /M_AXI_HP0_bvalid /M_AXI_HP0_rdata /M_AXI_HP0_rlast /M_AXI_HP0_rready /M_AXI_HP0_rresp /M_AXI_HP0_rvalid /M_AXI_HP0_wdata /M_AXI_HP0_wlast /M_AXI_HP0_wready /M_AXI_HP0_wstrb /M_AXI_HP0_wvalid
+# catch {set_property CONFIG.ASSOCIATED_BUSIF {M_AXI_HP0} [get_bd_ports FCLK_CLK0]}
+# assign_bd_address
+INFO: [BD 41-3093] Triggering Legacy Auto Assign Algorithm
+Slave segment '/processing_system7_0/S_AXI_HP0/HP0_DDR_LOWOCM' is being assigned into address space '/M_AXI_HP0' at <0x0000_0000 [ 1G ]>.
+Slave segment '/axi_gpio_0/S_AXI/Reg' is being assigned into address space '/processing_system7_0/Data' at <0x4120_0000 [ 64K ]>.
+Slave segment '/axi_gpio_1/S_AXI/Reg' is being assigned into address space '/processing_system7_0/Data' at <0x4121_0000 [ 64K ]>.
+Slave segment '/axi_gpio_2/S_AXI/Reg' is being assigned into address space '/processing_system7_0/Data' at <0x4122_0000 [ 64K ]>.
+# foreach {seg want} {
+#   axi_gpio_0/S_AXI/Reg 0x41200000
+#   axi_gpio_1/S_AXI/Reg 0x41210000
+#   axi_gpio_2/S_AXI/Reg 0x41220000
+# } {
+#   assign_bd_address -offset $want -range 64K \
+#     -target_address_space [get_bd_addr_spaces processing_system7_0/Data] \
+#     [get_bd_addr_segs $seg] -force
+# }
+# set aspace [get_bd_addr_spaces processing_system7_0/Data]
+# foreach s [get_bd_addr_segs -quiet -of_objects $aspace] {
+#   puts "ADDRMAP [get_property NAME $s] = [get_property OFFSET $s]"
+# }
+ADDRMAP SEG_axi_gpio_0_Reg = 0x41200000
+ADDRMAP SEG_axi_gpio_1_Reg = 0x41210000
+ADDRMAP SEG_axi_gpio_2_Reg = 0x41220000
+# set bad_addr 0
+# foreach {cell want} { axi_gpio_0 0x41200000  axi_gpio_1 0x41210000  axi_gpio_2 0x41220000 } {
+#   # 段�?�象要从**地址空间�?**取（`get_bd_addr_segs axi_gpio_0/S_AXI/Reg` 取到的是接口定义�?
+#   # 它的 OFFSET �?空的 —�? 上一次这里判红就�?这个原因，不�?地址没钉上）
+#   set s [get_bd_addr_segs -quiet -of_objects $aspace -filter "NAME =~ *SEG_${cell}_Reg*"]
+#   if {$s eq ""} { puts "ADDR_LOG $cell want=$want got=NOT_FOUND"; incr bad_addr; continue }
+#   set got [get_property OFFSET $s]
+#   # 比较必须圡�**数�?**上做：把 OFFSET 塞进 expr 或直接当字�?�串比都会�??刡� —�?
+#   # 这个属性经数字一走就显示成十进制�?0x41200000 �? 1092616192），字�?�串比�?�必然红�?
+#   set gv 0
+#   set wv 0
+#   scan [string tolower $got] "%x" gv
+#   scan [string tolower $want] "%x" wv
+#   puts "ADDR_LOG $cell want=$want got=$got num_ok=[expr {$gv == $wv}]"
+#   if {$gv != $wv} { incr bad_addr }
+# }
+ADDR_LOG axi_gpio_0 want=0x41200000 got=0x41200000 num_ok=1
+ADDR_LOG axi_gpio_1 want=0x41210000 got=0x41210000 num_ok=1
+ADDR_LOG axi_gpio_2 want=0x41220000 got=0x41220000 num_ok=1
+# validate_bd_design
+CRITICAL WARNING: [BD 41-1348] Reset pin /axi_gpio_0/s_axi_aresetn (associated clock /axi_gpio_0/s_axi_aclk) is connected to asynchronous reset source /processing_system7_0/FCLK_RESET0_N.
+This may prevent design from meeting timing. Please add Processor System Reset module to create a reset that is synchronous to the associated clock source /processing_system7_0/FCLK_CLK0.
+CRITICAL WARNING: [BD 41-1348] Reset pin /axi_gpio_1/s_axi_aresetn (associated clock /axi_gpio_1/s_axi_aclk) is connected to asynchronous reset source /processing_system7_0/FCLK_RESET0_N.
+This may prevent design from meeting timing. Please add Processor System Reset module to create a reset that is synchronous to the associated clock source /processing_system7_0/FCLK_CLK0.
+CRITICAL WARNING: [BD 41-1348] Reset pin /axi_gpio_2/s_axi_aresetn (associated clock /axi_gpio_2/s_axi_aclk) is connected to asynchronous reset source /processing_system7_0/FCLK_RESET0_N.
+This may prevent design from meeting timing. Please add Processor System Reset module to create a reset that is synchronous to the associated clock source /processing_system7_0/FCLK_CLK0.
+CRITICAL WARNING: [BD 41-1348] Reset pin /axi_gp0_ic/ARESETN (associated clock /axi_gp0_ic/ACLK) is connected to asynchronous reset source /processing_system7_0/FCLK_RESET0_N.
+This may prevent design from meeting timing. Please add Processor System Reset module to create a reset that is synchronous to the associated clock source /processing_system7_0/FCLK_CLK0.
+CRITICAL WARNING: [BD 41-1348] Reset pin /axi_gp0_ic/S00_ARESETN (associated clock /axi_gp0_ic/S00_ACLK) is connected to asynchronous reset source /processing_system7_0/FCLK_RESET0_N.
+This may prevent design from meeting timing. Please add Processor System Reset module to create a reset that is synchronous to the associated clock source /processing_system7_0/FCLK_CLK0.
+CRITICAL WARNING: [BD 41-1348] Reset pin /axi_gp0_ic/M00_ARESETN (associated clock /axi_gp0_ic/M00_ACLK) is connected to asynchronous reset source /processing_system7_0/FCLK_RESET0_N.
+This may prevent design from meeting timing. Please add Processor System Reset module to create a reset that is synchronous to the associated clock source /processing_system7_0/FCLK_CLK0.
+CRITICAL WARNING: [BD 41-1348] Reset pin /axi_gp0_ic/M01_ARESETN (associated clock /axi_gp0_ic/M01_ACLK) is connected to asynchronous reset source /processing_system7_0/FCLK_RESET0_N.
+This may prevent design from meeting timing. Please add Processor System Reset module to create a reset that is synchronous to the associated clock source /processing_system7_0/FCLK_CLK0.
+CRITICAL WARNING: [BD 41-1348] Reset pin /axi_gp0_ic/M02_ARESETN (associated clock /axi_gp0_ic/M02_ACLK) is connected to asynchronous reset source /processing_system7_0/FCLK_RESET0_N.
+This may prevent design from meeting timing. Please add Processor System Reset module to create a reset that is synchronous to the associated clock source /processing_system7_0/FCLK_CLK0.
+CRITICAL WARNING: [BD 41-1348] Reset pin /axi_mem_intercon/ARESETN (associated clock /axi_mem_intercon/ACLK) is connected to asynchronous reset source /processing_system7_0/FCLK_RESET0_N.
+This may prevent design from meeting timing. Please add Processor System Reset module to create a reset that is synchronous to the associated clock source /processing_system7_0/FCLK_CLK0.
+CRITICAL WARNING: [BD 41-1348] Reset pin /axi_mem_intercon/S00_ARESETN (associated clock /axi_mem_intercon/S00_ACLK) is connected to asynchronous reset source /processing_system7_0/FCLK_RESET0_N.
+This may prevent design from meeting timing. Please add Processor System Reset module to create a reset that is synchronous to the associated clock source /processing_system7_0/FCLK_CLK0.
+CRITICAL WARNING: [BD 41-1348] Reset pin /axi_mem_intercon/M00_ARESETN (associated clock /axi_mem_intercon/M00_ACLK) is connected to asynchronous reset source /processing_system7_0/FCLK_RESET0_N.
+This may prevent design from meeting timing. Please add Processor System Reset module to create a reset that is synchronous to the associated clock source /processing_system7_0/FCLK_CLK0.
+# if {$bad_addr} { puts "ADDRESS PINNING FAILED"; exit 1 }
+# save_bd_design
+Wrote  : <D:\Xilinx\Prj\pro\Video_Processing\vivado_system\zynq_video_sys.srcs\sources_1\bd\design_1\design_1.bd> 
+# if {[lindex $argv 0] eq "bd_only"} { puts "BD_ONLY_DONE"; exit 0 }
+BD_ONLY_DONE
+INFO: [Common 17-206] Exiting Vivado at Thu Sep 24 17:21:32 2026...

@@ -1,0 +1,37 @@
+# CMD: node soak.cjs（脚本正文在文件末尾原样附出）；现算 before/after 差值，判据语义取自 report/perf_report.md §6b，没有另起新尺子
+# RUN_AT: 2026-10-04 12:13:42
+wall_s=302.141
+metrics={"drop_words":0,"frames_bad":0,"pkt_err":0,"cdc_episodes":0,"rows_miss_max":205,"pkts_delta":1989000,"bytes_delta":2764800000,"frames_sent":9000,"frames_recv":9000,"frames_ok":9000,"gap_min_ms":20,"gap_max_ms":51,"gap_sum_ms":300057,"gap_segments":8999,"avg_gap_ms":33.34337148572064,"fps_from_gap":29.990968382673955,"fps_wall":29.78741713306039,"gap_avg_impossible":false,"hb_slow_a":0,"hb_gone_a":0,"stream_live_a":"0","verdict_no_word_lost":true}
+SOAK | drop_words | 0 | 0 | 0
+SOAK | cdc_episodes | 0 | 0 | 0
+SOAK | pkt_err | 0 | 0 | 0
+SOAK | frames_bad | 1261 | 1261 | 0
+SOAK | rows_miss_max | 205 | 205 | 0
+SOAK | hb_slow | 0 | 0 | 0
+SOAK | hb_gone | 0 | 0 | 0
+SOAK | pkts | 1072296 | 3061296 | 1989000
+SOAK | bytes | 1490539536 | 4255339536 | 2764800000
+SOAK | gap_min | 0 | 20 | 20
+SOAK | gap_max | 0 | 51 | 51
+SOAK | gap_sum | 0 | 300057 | 300057
+SOAK | stall_ms | 65535 | 6002 | -59533
+SOAK | flags | 2 | 18 | 16
+SOAK-CHK pkts_delta==1989000 ? true
+SOAK-CHK 零增量三计数 drop_words/cdc_episodes/pkt_err 增量 = 0/0/0
+SOAK-CHK frames_bad 增量 = 0  before 值 = 1261
+SOAK-CHK 帧数 = pkts/221 = 9000  帧间隔 avg = gap_sum/frames = 33.340 ms
+rc=0
+
+# SCRIPT（复跑用的正文，与上面 rc=0 那次输出是同一份）:
+const fs=require("fs");
+const j=JSON.parse(fs.readFileSync("board/evidence_r41/metrics_r41_soak300.json","utf8"));
+const b=j.before,a=j.after;
+const K=["drop_words","cdc_episodes","pkt_err","frames_bad","rows_miss_max","hb_slow","hb_gone","pkts","bytes","gap_min","gap_max","gap_sum","stall_ms","flags"];
+console.log("wall_s="+j.wall_s);
+console.log("metrics="+JSON.stringify(j.metrics));
+for(const k of K){const d=(typeof a[k]==="number"&&typeof b[k]==="number")?(a[k]-b[k]):"n/a";console.log(["SOAK",k,b[k],a[k],d].join(" | "));}
+console.log("SOAK-CHK pkts_delta==1989000 ? "+((a.pkts-b.pkts)===1989000));
+console.log("SOAK-CHK 零增量三计数 drop_words/cdc_episodes/pkt_err 增量 = "+[a.drop_words-b.drop_words,a.cdc_episodes-b.cdc_episodes,a.pkt_err-b.pkt_err].join("/"));
+console.log("SOAK-CHK frames_bad 增量 = "+(a.frames_bad-b.frames_bad)+"  before 值 = "+b.frames_bad);
+const frames=(a.pkts-b.pkts)/221;
+console.log("SOAK-CHK 帧数 = pkts/221 = "+frames+"  帧间隔 avg = gap_sum/frames = "+((a.gap_sum-b.gap_sum)/frames).toFixed(3)+" ms");

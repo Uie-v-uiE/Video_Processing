@@ -1,0 +1,9 @@
+# r113 上电值对账（尺子：build/check_powup_init.sh；探针原文：build/evidence/r113_ff_init_probe.txt）
+identity bit=b94f4da6cdff synth_dcp_ff_lines=96 probed=96
+POWUP W1_key_stable              1'b1           expect=1'b1 GREEN
+POWUP W2_sync_prev               2/2            want_3_of_3 RED
+POWUP W3_k2_stable               1'b1           expect=1'b1 GREEN
+POWUP W4_angle_control           1'b0           expect=1'b0 GREEN
+POWUP W5_scope_floor             FF=96 CMP=96   floor>=20 GREEN
+POWUP-SUMMARY round=r113 judged=5 result=RED
+

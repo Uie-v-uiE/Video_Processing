@@ -1,0 +1,11 @@
+r53 判据自测（不占串口）—— 2026-09-25 03:3x
+
+== A. --align：判据表与命令表逐行对位（必须 PASS，否则整轮 FAIL 是错位不是固件）
+ALIGN expect=42 battery=42 PASS
+
+== B. --replay 旧捕获（r52 的 elf 还没有 zsel=/zman=）⇒ 新加的『元组没抓到』哨兵必须红
+FAIL [STAT] 元组正则没抓到东西 —— 判据本身过期了（固件行变了，正则没跟着变）
+RESULT FAIL uart_cmd_check  (37 条命令, 0.0 s, 捕获 board/uart_script_capture.txt)
+
+== C. --align 的反例：临时在电池里插一条命令，对位必须立刻红
+ALIGN expect=42 battery=43 FAIL —— 表与命令错位，整轮判据都不可信

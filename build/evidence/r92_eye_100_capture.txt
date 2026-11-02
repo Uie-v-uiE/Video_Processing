@@ -1,0 +1,13 @@
+﻿=== CAPTURE START 3 commands ===
+>> rot auto 0
+[ROT] auto=0（停在当前角度；缩放那一路不变）
+[CTRL] AXI_GPIO=0x004F5000 sel=000 thr=80 src=1 zoom=1 pub=1 bilin=1 osd=1
+[CTRL]   zoom_step=2 0.50x (手动)
+>> zoom 1.0
+[CTRL] AXI_GPIO=0x004B5000 sel=000 thr=80 src=1 zoom=1 pub=0 bilin=1 osd=1
+[CTRL]   zoom_step=4 1.00x (手动)
+[ZOOM] 1.0 → 最近档 1.00x（八档：0.25x 0.33x 0.50x 0.75x 1.00x 1.33x 1.50x 2.00x；回自动用 zoom auto）
+>> STAT
+[STAT] ctrl thr=80 src=1 zoom=1 bilin=1 zsel=4 zman=1 pub=0 sd=1 frames=4398 playing=1 sel=000 gm=0.00 (PL owns UDP datapath) mode=0 geom=C0400800 osd=1
+=== CAPTURE END ===
+

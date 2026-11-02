@@ -1,0 +1,6 @@
+name,offset,width,access,policy,doc
+CTRL,0x00,32,RW,bit0=en,总开关（本表整列没有 reset）
+STATUS,0x04,32,RO,低 16 位为帧计数,状态字（只读）
+IE,0x08,32,RW,按位使能,中断使能掩码
+ISC,0x0C,8,self-clear,W1C 读即清,中断挂起（读回后自动清零）
+DAC,0x18,12,RW,mv = count * 0.8,输出档位

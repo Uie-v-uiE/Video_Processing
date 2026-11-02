@@ -1,0 +1,9 @@
+fpver=norm1
+files=80
+top=56c269602e18
+rtl=07570b1ac1b4
+[chain 01:13:24] 本轮树指纹 rtl=07570b1ac1b4
+[chain 01:13:24] 构建开始（刀 1 输入窗 + 刀 2 IDELAY=31）
+[chain 01:34:27] 构建完成 rc=0
+[chain 01:35:11] verdict probe rc=0
+[chain 01:35:11] 链结束：判读见 build/evidence/r116_verdict.txt 与名册差分

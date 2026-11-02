@@ -1,0 +1,16 @@
+INFO PWRUP key_stable=1 sync0=1 sync1=1 angle=0
+PASS P0 key_stable must come up 1'b1 (released), not X/0
+PASS P0b both synchroniser stages come up 1'b1
+INFO after 3500 cycles inc=0 angle=0 event_time=-1
+PASS A1 no key touched => zero short-press events
+PASS A2 angle stays 0 (OSD ROT cell must read 0, not 1)
+PASS A3 long-press toggle not given away either
+PASS A4 rotate_active stays 0 (picture does not rotate)
+INFO control (one real press) inc=1 angle=1
+PASS B1 one real press => exactly one event
+PASS B2 => angle +1 (proves A1 is not a dead-green)
+RESULT tb_v113_key_powup PASS checks=8
+INFO: [Common 17-206] Exiting xsim at Sat Oct  3 11:16:31 2026...
+exit
+INFO: [Common 17-206] Exiting xsim at Sat Oct  3 11:16:31 2026...
+VERDICT tb_v113_key_powup: RESULT tb_v113_key_powup PASS checks=8 || FAIL 行数=0 || PASS 行数=8

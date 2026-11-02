@@ -1,0 +1,14 @@
+INFO T1 tx_byte_num=0 → 数据态拍数=18（期望 18）整帧 tx_en 拍数=72 tx_done=1
+PASS T1 zero-byte ping reply must emit exactly MIN_DATA_NUM (18) data bytes, not 65536
+PASS T4a T1 really ran: entered the data state and completed the frame once
+INFO T2 tx_byte_num=8 → 数据态拍数=18（期望 18）tx_done=1
+PASS T2 8-byte payload still pads to 18 data bytes
+INFO T5 tx_byte_num=8 补位段长度=10 第一个补位字节=ad 最后一个载荷字节=ad
+PASS T5 padding repeats the last payload byte (a length-only fix must not change content)
+INFO T3 tx_byte_num=56 → 数据态拍数=56（期望 56）tx_done=1
+PASS T3 56-byte payload emits exactly 56 data bytes (no padding, none lost)
+RESULT tb_icmp_ping0 PASS
+INFO: [Common 17-206] Exiting xsim at Fri Oct  2 20:45:29 2026...
+exit
+INFO: [Common 17-206] Exiting xsim at Fri Oct  2 20:45:29 2026...
+VERDICT tb_icmp_ping0: RESULT tb_icmp_ping0 PASS || FAIL 行数=0 || PASS 行数=5

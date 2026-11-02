@@ -1,0 +1,3 @@
+[SD] frame 410: last 100 frames 29.999 fps (since play 25.700)
+[SD] frame 510: last 100 frames 29.280 fps (since play 25.725)
+

@@ -1,0 +1,35 @@
+=== r58c flash Fri Sep 25 11:44:41     2026 ===
+PS7_INIT_FILE: D:/Xilinx/Prj/pro/Video_Processing/build/ps7_init.tcl
+CONNECT: tcfchan#0
+RST_SYSTEM: ok
+PS7_INIT: ok
+PS7_POST_CONFIG: ok
+DDR_ECHO: 10000000:   5A5AA5A5
+
+PS BOOT STEP DONE â€? ä¸‹ä¸€æ­? build/tcl/program_pl.tcl é…? PL
+--- program_pl ---
+# connect_hw_server -allow_non_jtag
+INFO: [Labtools 27-2285] Connecting to hw_server url TCP:localhost:3121
+# puts "URL=[current_hw_server]"
+# foreach d [get_hw_devices] { puts "  [get_property NAME $d] PART=[get_property PART $d]" }
+  arm_dap_0 PART=arm_dap
+  xc7z020_1 PART=xc7z020
+INFO: [Labtools 27-1435] Device xc7z020 (JTAG device index = 1) is not programmed (DONE status = 0).
+# puts "PROGRAMMED $dev <- $bit"
+PROGRAMMED xc7z020_1 <- D:/Xilinx/Prj/pro/Video_Processing/build/system.bit
+--- ps_app_reload ---
+pc: pc: 00007554
+
+cpsr: cpsr: 800f005f
+       n (Bits [31]):  1      z (Bits [30]):  0      c (Bits [29]):  0
+       v (Bits [28]):  0      q (Bits [27]):  0  it (Bits [15:25]):  0
+       j (Bits [24]):  0  ge (Bits [19:16]):  f       e (Bits [9]):  0
+        a (Bits [8]):  0       i (Bits [7]):  0       f (Bits [6]):  1
+        t (Bits [5]):  0     m (Bits [4:0]): 1f
+
+lr: lr: 0000753c
+
+sp: sp: ffff5da0
+
+RESUME: ok
+FLOW_DONE

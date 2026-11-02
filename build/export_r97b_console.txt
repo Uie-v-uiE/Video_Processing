@@ -1,0 +1,14 @@
+  空目录 删=0 余=0
+死链 skill/artifact_freeze_and_freshness.md -> docs/log/overnight_log.md
+死链 skill/cdc_pair_baseline_gate.md -> docs/log/changelog_v7.md
+死链 skill/cdc_pair_baseline_gate.md -> docs/log/issues.md
+死链 sim/README.md -> docs/ai_collaboration.md
+死链 sim/README.md -> docs/log/issues.md
+== 自检：死链 5 ／ 旧名残留 0 ／ 带绝对路径的脚本 1 （./board/acceptance.md ） ==
+
+导出提交 884c896：337 个文件 / 11M，剪掉 1365 条，死链 5，旧名残留 0，绝对路径 1
+包内自洽：入口脚本按 glob 找凭据的引用共核对 1 条（核对数为 0 时这一条是空的，别念成绿）
+随包凭据内容判定：FAIL 行共 1，其中未声明的红 0（白名单只允许 '^[ ]*FAIL C5c'）
+FAIL：死链 5 ／ 旧名残留 0 ／ 绝对路径 1。不写 /d/Xilinx/Prj/pro/final_submission。
+      明细：/tmp/sub_dead_sub.HrloNZ.txt 与 /tmp/sub.HrloNZ/_pruned.txt
+EXPORT_RC=1

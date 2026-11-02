@@ -1,0 +1,36 @@
+{
+ "field_positions": [
+  {
+   "col": 1,
+   "field": "counter_value",
+   "file": "build/multi_driven.txt",
+   "line": 1,
+   "locator": "sed -n '1p' build/multi_driven.txt",
+   "value": "0"
+  }
+ ],
+ "not_measured": [],
+ "original": "build/multi_driven.txt",
+ "pairing": {
+  "identity_from_provenance": "内容 `0`（多驱动 net 计数，入口 `:384-387`）；与上一行同摘要 = 两个文件都只装一个字符 `0`，**不是\"同一份内容被复制\"**，要区分就看行数以外的字节",
+  "pairing_result": "PASS",
+  "provenance_file": "build/provenance.md",
+  "provenance_line": 146,
+  "provenance_md5_12": "21438ef4b9ad",
+  "provenance_sha256_16": "13bf7b3039c63bf5",
+  "recomputed_md5_12": "21438ef4b9ad",
+  "recomputed_sha256_16": "13bf7b3039c63bf5"
+ },
+ "parse_status": "OK",
+ "provenance_present": true,
+ "round": "r118",
+ "sections": {
+  "bytes": 3,
+  "non_empty_lines": 1,
+  "note": "计数件：只有一个数字，不是报告。数字 0 = 「该检查真的数到 0 条」，与读不到（NOT_MEASURED）是两回事。",
+  "value": {
+   "line": 1,
+   "value": "0"
+  }
+ }
+}

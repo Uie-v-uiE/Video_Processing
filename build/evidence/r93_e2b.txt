@@ -1,0 +1,4 @@
+zoom 0.5
+rot auto 1
+STAT
+split show

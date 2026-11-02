@@ -1,0 +1,27 @@
+== mutation diff（必须恰好 5 对 = 10 行）==
+79,80c79,80
+<     reg [11:0] xd [1:12];               // 这条链是**纯寄存器**、每拍一跳、不参与任何运算 ⇒ 不会把组合链拉长；每一跳 12 bit，代价 = 2×12×12 = 288 个触发器（Slice 寄存器 7936 的 3.6 %）
+<     reg [11:0] yd [1:12];
+---
+>     reg [11:0] xd [0:12];               // 这条链是**纯寄存器**、每拍一跳、不参与任何运算 ⇒ 不会把组合链拉长；每一跳 12 bit，代价 = 2×12×12 = 288 个触发器（Slice 寄存器 7936 的 3.6 %）
+>     reg [11:0] yd [0:12];
+84c84
+<             for (cp = 1; cp <= 12; cp = cp + 1) begin xd[cp] <= 12'd0; yd[cp] <= 12'd0; end
+---
+>             for (cp = 0; cp <= 12; cp = cp + 1) begin xd[cp] <= 12'd0; yd[cp] <= 12'd0; end
+86,87c86,87
+<             xd[1] <= x_in; yd[1] <= y_in;
+<             for (cp = 2; cp <= 12; cp = cp + 1) begin
+---
+>             xd[0] <= x_in; yd[0] <= y_in;
+>             for (cp = 1; cp <= 12; cp = cp + 1) begin
+mut_src=39629bfbbec6
+mut_diff_lines=10
+tb_md5=a56e06f8ff91
+rtl_md5_real=b3904a8be377
+date=2026-09-29T01:05:23+08:00
+== 控制跑里的 C10f ==
+C10f out-of-range cache writes (de high && x_in >= H_ACTIVE): blur=11 sharp=11 sobel=11 morph=11 || first offender x_in=1343 -> HW slot 319 with din=00000000
+FAIL C10f no window stage writes outside its own line cache | the coordinate taps sit one beat behind the de chain, so each line head writes x_in=1343: xsim drops that write, the board truncates it to slot 319 and stores the blanking value 0 => one black column at display column 320 (#103)
+RESULT tb_v103_pipe_bypass FAIL nfail=4
+MUTATION OK: C10f 在修复前的延迟线上报红 ⇒ 这条判据有力。

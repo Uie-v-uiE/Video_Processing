@@ -1,0 +1,51 @@
+# r109 快车道成本分界（任务 #181/#180；每个数都点名它来自哪份文件，不是估的）
+#   快车道逐支 wall：build/r109_lane_base.txt 的 LANE 行（改前基线，28 支全跑齐）
+#   顶层台架墙钟：build/r108_stage2_console.txt 的时间戳 18:37:39 -> 20:45:09 = 127 分 30 秒（= 7650 s）
+#     ——比历来口头说的约 100 分钟还多 27 分钟；这正是本轮要改流程的原因
+#   单元台架单支：同一份 stage2 里 20:45:29/20:45:47/20:46:04 相邻差 = 18~19 s，与快车道的 wall 同量级
+
+## 快车道每支（按 wall 排序）
+    15 s  GREEN        tb_src_arb_why
+    15 s  GREEN        tb_timing
+    15 s  GREEN        tb_zoom_mapper
+    16 s  GREEN        tb_bilin_lerp
+    16 s  GREEN        tb_icmp_len_wrap
+    16 s  GREEN        tb_icmp_ping0
+    16 s  GREEN        tb_icmp_rx_len
+    16 s  GREEN        tb_reasm_bounds
+    16 s  GREEN        tb_rotate_mapper
+    16 s  GREEN        tb_tap_sched
+    16 s  GREEN        tb_udp_parser
+    16 s  GREEN        tb_v794_osd_glyph
+    16 s  GREEN        tb_v93_split_ctrl
+    16 s  GREEN        tb_writer_abort
+    16 s  NO-VERDICT   tb_v100_fit_rot
+    17 s  GREEN        tb_cdc_capacity
+    17 s  GREEN        tb_fb_rd5x
+    17 s  GREEN        tb_osd_lines
+    17 s  GREEN        tb_ps_publish
+    17 s  GREEN        tb_udp_reasm
+    17 s  GREEN        tb_v795_rx_chain
+    18 s  GREEN        tb_head_rot_displace
+    18 s  GREEN        tb_rotate_window
+    18 s  GREEN        tb_v100_raw_delay
+    19 s  GREEN        tb_edge_rim
+    19 s  GREEN        tb_v101_fb_bilin
+    24 s  GREEN        tb_zoom_fit_corners
+    37 s  RED          tb_link_monitor
+
+## 小结（比较做了多少次，不是通过了多少次 —— rule 47）
+LANE-SUMMARY ran=28/28 green=26 red=1 refuse=0 no-verdict/other=1 wall=495s (23:31:42)
+快车道整条 495 s = 顶层台架一支 7650 s 的 6.5 %；
+一轮里逐刀等价性用快车道（分钟级），能不能采纳才用顶层台架（一轮只付一次）——这就是 r109 起的新流程。
+
+## 分界怎么复查（别凭台架名字猜）
+   grep -l pl_video_top sim/tb_*.v  ⇒ 凡例化顶层的那几支本身就是顶层台架，不进快车道
+   （第一跑把 tb_v98_c8_edge_column/tb_commit_strobe/tb_shown_rate/tb_v89_align 放进清单，
+     其中 tb_v98_c8_edge_column 单支跑了 15 分钟没收尾，就是这个形状暴露的）
+
+## 基线里的两条非绿（都不是 r109 的改动造成的）
+LANE NO-VERDICT wall=16s rc=4 VERDICT tb_v100_fit_rot: NO-VERDICT-LINE（这支台架一条判定都没打，去数判据条数） 
+LANE RED wall=37s rc=3 VERDICT tb_link_monitor: RESULT tb_link_monitor FAIL (1 errors) 
+   tb_link_monitor 的 F2e 是既存长期红（任务 #174：它不在门禁射程内）；
+   tb_v100_fit_rot 的 NO-VERDICT 是它自己缺统一收尾 token（#166 那一族），本轮已补，改后跑见 build/r109_lane_after.txt

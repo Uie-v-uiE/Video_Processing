@@ -1,0 +1,13 @@
+36568c714d786b1c7daab9a28152f393 *system.bit
+b02175dd22f35f4df95d4e34080b78d6 *system.xsa
+f64ab31672c8d98cbe7270426b3bda43 *ps_app.elf
+bd687246465a8d58d74a5efd72e45998 *timing_summary.rpt
+29c8d6c96df1d14a7c1f826c73919853 *utilization.rpt
+4a868d134ec19de0e0140847b3bc0651 *methodology.rpt
+ea4eeb916c98e5114b3721052f64fa75 *cdc.rpt
+bdb54dca4c5676456dc7e39eb421013f *power.rpt
+55039ed1442f8d20f6682bef1f42111c *route_status.rpt
+4b43a367b7af94b801cfd31e99a70e3b *gates_r46.txt
+567ffbc64874b7470a4b182354a16fd2 *regression_v79_r46.txt
+014957f7377a08b76eda9e0d5da20ec7 *lane30_r46_concurrent.txt
+da4f09b6aaa3198ded9d0bd5736816a8 *uart_battery_r46_capture.txt

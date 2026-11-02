@@ -1,0 +1,53 @@
+ROSTER|setup|clk=clk_fpga_0|period=10.000|slack=1.495|margin_pct=14.95|levels=NA|route_pct=NA|dest=NA|endpoints=15934|src=timing_summary
+ROSTER|hold|clk=clk_fpga_0|period=10.000|slack=0.056|margin_pct=0.56|levels=NA|route_pct=NA|dest=NA|endpoints=15934|src=timing_summary
+ROSTER|setup|clk=eth_rxc|period=8.000|slack=0.452|margin_pct=5.65|levels=NA|route_pct=NA|dest=NA|endpoints=4844|src=timing_summary
+ROSTER|hold|clk=eth_rxc|period=8.000|slack=0.035|margin_pct=0.44|levels=NA|route_pct=NA|dest=NA|endpoints=4844|src=timing_summary
+ROSTER|setup|clk=sys_clk|period=20.000|slack=14.262|margin_pct=71.31|levels=NA|route_pct=NA|dest=NA|endpoints=323|src=timing_summary
+ROSTER|hold|clk=sys_clk|period=20.000|slack=0.133|margin_pct=0.67|levels=NA|route_pct=NA|dest=NA|endpoints=323|src=timing_summary
+ROSTER|setup|clk=clkout0_1|period=20.000|slack=4.222|margin_pct=21.11|levels=NA|route_pct=NA|dest=NA|endpoints=30325|src=timing_summary
+ROSTER|hold|clk=clkout0_1|period=20.000|slack=0.062|margin_pct=0.31|levels=NA|route_pct=NA|dest=NA|endpoints=30325|src=timing_summary
+ROSTERFROMSUM S1_clock_rows            rows=8           floor>=8 GREEN
+ROSTERFROMSUM S2_period_known          periods=8        want>=2 GREEN
+ROSTERFROMSUM S3_margin_computed       na_margin=0      want=0 GREEN
+ROSTERFROMSUM S4_period_freq_crosscheck 8/8 bad=0        bad=0 GREEN
+ROSTERFROMSUM-SUMMARY src=build/evidence/r114_mf/B_timing_summary.rpt clock_rows=4 periods=8 result=GREEN
+FANOUT|fo=2555|net=u_eth/u_rgmii/u_rgmii_rx/gmii_rx_clk
+FANOUT|fo=2421|net=u_idelay_clkgen/u_mmcm_0
+FANOUT|fo=2051|net=u_pl/u_clk/u_mmcm_0
+FANOUT|fo=562|net=u_bd/bbstub_FCLK_RESET0_N_repN_2
+FANOUT|fo=416|net=u_bd/bbstub_FCLK_RESET0_N_repN
+FANOUT|fo=358|net=u_bd/bbstub_FCLK_RESET0_N_repN_3
+FANOUT|fo=267|net=u_pl/u_pipe/xd_reg[12][5]_0_repN
+FANOUT|fo=267|net=u_pl/u_pipe/xd_reg[12][0]_0_repN
+FANOUT|fo=266|net=u_pl/u_pipe/xd_reg[12][2]_0_repN
+FANOUT|fo=265|net=u_pl/u_pipe/xd_reg[12][3]_0_repN
+FANOUT|fo=265|net=u_pl/u_pipe/xd_reg[12][4]_0_repN
+FANOUT|fo=245|net=u_eth/u_saver/wptr_reg[5]_repN_7
+FANOUT|fo=244|net=u_pl/u_pipe/xd_reg[12][1]_0_repN
+FANOUT|fo=224|net=u_pl/u_pipe/xd_reg[8][6]_0[4]
+FANOUT|fo=224|net=u_pl/u_pipe/xd_reg[8][5]_rep__1_0[4]
+FANOUT|fo=224|net=u_pl/u_pipe/xd_reg[8][6]_0[5]
+FANOUT|fo=224|net=u_pl/u_bilin/j_d3_reg[4]_rep__0_0[3]
+FANOUT|fo=224|net=u_pl/u_bilin/fx_d2[1]
+FANOUT|fo=224|net=u_pl/u_bilin/A[0]
+FANOUT|fo=224|net=u_pl/u_bilin/ADDRD[0]
+FANOUT|fo=224|net=u_pl/u_bilin/j_d3_reg[4]_rep__0_0[0]
+FANOUT|fo=224|net=u_pl/u_bilin/j_d3_reg[4]_rep__1_0[0]
+FANOUT|fo=224|net=u_pl/u_bilin/j_d3_reg[4]_rep__2_0[0]
+FANOUT|fo=224|net=u_pl/u_bilin/A[1]
+FANOUT|fo=224|net=u_pl/u_bilin/ADDRD[1]
+FANOUT|fo=224|net=u_pl/u_bilin/ADDRD[3]
+FANOUT|fo=224|net=u_pl/u_pipe/xd_reg[8][5]_rep__1_0[5]
+FANOUT|fo=224|net=u_pl/u_bilin/j_d3_reg[4]_rep__1_0[3]
+FANOUT|fo=224|net=u_pl/u_bilin/j_d3_reg[4]_rep__2_0[3]
+FANOUT|fo=224|net=u_pl/u_bilin/A[4]
+FANOUT|fo=224|net=u_pl/u_bilin/ADDRD[4]
+FANOUT|fo=224|net=u_pl/u_bilin/j_d3_reg[4]_rep__0_0[4]
+FANOUT|fo=224|net=u_pl/u_bilin/j_d3_reg[4]_rep__1_0[4]
+FANOUT|fo=224|net=u_pl/u_bilin/j_d3_reg[4]_rep__2_0[4]
+FANOUT|fo=224|net=u_pl/u_pipe/xd_reg[2][0]_rep__3_0[0]
+FANOUT|fo=224|net=u_pl/u_pipe/xd_reg[2][0]_rep_0[0]
+FANOUT|fo=224|net=u_pl/u_pipe/xd_reg[2][0]_rep__2_0[0]
+FANOUT|fo=224|net=u_pl/u_pipe/xd_reg[2][0]_rep__1_0[0]
+FANOUT|fo=224|net=u_pl/u_pipe/xd_reg[2][0]_rep__0_0[0]
+FANOUT|fo=224|net=u_pl/u_pipe/ADDRD[0]

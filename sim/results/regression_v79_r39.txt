@@ -1,0 +1,377 @@
+#-----------------------------------------------------------
+# Vivado v2025.2.1 (64-bit)
+# SW Build 6403652 on Thu Mar 19 19:48:24 GMT 2026
+# IP Build 6403511 on Thu Mar 19 12:41:45 MDT 2026
+# SharedData Build 6403650 on Thu Mar 19 14:02:13 MDT 2026
+# Start of session at: Thu Sep 24 01:12:06 2026
+# Process ID         : 412
+# Current directory  : D:/Xilinx/Prj/pro/Video_Processing
+# Command line       : vivado.exe -mode batch -nojournal -log sim/xsim_r39.log -source sim/run_sim.tcl
+# Log file           : D:/Xilinx/Prj/pro/Video_Processing/sim/xsim_r39.log
+# Journal file       : 
+# Running On         : Uie-laptop
+# Platform           : Windows Server 2016 or Windows 10
+# Operating System   : 26200
+# Processor Detail   : 12th Gen Intel(R) Core(TM) i5-12450H
+# CPU Frequency      : 2496 MHz
+# CPU Physical cores : 8
+# CPU Logical cores  : 12
+# Host memory        : 16873 MB
+# Swap memory        : 12323 MB
+# Total Virtual      : 29197 MB
+# Available Virtual  : 11851 MB
+#-----------------------------------------------------------
+source sim/run_sim.tcl
+# set ws [file normalize [file join [file dirname [info script]] ..]]
+# set rtl_dir [file join $ws src rtl]
+# set simdir  [file join $ws sim]
+# set work    [file join $ws sim_work]
+# puts "WS: $ws"
+WS: D:/Xilinx/Prj/pro/Video_Processing
+# foreach d [list $rtl_dir $simdir] {
+#     if {![file isdirectory $d]} { puts "FATAL missing $d"; exit 1 }
+# }
+# file mkdir $work
+# cd $work
+# catch {exec cmd /c rmdir /s /q xsim.dir}
+# set rtl {}
+# foreach f [glob -nocomplain [file join $rtl_dir *.v]] { lappend rtl $f }
+# foreach d [glob -nocomplain -directory $rtl_dir *] {
+#     if {![file isdirectory $d]} { continue }
+#     foreach f [glob -nocomplain [file join $d *.v]] { lappend rtl $f }
+#     foreach s [glob -nocomplain [file join $d * *.v]] { lappend rtl $s }
+# }
+# set rtl [lsort -unique $rtl]
+# set tbs [lsort [glob -nocomplain [file join $simdir tb_*.v]]]
+# foreach f [list [file join $ws ku5p src rtl ku5p_telem.v] \
+#                [file join $ws ku5p src rtl ku5p_tx_arb.v] \
+#                [file join $ws ku5p src rtl ku5p_cmd.v]] {
+#     if {[file exists $f]} { lappend rtl $f }
+# }
+# puts "xvlog rtl=[llength $rtl] tb=[llength $tbs]"
+xvlog rtl=73 tb=47
+# set sources {}
+# foreach f [concat $rtl $tbs] { lappend sources [file normalize $f] }
+# if {[catch {eval exec xvlog $sources} msg]} {
+#     puts "XVLOG FAILED"
+#     puts $msg
+#     exit 1
+# }
+# puts "XVLOG OK"
+XVLOG OK
+# if {[info exists ::env(SIM_ONLY)]} { exit 0 }
+# set want {}
+# if {[info exists ::env(SIM_TB)]} {
+#     foreach t [split [string map {, " "} $::env(SIM_TB)] " "] {
+#         if {$t ne ""} { lappend want $t }
+#     }
+# }
+# set simargs {}
+# if {[info exists ::env(SIM_ARGS)]} {
+#     foreach a [split [string map {, " "} $::env(SIM_ARGS)] " "] {
+#         if {$a eq ""} { continue }
+#         lappend simargs --testplusarg [string map {+ ""} $a]
+#     }
+# }
+# puts "SIM_ARGS: $simargs"
+SIM_ARGS: 
+# set npass 0
+# set nfail 0
+# foreach tf $tbs {
+#     set tb [file rootname [file tail $tf]]
+#     if {[llength $want] > 0 && [lsearch -exact $want $tb] < 0} { continue }
+#     puts "==== $tb ===="
+#     if {[catch {eval exec xelab {-debug typical} $tb -s $tb} msg]} {
+#         puts "RESULT $tb ELAB_FAIL"
+#         puts [lindex [split [string trim $msg] \n] end]
+#         incr nfail
+#         continue
+#     }
+#     if {[catch {eval exec xsim $tb -R $simargs} msg]} { puts $msg }
+#     if {[info exists ::env(SIM_VERBOSE)]} {
+#         foreach line [split $msg \n] { puts "  | [string trim $line]" }
+#     }
+#     set hits {}
+#     foreach line [split $msg \n] {
+#         if {[string match *PASS* $line] || [string match *FAIL* $line]} {
+#             lappend hits [string trim $line]
+#         }
+#     }
+#     foreach h [lrange $hits end-9 end] { puts "  $h" }
+#     # NO_ASSERT è¿‡å»è¢?è®¡å…¥ passï¼šä¸€ä¸?"ä»€ä¹ˆéƒ½æ²¡æ–­è¨€"çš„æµ‹è¯•å°ä¸è?¥ç®—è¿‡ã€?
+#     # ç°åœ¨ NO_ASSERT ä¸? FAIL åŒç­‰å¯¹å¾…ï¼ˆè·‘ä¸åˆ°æœ€åæ–­è¨€çš„å°æ¶ä»¥å‰ä¼šæ‚„æ‚„ç»¿ï¼‰ã€?
+#     set verdict FAIL
+#     if {[llength $hits] > 0} {
+#         set verdict PASS
+#         foreach h $hits { if {[string match *FAIL* $h]} { set verdict FAIL; break } }
+#     } else {
+#         puts "  (æ²¡æœ‰ PASS/FAIL æ–?è¨€è¡? â€”â€? åˆ¤ä¸ºå¤±è´¥)"
+#     }
+#     puts "RESULT $tb $verdict"
+#     if {$verdict eq "FAIL" || $verdict eq "ELAB_FAIL"} { incr nfail } else { incr npass }
+# }
+==== tb_bilin_lerp ====
+  PASS åˆ¤æ®1 fx=fy=0 é€ä½ç­‰äº p00
+  PASS åˆ¤æ®6 çº?ç™½åœ¨ä»»æ„æƒé‡ä¸‹ä¿æŒ? ffff
+  PASS åˆ¤æ®2 å››è¡ì’åŒè‰²å?¹å…¨éƒ¨é‡‡æ ¡¤ (fx,fy) æ’ç­‰ï¼ˆç™½/é»?/çº?çº?/çº?ç»?/çº?è“?/ä¸€èˆ?è‰²ï¼‰
+  PASS åˆ¤æ®3 æ²¿æ’å€¼æ–¹å‘è¾“å‡ºå•è°ƒä¸å‡?
+  PASS åˆ¤æ®4 å·¦å³é•œåƒåœ¡§ Â±1 LSB å†…å?¹ç§°
+  PASS åˆ¤æ®5 400 ç»„éšæœºæŠ½å¤´ä¸é»„é‡‘æ¨¡å‹é€é€šé“å·? <=1 ä¸?è¾“å‡ºç ï¼ˆæœ€å·? 0ï¼?
+  RESULT tb_bilin_lerp PASS
+RESULT tb_bilin_lerp PASS
+==== tb_crc32 ====
+  PASS init
+  PASS crc updates
+  PASS clr
+  PASS determinism
+  PASS tb_crc32 ALL
+RESULT tb_crc32 PASS
+==== tb_eth_video ====
+  PASS udp payload len
+  PASS frame complete sf=1 n_wr=64
+  PASS tb_eth_video ALL
+RESULT tb_eth_video PASS
+==== tb_fb_pack ====
+  RESULT tb_fb_pack PASS
+RESULT tb_fb_pack PASS
+==== tb_fb_rd5x ====
+  RESULT tb_fb_rd5x PASS
+RESULT tb_fb_rd5x PASS
+==== tb_fb_roundtrip ====
+  PASS tb_fb_roundtrip
+RESULT tb_fb_roundtrip PASS
+==== tb_ku5p_telem ====
+  PASS C7 period_s=3 -> 1200 cycles apart (3*400)
+  PASS C8b SNAP acked 14 cycles after the pulse (period is 1200)
+  PASS C8 CLR reported deltas (100/250), not absolute counters
+  PASS tb_ku5p_telem
+RESULT tb_ku5p_telem PASS
+==== tb_ku5p_tx_arb ====
+  PASS tb_ku5p_tx_arb
+RESULT tb_ku5p_tx_arb PASS
+==== tb_link_monitor ====
+  PASS interval stats re-calibrate after the clear
+  PASS snap_cross starts with hb_gone=1
+  PASS snap_cross captured 100/100 intact snapshots
+  PASS hb_slow clear while the heartbeat is at nominal rate
+  PASS hb_slow asserts when the source clock is degraded (æ‹”çº¿å·¥å†µ)
+  PASS hb_gone correctly stays clear (å®ƒçœ‹ä¸è¡ìè¿™ä»¶äº‹ï¼Œæ?£æ˜¯åŠ? hb_slow çš„ç†ç”¡À)
+  PASS hb_gone asserts when the source clock stops
+  PASS the last snapshot survives the source clock dying (æ˜¾ç¤ºç«?ä»èƒ½çœ‹åˆ°æ•°å­—)
+  PASS production timebase: 87 ms_ticks in 10903570 cycles (125000/ms)
+  RESULT tb_link_monitor PASS
+RESULT tb_link_monitor PASS
+==== tb_osd_lines ====
+  PASS number formatting: DROP hex (5 nibble) / STALL dec, both saturating
+  PASS glyph scan: D R O P S T A L (+ è€è?? F/E æ²¡ç§»ä½?)
+  RESULT tb_osd_lines PASS
+RESULT tb_osd_lines PASS
+==== tb_proc_gray ====
+  PASS tb_proc_gray
+RESULT tb_proc_gray PASS
+==== tb_ps_publish ====
+  RESULT tb_ps_publish PASS
+RESULT tb_ps_publish PASS
+==== tb_rotate_mapper ====
+  PASS id (0,0)
+  PASS id (32,18)
+  PASS id (63,35)
+  PASS tb_rotate_mapper
+RESULT tb_rotate_mapper PASS
+==== tb_rotate_window ====
+  PASS blur active with rotate_active=1
+  PASS blur active with rotate_active=0
+  PASS tb_rotate_window ALL
+RESULT tb_rotate_window PASS
+==== tb_sync_fifo ====
+  PASS level
+  PASS empty end
+  PASS tb_sync_fifo ALL
+RESULT tb_sync_fifo PASS
+==== tb_tap_sched ====
+  RESULT tb_tap_sched PASS
+RESULT tb_tap_sched PASS
+==== tb_timing ====
+  PASS tb_timing
+RESULT tb_timing PASS
+==== tb_uart_decode_bits ====
+  PASS tb_uart_decode_bits
+RESULT tb_uart_decode_bits PASS
+==== tb_udp_parser ====
+  PASS payload extracted
+  PASS wrong port dropped
+  PASS tb_udp_parser ALL
+RESULT tb_udp_parser PASS
+==== tb_udp_reasm ====
+  PASS normal full frame
+  PASS pixel0
+  PASS pixel1
+  PASS OOS later-first
+  PASS OOS later-second
+  PASS bad counted
+  PASS duplicate overwrite
+  PASS second frame after jump
+  PASS tb_udp_reasm ALL
+RESULT tb_udp_reasm PASS
+==== tb_v50_rowmath ====
+  PASS basic correct formula
+  PASS 16-bit truncation is a real production bug (172 rows wrong)
+  PASS correct formula covers all 300 rows
+  PASS tb_v50_rowmath
+RESULT tb_v50_rowmath PASS
+==== tb_v50_rows ====
+  PASS no commit on 2/4 rows
+  PASS commit after all rows done_cnt=1
+  PASS tb_v50_rows
+RESULT tb_v50_rows PASS
+==== tb_v50_rows_prod ====
+  PASS no commit when only 10/300 rows
+  PASS no commit when rows are touched but bytes are short
+  PASS commit after 300 full production rows done=1
+  PASS tb_v50_rows_prod
+RESULT tb_v50_rows_prod PASS
+==== tb_v571_allow_lead ====
+  PASS allow high in stable blanking
+  PASS allow low before/at de after lead
+  PASS tb_v571_allow_lead
+RESULT tb_v571_allow_lead PASS
+==== tb_v57_first_ar ====
+  PASS no write while de=1
+  PASS copy completed after allow rose wr=64/64
+  PASS tb_v57_first_ar
+RESULT tb_v57_first_ar PASS
+==== tb_v57_rdw_copy ====
+  PASS full frame, no lost beats
+  PASS writes only when allow
+  PASS tb_v57_rdw_copy
+RESULT tb_v57_rdw_copy PASS
+==== tb_v58_full_done ====
+  PASS clean full copy done wr=64
+  PASS no done after abort (wr=16)
+  PASS tb_v58_full_done
+RESULT tb_v58_full_done PASS
+==== tb_v5_bank ====
+  PASS completed_base locked to bank0
+  PASS write bank flipped to bank1 on frame_done
+  PASS idle after drain
+  PASS tb_v5_bank
+RESULT tb_v5_bank PASS
+==== tb_v5_copy ====
+  PASS full frame written
+  PASS tb_v5_copy
+RESULT tb_v5_copy PASS
+==== tb_v5_gated ====
+  PASS BRAM writes occurred
+  PASS writer only writes when allow
+  PASS allow not stuck on during active (residue=4158)
+  PASS tb_v5_gated
+RESULT tb_v5_gated PASS
+==== tb_v5_lock ====
+  PASS copy_base locked (10000000)
+  PASS latest pending after done
+  PASS tb_v5_lock
+RESULT tb_v5_lock PASS
+==== tb_v5_saver ====
+  PASS all words written
+  PASS idle
+  PASS tb_v5_saver
+RESULT tb_v5_saver PASS
+==== tb_v5_vblast ====
+  PASS full frame written
+  PASS copy throughput acceptable for V-blast
+  PASS tb_v5_vblast
+RESULT tb_v5_vblast PASS
+==== tb_v6_cover_gate ====
+  PASS complete 512x300 frame commits
+  PASS clean frame not counted as bad
+  PASS frame with a lost packet is refused
+  PASS holey frame counted on the wire (OSD net_bad)
+  PASS next complete frame commits again
+  PASS tb_v6_cover_gate
+RESULT tb_v6_cover_gate PASS
+==== tb_v6_ingress_integrity ====
+  PASS ingress lossless
+  PASS partial frame not committed
+  PASS tb_v6_ingress_integrity
+RESULT tb_v6_ingress_integrity PASS
+==== tb_v6_pingpong ====
+  PASS last frame fully landed
+  PASS tb_v6_pingpong
+RESULT tb_v6_pingpong PASS
+==== tb_v6_tail_bank ====
+  PASS tb_v6_tail_bank
+RESULT tb_v6_tail_bank PASS
+==== tb_v6_vblank_copy ====
+  PASS rate=10/10 swap inside one V-blank done=1 cycles=38441 words=38400
+  PASS rate=7/10 swap inside one V-blank done=1 cycles=54894 words=38400
+  PASS rate=6/10 swap inside one V-blank done=1 cycles=64036 words=38400
+  PASS rate=4/10 swap     after spilling done=0 cycles=1708873 words=38400
+  PASS tb_v6_vblank_copy
+RESULT tb_v6_vblank_copy PASS
+==== tb_v794_osd_glyph ====
+  PASS tb_v794_osd_glyph
+RESULT tb_v794_osd_glyph PASS
+==== tb_v795_rx_chain ====
+  PASS tb_v795_rx_chain
+RESULT tb_v795_rx_chain PASS
+==== tb_v795_rx_fcs ====
+  PASS tb_v795_rx_fcs
+RESULT tb_v795_rx_fcs PASS
+==== tb_v796_src_arb ====
+  PASS E4 default-param instance still holds at 606 cyc
+  PASS E5 default T_OFF: ETH releases after ~20 ms
+  PASS E6 recovery: ETH takes the bus back at once
+  PASS F0 AUTO with no stream: PS owns
+  PASS F1 force-ETH takes the bus although eth_live=0
+  PASS F2 force-PS still waits for fill_busy ??????????????????€)
+  PASS F3 force-PS hands over once idle
+  PASS F4 AUTO resumes following eth_live
+  PASS F5 sel=11 behaves as AUTO
+  PASS tb_v796_src_arb
+RESULT tb_v796_src_arb PASS
+==== tb_v79_abort_toggle ====
+  PASS tb_v79_abort_toggle
+RESULT tb_v79_abort_toggle PASS
+==== tb_v80_ku5p_cmd ====
+  PASS B3b empty payload charged as neither ok nor bad
+  PASS C1 vendor-style eof still executes CLR
+  PASS C2 vendor-style SPD7 -> period 7
+  PASS C2b both vendor cmds counted
+  PASS D1 bad packet did not execute
+  PASS D1b bad packet charged to neither counter
+  PASS D2 same bytes in a good packet DO execute
+  PASS D2b ok count moved
+  PASS SUM ok=10 bad=4 (running total closes)
+  PASS tb_v80_ku5p_cmd
+RESULT tb_v80_ku5p_cmd PASS
+==== tb_v81_test_card ====
+  PASS T11b ???????¡¤????????????????????????????????????????
+  PASS T???¨¦??????????¡§ (frame mod 8????????????????????????
+  PASS T???????????¡§???????????????????????¡À???¨¦???¡¤???¡§???????????????¨¨????????
+  PASS T1???????????????????????????????¡§???????????????¨¦????????
+  PASS T15 de=0???????????????????????????????????????¡ã??? ???????????????€????
+  PASS T15b ????????????????????????????????????????
+  PASS T16???????????????????????¨¦?ET???”PS/???????????????¡§
+  PASS T1???????????????????????????????????????????????????????????????¨¨????????
+  PASS T16c???????????????¡¤???????????????????????????????????????¨¨????????????????????
+  PASS tb_v81_test_card
+RESULT tb_v81_test_card PASS
+==== tb_v82_src_mode ====
+  PASS T2b???????????????¨¦?PS
+  PASS T2c???????????????¨¦????????
+  PASS T2d?????????????????? A???????????????¨¦????????
+  PASS T3???????????????????¨¦????????????????????
+  PASS T4???¡¤??????????????¡ã AUTO????????????????????????????????????
+  PASS T4 ???????????????????????€??? AUTO???¨¦?ET?????????? 2???????????¨¨???????¡§
+  PASS T???¡è??????????????????E???¼ˆT4 ?????????????????? T????????????????????????
+  PASS T5b???????????¡§?????????? A???????????????????????????¨¨???????????????????????????€????
+  PASS T6??????????????????? ???????????????????¡ã????????????
+  PASS tb_v82_src_mode
+RESULT tb_v82_src_mode PASS
+==== tb_zoom_mapper ====
+  PASS tb_zoom_mapper
+RESULT tb_zoom_mapper PASS
+# puts "SIM DONE pass=$npass fail=$nfail"
+SIM DONE pass=47 fail=0
+# exit 0
+INFO: [Common 17-206] Exiting Vivado at Thu Sep 24 01:15:45 2026...

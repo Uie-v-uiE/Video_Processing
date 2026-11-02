@@ -1,0 +1,3 @@
+step acc
+s0 0
+s1 1

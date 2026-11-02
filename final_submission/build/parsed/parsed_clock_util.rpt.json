@@ -1,0 +1,866 @@
+{
+ "field_positions": [
+  {
+   "col": "NOT_MEASURED",
+   "field": "banner.Tool Version",
+   "file": "build/clock_util.rpt",
+   "line": 3,
+   "locator": "sed -n '3p' build/clock_util.rpt",
+   "value": "Vivado v.2025.2.1 (win64) Build 6403652 Thu Mar 19 19:48:24 GMT 2026"
+  },
+  {
+   "col": "NOT_MEASURED",
+   "field": "banner.Date",
+   "file": "build/clock_util.rpt",
+   "line": 4,
+   "locator": "sed -n '4p' build/clock_util.rpt",
+   "value": "Sun Oct  4 04:37:49 2026"
+  },
+  {
+   "col": "NOT_MEASURED",
+   "field": "banner.Host",
+   "file": "build/clock_util.rpt",
+   "line": 5,
+   "locator": "sed -n '5p' build/clock_util.rpt",
+   "value": "Uie-laptop running 64-bit major release  (build 9200)"
+  },
+  {
+   "col": "NOT_MEASURED",
+   "field": "banner.Command",
+   "file": "build/clock_util.rpt",
+   "line": 6,
+   "locator": "sed -n '6p' build/clock_util.rpt",
+   "value": "report_clock_utilization -file D:/Xilinx/Prj/pro/Video_Processing/build/clock_util.rpt"
+  },
+  {
+   "col": "NOT_MEASURED",
+   "field": "banner.Design",
+   "file": "build/clock_util.rpt",
+   "line": 7,
+   "locator": "sed -n '7p' build/clock_util.rpt",
+   "value": "system_top"
+  },
+  {
+   "col": "NOT_MEASURED",
+   "field": "banner.Device",
+   "file": "build/clock_util.rpt",
+   "line": 8,
+   "locator": "sed -n '8p' build/clock_util.rpt",
+   "value": "7z020-clg484"
+  },
+  {
+   "col": "NOT_MEASURED",
+   "field": "banner.Speed File",
+   "file": "build/clock_util.rpt",
+   "line": 9,
+   "locator": "sed -n '9p' build/clock_util.rpt",
+   "value": "-2  PRODUCTION 1.12 2019-11-22"
+  },
+  {
+   "col": "NOT_MEASURED",
+   "field": "banner.Design State",
+   "file": "build/clock_util.rpt",
+   "line": 10,
+   "locator": "sed -n '10p' build/clock_util.rpt",
+   "value": "Routed"
+  },
+  {
+   "col": "NOT_MEASURED",
+   "field": "banner.Grade",
+   "file": "build/clock_util.rpt",
+   "line": "NOT_MEASURED",
+   "locator": "grep -n '<锚点文本>' build/clock_util.rpt（本轮没定位到 ⇒ NOT_MEASURED）",
+   "value": "NOT_MEASURED"
+  },
+  {
+   "col": "NOT_MEASURED",
+   "field": "banner.Process",
+   "file": "build/clock_util.rpt",
+   "line": "NOT_MEASURED",
+   "locator": "grep -n '<锚点文本>' build/clock_util.rpt（本轮没定位到 ⇒ NOT_MEASURED）",
+   "value": "NOT_MEASURED"
+  },
+  {
+   "col": "NOT_MEASURED",
+   "field": "banner.Characterization",
+   "file": "build/clock_util.rpt",
+   "line": "NOT_MEASURED",
+   "locator": "grep -n '<锚点文本>' build/clock_util.rpt（本轮没定位到 ⇒ NOT_MEASURED）",
+   "value": "NOT_MEASURED"
+  },
+  {
+   "col": 10,
+   "field": "clock_resources[clk_fpga_0].Clock Period",
+   "file": "build/clock_util.rpt",
+   "line": 59,
+   "locator": "sed -n '59p' build/clock_util.rpt | awk -F('|') '{print $11}'",
+   "value": "10.000"
+  },
+  {
+   "col": 13,
+   "field": "clock_resources[clk_fpga_0].Net",
+   "file": "build/clock_util.rpt",
+   "line": 59,
+   "locator": "sed -n '59p' build/clock_util.rpt | awk -F('|') '{print $14}'",
+   "value": "u_bd/design_1_i/processing_system7_0/inst/FCLK_CLK0"
+  },
+  {
+   "col": 12,
+   "field": "clock_resources[clk_fpga_0].Driver Pin",
+   "file": "build/clock_util.rpt",
+   "line": 59,
+   "locator": "sed -n '59p' build/clock_util.rpt | awk -F('|') '{print $13}'",
+   "value": "u_bd/design_1_i/processing_system7_0/inst/buffer_fclk_clk_0.FCLK_CLK_0_BUFG/O"
+  },
+  {
+   "col": 1,
+   "field": "clock_resources[clk_fpga_0].Global Id",
+   "file": "build/clock_util.rpt",
+   "line": 59,
+   "locator": "sed -n '59p' build/clock_util.rpt | awk -F('|') '{print $2}'",
+   "value": "g0"
+  },
+  {
+   "col": 8,
+   "field": "clock_resources[clk_fpga_0].Clock Loads",
+   "file": "build/clock_util.rpt",
+   "line": 59,
+   "locator": "sed -n '59p' build/clock_util.rpt | awk -F('|') '{print $9}'",
+   "value": "3597"
+  },
+  {
+   "col": 10,
+   "field": "clock_resources[clkout0_1].Clock Period",
+   "file": "build/clock_util.rpt",
+   "line": 60,
+   "locator": "sed -n '60p' build/clock_util.rpt | awk -F('|') '{print $11}'",
+   "value": "20.000"
+  },
+  {
+   "col": 13,
+   "field": "clock_resources[clkout0_1].Net",
+   "file": "build/clock_util.rpt",
+   "line": 60,
+   "locator": "sed -n '60p' build/clock_util.rpt | awk -F('|') '{print $14}'",
+   "value": "u_pl/u_clk/clk_pix"
+  },
+  {
+   "col": 12,
+   "field": "clock_resources[clkout0_1].Driver Pin",
+   "file": "build/clock_util.rpt",
+   "line": 60,
+   "locator": "sed -n '60p' build/clock_util.rpt | awk -F('|') '{print $13}'",
+   "value": "u_pl/u_clk/u_bufg_pix/O"
+  },
+  {
+   "col": 1,
+   "field": "clock_resources[clkout0_1].Global Id",
+   "file": "build/clock_util.rpt",
+   "line": 60,
+   "locator": "sed -n '60p' build/clock_util.rpt | awk -F('|') '{print $2}'",
+   "value": "g1"
+  },
+  {
+   "col": 8,
+   "field": "clock_resources[clkout0_1].Clock Loads",
+   "file": "build/clock_util.rpt",
+   "line": 60,
+   "locator": "sed -n '60p' build/clock_util.rpt | awk -F('|') '{print $9}'",
+   "value": "3276"
+  },
+  {
+   "col": 10,
+   "field": "clock_resources[eth_rxc].Clock Period",
+   "file": "build/clock_util.rpt",
+   "line": 61,
+   "locator": "sed -n '61p' build/clock_util.rpt | awk -F('|') '{print $11}'",
+   "value": "8.000"
+  },
+  {
+   "col": 13,
+   "field": "clock_resources[eth_rxc].Net",
+   "file": "build/clock_util.rpt",
+   "line": 61,
+   "locator": "sed -n '61p' build/clock_util.rpt | awk -F('|') '{print $14}'",
+   "value": "u_eth/u_rgmii/u_rgmii_rx/gmii_rx_clk"
+  },
+  {
+   "col": 12,
+   "field": "clock_resources[eth_rxc].Driver Pin",
+   "file": "build/clock_util.rpt",
+   "line": 61,
+   "locator": "sed -n '61p' build/clock_util.rpt | awk -F('|') '{print $13}'",
+   "value": "u_eth/u_rgmii/u_rgmii_rx/BUFG_inst/O"
+  },
+  {
+   "col": 1,
+   "field": "clock_resources[eth_rxc].Global Id",
+   "file": "build/clock_util.rpt",
+   "line": 61,
+   "locator": "sed -n '61p' build/clock_util.rpt | awk -F('|') '{print $2}'",
+   "value": "g2"
+  },
+  {
+   "col": 8,
+   "field": "clock_resources[eth_rxc].Clock Loads",
+   "file": "build/clock_util.rpt",
+   "line": 61,
+   "locator": "sed -n '61p' build/clock_util.rpt | awk -F('|') '{print $9}'",
+   "value": "2544"
+  },
+  {
+   "col": 10,
+   "field": "clock_resources[sys_clk].Clock Period",
+   "file": "build/clock_util.rpt",
+   "line": 62,
+   "locator": "sed -n '62p' build/clock_util.rpt | awk -F('|') '{print $11}'",
+   "value": "20.000"
+  },
+  {
+   "col": 13,
+   "field": "clock_resources[sys_clk].Net",
+   "file": "build/clock_util.rpt",
+   "line": 62,
+   "locator": "sed -n '62p' build/clock_util.rpt | awk -F('|') '{print $14}'",
+   "value": "sys_clk_IBUF_BUFG"
+  },
+  {
+   "col": 12,
+   "field": "clock_resources[sys_clk].Driver Pin",
+   "file": "build/clock_util.rpt",
+   "line": 62,
+   "locator": "sed -n '62p' build/clock_util.rpt | awk -F('|') '{print $13}'",
+   "value": "sys_clk_IBUF_BUFG_inst/O"
+  },
+  {
+   "col": 1,
+   "field": "clock_resources[sys_clk].Global Id",
+   "file": "build/clock_util.rpt",
+   "line": 62,
+   "locator": "sed -n '62p' build/clock_util.rpt | awk -F('|') '{print $2}'",
+   "value": "g3"
+  },
+  {
+   "col": 8,
+   "field": "clock_resources[sys_clk].Clock Loads",
+   "file": "build/clock_util.rpt",
+   "line": 62,
+   "locator": "sed -n '62p' build/clock_util.rpt | awk -F('|') '{print $9}'",
+   "value": "186"
+  },
+  {
+   "col": 10,
+   "field": "clock_resources[clkout1_1].Clock Period",
+   "file": "build/clock_util.rpt",
+   "line": 63,
+   "locator": "sed -n '63p' build/clock_util.rpt | awk -F('|') '{print $11}'",
+   "value": "4.000"
+  },
+  {
+   "col": 13,
+   "field": "clock_resources[clkout1_1].Net",
+   "file": "build/clock_util.rpt",
+   "line": 63,
+   "locator": "sed -n '63p' build/clock_util.rpt | awk -F('|') '{print $14}'",
+   "value": "u_pl/u_clk/clk_pix5x"
+  },
+  {
+   "col": 12,
+   "field": "clock_resources[clkout1_1].Driver Pin",
+   "file": "build/clock_util.rpt",
+   "line": 63,
+   "locator": "sed -n '63p' build/clock_util.rpt | awk -F('|') '{print $13}'",
+   "value": "u_pl/u_clk/u_bufg_5x/O"
+  },
+  {
+   "col": 1,
+   "field": "clock_resources[clkout1_1].Global Id",
+   "file": "build/clock_util.rpt",
+   "line": 63,
+   "locator": "sed -n '63p' build/clock_util.rpt | awk -F('|') '{print $2}'",
+   "value": "g4"
+  },
+  {
+   "col": 8,
+   "field": "clock_resources[clkout1_1].Clock Loads",
+   "file": "build/clock_util.rpt",
+   "line": 63,
+   "locator": "sed -n '63p' build/clock_util.rpt | awk -F('|') '{print $9}'",
+   "value": "8"
+  },
+  {
+   "col": 10,
+   "field": "clock_resources[clkfbout].Clock Period",
+   "file": "build/clock_util.rpt",
+   "line": 64,
+   "locator": "sed -n '64p' build/clock_util.rpt | awk -F('|') '{print $11}'",
+   "value": "20.000"
+  },
+  {
+   "col": 13,
+   "field": "clock_resources[clkfbout].Net",
+   "file": "build/clock_util.rpt",
+   "line": 64,
+   "locator": "sed -n '64p' build/clock_util.rpt | awk -F('|') '{print $14}'",
+   "value": "u_idelay_clkgen/clkfbout_buf"
+  },
+  {
+   "col": 12,
+   "field": "clock_resources[clkfbout].Driver Pin",
+   "file": "build/clock_util.rpt",
+   "line": 64,
+   "locator": "sed -n '64p' build/clock_util.rpt | awk -F('|') '{print $13}'",
+   "value": "u_idelay_clkgen/u_bufg_fb/O"
+  },
+  {
+   "col": 1,
+   "field": "clock_resources[clkfbout].Global Id",
+   "file": "build/clock_util.rpt",
+   "line": 64,
+   "locator": "sed -n '64p' build/clock_util.rpt | awk -F('|') '{print $2}'",
+   "value": "g5"
+  },
+  {
+   "col": 8,
+   "field": "clock_resources[clkfbout].Clock Loads",
+   "file": "build/clock_util.rpt",
+   "line": 64,
+   "locator": "sed -n '64p' build/clock_util.rpt | awk -F('|') '{print $9}'",
+   "value": "1"
+  },
+  {
+   "col": 10,
+   "field": "clock_resources[clkout2].Clock Period",
+   "file": "build/clock_util.rpt",
+   "line": 65,
+   "locator": "sed -n '65p' build/clock_util.rpt | awk -F('|') '{print $11}'",
+   "value": "5.000"
+  },
+  {
+   "col": 13,
+   "field": "clock_resources[clkout2].Net",
+   "file": "build/clock_util.rpt",
+   "line": 65,
+   "locator": "sed -n '65p' build/clock_util.rpt | awk -F('|') '{print $14}'",
+   "value": "u_idelay_clkgen/idelay_clk"
+  },
+  {
+   "col": 12,
+   "field": "clock_resources[clkout2].Driver Pin",
+   "file": "build/clock_util.rpt",
+   "line": 65,
+   "locator": "sed -n '65p' build/clock_util.rpt | awk -F('|') '{print $13}'",
+   "value": "u_idelay_clkgen/u_bufg_200/O"
+  },
+  {
+   "col": 1,
+   "field": "clock_resources[clkout2].Global Id",
+   "file": "build/clock_util.rpt",
+   "line": 65,
+   "locator": "sed -n '65p' build/clock_util.rpt | awk -F('|') '{print $2}'",
+   "value": "g6"
+  },
+  {
+   "col": 8,
+   "field": "clock_resources[clkout2].Clock Loads",
+   "file": "build/clock_util.rpt",
+   "line": 65,
+   "locator": "sed -n '65p' build/clock_util.rpt | awk -F('|') '{print $9}'",
+   "value": "1"
+  },
+  {
+   "col": 10,
+   "field": "clock_resources[clkfbout_1].Clock Period",
+   "file": "build/clock_util.rpt",
+   "line": 66,
+   "locator": "sed -n '66p' build/clock_util.rpt | awk -F('|') '{print $11}'",
+   "value": "20.000"
+  },
+  {
+   "col": 13,
+   "field": "clock_resources[clkfbout_1].Net",
+   "file": "build/clock_util.rpt",
+   "line": 66,
+   "locator": "sed -n '66p' build/clock_util.rpt | awk -F('|') '{print $14}'",
+   "value": "u_pl/u_clk/clkfbout_buf"
+  },
+  {
+   "col": 12,
+   "field": "clock_resources[clkfbout_1].Driver Pin",
+   "file": "build/clock_util.rpt",
+   "line": 66,
+   "locator": "sed -n '66p' build/clock_util.rpt | awk -F('|') '{print $13}'",
+   "value": "u_pl/u_clk/u_bufg_fb/O"
+  },
+  {
+   "col": 1,
+   "field": "clock_resources[clkfbout_1].Global Id",
+   "file": "build/clock_util.rpt",
+   "line": 66,
+   "locator": "sed -n '66p' build/clock_util.rpt | awk -F('|') '{print $2}'",
+   "value": "g7"
+  },
+  {
+   "col": 8,
+   "field": "clock_resources[clkfbout_1].Clock Loads",
+   "file": "build/clock_util.rpt",
+   "line": 66,
+   "locator": "sed -n '66p' build/clock_util.rpt | awk -F('|') '{print $9}'",
+   "value": "1"
+  }
+ ],
+ "not_measured": [
+  "banner.Grade",
+  "banner.Process",
+  "banner.Characterization"
+ ],
+ "original": "build/clock_util.rpt",
+ "pairing": {
+  "identity_from_provenance": "r118",
+  "pairing_result": "PASS",
+  "provenance_file": "build/provenance.md",
+  "provenance_line": 144,
+  "provenance_md5_12": "22ce2506d78d",
+  "provenance_sha256_16": "25b44ac649300dd4",
+  "recomputed_md5_12": "22ce2506d78d",
+  "recomputed_sha256_16": "25b44ac649300dd4"
+ },
+ "parse_status": "OK",
+ "provenance_present": true,
+ "round": "r118",
+ "sections": {
+  "banner": {
+   "Characterization": "NOT_MEASURED",
+   "Command": "report_clock_utilization -file D:/Xilinx/Prj/pro/Video_Processing/build/clock_util.rpt",
+   "Date": "Sun Oct  4 04:37:49 2026",
+   "Design": "system_top",
+   "Design State": "Routed",
+   "Device": "7z020-clg484",
+   "Grade": "NOT_MEASURED",
+   "Host": "Uie-laptop running 64-bit major release  (build 9200)",
+   "Process": "NOT_MEASURED",
+   "Speed File": "-2  PRODUCTION 1.12 2019-11-22",
+   "Tool Version": "Vivado v.2025.2.1 (win64) Build 6403652 Thu Mar 19 19:48:24 GMT 2026"
+  },
+  "tables": [
+   {
+    "header": [
+     "Type",
+     "Used",
+     "Available",
+     "LOC",
+     "Clock Region",
+     "Pblock"
+    ],
+    "header_line": 41,
+    "rows": [
+     {
+      "cells": [
+       "BUFGCTRL",
+       "8",
+       "32",
+       "0",
+       "0",
+       "0"
+      ],
+      "line": 43
+     },
+     {
+      "cells": [
+       "BUFH",
+       "0",
+       "72",
+       "0",
+       "0",
+       "0"
+      ],
+      "line": 44
+     },
+     {
+      "cells": [
+       "BUFIO",
+       "0",
+       "16",
+       "0",
+       "0",
+       "0"
+      ],
+      "line": 45
+     },
+     {
+      "cells": [
+       "BUFMR",
+       "0",
+       "8",
+       "0",
+       "0",
+       "0"
+      ],
+      "line": 46
+     },
+     {
+      "cells": [
+       "BUFR",
+       "0",
+       "16",
+       "0",
+       "0",
+       "0"
+      ],
+      "line": 47
+     },
+     {
+      "cells": [
+       "MMCM",
+       "2",
+       "4",
+       "0",
+       "0",
+       "0"
+      ],
+      "line": 48
+     },
+     {
+      "cells": [
+       "PLL",
+       "0",
+       "4",
+       "0",
+       "0",
+       "0"
+      ],
+      "line": 49
+     }
+    ],
+    "section": "1 Clock Primitive Utilization",
+    "section_line": 37,
+    "table_border_line": 40
+   },
+   {
+    "header": [
+     "Global Id",
+     "Source Id",
+     "Driver Type/Pin",
+     "Constraint",
+     "Site",
+     "Clock Region",
+     "Load Clock Region",
+     "Clock Loads",
+     "Non-Clock Loads",
+     "Clock Period",
+     "Clock",
+     "Driver Pin",
+     "Net"
+    ],
+    "header_line": 57,
+    "rows": [
+     {
+      "cells": [
+       "g0",
+       "src0",
+       "BUFG/O",
+       "None",
+       "BUFGCTRL_X0Y16",
+       "n/a",
+       "6",
+       "3597",
+       "0",
+       "10.000",
+       "clk_fpga_0",
+       "u_bd/design_1_i/processing_system7_0/inst/buffer_fclk_clk_0.FCLK_CLK_0_BUFG/O",
+       "u_bd/design_1_i/processing_system7_0/inst/FCLK_CLK0"
+      ],
+      "line": 59
+     },
+     {
+      "cells": [
+       "g1",
+       "src1",
+       "BUFG/O",
+       "None",
+       "BUFGCTRL_X0Y0",
+       "n/a",
+       "6",
+       "3276",
+       "0",
+       "20.000",
+       "clkout0_1",
+       "u_pl/u_clk/u_bufg_pix/O",
+       "u_pl/u_clk/clk_pix"
+      ],
+      "line": 60
+     },
+     {
+      "cells": [
+       "g2",
+       "src2",
+       "BUFG/O",
+       "None",
+       "BUFGCTRL_X0Y1",
+       "n/a",
+       "5",
+       "2544",
+       "1",
+       "8.000",
+       "eth_rxc",
+       "u_eth/u_rgmii/u_rgmii_rx/BUFG_inst/O",
+       "u_eth/u_rgmii/u_rgmii_rx/gmii_rx_clk"
+      ],
+      "line": 61
+     },
+     {
+      "cells": [
+       "g3",
+       "src3",
+       "BUFG/O",
+       "None",
+       "BUFGCTRL_X0Y4",
+       "n/a",
+       "4",
+       "186",
+       "0",
+       "20.000",
+       "sys_clk",
+       "sys_clk_IBUF_BUFG_inst/O",
+       "sys_clk_IBUF_BUFG"
+      ],
+      "line": 62
+     },
+     {
+      "cells": [
+       "g4",
+       "src4",
+       "BUFG/O",
+       "None",
+       "BUFGCTRL_X0Y2",
+       "n/a",
+       "1",
+       "8",
+       "0",
+       "4.000",
+       "clkout1_1",
+       "u_pl/u_clk/u_bufg_5x/O",
+       "u_pl/u_clk/clk_pix5x"
+      ],
+      "line": 63
+     },
+     {
+      "cells": [
+       "g5",
+       "src5",
+       "BUFG/O",
+       "None",
+       "BUFGCTRL_X0Y5",
+       "n/a",
+       "1",
+       "1",
+       "0",
+       "20.000",
+       "clkfbout",
+       "u_idelay_clkgen/u_bufg_fb/O",
+       "u_idelay_clkgen/clkfbout_buf"
+      ],
+      "line": 64
+     },
+     {
+      "cells": [
+       "g6",
+       "src6",
+       "BUFG/O",
+       "None",
+       "BUFGCTRL_X0Y3",
+       "n/a",
+       "1",
+       "1",
+       "0",
+       "5.000",
+       "clkout2",
+       "u_idelay_clkgen/u_bufg_200/O",
+       "u_idelay_clkgen/idelay_clk"
+      ],
+      "line": 65
+     },
+     {
+      "cells": [
+       "g7",
+       "src7",
+       "BUFG/O",
+       "None",
+       "BUFGCTRL_X0Y6",
+       "n/a",
+       "1",
+       "1",
+       "0",
+       "20.000",
+       "clkfbout_1",
+       "u_pl/u_clk/u_bufg_fb/O",
+       "u_pl/u_clk/clkfbout_buf"
+      ],
+      "line": 66
+     }
+    ],
+    "section": "2 Global Clock Resources",
+    "section_line": 53,
+    "table_border_line": 56
+   },
+   {
+    "header": [
+     "Source Id",
+     "Global Id",
+     "Driver Type/Pin",
+     "Constraint",
+     "Site",
+     "Clock Region",
+     "Clock Loads",
+     "Non-Clock Loads",
+     "Source Clock Period",
+     "Source Clock",
+     "Driver Pin",
+     "Net"
+    ],
+    "header_line": 76,
+    "rows": [
+     {
+      "cells": [
+       "src0",
+       "g0",
+       "PS7/FCLKCLK[0]",
+       "PS7_X0Y0",
+       "PS7_X0Y0",
+       "X0Y2",
+       "1",
+       "0",
+       "10.000",
+       "clk_fpga_0",
+       "u_bd/design_1_i/processing_system7_0/inst/PS7_i/FCLKCLK[0]",
+       "u_bd/design_1_i/processing_system7_0/inst/FCLK_CLK_unbuffered[0]"
+      ],
+      "line": 78
+     },
+     {
+      "cells": [
+       "src1",
+       "g1",
+       "MMCME2_ADV/CLKOUT0",
+       "None",
+       "MMCME2_ADV_X1Y0",
+       "X1Y0",
+       "1",
+       "0",
+       "20.000",
+       "clkout0_1",
+       "u_pl/u_clk/u_mmcm/CLKOUT0",
+       "u_pl/u_clk/clkout0"
+      ],
+      "line": 79
+     },
+     {
+      "cells": [
+       "src2",
+       "g2",
+       "IBUF/O",
+       "IOB_X1Y28",
+       "IOB_X1Y28",
+       "X1Y0",
+       "1",
+       "0",
+       "8.000",
+       "eth_rxc",
+       "eth_rxc_IBUF_inst/O",
+       "eth_rxc_IBUF"
+      ],
+      "line": 80
+     },
+     {
+      "cells": [
+       "src3",
+       "g3",
+       "IBUF/O",
+       "IOB_X1Y24",
+       "IOB_X1Y24",
+       "X1Y0",
+       "1",
+       "0",
+       "20.000",
+       "sys_clk",
+       "sys_clk_IBUF_inst/O",
+       "sys_clk_IBUF"
+      ],
+      "line": 81
+     },
+     {
+      "cells": [
+       "src4",
+       "g4",
+       "MMCME2_ADV/CLKOUT1",
+       "None",
+       "MMCME2_ADV_X1Y0",
+       "X1Y0",
+       "1",
+       "0",
+       "4.000",
+       "clkout1_1",
+       "u_pl/u_clk/u_mmcm/CLKOUT1",
+       "u_pl/u_clk/clkout1"
+      ],
+      "line": 82
+     },
+     {
+      "cells": [
+       "src5",
+       "g5",
+       "MMCME2_ADV/CLKFBOUT",
+       "None",
+       "MMCME2_ADV_X0Y0",
+       "X0Y0",
+       "1",
+       "0",
+       "20.000",
+       "clkfbout",
+       "u_idelay_clkgen/u_mmcm/CLKFBOUT",
+       "u_idelay_clkgen/clkfbout"
+      ],
+      "line": 83
+     },
+     {
+      "cells": [
+       "src6",
+       "g6",
+       "MMCME2_ADV/CLKOUT2",
+       "None",
+       "MMCME2_ADV_X0Y0",
+       "X0Y0",
+       "1",
+       "0",
+       "5.000",
+       "clkout2",
+       "u_idelay_clkgen/u_mmcm/CLKOUT2",
+       "u_idelay_clkgen/clkout2"
+      ],
+      "line": 84
+     },
+     {
+      "cells": [
+       "src7",
+       "g7",
+       "MMCME2_ADV/CLKFBOUT",
+       "None",
+       "MMCME2_ADV_X1Y0",
+       "X1Y0",
+       "1",
+       "0",
+       "20.000",
+       "clkfbout_1",
+       "u_pl/u_clk/u_mmcm/CLKFBOUT",
+       "u_pl/u_clk/clkfbout"
+      ],
+      "line": 85
+     }
+    ],
+    "section": "3 Global Clock Source Details",
+    "section_line": 72,
+    "table_border_line": 75
+   }
+  ]
+ }
+}

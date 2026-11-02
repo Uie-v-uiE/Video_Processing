@@ -1,0 +1,31 @@
+
+****** xsim v2025.2.1 (64-bit)
+  **** SW Build 6403652 on Thu Mar 19 19:48:24 GMT 2026
+  **** IP Build 6403511 on Thu Mar 19 12:41:45 MDT 2026
+  **** SharedData Build 6403650 on Thu Mar 19 14:02:13 MDT 2026
+  **** Start of session at: Thu Sep 24 23:42:39 2026
+    ** Copyright 1986-2022 Xilinx, Inc. All Rights Reserved.
+    ** Copyright 2022-2026 Advanced Micro Devices, Inc. All Rights Reserved.
+
+source xsim.dir/snap/xsim_script.tcl
+# xsim {snap} -autoloadwcfg -runall
+Time resolution is 1 ps
+run -all
+
+=== 旁路下的「数据 vs 标签」错位量（像素值=坐标；单位：一行/一个像素）===
+    整帧那一列把首行/首列也算进来（窗口级在那里走的是「缓存还没内容」的分支），
+    判据只看**内部**那一列：错位必须是一个固定值，边界几格由数字说话。
+blur  整帧 d=(-1,0) 961/992 越界32 | 内部 d=(-1,0) 729/729 越界0 | 收到 1024 拍
+sharp  整帧 d=(-1,0) 961/992 越界32 | 内部 d=(-1,0) 729/729 越界0 | 收到 1024 拍
+sobel  整帧 d=(-1,0) 961/992 越界32 | 内部 d=(-1,0) 729/729 越界0 | 收到 1024 拍
+morph  整帧 d=(-1,0) 961/992 越界32 | 内部 d=(-1,0) 729/729 越界0 | 收到 1024 拍
+chain  整帧 d=(-4,0) 532/862 越界162 | 内部 d=(-4,0) 405/675 越界54 | 收到 1024 拍
+  NOTE S1 chain：内部有 270/675 个样本落在第二个偏移上（行末回绕/边界逻辑）
+  FAIL S1b chain：内部有 54 个样本的偏移落在 ±3 之外
+四个窗口级内部 drow 之和 = -4；整链内部实测 drow = -4
+T0 NOT-YET 全旁路仍有内部 drow=-4 ⇒ ISSUES #54，V8-4 之前必须修完
+
+FAIL tb_v89_align errors=1
+$finish called at time : 123780 ns : File "D:/Xilinx/Prj/pro/Video_Processing/sim/tb_v89_align.v" Line 241
+exit
+INFO: [Common 17-206] Exiting xsim at Thu Sep 24 23:42:41 2026...

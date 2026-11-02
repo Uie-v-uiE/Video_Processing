@@ -1,0 +1,32 @@
+# r110 落刀器的拷贝树自测（2026-10-03 01:2x，r109 顶层台架仍在飞：真树 src/rtl 一字未动）
+# 方法：把 src+sim 拷进 /tmp/kx/r110_pv2 与 r110_pv3，在拷贝里 git init 后跑同一个脚本 —— 这样既验了写盘路径，
+#       又不动真树；xvlog 只编译不仿真（不起 xsim），与链子不抢资源。
+
+## 一、拦路对照（这一条是好消息：守卫会动，不是摆设）
+不设 VP_ALLOW_BUSY 时对拷贝树跑 --apply：APPLY-REFUSE: xsim.exe 活着 —— 台架链在飞，rc=2。
+⇒ 真树在链子期间落不了刀，这道闸是有牙的（规矩：正对照必须能红/能拦，否则等于没尺子）。
+
+## 二、真写盘路径（拷贝树 + override，三条全 APPLIED）
+刀1 APPLIED +90 字节 行尾=LF            （link_monitor.v:138，缩进 16 空格保住了）
+刀4a APPLIED +469 字节 行尾=CRLF         （frame_reasm.v:96 起，插在 row_covered 定义**之后**）
+刀4b APPLIED -136 字节 行尾=CRLF         （8 行守卫换成 6 行独热，旧守卫整段消失：MUSTNOT 判过）
+注：先前打印成 "+-136"（符号叠加）是渲染瑕疵，判定用的是 shrink 尺度，不影响结论。
+
+## 三、语法级差分对照（xvlog -f 80 个 RTL 文件）
+pristine（未打刀的拷贝）：ERROR=0  WARN=1
+patched （三刀打完）    ：ERROR=0  WARN=1      ⇒ 同一基线，刀没引入编译错误
+
+## 四、这一轮拷树自测**抓到两个真缺陷**（都已修在脚本里，没让它们进真树）
+1) 刀4a 第一版把 new_row_w 插在 `wire row_covered =` **之前** ⇒ patched 编译 2 个错：
+   [VRFC 10-3380] identifier 'row_covered' is used before its declaration（pristine 0 错）
+   —— 这就是"拷贝树预验"的价值：一次 xvlog 十几秒，一次构建 20 分钟。
+2) 放宽成"两侧去空白"比较之后，写回丢了缩进：`if (gapclr) begin …` 被写成顶格。
+   语法无碍，但白吃一次 diff 与行位移（D5 的行号锚点会跟着漂）⇒ 现在写回沿用命中行的缩进。
+另踩一次本仓已记录的老坑：双引号 echo 里写反引号 ⇒ 被当命令替换执行，
+   `git checkout -- <file>` 那半句在 PRE-OK 里被吞掉并打出 syntax error；改单引号后正常。
+
+## 五、还没证的（不许当成已证）
+- 刀4 的**功能等价**只有"按构造同函数"的论证 + 编译通过，仿真级凭据要等树空下来跑
+  `bash sim/run_one.sh tb_reasm_bounds` / `tb_udp_reasm` / `build/timing_lane.sh`（链子期间不许起第二支 xsim）。
+- 刀4 的**时序收益**只有一句判据：下一轮 `build/setup_paths.rpt` 里那条终点 CE 的驱动网 fo 必须离开 316；
+  综合完全可以把独热再折回一根广播网 —— 没离开就回退，不改判据迁就（#223 一轮一变量，#238 是上一刀的教训）。

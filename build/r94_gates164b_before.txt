@@ -1,0 +1,18 @@
+报告目录：build/gates_probe_164b/sub
+新鲜度：system.bit 2026-09-30 12:53:40 / timing 2026-09-30 13:31:07
+        WARN 两者相差 37 分钟 ⇒ 可能不是同一套产物（等构建结束，或按 md5 核对冻结目录）
+        基线里有而本版没有：clk_fpga_0>clkout0_1 eth_rxc>clk_fpga_0 eth_rxc>clkout0_1 sys_clk>eth_rxc （原因未查证，不算改进）
+门禁清单（逐项，条数以本文件 say 调用为准）：
+  WNS (ns)               0.553        >= 0                         PASS
+  失败 setup 端点    0            == 0                         PASS
+  WHS (ns)               0.049        >= 0                         PASS
+  失败 hold 端点     0            == 0                         PASS
+  BRAM (tile/%)          95/67.86%    <= 97%                       PASS
+  Slice LUT / 占比     14374/27.02% <= 98%                       PASS
+  Slice 寄存器        8074         记录用（无阈值）     PASS
+  Dynamic (W)            2.206        与前次同量级           PASS
+  methodology CRIT       0            == 0                         PASS
+  布线错误网线     0            == 0                         PASS
+  cdc.rpt Critical 行   0            基线 4 行，配对不新增、unsafe 不增长 PASS
+  端口宽度警告 8-689 NOLOG        无凭据=未验             FAIL
+build/gates.sh: line 189: W689: unbound variable

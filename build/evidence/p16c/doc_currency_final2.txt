@@ -1,0 +1,47 @@
+扫了 130 个文档（D1/D2/D3）+ 760 个手写文件（D4）；最新且 ALL PASS 的冻结集 = r75_gates.txt
+D1b 基准：bit md5=cd04907e1369 → r118_gates.txt；扫 12 份交付文档，抓到 1 句"板态身份句"（只念相邻带编号的那种，历史句不进射程）
+D1c 基准：r118_gates.txt 行尾 PASS=22 / FAIL=1 / 判定项数=24；比对基准按"除本项外"算（除本项 PASS=23 FAIL=1，本项在基准件里是 pass）；抓到 1 句"门禁 N 项 X 绿 / Y 红"（相邻才判，历史句 0 句只数不判）
+  README.md:8 D4b 还在指已经删掉的旧目录：> [`docs/repro-check.md`](docs/repro-check.md)（本文件与它成对交付）。
+  README.md:8 D4b 还在指已经删掉的旧目录：> [`docs/repro-check.md`](docs/repro-check.md)（本文件与它成对交付）。
+  README.md:48 D4b 还在指已经删掉的旧目录：> 恢复行名后 `判 117 个数（首页层 63 个）／红 0`、rc=0（全程记在 `docs/repro-check.md` §3 的 
+  README.md:75 D4b 还在指已经删掉的旧目录：| R1 | **Vitis 版本要不要断言 2025.2.1**（本会话实测：断言位 **4** 处、"未核实"位 **1** 处） | 
+  README.md:77 D4b 还在指已经删掉的旧目录：| R3 | **板上/文档里的时序与功耗读数分三档** | `build/timing_summary.rpt:151` 0.739 / 
+  README.md:168 D4b 还在指已经删掉的旧目录：本会话已把 11 步全跑过，实测输出摘要记在 [`docs/repro-check.md`](docs/repro-check.md) §2
+  README.md:168 D4b 还在指已经删掉的旧目录：本会话已把 11 步全跑过，实测输出摘要记在 [`docs/repro-check.md`](docs/repro-check.md) §2
+  README.md:246 D4b 还在指已经删掉的旧目录：**从未被任何人跑过的命令一律不写在下面**；写不出处的命令一律不写（排除清单见 `docs/repro-check.md` §5）。
+  README.md:405 D4b 还在指已经删掉的旧目录：[`docs/repro-check.md`](docs/repro-check.md) §4。
+  README.md:405 D4b 还在指已经删掉的旧目录：[`docs/repro-check.md`](docs/repro-check.md) §4。
+  README.md:427 D4b 还在指已经删掉的旧目录：厂商 IP 与第三方代码的来源/协议清单由 P20 那一轮整理，其目标文件 `docs/declarations.md`
+  report/40-optimization.md:12 D4b 还在指已经删掉的旧目录：按 P18b 铁律 1，本节应当引用 `build/parsed/`、`build/roster/`、`build/runs/`、`docs
+  report/40-optimization.md:14 D4b 还在指已经删掉的旧目录：docs/measurements.md` 全部 `No such file or directory`），所以逐格取了名册与差分的**原件
+  report/40-optimization.md:16 D4b 还在指已经删掉的旧目录：`build/parsed/*.json`、`docs/measurements.md`），**`build/runs/`（P15c 逐轮台
+  report/40-optimization.md:17 D4b 还在指已经删掉的旧目录：`docs/build-notes.md`、`docs/optimization-rounds.md` 仍缺**。
+  report/40-optimization.md:17 D4b 还在指已经删掉的旧目录：`docs/build-notes.md`、`docs/optimization-rounds.md` 仍缺**。
+  report/40-optimization.md:19 D4a 点名的文档盘上没有：build/runs/ledger.md
+  report/40-optimization.md:23 D4b 还在指已经删掉的旧目录：| 逐时钟名册 | `docs/timing/roster_baseline.tsv`、`docs/timing/roster_round1
+  report/40-optimization.md:23 D4b 还在指已经删掉的旧目录：| 逐时钟名册 | `docs/timing/roster_baseline.tsv`、`docs/timing/roster_round1
+  report/40-optimization.md:23 D4b 还在指已经删掉的旧目录：| 逐时钟名册 | `docs/timing/roster_baseline.tsv`、`docs/timing/roster_round1
+  report/40-optimization.md:26 D4b 还在指已经删掉的旧目录：| 轮次台账 | `docs/timing/debt_ledger.md` 的各轮追加节、`docs/timing/ROUND_r116.m
+  report/40-optimization.md:26 D4b 还在指已经删掉的旧目录：| 轮次台账 | `docs/timing/debt_ledger.md` 的各轮追加节、`docs/timing/ROUND_r116.m
+  report/40-optimization.md:30 D4a 点名的文档盘上没有：build/runs/ledger.md
+  report/40-optimization.md:44 D4b 还在指已经删掉的旧目录：选 r114 而不是 r116 当主基线的理由写在 `docs/timing/ROUND_r117.md` §〇：r116 多带一份 RGM
+  report/40-optimization.md:87 D4b 还在指已经删掉的旧目录：| r114 | 两刀：`dc_fifo` 四颗格雷码寄存器打 `ASYNC_REG`（#262）+ `hb_gone` 声明初值 | WN
+  report/40-optimization.md:88 D4b 还在指已经删掉的旧目录：| r115 | 一整夜只做**测量**：名册尺子、噪声底、三把候选刀 | **收敛 0 ns**；`noise_ns = 0.000`（两
+  report/40-optimization.md:88 D4b 还在指已经删掉的旧目录：| r115 | 一整夜只做**测量**：名册尺子、噪声底、三把候选刀 | **收敛 0 ns**；`noise_ns = 0.000`（两
+  report/40-optimization.md:89 D4b 还在指已经删掉的旧目录：| r116 | 两刀进构建：RGMII 输入窗第一次写上（min 1.200 / max 2.800）+ `IDELAY_VALUE` 2
+  report/40-optimization.md:89 D4b 还在指已经删掉的旧目录：| r116 | 两刀进构建：RGMII 输入窗第一次写上（min 1.200 / max 2.800）+ `IDELAY_VALUE` 2
+  report/40-optimization.md:90 D4b 还在指已经删掉的旧目录：| r117 | 一刀：`phys_opt_design -force_replication_on_nets {u_pl/u_row/hi
+  report/40-optimization.md:91 D4b 还在指已经删掉的旧目录：| r118 | 只带 `IDELAY_VALUE = 31` 一刀（不挂复制钩子、不加载输入窗） | 片内名册**8 对逐位与 r114 
+  report/40-optimization.md:92 D4b 还在指已经删掉的旧目录：| r119 | 只读探针 + 两份候选 XDC：把 HDMI 源端 TP1 的数写成 `set_output_delay` | 挂上后互对
+  report/40-optimization.md:113 D4b 还在指已经删掉的旧目录：| V7 | **Pblock `SLICE_X40Y20:SLICE_X66Y52`（r113 roll B）** | 没量到（滚在两分钟
+  report/40-optimization.md:118 D4b 还在指已经删掉的旧目录：| V12 | **复制驱动重开（r115 夜 C1，310 颗 replica）** | 确实抬高了 `clk_fpga_0` setup
+  report/40-optimization.md:119 D4b 还在指已经删掉的旧目录：| V13 | **统一 0.800 ns hold 不确定度给四域（C2）** | 无收益（方向是**加严**，本来就不产收益）；它买到的
+  report/40-optimization.md:119 D4b 还在指已经删掉的旧目录：| V13 | **统一 0.800 ns hold 不确定度给四域（C2）** | 无收益（方向是**加严**，本来就不产收益）；它买到的
+  report/40-optimization.md:120 D4b 还在指已经删掉的旧目录：| V14 | **MMCM 负相移把 IDDR 捕获钟提前（C3，副本树）** | S2 机制 GREEN（副本树 `mmcm=1/idd
+  report/40-optimization.md:120 D4b 还在指已经删掉的旧目录：| V14 | **MMCM 负相移把 IDDR 捕获钟提前（C3，副本树）** | S2 机制 GREEN（副本树 `mmcm=1/idd
+  report/40-optimization.md:121 D4b 还在指已经删掉的旧目录：| V15 | **`IDELAY_VALUE` 在 0…31 之外找点（tap 全档）** | 在带窗口径下扫满 0…31，量到两条实测直
+  report/40-optimization.md:121 D4b 还在指已经删掉的旧目录：| V15 | **`IDELAY_VALUE` 在 0…31 之外找点（tap 全档）** | 在带窗口径下扫满 0…31，量到两条实测直
+  …另外 95 条
+D4c 范围：交付文档 26 份判红；其余 734 份点名凭据 585 条只报数（日记与注释里那些"当时存在、随后删掉"的中间件不算指路错误 —— 见脚本头部）
+  同行写了"不随包/已被 .gitignore 挡住"这类声明而放行的指路：0 条（豁免只降级为"只报数"，条数念出来，不许静默吞掉 —— #217 同族）
+CURRENCY: 135 条过期指路

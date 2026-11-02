@@ -1,0 +1,19 @@
+门禁第 15 项的反例（当前 top_md5=db6947d245b6 rtl_md5=438f72a4e150 tb_md5=7a9839c61c5a）：
+  ok   P 合格报告 → PASS（  顶层台架 tb_v98    top=db6947d245b6 FAIL行=0 指�…）
+  ok   A 顶层指纹不符 → FAIL（  顶层台架 tb_v98    top=deadbeef0000 FAIL行=0 指�…）
+  ok   B 没有跑完 → FAIL（  顶层台架 tb_v98    top=db6947d245b6 FAIL行=0 指�…）
+  ok   C 报告里有红项 → FAIL（  顶层台架 tb_v98    top=db6947d245b6 FAIL行=1 指�…）
+  ok   D 报告不存在 → FAIL（  顶层台架 tb_v98    缺 build/tb_v98_report.txt 必…）
+  ok   E 顶层没改、其它 RTL 改了 → FAIL（  顶层台架 tb_v98    top=db6947d245b6 FAIL行=0 指�…）
+  ok   F 旧报告缺 rtl_md5 字段 → FAIL（  顶层台架 tb_v98    top=db6947d245b6 FAIL行=0 指�…）
+CE: PASS（七条全对）
+tb98_ce rc=0
+== 15b 的反例（RIM_REPORT 指向临时件，门禁只比它）==
+  PASS stale_rtl -> 红（期望 红）
+  PASS no_result -> 红（期望 红）
+  PASS hidden_fail -> 红（期望 红）
+  PASS three_rims -> 红（期望 红）
+  PASS stale_tb -> 红（期望 红）
+  PASS real -> 绿（期望 绿）
+CE: 全绿（5 条红 + 1 条绿）
+rim_ce rc=0

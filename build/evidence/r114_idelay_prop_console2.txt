@@ -1,0 +1,114 @@
+
+****** Vivado v2025.2.1 (64-bit)
+  **** SW Build 6403652 on Thu Mar 19 19:48:24 GMT 2026
+  **** IP Build 6403511 on Thu Mar 19 12:41:45 MDT 2026
+  **** SharedData Build 6403650 on Thu Mar 19 14:02:13 MDT 2026
+  **** Start of session at: Sat Oct  3 16:51:37 2026
+    ** Copyright 1986-2022 Xilinx, Inc. All Rights Reserved.
+    ** Copyright 2022-2026 Advanced Micro Devices, Inc. All Rights Reserved.
+
+source build/tcl/probe_r114_idelay_prop.tcl
+# set root [file normalize [file join [file dirname [info script]] .. ..]]
+# set dcp [file join $root "vivado_system/zynq_video_sys.runs/impl_1/system_top_opt.dcp"]
+# if {![file exists $dcp]} { puts "REFUSE: no opt dcp: $dcp"; exit 1 }
+# open_checkpoint $dcp
+Command: open_checkpoint D:/Xilinx/Prj/pro/Video_Processing/vivado_system/zynq_video_sys.runs/impl_1/system_top_opt.dcp
+
+Starting open_checkpoint Task
+
+Time (s): cpu = 00:00:00 ; elapsed = 00:00:00.044 . Memory (MB): peak = 331.422 ; gain = 3.730
+INFO: [Device 21-403] Loading part xc7z020clg484-2
+Netlist sorting complete. Time (s): cpu = 00:00:00 ; elapsed = 00:00:00.357 . Memory (MB): peak = 822.086 ; gain = 0.000
+INFO: [Netlist 29-17] Analyzing 2897 Unisim elements for replacement
+INFO: [Netlist 29-28] Unisim Transformation completed in 2 CPU seconds
+INFO: [Project 1-479] Netlist was created with Vivado 2025.2.1
+INFO: [Project 1-570] Preparing netlist for logic optimization
+Read ShapeDB Complete: Time (s): cpu = 00:00:00 ; elapsed = 00:00:00.199 . Memory (MB): peak = 964.695 ; gain = 5.793
+INFO: [Timing 38-478] Restoring timing data from binary archive.
+INFO: [Timing 38-479] Binary timing data restore complete.
+INFO: [Project 1-856] Restoring constraints from binary archive.
+INFO: [Project 1-853] Binary constraint restore complete.
+INFO: [Designutils 20-5722] Start Reading Physical Databases.
+Reading placement.
+Read Netlist Cache: Time (s): cpu = 00:00:00 ; elapsed = 00:00:00.002 . Memory (MB): peak = 1502.398 ; gain = 0.000
+Reading placer database...
+Read Device Cache: Time (s): cpu = 00:00:00 ; elapsed = 00:00:00.017 . Memory (MB): peak = 1502.398 ; gain = 0.000
+Read PlaceDB: Time (s): cpu = 00:00:00 ; elapsed = 00:00:00 . Memory (MB): peak = 1502.398 ; gain = 0.000
+Read placeStorage: Time (s): cpu = 00:00:00 ; elapsed = 00:00:00.104 . Memory (MB): peak = 1502.398 ; gain = 0.000
+Read PulsedLatchDB: Time (s): cpu = 00:00:00 ; elapsed = 00:00:00 . Memory (MB): peak = 1502.398 ; gain = 0.000
+Reading routing.
+Read RouteStorage: Time (s): cpu = 00:00:00 ; elapsed = 00:00:00.009 . Memory (MB): peak = 1502.398 ; gain = 0.000
+Read Physdb Files: Time (s): cpu = 00:00:00 ; elapsed = 00:00:00.149 . Memory (MB): peak = 1502.398 ; gain = 0.000
+Restored from archive | CPU: 0.000000 secs | Memory: 0.000000 MB |
+Finished XDEF File Restore: Time (s): cpu = 00:00:00 ; elapsed = 00:00:00.210 . Memory (MB): peak = 1502.398 ; gain = 0.000
+Netlist sorting complete. Time (s): cpu = 00:00:00 ; elapsed = 00:00:00.019 . Memory (MB): peak = 1502.398 ; gain = 0.000
+INFO: [Project 1-111] Unisim Transformation Summary:
+  A total of 1035 instances were transformed.
+  RAM128X1D => RAM128X1D (MUXF7(x2), RAMD64E(x4)): 336 instances
+  RAM64M => RAM64M (RAMD64E(x4)): 651 instances
+  RAM64X1D => RAM64X1D (RAMD64E(x2)): 48 instances
+
+INFO: [Project 1-604] Checkpoint was created with Vivado v2025.2.1 (64-bit) build 6403652
+open_checkpoint: Time (s): cpu = 00:00:34 ; elapsed = 00:00:32 . Memory (MB): peak = 1502.398 ; gain = 1182.973
+# set cells [get_cells -quiet -hier -filter {NAME =~ *elay*}]
+# foreach c [get_cells -quiet -hier -filter {NAME =~ *IDELAY*}] { lappend cells $c }
+# puts "IDELAY_BY_REF=[llength [get_cells -quiet -hier -filter {REF_NAME eq IDELAYE2}]]"
+IDELAY_BY_REF=0
+# foreach c [get_cells -quiet -hier -filter {NAME =~ *elay*}] {
+#     puts "CANDIDATE|name=[get_property NAME $c]|REF_NAME=($c; get_property REF_NAME $c)|IS_PRIMITIVE=[get_property IS_PRIMITIVE $c]|CELLTYPE=($c; get_property CELLTYPE $c)"
+# }
+CANDIDATE|name=u_idelay_clkgen|REF_NAME=(u_idelay_clkgen; get_property REF_NAME u_idelay_clkgen)|IS_PRIMITIVE=0|CELLTYPE=(u_idelay_clkgen; get_property CELLTYPE u_idelay_clkgen)
+CANDIDATE|name=u_eth/u_rgmii/u_rgmii_rx/rxdata_bus[0].u_delay_rxd|REF_NAME=(u_eth/u_rgmii/u_rgmii_rx/rxdata_bus[0].u_delay_rxd; get_property REF_NAME u_eth/u_rgmii/u_rgmii_rx/rxdata_bus[0].u_delay_rxd)|IS_PRIMITIVE=1|CELLTYPE=(u_eth/u_rgmii/u_rgmii_rx/rxdata_bus[0].u_delay_rxd; get_property CELLTYPE u_eth/u_rgmii/u_rgmii_rx/rxdata_bus[0].u_delay_rxd)
+CANDIDATE|name=u_eth/u_rgmii/u_rgmii_rx/rxdata_bus[1].u_delay_rxd|REF_NAME=(u_eth/u_rgmii/u_rgmii_rx/rxdata_bus[1].u_delay_rxd; get_property REF_NAME u_eth/u_rgmii/u_rgmii_rx/rxdata_bus[1].u_delay_rxd)|IS_PRIMITIVE=1|CELLTYPE=(u_eth/u_rgmii/u_rgmii_rx/rxdata_bus[1].u_delay_rxd; get_property CELLTYPE u_eth/u_rgmii/u_rgmii_rx/rxdata_bus[1].u_delay_rxd)
+CANDIDATE|name=u_eth/u_rgmii/u_rgmii_rx/rxdata_bus[2].u_delay_rxd|REF_NAME=(u_eth/u_rgmii/u_rgmii_rx/rxdata_bus[2].u_delay_rxd; get_property REF_NAME u_eth/u_rgmii/u_rgmii_rx/rxdata_bus[2].u_delay_rxd)|IS_PRIMITIVE=1|CELLTYPE=(u_eth/u_rgmii/u_rgmii_rx/rxdata_bus[2].u_delay_rxd; get_property CELLTYPE u_eth/u_rgmii/u_rgmii_rx/rxdata_bus[2].u_delay_rxd)
+CANDIDATE|name=u_eth/u_rgmii/u_rgmii_rx/rxdata_bus[3].u_delay_rxd|REF_NAME=(u_eth/u_rgmii/u_rgmii_rx/rxdata_bus[3].u_delay_rxd; get_property REF_NAME u_eth/u_rgmii/u_rgmii_rx/rxdata_bus[3].u_delay_rxd)|IS_PRIMITIVE=1|CELLTYPE=(u_eth/u_rgmii/u_rgmii_rx/rxdata_bus[3].u_delay_rxd; get_property CELLTYPE u_eth/u_rgmii/u_rgmii_rx/rxdata_bus[3].u_delay_rxd)
+CANDIDATE|name=u_eth/u_rgmii/u_rgmii_rx/u_delay_rx_ctrl|REF_NAME=(u_eth/u_rgmii/u_rgmii_rx/u_delay_rx_ctrl; get_property REF_NAME u_eth/u_rgmii/u_rgmii_rx/u_delay_rx_ctrl)|IS_PRIMITIVE=1|CELLTYPE=(u_eth/u_rgmii/u_rgmii_rx/u_delay_rx_ctrl; get_property CELLTYPE u_eth/u_rgmii/u_rgmii_rx/u_delay_rx_ctrl)
+CANDIDATE|name=u_idelay_clkgen/GND|REF_NAME=(u_idelay_clkgen/GND; get_property REF_NAME u_idelay_clkgen/GND)|IS_PRIMITIVE=1|CELLTYPE=(u_idelay_clkgen/GND; get_property CELLTYPE u_idelay_clkgen/GND)
+CANDIDATE|name=u_idelay_clkgen/GND_1|REF_NAME=(u_idelay_clkgen/GND_1; get_property REF_NAME u_idelay_clkgen/GND_1)|IS_PRIMITIVE=1|CELLTYPE=(u_idelay_clkgen/GND_1; get_property CELLTYPE u_idelay_clkgen/GND_1)
+CANDIDATE|name=u_idelay_clkgen/VCC|REF_NAME=(u_idelay_clkgen/VCC; get_property REF_NAME u_idelay_clkgen/VCC)|IS_PRIMITIVE=1|CELLTYPE=(u_idelay_clkgen/VCC; get_property CELLTYPE u_idelay_clkgen/VCC)
+CANDIDATE|name=u_idelay_clkgen/mem_reg_i_2|REF_NAME=(u_idelay_clkgen/mem_reg_i_2; get_property REF_NAME u_idelay_clkgen/mem_reg_i_2)|IS_PRIMITIVE=1|CELLTYPE=(u_idelay_clkgen/mem_reg_i_2; get_property CELLTYPE u_idelay_clkgen/mem_reg_i_2)
+CANDIDATE|name=u_idelay_clkgen/u_bufg_200|REF_NAME=(u_idelay_clkgen/u_bufg_200; get_property REF_NAME u_idelay_clkgen/u_bufg_200)|IS_PRIMITIVE=1|CELLTYPE=(u_idelay_clkgen/u_bufg_200; get_property CELLTYPE u_idelay_clkgen/u_bufg_200)
+CANDIDATE|name=u_idelay_clkgen/u_bufg_fb|REF_NAME=(u_idelay_clkgen/u_bufg_fb; get_property REF_NAME u_idelay_clkgen/u_bufg_fb)|IS_PRIMITIVE=1|CELLTYPE=(u_idelay_clkgen/u_bufg_fb; get_property CELLTYPE u_idelay_clkgen/u_bufg_fb)
+CANDIDATE|name=u_idelay_clkgen/u_mmcm|REF_NAME=(u_idelay_clkgen/u_mmcm; get_property REF_NAME u_idelay_clkgen/u_mmcm)|IS_PRIMITIVE=1|CELLTYPE=(u_idelay_clkgen/u_mmcm; get_property CELLTYPE u_idelay_clkgen/u_mmcm)
+# puts "IDELAY_COUNT=[llength $cells]"
+IDELAY_COUNT=14
+# set first ""
+# foreach c $cells {
+#     set first $c
+#     puts "IDELAY_CELL|name=[get_property NAME $c]|loc=[get_property LOC $c]|VALUE=([catch {get_property IDELAY_VALUE $c} v; set v])|REF=([get_property REF_NAME $c])"
+# }
+IDELAY_CELL|name=u_idelay_clkgen|loc=|VALUE=()|REF=(clk_gen)
+IDELAY_CELL|name=u_eth/u_rgmii/u_rgmii_rx/rxdata_bus[0].u_delay_rxd|loc=IDELAY_X1Y42|VALUE=(26)|REF=(IDELAYE2)
+IDELAY_CELL|name=u_eth/u_rgmii/u_rgmii_rx/rxdata_bus[1].u_delay_rxd|loc=IDELAY_X1Y41|VALUE=(26)|REF=(IDELAYE2)
+IDELAY_CELL|name=u_eth/u_rgmii/u_rgmii_rx/rxdata_bus[2].u_delay_rxd|loc=IDELAY_X1Y40|VALUE=(26)|REF=(IDELAYE2)
+IDELAY_CELL|name=u_eth/u_rgmii/u_rgmii_rx/rxdata_bus[3].u_delay_rxd|loc=IDELAY_X1Y39|VALUE=(26)|REF=(IDELAYE2)
+IDELAY_CELL|name=u_eth/u_rgmii/u_rgmii_rx/u_delay_rx_ctrl|loc=IDELAY_X1Y37|VALUE=(26)|REF=(IDELAYE2)
+IDELAY_CELL|name=u_idelay_clkgen/GND|loc=|VALUE=()|REF=(GND)
+IDELAY_CELL|name=u_idelay_clkgen/GND_1|loc=|VALUE=()|REF=(GND)
+IDELAY_CELL|name=u_idelay_clkgen/VCC|loc=|VALUE=()|REF=(VCC)
+IDELAY_CELL|name=u_idelay_clkgen/mem_reg_i_2|loc=|VALUE=()|REF=(LUT2)
+IDELAY_CELL|name=u_idelay_clkgen/u_bufg_200|loc=|VALUE=()|REF=(BUFG)
+IDELAY_CELL|name=u_idelay_clkgen/u_bufg_fb|loc=|VALUE=()|REF=(BUFG)
+IDELAY_CELL|name=u_idelay_clkgen/u_mmcm|loc=|VALUE=()|REF=(MMCME2_ADV)
+IDELAY_CELL|name=u_eth/u_rgmii/u_rgmii_rx/IDELAYCTRL_inst|loc=|VALUE=()|REF=(IDELAYCTRL)
+# if {$first eq ""} { puts "IDELAY_REFUSE: no IDELAYE2 in netlist"; exit 1 }
+# puts "PROPS_begin"
+PROPS_begin
+# foreach p [lsort [list_property $first]] {
+#     if {[string match *DELAY* $p] || [string match *VALUE* $p] || [string match *TAP* $p]} { puts "PROP|$p" }
+# }
+PROP|C_TRACE_BUFFER_CLOCK_DELAY
+PROP|DCI_VALUE
+PROP|DELAY_BYPASS
+PROP|ESSENTIAL_CLASSIFICATION_VALUE
+PROP|IOBDELAY
+PROP|IODELAY_GROUP
+PROP|NODELAY
+PROP|SIM_DELAY_D
+# puts "PROPS_end"
+PROPS_end
+# set settable [lsearch -exact [list_property $first] IDELAY_VALUE]
+# puts "IDELAY_VALUE_IS_LISTED_PROPERTY=[expr {$settable >= 0}]"
+IDELAY_VALUE_IS_LISTED_PROPERTY=0
+ERROR: [Common 17-43] The object type 'cell' does not have a property 'IDELAY_VALUE'.
+INFO: [Common 17-206] Exiting Vivado at Sat Oct  3 16:52:14 2026...

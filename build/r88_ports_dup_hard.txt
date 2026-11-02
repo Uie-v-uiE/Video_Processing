@@ -1,0 +1,2 @@
+src/rtl/top/pl_demo_top.v:20  pl_video_top u_pl 端口 .stage_sel() 被连了 2 次（后一次覆盖前一次 = 静默接错）
+CHECK PORTS: instances=197 modules=79 skipped=0 width_compared=563 violations=1 FAIL

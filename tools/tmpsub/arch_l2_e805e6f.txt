@@ -1,0 +1,56 @@
+语义锚点抽查  判=906（逐字=605 +折竖线=0 +记号齐=183 +同行他条引用支撑=67 +可疑待读=51，五档相加=906）  跳过(件不在)=0  基名多义未判=2  基名查无未判=0  续接行号引用认了=406 无同行整路径=20  窗口=±6 行
+--- 第四档明细（前 12 条：严格配对不中、由同行另一条引用支撑，读一眼确认没挪错证据）---
+A1-architecture-and-clocking.md:77  片段".sys_rst_n(1'b1)" 严格配到 src/rtl/top/pl_demo_top.v:41 不中，改由同行 src/rtl/top/pl_demo_top.v:24 支撑（第1档）
+A1-architecture-and-clocking.md:77  片段".axi_clk(sys_clk)" 严格配到 src/rtl/top/pl_demo_top.v:41 不中，改由同行 src/rtl/top/pl_demo_top.v:24 支撑（第1档）
+A1-architecture-and-clocking.md:77  片段".axi_rst_n(1'b1)" 严格配到 src/rtl/top/pl_demo_top.v:41 不中，改由同行 src/rtl/top/pl_demo_top.v:24 支撑（第1档）
+A1-architecture-and-clocking.md:77  片段".mode_ovr(2'b00)" 严格配到 src/rtl/top/pl_demo_top.v:2 不中，改由同行 src/rtl/top/pl_demo_top.v:41 支撑（第1档）
+A1-architecture-and-clocking.md:274  片段".sys_clk(sys_clk), .sys_rst_n(" 严格配到 src/rtl/top/pl_video_top.v:129 不中，改由同行 src/rtl/top/system_top.v:260 支撑（第1档）
+A1-architecture-and-clocking.md:555  片段"wr_addr[18:0]" 严格配到 src/rtl/eth/eth_udp_video_top.v:235 不中，改由同行 src/rtl/eth/eth_udp_video_top.v:29 支撑（第3档）
+A1-architecture-and-clocking.md:557  片段"m_axi_wstrb[7:0]" 严格配到 src/rtl/eth/eth_udp_video_top.v:312 不中，改由同行 src/rtl/eth/eth_udp_video_top.v:354 支撑（第3档）
+A10-end-to-end-trace.md:137  片段"raw_line_delay #(.LINES(RAW_LI" 严格配到 src/rtl/top/pl_video_top.v:781 不中，改由同行 src/rtl/top/pl_video_top.v:790 支撑（第1档）
+A10-end-to-end-trace.md:149  片段"N_LINES = 5" 严格配到 src/rtl/video/osd_overlay.v:11 不中，改由同行 src/rtl/video/osd_overlay.v:22 支撑（第1档）
+A2-ingress-datapath.md:65  片段".INC(1'b0)" 严格配到 src/rtl/eth/rgmii_rx.v:72 不中，改由同行 src/rtl/eth/rgmii_rx.v:83 支撑（第3档）
+A2-ingress-datapath.md:65  片段".LDPIPEEN(1'b0)" 严格配到 src/rtl/eth/rgmii_rx.v:72 不中，改由同行 src/rtl/eth/rgmii_rx.v:83 支撑（第3档）
+A2-ingress-datapath.md:65  片段".REGRST(1'b0)" 严格配到 src/rtl/eth/rgmii_rx.v:72 不中，改由同行 src/rtl/eth/rgmii_rx.v:83 支撑（第3档）
+--- 明细（最多 40 条）---
+A1-architecture-and-clocking.md:38  src/rtl/top/system_top.v:174  片段"125 MHz |" 整份文件里没有
+A1-architecture-and-clocking.md:192  src/rtl/eth/eth_udp_video_top.v:5  片段"Sources: { eth_rxc }" 整份文件里没有
+A1-architecture-and-clocking.md:321  src/rtl/eth/eth_udp_video_top.v:6  片段"| Register as Latch | 0 |" 整份文件里没有
+A1-architecture-and-clocking.md:556  src/rtl/eth/eth_udp_video_top.v:264  片段"{1'b0, addr[18:0], data[15:0]}" 整份文件里没有
+A1-architecture-and-clocking.md:557  src/rtl/eth/eth_udp_video_top.v:312  片段"m_axi_awaddr[31:0]" 整份文件里没有
+A1-architecture-and-clocking.md:557  src/rtl/eth/eth_udp_video_top.v:312  片段"m_axi_wdata[63:0]" 整份文件里没有
+A1-architecture-and-clocking.md:559  src/rtl/top/pl_video_top.v:454  片段"m_axi_araddr[31:0]" 整份文件里没有
+A1-architecture-and-clocking.md:559  src/rtl/top/pl_video_top.v:454  片段"fb_wr_addr[18:0]" 整份文件里没有
+A1-architecture-and-clocking.md:559  src/rtl/top/pl_video_top.v:454  片段"fb_wr_data[63:0]" 整份文件里没有
+A1-architecture-and-clocking.md:560  src/rtl/top/pl_video_top.v:732  片段"pix[15:0]" 整份文件里没有
+A10-end-to-end-trace.md:48  src/rtl/eth/frame_reasm.v:141  片段"wr_data<={p_data,pix_lo}" 在该文件第 150 行（行号可疑）
+A10-end-to-end-trace.md:48  src/rtl/eth/frame_reasm.v:141  片段"wr_addr<=off[18:1]" 在该文件第 151 行（行号可疑）
+A10-end-to-end-trace.md:64  src/rtl/eth/eth_udp_video_top.v:263  片段"{1'b0, addr[18:0], data[15:0]}" 整份文件里没有
+A10-end-to-end-trace.md:76  src/rtl/eth/axi_frame_saver64.v:10  片段"ram_style="distributed"" 整份文件里没有
+A10-end-to-end-trace.md:80  src/rtl/eth/axi_frame_saver64.v:40  片段"AWSIZE=3'b011" 整份文件里没有
+A10-end-to-end-trace.md:103  src/rtl/clocks/clk_gen.v:2  片段"CLKOUT0_DIVIDE_F=20.000" 整份文件里没有
+A10-end-to-end-trace.md:103  src/rtl/clocks/clk_gen.v:2  片段"CLKOUT1_DIVIDE=4" 整份文件里没有
+A10-end-to-end-trace.md:103  src/rtl/clocks/clk_gen.v:2  片段"CLKOUT2_DIVIDE=5" 整份文件里没有
+A10-end-to-end-trace.md:113  src/rtl/top/pl_video_top.v:442  片段"row_done && (row_copy_cycles > VBL" 在该文件第 450 行（行号可疑）
+A10-end-to-end-trace.md:394  src/rtl/eth/axi_frame_saver64.v:104  片段"ram_style="distributed"" 整份文件里没有
+A10-end-to-end-trace.md:416  src/rtl/top/pl_video_top.v:354  片段"MIX_D = 3 + 1 + 1 + 15 = 20" 整份文件里没有
+A2-ingress-datapath.md:297  src/rtl/eth/frame_reasm.v:154  片段"if (bank_one[k]) rokk[roff] <= 1'b" 整份文件里没有
+A2-ingress-datapath.md:318  src/rtl/eth/frame_reasm.v:160  片段"off >= FRAME_BYTES" 整份文件里没有
+A2-ingress-datapath.md:492  src/rtl/eth/udp_rx_parser.v:159  片段"pay_len[15:0]" 整份文件里没有
+A2-ingress-datapath.md:496  src/rtl/eth/link_monitor.v:11  片段"lm_bus[319:0]" 整份文件里没有
+A3-framebuffer-and-ddr.md:125  src/rtl/axi/axi_frame_writer_gated.v:132  片段"arlen=15" 整份文件里没有
+A3-framebuffer-and-ddr.md:276  src/rtl/axi/axi_frame_writer_gated.v:43  片段"TOTAL_WORDS = 38400" 整份文件里没有
+A3-framebuffer-and-ddr.md:276  src/rtl/axi/axi_frame_writer_gated.v:40  片段"IMG_W*IMG_H = 153600" 整份文件里没有
+A3-framebuffer-and-ddr.md:310  src/rtl/top/pl_video_top.v:7  片段".start()" 整份文件里没有
+A3-framebuffer-and-ddr.md:310  src/rtl/top/pl_video_top.v:7  片段".base_addr()" 整份文件里没有
+A3-framebuffer-and-ddr.md:424  src/ps/main.c:215  片段"ctrl_write()" 在该文件第 7 行（行号可疑）
+A6-osd-and-hdmi-output.md:463  src/rtl/top/pl_video_top.v:1017  片段"u_osd.temp_disp(tmp_disp)" 整份文件里没有
+A7-ps-firmware-internals.md:43  board/measured/qspi_coldboot_selfboot_ok_2026-10-06.txt:107  片段"LoadBootImage()" 整份文件里没有
+A7-ps-firmware-internals.md:178  src/ps/main.c:927  片段"cur_mode_ovr=0" 整份文件里没有
+A7-ps-firmware-internals.md:179  src/ps/main.c:921  片段"cur_src=0" 整份文件里没有
+A7-ps-firmware-internals.md:180  src/ps/main.c:723  片段"cur_src=1" 整份文件里没有
+A7-ps-firmware-internals.md:181  src/ps/main.c:727  片段"cur_src=1" 整份文件里没有
+A7-ps-firmware-internals.md:182  src/ps/main.c:939  片段"[CTRL] AXI_GPIO=0x%08x" 在该文件第 232 行（行号可疑）
+A7-ps-firmware-internals.md:183  src/ps/main.c:943  片段"[CTRL]   zoom_step=%d %s (%s)" 在该文件第 237 行（行号可疑）
+A7-ps-firmware-internals.md:189  src/ps/main.c:1045  片段"rot speed <0..7>" 在该文件第 1091 行（行号可疑）
+…另有 11 条

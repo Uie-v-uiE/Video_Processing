@@ -1,0 +1,227 @@
+{
+ "field_positions": [
+  {
+   "col": "NOT_MEASURED",
+   "field": "banner.Tool Version",
+   "file": "build/route_status.rpt",
+   "line": "NOT_MEASURED",
+   "locator": "grep -n '<锚点文本>' build/route_status.rpt（本轮没定位到 ⇒ NOT_MEASURED）",
+   "value": "NOT_MEASURED"
+  },
+  {
+   "col": "NOT_MEASURED",
+   "field": "banner.Date",
+   "file": "build/route_status.rpt",
+   "line": "NOT_MEASURED",
+   "locator": "grep -n '<锚点文本>' build/route_status.rpt（本轮没定位到 ⇒ NOT_MEASURED）",
+   "value": "NOT_MEASURED"
+  },
+  {
+   "col": "NOT_MEASURED",
+   "field": "banner.Host",
+   "file": "build/route_status.rpt",
+   "line": "NOT_MEASURED",
+   "locator": "grep -n '<锚点文本>' build/route_status.rpt（本轮没定位到 ⇒ NOT_MEASURED）",
+   "value": "NOT_MEASURED"
+  },
+  {
+   "col": "NOT_MEASURED",
+   "field": "banner.Command",
+   "file": "build/route_status.rpt",
+   "line": "NOT_MEASURED",
+   "locator": "grep -n '<锚点文本>' build/route_status.rpt（本轮没定位到 ⇒ NOT_MEASURED）",
+   "value": "NOT_MEASURED"
+  },
+  {
+   "col": "NOT_MEASURED",
+   "field": "banner.Design",
+   "file": "build/route_status.rpt",
+   "line": 1,
+   "locator": "sed -n '1p' build/route_status.rpt",
+   "value": "NOT_MEASURED"
+  },
+  {
+   "col": "NOT_MEASURED",
+   "field": "banner.Device",
+   "file": "build/route_status.rpt",
+   "line": "NOT_MEASURED",
+   "locator": "grep -n '<锚点文本>' build/route_status.rpt（本轮没定位到 ⇒ NOT_MEASURED）",
+   "value": "NOT_MEASURED"
+  },
+  {
+   "col": "NOT_MEASURED",
+   "field": "banner.Speed File",
+   "file": "build/route_status.rpt",
+   "line": "NOT_MEASURED",
+   "locator": "grep -n '<锚点文本>' build/route_status.rpt（本轮没定位到 ⇒ NOT_MEASURED）",
+   "value": "NOT_MEASURED"
+  },
+  {
+   "col": "NOT_MEASURED",
+   "field": "banner.Design State",
+   "file": "build/route_status.rpt",
+   "line": "NOT_MEASURED",
+   "locator": "grep -n '<锚点文本>' build/route_status.rpt（本轮没定位到 ⇒ NOT_MEASURED）",
+   "value": "NOT_MEASURED"
+  },
+  {
+   "col": "NOT_MEASURED",
+   "field": "banner.Grade",
+   "file": "build/route_status.rpt",
+   "line": "NOT_MEASURED",
+   "locator": "grep -n '<锚点文本>' build/route_status.rpt（本轮没定位到 ⇒ NOT_MEASURED）",
+   "value": "NOT_MEASURED"
+  },
+  {
+   "col": "NOT_MEASURED",
+   "field": "banner.Process",
+   "file": "build/route_status.rpt",
+   "line": "NOT_MEASURED",
+   "locator": "grep -n '<锚点文本>' build/route_status.rpt（本轮没定位到 ⇒ NOT_MEASURED）",
+   "value": "NOT_MEASURED"
+  },
+  {
+   "col": "NOT_MEASURED",
+   "field": "banner.Characterization",
+   "file": "build/route_status.rpt",
+   "line": "NOT_MEASURED",
+   "locator": "grep -n '<锚点文本>' build/route_status.rpt（本轮没定位到 ⇒ NOT_MEASURED）",
+   "value": "NOT_MEASURED"
+  },
+  {
+   "col": "NOT_MEASURED",
+   "field": "route_status[# of logical nets]",
+   "file": "build/route_status.rpt",
+   "line": 4,
+   "locator": "sed -n '4p' build/route_status.rpt",
+   "value": "32330"
+  },
+  {
+   "col": "NOT_MEASURED",
+   "field": "route_status[# of nets not needing routing]",
+   "file": "build/route_status.rpt",
+   "line": 5,
+   "locator": "sed -n '5p' build/route_status.rpt",
+   "value": "11448"
+  },
+  {
+   "col": "NOT_MEASURED",
+   "field": "route_status[# of internally routed nets]",
+   "file": "build/route_status.rpt",
+   "line": 6,
+   "locator": "sed -n '6p' build/route_status.rpt",
+   "value": "10725"
+  },
+  {
+   "col": "NOT_MEASURED",
+   "field": "route_status[# of nets with no loads]",
+   "file": "build/route_status.rpt",
+   "line": 7,
+   "locator": "sed -n '7p' build/route_status.rpt",
+   "value": "723"
+  },
+  {
+   "col": "NOT_MEASURED",
+   "field": "route_status[# of routable nets]",
+   "file": "build/route_status.rpt",
+   "line": 8,
+   "locator": "sed -n '8p' build/route_status.rpt",
+   "value": "20882"
+  },
+  {
+   "col": "NOT_MEASURED",
+   "field": "route_status[# of fully routed nets]",
+   "file": "build/route_status.rpt",
+   "line": 9,
+   "locator": "sed -n '9p' build/route_status.rpt",
+   "value": "20882"
+  },
+  {
+   "col": "NOT_MEASURED",
+   "field": "route_status[# of nets with routing errors]",
+   "file": "build/route_status.rpt",
+   "line": 10,
+   "locator": "sed -n '10p' build/route_status.rpt",
+   "value": "0"
+  }
+ ],
+ "not_measured": [
+  "banner.Tool Version",
+  "banner.Date",
+  "banner.Host",
+  "banner.Command",
+  "banner.Design",
+  "banner.Device",
+  "banner.Speed File",
+  "banner.Design State",
+  "banner.Grade",
+  "banner.Process",
+  "banner.Characterization"
+ ],
+ "original": "build/route_status.rpt",
+ "pairing": {
+  "identity_from_provenance": "r118",
+  "pairing_result": "PASS",
+  "provenance_file": "build/provenance.md",
+  "provenance_line": 143,
+  "provenance_md5_12": "a6d3822c92d7",
+  "provenance_sha256_16": "76074eed5c3f9768",
+  "recomputed_md5_12": "a6d3822c92d7",
+  "recomputed_sha256_16": "76074eed5c3f9768"
+ },
+ "parse_status": "OK",
+ "provenance_present": true,
+ "round": "r118",
+ "sections": {
+  "banner": {
+   "Characterization": "NOT_MEASURED",
+   "Command": "NOT_MEASURED",
+   "Date": "NOT_MEASURED",
+   "Design": "NOT_MEASURED",
+   "Design State": "NOT_MEASURED",
+   "Device": "NOT_MEASURED",
+   "Grade": "NOT_MEASURED",
+   "Host": "NOT_MEASURED",
+   "Process": "NOT_MEASURED",
+   "Speed File": "NOT_MEASURED",
+   "Tool Version": "NOT_MEASURED"
+  },
+  "items": [
+   {
+    "item": "# of logical nets",
+    "line": 4,
+    "value": "32330"
+   },
+   {
+    "item": "# of nets not needing routing",
+    "line": 5,
+    "value": "11448"
+   },
+   {
+    "item": "# of internally routed nets",
+    "line": 6,
+    "value": "10725"
+   },
+   {
+    "item": "# of nets with no loads",
+    "line": 7,
+    "value": "723"
+   },
+   {
+    "item": "# of routable nets",
+    "line": 8,
+    "value": "20882"
+   },
+   {
+    "item": "# of fully routed nets",
+    "line": 9,
+    "value": "20882"
+   },
+   {
+    "item": "# of nets with routing errors",
+    "line": 10,
+    "value": "0"
+   }
+  ]
+ }
+}

@@ -1,0 +1,57 @@
+报告目录：build
+新鲜度：system.bit 2026-10-04 04:36:56 / timing 2026-10-04 04:37:30
+身份：system.bit md5=cd04907e1369
+      system.xsa md5=934ebdbaa13b
+      ps_app.elf md5=d0b07f84a068
+        WARN 有 RTL 源比 system.bit 新 ⇒ 这份产物不含这些改动：src/rtl/eth/icmp_tx.v src/rtl/top/pl_video_top.v src/rtl/top/system_top.v
+        基线里有而本版没有：eth_rxc>clk_fpga_0 eth_rxc>clkout0_1 （原因未查证，不算改进）
+        同配对端点数增长：clk_fpga_0>clkout0_1(17→103) sys_clk>eth_rxc(1909→1968) （记录用，不判红）
+        与上一版采纳的 Critical 配对集合一致（对照 build/evidence_r75/cdc.rpt）
+门禁清单（逐项，条数以本文件 say 调用为准）：
+  WNS (ns)               0.739        >= 0                         PASS
+  失败 setup 端点    0            == 0                         PASS
+  WHS (ns)               0.052        >= 0                         PASS
+  失败 hold 端点     0            == 0                         PASS
+  BRAM (tile/%)          95.5/68.21%  <= 97%                       PASS
+  Slice LUT / 占比     14154/26.61% <= 98%                       PASS
+  Slice 寄存器        8188         记录用（无阈值）     PASS
+  Dynamic (W)            2.213        与前次同量级           PASS
+  methodology CRIT       0            == 0                         PASS
+  布线错误网线     0            == 0                         PASS
+  cdc.rpt Critical 行   2            基线 4 行，配对不新增、unsafe 不增长 PASS
+  端口宽度警告 8-689 0            == 0（凭据 width_warnings.txt，同一次构建） PASS
+  多驱动 net 8-685x   0            == 0（凭据 multi_driven.txt，同一次构建） PASS
+  顶层接线（端口名/悬空输入/位宽） CHECK PORTS: instances=223 modules=80 skipped=0 width_compared=562 violations=0 PASS｜FLOOR OK instances=223 width_compared=562（地板 100/280） violations=0 且扫描面不塌（凭据 build/ports_check.txt，当场跑） PASS
+分组最差（记录用；判据仍是上表的 WNS/WHS）：
+  clk_fpga_0   setup 1.850ns  (失败端点 0)   hold 0.053ns 
+  clkfbout     setup NAns     (失败端点 NA)   hold NAns    
+  clkfbout_1   setup NAns     (失败端点 NA)   hold NAns    
+  clkout0_1    setup 3.630ns  (失败端点 0)   hold 0.059ns 
+  clkout1_1    setup NAns     (失败端点 NA)   hold NAns    
+  clkout2      setup NAns     (失败端点 NA)   hold NAns    
+  eth_rxc      setup 0.739ns  (失败端点 0)   hold 0.052ns    ← 门禁 WNS 就是这一组
+  sys_clk      setup 14.876ns (失败端点 0)   hold 0.222ns 
+
+  顶层台架 tb_v98    top=56c269602e18 FAIL行=1 指纹(norm1):fresh fresh fresh 同一次跑且无 FAIL      FAIL
+        ——报告里有 1 行 FAIL 没有 RESULT…PASS 汇总行（台架跑完了、是它自己判红的，先读 FAIL 那几行的数） 
+  边缘条带 tb_edge_rim tb_edge_rim_r118.txt rtl=07570b1ac1b4 FAIL行=0 指纹(norm1):fresh fresh 同一次跑、无 FAIL、四条圈齐 PASS
+  PS 心跳约定 ps_hb  rc=0 红行=0 --self 全绿(条数以脚本为准) PASS
+          PASS 变异 no_recover     只红在 A12  实测红=[A12]
+          PASS 变异 no_ready       只红在 A13  实测红=[A13]
+          PASS 变异 always_rec     只红在 A14  实测红=[A14]
+          PASS 变异 no_resume      只红在 A15  实测红=[A15]
+          PASS 变异 no_clear       只红在 A16  实测红=[A16]
+        SELF: 全绿（当前树 17 条 + 变异对照 10 条）
+
+iconv: (stdin):1:17: incomplete character or shift sequence
+  手写件编码 doc_enc 扫了 413 个手写文 坏行=0 self 抓到 3/3 且全树干净 PASS
+
+iconv: (stdin):1:14: incomplete character or shift sequence
+  文档时效 doc_cur   扫了 76 个文档 红行=0 身份句=3 门禁读数句=2 self 变异 10（D1b 身份句 2 + D1c 门禁读数句 5，含固定点与反买通各一条）+ 对照 4 全过 + 不随包豁免的三条对照全过、全树 0 条、身份句抓到 >= 2、门禁读数句抓到 >= 2 FAIL
+  排练脚本=讲稿抽取 rehearsal 差异行=0 变异对照=能红 改讲稿不重抽 ⇒ 这一项红；少一行必须判成不同（对照） PASS
+  文档行号锚点 doc_cite 命中=1146 候选=606 self 15 条对照全过（含厂商豁免 2 条）、硬错 0、命中 >= 300 PASS
+  数字对账 metric    判=117 首页=63 逐时钟=2/归属=2/百分数=8 csv认领=10/10 红=0 self（csv 两条 fixture + 首页假数 + 逐时钟/归属/百分数/Clock Summary 对照）全过、红 0、判 >= 30 个数、首页 >= 20 个、逐时钟 setup 与 hold 归属各 >= 2 条、余量百分数 >= 6 条、csv 认领两半相等且 >= 8（射程地板） PASS
+  命令长度口径 pipe_len 逐条ok=26 自报=26 收尾PASS=1 self全绿条数=27 rc=0/0 run rc=0、--self rc=0、收尾 PIPE_LEN PASS=1、逐条 ok >= 26 且等于自报条数、self 条数 >= 20 PASS
+  结温公式 temp_formula PASS=10 变异对照=3 FAIL行=0 rc=0 rc=0、FAIL 行=0、PASS >= 6、其中变异对照 >= 3（少了任何一条都说明这把握尺子可能空转） PASS
+端点总数 51135；CDC 现在按 build/cdc_baseline.txt 的**配对集合**判，功耗仍要人比有没有变差。# 结尾必须把**范围**一起念出来：判定 24 项、未判 0 项。
+GATES: 有红项（判定 24 项）—— 不采纳，保留上一版

@@ -1,0 +1,6 @@
+C2BLK x_sel=641 sx=0 sy=0 oob=1 oob_out=1 | orig=1eff proc=1eff sel=0000 | inv=1023 bilin=0 jd=329
+C2BLK x_sel=641 sx=0 sy=0 oob=1 oob_out=1 | orig=1eff proc=1eff sel=0000 | inv=1023 bilin=0 jd=329
+C2BLK x_sel=641 sx=0 sy=0 oob=1 oob_out=1 | orig=22ff proc=22ff sel=0000 | inv=1023 bilin=0 jd=329
+C2BLK x_sel=641 sx=0 sy=0 oob=1 oob_out=1 | orig=22ff proc=22ff sel=0000 | inv=1023 bilin=0 jd=329
+C2BLK x_sel=641 sx=0 sy=0 oob=1 oob_out=1 | orig=26ff proc=26ff sel=0000 | inv=1023 bilin=0 jd=329
+C2BLK x_sel=641 sx=0 sy=0 oob=1 oob_out=1 | orig=26ff proc=26ff sel=0000 | inv=1023 bilin=0 jd=329

@@ -1,0 +1,13 @@
+﻿=== CAPTURE START 3 commands ===
+>> pipe 000000000
+[CTRL] AXI_GPIO=0x014E5000 sel=000 thr=80 src=0 zoom=1 pub=1 bilin=1 osd=1
+[CTRL]   zoom_step=4 1.00x (手动)
+[PIPE] sel=000 生效: none
+[PIPE] 屏上那五是**每一级选了第几个算法**（0=无,1/2=该级的两个算法,3=两位都设了）⇒ 与命令串不是同一个写法，看这一行的名字
+>> src auto
+[SRC] 已钉住 自动（控制权交还按键环）（mode=0；长按 KEY1 一次即交还给按键环）
+>> th 50
+[CTRL] AXI_GPIO=0x000E3200 sel=000 thr=50 src=0 zoom=1 pub=1 bilin=1 osd=1
+[CTRL]   zoom_step=4 1.00x (手动)
+=== CAPTURE END ===
+

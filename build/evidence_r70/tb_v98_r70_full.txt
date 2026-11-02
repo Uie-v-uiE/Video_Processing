@@ -1,0 +1,202 @@
+
+****** xsim v2025.2.1 (64-bit)
+  **** SW Build 6403652 on Thu Mar 19 19:48:24 GMT 2026
+  **** IP Build 6403511 on Thu Mar 19 12:41:45 MDT 2026
+  **** SharedData Build 6403650 on Thu Mar 19 14:02:13 MDT 2026
+  **** Start of session at: Sat Sep 26 16:43:59 2026
+    ** Copyright 1986-2022 Xilinx, Inc. All Rights Reserved.
+    ** Copyright 2022-2026 Advanced Micro Devices, Inc. All Rights Reserved.
+
+source xsim.dir/snap/xsim_script.tcl
+# xsim {snap} -autoloadwcfg -runall
+Time resolution is 1 ps
+run -all
+unisims_sim ⚠ OSERDESE2 是占位模型（不串行化）⇒ 判据只许读并行像素，不许读 DVI 引脚
+unisims_sim ⚠ OSERDESE2 是占位模型（不串行化）⇒ 判据只许读并行像素，不许读 DVI 引脚
+unisims_sim ⚠ OSERDESE2 是占位模型（不串行化）⇒ 判据只许读并行像素，不许读 DVI 引脚
+unisims_sim ⚠ OSERDESE2 是占位模型（不串行化）⇒ 判据只许读并行像素，不许读 DVI 引脚
+unisims_sim ⚠ OSERDESE2 是占位模型（不串行化）⇒ 判据只许读并行像素，不许读 DVI 引脚
+unisims_sim ⚠ OSERDESE2 是占位模型（不串行化）⇒ 判据只许读并行像素，不许读 DVI 引脚
+unisims_sim ⚠ OSERDESE2 是占位模型（不串行化）⇒ 判据只许读并行像素，不许读 DVI 引脚
+unisims_sim ⚠ OSERDESE2 是占位模型（不串行化）⇒ 判据只许读并行像素，不许读 DVI 引脚
+[tb_v98_top_seam.v:151] [Xborn0] 初始化现场 p3=0003 p2=0002 p1=0001 p0=0000 -> ddr[0]=0003000200010000
+PASS C0a ruler encodes position in the pixel | px_val / decoder / mod-256 signed diff must agree, incl. 0, small values, both edges, both wrap directions
+PASS C0a2 golden array actually holds it | read back ddr[0] and the last word after init: a correct function is not a correct array
+[Xborn1] rvalid#1 w0=0 beat=0 len=15 rdata=0003000200010000 ddr[0]=0003000200010000
+[Xborn1] rvalid#2 w0=0 beat=1 len=15 rdata=0007000600050004 ddr[1]=0007000600050004
+[tb_v98_top_seam.v:234] [Xborn2] fb写#1 addr=0 data=0003000200010000
+[Xborn1] rvalid#3 w0=0 beat=2 len=15 rdata=000b000a00090008 ddr[2]=000b000a00090008
+[tb_v98_top_seam.v:234] [Xborn2] fb写#2 addr=1 data=0007000600050004
+[Xborn1] rvalid#4 w0=0 beat=3 len=15 rdata=000f000e000d000c ddr[3]=000f000e000d000c
+[tb_v98_top_seam.v:234] [Xborn2] fb写#3 addr=2 data=000b000a00090008
+[Xborn1] rvalid#5 w0=0 beat=4 len=15 rdata=0013001200110010 ddr[4]=0013001200110010
+[Xborn1] rvalid#6 w0=0 beat=5 len=15 rdata=0017001600150014 ddr[5]=0017001600150014
+[tb_v98_top_seam.v:444] DBG2 x_sel=221 y11=15 | 屏上=076e 期望列=221 期望行=007 Δcol=0 Δrow=0
+[tb_v98_top_seam.v:424] GEOM x_d[3]=239 期望src=119 顶层src=120 dx=-1 | de3=1 oob=0 sy=10 y3=15
+[tb_v98_top_seam.v:444] DBG2 x_sel=222 y11=15 | 屏上=076f 期望列=222 期望行=007 Δcol=0 Δrow=0
+[tb_v98_top_seam.v:444] DBG2 x_sel=223 y11=15 | 屏上=076f 期望列=223 期望行=007 Δcol=0 Δrow=0
+[tb_v98_top_seam.v:424] GEOM x_d[3]=241 期望src=120 顶层src=121 dx=-1 | de3=1 oob=0 sy=10 y3=15
+[tb_v98_top_seam.v:424] GEOM x_d[3]=243 期望src=121 顶层src=122 dx=-1 | de3=1 oob=0 sy=10 y3=15
+[tb_v98_top_seam.v:424] GEOM x_d[3]=245 期望src=122 顶层src=123 dx=-1 | de3=1 oob=0 sy=10 y3=15
+[tb_v98_top_seam.v:424] GEOM x_d[3]=247 期望src=123 顶层src=124 dx=-1 | de3=1 oob=0 sy=10 y3=15
+[tb_v98_top_seam.v:424] GEOM x_d[3]=249 期望src=124 顶层src=125 dx=-1 | de3=1 oob=0 sy=10 y3=15
+[tb_v98_top_seam.v:353] DBG 左窗 x=100 y=300 | 顶层源坐标 sx_l=54 sy_l=153 oob=0 | tap_raw=962d 解出(150,45) fb_out=9835 rd_addr=19597
+[tb_v98_top_seam.v:353] DBG 左窗 x=101 y=300 | 顶层源坐标 sx_l=55 sy_l=153 oob=0 | tap_raw=962e 解出(150,46) fb_out=9836 rd_addr=19598
+[tb_v98_top_seam.v:353] DBG 左窗 x=102 y=300 | 顶层源坐标 sx_l=55 sy_l=153 oob=0 | tap_raw=962e 解出(150,46) fb_out=9836 rd_addr=19597
+[tb_v98_top_seam.v:353] DBG 左窗 x=103 y=300 | 顶层源坐标 sx_l=56 sy_l=153 oob=0 | tap_raw=962f 解出(150,47) fb_out=9837 rd_addr=19598
+[tb_v98_top_seam.v:353] DBG 左窗 x=104 y=300 | 顶层源坐标 sx_l=56 sy_l=153 oob=0 | tap_raw=962f 解出(150,47) fb_out=9837 rd_addr=19598
+[tb_v98_top_seam.v:353] DBG 左窗 x=105 y=300 | 顶层源坐标 sx_l=57 sy_l=153 oob=0 | tap_raw=9630 解出(150,48) fb_out=9838 rd_addr=19599
+[tb_v98_top_seam.v:353] DBG 左窗 x=106 y=300 | 顶层源坐标 sx_l=57 sy_l=153 oob=0 | tap_raw=9630 解出(150,48) fb_out=9838 rd_addr=19598
+[tb_v98_top_seam.v:353] DBG 左窗 x=107 y=300 | 顶层源坐标 sx_l=58 sy_l=153 oob=0 | tap_raw=9631 解出(150,49) fb_out=9839 rd_addr=19599
+[tb_v98_top_seam.v:255] [Xborn] 从机 rvalid=38400 其中字含X=0 | fb 写=38400 拍 其中数据含X=0
+[tb_v98_top_seam.v:257] [Xborn] 阵列（lo 32768 + hi 8192 = 40960 字）里含 X 的字数=2560，首个下标=38400
+[tb_v98_top_seam.v:259] [Xborn] 有效拍=1843200：rd_addr 是 X 的=0，fb_rd 是 X 的=1231284
+[tb_v98_top_seam.v:262] [Xborn3] gp(19位几何)=0000000000000000000 inv_used= 256 sx=   0 sy=   0 oob=1 rd_addr=     0
+[tb_v98_top_seam.v:266] [Xborn4] 归属链 mode=00 owner_eth=0 owner_pix=0 src_use=1 eth_link_pix=0 ps_seen=1 have_src=1 fb_vis=1 | fb_out=2b9d orig_disp=2b95
+[tb_v98_top_seam.v:271] [Xborn5] mapper fx=00 fy=00 sx=   0 sy=   0 oob=1 | bilin addr_q=     0 fb_word=0007000600050004 tap_r=2b9e2b9d res_q=02b9d lerp=xxxx v_d2=0 asm_d2=0
+[tb_v98_top_seam.v:277] [Xborn6] w_a=     0 w_b=   128 lane=0 | a_hold=2bff2bfe2bfd2bfc b_hold=xxxxxxxxxxxxxxxx | p00=2bfc p10=2bfd p01=xxxx p11=xxxx | oob_d2=1 kx=0 ky=0 bilin_en=1
+[tb_v98_top_seam.v:496] PROBE fb_wr_pulses=115200 (一帧要 38400)  copy_hold 拍了 0  u_aw.active=122402 最后到的 row=0
+[tb_v98_top_seam.v:498] DIAG fb_vis=1 owner_eth=0 fill_busy=1 row_busy=0 eth_live=0 tb_ok=0 dbg_src=0308 tap_raw 全黑比例 6/892270
+PASS C0d a real source is on screen | less than half of left-pane samples are black, else nothing was copied
+PASS C0b enough frames ran | at least 3 frames, otherwise every count below is void
+PASS C0c the AXI copy is alive | AXI bursts present, 8-byte aligned, never read outside the PS window
+[tb_v98_top_seam.v:513] OBS C-tap 观测（不判定）：样本 892270 格、偏差非零 888702 格、首格偏差 -112
+[tb_v98_top_seam.v:515] INFO C-tap 样本 892270 格、偏 888702 格、首格偏差 -112（0 才是对的）
+PASS C0f whole fb word space written | de-duplicated write-word index count must cover the full frame once
+[tb_v98_top_seam.v:529] X 读回 0 格，落在列 9999..-1；去重写过的字下标 38400/38400
+[tb_v98_top_seam.v:533] 级数标定：源列 == 第 k 级显示列 >>1 的不符数（样本 820703）
+[tb_v98_top_seam.v:535] k=0 不符 820703
+[tb_v98_top_seam.v:535] k=1 不符 411238
+[tb_v98_top_seam.v:535] k=2 不符 0
+[tb_v98_top_seam.v:535] k=3 不符 409465
+[tb_v98_top_seam.v:535] k=4 不符 820703
+[tb_v98_top_seam.v:535] k=5 不符 820703
+[tb_v98_top_seam.v] OBS C1i 标定级数：几何 0 不符的 k 有 1 个（k=2），该级相位不符 0（其余级：k=2 相位 0）
+PASS C1i read-port phase same stage as src | col0/row0/pair_odd/req_vld must come from the calibrated label stage, not from a comment
+PASS C1g VIEWPORT col: src == x_d[2]>>1 | single viewport: src column == display column >>1 at the calibrated stage (k=2 is the only zero)
+[tb_v98_top_seam.v:541] C1h 跳过帧底夹紧 11112 格（sy==299）；行不符 0
+PASS C1h VIEWPORT row: src == (y_d[2]+OFF+BILIN)>>1 | same definition row-wise: two display rows share one source row (600-line panel, 300 source rows)
+[tb_v98_top_seam.v:544] C1g/C1h 样本 820703 格；列不符(旧口径) 409465
+[tb_v98_top_seam.v:545] X 分层：有效拍 3072000 | fb_rd 是 X 的 1231284 | fb_pix_hold 是 X 的 1231285 | fb_out 是 X 的 1231284
+PASS C0e RULER self-consistent | out-of-range bucket must be a subset of the mismatch set
+PASS C1a content-check coverage | in-line left-pane samples below 50k means nothing was measured
+[tb_v98_top_seam.v:551] C1 样本 820703 格（跳过出界/行首尾 66011）；Δcol 首值 0、Δrow 首值 0、跳变 0 次
+[tb_v98_top_seam.v:564]        C1 样本 820703 格（跳过出界/行首尾 66011）；X 格 0；Δcol 不符 0、Δrow 不符 0；Δcol 首值 0、Δrow 首值 0、跳变 0 次
+PASS C1e PRECONDITION no X inside the measurement window | with X present every dcol/drow below is false-green on an empty set (#78)
+PASS C1c content column == display column >> 1 | single-viewport geometry, content-level evidence (was a NOTE before #78)
+[tb_v98_top_seam.v:571] OBS C1d 行方向原始计数（硬判据在它下面一行）：Δrow 不符 0、跨帧恒定 = 1
+PASS C1d content row == display row >> 1 (outside ring warm-up) | row-wise content alignment of the raw tap; warm-up rows are counted, not hidden
+C1d 例外计数：行环热身跳过 5556 格、帧底夹紧跳过 11112 格、出界/行首尾跳过 66011 格
+PASS C1d-b skips are explained | every skipped warm-up cell must decode to source row 299, else the skip hides something
+ROWMIX values drow=-4..+3 | big+ big- : 0 0 0 0 0 0 0 0 | 0 0
+ROWMIX cols bucket=32 (0..7): 0 0 0 0 0 0 0 0
+ROWMIX cols bucket=32 (8..15): 0 0 0 0 0 0 0 0
+[tb_v98_top_seam.v:573] 观测（老尺子，仅供以后对比）：左窗 n=892270 不符=892270；右窗列不符=928200
+[tb_v98_top_seam.v:579] M2 右窗行偏移（全旁路，今天只报数）：众数=0 变化次数=6288 样本=935340
+[tb_v98_top_seam.v:582] Δrow0 : 929052 点
+[tb_v98_top_seam.v:586] 左窗 Δcol2 : 3570 点
+[tb_v98_top_seam.v:586] 左窗 Δcol3 : 3570 点
+[tb_v98_top_seam.v:586] 左窗 Δcol4 : 3570 点
+[tb_v98_top_seam.v:588] 左窗 Δrow-1 : 8840 点
+[tb_v98_top_seam.v:588] 左窗 Δrow0 : 877410 点
+[tb_v98_top_seam.v:589] 左窗 Δcol 超出±5 : 877990 点（量程不够 / 内容根本不是这张图）
+[tb_v98_top_seam.v:590] 左窗 Δrow 超出±5 : 6020 点
+[tb_v98_top_seam.v:591] ⇒ 非 0 是**已知的**：`cy_r` 提前 OFF_LINES 行补的是链子内容滞后，全旁路时链子不滞后。
+[tb_v98_top_seam.v:592] V8-4b（单流 + 链前/链后两抽头）之后这一格必须是 0，届时把 M2 转成硬判据。
+[tb_v98_top_seam.v:599] OBS M3 右窗行偏移跨帧是否恒定（不判定，内容期望未修对）：恒定 = 0（1=恒定，0=一帧一变），变化次数 6288
+[tb_v98_top_seam.v:601] INFO 统计 frames=6 ar=7201 r=115201 odd=0 outwin=0 n_l=892270 bad_l=892270 n_r=935340 bad_r_col=928200
+C2 table  code inv  nin     nout     inbad viol measl measr geol geor leakl leakr blank invbad | C3 rows empt wbad rbad fmin fmax lmin lmax
+ROWMIX col=366 y11=220 | screen=0000 dec(0,0) exp(110,183) dcol=73 drow=-110 sx=0 sy=2 off=4
+ROWMIX col=367 y11=220 | screen=0000 dec(0,0) exp(110,183) dcol=73 drow=-110 sx=0 sy=2 off=4
+ROWMIX col=368 y11=220 | screen=0000 dec(0,0) exp(110,184) dcol=72 drow=-110 sx=4 sy=2 off=4
+ROWMIX col=369 y11=220 | screen=0000 dec(0,0) exp(110,184) dcol=72 drow=-110 sx=4 sy=2 off=4
+ROWMIX col=370 y11=220 | screen=0000 dec(0,0) exp(110,185) dcol=71 drow=-110 sx=8 sy=2 off=4
+ROWMIX col=371 y11=220 | screen=0000 dec(0,0) exp(110,185) dcol=71 drow=-110 sx=8 sy=2 off=4
+C2 row    0 1023    62436   185372      0    0   384   641  384  641    -1    -1     0    0 |  300  480   0   0  384  384  641  641
+PASS C2pre inv took | inv_used must equal the table value, and the code must have been sampled
+PASS C3pre marker off | the 2px seam marker would itself be a non-black column at the panel edge (#92)
+PASS C3a panel active window | every measured line must be exactly 1024 de-high columns and the frame 600 lines
+PASS C3b panel rows judged | C3 must actually have content rows to judge, else the edge numbers below are void
+PASS C2a bg black | no content in background / no black hole inside the picture
+PASS C2b col matches definition | each in-window column must decode to the source column the definition asks for
+PASS C2c edges match definition | measured picture edges == geometric edges (content stage, in columns)
+PASS C3c panel edges match definition | the panel's own first/last non-black column == the geometric edges, same on every row
+PASS C2d coverage | zoom-out codes must actually have background columns to judge
+C2 row    1  776    81796   166012      0    0   344   681  344  681    -1    -1     0    0 |  380  400   0   0  344  344  681  681
+PASS C2pre inv took | inv_used must equal the table value, and the code must have been sampled
+PASS C3pre marker off | the 2px seam marker would itself be a non-black column at the panel edge (#92)
+PASS C3a panel active window | every measured line must be exactly 1024 de-high columns and the frame 600 lines
+PASS C3b panel rows judged | C3 must actually have content rows to judge, else the edge numbers below are void
+PASS C2a bg black | no content in background / no black hole inside the picture
+PASS C2b col matches definition | each in-window column must decode to the source column the definition asks for
+PASS C2c edges match definition | measured picture edges == geometric edges (content stage, in columns)
+PASS C3c panel edges match definition | the panel's own first/last non-black column == the geometric edges, same on every row
+PASS C2d coverage | zoom-out codes must actually have background columns to judge
+C3DEV code=2 prow=406 first=258 last=767 |档内 first[256..256] last[767..767] y_d[MIX_D]=406 geol=256 geor=767
+C3DEV code=2 prow=407 first=258 last=767 |档内 first[256..258] last[767..767] y_d[MIX_D]=407 geol=256 geor=767
+C3DEV code=2 prow=406 first=258 last=767 |档内 first[256..258] last[767..767] y_d[MIX_D]=406 geol=256 geor=767
+C3DEV code=2 prow=407 first=258 last=767 |档内 first[256..258] last[767..767] y_d[MIX_D]=407 geol=256 geor=767
+C2 row    2  512   123904   123904      0    0   256   767  256  767    -1    -1     0    0 |  480  300   0   0  256  258  767  767
+PASS C2pre inv took | inv_used must equal the table value, and the code must have been sampled
+PASS C3pre marker off | the 2px seam marker would itself be a non-black column at the panel edge (#92)
+PASS C3a panel active window | every measured line must be exactly 1024 de-high columns and the frame 600 lines
+PASS C3b panel rows judged | C3 must actually have content rows to judge, else the edge numbers below are void
+PASS C2a bg black | no content in background / no black hole inside the picture
+PASS C2b col matches definition | each in-window column must decode to the source column the definition asks for
+PASS C2c edges match definition | measured picture edges == geometric edges (content stage, in columns)
+FAIL C3c panel edges match definition | the panel's own first/last non-black column == the geometric edges, same on every row
+PASS C2d coverage | zoom-out codes must actually have background columns to judge
+C3DEV code=3 prow=460 first=130 last=897 |档内 first[128..128] last[897..897] y_d[MIX_D]=460 geol=128 geor=897
+C3DEV code=3 prow=461 first=130 last=897 |档内 first[128..130] last[897..897] y_d[MIX_D]=461 geol=128 geor=897
+C2 row    3  341   186340    61468      0    0   128   897  128  897    -1    -1     0    0 |  632  148   0   0  128  130  897  897
+PASS C2pre inv took | inv_used must equal the table value, and the code must have been sampled
+PASS C3pre marker off | the 2px seam marker would itself be a non-black column at the panel edge (#92)
+PASS C3a panel active window | every measured line must be exactly 1024 de-high columns and the frame 600 lines
+PASS C3b panel rows judged | C3 must actually have content rows to judge, else the edge numbers below are void
+PASS C2a bg black | no content in background / no black hole inside the picture
+PASS C2b col matches definition | each in-window column must decode to the source column the definition asks for
+PASS C2c edges match definition | measured picture edges == geometric edges (content stage, in columns)
+FAIL C3c panel edges match definition | the panel's own first/last non-black column == the geometric edges, same on every row
+PASS C2d coverage | zoom-out codes must actually have background columns to judge
+C2 row    4  256   247808        0    484    0     0  1023    0 1023    -1    -1     0    0 |  780    0   0   0    0    2 1023 1023
+PASS C2pre inv took | inv_used must equal the table value, and the code must have been sampled
+PASS C3pre marker off | the 2px seam marker would itself be a non-black column at the panel edge (#92)
+PASS C3a panel active window | every measured line must be exactly 1024 de-high columns and the frame 600 lines
+PASS C3b panel rows judged | C3 must actually have content rows to judge, else the edge numbers below are void
+PASS C2a bg black | no content in background / no black hole inside the picture
+FAIL C2b col matches definition | each in-window column must decode to the source column the definition asks for
+PASS C2c edges match definition | measured picture edges == geometric edges (content stage, in columns)
+FAIL C3c panel edges match definition | the panel's own first/last non-black column == the geometric edges, same on every row
+C2 row    5  192   247808        0    484    0     0  1023    0 1023    -1    -1     0    0 |  780    0   0   0    0    0 1023 1023
+PASS C2pre inv took | inv_used must equal the table value, and the code must have been sampled
+PASS C3pre marker off | the 2px seam marker would itself be a non-black column at the panel edge (#92)
+PASS C3a panel active window | every measured line must be exactly 1024 de-high columns and the frame 600 lines
+PASS C3b panel rows judged | C3 must actually have content rows to judge, else the edge numbers below are void
+PASS C2a bg black | no content in background / no black hole inside the picture
+FAIL C2b col matches definition | each in-window column must decode to the source column the definition asks for
+PASS C2c edges match definition | measured picture edges == geometric edges (content stage, in columns)
+PASS C3c panel edges match definition | the panel's own first/last non-black column == the geometric edges, same on every row
+C2 row    6  171   247808        0    484    0     0  1023    0 1023    -1    -1     0    0 |  780    0   0   0    0    0 1023 1023
+PASS C2pre inv took | inv_used must equal the table value, and the code must have been sampled
+PASS C3pre marker off | the 2px seam marker would itself be a non-black column at the panel edge (#92)
+PASS C3a panel active window | every measured line must be exactly 1024 de-high columns and the frame 600 lines
+PASS C3b panel rows judged | C3 must actually have content rows to judge, else the edge numbers below are void
+PASS C2a bg black | no content in background / no black hole inside the picture
+FAIL C2b col matches definition | each in-window column must decode to the source column the definition asks for
+PASS C2c edges match definition | measured picture edges == geometric edges (content stage, in columns)
+PASS C3c panel edges match definition | the panel's own first/last non-black column == the geometric edges, same on every row
+C2 row    7  128   247808        0      0    0     0  1023    0 1023    -1    -1     0    0 |  780    0   0   0    0    0 1023 1023
+PASS C2pre inv took | inv_used must equal the table value, and the code must have been sampled
+PASS C3pre marker off | the 2px seam marker would itself be a non-black column at the panel edge (#92)
+PASS C3a panel active window | every measured line must be exactly 1024 de-high columns and the frame 600 lines
+PASS C3b panel rows judged | C3 must actually have content rows to judge, else the edge numbers below are void
+PASS C2a bg black | no content in background / no black hole inside the picture
+PASS C2b col matches definition | each in-window column must decode to the source column the definition asks for
+PASS C2c edges match definition | measured picture edges == geometric edges (content stage, in columns)
+PASS C3c panel edges match definition | the panel's own first/last non-black column == the geometric edges, same on every row
+RESULT tb_v98_top_seam FAIL nfail=6
+$finish called at time : 789600090 ns : File "D:/Xilinx/Prj/pro/Video_Processing/sim/tb_v98_top_seam.v" Line 979
+run: Time (s): cpu = 00:00:00 ; elapsed = 00:22:48 . Memory (MB): peak = 228.953 ; gain = 0.000
+exit
+INFO: xsimkernel Simulation Memory Usage: 13208 KB (Peak: 13208 KB), Simulation CPU Usage: 1323061 ms
+INFO: [Common 17-206] Exiting xsim at Sat Sep 26 17:06:48 2026...

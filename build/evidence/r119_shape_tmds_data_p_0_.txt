@@ -1,0 +1,112 @@
+Copyright 1986-2022 Xilinx, Inc. All Rights Reserved. Copyright 2022-2026 Advanced Micro Devices, Inc. All Rights Reserved.
+-----------------------------------------------------------------------------------------------------------------------------------------------------------------
+| Tool Version : Vivado v.2025.2.1 (win64) Build 6403652 Thu Mar 19 19:48:24 GMT 2026
+| Date         : Sun Oct  4 09:39:24 2026
+| Host         : Uie-laptop running 64-bit major release  (build 9200)
+| Command      : report_timing -to [get_ports -quiet {tmds_data_p[0]}] -delay_type max -max_paths 1 -nworst 1 -file build/evidence/r119_shape_tmds_data_p_0_.txt
+| Design       : system_top
+| Device       : 7z020-clg484
+| Speed File   : -2  PRODUCTION 1.12 2019-11-22
+| Design State : Routed
+-----------------------------------------------------------------------------------------------------------------------------------------------------------------
+
+Timing Report
+
+Slack:                    inf
+  Source:                 u_pl/u_dvi/u_ser0/u_master/CLK
+                            (rising edge-triggered cell OSERDESE2 clocked by clkout1_1  {rise@0.000ns fall@2.000ns period=4.000ns})
+  Destination:            tmds_data_p[0]
+                            (output port)
+  Path Group:             (none)
+  Path Type:              Max at Slow Process Corner
+  Data Path Delay:        2.033ns  (logic 2.032ns (99.951%)  route 0.001ns (0.049%))
+  Logic Levels:           1  (OBUFDS=1)
+  Clock Uncertainty:      0.235ns  ((TSJ^2 + DJ^2)^1/2) / 2 + PE
+    Total System Jitter     (TSJ):    0.050ns
+    Discrete Jitter          (DJ):    0.131ns
+    Phase Error              (PE):    0.165ns
+
+    Location             Delay type                Incr(ns)  Path(ns)    Netlist Resource(s)
+  -------------------------------------------------------------------    -------------------
+                         (clock clkout1_1 rise edge)
+                                                      0.000     0.000 r  
+    W17                                               0.000     0.000 r  sys_clk (IN)
+                         net (fo=0)                   0.000     0.000    sys_clk
+    W17                  IBUF (Prop_ibuf_I_O)         1.415     1.415 r  sys_clk_IBUF_inst/O
+                         net (fo=1, routed)           1.873     3.288    sys_clk_IBUF
+    BUFGCTRL_X0Y4        BUFG (Prop_bufg_I_O)         0.085     3.373 r  sys_clk_IBUF_BUFG_inst/O
+                         net (fo=186, routed)         1.550     4.923    u_pl/u_clk/sys_clk_IBUF_BUFG
+    MMCME2_ADV_X1Y0      MMCME2_ADV (Prop_mmcme2_adv_CLKIN1_CLKOUT1)
+                                                     -3.232     1.691 r  u_pl/u_clk/u_mmcm/CLKOUT1
+                         net (fo=1, routed)           1.597     3.288    u_pl/u_clk/clkout1
+    BUFGCTRL_X0Y2        BUFG (Prop_bufg_I_O)         0.085     3.373 r  u_pl/u_clk/u_bufg_5x/O
+                         net (fo=8, routed)           1.618     4.991    u_pl/u_dvi/u_ser0/clk_pix5x
+    OLOGIC_X1Y16         OSERDESE2                                    r  u_pl/u_dvi/u_ser0/u_master/CLK
+  -------------------------------------------------------------------    -------------------
+    OLOGIC_X1Y16         OSERDESE2 (Prop_oserdese2_CLK_OQ)
+                                                      0.418     5.409 r  u_pl/u_dvi/u_ser0/u_master/OQ
+                         net (fo=1, routed)           0.001     5.410    u_pl/u_dvi/u_ser0/serq
+    AA17                 OBUFDS (Prop_obufds_I_O)     1.614     7.024 r  u_pl/u_dvi/u_ser0/u_obuf/O
+                         net (fo=0)                   0.000     7.024    tmds_data_p[0]
+    AA17                                                              r  tmds_data_p[0] (OUT)
+  -------------------------------------------------------------------    -------------------
+
+
+
+
+Copyright 1986-2022 Xilinx, Inc. All Rights Reserved. Copyright 2022-2026 Advanced Micro Devices, Inc. All Rights Reserved.
+-------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+| Tool Version : Vivado v.2025.2.1 (win64) Build 6403652 Thu Mar 19 19:48:24 GMT 2026
+| Date         : Sun Oct  4 09:39:24 2026
+| Host         : Uie-laptop running 64-bit major release  (build 9200)
+| Command      : report_timing -to [get_ports -quiet {tmds_data_p[0]}] -delay_type min -max_paths 1 -nworst 1 -append -file build/evidence/r119_shape_tmds_data_p_0_.txt
+| Design       : system_top
+| Device       : 7z020-clg484
+| Speed File   : -2  PRODUCTION 1.12 2019-11-22
+| Design State : Routed
+-------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+
+Timing Report
+
+Slack:                    inf
+  Source:                 u_pl/u_dvi/u_ser0/u_master/CLK
+                            (rising edge-triggered cell OSERDESE2 clocked by clkout1_1  {rise@0.000ns fall@2.000ns period=4.000ns})
+  Destination:            tmds_data_p[0]
+                            (output port)
+  Path Group:             (none)
+  Path Type:              Min at Fast Process Corner
+  Data Path Delay:        0.994ns  (logic 0.993ns (99.899%)  route 0.001ns (0.101%))
+  Logic Levels:           1  (OBUFDS=1)
+  Clock Uncertainty:      0.235ns  ((TSJ^2 + DJ^2)^1/2) / 2 + PE
+    Total System Jitter     (TSJ):    0.050ns
+    Discrete Jitter          (DJ):    0.131ns
+    Phase Error              (PE):    0.165ns
+
+    Location             Delay type                Incr(ns)  Path(ns)    Netlist Resource(s)
+  -------------------------------------------------------------------    -------------------
+                         (clock clkout1_1 rise edge)
+                                                      0.000     0.000 r  
+    W17                                               0.000     0.000 r  sys_clk (IN)
+                         net (fo=0)                   0.000     0.000    sys_clk
+    W17                  IBUF (Prop_ibuf_I_O)         0.252     0.252 r  sys_clk_IBUF_inst/O
+                         net (fo=1, routed)           0.674     0.926    sys_clk_IBUF
+    BUFGCTRL_X0Y4        BUFG (Prop_bufg_I_O)         0.026     0.952 r  sys_clk_IBUF_BUFG_inst/O
+                         net (fo=186, routed)         0.595     1.547    u_pl/u_clk/sys_clk_IBUF_BUFG
+    MMCME2_ADV_X1Y0      MMCME2_ADV (Prop_mmcme2_adv_CLKIN1_CLKOUT1)
+                                                     -1.150     0.397 r  u_pl/u_clk/u_mmcm/CLKOUT1
+                         net (fo=1, routed)           0.529     0.926    u_pl/u_clk/clkout1
+    BUFGCTRL_X0Y2        BUFG (Prop_bufg_I_O)         0.026     0.952 r  u_pl/u_clk/u_bufg_5x/O
+                         net (fo=8, routed)           0.629     1.581    u_pl/u_dvi/u_ser0/clk_pix5x
+    OLOGIC_X1Y16         OSERDESE2                                    r  u_pl/u_dvi/u_ser0/u_master/CLK
+  -------------------------------------------------------------------    -------------------
+    OLOGIC_X1Y16         OSERDESE2 (Prop_oserdese2_CLK_OQ)
+                                                      0.177     1.758 r  u_pl/u_dvi/u_ser0/u_master/OQ
+                         net (fo=1, routed)           0.001     1.759    u_pl/u_dvi/u_ser0/serq
+    AA17                 OBUFDS (Prop_obufds_I_O)     0.816     2.574 r  u_pl/u_dvi/u_ser0/u_obuf/O
+                         net (fo=0)                   0.000     2.574    tmds_data_p[0]
+    AA17                                                              r  tmds_data_p[0] (OUT)
+  -------------------------------------------------------------------    -------------------
+
+
+
+

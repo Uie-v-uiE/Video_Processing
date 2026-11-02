@@ -1,0 +1,48 @@
+# #98 的跨帧探针（tb_v98 的 P98 块）——**中途输出，不是门禁报告**
+# 跑法：bash sim/run_one.sh tb_v98_top_seam（09-27 16:19 编译，rtl_md5=e0cd53360f50 / tb_md5=6e90c1c053f6 / top_md5=a7797d997fd6）
+# 取的是 C4 第 0 格（angle=0 x 1.00x）里环 u_raw 的写侧（尾 12 行）与读侧（头 8 行），
+# 以及同一跑里 C5 的帧头判决行。
+
+## 写侧：每一尾行摆进槽里的到底是哪一源行（tag 是 mod 128，43=299）
+P98W 写侧 y_d5=588 槽=4 | pix_raw tag=(行40,列0) oob=0 | sy=297 y_d2=588
+P98W 写侧 y_d5=589 槽=5 | pix_raw tag=(行40,列0) oob=0 | sy=297 y_d2=589
+P98W 写侧 y_d5=590 槽=6 | pix_raw tag=(行41,列0) oob=0 | sy=298 y_d2=590
+P98W 写侧 y_d5=591 槽=7 | pix_raw tag=(行41,列0) oob=0 | sy=298 y_d2=591
+P98W 写侧 y_d5=592 槽=0 | pix_raw tag=(行42,列0) oob=0 | sy=299 y_d2=592
+P98W 写侧 y_d5=593 槽=1 | pix_raw tag=(行42,列0) oob=0 | sy=299 y_d2=593
+P98W 写侧 y_d5=594 槽=2 | pix_raw tag=(行43,列0) oob=0 | sy=299 y_d2=594
+P98W 写侧 y_d5=595 槽=3 | pix_raw tag=(行43,列0) oob=0 | sy=299 y_d2=595
+P98W 写侧 y_d5=596 槽=4 | pix_raw tag=(行43,列0) oob=0 | sy=0 y_d2=596
+P98W 写侧 y_d5=597 槽=5 | pix_raw tag=(行43,列0) oob=0 | sy=0 y_d2=597
+P98W 写侧 y_d5=598 槽=6 | pix_raw tag=(行0,列0) oob=0 | sy=1 y_d2=598
+P98W 写侧 y_d5=599 槽=7 | pix_raw tag=(行0,列0) oob=0 | sy=1 y_d2=599
+
+## 读侧：帧头 0..7 行从环里读出来的 tag
+P98R 读侧 y_d5=0 读槽=4 | 环出口 tag=(行43,列160) | 写入口同拍 tag=行1
+P98R 读侧 y_d5=1 读槽=5 | 环出口 tag=(行43,列160) | 写入口同拍 tag=行1
+P98R 读侧 y_d5=2 读槽=6 | 环出口 tag=(行43,列160) | 写入口同拍 tag=行3
+P98R 读侧 y_d5=3 读槽=7 | 环出口 tag=(行0,列160) | 写入口同拍 tag=行3
+P98R 读侧 y_d5=4 读槽=0 | 环出口 tag=(行0,列160) | 写入口同拍 tag=行4
+P98R 读侧 y_d5=5 读槽=1 | 环出口 tag=(行1,列160) | 写入口同拍 tag=行4
+P98R 读侧 y_d5=6 读槽=2 | 环出口 tag=(行1,列160) | 写入口同拍 tag=行5
+P98R 读侧 y_d5=7 读槽=3 | 环出口 tag=(行3,列160) | 写入口同拍 tag=行5
+
+## 屏上（混色级之后）的帧头判决
+C5HEAD col=300 prow=0 px=8196 源行tag=1 定义=0 | 屏上这一格来自哪一行的判决
+C5HEAD col=512 prow=0 px=8100 源行tag=1 定义=0 | 屏上这一格来自哪一行的判决
+C5HEAD col=900 prow=0 px=81c2 源行tag=1 定义=0 | 屏上这一格来自哪一行的判决
+C5HEAD col=300 prow=1 px=8196 源行tag=1 定义=0 | 屏上这一格来自哪一行的判决
+C5HEAD col=512 prow=1 px=8100 源行tag=1 定义=0 | 屏上这一格来自哪一行的判决
+C5HEAD col=900 prow=1 px=81c2 源行tag=1 定义=0 | 屏上这一格来自哪一行的判决
+C5HEAD col=300 prow=2 px=8196 源行tag=1 定义=1 | 屏上这一格来自哪一行的判决
+C5HEAD col=512 prow=2 px=8100 源行tag=1 定义=1 | 屏上这一格来自哪一行的判决
+C5HEAD col=900 prow=2 px=81c2 源行tag=1 定义=1 | 屏上这一格来自哪一行的判决
+C5HEAD col=300 prow=3 px=8196 源行tag=1 定义=1 | 屏上这一格来自哪一行的判决
+C5HEAD col=512 prow=3 px=8100 源行tag=1 定义=1 | 屏上这一格来自哪一行的判决
+C5HEAD col=900 prow=3 px=81c2 源行tag=1 定义=1 | 屏上这一格来自哪一行的判决
+C5HEAD col=300 prow=4 px=8196 源行tag=1 定义=2 | 屏上这一格来自哪一行的判决
+C5HEAD col=512 prow=4 px=8100 源行tag=1 定义=2 | 屏上这一格来自哪一行的判决
+C5HEAD col=900 prow=4 px=81c2 源行tag=1 定义=2 | 屏上这一格来自哪一行的判决
+C5HEAD col=300 prow=5 px=8196 源行tag=1 定义=2 | 屏上这一格来自哪一行的判决
+C5HEAD col=512 prow=5 px=8100 源行tag=1 定义=2 | 屏上这一格来自哪一行的判决
+C5HEAD col=900 prow=5 px=81c2 源行tag=1 定义=2 | 屏上这一格来自哪一行的判决

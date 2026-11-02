@@ -1,0 +1,15 @@
+[adopt 21:31:28] 链子/阶段结束，开始断言
+[adopt 21:31:28] 新鲜度：门禁台架项认的是本轮树指纹（fresh）
+[adopt 21:31:28] 台架断言通过：PASS=161，FAIL=1 且就是 C5c
+[adopt 21:31:28] 门禁当前绿=22 红=2（判定 24 项），红项=顶层台架 tb_v98|文档时效 doc_cur；同步后应剩 绿=23 / 红=1
+[adopt 21:31:28] 步骤 1/3 ps_jtag_boot
+[adopt 21:31:35] 步骤 2/3 program_pl
+[adopt 21:31:53] 步骤 3/3 ps_app_reload
+[adopt 21:31:59] 刷板三步完成，实际位流 md5=7142a1fbf082，刷板时刻 2026-10-03 21:31
+[adopt 21:34:57] board_verify rc=0
+RESULT PASS geom_check（ok=10 fail=0）
+ok   V9-6 温度格三方对账：4 条 [TEMP] 的 degC↔osd↔gpio 全部自洽
+RESULT PASS uart_cmd_check  (105 条命令, 97.3 s, 捕获 board/uart_script_capture.txt)
+RESULT board_verify PASS（判红的步骤：0）
+[adopt 21:35:05] ICMP 取证落 build/r114_board_ping.txt（已 GBK→UTF-8，否则被跟踪件对 grep 是二进制）
+[adopt 21:35:05] 采纳段结束（文档同步 + 门禁两步重跑 + 重导包 + 推送由人接着做）

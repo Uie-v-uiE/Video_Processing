@@ -1,0 +1,32 @@
+导出时间: 2026-10-07 18:25:43
+来源提交: e805e6f（导出时工作区未提交改动 0 条）
+文件数  : 3141，体积 141M，本次剪掉 532 条（逐条与理由见 _pruned.txt）
+生成脚本: build/make_submission.sh（可重跑；四条判据写在脚本头部）
+
+目录对照（选题指南 §3.3.5.4 推荐结构 -> 本仓库）
+  README.md   项目简介 + 复现步骤   <- README.md（中）/ README_EN.md（英）
+  src/        设计源码              <- src/rtl/**（PL）+ src/ps/**（裸机固件）+ src/host/**（PC 侧）
+  sim/        仿真脚本与结果        <- 支撑交付结论的台架 + run_one.sh/run_sim.tcl + mut_control.sh
+                                      名字对照见 build/sim/names.md，判据报告在 build/reports/
+  build/      可复现构建 + 实现报告 <- tcl/build_system_axigpio.tcl（一条命令出位流）
+                                     + reports/**（这一版的综合/实现报告）+ 入口脚本 gates.sh
+  board/      工程/脚本/实测输出    <- project/**（板上那一版 .bit/.elf/.xsa）
+                                     + tcl|scripts/**（JTAG 与串口脚本）+ output/**（实测输出）
+                                     + measured/**、compare/**、evidence_r*/**（板级读数、差分辨识、串口抓包）
+
+                                       —— 这两棵在仓库里住在根目录，随包搬到板级这一层，包内活文档的指路已跟着改口；
+                                          脚本正文（board/scripts/、build/）仍按仓库布局写，在包里跑要先补一层 board/
+  data/       测试数据与参考结果    <- data/golden/**、data/measured/**
+  skills/      技能包                <- skills/**（README.md 是索引；条目外壳按 §3.3.5.2 就叫 SKILL.md）
+  report/     设计报告 + 协作记录   <- 仓库里的 report/（交付文档 + collaboration/ + figures/）
+  ——  逐轮台账（report/log/issues.md）与逐时钟名册（report/timing/）不在本包、也不在交付分支上：
+      它们住在同一仓库的过程分支，交付分支只带结论层。本包内的支撑数据是 build/reports/**（这一版的
+      综合/实现报告）、board/output/** 与 board/measured/**（板级实测读数）、data/**（测试数据与参考结果）。
+      早先这一版对照里写过 docs/ 与 submit/ 两层——现量 git ls-files 各 0 支（改名与迁出之后仓库里已无这两层），故删。
+
+板上那一份（位流与固件仓库不跟踪，按 md5 认身份，不靠文件名）：
+  ps_app.elf     md5 57fa442a7eaf
+  system.bit     md5 cd04907e1369
+  system.xsa     md5 934ebdbaa13b  门禁凭据: build/reports/index.md
+
+自检: 活文档死链 0 条（0 才算过，射程 122 份活文档由 find 现算）／被改名台架的旧名残留 0／绝对路径（甲 可执行件 + 乙 复现入口文档）0 条（另有叙述层 2 行只报数，那些是"当时读的是哪一份"的凭据）

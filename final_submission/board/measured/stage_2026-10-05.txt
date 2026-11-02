@@ -1,0 +1,94 @@
+board/ 上板工程的落位与验证（2026-10-05 晚）
+
+这一份记的是"交付里放的上板工程到底是打开得来的，还是抄文件抄出来的"。两条命令各跑一次，
+机器可读的那几行照抄输出，没有手工修饰。跑法与参数见 `board/tcl/stage_board_projects.tcl`、
+`board/scripts/stage_vitis_platform.sh` 的文件头。
+
+一、Vivado 侧：`board/tcl/stage_board_projects.tcl`
+
+命令（一次跑完，本次没有单独计时；完整日志在 `board/flash/stage.log`，被 `.gitignore` 的 `*.log` 挡住不入库）：
+  "D:/Software/Vivado/2025.2.1/Vivado/bin/vivado.bat" -mode batch -nojournal \
+    -log board/flash/stage.log -source board/tcl/stage_board_projects.tcl
+
+输出（去掉 Tcl 把源码行回显出来的 `#` 行；`runs` 那行原文是一串运行名，下面按类归纳，其余逐字照抄）：
+  STAGE from=D:/Xilinx/Prj/pro/Video_Processing/vivado_system to=D:/Xilinx/Prj/pro/Video_Processing/board
+  VERIFY project=zynq_video_sys
+  VERIFY part=xc7z020clg484-2
+  VERIFY runs=14 : synth_1、impl_1，外加 axi_gpio ×3 / processing_system7 / auto_pc / xbar 各自的 synth+impl
+  VERIFY sources=86 constraints=2
+  VERIFY bit_bytes=2202122 xsa_bytes=865533
+  VERIFY missing_files=0 of 88
+  NORMALIZE path_attr=board/zynq_video_sys.xpr
+  VERIFY abs_path_lines=0 bytes=50917
+  CLEAN zynq_video_sys.cache
+  CLEAN zynq_video_sys.hw
+  STAGE_BOARD_PROJECTS DONE
+
+四行读法：
+  · part 是 `xc7z020clg484-2`，与 `report/technical-document.md` §2 声明的器件同一颗。
+  · `missing_files=0 of 88` 才是这份记录的重点——把工程目录复制一份进 `board/` 之后，
+    工程自己报的 86 份源件加 2 份约束，逐个问路径在不在，全在。
+    复制最容易丢的是 BD 的 `.bd`/IP 与 `constrs_1` 里的 .xdc，丢了 `open_project` 不一定报错，
+    跑到综合才炸，所以这里用路径存活当判据，而不是用"文件数看着对"。
+  · `NORMALIZE` 与 `abs_path_lines=0`：Vivado 写回的工程头 `Path="…"` 是**本机绝对路径**，
+    直接提交会把"仓库里没有机器路径"这条自己踩破；脚本在关闭工程之后把它改回仓库相对的
+    `board/zynq_video_sys.xpr`，再逐行数一遍还有几行带盘符（0）。
+    字节数因此不是常量：每打开过一次 Vivado 就重写一次 `.xpr`，50 917 是这一跑之后的数
+    （`board/README.md` §1 那一格跟着它改；上一版记的 51 987 早在 10-05 上午就已不对，是这次顺手量出来的）。
+  · `runs=14` 是工程里**定义**的运行，不是已经跑出来的结果：`.runs/` 是实现产物，几百 MB 且随构建进度长，
+    没复制进来。要在这份交付工程上重新出位流，跑 `build/tcl/build_system_axigpio.tcl`；
+    要直接刷板，用 `board/scripts/make_boot_image.sh` + `board/tcl/flash_qspi.tcl`（位流取自 `build/system.bit`）。
+    打开工程顺带长出来的 `*.cache`、`*.hw` 由脚本删掉，交付目录回到入库那一版形状。
+
+位流与 .xsa 不在 `board/` 再存一份：仓库已跟踪 `build/system.bit`（2,202,122 B）与 `build/system.xsa`
+（865,533 B），复制一份只多 3 MB 并会留下"两份哪个是板上那版"的歧义；`make_boot_image.sh` 直接从 `build/` 取。
+
+二、Vitis 侧：`board/scripts/stage_vitis_platform.sh`
+
+命令：
+  PS_CC="D:/Software/Vivado/2025.2.1/Vitis/gnu/aarch32/nt/gcc-arm-none-eabi/bin/arm-none-eabi-gcc.exe" \
+    bash board/scripts/stage_vitis_platform.sh
+
+输出：
+  NORMALIZE vitis-comp xsa=build/system.xsa
+  STAGE_DST /d/Xilinx/Prj/pro/Video_Processing/board/vitis_platform
+  STAGE_BSP /d/Xilinx/Prj/pro/Video_Processing/board/vitis_platform/ps7_cortexa9_0/standalone_ps7_cortexa9_0/bsp
+  STAGE_HAVE hw/system.xsa
+  STAGE_HAVE zynq_fsbl/build/fsbl.elf
+  ELF_MD5_INREPO d0b07f84a0683db203086fb816ac71d7
+  ELF_MD5_STAGED_BUILD c0f9f79ac97aa77265ed42779f38611a
+  SECTIONS_BEFORE .text 62900 0|.rodata 19447 62960|
+  SECTIONS_AFTER  .text 62848 0|.rodata 19227 62912|
+  STAGE_VITIS RESULT=OK 副本能独立编译链接（ELF 非空，343344 字节）
+  CLEAN kept=vitis-comp.json,resources 平台正文（hw/ 域目录 zynq_fsbl/）不入库，重建路见 board/README.md 第 1 节
+  VERIFY abs_path_files=0 kept_files=4
+
+判据是"用副本里的 BSP 能独立链出非空 ELF"，不是"md5 必须等于仓库里那颗"。两颗本来就不等：
+仓库里 `build/ps_app.elf` 比 `src/ps` 的源码旧（`report/70-reproduce.md` 记着这条时间差），重链必然得到另一颗。
+差别用 section 大小量：`.text` 小 52 B、`.rodata` 小 220 B，与"删掉一条永远走不到的 `not_wired("bilin")` 分支"
+（笔 `0bc578d`）相称。对照实验：同一条命令改用原始 `vitis/platform` 的 BSP 也链出 `c0f9f79a…`，
+与用副本链出的逐位相同 ⇒ 副本没缺东西。两颗的完整记录在 `build/evidence/1005_ps_app_rebuild.txt`。
+
+两处前置要说清，否则这条判据会被读成"克隆下来就能跑"：`vitis/platform` 的 BSP（16 MB / 983 支）不入库，
+所以这一支要在装过平台、或已按 `board/README.md` §1 那句手工 New Platform 的机器上跑；
+`board/vitis_platform` 入库的只有 4 份文本件（`vitis-comp.json` + 3 份 `qemu_args.txt`），
+脚本验证完就把 `hw/`、域目录、`zynq_fsbl/` 这些正文删回去。
+
+三、两处自己造成的坑，如实记（台账 `report/log/issues.md` #394）
+
+① 这一支第一版直接让 `node build/ps_app.mjs` 写 `build/ps_app.elf`，于是"验证副本"这一步把仓库里那颗
+   在板身份换掉了（跑完 `git status` 显示 M，`md5sum` 已变成重链那颗）。现在改成跑前备份、退出时还原
+   （`trap … EXIT`），跑完再 `md5sum` 复核仍是 `d0b07f84a068`。
+② 复制会把"归一化"冲掉：`vivado_system/*.xpr` 的工程头与 `vitis/platform/vitis-comp.json` 的
+   `configuration.xsa` 都带本机绝对路径，整份复制进 `board/` 之后，上午手工改成仓库相对的那两处又变回机器路径。
+   现在两支脚本各自带一步 NORMALIZE，并把"还剩几行/几个文件带盘符"当成 REFUSE 条件（上面 `abs_path_lines=0`、
+   `abs_path_files=0` 就是这两条的输出）。
+③ 顺手的一条口径：正文里不再抄重建产物的 md5——每改一次 `src/ps` 它就变一次，六处抄写会一起失实。
+   改口脚本 `build/r125_elf_md5_rotate.mjs`，数字只留在 `build/evidence/1005_ps_app_rebuild.txt`。
+
+四、这两条命令与 QSPI 固化的关系
+
+`board/measured/flash_qspi_2026-10-05.txt` 记的是把 `BOOT.bin` 写进板载 QSPI 那一次（Erase/Program/Verify 成功）。
+`BOOT.bin` 里装的位流与 app 取自 `build/system.bit` 与 `build/ps_app.elf`（`d0b07f84a068`），
+也就是本节"在板那颗"，不是重链出来的那颗。所以固化用的、板上跑的、仓库里跟踪的是同一份身份。
+断电重上之后"能不能自己起来"还没判——那一判要人手拨启动模式，见 `board/README.md` §4。

@@ -1,0 +1,14 @@
+# CMD: 三行 grep/awk 现算，不手抄
+# RUN_AT: 2026-10-04 11:57:44
+$ grep -c "^PASS" build/tb_v98_report.txt
+161
+$ grep -c "^FAIL" build/tb_v98_report.txt
+1
+$ head -1 build/tb_v98_report.txt
+# provenance fpver=norm1 top_md5=56c269602e18 tb_md5=1c918c92200f rtl_md5=07570b1ac1b4 date=2026-10-04T01:47:53+08:00 src=/tmp/kx/tb_v98_top_seam.run/run.log
+$ grep -n "^整屏逐像素判据" data/metrics.csv | cut -c1-190
+15:整屏逐像素判据,核心,141,条,与 r104 同一批的顶层台架（`build/tb_v98_report.txt` 头部 `# provenance fpver=norm1 top_md5=2bf2ceeede07 tb_md5=36d0de483e6d rtl_md5=8997a6
+$ grep -rl "^# provenance.*2bf2ceeede07" build | wc -l   # 该 CSV 行点名的那份台架件是否还在盘上
+0
+$ grep -rn "2bf2ceeede07" build --include="tb_v98_report.txt" | wc -l
+0

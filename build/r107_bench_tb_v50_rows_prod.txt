@@ -1,0 +1,8 @@
+PASS no commit when only 10/300 rows
+PASS no commit when rows are touched but bytes are short
+PASS commit after 300 full production rows done=1
+PASS tb_v50_rows_prod
+INFO: [Common 17-206] Exiting xsim at Fri Oct  2 15:25:22 2026...
+exit
+INFO: [Common 17-206] Exiting xsim at Fri Oct  2 15:25:22 2026...
+VERDICT tb_v50_rows_prod: PASS tb_v50_rows_prod || FAIL 行数=0 || PASS 行数=4

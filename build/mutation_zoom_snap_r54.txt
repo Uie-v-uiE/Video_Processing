@@ -1,0 +1,46 @@
+### B) MUTANT2 = 只在捕获那一拍发沿（去掉 8 拍延迟）：
+PASS Z0 reset: bus=0, no edge, bus_q=0
+PASS Z1 20 identical frames produce zero edges
+PASS Z2a zman -> bit18 only
+PASS Z2b zsel=5 -> bits[17:15]
+PASS Z2c zoom_code=7 -> bits[14:12]
+PASS Z2d zoom_active -> bit11
+PASS Z2e zoom_dir -> bit10
+PASS Z2f inv_scale -> bits[9:0]
+PASS Z3 8 real changes produce exactly 8 edges
+FAIL Z4 edge lags frame_start by exactly 8 pix clocks (t=36915000)
+PASS Z5 no unpublished value ever reached the destination
+PASS Z6 bus_q equals the last published value
+PASS Z7 40 breathing frames -> 40 edges
+PASS Z7b bus_q tracked the newest frame
+PASS Z7c still no torn value
+PASS Z8 heartbeat ticking -> hb_gone released
+FAIL tb_v95_zoom_snap errors=1
+### A) MUTANT1 = 同拍发沿 + 延迟发沿都在（沿翻倍）：
+FAIL Z3 8 real changes produce exactly 8 edges (t=36915000)
+FAIL Z4 edge lags frame_start by exactly 8 pix clocks (t=36915000)
+PASS Z5 no unpublished value ever reached the destination
+PASS Z6 bus_q equals the last published value
+FAIL Z7 40 breathing frames -> 40 edges (t=75605000)
+PASS Z7b bus_q tracked the newest frame
+PASS Z7c still no torn value
+FAIL tb_v95_zoom_snap errors=3
+
+### C) 交付版（= 上面两条变异都改回之后）：
+PASS Z0 reset: bus=0, no edge, bus_q=0
+PASS Z1 20 identical frames produce zero edges
+PASS Z2a zman -> bit18 only
+PASS Z2b zsel=5 -> bits[17:15]
+PASS Z2c zoom_code=7 -> bits[14:12]
+PASS Z2d zoom_active -> bit11
+PASS Z2e zoom_dir -> bit10
+PASS Z2f inv_scale -> bits[9:0]
+PASS Z3 8 real changes produce exactly 8 edges
+PASS Z4 edge lags frame_start by exactly 8 pix clocks
+PASS Z5 no unpublished value ever reached the destination
+PASS Z6 bus_q equals the last published value
+PASS Z7 40 breathing frames -> 40 edges
+PASS Z7b bus_q tracked the newest frame
+PASS Z7c still no torn value
+PASS Z8 heartbeat ticking -> hb_gone released
+PASS tb_v95_zoom_snap

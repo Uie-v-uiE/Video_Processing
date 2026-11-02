@@ -1,0 +1,2 @@
+==== 2026-10-01T23:09:12+08:00 起 r104 构建（build/tcl/build_system_axigpio.tcl）
+==== 2026-10-01T23:09:12+08:00 构建 pid=44408，日志 /tmp/kx/r104_wrap.log

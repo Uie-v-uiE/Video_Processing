@@ -1,0 +1,70 @@
+== board_verify 2026-09-25 18:47:33 ==
+工作目录：/d/Xilinx/Prj/pro/Video_Processing
+-- 三件套（请与 build/frozen_*/MANIFEST.md 对账）--
+  build/system.bit  md5=21637a10  2026-09-25 18:28
+  build/system.xsa  md5=3988a546  2026-09-25 18:29
+  build/ps_app.elf  md5=1e157e9f  2026-09-25 18:39
+-- 1) 串口现在在说什么（活着、在播、没报错）--
+  \[SD\] frame → [SD] frame 3512: last 100 frames 29.999 fps (since play 24.428)
+  \[SD\] play refused → （没有这行）
+  \[SD\] mount failed → （没有这行）
+  \[TEMP!\] → （没有这行）
+  !! → （没有这行）
+-- 2) 读回口：health_read（lane0..9 + 23..31）--
+  lane30 src_state → {"eth_tb_ok":1,"eth_live":0,"owner_eth":0,"fill_busy":0,"row_busy":0,"mode_gray":0,"why_gray":2,"why_tb_untrusted":0,"why_no_stream":1,"why_force_ps":0,"mode":"AUTO","why":"没有流"}
+  lane23 zoom → {"raw":2147630472,"alive":1,"zman":0,"zsel":4,"zcode":3,"zoom_active":1,"zoom_dir":1,"inv_scale":392,"x100_actual":65.3,"inv_expected":null,"inv_ok":true,"code_ok":true,"verdict":"OK"}
+  lat.osd_ms_matches_tot → true
+  drop_words → 0
+-- 3) 仲裁交接九条（脚本内部会自己开关推流；含 V1/V1b 拆分：外部在推流不再被当成仲裁故障）--
+[ARB] 测前片源模式 mode=0（AUTO，起点干净）
+[ARB] 采样会话已出数，开始掐四个阶段的时间点
+[ARB] +3003 ms 开始推流（--test move --fps 15）
+[ARB] +15012 ms 停流（"交回"用时从这一毫秒起算）
+[ARB] +30017 ms 再推流（测可逆）
+[ARB] +38028 ms 结束，等采样会话收尾
+[ARB] 已把 SD 回放恢复到测前状态（PLAY）
+[ARB] 采到 lane30 155 点、lane31 155 点
+[ARB] 每约 2 s 的上下文：-3s:own0:live0:tb1 3.9s:own1:live1:tb1 10.9s:own1:live1:tb1 17.9s:own0:live0:tb1 24.9s:own0:live0:tb1 31.9s:own1:live1:tb1 38.8s:own0:live0:tb1 45.8s:own0:live0:tb1
+
+  PASS  V1 基线归 PS  静默 3s 内 owner_eth=1 的样本 0/8（应为 0）
+  PASS  V1b 无流却占着（真故障）  基线 8 点里 owner=1 而 live=0 的情况必须为零（有 owner 无流 = 交回失败）
+  PASS  V2 接管时限  推流后 owner_eth→1 用时 100 ms（门限 2000）
+  PASS  V3 推流期不抖  稳占段 owner_eth=1 的样本 29/29，翻转 0 次
+  PASS  V4 停流交回  停流后 owner_eth→0 用时 266 ms（门限 1500）
+  PASS  V5 交回后不回跳  交回之后 owner_eth=1 的样本 0/39，翻转 0 次（都应为 0）
+  PASS  V6 可逆（再推又接管）  再推流后 owner_eth→1 用时 286 ms（门限 2000）
+  PASS  V0 采样密度  全程 100 个样本 / 期望约 117（掉一半即判采样链有问题）
+  PASS  V7 交回后原因位自洽  交回段 39 个样本里原因位不可用的 0 个（要 没流/时基 至少亮一位、且不亮强制看 fb；全 0 = 板上的 bit 早于 r54）
+
+[ARB] 结论：九条全过 ⇒ "自动交回 + 不抖 + 可逆 + 无流不占总线"有凭据了（屏幕观感仍欠眼睛）
+[ARB] 判据与原始样本落盘：data/measured/arb_handover_last.json
+[ARB] 退出码 0（0=九条全绿）
+-- 4) 串口命令电池（71 条 + 初末态必须相同）--
+ok   50 temp
+ok   51 temp th
+ok   52 temp th 999
+ok   53 TEMP
+ok   54 src auto
+ok   55 src 0
+ok   56 src 2
+ok   57 src 1
+ok   58 src auto
+ok   59 STAT
+ok   60 sd
+ok   61 sd files
+ok   62 sd file 1
+ok   63 sd file 99
+ok   64 split 30
+ok   65 split swap 1
+ok   66 split swap 0
+ok   67 split marker 0
+ok   68 split marker 1
+ok   69 split show
+ok   70 split 150
+ok   71 split 50
+ok   跑完回到初态：en=00 thr=80 src=1 zoom=1 bilin=1 zsel=4 zman=0 gm=0.00 mode=0
+
+RESULT PASS uart_cmd_check  (71 条命令, 67.2 s, 捕获 board/uart_script_capture.txt)
+[BATT] 退出码 0
+== 日志留在 build/evidence/verify_0925_1847.txt ==
+RESULT board_verify PASS（判红的步骤：0）

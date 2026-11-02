@@ -1,0 +1,13 @@
+90781f69073ee51f2a8c782e1126bd5c *system.bit
+a61f53e38d1030c1ec78738b6acfe20e *system.xsa
+9aaccb23e4ae66a26b488f7566c32dc5 *ps_app.elf
+198d6f8e00173ebdc1875664fa2f4605 *timing_summary.rpt
+29b67e8610914c8d4e6053548a8a4fb6 *utilization.rpt
+e498c350318ce55ca8b2045cc4c28370 *methodology.rpt
+54a3ca57fbbf1bbcfc0c5bcc88c8cb75 *cdc.rpt
+632e02781e58769b7c497473b951782a *power.rpt
+3a8f5afaa1ba5968b47193dda3451c9a *route_status.rpt
+f2aad0652c876cbb77f447ff62d61725 *gates_r47.txt
+5c8d662737ce905a8499e86e91461d5d *regression_v79_r47.txt
+5056c6d3b95bbcdebcc26df46bf02056 *uart_r47_boot.txt
+6e78a531edec61bbcb02de8a00c9a082 *uart_battery_r47.txt

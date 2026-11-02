@@ -1,0 +1,210 @@
+# ===== Vivado / Vitis / 仿真 生成物（勿提交） =====
+# 2026-10-07 改口径：**工程本体（`vivado_system/` 与 `vitis/`）随仓库交付**，所以这两条整目录排除
+# 已经删掉，噪声改由文件本目录末尾那一段规则挡。这里保留的都是**别处**的生成物。
+# 注意：不能再写 `VITIS/`——Windows 上它连 `vitis/` 一起挡，而父目录被排除后里面的文件放不回来。
+vivado/
+dfx_runtime.txt
+build/_repro*
+vivado_sim/
+.Xil/
+*.jou
+*.log
+*.str
+*.pb
+*.wdb
+*.wcfg
+*.dcp
+*.rpx
+*.hwdef
+*.hwh
+*.ltx
+
+# 工程内重复的生成目录
+build/vivado_system/
+build/build/
+# 原件不随包（体积与去重），但**索引与解析件必须入库**，否则 clone 之后"成对"不成立
+build/reports/*
+!build/reports/index.md
+build/scripts/
+
+# ===== 本地个人笔记 / 辅助脚本 / 构建日志（不上传） =====
+report/LEARNING.md
+report/TCL_GUIDE.md
+report/PROJECT_LOG.md
+report/build_logs/
+report/fix_branches.bat
+report/ZOOM_PORT.md
+report/COMPETITION.md
+fix_branches.bat
+
+# ===== Python =====
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+
+# ===== 编辑器 / 系统 =====
+.vs/
+.vscode/
+.idea/
+*.swp
+Thumbs.db
+.DS_Store
+
+# 仿真 / 工具运行产物（第四版）
+sim_work/
+sim/xsim.dir/
+sim/*.log
+data/measured/ddr_dump.out
+data/measured/ddr_dump.tcl
+src/host/_xsdb_*.tcl
+
+# 综合探针脚本跑出来的 Vivado 工程产物不入库
+sim/probes/*.xpr
+sim/probes/*.log
+sim/probes/.Xil/
+sim/probes/*.runs/
+sim/probes/*.dcp
+data/measured/health_*.out
+sim/probes/*.cache/
+sim/probes/*.hw/
+sim/probes/*.runs/
+sim/probes/*.log
+sim/probes/*.jou
+sim/probes/*_lastrun.log
+
+# 构建产物快照（本地对照用，不入库：每个 .bit 约 10MB）
+build/snap_*/
+# 成套归档：只入库报告与 MANIFEST（md5 清单），二进制留在本地——与 ku5p/build/*.bit 同一条口径
+build/frozen_*/*.bit
+build/frozen_*/*.xsa
+build/frozen_*/*.elf
+build/failed_*/*.bit
+build/failed_*/*.xsa
+
+# KU5P 工程的 Vivado 生成目录（与 vivado_system/ 同理）
+ku5p/vivado_ku5p/
+ku5p/build/*.bit
+clockInfo.txt
+
+# 从 build/system.xsa 里解出来的 PS 初始化脚本（派生物，ps_jtag_boot.tcl 会自动重建）
+build/ps7_init.tcl
+build/_extract_ps7_init.ps1
+
+# ModelSim 只当交叉编译器用（vsim 无授权），它的 work 库不入库
+sim/msim/
+sim/*.run/
+ku5p/build/frozen_*/*.bit
+ku5p/build/exp_*/*.bit
+ku5p/build/exp_*/*.dcp
+
+# 构建的 stdout 镜像（log 已由 vivado -log 生成，两份都是本机产物）
+build/*.stdout
+
+# 作者自用学习文档（中文文件名）。比赛指南 §3.3.3.4 要求仓库内文件名纯 ASCII，
+# 所以它**不入库**；写在 .gitignore 而不是 .git/info/exclude，是为了这条排除规则本身可被审查看见、
+# 换机器也不会失效（原来只在 .git/info/exclude 里 = 只存在于这台机器）。
+report/study/
+
+
+# xsim/vivado 就地生成的工程壳：跑批时留在原地会污染 git status（2026-09-24 加）
+.srcs/
+xsim.dir/
+
+# 2026-09-26：读口探针与台架的一次性运行目录（vivado/xsim 生成物，重跑方法在各自 README/注释里）
+build/micro_rd/proj_*/
+build/micro_rd/gen/
+sim/v98run/
+sim/xtest/
+sim/tagchk/
+sim/syntaxchk/
+sim/v100run2/
+
+# 每轮的 bit/xsa/elf 二进制只留本地一份用于回滚（MANIFEST.md5 里已记哈希）；
+# 仓库里 commit 的是报告 + MANIFEST，与 build/frozen_r62_geom/ 的既有约定一致（r70 清理时写死）。
+build/evidence_r*/system.bit
+build/evidence_r*/system.xsa
+build/evidence_r*/ps_app.elf
+
+# 2026-09-27 工作区清理：板级验收脚本每次跑都重生成这两类东西，它们不是凭据（.health.err 成功时恒为 0 字节，
+# 而 0 字节的"错误文件"当证据本身就是我们禁的形状；.o 是 ps_app.mjs 的中间产物，入库的产物是 ps_app.elf）。
+build/evidence/verify_*.health.err
+build/ps_obj/*.o
+
+# ===== 串口工具的运行时输出（每次跑都重写，不进库）=====
+board/uart_script_capture.txt
+board/uart_*.txt
+board/send_*.txt
+board/ddr_*.txt
+board/sd_*.txt
+
+# 隔离滚一轮（build/roll_isolated.sh）的产物：报告可比对、二进制只留本地
+build/isolated_*/*.bit
+build/*isolated*/*.bit
+build/isolated_*/*.xsa
+build/*isolated*/*.xsa
+
+# 草稿与原始字节捕获：草稿会被正式报告顶替（draft 不该有凭据身份），
+# 捕获是 board/serial_bytes.ps1 每次跑都重生成的本机产物，不是判据原件（原件在 build/evidence/）
+build/*_draft.txt
+build/serial_bytes_*.txt
+
+# 上手卡（HANDS_ON）留在本机给上板的人自己看，不进 git、不进提交包：
+# 交付件里 board/README.md 已经写了"上板工程 / 运行脚本 / 实测输出"三块，两张卡会让评审重复读。
+board/HANDS_ON.md
+
+# 2026-10-04（P11 学习文档线）：项目拆解学习文档只留本机，不上传 GitHub、不进提交包。
+# 与 report/study/ 同一条口径：写在 .gitignore 里让这条排除规则本身可被审查看见。
+docs/walkthrough/
+
+# 技能包校验脚本的运行产物（默认输出目录）。它是跑出来的，不是交付物；
+# 留在 skill/ 里会被 G5/G2 当条目、并被退役核对器误读（2026-10-04 第三方审计指出脚本往交付树里写东西这件事）。
+**/_out/
+
+# ---- 2026-10-04（r120）：把"开发过程留下的树"钉死在仓库外 ----
+# 9/29 那棵隔离构建的输出目录（含 2.1 MB 位流与 866 KB xsa）：过程留档，不入库、不随包。
+# 隔离轮的整个产物目录都不入库（只 `build/evidence/` 里那份读数件算凭据）：
+#   凡是被交付文档引用的读数必须复制进 build/evidence/，否则指路会落空（#383 踩过一次）
+build/isolated_*/
+build/isolated_0929_2036/
+# 各轮临时写commit message/标记的散件：它们是当时那一步的草稿，不是凭据（凭据一律在 build/evidence/ 下以 .txt 留档）。
+build/r11*_msg*.txt
+build/r11*_commit_msg*.txt
+build/*.marker
+c4_probe/
+build/c4_probe_*
+# 2026-10-05：学习文档（docs/course 十章 + docs/walkthrough）按用户要求只在本地读，不进 GitHub、不随包
+# 判据口径：交付文档里指向它的 2 处指路已改成"本地学习文档"的散文说法，不留指不到的路径
+docs/
+board/flash/BOOT.bin
+board/flash/boot.bif
+board/flash/*.log
+
+# 本机学习档与计划件：学习文档不上 GitHub（2026-10-05 的决定）。
+# 这三条守住那条决定：在 review 工作树里再 git add -A，也不会把它们带上分支。
+deep_course/
+local_docs/
+dcb_timing_chain_plan.md
+
+# ===== 2026-10-07：工程本体随仓库交付（这一段必须留在文件末尾，后写的规则才赢）=====
+# 目的：clone 之后直接打开 `vivado_system/zynq_video_sys.xpr` 就能看见块设计、IP 配置与
+# output products（`.gen/`），不必先跑完 90 分钟的构建；`vitis/` 是配套的 Vitis 平台。
+# 重建路仍然保留并且是权威口径：`build/tcl/build_system_axigpio.tcl` 一条命令长回整棵树。
+# 只挡重跑就长回来的噪声：`.cache/`、`.ip_user_files/`、`.Xil/`、jou/log/str。
+!vivado_system/**
+!vitis/**
+vivado_system/**/*.cache/
+vivado_system/**/*.ip_user_files/
+vivado_system/**/*.jou
+vivado_system/**/*.log
+vivado_system/**/*.str
+vitis/**/.Xil/
+vitis/**/*.jou
+vitis/**/*.log
+vitis/**/*.str
+
+# ===== 2026-10-07 工程本体入库后的噪声收口 =====
+# `!vivado_system/**` 在文件末尾（后写优先），所以顶层的 *.pb 例外被它盖掉了；
+# 这里按同一条"入库=能打开的工程，不含工具跑出来的二进制/临时读数"补两条。
+vivado_system/**/*.pb
+vivado_system/.*.rpt

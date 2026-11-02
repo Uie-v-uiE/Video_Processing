@@ -1,0 +1,271 @@
+{
+ "field_positions": [
+  {
+   "col": "NOT_MEASURED",
+   "field": "banner.Tool Version",
+   "file": "build/methodology.rpt",
+   "line": 3,
+   "locator": "sed -n '3p' build/methodology.rpt",
+   "value": "Vivado v.2025.2.1 (win64) Build 6403652 Thu Mar 19 19:48:24 GMT 2026"
+  },
+  {
+   "col": "NOT_MEASURED",
+   "field": "banner.Date",
+   "file": "build/methodology.rpt",
+   "line": 4,
+   "locator": "sed -n '4p' build/methodology.rpt",
+   "value": "Sun Oct  4 04:37:40 2026"
+  },
+  {
+   "col": "NOT_MEASURED",
+   "field": "banner.Host",
+   "file": "build/methodology.rpt",
+   "line": 5,
+   "locator": "sed -n '5p' build/methodology.rpt",
+   "value": "Uie-laptop running 64-bit major release  (build 9200)"
+  },
+  {
+   "col": "NOT_MEASURED",
+   "field": "banner.Command",
+   "file": "build/methodology.rpt",
+   "line": 6,
+   "locator": "sed -n '6p' build/methodology.rpt",
+   "value": "report_methodology -file D:/Xilinx/Prj/pro/Video_Processing/build/methodology.rpt"
+  },
+  {
+   "col": "NOT_MEASURED",
+   "field": "banner.Design",
+   "file": "build/methodology.rpt",
+   "line": 7,
+   "locator": "sed -n '7p' build/methodology.rpt",
+   "value": "system_top"
+  },
+  {
+   "col": "NOT_MEASURED",
+   "field": "banner.Device",
+   "file": "build/methodology.rpt",
+   "line": 8,
+   "locator": "sed -n '8p' build/methodology.rpt",
+   "value": "xc7z020clg484-2"
+  },
+  {
+   "col": "NOT_MEASURED",
+   "field": "banner.Speed File",
+   "file": "build/methodology.rpt",
+   "line": 9,
+   "locator": "sed -n '9p' build/methodology.rpt",
+   "value": "-2"
+  },
+  {
+   "col": "NOT_MEASURED",
+   "field": "banner.Design State",
+   "file": "build/methodology.rpt",
+   "line": 10,
+   "locator": "sed -n '10p' build/methodology.rpt",
+   "value": "Fully Routed"
+  },
+  {
+   "col": "NOT_MEASURED",
+   "field": "banner.Grade",
+   "file": "build/methodology.rpt",
+   "line": "NOT_MEASURED",
+   "locator": "grep -n '<锚点文本>' build/methodology.rpt（本轮没定位到 ⇒ NOT_MEASURED）",
+   "value": "NOT_MEASURED"
+  },
+  {
+   "col": "NOT_MEASURED",
+   "field": "banner.Process",
+   "file": "build/methodology.rpt",
+   "line": "NOT_MEASURED",
+   "locator": "grep -n '<锚点文本>' build/methodology.rpt（本轮没定位到 ⇒ NOT_MEASURED）",
+   "value": "NOT_MEASURED"
+  },
+  {
+   "col": "NOT_MEASURED",
+   "field": "banner.Characterization",
+   "file": "build/methodology.rpt",
+   "line": "NOT_MEASURED",
+   "locator": "grep -n '<锚点文本>' build/methodology.rpt（本轮没定位到 ⇒ NOT_MEASURED）",
+   "value": "NOT_MEASURED"
+  },
+  {
+   "col": "NOT_MEASURED",
+   "field": "checks_found",
+   "file": "build/methodology.rpt",
+   "line": 26,
+   "locator": "grep -n 'Checks found:' build/methodology.rpt",
+   "value": "446"
+  },
+  {
+   "col": 4,
+   "field": "rule[DPIR-1].Checks",
+   "file": "build/methodology.rpt",
+   "line": 30,
+   "locator": "sed -n '30p' build/methodology.rpt | awk -F('|') '{print $5}'",
+   "value": "2"
+  },
+  {
+   "col": 4,
+   "field": "rule[LUTAR-1].Checks",
+   "file": "build/methodology.rpt",
+   "line": 31,
+   "locator": "sed -n '31p' build/methodology.rpt | awk -F('|') '{print $5}'",
+   "value": "1"
+  },
+  {
+   "col": 4,
+   "field": "rule[SYNTH-5].Checks",
+   "file": "build/methodology.rpt",
+   "line": 32,
+   "locator": "sed -n '32p' build/methodology.rpt | awk -F('|') '{print $5}'",
+   "value": "336"
+  },
+  {
+   "col": 4,
+   "field": "rule[SYNTH-6].Checks",
+   "file": "build/methodology.rpt",
+   "line": 33,
+   "locator": "sed -n '33p' build/methodology.rpt | awk -F('|') '{print $5}'",
+   "value": "98"
+  },
+  {
+   "col": 4,
+   "field": "rule[TIMING-9].Checks",
+   "file": "build/methodology.rpt",
+   "line": 34,
+   "locator": "sed -n '34p' build/methodology.rpt | awk -F('|') '{print $5}'",
+   "value": "1"
+  },
+  {
+   "col": 4,
+   "field": "rule[TIMING-10].Checks",
+   "file": "build/methodology.rpt",
+   "line": 35,
+   "locator": "sed -n '35p' build/methodology.rpt | awk -F('|') '{print $5}'",
+   "value": "1"
+  },
+  {
+   "col": 4,
+   "field": "rule[TIMING-18].Checks",
+   "file": "build/methodology.rpt",
+   "line": 36,
+   "locator": "sed -n '36p' build/methodology.rpt | awk -F('|') '{print $5}'",
+   "value": "7"
+  }
+ ],
+ "not_measured": [
+  "banner.Grade",
+  "banner.Process",
+  "banner.Characterization"
+ ],
+ "original": "build/methodology.rpt",
+ "pairing": {
+  "identity_from_provenance": "r118",
+  "pairing_result": "PASS",
+  "provenance_file": "build/provenance.md",
+  "provenance_line": 141,
+  "provenance_md5_12": "645029c4dafe",
+  "provenance_sha256_16": "442be25df5812836",
+  "recomputed_md5_12": "645029c4dafe",
+  "recomputed_sha256_16": "442be25df5812836"
+ },
+ "parse_status": "OK",
+ "provenance_present": true,
+ "round": "r118",
+ "sections": {
+  "banner": {
+   "Characterization": "NOT_MEASURED",
+   "Command": "report_methodology -file D:/Xilinx/Prj/pro/Video_Processing/build/methodology.rpt",
+   "Date": "Sun Oct  4 04:37:40 2026",
+   "Design": "system_top",
+   "Design State": "Fully Routed",
+   "Device": "xc7z020clg484-2",
+   "Grade": "NOT_MEASURED",
+   "Host": "Uie-laptop running 64-bit major release  (build 9200)",
+   "Process": "NOT_MEASURED",
+   "Speed File": "-2",
+   "Tool Version": "Vivado v.2025.2.1 (win64) Build 6403652 Thu Mar 19 19:48:24 GMT 2026"
+  },
+  "checks_found": {
+   "line": 26,
+   "value": "446"
+  },
+  "summary_table": {
+   "header": [
+    "Rule",
+    "Severity",
+    "Description",
+    "Checks"
+   ],
+   "header_line": 28,
+   "rows": [
+    {
+     "cells": [
+      "DPIR-1",
+      "Warning",
+      "Asynchronous driver check",
+      "2"
+     ],
+     "line": 30
+    },
+    {
+     "cells": [
+      "LUTAR-1",
+      "Warning",
+      "LUT drives async reset alert",
+      "1"
+     ],
+     "line": 31
+    },
+    {
+     "cells": [
+      "SYNTH-5",
+      "Warning",
+      "Mapped onto distributed RAM because of timing constraints",
+      "336"
+     ],
+     "line": 32
+    },
+    {
+     "cells": [
+      "SYNTH-6",
+      "Warning",
+      "Timing of a RAM block might be sub-optimal",
+      "98"
+     ],
+     "line": 33
+    },
+    {
+     "cells": [
+      "TIMING-9",
+      "Warning",
+      "Unknown CDC Logic",
+      "1"
+     ],
+     "line": 34
+    },
+    {
+     "cells": [
+      "TIMING-10",
+      "Warning",
+      "Missing property on synchronizer",
+      "1"
+     ],
+     "line": 35
+    },
+    {
+     "cells": [
+      "TIMING-18",
+      "Warning",
+      "Missing input or output delay",
+      "7"
+     ],
+     "line": 36
+    }
+   ],
+   "section": "1 REPORT SUMMARY",
+   "section_line": 20,
+   "table_border_line": 27
+  }
+ }
+}

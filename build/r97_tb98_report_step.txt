@@ -1,0 +1,4 @@
+WROTE /d/Xilinx/Prj/pro/Video_Processing/build/tb_v98_report.txt  (176 行) top_md5=9d32e3019891 rtl_md5=45e09e8b3b9d tb_md5=217561e1599e
+PASS C11 abort clears the latched frame | after one copy_abort pulse the pixel domain must stop claiming a good ETH frame (#171)
+PASS C11b eth_ready reads 0 after abort | the host-side status bit is derived from that latch; reading 1 here means the abort was swallowed
+RESULT tb_v98_top_seam FAIL nfail=2

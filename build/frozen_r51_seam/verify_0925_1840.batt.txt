@@ -1,0 +1,75 @@
+[TX] SENT 71 CMD  CAPTURED -> board\uart_script_capture.txt
+ok    1 STAT
+ok    2 th 80
+ok    3 TH120
+ok    4 THE
+ok    5 th
+ok    6 pipe 11000
+ok    7 01010
+ok    8 pipe 00000
+ok    9 src 0
+ok   10 src 2
+ok   11 src 1
+ok   12 src 9
+ok   13 zoom off
+ok   14 ZOOM1
+ok   15 bilin off
+ok   16 BILIN1
+ok   17 frame 12
+ok   18 rot 45
+ok   19 rot speed 1
+ok   20 split auto
+ok   21 split range 20 80
+ok   22 gamma 1.8
+ok   23 gamma off
+ok   24 osd off
+ok   25 zoom 1.5
+ok   26 zoom 0.25
+ok   27 zoom 0.9
+ok   28 zoom 2
+ok   29 zoom 1.0
+ok   30 zoom auto
+ok   31 zoom 9
+ok   32 help
+ok   33 BOGUS
+ok   34 pipe 000001010
+ok   35 pipe 000000001
+ok   36 pipe 000100000
+ok   37 pipe 00001100
+ok   38 pipe 1
+ok   39 pipe show
+ok   40 pipe 00000
+ok   41 AUTOPLAY0
+ok   42 autoplay 1
+ok   43 SRC2
+ok   44 bilin 2
+ok   45 TH80
+ok   46 temp
+ok   47 temp th 0
+ok   48 temp
+ok   49 temp th 200
+ok   50 temp
+ok   51 temp th
+ok   52 temp th 999
+ok   53 TEMP
+ok   54 src auto
+ok   55 src 0
+ok   56 src 2
+ok   57 src 1
+ok   58 src auto
+ok   59 STAT
+ok   60 sd
+ok   61 sd files
+ok   62 sd file 1
+ok   63 sd file 99
+ok   64 split 30
+ok   65 split swap 1
+ok   66 split swap 0
+ok   67 split marker 0
+ok   68 split marker 1
+ok   69 split show
+ok   70 split 150
+ok   71 split 50
+ok   跑完回到初态：en=00 thr=80 src=1 zoom=1 bilin=1 zsel=4 zman=0 gm=0.00 mode=0
+
+RESULT PASS uart_cmd_check  (71 条命令, 67.4 s, 捕获 board/uart_script_capture.txt)

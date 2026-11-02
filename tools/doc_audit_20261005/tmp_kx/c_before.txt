@@ -1,0 +1,4 @@
+C1 声明唯一权威源 判 1 项 权威=part/vivado/vivado_build/os/node/board 比过=47 同值抄写=0+47 器件冲突=0 版本冲突=0 引文豁免=0 PASS
+C2 指标数字指得到证据 判 2 项 行=28 全指到=28 缺或无路径=0 PASS
+C3 文档内路径存活 判 3 项 扫=131 份 检查路径引用=614 死引用=0 豁免=碎片53/运行期1/台账197/同行声明15/围栏回显1（词表 5 词，与 doc_currency 同一套） PASS
+C4 文件名纯小写 ASCII 判 4 项 跟踪文件=3669 违规=0 点名豁免=71[LICENSE=1,README.md=20,README_EN.md=1,SKILL.md=49] 名单上限=5 名 PASS

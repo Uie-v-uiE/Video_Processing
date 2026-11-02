@@ -1,0 +1,22 @@
+PASS C0яяя°яяяђ | px_val / яяязяЃ /яяяЎ 256яяя‰яяяеяяя·яяя‰яяяияяяґяяя€яяяеяяя»яяя¤яяяжяяяђяяя‰
+PROBE fb_wr_pulses=115200 (дёЂеё§и¦Ѓ 38400)  copy_hold ж‹Ќдє† 0  u_aw.active=122402 жњЂеђЋе€°зљ„ row=0
+DIAG fb_vis=1 owner_eth=0 fill_busy=1 row_busy=0 eth_live=0 tb_ok=0 dbg_src=0308 tap_raw е…Ёй»‘жЇ”дѕ‹ 0/444351
+PASS Cяяяеяяяёяяяџяяяжяяя‰яяяђяяядяяяяяяЁяя‘ яяяёяяяЇяяяеяяя›яяяЎяяядяяяѕяяя‰ | яяязяяя яяя¬яяяеяяя»яяя№яяядяяяёяяяЉяяяеяяяєяяя±яяяжяяяњяяяЎяяяияяяќяяя‰
+PASS Cяяяеяяя•яяяџ | яяяіяяяияяя¤џ 3 яяяпяяяђяяя™яяяйяяяљяяя°яяядяяя®яяя°
+PASS C0c яяяияяяґяяяЂ | AXIяяя‰яяяеяяяЂяяяеяяяЉяяя№яяягяяяІяяя»яя° яяязяяяЏяяя–
+OBS C-tap и§‚жµ‹пј€дёЌе€¤е®љпј‰пјљж ·жњ¬ 892270 ж јгЂЃеЃЏе·®йќћй›¶ 888702 ж јгЂЃй¦–ж јеЃЏе·® -112
+INFO C-tap ж ·жњ¬ 892270 ж јгЂЃеЃЏ 888702 ж јгЂЃй¦–ж јеЃЏе·® -112пј€0 ж‰ЌжЇеЇ№зљ„пј‰
+PASS C0f whole fb word space written | de-duplicated write-word index count must cover the full frame once
+PASS C1g VIEWPORT col: src == x_d[2]>>1 | яяяеяяяёяяяЄяяяеяяяјяяя¶яяяияяяљяяяђяяяеяяяЎяяя‰яяязя¬ 2яяя§яяязяяя€— >>яяя€яяяеяяя®яяя‹ k=2яяяЇяяядяяя›яяя‰
+PASS C1h VIEWPORT row: src == (y_d[2]+OFF)>>1 | яяяжяяяђяяяЊяяядяяя®яяя‰яяядяяяёяяяѕяяяияяя…яяяЁяяядяяяєяяяЊяя€6яяяияяяќяяяїяяяея” 3яяяжяяяЎяяя‰
+PASS C0e RULER self-consistent | out-of-range bucket must be a subset of the mismatch set
+PASS C1a content-check coverage | in-line left-pane samples below 50k means nothing was measured
+OBS C1e X еЌ жЇ” 412236/826259пј€>10% в‡’ C1b/C1c/C1d е…ЁйѓЅдёЌз®—ж•°пјЊи§ЃдёЉйќўй‚Јж®µе‰ЌзЅ®жќЎд»¶пј‰
+OBS C1b/C1c/C1dпј€дёЌе€¤е®љпј‰О”col дёЌз¬¦ 619247гЂЃО”row дёЌз¬¦ 1856гЂЃжЃ’е®љ 0пј€й¦–еЂји§ЃдёЉдёЂиЎЊ C1 й‚ЈиЎЊпј‰
+OBS M3 еЏізЄ—иЎЊеЃЏз§»и·Ёеё§жЇеђ¦жЃ’е®љпј€дёЌе€¤е®љпјЊе†…е®№жњџжњ›жњЄдї®еЇ№пј‰пјљжЃ’е®љ = 0пј€1=жЃ’е®љпјЊ0=дёЂеё§дёЂеЏпј‰пјЊеЏеЊ–ж¬Ўж•° 2112
+INFO з»џи®Ў frames=6 ar=7201 r=115201 odd=0 outwin=0 n_l=444351 bad_l=444351 n_r=935340 bad_r_col=467670
+RESULT tb_v98_top_seam PASS
+INFO: xsimkernel Simulation Memory Usage: 12796 KB (Peak: 12796 KB), Simulation CPU Usage: 139968 ms
+INFO: [Common 17-206] Exiting xsim at Fri Sep 25 18:04:40 2026...
+INFO: xsimkernel Simulation Memory Usage: 12796 KB (Peak: 12796 KB), Simulation CPU Usage: 139968 ms
+INFO: [Common 17-206] Exiting xsim at Fri Sep 25 18:04:40 2026...

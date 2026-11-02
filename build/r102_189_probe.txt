@@ -1,0 +1,9 @@
+PASS H0 reference_table_fresh | angle=30 取到 C=222 S=128（Q8，与 DUT 同一张表）
+D128 rot_and_zoom_pixel_compare | 128 independent floor/frac comparisons ran with 0 mismatch (this is the strong ruler: it printed only FAILs before #162)
+PASS H5 rot_has_fraction | 99 of 99 rotation pixels carry a non-zero fraction
+FAIL S3 rot_frac_lowbyte | 10/10 个像素的 floor_y 与实数参考差一格 ⇒ #189 是活缺陷（判小数存在与否必须用 16 位，不是高字节）
+[tb_zoom_frac] RESULT tb_zoom_frac FAIL errors=1
+INFO: [Common 17-206] Exiting xsim at Thu Oct  1 20:34:25 2026...
+exit
+INFO: [Common 17-206] Exiting xsim at Thu Oct  1 20:34:25 2026...
+VERDICT tb_zoom_frac: [tb_zoom_frac] RESULT tb_zoom_frac FAIL errors=1 || FAIL 行数=1 || PASS 行数=2

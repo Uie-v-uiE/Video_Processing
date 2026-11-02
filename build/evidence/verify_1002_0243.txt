@@ -1,0 +1,23 @@
+== board_verify 2026-10-02 02:43:09 ==
+工作目录：/d/Xilinx/Prj/pro/Video_Processing
+-- 三件套（请与 build/frozen_*/MANIFEST.md 对账）--
+  build/system.bit  md5=680f38f5  2026-10-01 23:25
+  build/system.xsa  md5=121b8b65  2026-10-01 23:26
+  build/ps_app.elf  md5=d0b07f84  2026-10-01 00:12
+-- 1) 串口现在在说什么（活着、在播、没报错）--
+  \[SD\] frame → （没有这行）
+  \[SD\] play refused → （没有这行）
+  \[SD\] mount failed → （没有这行）
+  \[TEMP!\] → （没有这行）
+  !! → （没有这行）
+-- 1b) 原始串口回显留档（被跟踪的那一份：[TEMP] 逐条，不靠手抄）--
+  [SERIAL] 转码 成功（powershell 退出码 0，只作参考：它占不到 COM6 也返回 0）
+  [SERIAL] 落点=build/evidence/r104_serial_raw.txt 行数=4 [TEMP]=2 判定=绿（地板 2）
+           这份要被跟踪：git add build/evidence/r104_serial_raw.txt
+-- 2) 读回口：health_read（lane0..9 + 23..31）--
+  lane30 src_state → {"eth_tb_ok":1,"eth_live":0,"owner_eth":0,"fill_busy":0,"row_busy":0,"mode_gray":0,"why_gray":2,"why_tb_untrusted":0,"why_no_stream":1,"why_force_ps":0,"mode":"AUTO","why":"没有流"}
+  lane23 zoom → {"raw":2148411857,"alive":1,"zoom_fit":1,"zman":1,"zsel":4,"zcode":2,"zoom_active":1,"zoom_dir":0,"inv_scale":465,"x100_actual":55.1,"rule":"fit_or_clamp","inv_expected":null,"inv_ok":true,"code_ok":true,"verdict":"OK"}
+  lat.osd_ms_matches_tot → true
+  drop_words → 0
+== 日志留在 build/evidence/verify_1002_0243.txt ==
+RESULT board_verify PASS（判红的步骤：0）

@@ -1,0 +1,3 @@
+报告目录：build
+新鲜度：system.bit 2026-09-24 22:06:23 / timing 2026-09-24 22:06:54
+FATAL 读不到 timing summary

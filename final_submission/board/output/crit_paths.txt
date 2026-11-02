@@ -1,0 +1,10 @@
+# worst setup paths (source: D:/Xilinx/Prj/pro/Video_Processing/build/crit_paths_raw.rpt)
+# slack | clock_group | data_path_delay | logic_levels | start -> end
+-0.135ns | eth_rxc | 7.438ns | 7 | u_eth/u_cdc/wbin_reg[3]/C -> u_eth/u_cdc/mem_reg_2/ENARDEN
+-0.108ns | eth_rxc | 7.408ns | 7 | u_eth/u_cdc/wbin_reg[3]/C -> u_eth/u_cdc/mem_reg_7/ENARDEN
+0.183ns | eth_rxc | 7.157ns | 7 | u_eth/u_cdc/wbin_reg[3]/C -> u_eth/u_cdc/mem_reg_0/ENARDEN
+0.297ns | eth_rxc | 7.037ns | 7 | u_eth/u_cdc/wbin_reg[3]/C -> u_eth/u_cdc/mem_reg_1/ENARDEN
+0.317ns | eth_rxc | 7.681ns | 12 | u_eth/u_icmp/u_icmp_tx/tx_data_num_reg[5]/C -> u_eth/u_icmp/u_icmp_tx/tx_bit_sel_reg[1]/D
+0.318ns | eth_rxc | 7.089ns | 7 | u_eth/u_cdc/wbin_reg[3]/C -> u_eth/u_cdc/mem_reg_3/ENARDEN
+0.327ns | eth_rxc | 7.414ns | 7 | u_eth/u_icmp/u_icmp_rx/icmp_data_length_reg[6]/C -> u_eth/u_icmp/u_icmp_rx/icmp_rx_data_d0_reg[6]/D
+0.342ns | eth_rxc | 7.057ns | 7 | u_eth/u_cdc/wbin_reg[3]/C -> u_eth/u_cdc/mem_reg_8/ENARDEN

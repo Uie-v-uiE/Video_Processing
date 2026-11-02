@@ -1,0 +1,139 @@
+# board/cmd_battery_v81.txt —— V8-1 命令层的串口电池（一行一条，# 开头是注释）
+# 发送器：board/uart_cmd_script.ps1；判据与"必须回到初态"的核对：src/host/uart_cmd_check.mjs
+# 顺序是有讲究的：改过的一律在结尾改回来，最后一条 STAT 必须等于第一条 STAT。
+STAT
+th 80
+TH120
+THE
+th
+pipe 11000
+01010
+pipe 00000
+src 0
+src 2
+src 1
+src 9
+zoom off
+ZOOM1
+bilin off
+BILIN1
+frame 12
+rot 45
+rot speed 1
+split auto
+split range 20 80
+gamma 1.8
+gamma off
+osd off
+osd on
+zoom 1.5
+zoom 0.25
+zoom 0.9
+zoom 2
+zoom 1.0
+zoom auto
+zoom 9
+help
+BOGUS
+pipe 000001010
+pipe 000000001
+pipe 000100000
+# r58：用户报"必须发 8 位才读得到、五位读不到"。根因是 6/7/8 位过去被当成 9 位补零收下，
+# 于是"命令里那串"和"屏上那五位（每一级选了第几个算法）"永远对不上。这三条钉住新规矩：
+# 长度只收 5 或 9，其余**拒且一个寄存器都不写**（所以判据里有 !sel= 这条反例）。
+pipe 00001100
+pipe 1
+pipe show
+pipe 000000000
+AUTOPLAY0
+autoplay 1
+SRC2
+bilin 2
+TH80
+# V8-7 温度八条（放在收尾 STAT 之前，因为阈值是全局态）：
+#   sane=1 = "这像一个真实的转换结果"（raw 全 0 会译成 -273.15 °C、全 F 会译成 230 °C，都进不了 sane）；
+#   over 两档是**人为造出来的异常**：室温永远到不了 85 °C，所以把阈值压到 0 必须亮、抬到 200 必须灭，
+#   否则"接了 XADC 但从没亮过"和"根本没接"在串口上完全同形。最后两条把阈值收回 85 并验大写别名。
+temp
+temp th 0
+temp
+temp th 200
+temp
+temp th
+temp th 999
+TEMP
+src auto
+src 0
+src 2
+src 1
+src auto
+STAT
+
+sd
+sd files
+sd file 1
+sd file 99
+split 30
+split swap 1
+split swap 0
+split marker 0
+split marker 1
+split show
+# ---- #105：写**缝位**不许顺带动 marker 位（结构性判据，r94 之后补的）----
+# 上面那组只证了"marker 自己设得动"；这一组证的是另一件事：`split <n>` 走的是
+# `cur_split = (cur_split & ~SPLIT_POS_MASK) | (px << SPLIT_POS_SHIFT)`，掩码一旦写窄
+# （#177b 刚在检查器里犯过同一个错），缝位写高值就会把相邻的位清掉而回显毫无察觉。
+# 顺序：先把线关掉 → 再写缝位 → `split show` 必须还写着 marker=off → 最后把线还原。
+split marker 0
+split 45
+split show
+split marker 1
+split 150
+split 100
+split show
+split video
+split px 512
+split screen
+split show
+split 50
+# ---- V9（ISSUES #75）：几何自动化的三件事 + 三条反面 + 收尾还原 ----
+# 顺序按"改了必须还得回来"排：rot auto 1 会顺带开 zoom fit（固件明说），所以它后面
+# 有一对 fit 0 / speed 0；`split video` 与 `split screen` 之间换的是**坐标空间**，
+# 缝位按百分比搬（512/1024 → 256/512 → 399/1024），最后一条 split 50 把缝还回正中。
+# 结尾这条 STAT 才是"末态"：从 V9 起它带 geom=%08x（19 位控制字整字回显），
+# 于是"电池不许改变板上状态"这条判据第一次真的看得见 rot / fit / 缝位。
+# #178（2026-09-30）：下面 `rot show` 那条判据念的是 `auto=0 speed=1` —— `speed=1` 是本串第 21 条
+# 设进去的（这一对合起来才证明"中间那些 split/zoom/gamma 的整字重写没踩到 bit12:10"），
+# 但 `auto=0` 过去**靠的是板子进来的那个状态**。从"眼睛判据那一态"（`rot auto 1`）起跑，
+# 这一条就红了（`build/r95_batt_before_178_verdict.txt` 第 83 条），而硬件什么也没做错 ——
+# 红的又是起点，不是这一跑。判据不许继承起点：这里由电池自己先把 auto 关掉，
+# precondition 变成**构造出来的**（同一课：#177 把"末态"改判默认档）。
+rot auto 0
+rot show
+rot speed 3
+rot speed 9
+rot auto 1
+rot auto 2
+rot auto 0
+zoom fit 0
+zoom fit 1
+zoom fit 2
+zoom fit 0
+split video
+split 40
+split px 9999
+split screen
+split 50
+rot speed 0
+gamma auto
+gamma manual
+gamma off
+# #99：片源锚点必须在**整串的最后**。中段那组 `src auto/0/2/1/auto` 收尾时确实回到了 AUTO，
+# 但它后面还有 `sd`/`sd file 1`（跳段会让 PS 重新发布一帧 ⇒ `ps_hold=1` ⇒ `mode` 就变了）
+# ⇒ 末态那条 STAT 与初态比的是"两个不同的 mode"。r75 之前一直看起来绿，是因为板子的**初态**
+# 早已被上一次电池钉在 ETH 上（初末自然相同）—— 今天 `ps_app_reload` 之后从 AUTO 起步才揭开。
+# 同一条判据还抓到第二处没还回来的：`rot auto 1` 会顺带把缩放切到 fit，而 `zoom fit 0` 不把手动档
+# 还回来（初 zman=1 → 末 zman=0）。所以最后先把"手动 1.00x"钉回去 —— 这也是演示的默认档。
+zoom 1.0
+src auto
+STAT

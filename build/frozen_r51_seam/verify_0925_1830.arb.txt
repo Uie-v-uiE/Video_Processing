@@ -1,0 +1,23 @@
+[ARB] GPIO_0 控制位保留 0xb5000，采样周期 300 ms
+[ARB] 测前 SD playing=1 ⇒ 先 STOP，测完再 PLAY 回去
+[ARB] 测前片源模式 mode=0（AUTO，起点干净）
+[ARB] 采样会话已出数，开始掐四个阶段的时间点
+[ARB] +3011 ms 开始推流（--test move --fps 15）
+[ARB] +15020 ms 停流（"交回"用时从这一毫秒起算）
+[ARB] +30023 ms 再推流（测可逆）
+[ARB] +38038 ms 结束，等采样会话收尾
+[ARB] 已把 SD 回放恢复到测前状态（PLAY）
+[ARB] 采到 lane30 151 点、lane31 151 点
+[ARB] 每约 2 s 的上下文：-3s:own0:live0:tb1 4.1s:own1:live1:tb1 11.6s:own1:live1:tb1 18.8s:own0:live0:tb1 25.9s:own0:live0:tb1 33s:own1:live1:tb1 40.2s:own0:live0:tb1 47.3s:own0:live0:tb1
+
+  PASS  V1 基线归 PS  静默 3s 内 owner_eth=1 的样本 0/8（应为 0）
+  PASS  V2 接管时限  推流后 owner_eth→1 用时 130 ms（门限 2000）
+  PASS  V3 推流期不抖  稳占段 owner_eth=1 的样本 27/27，翻转 0 次
+  PASS  V4 停流交回  停流后 owner_eth→0 用时 366 ms（门限 1500）
+  PASS  V5 交回后不回跳  交回之后 owner_eth=1 的样本 0/38，翻转 0 次（都应为 0）
+  PASS  V6 可逆（再推又接管）  再推流后 owner_eth→1 用时 231 ms（门限 2000）
+  PASS  V0 采样密度  全程 97 个样本 / 期望约 117（掉一半即判采样链有问题）
+  PASS  V7 交回后原因位自洽  交回段 38 个样本里原因位不可用的 0 个（要 没流/时基 至少亮一位、且不亮强制看 fb；全 0 = 板上的 bit 早于 r54）
+
+[ARB] 结论：八条全过 ⇒ "自动交回 + 不抖 + 可逆"有凭据了（屏幕观感仍欠眼睛）
+[ARB] 判据与原始样本落盘：data/measured/arb_handover_last.json

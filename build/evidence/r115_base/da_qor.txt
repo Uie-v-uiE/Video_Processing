@@ -1,0 +1,82 @@
+Copyright 1986-2022 Xilinx, Inc. All Rights Reserved. Copyright 2022-2026 Advanced Micro Devices, Inc. All Rights Reserved.
+---------------------------------------------------------------------------------------------------------------------------------------------
+| Tool Version : Vivado v.2025.2.1 (win64) Build 6403652 Thu Mar 19 19:48:24 GMT 2026
+| Date         : Sat Oct  3 22:21:05 2026
+| Host         : Uie-laptop running 64-bit major release  (build 9200)
+| Command      : report_design_analysis -qor_summary -file D:/Xilinx/Prj/pro/Video_Processing/build/evidence/r115_base/da_qor.txt
+| Design       : system_top
+| Device       : xc7z020
+| Design State : Routed
+---------------------------------------------------------------------------------------------------------------------------------------------
+
+Report Design Analysis
+
+Table of Contents
+-----------------
+1. Tool Option Summary
+2. Timing Summary
+3. Congestion Summary
+4. Compile Time Summary
+
+1. Tool Option Summary
+----------------------
+
++-----------------+------------------------------------------------------------------------+------------+
+|    Task Name    |                                 Options                                | Directives |
++-----------------+------------------------------------------------------------------------+------------+
+| synth_design    | -define default::[not_specified] -vhdl_define default::[not_specified] |            |
+| opt_design      |                                                                        |            |
+| place_design    |                                                                        |            |
+| phys_opt_design |                                                                        |            |
+| route_design    |                                                                        |            |
++-----------------+------------------------------------------------------------------------+------------+
+* Data is available only for the fields shown and not collected for all fields.
+
+
+2. Timing Summary
+-----------------
+
++-----------------+---------+---------+---------+---------+-----+
+|    Task Name    | WNS(ns) | TNS(ns) | WHS(ns) | THS(ns) | RQA |
++-----------------+---------+---------+---------+---------+-----+
+| synth_design    |         |         |         |         |     |
+| opt_design      |         |         |         |         |     |
+| place_design    |   1.032 |   0.000 |         |         |     |
+| phys_opt_design |   1.032 |   0.000 |         |         |     |
+| route_design    |   0.739 |   0.000 |   0.052 |   0.000 |     |
++-----------------+---------+---------+---------+---------+-----+
+* Data is available only for the fields shown and not collected for all fields.
+** Timing numbers are estimates only. Use report timing summary to get accurate numbers.
+*** The WNS/TNS/WHS/THS numbers (where available) are using timing estimates from within the tool commands. Accurate numbers will be reported if report_timing_summary is run with timing constraints after the command.
+
+
+3. Congestion Summary
+---------------------
+
++-----------------+---------------------------+---------------------------+-------------------------+-------------------------+--------------------------+--------------------------+
+|    Task Name    | Global Cong Level N-E-S-W | Global Cong Tile% N-E-S-W | Long Cong Level N-E-S-W | Long Cong Tile% N-E-S-W | Short Cong Level N-E-S-W | Short Cong Tile% N-E-S-W |
++-----------------+---------------------------+---------------------------+-------------------------+-------------------------+--------------------------+--------------------------+
+| synth_design    |                           |                           |                         |                         |                          |                          |
+| opt_design      |                           |                           |                         |                         |                          |                          |
+| place_design    |                           |                           |                         |                         |                          |                          |
+| phys_opt_design |                           |                           |                         |                         |                          |                          |
+| route_design    |                           |                           |                 0 0 0 0 |         0.0 0.8 0.0 0.8 |                  0 0 1 0 |          0.2 0.0 0.1 0.0 |
++-----------------+---------------------------+---------------------------+-------------------------+-------------------------+--------------------------+--------------------------+
+* Data is available only for the fields shown and not collected for all fields.
+
+
+4. Compile Time Summary
+-----------------------
+
++-----------------+---------------+-------------------+
+|    Task Name    | Runtime(mins) | Number of threads |
++-----------------+---------------+-------------------+
+| synth_design    |             5 |                 2 |
+| opt_design      |           < 1 |                 2 |
+| place_design    |             1 |                 2 |
+| phys_opt_design |             0 |                 2 |
+| route_design    |             2 |                 2 |
++-----------------+---------------+-------------------+
+* Data is available only for the fields shown and not collected for all fields.
+
+

@@ -1,0 +1,3 @@
+切短 skills/scripts/repro-drill/SKILL.md -> docs/notes/run.sh
+切短 skills/scripts/repro-drill/SKILL.md -> docs/notes/setup.md
+切短 skills/scripts/repro-drill/SKILL.md -> docs/runbook.md

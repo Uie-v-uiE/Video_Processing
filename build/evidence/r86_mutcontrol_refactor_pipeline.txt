@@ -1,0 +1,28 @@
+== mutation diff（必须恰好 5 对 = 10 行）==
+82,83c82,83
+<     reg [11:0] xd [1:12];               // 这条链是**纯寄存器**、每拍一跳、不参与任何运算 ⇒ 不会把组合链拉长；每一跳 12 bit，代价 = 2×12×12 = 288 个触发器（Slice 寄存器 7936 的 3.6 %）
+<     reg [11:0] yd [1:12];
+---
+>     reg [11:0] xd [0:12];               // 这条链是**纯寄存器**、每拍一跳、不参与任何运算 ⇒ 不会把组合链拉长；每一跳 12 bit，代价 = 2×12×12 = 288 个触发器（Slice 寄存器 7936 的 3.6 %）
+>     reg [11:0] yd [0:12];
+87c87
+<             for (cp = 1; cp <= 12; cp = cp + 1) begin xd[cp] <= 12'd0; yd[cp] <= 12'd0; end
+---
+>             for (cp = 0; cp <= 12; cp = cp + 1) begin xd[cp] <= 12'd0; yd[cp] <= 12'd0; end
+89,90c89,90
+<             xd[1] <= x_in; yd[1] <= y_in;
+<             for (cp = 2; cp <= 12; cp = cp + 1) begin
+---
+>             xd[0] <= x_in; yd[0] <= y_in;
+>             for (cp = 1; cp <= 12; cp = cp + 1) begin
+mut_src=83389e10efa8
+mut_diff_lines=10
+tb_md5=8c33e47e3374
+rtl_md5_real=2b3c5945a9e0
+date=2026-09-29T08:20:30+08:00
+== 控制跑里的 C10f ==
+C10f out-of-range cache writes (de high && x_in >= H_ACTIVE): blur=11 sharp=11 sobel=11 morph=11 || first offender x_in=1343 -> HW slot 319 with din=00000000 || opportunity beats (de && x_in >= H_ACTIVE-1)=11
+PASS C10fs the stimulus really pushed the coordinate to the line end (C10f's sample floor) | if this is 0, C10f's zeros prove nothing: the stimulus never reached the beat that can overflow the write address. Pair with sim/mut_control.sh: the pre-fix RTL must redden C10f under this same stimulus.
+FAIL C10f no window stage writes outside its own line cache | the coordinate taps sit one beat behind the de chain, so each line head writes x_in=1343: xsim drops that write, the board truncates it to slot 319 and stores the blanking value 0 => one black column at display column 320 (#103)
+RESULT tb_v103_pipe_bypass FAIL nfail=4
+MUTATION OK: C10f 在修复前的延迟线上报红 ⇒ 这条判据有力。

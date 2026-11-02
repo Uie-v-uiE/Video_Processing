@@ -1,0 +1,14 @@
+== A/B：build（新）对 build/evidence_r64b（对照）
+  项                      新                对照            
+  组 setup/hold (eth_rxc) 0.314/0.051        0.314/0.051       
+  组 setup/hold (clkout0_1) 0.834/0.052        0.834/0.052       
+  组 setup/hold (clk_fpga_0) 2.323/0.049        2.323/0.049       
+  门禁 WNS (ns)          0.314              0.314             
+  门禁 WHS (ns)          0.049              0.049             
+  失败 setup 端点      0                  0                 
+  失败 hold 端点       0                  0                 
+  Dynamic (W)              2.203              2.203             
+  Slice LUT                14117/26.54%       14117/26.54%      
+  BRAM (tile)              97/69.29%          97/69.29%         
+  没收益：两个竞争组都没变好 ⇒ 这一档不值得占默认（构建时间白花）
+AB: REFUSE（无收益）

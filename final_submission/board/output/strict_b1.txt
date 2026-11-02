@@ -1,0 +1,9 @@
+B1 clk_fpga_0/hold r114=0.053 r118=0.053 d=+0.000 SAME
+B1 clk_fpga_0/setup r114=1.850 r118=1.850 d=+0.000 SAME
+B1 clkout0_1/hold r114=0.059 r118=0.059 d=+0.000 SAME
+B1 clkout0_1/setup r114=3.630 r118=3.630 d=+0.000 SAME
+B1 eth_rxc/hold r114=0.052 r118=0.052 d=+0.000 SAME
+B1 eth_rxc/setup r114=0.739 r118=0.739 d=+0.000 SAME
+B1 sys_clk/hold r114=0.222 r118=0.222 d=+0.000 SAME
+B1 sys_clk/setup r114=14.876 r118=14.876 d=+0.000 SAME
+B1 pairs_compared=8 losses=0 verdict=GREEN

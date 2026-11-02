@@ -1,0 +1,25 @@
+# r107 等价性凭据：row_ok 位图分 5 组（rok0..rok4）与未改版逐拍同读数
+# 生成 2026-10-02 13:13，工具 Vivado/Vitis 2025.2.1（xvlog / xelab / xsim，Windows）
+# 运行位置：本机临时目录（不入库的 tb_diff.v），三个模块副本的 md5：
+#   frame_reasm_a.v  d784911a8045
+#   frame_reasm_b.v  d735b04e8ca5
+#   frame_reasm_c.v  6692646ee388
+# 判据：同一激励喂给 da=未改版、db=分组版，逐拍比较全部输出 + 内部 rows_hit；
+#       再加一条覆盖地板：五个 bank 都必须被写过，且三个满组（64 行）的置位次数互等。
+# 变异对照：frame_reasm_c 把 rbank==3 的置位写到 rok2（错组），必须判红。
+
+== A vs B（分组改动） ==
+INFO cycles=312680 frames a=1 b=1
+BANKPOP 182 192 192 192 132
+RESULT tb_diff PASS mismatches=0 banks all-written
+
+== A vs C（错组变异，判据必须能动） ==
+BANKPOP 182 192 192 0 132
+RESULT tb_diff FAIL n=111017
+FAIL cycle 行数=6   第一条：FAIL cycle 201605: a{en=1 addr=18001 data=c3c2 done=0 hit=  193} b{en=1 addr=18001 data=c3c2 done=0 hit=  194}
+
+# 能证：在这一批激励（10 行短帧 / 300 行只碰首像素 / 300 行整帧，共 31 万次比较）下，
+#       分组写法与未改版在任何可见输出与行计数器上都逐拍一致；且五个 bank 都被写到。
+# 不能证：乱序到包（同一行被两个不连续的包各写一次以外的形状）没在这批激励里；
+#       物理收益（那条 fo=316 的走线到底降了多少）要等 r107 布线后的 crit_paths.txt 才敢说，
+#       且按规矩 35，绝对 WNS 差值本身既不算收益也不算损失。

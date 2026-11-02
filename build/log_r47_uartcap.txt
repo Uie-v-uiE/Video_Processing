@@ -1,0 +1,27 @@
+SENT 0/0  CAPTURED_LEN 1142
+
+[BOOT] video_pipeline PL-UDP control plane
+[CTRL] AXI_GPIO=0x000A5000 sel=000 thr=80 src=0 zoom=1 pub=0 bilin=1
+[CFG] axi_gpio_2 @41220000 ok
+[CFG] gamma window @41220008 ok
+[BOOT] UDP RX is in PL (RGMII PHY2). PS is control + SD playback.
+[BOOT] uart115200???V8 ????????? help????????????????????????SRC0/TH80/ZOOM1/00111??????
+[SD] dir map ok: 9 files, first clusters within 1946818
+[SD] FAT32 part_lba=2048 spc=32 rootclus=2 data_lba=34816
+[SD] frames=4398 fps=30.000 files=9 frame=307200B
+[SD]   VIDEO000.BIN frames=512
+[SD]   VIDEO001.BIN frames=512
+[SD]   VIDEO002.BIN frames=512
+[SD]   VIDEO003.BIN frames=512
+[SD]   VIDEO004.BIN frames=512
+[SD]   VIDEO005.BIN frames=512
+[SD]   VIDEO006.BIN frames=512
+[SD]   VIDEO007.BIN frames=512
+[SD]   VIDEO008.BIN frames=302
+[CTRL] AXI_GPIO=0x000B5000 sel=000 thr=80 src=1 zoom=1 pub=0 bilin=1
+[SD] autoplay: playing
+[SD] frame 100: last 100 frames 29.684 fps (since play 29.492)
+[SD] frame 200: last 100 frames 29.999 fps (since play 29.729)
+[SD] frame 300: last 100 frames 29.999 fps (since play 29.809)
+[SD] frame 400: last 100 frames 29.999 fps (since play 29.849)
+

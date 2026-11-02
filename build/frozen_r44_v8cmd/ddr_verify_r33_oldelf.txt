@@ -1,0 +1,4 @@
+[DDR] dumping 2 bank(s) over JTAG (38400 words each) ...
+[bank0] base=0x10000000 good=76800 bad=0 coverage=100.0%
+[bank1] base=0x10080000 good=76800 bad=0 coverage=100.0%
+[DDR] live bank = 0x10000000 bad=0/76800 → 入包链无空洞

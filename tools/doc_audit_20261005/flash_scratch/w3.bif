@@ -1,0 +1,8 @@
+the_design:
+{
+  [boot]
+  D:/Xilinx/Prj/pro/Video_Processing/vitis/platform/zynq_fsbl/build/fsbl.elf,
+  D:/Xilinx/Prj/pro/Video_Processing/build/system.bit,
+  [destination_cpu = ps7_0]
+  D:/Xilinx/Prj/pro/Video_Processing/build/ps_app.elf
+}

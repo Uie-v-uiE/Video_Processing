@@ -1,0 +1,6 @@
+REFUSE：build/r113_gates.txt 不是 ALL PASS，不冻结。
+  顶层台架 tb_v98    top=56c269602e18 FAIL行=1 指纹(norm1):fresh fresh fresh 同一次跑且无 FAIL      FAIL
+        ——报告里有 1 行 FAIL 没有 RESULT…PASS 汇总行（台架跑完了、是它自己判红的，先读 FAIL 那几行的数） 
+  边缘条带 tb_edge_rim tb_edge_rim_r113.txt rtl=42d47b9f771d FAIL行=0 指纹(norm1):fresh fresh 同一次跑、无 FAIL、四条圈齐 PASS
+  结温公式 temp_formula PASS=10 变异对照=3 FAIL行=0 rc=0 rc=0、FAIL 行=0、PASS >= 6、其中变异对照 >= 3（少了任何一条都说明这把握尺子可能空转） PASS
+GATES: 有红项（判定 24 项）—— 不采纳，保留上一版

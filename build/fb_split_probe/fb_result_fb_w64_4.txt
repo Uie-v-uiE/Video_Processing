@@ -1,0 +1,1 @@
+RESULT fb_w64_4 tile=74 ramb36fifo=74 lut=0 ff=6

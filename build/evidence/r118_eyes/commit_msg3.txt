@@ -1,0 +1,12 @@
+r118 定版门禁的第二组两跑（提交之后的树）与提交包重导件
+
+这一组跑在 `d420db6`/`ef68bb3` 之后，所以它核对的是"已经进 git 的那棵树"，不是工作区的临时状态：
+`build/evidence/r118_board/gA.txt`（先落基准件）→ `gB.txt`/`gC.txt` 两跑 **逐字节一致**，
+**23 绿 / 1 红**，唯一红 = 声明过的 `C5c`（`build/tb_v98_report.txt` 里 `FAIL C5c …` + `RESULT … FAIL nfail=1`）。
+`gB.txt` 与上一组定版的 `g2c.txt` 内容相同 ⇒ `build/r118_gates.txt`、`build/r118_gates_final.txt` 在新一次运行后没有移动一个字节，
+这件事本身就是"这一轮没有骰子"的证据（`noise_ns=0.000` 那一族）。
+
+提交包重导（件 `build/evidence/r118_board/subF.txt`）：导出提交 `ef68bb3`，519 个文件 / 15M，
+自检 **死链 0 / 旧名残留 0 / 带绝对路径的脚本 0**，随包凭据里的 FAIL 行共 1 且就是那条白名单内的 `C5c`。
+包外的独立复核：`find ../final_submission -type f | wc -l` = 520（与 MANIFEST 计数一致），
+包内那份 `board/project/system.bit` 的 md5 = `cd04907e1369da35d21c4090d552f5ee` —— 与板上那块、与 HEAD 里那块三者同一。

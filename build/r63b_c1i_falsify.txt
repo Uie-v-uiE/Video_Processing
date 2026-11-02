@@ -1,0 +1,10 @@
+=== 步骤 1：把三个相位量从 [2] 改成 [3]（故意的反例）===
+756:        .col0(~x_d[3][0]), .row0(~y_d[3][0]), .pair_odd(y_d[3][1]),
+757:        .req_vld(de_d[3]), .oob_in(oob),
+=== 步骤 2：跑 tb_v98，期望 C1i 与 C1c 同时红 ===
+[tb_v98_top_seam.v] OBS C1i 标定级数：几何 0 不符的 k 有 1 个（k=2），该级相位不符 820703（其余级：k=2 相位 820703）
+FAIL C1i read-port phase same stage as src | col0/row0/pair_odd/req_vld must come from the calibrated label stage, not from a comment
+FAIL C1c content column == display column >> 1 | single-viewport geometry, content-level evidence (was a NOTE before #78)
+RESULT tb_v98_top_seam FAIL nfail=2
+已还原顶层（md5 见下）
+650a3d155b02c8b8acff85849cabd3b7 */d/Xilinx/Prj/pro/Video_Processing/src/rtl/top/pl_video_top.v

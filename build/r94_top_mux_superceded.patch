@@ -1,0 +1,40 @@
+diff --git a/src/rtl/top/pl_video_top.v b/src/rtl/top/pl_video_top.v
+index 6667fe1..2278c05 100644
+--- a/src/rtl/top/pl_video_top.v
++++ b/src/rtl/top/pl_video_top.v
+@@ -312,9 +312,16 @@ module pl_video_top #(
+     wire [11:0] sx, sy;
+     wire        oob;
+     wire [7:0]  zfrac_x, zfrac_y;
++    // #93：只要在读旋转，就把**实际生效**的倍率钳到 `zoom_fit` 那一档之内（inv 越大画面越小）。
++    //   `zoom_fit` 早就算好了"这个角度刚好装得下"（W'=s(W|cos|+H|sin|)≤W），但 `fit_en` 只服务自动档，
++    //   手动档可以任意放大 ⇒ 角点出屏，而演示口径写的是"旋转时倍率跟着角度自动收，整幅永远在屏内"。
++    //   非旋转时一个字都不改（1.00x 就是 1.00x）；旋转时"再缩小"仍然有效，只是不能放大到画外。
++    //   ⚠ 这一档必须同时喂给 `zoom_mapper`、`zoom_snap`(lane23) 和 `status` —— 屏上、回读、实际取样
++    //   三处说同一个数，否则就是 #118 那一族"默认档各说各话"的翻版。
++    wire [9:0] inv_eff = rot_on ? ((inv_used > inv_fit) ? inv_used : inv_fit) : inv_used;
+     zoom_mapper #(.IMAGE_W(IMG_W), .IMAGE_H(IMG_H)) u_zmap (
+         .clk(clk_pix), .rst_n(rst_pix_n),
+-        .inv_scale(inv_used), .angle(angle), .rotate_en(rot_on),
++        .inv_scale(inv_eff), .angle(angle), .rotate_en(rot_on),
+         .x_in(cx), .y_in(cy_r),     // ← 提前 OFF_LINES 个显示行，抵掉效果链的内容滞后（#54 (B)）
+         .x_out(sx), .y_out(sy), .oob(oob),
+         .frac_x(zfrac_x), .frac_y(zfrac_y)
+@@ -619,7 +626,7 @@ module pl_video_top #(
+     zoom_snap u_zsnap (
+         .pix_clk(clk_pix), .pix_rst_n(rst_pix_n), .frame_start(frame_start),
+         .zman(zman_pix), .zsel(zsel_pix), .zoom_code(zoom_code),
+-        .zoom_active(zoom_active), .zoom_dir(zoom_dir), .inv_scale(inv_used),
++        .zoom_active(zoom_active), .zoom_dir(zoom_dir), .inv_scale(inv_eff),
+         .bus(z_bus), .bus_tog(z_bus_tog));
+     wire [18:0] z_bus_axi;
+     wire        z_pix_gone;
+@@ -1005,7 +1012,7 @@ module pl_video_top #(
+ 
+     // `inv_used` 而不是 `inv_scale`：这一口是给 JTAG 侧"屏上到底是什么倍率"用的，
+     // 拟合模式下前者才是答案（非拟合模式下两者同一个数 ⇒ 老脚本读法不受影响）。
+-    assign status = {zoom_dir, zoom_active, inv_used, eth_ready, locked, rotate_active,
++    assign status = {zoom_dir, zoom_active, inv_eff, eth_ready, locked, rotate_active,
+                      angle, 5'b0 /* 原 en_sync：随 #66 五位控制一起退役，位保留填 0（与
+                                   * gpio_o[4:0] 同样处理：不重排，JTAG 侧的读法就不会错位） */,
+                      src_use, 2'b00};

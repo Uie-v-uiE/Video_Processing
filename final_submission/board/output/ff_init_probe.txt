@@ -1,0 +1,314 @@
+
+****** Vivado v2025.2.1 (64-bit)
+  **** SW Build 6403652 on Thu Mar 19 19:48:24 GMT 2026
+  **** IP Build 6403511 on Thu Mar 19 12:41:45 MDT 2026
+  **** SharedData Build 6403650 on Thu Mar 19 14:02:13 MDT 2026
+  **** Start of session at: Sat Oct  3 12:05:26 2026
+    ** Copyright 1986-2022 Xilinx, Inc. All Rights Reserved.
+    ** Copyright 2022-2026 Advanced Micro Devices, Inc. All Rights Reserved.
+
+source build/tcl/probe_ff_init.tcl
+# set root [file normalize [file join [file dirname [info script]] .. ..]]
+# foreach stage {synth impl} {
+#     if {$stage eq "synth"} {
+#         set dcp [file join $root "vivado_system/zynq_video_sys.runs/synth_1/system_top.dcp"]
+#     } else {
+#         set dcp [file join $root "vivado_system/zynq_video_sys.runs/impl_1/system_top_routed.dcp"]
+#     }
+#     if {![file exists $dcp]} { puts "SKIP $stage no dcp"; continue }
+#     puts "===== STAGE $stage  DCP $dcp ====="
+#     if {[catch {open_checkpoint $dcp} e]} { puts "REFUSE $stage open failed: $e"; continue }
+#     set pats [list u_pl/u_k1/key_stable_reg u_pl/u_k1/key_sync1_reg u_pl/u_k1/key_sync0_reg \
+#                   u_pl/u_k1/key_prev_reg u_pl/u_k1/armed_reg u_pl/u_k1/acnt_reg* \
+#                   u_pl/u_k1/cnt_reg* u_pl/u_k1l/fired_reg u_pl/u_k1l/cnt_reg* \
+#                   u_pl/u_ang/angle_reg* u_pl/u_ang/fs_s_reg* u_pl/u_k2/key_stable_reg]
+#     set n 0
+#     foreach p $pats {
+#         set cells [get_cells -quiet $p]
+#         if {[llength $cells] == 0} { puts "NO_CELL $p（这一�?没这�?名字？例�? r110 没有 armed/acnt�?"; continue }
+#         foreach c $cells {
+#             set t [get_property REF_NAME $c]
+#             set i [get_property INIT $c]
+#             # IS_RESET_USED 这类属性名不确定存圡� �? catch，别让整�?探针因为一�?属性�?�掉
+#             if {[catch {get_property IS_RESET_USED $c} r]} { set r "?" }
+#             puts "FF $c TYPE=$t INIT=$i RST_USED=$r"
+#             incr n
+#         }
+#     }
+#     puts "COMPARED=$n  (地板：一条都没数到就�?这�?�实验空�?)"
+#     # 还有一�?：这一域真的没有任何��位吗？�? u_k1 里带 CLR/RST 的引脚数出来
+#     set withclr [get_cells -quiet -filter {REF_NAME =~ "FD*" && IS_SEQUENTIAL && NAME =~ "u_pl/u_k1/*"}]
+#     set cnt_clr 0
+#     foreach c $withclr {
+#         if {[llength [get_pins -quiet $c/*CLR]] > 0 || [llength [get_pins -quiet $c/*PRE]] > 0} { incr cnt_clr }
+#     }
+#     puts "U_K1_FDS=[llength $withclr]  �? CLR/PRE 引脚�?=$cnt_clr"
+#     close_design
+# }
+===== STAGE synth  DCP D:/Xilinx/Prj/pro/Video_Processing/vivado_system/zynq_video_sys.runs/synth_1/system_top.dcp =====
+Command: open_checkpoint D:/Xilinx/Prj/pro/Video_Processing/vivado_system/zynq_video_sys.runs/synth_1/system_top.dcp
+
+Starting open_checkpoint Task
+
+Time (s): cpu = 00:00:00 ; elapsed = 00:00:00.045 . Memory (MB): peak = 333.781 ; gain = 6.758
+INFO: [Device 21-403] Loading part xc7z020clg484-2
+Netlist sorting complete. Time (s): cpu = 00:00:00 ; elapsed = 00:00:00.258 . Memory (MB): peak = 816.199 ; gain = 0.000
+INFO: [Netlist 29-17] Analyzing 2882 Unisim elements for replacement
+INFO: [Netlist 29-28] Unisim Transformation completed in 2 CPU seconds
+INFO: [Project 1-479] Netlist was created with Vivado 2025.2.1
+INFO: [Project 1-570] Preparing netlist for logic optimization
+Read ShapeDB Complete: Time (s): cpu = 00:00:00 ; elapsed = 00:00:00.196 . Memory (MB): peak = 979.750 ; gain = 0.000
+CRITICAL WARNING: [Project 1-486] Could not resolve non-primitive black box cell 'design_1_axi_gp0_ic_imp_auto_pc_0' instantiated as 'u_bd/design_1_i/axi_gp0_ic/s00_couplers/auto_pc' [d:/Xilinx/Prj/pro/Video_Processing/vivado_system/zynq_video_sys.gen/sources_1/bd/design_1/synth/design_1.v:2133]
+CRITICAL WARNING: [Project 1-486] Could not resolve non-primitive black box cell 'design_1_axi_gp0_ic_imp_xbar_0' instantiated as 'u_bd/design_1_i/axi_gp0_ic/xbar' [d:/Xilinx/Prj/pro/Video_Processing/vivado_system/zynq_video_sys.gen/sources_1/bd/design_1/synth/design_1.v:1233]
+CRITICAL WARNING: [Project 1-486] Could not resolve non-primitive black box cell 'design_1_axi_gpio_0_0' instantiated as 'u_bd/design_1_i/axi_gpio_0' [d:/Xilinx/Prj/pro/Video_Processing/vivado_system/zynq_video_sys.gen/sources_1/bd/design_1/synth/design_1.v:439]
+CRITICAL WARNING: [Project 1-486] Could not resolve non-primitive black box cell 'design_1_axi_gpio_1_0' instantiated as 'u_bd/design_1_i/axi_gpio_1' [d:/Xilinx/Prj/pro/Video_Processing/vivado_system/zynq_video_sys.gen/sources_1/bd/design_1/synth/design_1.v:460]
+CRITICAL WARNING: [Project 1-486] Could not resolve non-primitive black box cell 'design_1_axi_gpio_2_0' instantiated as 'u_bd/design_1_i/axi_gpio_2' [d:/Xilinx/Prj/pro/Video_Processing/vivado_system/zynq_video_sys.gen/sources_1/bd/design_1/synth/design_1.v:481]
+CRITICAL WARNING: [Project 1-486] Could not resolve non-primitive black box cell 'design_1_processing_system7_0_0' instantiated as 'u_bd/design_1_i/processing_system7_0' [d:/Xilinx/Prj/pro/Video_Processing/vivado_system/zynq_video_sys.gen/sources_1/bd/design_1/synth/design_1.v:586]
+Netlist sorting complete. Time (s): cpu = 00:00:00 ; elapsed = 00:00:00.024 . Memory (MB): peak = 979.750 ; gain = 0.000
+INFO: [Project 1-111] Unisim Transformation Summary:
+  A total of 1039 instances were transformed.
+  OBUFDS => OBUFDS_DUAL_BUF (INV, OBUFDS(x2)): 4 instances
+  RAM128X1D => RAM128X1D (MUXF7(x2), RAMD64E(x4)): 336 instances
+  RAM64M => RAM64M (RAMD64E(x4)): 651 instances
+  RAM64X1D => RAM64X1D (RAMD64E(x2)): 48 instances
+
+INFO: [Project 1-604] Checkpoint was created with Vivado v2025.2.1 (64-bit) build 6403652
+open_checkpoint: Time (s): cpu = 00:00:27 ; elapsed = 00:00:25 . Memory (MB): peak = 979.750 ; gain = 664.309
+FF u_pl/u_k1/key_stable_reg TYPE=FDRE INIT=1'b1 RST_USED=
+FF u_pl/u_k1/key_sync1_reg TYPE=FDRE INIT=1'b1 RST_USED=
+FF u_pl/u_k1/key_sync0_reg TYPE=FDRE INIT=1'b1 RST_USED=
+NO_CELL u_pl/u_k1/key_prev_reg（这一�?没这�?名字？例�? r110 没有 armed/acnt�?
+FF u_pl/u_k1/armed_reg TYPE=FDRE INIT=1'b0 RST_USED=
+FF u_pl/u_k1/acnt_reg[0] TYPE=FDRE INIT=1'b0 RST_USED=
+FF u_pl/u_k1/acnt_reg[0]_i_2 TYPE=CARRY4 INIT= RST_USED=
+FF u_pl/u_k1/acnt_reg[10] TYPE=FDRE INIT=1'b0 RST_USED=
+FF u_pl/u_k1/acnt_reg[11] TYPE=FDRE INIT=1'b0 RST_USED=
+FF u_pl/u_k1/acnt_reg[12] TYPE=FDRE INIT=1'b0 RST_USED=
+FF u_pl/u_k1/acnt_reg[12]_i_1 TYPE=CARRY4 INIT= RST_USED=
+FF u_pl/u_k1/acnt_reg[13] TYPE=FDRE INIT=1'b0 RST_USED=
+FF u_pl/u_k1/acnt_reg[14] TYPE=FDRE INIT=1'b0 RST_USED=
+FF u_pl/u_k1/acnt_reg[15] TYPE=FDRE INIT=1'b0 RST_USED=
+FF u_pl/u_k1/acnt_reg[16] TYPE=FDRE INIT=1'b0 RST_USED=
+FF u_pl/u_k1/acnt_reg[16]_i_1 TYPE=CARRY4 INIT= RST_USED=
+FF u_pl/u_k1/acnt_reg[17] TYPE=FDRE INIT=1'b0 RST_USED=
+FF u_pl/u_k1/acnt_reg[18] TYPE=FDRE INIT=1'b0 RST_USED=
+FF u_pl/u_k1/acnt_reg[19] TYPE=FDRE INIT=1'b0 RST_USED=
+FF u_pl/u_k1/acnt_reg[1] TYPE=FDRE INIT=1'b0 RST_USED=
+FF u_pl/u_k1/acnt_reg[20] TYPE=FDRE INIT=1'b0 RST_USED=
+FF u_pl/u_k1/acnt_reg[20]_i_1 TYPE=CARRY4 INIT= RST_USED=
+FF u_pl/u_k1/acnt_reg[2] TYPE=FDRE INIT=1'b0 RST_USED=
+FF u_pl/u_k1/acnt_reg[3] TYPE=FDRE INIT=1'b0 RST_USED=
+FF u_pl/u_k1/acnt_reg[4] TYPE=FDRE INIT=1'b0 RST_USED=
+FF u_pl/u_k1/acnt_reg[4]_i_1 TYPE=CARRY4 INIT= RST_USED=
+FF u_pl/u_k1/acnt_reg[5] TYPE=FDRE INIT=1'b0 RST_USED=
+FF u_pl/u_k1/acnt_reg[6] TYPE=FDRE INIT=1'b0 RST_USED=
+FF u_pl/u_k1/acnt_reg[7] TYPE=FDRE INIT=1'b0 RST_USED=
+FF u_pl/u_k1/acnt_reg[8] TYPE=FDRE INIT=1'b0 RST_USED=
+FF u_pl/u_k1/acnt_reg[8]_i_1 TYPE=CARRY4 INIT= RST_USED=
+FF u_pl/u_k1/acnt_reg[9] TYPE=FDRE INIT=1'b0 RST_USED=
+FF u_pl/u_k1/cnt_reg[0] TYPE=FDRE INIT=1'b0 RST_USED=
+FF u_pl/u_k1/cnt_reg[10] TYPE=FDRE INIT=1'b0 RST_USED=
+FF u_pl/u_k1/cnt_reg[11] TYPE=FDRE INIT=1'b0 RST_USED=
+FF u_pl/u_k1/cnt_reg[12] TYPE=FDRE INIT=1'b0 RST_USED=
+FF u_pl/u_k1/cnt_reg[13] TYPE=FDRE INIT=1'b0 RST_USED=
+FF u_pl/u_k1/cnt_reg[14] TYPE=FDRE INIT=1'b0 RST_USED=
+FF u_pl/u_k1/cnt_reg[15] TYPE=FDRE INIT=1'b0 RST_USED=
+FF u_pl/u_k1/cnt_reg[16] TYPE=FDRE INIT=1'b0 RST_USED=
+FF u_pl/u_k1/cnt_reg[17] TYPE=FDRE INIT=1'b0 RST_USED=
+FF u_pl/u_k1/cnt_reg[18] TYPE=FDRE INIT=1'b0 RST_USED=
+FF u_pl/u_k1/cnt_reg[19] TYPE=FDRE INIT=1'b0 RST_USED=
+FF u_pl/u_k1/cnt_reg[1] TYPE=FDRE INIT=1'b0 RST_USED=
+FF u_pl/u_k1/cnt_reg[20] TYPE=FDRE INIT=1'b0 RST_USED=
+FF u_pl/u_k1/cnt_reg[2] TYPE=FDRE INIT=1'b0 RST_USED=
+FF u_pl/u_k1/cnt_reg[3] TYPE=FDRE INIT=1'b0 RST_USED=
+FF u_pl/u_k1/cnt_reg[4] TYPE=FDRE INIT=1'b0 RST_USED=
+FF u_pl/u_k1/cnt_reg[5] TYPE=FDRE INIT=1'b0 RST_USED=
+FF u_pl/u_k1/cnt_reg[6] TYPE=FDRE INIT=1'b0 RST_USED=
+FF u_pl/u_k1/cnt_reg[7] TYPE=FDRE INIT=1'b0 RST_USED=
+FF u_pl/u_k1/cnt_reg[8] TYPE=FDRE INIT=1'b0 RST_USED=
+FF u_pl/u_k1/cnt_reg[9] TYPE=FDRE INIT=1'b0 RST_USED=
+FF u_pl/u_k1l/fired_reg TYPE=FDRE INIT=1'b0 RST_USED=
+FF u_pl/u_k1l/cnt_reg[0] TYPE=FDRE INIT=1'b0 RST_USED=
+FF u_pl/u_k1l/cnt_reg[10] TYPE=FDRE INIT=1'b0 RST_USED=
+FF u_pl/u_k1l/cnt_reg[11] TYPE=FDRE INIT=1'b0 RST_USED=
+FF u_pl/u_k1l/cnt_reg[12] TYPE=FDRE INIT=1'b0 RST_USED=
+FF u_pl/u_k1l/cnt_reg[13] TYPE=FDRE INIT=1'b0 RST_USED=
+FF u_pl/u_k1l/cnt_reg[14] TYPE=FDRE INIT=1'b0 RST_USED=
+FF u_pl/u_k1l/cnt_reg[15] TYPE=FDRE INIT=1'b0 RST_USED=
+FF u_pl/u_k1l/cnt_reg[16] TYPE=FDRE INIT=1'b0 RST_USED=
+FF u_pl/u_k1l/cnt_reg[17] TYPE=FDRE INIT=1'b0 RST_USED=
+FF u_pl/u_k1l/cnt_reg[18] TYPE=FDRE INIT=1'b0 RST_USED=
+FF u_pl/u_k1l/cnt_reg[19] TYPE=FDRE INIT=1'b0 RST_USED=
+FF u_pl/u_k1l/cnt_reg[1] TYPE=FDRE INIT=1'b0 RST_USED=
+FF u_pl/u_k1l/cnt_reg[20] TYPE=FDRE INIT=1'b0 RST_USED=
+FF u_pl/u_k1l/cnt_reg[21] TYPE=FDRE INIT=1'b0 RST_USED=
+FF u_pl/u_k1l/cnt_reg[22] TYPE=FDRE INIT=1'b0 RST_USED=
+FF u_pl/u_k1l/cnt_reg[23] TYPE=FDRE INIT=1'b0 RST_USED=
+FF u_pl/u_k1l/cnt_reg[24] TYPE=FDRE INIT=1'b0 RST_USED=
+FF u_pl/u_k1l/cnt_reg[2] TYPE=FDRE INIT=1'b0 RST_USED=
+FF u_pl/u_k1l/cnt_reg[3] TYPE=FDRE INIT=1'b0 RST_USED=
+FF u_pl/u_k1l/cnt_reg[4] TYPE=FDRE INIT=1'b0 RST_USED=
+FF u_pl/u_k1l/cnt_reg[5] TYPE=FDRE INIT=1'b0 RST_USED=
+FF u_pl/u_k1l/cnt_reg[6] TYPE=FDRE INIT=1'b0 RST_USED=
+FF u_pl/u_k1l/cnt_reg[7] TYPE=FDRE INIT=1'b0 RST_USED=
+FF u_pl/u_k1l/cnt_reg[8] TYPE=FDRE INIT=1'b0 RST_USED=
+FF u_pl/u_k1l/cnt_reg[9] TYPE=FDRE INIT=1'b0 RST_USED=
+FF u_pl/u_ang/angle_reg[0] TYPE=FDRE INIT=1'b0 RST_USED=
+FF u_pl/u_ang/angle_reg[1] TYPE=FDRE INIT=1'b0 RST_USED=
+FF u_pl/u_ang/angle_reg[2] TYPE=FDRE INIT=1'b0 RST_USED=
+FF u_pl/u_ang/angle_reg[3] TYPE=FDRE INIT=1'b0 RST_USED=
+FF u_pl/u_ang/angle_reg[3]_i_2 TYPE=CARRY4 INIT= RST_USED=
+FF u_pl/u_ang/angle_reg[3]_i_4 TYPE=CARRY4 INIT= RST_USED=
+FF u_pl/u_ang/angle_reg[3]_i_5 TYPE=MUXF7 INIT= RST_USED=
+FF u_pl/u_ang/angle_reg[4] TYPE=FDRE INIT=1'b0 RST_USED=
+FF u_pl/u_ang/angle_reg[4]_i_1 TYPE=MUXF7 INIT= RST_USED=
+FF u_pl/u_ang/angle_reg[5] TYPE=FDRE INIT=1'b0 RST_USED=
+FF u_pl/u_ang/angle_reg[6] TYPE=FDRE INIT=1'b0 RST_USED=
+FF u_pl/u_ang/angle_reg[7] TYPE=FDRE INIT=1'b0 RST_USED=
+FF u_pl/u_ang/angle_reg[7]_i_4 TYPE=CARRY4 INIT= RST_USED=
+FF u_pl/u_ang/angle_reg[8] TYPE=FDRE INIT=1'b0 RST_USED=
+FF u_pl/u_ang/fs_s_reg[0] TYPE=FDRE INIT=1'b0 RST_USED=
+FF u_pl/u_ang/fs_s_reg[1] TYPE=FDRE INIT=1'b0 RST_USED=
+FF u_pl/u_ang/fs_s_reg[2] TYPE=FDRE INIT=1'b0 RST_USED=
+FF u_pl/u_k2/key_stable_reg TYPE=FDRE INIT=1'b1 RST_USED=
+COMPARED=96  (地板：一条都没数到就�?这�?�实验空�?)
+U_K1_FDS=0  �? CLR/PRE 引脚�?=0
+===== STAGE impl  DCP D:/Xilinx/Prj/pro/Video_Processing/vivado_system/zynq_video_sys.runs/impl_1/system_top_routed.dcp =====
+Command: open_checkpoint D:/Xilinx/Prj/pro/Video_Processing/vivado_system/zynq_video_sys.runs/impl_1/system_top_routed.dcp
+
+Starting open_checkpoint Task
+
+Time (s): cpu = 00:00:00 ; elapsed = 00:00:00 . Memory (MB): peak = 979.750 ; gain = 0.000
+Netlist sorting complete. Time (s): cpu = 00:00:00 ; elapsed = 00:00:00.497 . Memory (MB): peak = 979.750 ; gain = 0.000
+INFO: [Netlist 29-17] Analyzing 2897 Unisim elements for replacement
+INFO: [Netlist 29-28] Unisim Transformation completed in 3 CPU seconds
+INFO: [Project 1-479] Netlist was created with Vivado 2025.2.1
+INFO: [Project 1-570] Preparing netlist for logic optimization
+Read ShapeDB Complete: Time (s): cpu = 00:00:00 ; elapsed = 00:00:00.270 . Memory (MB): peak = 979.750 ; gain = 0.000
+INFO: [Timing 38-478] Restoring timing data from binary archive.
+INFO: [Timing 38-479] Binary timing data restore complete.
+INFO: [Project 1-856] Restoring constraints from binary archive.
+INFO: [Project 1-853] Binary constraint restore complete.
+INFO: [Designutils 20-5722] Start Reading Physical Databases.
+Reading placement.
+Read Netlist Cache: Time (s): cpu = 00:00:00 ; elapsed = 00:00:00.043 . Memory (MB): peak = 1612.250 ; gain = 0.000
+Reading placer database...
+Read Device Cache: Time (s): cpu = 00:00:00 ; elapsed = 00:00:00.026 . Memory (MB): peak = 1612.250 ; gain = 0.000
+Read PlaceDB: Time (s): cpu = 00:00:00 ; elapsed = 00:00:00 . Memory (MB): peak = 1612.250 ; gain = 0.000
+Read placeStorage: Time (s): cpu = 00:00:01 ; elapsed = 00:00:02 . Memory (MB): peak = 1612.250 ; gain = 0.000
+Read PulsedLatchDB: Time (s): cpu = 00:00:00 ; elapsed = 00:00:00 . Memory (MB): peak = 1612.250 ; gain = 0.000
+Reading routing.
+Read RouteStorage: Time (s): cpu = 00:00:01 ; elapsed = 00:00:00.474 . Memory (MB): peak = 1620.094 ; gain = 7.844
+Read Physdb Files: Time (s): cpu = 00:00:02 ; elapsed = 00:00:02 . Memory (MB): peak = 1620.094 ; gain = 7.844
+Restored from archive | CPU: 2.000000 secs | Memory: 0.000000 MB |
+Finished XDEF File Restore: Time (s): cpu = 00:00:02 ; elapsed = 00:00:02 . Memory (MB): peak = 1620.094 ; gain = 10.805
+Netlist sorting complete. Time (s): cpu = 00:00:00 ; elapsed = 00:00:00.026 . Memory (MB): peak = 1643.680 ; gain = 0.000
+INFO: [Project 1-111] Unisim Transformation Summary:
+  A total of 1035 instances were transformed.
+  RAM128X1D => RAM128X1D (MUXF7(x2), RAMD64E(x4)): 336 instances
+  RAM64M => RAM64M (RAMD64E(x4)): 651 instances
+  RAM64X1D => RAM64X1D (RAMD64E(x2)): 48 instances
+
+INFO: [Project 1-604] Checkpoint was created with Vivado v2025.2.1 (64-bit) build 6403652
+open_checkpoint: Time (s): cpu = 00:00:27 ; elapsed = 00:00:29 . Memory (MB): peak = 1651.738 ; gain = 671.988
+FF u_pl/u_k1/key_stable_reg TYPE=FDRE INIT=1'b1 RST_USED=
+FF u_pl/u_k1/key_sync1_reg TYPE=FDRE INIT=1'b1 RST_USED=
+FF u_pl/u_k1/key_sync0_reg TYPE=FDRE INIT=1'b1 RST_USED=
+NO_CELL u_pl/u_k1/key_prev_reg（这一�?没这�?名字？例�? r110 没有 armed/acnt�?
+FF u_pl/u_k1/armed_reg TYPE=FDRE INIT=1'b0 RST_USED=
+FF u_pl/u_k1/acnt_reg[0] TYPE=FDRE INIT=1'b0 RST_USED=
+FF u_pl/u_k1/acnt_reg[0]_i_2 TYPE=CARRY4 INIT= RST_USED=
+FF u_pl/u_k1/acnt_reg[10] TYPE=FDRE INIT=1'b0 RST_USED=
+FF u_pl/u_k1/acnt_reg[11] TYPE=FDRE INIT=1'b0 RST_USED=
+FF u_pl/u_k1/acnt_reg[12] TYPE=FDRE INIT=1'b0 RST_USED=
+FF u_pl/u_k1/acnt_reg[12]_i_1 TYPE=CARRY4 INIT= RST_USED=
+FF u_pl/u_k1/acnt_reg[13] TYPE=FDRE INIT=1'b0 RST_USED=
+FF u_pl/u_k1/acnt_reg[14] TYPE=FDRE INIT=1'b0 RST_USED=
+FF u_pl/u_k1/acnt_reg[15] TYPE=FDRE INIT=1'b0 RST_USED=
+FF u_pl/u_k1/acnt_reg[16] TYPE=FDRE INIT=1'b0 RST_USED=
+FF u_pl/u_k1/acnt_reg[16]_i_1 TYPE=CARRY4 INIT= RST_USED=
+FF u_pl/u_k1/acnt_reg[17] TYPE=FDRE INIT=1'b0 RST_USED=
+FF u_pl/u_k1/acnt_reg[18] TYPE=FDRE INIT=1'b0 RST_USED=
+FF u_pl/u_k1/acnt_reg[19] TYPE=FDRE INIT=1'b0 RST_USED=
+FF u_pl/u_k1/acnt_reg[1] TYPE=FDRE INIT=1'b0 RST_USED=
+FF u_pl/u_k1/acnt_reg[20] TYPE=FDRE INIT=1'b0 RST_USED=
+FF u_pl/u_k1/acnt_reg[20]_i_1 TYPE=CARRY4 INIT= RST_USED=
+FF u_pl/u_k1/acnt_reg[2] TYPE=FDRE INIT=1'b0 RST_USED=
+FF u_pl/u_k1/acnt_reg[3] TYPE=FDRE INIT=1'b0 RST_USED=
+FF u_pl/u_k1/acnt_reg[4] TYPE=FDRE INIT=1'b0 RST_USED=
+FF u_pl/u_k1/acnt_reg[4]_i_1 TYPE=CARRY4 INIT= RST_USED=
+FF u_pl/u_k1/acnt_reg[5] TYPE=FDRE INIT=1'b0 RST_USED=
+FF u_pl/u_k1/acnt_reg[6] TYPE=FDRE INIT=1'b0 RST_USED=
+FF u_pl/u_k1/acnt_reg[7] TYPE=FDRE INIT=1'b0 RST_USED=
+FF u_pl/u_k1/acnt_reg[8] TYPE=FDRE INIT=1'b0 RST_USED=
+FF u_pl/u_k1/acnt_reg[8]_i_1 TYPE=CARRY4 INIT= RST_USED=
+FF u_pl/u_k1/acnt_reg[9] TYPE=FDRE INIT=1'b0 RST_USED=
+FF u_pl/u_k1/cnt_reg[0] TYPE=FDRE INIT=1'b0 RST_USED=
+FF u_pl/u_k1/cnt_reg[10] TYPE=FDRE INIT=1'b0 RST_USED=
+FF u_pl/u_k1/cnt_reg[11] TYPE=FDRE INIT=1'b0 RST_USED=
+FF u_pl/u_k1/cnt_reg[12] TYPE=FDRE INIT=1'b0 RST_USED=
+FF u_pl/u_k1/cnt_reg[13] TYPE=FDRE INIT=1'b0 RST_USED=
+FF u_pl/u_k1/cnt_reg[14] TYPE=FDRE INIT=1'b0 RST_USED=
+FF u_pl/u_k1/cnt_reg[15] TYPE=FDRE INIT=1'b0 RST_USED=
+FF u_pl/u_k1/cnt_reg[16] TYPE=FDRE INIT=1'b0 RST_USED=
+FF u_pl/u_k1/cnt_reg[17] TYPE=FDRE INIT=1'b0 RST_USED=
+FF u_pl/u_k1/cnt_reg[18] TYPE=FDRE INIT=1'b0 RST_USED=
+FF u_pl/u_k1/cnt_reg[19] TYPE=FDRE INIT=1'b0 RST_USED=
+FF u_pl/u_k1/cnt_reg[1] TYPE=FDRE INIT=1'b0 RST_USED=
+FF u_pl/u_k1/cnt_reg[20] TYPE=FDRE INIT=1'b0 RST_USED=
+FF u_pl/u_k1/cnt_reg[2] TYPE=FDRE INIT=1'b0 RST_USED=
+FF u_pl/u_k1/cnt_reg[3] TYPE=FDRE INIT=1'b0 RST_USED=
+FF u_pl/u_k1/cnt_reg[4] TYPE=FDRE INIT=1'b0 RST_USED=
+FF u_pl/u_k1/cnt_reg[5] TYPE=FDRE INIT=1'b0 RST_USED=
+FF u_pl/u_k1/cnt_reg[6] TYPE=FDRE INIT=1'b0 RST_USED=
+FF u_pl/u_k1/cnt_reg[7] TYPE=FDRE INIT=1'b0 RST_USED=
+FF u_pl/u_k1/cnt_reg[8] TYPE=FDRE INIT=1'b0 RST_USED=
+FF u_pl/u_k1/cnt_reg[9] TYPE=FDRE INIT=1'b0 RST_USED=
+FF u_pl/u_k1l/fired_reg TYPE=FDRE INIT=1'b0 RST_USED=
+FF u_pl/u_k1l/cnt_reg[0] TYPE=FDRE INIT=1'b0 RST_USED=
+FF u_pl/u_k1l/cnt_reg[10] TYPE=FDRE INIT=1'b0 RST_USED=
+FF u_pl/u_k1l/cnt_reg[11] TYPE=FDRE INIT=1'b0 RST_USED=
+FF u_pl/u_k1l/cnt_reg[12] TYPE=FDRE INIT=1'b0 RST_USED=
+FF u_pl/u_k1l/cnt_reg[13] TYPE=FDRE INIT=1'b0 RST_USED=
+FF u_pl/u_k1l/cnt_reg[14] TYPE=FDRE INIT=1'b0 RST_USED=
+FF u_pl/u_k1l/cnt_reg[15] TYPE=FDRE INIT=1'b0 RST_USED=
+FF u_pl/u_k1l/cnt_reg[16] TYPE=FDRE INIT=1'b0 RST_USED=
+FF u_pl/u_k1l/cnt_reg[17] TYPE=FDRE INIT=1'b0 RST_USED=
+FF u_pl/u_k1l/cnt_reg[18] TYPE=FDRE INIT=1'b0 RST_USED=
+FF u_pl/u_k1l/cnt_reg[19] TYPE=FDRE INIT=1'b0 RST_USED=
+FF u_pl/u_k1l/cnt_reg[1] TYPE=FDRE INIT=1'b0 RST_USED=
+FF u_pl/u_k1l/cnt_reg[20] TYPE=FDRE INIT=1'b0 RST_USED=
+FF u_pl/u_k1l/cnt_reg[21] TYPE=FDRE INIT=1'b0 RST_USED=
+FF u_pl/u_k1l/cnt_reg[22] TYPE=FDRE INIT=1'b0 RST_USED=
+FF u_pl/u_k1l/cnt_reg[23] TYPE=FDRE INIT=1'b0 RST_USED=
+FF u_pl/u_k1l/cnt_reg[24] TYPE=FDRE INIT=1'b0 RST_USED=
+FF u_pl/u_k1l/cnt_reg[2] TYPE=FDRE INIT=1'b0 RST_USED=
+FF u_pl/u_k1l/cnt_reg[3] TYPE=FDRE INIT=1'b0 RST_USED=
+FF u_pl/u_k1l/cnt_reg[4] TYPE=FDRE INIT=1'b0 RST_USED=
+FF u_pl/u_k1l/cnt_reg[5] TYPE=FDRE INIT=1'b0 RST_USED=
+FF u_pl/u_k1l/cnt_reg[6] TYPE=FDRE INIT=1'b0 RST_USED=
+FF u_pl/u_k1l/cnt_reg[7] TYPE=FDRE INIT=1'b0 RST_USED=
+FF u_pl/u_k1l/cnt_reg[8] TYPE=FDRE INIT=1'b0 RST_USED=
+FF u_pl/u_k1l/cnt_reg[9] TYPE=FDRE INIT=1'b0 RST_USED=
+FF u_pl/u_ang/angle_reg[0] TYPE=FDRE INIT=1'b0 RST_USED=
+FF u_pl/u_ang/angle_reg[1] TYPE=FDRE INIT=1'b0 RST_USED=
+FF u_pl/u_ang/angle_reg[2] TYPE=FDRE INIT=1'b0 RST_USED=
+FF u_pl/u_ang/angle_reg[3] TYPE=FDRE INIT=1'b0 RST_USED=
+FF u_pl/u_ang/angle_reg[3]_i_2 TYPE=CARRY4 INIT= RST_USED=
+FF u_pl/u_ang/angle_reg[3]_i_4 TYPE=CARRY4 INIT= RST_USED=
+FF u_pl/u_ang/angle_reg[3]_i_5 TYPE=MUXF7 INIT= RST_USED=
+FF u_pl/u_ang/angle_reg[4] TYPE=FDRE INIT=1'b0 RST_USED=
+FF u_pl/u_ang/angle_reg[4]_i_1 TYPE=MUXF7 INIT= RST_USED=
+FF u_pl/u_ang/angle_reg[5] TYPE=FDRE INIT=1'b0 RST_USED=
+FF u_pl/u_ang/angle_reg[6] TYPE=FDRE INIT=1'b0 RST_USED=
+FF u_pl/u_ang/angle_reg[7] TYPE=FDRE INIT=1'b0 RST_USED=
+FF u_pl/u_ang/angle_reg[7]_i_4 TYPE=CARRY4 INIT= RST_USED=
+FF u_pl/u_ang/angle_reg[8] TYPE=FDRE INIT=1'b0 RST_USED=
+FF u_pl/u_ang/fs_s_reg[0] TYPE=FDRE INIT=1'b0 RST_USED=
+FF u_pl/u_ang/fs_s_reg[1] TYPE=FDRE INIT=1'b0 RST_USED=
+FF u_pl/u_ang/fs_s_reg[2] TYPE=FDRE INIT=1'b0 RST_USED=
+FF u_pl/u_k2/key_stable_reg TYPE=FDRE INIT=1'b1 RST_USED=
+COMPARED=96  (地板：一条都没数到就�?这�?�实验空�?)
+U_K1_FDS=0  �? CLR/PRE 引脚�?=0
+# exit 0
+INFO: [Common 17-206] Exiting Vivado at Sat Oct  3 12:06:23 2026...

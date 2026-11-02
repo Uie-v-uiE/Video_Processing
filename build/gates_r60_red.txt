@@ -1,0 +1,22 @@
+报告目录：build
+新鲜度：system.bit 2026-09-25 22:12:20 / timing 2026-09-25 22:13:10
+        WARN 有 RTL 源比 system.bit 新 ⇒ 这份产物不含这些改动：src/rtl/process/zoom/zoom_fit.v src/rtl/video/split_ctrl.v
+        新增 Critical 配对：clkout0_1>clk_fpga_0   ⇒ 这一项判红
+        基线里有而本版没有：eth_rxc>clk_fpga_0 （原因未查证，不算改进）
+        同配对端点数增长：clk_fpga_0>clkout0_1(17→96) （记录用，不判红）
+门禁七项：
+  WNS (ns)               -0.482       >= 0                         FAIL
+  失败 setup 端点    19           == 0                         FAIL
+  WHS (ns)               0.076        >= 0                         PASS
+  失败 hold 端点     0            == 0                         PASS
+  BRAM (tile/%)          96/68.57%    <= 97%                       PASS
+  Slice LUT / 占比     12938/24.32% <= 98%                       PASS
+  Slice 寄存器        9481         记录用（无阈值）     PASS
+  Dynamic (W)            2.205        与前次同量级           PASS
+  methodology CRIT       0            == 0                         PASS
+  布线错误网线     0            == 0                         PASS
+  cdc.rpt Critical 行   4            基线 4 行，配对不新增、unsafe 不增长 FAIL
+  端口宽度警告 8-689 0            == 0（凭据 width_warnings.txt，同一次构建） PASS
+  多驱动 net 8-685x   0            == 0（凭据 multi_driven.txt，同一次构建） PASS
+  顶层接线（端口名/悬空输入/位宽） CHECK PORTS: instances=87 modules=78 skipped=1 width_compared=571 violations=1 FAIL violations=0（凭据 build/ports_check.txt，当场跑） FAIL
+        src/rtl/top/pl_demo_top.v:19  pl_video_top u_pl .split_ctl(…) 位宽不符：端口 19 位，接的是 14 位（Verilog 静默补零/截断 ⇒ 高位会被吃掉，见 #57）

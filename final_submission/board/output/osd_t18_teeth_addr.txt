@@ -1,0 +1,14 @@
+== mutation diff（必须恰好 1 对 = 2 行）==
+487c487
+<     wire [7:0] ch = chars[s_line * MAX_CHARS + s_cidx];
+---
+>     wire [7:0] ch = chars[s_line * MAX_CHARS + s_cidx + 6*MAX_CHARS];
+mut_src=5b6519ed1e95
+mut_diff_lines=2
+tb_md5=f3a88d7e89fa
+rtl_md5_real=2b3c5945a9e0
+date=2026-09-29T08:20:18+08:00
+== 控制跑里的 T18 ==
+PASS T18 越界的那 190464 拍里没有一次 s_in_char=1 ⇒ 读到什么都不画，#127 第 2 条是'被门住的越界读'而不是屏上缺陷
+RESULT tb_osd_lines FAIL (41 errors)
+MUTATION FAILED: T18 在修复前的写法上仍然不红 ⇒ 判据测不到 #103，别把它当凭据。

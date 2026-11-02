@@ -1,0 +1,112 @@
+
+****** Vivado v2025.2.1 (64-bit)
+  **** SW Build 6403652 on Thu Mar 19 19:48:24 GMT 2026
+  **** IP Build 6403511 on Thu Mar 19 12:41:45 MDT 2026
+  **** SharedData Build 6403650 on Thu Mar 19 14:02:13 MDT 2026
+  **** Start of session at: Sun Oct  4 04:40:20 2026
+    ** Copyright 1986-2022 Xilinx, Inc. All Rights Reserved.
+    ** Copyright 2022-2026 Advanced Micro Devices, Inc. All Rights Reserved.
+
+source build/tcl/probe_clk_worst.tcl
+# set root [file normalize [file join [file dirname [info script]] .. ..]]
+# foreach v {VP_CLK VP_LABEL} {
+#     if {![info exists ::env($v)]} { puts "REFUSE: env $v is not set"; exit 1 }
+# }
+# set clk   $::env(VP_CLK)
+# set label $::env(VP_LABEL)
+# set n     6
+# if {[info exists ::env(VP_N)]} { set n $::env(VP_N) }
+# set dcp [file join $root "vivado_system/zynq_video_sys.runs/impl_1/system_top_routed.dcp"]
+# if {![file exists $dcp]} { puts "REFUSE: no such dcp: $dcp"; exit 1 }
+# puts "CLK: $clk  LABEL: $label  N: $n"
+CLK: clkout0_1  LABEL: r118_after_clkout0_1  N: 4
+# puts "DCP: $dcp"
+DCP: D:/Xilinx/Prj/pro/Video_Processing/vivado_system/zynq_video_sys.runs/impl_1/system_top_routed.dcp
+# open_checkpoint $dcp
+Command: open_checkpoint D:/Xilinx/Prj/pro/Video_Processing/vivado_system/zynq_video_sys.runs/impl_1/system_top_routed.dcp
+
+Starting open_checkpoint Task
+
+Time (s): cpu = 00:00:00 ; elapsed = 00:00:00.050 . Memory (MB): peak = 330.574 ; gain = 5.188
+INFO: [Device 21-403] Loading part xc7z020clg484-2
+Netlist sorting complete. Time (s): cpu = 00:00:00 ; elapsed = 00:00:00.295 . Memory (MB): peak = 818.273 ; gain = 0.000
+INFO: [Netlist 29-17] Analyzing 2897 Unisim elements for replacement
+INFO: [Netlist 29-28] Unisim Transformation completed in 1 CPU seconds
+INFO: [Project 1-479] Netlist was created with Vivado 2025.2.1
+INFO: [Project 1-570] Preparing netlist for logic optimization
+Read ShapeDB Complete: Time (s): cpu = 00:00:00 ; elapsed = 00:00:00.175 . Memory (MB): peak = 965.074 ; gain = 7.590
+INFO: [Timing 38-478] Restoring timing data from binary archive.
+INFO: [Timing 38-479] Binary timing data restore complete.
+INFO: [Project 1-856] Restoring constraints from binary archive.
+INFO: [Project 1-853] Binary constraint restore complete.
+INFO: [Designutils 20-5722] Start Reading Physical Databases.
+Reading placement.
+Read Netlist Cache: Time (s): cpu = 00:00:00 ; elapsed = 00:00:00.033 . Memory (MB): peak = 1593.441 ; gain = 0.000
+Reading placer database...
+Read Device Cache: Time (s): cpu = 00:00:00 ; elapsed = 00:00:00.021 . Memory (MB): peak = 1593.441 ; gain = 0.000
+Read PlaceDB: Time (s): cpu = 00:00:00 ; elapsed = 00:00:00 . Memory (MB): peak = 1593.441 ; gain = 0.000
+Read placeStorage: Time (s): cpu = 00:00:01 ; elapsed = 00:00:00.919 . Memory (MB): peak = 1595.434 ; gain = 1.992
+Read PulsedLatchDB: Time (s): cpu = 00:00:00 ; elapsed = 00:00:00 . Memory (MB): peak = 1595.434 ; gain = 0.000
+Reading routing.
+Read RouteStorage: Time (s): cpu = 00:00:01 ; elapsed = 00:00:00.365 . Memory (MB): peak = 1609.547 ; gain = 14.113
+Read Physdb Files: Time (s): cpu = 00:00:02 ; elapsed = 00:00:01 . Memory (MB): peak = 1609.547 ; gain = 16.105
+Restored from archive | CPU: 2.000000 secs | Memory: 0.000000 MB |
+Finished XDEF File Restore: Time (s): cpu = 00:00:02 ; elapsed = 00:00:01 . Memory (MB): peak = 1609.547 ; gain = 16.105
+Netlist sorting complete. Time (s): cpu = 00:00:00 ; elapsed = 00:00:00.014 . Memory (MB): peak = 1633.766 ; gain = 0.000
+INFO: [Project 1-111] Unisim Transformation Summary:
+  A total of 1035 instances were transformed.
+  RAM128X1D => RAM128X1D (MUXF7(x2), RAMD64E(x4)): 336 instances
+  RAM64M => RAM64M (RAMD64E(x4)): 651 instances
+  RAM64X1D => RAM64X1D (RAMD64E(x2)): 48 instances
+
+INFO: [Project 1-604] Checkpoint was created with Vivado v2025.2.1 (64-bit) build 6403652
+open_checkpoint: Time (s): cpu = 00:00:30 ; elapsed = 00:00:27 . Memory (MB): peak = 1641.785 ; gain = 1326.605
+# set cl [get_clocks -quiet $clk]
+# if {[llength $cl] == 0} { puts "REFUSE: clock $clk not found in this checkpoint"; exit 1 }
+# puts "CLOCK period=[get_property period $cl] ns  waveform=[get_property waveform $cl]"
+CLOCK period=20.000 ns  waveform=0.000 10.000
+# set rpt [file join $root "build/probe_clk_${label}.rpt"]
+# catch {report_timing -delay_type max -nworst 1 -max_paths $n -from $cl -to $cl -file $rpt} err
+INFO: [Timing 38-91] UpdateTimingParams: Speed grade: -2, Delay Type: max.
+INFO: [Timing 38-191] Multithreading enabled for timing update using a maximum of 2 CPUs
+INFO: [Timing 38-78] ReportTimingParams: -from_pins  -to_pins  -max_paths 4 -nworst 1 -delay_type max -sort_by slack.
+report_timing: Time (s): cpu = 00:00:19 ; elapsed = 00:00:10 . Memory (MB): peak = 1699.426 ; gain = 57.641
+# if {![file exists $rpt]} { puts "REFUSE: report_timing wrote nothing ($err)"; exit 1 }
+# set fh [open $rpt r]
+# set txt [read $fh]
+# close $fh
+# set hits 0
+# set cur ""
+# foreach line [split $txt "\n"] {
+#     set t [string trim $line]
+#     if {[string match "Slack*" $t] || [string match "Data Path Delay*" $t] || [string match "Logic Levels*" $t]
+#         || [string match "Source:*" $t] || [string match "Destination:*" $t]} {
+#         puts "  $t"
+#         if {[string match "Slack*" $t]} { incr hits }
+#     }
+# }
+  Slack (MET) :             3.630ns  (required time - arrival time)
+  Source:                 u_pl/x_d_reg[20][3]/C
+  Destination:            u_pl/u_osd/ch_r_reg/ADDRARDADDR[6]
+  Data Path Delay:        15.834ns  (logic 6.468ns (40.850%)  route 9.366ns (59.150%))
+  Logic Levels:           22  (CARRY4=9 LUT2=1 LUT3=2 LUT4=5 LUT6=4 MUXF7=1)
+  Slack (MET) :             3.975ns  (required time - arrival time)
+  Source:                 u_pl/u_zfit/inv_fit_reg[2]/C
+  Destination:            u_pl/u_zmap/y_out_reg[8]/D
+  Data Path Delay:        15.521ns  (logic 6.333ns (40.804%)  route 9.188ns (59.196%))
+  Logic Levels:           14  (CARRY4=3 DSP48E1=1 LUT2=1 LUT3=1 LUT4=3 LUT5=3 LUT6=2)
+  Slack (MET) :             4.222ns  (required time - arrival time)
+  Source:                 u_pl/x_d_reg[20][3]/C
+  Destination:            u_pl/u_osd/ch_r_reg/ADDRARDADDR[7]
+  Data Path Delay:        15.241ns  (logic 6.154ns (40.377%)  route 9.087ns (59.623%))
+  Logic Levels:           21  (CARRY4=9 LUT2=1 LUT3=2 LUT4=6 LUT6=3)
+  Slack (MET) :             4.339ns  (required time - arrival time)
+  Source:                 u_pl/x_d_reg[20][3]/C
+  Destination:            u_pl/u_osd/ch_r_reg/ADDRARDADDR[4]
+  Data Path Delay:        15.124ns  (logic 6.138ns (40.583%)  route 8.986ns (59.417%))
+  Logic Levels:           21  (CARRY4=9 LUT2=1 LUT3=2 LUT4=4 LUT5=1 LUT6=4)
+# puts "PATHS printed: $hits  (floor: 0 means report_timing gave nothing for clock $clk)"
+PATHS printed: 4  (floor: 0 means report_timing gave nothing for clock clkout0_1)
+# if {$hits == 0} { puts "REFUSE: zero paths -- this clock was not measured"; exit 1 }
+# exit 0
+INFO: [Common 17-206] Exiting Vivado at Sun Oct  4 04:40:59 2026...

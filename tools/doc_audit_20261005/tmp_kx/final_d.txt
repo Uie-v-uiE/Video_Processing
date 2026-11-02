@@ -1,0 +1,31 @@
+扫了 76 个文档（D1/D2/D3）+ 707 个手写文件（D4）；最新且 ALL PASS 的冻结集 = r75_gates.txt
+D1b 基准：bit md5=cd04907e1369 → r118_gates.txt；扫 12 份交付文档，抓到 3 句"板态身份句"（只念相邻带编号的那种，历史句不进射程）
+D1c 基准：r118_gates.txt 行尾 PASS=22 / FAIL=1 / 判定项数=24；比对基准按"除本项外"算（除本项 PASS=23 FAIL=1，本项在基准件里是 pass）；抓到 2 句"门禁 N 项 X 绿 / Y 红"（相邻才判，历史句 1 句只数不判）
+  report/08-limits.md:51 D4a 点名的文档盘上没有：build/r113_angle_lane_plan.md
+  report/60-failure-analysis.md:399 D4a 点名的文档盘上没有：build/r113_angle_lane_plan.md
+  report/90-open-items.md:128 D4a 点名的文档盘上没有：build/r113_angle_lane_plan.md
+  report/90-open-items.md:188 D4a 点名的文档盘上没有：build/r113_angle_lane_plan.md
+  report/90-open-items.md:224 D4a 点名的文档盘上没有：board/captures/index.md
+  report/90-open-items.md:225 D4a 点名的文档盘上没有：board/captures/index.md
+  report/90-open-items.md:226 D4a 点名的文档盘上没有：board/compare/index.md
+  report/90-open-items.md:227 D4a 点名的文档盘上没有：board/conditions/card-board-serial-and-jtag.md
+  report/90-open-items.md:228 D4a 点名的文档盘上没有：board/conditions/card-failures-sd-icmp-jtag.md
+  report/90-open-items.md:229 D4a 点名的文档盘上没有：board/conditions/card-software-and-golden-side.md
+  report/90-open-items.md:230 D4a 点名的文档盘上没有：board/firmware/ps_app.elf.md
+  report/90-open-items.md:230 D4c 点名的凭据盘上没有：board/firmware/ps_app.elf.md
+  report/90-open-items.md:231 D4a 点名的文档盘上没有：board/firmware/system.bit.md
+  report/90-open-items.md:231 D4c 点名的凭据盘上没有：board/firmware/system.bit.md
+  report/90-open-items.md:232 D4a 点名的文档盘上没有：board/firmware/system.xsa.md
+  report/90-open-items.md:234 D4a 点名的文档盘上没有：board/logs/index.md
+  report/build.md:26 D4c 点名的凭据盘上没有：build/roll_isolated.sh
+  report/build.md:28 D4c 点名的凭据盘上没有：build/_scan_align.mjs
+  report/build.md:121 D4c 点名的凭据盘上没有：build/_scan_align.mjs
+  report/claims-vs-evidence.md:44 D4a 点名的文档盘上没有：build/r113_angle_lane_plan.md
+  report/claims-vs-evidence.md:111 D4a 点名的文档盘上没有：build/r113_angle_lane_plan.md
+  report/known_issues.md:770 D4a 点名的文档盘上没有：build/r113_angle_lane_plan.md
+  report/optimization_log.md:438 D4c 点名的凭据盘上没有：build/roll_isolated.sh
+  report/perf_report.md:322 D4c 点名的凭据盘上没有：build/roll_isolated.sh
+  report/repro-check.md:93 D4c 点名的凭据盘上没有：build/roll_isolated.sh
+D4c 范围：交付文档 54 份判红；其余 653 份点名凭据 1445 条只报数（日记与注释里那些"当时存在、随后删掉"的中间件不算指路错误 —— 见脚本头部）
+  同行写了"不随包/已被 .gitignore 挡住/不入库/本地留档"这类声明而放行的指路：34 条（豁免只降级为"只报数"，条数念出来，不许静默吞掉 —— #217 同族）
+CURRENCY: 25 条过期指路

@@ -1,0 +1,16 @@
+### MUT-C: zoom_mapper 的 xs_pix 由算术右移(向 -inf 取整)改成截断取整(只动负半边)
+FAIL M0 there exists a pipeline alignment that makes every pixel exact (t=24176000)
+FAIL tb_v96_zoom_scan(align) 找不到对齐位移：后面全部无法判
+
+### C) 交付版（MUT-C 改回之后）
+PASS M0 there exists a pipeline alignment that makes every pixel exact
+PASS M1 inv=512: floor+frac exact on all 255 columns, both sides of the centre
+PASS M1b inv=256 (1.0x) must be the identity map
+PASS M2 0.25x: source column strictly increases along the screen row
+PASS M4 0.25x: left and right OOB runs are equal (symmetric rounding)
+PASS M3a centre pixel maps to centre (no rotation)
+PASS M3b centre pixel maps to centre (45 deg)
+PASS M3c centre pixel maps to centre (300 deg)
+PASS M5 at 90 deg a horizontal screen run becomes a vertical source run
+PASS M6 crawl matches the definition (max 2 px/step, total 64 px over a sweep)
+PASS tb_v96_zoom_scan

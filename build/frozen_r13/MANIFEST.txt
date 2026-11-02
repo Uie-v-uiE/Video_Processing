@@ -1,0 +1,12 @@
+# build#13 (R13) frozen set — the bit the morning checklist flashes (md5 0f46ec91...)
+# recorded 2026-09-23 01:20 so a later build cannot silently replace it
+0f46ec91810e944fb6dd91419ea19ca4 *system.bit
+2e129fb8665834d2457f46f967580ee3 *system.xsa
+ebeee2a8c612feb98d248eedd39d057e *ps_app.elf
+0318199fa261425a6ca327cb3430103a *cdc.rpt
+cf1604d2f08e8262705ea954a6a83167 *methodology.rpt
+9941f7aaf67dcb062bebb5f59163852d *power.rpt
+95ab90e6a4e90460595ec40c4f759477 *route_status.rpt
+024af34f6fde9896c2b7a4e67b94a0e5 *timing_summary.rpt
+ff36a857e4f883380a8d136f8ea59dd0 *util_hier.rpt
+240359afb5c8651cebd77e78d85105ca *utilization.rpt

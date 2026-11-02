@@ -1,0 +1,16 @@
+r52b（bit 5a64c680）：屏上 Latency 与回读同源的板级判据 —— lane24 第一次上板
+推流：video_sender --test move --fps 15（后台在跑）
+2026-09-25 02:56:14
+
+r1 torn=False osd_ms=6 pair_ok=1 sticky=0 tot_cyc=609182 exp=6 match=True usable=2 aligned=True n_meas=3741
+r2 torn=False osd_ms=6 pair_ok=1 sticky=0 tot_cyc=668330 exp=6 match=True usable=2 aligned=True n_meas=3888
+r3 torn=False osd_ms=14 pair_ok=1 sticky=0 tot_cyc=1479173 exp=14 match=True usable=2 aligned=True n_meas=4045
+r4 torn=False osd_ms=16 pair_ok=1 sticky=0 tot_cyc=1689898 exp=16 match=True usable=2 aligned=True n_meas=4221
+r5 torn=False osd_ms=1 pair_ok=1 sticky=0 tot_cyc=117106 exp=1 match=True usable=2 aligned=True n_meas=4401
+r6 torn=False osd_ms=16 pair_ok=1 sticky=0 tot_cyc=1660754 exp=16 match=True usable=2 aligned=True n_meas=4587
+r7 torn=False osd_ms=8 pair_ok=1 sticky=0 tot_cyc=816393 exp=8 match=True usable=2 aligned=True n_meas=4784
+r8 torn=False osd_ms=5 pair_ok=1 sticky=0 tot_cyc=552272 exp=5 match=True usable=2 aligned=True n_meas=4929
+
+== 人读一遍（脚本自己印的判读行）
+时延：c1=1302329 c2=38489 tot=1369523 max=1747075 拍（13.70 ms） 轮数=5122
+  屏上 Latency=13ms  回读 tot/100000=13  ⇒ 同源一致 ok

@@ -1,0 +1,6 @@
+RESULT frame_buffer_w64 tile=80 ramb36fifo=80 lut=0 ff=4
+RESULT fb_w64_3 tile=75 ramb36fifo=75 lut=0 ff=5
+RESULT fb_w64_4 tile=74 ramb36fifo=74 lut=0 ff=6
+# 上面三行是同一次会话里三个 top 的实测（原件 / 3 块拆法 / 4 块拆法）
+# 原件 80 tile 与交付位流 utilization.rpt 的 RAMB36/FIFO* 数一致 ⇒ 这把尺子量的是同一件事；3 块 = 75（−5），4 块 = 74（−6）
+# 取 3 块：4 块只多省 1 块，却多一级 64 位读选择；源与跑法在 build/fb_split_probe/

@@ -1,0 +1,61 @@
+top_md5=ba372f2948b4
+tb_md5=1ee9254eccc4
+rtl_md5=4a376ff6b734
+date=2026-09-27T23:03:39+08:00
+# 台架判据（tb_edge_rim，r80 树）：第一轮 blur 精确 golden + 四个窗口级的差分五圈
+#   （D1 旁路 / D1w 回绕 / D2 旁路 / D2w 回绕 / D3 陈旧行）+ ×2 栅格的两条几何圈（R7 行 / R9 列）
+#   + R0 尺子完整性 / R1 内部 golden / R2..R5 四家边缘 / R8 无 X。
+# 与 r79 那份的差别只有 rtl_md5：本轮改的是 video/raw_line_delay.v（行首那一格的预读），
+#   四个窗口级模块逐字节未动 —— 这一份的作用就是把它「未动」这件事钉在数上（R2..R5 四条圈 + D3 陈旧行）。
+PASS R1 calibration trusted: interior == definition at (0,0) over 3844 cells
+PASS R1 calibration trusted: interior == definition at (0,1) over 3844 cells
+D1 stage=0 : left rim responds in 52/52 rows; interior control changed in 52/52
+PASS D1 stage=0 left column is processed, not passed through
+D1w stage=0 : left rim immune to the wrap source in 52/52 rows; control moved in 52/52
+PASS D1w stage=0 left column carries no wrapped-in neighbour
+D2 stage=0 : last rim responds in 52/52 rows; interior control changed in 52/52
+PASS D2 stage=0 last column is processed, not passed through
+D2w stage=0 : last rim immune to the wrap source in 52/52 rows; control moved in 52/52
+PASS D2w stage=0 last column carries no wrapped-in neighbour
+D3 stage=0 : screen row 0 stable in 60/60 cols; last-row control alternates in 60/60
+PASS D3 stage=0 screen row 0 carries no stale row
+D1 stage=1 : left rim responds in 52/52 rows; interior control changed in 52/52
+PASS D1 stage=1 left column is processed, not passed through
+D1w stage=1 : left rim immune to the wrap source in 52/52 rows; control moved in 52/52
+PASS D1w stage=1 left column carries no wrapped-in neighbour
+D2 stage=1 : last rim responds in 52/52 rows; interior control changed in 52/52
+PASS D2 stage=1 last column is processed, not passed through
+D2w stage=1 : last rim immune to the wrap source in 52/52 rows; control moved in 52/52
+PASS D2w stage=1 last column carries no wrapped-in neighbour
+D3 stage=1 : screen row 0 stable in 60/60 cols; last-row control alternates in 60/60
+PASS D3 stage=1 screen row 0 carries no stale row
+D1 stage=2 : left rim responds in 52/52 rows; interior control changed in 52/52
+PASS D1 stage=2 left column is processed, not passed through
+D1w stage=2 : left rim immune to the wrap source in 52/52 rows; control moved in 52/52
+PASS D1w stage=2 left column carries no wrapped-in neighbour
+D2 stage=2 : last rim responds in 52/52 rows; interior control changed in 52/52
+PASS D2 stage=2 last column is processed, not passed through
+D2w stage=2 : last rim immune to the wrap source in 52/52 rows; control moved in 52/52
+PASS D2w stage=2 last column carries no wrapped-in neighbour
+D3 stage=2 : screen row 0 stable in 60/60 cols; last-row control alternates in 60/60
+PASS D3 stage=2 screen row 0 carries no stale row
+D1 stage=3 : left rim responds in 52/52 rows; interior control changed in 52/52
+PASS D1 stage=3 left column is processed, not passed through
+D1w stage=3 : left rim immune to the wrap source in 52/52 rows; control moved in 52/52
+PASS D1w stage=3 left column carries no wrapped-in neighbour
+D2 stage=3 : last rim responds in 52/52 rows; interior control changed in 52/52
+PASS D2 stage=3 last column is processed, not passed through
+D2w stage=3 : last rim immune to the wrap source in 52/52 rows; control moved in 52/52
+PASS D2w stage=3 last column carries no wrapped-in neighbour
+D3 stage=3 : screen row 0 stable in 60/60 cols; last-row control alternates in 60/60
+PASS D3 stage=3 screen row 0 carries no stale row
+PASS R8 no X in the captured steady frames
+PASS R7 x2-duplicated geometry: all 64 display rows == definition
+PASS R9 x2-duplicated columns: all 64 display cols == definition
+PASS R0 ruler integrity: 4 frames per run, all four stages share one de
+PASS R1 interior == the definition at the measured latency
+PASS R2/D1 left column == clamp-to-edge and responds to its neighbour (golden judged 52)
+PASS R3 top row == clamp-to-edge (judged 52)
+PASS R4/D2 last column == clamp-to-edge and responds (golden judged 52)
+PASS R5/D3 screen row 0 == its own window, no stale row (golden judged 52)
+RESULT tb_edge_rim PASS

@@ -1,0 +1,8 @@
+# 门禁第 15 项的反例（2026-09-26T16:26:19+08:00，9d57fcb）
+门禁第 15 项的反例（当前 top_md5=53d4dbc4c946 tb_md5=9efef92883b2）：
+  ok   P 合格报告 → PASS（  顶层台架 tb_v98    top=53d4dbc4c946 FAIL行=0 同�…）
+  ok   A 顶层指纹不符 → FAIL（  顶层台架 tb_v98    top=deadbeef0000 FAIL行=0 同�…）
+  ok   B 没有跑完 → FAIL（  顶层台架 tb_v98    top=53d4dbc4c946 FAIL行=0 同�…）
+  ok   C 报告里有红项 → FAIL（  顶层台架 tb_v98    top=53d4dbc4c946 FAIL行=1 同�…）
+  ok   D 报告不存在 → FAIL（  顶层台架 tb_v98    缺 build/tb_v98_report.txt 必…）
+CE: PASS（五条全对）

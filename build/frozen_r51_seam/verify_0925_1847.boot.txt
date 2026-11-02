@@ -1,0 +1,3 @@
+[SD] frame 3512: last 100 frames 29.999 fps (since play 24.428)
+[SD] frame 3612: last 100 frames 29.218 fps (since play 24.465)
+

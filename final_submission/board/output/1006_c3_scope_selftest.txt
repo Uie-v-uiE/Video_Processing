@@ -1,0 +1,33 @@
+# 1006 C3 射程改对之后的 --self 与实跑读数（本轮落盘，供 report/unattended.md 指路）
+# 生成命令：node build/checks/check_repo_consistency.mjs --self ；VP_HYGIENE_TMO_MS=1 node build/checks/check_repo_consistency.mjs
+
+==== --self 末行与 C3/C9 对照 ====
+C2 自检：造 6 例 不符=0 判 6 项 PASS
+CTRL G 行文碎片不算路径 期望={"total":0,"dead":0,"skipFrag":1} 实读={"total":0,"dead":0,"skipFrag":1,"skipRun":0,"skipLedger":0,"skipShip":0,"skipFence":0,"skipQuote":0,"prunedHit":0} 对照成立
+CTRL H 真缺的文件必须红 期望={"total":2,"dead":1,"skipFrag":0} 实读={"total":2,"dead":1,"skipFrag":0,"skipRun":0,"skipLedger":0,"skipShip":0,"skipFence":0,"skipQuote":0,"prunedHit":0} 对照成立
+CTRL I 运行期产物走豁免 期望={"total":0,"dead":0,"skipRun":1} 实读={"total":0,"dead":0,"skipFrag":0,"skipRun":1,"skipLedger":0,"skipShip":0,"skipFence":0,"skipQuote":0,"prunedHit":0} 对照成立
+CTRL J 台账只走台账 期望={"total":0,"dead":0,"skipLedger":1} 实读={"total":0,"dead":0,"skipFrag":0,"skipRun":0,"skipLedger":1,"skipShip":0,"skipFence":0,"skipQuote":0,"prunedHit":0} 对照成立
+CTRL K 同行声明不随包 ⇒ 只报数 期望={"total":0,"dead":0,"skipShip":1} 实读={"total":0,"dead":0,"skipFrag":0,"skipRun":0,"skipLedger":0,"skipShip":1,"skipFence":0,"skipQuote":0,"prunedHit":0} 对照成立
+CTRL L 同一句没写声明 ⇒ 必须红 期望={"total":1,"dead":1,"skipShip":0,"skipFence":0} 实读={"total":1,"dead":1,"skipFrag":0,"skipRun":0,"skipLedger":0,"skipShip":0,"skipFence":0,"skipQuote":0,"prunedHit":0} 对照成立
+CTRL M 围栏内原文回显只报数（同一句写在围栏外照旧红，见 L 例） 期望={"total":0,"dead":0,"skipFence":1} 实读={"total":0,"dead":0,"skipFrag":0,"skipRun":0,"skipLedger":0,"skipShip":0,"skipFence":1,"skipQuote":0,"prunedHit":0} 对照成立
+CTRL N1 三层嵌套的死引用必须看得见 期望={"total":1,"dead":1} 实读={"total":1,"dead":1,"skipFrag":0,"skipRun":0,"skipLedger":0,"skipShip":0,"skipFence":0,"skipQuote":0,"prunedHit":0} 对照成立
+CTRL N2 三层嵌套且在盘上 ⇒ 不红（N1 的正对照） 期望={"total":1,"dead":0} 实读={"total":1,"dead":0,"skipFrag":0,"skipRun":0,"skipLedger":0,"skipShip":0,"skipFence":0,"skipQuote":0,"prunedHit":0} 对照成立
+CTRL N3 反引号包着的死引用必须看得见 期望={"total":1,"dead":1} 实读={"total":1,"dead":1,"skipFrag":0,"skipRun":0,"skipLedger":0,"skipShip":0,"skipFence":0,"skipQuote":0,"prunedHit":0} 对照成立
+CTRL N4 反引号包着且在盘上 ⇒ 不红（N3 的正对照） 期望={"total":1,"dead":0} 实读={"total":1,"dead":0,"skipFrag":0,"skipRun":0,"skipLedger":0,"skipShip":0,"skipFence":0,"skipQuote":0,"prunedHit":0} 对照成立
+CTRL P1 精简名单里的件 ⇒ 只报数不判红 期望={"total":1,"dead":0,"prunedHit":1} 实读={"total":1,"dead":0,"skipFrag":0,"skipRun":0,"skipLedger":0,"skipShip":0,"skipFence":0,"skipQuote":0,"prunedHit":1} 对照成立
+CTRL P2 同形状但不在名单里 ⇒ 必须红（P1 的反买通对照） 期望={"total":1,"dead":1,"prunedHit":0} 实读={"total":1,"dead":1,"skipFrag":0,"skipRun":0,"skipLedger":0,"skipShip":0,"skipFence":0,"skipQuote":0,"prunedHit":0} 对照成立
+CTRL P3 目录形指路，下面曾有被删文件 ⇒ 按前缀只报数 期望={"total":1,"dead":0,"prunedHit":1} 实读={"total":1,"dead":0,"skipFrag":0,"skipRun":0,"skipLedger":0,"skipShip":0,"skipFence":0,"skipQuote":0,"prunedHit":1} 对照成立
+CTRL P4 目录形指路但前缀下空无一物 ⇒ 必须红（P3 的反买通对照） 期望={"total":1,"dead":1,"prunedHit":0} 实读={"total":1,"dead":1,"skipFrag":0,"skipRun":0,"skipLedger":0,"skipShip":0,"skipFence":0,"skipQuote":0,"prunedHit":0} 对照成立
+CTRL Q1 引用块里的死引用只报数 期望={"total":0,"dead":0,"skipQuote":1} 实读={"total":0,"dead":0,"skipFrag":0,"skipRun":0,"skipLedger":0,"skipShip":0,"skipFence":0,"skipQuote":1,"prunedHit":0} 对照成立
+CTRL Q2 同一句写在作者名下 ⇒ 必须红（Q1 的反买通对照） 期望={"total":1,"dead":1,"skipQuote":0} 实读={"total":1,"dead":1,"skipFrag":0,"skipRun":0,"skipLedger":0,"skipShip":0,"skipFence":0,"skipQuote":0,"prunedHit":0} 对照成立
+CTRL N 期望栏的 FAIL 不算红 期望={"rows":1,"pass":1,"fail":0,"nm":0,"noVerdict":0} 实读={"pass":1,"fail":0,"nm":0,"noVerdict":0,"rows":1} 对照成立
+CTRL O 判定栏 FAIL 必须红 期望={"rows":1,"pass":0,"fail":1,"nm":0,"noVerdict":0} 实读={"pass":0,"fail":1,"nm":0,"noVerdict":0,"rows":1} 对照成立
+CTRL P 判定栏 NOT_MEASURED 记未测 期望={"rows":1,"pass":0,"fail":0,"nm":1,"noVerdict":0} 实读={"pass":0,"fail":0,"nm":1,"noVerdict":0,"rows":1} 对照成立
+CTRL Q 判定栏不成词单独计（表形漂了要看得见） 期望={"rows":1,"pass":0,"fail":0,"nm":0,"noVerdict":1} 实读={"pass":0,"fail":0,"nm":0,"noVerdict":1,"rows":1} 对照成立
+CTRL R 登记行 R* 与表头不进射程 期望={"rows":0,"pass":0,"fail":0,"nm":0,"noVerdict":0} 实读={"pass":0,"fail":0,"nm":0,"noVerdict":0,"rows":0} 对照成立
+C3 自检：造 17 例 不符=0 C9 自检：造 5 例 不符=0 判 28 项 PASS
+
+==== 实跑（C5 本轮显式超时 ⇒ 记未测，与门禁定版无关）====
+C3 文档内路径存活 判 3 项 扫=111 份 检查路径引用=5244 死引用=0 历史精简=140（指的是被 02bd5c4/58faa85 删掉的凭据，只报数不判红） 豁免=碎片1155/运行期49/台账2826/同行声明168/围栏回显25/引用块1（词表 5 词，与 doc_currency 同一套） PASS
+C9 A/B/C 路径复现演练 判 9 项 判定列在内=61 行 PASS=49 FAIL=0 未测=12 判定列不成词=0 PASS
+GATES 终审 C1–C12：判定 12 项 绿=10 红=0 未测=2 仍有未测项 NOT_MEASURED

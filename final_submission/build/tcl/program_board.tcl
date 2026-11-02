@@ -1,0 +1,23 @@
+# 用途：root 要回退**两级**（脚本在 build/tcl/ 下）：早先它在 scripts/ 时 ../ 是对的，
+# 输入：无字面量输入路径；参数解析见本文件
+# 输出：stdout
+# 退出码：1=非 0 分支（该文件 exit 1 那一行）
+# Program FPGA with JTAG (select xc7z020, not arm_dap)
+# root 要回退**两级**（脚本在 build/tcl/ 下）：早先它在 scripts/ 时 ../ 是对的，
+# 搬进 build/tcl/ 后就成了 build/build/xxx —— 只在板前才暴露，见 report/log/issues.md #22 的补记。
+set root [file normalize [file join [file dirname [info script]] .. ..]]
+set bit [file join $root build video_pipeline.bit]
+
+open_hw_manager
+connect_hw_server -allow_non_jtag
+open_hw_target
+set dev [lindex [get_hw_devices xc7z020*] 0]
+if {$dev eq ""} {
+  puts "ERROR: xc7z020 not found. Devices: [get_hw_devices]"
+  exit 1
+}
+current_hw_device $dev
+set_property PROGRAM.FILE $bit [current_hw_device]
+program_hw_devices [current_hw_device]
+puts "PROGRAMMED $dev with $bit"
+
