@@ -5,7 +5,7 @@ The text below is the offline replay of the captured responses; it reports
 0.0 s because it does not touch the board. The raw capture is in
 `uart_battery_capture.txt`.
 
-[REPLAY] 不碰串口，直接判 hw/uart_script_capture.txt
+[REPLAY] 不碰串口，直接判 board/uart_script_capture.txt
 ok    1 STAT
 ok    2 th 80
 ok    3 TH120
@@ -116,4 +116,4 @@ ok   末态 = 演示默认档（thr=80 src=1 zoom=1 bilin=1 zsel=4 zman=1 sel=00
 NOTE 初态 = 文档默认档（zsel=4 zman=1 mode=0 AUTO）⇒ 上面那条"回到初态"是在默认档上证的
 ok   V9-6 温度格三方对账：4 条 [TEMP] 的 degC↔osd↔gpio 全部自洽
 
-RESULT PASS uart_cmd_check  (105 条命令, 0.0 s, 捕获 hw/uart_script_capture.txt)
+RESULT PASS uart_cmd_check  (105 条命令, 0.0 s, 捕获 board/uart_script_capture.txt)

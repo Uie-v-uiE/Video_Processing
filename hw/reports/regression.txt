@@ -1,5 +1,104 @@
 ==== pipe_bypass ====
+# vsim -c -work work work.tb_pipe_bypass -do "run -all; quit -f" -l pipe_bypass.log 
+# Start time: 14:16:34 on Nov 01,2026
+# ** Note: (vsim-3812) Design is being optimized...
+# //  ModelSim SE-64 2020.4 Oct 13 2020
+# //
+# //  Copyright 1991-2020 Mentor Graphics Corporation
+# //  All Rights Reserved.
+# //
+# //  ModelSim SE-64 and its associated documentation contain trade
+# //  secrets and commercial or financial information that are the property of
+# //  Mentor Graphics Corporation and are privileged, confidential,
+# //  and exempt from disclosure under the Freedom of Information Act,
+# //  5 U.S.C. Section 552. Furthermore, this information
+# //  is prohibited from disclosure under the Trade Secrets Act,
+# //  18 U.S.C. Section 1905.
+# //
+# Loading sv_std.std
+# Loading work.tb_pipe_bypass(fast)
+# run -all
+# PASS C0r ruler pattern is invertible and holds no black | every judged column below is read out of the pixel, so the encoding must round-trip and must not contain the thing we count
+# CACHE at reset: total=1024 first=0 last=1023 | blur lb0/lb1=1024/1024 sharp lb0/lb1=1024/1024 sobel lb0/lb1=1024/1024 sobel mc1=1024 morph mb1/mc1=1024/1024
+# PASS C10dpre the cache probe sees every array | before any pixel is fed each of the nine arrays must read all X, so C10d's zero cannot come from a hierarchical name that points at nothing
+# A row6: burst=1024 out_px=1024 black_or_X=0 col_off=0 unparsable=0 || dec@pos0/1/2/1023=0/1/2/1023 val@pos0=8415 isX=0 || head-decode blur/sharp/sobel/morph=10/7/4/0
+# CACHE after A: total=0 first=-1 last=-1 | blur lb0/lb1=0/0 sharp lb0/lb1=0/0 sobel lb0/lb1=0/0 sobel mc1=0 morph mb1/mc1=0/0
+# A rows_judged=6 black_or_X_cells=0 col_mismatch=0 unparsable=0 bad_rows=0 || black worst col-1=0 best col1=0 || mismatch worst col1=6
+# OBS #111 head/tail: val@pos0=8415 isX=0 dec@pos0/1/2=0/1/2 dec@pos1023=1023 (head black + last column never emitted)
+# PASS C10pre window A judged a whole output burst | the judged row must be a full H_ACTIVE-long output burst, else the zeros below come from an empty set
+# PASS C10a bypassed chain invents no black or X cell | input has no black and all nine stages are bypassed => any black/X out inside the line is made by the chain (#103)
+# C10c columns emitted exactly once per judged row: off-count=0 first=-1 || cells out=6144 expected=6144 invented=0
+# PASS C10c every input column is emitted exactly once per row | ISSUES #111, NOT #103: the chain's data is one beat behind its own de_out, so the last column of every line falls off the end and a 0x0000 cell is inserted at the head (top hides it with pipe_dout_q; #102's left-edge line is the same defect)
+# PASS C10d every line-cache slot was written at least once | an unwritten slot reads X in xsim and 0 on the board: that is one black column per name
+# C10f out-of-range cache writes (de high && x_in >= H_ACTIVE): blur=0 sharp=0 sobel=0 morph=0 || first offender x_in=-1 -> HW slot -1 with din=00000000 || opportunity beats (de && x_in >= H_ACTIVE-1)=12
+# PASS C10fs the stimulus really pushed the coordinate to the line end (C10f's sample floor) | if this is 0, C10f's zeros prove nothing: the stimulus never reached the beat that can overflow the write address. Pair with sim/mut_control.sh: the pre-fix RTL must redden C10f under this same stimulus.
+# PASS C10f no window stage writes outside its own line cache | the coordinate taps sit one beat behind the de chain, so each line head writes x_in=1343: xsim drops that write, the board truncates it to slot 319 and stores the blanking value 0 => one black column at display column 320 (#103)
+# B row6: black=1 (input column 300 was forced black)
+# B rows_with_black=6 worst pos300 = 6 cells
+# PASS C10b the same detector does see a black column fed in | pair for C10a: forcing one input column black must light that very counter and that very histogram bin
 # PASS C11r0 row ruler round-trips and holds no black | every row number below is read out of the pixel, so the encoding must round-trip for all C_SRC rows
+# C11 armA(label=display row>>1, pre-#129 top): anchored bad=20 L=4 first_bad=16 || wrapped bad=0 L=4 first_bad=-1 || judged=80 fed=96 out=96/96 rows_per_frame=16
+#   C11 armA(label=display row>>1, pre-#129 top) out#16 frameline=0 wrapped=0 anchored=2 exp=0
+#   C11 armA(label=display row>>1, pre-#129 top) out#17 frameline=1 wrapped=0 anchored=2 exp=0
+#   C11 armA(label=display row>>1, pre-#129 top) out#18 frameline=2 wrapped=1 anchored=2 exp=1
+#   C11 armA(label=display row>>1, pre-#129 top) out#19 frameline=3 wrapped=1 anchored=2 exp=1
+#   C11 armA(label=display row>>1, pre-#129 top) out#20 frameline=4 wrapped=2 anchored=2 exp=2
+#   C11 armA(label=display row>>1, pre-#129 top) out#21 frameline=5 wrapped=2 anchored=2 exp=2
+#   C11 armA(label=display row>>1, pre-#129 top) out#32 frameline=0 wrapped=0 anchored=2 exp=0
+#   C11 armA(label=display row>>1, pre-#129 top) out#33 frameline=1 wrapped=0 anchored=2 exp=0
+#   C11 armA(label=display row>>1, pre-#129 top) out#34 frameline=2 wrapped=1 anchored=2 exp=1
+#   C11 armA(label=display row>>1, pre-#129 top) out#35 frameline=3 wrapped=1 anchored=2 exp=1
+#   C11 armA(label=display row>>1, pre-#129 top) out#36 frameline=4 wrapped=2 anchored=2 exp=2
+#   C11 armA(label=display row>>1, pre-#129 top) out#37 frameline=5 wrapped=2 anchored=2 exp=2
+#   C11 armA(label=display row>>1, pre-#129 top) out#48 frameline=0 wrapped=0 anchored=2 exp=0
+#   C11 armA(label=display row>>1, pre-#129 top) out#49 frameline=1 wrapped=0 anchored=2 exp=0
+#   C11 armA(label=display row>>1, pre-#129 top) out#50 frameline=2 wrapped=1 anchored=2 exp=1
+#   C11 armA(label=display row>>1, pre-#129 top) out#51 frameline=3 wrapped=1 anchored=2 exp=1
+#   C11 armA(label=display row>>1, pre-#129 top) out#52 frameline=4 wrapped=2 anchored=2 exp=2
+#   C11 armA(label=display row>>1, pre-#129 top) out#53 frameline=5 wrapped=2 anchored=2 exp=2
+#   C11 armA(label=display row>>1, pre-#129 top) out#64 frameline=0 wrapped=0 anchored=2 exp=0
+#   C11 armA(label=display row>>1, pre-#129 top) out#65 frameline=1 wrapped=0 anchored=2 exp=0
+#   C11 armA(label=display row>>1, pre-#129 top) out#66 frameline=2 wrapped=1 anchored=2 exp=1
+#   C11 armA(label=display row>>1, pre-#129 top) out#67 frameline=3 wrapped=1 anchored=2 exp=1
+#   C11 armA(label=display row>>1, pre-#129 top) out#68 frameline=4 wrapped=2 anchored=2 exp=2
+#   C11 armA(label=display row>>1, pre-#129 top) out#69 frameline=5 wrapped=2 anchored=2 exp=2
+#   C11 armA(label=display row>>1, pre-#129 top) out#80 frameline=0 wrapped=0 anchored=2 exp=0
+#   C11 armA(label=display row>>1, pre-#129 top) out#81 frameline=1 wrapped=0 anchored=2 exp=0
+#   C11 armA(label=display row>>1, pre-#129 top) out#82 frameline=2 wrapped=1 anchored=2 exp=1
+#   C11 armA(label=display row>>1, pre-#129 top) out#83 frameline=3 wrapped=1 anchored=2 exp=1
+#   C11 armA(label=display row>>1, pre-#129 top) out#84 frameline=4 wrapped=2 anchored=2 exp=2
+#   C11 armA(label=display row>>1, pre-#129 top) out#85 frameline=5 wrapped=2 anchored=2 exp=2
+# C11 armB(label=content row, shipped top): anchored bad=20 L=4 first_bad=28 || wrapped bad=0 L=4 first_bad=-1 || judged=80 fed=96 out=96/96 rows_per_frame=16
+#   C11 armB(label=content row, shipped top) out#16 frameline=0 wrapped=0 anchored=0 exp=0
+#   C11 armB(label=content row, shipped top) out#17 frameline=1 wrapped=0 anchored=0 exp=0
+#   C11 armB(label=content row, shipped top) out#18 frameline=2 wrapped=1 anchored=1 exp=1
+#   C11 armB(label=content row, shipped top) out#19 frameline=3 wrapped=1 anchored=1 exp=1
+#   C11 armB(label=content row, shipped top) out#20 frameline=4 wrapped=2 anchored=2 exp=2
+#   C11 armB(label=content row, shipped top) out#21 frameline=5 wrapped=2 anchored=2 exp=2
+#   C11 armB(label=content row, shipped top) out#32 frameline=0 wrapped=0 anchored=0 exp=0
+#   C11 armB(label=content row, shipped top) out#33 frameline=1 wrapped=0 anchored=0 exp=0
+#   C11 armB(label=content row, shipped top) out#34 frameline=2 wrapped=1 anchored=1 exp=1
+#   C11 armB(label=content row, shipped top) out#35 frameline=3 wrapped=1 anchored=1 exp=1
+#   C11 armB(label=content row, shipped top) out#36 frameline=4 wrapped=2 anchored=2 exp=2
+#   C11 armB(label=content row, shipped top) out#37 frameline=5 wrapped=2 anchored=2 exp=2
+#   C11 armB(label=content row, shipped top) out#48 frameline=0 wrapped=0 anchored=0 exp=0
+#   C11 armB(label=content row, shipped top) out#49 frameline=1 wrapped=0 anchored=0 exp=0
+#   C11 armB(label=content row, shipped top) out#50 frameline=2 wrapped=1 anchored=1 exp=1
+#   C11 armB(label=content row, shipped top) out#51 frameline=3 wrapped=1 anchored=1 exp=1
+#   C11 armB(label=content row, shipped top) out#52 frameline=4 wrapped=2 anchored=2 exp=2
+#   C11 armB(label=content row, shipped top) out#53 frameline=5 wrapped=2 anchored=2 exp=2
+#   C11 armB(label=content row, shipped top) out#64 frameline=0 wrapped=0 anchored=0 exp=0
+#   C11 armB(label=content row, shipped top) out#65 frameline=1 wrapped=0 anchored=0 exp=0
+#   C11 armB(label=content row, shipped top) out#66 frameline=2 wrapped=1 anchored=1 exp=1
+#   C11 armB(label=content row, shipped top) out#67 frameline=3 wrapped=1 anchored=1 exp=1
+#   C11 armB(label=content row, shipped top) out#68 frameline=4 wrapped=2 anchored=2 exp=2
+#   C11 armB(label=content row, shipped top) out#69 frameline=5 wrapped=2 anchored=2 exp=2
+#   C11 armB(label=content row, shipped top) out#80 frameline=0 wrapped=0 anchored=0 exp=0
+#   C11 armB(label=content row, shipped top) out#81 frameline=1 wrapped=0 anchored=0 exp=0
+#   C11 armB(label=content row, shipped top) out#82 frameline=2 wrapped=1 anchored=1 exp=1
+#   C11 armB(label=content row, shipped top) out#83 frameline=3 wrapped=1 anchored=1 exp=1
+#   C11 armB(label=content row, shipped top) out#84 frameline=4 wrapped=2 anchored=2 exp=2
+#   C11 armB(label=content row, shipped top) out#85 frameline=5 wrapped=2 anchored=2 exp=2
 # PASS C11pre1 each arm judged at least two whole frames | the fit compares an empty set otherwise; one output burst per fed row for 6 frames is the floor
 # PASS C11pre2 both chains emitted one burst per fed row | the two instances share the burst index; if one of them ever dropped or invented a row the four readings below are not comparable
 # PASS C11pre3 the stimulus really wrapped (content row decreased) | the frame-boundary band this window is about must be reached at least once, else every zero below is an empty set
@@ -7,22 +106,133 @@
 # PASS C11d anchored chain is NOT a pure delay line (the control that makes C11c's zero mean something) | same stimulus, same ruler, only STREAM_WRAP differs: if the default (frame-anchored) instance also came out clean, C11c would be decoration and the four rim benches' contract would be untested here
 # PASS C11e one constant lag, equal to the chain's own OFF_LINES, in all four readings | I1: the row offset has exactly one source (u_pipe.OFF_LINES); the fit is not allowed to paper over the boundary by choosing a different L per arm or per instance
 # RESULT tb_pipe_bypass PASS nfail=0
+# ** Note: $finish    : D:/Xilinx/Harness/Project/timing/submission/sim/tb_pipe_bypass.v(591)
+#    Time: 7096411 ns  Iteration: 0  Instance: /tb_pipe_bypass
+# End time: 14:16:37 on Nov 01,2026, Elapsed time: 0:00:03
+# Errors: 0, Warnings: 0
 RESULT pipe_bypass PASS
+
 ==== pipe_sel ====
+# vsim -c -work work work.tb_pipe_sel -do "run -all; quit -f" -l pipe_sel.log 
+# Start time: 14:16:38 on Nov 01,2026
+# ** Note: (vsim-3812) Design is being optimized...
+# ** Warning: D:/Xilinx/Harness/Project/timing/submission/sim/tb_pipe_sel.v(41): (vopt-2685) [TFMPC] - Too few port connections for 'u_eff'.  Expected 17, found 13.
+# ** Warning: D:/Xilinx/Harness/Project/timing/submission/sim/tb_pipe_sel.v(41): (vopt-2718) [TFMPC] - Missing connection for port 'temp_disp'.
+# ** Warning: D:/Xilinx/Harness/Project/timing/submission/sim/tb_pipe_sel.v(41): (vopt-2718) [TFMPC] - Missing connection for port 'gamma_disp'.
+# ** Warning: D:/Xilinx/Harness/Project/timing/submission/sim/tb_pipe_sel.v(41): (vopt-2718) [TFMPC] - Missing connection for port 'zoom_manual'.
+# ** Warning: D:/Xilinx/Harness/Project/timing/submission/sim/tb_pipe_sel.v(41): (vopt-2718) [TFMPC] - Missing connection for port 'zoom_sel'.
+# ** Warning: D:/Xilinx/Harness/Project/timing/submission/sim/tb_pipe_sel.v(59): (vopt-2685) [TFMPC] - Too few port connections for 'up'.  Expected 18, found 17.
+# ** Warning: D:/Xilinx/Harness/Project/timing/submission/sim/tb_pipe_sel.v(59): (vopt-2718) [TFMPC] - Missing connection for port 'off_rows'.
+# ** Note: (vsim-12126) Error and warning message counts have been restored: Errors=0, Warnings=7.
+# //  ModelSim SE-64 2020.4 Oct 13 2020
+# //
+# //  Copyright 1991-2020 Mentor Graphics Corporation
+# //  All Rights Reserved.
+# //
+# //  ModelSim SE-64 and its associated documentation contain trade
+# //  secrets and commercial or financial information that are the property of
+# //  Mentor Graphics Corporation and are privileged, confidential,
+# //  and exempt from disclosure under the Freedom of Information Act,
+# //  5 U.S.C. Section 552. Furthermore, this information
+# //  is prohibited from disclosure under the Trade Secrets Act,
+# //  18 U.S.C. Section 1905.
+# //
+# Loading sv_std.std
+# Loading work.tb_pipe_sel(fast)
+# run -all
+# 
 # PASS tb_pipe_sel
+# ** Note: $finish    : D:/Xilinx/Harness/Project/timing/submission/sim/tb_pipe_sel.v(256)
+#    Time: 75240 ns  Iteration: 1  Instance: /tb_pipe_sel
+# End time: 14:16:39 on Nov 01,2026, Elapsed time: 0:00:01
+# Errors: 0, Warnings: 7
 RESULT pipe_sel PASS
+
 ==== morph ====
+# vsim -c -work work work.tb_morph -do "run -all; quit -f" -l morph.log 
+# Start time: 14:16:40 on Nov 01,2026
+# ** Note: (vsim-3812) Design is being optimized...
+# //  ModelSim SE-64 2020.4 Oct 13 2020
+# //
+# //  Copyright 1991-2020 Mentor Graphics Corporation
+# //  All Rights Reserved.
+# //
+# //  ModelSim SE-64 and its associated documentation contain trade
+# //  secrets and commercial or financial information that are the property of
+# //  Mentor Graphics Corporation and are privileged, confidential,
+# //  and exempt from disclosure under the Freedom of Information Act,
+# //  5 U.S.C. Section 552. Furthermore, this information
+# //  is prohibited from disclosure under the Trade Secrets Act,
+# //  18 U.S.C. Section 1905.
+# //
+# Loading sv_std.std
+# Loading work.tb_morph(fast)
+# run -all
+# 
 # PASS tb_morph
+# ** Note: $finish    : D:/Xilinx/Harness/Project/timing/submission/sim/tb_morph.v(319)
+#    Time: 113800 ns  Iteration: 1  Instance: /tb_morph
+# End time: 14:16:41 on Nov 01,2026, Elapsed time: 0:00:01
+# Errors: 0, Warnings: 0
 RESULT morph PASS
+
 ==== edge_rim_wrap_clamp ====
+# vsim -c -work work work.tb_edge_rim_wrap_clamp -do "run -all; quit -f" -l edge_rim_wrap_clamp.log 
+# Start time: 14:16:43 on Nov 01,2026
+# ** Note: (vsim-3812) Design is being optimized...
+# //  ModelSim SE-64 2020.4 Oct 13 2020
+# //
+# //  Copyright 1991-2020 Mentor Graphics Corporation
+# //  All Rights Reserved.
+# //
+# //  ModelSim SE-64 and its associated documentation contain trade
+# //  secrets and commercial or financial information that are the property of
+# //  Mentor Graphics Corporation and are privileged, confidential,
+# //  and exempt from disclosure under the Freedom of Information Act,
+# //  5 U.S.C. Section 552. Furthermore, this information
+# //  is prohibited from disclosure under the Trade Secrets Act,
+# //  18 U.S.C. Section 1905.
+# //
+# Loading sv_std.std
+# Loading work.tb_edge_rim_wrap_clamp(fast)
+# run -all
 # PASS A1 fixed arm: no mixed 8/31 window
 # PASS A2 fixed arm keeps the first row (gray8 cells=32)
 # PASS A3 fixed arm keeps the last row (gray31 cells=30)
 # PASS A4 negative control: legacy arm mixes the opposite edge (32 cells)
 # PASS A5 coverage: 512 cells per arm
 # RESULT tb_edge_rim_wrap_clamp PASS nfail=0
+# ** Note: $finish    : D:/Xilinx/Harness/Project/timing/submission/sim/tb_edge_rim_wrap_clamp.v(119)
+#    Time: 32800 ns  Iteration: 1  Instance: /tb_edge_rim_wrap_clamp
+# End time: 14:16:44 on Nov 01,2026, Elapsed time: 0:00:01
+# Errors: 0, Warnings: 0
 RESULT edge_rim_wrap_clamp PASS
+
 ==== edge_rim_wrap_diff ====
+# vsim -c -work work work.tb_edge_rim_wrap_diff -do "run -all; quit -f" -l edge_rim_wrap_diff.log 
+# Start time: 14:16:45 on Nov 01,2026
+# ** Note: (vsim-3812) Design is being optimized...
+# //  ModelSim SE-64 2020.4 Oct 13 2020
+# //
+# //  Copyright 1991-2020 Mentor Graphics Corporation
+# //  All Rights Reserved.
+# //
+# //  ModelSim SE-64 and its associated documentation contain trade
+# //  secrets and commercial or financial information that are the property of
+# //  Mentor Graphics Corporation and are privileged, confidential,
+# //  and exempt from disclosure under the Freedom of Information Act,
+# //  5 U.S.C. Section 552. Furthermore, this information
+# //  is prohibited from disclosure under the Trade Secrets Act,
+# //  18 U.S.C. Section 1905.
+# //
+# Loading sv_std.std
+# Loading work.tb_edge_rim_wrap_diff(fast)
+# run -all
+# PASS D1 blur fixed arm: first and last row influence are disjoint
+# PASS D2 blur fixed arm coverage: move0=49 move1=48
+# PASS D1 sharpen fixed arm: first and last row influence are disjoint
+# PASS D2 sharpen fixed arm coverage: move0=49 move1=48
+# PASS D1 sobel fixed arm: first and last row influence are disjoint
 # PASS D2 sobel fixed arm coverage: move0=33 move1=33
 # PASS D1 morph fixed arm: first and last row influence are disjoint
 # PASS D2 morph fixed arm coverage: move0=49 move1=48
@@ -30,19 +240,135 @@ RESULT edge_rim_wrap_clamp PASS
 # PASS D0 sharpen-old negative control: legacy arms overlap in 14 cells
 # PASS D0 sobel-old negative control: legacy arms overlap in 14 cells
 # PASS D0 morph-old negative control: legacy arms overlap in 14 cells
+# OBS D3 corner overlaps excluded from the row criterion: fix=4 old=16
 # RESULT tb_edge_rim_wrap_diff PASS nfail=0
+# ** Note: $finish    : D:/Xilinx/Harness/Project/timing/submission/sim/tb_edge_rim_wrap_diff.v(205)
+#    Time: 67360 ns  Iteration: 1  Instance: /tb_edge_rim_wrap_diff
+# End time: 14:16:46 on Nov 01,2026, Elapsed time: 0:00:01
+# Errors: 0, Warnings: 0
 RESULT edge_rim_wrap_diff PASS
+
 ==== edge_rim_bottom_wrap ====
+# vsim -c -work work work.tb_edge_rim_bottom_wrap -do "run -all; quit -f" -l edge_rim_bottom_wrap.log 
+# Start time: 14:16:47 on Nov 01,2026
+# ** Note: (vsim-3812) Design is being optimized...
+# //  ModelSim SE-64 2020.4 Oct 13 2020
+# //
+# //  Copyright 1991-2020 Mentor Graphics Corporation
+# //  All Rights Reserved.
+# //
+# //  ModelSim SE-64 and its associated documentation contain trade
+# //  secrets and commercial or financial information that are the property of
+# //  Mentor Graphics Corporation and are privileged, confidential,
+# //  and exempt from disclosure under the Freedom of Information Act,
+# //  5 U.S.C. Section 552. Furthermore, this information
+# //  is prohibited from disclosure under the Trade Secrets Act,
+# //  18 U.S.C. Section 1905.
+# //
+# Loading sv_std.std
+# Loading work.tb_edge_rim_bottom_wrap(fast)
+# run -all
+# BANDROW stage=0 row=0 cells=2
+# BANDROW stage=0 row=1 cells=64
+# BANDROW stage=0 row=2 cells=64
+# BANDROW stage=0 row=3 cells=1
+# BAND stage=0 被判格=4096 跟着变的格=131 受影响行数=4 段数=1 末行(63)动格=0
+# PASS B1 stage=0 affected rows are one contiguous band
+# PASS B2 stage=0 alternation propagates in 131 cells
+# PASS B3 stage=0 coverage floor 4096 cells
+# BANDROW stage=1 row=0 cells=2
+# BANDROW stage=1 row=1 cells=64
+# BANDROW stage=1 row=2 cells=64
+# BAND stage=1 被判格=4096 跟着变的格=130 受影响行数=3 段数=1 末行(63)动格=0
+# PASS B1 stage=1 affected rows are one contiguous band
+# PASS B2 stage=1 alternation propagates in 130 cells
 # PASS B3 stage=1 coverage floor 4096 cells
+# BANDROW stage=2 row=3 cells=1
+# BAND stage=2 被判格=4096 跟着变的格=1 受影响行数=1 段数=1 末行(63)动格=0
 # PASS B1 stage=2 affected rows are one contiguous band
 # PASS B2 stage=2 alternation propagates in 1 cells
 # PASS B3 stage=2 coverage floor 4096 cells
+# BANDROW stage=3 row=0 cells=2
+# BANDROW stage=3 row=1 cells=64
+# BANDROW stage=3 row=2 cells=64
+# BANDROW stage=3 row=3 cells=1
+# BAND stage=3 被判格=4096 跟着变的格=131 受影响行数=4 段数=1 末行(63)动格=0
 # PASS B1 stage=3 affected rows are one contiguous band
 # PASS B2 stage=3 alternation propagates in 131 cells
 # PASS B3 stage=3 coverage floor 4096 cells
 # RESULT tb_edge_rim_bottom_wrap PASS nfail=0
+# ** Note: $finish    : D:/Xilinx/Harness/Project/timing/submission/sim/tb_edge_rim_bottom_wrap.v(146)
+#    Time: 1352400 ns  Iteration: 1  Instance: /tb_edge_rim_bottom_wrap
+# End time: 14:16:48 on Nov 01,2026, Elapsed time: 0:00:01
+# Errors: 0, Warnings: 0
 RESULT edge_rim_bottom_wrap PASS
+
 ==== display_edge_rim ====
+# vsim -c -work work work.tb_display_edge_rim -do "run -all; quit -f" -l display_edge_rim.log 
+# Start time: 14:16:49 on Nov 01,2026
+# ** Note: (vsim-3812) Design is being optimized...
+# //  ModelSim SE-64 2020.4 Oct 13 2020
+# //
+# //  Copyright 1991-2020 Mentor Graphics Corporation
+# //  All Rights Reserved.
+# //
+# //  ModelSim SE-64 and its associated documentation contain trade
+# //  secrets and commercial or financial information that are the property of
+# //  Mentor Graphics Corporation and are privileged, confidential,
+# //  and exempt from disclosure under the Freedom of Information Act,
+# //  5 U.S.C. Section 552. Furthermore, this information
+# //  is prohibited from disclosure under the Trade Secrets Act,
+# //  18 U.S.C. Section 1905.
+# //
+# Loading sv_std.std
+# Loading work.tb_display_edge_rim(fast)
+# run -all
+# GOLDEN gmode=0: latency = (0 columns, 0 rows); interior mismatch 0 of 3844
+# PASS R1 calibration trusted: interior == definition at (0,0) over 3844 cells
+# GOLDEN gmode=1: latency = (0 columns, 1 rows); interior mismatch 0 of 3844
+# PASS R1 calibration trusted: interior == definition at (0,1) over 3844 cells
+# D1 stage=0 : left rim responds in 52/52 rows; interior control changed in 52/52
+# PASS D1 stage=0 left column is processed, not passed through
+# D1w stage=0 : left rim immune to the wrap source in 52/52 rows; control moved in 52/52
+# PASS D1w stage=0 left column carries no wrapped-in neighbour
+# D2 stage=0 : last rim responds in 52/52 rows; interior control changed in 52/52
+# PASS D2 stage=0 last column is processed, not passed through
+# D2w stage=0 : last rim immune to the wrap source in 52/52 rows; control moved in 52/52
+# PASS D2w stage=0 last column carries no wrapped-in neighbour
+# D3 stage=0 : screen row 0 stable in 60/60 cols; last-row control alternates in 60/60
+# PASS D3 stage=0 screen row 0 carries no stale row
+# D1 stage=1 : left rim responds in 52/52 rows; interior control changed in 52/52
+# PASS D1 stage=1 left column is processed, not passed through
+# D1w stage=1 : left rim immune to the wrap source in 52/52 rows; control moved in 52/52
+# PASS D1w stage=1 left column carries no wrapped-in neighbour
+# D2 stage=1 : last rim responds in 52/52 rows; interior control changed in 52/52
+# PASS D2 stage=1 last column is processed, not passed through
+# D2w stage=1 : last rim immune to the wrap source in 52/52 rows; control moved in 52/52
+# PASS D2w stage=1 last column carries no wrapped-in neighbour
+# D3 stage=1 : screen row 0 stable in 60/60 cols; last-row control alternates in 60/60
+# PASS D3 stage=1 screen row 0 carries no stale row
+# D1 stage=2 : left rim responds in 52/52 rows; interior control changed in 52/52
+# PASS D1 stage=2 left column is processed, not passed through
+# D1w stage=2 : left rim immune to the wrap source in 52/52 rows; control moved in 52/52
+# PASS D1w stage=2 left column carries no wrapped-in neighbour
+# D2 stage=2 : last rim responds in 52/52 rows; interior control changed in 52/52
+# PASS D2 stage=2 last column is processed, not passed through
+# D2w stage=2 : last rim immune to the wrap source in 52/52 rows; control moved in 52/52
+# PASS D2w stage=2 last column carries no wrapped-in neighbour
+# D3 stage=2 : screen row 0 stable in 60/60 cols; last-row control alternates in 60/60
+# PASS D3 stage=2 screen row 0 carries no stale row
+# D1 stage=3 : left rim responds in 52/52 rows; interior control changed in 52/52
+# PASS D1 stage=3 left column is processed, not passed through
+# D1w stage=3 : left rim immune to the wrap source in 52/52 rows; control moved in 52/52
+# PASS D1w stage=3 left column carries no wrapped-in neighbour
+# D2 stage=3 : last rim responds in 52/52 rows; interior control changed in 52/52
+# PASS D2 stage=3 last column is processed, not passed through
+# D2w stage=3 : last rim immune to the wrap source in 52/52 rows; control moved in 52/52
+# PASS D2w stage=3 last column carries no wrapped-in neighbour
+# D3 stage=3 : screen row 0 stable in 60/60 cols; last-row control alternates in 60/60
+# PASS D3 stage=3 screen row 0 carries no stale row
+# PASS R8 no X in the captured steady frames
+# PASS R7 x2-duplicated geometry: all 64 display rows == definition
 # PASS R9 x2-duplicated columns: all 64 display cols == definition
 # PASS R0 ruler integrity: 4 frames per run, all four stages share one de
 # PASS R1 interior == the definition at the measured latency
@@ -51,24 +377,122 @@ RESULT edge_rim_bottom_wrap PASS
 # PASS R4/D2 last column == clamp-to-edge and responds (golden judged 52)
 # PASS R5/D3 screen row 0 == its own window, no stale row (golden judged 52)
 # RESULT tb_display_edge_rim PASS
+# ** Note: $finish    : D:/Xilinx/Harness/Project/timing/submission/sim/tb_display_edge_rim.v(459)
+#    Time: 13616150 ns  Iteration: 1  Instance: /tb_display_edge_rim
+# End time: 14:16:51 on Nov 01,2026, Elapsed time: 0:00:02
+# Errors: 0, Warnings: 0
 RESULT display_edge_rim PASS
+
 ==== raw_delay ====
+# vsim -c -work work work.tb_raw_delay -do "run -all; quit -f" -l raw_delay.log 
+# Start time: 14:16:52 on Nov 01,2026
+# ** Note: (vsim-3812) Design is being optimized...
+# //  ModelSim SE-64 2020.4 Oct 13 2020
+# //
+# //  Copyright 1991-2020 Mentor Graphics Corporation
+# //  All Rights Reserved.
+# //
+# //  ModelSim SE-64 and its associated documentation contain trade
+# //  secrets and commercial or financial information that are the property of
+# //  Mentor Graphics Corporation and are privileged, confidential,
+# //  and exempt from disclosure under the Freedom of Information Act,
+# //  5 U.S.C. Section 552. Furthermore, this information
+# //  is prohibited from disclosure under the Trade Secrets Act,
+# //  18 U.S.C. Section 1905.
+# //
+# Loading sv_std.std
+# Loading work.tb_raw_delay(fast)
+# run -all
+# INFO T2 前 4 行只预热不判定（RAM 里还没有上一行；屏上落在帧首，与 #54 同一族）
 # PASS T1 稳态逐格对齐（列一格不偏） | 输出第 (row,k) 格必须是第 row-LINES 行的同一列 k
 # PASS T5 跨过槽位回绕仍对齐 | 喂到 13 行 > 2^RLOG=8 ⇒ 环回绕之后判据仍然成立
+# INFO T1 样本 512 格、错 0 格（W=64 × 行 4..12）
 # PASS T3 de 与数据同为一拍延迟 | d_out 与 de_out 都只延后一拍 ⇒ 不允许出现“数据到了、de 还没到”（#54 那一族的另一种）
+# INFO T3 样本 192 格、错 0 格
 # PASS T4 LINES=0 是组合直通 | 深度 0 ⇒ 直通且不推 RAM
-# PASS 第一列（不是消隐期地址的格子） | #102：消隐期 x 还在数 ⇒ 旧写法让行首读到 `x[H_TOTAL-1]` 低位那一格；行首要等于自己那一列
-# PASS 不动（预读只许占用消隐那一拍） | 把中间任何一列挪动就是 #92 第一笔那族整列错位；这一条就是那一族的护栏
+# PROBE PHASE row=5 col=0 d_out=0100 (cell k-1 应=1ffffffff, cell k 应=0100)
+# PROBE PHASE row=5 col=1 d_out=0100 (cell k-1 应=100000000, cell k 应=0101)
+# PROBE PHASE row=5 col=2 d_out=0101 (cell k-1 应=100000001, cell k 应=0102)
+# PROBE PHASE row=5 col=3 d_out=0102 (cell k-1 应=100000002, cell k 应=0103)
+# PROBE PHASE row=5 col=0 d_out=0100 (cell k-1 应=1ffffffff, cell k 应=0100)
+# PROBE PHASE row=5 col=1 d_out=0100 (cell k-1 应=100000000, cell k 应=0101)
+# PROBE PHASE row=5 col=2 d_out=0101 (cell k-1 应=100000001, cell k 应=0102)
+# PROBE PHASE row=5 col=3 d_out=0102 (cell k-1 应=100000002, cell k 应=0103)
+# PASS ��一列（不是消隐期地址的格子） | #102：消隐期 x 还在数 ⇒ 旧写法让行首读到 `x[H_TOTAL-1]` 低位那一格；行首要等于自己那一列
+# PASS ��动（预读只许占用消隐那一拍） | 把中间任何一列挪动就是 #92 第一笔那族整列错位；这一条就是那一族的护栏
+# INFO T7 行首样本 16 格、错 0 格 || 行内样本 1008 格、错 0 格
 # PASS T6 覆盖面不是空跑 | 逐格判据加起来要有几百格的覆盖面，否则差一格也可能被空窗混过去
 # RESULT tb_raw_delay PASS
+# ** Note: $finish    : D:/Xilinx/Harness/Project/timing/submission/sim/tb_raw_delay.v(242)
+#    Time: 49712 ns  Iteration: 0  Instance: /tb_raw_delay
+# End time: 14:16:53 on Nov 01,2026, Elapsed time: 0:00:01
+# Errors: 0, Warnings: 0
 RESULT raw_delay PASS
+
 ==== rows ====
+# vsim -c -work work work.tb_rows -do "run -all; quit -f" -l rows.log 
+# Start time: 14:16:54 on Nov 01,2026
+# ** Note: (vsim-3812) Design is being optimized...
+# ** Warning: D:/Xilinx/Harness/Project/timing/submission/sim/tb_rows.v(27): (vopt-2685) [TFMPC] - Too few port connections for 'u'.  Expected 20, found 18.
+# ** Warning: D:/Xilinx/Harness/Project/timing/submission/sim/tb_rows.v(27): (vopt-2718) [TFMPC] - Missing connection for port 'rows_missed'.
+# ** Warning: D:/Xilinx/Harness/Project/timing/submission/sim/tb_rows.v(27): (vopt-2718) [TFMPC] - Missing connection for port 'frame_abort'.
+# ** Note: (vsim-12126) Error and warning message counts have been restored: Errors=0, Warnings=3.
+# //  ModelSim SE-64 2020.4 Oct 13 2020
+# //
+# //  Copyright 1991-2020 Mentor Graphics Corporation
+# //  All Rights Reserved.
+# //
+# //  ModelSim SE-64 and its associated documentation contain trade
+# //  secrets and commercial or financial information that are the property of
+# //  Mentor Graphics Corporation and are privileged, confidential,
+# //  and exempt from disclosure under the Freedom of Information Act,
+# //  5 U.S.C. Section 552. Furthermore, this information
+# //  is prohibited from disclosure under the Trade Secrets Act,
+# //  18 U.S.C. Section 1905.
+# //
+# Loading sv_std.std
+# Loading work.tb_rows(fast)
+# run -all
 # PASS no commit on 2/4 rows
 # PASS commit after all rows done_cnt=1
 # PASS no commit when bytes complete but one row missing
 # PASS tb_rows
+# ** Note: $finish    : D:/Xilinx/Harness/Project/timing/submission/sim/tb_rows.v(108)
+#    Time: 3195 ns  Iteration: 1  Instance: /tb_rows
+# End time: 14:16:55 on Nov 01,2026, Elapsed time: 0:00:01
+# Errors: 0, Warnings: 3
 RESULT rows PASS
+
 ==== udp_reasm ====
+# vsim -c -work work work.tb_udp_reasm -do "run -all; quit -f" -l udp_reasm.log 
+# Start time: 14:16:56 on Nov 01,2026
+# ** Note: (vsim-3812) Design is being optimized...
+# ** Warning: D:/Xilinx/Harness/Project/timing/submission/sim/tb_udp_reasm.v(35): (vopt-2685) [TFMPC] - Too few port connections for 'uut'.  Expected 20, found 17.
+# ** Warning: D:/Xilinx/Harness/Project/timing/submission/sim/tb_udp_reasm.v(35): (vopt-2718) [TFMPC] - Missing connection for port 'rows_missed'.
+# ** Warning: D:/Xilinx/Harness/Project/timing/submission/sim/tb_udp_reasm.v(35): (vopt-2718) [TFMPC] - Missing connection for port 'frame_abort'.
+# ** Warning: D:/Xilinx/Harness/Project/timing/submission/sim/tb_udp_reasm.v(35): (vopt-2718) [TFMPC] - Missing connection for port 'flush'.
+# ** Note: (vsim-12126) Error and warning message counts have been restored: Errors=0, Warnings=4.
+# //  ModelSim SE-64 2020.4 Oct 13 2020
+# //
+# //  Copyright 1991-2020 Mentor Graphics Corporation
+# //  All Rights Reserved.
+# //
+# //  ModelSim SE-64 and its associated documentation contain trade
+# //  secrets and commercial or financial information that are the property of
+# //  Mentor Graphics Corporation and are privileged, confidential,
+# //  and exempt from disclosure under the Freedom of Information Act,
+# //  5 U.S.C. Section 552. Furthermore, this information
+# //  is prohibited from disclosure under the Trade Secrets Act,
+# //  18 U.S.C. Section 1905.
+# //
+# Loading sv_std.std
+# Loading work.tb_udp_reasm(fast)
+# run -all
+# PASS normal full frame
+# PASS pixel0
+# PASS pixel1
+# PASS OOS later-first
+# PASS OOS later-second
 # PASS bad counted
 # PASS duplicate overwrite
 # PASS second frame after jump
@@ -77,59 +501,405 @@ RESULT rows PASS
 # PASS row-short frame aborted
 # PASS no mix after aborted frame
 # PASS tb_udp_reasm ALL
+# ** Note: $finish    : D:/Xilinx/Harness/Project/timing/submission/sim/tb_udp_reasm.v(184)
+#    Time: 4217964 ns  Iteration: 1  Instance: /tb_udp_reasm
+# End time: 14:16:58 on Nov 01,2026, Elapsed time: 0:00:02
+# Errors: 0, Warnings: 4
 RESULT udp_reasm PASS
+
 ==== reasm_bounds ====
+# vsim -c -work work work.tb_reasm_bounds -do "run -all; quit -f" -l reasm_bounds.log 
+# Start time: 14:16:59 on Nov 01,2026
+# ** Note: (vsim-3812) Design is being optimized...
+# //  ModelSim SE-64 2020.4 Oct 13 2020
+# //
+# //  Copyright 1991-2020 Mentor Graphics Corporation
+# //  All Rights Reserved.
+# //
+# //  ModelSim SE-64 and its associated documentation contain trade
+# //  secrets and commercial or financial information that are the property of
+# //  Mentor Graphics Corporation and are privileged, confidential,
+# //  and exempt from disclosure under the Freedom of Information Act,
+# //  5 U.S.C. Section 552. Furthermore, this information
+# //  is prohibited from disclosure under the Trade Secrets Act,
+# //  18 U.S.C. Section 1905.
+# //
+# Loading sv_std.std
+# Loading work.tb_reasm_bounds(fast)
+# run -all
+# INFO R1 off=288 越界包：写次数=0（其中越界 0）最大字索引=0 stat_oob_off +2
 # PASS R1 packet whose byte_off is outside the frame buffer must emit zero writes
 # PASS R2 the same packet must still be counted in stat_oob_off (no silent drop)
+# INFO R3 末字包：写次数=2 最大字索引=127 数据=5678/0000
 # PASS R3 last legal word pair (indices 126,127) still writes both words
+# INFO R4 整帧：写次数=128 最大字索引=127 frame_done=1 stat_frames=1 stat_bad=0
 # PASS R4 a complete frame (64 packets, all 256 bytes) still commits exactly once
 # PASS R4a opportunity floor: all 64 packets were accepted (stat_pkts==64, no bad)
+# 
 # RESULT tb_reasm_bounds PASS
+# ** Note: $finish    : D:/Xilinx/Harness/Project/timing/submission/sim/tb_reasm_bounds.v(154)
+#    Time: 8792 ns  Iteration: 1  Instance: /tb_reasm_bounds
+# End time: 14:17:00 on Nov 01,2026, Elapsed time: 0:00:01
+# Errors: 0, Warnings: 0
 RESULT reasm_bounds PASS
+
 ==== udp_telemetry ====
+# vsim -c -work work work.tb_udp_telemetry -do "run -all; quit -f" -l udp_telemetry.log 
+# Start time: 14:17:01 on Nov 01,2026
+# ** Note: (vsim-3812) Design is being optimized...
+# //  ModelSim SE-64 2020.4 Oct 13 2020
+# //
+# //  Copyright 1991-2020 Mentor Graphics Corporation
+# //  All Rights Reserved.
+# //
+# //  ModelSim SE-64 and its associated documentation contain trade
+# //  secrets and commercial or financial information that are the property of
+# //  Mentor Graphics Corporation and are privileged, confidential,
+# //  and exempt from disclosure under the Freedom of Information Act,
+# //  5 U.S.C. Section 552. Furthermore, this information
+# //  is prohibited from disclosure under the Trade Secrets Act,
+# //  18 U.S.C. Section 1905.
+# //
+# Loading sv_std.std
+# Loading work.tb_udp_telemetry(fast)
+# run -all
+# PKT1 ok frame_bytes=86 magic=5644454f tick=04000000
+# PKT2 ok frame_bytes=86 magic=5644454f tick=09000000
 # PASS tb_udp_telemetry starts=2 pkts=2
+# ** Note: $finish    : D:/Xilinx/Harness/Project/timing/submission/sim/tb_udp_telemetry.v(168)
+#    Time: 2404 ns  Iteration: 1  Instance: /tb_udp_telemetry
+# End time: 14:17:02 on Nov 01,2026, Elapsed time: 0:00:01
+# Errors: 0, Warnings: 0
 RESULT udp_telemetry PASS
+
 ==== eth_ctrl_arb ====
+# vsim -c -work work work.tb_eth_ctrl_arb -do "run -all; quit -f" -l eth_ctrl_arb.log 
+# Start time: 14:17:03 on Nov 01,2026
+# ** Note: (vsim-3812) Design is being optimized...
+# //  ModelSim SE-64 2020.4 Oct 13 2020
+# //
+# //  Copyright 1991-2020 Mentor Graphics Corporation
+# //  All Rights Reserved.
+# //
+# //  ModelSim SE-64 and its associated documentation contain trade
+# //  secrets and commercial or financial information that are the property of
+# //  Mentor Graphics Corporation and are privileged, confidential,
+# //  and exempt from disclosure under the Freedom of Information Act,
+# //  5 U.S.C. Section 552. Furthermore, this information
+# //  is prohibited from disclosure under the Trade Secrets Act,
+# //  18 U.S.C. Section 1905.
+# //
+# Loading sv_std.std
+# Loading work.tb_eth_ctrl_arb(fast)
+# run -all
 # PASS tb_eth_ctrl_arb order=ICMP,UDP,ARP no mid-frame switch
+# ** Note: $finish    : D:/Xilinx/Harness/Project/timing/submission/sim/tb_eth_ctrl_arb.v(137)
+#    Time: 436 ns  Iteration: 1  Instance: /tb_eth_ctrl_arb
+# End time: 14:17:04 on Nov 01,2026, Elapsed time: 0:00:01
+# Errors: 0, Warnings: 0
 RESULT eth_ctrl_arb PASS
+
 ==== eth_top_rgmii ====
+# vsim -c -work work work.tb_eth_top_rgmii -do "run -all; quit -f" -l eth_top_rgmii.log 
+# Start time: 14:17:05 on Nov 01,2026
+# ** Note: (vsim-3812) Design is being optimized...
+# //  ModelSim SE-64 2020.4 Oct 13 2020
+# //
+# //  Copyright 1991-2020 Mentor Graphics Corporation
+# //  All Rights Reserved.
+# //
+# //  ModelSim SE-64 and its associated documentation contain trade
+# //  secrets and commercial or financial information that are the property of
+# //  Mentor Graphics Corporation and are privileged, confidential,
+# //  and exempt from disclosure under the Freedom of Information Act,
+# //  5 U.S.C. Section 552. Furthermore, this information
+# //  is prohibited from disclosure under the Trade Secrets Act,
+# //  18 U.S.C. Section 1905.
+# //
+# Loading sv_std.std
+# Loading work.tb_eth_top_rgmii(fast)
+# run -all
 # PASS tb_eth_top_rgmii tx_bytes=72
+# ** Note: $finish    : D:/Xilinx/Harness/Project/timing/submission/sim/tb_eth_top_rgmii.v(191)
+#    Time: 4820 ns  Iteration: 1  Instance: /tb_eth_top_rgmii
+# End time: 14:17:06 on Nov 01,2026, Elapsed time: 0:00:01
+# Errors: 0, Warnings: 0
 RESULT eth_top_rgmii PASS
+
 ==== split_ctrl ====
+# vsim -c -work work work.tb_split_ctrl -do "run -all; quit -f" -l split_ctrl.log 
+# Start time: 14:17:07 on Nov 01,2026
+# ** Note: (vsim-3812) Design is being optimized...
+# //  ModelSim SE-64 2020.4 Oct 13 2020
+# //
+# //  Copyright 1991-2020 Mentor Graphics Corporation
+# //  All Rights Reserved.
+# //
+# //  ModelSim SE-64 and its associated documentation contain trade
+# //  secrets and commercial or financial information that are the property of
+# //  Mentor Graphics Corporation and are privileged, confidential,
+# //  and exempt from disclosure under the Freedom of Information Act,
+# //  5 U.S.C. Section 552. Furthermore, this information
+# //  is prohibited from disclosure under the Trade Secrets Act,
+# //  18 U.S.C. Section 1905.
+# //
+# Loading sv_std.std
+# Loading work.tb_split_ctrl(fast)
+# run -all
+#   PASS T0  复位后 split_eff / shown_pct 既不是 X 也不是 Z
+#   PASS T1a 手工位置 512 原样透传
+#   PASS T1b 手工位置 777 原样透传（没有被量化到 1/16 的格子上）
+#   PASS T1c 手工位置 = 屏宽是合法值（缝推到最右），原样到 1024
+#   PASS T1d 越界位置被夹回屏宽（T1b 已证明它不是恒等于 1024）
+#   PASS T2a swap=1 时 split_eff / shown_pct 一个像素都不动
+#   PASS T2b swap=1 ⇒ raw_on_left=0
+#   PASS T2c swap 回 0 ⇒ raw_on_left=1 且缝位仍在原处
+#   PASS T3  显示域 16 个位置的百分比与整数除法逐点一致
+#   PASS T3b eff = 屏宽 ⇒ 100 %
+#   PASS T3c eff = 半屏 ⇒ 50 %
+#   PASS T4a 跟随模式下 1000 被夹到源宽 512
+#   PASS T4b 跟随模式百分比按**源宽**折算（256/512 = 50 %）
+#   PASS T4c 跟随模式 128/512 的百分比 = 25
+#   PASS T4d 退回显示域：同一个 128 现在是 12 %（两档乘子不共用）
+#      DBG watch total=220000 nchg=3437 min=0 max=1024 touched_lo=64 touched_hi=128 bad_step=0 first_delta=1 gap=[64,64]
+#   PASS T5a 全行程扫描采到了下端点 0
+#   PASS T5b 全行程扫描采到了上端点 1024
+#   PASS T5c 全程不越界（min = 0 且 max = 1024）
+#   PASS T5d 既有上升也有下降 ⇒ 是三角波，不是锯齿撞墙就停
+#      DBG watch total=12000 nchg=188 min=256 max=768 touched_lo=69 touched_hi=64 bad_step=0 first_delta=7 gap=[64,64]
+#   PASS T6a 每一次变化要么是 7 个像素，要么是落在端点上的最后一步（bad_step=0）
+#   PASS T6b range 4..12 的下端点确实是 256、上端点确实是 768
+#   PASS T6c 下端点 256 的百分比 = 25（跟随关闭）
+#      DBG watch total=700 nchg=11 min=256 max=267 touched_lo=0 touched_hi=0 bad_step=0 first_delta=1 gap=[64,64]
+#   PASS T7  连续两次变化之间恰好 64 个有效像素
+#      DBG watch total=700 nchg=10 min=267 max=277 touched_lo=0 touched_hi=0 bad_step=0 first_delta=1 gap=[64,64]
 #   PASS T8a 插了 31 % 消隐之后，一步仍是 64 个**有效像素**（不按拍计）
 #   PASS T8b 消隐期间输出不越界（min/max 仍落在 range 内）
+#      DBG watch total=400 nchg=0 min=300 max=300 touched_lo=0 touched_hi=0 bad_step=0 first_delta=0 gap=[268435456,0]
 #   PASS T9  speed=0 ⇒ 扫描值钉住不动（且钉的正是手工位置那一点）
+#      DBG watch total=200 nchg=3 min=300 max=303 touched_lo=0 touched_hi=0 bad_step=0 first_delta=1 gap=[64,64]
 #   PASS T10 打开 auto 的第一次变化是 +1（从手工位置 300 续扫，不回 0）
+#      DBG watch total=45000 nchg=703 min=256 max=768 touched_lo=128 touched_hi=128 bad_step=0 first_delta=3 gap=[64,64]
 #   PASS T11 range 写成 80 20 时：仍夹在 [256,768]，两端都取到，步长合规
 #   PASS T12 默认档（TICK_BITS=16）一步恰好 65536 个有效像素 = 64 行
 #   PASS T13 样本数 > 0（这里要求 35 万个有效像素，否则上面全是空判据）
+# 
 # PASS tb_split_ctrl
+# ** Note: $finish    : D:/Xilinx/Harness/Project/timing/submission/sim/tb_split_ctrl.v(282)
+#    Time: 19156440 ns  Iteration: 1  Instance: /tb_split_ctrl
+# End time: 14:17:09 on Nov 01,2026, Elapsed time: 0:00:02
+# Errors: 0, Warnings: 0
 RESULT split_ctrl PASS
+
 ==== osd_overlay ====
+# vsim -c -work work work.tb_osd_overlay -do "run -all; quit -f" -l osd_overlay.log 
+# Start time: 14:17:10 on Nov 01,2026
+# ** Note: (vsim-3812) Design is being optimized...
+# //  ModelSim SE-64 2020.4 Oct 13 2020
+# //
+# //  Copyright 1991-2020 Mentor Graphics Corporation
+# //  All Rights Reserved.
+# //
+# //  ModelSim SE-64 and its associated documentation contain trade
+# //  secrets and commercial or financial information that are the property of
+# //  Mentor Graphics Corporation and are privileged, confidential,
+# //  and exempt from disclosure under the Freedom of Information Act,
+# //  5 U.S.C. Section 552. Furthermore, this information
+# //  is prohibited from disclosure under the Trade Secrets Act,
+# //  18 U.S.C. Section 1905.
+# //
+# Loading sv_std.std
+# Loading work.tb_osd_overlay(fast)
+# run -all
+# [tb_osd_overlay.v:239] PASS T1 四行逐字符等于用户原话（尺寸那一格画片源 512X300），第 5 行是常驻的温度格
+# [tb_osd_overlay.v:252] PASS T2 一位数不占两格、fps/ms 越界饱和（99 / 999）而不是回卷成小数
+# [tb_osd_overlay.v:268] PASS T3 锁住才有 *、* 紧跟名字；仲裁与 mux 不一致时画 mux 那一路（#55）
+# [tb_osd_overlay.v:283] PASS T4 八种控制字逐位对（全 1 那组：前两级 3、Sobel 1、阈值旁路 0）
+# [tb_osd_overlay.v:305] PASS T5 八档各自精确；zoom_auto 关掉就不许再有 (AUTO)
+# [tb_osd_overlay.v:324] PASS T6 gamma×10 二十一台逐档对；0.0 = 表关着（PL 逐位旁路）
+# [tb_osd_overlay.v:338] PASS T7 lat_ok=0 屏上是 --，过期/没算完的数不许冒充测量值
+# [tb_osd_overlay.v:357] PASS T8 换一组 OUT_* 参数那一格就跟着变 ⇒ 画的是实参
+# [tb_osd_overlay.v:375] PASS T9 两种状态 × 五行：每个非空格都译得出字模号，空格必须译成 63
+# [tb_osd_overlay.v:393] PASS T10 字模逐个扫过（I M A O Z ( % : . X Y -），少一笔就少一截亮像素
+# [tb_osd_overlay.v:399] PASS T11 错期望被抓到（那一格确实逐格在比，不是恒真式）
+# [tb_osd_overlay.v:124] ok   T13a L0 占 26 格，右沿 x=484 <= 511
+# [tb_osd_overlay.v:124] ok   T13b L1 占 27 格，右沿 x=502 <= 511
+# [tb_osd_overlay.v:124] ok   T13c L2 占 26 格，右沿 x=484 <= 511
+# [tb_osd_overlay.v:124] ok   T13d L3 占 25 格，右沿 x=466 <= 511
+# [tb_osd_overlay.v:124] ok   T13e L4 占 8 格，右沿 x=160 <= 511
+# [tb_osd_overlay.v:423] PASS T13 最宽可达激励下五行都留在分割线这边（X0+k*CW <= 511）
+# [tb_osd_overlay.v:452] PASS T14 102 个非空格没有一个小写码点
+# [tb_osd_overlay.v:466] PASS T15 温度那一格 256 个编码全扫过，且错期望会被抓到
+# [tb_osd_overlay.v:434] PASS T12 本台架比对了 10552 格、查了 200 个非空格、扫了 20 个字形
+# T13 scan en=1: 扫过 22464 格、与背景不同 3425 格
+# T13 scan en=0: 扫过 22464 格、与背景不同 0 格
 # PASS T16 osd_en=0 => 输出逐位等于背景（关掉=这层不存在），开着在同一片格子里画出了字（对照）
 # PASS T17 激励把索引推到越界 190464 拍（最大索引 255 > 数组上界 159）⇒ 机会确实出现过
 # PASS T18 越界的那 190464 拍里没有一次 s_in_char=1 ⇒ 读到什么都不画，#127 第 2 条是'被门住的越界读'而不是屏上缺陷
+# 
 # RESULT tb_osd_overlay PASS
+# ** Note: $finish    : D:/Xilinx/Harness/Project/timing/submission/sim/tb_osd_overlay.v(677)
+#    Time: 15024071 ns  Iteration: 0  Instance: /tb_osd_overlay
+# End time: 14:17:11 on Nov 01,2026, Elapsed time: 0:00:01
+# Errors: 0, Warnings: 0
 RESULT osd_overlay PASS
+
 ==== link_monitor ====
+# vsim -c -work work work.tb_link_monitor -do "run -all; quit -f" -l link_monitor.log 
+# Start time: 14:17:13 on Nov 01,2026
+# ** Note: (vsim-3812) Design is being optimized...
+# //  ModelSim SE-64 2020.4 Oct 13 2020
+# //
+# //  Copyright 1991-2020 Mentor Graphics Corporation
+# //  All Rights Reserved.
+# //
+# //  ModelSim SE-64 and its associated documentation contain trade
+# //  secrets and commercial or financial information that are the property of
+# //  Mentor Graphics Corporation and are privileged, confidential,
+# //  and exempt from disclosure under the Freedom of Information Act,
+# //  5 U.S.C. Section 552. Furthermore, this information
+# //  is prohibited from disclosure under the Trade Secrets Act,
+# //  18 U.S.C. Section 1905.
+# //
+# Loading sv_std.std
+# Loading work.tb_link_monitor(fast)
+# run -all
+# PASS drop_words starts at 0
+# PASS two complete frames commit
+# PASS clean frames raise no abort
+# PASS gap min=132 last=132 max=132 sum=132 ms
+# PASS B2 statistics registers self-consistent (min=last=max=132 sum=132)
+# PASS B2-mut forced gap_sum is caught（判据不是假绿）
+# PASS stream_live set while flowing
+# PASS published byte/pkt counters match reasm
+# PASS lane packing has no width error
+# PASS lost middle packet aborts the frame exactly once
+# PASS rows_miss_max publishes the missing-row count
+# PASS frames_bad reaches the snapshot
+# PASS aborted frame is not committed
+# PASS abort_seen latches
+# PASS bad packet raises pkt_err (1)
+# PASS negative control: no fifo_full, no drops
+# PASS FALSIFIER: drop_words=31 after blocking the CDC port
+# PASS cdc_episodes=1
+# PASS E1 drop_words == 参考计数 (32)
+# PASS E1 cdc_episodes == 参考计数 (1)
+# PASS E2 单拍满事件计数一致 (drop=48)
+# PASS E2 单拍进满边沿计数一致 (ep=68)
+# PASS drop_seen flag latches
+# PASS snapshot keeps refreshing while stalled
+# PASS stall_ms=597 after 400 ms of silence
+# PASS stream_live clears when the stream dies
+# PASS a new frame clears stall_ms
+# PASS a >65.5 s gap saturates at 0xFFFF instead of wrapping
+# PASS gapclr zeroes the interval stats and re-baselines cleanly
+# PASS gapclr leaves drop/bad/pkts/bytes alone
+# PASS interval stats re-calibrate after the clear
+# PROBE F2 held over 3 frame edges: valid=0 min=0 max=0 last=0 sum=0 have_base=0
+# PASS F2a the clear wins: stats stay not-ready while gapclr is held
+# PASS F2b lane3/4/5 all read zero while gapclr is held
+# PROBE F2 after release: valid=1 min=132 max=132 last=132 sum=132
+# PASS F2c a straddling clear re-calibrates min honestly
+# PROBE F2d pulse clear: min=132 max=132 last=132 sum=132 valid=1
+# PASS F2d control: a short clear leaves min=max=132 (the meter itself works)
+# PROBE sy-edge gapcnt=0 clr=0 have_base=0 valid=0 min=0 max=0 sum=0
+# PROBE sy-edge gapcnt=130 clr=0 have_base=1 valid=0 min=0 max=0 sum=0
+# PROBE sy-edge gapcnt=130 clr=0 have_base=1 valid=1 min=130 max=130 sum=130
+# PROBE sy-edge gapcnt=130 clr=0 have_base=1 valid=1 min=130 max=130 sum=260
+# PROBE F2 syn pre-history: last=130 sum=390 min=130 max=130 valid=1
+# PROBE sy-edge gapcnt=128 clr=0 have_base=0 valid=0 min=0 max=0 sum=0
+# PROBE sy-edge gapcnt=130 clr=0 have_base=1 valid=0 min=0 max=0 sum=0
+# PROBE F2e A non-straddling clear: last=130 sum=130 min=130 max=130 valid=1
 # PASS F2e A control: a clean clear leaves sum=130 (<= 2 x 130)
+# PROBE sy-edge gapcnt=130 clr=1 have_base=1 valid=1 min=130 max=130 sum=130
+# PROBE sy-edge gapcnt=128 clr=0 have_base=1 valid=0 min=0 max=0 sum=0
+# PROBE sy-edge gapcnt=130 clr=0 have_base=1 valid=1 min=128 max=128 sum=128
+# PROBE F2e B released-on-accounting: last=130 sum=258 min=128 max=130 valid=1
 # PASS F2e B a clear landing on the accounting edge still zeroes lane5
 # PASS snap_cross starts with hb_gone=1
 # PASS snap_cross captured 100/100 intact snapshots
 # PASS hb_slow clear while the heartbeat is at nominal rate
+# [tb_link_monitor.v:357] PASS hb_slow asserts when the source clock is degraded (拔线工况)
+# [tb_link_monitor.v:360] PASS hb_gone correctly stays clear (它看不见这件事，正是加 hb_slow 的理由)
 # PASS hb_gone asserts when the source clock stops
+# [tb_link_monitor.v:371] PASS the last snapshot survives the source clock dying (显示端仍能看到数字，比的是停钟前钉住的那 00000000639c0064)
+# INFO pubs=330434 frames=19 aborts=3 drops=48 stall=65535
 # PASS production timebase: 87 ms_ticks in 10906664 cycles (125000/ms)
 # RESULT tb_link_monitor PASS
+# ** Note: $finish    : D:/Xilinx/Harness/Project/timing/submission/sim/tb_link_monitor.v(627)
+#    Time: 87253312500 ps  Iteration: 1  Instance: /tb_link_monitor
+# End time: 14:17:21 on Nov 01,2026, Elapsed time: 0:00:08
+# Errors: 0, Warnings: 0
 RESULT link_monitor PASS
+
 ==== eth_ingress_integrity ====
+# vsim -c -work work work.tb_eth_ingress_integrity -do "run -all; quit -f" -l eth_ingress_integrity.log 
+# Start time: 14:17:23 on Nov 01,2026
+# ** Note: (vsim-3812) Design is being optimized...
+# ** Warning: D:/Xilinx/Harness/Project/timing/submission/sim/tb_eth_ingress_integrity.v(66): (vopt-2685) [TFMPC] - Too few port connections for 'u_re'.  Expected 20, found 18.
+# ** Warning: D:/Xilinx/Harness/Project/timing/submission/sim/tb_eth_ingress_integrity.v(66): (vopt-2718) [TFMPC] - Missing connection for port 'rows_missed'.
+# ** Warning: D:/Xilinx/Harness/Project/timing/submission/sim/tb_eth_ingress_integrity.v(66): (vopt-2718) [TFMPC] - Missing connection for port 'frame_abort'.
+# ** Note: (vsim-12126) Error and warning message counts have been restored: Errors=0, Warnings=3.
+# //  ModelSim SE-64 2020.4 Oct 13 2020
+# //
+# //  Copyright 1991-2020 Mentor Graphics Corporation
+# //  All Rights Reserved.
+# //
+# //  ModelSim SE-64 and its associated documentation contain trade
+# //  secrets and commercial or financial information that are the property of
+# //  Mentor Graphics Corporation and are privileged, confidential,
+# //  and exempt from disclosure under the Freedom of Information Act,
+# //  5 U.S.C. Section 552. Furthermore, this information
+# //  is prohibited from disclosure under the Trade Secrets Act,
+# //  18 U.S.C. Section 1905.
+# //
+# Loading sv_std.std
+# Loading work.tb_eth_ingress_integrity(fast)
+# run -all
+# mode=PART payload=1392 pkts=60 words=10440 stall=no
+# drain: waited 0 axi cycles, axi_wr=10440
+# [tb_eth_ingress_integrity:stage] stage counts: reasm_wr→cdc ok=41760 lost=0 | cdc_rd=54360 | packer_drop=0 | axi_wr=10440 (need 10440)
+# reasm stats: frames=0 pkts=60 bytes=83520 bad=0 oob=0
+# words exact=10440/10440  half(1010/0101)=0  allzero=0  other=0  lanes_bad=0/41760
+# tail3: [10437]=28c528c528c528c5 [10438]=28c628c628c628c6 [10439]=28c728c728c728c7
+# PROBE cdc peak_occupancy=3 words of depth=8192  （本次流量形状下的**下界**：读侧 sv_full 阻塞窗口未建模 ⇒ 不是设计界，见文件头 ①②③）
 # PASS cdc peak probe alive
+# PROBE packer peak_occupancy=122 words of depth=512  （FW=9；这一数决定 100bit×512 那 ~800 个 LUTRAM 能不能削 —— 峰值远低于半深才谈得上降 FW）
 # PASS packer peak probe alive
 # PASS ingress lossless
 # PASS partial frame not committed
 # PASS tb_eth_ingress_integrity
+# ** Note: $finish    : D:/Xilinx/Harness/Project/timing/submission/sim/tb_eth_ingress_integrity.v(395)
+#    Time: 5631115 ns  Iteration: 1  Instance: /tb_eth_ingress_integrity
+# End time: 14:17:24 on Nov 01,2026, Elapsed time: 0:00:01
+# Errors: 0, Warnings: 3
 RESULT eth_ingress_integrity PASS
+
 ==== saver_tail_full ====
+# vsim -c -work work work.tb_saver_tail_full -do "run -all; quit -f" -l saver_tail_full.log 
+# Start time: 14:17:25 on Nov 01,2026
+# ** Note: (vsim-3812) Design is being optimized...
+# //  ModelSim SE-64 2020.4 Oct 13 2020
+# //
+# //  Copyright 1991-2020 Mentor Graphics Corporation
+# //  All Rights Reserved.
+# //
+# //  ModelSim SE-64 and its associated documentation contain trade
+# //  secrets and commercial or financial information that are the property of
+# //  Mentor Graphics Corporation and are privileged, confidential,
+# //  and exempt from disclosure under the Freedom of Information Act,
+# //  5 U.S.C. Section 552. Furthermore, this information
+# //  is prohibited from disclosure under the Trade Secrets Act,
+# //  18 U.S.C. Section 1905.
+# //
+# Loading sv_std.std
+# Loading work.tb_saver_tail_full(fast)
+# run -all
+# drain: waited 1029 cycles, wr_beats=514, idle=1
 # PASS fifo_full observed (depth 512)
 # PASS tb_saver_tail_full
+# ** Note: $finish    : D:/Xilinx/Harness/Project/timing/submission/sim/tb_saver_tail_full.v(169)
+#    Time: 52065 ns  Iteration: 1  Instance: /tb_saver_tail_full
+# End time: 14:17:26 on Nov 01,2026, Elapsed time: 0:00:01
+# Errors: 0, Warnings: 0
 RESULT saver_tail_full PASS
-MSIM DONE fail=0

@@ -1,5 +1,5 @@
-# hw/cmd_battery_v81.txt —— V8-1 命令层的串口电池（一行一条，# 开头是注释）
-# 发送器：hw/uart_cmd_script.ps1；判据与"必须回到初态"的核对：src/host/uart_cmd_check.mjs
+# board/cmd_battery_v81.txt —— V8-1 命令层的串口电池（一行一条，# 开头是注释）
+# 发送器：board/uart_cmd_script.ps1；判据与"必须回到初态"的核对：src/host/uart_cmd_check.mjs
 # 顺序是有讲究的：改过的一律在结尾改回来，最后一条 STAT 必须等于第一条 STAT。
 STAT
 th 80
@@ -105,7 +105,7 @@ split 50
 # #178（2026-09-30）：下面 `rot show` 那条判据念的是 `auto=0 speed=1` —— `speed=1` 是本串第 21 条
 # 设进去的（这一对合起来才证明"中间那些 split/zoom/gamma 的整字重写没踩到 bit12:10"），
 # 但 `auto=0` 过去**靠的是板子进来的那个状态**。从"眼睛判据那一态"（`rot auto 1`）起跑，
-# 这一条就红了（`scripts/r95_batt_before_178_verdict.txt` 第 83 条），而硬件什么也没做错 ——
+# 这一条就红了（`build/r95_batt_before_178_verdict.txt` 第 83 条），而硬件什么也没做错 ——
 # 红的又是起点，不是这一跑。判据不许继承起点：这里由电池自己先把 auto 关掉，
 # precondition 变成**构造出来的**（同一课：#177 把"末态"改判默认档）。
 rot auto 0

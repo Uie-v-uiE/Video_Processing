@@ -1,7 +1,7 @@
 #!/bin/bash
 # ModelSim 快速回归：run_msim.sh <tb1> [tb2 ...]
 # 只编译 src/rtl/eth + sim/prim + 指定台架（frame_reasm / UDP 链这一族用）。
-# 输出落在 scripts/msim/：compile.log、<tb>.log；判定行照旧 PAS/FAIL 由台架自己打。
+# 输出落在 build/msim/：compile.log、<tb>.log；判定行照旧 PAS/FAIL 由台架自己打。
 set -u
 ROOT=$(cd "$(dirname "$0")/../.." && pwd)
 MS=${MSIM_BIN:-}
@@ -11,7 +11,7 @@ for e in vlib vlog vsim; do
 done
 [ $# -ge 1 ] || { echo "usage: run_msim.sh <tb> [...]"; exit 2; }
 
-OUT="$ROOT/hw/reports/msim"
+OUT="$ROOT/build/msim"
 mkdir -p "$OUT"
 cd "$OUT" || exit 2
 rm -rf work

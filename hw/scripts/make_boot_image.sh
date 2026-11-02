@@ -1,15 +1,15 @@
 #!/usr/bin/env bash
-# hw/scripts/make_boot_image.sh —— 把 FSBL + 位流 + PS 应用打成一个 QSPI 启动镜像 BOOT.bin
+# board/scripts/make_boot_image.sh —— 把 FSBL + 位流 + PS 应用打成一个 QSPI 启动镜像 BOOT.bin
 #
 # 依赖：bootgen（Vivado/Vitis 2025.2.1 安装树里的 `bin/bootgen.bat`，不在 PATH）；
-#       三份输入都在盘上：`hw/flash/fsbl.elf`（随包）、`hw/project/system.bit`、
-#       `hw/project/ps_app.elf`。重建平台后也可用 VP_FSBL 指向 hw/vitis_ws 里的 FSBL。
-# 用法：VP_VIVADO_BIN=<Vivado>/bin bash hw/scripts/make_boot_image.sh
+#       三份输入都在盘上：`board/flash/fsbl.elf`（随包）、`board/project/system.bit`、
+#       `board/project/ps_app.elf`。重建平台后也可用 VP_FSBL 指向 board/vitis_ws 里的 FSBL。
+# 用法：VP_VIVADO_BIN=<Vivado>/bin bash board/scripts/make_boot_image.sh
 # 参数：
 #   | 变量 | 作用 | 默认 |
 #   | --- | --- | --- |
 #   | `VP_VIVADO_BIN` | 含 bootgen.bat 的目录（必填，机器相关所以不写死） | 空 ⇒ REFUSE |
-#   | `VP_BOOT_OUT`   | 输出目录 | `hw/flash` |
+#   | `VP_BOOT_OUT`   | 输出目录 | `board/flash` |
 #   | `VP_FSBL` / `VP_BIT` / `VP_APP` | 覆盖三份输入 | 见"依赖"那行 |
 #
 # bif 的写法是实测出来的（三种带逗号/带 `[boot]`/带 `configuration` 的写法都被 bootgen 判语法错）：
@@ -27,7 +27,7 @@ die() { printf 'REFUSE: %s\n' "$*" >&2; exit 1; }
 BG="$VP_VIVADO_BIN/bootgen.bat"
 [ -f "$BG" ] || die "找不到 bootgen：$BG"
 
-out="${VP_BOOT_OUT:-$root/hw/flash}"
+out="${VP_BOOT_OUT:-$root/board/flash}"
 fsbl="${VP_FSBL:-}"
 if [ -z "$fsbl" ]; then
   for cand in "$out/fsbl.elf" \
@@ -36,12 +36,12 @@ if [ -z "$fsbl" ]; then
     [ -s "$cand" ] && { fsbl="$cand"; break; }
   done
 fi
-if [ -z "$fsbl" ] && [ -d "$root/hw/vitis_ws" ]; then
-  fsbl="$(find "$root/hw/vitis_ws" -type f -name fsbl.elf -print -quit)"
+if [ -z "$fsbl" ] && [ -d "$root/board/vitis_ws" ]; then
+  fsbl="$(find "$root/board/vitis_ws" -type f -name fsbl.elf -print -quit)"
 fi
-[ -n "$fsbl" ] || die "找不到 fsbl.elf：先按 hw/vitis/README.md 重建平台，或用 VP_FSBL 指定"
-bit="${VP_BIT:-$root/hw/project/system.bit}"
-app="${VP_APP:-$root/hw/project/ps_app.elf}"
+[ -n "$fsbl" ] || die "找不到 fsbl.elf：先按 board/vitis/README.md 重建平台，或用 VP_FSBL 指定"
+bit="${VP_BIT:-$root/board/project/system.bit}"
+app="${VP_APP:-$root/board/project/ps_app.elf}"
 for f in "$fsbl" "$bit" "$app"; do [ -s "$f" ] || die "输入缺件或为空：$f"; done
 
 mkdir -p "$out"

@@ -102,7 +102,8 @@ Step-by-step instructions with the expected output for every command are in [`do
 
 | Document | Content |
 |---|---|
-| [`docs/design-report.md`](docs/design-report.md) | Design report: goals, architecture, key techniques, trade-offs |
+| [`docs/design_report.pdf`](docs/design_report.pdf) | Final 22-page design report (PDF; editable `.docx` alongside) |
+| [`docs/design-report.md`](docs/design-report.md) | Design report source text: goals, architecture, key techniques, trade-offs |
 | [`docs/verification.md`](docs/verification.md) | Verification strategy, bench verdicts, board results |
 | [`docs/optimization.md`](docs/optimization.md) | Timing and resource optimisation, including rejected options |
 | [`docs/reproduction.md`](docs/reproduction.md) | From an empty directory to a running board |
@@ -112,12 +113,16 @@ Step-by-step instructions with the expected output for every command are in [`do
 | [`docs/glossary.md`](docs/glossary.md) | Chinese-to-English term table used across the documents |
 | [`sim/README.md`](sim/README.md) | Bench index and verdict rules |
 
+## Final implementation
+
+WNS 1.368 ns, WHS 0.048 ns, zero failing endpoints; LUT 14 965 (28.13%), FF 9 097 (8.55%), BRAM 98 (70.00%), DSP 19 (8.64%); estimated power 2.407 W. The final bitstream was measured on the board over JTAG; QSPI boot was verified on the previous delivered image.
+
 ## Measurements
 
-- 241 frames in an 8-second stream, 29.95 fps; the abort counter stays flat under a clean stream.
+- 241 frames in 8.03 s = 30.01 fps on the final bitstream (29.95 fps on the previous QSPI image); the abort counter stays flat under a clean stream.
 - Grayscale-only, image-column seam at 185°: processed-pane integrity count is 0 and valid.
-- Three-stage fault injection: 22.0 fps clean, 0 fps with about 14.3 aborts per second when one packet in 100 is dropped, 18.9 fps after recovery.
-- After a stop and restart, the hardware remembers a maximum frame gap of 22,061 ms.
+- Three-stage fault injection: 22.2 fps clean, 0 fps with about 14 aborts per second when one packet in 100 is dropped, 18.9 fps after recovery (final bitstream; previous image 22.0/0/18.9).
+- After a stop and restart, the final bitstream reports a maximum frame gap of 49 ms (22,061 ms on the previous image).
 - With the bitstream in QSPI the board boots without a host, and `stat`/`link` respond.
 
 ## Limitations

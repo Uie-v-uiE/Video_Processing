@@ -2,12 +2,12 @@
 # 输入：无字面量输入路径；参数解析见本文件
 # 输出：stdout
 # 退出码：0=跑完 1=非 0 分支（该文件 exit 1 那一行）
-# scripts/sim/run_sim.tcl — self-contained xsim runner for the competition repo layout.
+# build/sim/run_sim.tcl — self-contained xsim runner for the competition repo layout.
 #
 # Compiles every RTL module under src/rtl plus every sim/tb_*.v, then runs each
 # testbench and prints one RESULT line per TB.  Repo-relative: run it from anywhere.
 #
-#   vivado -mode batch -nojournal -log sim/xsim.log -source scripts/sim/run_sim.tcl
+#   vivado -mode batch -nojournal -log sim/xsim.log -source build/sim/run_sim.tcl
 #
 # Env overrides:
 #   SIM_TB    comma/space list of TB module names to run (default: all)
@@ -49,11 +49,11 @@ if {[llength $tbs] == 0} {
     puts "SIM FAIL: no testbenches matched $simdir/tb_*.v"
     exit 2
 }
-# 加新模块要**这里与 scripts/sim/run_one.sh 两处一起加**：只加一边会"单台架跑绿、全量回归判 ELAB_FAIL"
+# 加新模块要**这里与 build/sim/run_one.sh 两处一起加**：只加一边会"单台架跑绿、全量回归判 ELAB_FAIL"
 # —— 红的是清单，不是 RTL（2026-09-23 撞到）。
 # 仿真用的厂商原语占位件（sim/prim/）：本机 xsim 没有 UNISIM 库，缺了它们**任何例化 clk_gen 的
 # 顶层都 elaboration 不起来**（实测 `Module <MMCME2_BASE> not found`）⇒ 顶层台架的可行性押在这两行。
-# ⚠ 与 scripts/sim/run_one.sh 里那一处**必须同时改**（2026-09-23 只加过一边：单台架绿、全量判 ELAB_FAIL）。
+# ⚠ 与 build/sim/run_one.sh 里那一处**必须同时改**（2026-09-23 只加过一边：单台架绿、全量判 ELAB_FAIL）。
 foreach f [glob -nocomplain [file join $simdir prim *.v]] { lappend rtl $f }
 
 puts "xvlog rtl=[llength $rtl] tb=[llength $tbs]"

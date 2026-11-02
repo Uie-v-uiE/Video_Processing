@@ -109,18 +109,24 @@ module eth_udp_video_top #(
     // r161 timing round: the worst routed path is still this reset net into u_lm's async CLRs
     // (1.104 ns, 3002 endpoints). Give the observation block its own reset synchronizer so
     // its CLR tree starts next to u_lm; same slow reset, same clock edge, no functional change.
+    // timing-opt C2（2026-11-01）：r171 报告里 rst_lm_sync2 → LUT1 → 539×FDCE/CLR 的分发树是
+    // clkout3 组内 recovery 次差（1.658 ns，单 LUT 输出 route 4.87 ns）。按 r156 的同一先例把
+    // 第三级复制成同沿副本、由 link_monitor 的三个复位分组各吃一份：所有副本同一个时钟沿更新、
+    // 同一个异步复位、同一初值 ⇒ 释放沿与单副本版本逐拍相同，行为零变化。
     (* ASYNC_REG = "TRUE" *) reg [1:0] rst_lm_sync;
-    (* max_fanout = 32 *) reg rst_lm_sync2;
+    (* max_fanout = 32 *) reg rst_lm_sync2_a, rst_lm_sync2_b, rst_lm_sync2_c;
     always @(posedge logic_clk or negedge rst_n) begin
         if (!rst_n) begin
-            rst_lm_sync  <= 2'b00;
-            rst_lm_sync2 <= 1'b0;
+            rst_lm_sync <= 2'b00;
+            {rst_lm_sync2_a, rst_lm_sync2_b, rst_lm_sync2_c} <= 3'b000;
         end else begin
-            rst_lm_sync  <= {rst_lm_sync[0], 1'b1};
-            rst_lm_sync2 <= rst_lm_sync[1];
+            rst_lm_sync <= {rst_lm_sync[0], 1'b1};
+            {rst_lm_sync2_a, rst_lm_sync2_b, rst_lm_sync2_c} <= {3{rst_lm_sync[1]}};
         end
     end
-    wire lm_rst_n = rst_lm_sync2;
+    wire lm_rst_n_a = rst_lm_sync2_a;
+    wire lm_rst_n_b = rst_lm_sync2_b;
+    wire lm_rst_n_c = rst_lm_sync2_c;
 
     gmii_to_rgmii #(
         .IDELAY_VALUE(IDELAY_VALUE),
@@ -308,7 +314,7 @@ module eth_udp_video_top #(
     );
 
     // 收侧重组输出：r135 起只在内部喂 CDC/打包器，不再作为端口引到像素顶层
-    // （pl_video_top 的 eth_wr_* 那一束从来没有消费者，见 docs/figures/fig-01 的 N5 注释）。
+    // （pl_video_top 的 eth_wr_* 那一束从来没有消费者，见 report/figures/fig-01 的 N5 注释）。
     wire        fb_wr_en;
     wire [18:0] fb_wr_addr;
     wire [15:0] fb_wr_data;
@@ -432,7 +438,8 @@ module eth_udp_video_top #(
     link_monitor #(
         .CLK_HZ(125_000_000), .LIVE_MS(16'd200)
     ) u_lm (
-        .clk(logic_clk), .rst_n(lm_rst_n),
+        .clk(logic_clk),
+        .rst_n(lm_rst_n_a), .rst_n2(lm_rst_n_b), .rst_n3(lm_rst_n_c),
         .cdc_wr_req(cdc_wr_req), .cdc_full(cdc_full_r),
         .frame_done(frame_done), .frame_abort(reasm_fabort),
         .frame_err(reasm_ferr), .rows_missed(reasm_rows_miss),
@@ -524,7 +531,7 @@ module eth_udp_video_top #(
     //   `.eth_new(frame_ready && eth_link_pix)`），假掉线若盖住 `frame_start` 那一拍就少计一帧。
     //   寄存一拍 ⇒ 跨域变回"触发器→触发器"，同步器吃到的是一拍前就稳定下来的电平。
     //   ⚠ 判据是**结构**判据，台架判不了这一条：RTL 仿真没有门延迟，`|s_pkts` 在仿真里永不出毛刺。
-    //   改前红凭据 `scripts/r98_cdc_details.txt`（CDC-10，`u_eth/u_reasm/stat_pkts_reg[9]/C →
+    //   改前红凭据 `build/r98_cdc_details.txt`（CDC-10，`u_eth/u_reasm/stat_pkts_reg[9]/C →
     //   u_pl/el0_reg/D`，深度 3），改后必须看不见 `eth_rxc>clkout0_1` 这条 Critical 行。
     reg link_active_r;
     always @(posedge logic_clk or negedge logic_rst_n) begin

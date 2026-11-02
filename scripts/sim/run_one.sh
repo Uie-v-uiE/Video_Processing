@@ -4,13 +4,13 @@
 # 编译清单与 run_sim.tcl 同口径：src/rtl 整棵树 + sim/prim 占位件 + sim/tb_*.v。
 # 以前这里是手写的一小串文件，结果是"改了 pl_video_top 想快点看一眼"时 xelab 直接报
 # Cannot find design unit —— 顶层唯一的台架 tb_fb_vblank_copy 根本不在清单里（2026-09-23 撞到）。
-# 工具路径只有一个说法：VP_VIVADO_BIN 指到 <Vivado>/bin（清单见 docs/build.md §1）；找不到就第一步 REFUSE。
+# 工具路径只有一个说法：VP_VIVADO_BIN 指到 <Vivado>/bin（清单见 report/build.md §1）；找不到就第一步 REFUSE。
 # ⚠ 这两道 REFUSE 排在 `--verdict` 分支**之后**：判定解析是纯文本工作，不该要求现场有 Vivado、
 #   也不该因为有别人的 xsim 在跑就不让我离线读一份旧日志（#166 的对照实验因此必须能离线跑）。
 TB=$1
 # `--verdict <tb> <run.log>`：**只解析判定**，不起仿真、不碰 xsim。
 # 为什么开这个口子（#166，2026-09-30）：判定的形状与退出码是"尺子"，它必须能离线被对照实验喂
-# 合成日志来验（`scripts/run_one_ce.sh` 五条），而不是"改了 run_one.sh 之后拿一支真台架跑两小时"才看得见。
+# 合成日志来验（`build/run_one_ce.sh` 五条），而不是"改了 run_one.sh 之后拿一支真台架跑两小时"才看得见。
 if [ "$TB" = "--verdict" ]; then
     TB=${2:-}; LOG=${3:-}
     [ -f "$LOG" ] || { echo "CE-FATAL 读不到 $LOG"; exit 2; }
@@ -44,8 +44,8 @@ if [ "$TB" = "--verdict" ]; then
     exit 0
 fi
 V=${VP_VIVADO_BIN:-}
-[ -x "$V/xvlog" ] || { echo "REFUSE: 找不到 xvlog（当前 $V）。设 VP_VIVADO_BIN=<Vivado>/bin 再跑（docs/build.md）"; exit 2; }
-ROOT="$(cd "$(dirname "$0")/../.." && pwd)"   # 仓库根自适应：本文件在 <repo>/scripts/sim/（往上退两级到仓库根）
+[ -x "$V/xvlog" ] || { echo "REFUSE: 找不到 xvlog（当前 $V）。设 VP_VIVADO_BIN=<Vivado>/bin 再跑（report/build.md）"; exit 2; }
+ROOT="$(cd "$(dirname "$0")/../.." && pwd)"   # 仓库根自适应：本文件在 <repo>/build/sim/（交付重排时从 <repo>/sim/ 搬来，往上要退两级）
 R=/tmp/kx/$TB.run
 # ⚠ 2026-09-27 12:48 撞到的一件事：**同一时刻只能有一个 xsim 在写这个目录**。
 #   第二次 `run_one.sh` 并不会让第一次停下 —— 前一个 xsim/xsimk 还活着，继续往同一个
@@ -77,15 +77,15 @@ printf '%s\n' $SRC | cygpath -m -f - > files.f
 # ⚠ 只有 `top_md5` 是**不够的**（2026-09-26 r72 那天撞见）：那一轮改的是四个窗口级
 #   （`proc_box_blur/sharpen/sobel/morph`），`pl_video_top.v` 一个字节没动 ⇒ 顶层 md5 仍然"对得上"，
 #   而 r71 那份旧报告可以原样冒充"当前这一版台架"。所以再加一枚 `rtl_md5`：整个 `src/rtl` 的合指纹。
-# ⚠ #202（2026-09-30 深夜）：这三枚指纹的**定义**不在这里，只有 `scripts/rtl_fingerprint.sh` 一处
+# ⚠ #202（2026-09-30 深夜）：这三枚指纹的**定义**不在这里，只有 `build/rtl_fingerprint.sh` 一处
 #   （去 CR 的内容指纹 `norm1`）。原来这里按磁盘字节算，一次 `git checkout` 改换行编码就把
 #   指纹漂了而设计一字未动 ⇒ 门禁第 15 项把自己刚还原的树念成"报告不算当前树"。
-FP=$ROOT/scripts/rtl_fingerprint.sh
+FP=$ROOT/build/rtl_fingerprint.sh
 RTLALL=$(bash "$FP" | sed -n 's/^rtl=//p')
 # ⚠ #169（2026-09-30）：md5 仍然必须在**编译之前**取（事后补等于把今天的指纹盖在昨天的日志上，
 #   上面那段就是这件事），但**发布**要等到编译真的成功：以前 `prov.txt` 一落地就等着被读，
 #   于是一次 xvlog/xelab 失败的编译会留下"新树指纹 + 旧 run.log 正文"，
-#   而 `scripts/tb98_report.sh` 会把这对指纹原样盖到旧正文上 ⇒ 门禁第 15 项"报告与当前树同一次跑"就此作废。
+#   而 `build/tb98_report.sh` 会把这对指纹原样盖到旧正文上 ⇒ 门禁第 15 项"报告与当前树同一次跑"就此作废。
 #   现在：先写 prov.tmp，编译两步都过了才 `mv` 成 prov.txt 并**删掉旧 run.log**（要跑就重新生成），
 #   编译失败时盘上留下的还是**成对旧**的 prov.txt + run.log（自洽，冒充不了当前树）。
 { echo "fpver=norm1"
@@ -116,9 +116,9 @@ tail -2 run.log
 #   一支真红的台架会被写成"NO-VERDICT-LINE + FAIL 行数=0"—— 红与"没数"长得一模一样。
 #   现在退出码：0 绿 / 1 编译或例化失败 / 2 REFUSE / 3 **判红** / 4 认不出判定行。
 #   解析本身放在文件开头的 `--verdict` 分支里（**同一个实现**），这样它能被合成日志离线对照
-#   （`scripts/run_one_ce.sh` 五条，含"别人的过期日志不许替这支台架答复"那条）。
+#   （`build/run_one_ce.sh` 五条，含"别人的过期日志不许替这支台架答复"那条）。
 # ⚠ 必须用 **绝对路径** 自调：本脚本在第 25 行已经 `cd` 进 `/tmp/kx/<tb>.run`，
-#   这时 `$0`（相对路径 `scripts/sim/run_one.sh`）不再能解析 —— 第一次真跑就是这么栽的（rc=127，
+#   这时 `$0`（相对路径 `build/sim/run_one.sh`）不再能解析 —— 第一次真跑就是这么栽的（rc=127，
 #   仿真明明跑完了）。run.log 用相对名，它就在当前目录。
-bash "$ROOT/scripts/sim/run_one.sh" --verdict "$TB" run.log
+bash "$ROOT/build/sim/run_one.sh" --verdict "$TB" run.log
 exit $?

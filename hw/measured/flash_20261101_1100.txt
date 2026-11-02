@@ -1,0 +1,159 @@
+==== IDENTITY ====
+RUN_AT      2026-11-01 11:00:34  mode=FLASH
+GIT_HEAD    7c22dd7
+MD5_12      edcbe52d21dd  c2_timing/system.bit
+MD5_12      aaf2c867e0d0  board/project/ps_app.elf
+MD5_12      f4d4425138a2  board/project/system.xsa
+TOOL        xsdb=D:/Software/Vivado/2025.2.1/Vitis/bin/xsdb.bat
+TOOL        vivado_bin=D:/Software/Vivado/2025.2.1/Vivado/bin
+==== STEP 0 JTAG SCAN (read-only) ====
+
+****** Vivado v2025.2.1 (64-bit)
+  **** SW Build 6403652 on Thu Mar 19 19:48:24 GMT 2026
+  **** IP Build 6403511 on Thu Mar 19 12:41:45 MDT 2026
+  **** SharedData Build 6403650 on Thu Mar 19 14:02:13 MDT 2026
+  **** Start of session at: Sun Nov  1 11:00:35 2026
+    ** Copyright 1986-2022 Xilinx, Inc. All Rights Reserved.
+    ** Copyright 2022-2026 Advanced Micro Devices, Inc. All Rights Reserved.
+
+source board/tcl/scan_jtag.tcl
+# open_hw_manager
+# connect_hw_server -allow_non_jtag
+INFO: [Labtools 27-2285] Connecting to hw_server url TCP:localhost:3121
+INFO: [Labtools 27-3415] Connecting to cs_server url TCP:localhost:0
+INFO: [Labtools 27-3417] Launching cs_server...
+INFO: [Labtools 27-2221] Launch Output:
+
+
+******** Xilinx cs_server v2025.2.0
+  ****** Build date   : Nov 14 2025-07:16:52
+    **** Build number : 2025.2.1763075812
+      ** Copyright 2017-2022 Xilinx, Inc. All Rights Reserved.
+      ** Copyright 2022-2026 Advanced Micro Devices, Inc. All Rights Reserved.
+
+
+
+# open_hw_target
+INFO: [Labtoolstcl 44-466] Opening hw_target localhost:3121/xilinx_tcf/Xilinx/0ABC01A
+# puts "=== TARGETS ==="
+=== TARGETS ===
+# foreach t [get_hw_targets] { puts "  $t" }
+  localhost:3121/xilinx_tcf/Xilinx/0ABC01A
+# puts "=== DEVICES ==="
+=== DEVICES ===
+# foreach d [get_hw_devices] {
+#   puts "  $d  PART=[get_property PART $d]  IDCODE=[get_property IDCODE $d]"
+# }
+  arm_dap_0  PART=arm_dap  IDCODE=01001011101000000000010001110111
+  xc7z020_1  PART=xc7z020  IDCODE=00100011011100100111000010010011
+INFO: [Common 17-206] Exiting Vivado at Sun Nov  1 11:00:46 2026...
+scan sees a Cortex-A9 target = 1
+==== STEPS 1-3 rc ====
+rc ps_jtag_boot=0  rc program_pl=0  rc ps_app_reload=0  rc readback_gpio=0
+==== STEP 1 ps_jtag_boot (board/tcl/ps_jtag_boot.tcl) ====
+invalid command name "System.IO.Compression.ZipFile"
+    while executing
+"System.IO.Compression.ZipFile"
+    invoked from within
+"if {$psinit eq "" || ![file exists $psinit]} {
+    if {[file exists $outit]} {
+        set psinit $outit
+    } elseif {[file exists $xsa]} {
+        s..."
+    (file "board/tcl/ps_jtag_boot.tcl" line 33)
+==== STEP 2 program_pl (board/tcl/program_pl.tcl, bit=c2_timing/system.bit) ====
+
+****** Vivado v2025.2.1 (64-bit)
+  **** SW Build 6403652 on Thu Mar 19 19:48:24 GMT 2026
+  **** IP Build 6403511 on Thu Mar 19 12:41:45 MDT 2026
+  **** SharedData Build 6403650 on Thu Mar 19 14:02:13 MDT 2026
+  **** Start of session at: Sun Nov  1 11:00:48 2026
+    ** Copyright 1986-2022 Xilinx, Inc. All Rights Reserved.
+    ** Copyright 2022-2026 Advanced Micro Devices, Inc. All Rights Reserved.
+
+source board/tcl/program_pl.tcl
+# set root [file normalize [file join [file dirname [info script]] .. ..]]
+# set bit  [file join $root build system.bit]
+# if {[info exists ::env(VP_BIT)] && $::env(VP_BIT) ne ""} { set bit [file normalize $::env(VP_BIT)] }
+# if {![file exists $bit]} { puts "NO BIT $bit"; exit 1 }
+# open_hw_manager
+# connect_hw_server -allow_non_jtag
+INFO: [Labtools 27-2285] Connecting to hw_server url TCP:localhost:3121
+INFO: [Labtools 27-3415] Connecting to cs_server url TCP:localhost:0
+INFO: [Labtools 27-3417] Launching cs_server...
+INFO: [Labtools 27-2221] Launch Output:
+
+
+******** Xilinx cs_server v2025.2.0
+  ****** Build date   : Nov 14 2025-07:16:52
+    **** Build number : 2025.2.1763075812
+      ** Copyright 2017-2022 Xilinx, Inc. All Rights Reserved.
+      ** Copyright 2022-2026 Advanced Micro Devices, Inc. All Rights Reserved.
+
+
+
+# puts "URL=[current_hw_server]"
+URL=localhost:3121
+# open_hw_target
+INFO: [Labtoolstcl 44-466] Opening hw_target localhost:3121/xilinx_tcf/Xilinx/0ABC01A
+# puts "=== DEVICES ==="
+=== DEVICES ===
+# foreach d [get_hw_devices] { puts "  [get_property NAME $d] PART=[get_property PART $d]" }
+  arm_dap_0 PART=arm_dap
+  xc7z020_1 PART=xc7z020
+# set dev [lindex [get_hw_devices -filter {PART =~ "xc7z020*"}] 0]
+# if {$dev eq ""} { puts "NO xc7z020 IN CHAIN"; close_hw_target; exit 1 }
+# current_hw_device $dev
+# refresh_hw_device -update_hw_probes false $dev
+INFO: [Labtools 27-1435] Device xc7z020 (JTAG device index = 1) is not programmed (DONE status = 0).
+# set_property PROGRAM.FILE $bit $dev
+# program_hw_devices $dev
+INFO: [Labtools 27-3164] End of startup status: HIGH
+# puts "PROGRAMMED $dev <- $bit"
+PROGRAMMED xc7z020_1 <- D:/Xilinx/Harness/Project/timing/submission/c2_timing/system.bit
+# close_hw_target
+INFO: [Labtoolstcl 44-464] Closing hw_target localhost:3121/xilinx_tcf/Xilinx/0ABC01A
+# close_hw_manager
+# exit 0
+INFO: [Common 17-206] Exiting Vivado at Sun Nov  1 11:00:59 2026...
+==== STEP 3 ps_app_reload (board/tcl/ps_app_reload.tcl, elf=board/project/ps_app.elf) ====
+ELF: board/project/ps_app.elf
+RST_PROC: ok
+DOW: Memory write error at 0x200000. Cannot access DDR: the controller is held in reset
+PC_BEFORE_CON: pc: 00000000
+
+CON: ok
+pc: pc: 00000008
+
+cpsr: cpsr: 000001d3
+       n (Bits [31]):  0      z (Bits [30]):  0      c (Bits [29]):  0
+       v (Bits [28]):  0      q (Bits [27]):  0  it (Bits [15:25]):  0
+       j (Bits [24]):  0  ge (Bits [19:16]):  0       e (Bits [9]):  0
+        a (Bits [8]):  1       i (Bits [7]):  1       f (Bits [6]):  1
+        t (Bits [5]):  0     m (Bits [4:0]): 13
+
+lr: lr: 00000014
+
+sp: sp: 00000000
+
+RESUME: ok
+FLOW_DONE
+==== READBACK (board/rdbck.tcl) ====
+Memory read error at 0x41200000. AP transaction timeout
+    invoked from within
+"::tcf::eval -progress {apply {{msg} {puts $msg}}} {tcf_send_command tcfchan#0 Memory get siiii {Bea{o{msg o{} A}}} {{JTAG-jsn-my board-0ABC01A-4ba00477-0} 1092616192 4 4 7}}"
+    (procedure "::tcf::send_command" line 4)
+    invoked from within
+"::tcf::send_command $chan Memory get "siiii" "Bea{o{msg o{} A}}" [list $ctx $start_addr $size $nbytes $mode]"
+    (procedure "mrd" line 87)
+    invoked from within
+"mrd -force 0x41200000"
+    invoked from within
+"puts "GPIO@0x41200000 = [mrd -force 0x41200000]""
+    (file "board/rdbck.tcl" line 7)
+FLASH: RED —— 没过的项目：
+        没读到 DDR_ECHO=5A5AA5A5
+        应用没 dow 进去
+        回读没有 GPIO@0x41200000 那一行（脚本缺失或没连上 APU）
+        件=board/measured/flash_20261101_1100.txt
+        只有扫链那项红 ⇒ 先看板子供电与 hw_server（netstat -an -p TCP | grep 3121），别先看代码。

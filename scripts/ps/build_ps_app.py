@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""scripts/ps/build_ps_app.py —— 不用 Vitis IDE，把 src/ps 直接编成板上能跑的 ELF。
+"""build/ps/build_ps_app.py —— 不用 Vitis IDE，把 src/ps 直接编成板上能跑的 ELF。
 
 为什么要脚本化：交付要求"从零复现"，而"在 IDE 里手工点 New Platform / New Application"
 不属于能复现的步骤。另外这个 app 只需要 PS 侧的 xparameters（UART/SD/DDR/GLOBALTIMER），
@@ -9,14 +9,14 @@ PL 侧一律走 literal 地址（0x41200000 / 0x10000000），所以 BSP 只要 
   PS_CC    arm-none-eabi-gcc 的前缀或完整路径。不设就假定工具链已在 PATH 上
            （把 <Vitis>/gnu/aarch32/nt/gcc-arm-none-eabi/bin 放进 PATH 即可）
   PS_BSP   一个已经 generate 过的 zynq BSP 目录（里面有 include/ 与 lib/libxil.a）；
-           默认先在 `hw/vitis_ws/` 里找平台构建生成的 BSP，再退回旧工作区 `vitis/`
-  PS_OBJ   中间产物目录（默认 scripts/ps_obj）
-  PS_OUT   输出 ELF 的路径（默认 scripts/ps_app.elf；要覆盖交付件时显式指到 hw/project/ps_app.elf）
+           默认先在 `board/vitis_ws/` 里找平台构建生成的 BSP，再退回旧工作区 `vitis/`
+  PS_OBJ   中间产物目录（默认 build/ps_obj）
+  PS_OUT   输出 ELF 的路径（默认 build/ps_app.elf；要覆盖交付件时显式指到 board/project/ps_app.elf）
 
-用法：python3 scripts/ps/build_ps_app.py [--clean]
+用法：python3 build/ps/build_ps_app.py [--clean]
 
 没有现成平台时怎么得到一个（一次性，手工，之后就能一直用本脚本）：
-  Vitis → New → Platform → 选 hw/project/system.xsa → BSP 勾 uartps/xsdps/xgpiops → Generate。
+  Vitis → New → Platform → 选 board/project/system.xsa → BSP 勾 uartps/xsdps/xgpiops → Generate。
   把生成目录里的 standalone_ps7_cortexa9_0/bsp 指给 PS_BSP 即可。
 
 退出码：2 输入不在 / 1 编译或链接失败 / 3 成品自检不过（"链接成功"不等于可执行，见下面
@@ -43,7 +43,7 @@ def find_bsp():
     for cand in legacy:
         if os.path.isfile(os.path.join(cand, "include", "xparameters.h")):
             return cand
-    ws = os.path.join(ROOT, "hw", "vitis_ws")
+    ws = os.path.join(ROOT, "board", "vitis_ws")
     if os.path.isdir(ws):
         for base, dirs, files in os.walk(ws):
             if os.path.basename(base) == "lib" and "libxil.a" in files:
@@ -54,12 +54,12 @@ def find_bsp():
 CC = os.environ.get("PS_CC") or "arm-none-eabi-gcc"
 BSP = os.path.abspath(os.environ.get("PS_BSP") or find_bsp())
 SRC = os.path.join(ROOT, "src", "ps")
-OBJ = os.path.abspath(os.environ.get("PS_OBJ") or os.path.join(ROOT, "scripts", "ps_obj"))
-OUT = os.path.abspath(os.environ.get("PS_OUT") or os.path.join(ROOT, "hw", "project", "ps_app.elf"))
+OBJ = os.path.abspath(os.environ.get("PS_OBJ") or os.path.join(ROOT, "build", "ps_obj"))
+OUT = os.path.abspath(os.environ.get("PS_OUT") or os.path.join(ROOT, "build", "ps_app.elf"))
 
 if not os.path.isdir(BSP):
     print("FATAL: 没有 BSP：%s" % BSP)
-    print("  先按 hw/vitis/README.md 重建平台，或把 PS_BSP 指到已有 BSP。")
+    print("  先按 board/vitis/README.md 重建平台，或把 PS_BSP 指到已有 BSP。")
     sys.exit(2)
 
 BSP_ASM = ["asm_vectors.S", "boot.S", "translation_table.S"]
@@ -192,7 +192,7 @@ def self_check():
         print("FATAL: ELF 入口 0x%s != _boot 0x%s —— 标准启动没跑，VBAR/栈/MMU 都没设"
               % (ep.group(1), bt))
         sys.exit(3)
-    # 加载基址三条一起判（与 scripts/ps_app.mjs 同一条判据，两份构建脚本不许各说一套）：
+    # 加载基址三条一起判（与 build/ps_app.mjs 同一条判据，两份构建脚本不许各说一套）：
     #   ① _vector_table == 第一个 LOAD 的 VirtAddr（boot.S 把 VBAR 指到它，表得随镜像一起被装进去）
     #   ② 基址在 FSBL 认的 DDR 窗口内 —— 平台自带的 image_mover.c 里 LoadBootImage() 见到
     #      "PS 分区且加载地址为 0" 直接 break（注释写着 loop will break on PS load address zero），
@@ -233,7 +233,7 @@ def main():
     link(objs, lds)
     self_check()
     print("OK  " + OUT)
-    print("板上跑法（JTAG，不写 flash）：xsdb> source hw/tcl/ps_jtag_boot.tcl（含 ps7_init）")
+    print("板上跑法（JTAG，不写 flash）：xsdb> source board/tcl/ps_jtag_boot.tcl（含 ps7_init）")
     print("                             xsdb> targets -set -filter {name =~ \"ps7_cortexa9_0*\"} ; download <elf> ; con")
 
 

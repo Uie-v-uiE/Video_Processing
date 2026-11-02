@@ -2,12 +2,12 @@
 # 输入：无字面量输入路径；参数解析见本文件
 # 输出：stdout
 # 退出码：0=跑完 1=非 0 分支（该文件 exit 1 那一行）
-# hw/tcl/ps_app_reload.tcl — 只重启 Cortex-A9、重下 PS app，**不动 PL 配置**
+# board/tcl/ps_app_reload.tcl — 只重启 Cortex-A9、重下 PS app，**不动 PL 配置**
 #
-#   cmd //c "<Vitis>\bin\xsdb.bat hw/tcl/ps_app_reload.tcl"     # 工具路径见 docs/build.md
-#   或  xsdb.bat hw/tcl/ps_app_reload.tcl <别的.elf>
+#   cmd //c "<Vitis>\bin\xsdb.bat board/tcl/ps_app_reload.tcl"     # 工具路径见 report/build.md
+#   或  xsdb.bat board/tcl/ps_app_reload.tcl <别的.elf>
 #
-# 为什么不用 hw/boot27c.tcl：它第一步就是 `rst -system`，会把已经配好的 bit 冲掉，
+# 为什么不用 board/boot27c.tcl：它第一步就是 `rst -system`，会把已经配好的 bit 冲掉，
 # 于是每次换 app 都得重跑 program_pl（~1 min）+ 重设 GPIO + 重推流。换 app 只需要复位核，
 # `rst -processor` 只复位 Cortex-A9 ⇒ 位流、AXI GPIO 控制字、正在跑的视频流全部保留。
 #
@@ -15,9 +15,9 @@
 #   PC_BEFORE_CON  必须是 0x00000000（ELF 入口 = app_entry，先开 VFP 再进 _start）
 #   3 秒后 PC      不能停在 0x4（那是 Undefined 向量 = 又 trap 了），要落在 .text 中段
 #   CPSR 低位      0x13 = Supervisor；0x1b = Undefined 就是没修上
-#   串口           看到 [BOOT] 横幅才算真的跑进 main（hw/scripts/uart_cap_once.ps1）
+#   串口           看到 [BOOT] 横幅才算真的跑进 main（board/scripts/uart_cap_once.ps1）
 set root [file normalize [file join [file dirname [info script]] .. ..]]
-set elf [expr {[llength $argv] > 0 ? [lindex $argv 0] : [file join $root hw project ps_app.elf]}]
+set elf [expr {[llength $argv] > 0 ? [lindex $argv 0] : [file join $root build ps_app.elf]}]
 if {![file exists $elf]} { puts "NO_ELF: $elf"; exit 1 }
 puts "ELF: $elf"
 

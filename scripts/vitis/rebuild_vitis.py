@@ -1,16 +1,16 @@
 """作用：用脚本重建 Vitis 工程（平台 + PS 应用），替代"在 IDE 里手点一遍"。
-输入：`hw/project/system.xsa`（由 `scripts/tcl/build_system_axigpio.tcl` 产出）、`src/ps/` 下的固件源文件。
-输出：workspace（`VP_VITIS_WS`，默认 `hw/vitis_ws/`）下的 `vitis_platform` —— 域 `zynq_fsbl` 与
+输入：`board/project/system.xsa`（由 `build/tcl/build_system_axigpio.tcl` 产出）、`src/ps/` 下的固件源文件。
+输出：workspace（`VP_VITIS_WS`，默认 `board/vitis_ws/`）下的 `vitis_platform` —— 域 `zynq_fsbl` 与
       `standalone_ps7_cortexa9_0` 都建出来，`plat.build()` 返回 0，`fsbl.elf` 落盘。
       应用组件（`video_ps`）这一支 2025.2.1 建不出来：`create_app_component` 四种参数形状一律
       `StatusCode.INTERNAL`，而 `get_templates(...)` 回 `Invalid component type '{component_type}'`
-      （服务端模板名没替换）⇒ 这条记 NOT_MEASURED，固件走 `python scripts/ps/build_ps_app.py`。
+      （服务端模板名没替换）⇒ 这条记 NOT_MEASURED，固件走 `python build/ps/build_ps_app.py`。
 退出码：0=平台（含 standalone 域）建成；1=平台没建成。
 跑法（从仓库根）：
     (nohup <Vitis>/bin/vitis-server --port 8879 &) ; sleep 10
-    <Vitis>/bin/vitis.bat -s scripts/vitis/rebuild_vitis.py 8879
+    <Vitis>/bin/vitis.bat -s build/vitis/rebuild_vitis.py 8879
 为什么要显式起 server：`create_client()` 不带 port 时在本机报
-`'utf-8' codec can't decode byte 0xd5`（本机实测，见 `docs/issues/key-issues.md` 的 Vitis 条目）。
+`'utf-8' codec can't decode byte 0xd5`（本机实测，见 `report/issues/key-issues.md` 的 Vitis 条目）。
 """
 import os
 import shutil
@@ -19,10 +19,10 @@ import sys
 import vitis
 
 REPO = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-WS = os.environ.get("VP_VITIS_WS") or os.path.join(REPO, "hw", "vitis_ws")
-XSA = os.path.join(REPO, "hw", "project", "system.xsa")
+WS = os.environ.get("VP_VITIS_WS") or os.path.join(REPO, "board", "vitis_ws")
+XSA = os.path.join(REPO, "board", "project", "system.xsa")
 if not os.path.exists(XSA):
-    XSA = os.path.join(REPO, "hw", "reports", "system.xsa")
+    XSA = os.path.join(REPO, "build", "system.xsa")
 PS_SRC = os.path.join(REPO, "src", "ps")
 DOMAIN = "standalone_ps7_cortexa9_0"
 
@@ -61,7 +61,7 @@ def main():
     except Exception as e:
         print("APP_CREATE_FAIL %s: %s" % (type(e).__name__, str(e)[:160]))
         print("APP_NOT_MEASURED 2025.2.1 的 create_app_component 对本域返回 INTERNAL；"
-              "固件改走 python scripts/ps/build_ps_app.py")
+              "固件改走 python build/ps/build_ps_app.py")
 
     if app is not None:
         print("APP_METHODS %s" % [m for m in dir(app) if not m.startswith("_")])

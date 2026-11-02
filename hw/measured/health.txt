@@ -2,9 +2,9 @@
 RUN_AT      2026-10-23 07:18:24
 HOST        UIE-LAPTOP  PWD=/d/Xilinx/Prj/fin2
 GIT_HEAD    unknown
-MD5_12      9734f3ec3019  hw/project/system.bit
-MD5_12      f4d4425138a2  hw/project/system.xsa
-MD5_12      aaf2c867e0d0  hw/project/ps_app.elf
+MD5_12      9734f3ec3019  board/project/system.bit
+MD5_12      f4d4425138a2  board/project/system.xsa
+MD5_12      aaf2c867e0d0  board/project/ps_app.elf
 ==== SERIAL (port=COM6 seconds=8 cmds=stat,temp,stat) ====
 SENT 3/3  CAPTURED_LEN 390
 [STAT] ctrl thr=80 src=1 zoom=1 bilin=1 zsel=4 zman=1 pub=1 sd=1 frames=1957 playing=1 sel=000 gm=0.00 (PL owns UDP datapath) mode=0 geom=00400000 osd=1
@@ -15,7 +15,7 @@ SENT 3/3  CAPTURED_LEN 390
 [TEMP] degC=62.47 raw=0xAA7C vccint=997mv th=85C over=0 sane=1 osd=62C gpio=0x62
 [STAT] ctrl thr=80 src=1 zoom=1 bilin=1 zsel=4 zman=1 pub=0 sd=1 frames=1957 playing=1 sel=000 gm=0.00 (PL owns UDP datapath) mode=0 geom=00400000 osd=1
 
-==== JTAG READBACK (hw/tcl/rdddr.tcl, mrd only) ====
+==== JTAG READBACK (board/tcl/rdddr.tcl, mrd only) ====
 GPIO = 41200000:   000F5000
 
 DDR  head:
@@ -35,7 +35,7 @@ DDR  head:
   00000000
   1000001C:
   00000000
-==== CORE VECTORS (hw/tcl/pswhy.tcl) ====
+==== CORE VECTORS (board/tcl/pswhy.tcl) ====
 pc: pc: 00206b38
 
 lr: lr: 0020adec

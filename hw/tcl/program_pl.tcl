@@ -1,18 +1,18 @@
-# 用途：scan the JTAG chain and program hw/project/system.bit into the PL
+# 用途：scan the JTAG chain and program board/project/system.bit into the PL
 # 输入：无字面量输入路径；参数解析见本文件
 # 输出：stdout
 # 退出码：0=跑完 1=非 0 分支（该文件 exit 1 那一行）
-# hw/tcl/program_pl.tcl — scan the JTAG chain and program hw/project/system.bit into the PL
+# board/tcl/program_pl.tcl — scan the JTAG chain and program board/project/system.bit into the PL
 #
-#   vivado -mode batch -nojournal -source hw/tcl/program_pl.tcl
+#   vivado -mode batch -nojournal -source board/tcl/program_pl.tcl
 #
 # hw_server must be reachable (Vivado's Auto Connect starts one; or run
 # `hw_server` manually).  Order matters: bring the PS up first
 # (ps_jtag_boot.tcl), then program the PL, then write the AXI GPIO (set_src.tcl).
 
 set root [file normalize [file join [file dirname [info script]] .. ..]]
-# VP_BIT 可以指向别处的位流（隔离滚一轮的产物拿去做板上对照时用），不设就是 hw/project/system.bit
-set bit  [file join $root hw reports system.bit]
+# VP_BIT 可以指向别处的位流（隔离滚一轮的产物拿去做板上对照时用），不设就是 board/project/system.bit
+set bit  [file join $root build system.bit]
 if {[info exists ::env(VP_BIT)] && $::env(VP_BIT) ne ""} { set bit [file normalize $::env(VP_BIT)] }
 if {![file exists $bit]} { puts "NO BIT $bit"; exit 1 }
 

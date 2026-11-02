@@ -1,12 +1,12 @@
 # System with AXI GPIO on GP0 + PL ETH video sink
-# 作用: 一键把工程建起来并跑到比特流与全套报告（交付要求 §4 的主入口 scripts/build.tcl 就是 source 本文件）
+# 作用: 一键把工程建起来并跑到比特流与全套报告（交付要求 §4 的主入口 build/build.tcl 就是 source 本文件）
 # 前置条件: 仓库根下的 src/rtl 与 src/constraints 齐全；Vivado 与本机 LICENSE 可用
 # 产出物: 工程目录 vivado_system/，以及 $outdir 下的 system.bit / system.xsa / timing_summary.rpt /
 #         utilization.rpt / cdc.rpt / methodology.rpt / power.rpt / route_status.rpt / clock_util.rpt
 # 关键参数（都用环境变量传，默认不设就是历史行为，产物要能自己带出身）:
 #   VP_PROJ_SUBDIR 工程目录名（默认 vivado_system；分步验证时指到别处，不碰正式工程）
-#   VP_OUTDIR      output directory (default hw/reports)
-#   VP_STOP_AT     project = 只建工程与导源就退出（scripts/create_project.tcl、scripts/add_sources.tcl 用）
+#   VP_OUTDIR      产物目录（默认 build）
+#   VP_STOP_AT     project = 只建工程与导源就退出（build/create_project.tcl、build/add_sources.tcl 用）
 #   IMPL_STRATEGY / IMPL_POST_PLACE_HOOK / IMPL_PRPO  见下面各自的说明块
 set root [file normalize [file join [file dirname [info script]] .. ..]]
 set proj_subdir vivado_system
@@ -14,7 +14,7 @@ if {[info exists ::env(VP_PROJ_SUBDIR)] && $::env(VP_PROJ_SUBDIR) ne ""} { set p
 set proj_dir [file join $root $proj_subdir]
 set proj_name zynq_video_sys
 set part xc7z020clg484-2
-set outdir [file join $root hw reports]
+set outdir [file join $root build]
 if {[info exists ::env(VP_OUTDIR)] && $::env(VP_OUTDIR) ne ""} { set outdir [file normalize [file join $root $::env(VP_OUTDIR)]] }
 file mkdir $outdir
 
@@ -58,18 +58,18 @@ if {[info exists ::env(VP_TX_CONSTRAIN)] && $::env(VP_TX_CONSTRAIN) eq "1"} {
 # 只有实现阶段的检查变多"本身就是一个对照（任何资源/告警差异都不该出现，出现了就是我这刀的问题）。
 #
 # ⚠ 03:44 改口（r116 的门禁读数逼出来的决定，不是把约束改掉换绿灯）：
-#   绑上这个窗之后，仓库自己的**发布门禁** `scripts/gates.sh` 有 4 项机械判红
+#   绑上这个窗之后，仓库自己的**发布门禁** `build/gates.sh` 有 4 项机械判红
 #   （WNS ≥ 0、失败 setup 端点 == 0、WHS ≥ 0、失败 hold 端点 == 0），
 #   而它末尾那句写死的是"有红项 ⇒ 不采纳，保留上一版"。也就是说：
 #   **这个设计只有在"RGMII 输入不被检查"的前提下才过发布门禁**。这不是话术，是两件事实：
 #     ① 约束本身是对的（RTL8211F-CG 规格书 Table 60 发射端两行 + 原理图 strap：min 1.200 / max 2.800）；
 #     ② 这一族在合法 0…31 全档内**关不掉**（hold 要 τ ≥ 44.8、setup 要 τ ≤ 21.8，
 #        根因是两只钟的角间差 3.411 ns vs 数据 0.467 ns）——见
-#        docs/timing/rgmii_window_model.md §7.5 与 docs/timing/limit_audit_r116.md。
+#        report/timing/rgmii_window_model.md §7.5 与 report/timing/limit_audit_r116.md。
 #   所以默认**不加载**（回到 r114 的约束集），把它留在仓里当**候选件 + 全份证明**；
 #   要复现 r116 那一版（带窗、5 个 I/O 端点红）只要：`VP_R116_IO_WINDOW=1` 再构建一次。
 #   撤销的不是"约束的正确性"，是"把它带进发布物"这个动作；下一刀（把 IDDR 捕获钟换成短钟，
-#   docs/timing_global.md 第 7 节）落地之后，这个窗应当重新加载。
+#   report/timing_global.md 第 7 节）落地之后，这个窗应当重新加载。
 if {[info exists ::env(VP_R116_IO_WINDOW)] && $::env(VP_R116_IO_WINDOW) eq "1"} {
   set iwxdc [add_files -fileset constrs_1 -norecurse [file join $root src constraints r116_rgmii_input_window.xdc]]
   set_property used_in_synthesis false $iwxdc
@@ -81,19 +81,19 @@ if {[info exists ::env(VP_R116_IO_WINDOW)] && $::env(VP_R116_IO_WINDOW) eq "1"} 
 
 # 6b) HDMI **源端（TP1）** 对外窗（2026-10-04 取到数之后新加的候选件，默认同样不加载）
 #   数字与出处：钟↔数据 = 0.20 Tcharacter（HDMI 1.4 §4.2.4 Table 4-24，1.3/1.1 同值；
-#   逐条判定与"哪些只能作第三方代理"写在 docs/io/hdmi_cts_source_window.md）。
-#   当前档 50 MHz 像素钟 ⇒ 半窗 ±4.000 ns；参考时钟对象由 pin 反查得到（clkout1_1，件 hw/output/ser_clock_probe.txt）。
+#   逐条判定与"哪些只能作第三方代理"写在 report/io/hdmi_cts_source_window.md）。
+#   当前档 50 MHz 像素钟 ⇒ 半窗 ±4.000 ns；参考时钟对象由 pin 反查得到（clkout1_1，件 board/output/ser_clock_probe.txt）。
 #   为什么默认关：**新增约束必须先用一轮构建量名册**（别域不许变差），量过之前带进发布物就是用声明代替测量。
 #   这一条在 2026-10-20（r132 补账轮）真的走完了：`VP_R119_TMDS_WINDOW=1` 滚了一次隔离构建，
 #   `clkout1_1` 从 `NOWRITE` 变成可量，给 setup −5.408 / hold −1.923。但那不是设计违反规范——
 #   工具把 4 ns 位周期当成"钟到数据"的采样窗，规范那条是 skew，两种形状（含 20 ns 参考钟打在脚上的
-#   r119b 那一版）都判过，结论记在 docs/timing/debt_ledger.md 与 docs/log/issues.md #335；
+#   r119b 那一版）都判过，结论记在 report/timing/debt_ledger.md 与 report/log/issues.md #335；
 #   本轮先重做了一遍才查到、过程账记 #493。所以这一臂**不采纳**，也不立第三种窗形状的候选件。
 #   开法：VP_R119_TMDS_WINDOW=1 再构建一次（要复核这笔债的正确问法是只读探针
-#   scripts/tcl/probe_tmds_pin_skew.tcl + scripts/r132_pin_skew_judge.mjs，量逐脚离散，不是再滚构建）。
+#   build/tcl/probe_tmds_pin_skew.tcl + build/r132_pin_skew_judge.mjs，量逐脚离散，不是再滚构建）。
 #   注意：这里**不放** Tcl 守卫到 .xdc 里——2026-10-04 实测 Vivado 解析 .xdc 时对 `if`/`puts` 报
-#   Designutils 20-1307 并整块跳过（件 scripts/evidence/r119_xdc_loads_probe2.txt），守卫会静默失效；
-#   数字推导、参考钟身份、射程这三件事由只读尺子 scripts/r119_window_check.mjs 判（--self 有 6 条能红的对照）。
+#   Designutils 20-1307 并整块跳过（件 build/evidence/r119_xdc_loads_probe2.txt），守卫会静默失效；
+#   数字推导、参考钟身份、射程这三件事由只读尺子 build/r119_window_check.mjs 判（--self 有 6 条能红的对照）。
 if {[info exists ::env(VP_R119_TMDS_WINDOW)] && $::env(VP_R119_TMDS_WINDOW) eq "1"} {
   set hwxdc [add_files -fileset constrs_1 -norecurse [file join $root src constraints r119_hdmi_source_window.xdc]]
   set_property used_in_synthesis false $hwxdc
@@ -105,11 +105,11 @@ if {[info exists ::env(VP_R119_TMDS_WINDOW)] && $::env(VP_R119_TMDS_WINDOW) eq "
 
 # 6c) 2026-10-20 记一笔：这一轮有人（我）看到臂 A 的 −5.408 ns 后写了一版"绑到引脚 20 ns 钟"的新候选件，
 #   准备再滚一次构建。查账本才发现这条路 2026-10-04 已经走过并判完：`src/constraints/r119b_hdmi_tp1_pinclk.xdc`
-#   就是那个形状，探针件 `hw/output/xdc_loads_probe4_pinclk.txt` 给出 −4.897/−4.873/−4.890 ns，
-#   而 `docs/timing/debt_ledger.md` 的追加一节与 ISSUES #335 把结论写死了：规范那条是 **skew（两脚到达时刻
+#   就是那个形状，探针件 `board/output/xdc_loads_probe4_pinclk.txt` 给出 −4.897/−4.873/−4.890 ns，
+#   而 `report/timing/debt_ledger.md` 的追加一节与 ISSUES #335 把结论写死了：规范那条是 **skew（两脚到达时刻
 #   之差的上限）**，`set_output_delay` 是**采样窗**，两者不同量纲 ⇒ 负数是量纲错，不是设计时序债，
 #   也不许靠放宽窗把它变绿。所以这里**不再加第三种形状**；现版要复核这条债，跑只读探针
-#   `scripts/tcl/probe_tmds_pin_skew.tcl`（逐脚 clock-to-pin Data Path Delay），别再造构建臂。
+#   `build/tcl/probe_tmds_pin_skew.tcl`（逐脚 clock-to-pin Data Path Delay），别再造构建臂。
 
 create_bd_design design_1
 create_bd_cell -type ip -vlnv xilinx.com:ip:processing_system7:5.5 processing_system7_0
@@ -118,7 +118,7 @@ apply_bd_automation -rule xilinx.com:bd_rule:processing_system7 \
   -config {make_external "FIXED_IO, DDR" Master "Disable" Slave "Disable" apply_board_preset "0"} $ps
 
 # V8-2：开 MIO GPIO，为了读板上那两个 PS 按键（原理图网络名 PS_MIO0_KEY1 / PS_MIO12_KEY2）。
-# 老配置只有 EMIO GPIO=0、MIO GPIO 根本没开 ⇒ 那两个脚电气上存在但固件读不到（见 docs/log/plan_v8_spec.md §6a）。
+# 老配置只有 EMIO GPIO=0、MIO GPIO 根本没开 ⇒ 那两个脚电气上存在但固件读不到（见 report/log/plan_v8_spec.md §6a）。
 # MIO 0 与 12 都没被占用：QSPI=MIO 1..6、UART0=MIO 10..11、ENET0=MIO 16..27(+MDIO 52..53)、SD0=MIO 40..45(+CD MIO 9)。
 # 每脚四行（PULLUP/IOTYPE/DIRECTION/SLEW）是 GPIO 认领这两行 MIO 所必需的，缺了 validate_bd_design 会报 IOTYPE 未设。
 # 注意这个 dict 里**不能夹注释行**：整块是一个 `set_property -dict [list ... ]`，
@@ -330,7 +330,7 @@ update_compile_order -fileset sources_1
 # 历史结论 R07：`Performance_Explore` 与默认策略产出逐位相同的 bit ⇒ 那不是个可选项。
 
 # 分步入口在这里切一刀：VP_STOP_AT=project 时工程、IP、源与约束都已进项目文件，
-# 综合留给 scripts/synth.tcl 单独跑（默认不设就是不切，正式流程一步到位的老行为不变）。
+# 综合留给 build/synth.tcl 单独跑（默认不设就是不切，正式流程一步到位的老行为不变）。
 if {[info exists ::env(VP_STOP_AT)] && $::env(VP_STOP_AT) eq "project"} {
   puts "VP_STOP_AT_PROJECT_DONE proj=$proj_dir"
   close_project
@@ -356,7 +356,7 @@ if {[info exists ::env(IMPL_STRATEGY)] && $::env(IMPL_STRATEGY) ne ""} {
 puts "BUILD_STRATEGY [get_property STRATEGY [get_runs impl_1]]"
 # r117（C9 复制刀）：与 IMPL_STRATEGY 同一个规矩——**默认不设就是不挂**，设了就把挂的东西打进日志，
 # 产物自己带出身。为什么必须走环境变量而不是直接改这一行：r116 那一版位流的复现路径不能被事后改写。
-# 挂的是 place_design 之后的 TCL.POST：快车道滚（scripts/evidence/r117_repl3/b_console.txt）就是在
+# 挂的是 place_design 之后的 TCL.POST：快车道滚（build/evidence/r117_repl3/b_console.txt）就是在
 # place 之后、route 之前做的这一次强制复制，把同一个动作放在官方 run 的同一个位置才是单变量。
 if {[info exists ::env(IMPL_POST_PLACE_HOOK)] && $::env(IMPL_POST_PLACE_HOOK) ne ""} {
   if {[catch {set_property STEPS.PLACE_DESIGN.TCL.POST $::env(IMPL_POST_PLACE_HOOK) [get_runs impl_1]} e]} {
@@ -368,7 +368,7 @@ if {[info exists ::env(IMPL_POST_PLACE_HOOK)] && $::env(IMPL_POST_PLACE_HOOK) ne
   puts "BUILD_POST_PLACE_HOOK none"
 }
 # 布线后物理综合（post-route phys_opt）：默认**关**（不设变量就是 r64b 那一档流程，逐位同源的对照）。
-# 为什么单独开一档试：`docs/optimization_log.md` §4 量到全设计 WNS 由两条**布线主导**（route 占 60~67 %）的
+# 为什么单独开一档试：`report/optimization_log.md` §4 量到全设计 WNS 由两条**布线主导**（route 占 60~67 %）的
 # 路径轮流决定，其中 eth 那条的高扇出网络 fo=96 / 17 正好是 phys_opt 的靶子；而它**不动网表**只动物理结果，
 # 所以这一档不需要重跑 RTL 台架 —— 但它同样要"产物自己带着出身"，故与 IMPL_STRATEGY 一样打进日志。
 if {[info exists ::env(IMPL_PRPO)] && $::env(IMPL_PRPO) eq "1"} {
@@ -423,7 +423,7 @@ foreach lg [glob -nocomplain [file join $proj_dir [file tail $proj_name].runs * 
     # 为什么必须单独数：综合的处理是**保留常量那一侧、忽略逻辑那一侧**，
     # 于是 bit 里那根线恒为 0，而**仿真按进程后写覆盖，行为看起来完全正确**
     # —— 这是"台架全绿、硬件不工作"最省事的一条路（2026-09-24 就踩在 border_r 上，
-    #    见 docs/log/issues.md #61：旗标链的复位被我同时写进了两个 always 块）。
+    #    见 report/log/issues.md #61：旗标链的复位被我同时写进了两个 always 块）。
     if {[string match "*multi-driven net*" $line]} { incr mcount; lappend mseen [string trim $line] }
   }
   close $fh
