@@ -121,7 +121,7 @@ WNS 1.368 ns, WHS 0.048 ns, zero failing endpoints; LUT 14 965 (28.13%), FF 9 09
 
 - 241 frames in 8.03 s = 30.01 fps on the final bitstream (29.95 fps on the previous QSPI image); the abort counter stays flat under a clean stream.
 - Grayscale-only, image-column seam at 185°: processed-pane integrity count is 0 and valid.
-- Three-stage fault injection: 22.2 fps clean, 0 fps with about 14 aborts per second when one packet in 100 is dropped, 18.9 fps after recovery (final bitstream; previous image 22.0/0/18.9).
+- Three-stage fault injection: 22.0 fps clean, 0 fps with about 14.3 aborts per second when one packet in 100 is dropped, 18.9 fps after recovery (logged reading, board/measured/link_selftest.txt; the 2026-11-01 console session passed the same criteria).
 - After a stop and restart, the final bitstream reports a maximum frame gap of 49 ms (22,061 ms on the previous image).
 - With the bitstream in QSPI the board boots without a host, and `stat`/`link` respond.
 
