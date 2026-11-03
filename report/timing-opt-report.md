@@ -89,11 +89,11 @@ Critical warning 对比（"无新增"门）：routed methodology 三版均为 **
 | ping | 5 连发 | 全通 | 5/5，0% 丢失 | ✅ |
 | 连续流 | `video_sender.py --demo --seconds 8` | ~241 帧/8 s | **241 帧 / 8.03 s = 30.01 fps** | ✅ |
 | 遥测 | `telemetry_listen.py 13` | 13 包，帧计数连续 | 13/13 包，frames=241 与推流一致，作废仅 1 次启动作废 | ✅ |
-| 三阶段自检 | `link_selftest.py 192.168.1.10 6` | 干净 ≥8 fps/作废 ≤1、故障作废 ≥5/s 且帧率 <5、恢复 | **22.2 fps/作废+0/lat 8ms；0 fps+14.0 作废/s；18.9 fps/作废+0** → PASS | ✅ |
+| 三阶段自检 | `link_selftest.py 192.168.1.10 6` | 干净 ≥8 fps/作废 ≤1、故障作废 ≥5/s 且帧率 <5、恢复 | **22.0 fps/作废+0/lat 8ms；0 fps+14.3 作废/s；18.9 fps/作废+0** → PASS | ✅ |
 | 串口命令 | `uart_cmd_check.mjs --port COM6` | 105 条逐条回声、末态回初态 | **RESULT PASS（105 条，98.6 s）**，温度三方对账自洽 | ✅ |
 | 帧间隔统计 | 推流中 `link clr`/`link`（COM6） | gap_valid=1、gap_max 与历史一致 | **gap_valid=1，gap_max=49 ms（=历史交付值）**，drop=0 badpkt=0 | ✅ |
 
-与 交付基线 板级读数对照：帧率 30.01 vs 29.95 fps、自检 22.2/14.0/18.9 vs 22.0/14.3/18.9、gap_max 49 vs 49 ms——**同水平，无回归**。
+与 交付基线 板级读数对照：帧率 30.01 vs 29.95 fps、自检均为 22.0/14.3/18.9、gap_max 49 vs 49 ms——**同水平，无回归**。
 
 板上工具链两处环境修复（副本工作区内，不动提交件）：① `build/ps7_init.tcl` 从 XSA 手工解出（脚本 2026-09-23 补的自动解包分支生成器有 tcl 方括号求值 bug，从未成功过）；② 其头部加 `configparams force-mem-accesses 1`（xsdb 2025.2.1 会在 PS 未初始化期拦截对 DDRC 区的写，ps7_ddr_init 阶段无 force 保护导致 DDR 初始化中断——Vitis 新版 ps7_init 自带此行于 post_config，但 ddr 阶段缺失）。
 

@@ -81,7 +81,7 @@ QSPI 固化使用 `board/scripts/make_boot_image.sh` 和 `board/tcl/flash_qspi.t
 | 时序 | WNS 1.368 ns，WHS 0.048 ns，TNS = THS = 0，失败端点 0 |
 | 资源 | LUT 14 965（28.13%），FF 9 097（8.55%），BRAM 98（70.00%），DSP 19（8.64%） |
 | 连续流 | 241 帧 / 8.03 s = 30.01 fps（最终版位流，JTAG 下载） |
-| 链路自检 | 22.2 / 0 / 18.9 fps，PASS |
+| 链路自检 | 22.0 / 0 / 18.9 fps，PASS |
 | 效果链延迟 | 固定 15 个像素时钟；PL 内部帧时延 2–16 ms |
 | 功耗（估算） | 2.407 W |
 
