@@ -159,7 +159,7 @@ Windows PowerShell 5.1 的 `(Get-Content) -replace | Set-Content` 把 UTF-8 文�
 **只有 SV 的 2 态类型（`bit`/`byte`）才默认 0**。所以"标量默认 0"这种说法只对 2 态类型成立，
 不要拿它推断未驱动 `reg` 的读数——否则会以为某个没写的寄存器"应该是 0"，而它其实是 X。
 （本机没有 `iverilog`：直接调用得到 `bash: iverilog: command not found`，
-在 `D:\Software` 往下三层搜 `iverilog.exe` 也是空——所以第三家的默认初值本机**没有读数**，
+在 <本机软件目录> 往下三层搜 `iverilog.exe` 也是空——所以第三家的默认初值本机**没有读数**，
 上面那一对才是本包唯一实测过的两臂。）
 
 比对器里含 X/Z 的项记 `NOT_RUN` 或 `FAIL`，禁止在提取层把它折成 0（折了就变成假绿）。

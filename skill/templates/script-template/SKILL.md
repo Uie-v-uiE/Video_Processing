@@ -92,7 +92,7 @@ ARCHIVE ROUND R_TIMING R_RESOURCE R_STATUS DONE_TOKEN ROW_RE COL_WNS COL_EP MIN_
 
 ## 7. 已验证的效果
 
-- 本模板自身实跑记录（项目实测，工作目录 `D:/Xilinx/Prj/pro/Video_Processing/skill/templates/script-template/`）：
+- 本模板自身实跑记录（项目实测，工作目录 `<仓库根>/skill/templates/script-template/`）：
   - 命令 1 `bash -n script-template.sh` ⇒ 输出为空（语法通过）。
   - 命令 2 `bash script-template.sh`（不填任何槽位）⇒ 实际输出 `REFUSE: 没设报告目录（当前 REPORT_DIR=）`，`rc=3`（期望：第一步拒绝且不产出半截产物）。
   - 命令 3 `bash script-template.sh --self` ⇒ 实际输出 7 行 `PASS 反例：…`（正例 + 6 条反例，含"带符号负裕量必须判红""读不到那一行 ⇒ PARTIAL""射程地板""缺报告 ⇒ REFUSE""空正则 ⇒ REFUSE""探测不到可执行文件 ⇒ REFUSE"）与 `SELF: 全绿（7 条）`，`rc=0`。

@@ -1,9 +1,9 @@
 # 时序优化报告（TIMING_OPT_REPORT）
 
-- 工作区：`D:\Xilinx\Harness\Project\timing`（冻结 FIN 包的逐文件副本，tree md5 链 `a129dd69b3a439e0030c2a2598fc6dd3`，3551 文件）
+- 工作区：`<本机工作区>`（冻结 FIN 包的逐文件副本，tree md5 链 `a129dd69b3a439e0030c2a2598fc6dd3`，3551 文件）
 - git：`main` = `0cc5cd0`（baseline tag `7dfd470` + **方案二 合入**）；实验分支：`c1-eth-rst-async-reg`（方案一，拒绝）、`c2-lm-reset-replication`（方案二，接受）、`c1c2-stack`（组合，拒绝）——全部保留作审计记录
 - 工具：Vivado 2025.2.1（SW Build 6403652）；ModelSim SE 2020.4（交付回归历史同款工具）
-- 冻结确认：RAR、GitHub、学习/演示文档未触碰；任务期间原 `D:\Xilinx\Prj\FIN` 被外部移动（Prj 目录整体消失，非本任务操作），其逐文件快照锚定于 `baseline` tag；本工作区为唯一写入点
+- 冻结确认：RAR、GitHub、学习/演示文档未触碰；任务期间原工程目录被外部移动（Prj 目录整体消失，非本任务操作），其逐文件快照锚定于 `baseline` tag；本工作区为唯一写入点
 - 结论：**方案二 被接受**（全局 WNS 1.341 → 1.368，WHS 0.025 → 0.048，零行为变化，边际但确定性改善 + 复位分发树结构性去单点）；方案一 与 方案一+方案二 组合被数据拒绝。基线本身健康：0 failing endpoints、全时钟域余量为正。
 
 ---

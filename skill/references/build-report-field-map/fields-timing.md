@@ -23,7 +23,7 @@
 |---|---|---|---|---|---|---|
 | 工具版本串 | `build/timing_summary.rpt:3` | `| Tool Version :` 之后的整串 | `Vivado v.2025.2.1 (win64) Build 6403652 Thu Mar 19 19:48:24 GMT 2026` | 件 | 项目实测 | tool-version-drift |
 | 生成时刻 | `:4` | `| Date :` | `Sun Oct  4 04:37:30 2026` | 件 | 项目实测 | who-else-writes-this-artifact |
-| 生成命令 | `:6` | `| Command :` | `report_timing_summary -file D:/Xilinx/Prj/pro/Video_Processing/build/timing_summary.rpt` | 件 | 项目实测 | build-report-field-map |
+| 生成命令 | `:6` | `| Command :` | `report_timing_summary -file <仓库根>/build/timing_summary.rpt` | 件 | 项目实测 | build-report-field-map |
 <!-- 本仓示例取值 --> | 设计 / 器件 / 速度文件 | `:7` `:8` `:9` | 各自 `| … :` | `system_top` / `7z020-clg484` / `-2  PRODUCTION 1.12 项目实测` | 件 | 项目实测 | tool-version-drift |
 | 设计状态 | `:10` | `| Design State :` | `Routed` | 件 | 项目实测 | build-report-field-map |
 
