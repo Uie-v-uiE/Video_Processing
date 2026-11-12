@@ -8,7 +8,8 @@
 #
 # hw_server must be reachable (Vivado's Auto Connect starts one; or run
 # `hw_server` manually).  Order matters: bring the PS up first
-# (ps_jtag_boot.tcl), then program the PL, then write the AXI GPIO (set_src.tcl).
+# (ps_jtag_boot.tcl), then program the PL, then load the PS app (ps_app_reload.tcl,
+# which writes the AXI GPIO in its boot path).
 
 set root [file normalize [file join [file dirname [info script]] .. ..]]
 # VP_BIT 可以指向别处的位流（隔离滚一轮的产物拿去做板上对照时用），不设就是 board/project/system.bit

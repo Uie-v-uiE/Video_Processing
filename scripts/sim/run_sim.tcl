@@ -60,7 +60,8 @@ puts "xvlog rtl=[llength $rtl] tb=[llength $tbs]"
 
 set sources {}
 foreach f [concat $rtl $tbs] { lappend sources [file normalize $f] }
-if {[catch {eval exec xvlog $sources} msg]} {
+# -i:src/rtl/include 放效果链常数头文件(proc_pipeline_cfg.vh),proc_pipeline/pl_video_top 都 `include 它
+if {[catch {eval exec xvlog -i [file normalize [file join $rtl_dir include]] $sources} msg]} {
     puts "XVLOG FAILED"
     puts $msg
     exit 1

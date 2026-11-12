@@ -42,7 +42,7 @@ MEMORY
  *      asm_vectors.S 的向量表 + translation_table.S 的 MMUTable）一起丢了：
  *      ISSUES #42 的"JTAG 起不来"、异常落到 0x0 恰好摆着的代码上（看着像自己重启了一遍）、
  *      以及 newlib memcpy 在 MMU 关闭时发对齐异常，三个症状都是这一个根因。
- *   ② 现在 build/ps_app.mjs 显式把那三个 .S 编进来，入口改成 _boot：它设完 VBAR/栈/MMU
+ *   ② 现在 build/ps/build_ps_app.py 显式把那三个 .S 编进来，入口改成 _boot：它设完 VBAR/栈/MMU
  *      之后自己 b _start，所以 main/XSdPs 依然可达，①的问题不会回来。
  *      （试过命令行 -Wl,-e,_boot：被脚本里的 ENTRY 顶掉了，readelf 入口变成 0x0 —— 别再用 -e。）
  */

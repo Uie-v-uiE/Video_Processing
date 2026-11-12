@@ -102,7 +102,9 @@ module rgmii_rx (
     //rgmii_rxd输入延时与双沿采样
     genvar i;
     generate
-        for (i = 0; i < 4; i = i + 1) (* IODELAY_GROUP = "rgmii_rx_delay" *) begin : rxdata_bus
+        // ⚠ 属性只能挂在例化语句上（下面两个 IDELAYE2 各自带）；挂 in for 头是 Vivado 扩展写法，
+        //   IEEE 1800 不允许（slang/Qihe 报 "attributes are not allowed here"），语义与原来相同。
+        for (i = 0; i < 4; i = i + 1) begin : rxdata_bus
             //输入延时           
             (* IODELAY_GROUP = "rgmii_rx_delay" *)
             IDELAYE2 #(

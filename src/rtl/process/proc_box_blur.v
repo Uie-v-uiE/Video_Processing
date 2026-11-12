@@ -38,7 +38,10 @@ module proc_box_blur #(
     always @(posedge clk or negedge rst_n)
         if (!rst_n)     run <= 12'd0;
         else if (de_in) run <= run + 12'd1;
-        else            run <= 12'd0;   // 清零必须"de 一断就清"，不能等第二拍：行间隙只有一拍的激励里晚一拍清等于永远不清。而**同一拍里非阻塞更新的旧值仍然看得见** ⇒ de 落下那一拍 run 正好是本行的宽度，所以既不用 `>=`（那会被一拍一像素的激励误触发）也不用第二拍。
+        // 清零必须"de 一断就清"，不能等第二拍：行间隙只有一拍的激励里晚一拍清等于永远不清。
+        // 而**同一拍里非阻塞更新的旧值仍然看得见** ⇒ de 落下那一拍 run 正好是本行的宽度，
+        // 所以既不用 `>=`（那会被一拍一像素的激励误触发）也不用第二拍。
+        else            run <= 12'd0;
     wire owed     = (run == H_ACTIVE[11:0]); // 本行正好 H_ACTIVE 个有效像素 = 刚吃完的是末列
     wire line_end = owed && de_d1 && !de_in; // 只有一拍：就是现在欠那一跳
     wire shift_w  = de_in || line_end;
@@ -71,7 +74,10 @@ module proc_box_blur #(
         else if (line_end) begin y_row_d <= y_in; y_row_d2 <= y_row_d; end
     wire row_first = (y_in != y_row_d);    // x2 raster: only the FIRST display row of a
                                            // source row can be missing the row above
-    reg [2:0] no_left_r, no_right_r, no_above_r, no_below_r, stale_row_r;   // ⚠ 复位只能写在这**一个**块里：写进主 always 的复位分支就是两个驱动源 ⇒ 综合报 `Synth 8-6859/8-6858 multi-driven net` 并把逻辑那一侧**忽略**（恒 0），而仿真看不出来（xsim 按进程后写覆盖）；门禁第 13 项拦的就是它，见 ISSUES #61
+    // ⚠ 复位只能写在这**一个**块里：写进主 always 的复位分支就是两个驱动源 ⇒ 综合报
+    // `Synth 8-6859/8-6858 multi-driven net` 并把逻辑那一侧**忽略**（恒 0），而仿真看不出来
+    // （xsim 按进程后写覆盖）；门禁第 13 项拦的就是它，见 ISSUES #61。
+    reg [2:0] no_left_r, no_right_r, no_above_r, no_below_r, stale_row_r;
     always @(posedge clk or negedge rst_n)
     if (!rst_n) begin
         no_left_r <= 3'b0; no_right_r <= 3'b0; no_above_r <= 3'b0; no_below_r <= 3'b0; stale_row_r <= 3'b0;
@@ -79,7 +85,9 @@ module proc_box_blur #(
         // 旗标链必须与中心链**同拍**移位（含行尾那一跳），否则边界位与内容差一格——
         // 那正是 #54 (A') 记过的"比的是发出去之后第几拍"那一族。
         no_left_r  [0] <= ~de_in;                                     // 补跳那一拍 = 下一行第 0 槽
-        no_right_r [0] <= de_in && (x_in == H_ACTIVE[11:0] - 12'd1);   // 缺右邻：末列自己那一拍武装 ⇒ 落进行尾多跳那一格的中心（#103 把坐标抽头对齐到 de 之后，这里从 `-2` 改回 `-1`；旗标落在哪一格仍由 `tb_display_edge_rim` 量）
+        // 缺右邻：末列自己那一拍武装 ⇒ 落进行尾多跳那一格的中心（#103 把坐标抽头对齐到
+        // de 之后，这里从 `-2` 改回 `-1`；旗标落在哪一格仍由 `tb_display_edge_rim` 量）。
+        no_right_r [0] <= de_in && (x_in == H_ACTIVE[11:0] - 12'd1);
         no_above_r [0] <= de_in && !WRAP_CLAMP && (y_in == 12'd1) && row_first;   // 缺上邻：中心行 0（上面那一行不存在）
         // 缺下邻：连续绕回流在帧底把**下一帧第 0 行**当成最后一行的下邻。只武装在
         // `y_in==0` 的**第一**个显示行（此时中心是上一帧末行 299）；第二个显示行中心已经是 0，
