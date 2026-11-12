@@ -1,4 +1,5 @@
 `timescale 1ns/1ps
+`include "proc_pipeline_cfg.vh"
 // proc_pipeline：显示通路的效果链，级 0 gamma + 级 1..5 五个可选级（八个算法位 + 一个判决反相位），
 // 每级可逐位旁路。输入 de/x/y/din 像素流，输出 de_out/dout；固定 15 拍延迟，与哪一级开、同级选哪个算法都无关。
 // 内容偏移固定 −4 行、0 列：四个窗口级各贡献 −1 行，点运算级不贡献。
@@ -19,12 +20,13 @@ module proc_pipeline #(
     // ⚠ 窗口级是**三拍**不是两拍（`de_in → de_d1 → de_d2 → de_out` 三级寄存器）：顶层不许另写一个数、
     //   只取 `u_pipe.LATENCY`，tb_v86 **实测** de_in→de_out 再与它比 ⇒ 任一处漂移就有测试可红。级 0
     //   的 gamma 是分布式 RAM 组合读出 ⇒ **不占拍**；谁改成寄存读出（BRAM 风格）LATENCY 必须同时改成 16。
-    parameter integer LATENCY = 15,     // 声明的是本模块的固有延迟，**不许由外部覆盖**
+    // 数值唯一出处 = proc_pipeline_cfg.vh 的 `PROC_PIPELINE_LATENCY（顶层从同一宏取数，不许另写一个数）。
+    parameter integer LATENCY = `PROC_PIPELINE_LATENCY, // 声明的是本模块的固有延迟，**不许由外部覆盖**
     // 内容偏移（以"喂进来的流的一行"为单位）：**四个窗口级各贡献 −1 行**，点运算级不贡献 ⇒ 整链固定
     //   −4 行、0 列。这不是笔误：行缓存式 3×3 滤波在收到第 y 行时才算得出第 y−1 行的窗口，因果性决定它必然
     //   滞后一行。顶层能补：帧缓存是随机地址的，把右窗读坐标对应的**显示行**提前 OFF_LINES 行，链子
     //   自己的滞后正好把它抵消（零 BRAM，见 pl_video_top 的 cy_r）。
-    parameter integer OFF_LINES = 4,
+    parameter integer OFF_LINES = `PROC_PIPELINE_OFF_LINES, // 数值唯一出处 = proc_pipeline_cfg.vh
     // STREAM_WRAP：透传给四个窗口级（0 = 台架那套帧锚定流，1 = 顶层的绕回连续流）。
     //   正本说明与凭据在 proc_box_blur.v；顶层只在这里传一次，四个窗口级由它导出（I1：一个出处）。
     parameter integer STREAM_WRAP = 0,

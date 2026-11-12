@@ -171,7 +171,7 @@ module eth_udp_video_top #(
     wire [15:0] icmp_rec_byte_num;
     wire        icmp_tx_done, icmp_tx_req;
     wire        icmp_gmii_tx_en;
-    wire [7:0]  icmp_gmii_txd, icmp_tx_data;
+    wire [7:0]  icmp_gmii_txd;   // icmp_tx_data 随 V7.9.6 死路一起删（Qihe useless-data 坐实）
     reg  [15:0] icmp_tx_byte_num;
     reg  [5:0]  icmp_dly;
     reg         icmp_tx_start_en;
@@ -192,11 +192,15 @@ module eth_udp_video_top #(
     end
 
     wire        udp_gmii_tx_en, udp_tx_done, udp_tx_req;
-    wire [7:0]  udp_gmii_txd, udp_tx_data;
+    wire [7:0]  udp_gmii_txd;    // udp_tx_data 同上，已删
     wire [7:0]  crc_d8;   // V7.9.6：crc32_d8 的输入 = 发送线上正在出的字节（原来在 udp.v 内部）
-    wire [7:0]  fifo_tx_data;
-    wire        fifo_tx_req, fifo_rec_en;
-    wire [7:0]  fifo_rec_data;
+    // ⚠ 原来这里还有 fifo_tx_data/fifo_tx_req/fifo_rec_en/fifo_rec_data 一束 —— 厂商方案"外挂
+    //   发送 FIFO"的残余。V7.9.6 改道后整条无人消费：ICMP 直读 u_icmp_fifo（下面 u_icmp_fifo
+    //   的 rd_en）、UDP 直吃 tel_data（u_udp_tx 的 tx_data），eth_ctrl 里那条 tx/rec mux 的出口
+    //   icmp_tx_data/udp_tx_data/rec_* 全部悬空；而输入侧 fifo_tx_data 从来没有驱动者（Qihe
+    //   UndefinedUseAnalysis 当场抓获，Vivado 只会给一条含糊的 undriven 警告）。四个 wire 已删，
+    //   端口在 u_ctrl 例化处钉 0 / 悬空 —— 与 system_top r55 删 eth_wr_* 死束同一口径：
+    //   不让不存在的路径看起来像真的。
 
     wire [7:0] icmp_fifo_q;
     sync_fifo #(.DATA_W(8), .ADDR_W(11)) u_icmp_fifo (
@@ -308,8 +312,8 @@ module eth_udp_video_top #(
         .udp_gmii_tx_en(udp_gmii_tx_en), .udp_gmii_txd(udp_gmii_txd),
         .udp_rec_data(p_data), .udp_rec_en(p_valid),   // 这条 rec 转发路径本设计无人消费；接真字节而不是硬 0
         .udp_tx_req(udp_tx_req), .udp_tx_data(),
-        .tx_data(fifo_tx_data), .tx_req(fifo_tx_req),
-        .rec_en(fifo_rec_en), .rec_data(fifo_rec_data),
+        .tx_data(8'd0), .tx_req(),          // tx mux 无供数方（见上面 V7.9.6 残余的说明）
+        .rec_en(), .rec_data(),             // rec mux 出口同样无人消费（收侧正路是 p_data/p_valid）
         .gmii_tx_en(gmii_tx_en), .gmii_txd(gmii_txd)
     );
 

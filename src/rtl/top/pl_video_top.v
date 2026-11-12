@@ -1,4 +1,5 @@
 `timescale 1ns/1ps
+`include "proc_pipeline_cfg.vh"
 // pl_video_top：显示通路顶层（system_top 里那份 PL 逻辑）。链路 = video_timing_1024x600 出时序 →
 // axi_frame_writer_gated/64 把 DDR 里刚提交的一帧搬进显示帧缓存 → fb_bilin 读口 → proc_pipeline 效果链 →
 // split_display 原图/处理图逐像素混合 → osd_overlay 叠状态字 → 同一份 RGB888+同步同时走面板与 u_dvi。
@@ -247,12 +248,13 @@ module pl_video_top #(
     wire        left_pane = (x < PANE_W);      // 只留给调试位；内容选择从此不看它
     wire [11:0] cx = x >> 1;                   // 视口内的源列（0..511），左右两半同一个数
     wire [11:0] cy = (y >> 1) < IMG_H ? (y >> 1) : (IMG_H - 1);
-    // 右窗读坐标**提前 u_pipe.OFF_LINES 个显示行**（= 效果链的内容滞后，实测 −4 行且逐像素一致）：行缓存式
+    // 右窗读坐标**提前 `PROC_PIPELINE_OFF_LINES 个显示行**（= 效果链的内容滞后，实测 −4 行且逐像素一致）：行缓存式
     // 3×3 滤波必然滞后一整行 ⇒ "把数据提前"不可能，只能"把地址提前"（片源在帧缓存里，地址本来就是随机的）；
     // 且提前量必须加在 **mapper 的显示行输入**上而不是输出的源行上 —— 链子的滞后发生在显示栅格上，缩放/旋转
     // 之后"源行差 4"≠"显示行差 4"。#52 在这之上又叠了双线性读口行方向的 2 行（一对的结果要在这对的第二行
     // 才算得出）：请求行 = (Y+OFF+2)>>1，而实际显示的是上一对算出的 ⇒ 源行 = 它 −1 ✓；`u_raw` 那条行环不动。
-    // ⚠ BILIN_ROWS 必须**偶数**（`row0 = ~y[0]` 定成对奇偶，奇数会让一对分属两个源行 ⇒ A/B 错行）。凭据 tb_v89 T1、tb_v101 L3/L6、tb_video_pipeline_top C1c/C1d/C1h；缝连续性的最终凭据是眼睛（board/README.md 第 12 行）。
+    // ⚠ BILIN_ROWS 必须**偶数**（`row0 = ~y[0]` 定成对奇偶，奇数会让一对分属两个源行 ⇒ A/B 错行）。
+    //   凭据 tb_v89 T1、tb_v101 L3/L6、tb_video_pipeline_top C1c/C1d/C1h；缝连续性的最终凭据是眼睛。
     localparam integer BILIN_ROWS = 2;
     // bilin 的运行时 on/off：`gpio_o[19]`（#83）→ 这条 3 级同步 → `bilin_en_pix`。
     //   为什么走 gpio_o 而不是 cfg1：cfg1 的 32 位已满（report/COMMANDS.md §5 的位表），那是一次新跨域。
@@ -357,7 +359,7 @@ module pl_video_top #(
     // 混色级要的列坐标必须由**流水线深度**推出来，不许再抄字面量 11（ISSUES #68）。
     //   内容站在：3(`cx/cy` 打到 mapper 与左路的打拍) + 1(`rd_addr_q`) + 1(BRAM 读出) + PROC_LAT = 20 级。
     //   以前 `u_split` 拿的是 `x_d[11]` ⇒ 缝的判定比内容旧 9 列（台架 `tb_video_pipeline_top` 的 C-tap 钉住）。
-    localparam MIX_D = 3 + 1 + 1 + u_pipe.LATENCY;
+    localparam MIX_D = 3 + 1 + 1 + `PROC_PIPELINE_LATENCY;
     localparam SB = (MIX_D > 16) ? (MIX_D + 1) : 16;
     reg        de_d[0:SB-1], hs_d[0:SB-1], vs_d[0:SB-1], left_d[0:SB-1];
     reg [11:0] x_d[0:SB-1], y_d[0:SB-1], cx_d[0:SB-1], cy_d[0:SB-1];
@@ -836,8 +838,9 @@ module pl_video_top #(
     //   给链子准备的（链子内容天生滞后 4 行），原图抽头不需要它。补偿不是再开一个读口（第二个逻辑读口
     //   实测把 80 块 BRAM 顶到 160 块，全片才 140），而是把原图抽头整体延后 OFF_LINES 个显示行：
     //     第 r 行写进去的内容是源行 (r+OFF)>>1，第 r+OFF 行读出来 ⇒ 落在显示行 r+OFF 上，而那一行要的正是它
-    //     —— 列号由环按 x 寻址，一格都不偏。LINES 的唯一合法出处是 u_pipe.OFF_LINES（链子改了这条跟着改）。
-    localparam integer RAW_LINES = u_pipe.OFF_LINES;
+    //     —— 列号由环按 x 寻址，一格都不偏。LINES 的唯一合法出处是 `PROC_PIPELINE_OFF_LINES
+    //     （proc_pipeline_cfg.vh；proc_pipeline 的参数默认值与它同源，链子改了这条跟着改）。
+    localparam integer RAW_LINES = `PROC_PIPELINE_OFF_LINES;
     // #92 第三笔：**越界标签与像素打包过同一条环**。以前 `pix_raw` 过环（4 行 + 1 拍）而
     //   `oob_raw` 绕开环只走等长 skid ⇒ 到混色级时两者差 (4 行, 1 列)：画面右沿最后一列被
     //   "别的格子"的越界位按黑，上下边界的越界位来自别的行（屏上=上边缘有东西闪）。
@@ -865,7 +868,10 @@ module pl_video_top #(
     //       24 格（4 行 x 3 列 x 2 帧）同一件事；
     //     臂 B（内容口径）同样 bad=20，但位置挪到帧尾 out#28..31 ⇒ **换标签挪不走它，前瞻抽头才是病**
     //       （所以本笔与第二笔必须一起改：只改标签等于把带子从屏顶搬到屏底）。
-    //   ⚠ 改完 `cy_d` 这一路不再被消费，数组本身留到单独的删除轮（#66：删东西不混在改口径里）。
+    //   ⚠ 改完 `cy_d` 这一路不再被**设计逻辑**消费。但数组本体不许删：
+    //     tb_c8_edge_column / tb_video_pipeline_top 的 P101 探针层次读 `cy_d[3]`
+    //     （Qihe useless-data 不认层次读者会把整组报成死数据）。#66 说的"单独的删除轮"
+    //     据此取消——能删的只有"将来连探针一起退役"那一轮。
     wire [12:0] y_chain_adv = {1'b0, y_d[3]} + {5'b0, pipe_off_rows} + BILIN_ROWS[12:0] - 13'd2;
     wire [11:0] y_req_chain = y_chain_adv[11:0] >> 1;                 // 与 `y_req_row` 同一个算法，晚两行
     wire [11:0] cy_chain    = (y_req_chain >= img_h_12) ? (y_req_chain - img_h_12) : y_req_chain;
@@ -887,11 +893,11 @@ module pl_video_top #(
         .de_out(pipe_de), .dout(pipe_dout)
     );
 
-    // 处理链的延迟**只有一处定义**：proc_pipeline 自己的 LATENCY。
-    // 以前这里是字面量 7，于是"链上加一级"必须同时记得改这里 —— 忘了不是编译错，
-    // 而是左窗（原始画面）与右窗（处理后）错开 N 个像素。左窗的 skid 长度直接取 u_pipe 的值，
-    // 而 tb_v86 的 T2 实测 de_in→de_out 与 LATENCY 对账 ⇒ 两处任一处漂移就有测试可红。
-    localparam PROC_LAT = u_pipe.LATENCY;
+    // 处理链的延迟**只有一处定义**：proc_pipeline_cfg.vh 的 `PROC_PIPELINE_LATENCY
+    // （proc_pipeline 的参数默认值与它同源）。原来这里是字面量 7，于是"链上加一级"必须同时记得改这里
+    // —— 忘了不是编译错，而是左窗（原始画面）与右窗（处理后）错开 N 个像素。
+    // 左窗的 skid 长度取同一个宏，而 tb_v86 的 T2 实测 de_in→de_out 与 LATENCY 对账 ⇒ 两处任一处漂移就有测试可红。
+    localparam PROC_LAT = `PROC_PIPELINE_LATENCY;
     localparam LEFT_TAIL = PROC_LAT;
 
     // ---- #92 第一笔：两个抽头必须**同深**，否则缝上错开一整列 ----
@@ -930,6 +936,10 @@ module pl_video_top #(
     wire [15:0] proc_disp = ((sel_sync == 9'd0) && !gm_en) ? orig_disp : pipe_dout_q;
     wire        oob_out   = oob_skid[LEFT_TAIL-1];
 
+    // ⚠ 这五个 `_d11` 别名是**台架的层次观察探针**，不是死代码：
+    //   tb_video_pipeline_top（mix_de/mix_x/mix_y、c1_row）与 tb_c8_edge_column 直接
+    //   `dut.de_d11/x_d11/y_d11` 层次引用。Qihe 的 useless-data 不认层次读者，会把它们
+    //   报成 "defined but unused" —— 已判读为误报，**别删**（2026-11-12 实查 sim/*.v）。
     wire de_d11 = de_d[11], hs_d11 = hs_d[11], vs_d11 = vs_d[11];
     wire [11:0] x_d11 = x_d[11], y_d11 = y_d[11];
 

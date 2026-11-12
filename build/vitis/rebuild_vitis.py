@@ -20,7 +20,9 @@ import vitis
 
 REPO = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 WS = os.environ.get("VP_VITIS_WS") or os.path.join(REPO, "board", "vitis_ws")
-XSA = os.path.join(REPO, "board", "project", "system.xsa")
+# VP_XSA:换硬件规范时不必动 board/project 的提交件(例:Qihe 隔离构建的 build_qihe_check/system.xsa)。
+# 默认链路不变:先提交件,退 build/system.xsa。
+XSA = os.environ.get("VP_XSA") or os.path.join(REPO, "board", "project", "system.xsa")
 if not os.path.exists(XSA):
     XSA = os.path.join(REPO, "build", "system.xsa")
 PS_SRC = os.path.join(REPO, "src", "ps")

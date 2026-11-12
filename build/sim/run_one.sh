@@ -93,7 +93,8 @@ RTLALL=$(bash "$FP" | sed -n 's/^rtl=//p')
   echo "tb_md5=$(bash "$FP" "$ROOT/sim/$TB.v" 2>/dev/null | cut -c1-12)"
   echo "rtl_md5=$RTLALL"
   echo "date=$(date -Iseconds)"; } > prov.tmp
-$V/xvlog -f files.f > xv.log 2>&1
+# -i:src/rtl/include 放效果链常数头文件(proc_pipeline_cfg.vh),proc_pipeline/pl_video_top 都 `include 它
+$V/xvlog -i "$(cygpath -m "$ROOT/src/rtl/include")" -f files.f > xv.log 2>&1
 if grep -q "^ERROR" xv.log; then echo "XVLOG FAILED"; grep "^ERROR" xv.log | head -8; rm -f prov.tmp; exit 1; fi
 if [ ! -d xsim.dir/work ]; then echo "XVLOG 没建出 work 库，xv.log 尾部："; tail -3 xv.log; rm -f prov.tmp; exit 1; fi
 $V/xelab $TB -s snap > el.log 2>&1

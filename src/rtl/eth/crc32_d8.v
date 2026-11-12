@@ -85,7 +85,6 @@ module crc32_d8 (
         else if (crc_clr)  //CRC校验值复位
             crc_data <= 32'hff_ff_ff_ff;
         else if (crc_en) crc_data <= crc_next;
-        else;
     end
 
 endmodule
