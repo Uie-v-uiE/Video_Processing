@@ -17,7 +17,7 @@
 # 正常交付流程仍然应该用 FSBL/ELF 启动：只有 FSBL 会写 SLCR 里 FPGA_FCM*（HP 通道缓冲）
 # 一类的寄存器，ps7_init 的 tcl 版本不含这些写入。
 #
-# 顺序：ps_jtag_boot → program_pl → set_src → 推流 → 回读。
+# 顺序：ps_jtag_boot → program_pl → ps_app_reload → 推流 → 回读。
 
 set root [file normalize [file join [file dirname [info script]] .. ..]]
 set psinit ""
@@ -65,6 +65,10 @@ catch {rst -system} e1
 puts "RST_SYSTEM: [expr {$e1 eq {} ? {ok} : $e1}]"
 after 3000
 
+# xsdb 2025.2.1 在 PS 未初始化时会拦截 DDRC 写，先打开 force-mem-accesses；
+# 对已带这行的 ps7_init.tcl 是幂等的，对 xsa 里解出来的原件则是必需的（否则 DDR 一直 held in reset）。
+catch {configparams force-mem-accesses 1} cfg_acc
+puts "FORCE_MEM_ACCESSES: [expr {$cfg_acc eq {} ? {ok} : $cfg_acc}]"
 source $psinit
 targets -set 1
 catch {ps7_init} e2

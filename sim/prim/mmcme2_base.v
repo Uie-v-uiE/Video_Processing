@@ -74,7 +74,9 @@ module MMCME2_BASE #(
     endfunction
 
     reg c0 = 1'b0, c1 = 1'b0, c2 = 1'b0, c3 = 1'b0, c4 = 1'b0, c5 = 1'b0, c6 = 1'b0;
-    reg fb = 1'b0, lk = 1'b0;
+    // lk 的 0 由下面 initial 块第一句写：声明初始化与 initial 块同在 time-0 槽，双写是 LRM
+    //   意义上的竞态（Qihe race-cond 抓到），声明侧让位后整个槽里只剩一个写者，行为不变。
+    reg fb = 1'b0, lk;
 
     assign CLKOUT0  = c0;  assign CLKOUT0B  = ~c0;
     assign CLKOUT1  = c1;  assign CLKOUT1B  = ~c1;

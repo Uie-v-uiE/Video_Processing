@@ -28,6 +28,10 @@ foreach d {util clocks video process process/rotate process/zoom process/bilin a
 lappend rtl_files [file join $root src rtl top pl_video_top.v]
 lappend rtl_files [file join $root src rtl top system_top.v]
 add_files -norecurse $rtl_files
+# 效果链常数头文件(src/rtl/include/proc_pipeline_cfg.vh):proc_pipeline/pl_video_top 都
+# `include 它。include 目录与文件都要进 fileset,少一个 Vivado 就找不到 `include。
+add_files -norecurse [file join $root src rtl include proc_pipeline_cfg.vh]
+set_property include_dirs [list [file join $root src rtl include]] [current_fileset]
 add_files -fileset constrs_1 -norecurse [file join $root src constraints rk_zynq7020.xdc]
 # 异步时钟组单独一个文件，并且**只在实现阶段生效**：clk_fpga_0 由 PS7 IP 的 XDC
 # 创建，综合阶段还不存在，而 XDC 里不能用 if/catch（[Designutils 20-1307]）。
@@ -170,8 +174,8 @@ set_property -dict [list \
 # [19] 双线性、[26] gapclr、[31:27] lane 读回 都用掉了，只剩 9 位空；而 V8 的算法选择字就要
 # 9 位，后面 Gamma 的索引+数据窗口与分割线的位置/range/速度还要 30 多位。
 # 把这 64 位**一次开出来**（通道 2 现在故意不接），V8-3/V8-4 就不必再动 BD ——
-# 动一次 BD = 地址、约束、全套门禁重来。老工具（set_src.tcl / health_read.mjs /
-# arb_handover_test.mjs）读写的 gpio_0 位序一个都没动。
+# 动一次 BD = 地址、约束、全套门禁重来。老工具（health_read.mjs / arb_handover_test.mjs /
+# 串口上的按位写法）读写的 gpio_0 位序一个都没动。
 # 地址在下面钉死 0x41220000：固件里的 AXI_GPIO_CFG_BASE 必须等于它（BSP 不会重新生成
 # xparameters.h，基址是硬编码的，错了不是编译失败而是"写了没反应"）。
 create_bd_cell -type ip -vlnv xilinx.com:ip:axi_gpio:2.0 axi_gpio_2

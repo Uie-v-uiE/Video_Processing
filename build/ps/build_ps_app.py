@@ -108,6 +108,7 @@ def capture(exe, args):
 
 
 def cflags():
+    # COMPAT_DEFS = ensure_ps_compat 对 2025.2 全新 BSP 的宏注入(见顶部注释),老 BSP 为空。
     return ["-mcpu=cortex-a9", "-mfpu=vfpv3", "-mfloat-abi=hard",
             # 非对齐访问：板上撞到过两处，症状一模一样（data abort），根因不同。
             # ① -O2 会把逐字节读合并成一条 ldr（objdump 里看得见，源码没写错）⇒ 关掉合并。
@@ -116,7 +117,8 @@ def cflags():
             #    而 MMU 是标准启动 boot.S 开的 ⇒ 这条选项 + 链上那三个 BSP 启动文件，两条一起才成立。
             "-mno-unaligned-access",
             "-ffunction-sections", "-fdata-sections", "-Wall", "-Wextra", "-Wno-unused-parameter",
-            "-O2", "-I" + os.path.join(BSP, "include"), "-specs=" + os.path.join(BSP, "Xilinx.spec")]
+            "-O2", "-I" + os.path.join(BSP, "include"), "-specs=" + os.path.join(BSP, "Xilinx.spec")
+            ] + COMPAT_DEFS
 
 
 def compile_units(objs):
@@ -155,8 +157,11 @@ def link(objs, lds):
     # readelf 的入口悄悄变成 0x0，一声不响——self_check 里那条等值校验就是它的哨兵。
     run(cflags() + objs + ["-Wl,--gc-sections", "-Wl,-n", "-Wl,--no-warn-mismatch",
                            "-T" + lds, "-L" + os.path.join(BSP, "lib"), "-Wl,--start-group",
-                           # -lm 是 gamma 曲线（pow）要的；放进 group 是因为 newlib 的 libm 反过来依赖 libc
-                           "-lxil", "-lgcc", "-lc", "-lm",
+                           # -lm 是 gamma 曲线（pow）要的；放进 group 是因为 newlib 的 libm 反过来依赖 libc。
+                           # 三个 BSP 归档一起给（2025.2 分装:_start/异常 handler 只在 libxilstandalone）;
+                           # 交付时代的老 BSP 是合并单档,当时只写 -lxil 也过——新 BSP 少一个就链接失败。
+                           "-lxil", "-lxilstandalone", "-lxiltimer",
+                           "-lgcc", "-lc", "-lm",
                            "-Wl,--end-group", "-o", OUT])
 
 
@@ -215,6 +220,70 @@ def self_check():
           % (bt, vt, st))
 
 
+# 2025.2 全新 BSP 对本工程的兼容注入(ensure_ps_compat 实测后填;老 BSP 已含这些宏时为空):
+#   ① xparameters 只出新名 XPAR_CPU_CORE_CLOCK_FREQ_HZ,vendor xtime_l.h 的
+#     COUNTS_PER_SECOND 经 xparameters_ps.h:130 要旧名 XPAR_CPU_CORTEXA9_0_CPU_CLK_FREQ_HZ;
+#   ② ps7 内部 XADC 在 hwh 里无独立条目 ⇒ xparameters 无 XPAR_XADCPS_0_* 且 xadcps 驱动
+#     没编进任何归档,而交付 elf 里有 XAdcPs(交付 BSP 是老 embeddedsw,有这一套)。
+#     处理 = 按文件级 -DSDT 现编 libsrc 的 xadcps(表的形态即 SDT 变体),宏用
+#     DEVICE_ID=BASEADDR=0xF8007100:main.c 的非 SDT 分支传出 0xF8007100,
+#     SDT 版 LookupConfig 按基址匹配表中同值条目 ⇒ CfgInitialize 落在真 XADC 基址上。
+COMPAT_DEFS = []
+
+
+def ensure_ps_compat(objs):
+    """补齐 2025.2 全新 BSP 相对交付 BSP 缺的三件(头文件/宏/驱动对象)。"""
+    inc = os.path.join(BSP, "include")
+    defined = set()
+    for m in re.finditer(r"#define\s+(XPAR_[A-Z0-9_]+)",
+                         capture_collect(inc)):
+        defined.add(m.group(1))
+    lib_syms = ""
+    for a in sorted(os.listdir(os.path.join(BSP, "lib"))):
+        if a.endswith(".a"):
+            lib_syms += capture(tool("nm.exe"), [os.path.join(BSP, "lib", a)])
+    # ① CPU 频率旧名(链条见 COMPAT_DEFS 注释)
+    if ("XPAR_CPU_CORTEXA9_0_CPU_CLK_FREQ_HZ" not in defined
+            and "XPAR_CPU_CORE_CLOCK_FREQ_HZ" in defined):
+        COMPAT_DEFS.append("-DXPAR_CPU_CORTEXA9_0_CPU_CLK_FREQ_HZ=XPAR_CPU_CORE_CLOCK_FREQ_HZ")
+    # ② xtime_l.h 头文件 + 现编 xtime_l.o
+    if "XTime_GetTime" not in lib_syms:
+        lsrc = os.path.join(BSP, "libsrc", "standalone", "src", "arm", "cortexa9")
+        src = os.path.join(lsrc, "xtime_l.c")
+        need(src, "BSP libsrc xtime_l.c")
+        hdr_d = os.path.join(inc, "xtime_l.h")
+        if not os.path.isfile(hdr_d):
+            shutil.copyfile(os.path.join(lsrc, "xtime_l.h"), hdr_d)
+        print("CC  BSP/xtime_l.c（2025.2 BSP 没把它编进 libxil.a，现编补齐）")
+        run(cflags() + ["-c", src, "-o", "xtime_l.o"])
+        objs.append("xtime_l.o")
+    # ③ XADC:宏注入 + xadcps 驱动按 SDT 形态现编
+    if ("XPAR_XADCPS_0_BASEADDR" not in defined
+            and "XPAR_XADCPS_0_DEVICE_ID" not in defined):
+        COMPAT_DEFS.append("-DXPAR_XADCPS_0_DEVICE_ID=0xF8007100")
+        COMPAT_DEFS.append("-DXPAR_XADCPS_0_BASEADDR=0xF8007100")
+        xsrc = os.path.join(BSP, "libsrc", "xadcps", "src")
+        need(os.path.join(xsrc, "xadcps.c"), "BSP libsrc xadcps 驱动")
+        if "XAdcPs_LookupConfig" not in lib_syms:
+            print("CC  BSP/xadcps（2025.2 BSP 没编 PS-XADC 驱动，按 SDT 表形态现编）")
+            for f in ("xadcps.c", "xadcps_g.c", "xadcps_sinit.c", "xadcps_intr.c", "xadcps_selftest.c"):
+                if not os.path.isfile(os.path.join(xsrc, f)):
+                    continue
+                run(cflags() + ["-DSDT", "-c", os.path.join(xsrc, f),
+                                "-o", "xadcps_" + re.sub(r"\.c$", ".o", f)])
+                objs.append("xadcps_" + re.sub(r"\.c$", ".o", f))
+
+
+def capture_collect(inc_dir):
+    """把 BSP include 的 xparameters*.h 拼成一个文本,供宏存在性扫描。"""
+    parts = []
+    for f in sorted(os.listdir(inc_dir)):
+        if f.startswith("xparameters") and f.endswith(".h"):
+            with open(os.path.join(inc_dir, f), "r", encoding="utf-8", errors="replace") as fh:
+                parts.append(fh.read())
+    return "\n".join(parts)
+
+
 def main():
     need(os.path.join(BSP, "include", "xparameters.h"), "BSP xparameters.h")
     need(os.path.join(BSP, "lib", "libxil.a"), "BSP libxil.a")
@@ -229,6 +298,7 @@ def main():
         shutil.rmtree(OBJ, ignore_errors=True)
     os.makedirs(OBJ, exist_ok=True)
     objs = []
+    ensure_ps_compat(objs)   # 必须先于 compile_units:main.c 要用补进来的宏与头文件
     compile_units(objs)
     link(objs, lds)
     self_check()

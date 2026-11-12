@@ -24,7 +24,10 @@ done
 while IFS= read -r f; do SRC+=("$f"); done < <(find "$ROOT/sim/prim" -maxdepth 1 -name '*.v' | sort)
 for tb in "$@"; do SRC+=("$ROOT/sim/tb_$tb.v"); done
 
-"$MS/vlog" -sv -work work "${SRC[@]}" > compile.log 2>&1
+# ⚠ +incdir+ 的路径必须过 cygpath -m:MSYS 只转换以 / 开头的参数,"+incdir+/d/..." 这种
+#   复合参数不会被转换,vlog(原生 Windows 程序)收到字面 /d/... 直接找不到目录
+#   (2026-11-11 实测:include 全部 miss → 宏未定义 → VLOG FAILED)。
+"$MS/vlog" -sv -work work "+incdir+$(cygpath -m "$ROOT/src/rtl/include")" "${SRC[@]}" > compile.log 2>&1
 if [ $? -ne 0 ]; then
     echo "VLOG FAILED — 见 $OUT/compile.log"
     grep -aE "Error|error" "$OUT/compile.log" | head -20

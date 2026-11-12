@@ -6,7 +6,7 @@
 //   的同一列 ⇒ 延迟恰好 = LINES 行 + 1 拍、**列不偏**。**不是**几级 `line_cache` 串起来（第一版就是，被
 //   `tb_raw_delay` 当场打掉）：串 N 个 = 延后 N 行**又**多花 N 拍 ⇒ 列偏 N 格，而这种错在模块级台架看不见。
 module raw_line_delay #(
-    parameter integer LINES = 4,     // 延后几行（唯一合法来源：u_pipe.OFF_LINES）
+    parameter integer LINES = 4,     // 延后几行（唯一合法来源：proc_pipeline_cfg.vh 的 `PROC_PIPELINE_OFF_LINES，顶层传 RAW_LINES）
     parameter integer W     = 512,   // 一行多少个**有效**像素（4b 之后是源列数，不是面板列数）
     // 一路多少位。**#92 的教训写在这里而不是藏在调用处**：与像素同源的那份"越界"标签必须
     // 和像素**过同一条环**。顶层以前让 `pix_raw` 过环（4 行 + 1 拍）、让 `oob` 绕开环只走

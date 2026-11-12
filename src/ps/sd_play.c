@@ -6,13 +6,14 @@
  * 一个只读目录扫描 200 行就够。引入 FatFs 反而多一层没人验过的代码。
  *
  * 卡上的内容（make_sd_video.mjs 生成，写卡时逐文件 md5 已核对）：
- *   VIDEO000.BIN .. VIDEO008.BIN   每个 512 帧 × 307200 B = 153.6 MiB
+ *   VIDEO000.BIN ..（段数不固定：按 --chunks 切，当前卡 6 段）
+ *     每段 512 帧 × 307200 B = 150 MiB（153.6 MB）
  *   META.TXT   WIDTH/HEIGHT/FRAME_BYTES/FRAMES/FPS/CHUNK_FRAMES/FILES/SOURCE + FILEi=名字 FRAMES=n BYTES=b
  *
  * 帧的落地路径刻意做成"零拷贝"：SD 控制器的 DMA 直接写 PL 要读的那块 DDR，
  * 写完只发一次发布脉冲 ⇒ PS 不需要 300 KB 的 memcpy，也不需要第二块 DDR 做双缓冲。
  *
- * 播放协议（与 pl_video_top.v 的改动配套，见 report/log/OVERNIGHT_LOG.md §P1）：
+ * 播放协议（与 pl_video_top.v 的改动配套）：
  *   PS 把一帧 DMA 进 DDR → 翻转 GPIO bit18 → PL 在下一个 frame_start 复制一次。
  *   "复制一次"而不是"每帧都复制"是关键：前者让 PS 有整个帧周期可以安全覆写 DDR；
  *   后者会在 PS 写到一半时把半张新图 + 半张旧图搬上屏（撕裂）。
@@ -192,7 +193,7 @@ static int kv_u32(const char *s0, const char *key, u32 *out)
          * 和指进 s0 里的指针永远不相等，于是"关键字出现在串首"这一种恰恰不成立；
          * 再巧的是调用方把空格换成了 '\0' 才传进来，s[-1] 读到的是那个 '\0'，
          * 三个字符一个都不匹配 ⇒ 板上实测 "FILE0=VIDEO000.BIN FRAMES=100 BYTES=…" 一律报
-         * "META: FILE line without FRAMES"（ISSUES #43：判据要能被独立测试，见 report/log/ISSUES.md）。 */
+         * "META: FILE line without FRAMES"（ISSUES #43：判据要能被独立测试，见 report/issues/key-issues.md）。 */
         if (s[kl] == '=' && (s == s0 || s[-1] == ' ' || s[-1] == '\r' || s[-1] == '\n')) {
             *out = (u32)strtoul(s + kl + 1, 0, 10);
             return 1;
@@ -508,7 +509,7 @@ int sd_mount(void)
 
     clus = dir_lookup("META.TXT");
     if (!clus) { err = "META.TXT not found in root dir"; return -1; }
-    /* META.TXT 现在是 712 B（9 个 FILE 行），**不能再假定它装得进一个扇区**：
+    /* META.TXT 可能超过一个扇区（当前卡 6 个 FILE 行，历史卡 9 行 / 712 B），**不能再假定它装得进一个扇区**：
      * 原来这里读 1 个扇区、Meta 也只有 512 B，于是第 5 个 FILE 行的数字被从中间切断
      * （"FRAMES=512" 读成 "FRAMES=51"），板上就看到 files=5 / Σ=2099，而卡本身逐字节是好的
      * （PC 上重生成后 md5 与卡上完全一致，包括 META）。⇒ 改成"读满首簇、上限 = 缓冲区/512"，
@@ -575,7 +576,7 @@ int sd_mount(void)
  * 所以这里在重挂之前把 `IsReady` 清掉，让 `CfgInitialize` 真的去做它该做的
  * `PortReset` + 寄存器初始化。A 侧凭据（改之前，卡在不插的状态下敲 `sd remount`）：
  *     [SD] remount failed: XSdPs_CfgInitialize failed
- * B 侧凭据见 `report/log/ISSUES.md` #45/#94 的 06:2x 追加段。
+ * B 侧凭据见 `report/issues/key-issues.md` #45/#94 的 06:2x 追加段。
  */
 int sd_remount(void)
 {
@@ -743,7 +744,7 @@ static int open_at(u32 i, u32 off)
         return -1;
     }
     byte_off = (u64)off * (u64)FRAME_BYTES;
-    skip64 = byte_off / bpc;                          /* 64 位算，卡上的 FFAMES 再大也不回绕 */
+    skip64 = byte_off / bpc;                          /* 64 位算，卡上的 FRAMES 再大也不回绕 */
     if (skip64 > 0xFFFFFFFFu) { err = "frame byte offset out of range"; return -1; }
     skip = (u32)skip64;
     while (skip--) {

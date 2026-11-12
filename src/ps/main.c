@@ -21,7 +21,7 @@
 #include <stdio.h>
 #include <string.h>
 #include <stdlib.h>
-#include <math.h>                 /* V8-3 的 gamma 曲线；链接要 -lm（build/ps_app.mjs） */
+#include <math.h>                 /* V8-3 的 gamma 曲线；链接要 -lm（build/ps/build_ps_app.py） */
 #include "xparameters.h"
 #include "xil_printf.h"
 #include "xil_io.h"
@@ -48,8 +48,9 @@
 #define AXI_GPIO_BASE 0x41200000u
 #define GPIO_DATA     (AXI_GPIO_BASE + 0x00u)
 #define GPIO_TRI      (AXI_GPIO_BASE + 0x04u)
-/* 第二片 AXI GPIO 是输入口：gpio_o[31:27] 选健康 lane，这里读回那条 32bit 快照。
- * 地址与 BD 的 axi_gpio_1 一致；health_read.mjs 的 JTAG 路径读的是同一个口。 */
+/* 健康读回口（BD 的 axi_gpio_1，基址 = AXI_GPIO_BASE + 0x10000）：
+ * 写 gpio_o[31:27] 选 lane，这里读回那条 32bit 快照。
+ * src/host/health_read.mjs 的 JTAG 路径读的是同一个口。 */
 #define LM_DATA       (AXI_GPIO_BASE + 0x10000u)
 #define PUBLISH_BIT   18u
 #define BILIN_BIT     19u     /* 右窗双线性插值开关：0 = 最近邻（同一条通路，小数钉 0） */
@@ -76,7 +77,7 @@
  * 重新生成 xparameters.h，地址变了不会编译失败，只会"写了没反应"。
  * 通道 2（+0x08）留给 V8-3 的 Gamma 窗口与 V8-4 的分割线参数，现在一个字都不写。
  * ⚠ 这一条把 elf 与 bit 绑死了：**旧位流上没有这个从设备**。开机自检会写 0 再读回来，
- *    读不回 0 就大声报"位流/elf 不配套"（配套关系由 build/frozen_* 的 md5 清单管）。 */
+ *    读不回 0 就大声报"位流/elf 不配套"（三件套的 md5 核对见 board/project/README.md）。 */
 #define AXI_GPIO_CFG_BASE 0x41220000u
 #define CFG_DATA0         (AXI_GPIO_CFG_BASE + 0x00u)
 /* 通道 2（+0x08）= V8-3 的 Gamma 窗口。位序与 `src/rtl/video/gamma_lut.v` / spec §6b 一致：
@@ -154,7 +155,7 @@ static u32 cur_split = (512u << SPLIT_POS_SHIFT);   /* 默认缝在正中 = 旧�
  * 而"一个发射触发器扇出到两组目的域"正是 CDC-11 Critical 的签名（#65 与 r54 构建 #34
  * 各为它红过一次门禁）。
  * ⚠ 位图现在有三处读者，改任何一处必须同一次把三处改完：这里的宏、
- *   pl_video_top 的 split_ctl 端口注释、report/log/ISSUES.md #70 追加。 */
+ *   pl_video_top 的 split_ctl 端口注释、report/issues/key-issues.md #70 追加。 */
 #define ROT_AUTO_BIT    (1u << 9)
 #define ROT_SPEED_SHIFT 10u
 #define ROT_SPEED_MASK  (7u << ROT_SPEED_SHIFT)
@@ -173,7 +174,7 @@ static u32 split_pos_clamp(u32 *px) {
 static u32 cur_sel = 0;        /* 效果选择的唯一真相（九位，一位一级） */
 static u8  cur_thr = 80;
 static u8  cur_src = 0;
-static u8  cur_zoom = 1;   /* GPIO bit17: 右屏无极缩放的"要不要呼吸" */
+static u8  cur_zoom = 1;   /* GPIO bit17: 缩放模块总开关（呼吸/手动都归它管，见 cur_zman） */
 /* V8-8 手动缩放：档号 0..7 对应 0.25/0.33/0.50/0.75/1.00/1.33/1.50/2.00 倍，走 cfg1
  * （= CFG_DATA0 = 0x41220000，与 stage_sel **同一个字**）的 [28:26]，手动旗标在 [29]。
  * 位序的理由写在 PLAN_V8_SPEC §7a/§7c。 */
@@ -183,8 +184,8 @@ static u8  cur_zsel = 4;         /* 默认 1.00x —— 与 reset 时 RTL 的 IN
  *              同一块板子每次冷启动都要人先敲一次 `zoom 1.0` 才对得上（今早的冷跑电池就是红在 `zman` 这一格）；
  *            ② 评委第一次看到屏时，"画面自己在缩放"会被误读成"卡顿/漂移"，静止画面 + OSD 才是可读的开场；
  *            ③ 呼吸是**一条命令就有**的效果（`zoom auto`），把它当第 2 幕演示比当默认档更有说服力。
- * RTL 侧 `zman` 是权威的：`pl_video_top.v:972` 用 `zoom_run && !zman_pix && !zoom_fit_en` 生成"要不要标 (Auto)"，
- * `:301` 把同一个位送进几何 ⇒ 这一位为 1 就真的不呼吸，不是只改个显示。
+ * RTL 侧 `zman` 是权威的：`pl_video_top.v:1180` 用 `zoom_run && !zman_pix && !zoom_fit_en` 生成"要不要标 (Auto)"，
+ * `:335` 把同一个位送进几何 ⇒ 这一位为 1 就真的不呼吸，不是只改个显示。
  * 观感要回来：`zoom auto`（或按键那一路）；`[STAT]` 与屏上第 3 行的括号会跟着说实话。 */
 static u8  cur_zman = 1;         /* 1 = 手动档（上电默认，与文档一致）；0 = 自动呼吸 */
 static const u8   ZOOM_X100[8] = { 25, 33, 50, 75, 100, 133, 150, 200 };
@@ -212,8 +213,8 @@ static u32 ctrl_write(void)
 {
     u32 v;
     /* [4:0] 是 V7 那五位效果的旧位置 —— **保留但恒写 0**（PL 侧那个入口已经删了，#66）。
-     * 为什么还占着：BD 里 gpio_o 是 32 位整字，位序一改，`set_src.tcl`/`health_read.mjs`
-     * 这些按位写的工具就全错位；空位比"重排一遍再逐个改工具"诚实。 */
+     * 为什么还占着：BD 里 gpio_o 是 32 位整字，位序一改，`src/host/health_read.mjs`
+     * 这类按位读写的工具就全错位；空位比"重排一遍再逐个改工具"诚实。 */
     v = ((u32)cur_thr << 8) | ((u32)cur_src << 16)
       | ((u32)(cur_zoom ? 1 : 0) << 17) | (pub_lvl << PUBLISH_BIT)
       | ((u32)(cur_bilin ? 1 : 0) << BILIN_BIT)
@@ -259,7 +260,7 @@ void ps_publish(void)
  * 那是拿掉一个红（拔卡冻帧）换来一个新红（一切暂停就丢画面），不划算。
  * 心跳周期是 100 ms，PL 那侧的看门狗是 500 ms（`pl_video_top.v` 的 PS_SRC_TIMEOUT_MS，
  * `tb_src_life` 的 S12 按它判）。2026-10-20 曾试过把心跳降到 250 ms 以减少全帧重搬，
- * 但 `build/gates.sh` 的 A2 判据是 `hb*3 <= timeout`（250*3=750 > 500），当场判红 ⇒ 回退到
+ * 但门禁 A2 判据是 `hb*3 <= timeout`（250*3=750 > 500），当场判红 ⇒ 回退到
  * 100 ms。这条比例不是"越省越好"，是给主循环最长阻塞（gamma_set ~2.6 ms、一次 SD 读）
  * 留出故障余量；要改先改判据并说明新的余量，不能只改常数。
  * 重发的是**同一帧**：DDR 里那张画没动，PL 重新搬一遍，屏幕上看不出差别。 */
@@ -480,7 +481,7 @@ static u32 legacy_to_sel(u32 e)
 
 /* 只收九位。给到五位（V7 的老写法）时**不猜、不补零、不静默改意思**：把等价的九位原样算出来
  * 印给他看，一句就知道该敲什么。（旧版本在这里"两种都收"，代价是同一个串有两种答案 ——
- * 那条差异昨天还写在 HOST_GUIDE 里，今天随五位一起退掉了。）
+ * 那条差异昨天还写在命令手册里，今天随五位一起退掉了。）
  * ⚠ 打印顺序必须与 `parse_bits` **同侧**：那串字符是"第 0 个字符 = 第 0 位 = gray"，
  *   所以这里必须从 bit0 往后打。反过来打（先打 bit8）给出的是一串镜像，照着敲会开出
  *   完全不同的几级 —— `pipe_len_check` 的 B 段就是拿这个当 FAIL 的（今天被它抓到过一次）。
@@ -622,8 +623,7 @@ static void print_sel_names(u32 sel)
 /* ================= V8 spec §14：统一文本协议 =================
  * 一行 = 动词 + 至多 3 个参数，大小写不敏感。
  * 老写法（SRC0 / TH80 / ZOOM1 / BILIN0 / FRAME12 / 裸 00111）**继续有效**：
- * `report/HOST_GUIDE.md`、`report/DEMO_SCRIPT.md` 和 `build/tcl/set_src.tcl` 都在发它们，
- * 换语法不能把这些工具判成"命令没响应"。
+ * `report/commands.md` 与 `src/host/health_read.mjs` 的按位路径都在发它们，换语法不能把这些工具判成"命令没响应"。
  * 老写法是 `strncmp(buf,"TH",2)` 这种前缀匹配，参数是"粘在动词后面"的；新解析器把参数按空白
  * 切开单独取，顺带把 "THE" 也能当 TH 用的那个宽接受集关掉。
  */
@@ -631,8 +631,8 @@ static void print_sel_names(u32 sel)
  * V9-5 之前是 4 —— 那时最长的命令是 `split range 20 80` 这种"动词 + 2 参数"。
  * 现在 `gamma auto 1.20 2.60 20 1500` 要 6 个 token，而 tokenize 是**静默截断**的：
  * 超出的参数不会被看见，于是"我明明设了步长，它却按默认步长走"——那正是 #67 禁止的
- * "收了但什么都不做"。所以抬到 8（留两个余量），并且真正的上限其实由 `buf[48]` 管：
- * 48 字节里塞不下 9 个有内容的 token。 */
+ * "收了但什么都不做"。所以抬到 8（留两个余量）；真正的上限由 `CMD_BUF`（128 字节）兜底，
+ * 一行再长也会被整行丢弃并明确报错，不会被截断后当正常命令执行。 */
 #define T_MAX 8
 
 static void cmd_help(void);
@@ -910,7 +910,8 @@ static void cmd_temp(int n, char **tk)
         osd_s[0] = '-'; osd_s[1] = '-'; osd_s[2] = 0;
     }
     xil_printf("[TEMP] degC=%s%d.%02d raw=0x%04x vccint=%dmv th=%dC over=%d sane=%d osd=%s gpio=0x%02x\r\n",
-               (mc < 0) ? "-" : "", (int)(a / 1000), (int)((a / 10) % 100), rt, mv, temp_th_deg, over, sane,
+               (mc < 0) ? "-" : "", (int)(a / 1000), (int)((a / 10) % 100),
+               rt, mv, temp_th_deg, over, sane,
                osd_s, (unsigned)(Xil_In32(CFG_DATA1) & GM_TEMP_MASK));
     if (!sane)
         xil_printf("[TEMP!] raw=%04x 译出来 %s%d.%02d °C 不像一次真实转换 ⇒ "
@@ -1055,9 +1056,9 @@ static int dispatch(char **tk, int nt)
         const char *arg = (nt >= 2) ? tk[1] : tk[0] + 5;   /* BILIN 是 5 个字母 */
         int b = -1;
         if (nt >= 2 && ci_eq(tk[1], "SHOW")) {
-            /* 为什么要把"什么时候才看得出差别"一起印出来：这个开关在**旋转态**与**1.00 倍**下
-             * 按构造都不改变任何一个像素（`zoom_mapper.v:73-74` 旋转通路把 frac 钉 0；1:1 时 frac 天生 0），
-             * 所以只说"bilin=1"会让人以为开关坏了 —— 那是 ISSUES #86，不是这条命令坏了。 */
+            /* 什么时候才看得出差别：只有倍率非整数时才有小数位可插。1.00× 下 frac 按构造恒 0，
+             * 所以开关看不出变化；旋转态从 r94/#104 起小数位已经真的交给读口，同样算"非整数"。
+             * 只说"bilin=1"会让人以为开关坏了 —— 那是 ISSUES #86，不是这条命令坏了。 */
             xil_printf("[BILIN] bilin=%s（gpio_o[19]）；看得出的条件：倍率非整数（旋转态也算 —— r94/#104 起"
                        "旋转支的小数位真的交给读口了）；例：src 0 → zoom 1.5 → bilin off/on\r\n",
                        cur_bilin ? "on" : "off");
@@ -1323,7 +1324,7 @@ static int dispatch(char **tk, int nt)
     }
     /* `bilin on/off` 与 `osd on|off` 都是活的：上面 `ci_pre(tk[0], "BILIN")` /
      * `ci_pre(tk[0], "OSD")` 是前缀匹配、先到先赢，并各自写进 `gpio_o[19]`/`gpio_o[20]`，
-     * PL 侧的读口在 `system_top.v:286` 与 `pl_video_top.v:251-262`（#83）。
+     * PL 侧的读口在 `system_top.v:310` 与 `pl_video_top.v:38`（同步在 `:262-266`，#83）。
      * 这里不再放任何"待接"分支：一条永远走不到的桩会把下一个查 bilin 的人引到 PL 侧去。 */
 
     if (ci_pre(tk[0], "FRAME")) {
@@ -1472,9 +1473,10 @@ static int dispatch(char **tk, int nt)
 
 static void cmd_help(void)
 {
-    xil_printf("  V8 语法: src auto|0|1|2 | pipe <九位>|pipe show | th 80 | zoom on|off|auto|<倍率> | bilin on|off |"
+    xil_printf("  基本语法: src auto|0|1|2 | pipe <九位>|pipe show | th 80 | zoom on|off|auto|<倍率> | bilin on|off |"
                " osd on|off |"
-               " gamma off|1.8 | frame N | sd [files|file n|remount] | play | stop | fill | autoplay 0|1 | temp [th <°C>] |"
+               " gamma off|1.8 | frame N | sd [files|file n|remount] | play | stop | fill |"
+               " autoplay 0|1 | temp [th <°C>] |"
                " link [clr] | stat | help\r\n");
     xil_printf("  pipe 九位一位一级（gray/invert/blur/sharpen/sobel/binary/bin_pol/erode/dilate）；"
                "五位是 V7 老位序，给了只回一句等价的九位、不生效。**其余长度一律拒**\r\n");
@@ -1574,7 +1576,7 @@ static void rx_fill(void)
             *   之后派发那两个 `for (i < cmd_len)` 会读到数组外一格：症状是用户明明发完了一整行，
             *   固件却回一句"line unfinished（残包）"把它丢掉 + 多打一条提示。
             *   现在换行支也判界（`cmd_len < CMD_BUF`）：行满就**不再追加**，多出来的那个行尾被丢掉，
-            *   派发读到的永远是数组内的字节。板级指纹见 `board/cmd_overflow_probe.sh` 的 O1/O2。 */
+            *   派发读到的永远是数组内的字节。板级复现：127 个载荷字节 + CRLF，不应回残包提示。 */
             if (cmd_discard) {
                 /* 超长行的字节在溢出那一拍已经截掉，这里只清状态；前面已经收完的行
                  * 仍留在缓冲里，留给 uart_poll 照常派发（#502）。 */
@@ -1675,7 +1677,7 @@ int main(void)
     if (rb != 0x1FFu || rb2 != 0x00780000u)
         xil_printf("[CFG!] %08x 写 1ff/780000 读回 %03x/%06x —— 位流里没有新的 axi_gpio_2，"
                    "或它不是 32 位（缩放/分割那些高位会被吞），elf/bit 不配套"
-                   "（配套关系见 build/frozen_*）\r\n", CFG_DATA0, rb, rb2 >> 12);
+                   "（配套关系见 board/project/README.md）\r\n", CFG_DATA0, rb, rb2 >> 12);
     else
         xil_printf("[CFG] axi_gpio_2 @%08x ok\r\n", CFG_DATA0);
 

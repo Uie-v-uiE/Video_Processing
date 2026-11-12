@@ -59,12 +59,16 @@ module effect_ctrl (
 
     // 位序照 `PLAN_V8_SPEC.md` §6b 的字：[31] en、[30] wr（翻转=写一项）、[29:22] data、[21:14] idx、
     //   [13:8] **gamma_disp**（只给 OSD 看，不参与运算）、[7:0] **temp_disp**（XADC 编成 BCD 两位）。
-    // 为什么并进这一条链而不另开一组：§7a 第三条规矩"新增的位一律走 effect_ctrl 已有的那条 ASYNC_REG 链"——新开一组就多一对跨域配对、`cdc.rpt` 基线要重画，而那 3 行 Critical 是唯一能挡住"新代码裸采样"的门禁。
+    // 为什么并进这一条链而不另开一组：§7a 第三条规矩"新增的位一律走 effect_ctrl 已有的那条
+    // ASYNC_REG 链"——新开一组就多一对跨域配对、`cdc.rpt` 基线要重画，而那 3 行 Critical
+    // 是唯一能挡住"新代码裸采样"的门禁。
     // ⚠ 温度为什么由 PS 先算成 BCD 再跨、不在这里除：OSD 那五行字符是一整块组合逻辑，而 `u_pipe/xd_reg →
     //   u_osd/g_reg/D` 正是 clkout0_1 那条 27 级的关键路径（r63b/r63c/r64b 三份报告都指着它），多一次 /100 与
     //   /10 就是往全设计最差的链上加深度（先例：Latency 从 #59 起就是"axi 域逐次除法做完再按翻转位跨域"）。
     always @(*) begin
-        {gamma_en, gamma_wr, gamma_data, gamma_idx, gamma_disp, temp_disp} = gm_sync;   // 代价说清楚：温度那一格的十进制口径由 PS 说了算、PL 只照画 ⇒ "屏上写的数"与 `temp` 打印的数必然同源（判据 tb_osd_overlay T15 钉的就是"画的是编码，不是猜的"）
+        // 代价说清楚：温度那一格的十进制口径由 PS 说了算、PL 只照画 ⇒ "屏上写的数"与
+        // `temp` 打印的数必然同源（判据 tb_osd_overlay T15 钉的就是"画的是编码，不是猜的"）。
+        {gamma_en, gamma_wr, gamma_data, gamma_idx, gamma_disp, temp_disp} = gm_sync;
     end
 
     wire [8:0] sel_pix = sel_sync[8:0];
