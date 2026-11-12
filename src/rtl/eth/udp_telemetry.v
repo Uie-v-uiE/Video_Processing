@@ -94,7 +94,7 @@ module udp_telemetry #(
             // 下一拍上 GMII ⇒ 这里只能寄存**一级**：req 当拍选 pay[idx]，下一拍即 tx_data。
             // 多插一级（曾经是 q + tx_data 两级）会把整包右移一字节、首字节变成 0。
             if (tx_req && busy) begin
-                tx_data <= pay[idx];
+                tx_data <= pay[idx[4:0]];   // pay 是 32 项：显式取低 5 位，索引范围与数组同宽
                 if (idx != 6'd31) idx <= idx + 1'b1;
             end
             if (tx_done) busy <= 1'b0;
