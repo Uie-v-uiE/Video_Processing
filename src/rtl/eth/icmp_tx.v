@@ -62,8 +62,8 @@ module icmp_tx (
     reg [7:0] cur_state;
     reg [7:0] next_state;
     reg [7:0] preamble[7:0];  //前导码
-    reg [7:0] eth_head[15:0];  //以太网首部（14 项有效，补到 16 项使索引与数组同宽）
-    reg [31:0] ip_head[7:0];  //IP首部 + ICMP首部（7 项有效，补到 8 项使索引与数组同宽）
+    reg [7:0] eth_head[13:0];  //以太网首部
+    reg [31:0] ip_head[6:0];  //IP首部 + ICMP首部                             
     reg start_en_d0;
     reg start_en_d1;
     reg start_en_d2;
@@ -194,7 +194,6 @@ module icmp_tx (
             check_buffer      <= 32'd0;
             check_buffer_icmp <= 32'd0;
             ip_head[1][31:16] <= 16'd0;
-            ip_head[7]        <= 32'd0;  // 补位项：只为让 3 位索引不越界，有效状态不会选中
             tx_bit_sel        <= 2'b0;
             crc_en            <= 1'b0;
             gmii_tx_en        <= 1'b0;
@@ -230,8 +229,6 @@ module icmp_tx (
             //以太网类型
             eth_head[12]      <= ETH_TYPE[15:8];
             eth_head[13]      <= ETH_TYPE[7:0];
-            eth_head[14]      <= 8'd0;  // 补位项：只为让 4 位索引不越界，有效状态不会选中
-            eth_head[15]      <= 8'd0;
         end else begin
             skip_en    <= 1'b0;
             crc_en     <= 1'b0;
@@ -316,7 +313,7 @@ module icmp_tx (
                 end
                 st_preamble: begin  //发送前导码+帧起始界定符
                     gmii_tx_en <= 1'b1;
-                    gmii_txd   <= preamble[cnt[2:0]];
+                    gmii_txd   <= preamble[cnt];
                     if (cnt == 5'd7) begin
                         skip_en <= 1'b1;
                         cnt     <= 5'd0;
@@ -325,7 +322,7 @@ module icmp_tx (
                 st_eth_head: begin  //发送以太网首部
                     gmii_tx_en <= 1'b1;
                     crc_en     <= 1'b1;
-                    gmii_txd   <= eth_head[cnt[3:0]];
+                    gmii_txd   <= eth_head[cnt];
                     if (cnt == 5'd13) begin
                         skip_en <= 1'b1;
                         cnt     <= 5'd0;
@@ -335,16 +332,16 @@ module icmp_tx (
                     crc_en     <= 1'b1;
                     gmii_tx_en <= 1'b1;
                     tx_bit_sel <= tx_bit_sel + 2'd1;
-                    if (tx_bit_sel == 3'd0) gmii_txd <= ip_head[cnt[2:0]][31:24];
-                    else if (tx_bit_sel == 3'd1) gmii_txd <= ip_head[cnt[2:0]][23:16];
+                    if (tx_bit_sel == 3'd0) gmii_txd <= ip_head[cnt][31:24];
+                    else if (tx_bit_sel == 3'd1) gmii_txd <= ip_head[cnt][23:16];
                     else if (tx_bit_sel == 3'd2) begin
-                        gmii_txd <= ip_head[cnt[2:0]][15:8];
+                        gmii_txd <= ip_head[cnt][15:8];
                         if (cnt == 5'd6) begin
                             //提前读请求数据，等待数据有效时发送
                             tx_req <= 1'b1;
                         end
                     end else if (tx_bit_sel == 3'd3) begin
-                        gmii_txd <= ip_head[cnt[2:0]][7:0];
+                        gmii_txd <= ip_head[cnt][7:0];
                         if (cnt == 5'd6) begin
                             skip_en <= 1'b1;
                             cnt     <= 5'd0;

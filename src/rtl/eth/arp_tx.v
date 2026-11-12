@@ -46,8 +46,8 @@ module arp_tx (
     reg [4:0] cur_state;
     reg [4:0] next_state;
     reg [7:0] preamble[7:0];  //前导码+SFD
-    reg [7:0] eth_head[15:0];  //以太网首部（14 项有效，补到 16 项使索引与数组同宽）
-    reg [7:0] arp_data[31:0];  //ARP数据（28 项有效，补到 32 项使索引与数组同宽）
+    reg [7:0] eth_head[13:0];  //以太网首部
+    reg [7:0] arp_data[27:0];  //ARP数据                           
     reg tx_en_d0;  //arp_tx_en信号延时
     reg tx_en_d1;
     reg tx_en_d2;
@@ -174,12 +174,6 @@ module arp_tx (
             arp_data[25] <= DES_IP[23:16];
             arp_data[26] <= DES_IP[15:8];
             arp_data[27] <= DES_IP[7:0];
-            eth_head[14] <= 8'd0;  // 补位项：只为让 4 位索引不越界，有效状态不会选中
-            eth_head[15] <= 8'd0;
-            arp_data[28] <= 8'd0;
-            arp_data[29] <= 8'd0;
-            arp_data[30] <= 8'd0;
-            arp_data[31] <= 8'd0;
         end else begin
             skip_en    <= 1'b0;
             crc_en     <= 1'b0;
@@ -214,7 +208,7 @@ module arp_tx (
                 end
                 st_preamble: begin  //发送前导码+帧起始界定符
                     gmii_tx_en <= 1'b1;
-                    gmii_txd   <= preamble[cnt[2:0]];
+                    gmii_txd   <= preamble[cnt];
                     if (cnt == 6'd7) begin
                         skip_en <= 1'b1;
                         cnt     <= 1'b0;
@@ -223,7 +217,7 @@ module arp_tx (
                 st_eth_head: begin  //发送以太网首部
                     gmii_tx_en <= 1'b1;
                     crc_en     <= 1'b1;
-                    gmii_txd   <= eth_head[cnt[3:0]];
+                    gmii_txd   <= eth_head[cnt];
                     if (cnt == 6'd13) begin
                         skip_en <= 1'b1;
                         cnt     <= 1'b0;
@@ -240,7 +234,7 @@ module arp_tx (
                     end else cnt <= cnt + 1'b1;
                     if (data_cnt <= 6'd27) begin
                         data_cnt <= data_cnt + 1'b1;
-                        gmii_txd <= arp_data[data_cnt[4:0]];
+                        gmii_txd <= arp_data[data_cnt];
                     end else gmii_txd <= 8'd0;  //Padding,填充0
                 end
                 st_crc: begin  //发送CRC校验值
