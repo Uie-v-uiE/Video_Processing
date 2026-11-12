@@ -116,6 +116,10 @@ def cflags():
             #    **MMU 关掉时非对齐访问一定 fault**（SCTLR.A=0 的豁免只在 MMU 开着时成立），
             #    而 MMU 是标准启动 boot.S 开的 ⇒ 这条选项 + 链上那三个 BSP 启动文件，两条一起才成立。
             "-mno-unaligned-access",
+            # 2025.2 的 BSP 是 SDT 形态（配置表是 {Name, BaseAddress}）。应用必须用同一个宏编译，
+            # 否则 LookupConfig 的 u16 DeviceId 原型会把基址截断（XADC 传 0xF8007100 变成 0x7100，
+            # 一直查不到；SD 传 0xE0100000 变成 0，只是碰巧命中"基址 0 匹配任意项"）。
+            "-DSDT",
             "-ffunction-sections", "-fdata-sections", "-Wall", "-Wextra", "-Wno-unused-parameter",
             "-O2", "-I" + os.path.join(BSP, "include"), "-specs=" + os.path.join(BSP, "Xilinx.spec")
             ] + COMPAT_DEFS
