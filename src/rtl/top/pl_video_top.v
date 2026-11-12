@@ -282,7 +282,7 @@ module pl_video_top #(
     end
     wire osd_en = ~oo2;
     wire [12:0] y_right_adv = {1'b0, y} + {5'b0, pipe_off_rows} + BILIN_ROWS[12:0];
-    wire [11:0] y_req_row = y_right_adv[11:0] >> 1;
+    wire [11:0] y_req_row = {1'b0, y_right_adv[11:1]};   // 与 `y_right_adv[11:0] >> 1` 逐位相同，显式切片避免隐式截断
     // #97 第四笔 / #98：读行提前 `OFF_LINES + BILIN_ROWS` ⇒ 本帧末尾几行的越界请求喂的是**下一帧的头
     // 几行**，钳到 `IMG_H-1` 就让屏顶画"这张图自己的末行"：列位置与段数一点都不变 ⇒ #92/#93 那十二格
     // 全都看不见（C5 就是为这一格写的尺子）。绕回后仍走一遍逆缩放 ⇒ 小于 1.00x 不多出一条顶带。
@@ -873,7 +873,7 @@ module pl_video_top #(
     //     （Qihe useless-data 不认层次读者会把整组报成死数据）。#66 说的"单独的删除轮"
     //     据此取消——能删的只有"将来连探针一起退役"那一轮。
     wire [12:0] y_chain_adv = {1'b0, y_d[3]} + {5'b0, pipe_off_rows} + BILIN_ROWS[12:0] - 13'd2;
-    wire [11:0] y_req_chain = y_chain_adv[11:0] >> 1;                 // 与 `y_req_row` 同一个算法，晚两行
+    wire [11:0] y_req_chain = {1'b0, y_chain_adv[11:1]};   // 与 `y_chain_adv[11:0] >> 1` 逐位相同；与 `y_req_row` 同一算法，晚两行
     wire [11:0] cy_chain    = (y_req_chain >= img_h_12) ? (y_req_chain - img_h_12) : y_req_chain;
     // #73：链子现在的"一行"是显示列 1024（相邻两拍内容是同一个源列的复制）。
     //   代价写死在这里，不许算作免费：行缓存宽度翻倍（约 +8 块 BRAM），而且 3x3 滤波的空间尺度

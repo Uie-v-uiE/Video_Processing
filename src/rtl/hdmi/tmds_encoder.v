@@ -21,16 +21,26 @@ module tmds_encoder (
     wire use_xnor = (n1 > 4'd4) || (n1 == 4'd4 && din[0] == 1'b0);
 
     reg [8:0] q_m;
-    integer i;
+    // 显式展开 9 位：for 循环在综合里本来就会展开，写成展开形式让静态分析能证明每位都有驱动
     always @(*) begin
         q_m[0] = din[0];
         if (use_xnor) begin
-            for (i = 1; i < 8; i = i + 1)
-                q_m[i] = ~(q_m[i-1] ^ din[i]);
+            q_m[1] = ~(q_m[0] ^ din[1]);
+            q_m[2] = ~(q_m[1] ^ din[2]);
+            q_m[3] = ~(q_m[2] ^ din[3]);
+            q_m[4] = ~(q_m[3] ^ din[4]);
+            q_m[5] = ~(q_m[4] ^ din[5]);
+            q_m[6] = ~(q_m[5] ^ din[6]);
+            q_m[7] = ~(q_m[6] ^ din[7]);
             q_m[8] = 1'b0;
         end else begin
-            for (i = 1; i < 8; i = i + 1)
-                q_m[i] = q_m[i-1] ^ din[i];
+            q_m[1] = q_m[0] ^ din[1];
+            q_m[2] = q_m[1] ^ din[2];
+            q_m[3] = q_m[2] ^ din[3];
+            q_m[4] = q_m[3] ^ din[4];
+            q_m[5] = q_m[4] ^ din[5];
+            q_m[6] = q_m[5] ^ din[6];
+            q_m[7] = q_m[6] ^ din[7];
             q_m[8] = 1'b1;
         end
     end
